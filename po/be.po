@@ -1,117 +1,120 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2002 THE PACKAGE'S COPYRIGHT HOLDER
+# translation of vte.gnome-2-2.po to belarusian
 # This file is distributed under the same license as the PACKAGE package.
-# Ales Nyakhaychyk <i18n@infonet.by>, 2002-2003.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# Vital Khilko <dojlid@mova.org>, 2003
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: vte 2.1\n"
-"POT-Creation-Date: 2002-11-27 05:59+0100\n"
-"PO-Revision-Date: 2003-01-08 11:28+0200\n"
-"Last-Translator: Ales Nyakhaychyk <i18n@infonet.by>\n"
-"Language-Team: Belarusian <i18n@tut.by>\n"
+"Project-Id-Version: vte.gnome-2-2\n"
+"POT-Creation-Date: 2003-02-16 05:08+0100\n"
+"PO-Revision-Date: 2003-02-18 22:22GMT+2\n"
+"Last-Translator: Vital Khilko <dojlid@mova.org>\n"
+"Language-Team: belarusian <i18n@mova.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 0.9.6\n"
+"X-Generator: KBabel 1.0\n"
 
-#: src/pty.c:249
+#: src/pty.c:253
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr "Памылка даданьня \"%s\" у асяродзьдзе; працяг..."
+msgstr "Памылка даданьня `%s' да асяродьдзя, працягваем."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:800
+#, c-format
+msgid "can not run %s"
+msgstr "немагчыма запусьціць %s"
 
 #: src/reaper.c:107
 msgid "Error creating signal pipe."
-msgstr "Памылка стварэньня сыгнальнага трубаправоду."
+msgstr "Памылка стварэньня сыгнальнага канала."
 
-#: src/trie.c:405
+#: src/trie.c:411
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Двайнік (%s/%s)!"
 
-#: src/vte.c:1333
+#: src/vte.c:1410
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "Памылка кампіляцыі звычайнага выразу \"%s\"."
+msgstr "Памылка кампіляцыі сталага выразу \"%s\"."
 
-#: src/vte.c:1840 src/vte.c:1849 src/vte.c:1861 src/vte.c:1879 src/vte.c:1884
-#: src/vte.c:1889
+#: src/vte.c:1932 src/vte.c:1941 src/vte.c:1953 src/vte.c:1971 src/vte.c:1977
+#: src/vte.c:1982
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "Немагчыма пераўтварыць знакі з %s у %s."
+msgstr "Немагчыма пераўтварыць сымбалі з %s у %s."
 
-#: src/vte.c:5299
+#: src/vte.c:5496
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Атрымана нечаканая (key?) пасьлядоўнасьць `%s'."
 
-#: src/vte.c:6119
-#, c-format
-msgid "Character 0x%x is undefined, allocating one column."
-msgstr "Знак 0x%x ня вызначаны, разьмяркаваньне аднаго слупку."
-
-#: src/vte.c:6325
+#: src/vte.c:6588
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Ня вызначаны апрацоўшчык для кіруючае пасьлядоўнасьці `%s'."
 
-#: src/vte.c:6932
+#: src/vte.c:7330
 #, c-format
 msgid "Error reading from child: %s."
-msgstr "Памылка чытаньня з нашчадку: %s."
+msgstr "Памылка чытаньня з нашчадка: %s."
 
-#: src/vte.c:7098
+#: src/vte.c:7513
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "Памылка (%s) пераўтварэньня даньняў для нашчадку; скіданьне."
+msgstr "Памылка (%s) пераўтварэньня даньняў для нашчадка; скіданьне."
 
-#: src/vte.c:9363
+#: src/vte.c:9840
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
-msgstr "Выкарыстоўваецца набор шрыфтоў \"%s\", у які прапушчаны гэты во набор знакаў: %s."
+msgstr "Выкарыстоўваецца набор шрыфтоў \"%s\", у якім прапушчаны гэты набор знакаў: %s."
 
-#: src/vte.c:9904
+#: src/vte.c:10478
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
-msgstr "Памылка загрузкі Xft шаблёну шрыфту \"%s\", адкат да дапомнага шрыфту."
+msgstr "Памылка загрузкі Xft шаблёну шрыфта \"%s\", адкат да дапомнага шрыфта."
 
-#: src/vte.c:9916
+#: src/vte.c:10490
 msgid "Failed to load default Xft font."
-msgstr "Памылка загрузкі дапомнага Xft шрыфту."
+msgstr "Памылка загрузкі дапомнага Xft шрыфта."
 
-#: src/vte.c:10009
+#: src/vte.c:10583
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
-msgstr "Памылка загрузкі набору шрыфтоў \"%s\", адкат да дапомнага шрыфту."
+msgstr "Памылка загрузкі набору шрыфтоў \"%s\", адкат да дапомнага шрыфта."
 
-#: src/vte.c:10021
+#: src/vte.c:10595
 msgid "Failed to load default font, crashing or behaving abnormally."
-msgstr ""
+msgstr "НЕмагчыма загрузіць дапомны шрыфт, збой ці не адпаведныя паводзіны."
 
-#: src/vte.c:10284
+#: src/vte.c:10857
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Памылка чытаньня PTY памера, выкарыстоўваецца дапомны: %s."
 
-#: src/vte.c:10320
+#: src/vte.c:10893
 #, c-format
 msgid "Error setting PTY size: %s."
-msgstr "Памылка ўсталяваньня памеру PTY: %s."
+msgstr "Памылка ўсталяваньня памера PTY: %s."
 
-#: src/vte.c:13060
+#: src/vte.c:13797
 msgid "Error allocating draw, disabling Xft."
-msgstr ""
+msgstr "Памылка разьмяшчэньня адлюстраваньня, выключэньне Xft."
 
-#: src/vte.c:13068
+#: src/vte.c:13805
 msgid "Error allocating context, disabling Pango."
-msgstr ""
+msgstr "Памылка разьмяшчэньня зместа, выключэньне Pango."
 
-#: src/vte.c:13074
+#: src/vte.c:13811
 msgid "Error allocating layout, disabling Pango."
-msgstr ""
+msgstr "Памылка разьмяшчэньня разьметкі, выключэньне Pango."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14601
+#: src/vte.c:15459
 msgid "g_iconv_open() failed setting word characters"
-msgstr ""
+msgstr "g_iconv_open() памылка усталяваньня сымбаляў слова"
 
