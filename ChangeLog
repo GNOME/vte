@@ -1,4 +1,8 @@
 2003-04-29 nalin
+	* src/vte.c(vte_terminal_unrealize): set the IM context's client window
+	to NULL before unreferencing it to avoid crashes when preedit is active.
+
+2003-04-29 nalin
 	* src/keymap.c: add keymaps for GDK_slash and GDK_question (#108299).
 
 2003-04-29 nalin

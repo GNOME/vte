@@ -10837,11 +10837,8 @@ vte_terminal_unrealize(GtkWidget *widget)
 	/* Shut down input methods. */
 	if (terminal->pvt->im_context != NULL) {
 		vte_terminal_im_reset(terminal);
-#ifdef VTE_DEBUG
-		if (terminal->pvt->im_preedit_active) {
-			g_warning("Unrealizing while IM preedit not stopped.");
-		}
-#endif
+		gtk_im_context_set_client_window(terminal->pvt->im_context,
+						 NULL);
 		g_object_unref(G_OBJECT(terminal->pvt->im_context));
 		terminal->pvt->im_context = NULL;
 	}
