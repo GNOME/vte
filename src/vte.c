@@ -9127,13 +9127,10 @@ vte_terminal_paste(VteTerminal *terminal, GdkAtom board)
 
 /* Start selection at the location of the event. */
 static void
-vte_terminal_start_selection(GtkWidget *widget, GdkEventButton *event,
+vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 			     enum vte_selection_type selection_type)
 {
-	VteTerminal *terminal;
 	long cellx, celly, delta;
-
-	terminal = VTE_TERMINAL(widget);
 
 	/* Convert the event coordinates to cell coordinates. */
 	delta = terminal->pvt->screen->scroll_delta;
@@ -9195,18 +9192,17 @@ vte_terminal_start_selection(GtkWidget *widget, GdkEventButton *event,
 
 /* Extend selection to include the given event coordinates. */
 static void
-vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
+vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 			      gboolean always_grow)
 {
-	VteTerminal *terminal;
 	VteScreen *screen;
 	VteRowData *rowdata;
 	long delta, height, width, last_nonspace, i, j;
 	struct vte_charcell *cell;
 	struct selection_event_coords *origin, *last, *start, *end;
 	struct selection_cell_coords old_start, old_end, *sc, *ec, tc;
+	gboolean invalidate_selected = FALSE;
 
-	terminal = VTE_TERMINAL(widget);
 	screen = terminal->pvt->screen;
 	old_start = terminal->pvt->selection_start;
 	old_end = terminal->pvt->selection_end;
@@ -9220,6 +9216,7 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 	 * the selected block. */
 	if (terminal->pvt->selecting_restart) {
 		vte_terminal_deselect_all(terminal);
+		invalidate_selected = TRUE;
 		/* Record the origin of the selection. */
 		terminal->pvt->selection_origin =
 			terminal->pvt->selection_restart_origin;
@@ -9526,6 +9523,26 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 				     ABS(old_end.y -
 					 terminal->pvt->selection_end.y) + 1);
 	}
+	if (invalidate_selected) {
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
+			fprintf(stderr, "Refreshing lines %ld to %ld.\n",
+				MIN(terminal->pvt->selection_start.y,
+				    terminal->pvt->selection_end.y),
+				MAX(terminal->pvt->selection_start.y,
+				    terminal->pvt->selection_end.y));
+		}
+#endif
+		vte_invalidate_cells(terminal,
+				     0,
+				     terminal->column_count,
+				     MIN(terminal->pvt->selection_start.y,
+				         terminal->pvt->selection_end.y),
+				     MAX(terminal->pvt->selection_start.y,
+					 terminal->pvt->selection_end.y) -
+				     MIN(terminal->pvt->selection_start.y,
+				         terminal->pvt->selection_end.y) + 1);
+	}
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
@@ -9603,7 +9620,7 @@ vte_terminal_autoscroll(gpointer data)
 			x = terminal->column_count * terminal->char_width;
 		}
 		/* Extend selection to cover the newly-scrolled area. */
-		vte_terminal_extend_selection(widget, x, y, FALSE);
+		vte_terminal_extend_selection(terminal, x, y, FALSE);
 	} else {
 		/* Stop autoscrolling. */
 		terminal->pvt->mouse_autoscroll_tag = 0;
@@ -9678,7 +9695,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 #endif
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
 			    !event_mode) {
-				vte_terminal_extend_selection(widget,
+				vte_terminal_extend_selection(terminal,
 							      event->x - VTE_PAD_WIDTH,
 							      event->y - VTE_PAD_WIDTH,
 							      FALSE);
@@ -9792,12 +9809,11 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 					start_selecting = TRUE;
 				}
 			} else {
-				/* If the user hit shift, and the location
-				 * clicked isn't selected, and we already have
-				 * a selection, extend selection, otherwise
-				 * start over. */
+				/* If the user hit shift, then extend the
+				 * selection instead. */
 				if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) &&
-				    terminal->pvt->has_selection &&
+				    (terminal->pvt->has_selection ||
+				     terminal->pvt->selecting_restart) &&
 				    !vte_cell_is_selected(terminal,
 							  cellx,
 							  celly,
@@ -9809,16 +9825,16 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			}
 			if (start_selecting) {
 				vte_terminal_deselect_all(terminal);
-				vte_terminal_start_selection(widget,
+				vte_terminal_start_selection(terminal,
 							     event,
 							     selection_type_char);
 				handled = TRUE;
 			}
 			if (extend_selecting) {
-				vte_terminal_extend_selection(widget,
+				vte_terminal_extend_selection(terminal,
 							      event->x - VTE_PAD_WIDTH,
 							      event->y - VTE_PAD_WIDTH,
-							      TRUE);
+							      !terminal->pvt->selecting_restart);
 				handled = TRUE;
 			}
 			break;
@@ -9856,10 +9872,10 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		case 1:
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
 			    !event_mode) {
-				vte_terminal_start_selection(widget,
+				vte_terminal_start_selection(terminal,
 							     event,
 							     selection_type_word);
-				vte_terminal_extend_selection(widget,
+				vte_terminal_extend_selection(terminal,
 							      event->x - VTE_PAD_WIDTH,
 							      event->y - VTE_PAD_WIDTH,
 							      FALSE);
@@ -9885,10 +9901,10 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		case 1:
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
 			    !event_mode) {
-				vte_terminal_start_selection(widget,
+				vte_terminal_start_selection(terminal,
 							     event,
 							     selection_type_line);
-				vte_terminal_extend_selection(widget,
+				vte_terminal_extend_selection(terminal,
 							      event->x - VTE_PAD_WIDTH,
 							      event->y - VTE_PAD_WIDTH,
 							      FALSE);
