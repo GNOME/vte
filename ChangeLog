@@ -1,4 +1,11 @@
 2003-02-19 nalin
+	* src/vte.c(vte_terminal_focus_in/focus_out): don't pass focus status
+	changes on to our IM context when we're not realized, because we don't
+	have an IM context then.
+	* src/vte.c(vte_terminal_background_update): don't leak a queued update
+	if one is queued and we get called directly (Red Hat #84368).
+
+2003-02-19 nalin
 	* src/vte.c(vte_terminal_scroll_window): correctly determine whether or
 	not it's safe to scroll with gdk_window_scroll (Red Hat #83472).  From
 	HEAD.
