@@ -6449,8 +6449,8 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	if (col + columns > terminal->column_count) {
 		if (terminal->pvt->flags.am) {
 			/* Wrap. */
+			vte_sequence_handler_sf(terminal, NULL, 0, NULL);
 			screen->cursor_current.col = 0;
-			screen->cursor_current.row++;
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
 			screen->cursor_current.col = terminal->column_count -

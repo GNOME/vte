@@ -1,3 +1,7 @@
+2003-03-04 nalin	
+	* src/vte.c(vte_terminal_insert_char): wrap properly when a scrolling
+	region is set (#107559).
+
 2003-02-28  Takeshi AIHANA <aihana@gnome.gr.jp>
 
 	* po/ja.po: Added Japanese translations from gnome-2-2.
