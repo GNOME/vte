@@ -1,3 +1,12 @@
+2003-04-23 nalin
+	* src/vte.c(vte_terminal_background_update): don't bother generating
+	a new pixmap or panning the pixbuf -- we can use the desaturated
+	pixbuf directly now (#111386).
+	* src/vte.c(vte_terminal_paint): use the drawing offsets because we
+	don't regenerate new background pixmaps when the window is moved.
+	* src/vte.c(vte_terminal_draw_cells): add jittered bold text back in,
+	fell out in the drawing overhaul (#111430).
+
 2003-04-22 nalin
 	* src/iso2022.c(_vte_iso2022_fragment_input): account for valid CSI
 	sequences which were missed earlier.

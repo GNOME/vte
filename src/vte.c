@@ -347,16 +347,14 @@ struct _VteTerminalPrivate {
 
 	/* Background images/"transparency". */
 	gboolean bg_update_pending;
+	gboolean bg_transparent;
 	gboolean bg_update_transparent;
 	guint bg_update_tag;
-	GdkPixbuf *bg_image;
+	GdkPixbuf *bg_image, *bg_desaturated_image;
 	long bg_saturation;	/* out of VTE_SATURATION_MAX */
 	GdkColor bg_tint_color;
-
-	gboolean bg_transparent;
-	GdkAtom bg_transparent_atom;
-	GdkWindow *bg_transparent_window;
-	GdkPixbuf *bg_transparent_image;
+	GdkWindow *bg_root_window;
+	GdkAtom bg_rootpmapid_atom;
 
 	/* Key modifiers. */
 	GdkModifierType modifiers;
@@ -7528,11 +7526,6 @@ vte_terminal_configure_toplevel(GtkWidget *widget, GdkEventConfigure *event,
 	g_return_val_if_fail(GTK_WIDGET_TOPLEVEL(widget), FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
 
-	/* In case we moved, queue a background image update. */
-	if (VTE_TERMINAL(data)->pvt->bg_transparent) {
-		vte_terminal_queue_background_update(VTE_TERMINAL(data), TRUE);
-	}
-
 	/* In case we were resized, repaint everything, including any border
 	 * regions which no cell covers. */
 	vte_invalidate_all(VTE_TERMINAL(data));
@@ -10583,18 +10576,18 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->adjustment_changed_tag = 0;
 
 	/* Set up background information. */
-	pvt->bg_transparent = FALSE;
 	pvt->bg_update_pending = FALSE;
+	pvt->bg_transparent = FALSE;
 	pvt->bg_update_transparent = FALSE;
 	pvt->bg_update_tag = VTE_INVALID_SOURCE;
-	pvt->bg_transparent_atom = 0;
-	pvt->bg_transparent_window = NULL;
-	pvt->bg_transparent_image = NULL;
+	pvt->bg_image = NULL;
+	pvt->bg_desaturated_image = NULL;
 	pvt->bg_saturation = 0.4 * VTE_SATURATION_MAX;
 	pvt->bg_tint_color.red = 0;
 	pvt->bg_tint_color.green = 0;
 	pvt->bg_tint_color.blue = 0;
-	pvt->bg_image = NULL;
+	pvt->bg_root_window = NULL;
+	pvt->bg_rootpmapid_atom = 0;
 
 	/* Clear modifiers. */
 	pvt->modifiers = 0;
@@ -10733,15 +10726,10 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 				       allocation->y,
 				       allocation->width,
 				       allocation->height);
-		/* Refresh the background if we moved. */
-		if (terminal->pvt->bg_transparent &&
-		    ((x != allocation->x) ||
-		     (y != allocation->y) ||
-		     (terminal->pvt->bg_transparent_image == NULL))) {
-			vte_terminal_queue_background_update(terminal, TRUE);
-		}
-		/* Repaint if we were resized. */
-		if ((w != allocation->width) ||
+		/* Repaint if we were resized or moved. */
+		if ((x != allocation->x) ||
+		    (y != allocation->y) ||
+		    (w != allocation->width) ||
 		    (h != allocation->height)) {
 			vte_invalidate_all(terminal);
 		}
@@ -10826,7 +10814,7 @@ vte_terminal_unrealize(GtkWidget *widget)
 	/* Disconnect any filters which might be watching for X window
 	 * pixmap changes. */
 	if (terminal->pvt->bg_transparent) {
-		gdk_window_remove_filter(terminal->pvt->bg_transparent_window,
+		gdk_window_remove_filter(terminal->pvt->bg_root_window,
 					 vte_terminal_filter_property_changes,
 					 terminal);
 	}
@@ -10900,13 +10888,9 @@ vte_terminal_finalize(GObject *object)
 		g_object_unref(G_OBJECT(terminal->pvt->bg_image));
 		terminal->pvt->bg_image = NULL;
 	}
-	if (terminal->pvt->bg_transparent_image != NULL) {
-		g_object_unref(G_OBJECT(terminal->pvt->bg_transparent_image));
-		terminal->pvt->bg_transparent_image = NULL;
-	}
-	if (terminal->pvt->bg_transparent_image != NULL) {
-		g_object_unref(G_OBJECT(terminal->pvt->bg_transparent_image));
-		terminal->pvt->bg_transparent_image = NULL;
+	if (terminal->pvt->bg_desaturated_image != NULL) {
+		g_object_unref(G_OBJECT(terminal->pvt->bg_desaturated_image));
+		terminal->pvt->bg_desaturated_image = NULL;
 	}
 	if (terminal->pvt->bg_update_tag != VTE_INVALID_SOURCE) {
 		g_source_remove(terminal->pvt->bg_update_tag);
@@ -11035,10 +11019,6 @@ vte_terminal_finalize(GObject *object)
 		_vte_buffer_free(terminal->pvt->incoming);
 	}
 	terminal->pvt->incoming = NULL;
-	if (terminal->pvt->pending != NULL) {
-		g_array_free(terminal->pvt->pending, TRUE);
-	}
-	terminal->pvt->pending = NULL;
 	if (terminal->pvt->outgoing != NULL) {
 		_vte_buffer_free(terminal->pvt->outgoing);
 	}
@@ -12197,6 +12177,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 
 	columns = 0;
 	for (i = 0; i < n; i++) {
+		/* Adjust for the border. */
 		items[i].x += VTE_PAD_WIDTH;
 		items[i].y += VTE_PAD_WIDTH;
 		columns += items[i].columns;
@@ -12217,7 +12198,21 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	_vte_draw_text(terminal->pvt->draw,
 		       items, n,
 		       &color, VTE_DRAW_OPAQUE);
+	if (bold) {
+		/* Take a step to the right. */
+		for (i = 0; i < n; i++) {
+			items[i].x++;
+		}
+		_vte_draw_text(terminal->pvt->draw,
+			       items, n,
+			       &color, VTE_DRAW_OPAQUE);
+		/* Now take a step back. */
+		for (i = 0; i < n; i++) {
+			items[i].x--;
+		}
+	}
 	for (i = 0; i < n; i++) {
+		/* Deadjust for the border. */
 		items[i].x -= VTE_PAD_WIDTH;
 		items[i].y -= VTE_PAD_WIDTH;
 	}
@@ -12477,7 +12472,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	int row, drow, col, row_stop, col_stop, columns;
 	char *preedit;
 	long width, height, ascent, descent, delta;
-	int i, len, fore, back;
+	int i, len, fore, back, x, y;
 	gboolean blink;
 
 #ifdef VTE_DEBUG
@@ -12514,12 +12509,17 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 	/* Designate the start of the drawing operation and clear the area. */
 	_vte_draw_start(terminal->pvt->draw);
-	if (terminal->pvt->scroll_background) {
-		_vte_draw_set_scroll(terminal->pvt->draw,
-				     0,
-				     delta * terminal->char_height);
+	if (terminal->pvt->bg_transparent) {
+		gdk_window_get_origin(widget->window, &x, &y);
+		_vte_draw_set_scroll(terminal->pvt->draw, x, y);
 	} else {
-		_vte_draw_set_scroll(terminal->pvt->draw, 0, 0);
+		if (terminal->pvt->scroll_background) {
+			_vte_draw_set_scroll(terminal->pvt->draw,
+					     0,
+					     delta * terminal->char_height);
+		} else {
+			_vte_draw_set_scroll(terminal->pvt->draw, 0, 0);
+		}
 	}
 	_vte_draw_clear(terminal->pvt->draw,
 			area->x, area->y, area->width, area->height);
@@ -13424,7 +13424,6 @@ vte_terminal_background_update(gpointer data)
 	GdkColor bgcolor;
 	GdkColormap *colormap = NULL;
 	GdkPixmap *pixmap = NULL;
-	GdkBitmap *bitmap = NULL;
 	GdkPixbuf *pixbuf = NULL;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(data), TRUE);
@@ -13462,23 +13461,21 @@ vte_terminal_background_update(gpointer data)
 	/* If we're transparent, and either have no root image or are being
 	 * told to update it, get a new copy of the root window. */
 	if (terminal->pvt->bg_transparent &&
-	    (terminal->pvt->bg_update_transparent ||
-	     !GDK_IS_PIXBUF(terminal->pvt->bg_transparent_image))) {
+	    terminal->pvt->bg_update_transparent) {
 		GdkAtom atom, prop_type;
 		Pixmap *prop_data = NULL;
-		gint width, height, pwidth, pheight;
+		gint width, height;
 		/* If we need a new copy of the desktop, get it. */
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_MISC)) {
-			fprintf(stderr, "Fetching new background "
-				"pixmap.\n");
+			fprintf(stderr, "Fetching new background pixmap.\n");
 		}
 #endif
 		gdk_error_trap_push();
 
 		/* Retrieve the window and its property which we're watching. */
-		window = terminal->pvt->bg_transparent_window;
-		atom = terminal->pvt->bg_transparent_atom;
+		window = terminal->pvt->bg_root_window;
+		atom = terminal->pvt->bg_rootpmapid_atom;
 		prop_data = NULL;
 
 		/* Read the pixmap property off of the window. */
@@ -13498,19 +13495,16 @@ vte_terminal_background_update(gpointer data)
 			/* If we got a pixmap, create a pixbuf for us to work
 			 * with. */
 			if (GDK_IS_PIXMAP(pixmap)) {
-				gdk_drawable_get_size(window, &width, &height);
 				gdk_drawable_get_size(GDK_DRAWABLE(pixmap),
-						      &pwidth, &pheight);
-				pwidth = MIN(pwidth, width);
-				pheight = MIN(pheight, height);
+						      &width, &height);
 				colormap = gdk_drawable_get_colormap(window);
 				pixbuf = gdk_pixbuf_get_from_drawable(NULL,
 								      pixmap,
 								      colormap,
 								      0, 0,
 								      0, 0,
-								      pwidth,
-								      pheight);
+								      width,
+								      height);
 				/* Get rid of the pixmap. */
 				g_object_unref(G_OBJECT(pixmap));
 				pixmap = NULL;
@@ -13524,91 +13518,41 @@ vte_terminal_background_update(gpointer data)
 
 		/* Get rid of any previous snapshot we've got, and
 		 * save the new one in its place. */
-		if (GDK_IS_PIXBUF(terminal->pvt->bg_transparent_image)) {
-			g_object_unref(G_OBJECT(terminal->pvt->bg_transparent_image));
+		if (GDK_IS_PIXBUF(terminal->pvt->bg_image)) {
+			g_object_unref(G_OBJECT(terminal->pvt->bg_image));
 		}
-		terminal->pvt->bg_transparent_image = pixbuf;
+		terminal->pvt->bg_image = pixbuf;
 	}
 
-	/* Get a copy of the root image which we can manipulate. */
-	if (terminal->pvt->bg_transparent &&
-	    GDK_IS_PIXBUF(terminal->pvt->bg_transparent_image)) {
-		GdkPixbuf *oldpixbuf;
-		guint width, height, stride, bytes;
-		gint x, y;
-
-		pixbuf = terminal->pvt->bg_transparent_image;
-		width = gdk_pixbuf_get_width(pixbuf);
-		height = gdk_pixbuf_get_height(pixbuf);
-		stride = gdk_pixbuf_get_rowstride(pixbuf);
-		bytes = (gdk_pixbuf_get_bits_per_sample(pixbuf) *
-			 gdk_pixbuf_get_n_channels(pixbuf)) / 8,
-
-		/* Determine how far we should shift the origin. */
-		gdk_window_get_origin(widget->window, &x, &y);
-		while (x < 0) {
-			x += width;
-		}
-		while (y < 0) {
-			y += height;
-		}
-		x %= width;
-		y %= height;
-
-		if ((x != 0) || (y != 0)) {
-			/* Copy the picture data, panning it. */
-			oldpixbuf = pixbuf;
-			pixbuf = gdk_pixbuf_copy(oldpixbuf);
-			gdk_pixbuf_copy_area(oldpixbuf,
-					     x, y, width - x, height - y,
-					     pixbuf,
-					     0, 0);
-			gdk_pixbuf_copy_area(oldpixbuf,
-					     x, 0, width - x, y,
-					     pixbuf,
-					     0, height - y);
-			gdk_pixbuf_copy_area(oldpixbuf,
-					     0, y, x, height - y,
-					     pixbuf,
-					     width - x, 0);
-			gdk_pixbuf_copy_area(oldpixbuf,
-					     0, 0, x, y,
-					     pixbuf,
-					     width - x, height - y);
-		} else {
-			/* Just ref the transparent image. */
-			g_object_ref(G_OBJECT(pixbuf));
-		}
-	} else
-	if (GDK_IS_PIXBUF(terminal->pvt->bg_image)) {
-		/* The working pixbuf should just be the main image -- the
-		 * server tiles it for free. */
-		pixbuf = terminal->pvt->bg_image;
-		g_object_ref(G_OBJECT(pixbuf));
-	} else {
-		pixbuf = NULL;
-	}
-
-	/* If "pixbuf" isn't NULL, it points to a properly scrolled image. */
+	/* If we need to desaturate the image, create a copy we can
+	 * safely modify.  Otherwise just use the one we were passed. */
+	pixbuf = terminal->pvt->bg_image;
 	if (GDK_IS_PIXBUF(pixbuf)) {
-		/* If we need to desaturate the image, create a copy we can
-		 * safely modify.  Otherwise just use the one we were passed. */
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_MISC)) {
 			fprintf(stderr, "Applying background pixbuf.\n");
 		}
 #endif
-		if (terminal->pvt->bg_saturation != VTE_SATURATION_MAX) {
-			GdkPixbuf *desat_pixbuf;
-			desat_pixbuf = gdk_pixbuf_copy(pixbuf);
-			g_object_unref(pixbuf);
-			pixbuf = desat_pixbuf;
+		/* Lose the old desaturated background, if we have one. */
+		if (GDK_IS_PIXBUF(terminal->pvt->bg_desaturated_image)) {
+			g_object_unref(G_OBJECT(terminal->pvt->bg_desaturated_image));
 		}
-
 		/* Desaturate the image if we need to. */
-		if (terminal->pvt->bg_saturation != VTE_SATURATION_MAX) {
-			guchar *pixels, desat_lut_r[256],
-			       desat_lut_g[256], desat_lut_b[256];
+		if ((terminal->pvt->bg_saturation == VTE_SATURATION_MAX) ||
+		    (terminal->pvt->bg_image == NULL)) {
+			/* Just get a ref to the regular image. */
+			if (GDK_IS_PIXBUF(pixbuf)) {
+				g_object_ref(G_OBJECT(pixbuf));
+				terminal->pvt->bg_desaturated_image = pixbuf;
+			} else {
+				terminal->pvt->bg_desaturated_image = NULL;
+			}
+		} else {
+			/* Create a desaturated copy. */
+			guchar *pixels,
+			       desat_lut_r[256],
+			       desat_lut_g[256],
+			       desat_lut_b[256];
 			GdkColor bgcolor;
 			gulong pixel_count, sat, satr, satg, satb, stride,
 			       nchannels;
@@ -13635,6 +13579,7 @@ vte_terminal_background_update(gpointer data)
 				desat_lut_g[i] = CLAMP(sat + satg, 0, 0xff);
 				desat_lut_b[i] = CLAMP(sat + satb, 0, 0xff);
 			}
+			pixbuf = gdk_pixbuf_copy(terminal->pvt->bg_image);
 			pixels = gdk_pixbuf_get_pixels(pixbuf);
 			stride = gdk_pixbuf_get_rowstride(pixbuf);
 			pixel_count = gdk_pixbuf_get_height(pixbuf) * stride;
@@ -13654,6 +13599,7 @@ vte_terminal_background_update(gpointer data)
 					break;
 				}
 			}
+			terminal->pvt->bg_desaturated_image = pixbuf;
 		}
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_MISC)) {
@@ -13661,34 +13607,8 @@ vte_terminal_background_update(gpointer data)
 		}
 #endif
 		/* Set the modified pixbuf as the background. */
+		pixbuf = terminal->pvt->bg_desaturated_image;
 		_vte_draw_set_background_pixbuf(terminal->pvt->draw, pixbuf);
-
-		/* Render the modified image into a pixmap/bitmap pair. */
-		colormap = gdk_drawable_get_colormap(widget->window);
-		gdk_pixbuf_render_pixmap_and_mask_for_colormap(pixbuf,
-							       colormap,
-							       &pixmap,
-							       &bitmap,
-							       0);
-
-		/* Get rid of the pixbuf, which is no longer useful. */
-		g_object_unref(G_OBJECT(pixbuf));
-		pixbuf = NULL;
-
-		/* Set the pixmap as the window background, and then unref
-		 * it (the drawable should keep a ref). */
-		if (GDK_IS_PIXMAP(pixmap)) {
-			/* Set the pixmap as the window background. */
-			gdk_window_set_back_pixmap(widget->window,
-						   pixmap,
-						   FALSE);
-			g_object_unref(G_OBJECT(pixmap));
-			pixmap = NULL;
-		}
-		if (GDK_IS_DRAWABLE(bitmap)) {
-			g_object_unref(G_OBJECT(bitmap));
-			bitmap = NULL;
-		}
 	}
 
 	/* Note that the update has finished. */
@@ -13842,8 +13762,8 @@ vte_terminal_set_background_transparent(VteTerminal *terminal,
 		/* Get the window and property name we'll be watching for
 		 * changes in. */
 		atom = gdk_atom_intern("_XROOTPMAP_ID", TRUE);
-		terminal->pvt->bg_transparent_window = window;
-		terminal->pvt->bg_transparent_atom = atom;
+		terminal->pvt->bg_root_window = window;
+		terminal->pvt->bg_rootpmapid_atom = atom;
 		/* Add a filter to watch for this property changing. */
 		gdk_window_add_filter(window,
 				      vte_terminal_filter_property_changes,
@@ -14624,14 +14544,14 @@ vte_terminal_filter_property_changes(GdkXEvent *xevent,
 			fprintf(stderr, "Property changed.\n");
 		}
 #endif
-		atom = terminal->pvt->bg_transparent_atom;
+		atom = terminal->pvt->bg_rootpmapid_atom;
 		if (xev->xproperty.atom == gdk_x11_atom_to_xatom(atom)) {
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_MISC)) {
 				fprintf(stderr, "Property atom matches.\n");
 			}
 #endif
-			window = terminal->pvt->bg_transparent_window;
+			window = terminal->pvt->bg_root_window;
 			if (xev->xproperty.window == GDK_DRAWABLE_XID(window)) {
 #ifdef VTE_DEBUG
 				if (_vte_debug_on(VTE_DEBUG_MISC)) {
