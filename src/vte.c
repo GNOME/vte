@@ -12198,6 +12198,11 @@ vte_terminal_realize(GtkWidget *widget)
 	widget->window = gdk_window_new(gtk_widget_get_parent_window(widget),
 					&attributes,
 					attributes_mask);
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_UPDATES)) {
+		gdk_window_set_debug_updates(TRUE);
+	}
+#endif
 	gdk_window_move_resize(widget->window,
 			       widget->allocation.x,
 			       widget->allocation.y,

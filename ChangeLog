@@ -1,4 +1,8 @@
 2003-02-18 nalin
+	* src/vte.c: turn on update debugging if VTE_DEBUG_FLAGS includes
+	"updates"
+
+2003-02-18 nalin
 	* src/keymap.c: add map entries for unmodified digit keypresses.
 
 2003-02-18 nalin
