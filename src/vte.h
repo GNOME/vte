@@ -65,6 +65,8 @@ typedef struct _VteTerminalClass {
 	/* Signals we might emit. */
 	guint eof_signal;
 	guint child_exited_signal;
+	guint emulation_changed_signal;
+	guint encoding_changed_signal;
 	guint char_size_changed_signal;
 	guint window_title_changed_signal;
 	guint icon_title_changed_signal;
@@ -224,9 +226,11 @@ char *vte_terminal_match_check(VteTerminal *terminal, long column, long row,
 
 /* Set the emulation type.  Most of the time you won't need this. */
 void vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation);
+const char *vte_terminal_get_emulation(VteTerminal *terminal);
 
 /* Set the character encoding.  Most of the time you won't need this. */
 void vte_terminal_set_encoding(VteTerminal *terminal, const char *encoding);
+const char *vte_terminal_get_encoding(VteTerminal *terminal);
 
 G_END_DECLS
 

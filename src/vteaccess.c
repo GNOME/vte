@@ -28,7 +28,13 @@
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
+#endif
+
+#ifdef ENABLE_NLS
+#include <libintl.h>
+#define _(String) dgettext(PACKAGE, String)
 #else
+#define _(String) String
 #define bindtextdomain(package,dir)
 #endif
 
@@ -186,7 +192,11 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text)
 	if (caret == -1) {
 		caret = priv->snapshot_attributes->len;
 	}
-	priv->snapshot_caret = caret;
+	if (caret != priv->snapshot_caret) {
+		priv->snapshot_caret = caret;
+		g_signal_emit_by_name(G_OBJECT(text), "text_caret_moved",
+				      caret);
+	}
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "Refreshed accessibility snapshot, "

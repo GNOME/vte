@@ -62,8 +62,6 @@
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
-#else
-#define bindtextdomain(package,dir)
 #endif
 
 #ifdef ENABLE_NLS
@@ -71,6 +69,7 @@
 #define _(String) dgettext(PACKAGE, String)
 #else
 #define _(String) String
+#define bindtextdomain(package,dir)
 #endif
 
 #define VTE_TAB_WIDTH			8
@@ -137,7 +136,7 @@ struct _VteTerminalPrivate {
 	struct vte_termcap *termcap;	/* termcap storage */
 	struct vte_trie *trie;		/* control sequence trie */
 	const char *termcap_path;	/* path to termcap file */
-	const char *terminal;		/* terminal type to emulate */
+	const char *emulation;		/* terminal type to emulate */
 	GTree *sequences;		/* sequence handlers, keyed by GQuark
 					   based on the sequence name */
 	struct {			/* boolean termcap flags */
@@ -535,6 +534,30 @@ vte_terminal_emit_selection_changed(VteTerminal *terminal)
 	}
 #endif
 	g_signal_emit_by_name(terminal, "selection-changed");
+}
+
+/* Emit an "emulation-changed" signal. */
+static void
+vte_terminal_emit_emulation_changed(VteTerminal *terminal)
+{
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `emulation-changed'.\n");
+	}
+#endif
+	g_signal_emit_by_name(terminal, "emulation-changed");
+}
+
+/* Emit an "encoding-changed" signal. */
+static void
+vte_terminal_emit_encoding_changed(VteTerminal *terminal)
+{
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `encoding-changed'.\n");
+	}
+#endif
+	g_signal_emit_by_name(terminal, "encoding-changed");
 }
 
 /* Emit a "child-exited" signal. */
@@ -1296,6 +1319,13 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 			terminal->pvt->encoding);
 	}
 #endif
+	vte_terminal_emit_encoding_changed(terminal);
+}
+const char *
+vte_terminal_get_encoding(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+	return terminal->pvt->encoding;
 }
 
 /* End alternate character set. */
@@ -2359,23 +2389,23 @@ vte_sequence_handler_se(VteTerminal *terminal,
 	 * the Right Thing here. */
 
 	standout = vte_termcap_find_string(terminal->pvt->termcap,
-				           terminal->pvt->terminal,
+				           terminal->pvt->emulation,
 				           "so");
 	g_assert(standout != NULL);
 	blink = vte_termcap_find_string(terminal->pvt->termcap,
-				        terminal->pvt->terminal,
+				        terminal->pvt->emulation,
 				        "mb");
 	bold = vte_termcap_find_string(terminal->pvt->termcap,
-				       terminal->pvt->terminal,
+				       terminal->pvt->emulation,
 				       "md");
 	half = vte_termcap_find_string(terminal->pvt->termcap,
-				       terminal->pvt->terminal,
+				       terminal->pvt->emulation,
 				       "mh");
 	reverse = vte_termcap_find_string(terminal->pvt->termcap,
-				          terminal->pvt->terminal,
+				          terminal->pvt->emulation,
 				          "mr");
 	underline = vte_termcap_find_string(terminal->pvt->termcap,
-				            terminal->pvt->terminal,
+				            terminal->pvt->emulation,
 				            "us");
 
 	/* If the standout sequence is the same as another sequence, do what
@@ -2431,23 +2461,23 @@ vte_sequence_handler_so(VteTerminal *terminal,
 	 * the Right Thing here. */
 
 	standout = vte_termcap_find_string(terminal->pvt->termcap,
-				           terminal->pvt->terminal,
+				           terminal->pvt->emulation,
 				           "so");
 	g_assert(standout != NULL);
 	blink = vte_termcap_find_string(terminal->pvt->termcap,
-				        terminal->pvt->terminal,
+				        terminal->pvt->emulation,
 				        "mb");
 	bold = vte_termcap_find_string(terminal->pvt->termcap,
-				       terminal->pvt->terminal,
+				       terminal->pvt->emulation,
 				       "md");
 	half = vte_termcap_find_string(terminal->pvt->termcap,
-				       terminal->pvt->terminal,
+				       terminal->pvt->emulation,
 				       "mh");
 	reverse = vte_termcap_find_string(terminal->pvt->termcap,
-				          terminal->pvt->terminal,
+				          terminal->pvt->emulation,
 				          "mr");
 	underline = vte_termcap_find_string(terminal->pvt->termcap,
-				            terminal->pvt->terminal,
+				            terminal->pvt->emulation,
 				            "us");
 
 	/* If the standout sequence is the same as another sequence, do what
@@ -5000,7 +5030,7 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 
 	/* Start up the command and get the PTY of the master. */
 	env_add = g_malloc0(sizeof(char*) * 3);
-	term = g_strdup_printf("TERM=%s", terminal->pvt->terminal);
+	term = g_strdup_printf("TERM=%s", terminal->pvt->emulation);
 	colorterm = g_strdup("COLORTERM=" PACKAGE);
 	env_add[0] = term;
 #ifdef VTE_DEBUG
@@ -6252,7 +6282,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		/* If the key maps to characters, send them to the child. */
 		if (special != NULL) {
 			termcap = terminal->pvt->termcap;
-			tterm = terminal->pvt->terminal;
+			tterm = terminal->pvt->emulation;
 			normal = vte_termcap_find_string_length(termcap,
 								tterm,
 								special,
@@ -7895,7 +7925,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 		emulation = VTE_DEFAULT_EMULATION;
 	}
 	quark = g_quark_from_string(emulation);
-	terminal->pvt->terminal = g_quark_to_string(quark);
+	terminal->pvt->emulation = g_quark_to_string(quark);
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "Setting emulation to `%s'...", emulation);
@@ -7929,7 +7959,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	     i++) {
 		code = vte_terminal_capability_strings[i].capability;
 		tmp = vte_termcap_find_string(terminal->pvt->termcap,
-					      terminal->pvt->terminal,
+					      terminal->pvt->emulation,
 					      code);
 		if ((tmp != NULL) && (tmp[0] != '\0')) {
 			vte_termcap_strip(tmp, &stripped, &stripped_length);
@@ -7955,7 +7985,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 
 	/* Always define cr and lf. */
 	tmp = vte_termcap_find_string(terminal->pvt->termcap,
-				      terminal->pvt->terminal,
+				      terminal->pvt->emulation,
 				      "cr");
 	if (tmp == NULL) {
 		vte_trie_add(terminal->pvt->trie, "\r", 1, "cr", 0);
@@ -7963,7 +7993,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 		g_free(tmp);
 	}
 	tmp = vte_termcap_find_string(terminal->pvt->termcap,
-				      terminal->pvt->terminal,
+				      terminal->pvt->emulation,
 				      "sf");
 	if (tmp == NULL) {
 		vte_trie_add(terminal->pvt->trie, "\n", 1, "sf", 0);
@@ -7981,25 +8011,35 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 
 	/* Read emulation flags. */
 	terminal->pvt->flags.am = vte_termcap_find_boolean(terminal->pvt->termcap,
-							   terminal->pvt->terminal,
+							   terminal->pvt->emulation,
 							   "am");
 	terminal->pvt->flags.bw = vte_termcap_find_boolean(terminal->pvt->termcap,
-							   terminal->pvt->terminal,
+							   terminal->pvt->emulation,
 							   "bw");
 	terminal->pvt->flags.ul = vte_termcap_find_boolean(terminal->pvt->termcap,
-							   terminal->pvt->terminal,
+							   terminal->pvt->emulation,
 							   "ul");
 
 	/* Resize to the given default. */
 	columns = vte_termcap_find_numeric(terminal->pvt->termcap,
-					   terminal->pvt->terminal,
+					   terminal->pvt->emulation,
 					   "co");
 	rows = vte_termcap_find_numeric(terminal->pvt->termcap,
-					terminal->pvt->terminal,
+					terminal->pvt->emulation,
 					"li");
 	vte_terminal_set_size(terminal,
 			      columns ? columns : 80,
 			      rows ? rows : 24);
+
+	/* Notify observers that we changed our emulation. */
+	vte_terminal_emit_emulation_changed(terminal);
+}
+
+const char *
+vte_terminal_get_emulation(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+	return terminal->pvt->emulation;
 }
 
 /* Set the path to the termcap file we read, and read it in. */
@@ -8012,8 +8052,8 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path)
 	if (path == NULL) {
 		snprintf(path_default, sizeof(path_default),
 			 DATADIR "/" PACKAGE "/termcap/%s",
-			 terminal->pvt->terminal ?
-			 terminal->pvt->terminal : VTE_DEFAULT_EMULATION);
+			 terminal->pvt->emulation ?
+			 terminal->pvt->emulation : VTE_DEFAULT_EMULATION);
 		if (stat(path_default, &st) == 0) {
 			path = path_default;
 		} else {
@@ -8036,7 +8076,7 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path)
 		fprintf(stderr, "\n");
 	}
 #endif
-	vte_terminal_set_emulation(terminal, terminal->pvt->terminal);
+	vte_terminal_set_emulation(terminal, terminal->pvt->emulation);
 }
 
 static void
@@ -8506,7 +8546,7 @@ vte_terminal_finalize(GObject *object)
 	/* Clear some of our strings. */
 	terminal->pvt->termcap_path = NULL;
 	terminal->pvt->shell = NULL;
-	terminal->pvt->terminal = NULL;
+	terminal->pvt->emulation = NULL;
 
 	/* Stop watching for input from the child. */
 	if (terminal->pvt->pty_input != NULL) {
@@ -10065,6 +10105,24 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     G_TYPE_NONE, 0);
 	klass->icon_title_changed_signal =
 		g_signal_new("icon-title-changed",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     0,
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
+	klass->encoding_changed_signal =
+		g_signal_new("encoding-changed",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     0,
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
+	klass->emulation_changed_signal =
+		g_signal_new("emulation-changed",
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     0,
