@@ -768,7 +768,7 @@ vte_terminal_preedit_length(VteTerminal *terminal, gboolean left_only)
 
 /* Cause the cursor to be redrawn. */
 static void
-vte_invalidate_cursor_once(gpointer data)
+vte_invalidate_cursor_once(gpointer data, gboolean periodic)
 {
 	VteTerminal *terminal;
 	VteScreen *screen;
@@ -784,6 +784,12 @@ vte_invalidate_cursor_once(gpointer data)
 
 	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
 		return;
+	}
+
+	if (periodic) {
+		if (!terminal->pvt->cursor_blinks) {
+			return;
+		}
 	}
 
 	if (terminal->pvt->cursor_visible &&
@@ -848,7 +854,7 @@ vte_invalidate_cursor_periodic(gpointer data)
 
 	terminal = VTE_TERMINAL(widget);
 	if (terminal->pvt->cursor_blinks) {
-		vte_invalidate_cursor_once(terminal);
+		vte_invalidate_cursor_once(terminal, TRUE);
 	}
 
 	settings = gtk_widget_get_settings(GTK_WIDGET(data));
@@ -4511,7 +4517,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 	case 25:
 	case 1048:
 		/* Repaint the cell the cursor is in. */
-		vte_invalidate_cursor_once(terminal);
+		vte_invalidate_cursor_once(terminal, FALSE);
 		break;
 	case 47:
 	case 1047:
@@ -7622,7 +7628,7 @@ vte_terminal_im_preedit_changed(GtkIMContext *im_context, gpointer data)
 
 	/* Queue the area where the current preedit string is being displayed
 	 * for repainting. */
-	vte_invalidate_cursor_once(terminal);
+	vte_invalidate_cursor_once(terminal, FALSE);
 
 	pango_attr_list_unref(attrs);
 	if (terminal->pvt->im_preedit != NULL) {
@@ -7631,7 +7637,7 @@ vte_terminal_im_preedit_changed(GtkIMContext *im_context, gpointer data)
 	terminal->pvt->im_preedit = str;
 	terminal->pvt->im_preedit_cursor = cursor;
 
-	vte_invalidate_cursor_once(terminal);
+	vte_invalidate_cursor_once(terminal, FALSE);
 }
 
 /* Handle the toplevel being reconfigured. */
@@ -9830,7 +9836,7 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 		   we're in blinking mode and the next scheduled redraw occurs
 		   just after the one we're about to perform. */
 		terminal->pvt->cursor_force_fg = 2;
-		vte_invalidate_cursor_once(terminal);
+		vte_invalidate_cursor_once(terminal, FALSE);
 	}
 	return FALSE;
 }
@@ -9852,7 +9858,7 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 	 * point to painting ourselves if we don't have a window. */
 	if (GTK_WIDGET_REALIZED(widget)) {
 		gtk_im_context_focus_out(terminal->pvt->im_context);
-		vte_invalidate_cursor_once(terminal);
+		vte_invalidate_cursor_once(terminal, FALSE);
 	}
 	return FALSE;
 }
