@@ -1,4 +1,9 @@
 2003-01-27 nalin	
+	* src/vte.c(vte_terminal_realize): create the "invisible" cursor using
+	a bitmap instead of a pixmap, changing it from a 1x1 black square to
+	nothing.
+
+2003-01-27 nalin	
 	* src/vte.c(vte_terminal_decset_internal): make the various mouse event
 	modes mutually-exclusive, because apps expect them to be (#104395).
 	* src/vte.c: add a prototype for vte_terminal_background_update before

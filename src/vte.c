@@ -12010,7 +12010,7 @@ vte_terminal_realize(GtkWidget *widget)
 {
 	VteTerminal *terminal = NULL;
 	GdkWindowAttr attributes;
-	GdkPixmap *pixmap, *mask;
+	GdkPixmap *bitmap;
 	GdkColor black = {0,0,0}, color;
 	GtkSettings *settings;
 	int attributes_mask = 0, i;
@@ -12129,17 +12129,16 @@ vte_terminal_realize(GtkWidget *widget)
 	terminal->pvt->modifiers = 0;
 
 	/* Create our invisible cursor. */
-	pixmap = gdk_pixmap_new(widget->window, 1, 1, 1);
-	mask = gdk_pixmap_new(widget->window, 1, 1, 1);
-	terminal->pvt->mouse_inviso_cursor =
-		gdk_cursor_new_from_pixmap(pixmap, mask,
-					   &black, &black, 0, 0);
-
+	bitmap = gdk_bitmap_create_from_data(widget->window, "\0", 1, 1);
+	terminal->pvt->mouse_inviso_cursor = gdk_cursor_new_from_pixmap(bitmap,
+									bitmap,
+									&black,
+									&black,
+									0, 0);
 	/* Set up the background, *now*. */
 	vte_terminal_background_update(terminal);
 
-	g_object_unref(G_OBJECT(pixmap));
-	g_object_unref(G_OBJECT(mask));
+	g_object_unref(G_OBJECT(bitmap));
 }
 
 static void
