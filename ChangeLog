@@ -1,3 +1,6 @@
+2003-02-19 nalin
+	* src/keymap.c: pull up from HEAD to get key map entries for Ctrl-digit.
+
 2003-02-19  Takeshi AIHANA <aihana@gnome.gr.jp>
 
 	* configure.in: Added "ja" (Japanese) to ALL_LINGUAS.
