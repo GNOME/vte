@@ -1,4 +1,7 @@
 2004-04-29 nalin
+	* vte.spec: update version to 0.11.11
+
+2004-04-29 nalin
 	* src/vte.c(vte_terminal_unrealize): don't unref our accessible peer;
 	it may be accessed while we're unrealized, causing it to be destroyed
 	and re-created needlessly (#128049).
