@@ -486,6 +486,30 @@ vte_wc_from_unichar(VteTerminal *terminal, gunichar c)
 #endif
 }
 
+#ifdef VTE_PREFER_PANGOX
+static PangoContext *
+vte_terminal_get_pango_context(VteTerminal *terminal)
+{
+	return pango_x_get_context(GDK_DISPLAY());
+}
+static void
+vte_terminal_maybe_unref_pango_context(VteTerminal *terminal, PangoContext *ctx)
+{
+	g_object_unref(G_OBJECT(ctx));
+}
+#else
+static PangoContext *
+vte_terminal_get_pango_context(VteTerminal *terminal)
+{
+	return gtk_widget_get_pango_context(terminal);
+}
+static void
+vte_terminal_maybe_unref_pango_context(VteTerminal *terminal, PangoContext *ctx)
+{
+	/* no-op */
+}
+#endif
+
 /* Reset defaults for character insertion. */
 static void
 vte_terminal_set_default_attributes(VteTerminal *terminal)
@@ -8422,6 +8446,12 @@ vte_default_substitute(VteTerminal *terminal, FcPattern *pattern)
 		FcPatternPrint(pattern);
 	}
 #endif
+	if (rgba != NULL) {
+		g_free(rgba);
+	}
+	if (hintstyle != NULL) {
+		g_free(hintstyle);
+	}
 }
 
 /* Find a font which matches the request, figuring in FontConfig settings. */
@@ -8727,11 +8757,7 @@ vte_terminal_read_metrics_pango(VteTerminal *terminal)
 	PangoRectangle ink, logical;
 	gint height, width, ascent, descent;
 
-#ifdef VTE_PREFER_PANGOX
-	context = pango_x_get_context(GDK_DISPLAY());
-#else
-	context = gtk_widget_get_pango_context(GTK_WIDGET(terminal));
-#endif
+	context = vte_terminal_get_pango_context(terminal);
 	desc = terminal->pvt->fontdesc;
 
 	/* Load a font using this description and read its metrics to find
@@ -8762,6 +8788,8 @@ vte_terminal_read_metrics_pango(VteTerminal *terminal)
 					   width, height,
 					   ascent, descent);
 	}
+
+	vte_terminal_maybe_unref_pango_context(terminal, context);
 }
 
 /* Ensure that the font's metrics are known. */
@@ -9184,8 +9212,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 {
 	struct _VteTerminalPrivate *pvt;
 	GtkWidget *widget;
-	PangoContext *pctx;
-	PangoFontMetrics *metrics;
 	struct passwd *pwd;
 	GtkAdjustment *adjustment;
 
@@ -9198,14 +9224,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	/* Set an adjustment for the application to use to control scrolling. */
 	adjustment = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0, 0, 0, 0));
 	vte_terminal_set_scroll_adjustment(terminal, adjustment);
-
-	/* Make up some metrics for now. */
-	gtk_widget_ensure_style(widget);
-#ifdef VTE_PREFER_PANGOX
-	pctx = pango_x_get_context(GDK_DISPLAY());
-#else
-	pctx = gtk_widget_get_pango_context(widget);
-#endif
 
 	/* Initialize the default titles. */
 	terminal->window_title = NULL;
@@ -9366,6 +9384,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* The font description. */
 	pvt->fontdesc = NULL;
+	gtk_widget_ensure_style(widget);
 	vte_terminal_set_font(terminal, NULL);
 	vte_terminal_ensure_font(terminal);
 
@@ -10730,11 +10749,7 @@ vte_terminal_compute_padding(VteTerminal *terminal, Display *display,
 	/* Ask Pango. */
 	if ((pad == 0) && (terminal->pvt->use_pango)) {
 		widget = GTK_WIDGET(terminal);
-#ifdef VTE_PREFER_PANGOX
-		pcontext = pango_x_get_context(GDK_DISPLAY());
-#else
-		pcontext = gtk_widget_get_pango_context(widget);
-#endif
+		pcontext = vte_terminal_get_pango_context(terminal);
 		layout = pango_layout_new(pcontext);
 		pango_layout_set_font_description(layout,
 						  terminal->pvt->fontdesc);
@@ -10745,6 +10760,7 @@ vte_terminal_compute_padding(VteTerminal *terminal, Display *display,
 		g_object_unref(G_OBJECT(layout));
 		pad = ((columns * terminal->char_width) - width) / 2;
 		rpad = ((columns * terminal->char_width) - width) - pad;
+		vte_terminal_maybe_unref_pango_context(terminal, pcontext);
 	}
 	/* Ask Xlib. */
 	if ((pad == 0) &&
@@ -10862,6 +10878,11 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 #ifdef HAVE_XFT2
 	/* Draw using Xft2. */
 	if (!drawn && terminal->pvt->use_xft2) {
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_MISC) && 0) {
+			fprintf(stderr, "Rendering with Xft2.\n");
+		}
+#endif
 		/* Set up the draw request. */
 		ftcharspecs = g_malloc(sizeof(XftCharSpec) * n);
 		for (i =  columns = 0; i < n; i++) {
@@ -10891,6 +10912,11 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 #ifdef HAVE_XFT
 	/* Draw using Xft1. */
 	if (!drawn && terminal->pvt->use_xft) {
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_MISC) && 0) {
+			fprintf(stderr, "Rendering with Xft1.\n");
+		}
+#endif
 		/* Set up the draw request. */
 		for (i = columns = 0; i < n; i++) {
 			c = items[i].c ? items[i].c : ' ';
@@ -10921,6 +10947,11 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 #endif
 	/* Draw using PangoX. */
 	if (!drawn && terminal->pvt->use_pango) {
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_MISC) && 0) {
+			fprintf(stderr, "Rendering with Pango.\n");
+		}
+#endif
 		/* Draw the background. */
 		if ((back != VTE_DEF_BG) || draw_default_bg) {
 			for (i = columns = 0; i < n; i++) {
@@ -10978,6 +11009,11 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	}
 	/* Draw using core fonts. */
 	if (!drawn) {
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_MISC) && 0) {
+			fprintf(stderr, "Rendering with Xlib.\n");
+		}
+#endif
 		/* Draw the background. */
 		if ((back != VTE_DEF_BG) || draw_default_bg) {
 			for (i = columns = 0; i < n; i++) {
@@ -11285,11 +11321,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 	/* Create a new pango layout in the correct font. */
 	if (terminal->pvt->use_pango) {
-#ifdef VTE_PREFER_PANGOX
-		pcontext = pango_x_get_context(GDK_DISPLAY());
-#else
-		pcontext = gtk_widget_get_pango_context(widget);
-#endif
+		pcontext = vte_terminal_get_pango_context(terminal);
 		if (pcontext == NULL) {
 			g_warning(_("Error allocating context, "
 				    "disabling Pango."));
@@ -11507,6 +11539,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 #endif
 	g_object_unref(G_OBJECT(ggc));
 	if (pcontext != NULL) {
+		vte_terminal_maybe_unref_pango_context(terminal, pcontext);
 		if (layout != NULL) {
 			g_object_unref(G_OBJECT(layout));
 		}
