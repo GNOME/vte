@@ -49,7 +49,8 @@ catfile(const char *pathname, long delay)
 		tv.tv_usec = delay % 1000000;
 		select(0, NULL, NULL, NULL, &tv);
 		c = fgetc(fp);
-		g_print("%c", c);
+		fputc(c, stdout);
+		fflush(stdout);
 	}
 
 	if (!((pathname == NULL) || (strcmp(pathname, "-") == 0))) {

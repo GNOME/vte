@@ -1,4 +1,8 @@
 2002-07-12 nalin
+	* src/vte.c: Small optimization in the al() and dl() handlers.  al()
+	doesn't move the cursor, per GNU termcap docs.  Check for a pixbuf in
+	the bgfx check instead of pixmap, which was the wrong type.
+2002-07-12 nalin
 	* src/vte.c: Add patch to heed Xft/fontconfig settings as kept by GTK.
 	Based on patch from otaylor.
 2002-07-12 nalin

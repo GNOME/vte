@@ -1344,8 +1344,8 @@ vte_terminal_get_encoding(VteTerminal *terminal)
 static gboolean
 vte_terminal_uses_bgfx(VteTerminal *terminal)
 {
-	return (terminal->pvt->bg_transparent ||
-	        GDK_IS_PIXMAP(terminal->pvt->bg_image));
+	return ((terminal->pvt->bg_transparent) ||
+		(terminal->pvt->bg_image != NULL));
 }
 
 /* End alternate character set. */
@@ -1372,16 +1372,14 @@ vte_sequence_handler_al(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	widget = GTK_WIDGET(terminal);
 	screen = terminal->pvt->screen;
+	start = screen->cursor_current.row;
 	if (screen->scrolling_restricted) {
-		start = screen->insert_delta + screen->scrolling_region.start;
 		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
-		start = screen->insert_delta;
 		end = screen->insert_delta + terminal->row_count - 1;
 	}
 	vte_remove_line_int(terminal, end);
-	vte_insert_line_int(terminal, screen->cursor_current.row);
-	screen->cursor_current.row++;
+	vte_insert_line_int(terminal, start);
 	/* Redraw the affected region. */
 	if (vte_terminal_uses_bgfx(terminal) || 1) {
 		vte_invalidate_cells(terminal,
@@ -1833,19 +1831,22 @@ vte_sequence_handler_dl(VteTerminal *terminal,
 			GValueArray *params)
 {
 	VteScreen *screen;
-	long end;
+	long start, end;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
+	start = screen->cursor_current.row;
 	if (screen->scrolling_restricted) {
 		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
 		end = screen->insert_delta + terminal->row_count - 1;
 	}
-	vte_remove_line_int(terminal, screen->cursor_current.row);
+	vte_remove_line_int(terminal, start);
 	vte_insert_line_int(terminal, end);
 	/* Redraw the affected region. */
 	if (vte_terminal_uses_bgfx(terminal) || 1) {
-		vte_invalidate_all(terminal);
+		vte_invalidate_cells(terminal,
+				     0, terminal->column_count,
+				     start, end - start + 1);
 	}
 }
 
@@ -5071,7 +5072,6 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 	}
 
 	/* We probably need to update the cursor's new position, too. */
-	vte_terminal_ensure_cursor(terminal);
 	vte_invalidate_cells(terminal,
 			     screen->cursor_current.col, 1,
 			     screen->cursor_current.row, 1);
