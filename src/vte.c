@@ -143,10 +143,6 @@ struct vte_draw_item {
 	guint16 xpad;
 };
 
-/* The scroll delay timeout */
-static int vte_scrolldelay_secs  = 70;
-static int vte_scrolldelay_times = 2;
-
 /* The terminal's keypad state.  A terminal can either be using the normal
  * keypad, or the "application" keypad.  Arrow key sequences, for example,
  * are really only defined for "application" mode. */
@@ -356,10 +352,6 @@ struct _VteTerminalPrivate {
 	GdkPixbuf *bg_transparent_image;
 	GdkPixbuf *bg_image;
 	long bg_saturation;	/* out of VTE_SATURATION_MAX */
-
-	guint scroll_delay_id;
-	guint scroll_delay_count;
-	gboolean scroll_delay_flag;
 };
 
 /* A function which can handle a terminal control sequence. */
@@ -444,7 +436,6 @@ static GdkFilterReturn vte_terminal_filter_property_changes(GdkXEvent *xevent,
 static void vte_terminal_match_hilite_clear(VteTerminal *terminal);
 static void vte_terminal_queue_background_update(VteTerminal *terminal);
 static void vte_terminal_queue_adjustment_changed(VteTerminal *terminal);
-static void vte_terminal_scroll_to_bottom(VteTerminal *terminal);
 
 /* Free a no-longer-used row data array. */
 static void
@@ -775,41 +766,6 @@ vte_invalidate_cursor_periodic(gpointer data)
 		return FALSE;
 	} else {
 		return TRUE;
-	}
-}
-
-static gboolean
-vte_scroll_timeout(gpointer data)
-{
-	VteTerminal *terminal;
-
-	if (!VTE_IS_TERMINAL(data)) {
-		return;
-	}
-	terminal = VTE_TERMINAL(data);
-
-    /*
-	 * Only skip a maximum number of delays, default is 10.
-	 * By default the delay is 100ms, so this is 1 second.
-	 * This can be tuned via environment variables.
-	 */
-	if (terminal->pvt->scroll_delay_flag == TRUE &&
-		terminal->pvt->scroll_delay_count < vte_scrolldelay_times) {
-
-		terminal->pvt->scroll_delay_count++;
-		terminal->pvt->scroll_delay_flag = FALSE;
-
-		/* return TRUE makes the timeout sleep another interval */
-		return TRUE;
-
-	} else {
-		/* Reset counts and flags */
-		terminal->pvt->scroll_delay_count = 0;
-		terminal->pvt->scroll_delay_id    = 0;
-		terminal->pvt->scroll_delay_flag  = FALSE;
-
-		vte_terminal_scroll_to_bottom(terminal);
-		return FALSE;
 	}
 }
 
@@ -6031,7 +5987,6 @@ vte_terminal_fork_logged_command(VteTerminal *terminal, const char *command,
 		/* Open a channel to listen for input on. */
 		terminal->pvt->pty_input =
 			g_io_channel_unix_new(terminal->pvt->pty_master);
-
 		terminal->pvt->pty_input_source =
 			g_io_add_watch_full(terminal->pvt->pty_input,
 					    VTE_CHILD_INPUT_PRIORITY,
@@ -6310,7 +6265,6 @@ vte_terminal_process_incoming(gpointer data)
 				}
 			}
 #endif
-
 			if (c != 0) {
 				if ((cursor_ptr->row == end_cursor.row &&
 				     cursor_ptr->col == end_cursor.col + 1) ||
@@ -6446,17 +6400,8 @@ vte_terminal_process_incoming(gpointer data)
 		/* Keep the cursor on-screen if we scroll on output, or if
 		 * we're currently at the bottom of the buffer. */
 		vte_terminal_scroll_insertion(terminal);
-
-		terminal->pvt->scroll_delay_flag = FALSE;
-
-		if (terminal->pvt->scroll_delay_id) {
-			terminal->pvt->scroll_delay_flag = TRUE;
-		}
-		else if (terminal->pvt->scroll_on_output || bottom) {
-
-			terminal->pvt->scroll_delay_id =
-				g_timeout_add(vte_scrolldelay_secs,
-				vte_scroll_timeout, (void *)terminal);
+		if (terminal->pvt->scroll_on_output || bottom) {
+			vte_terminal_scroll_to_bottom(terminal);
 		}
 
 		/* The cursor moved, so force it to be redrawn. */
@@ -6512,7 +6457,6 @@ vte_terminal_process_incoming(gpointer data)
 		}
 	}
 #endif
-
 	return terminal->pvt->processing;
 }
 
@@ -6778,7 +6722,6 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		if (terminal->pvt->pty_output == NULL) {
 			terminal->pvt->pty_output =
 				g_io_channel_unix_new(terminal->pvt->pty_master);
-
 			terminal->pvt->pty_output_source =
 				g_io_add_watch_full(terminal->pvt->pty_output,
 						    VTE_CHILD_OUTPUT_PRIORITY,
@@ -9808,7 +9751,6 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	long dy, adj;
 	GtkWidget *widget;
 	VteScreen *screen;
-
 	/* Sanity checks. */
 	g_return_if_fail(GTK_IS_WIDGET(terminal));
 	widget = GTK_WIDGET(terminal);
@@ -10328,13 +10270,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 			render_max = VteRenderXlib;
 		}
 	}
-
-    if (getenv("VTE_SCROLLDELAY_SECS") != NULL)
-       vte_scrolldelay_secs = atoi(getenv("VTE_SCROLL_DELAY"));
-
-    if (getenv("VTE_SCROLLDELAY_TIMES") != NULL)
-       vte_scrolldelay_times = atoi(getenv("MAX_SCROLL_DELAY"));
-
 	pvt->render_method = render_max;
 
 #ifdef VTE_DEBUG
@@ -10399,10 +10334,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* Mapping trees. */
 	pvt->unichar_wc_map = g_tree_new(vte_compare_direct);
-
-    pvt->scroll_delay_id    = 0;
-	pvt->scroll_delay_count = 0;
-	pvt->scroll_delay_flag  = FALSE;
 }
 
 /* Tell GTK+ how much space we need. */
@@ -10603,10 +10534,6 @@ vte_terminal_unrealize(GtkWidget *widget)
 	/* Remove the blink timeout function. */
 	if (terminal->pvt->cursor_blink_tag) {
 		g_source_remove(terminal->pvt->cursor_blink_tag);
-	}
-	/* Remove scroll timeout function */
-	if (terminal->pvt->scroll_delay_id) {
-		g_source_remove(terminal->pvt->scroll_delay_id);
 	}
 
 	/* Mark that we no longer have a GDK window. */

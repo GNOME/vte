@@ -1,3 +1,8 @@
+2002-09-19 Brian Cameron <Brian.Cameron@sun.com>
+	* src/vte.c: Backed out scrolldelay patches from 09-17 and 09-18 at
+	Nalin's request.  Left in the patch which allows programs which 
+	update the screen non-linearly like lynx to work properly.
+
 2002-09-18 Brian Cameron <Brian.Cameron@sun.com>
 	* src/vte.c: Corrected a problem with yesterday's patch.  I am now
 	properly calling g_source_remove on the scroll_delay timeout
@@ -8,7 +13,7 @@
 
 2002-09-17 Brian Cameron <Brian.Cameron@sun.com>
 	* src/vte.c: Fixed bug with my 09/11 speedup fix which caused programs
-	that update the screen non-linearly like lynx to not update properly.
+	that update the screen non-linearly like lynx to update incorrectly.
 	Also included a speed improvement which delays the scroll-down for
 	70ms.  Too fast to be noticeable to the user, but it speeds up VTE
 	greatly.
