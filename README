@@ -20,7 +20,6 @@
 
 * What's missing?
 - Accessibility doesn't work right yet.
-- Selection doesn't work quite right yet, but is largely correct.
 - The keymapping doesn't mimic XTerm as well as it's meant to.
 - Chinese and Korean text isn't displayed correctly because we pass it through
   iconv() before performing substitutions, and they both use GR characters.

@@ -1,4 +1,11 @@
 2002-11-11  nalin
+	* src/vte.c: ensure that when we select by line, we include all of the
+	last line, even if it's past the edge of the screen.  Snap selection to
+	the beginning or end of a line when selecting lines which don't exist.
+	Only strip off whitespace if there's nothing but whitespace to the right
+	of the selection.  Chuck the non-wrapping selection code.
+
+2002-11-11  nalin
 	* src/vte.c: properly set the "selecting" flag again when we start
 	selection (#97923).
 
