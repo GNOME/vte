@@ -29,7 +29,6 @@
 #include <fcntl.h>
 #include <math.h>
 #include <pwd.h>
-#include <regex.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,6 +61,7 @@
 #include "vteconv.h"
 #include "vtedraw.h"
 #include "vteint.h"
+#include "vteregex.h"
 #include "vtetc.h"
 #include <fontconfig/fontconfig.h>
 
@@ -136,7 +136,7 @@ struct vte_charcell {
 
 /* A match regex, with a tag. */
 struct vte_match_regex {
-	regex_t reg;
+	struct _vte_regex *reg;
 	gint tag;
 	GdkCursor *cursor;
 };
@@ -1382,8 +1382,8 @@ vte_terminal_match_clear_all(VteTerminal *terminal)
 				gdk_cursor_unref(regex->cursor);
 				regex->cursor = NULL;
 			}
-			regfree(&regex->reg);
-			memset(&regex->reg, 0, sizeof(regex->reg));
+			_vte_regex_free(regex->reg);
+			regex->reg = NULL;
 			regex->tag = -1;
 		}
 	}
@@ -1420,8 +1420,8 @@ vte_terminal_match_remove(VteTerminal *terminal, int tag)
 			gdk_cursor_unref(regex->cursor);
 			regex->cursor = NULL;
 		}
-		regfree(&regex->reg);
-		memset(&regex->reg, 0, sizeof(regex->reg));
+		_vte_regex_free(regex->reg);
+		regex->reg = NULL;
 		regex->tag = -1;
 	}
 	vte_terminal_match_hilite_clear(terminal);
@@ -1465,9 +1465,11 @@ vte_terminal_match_add(VteTerminal *terminal, const char *match)
 	struct vte_match_regex new_regex, *regex;
 	int ret;
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+	g_return_val_if_fail(match != NULL, -1);
+	g_return_val_if_fail(strlen(match) > 0, -1);
 	memset(&new_regex, 0, sizeof(new_regex));
-	ret = regcomp(&new_regex.reg, match, VTE_REGCOMP_FLAGS);
-	if (ret != 0) {
+	new_regex.reg = _vte_regex_compile(match);
+	if (new_regex.reg == NULL) {
 		g_warning(_("Error compiling regular expression \"%s\"."),
 			  match);
 		return -1;
@@ -1562,7 +1564,7 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 	struct vte_match_regex *regex = NULL;
 	struct _VteCharAttributes *attr = NULL;
 	gssize coffset;
-	regmatch_t matches[256];
+	struct _vte_regex_match matches[256];
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
 		fprintf(stderr, "Checking for match at (%ld,%ld).\n",
@@ -1636,11 +1638,10 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 		 * matches, so we'll have to skip each match until we
 		 * stop getting matches. */
 		coffset = 0;
-		ret = regexec(&regex->reg,
-			      terminal->pvt->match_contents + coffset,
-			      G_N_ELEMENTS(matches),
-			      matches,
-			      VTE_REGEXEC_FLAGS);
+		ret = _vte_regex_exec(regex->reg,
+				      terminal->pvt->match_contents + coffset,
+				      G_N_ELEMENTS(matches),
+				      matches);
 		while (ret == 0) {
 			for (j = 0;
 			     (j < G_N_ELEMENTS(matches)) &&
@@ -1708,11 +1709,11 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 			/* Skip past the beginning of this match to
 			 * look for more. */
 			coffset += (matches[0].rm_so + 1);
-			ret = regexec(&regex->reg,
-				      terminal->pvt->match_contents + coffset,
-				      G_N_ELEMENTS(matches),
-				      matches,
-				      VTE_REGEXEC_FLAGS);
+			ret = _vte_regex_exec(regex->reg,
+					      terminal->pvt->match_contents +
+					      coffset,
+					      G_N_ELEMENTS(matches),
+					      matches);
 		}
 	}
 	terminal->pvt->match_previous = -1;
@@ -11266,7 +11267,8 @@ vte_terminal_finalize(GObject *object)
 				gdk_cursor_unref(regex->cursor);
 				regex->cursor = NULL;
 			}
-			regfree(&regex->reg);
+			_vte_regex_free(regex->reg);
+			regex->reg = NULL;
 			regex->tag = 0;
 		}
 		g_array_free(terminal->pvt->match_regexes, TRUE);
@@ -14359,7 +14361,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
  * characters can be specified by separating them with a hyphen.
  *
  * As a special case, if @spec is NULL or the empty string, the terminal will
- * treat all graphic non-punctuation characters as word characters.
+ * treat all graphic non-punctuation non-space characters as word characters.
  */
 void
 vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)

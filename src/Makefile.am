@@ -75,6 +75,8 @@ libvte_la_SOURCES = \
 	vtepangox.h \
 	vterdb.c \
 	vterdb.h \
+	vteregex.c \
+	vteregex.h \
 	vtergb.c \
 	vtergb.h \
 	vteskel.c \
