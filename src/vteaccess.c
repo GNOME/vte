@@ -727,7 +727,7 @@ vte_terminal_accessible_new(VteTerminal *terminal)
         g_signal_connect(G_OBJECT(terminal), "focus-out-event",
 			 GTK_SIGNAL_FUNC(vte_terminal_accessible_focus_out),
 			 access);
-        g_signal_connect(G_OBJECT(terminal), "visibility-notify",
+        g_signal_connect(G_OBJECT(terminal), "visibility-notify-event",
 			 GTK_SIGNAL_FUNC(vte_terminal_accessible_visibility_notify),
 			 access);
 
