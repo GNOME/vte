@@ -67,7 +67,6 @@ static char *login_name, *display_name;
 
 struct pty_info {
 	struct pty_info *next;
-	int    master_fd, slave_fd;
 	char   *line;
 	void   *data;
 	char   utmp, wtmp;
@@ -235,9 +234,6 @@ shutdown_pty (pty_info *pi)
 		if (pi->data)
 			write_logout_record (pi->data, pi->utmp, pi->wtmp);
 	
-	close (pi->master_fd);
-	close (pi->slave_fd);
-
 	pty_remove (pi);
 }
 
@@ -251,7 +247,7 @@ shutdown_helper (void)
 }
 
 static pty_info *
-pty_add (int utmp, int wtmp, int master_fd, int slave_fd, char *line)
+pty_add (int utmp, int wtmp, char *line)
 {
 	pty_info *pi = malloc (sizeof (pty_info));
 
@@ -272,8 +268,6 @@ pty_add (int utmp, int wtmp, int master_fd, int slave_fd, char *line)
 		exit (1);
 	}
 	
-	pi->master_fd = master_fd;
-	pi->slave_fd  = slave_fd;
 	pi->next = pty_list;
 	pi->utmp = utmp;
 	pi->wtmp = wtmp;
@@ -526,7 +520,7 @@ open_ptys (int utmp, int wtmp, int lastlog)
 	/* revoke(term_name); */
 	
 	/* add pty to the list of allocated by us */
-	p = pty_add (utmp, wtmp, master_pty, slave_pty, term_name);
+	p = pty_add (utmp, wtmp, term_name);
 	result = 1;
 
 	if (write (STDIN_FILENO, &result, sizeof (result)) == -1 ||
@@ -540,6 +534,9 @@ open_ptys (int utmp, int wtmp, int lastlog)
 		p->data = write_login_record (login_name, display_name, term_name, utmp, wtmp, lastlog);
 	}
 	
+	close (master_pty);
+	close (slave_pty);
+
 	return 1;
 }
 
@@ -681,12 +678,7 @@ main (int argc, char *argv [])
 	for (;;){
 		res = n_read (STDIN_FILENO, &op, sizeof (op));
 
-		if (res != sizeof (op) || res == -1){
-			shutdown_helper ();
-			return 1;
-		}
-
-		if (res == 0) {
+		if (res != sizeof (op)) {
 			shutdown_helper ();
 			return 1;
 		}
@@ -729,7 +721,7 @@ main (int argc, char *argv [])
 			
 		case GNOME_PTY_CLOSE_PTY:
 			n = n_read (STDIN_FILENO, &tag, sizeof (tag));
-			if (n == -1 || n != sizeof (tag)){
+			if (n != sizeof (tag)){
 				shutdown_helper ();
 				return 1;
 			}

@@ -18,9 +18,10 @@
 
 #ident "$Id$"
 #include "../config.h"
-#include <sys/ioctl.h>
-#include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/ioctl.h>
+#include <sys/uio.h>
+#include <sys/socket.h>
 #include <sys/wait.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -44,6 +45,12 @@
 #include "pty.h"
 
 #include "../gnome-pty-helper/gnome-pty.h"
+
+#ifdef MSG_NOSIGNAL
+#define PTY_RECVSMSG_FLAGS MSG_NOSIGNAL
+#else
+#define PTY_RECVMSG_FLAGS 0
+#endif
 
 #ifdef ENABLE_NLS
 #include <libintl.h>
@@ -436,7 +443,7 @@ _vte_pty_read_ptypair(int tunnel, int *parentfd, int *childfd)
 		msg.msg_iovlen = 1;
 		msg.msg_control = control;
 		msg.msg_controllen = sizeof(control);
-		ret = recvmsg(tunnel, &msg, MSG_NOSIGNAL);
+		ret = recvmsg(tunnel, &msg, PTY_RECVMSG_FLAGS);
 		if (ret == -1) {
 			return;
 		}

@@ -1,5 +1,18 @@
 2002-09-12  jacob berkman  <jacob@ximian.com>
 
+	* src/pty.c: only use MSG_NOSIGNAL if it's defined
+
+	* gnome-pty-helper/gnome-pty-helper.c (struct pty_info): remove
+	master_fd and slave_fd fields
+	(shutdown_pty): don't close master/slave fd's here...
+	(pty_add): don't take master/slave fd args
+	(open_ptys): ...close master/slave fd's right after passing them
+
+	this fixes a hang after closing a window on os x, not sure why...
+
+	* gnome-pty-helper/Makefile.am (install-exec-hook): remove
+	trailing / after $DESTDIR
+
 	* configure.in: AC_CHECK_FUNC() doesn't do AC_DEFINE(HAVE_FOO), so
 	do that for socket() and socketpair() if they are found
 
