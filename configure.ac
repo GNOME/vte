@@ -1,0 +1,32 @@
+AC_INIT(configure.ac)
+AM_INIT_AUTOMAKE(vte,0.1)
+AM_PROG_LIBTOOL
+AC_EGREP_CPP(glibc,
+		[
+		 #include <stdio.h>
+		 #ifdef __GLIBC__
+		 glibc
+		 #endif
+		],
+		AC_DEFINE(_GNU_SOURCE,1,[Use all features.]))
+AC_SYS_LARGEFILE
+AC_PATH_XTRA
+PKG_CHECK_MODULES(GLIB,[glib-2.0 gobject-2.0])
+PKG_CHECK_MODULES(GTK, [glib-2.0 gobject-2.0 gtk+-2.0])
+AC_DEFINE(G_DISABLE_DEPRECATED,1,[Disable deprecated glib features.])
+AC_DEFINE(GDK_DISABLE_DEPRECATED,1,[Disable deprecated gdk features.])
+AC_DEFINE(GTK_DISABLE_DEPRECATED,1,[Disable deprecated gtk features.])
+AC_CHECK_FUNCS(getpt grantpt unlockpt ptsname ptsname_r)
+AM_MAINTAINER_MODE
+
+if test x$USE_MAINTAINER_MODE != x ; then
+	if test x$USE_MAINTAINER_MODE != xno ; then
+		VTE_DEBUG=1
+	fi
+fi
+if test x$VTE_DEBUG = x1 ; then
+	AC_DEFINE(VTE_DEBUG,,[Enable debugging of unrecognized sequences.])
+fi
+
+AM_CONFIG_HEADER(config.h)
+AC_OUTPUT([Makefile src/Makefile])

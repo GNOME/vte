@@ -1,0 +1,49 @@
+/* config.h.in.  Generated automatically from configure.ac by autoheader.  */
+
+/* Disable deprecated gdk features. */
+#undef GDK_DISABLE_DEPRECATED
+
+/* Disable deprecated gtk features. */
+#undef GTK_DISABLE_DEPRECATED
+
+/* Disable deprecated glib features. */
+#undef G_DISABLE_DEPRECATED
+
+/* Define if you have the <dlfcn.h> header file. */
+#undef HAVE_DLFCN_H
+
+/* Define if you have the `getpt' function. */
+#undef HAVE_GETPT
+
+/* Define if you have the `grantpt' function. */
+#undef HAVE_GRANTPT
+
+/* Define if you have the `ptsname' function. */
+#undef HAVE_PTSNAME
+
+/* Define if you have the `ptsname_r' function. */
+#undef HAVE_PTSNAME_R
+
+/* Define if you have the `unlockpt' function. */
+#undef HAVE_UNLOCKPT
+
+/* Name of package */
+#undef PACKAGE
+
+/* Version number of package */
+#undef VERSION
+
+/* Enable debugging of unrecognized sequences. */
+#undef VTE_DEBUG
+
+/* Define if the X Window System is missing or not being used. */
+#undef X_DISPLAY_MISSING
+
+/* Number of bits in a file offset, on hosts where this is settable. */
+#undef _FILE_OFFSET_BITS
+
+/* Use all features. */
+#undef _GNU_SOURCE
+
+/* Define for large files, on AIX-style hosts. */
+#undef _LARGE_FILES

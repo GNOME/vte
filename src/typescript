@@ -1,0 +1,76 @@
+Script started on Mon Jan 28 23:02:33 2002
+]2;nalin@blade.devel.redhat.com:/home/devel/nalin/projects/vte/srcnalin has logged on pts/0 from local.
+nalin has logged on tty1 from local.
+]2;nalin@blade.devel.redhat.com:/home/devel/nalin/projects/vte/srcnalin@blade:~/projects/vte/src> less trie.c
+7[?47h[?1h=[24;1H[K/*
+ * Copyright (C) 2001 Red Hat, Inc.
+ *
+ * This is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Library General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public
+ * License along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+#include "../config.h"
+#include <sys/types.h>
+#include <assert.h>
+#include <ctype.h>
+#include <stdio.h>
+[24;1H[K[7mtrie.c [m[24;1H[24;1H[K#include <stdlib.h>
+#include <string.h>
+#include <wchar.h>
+#include <glib.h>
+#include <glib-object.h>
+#include "trie.h"
+
+#ifndef TRIE_MAYBE_STATIC
+#define TRIE_MAYBE_STATIC
+#endif
+
+/* Structures and whatnot for tracking character classes. */
+struct char_class_data {
+        wchar_t c;                              /* A character. */
+        int i;                          /* An integer. */
+        char *s;                        /* A string. */
+        int inc;                        /* An increment value. */
+};
+
+struct char_class {
+        enum cclass {
+                exact = 0,              /* Not a special class. */
+                digit,                  /* Multiple-digit special class. */
+[24;1H[K:[24;1H[HM#include <stdio.h>
+[HM#include <ctype.h>
+[HM#include <assert.h>
+[HM#include <sys/types.h>
+[HM#include "../config.h"
+[HM
+[HM */
+[HM * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+[HM * License along with this program; if not, write to the Free Software
+[HM * You should have received a copy of the GNU Library General Public
+[HM *
+[HM * General Public License for more details.
+[HM * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+[HM * WITHOUT ANY WARRANTY; without even the implied warranty of
+[HM * This program is distributed in the hope that it will be useful, but
+[HM *
+[HM * (at your option) any later version.
+[HM * the Free Software Foundation; either version 2 of the License, or
+[HM * the terms of the GNU Library General Public License as published by
+[HM * This is free software; you can redistribute it and/or modify it under
+[HM *
+[HM * Copyright (C) 2001 Red Hat, Inc.
+[HM/*
+[24;1H[K:[24;1H[K[?1l>[2J[?47l8]2;nalin@blade.devel.redhat.com:/home/devel/nalin/projects/vte/srcnalin@blade:~/projects/vte/src> ^Dexit
+
+Script done on Mon Jan 28 23:02:39 2002

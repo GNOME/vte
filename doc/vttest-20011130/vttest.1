@@ -1,0 +1,47 @@
+.\" $Id$
+.TH VTTEST 1 "LOCAL"
+.
+.SH NAME
+vttest \- test VT100-type terminal
+.
+.SH SYNOPSIS
+.B vttest \fI[options] [24x80.132]
+.
+.SH DESCRIPTION
+.I Vttest
+is a program designed to test the functionality of a VT100 terminal
+(or emulator thereof).
+It tests both display (escape sequence handling) and keyboard.
+.PP
+The program is menu\-driven and contains full on\-line operating instructions.
+To run a given menu\-item, you must enter its number.
+You can run all menu\-items (for a given level) by entering an asterisk,
+i.e, `*'.
+.
+.SH OPTIONS
+You can specify the screen geometry in the form \fI[24x80.132]\fP,
+i.e., 24 lines, 80 minimum columns, 132 maximum columns.
+If your terminal does not switch between 80 and 132 columns you
+may specify 24x80.80, for example, to avoid a misleading display.
+.PP
+Other options are:
+.TP 5
+.BI \-f " file"
+specify a file containing a DRCS (soft character definition) string.
+.TP 5
+.B \-l
+log test results to \fIvttest.log\fP.
+.TP 5
+.B \-p
+use padding, e.g., for a VT100 connected to a high-speed line.
+.TP 5
+.B \-8
+use 8-bit controls (this can be changed with a menu option).
+.
+.SH AUTHOR
+Per Lindberg
+(mcvax,seismo)!enea!suadb!lindberg
+sometime 1985.
+
+Modified by Thomas Dickey
+from June 1996, to support nonstandard screen geometry, VT220 and ISO color tests.

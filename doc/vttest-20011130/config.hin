@@ -1,0 +1,52 @@
+/* $Id$ */
+
+/* define this if you have the alarm() function */
+#undef HAVE_ALARM
+
+/* define this if you have <fcntl.h> */
+#undef HAVE_FCNTL_H
+
+/* define this if you have <ioctl.h> */
+#undef HAVE_IOCTL_H
+
+/* define this if you have the Xenix rdchk() function */
+#undef HAVE_RDCHK
+
+/* define this if the POSIX VDISABLE symbol is defined, not equal to -1 */
+#undef HAVE_POSIX_VDISABLE
+
+/* define this if you have <sgtty.h> */
+#undef HAVE_SGTTY_H
+
+/* define this if you have <stdlib.h> */
+#undef HAVE_STDLIB_H
+
+/* define this if you have <string.h> */
+#undef HAVE_STRING_H
+
+/* define this if you have <sys/filio.h> */
+#undef HAVE_SYS_FILIO_H
+
+/* define this if you have <sys/ioctl.h> */
+#undef HAVE_SYS_IOCTL_H
+
+/* define this if you have the tcgetattr() function */
+#undef HAVE_TCGETATTR
+
+/* define this if you have <termio.h> */
+#undef HAVE_TERMIO_H
+
+/* define this if you have <termios.h> */
+#undef HAVE_TERMIOS_H
+
+/* define this if you have <unistd.h> */
+#undef HAVE_UNISTD_H
+
+/* define this if you have the usleep() function */
+#undef HAVE_USLEEP
+
+/* define this to be the return-type of functions manipulated by 'signal()' */
+#define RETSIGTYPE void
+
+/* define this if we can use ioctl(,FIONREAD,) */
+#undef USE_FIONREAD

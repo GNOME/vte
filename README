@@ -1,0 +1,40 @@
+* What is VTE?
+- You could say that VTE is something of a research project of mine, based on
+  the simple question:  "if programs can use a termcap file (through either
+  libtermcap or curses or ncurses) to determine how to drive a terminal, why
+  can't a terminal emulator use a termcap file to determine how to behave?"
+
+* What does VTE include?
+- VTE includes a library (libvte) which implements such a terminal emulator
+  widget for GTK+ 2.0, and a sample application (vte) which wraps that widget
+  in a GTK window.
+
+* How does it work?
+- The VTE library inserts terminal capability strings into a trie, and then
+  uses it to determine if data received from a pseudo-terminal is a control
+  sequence or just random data.  The sample program "interpret" illustrates
+  what the widget actually sees after it filters incoming data.
+
+* What's missing?
+- Entries in the termcap file also don't contain the sequences which a terminal
+  is supposed to send to the application when a specific sequence is received
+  (for example, the query-cursor-position control sequence).  I haven't figured
+  out how to do those yet.
+- Most commands specific to Xterm or dtterm are recognized, but very few of
+  their behaviors are implemented.
+- Certain termcap-specific commands aren't implemented yet.  There are enough
+  to run ls, vim, less, and probably emacs and mutt, but more need to be
+  implemented.
+- I'm not sure the widget implementation itself is correct.  There are many
+  changes in going from GTK+ 1.2 to 2.0, and examples of the proper way to do
+  things is currently scarce, so some of it's guesswork.
+- An actual property interface needs to be retrofitted over the various options
+  which are currently hard-coded at startup-time.
+- The widget uses wide characters internally, converting from the narrow streams
+  it interfaces with for internal storage using iconv, but it doesn't handle
+  changes to the terminal encoding in the middle of a block of characters until
+  after it's processed the entire block, meaning that sometimes encoding isn't
+  handled properly.
+- Selection and copy/paste support isn't started yet.
+- Input method support isn't started yet.
+- Mouse tracking isn't started yet.

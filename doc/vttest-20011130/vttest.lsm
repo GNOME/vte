@@ -1,0 +1,15 @@
+Begin3
+Title:          vttest
+Version:        v2_7
+Entered-date:   17NOV96
+Description:    a program to test the compatibility (or to demonstrate the
+                non-compatibility) of so-called "VT100-compatible" terminals.
+                New version using configure script, in ANSI C, with tests for
+                ISO color, xterm, VT220 and VT420.  Ported to VAX/VMS.
+Keywords:       VT100, VT220, VT420, ISO 6429, ECMA-48
+Author:         dickey@clark.net (Thomas E. Dickey)
+Primary-site:   sunsite.unc.edu /pub/Linux/apps/comm
+Original-site:  ftp.clark.net:/pub/dickey/vttest
+Platforms:      *NIX, VAX/VMS, ANSI C
+Copying-policy: freely distributable copyrighted software
+End

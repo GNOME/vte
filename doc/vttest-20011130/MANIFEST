@@ -1,0 +1,43 @@
+MANIFEST for vttest, version d20011130
+--------------------------------------------------------------------------------
+MANIFEST                        this file
+aclocal.m4                      local macros for autoconf script
+BUGS                            current bug-list
+CHANGES                         record of changes I've made to vttest
+charsets.c                      character-set tests
+color.c                         color tests
+config.hin                      template for config.h
+configure.in                    template for configure script
+configure                       Configuration script for UNIX
+COPYING                         copyright notice
+descrip.mms                     VAX MMS script for VTTEST
+esc.c                           escape-sequence formatting & I/O
+esc.h                           interface of esc.c
+install.sh                      install script, needed for configure
+keyboard.c                      test keyboard functions
+main.c                          main-program & most tests, for VTTEST
+makefile.in                     template for makefile
+mkdirs.sh                       mkinstalldirs script, from X11
+mouse.c                         mouse tests for xterm
+nonvt100.c                      non-VT100 tests
+patchlev.h                      patch-level of VTTEST
+printer.c                       test printer functions
+README                          original version of vttest posted to comp.sources.unix, volume 7
+reports.c                       test device-reports
+reset.c                         test-functions for terminal-reset
+setup.c                         modify test-parameters
+sixel.c                         tests for soft characters (sixel)
+status.c                        status-line tests
+tech.set                        DEC technical set font definition from VT220 toolkit
+ttymodes.c                      module for changing tty modes
+ttymodes.h                      interface of ttymodes.c
+unix_io.c                       UNIX-specific I/O support
+vmsbuild.com                    VMS DCL script for building VTTEST
+vms_io.c                        VMS I/O routines
+vt220.c                         vt220 tests
+vt420.c                         vt420 tests
+vt52.c                          tests for VT52
+vttest.1                        manual-page for VTTEST
+vttest.h                        renamed from header.h, common definitions of VTTEST
+vttest.lsm                      Linux Software Map description of VTTEST
+xterm.c                         tests for xterm and clones

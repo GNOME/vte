@@ -1,0 +1,19 @@
+-- $Id$
+
+Please report bugs to tom@invisible-island.net
+
+This is a list of known problems with VTTEST:
+
+  + SD and SU tests pass with dtterm, but not with VT420, which uses a
+    different scrolling model.
+
+  + the skip_csi/skip_dcs functions are too permissive (they're allowing
+    either 8-bit or 7-bit responses).
+
+  + when I test the DECRQSS responses on a VT420, they usually come back
+    with a code '1' (according to my manual, that's invalid), though the
+    data looks correct otherwise.
+
+  + testing on a VT420 (console on VMS), there's a problem with the VT52 test: 
+    I see highlighted glitches at the positions where erase line (ESC K)
+    controls are printed.  Increasing the padding doesn't change this behavior.

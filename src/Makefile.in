@@ -1,0 +1,577 @@
+# Makefile.in generated automatically by automake 1.5 from Makefile.am.
+
+# Copyright 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001
+# Free Software Foundation, Inc.
+# This Makefile.in is free software; the Free Software Foundation
+# gives unlimited permission to copy and/or distribute it,
+# with or without modifications, as long as this notice is preserved.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
+# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE.
+
+@SET_MAKE@
+
+SHELL = @SHELL@
+
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+VPATH = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+bindir = @bindir@
+sbindir = @sbindir@
+libexecdir = @libexecdir@
+datadir = @datadir@
+sysconfdir = @sysconfdir@
+sharedstatedir = @sharedstatedir@
+localstatedir = @localstatedir@
+libdir = @libdir@
+infodir = @infodir@
+mandir = @mandir@
+includedir = @includedir@
+oldincludedir = /usr/include
+pkgdatadir = $(datadir)/@PACKAGE@
+pkglibdir = $(libdir)/@PACKAGE@
+pkgincludedir = $(includedir)/@PACKAGE@
+top_builddir = ..
+
+ACLOCAL = @ACLOCAL@
+AUTOCONF = @AUTOCONF@
+AUTOMAKE = @AUTOMAKE@
+AUTOHEADER = @AUTOHEADER@
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_SCRIPT = @INSTALL_SCRIPT@
+INSTALL_HEADER = $(INSTALL_DATA)
+transform = @program_transform_name@
+NORMAL_INSTALL = :
+PRE_INSTALL = :
+POST_INSTALL = :
+NORMAL_UNINSTALL = :
+PRE_UNINSTALL = :
+POST_UNINSTALL = :
+host_alias = @host_alias@
+host_triplet = @host@
+AMTAR = @AMTAR@
+AS = @AS@
+AWK = @AWK@
+CC = @CC@
+DEPDIR = @DEPDIR@
+DLLTOOL = @DLLTOOL@
+ECHO = @ECHO@
+EXEEXT = @EXEEXT@
+INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+LIBTOOL = @LIBTOOL@
+LN_S = @LN_S@
+MAINT = @MAINT@
+OBJDUMP = @OBJDUMP@
+OBJEXT = @OBJEXT@
+PACKAGE = @PACKAGE@
+PKG_CONFIG = @PKG_CONFIG@
+RANLIB = @RANLIB@
+STRIP = @STRIP@
+VERSION = @VERSION@
+X_CFLAGS = @X_CFLAGS@
+X_EXTRA_LIBS = @X_EXTRA_LIBS@
+X_LIBS = @X_LIBS@
+X_PRE_LIBS = @X_PRE_LIBS@
+am__include = @am__include@
+am__quote = @am__quote@
+install_sh = @install_sh@
+
+bin_PROGRAMS = vte
+noinst_PROGRAMS = interpret pty termcap trie utf8echo
+lib_LTLIBRARIES = libvte.la
+
+CFLAGS = @CFLAGS@ @X_CFLAGS@ @GTK_CFLAGS@
+
+libvte_la_SOURCES = \
+	caps.c \
+	caps.h \
+	marshal.c \
+	marshal.h \
+	pty.c \
+	pty.h \
+	termcap.c \
+	termcap.h \
+	trie.c \
+	trie.h \
+	vte.c \
+	vte.h
+
+
+CLEANFILES = marshal.c marshal.h
+
+vte_SOURCES = \
+	vteapp.c
+
+vte_LDADD = libvte.la @GTK_LIBS@ @X_LIBS@
+
+interpret_SOURCES = \
+	caps.c \
+	caps.h \
+	termcap.c \
+	termcap.h \
+	trie.c \
+	trie.h \
+	interpret.c
+
+interpret_LDADD = @GLIB_LIBS@
+
+trie_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DTRIE_MAIN
+trie_SOURCES = \
+	termcap.c \
+	termcap.h \
+	trie.c \
+	trie.h
+
+trie_LDADD = @GLIB_LIBS@
+
+termcap_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DTERMCAP_MAIN
+termcap_SOURCES = \
+	termcap.c \
+	termcap.h
+
+termcap_LDADD = @GLIB_LIBS@
+
+pty_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DPTY_MAIN
+pty_SOURCES = \
+	pty.c \
+	pty.h
+
+pty_LDADD = @GLIB_LIBS@
+
+utf8echo_SOURCES = \
+	utf8echo.c
+
+subdir = src
+mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+CONFIG_HEADER = $(top_builddir)/config.h
+CONFIG_CLEAN_FILES =
+LTLIBRARIES = $(lib_LTLIBRARIES)
+
+libvte_la_LDFLAGS =
+libvte_la_LIBADD =
+am_libvte_la_OBJECTS = caps.lo marshal.lo pty.lo termcap.lo trie.lo \
+	vte.lo
+libvte_la_OBJECTS = $(am_libvte_la_OBJECTS)
+bin_PROGRAMS = vte$(EXEEXT)
+noinst_PROGRAMS = interpret$(EXEEXT) pty$(EXEEXT) termcap$(EXEEXT) \
+	trie$(EXEEXT) utf8echo$(EXEEXT)
+PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
+
+am_interpret_OBJECTS = caps.$(OBJEXT) termcap.$(OBJEXT) trie.$(OBJEXT) \
+	interpret.$(OBJEXT)
+interpret_OBJECTS = $(am_interpret_OBJECTS)
+interpret_DEPENDENCIES =
+interpret_LDFLAGS =
+am_pty_OBJECTS = pty-pty.$(OBJEXT)
+pty_OBJECTS = $(am_pty_OBJECTS)
+pty_DEPENDENCIES =
+pty_LDFLAGS =
+am_termcap_OBJECTS = termcap-termcap.$(OBJEXT)
+termcap_OBJECTS = $(am_termcap_OBJECTS)
+termcap_DEPENDENCIES =
+termcap_LDFLAGS =
+am_trie_OBJECTS = trie-termcap.$(OBJEXT) trie-trie.$(OBJEXT)
+trie_OBJECTS = $(am_trie_OBJECTS)
+trie_DEPENDENCIES =
+trie_LDFLAGS =
+am_utf8echo_OBJECTS = utf8echo.$(OBJEXT)
+utf8echo_OBJECTS = $(am_utf8echo_OBJECTS)
+utf8echo_LDADD = $(LDADD)
+utf8echo_DEPENDENCIES =
+utf8echo_LDFLAGS =
+am_vte_OBJECTS = vteapp.$(OBJEXT)
+vte_OBJECTS = $(am_vte_OBJECTS)
+vte_DEPENDENCIES = libvte.la
+vte_LDFLAGS =
+
+DEFS = @DEFS@
+DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
+CPPFLAGS = @CPPFLAGS@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
+depcomp = $(SHELL) $(top_srcdir)/depcomp
+@AMDEP_TRUE@DEP_FILES = $(DEPDIR)/caps.Plo $(DEPDIR)/caps.Po \
+@AMDEP_TRUE@	$(DEPDIR)/interpret.Po $(DEPDIR)/marshal.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/pty-pty.Po $(DEPDIR)/pty.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/termcap-termcap.Po $(DEPDIR)/termcap.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/termcap.Po $(DEPDIR)/trie-termcap.Po \
+@AMDEP_TRUE@	$(DEPDIR)/trie-trie.Po $(DEPDIR)/trie.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/trie.Po $(DEPDIR)/utf8echo.Po \
+@AMDEP_TRUE@	$(DEPDIR)/vte.Plo $(DEPDIR)/vteapp.Po
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) \
+	$(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+CCLD = $(CC)
+LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+DIST_SOURCES = $(libvte_la_SOURCES) $(interpret_SOURCES) $(pty_SOURCES) \
+	$(termcap_SOURCES) $(trie_SOURCES) $(utf8echo_SOURCES) \
+	$(vte_SOURCES)
+DIST_COMMON = Makefile.am Makefile.in
+SOURCES = $(libvte_la_SOURCES) $(interpret_SOURCES) $(pty_SOURCES) $(termcap_SOURCES) $(trie_SOURCES) $(utf8echo_SOURCES) $(vte_SOURCES)
+
+all: all-am
+
+.SUFFIXES:
+.SUFFIXES: .c .lo .o .obj
+
+mostlyclean-libtool:
+	-rm -f *.lo
+
+clean-libtool:
+	-rm -rf .libs _libs
+
+distclean-libtool:
+	-rm -f libtool
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ Makefile.am  $(top_srcdir)/configure.ac $(ACLOCAL_M4)
+	cd $(top_srcdir) && \
+	  $(AUTOMAKE) --gnu  src/Makefile
+Makefile: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.in  $(top_builddir)/config.status
+	cd $(top_builddir) && \
+	  CONFIG_HEADERS= CONFIG_LINKS= \
+	  CONFIG_FILES=$(subdir)/$@ $(SHELL) ./config.status
+install-libLTLIBRARIES: $(lib_LTLIBRARIES)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(DESTDIR)$(libdir)
+	@list='$(lib_LTLIBRARIES)'; for p in $$list; do \
+	  if test -f $$p; then \
+	    echo " $(LIBTOOL) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$p $(DESTDIR)$(libdir)/$$p"; \
+	    $(LIBTOOL) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$p $(DESTDIR)$(libdir)/$$p; \
+	  else :; fi; \
+	done
+
+uninstall-libLTLIBRARIES:
+	@$(NORMAL_UNINSTALL)
+	@list='$(lib_LTLIBRARIES)'; for p in $$list; do \
+	  echo " $(LIBTOOL) --mode=uninstall rm -f $(DESTDIR)$(libdir)/$$p"; \
+	  $(LIBTOOL) --mode=uninstall rm -f $(DESTDIR)$(libdir)/$$p; \
+	done
+
+clean-libLTLIBRARIES:
+	-test -z "$(lib_LTLIBRARIES)" || rm -f $(lib_LTLIBRARIES)
+libvte.la: $(libvte_la_OBJECTS) $(libvte_la_DEPENDENCIES) 
+	$(LINK) -rpath $(libdir) $(libvte_la_LDFLAGS) $(libvte_la_OBJECTS) $(libvte_la_LIBADD) $(LIBS)
+install-binPROGRAMS: $(bin_PROGRAMS)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(DESTDIR)$(bindir)
+	@list='$(bin_PROGRAMS)'; for p in $$list; do \
+	  p1=`echo $$p|sed 's/$(EXEEXT)$$//'`; \
+	  if test -f $$p \
+	     || test -f $$p1 \
+	  ; then \
+	    f=`echo $$p1|sed '$(transform);s/$$/$(EXEEXT)/'`; \
+	   echo " $(INSTALL_PROGRAM_ENV) $(LIBTOOL) --mode=install $(INSTALL_PROGRAM) $$p $(DESTDIR)$(bindir)/$$f"; \
+	   $(INSTALL_PROGRAM_ENV) $(LIBTOOL) --mode=install $(INSTALL_PROGRAM) $$p $(DESTDIR)$(bindir)/$$f; \
+	  else :; fi; \
+	done
+
+uninstall-binPROGRAMS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(bin_PROGRAMS)'; for p in $$list; do \
+	  f=`echo $$p|sed 's/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/'`; \
+	  echo " rm -f $(DESTDIR)$(bindir)/$$f"; \
+	  rm -f $(DESTDIR)$(bindir)/$$f; \
+	done
+
+clean-binPROGRAMS:
+	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
+
+clean-noinstPROGRAMS:
+	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
+interpret$(EXEEXT): $(interpret_OBJECTS) $(interpret_DEPENDENCIES) 
+	@rm -f interpret$(EXEEXT)
+	$(LINK) $(interpret_LDFLAGS) $(interpret_OBJECTS) $(interpret_LDADD) $(LIBS)
+pty-pty.$(OBJEXT): pty.c
+pty$(EXEEXT): $(pty_OBJECTS) $(pty_DEPENDENCIES) 
+	@rm -f pty$(EXEEXT)
+	$(LINK) $(pty_LDFLAGS) $(pty_OBJECTS) $(pty_LDADD) $(LIBS)
+termcap-termcap.$(OBJEXT): termcap.c
+termcap$(EXEEXT): $(termcap_OBJECTS) $(termcap_DEPENDENCIES) 
+	@rm -f termcap$(EXEEXT)
+	$(LINK) $(termcap_LDFLAGS) $(termcap_OBJECTS) $(termcap_LDADD) $(LIBS)
+trie-termcap.$(OBJEXT): termcap.c
+trie-trie.$(OBJEXT): trie.c
+trie$(EXEEXT): $(trie_OBJECTS) $(trie_DEPENDENCIES) 
+	@rm -f trie$(EXEEXT)
+	$(LINK) $(trie_LDFLAGS) $(trie_OBJECTS) $(trie_LDADD) $(LIBS)
+utf8echo$(EXEEXT): $(utf8echo_OBJECTS) $(utf8echo_DEPENDENCIES) 
+	@rm -f utf8echo$(EXEEXT)
+	$(LINK) $(utf8echo_LDFLAGS) $(utf8echo_OBJECTS) $(utf8echo_LDADD) $(LIBS)
+vte$(EXEEXT): $(vte_OBJECTS) $(vte_DEPENDENCIES) 
+	@rm -f vte$(EXEEXT)
+	$(LINK) $(vte_LDFLAGS) $(vte_OBJECTS) $(vte_LDADD) $(LIBS)
+
+mostlyclean-compile:
+	-rm -f *.$(OBJEXT) core *.core
+
+distclean-compile:
+	-rm -f *.tab.c
+
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/caps.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/caps.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/interpret.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/marshal.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/pty-pty.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/pty.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/termcap-termcap.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/termcap.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/termcap.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/trie-termcap.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/trie-trie.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/trie.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/trie.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/utf8echo.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/vte.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/vteapp.Po@am__quote@
+
+distclean-depend:
+	-rm -rf $(DEPDIR)
+
+.c.o:
+@AMDEP_TRUE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(COMPILE) -c `test -f $< || echo '$(srcdir)/'`$<
+
+.c.obj:
+@AMDEP_TRUE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(COMPILE) -c `cygpath -w $<`
+
+.c.lo:
+@AMDEP_TRUE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/$*.Plo' tmpdepfile='$(DEPDIR)/$*.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(LTCOMPILE) -c -o $@ `test -f $< || echo '$(srcdir)/'`$<
+
+pty-pty.o: pty.c
+@AMDEP_TRUE@	source='pty.c' object='pty-pty.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/pty-pty.Po' tmpdepfile='$(DEPDIR)/pty-pty.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pty_CFLAGS) $(CFLAGS) -c -o pty-pty.o `test -f pty.c || echo '$(srcdir)/'`pty.c
+
+pty-pty.obj: pty.c
+@AMDEP_TRUE@	source='pty.c' object='pty-pty.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/pty-pty.Po' tmpdepfile='$(DEPDIR)/pty-pty.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pty_CFLAGS) $(CFLAGS) -c -o pty-pty.obj `cygpath -w pty.c`
+
+pty-pty.lo: pty.c
+@AMDEP_TRUE@	source='pty.c' object='pty-pty.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/pty-pty.Plo' tmpdepfile='$(DEPDIR)/pty-pty.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pty_CFLAGS) $(CFLAGS) -c -o pty-pty.lo `test -f pty.c || echo '$(srcdir)/'`pty.c
+
+termcap-termcap.o: termcap.c
+@AMDEP_TRUE@	source='termcap.c' object='termcap-termcap.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/termcap-termcap.Po' tmpdepfile='$(DEPDIR)/termcap-termcap.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(termcap_CFLAGS) $(CFLAGS) -c -o termcap-termcap.o `test -f termcap.c || echo '$(srcdir)/'`termcap.c
+
+termcap-termcap.obj: termcap.c
+@AMDEP_TRUE@	source='termcap.c' object='termcap-termcap.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/termcap-termcap.Po' tmpdepfile='$(DEPDIR)/termcap-termcap.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(termcap_CFLAGS) $(CFLAGS) -c -o termcap-termcap.obj `cygpath -w termcap.c`
+
+termcap-termcap.lo: termcap.c
+@AMDEP_TRUE@	source='termcap.c' object='termcap-termcap.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/termcap-termcap.Plo' tmpdepfile='$(DEPDIR)/termcap-termcap.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(termcap_CFLAGS) $(CFLAGS) -c -o termcap-termcap.lo `test -f termcap.c || echo '$(srcdir)/'`termcap.c
+
+trie-termcap.o: termcap.c
+@AMDEP_TRUE@	source='termcap.c' object='trie-termcap.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/trie-termcap.Po' tmpdepfile='$(DEPDIR)/trie-termcap.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(trie_CFLAGS) $(CFLAGS) -c -o trie-termcap.o `test -f termcap.c || echo '$(srcdir)/'`termcap.c
+
+trie-termcap.obj: termcap.c
+@AMDEP_TRUE@	source='termcap.c' object='trie-termcap.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/trie-termcap.Po' tmpdepfile='$(DEPDIR)/trie-termcap.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(trie_CFLAGS) $(CFLAGS) -c -o trie-termcap.obj `cygpath -w termcap.c`
+
+trie-termcap.lo: termcap.c
+@AMDEP_TRUE@	source='termcap.c' object='trie-termcap.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/trie-termcap.Plo' tmpdepfile='$(DEPDIR)/trie-termcap.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(trie_CFLAGS) $(CFLAGS) -c -o trie-termcap.lo `test -f termcap.c || echo '$(srcdir)/'`termcap.c
+
+trie-trie.o: trie.c
+@AMDEP_TRUE@	source='trie.c' object='trie-trie.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/trie-trie.Po' tmpdepfile='$(DEPDIR)/trie-trie.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(trie_CFLAGS) $(CFLAGS) -c -o trie-trie.o `test -f trie.c || echo '$(srcdir)/'`trie.c
+
+trie-trie.obj: trie.c
+@AMDEP_TRUE@	source='trie.c' object='trie-trie.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/trie-trie.Po' tmpdepfile='$(DEPDIR)/trie-trie.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(trie_CFLAGS) $(CFLAGS) -c -o trie-trie.obj `cygpath -w trie.c`
+
+trie-trie.lo: trie.c
+@AMDEP_TRUE@	source='trie.c' object='trie-trie.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/trie-trie.Plo' tmpdepfile='$(DEPDIR)/trie-trie.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(trie_CFLAGS) $(CFLAGS) -c -o trie-trie.lo `test -f trie.c || echo '$(srcdir)/'`trie.c
+CCDEPMODE = @CCDEPMODE@
+uninstall-info-am:
+
+tags: TAGS
+
+ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
+	list='$(SOURCES) $(HEADERS) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	mkid -fID $$unique $(LISP)
+
+TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+		$(TAGS_FILES) $(LISP)
+	tags=; \
+	here=`pwd`; \
+	list='$(SOURCES) $(HEADERS) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	test -z "$(ETAGS_ARGS)$$unique$(LISP)$$tags" \
+	  || etags $(ETAGS_ARGS) $$tags  $$unique $(LISP)
+
+GTAGS:
+	here=`CDPATH=: && cd $(top_builddir) && pwd` \
+	  && cd $(top_srcdir) \
+	  && gtags -i $(GTAGS_ARGS) $$here
+
+distclean-tags:
+	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH
+
+DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+
+top_distdir = ..
+distdir = $(top_distdir)/$(PACKAGE)-$(VERSION)
+
+distdir: $(DISTFILES)
+	@for file in $(DISTFILES); do \
+	  if test -f $$file; then d=.; else d=$(srcdir); fi; \
+	  dir=`echo "$$file" | sed -e 's,/[^/]*$$,,'`; \
+	  if test "$$dir" != "$$file" && test "$$dir" != "."; then \
+	    $(mkinstalldirs) "$(distdir)/$$dir"; \
+	  fi; \
+	  if test -d $$d/$$file; then \
+	    cp -pR $$d/$$file $(distdir) \
+	    || exit 1; \
+	  else \
+	    test -f $(distdir)/$$file \
+	    || cp -p $$d/$$file $(distdir)/$$file \
+	    || exit 1; \
+	  fi; \
+	done
+check-am: all-am
+check: check-am
+all-am: Makefile $(LTLIBRARIES) $(PROGRAMS)
+install-binPROGRAMS: install-libLTLIBRARIES
+
+
+installdirs:
+	$(mkinstalldirs) $(DESTDIR)$(libdir) $(DESTDIR)$(bindir)
+
+install: install-am
+install-exec: install-exec-am
+install-data: install-data-am
+uninstall: uninstall-am
+
+install-am: all-am
+	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
+
+installcheck: installcheck-am
+install-strip:
+	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
+	  `test -z '$(STRIP)' || \
+	    echo "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'"` install
+mostlyclean-generic:
+
+clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
+
+distclean-generic:
+	-rm -f Makefile $(CONFIG_CLEAN_FILES) stamp-h stamp-h[0-9]*
+
+maintainer-clean-generic:
+	@echo "This command is intended for maintainers to use"
+	@echo "it deletes files that may require special tools to rebuild."
+clean: clean-am
+
+clean-am: clean-binPROGRAMS clean-generic clean-libLTLIBRARIES \
+	clean-libtool clean-noinstPROGRAMS mostlyclean-am
+
+distclean: distclean-am
+
+distclean-am: clean-am distclean-compile distclean-depend \
+	distclean-generic distclean-libtool distclean-tags
+
+dvi: dvi-am
+
+dvi-am:
+
+info: info-am
+
+info-am:
+
+install-data-am:
+
+install-exec-am: install-binPROGRAMS install-libLTLIBRARIES
+
+install-info: install-info-am
+
+install-man:
+
+installcheck-am:
+
+maintainer-clean: maintainer-clean-am
+
+maintainer-clean-am: distclean-am maintainer-clean-generic
+
+mostlyclean: mostlyclean-am
+
+mostlyclean-am: mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool
+
+uninstall-am: uninstall-binPROGRAMS uninstall-info-am \
+	uninstall-libLTLIBRARIES
+
+.PHONY: GTAGS all all-am check check-am clean clean-binPROGRAMS \
+	clean-generic clean-libLTLIBRARIES clean-libtool \
+	clean-noinstPROGRAMS distclean distclean-compile \
+	distclean-depend distclean-generic distclean-libtool \
+	distclean-tags distdir dvi dvi-am info info-am install \
+	install-am install-binPROGRAMS install-data install-data-am \
+	install-exec install-exec-am install-info install-info-am \
+	install-libLTLIBRARIES install-man install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool tags uninstall \
+	uninstall-am uninstall-binPROGRAMS uninstall-info-am \
+	uninstall-libLTLIBRARIES
+
+
+marshal.c marshal.h: marshal.list
+	glib-genmarshal --prefix=_vte_marshal --body $^ > marshal.c
+	glib-genmarshal --prefix=_vte_marshal --header $^ > marshal.h
+# Tell versions [3.59,3.63) of GNU make to not export all variables.
+# Otherwise a system limit (for SysV at least) may be exceeded.
+.NOEXPORT:
