@@ -33,11 +33,12 @@
 /* Open the named PTY slave, fork off a child (storing its PID in child),
  * and exec the named command in its own session as a process group leader */
 static int
-vte_pty_fork_on_fd(const char *path, const char *command, pid_t *child)
+vte_pty_fork_on_fd(const char *path, const char **env_add,
+		   const char *command, const char **argv, pid_t *child)
 {
 	int fd, i;
 	pid_t pid;
-
+	char **args;
 
 	/* Start up a child. */
 	pid = fork();
@@ -85,8 +86,25 @@ vte_pty_fork_on_fd(const char *path, const char *command, pid_t *child)
 		close(fd);
 	}
 
+	/* Set any environment variables. */
+	for (i = 0; (env_add != NULL) && (env_add[i] != NULL); i++) {
+		if (putenv(g_strdup(env_add[i])) == -1) {
+			g_warning("Error adding `%s' to environment, "
+				  "continuing.", env_add[i]);
+		}
+	}
+
 	/* Outta here. */
-	execl(command, command, NULL);
+	if (argv != NULL) {
+		for (i = 0; (argv[i] != NULL); i++) ;
+		args = g_malloc0(sizeof(char*) * (i + 1));
+		for (i = 0; (argv[i] != NULL); i++) {
+			args[i] = g_strdup(argv[i]);
+		}
+		execv(command, args);
+	} else {
+		execl(command, command, NULL);
+	}
 
 	/* Avoid calling any atexit() code. */
 	_exit(0);
@@ -148,7 +166,8 @@ vte_pty_unlockpt(int fd)
 }
 
 static int
-vte_pty_open_unix98(pid_t *child, const char *command)
+vte_pty_open_unix98(pid_t *child, const char **env_add,
+		    const char *command, const char **argv)
 {
 	int fd;
 	char *buf;
@@ -156,7 +175,7 @@ vte_pty_open_unix98(pid_t *child, const char *command)
 	/* Attempt to open the master. */
 	fd = vte_pty_getpt();
 	if (fd != -1) {
-		/* Use ioctls to read the slave number, and to unlock it. */
+		/* Read the slave number and unlock it. */
 		if (((buf = vte_pty_ptsname(fd)) == NULL) ||
 		    (vte_pty_grantpt(fd) != 0) ||
 		    (vte_pty_unlockpt(fd) != 0)) {
@@ -164,7 +183,8 @@ vte_pty_open_unix98(pid_t *child, const char *command)
 			fd = -1;
 		} else {
 			/* Start up a child process with the given command. */
-			if (vte_pty_fork_on_fd(buf, command, child) != 0) {
+			if (vte_pty_fork_on_fd(buf, env_add, command, argv,
+					       child) != 0) {
 				close(fd);
 				fd = -1;
 			}
@@ -174,20 +194,22 @@ vte_pty_open_unix98(pid_t *child, const char *command)
 }
 
 static int
-vte_pty_open_old_school(pid_t *child, const char *command)
+vte_pty_open_old_school(pid_t *child, const char **env_add,
+			const char *command, const char **argv)
 {
 	return -1;
 }
 
 int
-vte_pty_open(pid_t *child, const char *command)
+vte_pty_open(pid_t *child, const char **env_add,
+	     const char *command, const char **argv)
 {
 	int ret = -1;
 	if (ret == -1) {
-		ret = vte_pty_open_unix98(child, command);
+		ret = vte_pty_open_unix98(child, env_add, command, argv);
 	}
 	if (ret == -1) {
-		ret = vte_pty_open_old_school(child, command);
+		ret = vte_pty_open_old_school(child, env_add, command, argv);
 	}
 	return ret;
 }

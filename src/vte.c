@@ -110,8 +110,8 @@ struct _VteTerminalPrivate {
 			gint start, end;
 		} scrolling_region;	/* the region we scroll in */
 		gboolean scrolling_restricted;
-		long delta;		/* cached Y offset (the saved cursor
-					   position is relative to this) */
+		long scroll_delta;	/* scroll offset */
+		long insert_delta;	/* insertion offset */
 		struct vte_charcell defaults;	/* default characteristics
 						   for insertion of any new
 						   characters */
@@ -169,13 +169,18 @@ vte_terminal_set_default_attributes(VteTerminal *terminal)
 /* Cause certain cells to be updated. */
 static void
 vte_invalidate_cells(VteTerminal *terminal,
-		     gint column_start, gint column_count,
-		     gint row_start, gint row_count)
+		     glong column_start, gint column_count,
+		     glong row_start, gint row_count)
 {
 	GdkRectangle rect;
 	GtkWidget *widget = GTK_WIDGET(terminal);
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	/* Subtract the scrolling offset from the row start so that the
+	 * resulting rectangle is relative to the visible portion of the
+	 * buffer. */
+	row_start -= terminal->pvt->screen->scroll_delta;
 
 	/* Clamp the start values to reasonable numbers. */
 	column_start = (column_start > 0) ? column_start : 0;
@@ -359,18 +364,18 @@ vte_sequence_handler_al(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	if (screen->scrolling_restricted) {
-		start = screen->delta + screen->scrolling_region.start;
-		end = screen->delta + screen->scrolling_region.end;
+		start = screen->insert_delta + screen->scrolling_region.start;
+		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
-		start = screen->delta;
-		end = screen->delta + terminal->row_count - 1;
+		start = screen->insert_delta;
+		end = screen->insert_delta + terminal->row_count - 1;
 	}
 	vte_remove_line_int(terminal, end);
 	vte_insert_line_int(terminal, screen->cursor_current.row);
 	screen->cursor_current.row++;
 	vte_invalidate_cells(terminal,
 			     0, terminal->column_count,
-			     start - screen->delta, end - start + 1);
+			     start, end + 1);
 }
 
 /* Add N lines at the current cursor position. */
@@ -404,7 +409,7 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 			GValueArray *params)
 {
 	GArray *rowdata;
-	long delta, i;
+	long i;
 	struct _VteScreen *screen;
 	struct vte_charcell *pcell;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -425,10 +430,9 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 			}
 		}
 		/* Repaint this row. */
-		delta = screen->delta;
 		vte_invalidate_cells(terminal,
 				     0, terminal->column_count,
-				     screen->cursor_current.row - delta, 1);
+				     screen->cursor_current.row, 1);
 	}
 }
 
@@ -440,13 +444,12 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 			GValueArray *params)
 {
 	GArray *rowdata;
-	long delta, i;
+	long i;
 	struct _VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the rows
 	 * below the cursor. */
-	delta = screen->delta;
 	for (i = screen->cursor_current.row + 1;
 	     i < screen->row_data->len;
 	     i++) {
@@ -459,7 +462,7 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 		/* Repaint this row. */
 		vte_invalidate_cells(terminal,
 				     0, terminal->column_count,
-				     i - delta, 1);
+				     i, 1);
 	}
 }
 
@@ -471,13 +474,11 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 			GValueArray *params)
 {
 	GArray *rowdata;
-	long delta;
 	struct _VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
-	delta = screen->delta;
 	if (screen->row_data->len > screen->cursor_current.row) {
 		/* Get the data for the row which the cursor points to. */
 		rowdata = g_array_index(screen->row_data, GArray*,
@@ -489,7 +490,7 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 		/* Repaint this row. */
 		vte_invalidate_cells(terminal,
 				     0, terminal->column_count,
-				     screen->cursor_current.row - delta, 1);
+				     screen->cursor_current.row, 1);
 	}
 }
 
@@ -502,14 +503,12 @@ vte_sequence_handler_ch(VteTerminal *terminal,
 {
 	struct _VteScreen *screen;
 	GValue *value;
-	long delta;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
-	delta = screen->delta;
 	/* Repaint the current cursor position. */
 	vte_invalidate_cells(terminal,
 			     screen->cursor_current.col, 1,
-			     screen->cursor_current.row - delta, 1);
+			     screen->cursor_current.row, 1);
 	/* We only care if there's a parameter in there. */
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
@@ -517,10 +516,8 @@ vte_sequence_handler_ch(VteTerminal *terminal,
 			/* Move the cursor and repaint it. */
 			screen->cursor_current.col = g_value_get_long(value);
 			vte_invalidate_cells(terminal,
-					     screen->cursor_current.col,
-					     1,
-					     screen->cursor_current.row - delta,
-					     1);
+					     screen->cursor_current.col, 1,
+					     screen->cursor_current.row, 1);
 		}
 	}
 }
@@ -555,7 +552,7 @@ vte_sequence_handler_cm(VteTerminal *terminal,
 		if (G_VALUE_HOLDS_LONG(row) &&
 		    G_VALUE_HOLDS_LONG(col)) {
 			screen->cursor_current.row = g_value_get_long(row) +
-						     screen->delta;
+						     screen->insert_delta;
 			screen->cursor_current.col = g_value_get_long(col);
 		}
 	}
@@ -569,13 +566,11 @@ vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 					GValueArray *params)
 {
 	GArray *rowdata;
-	long delta;
 	struct _VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
-	delta = screen->delta;
 	if (screen->row_data->len > screen->cursor_current.row) {
 		/* Get the data for the row which the cursor points to. */
 		rowdata = g_array_index(screen->row_data, GArray*,
@@ -587,7 +582,7 @@ vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 		/* Repaint this row. */
 		vte_invalidate_cells(terminal,
 				     0, terminal->column_count,
-				     screen->cursor_current.row - delta, 1);
+				     screen->cursor_current.row, 1);
 	}
 }
 
@@ -643,14 +638,12 @@ vte_sequence_handler_cv(VteTerminal *terminal,
 {
 	struct _VteScreen *screen;
 	GValue *value;
-	long delta;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
-	delta = screen->delta;
 	/* Repaint the current cursor position. */
 	vte_invalidate_cells(terminal,
 			     screen->cursor_current.col, 1,
-			     screen->cursor_current.row - delta, 1);
+			     screen->cursor_current.row, 1);
 	/* We only care if there's a parameter in there. */
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
@@ -658,10 +651,8 @@ vte_sequence_handler_cv(VteTerminal *terminal,
 			/* Move the cursor and repaint it. */
 			screen->cursor_current.row = g_value_get_long(value);
 			vte_invalidate_cells(terminal,
-					     screen->cursor_current.col,
-					     1,
-					     screen->cursor_current.row - delta,
-					     1);
+					     screen->cursor_current.col, 1,
+					     screen->cursor_current.row, 1);
 		}
 	}
 }
@@ -678,15 +669,18 @@ vte_sequence_handler_dl(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	if (screen->scrolling_restricted) {
-		end = screen->delta + screen->scrolling_region.end;
+		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
-		end = screen->delta + terminal->row_count - 1;
+		end = screen->insert_delta + terminal->row_count - 1;
 	}
 	vte_remove_line_int(terminal, screen->cursor_current.row);
 	vte_insert_line_int(terminal, end);
+	/* Repaint the entire screen.  FIXME: optimize. */
 	vte_invalidate_cells(terminal,
-			     0, terminal->column_count,
-			     0, terminal->row_count);
+			     0,
+			     terminal->column_count,
+			     terminal->pvt->screen->insert_delta,
+			     terminal->row_count);
 }
 
 /* Delete N lines at the current cursor position. */
@@ -709,16 +703,15 @@ vte_sequence_handler_do(VteTerminal *terminal,
 			GValueArray *params)
 {
 	GtkWidget *widget;
-	long delta, rows, col, row, start, end;
+	long rows, col, row, start, end, delta;
 	struct _VteScreen *screen;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	widget = GTK_WIDGET(terminal);
 	screen = terminal->pvt->screen;
 
-	delta = screen->delta;
-	start = screen->scrolling_region.start + delta;
-	end = screen->scrolling_region.end + delta;
+	start = screen->scrolling_region.start + screen->insert_delta;
+	end = screen->scrolling_region.end + screen->insert_delta;
 	col = screen->cursor_current.col;
 	row = screen->cursor_current.row;
 
@@ -731,14 +724,14 @@ vte_sequence_handler_do(VteTerminal *terminal,
 			/* Invalidate the rows the cursor was on and is on. */
 			vte_invalidate_cells(terminal,
 					     0, terminal->column_count,
-					     start - delta, end - start + 1);
+					     start, end - start + 1);
 		} else {
 			/* Otherwise, just move the cursor down. */
 			screen->cursor_current.row++;
 			/* Invalidate the rows the cursor was on and is on. */
 			vte_invalidate_cells(terminal,
 					     col, 1,
-					     row - delta, 2);
+					     row, 2);
 		}
 	} else {
 		/* Move the cursor down. */
@@ -797,7 +790,7 @@ vte_sequence_handler_ho(VteTerminal *terminal,
 	struct _VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
-	screen->cursor_current.row = screen->delta;
+	screen->cursor_current.row = screen->insert_delta;
 	screen->cursor_current.col = 0;
 }
 
@@ -924,7 +917,8 @@ vte_sequence_handler_rc(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	screen->cursor_current.col = screen->cursor_saved.col;
-	screen->cursor_current.row = screen->cursor_saved.row + screen->delta;
+	screen->cursor_current.row = screen->cursor_saved.row +
+				     screen->insert_delta;
 }
 
 /* Cursor right N characters. */
@@ -949,7 +943,8 @@ vte_sequence_handler_sc(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	screen->cursor_saved.col = screen->cursor_current.col;
-	screen->cursor_saved.row = screen->cursor_current.row - screen->delta;
+	screen->cursor_saved.row = screen->cursor_current.row -
+				   screen->insert_delta;
 }
 
 /* Standout end. */
@@ -992,7 +987,8 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 	do {
 		newcol++;
 	} while ((newcol % VTE_TAB_WIDTH) != 0);
-	/* Wrap to the next line if need be. */
+	/* Wrap to the next line if need be.  FIXME: check if we're supposed
+	 * to wrap to the next line. */
 	if (newcol >= terminal->column_count) {
 		terminal->pvt->screen->cursor_current.col = 0;
 		vte_sequence_handler_do(terminal, match, match_quark, params);
@@ -1024,20 +1020,19 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			GValueArray *params)
 {
 	GtkWidget *widget;
-	long delta, col, row, start, end;
+	long col, row, start, end;
 	struct _VteScreen *screen;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	widget = GTK_WIDGET(terminal);
 	screen = terminal->pvt->screen;
 
-	delta = screen->delta;
 	col = screen->cursor_current.col;
 	row = screen->cursor_current.row;
 
 	if (screen->scrolling_restricted) {
-		start = screen->scrolling_region.start + delta;
-		end = screen->scrolling_region.end + delta;
+		start = screen->scrolling_region.start + screen->insert_delta;
+		end = screen->scrolling_region.end + screen->insert_delta;
 		if (row == start) {
 			/* If we're at the top of the scrolling region, add a
 			 * line at the top to scroll the bottom off. */
@@ -1046,7 +1041,7 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			/* Invalidate the scrolling region. */
 			vte_invalidate_cells(terminal,
 					     0, terminal->column_count,
-					     start - delta, end - start + 1);
+					     start, end - start + 1);
 		} else {
 			/* Otherwise, just move the cursor up. */
 			screen->cursor_current.row--;
@@ -1054,11 +1049,11 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			/* Invalidate the cells the cursor was in and is in. */
 			vte_invalidate_cells(terminal,
 					     col, 1,
-					     row - delta, 2);
+					     row, 2);
 		}
 	} else {
-		start = delta;
-		end = delta + terminal->row_count - 1;
+		start = terminal->pvt->screen->insert_delta;
+		end = start + terminal->row_count - 1;
 		if (row == start) {
 			/* Insert a blank line and remove one from the bottom,
 			 * to simulate a proper scroll without screwing up the
@@ -1068,7 +1063,7 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			/* We need to redraw everything here. */
 			vte_invalidate_cells(terminal,
 					     0, terminal->column_count,
-					     0, terminal->row_count);
+					     start, terminal->row_count);
 		} else {
 			/* Move the cursor up. */
 			screen->cursor_current.row--;
@@ -1076,7 +1071,7 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			/* Invalidate the places the cursor is and was. */
 			vte_invalidate_cells(terminal,
 					     col, 1,
-					     row - delta, 2);
+					     row, 2);
 		}
 	}
 }
@@ -1251,14 +1246,13 @@ vte_sequence_handler_clear_above_current(VteTerminal *terminal,
 					 GValueArray *params)
 {
 	GArray *rowdata;
-	long delta, i;
+	long i;
 	struct _VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
-	delta = screen->delta;
-	for (i = delta; i < screen->cursor_current.row; i++) {
+	for (i = screen->insert_delta; i < screen->cursor_current.row; i++) {
 		if (screen->row_data->len > i) {
 			/* Get the data for the row we're erasing. */
 			rowdata = g_array_index(screen->row_data, GArray*, i);
@@ -1269,7 +1263,7 @@ vte_sequence_handler_clear_above_current(VteTerminal *terminal,
 			/* Repaint this row. */
 			vte_invalidate_cells(terminal,
 					     0, terminal->column_count,
-					     i - delta, 1);
+					     i, 1);
 		}
 	}
 }
@@ -1282,14 +1276,15 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 				  GValueArray *params)
 {
 	GArray *rowdata;
-	long delta, i;
+	long i;
 	struct _VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
-	delta = screen->delta;
-	for (i = delta; i < delta + terminal->row_count; i++) {
+	for (i = screen->insert_delta;
+	     i < screen->insert_delta + terminal->row_count;
+	     i++) {
 		if (screen->row_data->len > i) {
 			/* Get the data for the row we're removing. */
 			rowdata = g_array_index(screen->row_data, GArray*, i);
@@ -1300,7 +1295,7 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 			/* Repaint this row. */
 			vte_invalidate_cells(terminal,
 					     0, terminal->column_count,
-					     i - delta, 1);
+					     i, 1);
 		}
 	}
 }
@@ -1509,12 +1504,14 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 				terminal->pvt->screen = set ?
 				      		 	&terminal->pvt->alternate_screen :
 							&terminal->pvt->normal_screen;
-				/* Force the screen to be redrawn. */
-				vte_invalidate_cells(terminal,
-						     0, terminal->column_count,
-						     0, terminal->row_count);
 				/* Fixup the scrollbars. */
 				vte_terminal_adjust_adjustments(terminal);
+				/* Force the screen to be redrawn. */
+				vte_invalidate_cells(terminal,
+						     0,
+						     terminal->column_count,
+						     terminal->pvt->screen->scroll_delta,
+						     terminal->row_count);
 				break;
 			case 1000:
 				/* FIXME: send mouse X and Y on press and
@@ -1690,7 +1687,7 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 {
 	GValue *value;
 	struct _VteScreen *screen;
-	long param, delta, end, row;
+	long param, end, row;
 	int i;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
@@ -1701,9 +1698,8 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 		value = g_value_array_get_nth(params, 0);
 		param = g_value_get_long(value);
 	}
-	delta = screen->delta;
 	row = screen->cursor_current.row;
-	end = screen->scrolling_region.end + screen->delta;
+	end = screen->scrolling_region.end + screen->insert_delta;
 	/* Insert the new lines at the cursor. */
 	for (i = 0; i < param; i++) {
 		/* Clear lines off the bottom of the scrolling region. */
@@ -1716,7 +1712,7 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 	/* Refresh the modified area. */
 	vte_invalidate_cells(terminal,
 			     0, terminal->column_count,
-			     row - delta, end - row + 1);
+			     row, end - row + 1);
 }
 
 /* Delete certain lines from the scrolling region. */
@@ -1728,7 +1724,7 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 {
 	GValue *value;
 	struct _VteScreen *screen;
-	long param, delta, end, row;
+	long param, end, row;
 	int i;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
@@ -1740,9 +1736,8 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 		param = g_value_get_long(value);
 	}
 	/* Clear the lines which we need to clear. */
-	delta = screen->delta;
 	row = screen->cursor_current.row;
-	end = screen->delta + screen->scrolling_region.end;
+	end = screen->insert_delta + screen->scrolling_region.end;
 	/* Clear them from below the current cursor. */
 	for (i = 0; i < param; i++) {
 		/* Insert any new empty lines. */
@@ -1755,7 +1750,7 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 	/* Refresh the modified area. */
 	vte_invalidate_cells(terminal,
 			     0, terminal->column_count,
-			     row - delta, end - row + 1);
+			     row, end - row + 1);
 }
 
 /* Index.  Move the cursor down a row, and if it's in a scrolling region,
@@ -2249,7 +2244,7 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 	GArray *array;
 	struct vte_charcell cell, *pcell;
 	int columns, i;
-	long delta, col;
+	long col;
 	struct _VteScreen *screen;
 
 	g_return_if_fail(widget != NULL);
@@ -2272,8 +2267,6 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 	columns = wcwidth(c);
 
 	/* Read the deltas. */
-	delta = floor(gtk_adjustment_get_value(terminal->adjustment));
-
 	for (i = 0; i < columns; i++) {
 		col = terminal->pvt->screen->cursor_current.col;
 
@@ -2332,15 +2325,13 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 		if (terminal->pvt->screen->insert) {
 			vte_invalidate_cells(terminal,
 					     screen->cursor_current.col - 1,
-					     terminal->column_count - screen->cursor_current.col + 1,
-					     screen->cursor_current.row - delta,
-					     2);
+					     terminal->column_count -
+					     screen->cursor_current.col + 1,
+					     screen->cursor_current.row, 2);
 		} else {
 			vte_invalidate_cells(terminal,
-					     screen->cursor_current.col - 1,
-					     3,
-					     screen->cursor_current.row - delta,
-					     2);
+					     screen->cursor_current.col - 1, 3,
+					     screen->cursor_current.row, 2);
 		}
 
 		/* And take a step to the to the right.  We invalidated this
@@ -2393,7 +2384,6 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 {
 	VteTerminal *terminal;
 	VteTerminalSequenceHandler handler;
-	long delta;
 	struct _VteScreen *screen;
 
 	g_return_if_fail(widget != NULL);
@@ -2401,13 +2391,10 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 	terminal = VTE_TERMINAL(widget);
 	screen = terminal->pvt->screen;
 
-	/* Read the deltas. */
-	delta = floor(gtk_adjustment_get_value(terminal->adjustment));
-
 	/* Signal that the cursor's current position needs redrawing. */
 	vte_invalidate_cells(terminal,
 			     screen->cursor_current.col - 1, 3,
-			     screen->cursor_current.row - delta, 1);
+			     screen->cursor_current.row, 1);
 
 	/* Find the handler for this control sequence. */
 	handler = g_tree_lookup(terminal->pvt->sequences, GINT_TO_POINTER(match));
@@ -2425,7 +2412,7 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 	/* We probably need to update the cursor's new position, too. */
 	vte_invalidate_cells(terminal,
 			     screen->cursor_current.col - 1, 3,
-			     screen->cursor_current.row - delta, 1);
+			     screen->cursor_current.row, 1);
 }
 
 /* Handle an EOF from the client. */
@@ -2831,9 +2818,12 @@ vte_terminal_set_fontset(VteTerminal *terminal, const char *xlfds)
 		if (terminal->pvt->ftfont != NULL) {
 			XftFontClose(GDK_DISPLAY(), terminal->pvt->ftfont);
 		}
-		terminal->pvt->ftfont = XftFontOpenName(GDK_DISPLAY(),
-							gdk_x11_get_default_screen(),
-							"mono");
+		terminal->pvt->ftfont = XftFontOpen(GDK_DISPLAY(),
+						    gdk_x11_get_default_screen(),
+						    XFT_FAMILY, XftTypeString, "courier",
+
+						    XFT_SIZE, XftTypeDouble, 16.0,
+						    0);
 		if (terminal->pvt->ftfont != NULL) {
 			ascent = terminal->pvt->ftfont->ascent;
 			descent = terminal->pvt->ftfont->descent;
@@ -2920,13 +2910,14 @@ vte_handle_scroll(VteTerminal *terminal)
 	gdk_window_freeze_updates(widget->window);
 	/* Read the new adjustment value and save the difference. */
 	adj = floor(gtk_adjustment_get_value(terminal->adjustment));
-	dy = screen->delta - adj;
-	screen->delta = adj;
+	dy = screen->scroll_delta - adj;
+	screen->scroll_delta = adj;
 	if (dy != 0) {
 		/* Scroll whatever's already in the window to avoid redrawing
 		 * as much as possible. */
 		gdk_window_scroll(widget->window,
 				  0, dy * terminal->char_height);
+#if 0
 		/* Trigger an expose on newly-exposed areas. */
 		if (dy > 0) {
 			vte_invalidate_cells(terminal,
@@ -2941,6 +2932,7 @@ vte_handle_scroll(VteTerminal *terminal)
 					     0,
 					     -dy);
 		}
+#endif
 	}
 	/* Let the refreshing begin. */
 	gdk_window_thaw_updates(widget->window);
@@ -2981,6 +2973,7 @@ static void
 vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 {
 	const char *code, *value;
+	GQuark quark;
 	char *tmp;
 	int i;
 
@@ -2988,7 +2981,8 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	if (emulation == NULL) {
 		emulation = "xterm";
 	}
-	terminal->pvt->terminal = g_quark_to_string(g_quark_from_string(emulation));
+	quark = g_quark_from_string(emulation);
+	terminal->pvt->terminal = g_quark_to_string(quark);
 #ifdef VTE_DEBUG
 	g_print("Setting emulation to `%s'...", emulation);
 #endif
@@ -3071,6 +3065,7 @@ vte_terminal_init(VteTerminal *terminal)
 	struct _VteTerminalPrivate *pvt;
 	GtkAdjustment *adjustment;
 	GIOChannel *channel;
+	const char **env_add;
 	int i;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -3109,7 +3104,8 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->normal_screen.cursor_saved.row = 0;
 	pvt->normal_screen.cursor_saved.col = 0;
 	pvt->normal_screen.cursor_visible = TRUE;
-	pvt->normal_screen.delta = 0;
+	pvt->normal_screen.insert_delta = 0;
+	pvt->normal_screen.scroll_delta = 0;
 	pvt->normal_screen.insert = FALSE;
 
 	pvt->alternate_screen.row_data = g_array_new(FALSE, TRUE,
@@ -3119,7 +3115,8 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->alternate_screen.cursor_saved.row = 0;
 	pvt->alternate_screen.cursor_saved.col = 0;
 	pvt->alternate_screen.cursor_visible = TRUE;
-	pvt->alternate_screen.delta = 0;
+	pvt->alternate_screen.insert_delta = 0;
+	pvt->alternate_screen.scroll_delta = 0;
 	pvt->alternate_screen.insert = FALSE;
 
 	pvt->screen = &terminal->pvt->alternate_screen;
@@ -3131,8 +3128,18 @@ vte_terminal_init(VteTerminal *terminal)
 	vte_terminal_set_scroll_adjustment(terminal, adjustment);
 
 	/* Start up the shell. */
+	env_add = g_malloc(sizeof(char*) * 3);
+	env_add[0] = g_strdup_printf("TERM=%s", pvt->terminal);
+	env_add[1] = g_strdup("COLORTERM=" PACKAGE);
+	env_add[2] = NULL;
 	pvt->pty_master = vte_pty_open(&terminal->pvt->pty_pid,
-				       terminal->pvt->shell);
+				       env_add,
+				       terminal->pvt->shell,
+				       NULL);
+	g_free((char*)env_add[0]);
+	g_free((char*)env_add[1]);
+	g_free((char**)env_add);
+
 	i = fcntl(terminal->pvt->pty_master, F_GETFL);
 	fcntl(terminal->pvt->pty_master, F_SETFL, i | O_NONBLOCK);
 	channel = g_io_channel_unix_new(terminal->pvt->pty_master);
@@ -3449,7 +3456,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	height = terminal->char_height;
 	ascent = terminal->char_ascent;
 	descent = terminal->char_descent;
-	delta = screen->delta;
+	delta = screen->scroll_delta;
 
 	/* Paint the background for this area, using a filled rectangle.  We
 	 * have to do this even when the GDK background matches, otherwise
