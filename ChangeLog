@@ -1,3 +1,8 @@
+2003-04-27 nalin
+	* src/vtefc.c(_vte_fc_defaults_from_gtk): complain when the installed
+	version of GTK+ doesn't support reporting Xft antialiasing and hinting
+	settings.
+
 2003-04-25 nalin
 	* src/vte.c(vte_sequence_handler_sf): freeze the window when scrolling
 	down in a restricted scrolling area again.

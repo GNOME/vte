@@ -28,6 +28,18 @@
 #include <glib.h>
 #include "vtefc.h"
 
+#ifdef HAVE_LOCALE_H
+#include <locale.h>
+#endif
+
+#ifdef ENABLE_NLS
+#include <libintl.h>
+#define _(String) dgettext(PACKAGE, String)
+#else
+#define _(String) String
+#define bindtextdomain(package,dir)
+#endif
+
 static int
 _vte_fc_weight_from_pango_weight(int weight)
 {
@@ -145,6 +157,10 @@ _vte_fc_defaults_from_gtk(FcPattern *pattern)
 	/* Check that the properties we're looking at are defined. */
 	klass = G_OBJECT_CLASS(GTK_SETTINGS_GET_CLASS(settings));
 	if (g_object_class_find_property(klass, "gtk-xft-antialias") == NULL) {
+		g_warning(_("The installed version of GTK+ does not support "
+			    "dynamic setting of antialiasing and hinting "
+			    "options.  Font selection will not work "
+			    "correctly."));
 		return;
 	}
 
