@@ -1,6 +1,7 @@
 bin_PROGRAMS = vte
-noinst_PROGRAMS = interpret pty termcap trie utf8echo
 lib_LTLIBRARIES = libvte.la
+noinst_PROGRAMS = interpret utf8echo
+EXTRA_PROGRAMS = pty termcap trie
 
 CFLAGS = @CFLAGS@ @X_CFLAGS@ @GTK_CFLAGS@
 
@@ -38,6 +39,9 @@ interpret_SOURCES = \
 	interpret.c
 interpret_LDADD = @GLIB_LIBS@
 
+utf8echo_SOURCES = \
+	utf8echo.c
+
 trie_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DTRIE_MAIN
 trie_SOURCES = \
 	termcap.c \
@@ -57,6 +61,3 @@ pty_SOURCES = \
 	pty.c \
 	pty.h
 pty_LDADD = @GLIB_LIBS@
-
-utf8echo_SOURCES = \
-	utf8echo.c
