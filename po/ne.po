@@ -1,0 +1,108 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: vte\n"
+"Report-Msgid-Bugs-To:info@mpp.org.np \n"
+"POT-Creation-Date: 2003-09-08 05:04+0200\n"
+"PO-Revision-Date: 2003-09-08 05:04+0200\n"
+"Last-Translator: Pawan Chitrakar <pawan@nplinux.org>\n"
+"Language-Team: Nepali <info@mpp.org.np>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2067
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "अक्षर  %s देखि %s सम्म बदल्न सकिएन"
+
+#: src/iso2022.c:1560
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr "काम नलाग्ने एन आर सि म्याप '%c' राख्न खोजियो."
+
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1601
+msgid "Unrecognized identified coding system."
+msgstr "अपरिचित कोडिङ्ग सिस्टम भेटियो"
+
+#: src/iso2022.c:1650 src/iso2022.c:1676
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr "काम नलाग्ने चाक्लो एन आर सि म्याप '%c' राख्न खोजियो"
+
+#: src/pty.c:323
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "`%s' यो परिसरमा थप्न सकिएन"
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:908
+#, c-format
+msgid "can not run %s"
+msgstr "%s चलाउन सकिएन"
+
+#: src/reaper.c:110
+msgid "Error creating signal pipe."
+msgstr "सांकेतिक पाइप बनाउन सकिएन"
+
+#: src/trie.c:412
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "नक्कली(%s/%s)"
+
+#: src/vte.c:1475
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "\"%s\" कम्पाइल गर्न सकिएन"
+
+#: src/vte.c:5810
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "`%s सिक्वेन्स मिलेन'"
+
+#: src/vte.c:6828
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "`%s' सिक्वेन्स को ह्यान्डल पाएन"
+
+#: src/vte.c:7645
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "%s पढ्न सकिएन"
+
+#: src/vte.c:7801
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "(%s) बदल्न सकिएन र छोडियो"
+
+#: src/vte.c:10463
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "पि टि वाइ साइज पढ्न सकिएन, %s साविकको प्रयोग गरियो"
+
+#: src/vte.c:10499
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "%s पि टि वाइ साइज राख्न सकिएन"
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:14622
+msgid "_vte_conv_open() failed setting word characters"
+msgstr "_vte_conv_open() शब्द राख्न सकिएन"
+
+#. Bail back to normal mode.
+#: src/vteapp.c:688
+msgid "Could not open console.\n"
+msgstr "कन्सोल खोल्न सकिएन\n"
+
+#: src/vteglyph.c:576
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr "अपरिचित पिक्सेल मोड %d.\n"
+
+#: src/vtexft.c:710
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr "U+%04x अक्षर लेख्न सकिएन\n"
