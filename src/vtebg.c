@@ -40,6 +40,7 @@ static VteBg *singleton_bg = NULL;
 static void vte_bg_set_root_pixmap(VteBg *bg, GdkPixmap *pixmap);
 static void vte_bg_init(VteBg *bg, gpointer *klass);
 
+#if 0
 static const char *
 vte_bg_source_name(enum VteBgSourceType type)
 {
@@ -59,6 +60,7 @@ vte_bg_source_name(enum VteBgSourceType type)
 	}
 	return "unknown";
 }
+#endif
 
 #ifndef X_DISPLAY_MISSING
 
@@ -101,6 +103,18 @@ _vte_bg_display_sync(VteBg *bg)
 #endif
 }
 
+static gboolean
+_vte_property_get_pixmaps(GdkWindow *window, GdkAtom atom,
+			  GdkAtom *type, int *size,
+			  XID **pixmaps)
+{
+	return gdk_property_get(window, atom, GDK_TARGET_PIXMAP,
+				0, INT_MAX,
+				FALSE,
+				type, NULL, size,
+				(guchar**) pixmaps);
+}
+
 static GdkPixmap *
 vte_bg_root_pixmap(VteBg *bg)
 {
@@ -112,16 +126,9 @@ vte_bg_root_pixmap(VteBg *bg)
 	pixmap = NULL;
 	pixmaps = NULL;
 	gdk_error_trap_push();
-	if (gdk_property_get(bg->native->window,
-			     bg->native->atom,
-			     GDK_TARGET_PIXMAP,
-			     0,
-			     INT_MAX,
-			     FALSE,
-			     &prop_type,
-			     NULL,
-			     &prop_size,
-			     (guchar**) &pixmaps)) {
+	if (_vte_property_get_pixmaps(bg->native->window, bg->native->atom,
+				      &prop_type, &prop_size,
+				      &pixmaps)) {
 		if ((prop_type == GDK_TARGET_PIXMAP) &&
 		    (prop_size >= sizeof(XID) &&
 		    (pixmaps != NULL))) {

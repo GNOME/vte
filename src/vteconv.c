@@ -345,6 +345,36 @@ _vte_conv(VteConv converter,
 	return ret;
 }
 
+size_t
+_vte_conv_cu(VteConv converter,
+	     char **inbuf, gsize *inbytes_left,
+	     gunichar **outbuf, gsize *outbytes_left)
+{
+	return _vte_conv(converter,
+			 inbuf, inbytes_left,
+			 (char**)outbuf, outbytes_left);
+}
+
+size_t
+_vte_conv_uu(VteConv converter,
+	     gunichar **inbuf, gsize *inbytes_left,
+	     gunichar **outbuf, gsize *outbytes_left)
+{
+	return _vte_conv(converter,
+			 (char**)inbuf, inbytes_left,
+			 (char**)outbuf, outbytes_left);
+}
+
+size_t
+_vte_conv_uc(VteConv converter,
+	     gunichar **inbuf, gsize *inbytes_left,
+	     char **outbuf, gsize *outbytes_left)
+{
+	return _vte_conv(converter,
+			 (char**)inbuf, inbytes_left,
+			 outbuf, outbytes_left);
+}
+
 #ifdef VTECONV_MAIN
 static void
 clear(gunichar wide[5], gchar narrow[5])

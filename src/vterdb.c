@@ -34,6 +34,18 @@
 #define DEFAULT_HINTING		TRUE
 #define DEFAULT_HINTSTYLE	"hintfull"
 
+static gboolean
+_vte_property_get_string(GdkWindow *window, GdkAtom atom,
+			 GdkAtom *type, int *size,
+			 char **retval)
+{
+	return gdk_property_get(window, atom, GDK_TARGET_STRING,
+				0, INT_MAX,
+				FALSE,
+				type, NULL, size,
+				(guchar**) retval);
+}
+
 static gchar **
 _vte_rdb_get(GtkWidget *widget, gboolean screen_setting)
 {
@@ -76,9 +88,9 @@ _vte_rdb_get(GtkWidget *widget, gboolean screen_setting)
 	/* Read the string property off of the window. */
 	prop_data = NULL;
 	gdk_error_trap_push();
-	gdk_property_get(root, atom, GDK_TARGET_STRING, 0, INT_MAX, FALSE,
-			 &prop_type, NULL, &prop_length,
-			 (guchar**) &prop_data);
+	_vte_property_get_string(root, atom,
+				 &prop_type, &prop_length,
+				 &prop_data);
 #if GTK_CHECK_VERSION(2,2,0)
 	gdk_display_sync(display);
 #else

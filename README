@@ -55,4 +55,4 @@
   For the most part this works correctly now, but if you find that it
   doesn't, please file a bug report including a screenshot, the typescript
   file produced by the incorrectly displayed program run under "script", and
-  the contents of your LANG environment variable.
+  the contents of your LANG/LC_* environment variables.

@@ -1,4 +1,16 @@
 2003-09-11 nalin
+	* README: ask for LC_* in addition to LANG if weird spacing errors
+	crop up.
+	* src/vteconv.c,src/vteconv.h: add wrappers for _vte_conv which weed
+	out some warnings.
+	* src/iso2022.c: use _vte_conv_cu instead of _vte_conv.
+	* src/trie.c: use _vte_conv_cu instead of _vte_conv.
+	* src/vte.c: give _vte_terminal_fudge_pango_colors a return type again.
+	* src/vtebg.c: ifdef out vte_bg_source_name, which is unused.
+	* src/vtebg.c,src/vterdb.c: wrap calls to gdk_property_get to weed out
+	some compiler warnings.
+
+2003-09-11 nalin
 	* src/vte.c(vte_terminal_draw_cells_with_attributes): properly resolve
 	colors and cell properties to drawing colors.
 	* src/vte.c(_vte_terminal_fudge_pango_colors): add a function for

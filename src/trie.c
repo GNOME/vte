@@ -847,7 +847,7 @@ convert_mbstowcs(const char *i, size_t ilen,
 
 	memset(o, 0, max_olen);
 	outlen = max_olen;
-	_vte_conv(conv, (char**)&i, &ilen, (char**)&o, &outlen);
+	_vte_conv_cu(conv, (char**)&i, &ilen, &o, &outlen);
 	_vte_conv_close(conv);
 
 	*olen = (max_olen - outlen) / sizeof(gunichar);

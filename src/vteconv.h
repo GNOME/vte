@@ -36,6 +36,15 @@ VteConv _vte_conv_open(const char *target, const char *source);
 size_t _vte_conv(VteConv converter,
 		 gchar **inbuf, gsize *inbytes_left,
 		 gchar **outbuf, gsize *outbytes_left);
+size_t _vte_conv_uc(VteConv converter,
+		    gunichar **inbuf, gsize *inbytes_left,
+		    gchar **outbuf, gsize *outbytes_left);
+size_t _vte_conv_uu(VteConv converter,
+		    gunichar **inbuf, gsize *inbytes_left,
+		    gunichar **outbuf, gsize *outbytes_left);
+size_t _vte_conv_cu(VteConv converter,
+		    gchar **inbuf, gsize *inbytes_left,
+		    gunichar **outbuf, gsize *outbytes_left);
 gint _vte_conv_close(VteConv converter);
 
 G_END_DECLS

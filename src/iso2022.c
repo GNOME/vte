@@ -1263,9 +1263,9 @@ process_cdata(struct _vte_iso2022_state *state, guchar *cdata, gsize length,
 		outbuf = (gunichar*)buf;
 		outbytes = sizeof(gunichar) * length * 2;
 		do {
-			converted = _vte_conv(state->conv,
-					      &inbuf, &inbytes,
-					      (gchar**) &outbuf, &outbytes);
+			converted = _vte_conv_cu(state->conv,
+					         &inbuf, &inbytes,
+					         &outbuf, &outbytes);
 			stop = FALSE;
 			switch (converted) {
 			case ((size_t)-1):

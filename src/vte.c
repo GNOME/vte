@@ -13005,6 +13005,7 @@ _vte_terminal_map_pango_color(VteTerminal *terminal, PangoColor *color)
  * is using "black-on-white" to signify "inverse".  Pick up on that state and
  * fix things.  Do this here, so that if we suddenly get red-on-black, we'll do
  * the right thing. */
+static void
 _vte_terminal_fudge_pango_colors(VteTerminal *terminal, GSList *attributes,
 				 struct vte_charcell *cells, gssize n)
 {
