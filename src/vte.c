@@ -252,6 +252,19 @@ vte_invalidate_cells(VteTerminal *terminal,
 	gdk_window_invalidate_rect(widget->window, &rect, TRUE);
 }
 
+/* Deselect anything which is selected and refresh the screen if needed. */
+static void
+vte_terminal_deselect_all(VteTerminal *terminal)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	if (terminal->pvt->selection) {
+		terminal->pvt->selection = FALSE;
+		vte_invalidate_cells(terminal,
+				     0, terminal->column_count,
+				     0, terminal->row_count);
+	}
+}
+
 /* Update the adjustment field of the widget.  This function should be called
  * whenever we add rows to the history or switch screens. */
 static void
@@ -2757,12 +2770,12 @@ vte_terminal_process_incoming(gpointer data)
 				*ubuf = '\0';
 				again = TRUE;
 			} else {
+				g_free(ubufptr);
 				again = FALSE;
 			}
 			iconv_close(unconv);
 		} else {
 			/* Discard the data, we can't use it. */
-			g_free(ubufptr);
 			terminal->pvt->n_incoming = 0;
 			g_free(terminal->pvt->incoming);
 			again = FALSE;
@@ -2780,12 +2793,7 @@ vte_terminal_process_incoming(gpointer data)
 			vte_terminal_scroll_on_something(terminal);
 		}
 		/* Deselect any existing selection. */
-		if (terminal->pvt->selection) {
-			terminal->pvt->selection = FALSE;
-			vte_invalidate_cells(terminal,
-					     0, terminal->column_count,
-					     0, terminal->row_count);
-		}
+		vte_terminal_deselect_all(terminal);
 	}
 
 #ifdef VTE_DEBUG
@@ -2980,12 +2988,15 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	g_assert((strcmp(encoding, "UTF-8") == 0) ||
 		 (strcmp(encoding, "WCHAR_T") == 0));
 
+	conv = NULL;
 	if (strcmp(encoding, "UTF-8") == 0) {
 		conv = &terminal->pvt->outgoing_conv_utf8;
 	}
 	if (strcmp(encoding, "WCHAR_T") == 0) {
 		conv = &terminal->pvt->outgoing_conv_wide;
 	}
+	g_assert(conv != NULL);
+	g_assert(*conv != NULL);
 
 	icount = length;
 	ibuf = (char *) data;
@@ -3323,11 +3334,14 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	return FALSE;
 }
 
-/* Copy to the given clipboard. */
+/* Place the selected text onto the clipboard. */
 static void
-vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
+vte_terminal_get_clipboard(GtkClipboard *clipboard,
+			   GtkSelectionData *selection_data,
+			   guint info,
+			   gpointer owner)
 {
-	GtkClipboard *clipboard;
+	VteTerminal *terminal;
 	long x, y;
 	struct _VteScreen *screen;
 	struct vte_charcell *pcell;
@@ -3337,57 +3351,97 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 	size_t icount, ocount;
 	iconv_t conv;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail(VTE_IS_TERMINAL(owner));
+	terminal = VTE_TERMINAL(owner);
+
+	/* Build a buffer with the selected wide chars. */
 	screen = terminal->pvt->screen;
+	buffer = g_malloc((terminal->column_count + 1) *
+			  terminal->row_count * sizeof(wchar_t));
+	length = 0;
+	for (y = screen->scroll_delta;
+	     y < terminal->row_count + screen->scroll_delta;
+	     y++)
+	for (x = 0; x < terminal->column_count; x++) {
+		pcell = vte_terminal_find_charcell(terminal, y, x);
+		if (vte_cell_is_selected(terminal, y, x)) {
+			if (pcell != NULL) {
+				if (pcell->columns > 0) {
+					buffer[length++] = pcell->c;
+				}
+			} else {
+				if (x == terminal->column_count - 1) {
+					buffer[length++] = '\n';
+				}
+			}
+		}
+	}
+	/* Now convert it all to UTF-8. */
+	if (length > 0) {
+		icount = sizeof(wchar_t) * length;
+		ibuf = (char*) buffer;
+		ocount = (terminal->column_count + 1) *
+			 terminal->row_count * sizeof(wchar_t);
+		obuf = obufptr = g_malloc0(ocount);
+		conv = iconv_open("UTF-8", "WCHAR_T");
+		if (conv) {
+			if (iconv(conv, &ibuf, &icount,
+				  &obuf, &ocount) != -1) {
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Passing `%*s' to clipboard.\n",
+					obuf - obufptr, obufptr);
+#endif
+				gtk_selection_data_set_text(selection_data,
+							    obufptr,
+							    obuf - obufptr);
+			} else {
+				g_warning("Conversion error in copy.");
+			}
+			iconv_close(conv);
+		} else {
+			g_warning("Error initializing for conversion.");
+		}
+		g_free(obufptr);
+	}
+	g_free(buffer);
+}
+
+/* The clipboard contents have been changed or cleared, so we'd better not
+ * have the user thinking anything we selected is in there. */
+static void
+vte_terminal_clear_clipboard(GtkClipboard *clipboard,
+			     gpointer owner)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(owner));
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Clipboard has been modified.\n");
+#endif
+	if (gtk_clipboard_get_owner(clipboard) != G_OBJECT(owner)) {
+		vte_terminal_deselect_all(VTE_TERMINAL(owner));
+	}
+}
+
+/* Set us up as the provider of data for the clipboard. */
+static void
+vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
+{
+	GtkClipboard *clipboard;
+	GtkTargetEntry targets[] = {
+		{"UTF8_STRING", 0, 0,},
+		{"STRING", 0, 0,},
+		{"TEXT",  0, 0,},
+		{"COMPOUND_TEXT", 0, 0,},
+	};
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	clipboard = gtk_clipboard_get(board);
 
-	if (clipboard != NULL) {
-		/* Build a buffer with the selected wide chars. */
-		buffer = g_malloc((terminal->column_count + 1) *
-				  terminal->row_count * sizeof(wchar_t));
-		length = 0;
-		for (y = screen->scroll_delta;
-		     y < terminal->row_count + screen->scroll_delta;
-		     y++)
-		for (x = 0; x < terminal->column_count; x++) {
-			pcell = vte_terminal_find_charcell(terminal, y, x);
-			if (vte_cell_is_selected(terminal, y, x)) {
-				if (pcell != NULL) {
-					if (pcell->columns > 0) {
-						buffer[length++] = pcell->c;
-					}
-				} else {
-					if (x == terminal->column_count - 1) {
-						buffer[length++] = '\n';
-					}
-				}
-			}
-		}
-		/* Now convert it all to UTF-8. */
-		if (length > 0) {
-			icount = sizeof(wchar_t) * length;
-			ibuf = (char*) buffer;
-			ocount = (terminal->column_count + 1) *
-				 terminal->row_count * sizeof(wchar_t);
-			obuf = obufptr = g_malloc0(ocount);
-			conv = iconv_open("UTF-8", "WCHAR_T");
-			if (conv) {
-				if (iconv(conv, &ibuf, &icount,
-					  &obuf, &ocount) != -1) {
-					printf("Selected `%*s'\n", obuf - obufptr, obufptr);
-					gtk_clipboard_set_text(clipboard,
-							       obufptr,
-							       obuf - obufptr);
-				} else {
-					g_warning("Conversion error in copy.");
-				}
-				iconv_close(conv);
-			} else {
-				g_warning("Error initializing for conversion.");
-			}
-			g_free(obufptr);
-		}
-		g_free(buffer);
+	if (gtk_clipboard_get_owner(clipboard) != G_OBJECT(terminal)) {
+		gtk_clipboard_set_with_owner(clipboard,
+					     targets, G_N_ELEMENTS(targets),
+					     vte_terminal_get_clipboard,
+					     vte_terminal_clear_clipboard,
+					     G_OBJECT(terminal));
 	}
 }
 
@@ -3423,12 +3477,9 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			if (!GTK_WIDGET_HAS_FOCUS(widget)) {
 				gtk_widget_grab_focus(widget);
 			}
+			vte_terminal_deselect_all(terminal);
 			terminal->pvt->selection_origin.x = event->x;
 			terminal->pvt->selection_origin.y = event->y;
-			terminal->pvt->selection = FALSE;
-			vte_invalidate_cells(terminal,
-					     0, terminal->column_count,
-					     0, terminal->row_count);
 			return TRUE;
 		}
 		if (event->button == 2) {
@@ -3454,7 +3505,11 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 			event->button, event->x, event->y);
 #endif
 		if (event->button == 1) {
-			vte_terminal_copy(terminal, GDK_SELECTION_PRIMARY);
+			if ((event->x != terminal->pvt->selection_start.x) ||
+			    (event->y != terminal->pvt->selection_start.y)) {
+				vte_terminal_copy(terminal,
+						  GDK_SELECTION_PRIMARY);
+			}
 		}
 	}
 
