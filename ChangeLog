@@ -1,3 +1,8 @@
+2003-01-04  Stanislav Visnovsky  <visnovsky@nenya.ms.mff.cuni.cz>
+
+	* configure.in: (ALL_LINGUAS) Added sk (Slovak).
+	* po/sk.po: Added Slovak translation.
+
 2003-01-02  nalin
 	* configure.in: look for libncurses or libtermcap
 	* vte.pc.in: include other libraries (ncurses, termcap, socket,
