@@ -1,3 +1,10 @@
+2003-06-27 nalin
+	* src/vte.c: add big5, big5-hkscs, gb18030, gb2312, gbk, tcvn to the
+	list of ambiguously-wide encodings.  From HEAD via bug #116078.
+	* src/vte.c(vte_terminal_set_termcap): backport fix to not require
+	PATH_MAX from HEAD.
+	* src/pty.c: pull up from HEAD to handle ERESTART (if defined).
+
 2003-06-16  Arafat Medini  <lumina@silverpen.de>
 
 	* ar.po: Added locale "ar" Arabic to ALL_LINGUAS

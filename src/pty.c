@@ -218,6 +218,9 @@ n_read(int fd, void *buffer, size_t count)
 			switch (errno) {
 			case EINTR:
 			case EAGAIN:
+#ifdef ERESTART
+			case ERESTART:
+#endif
 				break;
 			default:
 				return -1;
@@ -248,6 +251,9 @@ n_write(int fd, const void *buffer, size_t count)
 			switch (errno) {
 			case EINTR:
 			case EAGAIN:
+#ifdef ERESTART
+			case ERESTART:
+#endif
 				break;
 			default:
 				return -1;
@@ -706,6 +712,9 @@ _vte_pty_getpt(void)
 #else
 	/* Try to allocate a pty by accessing the pty master multiplex. */
 	fd = open("/dev/ptmx", O_RDWR | O_NOCTTY);
+	if ((fd == -1) && (errno == ENOENT)) {
+		fd = open("/dev/ptc", O_RDWR | O_NOCTTY); /* AIX */
+	}
 #endif
 	/* Set it to blocking. */
 	flags = fcntl(fd, F_GETFL);

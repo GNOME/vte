@@ -6349,6 +6349,9 @@ vte_terminal_set_default_colors(VteTerminal *terminal)
 /* A list of codeset names in which we consider ambiguous characters to be
  * wide. */
 static const char *vte_ambiguous_wide_codeset_list[] = {
+	"big5",
+	"big5hkscs",
+	"big5-hkscs",
 	"eucCN",
 	"eucJP",
 	"eucKR",
@@ -6357,6 +6360,13 @@ static const char *vte_ambiguous_wide_codeset_list[] = {
 	"euc-JP",
 	"euc-KR",
 	"euc-TW",
+	"gb18030",
+	"gb2312",
+	"gbk",
+	"tcvn",
+	"BIG5",
+	"BIG5HKSCS",
+	"BIG5-HKSCS",
 	"EUCCN",
 	"EUCJP",
 	"EUCKR",
@@ -6365,6 +6375,10 @@ static const char *vte_ambiguous_wide_codeset_list[] = {
 	"EUC-JP",
 	"EUC-KR",
 	"EUC-TW",
+	"GB18030",
+	"GB2312",
+	"GBK",
+	"TCVN",
 };
 
 static GHashTable *vte_ambiguous_wide_codeset_table = NULL;
@@ -11379,20 +11393,25 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 			 gboolean reset)
 {
 	struct stat st;
-	char path_default[PATH_MAX];
+	char *wpath;
+	GQuark q = 0;
 
 	if (path == NULL) {
-		snprintf(path_default, sizeof(path_default),
-			 DATADIR "/" PACKAGE "/termcap/%s",
-			 terminal->pvt->emulation ?
-			 terminal->pvt->emulation : VTE_DEFAULT_EMULATION);
-		if (stat(path_default, &st) == 0) {
-			path = path_default;
-		} else {
-			path = "/etc/termcap";
+		wpath = g_strdup_printf(DATADIR "/" PACKAGE "/termcap/%s",
+					terminal->pvt->emulation ?
+					terminal->pvt->emulation :
+					VTE_DEFAULT_EMULATION);
+		if (stat(wpath, &st) != 0) {
+			g_free(wpath);
+			wpath = g_strdup("/etc/termcap");
 		}
+		q = g_quark_from_string(wpath);
+		g_free(wpath);
+	} else {
+		q = g_quark_from_string(path);
 	}
-	terminal->pvt->termcap_path = g_quark_to_string(g_quark_from_string(path));
+
+	terminal->pvt->termcap_path = g_quark_to_string(q);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "Loading termcap `%s'...",
