@@ -1,3 +1,6 @@
+2002-04-26 17:35  notting
+	* src/pty.c: use execlp/execvp
+
 2002-04-26 12:09  nalin
 	* src/Makefile.am, src/ring.c, ring.h: add a ring buffer for storing
 	scrollback data.

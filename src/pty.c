@@ -104,14 +104,10 @@ vte_pty_fork_on_fd(const char *path, const char **env_add,
 		for (i = 0; (argv[i] != NULL); i++) {
 			args[i] = g_strdup(argv[i]);
 		}
-		execv(command, args);
+		execvp(command, args);
 	} else {
-		if (strchr(command, '/') != NULL) {
-			arg = g_strdup(strrchr(command, '/') + 1);
-		} else {
-			arg = g_strdup(command);
-		}
-		execl(command, arg, NULL);
+		arg = g_strdup(command);
+		execlp(command, arg, NULL);
 	}
 
 	/* Avoid calling any atexit() code. */
