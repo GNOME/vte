@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.11.5
+Version: 0.11.6
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -94,6 +94,10 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Tue May  6 2003 Nalin Dahyabhai <nalin@redhat.com> 0.11.6-1
+- handle 8-bit SS2 and SS3
+- share backgrounds between terminal instances
+
 * Wed Apr 30 2003 Nalin Dahyabhai <nalin@redhat.com> 0.11.5-1
 - pick up font settings from xrdb if GTK+ doesn't know anything
 - support CP437 as a national replacement charset
