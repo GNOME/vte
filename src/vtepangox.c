@@ -234,7 +234,7 @@ _vte_pango_x_clear(struct _vte_draw *draw,
 	struct _vte_pango_x_data *data;
 	gint i, j, istart, jstart, h, w, xstop, ystop;
 
-	data = (struct _vte_pango_data*) draw->impl_data;
+	data = (struct _vte_pango_x_data*) draw->impl_data;
 
 	if ((data->pixmap == NULL) ||
 	    (data->pixmapw == 0) ||
