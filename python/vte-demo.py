@@ -5,6 +5,17 @@ import getopt
 import gtk
 import vte
 
+def selected_cb(terminal, column, row, cb_data):
+	if (row == 15):
+		if (column < 40):
+			return 1
+	return 0
+
+def restore_cb(terminal):
+	(text, attrs) = terminal.get_text(selected_cb, 1)
+	print "A portion of the text at restore-time is:"
+	print text
+
 def child_exited_cb(terminal):
 	gtk.mainquit()
 
@@ -66,6 +77,7 @@ if __name__ == '__main__':
 	terminal.set_audible_bell(audible)
 	terminal.set_visible_bell(visible)
 	terminal.connect("child-exited", child_exited_cb)
+	terminal.connect("restore-window", restore_cb)
 	if (command):
 		# Start up the specified command.
 		child_pid = terminal.fork_command(command)

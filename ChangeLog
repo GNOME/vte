@@ -1,3 +1,10 @@
+2003-08-12 nalin
+	* python/vte.override(get_text,get_text_range): reorder arguments to
+	match the order for the C versions (#118882).
+	* python/vte.override(get_text,get_text_range,call_callback): fix
+	refcounting and callback argument marshalling (bug #118882).
+	* python/vte-demo.py: exercies get_text() on "window-raise" signals.
+
 2003-08-12  Padraig O'Briain  <padraig.obriain@sun.com>
 
 	* src/vteaccess.c:
