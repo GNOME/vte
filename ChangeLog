@@ -1,3 +1,7 @@
+2002-10-01  Stanislav Brabec  <sbrabec@suse.cz>
+
+	* configure.in: Added cs to ALL_LINGUAS.
+
 2002-09-24 nalin
 	* src/vte.c(vte_terminal_set_word_chars,vte_terminal_is_word_char):
 	if the list of word characters is NULL or zero-length, try to guess
