@@ -11,6 +11,7 @@ import gtk.MenuShell as PyGtkMenuShell_Type
 import gtk.Widget as PyGtkWidget_Type
 %%
 ignore vte_terminal_get_text
+ignore vte_terminal_get_text_range
 %%
 override vte_terminal_fork_command kwargs
 static PyObject *

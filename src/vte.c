@@ -5361,7 +5361,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			const GdkColor *foreground,
 			const GdkColor *background,
 			const GdkColor *palette,
-			gssize palette_size)
+			glong palette_size)
 {
 	int i;
 	GdkColor color;
@@ -6311,7 +6311,7 @@ vte_terminal_io_read(GIOChannel *channel,
 
 /* Render some UTF-8 text. */
 void
-vte_terminal_feed(VteTerminal *terminal, const char *data, gssize length)
+vte_terminal_feed(VteTerminal *terminal, const char *data, glong length)
 {
 	char *buf;
 	gboolean empty;
@@ -6465,7 +6465,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 
 /* Send a chunk of UTF-8 text to the child. */
 void
-vte_terminal_feed_child(VteTerminal *terminal, const char *text, gssize length)
+vte_terminal_feed_child(VteTerminal *terminal, const char *text, glong length)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (length == ((gssize)-1)) {
@@ -6782,6 +6782,11 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	if (!steal) {
 		if (gtk_im_context_filter_keypress(terminal->pvt->im_context,
 						   event)) {
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_EVENTS)) {
+				fprintf(stderr, "Keypress taken by IM.\n");
+			}
+#endif
 			return TRUE;
 		}
 	}
@@ -12386,6 +12391,27 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 		vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
 	}
 #endif
+}
+
+GtkType
+vte_terminal_erase_binding_get_type(void)
+{
+	static GtkType terminal_erase_binding_type = 0;
+	static GEnumValue values[] = {
+		{VTE_ERASE_AUTO, "VTE_ERASE_AUTO", "auto"},
+		{VTE_ERASE_ASCII_BACKSPACE, "VTE_ERASE_ASCII_BACKSPACE",
+		 "ascii-backspace"},
+		{VTE_ERASE_ASCII_DELETE, "VTE_ERASE_ASCII_DELETE",
+		 "ascii-delete"},
+		{VTE_ERASE_DELETE_SEQUENCE, "VTE_ERASE_DELETE_SEQUENCE",
+		 "delete-sequence"},
+	};
+	if (terminal_erase_binding_type == 0) {
+		terminal_erase_binding_type =
+			g_enum_register_static("VteTerminalEraseBinding",
+					       values);
+	}
+	return terminal_erase_binding_type;
 }
 
 GtkType

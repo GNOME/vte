@@ -105,6 +105,7 @@ struct vte_char_attributes {
 
 /* The widget's type. */
 GtkType vte_terminal_get_type(void);
+GtkType vte_terminal_erase_binding_get_type(void);
 
 #define VTE_TYPE_TERMINAL		(vte_terminal_get_type())
 #define VTE_TERMINAL(obj)		(GTK_CHECK_CAST((obj),\
@@ -119,6 +120,10 @@ GtkType vte_terminal_get_type(void);
 							     VTE_TYPE_TERMINAL)
 #define VTE_TERMINAL_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS ((obj), VTE_TYPE_TERMINAL, VteTerminalClass))
 
+#define VTE_TYPE_TERMINAL_ERASE_BINDING	(vte_terminal_erase_binding_get_type())
+#define VTE_IS_TERMINAL_ERASE_BINDING(obj)	GTK_CHECK_TYPE((obj),\
+						VTE_TYPE_TERMINAL_ERASE_BINDING)
+
 /* You can get by with just these two functions. */
 GtkWidget *vte_terminal_new(void);
 pid_t vte_terminal_fork_command(VteTerminal *terminal,
@@ -126,9 +131,9 @@ pid_t vte_terminal_fork_command(VteTerminal *terminal,
 
 /* Send data to the terminal to display, or to the terminal's forked command
  * to handle in some way.  If it's 'cat', they should be the same. */
-void vte_terminal_feed(VteTerminal *terminal, const char *data, gssize length);
+void vte_terminal_feed(VteTerminal *terminal, const char *data, glong length);
 void vte_terminal_feed_child(VteTerminal *terminal,
-			     const char *data, gssize length);
+			     const char *data, glong length);
 
 /* Copy currently-selected text to the clipboard, or from the clipboard to
  * the terminal. */
@@ -153,14 +158,14 @@ void vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 void vte_terminal_set_color_bold(VteTerminal *terminal,
 				 const GdkColor *bold);
 void vte_terminal_set_color_foreground(VteTerminal *terminal,
-				       const GdkColor *fore);
+				       const GdkColor *foreground);
 void vte_terminal_set_color_background(VteTerminal *terminal,
-				       const GdkColor *back);
+				       const GdkColor *background);
 void vte_terminal_set_colors(VteTerminal *terminal,
 			     const GdkColor *foreground,
 			     const GdkColor *background,
 			     const GdkColor *palette,
-			     gssize palette_size);
+			     glong palette_size);
 void vte_terminal_set_default_colors(VteTerminal *terminal);
 
 /* Background effects. */

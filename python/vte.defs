@@ -13,6 +13,7 @@
 (define-enum TerminalEraseBinding
   (in-module "Vte")
   (c-name "VteTerminalEraseBinding")
+  (gtype-id "VTE_TYPE_TERMINAL_ERASE_BINDING")
   (values
     '("auto" "VTE_ERASE_AUTO")
     '("ascii-backspace" "VTE_ERASE_ASCII_BACKSPACE")
@@ -29,10 +30,15 @@
   (return-type "GtkType")
 )
 
+(define-function vte_terminal_erase_binding_get_type
+  (c-name "vte_terminal_erase_binding_get_type")
+  (return-type "GtkType")
+)
+
 (define-function vte_terminal_new
   (c-name "vte_terminal_new")
-  (is-constructor-of VteTerminal)
-  (return-type "VteTerminal*")
+  (is-constructor-of "VteTerminal")
+  (return-type "GtkWidget*")
 )
 
 (define-method fork_command
@@ -52,7 +58,7 @@
   (return-type "none")
   (parameters
     '("const-char*" "data")
-    '("size_t" "length")
+    '("glong" "length")
   )
 )
 
@@ -62,7 +68,7 @@
   (return-type "none")
   (parameters
     '("const-char*" "data")
-    '("size_t" "length")
+    '("glong" "length")
   )
 )
 
@@ -75,6 +81,18 @@
 (define-method paste_clipboard
   (of-object "VteTerminal")
   (c-name "vte_terminal_paste_clipboard")
+  (return-type "none")
+)
+
+(define-method copy_primary
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_copy_primary")
+  (return-type "none")
+)
+
+(define-method paste_primary
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_paste_primary")
   (return-type "none")
 )
 
@@ -95,6 +113,27 @@
   (parameters
     '("gboolean" "is_audible")
   )
+)
+
+(define-method get_audible_bell
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_audible_bell")
+  (return-type "gboolean")
+)
+
+(define-method set_visible_bell
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_visible_bell")
+  (return-type "none")
+  (parameters
+    '("gboolean" "is_visible")
+  )
+)
+
+(define-method get_visible_bell
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_visible_bell")
+  (return-type "gboolean")
 )
 
 (define-method set_scroll_on_output
@@ -150,7 +189,7 @@
     '("const-GdkColor*" "foreground")
     '("const-GdkColor*" "background")
     '("const-GdkColor*" "palette")
-    '("size_t" "palette_size")
+    '("glong" "palette_size")
   )
 )
 
@@ -328,6 +367,18 @@
   )
 )
 
+(define-method get_text_range
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_text_range")
+  (return-type "char*")
+  (parameters
+    '("glong" "start_row")
+    '("glong" "start_col")
+    '("glong" "end_row")
+    '("glong" "end_col")
+  )
+)
+
 (define-method get_cursor_position
   (of-object "VteTerminal")
   (c-name "vte_terminal_get_cursor_position")
@@ -392,6 +443,22 @@
   (of-object "VteTerminal")
   (c-name "vte_terminal_get_encoding")
   (return-type "const-char*")
+)
+
+(define-method get_status_line
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_status_line")
+  (return-type "const-char*")
+)
+
+(define-method get_padding
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_padding")
+  (return-type "none")
+  (parameters
+    '("int*" "xpad")
+    '("int*" "ypad")
+  )
 )
 
 

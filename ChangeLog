@@ -1,4 +1,10 @@
 2002-08-30 nalin
+	* src/vte.c: Register VteTerminalEraseBinding with GObject as an
+	enumerated type.
+	* python/vte.defs: Update.
+	* python/vte.overrides: Ignore vte_terminal_get_text_range().
+
+2002-08-30 nalin
 	* src/vte.c: Restore the focus-in/focus-out handlers -- the defaults
 	don't quite DTRT for us because they miss our im_context (#72946).  When
 	setting the cursor location for the input method, make the Y coordinate
