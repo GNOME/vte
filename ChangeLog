@@ -1,4 +1,8 @@
 2003-01-23 nalin
+	* src/caps.c, src/vte.c: recognize and ignore attempts to set text
+	properties 21 and 2L, whatever those are (possible workaround #104154).
+
+2003-01-23 nalin
 	* src/iso2022.c: accept "1" and "2" as aliases for "B" (#104257).
 
 2003-01-23 nalin

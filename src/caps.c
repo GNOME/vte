@@ -397,6 +397,7 @@ struct _vte_capability_string _vte_xterm_capability_strings[] = {
 	{ESC "V", "start-of-guarded-area", 0},
 	{ESC "W", "end-of-guarded-area", 0},
 	{ESC "X", "start-of-string", 0},
+	{ESC "\\", "end-of-string", 0},
 	{ESC "Z", "return-terminal-id", 0},
 	{ESC "c", "full-reset", 0},
 	{ESC "l", "memory-lock", 0},
@@ -550,6 +551,12 @@ struct _vte_capability_string _vte_xterm_capability_strings[] = {
 	{OSC "46;%s" ST, "change-logfile", 0},
 	{OSC "50;#%d" ST, "change-font-number", 0},
 	{OSC "50;%s" ST, "change-font-name", 0},
+
+	/* These may be bogus, I can't find docs for them anywhere (#104154). */
+	{OSC "21;%s" BEL, "set-text-property-21", 0},
+	{OSC "2L;%s" BEL, "set-text-property-2L", 0},
+	{OSC "21;%s" ST, "set-text-property-21", 0},
+	{OSC "2L;%s" ST, "set-text-property-2L", 0},
 
 	{NULL, NULL, 0},
 };

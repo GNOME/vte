@@ -5863,6 +5863,8 @@ static struct {
 	{"set-icon-title", vte_sequence_handler_set_icon_title},
 	{"set-mode", vte_sequence_handler_set_mode},
 	{"set-scrolling-region", vte_sequence_handler_set_scrolling_region},
+	{"set-text-property-21", NULL},
+	{"set-text-property-2L", NULL},
 	{"set-window-title", vte_sequence_handler_set_window_title},
 	{"single-shift-g2", NULL},
 	{"single-shift-g3", NULL},
