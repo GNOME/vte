@@ -1,0 +1,118 @@
+# translation of vte to Persian
+# Copyright (C) 2003 The FarsiWeb Project Group
+# Roozbeh Pournader <roozbeh@sharif.edu>, 2003
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte\n"
+"POT-Creation-Date: 2003-02-18 05:00+0100\n"
+"PO-Revision-Date: 2003-02-18 17:21+0330\n"
+"Last-Translator: Roozbeh Pournader <roozbeh@sharif.edu>\n"
+"Language-Team: Persian <farsi@lists.sharif.edu>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/pty.c:253
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "خطا در اضافه‌کردن `%s' به محیطِ، ادامه می‌دهیم."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:800
+#, c-format
+msgid "can not run %s"
+msgstr "نمی‌توان %s را اجرا کرد"
+
+#: src/reaper.c:107
+msgid "Error creating signal pipe."
+msgstr ""
+
+#: src/trie.c:411
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "تکراری (%s/%s)!"
+
+#: src/vte.c:1410
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "خطا در ترجمه‌ی عبارت باقاعده‌ی \"%s\"."
+
+#: src/vte.c:1932 src/vte.c:1941 src/vte.c:1953 src/vte.c:1971 src/vte.c:1977
+#: src/vte.c:1982
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "نمی‌توان نویسه‌ها را از %s به %s تبدیل کرد."
+
+#: src/vte.c:5496
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr ""
+
+#: src/vte.c:6588
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr ""
+
+#: src/vte.c:7330
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "خطا در خواندن از فرزند: %s."
+
+#: src/vte.c:7513
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr ""
+
+#: src/vte.c:9840
+#, c-format
+msgid "Using fontset \"%s\", which is missing these character sets: %s."
+msgstr ""
+
+#: src/vte.c:10478
+#, c-format
+msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
+msgstr ""
+
+#: src/vte.c:10490
+msgid "Failed to load default Xft font."
+msgstr "بارکردن قلم پیشفرض Xft شکست خورد."
+
+#: src/vte.c:10583
+#, c-format
+msgid "Failed to load font set \"%s\", falling back to default font."
+msgstr ""
+
+#: src/vte.c:10595
+msgid "Failed to load default font, crashing or behaving abnormally."
+msgstr ""
+
+#: src/vte.c:10857
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "خطا در خواندن اندازه‌ی PTY، از پیشفرض‌ها استفاده می‌کنیم: %s."
+
+#: src/vte.c:10893
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "خطا در تنظیم اندازه‌ی  PTY: %s."
+
+#: src/vte.c:13797
+msgid "Error allocating draw, disabling Xft."
+msgstr ""
+
+#: src/vte.c:13805
+msgid "Error allocating context, disabling Pango."
+msgstr ""
+
+#: src/vte.c:13811
+msgid "Error allocating layout, disabling Pango."
+msgstr ""
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:15459
+msgid "g_iconv_open() failed setting word characters"
+msgstr "g_iconv_open() نتوانست نویسه‌های کلمه را تنظیم کند"
+
