@@ -222,6 +222,8 @@ struct _VteTerminalPrivate {
 	GtkIMContext *im_context;
 	char *im_preedit;
 	int im_preedit_cursor;
+
+	VteTerminalEraseBinding backspace_binding, delete_binding;
 };
 
 /* A function which can handle a terminal control sequence. */
@@ -771,12 +773,12 @@ vte_sequence_handler_al(VteTerminal *terminal,
 #else
 		vte_invalidate_cells(terminal,
 				     0, terminal->column_count,
-				     start, end + 1);
+				     start, end - start + 1);
 #endif
 	} else {
 		vte_invalidate_cells(terminal,
 				     0, terminal->column_count,
-				     start, end + 1);
+				     start, end - start + 1);
 	}
 }
 
@@ -1266,6 +1268,7 @@ vte_sequence_handler_do(VteTerminal *terminal,
 			vte_insert_line_int(terminal, end);
 			if ((terminal->pvt->bg_image == NULL) &&
 			    (!terminal->pvt->bg_transparent)) {
+#if 0
 				/* Scroll the window. */
 				gdk_window_scroll(widget->window,
 						  0,
@@ -1280,14 +1283,21 @@ vte_sequence_handler_do(VteTerminal *terminal,
 				vte_invalidate_cells(terminal,
 						     0, terminal->column_count,
 						     0, start);
+#else
+				vte_invalidate_cells(terminal,
+						     0,
+						     terminal->column_count,
+						     start,
+						     end - start + 1);
+#endif
 			} else {
 				/* If we have a background image, we need to
 				 * redraw the entire window. */
 				vte_invalidate_cells(terminal,
 						     0,
 						     terminal->column_count,
-						     screen->scroll_delta,
-						     terminal->row_count);
+						     start,
+						     end - start + 1);
 			}
 		} else {
 			/* Otherwise, just move the cursor down. */
@@ -1666,6 +1676,7 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			vte_insert_line_int(terminal, start);
 			if ((terminal->pvt->bg_image == NULL) &&
 			    (!terminal->pvt->bg_transparent)) {
+#if 0
 				/* Scroll the window. */
 				gdk_window_scroll(widget->window,
 						  0,
@@ -1680,14 +1691,16 @@ vte_sequence_handler_up(VteTerminal *terminal,
 				vte_invalidate_cells(terminal,
 						     0, terminal->column_count,
 						     end, terminal->row_count);
+#endif
+				vte_invalidate_cells(terminal,
+						     0, terminal->column_count,
+						     start, end - start + 1);
 			} else {
 				/* If we have a background image, we need to
 				 * redraw the entire window. */
 				vte_invalidate_cells(terminal,
-						     0,
-						     terminal->column_count,
-						     screen->scroll_delta,
-						     terminal->row_count);
+						     0, terminal->column_count,
+						     start, end - start + 1);
 			}
 		} else {
 			/* Otherwise, just move the cursor up. */
@@ -1705,6 +1718,7 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			vte_insert_line_int(terminal, start);
 			if ((terminal->pvt->bg_image == NULL) &&
 			    (!terminal->pvt->bg_transparent)) {
+#if 0
 				/* Scroll the window. */
 				gdk_window_scroll(widget->window,
 						  0,
@@ -1715,6 +1729,13 @@ vte_sequence_handler_up(VteTerminal *terminal,
 						     terminal->column_count,
 						     terminal->row_count - 1,
 						     1);
+#else
+				vte_invalidate_cells(terminal,
+						     0,
+						     terminal->column_count,
+						     screen->scroll_delta,
+						     terminal->row_count);
+#endif
 			} else {
 				/* If we have a background image, we need to
 				 * redraw the entire window. */
@@ -3280,6 +3301,30 @@ vte_terminal_im_reset(VteTerminal *terminal)
 	}
 }
 
+/* Free a parameter array.  Most of the GValue elements can clean up after
+ * themselves, but we're using gpointers to hold wide character strings, and
+ * we need to free those ourselves. */
+static void
+free_params_array(GValueArray *params)
+{
+	int i;
+	GValue *value;
+	gpointer ptr;
+	if (params != NULL) {
+		for (i = 0; i < params->n_values; i++) {
+			value = g_value_array_get_nth(params, i);
+			if (G_VALUE_HOLDS_POINTER(value)) {
+				ptr = g_value_get_pointer(value);
+				if (ptr != NULL) {
+					g_free(ptr);
+				}
+				g_value_set_pointer(value, NULL);
+			}
+		}
+		g_value_array_free(params);
+	}
+}
+
 /* Process incoming data, first converting it to wide characters, and then
  * processing escape sequences. */
 static gboolean
@@ -3294,12 +3339,11 @@ vte_terminal_process_incoming(gpointer data)
 	char *ibuf, *obuf, *obufptr, *ubuf, *ubufptr;
 	size_t icount, ocount, ucount;
 	wchar_t *wbuf, c;
-	int ind, wcount, start, end;
+	int wcount, start, end, i;
 	const char *match, *encoding;
 	iconv_t unconv;
 	GQuark quark;
-	GValue *value;
-	gpointer ptr;
+	const wchar_t *next;
 	gboolean leftovers, inserted, again, bottom;
 
 	g_return_val_if_fail(GTK_IS_WIDGET(data), FALSE);
@@ -3340,15 +3384,12 @@ vte_terminal_process_incoming(gpointer data)
 					}
 				}
 				/* Be conservative about discarding data. */
-				g_warning("Invalid multibyte sequence detected.  Discarding %d bytes of data.", end - start);
+				g_warning("Invalid multibyte sequence detected.  Munging up %d bytes of data.", end - start);
 				/* Remove the offending bytes. */
-				obuf = &terminal->pvt->incoming[start];
-				ibuf = &terminal->pvt->incoming[end];
-				memmove(obuf, ibuf, terminal->pvt->n_incoming - end);
-				/* Reset the incoming buffer size. */
-				terminal->pvt->n_incoming -= end;
-				/* If we still have data, try again right
-				 * away. */
+				for (i = start; i < end; i++) {
+					terminal->pvt->incoming[i] = '?';
+				}
+				/* Try again right away. */
 				terminal->pvt->processing = (terminal->pvt->n_incoming > 0);
 				if (terminal->pvt->processing == FALSE) {
 					terminal->pvt->processing_tag = -1;
@@ -3382,126 +3423,190 @@ vte_terminal_process_incoming(gpointer data)
 	start = 0;
 	inserted = leftovers = FALSE;
 	while ((start < wcount) && !leftovers) {
-		for (end = start + 1; end <= wcount; end++) {
-			/* Check if the contents of the array is a control
-			 * string or not.  The match function returns NULL if
-			 * the data is not a control sequence, the name of
-			 * the control sequence if it is one, and an empty
-			 * string if it might be the beginning of a control
-			 * sequence. */
+		/* Check if the first character is part of a control
+		 * sequence. */
+		vte_trie_match(terminal->pvt->trie,
+			       &wbuf[start],
+			       1,
+			       &match,
+			       &next,
+			       &quark,
+			       &params);
+		/* Next now points to the next character in the buffer we're
+		 * uncertain about.  The match string falls into one of three
+		 * classes, but only one of them is ambiguous, and we want to
+		 * clear that up if possible. */
+		if ((match != NULL) && (match[0] == '\0')) {
+#ifdef VTE_DEBUG
+			fprintf(stderr, "Ambiguous sequence (%d/%d).  "
+				"Resolving.\n", start, wcount);
+#endif
+			/* Try to match the *entire* string.  This will set
+			 * "next" to a more useful value. */
+			free_params_array(params);
+			params = NULL;
 			vte_trie_match(terminal->pvt->trie,
 				       &wbuf[start],
-				       end - start,
+				       wcount - start,
 				       &match,
+				       &next,
 				       &quark,
 				       &params);
+			/* Now check just the number of bytes we know about
+			 * to determine what we're doing in this iteration. */
 			if (match == NULL) {
-				/* Nothing interesting here, so insert this
-				 * character into the buffer. */
-				c = wbuf[start];
 #ifdef VTE_DEBUG
-				if (c > 255) {
-					fprintf(stderr, "%ld\n", (long) c);
-				} else {
-					if (c > 127) {
-						fprintf(stderr, "%ld = ",
-							(long) c);
-					}
-					if (c < 32) {
-						fprintf(stderr, "^%lc\n",
-							(wint_t)c + 64);
-					} else {
-						fprintf(stderr, "`%lc'\n",
-							(wint_t)c);
-					}
-				}
+				fprintf(stderr,
+					"Looks like a sequence (%d).\n",
+					next - (wbuf + start));
 #endif
-				vte_terminal_insert_char(widget, c);
-				inserted = TRUE;
-				start++;
-				break;
-			}
-			if (match[0] != '\0') {
-				/* A terminal sequence, force the current
-				 * position of the cursor to be redrawn, run
-				 * the sequence handler, and then draw the
-				 * cursor again. */
-				vte_invalidate_cursor_once(terminal);
-				vte_terminal_handle_sequence(GTK_WIDGET(terminal),
-							     match,
-							     quark,
-							     params);
-				/* Skip over the proper number of wide chars. */
-				start = end;
-				/* Check if the encoding's changed. */
-				if (strcmp(encoding, terminal->pvt->encoding)) {
-					leftovers = TRUE;
-				}
-				inserted = TRUE;
-				break;
-			} else {
-				/* Empty string. */
-				if (end == wcount) {
-					/* We have the initial portion of a
-					 * control sequence, but no more
-					 * data. */
-					leftovers = TRUE;
-					g_warning("Unhandled data (%s).\n",
-						  terminal->pvt->incoming + start);
-				}
-			}
-			/* Free any wide-character strings we got. */
-			if (params != NULL) {
-				for (ind = 0; ind < params->n_values; ind++) {
-					value = g_value_array_get_nth(params,
-								      ind);
-					if (G_VALUE_HOLDS_POINTER(value)) {
-						ptr = g_value_get_pointer(value);
-						if (ptr != NULL) {
-							g_free(ptr);
-						}
-						g_value_set_pointer(value,
-								    NULL);
-					}
-				}
-				g_value_array_free(params);
+				free_params_array(params);
 				params = NULL;
-			}
-		}
-		/* Free any wide-character strings we got if we broke out
-		 * of the loop. */
-		if (params != NULL) {
-			for (ind = 0; ind < params->n_values; ind++) {
-				value = g_value_array_get_nth(params, ind);
-				if (G_VALUE_HOLDS_POINTER(value)) {
-					ptr = g_value_get_pointer(value);
-					if (ptr != NULL) {
-						g_free(ptr);
-					}
-					g_value_set_pointer(value, NULL);
+				vte_trie_match(terminal->pvt->trie,
+					       &wbuf[start],
+					       next - (wbuf + start),
+					       &match,
+					       &next,
+					       &quark,
+					       &params);
+				if ((match != NULL) && (match[0] == '\0')) {
+					vte_trie_match(terminal->pvt->trie,
+						       &wbuf[start],
+						       next - (wbuf + start) + 1,
+						       &match,
+						       &next,
+						       &quark,
+						       &params);
 				}
 			}
-			g_value_array_free(params);
-			params = NULL;
+#ifdef VTE_DEBUG
+			if ((match != NULL) && (match[0] != '\0')) {
+				fprintf(stderr,
+					"Ambiguity resolved -- sequence ");
+			}
+			if ((match != NULL) && (match[0] == '\0')) {
+				int i;
+				fprintf(stderr,
+					"Ambiguity resolved -- incomplete `");
+				for (i = 0; i < wcount; i++) {
+					if (i == start) {
+						fprintf(stderr, "=>");
+					}
+					if ((wbuf[i] < 32) || (wbuf[i] > 127)) {
+						fprintf(stderr, "{%ld}",
+							(long) wbuf[i]);
+					} else {
+						fprintf(stderr, "%lc",
+							(wint_t) wbuf[i]);
+					}
+					if (i == (next - wbuf)) {
+						fprintf(stderr, "<=");
+					}
+				}
+				if (i == (next - wbuf)) {
+					fprintf(stderr, "<=");
+				}
+				fprintf(stderr, "'.\n");
+			}
+			if (match == NULL) {
+				fprintf(stderr,
+					"Ambiguity resolved -- plain data ");
+			}
+			fprintf(stderr, "(%d).\n", next - wbuf);
+#endif
 		}
+
+#ifdef VTE_DEBUG
+		else {
+			if ((match != NULL) && (match[0] != '\0')) {
+				fprintf(stderr,
+					"Sequence (%d).\n", next - wbuf);
+			}
+			if ((match != NULL) && (match[0] == '\0')) {
+				fprintf(stderr,
+					"Incomplete (%d).\n", next - wbuf);
+			}
+			if (match == NULL) {
+				fprintf(stderr,
+					"Plain data (%d).\n", next - wbuf);
+			}
+		}
+#endif
+		/* We're in one of three possible situations now.
+		 * First, the match string is a non-empty string and next
+		 * points to the first character which isn't part of this
+		 * sequence. */
+		if ((match != NULL) && (match[0] != '\0')) {
+			vte_invalidate_cursor_once(terminal);
+			vte_terminal_handle_sequence(GTK_WIDGET(terminal),
+						     match,
+						     quark,
+						     params);
+			/* Skip over the proper number of wide chars. */
+			start = (next - wbuf);
+			/* Check if the encoding's changed. If it has, we need
+			 * to force our caller to call us again to parse the
+			 * rest of the data. */
+			if (strcmp(encoding, terminal->pvt->encoding)) {
+				leftovers = TRUE;
+			}
+			inserted = TRUE;
+		} else
+		/* Second, we have a NULL match, and next points the very
+		 * next character in the buffer.  Insert the character we're
+		 * which we're currently examining. */
+		if (match == NULL) {
+			c = wbuf[start];
+#ifdef VTE_DEBUG
+			if (c > 255) {
+				fprintf(stderr, "%ld\n", (long) c);
+			} else {
+				if (c > 127) {
+					fprintf(stderr, "%ld = ", (long) c);
+				}
+				if (c < 32) {
+					fprintf(stderr, "^%lc\n",
+						(wint_t)c + 64);
+				} else {
+					fprintf(stderr, "`%lc'\n", (wint_t)c);
+				}
+			}
+#endif
+			vte_terminal_insert_char(widget, c);
+			inserted = TRUE;
+			start++;
+		} else {
+			/* Case three: the read broke in the middle of a
+			 * control sequence, so we're undecided with no more
+			 * data to consult. */
+			leftovers = TRUE;
+		}
+		/* Free any parameters we don't care about any more. */
+		free_params_array(params);
+		params = NULL;
 	}
-	again = TRUE;
+
 	if (leftovers) {
 		/* There are leftovers, so convert them back to the terminal's
-		 * encoding and save them for later. */
+		 * old encoding and save them for later. */
 		unconv = iconv_open(encoding, "WCHAR_T");
 		if (unconv != NULL) {
 			icount = sizeof(wchar_t) * (wcount - start);
 			ibuf = (char*) &wbuf[start];
-			ucount = VTE_UTF8_BPC * (wcount - start + 1);
+			ucount = VTE_UTF8_BPC * (wcount - start) + 1;
 			ubuf = ubufptr = g_malloc(ucount);
 			if (iconv(unconv, &ibuf, &icount,
 				  &ubuf, &ucount) != -1) {
 				/* Store it. */
-				g_free(terminal->pvt->incoming);
+				if (terminal->pvt->incoming) {
+					g_free(terminal->pvt->incoming);
+				}
 				terminal->pvt->incoming = ubufptr;
 				terminal->pvt->n_incoming = ubuf - ubufptr;
 				*ubuf = '\0';
+				/* If we're doing this because the encoding
+				 * was changed out from under us, we need to
+				 * keep trying to process the incoming data. */
 				if (strcmp(encoding, terminal->pvt->encoding)) {
 					again = TRUE;
 				} else {
@@ -3514,15 +3619,22 @@ vte_terminal_process_incoming(gpointer data)
 					(long) (sizeof(wchar_t) * (wcount - start)),
 					strerror(errno));
 #endif
+				if (terminal->pvt->incoming) {
+					g_free(terminal->pvt->incoming);
+				}
+				terminal->pvt->incoming = NULL;
+				terminal->pvt->n_incoming = 0;
 				g_free(ubufptr);
 				again = FALSE;
 			}
 			iconv_close(unconv);
 		} else {
 			/* Discard the data, we can't use it. */
-			terminal->pvt->n_incoming = 0;
-			g_free(terminal->pvt->incoming);
+			if (terminal->pvt->incoming != NULL) {
+				g_free(terminal->pvt->incoming);
+			}
 			terminal->pvt->incoming = NULL;
+			terminal->pvt->n_incoming = 0;
 			again = FALSE;
 		}
 	} else {
@@ -3553,6 +3665,7 @@ vte_terminal_process_incoming(gpointer data)
 		/* Signal that the visible contents changed. */
 		vte_terminal_emit_contents_changed(terminal);
 	}
+
 	if ((cursor_row != terminal->pvt->screen->cursor_current.row) ||
 	    (cursor_col != terminal->pvt->screen->cursor_current.col)) {
 		/* Signal that the cursor moved. */
@@ -3572,6 +3685,8 @@ vte_terminal_process_incoming(gpointer data)
 	fprintf(stderr, "%d bytes left to process.\n",
 		terminal->pvt->n_incoming);
 #endif
+	/* Decide if we're going to keep on processing data, and if not,
+	 * note that our source tag is about to become invalid. */
 	terminal->pvt->processing = again && (terminal->pvt->n_incoming > 0);
 	if (terminal->pvt->processing == FALSE) {
 		terminal->pvt->processing_tag = -1;
@@ -4003,16 +4118,46 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		/* Map the key to a sequence name if we can. */
 		switch (event->keyval) {
 			case GDK_BackSpace:
-				/* Use the tty's erase character. */
-				if (tcgetattr(terminal->pvt->pty_master,
-					      &tio) != -1) {
-					normal = g_strdup_printf("%c",
-								 tio.c_cc[VERASE]);
-					normal_length = 1;
+				switch (terminal->pvt->backspace_binding) {
+					case VTE_ERASE_ASCII_BACKSPACE:
+						normal = g_strdup("");
+						normal_length = 1;
+						break;
+					case VTE_ERASE_ASCII_DELETE:
+						normal = g_strdup("");
+						normal_length = 1;
+						break;
+					case VTE_ERASE_DELETE_SEQUENCE:
+						special = "kD";
+						break;
+					/* Use the tty's erase character. */
+					case VTE_ERASE_AUTO:
+					default:
+						if (tcgetattr(terminal->pvt->pty_master,
+							      &tio) != -1) {
+							normal = g_strdup_printf("%c",
+										 tio.c_cc[VERASE]);
+							normal_length = 1;
+						}
+						break;
 				}
 				break;
 			case GDK_Delete:
-				special = "kD";
+				switch (terminal->pvt->delete_binding) {
+					case VTE_ERASE_ASCII_BACKSPACE:
+						normal = g_strdup("");
+						normal_length = 1;
+						break;
+					case VTE_ERASE_ASCII_DELETE:
+						normal = g_strdup("");
+						normal_length = 1;
+						break;
+					case VTE_ERASE_DELETE_SEQUENCE:
+					case VTE_ERASE_AUTO:
+					default:
+						special = "kD";
+						break;
+				}
 				break;
 			case GDK_KP_Home:
 			case GDK_Home:
@@ -4811,6 +4956,69 @@ xft_pattern_from_pango_font_description(const PangoFontDescription *font_desc)
 }
 #endif
 
+static char *
+xlfd_from_pango_font_description(const PangoFontDescription *fontdesc)
+{
+	int weighti, stylei, stretchi, size, count;
+	const char *weight, *style, *stretch, *family;
+	char *ret = NULL;
+	char **fonts;
+
+	family = pango_font_description_get_family(fontdesc);
+	weighti = pango_font_description_get_weight(fontdesc);
+	if (weighti > ((PANGO_WEIGHT_NORMAL + PANGO_WEIGHT_BOLD) / 2)) {
+		weight = "bold";
+	} else {
+		weight = "medium";
+	}
+	stylei = pango_font_description_get_style(fontdesc);
+	switch (stylei) {
+		case PANGO_STYLE_ITALIC:
+			style = "i";
+			break;
+		case PANGO_STYLE_OBLIQUE:
+			style = "o";
+			break;
+		default:
+			style = "r";
+			break;
+	}
+	stretchi = pango_font_description_get_stretch(fontdesc);
+	if (stretchi <= PANGO_STRETCH_CONDENSED) {
+		stretch = "condensed";
+	} else
+	if (stretchi <= PANGO_STRETCH_SEMI_CONDENSED) {
+		stretch = "semicondensed";
+	} else {
+		stretch = "normal";
+	}
+
+	size = pango_font_description_get_size(fontdesc);
+
+	ret = g_strdup_printf("-*-%s*-%s-%s-%s--%d-*-*-*-*-*-*-*",
+			      family, weight, style, stretch,
+			      PANGO_PIXELS(size));
+	fonts = XListFonts(GDK_DISPLAY(), ret, 1, &count);
+	if (fonts != NULL) {
+#ifdef VTE_DEBUG
+		int i;
+		char *desc = pango_font_description_to_string(fontdesc);
+		for (i = 0; i < count; i++) {
+			fprintf(stderr, "Font `%s' matched `%s'.\n",
+				desc, fonts[i]);
+		}
+		g_free(desc);
+#endif
+		XFreeFontNames(fonts);
+	}
+	if (count > 0) {
+		return ret;
+	} else {
+		g_free(ret);
+		return NULL;
+	}
+}
+
 /* Set the fontset used for rendering text into the widget. */
 void
 vte_terminal_set_font(VteTerminal *terminal,
@@ -4819,7 +5027,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 	long width, height, ascent, descent;
 	GtkWidget *widget;
 	XFontStruct **font_struct_list, font_struct;
-	char *xlfds = NULL;
+	char *xlfds;
 	char **missing_charset_list = NULL, *def_string = NULL;
 	int missing_charset_count = 0;
 	char **font_name_list = NULL;
@@ -4829,9 +5037,6 @@ vte_terminal_set_font(VteTerminal *terminal,
 	widget = GTK_WIDGET(terminal);
 
 	/* Choose default font metrics.  I like '10x20' as a terminal font. */
-	if (xlfds == NULL) {
-		xlfds = "-misc-fixed-medium-r-normal--20-*-*-*-*-*-*-*";
-	}
 	width = 10;
 	height = 20;
 	descent = 0;
@@ -5033,6 +5238,24 @@ vte_terminal_set_font(VteTerminal *terminal,
 	if (!terminal->pvt->use_xft && !terminal->pvt->use_pango) {
 		/* Load the font set, freeing another one if we loaded one
 		 * before. */
+#ifdef VTE_DEBUG
+		if (font_desc) {
+			char *tmp;
+			tmp = pango_font_description_to_string (font_desc);
+			fprintf (stderr, "Using pango font \"%s\".\n", tmp);
+			g_free (tmp);
+		} else {
+			fprintf (stderr, "Using default pango font.\n");
+		}
+#endif
+		if (font_desc) {
+			xlfds = xlfd_from_pango_font_description(font_desc);
+		} else {
+			xlfds = "-misc-fixed-medium-r-normal--12-*-*-*-*-*-*-*";
+		}
+		if (xlfds == NULL) {
+			xlfds = "-misc-fixed-medium-r-normal--12-*-*-*-*-*-*-*";
+		}
 		if (terminal->pvt->fontset != NULL) {
 			XFreeFontSet(GDK_DISPLAY(), terminal->pvt->fontset);
 		}
@@ -5466,7 +5689,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 			}
 		}
 	}
-	if (!pvt->use_pango) {
+	if (pvt->use_pango) {
 		if (getenv("VTE_USE_PANGO") != NULL) {
 			if (atol(getenv("VTE_USE_PANGO")) == 0) {
 				pvt->use_pango = FALSE;
@@ -5527,6 +5750,10 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* Set up input method support. */
 	pvt->im_context = NULL;
+
+	/* Set backspace/delete bindings. */
+	pvt->backspace_binding = VTE_ERASE_AUTO;
+	pvt->delete_binding = VTE_ERASE_AUTO;
 }
 
 /* Tell GTK+ how much space we need. */
@@ -6891,7 +7118,7 @@ vte_terminal_setup_background(VteTerminal *terminal,
 		}
 		/* If we need a new copy of the desktop, get it. */
 		if (refresh_transparent) {
-			guint width, height;
+			guint width, height, pwidth, pheight;
 
 #ifdef VTE_DEBUG
 			fprintf(stderr, "Fetching new background pixmap.\n");
@@ -6923,14 +7150,15 @@ vte_terminal_setup_background(VteTerminal *terminal,
 				/* If we got a pixmap, create a pixbuf for
 				 * us to work with. */
 				if (GDK_IS_PIXMAP(pixmap)) {
+					gdk_drawable_get_size(GDK_DRAWABLE(pixmap), &pwidth, &pheight);
 					colormap = gdk_drawable_get_colormap(window);
 					pixbuf = gdk_pixbuf_get_from_drawable(NULL,
 									      pixmap,
 									      colormap,
 									      0, 0,
 									      0, 0,
-									      width,
-									      height);
+									      MIN(width, pwidth),
+									      MIN(pheight, height));
 					/* Get rid of the pixmap. */
 					g_object_unref(G_OBJECT(pixmap));
 					pixmap = NULL;
@@ -7491,4 +7719,20 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	}
 	g_free(ibufptr);
 	g_free(obufptr);
+}
+
+void
+vte_terminal_set_backspace_binding(VteTerminal *terminal,
+				   VteTerminalEraseBinding binding)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->backspace_binding = binding;
+}
+
+void
+vte_terminal_set_delete_binding(VteTerminal *terminal,
+				VteTerminalEraseBinding binding)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->delete_binding = binding;
 }

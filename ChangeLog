@@ -1,3 +1,13 @@
+2002-05-02 nalin
+	* src/trie.c: Rework trie matching to return the address of the
+	character which ended the match attempt, which should cut down on
+	useless initial-substring checks.  Remove several gdk_window_scroll()
+	calls which apparently aren't buffered.  Convert invalid multibyte
+	characters to '?' instead of just dropping them.  Provide a means of
+	setting the backspace/delete bindings.  Add a poor xlfd_from_pango
+	mapping function which would need serious work to be useful.  Get rid
+	of warnings when we're transparent and the root widnow pixmap isn't as
+	big as the root window because it's tiled.
 2002-05-01 nalin
 	* src/vte.c: Try @pkgdatadir@/termcap/$TERM when reading termcap files.
 	This fixes the app on systems with no /etc/termcap, and also speeds up

@@ -48,8 +48,9 @@ void vte_trie_add(struct vte_trie *trie,
  * passed-in string can not be an initial substring of one of the strings in
  * the trie, then NULL is returned. */
 const char *vte_trie_match(struct vte_trie *trie,
-			   wchar_t *pattern, size_t length,
+			   const wchar_t *pattern, size_t length,
 			   const char **res,
+			   const wchar_t **consumed,
 			   GQuark *quark,
 			   GValueArray **array);
 

@@ -30,6 +30,7 @@ struct _VteRing {
 	long delta, length, max;
 };
 
+#ifdef VTE_DEBUG
 static void
 vte_ring_validate(VteRing *ring)
 {
@@ -39,6 +40,7 @@ vte_ring_validate(VteRing *ring)
 		g_assert(ring->array[i % ring->max] != NULL);
 	}
 }
+#endif
 
 VteRing *
 vte_ring_new(long max_elements, VteRingFreeFunc free, gpointer data)

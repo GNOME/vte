@@ -92,6 +92,13 @@ typedef struct _VteTerminalSnapshot {
 	} **contents;
 } VteTerminalSnapshot;
 
+typedef enum {
+	VTE_ERASE_AUTO,
+	VTE_ERASE_ASCII_BACKSPACE,
+	VTE_ERASE_ASCII_DELETE,
+	VTE_ERASE_DELETE_SEQUENCE,
+} VteTerminalEraseBinding;
+
 /* The widget's type. */
 GtkType vte_terminal_get_type(void);
 
@@ -107,7 +114,6 @@ GtkType vte_terminal_get_type(void);
 #define VTE_IS_TERMINAL_CLASS(klass)	GTK_CHECK_CLASS_TYPE((klass),\
 							     VTE_TYPE_TERMINAL)
 #define VTE_TERMINAL_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS ((obj), VTE_TYPE_TERMINAL, VteTerminalClass))
-
 
 GtkWidget *vte_terminal_new(void);
 pid_t vte_terminal_fork_command(VteTerminal *terminal,
@@ -154,6 +160,11 @@ gboolean vte_terminal_get_has_selection(VteTerminal *terminal);
 gboolean vte_terminal_get_using_xft(VteTerminal *terminal);
 gboolean vte_terminal_is_word_char(VteTerminal *terminal, gunichar c);
 const PangoFontDescription *vte_terminal_get_font(VteTerminal *terminal);
+
+void vte_terminal_set_backspace_binding(VteTerminal *terminal,
+					VteTerminalEraseBinding binding);
+void vte_terminal_set_delete_binding(VteTerminal *terminal,
+				     VteTerminalEraseBinding binding);
 
 VteTerminalSnapshot *vte_terminal_get_snapshot(VteTerminal *terminal);
 void vte_terminal_free_snapshot(VteTerminalSnapshot *snapshot);

@@ -242,7 +242,10 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			break;
 		case ATK_TEXT_BOUNDARY_WORD_START:
 		case ATK_TEXT_BOUNDARY_WORD_END:
-			/* Find the wordstart before the requested point. */
+			/* Find the wordstart before the requested point.
+			 * FIXME: use pango_break or g_unichar_break_type to
+			 * find word boundaries. For now, this should work
+			 * only for some locales. */
 			c = g_array_index(priv->snapshot_cells,
 					  struct VteTerminalSnapshotCell,
 					  offset).c;

@@ -100,7 +100,7 @@ main(int argc, char **argv)
 			size_t wbuflen;
 			convert_mbstowcs(array->data, i, wbuf, &wbuflen);
 			vte_trie_match(trie, wbuf, wbuflen,
-				       &tmp, &quark, &values);
+				       &tmp, NULL, &quark, &values);
 			if (tmp != NULL) {
 				if (strlen(tmp) > 0) {
 					int j;
