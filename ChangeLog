@@ -1,3 +1,13 @@
+2005-03-14  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* src/vte.c: (vte_terminal_scroll_region),
+	(vte_sequence_handler_al), (vte_sequence_handler_dl),
+	(vte_sequence_handler_sr), (vte_sequence_handler_insert_lines),
+	(vte_sequence_handler_delete_lines), (vte_terminal_handle_scroll):
+	Back out one of the fedora patches since it apparently causes
+	screen corruption for some users. It was rumored to have issues
+	from the start, so...
+
 2005-03-02  Kjartan Maraas  <kmaraas@gnome.org>
 
 	* src/vte.c: (vte_terminal_process_incoming): Fix the
