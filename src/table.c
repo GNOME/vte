@@ -115,6 +115,9 @@ vte_table_addi(struct vte_table *table,
 #endif
 		table->resultq = g_quark_from_string(result);
 		table->result = g_quark_to_string(table->resultq);
+		if (table->original != NULL) {
+			g_free(table->original);
+		}
 		table->original = g_malloc(original_length);
 		table->original_length = original_length;
 		memcpy(table->original, original, original_length);

@@ -76,7 +76,7 @@ typedef long wint_t;
 #define bindtextdomain(package,dir)
 #endif
 
-#define VTE_PAD_WIDTH			1
+#define VTE_PAD_WIDTH			2
 #define VTE_TAB_WIDTH			8
 #define VTE_LINE_WIDTH			1
 #define VTE_COLOR_SET_SIZE		8
@@ -292,6 +292,7 @@ struct _VteTerminalPrivate {
 	/* Data used when rendering the text which reflects server resources
 	 * and data, which should be dropped when unrealizing and (re)created
 	 * when realizing. */
+	PangoContext *pcontext;
 	XFontSet fontset;
 	GTree *fontpaddingl, *fontpaddingr;
 	gboolean use_xft, use_xft2;
@@ -716,10 +717,11 @@ vte_invalidate_cursor_periodic(gpointer data)
 		g_object_get(G_OBJECT(settings), "gtk-cursor-blink-time",
 			     &blink_cycle, NULL);
 	}
-
-	terminal->pvt->cursor_blink_tag = g_timeout_add(blink_cycle / 2,
-							vte_invalidate_cursor_periodic,
-							terminal);
+	terminal->pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
+							     blink_cycle / 2,
+							     vte_invalidate_cursor_periodic,
+							     terminal,
+							     NULL);
 
 	return FALSE;
 }
@@ -7683,7 +7685,7 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	clipboard = gtk_clipboard_get(board);
 
-	/* Retrieve newly-selected text. */
+	/* Chuck old selected text and retrieve the newly-selected text. */
 	if (terminal->pvt->selection != NULL) {
 		g_free(terminal->pvt->selection);
 	}
@@ -8768,7 +8770,7 @@ vte_terminal_close_font_xlib(VteTerminal *terminal)
 
 /* Ensure that a Pango font's metrics are known. */
 static void
-vte_terminal_read_metrics_pango(VteTerminal *terminal)
+vte_terminal_ensure_font_pango(VteTerminal *terminal)
 {
 	PangoFontDescription *desc = NULL;
 	PangoContext *context = NULL;
@@ -8778,7 +8780,11 @@ vte_terminal_read_metrics_pango(VteTerminal *terminal)
 	PangoRectangle ink, logical;
 	gint height, width, ascent, descent;
 
-	context = vte_terminal_get_pango_context(terminal);
+	if (terminal->pvt->pcontext != NULL) {
+		return;
+	}
+	terminal->pvt->pcontext = vte_terminal_get_pango_context(terminal);
+	context = terminal->pvt->pcontext;
 	desc = terminal->pvt->fontdesc;
 
 	/* Load a font using this description and read its metrics to find
@@ -8809,8 +8815,15 @@ vte_terminal_read_metrics_pango(VteTerminal *terminal)
 					   width, height,
 					   ascent, descent);
 	}
-
-	vte_terminal_maybe_unref_pango_context(terminal, context);
+}
+static void
+vte_terminal_close_font_pango(VteTerminal *terminal)
+{
+	if (terminal->pvt->pcontext != NULL) {
+		vte_terminal_maybe_unref_pango_context(terminal,
+						       terminal->pvt->pcontext);
+		terminal->pvt->pcontext = NULL;
+	}
 }
 
 /* Ensure that the font's metrics are known. */
@@ -8823,6 +8836,10 @@ vte_terminal_ensure_font(VteTerminal *terminal)
 		vte_terminal_ensure_font_xft(terminal);
 	}
 #endif
+	/* Load a pango context which we can use for reading metrics. */
+	if (!terminal->pvt->use_xft && terminal->pvt->use_pango) {
+		vte_terminal_ensure_font_pango(terminal);
+	}
 	/* Try to load an X fontset. */
 	if (!terminal->pvt->use_xft && !terminal->pvt->use_pango) {
 		vte_terminal_ensure_font_xlib(terminal);
@@ -8879,12 +8896,12 @@ vte_terminal_set_font(VteTerminal *terminal,
 		pango_font_description_free(terminal->pvt->fontdesc);
 	}
 	terminal->pvt->fontdesc = (PangoFontDescription*) font_desc;
-	vte_terminal_read_metrics_pango(terminal);
 
 	/* Free the older fonts. */
 #ifdef HAVE_XFT
 	vte_terminal_close_font_xft(terminal);
 #endif
+	vte_terminal_close_font_pango(terminal);
 	vte_terminal_close_font_xlib(terminal);
 }
 
@@ -9235,6 +9252,8 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	GtkWidget *widget;
 	struct passwd *pwd;
 	GtkAdjustment *adjustment;
+	struct timezone tz;
+	struct timeval tv;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	widget = GTK_WIDGET(terminal);
@@ -9383,7 +9402,11 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->cursor_visible = TRUE;
 
 	/* Input options. */
-	pvt->last_keypress_time = 0;
+	if (gettimeofday(&tv, &tz) == 0) {
+		pvt->last_keypress_time = (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
+	} else {
+		pvt->last_keypress_time = 0;
+	}
 	pvt->mouse_send_xy_on_click = FALSE;
 	pvt->mouse_send_xy_on_button = FALSE;
 	pvt->mouse_hilite_tracking = FALSE;
@@ -9641,6 +9664,7 @@ vte_terminal_unrealize(GtkWidget *widget)
 		g_tree_destroy(terminal->pvt->fontpaddingr);
 		terminal->pvt->fontpaddingr = NULL;
 	}
+	vte_terminal_close_font_pango(terminal);
 
 	/* Unload an Xlib font if we're using one. */
 	vte_terminal_close_font_xlib(terminal);
@@ -9974,9 +9998,11 @@ vte_terminal_realize(GtkWidget *widget)
 	vte_terminal_setup_background(terminal, TRUE);
 
 	/* Setup cursor blink */
-	terminal->pvt->cursor_blink_tag = g_timeout_add(0,
-							vte_invalidate_cursor_periodic,
-							terminal);
+	terminal->pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
+							     0,
+							     vte_invalidate_cursor_periodic,
+							     terminal,
+							     NULL);
 	
 	/* Set up input method support.  FIXME: do we need to handle the
 	 * "retrieve-surrounding" and "delete-surrounding" events? */
@@ -10751,7 +10777,6 @@ vte_terminal_compute_padding(VteTerminal *terminal, Display *display,
 	int columns, pad = 0, rpad = 0, width;
 	char utf8_buf[VTE_UTF8_BPC];
 	GtkWidget *widget;
-	PangoContext *pcontext;
 	PangoLayout *layout;
 	PangoRectangle pink, plogical;
 	XRectangle xink, xlogical;
@@ -10773,10 +10798,11 @@ vte_terminal_compute_padding(VteTerminal *terminal, Display *display,
 	}
 #endif
 	/* Ask Pango. */
-	if ((pad == 0) && (terminal->pvt->use_pango)) {
+	if ((pad == 0) &&
+	    !terminal->pvt->use_xft &&
+	    terminal->pvt->use_pango) {
 		widget = GTK_WIDGET(terminal);
-		pcontext = vte_terminal_get_pango_context(terminal);
-		layout = pango_layout_new(pcontext);
+		layout = pango_layout_new(terminal->pvt->pcontext);
 		pango_layout_set_font_description(layout,
 						  terminal->pvt->fontdesc);
 		pango_layout_set_text(layout, utf8_buf,
@@ -10786,7 +10812,6 @@ vte_terminal_compute_padding(VteTerminal *terminal, Display *display,
 		g_object_unref(G_OBJECT(layout));
 		pad = ((columns * terminal->char_width) - width) / 2;
 		rpad = ((columns * terminal->char_width) - width) - pad;
-		vte_terminal_maybe_unref_pango_context(terminal, pcontext);
 	}
 	/* Ask Xlib. */
 	if ((pad == 0) &&
@@ -10811,6 +10836,12 @@ vte_terminal_compute_padding(VteTerminal *terminal, Display *display,
 	}
 	g_tree_insert(terminal->pvt->fontpaddingr,
 		      GINT_TO_POINTER(c), GINT_TO_POINTER(rpad));
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "Padding for %d is %d/%d/%d.\n",
+			c, pad, rpad, terminal->char_width);
+	}
+#endif
 }
 static int
 vte_terminal_get_char_padding(VteTerminal *terminal, Display *display,
@@ -10903,7 +10934,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 
 #ifdef HAVE_XFT2
 	/* Draw using Xft2. */
-	if (!drawn && terminal->pvt->use_xft2) {
+	if (!drawn && terminal->pvt->use_xft2 && terminal->pvt->use_xft) {
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_MISC) && 0) {
 			fprintf(stderr, "Rendering with Xft2.\n");
@@ -10974,7 +11005,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	}
 #endif
 	/* Draw using PangoX. */
-	if (!drawn && terminal->pvt->use_pango) {
+	if (!drawn && !terminal->pvt->use_xft && terminal->pvt->use_pango) {
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_MISC) && 0) {
 			fprintf(stderr, "Rendering with Pango.\n");
@@ -11178,9 +11209,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		reverse = vte_cell_is_selected(terminal, i, row);
 		vte_terminal_determine_colors(terminal, cell, reverse,
 					      &fore, &back);
-		underline = (cell != NULL) ?
-			    (cell->underline != 0) :
-			    FALSE;
+		underline = (cell != NULL) ? (cell->underline != 0) : FALSE;
 		if (terminal->pvt->match_contents != NULL) {
 			hilite = vte_cell_is_between(i, row - screen->scroll_delta,
 						     terminal->pvt->match_start.column,
@@ -11360,7 +11389,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 	/* Create a new pango layout in the correct font. */
 	if (!terminal->pvt->use_xft && terminal->pvt->use_pango) {
-		pcontext = vte_terminal_get_pango_context(terminal);
+		pcontext = terminal->pvt->pcontext;
 		if (pcontext == NULL) {
 			g_warning(_("Error allocating context, "
 				    "disabling Pango."));
@@ -11565,13 +11594,10 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		XftDrawDestroy(ftdraw);
 	}
 #endif
-	g_object_unref(G_OBJECT(ggc));
-	if (pcontext != NULL) {
-		if (layout != NULL) {
-			g_object_unref(G_OBJECT(layout));
-		}
-		vte_terminal_maybe_unref_pango_context(terminal, pcontext);
+	if (layout != NULL) {
+		g_object_unref(G_OBJECT(layout));
 	}
+	g_object_unref(G_OBJECT(ggc));
 	XFreeGC(display, gc);
 }
 

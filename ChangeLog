@@ -1,11 +1,16 @@
 2002-08-21 nalin
+	* src/table.c: Don't overwrite the original pattern pointers before
+	freeing the old value.
+	* src/vte.c: Use the same pango context whenever possible, to save on
+	PangoX startup time.
+2002-08-20 nalin
 	* src/vte.c: Unref the output channel one more time when we're done
 	sending data to the child.  Free the background data GDK property when
 	we're finished with it.  Don't retrieve the pango context when drawing
 	unless Xft has already been disabled.  Don't try to use the pango layout
 	to draw unless it's valid.  Don't try to use the XftDraw item to draw
 	unless it's valid.
-2002-08-21 nalin
+2002-08-20 nalin
 	* src/vte.c: Dispose of the updated substitution context properly when
 	processing blocks of input text.  Spotted by Arjan van de Ven.
 2002-08-20 nalin
