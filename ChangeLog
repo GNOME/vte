@@ -1,0 +1,518 @@
+2002-04-25 12:23  nalin
+
+	* Makefile.am: Uncomment the tag target.
+
+2002-04-25 12:22  nalin
+
+	* HACKING, Makefile.am, configure.in: Add some targets for building
+	tarballs in a hopefully-reproducible way.
+
+2002-04-25 12:12  nalin
+
+	* src/vte.c: Let GDK_USE_XFT turn on Xft as well as
+	VTE_USE_XFT.
+
+2002-04-25 01:45  nalin
+
+	* src/vte.c: Handle decoding errors
+	better.
+
+2002-04-25 00:49  nalin
+
+	* vte.spec: Include pkgconfig files in the package.
+
+2002-04-25 00:43  nalin
+
+	* src/vte.c: src/vte.c: Make multiple calls to
+	set_background_transparent() and set_background_image() do the
+	right thing.
+
+2002-04-25 00:05  nalin
+
+	* src/vte.c: Reverse the sanity check in
+	vte_terminal_set_background_image_file() so that it rejects
+	zero-length strings, not the other way around.
+
+2002-04-24 23:54  nalin
+
+	* src/trie.c: Demote some debug messages to being trie-specific
+	debug messages.
+	* src/vte.h: Declare vte_terminal_set_core_font() for non-Xft use.
+	* src/vte.c: Adjust idle priorities to make the terminal be more
+	responsive. Fix a double-free that corrupted the heap on core font
+	loads. Rework some pixbuf handling to only create new pixbufs when
+	we need to modify what we are given. Revert a patch for profterm
+	crackiness that's gone now.
+
+2002-04-24 20:49  nalin
+
+	* README: update to-do list.
+	* autogen.sh: remove --disable-shared.
+	* src/pty.c: remove a memory leak.
+	* src/termcap.c: fix a possible read-before-start-of-buffer.
+	* src/trie.c: use iconv instead of mbrstowcs, even if it's just
+	ASCII->W_CHAR_T.
+	* src/vte.c: fix a few memory leaks. Only reset the IM context when
+	we're realized, which is the only time we actually have an IM context.
+	Don't create a copy of a pixbuf if we don't need to desaturate it,
+	just ref it and use it directly.
+
+2002-04-23 19:40  nalin
+
+	* src/vte.c: Display UTF-8 preedit strings properly, fix
+	copy (no, really this time), and reset IM contexts when pasting
+	text in.
+
+2002-04-23 18:01  nalin
+
+	* src/pty.c: Print debug messages before redirecting stdio.
+	* src/vte.c: Fix displaying of highlighted multi-column text.
+	Use the GTK global setting for cursor blinking to control das
+	blinkencursor.
+	* src/vte.h: Remove function for setting blinking timeout.
+
+2002-04-23 15:54  nalin
+
+	* src/pty.c: Fix a compile warning.
+
+2002-04-23 15:54  nalin
+
+	* autogen.sh: Default to include optimization, even for debugging. 
+	* configure.in: Move AM_CONFIG_HEADER to the top.
+	* src/pty.c: Create non-login shells by default (when argv is NULL,
+	otherwise it's up to the caller anyway.
+	*  src/vte.c: Add mostly-complete input method support.
+	* src/vte.h: Add vte_terminal_im_append_menuitems().
+
+2002-04-23 13:04  hp
+
+	* src/vte.c, src/vte.h: add vte_terminal_set_font
+
+2002-04-22 17:00  hp
+
+	* src/vte.c: when setting background color, use allocated color,
+	and don't overwrite with bg of None
+
+2002-04-22 16:50  hp
+
+	* src/vte.c: use gdk_rgb_find_color to allocate X colors
+
+2002-04-22 16:35  nalin
+
+	* src/vte.c, src/vte.h, src/vteapp.c: Add vte_terminal_feed_child() to
+	send UTF-8 strings to the child process, and actually apply Havoc's
+	fix right this time.
+
+2002-04-22 09:56  nalin
+
+	* src/vte.c: Prevent double-free of incoming buffer
+	(patch from Havoc).
+
+2002-04-16 01:43  nalin
+
+	* README: Fix typo.
+	* src/vte.c: Make blinking cursors stay on while the user is typing,
+	desaturate images using integer math.
+
+2002-04-05 00:58  nalin
+
+	* vte.spec: Add less useless descriptions. 
+	* src/vte.c: Fix an uninitialized variable and missing declaration
+	error.
+
+2002-03-24 21:52  nalin
+
+	* src/vte.c: Ensure that there's a data row
+	whenever we scroll forward, fixing strangeness when I suspend and
+	resume vim.
+
+2002-03-24 19:08  nalin
+
+	* src/vte.c: Copy to clipboard synchronously, which
+	fixes a number of problems.  Implement background transparency.
+
+2002-03-17 20:59  nalin
+
+	* src/vte.c: Rework backgrounds to take advantage of gdk's automatic
+	drawing.
+	* src/vteapp.c: Try to enable transparency if no background
+	image is present.
+
+2002-03-17 20:58  nalin
+
+	* autogen.sh, configure.in: Adjust warnings used when in maintainer
+	mode.
+
+2002-03-17 01:15  nalin
+
+	* src/vte.c: Draw the cursor as an unfilled box when the widget does
+	not have focus.
+
+2002-03-17 01:04  nalin
+
+	* src/vte.c: Fix handling of scroll-on-output to always scroll when
+	only we're at the bottom of the buffer.
+	* src/vteapp.c: Disable scroll-on-output by default.
+
+2002-03-17 00:45  nalin
+
+	* src/vte.c src/vte.h: Rework tiling of background images, and
+	implement a blinking cursor.
+	* src/vteapp.c: Set blinking cursor by default.
+
+2002-03-14 02:58  nalin
+
+	* src/caps.c: Corrections to some xterm control sequences.
+
+2002-03-14 02:32  nalin
+
+	* configure.in: Define PACKAGE correctly.
+	* src/vte.c src/vteapp.c: Move most of the tear-down code into the
+	widget finalize method; handle EOF and widget destruction correctly
+	to prevent segfaults.
+
+2002-03-14 00:48  nalin
+
+	* configure.in: * configure.in: Define PACKAGE.
+
+2002-03-14 00:18  nalin
+
+	* configure.in: Disable gdk-pixbuf's deprecated functions.
+	* vte.c: Discard non-ascii bytes to clear logjams that
+	happen when we pass invalid terminal data to iconv().
+
+2002-03-13 23:07  nalin
+
+	* src/iso8859mode.c, src/utf8mode.c, src/vte.c, src/vte.h:
+	add missing includes
+	* vte.c vte.h: implement background color setting, provide
+	a function for setting the defaults, tile background images
+	properly
+
+2002-03-13 21:12  nalin
+
+	* configure.in, vte.pc.in, src/vte.c: Remove gdk-pixbuf-xlib
+	dependency by using just gdk-pixbuf. 
+	* src/vte.c: Perform background image desaturation locally.
+
+2002-03-13 14:37  nalin
+
+	* src/vte.c: Don't add the widget's allocation offsets
+	when generating expose events.
+
+2002-03-13 14:22  nalin
+
+	* src/vteapp.c: Don't try to use transparency for now.
+
+2002-03-13 13:29  andersca
+
+	* src/vte.c, src/vte.h: Add more functions that profterm can use.
+
+2002-03-13 12:51  andersca
+
+	* .cvsignore, vte.pc.in: Silent cvs and add gdk-pixbuf-xlib to
+	depends in the .pc.in file
+
+2002-03-13 12:37  andersca
+
+	* src/.cvsignore: Sliff sloff
+
+2002-03-13 12:37  andersca
+
+	* src/.cvsignore: sssh
+
+2002-03-13 12:19  nalin
+
+	* configure.in: Add gdk-pixbuf-xlib-2.0 as a module requirement.
+
+2002-03-13 01:21  nalin
+
+	* src/vte.c, vte.h, vteapp.c: * vte.c: Add set_size,
+	set_audible_bell, set_scroll_on_output, set_scroll_on_keystroke,
+	copy_clipboard, paste_clipboard, set_background_image,
+	set_background_image_file, and set_background_saturation.  Also
+	added a broken set_background_transparent.
+
+2002-03-12 22:35  nalin
+
+	* src/vte.h: adjust the name of a declared function (was _set_size,
+	is _size_set)
+
+2002-03-12 22:11  nalin
+
+	* src/vte.c: Get rid of a global copy of the parent class.
+	* vte.c: Implement ec, ic, and IC handlers.
+
+2002-03-12 22:10  nalin
+
+	* src/vte.h: Fix a typo in a comment (we don't "omit" signals).
+
+2002-03-12 15:48  nalin
+
+	* src/caps.c: Recognize xterm cursor-character-absolute sequence.
+	* src/vte.c: Handle cursor-character-absolute.  Change the default font
+	to "mono" 14 point when using Xft.
+
+2002-03-12 15:22  nalin
+
+	* src/vte.c: Handle the ve (cursor visible) control sequence.
+
+2002-03-12 15:19  nalin
+
+	* src/vte.c: Handle dec private mode set (cursor visibility).
+
+2002-03-12 15:13  nalin
+
+	* src/vte.c, src/vte.h, src/vteapp.h: fix signed/unsigned problems
+	(fixes from alexl)
+
+2002-03-11 20:29  nalin
+
+	* src/vte.c: Make scroll-on-output scroll on control sequences, too.
+
+2002-03-11 20:19  nalin
+
+	* src/Makefile.am, src/iso8859mode.c, src/utf8mode.c:
+	Add simple programs for moving a terminal in and out of UTF-8 mode.
+	* src/vte.c: Be more verbose about iconv() errors.  Implement dc and DC
+	handlers.  Handle auto-wrapping (the "am" flag).  Remove scrolling
+	cheats from the al handler, which made the window jump.
+
+2002-03-11 02:39  andersca
+
+	* src/vte.c: Add a finalize handler and free our title strings
+	there.
+
+2002-03-11 02:05  nalin
+
+	* Makefile.am, configure.in, src/vte.c, src/vte.h, src/vteapp.c:
+	Emit "window_title_changed" and "icon_title_changed" when the
+	titles change, and store the new values in a public field so that a
+	handler can retrieve the values (patch from Anders Carlsson).
+
+2002-03-11 01:54  nalin
+
+	* vte.pc.in: Add vte.pc, from Anders Carlsson.
+
+2002-03-11 01:47  nalin
+
+	* src/vte.c: Fix a duplicate-idle-handler bug.
+
+2002-03-11 01:32  nalin
+
+	* README, src/vte.c: Fix selection (except maybe the end-of-line
+	stuff).
+
+2002-03-10 23:44  nalin
+
+	* src/vte.c: Whoops, I broke selection.  Fix that.  Implement
+	selection by lines.
+
+2002-03-10 23:08  nalin
+
+	* src/vte.c: Move character rendering into a common function so
+	that the cursor is always drawn the same as other characters (fixes
+	previous glitches when using Xft and when the cursor was over an
+	alternate charset character).
+
+2002-03-10 03:31  nalin
+
+	* src/vte.c: Differentiate between single, double, and triple-click
+	for selection (still need to do something with that info).
+
+2002-03-10 03:16  nalin
+
+	* stamp-h.in: remove this file
+
+2002-03-10 03:15  nalin
+
+	* configure.in: Don't check for pango because we never call pango
+	directly.
+
+2002-03-10 03:13  nalin
+
+	* src/vte.c: Deselect properly when something else is inserted into
+	the clipboard.
+
+2002-03-10 02:26  nalin
+
+	* AUTHORS, HACKING, README, src/utf8echo.c, src/vte.c: Fix
+	wide-character handling (now handles mid-stream encoding changes
+	correctly).  Updates to the meager docs.
+
+2002-03-09 02:41  nalin
+
+	* Makefile.am, vte.spec, src/Makefile.am: Add a .spec file (make
+	dist; rpm -ts vte*.tar.gz; rpm --rebuild) to make building a
+	package easier.
+
+2002-03-09 02:24  nalin
+
+	* src/vte.c: skip over space columns when selecting
+
+2002-03-09 02:20  nalin
+
+	* src/pty.c, src/vteapp.c: Use a login shell by default.
+
+2002-03-09 02:10  nalin
+
+	* src/vte.c, src/vte.h, src/vteapp.c: Rework input queueing to allow for
+	feeding without a pty.	Use gdk_window_scroll() in _al and _up
+	handlers, and in the _do handler, because it's usually faster.
+
+2002-03-08 02:52  nalin
+
+	* src/vte.c: Implement copy and almost-correct selection
+	highlighting.
+
+2002-03-07 21:30  nalin
+
+	* src/vte.c: Use a queue for pasting data.  Try to get dragging
+	detected right (doesn't work).
+
+2002-03-05 19:21  nalin
+
+	* src/vte.c: Mark the beginning of a selected area.
+
+2002-03-05 19:17  nalin
+
+	* src/vte.c: Make pasting asynchronous.
+
+2002-03-05 19:07  nalin
+
+	* src/vte.c: actually free clipboard data when finished with it
+
+2002-03-05 19:02  nalin
+
+	* src/vte.c: Implement middle-button paste.
+
+2002-03-05 18:55  nalin
+
+	* src/vte.c: Properly convert from utf-8 or wchar_t strings when
+	sending data to the pseudo-terminal.
+
+2002-03-04 19:53  nalin
+
+	* src/vte.c: Implement shift/pgup/pgdown scrolling.  Make
+	scroll-on-keypress and -on-output easier to toggle.
+
+2002-03-04 19:26  nalin
+
+	* src/vte.c: Spec out the rest of the alternate characters I
+	haven't implemented yet.  Remove a function that can't be easily
+	written (scroll_rows).	Correctly update the insertion delta when
+	scrolling, to fix man(1) again.
+
+2002-03-04 19:16  nalin
+
+	* src/vte.c: Discard redundant cursor-position exposes.
+
+2002-03-04 18:57  nalin
+
+	* src/termcap.c, src/termcap.h, src/vte.c: Use ssize_t to measure string
+	offsets in termcap, and don't assume that all capabilities have
+	values.  This fixes some nasty crashes.
+
+2002-03-04 11:53  nalin
+
+	* src/vte.c: add a missing bounds-check in the erase-in-row
+	function
+
+2002-03-04 01:13  nalin
+
+	* README, src/vte.c: Send the slave pty's erase character when the
+	user hits backspace.
+
+2002-03-04 00:59  nalin
+
+	* src/vte.c: Draw cursors to fill the entire cell.  Draw the blank
+	alternate character (ooh, tough).  Remove a redundant expose.
+
+2002-03-03 23:49  nalin
+
+	* src/trie.c: stop using wcsnlen, which is a GNU extension
+
+2002-03-03 23:43  nalin
+
+	* src/caps.h, src/pty.h, src/termcap.h, src/trie.h, src/vte.c,
+	src/vte.h: Add support for the line-drawing characters in the special
+	characters and line-drawing character set. (See
+	[http://vt100.net/docs/vt102-ug/table5-13.html].)
+
+2002-03-03 21:57  nalin
+
+	* src/pty.c, src/pty.h, src/vte.c: Properly differentiate insertion
+	delta (working screen) from scrolling delta.	Add environment setting
+	to the pty code.
+
+2002-02-27 21:54  nalin
+
+	* src/trie.c, src/vte.c, src/vte.h: Make the Xft support use long-lived
+	data items.  Clean up a lot of other Xft-related code.
+
+2002-02-27 10:45  nalin
+
+	* src/vte.c: actually hook up the nd handler to the "nd" sequence
+
+2002-02-27 00:05  nalin
+
+	* autogen.sh, configure.in, src/vte.c, src/vte.h: - Add sub-optimal
+	Xft rendering (set VTE_USE_XFT to "1" to try it); still needs
+	quite a bit of work to be useful.  Implement character-position-absolute
+	and line-position-absolute, which I  think are the only sequences which
+	emacs uses and which weren't implemented.
+
+2002-02-25 12:43  nalin
+
+	* src/Makefile.am: distcheck fixes
+
+2002-02-25 12:41  nalin
+
+	* README: add that line-drawing does not work to README
+
+2002-02-25 12:40  nalin
+
+	* configure.in, src/Makefile.am: tree fixups
+
+2002-02-25 12:38  nalin
+
+	* configure.in: fix autoconf reference file problem
+
+2002-02-25 12:38  nalin
+
+	* src/Makefile.in: remove stuff which should never have been added
+
+2002-02-25 12:37  nalin
+
+	* configure.ac, configure.in, src/Makefile.in: rename configure.ac
+	to configure.in, remove 2.5isms
+
+2002-02-25 12:35  nalin
+
+	* doc/ctlseqs.ps, Makefile.in, aclocal.m4, config.h.in, configure:
+	remove stuff that should never have been in there
+
+2002-02-25 12:30  nalin
+
+	* AUTHORS, ChangeLog, Makefile.am, NEWS, README, autogen.sh,
+	configure.ac, COPYING, HACKING, Makefile.in, aclocal.m4,
+	config.h.in, configure, stamp-h.in, doc/ctlseqs.ms, doc/ctlseqs.ps,
+	doc/readme.txt, doc/vttest.tar.gz, src/Makefile.am,
+	src/Makefile.in, src/caps.c, src/caps.h, src/interpret.c,
+	src/marshal.list, src/pty.c, src/pty.h, src/termcap.c,
+	src/termcap.h, src/trie.c, src/trie.h, src/typescript,
+	src/utf8echo.c, src/vte.c, src/vte.h, src/vteapp.c: Initial
+	revision
+
+2002-02-25 12:30  nalin
+
+	* AUTHORS, ChangeLog, Makefile.am, NEWS, README, autogen.sh,
+	configure.ac, COPYING, HACKING, Makefile.in, aclocal.m4,
+	config.h.in, configure, stamp-h.in, doc/ctlseqs.ms, doc/ctlseqs.ps,
+	doc/readme.txt, doc/vttest.tar.gz, src/Makefile.am,
+	src/Makefile.in, src/caps.c, src/caps.h, src/interpret.c,
+	src/marshal.list, src/pty.c, src/pty.h, src/termcap.c,
+	src/termcap.h, src/trie.c, src/trie.h, src/typescript,
+	src/utf8echo.c, src/vte.c, src/vte.h, src/vteapp.c: imported from
+	private cvs
+

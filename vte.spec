@@ -40,7 +40,7 @@ make install DESTDIR=$RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%doc COPYING HACKING NEWS README
+%doc ChangeLog COPYING HACKING NEWS README
 %{_bindir}/*
 %{_libdir}/*.so.*.*
 
@@ -50,3 +50,7 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/*.a
 %{_libdir}/*.so
 %{_libdir}/pkgconfig/*
+
+%changelog
+* Thu Apr 25 2002 Nalin Dahyabhai <nalin@redhat.com> 0.1-1
+- finish initial packaging, start the changelog
