@@ -11421,7 +11421,7 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 	if (terminal->pvt->termcap) {
 		_vte_termcap_free(terminal->pvt->termcap);
 	}
-	terminal->pvt->termcap = _vte_termcap_new(path);
+	terminal->pvt->termcap = _vte_termcap_new(terminal->pvt->termcap_path);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "\n");
