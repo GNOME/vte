@@ -1,14 +1,17 @@
-<!doctype book PUBLIC "-//Davenport//DTD DocBook V3.0//EN" [
-<!ENTITY vte-VteTerminal SYSTEM "sgml/vte.sgml">
-<!ENTITY vte-vteaccess SYSTEM "sgml/vteaccess.sgml">
-<!ENTITY vte-VteReaper SYSTEM "sgml/reaper.sgml">
-<!ENTITY vte-caps SYSTEM "sgml/caps.sgml">
-<!ENTITY vte-termcap SYSTEM "sgml/termcap.sgml">
-<!ENTITY vte-trie SYSTEM "sgml/trie.sgml">
-<!ENTITY vte-debug SYSTEM "sgml/debug.sgml">
-<!ENTITY vte-table SYSTEM "sgml/table.sgml">
-<!ENTITY vte-iso2022 SYSTEM "sgml/iso2022.sgml">
-<!ENTITY vte-ring SYSTEM "sgml/ring.sgml">
+<?xml version="1.0"?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" 
+               "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
+<!ENTITY nbsp "&#160;">
+<!ENTITY vte-VteTerminal SYSTEM "xml/vte.xml">
+<!ENTITY vte-vteaccess SYSTEM "xml/vteaccess.xml">
+<!ENTITY vte-VteReaper SYSTEM "xml/reaper.xml">
+<!ENTITY vte-caps SYSTEM "xml/caps.xml">
+<!ENTITY vte-termcap SYSTEM "xml/termcap.xml">
+<!ENTITY vte-trie SYSTEM "xml/trie.xml">
+<!ENTITY vte-debug SYSTEM "xml/debug.xml">
+<!ENTITY vte-table SYSTEM "xml/table.xml">
+<!ENTITY vte-iso2022 SYSTEM "xml/iso2022.xml">
+<!ENTITY vte-ring SYSTEM "xml/ring.xml">
 ]>
 <book id="index">
   <bookinfo>

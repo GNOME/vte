@@ -24,7 +24,7 @@ SCANOBJ_OPTIONS=
 SCAN_OPTIONS=
 
 # Extra options to supply to gtkdoc-mkdb.
-MKDB_OPTIONS=
+MKDB_OPTIONS=--output-format=xml
 
 # Extra options to supply to gtkdoc-fixref.
 FIXXREF_OPTIONS=
@@ -144,7 +144,7 @@ clean-local:
 	rm -f *~ *.bak $(SCANOBJ_FILES) *-unused.txt $(DOC_STAMPS)
 
 maintainer-clean-local: clean
-	cd $(srcdir) && rm -rf sgml html $(DOC_MODULE)-decl-list.txt $(DOC_MODULE)-decl.txt
+	cd $(srcdir) && rm -rf xml html $(DOC_MODULE)-decl-list.txt $(DOC_MODULE)-decl.txt
 
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(TARGET_DIR)
@@ -173,10 +173,10 @@ endif
 
 dist-hook: dist-check-gtkdoc dist-hook-local
 	mkdir $(distdir)/tmpl
-	mkdir $(distdir)/sgml
+	mkdir $(distdir)/xml
 	mkdir $(distdir)/html
 	-cp $(srcdir)/tmpl/*.sgml $(distdir)/tmpl
-	-cp $(srcdir)/sgml/*.sgml $(distdir)/sgml
+	-cp $(srcdir)/xml/*.xml $(distdir)/xml
 	-cp $(srcdir)/html/index.html $(distdir)/html
 	-cp $(srcdir)/html/*.html $(srcdir)/html/*.css $(distdir)/html
 

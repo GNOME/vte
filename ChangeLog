@@ -1,3 +1,10 @@
+2004-02-02  Martin Kretzschmar  <m_kretzschmar@gmx.net>
+
+	* docs/reference/Makefile.am: use gtk-doc in xml-mode.
+
+	* docs/reference/vte-docs.sgml: sgml->xml, update to DocBook XML
+	4.1.2 DTD (fixes Bug #132945)
+
 2004-02-02 Alastair McKinstry <mckinstry@computer.org>
 
 	* configure.in: Added 'ga' to ALL_LINGUAS
