@@ -10,7 +10,7 @@
   in a GTK window.  Because I'm more concerned with whether or not it works,
   all settings are hard-coded to whatever I needed to test the last time I
   touched it.  If you actually want to use the widget to get work done, you
-  should probably be using profterm.
+  should probably be using gnome-terminal.
 
 * How does it work?
 - The VTE library inserts terminal capability strings into a tree of tables,

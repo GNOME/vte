@@ -1,3 +1,8 @@
+2002-09-24 nalin
+	* README, gnome-pty-helper/README:  Doc fixups (mention gnome-terminal
+	instead of profterm, note the proper permissions for gnome-pty-helper,
+	#84505).
+
 2002-09-20 nalin
 	* src/ring.c: Fix a ring-buffer manipulation bug (Red Hat #74290) which
 	might cause a new item to be inserted in the wrong location.
