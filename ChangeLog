@@ -1,4 +1,7 @@
 2002-08-10 nalin
+	* src/vte.c: reorder set/reset processing for decset so that 1049
+	properly represents the combination of 1047 and 1048 (#90027).
+2002-08-10 nalin
 	* src/caps.c: properly escape a sequence which had a bare '%' in it.
 2002-08-10 nalin
 	* src/vte.c: change Xft-related defaults match whichever version of GTK

@@ -3578,10 +3578,6 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		{1049, NULL, NULL, (gpointer*) &terminal->pvt->screen,
 		 &terminal->pvt->normal_screen,
 		 &terminal->pvt->alternate_screen,
-		 NULL, NULL,},
-		{1049, NULL, NULL, NULL,
-		 NULL,
-		 NULL,
 		 vte_sequence_handler_rc,
 		 vte_sequence_handler_sc,},
 	};
@@ -3634,6 +3630,9 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 					setting, set ? "set" : "unset");
 			}
 #endif
+			if (settings[i].set && set) {
+				settings[i].set(terminal, NULL, 0, NULL);
+			}
 			if (settings[i].bvalue) {
 				*(settings[i].bvalue) = set;
 			} else
@@ -3646,15 +3645,9 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 				*(settings[i].pvalue) = set ?
 					settings[i].tvalue :
 					settings[i].fvalue;
-			} else
-			if (settings[i].set && settings[i].reset) {
-				if (set) {
-					settings[i].set(terminal, NULL,
-							0, NULL);
-				} else {
-					settings[i].reset(terminal, NULL,
-							  0, NULL);
-				}
+			}
+			if (settings[i].reset && !set) {
+				settings[i].reset(terminal, NULL, 0, NULL);
 			}
 		}
 	}
