@@ -1,4 +1,9 @@
 2003-02-20
+	* src/vte.c(vte_terminal_draw_row): fix "jittering" when the left edge
+	of the row we're drawing is the right half of a multicolumn character.
+	From HEAD.
+
+2003-02-20
 	* src/vte.c(vte_terminal_feed_child): don't reset the input method
 	here -- it may be in the middle of something (Red Hat #81542).  From
 	HEAD.

@@ -13547,6 +13547,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 	while ((cell != NULL) && (cell->fragment) && (column > 0)) {
 		column--;
 		column_count++;
+		x -= column_width;
 		cell = vte_terminal_find_charcell(terminal, column, row);
 	}
 
