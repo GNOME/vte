@@ -1,3 +1,5 @@
+2004-12-07 Rajesh Ranjan<rranjan@redhat.com>
+	* configure.in: included the hi locale in ALL_LINGUAS 
 2004-11-16 nalin
 	* src/vte.c(vte_terminal_io_read,vte_terminal_io_write): silence a
 	couple of warnings by expecting a GIOCondition instead of a
