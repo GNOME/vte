@@ -1,4 +1,9 @@
 2003-03-04 nalin	
+	* src/vte.c(vte_sequence_handler_set_title_internal): fix swap of
+	one variable for another which prevented stripping of control chars,
+	spotted by Nam SungHyun.
+
+2003-03-04 nalin	
 	* src/vte.c(vte_terminal_insert_char): wrap properly when a scrolling
 	region is set (#107559).
 

@@ -4146,7 +4146,7 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 		if (outbufptr != NULL) {
 			char *p;
 			/* No control characters allowed. */
-			for (p = outbuf; p < outbufptr; p++) {
+			for (p = outbufptr; p < outbuf; p++) {
 				if (((guint8)(*p)) < 0x20) {
 					*p = ' ';
 				}
