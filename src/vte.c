@@ -2178,14 +2178,13 @@ vte_sequence_handler_bt(VteTerminal *terminal,
 	newcol = terminal->pvt->screen->cursor_current.col;
 
 	if (terminal->pvt->tabstops != NULL) {
-		/* Find the next tabstop. */
-		for (newcol += (terminal->column_count - 1);
-		     newcol >= 0;
-		     newcol--) {
+		/* Find the previous tabstop. */
+		while (newcol >= 0) {
 			if (vte_terminal_get_tabstop(terminal,
 						     newcol % terminal->column_count)) {
 				break;
 			}
+			newcol--;
 		}
 	}
 

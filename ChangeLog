@@ -1,3 +1,7 @@
+2003-02-14 nalin
+	* src/vte.c(vte_terminal_sequence_handler_bt): fix to stop at the
+	leftmost column if there are no previous tabstops.  From HEAD.
+
 2003-02-13 nalin
 	* src/vte.c(vte_terminal_io_read): don't free the buffer on the stack,
 	though it should never have happened, spotted by msw.
