@@ -1,4 +1,16 @@
 2003-02-10 nalin
+        * src/vte.c(vte_terminal_get_accessible): keep a weak pointer to the
+        accessible peer instead of a static pointer (part of #104909).
+        * src/vte.c(vte_terminal_finalize): if the accessible peer still exists,        remove its weak pointer before attempting to unref it.
+        * src/vteaccess.c(vte_terminal_accessible_new): make the terminal peer
+        a weak pointer (part of #104909).
+        * src/vteaccess.c(vte_terminal_accessible_finalize): if the terminal
+        peer is not NULL, disconnect it as a weak pointer and don't bother
+        disconnecting from its signals (part of #104909).  Add a debug message.
+        * src/vteaccess.c(vte_terminal_accessible_text_finalize):  Add a debug
+        message.
+
+2003-02-10 nalin
 	* src/vteaccess.c(vte_terminal_accessible_update_private_data_if_needed):
 	always update the cursor position, in case text was added or removed
 	without the cursor itself moving.  Backport from HEAD.

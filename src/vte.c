@@ -376,7 +376,7 @@ struct _VteTerminalPrivate {
 	int im_preedit_cursor;
 
 	/* Our accessible peer. */
-	AtkObject *accessible;
+	gpointer accessible;
 	gboolean accessible_exists;
 
 	/* Adjustment updates pending. */
@@ -11465,14 +11465,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->im_preedit = NULL;
 	pvt->im_preedit_cursor = 0;
 
-	/* Our accessible peer. */
-	pvt->accessible = NULL;
-	pvt->accessible_exists = FALSE;
-#ifdef VTE_DEBUG
-	/* In maintainer mode, we always do this. */
-	pvt->accessible_exists = TRUE;
-#endif
-
 	/* Settings we're monitoring. */
 	pvt->connected_settings = NULL;
 
@@ -11505,6 +11497,15 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* Mapping trees. */
 	pvt->unichar_wc_map = g_tree_new(vte_compare_direct);
+
+	/* Our accessible peer. */
+	pvt->accessible = NULL;
+	pvt->accessible_exists = FALSE;
+#ifdef VTE_DEBUG
+	/* In debugging mode, we always do this. */
+	pvt->accessible = gtk_widget_get_accessible(GTK_WIDGET(terminal));
+	pvt->accessible_exists = TRUE;
+#endif
 }
 
 /* Tell GTK+ how much space we need. */
@@ -11666,6 +11667,15 @@ vte_terminal_unrealize(GtkWidget *widget)
 
 	/* Shut down accessibility. */
 	if (terminal->pvt->accessible != NULL) {
+		g_object_remove_weak_pointer(G_OBJECT(terminal->pvt->accessible),
+					     &terminal->pvt->accessible);
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_MISC)) {
+			fprintf(stderr, "Accessible peer has refcount %d "
+				"before we unref it.\n",
+				(G_OBJECT(terminal->pvt->accessible))->ref_count);
+		}
+#endif
 		g_object_unref(G_OBJECT(terminal->pvt->accessible));
 		terminal->pvt->accessible = NULL;
 	}
@@ -14153,6 +14163,8 @@ vte_terminal_get_accessible(GtkWidget *widget)
 	} else {
 		access = vte_terminal_accessible_new(terminal);
 		terminal->pvt->accessible = access;
+		g_object_add_weak_pointer(G_OBJECT(access),
+					  &terminal->pvt->accessible);
 	}
 	terminal->pvt->accessible_exists = TRUE;
 	return access;

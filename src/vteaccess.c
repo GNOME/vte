@@ -596,6 +596,8 @@ vte_terminal_accessible_new(VteTerminal *terminal)
 	atk_object_initialize(ATK_OBJECT(access), G_OBJECT(terminal));
 
 	access->widget = GTK_WIDGET(terminal);
+	g_object_add_weak_pointer(G_OBJECT(terminal),
+				  (gpointer*)&access->widget);
 
 	g_object_set_data(G_OBJECT(access),
 			  VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA,
@@ -640,34 +642,46 @@ vte_terminal_accessible_finalize(GObject *object)
 	GtkAccessible *accessible = NULL;
         GObjectClass *gobject_class; 
 
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "Finalizing accessible peer.\n");
+	}
+#endif
+
 	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(object));
 	accessible = GTK_ACCESSIBLE(object);
 	gobject_class = g_type_class_peek_parent(VTE_TERMINAL_ACCESSIBLE_GET_CLASS(object));
 
-	g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
-					     G_SIGNAL_MATCH_FUNC |
-					     G_SIGNAL_MATCH_DATA,
-					     0, 0, NULL,
-					     vte_terminal_accessible_text_modified,
-					     object);
-	g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
-					     G_SIGNAL_MATCH_FUNC |
-					     G_SIGNAL_MATCH_DATA,
-					     0, 0, NULL,
-					     vte_terminal_accessible_text_scrolled,
-					     object);
-	g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
-					     G_SIGNAL_MATCH_FUNC |
-					     G_SIGNAL_MATCH_DATA,
-					     0, 0, NULL,
-					     vte_terminal_accessible_invalidate_cursor,
-					     object);
-	g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
-					     G_SIGNAL_MATCH_FUNC |
-					     G_SIGNAL_MATCH_DATA,
-					     0, 0, NULL,
-					     (gpointer)vte_terminal_accessible_title_changed,
-					     object);
+	if (accessible->widget != NULL) {
+		g_object_remove_weak_pointer(G_OBJECT(accessible->widget),
+					     (gpointer*) &accessible->widget);
+	}
+	if (G_IS_OBJECT(accessible->widget)) {
+		g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+						     G_SIGNAL_MATCH_FUNC |
+						     G_SIGNAL_MATCH_DATA,
+						     0, 0, NULL,
+						     vte_terminal_accessible_text_modified,
+						     object);
+		g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+						     G_SIGNAL_MATCH_FUNC |
+						     G_SIGNAL_MATCH_DATA,
+						     0, 0, NULL,
+						     vte_terminal_accessible_text_scrolled,
+						     object);
+		g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+						     G_SIGNAL_MATCH_FUNC |
+						     G_SIGNAL_MATCH_DATA,
+						     0, 0, NULL,
+						     vte_terminal_accessible_invalidate_cursor,
+						     object);
+		g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+						     G_SIGNAL_MATCH_FUNC |
+						     G_SIGNAL_MATCH_DATA,
+						     0, 0, NULL,
+						     (gpointer)vte_terminal_accessible_title_changed,
+						     object);
+	}
 	if (gobject_class->finalize != NULL) {
 		gobject_class->finalize(object);
 	}
@@ -1141,6 +1155,12 @@ vte_terminal_accessible_text_finalize(gpointer iface, gpointer data)
 	GtkAccessibleClass *accessible_class;
 	VteTerminalAccessiblePrivate *priv;
 	accessible_class = g_type_class_peek(GTK_TYPE_ACCESSIBLE); 
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "Finalizing accessible peer AtkText interface.\n");
+	}
+#endif
 
 	/* Free the private data. */
 	priv = g_object_get_data(G_OBJECT(iface),
