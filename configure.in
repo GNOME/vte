@@ -242,6 +242,9 @@ if test x$ac_cv_lib_ncurses_tgetent != xyes ; then
 	AC_CHECK_HEADER(curses.h,[AC_CHECK_HEADER(term.h,[AC_CHECK_LIB(curses,tgetent,[LIBS="-lcurses $LIBS";AC_DEFINE(HAVE_CURSES,1,[Define if you have curses.h and libcurses])])])])
 	if test x$ac_cv_lib_curses_tgetent != xyes ; then
 		AC_CHECK_HEADER(termcap.h,[AC_CHECK_LIB(termcap,tgetent,[LIBS="-ltermcap $LIBS";AC_DEFINE(HAVE_TERMCAP,1,[Define if you have termcap.h and libtermcap])])])
+		if test x$ac_cv_header_termcap_h != xyes ; then
+			AC_MSG_ERROR([You must have at least one of ncurses, curses, or libtermcap installed to build vte.])
+		fi
 	fi
 fi
 
@@ -338,7 +341,7 @@ sys.exit(0)
 		BUILD_PYTHON=false
 	fi
 else
-		AC_MSG_RESULT([Python bindings disabled.])
+	AC_MSG_RESULT([Python bindings disabled.])
 fi
 AC_SUBST(PYTHONREV)
 AC_SUBST(PYTHONMODULES)

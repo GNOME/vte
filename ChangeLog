@@ -1,4 +1,8 @@
 2003-08-11 nalin
+	* configure.in: error out if we don't find ncurses, curses, or
+	libtermcap development headers (bug #117754).
+
+2003-08-11 nalin
 	* autogen.sh: export WANT_AUTOCONF_2_5 for the sake of Mandrake autoconf
 	wrapper (bug #119066).
 
