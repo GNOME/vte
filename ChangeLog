@@ -1,4 +1,7 @@
-2002-06-17 nalin
+2002-06-18 nalin
+	* autogen.sh: Correct automake version check to require 1.5, heads
+	up from Glynn Foster.
+2002-06-18 nalin
 	* src/trie.c (vte_trie_match, vte_trie_match_x): Sort out greedy vs.
 	non-greedy pattern matching.
 	* src/vte.c (vte_sequence_handler_decset_internal): Make 1047 an alias
