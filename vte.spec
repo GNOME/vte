@@ -6,7 +6,7 @@ License: LGPL
 Group: User Interface/X
 BuildRoot: %{_tmppath}/%{name}-root
 Source: %{name}-%{version}.tar.gz
-BuildPrereq: gtk2-devel
+BuildPrereq: gtk2-devel, pygtk2-devel, python-devel
 
 %description
 VTE is an experimental terminal emulator widget.  This package contains
@@ -47,6 +47,7 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %doc ChangeLog COPYING HACKING NEWS README
 %{_libdir}/*.so.*.*
 %{_datadir}/*
+%{_libdir}/python*/site-packages/*
 
 %files devel
 %defattr(-,root,root)
@@ -54,7 +55,6 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/*.a
 %{_libdir}/*.so
 %{_libdir}/pkgconfig/*
-%{_libdir}/python*/site-packages/*
 
 %changelog
 * Fri Jun 14 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.0-1
