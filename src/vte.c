@@ -7255,13 +7255,6 @@ vte_terminal_io_read(GIOChannel *channel,
 	widget = GTK_WIDGET(data);
 	terminal = VTE_TERMINAL(data);
 
-	/* If the terminal is selecting, then we need to stop reading input
-	 * (for at least a moment) to keep data from scrolling off the top of
-	 * our backscroll buffer, but come back later. */
-	if (terminal->pvt->selecting) {
-		// return TRUE;
-	}
-
 	/* Check that the channel is still open. */
 	fd = g_io_channel_unix_get_fd(channel);
 
@@ -13747,8 +13740,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 				      row * height - y_offs,
 				      x_offs, y_offs,
 				      ascent, monospaced,
-				      terminal->char_width,
-				      terminal->char_height,
+				      width,
+				      height,
 				      display, gdrawable, drawable,
 				      colormap, visual, ggc, gc,
 #ifdef HAVE_XFT
@@ -13760,7 +13753,10 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 	if (terminal->pvt->cursor_visible &&
 	    (CLAMP(screen->cursor_current.col, 0, terminal->column_count - 1) ==
-	     screen->cursor_current.col)) {
+	     screen->cursor_current.col) &&
+	    (CLAMP(screen->cursor_current.row,
+		   delta, delta + terminal->row_count - 1) ==
+	     screen->cursor_current.row)) {
 		/* Get the location of the cursor. */
 		col = screen->cursor_current.col;
 		if (terminal->pvt->im_preedit != NULL) {
@@ -13775,7 +13771,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 		/* Find the character "under" the cursor. */
 		cell = vte_terminal_find_charcell(terminal, col, drow);
-		while ((cell != NULL) && (cell->fragment) && (col >= 0)) {
+		while ((cell != NULL) && (cell->fragment) && (col > 0)) {
 			col--;
 			cell = vte_terminal_find_charcell(terminal, col, drow);
 		}
@@ -13794,8 +13790,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								  TRUE,
 								  col * width - x_offs,
 								  row * height - y_offs,
-								  terminal->char_width * cell->columns,
-								  terminal->char_height,
+								  width * cell->columns,
+								  height,
 								  display,
 								  gdrawable,
 								  drawable,
@@ -13836,11 +13832,15 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			} else {
 				item.c = cell ? cell->c : ' ';
 				item.columns = cell ? cell->columns : 1;
-				item.xpad = vte_terminal_get_char_padding(terminal,
-									  display,
-									  item.c);
+				if (monospaced) {
+					item.xpad = 0;
+				} else {
+					item.xpad = vte_terminal_get_char_padding(terminal,
+										  display,
+										  item.c);
+				}
 				underline = cell ? (cell->underline != 0) : FALSE;
-				strikethrough= cell ? (cell->strikethrough!= 0) : FALSE;
+				strikethrough = cell ? (cell->strikethrough != 0) : FALSE;
 				bold = cell ? (cell->bold != 0) : FALSE;
 				hilite = FALSE;
 				vte_terminal_draw_cells(terminal,
@@ -13852,7 +13852,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 							x_offs,
 							y_offs,
 							ascent, monospaced,
-							width * item.columns,
+							width,
 							height,
 							display, gdrawable, drawable,
 							colormap, visual, ggc, gc,
@@ -13863,12 +13863,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			}
 			columns = item.columns;
 		} else {
-			/* Determine how wide the cursor is. */
-			columns = 1;
-			if ((cell != NULL) && (cell->columns > 1)) {
-				columns = cell->columns;
-			}
 			/* Draw it as a hollow rectangle. */
+			columns = cell ? cell->columns : 1;
 			fore = cell ? cell->fore : VTE_DEF_FG;
 			XSetForeground(display, gc,
 				       terminal->pvt->palette[fore].pixel);

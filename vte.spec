@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.10.10
+Version: 0.10.11
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -93,6 +93,9 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Fri Jan 17 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.11-1
+- fix overzealous clearing when drawing the cursor
+
 * Tue Jan 14 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.10-1
 - add text that scrolls off of a restricted scrolling area which goes to the
   top of the visible screen to the scrollback buffer (#75900)

@@ -1,4 +1,11 @@
 2003-01-17 nalin
+	* src/vte.c(vte_terminal_paint): don't draw cursors below or above the
+	screen, correctly compute the clear area when drawing the cursor,
+	if we're ignoring padding in general because we're monospaced, also
+	ignore it when drawing the character under the cursor.
+	* src/vte.c(vte_terminal_io_read): eliminate dead code.
+
+2003-01-17 nalin
 	* src/keymap.c(_vte_keymap_map): if we don't find an entry for the
 	requested key, and the terminal type is "xterm", retry using
 	"xterm-xfree86", possible fix for #103713.
