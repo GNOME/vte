@@ -1,5 +1,6 @@
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(vte,0.1)
+AM_CONFIG_HEADER(config.h)
 AM_PROG_LIBTOOL
 AC_EGREP_CPP(glibc,
 		[
@@ -50,6 +51,4 @@ fi
 if test x$VTE_DEBUG = x1 ; then
 	AC_DEFINE(VTE_DEBUG,,[Enable debugging of unrecognized sequences.])
 fi
-
-AM_CONFIG_HEADER(config.h)
 AC_OUTPUT([Makefile src/Makefile vte.pc])

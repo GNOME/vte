@@ -195,6 +195,10 @@ struct _VteTerminalPrivate {
 	GdkPixbuf *bg_image;
 
 	guint bg_saturation;	/* out of VTE_SATURATION_MAX */
+
+	GtkIMContext *im_context;
+	char *im_preedit;
+	int im_preedit_cursor;
 };
 
 /* A function which can handle a terminal control sequence. */
@@ -296,14 +300,20 @@ static gboolean
 vte_invalidate_cursor_once(gpointer data)
 {
 	VteTerminal *terminal;
+	size_t preedit_length;
 	if (!VTE_IS_TERMINAL(data)) {
 		return FALSE;
 	}
 	terminal = VTE_TERMINAL(data);
 	if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
+		if (terminal->pvt->im_preedit != NULL) {
+			preedit_length = strlen(terminal->pvt->im_preedit);
+		} else {
+			preedit_length = 0;
+		}
 		vte_invalidate_cells(terminal,
 				     terminal->pvt->screen->cursor_current.col,
-				     1,
+				     1 + preedit_length,
 				     terminal->pvt->screen->cursor_current.row,
 				     1);
 	}
@@ -1155,8 +1165,9 @@ vte_sequence_handler_do(VteTerminal *terminal,
 		/* Move the cursor down. */
 		screen->cursor_current.row++;
 
-		/* Make sure that the bottom row is visible.  This usually
-		 * causes the top row to become a history row. */
+		/* Make sure that the bottom row is visible, and that it's in
+		 * the buffer (even if it's empty).  This usually causes the
+		 * top row to become a history-only row. */
 		rows = MAX(screen->row_data->len,
 			   screen->cursor_current.row + 1);
 		delta = MAX(0, rows - terminal->row_count);
@@ -2698,7 +2709,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			size_t palette_size)
 {
 	int i;
-        GdkColor color;
+	GdkColor color;
 	GtkWidget *widget;
 	Display *display;
 	GdkColormap *gcolormap;
@@ -2767,11 +2778,11 @@ vte_terminal_set_colors(VteTerminal *terminal,
 		}
 
 		/* Get an Xlib color. */
-                gdk_rgb_find_color (gcolormap, &color); /* fill in pixel */
-                terminal->pvt->palette[i].red = color.red;
-                terminal->pvt->palette[i].green = color.green;
-                terminal->pvt->palette[i].blue = color.blue;
-                terminal->pvt->palette[i].pixel = color.pixel;
+		gdk_rgb_find_color(gcolormap, &color); /* fill in pixel */
+		terminal->pvt->palette[i].red = color.red;
+		terminal->pvt->palette[i].green = color.green;
+		terminal->pvt->palette[i].blue = color.blue;
+		terminal->pvt->palette[i].pixel = color.pixel;
 
 #ifdef HAVE_XFT
 		if (terminal->pvt->use_xft) {
@@ -2781,12 +2792,13 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			terminal->pvt->palette[i].rcolor.blue = color.blue;
 			terminal->pvt->palette[i].rcolor.alpha = 0xffff;
 
-                        /* FIXME this probably needs to be freed somewhere */
+			/* FIXME this should probably use a color from the
+			 * color cube. */
 			if (!XftColorAllocValue(display,
-					        visual,
-					        colormap,
-					        &terminal->pvt->palette[i].rcolor,
-					        &terminal->pvt->palette[i].ftcolor)) {
+						visual,
+						colormap,
+						&terminal->pvt->palette[i].rcolor,
+						&terminal->pvt->palette[i].ftcolor)) {
 				terminal->pvt->use_xft = FALSE;
 			}
 		}
@@ -2948,10 +2960,15 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 					     screen->cursor_current.row, 2);
 		}
 
-		/* And take a step to the to the right.  We invalidated this
-		 * part of the screen already, so no need to do it again. */
+		/* And take a step to the to the right, making sure we redraw
+		 * both where the cursor was moved from. */
+		vte_invalidate_cursor_once(terminal);
 		screen->cursor_current.col++;
 	}
+
+	/* Redraw where the cursor has moved to. */
+	vte_invalidate_cursor_once(terminal);
+
 #ifdef VTE_DEBUG
 #ifdef VTE_DEBUG_INSERT
 	fprintf(stderr, "Insertion delta = %ld.\n", (long)screen->insert_delta);
@@ -3055,6 +3072,7 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 	colorterm = g_strdup("COLORTERM=" PACKAGE);
 	env_add[0] = term;
 	env_add[1] = colorterm;
+	env_add[2] = NULL;
 	terminal->pvt->pty_master = vte_pty_open(&terminal->pvt->pty_pid,
 						 env_add,
 						 command ?:
@@ -3108,6 +3126,7 @@ vte_terminal_process_incoming(gpointer data)
 	GValueArray *params;
 	VteTerminal *terminal;
 	GtkWidget *widget;
+	GdkRectangle rect;
 	char *ibuf, *obuf, *obufptr, *ubuf, *ubufptr;
 	size_t icount, ocount, ucount;
 	wchar_t *wbuf, c;
@@ -3229,7 +3248,11 @@ vte_terminal_process_incoming(gpointer data)
 				break;
 			}
 			if (match[0] != '\0') {
-				/* A terminal sequence. */
+				/* A terminal sequence, force the current
+				 * position of the cursor to be redrawn, run
+				 * the sequence handler, and then draw the
+				 * cursor again. */
+				vte_invalidate_cursor_once(terminal);
 				vte_terminal_handle_sequence(GTK_WIDGET(terminal),
 							     match,
 							     quark,
@@ -3307,9 +3330,22 @@ vte_terminal_process_incoming(gpointer data)
 		if (terminal->pvt->scroll_on_output || bottom) {
 			vte_terminal_scroll_on_something(terminal);
 		}
+
+		/* The cursor moved, so force it to be redrawn. */
+		vte_invalidate_cursor_once(terminal);
+
 		/* Deselect any existing selection. */
 		vte_terminal_deselect_all(terminal);
 	}
+
+	/* Tell the input method where the cursor is. */
+	rect.x = terminal->pvt->screen->cursor_current.col *
+		 terminal->char_width;
+	rect.width = terminal->char_width;
+	rect.y = terminal->pvt->screen->cursor_current.row *
+		 terminal->char_height;
+	rect.height = terminal->char_height;
+	gtk_im_context_set_cursor_location(terminal->pvt->im_context, &rect);
 
 #ifdef VTE_DEBUG
 	fprintf(stderr, "%d bytes left to process.\n",
@@ -3571,6 +3607,78 @@ vte_terminal_feed_child(VteTerminal *terminal, const char *text, size_t length)
 	vte_terminal_send(terminal, "UTF-8", text, length);
 }
 
+/* Send text from the input method to the child. */
+static void
+vte_terminal_im_commit(GtkIMContext *im_context, gchar *text, gpointer data)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(data));
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Input method committed `%s'.\n", text);
+#endif
+	vte_terminal_send(VTE_TERMINAL(data), "UTF-8", text, strlen(text));
+}
+
+/* We've started pre-editing. */
+static void
+vte_terminal_im_preedit_start(GtkIMContext *im_context, gpointer data)
+{
+	VteTerminal *terminal;
+
+	g_return_if_fail(VTE_IS_TERMINAL(data));
+	terminal = VTE_TERMINAL(data);
+	g_return_if_fail(GTK_IS_IM_CONTEXT(im_context));
+
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Input method pre-edit started.\n");
+#endif
+}
+
+/* We've stopped pre-editing. */
+static void
+vte_terminal_im_preedit_end(GtkIMContext *im_context, gpointer data)
+{
+	VteTerminal *terminal;
+
+	g_return_if_fail(VTE_IS_TERMINAL(data));
+	terminal = VTE_TERMINAL(data);
+	g_return_if_fail(GTK_IS_IM_CONTEXT(im_context));
+
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Input method pre-edit ended.\n");
+#endif
+}
+
+/* The pre-edit string changed. */
+static void
+vte_terminal_im_preedit_changed(GtkIMContext *im_context, gpointer data)
+{
+	gchar *str;
+	PangoAttrList *attrs;
+	VteTerminal *terminal;
+	gint cursor;
+
+	g_return_if_fail(VTE_IS_TERMINAL(data));
+	terminal = VTE_TERMINAL(data);
+	g_return_if_fail(GTK_IS_IM_CONTEXT(im_context));
+
+	gtk_im_context_get_preedit_string(im_context, &str, &attrs, &cursor);
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Input method pre-edit changed (%s,%d).\n",
+		str, cursor);
+#endif
+
+	vte_invalidate_cursor_once(terminal);
+
+	pango_attr_list_unref(attrs);
+	if (terminal->pvt->im_preedit != NULL) {
+		g_free(terminal->pvt->im_preedit);
+	}
+	terminal->pvt->im_preedit = str;
+	terminal->pvt->im_preedit_cursor = cursor;
+
+	vte_invalidate_cursor_once(terminal);
+}
+
 /* Handle the toplevel being reconfigured. */
 static gboolean
 vte_terminal_configure_toplevel(GtkWidget *widget, GdkEventConfigure *event,
@@ -3635,16 +3743,26 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
 
+	/* If it's a keypress, record that we got the event, in case the
+	 * input method takes the event from us. */
+	if (event->type == GDK_KEY_PRESS) {
+		if (gettimeofday(&tv, &tz) == 0) {
+			terminal->pvt->last_keypress_time =
+				(tv.tv_sec * 1000) + (tv.tv_usec / 1000);
+		}
+	}
+
+	/* Let the input method at this one first. */
+	if (gtk_im_context_filter_keypress(terminal->pvt->im_context, event)) {
+		return TRUE;
+	}
+
+	/* Now figure out what to send to the child. */
 	if (event->type == GDK_KEY_PRESS) {
 		/* Read the modifiers. */
 		if (gdk_event_get_state((GdkEvent*)event,
 					&modifiers) == FALSE) {
 			modifiers = 0;
-		}
-		/* Record the last time the a key was pressed. */
-		if (gettimeofday(&tv, &tz) == 0) {
-			terminal->pvt->last_keypress_time =
-				(tv.tv_sec * 1000) + (tv.tv_usec / 1000);
 		}
 		/* Map the key to a sequence name if we can. */
 		switch (event->keyval) {
@@ -4279,6 +4397,7 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 {
 	g_return_val_if_fail(GTK_IS_WIDGET(widget), 0);
 	GTK_WIDGET_SET_FLAGS(widget, GTK_HAS_FOCUS);
+	gtk_im_context_focus_in((VTE_TERMINAL(widget))->pvt->im_context);
 	vte_invalidate_cursor_once(VTE_TERMINAL(widget));
 	return TRUE;
 }
@@ -4288,53 +4407,128 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 {
 	g_return_val_if_fail(GTK_WIDGET(widget), 0);
 	GTK_WIDGET_UNSET_FLAGS(widget, GTK_HAS_FOCUS);
+	gtk_im_context_focus_out((VTE_TERMINAL(widget))->pvt->im_context);
 	vte_invalidate_cursor_once(VTE_TERMINAL(widget));
 	return TRUE;
+}
+
+static void
+vte_terminal_font_complain(const char *font,
+			   char **missing_charset_list,
+			   int missing_charset_count)
+{
+	int i;
+	char *charsets, *tmp;
+	if ((missing_charset_count > 0) && (missing_charset_list != NULL)) {
+		charsets = NULL;
+		for (i = 0; i < missing_charset_count; i++) {
+			if (charsets == NULL) {
+				tmp = g_strdup(missing_charset_list[i]);
+			} else {
+				tmp = g_strconcat(charsets, ", ",
+						  missing_charset_list[i],
+						  NULL);
+				g_free(charsets);
+			}
+			charsets = tmp;
+			tmp = NULL;
+		}
+		g_warning("Warning: using fontset \"%s\", which is missing "
+			  "these character sets: %s.\n", font, charsets);
+		g_free(charsets);
+	}
 }
 
 static int
 xft_weight_from_pango_weight (int weight)
 {
-        /* cut-and-pasted from Pango */
-        if (weight < (PANGO_WEIGHT_NORMAL + PANGO_WEIGHT_LIGHT) / 2)
-                return XFT_WEIGHT_LIGHT;
-        else if (weight < (PANGO_WEIGHT_NORMAL + 600) / 2)
-                return XFT_WEIGHT_MEDIUM;
-        else if (weight < (600 + PANGO_WEIGHT_BOLD) / 2)
-                return XFT_WEIGHT_DEMIBOLD;
-        else if (weight < (PANGO_WEIGHT_BOLD + PANGO_WEIGHT_ULTRABOLD) / 2)
-                return XFT_WEIGHT_BOLD;
-        else
-                return XFT_WEIGHT_BLACK;
+	/* cut-and-pasted from Pango */
+	if (weight < (PANGO_WEIGHT_NORMAL + PANGO_WEIGHT_LIGHT) / 2)
+		return XFT_WEIGHT_LIGHT;
+	else if (weight < (PANGO_WEIGHT_NORMAL + 600) / 2)
+		return XFT_WEIGHT_MEDIUM;
+	else if (weight < (600 + PANGO_WEIGHT_BOLD) / 2)
+		return XFT_WEIGHT_DEMIBOLD;
+	else if (weight < (PANGO_WEIGHT_BOLD + PANGO_WEIGHT_ULTRABOLD) / 2)
+		return XFT_WEIGHT_BOLD;
+	else
+		return XFT_WEIGHT_BLACK;
 }
 
 static int
 xft_slant_from_pango_style (int style)
 {
-        switch (style) {
-        case PANGO_STYLE_NORMAL:
-                return XFT_SLANT_ROMAN;
-                break;
-        case PANGO_STYLE_ITALIC:
-                return XFT_SLANT_ITALIC;
-                break;
-        case PANGO_STYLE_OBLIQUE:
-                return XFT_SLANT_OBLIQUE;
-                break;
-        }
+	switch (style) {
+	case PANGO_STYLE_NORMAL:
+		return XFT_SLANT_ROMAN;
+		break;
+	case PANGO_STYLE_ITALIC:
+		return XFT_SLANT_ITALIC;
+		break;
+	case PANGO_STYLE_OBLIQUE:
+		return XFT_SLANT_OBLIQUE;
+		break;
+	}
 
-        return XFT_SLANT_ROMAN;
+	return XFT_SLANT_ROMAN;
 }
+
+#ifdef HAVE_XFT
+/* Create an Xft pattern from a Pango font description. */
+static XftPattern *
+xft_pattern_from_pango_font_description(const PangoFontDescription *font_desc)
+{
+	XftPattern *pattern;
+	const char *family = "mono";
+	int pango_mask = 0;
+	int weight, style;
+	double size = 12.0;
+
+	if (font_desc != NULL) {
+		pango_mask = pango_font_description_get_set_fields (font_desc);
+	}
+
+	pattern = XftPatternCreate ();
+
+	/* Set the family for the pattern, or use a sensible default. */
+	if (pango_mask & PANGO_FONT_MASK_FAMILY) {
+		family = pango_font_description_get_family (font_desc);
+	}
+	XftPatternAddString (pattern, XFT_FAMILY, family);
+
+	/* Set the font size for the pattern, or use a sensible default. */
+	if (pango_mask & PANGO_FONT_MASK_SIZE) {
+		size = (double) pango_font_description_get_size (font_desc);
+		size /= (double) PANGO_SCALE;
+	}
+	XftPatternAddDouble (pattern, XFT_SIZE, size);
+
+	/* There aren'ty any fallbacks for these, so just omit them from the
+	 * pattern if they're not set in the pango font. */
+	if (pango_mask & PANGO_FONT_MASK_WEIGHT) {
+		weight = pango_font_description_get_weight (font_desc);
+		XftPatternAddInteger (pattern, XFT_WEIGHT, 
+				      xft_weight_from_pango_weight (weight));
+	}
+	if (pango_mask & PANGO_FONT_MASK_STYLE) {
+		style = pango_font_description_get_style (font_desc);
+		XftPatternAddInteger (pattern, XFT_SLANT,
+				      xft_slant_from_pango_style (style));
+	}
+
+	return pattern;
+}
+#endif
 
 /* Set the fontset used for rendering text into the widget. */
 static void
 vte_terminal_setup_font(VteTerminal *terminal, const char *xlfds,
-                        const PangoFontDescription *font_desc)
+			const PangoFontDescription *font_desc)
 {
 	long width, height, ascent, descent;
 	GtkWidget *widget;
 	XFontStruct **font_struct_list, font_struct;
-	char **missing_charset_list, *def_string;
+	char **missing_charset_list, *def_string, *tmp;
 	int missing_charset_count;
 	char **font_name_list;
 
@@ -4344,137 +4538,132 @@ vte_terminal_setup_font(VteTerminal *terminal, const char *xlfds,
 
 	/* Choose default font metrics.  I like '10x20' as a terminal font. */
 	if (xlfds == NULL) {
-		xlfds = "-*-mincho-*-r-*-*-20-*-*-*-*-*-*-*";
-		xlfds = "10x20";
+		xlfds = "-misc-fixed-medium-r-normal--20-*-*-*-*-*-*-*";
 	}
 	width = 10;
 	height = 20;
 	descent = 0;
 	ascent = height - descent;
-        
+
 #ifdef HAVE_XFT
 	if (terminal->pvt->use_xft) {
-                XftFont *new_font;
-                XftPattern *pattern;
-                XftPattern *matched_pattern;
-                XftResult result;
-                PangoFontMask pango_mask;
+		XftFont *new_font;
+		XftPattern *pattern;
+		XftPattern *matched_pattern;
+		XftResult result;
 
 #ifdef VTE_DEBUG
-                if (font_desc) {
-                        char *debug;
-                        debug = pango_font_description_to_string (font_desc);
-                        fprintf (stderr, "pango font is \"%s\"\n", debug);
-                        g_free (debug);
-                } else {
-                        fprintf (stderr, "pango font is null\n");
-                }
+		if (font_desc) {
+			tmp = pango_font_description_to_string (font_desc);
+			fprintf (stderr, "Using pango font \"%s\".\n", tmp);
+			g_free (tmp);
+		} else {
+			fprintf (stderr, "Using default pango font.\n");
+		}
 #endif
-                
-                pango_mask = font_desc ? pango_font_description_get_set_fields (font_desc) : 0;
 
-                /* Create Xft pattern */                
-                pattern = XftPatternCreate ();
+		pattern = xft_pattern_from_pango_font_description(font_desc);
 
-                if (pango_mask & PANGO_FONT_MASK_FAMILY)
-                        XftPatternAddString (pattern, XFT_FAMILY,
-                                             pango_font_description_get_family (font_desc));
-                else
-                        XftPatternAddString (pattern, XFT_FAMILY, "mono");
-                
-                if (pango_mask & PANGO_FONT_MASK_SIZE)
-                        XftPatternAddDouble (pattern, XFT_SIZE,
-                                             (double) pango_font_description_get_size (font_desc) / (double) PANGO_SCALE);
-                else
-                        XftPatternAddDouble (pattern, XFT_SIZE, 12.0);
-
-                /* No fallbacks for these, just omit them from the pattern if not set in the
-                 * pango font
-                 */
-                if (pango_mask & PANGO_FONT_MASK_WEIGHT)
-                        XftPatternAddInteger (pattern, XFT_WEIGHT, 
-                                              xft_weight_from_pango_weight (pango_font_description_get_weight (font_desc)));
-
-                if (pango_mask & PANGO_FONT_MASK_STYLE)
-                        XftPatternAddInteger (pattern, XFT_SLANT,
-                                              xft_slant_from_pango_style (pango_font_description_get_style (font_desc)));
-
-
-                /* Xft is on a lot of crack here - it fills in
-                 * "result" when it feels like it, and leaves it
-                 * uninitialized the rest of the time.  Whether it's
-                 * filled in is impossible to determine afaict.  We
-                 * don't care about its value anyhow.
-                 */
-                result = 0xffff; /* some bogus value to help in debugging */
-                matched_pattern = XftFontMatch (GDK_DISPLAY (),
-                                                gdk_x11_get_default_screen (),
-                                                pattern, &result);
+		/* Xft is on a lot of crack here - it fills in "result" when it
+		 * feels like it, and leaves it uninitialized the rest of the
+		 * time.  Whether it's filled in is impossible to determine
+		 * afaict.  We don't care about its value anyhow.  */
+		result = 0xffff; /* some bogus value to help in debugging */
+		matched_pattern = XftFontMatch (GDK_DISPLAY(),
+						gdk_x11_get_default_screen(),
+						pattern, &result);
 
 #ifdef VTE_DEBUG
-                if (matched_pattern) {
-                        char buf[256];
-                        if (!XftNameUnparse (matched_pattern, buf, sizeof(buf)-1))
-                                buf[0] = '\0';
-                        fprintf (stderr, "Match pattern \"%s\"\n", buf);
-                }
+		if (matched_pattern != NULL) {
+			char buf[256];
+			if (!XftNameUnparse (matched_pattern, buf, sizeof(buf)-1)) {
+				buf[0] = '\0';
+			}
+			buf[sizeof(buf) - 1] = '\0';
+			fprintf (stderr, "Matched pattern \"%s\".\n", buf);
+		}
+
+		switch (result) {
+			case XftResultMatch:
+			       fprintf(stderr, "matched.\n");
+			       break;
+			case XftResultNoMatch:
+			       fprintf(stderr, "no match.\n");
+			       break;
+			case XftResultTypeMismatch:
+			       fprintf(stderr, "type mismatch.\n");
+			       break;
+			case XftResultNoId:
+			       fprintf(stderr, "no ID.\n");
+			       break;
+			default:
+			       fprintf(stderr, "undefined/bogus result.\n");
+			       break;
+		}
 #endif
+
+		if (matched_pattern != NULL) {
+			/* More Xft crackrock - it appears to "adopt"
+			 * matched_pattern as new_font->pattern; whether it
+			 * does this reliably or not, or does another
+			 * unpredictable bogosity like the "result" field
+			 * above, I don't know.
+			 */
+			new_font = XftFontOpenPattern(GDK_DISPLAY(),
+						      matched_pattern);
+		} else {
+			new_font = NULL;
+		}
+
+		if (new_font == NULL) {
+			char buf[256];
+			if (!XftNameUnparse(matched_pattern, buf, sizeof(buf)-1)) {
+				buf[0] = '\0';
+			}
+			buf[sizeof(buf) - 1] = '\0';
+
+			g_warning("Failed to load Xft font pattern \"%s\", "
+				  "falling back to default font.", buf);
+
+			/* Try to use the deafult font. */
+			new_font = XftFontOpen(GDK_DISPLAY(),
+					       gdk_x11_get_default_screen(),
+					       XFT_FAMILY, XftTypeString,
+					       "mono",
+					       XFT_SIZE, XftTypeDouble, 12.0,
+					       0);
+		}
+		if (new_font == NULL) {
+			g_warning("Failed to load default Xft font.");
+		}
+
+		g_assert (pattern != new_font->pattern);
+		XftPatternDestroy (pattern);
+		if ((matched_pattern != NULL) &&
+		    (matched_pattern != new_font->pattern)) {
+			XftPatternDestroy (matched_pattern);
+		}
+
+		if (new_font) {
+			char buf[256];
+			if (!XftNameUnparse (new_font->pattern, buf, sizeof(buf)-1)) {
+				buf[0] = '\0';
+			}
+			buf[sizeof(buf) - 1] = '\0';
 
 #ifdef VTE_DEBUG
-                fprintf (stderr, "font match result = %d\n", result);
+			fprintf (stderr, "Opened new font `%s'.\n", buf);
 #endif
-                
-                if (matched_pattern) {
-                        g_assert (matched_pattern);
-                        /* More Xft crackrock - it appears to "adopt" matched_pattern
-                         * as new_font->pattern; whether it does this reliably
-                         * or not, or does another unpredictable bogosity
-                         * like the "result" field above, I don't know.
-                         */
-                        new_font = XftFontOpenPattern (GDK_DISPLAY (),
-                                                       matched_pattern);
-                } else {
-                        new_font = NULL;
-                }
-                
-                if (new_font == NULL) {
-                        char buf[256];
-                        if (!XftNameUnparse (matched_pattern, buf, sizeof(buf)-1))
-                                buf[0] = '\0';
-                        
-                        g_warning("Failed to load Xft font pattern \"%s\", falling back to default font.",
-                                  buf);
 
-                        /* Try a fallback */
-                        new_font = XftFontOpen(GDK_DISPLAY(),
-                                               gdk_x11_get_default_screen(),
-                                               XFT_FAMILY, XftTypeString, "mono",
-                                               XFT_SIZE, XftTypeDouble, 12.0,
-                                               0);
-                }
+			/* Dispose of any previously-opened font. */
+			if (terminal->pvt->ftfont != NULL) {
+				XftFontClose(GDK_DISPLAY(),
+					     terminal->pvt->ftfont);
+			}
+			terminal->pvt->ftfont = new_font;
+		}
 
-                g_assert (pattern != new_font->pattern);
-                XftPatternDestroy (pattern);
-                if (matched_pattern && matched_pattern != new_font->pattern) {
-                        g_assert (matched_pattern != new_font->pattern);
-                        XftPatternDestroy (matched_pattern);
-                }
-                
-                if (new_font) {
-                        char buf[256];
-                        if (!XftNameUnparse (new_font->pattern, buf, sizeof(buf)-1))
-                                buf[0] = '\0';
-                        
-#ifdef VTE_DEBUG
-                        fprintf (stderr, "Opened new font %s\n", buf);
-#endif
-                        
-                        if (terminal->pvt->ftfont != NULL) {
-                                XftFontClose(GDK_DISPLAY(), terminal->pvt->ftfont);
-                        }
-                        terminal->pvt->ftfont = new_font;
-                }
-                
+		/* Read the metrics for the current font. */
 		if (terminal->pvt->ftfont != NULL) {
 			ascent = terminal->pvt->ftfont->ascent;
 			descent = terminal->pvt->ftfont->descent;
@@ -4487,38 +4676,65 @@ vte_terminal_setup_font(VteTerminal *terminal, const char *xlfds,
 	}
 #endif
 
-        if (!terminal->pvt->use_xft) {
-                /* Load the font set, freeing another one if we loaded one before. */
-                if (terminal->pvt->fontset) {
-                        XFreeFontSet(GDK_DISPLAY(), terminal->pvt->fontset);
-                }
-                terminal->pvt->fontset = XCreateFontSet(GDK_DISPLAY(),
-                                                        xlfds,
-                                                        &missing_charset_list,
-                                                        &missing_charset_count,
-                                                        &def_string);
-                g_return_if_fail(terminal->pvt->fontset != NULL);
-                XFreeStringList(missing_charset_list);
-                missing_charset_list = NULL;
-                /* Read the font metrics. */
-                if (XFontsOfFontSet(terminal->pvt->fontset,
-                                    &font_struct_list,
-                                    &font_name_list)) {
-                        if (font_struct_list) {
-                                if (font_struct_list[0]) {
-                                        font_struct = font_struct_list[0][0];
-                                        width = font_struct.max_bounds.width;
-                                        ascent = font_struct.max_bounds.ascent;
-                                        descent = font_struct.max_bounds.descent;
-                                        height = ascent + descent;
-                                }
-                        }
-                        XFreeStringList(font_name_list);
-                        font_name_list = NULL;
-                }
-        }
-        
-        /* Now save the values. */
+	if (!terminal->pvt->use_xft) {
+		/* Load the font set, freeing another one if we loaded one
+		 * before. */
+		if (terminal->pvt->fontset) {
+			XFreeFontSet(GDK_DISPLAY(), terminal->pvt->fontset);
+		}
+		terminal->pvt->fontset = XCreateFontSet(GDK_DISPLAY(),
+							xlfds,
+							&missing_charset_list,
+							&missing_charset_count,
+							&def_string);
+		if (terminal->pvt->fontset != NULL) {
+			vte_terminal_font_complain(xlfds, missing_charset_list,
+						   missing_charset_count);
+		} else {
+			g_warning("Failed to load font set \"%s\", "
+				  "falling back to default font.", xlfds);
+			if (missing_charset_list != NULL) {
+				XFreeStringList(missing_charset_list);
+				missing_charset_list = NULL;
+			}
+			terminal->pvt->fontset = XCreateFontSet(GDK_DISPLAY(),
+								"fixed",
+								&missing_charset_list,
+								&missing_charset_count,
+								&def_string);
+			if (terminal->pvt->fontset == NULL) {
+				g_warning("Failed to load default font, "
+					  "crashing or behaving abnormally.\n");
+			} else {
+				vte_terminal_font_complain(xlfds,
+							   missing_charset_list,
+							   missing_charset_count);
+			}
+		}
+		g_return_if_fail(terminal->pvt->fontset != NULL);
+		if (missing_charset_list != NULL) {
+			XFreeStringList(missing_charset_list);
+			missing_charset_list = NULL;
+		}
+		/* Read the font metrics. */
+		if (XFontsOfFontSet(terminal->pvt->fontset,
+				    &font_struct_list,
+				    &font_name_list)) {
+			if (font_struct_list) {
+				if (font_struct_list[0]) {
+					font_struct = font_struct_list[0][0];
+					width = font_struct.max_bounds.width;
+					ascent = font_struct.max_bounds.ascent;
+					descent = font_struct.max_bounds.descent;
+					height = ascent + descent;
+				}
+			}
+			XFreeStringList(font_name_list);
+			font_name_list = NULL;
+		}
+	}
+
+	/* Now save the values. */
 	terminal->char_width = width;
 	terminal->char_height = height;
 	terminal->char_ascent = ascent;
@@ -4532,10 +4748,10 @@ vte_terminal_setup_font(VteTerminal *terminal, const char *xlfds,
 }
 
 void
-vte_terminal_set_font (VteTerminal *terminal,
-                       const PangoFontDescription *font_desc)
+vte_terminal_set_font(VteTerminal *terminal,
+		      const PangoFontDescription *font_desc)
 {
-        vte_terminal_setup_font (terminal, NULL, font_desc);
+	vte_terminal_setup_font (terminal, NULL, font_desc);
 }
 
 /* A comparison function which helps sort quarks. */
@@ -4867,6 +5083,9 @@ vte_terminal_init(VteTerminal *terminal)
 	g_signal_connect(G_OBJECT(terminal), "hierarchy-changed",
 			 G_CALLBACK(vte_terminal_hierarchy_changed),
 			 NULL);
+
+	/* Set up input method support. */
+	pvt->im_context = NULL;
 }
 
 /* Tell GTK+ how much space we need. */
@@ -4939,6 +5158,10 @@ vte_terminal_unrealize(GtkWidget *widget)
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
+
+	/* Shut down input methods. */
+	g_object_unref(G_OBJECT(terminal->pvt->im_context));
+	terminal->pvt->im_context = NULL;
 
 	/* Free the color palette. */
 	;
@@ -5080,6 +5303,18 @@ vte_terminal_finalize(GObject *object)
 	}
 }
 
+/* Reset the input method context. */
+static void
+vte_terminal_im_reset(VteTerminal *terminal)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	gtk_im_context_reset(terminal->pvt->im_context);
+	if (terminal->pvt->im_preedit != NULL) {
+		g_free(terminal->pvt->im_preedit);
+		terminal->pvt->im_preedit = NULL;
+	}
+}
+
 /* Handle realizing the widget.  Most of this is copy-paste from GGAD. */
 static void
 vte_terminal_realize(GtkWidget *widget)
@@ -5132,6 +5367,24 @@ vte_terminal_realize(GtkWidget *widget)
 	gdk_window_add_filter(widget->window,
 			      vte_terminal_filter_property_changes,
 			      terminal);
+
+	/* Set up input method support.  FIXME: do we need to handle the
+	 * "retrieve-surrounding" and "delete-surrounding" events? */
+	terminal->pvt->im_context = gtk_im_multicontext_new();
+	gtk_im_context_set_client_window(terminal->pvt->im_context,
+					 widget->window);
+	g_signal_connect(G_OBJECT(terminal->pvt->im_context), "commit",
+			 GTK_SIGNAL_FUNC(vte_terminal_im_commit), terminal);
+	g_signal_connect(G_OBJECT(terminal->pvt->im_context), "preedit-start",
+			 GTK_SIGNAL_FUNC(vte_terminal_im_preedit_start),
+			 terminal);
+	g_signal_connect(G_OBJECT(terminal->pvt->im_context), "preedit-changed",
+			 GTK_SIGNAL_FUNC(vte_terminal_im_preedit_changed),
+			 terminal);
+	g_signal_connect(G_OBJECT(terminal->pvt->im_context), "preedit-end",
+			 GTK_SIGNAL_FUNC(vte_terminal_im_preedit_end),
+			 terminal);
+	gtk_im_context_set_use_preedit(terminal->pvt->im_context, TRUE);
 
 	/* Grab input focus. */
 	gtk_widget_grab_focus(widget);
@@ -5524,7 +5777,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	Visual *visual;
 	GdkGC *ggc;
 	GC gc;
-	struct vte_charcell *cell;
+	struct vte_charcell *cell, im_cell;
 	int row, drow, col, row_stop, col_stop, x_offs = 0, y_offs = 0;
 	long width, height, ascent, descent, delta;
 	struct timezone tz;
@@ -5582,21 +5835,6 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			g_warning("Error allocating draw, disabling Xft.");
 			terminal->pvt->use_xft = FALSE;
 		}
-	}
-#endif
-
-#if 0
-	/* Paint the background for this area, using a filled rectangle.  We
-	 * have to do this even when the GDK background matches, otherwise
-	 * we may miss character removals before an area is re-exposed. */
-	if (terminal->pvt->bg_image == NULL) {
-		XSetForeground(display, gc,
-			       terminal->pvt->palette[VTE_DEF_BG].pixel);
-		XFillRectangle(display, drawable, gc,
-			       area->x - x_offs,
-			       area->y - y_offs,
-			       area->width,
-			       area->height);
 	}
 #endif
 
@@ -5673,9 +5911,13 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 #endif
 		/* Get the character under the cursor. */
 		col = screen->cursor_current.col;
+		if (terminal->pvt->im_preedit != NULL) {
+			col += terminal->pvt->im_preedit_cursor;
+		}
 		drow = screen->cursor_current.row;
 		row = drow - delta;
 		cell = vte_terminal_find_charcell(terminal, drow, col);
+
 		/* Draw the cursor. */
 		delta = screen->scroll_delta;
 		if (GTK_WIDGET_HAS_FOCUS(GTK_WIDGET(terminal))) {
@@ -5706,6 +5948,80 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 				       col * width - x_offs,
 				       row * height - y_offs,
 				       width - 1,
+				       height - 1);
+		}
+	}
+
+	/* Draw the pre-edit string (if one exists) over the cursor. */
+	if (terminal->pvt->im_preedit) {
+		int i, len;
+		char *preedit;
+		drow = screen->cursor_current.row;
+		row = drow - delta;
+		memset(&im_cell, 0, sizeof(im_cell));
+		im_cell.fore = screen->defaults.fore;
+		im_cell.back = screen->defaults.back;
+		im_cell.columns = 1;
+
+		/* If the pre-edit string won't fit on the screen, drop initial
+		 * characters until it does. */
+		preedit = terminal->pvt->im_preedit;
+		len = strlen(preedit);
+		col = screen->cursor_current.col;
+		if ((col + len) > terminal->column_count) {
+			preedit += ((col + len) - terminal->column_count);
+		}
+		len = strlen(preedit);
+
+		/* Draw the preedit string, one character at a time.  Fill the
+		 * background to prevent double-draws. */
+		for (i = 0; i < len; i++) {
+			im_cell.c = preedit[i];
+			col = screen->cursor_current.col + i;
+#ifdef VTE_DEBUG
+#ifdef VTE_DEBUG_DRAW
+			fprintf(stderr, "Drawing preedit[%d] = %c.\n",
+				i + (preedit - terminal->pvt->im_preedit),
+				preedit[i]);
+#endif
+#endif
+			XSetForeground(display, gc,
+				       terminal->pvt->palette[im_cell.back].pixel);
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       col * width - x_offs,
+				       row * height - y_offs,
+				       width,
+				       height);
+			vte_terminal_draw_char(terminal, screen, &im_cell,
+					       col,
+					       drow,
+					       col * width - x_offs,
+					       row * height - y_offs,
+					       width, height,
+					       ascent, descent,
+					       display,
+					       gdrawable, drawable,
+					       gcolormap, colormap,
+					       gvisual, visual,
+					       gc,
+#ifdef HAVE_XFT
+					       ftdraw,
+#endif
+					       FALSE);
+		}
+		if (len > 0) {
+			/* Draw a rectangle around the pre-edit string, to help
+			 * distinguish it from other text. */
+			XSetForeground(display, gc,
+				       terminal->pvt->palette[im_cell.fore].pixel);
+			XDrawRectangle(display,
+				       drawable,
+				       gc,
+				       screen->cursor_current.col * width - x_offs,
+				       row * height - y_offs,
+				       len * width - 1,
 				       height - 1);
 		}
 	}
@@ -5867,6 +6183,16 @@ vte_terminal_paste_clipboard(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	vte_terminal_paste(terminal, GDK_SELECTION_CLIPBOARD);
+}
+
+/* Append the menu items for our input method context to the given shell. */
+void
+vte_terminal_im_append_menuitems(VteTerminal *terminal, GtkMenuShell *menushell)
+{
+	GtkIMMulticontext *context;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	context = GTK_IM_MULTICONTEXT(terminal->pvt->im_context);
+	gtk_im_multicontext_append_menuitems(context, menushell);
 }
 
 /* Set up whatever background we want. */
@@ -6160,7 +6486,15 @@ vte_terminal_set_background_transparent(VteTerminal *terminal, gboolean setting)
 gboolean
 vte_terminal_get_has_selection(VteTerminal *terminal)
 {
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 	return (terminal->pvt->selection != FALSE);
+}
+
+gboolean
+vte_terminal_get_using_xft(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	return (terminal->pvt->use_xft);
 }
 
 void

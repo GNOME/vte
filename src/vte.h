@@ -111,7 +111,6 @@ void vte_terminal_set_colors(VteTerminal *terminal,
 			     size_t palette_size);
 void vte_terminal_set_default_colors(VteTerminal *terminal);
 void vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image);
-void vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image);
 void vte_terminal_set_background_image_file(VteTerminal *terminal,
 					    const char *path);
 void vte_terminal_set_background_saturation(VteTerminal *terminal,
@@ -121,7 +120,9 @@ void vte_terminal_set_background_transparent(VteTerminal *terminal,
 void vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink);
 void vte_terminal_set_blink_period(VteTerminal *terminal, guint period);
 gboolean vte_terminal_get_has_selection(VteTerminal *terminal);
-
+gboolean vte_terminal_get_using_xft(VteTerminal *terminal);
+void vte_terminal_im_append_menuitems(VteTerminal *terminal,
+				      GtkMenuShell *menushell);
 void vte_terminal_set_font (VteTerminal *terminal,
                             const PangoFontDescription *font_desc);
 

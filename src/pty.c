@@ -104,11 +104,10 @@ vte_pty_fork_on_fd(const char *path, const char **env_add,
 		execv(command, args);
 	} else {
 		if (strchr(command, '/')) {
-			arg = g_strdup(strrchr(command, '/'));
+			arg = g_strdup(strrchr(command, '/') + 1);
 		} else {
-			arg = g_strdup_printf("/%s", command);
+			arg = g_strdup_printf("%s", command);
 		}
-		arg[0] = '-';
 		execl(command, arg, NULL);
 	}
 
@@ -203,6 +202,7 @@ static int
 vte_pty_open_old_school(pid_t *child, const char **env_add,
 			const char *command, const char **argv)
 {
+	/* FIXME */
 	return -1;
 }
 
