@@ -255,8 +255,7 @@ static const struct _vte_iso2022_map _vte_iso2022_map_U[] = {
 
 /* Japanese.  JIS X 0201-1976 ("Roman" set), per RFC 1468/2237. */
 static const struct _vte_iso2022_map _vte_iso2022_map_J[] = {
-	{'\\', 0x203e},
-	{'~',  GDK_yen},
+#include "unitable.JIS0201"
 };
 /* Japanese.  JIS X 0208-1978, per RFC 1468/2237. */
 static const struct _vte_iso2022_map _vte_iso2022_map_wide_at[] = {
@@ -529,6 +528,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		}
 		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
+		*and_mask = 0xf7f7f;
 		break;
 	case 'A' + WIDE_FUDGE:
 		if (map == NULL) {
@@ -537,6 +537,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		}
 		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
+		*and_mask = 0xf7f7f;
 		break;
 	case 'B' + WIDE_FUDGE:
 		if (map == NULL) {
@@ -545,6 +546,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		}
 		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
+		*and_mask = 0xf7f7f;
 		break;
 	case 'C' + WIDE_FUDGE:
 		if (map == NULL) {
@@ -553,6 +555,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		}
 		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
+		*and_mask = 0xf7f7f;
 		break;
 	case 'D' + WIDE_FUDGE:
 		if (map == NULL) {
@@ -561,6 +564,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		}
 		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
+		*and_mask = 0xf7f7f;
 		break;
 	case 'G' + WIDE_FUDGE:
 		if (map == NULL) {
@@ -570,6 +574,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		/* Return the plane number as part of the "or" mask. */
 		g_assert(or_mask != NULL);
 		*or_mask = 0x10000;
+		*and_mask = 0xf7f7f;
 		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
@@ -581,6 +586,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		/* Return the plane number as part of the "or" mask. */
 		g_assert(or_mask != NULL);
 		*or_mask = 0x20000;
+		*and_mask = 0xf7f7f;
 		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
@@ -592,6 +598,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		/* Return the plane number as part of the "or" mask. */
 		g_assert(or_mask != NULL);
 		*or_mask = 0x30000;
+		*and_mask = 0xf7f7f;
 		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
@@ -603,6 +610,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		/* Return the plane number as part of the "or" mask. */
 		g_assert(or_mask != NULL);
 		*or_mask = 0x40000;
+		*and_mask = 0xf7f7f;
 		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
@@ -614,6 +622,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		/* Return the plane number as part of the "or" mask. */
 		g_assert(or_mask != NULL);
 		*or_mask = 0x50000;
+		*and_mask = 0xf7f7f;
 		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
@@ -625,6 +634,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		/* Return the plane number as part of the "or" mask. */
 		g_assert(or_mask != NULL);
 		*or_mask = 0x60000;
+		*and_mask = 0xf7f7f;
 		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
@@ -636,6 +646,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		/* Return the plane number as part of the "or" mask. */
 		g_assert(or_mask != NULL);
 		*or_mask = 0x70000;
+		*and_mask = 0xf7f7f;
 		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
@@ -788,6 +799,8 @@ _vte_iso2022_find_nextctl(const char *p, size_t length)
 	ret = _vte_iso2022_better(ret, memchr(p, '\r', length));
 	ret = _vte_iso2022_better(ret, memchr(p, '\016', length));
 	ret = _vte_iso2022_better(ret, memchr(p, '\017', length));
+	ret = _vte_iso2022_better(ret, memchr(p, 0x8e, length));
+	ret = _vte_iso2022_better(ret, memchr(p, 0x8f, length));
 	return ret;
 }
 
@@ -825,7 +838,7 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input, GArray *blocks)
 		p = nextctl;
 		valids = NULL;
 		sequence_length = -1;
-		switch (nextctl[0]) {
+		switch ((guint8)nextctl[0]) {
 		case '\n':
 		case '\r':
 		case '\016':
@@ -834,6 +847,12 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input, GArray *blocks)
 			/* CR */
 			/* SO */
 			/* SI */
+			sequence_length = 1;
+			break;
+		case 0x8e:
+		case 0x8f:
+			/* SS2 - 8bit */
+			/* SS3 - 8bit */
 			sequence_length = 1;
 			break;
 		case '\033':
@@ -1238,6 +1257,24 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 			}
 #endif
 			break;
+		case 0x8e:
+			/* SS2 - 8bit */
+			state->override = 2;
+#ifdef VTE_DEBUG
+			if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+				fprintf(stderr, "\tSS2 (8-bit)\n");
+			}
+#endif
+			break;
+		case 0x8f:
+			/* SS3 - 8bit */
+			state->override = 3;
+#ifdef VTE_DEBUG
+			if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+				fprintf(stderr, "\tSS3 (8-bit)\n");
+			}
+#endif
+			break;
 		default:
 			if ((length >= 2) && (ctl[0] == '\033')) {
 				switch (ctl[1]) {
@@ -1469,10 +1506,20 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 		case _vte_iso2022_cdata:
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-				fprintf(stderr, "%3ld %3ld CDATA \"%.*s\".\n",
+				int j;
+				fprintf(stderr, "%3ld %3ld CDATA \"%.*s\"",
 					block.start, block.end,
 					(int) (block.end - block.start),
 					input->bytes + block.start);
+				fprintf(stderr, " (");
+				for (j = block.start; j < block.end; j++) {
+					if (j > block.start) {
+						fprintf(stderr, ", ");
+					}
+					fprintf(stderr, "0x%02x",
+						input->bytes[j]);
+				}
+				fprintf(stderr, ")\n");
 			}
 #endif
 			initial = 0;
