@@ -90,6 +90,9 @@ struct _VteTerminalPrivate {
 	const char *terminal;		/* terminal type to emulate */
 	GTree *sequences;		/* sequence handlers, keyed by GQuark
 					   based on the sequence name */
+	struct {			/* boolean termcap flags */
+		gboolean am;
+	} flags;
 
 	/* PTY handling data. */
 	char *shell;			/* shell we started */
@@ -493,7 +496,7 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 				g_free(obufptr);
 #ifdef VTE_DEBUG
 				fprintf(stderr, "Error converting %ld pending "
-					"output bytes: %s.\n",
+					"output bytes (%s) skipping.\n",
 					(long) terminal->pvt->n_outgoing,
 					strerror(errno));
 #endif
@@ -552,6 +555,7 @@ vte_sequence_handler_al(VteTerminal *terminal,
 	vte_insert_line_int(terminal, screen->cursor_current.row);
 	screen->cursor_current.row++;
 	if (start - screen->insert_delta < terminal->row_count / 2) {
+#if 0
 		gdk_window_scroll(widget->window,
 				  0,
 				  terminal->char_height);
@@ -561,6 +565,11 @@ vte_sequence_handler_al(VteTerminal *terminal,
 		vte_invalidate_cells(terminal,
 				     0, terminal->column_count,
 				     end, terminal->row_count);
+#else
+		vte_invalidate_cells(terminal,
+				     0, terminal->column_count,
+				     start, end + 1);
+#endif
 	} else {
 		vte_invalidate_cells(terminal,
 				     0, terminal->column_count,
@@ -844,6 +853,49 @@ vte_sequence_handler_cv(VteTerminal *terminal,
 			screen->cursor_current.row = g_value_get_long(value);
 		}
 	}
+}
+
+/* Delete a character at the current cursor position. */
+static void
+vte_sequence_handler_dc(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	struct _VteScreen *screen;
+	GArray *rowdata;
+	long col;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	screen = terminal->pvt->screen;
+
+	if (screen->row_data->len > screen->cursor_current.row) {
+		/* Get the data for the row which the cursor points to. */
+		rowdata = g_array_index(screen->row_data,
+					GArray*,
+					screen->cursor_current.row);
+		col = screen->cursor_current.col;
+		/* Remove the column. */
+		if (col < rowdata->len) {
+			g_array_remove_index(rowdata, col);
+		}
+		/* Repaint this row. */
+		vte_invalidate_cells(terminal,
+				     0, terminal->column_count,
+				     screen->cursor_current.row, 1);
+	}
+}
+
+/* Delete N characters at the current cursor position. */
+static void
+vte_sequence_handler_DC(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	vte_sequence_handler_multiple(terminal, match, match_quark, params,
+				      vte_sequence_handler_dc);
 }
 
 /* Delete a line at the current cursor position. */
@@ -1525,6 +1577,12 @@ vte_sequence_handler_set_title_int(VteTerminal *terminal,
 			outbuf = outbufptr = g_malloc0(outbuf_len);
 			if (iconv(conv, &inbuf, &inbuf_len,
 				  &outbuf, &outbuf_len) == -1) {
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Error converting %ld title "
+					"bytes (%s), skipping.\n",
+					(long) terminal->pvt->n_outgoing,
+					strerror(errno));
+#endif
 				g_free(outbufptr);
 				outbufptr = NULL;
 			}
@@ -2047,8 +2105,8 @@ static struct {
 	{"ct", NULL},
 	{"cv", vte_sequence_handler_cv},
 
-	{"dc", NULL},
-	{"DC", NULL},
+	{"dc", vte_sequence_handler_dc},
+	{"DC", vte_sequence_handler_DC},
 	{"dl", vte_sequence_handler_dl},
 	{"DL", vte_sequence_handler_DL},
 	{"dm", NULL},
@@ -2412,6 +2470,23 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 	terminal = VTE_TERMINAL(widget);
 	screen = terminal->pvt->screen;
 
+	/* Figure out how many columns this character should occupy. */
+	columns = wcwidth(c);
+
+	/* FIXME: find why this can happen, and stop it. */
+	if (columns < 0) {
+		g_warning("Character %5ld is %d columns wide, guessing 1.\n",
+			  c, columns);
+		columns = 1;
+	}
+
+	/* If we're autowrapping here, do it. */
+	col = terminal->pvt->screen->cursor_current.col;
+	if ((col >= terminal->column_count) && terminal->pvt->flags.am) {
+		terminal->pvt->screen->cursor_current.col = 0;
+		terminal->pvt->screen->cursor_current.row++;
+	}
+
 	/* Make sure we have enough rows to hold this data. */
 	while (screen->cursor_current.row >= screen->row_data->len) {
 		array = vte_new_row_data();
@@ -2423,16 +2498,13 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 			      GArray*,
 			      screen->cursor_current.row);
 
-	/* Figure out how many columns this character should occupy. */
-	columns = wcwidth(c);
-
 	/* Read the deltas. */
 	for (i = 0; i < columns; i++) {
 		col = terminal->pvt->screen->cursor_current.col;
 
 		/* Make sure we have enough columns in this row. */
 		if (array->len <= col) {
-			/* Add enough characters. */
+			/* Add enough characters to fill out the row. */
 			memset(&cell, 0, sizeof(cell));
 			cell.c = ' ';
 			cell.columns = 1;
@@ -2485,13 +2557,13 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 		/* Signal that this part of the window needs drawing. */
 		if (terminal->pvt->screen->insert) {
 			vte_invalidate_cells(terminal,
-					     screen->cursor_current.col - 1,
-					     terminal->column_count -
-					     screen->cursor_current.col + 1,
-					     screen->cursor_current.row, 2);
+					     col - 1,
+					     terminal->column_count - col + 1,
+					     screen->cursor_current.row,
+					     2);
 		} else {
 			vte_invalidate_cells(terminal,
-					     screen->cursor_current.col - 1, 3,
+					     col - 1, 3,
 					     screen->cursor_current.row, 2);
 		}
 
@@ -2685,7 +2757,13 @@ vte_terminal_process_incoming(gpointer data)
 	if (iconv(terminal->pvt->incoming_conv, &ibuf, &icount,
 		  &obuf, &ocount) == -1) {
 		/* No dice.  Try again when we have more data. */
-		return FALSE;
+#ifdef VTE_DEBUG
+		fprintf(stderr, "Error converting %ld incoming data "
+			"bytes: %s, leaving for later.\n",
+			(long) terminal->pvt->n_incoming, strerror(errno));
+#endif
+		terminal->pvt->processing = FALSE;
+		return terminal->pvt->processing;
 	}
 
 	/* Store the current encoding. */
@@ -2785,6 +2863,12 @@ vte_terminal_process_incoming(gpointer data)
 				*ubuf = '\0';
 				again = TRUE;
 			} else {
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Error unconverting %ld "
+					"pending input bytes (%s), dropping.\n",
+					(long) (sizeof(wchar_t) * (wcount - i)),
+					strerror(errno));
+#endif
 				g_free(ubufptr);
 				again = FALSE;
 			}
@@ -3020,7 +3104,8 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	obuf = obufptr = g_malloc0(ocount);
 
 	if (iconv(*conv, &ibuf, &icount, &obuf, &ocount) == -1) {
-		g_warning("%s converting data for child\n", strerror(errno));
+		g_warning("Error (%s) converting data for child, dropping.\n",
+			  strerror(errno));
 	} else {
 		n_outgoing = terminal->pvt->n_outgoing + (obuf - obufptr);
 		outgoing = g_realloc(terminal->pvt->outgoing, n_outgoing);
@@ -3551,7 +3636,8 @@ vte_terminal_get_clipboard(GtkClipboard *clipboard,
 							    obufptr,
 							    obuf - obufptr);
 			} else {
-				g_warning("Conversion error in copy.");
+				g_warning("Conversion error in copy (%s), "
+					  "dropping.", strerror(errno));
 			}
 			iconv_close(conv);
 		} else {
@@ -3763,6 +3849,7 @@ vte_terminal_set_fontset(VteTerminal *terminal, const char *xlfds)
 
 	/* Choose default font metrics.  I like '10x20' as a terminal font. */
 	if (xlfds == NULL) {
+		xlfds = "-*-mincho-*-r-*-*-20-*-*-*-*-*-*-*";
 		xlfds = "10x20";
 	}
 	width = 10;
@@ -4008,6 +4095,11 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 #ifdef VTE_DEBUG
 	fprintf(stderr, "\n");
 #endif
+
+	/* Read emulation flags. */
+	terminal->pvt->flags.am = vte_termcap_find_boolean(terminal->pvt->termcap,
+							   terminal->pvt->terminal,
+							   "am");
 
 	/* Resize to the given default. */
 	vte_terminal_size_set(terminal,
@@ -4813,6 +4905,22 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		while (col < col_stop) {
 			/* Get the character cell's contents. */
 			cell = vte_terminal_find_charcell(terminal, drow, col);
+#ifdef VTE_DEBUG
+#ifdef VTE_DEBUG_DRAW
+			if (cell != NULL) {
+				if (cell->c > 256) {
+					fprintf(stderr,
+						"Drawing %5ld at (r%d,c%d).\n",
+						cell->c, drow, col);
+				} else {
+					fprintf(stderr,
+						"Drawing %5ld (`%c') at "
+						"(r%d,c%d).\n",
+						cell->c, cell->c, drow, col);
+				}
+			}
+#endif
+#endif
 			/* Draw the character. */
 			vte_terminal_draw_char(terminal, screen, cell,
 					       col,
