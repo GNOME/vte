@@ -126,13 +126,15 @@ _vte_matcher_print(struct _vte_matcher *matcher)
 	}
 }
 
-/* Determine sensible iconv target names for gunichar and iso-8859-1. */
-#define SAMPLE "ABCDEF"
+/* Determine a giconv target name which produces output which is bit-for-bit
+ * identical to either ASCII (wide==FALSE) or gunichar (wide==TRUE). */
 static char *
-_vte_matcher_find_valid_encoding(char **list, gssize length, gboolean wide)
+_vte_matcher_find_valid_encoding(const char **list, gssize length,
+				 gboolean wide)
 {
-	gunichar wbuffer[8];
-	unsigned char nbuffer[8];
+	const char SAMPLE[] = "ABCDEF #@{|}[\\]~";
+	gunichar wbuffer[sizeof(SAMPLE)];
+	unsigned char nbuffer[sizeof(SAMPLE)];
 	void *buffer;
 	char inbuf[BUFSIZ];
 	char outbuf[BUFSIZ];
@@ -142,17 +144,21 @@ _vte_matcher_find_valid_encoding(char **list, gssize length, gboolean wide)
 	gsize outbytes;
 	GIConv conv;
 
+	/* Decide what the iconv output buffer must resemble. */
 	if (wide) {
 		buffer = wbuffer;
 	} else {
 		buffer = nbuffer;
 	}
 
+	/* Initialize both the narrow and wide output buffers. */
 	for (i = 0; SAMPLE[i] != '\0'; i++) {
 		wbuffer[i] = nbuffer[i] = SAMPLE[i];
 	}
 	wbuffer[i] = nbuffer[i] = SAMPLE[i];
 
+	/* Iterate over the list, attempting to convert from UTF-8 to the
+	 * named encoding, and then comparing it to the desired buffer. */
 	for (i = 0; i < length; i++) {
 		conv = g_iconv_open(list[i], "UTF-8");
 		if (conv == ((GIConv) -1)) {
@@ -194,7 +200,7 @@ _vte_matcher_find_valid_encoding(char **list, gssize length, gboolean wide)
 const char *
 _vte_matcher_wide_encoding()
 {
-	char *wide[] = {
+	const char *wide[] = {
 		"10646",
 		"ISO_10646",
 		"ISO-10646",
@@ -226,21 +232,3 @@ _vte_matcher_wide_encoding()
 	}
 	return ret;
 }
-
-const char *
-_vte_matcher_narrow_encoding()
-{
-	char *narrow[] = {
-		"8859-1",
-		"ISO-8859-1",
-		"ISO8859-1",
-	};
-	static char *ret = NULL;
-	if (ret == NULL) {
-		ret = _vte_matcher_find_valid_encoding(narrow,
-						       G_N_ELEMENTS(narrow),
-						       FALSE);
-	}
-	return ret;
-}
-

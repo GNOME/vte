@@ -1991,7 +1991,7 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	conv = g_iconv_open(codeset, "UTF-8");
 	if (conv == ((GIConv) -1)) {
 		g_warning(_("Unable to convert characters from %s to %s."),
-			  "UTF-8", _vte_matcher_wide_encoding());
+			  "UTF-8", codeset);
 		return;
 	}
 	if (terminal->pvt->outgoing_conv != (GIConv) -1) {
@@ -5009,12 +5009,8 @@ vte_sequence_handler_local_charset(VteTerminal *terminal,
 				   GValueArray *params)
 {
 	G_CONST_RETURN char *locale_encoding;
-#ifdef VTE_DEFAULT_ISO_8859_1
-	vte_terminal_set_encoding(terminal, _vte_matcher_narrow_encoding());
-#else
 	g_get_charset(&locale_encoding);
 	vte_terminal_set_encoding(terminal, locale_encoding);
-#endif
 }
 
 static void
@@ -13162,11 +13158,8 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     G_TYPE_NONE, 1);
 
 	/* Try to determine some acceptable encoding names. */
-	if (_vte_matcher_narrow_encoding() == NULL) {
-		g_error("Don't know how to read ISO-8859-1 data!");
-	}
 	if (_vte_matcher_wide_encoding() == NULL) {
-		g_error("Don't know how to read native-endian unicode data!");
+		g_error(_("Don't know how to convert to/from gunichar data!"));
 	}
 
 #ifdef VTE_DEBUG

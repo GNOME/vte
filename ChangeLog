@@ -1,4 +1,19 @@
 2003-04-29 nalin
+	* src/vte.c(vte_sequence_handler_local_charset): remove the unused
+	DEFAULT_ISO_8859_1 case.
+	* src/vte.c(vte_terminal_class_init): don't call
+	_vte_matcher_narrow_encoding(), because we don't need it any more.
+	Change the error message emitted when _vte_matcher_wide_encoding()
+	fails (#111925), and mark it for translation.
+	* src/trie.c(main): don't call _vte_matcher_narrow_encoding() just
+	to print its result.
+	* src/vte.c(vte_terminal_set_encoding): include the right codeset name
+	in the error message.
+	* src/vteglyph.c(_vte_glyph_get): mark error message for translation.
+	* src/matcher.c, src/matcher.h: remove _vte_matcher_narrow_encoding().
+	Make tables of strings "const".
+
+2003-04-29 nalin
 	* src/vte.c(vte_terminal_unrealize): set the IM context's client window
 	to NULL before unreferencing it to avoid crashes when preedit is active.
 

@@ -50,7 +50,4 @@ void _vte_matcher_print(struct _vte_matcher *matcher);
 /* A gunichar-compatible giconv target, if one can be found. */
 const char *_vte_matcher_wide_encoding(void);
 
-/* A single-byte iso-8859-1 giconv target, if one can be found. */
-const char *_vte_matcher_narrow_encoding(void);
-
 #endif

@@ -29,6 +29,14 @@
 #include "vtefc.h"
 #include "vteglyph.h"
 
+#ifdef ENABLE_NLS
+#include <libintl.h>
+#define _(String) dgettext(PACKAGE, String)
+#else
+#define _(String) String
+#define bindtextdomain(package,dir)
+#endif
+
 #define FONT_INDEX_FUDGE 10
 #define CHAR_WIDTH_FUDGE 10
 #define INVALID_GLYPH    -1
@@ -562,7 +570,7 @@ _vte_glyph_get(struct _vte_glyph_cache *cache, gunichar c)
 			r = g = b = face->glyph->bitmap.buffer[ioffset];
 			break;
 		default:
-			g_error("Unknown pixel mode %d.\n",
+			g_error(_("Unknown pixel mode %d.\n"),
 				face->glyph->bitmap.pixel_mode);
 			r = g = b = 0;
 			g_assert_not_reached();

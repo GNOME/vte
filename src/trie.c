@@ -891,7 +891,6 @@ main(int argc, char **argv)
 		      g_quark_from_string("decset-title"));
 
 	printf("Wide encoding is `%s'.\n", _vte_matcher_wide_encoding());
-	printf("Narrow encoding is `%s'.\n", _vte_matcher_narrow_encoding());
 
 	_vte_trie_print(trie);
 	printf("\n");
