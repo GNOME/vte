@@ -6200,6 +6200,7 @@ vte_terminal_io_write(GIOChannel *channel,
 
 	if (terminal->pvt->n_outgoing == 0) {
 		if (channel == terminal->pvt->pty_output) {
+			g_io_channel_unref(terminal->pvt->pty_output);
 			terminal->pvt->pty_output = NULL;
 			g_source_remove(terminal->pvt->pty_output_source);
 			terminal->pvt->pty_output_source = -1;
@@ -10920,15 +10921,17 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			ftcharspecs[i].y = y + ascent;
 			columns += g_unichar_iswide(c) ? 2 : 1;
 		}
-		/* Draw the background rectangle. */
-		if ((back != VTE_DEF_BG) || draw_default_bg) {
-			XftDrawRect(ftdraw, &bg->ftcolor, x, y,
-				    columns * column_width, row_height);
+		if (ftdraw != NULL) {
+			/* Draw the background rectangle. */
+			if ((back != VTE_DEF_BG) || draw_default_bg) {
+				XftDrawRect(ftdraw, &bg->ftcolor, x, y,
+					    columns * column_width, row_height);
+			}
+			/* Draw the text. */
+			XftDrawCharSpec(ftdraw, &fg->ftcolor,
+					terminal->pvt->ftfont,
+					ftcharspecs, n);
 		}
-		/* Draw the text. */
-		XftDrawCharSpec(ftdraw, &fg->ftcolor,
-				terminal->pvt->ftfont,
-				ftcharspecs, n);
 		/* Clean up. */
 		g_free(ftcharspecs);
 		drawn = TRUE;
@@ -11007,7 +11010,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		color.green = terminal->pvt->palette[fore].green;
 		color.pixel = terminal->pvt->palette[fore].pixel;
 		gdk_gc_set_foreground(ggc, &color);
-		for (i = columns = 0; i < n; i++) {
+		for (i = columns = 0; (layout != NULL) && (i < n); i++) {
 			c = items[i].c ? items[i].c : ' ';
 			pango_layout_set_text(layout, utf8_buf,
 					      g_unichar_to_utf8(c, utf8_buf));
@@ -11344,8 +11347,19 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	gdrawable = widget->window;
 	ggc = gdk_gc_new(gdrawable);
 
+#ifdef HAVE_XFT
+	/* Create a new XftDraw context. */
+	if (terminal->pvt->use_xft) {
+		ftdraw = XftDrawCreate(display, drawable, visual, colormap);
+		if (ftdraw == NULL) {
+			g_warning(_("Error allocating draw, disabling Xft."));
+			terminal->pvt->use_xft = FALSE;
+		}
+	}
+#endif
+
 	/* Create a new pango layout in the correct font. */
-	if (terminal->pvt->use_pango) {
+	if (!terminal->pvt->use_xft && terminal->pvt->use_pango) {
 		pcontext = vte_terminal_get_pango_context(terminal);
 		if (pcontext == NULL) {
 			g_warning(_("Error allocating context, "
@@ -11363,17 +11377,6 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			}
 		}
 	}
-
-#ifdef HAVE_XFT
-	/* Create a new XftDraw context. */
-	if (terminal->pvt->use_xft) {
-		ftdraw = XftDrawCreate(display, drawable, visual, colormap);
-		if (ftdraw == NULL) {
-			g_warning(_("Error allocating draw, disabling Xft."));
-			terminal->pvt->use_xft = FALSE;
-		}
-	}
-#endif
 
 	/* Keep local copies of rendering information. */
 	width = terminal->char_width;
@@ -12097,6 +12100,9 @@ vte_terminal_setup_background(VteTerminal *terminal,
 					g_object_unref(G_OBJECT(pixmap));
 					pixmap = NULL;
 				}
+			}
+			if (prop_data != NULL) {
+				g_free(prop_data);
 			}
                         gdk_flush();
 			gdk_error_trap_pop();
