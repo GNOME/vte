@@ -1,6 +1,11 @@
+2004-01-27  Åsmund Skjæveland  <aasmunds@fys.uio.no>
+
+	* configure.in: Added 'nn' to ALL_LINGUAS
+	* po/nn.po: Added Norwegian Nynorsk translation.
+
 2003-12-20  Arafat Medini <lumina@silverpen.de>
-                                                                                
-        * configure.in: Added Arabic Locale "ar" to ALL_LINGUAS
+
+	* configure.in: Added Arabic Locale "ar" to ALL_LINGUAS
 
 2003-12-10  Tõivo Leedjärv  <toivo@linux.ee>
 

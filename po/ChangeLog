@@ -1,3 +1,7 @@
+2004-01-27  Åsmund Skjæveland  <aasmunds@fys.uio.no>
+
+	* nn.po: Added Norwegian Nynorsk translation.
+
 2004-01-03  Roozbeh Pournader  <roozbeh@sharif.edu>
 
 	* fa.po: Updated Persian translation.
@@ -7,8 +11,8 @@
 	* pt.po: Revised Portuguese translation.
 
 2003-12-20  Arafat Medini <lumina@silverpen.de>
-                                                                                
-        * ar.po: Updated Arabic translation
+
+	* ar.po: Updated Arabic translation
 
 2003-12-10  Tõivo Leedjärv  <toivo@linux.ee>
 
