@@ -1,0 +1,113 @@
+# Canadian English translation of vte 0.11.10.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the vte package.
+# Alexander Winston <alexander.winston@comcast.net>, 2004.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte 0.11.10\n"
+"Report-Msgid-Bugs-To: <http://bugzilla.gnome.org/enter_bug.cgi?product=l10n&component=Canadian+English+%5Ben_CA%5D>\n"
+"POT-Creation-Date: 2004-03-09 22:37-0500\n"
+"PO-Revision-Date: 2004-03-09 22:54-0500\n"
+"Last-Translator: Alexander Winston <alexander.winston@comcast.net>\n"
+"Language-Team: Canadian English <adamw@FreeBSD.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2072
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Unable to convert characters from %s to %s."
+
+#: src/iso2022.c:1578
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr "Attempt to set invalid NRC map '%c'."
+
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1619
+msgid "Unrecognized identified coding system."
+msgstr "Unrecognized identified coding system."
+
+#: src/iso2022.c:1668 src/iso2022.c:1694
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr "Attempt to set invalid wide NRC map '%c'."
+
+#: src/pty.c:323
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "Error adding `%s' to environment, continuing."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:908
+#, c-format
+msgid "can not run %s"
+msgstr "can not run %s"
+
+#: src/reaper.c:110
+msgid "Error creating signal pipe."
+msgstr "Error creating signal pipe."
+
+#: src/trie.c:412
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "Duplicate (%s/%s)!"
+
+#: src/vte.c:1480
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Error compiling regular expression \"%s\"."
+
+#: src/vte.c:5815
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "Got unexpected (key?) sequence `%s'."
+
+#: src/vte.c:6893
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "No handler for control sequence `%s' defined."
+
+#: src/vte.c:7714
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Error reading from child: %s."
+
+#: src/vte.c:7870
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Error (%s) converting data for child, dropping."
+
+#: src/vte.c:10537
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "Error reading PTY size, using defaults: %s."
+
+#: src/vte.c:10573
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "Error setting PTY size: %s."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:14977
+msgid "_vte_conv_open() failed setting word characters"
+msgstr "_vte_conv_open() failed setting word characters"
+
+#. Bail back to normal mode.
+#: src/vteapp.c:713
+msgid "Could not open console.\n"
+msgstr "Could not open console.\n"
+
+#: src/vteglyph.c:576
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr "Unknown pixel mode %d.\n"
+
+#: src/vtexft.c:710
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr "Can not draw character U+%04x.\n"
