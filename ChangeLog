@@ -1,4 +1,7 @@
 2003-09-11 nalin
+	* src/vteapp.c: silence a compiler warning.
+
+2003-09-11 nalin
 	* README: ask for LC_* in addition to LANG if weird spacing errors
 	crop up.
 	* src/vteconv.c,src/vteconv.h: add wrappers for _vte_conv which weed

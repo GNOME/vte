@@ -382,6 +382,12 @@ take_xconsole_ownership(GtkWidget *widget, gpointer data)
 				     G_OBJECT(widget));
 }
 
+static void
+add_weak_pointer(GObject *object, GtkWidget **target)
+{
+	g_object_add_weak_pointer(object, (gpointer*)target);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -745,8 +751,8 @@ main(int argc, char **argv)
 	}
 
 	/* Go for it! */
-	g_object_add_weak_pointer(G_OBJECT(widget), (gpointer*)&widget);
-	g_object_add_weak_pointer(G_OBJECT(window), (gpointer*)&window);
+	add_weak_pointer(G_OBJECT(widget), &widget);
+	add_weak_pointer(G_OBJECT(window), &window);
 	gtk_widget_show_all(window);
 
 	gtk_main();
