@@ -1,4 +1,10 @@
 2003-08-11 nalin
+	* python/vte.defs: give length parameters for feed() and feed_child()
+	default values of -1 (bug #118711).
+	* python/vte.override: use the length parameter if it's supplied to the
+	feed() and feed_child() methods.
+
+2003-08-11 nalin
 	* python/vte.override: add overrides for feed() and feed_child()
 	methods which use the length of the string as given in C, to hopefully
 	allow passing NUL bytes around as part of strings (bug #118711).  Make

@@ -25,6 +25,16 @@ _wrap_vte_terminal_feed(PyGObject *self, PyObject *args, PyObject *kwargs)
 					 kwlist, &data, &length, &length_obj)) {
 		return NULL;
 	}
+	if ((length_obj != NULL) && PyNumber_Check(length_obj)) {
+		PyObject *intobj;
+		intobj = PyNumber_Int(length_obj);
+		if (intobj) {
+			if (PyInt_AsLong(intobj) != -1) {
+				length = PyInt_AsLong(intobj);
+			}
+			Py_DECREF(intobj);
+		}
+	}
 	vte_terminal_feed(VTE_TERMINAL(self->obj), data, length);
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -43,6 +53,16 @@ _wrap_vte_terminal_feed_child(PyGObject *self, PyObject *args, PyObject *kwargs)
 					 "s#|O:VteTerminal.feed_child",
 					 kwlist, &data, &length, &length_obj)) {
 		return NULL;
+	}
+	if ((length_obj != NULL) && PyNumber_Check(length_obj)) {
+		PyObject *intobj;
+		intobj = PyNumber_Int(length_obj);
+		if (intobj) {
+			if (PyInt_AsLong(intobj) != -1) {
+				length = PyInt_AsLong(intobj);
+			}
+			Py_DECREF(intobj);
+		}
 	}
 	vte_terminal_feed_child(VTE_TERMINAL(self->obj), data, length);
 	Py_INCREF(Py_None);

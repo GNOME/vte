@@ -61,7 +61,7 @@
   (return-type "none")
   (parameters
     '("const-char*" "data")
-    '("glong" "length")
+    '("glong" "length" (default "-1"))
   )
 )
 
@@ -71,7 +71,7 @@
   (return-type "none")
   (parameters
     '("const-char*" "data")
-    '("glong" "length")
+    '("glong" "length" (default "-1"))
   )
 )
 
