@@ -1,3 +1,11 @@
+2003-05-20 nalin
+	* src/vte.c(vte_terminal_finalize): properly send a SIGHUP to the child
+	process if it hasn't already exited (#112505).
+	* src/vteapp.c: don't exit on EOF, only on child-exited.
+	* src/vte.c(vte_sequence_handler_sf): increment the scrolling offset
+	to avoid flickering when the application has defined a scrolling region
+	with top row == 1.
+
 2003-05-19 nalin
 	* src/iso2022.c, src/keymap.c, src/mev.c, src/vtebg.h, src/vteglyph.h:
 	remove comma from end of enum declaration (#111925).

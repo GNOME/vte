@@ -216,7 +216,7 @@ AC_DEFINE_UNQUOTED(PACKAGE,"$PACKAGE",[Package name.])
 AC_CHECK_HEADERS(sys/select.h sys/un.h stropts.h termios.h wchar.h)
 
 # Check for PTY handling functions.
-AC_CHECK_FUNCS(cfmakeraw getpt grantpt unlockpt ptsname ptsname_r recvmsg)
+AC_CHECK_FUNCS(cfmakeraw getpgid getpt grantpt unlockpt ptsname ptsname_r recvmsg)
 
 # Pull in the right libraries for various functions which might not be
 # bundled into an exploded libc.

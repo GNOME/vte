@@ -3331,6 +3331,7 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 				 * line and scrolling the area up. */
 				row = vte_new_row_data_sized(terminal, TRUE);
 				screen->insert_delta++;
+				screen->scroll_delta++;
 				screen->cursor_current.row++;
 				_vte_ring_insert_preserve(terminal->pvt->screen->row_data,
 							  screen->cursor_current.row,
@@ -3344,8 +3345,8 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 				top = screen->cursor_current.row;
 				bottom = screen->insert_delta +
 					 terminal->row_count - 1;
-				vte_terminal_scroll_region(terminal, top,
-							   bottom - top + 1, 1);
+				vte_terminal_scroll_region(terminal, start,
+							   end - start + 1, 1);
 				/* Force scroll. */
 				vte_terminal_ensure_cursor(terminal, FALSE);
 				vte_terminal_adjust_adjustments(terminal, TRUE);
@@ -11196,7 +11197,14 @@ vte_terminal_finalize(GObject *object)
 
 	/* Stop the child and stop watching for input from the child. */
 	if (terminal->pvt->pty_pid != -1) {
-		kill(-terminal->pvt->pty_pid, SIGHUP);
+#ifdef HAVE_GETPGID
+		pid_t pgrp;
+		pgrp = getpgid(terminal->pvt->pty_pid);
+		if (pgrp != -1) {
+			kill(-pgrp, SIGHUP);
+		}
+#endif
+		kill(terminal->pvt->pty_pid, SIGHUP);
 	}
 	terminal->pvt->pty_pid = -1;
 	_vte_terminal_disconnect_pty_read(terminal);

@@ -87,6 +87,13 @@ char_size_changed(GtkWidget *widget, guint width, guint height, gpointer data)
 }
 
 static void
+deleted_and_quit(GtkWidget *widget, GdkEvent *event, gpointer data)
+{
+	gtk_widget_destroy(GTK_WIDGET(data));
+	gtk_main_quit();
+}
+
+static void
 destroy_and_quit(GtkWidget *widget, gpointer data)
 {
 	gtk_widget_destroy(GTK_WIDGET(data));
@@ -489,7 +496,7 @@ main(int argc, char **argv)
 	 * delete event to the quit function.. */
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	g_signal_connect(G_OBJECT(window), "delete_event",
-			 GTK_SIGNAL_FUNC(gtk_main_quit), NULL);
+			 GTK_SIGNAL_FUNC(deleted_and_quit), window);
 
 	/* Create a box to hold everything. */
 	hbox = gtk_hbox_new(0, FALSE);
