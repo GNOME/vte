@@ -168,7 +168,7 @@ void vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 
 /* Set the color scheme. */
 void vte_terminal_set_color_dim(VteTerminal *terminal,
-				 const GdkColor *bold);
+				const GdkColor *dim);
 void vte_terminal_set_color_bold(VteTerminal *terminal,
 				 const GdkColor *bold);
 void vte_terminal_set_color_foreground(VteTerminal *terminal,

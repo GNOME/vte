@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte VERSION\n"
-"POT-Creation-Date: 2002-11-04 10:40-0500\n"
+"POT-Creation-Date: 2002-11-07 17:40-0500\n"
 "PO-Revision-Date: 2002-09-27 00:18+0200\n"
 "Last-Translator: Miloslav Trmac <mitr@volny.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
@@ -27,88 +27,88 @@ msgstr "Chyba při vytváření signálové roury."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikát (%s/%s)!"
 
-#: src/vte.c:1295
+#: src/vte.c:1321
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Chyba při kompilaci regulárního výrazu \"%s\"."
 
-#: src/vte.c:1802 src/vte.c:1811 src/vte.c:1823 src/vte.c:1841 src/vte.c:1846
-#: src/vte.c:1851
+#: src/vte.c:1828 src/vte.c:1837 src/vte.c:1849 src/vte.c:1867 src/vte.c:1872
+#: src/vte.c:1877
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Nemohu konvertovat znaky z %s do %s."
 
-#: src/vte.c:5147
+#: src/vte.c:5179
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Dostal jsem neočekávanou sekvenci (kláves?) `%s'."
 
-#: src/vte.c:5967
+#: src/vte.c:5999
 #, c-format
 msgid "Character 0x%x is undefined, allocating one column."
 msgstr "Znak 0x%x je nedefinovaný, alokuji jeden sloupec."
 
-#: src/vte.c:6173
+#: src/vte.c:6205
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Nedefinována žádná obsluha pro řídicí sekvenci `%s'."
 
-#: src/vte.c:6780
+#: src/vte.c:6812
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Chyba při čtení od potomka: %s."
 
-#: src/vte.c:6946
+#: src/vte.c:6978
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Chyba (%s) při konverzi dat pro potomka, zahazuji je."
 
-#: src/vte.c:9114
+#: src/vte.c:9102
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
 msgstr "Používám sadu písem \"%s\", které chybí tyto sady znaků: %s."
 
-#: src/vte.c:9654
+#: src/vte.c:9642
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr "Nemohu načíst vzor písma Xft \"%s\", používám implicitní písmo."
 
-#: src/vte.c:9666
+#: src/vte.c:9654
 msgid "Failed to load default Xft font."
 msgstr "Nemohu načíst implicitní písmo Xft."
 
-#: src/vte.c:9759
+#: src/vte.c:9747
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr "Nemohu načíst sadu písem \"%s\", používám implicitní písmo."
 
-#: src/vte.c:9771
+#: src/vte.c:9759
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr "Nemohu načíst implicitní písmo, padám nebo se chovám nenormálně."
 
-#: src/vte.c:10034
+#: src/vte.c:10022
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Chyba při čtení velikosti PTY, používám implicitní: %s."
 
-#: src/vte.c:10070
+#: src/vte.c:10058
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Chyba při nastavování velikosti PTY: %s."
 
-#: src/vte.c:12799
+#: src/vte.c:12801
 msgid "Error allocating draw, disabling Xft."
 msgstr "Chyba při alokaci kreslení, zakazuji Xft."
 
-#: src/vte.c:12807
+#: src/vte.c:12809
 msgid "Error allocating context, disabling Pango."
 msgstr "Chyba při alokaci kontextu, zakazuji Pango."
 
-#: src/vte.c:12813
+#: src/vte.c:12815
 msgid "Error allocating layout, disabling Pango."
 msgstr "Chyba při alokaci rozložení, zakazuji Pango."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14321
+#: src/vte.c:14342
 msgid "g_iconv_open() failed setting word characters"
 msgstr "g_iconv_open() selhal při nastavování znaků slova"

@@ -25,8 +25,9 @@ archive:
 	cvs -d $$root export -r $(CVSTAG) $$repo ; \
 	cd $$tmpdir/$$repo ; \
 	./autogen.sh ; \
-	make distcheck ; \
+	make dist ; \
 	cp $(PACKAGE)-$(VERSION).tar.gz $$dir/ ; \
+	rpmbuild -tb $(PACKAGE)-$(VERSION).tar.gz || true ; \
 	rm -fr $$tmpdir
 
 srpm: $(top_srcdir)/$(PACKAGE)-$(VERSION).tar.gz

@@ -1,3 +1,8 @@
+2002-11-07  nalin
+	* src/vte.h: doc fixes.
+	* src/dumpkeys.c: use the older alternate-screen decset value.
+	* src/vte.c: fixup screwups on extending selection.
+
 2002-11-05  nalin
 	* src/vte.c: handle end-of-line selection correctly.  Stop highlighting
 	selection on click, but don't lose it until new text is selected.

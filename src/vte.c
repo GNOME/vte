@@ -8488,15 +8488,12 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 	terminal->pvt->selecting_had_delta = TRUE;
 	terminal->pvt->selecting_restart = FALSE;
 
-	/* Extend the selection by moving the "last" pointer to the event's
-	 * coordinates. */
+	/* If we're not in always-grow mode, update the last location of
+	 * the selection. */
 	last = &terminal->pvt->selection_last;
 	if (!always_grow) {
 		last->x = x + width / 2;
 		last->y = y + height * delta;
-	} else {
-		last->x = x;
-		last->y = y;
 	}
 
 	/* Map the origin and last selected points to a start and end. */
@@ -8517,8 +8514,8 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 	 * closer to the new point. */
 	if (always_grow) {
 		/* New endpoint is before existing selection. */
-		if ((y / height < start->y / height) ||
-		    ((y / height == start->y / height) &&
+		if ((y / height < ((start->y / height) - delta)) ||
+		    ((y / height == ((start->y / height) - delta)) &&
 		     (x / width < start->x / width))) {
 			start->x = x;
 			start->y = y + height * delta;
@@ -8857,7 +8854,8 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 					 * mode, extend selection if the cell
 					 * isn't already selected, otherwise
 					 * start selection. */
-					if (!vte_cell_is_selected(terminal,
+					if (terminal->pvt->has_selection &&
+					    !vte_cell_is_selected(terminal,
 								  cellx,
 								  celly,
 								  NULL)) {

@@ -243,6 +243,17 @@ A VteTerminal is a terminal emulator implemented as a GTK2 widget.
 @background: 
 
 
+<!-- ##### FUNCTION vte_terminal_set_color_dim ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@dim: 
+<!-- # Unused Parameters # -->
+@bold: 
+
+
 <!-- ##### FUNCTION vte_terminal_set_colors ##### -->
 <para>
 
