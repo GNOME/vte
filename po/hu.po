@@ -6,35 +6,35 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte CVS\n"
-"POT-Creation-Date: 2003-05-19 14:33-0400\n"
-"PO-Revision-Date: 2003-01-18 14:54+0100\n"
+"POT-Creation-Date: 2003-09-26 10:42+0200\n"
+"PO-Revision-Date: 2003-09-26 10:46+0200\n"
 "Last-Translator: Andras Timar <timar@gnome.hu>\n"
 "Language-Team: Hungarian <hu@gnome.hu>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2072
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Nem sikerült a karakterek átalakítása %s és %s között."
 
-#: src/iso2022.c:1505
+#: src/iso2022.c:1578
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr ""
+msgstr "Kísérlet történt érvénytelen NRC map beállítására: '%c'."
 
-#. See ECMA-35.
-#: src/iso2022.c:1546
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1619
 msgid "Unrecognized identified coding system."
-msgstr ""
+msgstr "Ismeretlen azonosított kódolási rendszer."
 
-#: src/iso2022.c:1595 src/iso2022.c:1621
+#: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr ""
+msgstr "Kísérlet történt érvénytelen széles NRC map beállítására: '%c'."
 
-#: src/pty.c:317
+#: src/pty.c:323
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Hiba a(z) `%s'a környezethez hozzáadása közben, folytatás."
@@ -42,7 +42,7 @@ msgstr "Hiba a(z) `%s'a környezethez hozzáadása közben, folytatás."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:877
+#: src/pty.c:908
 #, c-format
 msgid "can not run %s"
 msgstr "%s nem futtatható"
@@ -56,92 +56,58 @@ msgstr "Hiba a jelzéscső létrehozása közben."
 msgid "Duplicate (%s/%s)!"
 msgstr "Dupla (%s/%s)!"
 
-#: src/vte.c:1430
+#: src/vte.c:1480
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Hiba a(z) \"%s\" reguláris kifejezés lefordítása közben."
 
-#: src/vte.c:5534
+#: src/vte.c:5815
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Váratlan (billentyű?) sorozat érkezett: `%s'."
 
-#: src/vte.c:6547
+#: src/vte.c:6893
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Nincs kezelő megadva a(z) `%s' vezérlőszekvenciához."
 
-#: src/vte.c:7293
+#: src/vte.c:7714
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Hiba a gyermekből olvasás közben: %s."
 
-#: src/vte.c:7449
+#: src/vte.c:7870
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Hiba (%s) történt az adatkonverzió közben a gyermek számára, eldobva."
 
-#: src/vte.c:10069
+#: src/vte.c:10537
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Hiba a PTY-méret beolvasása közben, az alapértelmezés lesz használva: %s."
 
-#: src/vte.c:10105
+#: src/vte.c:10573
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Hiba a PTY-méret beállítása közben: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14067
-#, fuzzy
+#: src/vte.c:14977
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "A g_iconv_open() nem tudta beállítani a szó karaktereit."
+msgstr "A _vte_conv_open() nem tudta beállítani a szó karaktereit."
 
 #. Bail back to normal mode.
-#: src/vteapp.c:642
+#: src/vteapp.c:713
 msgid "Could not open console.\n"
-msgstr ""
+msgstr "A konzol megnyitása nem sikerült.\n"
 
-#: src/vteglyph.c:575
+#: src/vteglyph.c:576
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr ""
+msgstr "Ismeretlen képpontmód: %d.\n"
 
-#: src/vtexft.c:664
+#: src/vtexft.c:710
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr ""
-
-#~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
-#~ msgstr ""
-#~ "A(z) \"%s\" betűkészlet lesz használva, amelyben nincsenek benne a "
-#~ "következő karakterkészletek: %s."
-
-#~ msgid ""
-#~ "Failed to load Xft font pattern \"%s\", falling back to default font."
-#~ msgstr ""
-#~ "Nem sikerült betölteni az Xft-betűkészletmintát: \"%s\". Az "
-#~ "alapértelmezett betűkészlet lesz használva. "
-
-#~ msgid "Failed to load default Xft font."
-#~ msgstr "Nem sikerült betölteni az alapértelmezett Xft-betűkészletet."
-
-#~ msgid "Failed to load font set \"%s\", falling back to default font."
-#~ msgstr ""
-#~ "Nem sikerült betölteni a(z) \"%s\" betűkészletet, az alapértelmezett "
-#~ "betűkészlet lesz használva."
-
-#~ msgid "Failed to load default font, crashing or behaving abnormally."
-#~ msgstr ""
-#~ "Az alapértelmezett betűkészlet betöltése nem sikerült. Vagy összeomlik az "
-#~ "alkalmazás, vagy abnormálisan fog viselkedni."
-
-#~ msgid "Error allocating draw, disabling Xft."
-#~ msgstr "Hiba a rajzolás allokálása közben, az Xft letiltva."
-
-#~ msgid "Error allocating context, disabling Pango."
-#~ msgstr "Hiba a kontextus allokálása közben, a Pango letiltva."
-
-#~ msgid "Error allocating layout, disabling Pango."
-#~ msgstr "Hiba az elrendezés allokálása közben, a Pango letiltva."
+msgstr "Nem sikerült kirajzolni a következő karaktert: U+%04x.\n"
