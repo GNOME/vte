@@ -424,6 +424,8 @@ static gboolean vte_sequence_handler_nd(VteTerminal *terminal,
 					const char *match,
 					GQuark match_quark,
 					GValueArray *params);
+static gboolean vte_sequence_handler_scroll_up_or_down(VteTerminal *terminal,
+						       int scroll_amount);
 static gboolean vte_sequence_handler_sf(VteTerminal *terminal,
 					const char *match,
 					GQuark match_quark,
@@ -678,7 +680,8 @@ vte_invalidate_all(VteTerminal *terminal)
 	gdk_window_invalidate_rect(widget->window, &rect, FALSE);
 }
 
-/* Scroll a rectangular region up or down by a fixed number of lines. */
+/* Scroll a rectangular region up or down by a fixed number of lines,
+ * negative = up, positive = down. */
 static void
 vte_terminal_scroll_region(VteTerminal *terminal,
 			   long row, glong count, glong delta)
@@ -3434,6 +3437,99 @@ vte_sequence_handler_sc(VteTerminal *terminal,
 					 screen->insert_delta,
 					 0, terminal->row_count - 1);
 	return FALSE;
+}
+
+/* Scroll the text down one line, but don't move the cursor. */
+static gboolean
+vte_sequence_handler_scroll_down_one(VteTerminal *terminal,
+				     const char *match,
+				     GQuark match_quark,
+				     GValueArray *params)
+{
+	return vte_sequence_handler_scroll_up_or_down(terminal, 1);
+}
+
+/* Scroll the text down, but don't move the cursor. */
+static gboolean
+vte_sequence_handler_scroll_down(VteTerminal *terminal,
+				 const char *match,
+				 GQuark match_quark,
+				 GValueArray *params)
+{
+	return vte_sequence_handler_multiple(terminal, match, match_quark,
+					     params, vte_sequence_handler_scroll_down_one);
+}
+
+/* Scroll the text, but don't move the cursor.  Negative = up,
+ * positive = down. */
+static gboolean
+vte_sequence_handler_scroll_up_or_down(VteTerminal *terminal, int scroll_amount)
+{
+	GtkWidget *widget;
+	VteRowData *row;
+	long start, end, i;
+	VteScreen *screen;
+
+	widget = GTK_WIDGET(terminal);
+	screen = terminal->pvt->screen;
+
+	if (screen->scrolling_restricted) {
+		start = screen->insert_delta + screen->scrolling_region.start;
+		end = screen->insert_delta + screen->scrolling_region.end;
+	} else {
+		start = screen->insert_delta;
+		end = start + terminal->row_count - 1;
+	}
+
+	while (_vte_ring_next(screen->row_data) <= end) {
+		row = vte_new_row_data_sized(terminal, FALSE);
+		_vte_ring_append(terminal->pvt->screen->row_data, row);
+	}
+	if (scroll_amount > 0) {
+		for (i = 0; i < scroll_amount; i++) {
+			vte_remove_line_internal(terminal, end);
+			vte_insert_line_internal(terminal, start);
+		}
+	} else {
+		for (i = 0; i < -scroll_amount; i++) {
+			vte_remove_line_internal(terminal, start);
+			vte_insert_line_internal(terminal, end);
+		}
+	}
+
+	/* Update the display. */
+	vte_terminal_scroll_region(terminal, start, end - start + 1,
+				   scroll_amount);
+
+	/* Adjust the scrollbars if necessary. */
+	vte_terminal_adjust_adjustments(terminal, FALSE);
+
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->text_inserted_count++;
+	terminal->pvt->text_deleted_count++;
+
+	return FALSE;
+}
+
+/* Scroll the text up one line, but don't move the cursor. */
+static gboolean
+vte_sequence_handler_scroll_up_one(VteTerminal *terminal,
+				   const char *match,
+				   GQuark match_quark,
+				   GValueArray *params)
+{
+	return vte_sequence_handler_scroll_up_or_down(terminal, -1);
+}
+
+/* Scroll the text up, but don't move the cursor. */
+static gboolean
+vte_sequence_handler_scroll_up(VteTerminal *terminal,
+			       const char *match,
+			       GQuark match_quark,
+			       GValueArray *params)
+{
+	return vte_sequence_handler_multiple(terminal, match, match_quark,
+					     params, vte_sequence_handler_scroll_up_one);
 }
 
 /* Standout end. */
@@ -6243,8 +6339,8 @@ static struct {
 	{"save-cursor", vte_sequence_handler_sc},
 	{"save-mode", vte_sequence_handler_save_mode},
 	{"screen-alignment-test", vte_sequence_handler_screen_alignment_test},
-	{"scroll-down", NULL},
-	{"scroll-up", NULL},
+	{"scroll-down", vte_sequence_handler_scroll_down},
+	{"scroll-up", vte_sequence_handler_scroll_up},
 	{"select-character-protection", NULL},
 	{"selective-erase-in-display", NULL},
 	{"selective-erase-in-line", NULL},
@@ -8816,6 +8912,11 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 				strlen(text));
 		}
 #endif
+		if (!g_utf8_validate(text, -1, NULL)) {
+			g_warning(_("Error (%s) converting data for child, dropping."), strerror(EINVAL));
+			return;
+		}
+
 		/* Convert newlines to carriage returns, which more software
 		 * is able to cope with (cough, pico, cough). */
 		paste = g_strdup(text);

@@ -1,3 +1,21 @@
+2004-11-16 nalin
+	* src/vte.c(vte_terminal_sequence_handler_scroll_up_or_down): add.
+	* src/vte.c(vte_terminal_sequence_handler_scroll_up_once): add.
+	* src/vte.c(vte_terminal_sequence_handler_scroll_down_once): add.
+	* src/vte.c(vte_terminal_sequence_handler_scroll_up): add.
+	* src/vte.c(vte_terminal_sequence_handler_scroll_down): add.
+	* src/table.c(_vte_table_addi): expand "%m" locally so that we can
+	distinguish between control sequences which differ only in the number
+	of numeric arguments they expect.  This means we have a new upper
+	limit on the length of a numeric argument list we'll recognize.
+	* src/caps.c(_vte_xterm_capability_strings): remove alternates for
+	strings which include '%m' as a specifier -- that's handled at the
+	matching layer now.
+	* src/vte.c(vte_terminal_paste_cb): drop the supplied data if it isn't
+	valid UTF-8 (Red Hat #119099).
+	* src/keymap.c(_vte_keymap_map): try xterm variants if we're xterm, not
+	the other way around.
+
 2004-08-18  David Lodge <dave@cirt.net>
 
 	* configure.in: Added "ang" to ALL_LINGUAS.

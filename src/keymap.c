@@ -1149,7 +1149,7 @@ _vte_keymap_map(guint keyval,
 			tmp = g_strdup(termcap_special);
 			cap = tgetstr(tmp, &cap);
 		}
-		if ((cap == NULL) && (strstr(terminal, "xterm") == 0)) {
+		if ((cap == NULL) && (strstr(terminal, "xterm") != NULL)) {
 			/* try, try again */
 			if (tgetent(ncurses_buffer, "xterm-xfree86") == 1) {
 				cap = ncurses_area;
