@@ -1,4 +1,8 @@
 2003-02-21 nalin
+	* src/vte.c(vte_terminal_decset_internal): home the cursor when we
+	switch to the alternate screen, from HEAD (#105075).
+
+2003-02-21 nalin
 	* src/iso2022.c: special case the rest of the graphic characters in
 	the way we already do for the 0x2500-0x257f range.  It's still wrong,
 	but at least now it's consistent (Red Hat #84783).
