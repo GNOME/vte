@@ -129,6 +129,9 @@ GdkColormap *
 _vte_draw_get_colormap(struct _vte_draw *draw, gboolean maybe_use_default)
 {
 	GdkColormap *colormap;
+#if GTK_CHECK_VERSION(2,2,0)
+	GdkScreen *screen;
+#endif
 	g_return_val_if_fail(draw->impl != NULL, NULL);
 	g_return_val_if_fail(draw->impl->get_colormap != NULL, NULL);
 	colormap = draw->impl->get_colormap(draw);
@@ -139,7 +142,12 @@ _vte_draw_get_colormap(struct _vte_draw *draw, gboolean maybe_use_default)
 		return NULL;
 	}
 #if GTK_CHECK_VERSION(2,2,0)
-	colormap = gdk_screen_get_default_colormap(gdk_screen_get_default());
+	if (gtk_widget_has_screen(draw->widget)) {
+		screen = gtk_widget_get_screen(draw->widget);
+	} else {
+		screen = gdk_display_get_default_screen(gtk_widget_get_display(draw->widget));
+	}
+	colormap = gdk_screen_get_default_colormap(screen);
 #else
 	colormap = gdk_colormap_get_system();
 #endif
@@ -255,6 +263,20 @@ _vte_draw_text(struct _vte_draw *draw,
 	g_return_if_fail(draw->impl != NULL);
 	g_return_if_fail(draw->impl->draw_text != NULL);
 	draw->impl->draw_text(draw, requests, n_requests, color, alpha);
+}
+
+gboolean
+_vte_draw_char(struct _vte_draw *draw,
+	       struct _vte_draw_text_request *request,
+	       GdkColor *color, guchar alpha)
+{
+	g_return_val_if_fail(draw->started == TRUE, FALSE);
+	g_return_val_if_fail(draw->impl != NULL, FALSE);
+	if (draw->impl->draw_char == NULL) {
+		draw->impl->draw_text(draw, request, 1, color, alpha);
+		return TRUE;
+	}
+	return draw->impl->draw_char(draw, request, color, alpha);
 }
 
 void

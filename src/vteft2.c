@@ -223,7 +223,8 @@ _vte_ft2_set_text_font(struct _vte_draw *draw,
 		data->cache = NULL;
 	}
 	data->cache = _vte_glyph_cache_new();
-	_vte_glyph_cache_set_font_description(NULL, data->cache, fontdesc,
+	_vte_glyph_cache_set_font_description(draw->widget, NULL,
+					      data->cache, fontdesc,
 					      NULL, NULL);
 }
 
@@ -277,6 +278,24 @@ _vte_ft2_draw_text(struct _vte_draw *draw,
 			    data->cache->width * requests[i].columns,
 			    data->cache->height);
 	}
+}
+
+static gboolean
+_vte_ft2_draw_char(struct _vte_draw *draw,
+		   struct _vte_draw_text_request *request,
+		   GdkColor *color, guchar alpha)
+{
+	struct _vte_ft2_data *data;
+
+	data = (struct _vte_ft2_data*) draw->impl_data;
+
+	if (data->cache != NULL) {
+		if (_vte_glyph_get(data->cache, request->c) != NULL) {
+			_vte_ft2_draw_text(draw, request, 1, color, alpha);
+			return TRUE;
+		}
+	}
+	return FALSE;
 }
 
 static void
@@ -348,6 +367,7 @@ struct _vte_draw_impl _vte_draw_ft2 = {
 	_vte_ft2_get_text_ascent,
 	_vte_ft2_get_using_fontconfig,
 	_vte_ft2_draw_text,
+	_vte_ft2_draw_char,
 	_vte_ft2_draw_rectangle,
 	_vte_ft2_fill_rectangle,
 	_vte_ft2_set_scroll,

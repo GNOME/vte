@@ -279,7 +279,7 @@ _vte_pango_set_text_font(struct _vte_draw *draw,
 	if (gtk_widget_has_screen(draw->widget)) {
 		screen = gtk_widget_get_screen(draw->widget);
 	} else {
-		screen = gdk_screen_get_default();
+		screen = gdk_display_get_default_screen(gtk_widget_get_display(draw->widget));
 	}
 	ctx = gdk_pango_context_get_for_screen(screen);
 #else
@@ -396,6 +396,15 @@ _vte_pango_draw_text(struct _vte_draw *draw,
 	}
 }
 
+static gboolean
+_vte_pango_draw_char(struct _vte_draw *draw,
+		     struct _vte_draw_text_request *request,
+		     GdkColor *color, guchar alpha)
+{
+	_vte_pango_draw_text(draw, request, 1, color, alpha);
+	return TRUE;
+}
+
 static void
 _vte_pango_draw_rectangle(struct _vte_draw *draw,
 			  gint x, gint y, gint width, gint height,
@@ -460,6 +469,7 @@ struct _vte_draw_impl _vte_draw_pango = {
 	_vte_pango_get_text_ascent,
 	_vte_pango_get_using_fontconfig,
 	_vte_pango_draw_text,
+	_vte_pango_draw_char,
 	_vte_pango_draw_rectangle,
 	_vte_pango_fill_rectangle,
 	_vte_pango_set_scroll,

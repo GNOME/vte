@@ -48,6 +48,9 @@
 #define CHAR_WIDTH_FUDGE 10
 
 struct _vte_xft_font {
+#if GTK_CHECK_VERSION(2,2,0)
+	GdkDisplay *display;
+#endif
 	GArray *patterns;
 	GArray *fonts;
 	GTree *fontmap;
@@ -77,20 +80,47 @@ _vte_xft_direct_compare(gconstpointer a, gconstpointer b)
 	return GPOINTER_TO_INT(a) - GPOINTER_TO_INT(b);
 }
 
+static gboolean
+_vte_xft_char_exists(struct _vte_xft_font *font, XftFont *ftfont, FcChar32 c)
+{
+#if GTK_CHECK_VERSION(2,2,0)
+	return XftCharExists(GDK_DISPLAY_XDISPLAY(font->display),
+			     ftfont,
+			     c) == FcTrue;
+#else
+	return XftCharExists(GDK_DISPLAY(), ftfont, c) == FcTrue;
+#endif
+}
+
+static void
+_vte_xft_text_extents(struct _vte_xft_font *font, XftFont *ftfont, FcChar32 c,
+		      XGlyphInfo *extents)
+{
+#if GTK_CHECK_VERSION(2,2,0)
+	return XftTextExtents32(GDK_DISPLAY_XDISPLAY(font->display),
+				ftfont, &c, 1, extents);
+#else
+	return XftTextExtents32(GDK_DISPLAY(), ftfont, &c, 1, extents);
+#endif
+}
+
 static struct _vte_xft_font *
-_vte_xft_font_open(const PangoFontDescription *fontdesc)
+_vte_xft_font_open(GtkWidget *widget, const PangoFontDescription *fontdesc)
 {
 	struct _vte_xft_font *font;
 	GArray *patterns;
 
 	patterns = g_array_new(TRUE, TRUE, sizeof(FcPattern*));
-	if (!_vte_fc_patterns_from_pango_font_desc(fontdesc, patterns,
+	if (!_vte_fc_patterns_from_pango_font_desc(widget, fontdesc, patterns,
 						   NULL, NULL)) {
 		g_array_free(patterns, TRUE);
 		return NULL;
 	}
 
 	font = g_malloc0(sizeof(struct _vte_xft_font));
+#if GTK_CHECK_VERSION(2,2,0)
+	font->display = gtk_widget_get_display(widget);
+#endif
 	font->patterns = patterns;
 	font->fonts = g_array_new(TRUE, TRUE, sizeof(XftFont*));
 	font->fontmap = g_tree_new(_vte_xft_direct_compare);
@@ -187,7 +217,7 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 	for (i = 0; i < font->fonts->len; i++) {
 		ftfont = g_array_index(font->fonts, XftFont *, i);
 		if ((ftfont != NULL) &&
-		    (XftCharExists(display, ftfont, (FcChar32) c) == FcTrue)) {
+		    (_vte_xft_char_exists(font, ftfont, c))) {
 			break;
 		}
 	}
@@ -215,7 +245,7 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 		}
 		g_array_append_val(font->fonts, ftfont);
 		if ((ftfont != NULL) &&
-		    (XftCharExists(display, ftfont, (FcChar32) c) == FcTrue)) {
+		    (_vte_xft_char_exists(font, ftfont, c))) {
 			break;
 		}
 	}
@@ -272,7 +302,7 @@ _vte_xft_char_width(struct _vte_xft_font *font, XftFont *ftfont, gunichar c)
 	/* Compute and store the width. */
 	memset(&extents, 0, sizeof(extents));
 	if (ftfont != NULL) {
-		XftTextExtents32(GDK_DISPLAY(), ftfont, &c, 1, &extents);
+		_vte_xft_text_extents(font, ftfont, c, &extents);
 	}
 	i = extents.xOff + CHAR_WIDTH_FUDGE;
 	g_tree_insert(font->widths, p, GINT_TO_POINTER(i));
@@ -516,7 +546,7 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 		_vte_xft_font_close(data->font);
 		data->font = NULL;
 	}
-	data->font = _vte_xft_font_open(fontdesc);
+	data->font = _vte_xft_font_open(draw->widget, fontdesc);
 
 	draw->width = 1;
 	draw->height = 1;
@@ -530,9 +560,9 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 		c = VTE_DRAW_SINGLE_WIDE_CHARACTERS[i];
 		font = _vte_xft_font_for_char(data->font, c);
 		if ((font != NULL) &&
-		    (XftCharExists(GDK_DISPLAY(), font, c) == FcTrue)) {
+		    (_vte_xft_char_exists(data->font, font, c))) {
 			memset(&extents, 0, sizeof(extents));
-			XftTextExtents32(GDK_DISPLAY(), font, &c, 1, &extents);
+			_vte_xft_text_extents(data->font, font, c, &extents);
 			n++;
 			width += extents.xOff;
 		}
@@ -552,9 +582,9 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 		c = wide_chars[i];
 		font = _vte_xft_font_for_char(data->font, c);
 		if ((font != NULL) &&
-		    (XftCharExists(GDK_DISPLAY(), font, c) == FcTrue)) {
+		    (_vte_xft_char_exists(data->font, font, c))) {
 			memset(&extents, 0, sizeof(extents));
-			XftTextExtents32(GDK_DISPLAY(), font, &c, 1, &extents);
+			_vte_xft_text_extents(data->font, font, c, &extents);
 			n++;
 			width += extents.xOff;
 		}
@@ -687,6 +717,21 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 	}
 }
 
+static gboolean
+_vte_xft_draw_char(struct _vte_draw *draw,
+		   struct _vte_draw_text_request *request,
+		   GdkColor *color, guchar alpha)
+{
+	struct _vte_xft_data *data;
+
+	data = (struct _vte_xft_data*) draw->impl_data;
+	if (_vte_xft_font_for_char(data->font, request->c) != NULL) {
+		_vte_xft_draw_text(draw, request, 1, color, alpha);
+		return TRUE;
+	}
+	return FALSE;
+}
+
 static void
 _vte_xft_draw_rectangle(struct _vte_draw *draw,
 			gint x, gint y, gint width, gint height,
@@ -773,6 +818,7 @@ struct _vte_draw_impl _vte_draw_xft = {
 	_vte_xft_get_text_ascent,
 	_vte_xft_get_using_fontconfig,
 	_vte_xft_draw_text,
+	_vte_xft_draw_char,
 	_vte_xft_draw_rectangle,
 	_vte_xft_fill_rectangle,
 	_vte_xft_set_scroll,

@@ -63,9 +63,13 @@ _vte_fc_slant_from_pango_style(int style)
 }
 
 static void
-_vte_fc_transcribe_from_pango_font_description(FcPattern *pattern,
+_vte_fc_transcribe_from_pango_font_description(GtkWidget *widget,
+					       FcPattern *pattern,
 				       const PangoFontDescription *font_desc)
 {
+#if GTK_CHECK_VERSION(2,2,0)
+	GdkScreen *screen;
+#endif
 	const char *family = "monospace";
 	PangoLanguage *language;
 	double size = 10.0;
@@ -94,7 +98,12 @@ _vte_fc_transcribe_from_pango_font_description(FcPattern *pattern,
 
 	/* Set the language for the pattern. */
 #if GTK_CHECK_VERSION(2,2,0)
-	context = gdk_pango_context_get_for_screen(gdk_screen_get_default());
+	if (gtk_widget_has_screen(widget)) {
+		screen = gtk_widget_get_screen(widget);
+	} else {
+		screen = gdk_display_get_default_screen(gtk_widget_get_display(widget));
+	}
+	context = gdk_pango_context_get_for_screen(screen);
 #else
 	context = gdk_pango_context_get();
 #endif
@@ -122,7 +131,7 @@ _vte_fc_transcribe_from_pango_font_description(FcPattern *pattern,
 }
 
 static void
-_vte_fc_defaults_from_gtk(FcPattern *pattern)
+_vte_fc_defaults_from_gtk(GtkWidget *widget, FcPattern *pattern)
 {
 	GtkSettings *settings;
 #if GTK_CHECK_VERSION(2,2,0)
@@ -134,7 +143,11 @@ _vte_fc_defaults_from_gtk(FcPattern *pattern)
 
 	/* Add any defaults configured for GTK+. */
 #if GTK_CHECK_VERSION(2,2,0)
-	screen = gdk_screen_get_default();
+	if (gtk_widget_has_screen(widget)) {
+		screen = gtk_widget_get_screen(widget);
+	} else {
+		screen = gdk_display_get_default_screen(gtk_widget_get_display(widget));
+	}
 	settings = gtk_settings_get_for_screen(screen);
 #else
 	settings = gtk_settings_get_default();
@@ -246,7 +259,7 @@ _vte_fc_defaults_from_gtk(FcPattern *pattern)
 }
 
 static void
-_vte_fc_defaults_from_rdb(FcPattern *pattern)
+_vte_fc_defaults_from_rdb(GtkWidget *widget, FcPattern *pattern)
 {
 	FcBool fcb;
 	double fcd;
@@ -328,7 +341,8 @@ _vte_fc_defaults_from_rdb(FcPattern *pattern)
 /* Create a sorted set of fontconfig patterns from a Pango font description
  * and append them to the array. */
 gboolean
-_vte_fc_patterns_from_pango_font_desc(const PangoFontDescription *font_desc,
+_vte_fc_patterns_from_pango_font_desc(GtkWidget *widget,
+				      const PangoFontDescription *font_desc,
 				      GArray *pattern_array,
 				      _vte_fc_defaults_cb defaults_cb,
 				      gpointer defaults_data)
@@ -346,16 +360,17 @@ _vte_fc_patterns_from_pango_font_desc(const PangoFontDescription *font_desc,
 	pattern = FcPatternCreate();
 
 	/* Transcribe what we can get from the Pango font description. */
-	_vte_fc_transcribe_from_pango_font_description(pattern, font_desc);
+	_vte_fc_transcribe_from_pango_font_description(widget, pattern,
+						       font_desc);
 
 	/* Add any defaults specified in the configuration. */
 	FcConfigSubstitute(NULL, pattern, FcMatchPattern);
 
 	/* Add any defaults configured for GTK+. */
-	_vte_fc_defaults_from_gtk(pattern);
+	_vte_fc_defaults_from_gtk(widget, pattern);
 
 	/* Add defaults configured via the resource database. */
-	_vte_fc_defaults_from_rdb(pattern);
+	_vte_fc_defaults_from_rdb(widget, pattern);
 
 	/* Add any defaults which are hard-coded in fontconfig. */
 	FcDefaultSubstitute(pattern);
@@ -373,7 +388,7 @@ _vte_fc_patterns_from_pango_font_desc(const PangoFontDescription *font_desc,
 			tmp = FcFontRenderPrepare(NULL,
 						  pattern,
 						  fontset->fonts[i]);
-			_vte_fc_defaults_from_gtk(tmp);
+			_vte_fc_defaults_from_gtk(widget, tmp);
 			save = FcPatternDuplicate(tmp);
 			FcPatternDestroy(tmp);
 			g_array_append_val(pattern_array, save);
@@ -387,7 +402,7 @@ _vte_fc_patterns_from_pango_font_desc(const PangoFontDescription *font_desc,
 		match = FcFontMatch(NULL, pattern, &result);
 		if (result == FcResultMatch) {
 			tmp = FcPatternDuplicate(match);
-			_vte_fc_defaults_from_gtk(tmp);
+			_vte_fc_defaults_from_gtk(widget, tmp);
 			save = FcPatternDuplicate(tmp);
 			FcPatternDestroy(tmp);
 			g_array_append_val(pattern_array, save);

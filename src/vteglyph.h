@@ -21,7 +21,7 @@
 
 #ident "$Id$"
 
-#include <glib.h>
+#include <gtk/gtk.h>
 #include "vtefc.h"
 #include "vtergb.h"
 
@@ -67,7 +67,7 @@ struct _vte_glyph_cache {
 struct _vte_glyph_cache *_vte_glyph_cache_new(void);
 void _vte_glyph_cache_free(struct _vte_glyph_cache *cache);
 const FcPattern *_vte_glyph_cache_get_pattern(struct _vte_glyph_cache *cache);
-void _vte_glyph_cache_set_font_description(FcConfig *config,
+void _vte_glyph_cache_set_font_description(GtkWidget *widget, FcConfig *config,
 					   struct _vte_glyph_cache *cache,
 					   const PangoFontDescription *fontdesc,
 					   _vte_fc_defaults_cb defaults_cb,

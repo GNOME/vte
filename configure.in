@@ -31,11 +31,17 @@ fi
 CFLAGS="$X_CFLAGS $CFLAGS"
 LIBS="$X_LIBS $LIBS"
 
+if pkg-config --exists "gtk+-2.0 >= 2.2" ; then
+	MODULEGTK="gtk+-2.0 >= 2.2"
+	AC_DEFINE(GDK_MULTIHEAD_SAFE,1,[Force use of GDK's multihead-safe APIs.])
+else
+	MODULEGTK="gtk+-2.0"
+fi
 PKG_CHECK_MODULES(GLIB,glib-2.0)
 PKG_CHECK_MODULES(GOBJECT,[glib-2.0 gobject-2.0])
-PKG_CHECK_MODULES(GTK,[glib-2.0 gobject-2.0 gtk+-2.0])
+PKG_CHECK_MODULES(GTK,[glib-2.0 gobject-2.0 $MODULEGTK])
 
-wantedmodules="glib-2.0 gobject-2.0 gtk+-2.0 fontconfig"
+wantedmodules="glib-2.0 gobject-2.0 $MODULEGTK fontconfig"
 
 # Use Xft2 if Pango has Xft2 support and it isn't disabled.
 if test "$have_x" = yes ; then

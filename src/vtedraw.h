@@ -74,6 +74,9 @@ struct _vte_draw_impl {
 	void (*draw_text)(struct _vte_draw *,
 			  struct _vte_draw_text_request *, gsize,
 			  GdkColor *, guchar);
+	gboolean (*draw_char)(struct _vte_draw *,
+			      struct _vte_draw_text_request *,
+			      GdkColor *, guchar);
 	void (*draw_rectangle)(struct _vte_draw *,
 			       gint, gint, gint, gint,
 			       GdkColor *, guchar);
@@ -133,6 +136,9 @@ gboolean _vte_draw_get_using_fontconfig(struct _vte_draw *draw);
 void _vte_draw_text(struct _vte_draw *draw,
 		    struct _vte_draw_text_request *requests, gsize n_requests,
 		    GdkColor *color, guchar alpha);
+gboolean _vte_draw_char(struct _vte_draw *draw,
+			struct _vte_draw_text_request *request,
+			GdkColor *color, guchar alpha);
 void _vte_draw_fill_rectangle(struct _vte_draw *draw,
 			      gint x, gint y, gint width, gint height,
 			      GdkColor *color, guchar alpha);

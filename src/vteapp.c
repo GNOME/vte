@@ -347,7 +347,12 @@ take_xconsole_ownership(GtkWidget *widget, gpointer data)
 
 	name = g_strdup_printf("MIT_CONSOLE_%s", hostname);
 	atom = gdk_atom_intern(name, FALSE);
+#if GTK_CHECK_VERSION(2,2,0)
+	clipboard = gtk_clipboard_get_for_display(gtk_widget_get_display(widget),
+						  atom);
+#else
 	clipboard = gtk_clipboard_get(atom);
+#endif
 	g_free(name);
 
 	gtk_clipboard_set_with_owner(clipboard,
@@ -378,7 +383,6 @@ main(int argc, char **argv)
 	int i, j;
 	GList *args = NULL;
 	GdkColor fore, back, tint;
-	GdkCursor *gumby = NULL, *hand = NULL;
 	const char *usage = "Usage: %s "
 			    "[ [-B image] | [-T] ] "
 			    "[-D] "
@@ -602,13 +606,11 @@ main(int argc, char **argv)
 	vte_terminal_match_add(VTE_TERMINAL(widget), "abcdefg");
 	if (dingus) {
 		i = vte_terminal_match_add(VTE_TERMINAL(widget), DINGUS1);
-		gumby = gdk_cursor_new(GDK_GUMBY);
-		vte_terminal_match_set_cursor(VTE_TERMINAL(widget), i, gumby);
-		gdk_cursor_unref(gumby);
-		hand = gdk_cursor_new(GDK_HAND1);
+		vte_terminal_match_set_cursor_type(VTE_TERMINAL(widget),
+						   i, GDK_GUMBY);
 		i = vte_terminal_match_add(VTE_TERMINAL(widget), DINGUS2);
-		vte_terminal_match_set_cursor(VTE_TERMINAL(widget), i, hand);
-		gdk_cursor_unref(hand);
+		vte_terminal_match_set_cursor_type(VTE_TERMINAL(widget),
+						   i, GDK_HAND1);
 	}
 
 	if (console) {

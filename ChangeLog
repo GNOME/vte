@@ -1,3 +1,15 @@
+2003-05-28 nalin
+	* configure.in: check for GTK+ 2.2, and if found, force use of
+	multihead-safe APIs to try to flush out some bugs.
+	* src/vte.c, src/vteapp.c, src/vtedraw.c, src/vtefc.c, src/vteglyph.c:
+	clean up some sloppy multihead changes.
+	* src/vte.c, src/vte.h (vte_terminal_match_set_cursor_type): add.
+	* src/vtedraw.c, src/vtedraw.h: add a draw_char() method which is
+	allowed to fail.
+	* src/vte.c(vte_terminal_draw_graphic): separate the width of a column
+	and the number of columns to be drawn.  Use _vte_draw_char() to avoid
+	crude approximations of characters when we have a font for them.
+
 2003-05-21 nalin
 	* src/vte.c(vte_terminal_scroll_region): force an entire window repaint
 	if we're supposed to scroll the background but we're not scrolling the

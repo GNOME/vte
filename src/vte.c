@@ -1416,6 +1416,26 @@ vte_terminal_match_remove(VteTerminal *terminal, int tag)
 	vte_terminal_match_hilite_clear(terminal);
 }
 
+static GdkCursor *
+vte_terminal_cursor_new(VteTerminal *terminal, GdkCursorType cursor_type)
+{
+#if GTK_CHECK_VERSION(2,2,0)
+	GdkDisplay *display;
+	GdkCursor *cursor;
+
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+
+	display = gtk_widget_get_display(GTK_WIDGET(terminal));
+	cursor = gdk_cursor_new_for_display(display, cursor_type);
+#else
+	GdkCursor *cursor;
+
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+
+	cursor = gdk_cursor_new(cursor_type);
+#endif
+	return cursor;
+}
 
 /**
  * vte_terminal_match_add:
@@ -1453,7 +1473,8 @@ vte_terminal_match_add(VteTerminal *terminal, const char *match)
 	}
 	/* Set the tag to the insertion point. */
 	new_regex.tag = ret;
-	new_regex.cursor = gdk_cursor_new(VTE_DEFAULT_CURSOR);
+	new_regex.cursor = vte_terminal_cursor_new(terminal,
+						   VTE_DEFAULT_CURSOR);
 	if (ret < terminal->pvt->match_regexes->len) {
 		/* Overwrite. */
 		g_array_index(terminal->pvt->match_regexes,
@@ -1493,6 +1514,29 @@ vte_terminal_match_set_cursor(VteTerminal *terminal, int tag, GdkCursor *cursor)
 	}
 	regex->cursor = gdk_cursor_ref(cursor);
 	vte_terminal_match_hilite_clear(terminal);
+}
+
+/**
+ * vte_terminal_match_set_cursor:
+ * @terminal: a #VteTerminal
+ * @tag: the tag of the regex which should use the specified cursor
+ * @cursor: a #GdkCursorType
+ *
+ * Sets which cursor the terminal will use if the pointer is over the pattern
+ * specified by @tag.  A convenience wrapper for
+ * vte_terminal_match_set_cursor().
+ *
+ * Since: 0.11.9
+ *
+ */
+void
+vte_terminal_match_set_cursor_type(VteTerminal *terminal,
+				   int tag, GdkCursorType cursor_type)
+{
+	GdkCursor *cursor;
+	cursor = vte_terminal_cursor_new(terminal, cursor_type);
+	vte_terminal_match_set_cursor(terminal, tag, cursor);
+	gdk_cursor_unref(cursor);
 }
 
 /* Check if a given cell on the screen contains part of a matched string.  If
@@ -2150,6 +2194,20 @@ vte_sequence_handler_as(VteTerminal *terminal,
 	terminal->pvt->screen->defaults.alternate = 1;
 }
 
+static void
+vte_terminal_beep(VteTerminal *terminal)
+{
+#if GTK_CHECK_VERSION(2,2,0)
+	GdkDisplay *display;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	display = gtk_widget_get_display(GTK_WIDGET(terminal));
+	gdk_display_beep(display);
+#else
+	gdk_beep();
+#endif
+}
+
 /* Beep. */
 static void
 vte_sequence_handler_bl(VteTerminal *terminal,
@@ -2159,7 +2217,7 @@ vte_sequence_handler_bl(VteTerminal *terminal,
 {
 	if (terminal->pvt->audible_bell) {
 		/* Feep. */
-		gdk_beep();
+		vte_terminal_beep(terminal);
 	}
 	if (terminal->pvt->visible_bell) {
 		/* Visual bell. */
@@ -5474,7 +5532,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			if (gtk_widget_has_screen(widget)) {
 				gscreen = gtk_widget_get_screen(widget);
 			} else {
-				gscreen = gdk_screen_get_default();
+				gscreen = gdk_display_get_default_screen(gtk_widget_get_display(widget));
 			}
 			height = gdk_screen_get_height(gscreen);
 			width = gdk_screen_get_width(gscreen);
@@ -8876,6 +8934,18 @@ vte_terminal_get_cursor_position(VteTerminal *terminal,
 	}
 }
 
+static GtkClipboard *
+vte_terminal_clipboard_get(VteTerminal *terminal, GdkAtom board)
+{
+#if GTK_CHECK_VERSION(2,2,0)
+	GdkDisplay *display;
+	display = gtk_widget_get_display(GTK_WIDGET(terminal));
+	return gtk_clipboard_get_for_display(display, board);
+#else
+	return gtk_clipboard_get(board);
+#endif
+}
+
 /* Place the selected text onto the clipboard.  Do this asynchronously so that
  * we get notified when the selection we placed on the clipboard is replaced. */
 static void
@@ -8890,7 +8960,7 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 	};
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	clipboard = gtk_clipboard_get(board);
+	clipboard = vte_terminal_clipboard_get(terminal, board);
 
 	/* Chuck old selected text and retrieve the newly-selected text. */
 	if (terminal->pvt->selection != NULL) {
@@ -8928,7 +8998,7 @@ vte_terminal_paste(VteTerminal *terminal, GdkAtom board)
 {
 	GtkClipboard *clipboard;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	clipboard = gtk_clipboard_get(board);
+	clipboard = vte_terminal_clipboard_get(terminal, board);
 	if (clipboard != NULL) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
@@ -11119,7 +11189,8 @@ vte_terminal_finalize(GObject *object)
 	 * throw the text onto the clipboard without an owner so that it
 	 * doesn't just disappear. */
 	if (terminal->pvt->selection != NULL) {
-		clipboard = gtk_clipboard_get(GDK_SELECTION_PRIMARY);
+		clipboard = vte_terminal_clipboard_get(terminal,
+						       GDK_SELECTION_PRIMARY);
 		if (gtk_clipboard_get_owner(clipboard) == G_OBJECT(terminal)) {
 			gtk_clipboard_set_text(clipboard,
 					       terminal->pvt->selection,
@@ -11284,9 +11355,9 @@ vte_terminal_realize(GtkWidget *widget)
 	/* Create the stock cursors. */
 	terminal->pvt->mouse_cursor_visible = TRUE;
 	terminal->pvt->mouse_default_cursor =
-		gdk_cursor_new(VTE_DEFAULT_CURSOR);
+		vte_terminal_cursor_new(terminal, VTE_DEFAULT_CURSOR);
 	terminal->pvt->mouse_mousing_cursor =
-		gdk_cursor_new(VTE_MOUSING_CURSOR);
+		vte_terminal_cursor_new(terminal, VTE_MOUSING_CURSOR);
 
 	/* Create a GDK window for the widget. */
 	attributes.window_type = GDK_WINDOW_CHILD;
@@ -11581,12 +11652,23 @@ vte_terminal_draw_point(VteTerminal *terminal,
 static gboolean
 vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 			  gint fore, gint back, gboolean draw_default_bg,
-			  gint x, gint y, gint column_width, gint row_height)
+			  gint x, gint y,
+			  gint column_width, gint columns, gint row_height)
 {
 	gboolean ret;
 	gint xcenter, xright, ycenter, ybottom, i, j, draw;
+	struct _vte_draw_text_request request;
+	GdkColor color;
 
-	xright = x + column_width;
+	request.c = c;
+	request.x = x;
+	request.y = y;
+	request.columns = columns;
+
+	color.red = terminal->pvt->palette[fore].red;
+	color.green = terminal->pvt->palette[fore].green;
+	color.blue = terminal->pvt->palette[fore].blue;
+	xright = x + column_width * columns;
 	ybottom = y + row_height;
 	xcenter = (x + xright) / 2;
 	ycenter = (y + ybottom) / 2;
@@ -11594,13 +11676,19 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 	if ((back != VTE_DEF_BG) || draw_default_bg) {
 		vte_terminal_fill_rectangle(terminal,
 					    &terminal->pvt->palette[back],
-					    x, y, column_width, row_height);
+					    x, y,
+					    column_width * columns, row_height);
 	}
 
 	ret = TRUE;
 
 	switch (c) {
 	case 124:
+		if (_vte_draw_char(terminal->pvt->draw, &request,
+				   &color, VTE_DRAW_OPAQUE)) {
+			/* We were able to draw with actual fonts. */
+			return TRUE;
+		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -11622,6 +11710,11 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       x + 1, ybottom - 1);
 		break;
 	case 127:
+		if (_vte_draw_char(terminal->pvt->draw, &request,
+				   &color, VTE_DRAW_OPAQUE)) {
+			/* We were able to draw with actual fonts. */
+			return TRUE;
+		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -11649,6 +11742,11 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       x, ycenter);
 		break;
 	case 0x00a3:
+		if (_vte_draw_char(terminal->pvt->draw, &request,
+				   &color, VTE_DRAW_OPAQUE)) {
+			/* We were able to draw with actual fonts. */
+			return TRUE;
+		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -11672,6 +11770,11 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       xcenter + 1, ycenter);
 		break;
 	case 0x00b0: /* f */
+		if (_vte_draw_char(terminal->pvt->draw, &request,
+				   &color, VTE_DRAW_OPAQUE)) {
+			/* We were able to draw with actual fonts. */
+			return TRUE;
+		}
 		/* litle circle */
 		vte_terminal_draw_point(terminal,
 					&terminal->pvt->palette[fore],
@@ -11687,6 +11790,11 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 					xcenter, ycenter + 1);
 		break;
 	case 0x00b1: /* g */
+		if (_vte_draw_char(terminal->pvt->draw, &request,
+				   &color, VTE_DRAW_OPAQUE)) {
+			/* We were able to draw with actual fonts. */
+			return TRUE;
+		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -11712,6 +11820,11 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       (ycenter + ybottom) / 2);
 		break;
 	case 0x00b7:
+		if (_vte_draw_char(terminal->pvt->draw, &request,
+				   &color, VTE_DRAW_OPAQUE)) {
+			/* We were able to draw with actual fonts. */
+			return TRUE;
+		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -11723,6 +11836,11 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       xcenter + 1, ycenter);
 		break;
 	case 0x3c0: /* pi */
+		if (_vte_draw_char(terminal->pvt->draw, &request,
+				   &color, VTE_DRAW_OPAQUE)) {
+			/* We were able to draw with actual fonts. */
+			return TRUE;
+		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -11752,6 +11870,11 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 	/* case 0x2193: FIXME */
 	/* case 0x2260: FIXME */
 	case 0x2264: /* y */
+		if (_vte_draw_char(terminal->pvt->draw, &request,
+				   &color, VTE_DRAW_OPAQUE)) {
+			/* We were able to draw with actual fonts. */
+			return TRUE;
+		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -11771,6 +11894,11 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       xright - 1, (ycenter + ybottom) / 2);
 		break;
 	case 0x2265: /* z */
+		if (_vte_draw_char(terminal->pvt->draw, &request,
+				   &color, VTE_DRAW_OPAQUE)) {
+			/* We were able to draw with actual fonts. */
+			return TRUE;
+		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -11792,13 +11920,15 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 	case 0x23ba: /* o */
 		vte_terminal_fill_rectangle(terminal,
 					    &terminal->pvt->palette[fore],
-					    x, y, column_width, VTE_LINE_WIDTH);
+					    x, y,
+					    column_width * columns,
+					    VTE_LINE_WIDTH);
 		break;
 	case 0x23bb: /* p */
 		vte_terminal_fill_rectangle(terminal,
 					    &terminal->pvt->palette[fore],
 					    x, (y + ycenter) / 2,
-					    column_width,
+					    column_width * columns,
 					    VTE_LINE_WIDTH);
 		break;
 	case 0x23bc: /* r */
@@ -11806,7 +11936,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 					    &terminal->pvt->palette[fore],
 					    x,
 					    (ycenter + ybottom) / 2,
-					    column_width,
+					    column_width * columns,
 					    VTE_LINE_WIDTH);
 		break;
 	case 0x23bd: /* s */
@@ -11814,10 +11944,15 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 					    &terminal->pvt->palette[fore],
 					    x,
 					    ybottom - 1,
-					    column_width,
+					    column_width * columns,
 					    VTE_LINE_WIDTH);
 		break;
 	case 0x2409:  /* b */
+		if (_vte_draw_char(terminal->pvt->draw, &request,
+				   &color, VTE_DRAW_OPAQUE)) {
+			/* We were able to draw with actual fonts. */
+			return TRUE;
+		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -11846,6 +11981,11 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       (xcenter + xright) / 2, ybottom - 1);
 		break;
 	case 0x240a: /* e */
+		if (_vte_draw_char(terminal->pvt->draw, &request,
+				   &color, VTE_DRAW_OPAQUE)) {
+			/* We were able to draw with actual fonts. */
+			return TRUE;
+		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -11874,6 +12014,11 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       xright - 1, (ycenter + ybottom) / 2);
 		break;
 	case 0x240b: /* i */
+		if (_vte_draw_char(terminal->pvt->draw, &request,
+				   &color, VTE_DRAW_OPAQUE)) {
+			/* We were able to draw with actual fonts. */
+			return TRUE;
+		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -11898,6 +12043,11 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       (xcenter + xright) / 2, ybottom - 1);
 		break;
 	case 0x240c:  /* c */
+		if (_vte_draw_char(terminal->pvt->draw, &request,
+				   &color, VTE_DRAW_OPAQUE)) {
+			/* We were able to draw with actual fonts. */
+			return TRUE;
+		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -11930,6 +12080,11 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       xright - 1, (ycenter + ybottom) / 2);
 		break;
 	case 0x240d: /* d */
+		if (_vte_draw_char(terminal->pvt->draw, &request,
+				   &color, VTE_DRAW_OPAQUE)) {
+			/* We were able to draw with actual fonts. */
+			return TRUE;
+		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -11970,6 +12125,11 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       xright - 1, ybottom - 1);
 		break;
 	case 0x2424: /* h */
+		if (_vte_draw_char(terminal->pvt->draw, &request,
+				   &color, VTE_DRAW_OPAQUE)) {
+			/* We were able to draw with actual fonts. */
+			return TRUE;
+		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -12002,7 +12162,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 					    &terminal->pvt->palette[fore],
 					    x,
 					    ycenter,
-					    column_width,
+					    column_width * columns,
 					    VTE_LINE_WIDTH);
 		break;
 	case 0x2501:
@@ -12010,7 +12170,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 					    &terminal->pvt->palette[fore],
 					    x,
 					    ycenter,
-					    column_width,
+					    column_width * columns,
 					    VTE_LINE_WIDTH * 2);
 		break;
 	case 0x2502: /* x */
@@ -12208,7 +12368,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 					    &terminal->pvt->palette[fore],
 					    x,
 					    ycenter,
-					    column_width,
+					    column_width * columns,
 					    VTE_LINE_WIDTH);
 		break;
 	case 0x2533:
@@ -12222,7 +12382,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 					    &terminal->pvt->palette[fore],
 					    x,
 					    ycenter,
-					    column_width,
+					    column_width * columns,
 					    VTE_LINE_WIDTH * 2);
 		break;
 	case 0x2534: /* v */
@@ -12236,7 +12396,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 					    &terminal->pvt->palette[fore],
 					    x,
 					    ycenter,
-					    column_width,
+					    column_width * columns,
 					    VTE_LINE_WIDTH);
 		break;
 	case 0x253c: /* n */
@@ -12250,7 +12410,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 					    &terminal->pvt->palette[fore],
 					    x,
 					    ycenter,
-					    column_width,
+					    column_width * columns,
 					    VTE_LINE_WIDTH);
 		break;
 	case 0x254b:
@@ -12264,7 +12424,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 					    &terminal->pvt->palette[fore],
 					    x,
 					    ycenter,
-					    column_width,
+					    column_width * columns,
 					    VTE_LINE_WIDTH * 2);
 		break;
 	case 0x2592:  /* a */
@@ -12543,7 +12703,8 @@ vte_terminal_draw_row(VteTerminal *terminal,
 							  FALSE,
 							  item.x,
 							  item.y,
-							  column_width * item.columns,
+							  column_width,
+							  item.columns,
 							  row_height);
 			if (drawn) {
 				i += item.columns;
@@ -12774,7 +12935,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 						       TRUE,
 						       item.x,
 						       item.y,
-						       width * item.columns,
+						       width,
+						       item.columns,
 						       height)) {
 				vte_terminal_draw_cells(terminal,
 							&item, 1,
@@ -13530,6 +13692,11 @@ void
 vte_terminal_copy_clipboard(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
+		fprintf(stderr, "Copying to CLIPBOARD.\n");
+	}
+#endif
 	vte_terminal_copy(terminal, GDK_SELECTION_CLIPBOARD);
 }
 
@@ -13546,6 +13713,11 @@ void
 vte_terminal_paste_clipboard(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
+		fprintf(stderr, "Pasting CLIPBOARD.\n");
+	}
+#endif
 	vte_terminal_paste(terminal, GDK_SELECTION_CLIPBOARD);
 }
 
@@ -13561,6 +13733,11 @@ void
 vte_terminal_copy_primary(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
+		fprintf(stderr, "Copying to PRIMARY.\n");
+	}
+#endif
 	vte_terminal_copy(terminal, GDK_SELECTION_PRIMARY);
 }
 
@@ -13579,6 +13756,11 @@ void
 vte_terminal_paste_primary(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
+		fprintf(stderr, "Pasting PRIMARY.\n");
+	}
+#endif
 	vte_terminal_paste(terminal, GDK_SELECTION_PRIMARY);
 }
 

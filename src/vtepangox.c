@@ -410,6 +410,15 @@ _vte_pango_x_draw_text(struct _vte_draw *draw,
 	}
 }
 
+static gboolean
+_vte_pango_x_draw_char(struct _vte_draw *draw,
+		       struct _vte_draw_text_request *request,
+		       GdkColor *color, guchar alpha)
+{
+	_vte_pango_x_draw_text(draw, request, 1, color, alpha);
+	return TRUE;
+}
+
 static void
 _vte_pango_x_draw_rectangle(struct _vte_draw *draw,
 			  gint x, gint y, gint width, gint height,
@@ -474,6 +483,7 @@ struct _vte_draw_impl _vte_draw_pango_x = {
 	_vte_pango_x_get_text_ascent,
 	_vte_pango_x_get_using_fontconfig,
 	_vte_pango_x_draw_text,
+	_vte_pango_x_draw_char,
 	_vte_pango_x_draw_rectangle,
 	_vte_pango_x_fill_rectangle,
 	_vte_pango_x_set_scroll,
