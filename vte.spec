@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.10.18
+Version: 0.10.19
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -96,6 +96,10 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Thu Feb 13 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.19-1
+- close descriptor leak
+- skip over fragments correctly when retrieving text and drawing rows
+
 * Tue Feb 11 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.18-1
 - fix for uncertain finalize order between the terminal and its accessible peer
 - always update the cursor position on accessibe-changed events so that the
