@@ -8105,6 +8105,8 @@ static gboolean
 vte_terminal_configure_toplevel(GtkWidget *widget, GdkEventConfigure *event,
 				gpointer data)
 {
+	VteTerminal *terminal;
+
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
 		fprintf(stderr, "Top level parent configured.\n");
@@ -8113,6 +8115,14 @@ vte_terminal_configure_toplevel(GtkWidget *widget, GdkEventConfigure *event,
 	g_return_val_if_fail(GTK_IS_WIDGET(widget), FALSE);
 	g_return_val_if_fail(GTK_WIDGET_TOPLEVEL(widget), FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
+	terminal = VTE_TERMINAL(data);
+
+	if (terminal->pvt->bg_transparent) {
+		/* We have to repaint the entire window, because we don't get
+		 * an expose event unless some portion of our visible area
+		 * moved out from behind another window. */
+		vte_invalidate_all(terminal);
+	}
 
 	return FALSE;
 }
@@ -9135,7 +9145,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 					  GArray *attributes)
 {
 	long col, row, last_space, last_spacecol,
-	     last_nonspace, last_nonspacecol;
+	     last_nonspace, last_nonspacecol, line_start;
 	VteScreen *screen;
 	struct vte_charcell *pcell = NULL;
 	GString *string;
@@ -9155,6 +9165,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 		last_space = last_nonspace = -1;
 		last_spacecol = last_nonspacecol = -1;
 		attr.row = row;
+		line_start = string->len;
 		pcell = NULL;
 		do {
 			/* If it's not part of a multi-column character,
@@ -9241,6 +9252,11 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 			if (pcell == NULL) {
 				g_string_truncate(string, last_nonspace + 1);
 			}
+		}
+		/* If we found no non-whitespace characters on this line, trim
+		 * it, as xterm does. */
+		if (last_nonspacecol == -1) {
+			g_string_truncate(string, line_start);
 		}
 		/* Make sure that the attributes array is as long as the
 		 * string. */

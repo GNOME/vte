@@ -1,3 +1,11 @@
+2004-04-21 nalin
+	* src/vte.c(vte_terminal_get_text_range_maybe_wrapped): also trim back
+	lines which are nothing but whitespace (#140765).
+	* src/vte.c(vte_terminal_configure_toplevel): invalidate the whole
+	window if we're "transparent", because we don't get expose events
+	unless some portion of our area came out from behind something else,
+	but we still need to repaint it (#122243).
+
 2004-04-20 nalin
 	* doc/reference/tmpl/reaper.sgml: document the child-exited signal.
 	* doc/reference/tmpl/vte.sgml: document the emulation-changed and
