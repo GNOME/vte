@@ -7258,8 +7258,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	gunichar keychar = 0;
 	char keybuf[VTE_UTF8_BPC];
 
-	g_return_val_if_fail(widget != NULL, FALSE);
-	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
+	g_return_val_if_fail(widget != NULL, TRUE);
+	g_return_val_if_fail(VTE_IS_TERMINAL(widget), TRUE);
 	terminal = VTE_TERMINAL(widget);
 
 	/* If it's a keypress, record that we got the event, in case the

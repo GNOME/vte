@@ -354,12 +354,12 @@ static struct _vte_keymap_entry _vte_keymap_GDK_KP_End[] = {
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Down[] = {
-	{cursor_all, keypad_normal, fkey_all, 0, NULL, 0, "kd"},
-	{cursor_all, keypad_normal, fkey_notvt220,
+	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, "kd"},
+	{cursor_app, keypad_all, fkey_all, 0, _VTE_CAP_SS3 "B", -1, NULL},
+	{cursor_normal, keypad_all, fkey_notvt220,
 	 0, _VTE_CAP_CSI "B", -1, NULL},
-	{cursor_all, keypad_normal, fkey_vt220, 0, "2", 1, NULL},
-	{cursor_all, keypad_app, fkey_notvt220, 0, _VTE_CAP_CSI "B", -1, NULL},
-	{cursor_all, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "r", -1, NULL},
+	{cursor_normal, keypad_normal, fkey_vt220, 0, "2", 1, NULL},
+	{cursor_normal, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "r", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
@@ -375,13 +375,12 @@ static struct _vte_keymap_entry _vte_keymap_GDK_KP_Page_Down[] = {
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Left[] = {
-	{cursor_all, keypad_normal, fkey_all, 0, NULL, 0, "kl"},
-	{cursor_all, keypad_normal, fkey_notvt220,
+	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, "kl"},
+	{cursor_app, keypad_all, fkey_all, 0, _VTE_CAP_SS3 "D", -1, NULL},
+	{cursor_normal, keypad_all, fkey_notvt220,
 	 0, _VTE_CAP_CSI "D", -1, NULL},
-	{cursor_all, keypad_normal, fkey_vt220, 0, "4", 1, NULL},
-	{cursor_all, keypad_app, fkey_notvt220, 0, _VTE_CAP_CSI "D", -1, NULL},
-	{cursor_all, keypad_app, fkey_vt220, 0, _VTE_CAP_CSI "D", -1, NULL},
-	{cursor_all, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "t", -1, NULL},
+	{cursor_normal, keypad_normal, fkey_vt220, 0, "4", 1, NULL},
+	{cursor_normal, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "t", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
@@ -396,12 +395,12 @@ static struct _vte_keymap_entry _vte_keymap_GDK_KP_Begin[] = {
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Right[] = {
-	{cursor_all, keypad_normal, fkey_all, 0, NULL, 0, "kr"},
-	{cursor_all, keypad_normal, fkey_notvt220,
+	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, "kr"},
+	{cursor_app, keypad_all, fkey_all, 0, _VTE_CAP_SS3 "C", -1, NULL},
+	{cursor_normal, keypad_all, fkey_notvt220,
 	 0, _VTE_CAP_CSI "C", -1, NULL},
-	{cursor_all, keypad_normal, fkey_vt220, 0, "6", 1, NULL},
-	{cursor_all, keypad_app, fkey_notvt220, 0, _VTE_CAP_CSI "C", -1, NULL},
-	{cursor_all, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "v", -1, NULL},
+	{cursor_normal, keypad_normal, fkey_vt220, 0, "6", 1, NULL},
+	{cursor_normal, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "v", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
@@ -416,12 +415,12 @@ static struct _vte_keymap_entry _vte_keymap_GDK_KP_Home[] = {
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Up[] = {
-	{cursor_all, keypad_normal, fkey_all, 0, NULL, 0, "ku"},
-	{cursor_all, keypad_normal, fkey_notvt220,
+	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, "ku"},
+	{cursor_app, keypad_all, fkey_all, 0, _VTE_CAP_SS3 "A", -1, NULL},
+	{cursor_normal, keypad_all, fkey_notvt220,
 	 0, _VTE_CAP_CSI "A", -1, NULL},
-	{cursor_all, keypad_normal, fkey_vt220, 0, "8", 1, NULL},
-	{cursor_all, keypad_app, fkey_notvt220, 0, _VTE_CAP_CSI "A", -1, NULL},
-	{cursor_all, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "x", -1, NULL},
+	{cursor_normal, keypad_normal, fkey_vt220, 0, "8", 1, NULL},
+	{cursor_normal, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "x", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
