@@ -102,6 +102,14 @@ main(int argc, char **argv)
 	scrollbar = gtk_vscrollbar_new((VTE_TERMINAL(widget))->adjustment);
 	gtk_box_pack_start(GTK_BOX(hbox), scrollbar, FALSE, FALSE, 0);
 
+	/* Set some defaults. */
+	vte_terminal_set_audible_bell(VTE_TERMINAL(widget), TRUE);
+	vte_terminal_set_scroll_on_output(VTE_TERMINAL(widget), TRUE);
+	vte_terminal_set_scroll_on_keystroke(VTE_TERMINAL(widget), TRUE);
+	vte_terminal_set_background_image_file(VTE_TERMINAL(widget),
+					       "./background");
+	vte_terminal_set_background_transparent(VTE_TERMINAL(widget));
+
 	/* Launch a shell. */
 #ifdef VTE_DEBUG
 	vte_terminal_feed(VTE_TERMINAL(widget), message, strlen(message));

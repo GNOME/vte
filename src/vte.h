@@ -90,10 +90,22 @@ GtkWidget *vte_terminal_new(void);
 void vte_terminal_fork_command(VteTerminal *terminal,
 			       const char *command,
 			       const char **argv);
-void vte_terminal_size_set(VteTerminal *terminal, long columns, long rows);
 void vte_terminal_feed(VteTerminal *terminal,
 		       const char *data,
 		       size_t length);
+void vte_terminal_set_size(VteTerminal *terminal, long columns, long rows);
+void vte_terminal_set_audible_bell(VteTerminal *terminal, gboolean audible);
+void vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll);
+void vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
+					  gboolean scroll);
+void vte_terminal_copy_clipboard(VteTerminal *terminal);
+void vte_terminal_paste_clipboard(VteTerminal *terminal);
+void vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image);
+void vte_terminal_set_background_image_file(VteTerminal *terminal,
+					    const char *path);
+void vte_terminal_set_background_saturation(VteTerminal *terminal,
+					    float saturation);
+void vte_terminal_set_background_transparent(VteTerminal *terminal);
 
 G_END_DECLS
 

@@ -35,6 +35,7 @@
 #include <wctype.h>
 #include <glib.h>
 #include <glib-object.h>
+#include <gdk-pixbuf-xlib/gdk-pixbuf-xlib.h>
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
 #include <gdk/gdkx.h>
@@ -54,6 +55,8 @@
 #define VTE_TAB_WIDTH	8
 #define VTE_LINE_WIDTH	1
 #define VTE_UTF8_BPC	6
+#define VTE_DEF_FG	16
+#define VTE_DEF_BG	17
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
@@ -61,8 +64,8 @@ struct vte_charcell {
 	wchar_t c;		/* The wide character. */
 	guint16 columns: 2;	/* Number of visible columns (as determined
 				   by wcwidth(c)). */
-	guint16 fore: 3;	/* Indices in the color palette for the */
-	guint16 back: 3;	/* foreground and background of the cell. */
+	guint16 fore: 5;	/* Indices in the color palette for the */
+	guint16 back: 5;	/* foreground and background of the cell. */
 	guint16 reverse: 1;	/* Single-bit attributes. */
 	guint16 invisible: 1;
 	guint16 bold: 1;
@@ -123,7 +126,7 @@ struct _VteTerminalPrivate {
 		XRenderColor rcolor;
 		XftColor ftcolor;
 #endif
-	} palette[16];
+	} palette[18];
 	XFontSet fontset;
 
 #ifdef HAVE_XFT
@@ -172,8 +175,12 @@ struct _VteTerminalPrivate {
 
 	/* Options. */
 	gboolean scroll_on_output;
-	gboolean scroll_on_keypress;
+	gboolean scroll_on_keystroke;
 	gboolean alt_sends_escape;
+	gboolean audible_bell;
+	GdkPixbuf *bg_image_full;
+	GdkPixbuf *bg_image;
+	float bg_saturation;
 };
 
 /* A function which can handle a terminal control sequence. */
@@ -217,8 +224,8 @@ static void
 vte_terminal_set_default_attributes(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->screen->defaults.fore = 7;
-	terminal->pvt->screen->defaults.back = 0;
+	terminal->pvt->screen->defaults.fore = VTE_DEF_FG;
+	terminal->pvt->screen->defaults.back = VTE_DEF_BG;
 	terminal->pvt->screen->defaults.reverse = 0;
 	terminal->pvt->screen->defaults.bold = 0;
 	terminal->pvt->screen->defaults.invisible = 0;
@@ -605,8 +612,41 @@ vte_sequence_handler_bl(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
+	Display *display;
+	GdkDrawable *gdrawable;
+	Drawable drawable;
+	GC gc;
+	gint x_offs, y_offs;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	gdk_beep();
+
+	if (!(terminal->pvt->audible_bell) &&
+	    GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
+		gdk_window_get_internal_paint_info(GTK_WIDGET(terminal)->window,
+						   &gdrawable,
+						   &x_offs,
+						   &y_offs);
+		display = gdk_x11_drawable_get_xdisplay(gdrawable);
+		drawable = gdk_x11_drawable_get_xid(gdrawable);
+		gc = XCreateGC(display, drawable, 0, NULL);
+
+		XSetForeground(display, gc,
+			       terminal->pvt->palette[VTE_DEF_FG].pixel);
+		XFillRectangle(display, drawable, gc,
+			       x_offs, y_offs,
+			       terminal->column_count * terminal->char_width,
+			       terminal->row_count * terminal->char_height);
+		gdk_window_process_all_updates();
+
+		vte_invalidate_cells(terminal,
+				     0,
+				     terminal->column_count,
+				     terminal->pvt->screen->scroll_delta,
+				     terminal->row_count);
+		gdk_window_process_all_updates();
+	} else {
+		gdk_beep();
+	}
 }
 
 /* Clear from the cursor position to the beginning of the line. */
@@ -960,19 +1000,30 @@ vte_sequence_handler_do(VteTerminal *terminal,
 			 * line at the bottom to scroll the top off. */
 			vte_remove_line_int(terminal, start);
 			vte_insert_line_int(terminal, end);
-			/* Scroll the window. */
-			gdk_window_scroll(widget->window,
-					  0,
-					  -terminal->char_height);
-			/* We need to redraw the last row of the scrolling
-			 * region, and anything beyond. */
-			vte_invalidate_cells(terminal,
-					     0, terminal->column_count,
-					     end, terminal->row_count);
-			/* Also redraw anything above the scrolling region. */
-			vte_invalidate_cells(terminal,
-					     0, terminal->column_count,
-					     0, start);
+			if (terminal->pvt->bg_image == NULL) {
+				/* Scroll the window. */
+				gdk_window_scroll(widget->window,
+						  0,
+						  -terminal->char_height);
+				/* We need to redraw the last row of the
+				 * scrolling region, and anything beyond. */
+				vte_invalidate_cells(terminal,
+						     0, terminal->column_count,
+						     end, terminal->row_count);
+				/* Also redraw anything above the scrolling
+				 * region. */
+				vte_invalidate_cells(terminal,
+						     0, terminal->column_count,
+						     0, start);
+			} else {
+				/* If we have a background image, we need to
+				 * redraw the entire window. */
+				vte_invalidate_cells(terminal,
+						     0,
+						     terminal->column_count,
+						     screen->scroll_delta,
+						     terminal->row_count);
+			}
 		} else {
 			/* Otherwise, just move the cursor down. */
 			screen->cursor_current.row++;
@@ -1345,19 +1396,30 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			 * line at the top to scroll the bottom off. */
 			vte_remove_line_int(terminal, end);
 			vte_insert_line_int(terminal, start);
-			/* Scroll the window. */
-			gdk_window_scroll(widget->window,
-					  0,
-					  terminal->char_height);
-			/* We need to redraw the first row of the scrolling
-			 * region, and anything above. */
-			vte_invalidate_cells(terminal,
-					     0, terminal->column_count,
-					     0, start + 1);
-			/* Also redraw anything below the scrolling region. */
-			vte_invalidate_cells(terminal,
-					     0, terminal->column_count,
-					     end, terminal->row_count);
+			if (terminal->pvt->bg_image == NULL) {
+				/* Scroll the window. */
+				gdk_window_scroll(widget->window,
+						  0,
+						  terminal->char_height);
+				/* We need to redraw the first row of the
+				 * scrolling region, and anything above. */
+				vte_invalidate_cells(terminal,
+						     0, terminal->column_count,
+						     0, start + 1);
+				/* Also redraw anything below the scrolling
+				 * region. */
+				vte_invalidate_cells(terminal,
+						     0, terminal->column_count,
+						     end, terminal->row_count);
+			} else {
+				/* If we have a background image, we need to
+				 * redraw the entire window. */
+				vte_invalidate_cells(terminal,
+						     0,
+						     terminal->column_count,
+						     screen->scroll_delta,
+						     terminal->row_count);
+			}
 		} else {
 			/* Otherwise, just move the cursor up. */
 			screen->cursor_current.row--;
@@ -1372,14 +1434,26 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			 * history. */
 			vte_remove_line_int(terminal, end);
 			vte_insert_line_int(terminal, start);
-			/* Scroll the window. */
-			gdk_window_scroll(widget->window,
-					  0,
-					  terminal->char_height);
-			/* We need to redraw the bottom row. */
-			vte_invalidate_cells(terminal,
-					     0, terminal->column_count,
-					     terminal->row_count - 1, 1);
+			if (terminal->pvt->bg_image == NULL) {
+				/* Scroll the window. */
+				gdk_window_scroll(widget->window,
+						  0,
+						  terminal->char_height);
+				/* We need to redraw the bottom row. */
+				vte_invalidate_cells(terminal,
+						     0,
+						     terminal->column_count,
+						     terminal->row_count - 1,
+						     1);
+			} else {
+				/* If we have a background image, we need to
+				 * redraw the entire window. */
+				vte_invalidate_cells(terminal,
+						     0,
+						     terminal->column_count,
+						     screen->scroll_delta,
+						     terminal->row_count);
+			}
 		} else {
 			/* Move the cursor up. */
 			screen->cursor_current.row--;
@@ -1512,12 +1586,12 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 				break;
 			case 38:
 				/* default foreground, underscore */
-				terminal->pvt->screen->defaults.fore = 7;
+				terminal->pvt->screen->defaults.fore = VTE_DEF_FG;
 				terminal->pvt->screen->defaults.underline = 1;
 				break;
 			case 39:
 				/* default foreground, no underscore */
-				terminal->pvt->screen->defaults.fore = 7;
+				terminal->pvt->screen->defaults.fore = VTE_DEF_FG;
 				terminal->pvt->screen->defaults.underline = 0;
 				break;
 			case 40:
@@ -1532,7 +1606,7 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 				break;
 			case 49:
 				/* default background */
-				terminal->pvt->screen->defaults.back = 0;
+				terminal->pvt->screen->defaults.back = VTE_DEF_BG;
 				break;
 			case 90:
 			case 91:
@@ -2488,7 +2562,7 @@ vte_terminal_new(void)
 static void
 vte_terminal_set_default_palette(VteTerminal *terminal)
 {
-	int i;
+	int i, j;
 	XColor color;
 	GtkWidget *widget;
 	Display *display;
@@ -2523,12 +2597,22 @@ vte_terminal_set_default_palette(VteTerminal *terminal)
 			visual = gdk_x11_visual_get_xvisual(gvisual);
 		}
 
+		/* Map this index to a number useful for generating colors. */
+		if (i == VTE_DEF_FG) {
+			j = 7;
+		} else
+		if (i == VTE_DEF_BG) {
+			j = 0;
+		} else {
+			j = i;
+		}
+
 		/* Make the difference between normal and bright about three
 		 * fourths of the total available brightness. */
-		bright = (i & 8) ? 0x3fff : 0;
-		blue = (i & 4) ? 0xc000 : 0;
-		green = (i & 2) ? 0xc000 : 0;
-		red = (i & 1) ? 0xc000 : 0;
+		bright = (j & 8) ? 0x3fff : 0;
+		blue = (j & 4) ? 0xc000 : 0;
+		green = (j & 2) ? 0xc000 : 0;
+		red = (j & 1) ? 0xc000 : 0;
 
 		/* Allocate a color from the colormap. */
 		color.pixel = i;
@@ -2616,8 +2700,8 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 			memset(&cell, 0, sizeof(cell));
 			cell.c = ' ';
 			cell.columns = 1;
-			cell.fore = 7;
-			cell.back = 0;
+			cell.fore = VTE_DEF_FG;
+			cell.back = VTE_DEF_BG;
 			while (array->len < col) {
 				g_array_append_val(array, cell);
 			}
@@ -2634,8 +2718,8 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 				memset(&cell, 0, sizeof(cell));
 				cell.c = ' ';
 				cell.columns = 1;
-				cell.fore = 7;
-				cell.back = 0;
+				cell.fore = VTE_DEF_FG;
+				cell.back = VTE_DEF_BG;
 				g_array_insert_val(array, col, cell);
 				pcell = &g_array_index(array,
 						       struct vte_charcell,
@@ -3397,7 +3481,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			g_free(special);
 		}
 		/* Keep the cursor on-screen. */
-		if (!scrolled && terminal->pvt->scroll_on_keypress) {
+		if (!scrolled && terminal->pvt->scroll_on_keystroke) {
 			vte_terminal_scroll_on_something(terminal);
 		}
 		return TRUE;
@@ -4040,7 +4124,7 @@ vte_compare_direct(gconstpointer a, gconstpointer b)
 
 /* Read and refresh our perception of the size of the PTY. */
 static void
-vte_terminal_size_get(VteTerminal *terminal)
+vte_terminal_get_size(VteTerminal *terminal)
 {
 	struct winsize size;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -4058,7 +4142,7 @@ vte_terminal_size_get(VteTerminal *terminal)
 
 /* Set the size of the PTY. */
 void
-vte_terminal_size_set(VteTerminal *terminal, long columns, long rows)
+vte_terminal_set_size(VteTerminal *terminal, long columns, long rows)
 {
 	struct winsize size;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -4075,7 +4159,7 @@ vte_terminal_size_set(VteTerminal *terminal, long columns, long rows)
 		terminal->column_count = columns;
 	}
 	/* Read the terminal size, in case something went awry. */
-	vte_terminal_size_get(terminal);
+	vte_terminal_get_size(terminal);
 }
 
 /* Redraw the widget. */
@@ -4099,11 +4183,22 @@ vte_handle_scroll(VteTerminal *terminal)
 	dy = screen->scroll_delta - adj;
 	screen->scroll_delta = adj;
 	if (dy != 0) {
-		/* Scroll whatever's already in the window to avoid redrawing
-		 * as much as possible -- any exposed area will be exposed for
-		 * us by the windowing system and GDK. */
-		gdk_window_scroll(widget->window,
-				  0, dy * terminal->char_height);
+		if (terminal->pvt->bg_image == NULL) {
+			/* Scroll whatever's already in the window to avoid
+			 * redrawing as much as possible -- any exposed area
+			 * will be exposed for us by the windowing system
+			 * and GDK. */
+			gdk_window_scroll(widget->window,
+					  0, dy * terminal->char_height);
+		} else {
+			/* If we have a background image, we need to redraw
+			 * the entire window. */
+			vte_invalidate_cells(terminal,
+					     0,
+					     terminal->column_count,
+					     screen->scroll_delta,
+					     terminal->row_count);
+		}
 	}
 	/* Let the refreshing begin. */
 	gdk_window_thaw_updates(widget->window);
@@ -4211,7 +4306,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 							   "am");
 
 	/* Resize to the given default. */
-	vte_terminal_size_set(terminal,
+	vte_terminal_set_size(terminal,
 			      vte_termcap_find_numeric(terminal->pvt->termcap,
 						       terminal->pvt->terminal,
 						       "co") ?: 60,
@@ -4266,9 +4361,15 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->n_outgoing = 0;
 	pvt->palette_initialized = FALSE;
 	pvt->keypad = VTE_KEYPAD_NORMAL;
+
 	pvt->scroll_on_output = TRUE;
-	pvt->scroll_on_keypress = TRUE;
+	pvt->scroll_on_keystroke = TRUE;
 	pvt->alt_sends_escape = TRUE;
+	pvt->audible_bell = TRUE;
+	pvt->bg_image_full = NULL;
+	pvt->bg_image = NULL;
+	pvt->bg_saturation = 0.5;
+
 	pvt->selection = FALSE;
 	pvt->selection_start.x = 0;
 	pvt->selection_start.y = 0;
@@ -4361,7 +4462,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	widget->allocation = *allocation;
 
 	/* Set the size of the pseudo-terminal. */
-	vte_terminal_size_set(terminal,
+	vte_terminal_set_size(terminal,
 			      allocation->width / terminal->char_width,
 			      allocation->height / terminal->char_height);
 
@@ -4498,7 +4599,17 @@ vte_terminal_finalize(GObject *object)
 
 	/* Clean up terminal fields. */
 	g_free(terminal->window_title);
+	terminal->window_title = NULL;
 	g_free(terminal->icon_title);
+	terminal->icon_title = NULL;
+	if (terminal->pvt->bg_image_full != NULL) {
+		gdk_pixbuf_unref(terminal->pvt->bg_image_full);
+		terminal->pvt->bg_image_full = NULL;
+	}
+	if (terminal->pvt->bg_image != NULL) {
+		gdk_pixbuf_unref(terminal->pvt->bg_image);
+		terminal->pvt->bg_image = NULL;
+	}
 
 	/* Call the GObject finalize() method. */
 	if (object_class->finalize) {
@@ -4603,11 +4714,11 @@ vte_terminal_draw_char(VteTerminal *terminal,
 	reverse = reverse ^ vte_cell_is_selected(terminal, row, col);
 	reverse = reverse || cursor;
 	if (reverse) {
-		fore = cell ? cell->back : 0;
-		back = cell ? cell->fore : 7;
+		fore = cell ? cell->back : VTE_DEF_BG;
+		back = cell ? cell->fore : VTE_DEF_FG;
 	} else {
-		fore = cell ? cell->fore : 7;
-		back = cell ? cell->back : 0;
+		fore = cell ? cell->fore : VTE_DEF_FG;
+		back = cell ? cell->back : VTE_DEF_BG;
 	}
 
 	/* Handle invisible, bold, and standout text by adjusting colors. */
@@ -4615,15 +4726,23 @@ vte_terminal_draw_char(VteTerminal *terminal,
 		fore = back;
 	}
 	if (cell && cell->bold) {
-		fore += 8;
+		if ((fore != VTE_DEF_FG) && (fore != VTE_DEF_BG)) {
+			fore += 8;
+		}
 	}
 	if (cell && cell->standout) {
-		back += 8;
+		if ((back != VTE_DEF_FG) && (back != VTE_DEF_BG)) {
+			back += 8;
+		}
 	}
 
 	/* Paint the background for the cell. */
-	XSetForeground(display, gc, terminal->pvt->palette[back].pixel);
-	XFillRectangle(display, drawable, gc, x, y, width, height);
+	if ((terminal->pvt->bg_image == NULL) ||
+	    (back != VTE_DEF_BG) ||
+	    !GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
+		XSetForeground(display, gc, terminal->pvt->palette[back].pixel);
+		XFillRectangle(display, drawable, gc, x, y, width, height);
+	}
 
 	/* If there's no data, bug out here. */
 	if (cell == NULL) {
@@ -5000,12 +5119,26 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	/* Paint the background for this area, using a filled rectangle.  We
 	 * have to do this even when the GDK background matches, otherwise
 	 * we may miss character removals before an area is re-exposed. */
-	XSetForeground(display, gc, terminal->pvt->palette[0].pixel);
-	XFillRectangle(display, drawable, gc,
-		       area->x - x_offs,
-		       area->y - y_offs,
-		       area->width,
-		       area->height);
+	if (terminal->pvt->bg_image != NULL) {
+		/* FIXME: tile if the image isn't big enough. */
+		gdk_pixbuf_xlib_render_to_drawable(terminal->pvt->bg_image,
+						   drawable, gc,
+						   (area->x) % gdk_pixbuf_get_width(terminal->pvt->bg_image),
+						   (area->y) % gdk_pixbuf_get_height(terminal->pvt->bg_image),
+						   area->x - x_offs,
+						   area->y - y_offs,
+						   area->width,
+						   area->height,
+						   XLIB_RGB_DITHER_NONE, 0, 0);
+	} else {
+		XSetForeground(display, gc,
+			       terminal->pvt->palette[VTE_DEF_BG].pixel);
+		XFillRectangle(display, drawable, gc,
+			       area->x - x_offs,
+			       area->y - y_offs,
+			       area->width,
+			       area->height);
+	}
 
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */
@@ -5121,10 +5254,9 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 
 	gobject_class = G_OBJECT_CLASS(klass);
 	widget_class = GTK_WIDGET_CLASS(klass);
-	
+
 	/* Override some of the default handlers. */
 	gobject_class->finalize = vte_terminal_finalize;
-	
 	widget_class->realize = vte_terminal_realize;
 	widget_class->expose_event = vte_terminal_expose;
 	widget_class->key_press_event = vte_terminal_key_press;
@@ -5202,4 +5334,156 @@ vte_terminal_get_type(void)
 	}
 
 	return terminal_type;
+}
+
+/* External access functions. */
+void
+vte_terminal_set_audible_bell(VteTerminal *terminal, gboolean audible)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->audible_bell = audible;
+}
+
+void
+vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->scroll_on_output = scroll;
+}
+
+void
+vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal, gboolean scroll)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->scroll_on_keystroke = scroll;
+}
+
+void
+vte_terminal_copy_clipboard(VteTerminal *terminal)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	vte_terminal_copy(terminal, GDK_SELECTION_CLIPBOARD);
+}
+
+void
+vte_terminal_paste_clipboard(VteTerminal *terminal)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	vte_terminal_paste(terminal, GDK_SELECTION_CLIPBOARD);
+}
+
+void
+vte_terminal_set_background_saturation(VteTerminal *terminal, float saturation)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->bg_saturation = saturation;
+	if (terminal->pvt->bg_image != NULL) {
+		/* Adjust the brightness of the background image. */
+		gdk_pixbuf_saturate_and_pixelate(terminal->pvt->bg_image_full,
+						 terminal->pvt->bg_image,
+						 terminal->pvt->bg_saturation,
+						 FALSE);
+		if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
+			vte_invalidate_cells(terminal,
+					     0,
+					     terminal->column_count,
+					     terminal->pvt->screen->scroll_delta,
+					     terminal->row_count);
+		}
+	}
+}
+
+void
+vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
+{
+	long bits, width, height;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	/* Do some other initialization. */
+	gdk_pixbuf_xlib_init(gdk_x11_get_default_xdisplay(),
+			     gdk_x11_get_default_screen());
+	/* Free the previous background. */
+	if (terminal->pvt->bg_image != NULL) {
+		gdk_pixbuf_unref(terminal->pvt->bg_image);
+		terminal->pvt->bg_image = NULL;
+	}
+	if (terminal->pvt->bg_image_full != NULL) {
+		gdk_pixbuf_unref(terminal->pvt->bg_image_full);
+		terminal->pvt->bg_image_full = NULL;
+	}
+	/* Load the image. */
+	if (image != NULL) {
+		/* Get information about the new image. */
+		bits = gdk_pixbuf_get_bits_per_sample(image),
+		width = gdk_pixbuf_get_width(image),
+		height = gdk_pixbuf_get_height(image);
+		/* Use the image. */
+		terminal->pvt->bg_image_full = image;
+		gdk_pixbuf_ref(terminal->pvt->bg_image_full);
+		/* Create a copy to make dimmer. */
+		terminal->pvt->bg_image = gdk_pixbuf_new(GDK_COLORSPACE_RGB,
+							 FALSE,
+							 bits,
+							 width,
+							 height);
+		/* Adjust the brightness. */
+		gdk_pixbuf_saturate_and_pixelate(terminal->pvt->bg_image_full,
+						 terminal->pvt->bg_image,
+						 terminal->pvt->bg_saturation,
+						 FALSE);
+	}
+	/* Repaint everyting. */
+	if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
+		vte_invalidate_cells(terminal,
+				     0,
+				     terminal->column_count,
+				     terminal->pvt->screen->scroll_delta,
+				     terminal->row_count);
+	}
+}
+
+void
+vte_terminal_set_background_image_file(VteTerminal *terminal, const char *path)
+{
+	GdkPixbuf *image;
+	GError *error = NULL;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	image = gdk_pixbuf_new_from_file(path, &error);
+	if ((image != NULL) && (error == NULL)) {
+		vte_terminal_set_background_image(terminal, image);
+	} else {
+		/* FIXME: do something better with the error. */
+		g_error_free(error);
+	}
+}
+
+/* FIXME: this function doesn't actually work. */
+void
+vte_terminal_set_background_transparent(VteTerminal *terminal)
+{
+	GdkPixbuf *image;
+	XWindowAttributes attrs;
+	Window root;
+	Display *display;
+	long width, height;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	root = gdk_x11_get_default_root_xwindow();
+	display = gdk_x11_get_default_xdisplay();
+	image = NULL;
+	if (XGetWindowAttributes(display, root, &attrs)) {
+		height = attrs.height;
+		width = attrs.width;
+		image = gdk_pixbuf_xlib_get_from_drawable(NULL,
+							  root,
+							  0,
+							  NULL,
+							  0, 0,
+							  0, 0,
+							  width, height);
+	}
+
+	if (image != NULL) {
+		vte_terminal_set_background_image(terminal, image);
+	}
 }
