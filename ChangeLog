@@ -1,3 +1,9 @@
+2003-03-07 nalin	
+	* src/vte.c(vte_terminal_visibility_notify): watch for Visibility
+	events.
+	* src/vte.c(vte_invalidate_cells,vte_invalidate_all): don't synthesize
+	an expose event if we're fully obscured, that's just silly.
+
 2003-03-06 nalin	
 	* src/vte.c, src/vte.h(vte_terminal_set_background_tint_color): take a
 	const GdkColor* instead of a non-const color.

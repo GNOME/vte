@@ -403,6 +403,9 @@ struct _VteTerminalPrivate {
 
 	/* Key modifiers. */
 	GdkModifierType modifiers;
+
+	/* Obscured? state. */
+	GdkVisibilityState visibility_state;
 };
 
 /* A function which can handle a terminal control sequence. */
@@ -675,6 +678,9 @@ vte_invalidate_cells(VteTerminal *terminal,
 	if (!GTK_WIDGET_REALIZED(widget)) {
 		return;
 	}
+	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
+		return;
+	}
 
 	/* Subtract the scrolling offset from the row start so that the
 	 * resulting rectangle is relative to the visible portion of the
@@ -708,6 +714,9 @@ vte_invalidate_all(VteTerminal *terminal)
 	}
 	widget = GTK_WIDGET(terminal);
 	if (!GTK_WIDGET_REALIZED(widget)) {
+		return;
+	}
+	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
 		return;
 	}
 
@@ -9895,6 +9904,15 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 	return FALSE;
 }
 
+static gint
+vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
+{
+	g_return_val_if_fail(GTK_WIDGET(widget), FALSE);
+	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
+	(VTE_TERMINAL(widget))->pvt->visibility_state = event->state;
+	return FALSE;
+}
+
 static void
 vte_terminal_font_complain(const char *font,
 			   char **missing_charset_list,
@@ -11654,6 +11672,9 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	/* Clear modifiers. */
 	pvt->modifiers = 0;
 
+	/* Assume we're visible unless we're told otherwise. */
+	pvt->visibility_state = GDK_VISIBILITY_UNOBSCURED;
+
 	/* Listen for hierarchy change notifications. */
 	g_signal_connect(G_OBJECT(terminal), "hierarchy-changed",
 			 G_CALLBACK(vte_terminal_hierarchy_changed),
@@ -12260,6 +12281,7 @@ vte_terminal_realize(GtkWidget *widget)
 	attributes.colormap = gtk_widget_get_colormap(widget);
 	attributes.event_mask = gtk_widget_get_events(widget) |
 				GDK_EXPOSURE_MASK |
+				GDK_VISIBILITY_NOTIFY_MASK |
 				GDK_BUTTON_PRESS_MASK |
 				GDK_BUTTON_RELEASE_MASK |
 				GDK_POINTER_MOTION_MASK |
@@ -12349,6 +12371,9 @@ vte_terminal_realize(GtkWidget *widget)
 
 	/* Clear modifiers. */
 	terminal->pvt->modifiers = 0;
+
+	/* Assume we're visible unless we're told otherwise. */
+	terminal->pvt->visibility_state = GDK_VISIBILITY_UNOBSCURED;
 
 	/* Create our invisible cursor. */
 	bitmap = gdk_bitmap_create_from_data(widget->window, "\0", 1, 1);
@@ -14949,6 +14974,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 	widget_class->motion_notify_event = vte_terminal_motion_notify;
 	widget_class->focus_in_event = vte_terminal_focus_in;
 	widget_class->focus_out_event = vte_terminal_focus_out;
+	widget_class->visibility_notify_event = vte_terminal_visibility_notify;
 	widget_class->unrealize = vte_terminal_unrealize;
 	widget_class->size_request = vte_terminal_size_request;
 	widget_class->size_allocate = vte_terminal_size_allocate;
