@@ -7604,6 +7604,7 @@ vte_terminal_process_incoming(gpointer data)
 	if (modified || (screen != terminal->pvt->screen)) {
 		/* Signal that the visible contents changed. */
 		vte_terminal_match_contents_clear(terminal);
+		vte_terminal_emit_contents_changed(terminal);
 	}
 
 	if ((cursor.col != terminal->pvt->screen->cursor_current.col) ||
@@ -8182,10 +8183,21 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	gunichar keychar = 0;
 	char keybuf[VTE_UTF8_BPC];
 	GdkModifierType modifiers;
+	GtkWidgetClass *widget_class;
 
 	g_return_val_if_fail(widget != NULL, TRUE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), TRUE);
 	terminal = VTE_TERMINAL(widget);
+
+	/* First, check if GtkWidget's behavior already does something with
+ 	 * this key. */
+	widget_class = g_type_class_peek(GTK_TYPE_WIDGET);
+	if (GTK_WIDGET_CLASS(widget_class)->key_press_event) {
+		if ((GTK_WIDGET_CLASS(widget_class))->key_press_event(widget,
+								      event)) {
+			return TRUE;
+		}
+	}
 
 	/* If it's a keypress, record that we got the event, in case the
 	 * input method takes the event from us. */

@@ -31,14 +31,14 @@ extern PyMethodDef pyvte_functions[];
 extern DL_EXPORT(void) initvte(void);
 
 DL_EXPORT(void)
-initvte(void)
+init_vte(void)
 {
 	PyObject *m, *d;
 
 	init_pygobject();
 	init_pygtk();
 
-	m = Py_InitModule("vte", pyvte_functions);
+	m = Py_InitModule("_vte", pyvte_functions);
 	d = PyModule_GetDict(m);
 
 	pyvte_register_classes(d);

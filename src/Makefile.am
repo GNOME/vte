@@ -97,6 +97,7 @@ VERSION_CURRENT=6
 # must be reset to 0 when this happens.
 VERSION_AGE=2
 libvte_la_LDFLAGS = @LDFLAGS@ -version-info $(VERSION_CURRENT):$(VERSION_REVISION):$(VERSION_AGE)
+libvte_la_LIBADD = @LIBS@ @VTE_LIBS@ @X_LIBS@
 
 CLEANFILES = marshal.c marshal.h
 

@@ -408,6 +408,7 @@ if test "$enable_gnome_pty_helper" != no; then
 	AC_DEFINE(VTE_USE_GNOME_PTY_HELPER,1,[Define if you intend to use gnome-pty-helper.])
 	AC_CONFIG_SUBDIRS(gnome-pty-helper)
 fi
+AM_CONDITIONAL(BUILD_GNOME_PTY_HELPER,[test "$enable_gnome_pty_helper" != no])
 
 ################################################################################
 

@@ -9,7 +9,7 @@ dnl GPH_CHECK_UTMP()
 dnl Test for presence of the field and define HAVE_UT_UT_field macro
 dnl
 
-AC_DEFUN(GPH_CHECK_UTMP,[
+AC_DEFUN([GPH_CHECK_UTMP],[
 
 AC_CHECK_HEADERS(sys/time.h utmp.h utmpx.h)
 AC_HEADER_TIME
