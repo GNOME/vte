@@ -84,7 +84,6 @@ msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 
 #: src/vte.c:10182
-#, c-format
 #, fuzzy
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "PTY വലിപ്പം സജ്ജീകരിക്കുന്നതില് തകരാറ്, പൊതുവായ വിലകള് ഉപയോഗിക്കുന്നു %s."
@@ -113,4 +112,3 @@ msgstr "അറിയാത്ത പിക്സല് രീതി %d.\n"
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "എഴുതാനാവാത്ത അക്ഷരം  U+%04x.\n"
-
