@@ -1,0 +1,119 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2003-01-10 08:59+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/pty.c:253
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr ""
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:800
+#, c-format
+msgid "can not run %s"
+msgstr ""
+
+#: src/reaper.c:107
+msgid "Error creating signal pipe."
+msgstr ""
+
+#: src/trie.c:411
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr ""
+
+#: src/vte.c:1403
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr ""
+
+#: src/vte.c:1925 src/vte.c:1934 src/vte.c:1946 src/vte.c:1964 src/vte.c:1970
+#: src/vte.c:1975
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr ""
+
+#: src/vte.c:5437
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr ""
+
+#: src/vte.c:6527
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr ""
+
+#: src/vte.c:7273
+#, c-format
+msgid "Error reading from child: %s."
+msgstr ""
+
+#: src/vte.c:7434
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr ""
+
+#: src/vte.c:9719
+#, c-format
+msgid "Using fontset \"%s\", which is missing these character sets: %s."
+msgstr ""
+
+#: src/vte.c:10357
+#, c-format
+msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
+msgstr ""
+
+#: src/vte.c:10369
+msgid "Failed to load default Xft font."
+msgstr ""
+
+#: src/vte.c:10462
+#, c-format
+msgid "Failed to load font set \"%s\", falling back to default font."
+msgstr ""
+
+#: src/vte.c:10474
+msgid "Failed to load default font, crashing or behaving abnormally."
+msgstr ""
+
+#: src/vte.c:10736
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr ""
+
+#: src/vte.c:10772
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr ""
+
+#: src/vte.c:13647
+msgid "Error allocating draw, disabling Xft."
+msgstr ""
+
+#: src/vte.c:13655
+msgid "Error allocating context, disabling Pango."
+msgstr ""
+
+#: src/vte.c:13661
+msgid "Error allocating layout, disabling Pango."
+msgstr ""
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:15292
+msgid "g_iconv_open() failed setting word characters"
+msgstr ""
