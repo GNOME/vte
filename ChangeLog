@@ -1,4 +1,8 @@
 2003-02-12 nalin
+        * src/vte.c(vte_terminal_finalize): close fd leak.
+        * src/vte.c(vte_terminal_fork_command): close potential fd leak.
+
+2003-02-12 nalin
 	* src/reflect.c(main): handle cases where the widget has no data and
 	returns NULL when we ask for it.
 

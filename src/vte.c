@@ -6733,6 +6733,7 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 
 	if (terminal->pvt->pty_master != -1) {
 		_vte_pty_close(terminal->pvt->pty_master);
+		close(terminal->pvt->pty_master);
 	}
 	terminal->pvt->pty_master = _vte_pty_open(&pid,
 						  env_add,
@@ -11997,6 +11998,7 @@ vte_terminal_finalize(GObject *object)
 	_vte_terminal_disconnect_pty_write(terminal);
 	if (terminal->pvt->pty_master != -1) {
 		_vte_pty_close(terminal->pvt->pty_master);
+		close(terminal->pvt->pty_master);
 		terminal->pvt->pty_master = -1;
 	}
 
