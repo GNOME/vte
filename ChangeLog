@@ -1,3 +1,7 @@
+2003-01-20 nalin
+	* src/vte.c: colors 90-97 and 100-107 are bold colors, noted and patched
+	by Matthijs Melchior (#103874).
+
 2003-01-19  He Qiangqiang  <carton@linux.net.cn>
 
 	* configure.in: Added "zh_CN" (Simplified Chinese) to ALL_LINGUAS.

@@ -3870,7 +3870,7 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 		case 95:
 		case 96:
 		case 97:
-			terminal->pvt->screen->defaults.fore = param - 90;
+			terminal->pvt->screen->defaults.fore = param - 90 + VTE_COLOR_BRIGHT_OFFSET;
 			break;
 		case 100:
 		case 101:
@@ -3880,7 +3880,7 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 		case 105:
 		case 106:
 		case 107:
-			terminal->pvt->screen->defaults.back = param - 100;
+			terminal->pvt->screen->defaults.back = param - 100 + VTE_COLOR_BRIGHT_OFFSET;
 			break;
 		}
 	}
