@@ -2,7 +2,7 @@ AC_INIT(configure.in)
 VERSION=`grep ^Version: $srcdir/vte.spec | awk '{print $NF}'`
 AM_INIT_AUTOMAKE(vte,$VERSION)
 AM_PROG_LIBTOOL
-ALL_LINGUAS="da sv"
+ALL_LINGUAS="da fr sv"
 AM_GLIB_GNU_GETTEXT
 AC_EGREP_CPP(glibc,
 		[
