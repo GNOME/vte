@@ -1699,6 +1699,9 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 			case 9:
 				/* FIXME: send mouse X and Y on button. */
 				break;
+			case 25:
+				terminal->pvt->screen->cursor_visible = set;
+				break;
 			case 38:
 				/* FIXME: Tektronix/Xterm mode. */
 				break;
