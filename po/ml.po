@@ -1,40 +1,42 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# translation of vte.HEAD.ml.po to 
 # This file is distributed under the same license as the PACKAGE package.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # FSF-India <locale@gnu.org.in>, 2003.
+# Suresh Valiya Parambil <mvpsuresh@yahoo.com>, 2003
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: vte 0.10.x\n"
-"POT-Creation-Date: 2003-05-19 14:33-0400\n"
-"PO-Revision-Date: 2003-03-05 10:29+0530\n"
-"Last-Translator: FSF-India <locale@gnu.org.in>\n"
-"Language-Team: Malayalam <locale@gnu.org.in>\n"
+"Project-Id-Version: vte.HEAD.ml\n"
+"POT-Creation-Date: 2003-06-06 05:05+0200\n"
+"PO-Revision-Date: 2003-07-22 22:03-0600\n"
+"Last-Translator: Suresh Valiya Parambil <mvpsuresh@yahoo.com>\n"
+"Language-Team:  <ml@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.0\n"
 
-#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#: src/iso2022.c:786 src/iso2022.c:797 src/iso2022.c:846 src/vte.c:2048
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr ""
 
-#: src/iso2022.c:1505
+#: src/iso2022.c:1559
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr ""
 
-#. See ECMA-35.
-#: src/iso2022.c:1546
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1600
 msgid "Unrecognized identified coding system."
 msgstr ""
 
-#: src/iso2022.c:1595 src/iso2022.c:1621
+#: src/iso2022.c:1649 src/iso2022.c:1675
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr ""
 
-#: src/pty.c:317
+#: src/pty.c:319
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "%s നെ ചുറ്റുപാടുമായി ചേര്ക്കുന്നതില് പിശക്"
@@ -42,76 +44,73 @@ msgstr "%s നെ ചുറ്റുപാടുമായി ചേര്ക്�
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:877
+#: src/pty.c:882
 #, c-format
 msgid "can not run %s"
 msgstr "%s പ്രവ‌ര്ത്തിപ്പിക്കാന് കഴിയുന്നില്ല"
 
 #: src/reaper.c:110
-#, fuzzy
 msgid "Error creating signal pipe."
-msgstr "രചനാ സൂചിക വായിക്കുന്നതില്‌ പരാജയം"
+msgstr ""
 
 #: src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "തനിപ്പക‍ര്പ്പ് (%s/%s)!"
 
-#: src/vte.c:1430
-#, fuzzy, c-format
+#: src/vte.c:1460
+#, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "[ഇനങ്ങള്‌]\"%s\" ല്‌ ആരംഭിക്കുന്നു"
+msgstr ""
 
-#: src/vte.c:5534
+#: src/vte.c:5634
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr ""
 
-#: src/vte.c:6547
+#: src/vte.c:6647
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr ""
 
-#: src/vte.c:7293
-#, fuzzy, c-format
+#: src/vte.c:7394
+#, c-format
 msgid "Error reading from child: %s."
-msgstr "%s വായിക്കുന്നതില്‌ പരാജയം : %s"
+msgstr ""
 
-#: src/vte.c:7449
+#: src/vte.c:7550
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 
-#: src/vte.c:10069
-#, fuzzy, c-format
+#: src/vte.c:10182
+#, c-format
+#, fuzzy
 msgid "Error reading PTY size, using defaults: %s."
-msgstr "PTY വലിപ്പം സജ്ജീകരിക്കുന്നതില് തകരാറ്: %s."
+msgstr "PTY വലിപ്പം സജ്ജീകരിക്കുന്നതില് തകരാറ്, പൊതുവായ വിലകള് ഉപയോഗിക്കുന്നു %s."
 
-#: src/vte.c:10105
+#: src/vte.c:10218
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTY വലിപ്പം സജ്ജീകരിക്കുന്നതില് തകരാറ്: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14067
+#: src/vte.c:14310
 msgid "_vte_conv_open() failed setting word characters"
-msgstr ""
+msgstr "_vte_conv_open() വാക്യത്തിലെ അക്ഷരങ്ങള് സജ്ജീകരിക്കുന്നതില് തകരാര്"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:642
+#: src/vteapp.c:680
 msgid "Could not open console.\n"
-msgstr ""
+msgstr "കന്സോള് തുറക്കാനാവുന്നില്ലിന\n"
 
-#: src/vteglyph.c:575
+#: src/vteglyph.c:576
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr ""
+msgstr "അറിയാത്ത പിക്സല് രീതി %d.\n"
 
-#: src/vtexft.c:664
+#: src/vtexft.c:696
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr ""
+msgstr "എഴുതാനാവാത്ത അക്ഷരം  U+%04x.\n"
 
-#, fuzzy
-#~ msgid "Failed to load default Xft font."
-#~ msgstr "ചിത്ര-വിവരം ലഭിക്കുന്നതില്‌ പരാജയം"
