@@ -1061,43 +1061,49 @@ _vte_keymap_map(guint keyval,
 #if defined(HAVE_NCURSES) || defined(HAVE_TERMCAP)
 	if (termcap_special != NULL) {
 		tmp = g_strdup(terminal);
+		cap = NULL;
 		if (tgetent(ncurses_buffer, tmp) == 1) {
 			cap = ncurses_area;
-			g_free(tmp);
 			tmp = g_strdup(termcap_special);
 			cap = tgetstr(tmp, &cap);
-			if ((cap != NULL) && (*cap != '\0')) {
-				g_free(tmp);
-				*normal_length = strlen(cap);
-				*normal = g_strdup(cap);
-#ifdef VTE_DEBUG
-				if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-					int j;
-#ifdef HAVE_NCURSES
-					fprintf(stderr, " via ncurses to '");
-#else
-#ifdef HAVE_TERMCAP
-					fprintf(stderr, " via termcap to '");
-#endif
-#endif
-					for (j = 0; j < *normal_length; j++) {
-						if (((*normal)[j] < 32) ||
-						    ((*normal)[j] >= 127)) {
-							fprintf(stderr, "<0x%02x>",
-								(*normal)[j]);
-						} else {
-							fprintf(stderr, "%c",
-								(*normal)[j]);
-						}
-					}
-					fprintf(stderr,
-						"', returning.\n");
-				}
-#endif
-				return;
+		}
+		if ((cap == NULL) && (strcmp(terminal, "xterm") == 0)) {
+			/* try, try again */
+			if (tgetent(ncurses_buffer, "xterm-xfree86") == 1) {
+				cap = ncurses_area;
+				tmp = g_strdup(termcap_special);
+				cap = tgetstr(tmp, &cap);
 			}
 		}
 		g_free(tmp);
+		if ((cap != NULL) && (*cap != '\0')) {
+			*normal_length = strlen(cap);
+			*normal = g_strdup(cap);
+#ifdef VTE_DEBUG
+			if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+				int j;
+#ifdef HAVE_NCURSES
+				fprintf(stderr, " via ncurses to '");
+#else
+#ifdef HAVE_TERMCAP
+				fprintf(stderr, " via termcap to '");
+#endif
+#endif
+				for (j = 0; j < *normal_length; j++) {
+					if (((*normal)[j] < 32) ||
+					    ((*normal)[j] >= 127)) {
+						fprintf(stderr, "<0x%02x>",
+							(*normal)[j]);
+					} else {
+						fprintf(stderr, "%c",
+							(*normal)[j]);
+					}
+				}
+				fprintf(stderr, "', returning.\n");
+			}
+#endif
+			return;
+		}
 	}
 #endif
 

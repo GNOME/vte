@@ -13409,15 +13409,15 @@ vte_terminal_draw_row(VteTerminal *terminal,
 
 	/* Back up in case this is a multicolumn character, making the drawing
 	 * area a little wider. */
-	i = column;
-	cell = vte_terminal_find_charcell(terminal, i, row);
-	if ((cell != NULL) && (cell->fragment) && (i > 0)) {
-		cell = vte_terminal_find_charcell(terminal, i - 1, row);
+	cell = vte_terminal_find_charcell(terminal, column, row);
+	while ((cell != NULL) && (cell->fragment) && (column > 0)) {
 		column--;
 		column_count++;
+		cell = vte_terminal_find_charcell(terminal, column, row);
 	}
 
 	/* Walk the line. */
+	i = column;
 	while (i < column + column_count) {
 		/* Get the character cell's contents. */
 		cell = vte_terminal_find_charcell(terminal, i, row);
@@ -13493,7 +13493,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		/* Add this cell to the draw list. */
 		item.c = cell ? cell->c : ' ';
 		item.columns = cell ? cell->columns : 1;
-		/* Special case certain whitespace characters which the font
+		/* Special-case certain whitespace characters which the font
 		 * probably can't render correctly, if at all. */
 		switch (item.c) {
 		case '\0':
@@ -13515,10 +13515,9 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		g_array_append_val(items, item);
 
 		/* Now find out how many cells have the same attributes. */
-		for (j = i + 1;
-		     (j < column + column_count) &&
-		     (j - i < VTE_DRAW_MAX_LENGTH);
-		     j++) {
+		j = i + item.columns;
+		while ((j < column + column_count) &&
+		       (j - i < VTE_DRAW_MAX_LENGTH)) {
 			/* Retrieve the cell. */
 			cell = vte_terminal_find_charcell(terminal, j, row);
 			/* Resolve attributes to colors where possible and
@@ -13590,6 +13589,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 									  item.c);
 			}
 			g_array_append_val(items, item);
+			j += item.columns;
 		}
 		/* Draw the cells. */
 		vte_terminal_draw_cells(terminal,
