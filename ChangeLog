@@ -1,4 +1,9 @@
 2003-02-20 nalin
+	* src/vte.c(vte_terminal_paint): reverse that last change -- don't
+	always assume proportional text.
+	* src/vte.c(vte_sequence_handler_ta): eliminate dead code.
+
+2003-02-20 nalin
 	* src/vte.c(vte_terminal_draw_row): move the initial drawing x left
 	whenever we back up to a previous cell to avoid drawing fragments.
 	* src/vte.c(vte_terminal_paint): always assume non-monospaced text,

@@ -3596,20 +3596,7 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 		newcol = terminal->column_count - 1;
 	}
 
-#if 0
-	/* Insert a tab character with the right width. */
-	vte_terminal_insert_char(terminal, '\t',
-				 FALSE, FALSE, FALSE,
-				 newcol -
-				 terminal->pvt->screen->cursor_current.col);
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-		fprintf(stderr, "Inserting tab.\n");
-	}
-#endif
-#else
 	terminal->pvt->screen->cursor_current.col = newcol;
-#endif
 }
 
 /* Clear tabs selectively. */
@@ -13954,15 +13941,11 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	descent = terminal->char_descent;
 	delta = screen->scroll_delta;
 
-#if 0
 	monospaced =
 		(vte_terminal_get_char_padding(terminal, display,
 					       VTE_REPRESENTATIVE_WIDER_CHARACTER) == 0) &&
 		(vte_terminal_get_char_padding(terminal, display,
 					       VTE_REPRESENTATIVE_NARROWER_CHARACTER) == 0);
-#else
-	monospaced = FALSE;
-#endif
 
 	/* Clear the area if we're not double-buffered. */
 	if (!GTK_WIDGET_DOUBLE_BUFFERED(widget)) {
