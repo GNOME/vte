@@ -787,6 +787,10 @@ static gboolean
 _vte_pty_start_helper(void)
 {
 	int i, tmp[2], tunnel;
+	/* Sanity check. */
+	if (access(LIBEXECDIR "/gnome-pty-helper", X_OK) != 0) {
+	 	return FALSE;
+	}
 	/* Create a communication link for use with the helper. */
 	tmp[0] = open("/dev/null", O_RDONLY);
 	if (tmp[0] == -1) {

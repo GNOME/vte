@@ -18,10 +18,10 @@
 
 /* The interfaces in this file are subject to change at any time. */
 
-#ident "$Id$"
-
 #ifndef vte_debug_h_included
 #define vte_debug_h_included
+
+#ident "$Id$"
 
 G_BEGIN_DECLS
 
@@ -37,7 +37,8 @@ typedef enum {
 	VTE_DEBUG_RING		= 1 << 8,
 	VTE_DEBUG_PTY		= 1 << 9,
 	VTE_DEBUG_CURSOR	= 1 << 10,
-	VTE_DEBUG_KEYBOARD	= 1 << 11
+	VTE_DEBUG_KEYBOARD	= 1 << 11,
+	VTE_DEBUG_LIFECYCLE	= 1 << 12
 } VteDebugFlags;
 
 void _vte_debug_parse_string(const char *string);

@@ -20,6 +20,7 @@
 #define vte_reaper_h_included
 
 #ident "$Id$"
+
 #include <sys/wait.h>
 #include <signal.h>
 #include <glib.h>

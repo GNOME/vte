@@ -1,3 +1,15 @@
+2002-12-10  nalin
+	* src/buffer.c, src/buffer.h: centralize buffer length sanity checks,
+	add some utility functions for stuffing things into buffers and pulling
+	them back out.
+	* src/debug.c, src/debug.h: add a lifecycle debug class, for tracking
+	down initialization order weirdness.
+	* src/pty.c: try to check that we can run the pty helper before
+	trying to run it, to avoid SIGPIPE failures when it's not installed.
+	* src/vte.c: never grab focus -- let the shell app deal with it.
+	Return TRUE from mouse motion and press/release events to keep them
+	from being passed up.
+
 2002-12-09  nalin
 	* configure.in: add "uk" to the list of languages.
 	* src/vte.h: remove the alternate attribute bit -- it's no longer

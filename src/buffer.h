@@ -23,6 +23,8 @@
 #ifndef vte_buffer_h_included
 #define vte_buffer_h_included
 
+#ident "$Id$"
+
 #include <sys/types.h>
 
 G_BEGIN_DECLS
@@ -34,15 +36,34 @@ struct _vte_buffer {
 };
 
 struct _vte_buffer* _vte_buffer_new(void);
+struct _vte_buffer* _vte_buffer_new_with_data(gconstpointer data,
+					      size_t length);
 void _vte_buffer_free(struct _vte_buffer *buffer);
 void _vte_buffer_prepend(struct _vte_buffer *buffer,
-			 const unsigned char *bytes, size_t length);
+			 gconstpointer bytes, size_t length);
 void _vte_buffer_append(struct _vte_buffer *buffer,
-			const unsigned char *bytes, size_t length);
+			gconstpointer bytes, size_t length);
 size_t _vte_buffer_length(struct _vte_buffer *buffer);
 void _vte_buffer_consume(struct _vte_buffer *buffer, size_t length);
 void _vte_buffer_clear(struct _vte_buffer *buffer);
 void _vte_buffer_set_minimum_size(struct _vte_buffer *buffer, size_t length);
+
+void _vte_buffer_append_guint16(struct _vte_buffer *buffer, guint16 i);
+guint16 _vte_buffer_peek_guint16(struct _vte_buffer *buffer);
+guint16 _vte_buffer_read_guint16(struct _vte_buffer *buffer);
+
+void _vte_buffer_append_guint32(struct _vte_buffer *buffer, guint32 i);
+guint32 _vte_buffer_peek_guint32(struct _vte_buffer *buffer);
+guint32 _vte_buffer_read_guint32(struct _vte_buffer *buffer);
+
+void _vte_buffer_append_gstring(struct _vte_buffer *buffer, const GString *s);
+GString *_vte_buffer_peek_gstring(struct _vte_buffer *buffer);
+GString * _vte_buffer_read_gstring(struct _vte_buffer *buffer);
+
+void _vte_buffer_append_buffer(struct _vte_buffer *buffer,
+			       struct _vte_buffer *s);
+struct _vte_buffer *_vte_buffer_peek_buffer(struct _vte_buffer *buffer);
+struct _vte_buffer *_vte_buffer_read_buffer(struct _vte_buffer *buffer);
 
 G_END_DECLS
 

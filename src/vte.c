@@ -5732,6 +5732,12 @@ static struct {
 GtkWidget *
 vte_terminal_new(void)
 {
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
+		fprintf(stderr, "vte_terminal_new()\n");
+	}
+#endif
+
 	return GTK_WIDGET(g_object_new(vte_terminal_get_type(), NULL));
 }
 
@@ -9155,11 +9161,6 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	/* Show the cursor. */
 	vte_terminal_set_pointer_visible(terminal, TRUE);
 
-	/* Grab input focus. */
-	if (!GTK_WIDGET_HAS_FOCUS(widget)) {
-		gtk_widget_grab_focus(widget);
-	}
-
 	/* Read the modifiers. */
 	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
 		modifiers = 0;
@@ -9226,7 +9227,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	terminal->pvt->mouse_last_x = event->x - VTE_PAD_WIDTH;
 	terminal->pvt->mouse_last_y = event->y - VTE_PAD_WIDTH;
 
-	return FALSE;
+	return TRUE;
 }
 
 /* Read and handle a pointing device buttonpress event. */
@@ -9246,11 +9247,6 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	width = terminal->char_width;
 	delta = terminal->pvt->screen->scroll_delta;
 	vte_terminal_set_pointer_visible(terminal, TRUE);
-
-	/* Grab input focus. */
-	if (!GTK_WIDGET_HAS_FOCUS(widget)) {
-		gtk_widget_grab_focus(widget);
-	}
 
 	/* Read the modifiers. */
 	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
@@ -9410,7 +9406,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	terminal->pvt->mouse_last_x = event->x - VTE_PAD_WIDTH;
 	terminal->pvt->mouse_last_y = event->y - VTE_PAD_WIDTH;
 
-	return FALSE;
+	return TRUE;
 }
 
 /* Read and handle a pointing device buttonrelease event. */
@@ -9424,11 +9420,6 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
 	vte_terminal_set_pointer_visible(terminal, TRUE);
-
-	/* Grab input focus. */
-	if (!GTK_WIDGET_HAS_FOCUS(widget)) {
-		gtk_widget_grab_focus(widget);
-	}
 
 	/* Disconnect from autoscroll requests. */
 	vte_terminal_stop_autoscroll(terminal);
@@ -9489,7 +9480,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 	terminal->pvt->mouse_last_x = event->x - VTE_PAD_WIDTH;
 	terminal->pvt->mouse_last_y = event->y - VTE_PAD_WIDTH;
 
-	return FALSE;
+	return TRUE;
 }
 
 /* Handle receiving or losing focus. */
@@ -10904,6 +10895,12 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	struct timeval tv;
 	enum VteRenderMethod render_max;
 
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
+		fprintf(stderr, "vte_terminal_init()\n");
+	}
+#endif
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	widget = GTK_WIDGET(terminal);
 	GTK_WIDGET_SET_FLAGS(widget, GTK_CAN_FOCUS);
@@ -11217,6 +11214,12 @@ vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
 {
 	VteTerminal *terminal;
 
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
+		fprintf(stderr, "vte_terminal_size_request()\n");
+	}
+#endif
+
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
@@ -11251,6 +11254,12 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 {
 	VteTerminal *terminal;
 	glong width, height;
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
+		fprintf(stderr, "vte_terminal_size_allocate()\n");
+	}
+#endif
 
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
@@ -11311,6 +11320,29 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	vte_invalidate_all(terminal);
 }
 
+/* Show the window. */
+static void
+vte_terminal_show(GtkWidget *widget)
+{
+	GtkWidgetClass *widget_class;
+	VteTerminal *terminal;
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
+		fprintf(stderr, "vte_terminal_show()\n");
+	}
+#endif
+
+	g_return_if_fail(widget != NULL);
+	g_return_if_fail(VTE_IS_TERMINAL(widget));
+	terminal = VTE_TERMINAL(widget);
+
+	widget_class = g_type_class_peek(GTK_TYPE_WIDGET);
+	if (GTK_WIDGET_CLASS(widget_class)->show) {
+		(GTK_WIDGET_CLASS(widget_class))->show(widget);
+	}
+}
+
 /* The window is being destroyed. */
 static void
 vte_terminal_unrealize(GtkWidget *widget)
@@ -11322,6 +11354,12 @@ vte_terminal_unrealize(GtkWidget *widget)
 	GdkVisual *gvisual;
 	Visual *visual;
 	int i;
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
+		fprintf(stderr, "vte_terminal_unrealize()\n");
+	}
+#endif
 
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
@@ -11427,6 +11465,12 @@ vte_terminal_finalize(GObject *object)
 	GtkClipboard *clipboard;
 	struct vte_match_regex *regex;
 	int i;
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
+		fprintf(stderr, "vte_terminal_finalize()\n");
+	}
+#endif
 
 	g_return_if_fail(VTE_IS_TERMINAL(object));
 	terminal = VTE_TERMINAL(object);
@@ -11679,6 +11723,12 @@ vte_terminal_realize(GtkWidget *widget)
 	GdkColor black = {0,0,0}, color;
 	int attributes_mask = 0, i;
 
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
+		fprintf(stderr, "vte_terminal_realize()\n");
+	}
+#endif
+
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
@@ -11788,11 +11838,6 @@ vte_terminal_realize(GtkWidget *widget)
 					   &black, &black, 0, 0);
 	g_object_unref(G_OBJECT(pixmap));
 	g_object_unref(G_OBJECT(mask));
-
-	/* Grab input focus. */
-	if (!GTK_WIDGET_HAS_FOCUS(widget)) {
-		gtk_widget_grab_focus(widget);
-	}
 }
 
 static void
@@ -13366,6 +13411,12 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	XftDraw *ftdraw = NULL;
 #endif
 
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
+		fprintf(stderr, "vte_terminal_paint()\n");
+	}
+#endif
+
 	/* Make a few sanity checks. */
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
@@ -13786,6 +13837,12 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 	GQuark quark;
 	int i;
 
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
+		fprintf(stderr, "vte_terminal_class_init()\n");
+	}
+#endif
+
 	bindtextdomain(PACKAGE, LOCALEDIR);
 
 	gobject_class = G_OBJECT_CLASS(klass);
@@ -13807,6 +13864,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 	widget_class->size_request = vte_terminal_size_request;
 	widget_class->size_allocate = vte_terminal_size_allocate;
 	widget_class->get_accessible = vte_terminal_get_accessible;
+	widget_class->show = vte_terminal_show;
 
 	/* Register some signals of our own. */
 	klass->eof_signal =
@@ -14085,6 +14143,11 @@ vte_terminal_get_type(void)
 	};
 
 	if (terminal_type == 0) {
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
+			fprintf(stderr, "vte_terminal_get_type()\n");
+		}
+#endif
 		terminal_type = g_type_register_static(GTK_TYPE_WIDGET,
 						       "VteTerminal",
 						       &terminal_info,

@@ -70,6 +70,9 @@ _vte_debug_parse_string(const char *string)
 			} else
 			if (g_ascii_strcasecmp(flags[i], "KEYBOARD") == 0) {
 				_vte_debug_flags |= VTE_DEBUG_KEYBOARD;
+			} else
+			if (g_ascii_strcasecmp(flags[i], "LIFECYCLE") == 0) {
+				_vte_debug_flags |= VTE_DEBUG_LIFECYCLE;
 			}
 		}
 		g_strfreev(flags);
