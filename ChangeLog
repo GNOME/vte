@@ -1,4 +1,25 @@
 2003-01-31 nalin
+	* src/vte.c(vte_terminal_get_accessible): keep a weak pointer to the
+	accessible peer instead of a static pointer.
+	* src/vte.c(vte_terminal_finalize): if the accessible peer still exists,
+	remove its weak pointer before attempting to unref it.
+	* src/vte.c: rename accessible_exists member to accessible_emit, which
+	more accurately reflects its purpose.
+	* src/vteaccess.c(vte_terminal_accessible_update_private_data_if_needed):
+	always update the cursor position, in case text was added or removed
+	without the cursor itself moving.
+	* src/vteaccess.c(vte_terminal_accessible_get_text_somewhere): don't
+	emit a warning when the caller attempts to read the Nth character when
+	we have 0 to N-1, just return an empty string.
+	* src/vteaccess.c(vte_terminal_accessible_new): make the terminal peer
+	a weak pointer.
+	* src/vteaccess.c(vte_terminal_accessible_finalize): if the terminal
+	peer is not NULL, disconnect it as a weak pointer and don't bother
+	disconnecting from its signals.  Add a debug message.
+	* src/vteaccess.c(vte_terminal_accessible_text_finalize):  Add a debug
+	message.
+
+2003-01-31 nalin
 	* src/vte.c(vte_unichar_isgraphic): rename to vte_unichar_is_graphic,
 	to match conventions used elsewhere.
 	* src/vte.c(vte_unichar_is_graphic): count 0xa3, 0x3c0, 0x2592,
