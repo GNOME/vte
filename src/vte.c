@@ -160,8 +160,8 @@ struct _VteTerminalPrivate {
 	XFontSet fontset;
 #ifdef HAVE_XFT
 	XftFont *ftfont;
-	gboolean use_xft;
 #endif
+	gboolean use_xft;
 	PangoFontDescription *fontdesc;
 	PangoLayout *layout;
 	gboolean use_pango;
@@ -449,8 +449,8 @@ vte_invalidate_cursor_once(gpointer data)
 		screen = terminal->pvt->screen;
 		columns = 1;
 		cell = vte_terminal_find_charcell(terminal,
-				     		  screen->cursor_current.col,
-				     		  screen->cursor_current.row);
+						  screen->cursor_current.col,
+						  screen->cursor_current.row);
 		if (cell != NULL) {
 			columns = cell->columns;
 		}
@@ -4034,7 +4034,7 @@ vte_sequence_handler_complain_key(VteTerminal *terminal,
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_warning("Got unexpected (key?) sequence `%s'.\n",
-		  match ?: "???");
+		  match ? match : "???");
 }
 
 /* The table of handlers.  Primarily used at initialization time. */
@@ -4855,10 +4855,12 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 	}
 #endif
 	env_add[2] = NULL;
+	if (command == NULL) {
+		command = terminal->pvt->shell;
+	}
 	terminal->pvt->pty_master = vte_pty_open(&pid,
 						 env_add,
-						 command ?:
-						 terminal->pvt->shell,
+						 command,
 						 argv);
 	g_free(term);
 	g_free(colorterm);
@@ -5543,7 +5545,7 @@ vte_terminal_io_write(GIOChannel *channel,
 			for (i = 0; i < count; i++) {
 				fprintf(stderr, "Wrote %c%c\n",
 					terminal->pvt->outgoing[i] > 32 ?
-				       	' ' : '^',
+					' ' : '^',
 					terminal->pvt->outgoing[i] > 32 ?
 					terminal->pvt->outgoing[i] :
 					terminal->pvt->outgoing[i]  + 64);
@@ -6361,7 +6363,7 @@ vte_terminal_send_mouse_button(VteTerminal *terminal, GdkEventButton *event)
 
 	/* Encode the parameters and send them to the app. */
 	vte_terminal_send_mouse_button_int(terminal,
-		       			   (event->type == GDK_BUTTON_PRESS) ?
+					   (event->type == GDK_BUTTON_PRESS) ?
 					   event->button : 0,
 					   event->x,
 					   event->y,
@@ -7053,6 +7055,7 @@ vte_terminal_font_complain(const char *font,
 	}
 }
 
+#ifdef HAVE_XFT
 static int
 xft_weight_from_pango_weight (int weight)
 {
@@ -7087,7 +7090,6 @@ xft_slant_from_pango_style (int style)
 	return XFT_SLANT_ROMAN;
 }
 
-#ifdef HAVE_XFT
 /* Create an Xft pattern from a Pango font description. */
 static XftPattern *
 xft_pattern_from_pango_font_description(const PangoFontDescription *font_desc)
@@ -7669,6 +7671,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	const char *code, *value;
 	char *stripped;
 	size_t stripped_length;
+	int columns, rows;
 	GQuark quark;
 	char *tmp;
 	int i;
@@ -7754,13 +7757,15 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 							   "ul");
 
 	/* Resize to the given default. */
+	columns = vte_termcap_find_numeric(terminal->pvt->termcap,
+					   terminal->pvt->terminal,
+					   "co");
+	rows = vte_termcap_find_numeric(terminal->pvt->termcap,
+					terminal->pvt->terminal,
+					"li");
 	vte_terminal_set_size(terminal,
-			      vte_termcap_find_numeric(terminal->pvt->termcap,
-						       terminal->pvt->terminal,
-						       "co") ?: 80,
-			      vte_termcap_find_numeric(terminal->pvt->termcap,
-						       terminal->pvt->terminal,
-						       "li") ?: 24);
+			      columns ? columns : 80,
+			      rows ? rows : 24);
 }
 
 /* Set the path to the termcap file we read, and read it in. */
@@ -7773,7 +7778,8 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path)
 	if (path == NULL) {
 		snprintf(path_default, sizeof(path_default),
 			 DATADIR "/" PACKAGE "/termcap/%s",
-			 terminal->pvt->terminal ?: VTE_DEFAULT_EMULATION);
+			 terminal->pvt->terminal ?
+			 terminal->pvt->terminal : VTE_DEFAULT_EMULATION);
 		if (stat(path_default, &st) == 0) {
 			path = path_default;
 		} else {
@@ -7892,7 +7898,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	pvt->cursor_blinks = FALSE;
 	pvt->cursor_blink_tag = g_timeout_add(0,
-		 			      vte_invalidate_cursor_periodic,
+					      vte_invalidate_cursor_periodic,
 					      terminal);
 	pvt->last_keypress_time = 0;
 
@@ -7917,12 +7923,12 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 		}
 	}
 
+	pvt->use_xft = FALSE;
 #ifdef HAVE_XFT
 	/* Try to use Xft if the user requests it.  Provide both the original
 	 * variable we consulted (which we should stop consulting at some
 	 * point) and the one GTK itself uses. */
 	pvt->ftfont = NULL;
-	pvt->use_xft = FALSE;
 	if (getenv("VTE_USE_XFT") != NULL) {
 		if (atol(getenv("VTE_USE_XFT")) != 0) {
 			pvt->use_xft = TRUE;
@@ -8424,6 +8430,7 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 	}
 }
 
+#if HAVE_XFT
 /* Try to map some common characters which are frequently missing from fonts
  * to others which look the same and may be there. */
 static XftChar32
@@ -8457,6 +8464,8 @@ vte_terminal_xft_remap_char(Display *display, XftFont *font, XftChar32 orig)
 		return orig;
 	}
 }
+#endif
+
 /* Draw a particular character on the screen. */
 static void
 vte_terminal_draw_char(VteTerminal *terminal,

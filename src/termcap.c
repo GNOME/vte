@@ -611,10 +611,10 @@ vte_termcap_generate(struct vte_termcap *termcap)
 	ssize_t size;
 	char *ret = NULL;
 	struct vte_termcap_entry *entry;
-	size = strlen(termcap->comment ?: "");
+	size = strlen(termcap->comment ? termcap->comment: "");
 	for (entry = termcap->entries; entry != NULL; entry = entry->next) {
-		size += strlen(entry->comment ?: "");
-		size += (strlen(entry->string ?: "") + 1);
+		size += (entry->comment ? strlen(entry->comment) : 0);
+		size += (entry->string ? strlen(entry->string) : 0) + 1;
 	}
 	ret = g_malloc(size + 1);
 	if (ret == NULL) {

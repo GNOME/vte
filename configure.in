@@ -36,7 +36,7 @@ AM_MAINTAINER_MODE
 
 if test x$USE_MAINTAINER_MODE != x ; then
 	if test x$USE_MAINTAINER_MODE != xno ; then
-		if test x$GCC != xno ; then
+		if test x$GCC = xyes ; then
 			CFLAGS="${CFLAGS} -Wunused"
 			CFLAGS="${CFLAGS} -Wuninitialized"
 			CFLAGS="${CFLAGS} -Wimplicit"

@@ -1,11 +1,19 @@
+2002-05-21 nalin
+	* autogen.sh, src/termcap.c, src/utf8echo.c, src/vte.c: Patch from
+	Hidetoshi Tajima to fix building on Solaris systems, remove use of
+	syntax that might be specific to gcc, and fix an overrun in
+	vte_termcap_generate().  (#82433)
+
 2002-05-18 andersca
 	* src/vte.c: Don't queue a background update if the background isn't
 	transparent.
+
 2002-05-16 nalin
 	* src/vte.c: Snip trailing whitespace off of copied lines, insert
 	an end-of-line only when the copied line doesn't go to the right edge,
 	don't overrun right edge, even in insert mode.  Fix displaying of
 	underlined text.  Finish implementing matching.
+
 2002-05-15 nalin
 	* src/vte.c: Send kI on insert key.  Don't send drag events when the
 	child has only asked for click events.  Fix crashbugs in selection.
@@ -13,6 +21,7 @@
 	of performing a history scroll if the child wants mouse events.  Start
 	adding match support, merging how selection views the buffer with how
 	matching views the buffer, though matching doesn't work yet.
+
 2002-05-14 nalin
 	* src/vte.c: Don't try to draw nul characters, most fonts can't.  Don't
 	send motion-tracking events to the child unless we're dragging.  Fix

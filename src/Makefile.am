@@ -52,6 +52,7 @@ interpret_LDADD = @GLIB_LIBS@
 
 utf8echo_SOURCES = \
 	utf8echo.c
+utf8echo_LDADD = @GLIB_LIBS@
 
 ring_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DRING_MAIN
 ring_SOURCES = \

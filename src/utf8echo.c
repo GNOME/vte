@@ -18,7 +18,7 @@
 
 #ident "$Id$"
 #include "../config.h"
-#include <iconv.h>
+#include <glib/gconvert.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,7 +29,7 @@ int
 main(int argc, char **argv)
 {
 	int i;
-	iconv_t conv;
+	GIConv conv;
 	char buf[LINE_MAX];
 	wchar_t w;
 	char *inbuf, *outbuf;
@@ -40,26 +40,26 @@ main(int argc, char **argv)
 		return 1;
 	}
 
-	conv = iconv_open("UTF-8", "WCHAR_T");
+	conv = g_iconv_open("UTF-8", "WCHAR_T");
 	if (conv == NULL) {
 		return 1;
 	}
 
 	printf(ESC "%%G");
 	for (i = 1; i < argc; i++) {
-		w = (wint_t)atol(argv[i]);
+		w = (wchar_t)atol(argv[i]);
 		inbuf = (char*)&w;
 		insize = sizeof(w);
 		memset(buf, 0, sizeof(buf));
 		outbuf = buf;
 		outsize = sizeof(buf);
-		if (iconv(conv, &inbuf, &insize, &outbuf, &outsize) != -1) {
+		if (g_iconv(conv, &inbuf, &insize, &outbuf, &outsize) != -1) {
 			printf("%*s", outbuf - buf, buf);
 		}
 	}
 	printf(ESC "%%@\n");
 
-	iconv_close(conv);
+	g_iconv_close(conv);
 
 	return 0;
 }

@@ -26,6 +26,14 @@
   implemented (ff, fs, i1, i3, is, iP, LF, LO, MC, mh, ML, mm, mo, nw, pf,
   pk, pl, pf, po, pO, ps, px, r1, r2, r3, RA, RF, rp, rs, RX, SA, SX, wi,
   several more from the XTerm set).
+- Currently doesn't handle children exiting quite right (if the child spawned
+  a background process which keeps its stdio open, we don't close because we
+  don't get an EOF).
+- Small dingus bug -- if the string is at the end of the buffer, too much
+  is hilited.
+- Sequence matching is greedy, so that C=AB matches C and not A and then B.
+- Bold doesn't work right if the default foreground color isn't gray.  Need
+  to move to 20-color palette to fix this right.
 - I'm not sure the widget implementation itself is correct.  There are many
   changes in going from GTK+ 1.2 to 2.0, and examples of the proper way to do
   things is currently scarce, so some of it's guesswork.
