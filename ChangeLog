@@ -1,3 +1,21 @@
+2002-08-01  nalin
+	* src/pty.c, src/pty.h: Expose vte_pty_set_size() and get_size() to
+	localize terminal ioctl usage.
+	* src/ring.c(vte_ring_validate): Don't repeatedly compute the same
+	value when we know it won't change.
+	* src/vte.c(vte_wc_from_unichar): Implement for the non-STDC_ISO_10646
+	case, heavily based on patch from Hidetoshi Tajima.
+	* src/vte.c(vte_terminal_ensure_cursor): Don't initialize the local
+	data unless we have to.
+	* src/vte.c(vte_terminal_process_incoming): Don't insert NUL characters
+	into the display, matching behavior of xterm.
+	* src/vte.c: Clean up use of various G_PRIORITY values throughout to
+	allow for simpler tuning.  Rewrite rendering code to use per-paint
+	PangoLayouts when they're needed, use Xft2's DrawCharSpec function when
+	available, and to cut down on X requests.  Don't paint on expose events
+	if the window isn't realized, drawable, and at least partially visible.
+	Don't deselect previous selection when the user clicks unless there's
+	also a drag first.
 2002-07-31  nalin
 	* src/pty.c: Include <termios.h> if available, per patch from Hidetoshi
 	Tajima.

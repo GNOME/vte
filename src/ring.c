@@ -28,8 +28,9 @@
 static void
 vte_ring_validate(VteRing *ring)
 {
-	long i;
-	for (i = ring->delta; i < ring->delta + ring->length; i++) {
+	long i, max;
+	max = ring->delta + ring->length;
+	for (i = ring->delta; i < max; i++) {
 		g_assert(vte_ring_contains(ring, i));
 		g_assert(ring->array[i % ring->max] != NULL);
 	}

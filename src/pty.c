@@ -130,17 +130,34 @@ vte_pty_fork_on_fd(const char *path, char **env_add,
 	_exit(0);
 }
 
-static void
+int
 vte_pty_set_size(int master, int columns, int rows)
 {
 	struct winsize size;
+	int ret;
 	memset(&size, 0, sizeof(size));
 	size.ws_row = rows ? rows : 24;
 	size.ws_col = columns ? columns : 80;
-	if (ioctl(master, TIOCSWINSZ, &size) != 0) {
-		g_warning(_("Error setting PTY size: %s."),
-			    strerror(errno));
+	ret = ioctl(master, TIOCSWINSZ, &size);
+	return ret;
+}
+
+int
+vte_pty_get_size(int master, int *columns, int *rows)
+{
+	struct winsize size;
+	int ret;
+	memset(&size, 0, sizeof(size));
+	ret = ioctl(master, TIOCGWINSZ, &size);
+	if (ret == 0) {
+		if (columns != NULL) {
+			*columns = size.ws_col;
+		}
+		if (rows != NULL) {
+			*rows = size.ws_row;
+		}
 	}
+	return ret;
 }
 
 static char *

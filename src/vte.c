@@ -92,11 +92,10 @@ typedef long wint_t;
 #define VTE_REPRESENTATIVE_CHARACTERS	"ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
 					"abcdefgjijklmnopqrstuvwxyz" \
 					"0123456789./+@"
-#define VTE_DEFAULT_FONT		"mono 12"
-
-#define VTE_INPUT_PRIORITY		G_PRIORITY_DEFAULT
+#define VTE_INPUT_PRIORITY		G_PRIORITY_DEFAULT_IDLE
+#define VTE_CHILD_INPUT_PRIORITY	G_PRIORITY_DEFAULT_IDLE
+#define VTE_CHILD_OUTPUT_PRIORITY	G_PRIORITY_HIGH
 #define VTE_FX_PRIORITY			G_PRIORITY_DEFAULT_IDLE
-#define VTE_ITERATION_TUNABLE		512
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
@@ -121,6 +120,12 @@ struct vte_charcell {
 struct vte_match_regex {
 	regex_t reg;
 	gint tag;
+};
+
+/* A drawing request record, for simplicity. */
+struct vte_draw_item {
+	gunichar c;
+	guint16 xpad;
 };
 
 /* The terminal's keypad state.  A terminal can either be using the normal
@@ -155,6 +160,8 @@ struct _VteTerminalPrivate {
 					   need to guarantee its type */
 	GHashTable *dec_saved;
 	int default_column_count, default_row_count;	/* default sizes */
+	GTree *unichar_wc_map;		/* mapping between gunichars and wide
+					   characters */
 
 	/* PTY handling data. */
 	const char *shell;		/* shell we started */
@@ -208,6 +215,7 @@ struct _VteTerminalPrivate {
 	/* Selection information. */
 	GArray *word_chars;
 	gboolean has_selection;
+	gboolean start_selection;
 	char *selection;
 	enum {
 		selection_type_char,
@@ -216,7 +224,7 @@ struct _VteTerminalPrivate {
 	} selection_type;
 	struct selection_event_coords {
 		double x, y;
-	} selection_origin, selection_last;
+	} selection_origin, selection_last, selection_delayed;
 	struct {
 		long x, y;
 	} selection_start, selection_end;
@@ -274,7 +282,6 @@ struct _VteTerminalPrivate {
 	XftFont *ftfont;
 #endif
 	gboolean use_pango;
-	PangoLayout *layout;
 	gboolean palette_initialized;
 	struct vte_palette_entry {
 		guint16 red, green, blue;
@@ -320,7 +327,7 @@ static void vte_terminal_setup_background(VteTerminal *terminal,
 					  gboolean refresh_transparent);
 static void vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current);
 static void vte_terminal_insert_char(GtkWidget *widget, gunichar c,
-				     gboolean force_insert);
+				     gboolean force_insert_mode);
 static void vte_sequence_handler_clear_screen(VteTerminal *terminal,
 					      const char *match,
 					      GQuark match_quark,
@@ -415,12 +422,49 @@ vte_unicode_strlen(gunichar *c)
 
 /* Convert a gunichar to a wchar_t for use with X. */
 static wchar_t
-vte_wc_from_unichar(gunichar c)
+vte_wc_from_unichar(VteTerminal *terminal, gunichar c)
 {
 #ifdef __STDC_ISO_10646__
 	return (wchar_t) c;
 #else
-#error "Don't know how to convert from gunichar to wchar_t!"
+	gpointer original, result;
+	char *local, utf8_buf[VTE_UTF8_BPC];
+	const char *localr;
+	wchar_t wc_buf[VTE_UTF8_BPC];
+	int ret;
+	gsize length, bytes_read, bytes_written;
+	mbstate_t state;
+	GError *error;
+	/* Check the cache. */
+	if (g_tree_lookup_extended(terminal->pvt->unichar_wc_map,
+				   GINT_TO_POINTER(c),
+				   &original,
+				   &result)) {
+		return GPOINTER_TO_INT(c);
+	}
+	/* Convert the character to a locally-encoded mbs. */
+	length = g_unichar_to_utf8(c, utf8_buf);
+	local = g_locale_from_utf8(utf8_buf, length,
+				   &bytes_read, &bytes_written, &error);
+	if (error == NULL) {
+		/* Convert from an mbs to a (single-character) wcs. */
+		memset(&state, 0, sizeof(state));
+		localr = local;
+		ret = mbsrtowcs(wc_buf, &localr, bytes_written, &state);
+		if (ret == 1) {
+			g_tree_insert(terminal->pvt->unichar_wc_map,
+				      GINT_TO_POINTER(c),
+				      GINT_TO_POINTER(wc_buf[0]));
+			return wc_buf[0];
+		}
+	}
+	/* Punt. */
+	if (error != NULL) {
+		g_printerr("g_locale_from_utf8(%d): %s", error->code,
+			   error->message);
+		g_error_free(error);
+	}
+	return (wchar_t) c;
 #endif
 }
 
@@ -880,6 +924,7 @@ vte_terminal_deselect_all(VteTerminal *terminal)
 		vte_terminal_emit_selection_changed (terminal);
 		vte_invalidate_all(terminal);
 	}
+	terminal->pvt->start_selection = FALSE;
 }
 
 /* Reset the set of tab stops to the default. */
@@ -1648,8 +1693,9 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 	long i;
 	VteScreen *screen;
 	struct vte_charcell *pcell;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	/* Get the data for the row which the cursor points to. */
 	vte_terminal_ensure_cursor(terminal, FALSE);
 	rowdata = vte_ring_index(screen->row_data,
@@ -2095,17 +2141,7 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 	struct vte_charcell cell, *cells;
 	long add, i;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
-
-	/* Set up defaults we'll use when adding new cells. */
-	cell = screen->defaults;
-	cell.c = ' ';
-	cell.columns = vte_unichar_width(cell.c);
-	if (!current) {
-		cell.fore = VTE_DEF_FG;
-		cell.back = VTE_DEF_BG;
-	}
 
 	/* Figure out how many rows we need to add. */
 	while (screen->cursor_current.row >= vte_ring_next(screen->row_data)) {
@@ -2120,6 +2156,14 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 			       screen->cursor_current.row);
 	if ((array->len <= screen->cursor_current.col) &&
 	    (array->len < terminal->column_count)) {
+		/* Set up defaults we'll use when adding new cells. */
+		cell = screen->defaults;
+		cell.c = ' ';
+		cell.columns = 1;
+		if (!current) {
+			cell.fore = VTE_DEF_FG;
+			cell.back = VTE_DEF_BG;
+		}
 		/* Add enough cells at the end to make sure we have
 		 * enough for all visible columns. */
 		add = screen->cursor_current.col - array->len;
@@ -5248,7 +5292,8 @@ vte_terminal_set_default_colors(VteTerminal *terminal)
 
 /* Insert a single character into the stored data array. */
 static void
-vte_terminal_insert_char(GtkWidget *widget, gunichar c, gboolean force_insert)
+vte_terminal_insert_char(GtkWidget *widget, gunichar c,
+			 gboolean force_insert_mode)
 {
 	VteTerminal *terminal;
 	GArray *array;
@@ -5262,10 +5307,10 @@ vte_terminal_insert_char(GtkWidget *widget, gunichar c, gboolean force_insert)
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
 	screen = terminal->pvt->screen;
-	insert = screen->insert_mode || force_insert;
+	insert = screen->insert_mode || force_insert_mode;
 
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_IO)) {
+	if (vte_debug_on(VTE_DEBUG_IO) && vte_debug_on(VTE_DEBUG_PARSE)) {
 		fprintf(stderr, "Inserting %ld %c (%d/%d)(%d), delta = %ld, ",
 			(long)c,
 			c < 256 ? c : ' ',
@@ -5398,7 +5443,7 @@ vte_terminal_insert_char(GtkWidget *widget, gunichar c, gboolean force_insert)
 	vte_terminal_ensure_cursor(terminal, FALSE);
 
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_IO)) {
+	if (vte_debug_on(VTE_DEBUG_IO) && vte_debug_on(VTE_DEBUG_PARSE)) {
 		fprintf(stderr, "insertion delta => %ld.\n",
 			(long)screen->insert_delta);
 	}
@@ -5578,7 +5623,7 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 			g_io_channel_unix_new(terminal->pvt->pty_master);
 		terminal->pvt->pty_input_source =
 			g_io_add_watch_full(terminal->pvt->pty_input,
-					    G_PRIORITY_DEFAULT,
+					    VTE_CHILD_INPUT_PRIORITY,
 					    G_IO_IN | G_IO_HUP,
 					    vte_terminal_io_read,
 					    terminal,
@@ -5664,7 +5709,6 @@ vte_terminal_process_incoming(gpointer data)
 	size_t icount, ocount, ucount;
 	gunichar *wbuf, c;
 	int wcount, start;
-	long iterations = 0;
 	const char *match, *encoding;
 	GIConv unconv;
 	GQuark quark;
@@ -5743,7 +5787,7 @@ vte_terminal_process_incoming(gpointer data)
 
 	/* Try initial substrings. */
 	start = 0;
-	modified = leftovers = FALSE;
+	modified = leftovers = again = FALSE;
 	while ((start < wcount) && !leftovers) {
 		/* Try to match any control sequences. */
 		vte_table_match(terminal->pvt->table,
@@ -5797,7 +5841,9 @@ vte_terminal_process_incoming(gpointer data)
 				}
 			}
 #endif
-			vte_terminal_insert_char(widget, c, FALSE);
+			if (c != 0) {
+				vte_terminal_insert_char(widget, c, FALSE);
+			}
 			modified = TRUE;
 			start++;
 		} else {
@@ -5820,13 +5866,6 @@ vte_terminal_process_incoming(gpointer data)
 				/* Pause processing and wait for more data. */
 				leftovers = TRUE;
 			}
-		}
-		/* Process updates if we've processed enough characters.  This
-		 * keeps the user from thinking we've hung if we're processing
-		 * a *lot* of data. */
-		if ((start / VTE_ITERATION_TUNABLE) != iterations) {
-			iterations = start / VTE_ITERATION_TUNABLE;
-			gdk_window_process_updates(widget->window, TRUE);
 		}
 		/* Free any parameters we don't care about any more. */
 		free_params_array(params);
@@ -5856,8 +5895,6 @@ vte_terminal_process_incoming(gpointer data)
 				 * keep trying to process the incoming data. */
 				if (strcmp(encoding, terminal->pvt->encoding)) {
 					again = TRUE;
-				} else {
-					again = FALSE;
 				}
 			} else {
 #ifdef VTE_DEBUG
@@ -5976,7 +6013,7 @@ vte_terminal_io_read(GIOChannel *channel,
 	fd = g_io_channel_unix_get_fd(channel);
 
 	/* Allocate a buffer to hold whatever data's available. */
-	bufsize = terminal->pvt->n_incoming + LINE_MAX;
+	bufsize = terminal->pvt->n_incoming + 0x1000;
 	buf = g_malloc0(bufsize);
 	if (terminal->pvt->n_incoming > 0) {
 		memcpy(buf, terminal->pvt->incoming, terminal->pvt->n_incoming);
@@ -6197,7 +6234,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 				g_io_channel_unix_new(terminal->pvt->pty_master);
 			terminal->pvt->pty_output_source =
 				g_io_add_watch_full(terminal->pvt->pty_output,
-						    G_PRIORITY_HIGH,
+						    VTE_CHILD_OUTPUT_PRIORITY,
 						    G_IO_OUT,
 						    vte_terminal_io_write,
 						    terminal,
@@ -6878,6 +6915,36 @@ vte_uniform_class(VteTerminal *terminal, long row, long scol, long ecol)
 	return FALSE;
 }
 
+static gboolean
+vte_cell_is_between(long col, long row,
+		    long acol, long arow, long bcol, long brow)
+{
+	/* A cell is between two points if it's on a line after the
+	 * specified area starts, or before the line where it ends, 
+	 * or any of the lines in between. */
+	if ((row > arow) && (row < brow)) {
+		return TRUE;
+	} else
+	/* It's also between the two points if they're on the same row
+	 * the cell lies between the start and end columns (which may not
+	 * be in the more obvious of two possible orders). */
+	if ((row == arow) && (row == brow)) {
+		if ((col >= acol) && (col < bcol)) {
+			return TRUE;
+		}
+	} else
+	/* It's also "between" if it's on the line where the area starts and
+	 * at or after the start column, or on the line where the area ends and
+	 * before the end column. */
+	if ((row == arow) && (col >= acol)) {
+		return TRUE;
+	} else
+	if ((row == brow) && (col < bcol)) {
+		return TRUE;
+	}
+	return FALSE;
+}
+
 /* Check if a cell is selected or not. */
 static gboolean
 vte_cell_is_selected(VteTerminal *terminal, long col, long row)
@@ -6898,33 +6965,13 @@ vte_cell_is_selected(VteTerminal *terminal, long col, long row)
 
 	switch (terminal->pvt->selection_type) {
 		case selection_type_char:
-			/* A cell is selected if it's on the line where the
-			 * selected area starts, or the line where it ends,
-			 * or any of the lines in between. */
-			if ((row > terminal->pvt->selection_start.y) &&
-			    (row < terminal->pvt->selection_end.y)) {
-				return TRUE;
-			} else
-			/* It's also selected if the selection is confined to
-			 * one line and the character lies between the start
-			 * and end columns (which may not be in the more obvious
-			 * of two possible orders). */
-			if ((terminal->pvt->selection_start.y == row) &&
-			    (terminal->pvt->selection_end.y == row)) {
-				if ((col >= scol) && (col < ecol)) {
-					return TRUE;
-				}
-			} else
-			/* It's also selected if it's on the line where the
-			 * selected area starts and it's after the start column,
-			 * or on the line where the selection ends, after the
-			 * last selected column. */
-			if ((row == terminal->pvt->selection_start.y) &&
-			    (col >= terminal->pvt->selection_start.x)) {
-				return TRUE;
-			} else
-			if ((row == terminal->pvt->selection_end.y) &&
-			    (col < terminal->pvt->selection_end.x)) {
+			/* A cell is selected if it's between the start and
+			 * endpoints of the selection. */
+			if (vte_cell_is_between(col, row,
+						scol,
+						terminal->pvt->selection_start.y,
+						ecol,
+						terminal->pvt->selection_end.y)) {
 				return TRUE;
 			}
 			break;
@@ -7361,6 +7408,15 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 			fprintf(stderr, "Drag.\n");
 		}
 #endif
+		/* If we delayed resetting selection, reset here. */
+		if (terminal->pvt->start_selection) {
+			vte_terminal_deselect_all(terminal);
+			terminal->pvt->selection_origin.x =
+				terminal->pvt->selection_delayed.x;
+			terminal->pvt->selection_origin.y =
+				terminal->pvt->selection_delayed.y;
+			terminal->pvt->selection_type = selection_type_char;
+		}
 		terminal->pvt->has_selection = TRUE;
 
 		top = MIN(terminal->pvt->selection_last.y, event->y) /
@@ -7685,14 +7741,14 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			 * start over. */
 			if (((modifiers & GDK_SHIFT_MASK) == 0) ||
 			    vte_cell_is_selected(terminal, cellx, celly)) {
-				/* Start selection. */
-				vte_terminal_deselect_all(terminal);
-				terminal->pvt->selection_origin.x = event->x;
-				terminal->pvt->selection_origin.y = event->y;
-				terminal->pvt->selection_type =
-					selection_type_char;
+				/* Start selection later. */
+				terminal->pvt->start_selection = TRUE;
+				terminal->pvt->selection_delayed.x = event->x;
+				terminal->pvt->selection_delayed.y = event->y;
 				ret = TRUE;
 			} else {
+				/* Don't restart selection later. */
+				terminal->pvt->start_selection = FALSE;
 #ifdef VTE_DEBUG
 				if (vte_debug_on(VTE_DEBUG_EVENTS)) {
 					fprintf(stderr, "Selection is "
@@ -8082,7 +8138,14 @@ xlfd_from_pango_font_description(GtkWidget *widget,
 		}
 	}
 
-	spec = pango_font_description_to_string(fontdesc);
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		spec = pango_font_description_to_string(fontdesc);
+		fprintf(stderr, "Converted PangoFontSpecification `%s' to "
+			"xlfd `%s'.\n", spec, xlfd ? xlfd : "(null)");
+		g_free(spec);
+	}
+#endif
 
 	if (subfont_ids != NULL) {
 		g_free(subfont_ids);
@@ -8090,7 +8153,6 @@ xlfd_from_pango_font_description(GtkWidget *widget,
 	if (subfont_charsets != NULL) {
 		g_free(subfont_charsets);
 	}
-	g_free(spec);
 
 	return xlfd;
 }
@@ -8339,14 +8401,9 @@ vte_terminal_set_font(VteTerminal *terminal,
 		font_desc =
 			pango_font_description_copy(font_desc);
 	} else {
-#if 0
-		font_desc =
-			pango_font_description_from_string(VTE_DEFAULT_FONT);
-#else
 		gtk_widget_ensure_style(widget);
 		font_desc =
 			pango_font_description_copy(widget->style->font_desc);
-#endif
 	}
 
 	/* Save the new font description. */
@@ -8361,12 +8418,6 @@ vte_terminal_set_font(VteTerminal *terminal,
 	}
 
 	if (terminal->pvt->use_pango) {
-		/* Create the layout if we don't have one yet. */
-		if (terminal->pvt->layout == NULL) {
-			terminal->pvt->layout =
-				pango_layout_new(gdk_pango_context_get());
-		}
-
 		/* Try to load the described font. */
 		if (font_desc != NULL) {
 			PangoFont *font = NULL;
@@ -8381,7 +8432,6 @@ vte_terminal_set_font(VteTerminal *terminal,
 				 * that it describes this font, and read its
 				 * metrics. */
 				desc = pango_font_describe(font);
-				pango_layout_set_font_description(terminal->pvt->layout, desc);
 				lang = pango_context_get_language(pcontext);
 				pmetrics = pango_font_get_metrics(font, lang);
 				g_object_unref(G_OBJECT(font));
@@ -8637,16 +8687,16 @@ vte_terminal_get_font(VteTerminal *terminal)
 static void
 vte_terminal_refresh_size(VteTerminal *terminal)
 {
-	struct winsize size;
+	int rows, columns;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (terminal->pvt->pty_master != -1) {
 		/* Use an ioctl to read the size of the terminal. */
-		if (ioctl(terminal->pvt->pty_master, TIOCGWINSZ, &size) != 0) {
+		if (vte_pty_get_size(terminal->pvt->pty_master, &columns, &rows) != 0) {
 			g_warning(_("Error reading PTY size, using defaults: "
 				    "%s."), strerror(errno));
 		} else {
-			terminal->row_count = size.ws_row;
-			terminal->column_count = size.ws_col;
+			terminal->row_count = rows;
+			terminal->column_count = columns;
 		}
 	}
 }
@@ -8667,7 +8717,7 @@ vte_terminal_set_size(VteTerminal *terminal, long columns, long rows)
 		size.ws_row = rows;
 		size.ws_col = columns;
 		/* Try to set the terminal size. */
-		if (ioctl(terminal->pvt->pty_master, TIOCSWINSZ, &size) != 0) {
+		if (vte_pty_set_size(terminal->pvt->pty_master, columns, rows) != 0) {
 			g_warning(_("Error setting PTY size: %s."),
 				    strerror(errno));
 		}
@@ -9099,6 +9149,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	/* Selection info. */
 	pvt->word_chars = NULL;
 	pvt->has_selection = FALSE;
+	pvt->start_selection = FALSE;
 	pvt->selection = NULL;
 	pvt->selection_start.x = 0;
 	pvt->selection_start.y = 0;
@@ -9164,7 +9215,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->use_xft = TRUE;
 #endif
 	pvt->use_pango = TRUE;
-	pvt->layout = NULL;
 
 	/* Try to use PangoX for rednering if the user requests it. */
 	if (getenv("VTE_USE_PANGO") != NULL) {
@@ -9172,9 +9222,9 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	}
 
 #ifdef HAVE_XFT
-	/* Try to use Xft unless the user requests that we not.  Try to keeth
-	 * the original variable we consulted (which we should stop consulting
-	 * at some point) and the one GTK itself uses. */
+	/* Try to use Xft unless the user requests that we not.  Try to heed
+	 * both the original variable we consulted (which we should stop
+	 * consulting at some point) and the one GTK itself uses. */
 	if (getenv("GDK_USE_XFT") != NULL) {
 		pvt->use_xft = (atol(getenv("GDK_USE_XFT")) != 0);
 	}
@@ -9221,6 +9271,9 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	g_signal_connect(G_OBJECT(terminal), "hierarchy-changed",
 			 G_CALLBACK(vte_terminal_hierarchy_changed),
 			 NULL);
+
+	/* Mapping trees. */
+	pvt->unichar_wc_map = g_tree_new(vte_compare_direct);
 }
 
 /* Tell GTK+ how much space we need. */
@@ -9355,10 +9408,6 @@ vte_terminal_unrealize(GtkWidget *widget)
 #endif
 
 	/* Clean up after Pango. */
-	if (terminal->pvt->layout != NULL) {
-		g_object_unref(G_OBJECT(terminal->pvt->layout));
-		terminal->pvt->layout = NULL;
-	}
 	if (terminal->pvt->fontpadding != NULL) {
 		g_tree_destroy(terminal->pvt->fontpadding);
 		terminal->pvt->fontpadding = NULL;
@@ -9406,6 +9455,12 @@ vte_terminal_finalize(GObject *object)
 	terminal = VTE_TERMINAL(object);
 	object_class = G_OBJECT_GET_CLASS(G_OBJECT(object));
 	widget_class = g_type_class_peek(GTK_TYPE_WIDGET);
+
+	/* The unichar->wchar_t map. */
+	if (terminal->pvt->unichar_wc_map != NULL) {
+		g_tree_destroy(terminal->pvt->unichar_wc_map);
+		terminal->pvt->unichar_wc_map = NULL;
+	}
 
 	/* Free background info. */
 	if (terminal->pvt->bg_image != NULL) {
@@ -9719,7 +9774,7 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 {
 	/* Determine what the foreground and background colors for rendering
 	 * text should be. */
-	if (reverse) {
+	if (reverse ^ ((cell != NULL) && (cell->reverse))) {
 		*fore = cell ? cell->back : VTE_DEF_BG;
 		*back = cell ? cell->fore : VTE_DEF_FG;
 	} else {
@@ -9782,972 +9837,933 @@ vte_terminal_xft_remap_char(Display *display, XftFont *font, XftChar32 orig)
 }
 #endif
 
-/* Draw a particular character on the screen. */
-static void
-vte_terminal_draw_chars(VteTerminal *terminal,
-			VteScreen *screen,
-			struct vte_charcell *cell,
-			gunichar *string,
-			size_t count,
-			size_t columns,
-			long col,
-			long row,
-			long x,
-			long y,
-			long x_offs,
-			long y_offs,
-			long width,
-			long height,
-			long ascent,
-			long descent,
-			Display *display,
-			GdkDrawable *gdrawable,
-			Drawable drawable,
-			GdkColormap *gcolormap,
-			Colormap colormap,
-			GdkVisual *gvisual,
-			Visual *visual,
-			GdkGC *ggc,
-			GC gc,
-			PangoLayout *layout,
-#ifdef HAVE_XFT
-			XftDraw *ftdraw,
-#endif
-			gboolean cursor)
+/* Check if a unicode character is actually a graphic character we draw
+ * ourselves to handle cases where fonts don't have glyphs for them. */
+static gboolean
+vte_unichar_isgraphic(gunichar c)
 {
-	int fore, back, dcol, i, j, padding;
-	long xcenter, ycenter, xright, ybottom;
-	char utf8_buf[7] = {0,};
-	gunichar ch;
-	gboolean drawn, reverse, alternate;
-	PangoAttribute *attr;
-	PangoAttrList *attrlist;
-	XwcTextItem textitem;
+	switch (c) {
+		case 0x2500: /* horizontal line */
+		case 0x2502: /* vertical line */
+		case 0x250c: /* upleft corner */
+		case 0x2510: /* upright corner */
+		case 0x2514: /* downleft corner */
+		case 0x2518: /* downright corner */
+		case 0x2524: /* right t */
+		case 0x251c: /* left t */
+		case 0x2534: /* up tee */
+		case 0x252c: /* down tee */
+		case 0x253c: /* cross */
+		case 0x2592: /* checkerboard */
+		case 0x25c6: /* diamond */
+		case 0x00b0: /* degree */
+		case 0x00b1: /* plus/minus */
+		case 0x00b7: /* bullet */
+		case 0x2190: /* left arrow */
+		case 0x2192: /* right arrow */
+		case 0x2193: /* down arrow */
+		case 0x2191: /* up arrow */
+		case 0x25ae: /* block */
+			return TRUE;
+			break;
+		default:
+			break;
+	}
+	return FALSE;
+}
+
+/* Draw the graphic representation of an alternate font graphics character. */
+static void
+vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
+			  gint fore, gint back,
+			  gint x, gint y, gint column_width, gint row_height,
+			  Display *display, Drawable drawable, GC gc)
+{
 	XPoint diamond[4];
-
-	if (!GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
-		/* Hey now, that's just unfair! */
-		return;
-	}
-	if (cell != NULL) {
-		ch = cell->c;
-	} else {
-		ch = 0;
-	}
-	if (columns == 0) {
-		columns = 1;
-	}
-
-#ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_UPDATES)) {
-		fprintf(stderr, "Drawing %ld/%ld at (%ld,%ld), ",
-			ch, (long) (cell ? cell->columns : 0),
-			(long) x, (long) (y + ascent));
-	}
-#endif
-
-	/* Determine what the foreground and background colors for rendering
-	 * text should be. */
-	reverse = (cell && cell->reverse)
-		^ vte_cell_is_selected(terminal, col, row)
-		^ screen->reverse_mode
-		^ cursor;
-	vte_terminal_determine_colors(terminal, cell, reverse, &fore, &back);
-
-	/* Paint the background for the cell. */
-	if (back != VTE_DEF_BG) {
-		XSetForeground(display, gc,
-			       terminal->pvt->palette[back].pixel);
-		XFillRectangle(display, drawable, gc,
-			       x, y, width * columns, height);
-	}
-
-	/* If there's no data, bug out here. */
-	if ((cell == NULL) || (ch == 0)) {
-#ifdef VTE_DEBUG
-		if (vte_debug_on(VTE_DEBUG_UPDATES)) {
-			fprintf(stderr, " skipping.\n");
-		}
-#endif
-		return;
-	}
-
-	/* If this column is zero-width, backtrack until we find the
-	 * multi-column character which renders into this column. */
-	dcol = col;
-	if (cell->columns == 0) {
-		/* Search for a suitable cell. */
-		for (dcol = col - 1; dcol >= 0; dcol--) {
-			cell = vte_terminal_find_charcell(terminal,
-							  dcol, row);
-			if (cell->columns > 0) {
-				break;
-			}
-		}
-		/* If we didn't find anything, bail. */
-		if (dcol < 0) {
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_UPDATES)) {
-				fprintf(stderr, " skipping.\n");
-			}
-#endif
-			return;
-		}
-	}
-	x -= (col - dcol) * width;
-	width += ((col - dcol) * width);
-	drawn = FALSE;
-
-#ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_UPDATES)) {
-		fprintf(stderr, "adjusted to %ld/%ld at (%ld,%ld).\n",
-			(long) ch, (long) cell->columns,
-			(long) x, (long) (y + ascent));
-	}
-#endif
+	gint xcenter, xright, ycenter, ybottom, i, j, draw;
 
 	/* If this is a unicode special graphics character, map it to one of
 	 * the characters we know how to draw. */
-	alternate = cell->alternate;
-	if (!alternate) {
-		switch (ch) {
-			case 0x2500: /* horizontal line */
-				ch = 'q';
-				alternate = TRUE;
-				break;
-			case 0x2502: /* vertical line */
-				ch = 'x';
-				alternate = TRUE;
-				break;
-			case 0x250c: /* upleft corner */
-				ch = 'l';
-				alternate = TRUE;
-				break;
-			case 0x2510: /* upright corner */
-				ch = 'k';
-				alternate = TRUE;
-				break;
-			case 0x2514: /* downleft corner */
-				ch = 'm';
-				alternate = TRUE;
-				break;
-			case 0x2518: /* downright corner */
-				ch = 'j';
-				alternate = TRUE;
-				break;
-			case 0x2524: /* right t */
-				ch = 'u';
-				alternate = TRUE;
-				break;
-			case 0x251c: /* left t */
-				ch = 't';
-				alternate = TRUE;
-				break;
-			case 0x2534: /* up tee */
-				ch = 'w';
-				alternate = TRUE;
-				break;
-			case 0x252c: /* down tee */
-				ch = 'v';
-				alternate = TRUE;
-				break;
-			case 0x253c: /* cross */
-				ch = 'n';
-				alternate = TRUE;
-				break;
-			case 0x2592: /* checkerboard */
-				ch = 'a';
-				alternate = TRUE;
-				break;
-			case 0x25c6: /* diamond */
-				ch = 96;
-				alternate = TRUE;
-				break;
-			case 0x00b0: /* degree */
-				ch = 'f';
-				alternate = TRUE;
-				break;
-			case 0x00b1: /* plus/minus */
-				ch = 'g';
-				alternate = TRUE;
-				break;
-			case 0x00b7: /* bullet */
-				ch = 127;
-				alternate = TRUE;
-				break;
-			case 0x2190: /* left arrow */
-			case 0x2192: /* right arrow */
-			case 0x2193: /* down arrow */
-			case 0x2191: /* up arrow */
-			case 0x25ae: /* block */
-			default:
-				break;
-		}
+	switch (c) {
+		case 0x2500: /* horizontal line */
+			c = 'q';
+			break;
+		case 0x2502: /* vertical line */
+			c = 'x';
+			break;
+		case 0x250c: /* upleft corner */
+			c = 'l';
+			break;
+		case 0x2510: /* upright corner */
+			c = 'k';
+			break;
+		case 0x2514: /* downleft corner */
+			c = 'm';
+			break;
+		case 0x2518: /* downright corner */
+			c = 'j';
+			break;
+		case 0x2524: /* right t */
+			c = 'u';
+			break;
+		case 0x251c: /* left t */
+			c = 't';
+			break;
+		case 0x2534: /* up tee */
+			c = 'w';
+			break;
+		case 0x252c: /* down tee */
+			c = 'v';
+			break;
+		case 0x253c: /* cross */
+			c = 'n';
+			break;
+		case 0x2592: /* checkerboard */
+			c = 'a';
+			break;
+		case 0x25c6: /* diamond */
+			c = 96;
+			break;
+		case 0x00b0: /* degree */
+			c = 'f';
+			break;
+		case 0x00b1: /* plus/minus */
+			c = 'g';
+			break;
+		case 0x00b7: /* bullet */
+			c = 127;
+			break;
+		case 0x2190: /* left arrow */
+		case 0x2192: /* right arrow */
+		case 0x2193: /* down arrow */
+		case 0x2191: /* up arrow */
+		case 0x25ae: /* block */
+		default:
+			break;
 	}
 
-	/* If the character is drawn in the alternate graphic font, do the
-	 * drawing ourselves. */
-	if (alternate) {
-		xright = x + width;
-		ybottom = y + height;
-		xcenter = (x + xright) / 2;
-		ycenter = (y + ybottom) / 2;
+	xright = x + column_width;
+	ybottom = y + row_height;
+	xcenter = (x + xright) / 2;
+	ycenter = (y + ybottom) / 2;
 
-		/* Draw the alternate charset characters which differ from
-		 * the ASCII character set. */
-		XSetForeground(display, gc, terminal->pvt->palette[fore].pixel);
-		switch (ch) {
-			case 95:
-				/* drawing a blank */
-				break;
-			case 96:
-				/* diamond */
-				diamond[0].x = xcenter;
-				diamond[0].y = y + 1;
-				diamond[1].x = xright - 1;
-				diamond[1].y = ycenter;
-				diamond[2].x = xcenter;
-				diamond[2].y = ybottom - 1;
-				diamond[3].x = x + 1;
-				diamond[3].y = ycenter;
-				XFillPolygon(display, drawable, gc,
-					     diamond, G_N_ELEMENTS(diamond),
-					     Convex, CoordModeOrigin);
-				drawn = TRUE;
-				break;
-			case 97:  /* a */
-				for (i = x; i <= xright; i++) {
-					drawn = ((i - x) & 1) != 0;
-					for (j = y; j <= ybottom; j++) {
-						if (!drawn) {
-							XDrawPoint(display,
-								   drawable,
-								   gc, i, j);
-						}
-						drawn = !drawn;
+	if (back != VTE_DEF_BG) {
+		XSetForeground(display, gc, terminal->pvt->palette[back].pixel);
+		XFillRectangle(display, drawable, gc,
+			       x, y,
+			       column_width, row_height);
+	}
+	XSetForeground(display, gc, terminal->pvt->palette[fore].pixel);
+	switch (c) {
+		case 95:
+			/* drawing a blank */
+			break;
+		case 96:
+			/* diamond */
+			diamond[0].x = xcenter;
+			diamond[0].y = y + 1;
+			diamond[1].x = xright - 1;
+			diamond[1].y = ycenter;
+			diamond[2].x = xcenter;
+			diamond[2].y = ybottom - 1;
+			diamond[3].x = x + 1;
+			diamond[3].y = ycenter;
+			XFillPolygon(display, drawable, gc,
+				     diamond, G_N_ELEMENTS(diamond),
+				     Convex, CoordModeOrigin);
+			break;
+		case 97:  /* a */
+			for (i = x; i <= xright; i++) {
+				draw = ((i - x) & 1) == 0;
+				for (j = y; j <= ybottom; j++) {
+					if (draw) {
+						XDrawPoint(display,
+							   drawable,
+							   gc, i, j);
 					}
+					draw = !draw;
 				}
-				drawn = TRUE;
-				break;
-			case 98:  /* b */
-				xcenter--;
-				ycenter--;
-				xright--;
-				ybottom--;
-				/* H */
-				XDrawLine(display, drawable, gc,
-					  x, y,
-					  x, ycenter);
-				XDrawLine(display, drawable, gc,
-					  xcenter, y,
-					  xcenter, ycenter);
-				XDrawLine(display, drawable, gc,
-					  x, (y + ycenter) / 2,
-					  xcenter, (y + ycenter) / 2);
-				/* T */
-				XDrawLine(display, drawable, gc,
-					  xcenter, ycenter,
-					  xright - 1, ycenter);
-				XDrawLine(display, drawable, gc,
-					  (xcenter + xright) / 2, ycenter,
-					  (xcenter + xright) / 2, ybottom - 1);
-				drawn = TRUE;
-				break;
-			case 99:  /* c */
-				xcenter--;
-				ycenter--;
-				xright--;
-				ybottom--;
-				/* F */
-				XDrawLine(display, drawable, gc,
-					  x, y,
-					  x, ycenter);
-				XDrawLine(display, drawable, gc,
-					  x, y,
-					  xcenter, y);
-				XDrawLine(display, drawable, gc,
-					  x, (y + ycenter) / 2,
-					  xcenter, (y + ycenter) / 2);
-				/* F */
-				XDrawLine(display, drawable, gc,
-					  xcenter, ycenter,
-					  xcenter, ybottom - 1);
-				XDrawLine(display, drawable, gc,
-					  xcenter, ycenter,
-					  xright - 1, ycenter);
-				XDrawLine(display, drawable, gc,
-					  xcenter, (ycenter + ybottom) / 2,
-					  xright - 1, (ycenter + ybottom) / 2);
-				drawn = TRUE;
-				break;
-			case 100: /* d */
-				xcenter--;
-				ycenter--;
-				xright--;
-				ybottom--;
-				/* C */
-				XDrawLine(display, drawable, gc,
-					  x, y,
-					  x, ycenter);
-				XDrawLine(display, drawable, gc,
-					  x, y,
-					  xcenter, y);
-				XDrawLine(display, drawable, gc,
-					  x, ycenter,
-					  xcenter, ycenter);
-				/* R */
-				XDrawLine(display, drawable, gc,
-					  xcenter, ycenter,
-					  xcenter, ybottom - 1);
-				XDrawLine(display, drawable, gc,
-					  xcenter, ycenter,
-					  xright - 1, ycenter);
-				XDrawLine(display, drawable, gc,
-					  xright - 1, ycenter,
-					  xright - 1, (ycenter + ybottom) / 2);
-				XDrawLine(display, drawable, gc,
-					  xright - 1, (ycenter + ybottom) / 2,
-					  xcenter, (ycenter + ybottom) / 2);
-				XDrawLine(display, drawable, gc,
-					  xcenter, (ycenter + ybottom) / 2,
-					  xright - 1, ybottom - 1);
-				drawn = TRUE;
-				break;
-			case 101: /* e */
-				xcenter--;
-				ycenter--;
-				xright--;
-				ybottom--;
-				/* L */
-				XDrawLine(display, drawable, gc,
-					  x, y,
-					  x, ycenter);
-				XDrawLine(display, drawable, gc,
-					  x, ycenter,
-					  xcenter, ycenter);
-				/* F */
-				XDrawLine(display, drawable, gc,
-					  xcenter, ycenter,
-					  xcenter, ybottom - 1);
-				XDrawLine(display, drawable, gc,
-					  xcenter, ycenter,
-					  xright - 1, ycenter);
-				XDrawLine(display, drawable, gc,
-					  xcenter, (ycenter + ybottom) / 2,
-					  xright - 1, (ycenter + ybottom) / 2);
-				drawn = TRUE;
-				break;
-			case 102: /* f */
-				/* litle circle */
-				diamond[0].x = xcenter - 1;
-				diamond[0].y = ycenter;
-				diamond[1].x = xcenter;
-				diamond[1].y = ycenter - 1;
-				diamond[2].x = xcenter + 1;
-				diamond[2].y = ycenter;
-				diamond[3].x = xcenter;
-				diamond[3].y = ycenter + 1;
-				XFillPolygon(display, drawable, gc,
-					     diamond, G_N_ELEMENTS(diamond),
-					     Convex, CoordModeOrigin);
-				drawn = TRUE;
-				break;
-			case 103: /* g */
-				xcenter--;
-				ycenter--;
-				xright--;
-				ybottom--;
-				/* +/- */
-				XDrawLine(display, drawable, gc,
-					  xcenter, (y + ycenter) / 2,
-					  xcenter, (ycenter + ybottom) / 2);
-				XDrawLine(display, drawable, gc,
-					  (x + xcenter) / 2, ycenter,
-					  (xcenter + xright) / 2, ycenter);
-				XDrawLine(display, drawable, gc,
-					  (x + xcenter) / 2,
-					  (ycenter + ybottom) / 2,
-					  (xcenter + xright) / 2,
-					  (ycenter + ybottom) / 2);
-				drawn = TRUE;
-				break;
-			case 104: /* h */
-				xcenter--;
-				ycenter--;
-				xright--;
-				ybottom--;
-				/* N */
-				XDrawLine(display, drawable, gc,
-					  x, y,
-					  x, ycenter);
-				XDrawLine(display, drawable, gc,
-					  x, y,
-					  xcenter, ycenter);
-				XDrawLine(display, drawable, gc,
-					  xcenter, y,
-					  xcenter, ycenter);
-				/* L */
-				XDrawLine(display, drawable, gc,
-					  xcenter, ycenter,
-					  xcenter, ybottom - 1);
-				XDrawLine(display, drawable, gc,
-					  xcenter, ybottom - 1,
-					  xright - 1, ybottom - 1);
-				drawn = TRUE;
-				break;
-			case 105: /* i */
-				xcenter--;
-				ycenter--;
-				xright--;
-				ybottom--;
-				/* V */
-				XDrawLine(display, drawable, gc,
-					  x, y,
-					  (x + xcenter) / 2, ycenter);
-				XDrawLine(display, drawable, gc,
-					  (x + xcenter) / 2, ycenter,
-					  xcenter, y);
-				/* T */
-				XDrawLine(display, drawable, gc,
-					  xcenter, ycenter,
-					  xright - 1, ycenter);
-				XDrawLine(display, drawable, gc,
-					  (xcenter + xright) / 2, ycenter,
-					  (xcenter + xright) / 2, ybottom - 1);
-				drawn = TRUE;
-				break;
-			case 106: /* j */
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       x,
-					       ycenter,
-					       xcenter - x + VTE_LINE_WIDTH,
-					       VTE_LINE_WIDTH);
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       xcenter,
-					       y,
-					       VTE_LINE_WIDTH,
-					       ycenter - y + VTE_LINE_WIDTH);
-				drawn = TRUE;
-				break;
-			case 107: /* k */
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       x,
-					       ycenter,
-					       xcenter - x + VTE_LINE_WIDTH,
-					       VTE_LINE_WIDTH);
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       xcenter,
-					       ycenter,
-					       VTE_LINE_WIDTH,
-					       ybottom - ycenter);
-				drawn = TRUE;
-				break;
-			case 108: /* l */
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       xcenter,
-					       ycenter,
-					       xright - xcenter,
-					       VTE_LINE_WIDTH);
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       xcenter,
-					       ycenter,
-					       VTE_LINE_WIDTH,
-					       ybottom - ycenter);
-				drawn = TRUE;
-				break;
-			case 109: /* m */
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       xcenter,
-					       ycenter,
-					       xright - xcenter,
-					       VTE_LINE_WIDTH);
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       xcenter,
-					       y,
-					       VTE_LINE_WIDTH,
-					       ycenter - y + VTE_LINE_WIDTH);
-				drawn = TRUE;
-				break;
-			case 110: /* n */
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       xcenter,
-					       y,
-					       VTE_LINE_WIDTH,
-					       height);
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       x,
-					       ycenter,
-					       width,
-					       VTE_LINE_WIDTH);
-				drawn = TRUE;
-				break;
-			case 111: /* o */
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       x,
-					       y,
-					       width,
-					       VTE_LINE_WIDTH);
-				drawn = TRUE;
-				break;
-			case 112: /* p */
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       x,
-					       (y + ycenter) / 2,
-					       width,
-					       VTE_LINE_WIDTH);
-				drawn = TRUE;
-				break;
-			case 113: /* q */
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       x,
-					       ycenter,
-					       width,
-					       VTE_LINE_WIDTH);
-				drawn = TRUE;
-				break;
-			case 114: /* r */
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       x,
-					       (ycenter + ybottom) / 2,
-					       width,
-					       VTE_LINE_WIDTH);
-				drawn = TRUE;
-				break;
-			case 115: /* s */
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       x,
-					       ybottom,
-					       width,
-					       VTE_LINE_WIDTH);
-				drawn = TRUE;
-				break;
-			case 116: /* t */
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       xcenter,
-					       y,
-					       VTE_LINE_WIDTH,
-					       height);
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       xcenter,
-					       ycenter,
-					       xright - xcenter,
-					       VTE_LINE_WIDTH);
-				drawn = TRUE;
-				break;
-			case 117: /* u */
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       xcenter,
-					       y,
-					       VTE_LINE_WIDTH,
-					       height);
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       x,
-					       ycenter,
-					       xcenter - x + VTE_LINE_WIDTH,
-					       VTE_LINE_WIDTH);
-				drawn = TRUE;
-				break;
-			case 118: /* v */
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       xcenter,
-					       y,
-					       VTE_LINE_WIDTH,
-					       ycenter - y + VTE_LINE_WIDTH);
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       x,
-					       ycenter,
-					       width,
-					       VTE_LINE_WIDTH);
-				drawn = TRUE;
-				break;
-			case 119: /* w */
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       xcenter,
-					       ycenter,
-					       VTE_LINE_WIDTH,
-					       ybottom - ycenter);
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       x,
-					       ycenter,
-					       width,
-					       VTE_LINE_WIDTH);
-				drawn = TRUE;
-				break;
-			case 120: /* x */
-				XFillRectangle(display,
-					       drawable,
-					       gc,
-					       xcenter,
-					       y,
-					       VTE_LINE_WIDTH,
-					       height);
-				drawn = TRUE;
-				break;
-			case 121: /* y */
-				xcenter--;
-				ycenter--;
-				xright--;
-				ybottom--;
-				/* <= */
-				XDrawLine(display, drawable, gc,
-					  xright - 1, y,
-					  x, (y + ycenter) / 2);
-				XDrawLine(display, drawable, gc,
-					  x, (y + ycenter) / 2,
-					  xright - 1, ycenter);
-				XDrawLine(display, drawable, gc,
-					  x, ycenter,
-					  xright - 1, (ycenter + ybottom) / 2);
-				drawn = TRUE;
-				break;
-			case 122: /* z */
-				xcenter--;
-				ycenter--;
-				xright--;
-				ybottom--;
-				/* >= */
-				XDrawLine(display, drawable, gc,
-					  x, y,
-					  xright - 1, (y + ycenter) / 2);
-				XDrawLine(display, drawable, gc,
-					  xright - 1, (y + ycenter) / 2,
-					  x, ycenter);
-				XDrawLine(display, drawable, gc,
-					  xright - 1, ycenter,
-					  x, (ycenter + ybottom) / 2);
-				drawn = TRUE;
-				break;
-			case 123: /* pi */
-				xcenter--;
-				ycenter--;
-				xright--;
-				ybottom--;
-				XDrawLine(display, drawable, gc,
-					  (x + xcenter) / 2 - 1,
-					  (y + ycenter) / 2,
-					  (xright + xcenter) / 2 + 1,
-					  (y + ycenter) / 2);
-				XDrawLine(display, drawable, gc,
-					  (x + xcenter) / 2,
-					  (y + ycenter) / 2,
-					  (x + xcenter) / 2,
-					  (ybottom + ycenter) / 2);
-				XDrawLine(display, drawable, gc,
-					  (xright + xcenter) / 2,
-					  (y + ycenter) / 2,
-					  (xright + xcenter) / 2,
-					  (ybottom + ycenter) / 2);
-				drawn = TRUE;
-				break;
-			case 124:
-				xcenter--;
-				ycenter--;
-				xright--;
-				ybottom--;
-				/* != */
-				XDrawLine(display, drawable, gc,
-					  (x + xcenter) / 2 - 1, ycenter,
-					  (xright + xcenter) / 2 + 1, ycenter);
-				XDrawLine(display, drawable, gc,
-					  (x + xcenter) / 2 - 1,
-					  (ybottom + ycenter) / 2,
-					  (xright + xcenter) / 2 + 1,
-					  (ybottom + ycenter) / 2);
-				XDrawLine(display, drawable, gc,
-					  xright - 1, y + 1,
-					  x + 1, ybottom - 1);
-				drawn = TRUE;
-				break;
-			case 125:
-				xcenter--;
-				ycenter--;
-				xright--;
-				ybottom--;
-				/* British pound.  An "L" with a hyphen. */
-				XDrawLine(display, drawable, gc,
-					  (x + xcenter) / 2,
-					  (y + ycenter) / 2,
-					  (x + xcenter) / 2,
-					  (ycenter + ybottom) / 2);
-				XDrawLine(display, drawable, gc,
-					  (x + xcenter) / 2,
-					  (ycenter + ybottom) / 2,
-					  (xcenter + xright) / 2,
-					  (ycenter + ybottom) / 2);
-				XDrawLine(display, drawable, gc,
-					  x, ycenter,
-					  xcenter + 1, ycenter);
-				drawn = TRUE;
-				break;
-			case 126:
-				xcenter--;
-				ycenter--;
-				xright--;
-				ybottom--;
-				/* short hyphen? */
-				XDrawLine(display, drawable, gc,
-					  xcenter - 1, ycenter,
-					  xcenter + 1, ycenter);
-				drawn = TRUE;
-				break;
-			case 127:
-				xcenter--;
-				ycenter--;
-				xright--;
-				ybottom--;
-				/* A "delete" symbol I saw somewhere. */
-				XDrawLine(display, drawable, gc,
-					  x, ycenter,
-					  xcenter, y);
-				XDrawLine(display, drawable, gc,
-					  xcenter, y,
-					  xright - 1, ycenter);
-				XDrawLine(display, drawable, gc,
-					  xright - 1, ycenter,
-					  xright - 1, ybottom - 1);
-				XDrawLine(display, drawable, gc,
-					  xright - 1, ybottom - 1,
-					  x, ybottom - 1);
-				XDrawLine(display, drawable, gc,
-					  x, ybottom - 1,
-					  x, ycenter);
-				drawn = TRUE;
-				break;
-			default:
-				break;
-		}
-	}
-
-	/* If the text is invisible, we have an easy out. */
-	if (fore == back) {
-		drawn = TRUE;
-	}
-
-#if HAVE_XFT
-	/* If we haven't drawn anything, try to draw the text using Xft. */
-	if (!drawn && terminal->pvt->use_xft) {
-		XftChar32 ftc;
-		XftFont *font;
-		XGlyphInfo glyph_info;
-		gpointer ptr;
-		font = terminal->pvt->ftfont;
-		ftc = vte_terminal_xft_remap_char(display, font, ch);
-		ptr = g_tree_lookup(terminal->pvt->fontpadding,
-				    GINT_TO_POINTER(ftc));
-		padding = GPOINTER_TO_INT(ptr);
-		if (padding < 0) {
-			padding = 0;
-		} else if (padding == 0) {
-			XftTextExtents32(GDK_DISPLAY(), font, &ftc, 1,
-					 &glyph_info);
-			padding = CLAMP((terminal->char_width *
-					 (g_unichar_iswide(ch) ? 2 : 1) -
-					 glyph_info.xOff) / 2,
-					0, 3 * terminal->char_width);
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_UPDATES)) {
-				fprintf(stderr, "Using %d pixels of padding for"
-					" character 0x%x.\n", padding, ch);
 			}
-#endif
-			g_tree_insert(terminal->pvt->fontpadding,
-				      GINT_TO_POINTER(ftc),
-				      GINT_TO_POINTER(padding));
-		}
-		XftDrawString32(ftdraw,
-				&terminal->pvt->palette[fore].ftcolor,
-				font, x + padding, y + ascent, &ftc, 1);
-		drawn = TRUE;
-	}
-#endif
-
-	/* If we haven't drawn anything, try to draw the text using Pango. */
-	if (!drawn && terminal->pvt->use_pango) {
-		attrlist = pango_attr_list_new();
-		attr = pango_attr_foreground_new(terminal->pvt->palette[fore].red,
-						 terminal->pvt->palette[fore].green,
-						 terminal->pvt->palette[fore].blue);
-		if (back != VTE_DEF_BG) {
-			attr = pango_attr_background_new(terminal->pvt->palette[back].red,
-							 terminal->pvt->palette[back].green,
-							 terminal->pvt->palette[back].blue);
-			pango_attr_list_insert(attrlist, attr);
-		}
-		g_unichar_to_utf8(ch, utf8_buf);
-		pango_layout_set_text(layout, utf8_buf, -1);
-		pango_layout_set_attributes(layout, attrlist);
-		XSetForeground(display, gc, terminal->pvt->palette[fore].pixel);
-		pango_x_render_layout(display,
-				      drawable,
-				      gc,
-				      layout,
-				      x,
-				      y);
-		pango_layout_set_attributes(layout, NULL);
-		pango_attr_list_unref(attrlist);
-		attrlist = NULL;
-		drawn = TRUE;
-	}
-
-	/* If we haven't managed to draw anything yet, try to draw the text
-	 * using Xlib. */
-	if (!drawn) {
-		gpointer ptr;
-		XRectangle ink, logic;
-		wchar_t wc;
-		wc = vte_wc_from_unichar(ch);
-		ptr = g_tree_lookup(terminal->pvt->fontpadding,
-				    GINT_TO_POINTER(ch));
-		padding = GPOINTER_TO_INT(ptr);
-		if (padding < 0) {
-			padding = 0;
-		} else if (padding == 0) {
-			XwcTextExtents(terminal->pvt->fontset,
-				       &wc, 1, &ink, &logic);
-			padding = CLAMP((terminal->char_width *
-					 wcwidth(ch) - logic.width) / 2,
-					0, 3 * terminal->char_width);
-			g_tree_insert(terminal->pvt->fontpadding,
-				      GINT_TO_POINTER(ch),
-				      GINT_TO_POINTER(padding));
-		}
-
-		/* Set the textitem's fields. */
-		textitem.chars = &wc;
-		textitem.nchars = 1;
-		textitem.delta = 0;
-		textitem.font_set = terminal->pvt->fontset;
-
-		/* Draw the text.  We've handled bold,
-		 * standout and reverse already, but we
-		 * need to handle half, and maybe
-		 * blink, if we decide to be evil. */
-		XSetForeground(display, gc, terminal->pvt->palette[fore].pixel);
-		XwcDrawText(display, drawable, gc,
-			    x + padding, y + ascent, &textitem, 1);
-		drawn = TRUE;
-	}
-
-	/* SFX */
-	if (cell->underline) {
-		XSetForeground(display, gc, terminal->pvt->palette[fore].pixel);
-		XDrawLine(display, drawable, gc,
-			  x, y + height - 2, x + width - 1, y + height - 2);
-	}
-
-	/* Draw a hilite if this cell is hilited. */
-	if ((terminal->pvt->match_start.row != terminal->pvt->match_end.row) ||
-	    (terminal->pvt->match_start.column != terminal->pvt->match_end.column)) {
-		long rows, rowe, cols, cole;
-		rows = terminal->pvt->match_start.row + screen->scroll_delta;
-		rowe = terminal->pvt->match_end.row + screen->scroll_delta;
-		cols = terminal->pvt->match_start.column;
-		cole = terminal->pvt->match_end.column;
-
-		if (((row > rows) && (row < rowe)) ||
-		    ((row == rows) && (row == rowe) &&
-		     (col >= cols) && (col <= cole)) ||
-		    ((row == rows) && (row != rowe) && (col >= cols)) ||
-		    ((row == rowe) && (row != rows) && (col <= cole))) {
-			XSetForeground(display, gc,
-				       terminal->pvt->palette[fore].pixel);
+			break;
+		case 98:  /* b */
+			xcenter--;
+			ycenter--;
+			xright--;
+			ybottom--;
+			/* H */
 			XDrawLine(display, drawable, gc,
-				  x, y + height - 1,
-				  x + width - 1, y + height - 1);
-		}
+				  x, y,
+				  x, ycenter);
+			XDrawLine(display, drawable, gc,
+				  xcenter, y,
+				  xcenter, ycenter);
+			XDrawLine(display, drawable, gc,
+				  x, (y + ycenter) / 2,
+				  xcenter, (y + ycenter) / 2);
+			/* T */
+			XDrawLine(display, drawable, gc,
+				  xcenter, ycenter,
+				  xright - 1, ycenter);
+			XDrawLine(display, drawable, gc,
+				  (xcenter + xright) / 2, ycenter,
+				  (xcenter + xright) / 2, ybottom - 1);
+			break;
+		case 99:  /* c */
+			xcenter--;
+			ycenter--;
+			xright--;
+			ybottom--;
+			/* F */
+			XDrawLine(display, drawable, gc,
+				  x, y,
+				  x, ycenter);
+			XDrawLine(display, drawable, gc,
+				  x, y,
+				  xcenter, y);
+			XDrawLine(display, drawable, gc,
+				  x, (y + ycenter) / 2,
+				  xcenter, (y + ycenter) / 2);
+			/* F */
+			XDrawLine(display, drawable, gc,
+				  xcenter, ycenter,
+				  xcenter, ybottom - 1);
+			XDrawLine(display, drawable, gc,
+				  xcenter, ycenter,
+				  xright - 1, ycenter);
+			XDrawLine(display, drawable, gc,
+				  xcenter, (ycenter + ybottom) / 2,
+				  xright - 1, (ycenter + ybottom) / 2);
+			break;
+		case 100: /* d */
+			xcenter--;
+			ycenter--;
+			xright--;
+			ybottom--;
+			/* C */
+			XDrawLine(display, drawable, gc,
+				  x, y,
+				  x, ycenter);
+			XDrawLine(display, drawable, gc,
+				  x, y,
+				  xcenter, y);
+			XDrawLine(display, drawable, gc,
+				  x, ycenter,
+				  xcenter, ycenter);
+			/* R */
+			XDrawLine(display, drawable, gc,
+				  xcenter, ycenter,
+				  xcenter, ybottom - 1);
+			XDrawLine(display, drawable, gc,
+				  xcenter, ycenter,
+				  xright - 1, ycenter);
+			XDrawLine(display, drawable, gc,
+				  xright - 1, ycenter,
+				  xright - 1, (ycenter + ybottom) / 2);
+			XDrawLine(display, drawable, gc,
+				  xright - 1, (ycenter + ybottom) / 2,
+				  xcenter, (ycenter + ybottom) / 2);
+			XDrawLine(display, drawable, gc,
+				  xcenter, (ycenter + ybottom) / 2,
+				  xright - 1, ybottom - 1);
+			break;
+		case 101: /* e */
+			xcenter--;
+			ycenter--;
+			xright--;
+			ybottom--;
+			/* L */
+			XDrawLine(display, drawable, gc,
+				  x, y,
+				  x, ycenter);
+			XDrawLine(display, drawable, gc,
+				  x, ycenter,
+				  xcenter, ycenter);
+			/* F */
+			XDrawLine(display, drawable, gc,
+				  xcenter, ycenter,
+				  xcenter, ybottom - 1);
+			XDrawLine(display, drawable, gc,
+				  xcenter, ycenter,
+				  xright - 1, ycenter);
+			XDrawLine(display, drawable, gc,
+				  xcenter, (ycenter + ybottom) / 2,
+				  xright - 1, (ycenter + ybottom) / 2);
+			break;
+		case 102: /* f */
+			/* litle circle */
+			diamond[0].x = xcenter - 1;
+			diamond[0].y = ycenter;
+			diamond[1].x = xcenter;
+			diamond[1].y = ycenter - 1;
+			diamond[2].x = xcenter + 1;
+			diamond[2].y = ycenter;
+			diamond[3].x = xcenter;
+			diamond[3].y = ycenter + 1;
+			XFillPolygon(display, drawable, gc,
+				     diamond, G_N_ELEMENTS(diamond),
+				     Convex, CoordModeOrigin);
+			break;
+		case 103: /* g */
+			xcenter--;
+			ycenter--;
+			xright--;
+			ybottom--;
+			/* +/- */
+			XDrawLine(display, drawable, gc,
+				  xcenter, (y + ycenter) / 2,
+				  xcenter, (ycenter + ybottom) / 2);
+			XDrawLine(display, drawable, gc,
+				  (x + xcenter) / 2, ycenter,
+				  (xcenter + xright) / 2, ycenter);
+			XDrawLine(display, drawable, gc,
+				  (x + xcenter) / 2,
+				  (ycenter + ybottom) / 2,
+				  (xcenter + xright) / 2,
+				  (ycenter + ybottom) / 2);
+			break;
+		case 104: /* h */
+			xcenter--;
+			ycenter--;
+			xright--;
+			ybottom--;
+			/* N */
+			XDrawLine(display, drawable, gc,
+				  x, y,
+				  x, ycenter);
+			XDrawLine(display, drawable, gc,
+				  x, y,
+				  xcenter, ycenter);
+			XDrawLine(display, drawable, gc,
+				  xcenter, y,
+				  xcenter, ycenter);
+			/* L */
+			XDrawLine(display, drawable, gc,
+				  xcenter, ycenter,
+				  xcenter, ybottom - 1);
+			XDrawLine(display, drawable, gc,
+				  xcenter, ybottom - 1,
+				  xright - 1, ybottom - 1);
+			break;
+		case 105: /* i */
+			xcenter--;
+			ycenter--;
+			xright--;
+			ybottom--;
+			/* V */
+			XDrawLine(display, drawable, gc,
+				  x, y,
+				  (x + xcenter) / 2, ycenter);
+			XDrawLine(display, drawable, gc,
+				  (x + xcenter) / 2, ycenter,
+				  xcenter, y);
+			/* T */
+			XDrawLine(display, drawable, gc,
+				  xcenter, ycenter,
+				  xright - 1, ycenter);
+			XDrawLine(display, drawable, gc,
+				  (xcenter + xright) / 2, ycenter,
+				  (xcenter + xright) / 2, ybottom - 1);
+			break;
+		case 106: /* j */
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       x,
+				       ycenter,
+				       xcenter - x + VTE_LINE_WIDTH,
+				       VTE_LINE_WIDTH);
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       xcenter,
+				       y,
+				       VTE_LINE_WIDTH,
+				       ycenter - y + VTE_LINE_WIDTH);
+			break;
+		case 107: /* k */
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       x,
+				       ycenter,
+				       xcenter - x + VTE_LINE_WIDTH,
+				       VTE_LINE_WIDTH);
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       xcenter,
+				       ycenter,
+				       VTE_LINE_WIDTH,
+				       ybottom - ycenter);
+			break;
+		case 108: /* l */
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       xcenter,
+				       ycenter,
+				       xright - xcenter,
+				       VTE_LINE_WIDTH);
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       xcenter,
+				       ycenter,
+				       VTE_LINE_WIDTH,
+				       ybottom - ycenter);
+			break;
+		case 109: /* m */
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       xcenter,
+				       ycenter,
+				       xright - xcenter,
+				       VTE_LINE_WIDTH);
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       xcenter,
+				       y,
+				       VTE_LINE_WIDTH,
+				       ycenter - y + VTE_LINE_WIDTH);
+			break;
+		case 110: /* n */
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       xcenter,
+				       y,
+				       VTE_LINE_WIDTH,
+				       row_height);
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       x,
+				       ycenter,
+				       column_width,
+				       VTE_LINE_WIDTH);
+			break;
+		case 111: /* o */
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       x,
+				       y,
+				       column_width,
+				       VTE_LINE_WIDTH);
+			break;
+		case 112: /* p */
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       x,
+				       (y + ycenter) / 2,
+				       column_width,
+				       VTE_LINE_WIDTH);
+			break;
+		case 113: /* q */
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       x,
+				       ycenter,
+				       column_width,
+				       VTE_LINE_WIDTH);
+			break;
+		case 114: /* r */
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       x,
+				       (ycenter + ybottom) / 2,
+				       column_width,
+				       VTE_LINE_WIDTH);
+			break;
+		case 115: /* s */
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       x,
+				       ybottom,
+				       column_width,
+				       VTE_LINE_WIDTH);
+			break;
+		case 116: /* t */
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       xcenter,
+				       y,
+				       VTE_LINE_WIDTH,
+				       row_height);
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       xcenter,
+				       ycenter,
+				       xright - xcenter,
+				       VTE_LINE_WIDTH);
+			break;
+		case 117: /* u */
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       xcenter,
+				       y,
+				       VTE_LINE_WIDTH,
+				       row_height);
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       x,
+				       ycenter,
+				       xcenter - x + VTE_LINE_WIDTH,
+				       VTE_LINE_WIDTH);
+			break;
+		case 118: /* v */
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       xcenter,
+				       y,
+				       VTE_LINE_WIDTH,
+				       ycenter - y + VTE_LINE_WIDTH);
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       x,
+				       ycenter,
+				       column_width,
+				       VTE_LINE_WIDTH);
+			break;
+		case 119: /* w */
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       xcenter,
+				       ycenter,
+				       VTE_LINE_WIDTH,
+				       ybottom - ycenter);
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       x,
+				       ycenter,
+				       column_width,
+				       VTE_LINE_WIDTH);
+			break;
+		case 120: /* x */
+			XFillRectangle(display,
+				       drawable,
+				       gc,
+				       xcenter,
+				       y,
+				       VTE_LINE_WIDTH,
+				       row_height);
+			break;
+		case 121: /* y */
+			xcenter--;
+			ycenter--;
+			xright--;
+			ybottom--;
+			/* <= */
+			XDrawLine(display, drawable, gc,
+				  xright - 1, y,
+				  x, (y + ycenter) / 2);
+			XDrawLine(display, drawable, gc,
+				  x, (y + ycenter) / 2,
+				  xright - 1, ycenter);
+			XDrawLine(display, drawable, gc,
+				  x, ycenter,
+				  xright - 1, (ycenter + ybottom) / 2);
+			break;
+		case 122: /* z */
+			xcenter--;
+			ycenter--;
+			xright--;
+			ybottom--;
+			/* >= */
+			XDrawLine(display, drawable, gc,
+				  x, y,
+				  xright - 1, (y + ycenter) / 2);
+			XDrawLine(display, drawable, gc,
+				  xright - 1, (y + ycenter) / 2,
+				  x, ycenter);
+			XDrawLine(display, drawable, gc,
+				  xright - 1, ycenter,
+				  x, (ycenter + ybottom) / 2);
+			break;
+		case 123: /* pi */
+			xcenter--;
+			ycenter--;
+			xright--;
+			ybottom--;
+			XDrawLine(display, drawable, gc,
+				  (x + xcenter) / 2 - 1,
+				  (y + ycenter) / 2,
+				  (xright + xcenter) / 2 + 1,
+				  (y + ycenter) / 2);
+			XDrawLine(display, drawable, gc,
+				  (x + xcenter) / 2,
+				  (y + ycenter) / 2,
+				  (x + xcenter) / 2,
+				  (ybottom + ycenter) / 2);
+			XDrawLine(display, drawable, gc,
+				  (xright + xcenter) / 2,
+				  (y + ycenter) / 2,
+				  (xright + xcenter) / 2,
+				  (ybottom + ycenter) / 2);
+			break;
+		case 124:
+			xcenter--;
+			ycenter--;
+			xright--;
+			ybottom--;
+			/* != */
+			XDrawLine(display, drawable, gc,
+				  (x + xcenter) / 2 - 1, ycenter,
+				  (xright + xcenter) / 2 + 1, ycenter);
+			XDrawLine(display, drawable, gc,
+				  (x + xcenter) / 2 - 1,
+				  (ybottom + ycenter) / 2,
+				  (xright + xcenter) / 2 + 1,
+				  (ybottom + ycenter) / 2);
+			XDrawLine(display, drawable, gc,
+				  xright - 1, y + 1,
+				  x + 1, ybottom - 1);
+			break;
+		case 125:
+			xcenter--;
+			ycenter--;
+			xright--;
+			ybottom--;
+			/* British pound.  An "L" with a hyphen. */
+			XDrawLine(display, drawable, gc,
+				  (x + xcenter) / 2,
+				  (y + ycenter) / 2,
+				  (x + xcenter) / 2,
+				  (ycenter + ybottom) / 2);
+			XDrawLine(display, drawable, gc,
+				  (x + xcenter) / 2,
+				  (ycenter + ybottom) / 2,
+				  (xcenter + xright) / 2,
+				  (ycenter + ybottom) / 2);
+			XDrawLine(display, drawable, gc,
+				  x, ycenter,
+				  xcenter + 1, ycenter);
+			break;
+		case 126:
+			xcenter--;
+			ycenter--;
+			xright--;
+			ybottom--;
+			/* short hyphen? */
+			XDrawLine(display, drawable, gc,
+				  xcenter - 1, ycenter,
+				  xcenter + 1, ycenter);
+			break;
+		case 127:
+			xcenter--;
+			ycenter--;
+			xright--;
+			ybottom--;
+			/* A "delete" symbol I saw somewhere. */
+			XDrawLine(display, drawable, gc,
+				  x, ycenter,
+				  xcenter, y);
+			XDrawLine(display, drawable, gc,
+				  xcenter, y,
+				  xright - 1, ycenter);
+			XDrawLine(display, drawable, gc,
+				  xright - 1, ycenter,
+				  xright - 1, ybottom - 1);
+			XDrawLine(display, drawable, gc,
+				  xright - 1, ybottom - 1,
+				  x, ybottom - 1);
+			XDrawLine(display, drawable, gc,
+				  x, ybottom - 1,
+				  x, ycenter);
+			break;
+		default:
+			break;
 	}
 }
 
-/* Draw the widget. */
-static void
-vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
+/* Calculate how much padding needs to be placed to either side of a character
+ * to make sure it renders into the center of its cell. */
+static int
+vte_terminal_get_char_padding(VteTerminal *terminal, Display *display,
+			      gunichar c)
 {
-	VteTerminal *terminal = NULL;
-	GtkSettings *settings = NULL;
-	PangoLayout *layout = NULL;
-	VteScreen *screen;
-	Display *display;
-	GdkDrawable *gdrawable;
-	Drawable drawable;
-	GdkColormap *gcolormap;
-	Colormap colormap;
-	GdkVisual *gvisual;
-	Visual *visual;
-	GdkGC *ggc;
-	GC gc;
-	struct vte_charcell *cell, im_cell;
-	int row, drow, col, row_stop, col_stop, x_offs = 0, y_offs = 0, columns;
-	char *preedit;
-	long width, height, ascent, descent, delta;
-	struct timezone tz;
-	struct timeval tv;
-	guint daytime;
-	gint blink_cycle = 1000;
-	int i, len;
-	gboolean blink;
+	int pad, columns;
+	XRectangle ink, logical;
+	wchar_t wc;
 #ifdef HAVE_XFT
-	XftDraw *ftdraw = NULL;
+	XGlyphInfo extents;
 #endif
 
-	/* Make a few sanity checks. */
-	g_return_if_fail(widget != NULL);
-	g_return_if_fail(VTE_IS_TERMINAL(widget));
-	g_return_if_fail(area != NULL);
-	terminal = VTE_TERMINAL(widget);
-	if (!GTK_WIDGET_DRAWABLE(widget)) {
-		return;
+	/* Look up the cached value if there is one. */
+	pad = GPOINTER_TO_INT(g_tree_lookup(terminal->pvt->fontpadding,
+					    GINT_TO_POINTER(c)));
+	/* We store a negative value to signify 0 because NULL also means
+	 * that there's no such entry. */
+	if (pad < 0) {
+		return 0;
 	}
-	screen = terminal->pvt->screen;
+	/* A positive number is the padding value. */
+	if (pad > 0) {
+		return pad;
+	}
+
+	/* A zero means we need to compute and cache it. */
+	columns = g_unichar_iswide(c) ? 2 : 1;
+#ifdef HAVE_XFT
+	if ((pad == 0) && terminal->pvt->use_xft) {
+		XftTextExtents32(display, terminal->pvt->ftfont,
+				 &c, 1, &extents);
+		pad = ((columns * terminal->char_width) - extents.xOff) / 2;
+	}
+#endif
+	if ((pad == 0) && !terminal->pvt->use_pango) {
+		wc = vte_wc_from_unichar(terminal, c);
+		XwcTextExtents(terminal->pvt->fontset, &wc, 1, &ink, &logical);
+		pad = ((columns * terminal->char_width) - logical.width) / 2;
+	}
+	pad = MAX(0, pad);
+	if (pad == 0) {
+		pad = -1;
+	}
+	g_tree_insert(terminal->pvt->fontpadding,
+		      GINT_TO_POINTER(c), GINT_TO_POINTER(pad));
+	pad = (pad == -1) ? 0 : pad;
+	return pad;
+}
+
+/* Draw a string of characters with similar attributes. */
+static void
+vte_terminal_draw_cells(VteTerminal *terminal,
+			struct vte_draw_item *items, size_t n,
+			gint fore, gint back,
+			gboolean underline, gboolean hilite, gboolean boxed,
+			gint x, gint y, gint ascent,
+			gint column_width, gint row_height,
+			Display *display,
+			Drawable drawable,
+			Colormap colormap,
+			Visual *visual,
+			GC gc,
+#ifdef HAVE_XFT
+			XftDraw *ftdraw,
+#endif
+			PangoLayout *layout)
+{
+	gboolean drawn = FALSE;
+	int i, j;
+	gint columns = 0;
+	struct vte_palette_entry *fg, *bg;
+
+#ifdef HAVE_XFT2
+	XftCharSpec *ftchars;
+#endif
+#ifdef HAVE_XFT
+	XftChar32 ftchar;
+#endif
+	char utf8_buf[VTE_UTF8_BPC];
+	PangoAttrList *attrlist;
+	PangoAttribute *attr;
+
+	wchar_t *wchars;
+	XwcTextItem *textitems;
+
+	fg = &terminal->pvt->palette[fore];
+	bg = &terminal->pvt->palette[back];
+
+#ifdef HAVE_XFT2
+	/* Draw using Xft2. */
+	if (!drawn && terminal->pvt->use_xft) {
+		/* Set up the draw request. */
+		ftchars = g_malloc(sizeof(XftCharSpec) * n);
+		for (i = j = columns = 0; i < n; i++) {
+			if ((items[i].c != 0) &&
+			    !g_unichar_isspace(items[i].c)) {
+				ftchars[j].ucs4 = vte_terminal_xft_remap_char(display,
+									      terminal->pvt->ftfont,
+									      items[i].c);
+				ftchars[j].x = x + (columns * column_width) +
+					       items[i].xpad;
+				ftchars[j].y = y + ascent;
+				j++;
+			}
+			columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+		}
+		/* Draw the background rectangle. */
+		if (back != VTE_DEF_BG) {
+			XftDrawRect(ftdraw, &bg->ftcolor, x, y,
+				    columns * column_width, row_height);
+		}
+		/* Draw the text. */
+		XftDrawCharSpec(ftdraw, &fg->ftcolor,
+				terminal->pvt->ftfont,
+				ftchars, j);
+		/* Clean up. */
+		g_free(ftchars);
+		drawn = TRUE;
+	}
+#endif
+#ifdef HAVE_XFT
+	/* Draw using Xft1. */
+	if (!drawn && terminal->pvt->use_xft) {
+		/* Set up the draw request. */
+		for (i = columns = 0; i < n; i++) {
+			columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+		}
+		/* Draw the background rectangle. */
+		if (back != VTE_DEF_BG) {
+			XftDrawRect(ftdraw, &bg->ftcolor, x, y,
+				    columns * column_width, row_height);
+		}
+		/* Draw the text. */
+		for (i = columns = 0; i < n; i++) {
+			if ((items[i].c != 0) &&
+			    !g_unichar_isspace(items[i].c)) {
+				ftchar = items[i].c;
+				XftDrawString32(ftdraw, &fg->ftcolor,
+						terminal->pvt->ftfont,
+						x + (columns * column_width) +
+						items[i].xpad,
+						y + ascent,
+						&ftchar, 1);
+			}
+			columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+		}
+		/* Clean up. */
+		drawn = TRUE;
+	}
+#endif
+	/* Draw using PangoX. */
+	if (!drawn && terminal->pvt->use_pango) {
+		/* Set up the attributes. */
+		attrlist = pango_attr_list_new();
+		attr = pango_attr_foreground_new(fg->red,
+						 fg->green,
+						 fg->blue);
+		pango_attr_list_insert(attrlist, attr);
+		attr = pango_attr_font_desc_new(terminal->pvt->fontdesc);
+		pango_attr_list_insert(attrlist, attr);
+		if (back != VTE_DEF_BG) {
+			XSetForeground(display, gc, bg->pixel);
+			for (i = columns = 0; i < n; i++) {
+				columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+			}
+			XFillRectangle(display, drawable, gc,
+				       x, y,
+				       columns * column_width, row_height);
+		}
+		pango_layout_set_attributes(layout, attrlist);
+		/* Draw the text in a monospaced manner. */
+		for (i = columns = 0; i < n; i++) {
+			if ((items[i].c != 0) &&
+			    !g_unichar_isspace(items[i].c)) {
+				XSetForeground(display, gc, fg->pixel);
+				pango_layout_set_text(layout, utf8_buf,
+						      g_unichar_to_utf8(items[i].c,
+									utf8_buf));
+						      
+				pango_x_render_layout(display,
+						      drawable,
+						      gc,
+						      layout,
+						      x +
+						      (columns * column_width) +
+						      items[i].xpad,
+						      y);
+			}
+			columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+		}
+		/* Clean up. */
+		pango_layout_set_attributes(layout, NULL);
+		pango_attr_list_unref(attrlist);
+		drawn = TRUE;
+	}
+	/* Draw using core fonts. */
+	if (!drawn) {
+		/* Set up the draw request. */
+		wchars = g_malloc(sizeof(wchar_t) * n);
+		textitems = g_malloc(sizeof(XwcTextItem) * (n + 1));
+		/* Set the space between the start of the draw request and
+		 * the first character to 0. */
+		textitems[0].delta = 0;
+		for (i = j = columns = 0; i < n; i++) {
+			if ((items[i].c != 0) &&
+			    !g_unichar_isspace(items[i].c)) {
+				wchars[j] = vte_wc_from_unichar(terminal, items[i].c);
+				textitems[j].chars = &wchars[j];
+				textitems[j].nchars = 1;
+				textitems[j].font_set = terminal->pvt->fontset;
+				/* Left pad. */
+				textitems[j].delta += items[i].xpad;
+				j++;
+				/* Extra left pad for the next character which
+				 * is really our right pad. */
+				textitems[j].delta = items[i].xpad;
+			} else {
+				/* Extra left pad for this space. */
+				textitems[j].delta += column_width;
+			}
+			columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+		}
+		/* Draw the text. */
+		if (back != VTE_DEF_BG) {
+			XSetForeground(display, gc, bg->pixel);
+			XFillRectangle(display, drawable, gc,
+				       x, y,
+				       columns * column_width, row_height);
+		}
+		XSetForeground(display, gc, fg->pixel);
+		XwcDrawText(display, drawable, gc, x, y + ascent, textitems, j);
+		/* Clean up. */
+		g_free(wchars);
+		g_free(textitems);
+	}
+
+	/* Draw whatever SFX are required. */
+	if (underline) {
+		XSetForeground(display, gc, fg->pixel);
+		XDrawLine(display, drawable, gc,
+			  x, y + row_height - 2,
+			  x + (columns * column_width) - 1, y + row_height - 2);
+	}
+	if (hilite) {
+		XSetForeground(display, gc, fg->pixel);
+		XDrawLine(display, drawable, gc,
+			  x, y + row_height - 1,
+			  x + (columns * column_width) - 1, y + row_height - 1);
+	}
+	if (boxed) {
+		XSetForeground(display, gc, fg->pixel);
+		XDrawRectangle(display, drawable, gc,
+			       x, y,
+			       MAX(0, (columns * column_width) - 1),
+			       MAX(0, row_height - 1));
+	}
+}
+
+static gboolean
+vte_terminal_get_blink_state(VteTerminal *terminal)
+{
+	struct timezone tz;
+	struct timeval tv;
+	gint blink_cycle = 1000;
+	GtkSettings *settings;
+	time_t daytime;
+	gboolean blink;
+	GtkWidget *widget;
 
 	/* Determine if blinking text should be shown. */
 	if (terminal->pvt->cursor_blinks) {
 		if (gettimeofday(&tv, &tz) == 0) {
+			widget = GTK_WIDGET(terminal);
 			settings = gtk_widget_get_settings(widget);
 			if (G_IS_OBJECT(settings)) {
 				g_object_get(G_OBJECT(settings),
@@ -10766,13 +10782,204 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	} else {
 		blink = TRUE;
 	}
+	return blink;
+}
+
+/* Paint the contents of a given row at the given location. */
+static void
+vte_terminal_draw_row(VteTerminal *terminal,
+		      VteScreen *screen,
+		      gint row,
+		      gint column, gint column_count,
+		      gint x, gint y, gint ascent,
+		      gint column_width, gint row_height,
+		      Display *display,
+		      Drawable drawable,
+		      Colormap colormap,
+		      Visual *visual,
+		      GC gc,
+#ifdef HAVE_XFT
+		      XftDraw *ftdraw,
+#endif
+		      PangoLayout *layout)
+{
+	GArray *items;
+	int i, j, fore, nfore, back, nback;
+	gboolean underline, nunderline, hilite, nhilite, reverse;
+	struct vte_draw_item item;
+	struct vte_charcell *cell;
+
+	/* Allocate an array to hold draw requests. */
+	items = g_array_new(FALSE, FALSE, sizeof(struct vte_draw_item));
+
+	/* Find groups of characters with identical attributes and bundle
+	 * them together. */
+	i = column;
+
+	/* Back up in case this is a multicolumn character. */
+	cell = vte_terminal_find_charcell(terminal, i, row);
+	if ((cell != NULL) && (cell->columns == 0) && (i > 0)) {
+		cell = vte_terminal_find_charcell(terminal, i - 1, row);
+		column--;
+		column_count++;
+	}
+	/* Walk the line. */
+	while (i < column + column_count) {
+		/* Get the character cell's contents. */
+		cell = vte_terminal_find_charcell(terminal, i, row);
+		/* Find the colors for this cell. */
+		reverse = vte_cell_is_selected(terminal, i, row);
+		vte_terminal_determine_colors(terminal, cell, reverse,
+					      &fore, &back);
+		underline = (cell != NULL) ?
+			    (cell->underline != 0) :
+			    FALSE;
+		if (terminal->pvt->match_contents != NULL) {
+			hilite = vte_cell_is_between(i, row - screen->scroll_delta,
+						     terminal->pvt->match_start.column,
+						     terminal->pvt->match_start.row,
+						     terminal->pvt->match_end.column,
+						     terminal->pvt->match_end.row);
+		} else {
+			hilite = FALSE;
+		}
+
+		/* If this is a graphics character, draw it locally. */
+		if ((cell != NULL) &&
+		    (cell->alternate || vte_unichar_isgraphic(cell->c))) {
+			item.c = cell ? cell->c : ' ';
+			vte_terminal_draw_graphic(terminal, cell->c, fore, back,
+						  x +
+						  ((i - column) * column_width),
+						  y,
+						  column_width,
+						  row_height,
+						  display,
+						  drawable,
+						  gc);
+			i++;
+			continue;
+		}
+
+		/* Add this cell to the draw list. */
+		item.c = cell ? cell->c : ' ';
+		item.xpad = vte_terminal_get_char_padding(terminal,
+							  display,
+							  item.c);
+		g_array_append_val(items, item);
+
+		/* Now find out how many cells have the same attributes. */
+		for (j = i + 1; j < column + column_count; j++) {
+			/* Don't render fragments of multicolumn characters. */
+			cell = vte_terminal_find_charcell(terminal, j, row);
+			if ((cell != NULL) && (cell->columns == 0)) {
+				continue;
+			}
+			if ((cell != NULL) && (cell->alternate)) {
+				break;
+			}
+			if ((cell != NULL) && vte_unichar_isgraphic(cell->c)) {
+				break;
+			}
+			/* Resolve attributes to colors where possible and
+			 * compare visual attributes to the first character
+			 * in this chunk. */
+			reverse = vte_cell_is_selected(terminal, j, row);
+			vte_terminal_determine_colors(terminal, cell, reverse,
+						      &nfore, &nback);
+			if ((nfore != fore) || (nback != back)) {
+				break;
+			}
+			nunderline = (cell != NULL) ?
+				     (cell->underline != 0) :
+				     FALSE;
+			if (nunderline != underline) {
+				break;
+			}
+			if (terminal->pvt->match_contents != NULL) {
+				nhilite = vte_cell_is_between(j, row - screen->scroll_delta,
+							      terminal->pvt->match_start.column,
+							      terminal->pvt->match_start.row,
+							      terminal->pvt->match_end.column + 1,
+							      terminal->pvt->match_end.row);
+			} else {
+				nhilite = FALSE;
+			}
+			if (nhilite != hilite) {
+				break;
+			}
+			/* Add this cell to the draw list. */
+			item.c = cell ? cell->c : ' ';
+			item.xpad = vte_terminal_get_char_padding(terminal,
+								  display,
+								  item.c);
+			g_array_append_val(items, item);
+		}
+		/* Draw the cells. */
+		vte_terminal_draw_cells(terminal,
+					(struct vte_draw_item*) items->data,
+					items->len,
+					fore, back,
+					underline, hilite, FALSE,
+					x + ((i - column) * column_width),
+					y, ascent,
+					column_width, row_height,
+					display, drawable, colormap, visual, gc,
+#ifdef HAVE_XFT
+					ftdraw,
+#endif
+					layout);
+		g_array_set_size(items, 0);
+		/* We'll need to continue at the first cell which didn't
+		 * match the first one in this set. */
+		i = j;
+	}
+
+	/* Clean up. */
+	g_array_free(items, TRUE);
+}
+
+/* Draw the widget. */
+static void
+vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
+{
+	VteTerminal *terminal = NULL;
+	PangoContext *pcontext = NULL;
+	PangoLayout *layout = NULL;
+	VteScreen *screen;
+	Display *display;
+	GdkDrawable *gdrawable;
+	Drawable drawable;
+	GdkColormap *gcolormap;
+	Colormap colormap;
+	GdkVisual *gvisual;
+	Visual *visual;
+	GC gc;
+	struct vte_charcell *cell;
+	struct vte_draw_item item, *items;
+	int row, drow, col, row_stop, col_stop, x_offs = 0, y_offs = 0, columns;
+	char *preedit;
+	long width, height, ascent, descent, delta;
+	int i, len, fore, back;
+	gboolean blink, underline, hilite;
+#ifdef HAVE_XFT
+	XftDraw *ftdraw = NULL;
+#endif
+
+	/* Make a few sanity checks. */
+	g_return_if_fail(widget != NULL);
+	g_return_if_fail(VTE_IS_TERMINAL(widget));
+	g_return_if_fail(area != NULL);
+	terminal = VTE_TERMINAL(widget);
+
+	/* Get going. */
+	screen = terminal->pvt->screen;
 
 	/* Get the X11 structures we need for the drawing area. */
 	gdk_window_get_internal_paint_info(widget->window, &gdrawable,
 					   &x_offs, &y_offs);
 	display = gdk_x11_drawable_get_xdisplay(gdrawable);
 	drawable = gdk_x11_drawable_get_xid(gdrawable);
-	ggc = gdk_gc_new(gdrawable);
 	gc = XCreateGC(display, drawable, 0, NULL);
 	gcolormap = gdk_drawable_get_colormap(widget->window);
 	colormap = gdk_x11_colormap_get_xcolormap(gcolormap);
@@ -10781,11 +10988,18 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 	/* Create a new pango layout in the correct font. */
 	if (terminal->pvt->use_pango) {
-		layout = terminal->pvt->layout;
-
-		if (layout == NULL) {
-			g_warning(_("Error allocating layout, disabling Pango."));
+		pcontext = pango_x_get_context(display);
+		if (pcontext == NULL) {
+			g_warning(_("Error allocating context, "
+				    "disabling Pango."));
 			terminal->pvt->use_pango = FALSE;
+		} else {
+			layout = pango_layout_new(pcontext);
+			if (layout == NULL) {
+				g_warning(_("Error allocating layout, "
+					    "disabling Pango."));
+				terminal->pvt->use_pango = FALSE;
+			}
 		}
 	}
 
@@ -10812,77 +11026,29 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	row = area->y / height;
 	row_stop = (area->y + area->height + height - 1) / height;
 	while (row < row_stop) {
-		/* Get the row data for the row we want to display, taking
-		 * scrolling into account. */
-		drow = row + delta;
 		col = area->x / width;
-		col_stop = (area->x + area->width + width - 1) / width;
-		while (col < col_stop) {
-			/* Get the character cell's contents. */
-			cell = vte_terminal_find_charcell(terminal, col, drow);
-			columns = 1;
-			if ((cell != NULL) && (cell->columns > 1)) {
-				columns = cell->columns;
-			}
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_UPDATES)) {
-				if (cell != NULL) {
-					if (cell->c > 256) {
-						fprintf(stderr,
-							"Drawing %5ld/%d at "
-							"(r%d,c%d).\n",
-							cell->c, cell->columns,
-							drow, col);
-					} else {
-						fprintf(stderr,
-							"Drawing %5ld/%d (`%c')"
-						        " at (r%d,c%d).\n",
-							cell->c, cell->columns,
-							(char) cell->c,
-							drow, col);
-					}
-				}
-			}
-#endif
-			/* Draw the character. */
-			vte_terminal_draw_chars(terminal, screen, cell,
-						NULL, 0, 0,
-						col,
-						drow,
-						col * width - x_offs,
-						row * height - y_offs,
-						x_offs,
-						y_offs,
-						columns * width,
-						height,
-						ascent, descent,
-						display,
-						gdrawable, drawable,
-						gcolormap, colormap,
-						gvisual, visual,
-						ggc, gc,
-						layout,
+		col_stop = howmany(area->x + area->width, width);
+		vte_terminal_draw_row(terminal,
+				      screen,
+				      row + delta,
+				      col,
+				      col_stop - col,
+				      col * width - x_offs,
+				      row * height - y_offs,
+				      ascent,
+				      terminal->char_width,
+				      terminal->char_height,
+				      display, drawable, colormap, visual, gc,
 #ifdef HAVE_XFT
-						ftdraw,
+				      ftdraw,
 #endif
-						FALSE);
-			if (cell == NULL) {
-				/* Skip to the next column. */
-				col++;
-			} else {
-				if (cell->columns != 0) {
-					col += cell->columns;
-				} else {
-					col++;
-				}
-			}
-		}
+				      layout);
 		row++;
 	}
 
 	/* Draw the cursor if it's visible. */
 	if (terminal->pvt->cursor_visible) {
-		/* Get the character under the cursor. */
+		/* Get the location of the cursor. */
 		col = screen->cursor_current.col;
 		if (terminal->pvt->im_preedit != NULL) {
 			preedit = terminal->pvt->im_preedit;
@@ -10893,62 +11059,45 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		}
 		drow = screen->cursor_current.row;
 		row = drow - delta;
+
+		/* Find the character "under" the cursor. */
 		cell = vte_terminal_find_charcell(terminal, col, drow);
-		columns = 1;
-		if ((cell != NULL) && (cell->columns > 1)) {
-			columns = cell->columns;
+		if ((cell != NULL) && (cell->columns == 0)) {
+			col--;
+			cell = vte_terminal_find_charcell(terminal, col, drow);
 		}
 
 		/* Draw the cursor. */
-		delta = screen->scroll_delta;
 		if (GTK_WIDGET_HAS_FOCUS(GTK_WIDGET(terminal))) {
-			/* Draw it as a character, possibly reversed. */
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_UPDATES)) {
-				fprintf(stderr, "Drawing the cursor (%s).\n",
-					blink ? "on" : "off");
-				if (cell != NULL) {
-					if (cell->c > 256) {
-						fprintf(stderr,
-							"Drawing %5ld/%d at "
-							"(r%d,c%d).\n",
-							cell->c, cell->columns,
-							drow, col);
-					} else {
-						fprintf(stderr,
-							"Drawing %5ld/%d (`%c')"
-						        " at (r%d,c%d).\n",
-							cell->c, cell->columns,
-							(char) cell->c,
-							drow, col);
-					}
-				}
-			}
-#endif
-			vte_terminal_draw_chars(terminal, screen, cell,
-						NULL, 0, 0,
-						col,
-						drow,
+			blink = vte_terminal_get_blink_state(terminal);
+			vte_terminal_determine_colors(terminal, cell, blink,
+						      &fore, &back);
+			item.c = cell ? cell->c : ' ';
+			item.xpad = 0;
+			underline = cell ? (cell->underline != 0) : FALSE;
+			hilite = FALSE;
+			vte_terminal_draw_cells(terminal,
+						&item, 1,
+						fore, back,
+						underline, hilite, FALSE,
 						col * width - x_offs,
 						row * height - y_offs,
-						x_offs,
-						y_offs,
-						columns * width,
-						height,
-						ascent, descent,
-						display,
-						gdrawable, drawable,
-						gcolormap, colormap,
-						gvisual, visual,
-						ggc, gc,
-						layout,
+						ascent,
+						terminal->char_width,
+						terminal->char_height,
+						display, drawable, colormap,
+						visual, gc,
 #ifdef HAVE_XFT
 						ftdraw,
 #endif
-						blink);
+						layout);
 		} else {
-			/* Draw it as a rectangle. */
-			guint fore;
+			/* Determine how wide the cursor is. */
+			columns = 1;
+			if ((cell != NULL) && (cell->columns > 1)) {
+				columns = cell->columns;
+			}
+			/* Draw it as a hollow rectangle. */
 			fore = cell ? cell->fore : VTE_DEF_FG;
 			XSetForeground(display, gc,
 				       terminal->pvt->palette[fore].pixel);
@@ -10963,78 +11112,56 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	/* Draw the pre-edit string (if one exists) over the cursor. */
 	if (terminal->pvt->im_preedit) {
 		drow = screen->cursor_current.row;
-		row = drow - delta;
-		memset(&im_cell, 0, sizeof(im_cell));
-		im_cell.fore = screen->defaults.fore;
-		im_cell.back = screen->defaults.back;
-		im_cell.columns = 1;
+		row = screen->cursor_current.row - delta;
 
-		/* If the pre-edit string won't fit on the screen, drop initial
+		/* If the pre-edit string won't fit on the screen, skip initial
 		 * characters until it does. */
 		preedit = terminal->pvt->im_preedit;
 		len = g_utf8_strlen(preedit, -1);
 		col = screen->cursor_current.col;
-		while ((col + len) > terminal->column_count) {
+		while (((col + len) > terminal->column_count) && (len > 0)) {
 			preedit = g_utf8_next_char(preedit);
+			len = g_utf8_strlen(preedit, -1);
 		}
-		len = g_utf8_strlen(preedit, -1);
 		col = screen->cursor_current.col;
 
-		/* Draw the preedit string, one character at a time.  Fill the
-		 * background to prevent double-draws. */
-		for (i = 0; i < len; i++) {
-			im_cell.c = g_utf8_get_char(preedit);
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_UPDATES)) {
-				fprintf(stderr, "Drawing preedit[%d] = %lc.\n",
-					i, (wint_t) im_cell.c);
+		/* Draw the preedit string, boxed. */
+		if (len > 0) {
+			items = g_malloc(sizeof(struct vte_draw_item) * len);
+			for (i = columns = 0; i < len; i++) {
+				items[i].c = g_utf8_get_char(preedit);
+				items[i].xpad = vte_terminal_get_char_padding(terminal,
+									      display,
+									      item.c);
+				columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+				preedit = g_utf8_next_char(preedit);
 			}
-#endif
+			fore = screen->defaults.fore;
+			back = screen->defaults.back;
 			XSetForeground(display, gc,
-				       terminal->pvt->palette[im_cell.back].pixel);
-			XFillRectangle(display,
-				       drawable,
-				       gc,
+				       terminal->pvt->palette[back].pixel);
+			XFillRectangle(display, drawable, gc,
 				       col * width - x_offs,
 				       row * height - y_offs,
-				       width,
-				       height);
-			vte_terminal_draw_chars(terminal, screen, &im_cell,
-						NULL, 0, 0,
-						col,
-						drow,
+				       columns * terminal->char_width,
+				       terminal->char_height);
+			vte_terminal_draw_cells(terminal,
+						items, len,
+						screen->defaults.fore,
+						screen->defaults.back,
+						FALSE, FALSE, TRUE,
 						col * width - x_offs,
 						row * height - y_offs,
-						x_offs,
-						y_offs,
-						width,
-						height,
-						ascent, descent,
-						display,
-						gdrawable, drawable,
-						gcolormap, colormap,
-						gvisual, visual,
-						ggc, gc,
-						layout,
+						ascent,
+						terminal->char_width,
+						terminal->char_height,
+						display, drawable, colormap,
+						visual, gc,
 #ifdef HAVE_XFT
 						ftdraw,
 #endif
-						FALSE);
-			col += vte_unichar_width(im_cell.c);
-			preedit = g_utf8_next_char(preedit);
-		}
-		if (len > 0) {
-			/* Draw a rectangle around the pre-edit string, to help
-			 * distinguish it from other text. */
-			XSetForeground(display, gc,
-				       terminal->pvt->palette[im_cell.fore].pixel);
-			XDrawRectangle(display,
-				       drawable,
-				       gc,
-				       screen->cursor_current.col * width - x_offs,
-				       row * height - y_offs,
-				       (col - screen->cursor_current.col) * width - 1,
-				       height - 1);
+						layout);
+			g_free(items);
 		}
 	}
 
@@ -11044,7 +11171,12 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		XftDrawDestroy(ftdraw);
 	}
 #endif
-	g_object_unref(G_OBJECT(ggc));
+	if (pcontext != NULL) {
+		g_object_unref(G_OBJECT(pcontext));
+		if (layout != NULL) {
+			g_object_unref(G_OBJECT(layout));
+		}
+	}
 	XFreeGC(display, gc);
 }
 
@@ -11054,7 +11186,12 @@ vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), 0);
 	if (event->window == widget->window) {
-		vte_terminal_paint(widget, &event->area);
+		if ((GTK_WIDGET_REALIZED(widget) &&
+		    (GTK_WIDGET_DRAWABLE(widget) &&
+		    (gdk_window_get_state(widget->window) !=
+		     GDK_VISIBILITY_FULLY_OBSCURED)))) {
+			vte_terminal_paint(widget, &event->area);
+		}
 	} else {
 		g_assert_not_reached();
 	}
@@ -12202,6 +12339,8 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	terminal->pvt->mouse_last_button = 0;
 	terminal->pvt->mouse_last_x = 0;
 	terminal->pvt->mouse_last_y = 0;
+	/* Cause everything to be redrawn (or cleared). */
+	vte_invalidate_all(terminal);
 }
 
 const char *

@@ -32,6 +32,11 @@ int vte_pty_open(pid_t *child, char **env_add,
 		 const char *command, char **argv,
 		 int columns, int rows);
 
+/* Set or read the size of a terminal.  Returns 0 on success, -1 on failure,
+ * with errno set to defined return codes from ioctl(). */
+int vte_pty_get_size(int master, int *columns, int *rows);
+int vte_pty_set_size(int master, int columns, int rows);
+
 G_END_DECLS
 
 #endif
