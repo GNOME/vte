@@ -1,3 +1,12 @@
+2002-12-13  nalin
+	* src/buffer.c: add a short test program.
+	* src/iso2022.c: use hard values instead of GDK defines in the 0 map.
+	Add _vte_iso2022_substitute_single() for performing a single mapping
+	operation.
+	* src/vte.c: use _vte_iso2022_substitute_single() instead of a local
+	mapping table when mapping line-drawing charset data, simplifies	
+	maintenance of the mapping.
+
 2002-12-12  Pablo Saratxaga <pablo@mandrakesoft.com>
 	* configure.in: Added Catalan (ca), Spanish (es)
 	and Hebrew (he) to ALL_LINGUAS
@@ -29,7 +38,7 @@
 	trying to run it, to avoid SIGPIPE failures when it's not installed.
 	* src/vte.c: never grab focus -- let the shell app deal with it.
 	Return TRUE from mouse motion and press/release events to keep them
-	from being passed up.
+	from being passed up. (#101089)
 
 2002-12-09  nalin
 	* configure.in: add "uk" to the list of languages.

@@ -1,6 +1,6 @@
 Name: vte
 Version: 0.10.7
-Release: 1
+Release: 2
 Summary: An experimental terminal emulator.
 License: LGPL
 Group: User Interface/X
@@ -93,6 +93,9 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Fri Dec 13 2002 Nalin Dahyabhai <nalin@redhat.com> 0.10.7-2
+- rebuild
+
 * Wed Dec 11 2002 Nalin Dahyabhai <nalin@redhat.com> 0.10.7-1
 - distinguish line-drawing character set code points from the same code points
   received from the local encoding

@@ -3,7 +3,7 @@ pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
 pkglib_PROGRAMS = interpret utf8echo nativeecho utf8mode iso8859mode slowcat
 pkglib_SCRIPTS = decset osc window
-noinst_PROGRAMS = dumpkeys iso2022 pty reaper ring table termcap trie
+noinst_PROGRAMS = buffer dumpkeys iso2022 pty reaper ring table termcap trie
 EXTRA_DIST = \
 	$(pkglib_SCRIPTS) \
 	genkeysyms.py \
@@ -181,6 +181,10 @@ reaper_SOURCES = \
 	reaper.c \
 	reaper.h
 reaper_LDADD = @LIBS@ @GOBJECT_LIBS@
+
+buffer_CFLAGS = @CFLAGS@ -DBUFFER_MAIN
+buffer_SOURCES = buffer.c
+buffer_LDADD = @GOBJECT_LIBS@
 
 dumpkeys_CFLAGS = @CFLAGS@
 dumpkeys_SOURCES = dumpkeys.c

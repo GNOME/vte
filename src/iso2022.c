@@ -57,8 +57,8 @@ static const struct _vte_iso2022_map _vte_iso2022_map_0[] = {
 	{'c', 0x240c},	/* FF symbol */
 	{'d', 0x240d},	/* CR symbol */
 	{'e', 0x240a},	/* LF symbol */
-	{'f', GDK_degree},	/* degree */
-	{'g', GDK_plusminus},	/* plus/minus */
+	{'f', 0x00b0},	/* degree */
+	{'g', 0x00b1},	/* plus/minus */
 	{'h', 0x2424},  /* NL symbol */
 	{'i', 0x240b},  /* VT symbol */
 	{'j', 0x2518},	/* downright corner */
@@ -448,10 +448,45 @@ _vte_iso2022_set_width(gunichar c, gssize width)
 	return c;
 }
 
+gunichar
+_vte_iso2022_substitute_single(gunichar mapname, gunichar c)
+{
+	GTree *charmap;
+	gunichar result = c;
+	gssize width;
+	charmap = _vte_iso2022_map_get(mapname);
+	if (charmap) {
+		c = GPOINTER_TO_INT(g_tree_lookup(charmap, GINT_TO_POINTER(c)));
+		if (c != 0) {
+			result = c;
+		}
+	}
+	/* Calculate width for ambiguous characters. */
+	switch (result) {
+		/* To be filled in some time, I guess. */
+	default:
+		/* For nonambiguous characters, just use
+		 * the width glib has later on. */
+		width = 0;
+		break;
+	}
+	/* Override for drawing characters. */
+	if (mapname == '0') {
+		if ((result >= 0x2500) && (result <= 0x257f)) {
+			width = 1;
+		}
+	}
+	/* Save the width if one was set. */
+	if (width != 0) {
+		result = _vte_iso2022_set_width(result, width);
+	}
+	return result;
+}
+
 gssize
 _vte_iso2022_substitute(struct _vte_iso2022 *outside_state,
-		       gunichar *instring, gssize length,
-		       gunichar *outstring, struct _vte_matcher *specials)
+		        gunichar *instring, gssize length,
+		        gunichar *outstring, struct _vte_matcher *specials)
 {
 	int i, j, k, g;
 	struct _vte_iso2022 state;

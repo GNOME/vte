@@ -32,6 +32,7 @@ G_BEGIN_DECLS
 struct _vte_iso2022 *_vte_iso2022_new(void);
 struct _vte_iso2022 *_vte_iso2022_copy(struct _vte_iso2022 *original);
 void _vte_iso2022_free(struct _vte_iso2022 *p);
+gunichar _vte_iso2022_substitute_single(gunichar mapname, gunichar c);
 gssize _vte_iso2022_substitute(struct _vte_iso2022 *state,
 			       gunichar *instring, gssize length,
 			       gunichar *outstring,

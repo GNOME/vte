@@ -59,3 +59,7 @@
   http://www.debian.org/doc/manuals/intro-i18n/ch-output.en.html
 - Depending on your locale, the current encoding, and possibly the strengh
   of cosmic rays, the display width of certain Unicode characters changes.
+  For the most part this works correctly now, but if you find that it
+  doesn't, please file a bug report including a screenshot, the typescript
+  file produced by the incorrectly displayed program run under "script", and
+  the contents of your LANG environment variable.

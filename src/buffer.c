@@ -38,6 +38,9 @@ static void
 _vte_buffer_check(struct _vte_buffer *buffer, size_t length)
 {
 	struct _vte_real_buffer *buf = (struct _vte_real_buffer*) buffer;
+	if (length > 0) {
+		g_assert(buf->bytes != NULL);
+	}
 	g_assert(buf->buf_length >= length);
 	g_assert(buf->buf_length >= buf->buf_used);
 }
@@ -273,6 +276,13 @@ _vte_buffer_append_buffer(struct _vte_buffer *buffer, struct _vte_buffer *s)
 	_vte_buffer_append(buffer, buf->bytes, buf->buf_used);
 }
 
+void
+_vte_buffer_append_buffer_contents(struct _vte_buffer *buffer,
+				   struct _vte_buffer *s)
+{
+	_vte_buffer_append(buffer, s->bytes, _vte_buffer_length(s));
+}
+
 struct _vte_buffer *
 _vte_buffer_peek_buffer(struct _vte_buffer *buffer)
 {
@@ -295,3 +305,96 @@ _vte_buffer_read_buffer(struct _vte_buffer *buffer)
 	_vte_buffer_consume(buffer, i);
 	return ret;
 }
+
+#ifdef BUFFER_MAIN
+int
+main(int argc, char **argv)
+{
+	struct _vte_buffer *buffer, *tmp;
+	GString *string;
+	guint16 i16 = 0x1632;
+	guint32 i32 = 0x20406080;
+
+	string = g_string_new("Hello!");
+	buffer = _vte_buffer_new();
+	_vte_buffer_append_guint16(buffer, i16);
+	_vte_buffer_append_guint32(buffer, i32);
+	_vte_buffer_append_gstring(buffer, string);
+	tmp = _vte_buffer_new();
+	_vte_buffer_append_buffer_contents(tmp, buffer);
+	_vte_buffer_append_buffer(tmp, buffer);
+
+	/* Check the original buffer. */
+	i16 = _vte_buffer_peek_guint16(buffer);
+	g_print("%x ", i16);
+	i16 = _vte_buffer_read_guint16(buffer);
+	g_print("%x ", i16);
+	i32 = _vte_buffer_peek_guint32(buffer);
+	g_print("%x ", i32);
+	i32 = _vte_buffer_read_guint32(buffer);
+	g_print("%x ", i32);
+	string = _vte_buffer_peek_gstring(buffer);
+	g_print("'%s' ", string->str);
+	g_string_free(string, TRUE);
+	string = _vte_buffer_read_gstring(buffer);
+	g_print("'%s'\n", string->str);
+	g_string_free(string, TRUE);
+	_vte_buffer_free(buffer);
+
+	/* Check the first copy in the new buffer. */
+	i16 = _vte_buffer_peek_guint16(tmp);
+	g_print("%x ", i16);
+	i16 = _vte_buffer_read_guint16(tmp);
+	g_print("%x ", i16);
+	i32 = _vte_buffer_peek_guint32(tmp);
+	g_print("%x ", i32);
+	i32 = _vte_buffer_read_guint32(tmp);
+	g_print("%x ", i32);
+	string = _vte_buffer_peek_gstring(tmp);
+	g_print("'%s' ", string->str);
+	g_string_free(string, TRUE);
+	string = _vte_buffer_read_gstring(tmp);
+	g_print("'%s'\n", string->str);
+	g_string_free(string, TRUE);
+
+	/* Peek at the second copy in the new buffer. */
+	buffer = _vte_buffer_peek_buffer(tmp);
+	i16 = _vte_buffer_peek_guint16(buffer);
+	g_print("%x ", i16);
+	i16 = _vte_buffer_read_guint16(buffer);
+	g_print("%x ", i16);
+	i32 = _vte_buffer_peek_guint32(buffer);
+	g_print("%x ", i32);
+	i32 = _vte_buffer_read_guint32(buffer);
+	g_print("%x ", i32);
+	string = _vte_buffer_peek_gstring(buffer);
+	g_print("'%s' ", string->str);
+	g_string_free(string, TRUE);
+	string = _vte_buffer_read_gstring(buffer);
+	g_print("'%s'\n", string->str);
+	g_string_free(string, TRUE);
+	_vte_buffer_free(buffer);
+
+	/* Check the second copy in the new buffer. */
+	buffer = _vte_buffer_read_buffer(tmp);
+	i16 = _vte_buffer_peek_guint16(buffer);
+	g_print("%x ", i16);
+	i16 = _vte_buffer_read_guint16(buffer);
+	g_print("%x ", i16);
+	i32 = _vte_buffer_peek_guint32(buffer);
+	g_print("%x ", i32);
+	i32 = _vte_buffer_read_guint32(buffer);
+	g_print("%x ", i32);
+	string = _vte_buffer_peek_gstring(buffer);
+	g_print("'%s' ", string->str);
+	g_string_free(string, TRUE);
+	string = _vte_buffer_read_gstring(buffer);
+	g_print("'%s'\n", string->str);
+	g_string_free(string, TRUE);
+	_vte_buffer_free(buffer);
+
+	_vte_buffer_free(tmp);
+
+	return 0;
+}
+#endif

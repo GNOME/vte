@@ -62,6 +62,8 @@ GString * _vte_buffer_read_gstring(struct _vte_buffer *buffer);
 
 void _vte_buffer_append_buffer(struct _vte_buffer *buffer,
 			       struct _vte_buffer *s);
+void _vte_buffer_append_buffer_contents(struct _vte_buffer *buffer,
+					struct _vte_buffer *s);
 struct _vte_buffer *_vte_buffer_peek_buffer(struct _vte_buffer *buffer);
 struct _vte_buffer *_vte_buffer_read_buffer(struct _vte_buffer *buffer);
 
