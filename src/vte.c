@@ -681,6 +681,60 @@ vte_terminal_find_charcell(VteTerminal *terminal, glong col, glong row)
 	return ret;
 }
 
+/* Determine the width of the portion of the preedit string which lies
+ * to the left of the cursor, or the entire string, in columns. */
+static gssize
+vte_terminal_preedit_width(VteTerminal *terminal, gboolean left_only)
+{
+	gunichar c;
+	int i;
+	gssize ret = 0;
+	const char *preedit = NULL;
+
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 0);
+
+	if (terminal->pvt->im_preedit != NULL) {
+		preedit = terminal->pvt->im_preedit;
+		for (i = 0;
+		     (preedit != NULL) &&
+		     (preedit[0] != '\0') &&
+		     (!left_only || (i < terminal->pvt->im_preedit_cursor));
+		     i++) {
+			c = g_utf8_get_char(preedit);
+			ret += _vte_iso2022_unichar_width(c);
+			preedit = g_utf8_next_char(preedit);
+		}
+	}
+
+	return ret;
+}
+
+/* Determine the length of the portion of the preedit string which lies
+ * to the left of the cursor, or the entire string, in gunichars. */
+static gssize
+vte_terminal_preedit_length(VteTerminal *terminal, gboolean left_only)
+{
+	gunichar c;
+	int i = 0;
+	const char *preedit = NULL;
+
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 0);
+
+	if (terminal->pvt->im_preedit != NULL) {
+		preedit = terminal->pvt->im_preedit;
+		for (i = 0;
+		     (preedit != NULL) &&
+		     (preedit[0] != '\0') &&
+		     (!left_only || (i < terminal->pvt->im_preedit_cursor));
+		     i++) {
+			c = g_utf8_get_char(preedit);
+			preedit = g_utf8_next_char(preedit);
+		}
+	}
+
+	return i;
+}
+
 /* Cause the cursor to be redrawn. */
 static void
 vte_invalidate_cursor_once(gpointer data)
@@ -688,7 +742,7 @@ vte_invalidate_cursor_once(gpointer data)
 	VteTerminal *terminal;
 	VteScreen *screen;
 	struct vte_charcell *cell;
-	gssize preedit_length;
+	gssize preedit_width;
 	int column, columns, row;
 
 	if (!VTE_IS_TERMINAL(data)) {
@@ -698,11 +752,7 @@ vte_invalidate_cursor_once(gpointer data)
 
 	if (terminal->pvt->cursor_visible &&
 	    GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
-		if (terminal->pvt->im_preedit != NULL) {
-			preedit_length = strlen(terminal->pvt->im_preedit);
-		} else {
-			preedit_length = 0;
-		}
+		preedit_width = vte_terminal_preedit_width(terminal, FALSE);
 
 		screen = terminal->pvt->screen;
 		row = screen->cursor_current.row;
@@ -720,16 +770,21 @@ vte_invalidate_cursor_once(gpointer data)
 		if (cell != NULL) {
 			columns = cell->columns;
 		}
+		if (preedit_width + 1 > columns) {
+			column = MAX(0,
+				     MIN(column,
+				         terminal->column_count - preedit_width));
+			columns = preedit_width + 1;
+		}
 		vte_invalidate_cells(terminal,
-				     column, columns + preedit_length,
+				     column, columns,
 				     row, 1);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_UPDATES)) {
-			fprintf(stderr, "Invalidating cursor at (%ld,%ld-%ld)."
+			fprintf(stderr, "Invalidating cursor at (%ld,%d-%d)."
 				"\n", screen->cursor_current.row,
-				screen->cursor_current.col,
-				screen->cursor_current.col +
-				columns + preedit_length - 1);
+				column,
+				column + MAX(columns, preedit_width + 1));
 		}
 #endif
 	}
@@ -12378,7 +12433,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 			hilite = FALSE;
 		}
 
-		item.c = cell ? cell->c : ' ';
+		item.c = cell ? (cell->c ? cell->c : ' ') : ' ';
 		item.columns = cell ? cell->columns : 1;
 		item.x = x + ((i - column) * column_width);
 		item.y = y;
@@ -12565,6 +12620,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		row++;
 	}
 
+	/* Draw the cursor. */
 	if (terminal->pvt->cursor_visible &&
 	    (CLAMP(screen->cursor_current.col, 0, terminal->column_count - 1) ==
 	     screen->cursor_current.col) &&
@@ -12573,13 +12629,6 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	     screen->cursor_current.row)) {
 		/* Get the location of the cursor. */
 		col = screen->cursor_current.col;
-		if (terminal->pvt->im_preedit != NULL) {
-			preedit = terminal->pvt->im_preedit;
-			for (i = 0; i < terminal->pvt->im_preedit_cursor; i++) {
-				col += _vte_iso2022_unichar_width(g_utf8_get_char(preedit));
-				preedit = g_utf8_next_char(preedit);
-			}
-		}
 		drow = screen->cursor_current.row;
 		row = drow - delta;
 
@@ -12591,7 +12640,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		}
 
 		/* Draw the cursor. */
-		item.c = cell ? cell->c : ' ';
+		item.c = cell ? (cell->c ? cell->c : ' ') : ' ';
 		item.columns = cell ? cell->columns : 1;
 		item.x = col * width;
 		item.y = row * height;
@@ -12605,7 +12654,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 					row * height + VTE_PAD_WIDTH,
 					width * item.columns,
 					height);
-			if (vte_unichar_is_local_graphic(item.c) ||
+			if (!vte_unichar_is_local_graphic(item.c) ||
 			    !vte_terminal_draw_graphic(terminal,
 						       item.c,
 						       fore, back,
@@ -12636,7 +12685,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 					width * item.columns, height);
 			vte_terminal_draw_cells(terminal,
 						&item, 1,
-						fore, back, FALSE,
+						fore, back, TRUE,
 						cell && cell->bold,
 						cell && cell->underline,
 						cell && cell->strikethrough,
@@ -12654,16 +12703,11 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 		/* Find out how many columns the pre-edit string takes up. */
 		preedit = terminal->pvt->im_preedit;
-		columns = 0;
-		len = 0;
-		while ((preedit != NULL) && (*preedit != '\0')) {
-			len++;
-			columns += _vte_iso2022_unichar_width(g_utf8_get_char(preedit));
-			preedit = g_utf8_next_char(preedit);
-		}
+		columns = vte_terminal_preedit_width(terminal, FALSE);
+		len = vte_terminal_preedit_length(terminal, FALSE);
 
 		/* If the pre-edit string won't fit on the screen if we start
-		   drawing it at the cursor's position, move it left. */
+		 * drawing it at the cursor's position, move it left. */
 		col = screen->cursor_current.col;
 		if (col + columns > terminal->column_count) {
 			col = MAX(0, terminal->column_count - columns);
@@ -12682,6 +12726,11 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 				columns += items[i].columns;
 				preedit = g_utf8_next_char(preedit);
 			}
+			_vte_draw_clear(terminal->pvt->draw,
+					col * width + VTE_PAD_WIDTH,
+					row * height + VTE_PAD_WIDTH,
+					width * columns,
+					height);
 			fore = screen->defaults.fore;
 			back = screen->defaults.back;
 			vte_terminal_draw_cells(terminal,
@@ -12693,6 +12742,35 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 						FALSE,
 						TRUE,
 						width, height);
+			if ((terminal->pvt->im_preedit_cursor >= 0) &&
+			    (terminal->pvt->im_preedit_cursor < len)) {
+				/* Cursored letter in reverse. */
+				vte_terminal_draw_cells(terminal,
+							&items[terminal->pvt->im_preedit_cursor], 1,
+							back, fore, TRUE,
+							FALSE,
+							FALSE,
+							FALSE,
+							FALSE,
+							TRUE,
+							width, height);
+			} else
+			if (terminal->pvt->im_preedit_cursor == len) {
+				/* Empty cursor at the end. */
+				items[0].c = ' ';
+				items[0].x = (col + columns) * width;
+				items[0].y = row * height;
+				items[0].columns = 1;
+				vte_terminal_draw_cells(terminal,
+							&items[0], 1,
+							back, fore, TRUE,
+							FALSE,
+							FALSE,
+							FALSE,
+							FALSE,
+							TRUE,
+							width, height);
+			}
 			g_free(items);
 		}
 	}

@@ -1,3 +1,10 @@
+2003-04-16 nalin
+	* src/vte.c(vte_terminal_paint): fix logic error drawing the cursor
+	which caused ALTGR characters to always be used.  Draw the preedit
+	string in the right location.
+	* src/vte.c(vte_invalidate_cursor_once): expose the visible width of
+	the preedit string, not its length.
+
 2003-04-15 nalin
 	* src/vteaccess.c: fix broken debug message.
 
