@@ -117,6 +117,10 @@ struct _VteTerminalPrivate {
 						   for insertion of any new
 						   characters */
 	} normal_screen, alternate_screen, *screen;
+
+	/* Options. */
+	gboolean scroll_on_output;
+	gboolean scroll_on_keypress;
 };
 
 /* A function which can handle a terminal control sequence. */
@@ -163,7 +167,8 @@ vte_terminal_set_default_attributes(VteTerminal *terminal)
 	terminal->pvt->screen->defaults.underline = 0;
 	terminal->pvt->screen->defaults.half = 0;
 	terminal->pvt->screen->defaults.blink = 0;
-	/* terminal->pvt->screen->defaults.alternate = 0; */
+	/* Alternate charset isn't an attribute, though we treat it as one.
+	 * terminal->pvt->screen->defaults.alternate = 0; */
 }
 
 /* Cause certain cells to be updated. */
@@ -247,6 +252,38 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal)
 	}
 	/* If anything changed, signal that there was a change. */
 	if (changed == TRUE) {
+		gtk_adjustment_changed(terminal->adjustment);
+	}
+}
+
+/* Scroll up or down in the current screen. */
+static void
+vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
+{
+	glong destination;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	/* Calculate the ideal position where we want to be before clamping. */
+	destination = floor(gtk_adjustment_get_value(terminal->adjustment));
+	destination += (pages * terminal->row_count);
+	/* Can't scroll up past zero. */
+	destination = MIN(destination,
+			  terminal->adjustment->upper - terminal->row_count);
+	/* Can't scroll past data we have. */
+	destination = MAX(terminal->adjustment->lower, destination);
+	/* Tell the scrollbar to adjust itself. */
+	gtk_adjustment_set_value(terminal->adjustment, destination);
+	gtk_adjustment_changed(terminal->adjustment);
+}
+
+/* Scroll so that the scroll delta is the insertion delta. */
+static void
+vte_terminal_scroll_on_something(VteTerminal *terminal)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	if (floor(gtk_adjustment_get_value(terminal->adjustment)) !=
+	    terminal->pvt->screen->insert_delta) {
+		gtk_adjustment_set_value(terminal->adjustment,
+					 terminal->pvt->screen->insert_delta);
 		gtk_adjustment_changed(terminal->adjustment);
 	}
 }
@@ -759,11 +796,6 @@ vte_sequence_handler_do(VteTerminal *terminal,
 
 		/* Update scroll bar adjustments. */
 		vte_terminal_adjust_adjustments(terminal);
-
-		/* Keep the cursor on-screen. */
-		if (floor(gtk_adjustment_get_value(terminal->adjustment)) != delta) {
-			gtk_adjustment_set_value(terminal->adjustment, delta);
-		}
 	}
 }
 
@@ -2404,6 +2436,11 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 	vte_invalidate_cells(terminal,
 			     screen->cursor_current.col - 1, 3,
 			     screen->cursor_current.row, 1);
+
+	/* Keep the cursor on-screen. */
+	if (terminal->pvt->scroll_on_output) {
+		vte_terminal_scroll_on_something(terminal);
+	}
 }
 
 /* Handle an EOF from the client. */
@@ -2589,6 +2626,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	size_t normal_length = 0;
 	unsigned char *special = NULL;
 	struct termios tio;
+	gboolean scrolled = FALSE;
 
 	g_return_val_if_fail(widget != NULL, FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
@@ -2674,14 +2712,16 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				break;
 			case GDK_Page_Up:
 				if (modifiers & GDK_SHIFT_MASK) {
-					fprintf(stderr, "Shift-PgUp\n");
+					vte_terminal_scroll_pages(terminal, -1);
+					scrolled = TRUE;
 				} else {
 					special = "kP";
 				}
 				break;
 			case GDK_Page_Down:
 				if (modifiers & GDK_SHIFT_MASK) {
-					fprintf(stderr, "Shift-PgDn\n");
+					vte_terminal_scroll_pages(terminal, 1);
+					scrolled = TRUE;
 				} else {
 					special = "kN";
 				}
@@ -2719,6 +2759,10 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			special = g_strdup_printf(normal, 1);
 			vte_terminal_send(terminal, special, strlen(special));
 			g_free(special);
+		}
+		/* Keep the cursor on-screen. */
+		if (!scrolled && terminal->pvt->scroll_on_keypress) {
+			vte_terminal_scroll_on_something(terminal);
 		}
 		return TRUE;
 	}
@@ -2910,7 +2954,8 @@ vte_handle_scroll(VteTerminal *terminal)
 	screen->scroll_delta = adj;
 	if (dy != 0) {
 		/* Scroll whatever's already in the window to avoid redrawing
-		 * as much as possible. */
+		 * as much as possible -- any exposed area will be exposed for
+		 * us by the windowing system and GDK. */
 		gdk_window_scroll(widget->window,
 				  0, dy * terminal->char_height);
 	}
@@ -3061,6 +3106,8 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->n_pending = 0;
 	pvt->palette_initialized = FALSE;
 	pvt->keypad = VTE_KEYPAD_NORMAL;
+	pvt->scroll_on_output = TRUE;
+	pvt->scroll_on_keypress = TRUE;
 	adjustment = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0, 0, 0, 0));
 
 #ifdef HAVE_XFT
