@@ -19,20 +19,13 @@
   illustrates more or less what the widget sees after it filters incoming data.
 
 * What's missing?
-- Accessibility doesn't work right yet.
-- Chinese and Korean text isn't displayed correctly because we pass it through
-  iconv() before performing substitutions, and they both use GR characters.
-  Japanese works because it only uses GL characters, which iconv() essentially
-  casts to gunichars, where we perform substitutions.  Probably we need to break
-  the text into narrow and wide chunks by performing substitution first (to find
-  and break out the wide chunks) and then iconv the narrow sets (what's left)
-  one chunk at a time.
+- Accessibility doesn't work quite right yet.
 - Mouse hilite tracking isn't implemented yet.
 - Most control sequences are recognized, but many aren't implemented.  There
   are enough to run ls, vim, less, emacs and mutt, but more need to be
-  implemented (ff, i1, i3, is, iP, LF, LO, MC, mh, ML, mm, mo, nw, pf,
-  pk, pl, pf, po, pO, ps, px, r1, r2, r3, RA, RF, rp, rs, RX, SA, SX, wi,
-  several more from the XTerm set).
+  implemented (ds, ff, hd, hu, i1, i3, iP, is, LF, LO, MC, ML, mm, mo, pf, pk,
+  pl, pn, po, pO, ps, px, r1, r2, r3, RA, RF, rp, rs, RX, SA, SX, wi, several
+  more from the XTerm set).
 - I'm not sure the widget implementation itself is correct.  There are many
   changes in going from GTK+ 1.2 to 2.0, and examples of the proper way to do
   things is currently scarce, so some of it's guesswork.

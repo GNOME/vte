@@ -5802,13 +5802,13 @@ static struct {
 	{"i1", NULL},
 	{"i3", NULL},
 
-	{"is", NULL},
 	{"ic", vte_sequence_handler_ic},
 	{"IC", vte_sequence_handler_IC},
 	{"if", NULL},
 	{"im", vte_sequence_handler_im},
 	{"ip", NULL},
 	{"iP", NULL},
+	{"is", NULL},
 
 	{"K1", vte_sequence_handler_complain_key},
 	{"K2", vte_sequence_handler_complain_key},

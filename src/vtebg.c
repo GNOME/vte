@@ -495,7 +495,6 @@ vte_bg_get_pixmap(VteBg *bg,
 	GdkBitmap *mask;
 	GdkPixbuf *pixbuf;
 	char *file;
-	int width, height;
 
 	if (bg == NULL) {
 		bg = vte_bg_get();
@@ -527,17 +526,33 @@ vte_bg_get_pixmap(VteBg *bg,
 	switch (source_type) {
 	case VTE_BG_SOURCE_ROOT:
 		if (GDK_IS_PIXMAP(bg->root_pixmap)) {
-			gdk_drawable_get_size(bg->root_pixmap, &width, &height);
+			int width, height;
+			/* Tell GTK+ that this foreign pixmap shares the
+			 * root window's colormap. */
 			rcolormap = gdk_drawable_get_colormap(gdk_get_default_root_window());
 			if (gdk_drawable_get_colormap(bg->root_pixmap) == NULL) {
-				gdk_drawable_set_colormap(bg->root_pixmap, rcolormap);
+				gdk_drawable_set_colormap(bg->root_pixmap,
+							  rcolormap);
 			}
-			pixbuf = gdk_pixbuf_get_from_drawable(NULL,
-							      bg->root_pixmap,
-							      NULL,
-							      0, 0,
-							      0, 0,
-							      width, height);
+
+			/* Retrieve the pixmap's size. */
+			gdk_error_trap_push();
+			width = height = -1;
+			gdk_drawable_get_size(bg->root_pixmap, &width, &height);
+			gdk_error_trap_pop();
+
+			/* If the pixmap gave us a valid size, retrieve its
+			 * contents. */
+			if ((width > 0) && (height > 0)) {
+				gdk_error_trap_push();
+				pixbuf = gdk_pixbuf_get_from_drawable(NULL,
+								      bg->root_pixmap,
+								      NULL,
+								      0, 0,
+								      0, 0,
+								      width, height);
+				gdk_error_trap_pop();
+			}
 		}
 		break;
 	case VTE_BG_SOURCE_PIXBUF:
@@ -633,17 +648,32 @@ vte_bg_get_pixbuf(VteBg *bg,
 	case VTE_BG_SOURCE_ROOT:
 		if (GDK_IS_PIXMAP(bg->root_pixmap)) {
 			gint width, height;
-			gdk_drawable_get_size(bg->root_pixmap, &width, &height);
+
+			/* If the pixmap doesn't have a colormap, tell GTK+ that
+			 * it shares the root window's colormap. */
 			rcolormap = gdk_drawable_get_colormap(gdk_get_default_root_window());
 			if (gdk_drawable_get_colormap(bg->root_pixmap) == NULL) {
 				gdk_drawable_set_colormap(bg->root_pixmap, rcolormap);
 			}
-			pixbuf = gdk_pixbuf_get_from_drawable(NULL,
-							      bg->root_pixmap,
-							      NULL,
-							      0, 0,
-							      0, 0,
-							      width, height);
+
+			/* Read the pixmap's size. */
+			gdk_error_trap_push();
+			width = height = -1;
+			gdk_drawable_get_size(bg->root_pixmap, &width, &height);
+			gdk_error_trap_pop();
+
+			/* If we got a valid size, read the pixmap's
+			 * contents. */
+			if ((width > 0) && (height > 0)) {
+				gdk_error_trap_push();
+				pixbuf = gdk_pixbuf_get_from_drawable(NULL,
+								      bg->root_pixmap,
+								      NULL,
+								      0, 0,
+								      0, 0,
+								      width, height);
+				gdk_error_trap_pop();
+			}
 		}
 		break;
 	case VTE_BG_SOURCE_PIXBUF:

@@ -1,3 +1,10 @@
+2003-06-03 nalin
+	* src/vtebg.c(_vte_bg_get_pixmap, _vte_bg_get_pixbuf): trap X errors
+	while retrieving the contents of the root pixmap.
+	* doc/ambiguous.txt: add.
+	* README: update.
+	* vte.spec: rebuild.
+
 Tue Jun  3 15:50:38 2003  Jonathan Blandford  <jrb@redhat.com>
 
 	* src/pty.c (n_read): add a missing break in the switch statement.
