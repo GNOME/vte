@@ -1479,6 +1479,7 @@ vte_sequence_handler_al(VteTerminal *terminal,
 			GValueArray *params)
 {
 	VteScreen *screen;
+	GArray *rowdata;
 	long start, end, param, i;
 	GValue *value;
 
@@ -1506,6 +1507,12 @@ vte_sequence_handler_al(VteTerminal *terminal,
 		 * top of the region. */
 		vte_remove_line_int(terminal, end);
 		vte_insert_line_int(terminal, start);
+		/* Get the data for the new row. */
+		rowdata = vte_ring_index(screen->row_data, GArray*, start);
+		/* Add enough cells to it so that it has the default colors. */
+		while (rowdata->len < terminal->column_count) {
+			g_array_append_val(rowdata, screen->defaults);
+		}
 	}
 
 	/* Update the display. */

@@ -1,3 +1,6 @@
+2002-07-26  nalin
+	* src/vte.c: Initialize new lines added for al().  Spotted by jrb.
+
 2002-07-25  Ole Laursen  <olau@hardworking.dk>
 
 	* configure.in: Added Danish translation.
