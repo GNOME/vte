@@ -1,3 +1,9 @@
+2003-02-25 nalin
+	* src/vteapp.c(main): take a shot at implementing xconsole-like
+	functionality when started with the -C flag: we open /dev/console and
+	TIOCCONS it, and just feed data to the widget until we lose ownership
+	of the MIT_CONSOLE_$(hostname) clipboard.
+
 2003-02-25 Samúel Jón Gunnarsson <sammi@techattack.nu>
 
 	* configure.in: added "is" to ALL_LINGUAS.

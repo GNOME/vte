@@ -18,7 +18,9 @@
 
 #ident "$Id$"
 #include "../config.h"
+#include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
 #include <gtk/gtk.h>
@@ -28,6 +30,15 @@
 #endif
 #include "debug.h"
 #include "vte.h"
+#include <gdk/gdkx.h>
+
+#ifdef ENABLE_NLS
+#include <libintl.h>
+#define _(String) dgettext(PACKAGE, String)
+#else
+#define _(String) String
+#define bindtextdomain(package,dir)
+#endif
 
 #define DINGUS1 "(((news|telnet|nttp|file|http|ftp|https)://)|(www|ftp)[-A-Za-z0-9]*\\.)[-A-Za-z0-9\\.]+(:[0-9]*)?"
 #define DINGUS2 "(((news|telnet|nttp|file|http|ftp|https)://)|(www|ftp)[-A-Za-z0-9]*\\.)[-A-Za-z0-9\\.]+(:[0-9]*)?/[-A-Za-z0-9_\\$\\.\\+\\!\\*\\(\\),;:@&=\\?/~\\#\\%]*[^]'\\.}>\\) ,\\\"]"
@@ -296,6 +307,69 @@ mess_with_fontconfig(void)
 #endif
 }
 
+static gboolean
+read_and_feed(GIOChannel *source, GIOCondition condition, gpointer data)
+{
+	char buf[2048];
+	gsize size;
+	GIOStatus status;
+	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
+	status = g_io_channel_read_chars(source, buf, sizeof(buf),
+					 &size, NULL);
+	if ((status == G_IO_STATUS_NORMAL) && (size > 0)) {
+		vte_terminal_feed(VTE_TERMINAL(data), buf, size);
+		return TRUE;
+	}
+	return FALSE;
+}
+
+static void
+disconnect_watch(GtkWidget *widget, gpointer data)
+{
+	g_source_remove(GPOINTER_TO_INT(data));
+}
+
+static void
+clipboard_get(GtkClipboard *clipboard, GtkSelectionData *selection_data,
+	      guint info, gpointer owner)
+{
+	/* No-op. */
+	return;
+}
+
+static void
+take_xconsole_ownership(GtkWidget *widget, gpointer data)
+{
+	char *name, hostname[255];
+	GdkDisplay *display;
+	Atom xatom;
+	GdkAtom atom;
+	GtkClipboard *clipboard;
+	GtkTargetEntry targets[] = {
+		{"UTF8_STRING", 0, 0},
+		{"COMPOUND_TEXT", 0, 0},
+		{"TEXT", 0, 0},
+		{"STRING", 0, 0},
+	};
+
+	memset(hostname, '\0', sizeof(hostname));
+	gethostname(hostname, sizeof(hostname) - 1);
+	display = gdk_display_get_default();
+
+	name = g_strdup_printf("MIT_CONSOLE_%s", hostname);
+	xatom = gdk_x11_get_xatom_by_name_for_display(display, name);
+	atom = gdk_x11_xatom_to_atom_for_display(display, xatom);
+	clipboard = gtk_clipboard_get(atom);
+	g_free(name);
+
+	gtk_clipboard_set_with_owner(clipboard,
+				     targets,
+				     G_N_ELEMENTS(targets),
+				     clipboard_get,
+				     (GtkClipboardClearFunc)gtk_main_quit,
+				     G_OBJECT(widget));
+}
+
 int
 main(int argc, char **argv)
 {
@@ -303,7 +377,8 @@ main(int argc, char **argv)
 	char *env_add[] = {"FOO=BAR", "BOO=BIZ", NULL};
 	const char *background = NULL;
 	gboolean transparent = FALSE, audible = TRUE, blink = TRUE,
-		 debug = FALSE, dingus = FALSE, geometry = TRUE, dbuffer = TRUE;
+		 debug = FALSE, dingus = FALSE, geometry = TRUE, dbuffer = TRUE,
+		 console = TRUE;
 	long lines = 100;
 	const char *message = "Launching interactive shell...\r\n";
 	const char *font = NULL;
@@ -359,10 +434,13 @@ main(int argc, char **argv)
 	argv2[i] = NULL;
 	g_assert(i < (g_list_length(args) + 2));
 	/* Parse some command-line options. */
-	while ((opt = getopt(argc, argv, "B:DT2abc:df:ghn:t:w:")) != -1) {
+	while ((opt = getopt(argc, argv, "B:CDT2abc:df:ghn:t:w:")) != -1) {
 		switch (opt) {
 			case 'B':
 				background = optarg;
+				break;
+			case 'C':
+				console = TRUE;
 				break;
 			case 'D':
 				dingus = TRUE;
@@ -528,18 +606,66 @@ main(int argc, char **argv)
 		gdk_cursor_unref(hand);
 	}
 
-	/* Launch a shell. */
+	if (console) {
+		/* Open a "console" connection. */
+		int consolefd = -1, yes = 1, watch;
+		GIOChannel *channel;
+		consolefd = open("/dev/console", O_RDONLY | O_NOCTTY);
+		if (consolefd != -1) {
+			/* Assume failure. */
+			console = FALSE;
+#ifdef TIOCCONS
+			if (ioctl(consolefd, TIOCCONS, &yes) != -1) {
+				/* Set up a listener. */
+				channel = g_io_channel_unix_new(consolefd);
+				watch = g_io_add_watch(channel,
+						       G_IO_IN,
+						       read_and_feed,
+						       widget);
+				g_signal_connect(G_OBJECT(widget),
+						 "eof",
+						 G_CALLBACK(disconnect_watch),
+						 GINT_TO_POINTER(watch));
+				g_signal_connect(G_OBJECT(widget),
+						 "child-exited",
+						 G_CALLBACK(disconnect_watch),
+						 GINT_TO_POINTER(watch));
+				g_signal_connect(G_OBJECT(widget),
+						 "realize",
+						 G_CALLBACK(take_xconsole_ownership),
+						 NULL);
 #ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		vte_terminal_feed(VTE_TERMINAL(widget), message,
-				  strlen(message));
-	}
+				vte_terminal_feed(VTE_TERMINAL(widget),
+						  "Console log for ...\r\n",
+						  -1);
 #endif
-	vte_terminal_fork_command(VTE_TERMINAL(widget),
-				  command, NULL, env_add, working_directory,
-				  TRUE, TRUE, TRUE);
-	if (command == NULL) {
-		vte_terminal_feed_child(VTE_TERMINAL(widget), "pwd\n", -1);
+				/* Record success. */
+				console = TRUE;
+			}
+#endif
+		} else {
+			/* Bail back to normal mode. */
+			g_warning(_("Could not open console.\n"));
+			close(consolefd);
+			console = FALSE;
+		}
+	}
+	if (!console) {
+		/* Launch a shell. */
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_MISC)) {
+			vte_terminal_feed(VTE_TERMINAL(widget), message,
+					  strlen(message));
+		}
+#endif
+		vte_terminal_fork_command(VTE_TERMINAL(widget),
+					  command, NULL, env_add,
+					  working_directory,
+					  TRUE, TRUE, TRUE);
+		if (command == NULL) {
+			vte_terminal_feed_child(VTE_TERMINAL(widget),
+						"pwd\n", -1);
+		}
 	}
 
 	/* Go for it! */
