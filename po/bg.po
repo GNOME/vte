@@ -2,21 +2,21 @@
 # Copyright (C) 2002 Free Software Foundation, Inc.
 # This file is distributed under the same license as the vte package.
 # Alexander Shopov <al_shopov@yahoo.com>, 2002.
+# Vladimir "Kaladan" Petkov <vpetkov@i-space.org>
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-29 22:25-0400\n"
-"PO-Revision-Date: 2002-12-19 00:46+0200\n"
-"Last-Translator: Alexander Shopov <al_shopov@yahoo.com>\n"
+"POT-Creation-Date: 2004-03-23 04:21+0100\n"
+"PO-Revision-Date: 2004-03-27 14:22+0200\n"
+"Last-Translator: Vladimir \"Kaladan\" Petkov <vpetkov@i-space.org>\n"
 "Language-Team: Bulgarian <dict@linux.zonebg.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 0.9.6\n"
+"Content-Transfer-Encoding: 8bit"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2072
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Не мога да превърна символите от %s към %s."
@@ -24,19 +24,19 @@ msgstr "Не мога да превърна символите от %s към %s
 #: src/iso2022.c:1578
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr ""
+msgstr "Опит за поставяне не невалидна NRC карта '%c'."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #: src/iso2022.c:1619
 msgid "Unrecognized identified coding system."
-msgstr ""
+msgstr "Неразпозната идентификациона кодираща система."
 
 #: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr ""
+msgstr "Опит за поставяне на невалидно широка NRC·карта·'%c'."
 
-#: src/pty.c:329
+#: src/pty.c:323
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Грешка при добавянето на `%s' към средата, продължавам."
@@ -44,12 +44,12 @@ msgstr "Грешка при добавянето на `%s' към средата
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:914
+#: src/pty.c:908
 #, c-format
 msgid "can not run %s"
 msgstr "не мога да изпълня %s"
 
-#: src/reaper.c:137
+#: src/reaper.c:110
 msgid "Error creating signal pipe."
 msgstr "Грешка при създаването на сигнален канал."
 
@@ -58,63 +58,62 @@ msgstr "Грешка при създаването на сигнален кан�
 msgid "Duplicate (%s/%s)!"
 msgstr "Повтаряне на (%s/%s)!"
 
-#: src/vte.c:1498
+#: src/vte.c:1480
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Грешка при изчисляването на регулярния израз \"%s\"."
 
-#: src/vte.c:5850
+#: src/vte.c:5815
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Получих неочаквана последователност (от клавиши?) `%s'."
 
-#: src/vte.c:6951
+#: src/vte.c:6893
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Не е дефинирано, кой да обработи контролната последователност `%s'"
 
-#: src/vte.c:7793
+#: src/vte.c:7714
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Грешка при четене от дъщерния процес: %s."
 
-#: src/vte.c:7949
+#: src/vte.c:7870
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "Грешка (%s) при преобразуването на данните за дъщерния процес, пропускам ги."
 
-#: src/vte.c:10715
+#: src/vte.c:10537
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Грешка при прочитането на PTY размера, ще използвам %s по подразбиране."
 
-#: src/vte.c:10751
+#: src/vte.c:10573
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Грешка при задаването на PTY размера: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15235
-#, fuzzy
+#: src/vte.c:14977
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "g_iconv_open() не успя да зададе символите на думите"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:728
+#: src/vteapp.c:713
 msgid "Could not open console.\n"
-msgstr ""
+msgstr "Терминалът не може да бъде отворен.\n"
 
-#: src/vteglyph.c:579
+#: src/vteglyph.c:576
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr ""
+msgstr "Непознат режим на писели·%d.\n"
 
-#: src/vtexft.c:712
+#: src/vtexft.c:710
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr ""
+msgstr "Знакът U+%04x. не може да бъде изрисуван\n"
 
 #~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
 #~ msgstr ""
