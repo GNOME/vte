@@ -447,7 +447,7 @@ static gboolean vte_terminal_background_update(gpointer data);
 static void vte_terminal_queue_background_update(VteTerminal *terminal,
 						 gboolean refresh_transparent);
 static void vte_terminal_queue_adjustment_changed(VteTerminal *terminal);
-
+static gboolean vte_terminal_process_incoming(gpointer data);
 static char *vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 						       glong start_row,
 						       glong start_col,
