@@ -6,7 +6,7 @@ License: LGPL
 Group: User Interface/X
 BuildRoot: %{_tmppath}/%{name}-root
 Source: %{name}-%{version}.tar.gz
-BuildPrereq: gtk2-devel, pygtk2-devel, python-devel
+BuildPrereq: gtk-doc, gtk2-devel, pygtk2-devel, python-devel
 Requires: bitmap-fonts
 
 %description
@@ -58,6 +58,10 @@ fi
 # Python anyway.
 rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.la
 rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
+
+for png in home left right up ; do
+cp %{_datadir}/gtk-doc/data/${png}.png $RPM_BUILD_ROOT/%{_datadir}/gtk-doc/html/vte/
+done
 
 %find_lang %{name}
 

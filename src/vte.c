@@ -10386,8 +10386,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 		case 1:
 			/* If Shift is held down, or we're not in events mode,
 			 * copy the selected text. */
-			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    !event_mode) {
+			if (terminal->pvt->selecting || !event_mode) {
 				/* Copy only if something was selected. */
 				if (terminal->pvt->has_selection &&
 				    !terminal->pvt->selecting_restart &&
