@@ -2,116 +2,128 @@
 # Copyright (C) 2002 Free Software Foundation, Inc.
 # This file is distributed under the same license as the VTE package.
 # Pablo Gonzalo del Campo <pablodc@bigfoot.com>, 2002.
+# Germán Poo Caamaño <gpoo@ubiobio.cl>, 2002.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: VTE\n"
-"POT-Creation-Date: 2002-09-11 04:53+0200\n"
+"POT-Creation-Date: 2002-12-17 21:23-0300\n"
 "PO-Revision-Date: 2002-09-11 13:55GMT-03:00\n"
-"Last-Translator: Pablo del Campo <pablodc@bigfoot.com>\n"
+"Last-Translator: Germán Poo Caamaño <gpoo@ubiobio.cl>\n"
 "Language-Team: Español <traductores@es.gnome.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 0.9.6\n"
 
-#: src/pty.c:126
+#: src/pty.c:253
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr "Error al agregar «%s» al entorno, continuando."
+msgstr "Ha ocurrido un error al agregar «%s» al entorno, continuando."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:800
+#, c-format
+msgid "can not run %s"
+msgstr "No es posible ejecutar %s"
 
 #: src/reaper.c:107
 msgid "Error creating signal pipe."
-msgstr "Error al crear el caño de señal."
+msgstr "Ha ocurrido un error al crear la señal pipe."
 
-#: src/trie.c:405
+#: src/trie.c:411
 #, c-format
 msgid "Duplicate (%s/%s)!"
-msgstr "¡Duplicado (%s/%s)!"
+msgstr "Duplicado (%s/%s)"
 
-#: src/vte.c:1167
+#: src/vte.c:1338
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "Error al compilar la expresión regular «%s»."
+msgstr "Ha ocurrido un error al compilar la expresión regular «%s»."
 
-#: src/vte.c:1637 src/vte.c:1646 src/vte.c:1658 src/vte.c:1676 src/vte.c:1681
-#: src/vte.c:1686
+#: src/vte.c:1859 src/vte.c:1868 src/vte.c:1880 src/vte.c:1898 src/vte.c:1904
+#: src/vte.c:1909
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "No se pueden convertir caracteres de %s a %s"
 
-#: src/vte.c:4886
+#: src/vte.c:5321
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Se obtuvo una secuencia inesperada (¿de teclas?) «%s»"
 
-#: src/vte.c:5671
-#, c-format
-msgid "Character 0x%x is undefined, allocating one column."
-msgstr "El caracter 0x%x no esta definido, reservando una columna."
-
-#: src/vte.c:5865
+#: src/vte.c:6408
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr "No hay manejador para la secuencia de control «%s» definida."
+msgstr "No existe un manejador para la secuencia de control «%s» definida."
 
-#: src/vte.c:6442
+#: src/vte.c:7018
 #, c-format
 msgid "Error reading from child: %s."
-msgstr "Error al leer desde el hijo: %s"
+msgstr "Ha ocurrido un error al leer desde el hijo: %s"
 
-#: src/vte.c:6628
+#: src/vte.c:7184
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "Error (%s) al convertir datos desde el hijo, omitiendo."
+msgstr "Ha ocurrido un error (%s) al convertir datos desde el hijo, omitiendo."
 
-#: src/vte.c:8698
+#: src/vte.c:9471
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
-msgstr "Se esta usando el juego de tipografía «%s», el cual no posee este juego de caracteres: %s."
+msgstr ""
+"Se esta usando el juego de tipografía «%s», el cual no posee este juego de "
+"caracteres: %s."
 
-#: src/vte.c:9238
+#: src/vte.c:10106
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
-msgstr "Ha fallado la carga del patrón de tipografía Xft «%s», volviendo a la tipografía predeterminada."
+msgstr ""
+"Ha fallado la carga del patrón de tipografía Xft «%s», volviendo a la "
+"tipografía predeterminada."
 
-#: src/vte.c:9250
+#: src/vte.c:10118
 msgid "Failed to load default Xft font."
 msgstr "Ha fallado la carga del la tipografía predeterminada Xft."
 
-#: src/vte.c:9343
+#: src/vte.c:10211
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
-msgstr "Ha fallado la carga del conjunto de tipografía «%s», volviendo a la tipografía predeterminada."
+msgstr ""
+"Ha fallado la carga del conjunto de tipografía «%s», volviendo a la "
+"tipografía predeterminada."
 
-#: src/vte.c:9355
+#: src/vte.c:10223
 msgid "Failed to load default font, crashing or behaving abnormally."
-msgstr "Ha fallado la carga de la tipografía predeterminada, ha fallado o se ha comportado anormalmente."
+msgstr ""
+"Ha fallado la carga de la tipografía predeterminada, ha fallado o se ha "
+"comportado anormalmente."
 
-#: src/vte.c:9614
+#: src/vte.c:10486
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr "Error al leer el tamaño PTY, utilizando el predeterminado: %s."
+msgstr "Ha ocurrido un error al leer el tamaño PTY, utilizando el predeterminado: %s."
 
-#: src/vte.c:9650
+#: src/vte.c:10522
 #, c-format
 msgid "Error setting PTY size: %s."
-msgstr "Error al establecer el tamaño PTY: %s."
+msgstr "Ha ocurrido un error al establecer el tamaño del PTY: %s."
 
-#: src/vte.c:12148
+#: src/vte.c:13387
 msgid "Error allocating draw, disabling Xft."
-msgstr "Error al reservar el dibujo, deshabilitando Xft."
+msgstr "Ha ocurrido un error al reservar memoria de dibujo, deshabilitando Xft."
 
-#: src/vte.c:12155
+#: src/vte.c:13395
 msgid "Error allocating context, disabling Pango."
-msgstr "Error al reservar contexto, deshabilitando Pango."
+msgstr "Ha ocurrido un error al ubicar el contexto, deshabilitando Pango."
 
-#: src/vte.c:12161
+#: src/vte.c:13401
 msgid "Error allocating layout, disabling Pango."
-msgstr "Error al reservar forma, deshabilitando Pango."
+msgstr "Ha ocurrido un error al ubicar el formato, deshabilitando Pango."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:13608
+#: src/vte.c:14986
 msgid "g_iconv_open() failed setting word characters"
-msgstr "Ha fallado g_iconv_open() al establecer los caracteres de la palabra"
+msgstr "Ha ocurrido un error en g_iconv_open() al establecer los caracteres de la palabra"
 
