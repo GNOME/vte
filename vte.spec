@@ -52,7 +52,7 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %dir %{_libdir}/%{name}
 %attr(2711,root,utmp) %{_libdir}/%{name}/gnome-pty-helper
 %{_datadir}/%{name}
-%{_libdir}/python*/site-packages/gtk-2.0/*
+%{_libdir}/python*/site-packages/*
 
 %files devel
 %defattr(-,root,root)
