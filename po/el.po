@@ -1,42 +1,45 @@
+# translation of el.po to Greek
 # Greek translation of vte.
 # Copyright (C) Free Software Foundation, 2003
 # This file is distributed under the same license as the PACKAGE package.
-# Kostas Papadimas <pkst@gmx.net>, 2003.
 # kostas: 21messages, 28Jan2003, initial translation
+# kostas: updated translation for 2.4, 15Jul2003
+# Kostas Papadimas <pkst@gmx.net>, ,2003.
+# Kostas Papadimas <pkst@gmx.net>, 2003
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2003-05-19 14:33-0400\n"
-"PO-Revision-Date: 2003-01-28 14:23+0200\n"
+"Project-Id-Version: el\n"
+"POT-Creation-Date: 2003-07-15 18:01+0300\n"
+"PO-Revision-Date: 2003-07-15 18:06+0300\n"
 "Last-Translator: Kostas Papadimas <pkst@gmx.net>\n"
 "Language-Team: Greek <nls@tux.hellug.gr>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 0.9.6\n"
+"X-Generator: KBabel 1.0\n"
 
-#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2060
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Αδυναμία μετατροπής χαρακτήρων από %s σε %s."
 
-#: src/iso2022.c:1505
+#: src/iso2022.c:1560
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr ""
+msgstr "Προσπάθεια ορισμού μή έγκυρου χάρτη NRC'%c'."
 
-#. See ECMA-35.
-#: src/iso2022.c:1546
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1601
 msgid "Unrecognized identified coding system."
-msgstr ""
+msgstr "Μή αναγνωρίσιμο σύστημα κωδικοποίησης"
 
-#: src/iso2022.c:1595 src/iso2022.c:1621
+#: src/iso2022.c:1650 src/iso2022.c:1676
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr ""
+msgstr "Προσπάθεια ορισμού μή έγκυρου γενικού χάρτη NRC'%c'."
 
-#: src/pty.c:317
+#: src/pty.c:319
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Σφάλμα προσθήκης `%s' στο περιβάλλον, συνέχεια."
@@ -44,7 +47,7 @@ msgstr "Σφάλμα προσθήκης `%s' στο περιβάλλον, συν
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:877
+#: src/pty.c:882
 #, c-format
 msgid "can not run %s"
 msgstr "αδυναμία εκτέλεσης %s"
@@ -58,61 +61,60 @@ msgstr "Σφάλμα δημιουργίας σήματος σωλήνωσης."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicate (%s/%s)!"
 
-#: src/vte.c:1430
+#: src/vte.c:1473
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Σφάλμα σύνταξης κανονικής έκφρασης  \"%s\"."
 
-#: src/vte.c:5534
+#: src/vte.c:5670
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Λήψη απρόσμενης σειράς (κλειδί?) `%s'."
 
-#: src/vte.c:6547
+#: src/vte.c:6685
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Δεν υπάρχει χειριστής για την σειρά ελέγχου `%s' ορίσθηκε."
 
-#: src/vte.c:7293
+#: src/vte.c:7432
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Σφάλμα ανάγνωσης από θυγατρικό: %s."
 
-#: src/vte.c:7449
+#: src/vte.c:7588
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Σφάλμα (%s) μετατροπής δεδομένων από θυγατρικό, γίνεται παραίτηση."
 
-#: src/vte.c:10069
+#: src/vte.c:10232
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Σφάλμα ανάγνωσης μεγέθους PTY , χρήση εξ ορισμού: %s."
 
-#: src/vte.c:10105
+#: src/vte.c:10268
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Σφάλμα ορισμού μεγέθους PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14067
-#, fuzzy
+#: src/vte.c:14391
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "g_iconv_open() απέτυχε να ορίσει χαρακτήρες λέξης"
+msgstr "_vte_conv_open() απέτυχε να ορίσει χαρακτήρες λέξης"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:642
+#: src/vteapp.c:680
 msgid "Could not open console.\n"
-msgstr ""
+msgstr "Αδυναμία ανοίγματος κονσόλας.\n"
 
-#: src/vteglyph.c:575
+#: src/vteglyph.c:576
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr ""
+msgstr "Άγνωστη λειτουργία εικονοστοιχείου %d.\n"
 
-#: src/vtexft.c:664
+#: src/vtexft.c:710
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr ""
+msgstr "Αδυναμία σχεδίασης χαρακτήρα U+%04x.\n"
 
 #~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
 #~ msgstr ""
@@ -146,3 +148,4 @@ msgstr ""
 
 #~ msgid "Error allocating layout, disabling Pango."
 #~ msgstr "Σφάλμα ανάθεσης διάταξης, απενεργοποίηση Pango."
+
