@@ -97,10 +97,10 @@ _vte_xft_text_extents(struct _vte_xft_font *font, XftFont *ftfont, FcChar32 c,
 		      XGlyphInfo *extents)
 {
 #if GTK_CHECK_VERSION(2,2,0)
-	return XftTextExtents32(GDK_DISPLAY_XDISPLAY(font->display),
+	XftTextExtents32(GDK_DISPLAY_XDISPLAY(font->display),
 				ftfont, &c, 1, extents);
 #else
-	return XftTextExtents32(GDK_DISPLAY(), ftfont, &c, 1, extents);
+	XftTextExtents32(GDK_DISPLAY(), ftfont, &c, 1, extents);
 #endif
 }
 

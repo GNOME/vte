@@ -1,3 +1,11 @@
+2003-05-30  Padraig O'Briain  <padraig.obriain@sun.com>
+	* src/vteaccess.c: Add implementation for get_character_extents,
+	get_offset_at_point and get_run_attributes. This fixes bug #110770.
+	Add casts to fix complier warnings on Solaris.
+	
+	* src/vtexft.c (_vte_xft_text_extents): Do not call return as function
+	returns void. Fixes compiler error on Solaris.
+
 2003-05-29 nalin
 	* src/vteapp.c: require -i for icon-title-changed messages, which got
 	really annoying really fast.
