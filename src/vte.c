@@ -268,6 +268,12 @@ vte_invalidate_cells(VteTerminal *terminal,
 	gdk_window_invalidate_rect(widget->window, &rect, TRUE);
 }
 
+static void
+vte_terminal_emit_selection_changed (VteTerminal *terminal)
+{
+	g_signal_emit_by_name (terminal, "selection_changed");
+}
+
 /* Deselect anything which is selected and refresh the screen if needed. */
 static void
 vte_terminal_deselect_all(VteTerminal *terminal)
@@ -275,6 +281,7 @@ vte_terminal_deselect_all(VteTerminal *terminal)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (terminal->pvt->selection) {
 		terminal->pvt->selection = FALSE;
+		vte_terminal_emit_selection_changed (terminal);
 		vte_invalidate_cells(terminal,
 				     0, terminal->column_count,
 				     0, terminal->row_count);
@@ -3704,6 +3711,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
 
+	vte_terminal_emit_selection_changed (terminal);
 	terminal->pvt->selection = TRUE;
 
 	w = terminal->char_width;
@@ -5304,6 +5312,15 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     NULL,
 			     _vte_marshal_VOID__UINT_UINT,
 			     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
+	klass->selection_changed_signal =
+		g_signal_new ("selection_changed",
+			      G_OBJECT_CLASS_TYPE(klass),
+			      G_SIGNAL_RUN_LAST,
+			      0,
+			      NULL,
+			      NULL,
+			      _vte_marshal_VOID__VOID,
+			      G_TYPE_NONE, 0);
 }
 
 GtkType
@@ -5487,3 +5504,10 @@ vte_terminal_set_background_transparent(VteTerminal *terminal)
 		vte_terminal_set_background_image(terminal, image);
 	}
 }
+
+gboolean
+vte_terminal_get_has_selection(VteTerminal *terminal)
+{
+	return (terminal->pvt->selection != FALSE);
+}
+

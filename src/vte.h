@@ -67,6 +67,7 @@ typedef struct _VteTerminalClass {
 	guint char_size_changed_signal;
 	guint window_title_changed_signal;
 	guint icon_title_changed_signal;
+	guint selection_changed_signal;
 } VteTerminalClass;
 
 /* The widget's type. */
@@ -106,6 +107,7 @@ void vte_terminal_set_background_image_file(VteTerminal *terminal,
 void vte_terminal_set_background_saturation(VteTerminal *terminal,
 					    float saturation);
 void vte_terminal_set_background_transparent(VteTerminal *terminal);
+gboolean vte_terminal_get_has_selection(VteTerminal *terminal);
 
 G_END_DECLS
 
