@@ -814,8 +814,11 @@ _vte_iso2022_find_nextctl(const char *p, size_t length)
 	ret = _vte_iso2022_better(ret, memchr(p, '\r', length));
 	ret = _vte_iso2022_better(ret, memchr(p, '\016', length));
 	ret = _vte_iso2022_better(ret, memchr(p, '\017', length));
+#ifdef VTE_ISO2022_8_BIT_CONTROLS
+	/* This breaks UTF-8 and other encodings which use the high bits. */
 	ret = _vte_iso2022_better(ret, memchr(p, 0x8e, length));
 	ret = _vte_iso2022_better(ret, memchr(p, 0x8f, length));
+#endif
 	return ret;
 }
 

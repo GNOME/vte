@@ -1,4 +1,8 @@
 2003-05-13 nalin
+	* src/iso2022.c(_vte_iso2022_find_nextctl): don't recognize 8-bit
+	SS2 and SS3 by default, it breaks UTF-8 and other encodings (#112879).
+
+2003-05-13 nalin
 	* src/vtedraw.c, src/vtedraw.h: add _vte_draw_needs_repaint() to
 	indicate if the drawing back-end can only handle entire-window paints.
 	* src/vteconv.c: return a value from _vte_conv_close(), even though
