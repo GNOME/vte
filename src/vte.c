@@ -8705,6 +8705,7 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 				}
 				/* Skip over fragments. */
 				if (pcell->fragment) {
+					col++;
 					continue;
 				}
 				/* Check whether or not it holds whitespace. */
@@ -13629,6 +13630,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 			 * which have the same attributes as the initial
 			 * portions. */
 			if ((cell != NULL) && (cell->fragment)) {
+				j++;
 				continue;
 			}
 			/* Break up underlined/not-underlined text. */
