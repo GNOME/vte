@@ -1,4 +1,9 @@
 2003-02-20 nalin
+	* src/keymap.c(_vte_keymap_map): in debug mode, skip coverage assertions
+	for specific keys (GDK_2 - GDK_8).
+	* src/keymap.c: remove unshifted entries for GDK_2 - GDK_8 (#106667)
+
+2003-02-20 nalin
 	* src/vte.c(vte_terminal_im_commit,vte_terminal_paste_cb): stop
 	gratuitously resetting the IM context.
 	* src/vte.c(vte_terminal_process_incoming): correctly determine when
