@@ -120,18 +120,21 @@ AC_SUBST(PYTHONMODULES)
 AM_CONDITIONAL(BUILD_PYTHON_BINDINGS, test "x$PYTHONMODULES" '!=' "x")
 
 mylibdir=`eval echo $libdir`
+mylibexecdir=`eval echo $libexecdir`
 mydatadir=`eval echo $datadir`
 if test x$exec_prefix = xNONE ; then
 	if test x$prefix = xNONE ; then
 		mylibdir=` echo $mylibdir  | sed s,NONE,$ac_default_prefix,g`
+		mylibexecdir=` echo $mylibexecdir  | sed s,NONE,$ac_default_prefix,g`
 	else
 		mylibdir=` echo $mylibdir  | sed s,NONE,$prefix,g`
+		mylibexecdir=` echo $mylibexecdir  | sed s,NONE,$prefix,g`
 	fi
 fi
 if test x$prefix = xNONE ; then
 	mydatadir=`echo $mydatadir | sed s,NONE,$ac_default_prefix,g`
 fi
-AC_DEFINE_UNQUOTED(PKGLIBDIR,"$mylibdir/$PACKAGE",
+AC_DEFINE_UNQUOTED(LIBEXECDIR,"$mylibdir/$PACKAGE",
                    [The location where package-specific helpers can be found.])
 AC_DEFINE_UNQUOTED(DATADIR,"$mydatadir",
                    [The location where arch-independent package-specific data can be found.])

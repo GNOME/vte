@@ -11,5 +11,5 @@ gnome_pty_helper_SOURCES = \
 	gnome-utmp.c
 
 install-exec-hook:
-	chown root.utmp $(DESTDIR)$(vtelibdir)/gnome-pty-helper || true
-	chmod g+s       $(DESTDIR)$(vtelibdir)/gnome-pty-helper || true
+	chown root.utmp $(DESTDIR)$(libexecdir)/gnome-pty-helper || true
+	chmod g+s       $(DESTDIR)$(libexecdir)/gnome-pty-helper || true

@@ -579,7 +579,7 @@ _vte_pty_start_helper(void)
 		close(tunnel);
 		close(_vte_pty_helper_tunnel);
 		/* Exec our helper. */
-		execl(PKGLIBDIR "/gnome-pty-helper",
+		execl(LIBEXECDIR "/gnome-pty-helper",
 		      "gnome-pty-helper", NULL);
 		/* Bail. */
 		_exit(1);

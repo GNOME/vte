@@ -1,4 +1,8 @@
 2002-10-10 nalin
+	* configure.in, src/pty.c, gnome-pty-helper/Makefile.am: fix the bits
+	I missed when fixing #95085.
+
+2002-10-10 nalin
 	* src/vteapp.c, python/vte-demo.py: allow specifying the scrollback
 	buffer size.
 	* src/vte.c: if we don't have <wchar.h>, typedef wchar_t as a gunichar,
