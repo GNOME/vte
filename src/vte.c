@@ -1292,7 +1292,7 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 		ocount = icount * VTE_UTF8_BPC + 1;
 		obuf = obufptr = g_malloc(ocount);
 		conv = g_iconv_open(codeset, old_codeset);
-		if (conv != NULL) {
+		if (conv != ((GIConv)-1)) {
 			if (g_iconv(conv, &ibuf, &icount, &obuf, &ocount) == -1) {
 				/* Darn, it failed.  Leave it alone. */
 				g_free(obufptr);
@@ -3007,7 +3007,7 @@ vte_sequence_handler_set_title_int(VteTerminal *terminal,
 			inbuf_len = wcslen((wchar_t*)inbuf) * sizeof(wchar_t);
 			outbuf_len = (inbuf_len * VTE_UTF8_BPC) + 1;
 			outbuf = outbufptr = g_malloc0(outbuf_len);
-			if (conv != NULL) {
+			if (conv != ((GIConv)-1)) {
 				if (g_iconv(conv, &inbuf, &inbuf_len,
 					    &outbuf, &outbuf_len) == -1) {
 #ifdef VTE_DEBUG
@@ -5424,7 +5424,7 @@ vte_terminal_process_incoming(gpointer data)
 		/* There are leftovers, so convert them back to the terminal's
 		 * old encoding and save them for later. */
 		unconv = g_iconv_open(encoding, "WCHAR_T");
-		if (unconv != NULL) {
+		if (unconv != ((GIConv)-1)) {
 			icount = sizeof(wchar_t) * (wcount - start);
 			ibuf = (char*) &wbuf[start];
 			ucount = VTE_UTF8_BPC * (wcount - start) + 1;
@@ -8806,19 +8806,19 @@ vte_terminal_xft_remap_char(Display *display, XftFont *font, XftChar32 orig)
 	XftChar32 new;
 
 	switch (orig) {
-	case 0x00A0:		/* NO-BREAK SPACE */
-		new = 0x0020;	/* SPACE */
-		break;
-	case 0x2010:		/* HYPHEN */
-	case 0x2011:		/* NON-BREAKING HYPHEN */
-	case 0x2012:		/* FIGURE DASH */
-	case 0x2013:		/* EN DASH */
-	case 0x2014:		/* EM DASH */
-	case 0x2212:		/* MINUS SIGN */
-		new = 0x002D;	/* HYPHEN-MINUS */
-		break;
-	default:
-		return orig;
+		case 0x00A0:		/* NO-BREAK SPACE */
+			new = 0x0020;	/* SPACE */
+			break;
+		case 0x2010:		/* HYPHEN */
+		case 0x2011:		/* NON-BREAKING HYPHEN */
+		case 0x2012:		/* FIGURE DASH */
+		case 0x2013:		/* EN DASH */
+		case 0x2014:		/* EM DASH */
+		case 0x2212:		/* MINUS SIGN */
+			new = 0x002D;	/* HYPHEN-MINUS */
+			break;
+		default:
+			return orig;
 	}
 
 	if (XftGlyphExists(display, font, orig)) {
@@ -8866,17 +8866,27 @@ vte_terminal_draw_char(VteTerminal *terminal,
 	int fore, back, dcol, i, j, padding;
 	long xcenter, ycenter, xright, ybottom;
 	char utf8_buf[7] = {0,};
-	gboolean drawn, reverse;
+	wchar_t ch;
+	gboolean drawn, reverse, alternate;
 	PangoAttribute *attr;
 	PangoAttrList *attrlist;
 	XwcTextItem textitem;
 	XPoint diamond[4];
 
+	if (!GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
+		/* Hey now, that's just unfair! */
+		return;
+	}
+	if (cell != NULL) {
+		ch = cell->c;
+	} else {
+		ch = 0;
+	}
+
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_UPDATES)) {
 		fprintf(stderr, "Drawing %ld/%ld at (%ld,%ld), ",
-			(long) (cell ? cell->c : 0),
-			(long) (cell ? cell->columns : 0),
+			ch, (long) (cell ? cell->columns : 0),
 			(long) x, (long) (y + ascent));
 	}
 #endif
@@ -8890,13 +8900,15 @@ vte_terminal_draw_char(VteTerminal *terminal,
 	vte_terminal_determine_colors(terminal, cell, reverse, &fore, &back);
 
 	/* Paint the background for the cell. */
-	if ((back != VTE_DEF_BG) && GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
-		XSetForeground(display, gc, terminal->pvt->palette[back].pixel);
-		XFillRectangle(display, drawable, gc, x, y, width, height);
+	if (back != VTE_DEF_BG) {
+		XSetForeground(display, gc,
+			       terminal->pvt->palette[back].pixel);
+		XFillRectangle(display, drawable, gc,
+			       x, y, width, height);
 	}
 
 	/* If there's no data, bug out here. */
-	if ((cell == NULL) || (cell->c == 0)) {
+	if ((cell == NULL) || (ch == 0)) {
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_UPDATES)) {
 			fprintf(stderr, " skipping.\n");
@@ -8934,14 +8946,93 @@ vte_terminal_draw_char(VteTerminal *terminal,
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_UPDATES)) {
 		fprintf(stderr, "adjusted to %ld/%ld at (%ld,%ld).\n",
-			(long) cell->c, (long) cell->columns,
+			(long) ch, (long) cell->columns,
 			(long) x, (long) (y + ascent));
 	}
 #endif
 
+	/* If this is a unicode special graphics character, map it to one of
+	 * the characters we know how to draw. */
+	alternate = cell->alternate;
+	if (!alternate) {
+		switch (ch) {
+			case 0x2500: /* horizontal line */
+				ch = 'q';
+				alternate = TRUE;
+				break;
+			case 0x2502: /* vertical line */
+				ch = 'x';
+				alternate = TRUE;
+				break;
+			case 0x250c: /* upleft corner */
+				ch = 'l';
+				alternate = TRUE;
+				break;
+			case 0x2510: /* upright corner */
+				ch = 'k';
+				alternate = TRUE;
+				break;
+			case 0x2514: /* downleft corner */
+				ch = 'm';
+				alternate = TRUE;
+				break;
+			case 0x2518: /* downright corner */
+				ch = 'j';
+				alternate = TRUE;
+				break;
+			case 0x2524: /* right t */
+				ch = 'u';
+				alternate = TRUE;
+				break;
+			case 0x251c: /* left t */
+				ch = 't';
+				alternate = TRUE;
+				break;
+			case 0x2534: /* up tee */
+				ch = 'w';
+				alternate = TRUE;
+				break;
+			case 0x252c: /* down tee */
+				ch = 'v';
+				alternate = TRUE;
+				break;
+			case 0x253c: /* cross */
+				ch = 'n';
+				alternate = TRUE;
+				break;
+			case 0x2592: /* checkerboard */
+				ch = 'a';
+				alternate = TRUE;
+				break;
+			case 0x25c6: /* diamond */
+				ch = 96;
+				alternate = TRUE;
+				break;
+			case 0x00b0: /* degree */
+				ch = 'f';
+				alternate = TRUE;
+				break;
+			case 0x00b1: /* plus/minus */
+				ch = 'g';
+				alternate = TRUE;
+				break;
+			case 0x00b7: /* bullet */
+				ch = 127;
+				alternate = TRUE;
+				break;
+			case 0x2190: /* left arrow */
+			case 0x2192: /* right arrow */
+			case 0x2193: /* down arrow */
+			case 0x2191: /* up arrow */
+			case 0x25ae: /* block */
+			default:
+				break;
+		}
+	}
+
 	/* If the character is drawn in the alternate graphic font, do the
 	 * drawing ourselves. */
-	if (cell->alternate) {
+	if (alternate) {
 		xright = x + width;
 		ybottom = y + height;
 		xcenter = (x + xright) / 2;
@@ -8950,7 +9041,7 @@ vte_terminal_draw_char(VteTerminal *terminal,
 		/* Draw the alternate charset characters which differ from
 		 * the ASCII character set. */
 		XSetForeground(display, gc, terminal->pvt->palette[fore].pixel);
-		switch (cell->c) {
+		switch (ch) {
 			case 95:
 				/* drawing a blank */
 				break;
@@ -9531,7 +9622,7 @@ vte_terminal_draw_char(VteTerminal *terminal,
 		XGlyphInfo glyph_info;
 		gpointer ptr;
 		font = terminal->pvt->ftfont;
-		ftc = vte_terminal_xft_remap_char(display, font, cell->c);
+		ftc = vte_terminal_xft_remap_char(display, font, ch);
 		ptr = g_tree_lookup(terminal->pvt->fontpadding,
 				    GINT_TO_POINTER(ftc));
 		padding = GPOINTER_TO_INT(ptr);
@@ -9540,13 +9631,27 @@ vte_terminal_draw_char(VteTerminal *terminal,
 		} else if (padding == 0) {
 			XftTextExtents32(GDK_DISPLAY(), font, &ftc, 1,
 					 &glyph_info);
+			if (ftc > 256) {
+				fprintf(stderr, "Glyph %d has "
+					"width %d, x %d, xOff %d, ",
+					ftc,
+					glyph_info.width,
+					glyph_info.x,
+					glyph_info.xOff);
+			}
 			padding = CLAMP((terminal->char_width *
-					 wcwidth(cell->c) -
-					 glyph_info.xOff) / 2,
+					 wcwidth(ch) - glyph_info.xOff) / 2,
 					0, 3 * terminal->char_width);
+			if (ftc > 256) {
+				fprintf(stderr, "padding %d.\n", padding);
+			}
 			g_tree_insert(terminal->pvt->fontpadding,
 				      GINT_TO_POINTER(ftc),
 				      GINT_TO_POINTER(padding));
+		}
+		if (ftc > 256) {
+			fprintf(stderr, "Drawing %d with %d padding.\n",
+				ftc, padding);
 		}
 		XftDrawString32(ftdraw,
 				&terminal->pvt->palette[fore].ftcolor,
@@ -9567,7 +9672,7 @@ vte_terminal_draw_char(VteTerminal *terminal,
 							 terminal->pvt->palette[back].blue);
 			pango_attr_list_insert(attrlist, attr);
 		}
-		g_unichar_to_utf8(cell->c, utf8_buf);
+		g_unichar_to_utf8(ch, utf8_buf);
 		pango_layout_set_text(layout, utf8_buf, -1);
 		pango_layout_set_attributes(layout, attrlist);
 		XSetForeground(display, gc, terminal->pvt->palette[fore].pixel);
@@ -9589,24 +9694,23 @@ vte_terminal_draw_char(VteTerminal *terminal,
 		gpointer ptr;
 		XRectangle ink, logic;
 		ptr = g_tree_lookup(terminal->pvt->fontpadding,
-				    GINT_TO_POINTER(cell->c));
+				    GINT_TO_POINTER(ch));
 		padding = GPOINTER_TO_INT(ptr);
 		if (padding < 0) {
 			padding = 0;
 		} else if (padding == 0) {
 			XwcTextExtents(terminal->pvt->fontset,
-				       &cell->c, 1, &ink, &logic);
+				       &ch, 1, &ink, &logic);
 			padding = CLAMP((terminal->char_width *
-					 wcwidth(cell->c) -
-					 logic.width) / 2,
+					 wcwidth(ch) - logic.width) / 2,
 					0, 3 * terminal->char_width);
 			g_tree_insert(terminal->pvt->fontpadding,
-				      GINT_TO_POINTER(cell->c),
+				      GINT_TO_POINTER(ch),
 				      GINT_TO_POINTER(padding));
 		}
 
 		/* Set the textitem's fields. */
-		textitem.chars = &cell->c;
+		textitem.chars = &ch;
 		textitem.nchars = 1;
 		textitem.delta = 0;
 		textitem.font_set = terminal->pvt->fontset;
@@ -10947,7 +11051,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 						sizeof(VteWordCharRange));
 	/* Convert the spec from UTF-8 to a string of wchar_t. */
 	conv = g_iconv_open("WCHAR_T", "UTF-8");
-	if (conv == NULL) {
+	if (conv == ((GIConv)-1)) {
 		/* Aaargh.  We're screwed. */
 		g_warning(_("g_iconv_open() failed setting word characters"));
 		return;
