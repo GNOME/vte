@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.10
+Version: 0.10.1
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -64,6 +64,9 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Tue Oct 29 2002 Nalin Dahyabhai <nalin@redhat.com> 0.10.1-1
+- add the ability to remove matching patterns
+
 * Thu Oct 24 2002 Nalin Dahyabhai <nalin@redhat.com> 0.10-1
 - allow setting the working directory (#76529)
 

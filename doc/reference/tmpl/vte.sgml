@@ -485,6 +485,15 @@ A VteTerminal is a terminal emulator implemented as a GTK2 widget.
 @Returns: 
 
 
+<!-- ##### FUNCTION vte_terminal_match_remove ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@tag: 
+
+
 <!-- ##### FUNCTION vte_terminal_match_check ##### -->
 <para>
 

@@ -95,9 +95,9 @@ static const struct _vte_iso2022_map _vte_iso2022_map_4[] = {
 	{'@',  GDK_threequarters},
 	{'[',  GDK_ydiaeresis},
 	{'\\', GDK_onehalf},
-	{']',  GDK_bar},
+	{']',  GDK_bar}, /* FIXME? not in XTerm 170 */
 	{'{',  GDK_diaeresis},
-	{'|',  0x192}, /* f with hook (florin) */
+	{'|',  0x192}, /* f with hook (florin) */ /* FIXME? not in XTerm 170 */
 	{'}',  GDK_onequarter},
 	{'~',  GDK_acute}
 };
@@ -335,6 +335,8 @@ _vte_iso2022_map_get(gunichar mapname)
 			ret = _vte_iso2022_map_init(_vte_iso2022_map_A,
 						    G_N_ELEMENTS(_vte_iso2022_map_A));
 			break;
+		case '1':
+		case '2':
 		case 'B':
 			ret = _vte_iso2022_map_init(_vte_iso2022_map_B,
 						    G_N_ELEMENTS(_vte_iso2022_map_B));

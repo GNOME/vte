@@ -264,6 +264,8 @@ void vte_terminal_match_clear_all(VteTerminal *terminal);
 /* Add a matching expression, returning the tag the widget assigns to that
  * expression. */
 int vte_terminal_match_add(VteTerminal *terminal, const char *match);
+/* Remove a matching expression by tag. */
+void vte_terminal_match_remove(VteTerminal *terminal, int tag);
 
 /* Check if a given cell on the screen contains part of a matched string.  If
  * it does, return the string, and store the match tag in the optional tag

@@ -1,3 +1,15 @@
+2002-10-30  nalin
+	* src/vteapp.c: implement iconify, deiconify, raise, lower, maximize,
+	restore, refresh, resize, and move signals.
+	* src/vte.c: add vte_terminal_match_remove().
+	* src/vte.c (vte_sequence_handler_cb): clear the current column in
+	addition to columns to the left, spotted by Sam Varshavchik.
+	* src/vte.c:  Use g_array_set_size() to clear arrays instead of
+	removing each element.  Properly initialize new columns with just the
+	default colors and not other attributes (#96978).
+	* src/vte.c (vte_sequence_handler_ta): revert to non-overwriting tabs,
+	otherwise we got occasional drawing artifacts.
+
 2002-10-30  Abi Brady  <morwen@evilmagic.org>
 
 	* src/vte.c, src/vte.h : Support dim (halfbright) colours. All the

@@ -26,6 +26,9 @@
 #include "debug.h"
 #include "vte.h"
 
+#define DINGUS1 "(((news|telnet|nttp|file|http|ftp|https)://)|(www|ftp)[-A-Za-z0-9]*\\.)[-A-Za-z0-9\\.]+(:[0-9]*)?"
+#define DINGUS2 "(((news|telnet|nttp|file|http|ftp|https)://)|(www|ftp)[-A-Za-z0-9]*\\.)[-A-Za-z0-9\\.]+(:[0-9]*)?/[-A-Za-z0-9_\\$\\.\\+\\!\\*\\(\\),;:@&=\\?/~\\#\\%]*[^]'\\.}>\\) ,\\\"]"
+
 static void
 window_title_changed(GtkWidget *widget, gpointer win)
 {
@@ -91,6 +94,140 @@ status_line_changed(GtkWidget *widget, gpointer data)
 {
 	g_print("Status = `%s'.\n",
 		vte_terminal_get_status_line(VTE_TERMINAL(widget)));
+}
+
+static int
+button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
+{
+	VteTerminal *terminal;
+	char *match;
+	int tag;
+	gint xpad, ypad;
+	switch (event->button) {
+	case 3:
+		terminal = VTE_TERMINAL(widget);
+		vte_terminal_get_padding(terminal, &xpad, &ypad);
+		match = vte_terminal_match_check(terminal,
+						 (event->x - ypad) /
+						 terminal->char_width,
+						 (event->y - ypad) /
+						 terminal->char_height,
+						 &tag);
+		if (match != NULL) {
+			g_print("Matched `%s' (%d).\n", match, tag);
+			g_free(match);
+			if (GPOINTER_TO_INT(data) != 0) {
+				vte_terminal_match_remove(terminal, tag);
+			}
+		}
+		break;
+	case 1:
+	case 2:
+	default:
+		break;
+	}
+	return FALSE;
+}
+
+static void
+iconify_window(GtkWidget *widget, gpointer data)
+{
+	if (GTK_IS_WIDGET(data)) {
+		if ((GTK_WIDGET(data))->window) {
+			gdk_window_iconify((GTK_WIDGET(data))->window);
+		}
+	}
+}
+
+static void
+deiconify_window(GtkWidget *widget, gpointer data)
+{
+	if (GTK_IS_WIDGET(data)) {
+		if ((GTK_WIDGET(data))->window) {
+			gdk_window_deiconify((GTK_WIDGET(data))->window);
+		}
+	}
+}
+
+static void
+raise_window(GtkWidget *widget, gpointer data)
+{
+	if (GTK_IS_WIDGET(data)) {
+		if ((GTK_WIDGET(data))->window) {
+			gdk_window_raise((GTK_WIDGET(data))->window);
+		}
+	}
+}
+
+static void
+lower_window(GtkWidget *widget, gpointer data)
+{
+	if (GTK_IS_WIDGET(data)) {
+		if ((GTK_WIDGET(data))->window) {
+			gdk_window_lower((GTK_WIDGET(data))->window);
+		}
+	}
+}
+
+static void
+maximize_window(GtkWidget *widget, gpointer data)
+{
+	if (GTK_IS_WIDGET(data)) {
+		if ((GTK_WIDGET(data))->window) {
+			gdk_window_maximize((GTK_WIDGET(data))->window);
+		}
+	}
+}
+
+static void
+restore_window(GtkWidget *widget, gpointer data)
+{
+	if (GTK_IS_WIDGET(data)) {
+		if ((GTK_WIDGET(data))->window) {
+			gdk_window_unmaximize((GTK_WIDGET(data))->window);
+		}
+	}
+}
+
+static void
+refresh_window(GtkWidget *widget, gpointer data)
+{
+	GdkRectangle rect;
+	if (GTK_IS_WIDGET(data)) {
+		if ((GTK_WIDGET(data))->window) {
+			rect.x = rect.y = 0;
+			rect.width = (GTK_WIDGET(data))->allocation.width;
+			rect.height = (GTK_WIDGET(data))->allocation.height;
+			gdk_window_invalidate_rect((GTK_WIDGET(data))->window,
+						   &rect, TRUE);
+		}
+	}
+}
+
+static void
+resize_window(GtkWidget *widget, guint width, guint height, gpointer data)
+{
+	VteTerminal *terminal;
+	gint owidth, oheight;
+	if ((GTK_IS_WINDOW(data)) && (width >= 2) && (height >= 2)) {
+		terminal = VTE_TERMINAL(widget);
+		/* Take into account padding and border overhead. */
+		gtk_window_get_size(GTK_WINDOW(data), &owidth, &oheight);
+		owidth -= terminal->char_width * terminal->column_count;
+		oheight -= terminal->char_height * terminal->row_count;
+		gtk_window_resize(GTK_WINDOW(data),
+				  width + owidth, height + oheight);
+	}
+}
+
+static void
+move_window(GtkWidget *widget, guint x, guint y, gpointer data)
+{
+	if (GTK_IS_WIDGET(data)) {
+		if ((GTK_WIDGET(data))->window) {
+			gdk_window_move((GTK_WIDGET(data))->window, x, y);
+		}
+	}
 }
 
 int
@@ -242,6 +379,30 @@ main(int argc, char **argv)
 	g_signal_connect(G_OBJECT(widget), "status-line-changed",
 			 G_CALLBACK(status_line_changed), widget);
 
+	/* Connect to the "button-press" event. */
+	g_signal_connect(G_OBJECT(widget), "button-press-event",
+			 G_CALLBACK(button_pressed), widget);
+
+	/* Connect to application request signals. */
+	g_signal_connect(G_OBJECT(widget), "iconify-window",
+			 G_CALLBACK(iconify_window), window);
+	g_signal_connect(G_OBJECT(widget), "deiconify-window",
+			 G_CALLBACK(deiconify_window), window);
+	g_signal_connect(G_OBJECT(widget), "raise-window",
+			 G_CALLBACK(raise_window), window);
+	g_signal_connect(G_OBJECT(widget), "lower-window",
+			 G_CALLBACK(lower_window), window);
+	g_signal_connect(G_OBJECT(widget), "maximize-window",
+			 G_CALLBACK(maximize_window), window);
+	g_signal_connect(G_OBJECT(widget), "restore-window",
+			 G_CALLBACK(restore_window), window);
+	g_signal_connect(G_OBJECT(widget), "refresh-window",
+			 G_CALLBACK(refresh_window), window);
+	g_signal_connect(G_OBJECT(widget), "resize-window",
+			 G_CALLBACK(resize_window), window);
+	g_signal_connect(G_OBJECT(widget), "move-window",
+			 G_CALLBACK(move_window), window);
+
 	/* Create the scrollbar for the widget. */
 	scrollbar = gtk_vscrollbar_new((VTE_TERMINAL(widget))->adjustment);
 	gtk_box_pack_start(GTK_BOX(hbox), scrollbar, FALSE, FALSE, 0);
@@ -274,10 +435,8 @@ main(int argc, char **argv)
 	/* Match "abcdefg". */
 	vte_terminal_match_add(VTE_TERMINAL(widget), "abcdefg");
 	if (dingus) {
-		vte_terminal_match_add(VTE_TERMINAL(widget),
-				       "(((news|telnet|nttp|file|http|ftp|https)://)|(www|ftp)[-A-Za-z0-9]*\\.)[-A-Za-z0-9\\.]+(:[0-9]*)?");
-		vte_terminal_match_add(VTE_TERMINAL(widget),
-				       "(((news|telnet|nttp|file|http|ftp|https)://)|(www|ftp)[-A-Za-z0-9]*\\.)[-A-Za-z0-9\\.]+(:[0-9]*)?/[-A-Za-z0-9_\\$\\.\\+\\!\\*\\(\\),;:@&=\\?/~\\#\\%]*[^]'\\.}>\\) ,\\\"]");
+		vte_terminal_match_add(VTE_TERMINAL(widget), DINGUS1);
+		vte_terminal_match_add(VTE_TERMINAL(widget), DINGUS2);
 	}
 
 	/* Launch a shell. */
