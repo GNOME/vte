@@ -1,4 +1,8 @@
 2003-08-13 nalin
+	* src/vteapp.c(main): if -S is passed, use forkpty to start a child that
+	just counts until killed with Ctrl-C.
+
+2003-08-13 nalin
 	* doc/reference/vte-sections.txt: add vte_terminal_forkpty.
 	* src/pty.c(_vte_pty_run_on_pty): exit on any error, to avoid leaving
 	random unreaped children running.  Accept NULL command indicating that
