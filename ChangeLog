@@ -1,3 +1,8 @@
+2003-01-14 nalin
+	* src/keymap.c(_vte_keymap_key_add_key_modifiers): if a key sequence
+	which needs modifiers doesn't have a numeric part, add "1" as the
+	numeric part before adding the modifiers.  Spotted by msw.
+
 2003-01-13 nalin
 	* src/ring.c, src/ring.h: add _vte_ring_insert_preserve(), which
 	scrolls lost items off the top instead of the bottom, as
