@@ -2239,7 +2239,7 @@ vte_sequence_handler_bt(VteTerminal *terminal,
 
 	/* If we have no tab stops, stop right here. */
 	if (newcol <= 0) {
-		return;
+		newcol = 0;
 	}
 
 	/* Warp the cursor. */

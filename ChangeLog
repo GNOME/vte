@@ -1,17 +1,21 @@
-2003-02-18 nalin
+2003-02-19 nalin
+	* src/vte.c(vte_terminal_sequence_handler_bt): add missing chunk of
+	fix for backtab.
+
+2003-02-19 nalin
 	* src/vte.c: turn on update debugging if VTE_DEBUG_FLAGS includes
 	"updates"
 
-2003-02-18 nalin
+2003-02-19 nalin
 	* src/keymap.c: add map entries for unmodified digit keypresses.
 
-2003-02-18 nalin
+2003-02-19 nalin
 	* src/vte.c(vte_terminal_match_add): use the default cursor by default,
 	so that we don't look weird to people who aren't used to the cursor
 	changing this way.
 	* configure.in: forcibly define VTE_DEBUG to "1" when we define it.
 
-2003-02-18 nalin
+2003-02-19 nalin
 	* src/vteaccess.c: emit focus-event signals from the accessible peer
 	when the widget receives focus-in and focus-out events, noted by
 	Marc Mulcahy.
