@@ -87,6 +87,7 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/%{name}/slowcat
 %{_libdir}/%{name}/utf8echo
 %{_libdir}/%{name}/utf8mode
+%{_libdir}/%{name}/vterdb
 %{_libdir}/%{name}/window
 %{_libdir}/*.a
 %{_libdir}/*.so
