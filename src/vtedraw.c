@@ -37,9 +37,11 @@
 struct _vte_draw_impl
 *_vte_draw_impls[] = {
 	&_vte_draw_skel,
+#if GTK_CHECK_VERSION(2,2,0)
 #ifndef X_DISPLAY_MISSING
 #ifdef HAVE_GL
 	/* &_vte_draw_gl, */
+#endif
 #endif
 #endif
 #ifndef X_DISPLAY_MISSING

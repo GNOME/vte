@@ -284,8 +284,8 @@ static void
 _vte_pango_x_set_text_font(struct _vte_draw *draw,
 			   const PangoFontDescription *fontdesc)
 {
-	GdkScreen *screen;
 	PangoContext *ctx;
+	Display *display;
 	PangoLayout *layout;
 	PangoLayoutIter *iter;
 	PangoRectangle ink, logical;
@@ -297,8 +297,16 @@ _vte_pango_x_set_text_font(struct _vte_draw *draw,
 
 	data = (struct _vte_pango_x_data*) draw->impl_data;
 
-	screen = gdk_screen_get_default();
-	ctx = gdk_pango_context_get_for_screen(screen);
+#if GTK_CHECK_VERSION(2,2,0)
+	display = gdk_x11_display_get_xdisplay(gtk_widget_get_display(draw->widget));
+#else
+	display = gdk_display;
+#endif
+	if (PANGO_IS_CONTEXT(data->ctx)) {
+		g_object_unref(G_OBJECT(data->ctx));
+	}
+	ctx = pango_x_get_context(display);
+
 	layout = pango_layout_new(ctx);
 	if (data->font != NULL) {
 		pango_font_description_free(data->font);
@@ -351,6 +359,7 @@ _vte_pango_x_set_text_font(struct _vte_draw *draw,
 	}
 #endif
 	g_object_unref(G_OBJECT(layout));
+	g_object_unref(G_OBJECT(ctx));
 }
 
 static int

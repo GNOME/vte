@@ -30,7 +30,6 @@
 #endif
 #include "debug.h"
 #include "vte.h"
-#include <gdk/gdkx.h>
 
 #ifdef ENABLE_NLS
 #include <libintl.h>
@@ -341,8 +340,6 @@ static void
 take_xconsole_ownership(GtkWidget *widget, gpointer data)
 {
 	char *name, hostname[255];
-	GdkDisplay *display;
-	Atom xatom;
 	GdkAtom atom;
 	GtkClipboard *clipboard;
 	GtkTargetEntry targets[] = {
@@ -354,11 +351,9 @@ take_xconsole_ownership(GtkWidget *widget, gpointer data)
 
 	memset(hostname, '\0', sizeof(hostname));
 	gethostname(hostname, sizeof(hostname) - 1);
-	display = gdk_display_get_default();
 
 	name = g_strdup_printf("MIT_CONSOLE_%s", hostname);
-	xatom = gdk_x11_get_xatom_by_name_for_display(display, name);
-	atom = gdk_x11_xatom_to_atom_for_display(display, xatom);
+	atom = gdk_atom_intern(name, FALSE);
 	clipboard = gtk_clipboard_get(atom);
 	g_free(name);
 

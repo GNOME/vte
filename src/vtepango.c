@@ -110,13 +110,19 @@ _vte_pango_get_colormap(struct _vte_draw *draw)
 static void
 _vte_pango_start(struct _vte_draw *draw)
 {
+#if GTK_CHECK_VERSION(2,2,0)
 	GdkScreen *screen;
+#endif
 	PangoContext *ctx;
 	struct _vte_pango_data *data;
 	data = (struct _vte_pango_data*) draw->impl_data;
 
+#if GTK_CHECK_VERSION(2,2,0)
 	screen = gdk_drawable_get_screen(draw->widget->window);
 	ctx = gdk_pango_context_get_for_screen(screen);
+#else
+	ctx = gdk_pango_context_get();
+#endif
 
 	if (PANGO_IS_LAYOUT(data->layout)) {
 		g_object_unref(G_OBJECT(data->layout));
@@ -249,7 +255,9 @@ static void
 _vte_pango_set_text_font(struct _vte_draw *draw,
 			 const PangoFontDescription *fontdesc)
 {
+#if GTK_CHECK_VERSION(2,2,0)
 	GdkScreen *screen;
+#endif
 	PangoContext *ctx;
 	PangoLayout *layout;
 	PangoLayoutIter *iter;
@@ -262,8 +270,16 @@ _vte_pango_set_text_font(struct _vte_draw *draw,
 
 	data = (struct _vte_pango_data*) draw->impl_data;
 
-	screen = gdk_screen_get_default();
+#if GTK_CHECK_VERSION(2,2,0)
+	if (gtk_widget_has_screen(draw->widget)) {
+		screen = gtk_widget_get_screen(draw->widget);
+	} else {
+		screen = gdk_screen_get_default();
+	}
 	ctx = gdk_pango_context_get_for_screen(screen);
+#else
+	ctx = gdk_pango_context_get();
+#endif
 	layout = pango_layout_new(ctx);
 	if (data->font != NULL) {
 		pango_font_description_free(data->font);

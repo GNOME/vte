@@ -89,7 +89,11 @@ _vte_fc_transcribe_from_pango_font_description(FcPattern *pattern,
 	FcPatternAddDouble(pattern, FC_SIZE, size);
 
 	/* Set the language for the pattern. */
+#if GTK_CHECK_VERSION(2,2,0)
 	context = gdk_pango_context_get_for_screen(gdk_screen_get_default());
+#else
+	context = gdk_pango_context_get();
+#endif
 	language = pango_context_get_language(context);
 	if (pango_language_to_string(language) != NULL) {
 		FcPatternAddString(pattern, FC_LANG,
@@ -115,7 +119,9 @@ static void
 _vte_fc_defaults_from_gtk(FcPattern *pattern)
 {
 	GtkSettings *settings;
+#if GTK_CHECK_VERSION(2,2,0)
 	GdkScreen *screen;
+#endif
 	GObjectClass *klass;
 	int i, antialias = -1, hinting = -1, dpi = -1;
 	double d;
@@ -123,8 +129,12 @@ _vte_fc_defaults_from_gtk(FcPattern *pattern)
 	FcResult result;
 
 	/* Add any defaults configured for GTK+. */
+#if GTK_CHECK_VERSION(2,2,0)
 	screen = gdk_screen_get_default();
 	settings = gtk_settings_get_for_screen(screen);
+#else
+	settings = gtk_settings_get_default();
+#endif
 	if (settings == NULL) {
 		return;
 	}

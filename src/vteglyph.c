@@ -512,25 +512,34 @@ _vte_glyph_get(struct _vte_glyph_cache *cache, gunichar c)
 			ioffset *= (-face->glyph->bitmap.pitch);
 		}
 		switch (face->glyph->bitmap.pixel_mode) {
+#ifdef HAVE_DECL_FT_PIXEL_MODE_MONO
 		case FT_PIXEL_MODE_MONO:
+#else
+#ifdef HAVE_DECL_ft_pixel_mode_mono
+		case ft_pixel_mode_mono:
+#else
+#error Neither ft_pixel_mode_mono nor FT_PIXEL_MODE_MONO is defined!
+#endif
+#endif
 			ioffset += (x / 8);
 			t = (face->glyph->bitmap.buffer[ioffset] << (x % 8));
 			r = g = b = (t >> 7) ? 0xff : 0;
 			break;
+#ifdef HAVE_DECL_FT_PIXEL_MODE_GRAY2
 		case FT_PIXEL_MODE_GRAY2:
 			ioffset += (x / 4);
 			t = (face->glyph->bitmap.buffer[ioffset] << ((x % 4) * 2));
 			r = g = b = CLAMP((t >> 6) * 0x55, 0, 0xff);
 			break;
+#endif
+#ifdef HAVE_DECL_FT_PIXEL_MODE_GRAY4
 		case FT_PIXEL_MODE_GRAY4:
 			ioffset += (x / 2);
 			t = (face->glyph->bitmap.buffer[ioffset] << ((x % 2) * 4)) & 7;
 			r = g = b = CLAMP((t >> 4) * 0x25, 0, 0xff);
 			break;
-		case FT_PIXEL_MODE_GRAY:
-			ioffset += x;
-			r = g = b = face->glyph->bitmap.buffer[ioffset];
-			break;
+#endif
+#ifdef HAVE_DECL_FT_PIXEL_MODE_LCD
 		case FT_PIXEL_MODE_LCD:
 		case FT_PIXEL_MODE_LCD_V:
 			ioffset += (x * 3);
@@ -538,8 +547,17 @@ _vte_glyph_get(struct _vte_glyph_cache *cache, gunichar c)
 			g = face->glyph->bitmap.buffer[ioffset++];
 			b = face->glyph->bitmap.buffer[ioffset++];
 			break;
+#endif
+#ifdef HAVE_DECL_FT_PIXEL_MODE_GRAY
+		case FT_PIXEL_MODE_GRAY:
+#else
+#ifdef HAVE_DECL_ft_pixel_mode_grays
+		case ft_pixel_mode_grays:
+#endif
+			ioffset += x;
+			r = g = b = face->glyph->bitmap.buffer[ioffset];
+#endif
 		default:
-			r = g = b = 0;
 			g_assert_not_reached();
 			break;
 		}

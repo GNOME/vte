@@ -29,13 +29,29 @@ if $have_libtool ; then : ; else
 	DIE=1
 fi
 
-(autoconf --version) < /dev/null > /dev/null 2>&1 || {
+for autoconf in autoconf autoconf-2.57 autoconf-2.56 autoconf-2.55 autoconf-2.54 autoconf-2.53 autoconf-2.52 ; do
+	if "$autoconf" --version < /dev/null > /dev/null 2>&1 ; then
+		version=`"$autoconf" --version | head -1 | awk '{print $NF}'`
+		acmajor=`echo "$version" | cut -f1 -d.`
+		acminor=`echo "$version" | cut -f2 -d.`
+		if test "$acmajor" -gt 3 ; then
+			break
+		fi
+		if test "$acmajor" -ge 2 ; then
+			if test "$acminor" -ge 50 ; then
+				break
+			fi
+		fi
+	fi
+done
+if ! "$autoconf" --version < /dev/null > /dev/null 2>&1 ; then
 	echo
-	echo "You must have autoconf installed to compile $PROJECT."
+	echo "You must have autoconf 2.52 installed to compile $PROJECT."
 	echo "Install the appropriate package for your distribution,"
 	echo "or get the source tarball at ftp://ftp.gnu.org/pub/gnu/"
 	DIE=1
-}
+fi
+autoheader=`echo "$autoconf" | sed s,autoconf,autoheader,g`
 
 (freetype-config --version) < /dev/null > /dev/null 2>&1 || {
 	echo
@@ -46,7 +62,7 @@ fi
 }
 
 have_automake=false
-for automakev in 1.7 1.6 1.5 ; do
+for automakev in 1.7 1.6 ; do
 	if automake-$automakev --version < /dev/null > /dev/null 2>&1 ; then
 		have_automake=true
 		break;
@@ -54,8 +70,8 @@ for automakev in 1.7 1.6 1.5 ; do
 done
 if $have_automake ; then : ; else
 	echo
-	echo "You must have automake 1.5 installed to compile $PROJECT."
-	echo "Get ftp://ftp.gnu.org/pub/gnu/automake/automake-1.5.tar.gz"
+	echo "You must have automake 1.6 installed to compile $PROJECT."
+	echo "Get ftp://ftp.gnu.org/pub/gnu/automake/automake-1.6.tar.gz"
 	echo "(or a newer version if it is available)"
 	DIE=1
 fi
@@ -81,16 +97,16 @@ touch config.h.in
 aclocal-$automakev $ACLOCAL_FLAGS
 
 # optionally feature autoheader
-(autoheader --version)  < /dev/null > /dev/null 2>&1 && autoheader
+$autoheader
 automake-$automakev -a -c $am_opt
-autoconf
+$autoconf
 
 cd gnome-pty-helper
 touch config.h.in
 aclocal-$automakev $ACLOCAL_FLAGS
-(autoheader --version)  < /dev/null > /dev/null 2>&1 && autoheader
+$autoheader
 automake-$automakev -a -c $am_opt
-autoconf
+$autoconf
 
 cd $ORIGDIR
 

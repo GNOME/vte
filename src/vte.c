@@ -5153,7 +5153,9 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 					 GQuark match_quark,
 					 GValueArray *params)
 {
+#if GTK_CHECK_VERSION(2,2,0)
 	GdkScreen *gscreen;
+#endif
 	VteScreen *screen;
 	GValue *value;
 	GtkWidget *widget;
@@ -5358,17 +5360,22 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 				fprintf(stderr, "Reporting screen size.\n");
 			}
 #endif
+#if GTK_CHECK_VERSION(2,2,0)
 			if (gtk_widget_has_screen(widget)) {
 				gscreen = gtk_widget_get_screen(widget);
 			} else {
 				gscreen = gdk_screen_get_default();
 			}
+			height = gdk_screen_get_height(gscreen);
+			width = gdk_screen_get_width(gscreen);
+#else
+			height = gdk_screen_height();
+			width = gdk_screen_width();
+#endif
 			snprintf(buf, sizeof(buf),
 				 "%s%ld;%ldt", _VTE_CAP_CSI,
-				 gdk_screen_get_height(gscreen) /
-				 terminal->char_height,
-				 gdk_screen_get_width(gscreen) /
-				 terminal->char_width);
+				 height / terminal->char_height,
+				 width / terminal->char_width);
 			vte_terminal_feed_child(terminal, buf, strlen(buf));
 			break;
 		case 20:

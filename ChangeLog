@@ -1,4 +1,20 @@
 2003-04-14 nalin
+	* autogen.sh: require automake 1.6, 1.5 chokes on AM_LDFLAGS, which 1.7
+	wants instead of LDFLAGS(!).  Require autoconf 2.52 or newer, because
+	older versions bail on configure.in.
+	* configure.in: Check if ft_render_mode_mono, FT_RENDER_MODE_NORMAL,
+	FT_PIXEL_MODE_MONO, ft_pixel_mode_mono, FT_PIXEL_MODE_GRAY2,
+	FT_PIXEL_MODE_GRAY4, FT_PIXEL_MODE_GRAY, ft_pixel_mode_grays,
+	FT_PIXEL_MODE_LCD are declared.
+	* src/vte.c, src/vteapp.c, src/vtefc.c, src/vtepango.c: handle being
+	built with GTK+ 2.0 or 2.2.
+	* src/vtegl.c: disable for GTK+ < 2.2.0.
+	* src/vtepangox.c: use a PangoX context instead of a Pango context
+	when determining font metrics.
+	* src/vteglyph.c: handle the twisty maze of load and render options and
+	pixel modes various versions of freetype support.
+
+2003-04-14 nalin
 	* configure.in: disable pangox, xft, glx drawing if run invoked with
 	the --without-x flag.
 	* vte.pc.in: include CFLAGS found by AC_PATH_XTRA when built with X.
