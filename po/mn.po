@@ -1,0 +1,120 @@
+# translation of vte.HEAD.po to mongolian
+# This file is distributed under the same license as the PACKAGE package.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# Sanlig Badral <badral@chinggis.com>, 2003
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte.HEAD\n"
+"POT-Creation-Date: 2003-01-08 06:08+0100\n"
+"PO-Revision-Date: 2003-01-16 21:13+0100\n"
+"Last-Translator: Sanlig Badral <badral@chinggis.com>\n"
+"Language-Team: mongolian <mn@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.1\n"
+
+#: src/pty.c:253
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "»%s« -г орчин руу нэмэхэд алдаа гарлаа, үргэлжлүүлэх."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:800
+#, c-format
+msgid "can not run %s"
+msgstr "%s ажиллаж чадахгүй байна"
+
+#: src/reaper.c:107
+msgid "Error creating signal pipe."
+msgstr "Сигнарын шугам үүсгэж байхад алдаа гарлаа."
+
+#: src/trie.c:411
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "Давхардал (%s/%s)!"
+
+#: src/vte.c:1339
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "»%s« энгийн илэрхийлэлийг хөрвүүлж байхад алдаа."
+
+#: src/vte.c:1860 src/vte.c:1869 src/vte.c:1881 src/vte.c:1899 src/vte.c:1905
+#: src/vte.c:1910
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Тэмдэгт %s -с %s рүү хөрвөх боломжгүй."
+
+#: src/vte.c:5368
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "Гэнэтийн (Түлхүүр?) »%s« үр дагавар хүлээн авлаа."
+
+#: src/vte.c:6455
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "»%s« шалгах дарааллын боловсруулагч тодорхойлогдоогүй байна."
+
+#: src/vte.c:7073
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Хүүг уншихад алдаа: %s."
+
+#: src/vte.c:7239
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Хүүгийн өгөгдлийн хөрвүүлэлтэнд алдаа (%s) гарч тасарлаа."
+
+#: src/vte.c:9526
+#, c-format
+msgid "Using fontset \"%s\", which is missing these character sets: %s."
+msgstr "»%s« бичгийн хэвүүдийг хэрэглэхэд дараах тэмдэгтүүд дутуу байна: %s."
+
+#: src/vte.c:10164
+#, c-format
+msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
+msgstr "»%s« Xft-бичгийн хэвүүдийг ачаалахад боломжгүй, стандарт бичиг рүү буцах."
+
+#: src/vte.c:10176
+msgid "Failed to load default Xft font."
+msgstr "Стандарт Xft-бичиг ачаалах бүтсэнгүй"
+
+#: src/vte.c:10269
+#, c-format
+msgid "Failed to load font set \"%s\", falling back to default font."
+msgstr "»%s« бичгийн хэвүүдийг ачаалахад боломжгүй, стандарт бичиг рүү буцах."
+
+#: src/vte.c:10281
+msgid "Failed to load default font, crashing or behaving abnormally."
+msgstr "Стандарт бичиг ачаалах нурлаа. Гацаа эсвэл энгийн бус харьцаа."
+
+#: src/vte.c:10543
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "PTY-хэмжээ уншихад алдаа, стандартыг хэрэглэх: %s."
+
+#: src/vte.c:10579
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "PTY-хэмжээ тогтооход алдаа: %s."
+
+#: src/vte.c:13454
+msgid "Error allocating draw, disabling Xft."
+msgstr "Зургийг эмхлэхэд алдаа, Xft хаагдав."
+
+#: src/vte.c:13462
+msgid "Error allocating context, disabling Pango."
+msgstr "Контекст эмхлэхэд алдаа, Pango хаагдав."
+
+#: src/vte.c:13468
+msgid "Error allocating layout, disabling Pango."
+msgstr "layout эмхлэхэд алдаа, Pango хаагдав."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:15062
+msgid "g_iconv_open() failed setting word characters"
+msgstr "g_iconv_open() үгийн тэмдэгтүүдийг тогтоож чадсангүй"
+
