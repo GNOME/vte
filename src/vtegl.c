@@ -395,7 +395,8 @@ _vte_gl_set_text_font(struct _vte_draw *draw,
 	}
 	data->cache = _vte_glyph_cache_new();
 
-	_vte_glyph_cache_set_font_description(NULL, data->cache, fontdesc,
+	_vte_glyph_cache_set_font_description(draw->widget,
+					      NULL, data->cache, fontdesc,
 					      _vte_gl_fcpattern_disable_rgba,
 					      NULL);
 }
