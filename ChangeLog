@@ -1,4 +1,9 @@
 2003-04-21 nalin
+	* gnome-pty-helper/gnome-login-support.c(n_read): don't bail out if
+	read() returns -1 and errno is either EINTR or EAGAIN, candidate fix for
+	#107534.
+
+2003-04-21 nalin
 	* src/vte.c(vte_terminal_io_read): add a couple of assertions here
 	just to be sure (#108066).
 

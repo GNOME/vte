@@ -328,10 +328,13 @@ n_read (int fd, void *buf, int n)
 		case 0:
 			/* EOF */
 			break;
-		}
-		if (nread > 0) {
+		default:
 			ptr += nread;
-		} else {
+			break;
+		}
+		/* If we hit EOF before we finished reading data, return
+		 * an error. */
+		if (nread == 0) {
 			break;
 		}
 	}
