@@ -19,7 +19,7 @@
   what the widget actually sees after it filters incoming data.
 
 * What's missing?
-- Accessibility isn't started yet.
+- Accessibility isn't completed yet.
 - Mouse tracking isn't started yet.
 - Entries in the termcap file also don't contain the sequences which a terminal
   is supposed to send to the application when a specific sequence is received

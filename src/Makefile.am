@@ -1,5 +1,5 @@
 bin_PROGRAMS = vte
-pkginclude_HEADERS = caps.h pty.h ring.h termcap.h trie.h vte.h
+pkginclude_HEADERS = caps.h pty.h ring.h termcap.h trie.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
 noinst_PROGRAMS = interpret utf8echo utf8mode iso8859mode
 EXTRA_PROGRAMS = pty ring termcap trie
@@ -21,7 +21,9 @@ libvte_la_SOURCES = \
 	trie.c \
 	trie.h \
 	vte.c \
-	vte.h
+	vte.h \
+	vteaccess.c \
+	vteaccess.h
 
 CLEANFILES = marshal.c marshal.h
 

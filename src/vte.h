@@ -68,7 +68,29 @@ typedef struct _VteTerminalClass {
 	guint window_title_changed_signal;
 	guint icon_title_changed_signal;
 	guint selection_changed_signal;
+	guint contents_changed_signal;
+	guint cursor_moved_signal;
 } VteTerminalClass;
+
+/* A snapshot of the screen contents. */
+typedef struct _VteTerminalSnapshot {
+	struct {
+		int x, y;			/* Location of the cursor. */
+	} cursor;
+	int rows, columns;			/* Size of the screen[shot]. */
+	gboolean cursor_visible;
+	struct VteTerminalSnapshotCell {
+		gunichar c;			/* The character itself. */
+		struct {
+			/* Colors of this character. */
+			GdkColor foreground, background;
+			/* Is it underlined? */
+			gboolean underline;
+			/* Is it a graphic character? */
+			gboolean alternate;
+		} attributes;
+	} **contents;
+} VteTerminalSnapshot;
 
 /* The widget's type. */
 GtkType vte_terminal_get_type(void);
@@ -88,22 +110,24 @@ GtkType vte_terminal_get_type(void);
 
 
 GtkWidget *vte_terminal_new(void);
-void vte_terminal_fork_command(VteTerminal *terminal,
-			       const char *command,
-			       const char **argv);
+pid_t vte_terminal_fork_command(VteTerminal *terminal,
+			        const char *command,
+			        const char **argv);
 void vte_terminal_feed(VteTerminal *terminal,
 		       const char *data,
 		       size_t length);
 void vte_terminal_feed_child(VteTerminal *terminal,
 			     const char *data,
 			     size_t length);
+
+void vte_terminal_copy_clipboard(VteTerminal *terminal);
+void vte_terminal_paste_clipboard(VteTerminal *terminal);
+
 void vte_terminal_set_size(VteTerminal *terminal, long columns, long rows);
 void vte_terminal_set_audible_bell(VteTerminal *terminal, gboolean audible);
 void vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll);
 void vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 					  gboolean scroll);
-void vte_terminal_copy_clipboard(VteTerminal *terminal);
-void vte_terminal_paste_clipboard(VteTerminal *terminal);
 void vte_terminal_set_colors(VteTerminal *terminal,
 			     const GdkColor *foreground,
 			     const GdkColor *background,
@@ -118,14 +142,21 @@ void vte_terminal_set_background_saturation(VteTerminal *terminal,
 void vte_terminal_set_background_transparent(VteTerminal *terminal,
 					     gboolean transparent);
 void vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink);
-gboolean vte_terminal_get_has_selection(VteTerminal *terminal);
-gboolean vte_terminal_get_using_xft(VteTerminal *terminal);
+void vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines);
+void vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec);
 void vte_terminal_im_append_menuitems(VteTerminal *terminal,
 				      GtkMenuShell *menushell);
 void vte_terminal_set_font(VteTerminal *terminal,
                            const PangoFontDescription *font_desc);
 void vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name);
-void vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines);
+
+gboolean vte_terminal_get_has_selection(VteTerminal *terminal);
+gboolean vte_terminal_get_using_xft(VteTerminal *terminal);
+gboolean vte_terminal_is_word_char(VteTerminal *terminal, gunichar c);
+const PangoFontDescription *vte_terminal_get_font(VteTerminal *terminal);
+
+VteTerminalSnapshot *vte_terminal_get_snapshot(VteTerminal *terminal);
+void vte_terminal_free_snapshot(VteTerminalSnapshot *snapshot);
 
 G_END_DECLS
 

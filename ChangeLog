@@ -1,5 +1,19 @@
-2002-04-29 14:56  nalin
-	* src/vte.c: Track and free idle task tags properly.
+2002-04-30 18:06  nalin
+	* src/vte.c: Track and free idle task tags properly.  Change F11 and
+	F12 capabilities from 'k;' and 'F1' to 'F1' and 'F2'.  Send a NUL on
+	control space. (#80350)  Allow setting and checking of word characters,
+	and change select-by-word behavior to use the word character list.
+	Emit "contents_changed" signals whenever the visible contents change,
+	and "cursor_moved" when the cursor moves.  Add snapshotting method.
+	Scroll when auto-margin handling moves the cursor to the next line.
+	Assume that the locale charset is actually ISO-8859-1 when we're in
+	a UTF-8 locale, so we don't toggle from UTF-8 to UTF-8.  Treat
+	GDK_KP_Page_Up as a GDK_Page_Up, ditto for GDK_KP_Page_Down and
+	GDK_KP_Tab and GDK_KP_Space.  Add vte_terminal_get_font().  Don't bother
+	messing with ring buffers if we're resizing them to their current sizes.
+	* src/pty.c, src/vte.c: Return a pid from vte_terminal_fork_command().
+	* src/vteaccess.c, src/vteaccess.h: Add VteTerminalAccessible object
+	type.  It might even work, mostly.
 
 2002-04-29 14:25  nalin
 	* src/vte.c: Handle me() by resetting all attributes (including

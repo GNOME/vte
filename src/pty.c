@@ -44,6 +44,7 @@ vte_pty_fork_on_fd(const char *path, const char **env_add,
 	pid = fork();
 	if (pid == -1) {
 		/* Error fork()ing.  Bail. */
+		*child = -1;
 		return -1;
 	}
 	if (pid != 0) {
