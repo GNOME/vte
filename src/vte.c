@@ -3102,9 +3102,9 @@ vte_sequence_handler_set_title_int(VteTerminal *terminal,
 							strerror(errno));
 					}
 #endif
+					g_free(outbufptr);
+					outbufptr = NULL;
 				}
-				g_free(outbufptr);
-				outbufptr = NULL;
 			}
 			g_iconv_close(conv);
 		}

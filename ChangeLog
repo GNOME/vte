@@ -1,4 +1,7 @@
 2002-06-19 nalin
+	* src/vte.c (vte_sequence_handler_set_title_int): Fix a logic bug
+	that got rid of the title always, not just when conversion failed.
+2002-06-19 nalin
 	* src/vte.c: Clear the alternate screen when switching to it.
 2002-06-18 nalin
 	* src/vte.c: Fix refs/derefs with IOChannels and sources.  Clean up

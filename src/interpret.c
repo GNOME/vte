@@ -118,6 +118,10 @@ main(int argc, char **argv)
 							g_print("`%s'",
 								g_value_get_string(value));
 						}
+						if (G_VALUE_HOLDS_POINTER(value)) {
+							printf("`%ls'",
+							       g_value_get_pointer(value));
+						}
 					}
 					if (values != NULL) {
 						g_value_array_free(values);

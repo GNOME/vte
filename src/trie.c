@@ -612,7 +612,7 @@ vte_trie_matchx(struct vte_trie *trie, const wchar_t *pattern, size_t length,
 				 * and go by this result. */
 				if (best == NULL) {
 					better = TRUE;
-				}
+				} else
 				/* If we have a match, and we didn't have one
 				 * already, go by this result. */
 				if ((best != NULL) &&
@@ -620,7 +620,7 @@ vte_trie_matchx(struct vte_trie *trie, const wchar_t *pattern, size_t length,
 				    (tmp != NULL) &&
 				    (tmp[0] != '\0')) {
 					better = TRUE;
-				}
+				} else
 				/* If we already have a match, and this one's
 				 * better (longer if we're greedy, shorter if
 				 * we're not), then go by this result. */
@@ -632,7 +632,7 @@ vte_trie_matchx(struct vte_trie *trie, const wchar_t *pattern, size_t length,
 					if (greedy &&
 					    (bestconsumed < *consumed)) {
 						better = TRUE;
-					}
+					} else
 					if (!greedy &&
 					    (bestconsumed > *consumed)) {
 						better = TRUE;
