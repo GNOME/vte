@@ -2825,13 +2825,22 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	return FALSE;
 }
 
+/* Once we get text data, actually paste it in. */
+static void
+vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
+{
+	VteTerminal *terminal;
+	g_return_if_fail(VTE_IS_TERMINAL(data));
+	terminal = VTE_TERMINAL(data);
+	vte_terminal_send_utf8(terminal, text, strlen(text));
+}
+
 /* Read and handle a pointing device buttonpress event. */
 static gint
 vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 {
 	GtkClipboard *clipboard;
 	VteTerminal *terminal;
-	char *cliptext;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
@@ -2851,14 +2860,10 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		if (event->button == 2) {
 			/* paste from clipboard */
 			clipboard = gtk_clipboard_get(GDK_SELECTION_PRIMARY);
-			if (gtk_clipboard_wait_is_text_available(clipboard)) {
-				cliptext = gtk_clipboard_wait_for_text(clipboard);
-				if (cliptext != NULL) {
-					vte_terminal_send_utf8(terminal,
-							       cliptext,
-							       strlen(cliptext));
-					g_free(cliptext);
-				}
+			if (clipboard != NULL) {
+				gtk_clipboard_request_text(clipboard,
+							   vte_terminal_paste_cb,
+							   terminal);
 			}
 			return TRUE;
 		}
