@@ -324,6 +324,17 @@ vte_invalidate_cursor(gpointer data)
 	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
 	terminal = VTE_TERMINAL(data);
 	ret = vte_invalidate_cursor_once(data);
+
+        /* FIXME
+         *
+         *  1. If the VTE is destroyed, we need to remove this timeout
+         *     to avoid touching the destroyed VTE
+         *
+         *  2. Needs to use the cursor blink rate from the
+         *     global GtkSettings object.
+         *
+         */
+        
 	g_timeout_add(terminal->pvt->blink_period / 2,
 		      vte_invalidate_cursor,
 		      terminal);
@@ -4281,9 +4292,44 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 	return TRUE;
 }
 
+static int
+xft_weight_from_pango_weight (int weight)
+{
+        /* cut-and-pasted from Pango */
+        if (weight < (PANGO_WEIGHT_NORMAL + PANGO_WEIGHT_LIGHT) / 2)
+                return XFT_WEIGHT_LIGHT;
+        else if (weight < (PANGO_WEIGHT_NORMAL + 600) / 2)
+                return XFT_WEIGHT_MEDIUM;
+        else if (weight < (600 + PANGO_WEIGHT_BOLD) / 2)
+                return XFT_WEIGHT_DEMIBOLD;
+        else if (weight < (PANGO_WEIGHT_BOLD + PANGO_WEIGHT_ULTRABOLD) / 2)
+                return XFT_WEIGHT_BOLD;
+        else
+                return XFT_WEIGHT_BLACK;
+}
+
+static int
+xft_slant_from_pango_style (int style)
+{
+        switch (style) {
+        case PANGO_STYLE_NORMAL:
+                return XFT_SLANT_ROMAN;
+                break;
+        case PANGO_STYLE_ITALIC:
+                return XFT_SLANT_ITALIC;
+                break;
+        case PANGO_STYLE_OBLIQUE:
+                return XFT_SLANT_OBLIQUE;
+                break;
+        }
+
+        return XFT_SLANT_ROMAN;
+}
+
 /* Set the fontset used for rendering text into the widget. */
 static void
-vte_terminal_set_fontset(VteTerminal *terminal, const char *xlfds)
+vte_terminal_setup_font(VteTerminal *terminal, const char *xlfds,
+                        const PangoFontDescription *font_desc)
 {
 	long width, height, ascent, descent;
 	GtkWidget *widget;
@@ -4305,47 +4351,130 @@ vte_terminal_set_fontset(VteTerminal *terminal, const char *xlfds)
 	height = 20;
 	descent = 0;
 	ascent = height - descent;
-
-	/* Load the font set, freeing another one if we loaded one before. */
-	if (terminal->pvt->fontset) {
-		XFreeFontSet(GDK_DISPLAY(), terminal->pvt->fontset);
-	}
-	terminal->pvt->fontset = XCreateFontSet(GDK_DISPLAY(),
-						xlfds,
-						&missing_charset_list,
-						&missing_charset_count,
-						&def_string);
-	g_return_if_fail(terminal->pvt->fontset != NULL);
-	XFreeStringList(missing_charset_list);
-	missing_charset_list = NULL;
-	/* Read the font metrics. */
-	if (XFontsOfFontSet(terminal->pvt->fontset,
-			    &font_struct_list,
-			    &font_name_list)) {
-		if (font_struct_list) {
-			if (font_struct_list[0]) {
-				font_struct = font_struct_list[0][0];
-				width = font_struct.max_bounds.width;
-				ascent = font_struct.max_bounds.ascent;
-				descent = font_struct.max_bounds.descent;
-				height = ascent + descent;
-			}
-		}
-		XFreeStringList(font_name_list);
-		font_name_list = NULL;
-	}
-
+        
 #ifdef HAVE_XFT
 	if (terminal->pvt->use_xft) {
-		if (terminal->pvt->ftfont != NULL) {
-			XftFontClose(GDK_DISPLAY(), terminal->pvt->ftfont);
-		}
-		terminal->pvt->ftfont = XftFontOpen(GDK_DISPLAY(),
-						    gdk_x11_get_default_screen(),
-						    XFT_FAMILY, XftTypeString, "mono",
+                XftFont *new_font;
+                XftPattern *pattern;
+                XftPattern *matched_pattern;
+                XftResult result;
+                PangoFontMask pango_mask;
 
-						    XFT_SIZE, XftTypeDouble, 12.0,
-						    0);
+#ifdef VTE_DEBUG
+                if (font_desc) {
+                        char *debug;
+                        debug = pango_font_description_to_string (font_desc);
+                        fprintf (stderr, "pango font is \"%s\"\n", debug);
+                        g_free (debug);
+                } else {
+                        fprintf (stderr, "pango font is null\n");
+                }
+#endif
+                
+                pango_mask = font_desc ? pango_font_description_get_set_fields (font_desc) : 0;
+
+                /* Create Xft pattern */                
+                pattern = XftPatternCreate ();
+
+                if (pango_mask & PANGO_FONT_MASK_FAMILY)
+                        XftPatternAddString (pattern, XFT_FAMILY,
+                                             pango_font_description_get_family (font_desc));
+                else
+                        XftPatternAddString (pattern, XFT_FAMILY, "mono");
+                
+                if (pango_mask & PANGO_FONT_MASK_SIZE)
+                        XftPatternAddDouble (pattern, XFT_SIZE,
+                                             (double) pango_font_description_get_size (font_desc) / (double) PANGO_SCALE);
+                else
+                        XftPatternAddDouble (pattern, XFT_SIZE, 12.0);
+
+                /* No fallbacks for these, just omit them from the pattern if not set in the
+                 * pango font
+                 */
+                if (pango_mask & PANGO_FONT_MASK_WEIGHT)
+                        XftPatternAddInteger (pattern, XFT_WEIGHT, 
+                                              xft_weight_from_pango_weight (pango_font_description_get_weight (font_desc)));
+
+                if (pango_mask & PANGO_FONT_MASK_STYLE)
+                        XftPatternAddInteger (pattern, XFT_SLANT,
+                                              xft_slant_from_pango_style (pango_font_description_get_style (font_desc)));
+
+
+                /* Xft is on a lot of crack here - it fills in
+                 * "result" when it feels like it, and leaves it
+                 * uninitialized the rest of the time.  Whether it's
+                 * filled in is impossible to determine afaict.  We
+                 * don't care about its value anyhow.
+                 */
+                result = 0xffff; /* some bogus value to help in debugging */
+                matched_pattern = XftFontMatch (GDK_DISPLAY (),
+                                                gdk_x11_get_default_screen (),
+                                                pattern, &result);
+
+#ifdef VTE_DEBUG
+                if (matched_pattern) {
+                        char buf[256];
+                        if (!XftNameUnparse (matched_pattern, buf, sizeof(buf)-1))
+                                buf[0] = '\0';
+                        fprintf (stderr, "Match pattern \"%s\"\n", buf);
+                }
+#endif
+
+#ifdef VTE_DEBUG
+                fprintf (stderr, "font match result = %d\n", result);
+#endif
+                
+                if (matched_pattern) {
+                        g_assert (matched_pattern);
+                        /* More Xft crackrock - it appears to "adopt" matched_pattern
+                         * as new_font->pattern; whether it does this reliably
+                         * or not, or does another unpredictable bogosity
+                         * like the "result" field above, I don't know.
+                         */
+                        new_font = XftFontOpenPattern (GDK_DISPLAY (),
+                                                       matched_pattern);
+                } else {
+                        new_font = NULL;
+                }
+                
+                if (new_font == NULL) {
+                        char buf[256];
+                        if (!XftNameUnparse (matched_pattern, buf, sizeof(buf)-1))
+                                buf[0] = '\0';
+                        
+                        g_warning("Failed to load Xft font pattern \"%s\", falling back to default font.",
+                                  buf);
+
+                        /* Try a fallback */
+                        new_font = XftFontOpen(GDK_DISPLAY(),
+                                               gdk_x11_get_default_screen(),
+                                               XFT_FAMILY, XftTypeString, "mono",
+                                               XFT_SIZE, XftTypeDouble, 12.0,
+                                               0);
+                }
+
+                g_assert (pattern != new_font->pattern);
+                XftPatternDestroy (pattern);
+                if (matched_pattern && matched_pattern != new_font->pattern) {
+                        g_assert (matched_pattern != new_font->pattern);
+                        XftPatternDestroy (matched_pattern);
+                }
+                
+                if (new_font) {
+                        char buf[256];
+                        if (!XftNameUnparse (new_font->pattern, buf, sizeof(buf)-1))
+                                buf[0] = '\0';
+                        
+#ifdef VTE_DEBUG
+                        fprintf (stderr, "Opened new font %s\n", buf);
+#endif
+                        
+                        if (terminal->pvt->ftfont != NULL) {
+                                XftFontClose(GDK_DISPLAY(), terminal->pvt->ftfont);
+                        }
+                        terminal->pvt->ftfont = new_font;
+                }
+                
 		if (terminal->pvt->ftfont != NULL) {
 			ascent = terminal->pvt->ftfont->ascent;
 			descent = terminal->pvt->ftfont->descent;
@@ -4358,7 +4487,38 @@ vte_terminal_set_fontset(VteTerminal *terminal, const char *xlfds)
 	}
 #endif
 
-	/* Now save the values. */
+        if (!terminal->pvt->use_xft) {
+                /* Load the font set, freeing another one if we loaded one before. */
+                if (terminal->pvt->fontset) {
+                        XFreeFontSet(GDK_DISPLAY(), terminal->pvt->fontset);
+                }
+                terminal->pvt->fontset = XCreateFontSet(GDK_DISPLAY(),
+                                                        xlfds,
+                                                        &missing_charset_list,
+                                                        &missing_charset_count,
+                                                        &def_string);
+                g_return_if_fail(terminal->pvt->fontset != NULL);
+                XFreeStringList(missing_charset_list);
+                missing_charset_list = NULL;
+                /* Read the font metrics. */
+                if (XFontsOfFontSet(terminal->pvt->fontset,
+                                    &font_struct_list,
+                                    &font_name_list)) {
+                        if (font_struct_list) {
+                                if (font_struct_list[0]) {
+                                        font_struct = font_struct_list[0][0];
+                                        width = font_struct.max_bounds.width;
+                                        ascent = font_struct.max_bounds.ascent;
+                                        descent = font_struct.max_bounds.descent;
+                                        height = ascent + descent;
+                                }
+                        }
+                        XFreeStringList(font_name_list);
+                        font_name_list = NULL;
+                }
+        }
+        
+        /* Now save the values. */
 	terminal->char_width = width;
 	terminal->char_height = height;
 	terminal->char_ascent = ascent;
@@ -4369,6 +4529,13 @@ vte_terminal_set_fontset(VteTerminal *terminal, const char *xlfds)
 			      "char_size_changed",
 			      terminal->char_width,
 			      terminal->char_height);
+}
+
+void
+vte_terminal_set_font (VteTerminal *terminal,
+                       const PangoFontDescription *font_desc)
+{
+        vte_terminal_setup_font (terminal, NULL, font_desc);
 }
 
 /* A comparison function which helps sort quarks. */
@@ -4651,8 +4818,8 @@ vte_terminal_init(VteTerminal *terminal)
 	}
 #endif
 
-	/* Set the font. */
-	vte_terminal_set_fontset(terminal, NULL);
+	/* Set the default font. */
+	vte_terminal_setup_font(terminal, NULL, NULL);
 
 	/* Load the termcap data and set up the emulation and default
 	 * terminal encoding. */

@@ -122,6 +122,9 @@ void vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink);
 void vte_terminal_set_blink_period(VteTerminal *terminal, guint period);
 gboolean vte_terminal_get_has_selection(VteTerminal *terminal);
 
+void vte_terminal_set_font (VteTerminal *terminal,
+                            const PangoFontDescription *font_desc);
+
 G_END_DECLS
 
 #endif
