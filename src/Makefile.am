@@ -2,7 +2,7 @@ bin_PROGRAMS = vte
 pkginclude_HEADERS = caps.h pty.h termcap.h trie.h vte.h
 lib_LTLIBRARIES = libvte.la
 noinst_PROGRAMS = interpret utf8echo utf8mode iso8859mode
-EXTRA_PROGRAMS = pty termcap trie
+EXTRA_PROGRAMS = pty ring termcap trie
 EXTRA_DIST = marshal.list
 
 CFLAGS = @CFLAGS@ @X_CFLAGS@ @GTK_CFLAGS@
@@ -14,6 +14,8 @@ libvte_la_SOURCES = \
 	marshal.h \
 	pty.c \
 	pty.h \
+	ring.c \
+	ring.h \
 	termcap.c \
 	termcap.h \
 	trie.c \
@@ -43,6 +45,12 @@ interpret_LDADD = @GLIB_LIBS@
 
 utf8echo_SOURCES = \
 	utf8echo.c
+
+ring_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DRING_MAIN
+ring_SOURCES = \
+	ring.c \
+	ring.h
+ring_LDADD = @GLIB_LIBS@
 
 trie_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DTRIE_MAIN
 trie_SOURCES = \

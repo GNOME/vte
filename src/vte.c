@@ -48,6 +48,7 @@
 #include "marshal.h"
 #include "pty.h"
 #include "termcap.h"
+#include "ring.h"
 #include "trie.h"
 #include "vte.h"
 #include <X11/Xlib.h>
@@ -148,7 +149,7 @@ struct _VteTerminalPrivate {
 	/* Screen data.  We support the normal screen, and an alternate
 	 * screen, which seems to be a DEC-specific feature. */
 	struct _VteScreen {
-		GArray *row_data;	/* row data, arranged as a GArray of
+		VteRing *row_data;	/* row data, arranged as a GArray of
 					   vte_charcell structures */
 		struct {
 			long row, col;
@@ -245,7 +246,7 @@ static GdkFilterReturn vte_terminal_filter_property_changes(GdkXEvent *xevent,
 
 /* Free a no-longer-used row data array. */
 static void
-vte_free_row_data_row(gpointer freeing, gpointer data)
+vte_free_row_data(gpointer freeing, gpointer data)
 {
 	if (freeing) {
 		g_array_free((GArray*)freeing, FALSE);
@@ -321,8 +322,8 @@ vte_terminal_find_charcell(VteTerminal *terminal, long row, long col)
 	struct _VteScreen *screen;
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 	screen = terminal->pvt->screen;
-	if (screen->row_data->len > row) {
-		rowdata = g_array_index(screen->row_data, GArray*, row);
+	if (vte_ring_contains(screen->row_data, row)) {
+		rowdata = vte_ring_index(screen->row_data, GArray*, row);
 		if (rowdata->len > col) {
 			ret = &g_array_index(rowdata, struct vte_charcell, col);
 		}
@@ -445,7 +446,12 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal)
 	changed = FALSE;
 
 	/* The lower value should be the first row in the buffer. */
-	delta = 0;
+	delta = vte_ring_delta(terminal->pvt->screen->row_data);
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Changing adjustment values "
+		"(delta = %ld, scroll = %ld).\n",
+		delta, terminal->pvt->screen->scroll_delta);
+#endif
 	if (terminal->adjustment->lower != delta) {
 		terminal->adjustment->lower = delta;
 		changed = TRUE;
@@ -453,7 +459,8 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal)
 
 	/* The upper value is the number of rows which might be visible.  (Add
 	 * one to the cursor offset because it's zero-based.) */
-	next = terminal->pvt->screen->row_data->len;
+	next = vte_ring_delta(terminal->pvt->screen->row_data) +
+	       terminal->row_count;
 	rows = MAX(next,
 		   terminal->pvt->screen->cursor_current.row + 1);
 	if (terminal->adjustment->upper != rows) {
@@ -492,6 +499,11 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal)
 
 	/* If anything changed, signal that there was a change. */
 	if (changed == TRUE) {
+#ifdef VTE_DEBUG
+		fprintf(stderr, "Changed adjustment values "
+			"(delta = %ld, scroll = %ld).\n",
+			delta, terminal->pvt->screen->scroll_delta);
+#endif
 		gtk_adjustment_changed(terminal->adjustment);
 	}
 }
@@ -586,16 +598,16 @@ vte_insert_line_int(VteTerminal *terminal, long position)
 	GArray *array;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	/* Pad out the line data to the insertion point. */
-	while (terminal->pvt->screen->row_data->len < position) {
+	while (vte_ring_next(terminal->pvt->screen->row_data) < position) {
 		array = vte_new_row_data();
-		g_array_append_val(terminal->pvt->screen->row_data, array);
+		vte_ring_append(terminal->pvt->screen->row_data, array);
 	}
 	/* If we haven't inserted a line yet, insert a new one. */
 	array = vte_new_row_data();
-	if (terminal->pvt->screen->row_data->len >= position) {
-		g_array_insert_val(terminal->pvt->screen->row_data, position, array);
+	if (vte_ring_next(terminal->pvt->screen->row_data) >= position) {
+		vte_ring_insert(terminal->pvt->screen->row_data, position, array);
 	} else {
-		g_array_append_val(terminal->pvt->screen->row_data, array);
+		vte_ring_append(terminal->pvt->screen->row_data, array);
 	}
 }
 
@@ -603,15 +615,11 @@ vte_insert_line_int(VteTerminal *terminal, long position)
 static void
 vte_remove_line_int(VteTerminal *terminal, long position)
 {
-	GArray *array;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	if (terminal->pvt->screen->row_data->len > position) {
-		array = g_array_index(terminal->pvt->screen->row_data,
-				      GArray *,
-				      position);
-		g_array_remove_index(terminal->pvt->screen->row_data, position);
-		g_array_free(array, TRUE);
+	if (vte_ring_next(terminal->pvt->screen->row_data) > position) {
+		vte_ring_remove(terminal->pvt->screen->row_data, position, TRUE);
 	}
+	vte_terminal_adjust_adjustments(terminal);
 }
 
 /* Change the encoding used for the terminal to the given codeset, or the
@@ -833,11 +841,11 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
-	if (screen->row_data->len > screen->cursor_current.row) {
+	if (vte_ring_next(screen->row_data) > screen->cursor_current.row) {
 		/* Get the data for the row which the cursor points to. */
-		rowdata = g_array_index(screen->row_data,
-					GArray*,
-					screen->cursor_current.row);
+		rowdata = vte_ring_index(screen->row_data,
+					 GArray*,
+					 screen->cursor_current.row);
 		/* Clear the data up to the current column. */
 		for (i = 0;
 		     (i < screen->cursor_current.col) && (i < rowdata->len);
@@ -873,10 +881,10 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 	/* If the cursor is actually on the screen, clear data in the rows
 	 * below the cursor. */
 	for (i = screen->cursor_current.row + 1;
-	     i < screen->row_data->len;
+	     i < vte_ring_next(screen->row_data);
 	     i++) {
 		/* Get the data for the row we're removing. */
-		rowdata = g_array_index(screen->row_data, GArray*, i);
+		rowdata = vte_ring_index(screen->row_data, GArray*, i);
 		/* Remove it. */
 		while ((rowdata != NULL) && (rowdata->len > 0)) {
 			g_array_remove_index(rowdata, rowdata->len - 1);
@@ -901,10 +909,10 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
-	if (screen->row_data->len > screen->cursor_current.row) {
+	if (vte_ring_next(screen->row_data) > screen->cursor_current.row) {
 		/* Get the data for the row which the cursor points to. */
-		rowdata = g_array_index(screen->row_data, GArray*,
-					screen->cursor_current.row);
+		rowdata = vte_ring_index(screen->row_data, GArray*,
+					 screen->cursor_current.row);
 		/* Remove the data at the end of the array. */
 		while (rowdata->len > screen->cursor_current.col) {
 			g_array_remove_index(rowdata, rowdata->len - 1);
@@ -986,10 +994,10 @@ vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
-	if (screen->row_data->len > screen->cursor_current.row) {
+	if (vte_ring_next(screen->row_data) > screen->cursor_current.row) {
 		/* Get the data for the row which the cursor points to. */
-		rowdata = g_array_index(screen->row_data, GArray*,
-					screen->cursor_current.row);
+		rowdata = vte_ring_index(screen->row_data, GArray*,
+					 screen->cursor_current.row);
 		/* Remove it. */
 		while (rowdata->len > 0) {
 			g_array_remove_index(rowdata, rowdata->len - 1);
@@ -1079,11 +1087,11 @@ vte_sequence_handler_dc(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 
-	if (screen->row_data->len > screen->cursor_current.row) {
+	if (vte_ring_next(screen->row_data) > screen->cursor_current.row) {
 		/* Get the data for the row which the cursor points to. */
-		rowdata = g_array_index(screen->row_data,
-					GArray*,
-					screen->cursor_current.row);
+		rowdata = vte_ring_index(screen->row_data,
+					 GArray*,
+					 screen->cursor_current.row);
 		col = screen->cursor_current.col;
 		/* Remove the column. */
 		if (col < rowdata->len) {
@@ -1159,14 +1167,14 @@ vte_terminal_ensure_cursor(VteTerminal *terminal)
 
 	screen = terminal->pvt->screen;
 
-	while (screen->cursor_current.row >= screen->row_data->len) {
+	while (screen->cursor_current.row >= vte_ring_next(screen->row_data)) {
 		array = vte_new_row_data();
-		g_array_append_val(screen->row_data, array);
+		vte_ring_append(screen->row_data, array);
 	}
 
-	array = g_array_index(screen->row_data,
-			      GArray*,
-			      screen->cursor_current.row);
+	array = vte_ring_index(screen->row_data,
+			       GArray*,
+			       screen->cursor_current.row);
 
 	if (array != NULL) {
 		/* Add enough characters to fill out the row. */
@@ -1181,12 +1189,15 @@ vte_terminal_ensure_cursor(VteTerminal *terminal)
 		/* Add one more cell to the end of the line to get
 		 * it into the column, and use it. */
 		array = g_array_append_val(array, cell);
+#if 0
 		/* Remove and reinsert this row. */
-		g_array_remove_index(screen->row_data,
-				     screen->cursor_current.row);
-		g_array_insert_val(screen->row_data,
-				   screen->cursor_current.row,
-				   array);
+		vte_ring_remove(screen->row_data,
+				screen->cursor_current.row,
+				FALSE);
+		vte_ring_insert(screen->row_data,
+				screen->cursor_current.row,
+				array);
+#endif
 	}
 }
 
@@ -1252,7 +1263,7 @@ vte_sequence_handler_do(VteTerminal *terminal,
 		/* Make sure that the bottom row is visible, and that it's in
 		 * the buffer (even if it's empty).  This usually causes the
 		 * top row to become a history-only row. */
-		rows = MAX(screen->row_data->len,
+		rows = MAX(vte_ring_next(screen->row_data),
 			   screen->cursor_current.row + 1);
 		delta = MAX(0, rows - terminal->row_count);
 		if (delta != screen->insert_delta) {
@@ -1303,11 +1314,11 @@ vte_sequence_handler_ec(VteTerminal *terminal,
 	}
 
 	/* Clear out the given number of characters. */
-	if (screen->row_data->len > screen->cursor_current.row) {
+	if (vte_ring_next(screen->row_data) > screen->cursor_current.row) {
 		/* Get the data for the row which the cursor points to. */
-		rowdata = g_array_index(screen->row_data,
-					GArray*,
-					screen->cursor_current.row);
+		rowdata = vte_ring_index(screen->row_data,
+					 GArray*,
+					 screen->cursor_current.row);
 		/* Write over the same characters. */
 		for (i = 0; i < count; i++) {
 			col = screen->cursor_current.col + i;
@@ -1877,9 +1888,9 @@ vte_sequence_handler_clear_above_current(VteTerminal *terminal,
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
 	for (i = screen->insert_delta; i < screen->cursor_current.row; i++) {
-		if (screen->row_data->len > i) {
+		if (vte_ring_next(screen->row_data) > i) {
 			/* Get the data for the row we're erasing. */
-			rowdata = g_array_index(screen->row_data, GArray*, i);
+			rowdata = vte_ring_index(screen->row_data, GArray*, i);
 			/* Remove it. */
 			while (rowdata->len > 0) {
 				g_array_remove_index(rowdata, rowdata->len - 1);
@@ -1909,9 +1920,9 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 	for (i = screen->insert_delta;
 	     i < screen->insert_delta + terminal->row_count;
 	     i++) {
-		if (screen->row_data->len > i) {
+		if (vte_ring_next(screen->row_data) > i) {
 			/* Get the data for the row we're removing. */
-			rowdata = g_array_index(screen->row_data, GArray*, i);
+			rowdata = vte_ring_index(screen->row_data, GArray*, i);
 			/* Remove it. */
 			while (rowdata->len > 0) {
 				g_array_remove_index(rowdata, rowdata->len - 1);
@@ -2971,9 +2982,9 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 	vte_terminal_ensure_cursor(terminal);
 
 	/* Get a handle on the array for the insertion row. */
-	array = g_array_index(screen->row_data,
-			      GArray*,
-			      screen->cursor_current.row);
+	array = vte_ring_index(screen->row_data,
+			       GArray*,
+			       screen->cursor_current.row);
 
 	/* Read the deltas. */
 	for (i = 0; i < columns; i++) {
@@ -2996,12 +3007,15 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 			pcell = &g_array_index(array,
 					       struct vte_charcell,
 					       col);
-			/* Reintroduce this row. */
-			g_array_remove_index(screen->row_data,
-					     screen->cursor_current.row);
-			g_array_insert_val(screen->row_data,
-					   screen->cursor_current.row,
-					   array);
+#if 0
+			/* Remove and reinsert this row. */
+			vte_ring_remove(screen->row_data,
+					screen->cursor_current.row,
+					FALSE);
+			vte_ring_insert(screen->row_data,
+					screen->cursor_current.row,
+					array);
+#endif
 		} else {
 			/* If we're in insert mode, insert a new cell here
 			 * and use it. */
@@ -5228,6 +5242,7 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path)
 
 /* Set the length of a scrollback buffer.  This is a placeholder until the
  * ring-buffer code gets merged in. */
+#if 0
 static void
 vte_terminal_reset_rowdata(GArray **ring, long lines)
 {
@@ -5249,6 +5264,31 @@ vte_terminal_reset_rowdata(GArray **ring, long lines)
 		*ring = g_array_new(TRUE, FALSE, sizeof(GArray*));
 	}
 }
+#else
+static void
+vte_terminal_reset_rowdata(VteRing **ring, long lines)
+{
+	VteRing *new_ring;
+	GArray *row;
+	long i, next;
+	new_ring = vte_ring_new(lines, vte_free_row_data, NULL);
+	if (*ring) {
+		next = vte_ring_next(*ring);
+		for (i = vte_ring_delta(*ring); i < next; i++) {
+			row = vte_ring_index(*ring, GArray*, i);
+			if (row) {
+				if (i > next - lines) {
+					vte_ring_append(new_ring, row);
+				} else {
+					g_array_free(row, FALSE);
+				}
+			}
+		}
+		vte_ring_free(*ring, FALSE);
+	}
+	*ring = new_ring;
+}
+#endif
 
 /* Initialize the terminal widget after the base widget stuff is initialized.
  * We need to create a new psuedo-terminal pair, read in the termcap file, and
@@ -5587,24 +5627,9 @@ vte_terminal_finalize(GObject *object)
 	terminal->pvt->trie = NULL;
 
 	/* Clear the output histories. */
-	for (i = 0; i < terminal->pvt->normal_screen.row_data->len; i++) {
-		array = g_array_index(terminal->pvt->normal_screen.row_data,
-				      GArray*,
-				      i);
-		if (array) {
-			g_array_free(array, TRUE);
-		}
-	}
-	g_array_free(terminal->pvt->normal_screen.row_data, FALSE);
+	vte_ring_free(terminal->pvt->normal_screen.row_data, TRUE);
 	terminal->pvt->normal_screen.row_data = NULL;
-
-	for (i = 0; i < terminal->pvt->alternate_screen.row_data->len; i++) {
-		array = g_array_index(terminal->pvt->alternate_screen.row_data,
-				      GArray*,
-				      i);
-		g_array_free(array, TRUE);
-	}
-	g_array_free(terminal->pvt->alternate_screen.row_data, FALSE);
+	vte_ring_free(terminal->pvt->alternate_screen.row_data, TRUE);
 	terminal->pvt->alternate_screen.row_data = NULL;
 
 	/* Free strings. */
