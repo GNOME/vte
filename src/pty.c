@@ -137,7 +137,7 @@ vte_pty_ptsname(int master)
 	}
 #elif defined(HAVE_PTSNAME)
 	char *p;
-	if ((p = ptsname(master)) == NULL) {
+	if ((p = ptsname(master)) != NULL) {
 		return g_strdup(p);
 	}
 #elif defined(TIOCGPTN)
