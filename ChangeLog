@@ -1,3 +1,7 @@
+2003-04-21 nalin
+	* src/vteglyph.c: use #if HAVE_DECL_XXX instead of #ifdef HAVE_DECL_XXX,
+	noted by Bob Doan.
+
 2003-04-20 nalin
 	* src/vtexft.c: work around for garbled glyphs when drawing runs of
 	text using multiple fonts while mixing bitmap and antialiased fonts
