@@ -1,3 +1,7 @@
+2003-01-19  Marius Andreiana <marius galuna.ro>
+
+	* configure.in: added 'ro' to ALL_LINGUAS
+
 2003-01-18 nalin
 	* src/vteaccess.c(update_private_data_if_needed): if the caret is past
 	the end of the text, count unichars properly.  Compute the caret
