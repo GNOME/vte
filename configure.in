@@ -109,7 +109,7 @@ if test x$DEBUG != x ; then
 fi
 if test x$VTE_DEBUG = x1 ; then
 	AC_MSG_RESULT([enabling debug checks and messages])
-	AC_DEFINE(VTE_DEBUG,,[Enable debugging messages.])
+	AC_DEFINE(VTE_DEBUG,1,[Enable debugging messages.])
 fi
 
 wcs_funcs_includes="

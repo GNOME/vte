@@ -1435,7 +1435,7 @@ vte_terminal_match_add(VteTerminal *terminal, const char *match)
 	}
 	/* Set the tag to the insertion point. */
 	new_regex.tag = ret;
-	new_regex.cursor = gdk_cursor_new(VTE_MOUSING_CURSOR);
+	new_regex.cursor = gdk_cursor_new(VTE_DEFAULT_CURSOR);
 	if (ret < terminal->pvt->match_regexes->len) {
 		/* Overwrite. */
 		g_array_index(terminal->pvt->match_regexes,
