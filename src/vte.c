@@ -11712,6 +11712,7 @@ vte_terminal_setup_background(VteTerminal *terminal,
 					pixmap = NULL;
 				}
 			}
+                        gdk_flush();
 			gdk_error_trap_pop();
 
 			/* Get rid of any previous snapshot we've got, and

@@ -1,3 +1,9 @@
+2002-08-03  Havoc Pennington  <hp@redhat.com>
+
+	* src/vte.c (vte_terminal_setup_background): add a gdk_flush()
+	before the error trap pop, just for paranoia, may help with 
+	#89049
+
 2002-08-02 nalin
 	* src/vte.c(vte_terminal_send): Substitute carriage returns for
 	newlines when pasting text to the child, fixing weird paste behavior
