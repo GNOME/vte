@@ -1,3 +1,7 @@
+2002-12-19  Yanko Kaneti <yaneti@declera.com>
+
+	* configure.in: (ALL_LINGUAS) Added Bulgarian (bg).
+
 2002-12-18  nalin
 	* configure.in: complain if Xft2 and Xft aren't found.
 	* src/vte.c (vte_terminal_paint): if we're not double-buffered, clear
