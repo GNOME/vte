@@ -1,0 +1,117 @@
+# traditional Chinese translation of vte.
+# Copyright (C) 2003 Free Software Foundation, Inc.
+# Abel Cheung <maddog@linux.org.hk>, 2003.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte 0.10.8\n"
+"POT-Creation-Date: 2003-01-09 05:30+0800\n"
+"PO-Revision-Date: 2003-01-10 23:39+0800\n"
+"Last-Translator: Abel Cheung <maddog@linux.org.hk>\n"
+"Language-Team: Chinese (traditional) <zh-l10n@linux.org.tw>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/pty.c:253
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "加入‘%s’環境變數時出現錯誤，將會繼續。"
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:800
+#, c-format
+msgid "can not run %s"
+msgstr "無法執行 %s"
+
+#: src/reaper.c:107
+msgid "Error creating signal pipe."
+msgstr "建立訊號管道出現錯誤。"
+
+#: src/trie.c:411
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "重複 (%s/%s)！"
+
+#: src/vte.c:1339
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "計算正規表示式“%s”時出現錯誤。"
+
+#: src/vte.c:1860 src/vte.c:1869 src/vte.c:1881 src/vte.c:1899 src/vte.c:1905
+#: src/vte.c:1910
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "無法將字元從 %s 轉換至 %s。"
+
+#: src/vte.c:5368
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "收到預料之外的跳出字元序列 (可能是按鍵?)‘%s’。"
+
+#: src/vte.c:6455
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "未定義控制字元序列‘%s’的處理程序。"
+
+#: src/vte.c:7073
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "從副程序讀取資料時出現錯誤：%s"
+
+#: src/vte.c:7239
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "從副程序轉換資料時出現錯誤 (%s)，放棄。"
+
+#: src/vte.c:9526
+#, c-format
+msgid "Using fontset \"%s\", which is missing these character sets: %s."
+msgstr "使用字集“%s”，但它缺少了以下的字元集：%s。"
+
+#: src/vte.c:10164
+#, c-format
+msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
+msgstr "無法載入 Xft 字型樣式“%s”，使用預設字型作為後備。"
+
+#: src/vte.c:10176
+msgid "Failed to load default Xft font."
+msgstr "無法載入預設的 Xft 字型。"
+
+#: src/vte.c:10269
+#, c-format
+msgid "Failed to load font set \"%s\", falling back to default font."
+msgstr "無法載入字集“%s”，使用預設字型作為後備。"
+
+#: src/vte.c:10281
+msgid "Failed to load default font, crashing or behaving abnormally."
+msgstr "無法載入預設字型，可能會突然中止或無法正常運作。"
+
+#: src/vte.c:10543
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "無法獲取 PTY 的尺寸，使用預設定值：%s。"
+
+#: src/vte.c:10579
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "無法設定 PTY 的尺寸：%s。"
+
+#: src/vte.c:13454
+msgid "Error allocating draw, disabling Xft."
+msgstr "分配記憶體給 draw 結構時出現錯誤，停止使用 Xft。"
+
+#: src/vte.c:13462
+msgid "Error allocating context, disabling Pango."
+msgstr "分配記憶體給 context 時出現錯誤，停止使用 Pango。"
+
+#: src/vte.c:13468
+msgid "Error allocating layout, disabling Pango."
+msgstr "分配記憶體給 layout 時出現錯誤，停止使用 Pango。"
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:15062
+msgid "g_iconv_open() failed setting word characters"
+msgstr "g_iconv_open() 無法轉換字元"
