@@ -2,6 +2,8 @@
 
 ; object definitions ...
 
+(module "Vte"
+
 (define-object Terminal
   (in-module "Vte")
   (parent "Gtk.Widget")
@@ -35,4 +37,6 @@
   (parameters
     '("const-gchar*" "emulation")
   )
+)
+
 )
