@@ -16,6 +16,8 @@ EXTRA_DIST = \
 CFLAGS = @CFLAGS@ @VTE_CFLAGS@ @X_CFLAGS@
 
 libvte_la_SOURCES = \
+	buffer.c \
+	buffer.h \
 	caps.c \
 	caps.h \
 	debug.c \
@@ -56,6 +58,8 @@ vte_LDADD = libvte.la @LIBS@ @VTE_LIBS@ @X_LIBS@
 
 interpret_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DINTERPRET_MAIN
 interpret_SOURCES = \
+	buffer.c \
+	buffer.h \
 	caps.c \
 	caps.h \
 	debug.c \

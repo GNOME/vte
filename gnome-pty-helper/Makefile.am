@@ -1,5 +1,4 @@
-vtelibdir = $(libdir)/vte
-vtelib_PROGRAMS = gnome-pty-helper
+libexec_PROGRAMS = gnome-pty-helper
 
 CFLAGS = @CFLAGS@ @GLIB_CFLAGS@
 LDFLAGS = @LDFLAGS@ @GLIB_LIBS@

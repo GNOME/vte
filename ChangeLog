@@ -1,3 +1,32 @@
+2002-10-10 nalin
+	* src/vteapp.c, python/vte-demo.py: allow specifying the scrollback
+	buffer size.
+	* src/vte.c: if we don't have <wchar.h>, typedef wchar_t as a gunichar,
+	not a long.
+
+2002-10-09 nalin
+	* src/buffer.c, src/buffer.h: add.
+	* src/interpret.c, src/vte.c: use _vte_buffer structures instead of
+	char arrays with separate lengths.  Use a scratch buffer for holding
+	the results of conversions.
+	* src/vte.c: separate the pango and pangox drawing paths so that they're
+	easier to tweak and compare to each other.
+	* src/vte.c: ditch the smooth scrolling change, which won't work right
+	anyway (expose events don't get processed until after we finish
+	processing a chunk of data unless we explicitly request it, so using a
+	bbox is both simpler and faster).  Use a mask when creating the cursor
+	we use for hiding the cursor.
+
+2002-10-09 nalin
+	* vte.spec, gnome-pty-helper/Makefile.am: install gnome-pty-helper into
+	the libexecdir, not pkglibdir (#95085).
+	* src/vte.c: obey smooth/jump scrolling options, default is jump scroll.
+
+Mon Oct  7 14:53:12 2002  Owen Taylor  <otaylor@redhat.com>
+	* src/vte.c (vte_font_match): Fix over-aggressive 
+	Xft => Fc conversion - need to call XftDefaultSubstitute to pick up Xft
+	X resources, not FcDefaultSubstitute.
+
 2002-10-01  Stanislav Brabec  <sbrabec@suse.cz>
 
 	* configure.in: Added cs to ALL_LINGUAS.

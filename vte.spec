@@ -28,7 +28,7 @@ package contains the files needed for building applications using VTE.
 if [ -x %{_bindir}/python2.2 ]; then
 	PYTHON=%{_bindir}/python2.2; export PYTHON
 fi
-%configure --enable-shared --enable-static
+%configure --enable-shared --enable-static --libexecdir=%{_libdir}/%{name}
 make
 
 %clean

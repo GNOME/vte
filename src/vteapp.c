@@ -101,6 +101,7 @@ main(int argc, char **argv)
 	const char *background = NULL;
 	gboolean transparent = FALSE, audible = TRUE, blink = TRUE,
 		 debug = FALSE, dingus = FALSE, geometry = TRUE;
+	long lines = 100;
 	const char *message = "Launching interactive shell...\r\n";
 	const char *font = NULL;
 	const char *terminal = NULL;
@@ -120,6 +121,7 @@ main(int argc, char **argv)
 			    "[-f font] "
 			    "[-g] "
 			    "[-h] "
+			    "[-n] "
 			    "[-t terminaltype]\n";
 	back.red = back.green = back.blue = 0xffff;
 	fore.red = fore.green = fore.blue = 0x3000;
@@ -150,7 +152,7 @@ main(int argc, char **argv)
 	argv2[i] = NULL;
 	g_assert(i < (g_list_length(args) + 2));
 	/* Parse some command-line options. */
-	while ((opt = getopt(argc, argv, "B:DTabc:df:ght:")) != -1) {
+	while ((opt = getopt(argc, argv, "B:DTabc:df:ghn:t:")) != -1) {
 		switch (opt) {
 			case 'B':
 				background = optarg;
@@ -178,6 +180,12 @@ main(int argc, char **argv)
 				break;
 			case 'g':
 				geometry = !geometry;
+				break;
+			case 'n':
+				lines = atol(optarg);
+				if (lines == 0) {
+					lines = 100;
+				}
 				break;
 			case 't':
 				terminal = optarg;
@@ -239,7 +247,7 @@ main(int argc, char **argv)
 	vte_terminal_set_cursor_blinks(VTE_TERMINAL(widget), blink);
 	vte_terminal_set_scroll_on_output(VTE_TERMINAL(widget), FALSE);
 	vte_terminal_set_scroll_on_keystroke(VTE_TERMINAL(widget), TRUE);
-	vte_terminal_set_scrollback_lines(VTE_TERMINAL(widget), 100);
+	vte_terminal_set_scrollback_lines(VTE_TERMINAL(widget), lines);
 	vte_terminal_set_mouse_autohide(VTE_TERMINAL(widget), TRUE);
 	if (background != NULL) {
 		vte_terminal_set_background_image_file(VTE_TERMINAL(widget),

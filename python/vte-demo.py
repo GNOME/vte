@@ -1,5 +1,6 @@
 #!/usr/bin/python2.2
 import sys
+import string
 import getopt
 import gtk
 import vte
@@ -16,10 +17,11 @@ if __name__ == '__main__':
 	command = None
 	emulation = "xterm"
 	font = "fixed 12"
+	scrollback = 100
 	transparent = 0
 	visible = 0
 	# Let the user override them.
-	(shorts, longs) = getopt.getopt(sys.argv[1:], "B:Tabc:f:t:v", ["background", "transparent", "audible", "blink", "command=", "font=", "terminal=", "visible"])
+	(shorts, longs) = getopt.getopt(sys.argv[1:], "B:Tabc:f:n:t:v", ["background", "transparent", "audible", "blink", "command=", "font=", "scrollback=", "terminal=", "visible"])
 	for argpair in (shorts + longs):
 		if ((argpair[0] == '-B') or (argpair[0] == '--background')):
 			print "Setting background image to `" + argpair[1] + "'."
@@ -39,6 +41,12 @@ if __name__ == '__main__':
 		if ((argpair[0] == '-f') or (argpair[0] == '--font')):
 			print "Setting font to `" + argpair[1] + "'."
 			font = argpair[1]
+		if ((argpair[0] == '-n') or (argpair[0] == '--scrollback')):
+			scrollback = string.atoi(argpair[1])
+			if (scrollback == 0):
+				scrollback = 100
+			else:
+				print "Setting scrollback size to `" + str(scrollback) + "'."
 		if ((argpair[0] == '-t') or (argpair[0] == '--terminal')):
 			print "Setting terminal type to `" + argpair[1] + "'."
 			emulation = argpair[1]
@@ -54,6 +62,7 @@ if __name__ == '__main__':
 	terminal.set_cursor_blinks(blink)
 	terminal.set_emulation(emulation)
 	terminal.set_font_from_string(font)
+	terminal.set_scrollback_lines(scrollback)
 	terminal.set_audible_bell(audible)
 	terminal.set_visible_bell(visible)
 	terminal.connect("child-exited", child_exited_cb)
