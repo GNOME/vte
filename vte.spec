@@ -1,6 +1,6 @@
 Name: vte
-Version: 0.11.9
-Release: 2
+Version: 0.11.10
+Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
 Group: User Interface/X
@@ -67,7 +67,7 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 
 %files -f %{name}.lang
 %defattr(-,root,root)
-%doc ChangeLog COPYING HACKING NEWS README doc/utmpwtmp.txt doc/boxes.txt
+%doc ChangeLog COPYING HACKING NEWS README doc/utmpwtmp.txt doc/boxes.txt src/iso2022.txt doc/openi18n/UTF-8.txt doc/openi18n/wrap.txt
 %{_libdir}/*.so.*
 %dir %{_libdir}/%{name}
 %attr(2711,root,utmp) %{_libdir}/%{name}/gnome-pty-helper
@@ -94,6 +94,12 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Mon Jun 16 2003 Nalin Dahyabhai <nalin@redhat.com> 0.11.10-1
+-
+
+* Wed Jun 04 2003 Elliot Lee <sopwith@redhat.com>
+- rebuilt
+
 * Mon Jun  2 2003 Nalin Dahyabhai <nalin@redhat.com> 0.11.9-2
 - rebuild
 
