@@ -1,4 +1,7 @@
 2003-04-23 nalin
+	* autogen.sh: accept libtool 1.5 in addition to 1.4 (#15968).
+
+2003-04-23 nalin
 	* src/vte.c,src/vte.h: (_vte_terminal_accessible_ref): add.
 	* src/vteaccess.c(vte_terminal_accessible_new): call
 	_vte_terminal_accessible_ref to ensure that accessible signals are
