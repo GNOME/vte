@@ -5,35 +5,36 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2003-05-19 14:33-0400\n"
-"PO-Revision-Date: 2003-02-18 17:21+0330\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2004-01-03 20:03+0330\n"
+"PO-Revision-Date: 2004-01-03 20:07+0330\n"
 "Last-Translator: Roozbeh Pournader <roozbeh@sharif.edu>\n"
 "Language-Team: Persian <farsi@lists.sharif.edu>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2072
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "نمی‌توان نویسه‌ها را از %s به %s تبدیل کرد."
 
-#: src/iso2022.c:1505
+#: src/iso2022.c:1578
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr ""
 
-#. See ECMA-35.
-#: src/iso2022.c:1546
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1619
 msgid "Unrecognized identified coding system."
 msgstr ""
 
-#: src/iso2022.c:1595 src/iso2022.c:1621
+#: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr ""
 
-#: src/pty.c:317
+#: src/pty.c:323
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "خطا در اضافه‌کردن `%s' به محیطِ، ادامه می‌دهیم."
@@ -41,7 +42,7 @@ msgstr "خطا در اضافه‌کردن `%s' به محیطِ، ادامه می
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:877
+#: src/pty.c:908
 #, c-format
 msgid "can not run %s"
 msgstr "نمی‌توان %s را اجرا کرد"
@@ -55,61 +56,60 @@ msgstr ""
 msgid "Duplicate (%s/%s)!"
 msgstr "تکراری (%s/%s)!"
 
-#: src/vte.c:1430
+#: src/vte.c:1480
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "خطا در ترجمه‌ی عبارت باقاعده‌ی \"%s\"."
 
-#: src/vte.c:5534
+#: src/vte.c:5815
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr ""
 
-#: src/vte.c:6547
+#: src/vte.c:6893
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr ""
 
-#: src/vte.c:7293
+#: src/vte.c:7714
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "خطا در خواندن از فرزند: %s."
 
-#: src/vte.c:7449
+#: src/vte.c:7870
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 
-#: src/vte.c:10069
+#: src/vte.c:10537
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "خطا در خواندن اندازه‌ی PTY، از پیشفرض‌ها استفاده می‌کنیم: %s."
 
-#: src/vte.c:10105
+#: src/vte.c:10573
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "خطا در تنظیم اندازه‌ی  PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14067
-#, fuzzy
+#: src/vte.c:14977
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "g_iconv_open() نتوانست نویسه‌های کلمه را تنظیم کند"
+msgstr "‎_vte_conv_open()‎ نتوانست نویسه‌های کلمه را تنظیم کند"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:642
+#: src/vteapp.c:713
 msgid "Could not open console.\n"
-msgstr ""
+msgstr "نمی‌توان پیشانه را باز کرد.\n"
 
-#: src/vteglyph.c:575
+#: src/vteglyph.c:576
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr ""
+msgstr "حالت نقطه‌ای %d ناشناخته است.\n"
 
-#: src/vtexft.c:664
+#: src/vtexft.c:710
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr ""
+msgstr "نمی‌توان نویسه‌ی U+%04X‎ را رسم کرد.\n"
 
 #~ msgid "Failed to load default Xft font."
 #~ msgstr "بارکردن قلم پیشفرض Xft شکست خورد."
