@@ -1,3 +1,7 @@
+2003-03-04 nalin
+	* src/vte.c(vte_terminal_insert_char): wrap properly when a scrolling
+	region is set (#107559).  From HEAD.
+
 2003-02-26 nalin
 	* src/vte.c(vte_terminal_font_open_xft,vte_terminal_font_open_pango):
 	tweak width calculations to handle incomplete font coverage.  From HEAD.
