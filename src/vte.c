@@ -6173,12 +6173,14 @@ vte_terminal_process_incoming(gpointer data)
 	/* Tell the input method where the cursor is. */
 	if (terminal->pvt->im_context) {
 		rect.x = terminal->pvt->screen->cursor_current.col *
-			 terminal->char_width;
+			 terminal->char_width + VTE_PAD_WIDTH;
 		rect.width = terminal->char_width;
-		rect.y = terminal->pvt->screen->cursor_current.row *
-			terminal->char_height;
+		rect.y = (terminal->pvt->screen->cursor_current.row -
+			  terminal->pvt->screen->scroll_delta) *
+			 terminal->char_height + VTE_PAD_WIDTH;
 		rect.height = terminal->char_height;
-		gtk_im_context_set_cursor_location(terminal->pvt->im_context, &rect);
+		gtk_im_context_set_cursor_location(terminal->pvt->im_context,
+						   &rect);
 	}
 
 #ifdef VTE_DEBUG
@@ -12181,8 +12183,8 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 	widget_class->button_press_event = vte_terminal_button_press;
 	widget_class->button_release_event = vte_terminal_button_release;
 	widget_class->motion_notify_event = vte_terminal_motion_notify;
-	/* widget_class->focus_in_event = vte_terminal_focus_in; */
-	/* widget_class->focus_out_event = vte_terminal_focus_out; */
+	widget_class->focus_in_event = vte_terminal_focus_in;
+	widget_class->focus_out_event = vte_terminal_focus_out;
 	widget_class->unrealize = vte_terminal_unrealize;
 	widget_class->size_request = vte_terminal_size_request;
 	widget_class->size_allocate = vte_terminal_size_allocate;
@@ -13022,7 +13024,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 		screens[i]->scroll_delta = CLAMP(screens[i]->scroll_delta,
 						 low, highd);
 		screens[i]->cursor_current.row = CLAMP(screens[i]->cursor_current.row,
-						       low, highd);
+						       low, high);
 	}
 	terminal->pvt->scrollback_lines = lines;
 

@@ -1,4 +1,12 @@
 2002-08-30 nalin
+	* src/vte.c: Restore the focus-in/focus-out handlers -- the defaults
+	don't quite DTRT for us because they miss our im_context (#72946).  When
+	setting the cursor location for the input method, make the Y coordinate
+	relative to the window, not the scrollback buffer.  When resizing the
+	scrollback buffer, clamp the cursor to the set of possible locations,
+	not the visible locations.
+
+2002-08-30 nalin
 	* src/vte.c: Initialize the pty master fd to -1 to avoid spurious
 	window resizes on fd 0.
 	* src/debug.c, src/debug.h: Add a "pty" debug message class.
