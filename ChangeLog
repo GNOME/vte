@@ -1,4 +1,10 @@
 2002-10-14 nalin
+	* src/keymap.c: add mappings for GDK_Page_Up and GDK_Page_Down,
+	missed in the conversion.
+	* src/vte.c: steal GDK_KP_{Add,Subtract,Multiply,Divide} from the
+	input methods (Red Hat #75207).
+
+2002-10-14 nalin
 	* configure.in: more $pkglibdir -> $libexecdir fixing.
 	* doc/Makefile.am: add rules for generating ps and text versions of the
 	ctlseqs docs.

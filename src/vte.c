@@ -6982,14 +6982,14 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			vte_terminal_set_pointer_visible(terminal, FALSE);
 		}
 
-		/* Determine if this is a key we want to steal from the
-		 * input method. */
+		/* We steal many keypad keys here. */
 		switch (keyval) {
 		case GDK_KP_Add:
 		case GDK_KP_Subtract:
-			if (modifiers & GDK_SHIFT_MASK) {
-				steal = TRUE;
-			}
+		case GDK_KP_Multiply:
+		case GDK_KP_Divide:
+		case GDK_KP_Enter:
+			steal = TRUE;
 			break;
 		default:
 			break;

@@ -95,6 +95,16 @@ static struct _vte_keymap_entry _vte_keymap_GDK_End[] = {
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
+static struct _vte_keymap_entry _vte_keymap_GDK_Page_Up[] = {
+	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, "kP"},
+	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
+};
+
+static struct _vte_keymap_entry _vte_keymap_GDK_Page_Down[] = {
+	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, "kN"},
+	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
+};
+
 /* Keys affected by the cursor key mode. */
 static struct _vte_keymap_entry _vte_keymap_GDK_Up[] = {
 	{cursor_normal, keypad_all, fkey_all, 0, NULL, 0, "ku"},
@@ -524,6 +534,9 @@ static struct _vte_keymap_group {
 	{GDK_Home,		_vte_keymap_GDK_Home},
 	{GDK_End,		_vte_keymap_GDK_End},
 	{GDK_Insert,		_vte_keymap_GDK_Insert},
+	/* GDK_Delete is all handled in code, due to funkiness. */
+	{GDK_Page_Up,		_vte_keymap_GDK_Page_Up},
+	{GDK_Page_Down,		_vte_keymap_GDK_Page_Down},
 
 	{GDK_Up,		_vte_keymap_GDK_Up},
 	{GDK_Down,		_vte_keymap_GDK_Down},

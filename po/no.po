@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte 0.5\n"
-"POT-Creation-Date: 2002-10-10 11:57-0400\n"
+"POT-Creation-Date: 2002-10-14 17:09-0400\n"
 "PO-Revision-Date: 2002-08-25 01:11+0200\n"
 "Last-Translator: Kjartan Maraas <kmaraas@gnome.org>\n"
 "Language-Team: Norwegian <no@li.org>\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:113
+#: src/pty.c:193
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Feil under tillegg av «%s» i miljøet. Fortsetter."
@@ -27,90 +27,90 @@ msgstr "Feil ved oppretting av signalrør."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikat (%s/%s)!"
 
-#: src/vte.c:1194
+#: src/vte.c:1206
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Feil under sammensetting av regulært uttrykk «%s»."
 
-#: src/vte.c:1664 src/vte.c:1673 src/vte.c:1685 src/vte.c:1703 src/vte.c:1708
-#: src/vte.c:1713
+#: src/vte.c:1691 src/vte.c:1700 src/vte.c:1712 src/vte.c:1730 src/vte.c:1735
+#: src/vte.c:1740
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Kan ikke konvertere tegn fra %s til %s."
 
-#: src/vte.c:4922
+#: src/vte.c:4954
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Mottok uventet (nøkkel?) sekvens «%s»."
 
-#: src/vte.c:5705
+#: src/vte.c:5737
 #, c-format
 msgid "Character 0x%x is undefined, allocating one column."
 msgstr "Tegnet 0x%x er udefinert. Allokerer én kolonne."
 
-#: src/vte.c:5903
+#: src/vte.c:5933
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Ingen håndterer definert for kontrollsekvens «%s»."
 
-#: src/vte.c:6507
+#: src/vte.c:6537
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Feil under lesing fra underprosess: %s."
 
-#: src/vte.c:6671
+#: src/vte.c:6703
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Feil (%s) ved konvertering av data for underprosess. Hopper over."
 
-#: src/vte.c:8743
+#: src/vte.c:8619
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
 msgstr "Bruker fontset «%s» som mangler disse tegnsettene: %s"
 
-#: src/vte.c:9283
+#: src/vte.c:9159
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr "Feil under lasting av Xft-skriftmønster «%s». Bruker forvalgt skrift."
 
-#: src/vte.c:9295
+#: src/vte.c:9171
 msgid "Failed to load default Xft font."
 msgstr "Feil under lasting av forvalgt Xft-skrift."
 
-#: src/vte.c:9388
+#: src/vte.c:9264
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr "Feil under lasting av fontset «%s». Bruker forvalgt skrift."
 
-#: src/vte.c:9400
+#: src/vte.c:9276
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr ""
 "Feil under lasting av forvalgt skrift. Krasj eller abnormal oppførsel kan "
 "ventes."
 
-#: src/vte.c:9663
+#: src/vte.c:9539
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Feil under lesing av PTY-størrelse. Bruker forvalg: %s."
 
-#: src/vte.c:9699
+#: src/vte.c:9575
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Feil under setting av PTY-størrelse: %s."
 
-#: src/vte.c:12249
+#: src/vte.c:12129
 msgid "Error allocating draw, disabling Xft."
 msgstr "Feil under allokering av tegning. Deaktiverer Xft."
 
-#: src/vte.c:12257
+#: src/vte.c:12137
 msgid "Error allocating context, disabling Pango."
 msgstr "Feil under allokering av kontekst. Deaktiverer Pango."
 
-#: src/vte.c:12263
+#: src/vte.c:12143
 msgid "Error allocating layout, disabling Pango."
 msgstr "Feil under allokering av «layout». Deaktiverer Pango."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:13719
+#: src/vte.c:13608
 msgid "g_iconv_open() failed setting word characters"
 msgstr "g_iconv_open() feilet ved setting av ord-tegn"
