@@ -6159,9 +6159,9 @@ vte_terminal_io_write(GIOChannel *channel,
 			int i;
 			for (i = 0; i < count; i++) {
 				fprintf(stderr, "Wrote %c%c\n",
-					terminal->pvt->outgoing[i] > 32 ?
+					terminal->pvt->outgoing[i] >= 32 ?
 					' ' : '^',
-					terminal->pvt->outgoing[i] > 32 ?
+					terminal->pvt->outgoing[i] >= 32 ?
 					terminal->pvt->outgoing[i] :
 					terminal->pvt->outgoing[i]  + 64);
 			}
@@ -6192,7 +6192,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 {
 	size_t icount, ocount;
 	char *ibuf, *obuf, *obufptr;
-	char *outgoing;
+	char *outgoing, *p;
 	size_t n_outgoing;
 	GIConv *conv;
 
@@ -6227,6 +6227,12 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		/* Save the new outgoing buffer. */
 		terminal->pvt->n_outgoing = n_outgoing;
 		terminal->pvt->outgoing = outgoing;
+		/* Convert newlines to carriage returns, which more software
+		 * is able to cope with (cough, pico, cough). */
+		p = terminal->pvt->outgoing;
+		while ((p != NULL) && ((p = strchr(p, '\n')) != NULL)) {
+			*p = '\r';
+		}
 		/* If we need to start waiting for the child pty to become
 		 * available for writing, set that up here. */
 		if (terminal->pvt->pty_output == NULL) {
@@ -10838,7 +10844,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 			hilite = vte_cell_is_between(i, row - screen->scroll_delta,
 						     terminal->pvt->match_start.column,
 						     terminal->pvt->match_start.row,
-						     terminal->pvt->match_end.column,
+						     terminal->pvt->match_end.column + 1,
 						     terminal->pvt->match_end.row);
 		} else {
 			hilite = FALSE;
