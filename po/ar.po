@@ -1,0 +1,116 @@
+# Arabic translation of PACKAGE.
+# Copyright (C) 2003 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# Arafat Medini <lumina@silverpen.de>, 2003.
+# , fuzzy
+# 
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE 0.11\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2003-11-12 04:30+0100\n"
+"PO-Revision-Date: 2003-12-20 16:52+0100\n"
+"Last-Translator: Arafat Medini <lumina@silverpen.de>\n"
+"Language-Team: Arabic <doc@arabeyes.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit"
+
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2072
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "لا يمكن تحويل الرموز من %s إلى %s."
+
+#: src/iso2022.c:1578
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr "محاولة ضبط خارطة NRC غير سليمة '%c'."
+
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1619
+msgid "Unrecognized identified coding system."
+msgstr "ميز نظام تشفير غير معروف."
+
+#: src/iso2022.c:1668 src/iso2022.c:1694
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr "محاولة لضبط خارطة NRC عامة غير سليمة '%c'."
+
+#: src/pty.c:323
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "خطأ عند إضافة `%s' للبيئة، مواصلة."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:908
+#, c-format
+msgid "can not run %s"
+msgstr "لا يمكن تشغيل %s"
+
+#: src/reaper.c:110
+msgid "Error creating signal pipe."
+msgstr "خطأ انشاء أنبوب الإشارات."
+
+#: src/trie.c:412
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "نسخة (%s/%s)!"
+
+#: src/vte.c:1480
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "خطأ عند تجميع التعبير النظامي \"%s\"."
+
+#: src/vte.c:5815
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "تلقيت سلسلة(مفتاح؟) غير مرتقبة `%s'."
+
+#: src/vte.c:6893
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "لم يخصص معالج لسلسلة التحكم `%s'."
+
+#: src/vte.c:7714
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "خطأ عند القراءة من الابن: %s."
+
+#: src/vte.c:7870
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "خطأ (%s) عند تحويل البيانات من الابن، تخلي."
+
+#: src/vte.c:10537
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "خطأ عند قراءة حجم PTY، استعمال الافتراض: %s."
+
+#: src/vte.c:10573
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "خطأ·عند ضبط·حجم·PTY: %s."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:14977
+msgid "_vte_conv_open() failed setting word characters"
+msgstr "فشل _vte_conv_open() في ضبط رموز الكلمة"
+
+#. Bail back to normal mode.
+#: src/vteapp.c:713
+msgid "Could not open console.\n"
+msgstr "لا يمكن فتح الهيكل.\n"
+
+#: src/vteglyph.c:576
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr "نمط بكسلي %d مجهول.\n"
+
+#: src/vtexft.c:710
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr "لا يمكن كتابة الرمز U+%04x.\n"
+
