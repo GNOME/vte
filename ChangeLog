@@ -1,4 +1,10 @@
 2002-06-14 nalin
+	* src/vte.c, src/vte.h (vte_terminal_fork_command): Add a parameter for
+	passing in environment variables to add.
+	* src/termcap.c: Preprocess out unused comment() and generate() funcs.
+	* src/Makefile.am: Bump library version number.
+	* vte.spec: 0.4.0
+2002-06-14 nalin
 	* configure.in, python/Makefile.am: Handle cases where pygtk isn't
 	installed in the prefix we're configuring for.
 	* src/Makefile.am: Link libvte to its library dependencies.

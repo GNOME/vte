@@ -124,8 +124,7 @@ GtkType vte_terminal_get_type(void);
 
 GtkWidget *vte_terminal_new(void);
 pid_t vte_terminal_fork_command(VteTerminal *terminal,
-			        const char *command,
-			        const char **argv);
+			        const char *command, char **argv, char **envv);
 
 /* Send data to the terminal to display, or to the terminal's forked command
  * to handle in some way.  If it's 'cat', they should be the same. */

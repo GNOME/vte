@@ -587,6 +587,7 @@ vte_termcap_find_string_length(struct vte_termcap *termcap, const char *tname,
 	return g_strdup("");
 }
 
+#if 0
 TERMCAP_MAYBE_STATIC const char *
 vte_termcap_comment(struct vte_termcap *termcap, const char *tname)
 {
@@ -648,6 +649,7 @@ vte_termcap_generate(struct vte_termcap *termcap)
 	}
 	return ret;
 }
+#endif
 
 #ifdef TERMCAP_MAIN
 int

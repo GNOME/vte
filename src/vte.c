@@ -5023,34 +5023,35 @@ vte_terminal_catch_child_exited(VteReaper *reaper, guint pid, guint status,
 /* Start up a command in a slave PTY. */
 pid_t
 vte_terminal_fork_command(VteTerminal *terminal, const char *command,
-			  const char **argv)
+			  char **argv, char **envv)
 {
-	const char **env_add;
-	char *term = NULL, *colorterm = NULL;
+	char **env_add;
 	int i;
 	pid_t pid;
 
 	/* Start up the command and get the PTY of the master. */
-	env_add = g_malloc0(sizeof(char*) * 3);
-	term = g_strdup_printf("TERM=%s", terminal->pvt->emulation);
-	colorterm = g_strdup("COLORTERM=" PACKAGE);
-	env_add[0] = term;
-#ifdef VTE_DEBUG
-	if (getenv("COLORTERM") == NULL) {
-		env_add[1] = colorterm;
-	}
-#endif
-	env_add[2] = NULL;
+	for (i = 0; (envv != NULL) && (envv[i] != NULL); i++) ;
+
+	env_add = g_malloc0(sizeof(char*) * (i + 2));
 	if (command == NULL) {
 		command = terminal->pvt->shell;
 	}
+
+	env_add[0] = g_strdup_printf("TERM=%s", terminal->pvt->emulation);
+	for (i = 0; (envv != NULL) && (envv[i] != NULL); i++) {
+		env_add[i + 1] = g_strdup(envv[i]);
+	}
+	env_add[i + 1] = NULL;
+
 	terminal->pvt->pty_master = vte_pty_open(&pid,
 						 env_add,
 						 command,
 						 argv);
-	g_free(term);
-	g_free(colorterm);
-	g_free((char**)env_add);
+
+	for (i = 0; env_add[i] != NULL; i++) {
+		g_free(env_add[i]);
+	}
+	g_free(env_add);
 
 	/* If we started the process, set up to listen for its output. */
 	if (pid != -1) {

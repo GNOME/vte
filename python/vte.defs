@@ -41,7 +41,8 @@
   (return-type "pid_t")
   (parameters
     '("const-char*" "command")
-    '("const-char**" "argv")
+    '("char**" "argv")
+    '("char**" "envv")
   )
 )
 

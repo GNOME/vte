@@ -88,6 +88,7 @@ int
 main(int argc, char **argv)
 {
 	GtkWidget *window, *hbox, *scrollbar, *widget;
+	char *env_add[] = {"FOO=BAR", "BOO=BIZ", NULL};
 	const char *message = "Launching interactive shell...\r\n";
 	const char *font = NULL;
 	const char *terminal = NULL;
@@ -182,7 +183,7 @@ main(int argc, char **argv)
 				  strlen(message));
 	}
 #endif
-	vte_terminal_fork_command(VTE_TERMINAL(widget), command, NULL);
+	vte_terminal_fork_command(VTE_TERMINAL(widget), command, NULL, env_add);
 	vte_terminal_feed_child(VTE_TERMINAL(widget), "pwd\n", -1);
 
 	/* Go for it! */

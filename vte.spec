@@ -1,6 +1,6 @@
 Name: vte
-Version: 0.3.30
-Release: 2
+Version: 0.4.0
+Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
 Group: User Interface/X
@@ -57,8 +57,8 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/python*/site-packages/*
 
 %changelog
-* Fri Jun 14 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.30-2
-- rebuild in different environment
+* Fri Jun 14 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.0-1
+- add a means for apps to add environment variables
 
 * Fri Jun 14 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.30-1
 - package up the python module

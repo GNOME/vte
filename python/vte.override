@@ -14,42 +14,64 @@ ignore vte_terminal_get_text
 %%
 override vte_terminal_fork_command kwargs
 static PyObject *
-_wrap_vte_terminal_fork_command(PyGObject *self, PyObject *args,
-				PyObject *kwargs)
+_wrap_vte_terminal_fork_command(PyGObject * self, PyObject * args,
+				PyObject * kwargs)
 {
-    gchar **argv = NULL;
-    gchar *command = NULL;
-    static char *kwlist[] = { "command", "argv", NULL };
-    PyObject *py_argv = NULL;
-    int i, n_args;
-    pid_t pid;
+	gchar **argv = NULL, **envv = NULL;
+	gchar *command = NULL;
+	static char *kwlist[] = { "command", "argv", NULL };
+	PyObject *py_argv = NULL, *py_envv = NULL;
+	int i, n_args, n_envs;
+	pid_t pid;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|sO:fork_command",
-				     kwlist, &command, &py_argv))
-        return NULL;
-
-
-    if (py_argv != NULL && py_argv != Py_None) {
-	if (!PySequence_Check(py_argv)) {
-	    PyErr_SetString(PyExc_TypeError, "argv must be a sequence");
-	    return NULL;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|sOO:fork_command",
+					 kwlist, &command, &py_argv,
+					 &py_envv)) {
+		return NULL;
 	}
 
-	n_args = PySequence_Length(py_argv);
-	argv = g_new(gchar *, n_args + 1);
-	for (i = 0; i < n_args; i++) {
-	    PyObject *item = PySequence_GetItem(py_argv, i);
-	    Py_DECREF(item); /* PySequence_GetItem INCREF's */
-	    argv[i] = PyString_AsString(item);
+
+	if (py_argv != NULL && py_argv != Py_None) {
+		if (!PySequence_Check(py_argv)) {
+			PyErr_SetString(PyExc_TypeError,
+					"argv must be a sequence");
+			return NULL;
+		}
+
+		n_args = PySequence_Length(py_argv);
+		argv = g_new(gchar *, n_args + 1);
+		for (i = 0; i < n_args; i++) {
+			PyObject *item = PySequence_GetItem(py_argv, i);
+			Py_DECREF(item);  /* PySequence_GetItem INCREF's */
+			argv[i] = PyString_AsString(item);
+		}
+		argv[n_args] = NULL;
 	}
-	argv[n_args] = NULL;
-    }
 
-    pid = vte_terminal_fork_command(VTE_TERMINAL(self->obj), command, argv);
+	if (py_envv != NULL && py_envv != Py_None) {
+		if (!PySequence_Check(py_envv)) {
+			PyErr_SetString(PyExc_TypeError,
+					"envv must be a sequence");
+			return NULL;
+		}
 
-    if (argv)
-	g_free(argv);
-    
-    return PyInt_FromLong(pid);
+		n_envs = PySequence_Length(py_envv);
+		envv = g_new(gchar *, n_envs + 1);
+		for (i = 0; i < n_envs; i++) {
+			PyObject *item = PySequence_GetItem(py_envv, i);
+			Py_DECREF(item);  /* PySequence_GetItem INCREF's */
+			envv[i] = PyString_AsString(item);
+		}
+		envv[n_envs] = NULL;
+	}
+
+	pid = vte_terminal_fork_command(VTE_TERMINAL(self->obj),
+					command, argv, envv);
+
+	if (argv) {
+		g_free(argv);
+	}
+
+	return PyInt_FromLong(pid);
 }
 %%

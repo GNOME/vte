@@ -28,8 +28,8 @@ G_BEGIN_DECLS
 /* Start up the given binary (exact path, not interpreted at all) in a
  * pseudo-terminal of its own, returning the descriptor for the master
  * side of the PTY pair, storing the child's PID in the given argument. */
-int vte_pty_open(pid_t *child, const char **env_add,
-		 const char *command, const char **argv);
+int vte_pty_open(pid_t *child, char **env_add,
+		 const char *command, char **argv);
 
 G_END_DECLS
 

@@ -41,8 +41,8 @@
 /* Open the named PTY slave, fork off a child (storing its PID in child),
  * and exec the named command in its own session as a process group leader */
 static int
-vte_pty_fork_on_fd(const char *path, const char **env_add,
-		   const char *command, const char **argv, pid_t *child)
+vte_pty_fork_on_fd(const char *path, char **env_add,
+		   const char *command, char **argv, pid_t *child)
 {
 	int fd, i;
 	pid_t pid;
@@ -182,8 +182,8 @@ vte_pty_unlockpt(int fd)
 }
 
 static int
-vte_pty_open_unix98(pid_t *child, const char **env_add,
-		    const char *command, const char **argv)
+vte_pty_open_unix98(pid_t *child, char **env_add,
+		    const char *command, char **argv)
 {
 	int fd;
 	char *buf;
@@ -211,16 +211,16 @@ vte_pty_open_unix98(pid_t *child, const char **env_add,
 }
 
 static int
-vte_pty_open_old_school(pid_t *child, const char **env_add,
-			const char *command, const char **argv)
+vte_pty_open_old_school(pid_t *child, char **env_add,
+			const char *command, char **argv)
 {
 	/* FIXME */
 	return -1;
 }
 
 int
-vte_pty_open(pid_t *child, const char **env_add,
-	     const char *command, const char **argv)
+vte_pty_open(pid_t *child, char **env_add,
+	     const char *command, char **argv)
 {
 	int ret = -1;
 	if (ret == -1) {
