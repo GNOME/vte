@@ -1,4 +1,8 @@
 2002-10-14 nalin
+	* src/vte.c: recognize CSI-r (with no arguments) as resetting the
+	scrolling region in XTerm emulation (Red Hat #75902)
+
+2002-10-14 nalin
 	* src/keymap.c: add mappings for GDK_Page_Up and GDK_Page_Down,
 	missed in the conversion.
 	* src/vte.c: steal GDK_KP_{Add,Subtract,Multiply,Divide} from the
@@ -32,8 +36,8 @@
 
 2002-10-11 nalin
 	* src/vte.c: properly distinguish cursor key mode and keypad key mode,
-	obey application mode for cursor keys,
-	* src/pty.c: reset signal handlers before exec() (Red Hat #75341)
+	obey application mode for cursor keys (#92941).
+	* src/pty.c: reset signal handlers before exec() (Red Hat #75341).
 
 2002-10-11 nalin
 	* src/trie.c: change the typedef of wint_t here to match vte.c (now

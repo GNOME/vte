@@ -2173,7 +2173,7 @@ vte_sequence_handler_cs(VteTerminal *terminal,
 	long start, end, rows;
 	GValue *value;
 
-	/* We require two parameters. */
+	/* We require two parameters.  Anything less is a reset. */
 	if ((params == NULL) || (params->n_values < 2)) {
 		terminal->pvt->screen->scrolling_restricted = FALSE;
 		return;
