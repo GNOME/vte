@@ -11448,7 +11448,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->accessible_emit = FALSE;
 
 #ifdef VTE_DEBUG
-	/* In debuggable mode, we always used to do this. */
+	/* In debuggable mode, we always do this. */
 	/* gtk_widget_get_accessible(GTK_WIDGET(terminal)); */
 #endif
 }
@@ -11635,21 +11635,6 @@ vte_terminal_unrealize(GtkWidget *widget)
 	g_signal_handlers_disconnect_by_func(G_OBJECT(vte_bg_get()),
 					     root_pixmap_changed_cb,
 					     widget);
-
-	/* Shut down accessibility. */
-	if (terminal->pvt->accessible != NULL) {
-		g_object_remove_weak_pointer(G_OBJECT(terminal->pvt->accessible),
-					     &terminal->pvt->accessible);
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-			fprintf(stderr, "Accessible peer has refcount %d "
-				"before we unref it.\n",
-				(G_OBJECT(terminal->pvt->accessible))->ref_count);
-		}
-#endif
-		g_object_unref(G_OBJECT(terminal->pvt->accessible));
-		terminal->pvt->accessible = NULL;
-	}
 
 	/* Deallocate the cursors. */
 	terminal->pvt->mouse_cursor_visible = FALSE;
@@ -11932,6 +11917,21 @@ vte_terminal_finalize(GObject *object)
 	}
 	_vte_termcap_free(terminal->pvt->termcap);
 	terminal->pvt->termcap = NULL;
+
+	/* Shut down accessibility. */
+	if (terminal->pvt->accessible != NULL) {
+		g_object_remove_weak_pointer(G_OBJECT(terminal->pvt->accessible),
+					     &terminal->pvt->accessible);
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
+			fprintf(stderr, "Accessible peer has refcount %d "
+				"before we unref it.\n",
+				(G_OBJECT(terminal->pvt->accessible))->ref_count);
+		}
+#endif
+		g_object_unref(G_OBJECT(terminal->pvt->accessible));
+		terminal->pvt->accessible = NULL;
+	}
 
 	/* Done with our private data. */
 	g_free(terminal->pvt);

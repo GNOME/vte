@@ -1,4 +1,10 @@
 2004-04-29 nalin
+	* src/vte.c(vte_terminal_unrealize): don't unref our accessible peer;
+	it may be accessed while we're unrealized, causing it to be destroyed
+	and re-created needlessly (#128049).
+	* src/vte.c(vte_terminal_finalize): unref our accessible peer.
+
+2004-04-29 nalin
 	* src/vte.c(vte_terminal_finalize): don't clear the child's PID early,
 	so that we'll SIGHUP it properly (the kernel should do that anyway,
 	but...) (#128291).
