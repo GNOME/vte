@@ -1,4 +1,11 @@
 2003-02-24 nalin
+	* src/vte.c(vte_sequence_handler_window_manipulation): don't report the
+	user-settable title and icon strings to applications, based on H D
+	Moore's "Terminal Emulator Security Issues" (CAN-2003-0070).
+	* src/vte.c(vte_sequence_handler_set_title_internal): strip out control
+	characters just to be on the safe side.
+
+2003-02-24 nalin
 	* src/vte.c(vte_sequence_handler_decset_internal): home the cursor when
 	we switch to the alternate screen (#105075).
 

@@ -4143,6 +4143,13 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 			g_iconv_close(conv);
 		}
 		if (outbufptr != NULL) {
+			char *p;
+			/* No control characters allowed. */
+			for (p = outbuf; p < outbufptr; p++) {
+				if (((guint8)(*p)) < 0x20) {
+					*p = ' ';
+				}
+			}
 			/* Emit the signal */
 			if (strcmp(signal, "window_title_changed") == 0) {
 				g_free(terminal->window_title);
@@ -5503,8 +5510,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			snprintf(buf, sizeof(buf),
 				 "%sL%s%s",
 				 _VTE_CAP_OSC,
-				 terminal->icon_title ?
-				 terminal->icon_title : "",
+				 "Terminal",
 				 _VTE_CAP_ST);
 			vte_terminal_feed_child(terminal, buf, strlen(buf));
 			break;
@@ -5518,8 +5524,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			snprintf(buf, sizeof(buf),
 				 "%sL%s%s",
 				 _VTE_CAP_OSC,
-				 terminal->window_title ?
-				 terminal->window_title : "",
+				 "Terminal",
 				 _VTE_CAP_ST);
 			vte_terminal_feed_child(terminal, buf, strlen(buf));
 			break;
