@@ -6100,6 +6100,16 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	return FALSE;
 }
 
+static gboolean
+vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
+{
+	VteTerminal *terminal;
+
+	terminal = VTE_TERMINAL(widget);
+
+	return gtk_im_context_filter_keypress(terminal->pvt->im_context, event);
+}
+
 /* Check if a particular character is part of a "word" or not. */
 gboolean
 vte_terminal_is_word_char(VteTerminal *terminal, gunichar c)
@@ -9706,6 +9716,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 	widget_class->scroll_event = vte_terminal_scroll;
 	widget_class->expose_event = vte_terminal_expose;
 	widget_class->key_press_event = vte_terminal_key_press;
+	widget_class->key_release_event = vte_terminal_key_release;
 	widget_class->button_press_event = vte_terminal_button_press;
 	widget_class->button_release_event = vte_terminal_button_release;
 	widget_class->motion_notify_event = vte_terminal_motion_notify;
