@@ -61,6 +61,9 @@ vte_debug_parse_string(const char *string)
 			} else
 			if (g_ascii_strcasecmp(flags[i], "RING") == 0) {
 				vte_debug_flags |= VTE_DEBUG_RING;
+			} else
+			if (g_ascii_strcasecmp(flags[i], "PTY") == 0) {
+				vte_debug_flags |= VTE_DEBUG_PTY;
 			}
 		}
 		g_strfreev(flags);

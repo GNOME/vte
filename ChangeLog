@@ -1,4 +1,9 @@
 2002-08-30 nalin
+	* src/vte.c: Initialize the pty master fd to -1 to avoid spurious
+	window resizes on fd 0.
+	* src/debug.c, src/debug.h: Add a "pty" debug message class.
+
+2002-08-30 nalin
 	* src/iso2022.c: Fix a how'd-that-ever-work bug (not returning anything
 	from vte_iso2022_new()), spotted by Brian Cameron.
 	* configure.in: Use -Wall when building with gcc in maintainer mode.

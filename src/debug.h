@@ -33,6 +33,7 @@ typedef enum {
 	VTE_DEBUG_SELECTION	= 1 << 6,
 	VTE_DEBUG_SUBSTITUTION	= 1 << 7,
 	VTE_DEBUG_RING		= 1 << 8,
+	VTE_DEBUG_PTY		= 1 << 9,
 } VteDebugFlags;
 
 void vte_debug_parse_string(const char *string);

@@ -9672,6 +9672,10 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->dec_saved = g_hash_table_new(g_direct_hash, g_direct_equal);
 	pvt->default_column_count = 80;
 	pvt->default_row_count = 24;
+
+	/* Setting the terminal type and size requires the PTY master to
+	 * be set up properly first. */
+	pvt->pty_master = -1;
 	vte_terminal_set_termcap(terminal, NULL, FALSE);
 	vte_terminal_set_emulation(terminal, NULL);
 	vte_terminal_set_size(terminal,
