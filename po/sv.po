@@ -7,70 +7,65 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2002-07-30 18:18-0400\n"
-"PO-Revision-Date: 2002-07-18 19:08+0200\n"
+"POT-Creation-Date: 2002-08-02 15:51+0200\n"
+"PO-Revision-Date: 2002-08-02 15:52+0200\n"
 "Last-Translator: Christian Rose <menthos@menthos.com>\n"
 "Language-Team: Swedish <sv@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:102
+#: src/pty.c:105
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Fel vid tillägg av \"%s\" till miljön, fortsätter."
-
-#: src/pty.c:138 src/vte.c:8660
-#, c-format
-msgid "Error setting PTY size: %s."
-msgstr "Fel vid läsande av PTY-storlek: %s."
 
 #: src/reaper.c:114
 msgid "Error creating signal pipe."
 msgstr "Fel vid skapande av signalrör."
 
-#: src/trie.c:400
+#: src/trie.c:405
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Dubbel (%s/%s)!"
 
-#: src/vte.c:1008
+#: src/vte.c:1057
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Fel vid kompilering av reguljärt uttryck \"%s\"."
 
-#: src/vte.c:1379 src/vte.c:1388 src/vte.c:1398 src/vte.c:1412 src/vte.c:1417
-#: src/vte.c:1422
+#: src/vte.c:1428 src/vte.c:1437 src/vte.c:1447 src/vte.c:1461 src/vte.c:1466
+#: src/vte.c:1471
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Kan inte konvertera tecken från %s till %s."
 
-#: src/vte.c:4546
+#: src/vte.c:4601
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Fick oväntad (tangent?)sekvens \"%s\"."
 
-#: src/vte.c:5277
+#: src/vte.c:5333
 #, c-format
 msgid "Character 0x%x is undefined, allocating one column."
 msgstr "Tecknet 0x%x är odefinierat, allokerar en kolumn."
 
-#: src/vte.c:5468
+#: src/vte.c:5524
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Ingen hanterare för kontrollsekvensen \"%s\" är angiven."
 
-#: src/vte.c:6003
+#: src/vte.c:6051
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Fel vid läsning från barn: %s."
 
-#: src/vte.c:6171
+#: src/vte.c:6219
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Fel (%s) vid konvertering av data för barn, kastar."
 
-#: src/vte.c:7915
+#: src/vte.c:7982
 #, c-format
 msgid ""
 "Warning: using fontset \"%s\", which is missing these character sets: %s."
@@ -78,49 +73,58 @@ msgstr ""
 "Varning: använder typsnittssamlingen \"%s\", som saknar dessa "
 "teckensamlingar: %s."
 
-#: src/vte.c:8459
+#: src/vte.c:8520
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr ""
 "Misslyckades med att läsa in XFt-typsnittsmönstret \"%s\", använder "
 "standardtypsnittet."
 
-#: src/vte.c:8472
+#: src/vte.c:8533
 msgid "Failed to load default Xft font."
 msgstr "Misslyckades med att läsa in Xft-standardtypsnittet."
 
-#: src/vte.c:8515
+#: src/vte.c:8576
 msgid "Error allocating Xft font, disabling Xft."
 msgstr "Fel vid allokering av Xft-typsnitt, deaktiverar Xft."
 
-#: src/vte.c:8539
+#: src/vte.c:8600
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr ""
 "Misslyckades med att läsa in typsnittssamlingen \"%s\", använder "
 "standardtypsnittet."
 
-#: src/vte.c:8551
+#: src/vte.c:8612
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr ""
 "Misslyckades med att läsa in standardtypsnittet, kraschar eller beter sig "
 "onormalt."
 
-#: src/vte.c:8634
+#: src/vte.c:8695
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Fel vid läsande av PTY-storlek, använder standardvärden: %s."
 
-#: src/vte.c:10776
+#: src/vte.c:8721
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "Fel vid läsande av PTY-storlek: %s."
+
+#: src/vte.c:10993
+msgid "Error allocating context, disabling Pango."
+msgstr "Fel vid allokering av sammanhang, deaktiverar Pango."
+
+#: src/vte.c:10999
 msgid "Error allocating layout, disabling Pango."
 msgstr "Fel vid allokering av layout, deaktiverar Pango."
 
-#: src/vte.c:10786
+#: src/vte.c:11011
 msgid "Error allocating draw, disabling Xft."
 msgstr "Fel vid allokering av ritbar yta, deaktiverar Xft."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:12014
+#: src/vte.c:12162
 msgid "g_iconv_open() failed setting word characters"
 msgstr "g_iconv_open() misslyckades med att ställa in ordtecken"
 
