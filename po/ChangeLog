@@ -1,3 +1,9 @@
+2003-05-08  Abel Cheung  <maddog@linux.org.hk>
+
+	* POTFILES.in: Add 4 files into POTFILES.in(please let me know
+	  if they shouldn't be added)
+	* zh_TW.po: Updated traditional Chinese translation.
+
 2003-05-08  KAMAGASAKO Masatoshi  <emerald@gnome.gr.jp>
 
 	* ja.po: Updated Japanese translation.

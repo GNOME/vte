@@ -5,13 +5,28 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte 0.11.6\n"
-"POT-Creation-Date: 2003-05-08 12:34+0800\n"
-"PO-Revision-Date: 2003-05-08 12:36+0800\n"
+"POT-Creation-Date: 2003-05-08 12:40+0800\n"
+"PO-Revision-Date: 2003-05-08 22:30+0800\n"
 "Last-Translator: Abel Cheung <maddog@linux.org.hk>\n"
 "Language-Team: Chinese (traditional) <zh-l10n@linux.org.tw>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+#: src/iso2022.c:744 src/vte.c:1991
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "無法將字元從 %s 轉換至 %s。"
+
+#: src/iso2022.c:1355
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr "嘗試設定無效的 NRC 字元映射‘%c’。"
+
+#: src/iso2022.c:1406 src/iso2022.c:1432
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr "嘗試設定無效的多位元組 NRC 字元映射‘%c’。"
 
 #: src/pty.c:317
 #, c-format
@@ -28,7 +43,7 @@ msgstr "無法執行 %s"
 
 #: src/reaper.c:108
 msgid "Error creating signal pipe."
-msgstr "建立訊號管道出現錯誤。"
+msgstr "建立訊號管道時出現錯誤。"
 
 #: src/trie.c:412
 #, c-format
@@ -39,11 +54,6 @@ msgstr "重複 (%s/%s)！"
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "計算正規表示式“%s”時出現錯誤。"
-
-#: src/vte.c:1991
-#, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "無法將字元從 %s 轉換至 %s。"
 
 #: src/vte.c:5501
 #, c-format
@@ -79,6 +89,21 @@ msgstr "無法設定 PTY 的大小：%s。"
 #: src/vte.c:13914
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() 無法轉換字元"
+
+#. Bail back to normal mode.
+#: src/vteapp.c:640
+msgid "Could not open console.\n"
+msgstr "無法開啟文字模式視窗。\n"
+
+#: src/vteglyph.c:575
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr "不明的像素模式 %d。\n"
+
+#: src/vtexft.c:664
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr "無法顯示字元 U+%04x。\n"
 
 #~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
 #~ msgstr "使用字集“%s”，但它缺少了以下的字元集：%s。"

@@ -1,4 +1,8 @@
+src/iso2022.c
 src/pty.c
 src/reaper.c
 src/trie.c
 src/vte.c
+src/vteapp.c
+src/vteglyph.c
+src/vtexft.c
