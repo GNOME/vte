@@ -12050,9 +12050,6 @@ vte_terminal_realize(GtkWidget *widget)
 		vte_terminal_set_color_internal(terminal, i, &color);
 	}
 
-	/* Set up the background. */
-	vte_terminal_queue_background_update(terminal, TRUE);
-
 	/* Setup cursor blink */
 	settings = gtk_widget_get_settings(GTK_WIDGET(terminal));
 	if (G_IS_OBJECT(settings)) {
@@ -12102,6 +12099,10 @@ vte_terminal_realize(GtkWidget *widget)
 	terminal->pvt->mouse_inviso_cursor =
 		gdk_cursor_new_from_pixmap(pixmap, mask,
 					   &black, &black, 0, 0);
+
+	/* Set up the background, *now*. */
+	vte_terminal_background_update(terminal);
+
 	g_object_unref(G_OBJECT(pixmap));
 	g_object_unref(G_OBJECT(mask));
 }
