@@ -1,3 +1,7 @@
+2003-01-30  Fatih Demir <kabalak@gtranslator.org>
+
+	* configure.in: Added "tr" (Turkish) to the languages' list.
+
 2003-01-30 nalin	
 	* MESSAGE-OF-DOOM: added, for scaring people away.
 	* vte.spec: bump to 0.11.x for development.
