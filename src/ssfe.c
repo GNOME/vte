@@ -38,10 +38,19 @@
 
 #ifdef HAVE_NCURSES
 #include <ncurses.h>
+#ifdef HAVE_TERM_H
 #include <term.h>
+#endif
+#else
+#ifdef HAVE_CURSES
+#include <curses.h>
+#ifdef HAVE_TERM_H
+#include <term.h>
+#endif
 #else
 #ifdef HAVE_TERMCAP
 #include <termcap.h>
+#endif
 #endif
 #endif
 

@@ -1,3 +1,10 @@
+2003-01-23 nalin
+	* configure.in: check for curses if we don't have ncurses (the order
+	is ncurses, curses, libtermcap), as Solaris has neither ncurses nor
+	libtermcap.  Reported by Brian Cameron.
+	* src/keymap.c, src/ssfe.c: accept either curses or ncurses as
+	equivalent.
+
 2003-01-22 nalin
 	* src/Makefile.am, src/mev.c: add mev.
 	* src/vte.c(vte_sequence_handler_clear_screen): don't home the cursor

@@ -30,10 +30,20 @@
 #include "termcap.h"
 #ifdef HAVE_NCURSES
 #include <ncurses.h>
+#ifdef HAVE_TERM_H
 #include <term.h>
+#endif
+#define HAVE_CURSES
+#else
+#ifdef HAVE_CURSES
+#include <curses.h>
+#ifdef HAVE_TERM_H
+#include <term.h>
+#endif
 #else
 #ifdef HAVE_TERMCAP
 #include <termcap.h>
+#endif
 #endif
 #endif
 
@@ -857,7 +867,7 @@ _vte_keymap_map(guint keyval,
 	enum _vte_fkey_mode fkey_mode;
 	char *cap, *tmp;
 	const char *termcap_special = NULL;
-#if defined(HAVE_NCURSES) || defined(HAVE_TERMCAP)
+#if defined(HAVE_CURSES) || defined(HAVE_TERMCAP)
 	char ncurses_buffer[4096];
 	char ncurses_area[512];
 #endif
@@ -1058,7 +1068,7 @@ _vte_keymap_map(guint keyval,
 			}
 		}
 	}
-#if defined(HAVE_NCURSES) || defined(HAVE_TERMCAP)
+#if defined(HAVE_CURSES) || defined(HAVE_TERMCAP)
 	if (termcap_special != NULL) {
 		tmp = g_strdup(terminal);
 		cap = NULL;
@@ -1082,7 +1092,7 @@ _vte_keymap_map(guint keyval,
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
 				int j;
-#ifdef HAVE_NCURSES
+#ifdef HAVE_CURSES
 				fprintf(stderr, " via ncurses to '");
 #else
 #ifdef HAVE_TERMCAP

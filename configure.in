@@ -69,7 +69,10 @@ AC_CHECK_HEADERS(sys/select.h sys/un.h stropts.h termios.h wchar.h)
 
 AC_CHECK_HEADER(ncurses.h,[AC_CHECK_HEADER(term.h,[AC_CHECK_LIB(ncurses,tgetent,[LIBS="-lncurses $LIBS";AC_DEFINE(HAVE_NCURSES,1,[Define if you have ncurses.h and libncurses])])])])
 if test x$ac_cv_lib_ncurses_tgetent != xyes ; then
-	AC_CHECK_HEADER(termcap.h,[AC_CHECK_LIB(termcap,tgetent,[LIBS="-ltermcap $LIBS";AC_DEFINE(HAVE_TERMCAP,1,[Define if you have termcap.h and libtermcap])])])
+	AC_CHECK_HEADER(curses.h,[AC_CHECK_HEADER(term.h,[AC_CHECK_LIB(curses,tgetent,[LIBS="-lcurses $LIBS";AC_DEFINE(HAVE_CURSES,1,[Define if you have curses.h and libcurses])])])])
+	if test x$ac_cv_lib_curses_tgetent != xyes ; then
+		AC_CHECK_HEADER(termcap.h,[AC_CHECK_LIB(termcap,tgetent,[LIBS="-ltermcap $LIBS";AC_DEFINE(HAVE_TERMCAP,1,[Define if you have termcap.h and libtermcap])])])
+	fi
 fi
 
 OTHERLIBS="$LIBS"
