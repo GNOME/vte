@@ -6,7 +6,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte gnome-2-2\n"
-"POT-Creation-Date: 2003-07-10 05:23+0200\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2003-08-11 12:53+0200\n"
 "PO-Revision-Date: 2003-07-10 20:54+0200\n"
 "Last-Translator: Mətin Əmirov <metin@karegen.com>\n"
 "Language-Team: Azerbaijani <gnome@azitt.com>\n"
@@ -14,10 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787
-#: src/iso2022.c:798
-#: src/iso2022.c:847
-#: src/vte.c:2059
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2060
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Hərflər %s'dən %s'ə çevirilə bilmir."
@@ -25,23 +23,22 @@ msgstr "Hərflər %s'dən %s'ə çevirilə bilmir."
 #: src/iso2022.c:1560
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr "Hökmsüz '%c' NRC xəritəsi təyin etmə təşəbbüsü."
+msgstr "Hökmsüz '%c' NRC xəritəsi tə'yin etmə təşəbbüsü."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #: src/iso2022.c:1601
 msgid "Unrecognized identified coding system."
-msgstr "Na'məlum tanınmış kodlama sistemi."
+msgstr "Namə'lum tanınmış kodlama sistemi."
 
-#: src/iso2022.c:1650
-#: src/iso2022.c:1676
+#: src/iso2022.c:1650 src/iso2022.c:1676
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "Hökmsüz geniş '%c' NRC xəritəsi təyin etmə təşəbbüsü."
+msgstr "Hökmsüz geniş '%c' NRC xəritəsi tə'yin etmə təşəbbüsü."
 
 #: src/pty.c:319
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr "`%s'ətraf mühitə əlavə oluna bilmədi, gedişat davam edir."
+msgstr "`%s' ətraf mühitə əlavə oluna bilmədi, gedişat davam edir."
 
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
@@ -58,45 +55,45 @@ msgstr "Signal borusu yaradıla bilmədi."
 #: src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
-msgstr "Cütləşdir (%s/%s)!)"
+msgstr "Surətini Çıxar (%s/%s)!)"
 
-#: src/vte.c:1471
+#: src/vte.c:1473
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "%s Düzənli ifadə(lər)sini tərtib edərkən xəta yarandı."
+msgstr "%s qaydalı ifadəsini tərtib edərkən xəta yarandı."
 
-#: src/vte.c:5669
+#: src/vte.c:5678
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr "Gözlənilməyən (açar?) `%s' ardıcıllıq alındı."
+msgstr "Gözlənilməyən (açar?) `%s' ardıcıllığı alındı."
 
-#: src/vte.c:6684
+#: src/vte.c:6693
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr "`%s' nəzarət ardıcıllığı üçün dəstək təyin edilməyib."
+msgstr "`%s' nəzarət ardıcıllığı üçün dəstək tə'yin edilməyib."
 
-#: src/vte.c:7431
+#: src/vte.c:7440
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Törəmədən oxuma xətası: %s."
 
-#: src/vte.c:7587
+#: src/vte.c:7596
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Törəmə üçün verilənləri çevirmə xətası (%s), atılır."
 
-#: src/vte.c:10231
+#: src/vte.c:10240
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "PTY böyüklüyünü oxuma xətası, əsaslar işlədiləcək: %s."
 
-#: src/vte.c:10267
+#: src/vte.c:10276
 #, c-format
 msgid "Error setting PTY size: %s."
-msgstr "PTY böyüklüyünü təyin etmə xətası: %s."
+msgstr "PTY böyüklüyünü tə'yin etmə xətası: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14389
+#: src/vte.c:14399
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() sözün hərflərini yerləşdirə bilmədi"
 
@@ -114,4 +111,3 @@ msgstr "Namə'lum piksel modu %d.\n"
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "U+%04x hərfi göstərilə bilmir.\n"
-
