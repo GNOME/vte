@@ -1,3 +1,7 @@
+2002-07-25  Ole Laursen  <olau@hardworking.dk>
+
+	* configure.in: Added Danish translation.
+
 2002-07-25  nalin
 	* README: Note that bold isn't broken any more.
 	* termcaps/xterm: Note that k; was added.
