@@ -1,3 +1,7 @@
+2004-02-07  Robert Sedak  <robert.sedak@sk.htnet.hr>
+ 
+         * configure.in: Added "hr" (Croatian) to ALL_LINGUAS.
+
 2004-02-02  Martin Kretzschmar  <m_kretzschmar@gmx.net>
 
 	* docs/reference/Makefile.am: use gtk-doc in xml-mode.
