@@ -27,6 +27,7 @@
 #include <iconv.h>
 #include <langinfo.h>
 #include <math.h>
+#include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -3183,7 +3184,7 @@ vte_terminal_process_incoming(gpointer data)
 	char *ibuf, *obuf, *obufptr, *ubuf, *ubufptr;
 	size_t icount, ocount, ucount;
 	wchar_t *wbuf, c;
-	int i, j, k, wcount;
+	int ind, wcount, start, end;
 	const char *match, *encoding;
 	iconv_t unconv;
 	GQuark quark;
@@ -3220,23 +3221,22 @@ vte_terminal_process_incoming(gpointer data)
 		    (icount < terminal->pvt->n_incoming)) {
 			/* We barfed on something that had a high bit, so
 			 * discard it. */
-			i = terminal->pvt->n_incoming - icount;
-			if (terminal->pvt->incoming[i] > 128) {
+			start = terminal->pvt->n_incoming - icount;
+			if (terminal->pvt->incoming[start] > 128) {
 				/* Count the number of non-ascii chars. */
-				for (j = i; j < i + VTE_UTF8_BPC; j++) {
-					if (terminal->pvt->incoming[j] < 128) {
+				for (end = start; end < start + VTE_UTF8_BPC; end++) {
+					if (terminal->pvt->incoming[end] < 128) {
 						break;
 					}
 				}
 				/* Be conservative about discarding data. */
-				i = MIN(icount, j - i);
-				g_warning("Invalid multibyte sequence detected.  Discarding %d bytes of data.", i);
+				g_warning("Invalid multibyte sequence detected.  Discarding %d bytes of data.", end - start);
 				/* Remove the offending bytes. */
-				obuf = &terminal->pvt->incoming[terminal->pvt->n_incoming - icount];
-				ibuf = obuf + i;
-				memmove(obuf, ibuf, icount - i);
+				obuf = &terminal->pvt->incoming[start];
+				ibuf = &terminal->pvt->incoming[end];
+				memmove(obuf, ibuf, terminal->pvt->n_incoming - end);
 				/* Reset the incoming buffer size. */
-				terminal->pvt->n_incoming -= i;
+				terminal->pvt->n_incoming -= end;
 				/* If we still have data, try again right
 				 * away. */
 				terminal->pvt->processing = (terminal->pvt->n_incoming > 0);
@@ -3260,10 +3260,10 @@ vte_terminal_process_incoming(gpointer data)
 	wbuf = (wchar_t*) obufptr;
 
 	/* Try initial substrings. */
-	i = 0;
+	start = 0;
 	inserted = leftovers = FALSE;
-	while ((i < wcount) && !leftovers) {
-		for (j = i + 1; j <= wcount; j++) {
+	while ((start < wcount) && !leftovers) {
+		for (end = start + 1; end <= wcount; end++) {
 			/* Check if the contents of the array is a control
 			 * string or not.  The match function returns NULL if
 			 * the data is not a control sequence, the name of
@@ -3271,15 +3271,15 @@ vte_terminal_process_incoming(gpointer data)
 			 * string if it might be the beginning of a control
 			 * sequence. */
 			vte_trie_match(terminal->pvt->trie,
-				       &wbuf[i],
-				       j - i,
+				       &wbuf[start],
+				       end - start,
 				       &match,
 				       &quark,
 				       &params);
 			if (match == NULL) {
 				/* Nothing interesting here, so insert this
 				 * character into the buffer. */
-				c = wbuf[i];
+				c = wbuf[start];
 #ifdef VTE_DEBUG
 				if (c > 255) {
 					fprintf(stderr, "%ld\n", (long) c);
@@ -3299,7 +3299,7 @@ vte_terminal_process_incoming(gpointer data)
 #endif
 				vte_terminal_insert_char(widget, c);
 				inserted = TRUE;
-				i++;
+				start++;
 				break;
 			}
 			if (match[0] != '\0') {
@@ -3313,7 +3313,7 @@ vte_terminal_process_incoming(gpointer data)
 							     quark,
 							     params);
 				/* Skip over the proper number of wide chars. */
-				i = j;
+				start = end;
 				/* Check if the encoding's changed. */
 				if (strcmp(encoding, terminal->pvt->encoding)) {
 					leftovers = TRUE;
@@ -3322,19 +3322,20 @@ vte_terminal_process_incoming(gpointer data)
 				break;
 			} else {
 				/* Empty string. */
-				if (j == wcount) {
+				if (end == wcount) {
 					/* We have the initial portion of a
 					 * control sequence, but no more
 					 * data. */
 					leftovers = TRUE;
-					g_warning("Unhandled data.\n");
+					g_warning("Unhandled data (%s).\n",
+						  terminal->pvt->incoming + start);
 				}
 			}
 			/* Free any wide-character strings we got. */
 			if (params != NULL) {
-				for (k = 0; k < params->n_values; k++) {
+				for (ind = 0; ind < params->n_values; ind++) {
 					value = g_value_array_get_nth(params,
-								      k);
+								      ind);
 					if (G_VALUE_HOLDS_POINTER(value)) {
 						ptr = g_value_get_pointer(value);
 						if (ptr != NULL) {
@@ -3351,9 +3352,8 @@ vte_terminal_process_incoming(gpointer data)
 		/* Free any wide-character strings we got if we broke out
 		 * of the loop. */
 		if (params != NULL) {
-			for (k = 0; k < params->n_values; k++) {
-				value = g_value_array_get_nth(params,
-							      k);
+			for (ind = 0; ind < params->n_values; ind++) {
+				value = g_value_array_get_nth(params, ind);
 				if (G_VALUE_HOLDS_POINTER(value)) {
 					ptr = g_value_get_pointer(value);
 					if (ptr != NULL) {
@@ -3372,9 +3372,9 @@ vte_terminal_process_incoming(gpointer data)
 		 * encoding and save them for later. */
 		unconv = iconv_open(encoding, "WCHAR_T");
 		if (unconv != NULL) {
-			icount = sizeof(wchar_t) * (wcount - i);
-			ibuf = (char*) &wbuf[i];
-			ucount = VTE_UTF8_BPC * (wcount - i + 1);
+			icount = sizeof(wchar_t) * (wcount - start);
+			ibuf = (char*) &wbuf[start];
+			ucount = VTE_UTF8_BPC * (wcount - start + 1);
 			ubuf = ubufptr = g_malloc(ucount);
 			if (iconv(unconv, &ibuf, &icount,
 				  &ubuf, &ucount) != -1) {
@@ -3383,12 +3383,16 @@ vte_terminal_process_incoming(gpointer data)
 				terminal->pvt->incoming = ubufptr;
 				terminal->pvt->n_incoming = ubuf - ubufptr;
 				*ubuf = '\0';
-				again = TRUE;
+				if (strcmp(encoding, terminal->pvt->encoding)) {
+					again = TRUE;
+				} else {
+					again = FALSE;
+				}
 			} else {
 #ifdef VTE_DEBUG
 				fprintf(stderr, "Error unconverting %ld "
 					"pending input bytes (%s), dropping.\n",
-					(long) (sizeof(wchar_t) * (wcount - i)),
+					(long) (sizeof(wchar_t) * (wcount - start)),
 					strerror(errno));
 #endif
 				g_free(ubufptr);
@@ -5097,6 +5101,7 @@ static void
 vte_terminal_init(VteTerminal *terminal)
 {
 	struct _VteTerminalPrivate *pvt;
+	struct passwd *pwd;
 	GtkAdjustment *adjustment;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -5105,7 +5110,16 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Initialize data members with settings from the environment and
 	 * structures to use for these. */
 	pvt = terminal->pvt = g_malloc0(sizeof(*terminal->pvt));
-	pvt->shell = getenv("SHELL") ?: "/bin/sh";
+	pvt->shell = getenv("SHELL");
+	if (pvt->shell == NULL) {
+		pwd = getpwuid(getuid());
+		if (pwd != NULL) {
+			pvt->shell = pwd->pw_shell;
+		}
+	}
+	if (pvt->shell == NULL) {
+		pvt->shell = "/bin/sh";
+	}
 	pvt->shell = g_quark_to_string(g_quark_from_string(pvt->shell));
 	pvt->pty_master = -1;
 	pvt->pty_pid = -1;
