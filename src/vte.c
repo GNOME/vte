@@ -120,7 +120,7 @@ typedef gunichar wint_t;
  * includes any supported visible attributes. */
 struct vte_charcell {
 	gunichar c;		/* The Unicode character. */
-	guint32 columns: 12;	/* Number of visible columns (as determined
+	guint32 columns: 11;	/* Number of visible columns (as determined
 				   by g_unicode_iswide(c)).  Use as many bits
 				   as possible without making this structure
 				   grow any larger. */
@@ -129,6 +129,7 @@ struct vte_charcell {
 	guint32 back: 5;	/* foreground and background of the cell. */
 	guint32 standout: 1;	/* Single-bit attributes. */
 	guint32 underline: 1;
+  	guint32 strikethrough : 1;
 	guint32 reverse: 1;
 	guint32 blink: 1;
 	guint32 half: 1;
@@ -616,6 +617,7 @@ vte_terminal_set_default_attributes(VteTerminal *terminal)
 	terminal->pvt->screen->defaults.protect = 0;
 	terminal->pvt->screen->defaults.standout = 0;
 	terminal->pvt->screen->defaults.underline = 0;
+	terminal->pvt->screen->defaults.strikethrough = 0;
 	terminal->pvt->screen->defaults.half = 0;
 	terminal->pvt->screen->defaults.blink = 0;
 	/* Alternate charset isn't an attribute, though we treat it as one.
@@ -3588,6 +3590,9 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 		case 8:
 			terminal->pvt->screen->defaults.invisible = 1;
 			break;
+		case 9:
+			terminal->pvt->screen->defaults.strikethrough = 1;
+			break;
 		case 21: /* Error in old versions of linux console. */
 		case 22: /* ECMA 48. */
 			terminal->pvt->screen->defaults.bold = 0;
@@ -3604,6 +3609,9 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 			break;
 		case 28:
 			terminal->pvt->screen->defaults.invisible = 0;
+			break;
+		case 29:
+			terminal->pvt->screen->defaults.strikethrough = 0;
 			break;
 		case 30:
 		case 31:
@@ -8222,6 +8230,7 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 				attr.back.green = back.green;
 				attr.back.blue = back.blue;
 				attr.underline = pcell->underline;
+				attr.strikethrough = pcell->strikethrough;
 				attr.alternate = pcell->alternate;
 				/* Store the character. */
 				string = g_string_append_unichar(string,
@@ -12193,7 +12202,7 @@ static void
 vte_terminal_draw_cells(VteTerminal *terminal,
 			struct vte_draw_item *items, gssize n,
 			gint fore, gint back, gboolean draw_default_bg,
-			gboolean bold, gboolean underline,
+			gboolean bold, gboolean underline, gboolean strikethrough,
 			gboolean hilite, gboolean boxed,
 			gint x, gint y, gint x_offs, gint y_offs,
 			gint ascent, gboolean monospaced,
@@ -12470,9 +12479,15 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	/* Draw whatever SFX are required. */
 	if (underline) {
 		XSetForeground(display, gc, fg->pixel);
+	  	XDrawLine(display, drawable, gc,
+		    	  x, y + ascent+2,
+		    	  x + (columns * column_width) - 1, y + ascent+2);
+	}
+	if (strikethrough) {
+		XSetForeground(display, gc, fg->pixel);
 		XDrawLine(display, drawable, gc,
-			  x, y + row_height - 2,
-			  x + (columns * column_width) - 1, y + row_height - 2);
+			  x, y + (ascent+row_height)/4,
+			  x + (columns * column_width) - 1, y + (ascent+row_height)/4);
 	}
 	if (hilite) {
 		XSetForeground(display, gc, fg->pixel);
@@ -12555,7 +12570,8 @@ vte_terminal_draw_row(VteTerminal *terminal,
 {
 	GArray *items;
 	int i, j, fore, nfore, back, nback;
-	gboolean underline, nunderline, bold, nbold, hilite, nhilite, reverse;
+	gboolean underline, nunderline, bold, nbold, hilite, nhilite, reverse, 
+		 strikethrough, nstrikethrough;
 	struct vte_draw_item item;
 	struct vte_charcell *cell;
 
@@ -12582,6 +12598,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		vte_terminal_determine_colors(terminal, cell, reverse,
 					      &fore, &back);
 		underline = (cell != NULL) ? (cell->underline != 0) : FALSE;
+		strikethrough = (cell != NULL) ? (cell->strikethrough != 0) : FALSE;
 		bold = (cell != NULL) ? (cell->bold != 0) : FALSE;
 		if ((cell != NULL) && (terminal->pvt->match_contents != NULL)) {
 			hilite = vte_cell_is_between(i, row,
@@ -12682,6 +12699,12 @@ vte_terminal_draw_row(VteTerminal *terminal,
 			if (nunderline != underline) {
 				break;
 			}
+			nstrikethrough = (cell != NULL) ?
+				      (cell->strikethrough != 0) :
+				      FALSE;
+			if (nstrikethrough != strikethrough) {
+				break;
+			}
 			/* Break up matched/not-matched text. */
 			if ((cell != NULL) &&
 			    (terminal->pvt->match_contents != NULL)) {
@@ -12718,7 +12741,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 					(struct vte_draw_item*) items->data,
 					items->len,
 					fore, back, FALSE,
-					bold, underline, hilite, FALSE,
+					bold, underline, strikethrough, hilite, FALSE,
 					x + ((i - column) * column_width),
 					y,
 					x_offs,
@@ -12763,7 +12786,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	char *preedit;
 	long width, height, ascent, descent, delta;
 	int i, len, fore, back;
-	gboolean blink, bold, underline, hilite, monospaced;
+	gboolean blink, bold, underline, hilite, monospaced, strikethrough;
 #ifdef HAVE_XFT
 	XftDraw *ftdraw = NULL;
 #endif
@@ -12916,12 +12939,13 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 									  display,
 									  item.c);
 				underline = cell ? (cell->underline != 0) : FALSE;
+				strikethrough= cell ? (cell->strikethrough!= 0) : FALSE;
 				bold = cell ? (cell->bold != 0) : FALSE;
 				hilite = FALSE;
 				vte_terminal_draw_cells(terminal,
 							&item, 1,
 							fore, back, TRUE, bold,
-							underline, hilite, FALSE,
+							underline, strikethrough, hilite, FALSE,
 							col * width - x_offs,
 							row * height - y_offs,
 							x_offs,
@@ -12995,7 +13019,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 						items, len,
 						screen->defaults.fore,
 						screen->defaults.back,
-						FALSE, FALSE,
+						FALSE, FALSE, FALSE,
 						FALSE, FALSE, TRUE,
 						col * width - x_offs,
 						row * height - y_offs,
