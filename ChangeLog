@@ -1,3 +1,7 @@
+2005-03-31  Steve Murphy  <murf@e-tools.com>
+
+        * configure.in: Added "rw" to ALL_LINGUAS.
+
 2005-03-29  Kjartan Maraas  <kmaraas@gnome.org>
 
 	* autogen.sh: Use head -n 1 instead of head -1 to avoid
