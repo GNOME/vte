@@ -117,6 +117,7 @@ if test "$ac_cv_type_wint_t" = "yes" ; then
     [Defined when the wint_t type is supported])
 fi
 
+BUILD_PYTHON=false
 AC_MSG_CHECKING([for pygtk-2.0])
 if pkg-config --exists pygtk-2.0 ; then
 	AC_MSG_RESULT([found])
@@ -134,7 +135,7 @@ sys.exit(0)"
 	if $PYTHON -c "$prog" 1>&AC_FD_CC 2>&AC_FD_CC
 	then
 	  AC_MSG_RESULT(okay)
-          AM_CHECK_PYTHON_HEADERS([PYTHONMODULES="vtemodule.so"],
+          AM_CHECK_PYTHON_HEADERS([BUILD_PYTHON=true],
 			          [AC_MSG_RESULT(could not find Python headers)])
 	else
 	  AC_MSG_RESULT(too old)
@@ -144,7 +145,7 @@ else
 fi
 AC_SUBST(PYTHONREV)
 AC_SUBST(PYTHONMODULES)
-AM_CONDITIONAL(BUILD_PYTHON_BINDINGS, test "x$PYTHONMODULES" '!=' "x")
+AM_CONDITIONAL(BUILD_PYTHON_MODULES, $BUILD_PYTHON)
 
 mylibdir=`eval echo $libdir`
 mylibexecdir=`eval echo $libexecdir`

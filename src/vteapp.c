@@ -55,8 +55,8 @@ char_size_changed(GtkWidget *widget, guint width, guint height, gpointer data)
 	geometry.height_inc = terminal->char_height;
 	geometry.base_width = xpad;
 	geometry.base_height = ypad;
-	geometry.min_width = xpad + terminal->char_width;
-	geometry.min_height = ypad + terminal->char_height;
+	geometry.min_width = xpad + terminal->char_width * 2;
+	geometry.min_height = ypad + terminal->char_height * 2;
 	gtk_window_set_geometry_hints(window, widget, &geometry,
 				      GDK_HINT_RESIZE_INC |
 				      GDK_HINT_BASE_SIZE |

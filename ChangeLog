@@ -1,3 +1,20 @@
+2002-10-16 nalin
+	* src/vte.c: adjust our adjustments whenever a line might scroll off
+	the top of the buffer.  Fix computation of the new insertion delta to
+	ensure that it never goes below the scroll delta, which should fix the
+	resizing crashes, and add some debug assertions to verify this.
+	* configure.in, python/Makefile.am: build the python bindings as a
+	library, not a binary with wacky ldflags.
+
+2002-10-15 nalin
+	* src/vte.c: don't try to close the pty at finalize time if we didn't
+	open it.  Patch from ha shao.
+	* src/keymap.c, src/keymap.h: move the addition of modifiers into a
+	separate function.  Add the function key strings from terminfo for
+	fkey_sun and fkey_hp cases.  Make control+F1 = F13 only in vt220 mode.
+	* src/vte.c: apply modifiers to function keys in normal and legacy
+	modes.
+
 2002-10-14 nalin
 	* src/vte.c: add super-bogus bold text mode (Red Hat #74779).
 
