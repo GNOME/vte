@@ -261,6 +261,7 @@ struct _VteTerminalPrivate {
 	gboolean meta_sends_escape;
 	gboolean audible_bell;
 	gboolean visible_bell;
+	gboolean allow_bold;
 	gboolean xterm_font_tweak;
 	gboolean smooth_scroll;
 	GHashTable *tabstops;
@@ -10028,6 +10029,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->meta_sends_escape = TRUE;
 	pvt->audible_bell = TRUE;
 	pvt->visible_bell = FALSE;
+	pvt->allow_bold = TRUE;
 	pvt->xterm_font_tweak = FALSE;
 	pvt->smooth_scroll = FALSE;
 	pvt->tabstops = NULL;
@@ -11616,7 +11618,8 @@ static void
 vte_terminal_draw_cells(VteTerminal *terminal,
 			struct vte_draw_item *items, gssize n,
 			gint fore, gint back, gboolean draw_default_bg,
-			gboolean underline, gboolean hilite, gboolean boxed,
+			gboolean bold, gboolean underline,
+			gboolean hilite, gboolean boxed,
 			gint x, gint y, gint x_offs, gint y_offs,
 			gint ascent, gboolean monospaced,
 			gint column_width, gint row_height,
@@ -11649,6 +11652,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	wchar_t wc;
 	XwcTextItem textitem;
 
+	bold = bold && terminal->pvt->allow_bold;
 	fg = &terminal->pvt->palette[fore];
 	bg = &terminal->pvt->palette[back];
 	x += VTE_PAD_WIDTH;
@@ -11685,6 +11689,15 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			XftDrawCharSpec(ftdraw, &fg->ftcolor,
 					terminal->pvt->ftfont,
 					ftcharspecs, n);
+			/* Bold overdraw. */
+			if (bold) {
+				for (i = 0; i < n; i++) {
+					ftcharspecs[i].x++;
+				}
+				XftDrawCharSpec(ftdraw, &fg->ftcolor,
+						terminal->pvt->ftfont,
+						ftcharspecs, n);
+			}
 		}
 		/* Clean up. */
 		g_free(ftcharspecs);
@@ -11718,6 +11731,14 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 					items[i].xpad,
 					y + ascent,
 					&ftchar, 1);
+			if (bold) {
+				XftDrawString32(ftdraw, &fg->ftcolor,
+						terminal->pvt->ftfont,
+						x + (columns * column_width) +
+						items[i].xpad + 1,
+						y + ascent,
+						&ftchar, 1);
+			}
 			columns += g_unichar_iswide(c) ? 2 : 1;
 		}
 		break;
@@ -11760,6 +11781,13 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 					items[i].xpad + x_offs,
 					y + y_offs,
 					layout);
+			if (bold) {
+				gdk_draw_layout(gdrawable, ggc,
+						x + (columns * column_width) +
+						items[i].xpad + x_offs + 1,
+						y + y_offs,
+						layout);
+			}
 			columns += g_unichar_iswide(c) ? 2 : 1;
 		}
 		break;
@@ -11798,6 +11826,16 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 					      x + (columns * column_width) +
 					      items[i].xpad,
 					      y);
+			if (bold) {
+				pango_x_render_layout(display,
+						      drawable,
+						      gc,
+						      layout,
+						      x +
+						      (columns * column_width) +
+						      items[i].xpad + 1,
+						      y);
+			}
 			columns += g_unichar_iswide(c) ? 2 : 1;
 		}
 		break;
@@ -11831,6 +11869,12 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 				    x + (columns * column_width) +
 				    items[i].xpad,
 				    y + ascent, &textitem, 1);
+			if (bold) {
+				XwcDrawText(display, drawable, gc,
+					    x + (columns * column_width) +
+					    items[i].xpad + 1,
+					    y + ascent, &textitem, 1);
+			}
 			columns += g_unichar_iswide(c) ? 2 : 1;
 		}
 	}
@@ -11917,7 +11961,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 {
 	GArray *items;
 	int i, j, fore, nfore, back, nback;
-	gboolean underline, nunderline, hilite, nhilite, reverse;
+	gboolean underline, nunderline, bold, nbold, hilite, nhilite, reverse;
 	struct vte_draw_item item;
 	struct vte_charcell *cell;
 
@@ -11945,6 +11989,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		vte_terminal_determine_colors(terminal, cell, reverse,
 					      &fore, &back);
 		underline = (cell != NULL) ? (cell->underline != 0) : FALSE;
+		bold = (cell != NULL) ? (cell->bold != 0) : FALSE;
 		if (terminal->pvt->match_contents != NULL) {
 			hilite = vte_cell_is_between(i, row,
 						     terminal->pvt->match_start.column,
@@ -12013,6 +12058,12 @@ vte_terminal_draw_row(VteTerminal *terminal,
 			if ((nfore != fore) || (nback != back)) {
 				break;
 			}
+			nbold = (cell != NULL) ?
+			       	(cell->bold != 0) :
+			        FALSE;
+			if (nbold != bold) {
+				break;
+			}
 			nunderline = (cell != NULL) ?
 				     (cell->underline != 0) :
 				     FALSE;
@@ -12048,7 +12099,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 					(struct vte_draw_item*) items->data,
 					items->len,
 					fore, back, FALSE,
-					underline, hilite, FALSE,
+					bold, underline, hilite, FALSE,
 					x + ((i - column) * column_width),
 					y,
 					x_offs,
@@ -12093,7 +12144,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	char *preedit;
 	long width, height, ascent, descent, delta;
 	int i, len, fore, back;
-	gboolean blink, underline, hilite, monospaced;
+	gboolean blink, bold, underline, hilite, monospaced;
 #ifdef HAVE_XFT
 	XftDraw *ftdraw = NULL;
 #endif
@@ -12245,10 +12296,11 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 									  display,
 									  item.c);
 				underline = cell ? (cell->underline != 0) : FALSE;
+				bold = cell ? (cell->bold != 0) : FALSE;
 				hilite = FALSE;
 				vte_terminal_draw_cells(terminal,
 							&item, 1,
-							fore, back, TRUE,
+							fore, back, TRUE, bold,
 							underline, hilite, FALSE,
 							col * width - x_offs,
 							row * height - y_offs,
@@ -12322,7 +12374,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 						items, len,
 						screen->defaults.fore,
 						screen->defaults.back,
-						FALSE,
+						FALSE, FALSE,
 						FALSE, FALSE, TRUE,
 						col * width - x_offs,
 						row * height - y_offs,
@@ -12822,6 +12874,38 @@ vte_terminal_get_visible_bell(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 	return terminal->pvt->visible_bell;
+}
+
+/**
+ * vte_terminal_set_allow_bold:
+ * @terminal: a #VteTerminal
+ * @allow_bold: TRUE if the terminal should attempt to draw bold text
+ *
+ * Controls whether or not the terminal will attempt to draw bold text by
+ * repainting text with a different offset.
+ *
+ */
+void
+vte_terminal_set_allow_bold(VteTerminal *terminal, gboolean allow_bold)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->allow_bold = allow_bold;
+}
+
+/**
+ * vte_terminal_get_allow_bold:
+ * @terminal: a #VteTerminal
+ *
+ * Checks whether or not the terminal will attempt to draw bold text by
+ * repainting text with a one-pixel offset.
+ *
+ * Returns: TRUE if bolding is enabled, FALSE if not
+ */
+gboolean
+vte_terminal_get_allow_bold(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	return terminal->pvt->allow_bold;
 }
 
 /**

@@ -208,6 +208,8 @@ void vte_terminal_set_font(VteTerminal *terminal,
 void vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name);
 const PangoFontDescription *vte_terminal_get_font(VteTerminal *terminal);
 gboolean vte_terminal_get_using_xft(VteTerminal *terminal);
+void vte_terminal_set_allow_bold(VteTerminal *terminal, gboolean allow_bold);
+gboolean vte_terminal_get_allow_bold(VteTerminal *terminal);
 
 /* Check if the terminal is the current selection owner. */
 gboolean vte_terminal_get_has_selection(VteTerminal *terminal);

@@ -1,6 +1,9 @@
 2002-10-14 nalin
-	* src/vte.c: recognize CSI-r (with no arguments) as resetting the
-	scrolling region in XTerm emulation (Red Hat #75902)
+	* src/vte.c: add super-bogus bold text mode (Red Hat #74779).
+
+2002-10-14 nalin
+	* src/caps.c: recognize CSI-r (with no arguments) as resetting the
+	scrolling region in XTerm emulation (Red Hat #75902).
 
 2002-10-14 nalin
 	* src/keymap.c: add mappings for GDK_Page_Up and GDK_Page_Down,

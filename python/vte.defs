@@ -305,6 +305,21 @@
   (return-type "gboolean")
 )
 
+(define-method set_allow_bold
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_allow_bold")
+  (return-type "none")
+  (parameters
+    '("gboolean" "allow_bold")
+  )
+)
+
+(define-method get_allow_bold
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_allow_bold")
+  (return-type "gboolean")
+)
+
 (define-method get_has_selection
   (of-object "VteTerminal")
   (c-name "vte_terminal_get_has_selection")

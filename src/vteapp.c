@@ -124,7 +124,7 @@ main(int argc, char **argv)
 			    "[-n] "
 			    "[-t terminaltype]\n";
 	back.red = back.green = back.blue = 0xffff;
-	fore.red = fore.green = fore.blue = 0x3000;
+	fore.red = fore.green = fore.blue = 0x0000;
 
 	/* Have to do this early. */
 	if (getenv("VTE_PROFILE_MEMORY")) {

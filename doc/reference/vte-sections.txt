@@ -7,6 +7,7 @@ VteTerminal
 vte_terminal_new
 vte_terminal_im_append_menuitems
 vte_terminal_fork_command
+vte_terminal_fork_logged_command
 vte_terminal_feed
 vte_terminal_feed_child
 vte_terminal_copy_clipboard
@@ -18,6 +19,8 @@ vte_terminal_set_audible_bell
 vte_terminal_get_audible_bell
 vte_terminal_set_visible_bell
 vte_terminal_get_visible_bell
+vte_terminal_set_allow_bold
+vte_terminal_get_allow_bold
 vte_terminal_set_scroll_on_output
 vte_terminal_set_scroll_on_keystroke
 vte_terminal_set_color_bold
