@@ -9,35 +9,36 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2003-05-19 14:33-0400\n"
-"PO-Revision-Date: 2003-01-02 13:56+0100\n"
+"POT-Creation-Date: 2003-06-27 10:16+0200\n"
+"PO-Revision-Date: 2003-06-26 01:32+0100\n"
 "Last-Translator: GNOME PL Team <translators@gnome.pl>\n"
 "Language-Team: Polish <pl@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#: src/iso2022.c:786 src/iso2022.c:797 src/iso2022.c:846 src/vte.c:2059
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Nie można przekonwertować znaków z %s na %s."
 
-#: src/iso2022.c:1505
+#: src/iso2022.c:1559
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr ""
+msgstr "Próba ustawienia niepoprawnej mapy NRC \"%c\"."
 
-#. See ECMA-35.
-#: src/iso2022.c:1546
+# FIXME - (AL) masło maślane?
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1600
 msgid "Unrecognized identified coding system."
-msgstr ""
+msgstr "Nierozpoznany system kodowania."
 
-#: src/iso2022.c:1595 src/iso2022.c:1621
+#: src/iso2022.c:1649 src/iso2022.c:1675
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr ""
+msgstr "Próba ustawienia niepoprawnej rozległej mapy NRC \"%c\"."
 
-#: src/pty.c:317
+#: src/pty.c:319
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Przy dodawaniu \"%s\" do środowiska wystąpił błąd, kontynuacja."
@@ -45,7 +46,7 @@ msgstr "Przy dodawaniu \"%s\" do środowiska wystąpił błąd, kontynuacja."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:877
+#: src/pty.c:882
 #, c-format
 msgid "can not run %s"
 msgstr "nie można uruchomić %s"
@@ -59,63 +60,62 @@ msgstr "Błąd przy tworzeniu potoku dla sygnałów."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikat (%s/%s)!"
 
-#: src/vte.c:1430
+#: src/vte.c:1471
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Przy kompilacji wyrażenia regularnego \"%s\" wystąpił błąd."
 
-#: src/vte.c:5534
+#: src/vte.c:5669
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Otrzymano nieoczekiwaną sekwencję (klawisz?) \"%s\"."
 
-#: src/vte.c:6547
+#: src/vte.c:6684
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Nie zdefiniowano obsługi dla sekwencji sterującej \"%s\""
 
-#: src/vte.c:7293
+#: src/vte.c:7431
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Błąd przy odczycie z procesu potomnego: %s."
 
-#: src/vte.c:7449
+#: src/vte.c:7587
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Błąd (%s) przy konwertowaniu danych dla potomka. Porzucono."
 
-#: src/vte.c:10069
+#: src/vte.c:10229
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Błąd przy odczytywaniu rozmiaru PTY, użyto domyślnego: %s."
 
-#: src/vte.c:10105
+#: src/vte.c:10265
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Błąd przy ustawianiu rozmiaru PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14067
-#, fuzzy
+#: src/vte.c:14387
 msgid "_vte_conv_open() failed setting word characters"
 msgstr ""
-"Funkcja g_iconv_open() zwróciła błąd przy ustawieniu znaków o szerokości "
+"Funkcja g_iconv_open() zwróciła błąd przy ustawianiu znaków o szerokości "
 "słowa"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:642
+#: src/vteapp.c:680
 msgid "Could not open console.\n"
-msgstr ""
+msgstr "Nie można otworzyć konsoli.\n"
 
-#: src/vteglyph.c:575
+#: src/vteglyph.c:576
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr ""
+msgstr "Nieznany tryb pikselowy %d.\n"
 
-#: src/vtexft.c:664
+#: src/vtexft.c:710
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr ""
+msgstr "Nie można narysować znaku U+%04x.\n"
 
 #~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
 #~ msgstr ""
