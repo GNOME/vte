@@ -154,6 +154,11 @@ struct _VteTerminalPrivate {
 	} normal_screen, alternate_screen, *screen;
 
 	gboolean selection;
+	enum {
+		selection_type_char,
+		selection_type_word,
+		selection_type_line,
+	} selection_type;
 	struct {
 		gdouble x, y;
 	} selection_origin, selection_last;
@@ -3480,10 +3485,43 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			vte_terminal_deselect_all(terminal);
 			terminal->pvt->selection_origin.x = event->x;
 			terminal->pvt->selection_origin.y = event->y;
+			terminal->pvt->selection_type = selection_type_char;
 			return TRUE;
 		}
 		if (event->button == 2) {
 			vte_terminal_paste(terminal, GDK_SELECTION_PRIMARY);
+			return TRUE;
+		}
+	}
+	if (event->type == GDK_2BUTTON_PRESS) {
+#ifdef VTE_DEBUG
+		fprintf(stderr, "button %d double-clicked at (%lf,%lf)\n",
+			event->button, event->x, event->y);
+#endif
+		if (event->button == 1) {
+			if (!GTK_WIDGET_HAS_FOCUS(widget)) {
+				gtk_widget_grab_focus(widget);
+			}
+			vte_terminal_deselect_all(terminal);
+			terminal->pvt->selection_origin.x = event->x;
+			terminal->pvt->selection_origin.y = event->y;
+			terminal->pvt->selection_type = selection_type_word;
+			return TRUE;
+		}
+	}
+	if (event->type == GDK_3BUTTON_PRESS) {
+#ifdef VTE_DEBUG
+		fprintf(stderr, "button %d triple-clicked at (%lf,%lf)\n",
+			event->button, event->x, event->y);
+#endif
+		if (event->button == 1) {
+			if (!GTK_WIDGET_HAS_FOCUS(widget)) {
+				gtk_widget_grab_focus(widget);
+			}
+			vte_terminal_deselect_all(terminal);
+			terminal->pvt->selection_origin.x = event->x;
+			terminal->pvt->selection_origin.y = event->y;
+			terminal->pvt->selection_type = selection_type_line;
 			return TRUE;
 		}
 	}
