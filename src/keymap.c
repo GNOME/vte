@@ -279,6 +279,8 @@ static struct _vte_keymap_entry _vte_keymap_GDK_KP_Tab[] = {
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Enter[] = {
 	{cursor_all, keypad_default, fkey_all, 0, NULL, 0, "@8"},
+	{cursor_all, keypad_app, fkey_all, VTE_NUMLOCK_MASK | GDK_CONTROL_MASK, "\n", 1, NULL},
+	{cursor_all, keypad_app, fkey_all, VTE_NUMLOCK_MASK, "\r", 1, NULL},
 	{cursor_all, keypad_app, fkey_all, 0, _VTE_CAP_SS3 "M", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\n", 1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, "\r", 1, NULL},
@@ -311,6 +313,7 @@ static struct _vte_keymap_entry _vte_keymap_GDK_KP_F4[] = {
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Multiply[] = {
 	{cursor_all, keypad_default, fkey_all, 0, "*", 1, NULL},
+	{cursor_all, keypad_app, fkey_all, VTE_NUMLOCK_MASK, "*", 1, NULL},
 	{cursor_all, keypad_app, fkey_all, 0, _VTE_CAP_SS3 "j", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
@@ -318,6 +321,8 @@ static struct _vte_keymap_entry _vte_keymap_GDK_KP_Multiply[] = {
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Add[] = {
 	{cursor_all, keypad_default, fkey_notvt220, 0, "+", 1, NULL},
 	{cursor_all, keypad_default, fkey_vt220, 0, ",", 1, NULL},
+	{cursor_all, keypad_app, fkey_notvt220, VTE_NUMLOCK_MASK, "+", 1, NULL},
+	{cursor_all, keypad_app, fkey_vt220, VTE_NUMLOCK_MASK, ",", 1, NULL},
 	{cursor_all, keypad_app, fkey_notvt220, 0, _VTE_CAP_SS3 "k", -1, NULL},
 	{cursor_all, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "l", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
@@ -331,6 +336,7 @@ static struct _vte_keymap_entry _vte_keymap_GDK_KP_Separator[] = {
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Subtract[] = {
 	{cursor_all, keypad_default, fkey_all, 0, "-", 1, NULL},
+	{cursor_all, keypad_app, fkey_all, VTE_NUMLOCK_MASK, "-", 1, NULL},
 	{cursor_all, keypad_app, fkey_all, 0, _VTE_CAP_SS3 "m", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
@@ -344,6 +350,7 @@ static struct _vte_keymap_entry _vte_keymap_GDK_KP_Decimal_Delete[] = {
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Divide[] = {
 	{cursor_all, keypad_default, fkey_all, 0, "/", 1, NULL},
+	{cursor_all, keypad_app, fkey_all, VTE_NUMLOCK_MASK, "/", 1, NULL},
 	{cursor_all, keypad_app, fkey_all, 0, _VTE_CAP_SS3 "o", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
@@ -943,6 +950,9 @@ _vte_keymap_map(guint keyval,
 		if (modifiers & VTE_META_MASK) {
 			fprintf(stderr, "Meta+");
 		}
+		if (modifiers & VTE_NUMLOCK_MASK) {
+			fprintf(stderr, "NumLock+");
+		}
 		if (modifiers & GDK_SHIFT_MASK) {
 			fprintf(stderr, "Shift+");
 		}
@@ -1008,7 +1018,7 @@ _vte_keymap_map(guint keyval,
 		}
 		/* Check for coverage. This check is not exhaustive. */
 		fkey_mode = 0;
-		mods = GDK_SHIFT_MASK | GDK_CONTROL_MASK | VTE_META_MASK;
+		mods = GDK_SHIFT_MASK | GDK_CONTROL_MASK | VTE_META_MASK | VTE_NUMLOCK_MASK;
 		for (j = 0; entries[j].normal || entries[j].special; j++) {
 			if (entries[j].fkey_mode != fkey_all) {
 				fkey_mode |= entries[j].fkey_mode;
@@ -1065,7 +1075,7 @@ _vte_keymap_map(guint keyval,
 	} else {
 		fkey_mode = fkey_default;
 	}
-	modifiers &= (GDK_SHIFT_MASK | GDK_CONTROL_MASK | VTE_META_MASK);
+	modifiers &= (GDK_SHIFT_MASK | GDK_CONTROL_MASK | VTE_META_MASK | VTE_NUMLOCK_MASK);
 
 	/* Search for the conditions. */
 	for (i = 0; entries[i].normal || entries[i].special; i++)

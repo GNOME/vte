@@ -1,5 +1,12 @@
 2005-02-15  Kjartan Maraas  <kmaraas@gnome.org>
 
+	* src/keymap.c: (_vte_keymap_map): Fix keypad behaviour
+	to be like xterm. Closes bug #128099. Fix is from
+	<jylefort at brutele be> and has been used in Fedora the last
+	three months at least.
+
+2005-02-15  Kjartan Maraas  <kmaraas@gnome.org>
+
 	* src/vteregex.h: Don't include <config.h> here. It breaks
 	building on AIX and can cause problems for l10n. Closes
 	bug #161352.
