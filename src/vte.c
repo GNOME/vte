@@ -479,6 +479,7 @@ static GdkFilterReturn vte_terminal_filter_property_changes(GdkXEvent *xevent,
 							    GdkEvent *event,
 							    gpointer data);
 static void vte_terminal_match_hilite_clear(VteTerminal *terminal);
+static gboolean vte_terminal_background_update(gpointer data);
 static void vte_terminal_queue_background_update(VteTerminal *terminal,
 						 gboolean refresh_transparent);
 static void vte_terminal_queue_adjustment_changed(VteTerminal *terminal);
@@ -4512,6 +4513,40 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 	case 1001:
 	case 1002:
 	case 1003:
+		/* Reset all of the options except the one which was
+		 * just toggled. */
+		switch (setting) {
+		case 9:
+			terminal->pvt->mouse_send_xy_on_button = FALSE; /* 1000 */
+			terminal->pvt->mouse_hilite_tracking = FALSE; /* 1001 */
+			terminal->pvt->mouse_cell_motion_tracking = FALSE; /* 1002 */
+			terminal->pvt->mouse_all_motion_tracking = FALSE; /* 1003 */
+			break;
+		case 1000:
+			terminal->pvt->mouse_send_xy_on_click = FALSE; /* 9 */
+			terminal->pvt->mouse_hilite_tracking = FALSE; /* 1001 */
+			terminal->pvt->mouse_cell_motion_tracking = FALSE; /* 1002 */
+			terminal->pvt->mouse_all_motion_tracking = FALSE; /* 1003 */
+			break;
+		case 1001:
+			terminal->pvt->mouse_send_xy_on_click = FALSE; /* 9 */
+			terminal->pvt->mouse_send_xy_on_button = FALSE; /* 1000 */
+			terminal->pvt->mouse_cell_motion_tracking = FALSE; /* 1002 */
+			terminal->pvt->mouse_all_motion_tracking = FALSE; /* 1003 */
+			break;
+		case 1002:
+			terminal->pvt->mouse_send_xy_on_click = FALSE; /* 9 */
+			terminal->pvt->mouse_send_xy_on_button = FALSE; /* 1000 */
+			terminal->pvt->mouse_hilite_tracking = FALSE; /* 1001 */
+			terminal->pvt->mouse_all_motion_tracking = FALSE; /* 1003 */
+			break;
+		case 1003:
+			terminal->pvt->mouse_send_xy_on_click = FALSE; /* 9 */
+			terminal->pvt->mouse_send_xy_on_button = FALSE; /* 1000 */
+			terminal->pvt->mouse_hilite_tracking = FALSE; /* 1001 */
+			terminal->pvt->mouse_cell_motion_tracking = FALSE; /* 1002 */
+			break;
+		}
 		/* Make the pointer visible. */
 		vte_terminal_set_pointer_visible(terminal, TRUE);
 		break;
