@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-02 09:58+0100\n"
+"POT-Creation-Date: 2005-03-03 00:04+0100\n"
 "PO-Revision-Date: 2003-06-07 09:07--100\n"
 "Last-Translator: Samuel Jon Gunnarsson <sammi@techattack.nu>\n"
 "Language-Team: Icelandic <gnome@techattack.nu>\n"
@@ -73,28 +73,28 @@ msgstr "Meðtók óvænta (flýtilykla?) runu `%s'."
 msgid "No handler for control sequence `%s' defined."
 msgstr "Engin aðgerð fyrir stjórnun á runu `%s' skilgreind."
 
-#: src/vte.c:7950
+#: src/vte.c:7939
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Villa. Ekki tókst að lesa frá barni: %s"
 
-#: src/vte.c:8072 src/vte.c:8947
+#: src/vte.c:8061 src/vte.c:8936
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Villa (%s) við umbreytingu á gögnum frá barni, hætti við."
 
-#: src/vte.c:10890
+#: src/vte.c:10879
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Villa. Ekki tókst að lesa PTY stærð, nota sjálfgefið: %s"
 
-#: src/vte.c:10926
+#: src/vte.c:10915
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Villa. Ekki tókst að setja PTY stærð: %s"
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15426
+#: src/vte.c:15415
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "g_iconv_open() tókst ekki að setja orðrittákn"
 

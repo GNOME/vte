@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-02 09:58+0100\n"
+"POT-Creation-Date: 2005-03-03 00:04+0100\n"
 "PO-Revision-Date: 2003-11-18 07:57+0300\n"
 "Last-Translator: Dmitry G. Mastrukov <dmitry@taurussoft.org>\n"
 "Language-Team: Russian <gnome-cyr@gnome.org>\n"
@@ -73,30 +73,30 @@ msgstr "Получена непредусмотренная (ключ?) посл
 msgid "No handler for control sequence `%s' defined."
 msgstr "Отсутствует обработчик управляющей последовательности \"%s\"."
 
-#: src/vte.c:7950
+#: src/vte.c:7939
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Произошла ошибка при чтении из потомка: %s."
 
-#: src/vte.c:8072 src/vte.c:8947
+#: src/vte.c:8061 src/vte.c:8936
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "Произошла ошибка (%s) при преобразовании данных от потомка, отбрасывается."
 
-#: src/vte.c:10890
+#: src/vte.c:10879
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Произошла ошибка при чтении размера PTY, используются исходные значения: %s."
 
-#: src/vte.c:10926
+#: src/vte.c:10915
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Произошла ошибка при установке размера PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15426
+#: src/vte.c:15415
 msgid "_vte_conv_open() failed setting word characters"
 msgstr ""
 "Произошёл сбой в функции _vte_conv_open() при установке символа в слове"

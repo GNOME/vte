@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-02 09:58+0100\n"
+"POT-Creation-Date: 2005-03-03 00:04+0100\n"
 "PO-Revision-Date: 2002-12-09 23:49+0100\n"
 "Last-Translator: Mathieu van Woerkom <mathieu@brabants.org>\n"
 "Language-Team: Limburgish <li@gnome.org>\n"
@@ -71,30 +71,30 @@ msgstr "Ónverwachde (tósjebord?)-kómbinasie `%s' ontvange."
 msgid "No handler for control sequence `%s' defined."
 msgstr "Geine aafhanjelaar veur kentrolkómbinasie `%s' gedefinieerd."
 
-#: src/vte.c:7950
+#: src/vte.c:7939
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "'t goof eine faeler bie laeze van kèndj: %s."
 
-#: src/vte.c:8072 src/vte.c:8947
+#: src/vte.c:8061 src/vte.c:8936
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Faeler (%s) bie konvertere gegaeves veur kèndj, laat 't valle."
 
-#: src/vte.c:10890
+#: src/vte.c:10879
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "'t goof eine faeler bie laeze PTY-gruutde, sjtanderdwaerdes waere gebroek: %"
 "s."
 
-#: src/vte.c:10926
+#: src/vte.c:10915
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "'t goof eine faeler bie 't insjtèlle van PTY-gruutde: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15426
+#: src/vte.c:15415
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "g_iconv_open() neet gesjlaag in insjtèlle waordteikes"
 

@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-02 09:58+0100\n"
+"POT-Creation-Date: 2005-03-03 00:04+0100\n"
 "PO-Revision-Date: 2003-06-21 19:05+0200\n"
 "Last-Translator: Veljko M. Stanojevic <veljko@vms.homelinux.net>\n"
 "Language-Team: serbian <serbiangnome-lista@nongnu.org>\n"
@@ -77,28 +77,28 @@ msgstr "Неочекивани наставак (типка?) `%s´."
 msgid "No handler for control sequence `%s' defined."
 msgstr "Недефинисан начин уптребе контролног низа `%s´."
 
-#: src/vte.c:7950
+#: src/vte.c:7939
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Грешка при читању подпроцеса: %s."
 
-#: src/vte.c:8072 src/vte.c:8947
+#: src/vte.c:8061 src/vte.c:8936
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Грешка (%s) при промени података за подпроцес - обустављам."
 
-#: src/vte.c:10890
+#: src/vte.c:10879
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Грешка при читању величине PTY-а, користим полазне вредности: %s."
 
-#: src/vte.c:10926
+#: src/vte.c:10915
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Грешка при постављњу величине PTY-а: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15426
+#: src/vte.c:15415
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() неуспешно постављање знакова речи"
 

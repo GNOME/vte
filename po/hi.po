@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-02 09:58+0100\n"
+"POT-Creation-Date: 2005-03-03 00:04+0100\n"
 "PO-Revision-Date: 2004-12-14 12:28+0530\n"
 "Last-Translator: Rajesh Ranjan <rranjan@redhat.com>\n"
 "Language-Team: Hindi\n"
@@ -74,28 +74,28 @@ msgstr "अप्रत्याशित (कुंजी?) श्रृंख�
 msgid "No handler for control sequence `%s' defined."
 msgstr "नियंत्रण श्रृंखला `%s' के लिये कोई संभालने वाला परिभाषित नहीं है."
 
-#: src/vte.c:7950
+#: src/vte.c:7939
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "चाइल्ड से पढ़ने में त्रुटि: %s."
 
-#: src/vte.c:8072 src/vte.c:8947
+#: src/vte.c:8061 src/vte.c:8936
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "चाइल्ड से आंकड़ों को बदलने में त्रुटि (%s), छोड़ रहा है."
 
-#: src/vte.c:10890
+#: src/vte.c:10879
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "PTY आकार को पढने में त्रुटि, मूलभूत का प्रयोग कर रहा है: %s."
 
-#: src/vte.c:10926
+#: src/vte.c:10915
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTY आकार की जमावट में त्रुटि: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15426
+#: src/vte.c:15415
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() शब्द संप्रतीकों की जमावट में विफल"
 

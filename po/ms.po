@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: profterm HEAD\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-02 09:58+0100\n"
+"POT-Creation-Date: 2005-03-03 00:04+0100\n"
 "PO-Revision-Date: 2003-07-23 21:11+0800\n"
 "Last-Translator: Hasbullah Bin Pit <sebol@ikhlas.com>\n"
 "Language-Team: ms <sebol@ikhlas.com>\n"
@@ -74,28 +74,28 @@ msgstr "Dapat turutan (key?) tanpa diduga `%s'."
 msgid "No handler for control sequence `%s' defined."
 msgstr "Tiada pengendali bai turutan kawalan '%s' ditakrif."
 
-#: src/vte.c:7950
+#: src/vte.c:7939
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Ralat membaca daripada proses anak: %s."
 
-#: src/vte.c:8072 src/vte.c:8947
+#: src/vte.c:8061 src/vte.c:8936
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Ralat (%s) menukar data bagi anak, digugurkan."
 
-#: src/vte.c:10890
+#: src/vte.c:10879
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Ralat membaca saiz PTY, menggunakan default: %s"
 
-#: src/vte.c:10926
+#: src/vte.c:10915
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Ralat menetapkan saiz PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15426
+#: src/vte.c:15415
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() gagal menetapkan aksara perkataan"
 

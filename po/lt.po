@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-02 09:58+0100\n"
+"POT-Creation-Date: 2005-03-03 00:04+0100\n"
 "PO-Revision-Date: 2003-10-07 15:14+0300\n"
 "Last-Translator: Tomas Kuliavas <tokul@users.sourceforge.net>\n"
 "Language-Team: Lithuanian <komp_lt@konferencijos.lt>\n"
@@ -71,30 +71,30 @@ msgstr "Gauta netikėta (raktų?) seka `%s'."
 msgid "No handler for control sequence `%s' defined."
 msgstr "Nenustatytas valdymo sekos `%s' valdiklis."
 
-#: src/vte.c:7950
+#: src/vte.c:7939
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Įvyko klaida skaitant duomenis iš antrinio proceso: %s."
 
-#: src/vte.c:8072 src/vte.c:8947
+#: src/vte.c:8061 src/vte.c:8936
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "Įvyko klaida (%s) keičiant duomenis gautus iš antrinio proceso, nutraukiame "
 "darbą."
 
-#: src/vte.c:10890
+#: src/vte.c:10879
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Įvyko klaida skaitant PTY dydį, naudojama standartinė reikšmė: %s."
 
-#: src/vte.c:10926
+#: src/vte.c:10915
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Įvyko klaida nustatant PTY dydį: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15426
+#: src/vte.c:15415
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "Funkcijai _vte_conv_open() nepavyko nustatyti žodžio simbolių"
 

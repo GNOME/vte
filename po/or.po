@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD.or\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-02 09:58+0100\n"
+"POT-Creation-Date: 2005-03-03 00:04+0100\n"
 "PO-Revision-Date: 2004-08-11 23:00+0530\n"
 "Last-Translator: Gora Mohanty <gora_mohanty@yahoo.co.in>\n"
 "Language-Team: Oriya <oriya-group@lists.sarovar.org>\n"
@@ -73,28 +73,28 @@ msgstr "ଅପ୍ରତ୍ଯାଶିତ (ଚାବି?) ଅନୁକ୍ରମ 
 msgid "No handler for control sequence `%s' defined."
 msgstr "`%s' ନିୟନ୍ତ୍ରଣ ଅନୁକ୍ରମ ପାଇଁ କୌଣସି ଚାଳକ ନିର୍ଦ୍ଦିଷ୍ଟ ହୋଇ ନାହିଁ."
 
-#: src/vte.c:7950
+#: src/vte.c:7939
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "ନିର୍ଭରକରୁ ପଢ଼ିବାରେ ତ୍ରୁଟି: %s."
 
-#: src/vte.c:8072 src/vte.c:8947
+#: src/vte.c:8061 src/vte.c:8936
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "ନିର୍ଭରକ ପାଇଁ ତଥ୍ଯ ରୂପାନ୍ତର କରିବାରେ ତ୍ରୁଟି (%s), ଛାଡ଼ୁଛି."
 
-#: src/vte.c:10890
+#: src/vte.c:10879
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "ପି.ଟି.ୱାଇ. ଆକାର ପଢ଼ିବାରେ ତ୍ରୁଟି: %s, ପୂର୍ବନିର୍ଦ୍ଧାରିତ ମୂଲ୍ଯ ବ୍ଯବହାର କରାଯାଉଛି."
 
-#: src/vte.c:10926
+#: src/vte.c:10915
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "ପି.ଟି.ୱାଇ. ଆକାର ବିନ୍ଯାସ କରିବାରେ ତ୍ରୁଟି: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15426
+#: src/vte.c:15415
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() ଶବ୍ଦର ଅକ୍ଷରଗୁଡ଼ିକ ବିନ୍ଯାସ କରିବାରେ ଅସମର୍ଥ"
 

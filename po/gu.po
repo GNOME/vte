@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte-2.6\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-02 09:58+0100\n"
+"POT-Creation-Date: 2005-03-03 00:04+0100\n"
 "PO-Revision-Date: 2004-02-29 20:47+0530\n"
 "Last-Translator: Nirav, Ankit, Ankur, Atit, Bhavin, Kartik, Khushbu, Sweta. "
 "<magnet@magnet-i.com>\n"
@@ -71,28 +71,28 @@ msgstr "અણધાર્યો (કી?) ક્રમ `%s' મળ્યો."
 msgid "No handler for control sequence `%s' defined."
 msgstr "નિયંત્રણ ક્રમ `%s' માટે કોઈ હેન્ડલર વ્યાખ્યાયિત નથી."
 
-#: src/vte.c:7950
+#: src/vte.c:7939
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "બાળમાંથી વાંચતી વખતે ભૂલ: %s."
 
-#: src/vte.c:8072 src/vte.c:8947
+#: src/vte.c:8061 src/vte.c:8936
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "બાળ માટે માહિતીનું (%s) રૂપાંતર કરવામાં ભૂલ, છોડી રહ્યા છે."
 
-#: src/vte.c:10890
+#: src/vte.c:10879
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "PTYનું માપ વાંચવામાં ભૂલ, મૂળભૂત વાપરી રહ્યા છે: %s."
 
-#: src/vte.c:10926
+#: src/vte.c:10915
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTYનાં માપ ને સુયોજીત કરવામાં ભૂલ: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15426
+#: src/vte.c:15415
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "શબ્દના અક્ષરોને સુયોજીત _vte_conv_open() કરવામાં નિષ્ફળ ગયુ"
 

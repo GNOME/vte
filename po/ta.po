@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: tamil vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-02 09:58+0100\n"
+"POT-Creation-Date: 2005-03-03 00:04+0100\n"
 "PO-Revision-Date: 2004-06-19 04:32+0200\n"
 "Last-Translator: vivek <vivekananthan_s@rediffmail.com>\n"
 "Language-Team: tamil <LL@li.org>\n"
@@ -72,29 +72,29 @@ msgstr " `%s' எதிர்பார்க்காத (சாவி?) வர�
 msgid "No handler for control sequence `%s' defined."
 msgstr "`%s'யை கையாள கட்டுப்பாட்டு வரிசைமுறை வறையறுக்கவில்லை"
 
-#: src/vte.c:7950
+#: src/vte.c:7939
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "%sயை சேயிடமிருந்து வாசிக்கும்போது ஏற்பட்டபிழை"
 
-#: src/vte.c:8072 src/vte.c:8947
+#: src/vte.c:8061 src/vte.c:8936
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "சேயிக்காக (%s) தரவை மாற்றும் போது பிழை ஏற்பட்டது, அதனால் விடப்பட்டது"
 
-#: src/vte.c:10890
+#: src/vte.c:10879
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "PTY அளவை வாசிக்கும் போது பிழை ஏற்பட்டது, அதனால் %s என்கிற கொடாநிலையை பயன்படுத்துகிறோம்"
 
-#: src/vte.c:10926
+#: src/vte.c:10915
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr " %s என்கிற PTY அளவை அமைக்கும் போது பிழை ஏற்பட்டது"
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15426
+#: src/vte.c:15415
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() சொல்உருக்கள் அமைக்கும் போது பழுதடைந்துவிட்டது"
 

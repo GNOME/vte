@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD.vi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-02 09:58+0100\n"
+"POT-Creation-Date: 2005-03-03 00:04+0100\n"
 "PO-Revision-Date: 2003-09-13 10:43+0700\n"
 "Last-Translator: Trinh Minh Thanh <tmthanh@yahoo.com>\n"
 "Language-Team: Vietnamese <gnomevi-list@lists.sourceforge.net>\n"
@@ -72,28 +72,28 @@ msgstr "Nhận sequence không mong muốn (key?) `%s'."
 msgid "No handler for control sequence `%s' defined."
 msgstr "Không có trình quản lý nào được chỉ định cho sequence `%s'."
 
-#: src/vte.c:7950
+#: src/vte.c:7939
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Lỗi khi đọc từ child: %s."
 
-#: src/vte.c:8072 src/vte.c:8947
+#: src/vte.c:8061 src/vte.c:8936
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Lỗi (%s) khi chuyển đổi dữ liệu cho child, bỏ."
 
-#: src/vte.c:10890
+#: src/vte.c:10879
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Lỗi khi đọc kích thước PTY, sử dụng mặc định: %s."
 
-#: src/vte.c:10926
+#: src/vte.c:10915
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Lỗi khi lập kích thước PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15426
+#: src/vte.c:15415
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_iconv_open() không lập được các ký tự từ"
 

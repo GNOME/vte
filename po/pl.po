@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-02 09:58+0100\n"
+"POT-Creation-Date: 2005-03-03 00:04+0100\n"
 "PO-Revision-Date: 2003-06-26 01:32+0100\n"
 "Last-Translator: GNOME PL Team <translators@gnome.pl>\n"
 "Language-Team: Polish <pl@li.org>\n"
@@ -76,28 +76,28 @@ msgstr "Otrzymano nieoczekiwaną sekwencję (klawisz?) \"%s\"."
 msgid "No handler for control sequence `%s' defined."
 msgstr "Nie zdefiniowano obsługi dla sekwencji sterującej \"%s\""
 
-#: src/vte.c:7950
+#: src/vte.c:7939
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Błąd przy odczycie z procesu potomnego: %s."
 
-#: src/vte.c:8072 src/vte.c:8947
+#: src/vte.c:8061 src/vte.c:8936
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Błąd (%s) przy konwertowaniu danych dla potomka. Porzucono."
 
-#: src/vte.c:10890
+#: src/vte.c:10879
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Błąd przy odczytywaniu rozmiaru PTY, użyto domyślnego: %s."
 
-#: src/vte.c:10926
+#: src/vte.c:10915
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Błąd przy ustawianiu rozmiaru PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15426
+#: src/vte.c:15415
 msgid "_vte_conv_open() failed setting word characters"
 msgstr ""
 "Funkcja g_iconv_open() zwróciła błąd przy ustawianiu znaków o szerokości "

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte gnome-2-2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-02 09:58+0100\n"
+"POT-Creation-Date: 2005-03-03 00:04+0100\n"
 "PO-Revision-Date: 2003-02-06 10:27+0700\n"
 "Last-Translator: Mohammad DAMT <mdamt@bisnisweb.com>\n"
 "Language-Team: Indonesia <id@li.org>\n"
@@ -74,30 +74,30 @@ msgstr "Ada rangkaian (key?) yang tidak diharapkan `%s'."
 msgid "No handler for control sequence `%s' defined."
 msgstr "Bagian yang menangani rangkaian kontrol `%s' belum didefinisikan."
 
-#: src/vte.c:7950
+#: src/vte.c:7939
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Ada error saat membaca dari child: %s."
 
-#: src/vte.c:8072 src/vte.c:8947
+#: src/vte.c:8061 src/vte.c:8936
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "Ada error (%s) saat mengkonversi data untuk child, saya tidak lanjutkan "
 "prosesnya."
 
-#: src/vte.c:10890
+#: src/vte.c:10879
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Error saat membaca ukuran PTY, saya akan gunakan defaultnya: %s"
 
-#: src/vte.c:10926
+#: src/vte.c:10915
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Error saat merubah ukuran PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15426
+#: src/vte.c:15415
 #, fuzzy
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "g_iconv_open() gagal saat merubah karakter kata"

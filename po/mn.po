@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-02 09:58+0100\n"
+"POT-Creation-Date: 2005-03-03 00:04+0100\n"
 "PO-Revision-Date: 2003-08-24 01:45+0200\n"
 "Last-Translator: Sanlig Badral <Badral@openmn.org>\n"
 "Language-Team: Mongolian <openmn-kdemn@lists.sourceforge.net>\n"
@@ -75,28 +75,28 @@ msgstr "Гэнэтийн (Түлхүүр?) »%s« үр дагавар хүлээ
 msgid "No handler for control sequence `%s' defined."
 msgstr "»%s« шалгах дарааллын боловсруулагч тодорхойлогдоогүй байна."
 
-#: src/vte.c:7950
+#: src/vte.c:7939
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Хүүг уншихад алдаа: %s."
 
-#: src/vte.c:8072 src/vte.c:8947
+#: src/vte.c:8061 src/vte.c:8936
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Хүүгийн өгөгдлийн хөрвүүлэлтэнд алдаа (%s) гарч тасарлаа."
 
-#: src/vte.c:10890
+#: src/vte.c:10879
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "PTY-хэмжээ уншихад алдаа, стандартыг хэрэглэх: %s."
 
-#: src/vte.c:10926
+#: src/vte.c:10915
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTY-хэмжээ тогтооход алдаа: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15426
+#: src/vte.c:15415
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() үгийн тэмдэгтүүдийг тогтоож чадсангүй"
 

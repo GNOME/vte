@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-02 09:58+0100\n"
+"POT-Creation-Date: 2005-03-03 00:04+0100\n"
 "PO-Revision-Date: 2003-06-07 13:51+0100\n"
 "Last-Translator: Francesco Marletta <francesco.marletta@tiscali.it>\n"
 "Language-Team: Italian <tp@lists.linux.it>\n"
@@ -72,32 +72,32 @@ msgstr "Ricevuta una sequenza (tasto?) inattesa \"%s\"."
 msgid "No handler for control sequence `%s' defined."
 msgstr "Nessun gestore definito per la sequenza di controllo \"%s\"."
 
-#: src/vte.c:7950
+#: src/vte.c:7939
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Errore nella lettura dal processo figlio: %s."
 
-#: src/vte.c:8072 src/vte.c:8947
+#: src/vte.c:8061 src/vte.c:8936
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "Errore (%s) nel convertire i dati per il processo figlio, rimarranno "
 "invariati."
 
-#: src/vte.c:10890
+#: src/vte.c:10879
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Errore nella lettura della dimensione PTY, sarà usato il valore predefinito: "
 "%s."
 
-#: src/vte.c:10926
+#: src/vte.c:10915
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Errore nell'impostazione della dimensione PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15426
+#: src/vte.c:15415
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_con_open() ha fallito nell'impostare i caratteri della parola"
 

@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte 0.10.14\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-02 09:58+0100\n"
+"POT-Creation-Date: 2005-03-03 00:04+0100\n"
 "PO-Revision-Date: 2003-08-24 03:40+0900\n"
 "Last-Translator: Nam SungHyun <namsh@kldp.org>\n"
 "Language-Team: Korean <gnome-kr-translation@lists.sourceforge.net>\n"
@@ -71,28 +71,28 @@ msgstr "잘못된 (키?) 배열 `%s'을(를) 받았습니다."
 msgid "No handler for control sequence `%s' defined."
 msgstr "컨트롤 배열 `%s'에 대한 핸들러가 정의되지 않았습니다."
 
-#: src/vte.c:7950
+#: src/vte.c:7939
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "자식으로 부터 읽기 에러: %s."
 
-#: src/vte.c:8072 src/vte.c:8947
+#: src/vte.c:8061 src/vte.c:8936
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "자식을 위한 데이타 변환 에러 (%s), 그만둡니다."
 
-#: src/vte.c:10890
+#: src/vte.c:10879
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "PTY 크기 읽기 에러, 기본값 사용: %s."
 
-#: src/vte.c:10926
+#: src/vte.c:10915
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTY 크기 설정 에러: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15426
+#: src/vte.c:15415
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_iconv_open()이 단어 문자들을 설정하는 데 실패했습니다"
 

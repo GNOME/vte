@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte gnome-2-2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-02 09:58+0100\n"
+"POT-Creation-Date: 2005-03-03 00:04+0100\n"
 "PO-Revision-Date: 2003-07-10 20:54+0200\n"
 "Last-Translator: Mətin Əmirov <metin@karegen.com>\n"
 "Language-Team: Azerbaijani <translation-team-az@lists.sourceforge.net>\n"
@@ -72,28 +72,28 @@ msgstr "Gözlənilməyən (açar?) `%s' ardıcıllığı alındı."
 msgid "No handler for control sequence `%s' defined."
 msgstr "`%s' nəzarət ardıcıllığı üçün dəstək tə'yin edilməyib."
 
-#: src/vte.c:7950
+#: src/vte.c:7939
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Törəmədən oxuma xətası: %s."
 
-#: src/vte.c:8072 src/vte.c:8947
+#: src/vte.c:8061 src/vte.c:8936
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Törəmə üçün verilənləri çevirmə xətası (%s), atılır."
 
-#: src/vte.c:10890
+#: src/vte.c:10879
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "PTY böyüklüyünü oxuma xətası, əsaslar işlədiləcək: %s."
 
-#: src/vte.c:10926
+#: src/vte.c:10915
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTY böyüklüyünü tə'yin etmə xətası: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15426
+#: src/vte.c:15415
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() sözün hərflərini yerləşdirə bilmədi"
 
