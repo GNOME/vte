@@ -1,4 +1,7 @@
 2002-10-18 nalin
+	* src/keymap.c: add a mapping for the escape key.
+
+2002-10-18 nalin
 	* src/vte.c: implement decset 42 (enable/disable NRC processing), but
 	enable it by default.  Implement decset 44 (margin bell).
 	* src/vte.c: do not trust the event->string.  Use gdk_keyval_to_unicode
