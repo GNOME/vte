@@ -1,4 +1,6 @@
 2002-08-22 nalin
+	* src/vteapp.c: Set geometry hints using the initial font setup.
+2002-08-22 nalin
 	* src/vte.c, src/vte.h: Make use of the visible bell a separate option
 	from use of the audible bell, allowing both/neither to be used.  Open
 	fonts right away again -- profterm reads the metrics right after calling

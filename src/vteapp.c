@@ -198,6 +198,7 @@ main(int argc, char **argv)
 	/* Connect to the "char_size_changed" signal to set geometry hints
 	 * whenever the font used by the terminal is changed. */
 	if (geometry) {
+		char_size_changed(widget, 0, 0, window);
 		g_signal_connect(G_OBJECT(widget), "char-size-changed",
 				 G_CALLBACK(char_size_changed), window);
 	}
