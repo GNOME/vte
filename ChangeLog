@@ -1,4 +1,9 @@
 2004-04-29 nalin
+	* src/vte.c(vte_terminal_insert_char): only deselect the current
+	selection if just-inserted text affected the selected region of the
+	screen (#135259).
+
+2004-04-29 nalin
 	* README: assorted updates.
 	* configure.in: check for <sys/termios.h>
 	* src/pty.c: include <sys/termios.h> if found (#141392).

@@ -464,6 +464,8 @@ static gboolean vte_terminal_background_update(gpointer data);
 static void vte_terminal_queue_background_update(VteTerminal *terminal);
 static void vte_terminal_queue_adjustment_changed(VteTerminal *terminal);
 static gboolean vte_terminal_process_incoming(gpointer data);
+static gboolean vte_cell_is_selected(VteTerminal *terminal,
+				     glong col, glong row, gpointer data);
 static char *vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 						       glong start_row,
 						       glong start_col,
@@ -7654,8 +7656,25 @@ vte_terminal_process_incoming(gpointer data)
 		if (terminal->pvt->scroll_on_output || bottom) {
 			vte_terminal_maybe_scroll_to_bottom(terminal);
 		}
-		/* Deselect any existing selection. */
-		vte_terminal_deselect_all(terminal);
+		/* Deselect the current selection if its contents are changed
+ 		 * by this insertion. */
+		if (terminal->pvt->has_selection) {
+			char *selection;
+			selection =
+			vte_terminal_get_text_range(terminal,
+						    terminal->pvt->selection_start.y,
+						    0,
+						    terminal->pvt->selection_end.y,
+						    terminal->column_count,
+						    vte_cell_is_selected,
+						    NULL,
+						    NULL);
+			if ((selection == NULL) ||
+			    (strcmp(selection, terminal->pvt->selection) != 0)) {
+				vte_terminal_deselect_all(terminal);
+			}
+			g_free(selection);
+		}
 	}
 
 	if (modified || (screen != terminal->pvt->screen)) {
@@ -9164,7 +9183,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
  * entire scrollback buffer is scanned, so it is possible to read the entire
  * contents of the buffer using this function.
  *
- * Returns: a text string which must be freed by the caller.
+ * Returns: a text string which must be freed by the caller, or NULL.
  */
 char *
 vte_terminal_get_text_range(VteTerminal *terminal,
@@ -9398,7 +9417,7 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
  * is added to @attributes for each byte added to the returned string detailing
  * the character's position, colors, and other characteristics.
  *
- * Returns: a text string which must be freed by the caller.
+ * Returns: a text string which must be freed by the caller, or NULL.
  */
 char *
 vte_terminal_get_text(VteTerminal *terminal,
