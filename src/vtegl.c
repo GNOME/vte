@@ -236,6 +236,7 @@ _vte_gl_start(struct _vte_draw *draw)
 	gluOrtho2D(0, width - 1, 0, height - 1);
 	glViewport(0, 0, width, height);
 	glEnable(GL_BLEND);
+	glEnable(GL_POINT_SMOOTH);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 

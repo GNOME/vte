@@ -12185,8 +12185,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			struct _vte_draw_text_request *items, gssize n,
 			gint fore, gint back, gboolean draw_default_bg,
 			gboolean bold, gboolean underline,
-			gboolean strikethrough,
-			gboolean hilite, gboolean boxed,
+			gboolean strikethrough, gboolean hilite, gboolean boxed,
 			gint column_width, gint row_height)
 {
 	int i, x, y, ascent;
@@ -12492,7 +12491,8 @@ vte_terminal_draw_row(VteTerminal *terminal,
 						       0),
 					items->len,
 					fore, back, FALSE,
-					bold, underline, strikethrough, hilite, FALSE,
+					bold, underline,
+					strikethrough, hilite, FALSE,
 					column_width, row_height);
 		g_array_set_size(items, 0);
 		/* We'll need to continue at the first cell which didn't

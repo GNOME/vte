@@ -715,12 +715,26 @@ _vte_iso2022_state_new(const char *native_codeset,
 			state->native_codeset, state->codeset);
 	}
 #endif
-	state->conv = _vte_conv_open(state->target_codeset,
-				     state->codeset);
+	state->conv = _vte_conv_open(state->target_codeset, state->codeset);
 	state->codeset_changed = fn;
 	state->codeset_changed_data = data;
 	state->buffer = _vte_buffer_new();
-	g_assert(state->conv != (VteConv) -1);
+	if (state->conv == (VteConv) -1) {
+		g_warning(_("Unable to convert characters from %s to %s."),
+			  state->codeset, state->target_codeset);
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+			fprintf(stderr, "Using UTF-8 instead.\n");
+		}
+#endif
+		state->codeset = state->utf8_codeset;
+		state->conv = _vte_conv_open(state->target_codeset,
+					     state->codeset);
+		if (state->conv == (VteConv) -1) {
+			g_error(_("Unable to convert characters from %s to %s."),
+				state->codeset, state->target_codeset);
+		}
+	}
 	return state;
 }
 
