@@ -14,7 +14,7 @@
  * descriptors as using a socket for both data transfers and file descriptor
  * passing crashes some BSD kernels according to Theo de Raadt)
  *
- * A simple protocol is used:
+ * A sample protocol is used:
  *
  * OPEN_PTY             => 1 <tag> <master-pty-fd> <slave-pty-fd>
  *                      => 0
@@ -45,7 +45,6 @@ extern char *strdup(const char *);
 #include <fcntl.h>
 #include <termios.h>
 #include <errno.h>
-#include <malloc.h>
 #include <termios.h>
 #include <pwd.h>
 #include <stdlib.h>
@@ -53,29 +52,9 @@ extern char *strdup(const char *);
 #include <stdio.h>
 #include <utmp.h>
 #include <grp.h>
+#include <glib/galloca.h>
 #include "gnome-pty.h"
 #include "gnome-login-support.h"
-
-
-/* GNU autoconf alloca incantation */
-/* AIX requires this to be the first thing in the file.  */
-#ifdef __GNUC__
-# ifndef alloca
-#  define alloca __builtin_alloca
-# endif
-#else
-# if HAVE_ALLOCA_H
-#  include <alloca.h>
-# else
-#  ifdef _AIX
- #pragma alloca
-#  else
-#   ifndef alloca /* predefined by HP cc +Olibcalls */
-char *alloca ();
-#   endif
-#  endif
-# endif
-#endif
 
 /* For PATH_MAX on BSD-like systems. */
 #ifdef HAVE_SYS_SYSLIMITS_H
@@ -416,6 +395,9 @@ init_term_with_defaults(struct termios* term)
 #ifdef ECHOKE
 	  | ECHOKE
 #endif
+#ifdef ECHOK
+	  | ECHOK
+#endif
 #ifdef ECHOCTL
 	  | ECHOCTL
 #endif
@@ -493,7 +475,7 @@ open_ptys (int utmp, int wtmp, int lastlog)
 	struct group *group_info;
 	struct termios term;
 	
-	term_name = ((char *) alloca (path_max())) + 1;
+	term_name = (char *) g_alloca (path_max () + 1);
 
 	if (term_name == NULL){
 		exit (1);
@@ -501,7 +483,7 @@ open_ptys (int utmp, int wtmp, int lastlog)
 	/* Initialize term */
 	init_term_with_defaults(&term);
 
-	/* root privileges */
+	/* root priveleges */
 	savedUid = geteuid();
 	savedGid = getegid();
 	
@@ -515,10 +497,10 @@ open_ptys (int utmp, int wtmp, int lastlog)
 #else
 #error "No means to drop privileges! Huge security risk! Won't compile."
 #endif
-	/* Open pty with privileges of the user */
+	/* Open pty with priveleges of the user */
 	status = openpty (&master_pty, &slave_pty, term_name, &term, NULL);
 
-	/* Restore saved privileges to root */
+	/* Restore saved priveleges to root */
 #ifdef HAVE_SETEUID
 	seteuid (savedUid);
 	setegid (savedGid);
@@ -536,7 +518,7 @@ open_ptys (int utmp, int wtmp, int lastlog)
 	}
 
 	/* a bit tricky, we re-do the part of the openpty()  */
-	/* that required root privileges, and, hence, failed */
+	/* that required root priveleges, and, hence, failed */
 	group_info = getgrnam ("tty");
 	fchown (slave_pty, getuid (), group_info ? group_info->gr_gid : -1);
 	fchmod (slave_pty, S_IRUSR | S_IWUSR | S_IWGRP);
@@ -645,8 +627,10 @@ sanity_checks (void)
 
 		if (rlim.rlim_cur != RLIM_INFINITY &&
 		    rlim.rlim_cur < sensible_limits [i].value){
-			fprintf (stderr, "Living environment not ok\n");
-			exit (1);
+			if (setrlimit (sensible_limits [i].limit, &rlim) != 0) {
+				fprintf (stderr, "Living environment not ok\n");
+				exit (1);
+			}
 		}
 	}
 

@@ -1,6 +1,7 @@
 EXTRA_DIST = vte.defs vte.override
 
 EXTRA_PROGRAMS = vtemodule.so
+LDFLAGS = -shared -module -avoid-version -export-symbols-regex initvte
 
 if BUILD_PYTHON_BINDINGS
 pythonsiteexecdir = $(pyexecdir)/gtk-2.0
@@ -11,7 +12,6 @@ INCLUDES = @VTE_CFLAGS@ @X_CFLAGS@ @PYTHON_INCLUDES@ @PYGTK_CFLAGS@
 CLEANFILES = vte.c
 
 vtemodule_so_SOURCES = vtemodule.c vte.c
-LDFLAGS = -shared -module -avoid-version -export-symbols-regex initvte
 LDADD = $(top_builddir)/src/libvte.la @LIBS@ @PYGTK_LIBS@ @VTE_LIBS@ @X_LIBS@
 
 vte.c: vte.defs vte.override

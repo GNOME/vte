@@ -9,6 +9,7 @@ AM_PROG_CC_STDC
 
 AM_MAINTAINER_MODE
 
+PKG_CHECK_MODULES(GLIB,glib-2.0)
 AC_CHECK_HEADERS(sys/syslimits.h sys/time.h sys/types.h sys/un.h alloca.h lastlog.h libutil.h paths.h pty.h stropts.h termios.h ttyent.h util.h utmp.h utmpx.h)
 AC_CHECK_FUNCS(endutent fcntl forkpty getttyent getutent getutmpx grantpt flock login_tty openpty revoke sendmsg seteuid setreuid setutent strrchr updwtmp updwtmpx utmpname utmpxname)
 GPH_CHECK_UTMP

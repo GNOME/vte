@@ -1,4 +1,4 @@
-This is some bits from gnome-libs CVS extracted to make a more-or-less
-standalone gnome-pty-helper kit (except for the default installation directory
-being hard-coded to ${libdir}/vte).  Like the rest of gnome-libs, its license
-is the LGPL.
+This is some bits from libzvt CVS extracted to make a more-or-less standalone
+gnome-pty-helper kit (except for the default installation directory being
+hard-coded to ${libdir}/vte).  Presumably it is licensed under the LGPL, as
+libzvt itself is.

@@ -89,6 +89,7 @@
 #endif
 
 #if defined(HAVE_UPDWTMPX)
+#include <utmpx.h>
 #define update_wtmp updwtmpx
 #elif defined(HAVE_UPDWTMP)
 #define update_wtmp updwtmp
@@ -109,22 +110,30 @@ update_wtmp (char *file, UTMP *putmp)
 	if ((fd = open (file, O_WRONLY|O_APPEND, 0)) < 0)
 		return;
 
-#if defined(HAVE_FCNTL) || defined(HAVE_FLOCK)
+#if defined (HAVE_FCNTL)
 	while (times--)
-#    if defined(HAVE_FCNTL)
-	    if ((fcntl (fd, F_SETLK, &lck) < 0)){
-		if (errno != EAGAIN && errno != EACCES){
-#    elif defined(HAVE_FLOCK)
-	    if (flock(fd, LOCK_EX | LOCK_NB) < 0){
-		if (errno != EWOULDBLOCK){
-#    endif
-		    close (fd);
-		    return;
-		    }
-		sleep (1); /*?!*/
-		} else
-			break;
-#endif /* HAVE_FCNTL || HAVE_FLOCK */
+	  if ((fcntl (fd, F_SETLK, &lck) < 0))
+	    {
+	      if (errno != EAGAIN && errno != EACCES) {
+		close (fd);
+		return;
+	      }
+	      sleep (1); /*?!*/
+	    } else
+	      break;
+#elif defined(HAVE_FLOCK)
+	while (times--)
+	  if (flock (fd, LOCK_EX | LOCK_NB) < 0)
+	    {
+	      if (errno != EWOULDBLOCK)
+		{
+		  close (fd);
+		  return;
+		}
+	      sleep (1); /*?!*/
+	    } else
+	      break;
+#endif /* HAVE_FLOCK */
 
 	lseek (fd, 0, SEEK_END);
 	write (fd, putmp, sizeof(UTMP));
@@ -295,7 +304,7 @@ write_login_record (char *login_name, char *display_name, char *term_name, int u
 		char buf[10];
 		/* Try to get device number and convert it to gnome-terminal # */
 		if (sscanf (pty, "%*[^0-9a-f]%x", &num) == 1) {
-			sprintf (buf, "gt%02.2x", num);
+			sprintf (buf, "gt%2.2x", num);
 			strncpy (ut->ut_id, buf, sizeof (ut->ut_id));
 		}
 	}

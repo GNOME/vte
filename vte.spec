@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.9.0
+Version: 0.9.1
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -64,6 +64,9 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Wed Sep 11 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.1-1
+- refresh gnome-pty-helper from libzvt
+
 * Wed Sep 11 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.0-1
 - build fixes from Jacob Berkman
 - warning fixes from Brian Cameron
