@@ -1,4 +1,7 @@
 2004-04-29 nalin
+	* src/vte.c(vte_terminal_scroll_region): remove stray debug printfs.
+
+2004-04-29 nalin
 	* configure.in: add a --with-default-emulation argument (part of
 	#115750).  Use AS_HELP_STRING wherever we need help strings.
 	* vte.pc.in, vte-uninstalled.pc.in: add DefaultEmulation variable

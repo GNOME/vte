@@ -696,7 +696,6 @@ vte_terminal_scroll_region(VteTerminal *terminal,
 		height = terminal->char_height;
 		gdk_window_scroll((GTK_WIDGET(terminal))->window,
 				  0, delta * height);
-		fprintf(stderr, "Fast scroll.\n");
 		if (delta > 0) {
 			vte_invalidate_cells(terminal,
 					     0, terminal->column_count,
