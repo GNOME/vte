@@ -1,4 +1,9 @@
 2003-01-06  nalin
+	* src/vte.c(vte_terminal_init): Add the periodic blinking refresh
+	with the normal timeout instead of 0 to avoid wedging when we get
+	created without focus.  Fix suggested by Dennis Haney (#102701).
+
+2003-01-06  nalin
 	* src/vte.c: Use a simple XftPatternGetString/GetDouble pair instead
 	of XftNameUnparse, which isn't in older versions of Xft (#101142).
 	* src/vte.c: Add a flag to VteTerminalPrivate which we can use to keep

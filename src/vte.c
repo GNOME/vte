@@ -11442,10 +11442,11 @@ vte_terminal_unrealize(GtkWidget *widget)
 	}
 
 	/* Remove the blink timeout function. */
-	if (terminal->pvt->cursor_blink_tag) {
+	if (terminal->pvt->cursor_blink_tag != 0) {
 		g_source_remove(terminal->pvt->cursor_blink_tag);
-		terminal->pvt->cursor_force_fg = 0;
+		terminal->pvt->cursor_blink_tag = 0;
 	}
+	terminal->pvt->cursor_force_fg = 0;
 
 	/* Mark that we no longer have a GDK window. */
 	GTK_WIDGET_UNSET_FLAGS(widget, GTK_REALIZED);
@@ -11719,7 +11720,9 @@ vte_terminal_realize(GtkWidget *widget)
 	GdkWindowAttr attributes;
 	GdkPixmap *pixmap, *mask;
 	GdkColor black = {0,0,0}, color;
+	GtkSettings *settings;
 	int attributes_mask = 0, i;
+	gint blink_cycle = 1000;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
@@ -11794,8 +11797,13 @@ vte_terminal_realize(GtkWidget *widget)
 	vte_terminal_setup_background(terminal, TRUE);
 
 	/* Setup cursor blink */
+	settings = gtk_widget_get_settings(GTK_WIDGET(terminal));
+	if (G_IS_OBJECT(settings)) {
+		g_object_get(G_OBJECT(settings), "gtk-cursor-blink-time",
+			     &blink_cycle, NULL);
+	}
 	terminal->pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
-							     0,
+							     blink_cycle / 2,
 							     vte_invalidate_cursor_periodic,
 							     terminal,
 							     NULL);
