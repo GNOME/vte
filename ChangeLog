@@ -1,4 +1,8 @@
 2003-03-06 nalin	
+	* python/vte.defs: regenerate.
+	* python/vte.override: update for vte_char_attributes rename.
+
+2003-03-06 nalin	
 	* src/vte.c, src/vte.h, src/vteaccess.c: rename struct
 	vte_char_attributes to VteCharAttributes, fixup some docs.
 	* doc/reference: finish up docs.

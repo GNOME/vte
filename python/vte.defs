@@ -139,6 +139,15 @@
   (return-type "gboolean")
 )
 
+(define-method set_scroll_background
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_scroll_background")
+  (return-type "none")
+  (parameters
+    '("gboolean" "scroll")
+  )
+)
+
 (define-method set_scroll_on_output
   (of-object "VteTerminal")
   (c-name "vte_terminal_set_scroll_on_output")
@@ -154,6 +163,15 @@
   (return-type "none")
   (parameters
     '("gboolean" "scroll")
+  )
+)
+
+(define-method set_color_dim
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_color_dim")
+  (return-type "none")
+  (parameters
+    '("const-GdkColor*" "dim")
   )
 )
 
@@ -217,6 +235,15 @@
   (return-type "none")
   (parameters
     '("const-char*" "path")
+  )
+)
+
+(define-method set_background_tint_color
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_background_tint_color")
+  (return-type "none")
+  (parameters
+    '("GdkColor*" "color")
   )
 )
 
@@ -419,6 +446,25 @@
   (return-type "int")
   (parameters
     '("const-char*" "match")
+  )
+)
+
+(define-method match_set_cursor
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_match_set_cursor")
+  (return-type "none")
+  (parameters
+    '("int" "tag")
+    '("GdkCursor*" "cursor")
+  )
+)
+
+(define-method match_remove
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_match_remove")
+  (return-type "none")
+  (parameters
+    '("int" "tag")
   )
 )
 

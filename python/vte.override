@@ -138,7 +138,7 @@ _wrap_vte_terminal_get_text(PyGObject *self, PyObject *args, PyObject *kwargs)
     }
 
     if (do_attr != NULL && do_attr != Py_None) {
-	attrs = g_array_new(FALSE, TRUE, sizeof(struct vte_char_attributes));
+	attrs = g_array_new(FALSE, TRUE, sizeof(VteCharAttributes));
     } else {
     	attrs = NULL;
     }
@@ -181,11 +181,11 @@ _wrap_vte_terminal_get_text(PyGObject *self, PyObject *args, PyObject *kwargs)
     if (attrs) {
 	py_attrs = PyTuple_New(attrs->len);
 	for (count = 0; count < attrs->len; count++) {
-	    struct vte_char_attributes *cht;
+	    VteCharAttributes *cht;
 	    PyObject *py_char_attr;
 	    PyObject *py_gdkcolor;
 
-	    cht = &g_array_index(attrs, struct vte_char_attributes, count);
+	    cht = &g_array_index(attrs, VteCharAttributes, count);
 	    py_char_attr = PyDict_New();
 	    PyDict_SetItemString(py_char_attr, "row", PyInt_FromLong(cht->row));
 	    PyDict_SetItemString(py_char_attr, "column", PyInt_FromLong(cht->column));
@@ -231,7 +231,7 @@ _wrap_vte_terminal_get_text_range(PyGObject *self, PyObject *args, PyObject *kwa
     }
 
     if (do_attr != NULL && do_attr != Py_None) {
-	attrs = g_array_new(FALSE, TRUE, sizeof(struct vte_char_attributes));
+	attrs = g_array_new(FALSE, TRUE, sizeof(VteCharAttributes));
     } else {
     	attrs = NULL;
     }
@@ -276,11 +276,11 @@ _wrap_vte_terminal_get_text_range(PyGObject *self, PyObject *args, PyObject *kwa
     if (attrs) {
 	py_attrs = PyTuple_New(attrs->len);
 	for (count = 0; count < attrs->len; count++) {
-	    struct vte_char_attributes *cht;
+	    VteCharAttributes *cht;
 	    PyObject *py_char_attr;
 	    PyObject *py_gdkcolor;
 
-	    cht = &g_array_index(attrs, struct vte_char_attributes, count);
+	    cht = &g_array_index(attrs, VteCharAttributes, count);
 	    py_char_attr = PyDict_New();
 	    PyDict_SetItemString(py_char_attr, "row", PyInt_FromLong(cht->row));
 	    PyDict_SetItemString(py_char_attr, "column", PyInt_FromLong(cht->column));
