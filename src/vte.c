@@ -99,6 +99,7 @@ typedef long wint_t;
 #define VTE_CHILD_INPUT_PRIORITY	G_PRIORITY_DEFAULT_IDLE
 #define VTE_CHILD_OUTPUT_PRIORITY	G_PRIORITY_HIGH
 #define VTE_FX_PRIORITY			G_PRIORITY_DEFAULT_IDLE
+#define VTE_PREFER_PANGOX
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
@@ -9322,7 +9323,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->ftfont = NULL;
 	pvt->use_xft = TRUE;
 #endif
-	pvt->use_pango = FALSE;
+	pvt->use_pango = TRUE;
 
 	/* Try to use PangoX for rednering if the user requests it. */
 	if (getenv("VTE_USE_PANGO") != NULL) {
@@ -10803,7 +10804,9 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		if (monospaced) {
 			ftchars = g_malloc(sizeof(gunichar) * n);
 			for (i = 0; i < n; i++) {
-				ftchars[i] = items[i].c;
+				ftchars[i] = vte_terminal_xft_remap_char(display,
+									 terminal->pvt->ftfont,
+									 items[i].c);
 			}
 			XftDrawString32(ftdraw, &fg->ftcolor,
 					terminal->pvt->ftfont,
@@ -10815,7 +10818,9 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			for (i = columns = 0; i < n; i++) {
 				if ((items[i].c != 0) &&
 				    !g_unichar_isspace(items[i].c)) {
-					ftchar = items[i].c;
+					ftchar = vte_terminal_xft_remap_char(display,
+									     terminal->pvt->ftfont,
+									     items[i].c);
 					XftDrawString32(ftdraw, &fg->ftcolor,
 							terminal->pvt->ftfont,
 							x + (columns * column_width) +
@@ -10837,6 +10842,12 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			for (i = columns = 0; i < n; i++) {
 				columns += g_unichar_iswide(items[i].c) ? 2 : 1;
 			}
+#ifdef VTE_PREFER_PANGOX
+			XSetForeground(display, gc, bg->pixel);
+			XFillRectangle(display, drawable, gc,
+				       x, y,
+				       columns * column_width, row_height);
+#else
 			color.red = terminal->pvt->palette[back].red;
 			color.blue = terminal->pvt->palette[back].blue;
 			color.green = terminal->pvt->palette[back].green;
@@ -10847,6 +10858,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 					   TRUE,
 					   x + x_offs, y + y_offs,
 					   columns * column_width, row_height);
+#endif
 		}
 		/* Draw the text in a monospaced manner. */
 		color.red = terminal->pvt->palette[fore].red;
@@ -10860,11 +10872,22 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 				pango_layout_set_text(layout, utf8_buf,
 						      g_unichar_to_utf8(items[i].c,
 									utf8_buf));
+#ifdef VTE_PREFER_PANGOX
+				XSetForeground(display, gc, fg->pixel);
+				pango_x_render_layout(display,
+						      drawable,
+						      gc,
+						      layout,
+						      x + (columns * column_width) +
+						      items[i].xpad,
+						      y);
+#else
 				gdk_draw_layout(gdrawable, ggc,
 						x + (columns * column_width) +
 						items[i].xpad + x_offs,
 						y + y_offs,
 						layout);
+#endif
 			}
 			columns += g_unichar_iswide(items[i].c) ? 2 : 1;
 		}
@@ -11184,7 +11207,11 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 	/* Create a new pango layout in the correct font. */
 	if (terminal->pvt->use_pango) {
+#ifdef VTE_PREFER_PANGOX
+		pcontext = pango_x_get_context(GDK_DISPLAY());
+#else
 		pcontext = gtk_widget_get_pango_context(widget);
+#endif
 		if (pcontext == NULL) {
 			g_warning(_("Error allocating context, "
 				    "disabling Pango."));
