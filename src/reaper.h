@@ -19,14 +19,13 @@
 #ifndef vte_reaper_h_included
 #define vte_reaper_h_included
 
-G_BEGIN_DECLS
-
 #ident "$Id$"
-#include "../config.h"
 #include <sys/wait.h>
 #include <signal.h>
 #include <glib.h>
 #include <glib-object.h>
+
+G_BEGIN_DECLS
 
 struct _VteReaper {
 	GObject object;

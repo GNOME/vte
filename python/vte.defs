@@ -115,6 +115,24 @@
   )
 )
 
+(define-method set_color_foreground
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_color_foreground")
+  (return-type "none")
+  (parameters
+    '("const-GdkColor*" "foreground")
+  )
+)
+
+(define-method set_color_background
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_color_background")
+  (return-type "none")
+  (parameters
+    '("const-GdkColor*" "background")
+  )
+)
+
 (define-method set_colors
   (of-object "VteTerminal")
   (c-name "vte_terminal_set_colors")

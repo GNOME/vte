@@ -43,10 +43,10 @@ struct vte_capability_string {
 	GQuark quark;
 };
 
-/* The known capability strings in termcap entries. */
+/* The known capability strings in termcap entries, terminated by NULLs. */
 extern struct vte_capability_quark vte_terminal_capability_strings[];
 
-/* The xterm-specific terminal control strings. */
+/* The xterm-specific terminal control strings, terminated by NULLs. */
 extern struct vte_capability_string vte_xterm_capability_strings[];
 
 /* Initialize the Quarks in the various tables. */

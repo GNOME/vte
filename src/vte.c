@@ -88,8 +88,8 @@
 #define VTE_TAB_MAX			999
 #define VTE_REPRESENTATIVE_CHARACTERS	"ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
 					"abcdefgjijklmnopqrstuvwxyz" \
-					"0123456789./+"
-#define VTE_DEFAULT_FONT		"Luxi Mono 12"
+					"0123456789./+@"
+#define VTE_DEFAULT_FONT		"mono 12"
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
@@ -139,7 +139,7 @@ struct _VteTerminalPrivate {
 	const char *emulation;		/* terminal type to emulate */
 	GTree *sequences;		/* sequence handlers, keyed by GQuark
 					   based on the sequence name */
-	struct {			/* boolean termcap flags */
+	struct vte_terminal_flags {	/* boolean termcap flags */
 		gboolean am;
 		gboolean bw;
 		gboolean ul;
@@ -170,7 +170,7 @@ struct _VteTerminalPrivate {
 	GIConv outgoing_conv_utf8;
 
 	/* Data used when rendering the text. */
-	struct {
+	struct vte_palette_entry {
 		guint16 red, green, blue;
 		unsigned long pixel;
 #ifdef HAVE_XFT
@@ -196,14 +196,14 @@ struct _VteTerminalPrivate {
 	struct _VteScreen {
 		VteRing *row_data;	/* row data, arranged as a GArray of
 					   vte_charcell structures */
-		struct {
+		struct vte_cursor_position {
 			long row, col;
 		} cursor_current, cursor_saved;
 					/* the current and saved positions of
 					   the [insertion] cursor */
 		gboolean reverse_mode;	/* reverse mode */
 		gboolean insert_mode;	/* insert mode */
-		struct {
+		struct vte_scrolling_region {
 			int start, end;
 		} scrolling_region;	/* the region we scroll in */
 		gboolean scrolling_restricted;
@@ -418,7 +418,7 @@ vte_invalidate_cells(VteTerminal *terminal,
 	gdk_window_invalidate_rect(widget->window, &rect, TRUE);
 }
 
-/* Redraw the entire window. */
+/* Redraw the entire visible portion of the window. */
 static void
 vte_invalidate_all(VteTerminal *terminal)
 {
@@ -1243,7 +1243,8 @@ vte_remove_line_int(VteTerminal *terminal, long position)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (vte_ring_next(terminal->pvt->screen->row_data) > position) {
-		vte_ring_remove(terminal->pvt->screen->row_data, position, TRUE);
+		vte_ring_remove(terminal->pvt->screen->row_data,
+				position, TRUE);
 	}
 }
 
@@ -1336,6 +1337,14 @@ vte_terminal_get_encoding(VteTerminal *terminal)
 	return terminal->pvt->encoding;
 }
 
+/* Check if we're doing special background effects. */
+static gboolean
+vte_terminal_uses_bgfx(VteTerminal *terminal)
+{
+	return (terminal->pvt->bg_transparent ||
+	        GDK_IS_PIXMAP(terminal->pvt->bg_image));
+}
+
 /* End alternate character set. */
 static void
 vte_sequence_handler_ae(VteTerminal *terminal,
@@ -1370,9 +1379,12 @@ vte_sequence_handler_al(VteTerminal *terminal,
 	vte_remove_line_int(terminal, end);
 	vte_insert_line_int(terminal, screen->cursor_current.row);
 	screen->cursor_current.row++;
-	vte_invalidate_cells(terminal,
-			     0, terminal->column_count,
-			     start, end - start + 1);
+	/* Redraw the affected region. */
+	if (vte_terminal_uses_bgfx(terminal) || 1) {
+		vte_invalidate_cells(terminal,
+				     0, terminal->column_count,
+				     start, end - start + 1);
+	}
 }
 
 /* Add N lines at the current cursor position. */
@@ -1467,10 +1479,8 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 	struct vte_charcell *pcell;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
-	/* If the cursor is actually on the screen, clear data in the row
-	 * which corresponds to the cursor. */
-	vte_terminal_ensure_cursor(terminal);
 	/* Get the data for the row which the cursor points to. */
+	vte_terminal_ensure_cursor(terminal);
 	rowdata = vte_ring_index(screen->row_data,
 				 GArray*,
 				 screen->cursor_current.row);
@@ -1487,7 +1497,7 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 				*pcell = screen->defaults;
 			}
 		} else {
-			/* Add a new cell in this location. */
+			/* Add new cells until we have one here. */
 			g_array_append_val(rowdata, screen->defaults);
 		}
 	}
@@ -1547,8 +1557,7 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 	while (rowdata->len > screen->cursor_current.col) {
 		g_array_remove_index(rowdata, rowdata->len - 1);
 	}
-	/* Now append empty cells with the default attributes to fill out the
-	 * line. */
+	/* Add enough cells to the end of the line to fill out the row. */
 	while (rowdata->len < terminal->column_count) {
 		g_array_append_val(rowdata, screen->defaults);
 	}
@@ -1640,6 +1649,11 @@ vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 		/* Remove it. */
 		while (rowdata->len > 0) {
 			g_array_remove_index(rowdata, rowdata->len - 1);
+		}
+		/* Add enough cells to the end of the line to fill out the
+		 * row. */
+		while (rowdata->len < terminal->column_count) {
+			g_array_append_val(rowdata, screen->defaults);
 		}
 		/* Repaint this row. */
 		vte_invalidate_cells(terminal,
@@ -1785,6 +1799,10 @@ vte_sequence_handler_dc(VteTerminal *terminal,
 		if (col < rowdata->len) {
 			g_array_remove_index(rowdata, col);
 		}
+		/* Add new cells until we have enough to fill the row. */
+		while (rowdata->len < terminal->column_count) {
+			g_array_append_val(rowdata, screen->defaults);
+		}
 		/* Repaint this row. */
 		vte_invalidate_cells(terminal,
 				     0, terminal->column_count,
@@ -1822,8 +1840,10 @@ vte_sequence_handler_dl(VteTerminal *terminal,
 	}
 	vte_remove_line_int(terminal, screen->cursor_current.row);
 	vte_insert_line_int(terminal, end);
-	/* Repaint the entire screen. */
-	vte_invalidate_all(terminal);
+	/* Redraw the affected region. */
+	if (vte_terminal_uses_bgfx(terminal) || 1) {
+		vte_invalidate_all(terminal);
+	}
 }
 
 /* Delete N lines at the current cursor position. */
@@ -1848,27 +1868,27 @@ vte_terminal_ensure_cursor(VteTerminal *terminal)
 	struct vte_charcell cell;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
 	screen = terminal->pvt->screen;
 
+	/* Set up defaults we'll use when adding new cells. */
+	memset(&cell, 0, sizeof(cell));
+	cell = screen->defaults;
+	cell.c = ' ';
+	cell.columns = wcwidth(cell.c);
+
 	while (screen->cursor_current.row >= vte_ring_next(screen->row_data)) {
+		/* Create a new row for this part of the screen. */
 		array = vte_new_row_data();
 		vte_ring_append(screen->row_data, array);
 	}
 
+	/* Find the row the cursor is in. */
 	array = vte_ring_index(screen->row_data,
 			       GArray*,
 			       screen->cursor_current.row);
-
 	if (array != NULL) {
-		/* Add enough characters to fill out the row. */
-		memset(&cell, 0, sizeof(cell));
-		cell.fore = VTE_DEF_FG;
-		cell.back = VTE_DEF_BG;
-		cell.c = ' ';
-		cell.columns = wcwidth(cell.c);
-		/* Add enough cells at the end to make sure we have one for
-		 * this column. */
+		/* Add enough cells at the end to make sure we have enough for
+		 * all visible columns. */
 		while ((array->len <= screen->cursor_current.col) &&
 		       (array->len < terminal->column_count)) {
 			array = g_array_append_val(array, cell);
@@ -1928,11 +1948,13 @@ vte_sequence_handler_do(VteTerminal *terminal,
 			vte_remove_line_int(terminal, start);
 			vte_insert_line_int(terminal, end);
 			/* Redraw the affected region. */
-			vte_invalidate_cells(terminal,
-					     0,
-					     terminal->column_count,
-					     start,
-					     end - start + 1);
+			if (vte_terminal_uses_bgfx(terminal) || 1) {
+				vte_invalidate_cells(terminal,
+						     0,
+						     terminal->column_count,
+						     start,
+						     end - start + 1);
+			}
 		} else {
 			/* Otherwise, just move the cursor down. */
 			screen->cursor_current.row++;
@@ -2015,7 +2037,7 @@ vte_sequence_handler_ec(VteTerminal *terminal,
 							      col);
 					*cell = screen->defaults;
 				} else {
-					/* Add this cell to the row. */
+					/* Add a new cell. */
 					g_array_append_val(rowdata,
 							   screen->defaults);
 				}
@@ -2060,19 +2082,17 @@ vte_sequence_handler_ic(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	long row, col;
+	struct vte_cursor_position save;
 	VteScreen *screen;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 
-	row = screen->cursor_current.row;
-	col = screen->cursor_current.col;
+	save = screen->cursor_current;
 
 	vte_terminal_insert_char(GTK_WIDGET(terminal), ' ', TRUE);
 
-	screen->cursor_current.row = row;
-	screen->cursor_current.col = col;
+	screen->cursor_current = save;
 }
 
 /* Insert N characters. */
@@ -2649,9 +2669,11 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			vte_remove_line_int(terminal, end);
 			vte_insert_line_int(terminal, start);
 			/* Repaint the affected region. */
-			vte_invalidate_cells(terminal,
-					     0, terminal->column_count,
-					     start, end - start + 1);
+			if (vte_terminal_uses_bgfx(terminal) || 1) {
+				vte_invalidate_cells(terminal,
+						     0, terminal->column_count,
+						     start, end - start + 1);
+			}
 		} else {
 			/* Otherwise, just move the cursor up. */
 			screen->cursor_current.row--;
@@ -2667,9 +2689,11 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			vte_remove_line_int(terminal, end);
 			vte_insert_line_int(terminal, start);
 			/* Repaint the affected area. */
-			vte_invalidate_cells(terminal,
-					     0, terminal->column_count,
-					     start, end - start + 1);
+			if (vte_terminal_uses_bgfx(terminal) || 1) {
+				vte_invalidate_cells(terminal,
+						     0, terminal->column_count,
+						     start, end - start + 1);
+			}
 		} else {
 			/* Move the cursor up. */
 			screen->cursor_current.row--;
@@ -2913,6 +2937,10 @@ vte_sequence_handler_clear_above_current(VteTerminal *terminal,
 			while (rowdata->len > 0) {
 				g_array_remove_index(rowdata, rowdata->len - 1);
 			}
+			/* Add new cells until we fill the row. */
+			while (rowdata->len < terminal->column_count) {
+				g_array_append_val(rowdata, screen->defaults);
+			}
 			/* Repaint the row. */
 			vte_invalidate_cells(terminal,
 					     0, terminal->column_count,
@@ -2933,23 +2961,30 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 	VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
-	/* Clear the data in all of the visible rows. */
+	/* Clear the data in all of the visible rows to the defaults. */
 	for (i = screen->insert_delta;
 	     i < screen->insert_delta + terminal->row_count;
 	     i++) {
 		if (vte_ring_contains(screen->row_data, i)) {
 			/* Get the data for the row we're removing. */
 			rowdata = vte_ring_index(screen->row_data, GArray*, i);
-			/* Remove it. */
-			while (rowdata->len > 0) {
-				g_array_remove_index(rowdata, rowdata->len - 1);
-			}
-			/* Repaint the row. */
-			vte_invalidate_cells(terminal,
-					     0, terminal->column_count,
-					     i, 1);
+		} else {
+			/* Add a new row */
+			rowdata = vte_new_row_data();
+			vte_ring_append(terminal->pvt->screen->row_data,
+					rowdata);
+		}
+		/* Remove the row's contents. */
+		while (rowdata->len > 0) {
+			g_array_remove_index(rowdata, rowdata->len - 1);
+		}
+		/* Add new cells until we have enough to fill the row. */
+		while (rowdata->len < terminal->column_count) {
+			g_array_append_val(rowdata, screen->defaults);
 		}
 	}
+	/* Redraw everything. */
+	vte_invalidate_all(terminal);
 }
 
 /* Move the cursor to the given column, 1-based. */
@@ -3548,9 +3583,11 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 		vte_insert_line_int(terminal, row);
 	}
 	/* Refresh the modified area. */
-	vte_invalidate_cells(terminal,
-			     0, terminal->column_count,
-			     row, end - row + 1);
+	if (vte_terminal_uses_bgfx(terminal) || 1) {
+		vte_invalidate_cells(terminal,
+				     0, terminal->column_count,
+				     row, end - row + 1);
+	}
 }
 
 /* Delete certain lines from the scrolling region. */
@@ -3586,9 +3623,11 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 		vte_remove_line_int(terminal, row);
 	}
 	/* Refresh the modified area. */
-	vte_invalidate_cells(terminal,
-			     0, terminal->column_count,
-			     row, end - row + 1);
+	if (vte_terminal_uses_bgfx(terminal) || 1) {
+		vte_invalidate_cells(terminal,
+				     0, terminal->column_count,
+				     row, end - row + 1);
+	}
 }
 
 /* Index.  Move the cursor down a row, and if it's in a scrolling region,
@@ -4604,38 +4643,21 @@ vte_terminal_new(void)
 	return GTK_WIDGET(g_object_new(vte_terminal_get_type(), NULL));
 }
 
-/* Set a given set of colors as the palette. */
-void
-vte_terminal_set_colors(VteTerminal *terminal,
-			const GdkColor *foreground,
-			const GdkColor *background,
-			const GdkColor *palette,
-			size_t palette_size)
+/* Set up a palette entry with a more-or-less match for the requested color. */
+static void
+vte_terminal_set_color_int(VteTerminal *terminal, int entry,
+			   const GdkColor *proposed)
 {
-	int i;
-	GdkColor color, proposed;
 	GtkWidget *widget;
 	Display *display;
 	GdkColormap *gcolormap;
 	Colormap colormap;
 	GdkVisual *gvisual;
 	Visual *visual;
-	int bright;
+	GdkColor color;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail((palette_size == 8)  ||
-			 (palette_size == 16) ||
-			 (palette_size == 24));
-
-	/* Accept NULL as the default foreground and background colors. */
-	if (foreground == NULL) {
-		foreground = &palette[7];
-	}
-	if (background == NULL) {
-		background = &palette[0];
-	}
-
-	memset(&color, 0, sizeof(color));
+	g_return_if_fail(entry < G_N_ELEMENTS(terminal->pvt->palette));
 
 	/* Get X11 attributes used by GDK for the widget. */
 	widget = GTK_WIDGET(terminal);
@@ -4645,71 +4667,153 @@ vte_terminal_set_colors(VteTerminal *terminal,
 	gvisual = gtk_widget_get_visual(widget);
 	visual = gdk_x11_visual_get_xvisual(gvisual);
 
-	/* Initialize each item in the palette. */
-	for (i = 0; i < G_N_ELEMENTS(terminal->pvt->palette); i++) {
-		/* Default foreground and background. */
-		if (i == VTE_DEF_FG) {
-			proposed = *foreground;
-		} else
-		if (i == VTE_DEF_BG) {
-			proposed = *background;
-		} else
-		/* Use a supplied color. */
-		if (i < palette_size) {
-			proposed = palette[i];
-		} else {
-			/* We have to guess at the rest, the bolder
-			 * colors, where "bold" means "less like the
-			 * default background color". */
-			if (i == VTE_BOLD_FG) {
-				color = *foreground;
-			} else {
-				color = palette[i % VTE_COLOR_SET_SIZE];
-			}
-			bright = 0;
-			bright = MAX(bright, 0xffff - color.red);
-			bright = MAX(bright, 0xffff - color.green);
-			bright = MAX(bright, 0xffff - color.blue);
-			bright = MIN(bright, 0x6000);
-			proposed.red = CLAMP(color.red + bright, 0, 0xffff);
-			proposed.green = CLAMP(color.green + bright, 0, 0xffff);
-			proposed.blue = CLAMP(color.blue + bright, 0, 0xffff);
-		}
 
-		/* Create a working copy of what we want, which GDK will
-		 * adjust below when it fills in the pixel value. */
-		color = proposed;
+	/* Create a working copy of what we want, which GDK will
+	 * adjust below when it fills in the pixel value. */
+	color = *proposed;
 
-		/* Get a GDK color. */
-		gdk_rgb_find_color(gcolormap, &color); /* fills in pixel */
-		terminal->pvt->palette[i].red = color.red;
-		terminal->pvt->palette[i].green = color.green;
-		terminal->pvt->palette[i].blue = color.blue;
-		terminal->pvt->palette[i].pixel = color.pixel;
+	/* Get a GDK color. */
+	gdk_rgb_find_color(gcolormap, &color); /* fills in pixel */
+	terminal->pvt->palette[entry].red = color.red;
+	terminal->pvt->palette[entry].green = color.green;
+	terminal->pvt->palette[entry].blue = color.blue;
+	terminal->pvt->palette[entry].pixel = color.pixel;
 
 #ifdef HAVE_XFT
-		if (terminal->pvt->use_xft) {
-			XRenderColor *rcolor;
-			XftColor *ftcolor;
+	if (terminal->pvt->use_xft) {
+		XRenderColor *rcolor;
+		XftColor *ftcolor;
 
-			rcolor = &terminal->pvt->palette[i].rcolor;
-			ftcolor = &terminal->pvt->palette[i].ftcolor;
+		rcolor = &terminal->pvt->palette[entry].rcolor;
+		ftcolor = &terminal->pvt->palette[entry].ftcolor;
 
-			/* Fill the render color in with what we got from GDK,
-			 * hopefully so that they match. */
-			rcolor->red = color.red;
-			rcolor->green = color.green;
-			rcolor->blue = color.blue;
-			rcolor->alpha = 0xffff;
+		/* Fill the render color in with what we got from GDK,
+		 * hopefully so that they match. */
+		rcolor->red = color.red;
+		rcolor->green = color.green;
+		rcolor->blue = color.blue;
+		rcolor->alpha = 0xffff;
 
-			/* FIXME this should probably use a color from the
-			 * color cube. */
-			if (!XftColorAllocValue(display, visual, colormap,
-						rcolor, ftcolor)) {
-				terminal->pvt->use_xft = FALSE;
-			}
+		/* FIXME this should probably use a color from the
+		 * color cube. */
+		if (!XftColorAllocValue(display, visual, colormap,
+					rcolor, ftcolor)) {
+			terminal->pvt->use_xft = FALSE;
 		}
+	}
 #endif
+}
+
+
+/* Set the foreground color. */
+void
+vte_terminal_set_color_foreground(VteTerminal *terminal,
+				  const GdkColor *foreground)
+{
+	vte_terminal_set_color_int(terminal, VTE_DEF_FG, foreground);
+}
+
+/* Set the background color. */
+void
+vte_terminal_set_color_background(VteTerminal *terminal,
+				  const GdkColor *background)
+{
+	vte_terminal_set_color_int(terminal, VTE_DEF_BG, background);
+}
+
+/* Set a given set of colors as the palette. */
+void
+vte_terminal_set_colors(VteTerminal *terminal,
+			const GdkColor *foreground,
+			const GdkColor *background,
+			const GdkColor *palette,
+			size_t palette_size)
+{
+	int i;
+	GdkColor color;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	g_return_if_fail((palette_size == 0) ||
+			 (palette_size == 8) ||
+			 (palette_size == 16) ||
+			 (palette_size == G_N_ELEMENTS(terminal->pvt->palette)));
+
+	/* Accept NULL as the default foreground and background colors if we
+	 * got a palette. */
+	if ((foreground == NULL) && (palette_size >= 8)) {
+		foreground = &palette[7];
+	}
+	if ((background == NULL) && (palette_size >= 8)) {
+		background = &palette[0];
+	}
+
+	memset(&color, 0, sizeof(color));
+
+	/* Initialize each item in the palette if we got any entries to work
+	 * with. */
+	for (i = 0; (i < G_N_ELEMENTS(terminal->pvt->palette)); i++) {
+		switch (i) {
+			case VTE_DEF_FG:
+				if (foreground != NULL) {
+					color = *foreground;
+				} else {
+					color.red = 0xc000;
+					color.blue = 0xc000;
+					color.green = 0xc000;
+				}
+				break;
+			case VTE_DEF_BG:
+				if (background != NULL) {
+					color = *background;
+				} else {
+					color.red = 0;
+					color.blue = 0;
+					color.green = 0;
+				}
+				break;
+			case VTE_BOLD_FG:
+				color.red = 0xffff;
+				color.blue = 0xffff;
+				color.green = 0xffff;
+				break;
+			case 0 + 0:
+			case 0 + 1:
+			case 0 + 2:
+			case 0 + 3:
+			case 0 + 4:
+			case 0 + 5:
+			case 0 + 6:
+			case 0 + 7:
+			case 8 + 0:
+			case 8 + 1:
+			case 8 + 2:
+			case 8 + 3:
+			case 8 + 4:
+			case 8 + 5:
+			case 8 + 6:
+			case 8 + 7:
+				color.blue = (i & 4) ? 0xc000 : 0;
+				color.green = (i & 2) ? 0xc000 : 0;
+				color.red = (i & 1) ? 0xc000 : 0;
+				if (i > 8) {
+					color.blue += 0x3fff;
+					color.green += 0x3fff;
+					color.red += 0x3fff;
+				}
+				break;
+			default:
+				g_assert_not_reached();
+				break;
+		}
+
+		/* Override from the supplied palette if there is one. */
+		if (i < palette_size) {
+			color = palette[i];
+		}
+
+		/* Set up the color entry. */
+		vte_terminal_set_color_int(terminal, i, &color);
 	}
 
 	/* We may just have chnged the default background color, so queue
@@ -4721,27 +4825,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 void
 vte_terminal_set_default_colors(VteTerminal *terminal)
 {
-	GdkColor colors[8], fg, bg;
-	int i;
-	guint16 red, green, blue;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-	/* Generate a default palette. */
-	for (i = 0; i < G_N_ELEMENTS(colors); i++) {
-		blue = (i & 4) ? 0xc000 : 0;
-		green = (i & 2) ? 0xc000 : 0;
-		red = (i & 1) ? 0xc000 : 0;
-		colors[i].blue = blue;
-		colors[i].green = green;
-		colors[i].red = red;
-	}
-
-	/* Set the default color set. */
-	fg.red = fg.green = fg.blue = 0xc000;
-	bg.red = bg.green = bg.blue = 0x0000;
-	vte_terminal_set_colors(terminal, &fg, &bg,
-				colors, G_N_ELEMENTS(colors));
+	vte_terminal_set_colors(terminal, NULL, NULL, NULL, 0);
 }
 
 /* Insert a single character into the stored data array. */
@@ -4809,7 +4893,8 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 
 		/* Make sure we have enough columns in this row. */
 		if (array->len <= col) {
-			/* Add enough characters to fill out the row. */
+			/* Add enough cells to fill out the row to at least out
+			 * to the insertion point. */
 			while (array->len < col) {
 				array = g_array_append_val(array, cell);
 			}
@@ -4887,6 +4972,7 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 	}
 
 	/* Redraw where the cursor has moved to. */
+	vte_terminal_ensure_cursor(terminal);
 	vte_invalidate_cursor_once(terminal);
 
 #ifdef VTE_DEBUG
@@ -4944,6 +5030,7 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 	VteTerminal *terminal;
 	VteTerminalSequenceHandler handler;
 	VteScreen *screen;
+	struct vte_cursor_position position;
 
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
@@ -4953,10 +5040,8 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 	/* This may generate multiple redraws, so freeze it while we do them. */
 	gdk_window_freeze_updates(widget->window);
 
-	/* Signal that the cursor's current position needs redrawing. */
-	vte_invalidate_cells(terminal,
-			     screen->cursor_current.col, 1,
-			     screen->cursor_current.row, 1);
+	/* Save the cursor's current position for future use. */
+	position = screen->cursor_current;
 
 	/* Find the handler for this control sequence. */
 	handler = g_tree_lookup(terminal->pvt->sequences, GINT_TO_POINTER(match));
@@ -4973,7 +5058,17 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 			  match_s);
 	}
 
+	/* If the cursor moved, then we need to redraw the cell in which
+	 * it used to be. */
+	if ((screen->cursor_current.col != position.col) ||
+	    (screen->cursor_current.row != position.row)) {
+		vte_invalidate_cells(terminal,
+				     position.col, 1,
+				     position.row, 1);
+	}
+
 	/* We probably need to update the cursor's new position, too. */
+	vte_terminal_ensure_cursor(terminal);
 	vte_invalidate_cells(terminal,
 			     screen->cursor_current.col, 1,
 			     screen->cursor_current.row, 1);
@@ -5127,7 +5222,7 @@ vte_terminal_process_incoming(gpointer data)
 	GValueArray *params = NULL;
 	VteTerminal *terminal;
 	VteScreen *screen;
-	long cursor_row, cursor_col;
+	struct vte_cursor_position cursor;
 	GtkWidget *widget;
 	GdkRectangle rect;
 	char *ibuf, *obuf, *obufptr, *ubuf, *ubufptr;
@@ -5138,7 +5233,7 @@ vte_terminal_process_incoming(gpointer data)
 	GIConv unconv;
 	GQuark quark;
 	const wchar_t *next;
-	gboolean leftovers, inserted, again, bottom;
+	gboolean leftovers, modified, again, bottom;
 
 	g_return_val_if_fail(GTK_IS_WIDGET(data), FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
@@ -5207,12 +5302,11 @@ vte_terminal_process_incoming(gpointer data)
 
 	/* Save the current cursor position. */
 	screen = terminal->pvt->screen;
-	cursor_row = screen->cursor_current.row;
-	cursor_col = screen->cursor_current.col;
+	cursor = screen->cursor_current;
 
 	/* Try initial substrings. */
 	start = 0;
-	inserted = leftovers = FALSE;
+	modified = leftovers = FALSE;
 	while ((start < wcount) && !leftovers) {
 		/* Check if the first character is part of a control
 		 * sequence. */
@@ -5344,7 +5438,7 @@ vte_terminal_process_incoming(gpointer data)
 			if (strcmp(encoding, terminal->pvt->encoding)) {
 				leftovers = TRUE;
 			}
-			inserted = TRUE;
+			modified = TRUE;
 		} else
 		/* Second, we have a NULL match, and next points the very
 		 * next character in the buffer.  Insert the character we're
@@ -5371,7 +5465,7 @@ vte_terminal_process_incoming(gpointer data)
 			}
 #endif
 			vte_terminal_insert_char(widget, c, FALSE);
-			inserted = TRUE;
+			modified = TRUE;
 			start++;
 		} else {
 			/* Case three: the read broke in the middle of a
@@ -5461,7 +5555,7 @@ vte_terminal_process_incoming(gpointer data)
 	}
 	g_free(obufptr);
 
-	if (inserted) {
+	if (modified) {
 		/* Keep the cursor on-screen if we scroll on output, or if
 		 * we're currently at the bottom of the buffer. */
 		vte_terminal_scroll_insertion(terminal);
@@ -5476,17 +5570,15 @@ vte_terminal_process_incoming(gpointer data)
 		vte_terminal_deselect_all(terminal);
 	}
 
-	if (inserted || (screen != terminal->pvt->screen)) {
+	if (modified || (screen != terminal->pvt->screen)) {
 		/* Signal that the visible contents changed. */
 		vte_terminal_match_contents_clear(terminal);
 		vte_terminal_emit_contents_changed(terminal);
 	}
 
-	if ((cursor_row != terminal->pvt->screen->cursor_current.row) ||
-	    (cursor_col != terminal->pvt->screen->cursor_current.col)) {
-		/* Signal that the cursor moved and ensure that we have row
-		 * data for the current row. */
-		vte_terminal_ensure_cursor(terminal);
+	if ((cursor.col != terminal->pvt->screen->cursor_current.col) ||
+	    (cursor.row != terminal->pvt->screen->cursor_current.row)) {
+		/* Signal that the cursor moved. */
 		vte_terminal_emit_cursor_moved(terminal);
 	}
 
@@ -5972,10 +6064,14 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 #endif
 		/* Determine if this is just a modifier key. */
 		switch (event->keyval) {
+			case GDK_Alt_L:
+			case GDK_Alt_R:
 			case GDK_Caps_Lock:
 			case GDK_Control_L:
 			case GDK_Control_R:
 			case GDK_Eisu_Shift:
+			case GDK_Hyper_L:
+			case GDK_Hyper_R:
 			case GDK_ISO_First_Group_Lock:
 			case GDK_ISO_Group_Lock:
 			case GDK_ISO_Group_Shift:
@@ -5987,11 +6083,15 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			case GDK_ISO_Prev_Group_Lock:
 			case GDK_Kana_Lock:
 			case GDK_Kana_Shift:
+			case GDK_Meta_L:
+			case GDK_Meta_R:
 			case GDK_Num_Lock:
 			case GDK_Scroll_Lock:
 			case GDK_Shift_L:
 			case GDK_Shift_Lock:
 			case GDK_Shift_R:
+			case GDK_Super_L:
+			case GDK_Super_R:
 				modifier = TRUE;
 				break;
 			default:
@@ -6052,6 +6152,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 						break;
 				}
 				break;
+			case GDK_KP_Delete:
 			case GDK_Delete:
 				switch (terminal->pvt->delete_binding) {
 					case VTE_ERASE_ASCII_BACKSPACE:
@@ -6082,40 +6183,157 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				special = "@7";
 				break;
 			case GDK_F1:
-				special = "k1";
+				if (!(modifiers & GDK_CONTROL_MASK)) {
+					special = "k1";
+				} else {
+					special = "F3";
+				}
 				break;
 			case GDK_F2:
-				special = "k2";
+				if (!(modifiers & GDK_CONTROL_MASK)) {
+					special = "k2";
+				} else {
+					special = "F4";
+				}
 				break;
 			case GDK_F3:
-				special = "k3";
+				if (!(modifiers & GDK_CONTROL_MASK)) {
+					special = "k3";
+				} else {
+					special = "F5";
+				}
 				break;
 			case GDK_F4:
-				special = "k4";
+				if (!(modifiers & GDK_CONTROL_MASK)) {
+					special = "k4";
+				} else {
+					special = "F6";
+				}
 				break;
 			case GDK_F5:
-				special = "k5";
+				if (!(modifiers & GDK_CONTROL_MASK)) {
+					special = "k5";
+				} else {
+					special = "F7";
+				}
 				break;
 			case GDK_F6:
-				special = "k6";
+				if (!(modifiers & GDK_CONTROL_MASK)) {
+					special = "k6";
+				} else {
+					special = "F8";
+				}
 				break;
 			case GDK_F7:
-				special = "k7";
+				if (!(modifiers & GDK_CONTROL_MASK)) {
+					special = "k7";
+				} else {
+					special = "F9";
+				}
 				break;
 			case GDK_F8:
-				special = "k8";
+				if (!(modifiers & GDK_CONTROL_MASK)) {
+					special = "k8";
+				} else {
+					special = "FA";
+				}
 				break;
 			case GDK_F9:
-				special = "k9";
+				if (!(modifiers & GDK_CONTROL_MASK)) {
+					special = "k9";
+				} else {
+					special = "FB";
+				}
 				break;
 			case GDK_F10:
-				special = "k;";
+				if (!(modifiers & GDK_CONTROL_MASK)) {
+					special = "k;";
+				} else {
+					special = "FC";
+				}
 				break;
 			case GDK_F11:
-				special = "F1";
+				if (!(modifiers & GDK_CONTROL_MASK)) {
+					special = "F1";
+				} else {
+					special = "FD";
+				}
 				break;
 			case GDK_F12:
-				special = "F2";
+				if (!(modifiers & GDK_CONTROL_MASK)) {
+					special = "F2";
+				} else {
+					special = "FE";
+				}
+				break;
+			case GDK_F13:
+				special = "F3";
+				break;
+			case GDK_F14:
+				special = "F4";
+				break;
+			case GDK_F15:
+				special = "F5";
+				break;
+			case GDK_F16:
+				special = "F6";
+				break;
+			case GDK_F17:
+				special = "F7";
+				break;
+			case GDK_F18:
+				special = "F8";
+				break;
+			case GDK_F19:
+				special = "F9";
+				break;
+			case GDK_F20:
+				special = "FA";
+				break;
+			case GDK_F21:
+				special = "FB";
+				break;
+			case GDK_F22:
+				special = "FC";
+				break;
+			case GDK_F23:
+				special = "FD";
+				break;
+			case GDK_F24:
+				special = "FE";
+				break;
+			case GDK_F25:
+				special = "FF";
+				break;
+			case GDK_F26:
+				special = "FG";
+				break;
+			case GDK_F27:
+				special = "FH";
+				break;
+			case GDK_F28:
+				special = "FI";
+				break;
+			case GDK_F29:
+				special = "FJ";
+				break;
+			case GDK_F30:
+				special = "FK";
+				break;
+			case GDK_F31:
+				special = "FL";
+				break;
+			case GDK_F32:
+				special = "FM";
+				break;
+			case GDK_F33:
+				special = "FN";
+				break;
+			case GDK_F34:
+				special = "FO";
+				break;
+			case GDK_F35:
+				special = "FP";
 				break;
 			/* Cursor keys. */
 			case GDK_KP_Up:
@@ -7062,7 +7280,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	long height, width, delta;
 	GdkModifierType modifiers;
 	gboolean ret = FALSE;
-	long cellx, celly, row, col;
+	long cellx, celly;
 	struct selection_event_coords *start, *end;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
@@ -7773,14 +7991,18 @@ vte_terminal_set_font(VteTerminal *terminal,
 		if (terminal->pvt->ftfont != NULL) {
 			ascent = terminal->pvt->ftfont->ascent;
 			descent = terminal->pvt->ftfont->descent;
-			height = terminal->pvt->ftfont->height;
+			memset(&glyph_info, 0, sizeof(glyph_info));
 			XftTextExtents8(GDK_DISPLAY(), terminal->pvt->ftfont,
 					VTE_REPRESENTATIVE_CHARACTERS,
 					strlen(VTE_REPRESENTATIVE_CHARACTERS),
 					&glyph_info);
-			width = howmany(glyph_info.xOff,
+			width = howmany(glyph_info.width,
 					strlen(VTE_REPRESENTATIVE_CHARACTERS));
-			/* width = terminal->pvt->ftfont->max_advance_width; */
+			height = MAX(terminal->pvt->ftfont->height,
+				     (ascent + descent));
+			if (height == 0) {
+				height = glyph_info.height;
+			}
 		} else {
 			g_warning(_("Error allocating Xft font, disabling Xft."));
 			terminal->pvt->use_xft = FALSE;
@@ -7850,7 +8072,9 @@ vte_terminal_set_font(VteTerminal *terminal,
 		xlfds = NULL;
 	}
 
-	/* Now save the values. */
+	/* Sanity check for broken fonts, and save the values. */
+	width = MAX(width, 1);
+	height = MAX(height, 1);
 	terminal->char_width = width;
 	terminal->char_height = height;
 	terminal->char_ascent = ascent;
@@ -7952,18 +8176,17 @@ vte_handle_scroll(VteTerminal *terminal)
 	dy = screen->scroll_delta - adj;
 	screen->scroll_delta = adj;
 	if (dy != 0) {
-		if ((terminal->pvt->bg_image == NULL) &&
-		    (!terminal->pvt->bg_transparent)) {
+		if (vte_terminal_uses_bgfx(terminal)) {
+			/* If we have a background image, we need to redraw
+			 * the entire window. */
+			vte_invalidate_all(terminal);
+		} else {
 			/* Scroll whatever's already in the window to avoid
 			 * redrawing as much as possible -- any exposed area
 			 * will be exposed for us by the windowing system
 			 * and GDK. */
 			gdk_window_scroll(widget->window,
 					  0, dy * terminal->char_height);
-		} else {
-			/* If we have a background image, we need to redraw
-			 * the entire window. */
-			vte_invalidate_all(terminal);
 		}
 	}
 	/* Let the refreshing begin. */
@@ -8005,6 +8228,7 @@ void
 vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 {
 	const char *code, *value;
+	gboolean found_cr = FALSE, found_lf = FALSE;
 	char *stripped;
 	size_t stripped_length;
 	int columns, rows;
@@ -8061,38 +8285,57 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 				     stripped, stripped_length,
 				     code,
 				     0);
+			if (stripped[0] == '\r') {
+				found_cr = TRUE;
+			} else
+			if (stripped[0] == '\n') {
+				found_lf = TRUE;
+			}
 			g_free(stripped);
 		}
 		g_free(tmp);
 	}
 
 	/* Add emulator-specific sequences. */
-	if (strstr(emulation, "xterm") || strstr(emulation, "dtterm"))
-	for (i = 0; vte_xterm_capability_strings[i].value != NULL; i++) {
-		code = vte_xterm_capability_strings[i].code;
-		value = vte_xterm_capability_strings[i].value;
-		vte_termcap_strip(code, &stripped, &stripped_length);
-		vte_trie_add(terminal->pvt->trie, stripped, stripped_length,
-			     value, 0);
-		g_free(stripped);
+	if (strstr(emulation, "xterm") || strstr(emulation, "dtterm")) {
+		/* Add all of the xterm-specific stuff. */
+		for (i = 0;
+		     vte_xterm_capability_strings[i].value != NULL;
+		     i++) {
+			code = vte_xterm_capability_strings[i].code;
+			value = vte_xterm_capability_strings[i].value;
+			vte_termcap_strip(code, &stripped, &stripped_length);
+			vte_trie_add(terminal->pvt->trie,
+				     stripped, stripped_length,
+				     value, 0);
+			g_free(stripped);
+		}
+#if 0
+	} else {
+		/* Add at least ANSI color, which everyone wants. */
+		for (i = 0;
+		     vte_xterm_capability_strings[i].value != NULL;
+		     i++) {
+			code = vte_xterm_capability_strings[i].code;
+			value = vte_xterm_capability_strings[i].value;
+			if (strcmp(code, "character-attributes") == 0) {
+				vte_termcap_strip(code,
+						  &stripped, &stripped_length);
+				vte_trie_add(terminal->pvt->trie,
+					     stripped, stripped_length,
+					     value, 0);
+				g_free(stripped);
+			}
+		}
+#endif
 	}
 
 	/* Always define cr and lf. */
-	tmp = vte_termcap_find_string(terminal->pvt->termcap,
-				      terminal->pvt->emulation,
-				      "cr");
-	if (tmp == NULL) {
+	if (!found_cr) {
 		vte_trie_add(terminal->pvt->trie, "\r", 1, "cr", 0);
-	} else {
-		g_free(tmp);
 	}
-	tmp = vte_termcap_find_string(terminal->pvt->termcap,
-				      terminal->pvt->emulation,
-				      "sf");
-	if (tmp == NULL) {
+	if (!found_lf) {
 		vte_trie_add(terminal->pvt->trie, "\n", 1, "sf", 0);
-	} else {
-		g_free(tmp);
 	}
 
 #ifdef VTE_DEBUG
@@ -8302,9 +8545,10 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	}
 
 #ifdef HAVE_XFT
-	/* Try to use Xft if the user requests it.  Provide both the original
-	 * variable we consulted (which we should stop consulting at some
-	 * point) and the one GTK itself uses. */
+	/* Try to use Xft unless the user requests that we not.  Provide both
+	 * the original variable we consulted (which we should stop consulting
+	 * at some point) and the one GTK itself uses. */
+	pvt->use_xft = TRUE;
 	pvt->ftfont = NULL;
 	if (getenv("GDK_USE_XFT") != NULL) {
 		pvt->use_xft = (atol(getenv("GDK_USE_XFT")) != 0);
@@ -11076,7 +11320,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 						   lines);
 		}
 		new_delta = vte_ring_next(screens[i]->row_data);
-		delta = (new_delta - old_delta);
+		delta = MAX(0, new_delta - old_delta);
 		screens[i]->cursor_current.row += delta;
 		screens[i]->cursor_saved.row += delta;
 		screens[i]->scroll_delta += delta;

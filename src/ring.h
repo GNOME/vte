@@ -23,6 +23,8 @@
 
 #include <glib.h>
 
+G_BEGIN_DECLS
+
 typedef struct _VteRing VteRing;
 typedef void (*VteRingFreeFunc)(gpointer freeing, gpointer data);
 
@@ -38,5 +40,7 @@ long vte_ring_max(VteRing *ring);
 long vte_ring_next(VteRing *ring);
 gboolean vte_ring_contains(VteRing *ring, long position);
 void vte_ring_free(VteRing *ring, gboolean free_elements);
+
+G_END_DECLS
 
 #endif

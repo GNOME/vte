@@ -21,6 +21,8 @@
 #ifndef vte_debug_h_included
 #define vte_debug_h_included
 
+G_BEGIN_DECLS
+
 typedef enum {
 	VTE_DEBUG_MISC		= 1 << 0,
 	VTE_DEBUG_PARSE		= 1 << 1,
@@ -33,5 +35,7 @@ typedef enum {
 
 void vte_debug_parse_string(const char *string);
 gboolean vte_debug_on(VteDebugFlags flags);
+
+G_END_DECLS
 
 #endif

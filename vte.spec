@@ -56,7 +56,16 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
-* Tue Jul  2 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.8-1
+* Fri Jul 12 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.8-1
+- implement BCE (#68414)
+- bind F13-F35 per termcap
+
+* Thu Jul 11 2002 Nalin Dahyabhai <nalin@redhat.com>
+- rework default color selection
+- provide a means for apps to just set the foreground/background text colors
+- don't scroll-on-keystroke when it's just alt, hyper, meta, or super
+
+* Tue Jul  2 2002 Nalin Dahyabhai <nalin@redhat.com>
 - allow shift+click to extend the selection (re: gnome 86246)
 
 * Mon Jul  1 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.7-1

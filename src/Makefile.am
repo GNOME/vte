@@ -1,7 +1,7 @@
 bin_PROGRAMS = vte
 pkginclude_HEADERS = caps.h pty.h ring.h termcap.h trie.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
-noinst_PROGRAMS = interpret utf8echo utf8mode iso8859mode
+noinst_PROGRAMS = interpret utf8echo utf8mode iso8859mode slowcat
 EXTRA_PROGRAMS = pty reaper ring termcap trie
 EXTRA_DIST = marshal.list
 
@@ -30,7 +30,7 @@ libvte_la_SOURCES = \
 	vteaccess.h
 
 libvte_la_LIBADD = @LIBS@ @XFT_LIBS@ @GTK_LIBS@ @X_LIBS@
-libvte_la_LDFLAGS = -version-info 1:1:0
+libvte_la_LDFLAGS = -version-info 2:0:1
 
 CLEANFILES = marshal.c marshal.h
 
@@ -66,6 +66,10 @@ ring_SOURCES = \
 	ring.c \
 	ring.h
 ring_LDADD = @LIBS@ @GLIB_LIBS@
+
+slowcat_SOURCES = \
+	slowcat.c
+slowcat_LDADD = @LIBS@ @GLIB_LIBS@
 
 trie_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DTRIE_MAIN
 trie_SOURCES = \

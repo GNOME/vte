@@ -22,7 +22,6 @@
 #ident "$Id$"
 
 #include <sys/types.h>
-#include <iconv.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <wchar.h>
@@ -30,8 +29,6 @@
 #include <glib.h>
 #include <pango/pango.h>
 #include <gtk/gtk.h>
-#include "termcap.h"
-#include "trie.h"
 
 G_BEGIN_DECLS
 
@@ -146,6 +143,10 @@ void vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 					  gboolean scroll);
 
 /* Set the color scheme. */
+void vte_terminal_set_color_foreground(VteTerminal *terminal,
+				       const GdkColor *fore);
+void vte_terminal_set_color_background(VteTerminal *terminal,
+				       const GdkColor *fore);
 void vte_terminal_set_colors(VteTerminal *terminal,
 			     const GdkColor *foreground,
 			     const GdkColor *background,

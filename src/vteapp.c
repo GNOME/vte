@@ -89,16 +89,35 @@ main(int argc, char **argv)
 {
 	GtkWidget *window, *hbox, *scrollbar, *widget;
 	char *env_add[] = {"FOO=BAR", "BOO=BIZ", NULL};
+	const char *background = NULL;
+	gboolean transparent = FALSE, audible = TRUE, blink = TRUE;
 	const char *message = "Launching interactive shell...\r\n";
 	const char *font = NULL;
 	const char *terminal = NULL;
 	const char *command = NULL;
-	struct stat st;
 	int opt;
-
+	const char *usage = "Usage: %s "
+			    "[ [-B image] | [-T] ] "
+			    "[-a] "
+			    "[-b] "
+			    "[-c command] "
+			    "[-f font] "
+			    "[-t terminaltype]\n";
 	/* Parse some command-line options. */
-	while ((opt = getopt(argc, argv, "c:f:t:")) != -1) {
+	while ((opt = getopt(argc, argv, "B:Tabc:f:ht:")) != -1) {
 		switch (opt) {
+			case 'B':
+				background = optarg;
+				break;
+			case 'T':
+				transparent = TRUE;
+				break;
+			case 'a':
+				audible = !audible;
+				break;
+			case 'b':
+				blink = !blink;
+				break;
 			case 'c':
 				command = optarg;
 				break;
@@ -107,6 +126,11 @@ main(int argc, char **argv)
 				break;
 			case 't':
 				terminal = optarg;
+				break;
+			case 'h':
+			default:
+				g_print(usage, argv[0]);
+				exit(1);
 				break;
 		}
 	}
@@ -152,16 +176,17 @@ main(int argc, char **argv)
 	gtk_box_pack_start(GTK_BOX(hbox), scrollbar, FALSE, FALSE, 0);
 
 	/* Set some defaults. */
-	vte_terminal_set_audible_bell(VTE_TERMINAL(widget), TRUE);
-	vte_terminal_set_cursor_blinks(VTE_TERMINAL(widget), TRUE);
+	vte_terminal_set_audible_bell(VTE_TERMINAL(widget), audible);
+	vte_terminal_set_cursor_blinks(VTE_TERMINAL(widget), blink);
 	vte_terminal_set_scroll_on_output(VTE_TERMINAL(widget), FALSE);
 	vte_terminal_set_scroll_on_keystroke(VTE_TERMINAL(widget), TRUE);
 	vte_terminal_set_scrollback_lines(VTE_TERMINAL(widget), 100);
 	vte_terminal_set_mouse_autohide(VTE_TERMINAL(widget), TRUE);
-	if (stat("./background", &st) == 0) {
+	if (background != NULL) {
 		vte_terminal_set_background_image_file(VTE_TERMINAL(widget),
-						       "./background");
-	} else {
+						       background);
+	}
+	if (transparent) {
 		vte_terminal_set_background_transparent(VTE_TERMINAL(widget),
 							TRUE);
 	}
@@ -184,7 +209,9 @@ main(int argc, char **argv)
 	}
 #endif
 	vte_terminal_fork_command(VTE_TERMINAL(widget), command, NULL, env_add);
-	vte_terminal_feed_child(VTE_TERMINAL(widget), "pwd\n", -1);
+	if (command == NULL) {
+		vte_terminal_feed_child(VTE_TERMINAL(widget), "pwd\n", 4);
+	}
 
 	/* Go for it! */
 	gtk_widget_show_all(window);

@@ -1,3 +1,27 @@
+2002-07-12 nalin
+	* src/slowcat.c: Added.
+	* src/vteapp.c: Add -a/-b flags to control audible bell and blinking
+	cursors.  Only send "pwd" as an initial command if there wasn't a
+	command specified on the command line.  Add a simple help message.
+	* src/vte.c: Bind F13-F35 per termcap.  Treat GDK_KP_Delete as
+	GDK_Delete.  Map Ctrl+F1-F12 to F13-F24.  Fix dc() to ensure that the
+	rows stays full and that newly-added cells get the default attributes.
+	Fix cl() to clear all rows on the screen with the default attributes
+	(bce).  Default to using Xft if available for consistency with GTK.
+2002-07-11 nalin
+	* src/vte.c: Treat super, hyper, meta, and alt as modifiers when
+	deciding to scroll-on-keypress.  Noted by jrb.
+	* src/vte.c: Always map \r and \n to cr and so, even when they're
+	defined by the termcap.
+	* src/vte.c, src/vte.h: Rework how default colors are set up, and add
+	vte_terminal_set_color_foreground and vte_terminal_set_color_background.
+	* src/vte.h: Remove includes for local headers which apps are not
+	likely to never use, cleaning up the namespace a little.
+	* python/vte.defs: Bind vte_terminal_set_color_{fore,back}ground.
+	* src/debug.h, src/ring.h: Use G_BEGIN_DECLS/G_END_DECLS.
+	* src/reaper.h: Use G_BEGIN_DECLS/G_END_DECLS in the right place.
+	* src/vteapp.c: Add -B/-T flags to set background images and
+	transparency.
 2002-07-02 nalin
 	* src/vte.c: Make shift+button1 extend selection.
 2002-07-01 nalin
