@@ -1,4 +1,8 @@
 2003-01-20 nalin
+	* src/Makefile.am, src/reflect.c: add reflect-text-view, for testing
+	with GtkTextView for sanity's sake.
+
+2003-01-20 nalin
 	* src/reflect.c: account for atk_text_get_text() being 0-clean.
 
 2003-01-20 nalin
