@@ -133,6 +133,7 @@ main(int argc, char **argv)
 	vte_terminal_feed(VTE_TERMINAL(widget), message, strlen(message));
 #endif
 	vte_terminal_fork_command(VTE_TERMINAL(widget), NULL, NULL);
+	vte_terminal_feed_child(VTE_TERMINAL(widget), "pwd\n", -1);
 
 	/* Go for it! */
 	gtk_widget_show_all(window);

@@ -94,6 +94,9 @@ void vte_terminal_fork_command(VteTerminal *terminal,
 void vte_terminal_feed(VteTerminal *terminal,
 		       const char *data,
 		       size_t length);
+void vte_terminal_feed_child(VteTerminal *terminal,
+			     const char *data,
+			     size_t length);
 void vte_terminal_set_size(VteTerminal *terminal, long columns, long rows);
 void vte_terminal_set_audible_bell(VteTerminal *terminal, gboolean audible);
 void vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll);

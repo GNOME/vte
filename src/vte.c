@@ -3281,14 +3281,14 @@ vte_terminal_process_incoming(gpointer data)
 			/* Discard the data, we can't use it. */
 			terminal->pvt->n_incoming = 0;
 			g_free(terminal->pvt->incoming);
-			terminal->pvt->incoming;
+			terminal->pvt->incoming = NULL;
 			again = FALSE;
 		}
 	} else {
 		/* No leftovers, clean out the data. */
 		terminal->pvt->n_incoming = 0;
 		g_free(terminal->pvt->incoming);
-		terminal->pvt->incoming;
+		terminal->pvt->incoming = NULL;
 		again = FALSE;
 	}
 
@@ -3551,6 +3551,17 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	return;
 }
 
+/* Send a chunk of UTF-8 text to the child. */
+void
+vte_terminal_feed_child(VteTerminal *terminal, const char *text, size_t length)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	if (length == (size_t)-1) {
+		length = strlen(text);
+	}
+	vte_terminal_send(terminal, "UTF-8", text, length);
+}
+
 /* Handle the toplevel being reconfigured. */
 static gboolean
 vte_terminal_configure_toplevel(GtkWidget *widget, GdkEventConfigure *event,
@@ -3563,7 +3574,7 @@ vte_terminal_configure_toplevel(GtkWidget *widget, GdkEventConfigure *event,
 	g_return_val_if_fail(GTK_WIDGET_TOPLEVEL(widget), FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
 	vte_terminal_setup_background(VTE_TERMINAL(data), FALSE);
-	return TRUE;
+	return FALSE;
 }
 
 /* Handle a hierarchy-changed signal. */
