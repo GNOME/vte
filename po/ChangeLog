@@ -1,6 +1,10 @@
+2004-02-23  Abel Cheung  <maddog@linux.org.hk>
+
+	* kn.po: Fix encoding.
+
 2004-02-07  Robert Sedak  <robert.sedak@sk.htnet.hr>
  
-         * hr.po: Updated Croatian translation.
+	* hr.po: Updated Croatian translation.
 
 2004-02-02  Laurent Dhima  <laurenti@alblinux.net>
 
