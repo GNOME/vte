@@ -4098,11 +4098,8 @@ vte_sequence_handler_local_charset(VteTerminal *terminal,
 #ifdef VTE_DEFAULT_ISO_8859_1
 	vte_terminal_set_encoding(terminal, vte_table_narrow_encoding());
 #else
-	if (g_get_charset(&locale_encoding)) {
-		vte_terminal_set_encoding(terminal, vte_table_narrow_encoding());
-	} else {
-		vte_terminal_set_encoding(terminal, locale_encoding);
-	}
+	g_get_charset(&locale_encoding);
+	vte_terminal_set_encoding(terminal, locale_encoding);
 #endif
 }
 
@@ -5324,7 +5321,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 		vte_terminal_set_color_internal(terminal, i, &color);
 	}
 
-	/* We may just have chnged the default background color, so queue
+	/* We may just have changed the default background color, so queue
 	 * a repaint of the entire viewable area. */
 	vte_invalidate_all(terminal);
 
@@ -6432,9 +6429,14 @@ vte_terminal_configure_toplevel(GtkWidget *widget, GdkEventConfigure *event,
 	g_return_val_if_fail(GTK_WIDGET_TOPLEVEL(widget), FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
 
+	/* In case we moved, queue a background image update. */
 	if (VTE_TERMINAL(data)->pvt->bg_transparent) {
 		vte_terminal_queue_background_update(VTE_TERMINAL(data));
 	}
+
+	/* In case we were resized, repaint everything, including any extra
+	 * regions which no cell covers. */
+	vte_invalidate_all(VTE_TERMINAL(data));
 
 	return FALSE;
 }

@@ -40,16 +40,16 @@ window_title_changed(GtkWidget *widget, gpointer win)
 }
 
 static void
-char_size_changed(GtkWidget *widget, guint width, guint height, gpointer win)
+char_size_changed(GtkWidget *widget, guint width, guint height, gpointer data)
 {
 	VteTerminal *terminal;
 	GtkWindow *window;
 	GdkGeometry geometry;
 	int xpad, ypad;
-	g_return_if_fail(GTK_IS_WINDOW(win));
+	g_return_if_fail(GTK_IS_WINDOW(data));
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
-	window = GTK_WINDOW(win);
+	window = GTK_WINDOW(data);
 	vte_terminal_get_padding(terminal, &xpad, &ypad);
 	geometry.width_inc = terminal->char_width;
 	geometry.height_inc = terminal->char_height;
@@ -96,7 +96,7 @@ main(int argc, char **argv)
 	char *env_add[] = {"FOO=BAR", "BOO=BIZ", NULL};
 	const char *background = NULL;
 	gboolean transparent = FALSE, audible = TRUE, blink = TRUE,
-		 debug = FALSE, dingus = FALSE;
+		 debug = FALSE, dingus = FALSE, geometry = TRUE;
 	const char *message = "Launching interactive shell...\r\n";
 	const char *font = NULL;
 	const char *terminal = NULL;
@@ -108,11 +108,14 @@ main(int argc, char **argv)
 	GdkColor fore, back;
 	const char *usage = "Usage: %s "
 			    "[ [-B image] | [-T] ] "
+			    "[-D] "
 			    "[-a] "
 			    "[-b] "
-			    "[-d] "
 			    "[-c command] "
+			    "[-d] "
 			    "[-f font] "
+			    "[-g] "
+			    "[-h] "
 			    "[-t terminaltype]\n";
 	back.red = back.green = back.blue = 0xffff;
 	fore.red = fore.green = fore.blue = 0x3000;
@@ -135,7 +138,7 @@ main(int argc, char **argv)
 	argv2[i] = NULL;
 	g_assert(i < (g_list_length(args) + 2));
 	/* Parse some command-line options. */
-	while ((opt = getopt(argc, argv, "B:DTabc:df:ht:")) != -1) {
+	while ((opt = getopt(argc, argv, "B:DTabc:df:ght:")) != -1) {
 		switch (opt) {
 			case 'B':
 				background = optarg;
@@ -160,6 +163,9 @@ main(int argc, char **argv)
 				break;
 			case 'f':
 				font = optarg;
+				break;
+			case 'g':
+				geometry = !geometry;
 				break;
 			case 't':
 				terminal = optarg;
@@ -191,8 +197,10 @@ main(int argc, char **argv)
 
 	/* Connect to the "char_size_changed" signal to set geometry hints
 	 * whenever the font used by the terminal is changed. */
-	g_signal_connect_object(G_OBJECT(widget), "char-size-changed",
-				G_CALLBACK(char_size_changed), window, 0);
+	if (geometry) {
+		g_signal_connect(G_OBJECT(widget), "char-size-changed",
+				 G_CALLBACK(char_size_changed), window);
+	}
 
 	/* Connect to the "window_title_changed" signal to set the main
 	 * window's title. */

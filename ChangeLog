@@ -1,4 +1,11 @@
 2002-08-14 nalin
+	* src/vte.c(vte_terminal_configure_toplevel): repaint the entire window
+	to ensure that any overdraw area we're not paying attention to at least
+	gets cleared to the background.
+	* src/vte.c(vte_terminal_locale_encoding): don't try to second-guess
+	the local encoding, just use the current charset as returned by
+	g_get_charset().
+2002-08-14 nalin
 	* src/vte.c(vte_terminal_reset): drop pending incoming data on reset.
 	* src/vte.c: give reprocessing of pending input data a higher priority
 	than reading it from the child to prevent backlogs on corrupt or invalid
