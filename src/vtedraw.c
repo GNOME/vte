@@ -273,5 +273,5 @@ _vte_draw_set_scroll(struct _vte_draw *draw, gint x, gint y)
 {
 	g_return_if_fail(draw->impl != NULL);
 	g_return_if_fail(draw->impl->set_scroll != NULL);
-	return draw->impl->set_scroll(draw, x, y);
+	draw->impl->set_scroll(draw, x, y);
 }

@@ -1,3 +1,12 @@
+2003-05-02 nalin
+	* configure.in: define _XOPEN_SOURCE_EXTENDED, _XOPEN_SOURCE, and
+	__EXTENSIONS__ to get definitions for msg_control and msg_controllen
+	on Solaris (#112036).
+	* src/vtedraw.c(_vte_draw_set_scroll): don't try to return a value from
+	this void function (#112036).  Patch from Hidetoshi Tajima.
+	* src/xticker.c: don't include getopt.h, which isn't even needed for
+	regular getopt() (#112036).  Patch from Hidetoshi Tajima.
+
 2003-05-01 nalin
 	* src/vtebg.c(vte_bg_set_root_pixmap,vte_bg_root_pixmap): remove some
 	debugging g_print() calls.

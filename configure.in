@@ -188,7 +188,7 @@ AC_CHECK_DECLS(FT_PIXEL_MODE_LCD,,,[
 CFLAGS="$savecflags"
 CPPFLAGS="$savecppflags"
 
-# Use all available featurs under glibc, and disable accidental use of
+# Use all available features under glibc, and disable accidental use of
 # deprecated functionality.
 AC_EGREP_CPP(glibc,
 		[
@@ -197,7 +197,10 @@ AC_EGREP_CPP(glibc,
 		 glibc
 		 #endif
 		],
-		AC_DEFINE(_GNU_SOURCE,1,[Use all features.]))
+		AC_DEFINE(_GNU_SOURCE,1,[Use all glibc features.]))
+AC_DEFINE(_XOPEN_SOURCE_EXTENDED,1,[Needed to get declarations for msg_control and msg_controllen on Solaris])
+AC_DEFINE(_XOPEN_SOURCE,1,[Needed to get declarations for msg_control and msg_controllen on Solaris])
+AC_DEFINE(__EXTENSIONS__,1,[Needed to get declarations for msg_control and msg_controllen on Solaris])
 
 AC_DEFINE(G_DISABLE_DEPRECATED,1,[Disable deprecated GLib features.])
 AC_DEFINE(GDK_DISABLE_DEPRECATED,1,[Disable deprecated GDK features.])
