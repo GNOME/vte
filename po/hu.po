@@ -1,0 +1,118 @@
+# VTE Hungarian po.
+# Copyright (C) 2003, Free Software Foundation Inc.
+# This file is distributed under the same license as the vte package.
+# Andras Timar <timar@gnome.hu>, 2003.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte CVS\n"
+"POT-Creation-Date: 2003-01-18 14:40+0100\n"
+"PO-Revision-Date: 2003-01-18 14:54+0100\n"
+"Last-Translator: Andras Timar <timar@gnome.hu>\n"
+"Language-Team: Hungarian <hu@gnome.hu>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/pty.c:253
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "Hiba a(z) `%s'a környezethez hozzáadása közben, folytatás."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:800
+#, c-format
+msgid "can not run %s"
+msgstr "%s nem futtatható"
+
+#: src/reaper.c:107
+msgid "Error creating signal pipe."
+msgstr "Hiba a jelzéscső létrehozása közben."
+
+#: src/trie.c:411
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "Dupla (%s/%s)!"
+
+#: src/vte.c:1407
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Hiba a(z) \"%s\" reguláris kifejezés lefordítása közben."
+
+#: src/vte.c:1929 src/vte.c:1938 src/vte.c:1950 src/vte.c:1968 src/vte.c:1974
+#: src/vte.c:1979
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Nem sikerült a karakterek átalakítása %s és %s között."
+
+#: src/vte.c:5459
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "Váratlan (billentyű?) sorozat érkezett: `%s'."
+
+#: src/vte.c:6549
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "Nincs kezelő megadva a(z) `%s' vezérlőszekvenciához."
+
+#: src/vte.c:7288
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Hiba a gyermekből olvasás közben: %s."
+
+#: src/vte.c:7449
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Hiba (%s) történt az adatkonverzió közben a gyermek számára, eldobva."
+
+#: src/vte.c:9740
+#, c-format
+msgid "Using fontset \"%s\", which is missing these character sets: %s."
+msgstr "A(z) \"%s\" betűkészlet lesz használva, amelyben nincsenek benne a következő karakterkészletek: %s."
+
+#: src/vte.c:10378
+#, c-format
+msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
+msgstr "Nem sikerült betölteni az Xft-betűkészletmintát: \"%s\". Az alapértelmezett betűkészlet lesz használva. "
+
+#: src/vte.c:10390
+msgid "Failed to load default Xft font."
+msgstr "Nem sikerült betölteni az alapértelmezett Xft-betűkészletet."
+
+#: src/vte.c:10483
+#, c-format
+msgid "Failed to load font set \"%s\", falling back to default font."
+msgstr "Nem sikerült betölteni a(z) \"%s\" betűkészletet, az alapértelmezett betűkészlet lesz használva."
+
+#: src/vte.c:10495
+msgid "Failed to load default font, crashing or behaving abnormally."
+msgstr "Az alapértelmezett betűkészlet betöltése nem sikerült. Vagy összeomlik az alkalmazás, vagy abnormálisan fog viselkedni."
+
+#: src/vte.c:10757
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "Hiba a PTY-méret beolvasása közben, az alapértelmezés lesz használva: %s."
+
+#: src/vte.c:10793
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "Hiba a PTY-méret beállítása közben: %s."
+
+#: src/vte.c:13679
+msgid "Error allocating draw, disabling Xft."
+msgstr "Hiba a rajzolás allokálása közben, az Xft letiltva."
+
+#: src/vte.c:13687
+msgid "Error allocating context, disabling Pango."
+msgstr "Hiba a kontextus allokálása közben, a Pango letiltva."
+
+#: src/vte.c:13693
+msgid "Error allocating layout, disabling Pango."
+msgstr "Hiba az elrendezés allokálása közben, a Pango letiltva."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:15326
+msgid "g_iconv_open() failed setting word characters"
+msgstr "A g_iconv_open() nem tudta beállítani a szó karaktereit."
