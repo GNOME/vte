@@ -1,4 +1,7 @@
 2003-08-11 nalin
+	* python/vte.override: add binding for get_padding() (bug #118834).
+
+2003-08-11 nalin
 	* python/vte.override: add binding for get_cursor_position()
 	(bug #118800).
 
