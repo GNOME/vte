@@ -6403,8 +6403,6 @@ vte_terminal_process_incoming(gpointer data)
 		/* The cursor shouldn't be above or below the addressable
 		 * part of the display buffer. */
 		g_assert(screen->cursor_current.row >= screen->insert_delta);
-		g_assert(screen->cursor_current.row <
-			 (screen->insert_delta + terminal->row_count));
 #endif
 
 		/* Free any parameters we don't care about any more. */

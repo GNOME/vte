@@ -1,4 +1,8 @@
 2002-10-16 nalin
+	* src/vte.c: remove a bogus assertion for a case which we were already
+	handling a little further down.
+
+2002-10-16 nalin
 	* src/vte.c: adjust our adjustments whenever a line might scroll off
 	the top of the buffer.  Fix computation of the new insertion delta to
 	ensure that it never goes below the scroll delta, which should fix the
