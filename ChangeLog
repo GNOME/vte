@@ -1,3 +1,10 @@
+2002-09-04 Brian Cameron <Brian.Cameron@sun.com>
+	* configure.in: Added stropts.h check for Solaris.
+	* src/vte.c: Do not send data to the slave if the length is zero.
+	Some shells on Solaris do not handle this well.
+	* src/pty.c: Added ptem/ldterm/ttcompat ioctls so VTE will work
+	on Solaris.
+
 2002-09-03 nalin
 	* src/vte.c: Avoid double color deallocations with Xft.
 

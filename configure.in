@@ -36,6 +36,7 @@ AC_DEFINE(VTE_UTF8_BPC,6,[Maximum number of bytes used per UTF-8 character.])
 AC_DEFINE_UNQUOTED(PACKAGE,"$PACKAGE",[Package name.])
 AC_CHECK_FUNCS(getpt grantpt unlockpt ptsname ptsname_r)
 AC_CHECK_HEADERS(termios.h)
+AC_CHECK_HEADERS(stropts.h)
 
 # Double-check that the GTK libraries pulled in Xft functionality, then use
 # the GTK CFLAGS to find the Xft headers.

@@ -7092,7 +7092,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			break;
 		}
 		/* If we got normal characters, send them to the child. */
-		if (normal != NULL) {
+		if (normal != NULL && normal_length > 0) {
 			if (terminal->pvt->alt_sends_escape &&
 			    (normal_length > 0) &&
 			    (modifiers & GDK_MOD1_MASK)) {

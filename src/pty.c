@@ -28,6 +28,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#ifdef HAVE_STROPTS_H
+#include <stropts.h>
+#endif
 #ifdef HAVE_TERMIOS_H
 #include <termios.h>
 #endif
@@ -98,6 +101,24 @@ vte_pty_fork_on_pty(const char *path, char **env_add,
 	    (fd != STDERR_FILENO)) {
 		close(fd);
 	}
+
+#ifdef HAVE_STROPTS_H
+	if (!ioctl (fd, I_FIND, "ptem") && ioctl (fd, I_PUSH, "ptem") == -1) {
+		close (fd);
+		return -1;
+	}
+
+	if (!ioctl (fd, I_FIND, "ldterm") && ioctl (fd, I_PUSH, "ldterm") == -1) {
+		close (fd);
+		return -1;
+	}
+
+	if (!ioctl (fd, I_FIND, "ttcompat") && ioctl (fd, I_PUSH, "ttcompat") == -1) {
+		perror ("ioctl (fd, I_PUSH, \"ttcompat\")");
+		close (fd);
+		return -1;
+	}
+#endif /* HAVE_STROPTS_H */
 
 	/* Set any environment variables. */
 	for (i = 0; (env_add != NULL) && (env_add[i] != NULL); i++) {
