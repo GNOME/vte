@@ -1,9 +1,14 @@
 2002-08-19 nalin
+	* src/vte.h, src/vte.c: Use gssize instead of ssize_t.  Perform
+	substitutions while processing.  Use PangoX contexts when we're using
+	the PangoX fontmap and when doing PangoX rendering.
+2002-08-19 nalin
 	* src/mkunitables.sh,src/unitable.*: Add.
 	* src/iso2022.c, src/iso2022.h: Use unitables.
 	* src/caps.c: Remove sequences for designating character sets.  Switch
 	to using a second passed-in buffer for storing results in case the
 	caller doesn't want substitutions done in-place.
+	* src/debug.c, src/debug.h: Add a substitution debug flag.
 	* src/interpret.c: Perform substitution.
 	* src/table.c, src/table.h: Use gssize instead of ssize_t.
 	* src/termcap.c, src/termcap.h: Use gssize instead of ssize_t.

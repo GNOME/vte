@@ -46,6 +46,7 @@
 #include <pango/pangox.h>
 #include "caps.h"
 #include "debug.h"
+#include "iso2022.h"
 #include "marshal.h"
 #include "pty.h"
 #include "reaper.h"
@@ -188,16 +189,16 @@ struct _VteTerminalPrivate {
 
 	/* Input data queues. */
 	const char *encoding;		/* the pty's encoding */
-	const char *gxencoding[4];	/* alternate encodings */
+	struct vte_iso2022 *substitutions;
 	GIConv incoming_conv;		/* narrow/unichar conversion state */
 	unsigned char *incoming;	/* pending output characters */
-	size_t n_incoming;
+	gssize n_incoming;
 	gboolean processing;
-	guint processing_tag;
+	gint processing_tag;
 
 	/* Output data queue. */
 	unsigned char *outgoing;	/* pending input characters */
-	size_t n_outgoing;
+	gssize n_outgoing;
 	GIConv outgoing_conv_wide;
 	GIConv outgoing_conv_utf8;
 
@@ -421,14 +422,14 @@ vte_new_row_data(void)
 }
 
 /* Guess at how many columns a character takes up. */
-static ssize_t
+static gssize
 vte_unichar_width(gunichar c)
 {
 	return g_unichar_isdefined(c) ? (g_unichar_iswide(c) ? 2 : 1) : -1;
 }
 
 /* Check how long a string of unichars is.  Slow version. */
-static ssize_t
+static gssize
 vte_unicode_strlen(gunichar *c)
 {
 	int i;
@@ -620,7 +621,7 @@ vte_invalidate_cursor_once(gpointer data)
 	VteTerminal *terminal;
 	VteScreen *screen;
 	struct vte_charcell *cell;
-	size_t preedit_length;
+	gssize preedit_length;
 	int columns;
 
 	if (!VTE_IS_TERMINAL(data)) {
@@ -1097,7 +1098,7 @@ vte_terminal_match_check_internal(VteTerminal *terminal, long column,
 	int i, j, ret, offset;
 	struct vte_match_regex *regex = NULL;
 	struct vte_char_attributes *attr = NULL;
-	size_t coffset;
+	gssize coffset;
 	regmatch_t matches[256];
 	if (tag != NULL) {
 		*tag = -1;
@@ -1438,7 +1439,7 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	GQuark encoding_quark;
 	GIConv conv, new_iconv, new_oconvw, new_oconvu;
 	char *ibuf, *obuf, *obufptr;
-	size_t icount, ocount;
+	gssize icount, ocount;
 
 	old_codeset = terminal->pvt->encoding;
 	if (codeset == NULL) {
@@ -3355,7 +3356,7 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 	GValue *value;
 	GIConv conv;
 	char *inbuf = NULL, *outbuf = NULL, *outbufptr = NULL;
-	size_t inbuf_len, outbuf_len;
+	gssize inbuf_len, outbuf_len;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	/* Get the string parameter's value. */
 	value = g_value_array_get_nth(params, 0);
@@ -4548,94 +4549,6 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 	}
 }
 
-/* Designate particular character sets as the "G0/G1/G2/G3" charsets. */
-static void
-vte_sequence_handler_designate_gx(VteTerminal *terminal,
-				  const char *match,
-				  GQuark match_quark,
-				  GValueArray *params,
-				  int x)
-{
-	GValue *value;
-	GtkWidget *widget;
-	char c;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail((x == 0) || (x == 1) || (x == 2) || (x == 3));
-	widget = GTK_WIDGET(terminal);
-
-	if ((params != NULL) && (params->n_values > 0)) {
-		value = g_value_array_get_nth(params, 0);
-		if (G_VALUE_HOLDS_CHAR(value)) {
-			c = g_value_get_char(value);
-			switch (c) {
-				case '0':	/* DEC */
-					terminal->pvt->gxencoding[x] =
-						NULL;
-					break;
-				case 'A':	/* UK. */
-				case 'B':	/* USA (ASCII). */
-				case '4':	/* Dutch. */
-				case 'C':	/* Finnish. */
-				case '5':
-				case 'R':	/* French. */
-				case 'Q':	/* French Canadian. */
-				case 'K':	/* German. */
-				case 'Y':	/* Italian. */
-				case 'E':	/* Norwegian/Danish. */
-				case '6':
-				case 'Z':	/* Spanish. */
-				case 'H':	/* Swedish. */
-				case '7':
-				case '=':	/* Swiss. */
-					terminal->pvt->gxencoding[x] =
-						vte_table_narrow_encoding();
-					break;
-			}
-		}
-	}
-}
-
-static void
-vte_sequence_handler_designate_g0(VteTerminal *terminal,
-				  const char *match,
-				  GQuark match_quark,
-				  GValueArray *params)
-{
-	vte_sequence_handler_designate_gx(terminal, match, match_quark,
-					  params, 0);
-}
-
-static void
-vte_sequence_handler_designate_g1(VteTerminal *terminal,
-				  const char *match,
-				  GQuark match_quark,
-				  GValueArray *params)
-{
-	vte_sequence_handler_designate_gx(terminal, match, match_quark,
-					  params, 1);
-}
-
-static void
-vte_sequence_handler_designate_g2(VteTerminal *terminal,
-				  const char *match,
-				  GQuark match_quark,
-				  GValueArray *params)
-{
-	vte_sequence_handler_designate_gx(terminal, match, match_quark,
-					  params, 2);
-}
-
-static void
-vte_sequence_handler_designate_g3(VteTerminal *terminal,
-				  const char *match,
-				  GQuark match_quark,
-				  GValueArray *params)
-{
-	vte_sequence_handler_designate_gx(terminal, match, match_quark,
-					  params, 3);
-}
-
 /* Complain that we got an escape sequence that's actually a keystroke. */
 static void
 vte_sequence_handler_complain_key(VteTerminal *terminal,
@@ -4995,10 +4908,6 @@ static struct {
 	{"decset", vte_sequence_handler_decset},
 	{"delete-characters", vte_sequence_handler_DC},
 	{"delete-lines", vte_sequence_handler_delete_lines},
-	{"designate-g0-character-set", vte_sequence_handler_designate_g0},
-	{"designate-g1-character-set", vte_sequence_handler_designate_g1},
-	{"designate-g2-character-set", vte_sequence_handler_designate_g2},
-	{"designate-g3-character-set", vte_sequence_handler_designate_g3},
 	{"device-control-string", NULL},
 	{"device-status-report", vte_sequence_handler_device_status_report},
 	{"double-height-bottom-half", NULL},
@@ -5231,13 +5140,14 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			const GdkColor *foreground,
 			const GdkColor *background,
 			const GdkColor *palette,
-			size_t palette_size)
+			gssize palette_size)
 {
 	int i;
 	GdkColor color;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
+	g_return_if_fail(palette_size >= 0);
 	g_return_if_fail((palette_size == 0) ||
 			 (palette_size == 8) ||
 			 (palette_size == 16) ||
@@ -5745,7 +5655,7 @@ free_params_array(GValueArray *params)
 }
 
 /* Process incoming data, first converting it to unicode characters, and then
- * processing escape sequences. */
+ * processing control sequences. */
 static gboolean
 vte_terminal_process_incoming(gpointer data)
 {
@@ -5753,10 +5663,12 @@ vte_terminal_process_incoming(gpointer data)
 	VteTerminal *terminal;
 	VteScreen *screen;
 	struct vte_cursor_position cursor;
+	struct vte_iso2022 *substitutions;
+	gssize substitution_count;
 	GtkWidget *widget;
 	GdkRectangle rect;
 	char *ibuf, *obuf, *obufptr, *ubuf, *ubufptr;
-	size_t icount, ocount, ucount;
+	gssize icount, ocount, ucount;
 	gunichar *wbuf, c;
 	int wcount, start;
 	const char *match, *encoding;
@@ -5838,6 +5750,18 @@ vte_terminal_process_incoming(gpointer data)
 	/* Compute the number of unicode characters we got. */
 	wcount = (obuf - obufptr) / sizeof(gunichar);
 	wbuf = (gunichar*) obufptr;
+
+	/* Perform ISO-2022 and XTerm national charset substitutions. */
+	substitutions = vte_iso2022_copy(terminal->pvt->substitutions);
+	substitution_count = vte_iso2022_substitute(substitutions,
+						    wbuf, wcount, wbuf);
+	if (substitution_count < 0) {
+		vte_iso2022_free(substitutions);
+		g_free(obufptr);
+		return terminal->pvt->processing;
+	} else {
+		wcount = substitution_count;
+	}
 
 	/* Save the current cursor position. */
 	screen = terminal->pvt->screen;
@@ -6061,7 +5985,7 @@ vte_terminal_io_read(GIOChannel *channel,
 	VteTerminal *terminal;
 	GtkWidget *widget;
 	char *buf;
-	size_t bufsize;
+	gssize bufsize;
 	int bcount, fd;
 	gboolean empty, eof, leave_open = TRUE;
 
@@ -6156,7 +6080,7 @@ vte_terminal_io_read(GIOChannel *channel,
 
 /* Render some UTF-8 text. */
 void
-vte_terminal_feed(VteTerminal *terminal, const char *data, size_t length)
+vte_terminal_feed(VteTerminal *terminal, const char *data, gssize length)
 {
 	char *buf;
 	gboolean empty;
@@ -6203,7 +6127,7 @@ vte_terminal_io_write(GIOChannel *channel,
 		      gpointer data)
 {
 	VteTerminal *terminal;
-	ssize_t count;
+	gssize count;
 	int fd;
 	gboolean leave_open;
 
@@ -6248,12 +6172,12 @@ vte_terminal_io_write(GIOChannel *channel,
 /* Convert some arbitrarily-encoded data to send to the child. */
 static void
 vte_terminal_send(VteTerminal *terminal, const char *encoding,
-		  const void *data, size_t length)
+		  const void *data, gssize length)
 {
-	size_t icount, ocount;
+	gssize icount, ocount;
 	char *ibuf, *obuf, *obufptr;
 	char *outgoing, *p;
-	size_t n_outgoing;
+	gssize n_outgoing;
 	GIConv *conv;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -6294,8 +6218,8 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 			p = memchr(p, '\n', n_outgoing - (p - outgoing));
 			if (p != NULL) {
 				*p = '\r';
+				p++;
 			}
-			p++;
 		}
 		/* If we need to start waiting for the child pty to become
 		 * available for writing, set that up here. */
@@ -6317,10 +6241,10 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 
 /* Send a chunk of UTF-8 text to the child. */
 void
-vte_terminal_feed_child(VteTerminal *terminal, const char *text, size_t length)
+vte_terminal_feed_child(VteTerminal *terminal, const char *text, gssize length)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	if (length == ((size_t)-1)) {
+	if (length == ((gssize)-1)) {
 		length = strlen(text);
 	}
 	vte_terminal_im_reset(terminal);
@@ -6530,7 +6454,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	struct vte_termcap *termcap;
 	const char *tterm;
 	unsigned char *normal = NULL;
-	size_t normal_length = 0;
+	gssize normal_length = 0;
 	int i;
 	unsigned char *special = NULL, *specialmods = NULL;
 	struct termios tio;
@@ -8218,7 +8142,7 @@ xlfd_from_pango_font_description(GtkWidget *widget,
 	g_return_val_if_fail(fontdesc != NULL, NULL);
 	g_return_val_if_fail(GTK_IS_WIDGET(widget), NULL);
 
-	context = gtk_widget_get_pango_context(widget);
+	context = pango_x_get_context(GDK_DISPLAY());
 	if (context == NULL) {
 		return g_strdup(VTE_X_FIXED);
 	}
@@ -8311,6 +8235,11 @@ static void
 vte_xft_changed_cb(GtkSettings *settings, GParamSpec *spec,
 		   VteTerminal *terminal)
 {
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "Xft settings changed.\n");
+	}
+#endif
 	vte_terminal_set_font(terminal, terminal->pvt->fontdesc);
 }
 
@@ -8555,7 +8484,11 @@ vte_terminal_set_font(VteTerminal *terminal,
 			PangoLanguage *lang = NULL;
 			PangoLayout *layout = NULL;
 			PangoRectangle ink, logical;
-			pcontext = gdk_pango_context_get();
+#ifdef VTE_PREFER_PANGOX
+			pcontext = pango_x_get_context(GDK_DISPLAY());
+#else
+			pcontext = gtk_widget_get_pango_context(widget);
+#endif
 			font = pango_context_load_font(pcontext, font_desc);
 			if (PANGO_IS_FONT(font)) {
 				/* We got a font, now reset the description so
@@ -8949,7 +8882,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	const char *code, *value;
 	gboolean found_cr = FALSE, found_lf = FALSE;
 	char *stripped;
-	size_t stripped_length;
+	gssize stripped_length;
 	int columns, rows;
 	GQuark quark;
 	char *tmp;
@@ -9164,7 +9097,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	PangoContext *pctx;
 	PangoFontMetrics *metrics;
 	struct passwd *pwd;
-	int i;
 	GtkAdjustment *adjustment;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -9179,7 +9111,11 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* Make up some metrics for now. */
 	gtk_widget_ensure_style(widget);
+#ifdef VTE_PREFER_PANGOX
+	pctx = pango_x_get_context(GDK_DISPLAY());
+#else
 	pctx = gtk_widget_get_pango_context(widget);
+#endif
 	metrics = pango_context_get_metrics(pctx, widget->style->font_desc,
 					    pango_context_get_language(pctx));
 	if (metrics != NULL) {
@@ -9252,9 +9188,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* Set up I/O encodings. */
 	pvt->encoding = NULL;
-	for (i = 0; i < G_N_ELEMENTS(pvt->gxencoding); i++) {
-		pvt->gxencoding[i] = NULL;
-	}
+	pvt->substitutions = vte_iso2022_new();
 	pvt->incoming = NULL;
 	pvt->n_incoming = 0;
 	pvt->processing = FALSE;
@@ -9638,6 +9572,12 @@ vte_terminal_finalize(GObject *object)
 	if (terminal->pvt->unichar_wc_map != NULL) {
 		g_tree_destroy(terminal->pvt->unichar_wc_map);
 		terminal->pvt->unichar_wc_map = NULL;
+	}
+
+	/* The NLS maps. */
+	if (terminal->pvt->substitutions != NULL) {
+		vte_iso2022_free(terminal->pvt->substitutions);
+		terminal->pvt->substitutions = NULL;
 	}
 
 	/* Free background info. */
@@ -10690,6 +10630,7 @@ vte_terminal_compute_padding(VteTerminal *terminal, Display *display,
 	int columns, pad = 0, rpad = 0, width;
 	char utf8_buf[VTE_UTF8_BPC];
 	GtkWidget *widget;
+	PangoContext *pcontext;
 	PangoLayout *layout;
 	PangoRectangle pink, plogical;
 	XRectangle xink, xlogical;
@@ -10711,7 +10652,12 @@ vte_terminal_compute_padding(VteTerminal *terminal, Display *display,
 	/* Ask Pango. */
 	if ((pad == 0) && (terminal->pvt->use_pango)) {
 		widget = GTK_WIDGET(terminal);
-		layout = pango_layout_new(gtk_widget_get_pango_context(widget));
+#ifdef VTE_PREFER_PANGOX
+		pcontext = pango_x_get_context(GDK_DISPLAY());
+#else
+		pcontext = gtk_widget_get_pango_context(widget);
+#endif
+		layout = pango_layout_new(pcontext);
 		pango_layout_set_font_description(layout,
 						  terminal->pvt->fontdesc);
 		pango_layout_set_text(layout, utf8_buf,
@@ -10794,7 +10740,7 @@ vte_terminal_get_char_padding_right(VteTerminal *terminal, Display *display,
 /* Draw a string of characters with similar attributes. */
 static void
 vte_terminal_draw_cells(VteTerminal *terminal,
-			struct vte_draw_item *items, size_t n,
+			struct vte_draw_item *items, gssize n,
 			gint fore, gint back, gboolean draw_default_bg,
 			gboolean underline, gboolean hilite, gboolean boxed,
 			gint x, gint y, gint x_offs, gint y_offs,
@@ -12457,7 +12403,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	GIConv conv;
 	gunichar *wbuf;
 	char *ibuf, *ibufptr, *obuf, *obufptr;
-	size_t ilen, olen;
+	gssize ilen, olen;
 	VteWordCharRange range;
 	int i;
 
@@ -12578,6 +12524,11 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 		terminal->pvt->processing_tag = -1;
 		terminal->pvt->processing = FALSE;
 	}
+	/* Reset charset substitution state. */
+	if (terminal->pvt->substitutions != NULL) {
+		vte_iso2022_free(terminal->pvt->substitutions);
+	}
+	terminal->pvt->substitutions = vte_iso2022_new();
 	/* Reset appkeypad state. */
 	terminal->pvt->keypad = VTE_KEYPAD_NORMAL;
 	/* Reset saved settings. */

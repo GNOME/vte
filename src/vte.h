@@ -79,8 +79,9 @@ typedef struct _VteTerminalClass {
 	guint maximize_window_signal;
 	guint resize_window_signal;
 	guint move_window_signal;
-
 	guint status_line_changed_signal;
+
+	gpointer reserved1;
 	gpointer reserved2;
 	gpointer reserved3;
 	gpointer reserved4;
@@ -125,9 +126,9 @@ pid_t vte_terminal_fork_command(VteTerminal *terminal,
 
 /* Send data to the terminal to display, or to the terminal's forked command
  * to handle in some way.  If it's 'cat', they should be the same. */
-void vte_terminal_feed(VteTerminal *terminal, const char *data, size_t length);
+void vte_terminal_feed(VteTerminal *terminal, const char *data, gssize length);
 void vte_terminal_feed_child(VteTerminal *terminal,
-			     const char *data, size_t length);
+			     const char *data, gssize length);
 
 /* Copy currently-selected text to the clipboard, or from the clipboard to
  * the terminal. */
@@ -154,7 +155,7 @@ void vte_terminal_set_colors(VteTerminal *terminal,
 			     const GdkColor *foreground,
 			     const GdkColor *background,
 			     const GdkColor *palette,
-			     size_t palette_size);
+			     gssize palette_size);
 void vte_terminal_set_default_colors(VteTerminal *terminal);
 
 /* Background effects. */
