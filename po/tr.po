@@ -1,45 +1,49 @@
+# translation of vte.tr.po to Turkish
+# translation of vte.HEAD.tr.po to Turkish
 # Turkish translation of vte.
 # Copyright (C) 2003 vte's COPYRIGHT HOLDER
 # This file is distributed under the same license as the vte package.
 # Görkem �Getin <gorkem@gelecek.com.tr>, 2003.
 # Arman Aksoy <armish@linux-sevenler.de>, 2003.
+# Baris Cicek <baris@teamforce.name.tr>, 2004.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: vte\n"
+"Project-Id-Version: vte.tr\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2003-12-28 21:52+0000\n"
-"PO-Revision-Date: 2003-02-10 19:53+0200\n"
-"Last-Translator: Arman Aksoy (Armish) <armish@linux-sevenler.de>\n"
+"POT-Creation-Date: 2004-02-26 04:35+0100\n"
+"PO-Revision-Date: 2004-02-26 13:54+0200\n"
+"Last-Translator: Baris Cicek <baris@teamforce.name.tr>\n"
 "Language-Team: Turkish <gnome-turk@gnome.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.0.2\n"
 
 #: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2072
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "Karakterlerde %s -> %s dönüşümü yapılamıyor."
+msgstr "Karakterler %s'den %s'e dönüştürülemiyor."
 
 #: src/iso2022.c:1578
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr ""
+msgstr "Geçersiz NRC haritası '%c' ayarlanmaya çalışıldı."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #: src/iso2022.c:1619
 msgid "Unrecognized identified coding system."
-msgstr ""
+msgstr "Anımsanmayan tanımlanmış kodlama sistemi."
 
 #: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr ""
+msgstr "Geçersiz geniş NRC haritası '%c' ayarlanmaya çalışıldı."
 
 #: src/pty.c:323
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr "Çevreye '%s' eklenirken bir hata oluştu, devam ediliyor."
+msgstr "Ortama `%s' eklenirken bir hata oluştu, devam ediliyor."
 
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
@@ -51,7 +55,7 @@ msgstr "%s çalıştırılamadı"
 
 #: src/reaper.c:110
 msgid "Error creating signal pipe."
-msgstr "Sinyal borusu oluştururken hata"
+msgstr "Sinyal borusu oluştururken hata."
 
 #: src/trie.c:412
 #, c-format
@@ -61,82 +65,55 @@ msgstr "Çift (%s/%s)!"
 #: src/vte.c:1480
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "Düzenli ifade yorumlanırken hata: \"%s\"."
+msgstr "Düzenli ifade derlenirken hata: \"%s\"."
 
 #: src/vte.c:5815
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr "Anlaşılamayan klavye girdisi '%s'"
+msgstr "Beklenmeyen (tuş?) serisi `%s' alındı."
 
 #: src/vte.c:6893
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr "`%s' kontrol dizisi için işlemci tanımlanmamış."
+msgstr "`%s' kontrol serisi için işlemci tanımlanmamış."
 
 #: src/vte.c:7714
 #, c-format
 msgid "Error reading from child: %s."
-msgstr "Oğul süreçten okunurken hata: %s"
+msgstr "Oğul süreçten okunurken hata: %s."
 
 #: src/vte.c:7870
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "Bir hata oluştu (%s)"
+msgstr "Oğul süreç için veriyi çeviriken hata (%s), bırakılıyor."
 
 #: src/vte.c:10537
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr "PTY boyutu okunamadı, öntanımlı değer kullanılıyor: %s"
+msgstr "PTY boyutu okunurken hata, öntanımlı değerler kullanılıyor: %s."
 
 #: src/vte.c:10573
 #, c-format
 msgid "Error setting PTY size: %s."
-msgstr "PTY boyutu tanımlanamadı: %s."
+msgstr "PTY boyutu ayarlanırken hata: %s."
 
 #. Aaargh.  We're screwed.
 #: src/vte.c:14977
-#, fuzzy
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "g_iconv_open() komutunda bir hata oluştu"
+msgstr "_vte_iconv_open() kelime karakterlerini ayarlarken başarısız oldu"
 
 #. Bail back to normal mode.
 #: src/vteapp.c:713
 msgid "Could not open console.\n"
-msgstr ""
+msgstr "Konsol açılamadı.\n"
 
 #: src/vteglyph.c:576
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr ""
+msgstr "Bilinmeyen benek kipi %d.\n"
 
 #: src/vtexft.c:710
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr ""
+msgstr "U+%04x karakteri çizilemiyor.\n"
 
-#~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
-#~ msgstr "\"%s\" yazıtipi kullanılıyor, ancak bazı karakterler eksik: %s."
-
-#~ msgid ""
-#~ "Failed to load Xft font pattern \"%s\", falling back to default font."
-#~ msgstr ""
-#~ "Xft yazıtipi düzeni yüklenemedi (%s), öntanımlı yazıtipine dönüş "
-#~ "yapılıyor."
-
-#~ msgid "Failed to load default Xft font."
-#~ msgstr "Öntanımlı Xft yazıtipi yüklenemedi."
-
-#~ msgid "Failed to load font set \"%s\", falling back to default font."
-#~ msgstr "\"%s\" yazıtipi kümesi yüklenemedi, öntanımlı yazıtipine geçiliyor."
-
-#~ msgid "Failed to load default font, crashing or behaving abnormally."
-#~ msgstr "Öntanımlı yazıtipi yüklenemedi, sistem hata verdi."
-
-#~ msgid "Error allocating draw, disabling Xft."
-#~ msgstr "Bir hata oluştu, Xft kapatılıyor."
-
-#~ msgid "Error allocating context, disabling Pango."
-#~ msgstr "Bir hata oluştu, Pango kapatılıyor."
-
-#~ msgid "Error allocating layout, disabling Pango."
-#~ msgstr "Bir hata oluştu, Pango kapatılıyor."
