@@ -11865,7 +11865,6 @@ vte_terminal_finalize(GObject *object)
 						     terminal);
 		g_object_unref(G_OBJECT(terminal->pvt->pty_reaper));
 	}
-	terminal->pvt->pty_pid = -1;
 	terminal->pvt->pty_reaper = NULL;
 
 	/* Stop processing input. */

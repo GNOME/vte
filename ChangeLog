@@ -1,4 +1,9 @@
 2004-04-29 nalin
+	* src/vte.c(vte_terminal_finalize): don't clear the child's PID early,
+	so that we'll SIGHUP it properly (the kernel should do that anyway,
+	but...) (#128291).
+
+2004-04-29 nalin
 	* src/vte.c(vte_terminal_insert_char): only deselect the current
 	selection if just-inserted text affected the selected region of the
 	screen (#135259).
