@@ -1,3 +1,8 @@
+2002-06-12 msw
+	* src/vteaccess.c (vte_terminal_accessible_get_text): accept
+	end_offset of -1, which means "until the end".
+	* src/vteaccess.c (vte_terminal_accessible_new): never set the
+	description to a NULL pointer
 2002-06-10 nalin
 	* Makefile.am, configure.in: Include gettext support.
 	* src/vte.c, src/vte.h: Expose vte_terminal_set_encoding().
