@@ -7798,14 +7798,21 @@ static void
 vte_default_substitute(VteTerminal *terminal, XftPattern *pattern)
 {
 	GtkSettings *settings;
+	GObjectClass *klass;
 	XftResult result;
 	gboolean found;
-	int i;
-	double d;
-	int antialias, hinting, dpi;
-	char *rgba, *hintstyle;
+	int i = -1;
+	double d = -1;
+	int antialias = -1, hinting = -1, dpi = -1;
+	char *rgba = NULL, *hintstyle = NULL;
 
 	settings = gtk_settings_get_default();
+
+	/* Check that the properties we're looking at are defined. */
+	klass = G_OBJECT_CLASS(GTK_SETTINGS_GET_CLASS(settings));
+	if (g_object_class_find_property(klass, "gtk-xft-antialias") == NULL) {
+		return;
+	}
 
 	/* If this is our first time in here, start listening for changes
 	 * to the Xft settings. */
