@@ -1,7 +1,7 @@
 libexec_PROGRAMS = gnome-pty-helper
 
-CFLAGS = @CFLAGS@ @GLIB_CFLAGS@
-LDFLAGS = @LDFLAGS@ @GLIB_LIBS@
+AM_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@
+AM_LDFLAGS = @LDFLAGS@ @GLIB_LIBS@
 
 gnome_pty_helper_SOURCES = \
 	gnome-pty.h \

@@ -34,5 +34,6 @@ int login_tty (int fd);
 #endif
 
 int n_read (int fd, void *buffer, int size);
+int n_write (int fd, const void *buffer, int size);
 
 #endif /* _GNOME_LOGIN_SUPPORT_H */

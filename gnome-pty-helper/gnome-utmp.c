@@ -5,8 +5,8 @@
  *    Miguel de Icaza (miguel@gnu.org).
  *    Timur I. Bakeyev (timur@gnu.org).
  *
- * FIXME: Do we want to register the PID of the process running *under* the subshell
- * or the PID of the parent process? (we are doing the latter now).
+ * FIXME: Do we want to register the PID of the process running *under* the
+ * subshell or the PID of the parent process? (we are doing the latter now).
  *
  * FIXME: Solaris (utmpx) stuff need to be checked.
  */
@@ -259,12 +259,13 @@ write_logout_record (void *data, int utmp, int wtmp)
 }
 
 void *
-write_login_record (char *login_name, char *display_name, char *term_name, int utmp, int wtmp, int lastlog)
+write_login_record (char *login_name, char *display_name,
+		    char *term_name, int utmp, int wtmp, int lastlog)
 {
 	UTMP *ut;
 	char *pty = term_name;
 
-	if((ut=(UTMP *) malloc (sizeof (UTMP))) == NULL)
+	if ((ut=(UTMP *) malloc (sizeof (UTMP))) == NULL)
 		return NULL;
 	
 	memset (ut, 0, sizeof (UTMP));
@@ -298,8 +299,7 @@ write_login_record (char *login_name, char *display_name, char *term_name, int u
 	    strncmp (pty, "pty", 3) == 0 || 
 	    strncmp (pty, "tty", 3) == 0) {
 		strncpy (ut->ut_id, pty+3, sizeof (ut->ut_id));
-	}
-	else {
+	} else {
 		unsigned int num;
 		char buf[10];
 		/* Try to get device number and convert it to gnome-terminal # */
@@ -353,5 +353,6 @@ write_login_record (char *login_name, char *display_name, char *term_name, int u
 void *
 update_dbs (int utmp, int wtmp, int lastlog, char *login_name, char *display_name, char *term_name)
 {
-	return write_login_record (login_name, display_name, term_name, utmp, wtmp, lastlog);
+	return write_login_record (login_name, display_name,
+				   term_name, utmp, wtmp, lastlog);
 }
