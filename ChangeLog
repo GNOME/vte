@@ -1,4 +1,9 @@
 2003-02-12 nalin
+	* src/reflect.c(main): connect to signals before any get emitted.
+	* src/vteaccess.c: use a GString to store snapshot text so that we
+	always have proper length information.
+
+2003-02-12 nalin
 	* src/reflect.c(text_changed_delete): spit out a warning if we receive
 	an out-of-range text_changed::delete signal.
 

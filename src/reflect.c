@@ -218,9 +218,9 @@ text_changed_insert(AtkObject *obj, gint offset, gint length, gpointer data)
 		return;
 	}
 
-	for (p = inserted, i = 0;
-	     (i < length);
-	     p = g_utf8_next_char(p)) {
+	p = inserted;
+	i = 0;
+	while (i < length) {
 		c = g_utf8_get_char(p);
 		if (offset + i >= contents->len) {
 			g_array_append_val(contents, c);
@@ -228,13 +228,16 @@ text_changed_insert(AtkObject *obj, gint offset, gint length, gpointer data)
 			g_array_insert_val(contents, offset + i, c);
 		}
 		i++;
+		p = g_utf8_next_char(p);
 	}
 
 #ifdef VTE_DEBUG
 	if ((getenv("REFLECT_VERBOSE") != NULL) &&
 	    (atol(getenv("REFLECT_VERBOSE")) != 0)) {
-		fprintf(stderr, "Inserted %d chars ('%.*s') at %d.\n",
+		fprintf(stderr, "Inserted %d chars ('%.*s') at %d,",
 			length, (int)(p - inserted), inserted, offset);
+		fprintf(stderr, " buffer contains %d characters.\n",
+			contents->len);
 	}
 #endif
 
@@ -381,8 +384,6 @@ main(int argc, char **argv)
 	gtk_container_add(GTK_CONTAINER(window), pane);
 	gtk_widget_show(pane);
 
-	terminal_shell(terminal);
-
 	obj = gtk_widget_get_accessible(terminal);
 	g_assert(obj != NULL);
 	g_signal_connect(G_OBJECT(obj), "text-changed::insert",
@@ -391,6 +392,8 @@ main(int argc, char **argv)
 			 G_CALLBACK(text_changed_delete), label);
 	g_signal_connect(G_OBJECT(obj), "text-caret-moved",
 			 G_CALLBACK(text_caret_moved), label);
+
+	terminal_shell(terminal);
 
 	gtk_window_set_default_size(GTK_WINDOW(window), 600, 450);
 	gtk_widget_show(window);
