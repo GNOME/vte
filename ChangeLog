@@ -1,4 +1,9 @@
 2003-03-07 nalin	
+	* src/vte.c(vte_terminal_paint): adjust coordinates for the border when
+	clearing rectangles.
+	* src/vteskel.c, src/vteskel.h: add.
+	* src/vtedraw.c: use the skeleton drawing code.
+2003-03-07 nalin	
 	* src/vte.c(vte_terminal_visibility_notify): watch for Visibility
 	events.
 	* src/vte.c(vte_invalidate_cells,vte_invalidate_all): don't synthesize

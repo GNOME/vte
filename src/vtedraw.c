@@ -28,10 +28,12 @@
 #include "debug.h"
 #include "vtedraw.h"
 #include "vtepango.h"
+#include "vteskel.h"
 #include "vtexft.h"
 
 struct _vte_draw_impl
 *_vte_draw_impls[] = {
+	&_vte_draw_skel,
 #ifdef HAVE_XFT2
 	&_vte_draw_xft,
 #endif

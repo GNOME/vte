@@ -62,6 +62,8 @@ libvte_la_SOURCES = \
 	vtefc.h \
 	vtepango.c \
 	vtepango.h \
+	vteskel.c \
+	vteskel.h \
 	vtexft.c \
 	vtexft.h
 

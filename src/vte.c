@@ -14612,13 +14612,18 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			switch (terminal->pvt->render_method) {
 			case VteRenderDraw:
 				_vte_draw_clear(terminal->pvt->draw,
-						col * width, row * height,
+						col * width + VTE_PAD_WIDTH,
+						row * height + VTE_PAD_WIDTH,
 						width * columns, height);
 				break;
 			default:
 				gdk_window_clear_area(widget->window,
-						      col * width, row * height,
-						      width * columns, height);
+						      col * width +
+						      VTE_PAD_WIDTH,
+						      row * height +
+						      VTE_PAD_WIDTH,
+						      width * columns,
+						      height);
 				break;
 			}
 			if ((cell != NULL) && vte_unichar_is_graphic(cell->c)) {
@@ -14642,9 +14647,13 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								  ggc,
 								  gc);
 				if (!drawn) {
-					item.xpad = vte_terminal_get_char_padding(terminal,
-										  display,
-										  item.c);
+					if (monospaced) {
+						item.xpad = 0;
+					} else {
+						item.xpad = vte_terminal_get_char_padding(terminal,
+											  display,
+											  item.c);
+											  				}
 					vte_terminal_draw_cells(terminal,
 								&item, 1,
 								fore, back,
@@ -14709,19 +14718,55 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		} else {
 			/* Draw it as a hollow rectangle. */
 			columns = cell ? cell->columns : 1;
-			fore = cell ? cell->fore : VTE_DEF_FG;
+			item.c = cell ? cell->c : ' ';
+			item.columns = cell ? cell->columns : 1;
+			if (monospaced) {
+				item.xpad = 0;
+			} else {
+				item.xpad = vte_terminal_get_char_padding(terminal,
+									  display,
+									  item.c);
+			}
+			vte_terminal_determine_colors(terminal, cell, FALSE,
+						      &fore, &back);
+			underline = cell ? (cell->underline != 0) : FALSE;
+			strikethrough = cell ? (cell->strikethrough != 0) : FALSE;
+			bold = cell ? (cell->bold != 0) : FALSE;
+			hilite = FALSE;
 			switch (terminal->pvt->render_method) {
 			case VteRenderDraw:
 				_vte_draw_clear(terminal->pvt->draw,
-						col * width, row * height,
+						col * width + VTE_PAD_WIDTH,
+						row * height + VTE_PAD_WIDTH,
 						width * columns, height);
 				break;
 			default:
 				gdk_window_clear_area(widget->window,
-						      col * width, row * height,
-						      width * columns, height);
+						      col * width +
+						      VTE_PAD_WIDTH,
+						      row * height +
+						      VTE_PAD_WIDTH,
+						      width * columns,
+						      height);
 				break;
 			}
+			vte_terminal_draw_cells(terminal,
+						&item, 1,
+						fore, back, FALSE, bold,
+						underline, strikethrough, hilite, FALSE,
+						col * width - x_offs,
+						row * height - y_offs,
+						x_offs,
+						y_offs,
+						ascent, monospaced,
+						width,
+						height,
+						display, gdrawable, drawable,
+						colormap, visual, ggc, gc,
+#ifdef HAVE_XFT2
+						ftdraw,
+#endif
+						layout);
 			vte_terminal_draw_rectangle(terminal,
 						    display,
 						    drawable,
@@ -14729,8 +14774,10 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 						    &terminal->pvt->palette[fore],
 						    x_offs,
 						    y_offs,
-						    col * width + VTE_PAD_WIDTH - x_offs,
-						    row * height + VTE_PAD_WIDTH - y_offs,
+						    col * width +
+						    VTE_PAD_WIDTH - x_offs,
+						    row * height +
+						    VTE_PAD_WIDTH - y_offs,
 						    columns * width - 1,
 						    height - 1);
 		}
@@ -14770,8 +14817,10 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 						    display, drawable, gc,
 						    &terminal->pvt->palette[back],
 						    x_offs, y_offs,
-						    col * width - x_offs + VTE_PAD_WIDTH,
-						    row * height - y_offs + VTE_PAD_WIDTH,
+						    col * width - x_offs +
+						    VTE_PAD_WIDTH,
+						    row * height - y_offs +
+						    VTE_PAD_WIDTH,
 						    columns * terminal->char_width,
 						    terminal->char_height);
 			vte_terminal_draw_cells(terminal,
