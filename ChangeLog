@@ -1,3 +1,33 @@
+2002-08-06 nalin
+	* src/vte.c(vte_terminal_set_encoding,
+	vte_sequence_handler_local_charset): use g_get_charset() instead of
+	nl_langinfo() to determine the default codeset, and to check if it's
+	UTF-8.  Patch from Hidetoshi Tajima.
+	* src/vte.c(vte_terminal_set_encoding): don't leak conversion
+	descriptors when changing the encoding fails.  Patch from Hidetoshi
+	Tajima.
+	* src/vte.c(vte_terminal_send): don't read past the converted string
+	when performing paste substitutions.
+	* src/vte.c: rework the straight-Pango rendering routines to call
+	normal Pango instead of PangoX.
+	* src/vte.c(vte_terminal_ensure_cursor): speed up the "add many cells"
+	case a bit.
+2002-08-05 nalin
+	* src/vte.c(vte_cell_is_between): sort the two endpoints correctly and
+	provide a boolean to control whether or not the endpoint is "in".
+	* src/vte.c(vte_cell_draw_rows): check if a cell is selected using
+	the right indicator.
+	* src/vte.c(vte_terminal_get_text): when adding a newline to the end
+	of a returned line, don't show it as being in the rightmost column.
+	* src/vte.c(xlfd_from_pango_font_description): turn the DPI, pixel size,
+	and added info into wildcards.
+	* src/vte.c(vte_terminal_draw_cells): go back to drawing individual
+	cells when using Xlib.
+	* src/vte.c: Compute right-side padding as well as left.
+	* src/vte.c(vte_terminal_init): disable use of PangoX by default.
+	* src/vteapp.c: add -D to add the same patterns profterm does to test
+	dingus hiliting.
+
 2002-08-03  Havoc Pennington  <hp@redhat.com>
 
 	* src/vte.c (vte_terminal_setup_background): add a gdk_flush()

@@ -89,9 +89,12 @@ typedef long wint_t;
 #define VTE_DEFAULT_CURSOR		GDK_XTERM
 #define VTE_MOUSING_CURSOR		GDK_LEFT_PTR
 #define VTE_TAB_MAX			999
+#define VTE_X_FIXED			"-*-fixed-medium-r-normal-*-20-*"
 #define VTE_REPRESENTATIVE_CHARACTERS	"ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
 					"abcdefgjijklmnopqrstuvwxyz" \
 					"0123456789./+@"
+#define VTE_REPRESENTATIVE_WIDER_CHARACTER	'M'
+#define VTE_REPRESENTATIVE_NARROWER_CHARACTER	'l'
 #define VTE_INPUT_PRIORITY		G_PRIORITY_DEFAULT_IDLE
 #define VTE_CHILD_INPUT_PRIORITY	G_PRIORITY_DEFAULT_IDLE
 #define VTE_CHILD_OUTPUT_PRIORITY	G_PRIORITY_HIGH
@@ -125,7 +128,7 @@ struct vte_match_regex {
 /* A drawing request record, for simplicity. */
 struct vte_draw_item {
 	gunichar c;
-	guint16 xpad;
+	guint16 xpad, xpad_r;
 };
 
 /* The terminal's keypad state.  A terminal can either be using the normal
@@ -276,7 +279,7 @@ struct _VteTerminalPrivate {
 	 * and data, which should be dropped when unrealizing and (re)created
 	 * when realizing. */
 	XFontSet fontset;
-	GTree *fontpadding;
+	GTree *fontpaddingl, *fontpaddingr;
 	gboolean use_xft;
 #ifdef HAVE_XFT
 	XftFont *ftfont;
@@ -1419,7 +1422,7 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 
 	old_codeset = terminal->pvt->encoding;
 	if (codeset == NULL) {
-		codeset = nl_langinfo(CODESET);
+		g_get_charset(&codeset);
 	}
 
 	/* Open new conversions. */
@@ -1436,7 +1439,9 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	if (new_oconvw == ((GIConv) -1)) {
 		g_warning(_("Unable to convert characters from %s to %s."),
 			  vte_table_wide_encoding(), codeset);
-		g_iconv_close(new_iconv);
+		if (new_iconv != ((GIConv) -1)) {
+			g_iconv_close(new_iconv);
+		}
 		if (terminal->pvt->encoding != NULL) {
 			/* Keep the current encoding. */
 			return;
@@ -1446,8 +1451,12 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	if (new_oconvu == ((GIConv) -1)) {
 		g_warning(_("Unable to convert characters from %s to %s."),
 			  "UTF-8", codeset);
-		g_iconv_close(new_iconv);
-		g_iconv_close(new_oconvw);
+		if (new_iconv != ((GIConv) -1)) {
+			g_iconv_close(new_iconv);
+		}
+		if (new_oconvw != ((GIConv) -1)) {
+			g_iconv_close(new_oconvw);
+		}
 		if (terminal->pvt->encoding != NULL) {
 			/* Keep the current encoding. */
 			return;
@@ -2167,12 +2176,22 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 		/* Add enough cells at the end to make sure we have
 		 * enough for all visible columns. */
 		add = screen->cursor_current.col - array->len;
-		cells = g_malloc(sizeof(cell) * add);
-		for (i = 0; i < add; i++) {
-			cells[i] = cell;
+		if (add > 0) {
+			cells = g_malloc(sizeof(cell) * add);
+			cells[0] = cell;
+			for (i = 1; i < add; i = i * 2) {
+				memcpy(&cells[i], 
+				       &cells[0],
+				       sizeof(cell) * MIN(add - i, i));
+			}
+#ifdef VTE_DEBUG
+			for (i = 0; i < add; i++) {
+				g_assert(memcmp(&cells[i], &cell, sizeof(cell)) == 0);
+			}
+#endif
+			array = g_array_append_vals(array, cells, add);
+			g_free(cells);
 		}
-		array = g_array_append_vals(array, cells, add);
-		g_free(cells);
 	}
 }
 
@@ -4045,14 +4064,15 @@ vte_sequence_handler_local_charset(VteTerminal *terminal,
 				   GQuark match_quark,
 				   GValueArray *params)
 {
+	G_CONST_RETURN char *locale_encoding;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 #ifdef VTE_DEFAULT_ISO_8859_1
 	vte_terminal_set_encoding(terminal, vte_table_narrow_encoding());
 #else
-	if (strcmp(nl_langinfo(CODESET), "UTF-8") == 0) {
+	if (g_get_charset(&locale_encoding)) {
 		vte_terminal_set_encoding(terminal, vte_table_narrow_encoding());
 	} else {
-		vte_terminal_set_encoding(terminal, nl_langinfo(CODESET));
+		vte_terminal_set_encoding(terminal, locale_encoding);
 	}
 #endif
 }
@@ -6208,7 +6228,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		conv = &terminal->pvt->outgoing_conv_wide;
 	}
 	g_assert(conv != NULL);
-	g_assert(*conv != NULL);
+	g_assert(*conv != ((GIConv) -1));
 
 	icount = length;
 	ibuf = (char *) data;
@@ -6230,8 +6250,12 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		/* Convert newlines to carriage returns, which more software
 		 * is able to cope with (cough, pico, cough). */
 		p = terminal->pvt->outgoing;
-		while ((p != NULL) && ((p = strchr(p, '\n')) != NULL)) {
-			*p = '\r';
+		while ((p != NULL) && (p - outgoing < n_outgoing)) {
+			p = memchr(p, '\n', n_outgoing - (p - outgoing));
+			if (p != NULL) {
+				*p = '\r';
+			}
+			p++;
 		}
 		/* If we need to start waiting for the child pty to become
 		 * available for writing, set that up here. */
@@ -6256,7 +6280,7 @@ void
 vte_terminal_feed_child(VteTerminal *terminal, const char *text, size_t length)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	if (length == (size_t)-1) {
+	if (length == ((size_t)-1)) {
 		length = strlen(text);
 	}
 	vte_terminal_im_reset(terminal);
@@ -6276,7 +6300,7 @@ vte_terminal_im_commit(GtkIMContext *im_context, gchar *text, gpointer data)
 	}
 #endif
 	terminal = VTE_TERMINAL(data);
-	vte_terminal_send(terminal, "UTF-8", text, strlen(text));
+	vte_terminal_feed_child(terminal, text, -1);
 	/* Committed text was committed because the user pressed a key, so
 	 * we need to obey the scroll-on-keystroke setting. */
 	if (terminal->pvt->scroll_on_keystroke) {
@@ -6923,8 +6947,30 @@ vte_uniform_class(VteTerminal *terminal, long row, long scol, long ecol)
 
 static gboolean
 vte_cell_is_between(long col, long row,
-		    long acol, long arow, long bcol, long brow)
+		    long acol, long arow, long bcol, long brow,
+		    gboolean inclusive)
 {
+	long t;
+	/* Sort endpoints on the same row properly. */
+	if (arow == brow) {
+		if (acol > bcol) {
+			t = acol;
+			acol = bcol;
+			bcol = t;
+		}
+	} else
+	if (arow > brow) {
+		t = arow;
+		arow = brow;
+		brow = t;
+		t = acol;
+		acol = bcol;
+		bcol = t;
+	}
+	/* No zero-length between allowed. */
+	if ((row == arow) && (row == brow) && (col == acol) && (col == bcol)) {
+		return FALSE;
+	}
 	/* A cell is between two points if it's on a line after the
 	 * specified area starts, or before the line where it ends, 
 	 * or any of the lines in between. */
@@ -6935,8 +6981,13 @@ vte_cell_is_between(long col, long row,
 	 * the cell lies between the start and end columns (which may not
 	 * be in the more obvious of two possible orders). */
 	if ((row == arow) && (row == brow)) {
-		if ((col >= acol) && (col < bcol)) {
-			return TRUE;
+		if (col >= acol) {
+			if (col < bcol) {
+				return TRUE;
+			} else
+			if ((col == bcol) && inclusive) {
+				return TRUE;
+			}
 		}
 	} else
 	/* It's also "between" if it's on the line where the area starts and
@@ -6945,8 +6996,13 @@ vte_cell_is_between(long col, long row,
 	if ((row == arow) && (col >= acol)) {
 		return TRUE;
 	} else
-	if ((row == brow) && (col < bcol)) {
-		return TRUE;
+	if (row == brow) {
+		if (col < bcol) {
+			return TRUE;
+		} else
+		if ((col == bcol) && inclusive) {
+			return TRUE;
+		}
 	}
 	return FALSE;
 }
@@ -6974,10 +7030,11 @@ vte_cell_is_selected(VteTerminal *terminal, long col, long row)
 			/* A cell is selected if it's between the start and
 			 * endpoints of the selection. */
 			if (vte_cell_is_between(col, row,
-						scol,
+						terminal->pvt->selection_start.x,
 						terminal->pvt->selection_start.y,
-						ecol,
-						terminal->pvt->selection_end.y)) {
+						terminal->pvt->selection_end.x,
+						terminal->pvt->selection_end.y,
+						FALSE)) {
 				return TRUE;
 			}
 			break;
@@ -7325,7 +7382,7 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 /* Recalculate the start- and endpoints of the selected text, using the
  * selection origin and "last" coordinate sets. */
 static void
-vte_terminal_selection_calculate(VteTerminal *terminal)
+vte_terminal_selection_compute(VteTerminal *terminal)
 {
 	struct {
 		long x, y;
@@ -7433,7 +7490,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 		terminal->pvt->selection_last.x = event->x;
 		terminal->pvt->selection_last.y = event->y;
 
-		vte_terminal_selection_calculate(terminal);
+		vte_terminal_selection_compute(terminal);
 
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
@@ -7528,6 +7585,7 @@ vte_terminal_get_text(VteTerminal *terminal,
 	screen = terminal->pvt->screen;
 
 	string = g_string_new("");
+	memset(&attr, 0, sizeof(attr));
 
 	for (y = screen->scroll_delta;
 	     y < terminal->row_count + screen->scroll_delta;
@@ -7538,7 +7596,6 @@ vte_terminal_get_text(VteTerminal *terminal,
 		do {
 			pcell = vte_terminal_find_charcell(terminal, x, y);
 			if (is_selected(terminal, x, y)) {
-				attr.column = x;
 				if (pcell == NULL) {
 					/* If there are no more cells on this
 					 * line, and we've hit the right margin,
@@ -7573,6 +7630,7 @@ vte_terminal_get_text(VteTerminal *terminal,
 						terminal->pvt->palette[pcell->back].blue;
 					attr.underline = pcell->underline;
 					attr.alternate = pcell->alternate;
+					attr.column = x;
 					/* Stuff any saved spaces in. */
 					while (spaces > 0) {
 						string = g_string_append_c(string, ' ');
@@ -7800,7 +7858,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				}
 				/* Recalculate the selection area using the
 				 * new origin and "last" coordinates. */
-				vte_terminal_selection_calculate(terminal);
+				vte_terminal_selection_compute(terminal);
 				/* Redraw the newly-highlited rows. */
 				vte_invalidate_cells(terminal,
 						     0,
@@ -7985,7 +8043,7 @@ vte_terminal_font_complain(const char *font,
 			charsets = tmp;
 			tmp = NULL;
 		}
-		g_warning(_("Warning: using fontset \"%s\", which is missing "
+		g_warning(_("Using fontset \"%s\", which is missing "
 			    "these character sets: %s."), font, charsets);
 		g_free(charsets);
 	}
@@ -8083,7 +8141,10 @@ xlfd_from_pango_font_description(GtkWidget *widget,
 	PangoFontMap *fontmap;
 	int *subfont_charsets, i, count;
 	char *xlfd = NULL, *tmp, *subfont;
+	char **exploded;
 	char *encodings[] = {
+		"iso10646-0",
+		"iso10646-1",
 		"ascii-0",
 		"big5-0",
 		"dos-437",
@@ -8092,6 +8153,8 @@ xlfd_from_pango_font_description(GtkWidget *widget,
 		"gb18030.2000-1",
 		"gb2312.1980-0",
 		"iso8859-1",
+		"iso8859-10",
+		"iso8859-15",
 		"iso8859-2",
 		"iso8859-3",
 		"iso8859-4",
@@ -8099,10 +8162,6 @@ xlfd_from_pango_font_description(GtkWidget *widget,
 		"iso8859-7",
 		"iso8859-8",
 		"iso8859-9",
-		"iso8859-10",
-		"iso8859-15",
-		"iso10646-0",
-		"iso10646-1",
 		"jisx0201.1976-0",
 		"jisx0208.1983-0",
 		"jisx0208.1990-0",
@@ -8119,21 +8178,39 @@ xlfd_from_pango_font_description(GtkWidget *widget,
 	g_return_val_if_fail(fontdesc != NULL, NULL);
 	g_return_val_if_fail(GTK_IS_WIDGET(widget), NULL);
 
-	context = gtk_widget_get_pango_context(GTK_WIDGET(widget));
+	context = gtk_widget_get_pango_context(widget);
+	if (context == NULL) {
+		return g_strdup(VTE_X_FIXED);
+	}
+
 	fontmap = pango_x_font_map_for_display(GDK_DISPLAY());
 	if (fontmap == NULL) {
-		return g_strdup("fixed");
+		return g_strdup(VTE_X_FIXED);
 	}
 
 	font = pango_font_map_load_font(fontmap, context, fontdesc);
 	if (font == NULL) {
-		return g_strdup("fixed");
+		return g_strdup(VTE_X_FIXED);
 	}
 
-	count = pango_x_list_subfonts(font, encodings, G_N_ELEMENTS(encodings),
+	count = pango_x_list_subfonts(font,
+				      encodings, G_N_ELEMENTS(encodings),
 				      &subfont_ids, &subfont_charsets);
 	for (i = 0; i < count; i++) {
-		subfont = pango_x_font_subfont_xlfd(font, subfont_ids[i]);
+		subfont = pango_x_font_subfont_xlfd(font,
+						    subfont_ids[i]);
+		exploded = g_strsplit(subfont, "-", 0);
+		if (exploded != NULL) {
+			g_free(exploded[6]);
+			exploded[6] = g_strdup("*");
+			g_free(exploded[8]);
+			exploded[8] = g_strdup("*");
+			g_free(exploded[9]);
+			exploded[9] = g_strdup("*");
+			g_free(subfont);
+			subfont = g_strjoinv("-", exploded);
+			g_strfreev(exploded);
+		}
 		if (xlfd) {
 			tmp = g_strconcat(xlfd, ",", subfont, NULL);
 			g_free(xlfd);
@@ -8368,6 +8445,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 	long width, height, ascent, descent;
 	GtkWidget *widget;
 	XFontStruct **font_struct_list, font_struct;
+	XRectangle ink, logical;
 	char *xlfds;
 	char **missing_charset_list = NULL, *def_string = NULL;
 	int missing_charset_count = 0;
@@ -8397,10 +8475,14 @@ vte_terminal_set_font(VteTerminal *terminal,
 		}
 	}
 #endif
-	if (terminal->pvt->fontpadding != NULL) {
-		g_tree_destroy(terminal->pvt->fontpadding);
+	if (terminal->pvt->fontpaddingl != NULL) {
+		g_tree_destroy(terminal->pvt->fontpaddingl);
 	}
-	terminal->pvt->fontpadding = g_tree_new(vte_compare_direct);
+	terminal->pvt->fontpaddingl = g_tree_new(vte_compare_direct);
+	if (terminal->pvt->fontpaddingr != NULL) {
+		g_tree_destroy(terminal->pvt->fontpaddingr);
+	}
+	terminal->pvt->fontpaddingr = g_tree_new(vte_compare_direct);
 
 	/* Set up an owned font description. */
 	if (font_desc != NULL) {
@@ -8431,6 +8513,8 @@ vte_terminal_set_font(VteTerminal *terminal,
 			PangoContext *pcontext = NULL;
 			PangoFontMetrics *pmetrics = NULL;
 			PangoLanguage *lang = NULL;
+			PangoLayout *layout = NULL;
+			PangoRectangle ink, logical;
 			pcontext = gdk_pango_context_get();
 			font = pango_context_load_font(pcontext, font_desc);
 			if (PANGO_IS_FONT(font)) {
@@ -8449,6 +8533,19 @@ vte_terminal_set_font(VteTerminal *terminal,
 				width = pango_font_metrics_get_approximate_char_width(pmetrics) / PANGO_SCALE;
 				height = ascent + descent;
 				pango_font_metrics_unref(pmetrics);
+			}
+			/* Create a layout object to get a width estimate. */
+			if ((pcontext != NULL) && (desc != NULL)) {
+				layout = pango_layout_new(pcontext);
+				pango_layout_set_font_description(layout, desc);
+				pango_layout_set_text(layout,
+						      VTE_REPRESENTATIVE_CHARACTERS,
+						      strlen(VTE_REPRESENTATIVE_CHARACTERS));
+				pango_layout_get_extents(layout, &ink,
+							 &logical);
+				width = howmany(logical.width, PANGO_SCALE);
+				width = howmany(width, strlen(VTE_REPRESENTATIVE_CHARACTERS));
+				g_object_unref(G_OBJECT(layout));
 			}
 			/* Remove the actual description. */
 			if (desc != NULL) {
@@ -8589,7 +8686,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 		xlfds = xlfd_from_pango_font_description(GTK_WIDGET(widget),
 							 terminal->pvt->fontdesc);
 		if (xlfds == NULL) {
-			xlfds = g_strdup("-misc-fixed-medium-r-normal--12-*-*-*-*-*-*-*");
+			xlfds = g_strdup(VTE_X_FIXED);
 		}
 		if (terminal->pvt->fontset != NULL) {
 			XFreeFontSet(GDK_DISPLAY(), terminal->pvt->fontset);
@@ -8610,7 +8707,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 				missing_charset_list = NULL;
 			}
 			terminal->pvt->fontset = XCreateFontSet(GDK_DISPLAY(),
-								"fixed",
+								VTE_X_FIXED,
 								&missing_charset_list,
 								&missing_charset_count,
 								&def_string);
@@ -8629,21 +8726,25 @@ vte_terminal_set_font(VteTerminal *terminal,
 		}
 		g_return_if_fail(terminal->pvt->fontset != NULL);
 		/* Read the font metrics. */
+		XmbTextExtents(terminal->pvt->fontset,
+			       VTE_REPRESENTATIVE_CHARACTERS,
+			       strlen(VTE_REPRESENTATIVE_CHARACTERS),
+			       &ink, &logical);
+		width = logical.width / strlen(VTE_REPRESENTATIVE_CHARACTERS);
 		if (XFontsOfFontSet(terminal->pvt->fontset,
 				    &font_struct_list,
 				    &font_name_list)) {
 			if (font_struct_list) {
 				if (font_struct_list[0]) {
 					font_struct = font_struct_list[0][0];
-					width = font_struct.max_bounds.width;
 					ascent = font_struct.max_bounds.ascent;
 					descent = font_struct.max_bounds.descent;
 					height = ascent + descent;
 				}
 			}
+			font_struct_list = NULL;
 			font_name_list = NULL;
 		}
-		g_free(xlfds);
 		xlfds = NULL;
 	}
 
@@ -9214,13 +9315,14 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->palette_initialized = FALSE;
 	memset(&pvt->palette, 0, sizeof(pvt->palette));
 	pvt->fontset = NULL;
-	pvt->fontpadding = NULL;
+	pvt->fontpaddingl = NULL;
+	pvt->fontpaddingr = NULL;
 	pvt->use_xft = FALSE;
 #ifdef HAVE_XFT
 	pvt->ftfont = NULL;
 	pvt->use_xft = TRUE;
 #endif
-	pvt->use_pango = TRUE;
+	pvt->use_pango = FALSE;
 
 	/* Try to use PangoX for rednering if the user requests it. */
 	if (getenv("VTE_USE_PANGO") != NULL) {
@@ -9414,9 +9516,13 @@ vte_terminal_unrealize(GtkWidget *widget)
 #endif
 
 	/* Clean up after Pango. */
-	if (terminal->pvt->fontpadding != NULL) {
-		g_tree_destroy(terminal->pvt->fontpadding);
-		terminal->pvt->fontpadding = NULL;
+	if (terminal->pvt->fontpaddingl != NULL) {
+		g_tree_destroy(terminal->pvt->fontpaddingl);
+		terminal->pvt->fontpaddingl = NULL;
+	}
+	if (terminal->pvt->fontpaddingr != NULL) {
+		g_tree_destroy(terminal->pvt->fontpaddingr);
+		terminal->pvt->fontpaddingr = NULL;
 	}
 
 	/* Disconnect any filters which might be watching for X window
@@ -9883,7 +9989,9 @@ static void
 vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 			  gint fore, gint back,
 			  gint x, gint y, gint column_width, gint row_height,
-			  Display *display, Drawable drawable, GC gc)
+			  Display *display,
+			  GdkDrawable *gdrawable, Drawable drawable,
+			  GdkGC *ggc, GC gc)
 {
 	XPoint diamond[4];
 	gint xcenter, xright, ycenter, ybottom, i, j, draw;
@@ -10498,52 +10606,112 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 
 /* Calculate how much padding needs to be placed to either side of a character
  * to make sure it renders into the center of its cell. */
-static int
-vte_terminal_get_char_padding(VteTerminal *terminal, Display *display,
-			      gunichar c)
+static void
+vte_terminal_compute_padding(VteTerminal *terminal, Display *display,
+			     gunichar c)
 {
-	int pad, columns;
-	XRectangle ink, logical;
+	int columns, pad = 0, rpad = 0, width;
+	char utf8_buf[VTE_UTF8_BPC];
+	GtkWidget *widget;
+	PangoLayout *layout;
+	PangoRectangle pink, plogical;
+	XRectangle xink, xlogical;
 	wchar_t wc;
 #ifdef HAVE_XFT
 	XGlyphInfo extents;
 #endif
-
-	/* Look up the cached value if there is one. */
-	pad = GPOINTER_TO_INT(g_tree_lookup(terminal->pvt->fontpadding,
-					    GINT_TO_POINTER(c)));
-	/* We store a negative value to signify 0 because NULL also means
-	 * that there's no such entry. */
-	if (pad < 0) {
-		return 0;
-	}
-	/* A positive number is the padding value. */
-	if (pad > 0) {
-		return pad;
-	}
-
-	/* A zero means we need to compute and cache it. */
+	/* Check how many columns this character uses up. */
 	columns = g_unichar_iswide(c) ? 2 : 1;
 #ifdef HAVE_XFT
-	if ((pad == 0) && terminal->pvt->use_xft) {
+	/* Ask Xft. */
+	if (terminal->pvt->use_xft) {
 		XftTextExtents32(display, terminal->pvt->ftfont,
 				 &c, 1, &extents);
 		pad = ((columns * terminal->char_width) - extents.xOff) / 2;
+		rpad = ((columns * terminal->char_width) - extents.xOff) - pad;
 	}
 #endif
-	if ((pad == 0) && !terminal->pvt->use_pango) {
+	/* Ask Pango. */
+	if ((pad == 0) && (terminal->pvt->use_pango)) {
+		widget = GTK_WIDGET(terminal);
+		layout = pango_layout_new(gtk_widget_get_pango_context(widget));
+		pango_layout_set_font_description(layout,
+						  terminal->pvt->fontdesc);
+		pango_layout_set_text(layout, utf8_buf,
+				      g_unichar_to_utf8(c, utf8_buf));
+		pango_layout_get_extents(layout, &pink, &plogical);
+		width = howmany(plogical.width, PANGO_SCALE);
+		g_object_unref(G_OBJECT(layout));
+		pad = ((columns * terminal->char_width) - width) / 2;
+		rpad = ((columns * terminal->char_width) - width) - pad;
+	}
+	/* Ask Xlib. */
+	if ((pad == 0) &&
+	    !terminal->pvt->use_xft &&
+	    !terminal->pvt->use_pango) {
+		/* Ask Xlib. */
 		wc = vte_wc_from_unichar(terminal, c);
-		XwcTextExtents(terminal->pvt->fontset, &wc, 1, &ink, &logical);
-		pad = ((columns * terminal->char_width) - logical.width) / 2;
+		XwcTextExtents(terminal->pvt->fontset, &wc, 1,
+			       &xink, &xlogical);
+		pad = ((columns * terminal->char_width) - xlogical.width) / 2;
+		rpad = ((columns * terminal->char_width) - xlogical.width) - pad;
 	}
 	pad = MAX(0, pad);
 	if (pad == 0) {
 		pad = -1;
 	}
-	g_tree_insert(terminal->pvt->fontpadding,
+	g_tree_insert(terminal->pvt->fontpaddingl,
 		      GINT_TO_POINTER(c), GINT_TO_POINTER(pad));
-	pad = (pad == -1) ? 0 : pad;
-	return pad;
+	rpad = MAX(0, rpad);
+	if (rpad == 0) {
+		rpad = -1;
+	}
+	g_tree_insert(terminal->pvt->fontpaddingr,
+		      GINT_TO_POINTER(c), GINT_TO_POINTER(rpad));
+}
+static int
+vte_terminal_get_char_padding(VteTerminal *terminal, Display *display,
+			      gunichar c)
+{
+	int pad;
+	/* NUL gets no padding. */
+	if (c == 0) {
+		return 0;
+	}
+	/* Look up the cached value if there is one. */
+	pad = GPOINTER_TO_INT(g_tree_lookup(terminal->pvt->fontpaddingl,
+					    GINT_TO_POINTER(c)));
+	/* If it's non-zero, clamp it. */
+	if (pad != 0) {
+		return CLAMP(pad, 0, terminal->char_width);
+	}
+	/* Compute the padding and try again. */
+	vte_terminal_compute_padding(terminal, display, c);
+	pad = GPOINTER_TO_INT(g_tree_lookup(terminal->pvt->fontpaddingl,
+					    GINT_TO_POINTER(c)));
+	return CLAMP(pad, 0, terminal->char_width);
+}
+static int
+vte_terminal_get_char_padding_right(VteTerminal *terminal, Display *display,
+				    gunichar c)
+{
+	int pad;
+	/* NUL gets no padding. */
+	if (c == 0) {
+		return 0;
+	}
+	/* Look up the cached value if there is one. */
+	pad = GPOINTER_TO_INT(g_tree_lookup(terminal->pvt->fontpaddingr,
+					    GINT_TO_POINTER(c)));
+	/* If it's non-zero, clamp it. */
+	if (pad != 0) {
+		return CLAMP(pad, 0, terminal->char_width);
+	}
+	/* Compute the padding and try again. */
+	vte_terminal_compute_padding(terminal, display, c);
+	pad = GPOINTER_TO_INT(g_tree_lookup(terminal->pvt->fontpaddingr,
+					    GINT_TO_POINTER(c)));
+	return CLAMP(pad, 0, terminal->char_width);
 }
 
 /* Draw a string of characters with similar attributes. */
@@ -10552,12 +10720,15 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			struct vte_draw_item *items, size_t n,
 			gint fore, gint back,
 			gboolean underline, gboolean hilite, gboolean boxed,
-			gint x, gint y, gint ascent,
+			gint x, gint y, gint x_offs, gint y_offs,
+			gint ascent, gboolean monospaced,
 			gint column_width, gint row_height,
 			Display *display,
+			GdkDrawable *gdrawable,
 			Drawable drawable,
 			Colormap colormap,
 			Visual *visual,
+			GdkGC *ggc,
 			GC gc,
 #ifdef HAVE_XFT
 			XftDraw *ftdraw,
@@ -10568,19 +10739,18 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	int i, j;
 	gint columns = 0;
 	struct vte_palette_entry *fg, *bg;
+	GdkColor color;
 
 #ifdef HAVE_XFT2
-	XftCharSpec *ftchars;
+	XftCharSpec *ftcharspecs;
 #endif
 #ifdef HAVE_XFT
-	XftChar32 ftchar;
+	XftChar32 ftchar, *ftchars;
 #endif
 	char utf8_buf[VTE_UTF8_BPC];
-	PangoAttrList *attrlist;
-	PangoAttribute *attr;
 
-	wchar_t *wchars;
-	XwcTextItem *textitems;
+	wchar_t wc;
+	XwcTextItem textitem;
 
 	fg = &terminal->pvt->palette[fore];
 	bg = &terminal->pvt->palette[back];
@@ -10589,16 +10759,16 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	/* Draw using Xft2. */
 	if (!drawn && terminal->pvt->use_xft) {
 		/* Set up the draw request. */
-		ftchars = g_malloc(sizeof(XftCharSpec) * n);
+		ftcharspecs = g_malloc(sizeof(XftCharSpec) * n);
 		for (i = j = columns = 0; i < n; i++) {
 			if ((items[i].c != 0) &&
 			    !g_unichar_isspace(items[i].c)) {
-				ftchars[j].ucs4 = vte_terminal_xft_remap_char(display,
+				ftcharspecs[j].ucs4 = vte_terminal_xft_remap_char(display,
 									      terminal->pvt->ftfont,
 									      items[i].c);
-				ftchars[j].x = x + (columns * column_width) +
-					       items[i].xpad;
-				ftchars[j].y = y + ascent;
+				ftcharspecs[j].x = x + (columns * column_width) +
+						   items[i].xpad;
+				ftcharspecs[j].y = y + ascent;
 				j++;
 			}
 			columns += g_unichar_iswide(items[i].c) ? 2 : 1;
@@ -10611,9 +10781,9 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		/* Draw the text. */
 		XftDrawCharSpec(ftdraw, &fg->ftcolor,
 				terminal->pvt->ftfont,
-				ftchars, j);
+				ftcharspecs, j);
 		/* Clean up. */
-		g_free(ftchars);
+		g_free(ftcharspecs);
 		drawn = TRUE;
 	}
 #endif
@@ -10630,18 +10800,31 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 				    columns * column_width, row_height);
 		}
 		/* Draw the text. */
-		for (i = columns = 0; i < n; i++) {
-			if ((items[i].c != 0) &&
-			    !g_unichar_isspace(items[i].c)) {
-				ftchar = items[i].c;
-				XftDrawString32(ftdraw, &fg->ftcolor,
-						terminal->pvt->ftfont,
-						x + (columns * column_width) +
-						items[i].xpad,
-						y + ascent,
-						&ftchar, 1);
+		if (monospaced) {
+			ftchars = g_malloc(sizeof(gunichar) * n);
+			for (i = 0; i < n; i++) {
+				ftchars[i] = items[i].c;
 			}
-			columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+			XftDrawString32(ftdraw, &fg->ftcolor,
+					terminal->pvt->ftfont,
+					x,
+					y + ascent,
+					ftchars, n);
+			g_free(ftchars);
+		} else {
+			for (i = columns = 0; i < n; i++) {
+				if ((items[i].c != 0) &&
+				    !g_unichar_isspace(items[i].c)) {
+					ftchar = items[i].c;
+					XftDrawString32(ftdraw, &fg->ftcolor,
+							terminal->pvt->ftfont,
+							x + (columns * column_width) +
+							items[i].xpad,
+							y + ascent,
+							&ftchar, 1);
+				}
+				columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+			}
 		}
 		/* Clean up. */
 		drawn = TRUE;
@@ -10649,88 +10832,75 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 #endif
 	/* Draw using PangoX. */
 	if (!drawn && terminal->pvt->use_pango) {
-		/* Set up the attributes. */
-		attrlist = pango_attr_list_new();
-		attr = pango_attr_foreground_new(fg->red,
-						 fg->green,
-						 fg->blue);
-		pango_attr_list_insert(attrlist, attr);
-		attr = pango_attr_font_desc_new(terminal->pvt->fontdesc);
-		pango_attr_list_insert(attrlist, attr);
+		/* Draw the background. */
 		if (back != VTE_DEF_BG) {
-			XSetForeground(display, gc, bg->pixel);
 			for (i = columns = 0; i < n; i++) {
 				columns += g_unichar_iswide(items[i].c) ? 2 : 1;
 			}
-			XFillRectangle(display, drawable, gc,
-				       x, y,
-				       columns * column_width, row_height);
+			color.red = terminal->pvt->palette[back].red;
+			color.blue = terminal->pvt->palette[back].blue;
+			color.green = terminal->pvt->palette[back].green;
+			color.pixel = terminal->pvt->palette[back].pixel;
+			gdk_gc_set_foreground(ggc, &color);
+			gdk_draw_rectangle(gdrawable,
+					   ggc,
+					   TRUE,
+					   x + x_offs, y + y_offs,
+					   columns * column_width, row_height);
 		}
-		pango_layout_set_attributes(layout, attrlist);
 		/* Draw the text in a monospaced manner. */
+		color.red = terminal->pvt->palette[fore].red;
+		color.blue = terminal->pvt->palette[fore].blue;
+		color.green = terminal->pvt->palette[fore].green;
+		color.pixel = terminal->pvt->palette[fore].pixel;
+		gdk_gc_set_foreground(ggc, &color);
 		for (i = columns = 0; i < n; i++) {
 			if ((items[i].c != 0) &&
 			    !g_unichar_isspace(items[i].c)) {
-				XSetForeground(display, gc, fg->pixel);
 				pango_layout_set_text(layout, utf8_buf,
 						      g_unichar_to_utf8(items[i].c,
 									utf8_buf));
-						      
-				pango_x_render_layout(display,
-						      drawable,
-						      gc,
-						      layout,
-						      x +
-						      (columns * column_width) +
-						      items[i].xpad,
-						      y);
+				gdk_draw_layout(gdrawable, ggc,
+						x + (columns * column_width) +
+						items[i].xpad + x_offs,
+						y + y_offs,
+						layout);
 			}
 			columns += g_unichar_iswide(items[i].c) ? 2 : 1;
 		}
 		/* Clean up. */
-		pango_layout_set_attributes(layout, NULL);
-		pango_attr_list_unref(attrlist);
 		drawn = TRUE;
 	}
 	/* Draw using core fonts. */
 	if (!drawn) {
-		/* Set up the draw request. */
-		wchars = g_malloc(sizeof(wchar_t) * n);
-		textitems = g_malloc(sizeof(XwcTextItem) * (n + 1));
-		/* Set the space between the start of the draw request and
-		 * the first character to 0. */
-		textitems[0].delta = 0;
-		for (i = j = columns = 0; i < n; i++) {
-			if ((items[i].c != 0) &&
-			    !g_unichar_isspace(items[i].c)) {
-				wchars[j] = vte_wc_from_unichar(terminal, items[i].c);
-				textitems[j].chars = &wchars[j];
-				textitems[j].nchars = 1;
-				textitems[j].font_set = terminal->pvt->fontset;
-				/* Left pad. */
-				textitems[j].delta += items[i].xpad;
-				j++;
-				/* Extra left pad for the next character which
-				 * is really our right pad. */
-				textitems[j].delta = items[i].xpad;
-			} else {
-				/* Extra left pad for this space. */
-				textitems[j].delta += column_width;
-			}
-			columns += g_unichar_iswide(items[i].c) ? 2 : 1;
-		}
-		/* Draw the text. */
+		/* Draw the background. */
 		if (back != VTE_DEF_BG) {
+			for (i = columns = 0; i < n; i++) {
+				columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+			}
 			XSetForeground(display, gc, bg->pixel);
 			XFillRectangle(display, drawable, gc,
 				       x, y,
 				       columns * column_width, row_height);
 		}
+		/* Create a separate draw item for each character. */
 		XSetForeground(display, gc, fg->pixel);
-		XwcDrawText(display, drawable, gc, x, y + ascent, textitems, j);
-		/* Clean up. */
-		g_free(wchars);
-		g_free(textitems);
+		textitem.nchars = 1;
+		textitem.font_set = terminal->pvt->fontset;
+		for (i = columns = 0; i < n; i++) {
+			if (items[i].c == 0) {
+				columns++;
+				continue;
+			}
+			wc = vte_wc_from_unichar(terminal, items[i].c);
+			textitem.chars = &wc;
+			textitem.delta = items[i].xpad;
+			XwcDrawText(display, drawable, gc,
+				    x + (columns * column_width) +
+				    items[i].xpad,
+				    y + ascent, &textitem, 1);
+			columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+		}
 	}
 
 	/* Draw whatever SFX are required. */
@@ -10797,12 +10967,16 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		      VteScreen *screen,
 		      gint row,
 		      gint column, gint column_count,
-		      gint x, gint y, gint ascent,
+		      gint x, gint y,
+		      gint x_offs, gint y_offs,
+		      gint ascent, gboolean monospaced,
 		      gint column_width, gint row_height,
 		      Display *display,
+		      GdkDrawable *gdrawable,
 		      Drawable drawable,
 		      Colormap colormap,
 		      Visual *visual,
+		      GdkGC *ggc,
 		      GC gc,
 #ifdef HAVE_XFT
 		      XftDraw *ftdraw,
@@ -10844,8 +11018,9 @@ vte_terminal_draw_row(VteTerminal *terminal,
 			hilite = vte_cell_is_between(i, row - screen->scroll_delta,
 						     terminal->pvt->match_start.column,
 						     terminal->pvt->match_start.row,
-						     terminal->pvt->match_end.column + 1,
-						     terminal->pvt->match_end.row);
+						     terminal->pvt->match_end.column,
+						     terminal->pvt->match_end.row,
+						     TRUE);
 		} else {
 			hilite = FALSE;
 		}
@@ -10861,7 +11036,9 @@ vte_terminal_draw_row(VteTerminal *terminal,
 						  column_width,
 						  row_height,
 						  display,
+						  gdrawable,
 						  drawable,
+						  ggc,
 						  gc);
 			i++;
 			continue;
@@ -10872,6 +11049,9 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		item.xpad = vte_terminal_get_char_padding(terminal,
 							  display,
 							  item.c);
+		item.xpad_r = vte_terminal_get_char_padding_right(terminal,
+								  display,
+								  item.c);
 		g_array_append_val(items, item);
 
 		/* Now find out how many cells have the same attributes. */
@@ -10906,8 +11086,9 @@ vte_terminal_draw_row(VteTerminal *terminal,
 				nhilite = vte_cell_is_between(j, row - screen->scroll_delta,
 							      terminal->pvt->match_start.column,
 							      terminal->pvt->match_start.row,
-							      terminal->pvt->match_end.column + 1,
-							      terminal->pvt->match_end.row);
+							      terminal->pvt->match_end.column,
+							      terminal->pvt->match_end.row,
+							      TRUE);
 			} else {
 				nhilite = FALSE;
 			}
@@ -10928,9 +11109,13 @@ vte_terminal_draw_row(VteTerminal *terminal,
 					fore, back,
 					underline, hilite, FALSE,
 					x + ((i - column) * column_width),
-					y, ascent,
+					y,
+					x_offs,
+					y_offs,
+					ascent, monospaced,
 					column_width, row_height,
-					display, drawable, colormap, visual, gc,
+					display, gdrawable, drawable,
+					colormap, visual, ggc, gc,
 #ifdef HAVE_XFT
 					ftdraw,
 #endif
@@ -10960,6 +11145,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	Colormap colormap;
 	GdkVisual *gvisual;
 	Visual *visual;
+	GdkGC *ggc;
 	GC gc;
 	struct vte_charcell *cell;
 	struct vte_draw_item item, *items;
@@ -10967,7 +11153,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	char *preedit;
 	long width, height, ascent, descent, delta;
 	int i, len, fore, back;
-	gboolean blink, underline, hilite;
+	gboolean blink, underline, hilite, monospaced;
 #ifdef HAVE_XFT
 	XftDraw *ftdraw = NULL;
 #endif
@@ -10992,9 +11178,13 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	gvisual = gtk_widget_get_visual(widget);
 	visual = gdk_x11_visual_get_xvisual(gvisual);
 
+	/* Get the already-buffered GDK drawing structures. */
+	gdrawable = widget->window;
+	ggc = gdk_gc_new(gdrawable);
+
 	/* Create a new pango layout in the correct font. */
 	if (terminal->pvt->use_pango) {
-		pcontext = pango_x_get_context(display);
+		pcontext = gtk_widget_get_pango_context(widget);
 		if (pcontext == NULL) {
 			g_warning(_("Error allocating context, "
 				    "disabling Pango."));
@@ -11005,6 +11195,9 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 				g_warning(_("Error allocating layout, "
 					    "disabling Pango."));
 				terminal->pvt->use_pango = FALSE;
+			} else {
+				pango_layout_set_font_description(layout,
+								  terminal->pvt->fontdesc);
 			}
 		}
 	}
@@ -11026,6 +11219,11 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	ascent = terminal->char_ascent;
 	descent = terminal->char_descent;
 	delta = screen->scroll_delta;
+	monospaced =
+		(vte_terminal_get_char_padding(terminal, display,
+					       VTE_REPRESENTATIVE_WIDER_CHARACTER) == 0) &&
+		(vte_terminal_get_char_padding(terminal, display,
+					       VTE_REPRESENTATIVE_NARROWER_CHARACTER) == 0);
 
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */
@@ -11041,10 +11239,12 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 				      col_stop - col,
 				      col * width - x_offs,
 				      row * height - y_offs,
-				      ascent,
+				      x_offs, y_offs,
+				      ascent, monospaced,
 				      terminal->char_width,
 				      terminal->char_height,
-				      display, drawable, colormap, visual, gc,
+				      display, gdrawable, drawable,
+				      colormap, visual, ggc, gc,
 #ifdef HAVE_XFT
 				      ftdraw,
 #endif
@@ -11088,11 +11288,13 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 						underline, hilite, FALSE,
 						col * width - x_offs,
 						row * height - y_offs,
-						ascent,
+						x_offs,
+						y_offs,
+						ascent, monospaced,
 						terminal->char_width,
 						terminal->char_height,
-						display, drawable, colormap,
-						visual, gc,
+						display, gdrawable, drawable,
+						colormap, visual, ggc, gc,
 #ifdef HAVE_XFT
 						ftdraw,
 #endif
@@ -11158,11 +11360,13 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 						FALSE, FALSE, TRUE,
 						col * width - x_offs,
 						row * height - y_offs,
-						ascent,
+						x_offs,
+						y_offs,
+						ascent, monospaced,
 						terminal->char_width,
 						terminal->char_height,
-						display, drawable, colormap,
-						visual, gc,
+						display, gdrawable, drawable,
+						colormap, visual, ggc, gc,
 #ifdef HAVE_XFT
 						ftdraw,
 #endif
@@ -11177,8 +11381,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		XftDrawDestroy(ftdraw);
 	}
 #endif
+	g_object_unref(G_OBJECT(ggc));
 	if (pcontext != NULL) {
-		g_object_unref(G_OBJECT(pcontext));
 		if (layout != NULL) {
 			g_object_unref(G_OBJECT(layout));
 		}

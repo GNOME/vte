@@ -92,7 +92,7 @@ main(int argc, char **argv)
 	char *env_add[] = {"FOO=BAR", "BOO=BIZ", NULL};
 	const char *background = NULL;
 	gboolean transparent = FALSE, audible = TRUE, blink = TRUE,
-		 debug = FALSE;
+		 debug = FALSE, dingus = FALSE;
 	const char *message = "Launching interactive shell...\r\n";
 	const char *font = NULL;
 	const char *terminal = NULL;
@@ -131,10 +131,13 @@ main(int argc, char **argv)
 	argv2[i] = NULL;
 	g_assert(i < (g_list_length(args) + 2));
 	/* Parse some command-line options. */
-	while ((opt = getopt(argc, argv, "B:Tabc:df:ht:")) != -1) {
+	while ((opt = getopt(argc, argv, "B:DTabc:df:ht:")) != -1) {
 		switch (opt) {
 			case 'B':
 				background = optarg;
+				break;
+			case 'D':
+				dingus = TRUE;
 				break;
 			case 'T':
 				transparent = TRUE;
@@ -233,6 +236,12 @@ main(int argc, char **argv)
 
 	/* Match "abcdefg". */
 	vte_terminal_match_add(VTE_TERMINAL(widget), "abcdefg");
+	if (dingus) {
+		vte_terminal_match_add(VTE_TERMINAL(widget),
+				       "(((news|telnet|nttp|file|http|ftp|https)://)|(www|ftp)[-A-Za-z0-9]*\\.)[-A-Za-z0-9\\.]+(:[0-9]*)?");
+		vte_terminal_match_add(VTE_TERMINAL(widget),
+				       "(((news|telnet|nttp|file|http|ftp|https)://)|(www|ftp)[-A-Za-z0-9]*\\.)[-A-Za-z0-9\\.]+(:[0-9]*)?/[-A-Za-z0-9_\\$\\.\\+\\!\\*\\(\\),;:@&=\\?/~\\#\\%]*[^]'\\.}>\\) ,\\\"]");
+	}
 
 	/* Launch a shell. */
 #ifdef VTE_DEBUG
@@ -243,7 +252,7 @@ main(int argc, char **argv)
 #endif
 	vte_terminal_fork_command(VTE_TERMINAL(widget), command, NULL, env_add);
 	if (command == NULL) {
-		vte_terminal_feed_child(VTE_TERMINAL(widget), "pwd\n", 4);
+		vte_terminal_feed_child(VTE_TERMINAL(widget), "pwd\n", -1);
 	}
 
 	/* Go for it! */
