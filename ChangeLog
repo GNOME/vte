@@ -1,3 +1,6 @@
+2002-04-29 14:56  nalin
+	* src/vte.c: Track and free idle task tags properly.
+
 2002-04-29 14:25  nalin
 	* src/vte.c: Handle me() by resetting all attributes (including
 	colors, which we weren't resetting before).

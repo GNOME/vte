@@ -117,6 +117,7 @@ struct _VteTerminalPrivate {
 	unsigned char *incoming;	/* pending output characters */
 	size_t n_incoming;
 	gboolean processing;
+	guint processing_tag;
 
 	/* Output data queue. */
 	unsigned char *outgoing;	/* pending input characters */
@@ -186,17 +187,19 @@ struct _VteTerminalPrivate {
 	/* Options. */
 	gboolean scroll_on_output;
 	gboolean scroll_on_keystroke;
+	long scrollback_lines;
 
 	gboolean alt_sends_escape;
 
 	gboolean audible_bell;
 
 	gboolean cursor_blinks;
-	gint blink_source;
+	gint cursor_blink_tag;
 	guint last_keypress_time;
 
 	gboolean bg_transparent;
 	gboolean bg_transparent_update_pending;
+	guint bg_transparent_update_tag;
 	GdkAtom bg_transparent_atom;
 	GdkWindow *bg_transparent_window;
 	GdkPixbuf *bg_transparent_image;
@@ -400,9 +403,9 @@ vte_invalidate_cursor_periodic(gpointer data)
 			     &blink_cycle, NULL);
 	}
 
-	terminal->pvt->blink_source = g_timeout_add(blink_cycle / 2,
-						    vte_invalidate_cursor_periodic,
-						    terminal);
+	terminal->pvt->cursor_blink_tag = g_timeout_add(blink_cycle / 2,
+							vte_invalidate_cursor_periodic,
+							terminal);
 
 	return FALSE;
 }
@@ -3291,6 +3294,9 @@ vte_terminal_process_incoming(gpointer data)
 				/* If we still have data, try again right
 				 * away. */
 				terminal->pvt->processing = (terminal->pvt->n_incoming > 0);
+				if (terminal->pvt->processing == FALSE) {
+					terminal->pvt->processing_tag = -1;
+				}
 				return terminal->pvt->processing;
 			}
 		}
@@ -3300,6 +3306,7 @@ vte_terminal_process_incoming(gpointer data)
 			(long) terminal->pvt->n_incoming, strerror(errno));
 #endif
 		terminal->pvt->processing = FALSE;
+		terminal->pvt->processing_tag = -1;
 		return terminal->pvt->processing;
 	}
 
@@ -3499,6 +3506,7 @@ vte_terminal_process_incoming(gpointer data)
 		fprintf(stderr, "Leaving processing handler on.\n");
 	} else {
 		fprintf(stderr, "Turning processing handler off.\n");
+		terminal->pvt->processing_tag = -1;
 	}
 #endif
 	return terminal->pvt->processing;
@@ -3587,7 +3595,8 @@ vte_terminal_io_read(GIOChannel *channel,
 		fprintf(stderr, "Queuing handler to process bytes.\n");
 #endif
 		terminal->pvt->processing = TRUE;
-		g_idle_add(vte_terminal_process_incoming, terminal);
+		terminal->pvt->processing_tag = g_idle_add(vte_terminal_process_incoming,
+							   terminal);
 	}
 
 	/* If we detected an eof condition, signal one. */
@@ -3632,7 +3641,8 @@ vte_terminal_feed(VteTerminal *terminal, const char *data, size_t length)
 		fprintf(stderr, "Queuing handler to process bytes.\n");
 #endif
 		terminal->pvt->processing = TRUE;
-		g_idle_add(vte_terminal_process_incoming, terminal);
+		terminal->pvt->processing_tag = g_idle_add(vte_terminal_process_incoming,
+							   terminal);
 	}
 }
 
@@ -5278,16 +5288,19 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->incoming = NULL;
 	pvt->n_incoming = 0;
 	pvt->processing = FALSE;
+	pvt->processing_tag = -1;
 	pvt->outgoing = NULL;
 	pvt->n_outgoing = 0;
 	pvt->keypad = VTE_KEYPAD_NORMAL;
 
 	pvt->scroll_on_output = FALSE;
 	pvt->scroll_on_keystroke = TRUE;
+	pvt->scrollback_lines = 0;
 	pvt->alt_sends_escape = TRUE;
 	pvt->audible_bell = TRUE;
 	pvt->bg_transparent = FALSE;
 	pvt->bg_transparent_update_pending = FALSE;
+	pvt->bg_transparent_update_tag = -1;
 	pvt->bg_transparent_atom = 0;
 	pvt->bg_transparent_window = NULL;
 	pvt->bg_transparent_image = NULL;
@@ -5296,8 +5309,9 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->bg_image = NULL;
 
 	pvt->cursor_blinks = FALSE;
-	pvt->blink_source = g_timeout_add(0, vte_invalidate_cursor_periodic,
-					  terminal);
+	pvt->cursor_blink_tag = g_timeout_add(0,
+		 			      vte_invalidate_cursor_periodic,
+					      terminal);
 	pvt->last_keypress_time = 0;
 
 	pvt->has_selection = FALSE;
@@ -5537,7 +5551,17 @@ vte_terminal_finalize(GObject *object)
 	widget_class = g_type_class_peek(GTK_TYPE_WIDGET);
 
 	/* Remove the blink timeout function. */
-	g_source_remove(terminal->pvt->blink_source);
+	if (terminal->pvt->cursor_blink_tag != -1) {
+		g_source_remove(terminal->pvt->cursor_blink_tag);
+	}
+
+	/* Remove idle handlers. */
+	if (terminal->pvt->processing_tag != -1) {
+		g_source_remove(terminal->pvt->processing_tag);
+	}
+	if (terminal->pvt->bg_transparent_update_tag != -1) {
+		g_source_remove(terminal->pvt->bg_transparent_update_tag);
+	}
 
 	/* Free any selected text. */
 	if (terminal->pvt->selection != NULL) {
@@ -6877,6 +6901,8 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
 	vte_terminal_queue_background_update(terminal);
 }
 
+/* Set up the background, grabbing a new copy of the transparency background,
+ * if possible. */
 static gboolean
 vte_terminal_update_transparent(gpointer data)
 {
@@ -6888,17 +6914,24 @@ vte_terminal_update_transparent(gpointer data)
 	}
 	vte_terminal_setup_background(terminal, TRUE);
 	terminal->pvt->bg_transparent_update_pending = FALSE;
+	terminal->pvt->bg_transparent_update_tag = -1;
 	return FALSE;
 }
 
+/* Queue an update of the background image, to be done as soon as we can
+ * get to it.  Just bail if there's already an update pending, so that if
+ * opaque move tries to screw us, we don't end up with an insane backlog
+ * of updates after the user finishes moving us. */
 static void
 vte_terminal_queue_background_update(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->bg_transparent_update_pending = TRUE;
-	g_idle_add(vte_terminal_update_transparent, terminal);
+	terminal->pvt->bg_transparent_update_tag = g_idle_add(vte_terminal_update_transparent,
+								      terminal);
 }
 
+/* Watch for property change events. */
 static GdkFilterReturn
 vte_terminal_filter_property_changes(GdkXEvent *xevent, GdkEvent *event,
 				     gpointer data)
@@ -6910,12 +6943,15 @@ vte_terminal_filter_property_changes(GdkXEvent *xevent, GdkEvent *event,
 
 	xev = (XEvent*) xevent;
 
+	/* If we aren't realized, then we have no need for this information. */
 	if (VTE_IS_TERMINAL(data) && GTK_WIDGET_REALIZED(GTK_WIDGET(data))) {
 		terminal = VTE_TERMINAL(data);
 	} else {
 		return GDK_FILTER_CONTINUE;
 	}
 
+	/* We only care about property changes to the pixmap ID on the root
+	 * window, so we should ignore everything else. */
 	switch (xev->type) {
 	case PropertyNotify:
 #ifdef VTE_DEBUG
@@ -6931,6 +6967,9 @@ vte_terminal_filter_property_changes(GdkXEvent *xevent, GdkEvent *event,
 #ifdef VTE_DEBUG
 				fprintf(stderr, "Property window matches.\n");
 #endif
+				/* The attribute we care about changed in the
+				 * window we care about, so update the
+				 * background image to the new snapshot. */
 				vte_terminal_queue_background_update(terminal);
 			}
 		}
@@ -6952,6 +6991,10 @@ vte_terminal_set_background_transparent(VteTerminal *terminal, gboolean setting)
 #endif
 	terminal->pvt->bg_transparent = setting;
 
+	/* To be "transparent", we treat the _XROOTPMAP_ID attribute of the
+	 * root window as a picture of what's beneath us, and use that as
+	 * the background.  It's a little tricky because we need to "scroll"
+	 * the image to match our window position. */
 	window = gdk_get_default_root_window();
 	if (setting) {
 		/* Get the window and property name we'll be watching for
@@ -6977,7 +7020,7 @@ vte_terminal_set_background_transparent(VteTerminal *terminal, gboolean setting)
 				         vte_terminal_filter_property_changes,
 				         terminal);
 	}
-	/* Update the background now. */
+	/* Update the background. */
 	vte_terminal_queue_background_update(terminal);
 }
 
@@ -7043,7 +7086,7 @@ gboolean
 vte_terminal_get_has_selection(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return (terminal->pvt->has_selection != FALSE);
+	return terminal->pvt->has_selection;
 }
 
 /* Tell the caller if we're [planning on] using Xft for rendering. */
@@ -7051,7 +7094,7 @@ gboolean
 vte_terminal_get_using_xft(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return (terminal->pvt->use_xft);
+	return terminal->pvt->use_xft;
 }
 
 /* Toggle the cursor blink setting. */
@@ -7072,9 +7115,22 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
+	/* If we're being asked to resize to the same size, just save ourselves
+	 * the trouble, nod our heads, and smile. */
+	if ((terminal->pvt->scrollback_lines != 0) &&
+	    (terminal->pvt->scrollback_lines == lines)) {
+		return;
+	}
+
+	/* We need to resize both scrollback buffers, and this beats copying
+	 * and pasting the same code twice. */
 	screens[0] = &terminal->pvt->normal_screen;
 	screens[1] = &terminal->pvt->alternate_screen;
 	for (i = 0; i < G_N_ELEMENTS(screens); i++) {
+		/* Resize the buffers, but keep track of where the last data
+		 * in the buffer is so that we can compensate for it being
+		 * moved.  We track the end of the data instead of the start
+		 * so that the visible portion of the buffer doesn't change. */
 		old_delta = 0;
 		if (screens[i]->row_data != NULL) {
 			old_delta = vte_ring_next(screens[i]->row_data);
@@ -7088,6 +7144,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 		screens[i]->insert_delta += delta;
 	}
 
+	/* Adjust the scrollbars to the new locations. */
 	vte_terminal_adjust_adjustments(terminal);
 	vte_invalidate_cells(terminal,
 			     0, terminal->column_count,
