@@ -7348,7 +7348,8 @@ vte_terminal_io_read(GIOChannel *channel,
 	/* If we have data to process, schedule some time to process it. */
 	if (_vte_buffer_length(terminal->pvt->incoming) >
 	    VTE_INPUT_CHUNK_SIZE) {
-		/* Disconnect any pending timeouts. */
+		/* Disconnect any pending timeouts so that the processing
+		 * function can register itself if it wants to do so. */
 		if (terminal->pvt->processing) {
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_IO)) {
@@ -7367,7 +7368,10 @@ vte_terminal_io_read(GIOChannel *channel,
 #endif
 		vte_terminal_process_incoming(terminal);
 	} else {
-		/* Wait no more than N milliseconds for more data. */
+		/* Wait no more than N milliseconds for more data.  We don't
+		 * touch the timeout if we're already slated to call it again
+		 * because if the output were carefully timed, we could
+		 * conceivably put it off forever. */
 		if (!terminal->pvt->processing) {
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_IO)) {
@@ -8688,8 +8692,8 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 								 pcell->c ?
 								 pcell->c :
 								 ' ');
-				/* Record whether or not this was
-				 * whitespace. */
+				/* Record whether or not this was a
+				 * whitespace cell. */
 				if ((pcell->c == ' ') || (pcell->c == '\0')) {
 					last_space = string->len - 1;
 					last_spacecol = col;
