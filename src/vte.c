@@ -775,7 +775,12 @@ vte_invalidate_cursor_once(gpointer data)
 	if (!VTE_IS_TERMINAL(data)) {
 		return;
 	}
+
 	terminal = VTE_TERMINAL(data);
+
+	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
+		return;
+	}
 
 	if (terminal->pvt->cursor_visible &&
 	    GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {

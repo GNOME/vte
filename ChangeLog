@@ -1,4 +1,8 @@
 2003-04-22 nalin
+	* src/vte.c(vte_invalidate_cursor_once): don't bother doing anything if
+	we're fully obscured (related to #102703).
+
+2003-04-22 nalin
 	* src/vteapp.c(main): stop messing with fontconfig's list of font
 	directories.
 
@@ -91,7 +95,7 @@
 	* src/vte.c: make row_data a structure containing an array instead of a
 	simple array.  Add a field to row data structures which tracks whether
 	or not we soft-wrapped from this line to the next one.  Make use of the
-	field when copying text and selecting by "line".
+	field when copying text and selecting by "line" (#105189).
 	* src/reflect.c: put the label in a scrolled window to avoid mad loops
 	when we resize it to accomodate more text, which shrinks the terminal,
 	which removes text from the label, which resizes it to be smaller, which
