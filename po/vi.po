@@ -1,21 +1,21 @@
-# VTE in Vietnamese.
+# Vietnamese Translation for VTE.
 # Copyright (C) 2002 THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # T.M.Thanh <tmthanh@yahoo.com>, 2002.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: VTE for Gnome v.2.1.x\n"
+"Project-Id-Version: vte.HEAD.vi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2003-07-03 13:26+0200\n"
-"PO-Revision-Date: 2003-09-08 19:23+0700\n"
+"POT-Creation-Date: 2003-09-13 04:36+0200\n"
+"PO-Revision-Date: 2003-09-13 10:43+0700\n"
 "Last-Translator: Trinh Minh Thanh <tmthanh@yahoo.com>\n"
-"Language-Team: Gnome-Vi <Gnomevi-list@lists.sourceforge.net>\n"
+"Language-Team: Vietnamese <gnomevi-list@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2059
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2068
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Không thể chuyển đổi các ký tự từ %s thành %s."
@@ -28,14 +28,14 @@ msgstr "Thử đặt bảng đồ NRC không hợp lệ '%c'."
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #: src/iso2022.c:1601
 msgid "Unrecognized identified coding system."
-msgstr ""
+msgstr "Hệ thống mã hóa định danh không xác định"
 
 #: src/iso2022.c:1650 src/iso2022.c:1676
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Thử đặt bảng đồ NRC rộng không hợp lệ '%c'."
 
-#: src/pty.c:319
+#: src/pty.c:323
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Lỗi khi thêm `%s' vào môi trường, tiếp tục."
@@ -43,7 +43,7 @@ msgstr "Lỗi khi thêm `%s' vào môi trường, tiếp tục."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:882
+#: src/pty.c:908
 #, c-format
 msgid "can not run %s"
 msgstr "không thể chạy %s"
@@ -57,48 +57,48 @@ msgstr "Lỗi khi tạo signal pipe."
 msgid "Duplicate (%s/%s)!"
 msgstr "Nhân đôi (%s/%s)!"
 
-#: src/vte.c:1471
+#: src/vte.c:1476
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Lỗi khi biên dịch biểu hiện quy tắc \"%s\"."
 
-#: src/vte.c:5669
+#: src/vte.c:5811
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Nhận sequence không mong muốn (key?) `%s'."
 
-#: src/vte.c:6684
+#: src/vte.c:6829
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Không có trình quản lý nào được chỉ định cho sequence `%s'."
 
-#: src/vte.c:7431
+#: src/vte.c:7650
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Lỗi khi đọc từ child: %s."
 
-#: src/vte.c:7587
+#: src/vte.c:7806
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Lỗi (%s) khi chuyển đổi dữ liệu cho child, bỏ."
 
-#: src/vte.c:10231
+#: src/vte.c:10473
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Lỗi khi đọc kích thước PTY, sử dụng mặc định: %s."
 
-#: src/vte.c:10267
+#: src/vte.c:10509
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Lỗi khi lập kích thước PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14389
+#: src/vte.c:14880
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_iconv_open() không lập được các ký tự từ"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:680
+#: src/vteapp.c:694
 msgid "Could not open console.\n"
 msgstr "Không thể mở console.\n"
 
@@ -139,3 +139,4 @@ msgstr "Không thể vẽ ký tự U+%04x.\n"
 
 #~ msgid "Character 0x%x is undefined, allocating one column."
 #~ msgstr "Ký tự 0x%x không được định nghĩa, dùng một cột."
+
