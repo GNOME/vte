@@ -12,6 +12,7 @@ AM_PROG_LIBTOOL
 ALL_LINGUAS="am ar az be bg bn ca cs cy da de el en_CA en_GB es et eu fa fi fr ga gu he hr hu id is it ja ko li lt lv mk ml mn ms ne nl nn no pa pl pt pt_BR ro ru sk sl sq sr sr@Latn sv tr uk vi wa zh_CN zh_TW"
 
 AM_GLIB_GNU_GETTEXT
+AC_CHECK_DECLS(bind_textdomain_codeset,,,[#include "libintl.h"])
 
 # On some OSs, AC_PATH_XTRA doesn't work right(?), so let the user specify
 # X_PRE_LIBS and X_EXTRA_LIBS to add even more libraries, and add -lX11 to

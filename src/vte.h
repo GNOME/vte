@@ -63,6 +63,47 @@ struct _VteTerminalClass {
 	/* Inherited parent class. */
 	GtkWidgetClass parent_class;
 
+	/*< protected > */
+	/* Default signal handlers. */
+	void (*eof)(VteTerminal* terminal);
+	void (*child_exited)(VteTerminal* terminal);
+	void (*emulation_changed)(VteTerminal* terminal);
+	void (*encoding_changed)(VteTerminal* terminal);
+	void (*char_size_changed)(VteTerminal* terminal, guint char_width, guint char_height);
+	void (*window_title_changed)(VteTerminal* terminal);
+	void (*icon_title_changed)(VteTerminal* terminal);
+	void (*selection_changed)(VteTerminal* terminal);
+	void (*contents_changed)(VteTerminal* terminal);
+	void (*cursor_moved)(VteTerminal* terminal);
+	void (*status_line_changed)(VteTerminal* terminal);
+	void (*commit)(VteTerminal* terminal, gchar *text, guint size);
+
+	void (*deiconify_window)(VteTerminal* terminal);
+	void (*iconify_window)(VteTerminal* terminal);
+	void (*raise_window)(VteTerminal* terminal);
+	void (*lower_window)(VteTerminal* terminal);
+	void (*refresh_window)(VteTerminal* terminal);
+	void (*restore_window)(VteTerminal* terminal);
+	void (*maximize_window)(VteTerminal* terminal);
+	void (*resize_window)(VteTerminal* terminal, guint width, guint height);
+	void (*move_window)(VteTerminal* terminal, guint x, guint y);
+
+	void (*increase_font_size)(VteTerminal* terminal);
+	void (*decrease_font_size)(VteTerminal* terminal);
+
+	void (*text_modified)(VteTerminal* terminal);
+	void (*text_inserted)(VteTerminal* terminal);
+	void (*text_deleted)(VteTerminal* terminal);
+	void (*text_scrolled)(VteTerminal* terminal, gint delta);
+
+	/* Padding for future expansion. */
+	void (*vte_reserved1)(void);
+	void (*vte_reserved2)(void);
+	void (*vte_reserved3)(void);
+	void (*vte_reserved4)(void);
+	void (*vte_reserved5)(void);
+	void (*vte_reserved6)(void);
+
 	/*< private > */
 	/* Signals we might emit. */
 	guint eof_signal;

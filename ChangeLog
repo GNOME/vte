@@ -1,4 +1,16 @@
-2004-04-18 nalin
+2004-04-19  Victor Zverovich  <vitaut@users.sourceforge.net>
+	* src/vte.h src/vte.c: Added default signal handlers to
+	VteTerminalClass (#137961).  [NOTE: ABI change.]
+
+2004-04-19 nalin
+	* src/vte.c(vte_terminal_configure_toplevel): don't re-invalidate
+	everything, apparently unnecessary (#122243).  Might need to back this
+	out if I ever remember what specific combination of software and
+	versions prompted its addition in the first place.
+	* src/vte.c(vte_terminal_class_init): tell gettext that messages
+	retrieved from this domain should be returned in UTF-8 (#139542).
+
+2004-04-19 nalin
 	* configure.in: don't disable use of deprecated APIs unless asked
 	to do so.
 	* src/keymap.c(_vte_keymap_GDK_space): add Meta case (gafton).
