@@ -1,40 +1,41 @@
-# vte Portuguese translation.
-# Copyright (C) 2003 vte
+# vte's Portuguese translation.
+# Copyright (C) 2003, 2004 vte
 # This file is distributed under the same license as the vte package.
-# Duarte Loreto <happyguy_pt@hotmail.com>, 2003.
+# Duarte Loreto <happyguy_pt@hotmail.com>, 2003, 2004.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: 2.4\n"
-"POT-Creation-Date: 2003-05-26 21:53+0000\n"
-"PO-Revision-Date: 2003-05-26 21:55+0000\n"
+"Project-Id-Version: 2.6\n"
+"Report-Msgid-Bugs-To: Duarte Loreto <happyguy_pt@hotmail.com>\n"
+"POT-Creation-Date: 2004-01-02 22:51+0000\n"
+"PO-Revision-Date: 2004-01-02 23:00+0000\n"
 "Last-Translator: Duarte Loreto <happyguy_pt@hotmail.com>\n"
 "Language-Team: pt <gnome_pt@yahoogroups.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:736 src/iso2022.c:747 src/iso2022.c:796 src/vte.c:2004
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2072
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Incapaz de converter caracteres de %s em %s."
 
-#: src/iso2022.c:1506
+#: src/iso2022.c:1578
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr "Tentativa de definir um mapa NRC inválido '%c'."
+msgstr "Tentativa de definição de mapa NRC inválido '%c'."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1547
+#: src/iso2022.c:1619
 msgid "Unrecognized identified coding system."
 msgstr "Sistema de codificação identificado desconhecido."
 
-#: src/iso2022.c:1596 src/iso2022.c:1622
+#: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "Tentativa de definir um mapa abrangente NRC inválido '%c'."
+msgstr "Tentativa de definição de mapa abrangente NRC inválido '%c'."
 
-#: src/pty.c:317
+#: src/pty.c:323
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Erro ao adicionar `%s' ao ambiente, a continuar."
@@ -42,7 +43,7 @@ msgstr "Erro ao adicionar `%s' ao ambiente, a continuar."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:880
+#: src/pty.c:908
 #, c-format
 msgid "can not run %s"
 msgstr "incapaz de executar %s"
@@ -56,89 +57,57 @@ msgstr "Erro ao criar canal de sinal."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicado (%s/%s)!"
 
-#: src/vte.c:1440
+#: src/vte.c:1480
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Erro ao compilar expressão regular \"%s\"."
 
-#: src/vte.c:5545
+#: src/vte.c:5815
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Obtida sequência (chave?) inesperada `%s'."
 
-#: src/vte.c:6558
+#: src/vte.c:6893
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr "Nenhum gestor definido para a sequência de controlo `%s'."
+msgstr "Nenhum manipulador definido para a sequência de controlo `%s'."
 
-#: src/vte.c:7270
+#: src/vte.c:7714
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Erro ao ler do filho: %s."
 
-#: src/vte.c:7426
+#: src/vte.c:7870
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "Erro (%s) a converter dados do filho, a ignora-los."
+msgstr "Erro (%s) a converter dados do filho, a ignorá-los."
 
-#: src/vte.c:10046
+#: src/vte.c:10537
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Erro ao ler tamanho PTY, a utilizar valores por omissão: %s."
 
-#: src/vte.c:10082
+#: src/vte.c:10573
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Erro ao definir tamanho PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14062
+#: src/vte.c:14977
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "_vte_conv_open() falhou ao definir caracteres de palavra"
+msgstr "_vte_conv_open() falha ao definir caracteres de palavra"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:653
+#: src/vteapp.c:713
 msgid "Could not open console.\n"
 msgstr "Incapaz de abrir consola.\n"
 
-#: src/vteglyph.c:575
+#: src/vteglyph.c:576
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "Modo de pixel %d desconhecido.\n"
 
-#: src/vtexft.c:666
+#: src/vtexft.c:710
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "Incapaz de desenhar caracter U+%04x.\n"
-
-#~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
-#~ msgstr ""
-#~ "A utilizar conjunto de fontes \"%s\", a que faltam os seguintes conjuntos "
-#~ "de caracteres: %s."
-
-#~ msgid ""
-#~ "Failed to load Xft font pattern \"%s\", falling back to default font."
-#~ msgstr ""
-#~ "Falha ao carregar padrão de fontes Xft \"%s\", a utilizar fonte por "
-#~ "omissão."
-
-#~ msgid "Failed to load default Xft font."
-#~ msgstr "Falha ao ler fonte Xft por omissão."
-
-#~ msgid "Failed to load font set \"%s\", falling back to default font."
-#~ msgstr ""
-#~ "Falha ao ler conjunto de fontes \"%s\", a utilizar fonte por omissão."
-
-#~ msgid "Failed to load default font, crashing or behaving abnormally."
-#~ msgstr ""
-#~ "Falha ao carregar a fonte por omissão, a rebentar ou com comportamento "
-#~ "anormal."
-
-#~ msgid "Error allocating draw, disabling Xft."
-#~ msgstr "Erro ao alocar desenho, a desabilitar Xft."
-
-#~ msgid "Error allocating context, disabling Pango."
-#~ msgstr "Erro ao alocar contexto, a desabilitar Pango."
-
-#~ msgid "Error allocating layout, disabling Pango."
-#~ msgstr "Erro ao alocar disposição, a desabilitar Pango."
