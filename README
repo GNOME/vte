@@ -26,7 +26,6 @@
   implemented (ff, fs, i1, i3, is, iP, LF, LO, MC, mh, ML, mm, mo, nw, pf,
   pk, pl, pf, po, pO, ps, px, r1, r2, r3, RA, RF, rp, rs, RX, SA, SX, wi,
   several more from the XTerm set).
-- Sequence matching is greedy, so that C=AB matches C and not A and then B.
 - Bold doesn't work right if the default foreground color isn't gray.  Need
   to move to 20-color palette to fix this right.
 - I'm not sure the widget implementation itself is correct.  There are many

@@ -3221,43 +3221,64 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		gpointer *pvalue;
 		gpointer fvalue;
 		gpointer tvalue;
+		VteTerminalSequenceHandler reset, set;
 	} settings[] = {
 		/* Application/normal keypad. */
 		{1, NULL, &terminal->pvt->keypad, NULL,
 		 GINT_TO_POINTER(VTE_KEYPAD_NORMAL),
-		 GINT_TO_POINTER(VTE_KEYPAD_APPLICATION),},
+		 GINT_TO_POINTER(VTE_KEYPAD_APPLICATION),
+		 NULL, NULL,},
 		/* Reverse video. */
 		{5, &terminal->pvt->screen->reverse_mode, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),},
+		 GINT_TO_POINTER(TRUE),
+		 NULL, NULL,},
 		/* Send-coords-on-click. */
 		{9, &terminal->pvt->mouse_send_xy_on_click, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),},
+		 GINT_TO_POINTER(TRUE),
+		 NULL, NULL,},
 		/* Cursor visible. */
 		{25, &terminal->pvt->screen->cursor_visible, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),},
+		 GINT_TO_POINTER(TRUE),
+		 NULL, NULL,},
 		/* Alternate screen. */
 		{47, NULL, NULL, (gpointer*) &terminal->pvt->screen,
 		 &terminal->pvt->normal_screen,
-		 &terminal->pvt->alternate_screen,},
+		 &terminal->pvt->alternate_screen,
+		 NULL, NULL,},
 		/* Send-coords-on-button. */
 		{1000, &terminal->pvt->mouse_send_xy_on_button, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),},
+		 GINT_TO_POINTER(TRUE),
+		 NULL, NULL,},
 		/* Hilite tracking*/
 		{1001, &terminal->pvt->mouse_hilite_tracking, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),},
+		 GINT_TO_POINTER(TRUE),
+		 NULL, NULL,},
 		/* Cell motion tracking*/
 		{1002, &terminal->pvt->mouse_cell_motion_tracking, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),},
+		 GINT_TO_POINTER(TRUE),
+		 NULL, NULL,},
 		/* All motion tracking*/
 		{1003, &terminal->pvt->mouse_all_motion_tracking, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),},
+		 GINT_TO_POINTER(TRUE),
+		 NULL, NULL,},
+		/* Use alternate screen buffer. */
+		{1047, NULL, NULL, (gpointer*) &terminal->pvt->screen,
+		 &terminal->pvt->normal_screen,
+		 &terminal->pvt->alternate_screen,
+		 NULL, NULL,},
+		/* Save/restore cursor position. */
+		{1048, NULL, NULL, NULL,
+		 NULL,
+		 NULL,
+		 vte_sequence_handler_rc,
+		 vte_sequence_handler_sc,},
 	};
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -3320,6 +3341,15 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 				*(settings[i].pvalue) = set ?
 					settings[i].tvalue :
 					settings[i].fvalue;
+			} else
+			if (settings[i].set && settings[i].reset) {
+				if (set) {
+					settings[i].set(terminal, NULL,
+							0, NULL);
+				} else {
+					settings[i].reset(terminal, NULL,
+							  0, NULL);
+				}
 			}
 		}
 	}
@@ -3331,10 +3361,12 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 			vte_invalidate_all(terminal);
 			break;
 		case 25:
+		case 1048:
 			/* Repaint the cell the cursor is in. */
 			vte_invalidate_cursor_once(terminal);
 			break;
 		case 47:
+		case 1047:
 			/* Reset scrollbars and repaint everything. */
 			vte_terminal_adjust_adjustments(terminal);
 			vte_invalidate_all(terminal);

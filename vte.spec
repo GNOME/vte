@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.4.0
+Version: 0.4.1
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -57,6 +57,9 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Tue Jun 18 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.1-1
+- fix use of alternate buffer in xterm emulation mode
+
 * Fri Jun 14 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.0-1
 - add a means for apps to add environment variables
 

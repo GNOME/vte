@@ -497,6 +497,7 @@ vte_trie_add(struct vte_trie *trie, const char *pattern, size_t length,
  * works, and the result string if we have an exact match. */
 static const char *
 vte_trie_matchx(struct vte_trie *trie, const wchar_t *pattern, size_t length,
+		gboolean greedy,
 		const char **res, const wchar_t **consumed,
 		GQuark *quark, GValueArray *array)
 {
@@ -517,7 +518,7 @@ vte_trie_matchx(struct vte_trie *trie, const wchar_t *pattern, size_t length,
 
 	/* Trivial cases.  We've matched an entire pattern, or we're out of
 	 * pattern to match. */
-	if (trie->result) {
+	if (trie->result != NULL) {
 		*res = trie->result;
 		*quark = trie->quark;
 		*consumed = pattern;
@@ -559,6 +560,7 @@ vte_trie_matchx(struct vte_trie *trie, const wchar_t *pattern, size_t length,
 				return vte_trie_matchx(path->trie,
 						       pattern + partial,
 						       length - partial,
+						       FALSE,
 						       res,
 						       consumed,
 						       quark,
@@ -581,6 +583,7 @@ vte_trie_matchx(struct vte_trie *trie, const wchar_t *pattern, size_t length,
 				const char *tmp;
 				GQuark tmpquark = 0;
 				GValueArray *tmparray;
+				gboolean better = FALSE;
 				/* Move past characters which might match this
 				 * part of the string... */
 				while (cclass->multiple &&
@@ -600,16 +603,42 @@ vte_trie_matchx(struct vte_trie *trie, const wchar_t *pattern, size_t length,
 				vte_trie_matchx(subtrie,
 						prospect,
 						length - (prospect - pattern),
+						greedy,
 						&tmp,
 						consumed,
 						&tmpquark,
 						tmparray);
-				/* If it's a better match than any we've seen
-				 * so far, call it the "best so far". */
-				if ((best == NULL) ||
-				    ((best[0] == '\0') &&
-				     (tmp != NULL) &&
-				     (tmp[0] != '\0'))) {
+				/* If we haven't seen any matches yet, go ahead
+				 * and go by this result. */
+				if (best == NULL) {
+					better = TRUE;
+				}
+				/* If we have a match, and we didn't have one
+				 * already, go by this result. */
+				if ((best != NULL) &&
+				    (best[0] == '\0') &&
+				    (tmp != NULL) &&
+				    (tmp[0] != '\0')) {
+					better = TRUE;
+				}
+				/* If we already have a match, and this one's
+				 * better (longer if we're greedy, shorter if
+				 * we're not), then go by this result. */
+				if ((tmp != NULL) &&
+				    (tmp[0] != '\0') &&
+				    (bestconsumed != NULL) &&
+				    (consumed != NULL) &&
+				    (*consumed != NULL)) {
+					if (greedy &&
+					    (bestconsumed < *consumed)) {
+						better = TRUE;
+					}
+					if (!greedy &&
+					    (bestconsumed > *consumed)) {
+						better = TRUE;
+					}
+				}
+				if (better) {
 					best = tmp;
 					if (bestarray != NULL) {
 						g_value_array_free(bestarray);
@@ -704,6 +733,7 @@ vte_trie_match(struct vte_trie *trie, const wchar_t *pattern, size_t length,
 	GValue *value;
 	const wchar_t *dummyconsumed;
 	gpointer ptr;
+	gboolean greedy = FALSE;
 	int i;
 
 	valuearray = g_value_array_new(0);
@@ -717,8 +747,8 @@ vte_trie_match(struct vte_trie *trie, const wchar_t *pattern, size_t length,
 	}
 	*consumed = pattern;
 
-	ret = vte_trie_matchx(trie, pattern, length, res, consumed,
-			      quark, valuearray);
+	ret = vte_trie_matchx(trie, pattern, length, greedy,
+			      res, consumed, quark, valuearray);
 
 	if (((ret == NULL) || (ret[0] == '\0')) || (valuearray->n_values == 0)){
 		if (valuearray != NULL) {
@@ -903,6 +933,8 @@ main(int argc, char **argv)
 		     g_quark_from_string("vtmatch"));
 	vte_trie_add(trie, "<esc>[%i%mL", 11, "multimatch",
 		     g_quark_from_string("multimatch"));
+	vte_trie_add(trie, "<esc>[%mL<esc>[%mL", 18, "greedy",
+		     g_quark_from_string("greedy"));
 	vte_trie_add(trie, "<esc>]2;%sh", 11, "decset-title",
 		     g_quark_from_string("decset-title"));
 	if (argc > 1) {
@@ -1036,6 +1068,28 @@ main(int argc, char **argv)
 	quark = 0;
 	convert_mbstowcs("<esc>[25;2", 10, buf, &buflen, sizeof(buf));
 	g_print("`%s' = `%s'\n", "<esc>[25;2",
+	        vte_trie_match(trie, buf, buflen,
+			       NULL, &consumed, &quark, &array));
+	g_print("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	if (array != NULL) {
+		dump_array(array);
+		g_value_array_free(array);
+	}
+
+	quark = 0;
+	convert_mbstowcs("<esc>[25L", 9, buf, &buflen, sizeof(buf));
+	g_print("`%s' = `%s'\n", "<esc>[25L",
+	        vte_trie_match(trie, buf, buflen,
+			       NULL, &consumed, &quark, &array));
+	g_print("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	if (array != NULL) {
+		dump_array(array);
+		g_value_array_free(array);
+	}
+
+	quark = 0;
+	convert_mbstowcs("<esc>[25L<esc>[24L", 18, buf, &buflen, sizeof(buf));
+	g_print("`%s' = `%s'\n", "<esc>[25L<esc>[24L",
 	        vte_trie_match(trie, buf, buflen,
 			       NULL, &consumed, &quark, &array));
 	g_print("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);

@@ -1,3 +1,8 @@
+2002-06-17 nalin
+	* src/trie.c (vte_trie_match, vte_trie_match_x): Sort out greedy vs.
+	non-greedy pattern matching.
+	* src/vte.c (vte_sequence_handler_decset_internal): Make 1047 an alias
+	for 47 (use alternate buffer), and handle cursor save/restore properly.
 2002-06-14 nalin
 	* src/vte.c, src/vte.h (vte_terminal_fork_command): Add a parameter for
 	passing in environment variables to add.
