@@ -165,6 +165,7 @@ struct _VteTerminalPrivate {
 #endif
 	} palette[VTE_BOLD_FG + 1];
 	XFontSet fontset;
+	GTree *fontspacing;
 #ifdef HAVE_XFT
 	XftFont *ftfont;
 #endif
@@ -7330,6 +7331,13 @@ vte_unparse_xft_pattern(XftPattern *pattern)
 }
 #endif /* HAVE_XFT */
 
+/* A comparison function which helps sort quarks. */
+static gint
+vte_compare_direct(gconstpointer a, gconstpointer b)
+{
+	return GPOINTER_TO_INT(a) - GPOINTER_TO_INT(b);
+}
+
 /* Set the fontset used for rendering text into the widget. */
 void
 vte_terminal_set_font(VteTerminal *terminal,
@@ -7371,6 +7379,10 @@ vte_terminal_set_font(VteTerminal *terminal,
 		}
 	}
 #endif
+	if (terminal->pvt->fontspacing != NULL) {
+		g_tree_destroy(terminal->pvt->fontspacing);
+	}
+	terminal->pvt->fontspacing = g_tree_new(vte_compare_direct);
 	/* Set up the normal font description. */
 	if (font_desc != NULL) {
 		terminal->pvt->fontdesc =
@@ -7648,13 +7660,6 @@ vte_terminal_get_font(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 	return terminal->pvt->fontdesc;
-}
-
-/* A comparison function which helps sort quarks. */
-static gint
-vte_compare_direct(gconstpointer a, gconstpointer b)
-{
-	return GPOINTER_TO_INT(a) - GPOINTER_TO_INT(b);
 }
 
 /* Read and refresh our perception of the size of the PTY. */
@@ -8033,10 +8038,11 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->selection_end.y = 0;
 
 	pvt->fontset = NULL;
-
-	/* Decide if we're going to use Pango (pangox) for rendering. */
 	pvt->fontdesc = NULL;
+	pvt->fontspacing = g_tree_new(vte_compare_direct);
 	pvt->layout = NULL;
+
+	/* Decide how we're going to render text. */
 	pvt->use_xft = FALSE;
 	pvt->use_pango = FALSE;
 
@@ -8270,6 +8276,10 @@ vte_terminal_unrealize(GtkWidget *widget)
 	if (terminal->pvt->fontdesc != NULL) {
 		pango_font_description_free(terminal->pvt->fontdesc);
 		terminal->pvt->fontdesc = NULL;
+	}
+	if (terminal->pvt->fontspacing != NULL) {
+		g_tree_destroy(terminal->pvt->fontspacing);
+		terminal->pvt->fontspacing = NULL;
 	}
 
 	/* Disconnect any filters which might be watching for X window
@@ -8639,7 +8649,7 @@ vte_terminal_draw_char(VteTerminal *terminal,
 #endif
 		       gboolean cursor)
 {
-	int fore, back, dcol, i, j;
+	int fore, back, dcol, i, j, char_width;
 	long xcenter, ycenter, xright, ybottom;
 	char utf8_buf[7] = {0,};
 	gboolean drawn, reverse;
@@ -9304,11 +9314,27 @@ vte_terminal_draw_char(VteTerminal *terminal,
 	if (!drawn && terminal->pvt->use_xft) {
 		XftChar32 ftc;
 		XftFont *font;
+		XGlyphInfo info;
+		gpointer ptr;
 		font = terminal->pvt->ftfont;
 		ftc = vte_terminal_xft_remap_char(display, font, cell->c);
+		ptr = g_tree_lookup(terminal->pvt->fontspacing,
+				    GINT_TO_POINTER(ftc));
+		char_width = GPOINTER_TO_INT(ptr);
+		if (char_width < 0) {
+			char_width = 0;
+		} else if (char_width == 0) {
+			XftTextExtents32(GDK_DISPLAY(), font, &ftc, 1, &info);
+			char_width = info.width;
+			g_tree_insert(terminal->pvt->fontspacing,
+				      GINT_TO_POINTER(ftc),
+				      GINT_TO_POINTER(char_width));
+		}
 		XftDrawString32(ftdraw,
 				&terminal->pvt->palette[fore].ftcolor,
-				font, x, y + ascent, &ftc, 1);
+				font,
+				x + ((terminal->char_width - char_width) / 2),
+				y + ascent, &ftc, 1);
 		drawn = TRUE;
 	}
 #endif
@@ -9344,6 +9370,22 @@ vte_terminal_draw_char(VteTerminal *terminal,
 	/* If we haven't managed to draw anything yet, try to draw the text
 	 * using Xlib. */
 	if (!drawn) {
+		gpointer ptr;
+		XRectangle ink, logic;
+		ptr = g_tree_lookup(terminal->pvt->fontspacing,
+				    GINT_TO_POINTER(cell->c));
+		char_width = GPOINTER_TO_INT(ptr);
+		if (char_width < 0) {
+			char_width = 0;
+		} else if (char_width == 0) {
+			XwcTextExtents(terminal->pvt->fontset,
+				       &cell->c, 1, &ink, &logic);
+			char_width = logic.width;
+			g_tree_insert(terminal->pvt->fontspacing,
+				      GINT_TO_POINTER(cell->c),
+				      GINT_TO_POINTER(char_width));
+		}
+
 		/* Set the textitem's fields. */
 		textitem.chars = &cell->c;
 		textitem.nchars = 1;
@@ -9355,7 +9397,9 @@ vte_terminal_draw_char(VteTerminal *terminal,
 		 * need to handle half, and maybe
 		 * blink, if we decide to be evil. */
 		XSetForeground(display, gc, terminal->pvt->palette[fore].pixel);
-		XwcDrawText(display, drawable, gc, x, y + ascent, &textitem, 1);
+		XwcDrawText(display, drawable, gc,
+			    x + ((terminal->char_width - char_width) / 2),
+			    y + ascent, &textitem, 1);
 		drawn = TRUE;
 	}
 

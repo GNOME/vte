@@ -1,3 +1,5 @@
+2002-06-07 nalin
+	* src/vte.c: Center characters in their cells, caching their extents.
 2002-06-06 nalin
 	* src/vte.c, src/vte.h: Add get_cursor_position(). Remove get_snapshot()
 	and free_shapshot().
