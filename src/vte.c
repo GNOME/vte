@@ -4824,8 +4824,8 @@ vte_terminal_new(void)
 
 /* Set up a palette entry with a more-or-less match for the requested color. */
 static void
-vte_terminal_set_color_int(VteTerminal *terminal, int entry,
-			   const GdkColor *proposed)
+vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
+				const GdkColor *proposed)
 {
 	GtkWidget *widget;
 	Display *display;
@@ -4856,6 +4856,12 @@ vte_terminal_set_color_int(VteTerminal *terminal, int entry,
 	terminal->pvt->palette[entry].green = color.green;
 	terminal->pvt->palette[entry].blue = color.blue;
 	terminal->pvt->palette[entry].pixel = color.pixel;
+
+	/* If we're setting the background color, set the background color
+	 * on the widget as well. */
+	if ((entry == VTE_DEF_BG) && (GTK_WIDGET_REALIZED(widget))) {
+		gdk_window_set_background(widget->window, &color);
+	}
 
 #ifdef HAVE_XFT
 	if (terminal->pvt->use_xft) {
@@ -4936,7 +4942,7 @@ vte_terminal_generate_bold(const struct vte_palette_entry *foreground,
 void
 vte_terminal_set_color_bold(VteTerminal *terminal, const GdkColor *bold)
 {
-	vte_terminal_set_color_int(terminal, VTE_BOLD_FG, bold);
+	vte_terminal_set_color_internal(terminal, VTE_BOLD_FG, bold);
 }
 
 /* Set the foreground color. */
@@ -4944,7 +4950,7 @@ void
 vte_terminal_set_color_foreground(VteTerminal *terminal,
 				  const GdkColor *foreground)
 {
-	vte_terminal_set_color_int(terminal, VTE_DEF_FG, foreground);
+	vte_terminal_set_color_internal(terminal, VTE_DEF_FG, foreground);
 }
 
 /* Set the background color. */
@@ -4952,7 +4958,7 @@ void
 vte_terminal_set_color_background(VteTerminal *terminal,
 				  const GdkColor *background)
 {
-	vte_terminal_set_color_int(terminal, VTE_DEF_BG, background);
+	vte_terminal_set_color_internal(terminal, VTE_DEF_BG, background);
 }
 
 /* Set a given set of colors as the palette. */
@@ -5048,7 +5054,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 		}
 
 		/* Set up the color entry. */
-		vte_terminal_set_color_int(terminal, i, &color);
+		vte_terminal_set_color_internal(terminal, i, &color);
 	}
 
 	/* We may just have chnged the default background color, so queue
@@ -11268,7 +11274,6 @@ vte_terminal_setup_background(VteTerminal *terminal,
 	bgcolor.green = terminal->pvt->palette[VTE_DEF_BG].green;
 	bgcolor.blue = terminal->pvt->palette[VTE_DEF_BG].blue;
 	bgcolor.pixel = terminal->pvt->palette[VTE_DEF_BG].pixel;
-
 	gdk_window_set_background(widget->window, &bgcolor);
 
 	if (terminal->pvt->bg_transparent) {

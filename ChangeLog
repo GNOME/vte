@@ -1,4 +1,7 @@
 2002-07-19  nalin
+	* src/vte.c(vte_terminal_set_color_internal): If we're changing the
+	background color, apply it to the widget's window as well, from msw.
+2002-07-19  nalin
 	* src/vte.c: Undo the scrolling changes -- there too many combinations
 	of circumstances that cause them to not work right.
 2002-07-18  nalin
