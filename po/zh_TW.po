@@ -5,25 +5,25 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte 0.11.6\n"
-"POT-Creation-Date: 2003-05-08 12:40+0800\n"
-"PO-Revision-Date: 2003-05-08 22:30+0800\n"
+"POT-Creation-Date: 2003-05-13 18:56+0800\n"
+"PO-Revision-Date: 2003-05-13 18:50+0800\n"
 "Last-Translator: Abel Cheung <maddog@linux.org.hk>\n"
 "Language-Team: Chinese (traditional) <zh-l10n@linux.org.tw>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:744 src/vte.c:1991
+#: src/iso2022.c:723 src/iso2022.c:734 src/iso2022.c:758 src/vte.c:1991
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "無法將字元從 %s 轉換至 %s。"
 
-#: src/iso2022.c:1355
+#: src/iso2022.c:1369
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "嘗試設定無效的 NRC 字元映射‘%c’。"
 
-#: src/iso2022.c:1406 src/iso2022.c:1432
+#: src/iso2022.c:1420 src/iso2022.c:1446
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "嘗試設定無效的多位元組 NRC 字元映射‘%c’。"
@@ -43,7 +43,7 @@ msgstr "無法執行 %s"
 
 #: src/reaper.c:108
 msgid "Error creating signal pipe."
-msgstr "建立訊號管道時出現錯誤。"
+msgstr "建立訊號管道出現錯誤。"
 
 #: src/trie.c:412
 #, c-format
@@ -58,12 +58,12 @@ msgstr "計算正規表示式“%s”時出現錯誤。"
 #: src/vte.c:5501
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr "收到意料之外的跳出字元序列 (可能是按鍵?)‘%s’。"
+msgstr "收到預料之外的跳出字元序列 (可能是按鍵?)‘%s’。"
 
 #: src/vte.c:6514
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr "未定義控制字元序列‘%s’的處理程序。"
+msgstr "未指定控制字元序列‘%s’的處理程序。"
 
 #: src/vte.c:7230
 #, c-format
@@ -78,20 +78,20 @@ msgstr "從副程序轉換資料時出現錯誤 (%s)，放棄。"
 #: src/vte.c:9934
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr "無法讀取 PTY 的大小，使用預設定值：%s。"
+msgstr "無法獲取 PTY 的尺寸，使用預設定值：%s。"
 
 #: src/vte.c:9970
 #, c-format
 msgid "Error setting PTY size: %s."
-msgstr "無法設定 PTY 的大小：%s。"
+msgstr "無法設定 PTY 的尺寸：%s。"
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:13914
+#: src/vte.c:13922
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() 無法轉換字元"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:640
+#: src/vteapp.c:642
 msgid "Could not open console.\n"
 msgstr "無法開啟文字模式視窗。\n"
 
@@ -106,7 +106,7 @@ msgid "Can not draw character U+%04x.\n"
 msgstr "無法顯示字元 U+%04x。\n"
 
 #~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
-#~ msgstr "使用字集“%s”，但它缺少了以下的字元集：%s。"
+#~ msgstr "使用“%s”字型集，但它缺少了以下的字元集：%s。"
 
 #~ msgid ""
 #~ "Failed to load Xft font pattern \"%s\", falling back to default font."
@@ -116,7 +116,7 @@ msgstr "無法顯示字元 U+%04x。\n"
 #~ msgstr "無法載入預設的 Xft 字型。"
 
 #~ msgid "Failed to load font set \"%s\", falling back to default font."
-#~ msgstr "無法載入字集“%s”，使用預設字型作為後備。"
+#~ msgstr "無法載入“%s”字型集，使用預設字型作為後備。"
 
 #~ msgid "Failed to load default font, crashing or behaving abnormally."
 #~ msgstr "無法載入預設字型，可能會突然中止或無法正常運作。"
@@ -129,3 +129,6 @@ msgstr "無法顯示字元 U+%04x。\n"
 
 #~ msgid "Error allocating layout, disabling Pango."
 #~ msgstr "分配記憶體給 layout 時出現錯誤，停止使用 Pango。"
+
+#~ msgid "g_iconv_open() failed setting word characters"
+#~ msgstr "g_iconv_open() 無法轉換字元"
