@@ -326,7 +326,7 @@ static void
 vte_free_row_data(gpointer freeing, gpointer data)
 {
 	if (freeing) {
-		g_array_free((GArray*)freeing, FALSE);
+		g_array_free((GArray*)freeing, TRUE);
 	}
 }
 
@@ -696,7 +696,7 @@ vte_terminal_match_contents_clear(VteTerminal *terminal)
 		terminal->pvt->match_contents = NULL;;
 	}
 	while (terminal->pvt->match_attributes != NULL) {
-		g_array_free(terminal->pvt->match_attributes, FALSE);
+		g_array_free(terminal->pvt->match_attributes, TRUE);
 		terminal->pvt->match_attributes = NULL;
 	}
 	vte_terminal_match_hilite_clear(terminal);
@@ -6122,6 +6122,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			vte_terminal_send(terminal, "UTF-8",
 					  special, strlen(special));
 			g_free(special);
+			g_free(normal);
 		}
 		/* Keep the cursor on-screen. */
 		if (!scrolled && !modifier &&
@@ -6813,7 +6814,7 @@ vte_terminal_get_text(VteTerminal *terminal,
 		} while (pcell != NULL);
 	}
 	ret = g_strdup(string->str);
-	g_string_free(string, FALSE);
+	g_string_free(string, TRUE);
 	return ret;
 }
 
@@ -8378,7 +8379,7 @@ vte_terminal_finalize(GObject *object)
 	}
 
 	/* Free the word chars array. */
-	g_array_free(terminal->pvt->word_chars, FALSE);
+	g_array_free(terminal->pvt->word_chars, TRUE);
 
 	/* Call the inherited finalize() method. */
 	if (G_OBJECT_CLASS(widget_class)->finalize) {
@@ -10681,7 +10682,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	/* Allocate a new range array. */
 	if (terminal->pvt->word_chars != NULL) {
-		g_array_free(terminal->pvt->word_chars, FALSE);
+		g_array_free(terminal->pvt->word_chars, TRUE);
 	}
 	terminal->pvt->word_chars = g_array_new(FALSE, TRUE,
 						sizeof(VteWordCharRange));

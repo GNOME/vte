@@ -75,11 +75,11 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text)
 		priv->snapshot = NULL;
 	}
 	if (priv->snapshot_cells != NULL) {
-		g_array_free(priv->snapshot_cells, FALSE);
+		g_array_free(priv->snapshot_cells, TRUE);
 		priv->snapshot_cells = NULL;
 	}
 	if (priv->snapshot_linebreaks != NULL) {
-		g_array_free(priv->snapshot_linebreaks, FALSE);
+		g_array_free(priv->snapshot_linebreaks, TRUE);
 		priv->snapshot_linebreaks = NULL;
 	}
 	priv->snapshot_caret = 0;
@@ -148,11 +148,11 @@ vte_terminal_accessible_free_private_data(VteTerminalAccessiblePrivate *priv)
 		priv->snapshot = NULL;
 	}
 	if (priv->snapshot_cells != NULL) {
-		g_array_free(priv->snapshot_cells, FALSE);
+		g_array_free(priv->snapshot_cells, TRUE);
 		priv->snapshot_cells = NULL;
 	}
 	if (priv->snapshot_linebreaks != NULL) {
-		g_array_free(priv->snapshot_linebreaks, FALSE);
+		g_array_free(priv->snapshot_linebreaks, TRUE);
 		priv->snapshot_linebreaks = NULL;
 	}
 	g_free(priv);
