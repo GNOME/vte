@@ -1,47 +1,47 @@
-# Romanian translation for vte 0.10.8
+# Romanian translation for vte
 # Copyright (C) 2003 Free Software Foundation, Inc.
 # Mişu Moldovan <dumol@go.ro>, 2003.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gnome-themes 0.10.8\n"
-"POT-Creation-Date: 2003-05-19 14:33-0400\n"
-"PO-Revision-Date: 2003-01-18 18:28+0200\n"
+"Project-Id-Version: gnome-themes 0.11.10\n"
+"POT-Creation-Date: 2003-08-24 20:44+0300\n"
+"PO-Revision-Date: 2003-08-24 20:51+0300\n"
 "Last-Translator: Mişu Moldovan <dumol@go.ro>\n"
 "Language-Team: Romanian <gnomero-list@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2067
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Nu pot converti caracterele din %s în %s."
 
-#: src/iso2022.c:1505
+#: src/iso2022.c:1560
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr ""
+msgstr "Încercare de a seta harta NRC invalidă „%c“."
 
-#. See ECMA-35.
-#: src/iso2022.c:1546
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1601
 msgid "Unrecognized identified coding system."
-msgstr ""
+msgstr "Cod necunoscut de identificare sistem."
 
-#: src/iso2022.c:1595 src/iso2022.c:1621
+#: src/iso2022.c:1650 src/iso2022.c:1676
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr ""
+msgstr "Încercare de a seta harta „wide“ NRC „%c“."
 
-#: src/pty.c:317
+#: src/pty.c:323
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr "Eroare la adăugarea `%s' ca variabilă de mediu, continui."
+msgstr "Eroare la adăugarea „%s“ ca variabilă de mediu, continui."
 
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:877
+#: src/pty.c:908
 #, c-format
 msgid "can not run %s"
 msgstr "nu pot porni %s"
@@ -55,82 +55,60 @@ msgstr "Eroare la crearea filtrului de semnalizare."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicat (%s/%s)!"
 
-#: src/vte.c:1430
+#: src/vte.c:1475
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "Eroare la compilarea expresiei regulare \"%s\"."
+msgstr "Eroare la compilarea expresiei regulare „%s“."
 
-#: src/vte.c:5534
+#: src/vte.c:5810
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr "Am recepţionat o secvenţă (de taste?) neaşteptată `%s'."
+msgstr "Am recepţionat o secvenţă (de taste?) neaşteptată „%s“."
 
-#: src/vte.c:6547
+#: src/vte.c:6828
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr "Nu există o asociere desemnată pentru secvenţa `%s'."
+msgstr "Nu există o asociere desemnată pentru secvenţa „%s“."
 
-#: src/vte.c:7293
+#: src/vte.c:7645
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Eroare la citirea datelor de la procesul copil: %s."
 
-#: src/vte.c:7449
+#: src/vte.c:7801
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Eroare (%s) la convertirea datelor de la procesul copil, abandonez."
 
-#: src/vte.c:10069
+#: src/vte.c:10463
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Eroare la citirea mărimii PTY, utilizez valoarea implicită: %s."
 
-#: src/vte.c:10105
+#: src/vte.c:10499
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Eroare la setarea mărimii PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14067
-#, fuzzy
+#: src/vte.c:14622
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "g_iconv_open() a eşuat la setarea caracterelor cuvintelor"
+msgstr "_vte_iconv_open() a eşuat la setarea caracterelor cuvintelor"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:642
+#: src/vteapp.c:688
 msgid "Could not open console.\n"
-msgstr ""
+msgstr "Nu am putut deschide consola.\n"
 
-#: src/vteglyph.c:575
+#: src/vteglyph.c:576
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr ""
+msgstr "Mod pixel necunoscut %d.\n"
 
-#: src/vtexft.c:664
+#: src/vtexft.c:710
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr ""
-
-#~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
-#~ msgstr ""
-#~ "Utilizez fontset-ul \"%s\", dar îi lipsesc aceste seturi de caractere: %s."
-
-#~ msgid ""
-#~ "Failed to load Xft font pattern \"%s\", falling back to default font."
-#~ msgstr ""
-#~ "Nu am putut încarca şablonul de font Xft \"%s\", revin la fontul implicit."
-
-#~ msgid "Failed to load default Xft font."
-#~ msgstr "Nu am putut încărca fontul implicit Xft."
-
-#~ msgid "Failed to load font set \"%s\", falling back to default font."
-#~ msgstr ""
-#~ "Nu am putut încărca setul de fonturi \"%s\", revin la fontul implicit."
-
-#~ msgid "Failed to load default font, crashing or behaving abnormally."
-#~ msgstr ""
-#~ "Nu am putut încărca fontul implicit, intru în pană sau într-o stare "
-#~ "anormală."
+msgstr "Nu pot trasa caracterul U+%04x.\n"
 
 #~ msgid "Error allocating draw, disabling Xft."
 #~ msgstr "Eroare la alocarea draw, dezactivez Xft."
