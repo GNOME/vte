@@ -18,8 +18,8 @@
 
 #ident "$Id$"
 
-#ifndef vte_rdb_h_included
-#define vte_rdb_h_included
+#ifndef vte_rdbh_included
+#define vte_rdbh_included
 
 #include <glib.h>
 

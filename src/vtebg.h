@@ -18,8 +18,8 @@
 
 #ident "$Id$"
 
-#ifndef vte_bg_included
-#define vte_bg_included
+#ifndef vte_vtebg_included
+#define vte_vtebg_included
 
 #include <gtk/gtk.h>
 

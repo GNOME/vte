@@ -73,11 +73,17 @@ _vte_glyph_cache_new(void)
 	return ret;
 }
 
+void
+_vte_glyph_free(struct _vte_glyph *glyph)
+{
+	g_free(glyph);
+}
+
 static gboolean
 free_tree_value(gpointer key, gpointer value, gpointer data)
 {
 	if (GPOINTER_TO_INT(value) != INVALID_GLYPH) {
-		g_free(value);
+		_vte_glyph_free(value);
 	}
 	return FALSE;
 }
@@ -130,7 +136,9 @@ _vte_glyph_cache_free(struct _vte_glyph_cache *cache)
 void
 _vte_glyph_cache_set_font_description(FcConfig *config,
 				      struct _vte_glyph_cache *cache,
-				      const PangoFontDescription *fontdesc)
+				      const PangoFontDescription *fontdesc,
+				      _vte_fc_defaults_cb defaults_cb,
+				      gpointer defaults_data)
 {
 	FcChar8 *facefile;
 	int i, j, error, count, width, faceindex;
@@ -146,7 +154,9 @@ _vte_glyph_cache_set_font_description(FcConfig *config,
 
 	/* Convert the font description to a sorted set of patterns. */
 	patterns = g_array_new(TRUE, TRUE, sizeof(FcPattern*));
-	if (!_vte_fc_patterns_from_pango_font_desc(fontdesc, patterns)) {
+	if (!_vte_fc_patterns_from_pango_font_desc(fontdesc, patterns,
+						   defaults_cb,
+						   defaults_data)) {
 		g_array_free(patterns, TRUE);
 		g_assert_not_reached();
 	}
@@ -428,27 +438,19 @@ _vte_glyph_remap_char(struct _vte_glyph_cache *cache, gunichar origc)
 	}
 }
 
-const struct _vte_glyph *
-_vte_glyph_get(struct _vte_glyph_cache *cache, gunichar c)
+#define DEFAULT_BYTES_PER_PIXEL 3
+
+struct _vte_glyph *
+_vte_glyph_get_uncached(struct _vte_glyph_cache *cache, gunichar c)
 {
 	int error = 0;
 	GList *iter;
 	struct _vte_glyph *glyph = NULL;
 	FT_Face face;
-	gpointer p;
 	gint x, y, ooffset, ioffset;
 	guchar r, g, b, t;
 
 	g_return_val_if_fail(cache != NULL, NULL);
-
-	/* See if we already have a glyph for this character. */
-	if ((p = g_tree_lookup(cache->cache, GINT_TO_POINTER(c))) != NULL) {
-		if (GPOINTER_TO_INT(p) == INVALID_GLYPH) {
-			return NULL;
-		} else {
-			return p;
-		}
-	}
 
 	/* Search through all of the faces to find one which contains a glyph
 	 * for this character. */
@@ -500,19 +502,19 @@ _vte_glyph_get(struct _vte_glyph_cache *cache, gunichar c)
 	glyph = g_malloc0(sizeof(struct _vte_glyph) +
 			  face->glyph->bitmap.width *
 			  face->glyph->bitmap.rows *
-			  4);
+			  DEFAULT_BYTES_PER_PIXEL);
 	glyph->width = face->glyph->bitmap.width;
 	glyph->height = face->glyph->bitmap.rows;
 	glyph->skip = MAX((face->size->metrics.ascender >> 6) -
 		          face->glyph->bitmap_top, 0);
-	glyph->bytes_per_pixel = 4;
+	glyph->bytes_per_pixel = DEFAULT_BYTES_PER_PIXEL;
 
 	memset(glyph->bytes, 0,
-	       glyph->width * glyph->height * glyph->bytes_per_pixel);
+	       glyph->width * glyph->height * DEFAULT_BYTES_PER_PIXEL);
 
 	for (y = 0; y < face->glyph->bitmap.rows; y++)
 	for (x = 0; x < face->glyph->bitmap.width; x++) {
-		ooffset = (y * glyph->width + x) * 4;
+		ooffset = (y * glyph->width + x) * DEFAULT_BYTES_PER_PIXEL;
 		if (face->glyph->bitmap.pitch > 0) {
 			ioffset = y;
 			ioffset *= face->glyph->bitmap.pitch;
@@ -584,7 +586,40 @@ _vte_glyph_get(struct _vte_glyph_cache *cache, gunichar c)
 		glyph->bytes[ooffset + 0] = r;
 		glyph->bytes[ooffset + 1] = g;
 		glyph->bytes[ooffset + 2] = b;
-		glyph->bytes[ooffset + 3] = 0xff;
+#if DEFAULT_BYTES_PER_PIXEL > 3
+		memset(glyph->bytes[ooffset + 3], 0xff,
+		       DEFAULT_BYTES_PER_PIXEL - 3);
+#endif
+	}
+
+	return glyph;
+}
+
+const struct _vte_glyph *
+_vte_glyph_get(struct _vte_glyph_cache *cache, gunichar c)
+{
+	struct _vte_glyph *glyph = NULL;
+	gpointer p;
+
+	g_return_val_if_fail(cache != NULL, NULL);
+
+	/* See if we already have a glyph for this character. */
+	if ((p = g_tree_lookup(cache->cache, GINT_TO_POINTER(c))) != NULL) {
+		if (GPOINTER_TO_INT(p) == INVALID_GLYPH) {
+			return NULL;
+		} else {
+			return p;
+		}
+	}
+
+	/* Generate the glyph. */
+	glyph = _vte_glyph_get_uncached(cache, c);
+
+	/* Bail if we weren't able to load the glyph. */
+	if (glyph == NULL) {
+		g_tree_insert(cache->cache, GINT_TO_POINTER(c),
+			      GINT_TO_POINTER(INVALID_GLYPH));
+		return NULL;
 	}
 
 	/* Cache it. */
@@ -658,7 +693,7 @@ _vte_glyph_draw_loop:
 			ar = glyph->bytes[ioffset + 0];
 			ag = glyph->bytes[ioffset + 1];
 			ab = glyph->bytes[ioffset + 2];
-			ioffset += glyph->bytes_per_pixel;
+			ioffset += DEFAULT_BYTES_PER_PIXEL;
 
 			if (flags & vte_glyph_dim) {
 				ar = ar >> 1;

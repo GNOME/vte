@@ -325,7 +325,10 @@ _vte_fc_defaults_from_rdb(FcPattern *pattern)
  * and append them to the array. */
 gboolean
 _vte_fc_patterns_from_pango_font_desc(const PangoFontDescription *font_desc,
-				      GArray *pattern_array)
+				      GArray *pattern_array,
+				      _vte_fc_defaults_cb defaults_cb,
+				      gpointer defaults_data)
+
 {
 	FcPattern *pattern, *match, *tmp;
 	FcFontSet *fontset;
@@ -352,6 +355,11 @@ _vte_fc_patterns_from_pango_font_desc(const PangoFontDescription *font_desc,
 
 	/* Add any defaults which are hard-coded in fontconfig. */
 	FcDefaultSubstitute(pattern);
+
+	/* Add any defaults via a callback. */
+	if (defaults_cb != NULL) {
+		defaults_cb(pattern, defaults_data);
+	}
 
 	/* Get a sorted list of patterns, duplicate them, and append them
 	 * to the passed-in array. */

@@ -22,6 +22,7 @@
 #ident "$Id$"
 
 #include <glib.h>
+#include "vtefc.h"
 #include "vtergb.h"
 
 #include <fontconfig/fontconfig.h>
@@ -68,10 +69,15 @@ void _vte_glyph_cache_free(struct _vte_glyph_cache *cache);
 const FcPattern *_vte_glyph_cache_get_pattern(struct _vte_glyph_cache *cache);
 void _vte_glyph_cache_set_font_description(FcConfig *config,
 					   struct _vte_glyph_cache *cache,
-					   const PangoFontDescription *fontdesc);
+					   const PangoFontDescription *fontdesc,
+				           _vte_fc_defaults_cb defaults_cb,
+				           gpointer defaults_data);
 gboolean _vte_glyph_cache_has_char(struct _vte_glyph_cache *cache, gunichar c);
 const struct _vte_glyph *_vte_glyph_get(struct _vte_glyph_cache *cache,
 					gunichar c);
+struct _vte_glyph *_vte_glyph_get_uncached(struct _vte_glyph_cache *cache,
+					   gunichar c);
+void _vte_glyph_free(struct _vte_glyph *glyph);
 void _vte_glyph_draw(struct _vte_glyph_cache *cache,
 		     gunichar c, GdkColor *color,
 		     gint x, gint y, gint columns,

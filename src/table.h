@@ -25,6 +25,8 @@
 
 #include <glib-object.h>
 
+G_BEGIN_DECLS
+
 struct _vte_table;
 
 /* Create an empty, one-level table. */
@@ -45,5 +47,7 @@ const char *_vte_table_match(struct _vte_table *table,
 			     GQuark *quark, GValueArray **array);
 /* Dump out the contents of a tree. */
 void _vte_table_print(struct _vte_table *table);
+
+G_END_DECLS
 
 #endif

@@ -25,6 +25,8 @@
 
 #include <glib-object.h>
 
+G_BEGIN_DECLS
+
 struct _vte_matcher;
 
 /* Create an initial matcher. */
@@ -49,5 +51,7 @@ void _vte_matcher_print(struct _vte_matcher *matcher);
 
 /* A gunichar-compatible giconv target, if one can be found. */
 const char *_vte_matcher_wide_encoding(void);
+
+G_END_DECLS
 
 #endif

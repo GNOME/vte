@@ -18,10 +18,12 @@
 
 #ident "$Id$"
 
+#include "../config.h"
 #include <sys/types.h>
 #include <stdio.h>
 #include <string.h>
 #include <glib-object.h>
+#include "debug.h"
 #include "matcher.h"
 #include "table.h"
 #include "trie.h"

@@ -23,6 +23,8 @@
 
 #ident "$Id$"
 
+#include <glib.h>
+
 G_BEGIN_DECLS
 
 struct _vte_termcap;

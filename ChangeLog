@@ -1,3 +1,16 @@
+2003-05-05 nalin
+	* src/debug.h: include <glib.h> for gboolean type definition.
+	* src/matcher.c: include "config.h" and "debug.h".
+	* src/matcher.h: use G_BEGIN_DECLS/G_END_DECLS
+	* src/table.h: use G_BEGIN_DECLS/G_END_DECLS
+	* src/termcap.h: include <glib.h>, again for gboolean.
+	* src/vtebg.h,src/vterdb.h,src/vtergb.h: adjust macro used to prevent
+	multiple inclusions to match the rest of the tree.
+	* src/vtefc.c(_vte_fc_patterns_from_pango_font_desc): provide a callback
+	which can be used to override all defaults.
+	* src/vtegl.h,src/vtexft.h: don't include "config.h"
+	* src/vteglyph.c, src/vteglyph.h: add _vte_glyph_get_uncached().
+
 2003-05-04 nalin
 	* gnome-pty-helper/gnome-login-support.c(n_read,n_write): if ERESTART
 	is defined, treat it like EINTR and EAGAIN.

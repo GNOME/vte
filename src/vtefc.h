@@ -29,9 +29,13 @@
 
 G_BEGIN_DECLS
 
+typedef void (*_vte_fc_defaults_cb)(FcPattern *pattern, gpointer data);
+
 gboolean
 _vte_fc_patterns_from_pango_font_desc(const PangoFontDescription *font_desc,
-				      GArray *pattern_array);
+				      GArray *pattern_array,
+				      _vte_fc_defaults_cb defaults_cb,
+				      gpointer defaults_data);
 
 void _vte_fc_connect_settings_changes(GtkWidget *widget, GCallback *changed_cb);
 void _vte_fc_disconnect_settings_changes(GtkWidget *widget,
