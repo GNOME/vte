@@ -233,7 +233,7 @@ struct _VteTerminalPrivate {
 	/* Selection information. */
 	GArray *word_chars;
 	gboolean has_selection;
-	gboolean start_selection;
+	gboolean restart_selection;
 	char *selection;
 	enum {
 		selection_type_char,
@@ -988,10 +988,10 @@ vte_terminal_deselect_all(VteTerminal *terminal)
 			fprintf(stderr, "Deselecting all text.\n");
 		}
 #endif
-		vte_terminal_emit_selection_changed (terminal);
+		vte_terminal_emit_selection_changed(terminal);
 		vte_invalidate_all(terminal);
 	}
-	terminal->pvt->start_selection = FALSE;
+	terminal->pvt->restart_selection = FALSE;
 }
 
 /* Reset the set of tab stops to the default. */
@@ -1134,8 +1134,9 @@ vte_terminal_match_add(VteTerminal *terminal, const char *match)
  * it does, return the string, and store the match tag in the optional tag
  * argument. */
 static char *
-vte_terminal_match_check_internal(VteTerminal *terminal, long column,
-				  long row, int *tag, int *start, int *end)
+vte_terminal_match_check_internal(VteTerminal *terminal,
+				  long column, long row,
+				  int *tag, int *start, int *end)
 {
 	int i, j, ret, offset;
 	struct vte_match_regex *regex = NULL;
@@ -1268,8 +1269,12 @@ vte_terminal_match_check_internal(VteTerminal *terminal, long column,
 char *
 vte_terminal_match_check(VteTerminal *terminal, long column, long row, int *tag)
 {
-	return vte_terminal_match_check_internal(terminal, column, row, tag,
-						 NULL, NULL);
+	long delta;
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+	delta = terminal->pvt->screen->scroll_delta;
+	return vte_terminal_match_check_internal(terminal,
+						 column, row + delta,
+						 tag, NULL, NULL);
 }
 
 /* Update the adjustment field of the widget.  This function should be called
@@ -1378,6 +1383,8 @@ vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
 	/* Tell the scrollbar to adjust itself. */
 	gtk_adjustment_set_value(terminal->adjustment, destination);
 	gtk_adjustment_changed(terminal->adjustment);
+	/* Clear dingus match set. */
+	vte_terminal_match_contents_clear(terminal);
 }
 
 /* Scroll so that the scroll delta is the insertion delta. */
@@ -2230,7 +2237,7 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 			cells = g_malloc(sizeof(cell) * add);
 			cells[0] = cell;
 			for (i = 1; i < add; i = i * 2) {
-				memcpy(&cells[i], 
+				memcpy(&cells[i],
 				       &cells[0],
 				       sizeof(cell) * MIN(add - i, i));
 			}
@@ -6736,11 +6743,13 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 					/* Use the tty's erase character. */
 					case VTE_ERASE_AUTO:
 					default:
-						if (tcgetattr(terminal->pvt->pty_master,
-							      &tio) != -1) {
-							normal = g_strdup_printf("%c",
-										 tio.c_cc[VERASE]);
-							normal_length = 1;
+						if (terminal->pvt->pty_master != -1) {
+							if (tcgetattr(terminal->pvt->pty_master,
+								      &tio) != -1) {
+								normal = g_strdup_printf("%c",
+											 tio.c_cc[VERASE]);
+								normal_length = 1;
+							}
 						}
 						break;
 				}
@@ -7089,7 +7098,7 @@ vte_cell_is_between(long col, long row,
 		return FALSE;
 	}
 	/* A cell is between two points if it's on a line after the
-	 * specified area starts, or before the line where it ends, 
+	 * specified area starts, or before the line where it ends,
 	 * or any of the lines in between. */
 	if ((row > arow) && (row < brow)) {
 		return TRUE;
@@ -7412,10 +7421,16 @@ vte_terminal_match_hilite_clear(VteTerminal *terminal)
 		terminal->pvt->match_start.column = 0;
 		terminal->pvt->match_end.row = 0;
 		terminal->pvt->match_end.column = 0;
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
+			fprintf(stderr, "Repainting (%d,%d) to (%d,%d).\n",
+				srow, scolumn, erow, ecolumn);
+		}
+#endif
 		vte_invalidate_cells(terminal,
 				     0,
 				     terminal->column_count,
-				     terminal->pvt->screen->scroll_delta + srow,
+				     srow,
 				     erow - srow + 1);
 	}
 }
@@ -7429,6 +7444,7 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 	char *match;
 	struct vte_char_attributes *attr;
 	VteScreen *screen;
+	long delta;
 	/* If the pointer hasn't moved to another character cell, then we
 	 * need do nothing. */
 	if ((x / terminal->char_width ==
@@ -7438,9 +7454,11 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 		return;
 	}
 	/* Check for matches. */
+	screen = terminal->pvt->screen;
+	delta = screen->scroll_delta;
 	match = vte_terminal_match_check_internal(terminal,
 						  floor(x) / terminal->char_width,
-						  floor(y) / terminal->char_height,
+						  floor(y) / terminal->char_height + delta,
 						  NULL,
 						  &start,
 						  &end);
@@ -7453,7 +7471,6 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 #endif
 		vte_terminal_match_hilite_clear(terminal);
 	} else {
-		screen = terminal->pvt->screen;
 		/* Save the old hilite area. */
 		rows = terminal->pvt->match_start.row;
 		rowe = terminal->pvt->match_end.row;
@@ -7472,7 +7489,6 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 		vte_invalidate_cells(terminal,
 				     0,
 				     terminal->column_count,
-				     screen->scroll_delta +
 				     terminal->pvt->match_start.row,
 				     terminal->pvt->match_end.row -
 				     terminal->pvt->match_start.row + 1);
@@ -7480,7 +7496,6 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
 			fprintf(stderr, "Matched (%ld,%ld) to (%ld,%ld).\n",
 				terminal->pvt->match_start.column,
-				screen->scroll_delta +
 				terminal->pvt->match_start.row,
 				terminal->pvt->match_end.column,
 				screen->scroll_delta +
@@ -7491,20 +7506,19 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 		vte_invalidate_cells(terminal,
 				     0,
 				     terminal->column_count,
-				     screen->scroll_delta + rows,
-				     rowe - rows + 1);
+				     rows, rowe - rows + 1);
 	}
 }
 
 /* Recalculate the start- and endpoints of the selected text, using the
  * selection origin and "last" coordinate sets. */
 static void
-vte_terminal_selection_compute(VteTerminal *terminal)
+vte_terminal_selection_recompute(VteTerminal *terminal)
 {
 	struct {
 		long x, y;
 	} origin, last, start, end;
-	long delta, width, height;
+	long width, height;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
@@ -7541,12 +7555,10 @@ vte_terminal_selection_compute(VteTerminal *terminal)
 		end.y = origin.y;
 	}
 
-	delta = terminal->pvt->screen->scroll_delta;
-
 	terminal->pvt->selection_start.x = start.x;
-	terminal->pvt->selection_start.y = start.y + delta;
+	terminal->pvt->selection_start.y = start.y;
 	terminal->pvt->selection_end.x = end.x;
-	terminal->pvt->selection_end.y = end.y + delta;
+	terminal->pvt->selection_end.y = end.y;
 }
 
 /* Read and handle a motion event. */
@@ -7554,11 +7566,13 @@ static gint
 vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 {
 	VteTerminal *terminal;
+	long delta;
 	GdkModifierType modifiers;
 	long top, height;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
+	delta = terminal->pvt->screen->scroll_delta;
 
 	/* Show the cursor. */
 	vte_terminal_set_pointer_visible(terminal, TRUE);
@@ -7589,7 +7603,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 		}
 #endif
 		/* If we delayed resetting selection, reset here. */
-		if (terminal->pvt->start_selection) {
+		if (terminal->pvt->restart_selection) {
 			vte_terminal_deselect_all(terminal);
 			terminal->pvt->selection_origin.x =
 				terminal->pvt->selection_delayed.x;
@@ -7600,16 +7614,19 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 		terminal->pvt->has_selection = TRUE;
 
 		top = MIN(terminal->pvt->selection_last.y,
-			  event->y - VTE_PAD_WIDTH) /
-		      terminal->char_height;
+			  event->y - VTE_PAD_WIDTH +
+			  (delta * terminal->char_height)) /
+			terminal->char_height;
 		height = (MAX(terminal->pvt->selection_last.y,
-			      event->y - VTE_PAD_WIDTH) /
-			  terminal->char_height) - top + 1;
+			      event->y - VTE_PAD_WIDTH +
+			      (delta * terminal->char_height)) /
+			terminal->char_height) - top + 1;
 
 		terminal->pvt->selection_last.x = event->x - VTE_PAD_WIDTH;
-		terminal->pvt->selection_last.y = event->y - VTE_PAD_WIDTH;
+		terminal->pvt->selection_last.y = event->y - VTE_PAD_WIDTH +
+						  terminal->char_height * delta;
 
-		vte_terminal_selection_compute(terminal);
+		vte_terminal_selection_recompute(terminal);
 
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
@@ -7623,8 +7640,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 		}
 #endif
 		vte_invalidate_cells(terminal, 0, terminal->column_count,
-				     top + terminal->pvt->screen->scroll_delta,
-				     height);
+				     top, height);
 
 		vte_terminal_emit_selection_changed (terminal);
 	} else {
@@ -7691,11 +7707,13 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 
 /* Extract a view of the widget as if we were going to copy it. */
 char *
-vte_terminal_get_text(VteTerminal *terminal,
-		      gboolean(*is_selected)(VteTerminal *, long, long),
-		      GArray *attributes)
+vte_terminal_get_text_range(VteTerminal *terminal,
+			    glong start_row, glong start_col,
+			    glong end_row, glong end_col,
+			    gboolean(*is_selected)(VteTerminal *, long, long),
+			    GArray *attributes)
 {
-	long x, y, spaces;
+	long col, row, spaces;
 	VteScreen *screen;
 	struct vte_charcell *pcell;
 	GString *string;
@@ -7708,20 +7726,18 @@ vte_terminal_get_text(VteTerminal *terminal,
 	string = g_string_new("");
 	memset(&attr, 0, sizeof(attr));
 
-	for (y = screen->scroll_delta;
-	     y < terminal->row_count + screen->scroll_delta;
-	     y++) {
-		x = 0;
+	for (row = start_row; row <= end_row; row++) {
+		col = (row == start_row) ? start_col : 0;
 		spaces = 0;
-		attr.row = y - screen->scroll_delta;
+		attr.row = row;
 		do {
-			pcell = vte_terminal_find_charcell(terminal, x, y);
-			if (is_selected(terminal, x, y)) {
+			pcell = vte_terminal_find_charcell(terminal, col, row);
+			if (is_selected(terminal, col, row)) {
 				if (pcell == NULL) {
 					/* If there are no more cells on this
 					 * line, and we've hit the right margin,
 					 * add a newline. */
-					if ((x < terminal->column_count - 1) ||
+					if ((col < terminal->column_count - 1) ||
 					    (spaces > 0)) {
 						string = g_string_append_c(string, '\n');
 					}
@@ -7751,7 +7767,7 @@ vte_terminal_get_text(VteTerminal *terminal,
 						terminal->pvt->palette[pcell->back].blue;
 					attr.underline = pcell->underline;
 					attr.alternate = pcell->alternate;
-					attr.column = x;
+					attr.column = col;
 					/* Stuff any saved spaces in. */
 					while (spaces > 0) {
 						string = g_string_append_c(string, ' ');
@@ -7768,7 +7784,11 @@ vte_terminal_get_text(VteTerminal *terminal,
 					g_array_append_val(attributes, attr);
 				}
 			}
-			x++;
+			col++;
+			if ((col >= terminal->column_count) ||
+			    ((row == end_row) && (col > end_col))) {
+				break;
+			}
 		} while (pcell != NULL);
 		/* If we broke out of the loop, there might be more characters
 		 * with missing attributes. */
@@ -7783,6 +7803,25 @@ vte_terminal_get_text(VteTerminal *terminal,
 	}
 	return g_string_free(string, FALSE);
 }
+
+/* Extract a view of the widget as if we were going to copy it. */
+char *
+vte_terminal_get_text(VteTerminal *terminal,
+		      gboolean(*is_selected)(VteTerminal *, long, long),
+		      GArray *attributes)
+{
+	long start_row, start_col, end_row, end_col;
+	start_row = terminal->pvt->screen->scroll_delta;
+	start_col = 0;
+	end_row = start_row + terminal->row_count - 1;
+	end_col = terminal->column_count - 1;
+	return vte_terminal_get_text_range(terminal,
+					   start_row, start_col,
+					   end_row, end_col,
+					   is_selected,
+					   attributes);
+}
+
 /* Tell the caller where the cursor is, in screen coordinates. */
 void
 vte_terminal_get_cursor_position(VteTerminal *terminal,
@@ -7814,9 +7853,13 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 	if (terminal->pvt->selection != NULL) {
 		g_free(terminal->pvt->selection);
 	}
-	terminal->pvt->selection = vte_terminal_get_text(terminal,
-							 vte_cell_is_selected,
-							 NULL);
+	terminal->pvt->selection = vte_terminal_get_text_range(terminal,
+							       terminal->pvt->selection_start.y,
+							       0,
+							       terminal->pvt->selection_end.y + 1,
+							       terminal->column_count,
+							       vte_cell_is_selected,
+							       NULL);
 
 	/* Place the text on the clipboard. */
 	if (terminal->pvt->selection != NULL) {
@@ -7878,22 +7921,22 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 
 	/* Convert the event coordinates to cell coordinates. */
 	cellx = (event->x - VTE_PAD_WIDTH) / width;
-	celly = (event->y - VTE_PAD_WIDTH) / height;
+	celly = (event->y - VTE_PAD_WIDTH) / height + delta;
 
 	if (event->type == GDK_BUTTON_PRESS) {
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
 			char *match;
 			int match_tag;
-			fprintf(stderr, "Button %d pressed at (%lf,%lf).\n",
+			fprintf(stderr, "Button %d pressed at (%lf,%lf) -> ",
 				event->button,
 				event->x - VTE_PAD_WIDTH,
 				event->y - VTE_PAD_WIDTH);
-			fprintf(stderr, "Character cell (%lf,%lf).\n",
+			fprintf(stderr, "character cell (%lf,%lf).\n",
 				cellx, celly);
 			match = vte_terminal_match_check(terminal,
 							 cellx,
-							 celly,
+							 celly - delta,
 							 &match_tag);
 			if (match != NULL) {
 				fprintf(stderr, "Matched string %d = \"%s\".\n",
@@ -7928,16 +7971,18 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			 * start over. */
 			if (((modifiers & GDK_SHIFT_MASK) == 0) ||
 			    vte_cell_is_selected(terminal, cellx, celly)) {
-				/* Start selection later. */
-				terminal->pvt->start_selection = TRUE;
+				/* Start or restart selection later. */
+				terminal->pvt->restart_selection = TRUE;
 				terminal->pvt->selection_delayed.x =
 					event->x - VTE_PAD_WIDTH;
 				terminal->pvt->selection_delayed.y =
-					event->y - VTE_PAD_WIDTH;
+					event->y - VTE_PAD_WIDTH +
+					(terminal->char_height * delta);
 				ret = TRUE;
 			} else {
-				/* Don't restart selection later. */
-				terminal->pvt->start_selection = FALSE;
+				/* Don't restart selection later -- we're
+				 * extending it instead. */
+				terminal->pvt->restart_selection = FALSE;
 #ifdef VTE_DEBUG
 				if (vte_debug_on(VTE_DEBUG_EVENTS)) {
 					fprintf(stderr, "Selection is "
@@ -7974,16 +8019,18 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 					/* The click was "before" the start
 					 * point. */
 					start->x = event->x - VTE_PAD_WIDTH;
-					start->y = event->y - VTE_PAD_WIDTH;
+					start->y = event->y - VTE_PAD_WIDTH +
+						(terminal->char_height * delta);
 				} else {
 					/* The click was "after" the start
 					 * point. */
 					end->x = event->x - VTE_PAD_WIDTH;
-					end->y = event->y - VTE_PAD_WIDTH;
+					end->y = event->y - VTE_PAD_WIDTH +
+						(terminal->char_height * delta);
 				}
 				/* Recalculate the selection area using the
 				 * new origin and "last" coordinates. */
-				vte_terminal_selection_compute(terminal);
+				vte_terminal_selection_recompute(terminal);
 				/* Redraw the newly-highlited rows. */
 				vte_invalidate_cells(terminal,
 						     0,
@@ -8034,9 +8081,10 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			terminal->pvt->selection_origin.x =
 				event->x - VTE_PAD_WIDTH;
 			terminal->pvt->selection_origin.y =
-				event->y - VTE_PAD_WIDTH;
+				event->y - VTE_PAD_WIDTH +
+				(terminal->char_height * delta);
 			terminal->pvt->selection_start.x = cellx;
-			terminal->pvt->selection_start.y = celly + delta;
+			terminal->pvt->selection_start.y = celly;
 			terminal->pvt->selection_end =
 			terminal->pvt->selection_start;
 			terminal->pvt->selection_type = selection_type_word;
@@ -8054,7 +8102,8 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			fprintf(stderr, "Button %d triple-click at (%lf,%lf).\n",
 				event->button,
 				event->x - VTE_PAD_WIDTH,
-				event->y - VTE_PAD_WIDTH);
+				event->y - VTE_PAD_WIDTH +
+				(terminal->char_height * delta));
 		}
 #endif
 		if (event->button == 1) {
@@ -8066,9 +8115,10 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			terminal->pvt->selection_origin.x =
 				event->x - VTE_PAD_WIDTH;
 			terminal->pvt->selection_origin.y =
-				event->y - VTE_PAD_WIDTH;
+				event->y - VTE_PAD_WIDTH +
+				(terminal->char_height * delta);
 			terminal->pvt->selection_start.x = cellx;
-			terminal->pvt->selection_start.y = celly + delta;
+			terminal->pvt->selection_start.y = celly;
 			terminal->pvt->selection_end =
 			terminal->pvt->selection_start;
 			terminal->pvt->selection_type = selection_type_line;
@@ -9508,7 +9558,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	/* Selection info. */
 	pvt->word_chars = NULL;
 	pvt->has_selection = FALSE;
-	pvt->start_selection = FALSE;
+	pvt->restart_selection = FALSE;
 	pvt->selection = NULL;
 	pvt->selection_start.x = 0;
 	pvt->selection_start.y = 0;
@@ -11349,12 +11399,13 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		/* Get the character cell's contents. */
 		cell = vte_terminal_find_charcell(terminal, i, row);
 		/* Find the colors for this cell. */
-		reverse = vte_cell_is_selected(terminal, i, row);
+		reverse = vte_cell_is_selected(terminal, i, row) ^
+			  terminal->pvt->screen->reverse_mode;
 		vte_terminal_determine_colors(terminal, cell, reverse,
 					      &fore, &back);
 		underline = (cell != NULL) ? (cell->underline != 0) : FALSE;
 		if (terminal->pvt->match_contents != NULL) {
-			hilite = vte_cell_is_between(i, row - screen->scroll_delta,
+			hilite = vte_cell_is_between(i, row,
 						     terminal->pvt->match_start.column,
 						     terminal->pvt->match_start.row,
 						     terminal->pvt->match_end.column,
@@ -11410,7 +11461,8 @@ vte_terminal_draw_row(VteTerminal *terminal,
 			/* Resolve attributes to colors where possible and
 			 * compare visual attributes to the first character
 			 * in this chunk. */
-			reverse = vte_cell_is_selected(terminal, j, row);
+			reverse = vte_cell_is_selected(terminal, j, row) ^
+				  terminal->pvt->screen->reverse_mode;
 			vte_terminal_determine_colors(terminal, cell, reverse,
 						      &nfore, &nback);
 			if ((nfore != fore) || (nback != back)) {
@@ -11423,7 +11475,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 				break;
 			}
 			if (terminal->pvt->match_contents != NULL) {
-				nhilite = vte_cell_is_between(j, row - screen->scroll_delta,
+				nhilite = vte_cell_is_between(j, row,
 							      terminal->pvt->match_start.column,
 							      terminal->pvt->match_start.row,
 							      terminal->pvt->match_end.column,
@@ -11573,8 +11625,9 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	row_stop = ((area->y - VTE_PAD_WIDTH) + area->height + height - 1) / height;
 	while (row < row_stop) {
 		col = (area->x - VTE_PAD_WIDTH) / width;
-		col_stop = howmany((area->x - VTE_PAD_WIDTH) + area->width,
-				   width);
+		col_stop = MIN(howmany((area->x - VTE_PAD_WIDTH) + area->width,
+				       width),
+			       terminal->column_count);
 		vte_terminal_draw_row(terminal,
 				      screen,
 				      row + delta,
@@ -11617,7 +11670,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 		/* Draw the cursor. */
 		if (GTK_WIDGET_HAS_FOCUS(GTK_WIDGET(terminal))) {
-			blink = vte_terminal_get_blink_state(terminal);
+			blink = vte_terminal_get_blink_state(terminal) ^
+				terminal->pvt->screen->reverse_mode;
 			vte_terminal_determine_colors(terminal, cell, blink,
 						      &fore, &back);
 			if ((cell != NULL) &&

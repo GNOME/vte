@@ -1,5 +1,11 @@
 2002-08-25 nalin
-	* src/vte.c:  Make nd() move right but not wrap -- according to Strang
+	* src/vte.c: Heed the reverse-video setting when painting character
+	cells again.  Make selection and matching coordinates global, fixing
+	the selecting-while-scrolling case.  Prevent overdraws into the padding
+	area on the right.
+
+2002-08-25 nalin
+	* src/vte.c: Make nd() move right but not wrap -- according to Strang
 	it's undefined, but xterm doesn't wrap it.  Separate do/DO from sf/SF
 	and up/UP from sr/SR, because the scrolling behavior is supposed to be
 	different.  Add support for decset/decreset 7 (wraparound mode) and

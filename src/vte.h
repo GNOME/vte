@@ -218,8 +218,15 @@ void vte_terminal_reset(VteTerminal *terminal, gboolean full,
  * should match up exactly. */
 char *vte_terminal_get_text(VteTerminal *terminal,
 			    gboolean(*is_selected)(VteTerminal * terminal,
-						    long column, long row),
+						   long column, long row),
 			    GArray *attributes);
+char *vte_terminal_get_text_range(VteTerminal *terminal,
+				  glong start_row, glong start_col,
+				  glong end_row, glong end_col,
+				  gboolean(*is_selected)(VteTerminal * terminal,
+							 long column,
+							 long row),
+				  GArray *attributes);
 void vte_terminal_get_cursor_position(VteTerminal *terminal,
 				      long *column, long *row);
 
