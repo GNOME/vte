@@ -6,117 +6,120 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2002-07-30 18:18-0400\n"
-"PO-Revision-Date: 2002-07-25 23:33+0200\n"
+"POT-Creation-Date: 2002-08-13 22:08+0200\n"
+"PO-Revision-Date: 2002-08-13 22:12+0200\n"
 "Last-Translator: Ole Laursen <olau@hardworking.dk>\n"
 "Language-Team: Danish <dansk@klid.dk>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:102
+#: src/pty.c:105
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Fejl ved tilføjelse af '%s' til miljøet, fortsætter."
-
-#: src/pty.c:138 src/vte.c:8660
-#, c-format
-msgid "Error setting PTY size: %s."
-msgstr "Fejl ved angivelse af PTY-størrelse: %s."
 
 #: src/reaper.c:114
 msgid "Error creating signal pipe."
 msgstr "Fejl ved oprettelse af signaldatakanal."
 
-#: src/trie.c:400
+#: src/trie.c:405
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Optræder mere end én gang (%s/%s)!"
 
-#: src/vte.c:1008
+#: src/vte.c:1080
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Fejl ved oversættelse af regulært udtryk \"%s\"."
 
-#: src/vte.c:1379 src/vte.c:1388 src/vte.c:1398 src/vte.c:1412 src/vte.c:1417
-#: src/vte.c:1422
+#: src/vte.c:1450 src/vte.c:1459 src/vte.c:1471 src/vte.c:1489 src/vte.c:1494
+#: src/vte.c:1499
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Kunne ikke konvertere tegn fra %s til %s."
 
-#: src/vte.c:4546
+#: src/vte.c:4641
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Modtog uventet (taste-?) sekvens '%s'."
 
-#: src/vte.c:5277
+#: src/vte.c:5373
 #, c-format
 msgid "Character 0x%x is undefined, allocating one column."
 msgstr "Tegn 0x%x er ikke defineret, allokerer en kolonne."
 
-#: src/vte.c:5468
+#: src/vte.c:5566
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Ingen håndtering for kontrolsekvensen '%s' er defineret."
 
-#: src/vte.c:6003
+#: src/vte.c:6097
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Fejl ved læsning fra underproces: %s."
 
-#: src/vte.c:6171
+#: src/vte.c:6265
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Fejl (%s) ved konvertering af data for underproces, dropper."
 
-#: src/vte.c:7915
+#: src/vte.c:8067
 #, c-format
-msgid ""
-"Warning: using fontset \"%s\", which is missing these character sets: %s."
-msgstr "Advarsel: bruger skrifttypesættet \"%s\" som mangle disse tegnsæt: %s."
+msgid "Using fontset \"%s\", which is missing these character sets: %s."
+msgstr "Bruger skrifttypesættet \"%s\" som mangler disse tegnsæt: %s."
 
-#: src/vte.c:8459
+#: src/vte.c:8644
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr ""
 "Kunne ikke indlæse Xft-skrifttypemønstret \"%s\", falder tilbage til "
 "standardskrifttypen."
 
-#: src/vte.c:8472
+#: src/vte.c:8657
 msgid "Failed to load default Xft font."
 msgstr "Kunne ikke indlæse standard-Xft-skrifttypen."
 
-#: src/vte.c:8515
+#: src/vte.c:8700
 msgid "Error allocating Xft font, disabling Xft."
 msgstr "Fejl ved allokering af Xft-skrifttype, deaktiverer Xft."
 
-#: src/vte.c:8539
+#: src/vte.c:8724
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr ""
 "Kunne ikke indlæse skrifttypesættet \"%s\", falder tilbage til "
 "standardskrifttypen."
 
-#: src/vte.c:8551
+#: src/vte.c:8736
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr ""
 "Kunne ikke indlæse standardskrifttypen; vil nu gå ned eller udvise anormal "
 "adfærd."
 
-#: src/vte.c:8634
+#: src/vte.c:8823
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Fejl ved indlæsning af PTY-størrelse, bruger standardværdier: %s."
 
-#: src/vte.c:10776
+#: src/vte.c:8849
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "Fejl ved angivelse af PTY-størrelse: %s."
+
+#: src/vte.c:11244
+msgid "Error allocating context, disabling Pango."
+msgstr "Fejl ved allokering af kontekst, deaktiverer Pango."
+
+#: src/vte.c:11250
 msgid "Error allocating layout, disabling Pango."
 msgstr "Fejl ved allokering af layout, deaktiverer Pango."
 
-#: src/vte.c:10786
+#: src/vte.c:11265
 msgid "Error allocating draw, disabling Xft."
 msgstr "Fejl ved allokering af tegning, deaktiverer Xft."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:12014
+#: src/vte.c:12449
 msgid "g_iconv_open() failed setting word characters"
 msgstr "g_iconv_open() kunne ikke angive ordtegn"
