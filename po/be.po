@@ -1,3 +1,4 @@
+# translation of vte.HEAD.be.po to Belarusian
 # translation of vte.gnome-2-2.po to belarusian
 # This file is distributed under the same license as the PACKAGE package.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
@@ -5,35 +6,30 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: vte.gnome-2-2\n"
-"POT-Creation-Date: 2003-05-19 14:33-0400\n"
-"PO-Revision-Date: 2003-02-18 22:22GMT+2\n"
+"Project-Id-Version: vte.HEAD.be\n"
+"POT-Creation-Date: 2003-05-19 05:03+0200\n"
+"PO-Revision-Date: 2003-05-19 10:13+0300\n"
 "Last-Translator: Vital Khilko <dojlid@mova.org>\n"
-"Language-Team: belarusian <i18n@mova.org>\n"
+"Language-Team: Belarusian <i18n@mova.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 1.0\n"
 
-#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#: src/iso2022.c:723 src/iso2022.c:734 src/iso2022.c:758 src/vte.c:1991
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Немагчыма пераўтварыць сымбалі з %s у %s."
 
-#: src/iso2022.c:1505
+#: src/iso2022.c:1372
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr ""
+msgstr "Спроба ўсталяваць недапушчальную NRC мапу '%c'."
 
-#. See ECMA-35.
-#: src/iso2022.c:1546
-msgid "Unrecognized identified coding system."
-msgstr ""
-
-#: src/iso2022.c:1595 src/iso2022.c:1621
+#: src/iso2022.c:1423 src/iso2022.c:1449
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr ""
+msgstr "Спроба усталяваць недапушчальную шырокую мапу '%c'."
 
 #: src/pty.c:317
 #, c-format
@@ -48,7 +44,7 @@ msgstr "Памылка даданьня `%s' да асяродьдзя, прац
 msgid "can not run %s"
 msgstr "немагчыма запусьціць %s"
 
-#: src/reaper.c:110
+#: src/reaper.c:108
 msgid "Error creating signal pipe."
 msgstr "Памылка стварэньня сыгнальнага канала."
 
@@ -57,61 +53,60 @@ msgstr "Памылка стварэньня сыгнальнага канала.
 msgid "Duplicate (%s/%s)!"
 msgstr "Двайнік (%s/%s)!"
 
-#: src/vte.c:1430
+#: src/vte.c:1427
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "Памылка кампіляцыі сталага выразу \"%s\"."
+msgstr "Памылка кампіляцыі сталага выраза \"%s\"."
 
-#: src/vte.c:5534
+#: src/vte.c:5501
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Атрымана нечаканая (key?) пасьлядоўнасьць `%s'."
 
-#: src/vte.c:6547
+#: src/vte.c:6514
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Ня вызначаны апрацоўшчык для кіруючае пасьлядоўнасьці `%s'."
 
-#: src/vte.c:7293
+#: src/vte.c:7230
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Памылка чытаньня з нашчадка: %s."
 
-#: src/vte.c:7449
+#: src/vte.c:7384
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Памылка (%s) пераўтварэньня даньняў для нашчадка; скіданьне."
 
-#: src/vte.c:10069
+#: src/vte.c:9934
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Памылка чытаньня PTY памера, выкарыстоўваецца дапомны: %s."
 
-#: src/vte.c:10105
+#: src/vte.c:9970
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Памылка ўсталяваньня памера PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14067
-#, fuzzy
+#: src/vte.c:13922
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "g_iconv_open() памылка усталяваньня сымбаляў слова"
+msgstr "_vte_conv_open() памылка усталяваньня сымбаляў слова"
 
 #. Bail back to normal mode.
 #: src/vteapp.c:642
 msgid "Could not open console.\n"
-msgstr ""
+msgstr "Немагчыма адчыніць кансоль.\n"
 
 #: src/vteglyph.c:575
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr ""
+msgstr "Невядомы рэжым піксэля %d.\n"
 
 #: src/vtexft.c:664
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr ""
+msgstr "Немагчыма адлюстраваць сымбаль U+%04x.\n"
 
 #~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
 #~ msgstr ""
@@ -140,3 +135,4 @@ msgstr ""
 
 #~ msgid "Error allocating layout, disabling Pango."
 #~ msgstr "Памылка разьмяшчэньня разьметкі, выключэньне Pango."
+
