@@ -270,7 +270,7 @@ char_class_string_extract(const wchar_t *s, size_t length,
 	len = xwcsnlen(s, length);
 	ret = g_malloc0((len + 1) * sizeof(wchar_t));
 	wcsncpy(ret, s, len);
-#ifdef VTE_DEBUG
+#ifdef VTE_DEBUG_TRIE
 	fprintf(stderr, "Extracting string `%ls'.\n", ret);
 #endif
 	memset(&value, 0, sizeof(value));

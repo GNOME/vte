@@ -3130,7 +3130,7 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 		g_io_channel_unix_new(terminal->pvt->pty_master);
 	terminal->pvt->pty_output = NULL;
 	g_io_add_watch_full(terminal->pvt->pty_input,
-			    G_PRIORITY_DEFAULT,
+			    G_PRIORITY_LOW,
 			    G_IO_IN | G_IO_HUP,
 			    vte_terminal_io_read,
 			    terminal,
@@ -3674,7 +3674,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		if (terminal->pvt->pty_output == NULL) {
 			terminal->pvt->pty_output = g_io_channel_unix_new(terminal->pvt->pty_master);
 			g_io_add_watch_full(terminal->pvt->pty_output,
-					    G_PRIORITY_DEFAULT,
+					    G_PRIORITY_HIGH,
 					    G_IO_OUT,
 					    vte_terminal_io_write,
 					    terminal,
@@ -4818,11 +4818,11 @@ vte_terminal_setup_font(VteTerminal *terminal, const char *xlfds,
 							   missing_charset_count);
 			}
 		}
-		g_return_if_fail(terminal->pvt->fontset != NULL);
 		if (missing_charset_list != NULL) {
 			XFreeStringList(missing_charset_list);
 			missing_charset_list = NULL;
 		}
+		g_return_if_fail(terminal->pvt->fontset != NULL);
 		/* Read the font metrics. */
 		if (XFontsOfFontSet(terminal->pvt->fontset,
 				    &font_struct_list,
@@ -4836,7 +4836,6 @@ vte_terminal_setup_font(VteTerminal *terminal, const char *xlfds,
 					height = ascent + descent;
 				}
 			}
-			XFreeStringList(font_name_list);
 			font_name_list = NULL;
 		}
 	}
@@ -4859,6 +4858,13 @@ vte_terminal_set_font(VteTerminal *terminal,
 		      const PangoFontDescription *font_desc)
 {
 	vte_terminal_setup_font (terminal, NULL, font_desc);
+}
+
+void
+vte_terminal_set_core_font(VteTerminal *terminal,
+			   const char *xlfd)
+{
+	vte_terminal_setup_font (terminal, xlfd, NULL);
 }
 
 /* A comparison function which helps sort quarks. */
@@ -6390,8 +6396,6 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 	GdkWindow *window = NULL;
 	GdkAtom atom, prop_type;
 	Pixmap *prop_data = NULL;
-	guint width, height;
-	gint x, y;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	widget = GTK_WIDGET(terminal);
@@ -6408,8 +6412,11 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 	gdk_window_set_background(widget->window, &bgcolor);
 
 	if (terminal->pvt->bg_transparent) {
+		/* If we need a new copy of the desktop, get it. */
 		if (fresh_transparent ||
 		    (terminal->pvt->bg_transparent_image == NULL)) {
+			guint width, height;
+
 			gdk_error_trap_push();
 
 			/* Retrieve the window and its property which
@@ -6446,27 +6453,28 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 			gdk_error_trap_pop();
 
 			/* Save the image. */
-			if (terminal->pvt->bg_transparent_image != NULL) {
+			if (GDK_IS_PIXBUF(terminal->pvt->bg_transparent_image)) {
 				g_object_unref(G_OBJECT(terminal->pvt->bg_transparent_image));
 			}
 			terminal->pvt->bg_transparent_image = pixbuf;
+			pixbuf = NULL;
 		}
 
-		/* Get a copy of the root image. */
+		/* Get a copy of the root image which we can manipulate. */
 		if (GDK_IS_PIXBUF(terminal->pvt->bg_transparent_image)) {
-			if (terminal->pvt->bg_saturation != VTE_SATURATION_MAX) {
-				pixbuf = gdk_pixbuf_copy(terminal->pvt->bg_transparent_image);
-			} else {
-				pixbuf = terminal->pvt->bg_transparent_image;
-				g_object_ref(G_OBJECT(pixbuf));
-			}
+			pixbuf = gdk_pixbuf_copy(terminal->pvt->bg_transparent_image);
 		}
 
 		/* Rotate the copy of the image left or up. */
 		if (GDK_IS_PIXBUF(pixbuf)) {
-			gdk_window_get_origin(widget->window, &x, &y);
+			guint width, height;
+			gint x, y;
+
 			width = gdk_pixbuf_get_width(pixbuf);
 			height = gdk_pixbuf_get_height(pixbuf);
+
+			/* Determine how far we should shift the origin. */
+			gdk_window_get_origin(widget->window, &x, &y);
 			while (x < 0) {
 				x += width;
 			}
@@ -6505,15 +6513,14 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 			pixbuf = terminal->pvt->bg_image;
 			g_object_ref(G_OBJECT(pixbuf));
 		}
-		width = gdk_pixbuf_get_width(pixbuf);
-		height = gdk_pixbuf_get_height(pixbuf);
 	}
 
 	if (GDK_IS_PIXBUF(pixbuf)) {
 		/* Adjust the brightness of the pixbuf. */
 		if (terminal->pvt->bg_saturation != VTE_SATURATION_MAX) {
 			pixels = gdk_pixbuf_get_pixels(pixbuf);
-			pixel_count = height * gdk_pixbuf_get_rowstride(pixbuf);
+			pixel_count = gdk_pixbuf_get_height(pixbuf) *
+				      gdk_pixbuf_get_rowstride(pixbuf);
 			for (i = 0; i < pixel_count; i++) {
 				pixels[i] = pixels[i]
 					    * terminal->pvt->bg_saturation
@@ -6572,12 +6579,12 @@ vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
 
 	/* Get a ref to the new image if there is one.  Do it here just in
 	 * case we're actually given the same one we're already using. */
-	if (image != NULL) {
+	if (GDK_IS_PIXBUF(image)) {
 		g_object_ref(G_OBJECT(image));
 	}
 
 	/* Free the previous background image. */
-	if (terminal->pvt->bg_image != NULL) {
+	if (GDK_IS_PIXBUF(terminal->pvt->bg_image)) {
 		g_object_unref(G_OBJECT(terminal->pvt->bg_image));
 	}
 
@@ -6596,19 +6603,16 @@ vte_terminal_set_background_image_file(VteTerminal *terminal, const char *path)
 	GdkPixbuf *image;
 	GError *error = NULL;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	if (path != NULL) {
-		image = gdk_pixbuf_new_from_file(path, &error);
-		if ((image != NULL) && (error == NULL)) {
-			vte_terminal_set_background_image(terminal, image);
-			g_object_unref(G_OBJECT(image));
-		} else {
-			/* FIXME: do something better with the error. */
-			vte_terminal_set_background_image(terminal, NULL);
-			g_error_free(error);
-		}
+	g_return_if_fail(path != NULL);
+	g_return_if_fail(strlen(path) == 0);
+	image = gdk_pixbuf_new_from_file(path, &error);
+	if ((image != NULL) && (error == NULL)) {
+		vte_terminal_set_background_image(terminal, image);
+		g_object_unref(G_OBJECT(image));
 	} else {
-		/* gnome terminal crackrock */
+		/* FIXME: do something better with the error. */
 		vte_terminal_set_background_image(terminal, NULL);
+		g_error_free(error);
 	}
 }
 
@@ -6675,7 +6679,7 @@ vte_terminal_set_background_transparent(VteTerminal *terminal, gboolean setting)
 				         vte_terminal_filter_property_changes,
 				         terminal);
 	}
-	if (terminal->pvt->bg_image != NULL) {
+	if (GDK_IS_PIXBUF(terminal->pvt->bg_image)) {
 		vte_terminal_set_background_image(terminal, FALSE);
 	} else {
 		vte_terminal_setup_background(terminal, TRUE);
