@@ -1,3 +1,7 @@
+2002-12-12  Pablo Saratxaga <pablo@mandrakesoft.com>
+	* configure.in: Added Catalan (ca), Spanish (es)
+	and Hebrew (he) to ALL_LINGUAS
+
 2002-12-11  nalin
 	* configure.in: define VTE_USE_GNOME_PTY_HELPER if use of the helper
 	is enabled at compile-time (enabled by default).

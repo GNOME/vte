@@ -1,0 +1,113 @@
+#
+# (c)2002 Enric Balletbó Serra 
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: VTE\n"
+"POT-Creation-Date: 2002-11-21 04:43+0100\n"
+"PO-Revision-Date: 2002-12-9 04:43+0100\n"
+"Last-Translator: enric.balletbo@campus.uab.es\n"
+"Language-Team: Catalan <tradgnome@softcatala.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=iso-8859-1\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/pty.c:249
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "S'ha produït un error en afegir '%s' a l'entorn. Es continua l'execució."
+
+#: src/reaper.c:107
+msgid "Error creating signal pipe."
+msgstr "S'ha produït un error en crear el senyal de conducte (SIGPIPE)."
+
+#: src/trie.c:405
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "Duplicat (%s/%s)!"
+
+#: src/vte.c:1321
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "S'ha produït un error en compilar l'expressió regular \"%s\"."
+
+#: src/vte.c:1828 src/vte.c:1837 src/vte.c:1849 src/vte.c:1867 src/vte.c:1872
+#: src/vte.c:1877
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "No es pot convertir el caràcter %s a %s."
+
+#: src/vte.c:5179
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "S'ha produït una seqüència inesperada (de tecles?) '%s'."
+
+#: src/vte.c:5999
+#, c-format
+msgid "Character 0x%x is undefined, allocating one column."
+msgstr "El caràcter 0x%x no està definit; es reservarà una columna."
+
+#: src/vte.c:6205
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "No hi ha cap gestor definit per a la seqüència de control '%s'."
+
+#: src/vte.c:6812
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "S'ha produït un error en llegir del fill: %s."
+
+#: src/vte.c:6978
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "S'ha produït un error (%s) en convertir dades per al fill; s'ometrà la conversió."
+
+#: src/vte.c:9219
+#, c-format
+msgid "Using fontset \"%s\", which is missing these character sets: %s."
+msgstr "S'està utilitzant la font \"%s\", que no té els següents jocs de caràcters: %s."
+
+#: src/vte.c:9760
+#, c-format
+msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
+msgstr "No s'ha pogut carregar el patró de font Xft \"%s\"; es carregarà la font per defecte."
+
+#: src/vte.c:9772
+msgid "Failed to load default Xft font."
+msgstr "No s'ha pogut carregar la font Xft per defecte."
+
+#: src/vte.c:9865
+#, c-format
+msgid "Failed to load font set \"%s\", falling back to default font."
+msgstr "No s'ha pogut carregar la font \"%s\"; es carregarà la font per defecte."
+
+#: src/vte.c:9877
+msgid "Failed to load default font, crashing or behaving abnormally."
+msgstr "No s'ha pogut carregar la font per defecte; fallada o comportament anormal."
+
+#: src/vte.c:10140
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "S'ha produït un error en llegir la mida de PTY; s'usarà el valor per defecte: %s."
+
+#: src/vte.c:10176
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "S'ha produït un error en establir la mida de PTY: %s."
+
+#: src/vte.c:12919
+msgid "Error allocating draw, disabling Xft."
+msgstr "S'ha produït un error en assignar el dibuix, s'està inhabilitant Xft."
+
+#: src/vte.c:12927
+msgid "Error allocating context, disabling Pango."
+msgstr "S'ha produït un error en assignar el context, s'està inhabilitant Pango."
+
+#: src/vte.c:12933
+msgid "Error allocating layout, disabling Pango."
+msgstr "S'ha produït un error en assignar el format, s'està inhabilitant Pango."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:14460
+msgid "g_iconv_open() failed setting word characters"
+msgstr "g_iconv_open() no ha pogut establir els caràcters de paraula"
