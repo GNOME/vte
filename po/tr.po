@@ -1,14 +1,15 @@
 # Turkish translation of vte.
 # Copyright (C) 2003 vte's COPYRIGHT HOLDER
 # This file is distributed under the same license as the vte package.
-# Görkem �~Getin <gorkem@gelecek.com.tr>, 2003.
+# Görkem �Getin <gorkem@gelecek.com.tr>, 2003.
+# Arman Aksoy <armish@linux-sevenler.de>, 2003.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2003-01-30 12:23+0100\n"
-"PO-Revision-Date: 2003-01-30 19:08+0000\n"
-"Last-Translator: Görkem Çetin <gorkem@gelecek.com.tr>\n"
+"POT-Creation-Date: 2003-02-09 12:09+0100\n"
+"PO-Revision-Date: 2003-02-10 19:53+0200\n"
+"Last-Translator: Arman Aksoy (Armish) <armish@linux-sevenler.de>\n"
 "Language-Team: Turkish <gnome-turk@gnome.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -55,7 +56,7 @@ msgstr "Anlaşılamayan klavye girdisi '%s'"
 #: src/vte.c:6588
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr ""
+msgstr "`%s' kontrol dizisi için işlemci tanımlanmamış."
 
 #: src/vte.c:7327
 #, c-format
@@ -67,53 +68,53 @@ msgstr "Oğul süreçten okunurken hata: %s"
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Bir hata oluştu (%s)"
 
-#: src/vte.c:9809
+#: src/vte.c:9814
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
 msgstr "\"%s\" yazıtipi kullanılıyor, ancak bazı karakterler eksik: %s."
 
-#: src/vte.c:10447
+#: src/vte.c:10452
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr "Xft yazıtipi düzeni yüklenemedi (%s), öntanımlı yazıtipine dönüş yapılıyor."
 
-#: src/vte.c:10459
+#: src/vte.c:10464
 msgid "Failed to load default Xft font."
 msgstr "Öntanımlı Xft yazıtipi yüklenemedi."
 
-#: src/vte.c:10552
+#: src/vte.c:10557
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr "\"%s\" yazıtipi kümesi yüklenemedi, öntanımlı yazıtipine geçiliyor."
 
-#: src/vte.c:10564
+#: src/vte.c:10569
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr "Öntanımlı yazıtipi yüklenemedi, sistem hata verdi."
 
-#: src/vte.c:10826
+#: src/vte.c:10831
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "PTY boyutu okunamadı, öntanımlı değer kullanılıyor: %s"
 
-#: src/vte.c:10862
+#: src/vte.c:10867
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTY boyutu tanımlanamadı: %s."
 
-#: src/vte.c:13749
+#: src/vte.c:13759
 msgid "Error allocating draw, disabling Xft."
 msgstr "Bir hata oluştu, Xft kapatılıyor."
 
-#: src/vte.c:13757
+#: src/vte.c:13767
 msgid "Error allocating context, disabling Pango."
 msgstr "Bir hata oluştu, Pango kapatılıyor."
 
-#: src/vte.c:13763
+#: src/vte.c:13773
 msgid "Error allocating layout, disabling Pango."
 msgstr "Bir hata oluştu, Pango kapatılıyor."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15409
+#: src/vte.c:15419
 msgid "g_iconv_open() failed setting word characters"
 msgstr "g_iconv_open() komutunda bir hata oluştu"
 
