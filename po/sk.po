@@ -1,41 +1,44 @@
+# translation of vte.HEAD.po to Slovak
 # translation of sk.po to Slovak
 # This file is distributed under the same license as the PACKAGE package.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# Stanislav Visnovsky <visnovsky@nenya.ms.mff.cuni.cz>, 2003
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER.
+# Stanislav Visnovsky <visnovsky@nenya.ms.mff.cuni.cz>, 2003.
+# Stanislav Visnovsky <visnovsky@kde.org>, 2003.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: sk\n"
-"POT-Creation-Date: 2003-05-19 14:33-0400\n"
-"PO-Revision-Date: 2003-01-04 15:47+0100\n"
-"Last-Translator: Stanislav Visnovsky <visnovsky@nenya.ms.mff.cuni.cz>\n"
-"Language-Team: Slovak <sk-i18n@lists.linux.sk>\n"
+"Project-Id-Version: vte.HEAD\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2003-08-22 05:11+0200\n"
+"PO-Revision-Date: 2003-08-22 08:05+0200\n"
+"Last-Translator: Stanislav Visnovsky <visnovsky@kde.org>\n"
+"Language-Team: Slovak <sk-i18n@linux.sk>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 1.2\n"
+"X-Generator: KBabel 1.2beta3\n"
 
-#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2067
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Nepodarilo sa previesť znaky z %s do %s."
 
-#: src/iso2022.c:1505
+#: src/iso2022.c:1560
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr ""
+msgstr "Pokus o nastavenie neplatnej mapy NRC '%c'."
 
-#. See ECMA-35.
-#: src/iso2022.c:1546
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1601
 msgid "Unrecognized identified coding system."
-msgstr ""
+msgstr "Neznámy kódovací systém."
 
-#: src/iso2022.c:1595 src/iso2022.c:1621
+#: src/iso2022.c:1650 src/iso2022.c:1676
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr ""
+msgstr "Pokus o nastavenie neplatnej širokej mapy NRC '%c'."
 
-#: src/pty.c:317
+#: src/pty.c:323
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Chyba pri pridávaní '%s' do prostredia, pokračujem."
@@ -43,7 +46,7 @@ msgstr "Chyba pri pridávaní '%s' do prostredia, pokračujem."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:877
+#: src/pty.c:908
 #, c-format
 msgid "can not run %s"
 msgstr "nemôže spustiť %s"
@@ -57,88 +60,58 @@ msgstr "Chyba pri vytváraní rúry pre signály."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikát (%s/%s)!"
 
-#: src/vte.c:1430
+#: src/vte.c:1475
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Chyba pri spracovaní regulárneho výrazu \"%s\"."
 
-#: src/vte.c:5534
+#: src/vte.c:5810
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Nájdená neočakávaná sekvencia '%s'."
 
-#: src/vte.c:6547
+#: src/vte.c:6828
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Pre ovládaciu sekvenciu '%s' nie je definovaný ovládač."
 
-#: src/vte.c:7293
+#: src/vte.c:7645
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Chyba pri čítaní z potomka: %s."
 
-#: src/vte.c:7449
+#: src/vte.c:7801
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Chyba (%s) pri prevode dát pre potomka, končím."
 
-#: src/vte.c:10069
+#: src/vte.c:10463
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Chyba pri čítaní veľkosti PTY, použijem štandardné: %s."
 
-#: src/vte.c:10105
+#: src/vte.c:10499
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Chyba pri čítaní veľkosti PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14067
-#, fuzzy
+#: src/vte.c:14622
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "g_iconv_open() zlyhal pri nastavení znakov slov"
+msgstr "_vte_conv_open() zlyhal pri nastavení znakov slov"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:642
+#: src/vteapp.c:688
 msgid "Could not open console.\n"
-msgstr ""
+msgstr "Nepodarilo sa otvoriť konzolu.\n"
 
-#: src/vteglyph.c:575
+#: src/vteglyph.c:576
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr ""
+msgstr "Neznámy režim bodov %d.\n"
 
-#: src/vtexft.c:664
+#: src/vtexft.c:710
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr ""
+msgstr "Nie je možné vykresliť znak U+%04x.\n"
 
-#~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
-#~ msgstr ""
-#~ "Použitie sady písiem \"%s\", v ktorej chýbajú tieto sady znakov: %s."
-
-#~ msgid ""
-#~ "Failed to load Xft font pattern \"%s\", falling back to default font."
-#~ msgstr ""
-#~ "Nepodarilo sa načítať vzorku písiem Xft \"%s\", použijem štandardné písmo."
-
-#~ msgid "Failed to load default Xft font."
-#~ msgstr "Nepodarilo sa načítať štandardné písmo Xft."
-
-#~ msgid "Failed to load font set \"%s\", falling back to default font."
-#~ msgstr ""
-#~ "Nepodarilo sa načítať sadu písiem \"%s\", použijem štandardné písmo."
-
-#~ msgid "Failed to load default font, crashing or behaving abnormally."
-#~ msgstr ""
-#~ "Nepodarilo sa načítať štandardné písmo, dá sa očakávať pád alebo "
-#~ "neobvyklé chovanie."
-
-#~ msgid "Error allocating draw, disabling Xft."
-#~ msgstr "Chyba pri alokácii kresliacej plochy, vypínam Xft."
-
-#~ msgid "Error allocating context, disabling Pango."
-#~ msgstr "Chyba pri alokácii kontextu, vypínam Pango."
-
-#~ msgid "Error allocating layout, disabling Pango."
-#~ msgstr "Chyba pri alokácii rozloženia, vypínam PangoXft."
