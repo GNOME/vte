@@ -1,4 +1,7 @@
 2003-04-29 nalin
+	* src/keymap.c: add keymaps for GDK_slash and GDK_question (#108299).
+
+2003-04-29 nalin
 	* src/vterdb.c(_vte_rdb_get): use INT_MAX instead of LONG_MAX when
 	passing in the maximum length, because it's returned in an int.
 
