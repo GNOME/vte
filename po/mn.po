@@ -1,41 +1,44 @@
+# translation of vte.HEAD.po to Mongolian
 # translation of vte.HEAD.po to mongolian
 # This file is distributed under the same license as the PACKAGE package.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# Sanlig Badral <badral@chinggis.com>, 2003
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER.
+# Sanlig Badral <badral@chinggis.com>, 2003.
+# Sanlig Badral <Badral@openmn.org>, 2003.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD\n"
-"POT-Creation-Date: 2003-05-19 14:33-0400\n"
-"PO-Revision-Date: 2003-01-16 21:13+0100\n"
-"Last-Translator: Sanlig Badral <badral@chinggis.com>\n"
-"Language-Team: mongolian <mn@li.org>\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2003-08-23 13:14+0200\n"
+"PO-Revision-Date: 2003-08-24 01:45+0200\n"
+"Last-Translator: Sanlig Badral <Badral@openmn.org>\n"
+"Language-Team: Mongolian <openmn-kdemn@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 1.1\n"
+"X-Generator: KBabel 1.0.2\n"
 
-#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2067
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Тэмдэгт %s -с %s рүү хөрвөх боломжгүй."
 
-#: src/iso2022.c:1505
+#: src/iso2022.c:1560
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr ""
+msgstr "Хүчингүй '%c' NRC зургийг тогтоохыг оролдох."
 
-#. See ECMA-35.
-#: src/iso2022.c:1546
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1601
 msgid "Unrecognized identified coding system."
-msgstr ""
+msgstr "Танигдахгүй ялгах кодчилолын систем"
 
-#: src/iso2022.c:1595 src/iso2022.c:1621
+#: src/iso2022.c:1650 src/iso2022.c:1676
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr ""
+msgstr "Хүчингүй '%c' wide NRC зургийг тогтоохыг оролдох."
 
-#: src/pty.c:317
+#: src/pty.c:323
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "»%s« -г орчин руу нэмэхэд алдаа гарлаа, үргэлжлүүлэх."
@@ -43,7 +46,7 @@ msgstr "»%s« -г орчин руу нэмэхэд алдаа гарлаа, ү�
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:877
+#: src/pty.c:908
 #, c-format
 msgid "can not run %s"
 msgstr "%s ажиллаж чадахгүй байна"
@@ -57,61 +60,60 @@ msgstr "Сигнарын шугам үүсгэж байхад алдаа гар�
 msgid "Duplicate (%s/%s)!"
 msgstr "Давхардал (%s/%s)!"
 
-#: src/vte.c:1430
+#: src/vte.c:1475
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "»%s« энгийн илэрхийлэлийг хөрвүүлж байхад алдаа."
 
-#: src/vte.c:5534
+#: src/vte.c:5810
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Гэнэтийн (Түлхүүр?) »%s« үр дагавар хүлээн авлаа."
 
-#: src/vte.c:6547
+#: src/vte.c:6828
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "»%s« шалгах дарааллын боловсруулагч тодорхойлогдоогүй байна."
 
-#: src/vte.c:7293
+#: src/vte.c:7645
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Хүүг уншихад алдаа: %s."
 
-#: src/vte.c:7449
+#: src/vte.c:7801
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Хүүгийн өгөгдлийн хөрвүүлэлтэнд алдаа (%s) гарч тасарлаа."
 
-#: src/vte.c:10069
+#: src/vte.c:10463
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "PTY-хэмжээ уншихад алдаа, стандартыг хэрэглэх: %s."
 
-#: src/vte.c:10105
+#: src/vte.c:10499
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTY-хэмжээ тогтооход алдаа: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14067
-#, fuzzy
+#: src/vte.c:14622
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "g_iconv_open() үгийн тэмдэгтүүдийг тогтоож чадсангүй"
+msgstr "_vte_conv_open() үгийн тэмдэгтүүдийг тогтоож чадсангүй"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:642
+#: src/vteapp.c:688
 msgid "Could not open console.\n"
-msgstr ""
+msgstr "Консолыг нээж чадсангүй.\n"
 
-#: src/vteglyph.c:575
+#: src/vteglyph.c:576
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr ""
+msgstr "Мэдэгдэхгүй цэгэн горим %d.\n"
 
-#: src/vtexft.c:664
+#: src/vtexft.c:710
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr ""
+msgstr "U+%04x тэмдэгтүүдийг дүрсэлж чадахгүй.\n"
 
 #~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
 #~ msgstr ""
@@ -140,3 +142,4 @@ msgstr ""
 
 #~ msgid "Error allocating layout, disabling Pango."
 #~ msgstr "layout эмхлэхэд алдаа, Pango хаагдав."
+
