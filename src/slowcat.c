@@ -21,6 +21,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -49,11 +50,13 @@ catfile(const char *pathname, long delay)
 		tv.tv_usec = delay % 1000000;
 		select(0, NULL, NULL, NULL, &tv);
 		c = fgetc(fp);
-		fputc(c, stdout);
+		if (c != EOF) {
+			fputc(c, stdout);
+		}
 		fflush(stdout);
 	}
 
-	if (!((pathname == NULL) || (strcmp(pathname, "-") == 0))) {
+	if (fp != stdin) {
 		fclose(fp);
 	}
 }

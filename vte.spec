@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.10.9
+Version: 0.10.10
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -93,6 +93,10 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Tue Jan 14 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.10-1
+- add text that scrolls off of a restricted scrolling area which goes to the
+  top of the visible screen to the scrollback buffer (#75900)
+
 * Mon Jan 13 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.9-1
 - fix scrolling through the accessibility layer
 - stop heeding NumLock when mapping cursor keys

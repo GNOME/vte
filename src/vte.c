@@ -3306,7 +3306,8 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 			GValueArray *params)
 {
 	GtkWidget *widget;
-	long start, end;
+	GArray *array;
+	long start, end, bottom;
 	VteScreen *screen;
 
 	widget = GTK_WIDGET(terminal);
@@ -3322,13 +3323,37 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 
 	if (screen->cursor_current.row == end) {
 		if (screen->scrolling_restricted) {
-			/* If we're at the bottom of the scrolling region, add a
-			 * line at the top to scroll the bottom off. */
-			vte_remove_line_internal(terminal, start);
-			vte_insert_line_internal(terminal, end);
-			/* Update the display. */
-			vte_terminal_scroll_region(terminal, start,
-						   end - start + 1, -1);
+			if (start == screen->insert_delta) {
+				/* Scroll this line into the scrollback
+				 * buffer by inserting a line at the next
+				 * line and scrolling the area up. */
+				array = vte_new_row_data_sized(terminal, TRUE);
+				screen->insert_delta++;
+				screen->cursor_current.row++;
+				_vte_ring_insert_preserve(terminal->pvt->screen->row_data,
+							  screen->cursor_current.row,
+							  array);
+				/* Force the areas below the region to be
+				 * redrawn -- they've moved. */
+				bottom = screen->insert_delta +
+					 terminal->row_count - 1;
+				vte_terminal_scroll_region(terminal,
+							   screen->cursor_current.row,
+							   bottom - screen->cursor_current.row + 1,
+							   1);
+				/* Force scroll. */
+				vte_terminal_ensure_cursor(terminal, FALSE);
+				vte_terminal_adjust_adjustments(terminal, TRUE);
+			} else {
+				/* If we're at the bottom of the scrolling
+				 * region, add a line at the top to scroll the
+				 * bottom off. */
+				vte_remove_line_internal(terminal, start);
+				vte_insert_line_internal(terminal, end);
+				/* Update the display. */
+				vte_terminal_scroll_region(terminal, start,
+							   end - start + 1, -1);
+			}
 		} else {
 			/* Scroll up with history. */
 			screen->cursor_current.row++;

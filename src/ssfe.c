@@ -18,25 +18,31 @@
    From attachment to Red Hat Bugzilla #75900.
 */
 
-#include <sys/time.h>
+#include "../config.h"
 #include <sys/types.h>
+#include <sys/time.h>
+#include <sys/ioctl.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <signal.h>
-#include <errno.h>
-
-#ifdef USE_SGTTY
-#include <sgtty.h>
-#else
+#include <string.h>
 #include <termios.h>
+#include <time.h>
+#include <unistd.h>
+
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
 #endif
 
-#include <sys/ioctl.h>
-
-#ifdef _AIX
-#include <sys/select.h>
+#ifdef HAVE_NCURSES
+#include <ncurses.h>
+#include <term.h>
+#else
+#ifdef HAVE_TERMCAP
+#include <termcap.h>
+#endif
 #endif
 
 #define BUF_SIZE 512
@@ -60,14 +66,14 @@ struct termios term, term0;
 
 int pid, mypid;
 int i;
-int cols, lines;
+int ncols, nlines;
 int readfd, writefd, errfd;
 
 unsigned char *t, *w;
 unsigned char tmpstr[BUF_SIZE], extrainput[BUF_SIZE+20], readbuf[2*BUF_SIZE],
 	      *input, *writebuf, o_buffer[BUF_SIZE];
 int bold=0, inv=0, under=0, wherex=0, wherey=0, donl=0;
-int hold_mode=0, hold_lines=0, ctrlx=0, beep=0, flow=0;
+int hold_mode=0, hold_lines=0, ctrlx=0, beep_mode=0, flow=0;
 
 unsigned char defprompt[]="> ",
 	 nullstring[]="",
@@ -108,66 +114,35 @@ char *t_cm, *t_cl, *t_mr, *t_md, *t_me, *t_cs, *t_ce, *t_us;
 int ansi_cs = 0;
 
 fd_set ready, result;
-extern int errno;
 
-#ifdef __GNUC__
-extern unsigned char *tgoto(unsigned char *cm, int col, int line);
-#else
-extern unsigned char *tgoto();
-#endif
-
-#ifdef __GNUC__
-int myputchar(int c) {
-#else
-int myputchar(c) {
-#endif
+static int myputchar(int c) {
   unsigned char cc=(unsigned char)c;
   return(write(1, &cc, 1));
 }
 
-#ifdef __GNUC__
-int addchar(int c) {
-#else
-int addchar(c) {
-#endif
+static int addchar(int c) {
   (*w++)=(unsigned char)c;
+  return *w;
 }
 
-#ifdef __GNUC__
-void putcap(unsigned char *s) {
-#else
-void putcap(s)
-unsigned char *s; {
-#endif
+static void putcap(unsigned char *s) {
   tputs(s, 0, myputchar);
 }
 
-#ifdef __GNUC__
-int do_cs(int y1, int y2) {
-#else
-int do_cs(y1, y2) {
-#endif
+static int do_cs(int y1, int y2) {
   static char temp[16];
   if (ansi_cs) {
     sprintf(temp, "\e[%d;%dr", y1, y2);
     write(1, temp, strlen(temp));
   } else putcap((char *)tgoto(t_cs, y2-1, y1-1));
+  return 0;
 }
 
-#ifdef __GNUC__
-void writecap(unsigned char *s) {
-#else
-void writecap(s)
-unsigned char *s; {
-#endif
+static void writecap(unsigned char *s) {
   tputs(s, 0, addchar);
 }
 
-#ifdef __GNUC__
-void gotoxy(int x, int y) {
-#else
-void gotoxy(x, y) {
-#endif
+static void gotoxy(int x, int y) {
 /* left upper = 0, 0 */
   putcap(tgoto(t_cm, x, y));
 }
@@ -175,33 +150,21 @@ void gotoxy(x, y) {
 #define clearscreen() (putcap(t_cl))
 #define cleareol() (putcap(t_ce))
 #define fullscroll() (do_cs(0, 0))
-#define winscroll() (do_cs(1, lines-2))
+#define winscroll() (do_cs(1, nlines-2))
 #define setbold() (putcap(t_md))
 #define setunder() (putcap(t_us))
 #define setinv() (putcap(t_mr))
 #define normal() (putcap(t_me))
 
-#ifdef __GNUC__
-void ofsredisplay(int x);
-void inschar(unsigned char t);
-void dokbdchar(unsigned char t);
-#else
-void ofsredisplay();
-void inschar();
-void dokbdchar();
-#endif
-void displaystatus();
+static void ofsredisplay(int x);
+static void inschar(unsigned char t);
+static void dokbdchar(unsigned char t);
+static void displaystatus(void);
 
-#ifdef __GNUC__
-void cleanupexit(int n, unsigned char *error) {
-#else
-void cleanupexit(n, error)
-int n;
-unsigned char *error; {
-#endif
+static void cleanupexit(int n, unsigned char *error) {
   normal();
   fullscroll();
-  gotoxy(0, lines-1);
+  gotoxy(0, nlines-1);
   cleareol();
 #ifdef USE_SGTTY
   ioctl(ttyfd, TIOCSETP, &term0);
@@ -216,18 +179,18 @@ unsigned char *error; {
   exit(n);
 }
 
-void allsigs();
+static void allsigs(int);
 
-void interrupted() {
+static void interrupted(int ignored) {
   cleanupexit(1, "interrupted");
 }
 
-void sigpipe() {
+static void sigpipe(int ignored) {
   cleanupexit(1, "program died");
 }
 
-void sigcont() {
-  allsigs();
+static void sigcont(int ignored) {
+  allsigs(0);
 #ifdef USE_SGTTY
   ioctl(ttyfd, TIOCSETP, &term);
   ioctl(ttyfd, TIOCSETC, &tch);
@@ -241,7 +204,7 @@ void sigcont() {
   ofsredisplay(0);
 }
 
-void suspend() {
+static void suspend(int ignored) {
   normal();
   fullscroll();
   gotoxy(0, ystatus);
@@ -259,21 +222,21 @@ void suspend() {
   kill(mypid, SIGTSTP);
 }
 
-void sigwinch() {
+static void sigwinch(int ignored) {
 #ifdef TIOCGWINSZ
   signal(SIGWINCH, sigwinch);
   if (ioctl(ttyfd, TIOCGWINSZ, &wsz)>=0 && wsz.ws_row>0 && wsz.ws_col>0) {
-    lines=wsz.ws_row;
-    cols=wsz.ws_col;
+    nlines=wsz.ws_row;
+    ncols=wsz.ws_col;
     cursorwhere=2;
-    ystatus=lines-2;
-    yinput=lines-1;
+    ystatus=nlines-2;
+    yinput=nlines-1;
     wherex=0;
     wherey=ystatus-1;
     displaystatus();
-    if (inputlast>cols-8) {
-      inputcursor=cols-9;
-      inputofs=inputlast-cols+9;
+    if (inputlast>ncols-8) {
+      inputcursor=ncols-9;
+      inputofs=inputlast-ncols+9;
     } else {
       inputofs=0;
       inputcursor=inputlast;
@@ -283,7 +246,7 @@ void sigwinch() {
 #endif
 }
 
-void allsigs() {
+static void allsigs(int ignored) {
   signal(SIGHUP, interrupted);
   signal(SIGINT, interrupted);
   signal(SIGQUIT, SIG_IGN);
@@ -295,26 +258,21 @@ void allsigs() {
 #endif
 }
 
-#ifdef __GNUC__
-void setstatus(unsigned char *title) {
-#else
-void setstatus(title)
-unsigned char *title; {
-#endif
+static void setstatus(unsigned char *title) {
   unsigned char *t=title;
   for (;*t;t++) if (*t<' ') (*t)+='@';
   memset(statusline, ' ', MAX_COLS-1);
   memcpy(statusline, title, strlen(title)<MAX_COLS ? strlen(title) : MAX_COLS);
 }
 
-void displaystatus() {
+static void displaystatus(void) {
   normal();
   fullscroll();
   gotoxy(0, ystatus);
   setinv();
-  write(1, statusline, cols-1);
+  write(1, statusline, ncols-1);
   if (hold_mode) {
-    gotoxy(cols-4, ystatus);
+    gotoxy(ncols-4, ystatus);
     write(1, "(h)", 3);
   }
   cursorwhere=2;
@@ -322,12 +280,7 @@ void displaystatus() {
   cleareol();
 }
 
-#ifdef __GNUC__
-int casecmp(unsigned char *s, unsigned char *t) {
-#else
-int casecmp(s, t)
-unsigned char *s, *t; {
-#endif
+static int casecmp(unsigned char *s, unsigned char *t) {
   while (((*s>='a' && *s<='z')?(*s)-32:*s)==
          ((*t>='a' && *t<='z')?(*t)-32:*t)) {
     if (*s=='\0') return 1;
@@ -336,12 +289,7 @@ unsigned char *s, *t; {
   return 0;
 }
 
-#ifdef __GNUC__
-void addtab(unsigned char *line) {
-#else
-void addtab(line)
-unsigned char *line; {
-#endif
+static void addtab(unsigned char *line) {
   struct tabinfo *nt;
 
   nt=oldest;
@@ -385,7 +333,7 @@ unsigned char *line; {
   curtabr=oldest;
 }
 
-void doprotcommand() {
+static void doprotcommand(void) {
   unsigned char *tmp;
 
   switch (protcmd[0]) {
@@ -444,13 +392,13 @@ void doprotcommand() {
   }
 }
 
-void newline() {
+static void do_newline(void) {
   unsigned char t;
   hold_lines++;
-  if (hold_mode && hold_lines>lines-4) {
+  if (hold_mode && hold_lines>nlines-4) {
     normal();
     fullscroll();
-    gotoxy(cols-4, ystatus);
+    gotoxy(ncols-4, ystatus);
     setinv();
     write(1, "(H)", 3);
     while(1) {
@@ -460,49 +408,54 @@ void newline() {
     }
     normal();
     fullscroll();
-    gotoxy(cols-4, ystatus);
+    gotoxy(ncols-4, ystatus);
     setinv();
     write(1, "(h)", 3);
     hold_lines=0;
     normal();
     winscroll();
-    gotoxy(cols-1, wherey);
+    gotoxy(ncols-1, wherey);
     if (bold) setbold();
     if (under) setunder();
     if (inv) setinv();
   }
 }
 
-#ifdef __GNUC__
-void formatter(unsigned char *readbuf, int rc) {
-#else
-void formatter(readbuf, rc)
-unsigned char *readbuf;
-int rc; {
-#endif
+static void formatter(unsigned char *readbuf, int rc) {
 
   unsigned char t, *r, *lwr, *lww;
   int lwrc, lwbold, lwunder, lwinv, lwx;
 
+  lwbold=lwunder=lwinv=0;
   if (cursorwhere!=0) {
     winscroll();
     gotoxy(wherex, wherey);
     cursorwhere=0;
   }
   if (donl) {
-    newline();
+    do_newline();
     write(1, "\r\n", 2);
     normal();
     wherex=0;
     bold=inv=under=lwbold=lwinv=lwunder=0;
-    if (wherey<ystatus-1) wherey++;
-  } else if (dispmode>1) {
-    if (bold) setbold();
-    if (under) setunder();
-    if (inv) setinv();
-    lwbold=bold;
-    lwinv=inv;
-    lwunder=under;
+    if (wherey<ystatus-1) {
+      wherey++;
+    }
+  } else {
+    if (dispmode>1) {
+      if (bold) {
+        setbold();
+      }
+      if (under) {
+        setunder();
+      }
+      if (inv) {
+        setinv();
+      }
+      lwbold=bold;
+      lwinv=inv;
+      lwunder=under;
+    }
   }
   if (rc && readbuf[rc-1]=='\n') {
     rc--;
@@ -523,16 +476,16 @@ int rc; {
   while(rc-->0) {
     t=(*r++);
     if (t=='\r') continue;
-    if (wherex>cols-2 || (t==9 && wherex>(cols-2)&0xfff8)) {
+    if ((wherex>ncols-2) || (t==9 && (wherex>((ncols-2)&0xfff8)))) {
       if (t==' ' || t==9) ;
-      else if (lww>writebuf+cols/2) {
+      else if (lww>writebuf+ncols/2) {
 	wherex=lwx; r=lwr; w=lww; rc=lwrc;
 	bold=lwbold; inv=lwinv; under=lwunder; wherex=lwx;
       } else {
 	rc++; r--;
       }
       write(1, writebuf, w-writebuf);
-      newline();
+      do_newline();
       write(1, "\r\n           ", 13);
       w=writebuf;
       lwr=r; lww=w; lwrc=rc;
@@ -543,7 +496,7 @@ int rc; {
     }
     if (t=='\n') {
       if (w!=writebuf) write(1, writebuf, w-writebuf);
-      newline();
+      do_newline();
       write(1, "\r\n", 2);
       normal();
       w=writebuf;
@@ -569,7 +522,7 @@ int rc; {
     } else if (t==9) {
       (*w++)=t;
       wherex=(wherex & 0xfff8)+8;
-    } else if (t<' ' && (t!=7 || !beep)) {
+    } else if (t<' ' && (t!=7 || !beep_mode)) {
       wherex++;
       if (inv) {
 	writecap(t_me);
@@ -595,13 +548,7 @@ int rc; {
   if (w!=writebuf) write(1, writebuf, w-writebuf);
 }
 
-#ifdef __GNUC__
-void doprogramline(unsigned char *readbuf, int rc) {
-#else
-void doprogramline(readbuf, rc)
-unsigned char *readbuf;
-int rc; {
-#endif
+static void doprogramline(unsigned char *readbuf, int rc) {
 
   unsigned char *w, *r, *r2, t;
   if (dispmode==0) {
@@ -611,40 +558,42 @@ int rc; {
   w=r=readbuf;
   while(rc-->0) {
     t=(*r++);
-    if (idstatus==0)
+    if (idstatus==0) {
       if (*inid=='\0') {
 	idstatus=1;
 	wpc=protcmd;
 	inid=id;
-      } else if (*inid==t && (inid!=id || r==(readbuf+1) || *(r-2)=='\n')) {
-	inid++;
-	(*wpc++)=t;
       } else {
-        r2=protcmd;
-        while (r2!=wpc) (*w++)=(*r2++);
-	(*w++)=t;
-	wpc=protcmd;
-	inid=id;
+        if (*inid==t && (inid!=id || r==(readbuf+1) || *(r-2)=='\n')) {
+	  inid++;
+	  (*wpc++)=t;
+        } else {
+          r2=protcmd;
+          while (r2!=wpc) {
+	    (*w++)=(*r2++);
+	  }
+	  (*w++)=t;
+	  wpc=protcmd;
+	  inid=id;
+        }
       }
-    if (idstatus==1)
-      if (t=='\n')  {
+    }
+    if (idstatus==1) {
+      if (t=='\n') {
         *wpc='\0';
         doprotcommand();
 	inid=id;
 	wpc=protcmd;
 	idstatus=0;
-      } else (*wpc++)=t;
+      } else {
+	(*wpc++)=t;
+      }
+    }
   }
   if (w!=readbuf) formatter(readbuf, w-readbuf);
 }
 
-#ifdef __GNUC__
-void write1(unsigned char t, int pos) {
-#else
-void write1(t, pos)
-unsigned char t;
-int pos; {
-#endif
+static void write1(unsigned char t, int pos) {
   if (no_echo && pos>=plen) {
     write(1, "*", 1);
   } else if (t>=' ')
@@ -657,17 +606,13 @@ int pos; {
   }
 }
 
-#ifdef __GNUC__
-void ofsredisplay(int x) {
-#else
-void ofsredisplay(x) {
-#endif
+static void ofsredisplay(int x) {
 /* redisplays starting at x */
   unsigned char *w;
   int i;
   gotoxy(x, yinput);
   if (inputlast-inputofs>=x) {
-    i=((inputlast-inputofs>cols-1 ? cols-1-x : inputlast-inputofs-x));
+    i=((inputlast-inputofs>ncols-1 ? ncols-1-x : inputlast-inputofs-x));
     for (w=input+inputofs+x; i--; w++) write1(*w, w-input);
   }
   cleareol();
@@ -675,12 +620,7 @@ void ofsredisplay(x) {
   cursorwhere=1;
 }
 
-#ifdef __GNUC__
-void delempty(struct histinfo *leavealone) {
-#else
-void delempty(leavealone)
-struct histinfo *leavealone; {
-#endif
+static void delempty(struct histinfo *leavealone) {
   struct histinfo *h, *h2;
   int cont=0;
   h=histoldest;
@@ -705,7 +645,7 @@ struct histinfo *leavealone; {
   }
 }
 
-struct histinfo *makenew() {
+static struct histinfo *makenew(void) {
   struct histinfo *nh;
   if (!histlines) {
     nh=(struct histinfo *)malloc(sizeof (struct histinfo));
@@ -725,11 +665,7 @@ struct histinfo *makenew() {
   return nh;
 }
 
-#ifdef __GNUC__
-void sendline(int yank) {
-#else
-void sendline(yank) {
-#endif
+static void sendline(int yank) {
   if (!specialprompt) {
     histcurrent->len=inputlast;
     histcurrent->plen=plen;
@@ -753,7 +689,7 @@ void sendline(yank) {
   no_echo=0;
 }
 
-void modify() {
+static void modify(void) {
   struct histinfo *h;
   if (!modified) {
     if (inputlast>plen) {
@@ -767,26 +703,26 @@ void modify() {
   }
 }
 
-void fixpos() {
+static void fixpos(void) {
   if (inputcursor<8 && inputofs>0) {
-    inputofs-=cols-16;
-    inputcursor+=cols-16;
+    inputofs-=ncols-16;
+    inputcursor+=ncols-16;
     if (inputofs<0) {
       inputcursor+=inputofs;
       inputofs=0;
     }
     ofsredisplay(0);
-  } else if (inputcursor>cols-8) {
-    inputofs+=cols-16;
-    inputcursor-=cols-16;
+  } else if (inputcursor>ncols-8) {
+    inputofs+=ncols-16;
+    inputcursor-=ncols-16;
     ofsredisplay(0);
   }
 }
 
-void reshow() {
-  if (inputlast>cols-8) {
-    inputcursor=cols-9;
-    inputofs=inputlast-cols+9;
+static void reshow(void) {
+  if (inputlast>ncols-8) {
+    inputcursor=ncols-9;
+    inputofs=inputlast-ncols+9;
   } else {
     inputofs=0;
     inputcursor=inputlast;
@@ -794,12 +730,7 @@ void reshow() {
   ofsredisplay(0);
 }
 
-#ifdef __GNUC__
-void inschar(unsigned char t) {
-#else
-void inschar(t)
-unsigned char t; {
-#endif
+static void inschar(unsigned char t) {
 
   unsigned char *tmp;
 
@@ -812,8 +743,9 @@ unsigned char t; {
       inputcursor++;
     } else {
       tmp=input+inputlast;
-      while (tmp>=input+inputofs+inputcursor)
+      while (tmp>=input+inputofs+inputcursor) {
 	*(tmp+1)=(*tmp--);
+      }
       input[inputofs+(inputcursor++)]=t;
       inputlast++;
       ofsredisplay(inputcursor-1);
@@ -822,12 +754,7 @@ unsigned char t; {
   }
 }
 
-#ifdef __GNUC__
-void dokbdchar(unsigned char t) {
-#else
-void dokbdchar(t)
-unsigned char t; {
-#endif
+static void dokbdchar(unsigned char t) {
 
   unsigned char *tmp;
 
@@ -854,7 +781,7 @@ unsigned char t; {
       if (cursorwhere!=1) fullscroll();
       cursorwhere=2;
       normal();
-      gotoxy(cols-4, ystatus);
+      gotoxy(ncols-4, ystatus);
       setinv();
       write(1, "(h)", 3);
       normal();
@@ -863,7 +790,7 @@ unsigned char t; {
       if (cursorwhere!=1) fullscroll();
       cursorwhere=2;
       normal();
-      gotoxy(cols-4, ystatus);
+      gotoxy(ncols-4, ystatus);
       setinv();
       write(1, "   ", 3);
       normal();
@@ -871,7 +798,7 @@ unsigned char t; {
       dispmode=3-dispmode;
       bold=inv=under=0;
     } else if (dispmode>0 && t=='b') {
-      beep=!beep;
+      beep_mode=!beep_mode;
     } else if (t=='c') cleanupexit(1, "exiting");
     return;
   }
@@ -888,7 +815,7 @@ unsigned char t; {
   } else ctrlx=0;
   if (t==27 && !quote) {
     inarrow=1;
-  } else if ((t==10 || t==13) && !quote) {  /* return, newline */
+  } else if ((t==10 || t==13) && !quote) {  /* return, do_newline */
     sendline(0);
     if (tablines) {
       curtabr=oldest;
@@ -912,8 +839,9 @@ unsigned char t; {
     if (inputcursor>plen) {
       modify();
       tmp=input+inputcursor+inputofs;
-      while (tmp<input+inputlast)
+      while (tmp<input+inputlast) {
 	*(tmp-1)=(*tmp++);
+      }
       input[--inputlast]='\0';
       gotoxy(--inputcursor, yinput);
       ofsredisplay(inputcursor);
@@ -923,8 +851,9 @@ unsigned char t; {
     if (inputcursor+inputofs<inputlast) {
       modify();
       tmp=input+inputcursor+inputofs+1;
-      while (tmp<input+inputlast)
+      while (tmp<input+inputlast) {
 	*(tmp-1)=(*tmp++);
+      }
       input[--inputlast]='\0';
       gotoxy(inputcursor, yinput);
       ofsredisplay(inputcursor);
@@ -957,11 +886,11 @@ unsigned char t; {
     }
   } else if (t==5 && !quote) { /* ^e */
     if (inputcursor+inputofs<inputlast) {
-      if (inputlast-inputofs<cols-3) {
+      if (inputlast-inputofs<ncols-3) {
 	gotoxy((inputcursor=inputlast-inputofs), yinput);
-      } else if (inputlast>cols-8) {
-	inputcursor=cols-9;
-	inputofs=inputlast-cols+9;
+      } else if (inputlast>ncols-8) {
+	inputcursor=ncols-9;
+	inputofs=inputlast-ncols+9;
 	ofsredisplay(0);
       } else {
 	inputofs=0;
@@ -1033,19 +962,14 @@ unsigned char t; {
   quote=0;
 }
 
-#ifdef __GNUC__
-void barf(unsigned char *m) {
-#else
-void barf(m)
-unsigned char *m; {
-#endif
+static void barf(unsigned char *m) {
   fprintf(stderr, "%s\n", m);
   exit(1);
 }
 
 char *myname;
 
-void use() {
+static void use(void) {
   fprintf(stderr, "Use: %s [options] program [program's options]\n", myname);
   fprintf(stderr, "Options are:\n");
   fprintf(stderr, "   -raw, -cooked, -irc  : set display mode\n");
@@ -1057,13 +981,7 @@ void use() {
   exit(1);
 }
 
-#ifdef __GNUC__
 int main(int argc, char *argv[]) {
-#else
-int main(argc, argv)
-int argc;
-char *argv[]; {
-#endif
 
   char *vr;
   int pfds0[2], pfds1[2], pfds2[2];
@@ -1088,7 +1006,7 @@ char *argv[]; {
       if (prompt==nullstring) prompt=defprompt;
       printmode=1;
     } else if (strcmp(argv[1], "-beep")==0) {
-      beep=1;
+      beep_mode=1;
       argv++; argc--;
     } else if (strcmp(argv[1], "-flow")==0) {
       flow=1;
@@ -1139,17 +1057,17 @@ char *argv[]; {
 #ifdef TIOCGWINSZ
   if (ioctl(ttyfd, TIOCGWINSZ, &wsz)<0 || wsz.ws_row<1 || wsz.ws_col<1) {
 #endif
-    lines=((vr=getenv("LINES"))?atoi(vr):0);
-    cols=((vr=getenv("COLUMNS"))?atoi(vr):0);
-    if (lines<1 || cols<1) {
-      if ((lines=tgetnum("li"))<1 || (cols=tgetnum("co"))<1) {
-	lines=24; cols=80;
+    nlines=((vr=getenv("LINES"))?atoi(vr):0);
+    ncols=((vr=getenv("COLUMNS"))?atoi(vr):0);
+    if (nlines<1 || ncols<1) {
+      if ((nlines=tgetnum("li"))<1 || (ncols=tgetnum("co"))<1) {
+	nlines=24; ncols=80;
       }
     }
 #ifdef TIOCGWINSZ
   } else {
-    lines=wsz.ws_row;
-    cols=wsz.ws_col;
+    nlines=wsz.ws_row;
+    ncols=wsz.ws_col;
   }
 #endif
 
@@ -1251,19 +1169,19 @@ char *argv[]; {
   }
 #endif
 
-  allsigs();
+  allsigs(0);
 
-  ystatus=lines-2;
-  yinput=lines-1;
+  ystatus=nlines-2;
+  yinput=nlines-1;
 
-  if (lines>255) barf("Screen too big");
-  if (ystatus<=2 || cols<20) barf("Screen too small");
+  if (nlines>255) barf("Screen too big");
+  if (ystatus<=2 || ncols<20) barf("Screen too small");
 
   statusline=(unsigned char *)malloc(MAX_COLS);
   writebuf=(unsigned char *)malloc(20*BUF_SIZE);
   strcpy(tmpstr, " ");
   for (i=1; i<argc; i++)
-    if (strlen(tmpstr)+strlen(argv[i])<cols-1) {
+    if (strlen(tmpstr)+strlen(argv[i])<ncols-1) {
       strcat(tmpstr, argv[i]);
       strcat(tmpstr, " ");
     }
@@ -1292,25 +1210,41 @@ char *argv[]; {
 
   while(1) {
     result=ready;
-    if (select(64, &result, NULL, NULL, NULL)<=0)
-      if (errno==EINTR) continue;
-      else cleanupexit(1, "select error");
 
-    if (FD_ISSET(readfd, &result))
-      if ((rc=read(readfd, readbuf, BUF_SIZE))>0)
+    if (select(64, &result, NULL, NULL, NULL)<=0) {
+      if (errno==EINTR) {
+	continue;
+      } else {
+	cleanupexit(1, "select error");
+      }
+    }
+
+    if (FD_ISSET(readfd, &result)) {
+      if ((rc=read(readfd, readbuf, BUF_SIZE))>0) {
         doprogramline(readbuf, rc);
-      else
+      } else {
         cleanupexit(1, "program terminated");
-    if (FD_ISSET(errfd, &result))
-      if ((rc=read(errfd, readbuf, BUF_SIZE))>0)
+      }
+    }
+
+    if (FD_ISSET(errfd, &result)) {
+      if ((rc=read(errfd, readbuf, BUF_SIZE))>0) {
         doprogramline(readbuf, rc);
-      else
+      } else {
         cleanupexit(1, "program terminated");
-    if (FD_ISSET(ttyfd, &result))
-      if ((rrc=read(0, readbuf, BUF_SIZE))>0)
-        for (t=readbuf; rrc>0; rrc--) dokbdchar(*(t++));
-      else
+      }
+    }
+
+    if (FD_ISSET(ttyfd, &result)) {
+      if ((rrc=read(0, readbuf, BUF_SIZE))>0) {
+        for (t=readbuf; rrc>0; rrc--) {
+	  dokbdchar(*(t++));
+	}
+      } else {
 	cleanupexit(1, "read error from keyboard");
+      }
+    }
+
   }
 }
 

@@ -182,6 +182,62 @@ _vte_ring_insert(VteRing * ring, long position, gpointer data)
 }
 
 /**
+ * _vte_ring_insert_preserve:
+ * @ring: a #VteRing
+ * @position: an index
+ * @data: the new item
+ *
+ * Inserts a new item (@data) into @ring at the @position'th offset.  If @ring
+ * already has an item stored at the desired location, it (and any successive
+ * items) will be moved down, items that need to be removed will be removed
+ * from the *top*.
+ *
+ */
+void
+_vte_ring_insert_preserve(VteRing * ring, long position, gpointer data)
+{
+	long point, i;
+	gpointer **tmp;
+
+	g_return_if_fail(position <= _vte_ring_next(ring));
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_RING)) {
+		fprintf(stderr, "Inserting+ at position %ld.\n", position);
+		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
+			ring->delta, ring->length, ring->max);
+	}
+	_vte_ring_validate(ring);
+#endif
+
+	/* Allocate space to save existing elements. */
+	point = _vte_ring_next(ring);
+	i = MAX(1, point - position);
+
+	/* Save existing elements. */
+	tmp = g_malloc0(sizeof(gpointer) * i);
+	for (i = position; i < point; i++) {
+		tmp[i - position] = _vte_ring_index(ring, gpointer, i);
+	}
+
+	/* Remove the existing elements. */
+	for (i = point - 1; i >= position; i--) {
+		_vte_ring_remove(ring, i, FALSE);
+	}
+
+	/* Append the new item. */
+	_vte_ring_append(ring, data);
+
+	/* Append the old items. */
+	for (i = position; i < point; i++) {
+		_vte_ring_append(ring, tmp[i - position]);
+	}
+
+	/* Clean up. */
+	g_free(tmp);
+}
+
+/**
  * _vte_ring_remove:
  * @ring: a #VteRing
  * @position: an index
@@ -287,7 +343,7 @@ scrolled_off(gpointer freed, gpointer data)
 {
 	long *l = (long *)freed;
 	char *fmt = data;
-	g_print(fmt, *l);
+	fprintf(stderr, fmt, *l);
 }
 
 int
@@ -295,7 +351,7 @@ main(int argc, char **argv)
 {
 	long i, j, k, bias;
 	const int size = 8;
-	long values[24];
+	long values[40];
 	long lone = 42;
 	long *value;
 	VteRing *ring;
@@ -336,16 +392,20 @@ main(int argc, char **argv)
 		}
 		fprintf(stderr, "}\n");
 		if (i == 3) {
-			fprintf(stderr, "Removing item 3.\n");
+			fprintf(stderr, "Removing item at 4.\n");
 			_vte_ring_remove(ring, 4, TRUE);
 			bias--;
 		} else if (i == 10) {
-			fprintf(stderr, "Inserting item 7.\n");
+			fprintf(stderr, "Inserting item at 7.\n");
 			_vte_ring_insert(ring, 7, &lone);
 			bias--;
 		} else if (i == 20) {
-			fprintf(stderr, "Inserting item 13.\n");
+			fprintf(stderr, "Inserting item at 13.\n");
 			_vte_ring_insert(ring, 13, &lone);
+			bias--;
+		} else if (i == 30) {
+			fprintf(stderr, "Inserting item at 23.\n");
+			_vte_ring_insert_preserve(ring, 23, &lone);
 			bias--;
 		} else if (i < G_N_ELEMENTS(values)) {
 			fprintf(stderr, "Appending item.\n");

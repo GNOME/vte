@@ -1,4 +1,16 @@
 2003-01-13 nalin
+	* src/ring.c, src/ring.h: add _vte_ring_insert_preserve(), which
+	scrolls lost items off the top instead of the bottom, as
+	_vte_ring_insert() does.
+	* src/slowcat.c (catfile): check that we didn't read an EOF before
+	attempting to write it.  Skip the more complicated checks and just
+	check that the file pointer isn't stdin before closing it.
+	* src/ssfe.c: cleanups.
+	* src/vte.c(vte_sequence_handler_sf): add lines to the scrollback area
+	when scrolling is restricted but the top line of the area is the
+	topmost visible line (Red Hat #75900).
+
+2003-01-13 nalin
 	* src/nativeecho.c, src/utf8echo.c: don't switch terminal modes before
 	or after echoing bytes -- doing so confuses me now.
 	* src/vte.c: make use of '?' to mark invalid data a compile-time define.
