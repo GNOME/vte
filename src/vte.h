@@ -45,7 +45,7 @@ typedef struct _VteTerminal {
 
 	/* Metric and sizing data. */
 	long char_width, char_height;	/* dimensions of character cells */
-	long char_ascent, char_descent;/* important font metrics */
+	long char_ascent, char_descent; /* important font metrics */
 	long row_count, column_count;	/* dimensions of the window */
 
 	/* Titles. */
@@ -62,7 +62,7 @@ typedef struct _VteTerminalClass {
 	GtkWidgetClass parent_class;
 
 	/*< private > */
-	/* Signals we might omit. */
+	/* Signals we might emit. */
 	guint eof_signal;
 	guint char_size_changed_signal;
 	guint window_title_changed_signal;
