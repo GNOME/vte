@@ -5025,11 +5025,9 @@ vte_terminal_process_incoming(gpointer data)
 
 	/* Convert the data to wide characters. */
 	if (g_iconv(terminal->pvt->incoming_conv, &ibuf, &icount,
-		  &obuf, &ocount) == -1) {
+		    &obuf, &ocount) == -1) {
 		/* No dice.  Try again when we have more data. */
-		if ((icount > VTE_UTF8_BPC) &&
-		    (icount < terminal->pvt->n_incoming) &&
-		    (errno == EILSEQ)) {
+		if ((icount > VTE_UTF8_BPC) && (errno == EILSEQ)) {
 			/* We barfed on something that had a high bit, so
 			 * discard it. */
 			start = terminal->pvt->n_incoming - icount;
