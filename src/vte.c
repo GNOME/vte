@@ -7182,6 +7182,7 @@ vte_terminal_get_text(VteTerminal *terminal,
 					/* Stuff any saved spaces in. */
 					while (spaces > 0) {
 						string = g_string_append_c(string, ' ');
+                                                --spaces;
 					}
 					/* Stuff the charcter in this cell. */
 					string = g_string_append_unichar(string, pcell->c);
