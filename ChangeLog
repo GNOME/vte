@@ -1,3 +1,8 @@
+2002-09-10  Jacob Berkman  <jacob@ximian.com>
+
+	* configure.in (ALL_LINGUAS: remove es until the file really gets
+	added.  also it wasn't added alphabetically
+
 2002-09-10 Pablo Gonzalo del Campo <pablodc@bigfoot.com>
 
         * configure.in: Added "es" to ALL_LINGUAS
