@@ -1,24 +1,24 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Russian translation for vte.
+# Copyright (C) 2003 Free Software Foundation, Inc.
+# This file is distributed under the same license as the vte package.
+# Dmitry G. Mastrukov <dmitry@taurussoft.org>, 2003.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2003-01-10 08:59+0300\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"Project-Id-Version: vte\n"
+"POT-Creation-Date: 2003-01-10 10:45+0300\n"
+"PO-Revision-Date: 2003-01-10 12:27+0300\n"
+"Last-Translator: Dmitry G. Mastrukov <dmitry@taurussoft.org>\n"
+"Language-Team: Russian <gnome-cyr@gnome.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #: src/pty.c:253
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr ""
+msgstr "Произошла ошибк при добавлении переменной \"%s\" к окружению, продолжается."
 
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
@@ -26,94 +26,98 @@ msgstr ""
 #: src/pty.c:800
 #, c-format
 msgid "can not run %s"
-msgstr ""
+msgstr "невозможно запустить \"%s\""
 
 #: src/reaper.c:107
 msgid "Error creating signal pipe."
-msgstr ""
+msgstr "Произошла ошибка при создании канала сообщений."
 
 #: src/trie.c:411
 #, c-format
 msgid "Duplicate (%s/%s)!"
-msgstr ""
+msgstr "Дублирование (%s/%s)!"
 
 #: src/vte.c:1403
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr ""
+msgstr "Произошла ошибка при компиляции регулярного выражения\"%s\". "
 
 #: src/vte.c:1925 src/vte.c:1934 src/vte.c:1946 src/vte.c:1964 src/vte.c:1970
 #: src/vte.c:1975
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr ""
+msgstr "Невозможно преобразовать символы из набора \"%s\" в набор \"%s\""
 
 #: src/vte.c:5437
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr ""
+msgstr "Получена непредусмотренная (ключ?) последовательность \"%s\"."
 
 #: src/vte.c:6527
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr ""
+msgstr "Отсутствует обработчик управляющей последовательности \"%s\"."
 
 #: src/vte.c:7273
 #, c-format
 msgid "Error reading from child: %s."
-msgstr ""
+msgstr "Произошла ошибка при чтении из потомка: %s."
 
 #: src/vte.c:7434
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr ""
+msgstr "Произошла ошибка (%s) при преобразовании данных от потомка, отбрасывается."
 
 #: src/vte.c:9719
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
-msgstr ""
+msgstr "Используется семейство шрифтов \"%s\", в котором отсутствует необходимый "
+"набор символов: %s."
 
 #: src/vte.c:10357
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
-msgstr ""
+msgstr "Произошёл сбой при загрузке шрифта через систему Xft, идёт откат на "
+"исходный шрифт."
 
 #: src/vte.c:10369
 msgid "Failed to load default Xft font."
-msgstr ""
+msgstr "Произошёл сбой при загрузке исходного шрифта через систему Xft."
 
 #: src/vte.c:10462
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr ""
+"Произошёл сбой при загрузке семейства шрифтов, идёт откат на исходный шрифт."
 
 #: src/vte.c:10474
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr ""
+"Произошёл сбой при загрузке исходного шрифта, дальнейшее поведение ненормально."
 
 #: src/vte.c:10736
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr ""
+msgstr "Произошла ошибка при чтении размера PTY, используются исходные значения: %s."
 
 #: src/vte.c:10772
 #, c-format
 msgid "Error setting PTY size: %s."
-msgstr ""
+msgstr "Произошла ошибка при установке размера PTY: %s."
 
 #: src/vte.c:13647
 msgid "Error allocating draw, disabling Xft."
-msgstr ""
+msgstr "Произошла ошибка при распределении структуры рисования, запрещается система Xft."
 
 #: src/vte.c:13655
 msgid "Error allocating context, disabling Pango."
-msgstr ""
+msgstr "Произошла ошибка при распределении структуры контекста, запрещается система Pango."
 
 #: src/vte.c:13661
 msgid "Error allocating layout, disabling Pango."
-msgstr ""
+msgstr "Произошла ошибка при распределении структуры расположения, запрещается система Pango."
 
 #. Aaargh.  We're screwed.
 #: src/vte.c:15292
 msgid "g_iconv_open() failed setting word characters"
-msgstr ""
+msgstr "Произошёл сбой в функции g_iconv_open() при установке символа в слове"
