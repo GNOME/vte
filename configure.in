@@ -1,5 +1,5 @@
 AC_INIT(configure.in)
-AM_INIT_AUTOMAKE(vte,0.1)
+AM_INIT_AUTOMAKE(vte,`grep ^Version: vte.spec | awk '{print $NF}'`)
 AM_PROG_LIBTOOL
 AC_EGREP_CPP(glibc,
 		[
