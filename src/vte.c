@@ -174,6 +174,7 @@ struct _VteTerminalPrivate {
 		gboolean am;
 		gboolean bw;
 		gboolean ul;
+		gboolean xn;
 	} flags;
 	int keypad_mode, cursor_mode;	/* these would be VteKeymodes, but we
 					   need to guarantee its type */
@@ -10774,6 +10775,9 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	terminal->pvt->flags.ul = _vte_termcap_find_boolean(terminal->pvt->termcap,
 							    terminal->pvt->emulation,
 							    "ul");
+	terminal->pvt->flags.xn = _vte_termcap_find_boolean(terminal->pvt->termcap,
+							    terminal->pvt->emulation,
+							    "xn");
 
 	/* Resize to the given default. */
 	columns = _vte_termcap_find_numeric(terminal->pvt->termcap,
@@ -11013,6 +11017,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->flags.am = FALSE;
 	pvt->flags.bw = FALSE;
 	pvt->flags.ul = FALSE;
+	pvt->flags.xn = FALSE;
 	pvt->keypad_mode = VTE_KEYMODE_NORMAL;
 	pvt->cursor_mode = VTE_KEYMODE_NORMAL;
 	pvt->sun_fkey_mode = FALSE;

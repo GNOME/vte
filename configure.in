@@ -211,11 +211,14 @@ AC_DEFINE(_XOPEN_SOURCE_EXTENDED,1,[Needed to get declarations for msg_control a
 AC_DEFINE(_XOPEN_SOURCE,1,[Needed to get declarations for msg_control and msg_controllen on Solaris])
 AC_DEFINE(__EXTENSIONS__,1,[Needed to get declarations for msg_control and msg_controllen on Solaris])
 
+AC_ARG_ENABLE(deprecation,[AC_HELP_STRING(--enable-deprecation,prohibit VTE from using deprecated GLib/Pango/GDK/GTK+ features)],usedeprecation=$enableval,usedeprecation=no)
+if test "$usedeprecation" = yes ; then
 AC_DEFINE(G_DISABLE_DEPRECATED,1,[Disable deprecated GLib features.])
 AC_DEFINE(GDK_DISABLE_DEPRECATED,1,[Disable deprecated GDK features.])
 AC_DEFINE(GDK_PIXBUF_DISABLE_DEPRECATED,1,[Disable deprecated gdk-pixbuf features.])
 AC_DEFINE(GTK_DISABLE_DEPRECATED,1,[Disable deprecated GTK+ features.])
 AC_DEFINE(PANGO_DISABLE_DEPRECATED,1,[Disable deprecated Pango features.])
+fi
 
 # Miscellaneous definitions.
 AC_DEFINE(VTE_UTF8_BPC,6,[Maximum number of bytes used per UTF-8 character.])

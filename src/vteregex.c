@@ -47,6 +47,9 @@ compare_matches(gconstpointer a, gconstpointer b)
 	return B->rm_eo - A->rm_eo;
 }
 
+/* Sort match structures first by starting position, and then by ending
+ * position.  We do this because some expression matching APIs sort their
+ * results differently, or just plain don't sort them. */
 static void
 _vte_regex_sort_matches(struct _vte_regex_match *matches, gsize n_matches)
 {
@@ -63,6 +66,9 @@ _vte_regex_sort_matches(struct _vte_regex_match *matches, gsize n_matches)
 }
 
 #if defined(USE_GNU_REGEX)
+
+/* GNU regex-based matching.  The GNU regex library also provides POSIX
+ * workalikes, so I don't see much of a win from using this chunk of code. */
 
 struct _vte_regex {
 	struct re_pattern_buffer buffer;
@@ -125,6 +131,10 @@ _vte_regex_exec(struct _vte_regex *regex, const char *string,
 }
 
 #elif defined(USE_PCRE)
+
+/* PCRE-based matching.  In addition to not being "real" regexps, I'm seeing
+ * problems matching non-ASCII portions of UTF-8 strings, even when compiling
+ * the pattern with UTF-8 support enabled. */
 
 struct _vte_regex {
 	pcre *pcre;
@@ -201,6 +211,9 @@ _vte_regex_exec(struct _vte_regex *regex, const char *string,
 }
 
 #else
+
+/* Ah, POSIX regex.  Kind of clunky, but I don't have anything better to
+ * suggest.  Better still, it works on my machine. */
 
 struct _vte_regex {
 	regex_t posix_regex;

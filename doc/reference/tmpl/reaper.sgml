@@ -24,14 +24,6 @@ This should not be accessed directly.
 </para>
 
 
-<!-- ##### FUNCTION vte_reaper_get ##### -->
-<para>
-
-</para>
-
-@Returns: 
-
-
 <!-- ##### SIGNAL VteReaper::child-exited ##### -->
 <para>
 
@@ -40,4 +32,12 @@ This should not be accessed directly.
 @vtereaper: the object which received the signal.
 @arg1: the process ID of the exited child.
 @arg2: the status of the exited child, as returned by #waitpid.
+
+<!-- ##### FUNCTION vte_reaper_get ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
 

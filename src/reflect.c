@@ -198,6 +198,16 @@ update_contents(AtkObject *obj, GtkWidget *widget)
 	}
 	if (GTK_IS_LABEL(widget)) {
 		gtk_label_set_text(GTK_LABEL(widget), s->str);
+		gtk_label_set_selectable(GTK_LABEL(widget),
+					 atk_text_get_n_selections(ATK_TEXT(obj)) > 0);
+		if (gtk_label_get_selectable(GTK_LABEL(widget))) {
+			int selection_start, selection_end;
+			atk_text_get_selection(ATK_TEXT(obj), 0,
+					       &selection_start,
+					       &selection_end);
+			gtk_label_select_region(GTK_LABEL(widget),
+						selection_start, selection_end);
+		}
 	}
 	g_string_free(s, TRUE);
 }
@@ -268,6 +278,12 @@ text_changed_delete(AtkObject *obj, gint offset, gint length, gpointer data)
 
 static void
 text_caret_moved(AtkObject *obj, gint offset, gpointer data)
+{
+	update_contents(obj, GTK_WIDGET(data));
+}
+
+static void
+text_selection_changed(AtkObject *obj, gpointer data)
 {
 	update_contents(obj, GTK_WIDGET(data));
 }
@@ -399,6 +415,8 @@ main(int argc, char **argv)
 			 G_CALLBACK(text_changed_delete), label);
 	g_signal_connect(G_OBJECT(obj), "text-caret-moved",
 			 G_CALLBACK(text_caret_moved), label);
+	g_signal_connect(G_OBJECT(obj), "text-selection-changed",
+			 G_CALLBACK(text_selection_changed), label);
 
 	count = atk_text_get_character_count(ATK_TEXT(obj));
 	if (count > 0) {

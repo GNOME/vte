@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003 Red Hat, Inc.
+ * Copyright (C) 2003,2004 Red Hat, Inc.
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Library General Public License as published by
@@ -46,7 +46,7 @@ _vte_fc_weight_from_pango_weight(int weight)
 }
 
 static int
-_vte_fc_slant_from_pango_style(int style)
+_vte_fc_slant_from_pango_style(PangoStyle style)
 {
 	switch (style) {
 	case PANGO_STYLE_NORMAL:
@@ -62,6 +62,41 @@ _vte_fc_slant_from_pango_style(int style)
 	return FC_SLANT_ROMAN;
 }
 
+static int
+_vte_fc_width_from_pango_stretch(PangoStretch stretch)
+{
+	switch (stretch) {
+	case PANGO_STRETCH_ULTRA_CONDENSED:
+		return 60;
+		break;
+	case PANGO_STRETCH_EXTRA_CONDENSED:
+		return 70;
+		break;
+	case PANGO_STRETCH_CONDENSED:
+		return 80;
+		break;
+	case PANGO_STRETCH_SEMI_CONDENSED:
+		return 90;
+		break;
+	case PANGO_STRETCH_NORMAL:
+		return 100;
+		break;
+	case PANGO_STRETCH_SEMI_EXPANDED:
+		return 105;
+		break;
+	case PANGO_STRETCH_EXPANDED:
+		return 120;
+		break;
+	case PANGO_STRETCH_EXTRA_EXPANDED:
+		return 150;
+		break;
+	case PANGO_STRETCH_ULTRA_EXPANDED:
+		return 200;
+		break;
+	}
+	return 100;
+}
+
 static void
 _vte_fc_transcribe_from_pango_font_description(GtkWidget *widget,
 					       FcPattern *pattern,
@@ -75,7 +110,9 @@ _vte_fc_transcribe_from_pango_font_description(GtkWidget *widget,
 	double size = 10.0;
 	int pango_mask;
 	PangoContext *context;
-	int weight, style;
+	PangoWeight weight;
+	PangoStyle style;
+	PangoStretch stretch;
 
 	if (font_desc == NULL) {
 		return;
@@ -119,6 +156,12 @@ _vte_fc_transcribe_from_pango_font_description(GtkWidget *widget,
 		weight = pango_font_description_get_weight(font_desc);
 		FcPatternAddInteger(pattern, FC_WEIGHT,
 				    _vte_fc_weight_from_pango_weight(weight));
+	}
+
+	if (pango_mask & PANGO_FONT_MASK_STRETCH) {
+		stretch = pango_font_description_get_stretch(font_desc);
+		FcPatternAddInteger(pattern, FC_WIDTH,
+				    _vte_fc_width_from_pango_stretch(stretch));
 	}
 
 	if (pango_mask & PANGO_FONT_MASK_STYLE) {

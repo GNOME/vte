@@ -97,6 +97,9 @@ struct _vte_keymap_entry {
 
 /* Normal keys unaffected by modes. */
 static struct _vte_keymap_entry _vte_keymap_GDK_space[] = {
+	/* Meta+space = ESC+" " */
+	{cursor_all, keypad_all, fkey_all,
+	 VTE_META_MASK, _VTE_CAP_ESC " ", 2, NULL},
 	/* Control+space = NUL */
 	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\0", 1, NULL},
 	/* Regular space. */

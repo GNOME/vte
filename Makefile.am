@@ -12,6 +12,9 @@ forcetag:
 reallytag:
 	cvs tag -cR $(CVSTAG) .
 
+up:
+	cvs up -dP
+
 tag:
 	$(top_srcdir)/autogen.sh
 	$(MAKE) reallytag

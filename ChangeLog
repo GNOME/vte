@@ -1,3 +1,13 @@
+2004-04-18 nalin
+	* configure.in: don't disable use of deprecated APIs unless asked
+	to do so.
+	* src/keymap.c(_vte_keymap_GDK_space): add Meta case (gafton).
+	* src/vtefc.c(_vte_fc_width_from_pango_stretch): add.
+	* src/vtefc.c(_vte_fc_transcribe_from_pango_font_description): handle
+	PangoStretch characteristics using _vte_fc_width_from_pango_stretch.
+	* src/vteregex.c: add random comments.
+	* src/vte.c(VteTerminal): track the "xn" terminal attribute.
+
 2004-04-10  Guntupalli Karunakar  <karunakar@freedomink.org>
 
         * configure.in: Added "gu" (Gujarati) to ALL_LINGUAS.
@@ -15,8 +25,8 @@
 	* configure.in: Added "pa" for Punjabi to ALL_LINGUAS.
 
 2004-02-07  Robert Sedak  <robert.sedak@sk.htnet.hr>
- 
-         * configure.in: Added "hr" (Croatian) to ALL_LINGUAS.
+
+	* configure.in: Added "hr" (Croatian) to ALL_LINGUAS.
 
 2004-02-02  Martin Kretzschmar  <m_kretzschmar@gmx.net>
 
@@ -255,7 +265,7 @@
 	wrapper (bug #119066).
 
 2003-08-05 nalin
-	* vte.c(vte_sequence_handler_decset_internal,
+	* src/vte.c(vte_sequence_handler_decset_internal,
 	vte_sequence_handler_window_manipulation): include the widget's padding
 	widths in resize requests (bug #119141).
 
