@@ -17,6 +17,7 @@ EXTRA_DIST = \
 	unitable.KSC5601
 
 CFLAGS = @CFLAGS@ @VTE_CFLAGS@ @X_CFLAGS@
+DEFAULT_INCLUDES =
 
 EXTRA_libvte_la_SOURCES = keysyms.c
 

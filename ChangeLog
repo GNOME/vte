@@ -1,4 +1,11 @@
 2003-01-16 nalin
+	* configure.in: fix test for whether or not we need to check for termcap
+	* src/Makefile.am: override default includes to not prepend "." to the
+	include path, so that we can include the system <termcap.h> properly
+	* src/keymap.c: define the ncurses scratch buffer for use when we're
+	using termcap
+
+2003-01-16 nalin
 	* configure.in: actually disable attempts to build python bindings if
 	pygtk-2.0 isn't found (#103676)
 
