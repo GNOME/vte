@@ -44,7 +44,7 @@ if test "$have_x" = yes ; then
 		if pkg-config --exists pangoxft '>=' 1.1.0 ; then
 			AC_DEFINE(HAVE_XFT2,1,[Whether we have Xft2])
 			wantedmodules="$wantedmodules pangoxft >= 1.1.0"
-			wantedmodules="$wantedmodules xft >= 2.0"
+			wantedmodules="xft >= 2.0 $wantedmodules"
 		else
 			AC_MSG_WARN([Xft2 not detected])
 		fi

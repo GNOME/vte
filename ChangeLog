@@ -1,4 +1,9 @@
 2003-04-22 nalin
+	* configure.in: rework link order so that xft2 is linked before anything
+	else.  You're still screwed if you link with both xft1 and xft2 libs,
+	but maybe this'll help (#107285).
+
+2003-04-22 nalin
 	* src/vteglyph.c: fix a couple of #errors.
 	* src/vte.c(vte_invalidate_cells): if the area we're invading is on the
 	edge, invalidate the edge as well.
