@@ -1,3 +1,8 @@
+2002-08-08 nalin
+	* src/vte.c(vte_terminal_paint,vte_terminal_draw_cells): fill in the
+	background color when drawing the cursor, even if it's going to end up
+	as the default background color, spotted by Peter Jones.  Draw the
+	cursor correctly if it's over a graphic character.
 2002-08-07 nalin
 	* src/vte.c(vte_terminal_draw_cells): once again, avoid drawing NULs.
 	* src/vte.c: add a small pad to each edge (#89048).

@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.7.1
+Version: 0.7.2
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -58,6 +58,12 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Thu Aug  8 2002 Nalin Dahyabhai <nalin@redhat.com> 0.7.2-1
+- fix cursor over reversed text
+- fix character positioning in Xft1
+- add border padding
+- fix lack of shift-in when resetting
+
 * Tue Aug  6 2002 Nalin Dahyabhai <nalin@redhat.com> 0.7.1-1
 - rework rendering with Pango
 - special-case monospaced Xft1 rendering, hopefully making it faster

@@ -130,7 +130,7 @@ struct vte_match_regex {
 /* A drawing request record, for simplicity. */
 struct vte_draw_item {
 	gunichar c;
-	guint16 xpad, xpad_r;
+	guint16 xpad;
 };
 
 /* The terminal's keypad state.  A terminal can either be using the normal
@@ -10016,7 +10016,7 @@ vte_unichar_isgraphic(gunichar c)
 /* Draw the graphic representation of an alternate font graphics character. */
 static void
 vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
-			  gint fore, gint back,
+			  gint fore, gint back, gboolean draw_default_bg,
 			  gint x, gint y, gint column_width, gint row_height,
 			  Display *display,
 			  GdkDrawable *gdrawable, Drawable drawable,
@@ -10093,7 +10093,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 	xcenter = (x + xright) / 2;
 	ycenter = (y + ybottom) / 2;
 
-	if (back != VTE_DEF_BG) {
+	if ((back != VTE_DEF_BG) || draw_default_bg) {
 		XSetForeground(display, gc, terminal->pvt->palette[back].pixel);
 		XFillRectangle(display, drawable, gc,
 			       x, y,
@@ -10750,7 +10750,7 @@ vte_terminal_get_char_padding_right(VteTerminal *terminal, Display *display,
 static void
 vte_terminal_draw_cells(VteTerminal *terminal,
 			struct vte_draw_item *items, size_t n,
-			gint fore, gint back,
+			gint fore, gint back, gboolean draw_default_bg,
 			gboolean underline, gboolean hilite, gboolean boxed,
 			gint x, gint y, gint x_offs, gint y_offs,
 			gint ascent, gboolean monospaced,
@@ -10768,7 +10768,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			PangoLayout *layout)
 {
 	gboolean drawn = FALSE;
-	int i, j;
+	int i;
 	gint columns = 0;
 	struct vte_palette_entry *fg, *bg;
 	GdkColor color;
@@ -10795,28 +10795,25 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	if (!drawn && terminal->pvt->use_xft2) {
 		/* Set up the draw request. */
 		ftcharspecs = g_malloc(sizeof(XftCharSpec) * n);
-		for (i = j = columns = 0; i < n; i++) {
+		for (i =  columns = 0; i < n; i++) {
 			c = items[i].c ? items[i].c : ' ';
-			if (!g_unichar_isspace(c)) {
-				ftcharspecs[j].ucs4 = vte_terminal_xft_remap_char(display,
-									      terminal->pvt->ftfont,
-									      c);
-				ftcharspecs[j].x = x + (columns * column_width) +
-						   items[i].xpad;
-				ftcharspecs[j].y = y + ascent;
-				j++;
-			}
+			ftcharspecs[i].ucs4 = vte_terminal_xft_remap_char(display,
+									  terminal->pvt->ftfont,
+									  c);
+			ftcharspecs[i].x = x + (columns * column_width) +
+					   items[i].xpad;
+			ftcharspecs[i].y = y + ascent;
 			columns += g_unichar_iswide(c) ? 2 : 1;
 		}
 		/* Draw the background rectangle. */
-		if (back != VTE_DEF_BG) {
+		if ((back != VTE_DEF_BG) || draw_default_bg) {
 			XftDrawRect(ftdraw, &bg->ftcolor, x, y,
 				    columns * column_width, row_height);
 		}
 		/* Draw the text. */
 		XftDrawCharSpec(ftdraw, &fg->ftcolor,
 				terminal->pvt->ftfont,
-				ftcharspecs, j);
+				ftcharspecs, n);
 		/* Clean up. */
 		g_free(ftcharspecs);
 		drawn = TRUE;
@@ -10831,24 +10828,22 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			columns += g_unichar_iswide(c) ? 2 : 1;
 		}
 		/* Draw the background rectangle. */
-		if (back != VTE_DEF_BG) {
+		if ((back != VTE_DEF_BG) || draw_default_bg) {
 			XftDrawRect(ftdraw, &bg->ftcolor, x, y,
 				    columns * column_width, row_height);
 		}
 		/* Draw the text. */
 		for (i = columns = 0; i < n; i++) {
 			c = items[i].c ? items[i].c : ' ';
-			if (!g_unichar_isspace(c)) {
-				ftchar = vte_terminal_xft_remap_char(display,
-								     terminal->pvt->ftfont,
-								     c);
-				XftDrawString32(ftdraw, &fg->ftcolor,
-						terminal->pvt->ftfont,
-						x + (columns * column_width) +
-						items[i].xpad,
-						y + ascent,
-						&ftchar, 1);
-			}
+			ftchar = vte_terminal_xft_remap_char(display,
+							     terminal->pvt->ftfont,
+							     c);
+			XftDrawString32(ftdraw, &fg->ftcolor,
+					terminal->pvt->ftfont,
+					x + (columns * column_width) +
+					items[i].xpad,
+					y + ascent,
+					&ftchar, 1);
 			columns += g_unichar_iswide(c) ? 2 : 1;
 		}
 		/* Clean up. */
@@ -10858,7 +10853,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	/* Draw using PangoX. */
 	if (!drawn && terminal->pvt->use_pango) {
 		/* Draw the background. */
-		if (back != VTE_DEF_BG) {
+		if ((back != VTE_DEF_BG) || draw_default_bg) {
 			for (i = columns = 0; i < n; i++) {
 				c = items[i].c ? items[i].c : ' ';
 				columns += g_unichar_iswide(c) ? 2 : 1;
@@ -10889,27 +10884,24 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		gdk_gc_set_foreground(ggc, &color);
 		for (i = columns = 0; i < n; i++) {
 			c = items[i].c ? items[i].c : ' ';
-			if (!g_unichar_isspace(c)) {
-				pango_layout_set_text(layout, utf8_buf,
-						      g_unichar_to_utf8(items[i].c ? items[i].c : ' ',
-									utf8_buf));
+			pango_layout_set_text(layout, utf8_buf,
+					      g_unichar_to_utf8(c, utf8_buf));
 #ifdef VTE_PREFER_PANGOX
-				XSetForeground(display, gc, fg->pixel);
-				pango_x_render_layout(display,
-						      drawable,
-						      gc,
-						      layout,
-						      x + (columns * column_width) +
-						      items[i].xpad,
-						      y);
+			XSetForeground(display, gc, fg->pixel);
+			pango_x_render_layout(display,
+					      drawable,
+					      gc,
+					      layout,
+					      x + (columns * column_width) +
+					      items[i].xpad,
+					      y);
 #else
-				gdk_draw_layout(gdrawable, ggc,
-						x + (columns * column_width) +
-						items[i].xpad + x_offs,
-						y + y_offs,
-						layout);
+			gdk_draw_layout(gdrawable, ggc,
+					x + (columns * column_width) +
+					items[i].xpad + x_offs,
+					y + y_offs,
+					layout);
 #endif
-			}
 			columns += g_unichar_iswide(c) ? 2 : 1;
 		}
 		/* Clean up. */
@@ -10918,9 +10910,10 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	/* Draw using core fonts. */
 	if (!drawn) {
 		/* Draw the background. */
-		if (back != VTE_DEF_BG) {
+		if ((back != VTE_DEF_BG) || draw_default_bg) {
 			for (i = columns = 0; i < n; i++) {
-				columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+				c = items[i].c ? items[i].c : ' ';
+				columns += g_unichar_iswide(c) ? 2 : 1;
 			}
 			XSetForeground(display, gc, bg->pixel);
 			XFillRectangle(display, drawable, gc,
@@ -11071,6 +11064,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		    (cell->alternate || vte_unichar_isgraphic(cell->c))) {
 			item.c = cell ? cell->c : ' ';
 			vte_terminal_draw_graphic(terminal, cell->c, fore, back,
+						  FALSE,
 						  x +
 						  ((i - column) * column_width),
 						  y,
@@ -11090,9 +11084,6 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		item.xpad = vte_terminal_get_char_padding(terminal,
 							  display,
 							  item.c);
-		item.xpad_r = vte_terminal_get_char_padding_right(terminal,
-								  display,
-								  item.c);
 		g_array_append_val(items, item);
 
 		/* Now find out how many cells have the same attributes. */
@@ -11147,7 +11138,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		vte_terminal_draw_cells(terminal,
 					(struct vte_draw_item*) items->data,
 					items->len,
-					fore, back,
+					fore, back, FALSE,
 					underline, hilite, FALSE,
 					x + ((i - column) * column_width),
 					y,
@@ -11323,27 +11314,45 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			blink = vte_terminal_get_blink_state(terminal);
 			vte_terminal_determine_colors(terminal, cell, blink,
 						      &fore, &back);
-			item.c = cell ? cell->c : ' ';
-			item.xpad = 0;
-			underline = cell ? (cell->underline != 0) : FALSE;
-			hilite = FALSE;
-			vte_terminal_draw_cells(terminal,
-						&item, 1,
-						fore, back,
-						underline, hilite, FALSE,
-						col * width - x_offs,
-						row * height - y_offs,
-						x_offs,
-						y_offs,
-						ascent, monospaced,
-						terminal->char_width,
-						terminal->char_height,
-						display, gdrawable, drawable,
-						colormap, visual, ggc, gc,
+			if ((cell != NULL) &&
+			    (cell->alternate || vte_unichar_isgraphic(cell->c))) {
+				vte_terminal_draw_graphic(terminal,
+							  cell->c, fore, back,
+							  TRUE,
+							  col * width - x_offs,
+							  row * height - y_offs,
+							  terminal->char_width,
+							  terminal->char_height,
+							  display,
+							  gdrawable,
+							  drawable,
+							  ggc,
+							  gc);
+			} else {
+				item.c = cell ? cell->c : ' ';
+				item.xpad = vte_terminal_get_char_padding(terminal,
+									  display,
+									  item.c);
+				underline = cell ? (cell->underline != 0) : FALSE;
+				hilite = FALSE;
+				vte_terminal_draw_cells(terminal,
+							&item, 1,
+							fore, back, TRUE,
+							underline, hilite, FALSE,
+							col * width - x_offs,
+							row * height - y_offs,
+							x_offs,
+							y_offs,
+							ascent, monospaced,
+							terminal->char_width,
+							terminal->char_height,
+							display, gdrawable, drawable,
+							colormap, visual, ggc, gc,
 #ifdef HAVE_XFT
-						ftdraw,
+							ftdraw,
 #endif
-						layout);
+							layout);
+			}
 		} else {
 			/* Determine how wide the cursor is. */
 			columns = 1;
@@ -11402,6 +11411,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 						items, len,
 						screen->defaults.fore,
 						screen->defaults.back,
+						FALSE,
 						FALSE, FALSE, TRUE,
 						col * width - x_offs,
 						row * height - y_offs,
