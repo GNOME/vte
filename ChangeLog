@@ -1,3 +1,29 @@
+2004-04-29 nalin
+	* configure.in: add a --with-default-emulation argument (part of
+	#115750).  Use AS_HELP_STRING wherever we need help strings.
+	* vte.pc.in, vte-uninstalled.pc.in: add DefaultEmulation variable
+	* vte.spec: specify "xterm" as the default-emulation, even though it's
+	the default default
+	* termcaps/Makefile.am: build and install the default emulation's
+	termcap, assuming it's some kind of xterm variant.
+	* src/keymap.c(_vte_keymap_map): check for xterm-xfree86 definitions
+	if the terminal type includes xterm, not if it exactly matches xterm
+	* src/reaper.c(vte_reaper_add_child): add.  The glib 2.4 SIGCHLD
+	watcher requires us to register particular PIDs for monitoring, so now
+	we require applications to do so.
+	* src/reaper.c(vte_reaper_child_watch_cb): add.
+	* src/reaper.c(vte_reaper_init): Don't hook the SIGCHLD handler if
+	we're running under glib 2.4, expect to use the g_child_watch
+	mechanism.
+	* src/vte.c: remove hard-coded definition of VTE_DEFAULT_EMULATION,
+	to be picked up from config.h instead.
+	* src/vte.c(vte_sequence_handler_cs): remove stray debug printfs.
+	* src/vte.c(vte_terminal_insert_char): only do what we were doing for
+	xn if LP was also set (#141445).
+	* src/vte.c(vte_terminal_get_default_emulation): add.
+	* src/vte.c(_vte_terminal_fork_basic): call vte_reaper_add_child for
+	new children.
+
 2004-04-27 nalin
 	* src/vte.c(vte_terminal_fork_command): more clearly document what
 	the argv and envv arguments are expected to contain (#127979).

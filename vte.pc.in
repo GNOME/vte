@@ -9,3 +9,4 @@ Version: @VERSION@
 Requires: @NEEDEDPACKAGES@
 Libs: -L${libdir} -lvte @FT2_LIBS@ @OTHERLIBS@
 Cflags: -I${includedir} @FT2_CFLAGS@ @OTHERCFLAGS@
+DefaultEmulation: @VTE_DEFAULT_EMULATION@

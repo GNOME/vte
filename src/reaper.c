@@ -21,6 +21,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <glib.h>
@@ -92,6 +93,32 @@ vte_reaper_emit_signal(GIOChannel *channel, GIOCondition condition,
 	return TRUE;
 }
 
+#if GLIB_CHECK_VERSION(2,4,0)
+static void
+vte_reaper_child_watch_cb(GPid pid, gint status, gpointer data)
+{
+	g_signal_emit_by_name(data, "child-exited", pid, status);
+}
+#endif
+
+/**
+ * vte_reaper_add_child:
+ * @pid: the ID of a child process which will be monitored
+ * @data: callback data
+ *
+ * Ensures that child-exited signals will be emitted when @pid exits.  This is
+ * necessary for correct operation when running with glib versions >= 2.4.
+ *
+ * Since 0.11.11
+ */
+void
+vte_reaper_add_child(GPid pid, gpointer data)
+{
+#if GLIB_CHECK_VERSION(2,4,0)
+	g_child_watch_add(pid, vte_reaper_child_watch_cb, data);
+#endif
+}
+
 static void
 vte_reaper_channel_destroyed(gpointer data)
 {
@@ -113,6 +140,13 @@ vte_reaper_init(VteReaper *reaper, gpointer *klass)
 	/* Create the channel. */
 	reaper->channel = g_io_channel_unix_new(reaper->iopipe[0]);
 
+#if GLIB_CHECK_VERSION(2,4,0)
+	if ((glib_major_version > 2) || /* 3.x and later */
+	    ((glib_major_version == 2) && (glib_minor_version >= 4))) {/* 2.4 */
+		return;
+	}
+#endif
+
 	/* Add the channel to the source list. */
 	g_io_add_watch_full(reaper->channel,
 			    G_PRIORITY_HIGH,
@@ -126,6 +160,9 @@ vte_reaper_init(VteReaper *reaper, gpointer *klass)
 	sigemptyset(&action.sa_mask);
 	action.sa_flags = SA_RESTART | SA_NOCLDSTOP;
 	sigaction(SIGCHLD, &action, NULL);
+	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Hooked SIGCHLD signal in reaper.\n");
+	}
 }
 
 static void
@@ -141,6 +178,9 @@ vte_reaper_finalize(GObject *reaper)
 	sigaction(SIGCHLD, NULL, &old_action);
 	if (old_action.sa_handler == vte_reaper_signal_handler) {
 		sigaction(SIGCHLD, &action, NULL);
+	}
+	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Unhooked SIGCHLD signal in reaper.\n");
 	}
 
 	/* Remove the channel from the source list. */

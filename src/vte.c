@@ -96,7 +96,6 @@ typedef gunichar wint_t;
 #define VTE_CUR_BG			29
 #define VTE_SATURATION_MAX		10000
 #define VTE_SCROLLBACK_MIN		100
-#define VTE_DEFAULT_EMULATION		"xterm"
 #define VTE_DEFAULT_CURSOR		GDK_XTERM
 #define VTE_MOUSING_CURSOR		GDK_LEFT_PTR
 #define VTE_TAB_MAX			999
@@ -2598,7 +2597,6 @@ vte_sequence_handler_cs(VteTerminal *terminal,
 	/* We require two parameters.  Anything less is a reset. */
 	screen = terminal->pvt->screen;
 	if ((params == NULL) || (params->n_values < 2)) {
-		fprintf(stderr, "cs()\n");
 		screen->scrolling_restricted = FALSE;
 		return FALSE;
 	}
@@ -2607,7 +2605,6 @@ vte_sequence_handler_cs(VteTerminal *terminal,
 	start = g_value_get_long(value);
 	value = g_value_array_get_nth(params, 1);
 	end = g_value_get_long(value);
-	fprintf(stderr, "cs(%d,%d)\n", start, end);
 	/* Catch garbage. */
 	rows = terminal->row_count;
 	if ((start <= 0) || (start >= rows)) {
@@ -6718,6 +6715,7 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	if (col + columns > terminal->column_count) {
 		if (terminal->pvt->flags.am &&
 		    terminal->pvt->flags.xn &&
+		    terminal->pvt->flags.LP &&
 		    g_unichar_isgraph(c)) {
 			/* Mark this line as soft-wrapped. */
 			row = _vte_ring_index(screen->row_data,
@@ -6827,7 +6825,8 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	/* If we're autowrapping *here* (am but not xn), do it. */
 	col = screen->cursor_current.col;
 	if (col >= terminal->column_count) {
-		if (terminal->pvt->flags.am && !terminal->pvt->flags.xn) {
+		if (terminal->pvt->flags.am &&
+		    !(terminal->pvt->flags.xn && terminal->pvt->flags.LP)) {
 			/* Mark this line as soft-wrapped. */
 			row = _vte_ring_index(screen->row_data,
 					      VteRowData *,
@@ -7138,6 +7137,7 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 
 		/* Catch a child-exited signal from the child pid. */
 		reaper = vte_reaper_get();
+		vte_reaper_add_child((GPid) pid, terminal);
 		g_object_ref(G_OBJECT(reaper));
 		if (VTE_IS_REAPER(terminal->pvt->pty_reaper)) {
 			g_signal_handlers_disconnect_by_func(terminal->pvt->pty_reaper,
@@ -8506,7 +8506,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 					terminal->pvt->keypad_mode == VTE_KEYMODE_APPLICATION,
 					terminal->pvt->termcap,
 					terminal->pvt->emulation ?
-					terminal->pvt->emulation : "xterm",
+					terminal->pvt->emulation : vte_terminal_get_default_emulation(terminal),
 					&normal,
 					&normal_length,
 					&special);
@@ -10826,7 +10826,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 
 	/* Set the emulation type, for reference. */
 	if (emulation == NULL) {
-		emulation = VTE_DEFAULT_EMULATION;
+		emulation = vte_terminal_get_default_emulation(terminal);
 	}
 	quark = g_quark_from_string(emulation);
 	terminal->pvt->emulation = g_quark_to_string(quark);
@@ -10953,6 +10953,23 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 }
 
 /**
+ * vte_terminal_get_default_emulation:
+ * @terminal: a #VteTerminal
+ *
+ * Queries the terminal for its default emulation, which is attempted if the
+ * terminal type passed to vte_terminal_set_emulation() is NULL.
+ *
+ * Returns: the name of the default terminal type the widget attempts to emulate
+ *
+ * Since 0.11.11
+ */
+const char *
+vte_terminal_get_default_emulation(VteTerminal *terminal)
+{
+	return VTE_DEFAULT_EMULATION;
+}
+
+/**
  * vte_terminal_get_emulation:
  * @terminal: a #VteTerminal
  *
@@ -10981,7 +10998,7 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 		wpath = g_strdup_printf(DATADIR "/" PACKAGE "/termcap/%s",
 					terminal->pvt->emulation ?
 					terminal->pvt->emulation :
-					VTE_DEFAULT_EMULATION);
+					vte_terminal_get_default_emulation(terminal));
 		if (stat(wpath, &st) != 0) {
 			g_free(wpath);
 			wpath = g_strdup("/etc/termcap");
