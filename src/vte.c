@@ -2139,7 +2139,7 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 			     screen->cursor_current.row, 1);
 }
 
-/* Clear below the current line. */
+/* Clear to the right of the cursor and below the current line. */
 static void
 vte_sequence_handler_cd(VteTerminal *terminal,
 			const char *match,
@@ -2151,9 +2151,21 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 	VteScreen *screen;
 
 	screen = terminal->pvt->screen;
-	/* If the cursor is actually on the screen, clear data in the row
-	 * the cursor is in and all rows below the cursor. */
-	for (i = screen->cursor_current.row;
+	/* If the cursor is actually on the screen, clear the rest of the
+	 * row the cursor is on and all of the rows below the cursor. */
+	i = screen->cursor_current.row;
+	if (i < _vte_ring_next(screen->row_data)) {
+		/* Get the data for the row we're clipping. */
+		rowdata = _vte_ring_index(screen->row_data, GArray*, i);
+		/* Clear everything to the right of the cursor. */
+		if ((rowdata != NULL) &&
+		    (rowdata->len > screen->cursor_current.col)) {
+			g_array_set_size(rowdata,
+					 screen->cursor_current.col);
+		}
+	}
+	/* Now for the rest of the lines. */
+	for (i = screen->cursor_current.row + 1;
 	     i < _vte_ring_next(screen->row_data);
 	     i++) {
 		/* Get the data for the row we're removing. */

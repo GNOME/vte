@@ -1,4 +1,8 @@
 2002-11-25  nalin
+	* src/vte.c: fix cd() to clear to the right of the cursor on the current
+	line instead of the entire line (#98844).
+
+2002-11-25  nalin
 	* src/vte.c: add keyboard debug messages when we change keyboard modes.
 	* termcaps/xterm: remove kh definition.
 
@@ -17,7 +21,7 @@
 	simplistic check for more complete coverage.
 	* src/vte.c: add debug messages for keyboard handling.  Improve
 	detection of invalid coordinates as a signal that no text is selected
-	or hilited.
+	or hilited (#98946).
 	* termcaps/xterm.baseline: add a baseline copy of xterm from my termcap,
 	so that I can diff it more easily.
 	* termcaps/xterm: remove key definitions -- xterm's way more complicated
