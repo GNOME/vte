@@ -19,6 +19,7 @@
 #ident "$Id$"
 #include "../config.h"
 #include <sys/types.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -228,6 +229,14 @@ text_changed_insert(AtkObject *obj, gint offset, gint length, gpointer data)
 		i++;
 	}
 
+#ifdef VTE_DEBUG
+	if ((getenv("REFLECT_VERBOSE") != NULL) &&
+	    (atol(getenv("REFLECT_VERBOSE")) != 0)) {
+		fprintf(stderr, "Inserted %d chars ('%.*s') at %d.\n",
+			length, (int)(p - inserted), inserted, offset);
+	}
+#endif
+
 	g_free(inserted);
 
 	update_contents(obj, GTK_WIDGET(data));
@@ -241,6 +250,12 @@ text_changed_delete(AtkObject *obj, gint offset, gint length, gpointer data)
 	for (i = offset + length - 1; i >= offset; i--) {
 		contents = g_array_remove_index(contents, i);
 	}
+#ifdef VTE_DEBUG
+	if ((getenv("REFLECT_VERBOSE") != NULL) &&
+	    (atol(getenv("REFLECT_VERBOSE")) != 0)) {
+		fprintf(stderr, "Deleted %d chars at %d.\n", length, offset);
+	}
+#endif
 	update_contents(obj, GTK_WIDGET(data));
 }
 

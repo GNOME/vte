@@ -1,4 +1,8 @@
 2003-01-20 nalin
+	* src/reflect.c: add some debugging messages if REFLECT_VERBOSE is
+	set in the environment.
+
+2003-01-20 nalin
 	* src/Makefile.am, src/reflect.c: add reflect-text-view, for testing
 	with GtkTextView for sanity's sake.
 
