@@ -8,5 +8,16 @@ config.status
 configure
 libtool
 stamp-h
+stamp-h1
 stamp-h.in
 vte.pc
+INSTALL
+autom4te.cache
+compile
+config.guess
+config.sub
+depcomp
+install-sh
+ltmain.sh
+missing
+mkinstalldirs
