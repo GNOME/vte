@@ -3086,8 +3086,6 @@ vte_sequence_handler_designate_gx(VteTerminal *terminal,
 {
 	GValue *value;
 	GtkWidget *widget;
-	long param, arg1, arg2;
-	int i;
 	char c;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -5324,6 +5322,11 @@ vte_terminal_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 		}
 	}
 
+	/* Read the modifiers. */
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
+		modifiers = 0;
+	}
+
 	/* Encode the modifiers. */
 	if (modifiers & GDK_SHIFT_MASK) {
 		cb |= 4;
@@ -5629,8 +5632,8 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			modifiers = 0;
 		}
 		/* Shift+click is always ours. */
-		if ((terminal->pvt->mouse_send_xy_on_button) ||
-		    (terminal->pvt->mouse_send_xy_on_click) &&
+		if ((terminal->pvt->mouse_send_xy_on_button ||
+		     terminal->pvt->mouse_send_xy_on_click) &&
 		    ((modifiers & GDK_SHIFT_MASK) == 0)) {
 #ifdef VTE_DEBUG
 			fprintf(stderr, "Sending click to child.\n");
