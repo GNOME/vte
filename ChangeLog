@@ -1,3 +1,14 @@
+2002-05-01 nalin
+	* src/vte.c: Try @pkgdatadir@/termcap/$TERM when reading termcap files.
+	This fixes the app on systems with no /etc/termcap, and also speeds up
+	loads and reduces memory consumption for xterm-color at the expense of
+	making on-the-fly emulation changes impossible.  Don't xor reverse with
+	itself when drawing characters (this broke when snapshotting was added).
+	* termcaps/Makefile.am, termcaps/xterm-color: include a default termcap
+	for xterm-color.
+	* src/termcap.c src/termcap.h: make _find_boolean return a gboolean
+	instead of an int.
+	
 2002-04-30 nalin
 	* src/vte.c: Disconnect from toplevel window_configure events at
 	finalize-time.

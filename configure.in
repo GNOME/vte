@@ -51,5 +51,13 @@ fi
 if test x$VTE_DEBUG = x1 ; then
 	AC_DEFINE(VTE_DEBUG,,[Enable debugging of unrecognized sequences.])
 fi
+
+mydatadir=`eval echo $datadir`
+if test x$prefix = xNONE ; then
+	mydatadir=`echo $mydatadir | sed s,NONE,$ac_default_prefix,g`
+fi
+AC_DEFINE_UNQUOTED(DATADIR,"$mydatadir",
+                   [The location where arch-independent package-specific data can be found.])
+
 AM_CONFIG_HEADER(config.h)
-AC_OUTPUT([Makefile src/Makefile vte.pc])
+AC_OUTPUT([Makefile src/Makefile termcaps/Makefile vte.pc])

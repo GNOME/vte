@@ -21,6 +21,7 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/param.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -64,6 +65,7 @@
 #define VTE_DEF_BG	17
 #define VTE_SATURATION_MAX 10000
 #define VTE_SCROLLBACK_MIN 100
+#define VTE_DEFAULT_EMULATION "xterm-color"
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
@@ -5255,7 +5257,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 
 	/* Set the emulation type, for reference. */
 	if (emulation == NULL) {
-		emulation = "xterm-color";
+		emulation = VTE_DEFAULT_EMULATION;
 	}
 	quark = g_quark_from_string(emulation);
 	terminal->pvt->terminal = g_quark_to_string(quark);
@@ -5329,8 +5331,18 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 static void
 vte_terminal_set_termcap(VteTerminal *terminal, const char *path)
 {
+	struct stat st;
+	char path_default[PATH_MAX];
+
 	if (path == NULL) {
-		path = "/etc/termcap";
+		snprintf(path_default, sizeof(path_default),
+			 DATADIR "/" PACKAGE "/termcap/%s",
+			 terminal->pvt->terminal ?: VTE_DEFAULT_EMULATION);
+		if (stat(path_default, &st) == 0) {
+			path = path_default;
+		} else {
+			path = "/etc/termcap";
+		}
 	}
 	terminal->pvt->termcap_path = g_quark_to_string(g_quark_from_string(path));
 #ifdef VTE_DEBUG
@@ -5838,7 +5850,7 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 {
 	/* Determine what the foreground and background colors for rendering
 	 * text should be. */
-	if (reverse ^ (cell && cell->reverse)) {
+	if (reverse) {
 		*fore = cell ? cell->back : VTE_DEF_BG;
 		*back = cell ? cell->fore : VTE_DEF_FG;
 	} else {

@@ -397,6 +397,12 @@ vte_termcap_find_l(struct vte_termcap *termcap, const char *tname, ssize_t len,
 	char ttname[len + 1];
 	ssize_t clen;
 
+	g_return_val_if_fail(termcap != NULL, "");
+	g_return_val_if_fail(tname != NULL, "");
+	g_return_val_if_fail(len > 0, "");
+	g_return_val_if_fail(cap != NULL, "");
+	g_return_val_if_fail(strlen(cap) > 0, "");
+
 	/* Find the entry by this name. */
 	memcpy(ttname, tname, len);
 	ttname[len] = '\0';
@@ -484,19 +490,21 @@ static const char *
 vte_termcap_find(struct vte_termcap *termcap,
 		 const char *tname, const char *cap)
 {
+	g_return_val_if_fail(termcap != NULL, "");
 	return vte_termcap_find_l(termcap, tname, strlen(tname), cap);
 }
 
-TERMCAP_MAYBE_STATIC int
+TERMCAP_MAYBE_STATIC gboolean
 vte_termcap_find_boolean(struct vte_termcap *termcap, const char *tname,
 			 const char *cap)
 {
 	const char *val;
+	g_return_val_if_fail(termcap != NULL, FALSE);
 	val = vte_termcap_find(termcap, tname, cap);
 	if ((val != NULL) && (val[0] != '\0')) {
-		return 1;
+		return TRUE;
 	}
-	return 0;
+	return FALSE;
 }
 
 TERMCAP_MAYBE_STATIC long
@@ -507,6 +515,7 @@ vte_termcap_find_numeric(struct vte_termcap *termcap, const char *tname,
 	char *p;
 	ssize_t l;
 	long ret;
+	g_return_val_if_fail(termcap != NULL, 0);
 	val = vte_termcap_find(termcap, tname, cap);
 	if ((val != NULL) && (val[0] != '\0')) {
 		l = strlen(cap);

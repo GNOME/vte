@@ -32,8 +32,8 @@ struct vte_termcap *vte_termcap_new(const char *filename);
 void vte_termcap_free(struct vte_termcap *termcap);
 
 /* Read a boolean capability for a given terminal. */
-int vte_termcap_find_boolean(struct vte_termcap *termcap, const char *tname,
-			     const char *cap);
+gboolean vte_termcap_find_boolean(struct vte_termcap *termcap,
+				  const char *tname, const char *cap);
 
 /* Read a numeric capability for a given terminal. */
 long vte_termcap_find_numeric(struct vte_termcap *termcap, const char *tname,
