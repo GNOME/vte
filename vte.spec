@@ -1,11 +1,14 @@
 Name: vte
-Version: 0.10.22
+Version: 0.10.23
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
 Group: User Interface/X
 BuildRoot: %{_tmppath}/%{name}-root
 Source: %{name}-%{version}.tar.gz
+Patch0: %{name}-%{version}-spacing.patch
+Patch1: %{name}-%{version}-im.patch
+Patch2: %{name}-%{version}-keymap.patch
 BuildPrereq: gtk2-devel, pygtk2-devel, python-devel
 Requires: bitmap-fonts
 
@@ -23,6 +26,9 @@ package contains the files needed for building applications using VTE.
 
 %prep
 %setup -q
+%patch0 -p0 -b .spacing
+%patch1 -p0 -b .im
+%patch2 -p0 -b .keymap
 
 %build
 if [ -x %{_bindir}/python2.2 ]; then
@@ -96,8 +102,22 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Fri Feb 21 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.23-1
+- update to 0.10.23
+- don't always perform character centering
+
+* Thu Feb 20 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.22-3
+- refix ctrl-[2-8] (#83563) to not break meta variants
+
+* Thu Feb 20 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.22-2
+- stop gratuitously resetting the IM (#81542)
+- be more careful about assuming the IM exists when it might not
+
 * Thu Feb 20 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.22-1
 - be more careful about when we reset the IM (#81542)
+- always perform character centering
+- fix drawing of rows where the first exposed cell is the second half of a
+  full-width character
 
 * Wed Feb 19 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.21-1
 - report accessible focus-changed events properly
