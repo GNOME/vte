@@ -1,3 +1,7 @@
+2002-07-24  nalin
+	* src/pty.c: Add private vte_pty_set_size() function.
+	* src/pty.c, src/pty.h: vte_pty_open() takes size arguments now.
+	* src/vte.c: Open the PTY with the proper initial size.
 2002-07-23  nalin
 	* src/ring.c, ring.h: Expose the ring implementation and convert several
 	simple functions into macros.

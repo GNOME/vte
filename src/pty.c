@@ -21,6 +21,7 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>
@@ -126,6 +127,19 @@ vte_pty_fork_on_fd(const char *path, char **env_add,
 	_exit(0);
 }
 
+static void
+vte_pty_set_size(int master, int columns, int rows)
+{
+	struct winsize size;
+	memset(&size, 0, sizeof(size));
+	size.ws_row = rows ? rows : 24;
+	size.ws_col = columns ? rows : 80;
+	if (ioctl(master, TIOCSWINSZ, &size) != 0) {
+		g_warning(_("Error setting PTY size: %s."),
+			    strerror(errno));
+	}
+}
+
 static char *
 vte_pty_ptsname(int master)
 {
@@ -183,7 +197,8 @@ vte_pty_unlockpt(int fd)
 
 static int
 vte_pty_open_unix98(pid_t *child, char **env_add,
-		    const char *command, char **argv)
+		    const char *command, char **argv,
+		    int columns, int rows)
 {
 	int fd;
 	char *buf;
@@ -198,6 +213,8 @@ vte_pty_open_unix98(pid_t *child, char **env_add,
 			close(fd);
 			fd = -1;
 		} else {
+			/* Set the window size. */
+			vte_pty_set_size(fd, columns, rows);
 			/* Start up a child process with the given command. */
 			if (vte_pty_fork_on_fd(buf, env_add, command, argv,
 					       child) != 0) {
@@ -212,7 +229,8 @@ vte_pty_open_unix98(pid_t *child, char **env_add,
 
 static int
 vte_pty_open_old_school(pid_t *child, char **env_add,
-			const char *command, char **argv)
+			const char *command, char **argv,
+			int columns, int rows)
 {
 	/* FIXME */
 	return -1;
@@ -220,14 +238,17 @@ vte_pty_open_old_school(pid_t *child, char **env_add,
 
 int
 vte_pty_open(pid_t *child, char **env_add,
-	     const char *command, char **argv)
+	     const char *command, char **argv,
+	     int columns, int rows)
 {
 	int ret = -1;
 	if (ret == -1) {
-		ret = vte_pty_open_unix98(child, env_add, command, argv);
+		ret = vte_pty_open_unix98(child, env_add, command, argv,
+					  columns, rows);
 	}
 	if (ret == -1) {
-		ret = vte_pty_open_old_school(child, env_add, command, argv);
+		ret = vte_pty_open_old_school(child, env_add, command, argv,
+					      columns, rows);
 	}
 	return ret;
 }

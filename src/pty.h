@@ -29,7 +29,8 @@ G_BEGIN_DECLS
  * pseudo-terminal of its own, returning the descriptor for the master
  * side of the PTY pair, storing the child's PID in the given argument. */
 int vte_pty_open(pid_t *child, char **env_add,
-		 const char *command, char **argv);
+		 const char *command, char **argv,
+		 int columns, int rows);
 
 G_END_DECLS
 

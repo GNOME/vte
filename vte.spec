@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.5.2
+Version: 0.5.3
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -58,6 +58,9 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Wed Jul 24 2002 Nalin Dahyabhai <nalin@redhat.com> 0.5.3-1
+- open PTYs with the proper size (#69606)
+
 * Tue Jul 23 2002 Nalin Dahyabhai <nalin@redhat.com> 0.5.2-1
 - fix imbalanced realize/unrealize routines causing crashes (#69605)
 

@@ -103,8 +103,8 @@ main(int argc, char **argv)
 			    "[-c command] "
 			    "[-f font] "
 			    "[-t terminaltype]\n";
-	back.red = back.green = back.blue = 0x0000;
-	fore.red = fore.green = fore.blue = 0xbfff;
+	back.red = back.green = back.blue = 0xffff;
+	fore.red = fore.green = fore.blue = 0x3000;
 	/* Pull out long options for GTK+. */
 	for (i = j = 1; i < argc; i++) {
 		if (g_ascii_strncasecmp("--", argv[i], 2) == 0) {

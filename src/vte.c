@@ -5387,7 +5387,9 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 	terminal->pvt->pty_master = vte_pty_open(&pid,
 						 env_add,
 						 command,
-						 argv);
+						 argv,
+						 terminal->column_count,
+						 terminal->row_count);
 
 	for (i = 0; env_add[i] != NULL; i++) {
 		g_free(env_add[i]);
@@ -5410,8 +5412,8 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 
 		/* Set the PTY size. */
 		vte_terminal_set_size(terminal,
-				      terminal->pvt->default_column_count,
-				      terminal->pvt->default_row_count);
+				      terminal->column_count,
+				      terminal->row_count);
 		if (GTK_WIDGET_REALIZED(widget)) {
 			gtk_widget_queue_resize(widget);
 		}
