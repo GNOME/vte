@@ -1,4 +1,13 @@
 2003-08-12 nalin
+	* src/vte.c: don't create an accessible peer at init() time in
+	debug mode.
+	* gnome-pty-helper/gnome-pty-helper.c(struct pty_info): add a field to
+	keep track of whether or not we created a lastlog record.
+	* gnome-pty-helper/gnome-pty-helper.c(shutdown_pty): also try to
+	write a logout record if pi->lastlog is true, because in doing so we
+	free pi->data, closing a leak (bug #116091).
+
+2003-08-12 nalin
 	* src/vteapp.c(resize_window): don't add the padding in when calculating
 	the new window size.
 

@@ -11106,8 +11106,8 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->accessible_emit = FALSE;
 
 #ifdef VTE_DEBUG
-	/* In debuggable mode, we always do this. */
-	pvt->accessible = gtk_widget_get_accessible(GTK_WIDGET(terminal));
+	/* In debuggable mode, we always used to do this. */
+	/* gtk_widget_get_accessible(GTK_WIDGET(terminal)); */
 #endif
 }
 
