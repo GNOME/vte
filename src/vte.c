@@ -451,7 +451,9 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 					GArray*,
 					screen->cursor_current.row);
 		/* Clear the data up to the current column. */
-		for (i = 0; i < screen->cursor_current.col; i++) {
+		for (i = 0;
+		     (i < screen->cursor_current.col) && (i < rowdata->len);
+		     i++) {
 			pcell = &g_array_index(rowdata, struct vte_charcell, i);
 			if (pcell != NULL) {
 				pcell->c = ' ';
