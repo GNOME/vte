@@ -5773,7 +5773,7 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 /* Catch a VteReaper child-exited signal, and if it matches the one we're
  * looking for, emit one of our own. */
 static void
-vte_terminal_catch_child_exited(VteReaper *reaper, guint pid, guint status,
+vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 				VteTerminal *data)
 {
 	VteTerminal *terminal;

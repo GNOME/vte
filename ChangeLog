@@ -1,3 +1,8 @@
+2002-09-03 nalin
+	* src/marshal.list, src/reaper.c, src/reaper.h, src/vte.c: Modify the
+	child-exited signal to pass a signed int and an unmodified exit status,
+	allowing the callback to check for normal/abnormal exit status.
+
 2002-09-02 nalin
 	* src/vte.c: Don't send zero-length strings to the child -- it may not
 	be able to cope properly.  Spotted by Brian Cameron.

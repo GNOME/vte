@@ -46,7 +46,7 @@ static VteReaper *singleton_reaper = NULL;
 struct reaper_info {
 	int signum;
 	pid_t pid;
-	guint status;
+	int status;
 };
 
 static void
@@ -64,15 +64,8 @@ vte_reaper_signal_handler(int signum)
 
 	if ((singleton_reaper != NULL) && (singleton_reaper->iopipe[0] != -1)) {
 		info.pid = waitpid(-1, &status, WNOHANG);
-		if ((info.pid != -1) && WIFEXITED(status)) {
-			info.status = WEXITSTATUS(status);
-			if (write(singleton_reaper->iopipe[1], "", 0) == 0) {
-				write(singleton_reaper->iopipe[1],
-				      &info, sizeof(info));
-			}
-		} else
-		if ((info.pid != -1) && WIFSIGNALED(status)) {
-			info.status = -1;
+		if (info.pid != -1) {
+			info.status = status;
 			if (write(singleton_reaper->iopipe[1], "", 0) == 0) {
 				write(singleton_reaper->iopipe[1],
 				      &info, sizeof(info));
@@ -136,9 +129,9 @@ vte_reaper_class_init(VteReaperClass *klass, gpointer data)
 						  0,
 						  NULL,
 						  NULL,
-						  _vte_marshal_VOID__UINT_UINT,
+						  _vte_marshal_VOID__INT_INT,
 						  G_TYPE_NONE,
-						  2, G_TYPE_UINT, G_TYPE_UINT);
+						  2, G_TYPE_INT, G_TYPE_INT);
 }
 
 GType
@@ -185,7 +178,7 @@ GMainLoop *loop;
 pid_t child;
 
 static void
-child_exited(GObject *object, guint pid, guint status, gpointer data)
+child_exited(GObject *object, int pid, int status, gpointer data)
 {
 	g_print("[parent] Child with pid %d exited with code %d, "
 		"was waiting for %d.\n", pid, status, GPOINTER_TO_INT(data));
