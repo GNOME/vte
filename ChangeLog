@@ -1,3 +1,7 @@
+2002-11-15  Hasbullah BIn Pit <sebol@ikhlas.com>
+
+        * configure.in: Added "ms" to ALL_LINGUAS.
+
 2002-11-11  nalin
 	* src/vte.c: ensure that when we select by line, we include all of the
 	last line, even if it's past the edge of the screen.  Snap selection to
