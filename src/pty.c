@@ -37,9 +37,6 @@
 #ifdef HAVE_STROPTS_H
 #include <stropts.h>
 #endif
-#ifdef HAVE_TERMIOS_H
-#include <termios.h>
-#endif
 #include <glib.h>
 #include "debug.h"
 #include "pty.h"

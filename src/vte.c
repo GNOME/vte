@@ -8057,7 +8057,7 @@ vte_terminal_im_preedit_end(GtkIMContext *im_context, gpointer data)
 		fprintf(stderr, "Input method pre-edit ended.\n");
 	}
 #endif
-	terminal->pvt->im_preedit_active = TRUE;
+	terminal->pvt->im_preedit_active = FALSE;
 }
 
 /* The pre-edit string changed. */
@@ -8249,19 +8249,48 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 #endif
 
 		/* We steal many keypad keys here. */
-		switch (keyval) {
-		case GDK_KP_Add:
-		case GDK_KP_Subtract:
-		case GDK_KP_Multiply:
-		case GDK_KP_Divide:
-		case GDK_KP_Enter:
-			steal = TRUE;
-			break;
-		default:
-			break;
-		}
-		if (modifiers & VTE_META_MASK) {
-			steal = TRUE;
+		if (!terminal->pvt->im_preedit_active) {
+			switch (keyval) {
+			case GDK_KP_Add:
+			case GDK_KP_Subtract:
+			case GDK_KP_Multiply:
+			case GDK_KP_Divide:
+			case GDK_KP_Enter:
+				steal = TRUE;
+				break;
+			default:
+				break;
+			}
+			if (modifiers & VTE_META_MASK) {
+				steal = TRUE;
+			}
+			switch (keyval) {
+			case GDK_Multi_key:
+			case GDK_Codeinput:
+			case GDK_SingleCandidate:
+			case GDK_MultipleCandidate:
+			case GDK_PreviousCandidate:
+			case GDK_Kanji:
+			case GDK_Muhenkan:
+			case GDK_Henkan:
+			case GDK_Romaji:
+			case GDK_Hiragana:
+			case GDK_Katakana:
+			case GDK_Hiragana_Katakana:
+			case GDK_Zenkaku:
+			case GDK_Hankaku:
+			case GDK_Zenkaku_Hankaku:
+			case GDK_Touroku:
+			case GDK_Massyo:
+			case GDK_Kana_Lock:
+			case GDK_Kana_Shift:
+			case GDK_Eisu_Shift:
+			case GDK_Eisu_toggle:
+				steal = FALSE;
+				break;
+			default:
+				break;
+			}
 		}
 	}
 

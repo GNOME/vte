@@ -1,4 +1,8 @@
 2004-04-19 nalin
+	* src/vte.c(vte_terminal_key_press): don't steal keys from the input
+	method.
+
+2004-04-19 nalin
 	* src/pty.c(_vte_pty_set_utf8): toggle the IUTF8 flag, if
 	it was defined at compile-time (maybe for #129317).
 	* src/vte.c(vte_terminal_set_encoding): call _vte_pty_set_utf8.
