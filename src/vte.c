@@ -183,7 +183,7 @@ struct _VteTerminalPrivate {
 	gboolean audible_bell;
 
 	gboolean cursor_blinks;
-	guint blink_period;
+	gint blink_source;
 	guint last_keypress_time;
 
 	gboolean bg_transparent;
@@ -295,60 +295,98 @@ vte_invalidate_cells(VteTerminal *terminal,
 	gdk_window_invalidate_rect(widget->window, &rect, TRUE);
 }
 
+/* Find the character in the given "virtual" position. */
+static struct vte_charcell *
+vte_terminal_find_charcell(VteTerminal *terminal, long row, long col)
+{
+	GArray *rowdata;
+	struct vte_charcell *ret = NULL;
+	struct _VteScreen *screen;
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+	screen = terminal->pvt->screen;
+	if (screen->row_data->len > row) {
+		rowdata = g_array_index(screen->row_data, GArray*, row);
+		if (rowdata->len > col) {
+			ret = &g_array_index(rowdata, struct vte_charcell, col);
+		}
+	}
+	return ret;
+}
+
 /* Cause the cursor to be redrawn. */
-static gboolean
+static void
 vte_invalidate_cursor_once(gpointer data)
 {
 	VteTerminal *terminal;
+	struct _VteScreen *screen;
+	struct vte_charcell *cell;
 	size_t preedit_length;
+	int columns;
+
 	if (!VTE_IS_TERMINAL(data)) {
-		return FALSE;
+		return;
 	}
 	terminal = VTE_TERMINAL(data);
+
 	if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
 		if (terminal->pvt->im_preedit != NULL) {
 			preedit_length = strlen(terminal->pvt->im_preedit);
 		} else {
 			preedit_length = 0;
 		}
+
+		screen = terminal->pvt->screen;
+		columns = 1;
+		cell = vte_terminal_find_charcell(terminal,
+				     		  screen->cursor_current.row,
+				     		  screen->cursor_current.col);
+		if (cell != NULL) {
+			columns = cell->columns;
+		}
+
 		vte_invalidate_cells(terminal,
-				     terminal->pvt->screen->cursor_current.col,
-				     1 + preedit_length,
-				     terminal->pvt->screen->cursor_current.row,
+				     screen->cursor_current.col,
+				     columns + preedit_length,
+				     screen->cursor_current.row,
 				     1);
-	}
 #ifdef VTE_DEBUG
 #ifdef VTE_DEBUG_DRAW_CURSOR
-	fprintf(stderr, "Invalidating cursor.\n");
+	fprintf(stderr, "Invalidating cursor at (%d,%d-%d).\n",
+		screen->cursor_current.row,
+		screen->cursor_current.col,
+		screen->cursor_current.col + columns + preedit_length);
 #endif
 #endif
-	return FALSE;
+	}
 }
 
 /* Invalidate the cursor repeatedly. */
 static gboolean
-vte_invalidate_cursor(gpointer data)
+vte_invalidate_cursor_periodic(gpointer data)
 {
-	gboolean ret;
 	VteTerminal *terminal;
-	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
-	terminal = VTE_TERMINAL(data);
-	ret = vte_invalidate_cursor_once(data);
+	GtkSettings *settings;
+	gint blink_cycle = 1000;
 
-        /* FIXME
-         *
-         *  1. If the VTE is destroyed, we need to remove this timeout
-         *     to avoid touching the destroyed VTE
-         *
-         *  2. Needs to use the cursor blink rate from the
-         *     global GtkSettings object.
-         *
-         */
-        
-	g_timeout_add(terminal->pvt->blink_period / 2,
-		      vte_invalidate_cursor,
-		      terminal);
-	return ret;
+	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
+	if (!GTK_WIDGET_REALIZED(GTK_WIDGET(data))) {
+		return TRUE;
+	}
+
+	terminal = VTE_TERMINAL(data);
+	vte_invalidate_cursor_once(data);
+
+	settings = gtk_widget_get_settings(GTK_WIDGET(data));
+	if (G_IS_OBJECT(settings)) {
+		g_object_get(G_OBJECT(settings), "gtk-cursor-blink-time",
+			     &blink_cycle, NULL);
+	}
+
+	terminal->pvt->blink_source = g_timeout_add(blink_cycle / 2,
+						    vte_invalidate_cursor_periodic,
+						    terminal);
+
+	return FALSE;
 }
 
 /* Emit a "selection_changed" signal. */
@@ -3922,24 +3960,6 @@ vte_charclass(wchar_t c)
 	return 0;
 }
 
-/* Find the character in the given "virtual" position. */
-static struct vte_charcell *
-vte_terminal_find_charcell(VteTerminal *terminal, long row, long col)
-{
-	GArray *rowdata;
-	struct vte_charcell *ret = NULL;
-	struct _VteScreen *screen;
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	screen = terminal->pvt->screen;
-	if (screen->row_data->len > row) {
-		rowdata = g_array_index(screen->row_data, GArray*, row);
-		if (rowdata->len > col) {
-			ret = &g_array_index(rowdata, struct vte_charcell, col);
-		}
-	}
-	return ret;
-}
-
 /* Check if the characters in the given block are in the same class. */
 static gboolean
 vte_uniform_class(VteTerminal *terminal, long row, long scol, long ecol)
@@ -5014,9 +5034,9 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->bg_image = NULL;
 
 	pvt->cursor_blinks = FALSE;
-	pvt->blink_period = 1000;
+	pvt->blink_source = g_timeout_add(0, vte_invalidate_cursor_periodic,
+					  terminal);
 	pvt->last_keypress_time = 0;
-	g_timeout_add(pvt->blink_period / 2, vte_invalidate_cursor, terminal);
 
 	pvt->selection = FALSE;
 	pvt->selection_start.x = 0;
@@ -5226,6 +5246,9 @@ vte_terminal_finalize(GObject *object)
 	object_class = G_OBJECT_GET_CLASS(G_OBJECT(object));
 	widget_class = g_type_class_peek(GTK_TYPE_WIDGET);
 
+	/* Remove the blink timeout function. */
+	g_source_remove(terminal->pvt->blink_source);
+
 	/* Shut down the child terminal. */
 	close(terminal->pvt->pty_master);
 	terminal->pvt->pty_master = -1;
@@ -5421,6 +5444,13 @@ vte_terminal_draw_char(VteTerminal *terminal,
 	gboolean drawn, reverse;
 	XwcTextItem textitem;
 
+#ifdef VTE_DEBUG
+#ifdef VTE_DEBUG_DRAW
+	fprintf(stderr, "Drawing %ld/%d at (%d,%d), ",
+		cell ? cell->c : 0, cell ? cell->columns : 0, x, y + ascent);
+#endif
+#endif
+
 	/* Determine what the foreground and background colors for rendering
 	 * text should be. */
 	reverse = cell && cell->reverse;
@@ -5457,6 +5487,11 @@ vte_terminal_draw_char(VteTerminal *terminal,
 
 	/* If there's no data, bug out here. */
 	if (cell == NULL) {
+#ifdef VTE_DEBUG
+#ifdef VTE_DEBUG_DRAW
+		fprintf(stderr, " skipping.\n");
+#endif
+#endif
 		return;
 	}
 
@@ -5466,18 +5501,32 @@ vte_terminal_draw_char(VteTerminal *terminal,
 	if (cell->columns == 0) {
 		/* Search for a suitable cell. */
 		for (dcol = col - 1; dcol >= 0; dcol--) {
-			cell = vte_terminal_find_charcell(terminal, row, dcol);
+			cell = vte_terminal_find_charcell(terminal,
+							  row, dcol);
 			if (cell->columns > 0) {
 				break;
 			}
 		}
 		/* If we didn't find anything, bail. */
 		if (dcol < 0) {
+#ifdef VTE_DEBUG
+#ifdef VTE_DEBUG_DRAW
+			fprintf(stderr, " skipping.\n");
+#endif
+#endif
 			return;
 		}
 	}
 	x -= (col - dcol) * width;
+	width += ((col - dcol) * width);
 	drawn = FALSE;
+
+#ifdef VTE_DEBUG
+#ifdef VTE_DEBUG_DRAW
+	fprintf(stderr, "adjusted to %ld/%d at (%d,%d).\n",
+		cell->c, cell->columns, x, y + ascent);
+#endif
+#endif
 
 	/* If the character is drawn in the alternate graphic font, do the
 	 * drawing ourselves. */
@@ -5758,7 +5807,7 @@ vte_terminal_draw_char(VteTerminal *terminal,
 	/* SFX */
 	if (cell->underline) {
 		XDrawLine(display, drawable, gc,
-			  x, y + height - 1, x + width, y + height - 1);
+			  x, y + height - 1, x + width - 1, y + height - 1);
 	}
 }
 
@@ -5767,6 +5816,7 @@ static void
 vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 {
 	VteTerminal *terminal = NULL;
+	GtkSettings *settings = NULL;
 	struct _VteScreen *screen;
 	Display *display;
 	GdkDrawable *gdrawable;
@@ -5778,11 +5828,12 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	GdkGC *ggc;
 	GC gc;
 	struct vte_charcell *cell, im_cell;
-	int row, drow, col, row_stop, col_stop, x_offs = 0, y_offs = 0;
+	int row, drow, col, row_stop, col_stop, x_offs = 0, y_offs = 0, columns;
 	long width, height, ascent, descent, delta;
 	struct timezone tz;
 	struct timeval tv;
 	guint daytime;
+	gint blink_cycle = 1000;
 	gboolean blink;
 #ifdef HAVE_XFT
 	XftDraw *ftdraw = NULL;
@@ -5801,12 +5852,18 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	/* Determine if blinking text should be shown. */
 	if (terminal->pvt->cursor_blinks) {
 		if (gettimeofday(&tv, &tz) == 0) {
+			settings = gtk_widget_get_settings(widget);
+			if (G_IS_OBJECT(settings)) {
+				g_object_get(G_OBJECT(settings),
+					     "gtk-cursor-blink-time",
+					     &blink_cycle, NULL);
+			}
 			daytime = (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
 			if (daytime >= terminal->pvt->last_keypress_time) {
 				daytime -= terminal->pvt->last_keypress_time;
 			}
-			daytime = daytime % terminal->pvt->blink_period;
-			blink = daytime < (terminal->pvt->blink_period / 2);
+			daytime = daytime % blink_cycle;
+			blink = daytime < (blink_cycle / 2);
 		} else {
 			blink = TRUE;
 		}
@@ -5858,18 +5915,25 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		while (col < col_stop) {
 			/* Get the character cell's contents. */
 			cell = vte_terminal_find_charcell(terminal, drow, col);
+			columns = 1;
+			if ((cell != NULL) && (cell->columns > 1)) {
+				columns = cell->columns;
+			}
 #ifdef VTE_DEBUG
 #ifdef VTE_DEBUG_DRAW
 			if (cell != NULL) {
 				if (cell->c > 256) {
 					fprintf(stderr,
-						"Drawing %5ld at (r%d,c%d).\n",
-						cell->c, drow, col);
+						"Drawing %5ld/%d at "
+						"(r%d,c%d).\n",
+						cell->c, cell->columns,
+						drow, col);
 				} else {
 					fprintf(stderr,
-						"Drawing %5ld (`%c') at "
+						"Drawing %5ld/%d (`%c') at "
 						"(r%d,c%d).\n",
-						cell->c, cell->c, drow, col);
+						cell->c, cell->columns, cell->c,
+						drow, col);
 				}
 			}
 #endif
@@ -5880,7 +5944,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 					       drow,
 					       col * width - x_offs,
 					       row * height - y_offs,
-					       width, height,
+					       columns * width,
+					       height,
 					       ascent, descent,
 					       display,
 					       gdrawable, drawable,
@@ -5895,7 +5960,11 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 				/* Skip to the next column. */
 				col++;
 			} else {
-				col += cell->columns;
+				if (cell->columns != 0) {
+					col += cell->columns;
+				} else {
+					col++;
+				}
 			}
 		}
 		row++;
@@ -5903,12 +5972,6 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 	/* Draw the cursor if it's visible. */
 	if (terminal->pvt->screen->cursor_visible) {
-#ifdef VTE_DEBUG
-#ifdef VTE_DEBUG_DRAW
-		fprintf(stderr, "Drawing the cursor (%s).\n",
-			blink ? "on" : "off");
-#endif
-#endif
 		/* Get the character under the cursor. */
 		col = screen->cursor_current.col;
 		if (terminal->pvt->im_preedit != NULL) {
@@ -5917,17 +5980,43 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		drow = screen->cursor_current.row;
 		row = drow - delta;
 		cell = vte_terminal_find_charcell(terminal, drow, col);
+		columns = 1;
+		if ((cell != NULL) && (cell->columns > 1)) {
+			columns = cell->columns;
+		}
 
 		/* Draw the cursor. */
 		delta = screen->scroll_delta;
 		if (GTK_WIDGET_HAS_FOCUS(GTK_WIDGET(terminal))) {
 			/* Draw it as a character, possibly reversed. */
+#ifdef VTE_DEBUG
+#ifdef VTE_DEBUG_DRAW_CURSOR
+			fprintf(stderr, "Drawing the cursor (%s).\n",
+				blink ? "on" : "off");
+			if (cell != NULL) {
+				if (cell->c > 256) {
+					fprintf(stderr,
+						"Drawing %5ld/%d at "
+						"(r%d,c%d).\n",
+						cell->c, cell->columns,
+						drow, col);
+				} else {
+					fprintf(stderr,
+						"Drawing %5ld/%d (`%c') at "
+						"(r%d,c%d).\n",
+						cell->c, cell->columns, cell->c,
+						drow, col);
+				}
+			}
+#endif
+#endif
 			vte_terminal_draw_char(terminal, screen, cell,
 					       col,
 					       drow,
 					       col * width - x_offs,
 					       row * height - y_offs,
-					       width, height,
+					       columns * width,
+					       height,
 					       ascent, descent,
 					       display,
 					       gdrawable, drawable,
@@ -5947,7 +6036,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			XDrawRectangle(display, drawable, gc,
 				       col * width - x_offs,
 				       row * height - y_offs,
-				       width - 1,
+				       columns * width - 1,
 				       height - 1);
 		}
 	}
@@ -5999,7 +6088,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 					       drow,
 					       col * width - x_offs,
 					       row * height - y_offs,
-					       width, height,
+					       width,
+					       height,
 					       ascent, descent,
 					       display,
 					       gdrawable, drawable,
@@ -6501,10 +6591,4 @@ void
 vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
 {
 	terminal->pvt->cursor_blinks = blink;
-}
-
-void
-vte_terminal_set_blink_period(VteTerminal *terminal, guint period)
-{
-	terminal->pvt->blink_period = period;
 }

@@ -53,11 +53,22 @@ vte_pty_fork_on_fd(const char *path, const char **env_add,
 		return 0;
 	}
 
+	/* Set any environment variables. */
+	for (i = 0; (env_add != NULL) && (env_add[i] != NULL); i++) {
+		if (putenv(g_strdup(env_add[i])) == -1) {
+			g_warning("Error adding `%s' to environment, "
+				  "continuing.", env_add[i]);
+		}
+#ifdef VTE_DEBUG
+		fprintf(stderr, "Set `%s'.\n", env_add[i]);
+#endif
+	}
+
 	/* Child.  Start a new session and become process-group leader. */
 	setsid();
 	setpgid(0, 0);
 
-	/* Close all descriptors except for the slave. */
+	/* Close all descriptors. */
 	for (i = 0; i < sysconf(_SC_OPEN_MAX); i++) {
 		close(i);
 	}
@@ -86,14 +97,6 @@ vte_pty_fork_on_fd(const char *path, const char **env_add,
 		close(fd);
 	}
 
-	/* Set any environment variables. */
-	for (i = 0; (env_add != NULL) && (env_add[i] != NULL); i++) {
-		if (putenv(g_strdup(env_add[i])) == -1) {
-			g_warning("Error adding `%s' to environment, "
-				  "continuing.", env_add[i]);
-		}
-	}
-
 	/* Outta here. */
 	if (argv != NULL) {
 		for (i = 0; (argv[i] != NULL); i++) ;
@@ -103,10 +106,10 @@ vte_pty_fork_on_fd(const char *path, const char **env_add,
 		}
 		execv(command, args);
 	} else {
-		if (strchr(command, '/')) {
+		if (strchr(command, '/') != NULL) {
 			arg = g_strdup(strrchr(command, '/') + 1);
 		} else {
-			arg = g_strdup_printf("%s", command);
+			arg = g_strdup(command);
 		}
 		execl(command, arg, NULL);
 	}
