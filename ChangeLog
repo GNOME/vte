@@ -1,3 +1,8 @@
+2002-07-18  nalin
+	* src/vte.c: Implement enough of set-mode and reset-mode to allow
+	toggling of insert mode using this sequence.  Move all scrolling into
+	vte_terminal_scroll_region and use gdk_draw_drawable to avoid repainting
+	from scratch whenever possible.
 2002-07-17  nalin
 	* configure.in: Actually set ALL_LINGUAS so translations get installed.
 	* README: Document the weirdness that is cursor movement around wide

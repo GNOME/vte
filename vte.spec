@@ -58,6 +58,12 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Thu Jul 18 2002 Nalin Dahyabhai <nalin@redhat.com> 0.5.0-1
+- use gunichars internally
+- scroll regions more effectively
+- implement part of set-mode/reset-mode (maybe fixes #69143)
+- fix corner case in dingus hiliting (#67930, really this time)
+
 * Tue Jul 16 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.9-1
 - check for iconv failures properly and report them more aggressively
 - guess at a proper default bold color (#68965)
