@@ -282,7 +282,7 @@ static void
 vte_terminal_adjust_adjustments(VteTerminal *terminal)
 {
 	gboolean changed;
-	guint page_size;
+	long page_size;
 	long rows;
 	/* Adjust the vertical, uh, adjustment. */
 	changed = FALSE;
@@ -3360,7 +3360,7 @@ vte_uniform_class(VteTerminal *terminal, long row, long scol, long ecol)
 static gboolean
 vte_cell_is_selected(VteTerminal *terminal, long row, long col)
 {
-	guint scol, ecol;
+	long scol, ecol;
 
 	/* If there's nothing selected, it's an easy question to answer. */
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
@@ -3837,7 +3837,7 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 static void
 vte_terminal_set_fontset(VteTerminal *terminal, const char *xlfds)
 {
-	guint width, height, ascent, descent;
+	long width, height, ascent, descent;
 	GtkWidget *widget;
 	XFontStruct **font_struct_list, font_struct;
 	char **missing_charset_list, *def_string;
@@ -3950,7 +3950,7 @@ vte_terminal_size_get(VteTerminal *terminal)
 
 /* Set the size of the PTY. */
 void
-vte_terminal_size_set(VteTerminal *terminal, guint columns, guint rows)
+vte_terminal_size_set(VteTerminal *terminal, long columns, long rows)
 {
 	struct winsize size;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -4457,14 +4457,14 @@ static void
 vte_terminal_draw_char(VteTerminal *terminal,
 		       struct _VteScreen *screen,
 		       struct vte_charcell *cell,
-		       guint col,
-		       guint row,
-		       guint x,
-		       guint y,
-		       guint width,
-		       guint height,
-		       guint ascent,
-		       guint descent,
+		       long col,
+		       long row,
+		       long x,
+		       long y,
+		       long width,
+		       long height,
+		       long ascent,
+		       long descent,
 		       Display *display,
 		       GdkDrawable *gdrawable,
 		       Drawable drawable,

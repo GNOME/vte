@@ -44,9 +44,9 @@ typedef struct _VteTerminal {
 	GtkAdjustment *adjustment;	/* Scrolling adjustment. */
 
 	/* Metric and sizing data. */
-	guint char_width, char_height;	/* dimensions of character cells */
-	guint char_ascent, char_descent;/* important font metrics */
-	guint row_count, column_count;	/* dimensions of the window */
+	long char_width, char_height;	/* dimensions of character cells */
+	long char_ascent, char_descent;/* important font metrics */
+	long row_count, column_count;	/* dimensions of the window */
 
 	/* Titles. */
 	char *window_title, *icon_title;
@@ -90,7 +90,7 @@ GtkWidget *vte_terminal_new(void);
 void vte_terminal_fork_command(VteTerminal *terminal,
 			       const char *command,
 			       const char **argv);
-void vte_terminal_set_size(VteTerminal *terminal, guint columns, guint rows);
+void vte_terminal_set_size(VteTerminal *terminal, long columns, long rows);
 void vte_terminal_feed(VteTerminal *terminal,
 		       const char *data,
 		       size_t length);
