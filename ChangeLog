@@ -1,5 +1,11 @@
 2005-02-15  Kjartan Maraas  <kmaraas@gnome.org>
 
+	* src/vteregex.h: Don't include <config.h> here. It breaks
+	building on AIX and can cause problems for l10n. Closes
+	bug #161352.
+
+2005-02-15  Kjartan Maraas  <kmaraas@gnome.org>
+
 	* src/dumpkeys.c: Fix build on NetBSD and Darwin.
 	Patch from Adrian Bunk <bunk at stusta de>. Closes
 	bug #126377.
