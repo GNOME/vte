@@ -1,4 +1,4 @@
-AC_INIT(configure.ac)
+AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(vte,0.1)
 AM_PROG_LIBTOOL
 AC_EGREP_CPP(glibc,
