@@ -1,3 +1,5 @@
+0.11.3: Reworked handling of ISO-2022 text, handles Chinese and Korean
+        correctly.
 0.11.2: Fix for wrapping when selecting by word or lines.  Fix to conform to
         OpenI18N assertions.
 0.11.1: A native FT2 drawing backend which may be faster than Pango on systems
