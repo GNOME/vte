@@ -1,3 +1,7 @@
+2003-02-16  Dmitry G. Mastrukov  <dmitry@taurussoft.org>
+
+	* configure.in: Added Belarusian to ALL_LINGUAS.
+
 2003-02-14 nalin
 	* src/vte.c(vte_terminal_sequence_handler_bt): fix to move back to the
 	leftmost column if there are no previous tabstops, exercised by
