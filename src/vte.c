@@ -73,7 +73,8 @@ struct _VteTerminalPrivate {
 	size_t n_pending;
 	char *narrow_pending;		/* pending output characters */
 	size_t n_narrow_pending;
-	iconv_t outgoing_conv;		/* narrow/wide conversion state */
+	iconv_t outgoing_conv_w;	/* outgoing wide chars */
+	iconv_t outgoing_conv_u;	/* outgoing utf-8 chars */
 
 	/* Data used when rendering the text. */
 	gboolean palette_initialized;
@@ -385,10 +386,15 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	}
 	terminal->pvt->pending_conv = iconv_open("WCHAR_T", codeset);
 
-	if (terminal->pvt->outgoing_conv != NULL) {
-		iconv_close(terminal->pvt->outgoing_conv);
+	if (terminal->pvt->outgoing_conv_w != NULL) {
+		iconv_close(terminal->pvt->outgoing_conv_w);
 	}
-	terminal->pvt->outgoing_conv = iconv_open(codeset, "WCHAR_T");
+	terminal->pvt->outgoing_conv_w = iconv_open(codeset, "WCHAR_T");
+
+	if (terminal->pvt->outgoing_conv_u != NULL) {
+		iconv_close(terminal->pvt->outgoing_conv_u);
+	}
+	terminal->pvt->outgoing_conv_u = iconv_open(codeset, "UTF-8");
 
 	terminal->pvt->encoding = g_quark_to_string(g_quark_from_string(codeset));
 #ifdef VTE_DEBUG
@@ -2604,14 +2610,62 @@ vte_terminal_io_read(GIOChannel *channel,
 
 /* Send some data to the child. */
 static void
-vte_terminal_send(VteTerminal *terminal, const guchar *data, size_t length)
+vte_terminal_send_utf8(VteTerminal *terminal, const guchar *data, size_t length)
 {
-	size_t count;
+	size_t icount, ocount;
+	ssize_t count;
+	char *ibuf, *obuf, *obufptr;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	count = write(terminal->pvt->pty_master, data, length);
-	if (count != length) {
-		g_warning("%s sending data to child\n", strerror(errno));
+
+	icount = length;
+	ibuf = (char*) data;
+	ocount = icount * 2 + 1;
+	obuf = obufptr = g_malloc0(ocount - 1);
+
+	if (iconv(terminal->pvt->outgoing_conv_u,
+		  &ibuf, &icount, &obuf, &ocount) == -1) {
+		g_warning("%s converting data for child\n", strerror(errno));
+	} else {
+		count = write(terminal->pvt->pty_master, obufptr,
+			      obuf - obufptr);
+		if (count != (obuf - obufptr)) {
+			g_warning("%s sending data to child\n",
+				  strerror(errno));
+		}
 	}
+	g_free(obufptr);
+	return;
+}
+
+/* Send some data to the child. */
+static void
+vte_terminal_send_wc(VteTerminal *terminal, const wchar_t *data, size_t wlength)
+{
+	size_t icount, ocount;
+	ssize_t count;
+	char *ibuf, *obuf, *obufptr;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	icount = wlength * sizeof(wchar_t);
+	ibuf = (char*) data;
+	ocount = icount * 2 + 1;
+	obuf = obufptr = g_malloc0(ocount - 1);
+
+	if (iconv(terminal->pvt->outgoing_conv_w,
+		  &ibuf, &icount, &obuf, &ocount) == -1) {
+		g_warning("%s converting data for child\n", strerror(errno));
+	} else {
+		count = write(terminal->pvt->pty_master, obufptr,
+			      obuf - obufptr);
+		if (count != (obuf - obufptr)) {
+			g_warning("%s sending data to child\n",
+				  strerror(errno));
+		}
+	}
+	g_free(obufptr);
+	return;
 }
 
 /* Read and handle a keypress event. */
@@ -2744,7 +2798,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		}
 		/* If we got normal characters, send them to the child. */
 		if (normal != NULL) {
-			vte_terminal_send(terminal, normal, normal_length);
+			vte_terminal_send_utf8(terminal, normal,
+					       normal_length);
 			g_free(normal);
 			normal = NULL;
 		} else
@@ -2757,7 +2812,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 								special,
 								&normal_length);
 			special = g_strdup_printf(normal, 1);
-			vte_terminal_send(terminal, special, strlen(special));
+			vte_terminal_send_utf8(terminal, special,
+					       strlen(special));
 			g_free(special);
 		}
 		/* Keep the cursor on-screen. */
@@ -2773,13 +2829,23 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 static gint
 vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 {
-	fprintf(stderr, "button pressed\n");
+	fprintf(stderr, "button %d pressed at (%lf,%lf)\n",
+		event->button, event->x, event->y);
 	if (event->type == GDK_BUTTON_PRESS) {
 		if (!GTK_WIDGET_HAS_FOCUS(widget)) {
 			gtk_widget_grab_focus(widget);
 		}
 		return TRUE;
 	}
+	return FALSE;
+}
+
+/* Read and handle a pointing device buttonrelease event. */
+static gint
+vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
+{
+	fprintf(stderr, "button %d released at (%lf,%lf)\n",
+		event->button, event->x, event->y);
 	return FALSE;
 }
 
@@ -3924,6 +3990,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 	widget_class->expose_event = vte_terminal_expose;
 	widget_class->key_press_event = vte_terminal_key_press;
 	widget_class->button_press_event = vte_terminal_button_press;
+	widget_class->button_release_event = vte_terminal_button_release;
 	widget_class->focus_in_event = vte_terminal_focus_in;
 	widget_class->focus_out_event = vte_terminal_focus_out;
 	widget_class->unrealize = vte_terminal_unrealize;
