@@ -1,0 +1,119 @@
+# Turkish translation of vte.
+# Copyright (C) 2003 vte's COPYRIGHT HOLDER
+# This file is distributed under the same license as the vte package.
+# Görkem �~Getin <gorkem@gelecek.com.tr>, 2003.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte\n"
+"POT-Creation-Date: 2003-01-30 12:23+0100\n"
+"PO-Revision-Date: 2003-01-30 19:08+0000\n"
+"Last-Translator: Görkem Çetin <gorkem@gelecek.com.tr>\n"
+"Language-Team: Turkish <gnome-turk@gnome.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/pty.c:253
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "Çevreye '%s' eklenirken bir hata oluştu, devam ediliyor."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:800
+#, c-format
+msgid "can not run %s"
+msgstr "%s çalıştırılamadı"
+
+#: src/reaper.c:107
+msgid "Error creating signal pipe."
+msgstr "Sinyal borusu oluştururken hata"
+
+#: src/trie.c:411
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "Çift (%s/%s)!"
+
+#: src/vte.c:1409
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Düzenli ifade yorumlanırken hata: \"%s\"."
+
+#: src/vte.c:1931 src/vte.c:1940 src/vte.c:1952 src/vte.c:1970 src/vte.c:1976
+#: src/vte.c:1981
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Karakterlerde %s -> %s dönüşümü yapılamıyor."
+
+#: src/vte.c:5496
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "Anlaşılamayan klavye girdisi '%s'"
+
+#: src/vte.c:6588
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr ""
+
+#: src/vte.c:7327
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Oğul süreçten okunurken hata: %s"
+
+#: src/vte.c:7488
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Bir hata oluştu (%s)"
+
+#: src/vte.c:9809
+#, c-format
+msgid "Using fontset \"%s\", which is missing these character sets: %s."
+msgstr "\"%s\" yazıtipi kullanılıyor, ancak bazı karakterler eksik: %s."
+
+#: src/vte.c:10447
+#, c-format
+msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
+msgstr "Xft yazıtipi düzeni yüklenemedi (%s), öntanımlı yazıtipine dönüş yapılıyor."
+
+#: src/vte.c:10459
+msgid "Failed to load default Xft font."
+msgstr "Öntanımlı Xft yazıtipi yüklenemedi."
+
+#: src/vte.c:10552
+#, c-format
+msgid "Failed to load font set \"%s\", falling back to default font."
+msgstr "\"%s\" yazıtipi kümesi yüklenemedi, öntanımlı yazıtipine geçiliyor."
+
+#: src/vte.c:10564
+msgid "Failed to load default font, crashing or behaving abnormally."
+msgstr "Öntanımlı yazıtipi yüklenemedi, sistem hata verdi."
+
+#: src/vte.c:10826
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "PTY boyutu okunamadı, öntanımlı değer kullanılıyor: %s"
+
+#: src/vte.c:10862
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "PTY boyutu tanımlanamadı: %s."
+
+#: src/vte.c:13749
+msgid "Error allocating draw, disabling Xft."
+msgstr "Bir hata oluştu, Xft kapatılıyor."
+
+#: src/vte.c:13757
+msgid "Error allocating context, disabling Pango."
+msgstr "Bir hata oluştu, Pango kapatılıyor."
+
+#: src/vte.c:13763
+msgid "Error allocating layout, disabling Pango."
+msgstr "Bir hata oluştu, Pango kapatılıyor."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:15409
+msgid "g_iconv_open() failed setting word characters"
+msgstr "g_iconv_open() komutunda bir hata oluştu"
+
