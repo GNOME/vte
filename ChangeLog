@@ -1,4 +1,8 @@
 2003-08-12 nalin
+	* src/vteapp.c(resize_window): don't add the padding in when calculating
+	the new window size.
+
+2003-08-12 nalin
 	* doc/reference/tmpl/vte.sgml: note that dimensions passed in with
 	the resize-window signal include padding (more of bug #119141).
 

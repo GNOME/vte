@@ -244,13 +244,17 @@ static void
 resize_window(GtkWidget *widget, guint width, guint height, gpointer data)
 {
 	VteTerminal *terminal;
-	gint owidth, oheight;
+	gint owidth, oheight, xpad, ypad;
 	if ((GTK_IS_WINDOW(data)) && (width >= 2) && (height >= 2)) {
 		terminal = VTE_TERMINAL(widget);
-		/* Take into account padding and border overhead. */
+		/* Take into account border overhead. */
 		gtk_window_get_size(GTK_WINDOW(data), &owidth, &oheight);
 		owidth -= terminal->char_width * terminal->column_count;
 		oheight -= terminal->char_height * terminal->row_count;
+		/* Take into account padding, which needn't be re-added. */
+		vte_terminal_get_padding(VTE_TERMINAL(widget), &xpad, &ypad);
+		owidth -= xpad;
+		oheight -= ypad;
 		gtk_window_resize(GTK_WINDOW(data),
 				  width + owidth, height + oheight);
 	}
