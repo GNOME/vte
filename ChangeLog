@@ -1,3 +1,6 @@
+2002-05-10 nalin
+	* src/vte.c: Fix IC, which should *always* be done in insert mode,
+	from otaylor.  Make delete mode do nothing.
 2002-05-09 nalin
 	* src/vte.c: Fixes to usage of iconv, from otaylor.  Remap certain
 	characters which are missing in the current Xft font to similar

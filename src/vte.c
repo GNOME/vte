@@ -250,7 +250,8 @@ typedef void (*VteTerminalSequenceHandler)(VteTerminal *terminal,
 					   const char *match,
 					   GQuark match_quark,
 					   GValueArray *params);
-static void vte_terminal_insert_char(GtkWidget *widget, wchar_t c);
+static void vte_terminal_insert_char(GtkWidget *widget, wchar_t c,
+				     gboolean force_insert);
 static void vte_sequence_handler_clear_screen(VteTerminal *terminal,
 					      const char *match,
 					      GQuark match_quark,
@@ -1676,7 +1677,7 @@ vte_sequence_handler_ic(VteTerminal *terminal,
 	row = screen->cursor_current.row;
 	col = screen->cursor_current.col;
 
-	vte_terminal_insert_char(GTK_WIDGET(terminal), ' ');
+	vte_terminal_insert_char(GTK_WIDGET(terminal), ' ', TRUE);
 
 	screen->cursor_current.row = row;
 	screen->cursor_current.col = col;
@@ -3581,14 +3582,14 @@ static struct {
 	{"DC", vte_sequence_handler_DC},
 	{"dl", vte_sequence_handler_dl},
 	{"DL", vte_sequence_handler_DL},
-	{"dm", NULL},
+	{"dm", vte_sequence_handler_noop},
 	{"do", vte_sequence_handler_do},
 	{"DO", vte_sequence_handler_DO},
 	{"ds", NULL},
 
 	{"eA", vte_sequence_handler_eA},
 	{"ec", vte_sequence_handler_ec},
-	{"ed", NULL},
+	{"ed", vte_sequence_handler_noop},
 	{"ei", vte_sequence_handler_ei},
 
 	{"ff", NULL},
@@ -4058,7 +4059,7 @@ vte_terminal_set_default_colors(VteTerminal *terminal)
 
 /* Insert a single character into the stored data array. */
 static void
-vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
+vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 {
 	VteTerminal *terminal;
 	GArray *array;
@@ -4066,11 +4067,13 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 	int columns, i;
 	long col;
 	VteScreen *screen;
+	gboolean insert;
 
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
 	screen = terminal->pvt->screen;
+	insert = terminal->pvt->screen->insert || force_insert;
 
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_IO)) {
@@ -4128,7 +4131,7 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 		} else {
 			/* If we're in insert mode, insert a new cell here
 			 * and use it. */
-			if (screen->insert) {
+			if (insert) {
 				g_array_insert_val(array, col, cell);
 				pcell = &g_array_index(array,
 						       struct vte_charcell,
@@ -4150,7 +4153,7 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 		}
 
 		/* Signal that this part of the window needs drawing. */
-		if (terminal->pvt->screen->insert) {
+		if (insert) {
 			vte_invalidate_cells(terminal,
 					     col - 1,
 					     terminal->column_count - col + 1,
@@ -4279,7 +4282,7 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 	term = g_strdup_printf("TERM=%s", terminal->pvt->terminal);
 	colorterm = g_strdup("COLORTERM=" PACKAGE);
 	env_add[0] = term;
-#ifndef VTE_DEBUG
+#ifdef VTE_DEBUG
 	env_add[1] = colorterm;
 #endif
 	env_add[2] = NULL;
@@ -4648,7 +4651,7 @@ vte_terminal_process_incoming(gpointer data)
 				}
 			}
 #endif
-			vte_terminal_insert_char(widget, c);
+			vte_terminal_insert_char(widget, c, FALSE);
 			inserted = TRUE;
 			start++;
 		} else {
