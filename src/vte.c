@@ -36,7 +36,6 @@
 #include <termios.h>
 #include <unistd.h>
 #include <wchar.h>
-#include <wctype.h>
 #include <glib.h>
 #include <glib-object.h>
 #include <gdk/gdk.h>
@@ -94,9 +93,9 @@
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
 struct vte_charcell {
-	wchar_t c;		/* The wide character. */
+	gunichar c;		/* The Unicode character. */
 	guint16 columns: 2;	/* Number of visible columns (as determined
-				   by wcwidth(c)). */
+				   by g_unicode_iswide(c)). */
 	guint16 fore: 5;	/* Indices in the color palette for the */
 	guint16 back: 5;	/* foreground and background of the cell. */
 	guint16 standout: 1;	/* Single-bit attributes. */
@@ -127,7 +126,7 @@ typedef enum {
 typedef struct _VteScreen VteScreen;
 
 typedef struct _VteWordCharRange {
-	wchar_t start, end;
+	gunichar start, end;
 } VteWordCharRange;
 
 /* Terminal private data. */
@@ -157,7 +156,7 @@ struct _VteTerminalPrivate {
 	const char *gxencoding[4];	/* alternate encodings */
 
 	/* Input data queues. */
-	GIConv incoming_conv;		/* narrow/wide conversion state */
+	GIConv incoming_conv;		/* narrow/unichar conversion state */
 	unsigned char *incoming;	/* pending output characters */
 	size_t n_incoming;
 	gboolean processing;
@@ -303,7 +302,7 @@ typedef void (*VteTerminalSequenceHandler)(VteTerminal *terminal,
 static void vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 				     gboolean reset);
 static void vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current);
-static void vte_terminal_insert_char(GtkWidget *widget, wchar_t c,
+static void vte_terminal_insert_char(GtkWidget *widget, gunichar c,
 				     gboolean force_insert);
 static void vte_sequence_handler_clear_screen(VteTerminal *terminal,
 					      const char *match,
@@ -367,6 +366,33 @@ static GArray *
 vte_new_row_data(void)
 {
 	return g_array_new(FALSE, FALSE, sizeof(struct vte_charcell));
+}
+
+/* Guess at how many columns a character takes up. */
+static ssize_t
+vte_unichar_width(gunichar c)
+{
+	return g_unichar_isdefined(c) ? (g_unichar_iswide(c) ? 2 : 1) : -1;
+}
+
+/* Check how long a string of unichars is.  Slow version. */
+static ssize_t
+vte_unicode_strlen(gunichar *c)
+{
+	int i;
+	for (i = 0; c[i] != 0; i++) ;
+	return i;
+}
+
+/* Convert a gunichar to a wchar_t for use with X. */
+static wchar_t
+vte_wc_from_unichar(gunichar c)
+{
+#ifdef __STDC_ISO_10646__
+	return (wchar_t) c;
+#else
+#error "Don't know how to convert from gunichar to wchar_t!"
+#endif
 }
 
 /* Reset defaults for character insertion. */
@@ -1267,41 +1293,68 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	size_t icount, ocount;
 
 	old_codeset = terminal->pvt->encoding;
-
 	if (codeset == NULL) {
 		codeset = nl_langinfo(CODESET);
 	}
 
 	/* Open new conversions. */
-	new_iconv = g_iconv_open("WCHAR_T", codeset);
-	new_oconvw = g_iconv_open(codeset, "WCHAR_T");
-	new_oconvu = g_iconv_open(codeset, "UTF-8");
+	new_iconv = g_iconv_open(vte_trie_wide_encoding(), codeset);
 	if (new_iconv == ((GIConv) -1)) {
 		g_warning(_("Unable to convert characters from %s to %s."),
-			  codeset, "WCHAR_T");
-		return;
+			  codeset, vte_trie_wide_encoding());
+		if (terminal->pvt->encoding != NULL) {
+			/* Keep the current encoding. */
+			return;
+		}
 	}
+	new_oconvw = g_iconv_open(codeset, vte_trie_wide_encoding());
 	if (new_oconvw == ((GIConv) -1)) {
 		g_warning(_("Unable to convert characters from %s to %s."),
-			  "WCHAR_T", codeset);
+			  vte_trie_wide_encoding(), codeset);
 		g_iconv_close(new_iconv);
-		return;
+		if (terminal->pvt->encoding != NULL) {
+			/* Keep the current encoding. */
+			return;
+		}
 	}
+	new_oconvu = g_iconv_open(codeset, "UTF-8");
 	if (new_oconvu == ((GIConv) -1)) {
 		g_warning(_("Unable to convert characters from %s to %s."),
 			  "UTF-8", codeset);
 		g_iconv_close(new_iconv);
 		g_iconv_close(new_oconvw);
-		return;
+		if (terminal->pvt->encoding != NULL) {
+			/* Keep the current encoding. */
+			return;
+		}
 	}
 
-	/* Set up the conversion for incoming-to-wchars. */
+	if (new_oconvu == ((GIConv) -1)) {
+		codeset = vte_trie_narrow_encoding();
+		new_iconv = g_iconv_open(vte_trie_wide_encoding(), codeset);
+		if (new_iconv == ((GIConv) -1)) {
+			g_error(_("Unable to convert characters from %s to %s."),
+				codeset, vte_trie_wide_encoding());
+		}
+		new_oconvw = g_iconv_open(codeset, vte_trie_wide_encoding());
+		if (new_oconvw == ((GIConv) -1)) {
+			g_error(_("Unable to convert characters from %s to %s."),
+				vte_trie_wide_encoding(), codeset);
+		}
+		new_oconvu = g_iconv_open(codeset, "UTF-8");
+		if (new_oconvu == ((GIConv) -1)) {
+			g_error(_("Unable to convert characters from %s to %s."),
+				"UTF-8", codeset);
+		}
+	}
+
+	/* Set up the conversion for incoming-to-gunichar. */
 	if (terminal->pvt->incoming_conv != ((GIConv) -1)) {
 		g_iconv_close(terminal->pvt->incoming_conv);
 	}
 	terminal->pvt->incoming_conv = new_iconv;
 
-	/* Set up the conversions for wchar/utf-8 to outgoing. */
+	/* Set up the conversions for gunichar/utf-8 to outgoing. */
 	if (terminal->pvt->outgoing_conv_wide != ((GIConv) -1)) {
 		g_iconv_close(terminal->pvt->outgoing_conv_wide);
 	}
@@ -1905,7 +1958,7 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 	memset(&cell, 0, sizeof(cell));
 	cell = screen->defaults;
 	cell.c = ' ';
-	cell.columns = wcwidth(cell.c);
+	cell.columns = vte_unichar_width(cell.c);
 	if (!current) {
 		cell.fore = VTE_DEF_FG;
 		cell.back = VTE_DEF_BG;
@@ -3071,11 +3124,12 @@ vte_sequence_handler_set_title_int(VteTerminal *terminal,
 			outbufptr = g_value_dup_string(value);
 		} else
 		if (G_VALUE_HOLDS_POINTER(value)) {
-			/* Convert the wide-character string into a
+			/* Convert the unicode-character string into a
 			 * multibyte string. */
-			conv = g_iconv_open("UTF-8", "WCHAR_T");
+			conv = g_iconv_open("UTF-8", vte_trie_wide_encoding());
 			inbuf = g_value_get_pointer(value);
-			inbuf_len = wcslen((wchar_t*)inbuf) * sizeof(wchar_t);
+			inbuf_len = vte_unicode_strlen((gunichar*)inbuf) *
+				    sizeof(gunichar);
 			outbuf_len = (inbuf_len * VTE_UTF8_BPC) + 1;
 			outbuf = outbufptr = g_malloc0(outbuf_len);
 			if (conv != ((GIConv) -1)) {
@@ -3699,10 +3753,10 @@ vte_sequence_handler_local_charset(VteTerminal *terminal,
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 #ifdef VTE_DEFAULT_ISO_8859_1
-	vte_terminal_set_encoding(terminal, "ISO-8859-1");
+	vte_terminal_set_encoding(terminal, vte_trie_narrow_encoding());
 #else
 	if (strcmp(nl_langinfo(CODESET), "UTF-8") == 0) {
-		vte_terminal_set_encoding(terminal, "ISO-8859-1");
+		vte_terminal_set_encoding(terminal, vte_trie_narrow_encoding());
 	} else {
 		vte_terminal_set_encoding(terminal, nl_langinfo(CODESET));
 	}
@@ -4195,7 +4249,7 @@ vte_sequence_handler_designate_gx(VteTerminal *terminal,
 				case '7':
 				case '=':	/* Swiss. */
 					terminal->pvt->gxencoding[x] =
-						"ISO-8859-15";
+						vte_trie_narrow_encoding();
 					break;
 			}
 		}
@@ -4923,7 +4977,7 @@ vte_terminal_set_default_colors(VteTerminal *terminal)
 
 /* Insert a single character into the stored data array. */
 static void
-vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
+vte_terminal_insert_char(GtkWidget *widget, gunichar c, gboolean force_insert)
 {
 	VteTerminal *terminal;
 	GArray *array;
@@ -4941,20 +4995,20 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_IO)) {
-		fprintf(stderr, "Inserting %ld (%d/%d), delta = %ld.\n",
+		fprintf(stderr, "Inserting %ld %c (%d/%d)(%d), delta = %ld, ",
 			(long)c,
+			c < 256 ? c : ' ',
 			screen->defaults.fore, screen->defaults.back,
+			vte_unichar_width(c),
 			(long)screen->insert_delta);
 	}
 #endif
 
 	/* Figure out how many columns this character should occupy. */
-	columns = wcwidth(c);
-
-	/* FIXME: find why this can happen, and stop it. */
+	columns = vte_unichar_width(c);
 	if (columns < 0) {
-		g_warning(_("Character %5ld is %d columns wide, guessing 1."),
-			  c, columns);
+		g_warning(_("Character 0x%x is undefined, allocating one "
+			  "column."), c);
 		columns = 1;
 	}
 
@@ -5070,7 +5124,7 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_IO)) {
-		fprintf(stderr, "Insertion delta = %ld.\n",
+		fprintf(stderr, "insertion delta => %ld.\n",
 			(long)screen->insert_delta);
 	}
 #endif
@@ -5086,7 +5140,7 @@ display_control_sequence(const char *name, GValueArray *params)
 	int i;
 	long l;
 	const char *s;
-	const wchar_t *w;
+	const gunichar *w;
 	GValue *value;
 	fprintf(stderr, "%s(", name);
 	if (params != NULL) {
@@ -5283,7 +5337,7 @@ vte_terminal_im_reset(VteTerminal *terminal)
 }
 
 /* Free a parameter array.  Most of the GValue elements can clean up after
- * themselves, but we're using gpointers to hold wide character strings, and
+ * themselves, but we're using gpointers to hold unicode character strings, and
  * we need to free those ourselves. */
 static void
 free_params_array(GValueArray *params)
@@ -5306,7 +5360,7 @@ free_params_array(GValueArray *params)
 	}
 }
 
-/* Process incoming data, first converting it to wide characters, and then
+/* Process incoming data, first converting it to unicode characters, and then
  * processing escape sequences. */
 static gboolean
 vte_terminal_process_incoming(gpointer data)
@@ -5319,12 +5373,12 @@ vte_terminal_process_incoming(gpointer data)
 	GdkRectangle rect;
 	char *ibuf, *obuf, *obufptr, *ubuf, *ubufptr;
 	size_t icount, ocount, ucount;
-	wchar_t *wbuf, c;
+	gunichar *wbuf, c;
 	int wcount, start;
 	const char *match, *encoding;
 	GIConv unconv;
 	GQuark quark;
-	const wchar_t *next;
+	const gunichar *next;
 	gboolean leftovers, modified, again, bottom;
 
 	g_return_val_if_fail(GTK_IS_WIDGET(data), FALSE);
@@ -5344,29 +5398,30 @@ vte_terminal_process_incoming(gpointer data)
 	/* We should only be called when there's data to process. */
 	g_assert(terminal->pvt->n_incoming > 0);
 
-	/* Try to convert the data into wide characters. */
-	ocount = sizeof(wchar_t) * terminal->pvt->n_incoming;
+	/* Try to convert the data into unicode characters. */
+	ocount = sizeof(gunichar) * terminal->pvt->n_incoming;
 	obuf = obufptr = g_malloc(ocount);
 	icount = terminal->pvt->n_incoming;
 	ibuf = terminal->pvt->incoming;
 
-	/* Convert the data to wide characters. */
+	/* Convert the data to unicode characters. */
 	if (g_iconv(terminal->pvt->incoming_conv, &ibuf, &icount,
 		    &obuf, &ocount) == -1) {
 		/* No dice.  Try again when we have more data. */
 		if ((errno == EILSEQ) && (terminal->pvt->n_incoming > 0)) {
 			/* Discard the offending byte. */
 			start = terminal->pvt->n_incoming - icount;
-			terminal->pvt->incoming[start] = '?';
 #ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_IO)) {
+			if (vte_debug_on(VTE_DEBUG_IO) || 1) {
 				fprintf(stderr, "Error converting %ld incoming "
 					"data bytes: %s, discarding byte %ld "
-					"and trying again.\n",
+					"(0x%02x) and trying again.\n",
 					(long) terminal->pvt->n_incoming,
-					strerror(errno), start);
+					strerror(errno), start,
+					terminal->pvt->incoming[start]);
 			}
 #endif
+			terminal->pvt->incoming[start] = '?';
 			/* Try again. */
 			g_free(obufptr);
 			return TRUE;
@@ -5388,9 +5443,9 @@ vte_terminal_process_incoming(gpointer data)
 	/* Store the current encoding. */
 	encoding = terminal->pvt->encoding;
 
-	/* Compute the number of wide characters we got. */
-	wcount = (obuf - obufptr) / sizeof(wchar_t);
-	wbuf = (wchar_t*) obufptr;
+	/* Compute the number of unicode characters we got. */
+	wcount = (obuf - obufptr) / sizeof(gunichar);
+	wbuf = (gunichar*) obufptr;
 
 	/* Save the current cursor position. */
 	screen = terminal->pvt->screen;
@@ -5522,7 +5577,7 @@ vte_terminal_process_incoming(gpointer data)
 						     match,
 						     quark,
 						     params);
-			/* Skip over the proper number of wide chars. */
+			/* Skip over the proper number of unicode chars. */
 			start = (next - wbuf);
 			/* Check if the encoding's changed. If it has, we need
 			 * to force our caller to call us again to parse the
@@ -5588,9 +5643,9 @@ vte_terminal_process_incoming(gpointer data)
 	if (leftovers) {
 		/* There are leftovers, so convert them back to the terminal's
 		 * old encoding and save them for later. */
-		unconv = g_iconv_open(encoding, "WCHAR_T");
+		unconv = g_iconv_open(encoding, vte_trie_wide_encoding());
 		if (unconv != ((GIConv) -1)) {
-			icount = sizeof(wchar_t) * (wcount - start);
+			icount = sizeof(gunichar) * (wcount - start);
 			ibuf = (char*) &wbuf[start];
 			ucount = VTE_UTF8_BPC * (wcount - start) + 1;
 			ubuf = ubufptr = g_malloc(ucount);
@@ -5616,7 +5671,7 @@ vte_terminal_process_incoming(gpointer data)
 				if (vte_debug_on(VTE_DEBUG_IO)) {
 					fprintf(stderr, "Error unconverting %ld "
 						"pending input bytes (%s), dropping.\n",
-						(long) (sizeof(wchar_t) * (wcount - start)),
+						(long) (sizeof(gunichar) * (wcount - start)),
 						strerror(errno));
 				}
 #endif
@@ -5851,7 +5906,7 @@ vte_terminal_feed(VteTerminal *terminal, const char *data, size_t length)
 	}
 }
 
-/* Send wide characters to the child. */
+/* Send unicode characters to the child. */
 static gboolean
 vte_terminal_io_write(GIOChannel *channel,
 		      GdkInputCondition condition,
@@ -5913,13 +5968,13 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_assert((strcmp(encoding, "UTF-8") == 0) ||
-		 (strcmp(encoding, "WCHAR_T") == 0));
+		 (strcmp(encoding, vte_trie_wide_encoding()) == 0));
 
 	conv = NULL;
 	if (strcmp(encoding, "UTF-8") == 0) {
 		conv = &terminal->pvt->outgoing_conv_utf8;
 	}
-	if (strcmp(encoding, "WCHAR_T") == 0) {
+	if (strcmp(encoding, vte_trie_wide_encoding()) == 0) {
 		conv = &terminal->pvt->outgoing_conv_wide;
 	}
 	g_assert(conv != NULL);
@@ -6593,10 +6648,6 @@ vte_terminal_is_word_char(VteTerminal *terminal, gunichar c)
 	if (terminal->pvt->word_chars == NULL) {
 		return FALSE;
 	}
-	/* FIXME: if a gunichar isn't a wchar_t, we're probably screwed, so
-	 * should we convert from UCS-4 to WCHAR_T or something here?  (Is a
-	 * gunichar even a UCS-4 character)?  Or should we convert to UTF-8
-	 * and then to WCHAR_T?  Aaaargh. */
 	for (i = 0; i < terminal->pvt->word_chars->len; i++) {
 		range = &g_array_index(terminal->pvt->word_chars,
 				       VteWordCharRange,
@@ -9454,7 +9505,7 @@ vte_terminal_draw_char(VteTerminal *terminal,
 	int fore, back, dcol, i, j, padding;
 	long xcenter, ycenter, xright, ybottom;
 	char utf8_buf[7] = {0,};
-	wchar_t ch;
+	gunichar ch;
 	gboolean drawn, reverse, alternate;
 	PangoAttribute *attr;
 	PangoAttrList *attrlist;
@@ -10220,8 +10271,15 @@ vte_terminal_draw_char(VteTerminal *terminal,
 			XftTextExtents32(GDK_DISPLAY(), font, &ftc, 1,
 					 &glyph_info);
 			padding = CLAMP((terminal->char_width *
-					 wcwidth(ch) - glyph_info.xOff) / 2,
+					 (g_unichar_iswide(ch) ? 2 : 1) -
+					 glyph_info.xOff) / 2,
 					0, 3 * terminal->char_width);
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_UPDATES)) {
+				fprintf(stderr, "Using %d pixels of padding for"
+					" character 0x%x.\n", padding, ch);
+			}
+#endif
 			g_tree_insert(terminal->pvt->fontpadding,
 				      GINT_TO_POINTER(ftc),
 				      GINT_TO_POINTER(padding));
@@ -10266,6 +10324,8 @@ vte_terminal_draw_char(VteTerminal *terminal,
 	if (!drawn) {
 		gpointer ptr;
 		XRectangle ink, logic;
+		wchar_t wc;
+		wc = vte_wc_from_unichar(ch);
 		ptr = g_tree_lookup(terminal->pvt->fontpadding,
 				    GINT_TO_POINTER(ch));
 		padding = GPOINTER_TO_INT(ptr);
@@ -10273,7 +10333,7 @@ vte_terminal_draw_char(VteTerminal *terminal,
 			padding = 0;
 		} else if (padding == 0) {
 			XwcTextExtents(terminal->pvt->fontset,
-				       &ch, 1, &ink, &logic);
+				       &wc, 1, &ink, &logic);
 			padding = CLAMP((terminal->char_width *
 					 wcwidth(ch) - logic.width) / 2,
 					0, 3 * terminal->char_width);
@@ -10283,7 +10343,7 @@ vte_terminal_draw_char(VteTerminal *terminal,
 		}
 
 		/* Set the textitem's fields. */
-		textitem.chars = &ch;
+		textitem.chars = &wc;
 		textitem.nchars = 1;
 		textitem.delta = 0;
 		textitem.font_set = terminal->pvt->fontset;
@@ -10510,7 +10570,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		if (terminal->pvt->im_preedit != NULL) {
 			preedit = terminal->pvt->im_preedit;
 			for (i = 0; i < terminal->pvt->im_preedit_cursor; i++) {
-				col += wcwidth(g_utf8_get_char(preedit));
+				col += vte_unichar_width(g_utf8_get_char(preedit));
 				preedit = g_utf8_next_char(preedit);
 			}
 		}
@@ -10641,7 +10701,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 					       ftdraw,
 #endif
 					       FALSE);
-			col += wcwidth(im_cell.c);
+			col += vte_unichar_width(im_cell.c);
 			preedit = g_utf8_next_char(preedit);
 		}
 		if (len > 0) {
@@ -10983,6 +11043,14 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     NULL,
 			     _vte_marshal_VOID__UINT_UINT,
 			     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
+
+	/* Try to determine some acceptable encoding names. */
+	if (vte_trie_narrow_encoding() == NULL) {
+		g_error("Don't know how to read ISO-8859-1 data!");
+	}
+	if (vte_trie_wide_encoding() == NULL) {
+		g_error("Don't know how to read native-endian unicode data!");
+	}
 
 #ifdef VTE_DEBUG
 	/* Turn on debugging if we were asked to. */
@@ -11609,7 +11677,7 @@ void
 vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 {
 	GIConv conv;
-	wchar_t *wbuf;
+	gunichar *wbuf;
 	char *ibuf, *ibufptr, *obuf, *obufptr;
 	size_t ilen, olen;
 	VteWordCharRange range;
@@ -11622,8 +11690,8 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	}
 	terminal->pvt->word_chars = g_array_new(FALSE, TRUE,
 						sizeof(VteWordCharRange));
-	/* Convert the spec from UTF-8 to a string of wchar_t. */
-	conv = g_iconv_open("WCHAR_T", "UTF-8");
+	/* Convert the spec from UTF-8 to a string of gunichars . */
+	conv = g_iconv_open(vte_trie_wide_encoding(), "UTF-8");
 	if (conv == ((GIConv) -1)) {
 		/* Aaargh.  We're screwed. */
 		g_warning(_("g_iconv_open() failed setting word characters"));
@@ -11631,13 +11699,13 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	}
 	ilen = strlen(spec);
 	ibuf = ibufptr = g_strdup(spec);
-	olen = (ilen + 1) * sizeof(wchar_t);
-	obuf = obufptr = g_malloc0(sizeof(wchar_t) * (strlen(spec) + 1));
-	wbuf = (wchar_t*) obuf;
+	olen = (ilen + 1) * sizeof(gunichar);
+	obuf = obufptr = g_malloc0(sizeof(gunichar) * (strlen(spec) + 1));
+	wbuf = (gunichar*) obuf;
 	wbuf[ilen] = '\0';
 	g_iconv(conv, &ibuf, &ilen, &obuf, &olen);
 	g_iconv_close(conv);
-	for (i = 0; i < ((obuf - obufptr) / sizeof(wchar_t)); i++) {
+	for (i = 0; i < ((obuf - obufptr) / sizeof(gunichar)); i++) {
 		/* The hyphen character. */
 		if (wbuf[i] == '-') {
 			range.start = wbuf[i];

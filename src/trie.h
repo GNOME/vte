@@ -21,8 +21,8 @@
 
 #ident "$Id$"
 
-#include <wchar.h>
 #include <glib.h>
+#include <glib-object.h>
 
 G_BEGIN_DECLS
 
@@ -48,9 +48,9 @@ void vte_trie_add(struct vte_trie *trie,
  * passed-in string can not be an initial substring of one of the strings in
  * the trie, then NULL is returned. */
 const char *vte_trie_match(struct vte_trie *trie,
-			   const wchar_t *pattern, size_t length,
+			   const gunichar *pattern, size_t length,
 			   const char **res,
-			   const wchar_t **consumed,
+			   const gunichar **consumed,
 			   GQuark *quark,
 			   GValueArray **array);
 
@@ -59,6 +59,12 @@ void vte_trie_print(struct vte_trie *trie);
 
 /* Precompute internal information to hopefully make traversal faster. */
 void vte_trie_precompute(struct vte_trie *trie);
+
+/* A gunichar-compatible giconv target, if one can be found. */
+const char *vte_trie_wide_encoding(void);
+
+/* A single-byte iso-8859-1 giconv target, if one can be found. */
+const char *vte_trie_narrow_encoding(void);
 
 G_END_DECLS
 

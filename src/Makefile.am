@@ -30,7 +30,7 @@ libvte_la_SOURCES = \
 	vteaccess.h
 
 libvte_la_LIBADD = @LIBS@ @XFT_LIBS@ @GTK_LIBS@ @X_LIBS@
-libvte_la_LDFLAGS = -version-info 3:0:2
+libvte_la_LDFLAGS = -version-info 2:0:0
 
 CLEANFILES = marshal.c marshal.h
 
@@ -55,7 +55,12 @@ interpret_SOURCES = \
 	interpret.c
 interpret_LDADD = @GLIB_LIBS@
 
+utf8echo_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DUTF8ECHO_MAIN
 utf8echo_SOURCES = \
+	debug.c \
+	debug.h \
+	trie.c \
+	trie.h \
 	utf8echo.c
 utf8echo_LDADD = @LIBS@ @GLIB_LIBS@
 

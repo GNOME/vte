@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.4.9
+Version: 0.5.0
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -36,12 +36,13 @@ rm -fr $RPM_BUILD_ROOT
 %install
 rm -fr $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
+%find_lang %{name}
 
 %post -p /sbin/ldconfig
 
 %postun -p /sbin/ldconfig
 
-%files
+%files -f %{name}.lang
 %defattr(-,root,root)
 %doc ChangeLog COPYING HACKING NEWS README
 %{_libdir}/*.so.*.*
@@ -75,7 +76,7 @@ make install DESTDIR=$RPM_BUILD_ROOT
 * Thu Jul 11 2002 Nalin Dahyabhai <nalin@redhat.com>
 - rework default color selection
 - provide a means for apps to just set the foreground/background text colors
-- don't scroll-on-keystroke when it's just alt, hyper, meta, or super
+- don't scroll-on-keystroke when it's just alt, hyper, meta, or super (#68986)
 
 * Tue Jul  2 2002 Nalin Dahyabhai <nalin@redhat.com>
 - allow shift+click to extend the selection (re: gnome 86246)

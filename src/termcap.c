@@ -658,7 +658,9 @@ main(int argc, char **argv)
 	const char *tc = (argc > 1) ? argv[1] : "linux";
 	const char *cap = (argc > 2) ? argv[2] : "so";
 	char *value;
-	struct vte_termcap *termcap = vte_termcap_new("/etc/termcap");
+	struct vte_termcap *termcap;
+	vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
+	termcap = vte_termcap_new("/etc/termcap");
 	value = vte_termcap_find_string(termcap, tc, cap);
 	printf("%s\n", value);
 	g_free(value);

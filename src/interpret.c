@@ -32,14 +32,6 @@
 #include "termcap.h"
 #include "trie.h"
 
-static void
-convert_mbstowcs(const char *i, size_t ilen, wchar_t *o, size_t *olen)
-{
-	mbstate_t state;
-	memset(&state, 0, sizeof(state));
-	*olen = mbsrtowcs(o, &i, ilen, &state);
-}
-
 int
 main(int argc, char **argv)
 {
@@ -52,8 +44,10 @@ main(int argc, char **argv)
 	GValue *value;
 	FILE *infile = NULL;
 
+	vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
+
 	if (argc < 2) {
-		g_print("usage: %s terminal [file]\n", argv[0]);
+		printf("usage: %s terminal [file]\n", argv[0]);
 		return 1;
 	}
 
@@ -96,26 +90,30 @@ main(int argc, char **argv)
 			const char *tmp;
 			GQuark quark;
 			GValueArray *values;
-			wchar_t wbuf[LINE_MAX];
-			size_t wbuflen;
-			convert_mbstowcs(array->data, i, wbuf, &wbuflen);
-			vte_trie_match(trie, wbuf, wbuflen,
+			GError *error = NULL;
+			gunichar *ubuf;
+			gsize ubuflen;
+			ubuf = (gunichar*) g_convert(array->data, i,
+						     vte_trie_wide_encoding(),
+						     "UTF-8",
+						     NULL, &ubuflen, &error);
+			vte_trie_match(trie, ubuf, ubuflen / sizeof(gunichar),
 				       &tmp, NULL, &quark, &values);
 			if (tmp != NULL) {
 				if (strlen(tmp) > 0) {
 					int j;
-					g_print("%s(", g_quark_to_string(quark));
+					printf("%s(", g_quark_to_string(quark));
 					for (j = 0; (values != NULL) && (j < values->n_values); j++) {
 						if (j > 0) {
-							g_print(", ");
+							printf(", ");
 						}
 						value = g_value_array_get_nth(values, j);
 						if (G_VALUE_HOLDS_LONG(value)) {
-							g_print("%ld",
+							printf("%ld",
 								g_value_get_long(value));
 						}
 						if (G_VALUE_HOLDS_STRING(value)) {
-							g_print("`%s'",
+							printf("`%s'",
 								g_value_get_string(value));
 						}
 						if (G_VALUE_HOLDS_POINTER(value)) {
@@ -129,12 +127,12 @@ main(int argc, char **argv)
 					for (j = 0; j < i; j++) {
 						g_byte_array_remove_index(array, 0);
 					}
-					g_print(")\n");
+					printf(")\n");
 					break;
 				}
 			} else {
 				while (array->len > 0) {
-					g_print("`%c'\n", array->data[0]);
+					printf("`%c'\n", array->data[0]);
 					g_byte_array_remove_index(array, 0);
 				}
 			}

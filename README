@@ -16,7 +16,7 @@
 - The VTE library inserts terminal capability strings into a trie, and then
   uses it to determine if data received from a pseudo-terminal is a control
   sequence or just random data.  The sample program "interpret" illustrates
-  what the widget actually sees after it filters incoming data.
+  more or less what the widget sees after it filters incoming data.
 
 * What's missing?
 - Accessibility isn't completed yet.
@@ -36,3 +36,22 @@
   things is currently scarce, so some of it's guesswork.
 - An actual property interface needs to be retrofitted over the various options
   which are currently hard-coded at startup-time.
+
+* What's weird?
+- Relative cursor motion is weird.  When the character to the right of the
+  cursor is a 3-byte UTF-8 sequence for a character which occupies two
+  columns on the screen, three things may happen when the application sends
+  the "cursor left" control sequence:
+  * the cursor moves two columns (one character) to the left
+    This eliminates the possibility of moving the cursor into the middle of
+    a multi-column character.
+  * the cursor moves one column (one half-character) to the left
+    This makes determining where the cursor is easier, but requires the
+    application to emit a control sequence more than once for multi-column
+    characters.
+  * the cursor moves one "byte" to the left
+    This happens to work for a few locales, and is otherwise just broken.
+  Currently VTE follows the second convention.  More on this topic:
+  http://czyborra.com/unicode/terminals.html
+  http://mail.nl.linux.org/linux-utf8/1999-10/msg00014.html
+  http://www.debian.org/doc/manuals/intro-i18n/ch-output.en.html

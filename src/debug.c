@@ -29,7 +29,7 @@ vte_debug_parse_string(const char *string)
 	char **flags = NULL;
 	int i;
 	vte_debug_flags = 0;
-	flags = g_strsplit(string, ",", 0);
+	flags = g_strsplit(string ? string : "", ",", 0);
 	if (flags != NULL) {
 		for (i = 0; flags[i] != NULL; i++) {
 			if (g_ascii_strcasecmp(flags[i], "ALL") == 0) {

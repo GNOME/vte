@@ -1,3 +1,24 @@
+2002-07-17  nalin
+	* configure.in: Actually set ALL_LINGUAS so translations get installed.
+	* README: Document the weirdness that is cursor movement around wide
+	characters.
+	* src/vte.defs: Bind set_color_bold().
+	* src/debug.c: Suppress warnings when $VTE_DEBUG_FLAGS isn't set.
+	* src/pty.c, src/reaper.c, src/termcap.c, src/trie.c: Provide for
+	debug messages in the test program.
+	* src/interpret.c, src/trie.c: Use libc stdio instead of g_print for
+	printing what might be part of a multibyte sequence because g_print
+	checks for validity.
+	* src/interpret.c, src/trie.c, src/utf8echo.c, src/vte.c: Use gunichar
+	instead of wchar_t in places where a gunichar is expected.  Provide a
+	means for converting from wchar_t to gunichar for the sake of X11 calls
+	which want a wchar_t.
+	* src/trie.c: Provide vte_trie_wide_encoding() for finding a giconv
+	target which is hopefully compatible with gunichar.  Likewise provide
+	vte_trie_narrow_encoding() to find one compatible with iso-8859-1.
+	* src/vte.c: Fall back to ISO-8859-1 if we can't set things up for the
+	current locale encoding at startup time.  Fall back to the current
+	encoding if we can't perform a given dynamic switch.
 2002-07-16  nalin
 	* configure.in: Set GETTEXT_PACKAGE correctly, noted by menthos.
 

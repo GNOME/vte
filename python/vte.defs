@@ -115,6 +115,15 @@
   )
 )
 
+(define-method set_color_bold
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_color_bold")
+  (return-type "none")
+  (parameters
+    '("const-GdkColor*" "bold")
+  )
+)
+
 (define-method set_color_foreground
   (of-object "VteTerminal")
   (c-name "vte_terminal_set_color_foreground")
