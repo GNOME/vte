@@ -3374,6 +3374,14 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 			break;
 		case 47:
 		case 1047:
+			/* Clear the alternate screen if we're switching
+			 * to it. */
+			if (set) {
+				vte_sequence_handler_clear_screen(terminal,
+					       			  NULL,
+								  0,
+								  NULL);
+			}
 			/* Reset scrollbars and repaint everything. */
 			vte_terminal_adjust_adjustments(terminal);
 			vte_invalidate_all(terminal);

@@ -1,3 +1,5 @@
+2002-06-19 nalin
+	* src/vte.c: Clear the alternate screen when switching to it.
 2002-06-18 nalin
 	* src/vte.c: Fix refs/derefs with IOChannels and sources.  Clean up
 	I/O GIConv descriptors at finalize-time.
