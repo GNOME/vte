@@ -153,15 +153,16 @@ sys.exit(0)
 "
 		if $PYTHON -c "$prog" 1>&AC_FD_CC 2>&AC_FD_CC
 		then
-		  AC_MSG_RESULT(okay)
+		  AC_MSG_RESULT([okay])
 		  AM_CHECK_PYTHON_HEADERS([BUILD_PYTHON=true],
 					  [AC_MSG_RESULT(could not find Python headers)])
 		else
 		  BUILD_PYTHON=false
-		  AC_MSG_RESULT(too old)
+		  AC_MSG_RESULT([too old])
 		fi
 	else
 		AC_MSG_RESULT([not found])
+		BUILD_PYTHON=false
 	fi
 else
 		AC_MSG_RESULT([Python bindings disabled.])
