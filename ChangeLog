@@ -1,3 +1,8 @@
+2003-02-18 nalin
+	* src/vteaccess.c: emit focus-event signals from the accessible peer
+	when the widget receives focus-in and focus-out events, noted by
+	Marc Mulcahy.
+
 2003-02-18  Roozbeh Pournader  <roozbeh@sharif.edu>
 
 	* configure.in: Added "fa" to ALL_LINGUAS.

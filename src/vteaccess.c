@@ -613,6 +613,26 @@ vte_terminal_accessible_title_changed(VteTerminal *terminal, gpointer data)
 	atk_object_set_description(ATK_OBJECT(data), terminal->window_title);
 }
 
+/* Reflect focus-in events. */
+static void
+vte_terminal_accessible_focus_in(VteTerminal *terminal, GdkEventFocus *event,
+				 gpointer data)
+{
+	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(data));
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_signal_emit_by_name(data, "focus-event", TRUE);
+}
+
+/* Reflect focus-out events. */
+static void
+vte_terminal_accessible_focus_out(VteTerminal *terminal, GdkEventFocus *event,
+				  gpointer data)
+{
+	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(data));
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_signal_emit_by_name(data, "focus-event", FALSE);
+}
+
 /**
  * vte_terminal_accessible_new:
  * @terminal: a #VteTerminal
@@ -661,6 +681,12 @@ vte_terminal_accessible_new(VteTerminal *terminal)
 			 object);
         g_signal_connect(G_OBJECT(terminal), "window-title-changed",
 			 GTK_SIGNAL_FUNC(vte_terminal_accessible_title_changed),
+			 access);
+        g_signal_connect(G_OBJECT(terminal), "focus-in-event",
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_focus_in),
+			 access);
+        g_signal_connect(G_OBJECT(terminal), "focus-out-event",
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_focus_out),
 			 access);
 
 	if (GTK_IS_WIDGET((GTK_WIDGET(terminal))->parent)) {
@@ -721,6 +747,18 @@ vte_terminal_accessible_finalize(GObject *object)
 						     G_SIGNAL_MATCH_DATA,
 						     0, 0, NULL,
 						     (gpointer)vte_terminal_accessible_title_changed,
+						     object);
+		g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+						     G_SIGNAL_MATCH_FUNC |
+						     G_SIGNAL_MATCH_DATA,
+						     0, 0, NULL,
+						     (gpointer)vte_terminal_accessible_focus_in,
+						     object);
+		g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+						     G_SIGNAL_MATCH_FUNC |
+						     G_SIGNAL_MATCH_DATA,
+						     0, 0, NULL,
+						     (gpointer)vte_terminal_accessible_focus_out,
 						     object);
 	}
 	if (gobject_class->finalize != NULL) {
