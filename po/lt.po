@@ -1,0 +1,115 @@
+# Lithuanian translation of vte
+# Copyright (C) 2003 Free Software Foundation, Inc.
+# Tomas Kuliavas <tokul@users.sourceforge.net>, 2003.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2003-10-07 12:41+0200\n"
+"PO-Revision-Date: 2003-10-07 15:14+0300\n"
+"Last-Translator: Tomas Kuliavas <tokul@users.sourceforge.net>\n"
+"Language-Team: Lithuanian <komp_lt@konferencijos.lt>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit"
+
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2072
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Nepavyko perversti simbolių iš %s į %s."
+
+#: src/iso2022.c:1578
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr "Bandyta nustatyti klaidinga NRC žymę '%c'."
+
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1619
+msgid "Unrecognized identified coding system."
+msgstr "Nurodyta nežinoma kodavimo sistema."
+
+#: src/iso2022.c:1668 src/iso2022.c:1694
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr "Bandyta nustatyti klaidingo pločio NRC žymę '%c'."
+
+#: src/pty.c:323
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "Įvyko klaida bandant įtraukti `%s' į aplinkos nustatymus, tęsiame."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:908
+#, c-format
+msgid "can not run %s"
+msgstr "nepavyko paleisti %s"
+
+#: src/reaper.c:110
+msgid "Error creating signal pipe."
+msgstr "Įvyko klaida kuriant signalinį tunelį."
+
+#: src/trie.c:412
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "Sutapimas (%s/%s)!"
+
+#: src/vte.c:1480
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Įvyko klaida apdorojant reguliariąją išraišką \"%s\"."
+
+#: src/vte.c:5815
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "Gauta netikėta (raktų?) seka `%s'."
+
+#: src/vte.c:6893
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "Nenustatytas valdymo sekos `%s' valdiklis."
+
+#: src/vte.c:7714
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Įvyko klaida skaitant duomenis iš antrinio proceso: %s."
+
+#: src/vte.c:7870
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr ""
+"Įvyko klaida (%s) keičiant duomenis gautus iš antrinio proceso, nutraukiame "
+"darbą."
+
+#: src/vte.c:10537
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "Įvyko klaida skaitant PTY dydį, naudojama standartinė reikšmė: %s."
+
+#: src/vte.c:10573
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "Įvyko klaida nustatant PTY dydį: %s."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:14977
+msgid "_vte_conv_open() failed setting word characters"
+msgstr "Funkcijai _vte_conv_open() nepavyko nustatyti žodžio simbolių"
+
+#. Bail back to normal mode.
+#: src/vteapp.c:713
+msgid "Could not open console.\n"
+msgstr "Nepavyko atverti terminalo.\n"
+
+#: src/vteglyph.c:576
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr "Nežinomas taškų rėžimas %d.\n"
+
+#: src/vtexft.c:710
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr "Neįmanoma nupiešti simbolio U+%04x.\n"
+
