@@ -1116,7 +1116,7 @@ vte_remove_line_int(VteTerminal *terminal, long position)
 
 /* Change the encoding used for the terminal to the given codeset, or the
  * locale default if NULL is passed in. */
-static void
+void
 vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 {
 	const char *old_codeset;
@@ -7350,6 +7350,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 	char **missing_charset_list = NULL, *def_string = NULL;
 	int missing_charset_count = 0;
 	char **font_name_list = NULL;
+	gboolean need_destroy = FALSE;
 
 	g_return_if_fail(terminal != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -7456,6 +7457,9 @@ vte_terminal_set_font(VteTerminal *terminal,
 		matched_pattern = XftFontMatch (GDK_DISPLAY(),
 						gdk_x11_get_default_screen(),
 						pattern, &result);
+		if (matched_pattern != NULL) {
+			need_destroy = TRUE;
+		}
 
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_MISC)) {
@@ -7495,6 +7499,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 			 */
 			new_font = XftFontOpenPattern(GDK_DISPLAY(),
 						      matched_pattern);
+			need_destroy = FALSE;
 		} else {
 			new_font = NULL;
 		}
@@ -7519,8 +7524,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 
 		g_assert (pattern != new_font->pattern);
 		XftPatternDestroy (pattern);
-		if ((matched_pattern != NULL) &&
-		    (matched_pattern != new_font->pattern)) {
+		if (need_destroy) {
 			XftPatternDestroy (matched_pattern);
 		}
 

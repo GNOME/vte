@@ -1,11 +1,12 @@
 Name: vte
-Version: 0.3.27
+Version: 0.3.28
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
 Group: User Interface/X
 BuildRoot: %{_tmppath}/%{name}-root
 Source: %{name}-%{version}.tar.gz
+BuildPrereq: gtk2-devel
 
 %description
 VTE is an experimental terminal emulator widget.  This package contains

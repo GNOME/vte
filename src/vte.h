@@ -225,6 +225,9 @@ char *vte_terminal_match_check(VteTerminal *terminal, long column, long row,
 /* Set the emulation type.  Most of the time you won't need this. */
 void vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation);
 
+/* Set the character encoding.  Most of the time you won't need this. */
+void vte_terminal_set_encoding(VteTerminal *terminal, const char *encoding);
+
 G_END_DECLS
 
 #endif
