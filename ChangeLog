@@ -1,3 +1,8 @@
+2005-03-16  Manish Singh  <yosh@gimp.org>
+
+	* python/vtemodule.c: Remove stray underscores so python module
+	works again. Fixes bug #150760.
+
 2005-03-14  Kjartan Maraas  <kmaraas@gnome.org>
 
 	* src/Makefile.am: 
