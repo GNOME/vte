@@ -115,6 +115,7 @@ typedef gunichar wint_t;
 #define VTE_REGCOMP_FLAGS		REG_EXTENDED
 #define VTE_REGEXEC_FLAGS		0
 #define VTE_INPUT_CHUNK_SIZE		0x1000
+#define VTE_SELECTION_WRAPS
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
@@ -7569,6 +7570,30 @@ vte_uniform_class(VteTerminal *terminal, glong row, glong scol, glong ecol)
 	return FALSE;
 }
 
+/* Check if the last visible column of the requested line and the first visible
+ * column of the one after it contain non-whitespace characters. */
+static gboolean
+vte_line_is_wrappable(VteTerminal *terminal, glong row)
+{
+	struct vte_charcell *acell = NULL, *bcell = NULL;
+
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+
+	acell = vte_terminal_find_charcell(terminal,
+					   terminal->column_count - 1,
+					   row);
+	bcell = vte_terminal_find_charcell(terminal,
+					   0,
+					   row + 1);
+	if (acell && bcell) {
+		return !g_unichar_isspace(acell->c) &&
+		       !g_unichar_isspace(bcell->c);
+	}
+	return FALSE;
+}
+
+/* Check if the given point is in the region between the two points,
+ * optionally treating the second point as included in the region or not. */
 static gboolean
 vte_cell_is_between(glong col, glong row,
 		    glong acol, glong arow, glong bcol, glong brow,
@@ -7639,6 +7664,13 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 		return FALSE;
 	}
 
+#ifdef VTE_SELECTION_WRAPS
+	/* Now it boils down to whether or not the point is between the
+	 * begin and endpoint of the selection. */
+	ss = terminal->pvt->selection_start;
+	se = terminal->pvt->selection_end;
+	return vte_cell_is_between(col, row, ss.x, ss.y, se.x, se.y, TRUE);
+#else
 	/* Sort the two columns, for the cases where the selection is
 	 * entirely within a single line. */
 	ss = terminal->pvt->selection_start;
@@ -7760,6 +7792,7 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 	}
 
 	return FALSE;
+#endif
 }
 
 /* Once we get text data, actually paste it in. */
@@ -8454,18 +8487,22 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 			      gboolean always_grow)
 {
 	VteTerminal *terminal;
-	long delta, height, width;
+	VteScreen *screen;
+	GArray *rowdata;
+	long delta, height, width, last_nonspace, i, j;
+	struct vte_charcell *cell;
 	struct selection_event_coords *origin, *last, *start, *end;
 	struct selection_cell_coords old_start, old_end, *sc, *ec, tc;
 
 	terminal = VTE_TERMINAL(widget);
+	screen = terminal->pvt->screen;
 	old_start = terminal->pvt->selection_start;
 	old_end = terminal->pvt->selection_end;
 	height = terminal->char_height;
 	width = terminal->char_width;
 
 	/* Convert the event coordinates to cell coordinates. */
-	delta = terminal->pvt->screen->scroll_delta;
+	delta = screen->scroll_delta;
 
 	/* If we're restarting on a drag, then mark this as the start of
 	 * the selected block. */
@@ -8534,10 +8571,10 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 #endif
 
 	/* Recalculate the selection area in terms of cell positions. */
-	terminal->pvt->selection_start.x = start->x / width;
-	terminal->pvt->selection_start.y = start->y / height;
-	terminal->pvt->selection_end.x = end->x / width;
-	terminal->pvt->selection_end.y = end->y / height;
+	terminal->pvt->selection_start.x = MAX(0, start->x / width);
+	terminal->pvt->selection_start.y = MAX(0, start->y / height);
+	terminal->pvt->selection_end.x = MAX(0, end->x / width);
+	terminal->pvt->selection_end.y = MAX(0, end->y / height);
 
 	/* Re-sort using cell coordinates to catch round-offs that make two
 	 * coordinates "the same". */
@@ -8548,6 +8585,183 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 		*sc = *ec;
 		*ec = tc;
 	}
+
+#ifdef VTE_SELECTION_WRAPS
+	/* Extend the selection to handle end-of-line cases, word, and line
+	 * selection.  We do this here because calculating it once is cheaper
+	 * than recalculating for each cell as we render it. */
+
+	/* Handle end-of-line at the start-cell. */
+	if (_vte_ring_contains(screen->row_data, ec->y)) {
+		rowdata = _vte_ring_index(screen->row_data, GArray*, sc->y);
+	} else {
+		rowdata = NULL;
+	}
+	if (rowdata != NULL) {
+		/* Find the last non-space character on the first line. */
+		last_nonspace = -1;
+		for (i = 0; i < rowdata->len; i++) {
+			cell = &g_array_index(rowdata, struct vte_charcell, i);
+			if (!g_unichar_isspace(cell->c)) {
+				last_nonspace = i;
+			}
+		}
+		/* Now find the space after it. */
+		i = last_nonspace + 1;
+		/* If the start point is to its right, then move the startpoint
+		 * up to the beginning of the next line. */
+		if (sc->x > i) {
+			sc->x = 0;
+			sc->y++;
+		}
+	}
+
+	/* Handle end-of-line at the end-cell. */
+	if (_vte_ring_contains(screen->row_data, ec->y)) {
+		rowdata = _vte_ring_index(screen->row_data, GArray*, ec->y);
+	} else {
+		rowdata = NULL;
+	}
+	if (rowdata != NULL) {
+		/* Find the last non-space character on the last line. */
+		last_nonspace = -1;
+		for (i = 0; i < rowdata->len; i++) {
+			cell = &g_array_index(rowdata, struct vte_charcell, i);
+			if (!g_unichar_isspace(cell->c)) {
+				last_nonspace = i;
+			}
+		}
+		/* Now find the space after it. */
+		i = last_nonspace + 1;
+		/* If the end point is to its right, then extend the endpoint
+		 * as far right as we can expect. */
+		if (ec->x >= i) {
+			ec->x = MAX(ec->x,
+				    MAX(terminal->column_count,
+					rowdata->len));
+		}
+	}
+
+	/* Now extend again based on selection type. */
+	switch (terminal->pvt->selection_type) {
+	case selection_type_char:
+		/* Nothing more to do. */
+		break;
+	case selection_type_word:
+		/* Keep selecting to the left as long as the next character we
+		 * look at is of the same class as the current start point. */
+		i = sc->x;
+		j = sc->y;
+		while (_vte_ring_contains(screen->row_data, j)) {
+			/* Get the data for the row we're looking at. */
+			rowdata = _vte_ring_index(screen->row_data, GArray*, j);
+			if (rowdata == NULL) {
+				break;
+			}
+			/* Back up. */
+			for (i = (j == sc->y) ?
+				 sc->x :
+				 terminal->column_count - 1;
+			     i > 0;
+			     i--) {
+				if (vte_uniform_class(terminal,
+						      j,
+						      i - 1,
+						      i)) {
+					sc->x = i - 1;
+					sc->y = j;
+				} else {
+					break;
+				}
+			}
+			if (i > 0) {
+				/* We hit a stopping point, so stop. */
+				break;
+			} else {
+				if (vte_line_is_wrappable(terminal, j - 1)) {
+					/* Move on to the previous line. */
+					j--;
+					sc->x = terminal->column_count - 1;
+					sc->y = j;
+				} else {
+					break;
+				}
+			}
+		}
+		/* Keep selecting to the right as long as the next character we
+		 * look at is of the same class as the current end point. */
+		i = ec->x;
+		j = ec->y;
+		while (_vte_ring_contains(screen->row_data, j)) {
+			/* Get the data for the row we're looking at. */
+			rowdata = _vte_ring_index(screen->row_data, GArray*, j);
+			if (rowdata == NULL) {
+				break;
+			}
+			/* Move forward. */
+			for (i = (j == ec->y) ?
+				 ec->x :
+				 0;
+			     i < terminal->column_count - 1;
+			     i++) {
+				if (vte_uniform_class(terminal,
+						      j,
+						      i,
+						      i + 1)) {
+					ec->x = i + 1;
+					ec->y = j;
+				} else {
+					break;
+				}
+			}
+			if (i < terminal->column_count - 1) {
+				/* We hit a stopping point, so stop. */
+				break;
+			} else {
+				if (vte_line_is_wrappable(terminal, j)) {
+					/* Move on to the next line. */
+					j++;
+					ec->x = 0;
+					ec->y = j;
+				} else {
+					break;
+				}
+			}
+		}
+		break;
+	case selection_type_line:
+		/* Extend the selection to the beginning of the start line and
+		 * to the end of the end line. */
+		sc->x = 0;
+		ec->x = terminal->column_count - 1;
+		if (_vte_ring_contains(screen->row_data, ec->y)) {
+			rowdata = _vte_ring_index(screen->row_data,
+						  GArray*,
+						  ec->y);
+			if (rowdata != NULL) {
+				ec->x = MAX(ec->x, rowdata->len);
+			}
+		}
+		/* Now back up as far as we can go. */
+		i = sc->x;
+		j = sc->y;
+		while (_vte_ring_contains(screen->row_data, j - 1) && 
+		       vte_line_is_wrappable(terminal, j - 1)) {
+			j--;
+			sc->y = j;
+		}
+		/* And move forward as far as we can go. */
+		i = ec->x;
+		j = ec->y;
+		while (_vte_ring_contains(screen->row_data, j) && 
+		       vte_line_is_wrappable(terminal, j)) {
+			j++;
+			ec->y = j;
+		}
+		break;
+	}
+
+#endif
 
 	/* Redraw the rows which contain cells which have changed their
 	 * is-selected status. */
@@ -9581,6 +9795,7 @@ vte_terminal_open_font_xft(VteTerminal *terminal)
 #endif
 	/* Map the font description to an Xft pattern. */
 	pattern = xft_pattern_from_pango_font_desc(terminal->pvt->fontdesc);
+	g_assert(pattern != NULL);
 
 	/* Xft is on a lot of crack here - it fills in "result" when it
 	 * feels like it, and leaves it uninitialized the rest of the
@@ -9660,7 +9875,7 @@ vte_terminal_open_font_xft(VteTerminal *terminal)
 		XftPatternDestroy(matched_pattern);
 	}
 
-	if (new_font) {
+	if (new_font != NULL) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_MISC)) {
 			name = vte_unparse_xft_pattern(new_font->pattern);
