@@ -1,6 +1,6 @@
 2003-01-31 nalin
 	* src/vte.c(vte_terminal_get_accessible): keep a weak pointer to the
-	accessible peer instead of a static pointer.
+	accessible peer instead of a static pointer (part of #104909).
 	* src/vte.c(vte_terminal_finalize): if the accessible peer still exists,
 	remove its weak pointer before attempting to unref it.
 	* src/vte.c: rename accessible_exists member to accessible_emit, which
@@ -12,10 +12,10 @@
 	emit a warning when the caller attempts to read the Nth character when
 	we have 0 to N-1, just return an empty string.
 	* src/vteaccess.c(vte_terminal_accessible_new): make the terminal peer
-	a weak pointer.
+	a weak pointer (part of #104909).
 	* src/vteaccess.c(vte_terminal_accessible_finalize): if the terminal
 	peer is not NULL, disconnect it as a weak pointer and don't bother
-	disconnecting from its signals.  Add a debug message.
+	disconnecting from its signals (part of #104909).  Add a debug message.
 	* src/vteaccess.c(vte_terminal_accessible_text_finalize):  Add a debug
 	message.
 
