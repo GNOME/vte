@@ -1,3 +1,7 @@
+2003-02-18  Roozbeh Pournader  <roozbeh@sharif.edu>
+
+	* configure.in: Added "fa" to ALL_LINGUAS.
+
 2003-02-18 nalin
 	* src/vte.c, src/vte.h: add vte_terminal_match_set_cursor() (#105986).
 

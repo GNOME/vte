@@ -9,7 +9,7 @@ AM_PROG_CC_STDC
 AM_MAINTAINER_MODE
 
 AM_PROG_LIBTOOL
-ALL_LINGUAS="am be bg ca cs da de el es fi fr he hu id it ko lv mn ms nl no pl pt_BR ro ru sk sl sv uk tr vi zh_CN zh_TW"
+ALL_LINGUAS="am be bg ca cs da de el es fa fi fr he hu id it ko lv mn ms nl no pl pt_BR ro ru sk sl sv uk tr vi zh_CN zh_TW"
 
 AM_GLIB_GNU_GETTEXT
 AC_EGREP_CPP(glibc,
