@@ -2,15 +2,16 @@
 # translation of vte.HEAD.po to
 # This file is distributed under the same license as the PACKAGE package.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER, 2004.
+# Rajesh Ranjan <rranjan@redhat.com>, 2004.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: hi\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2004-12-07 04:44+0100\n"
-"PO-Revision-Date: 2004-12-08 10:00+0530\n"
-"Last-Translator: \n"
-"Language-Team: Hindi <en@li.org>\n"
+"PO-Revision-Date: 2004-12-14 12:28+0530\n"
+"Last-Translator: Rajesh Ranjan <rranjan@redhat.com>\n"
+"Language-Team: Hindi\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
