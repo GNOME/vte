@@ -1,4 +1,13 @@
 2003-08-13 nalin
+	* configure.in: if we don't find the python headers (even if we found
+	python), disable compilation of python bindings (bug #116756).  Make the
+	checks for python support sequential for easier maintenance.
+	* python/vte.defs: add def for vte_terminal_match_set_cursor_type.  Make
+	the color argument to vte_terminal_set_background_tint_color const.
+	* python/vte.override(_wrap_vte_terminal_forkpty): add.
+	* python/vte.override(_wrap_vte_terminal_fork_command): don't leak envv.
+
+2003-08-13 nalin
 	* src/vte.c(vte_terminal_fork_command,vte_terminal_forkpty): doc update
 	to note that directory and envv can be NULL for both.
 

@@ -136,8 +136,63 @@ _wrap_vte_terminal_fork_command(PyGObject * self, PyObject * args,
 					(logwtmp != NULL) &&
 					PyObject_IsTrue(logwtmp));
 
+	if (envv) {
+		g_free(envv);
+	}
+
 	if (argv) {
 		g_free(argv);
+	}
+
+	return PyInt_FromLong(pid);
+}
+%%
+static PyObject *
+_wrap_vte_terminal_forkpty(PyGObject * self, PyObject * args, PyObject * kwargs)
+{
+	gchar **envv = NULL, *directory = NULL;
+	static char *kwlist[] = { "envv", "directory",
+				  "loglastlog", "logutmp", "logwtmp",
+				  NULL };
+	PyObject *py_envv = NULL,
+		 *loglastlog = NULL, *logutmp = NULL, *logwtmp = NULL;
+	int i, n_args, n_envs;
+	pid_t pid;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OsOOO:forkpty",
+					 kwlist, &py_envv, &directory,
+					 &loglastlog, &logutmp, &logwtmp)) {
+		return NULL;
+	}
+
+	if (py_envv != NULL && py_envv != Py_None) {
+		if (!PySequence_Check(py_envv)) {
+			PyErr_SetString(PyExc_TypeError,
+					"envv must be a sequence");
+			return NULL;
+		}
+
+		n_envs = PySequence_Length(py_envv);
+		envv = g_new(gchar *, n_envs + 1);
+		for (i = 0; i < n_envs; i++) {
+			PyObject *item = PySequence_GetItem(py_envv, i);
+			Py_DECREF(item);  /* PySequence_GetItem INCREF's */
+			envv[i] = PyString_AsString(item);
+		}
+		envv[n_envs] = NULL;
+	}
+
+	pid = vte_terminal_forkpty(VTE_TERMINAL(self->obj),
+				   envv, directory,
+				   (loglastlog != NULL) &&
+				   PyObject_IsTrue(loglastlog),
+				   (logutmp != NULL) &&
+				   PyObject_IsTrue(logutmp),
+				   (logwtmp != NULL) &&
+				   PyObject_IsTrue(logwtmp));
+
+	if (envv) {
+		g_free(envv);
 	}
 
 	return PyInt_FromLong(pid);

@@ -55,6 +55,19 @@
   )
 )
 
+(define-method forkpty
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_forkpty")
+  (return-type "pid_t")
+  (parameters
+    '("char**" "envv")
+    '("const-char*" "directory")
+    '("gboolean" "lastlog")
+    '("gboolean" "utmp")
+    '("gboolean" "wtmp")
+  )
+)
+
 (define-method feed
   (of-object "VteTerminal")
   (c-name "vte_terminal_feed")
@@ -243,7 +256,7 @@
   (c-name "vte_terminal_set_background_tint_color")
   (return-type "none")
   (parameters
-    '("GdkColor*" "color")
+    '("const-GdkColor*" "color")
   )
 )
 
@@ -456,6 +469,16 @@
   (parameters
     '("int" "tag")
     '("GdkCursor*" "cursor")
+  )
+)
+
+(define-method match_set_cursor_type
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_match_set_cursor_type")
+  (return-type "none")
+  (parameters
+    '("int" "tag")
+    '("GdkCursorType" "cursor_type")
   )
 )
 
