@@ -2,45 +2,46 @@
 # This file is distributed under the same license as the PACKAGE package.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER.
 # Amanpreet Singh Alam <aalam@redhat.com>, 2004.
+# Amanpreet Singh Alam <amanpreetalam@yahoo.com>, 2005.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: pa\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2004-04-29 22:25-0400\n"
-"PO-Revision-Date: 2004-08-09 15:25+0530\n"
-"Last-Translator: Amanpreet Singh Alam <aalam@redhat.com>\n"
-"Language-Team: Punjabi <pa@li.org>\n"
+"PO-Revision-Date: 2005-02-23 10:46+0530\n"
+"Last-Translator: Amanpreet Singh Alam <amanpreetalam@yahoo.com>\n"
+"Language-Team: Punjabi <fedora-trans-pa@redhat.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 1.3.1\n"
-"Plural-Forms: Plural-Forms: nplurals=2; plural=(n != 1);\n\n"
+"X-Generator: KBabel 1.9.1\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "ਇਸ ਸੰਕੇਤ %s ਤੋ %s ਤਬਦੀਲ ਕਰਨ ਤੋ ਅਸਮਰਥ ਹੈ"
+msgstr "ਇਸ ਸੰਕੇਤ %s ਤੋਂ %s ਤਬਦੀਲ ਕਰਨ ਤੋ ਅਸਮਰੱਥ ਹੈ।"
 
 #: src/iso2022.c:1578
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr "ਗਲਤ ਐਨਆਰਸੀ ਮੈਪ'%c' ਨਿਰਧਾਰਿਤ ਕਰਨ ਦੀ ਕੋਸਿਸ਼ ਕੀਤੀ ਹੈ"
+msgstr "ਗਲਤ ਐਨਆਰਸੀ ਮੈਪ'%c' ਨਿਰਧਾਰਿਤ ਕਰਨ ਦੀ ਕੋਸਿਸ਼ ਕੀਤੀ ਹੈ।"
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #: src/iso2022.c:1619
 msgid "Unrecognized identified coding system."
-msgstr "ਅਣਪਛਾਤਾ ਸ਼ਨਾਖਤੀ ਕੋਡਿੰਗ ਸਿਸਟਮ"
+msgstr "ਅਣਜਾਣ ਸ਼ਨਾਖਤੀ ਕੋਡਿੰਗ ਸਿਸਟਮ ਹੈ।"
 
 #: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "ਗਲਤ ਚੌਡ਼ਾ ਐਨਆਰਸੀ ਮੈਪ'%c' ਨਿਰਧਾਰਿਤ ਕਰਨ ਦੀ ਕੋਸਿਸ਼ ਕੀਤੀ ਹੈ"
+msgstr "ਗਲਤ ਚੌਡ਼ਾ NRC ਮੈਪ'%c' ਨਿਰਧਾਰਿਤ ਕਰਨ ਦੀ ਕੋਸਿਸ਼ ਕੀਤੀ ਹੈ।"
 
 #: src/pty.c:329
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr " `%s' ਨੂੰ ਵਾਤਵਰਣਨ ਵਿਚ ਜੋਡ਼ਨ ਦੀ ਗਲਤੀ "
+msgstr " `%s' ਨੂੰ ਵਾਤਵਰਣਨ ਵਿਚ ਜੋਡ਼ਨ ਦੀ ਗਲਤੀ ਹੈ।"
 
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
@@ -52,47 +53,47 @@ msgstr "%s ਚੱਲ ਨਹੀ ਸਕਦਾ ਹੈ"
 
 #: src/reaper.c:137
 msgid "Error creating signal pipe."
-msgstr "ਸੰਕੇਤ ਪਾਇਪ ਬਣਾਉਣ ਦੀ ਗਲਤੀ"
+msgstr "ਸੰਕੇਤ ਪਾਇਪ ਬਣਾਉਣ ਦੀ ਗਲਤੀ ਹੈ।"
 
 #: src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
-msgstr "ਦੂਹਰਾਉ(%s/%s) "
+msgstr "ਦੁਹਰਾਉ (%s/%s)!"
 
 #: src/vte.c:1498
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "ਨਿਯਮਿਤ ਕਥਨ \"%s\" ਨੂੰ ਕੰਮਪਾਇਲ ਕਰਨ ਦੀ ਗਲਤੀ"
+msgstr "ਨਿਯਮਿਤ ਕਥਨ \"%s\" ਨੂੰ ਕੰਪਾਇਲ ਕਰਨ ਦੀ ਗਲਤੀ ਹੈ।"
 
 #: src/vte.c:5850
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr "ਗਲਤ ਕੀ ਤਰਤੀਬ `%s' ਉਪਲੱਬਧ ਹੋਈ ਹੈ"
+msgstr "ਗਲਤ ਕੁੰਜੀ? ਤਰਤੀਬ `%s' ਉਪਲੱਬਧ ਹੋਈ ਹੈ।"
 
 #: src/vte.c:6951
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr "ਕੰਟਰੋਲ ਤਰਤੀਬ  `%s'  ਲਈ ਕੋਈ ਹੈਡਲਰ ਨਿਰਧਾਰਿਤ ਨਹੀ ਹੈ"
+msgstr "ਕੰਟਰੋਲ ਤਰਤੀਬ `%s' ਲਈ ਕੋਈ ਹੈਡਲਰ ਨਿਰਧਾਰਿਤ ਨਹੀ ਹੈ।"
 
 #: src/vte.c:7793
 #, c-format
 msgid "Error reading from child: %s."
-msgstr "ਅਗਲੀ ਕਾਰਵਾਈ : %s ਤੋ ਪਡ਼ਨ ਵਿਚ ਅਸਫਲਤਾ"
+msgstr "ਅਗਲੀ ਕਾਰਵਾਈ : %s ਤੋਂ ਪਡ਼ਨ ਵਿਚ ਅਸਫਲਤਾ ਹੈ।"
 
 #: src/vte.c:7949
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "ਗਲਤੀ ਅਗਾਂਹ ਲਈ ਡਾਟਾ ਤਬਦੀਲੀ ਸਮੇ(%s), ਖਤਮ ਕੀਤਾ ਗਿਆ ਹੈ"
+msgstr "ਗਲਤੀ ਅਗਾਂਹ ਲਈ ਡਾਟਾ ਤਬਦੀਲੀ ਸਮੇਂ (%s), ਖਤਮ ਕੀਤਾ ਗਿਆ ਹੈ।"
 
 #: src/vte.c:10715
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr "PTY ਅਕਾਰ ਪਡ਼ਨ ਵਿਚ ਗਲਤੀ ਹੈ, ਇਸ ਕਰਕੇ ਮੂਲ %s ਹੀ ਵਰਤੋਯੋਗ ਹੈ"
+msgstr "PTY ਅਕਾਰ ਪਡ਼ਨ ਵਿਚ ਗਲਤੀ ਹੈ, ਇਸ ਕਰਕੇ ਮੂਲ %s ਹੀ ਵਰਤੋਯੋਗ ਹੈ।"
 
 #: src/vte.c:10751
 #, c-format
 msgid "Error setting PTY size: %s."
-msgstr "ਗਲਤੀ PTY ਅਕਾਰ ਨਿਰਧਾਰਿਤ ਕਰਨ ਵਿਚ: %s."
+msgstr "ਗਲਤੀ PTY ਅਕਾਰ ਨਿਰਧਾਰਿਤ ਕਰਨ ਵਿਚ: %s"
 
 #. Aaargh.  We're screwed.
 #: src/vte.c:15235
@@ -102,15 +103,15 @@ msgstr "_vte_conv_open() ਸ਼ਬਦ ਨਿਰਧਾਰਿਤ ਕਰਨ ਵਿਚ 
 #. Bail back to normal mode.
 #: src/vteapp.c:728
 msgid "Could not open console.\n"
-msgstr "ਕੰਸੋਲ ਖੋਲਿਆ ਨਹੀ ਜਾ ਸਕਦਾ ਹੈ\n"
+msgstr "ਕੰਨਸੋਲ ਖੋਲਿਆ ਨਹੀ ਜਾ ਸਕਦਾ ਹੈ।\n"
 
 #: src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr "ਅਣਪਛਾਤਾ ਪੈਕਸਲ ਮੋਡ%d\n"
+msgstr "ਅਣਪਛਾਤਾ ਪੈਕਸਲ ਮੋਡ %d ਹੈ।\n"
 
 #: src/vtexft.c:712
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr "U+%04x ਅੱਖਰ ਬਣਾਇਆ ਨਹੀ ਜਾ ਸਕਦਾ ਹੈ\n"
+msgstr "U+%04x ਅੱਖਰ ਬਣਾਇਆ ਨਹੀ ਜਾ ਸਕਦਾ ਹੈ।\n"
 
