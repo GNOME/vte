@@ -2476,12 +2476,19 @@ vte_sequence_handler_cs(VteTerminal *terminal,
 	start = g_value_get_long(value);
 	value = g_value_array_get_nth(params, 1);
 	end = g_value_get_long(value);
+	/* Catch garbage. */
+	rows = terminal->row_count;
+	if ((start <= 0) || (start >= rows)) {
+		start = 0;
+	}
+	if ((end <= 0) || (end >= rows)) {
+		end = rows - 1;
+	}
 	/* Set the right values. */
 	terminal->pvt->screen->scrolling_region.start = start;
 	terminal->pvt->screen->scrolling_region.end = end;
 	terminal->pvt->screen->scrolling_restricted = TRUE;
 	/* Special case -- run wild, run free. */
-	rows = terminal->row_count;
 	if ((terminal->pvt->screen->scrolling_region.start == 0) &&
 	    (terminal->pvt->screen->scrolling_region.end == rows - 1)) {
 		terminal->pvt->screen->scrolling_restricted = FALSE;

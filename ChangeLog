@@ -1,4 +1,8 @@
 2003-02-17 nalin
+	* src/vte.c(vte_terminal_sequence_handler_cs): recognize and discard
+	invalid arguments (#57453).
+
+2003-02-17 nalin
 	* src/keymap.c: add map entries for Ctrl+digit keys (#106193).
 
 2003-02-17  Alessio Frusciante  <algol@firenze.linux.it>
