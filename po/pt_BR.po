@@ -1,28 +1,31 @@
 # vte: translation to Brazilian Portuguese (pt_BR)
 # Copyright (C) 2002 Free Software Foundation, Inc.
 # This file is distributed under the same license as the vte package.
-# Alexandre Folle de Menezes <afmenez@terra.com.br>, 2002.
+# Alexandre Folle de Menezes <afmenez@terra.com.br>, 2002-2003.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: 2.0\n"
-"POT-Creation-Date: 2002-12-11 14:57-0500\n"
-"PO-Revision-Date: 2002-08-28 18:13-0300\n"
+"POT-Creation-Date: 2003-01-15 19:49-0200\n"
+"PO-Revision-Date: 2003-01-15 01:00-0300\n"
 "Last-Translator: Alexandre Folle de Menezes <afmenez@terra.com.br>\n"
 "Language-Team: Brazilian Portuguese <ldp-br@bazar.conectiva.com.br>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:249
+#: src/pty.c:253
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Erro ao adicionar `%s' ao ambiente, continuando."
 
-#: src/pty.c:792
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:800
 #, c-format
 msgid "can not run %s"
-msgstr ""
+msgstr "impossível rodar %s"
 
 #: src/reaper.c:107
 msgid "Error creating signal pipe."
@@ -33,88 +36,85 @@ msgstr "Erro criando o pipe de sinais."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicata (%s/%s)!"
 
-#: src/vte.c:1338
+#: src/vte.c:1407
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Erro compilando a expressão regular \"%s\"."
 
-#: src/vte.c:1846 src/vte.c:1855 src/vte.c:1867 src/vte.c:1885 src/vte.c:1891
-#: src/vte.c:1896
+#: src/vte.c:1929 src/vte.c:1938 src/vte.c:1950 src/vte.c:1968 src/vte.c:1974
+#: src/vte.c:1979
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Incapaz de converter caracteres de %s para %s."
 
-#: src/vte.c:5308
+#: src/vte.c:5459
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Seqüência (chave?) `%s' inesperada."
 
-#: src/vte.c:6524
+#: src/vte.c:6549
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Nenhum manipulador para seqüência de controle `%s' foi definido."
 
-#: src/vte.c:7134
+#: src/vte.c:7295
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Erro lendo do filho:  %s."
 
-#: src/vte.c:7300
+#: src/vte.c:7456
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Erro (%s) convertendo dados para filho, descartando."
 
-#: src/vte.c:9571
+#: src/vte.c:9747
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
 msgstr ""
 "Usando conjunto de fontes \"%s\", que não tem os seguintes conhuntos de "
 "caracteres: %s."
 
-#: src/vte.c:10206
+#: src/vte.c:10385
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr "Falha ao carregar a fonte Xft \"%s\", voltando para a fonte padrão."
 
-#: src/vte.c:10218
+#: src/vte.c:10397
 msgid "Failed to load default Xft font."
 msgstr "Falha ao carregar a fonte Xft padrão."
 
-#: src/vte.c:10311
+#: src/vte.c:10490
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr "Falha ao carregar a fonte \"%s\", voltando para a fonte padrão."
 
-#: src/vte.c:10323
+#: src/vte.c:10502
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr "Falha ao carregar a fonte padrão, pendurando ou agindo anormalmente."
 
-#: src/vte.c:10586
+#: src/vte.c:10764
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Erro lendo o tamanho PTY, usando padrão: %s."
 
-#: src/vte.c:10622
+#: src/vte.c:10800
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Erro setando o tamanho PTY: %s."
 
-#: src/vte.c:13487
+#: src/vte.c:13684
 msgid "Error allocating draw, disabling Xft."
 msgstr "Erro alocando desenho, desabilitando Xft."
 
-#: src/vte.c:13495
+#: src/vte.c:13692
 msgid "Error allocating context, disabling Pango."
 msgstr "Erro alocando contexto, desabilitando Pango."
 
-#: src/vte.c:13501
+#: src/vte.c:13698
 msgid "Error allocating layout, disabling Pango."
 msgstr "Erro alocando layout, desabilitando Pango."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15086
+#: src/vte.c:15328
 msgid "g_iconv_open() failed setting word characters"
 msgstr "g_iconv_open() falhou setando caracteres de palavra"
-
-#~ msgid "Character 0x%x is undefined, allocating one column."
-#~ msgstr "O caracter 0x%x é indefinido, alocando uma coluna."
