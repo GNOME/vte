@@ -50,7 +50,7 @@ typedef struct _VteTerminal {
 
 	/* Titles. */
 	char *window_title, *icon_title;
-	
+
 	/*< private >*/
 	struct _VteTerminalPrivate *pvt;
 } VteTerminal;
@@ -70,6 +70,16 @@ typedef struct _VteTerminalClass {
 	guint selection_changed_signal;
 	guint contents_changed_signal;
 	guint cursor_moved_signal;
+
+	guint deiconify_window_signal;
+	guint iconify_window_signal;
+	guint raise_window_signal;
+	guint lower_window_signal;
+	guint refresh_window_signal;
+	guint restore_window_signal;
+	guint maximize_window_signal;
+	guint resize_window_signal;
+	guint move_window_signal;
 } VteTerminalClass;
 
 /* A snapshot of the screen contents. */
@@ -155,11 +165,11 @@ void vte_terminal_im_append_menuitems(VteTerminal *terminal,
 void vte_terminal_set_font(VteTerminal *terminal,
                            const PangoFontDescription *font_desc);
 void vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name);
+const PangoFontDescription *vte_terminal_get_font(VteTerminal *terminal);
 
 gboolean vte_terminal_get_has_selection(VteTerminal *terminal);
 gboolean vte_terminal_get_using_xft(VteTerminal *terminal);
 gboolean vte_terminal_is_word_char(VteTerminal *terminal, gunichar c);
-const PangoFontDescription *vte_terminal_get_font(VteTerminal *terminal);
 
 void vte_terminal_set_backspace_binding(VteTerminal *terminal,
 					VteTerminalEraseBinding binding);

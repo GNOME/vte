@@ -25,6 +25,13 @@
 
 G_BEGIN_DECLS
 
+#define VTE_CAP_ESC ""
+#define VTE_CAP_CSI VTE_CAP_ESC "["
+#define VTE_CAP_ST  VTE_CAP_ESC "\\"
+#define VTE_CAP_OSC VTE_CAP_ESC "]"
+#define VTE_CAP_PM  VTE_CAP_ESC "^"
+#define VTE_CAP_APC VTE_CAP_ESC "_"
+
 /* A NULL-terminated list of capability strings which have string values,
  * which means they're either key sequences or commands. */
 struct vte_capability_quark {

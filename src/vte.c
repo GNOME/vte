@@ -224,6 +224,8 @@ struct _VteTerminalPrivate {
 	int im_preedit_cursor;
 
 	VteTerminalEraseBinding backspace_binding, delete_binding;
+
+	gboolean xterm_font_tweak;
 };
 
 /* A function which can handle a terminal control sequence. */
@@ -426,21 +428,115 @@ vte_invalidate_cursor_periodic(gpointer data)
 static void
 vte_terminal_emit_selection_changed(VteTerminal *terminal)
 {
-	g_signal_emit_by_name(terminal, "selection_changed");
+	g_signal_emit_by_name(terminal, "selection-changed");
 }
 
 /* Emit a "contents_changed" signal. */
 static void
 vte_terminal_emit_contents_changed(VteTerminal *terminal)
 {
-	g_signal_emit_by_name(terminal, "contents_changed");
+	g_signal_emit_by_name(terminal, "contents-changed");
 }
 
 /* Emit a "cursor_moved" signal. */
 static void
 vte_terminal_emit_cursor_moved(VteTerminal *terminal)
 {
-	g_signal_emit_by_name(terminal, "cursor_moved");
+	g_signal_emit_by_name(terminal, "cursor-moved");
+}
+
+/* Emit an "icon-title-changed" signal. */
+static void
+vte_terminal_emit_icon_title_changed(VteTerminal *terminal)
+{
+	g_signal_emit_by_name(terminal, "icon-title-changed");
+}
+
+/* Emit a "window-title-changed" signal. */
+static void
+vte_terminal_emit_window_title_changed(VteTerminal *terminal)
+{
+	g_signal_emit_by_name(terminal, "window-title-changed");
+}
+
+/* Emit a "deiconify-window" signal. */
+static void
+vte_terminal_emit_deiconify_window(VteTerminal *terminal)
+{
+	g_signal_emit_by_name(terminal, "deiconify-window");
+}
+
+/* Emit a "iconify-window" signal. */
+static void
+vte_terminal_emit_iconify_window(VteTerminal *terminal)
+{
+	g_signal_emit_by_name(terminal, "iconify-window");
+}
+
+/* Emit a "raise-window" signal. */
+static void
+vte_terminal_emit_raise_window(VteTerminal *terminal)
+{
+	g_signal_emit_by_name(terminal, "raise-window");
+}
+
+/* Emit a "lower-window" signal. */
+static void
+vte_terminal_emit_lower_window(VteTerminal *terminal)
+{
+	g_signal_emit_by_name(terminal, "lower-window");
+}
+
+/* Emit a "maximize-window" signal. */
+static void
+vte_terminal_emit_maximize_window(VteTerminal *terminal)
+{
+	g_signal_emit_by_name(terminal, "maximize-window");
+}
+
+/* Emit a "refresh-window" signal. */
+static void
+vte_terminal_emit_refresh_window(VteTerminal *terminal)
+{
+	g_signal_emit_by_name(terminal, "refresh-window");
+}
+
+/* Emit a "restore-window" signal. */
+static void
+vte_terminal_emit_restore_window(VteTerminal *terminal)
+{
+	g_signal_emit_by_name(terminal, "restore-window");
+}
+
+/* Emit a "eof" signal. */
+static void
+vte_terminal_emit_eof(VteTerminal *terminal)
+{
+	g_signal_emit_by_name(terminal, "eof");
+}
+
+/* Emit a "char-size-changed" signal. */
+static void
+vte_terminal_emit_char_size_changed(VteTerminal *terminal,
+				    guint width, guint height)
+{
+	g_signal_emit_by_name(terminal, "char-size-changed",
+			      width, height);
+}
+
+/* Emit a "resize-window" signal.  (Pixels.) */
+static void
+vte_terminal_emit_resize_window(VteTerminal *terminal,
+				guint width, guint height)
+{
+	g_signal_emit_by_name(terminal, "resize-window", width, height);
+}
+
+/* Emit a "move-window" signal.  (Pixels.) */
+static void
+vte_terminal_emit_move_window(VteTerminal *terminal, guint x, guint y)
+{
+	g_signal_emit_by_name(terminal, "move-window", x, y);
 }
 
 /* Deselect anything which is selected and refresh the screen if needed. */
@@ -988,6 +1084,7 @@ vte_sequence_handler_cm(VteTerminal *terminal,
 			GValueArray *params)
 {
 	GValue *row, *col;
+	long rowval, colval;
 	VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
@@ -998,9 +1095,15 @@ vte_sequence_handler_cm(VteTerminal *terminal,
 		col = g_value_array_get_nth(params, 1);
 		if (G_VALUE_HOLDS_LONG(row) &&
 		    G_VALUE_HOLDS_LONG(col)) {
-			screen->cursor_current.row = g_value_get_long(row) +
+			rowval = g_value_get_long(row);
+			colval = g_value_get_long(col);
+			rowval = MAX(0, rowval);
+			rowval = MIN(rowval, terminal->row_count - 1);
+			colval = MAX(0, colval);
+			colval = MIN(colval, terminal->column_count - 1);
+			screen->cursor_current.row = rowval +
 						     screen->insert_delta;
-			screen->cursor_current.col = g_value_get_long(col);
+			screen->cursor_current.col = colval;
 		}
 	}
 }
@@ -1451,7 +1554,7 @@ vte_sequence_handler_im(VteTerminal *terminal,
 /* Send me a backspace key sym, will you?  Guess that the application meant
  * to send the cursor back one position. */
 static void
-vte_sequence_handler_kb(VteTerminal *terminal, 
+vte_sequence_handler_kb(VteTerminal *terminal,
 			const char *match,
 			GQuark match_quark,
 			GValueArray *params)
@@ -1464,7 +1567,7 @@ vte_sequence_handler_kb(VteTerminal *terminal,
 
 /* Keypad mode end. */
 static void
-vte_sequence_handler_ke(VteTerminal *terminal, 
+vte_sequence_handler_ke(VteTerminal *terminal,
 			const char *match,
 			GQuark match_quark,
 			GValueArray *params)
@@ -1475,7 +1578,7 @@ vte_sequence_handler_ke(VteTerminal *terminal,
 
 /* Keypad mode start. */
 static void
-vte_sequence_handler_ks(VteTerminal *terminal, 
+vte_sequence_handler_ks(VteTerminal *terminal,
 			const char *match,
 			GQuark match_quark,
 			GValueArray *params)
@@ -1662,7 +1765,7 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 
 /* Terminal usage ends. */
 static void
-vte_sequence_handler_te(VteTerminal *terminal, 
+vte_sequence_handler_te(VteTerminal *terminal,
 			const char *match,
 			GQuark match_quark,
 			GValueArray *params)
@@ -1673,7 +1776,7 @@ vte_sequence_handler_te(VteTerminal *terminal,
 
 /* Terminal usage starts. */
 static void
-vte_sequence_handler_ts(VteTerminal *terminal, 
+vte_sequence_handler_ts(VteTerminal *terminal,
 			const char *match,
 			GQuark match_quark,
 			GValueArray *params)
@@ -2082,7 +2185,7 @@ vte_sequence_handler_set_title_int(VteTerminal *terminal,
 			outbufptr = g_value_dup_string(value);
 		} else
 		if (G_VALUE_HOLDS_POINTER(value)) {
-			/* Convert the wide-character string into a 
+			/* Convert the wide-character string into a
 			 * multibyte string. */
 			conv = iconv_open("UTF-8", "WCHAR_T");
 			inbuf = g_value_get_pointer(value);
@@ -2106,12 +2209,13 @@ vte_sequence_handler_set_title_int(VteTerminal *terminal,
 			if (strcmp(signal, "window_title_changed") == 0) {
 				g_free(terminal->window_title);
 				terminal->window_title = outbufptr;
+				vte_terminal_emit_window_title_changed(terminal);
 			}
 			else if (strcmp (signal, "icon_title_changed") == 0) {
 				g_free (terminal->icon_title);
 				terminal->icon_title = outbufptr;
+				vte_terminal_emit_icon_title_changed(terminal);
 			}
-			g_signal_emit_by_name(terminal, signal);
 		}
 	}
 }
@@ -2541,6 +2645,347 @@ vte_sequence_handler_utf_8_charset(VteTerminal *terminal,
 	vte_terminal_set_encoding(terminal, "UTF-8");
 }
 
+/* Device status reports. The possible reports are the cursor position and
+ * whether or not we're okay. */
+static void
+vte_sequence_handler_device_status_report(VteTerminal *terminal,
+					  const char *match,
+					  GQuark match_quark,
+					  GValueArray *params)
+{
+	GValue *value;
+	VteScreen *screen;
+	long param;
+	char buf[LINE_MAX];
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	screen = terminal->pvt->screen;
+
+	if ((params != NULL) && (params->n_values > 0)) {
+		value = g_value_array_get_nth(params, 0);
+		param = g_value_get_long(value);
+		switch (param) {
+			case 5:
+				/* Send a thumbs-up sequence. */
+				snprintf(buf, sizeof(buf),
+					 "%s%dn", VTE_CAP_CSI, 0);
+				vte_terminal_feed_child(terminal,
+							buf, strlen(buf));
+				break;
+			case 6:
+				/* Send the cursor position. */
+				snprintf(buf, sizeof(buf),
+					 "%s%ld;%ldR", VTE_CAP_CSI,
+					 screen->cursor_current.row + 1 -
+					 screen->insert_delta,
+					 screen->cursor_current.col + 1);
+				vte_terminal_feed_child(terminal,
+							buf, strlen(buf));
+				break;
+			default:
+				break;
+		}
+	}
+}
+
+/* DEC-style device status reports. */
+static void
+vte_sequence_handler_dec_device_status_report(VteTerminal *terminal,
+					      const char *match,
+					      GQuark match_quark,
+					      GValueArray *params)
+{
+	GValue *value;
+	VteScreen *screen;
+	long param;
+	char buf[LINE_MAX];
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	screen = terminal->pvt->screen;
+
+	if ((params != NULL) && (params->n_values > 0)) {
+		value = g_value_array_get_nth(params, 0);
+		param = g_value_get_long(value);
+		switch (param) {
+			case 6:
+				/* Send the cursor position. */
+				snprintf(buf, sizeof(buf),
+					 "%s?%ld;%ldR", VTE_CAP_CSI,
+					 screen->cursor_current.row + 1 -
+					 screen->insert_delta,
+					 screen->cursor_current.col + 1);
+				vte_terminal_feed_child(terminal,
+							buf, strlen(buf));
+				break;
+			case 15:
+				/* Send printer status -- 10 = ready,
+				 * 11 = not ready.  We don't print. */
+				snprintf(buf, sizeof(buf),
+					 "%s?%dn", VTE_CAP_CSI, 11);
+				vte_terminal_feed_child(terminal,
+							buf, strlen(buf));
+				break;
+			case 25:
+				/* Send UDK status -- 20 = locked,
+				 * 21 = not locked.  I don't even know what
+				 * that means, but punt anyway. */
+				snprintf(buf, sizeof(buf),
+					 "%s?%dn", VTE_CAP_CSI, 20);
+				vte_terminal_feed_child(terminal,
+							buf, strlen(buf));
+				break;
+			case 26:
+				/* Send keyboard status.  50 = no locator. */
+				snprintf(buf, sizeof(buf),
+					 "%s?%dn", VTE_CAP_CSI, 50);
+				vte_terminal_feed_child(terminal,
+							buf, strlen(buf));
+				break;
+			default:
+				break;
+		}
+	}
+}
+
+/* Window manipulation control sequences.  Most of these are considered
+ * bad ideas, but they're implemented as signals which the application
+ * is free to ignore, so they're harmless. */
+static void
+vte_sequence_handler_window_manipulation(VteTerminal *terminal,
+					 const char *match,
+					 GQuark match_quark,
+					 GValueArray *params)
+{
+	VteScreen *screen;
+	GValue *value;
+	GtkWidget *widget;
+	Display *display;
+	char buf[LINE_MAX];
+	long param, arg1, arg2;
+	guint width, height;
+	int i;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	widget = GTK_WIDGET(terminal);
+	screen = terminal->pvt->screen;
+
+	for (i = 0; ((params != NULL) && (i < params->n_values)); i++) {
+		arg1 = arg2 = -1;
+		if (i + 1 < params->n_values) {
+			value = g_value_array_get_nth(params, i + 1);
+			if (G_VALUE_HOLDS_LONG(value)) {
+				arg1 = g_value_get_long(value);
+			}
+		}
+		if (i + 2 < params->n_values) {
+			value = g_value_array_get_nth(params, i + 2);
+			if (G_VALUE_HOLDS_LONG(value)) {
+				arg2 = g_value_get_long(value);
+			}
+		}
+		value = g_value_array_get_nth(params, i);
+		if (!G_VALUE_HOLDS_LONG(value)) {
+			continue;
+		}
+		param = g_value_get_long(value);
+		switch (param) {
+			case 1:
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Deiconifying window.\n");
+#endif
+				vte_terminal_emit_deiconify_window(terminal);
+				break;
+			case 2:
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Iconifying window.\n");
+#endif
+				vte_terminal_emit_iconify_window(terminal);
+				break;
+			case 3:
+				if ((arg1 != -1) && (arg2 != -2)) {
+#ifdef VTE_DEBUG
+					fprintf(stderr, "Moving window to %ld,%ld.\n", arg1, arg2);
+#endif
+					vte_terminal_emit_move_window(terminal, arg1, arg2);
+					i += 2;
+				}
+				break;
+			case 4:
+#ifdef VTE_DEBUG
+				if ((arg1 != -1) && (arg2 != -1)) {
+					fprintf(stderr, "Resizing window (%ldx%ld pixels).\n",
+						arg2, arg1);
+#endif
+					vte_terminal_emit_resize_window(terminal,
+									arg2,
+									arg1);
+					i += 2;
+				}
+				break;
+			case 5:
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Raising window.\n");
+#endif
+				vte_terminal_emit_raise_window(terminal);
+				break;
+			case 6:
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Lowering window.\n");
+#endif
+				vte_terminal_emit_lower_window(terminal);
+				break;
+			case 7:
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Refreshing window.\n");
+#endif
+				vte_invalidate_cells(terminal,
+						     0, terminal->column_count,
+						     0, terminal->row_count);
+				vte_terminal_emit_refresh_window(terminal);
+				break;
+			case 8:
+#ifdef VTE_DEBUG
+				if ((arg1 != -1) && (arg2 != -1)) {
+					fprintf(stderr, "Resizing window (%ld columns, %ld rows).\n",
+						arg2, arg1);
+#endif
+					vte_terminal_emit_resize_window(terminal,
+									arg2 * terminal->char_width,
+									arg1 * terminal->char_height);
+					i += 2;
+				}
+				break;
+			case 9:
+				switch (arg1) {
+					case 0:
+#ifdef VTE_DEBUG
+						fprintf(stderr, "Restoring window.\n");
+#endif
+						vte_terminal_emit_restore_window(terminal);
+						break;
+					case 1:
+#ifdef VTE_DEBUG
+						fprintf(stderr, "Maximizing window.\n");
+#endif
+						vte_terminal_emit_maximize_window(terminal);
+						break;
+					default:
+						break;
+				}
+				i++;
+				break;
+			case 11:
+				/* If we're unmapped, then we're iconified. */
+				snprintf(buf, sizeof(buf),
+					 "%s%dt", VTE_CAP_CSI,
+					 1 + !GTK_WIDGET_MAPPED(widget));
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Reporting window state %s.\n",
+					GTK_WIDGET_MAPPED(widget) ?
+					"non-iconified" : "iconified");
+#endif
+				vte_terminal_feed_child(terminal,
+							buf, strlen(buf));
+				break;
+			case 13:
+				/* Send window location, in pixels. */
+				gdk_window_get_origin(widget->window,
+						      &width, &height);
+				snprintf(buf, sizeof(buf),
+					 "%s%d;%dt", VTE_CAP_CSI,
+					 width, height);
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Reporting window location"
+					"(%d,%d).\n",
+					width, height);
+#endif
+				vte_terminal_feed_child(terminal,
+							buf, strlen(buf));
+				break;
+			case 14:
+				/* Send window size, in pixels. */
+				gdk_drawable_get_size(widget->window,
+						      &width, &height);
+				snprintf(buf, sizeof(buf),
+					 "%s%d;%dt", VTE_CAP_CSI,
+					 height, width);
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Reporting window size "
+					"(%dx%d).\n", width, height);
+#endif
+				vte_terminal_feed_child(terminal,
+							buf, strlen(buf));
+				break;
+			case 18:
+				/* Send widget size, in cells. */
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Reporting widget size.\n");
+#endif
+				snprintf(buf, sizeof(buf),
+					 "%s%ld;%ldt", VTE_CAP_CSI,
+					 terminal->row_count,
+					 terminal->column_count);
+				vte_terminal_feed_child(terminal,
+							buf, strlen(buf));
+				break;
+			case 19:
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Reporting screen size.\n");
+#endif
+				display = gdk_x11_drawable_get_xdisplay(widget->window);
+				i = gdk_x11_get_default_screen();
+				snprintf(buf, sizeof(buf),
+					 "%s%ld;%ldt", VTE_CAP_CSI,
+					 DisplayHeight(display, i) /
+					 terminal->char_height,
+					 DisplayWidth(display, i) /
+					 terminal->char_width);
+				vte_terminal_feed_child(terminal,
+							buf, strlen(buf));
+				break;
+			case 20:
+				/* Report the icon title. */
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Reporting icon title.\n");
+#endif
+				snprintf(buf, sizeof(buf),
+					 "%sL%s%s",
+					 VTE_CAP_OSC,
+					 terminal->icon_title,
+					 VTE_CAP_ST);
+				vte_terminal_feed_child(terminal,
+							buf, strlen(buf));
+				break;
+			case 21:
+				/* Report the window title. */
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Reporting window title.\n");
+#endif
+				snprintf(buf, sizeof(buf),
+					 "%sL%s%s",
+					 VTE_CAP_OSC,
+					 terminal->window_title,
+					 VTE_CAP_ST);
+				vte_terminal_feed_child(terminal,
+							buf, strlen(buf));
+				break;
+			default:
+				if (param >= 24) {
+#ifdef VTE_DEBUG
+					fprintf(stderr, "Resizing to %ld rows.\n",
+						param);
+#endif
+					/* Resize to the specified number of
+					 * rows. */
+					vte_terminal_emit_resize_window(terminal,
+									terminal->column_count * terminal->char_width,
+									param * terminal->char_height);
+				}
+				break;
+		}
+	}
+}
+
 /* The table of handlers.  Primarily used at initialization time. */
 static struct {
 	const char *code;
@@ -2891,6 +3336,9 @@ static struct {
 	{"utf-8-character-set", vte_sequence_handler_utf_8_charset},
 	{"character-position-absolute", vte_sequence_handler_character_position_absolute},
 	{"line-position-absolute", vte_sequence_handler_line_position_absolute},
+	{"device-status-report", vte_sequence_handler_device_status_report},
+	{"dec-device-status-report", vte_sequence_handler_dec_device_status_report},
+	{"window-manipulation", vte_sequence_handler_window_manipulation},
 };
 
 /* Create the basic widget.  This more or less creates and initializes a
@@ -3329,7 +3777,7 @@ vte_terminal_eof(GIOChannel *channel, gpointer data)
 	}
 
 	/* Emit a signal that we read an EOF. */
-	g_signal_emit_by_name(terminal, "eof");
+	vte_terminal_emit_eof(terminal);
 }
 
 /* Reset the input method context. */
@@ -3424,6 +3872,14 @@ vte_terminal_process_incoming(gpointer data)
 			if (terminal->pvt->incoming[start] > 128) {
 				/* Count the number of non-ascii chars. */
 				for (end = start; end < terminal->pvt->n_incoming; end++) {
+					/* If we're in UTF-8, just discard any
+					 * bytes that claim to be part of this character. */
+					if ((end > start) &&
+					    (strcmp(terminal->pvt->encoding, "UTF-8") == 0) &&
+					    ((terminal->pvt->incoming[end] & 0xc0) != 0xc0)) {
+					    
+						break;
+					}
 					if (terminal->pvt->incoming[end] < 128) {
 						break;
 					}
@@ -3432,6 +3888,11 @@ vte_terminal_process_incoming(gpointer data)
 				g_warning("Invalid multibyte sequence detected.  Munging up %d bytes of data.", end - start);
 				/* Remove the offending bytes. */
 				for (i = start; i < end; i++) {
+#ifdef VTE_DEBUG
+					fprintf(stderr, "Nuking byte %d/%02x.\n",
+						terminal->pvt->incoming[i],
+						terminal->pvt->incoming[i]);
+#endif
 					terminal->pvt->incoming[i] = '?';
 				}
 				/* Try again right away. */
@@ -3910,7 +4371,7 @@ vte_terminal_io_write(GIOChannel *channel,
 			fprintf(stderr, "Wrote %c%c\n",
 				terminal->pvt->outgoing[i] > 32 ?  ' ' : '^',
 				terminal->pvt->outgoing[i] > 32 ?
-				terminal->pvt->outgoing[i] : 
+				terminal->pvt->outgoing[i] :
 				terminal->pvt->outgoing[i]  + 64);
 		}
 #endif
@@ -4125,6 +4586,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 {
 	VteTerminal *terminal;
 	GdkModifierType modifiers;
+	const PangoFontDescription *rofontdesc;
+	PangoFontDescription *fontdesc;
 	struct vte_termcap *termcap;
 	const char *tterm;
 	unsigned char *normal = NULL;
@@ -4134,7 +4597,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	struct termios tio;
 	struct timeval tv;
 	struct timezone tz;
-	gboolean scrolled = FALSE;
+	gboolean scrolled = FALSE, steal = FALSE;
 
 	g_return_val_if_fail(widget != NULL, FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
@@ -4147,15 +4610,6 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			terminal->pvt->last_keypress_time =
 				(tv.tv_sec * 1000) + (tv.tv_usec / 1000);
 		}
-	}
-
-	/* Let the input method at this one first. */
-	if (gtk_im_context_filter_keypress(terminal->pvt->im_context, event)) {
-		return TRUE;
-	}
-
-	/* Now figure out what to send to the child. */
-	if (event->type == GDK_KEY_PRESS) {
 		/* Read the modifiers. */
 		if (gdk_event_get_state((GdkEvent*)event,
 					&modifiers) == FALSE) {
@@ -4166,6 +4620,34 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			"string=`%s'.\n", modifiers, event->keyval,
 			event->string);
 #endif
+		/* Determine if we want to steal this keysym from the input
+		 * method.  Ideally the answer would be "no" always. */
+		steal = FALSE;
+		if (modifiers & GDK_SHIFT_MASK) {
+			switch (event->keyval) {
+				case GDK_KP_Add:
+				case GDK_KP_Subtract:
+					steal = TRUE;
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Hiding key from input method.\n");
+#endif
+					break;
+				default:
+					steal = FALSE;
+			}
+		}
+	}
+
+	/* Let the input method at this one first. */
+	if (!steal) {
+		if (gtk_im_context_filter_keypress(terminal->pvt->im_context,
+						   event)) {
+			return TRUE;
+		}
+	}
+
+	/* Now figure out what to send to the child. */
+	if (event->type == GDK_KEY_PRESS) {
 		/* Map the key to a sequence name if we can. */
 		switch (event->keyval) {
 			case GDK_BackSpace:
@@ -4309,6 +4791,28 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 					normal_length = 1;
 				}
 				break;
+			/* Let Shift +/- tweak the font, like XTerm does. */
+			case GDK_KP_Add:
+			case GDK_KP_Subtract:
+				if ((modifiers & GDK_SHIFT_MASK) &&
+				    terminal->pvt->xterm_font_tweak) {
+					rofontdesc = vte_terminal_get_font(terminal);
+					if (rofontdesc != NULL) {
+						fontdesc = pango_font_description_copy(rofontdesc);
+						i = pango_font_description_get_size(fontdesc);
+						if (event->keyval == GDK_KP_Add) {
+							i += PANGO_SCALE;
+						}
+						if (event->keyval == GDK_KP_Subtract) {
+							i = MAX(PANGO_SCALE,
+								i - PANGO_SCALE);
+						}
+						pango_font_description_set_size(fontdesc, i);
+						vte_terminal_set_font(terminal, fontdesc);
+						pango_font_description_free(fontdesc);
+					}
+					break;
+				}
 			/* The default is to just send the string. */
 			default:
 				if (event->string != NULL) {
@@ -4995,7 +5499,7 @@ xft_pattern_from_pango_font_description(const PangoFontDescription *font_desc)
 	 * pattern if they're not set in the pango font. */
 	if (pango_mask & PANGO_FONT_MASK_WEIGHT) {
 		weight = pango_font_description_get_weight (font_desc);
-		XftPatternAddInteger (pattern, XFT_WEIGHT, 
+		XftPatternAddInteger (pattern, XFT_WEIGHT,
 				      xft_weight_from_pango_weight (weight));
 	}
 	if (pango_mask & PANGO_FONT_MASK_STYLE) {
@@ -5369,10 +5873,14 @@ vte_terminal_set_font(VteTerminal *terminal,
 	terminal->char_descent = descent;
 
 	/* Emit a signal that the font changed. */
-	g_signal_emit_by_name(terminal,
-			      "char_size_changed",
-			      terminal->char_width,
-			      terminal->char_height);
+	vte_terminal_emit_char_size_changed(terminal,
+					    terminal->char_width,
+					    terminal->char_height);
+
+	/* Attempt to resize. */
+	if (GTK_WIDGET_REALIZED(widget)) {
+		gtk_widget_queue_resize(widget);
+	}
 
 	/* Make sure the entire window gets repainted. */
 	vte_invalidate_cells(terminal,
@@ -5737,15 +6245,24 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	pvt->fontset = NULL;
 
+	/* Decide if we're going to use Pango (pangox) for rendering. */
+	pvt->fontdesc = NULL;
+	pvt->layout = NULL;
+	pvt->use_pango = TRUE;
+	if (pvt->use_pango) {
+		if (getenv("VTE_USE_PANGO") != NULL) {
+			if (atol(getenv("VTE_USE_PANGO")) == 0) {
+				pvt->use_pango = FALSE;
+			}
+		}
+	}
+
 #ifdef HAVE_XFT
 	/* Try to use Xft if the user requests it.  Provide both the original
 	 * variable we consulted (which we should stop consulting at some
 	 * point) and the one GTK itself uses. */
 	pvt->ftfont = NULL;
 	pvt->use_xft = FALSE;
-	pvt->fontdesc = NULL;
-	pvt->layout = NULL;
-	pvt->use_pango = TRUE;
 	if (getenv("VTE_USE_XFT") != NULL) {
 		if (atol(getenv("VTE_USE_XFT")) != 0) {
 			pvt->use_xft = TRUE;
@@ -5755,13 +6272,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 		if (getenv("GDK_USE_XFT") != NULL) {
 			if (atol(getenv("GDK_USE_XFT")) != 0) {
 				pvt->use_xft = TRUE;
-			}
-		}
-	}
-	if (pvt->use_pango) {
-		if (getenv("VTE_USE_PANGO") != NULL) {
-			if (atol(getenv("VTE_USE_PANGO")) == 0) {
-				pvt->use_pango = FALSE;
 			}
 		}
 	}
@@ -5823,6 +6333,9 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	/* Set backspace/delete bindings. */
 	vte_terminal_set_backspace_binding(terminal, VTE_ERASE_AUTO);
 	vte_terminal_set_delete_binding(terminal, VTE_ERASE_AUTO);
+
+	/* Set various other settings. */
+	pvt->xterm_font_tweak = FALSE;
 }
 
 /* Tell GTK+ how much space we need. */
@@ -5855,7 +6368,10 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	terminal = VTE_TERMINAL(widget);
 
 #ifdef VTE_DEBUG
-	fprintf(stderr, "Sizing window.\n");
+	fprintf(stderr, "Sizing window to %dx%d (%ldx%ld).\n",
+		allocation->width, allocation->height,
+		allocation->width / terminal->char_width,
+		allocation->height / terminal->char_height);
 #endif
 
 	/* Set our allocation to match the structure. */
@@ -5933,12 +6449,12 @@ vte_terminal_unrealize(GtkWidget *widget)
 	 * pixmap changes. */
 	if (terminal->pvt->bg_transparent) {
 		gdk_window_remove_filter(terminal->pvt->bg_transparent_window,
-				         vte_terminal_filter_property_changes,
-				         terminal);
+					 vte_terminal_filter_property_changes,
+					 terminal);
 	}
 	gdk_window_remove_filter(widget->window,
-			         vte_terminal_filter_property_changes,
-			         terminal);
+				 vte_terminal_filter_property_changes,
+				 terminal);
 
 	/* Unmap the widget if it hasn't been already. */
 	if (GTK_WIDGET_MAPPED(widget)) {
@@ -6161,6 +6677,9 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 	if (cell && cell->bold) {
 		if ((*fore != VTE_DEF_FG) && (*fore != VTE_DEF_BG)) {
 			*fore += 8;
+		} else {
+			/* Aaargh. We have to do *something*. */
+			*fore = 15;
 		}
 	}
 	if (cell && cell->standout) {
@@ -6940,9 +7459,9 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 {
 	GtkAdjustment *adj;
 	gdouble new_value;
-	
+
 	adj = VTE_TERMINAL (widget)->adjustment;
-	
+
 	switch (event->direction) {
 	case GDK_SCROLL_UP:
 		new_value = adj->value - adj->page_increment / 2;
@@ -6996,7 +7515,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 	widget_class->size_request = vte_terminal_size_request;
 	widget_class->size_allocate = vte_terminal_size_allocate;
 	widget_class->get_accessible = vte_terminal_get_accessible;
-	
+
 	klass->eof_signal =
 		g_signal_new("eof",
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -7059,6 +7578,87 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     NULL,
 			     NULL,
 			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
+	klass->deiconify_window_signal =
+		g_signal_new("deiconify-window",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     0,
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
+	klass->iconify_window_signal =
+		g_signal_new("iconify-window",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     0,
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
+	klass->raise_window_signal =
+		g_signal_new("raise-window",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     0,
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
+	klass->lower_window_signal =
+		g_signal_new("lower-window",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     0,
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
+	klass->refresh_window_signal =
+		g_signal_new("refresh-window",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     0,
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
+	klass->restore_window_signal =
+		g_signal_new("restore-window",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     0,
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
+	klass->maximize_window_signal =
+		g_signal_new("maximize-window",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     0,
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
+	klass->resize_window_signal =
+		g_signal_new("resize-window",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     0,
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__UINT_UINT,
+			     G_TYPE_NONE, 0);
+	klass->move_window_signal =
+		g_signal_new("move-window",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     0,
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__UINT_UINT,
 			     G_TYPE_NONE, 0);
 }
 
@@ -7172,8 +7772,8 @@ vte_terminal_setup_background(VteTerminal *terminal,
 	bgcolor.red = terminal->pvt->palette[VTE_DEF_BG].red;
 	bgcolor.green = terminal->pvt->palette[VTE_DEF_BG].green;
 	bgcolor.blue = terminal->pvt->palette[VTE_DEF_BG].blue;
-        bgcolor.pixel = terminal->pvt->palette[VTE_DEF_BG].pixel;
-        
+	bgcolor.pixel = terminal->pvt->palette[VTE_DEF_BG].pixel;
+
 	gdk_window_set_background(widget->window, &bgcolor);
 
 	if (terminal->pvt->bg_transparent) {
@@ -7488,8 +8088,8 @@ vte_terminal_set_background_transparent(VteTerminal *terminal, gboolean setting)
 	} else {
 		/* Remove the watch filter in case it was added before. */
 		gdk_window_remove_filter(window,
-				         vte_terminal_filter_property_changes,
-				         terminal);
+					 vte_terminal_filter_property_changes,
+					 terminal);
 	}
 	/* Update the background. */
 	vte_terminal_queue_background_update(terminal);
@@ -7666,7 +8266,7 @@ vte_terminal_get_snapshot(VteTerminal *terminal)
 			/* Get the text. FIXME: convert from wchar_t to
 			 * gunichar when they're not interchangeable. */
 #ifdef VTE_DEBUG
-			fprintf(stderr, "%lc", cell->c);
+			fprintf(stderr, "%lc", (wint_t) cell->c);
 #endif
 			ret->contents[row][column].c = cell->c;
 

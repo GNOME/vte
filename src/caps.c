@@ -22,12 +22,12 @@
 #include <glib.h>
 #include "caps.h"
 
-#define ESC ""
-#define CSI ESC "["
-#define ST  ESC "\\"
-#define OSC ESC "]"
-#define PM  ESC "^"
-#define APC ESC "_"
+#define ESC VTE_CAP_ESC
+#define CSI VTE_CAP_CSI
+#define ST  VTE_CAP_ST
+#define OSC VTE_CAP_OSC
+#define PM  VTE_CAP_PM
+#define APC VTE_CAP_APC
 
 #define BEL ""
 #define BS  ""
@@ -501,24 +501,7 @@ struct vte_capability_string vte_xterm_capability_strings[] = {
 	{CSI "?%dr", "restore-mode", 0},
 	{CSI "?%ds", "save-mode", 0},
 
-	{CSI "1t", "deiconify-window", 0},
-	{CSI "2t", "iconify-window", 0},
-	{CSI "3;%d;%dt", "move-window", 0},
-	{CSI "4;%d;%dt", "resize-window", 0},
-	{CSI "5t", "raise-window", 0},
-	{CSI "6t", "lower-window", 0},
-	{CSI "7t", "refresh-window", 0},
-	{CSI "8;%d;%dt", "resize-text-area", 0},
-	{CSI "9;0t", "restore-maximized-window", 0},
-	{CSI "9;1t", "maximize-window", 0},
-	{CSI "11t", "report-window-state", 0},
-	{CSI "13t", "report-window-position", 0},
-	{CSI "14t", "report-window-size", 0},
-	{CSI "18t", "report-text-area-size", 0},
-	{CSI "19t", "report-screen-size", 0},
-	{CSI "20t", "report-icon-title", 0},
-	{CSI "21t", "report-window-title", 0},
-	{CSI "%dt", "resize-text-area-lines", 0},
+	{CSI "%mt", "window-manipulation", 0},
 
 	{CSI "%d;%d;%d;%dw", "enable-filter-rectangle", 0},
 	{CSI "%dx", "request-terminal-parameters", 0},
