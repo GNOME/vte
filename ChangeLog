@@ -1,3 +1,7 @@
+2002-06-14 nalin
+	* configure.in, python/Makefile.am: Handle cases where pygtk isn't
+	installed in the prefix we're configuring for.
+	* src/Makefile.am: Link libvte to its library dependencies.
 2002-06-13 nalin
 	* src/vteaccess.c: Stop watching for hierarchy-changed signals -- the
 	accessible container which is our parent handles it already (from msw).

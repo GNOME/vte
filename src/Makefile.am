@@ -29,6 +29,8 @@ libvte_la_SOURCES = \
 	vteaccess.c \
 	vteaccess.h
 
+libvte_la_LIBADD = @LIBS@ @XFT_LIBS@ @GTK_LIBS@ @X_LIBS@
+
 CLEANFILES = marshal.c marshal.h
 
 marshal.c marshal.h: marshal.list
