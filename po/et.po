@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-29 22:25-0400\n"
+"POT-Creation-Date: 2004-08-06 12:26+0200\n"
 "PO-Revision-Date: 2003-09-29 08:21+0200\n"
 "Last-Translator: Allan Sims <allsi@eau.ee>\n"
 "Language-Team: Estonian <gnome-et@linux.ee>\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2091
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Ei suuda konventeerida %s'i %s'iks."
@@ -48,7 +48,7 @@ msgstr "Viga `%s'i lisamisel keskkonda, jätkan."
 msgid "can not run %s"
 msgstr "ei saa käivitada %s"
 
-#: src/reaper.c:137
+#: src/reaper.c:156
 msgid "Error creating signal pipe."
 msgstr "Viga luues signal pipe"
 
@@ -57,45 +57,45 @@ msgstr "Viga luues signal pipe"
 msgid "Duplicate (%s/%s)!"
 msgstr "Dublikaat (%s/%s)!"
 
-#: src/vte.c:1498
+#: src/vte.c:1499
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Viga regulaaravaldise kompileerimisel \"%s\"."
 
-#: src/vte.c:5850
+#: src/vte.c:5851
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Saadi ootamatu (võtme?) jada `%s'."
 
-#: src/vte.c:6951
+#: src/vte.c:6947
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Kontrolljadale `%s' haldaja defineerimata."
 
-#: src/vte.c:7793
+#: src/vte.c:7789
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Viga lapse %s lugemisel"
 
-#: src/vte.c:7949
+#: src/vte.c:7945
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Viga (%s) andmete konventeerimisel lapsele, peatumine."
 
-#: src/vte.c:10715
+#: src/vte.c:10754
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Viga lugedes PTY suurust, kasutatakse vaikeväärtust: %s."
 
-#: src/vte.c:10751
+#: src/vte.c:10790
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Viga seades PTY suurust: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15235
+#: src/vte.c:15274
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "_vte_conv_open() ebaõnnestus seades sõna märke"
+msgstr "Tõrge _vte_conv_open() sõnamärkide seadmisel"
 
 #. Bail back to normal mode.
 #: src/vteapp.c:728
