@@ -4142,6 +4142,7 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 {
 	g_return_val_if_fail(GTK_IS_WIDGET(widget), 0);
 	GTK_WIDGET_SET_FLAGS(widget, GTK_HAS_FOCUS);
+	vte_invalidate_cursor(VTE_TERMINAL(widget));
 	return TRUE;
 }
 
@@ -4150,6 +4151,7 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 {
 	g_return_val_if_fail(GTK_WIDGET(widget), 0);
 	GTK_WIDGET_UNSET_FLAGS(widget, GTK_HAS_FOCUS);
+	vte_invalidate_cursor(VTE_TERMINAL(widget));
 	return TRUE;
 }
 
@@ -5376,24 +5378,38 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		drow = screen->cursor_current.row;
 		row = drow - delta;
 		cell = vte_terminal_find_charcell(terminal, drow, col);
-		/* Draw the character. */
+		/* Draw the cursor. */
 		delta = screen->scroll_delta;
-		vte_terminal_draw_char(terminal, screen, cell,
-				       col,
-				       drow,
+		if (GTK_WIDGET_HAS_FOCUS(GTK_WIDGET(terminal))) {
+			/* Draw it as a character, possibly reversed. */
+			vte_terminal_draw_char(terminal, screen, cell,
+					       col,
+					       drow,
+					       col * width - x_offs,
+					       row * height - y_offs,
+					       width, height,
+					       ascent, descent,
+					       display,
+					       gdrawable, drawable,
+					       gcolormap, colormap,
+					       gvisual, visual,
+					       gc,
+#ifdef HAVE_XFT
+					       ftdraw,
+#endif
+					       blink);
+		} else {
+			/* Draw it as a rectangle. */
+			guint fore;
+			fore = cell ? cell->fore : VTE_DEF_FG;
+			XSetForeground(display, gc,
+				       terminal->pvt->palette[fore].pixel);
+			XDrawRectangle(display, drawable, gc,
 				       col * width - x_offs,
 				       row * height - y_offs,
-				       width, height,
-				       ascent, descent,
-				       display,
-				       gdrawable, drawable,
-				       gcolormap, colormap,
-				       gvisual, visual,
-				       gc,
-#ifdef HAVE_XFT
-				       ftdraw,
-#endif
-				       blink);
+				       width - 1,
+				       height - 1);
+		}
 	}
 
 	/* Done with various structures. */
