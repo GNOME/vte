@@ -1,3 +1,7 @@
+2002-07-13 nalin
+	* src/vte.c (vte_terminal_get_text): Add the proper number of attribute
+	structs to the attribute array to fix crashes which occurred when the
+	buffer contains non-ASCII text (#67930).
 2002-07-12 nalin
 	* src/vte.c: Small optimization in the al() and dl() handlers.  al()
 	doesn't move the cursor, per GNU termcap docs.  Check for a pixbuf in

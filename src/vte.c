@@ -7152,10 +7152,6 @@ vte_terminal_get_text(VteTerminal *terminal,
 					if ((x < terminal->column_count - 1) ||
 					    (spaces > 0)) {
 						string = g_string_append_c(string, '\n');
-						if (attributes) {
-							g_array_append_val(attributes,
-									   attr);
-						}
 					}
 					break;
 				} else
@@ -7186,18 +7182,14 @@ vte_terminal_get_text(VteTerminal *terminal,
 					/* Stuff any saved spaces in. */
 					while (spaces > 0) {
 						string = g_string_append_c(string, ' ');
-						if (attributes != NULL) {
-							g_array_append_val(attributes,
-									   attr);
-						}
-						spaces--;
 					}
 					/* Stuff the charcter in this cell. */
 					string = g_string_append_unichar(string, pcell->c);
-					if (attributes != NULL) {
-						g_array_append_val(attributes,
-								   attr);
-					}
+				}
+			}
+			if (attributes) {
+				while (attributes->len < string->len) {
+					g_array_append_val(attributes, attr);
 				}
 			}
 			x++;
