@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.10.8
+Version: 0.10.9
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -93,6 +93,11 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Mon Jan 13 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.9-1
+- fix scrolling through the accessibility layer
+- stop heeding NumLock when mapping cursor keys
+- steal keypress events from the input method if Meta modifier is in effect
+
 * Mon Jan  6 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.8-1
 - report changes to the accessibility layer when text is removed or moved
   around, still needs work

@@ -1,3 +1,27 @@
+2003-01-13 nalin
+	* src/nativeecho.c, src/utf8echo.c: don't switch terminal modes before
+	or after echoing bytes -- doing so confuses me now.
+	* src/vte.c: make use of '?' to mark invalid data a compile-time define.
+	* src/vteaccess.c(vte_terminal_accessible_text_scrolled): properly
+	handle scrolling events with delta less than the window size (more
+	of #95901).
+	* src/vteaccess.c(vte_terminal_accessible_finalize): disconnect
+	from text-inserted, text-deleted, text-modified, text-scrolled,
+	cursor-moved, window-title-changed on finalize.
+	* src/vte.c(vte_terminal_key_press,vte_terminal_key_release,
+	vte_terminal_button_press,vte_terminal_button_release,
+	vte_terminal_motion_notify,vte_terminal_focus_in,vte_terminal_focus_out,
+	vte_terminal_scroll): track event modifiers in an object-local modifier
+	variable.
+	* src/vte.c(vte_terminal_key_press): always steal key events from the
+	input method if the meta key is down (#96006).  Don't munge the cursor
+	or keypad modes before passing them to the keymapping routines.  Stop
+	overriding the cursor mode on NumLock (doesn't appear to work as
+	documented in other terminals, needed to modify the keymap mode anyway
+	(#96364)).
+	* configure.in: define HAVE_XFT whenever HAVE_XFT2 is defined -- they're
+	more or less compatible (#103130).
+
 2003-01-10  Abel Cheung  <maddog@linux.org.hk>
 
 	* configure.in: Added "zh_TW" to ALL_LINGUAS.

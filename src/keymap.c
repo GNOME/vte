@@ -966,12 +966,8 @@ _vte_keymap_map(guint keyval,
 		return;
 	}
 
-	/* Build mode masks.  Numlock negates application cursor mode. */
-	if (modifiers & VTE_NUMLOCK_MASK) {
-		cursor_mode = cursor_default;
-	} else {
-		cursor_mode = app_cursor_keys ? cursor_app : cursor_default;
-	}
+	/* Build mode masks. */
+	cursor_mode = app_cursor_keys ? cursor_app : cursor_default;
 	keypad_mode = app_keypad_keys ? keypad_app : keypad_default;
 	if (sun_mode) {
 		fkey_mode = fkey_sun;

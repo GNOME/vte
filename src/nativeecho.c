@@ -38,10 +38,6 @@ main(int argc, char **argv)
 		return 1;
 	}
 
-	if (isatty(STDOUT_FILENO)) {
-		printf(ESC "%%@");
-	}
-
 	for (i = 1; i < argc; i++) {
 		l = strtol(argv[i], &p, 0);
 		while (l > 0) {

@@ -25,6 +25,7 @@ AC_EGREP_CPP(glibc,
 # X_PRE_LIBS and X_EXTRA_LIBS to add even more libraries, and add -lX11 to
 # the list of libraries for grins.
 AC_PATH_XTRA
+HAVE_XFT=no
 X_LIBS="$X_PRE_LIBS $X_LIBS -lX11 $X_EXTRA_LIBS"
 PKG_CHECK_MODULES(GOBJECT,[glib-2.0 gobject-2.0])
 savelibs="$LIBS"
@@ -32,6 +33,7 @@ LIBS="$X_LIBS $LIBS"
 wantedmodules="glib-2.0 gobject-2.0 gdk-pixbuf-2.0 gtk+-2.0 pangox"
 if pkg-config --exists pangoxft '>=' 1.1.0 ; then
 	AC_DEFINE(HAVE_XFT2,1,[Whether we have Xft version 2])
+	HAVE_XFT=yes
 	wantedmodules="$wantedmodules fontconfig xft"
 else
 	AC_MSG_WARN([Xft2 not detected - performance will suffer])
@@ -44,9 +46,12 @@ savecppflags="$CPPFLAGS"
 savelibs="$LIBS"
 CPPFLAGS="$VTE_CFLAGS $X_CFLAGS $CPPFLAGS"
 LIBS="$VTE_LIBS $X_LIBS"
-AC_CHECK_FUNC(XftDrawString32,[AC_DEFINE(HAVE_XFT,1,[Whether or not Xft is available.])],[AC_MSG_WARN([Xft not detected - performance will suffer])])
+AC_CHECK_FUNC(XftDrawString32,HAVE_XFT=yes,[AC_MSG_WARN([Xft not detected - performance will suffer])])
 CPPFLAGS="$savecppflags"
 LIBS="$savelibs"
+if test x$HAVE_XFT = xyes ; then
+	AC_DEFINE(HAVE_XFT,1,[If we have any version of Xft.])
+fi
 
 # Define macros to disable accidental use of deprecated functionality.
 AC_DEFINE(G_DISABLE_DEPRECATED,1,[Disable deprecated GLib features.])

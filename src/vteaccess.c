@@ -101,13 +101,6 @@ emit_text_changed_insert(GObject *object,
 	if (len == 0) {
 		return;
 	}
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Accessibility peer emitting "
-			"`text-changed::insert' (%ld, %ld).\n",
-			offset, len);
-	}
-#endif
 	/* Convert the byte offsets to characters. */
 	for (p = text, start = 0;
 	     p < text + offset;
@@ -119,6 +112,15 @@ emit_text_changed_insert(GObject *object,
 	     p = g_utf8_next_char(p)) {
 		count++;
 	}
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Accessibility peer emitting "
+			"`text-changed::insert' (%ld, %ld) (%ld, %ld).\n",
+			offset, len, start, count);
+		fprintf(stderr, "Inserted text was `%.*s'.\n",
+			(int) len, text + offset);
+	}
+#endif
 	g_signal_emit_by_name(object, "text-changed::insert", start, count);
 }
 
@@ -131,13 +133,6 @@ emit_text_changed_delete(GObject *object,
 	if (len == 0) {
 		return;
 	}
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Accessibility peer emitting "
-			"`text-changed::delete' (%ld, %ld).\n",
-			offset, len);
-	}
-#endif
 	/* Convert the byte offsets to characters. */
 	for (p = text, start = 0;
 	     p < text + offset;
@@ -149,6 +144,15 @@ emit_text_changed_delete(GObject *object,
 	     p = g_utf8_next_char(p)) {
 		count++;
 	}
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Accessibility peer emitting "
+			"`text-changed::delete' (%ld, %ld) (%ld, %ld).\n",
+			offset, len, start, count);
+		fprintf(stderr, "Deleted text was `%.*s'.\n",
+			(int) len, text + offset);
+	}
+#endif
 	g_signal_emit_by_name(object, "text-changed::delete", start, count);
 }
 
@@ -412,57 +416,125 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 				      gpointer data)
 {
 	VteTerminalAccessiblePrivate *priv;
+	struct vte_char_attributes attr;
+	long i, len, delta;
 
 	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(data));
+	g_return_if_fail(howmuch != 0);
 
 	priv = g_object_get_data(G_OBJECT(data),
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
 	g_return_if_fail(priv != NULL);
 
-	/* FIXME: don't wuss out here, be more specific if it the delta is
-	 * less than the terminal's vertical height. */
-
-	if (priv->snapshot_text != NULL) {
-		if (priv->snapshot_text) {
+	if (((howmuch < 0) && (howmuch <= -terminal->row_count)) ||
+	    ((howmuch > 0) && (howmuch >= terminal->row_count))) {
+		/* All of the text was removed. */
+		if (priv->snapshot_text != NULL) {
+			if (priv->snapshot_text) {
+				emit_text_changed_delete(G_OBJECT(data),
+							 priv->snapshot_text,
+							 0,
+							 strlen(priv->snapshot_text));
+			}
+		}
+		priv->snapshot_contents_invalid = TRUE;
+		vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(data),
+								      NULL);
+		/* All of the present text was added. */
+		if (priv->snapshot_text != NULL) {
+			if (priv->snapshot_text) {
+				emit_text_changed_insert(G_OBJECT(data),
+							 priv->snapshot_text,
+							 0,
+							 strlen(priv->snapshot_text));
+			}
+		}
+		return;
+	}
+	/* Find the start point. */
+	delta = 0;
+	if (priv->snapshot_attributes != NULL) {
+		if (priv->snapshot_attributes->len > 0) {
+			attr = g_array_index(priv->snapshot_attributes,
+					     struct vte_char_attributes,
+					     0);
+			delta = attr.row;
+		}
+	}
+	/* We scrolled up, so text was added at the top and removed
+	 * from the bottom. */
+	if ((howmuch < 0) && (howmuch > -terminal->row_count)) {
+		howmuch = -howmuch;
+		/* Find the first byte that scrolled off. */
+		for (i = 0; i < priv->snapshot_attributes->len; i++) {
+			attr = g_array_index(priv->snapshot_attributes,
+					     struct vte_char_attributes,
+					     i);
+			if (attr.row >= delta + terminal->row_count - howmuch) {
+				break;
+			}
+		}
+		if (i < priv->snapshot_attributes->len) {
+			/* The rest of the string was deleted -- make a note. */
 			emit_text_changed_delete(G_OBJECT(data),
 						 priv->snapshot_text,
-						 0,
-						 strlen(priv->snapshot_text));
+						 i,
+						 priv->snapshot_attributes->len - i);
 		}
-	}
-	priv->snapshot_contents_invalid = TRUE;
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(data),
-							      NULL);
-	if (priv->snapshot_text != NULL) {
-		if (priv->snapshot_text) {
-			emit_text_changed_insert(G_OBJECT(data),
-						 priv->snapshot_text,
-						 0,
-						 strlen(priv->snapshot_text));
+		/* Refresh.  Note that i is now the length of the data which
+		 * we expect to have left over. */
+		priv->snapshot_contents_invalid = TRUE;
+		vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(data),
+								      NULL);
+		/* If we now have more text than before, the initial portion
+		 * was added. */
+		if (priv->snapshot_text != NULL) {
+			len = strlen(priv->snapshot_text);
+			if (len > i) {
+				emit_text_changed_insert(G_OBJECT(data),
+							 priv->snapshot_text,
+							 0,
+							 len - i);
+			}
 		}
+		return;
 	}
-}
-
-/* A signal handler to catch "contents_changed" signals. */
-static void
-vte_terminal_accessible_invalidate_contents(VteTerminal *terminal,
-					    gpointer data)
-{
-	VteTerminalAccessiblePrivate *priv;
-
-	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(data));
-
-	priv = g_object_get_data(G_OBJECT(data),
-				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
-	g_return_if_fail(priv != NULL);
-
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Invalidating accessibility contents.\n");
+	/* We scrolled down, so text was added at the bottom and removed
+	 * from the top. */
+	if ((howmuch > 0) && (howmuch < terminal->row_count)) {
+		/* Find the first byte that wasn't scrolled off the top. */
+		for (i = 0; i < priv->snapshot_attributes->len; i++) {
+			attr = g_array_index(priv->snapshot_attributes,
+					     struct vte_char_attributes,
+					     i);
+			if (attr.row >= delta + howmuch) {
+				break;
+			}
+		}
+		/* That many bytes disappeared -- make a note. */
+		emit_text_changed_delete(G_OBJECT(data),
+					 priv->snapshot_text,
+					 0,
+					 i);
+		/* Figure out how much text was left, and refresh. */
+		i = strlen(priv->snapshot_text + i);
+		priv->snapshot_contents_invalid = TRUE;
+		vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(data),
+								      NULL);
+		/* Any newly-added string data is new, so note that it was
+		 * inserted. */
+		if (priv->snapshot_text != NULL) {
+			len = strlen(priv->snapshot_text);
+			if (len > i) {
+				emit_text_changed_insert(G_OBJECT(data),
+							 priv->snapshot_text,
+							 i,
+							 len - i);
+			}
+		}
+		return;
 	}
-#endif
-
-	priv->snapshot_contents_invalid = TRUE;
+	g_assert_not_reached();
 }
 
 /* A signal handler to catch "cursor-moved" signals. */
@@ -537,9 +609,6 @@ vte_terminal_accessible_new(VteTerminal *terminal)
 	g_signal_connect(G_OBJECT(terminal), "text-scrolled",
 			 GTK_SIGNAL_FUNC(vte_terminal_accessible_text_scrolled),
 			 object);
-	g_signal_connect(G_OBJECT(terminal), "contents-changed",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_invalidate_contents),
-			 object);
 	g_signal_connect(G_OBJECT(terminal), "cursor-moved",
 			 GTK_SIGNAL_FUNC(vte_terminal_accessible_invalidate_cursor),
 			 object);
@@ -575,7 +644,19 @@ vte_terminal_accessible_finalize(GObject *object)
 					     G_SIGNAL_MATCH_FUNC |
 					     G_SIGNAL_MATCH_DATA,
 					     0, 0, NULL,
-					     (gpointer)vte_terminal_accessible_invalidate_contents,
+					     vte_terminal_accessible_text_modified,
+					     object);
+	g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+					     G_SIGNAL_MATCH_FUNC |
+					     G_SIGNAL_MATCH_DATA,
+					     0, 0, NULL,
+					     vte_terminal_accessible_text_scrolled,
+					     object);
+	g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+					     G_SIGNAL_MATCH_FUNC |
+					     G_SIGNAL_MATCH_DATA,
+					     0, 0, NULL,
+					     vte_terminal_accessible_invalidate_cursor,
 					     object);
 	g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
 					     G_SIGNAL_MATCH_FUNC |

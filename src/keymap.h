@@ -27,10 +27,10 @@
 #include <gdk/gdk.h>
 #include "termcap.h"
 
-#define VTE_NUMLOCK_MASK		GDK_MOD2_MASK
-#define VTE_META_MASK			GDK_MOD1_MASK
-
 G_BEGIN_DECLS
+
+#define VTE_META_MASK		GDK_MOD1_MASK
+#define VTE_NUMLOCK_MASK	GDK_MOD2_MASK
 
 /* Map the specified keyval/modifier setup, dependent on the mode, to either
  * a literal string or a capability name. */

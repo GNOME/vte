@@ -118,6 +118,7 @@ typedef gunichar wint_t;
 #define VTE_REGEXEC_FLAGS		0
 #define VTE_INPUT_CHUNK_SIZE		0x1000
 #define VTE_INVALID_SOURCE		-1
+#define VTE_INVALID_BYTE		'?'
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
@@ -390,6 +391,9 @@ struct _VteTerminalPrivate {
 	GdkPixbuf *bg_transparent_image;
 	GdkPixbuf *bg_image;
 	long bg_saturation;	/* out of VTE_SATURATION_MAX */
+
+	/* Key modifiers. */
+	GdkModifierType modifiers;
 };
 
 /* A function which can handle a terminal control sequence. */
@@ -5309,8 +5313,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 					"non-iconified" : "iconified");
 			}
 #endif
-			vte_terminal_feed_child(terminal,
-						buf, strlen(buf));
+			vte_terminal_feed_child(terminal, buf, strlen(buf));
 			break;
 		case 13:
 			/* Send window location, in pixels. */
@@ -5326,8 +5329,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 					width, height);
 			}
 #endif
-			vte_terminal_feed_child(terminal,
-						buf, strlen(buf));
+			vte_terminal_feed_child(terminal, buf, strlen(buf));
 			break;
 		case 14:
 			/* Send window size, in pixels. */
@@ -5342,8 +5344,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 					"(%dx%d).\n", width, height);
 			}
 #endif
-			vte_terminal_feed_child(terminal,
-						buf, strlen(buf));
+			vte_terminal_feed_child(terminal, buf, strlen(buf));
 			break;
 		case 18:
 			/* Send widget size, in cells. */
@@ -5356,8 +5357,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 				 "%s%ld;%ldt", _VTE_CAP_CSI,
 				 terminal->row_count,
 				 terminal->column_count);
-			vte_terminal_feed_child(terminal,
-						buf, strlen(buf));
+			vte_terminal_feed_child(terminal, buf, strlen(buf));
 			break;
 		case 19:
 #ifdef VTE_DEBUG
@@ -5373,8 +5373,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 				 terminal->char_height,
 				 DisplayWidth(display, i) /
 				 terminal->char_width);
-			vte_terminal_feed_child(terminal,
-						buf, strlen(buf));
+			vte_terminal_feed_child(terminal, buf, strlen(buf));
 			break;
 		case 20:
 			/* Report the icon title. */
@@ -5389,8 +5388,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 				 terminal->icon_title ?
 				 terminal->icon_title : "",
 				 _VTE_CAP_ST);
-			vte_terminal_feed_child(terminal,
-						buf, strlen(buf));
+			vte_terminal_feed_child(terminal, buf, strlen(buf));
 			break;
 		case 21:
 			/* Report the window title. */
@@ -5405,8 +5403,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 				 terminal->window_title ?
 				 terminal->window_title : "",
 				 _VTE_CAP_ST);
-			vte_terminal_feed_child(terminal,
-						buf, strlen(buf));
+			vte_terminal_feed_child(terminal, buf, strlen(buf));
 			break;
 		default:
 			if (param >= 24) {
@@ -6905,7 +6902,7 @@ vte_terminal_process_incoming(gpointer data)
 					terminal->pvt->incoming->bytes[start]);
 			}
 #endif
-			terminal->pvt->incoming->bytes[start] = '?';
+			terminal->pvt->incoming->bytes[start] = VTE_INVALID_BYTE;
 			/* Try again, before we try anything else.  To pull this
 			 * off we add ourselves as a higher priority idle
 			 * handler, and cause this lower-priority instance
@@ -7660,7 +7657,6 @@ static gint
 vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 {
 	VteTerminal *terminal;
-	GdkModifierType modifiers;
 	struct _vte_termcap *termcap;
 	const char *tterm;
 	char *normal = NULL, *output;
@@ -7672,11 +7668,10 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	struct timezone tz;
 	gboolean scrolled = FALSE, steal = FALSE, modifier = FALSE, handled,
 		 suppress_meta_esc = FALSE;
-	VteKeymode keypad_mode = VTE_KEYMODE_NORMAL,
-		   cursor_mode = VTE_KEYMODE_NORMAL;
 	guint keyval = 0;
 	gunichar keychar = 0;
 	char keybuf[VTE_UTF8_BPC];
+	GdkModifierType modifiers;
 
 	g_return_val_if_fail(widget != NULL, TRUE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), TRUE);
@@ -7687,6 +7682,11 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	if (event->type == GDK_KEY_PRESS) {
 		/* Store a copy of the key. */
 		keyval = event->keyval;
+		if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
+			terminal->pvt->modifiers = modifiers;
+		} else {
+			modifiers = terminal->pvt->modifiers;
+		}
 
 		/* If we're in margin bell mode and on the border of the
 		 * margin, bell. */
@@ -7707,27 +7707,6 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				(tv.tv_sec * 1000) + (tv.tv_usec / 1000);
 		}
 
-		/* Read the modifiers. */
-		if (gdk_event_get_state((GdkEvent*)event,
-					&modifiers) == FALSE) {
-			modifiers = 0;
-		}
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Keypress, modifiers=0x%x, "
-				"keyval=0x%x, raw string=`%s'.\n",
-				modifiers, keyval, event->string);
-		}
-#endif
-
-		/* Determine what the keypad and modes are. */
-		if ((modifiers & VTE_NUMLOCK_MASK) == VTE_NUMLOCK_MASK) {
-			keypad_mode = VTE_KEYMODE_NORMAL;
-		} else {
-			keypad_mode = terminal->pvt->keypad_mode;
-		}
-		cursor_mode = terminal->pvt->cursor_mode;
-
 		/* Determine if this is just a modifier key. */
 		modifier = _vte_keymap_key_is_modifier(keyval);
 
@@ -7735,6 +7714,15 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		if (!modifier) {
 			vte_terminal_set_pointer_visible(terminal, FALSE);
 		}
+
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
+			fprintf(stderr, "Keypress, modifiers=0x%x, "
+				"keyval=0x%x, raw string=`%s'.\n",
+				terminal->pvt->modifiers,
+				keyval, event->string);
+		}
+#endif
 
 		/* We steal many keypad keys here. */
 		switch (keyval) {
@@ -7747,6 +7735,9 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			break;
 		default:
 			break;
+		}
+		if (modifiers & VTE_META_MASK) {
+			steal = TRUE;
 		}
 	}
 
@@ -7822,7 +7813,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			break;
 		case GDK_KP_Insert:
 		case GDK_Insert:
-			if (modifiers & GDK_SHIFT_MASK) {
+			if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_paste(terminal,
 						   GDK_SELECTION_PRIMARY);
 				handled = TRUE;
@@ -7832,7 +7823,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		/* Keypad/motion keys. */
 		case GDK_KP_Page_Up:
 		case GDK_Page_Up:
-			if (modifiers & GDK_SHIFT_MASK) {
+			if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_scroll_pages(terminal, -1);
 				scrolled = TRUE;
 				handled = TRUE;
@@ -7841,7 +7832,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			break;
 		case GDK_KP_Page_Down:
 		case GDK_Page_Down:
-			if (modifiers & GDK_SHIFT_MASK) {
+			if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_scroll_pages(terminal, 1);
 				scrolled = TRUE;
 				handled = TRUE;
@@ -7850,7 +7841,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			break;
 		case GDK_KP_Home:
 		case GDK_Home:
-			if (modifiers & GDK_SHIFT_MASK) {
+			if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_maybe_scroll_to_top(terminal);
 				scrolled = TRUE;
 				handled = TRUE;
@@ -7858,7 +7849,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			break;
 		case GDK_KP_End:
 		case GDK_End:
-			if (modifiers & GDK_SHIFT_MASK) {
+			if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_maybe_scroll_to_bottom(terminal);
 				scrolled = TRUE;
 				handled = TRUE;
@@ -7867,7 +7858,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		/* Let Shift +/- tweak the font, like XTerm does. */
 		case GDK_KP_Add:
 		case GDK_KP_Subtract:
-			if (modifiers & (GDK_SHIFT_MASK | GDK_CONTROL_MASK)) {
+			if (terminal->pvt->modifiers &
+			    (GDK_SHIFT_MASK | GDK_CONTROL_MASK)) {
 				switch (keyval) {
 				case GDK_KP_Add:
 					vte_terminal_emit_increase_font_size(terminal);
@@ -7888,7 +7880,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		/* If the above switch statement didn't do the job, try mapping
 		 * it to a literal or capability name. */
 		if (handled == FALSE) {
-			_vte_keymap_map(keyval, modifiers,
+			_vte_keymap_map(keyval, terminal->pvt->modifiers,
 					terminal->pvt->sun_fkey_mode,
 					terminal->pvt->hp_fkey_mode,
 					terminal->pvt->legacy_fkey_mode,
@@ -7926,7 +7918,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				}
 			}
 			if ((normal != NULL) &&
-			    (modifiers & GDK_CONTROL_MASK)) {
+			    (terminal->pvt->modifiers & GDK_CONTROL_MASK)) {
 				/* Replace characters which have "control"
 				 * counterparts with those counterparts. */
 				for (i = 0; i < normal_length; i++) {
@@ -7940,7 +7932,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			if (normal && _vte_debug_on(VTE_DEBUG_EVENTS)) {
 				fprintf(stderr, "Keypress, modifiers=0x%x, "
 					"keyval=0x%x, cooked string=`%s'.\n",
-					modifiers, keyval, normal);
+					terminal->pvt->modifiers,
+					keyval, normal);
 			}
 #endif
 		}
@@ -7949,7 +7942,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			if (terminal->pvt->meta_sends_escape &&
 			    !suppress_meta_esc &&
 			    (normal_length > 0) &&
-			    (modifiers & VTE_META_MASK)) {
+			    (terminal->pvt->modifiers & VTE_META_MASK)) {
 				vte_terminal_feed_child(terminal, "", 1);
 			}
 			if (normal_length > 0) {
@@ -7967,7 +7960,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 								 special,
 								 &normal_length);
 			_vte_keymap_key_add_key_modifiers(keyval,
-							  modifiers,
+							  terminal->pvt->modifiers,
 							  terminal->pvt->sun_fkey_mode,
 							  terminal->pvt->hp_fkey_mode,
 							  terminal->pvt->legacy_fkey_mode,
@@ -7993,8 +7986,13 @@ static gboolean
 vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
 {
 	VteTerminal *terminal;
+	GdkModifierType modifiers;
 
 	terminal = VTE_TERMINAL(widget);
+
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
+		terminal->pvt->modifiers = modifiers;
+	}
 
 	return gtk_im_context_filter_keypress(terminal->pvt->im_context, event);
 }
@@ -8206,8 +8204,7 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 static void
 vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 					int button,
-					double x, double y,
-					GdkModifierType modifiers)
+					double x, double y)
 {
 	unsigned char cb = 0, cx = 0, cy = 0;
 	char buf[LINE_MAX];
@@ -8238,13 +8235,13 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 	cb += 32; /* 32 for normal */
 
 	/* Encode the modifiers. */
-	if (modifiers & GDK_SHIFT_MASK) {
+	if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
 		cb |= 4;
 	}
-	if (modifiers & VTE_META_MASK) {
+	if (terminal->pvt->modifiers & VTE_META_MASK) {
 		cb |= 8;
 	}
-	if (modifiers & GDK_CONTROL_MASK) {
+	if (terminal->pvt->modifiers & GDK_CONTROL_MASK) {
 		cb |= 16;
 	}
 
@@ -8265,8 +8262,8 @@ vte_terminal_maybe_send_mouse_button(VteTerminal *terminal,
 	GdkModifierType modifiers;
 
 	/* Read the modifiers. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
-		modifiers = 0;
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
+		terminal->pvt->modifiers = modifiers;
 	}
 
 	/* Decide whether or not to do anything. */
@@ -8292,8 +8289,7 @@ vte_terminal_maybe_send_mouse_button(VteTerminal *terminal,
 						(event->type == GDK_BUTTON_PRESS) ?
 						event->button : 0,
 						event->x - VTE_PAD_WIDTH,
-						event->y - VTE_PAD_WIDTH,
-						modifiers);
+						event->y - VTE_PAD_WIDTH);
 }
 
 /* Send a mouse motion notification. */
@@ -8302,7 +8298,6 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 {
 	unsigned char cb = 0, cx = 0, cy = 0;
 	char buf[LINE_MAX];
-	GdkModifierType modifiers;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
@@ -8331,20 +8326,14 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 		break;
 	}
 
-
-	/* Read the modifiers. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
-		modifiers = 0;
-	}
-
 	/* Encode the modifiers. */
-	if (modifiers & GDK_SHIFT_MASK) {
+	if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
 		cb |= 4;
 	}
-	if (modifiers & VTE_META_MASK) {
+	if (terminal->pvt->modifiers & VTE_META_MASK) {
 		cb |= 8;
 	}
-	if (modifiers & GDK_CONTROL_MASK) {
+	if (terminal->pvt->modifiers & GDK_CONTROL_MASK) {
 		cb |= 16;
 	}
 
@@ -9347,8 +9336,8 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	vte_terminal_set_pointer_visible(terminal, TRUE);
 
 	/* Read the modifiers. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
-		modifiers = 0;
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
+		terminal->pvt->modifiers = modifiers;
 	}
 
 	switch (event->type) {
@@ -9360,7 +9349,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 				fprintf(stderr, "Mousing drag 1.\n");
 			}
 #endif
-			if (((modifiers & GDK_SHIFT_MASK) == GDK_SHIFT_MASK) ||
+			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
 			    (!terminal->pvt->mouse_send_xy_on_click &&
 			     !terminal->pvt->mouse_send_xy_on_button &&
 			     !terminal->pvt->mouse_hilite_tracking &&
@@ -9434,8 +9423,8 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	vte_terminal_set_pointer_visible(terminal, TRUE);
 
 	/* Read the modifiers. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
-		modifiers = 0;
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
+		terminal->pvt->modifiers = modifiers;
 	}
 
 	/* Convert the event coordinates to cell coordinates. */
@@ -9463,7 +9452,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 #endif
 
 			/* If the user hit shift, override event mode. */
-			if ((modifiers & GDK_SHIFT_MASK) == GDK_SHIFT_MASK) {
+			if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
 				if (terminal->pvt->mouse_send_xy_on_button ||
 				    terminal->pvt->mouse_send_xy_on_click) {
 					/* If shift is pressed in event mode,
@@ -9506,7 +9495,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		/* Paste if the user pressed shift or we're not sending events
 		 * to the app. */
 		case 2:
-			if (((modifiers & GDK_SHIFT_MASK) == GDK_SHIFT_MASK) ||
+			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
 			    (!terminal->pvt->mouse_send_xy_on_button &&
 			     !terminal->pvt->mouse_send_xy_on_click)) {
 				vte_terminal_paste_primary(terminal);
@@ -9610,8 +9599,8 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 	vte_terminal_stop_autoscroll(terminal);
 
 	/* Read the modifiers. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
-		modifiers = 0;
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
+		terminal->pvt->modifiers = modifiers;
 	}
 
 	switch (event->type) {
@@ -9628,7 +9617,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 		case 1:
 			/* If Shift is held down, or we're not in events mode,
 			 * copy the selected text. */
-			if (((modifiers & GDK_SHIFT_MASK) == GDK_SHIFT_MASK) ||
+			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
 			    (!terminal->pvt->mouse_send_xy_on_button)) {
 				/* Copy only if something was selected. */
 				if (terminal->pvt->has_selection &&
@@ -9674,24 +9663,38 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 static gint
 vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 {
+	VteTerminal *terminal;
+	GdkModifierType modifiers;
 	g_return_val_if_fail(GTK_IS_WIDGET(widget), 0);
+	g_return_val_if_fail(VTE_IS_TERMINAL(widget), 0);
+	terminal = VTE_TERMINAL(widget);
 	GTK_WIDGET_SET_FLAGS(widget, GTK_HAS_FOCUS);
-	gtk_im_context_focus_in((VTE_TERMINAL(widget))->pvt->im_context);
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
+		terminal->pvt->modifiers = modifiers;
+	}
+	gtk_im_context_focus_in(terminal->pvt->im_context);
 	/* Force the cursor to be the foreground color twice, in case we're
 	 * in blinking mode and the next scheduled redraw occurs just after
 	 * the one we're about to perform. */
-	(VTE_TERMINAL(widget))->pvt->cursor_force_fg = 2;
-	vte_invalidate_cursor_once(VTE_TERMINAL(widget));
+	terminal->pvt->cursor_force_fg = 2;
+	vte_invalidate_cursor_once(terminal);
 	return FALSE;
 }
 
 static gint
 vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 {
+	VteTerminal *terminal;
+	GdkModifierType modifiers;
 	g_return_val_if_fail(GTK_WIDGET(widget), 0);
+	g_return_val_if_fail(VTE_IS_TERMINAL(widget), 0);
+	terminal = VTE_TERMINAL(widget);
 	GTK_WIDGET_UNSET_FLAGS(widget, GTK_HAS_FOCUS);
-	gtk_im_context_focus_out((VTE_TERMINAL(widget))->pvt->im_context);
-	vte_invalidate_cursor_once(VTE_TERMINAL(widget));
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
+		terminal->pvt->modifiers = modifiers;
+	}
+	gtk_im_context_focus_out(terminal->pvt->im_context);
+	vte_invalidate_cursor_once(terminal);
 	return FALSE;
 }
 
@@ -11392,6 +11395,9 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->bg_saturation = 0.4 * VTE_SATURATION_MAX;
 	pvt->bg_image = NULL;
 
+	/* Clear modifiers. */
+	pvt->modifiers = 0;
+
 	/* Listen for hierarchy change notifications. */
 	g_signal_connect(G_OBJECT(terminal), "hierarchy-changed",
 			 G_CALLBACK(vte_terminal_hierarchy_changed),
@@ -11648,6 +11654,9 @@ vte_terminal_unrealize(GtkWidget *widget)
 		terminal->pvt->cursor_blink_tag = 0;
 	}
 	terminal->pvt->cursor_force_fg = 0;
+
+	/* Clear modifiers. */
+	terminal->pvt->modifiers = 0;
 
 	/* Mark that we no longer have a GDK window. */
 	GTK_WIDGET_UNSET_FLAGS(widget, GTK_REALIZED);
@@ -12028,6 +12037,9 @@ vte_terminal_realize(GtkWidget *widget)
 		gdk_cursor_new(VTE_DEFAULT_CURSOR);
 	terminal->pvt->mouse_mousing_cursor =
 		gdk_cursor_new(VTE_MOUSING_CURSOR);
+
+	/* Clear modifiers. */
+	terminal->pvt->modifiers = 0;
 
 	/* Create our invisible cursor. */
 	pixmap = gdk_pixmap_new(widget->window, 1, 1, 1);
@@ -13947,8 +13959,8 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 	terminal = VTE_TERMINAL(widget);
 
 	/* Read the modifiers. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
-		modifiers = 0;
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
+		terminal->pvt->modifiers = modifiers;
 	}
 
 #ifdef VTE_DEBUG
@@ -13989,8 +14001,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 			vte_terminal_send_mouse_button_internal(terminal,
 								button,
 								event->x - VTE_PAD_WIDTH,
-								event->y - VTE_PAD_WIDTH,
-								modifiers);
+								event->y - VTE_PAD_WIDTH);
 			return TRUE;
 		}
 	}
@@ -15569,6 +15580,8 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	terminal->pvt->mouse_last_button = 0;
 	terminal->pvt->mouse_last_x = 0;
 	terminal->pvt->mouse_last_y = 0;
+	/* Clear modifiers. */
+	terminal->pvt->modifiers = 0;
 	/* Cause everything to be redrawn (or cleared). */
 	vte_terminal_maybe_scroll_to_bottom(terminal);
 	vte_invalidate_all(terminal);
