@@ -1,0 +1,113 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: punlinux\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2004-03-04 14:56+0530\n"
+"PO-Revision-Date: 2004-01-29 17:27+0530\n"
+"Last-Translator: Amanpreet Singh Alam <amanlinux@netscape.net>\n"
+"Language-Team: KBSt Punjab <kbstpunjab@netscape.net>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2072
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "ਇਸ ਸੰਕੇਤ %s ਤੋ %s ਤਬਦੀਲ ਕਰਨ ਤੋ ਅਸਮਰਥ ਹੈ"
+
+#: src/iso2022.c:1578
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr "ਗਲਤ ਐਨਆਰਸੀ ਮੈਪ'%c' ਨਿਰਧਾਰਿਤ ਕਰਨ ਦੀ ਕੋਸਿਸ਼ ਕੀਤੀ ਹੈ"
+
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1619
+msgid "Unrecognized identified coding system."
+msgstr "ਅਣਪਛਾਤਾ ਸ਼ਨਾਖਤੀ ਕੋਡਿੰਗ ਸਿਸਟਮ"
+
+#: src/iso2022.c:1668 src/iso2022.c:1694
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr "ਗਲਤ ਚੌਡ਼ਾ ਐਨਆਰਸੀ ਮੈਪ'%c' ਨਿਰਧਾਰਿਤ ਕਰਨ ਦੀ ਕੋਸਿਸ਼ ਕੀਤੀ ਹੈ"
+
+#: src/pty.c:323
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr " `%s' ਨੂੰ ਵਾਤਵਰਣਨ ਵਿਚ ਜੋਡ਼ਨ ਦੀ ਗਲਤੀ "
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:908
+#, c-format
+msgid "can not run %s"
+msgstr "%s ਚਲ ਨਹੀ ਸਕਦਾ ਹੈ"
+
+#: src/reaper.c:110
+msgid "Error creating signal pipe."
+msgstr "ਸੰਕੇਤ ਪਾਇਪ ਬਣਾਉਣ ਦੀ ਗਲਤੀ"
+
+#: src/trie.c:412
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "ਦੂਹਰਾਉ(%s/%s) "
+
+#: src/vte.c:1480
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "ਨਿਯਮਿਤ ਕਥਨ \"%s\" ਨੂੰ ਕੰਮਪਾਇਲ ਕਰਨ ਦੀ ਗਲਤੀ"
+
+#: src/vte.c:5815
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "ਗਲਤ ਕੀ ਤਰਤੀਬ `%s' ਉਪਲਬਧ ਹੋਈ ਹੈ"
+
+#: src/vte.c:6893
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "ਕੰਟਰੋਲ ਤਰਤੀਬ  `%s'  ਲਈ ਕੋਈ ਹੈਡਲਰ ਨਿਰਧਾਰਿਤ ਨਹੀ ਹੈ"
+
+#: src/vte.c:7714
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "ਅਗਲੀ ਕਾਰਵਾਈ : %s ਤੋ ਪਡ਼ਨ ਵਿਚ ਅਸਫਲਤਾ"
+
+#: src/vte.c:7870
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "ਗਲਤੀ  ਅਗਾਂਹ ਲਈ ਡਾਟਾਤਬਦੀਲੀ ਸਮੇ(%s), ਖਤਮ ਕੀਤਾ ਗਿਆ ਹੈ"
+
+#: src/vte.c:10537
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "PTY ਅਕਾਰ ਪਡ਼ਨ ਵਿਚ ਗਲਤੀ ਹੈ, ਇਸ ਕਰਕੇ ਮੂਲ %s ਹੀ ਵਰਤੋਯੋਗ ਹੈ"
+
+#: src/vte.c:10573
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "ਗਲਤੀ PTY ਅਕਾਰ ਨਿਰਧਾਰਿਤ ਕਰਨ ਵਿਚ: %s."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:14977
+msgid "_vte_conv_open() failed setting word characters"
+msgstr "_vte_conv_open() ਸ਼ਬਦ ਨਿਰਧਾਰਿਤ ਕਰਨ ਵਿਚ ਅਸਫਲਤਾ"
+
+#. Bail back to normal mode.
+#: src/vteapp.c:713
+msgid "Could not open console.\n"
+msgstr "ਕੰਸੋਲ ਖੋਲਿਆ ਨਹੀ ਜਾ ਸਕਦਾ ਹੈ\n"
+
+#: src/vteglyph.c:576
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr "ਅਣਪਛਾਤਾ ਪੈਕਸਲ ਮੋਡ%d.\n"
+
+#: src/vtexft.c:710
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr " U+%04x ਅਖਰ ਬਣਾਇਆ ਨਹੀ ਜਾ ਸਕਦਾ ਹੈ\n"
