@@ -1,8 +1,8 @@
 bin_PROGRAMS = vte
 pkginclude_HEADERS = caps.h pty.h ring.h termcap.h trie.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
-noinst_PROGRAMS = interpret utf8echo utf8mode iso8859mode reaper
-EXTRA_PROGRAMS = pty ring termcap trie
+noinst_PROGRAMS = interpret utf8echo utf8mode iso8859mode
+EXTRA_PROGRAMS = pty reaper ring termcap trie
 EXTRA_DIST = marshal.list vte.defs
 
 CFLAGS = @CFLAGS@ @XFT_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@
