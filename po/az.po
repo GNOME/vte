@@ -1,17 +1,17 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <metin@karegen.com>, 2003.
+# vte gnome-2-2.
+# Copyright (C) 2003 Mətin Əmirov
+# This file is distributed under the same license as the vte package.
+# Mətin Əmirov <metin@karegen.com>, 2003.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2003-02-01 12:17+0100\n"
-"PO-Revision-Date: 2003-02-21 13:51+0200\n"
+"Project-Id-Version: vte gnome-2-2\n"
+"POT-Creation-Date: 2003-03-14 14:09+0100\n"
+"PO-Revision-Date: 2003-03-14 20:35+0200\n"
 "Last-Translator: Mətin Əmirov <metin@karegen.com>\n"
-"Language-Team: Azerbaijani Turkish <az@li.org>\n"
+"Language-Team: Azerbaijani Turkish <linuxaz@azerimail.net>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #: src/pty.c:253
@@ -25,7 +25,7 @@ msgstr "`%s'ətraf mühitə əlavə oluna bilmədi, gedişat davam edir."
 #: src/pty.c:800
 #, c-format
 msgid "can not run %s"
-msgstr "%s işlədilə bilmir"
+msgstr "%s icra edilə bilmir"
 
 #: src/reaper.c:107
 msgid "Error creating signal pipe."
@@ -36,88 +36,88 @@ msgstr "Signal borusu yaradıla bilmədi."
 msgid "Duplicate (%s/%s)!"
 msgstr "Cütləşdir (%s/%s)!)"
 
-#: src/vte.c:1409
+#: src/vte.c:1411
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "%s Düzənli ifadə(lər)sini dərlərkən xəta yarandı."
 
-#: src/vte.c:1931
-#: src/vte.c:1940
-#: src/vte.c:1952
-#: src/vte.c:1970
-#: src/vte.c:1976
-#: src/vte.c:1981
+#: src/vte.c:1933
+#: src/vte.c:1942
+#: src/vte.c:1954
+#: src/vte.c:1972
+#: src/vte.c:1978
+#: src/vte.c:1983
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Hərflər %s dan %s 'ə çevirilə bilmir."
 
-#: src/vte.c:5496
+#: src/vte.c:5513
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr "Gözlənilməyən `%s' ardıcıllıq alındı."
+msgstr "Gözlənilməyən (açar?) `%s' ardıcıllıq alındı."
 
-#: src/vte.c:6588
+#: src/vte.c:6605
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "`%s' nəzarət ardıcıllığı üçün tutucu təyin edilməyib."
 
-#: src/vte.c:7327
+#: src/vte.c:7347
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Uşaqdan oxuma xətası: %s."
 
-#: src/vte.c:7488
+#: src/vte.c:7530
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Uşaq üçün verilənləri çevirirkən xəta (%s), düşürülür."
 
-#: src/vte.c:9814
+#: src/vte.c:9872
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
 msgstr "%s hərf dəstəsi əksik olan \"%s\" font dəstəsi işlədilir."
 
-#: src/vte.c:10452
+#: src/vte.c:10513
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr " %s Xft font nümunəsi yüklənə bilmədi, varsayılan fonta geri keçilir."
 
-#: src/vte.c:10464
+#: src/vte.c:10525
 msgid "Failed to load default Xft font."
 msgstr "Varsayılan Xft fontu yüklənə bilmədi."
 
-#: src/vte.c:10557
+#: src/vte.c:10648
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr "%s font dəstəsi yüklənə bilmədi, varsayılan fonta geri keçilir."
 
-#: src/vte.c:10569
+#: src/vte.c:10660
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr "Varsayılan font yüklənə bilmədi, çökür yada anormal hərəkət edir."
 
-#: src/vte.c:10831
+#: src/vte.c:10948
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "PTY böyüklüyünü oxurkən xəta, varsayılanlar işlədiləcək: %s."
 
-#: src/vte.c:10867
+#: src/vte.c:10984
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTY böyüklüyünü təyin edərkən xəta: %s."
 
-#: src/vte.c:13754
+#: src/vte.c:13889
 msgid "Error allocating draw, disabling Xft."
 msgstr "Rəsmi yerləşdirirkən xəta, Xft işlədilməyəcək."
 
-#: src/vte.c:13762
+#: src/vte.c:13897
 msgid "Error allocating context, disabling Pango."
 msgstr "Məzmunu yerləşdirirkən xəta, Pango işlədilməyəcək."
 
-#: src/vte.c:13768
+#: src/vte.c:13903
 msgid "Error allocating layout, disabling Pango."
 msgstr "Cizimi yerləşdirirkən xəta, Pango işlədilməyəcək."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15414
+#: src/vte.c:15553
 msgid "g_iconv_open() failed setting word characters"
 msgstr "g_iconv_open() sözün hərflərini yerləşdirə bilmədi."
 
