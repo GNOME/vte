@@ -1,0 +1,7 @@
+2002-06-11  Christian Rose  <menthos@menthos.com>
+
+	* vte.pot: Removed. This is a generated file and should not be
+	stored in cvs.
+	* .cvsignore: Added.
+	* sv.po: Added Swedish translation.
+

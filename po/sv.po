@@ -1,117 +1,125 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Swedish messages for vte.
+# Copyright (C) 2002 Free Software Foundation, Inc.
+# Christian Rose <menthos@menthos.com>, 2002.
 #
-#, fuzzy
+# $Id$
+#
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2002-06-10 19:06-0400\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"Project-Id-Version: vte\n"
+"POT-Creation-Date: 2002-06-11 11:07+0200\n"
+"PO-Revision-Date: 2002-06-11 11:06+0200\n"
+"Last-Translator: Christian Rose <menthos@menthos.com>\n"
+"Language-Team: Swedish <sv@li.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #: src/pty.c:101
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr ""
+msgstr "Fel vid tillägg av \"%s\" till miljön, fortsätter."
 
 #: src/reaper.c:106
 msgid "Error creating signal pipe."
-msgstr ""
+msgstr "Fel vid skapande av signalrör."
 
 #: src/trie.c:386
 #, c-format
 msgid "Duplicate (%s/%s)!"
-msgstr ""
+msgstr "Dubbel (%s/%s)!"
 
 #: src/vte.c:780
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr ""
+msgstr "Fel vid kompilering av reguljärt uttryck \"%s\"."
 
 #: src/vte.c:4082
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr ""
+msgstr "Fick oväntad (tangent?)sekvens \"%s\"."
 
 #: src/vte.c:4683
 #, c-format
 msgid "Character %5ld is %d columns wide, guessing 1."
-msgstr ""
+msgstr "Tecknet %5ld är %d kolumner brett, gissar 1."
 
 #: src/vte.c:4876
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr ""
+msgstr "Ingen hanterare för kontrollsekvensen \"%s\" är angiven."
 
 #. Be conservative about discarding data.
 #: src/vte.c:5090
 #, c-format
 msgid "Invalid multibyte sequence detected.  Munging up %d bytes of data."
-msgstr ""
+msgstr "Ogiltig multibytesekvens hittad. Ignorerar %d byte med data."
 
 #: src/vte.c:5504
 #, c-format
 msgid "Error reading from child: %s."
-msgstr ""
+msgstr "Fel vid läsning från barn: %s."
 
 #: src/vte.c:5672
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr ""
+msgstr "Fel (%s) vid konvertering av data för barn, kastar."
 
 #: src/vte.c:7158
 #, c-format
 msgid ""
 "Warning: using fontset \"%s\", which is missing these character sets: %s."
 msgstr ""
+"Varning: använder typsnittssamlingen \"%s\", som saknar dessa "
+"teckensamlingar: %s."
 
 #: src/vte.c:7523
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr ""
+"Misslyckades med att läsa in XFt-typsnittsmönstret \"%s\", använder "
+"standardtypsnittet."
 
 #: src/vte.c:7536
 msgid "Failed to load default Xft font."
-msgstr ""
+msgstr "Misslyckades med att läsa in Xft-standardtypsnittet."
 
 #: src/vte.c:7575
 msgid "Error allocating Xft font, disabling Xft."
-msgstr ""
+msgstr "Fel vid allokering av Xft-typsnitt, deaktiverar Xft."
 
 #: src/vte.c:7599
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr ""
+"Misslyckades med att läsa in typsnittssamlingen \"%s\", använder "
+"standardtypsnittet."
 
 #: src/vte.c:7611
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr ""
+"Misslyckades med att läsa in standardtypsnittet, kraschar eller beter sig "
+"onormalt."
 
 #: src/vte.c:7692
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr ""
+msgstr "Fel vid läsande av PTY-storlek, använder standardvärden: %s."
 
 #: src/vte.c:7713
 #, c-format
 msgid "Error setting PTY size: %s."
-msgstr ""
+msgstr "Fel vid läsande av PTY-storlek: %s."
 
 #: src/vte.c:9538
 msgid "Error allocating layout, disabling Pango."
-msgstr ""
+msgstr "Fel vid allokering av layout, deaktiverar Pango."
 
 #: src/vte.c:9548
 msgid "Error allocating draw, disabling Xft."
-msgstr ""
+msgstr "Fel vid allokering av ritbar yta, deaktiverar Xft."
 
 #. Aaargh.  We're screwed.
 #: src/vte.c:10730
 msgid "g_iconv_open() failed setting word characters"
-msgstr ""
+msgstr "g_iconv_open() misslyckades med att ställa in ordtecken"
