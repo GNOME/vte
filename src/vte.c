@@ -9642,16 +9642,9 @@ vte_terminal_draw_char(VteTerminal *terminal,
 			padding = CLAMP((terminal->char_width *
 					 wcwidth(ch) - glyph_info.xOff) / 2,
 					0, 3 * terminal->char_width);
-			if (ftc > 256) {
-				fprintf(stderr, "padding %d.\n", padding);
-			}
 			g_tree_insert(terminal->pvt->fontpadding,
 				      GINT_TO_POINTER(ftc),
 				      GINT_TO_POINTER(padding));
-		}
-		if (ftc > 256) {
-			fprintf(stderr, "Drawing %d with %d padding.\n",
-				ftc, padding);
 		}
 		XftDrawString32(ftdraw,
 				&terminal->pvt->palette[fore].ftcolor,
