@@ -1,4 +1,4 @@
-SUBDIRS = reference
+SUBDIRS = reference openi18n
 
 EXTRA_DIST = ctlseqs.ms readme.txt utmpwtmp.txt boxes.txt
 
