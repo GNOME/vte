@@ -20,7 +20,9 @@
  * accessibility code. */
 
 #ident "$Id$"
+
 #include "../config.h"
+
 #include <atk/atk.h>
 #include <gtk/gtk.h>
 #include <string.h>

@@ -16,7 +16,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#ident "$Id$"
+
 #include "../config.h"
+
 #include <gtk/gtk.h>
 
 #if GTK_CHECK_VERSION(2,2,0)

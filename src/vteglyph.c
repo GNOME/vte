@@ -19,6 +19,7 @@
 #ident "$Id$"
 
 #include "../config.h"
+
 #include <sys/param.h>
 #include <math.h>
 #include <gdk/gdk.h>

@@ -19,6 +19,7 @@
 #ident "$Id$"
 
 #include "../config.h"
+
 #include <gdk/gdk.h>
 #include <glib.h>
 #include <fontconfig/fontconfig.h>

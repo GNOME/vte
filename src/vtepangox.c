@@ -16,6 +16,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#ident "$Id$"
+
 #include "../config.h"
 
 #ifndef X_DISPLAY_MISSING
@@ -25,13 +27,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <gtk/gtk.h>
+#include <gdk/gdkx.h>
 #include <pango/pango.h>
+#include <pango/pangox.h>
 #include "debug.h"
 #include "vtedraw.h"
 #include "vtepangox.h"
-
-#include <pango/pangox.h>
-#include <gdk/gdkx.h>
 
 struct _vte_pango_x_data
 {
