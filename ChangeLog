@@ -1,3 +1,8 @@
+2002-09-12  jacob berkman  <jacob@ximian.com>
+
+	* configure.in: AC_CHECK_FUNC() doesn't do AC_DEFINE(HAVE_FOO), so
+	do that for socket() and socketpair() if they are found
+
 2002-09-12 nalin
 	* src/vte.c(vte_invalidate_cursor_once): Remove the invalidate_cells
 	parameter, because the function is a big no-op if FALSE, in which case
