@@ -1,3 +1,16 @@
+2003-08-12  Padraig O'Briain  <padraig.obriain@sun.com>
+
+	* src/vteaccess.c:
+	(vte_terminal_initialize): New function containing initialization code
+	previously in vte_terminal_accessible_new. Also set role in
+	this function.
+	(vte_terminal_accessible_class_init): Specify function pointer for
+	vte_terminal_initialize.
+	(vte_terminal_accessible_get_type): Do not set instance data size or
+	GInstanceInitFunc. Remove vte_terminal_accessible_init.
+
+	This fixes bug #119694.
+
 2003-08-11 nalin
 	* python/vte.override: add binding for get_padding() (bug #118834).
 

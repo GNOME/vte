@@ -62,6 +62,8 @@ enum direction {
 static gunichar vte_terminal_accessible_get_character_at_offset(AtkText *text,
 								gint offset);
 
+static gpointer parent_class = NULL;
+
 /* Create snapshot private data. */
 static VteTerminalAccessiblePrivate *
 vte_terminal_accessible_new_private_data(void)
@@ -732,6 +734,72 @@ vte_terminal_accessible_visibility_notify(VteTerminal *terminal,
 				       visible);
 }
 
+static void
+vte_terminal_initialize (AtkObject *obj, gpointer data)
+{
+	VteTerminal *terminal;
+	AtkObject *parent;
+
+	ATK_OBJECT_CLASS (parent_class)->initialize (obj, data);
+
+	terminal = VTE_TERMINAL (data);
+
+	_vte_terminal_accessible_ref(terminal);
+
+	g_object_set_data(G_OBJECT(obj),
+			  VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA,
+			  vte_terminal_accessible_new_private_data());
+
+	g_signal_connect(G_OBJECT(terminal), "text-inserted",
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_text_modified),
+			 obj);
+	g_signal_connect(G_OBJECT(terminal), "text-deleted",
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_text_modified),
+			 obj);
+	g_signal_connect(G_OBJECT(terminal), "text-modified",
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_text_modified),
+			 obj);
+	g_signal_connect(G_OBJECT(terminal), "text-scrolled",
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_text_scrolled),
+			 obj);
+	g_signal_connect(G_OBJECT(terminal), "cursor-moved",
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_invalidate_cursor),
+			 obj);
+	g_signal_connect(G_OBJECT(terminal), "window-title-changed",
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_title_changed),
+			 obj);
+	g_signal_connect(G_OBJECT(terminal), "focus-in-event",
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_focus_in),
+			 obj);
+	g_signal_connect(G_OBJECT(terminal), "focus-out-event",
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_focus_out),
+			 obj);
+	g_signal_connect(G_OBJECT(terminal), "visibility-notify-event",
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_visibility_notify),
+			 obj);
+
+	if (GTK_IS_WIDGET((GTK_WIDGET(terminal))->parent)) {
+		parent = gtk_widget_get_accessible((GTK_WIDGET(terminal))->parent);
+		if (ATK_IS_OBJECT(parent)) {
+			atk_object_set_parent(obj, parent);
+		}
+	}
+
+	atk_object_set_name(obj, "Terminal");
+	atk_object_set_description(obj,
+				   terminal->window_title ?
+				   terminal->window_title :
+				   "");
+
+	atk_object_notify_state_change(obj,
+				       ATK_STATE_FOCUSABLE, TRUE);
+	atk_object_notify_state_change(obj,
+				       ATK_STATE_EXPANDABLE, FALSE);
+	atk_object_notify_state_change(obj,
+				       ATK_STATE_RESIZABLE, TRUE);
+	obj->role = ATK_ROLE_TERMINAL;
+}
+
 /**
  * vte_terminal_accessible_new:
  * @terminal: a #VteTerminal
@@ -743,76 +811,16 @@ vte_terminal_accessible_visibility_notify(VteTerminal *terminal,
 AtkObject *
 vte_terminal_accessible_new(VteTerminal *terminal)
 {
-	GtkAccessible *access;
-	AtkObject *parent;
+	AtkObject *accessible;
 	GObject *object;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
 	object = g_object_new(VTE_TYPE_TERMINAL_ACCESSIBLE, NULL);
-	g_return_val_if_fail(GTK_IS_ACCESSIBLE(object), NULL);
+	accessible = ATK_OBJECT (object);
+	atk_object_initialize(accessible, terminal);
 
-	access = GTK_ACCESSIBLE(object);
-	atk_object_initialize(ATK_OBJECT(access), G_OBJECT(terminal));
-
-	access->widget = GTK_WIDGET(terminal);
-	_vte_terminal_accessible_ref(terminal);
-	g_object_add_weak_pointer(G_OBJECT(terminal),
-				  (gpointer*)&access->widget);
-
-	g_object_set_data(G_OBJECT(access),
-			  VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA,
-			  vte_terminal_accessible_new_private_data());
-
-	g_signal_connect(G_OBJECT(terminal), "text-inserted",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_text_modified),
-			 object);
-	g_signal_connect(G_OBJECT(terminal), "text-deleted",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_text_modified),
-			 object);
-	g_signal_connect(G_OBJECT(terminal), "text-modified",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_text_modified),
-			 object);
-	g_signal_connect(G_OBJECT(terminal), "text-scrolled",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_text_scrolled),
-			 object);
-	g_signal_connect(G_OBJECT(terminal), "cursor-moved",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_invalidate_cursor),
-			 object);
-	g_signal_connect(G_OBJECT(terminal), "window-title-changed",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_title_changed),
-			 access);
-	g_signal_connect(G_OBJECT(terminal), "focus-in-event",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_focus_in),
-			 access);
-	g_signal_connect(G_OBJECT(terminal), "focus-out-event",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_focus_out),
-			 access);
-	g_signal_connect(G_OBJECT(terminal), "visibility-notify-event",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_visibility_notify),
-			 access);
-
-	if (GTK_IS_WIDGET((GTK_WIDGET(terminal))->parent)) {
-		parent = gtk_widget_get_accessible((GTK_WIDGET(terminal))->parent);
-		if (ATK_IS_OBJECT(parent)) {
-			atk_object_set_parent(ATK_OBJECT(access), parent);
-		}
-	}
-
-	atk_object_set_name(ATK_OBJECT(access), "Terminal");
-	atk_object_set_description(ATK_OBJECT(access),
-				   terminal->window_title ?
-				   terminal->window_title :
-				   "");
-
-	atk_object_notify_state_change(ATK_OBJECT(access),
-				       ATK_STATE_FOCUSABLE, TRUE);
-	atk_object_notify_state_change(ATK_OBJECT(access),
-				       ATK_STATE_EXPANDABLE, FALSE);
-	atk_object_notify_state_change(ATK_OBJECT(access),
-				       ATK_STATE_RESIZABLE, TRUE);
-
-	return ATK_OBJECT(access);
+	return accessible;
 }
 
 static void
@@ -1671,19 +1679,15 @@ static void
 vte_terminal_accessible_class_init(gpointer *klass)
 {
 	GObjectClass *gobject_class;
+	AtkObjectClass *class = ATK_OBJECT_CLASS (klass);
 
 	gobject_class = G_OBJECT_CLASS(klass);
 
+	parent_class = g_type_class_peek_parent (klass);
+
+	class->initialize = vte_terminal_initialize;
 	/* Override the finalize method. */
 	gobject_class->finalize = vte_terminal_accessible_finalize;
-}
-
-static void
-vte_terminal_accessible_init(gpointer *instance, gpointer *klass)
-{
-	/* Mark the role this object plays. */
-	g_return_if_fail(ATK_IS_OBJECT(instance));
-	atk_object_set_role(ATK_OBJECT(instance), ATK_ROLE_TERMINAL);
 }
 
 GType
@@ -1714,9 +1718,9 @@ vte_terminal_accessible_get_type(void)
 		(GClassFinalizeFunc)NULL,
 		(gconstpointer)NULL,
 
-		sizeof(VteTerminalAccessible),
 		0,
-		(GInstanceInitFunc)vte_terminal_accessible_init,
+		0,
+		(GInstanceInitFunc) NULL,
 
 		(GTypeValueTable*)NULL,
 	};
