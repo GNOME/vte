@@ -11201,6 +11201,19 @@ vte_unichar_isgraphic(gunichar c)
 	case 0x2193: /* down arrow */
 	case 0x2191: /* up arrow */
 	case 0x25ae: /* block */
+	case 0x23ba: /* scanline 1/9 */
+	case 0x23bb: /* scanline 3/9 */
+	case 0x23bc: /* scanline 7/9 */
+	case 0x23bd: /* scanline 9/9 */
+	case 0x2409: /* HT symbol */
+	case 0x240a: /* LF symbol */
+	case 0x240b: /* VT symbol */
+	case 0x240c: /* FF symbol */
+	case 0x240d: /* CR symbol */
+	case 0x2424: /* NL symbol */
+	case 0x2264: /* <= */
+	case 0x2265: /* >= */
+	case 0x2260: /* != */
 		return TRUE;
 		break;
 	default:
@@ -11273,8 +11286,48 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 		c = 'g';
 		break;
 	case 0x00b7: /* bullet */
-		c = 127;
+		c = 126;
 		break;
+	case 0x23ba: /* scanline 1/9 */
+	  	c = 'o';
+	  	break;
+	case 0x23bb: /* scanline 3/9 */
+	  	c = 'p';
+	  	break;
+	case 0x23bc: /* scanline 7/9 */
+	  	c = 'r';
+	  	break;
+	case 0x23bd: /* scanline 9/9 */
+	  	c = 's';
+	  	break;		  
+	case 0x2409: /* ht */
+		c = 'b';
+		break;
+	case 0x240c: /*  ff */
+		c = 'c';
+		break;
+	case 0x240d: /* cr */
+		c = 'd';
+		break;
+	case 0x240a: /* lf */
+		c = 'e';
+		break;
+	case 0x2424: /* nl */
+		c = 'h';
+		break;
+	case 0x240b: /* vt */
+		c = 'i';
+		break;
+	case 0x2264: /* <= */
+	  	c = 'y';
+	  	break;
+	case 0x2265: /* >= */
+	  	c = 'z';
+	  	break;
+	case 0x2260: /* != */
+	  	c = '|';
+	  	break;
+
 	case 0x2190: /* left arrow */
 	case 0x2192: /* right arrow */
 	case 0x2193: /* down arrow */
@@ -11297,6 +11350,9 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 	}
 	XSetForeground(display, gc, terminal->pvt->palette[fore].pixel);
 	switch (c) {
+	case 0x25ae: /* solid rectangle */
+	  	XFillRectangle(display, drawable, gc, x, y, xright-x, ybottom-y);
+	  	break;
 	case 95:
 		/* drawing a blank */
 		break;
@@ -11317,7 +11373,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 	case 97:  /* a */
 		for (i = x; i <= xright; i++) {
 			draw = ((i - x) & 1) == 0;
-			for (j = y; j <= ybottom; j++) {
+			for (j = y; j < ybottom; j++) {
 				if (draw) {
 					XDrawPoint(display,
 						   drawable,
@@ -11627,7 +11683,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 			       drawable,
 			       gc,
 			       x,
-			       ybottom,
+			       ybottom-1,
 			       column_width,
 			       VTE_LINE_WIDTH);
 		break;
