@@ -735,7 +735,7 @@ vte_terminal_scroll_region(VteTerminal *terminal,
 	/* We only do this if we're scrolling the entire window. */
 	if (!terminal->pvt->bg_transparent &&
 	    (terminal->pvt->bg_image == NULL) &&
-	    (row == 0) &&
+	    (row == terminal->pvt->screen->scroll_delta) &&
 	    (count == terminal->row_count)) {
 		widget = GTK_WIDGET(terminal);
 		gdk_window_scroll(widget->window,

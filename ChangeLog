@@ -1,4 +1,9 @@
 2003-02-19 nalin
+	* src/vte.c(vte_terminal_scroll_window): use gdk_window_scroll if the
+	first row to be scrolled is the first visible row, not just if it's the
+	first row we ever saw (Red Hat #83472).
+
+2003-02-19 nalin
 	* src/vte.c(vte_terminal_button_press): grab input focus on button 1
 	press (#106573, Red Hat #84384).
 
@@ -40,7 +45,8 @@
 	invalid arguments (#57453).
 
 2003-02-17 nalin
-	* src/keymap.c: add map entries for Ctrl+digit keys (#106193).
+	* src/keymap.c: add map entries for Ctrl+digit keys (#106193, Red Hat
+	#83563).
 
 2003-02-17  Alessio Frusciante  <algol@firenze.linux.it>
 
