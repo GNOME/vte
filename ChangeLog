@@ -1,3 +1,11 @@
+2003-02-13 nalin
+	* src/vte.c(vte_terminal_io_read): attempt to coalesce data received
+	within about 10ms to reduce load on the X server on systems where the
+	scheduler wakes us up as soon as we have a few bytes available.  Based
+	on a suggested fix by msw.
+	* src/vte.c(vte_terminal_io_read): never free buf, it's not a heap
+	variable any more.  Spotted by msw.
+
 2003-02-12 nalin
         * src/vte.c(vte_terminal_finalize): close fd leak.
         * src/vte.c(vte_terminal_fork_command): close potential fd leak.

@@ -119,6 +119,7 @@ typedef gunichar wint_t;
 #define VTE_INPUT_CHUNK_SIZE		0x1000
 #define VTE_INVALID_SOURCE		-1
 #define VTE_INVALID_BYTE		'?'
+#define VTE_COALESCE_TIMEOUT		10
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
@@ -6990,7 +6991,7 @@ vte_terminal_process_incoming(gpointer data)
 		}
 #endif
 		terminal->pvt->processing = FALSE;
-		terminal->pvt->processing_tag = 0;
+		terminal->pvt->processing_tag = VTE_INVALID_SOURCE;
 		return terminal->pvt->processing;
 	}
 
@@ -7267,7 +7268,7 @@ vte_terminal_process_incoming(gpointer data)
 	 * note that our source tag is about to become invalid. */
 	terminal->pvt->processing = again && (_vte_buffer_length(terminal->pvt->incoming) > 0);
 	if (terminal->pvt->processing == FALSE) {
-		terminal->pvt->processing_tag = 0;
+		terminal->pvt->processing_tag = VTE_INVALID_SOURCE;
 	}
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_IO)) {
@@ -7303,7 +7304,9 @@ vte_terminal_io_read(GIOChannel *channel,
 	/* Read some data in from this channel. */
 	bcount = 0;
 	if (condition & G_IO_IN) {
-		bcount = read(fd, buf, sizeof(buf));
+		bcount = sizeof(buf) -
+			 _vte_buffer_length(terminal->pvt->incoming);
+		bcount = read(fd, buf, MAX(bcount, sizeof(buf) / 2));
 	}
 	eof = FALSE;
 	if (condition & G_IO_HUP) {
@@ -7340,24 +7343,42 @@ vte_terminal_io_read(GIOChannel *channel,
 	/* If we got data, modify the pending buffer. */
 	if (bcount >= 0) {
 		_vte_buffer_append(terminal->pvt->incoming, buf, bcount);
-	} else {
-		g_free(buf);
 	}
 
 	/* If we have data to process, schedule some time to process it. */
-	if (!terminal->pvt->processing &&
-	    (_vte_buffer_length(terminal->pvt->incoming) > 0)) {
+	if (_vte_buffer_length(terminal->pvt->incoming) >
+	    VTE_INPUT_CHUNK_SIZE) {
+		/* Disconnect any pending timeouts. */
+		if (terminal->pvt->processing) {
+#ifdef VTE_DEBUG
+			if (_vte_debug_on(VTE_DEBUG_IO)) {
+				fprintf(stderr, "Removing timed handler.\n");
+			}
+#endif
+			terminal->pvt->processing = FALSE;
+			g_source_remove(terminal->pvt->processing_tag);
+			terminal->pvt->processing_tag = VTE_INVALID_SOURCE;
+		}
+		/* Process the data *now*. */
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_IO)) {
-			fprintf(stderr, "Queuing handler to process bytes.\n");
+			fprintf(stderr, "Processing data immediately.\n");
 		}
 #endif
-		terminal->pvt->processing = TRUE;
-		terminal->pvt->processing_tag =
-				g_idle_add_full(VTE_INPUT_PRIORITY,
-						vte_terminal_process_incoming,
-						terminal,
-						NULL);
+		vte_terminal_process_incoming(terminal);
+	} else {
+		/* Wait no more than N milliseconds for more data. */
+		if (!terminal->pvt->processing) {
+#ifdef VTE_DEBUG
+			if (_vte_debug_on(VTE_DEBUG_IO)) {
+				fprintf(stderr, "Adding timed handler.\n");
+			}
+#endif
+			terminal->pvt->processing = TRUE;
+			terminal->pvt->processing_tag = g_timeout_add(VTE_COALESCE_TIMEOUT,
+								      vte_terminal_process_incoming,
+								      terminal);
+		}
 	}
 
 	/* If we detected an eof condition, signal one. */
@@ -11272,7 +11293,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->substitutions = _vte_iso2022_new();
 	pvt->incoming = _vte_buffer_new();
 	pvt->processing = FALSE;
-	pvt->processing_tag = 0;
+	pvt->processing_tag = VTE_INVALID_SOURCE;
 	pvt->outgoing = _vte_buffer_new();
 	pvt->incoming_conv = (GIConv) -1;
 	pvt->outgoing_conv_wide = (GIConv) -1;
@@ -11970,9 +11991,9 @@ vte_terminal_finalize(GObject *object)
 					     terminal);
 
 	/* Stop processing input. */
-	if (terminal->pvt->processing_tag != 0) {
+	if (terminal->pvt->processing_tag != VTE_INVALID_SOURCE) {
 		g_source_remove(terminal->pvt->processing_tag);
-		terminal->pvt->processing_tag = 0;
+		terminal->pvt->processing_tag = VTE_INVALID_SOURCE;
 	}
 
 	/* Discard any pending data. */
@@ -15676,7 +15697,7 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	/* Stop processing any of the data we've got backed up. */
 	if (terminal->pvt->processing) {
 		g_source_remove(terminal->pvt->processing_tag);
-		terminal->pvt->processing_tag = 0;
+		terminal->pvt->processing_tag = VTE_INVALID_SOURCE;
 		terminal->pvt->processing = FALSE;
 	}
 	/* Clear the input and output buffers. */
