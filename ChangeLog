@@ -1,3 +1,10 @@
+2005-03-29  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* autogen.sh: Use head -n 1 instead of head -1 to avoid
+	warning about the latter being deprecated in newer versions.
+	Reported by Ali Akcaagac. Closes bug #156022.
+	* vte.spec: Bump version
+
 2005-03-16  Manish Singh  <yosh@gimp.org>
 
 	* python/vtemodule.c: Remove stray underscores so python module
