@@ -1,3 +1,7 @@
+2002-12-16  nalin
+	* src/vte.c (vte_terminal_key_press): wire Shift+Home/Shift+End to
+	scroll-to-top and scroll-to-bottom.
+
 2002-12-13  nalin
 	* src/buffer.c: add a short test program.
 	* src/iso2022.c: use hard values instead of GDK defines in the 0 map.

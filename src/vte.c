@@ -1725,6 +1725,19 @@ vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
 	vte_terminal_emit_contents_changed(terminal);
 }
 
+/* Scroll so that the scroll delta is the minimum value. */
+static void
+vte_terminal_maybe_scroll_to_top(VteTerminal *terminal)
+{
+	long delta;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	if (floor(gtk_adjustment_get_value(terminal->adjustment)) !=
+	    _vte_ring_delta(terminal->pvt->screen->row_data)) {
+		delta = _vte_ring_delta(terminal->pvt->screen->row_data);
+		gtk_adjustment_set_value(terminal->adjustment, delta);
+	}
+}
+
 /* Scroll so that the scroll delta is the insertion delta. */
 static void
 vte_terminal_maybe_scroll_to_bottom(VteTerminal *terminal)
@@ -7590,6 +7603,22 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				scrolled = TRUE;
 				handled = TRUE;
 				suppress_meta_esc = TRUE;
+			}
+			break;
+		case GDK_KP_Home:
+		case GDK_Home:
+			if (modifiers & GDK_SHIFT_MASK) {
+				vte_terminal_maybe_scroll_to_top(terminal);
+				scrolled = TRUE;
+				handled = TRUE;
+			}
+			break;
+		case GDK_KP_End:
+		case GDK_End:
+			if (modifiers & GDK_SHIFT_MASK) {
+				vte_terminal_maybe_scroll_to_bottom(terminal);
+				scrolled = TRUE;
+				handled = TRUE;
 			}
 			break;
 		/* Let Shift +/- tweak the font, like XTerm does. */
