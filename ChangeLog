@@ -1,4 +1,8 @@
 2003-02-26 nalin
+	* src/iso2022.c(_vte_iso2022_substitute,_vte_iso2022_substitute_single):
+	force characters substituted through the ACS map to have width of 1.
+
+2003-02-26 nalin
 	* src/vte.c(vte_terminal_font_open_xft,vte_terminal_font_open_pango):
 	use an array of codepoints instead of a UTF-8 string so that we can
 	check for lack of font coverage in Xft fonts.

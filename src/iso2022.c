@@ -517,17 +517,30 @@ _vte_iso2022_substitute_single(gunichar mapname, gunichar c)
 {
 	GTree *charmap;
 	gunichar result = c;
-	gssize width;
+	gssize width = 0;
 	static int ambiguous_width = 0;
 	charmap = _vte_iso2022_map_get(mapname);
+	/* Map the character. */
 	if (charmap) {
 		c = GPOINTER_TO_INT(g_tree_lookup(charmap, GINT_TO_POINTER(c)));
 		if (c != 0) {
 			result = c;
 		}
 	}
+	/* Determine if we'll code in a width. */
+	if (result != c) {
+		switch (mapname) {
+		case '0':
+			/* All ACS-substituted characters get a width
+			 * of one. */
+			width = 1;
+			break;
+		default:
+			break;
+		}
+	}
 	/* Calculate width for ambiguous characters. */
-	if (_vte_iso2022_is_ambiguous(result)) {
+	if ((width == 0) && _vte_iso2022_is_ambiguous(result)) {
 		if (ambiguous_width == 0) {
 			ambiguous_width = _vte_iso2022_ambiguous_width();
 		}
@@ -935,8 +948,21 @@ _vte_iso2022_substitute(struct _vte_iso2022 *outside_state,
 #endif
 				}
 			}
+			/* Determine if we'll code in a width. */
+			width = 0;
+			if (result != accumulator) {
+				switch (current_map) {
+				case '0':
+					/* All ACS-substituted characters get a
+					 * width of one. */
+					width = 1;
+					break;
+				default:
+					break;
+				}
+			}
 			/* Calculate width for ambiguous characters. */
-			if (_vte_iso2022_is_ambiguous(result)) {
+			if ((width == 0) && _vte_iso2022_is_ambiguous(result)) {
 				if (ambiguous_width == 0) {
 					ambiguous_width = _vte_iso2022_ambiguous_width();
 				}
