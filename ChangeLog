@@ -1,3 +1,7 @@
+2003-03-16  Samúel Jón Gunnarsson  <sammi@techattack.nu>
+
+	* configure.in: added "is" to ALL_LINUGAS.
+
 2003-03-16  Roozbeh Pourander  <roozbeh@sharif.edu>
 
 	* configure.in: added "fa" to ALL_LINGUAS.
