@@ -87,6 +87,10 @@ vte_reaper_emit_signal(GIOChannel *channel, GIOCondition condition,
 	g_assert(data == singleton_reaper);
 	read(singleton_reaper->iopipe[0], &info, sizeof(info));
 	if (info.signum == SIGCHLD) {
+		if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
+			fprintf(stderr, "Reaper emitting child-exited "
+				"signal.\n");
+		}
 		g_signal_emit_by_name(data, "child-exited",
 				      info.pid, info.status);
 	}
@@ -97,26 +101,41 @@ vte_reaper_emit_signal(GIOChannel *channel, GIOCondition condition,
 static void
 vte_reaper_child_watch_cb(GPid pid, gint status, gpointer data)
 {
+	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Reaper emitting child-exited signal.\n");
+	}
 	g_signal_emit_by_name(data, "child-exited", pid, status);
 }
 #endif
 
+static void
+vte_reaper_child_watch_destroyed(gpointer data)
+{
+	/* no-op */
+}
+
 /**
  * vte_reaper_add_child:
  * @pid: the ID of a child process which will be monitored
- * @data: callback data
  *
  * Ensures that child-exited signals will be emitted when @pid exits.  This is
  * necessary for correct operation when running with glib versions >= 2.4.
  *
+ * Returns: the new source ID
+ *
  * Since 0.11.11
  */
-void
-vte_reaper_add_child(GPid pid, gpointer data)
+int
+vte_reaper_add_child(GPid pid)
 {
 #if GLIB_CHECK_VERSION(2,4,0)
-	g_child_watch_add(pid, vte_reaper_child_watch_cb, data);
+	return g_child_watch_add_full(G_PRIORITY_HIGH,
+				      pid,
+				      vte_reaper_child_watch_cb,
+				      vte_reaper_get(),
+				      vte_reaper_child_watch_destroyed);
 #endif
+	return VTE_INVALID_SOURCE;
 }
 
 static void

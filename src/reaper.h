@@ -58,7 +58,7 @@ GType vte_reaper_get_type(void);
 								   VteReaperClass))
 
 VteReaper *vte_reaper_get(void);
-void vte_reaper_add_child(GPid pid, gpointer data);
+int vte_reaper_add_child(GPid pid);
 
 G_END_DECLS
 

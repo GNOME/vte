@@ -111,7 +111,6 @@ typedef gunichar wint_t;
 #define VTE_REGCOMP_FLAGS		REG_EXTENDED
 #define VTE_REGEXEC_FLAGS		0
 #define VTE_INPUT_CHUNK_SIZE		0x1000
-#define VTE_INVALID_SOURCE		-1
 #define VTE_INVALID_BYTE		'?'
 #define VTE_COALESCE_TIMEOUT		2
 
@@ -7138,7 +7137,7 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 
 		/* Catch a child-exited signal from the child pid. */
 		reaper = vte_reaper_get();
-		vte_reaper_add_child((GPid) pid, terminal);
+		vte_reaper_add_child((GPid) pid);
 		g_object_ref(G_OBJECT(reaper));
 		if (VTE_IS_REAPER(terminal->pvt->pty_reaper)) {
 			g_signal_handlers_disconnect_by_func(terminal->pvt->pty_reaper,

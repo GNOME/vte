@@ -231,6 +231,7 @@ fi
 
 # Miscellaneous definitions.
 AC_DEFINE(VTE_UTF8_BPC,6,[Maximum number of bytes used per UTF-8 character.])
+AC_DEFINE(VTE_INVALID_SOURCE,-1,[A number which can never be a valid source ID.])
 AC_DEFINE_UNQUOTED(PACKAGE,"$PACKAGE",[Package name.])
 
 # Check for headers.
