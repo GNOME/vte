@@ -8,7 +8,7 @@ CFLAGS = @CFLAGS@ @XFT_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@ @PYTHON_INCLUDES@
 CLEANFILES = vte.c
 
 vtemodule_so_SOURCES = vtemodule.c vte.c
-vtemodule_so_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ @PYGTK_CFLAGS@ -I$(includedir)/python@PYTHONREV@
+vtemodule_so_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ @PYGTK_CFLAGS@ -I$(includedir)/python@PYTHONREV@ -fPIC
 vtemodule_so_LDFLAGS = -shared
 vtemodule_so_LDADD = $(top_builddir)/src/libvte.la @LIBS@ @PYGTK_LIBS@ @XFT_LIBS@ @GTK_LIBS@ @X_LIBS@
 

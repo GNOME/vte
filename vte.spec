@@ -1,6 +1,6 @@
 Name: vte
 Version: 0.3.30
-Release: 1
+Release: 2
 Summary: An experimental terminal emulator.
 License: LGPL
 Group: User Interface/X
@@ -25,6 +25,9 @@ the files needed for building applications using the widget.
 %setup -q
 
 %build
+if [ -x %{_bindir}/python2.2 ] then
+	PYTHON=%{_bindir}/python2.2; export PYTHON
+fi
 %configure --enable-shared --enable-static
 make
 
@@ -54,6 +57,9 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/python*/site-packages/*
 
 %changelog
+* Fri Jun 14 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.30-2
+- rebuild in different environment
+
 * Fri Jun 14 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.30-1
 - package up the python module
 
