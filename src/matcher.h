@@ -49,6 +49,9 @@ const char *_vte_matcher_match(struct _vte_matcher *matcher,
 /* Dump out the contents of a matcher, mainly for debugging. */
 void _vte_matcher_print(struct _vte_matcher *matcher);
 
+/* Free a parameter array. */
+void _vte_matcher_free_params_array(GValueArray *params);
+
 G_END_DECLS
 
 #endif

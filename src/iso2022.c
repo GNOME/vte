@@ -1750,6 +1750,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 #endif
 		_vte_buffer_clear(input);
 	}
+	g_array_free(blocks, TRUE);
 }
 
 gssize

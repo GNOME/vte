@@ -1,3 +1,19 @@
+2003-05-21 nalin
+	* src/iso2022.c(_vte_iso2022_process): free the temporary array.
+	* src/matcher.c(_vte_matcher_free_params_array): add.
+	* src/vte.c: use _vte_matcher_free_params_array instead of the local
+	copy, which is removed.
+	* src/interpret.c, src/table.c, src/trie.c: use
+	_vte_matcher_free_params_array to free parameter arrays instead of
+	g_value_array_free, which doesn't take care of the pointer values.
+	* src/vte.c(vte_sequence_handler_set_title_internal): only attempt to
+	close the conversion descriptor if it was opened successfully.
+	* src/vteapp.c: add the -k option to spin after gtk_main() returns.
+	* src/vtefc.c: make copies of patterns with FcPatternDuplicate so that
+	we know where all of the returned patterns came from.
+	* src/vtexft.c(_vte_xft_font_for_char): set the item in the pattern
+	array to NULL if we successfully opened a font using the pattern.
+
 2003-05-20 nalin
 	* src/iso2022.c: clarify comments near one of the warning messages.
 	* src/vtefc.c(_vte_fc_transcribe_from_pango_font_description): unref

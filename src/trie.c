@@ -632,13 +632,13 @@ _vte_trie_matchx(struct _vte_trie *trie, const gunichar *pattern, size_t length,
 				if (better) {
 					best = tmp;
 					if (bestarray != NULL) {
-						g_value_array_free(bestarray);
+						_vte_matcher_free_params_array(bestarray);
 					}
 					bestarray = tmparray;
 					bestquark = tmpquark;
 					bestconsumed = *consumed;
 				} else {
-					g_value_array_free(tmparray);
+					_vte_matcher_free_params_array(tmparray);
 					tmparray = NULL;
 				}
 			}
@@ -652,7 +652,7 @@ _vte_trie_matchx(struct _vte_trie *trie, const gunichar *pattern, size_t length,
 					     g_value_array_get_nth(bestarray,
 								   i));
 		}
-		g_value_array_free(bestarray);
+		_vte_matcher_free_params_array(bestarray);
 	}
 #if 0
 	printf("`%s' ", best);
@@ -706,7 +706,7 @@ _vte_trie_match(struct _vte_trie *trie, const gunichar *pattern, size_t length,
 					}
 				}
 			}
-			g_value_array_free(valuearray);
+			_vte_matcher_free_params_array(valuearray);
 		}
 		if (array != NULL) {
 			*array = NULL;
@@ -715,7 +715,7 @@ _vte_trie_match(struct _vte_trie *trie, const gunichar *pattern, size_t length,
 		if (array != NULL) {
 			*array = valuearray;
 		} else {
-			g_value_array_free(valuearray);
+			_vte_matcher_free_params_array(valuearray);
 		}
 	}
 
@@ -904,7 +904,7 @@ main(int argc, char **argv)
 	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
 	if (array != NULL) {
 		dump_array(array);
-		g_value_array_free(array);
+		_vte_matcher_free_params_array(array);
 		array = NULL;
 	}
 
@@ -916,7 +916,7 @@ main(int argc, char **argv)
 	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
 	if (array != NULL) {
 		dump_array(array);
-		g_value_array_free(array);
+		_vte_matcher_free_params_array(array);
 		array = NULL;
 	}
 
@@ -928,7 +928,7 @@ main(int argc, char **argv)
 	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
 	if (array != NULL) {
 		dump_array(array);
-		g_value_array_free(array);
+		_vte_matcher_free_params_array(array);
 		array = NULL;
 	}
 
@@ -940,7 +940,7 @@ main(int argc, char **argv)
 	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
 	if (array != NULL) {
 		dump_array(array);
-		g_value_array_free(array);
+		_vte_matcher_free_params_array(array);
 		array = NULL;
 	}
 
@@ -952,7 +952,7 @@ main(int argc, char **argv)
 	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
 	if (array != NULL) {
 		dump_array(array);
-		g_value_array_free(array);
+		_vte_matcher_free_params_array(array);
 		array = NULL;
 	}
 
@@ -964,7 +964,7 @@ main(int argc, char **argv)
 	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
 	if (array != NULL) {
 		dump_array(array);
-		g_value_array_free(array);
+		_vte_matcher_free_params_array(array);
 		array = NULL;
 	}
 
@@ -976,7 +976,7 @@ main(int argc, char **argv)
 	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
 	if (array != NULL) {
 		dump_array(array);
-		g_value_array_free(array);
+		_vte_matcher_free_params_array(array);
 		array = NULL;
 	}
 
@@ -988,7 +988,7 @@ main(int argc, char **argv)
 	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
 	if (array != NULL) {
 		dump_array(array);
-		g_value_array_free(array);
+		_vte_matcher_free_params_array(array);
 		array = NULL;
 	}
 
@@ -1000,7 +1000,7 @@ main(int argc, char **argv)
 	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
 	if (array != NULL) {
 		dump_array(array);
-		g_value_array_free(array);
+		_vte_matcher_free_params_array(array);
 		array = NULL;
 	}
 
@@ -1012,7 +1012,7 @@ main(int argc, char **argv)
 	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
 	if (array != NULL) {
 		dump_array(array);
-		g_value_array_free(array);
+		_vte_matcher_free_params_array(array);
 		array = NULL;
 	}
 
@@ -1024,7 +1024,7 @@ main(int argc, char **argv)
 	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
 	if (array != NULL) {
 		dump_array(array);
-		g_value_array_free(array);
+		_vte_matcher_free_params_array(array);
 	}
 
 	quark = 0;
@@ -1035,7 +1035,7 @@ main(int argc, char **argv)
 	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
 	if (array != NULL) {
 		dump_array(array);
-		g_value_array_free(array);
+		_vte_matcher_free_params_array(array);
 	}
 
 	quark = 0;
@@ -1046,7 +1046,7 @@ main(int argc, char **argv)
 	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
 	if (array != NULL) {
 		dump_array(array);
-		g_value_array_free(array);
+		_vte_matcher_free_params_array(array);
 	}
 
 	quark = 0;
@@ -1057,7 +1057,7 @@ main(int argc, char **argv)
 	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
 	if (array != NULL) {
 		dump_array(array);
-		g_value_array_free(array);
+		_vte_matcher_free_params_array(array);
 	}
 
 	quark = 0;
@@ -1068,7 +1068,7 @@ main(int argc, char **argv)
 	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
 	if (array != NULL) {
 		dump_array(array);
-		g_value_array_free(array);
+		_vte_matcher_free_params_array(array);
 		array = NULL;
 	}
 
@@ -1081,7 +1081,7 @@ main(int argc, char **argv)
 	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
 	if (array != NULL) {
 		dump_array(array);
-		g_value_array_free(array);
+		_vte_matcher_free_params_array(array);
 		array = NULL;
 	}
 
@@ -1093,7 +1093,7 @@ main(int argc, char **argv)
 	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
 	if (array != NULL) {
 		dump_array(array);
-		g_value_array_free(array);
+		_vte_matcher_free_params_array(array);
 		array = NULL;
 	}
 

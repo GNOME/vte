@@ -4105,8 +4105,8 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 #endif
 					outbufptr = NULL;
 				}
+				_vte_conv_close(conv);
 			}
-			_vte_conv_close(conv);
 		}
 		if (outbufptr != NULL) {
 			char *p;
@@ -6842,30 +6842,6 @@ vte_terminal_im_reset(VteTerminal *terminal)
 	}
 }
 
-/* Free a parameter array.  Most of the GValue elements can clean up after
- * themselves, but we're using gpointers to hold unicode character strings, and
- * we need to free those ourselves. */
-static void
-free_params_array(GValueArray *params)
-{
-	guint i;
-	GValue *value;
-	gpointer ptr;
-	if (params != NULL) {
-		for (i = 0; i < params->n_values; i++) {
-			value = g_value_array_get_nth(params, i);
-			if (G_VALUE_HOLDS_POINTER(value)) {
-				ptr = g_value_get_pointer(value);
-				if (ptr != NULL) {
-					g_free(ptr);
-				}
-				g_value_set_pointer(value, NULL);
-			}
-		}
-		g_value_array_free(params);
-	}
-}
-
 /* Emit whichever signals are called for here. */
 static void
 vte_terminal_emit_pending_text_signals(VteTerminal *terminal, GQuark quark)
@@ -7114,7 +7090,7 @@ vte_terminal_process_incoming(gpointer data)
 #endif
 
 		/* Free any parameters we don't care about any more. */
-		free_params_array(params);
+		_vte_matcher_free_params_array(params);
 		params = NULL;
 	}
 

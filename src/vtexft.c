@@ -114,9 +114,7 @@ _vte_xft_font_close(struct _vte_xft_font *font)
 	g_return_if_fail(font->fontmap != NULL);
 	g_return_if_fail(font->widths != NULL);
 
-	/* Fonts which were opened apparently "own" the patterns which were
-	   used to open them, so don't mess with them. */
-	for (i = font->fonts->len; i < font->patterns->len; i++) {
+	for (i = 0; i < font->patterns->len; i++) {
 		pattern = g_array_index(font->patterns, FcPattern*, i);
 		if (pattern == NULL) {
 			continue;
@@ -150,7 +148,7 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 {
 	int i;
 	XftFont *ftfont;
-	FcPattern *pattern;
+	FcPattern **patternp;
 	GdkDisplay *gdisplay;
 	Display *display;
 	gpointer p = GINT_TO_POINTER(c);
@@ -209,8 +207,12 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 
 	/* Look the character up in other fonts. */
 	for (i = font->fonts->len; i < font->patterns->len; i++) {
-		pattern = g_array_index(font->patterns, FcPattern *, i);
-		ftfont = XftFontOpenPattern(display, pattern);
+		patternp = &g_array_index(font->patterns, FcPattern *, i);
+		ftfont = XftFontOpenPattern(display, *patternp);
+		/* If the font was opened, it owns the pattern. */
+		if (ftfont != NULL) {
+			*patternp = NULL;
+		}
 		g_array_append_val(font->fonts, ftfont);
 		if ((ftfont != NULL) &&
 		    (XftCharExists(display, ftfont, (FcChar32) c) == FcTrue)) {

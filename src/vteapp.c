@@ -366,7 +366,7 @@ main(int argc, char **argv)
 	const char *background = NULL;
 	gboolean transparent = FALSE, audible = TRUE, blink = TRUE,
 		 debug = FALSE, dingus = FALSE, geometry = TRUE, dbuffer = TRUE,
-		 console = FALSE, scroll = FALSE;
+		 console = FALSE, scroll = FALSE, keep = FALSE;
 	long lines = 100;
 	const char *message = "Launching interactive shell...\r\n";
 	const char *font = NULL;
@@ -390,6 +390,7 @@ main(int argc, char **argv)
 			    "[-f font] "
 			    "[-g] "
 			    "[-h] "
+			    "[-k] "
 			    "[-n] "
 			    "[-t terminaltype]\n";
 	back.red = back.green = back.blue = 0xffff;
@@ -424,7 +425,7 @@ main(int argc, char **argv)
 	g_assert(i < (g_list_length(args) + 2));
 
 	/* Parse some command-line options. */
-	while ((opt = getopt(argc, argv, "B:CDT2abc:df:ghn:st:w:-")) != -1) {
+	while ((opt = getopt(argc, argv, "B:CDT2abc:df:ghkn:st:w:-")) != -1) {
 		gboolean bail = FALSE;
 		switch (opt) {
 			case 'B':
@@ -459,6 +460,9 @@ main(int argc, char **argv)
 				break;
 			case 'g':
 				geometry = !geometry;
+				break;
+			case 'k':
+				keep = !keep;
 				break;
 			case 'n':
 				lines = atol(optarg);
@@ -677,6 +681,12 @@ main(int argc, char **argv)
 
 	g_assert(widget == NULL);
 	g_assert(window == NULL);
+
+	if (keep) {
+		while (TRUE) {
+			sleep(60);
+		}
+	}
 
 	return 0;
 }

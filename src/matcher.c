@@ -127,3 +127,28 @@ _vte_matcher_print(struct _vte_matcher *matcher)
 		break;
 	}
 }
+
+/* Free a parameter array.  Most of the GValue elements can clean up after
+ * themselves, but we're using gpointers to hold unicode character strings, and
+ * we need to free those ourselves. */
+void
+_vte_matcher_free_params_array(GValueArray *params)
+{
+	guint i;
+	GValue *value;
+	gpointer ptr;
+	if (params != NULL) {
+		for (i = 0; i < params->n_values; i++) {
+			value = g_value_array_get_nth(params, i);
+			if (G_VALUE_HOLDS_POINTER(value)) {
+				ptr = g_value_get_pointer(value);
+				if (ptr != NULL) {
+					g_free(ptr);
+				}
+				g_value_set_pointer(value, NULL);
+			}
+		}
+		g_value_array_free(params);
+	}
+}
+

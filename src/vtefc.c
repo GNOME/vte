@@ -334,7 +334,7 @@ _vte_fc_patterns_from_pango_font_desc(const PangoFontDescription *font_desc,
 				      gpointer defaults_data)
 
 {
-	FcPattern *pattern, *match, *tmp;
+	FcPattern *pattern, *match, *tmp, *save;
 	FcFontSet *fontset;
 	FcResult result;
 	gboolean ret = FALSE;
@@ -374,7 +374,9 @@ _vte_fc_patterns_from_pango_font_desc(const PangoFontDescription *font_desc,
 						  pattern,
 						  fontset->fonts[i]);
 			_vte_fc_defaults_from_gtk(tmp);
-			g_array_append_val(pattern_array, tmp);
+			save = FcPatternDuplicate(tmp);
+			FcPatternDestroy(tmp);
+			g_array_append_val(pattern_array, save);
 		}
 		FcFontSetDestroy(fontset);
 		ret = TRUE;
@@ -386,7 +388,9 @@ _vte_fc_patterns_from_pango_font_desc(const PangoFontDescription *font_desc,
 		if (result == FcResultMatch) {
 			tmp = FcPatternDuplicate(match);
 			_vte_fc_defaults_from_gtk(tmp);
-			g_array_append_val(pattern_array, tmp);
+			save = FcPatternDuplicate(tmp);
+			FcPatternDestroy(tmp);
+			g_array_append_val(pattern_array, save);
 			ret = TRUE;
 		} else {
 			ret = FALSE;

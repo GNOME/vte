@@ -707,7 +707,7 @@ print_array(GValueArray *array)
 			}
 		}
 		printf(")");
-		g_value_array_free(array);
+		_vte_matcher_free_params_array(array);
 	}
 }
 
