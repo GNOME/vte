@@ -519,7 +519,7 @@ _vte_glyph_get(struct _vte_glyph_cache *cache, gunichar c)
 #if HAVE_DECL_ft_pixel_mode_mono
 		case ft_pixel_mode_mono:
 #else
-#error Neither ft_pixel_mode_mono nor FT_PIXEL_MODE_MONO is defined!
+#error "Neither ft_pixel_mode_mono nor FT_PIXEL_MODE_MONO is defined!"
 #endif
 #endif
 			ioffset += (x / 8);
@@ -555,7 +555,7 @@ _vte_glyph_get(struct _vte_glyph_cache *cache, gunichar c)
 #if HAVE_DECL_ft_pixel_mode_grays
 		case ft_pixel_mode_grays:
 #else
-#error Neither FT_PIXEL_MODE_GRAY nor ft_pixel_mode_grays is defined!
+#error "Neither FT_PIXEL_MODE_GRAY nor ft_pixel_mode_grays is defined!"
 #endif
 #endif
 			ioffset += x;

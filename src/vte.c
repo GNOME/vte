@@ -592,8 +592,27 @@ vte_invalidate_cells(VteTerminal *terminal,
 	 * by multiplying by the size of a character cell. */
 	rect.x = column_start * terminal->char_width + VTE_PAD_WIDTH;
 	rect.width = column_count * terminal->char_width;
+	if (column_start == 0) {
+		/* Include the left border. */
+		rect.x -= VTE_PAD_WIDTH;
+		rect.width += VTE_PAD_WIDTH;
+	}
+	if (column_start + column_count == terminal->column_count) {
+		/* Include the right border. */
+		rect.width += VTE_PAD_WIDTH;
+	}
+
 	rect.y = row_start * terminal->char_height + VTE_PAD_WIDTH;
 	rect.height = row_count * terminal->char_height;
+	if (rect.y == 0) {
+		/* Include the top border. */
+		rect.y -= VTE_PAD_WIDTH;
+		rect.height += VTE_PAD_WIDTH;
+	}
+	if (row_start + row_count == terminal->row_count) {
+		/* Include the bottom border. */
+		rect.height += VTE_PAD_WIDTH;
+	}
 
 	/* Invalidate the rectangle. */
 	gdk_window_invalidate_rect(widget->window, &rect, FALSE);
@@ -635,7 +654,9 @@ vte_terminal_scroll_region(VteTerminal *terminal,
 			   long row, glong count, glong delta)
 {
 	GtkWidget *widget;
+	GdkWindowObject *window;
 	gboolean repaint = TRUE;
+	glong height;
 
 	if ((delta == 0) || (count == 0)) {
 		/* Shenanigans! */
@@ -648,9 +669,15 @@ vte_terminal_scroll_region(VteTerminal *terminal,
 	    (row == terminal->pvt->screen->scroll_delta) &&
 	    (count == terminal->row_count)) {
 		widget = GTK_WIDGET(terminal);
-		gdk_window_scroll(widget->window,
-				  0, delta * terminal->char_height);
-		repaint = FALSE;
+		if (GTK_WIDGET_REALIZED(widget)) {
+			window = GDK_WINDOW_OBJECT(widget->window);
+			if (window->update_freeze_count == 0) {
+				height = terminal->char_height;
+				gdk_window_scroll(widget->window,
+						  0, delta * height);
+				repaint = FALSE;
+			}
+		}
 	}
 
 	if (repaint) {
@@ -3267,7 +3294,7 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 {
 	GtkWidget *widget;
 	VteRowData *row;
-	long start, end, bottom;
+	long start, end, top, bottom;
 	VteScreen *screen;
 
 	widget = GTK_WIDGET(terminal);
@@ -3293,17 +3320,21 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 				_vte_ring_insert_preserve(terminal->pvt->screen->row_data,
 							  screen->cursor_current.row,
 							  row);
+				/* This may generate multiple redraws, so
+				 * freeze it while we do them. */
+				gdk_window_freeze_updates(widget->window);
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
+				top = screen->cursor_current.row;
 				bottom = screen->insert_delta +
 					 terminal->row_count - 1;
-				vte_terminal_scroll_region(terminal,
-							   screen->cursor_current.row,
-							   bottom - screen->cursor_current.row + 1,
-							   1);
+				vte_terminal_scroll_region(terminal, top,
+							   bottom - top + 1, 1);
 				/* Force scroll. */
 				vte_terminal_ensure_cursor(terminal, FALSE);
 				vte_terminal_adjust_adjustments(terminal, TRUE);
+				/* Allow updates again. */
+				gdk_window_thaw_updates(widget->window);
 			} else {
 				/* If we're at the bottom of the scrolling
 				 * region, add a line at the top to scroll the

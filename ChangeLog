@@ -1,3 +1,14 @@
+2003-04-22 nalin
+	* src/vteglyph.c: fix a couple of #errors.
+	* src/vte.c(vte_invalidate_cells): if the area we're invading is on the
+	edge, invalidate the edge as well.
+	* src/pty.c: implement and use wrappers for read and write which handle
+	EINTR and EAGAIN.
+	* src/vte.c(vte_terminal_scroll_region): don't use gdk_window_scroll if
+	the window is frozen for updates.
+	* src/vte.c(vte_terminal_sequence_handler_sf): when scrolling down with
+	a defined scrolling region, freeze the window to avoid flicker.
+
 2003-04-21 nalin
 	* gnome-pty-helper/gnome-login-support.c(n_read): don't bail out if
 	read() returns -1 and errno is either EINTR or EAGAIN, candidate fix for
