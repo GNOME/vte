@@ -3235,7 +3235,9 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 			pcell = vte_terminal_find_charcell(terminal, y, x);
 			if (vte_cell_is_selected(terminal, y, x)) {
 				if (pcell != NULL) {
-					buffer[length++] = pcell->c;
+					if (pcell->columns > 0) {
+						buffer[length++] = pcell->c;
+					}
 				} else {
 					if (x == terminal->column_count - 1) {
 						buffer[length++] = '\n';
