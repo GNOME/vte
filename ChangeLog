@@ -1,3 +1,9 @@
+2002-10-11 Brian Cameron <Brian.Cameron@sun.com>
+	* configure.in: Changed to that wchar.h is included when checking for
+	wint_t on Solaris.  This was needed because on Solaris wint_t is defined
+	to be a long, and in vte.c its definition was recently changed to be a
+	gunichar.  This caused the compile to break on Solaris.
+
 2002-10-10 nalin
 	* configure.in, src/pty.c, gnome-pty-helper/Makefile.am: fix the bits
 	I missed when fixing #95085.

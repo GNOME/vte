@@ -88,7 +88,34 @@ fi
 if test x$VTE_DEBUG = x1 ; then
 	AC_DEFINE(VTE_DEBUG,,[Enable debugging messages.])
 fi
-AC_CHECK_TYPE(wint_t,[AC_DEFINE(HAVE_WINT_T,1,[Define if your OS provides a wint_t type and a corresponding %lc format specifier.])])
+
+wcs_funcs_includes="
+#ifdef HAVE_STRING_H
+# if !STDC_HEADERS && HAVE_MEMORY_H
+#  include <memory.h>
+# endif
+# include <string.h>
+#else
+# ifdef HAVE_STRINGS_H
+#  include <strings.h>
+# endif
+#endif
+#ifdef HAVE_WCHAR_H
+# include <wchar.h>
+#endif
+"
+
+AC_CACHE_CHECK(for wchar_t type,
+  ac_cv_type_wint_t,
+[
+AC_TRY_COMPILE($wcs_funcs_includes, [wint_t s = sizeof (wint_t *);],
+  ac_cv_type_wint_t=yes,
+  ac_cv_type_wint_t=no)
+])
+if test "$ac_cv_type_wint_t" = "yes" ; then
+  AC_DEFINE(HAVE_WINT_T, ,
+    [Defined when the wint_t type is supported])
+fi
 
 AC_MSG_CHECKING([for pygtk-2.0])
 if pkg-config --exists pygtk-2.0 ; then
