@@ -1,3 +1,13 @@
+2002-04-26 00:49  nalin
+	* Makefile.am: run autogen before tagging so that the tag is always
+	correct.
+	* README: update.
+	* configure.in: add pangox to the list of GTK+ 2.0 modules we link with.
+	* src/vte.c, src/vte.h: add vte_terminal_set_scrollback_lines(), add
+	some code to use pangox for rendering before trying core rendering,
+	which should make font selection actually work.
+	* vte.spec: tweak description text.
+
 2002-04-25 12:23  nalin
 
 	* Makefile.am: Uncomment the tag target.

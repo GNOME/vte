@@ -128,6 +128,10 @@ main(int argc, char **argv)
 							TRUE);
 	}
 
+	/* Set the default font. */
+	vte_terminal_set_font_from_string(VTE_TERMINAL(widget),
+					  "fixed medium semi-condensed 12");
+
 	/* Launch a shell. */
 #ifdef VTE_DEBUG
 	vte_terminal_feed(VTE_TERMINAL(widget), message, strlen(message));

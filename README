@@ -7,7 +7,10 @@
 * What does VTE include?
 - VTE includes a library (libvte) which implements such a terminal emulator
   widget for GTK+ 2.0, and a sample application (vte) which wraps that widget
-  in a GTK window.
+  in a GTK window.  Because I'm more concerned with whether or not it works,
+  all settings are hard-coded to whatever I needed to test the last time I
+  touched it.  If you actually want to use the widget to get work done, you
+  should probably be using profterm.
 
 * How does it work?
 - The VTE library inserts terminal capability strings into a trie, and then
@@ -16,6 +19,8 @@
   what the widget actually sees after it filters incoming data.
 
 * What's missing?
+- Accessibility isn't started yet.
+- Mouse tracking isn't started yet.
 - Entries in the termcap file also don't contain the sequences which a terminal
   is supposed to send to the application when a specific sequence is received
   (for example, the query-cursor-position control sequence).  This mostly looks
@@ -34,5 +39,3 @@
   things is currently scarce, so some of it's guesswork.
 - An actual property interface needs to be retrofitted over the various options
   which are currently hard-coded at startup-time.
-- Accessibility isn't started yet.
-- Mouse tracking isn't started yet.
