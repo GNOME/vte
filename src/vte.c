@@ -3530,6 +3530,9 @@ vte_sequence_handler_sr(VteTerminal *terminal,
 		vte_insert_line_internal(terminal, start);
 		/* Update the display. */
 		vte_terminal_scroll_region(terminal, start, end - start + 1, 1);
+		vte_invalidate_cells(terminal,
+				     0, terminal->column_count,
+				     start, 2);
 	} else {
 		/* Otherwise, just move the cursor up. */
 		screen->cursor_current.row--;

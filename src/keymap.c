@@ -440,7 +440,7 @@ static struct _vte_keymap_entry _vte_keymap_GDK_KP_Page_Down[] = {
 	 0, _VTE_CAP_CSI "6~", -1, NULL},
 	{cursor_all, keypad_default, fkey_sun, 0, _VTE_CAP_CSI "6z", -1, NULL},
 	{cursor_all, keypad_default, fkey_vt220, 0, "3", 1, NULL},
-	{cursor_all, keypad_app, fkey_notvt220, 0, _VTE_CAP_CSI "5~", -1, NULL},
+	{cursor_all, keypad_app, fkey_notvt220, 0, _VTE_CAP_CSI "6~", -1, NULL},
 	{cursor_all, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "s", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
