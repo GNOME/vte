@@ -303,8 +303,6 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 						"%ld.\n",
 						priv->snapshot_linebreaks->len,
 						attrs.row, i);
-					fprintf(stderr, "Cursor at (%ld, "
-						"%ld).\n", ccol, crow);
 				}
 #endif
 				g_array_append_val(priv->snapshot_linebreaks, i);
@@ -319,6 +317,11 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 
 	/* Update the caret position. */
 	vte_terminal_get_cursor_position(terminal, &ccol, &crow);
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "Cursor at (%ld, " "%ld).\n", ccol, crow);
+	}
+#endif
 
 	/* Get the offsets to the beginnings of each line. */
 	caret = -1;

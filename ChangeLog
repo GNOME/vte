@@ -1,4 +1,7 @@
 2003-04-15 nalin
+	* src/vteaccess.c: fix broken debug message.
+
+2003-04-15 nalin
 	* src/vte.c: make row_data a structure containing an array instead of a
 	simple array.  Add a field to row data structures which tracks whether
 	or not we soft-wrapped from this line to the next one.  Make use of the
