@@ -114,11 +114,12 @@ typedef enum {
 } VteTerminalEraseBinding;
 
 /* The structure we return as the supplemental attributes for strings. */
-struct vte_char_attributes {
+struct _VteCharAttributes {
 	long row, column;
 	GdkColor fore, back;
 	gboolean underline:1, strikethrough:1;
 };
+typedef struct _VteCharAttributes VteCharAttributes;
 
 /* The widget's type. */
 GtkType vte_terminal_get_type(void);
@@ -249,7 +250,7 @@ void vte_terminal_reset(VteTerminal *terminal, gboolean full,
 /* Read the contents of the terminal, using a callback function to determine
  * if a particular location on the screen (0-based) is interesting enough to
  * include.  Each byte in the returned string will have a corresponding
- * struct vte_char_attributes in the passed GArray, if the array was not NULL.
+ * VteCharAttributes structure in the passed GArray, if the array was not NULL.
  * Note that it will have one entry per byte, not per character, so indexes
  * should match up exactly. */
 char *vte_terminal_get_text(VteTerminal *terminal,

@@ -20,7 +20,7 @@ retrieve the exit status of child processes which have exited.
 
 <!-- ##### STRUCT VteReaper ##### -->
 <para>
-
+This should not be accessed directly.
 </para>
 
 

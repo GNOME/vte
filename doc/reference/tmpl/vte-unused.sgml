@@ -20,6 +20,106 @@ manipulating psuedo-terminals.
 pty
 
 
+<!-- ##### SECTION ./tmpl/reaper.sgml.sgml:Long_Description ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/reaper.sgml.sgml:See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/reaper.sgml.sgml:Short_Description ##### -->
+
+
+
+<!-- ##### SECTION ./tmpl/reaper.sgml.sgml:Title ##### -->
+reaper.sgml
+
+
+<!-- ##### MACRO VTE_META_MASK ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### MACRO VTE_NUMLOCK_MASK ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### ENUM VteDebugFlags ##### -->
+<para>
+
+</para>
+
+@VTE_DEBUG_MISC: 
+@VTE_DEBUG_PARSE: 
+@VTE_DEBUG_IO: 
+@VTE_DEBUG_UPDATES: 
+@VTE_DEBUG_EVENTS: 
+@VTE_DEBUG_SIGNALS: 
+@VTE_DEBUG_SELECTION: 
+@VTE_DEBUG_SUBSTITUTION: 
+@VTE_DEBUG_RING: 
+@VTE_DEBUG_PTY: 
+@VTE_DEBUG_CURSOR: 
+@VTE_DEBUG_KEYBOARD: 
+@VTE_DEBUG_LIFECYCLE: 
+
+<!-- ##### STRUCT VteRing ##### -->
+<para>
+
+</para>
+
+@free: 
+@user_data: 
+@array: 
+@delta: 
+@length: 
+@max: 
+
+<!-- ##### USER_FUNCTION VteRingFreeFunc ##### -->
+<para>
+
+</para>
+
+@freeing: 
+@data: 
+
+<!-- ##### STRUCT VteTerminalPrivate ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### STRUCT vte_buffer ##### -->
+<para>
+
+</para>
+
+@bytes: 
+
+<!-- ##### STRUCT vte_capability_quark ##### -->
+<para>
+
+</para>
+
+@capability: 
+@key: 
+@quark: 
+
+<!-- ##### STRUCT vte_capability_string ##### -->
+<para>
+
+</para>
+
+@quark: 
+
 <!-- ##### FUNCTION vte_pty_get_size ##### -->
 <para>
 
@@ -56,6 +156,101 @@ pty
 @columns: 
 @rows: 
 @Returns: 
+
+<!-- ##### FUNCTION vte_ring_append ##### -->
+<para>
+
+</para>
+
+@ring: 
+@data: 
+
+<!-- ##### FUNCTION vte_ring_at ##### -->
+<para>
+
+</para>
+
+@ring: 
+@Param2: 
+@Returns: 
+
+<!-- ##### FUNCTION vte_ring_contains ##### -->
+<para>
+
+</para>
+
+@ring: 
+@Param2: 
+@Returns: 
+
+<!-- ##### FUNCTION vte_ring_delta ##### -->
+<para>
+
+</para>
+
+@ring: 
+@Returns: 
+
+<!-- ##### FUNCTION vte_ring_free ##### -->
+<para>
+
+</para>
+
+@ring: 
+@free_elements: 
+
+<!-- ##### MACRO vte_ring_index ##### -->
+<para>
+
+</para>
+
+@ring: 
+@cast: 
+@position: 
+
+<!-- ##### FUNCTION vte_ring_insert ##### -->
+<para>
+
+</para>
+
+@ring: 
+@Param2: 
+@data: 
+
+<!-- ##### FUNCTION vte_ring_length ##### -->
+<para>
+
+</para>
+
+@ring: 
+@Returns: 
+
+<!-- ##### FUNCTION vte_ring_new ##### -->
+<para>
+
+</para>
+
+@Param1: 
+@free: 
+@data: 
+@Returns: 
+
+<!-- ##### FUNCTION vte_ring_next ##### -->
+<para>
+
+</para>
+
+@ring: 
+@Returns: 
+
+<!-- ##### FUNCTION vte_ring_remove ##### -->
+<para>
+
+</para>
+
+@ring: 
+@Param2: 
+@free_element: 
 
 <!-- ##### FUNCTION vte_terminal_fork_logged_command ##### -->
 <para>

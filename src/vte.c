@@ -1323,7 +1323,7 @@ vte_terminal_match_contents_refresh(VteTerminal *terminal)
 	GArray *array;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	vte_terminal_match_contents_clear(terminal);
-	array = g_array_new(FALSE, TRUE, sizeof(struct vte_char_attributes));
+	array = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
 	terminal->pvt->match_contents = vte_terminal_get_text(terminal,
 							      always_selected,
 							      NULL,
@@ -1487,7 +1487,7 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 {
 	int i, j, ret, offset;
 	struct vte_match_regex *regex = NULL;
-	struct vte_char_attributes *attr = NULL;
+	struct _VteCharAttributes *attr = NULL;
 	gssize coffset;
 	regmatch_t matches[256];
 #ifdef VTE_DEBUG
@@ -1514,7 +1514,7 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 	     offset >= 0;
 	     offset--) {
 		attr = &g_array_index(terminal->pvt->match_attributes,
-				      struct vte_char_attributes,
+				      struct _VteCharAttributes,
 				      offset);
 		if ((row == attr->row) &&
 		    (column == attr->column) &&
@@ -1581,14 +1581,14 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 #ifdef VTE_DEBUG
 				if (_vte_debug_on(VTE_DEBUG_MISC)) {
 					char *match;
-					struct vte_char_attributes *sattr, *eattr;
+					struct _VteCharAttributes *sattr, *eattr;
 					match = g_strndup(terminal->pvt->match_contents + matches[j].rm_so + coffset,
 							  matches[j].rm_eo - matches[j].rm_so);
 					sattr = &g_array_index(terminal->pvt->match_attributes,
-							       struct vte_char_attributes,
+							       struct _VteCharAttributes,
 							       matches[j].rm_so + coffset);
 					eattr = &g_array_index(terminal->pvt->match_attributes,
-							       struct vte_char_attributes,
+							       struct _VteCharAttributes,
 							       matches[j].rm_eo + coffset - 1);
 					fprintf(stderr, "Match %d `%s' from %d(%ld,%ld) to %d(%ld,%ld) (%d).\n",
 						j, match,
@@ -6198,15 +6198,15 @@ vte_terminal_set_color_background(VteTerminal *terminal,
  *
  * The terminal widget uses a 28-color model comprised of the default foreground
  * and background colors, the bold foreground color, the dim foreground
- * color, an eight color palette, and bold versions of the eight color palette,
+ * color, an eight color palette, bold versions of the eight color palette,
  * and a dim version of the the eight color palette.
  *
  * @palette_size must be either 0, 8, 16, or 24.  If @foreground is NULL and
  * @palette_size is greater than 0, the new foreground color is taken from
  * @palette[7].  If @background is NULL and @palette_size is greater than 0,
  * the new background color is taken from @palette[0].  If
- * @palette_size is 8 or 16, the third (dim) and possibly second (bold)
- * 8-color palette is extrapolated from the new background color and the items
+ * @palette_size is 8 or 16, the third (dim) and possibly the second (bold)
+ * 8-color palettes are extrapolated from the new background color and the items
  * in @palette.
  *
  */
@@ -6757,7 +6757,7 @@ _vte_terminal_disconnect_pty_write(VteTerminal *terminal)
  * @utmp: TRUE if the session should be logged to the utmp/utmpx log
  * @wtmp: TRUE if the session should be logged to the wtmp/wtmpx log
  *
- * Starts the specified command under a newly-alllocated control
+ * Starts the specified command under a newly-allocated controlling
  * pseudo-terminal.  TERM is automatically set to reflect the terminal widget's
  * emulation setting.  If @lastlog, @utmp, or @wtmp are TRUE, logs the session
  * to the specified system log files.
@@ -8561,7 +8561,7 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 	int start, end, width, height;
 	long rows, rowe;
 	char *match;
-	struct vte_char_attributes *attr;
+	struct _VteCharAttributes *attr;
 	VteScreen *screen;
 	long delta;
 
@@ -8599,12 +8599,12 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 		rowe = terminal->pvt->match_end.row;
 		/* Read the new locations. */
 		attr = &g_array_index(terminal->pvt->match_attributes,
-				      struct vte_char_attributes,
+				      struct _VteCharAttributes,
 				      start);
 		terminal->pvt->match_start.row = attr->row;
 		terminal->pvt->match_start.column = attr->column;
 		attr = &g_array_index(terminal->pvt->match_attributes,
-				      struct vte_char_attributes,
+				      struct _VteCharAttributes,
 				      end);
 		terminal->pvt->match_end.row = attr->row;
 		terminal->pvt->match_end.column = attr->column;
@@ -8686,7 +8686,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
  *
  * Extracts a view of the visible part of the string.  If @is_selected is not
  * NULL, characters will only be read if @is_selected returns TRUE after being
- * passed the column and row, respectively.  A #vte_char_attributes structure
+ * passed the column and row, respectively.  A #VteCharAttributes structure
  * is added to @attributes for each byte added to the returned string detailing
  * the character's position, colors, and other characteristics.  The
  * entire scrollback buffer is scanned, so it is possible to read the entire
@@ -8708,7 +8708,7 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 	VteScreen *screen;
 	struct vte_charcell *pcell = NULL;
 	GString *string;
-	struct vte_char_attributes attr;
+	struct _VteCharAttributes attr;
 	struct vte_palette_entry fore, back, *palette;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
@@ -8857,7 +8857,7 @@ vte_terminal_get_text_range(VteTerminal *terminal,
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
  * NULL, characters will only be read if @is_selected returns TRUE after being
- * passed the column and row, respectively.  A #vte_char_attributes structure
+ * passed the column and row, respectively.  A #VteCharAttributes structure
  * is added to @attributes for each byte added to the returned string detailing
  * the character's position, colors, and other characteristics.
  *
@@ -10875,7 +10875,7 @@ vte_terminal_close_font(VteTerminal *terminal)
  * Sets the font used for rendering all text displayed by the terminal,
  * overriding any fonts set using gtk_widget_modify_font().  The terminal
  * will immediately attempt to load the desired font, retrieve its
- * metrics, and attempts to resize itself to keep the same number of rows
+ * metrics, and attempt to resize itself to keep the same number of rows
  * and columns.
  *
  */
@@ -15484,7 +15484,7 @@ vte_terminal_copy_primary(VteTerminal *terminal)
  * child.  If necessary, the data is converted from UTF-8 to the terminal's
  * current encoding.  The terminal will call also paste the
  * #GDK_SELECTION_PRIMARY selection when the user clicks with the the second
- * mouse button.
+ * mouse button or presses Shift+Insert.
  *
  */
 void
@@ -15838,15 +15838,15 @@ vte_terminal_queue_background_update(VteTerminal *terminal,
 /**
  * vte_terminal_set_background_saturation:
  * @terminal: a #VteTerminal
- * @saturation: TRUE if the terminal should fake transparency
+ * @saturation: a floating point value between 0.0 and 1.0.
  *
  * If a background image has been set using
  * vte_terminal_set_background_image(),
  * vte_terminal_set_background_image_file(), or
- * vte_terminal_set_background_transparent(), the terminal will adjust the
- * colors of the image before drawing the image.  To do so, the terminal
- * will create a copy of the background image (or snapshot of the root
- * window) and modify its pixel values.
+ * vte_terminal_set_background_transparent(), and the saturation value is less
+ * than 1.0, the terminal will adjust the colors of the image before drawing
+ * the image.  To do so, the terminal will create a copy of the background
+ * image (or snapshot of the root window) and modify its pixel values.
  *
  * If your application intends to create multiple terminal widgets with the
  * same settings, performing this step yourself and just using
@@ -15878,10 +15878,11 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
  * If a background image has been set using
  * vte_terminal_set_background_image(),
  * vte_terminal_set_background_image_file(), or
- * vte_terminal_set_background_transparent(), the terminal will adjust the
- * brightness of the image before drawing the image.  To do so, the terminal
- * will create a copy of the background image (or snapshot of the root
- * window) and modify its pixel values.
+ * vte_terminal_set_background_transparent(), and the value set by
+ * vte_terminal_set_background_saturation() is less than one, the terminal
+ * will adjust the color of the image before drawing the image.  To do so,
+ * the terminal will create a copy of the background image (or snapshot of
+ * the root window) and modify its pixel values.
  *
  * If your application intends to create multiple terminal widgets with the
  * same settings, performing this step yourself and just using
@@ -16067,8 +16068,8 @@ vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
  * @path: path to an image file
  *
  * Sets a background image for the widget.  If specified by
- * vte_terminal_set_background_saturation, the terminal will make its
- * in-memory copy of the image darker for its own use.
+ * vte_terminal_set_background_saturation(), the terminal will tint its
+ * in-memory copy of the image before applying it to the terminal.
  *
  * This is a convenience wrapper for vte_terminal_set_background_image().
  * If your application intends to create multiple terminal widgets using the

@@ -166,7 +166,7 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 {
 	VteTerminal *terminal;
 	VteTerminalAccessiblePrivate *priv;
-	struct vte_char_attributes attrs;
+	struct _VteCharAttributes attrs;
 	char *next, *tmp;
 	long row, i, offset, caret;
 	long ccol, crow;
@@ -249,7 +249,7 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 			priv->snapshot_attributes = NULL;
 		}
 		priv->snapshot_attributes = g_array_new(FALSE, TRUE,
-							sizeof(struct vte_char_attributes));
+							sizeof(struct _VteCharAttributes));
 
 		/* Free the linebreak offsets and allocate a new array to hold
 		 * them. */
@@ -290,7 +290,7 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 			offset = g_array_index(priv->snapshot_characters,
 					       int, i);
 			attrs = g_array_index(priv->snapshot_attributes,
-					      struct vte_char_attributes,
+					      struct _VteCharAttributes,
 					      offset);
 			/* If this character is on a row different from the row
 			 * the character we looked at previously was on, then
@@ -327,7 +327,7 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 		offset = g_array_index(priv->snapshot_characters,
 				       int, i);
 		attrs = g_array_index(priv->snapshot_attributes,
-				      struct vte_char_attributes,
+				      struct _VteCharAttributes,
 				      offset);
 		/* If this cell is "before" the cursor, move the
 		 * caret to be "here". */
@@ -458,7 +458,7 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 				      gpointer data)
 {
 	VteTerminalAccessiblePrivate *priv;
-	struct vte_char_attributes attr;
+	struct _VteCharAttributes attr;
 	long i, len, delta;
 
 	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(data));
@@ -499,7 +499,7 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 	if (priv->snapshot_attributes != NULL) {
 		if (priv->snapshot_attributes->len > 0) {
 			attr = g_array_index(priv->snapshot_attributes,
-					     struct vte_char_attributes,
+					     struct _VteCharAttributes,
 					     0);
 			delta = attr.row;
 		}
@@ -511,7 +511,7 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 		/* Find the first byte that scrolled off. */
 		for (i = 0; i < priv->snapshot_attributes->len; i++) {
 			attr = g_array_index(priv->snapshot_attributes,
-					     struct vte_char_attributes,
+					     struct _VteCharAttributes,
 					     i);
 			if (attr.row >= delta + terminal->row_count - howmuch) {
 				break;
@@ -549,7 +549,7 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 		/* Find the first byte that wasn't scrolled off the top. */
 		for (i = 0; i < priv->snapshot_attributes->len; i++) {
 			attr = g_array_index(priv->snapshot_attributes,
-					     struct vte_char_attributes,
+					     struct _VteCharAttributes,
 					     i);
 			if (attr.row >= delta + howmuch) {
 				break;

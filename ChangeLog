@@ -1,3 +1,8 @@
+2003-03-06 nalin	
+	* src/vte.c, src/vte.h, src/vteaccess.c: rename struct
+	vte_char_attributes to VteCharAttributes, fixup some docs.
+	* doc/reference: finish up docs.
+
 2003-03-05 nalin	
 	* vte.pc.in: add FT2_LIBS and FT2_CFLAGS to our libs and cflags.  Add
 	xft >= 2.0 and fontconfig as hard requirements.

@@ -14,37 +14,33 @@ A VteTerminal is a terminal emulator implemented as a GTK2 widget.
 
 </para>
 
-<!-- ##### STRUCT VteTerminalPrivate ##### -->
-<para>
-
-</para>
-
-
-<!-- ##### ENUM VteTerminalEraseBinding ##### -->
-<para>
-
-</para>
-
-@VTE_ERASE_AUTO: For backspace, attempt to determine the right value from the terminal's IO settings.  For delete, use the control sequence.
-@VTE_ERASE_ASCII_BACKSPACE: Send an ASCII backspace character (0x08).
-@VTE_ERASE_ASCII_DELETE: Send an ASCII delete character (0x7F).
-@VTE_ERASE_DELETE_SEQUENCE: Send the "@7" control sequence.
-
 <!-- ##### STRUCT VteTerminal ##### -->
 <para>
-
+All of these fields should be considered read-only.
 </para>
 
 @widget: 
 @adjustment: Scroll bar adjustments.
 @char_width: Width of a narrow character cell.
 @char_height: Height of a character cell.
-@char_ascent: 
-@char_descent: 
+@char_ascent: The distance (in pixels) from the baseline of drawn text to the top of the character cell.
+@char_descent: The distance (in pixels) from the baseline of drawn text to the bottom of the character cell.
 @row_count: Number of visible rows.
 @column_count: Number of visible columns.
 @window_title: The terminal's idea of what the window's title should be.
 @icon_title: The terminal's idea of what the window's title should be when iconified.
+
+<!-- ##### ENUM VteTerminalEraseBinding ##### -->
+<para>
+An enumerated type which can be used to indicate which string the terminal
+should send to an application when the user presses the Delete or Backspace
+keys.
+</para>
+
+@VTE_ERASE_AUTO: For backspace, attempt to determine the right value from the terminal's IO settings.  For delete, use the control sequence.
+@VTE_ERASE_ASCII_BACKSPACE: Send an ASCII backspace character (0x08).
+@VTE_ERASE_ASCII_DELETE: Send an ASCII delete character (0x7F).
+@VTE_ERASE_DELETE_SEQUENCE: Send the "@@7" control sequence.
 
 <!-- ##### FUNCTION vte_terminal_new ##### -->
 <para>
@@ -307,6 +303,24 @@ A VteTerminal is a terminal emulator implemented as a GTK2 widget.
 @transparent: 
 
 
+<!-- ##### FUNCTION vte_terminal_set_background_tint_color ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@color: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_scroll_background ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@scroll: 
+
+
 <!-- ##### FUNCTION vte_terminal_set_cursor_blinks ##### -->
 <para>
 
@@ -515,6 +529,16 @@ A VteTerminal is a terminal emulator implemented as a GTK2 widget.
 <!-- # Unused Parameters # -->
 @Param2: 
 @Param3: 
+
+
+<!-- ##### FUNCTION vte_terminal_match_set_cursor ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@tag: 
+@cursor: 
 
 
 <!-- ##### FUNCTION vte_terminal_set_emulation ##### -->
