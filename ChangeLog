@@ -1,3 +1,7 @@
+2003-03-31: Laurent Dhima  <laurenti@alblinux.net>
+
+	* configure.in: Added "sq" to ALL_LINGUAS.
+	
 2003-03-16  Samúel Jón Gunnarsson  <sammi@techattack.nu>
 
 	* configure.in: added "is" to ALL_LINUGAS.
