@@ -1,0 +1,128 @@
+# Greek translation of vte.
+# Copyright (C) Free Software Foundation, 2003
+# This file is distributed under the same license as the PACKAGE package.
+# Kostas Papadimas <pkst@gmx.net>, 2003.
+# kostas: 21messages, 28Jan2003, initial translation
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2003-01-28 14:25+0200\n"
+"PO-Revision-Date: 2003-01-28 14:23+0200\n"
+"Last-Translator: Kostas Papadimas <pkst@gmx.net>\n"
+"Language-Team: Greek <nls@tux.hellug.gr>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 0.9.6\n"
+
+#: src/pty.c:253
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "Σφάλμα προσθήκης `%s' στο περιβάλλον, συνέχεια."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:800
+#, c-format
+msgid "can not run %s"
+msgstr "αδυναμία εκτέλεσης %s"
+
+#: src/reaper.c:107
+msgid "Error creating signal pipe."
+msgstr "Σφάλμα δημιουργίας σήματος σωλήνωσης."
+
+#: src/trie.c:411
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "Duplicate (%s/%s)!"
+
+#: src/vte.c:1409
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Σφάλμα σύνταξης κανονικής έκφρασης  \"%s\"."
+
+#: src/vte.c:1931 src/vte.c:1940 src/vte.c:1952 src/vte.c:1970 src/vte.c:1976
+#: src/vte.c:1981
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Αδυναμία μετατροπής χαρακτήρων από %s σε %s."
+
+#: src/vte.c:5496
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "Λήψη απρόσμενης σειράς (κλειδί?) `%s'."
+
+#: src/vte.c:6588
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "Δεν υπάρχει χειριστής για την σειρά ελέγχου `%s' ορίσθηκε."
+
+#: src/vte.c:7327
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Σφάλμα ανάγνωσης από θυγατρικό: %s."
+
+#: src/vte.c:7488
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Σφάλμα (%s) μετατροπής δεδομένων από θυγατρικό, γίνεται παραίτηση."
+
+#: src/vte.c:9809
+#, c-format
+msgid "Using fontset \"%s\", which is missing these character sets: %s."
+msgstr ""
+"Χρήση fontset \"%s\", από όπου λείπουν αυτές οι κωδικοποιήσεις χαρακτήρων: %"
+"s. "
+
+#: src/vte.c:10447
+#, c-format
+msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
+msgstr ""
+"Αποτυχία φόρτωσης μοτίβου γραμματοσειράς \"%s\", επιστροφή στην εξ ορισμού "
+"γραμματοσειρά."
+
+#: src/vte.c:10459
+msgid "Failed to load default Xft font."
+msgstr "Αποτυχία φόρτωσης εξ ορισμού γραμματοσειράς Xft."
+
+#: src/vte.c:10552
+#, c-format
+msgid "Failed to load font set \"%s\", falling back to default font."
+msgstr ""
+"Αποτυχία φόρτωσης ομάδας γραμματοσειράς \"%s\", επιστροφή στην εξ ορισμού "
+"γραμματοσειρά."
+
+#: src/vte.c:10564
+msgid "Failed to load default font, crashing or behaving abnormally."
+msgstr ""
+"Αποτυχία φόρτωσης εξ ορισμού γραμματοσειράς, κολλάει ή συμπεριφέρεται "
+"αφύσικα."
+
+#: src/vte.c:10826
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "Σφάλμα ανάγνωσης μεγέθους PTY , χρήση εξ ορισμού: %s."
+
+#: src/vte.c:10862
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "Σφάλμα ορισμού μεγέθους PTY: %s."
+
+#: src/vte.c:13749
+msgid "Error allocating draw, disabling Xft."
+msgstr "Σφάλμα ανάθεσης σχεδίασης, απενεργοποίηση Xft."
+
+#: src/vte.c:13757
+msgid "Error allocating context, disabling Pango."
+msgstr "Σφάλμα ανάθεσης περιεχομένου, απενεργοποίηση Pango."
+
+#: src/vte.c:13763
+msgid "Error allocating layout, disabling Pango."
+msgstr "Σφάλμα ανάθεσης διάταξης, απενεργοποίηση Pango."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:15409
+msgid "g_iconv_open() failed setting word characters"
+msgstr "g_iconv_open() απέτυχε να ορίσει χαρακτήρες λέξης"
