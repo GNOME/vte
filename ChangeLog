@@ -1,3 +1,6 @@
+2002-06-12 msw
+	* src/vte.c (vte_terminal_get_accessible): turn the logic around
+	to be the right way
 2002-06-12 nalin
 	* src/vte.c: Cache the result of vte_terminal_get_accessible() and
 	unref it at finalize-time.  Add debug messages to log signals emitted

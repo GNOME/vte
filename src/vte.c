@@ -10037,7 +10037,7 @@ vte_terminal_get_accessible(GtkWidget *widget)
 	VteTerminal *terminal;
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), NULL);
 	terminal = VTE_TERMINAL(widget);
-	if (terminal->pvt->accessible == NULL) {
+	if (terminal->pvt->accessible != NULL) {
 		access = terminal->pvt->accessible;
 	} else {
 		access = vte_terminal_accessible_new(terminal);
