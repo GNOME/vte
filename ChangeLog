@@ -1,3 +1,10 @@
+2003-02-20
+	* src/vte.c(vte_terminal_feed_child): don't reset the input method
+	here -- it may be in the middle of something (Red Hat #81542).  From
+	HEAD.
+	* src/vte.c(vte_terminal_im_commit): reset the input method when we
+	get text committed (Red Hat #81542).  From HEAD.
+
 2003-02-19 nalin
 	* src/vte.c(vte_terminal_focus_in/focus_out): don't pass focus status
 	changes on to our IM context when we're not realized, because we don't
