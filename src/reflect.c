@@ -181,6 +181,7 @@ update_contents(AtkObject *obj, GtkWidget *widget)
 {
 	int caret, i;
 	GString *s;
+
 	caret = atk_text_get_caret_offset(ATK_TEXT(obj));
 	s = g_string_new("");
 	for (i = 0; i < contents->len; i++) {
@@ -248,7 +249,10 @@ text_changed_delete(AtkObject *obj, gint offset, gint length, gpointer data)
 {
 	int i;
 	for (i = offset + length - 1; i >= offset; i--) {
-		contents = g_array_remove_index(contents, i);
+		if (i > contents->len - 1) {
+			g_warning("Invalid character %d was deleted.\n", i);
+		}
+		g_array_remove_index(contents, i);
 	}
 #ifdef VTE_DEBUG
 	if ((getenv("REFLECT_VERBOSE") != NULL) &&
@@ -394,6 +398,7 @@ main(int argc, char **argv)
 	gtk_main();
 
 	g_array_free(contents, TRUE);
+	contents = NULL;
 
 	return 0;
 }

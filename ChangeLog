@@ -1,3 +1,7 @@
+2003-02-12 nalin
+	* src/reflect.c(text_changed_delete): spit out a warning if we receive
+	an out-of-range text_changed::delete signal.
+
 2003-02-11 nalin
 	* src/genwidths, src/uniwidths: add data for tracking ambiguous-width
 	Unicode characters.
