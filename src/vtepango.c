@@ -437,6 +437,7 @@ struct _vte_draw_impl _vte_draw_pango = {
 	_vte_pango_end,
 	_vte_pango_set_background_color,
 	_vte_pango_set_background_image,
+	FALSE,
 	_vte_pango_clear,
 	_vte_pango_set_text_font,
 	_vte_pango_get_text_width,

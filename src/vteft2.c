@@ -340,6 +340,7 @@ struct _vte_draw_impl _vte_draw_ft2 = {
 	_vte_ft2_end,
 	_vte_ft2_set_background_color,
 	_vte_ft2_set_background_image,
+	FALSE,
 	_vte_ft2_clear,
 	_vte_ft2_set_text_font,
 	_vte_ft2_get_text_width,

@@ -129,7 +129,7 @@ _vte_skel_set_background_image(struct _vte_draw *draw,
 
 static void
 _vte_skel_clear(struct _vte_draw *draw,
-		 gint x, gint y, gint width, gint height)
+		gint x, gint y, gint width, gint height)
 {
 	struct _vte_skel_data *data;
 	data = (struct _vte_skel_data*) draw->impl_data;
@@ -137,7 +137,7 @@ _vte_skel_clear(struct _vte_draw *draw,
 
 static void
 _vte_skel_set_text_font(struct _vte_draw *draw,
-			 const PangoFontDescription *fontdesc)
+			const PangoFontDescription *fontdesc)
 {
 	struct _vte_skel_data *data;
 	data = (struct _vte_skel_data*) draw->impl_data;
@@ -169,8 +169,8 @@ _vte_skel_get_using_fontconfig(struct _vte_draw *draw)
 
 static void
 _vte_skel_draw_text(struct _vte_draw *draw,
-		     struct _vte_draw_text_request *requests, gsize n_requests,
-		     GdkColor *color, guchar alpha)
+		    struct _vte_draw_text_request *requests, gsize n_requests,
+		    GdkColor *color, guchar alpha)
 {
 	struct _vte_skel_data *data;
 	data = (struct _vte_skel_data*) draw->impl_data;
@@ -178,8 +178,8 @@ _vte_skel_draw_text(struct _vte_draw *draw,
 
 static void
 _vte_skel_draw_rectangle(struct _vte_draw *draw,
-			  gint x, gint y, gint width, gint height,
-			  GdkColor *color, guchar alpha)
+			 gint x, gint y, gint width, gint height,
+			 GdkColor *color, guchar alpha)
 {
 	struct _vte_skel_data *data;
 	data = (struct _vte_skel_data*) draw->impl_data;
@@ -187,8 +187,8 @@ _vte_skel_draw_rectangle(struct _vte_draw *draw,
 
 static void
 _vte_skel_fill_rectangle(struct _vte_draw *draw,
-			  gint x, gint y, gint width, gint height,
-			  GdkColor *color, guchar alpha)
+			 gint x, gint y, gint width, gint height,
+			 GdkColor *color, guchar alpha)
 {
 	struct _vte_skel_data *data;
 	data = (struct _vte_skel_data*) draw->impl_data;
@@ -214,6 +214,7 @@ struct _vte_draw_impl _vte_draw_skel = {
 	_vte_skel_end,
 	_vte_skel_set_background_color,
 	_vte_skel_set_background_image,
+	TRUE,
 	_vte_skel_clear,
 	_vte_skel_set_text_font,
 	_vte_skel_get_text_width,

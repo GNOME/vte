@@ -498,7 +498,9 @@ main(int argc, char **argv)
 
 	/* Create the terminal widget and add it to the scrolling shell. */
 	widget = vte_terminal_new();
-	gtk_widget_set_double_buffered(widget, dbuffer);
+	if (!dbuffer) {
+		gtk_widget_set_double_buffered(widget, dbuffer);
+	}
 	gtk_box_pack_start(GTK_BOX(hbox), widget, TRUE, TRUE, 0);
 
 	/* Connect to the "char_size_changed" signal to set geometry hints

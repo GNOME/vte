@@ -1,3 +1,13 @@
+2003-05-13 nalin
+	* src/vtedraw.c, src/vtedraw.h: add _vte_draw_needs_repaint() to
+	indicate if the drawing back-end can only handle entire-window paints.
+	* src/vteconv.c: return a value from _vte_conv_close(), even though
+	it isn't used.
+	* src/vte.c(vte_terminal_paint): don't look at drawing starting at
+	negative row or coumn offsets.
+	* src/vtegl.c: prefer glX double-buffering to GDK's, and use double-
+	buffered possibly-direct windows instead of indirect pixmaps.
+
 2003-05-12 nalin
 	* src/vtebg.c(_vte_bg_get_pixmap, _vte_bg_get_pixbuf): account for the
 	foreign root pixmap not having a colormap by default, using the root

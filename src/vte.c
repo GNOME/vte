@@ -12516,6 +12516,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	char *preedit;
 	long width, height, ascent, descent, delta;
 	int i, len, fore, back, x, y;
+	GdkRectangle all_area;
 	gboolean blink;
 
 #ifdef VTE_DEBUG
@@ -12541,11 +12542,20 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	delta = screen->scroll_delta;
 
 	/* Calculate the bounding rectangle. */
-	row = (area->y - VTE_PAD_WIDTH) / height;
+	if (_vte_draw_requires_repaint(terminal->pvt->draw)) {
+		all_area.x = 0;
+		all_area.y = 0;
+		all_area.width = terminal->char_width * terminal->column_count;
+		all_area.width += 2 * VTE_PAD_WIDTH;
+		all_area.height = terminal->char_height * terminal->row_count;
+		all_area.height += 2 * VTE_PAD_WIDTH;
+		area = &all_area;
+	}
+	row = MAX(0, (area->y - VTE_PAD_WIDTH) / height);
 	row_stop = MIN(howmany((area->y - VTE_PAD_WIDTH) + area->height,
 			       height),
 		       terminal->row_count - 1);
-	col = (area->x - VTE_PAD_WIDTH) / width;
+	col = MAX(0, (area->x - VTE_PAD_WIDTH) / width);
 	col_stop = MIN(howmany((area->x - VTE_PAD_WIDTH) + area->width,
 			       width),
 		       terminal->column_count - 1);

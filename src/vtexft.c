@@ -763,6 +763,7 @@ struct _vte_draw_impl _vte_draw_xft = {
 	_vte_xft_end,
 	_vte_xft_set_background_color,
 	_vte_xft_set_background_image,
+	FALSE,
 	_vte_xft_clear,
 	_vte_xft_set_text_font,
 	_vte_xft_get_text_width,

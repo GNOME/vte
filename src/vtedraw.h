@@ -64,6 +64,7 @@ struct _vte_draw_impl {
 				     const char *file,
 				     const GdkColor *color,
 				     double saturation);
+	gboolean requires_repaint;
 	void (*clear)(struct _vte_draw *, gint, gint, gint, gint);
 	void (*set_text_font)(struct _vte_draw *, const PangoFontDescription *);
 	int (*get_text_width)(struct _vte_draw *);
@@ -115,6 +116,7 @@ void _vte_draw_set_background_image(struct _vte_draw *draw,
 				    const char *file,
 				    const GdkColor *color,
 				    double saturation);
+gboolean _vte_draw_requires_repaint(struct _vte_draw *draw);
 void _vte_draw_clear(struct _vte_draw *draw,
 		     gint x, gint y, gint width, gint height);
 

@@ -79,6 +79,7 @@ _vte_conv_close(VteConv converter)
 	converter->in_scratch = NULL;
 	converter->out_scratch = NULL;
 	g_free(converter);
+	return 0;
 }
 
 size_t
