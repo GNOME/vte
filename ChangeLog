@@ -1,3 +1,7 @@
+2003-07-03 nalin
+	* src/vte.c(vte_sequence_handler_return_terminal_status): return ""
+	instead of "xterm" in response to the ENQ control sequence.  From HEAD.
+
 2003-06-27 nalin
 	* src/vte.c: add big5, big5-hkscs, gb18030, gb2312, gbk, tcvn to the
 	list of ambiguously-wide encodings.  From HEAD via bug #116078.
