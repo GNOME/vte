@@ -8,7 +8,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: profterm HEAD\n"
-"POT-Creation-Date: 2002-11-17 13:02+0800\n"
+"POT-Creation-Date: 2002-11-25 22:46-0500\n"
 "PO-Revision-Date: 2002-11-17 12:59+0800\n"
 "Last-Translator: Hasbullah Bin Pit <sebol@ikhlas.com>\n"
 "Language-Team: ms <sebol@ikhlas.com>\n"
@@ -30,89 +30,89 @@ msgstr "Ralat mencipta paip isyarat"
 msgid "Duplicate (%s/%s)!"
 msgstr "Gandakan (%s/%s)!"
 
-#: src/vte.c:1321
+#: src/vte.c:1333
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Ralat menkompil ungkapan regular \"%s\"."
 
-#: src/vte.c:1828 src/vte.c:1837 src/vte.c:1849 src/vte.c:1867 src/vte.c:1872
-#: src/vte.c:1877
+#: src/vte.c:1840 src/vte.c:1849 src/vte.c:1861 src/vte.c:1879 src/vte.c:1884
+#: src/vte.c:1889
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Tak dapat menukar aksara drpd %s ke %s."
 
-#: src/vte.c:5179
+#: src/vte.c:5299
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Dapat turutan (key?) tanpa diduga `%s'."
 
-#: src/vte.c:5999
+#: src/vte.c:6119
 #, c-format
 msgid "Character 0x%x is undefined, allocating one column."
 msgstr "Aksara 0x%x tak ditakrif, memperuntukkan satu kolum."
 
-#: src/vte.c:6205
+#: src/vte.c:6325
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Tiada pengendali bai turutan kawalan '%s' ditakrif."
 
-#: src/vte.c:6812
+#: src/vte.c:6932
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Ralat membaca daripada proses anak: %s."
 
-#: src/vte.c:6978
+#: src/vte.c:7098
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Ralat (%s) menukar data bagi anak, digugurkan."
 
-#: src/vte.c:9219
+#: src/vte.c:9363
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
 msgstr "Menggunakan fontset \"%s\", dimana ketiadaan set aksara: %s."
 
-#: src/vte.c:9760
+#: src/vte.c:9904
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr "Gagal memuatkan corak font Xft \"%s\", kembali ke font default."
 
-#: src/vte.c:9772
+#: src/vte.c:9916
 msgid "Failed to load default Xft font."
 msgstr "Gagal memuatkan font default Xft."
 
-#: src/vte.c:9865
+#: src/vte.c:10009
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr "Gagal memuatkan set font \"%s\", kembali ke font default."
 
-#: src/vte.c:9877
+#: src/vte.c:10021
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr ""
 "Gagal memuatkan font default, telah musnah atau berkelakuan tidak normal."
 
-#: src/vte.c:10140
+#: src/vte.c:10284
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Ralat membaca saiz PTY, menggunakan default: %s"
 
-#: src/vte.c:10176
+#: src/vte.c:10320
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Ralat menetapkan saiz PTY: %s."
 
-#: src/vte.c:12919
+#: src/vte.c:13060
 msgid "Error allocating draw, disabling Xft."
 msgstr "Ralat memperuntukkan lukisan, mematikan Xft."
 
-#: src/vte.c:12927
+#: src/vte.c:13068
 msgid "Error allocating context, disabling Pango."
 msgstr "Ralat memperuntukkan konteks, mematikan Pango."
 
-#: src/vte.c:12933
+#: src/vte.c:13074
 msgid "Error allocating layout, disabling Pango."
 msgstr "Ralat memperuntukkan susunatur, mematikan Pango."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14460
+#: src/vte.c:14601
 msgid "g_iconv_open() failed setting word characters"
 msgstr "g_iconv_open() gagal menetapkan aksara perkataan"

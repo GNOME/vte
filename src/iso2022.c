@@ -73,8 +73,8 @@ static const struct _vte_iso2022_map _vte_iso2022_map_0[] = {
 	{'s', 0x23bd},  /* scan line 9/9 */
 	{'t', 0x251c},	/* left t */
 	{'u', 0x2524},	/* right t */
-	{'v', 0x252c},	/* down t */
-	{'w', 0x2534},	/* up t */
+	{'v', 0x2534},	/* bottom t */
+	{'w', 0x252c},	/* top t */
 	{'x', 0x2502},	/* vertical line */
 	{'y', 0x2264},  /* <= */
 	{'z', 0x2265},  /* >= */

@@ -244,6 +244,10 @@ struct _VteTerminalPrivate {
 		struct vte_charcell color_defaults;	/* original defaults
 							   plus the current
 							   fore/back */
+		struct vte_charcell fill_defaults;	/* original defaults
+							   plust the current
+							   fore/back with no
+							   character data */
 		struct vte_charcell basic_defaults;	/* original defaults */
 		gboolean status_line;
 		GString *status_line_contents;
@@ -507,7 +511,7 @@ vte_new_row_data_sized(VteTerminal *terminal, gboolean fill)
 				terminal->column_count);
 	if (fill) {
 		vte_g_array_fill(row,
-				 &terminal->pvt->screen->color_defaults,
+				 &terminal->pvt->screen->fill_defaults,
 				 terminal->column_count);
 	}
 	return row;
@@ -629,6 +633,9 @@ vte_terminal_set_default_attributes(VteTerminal *terminal)
 	 * terminal->pvt->screen->defaults.alternate = 0; */
 	terminal->pvt->screen->basic_defaults = terminal->pvt->screen->defaults;
 	terminal->pvt->screen->color_defaults = terminal->pvt->screen->defaults;
+	terminal->pvt->screen->fill_defaults = terminal->pvt->screen->defaults;
+	terminal->pvt->screen->fill_defaults.c = '\0';
+	terminal->pvt->screen->fill_defaults.columns = 1;
 }
 
 /* Cause certain cells to be updated. */
@@ -2015,7 +2022,7 @@ vte_sequence_handler_al(VteTerminal *terminal,
 		/* Get the data for the new row. */
 		rowdata = _vte_ring_index(screen->row_data, GArray*, start);
 		/* Add enough cells to it so that it has the default colors. */
-		vte_g_array_fill(rowdata, &screen->color_defaults,
+		vte_g_array_fill(rowdata, &screen->fill_defaults,
 				 terminal->column_count);
 		/* Adjust the scrollbars if necessary. */
 		vte_terminal_adjust_adjustments(terminal, FALSE);
@@ -2188,7 +2195,7 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 		}
 		/* Pad out the row. */
 		vte_g_array_fill(rowdata,
-				 &screen->color_defaults,
+				 &screen->fill_defaults,
 				 terminal->column_count);
 		/* Repaint this row. */
 		vte_invalidate_cells(terminal,
@@ -2219,7 +2226,7 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 	}
 	/* Add enough cells to the end of the line to fill out the row. */
 	vte_g_array_fill(rowdata,
-			 &screen->color_defaults,
+			 &screen->fill_defaults,
 			 terminal->column_count);
 	/* Repaint this row. */
 	vte_invalidate_cells(terminal,
@@ -2317,7 +2324,7 @@ vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 		/* Add enough cells to the end of the line to fill out the
 		 * row. */
 		vte_g_array_fill(rowdata,
-				 &screen->color_defaults,
+				 &screen->fill_defaults,
 				 terminal->column_count);
 		/* Repaint this row. */
 		vte_invalidate_cells(terminal,
@@ -3737,6 +3744,10 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 		terminal->pvt->screen->defaults.fore;
 	terminal->pvt->screen->color_defaults.back =
 		terminal->pvt->screen->defaults.back;
+	terminal->pvt->screen->fill_defaults.fore =
+		terminal->pvt->screen->defaults.fore;
+	terminal->pvt->screen->fill_defaults.back =
+		terminal->pvt->screen->defaults.back;
 }
 
 /* Clear above the current line. */
@@ -3762,7 +3773,7 @@ vte_sequence_handler_clear_above_current(VteTerminal *terminal,
 			}
 			/* Add new cells until we fill the row. */
 			vte_g_array_fill(rowdata,
-					 &screen->color_defaults,
+					 &screen->fill_defaults,
 					 terminal->column_count);
 			/* Repaint the row. */
 			vte_invalidate_cells(terminal,
@@ -4734,7 +4745,7 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 		rowdata = _vte_ring_index(screen->row_data, GArray*, row);
 		/* Add enough cells to it so that it has the default colors. */
 		vte_g_array_fill(rowdata,
-				 &screen->color_defaults,
+				 &screen->fill_defaults,
 				 terminal->column_count);
 	}
 	/* Update the display. */
@@ -4781,7 +4792,7 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 		rowdata = _vte_ring_index(screen->row_data, GArray*, end);
 		/* Add enough cells to it so that it has the default colors. */
 		vte_g_array_fill(rowdata,
-				 &screen->color_defaults,
+				 &screen->fill_defaults,
 				 terminal->column_count);
 	}
 	/* Update the display. */
@@ -11678,17 +11689,17 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 	case 0x2518: /* downright corner */
 		c = 'j';
 		break;
-	case 0x2524: /* right t */
+	case 0x2524: /* right t (points left) */
 		c = 'u';
 		break;
-	case 0x251c: /* left t */
+	case 0x251c: /* left t (points right) */
 		c = 't';
 		break;
-	case 0x2534: /* up tee */
-		c = 'w';
-		break;
-	case 0x252c: /* down tee */
+	case 0x2534: /* bottom tee (points up) */
 		c = 'v';
+		break;
+	case 0x252c: /* top tee (points down) */
+		c = 'w';
 		break;
 	case 0x253c: /* cross */
 		c = 'n';

@@ -47,7 +47,7 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 
 %files -f %{name}.lang
 %defattr(-,root,root)
-%doc ChangeLog COPYING HACKING NEWS README
+%doc ChangeLog COPYING HACKING NEWS README doc/utmpwtmp.txt doc/boxes.txt
 %{_libdir}/*.so.*.*
 %dir %{_libdir}/%{name}
 %attr(2711,root,utmp) %{_libdir}/%{name}/gnome-pty-helper

@@ -1,4 +1,10 @@
 2002-11-25  nalin
+	* src/vte.c: fix mapping of Unicode code chars 0x252c and 0x2534 which
+	incorrectly mixed them up (#99474).
+	* src/iso2022.c: fix mapping of 'v' and 'w' from special graphics to
+        Unicode, which masked the above bug.
+
+2002-11-25  nalin
 	* src/vte.c: fix cd() to clear using the current colors.
 
 2002-11-25  nalin
