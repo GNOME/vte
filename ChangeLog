@@ -1,3 +1,10 @@
+2003-09-15 nalin
+	* src/iso2022.c(process_control): don't reset the conversion state
+	when we hit an end-of-line.  I wasn't reading RFC1468 closely enough,
+	as it states that each line begins in the same encoding as the end of
+	the previous line, and read "application should reset before end-of-
+	line" as "terminal resets at end-of-line" (bug #122156).
+
 2003-09-11 nalin
 	* src/vteapp.c: silence a compiler warning.
 

@@ -1254,6 +1254,13 @@ process_cdata(struct _vte_iso2022_state *state, guchar *cdata, gsize length,
 	state->override = -1;
 	g_assert((current >= 0) && (current < G_N_ELEMENTS(state->g)));
 
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+		fprintf(stderr, "Current map = %d (%c).\n",
+			current, (state->g[current] & 0xff));
+	}
+#endif
+
 	if (!state->nrc_enabled || (state->g[current] == 'B')) {
 		inbuf = cdata;
 		inbytes = length;
@@ -1424,8 +1431,6 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 	if (length >= 1) {
 		switch (ctl[0]) {
 		case '\r':  /* CR */
-			state->current = 0;
-			state->override = -1;
 			c = '\r';
 			g_array_append_val(gunichars, c);
 #ifdef VTE_DEBUG
@@ -1435,8 +1440,6 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 #endif
 			break;
 		case '\n':  /* LF */
-			state->current = 0;
-			state->override = -1;
 			c = '\n';
 			g_array_append_val(gunichars, c);
 #ifdef VTE_DEBUG
@@ -1450,7 +1453,7 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 			state->override = -1;
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-				fprintf(stderr, "\tSO\n");
+				fprintf(stderr, "\tSO (^N)\n");
 			}
 #endif
 			break;
@@ -1459,7 +1462,7 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 			state->override = -1;
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-				fprintf(stderr, "\tSI\n");
+				fprintf(stderr, "\tSI (^O)\n");
 			}
 #endif
 			break;
@@ -1494,6 +1497,21 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 						g_array_append_val(gunichars,
 								   c);
 					}
+#ifdef VTE_DEBUG
+					if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+						fprintf(stderr, "\t");
+						for (i = 0; i < length; i++) {
+							c = (guchar) ctl[i];
+							fprintf(stderr,
+								"(%s%c)",
+								c < 0x20 ?
+								"^" : "",
+								c < 0x20 ?
+								c : c + 64);
+						}
+						fprintf(stderr, "\n");
+					}
+#endif
 					break;
 				case 'N': /* SS2 */
 					state->override = 2;
@@ -1759,6 +1777,9 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 			}
 			break;
 		case _vte_iso2022_control:
+			if (i >= blocks->len - 20) {
+				fprintf(stderr, "");
+			}
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
 				fprintf(stderr, "%3ld %3ld CONTROL ",
