@@ -781,7 +781,12 @@ vte_invalidate_cursor_periodic(gpointer data)
 static gboolean
 vte_scroll_timeout(gpointer data)
 {
-	VteTerminal *terminal = (VteTerminal *)data;
+	VteTerminal *terminal;
+
+	if (!VTE_IS_TERMINAL(data)) {
+		return;
+	}
+	terminal = VTE_TERMINAL(data);
 
     /*
 	 * Only skip a maximum number of delays, default is 10.
@@ -10599,6 +10604,10 @@ vte_terminal_unrealize(GtkWidget *widget)
 	if (terminal->pvt->cursor_blink_tag) {
 		g_source_remove(terminal->pvt->cursor_blink_tag);
 	}
+	/* Remove scroll timeout function */
+	if (terminal->pvt->scroll_delay_id) {
+		g_source_remove(terminal->pvt->scroll_delay_id);
+	}
 
 	/* Mark that we no longer have a GDK window. */
 	GTK_WIDGET_UNSET_FLAGS(widget, GTK_REALIZED);
@@ -10620,8 +10629,6 @@ vte_terminal_finalize(GObject *object)
 	terminal = VTE_TERMINAL(object);
 	object_class = G_OBJECT_GET_CLASS(G_OBJECT(object));
 	widget_class = g_type_class_peek(GTK_TYPE_WIDGET);
-
-	terminal->pvt->scroll_delay_id = 0;
 
 	/* The unichar->wchar_t map. */
 	if (terminal->pvt->unichar_wc_map != NULL) {

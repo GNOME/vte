@@ -1,3 +1,11 @@
+2002-09-18 Brian Cameron <Brian.Cameron@sun.com>
+	* src/vte.c: Corrected a problem with yesterday's patch.  I am now
+	properly calling g_source_remove on the scroll_delay timeout
+	function.  This prevents VTE from core dumping if you start up
+	more than one VTE gnome-terminal and exit from one of them.  Also
+	made the vte_scroll_timeout function a little cleaner by using
+	the VTE_IS_TERMINAL macro.
+
 2002-09-17 Brian Cameron <Brian.Cameron@sun.com>
 	* src/vte.c: Fixed bug with my 09/11 speedup fix which caused programs
 	that update the screen non-linearly like lynx to not update properly.
