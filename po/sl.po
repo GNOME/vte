@@ -22,22 +22,22 @@ msgstr "Nisem uspel pretvoriti znakov iz %s v %s."
 #: src/iso2022.c:1560
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr "Poskus nastavljanja neveljavne NCR preslikave '%c'."
+msgstr "Poskus nastavljanja neveljavne preslikave NCR '%c'."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #: src/iso2022.c:1601
 msgid "Unrecognized identified coding system."
-msgstr "Neprepoznan identificiran kodni nabor."
+msgstr "Neprepoznan identificiran znakovni nabor."
 
 #: src/iso2022.c:1650 src/iso2022.c:1676
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "Poskus nastavitve neveljavne široke NCR preslikave '%c'."
+msgstr "Poskus nastavitve neveljavne široke preslikave NCR '%c'."
 
 #: src/pty.c:323
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr "Napaka dodajanja okoljske spremenljivke `%s', nadaljujem."
+msgstr "Napaka ob dodajanju okoljske spremenljivke `%s', nadaljujem."
 
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
@@ -79,7 +79,7 @@ msgstr "Napaka ob branju iz otroka: %s."
 #: src/vte.c:7801
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "Napaka (%s) ob pretvarjanju podatkov za otroka, spuščam."
+msgstr "Napaka (%s) ob pretvarjanju podatkov za otroka, izpuščam."
 
 #: src/vte.c:10463
 #, c-format
