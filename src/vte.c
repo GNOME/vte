@@ -10733,7 +10733,12 @@ vte_terminal_open_font_xft(VteTerminal *terminal)
 		if (width == cjk_width) {
 			width /= 2;
 		}
-		height = MAX(terminal->pvt->ftfont->height, (ascent + descent));
+		/* If the height is screwy, try to guess a better value. */
+		height = terminal->pvt->ftfont->ascent +
+			 terminal->pvt->ftfont->descent;
+		if (height == 0) {
+			height = terminal->pvt->ftfont->height;
+		}
 		if (height == 0) {
 			height = glyph_info.height;
 		}

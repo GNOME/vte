@@ -1,3 +1,7 @@
+2003-04-28 nalin
+	* src/vte.c(vte_terminal_open_font_xft): use ascent + descent to get
+	the height of the line instead of the font height (#111752).
+
 2003-04-22 nalin
 	* src/vte.c: close out PTY completely on EOF or child exit, from HEAD.
 	* gnome-pty-helper: pull up from HEAD.
