@@ -290,11 +290,11 @@ void vte_terminal_set_font(VteTerminal *terminal,
 			   const PangoFontDescription *font_desc);
 void vte_terminal_set_font_full(VteTerminal *terminal,
 				const PangoFontDescription *font_desc,
-				VteTerminalAntiAlias anti_alias);
+				VteTerminalAntiAlias antialias);
 void vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name);
 void vte_terminal_set_font_from_string_full(VteTerminal *terminal,
 					    const char *name,
-					    VteTerminalAntiAlias anti_alias);
+					    VteTerminalAntiAlias antialias);
 const PangoFontDescription *vte_terminal_get_font(VteTerminal *terminal);
 gboolean vte_terminal_get_using_xft(VteTerminal *terminal);
 void vte_terminal_set_allow_bold(VteTerminal *terminal, gboolean allow_bold);

@@ -4,12 +4,15 @@
   libtermcap or curses or ncurses) to determine how to drive a terminal, why
   can't a terminal emulator use a termcap file to determine how to behave?"
 
+  Update: the answer is most likely "because applications which use curses
+  have more detailed information than that which is found in termcap".
+
 * What does VTE include?
 - VTE includes a library (libvte) which implements such a terminal emulator
-  widget for GTK+ 2.0, and a sample application (vte) which wraps that widget
-  in a GTK window.  Because I'm more concerned with whether or not it works,
-  all settings are hard-coded to whatever I needed to test the last time I
-  touched it.  If you actually want to use the widget to get work done, you
+  widget for GTK+ 2.2/2.4, and a sample application (vte) which wraps that
+  widget in a GTK window.  Because I'm more concerned with whether or not it
+  works, all settings are hard-coded to whatever I needed to test the last time
+  I touched it.  If you actually want to use the widget to get work done, you
   should probably be using gnome-terminal.
 
 * How does it work?
@@ -20,20 +23,23 @@
 
 * What's missing?
 - Accessibility doesn't work quite right yet.
-- Mouse hilite tracking isn't implemented yet.
+- Mouse hilite tracking isn't implemented yet.  If you'll pardon the pun, for
+  certain applications we're terminally unusable without it.
+- No support for bidirectional text display.
+- No support for shaping.
 - Most control sequences are recognized, but many aren't implemented.  There
   are enough to run ls, vim, less, emacs and mutt, but more need to be
   implemented (ds, ff, hd, hu, i1, i3, iP, is, LF, LO, MC, ML, mm, mo, pf, pk,
   pl, pn, po, pO, ps, px, r1, r2, r3, RA, RF, rp, rs, RX, SA, SX, wi, several
   more from the XTerm set).
 - I'm not sure the widget implementation itself is correct.  There are many
-  changes in going from GTK+ 1.2 to 2.0, and examples of the proper way to do
+  changes in going from GTK+ 1.2 to 2.x, and examples of the proper way to do
   things is currently scarce, so some of it's guesswork.
 - An actual property interface needs to be retrofitted over the various options
   which are only presented as get/set accessors.
 
 * What's weird?
-- Relative cursor motion is weird.  When the character to the right of the
+- Relative cursor motion is weird.  When the character to the left of the
   cursor is a 3-byte UTF-8 sequence for a character which occupies two
   columns on the screen, three things may happen when the application sends
   the "cursor left" control sequence:
@@ -45,7 +51,8 @@
     application to emit a control sequence more than once for multi-column
     characters.
   * the cursor moves one "byte" to the left
-    This happens to work for a few locales, and is otherwise just broken.
+    This is what most OS kernels do when reading input using "cat".  It
+    happens to work for a few locales, and is otherwise just plain broken.
   Currently VTE follows the second convention.  More on this topic:
   http://czyborra.com/unicode/terminals.html
   http://mail.nl.linux.org/linux-utf8/1999-10/msg00014.html

@@ -26,6 +26,8 @@ vte_terminal_set_color_bold
 vte_terminal_set_color_foreground
 vte_terminal_set_color_background
 vte_terminal_set_color_dim
+vte_terminal_set_color_cursor
+vte_terminal_set_color_highlight
 vte_terminal_set_colors
 vte_terminal_set_default_colors
 vte_terminal_set_background_image
@@ -38,6 +40,8 @@ vte_terminal_set_cursor_blinks
 vte_terminal_set_scrollback_lines
 vte_terminal_set_font
 vte_terminal_set_font_from_string
+vte_terminal_set_font_from_string_full
+vte_terminal_set_font_full
 vte_terminal_get_font
 vte_terminal_get_using_xft
 vte_terminal_get_has_selection
@@ -56,8 +60,10 @@ vte_terminal_match_add
 vte_terminal_match_remove
 vte_terminal_match_check
 vte_terminal_match_set_cursor
+vte_terminal_match_set_cursor_type
 vte_terminal_set_emulation
 vte_terminal_get_emulation
+vte_terminal_get_default_emulation
 vte_terminal_set_encoding
 vte_terminal_get_encoding
 vte_terminal_get_status_line
@@ -105,6 +111,7 @@ VTE_TERMINAL_ACCESSIBLE_GET_CLASS
 <TITLE>VteReaper</TITLE>
 VteReaper
 vte_reaper_get
+vte_reaper_add_child
 <SUBSECTION Standard>
 VTE_REAPER
 VTE_IS_REAPER

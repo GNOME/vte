@@ -41,3 +41,12 @@ Emitted when the #VteReaper object detects that a child of the current process h
 @Returns: 
 
 
+<!-- ##### FUNCTION vte_reaper_add_child ##### -->
+<para>
+
+</para>
+
+@pid: 
+@data: 
+
+

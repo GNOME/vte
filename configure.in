@@ -234,7 +234,8 @@ AC_DEFINE(VTE_UTF8_BPC,6,[Maximum number of bytes used per UTF-8 character.])
 AC_DEFINE_UNQUOTED(PACKAGE,"$PACKAGE",[Package name.])
 
 # Check for headers.
-AC_CHECK_HEADERS(sys/select.h sys/un.h stropts.h termios.h wchar.h)
+AC_CHECK_HEADERS(sys/select.h sys/termios.h sys/un.h stropts.h termios.h wchar.h)
+AC_HEADER_TIOCGWINSZ
 
 # Check for PTY handling functions.
 AC_CHECK_FUNCS(cfmakeraw getpgid getpt grantpt unlockpt ptsname ptsname_r recvmsg)

@@ -474,6 +474,24 @@ keys.
 @bold: 
 
 
+<!-- ##### FUNCTION vte_terminal_set_color_cursor ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@cursor_background: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_color_highlight ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@highlight_background: 
+
+
 <!-- ##### FUNCTION vte_terminal_set_colors ##### -->
 <para>
 
@@ -584,6 +602,30 @@ keys.
 
 @terminal: 
 @name: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_font_from_string_full ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@name: 
+@antialias: 
+<!-- # Unused Parameters # -->
+@anti_alias: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_font_full ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@font_desc: 
+@antialias: 
+<!-- # Unused Parameters # -->
+@anti_alias: 
 
 
 <!-- ##### FUNCTION vte_terminal_get_font ##### -->
@@ -768,6 +810,16 @@ keys.
 @cursor: 
 
 
+<!-- ##### FUNCTION vte_terminal_match_set_cursor_type ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@tag: 
+@cursor_type: 
+
+
 <!-- ##### FUNCTION vte_terminal_set_emulation ##### -->
 <para>
 
@@ -778,6 +830,15 @@ keys.
 
 
 <!-- ##### FUNCTION vte_terminal_get_emulation ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_default_emulation ##### -->
 <para>
 
 </para>

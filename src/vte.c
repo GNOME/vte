@@ -24,6 +24,9 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
+#ifdef HAVE_SYS_TERMIOS_H
+#include <sys/termios.h>
+#endif
 #include <sys/time.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -6428,7 +6431,7 @@ vte_terminal_set_color_background(VteTerminal *terminal,
 /**
  * vte_terminal_set_color_cursor
  * @terminal: a #VteTerminal
- * @background: the new color to use for the text cursor
+ * @cursor_background: the new color to use for the text cursor
  *
  * Sets the background color for text which is under the cursor.  If NULL, text
  * under the cursor will be drawn with foreground and background colors
@@ -6453,7 +6456,7 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
 /**
  * vte_terminal_set_color_highlight
  * @terminal: a #VteTerminal
- * @background: the new color to use for highlighted text
+ * @highlight_background: the new color to use for highlighted text
  *
  * Sets the background color for text which is highlighted.  If NULL,
  * highlighted text (which is usually highlighted because it is selected) will
@@ -10536,7 +10539,7 @@ vte_terminal_apply_metrics(VteTerminal *terminal,
  * vte_terminal_set_font_full:
  * @terminal: a #VteTerminal
  * @font_desc: The #PangoFontDescription of the desired font.
- * @anti_alias: Specify if anti aliasing of the fonts is to be used or not.
+ * @antialias: Specify if anti aliasing of the fonts is to be used or not.
  *
  * Sets the font used for rendering all text displayed by the terminal,
  * overriding any fonts set using gtk_widget_modify_font().  The terminal
@@ -10549,7 +10552,7 @@ vte_terminal_apply_metrics(VteTerminal *terminal,
 void
 vte_terminal_set_font_full(VteTerminal *terminal,
 			   const PangoFontDescription *font_desc,
-			   VteTerminalAntiAlias anti_alias)
+			   VteTerminalAntiAlias antialias)
 {
 	GtkWidget *widget;
 	PangoFontDescription *desc;
@@ -10580,19 +10583,19 @@ vte_terminal_set_font_full(VteTerminal *terminal,
 		}
 #endif
 	}
-	terminal->pvt->fontantialias = anti_alias;
+	terminal->pvt->fontantialias = antialias;
 
 	/* Free the old font description and save the new one. */
 	if (terminal->pvt->fontdesc != NULL) {
 		pango_font_description_free(terminal->pvt->fontdesc);
 	}
 	terminal->pvt->fontdesc = desc;
-	terminal->pvt->fontantialias = anti_alias;
+	terminal->pvt->fontantialias = antialias;
 
 	/* Set the drawing font. */
 	_vte_draw_set_text_font(terminal->pvt->draw,
 				terminal->pvt->fontdesc,
-				anti_alias);
+				antialias);
 	vte_terminal_apply_metrics(terminal,
 				   _vte_draw_get_text_width(terminal->pvt->draw),
 				   _vte_draw_get_text_height(terminal->pvt->draw),

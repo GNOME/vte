@@ -21,6 +21,9 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#ifdef HAVE_SYS_TERMIOS_H
+#include <sys/termios.h>
+#endif
 #include <sys/uio.h>
 #include <sys/wait.h>
 #include <errno.h>
@@ -30,6 +33,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_TERMIOS_H
+#include <termios.h>
+#endif
 #include <unistd.h>
 #ifdef HAVE_SYS_UN_H
 #include <sys/un.h>

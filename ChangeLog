@@ -1,4 +1,14 @@
 2004-04-29 nalin
+	* README: assorted updates.
+	* configure.in: check for <sys/termios.h>
+	* src/pty.c: include <sys/termios.h> if found (#141392).
+	* src/dumpkeys.c, src/mev.c, src/pty.c, src/ssfe.c, src/vte.c: do the
+	same.
+	* doc/reference/vte-sections.txt: add several functions which are new
+	but which weren't in the generated docs.
+	* doc/reference/vte-unused.txt: sort.
+
+2004-04-29 nalin
 	* src/vte.c(vte_terminal_scroll_region): remove stray debug printfs.
 
 2004-04-29 nalin

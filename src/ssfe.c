@@ -38,15 +38,20 @@
 #endif
 
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/ioctl.h>
+#ifdef HAVE_SYS_TERMIOS_H
+#include <sys/termios.h>
+#endif
+#include <sys/time.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_TERMIOS_H
 #include <termios.h>
+#endif
 #include <time.h>
 #include <unistd.h>
 
