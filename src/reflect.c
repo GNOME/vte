@@ -171,10 +171,14 @@ text_changed_insert(AtkObject *obj, gint offset, gint length, gpointer data)
 	}
 
 	for (p = inserted, i = 0;
-	     (*p != '\0') && (i < length);
+	     (i < length);
 	     p = g_utf8_next_char(p)) {
 		c = g_utf8_get_char(p);
-		g_array_insert_val(contents, offset + i, c);
+		if (offset + i >= contents->len) {
+			g_array_append_val(contents, c);
+		} else {
+			g_array_insert_val(contents, offset + i, c);
+		}
 		i++;
 	}
 

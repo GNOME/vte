@@ -1,4 +1,7 @@
 2003-01-20 nalin
+	* src/reflect.c: account for atk_text_get_text() being 0-clean.
+
+2003-01-20 nalin
 	* configure.in, src/Makefile.am, src/reflect.c: try to build reflect
 	with both vte and libzvt, building a useless binary if libzvt isn't
 	available.
