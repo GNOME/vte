@@ -6,30 +6,30 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte 0.11.6\n"
-"POT-Creation-Date: 2003-05-19 14:33-0400\n"
-"PO-Revision-Date: 2003-05-09 19:40+0200\n"
+"POT-Creation-Date: 2003-05-20 10:49+0200\n"
+"PO-Revision-Date: 2003-05-20 10:50+0200\n"
 "Last-Translator: Jordi Mallach <jordi@sindominio.net>\n"
 "Language-Team: Catalan <tradgnome@softcatala.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#: src/iso2022.c:736 src/iso2022.c:747 src/iso2022.c:796 src/vte.c:1992
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "No es pot convertir el caràcter %s a %s."
 
-#: src/iso2022.c:1505
+#: src/iso2022.c:1506
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "S'ha intentat fixar el mapa NRC invàlid «%c»."
 
 #. See ECMA-35.
-#: src/iso2022.c:1546
+#: src/iso2022.c:1547
 msgid "Unrecognized identified coding system."
-msgstr ""
+msgstr "No s'ha reconegut el sistema de codificació identificat."
 
-#: src/iso2022.c:1595 src/iso2022.c:1621
+#: src/iso2022.c:1596 src/iso2022.c:1622
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "S'ha intentat fixar el mapa ample NRC «%c»."
@@ -43,7 +43,7 @@ msgstr ""
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:877
+#: src/pty.c:880
 #, c-format
 msgid "can not run %s"
 msgstr "no es pot executar %s"
@@ -57,52 +57,52 @@ msgstr "S'ha produït un error en crear el senyal de conducte (SIGPIPE)."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicat (%s/%s)!"
 
-#: src/vte.c:1430
+#: src/vte.c:1428
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "S'ha produït un error en compilar l'expressió regular «%s»."
 
-#: src/vte.c:5534
+#: src/vte.c:5533
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "S'ha produït una seqüència inesperada (de tecles?) «%s»."
 
-#: src/vte.c:6547
+#: src/vte.c:6546
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "No hi ha cap gestor definit per a la seqüència de control «%s»."
 
-#: src/vte.c:7293
+#: src/vte.c:7282
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "S'ha produït un error en llegir del fill: %s."
 
-#: src/vte.c:7449
+#: src/vte.c:7438
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "S'ha produït un error (%s) en convertir dades per al fill; s'ometrà la "
 "conversió."
 
-#: src/vte.c:10069
+#: src/vte.c:10058
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "S'ha produït un error en llegir la mida de PTY; s'usarà el valor per "
 "defecte: %s."
 
-#: src/vte.c:10105
+#: src/vte.c:10094
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "S'ha produït un error en establir la mida de PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14067
+#: src/vte.c:14075
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() no ha pogut establir els caràcters de paraula"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:642
+#: src/vteapp.c:648
 msgid "Could not open console.\n"
 msgstr "No s'ha pogut obrir la consola.\n"
 
