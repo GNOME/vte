@@ -3,7 +3,6 @@
 # This file is distributed under the same license as the vte package.
 # Dmitry G. Mastrukov <dmitry@taurussoft.org>, 2003.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
