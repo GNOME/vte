@@ -1,4 +1,8 @@
 2002-08-26 nalin
+	* src/vte.c: Add padding spaces after full lines as well -- spotted by
+	both notting and pjones.
+
+2002-08-26 nalin
 	* src/vte.c: Don't deadlock when substitution fails, spotted by msw.
 
 2002-08-26 nalin

@@ -7796,6 +7796,11 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 				break;
 			}
 		} while (pcell != NULL);
+		/* Stuff any saved spaces in. */
+		while (spaces > 0) {
+			string = g_string_append_c(string, ' ');
+			spaces--;
+		}
 		/* If we broke out of the loop, there might be more characters
 		 * with missing attributes. */
 		if (attributes) {
@@ -7862,7 +7867,7 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 	terminal->pvt->selection = vte_terminal_get_text_range(terminal,
 							       terminal->pvt->selection_start.y,
 							       0,
-							       terminal->pvt->selection_end.y + 1,
+							       terminal->pvt->selection_end.y,
 							       terminal->column_count,
 							       vte_cell_is_selected,
 							       NULL);
