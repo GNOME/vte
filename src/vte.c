@@ -32,7 +32,6 @@
 #include <termios.h>
 #include <unistd.h>
 #include <wchar.h>
-#include <X11/Xlib.h>
 #include <glib.h>
 #include <glib-object.h>
 #include <gdk/gdk.h>
@@ -45,12 +44,42 @@
 #include "termcap.h"
 #include "trie.h"
 #include "vte.h"
+#include <X11/Xlib.h>
 #ifdef HAVE_XFT
+#include <X11/extensions/Xrender.h>
 #include <X11/Xft/Xft.h>
 #endif
 
-#define VTE_TAB_WIDTH 8
+#define VTE_TAB_WIDTH	8
+#define VTE_UTF8_BPC	6
 
+/* The structure we use to hold characters we're supposed to display -- this
+ * includes any supported visible attributes. */
+struct vte_charcell {
+	wchar_t c;		/* The wide character. */
+	guint16 columns: 2;	/* Number of visible columns (as determined
+				   by wcwidth(c)). */
+	guint16 fore: 3;	/* Indices in the color palette for the */
+	guint16 back: 3;	/* foreground and background of the cell. */
+	guint16 reverse: 1;	/* Single-bit attributes. */
+	guint16 invisible: 1;
+	guint16 bold: 1;
+	guint16 standout: 1;
+	guint16 underline: 1;
+	guint16 half: 1;
+	guint16 blink: 1;
+	guint16 alternate: 1;
+};
+
+/* The terminal's keypad state.  A terminal can either be using the normal
+ * keypad, or the "application" keypad.  Arrow key sequences, for example,
+ * are really only defined for "application" mode. */
+typedef enum {
+	VTE_KEYPAD_NORMAL,
+	VTE_KEYPAD_APPLICATION,
+} VteKeypad;
+
+/* Terminal private data. */
 struct _VteTerminalPrivate {
 	/* Emulation setup data. */
 	struct vte_termcap *termcap;	/* termcap storage */
@@ -70,10 +99,8 @@ struct _VteTerminalPrivate {
 
 	/* Input data queues. */
 	iconv_t incoming_conv;		/* narrow/wide conversion state */
-	wchar_t *incoming;		/* pending output characters */
+	char *incoming;			/* pending output characters */
 	size_t n_incoming;
-	char *narrow_incoming;		/* pending output characters */
-	size_t n_narrow_incoming;
 
 	/* Output data queue. */
 	char *outgoing;			/* pending input characters */
@@ -160,6 +187,12 @@ static void vte_sequence_handler_up(VteTerminal *terminal,
 				    const char *match,
 				    GQuark match_quark,
 				    GValueArray *params);
+static gboolean vte_terminal_io_read(GIOChannel *channel,
+				     GdkInputCondition condition,
+				     gpointer data);
+static gboolean vte_terminal_io_write(GIOChannel *channel,
+				      GdkInputCondition condition,
+				      gpointer data);
 
 /* Allocate a new line. */
 static GArray *
@@ -443,8 +476,10 @@ vte_sequence_handler_al(VteTerminal *terminal,
 			GValueArray *params)
 {
 	struct _VteScreen *screen;
+	GtkWidget *widget;
 	long start, end;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	widget = GTK_WIDGET(terminal);
 	screen = terminal->pvt->screen;
 	if (screen->scrolling_restricted) {
 		start = screen->insert_delta + screen->scrolling_region.start;
@@ -456,9 +491,21 @@ vte_sequence_handler_al(VteTerminal *terminal,
 	vte_remove_line_int(terminal, end);
 	vte_insert_line_int(terminal, screen->cursor_current.row);
 	screen->cursor_current.row++;
-	vte_invalidate_cells(terminal,
-			     0, terminal->column_count,
-			     start, end + 1);
+	if (start - screen->insert_delta < terminal->row_count / 2) {
+		gdk_window_scroll(widget->window,
+				  0,
+				  terminal->char_height);
+		vte_invalidate_cells(terminal,
+				     0, terminal->column_count,
+				     0, start + 2);
+		vte_invalidate_cells(terminal,
+				     0, terminal->column_count,
+				     end, terminal->row_count);
+	} else {
+		vte_invalidate_cells(terminal,
+				     0, terminal->column_count,
+				     start, end + 1);
+	}
 }
 
 /* Add N lines at the current cursor position. */
@@ -803,10 +850,19 @@ vte_sequence_handler_do(VteTerminal *terminal,
 			 * line at the bottom to scroll the top off. */
 			vte_remove_line_int(terminal, start);
 			vte_insert_line_int(terminal, end);
-			/* Invalidate the rows the cursor was on and is on. */
+			/* Scroll the window. */
+			gdk_window_scroll(widget->window,
+					  0,
+					  -terminal->char_height);
+			/* We need to redraw the last row of the scrolling
+			 * region, and anything beyond. */
 			vte_invalidate_cells(terminal,
 					     0, terminal->column_count,
-					     start, end - start + 1);
+					     end, terminal->row_count);
+			/* Also redraw anything above the scrolling region. */
+			vte_invalidate_cells(terminal,
+					     0, terminal->column_count,
+					     0, start);
 		} else {
 			/* Otherwise, just move the cursor down. */
 			screen->cursor_current.row++;
@@ -1096,10 +1152,19 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			 * line at the top to scroll the bottom off. */
 			vte_remove_line_int(terminal, end);
 			vte_insert_line_int(terminal, start);
-			/* Invalidate the scrolling region. */
+			/* Scroll the window. */
+			gdk_window_scroll(widget->window,
+					  0,
+					  terminal->char_height);
+			/* We need to redraw the first row of the scrolling
+			 * region, and anything above. */
 			vte_invalidate_cells(terminal,
 					     0, terminal->column_count,
-					     start, end - start + 1);
+					     0, start + 1);
+			/* Also redraw anything below the scrolling region. */
+			vte_invalidate_cells(terminal,
+					     0, terminal->column_count,
+					     end, terminal->row_count);
 		} else {
 			/* Otherwise, just move the cursor up. */
 			screen->cursor_current.row--;
@@ -1114,10 +1179,14 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			 * history. */
 			vte_remove_line_int(terminal, end);
 			vte_insert_line_int(terminal, start);
-			/* We need to redraw everything here. */
+			/* Scroll the window. */
+			gdk_window_scroll(widget->window,
+					  0,
+					  terminal->char_height);
+			/* We need to redraw the bottom row. */
 			vte_invalidate_cells(terminal,
 					     0, terminal->column_count,
-					     start, terminal->row_count);
+					     terminal->row_count - 1, 1);
 		} else {
 			/* Move the cursor up. */
 			screen->cursor_current.row--;
@@ -1363,15 +1432,15 @@ vte_sequence_handler_cursor_position(VteTerminal *terminal,
 
 /* Set icon/window titles. */
 static void
-vte_sequence_handler_set_icon_title(VteTerminal *terminal,
-				    const char *match,
-				    GQuark match_quark,
-				    GValueArray *params)
+vte_sequence_handler_set_title_int(VteTerminal *terminal,
+				   const char *match,
+				   GQuark match_quark,
+				   GValueArray *params,
+				   const char *signal)
 {
 	GValue *value;
 	iconv_t conv;
-	char buf[LINE_MAX];
-	char *inbuf, *outbuf;
+	char *inbuf = NULL, *outbuf = NULL, *outbufptr = NULL;
 	size_t inbuf_len, outbuf_len;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	/* Get the string parameter's value. */
@@ -1379,13 +1448,12 @@ vte_sequence_handler_set_icon_title(VteTerminal *terminal,
 	if (value) {
 		if (G_VALUE_HOLDS_LONG(value)) {
 			/* Convert the long to a string. */
-			snprintf(buf, sizeof(buf), "%ld",
-				 g_value_get_long(value));
+			outbufptr = g_strdup_printf("%ld",
+						    g_value_get_long(value));
 		} else
 		if (G_VALUE_HOLDS_STRING(value)) {
 			/* Copy the string into the buffer. */
-			snprintf(buf, sizeof(buf), "%s",
-				 g_value_get_string(value));
+			outbufptr = g_value_dup_string(value);
 		} else
 		if (G_VALUE_HOLDS_POINTER(value)) {
 			/* Convert the wide-character string into a 
@@ -1393,19 +1461,31 @@ vte_sequence_handler_set_icon_title(VteTerminal *terminal,
 			conv = iconv_open("UTF-8", "WCHAR_T");
 			inbuf = g_value_get_pointer(value);
 			inbuf_len = wcslen((wchar_t*)inbuf) * sizeof(wchar_t);
-			memset(buf, 0, sizeof(buf));
-			outbuf = buf;
-			outbuf_len = sizeof(buf) - 1;
+			outbuf_len = (inbuf_len * VTE_UTF8_BPC) + 1;
+			outbuf = outbufptr = g_malloc0(outbuf_len);
 			if (iconv(conv, &inbuf, &inbuf_len,
 				  &outbuf, &outbuf_len) == -1) {
-				memset(buf, 0, sizeof(buf));
+				g_free(outbufptr);
+				outbufptr = NULL;
 			}
-		} else {
-			return;
 		}
-		/* Emit the signal, passing the string. */
-		g_signal_emit_by_name(terminal, "set_icon_title", buf);
+		if (outbufptr != NULL) {
+			/* Emit the signal, passing the string. */
+			g_signal_emit_by_name(terminal, signal, outbufptr);
+			g_free(outbufptr);
+		}
 	}
+}
+
+/* Set one or the other. */
+static void
+vte_sequence_handler_set_icon_title(VteTerminal *terminal,
+				    const char *match,
+				    GQuark match_quark,
+				    GValueArray *params)
+{
+	vte_sequence_handler_set_title_int(terminal, match, match_quark,
+					   params, "set_icon_title");
 }
 static void
 vte_sequence_handler_set_window_title(VteTerminal *terminal,
@@ -1413,45 +1493,8 @@ vte_sequence_handler_set_window_title(VteTerminal *terminal,
 				      GQuark match_quark,
 				      GValueArray *params)
 {
-	GValue *value;
-	iconv_t conv;
-	char buf[LINE_MAX];
-	char *inbuf, *outbuf;
-	size_t inbuf_len, outbuf_len;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	/* Get the string parameter's value. */
-	value = g_value_array_get_nth(params, 0);
-	if (value) {
-		if (G_VALUE_HOLDS_LONG(value)) {
-			/* Convert the long to a string. */
-			snprintf(buf, sizeof(buf), "%ld",
-				 g_value_get_long(value));
-		} else
-		if (G_VALUE_HOLDS_STRING(value)) {
-			/* Copy the string into the buffer. */
-			snprintf(buf, sizeof(buf), "%s",
-				 g_value_get_string(value));
-		} else
-		if (G_VALUE_HOLDS_POINTER(value)) {
-			/* Convert the wide-character string into a 
-			 * multibyte string. */
-			conv = iconv_open("UTF-8", "WCHAR_T");
-			inbuf = g_value_get_pointer(value);
-			inbuf_len = wcslen((wchar_t*)inbuf) * sizeof(wchar_t);
-			memset(buf, 0, sizeof(buf));
-			outbuf = buf;
-			outbuf_len = sizeof(buf) - 1;
-			if (iconv(conv, &inbuf, &inbuf_len,
-				  &outbuf, &outbuf_len) == -1) {
-				memset(buf, 0, sizeof(buf));
-			}
-			iconv_close(conv);
-		} else {
-			return;
-		}
-		/* Emit the signal, passing the string. */
-		g_signal_emit_by_name(terminal, "set_window_title", buf);
-	}
+	vte_sequence_handler_set_title_int(terminal, match, match_quark,
+					   params, "set_window_title");
 }
 
 /* Set both the window and icon titles to the same string. */
@@ -1461,10 +1504,10 @@ vte_sequence_handler_set_icon_and_window_title(VteTerminal *terminal,
 						  GQuark match_quark,
 						  GValueArray *params)
 {
-	vte_sequence_handler_set_icon_title(terminal, match,
-					    match_quark, params);
-	vte_sequence_handler_set_window_title(terminal, match,
-					      match_quark, params);
+	vte_sequence_handler_set_title_int(terminal, match, match_quark,
+					   params, "set_icon_title");
+	vte_sequence_handler_set_title_int(terminal, match, match_quark,
+					   params, "set_window_title");
 }
 
 /* Restrict the scrolling region. */
@@ -2466,6 +2509,46 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 			     screen->cursor_current.row, 1);
 }
 
+/* Start up a command in a slave PTY. */
+void
+vte_terminal_fork_command(VteTerminal *terminal, const char *command,
+			  const char **argv)
+{
+	const char **env_add;
+	char *term, *colorterm;
+	int i;
+
+	/* Start up the command and get the PTY of the master. */
+	env_add = g_malloc0(sizeof(char*) * 3);
+	term = g_strdup_printf("TERM=%s", terminal->pvt->terminal);
+	colorterm = g_strdup("COLORTERM=" PACKAGE);
+	env_add[0] = term;
+	env_add[1] = colorterm;
+	terminal->pvt->pty_master = vte_pty_open(&terminal->pvt->pty_pid,
+						 env_add,
+						 command ?:
+						 terminal->pvt->shell,
+						 argv);
+	g_free(term);
+	g_free(colorterm);
+	g_free((char**)env_add);
+
+	/* Set the pty to be non-blocking. */
+	i = fcntl(terminal->pvt->pty_master, F_GETFL);
+	fcntl(terminal->pvt->pty_master, F_SETFL, i | O_NONBLOCK);
+
+	/* Open a channel to listen for input on. */
+	terminal->pvt->pty_input =
+		g_io_channel_unix_new(terminal->pvt->pty_master);
+	terminal->pvt->pty_output = NULL;
+	g_io_add_watch_full(terminal->pvt->pty_input,
+			    G_PRIORITY_LOW,
+			    G_IO_IN | G_IO_HUP,
+			    vte_terminal_io_read,
+			    terminal,
+			    NULL);
+}
+
 /* Handle an EOF from the client. */
 static void
 vte_terminal_eof(GIOChannel *source, gpointer data)
@@ -2489,90 +2572,65 @@ vte_terminal_eof(GIOChannel *source, gpointer data)
 	g_signal_emit_by_name(terminal, "eof");
 }
 
-/* Read and handle data from the child. */
+/* Process incoming data, first converting it to wide characters, and then
+ * processing escape sequences. */
 static gboolean
-vte_terminal_io_read(GIOChannel *channel,
-		     GdkInputCondition condition,
-		     gpointer data)
+vte_terminal_process_bytes(gpointer data)
 {
 	GValueArray *params;
 	VteTerminal *terminal;
 	GtkWidget *widget;
-	char *buf;
-	size_t bufsize;
-	char *inbuf, *outbuf;
-	size_t inbuf_len, outbuf_len;
-	wchar_t wbuf[LINE_MAX], c;
-	int i, j, wcount, bcount, fd;
+	char *ibuf, *obuf, *obufptr;
+	size_t icount, ocount;
+	wchar_t *wbuf, c;
+	int i, j, wcount;
 	const char *match;
 	GQuark quark;
-	gboolean leave_open = TRUE;
+	gboolean leftovers, inserted;
 
+	g_return_val_if_fail(GTK_IS_WIDGET(data), FALSE);
+	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
 	widget = GTK_WIDGET(data);
 	terminal = VTE_TERMINAL(data);
 
-	/* Allocate a buffer to hold both existing data and new data. */
-	bufsize = terminal->pvt->n_narrow_incoming + LINE_MAX;
-	buf = g_malloc0(bufsize);
-	if (terminal->pvt->n_narrow_incoming > 0) {
-		memcpy(buf, terminal->pvt->narrow_incoming,
-		       terminal->pvt->n_narrow_incoming);
-		g_free(terminal->pvt->narrow_incoming);
-		terminal->pvt->n_narrow_incoming = 0;
+	/* Try to convert the data into wide characters. */
+	ocount = sizeof(wchar_t) * terminal->pvt->n_incoming;
+	obuf = obufptr = g_malloc(ocount);
+	icount = terminal->pvt->n_incoming;
+	ibuf = terminal->pvt->incoming;
+
+	/* Convert the data to wide characters. */
+	if (iconv(terminal->pvt->incoming_conv, &ibuf, &icount,
+		  &obuf, &ocount) == -1) {
+		/* Nope, try again. */
+		return TRUE;
 	}
 
-	/* Read some more data in. */
-	fd = g_io_channel_unix_get_fd(channel);
-	bcount = read(fd, buf + terminal->pvt->n_narrow_incoming,
-		      bufsize - terminal->pvt->n_narrow_incoming);
+	/* Compute the number of wide characters we got. */
+	wcount = (obuf - obufptr) / sizeof(wchar_t);
+	wbuf = (wchar_t*) obufptr;
 
-	/* Convert any read bytes into wide characters.  FIXME: handle
-	 * cases where the encoding changes mid-stream. */
-	if (bcount > 0) {
-		inbuf = buf;
-		inbuf_len = terminal->pvt->n_narrow_incoming + bcount;
-		outbuf = (char*)wbuf;
-		outbuf_len = sizeof(wbuf);
-		if (iconv(terminal->pvt->incoming_conv,
-			  &inbuf, &inbuf_len,
-			  &outbuf, &outbuf_len) != -1) {
-			/* Save the resulting bytes as the narrow incoming data
-			 * queue. */
-			terminal->pvt->n_narrow_incoming = inbuf_len;
-			terminal->pvt->narrow_incoming = g_malloc(inbuf_len);
-			memcpy(terminal->pvt->narrow_incoming, inbuf, inbuf_len);
-			wcount = (outbuf - (char*)wbuf) / sizeof(wchar_t);
-		} else {
-			wcount = 0;
-		}
-	} else {
-		wcount = 0;
-	}
-
-	/* Add the read wchars to the incoming array one at a time, then try
-	 * to handle the entire array. */
-	terminal->pvt->incoming = g_realloc(terminal->pvt->incoming,
-					    (terminal->pvt->n_incoming+ wcount) *
-					    sizeof(wchar_t));
-	for (i = 0; i < wcount; i++) {
-		terminal->pvt->incoming[terminal->pvt->n_incoming] = wbuf[i];
-		terminal->pvt->n_incoming++;
-		/* Check if the contents of the array is a control string or
-		 * not.  The match function returns NULL if the data is not
-		 * a control sequence, the name of the control sequence if it
-		 * is one, and an empty string if it might be the beginning of
-		 * a control sequence. */
-		vte_trie_match(terminal->pvt->trie,
-			       terminal->pvt->incoming,
-			       terminal->pvt->n_incoming,
-			       &match,
-			       &quark,
-			       &params);
-		if (match == NULL) {
-			/* No interesting stuff in the buffer, so dump the
-			 * accumulated data out. */
-			for (j = 0; j < terminal->pvt->n_incoming; j++) {
-				c = terminal->pvt->incoming[j];
+	/* Try initial substrings. */
+	i = 0;
+	inserted = leftovers = FALSE;
+	while ((i < wcount) && !leftovers) {
+		for (j = i + 1; j <= wcount; j++) {
+			/* Check if the contents of the array is a control
+			 * string or not.  The match function returns NULL if
+			 * the data is not a control sequence, the name of
+			 * the control sequence if it is one, and an empty
+			 * string if it might be the beginning of a control
+			 * sequence. */
+			vte_trie_match(terminal->pvt->trie,
+				       &wbuf[i],
+				       j - i,
+				       &match,
+				       &quark,
+				       &params);
+			if (match == NULL) {
+				/* Nothing interesting here, so insert this
+				 * character into the buffer. */
+				c = wbuf[i];
 #ifdef VTE_DEBUG
 				if (c > 127) {
 					fprintf(stderr, "%ld = ", (long) c);
@@ -2585,62 +2643,164 @@ vte_terminal_io_read(GIOChannel *channel,
 				}
 #endif
 				vte_terminal_insert_char(widget, c);
+				inserted = TRUE;
+				i++;
+				break;
 			}
-			terminal->pvt->n_incoming = 0;
-		} else if (match[0] != '\0') {
-			/* A terminal sequence. */
-			vte_terminal_handle_sequence(GTK_WIDGET(terminal),
-						     match,
-						     quark,
-						     params);
-			if (params != NULL) {
-				g_value_array_free(params);
-			}
-			terminal->pvt->n_incoming = 0;
-		} else {
-			/* It's a zero-length string, so we need to wait for
-			 * more data from the client. */
-		}
-		/* If we had output, scroll if need be. */
-		if (terminal->pvt->n_incoming == 0) {
-			/* Keep the cursor on-screen. */
-			if (terminal->pvt->scroll_on_output) {
-				vte_terminal_scroll_on_something(terminal);
-			}
-			/* Deselect. */
-			if (terminal->pvt->selection) {
-				terminal->pvt->selection = FALSE;
-				vte_invalidate_cells(terminal,
-						     0, terminal->column_count,
-						     0, terminal->row_count);
+			if (match[0] != '\0') {
+				/* A terminal sequence. */
+				vte_terminal_handle_sequence(GTK_WIDGET(terminal),
+							     match,
+							     quark,
+							     params);
+				if (params != NULL) {
+					g_value_array_free(params);
+				}
+				/* Skip over the proper number of wide chars. */
+				i = j;
+				break;
+			} else {
+				if (j == wcount) {
+					/* We have the initial portion of a
+					 * control sequence, but no more
+					 * data. */
+					leftovers = TRUE;
+					g_warning("Unhandled data.\n");
+				}
 			}
 		}
 	}
+	if (leftovers) {
+		/* FIXME: there are leftovers, convert them back. */
+	} else {
+		/* No leftovers, clean out the data. */
+		terminal->pvt->n_incoming = 0;
+		g_free(terminal->pvt->incoming);
+	}
 
-	/* Handle error conditions. */
-	if (bcount <= 0) {
-		if (bcount == 0) {
+	if (inserted) {
+		/* Keep the cursor on-screen. */
+		if (terminal->pvt->scroll_on_output) {
+			vte_terminal_scroll_on_something(terminal);
+		}
+		/* Deselect any existing selection. */
+		if (terminal->pvt->selection) {
+			terminal->pvt->selection = FALSE;
+			vte_invalidate_cells(terminal,
+					     0, terminal->column_count,
+					     0, terminal->row_count);
+		}
+	}
+
+	return (terminal->pvt->n_incoming > 0);
+}
+
+/* Read and handle data from the child. */
+static gboolean
+vte_terminal_io_read(GIOChannel *channel,
+		     GdkInputCondition condition,
+		     gpointer data)
+{
+	VteTerminal *terminal;
+	GtkWidget *widget;
+	char *buf;
+	size_t bufsize;
+	int bcount, fd;
+	gboolean empty, leave_open = TRUE;
+
+	widget = GTK_WIDGET(data);
+	terminal = VTE_TERMINAL(data);
+
+	/* Allocate a buffer to hold whatever data's available. */
+	bufsize = terminal->pvt->n_incoming + LINE_MAX;
+	buf = g_malloc0(bufsize);
+	if (terminal->pvt->n_incoming > 0) {
+		memcpy(buf, terminal->pvt->incoming, terminal->pvt->n_incoming);
+	}
+	empty = (terminal->pvt->n_incoming == 0);
+
+	/* Read some more data in from this channel. */
+	fd = g_io_channel_unix_get_fd(channel);
+	bcount = read(fd, buf + terminal->pvt->n_incoming,
+		      bufsize - terminal->pvt->n_incoming);
+
+	/* Catch errors. */
+	leave_open = TRUE;
+	switch (bcount) {
+		case 0:
 			/* EOF */
 			vte_terminal_eof(terminal->pvt->pty_input, data);
-		} else {
+			leave_open = FALSE;
+			break;
+		case -1:
 			switch (errno) {
-				case EIO:
-					/* Fake EOF. */
+				case EIO: /* Fake an EOF. */
 					vte_terminal_eof(terminal->pvt->pty_input,
 							 data);
 					leave_open = FALSE;
 					break;
 				case EAGAIN:
 				case EBUSY:
+					leave_open = TRUE;
 					break;
 				default:
 					g_warning("Error reading from child: "
 						  "%s.\n", strerror(errno));
+					leave_open = TRUE;
+					break;
 			}
-		}
+			break;
+		default:
+			break;
 	}
 
+	/* If we got data, modify the pending buffer. */
+	if (bcount >= 0) {
+		terminal->pvt->incoming = buf;
+		terminal->pvt->n_incoming += bcount;
+	} else {
+		g_free(buf);
+	}
+
+	/* If we didn't have data before, but we do now, process it. */
+	if (empty && (terminal->pvt->n_incoming > 0)) {
+		g_idle_add(vte_terminal_process_bytes, terminal);
+	}
+
+	/* If there's more data coming, return TRUE, otherwise return FALSE. */
 	return leave_open;
+}
+
+/* Render some UTF-8 text. */
+void
+vte_terminal_feed(VteTerminal *terminal, const char *data, size_t length)
+{
+	char *buf;
+	gboolean empty;
+
+	/* Allocate space for old and new data. */
+	buf = g_malloc(terminal->pvt->n_incoming + length + 1);
+	empty = (terminal->pvt->n_incoming == 0);
+
+	/* If we got data, modify the pending buffer. */
+	if (length >= 0) {
+		if (terminal->pvt->n_incoming > 0) {
+			memcpy(buf, terminal->pvt->incoming,
+			       terminal->pvt->n_incoming);
+			g_free(terminal->pvt->incoming);
+		}
+		memcpy(buf + terminal->pvt->n_incoming,
+		       data, length);
+		terminal->pvt->incoming = buf;
+		terminal->pvt->n_incoming += length;
+	} else {
+		g_free(buf);
+	}
+
+	/* If we didn't have data before, but we do now, process it. */
+	if (empty && (terminal->pvt->n_incoming > 0)) {
+		g_idle_add(vte_terminal_process_bytes, terminal);
+	}
 }
 
 /* Send wide characters to the child. */
@@ -2714,7 +2874,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 
 	icount = length;
 	ibuf = (char *) data;
-	ocount = (length + 1) * sizeof(wchar_t);
+	ocount = ((length + 1) * VTE_UTF8_BPC) + 1;
 	obuf = obufptr = g_malloc0(ocount);
 
 	if (iconv(*conv, &ibuf, &icount, &obuf, &ocount) == -1) {
@@ -3296,38 +3456,42 @@ vte_compare_direct(gconstpointer a, gconstpointer b)
 
 /* Read and refresh our perception of the size of the PTY. */
 static void
-vte_terminal_pty_size_get(VteTerminal *terminal)
+vte_terminal_size_get(VteTerminal *terminal)
 {
 	struct winsize size;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(terminal->pvt->pty_master != -1);
-	/* Use an ioctl to read the size of the terminal. */
-	if (ioctl(terminal->pvt->pty_master, TIOCGWINSZ, &size) != 0) {
-		g_warning("Error reading PTY size, assuming defaults: %s.",
-			  strerror(errno));
-		terminal->row_count = 10;
-		terminal->column_count = 60;
-	} else {
-		terminal->row_count = size.ws_row;
-		terminal->column_count = size.ws_col;
+	if (terminal->pvt->pty_master != -1) {
+		/* Use an ioctl to read the size of the terminal. */
+		if (ioctl(terminal->pvt->pty_master, TIOCGWINSZ, &size) != 0) {
+			g_warning("Error reading PTY size, using defaults: "
+				  "%s.", strerror(errno));
+		} else {
+			terminal->row_count = size.ws_row;
+			terminal->column_count = size.ws_col;
+		}
 	}
 }
 
 /* Set the size of the PTY. */
-static void
-vte_terminal_pty_size_set(VteTerminal *terminal, guint columns, guint rows)
+void
+vte_terminal_size_set(VteTerminal *terminal, guint columns, guint rows)
 {
 	struct winsize size;
-	size.ws_row = rows;
-	size.ws_col = columns;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(terminal->pvt->pty_master != -1);
-	/* Try to set the terminal size. */
-	if (ioctl(terminal->pvt->pty_master, TIOCSWINSZ, &size) != 0) {
-		g_warning("Error setting PTY size: %s.", strerror(errno));
+	if (terminal->pvt->pty_master != -1) {
+		size.ws_row = rows;
+		size.ws_col = columns;
+		/* Try to set the terminal size. */
+		if (ioctl(terminal->pvt->pty_master, TIOCSWINSZ, &size) != 0) {
+			g_warning("Error setting PTY size: %s.",
+				  strerror(errno));
+		}
+	} else {
+		terminal->row_count = rows;
+		terminal->column_count = columns;
 	}
 	/* Read the terminal size, in case something went awry. */
-	vte_terminal_pty_size_get(terminal);
+	vte_terminal_size_get(terminal);
 }
 
 /* Redraw the widget. */
@@ -3456,6 +3620,15 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 #ifdef VTE_DEBUG
 	g_print("\n");
 #endif
+
+	/* Resize to the given default. */
+	vte_terminal_size_set(terminal,
+			      vte_termcap_find_numeric(terminal->pvt->termcap,
+						       terminal->pvt->terminal,
+						       "co") ?: 60,
+			      vte_termcap_find_numeric(terminal->pvt->termcap,
+						       terminal->pvt->terminal,
+						       "li") ?: 18);
 }
 
 /* Set the path to the termcap file we read, and read it in. */
@@ -3487,8 +3660,6 @@ vte_terminal_init(VteTerminal *terminal)
 {
 	struct _VteTerminalPrivate *pvt;
 	GtkAdjustment *adjustment;
-	const char **env_add;
-	int i;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	GTK_WIDGET_SET_FLAGS(GTK_WIDGET(terminal), GTK_CAN_FOCUS);
@@ -3501,8 +3672,8 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->pty_pid = -1;
 	pvt->incoming = NULL;
 	pvt->n_incoming = 0;
-	pvt->narrow_incoming = NULL;
-	pvt->n_narrow_incoming = 0;
+	pvt->outgoing = NULL;
+	pvt->n_outgoing = 0;
 	pvt->palette_initialized = FALSE;
 	pvt->keypad = VTE_KEYPAD_NORMAL;
 	pvt->scroll_on_output = TRUE;
@@ -3513,7 +3684,6 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->selection_start.y = 0;
 	pvt->selection_end.x = 0;
 	pvt->selection_end.y = 0;
-	adjustment = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0, 0, 0, 0));
 
 #ifdef HAVE_XFT
 	/* Try to use Xft if the user requests it. */
@@ -3525,12 +3695,18 @@ vte_terminal_init(VteTerminal *terminal)
 	}
 #endif
 
+	/* Set the font. */
+	vte_terminal_set_fontset(terminal, NULL);
+
+	/* Load the termcap data and set up the emulation and default
+	 * terminal encoding. */
 	vte_terminal_set_termcap(terminal, NULL);
 	vte_terminal_set_emulation(terminal, NULL);
 	vte_terminal_set_encoding(terminal, NULL);
 
+	/* Initialize the screen history. */
 	pvt->normal_screen.row_data = g_array_new(FALSE, TRUE,
-						       sizeof(GArray *));
+						  sizeof(GArray *));
 	pvt->normal_screen.cursor_current.row = 0;
 	pvt->normal_screen.cursor_current.col = 0;
 	pvt->normal_screen.cursor_saved.row = 0;
@@ -3541,7 +3717,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->normal_screen.insert = FALSE;
 
 	pvt->alternate_screen.row_data = g_array_new(FALSE, TRUE,
-							 sizeof(GArray*));
+						     sizeof(GArray*));
 	pvt->alternate_screen.cursor_current.row = 0;
 	pvt->alternate_screen.cursor_current.col = 0;
 	pvt->alternate_screen.cursor_saved.row = 0;
@@ -3557,43 +3733,9 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->screen = &terminal->pvt->normal_screen;
 	vte_terminal_set_default_attributes(terminal);
 
+	/* Set up an adjustment to control scrolling. */
+	adjustment = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0, 0, 0, 0));
 	vte_terminal_set_scroll_adjustment(terminal, adjustment);
-
-	/* Start up the shell. */
-	env_add = g_malloc(sizeof(char*) * 3);
-	env_add[0] = g_strdup_printf("TERM=%s", pvt->terminal);
-	env_add[1] = g_strdup("COLORTERM=" PACKAGE);
-	env_add[2] = NULL;
-	pvt->pty_master = vte_pty_open(&terminal->pvt->pty_pid,
-				       env_add,
-				       terminal->pvt->shell,
-				       NULL);
-	g_free((char*)env_add[0]);
-	g_free((char*)env_add[1]);
-	g_free((char**)env_add);
-
-	i = fcntl(terminal->pvt->pty_master, F_GETFL);
-	fcntl(terminal->pvt->pty_master, F_SETFL, i | O_NONBLOCK);
-	pvt->pty_input = g_io_channel_unix_new(terminal->pvt->pty_master);
-	pvt->pty_output = NULL;
-	g_io_add_watch_full(pvt->pty_input,
-			    G_PRIORITY_LOW,
-			    G_IO_IN | G_IO_HUP,
-			    vte_terminal_io_read,
-			    terminal,
-			    NULL);
-
-	/* Set the PTY window size based on the terminal type. */
-	vte_terminal_pty_size_set(terminal,
-				  vte_termcap_find_numeric(pvt->termcap,
-					  		   pvt->terminal,
-							   "co") ?: 60,
-				  vte_termcap_find_numeric(pvt->termcap,
-					  		   pvt->terminal,
-							   "li") ?: 18);
-
-	/* Set the font. */
-	vte_terminal_set_fontset(terminal, NULL);
 }
 
 /* Tell GTK+ how much space we need. */
@@ -3608,6 +3750,11 @@ vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
 
 	requisition->width = terminal->char_width * terminal->column_count;
 	requisition->height = terminal->char_height * terminal->row_count;
+
+#ifdef VTE_DEBUG
+	g_print("Initial size request is %dx%d.\n",
+		requisition->width, requisition->height);
+#endif
 }
 
 /* Accept a given size from GTK+. */
@@ -3623,14 +3770,10 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	/* Set our allocation to match the structure. */
 	widget->allocation = *allocation;
 
-	/* Calculate how many rows and columns we should display. */
-	terminal->column_count = allocation->width / terminal->char_width;
-	terminal->row_count = allocation->height / terminal->char_height;
-
 	/* Set the size of the pseudo-terminal. */
-	vte_terminal_pty_size_set(terminal,
-				  terminal->column_count,
-				  terminal->row_count);
+	vte_terminal_size_set(terminal,
+			      allocation->width / terminal->char_width,
+			      allocation->height / terminal->char_height);
 
 	/* Resize the GDK window. */
 	if (widget->window != NULL) {
@@ -3723,8 +3866,6 @@ vte_terminal_unrealize(GtkWidget *widget)
 	/* Discard any pending data. */
 	g_free(terminal->pvt->incoming);
 	terminal->pvt->incoming = NULL;
-	g_free(terminal->pvt->narrow_incoming);
-	terminal->pvt->narrow_incoming = NULL;
 
 	/* Clean up emulation structures. */
 	g_tree_destroy(terminal->pvt->sequences);

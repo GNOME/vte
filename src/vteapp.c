@@ -26,7 +26,9 @@ static void
 set_window_title(GtkWidget *widget, const char *title, gpointer win)
 {
 	GtkWindow *window;
+	g_return_if_fail(VTE_TERMINAL(widget));
 	g_return_if_fail(GTK_IS_WINDOW(win));
+	g_return_if_fail(title != NULL);
 	window = GTK_WINDOW(win);
 	gtk_window_set_title(window, title);
 }
@@ -57,6 +59,7 @@ int
 main(int argc, char **argv)
 {
 	GtkWidget *window, *hbox, *scrollbar, *widget;
+	const char *message = "Launching interactive shell...\r\n";
 
 	gtk_init(&argc, &argv);
 
@@ -95,6 +98,12 @@ main(int argc, char **argv)
 	/* Create the scrollbar for the widget. */
 	scrollbar = gtk_vscrollbar_new((VTE_TERMINAL(widget))->adjustment);
 	gtk_box_pack_start(GTK_BOX(hbox), scrollbar, FALSE, FALSE, 0);
+
+	/* Launch a shell. */
+#ifdef VTE_DEBUG
+	vte_terminal_feed(VTE_TERMINAL(widget), message, strlen(message));
+#endif
+	vte_terminal_fork_command(VTE_TERMINAL(widget), NULL, NULL);
 
 	/* Go for it! */
 	gtk_widget_show_all(window);

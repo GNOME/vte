@@ -29,43 +29,14 @@
 #include <X11/Xlib.h>
 #include <glib.h>
 #include <pango/pango.h>
+#include <gtk/gtk.h>
 #include "termcap.h"
 #include "trie.h"
 
 G_BEGIN_DECLS
 
-typedef struct _VteTerminal VteTerminal;
-typedef struct _VteTerminalClass VteTerminalClass;
-
-/* The structure we use to hold characters we're supposed to display -- this
- * includes any supported visible attributes. */
-struct vte_charcell {
-	wchar_t c;		/* The wide character. */
-	guint16 columns: 2;	/* Number of visible columns (as determined
-				   by wcwidth(c)). */
-	guint16 fore: 3;	/* Indices in the color palette for the */
-	guint16 back: 3;	/* foreground and background of the cell. */
-	guint16 reverse: 1;	/* Single-bit attributes. */
-	guint16 invisible: 1;
-	guint16 bold: 1;
-	guint16 standout: 1;
-	guint16 underline: 1;
-	guint16 half: 1;
-	guint16 blink: 1;
-	guint16 alternate: 1;
-};
-
-/* The terminal's keypad state.  A terminal can either be using the normal
- * keypad, or the "application" keypad.  Arrow key sequences, for example,
- * are really only defined for "application" mode. */
-typedef enum {
-	VTE_KEYPAD_NORMAL,
-	VTE_KEYPAD_APPLICATION,
-} VteKeypad;
-
 /* The terminal widget itself. */
-struct _VteTerminalPrivate;
-struct _VteTerminal {
+typedef struct _VteTerminal {
 	/*< public >*/
 
 	/* Widget implementation stuffs. */
@@ -79,10 +50,10 @@ struct _VteTerminal {
 
 	/*< private >*/
 	struct _VteTerminalPrivate *pvt;
-};
+} VteTerminal;
 
 /* The widget's class structure. */
-struct _VteTerminalClass {
+typedef struct _VteTerminalClass {
 	/*< public > */
 	/* Inherited parent class. */
 	GtkWidgetClass parent_class;
@@ -93,7 +64,7 @@ struct _VteTerminalClass {
 	guint char_size_changed_signal;
 	guint set_window_title_signal;
 	guint set_icon_title_signal;
-};
+} VteTerminalClass;
 
 /* The widget's type. */
 GtkType vte_terminal_get_type(void);
@@ -113,6 +84,13 @@ GtkType vte_terminal_get_type(void);
 
 
 GtkWidget *vte_terminal_new(void);
+void vte_terminal_fork_command(VteTerminal *terminal,
+			       const char *command,
+			       const char **argv);
+void vte_terminal_set_size(VteTerminal *terminal, guint columns, guint rows);
+void vte_terminal_feed(VteTerminal *terminal,
+		       const char *data,
+		       size_t length);
 
 G_END_DECLS
 
