@@ -1,3 +1,8 @@
+2003-02-26 nalin
+	* src/vte.c(vte_terminal_font_open_xft,vte_terminal_font_open_pango):
+	patch from Jungshik Shin for detecting and handling fonts where ASCII
+	characters are double-width (#106618)
+
 2003-02-26  Taneem Ahmed  <taneem@eyetap.org>
 
 	* configure.in:  Added "bn" to ALL_LINGUAS.

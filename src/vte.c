@@ -108,6 +108,10 @@ typedef gunichar wint_t;
 					"0123456789./+@"
 #define VTE_REPRESENTATIVE_WIDER_CHARACTER	'M'
 #define VTE_REPRESENTATIVE_NARROWER_CHARACTER	'l'
+/*  "一二三四五" */
+#define VTE_REPRESENTATIVE_CJK_STRING	"\xe4\xb8\x80\xe4\xba\x8c\xe4\xb8\x89" \
+                                        "\xe5\x9b\x9b\xe4\xba\x94"
+#define VTE_REPRESENTATIVE_CJK_STRING_CHAR_COUNT	5
 #define VTE_ADJUSTMENT_PRIORITY		G_PRIORITY_DEFAULT_IDLE
 #define VTE_INPUT_RETRY_PRIORITY	G_PRIORITY_HIGH
 #define VTE_INPUT_PRIORITY		G_PRIORITY_DEFAULT_IDLE
@@ -2237,7 +2241,7 @@ vte_sequence_handler_bt(VteTerminal *terminal,
 		}
 	}
 
-	/* If we have no tab stops, stop right here. */
+	/* If we have no tab stops, stop at the first column. */
 	if (newcol <= 0) {
 		newcol = 0;
 	}
@@ -10477,7 +10481,7 @@ vte_terminal_open_font_xft(VteTerminal *terminal)
 	XftPattern *matched_pattern;
 	XftResult result;
 	XGlyphInfo glyph_info;
-	gint width, height, ascent, descent;
+	gint width, cjk_width, height, ascent, descent;
 	gboolean need_destroy = FALSE;
 	char *name;
 
@@ -10588,6 +10592,8 @@ vte_terminal_open_font_xft(VteTerminal *terminal)
 	if (terminal->pvt->ftfont != NULL) {
 		ascent = terminal->pvt->ftfont->ascent;
 		descent = terminal->pvt->ftfont->descent;
+
+		/* Compute the width of ASCII characters. */
 		memset(&glyph_info, 0, sizeof(glyph_info));
 		XftTextExtents8(GDK_DISPLAY(), terminal->pvt->ftfont,
 				VTE_REPRESENTATIVE_CHARACTERS,
@@ -10595,6 +10601,20 @@ vte_terminal_open_font_xft(VteTerminal *terminal)
 				&glyph_info);
 		width = howmany(glyph_info.width,
 				strlen(VTE_REPRESENTATIVE_CHARACTERS));
+
+		/* Compute the width of CJK characters. */
+		memset(&glyph_info, 0, sizeof(glyph_info));
+		XftTextExtentsUtf8(GDK_DISPLAY(), terminal->pvt->ftfont,
+				   VTE_REPRESENTATIVE_CJK_STRING,
+				   strlen(VTE_REPRESENTATIVE_CJK_STRING),
+				   &glyph_info);
+		cjk_width = howmany(glyph_info.width,
+				    VTE_REPRESENTATIVE_CJK_STRING_CHAR_COUNT);
+		/* If they're the same, fudge the cell width to half the
+		 * value, because the font's screwy. */
+		if (width == cjk_width) {
+			width /= 2;
+		}
 		height = MAX(terminal->pvt->ftfont->height, (ascent + descent));
 		if (height == 0) {
 			height = glyph_info.height;
@@ -10738,7 +10758,7 @@ vte_terminal_open_font_pango(VteTerminal *terminal)
 	PangoLanguage *lang = NULL;
 	PangoLayout *layout = NULL;
 	PangoRectangle ink, logical;
-	gint height, width, ascent, descent;
+	gint height, width, cjk_width, ascent, descent;
 
 	if (terminal->pvt->pcontext != NULL) {
 		return;
@@ -10760,12 +10780,30 @@ vte_terminal_open_font_pango(VteTerminal *terminal)
 		/* Create a layout object to get a width estimate. */
 		layout = pango_layout_new(context);
 		pango_layout_set_font_description(layout, desc);
+
+		/* Estimate for ASCII characters. */
 		pango_layout_set_text(layout,
 				      VTE_REPRESENTATIVE_CHARACTERS,
 				      strlen(VTE_REPRESENTATIVE_CHARACTERS));
 		pango_layout_get_extents(layout, &ink, &logical);
-		width = howmany(logical.width, PANGO_SCALE);
+		width = logical.width;
 		width = howmany(width, strlen(VTE_REPRESENTATIVE_CHARACTERS));
+
+		/* Estimate for CJK characters. */
+		pango_layout_set_text(layout,
+				      VTE_REPRESENTATIVE_CJK_STRING,
+				      strlen(VTE_REPRESENTATIVE_CJK_STRING));
+		pango_layout_get_extents(layout, &ink, &logical);
+		cjk_width = logical.width;
+		cjk_width = howmany(cjk_width,
+				    VTE_REPRESENTATIVE_CJK_STRING_CHAR_COUNT);
+
+		/* If they're the same, then we have a screwy font. */
+		if (cjk_width == width) {
+			width /= 2;
+		}
+
+		width = howmany(width, PANGO_SCALE);
 		height = howmany(logical.height, PANGO_SCALE);
 		g_object_unref(G_OBJECT(layout));
 		layout = NULL;
