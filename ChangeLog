@@ -1,3 +1,7 @@
+2002-11-22  nalin
+	* configure.in: incorporate more correct check for the right version of
+	gtk-doc (#99314).
+
 2002-11-15  Hasbullah BIn Pit <sebol@ikhlas.com>
 
         * configure.in: Added "ms" to ALL_LINGUAS.
