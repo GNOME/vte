@@ -32,16 +32,39 @@
 #define DEFAULT_HINTSTYLE	"hintfull"
 
 static gchar **
-_vte_rdb_get(void)
+_vte_rdb_get(GtkWidget *widget, gboolean screen_setting)
 {
-	GdkWindow *root;
+	GdkWindow *root = NULL;
 	char *prop_data, *tmp;
 	gchar **ret;
 	int prop_length;
 	GdkAtom atom, prop_type;
 
 	/* Retrieve the window and the property which we're going to read. */
-	root = gdk_get_default_root_window();
+#if GTK_CHECK_VERSION(2,2,0)
+	GdkDisplay *display;
+	GdkScreen *screen;
+
+	if (GTK_IS_WIDGET(widget)) {
+		display = gtk_widget_get_display(widget);
+	} else {
+		display = gdk_display_get_default();
+	}
+
+	if (GTK_IS_WIDGET(widget) &&
+	    gtk_widget_has_screen(widget) &&
+	    screen_setting) {
+		screen = gtk_widget_get_screen(widget);
+	} else {
+		screen = gdk_display_get_screen(display, 0);
+	}
+
+	root = gdk_screen_get_root_window(screen);
+#endif
+	if (root == NULL) {
+		root = gdk_get_default_root_window();
+	}
+
 	atom = gdk_atom_intern("RESOURCE_MANAGER", TRUE);
 	if (atom == 0) {
 		return NULL;
@@ -68,33 +91,40 @@ _vte_rdb_get(void)
 }
 
 static gchar *
-_vte_rdb_search(const char *setting)
+_vte_rdb_search(GtkWidget *widget, const char *setting)
 {
 	gchar *ret = NULL;
-	int i, l;
+	int i, j, l;
 	gchar **rdb;
-	rdb = _vte_rdb_get();
-	if (rdb != NULL) {
-		l = strlen(setting);
-		for (i = 0; rdb[i] != NULL; i++) {
-			if ((strncmp(rdb[i], setting, l) == 0) &&
-			    (rdb[i][l] == ':') &&
-			    (rdb[i][l + 1] == '\t')) {
-				ret = g_strdup(rdb[i] + l + 2);
-				break;
+	gboolean per_screen[] = {TRUE, FALSE};
+
+	for (i = 0; i < G_N_ELEMENTS(per_screen); i++) {
+		rdb = _vte_rdb_get(widget, per_screen[i]);
+		if (rdb != NULL) {
+			l = strlen(setting);
+			for (j = 0; rdb[j] != NULL; j++) {
+				if ((strncmp(rdb[j], setting, l) == 0) &&
+				    (rdb[j][l] == ':') &&
+				    (rdb[j][l + 1] == '\t')) {
+					ret = g_strdup(rdb[j] + l + 2);
+					break;
+				}
 			}
+			g_strfreev(rdb);
 		}
-		g_strfreev(rdb);
+		if (ret != NULL) {
+			break;
+		}
 	}
 	return ret;
 }
 
 static double
-_vte_rdb_double(const char *setting, double default_value)
+_vte_rdb_double(GtkWidget *widget, const char *setting, double default_value)
 {
 	char *start, *endptr = NULL;
 	double dbl;
-	start = _vte_rdb_search(setting);
+	start = _vte_rdb_search(widget, setting);
 	if (start == NULL) {
 		return default_value;
 	}
@@ -107,11 +137,11 @@ _vte_rdb_double(const char *setting, double default_value)
 }
 
 static int
-_vte_rdb_integer(const char *setting, int default_value)
+_vte_rdb_integer(GtkWidget *widget, const char *setting, int default_value)
 {
 	char *start, *endptr = NULL;
 	int n;
-	start = _vte_rdb_search(setting);
+	start = _vte_rdb_search(widget, setting);
 	if (start == NULL) {
 		return default_value;
 	}
@@ -124,11 +154,11 @@ _vte_rdb_integer(const char *setting, int default_value)
 }
 
 static gboolean
-_vte_rdb_boolean(const char *setting, gboolean default_value)
+_vte_rdb_boolean(GtkWidget *widget, const char *setting, gboolean default_value)
 {
 	char *start, *endptr = NULL;
 	int n;
-	start = _vte_rdb_search(setting);
+	start = _vte_rdb_search(widget, setting);
 	if (start == NULL) {
 		return default_value;
 	}
@@ -149,11 +179,11 @@ _vte_rdb_boolean(const char *setting, gboolean default_value)
 }
 
 static GQuark
-_vte_rdb_quark(const char *setting, GQuark default_value)
+_vte_rdb_quark(GtkWidget *widget, const char *setting, GQuark default_value)
 {
 	char *start;
 	GQuark q = 0;
-	start = _vte_rdb_search(setting);
+	start = _vte_rdb_search(widget, setting);
 	if (start == NULL) {
 		return default_value;
 	}
@@ -163,49 +193,56 @@ _vte_rdb_quark(const char *setting, GQuark default_value)
 }
 
 double
-_vte_rdb_get_dpi(void)
+_vte_rdb_get_dpi(GtkWidget *widget)
 {
-	return _vte_rdb_double("Xft.dpi", DEFAULT_DPI);
+	return _vte_rdb_double(widget, "Xft.dpi", DEFAULT_DPI);
 }
 
 gboolean
-_vte_rdb_get_antialias(void)
+_vte_rdb_get_antialias(GtkWidget *widget)
 {
-	return _vte_rdb_boolean("Xft.antialias", DEFAULT_ANTIALIAS);
+	return _vte_rdb_boolean(widget, "Xft.antialias", DEFAULT_ANTIALIAS);
 }
 
 gboolean
-_vte_rdb_get_hinting(void)
+_vte_rdb_get_hinting(GtkWidget *widget)
 {
-	return _vte_rdb_boolean("Xft.hinting", DEFAULT_HINTING);
+	return _vte_rdb_boolean(widget, "Xft.hinting", DEFAULT_HINTING);
 }
 
 const char *
-_vte_rdb_get_rgba(void)
+_vte_rdb_get_rgba(GtkWidget *widget)
 {
 	GQuark q;
 	q = g_quark_from_string(DEFAULT_RGBA);
-	return g_quark_to_string(_vte_rdb_quark("Xft.rgba", q));
+	return g_quark_to_string(_vte_rdb_quark(widget, "Xft.rgba", q));
 }
 
 const char *
-_vte_rdb_get_hintstyle(void)
+_vte_rdb_get_hintstyle(GtkWidget *widget)
 {
 	GQuark q;
 	q = g_quark_from_string(DEFAULT_HINTSTYLE);
-	return g_quark_to_string(_vte_rdb_quark("Xft.hintstyle", q));
+	return g_quark_to_string(_vte_rdb_quark(widget, "Xft.hintstyle", q));
 }
 
 #ifdef VTERDB_MAIN
 int
 main(int argc, char **argv)
 {
+	GtkWidget *window;
 	gtk_init(&argc, &argv);
-	g_print("DPI: %lf\n", _vte_rdb_get_dpi());
-	g_print("Antialias: %s\n", _vte_rdb_get_antialias() ? "TRUE" : "FALSE");
-	g_print("Hinting: %s\n", _vte_rdb_get_hinting() ? "TRUE" : "FALSE");
-	g_print("Hint style: %s\n", _vte_rdb_get_hintstyle());
-	g_print("RGBA: %s\n", _vte_rdb_get_rgba());
+	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	g_print("DPI: %lf\n",
+		_vte_rdb_get_dpi(window));
+	g_print("Antialias: %s\n",
+		_vte_rdb_get_antialias(window) ? "TRUE" : "FALSE");
+	g_print("Hinting: %s\n",
+		_vte_rdb_get_hinting(window) ? "TRUE" : "FALSE");
+	g_print("Hint style: %s\n",
+		_vte_rdb_get_hintstyle(window));
+	g_print("RGBA: %s\n",
+		_vte_rdb_get_rgba(window));
 	return 0;
 }
 #endif

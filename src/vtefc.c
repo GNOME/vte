@@ -268,34 +268,36 @@ _vte_fc_defaults_from_rdb(GtkWidget *widget, FcPattern *pattern)
 	const char *rgba = NULL, *hintstyle = NULL;
 
 	/* Read the settings. */
-	hintstyle = _vte_rdb_get_hintstyle();
-	rgba = _vte_rdb_get_rgba();
+	hintstyle = _vte_rdb_get_hintstyle(widget);
+	rgba = _vte_rdb_get_rgba(widget);
 
 	/* Pick up the antialiasing setting. */
 	if (FcPatternGetBool(pattern, FC_ANTIALIAS, 0,
 			     &fcb) == FcResultNoMatch) {
-		antialias = _vte_rdb_get_antialias();
+		antialias = _vte_rdb_get_antialias(widget);
 		FcPatternAddBool(pattern, FC_ANTIALIAS, antialias);
 	}
 
 	/* Pick up the hinting setting. */
 	if (FcPatternGetBool(pattern, FC_HINTING, 0,
 			     &fcb) == FcResultNoMatch) {
-		hinting = _vte_rdb_get_hinting();
+		hinting = _vte_rdb_get_hinting(widget);
 		FcPatternAddBool(pattern, FC_HINTING, hinting);
 	}
 
 	/* Pick up the configured DPI setting. */
 	if (FcPatternGetDouble(pattern, FC_DPI, 0,
 			       &fcd) == FcResultNoMatch) {
-		dpi = _vte_rdb_get_dpi();
-		FcPatternAddDouble(pattern, FC_DPI, dpi);
+		dpi = _vte_rdb_get_dpi(widget);
+		if (dpi >= 0) {
+			FcPatternAddDouble(pattern, FC_DPI, dpi);
+		}
 	}
 
 	/* Pick up the configured subpixel rendering setting. */
 	if (FcPatternGetInteger(pattern, FC_RGBA, 0,
 				&fci) == FcResultNoMatch) {
-		rgba = _vte_rdb_get_rgba();
+		rgba = _vte_rdb_get_rgba(widget);
 		if (g_ascii_strcasecmp(rgba, "none") == 0) {
 			FcPatternAddInteger(pattern, FC_RGBA, FC_RGBA_NONE);
 		} else
@@ -317,7 +319,7 @@ _vte_fc_defaults_from_rdb(GtkWidget *widget, FcPattern *pattern)
 	/* Pick up the default hinting style. */
 	if (FcPatternGetInteger(pattern, FC_HINT_STYLE, 0,
 				&fci) == FcResultNoMatch) {
-		hintstyle = _vte_rdb_get_hintstyle();
+		hintstyle = _vte_rdb_get_hintstyle(widget);
 		if (g_ascii_strcasecmp(hintstyle, "hintnone") == 0) {
 			FcPatternAddInteger(pattern, FC_HINT_STYLE,
 					    FC_HINT_NONE);
