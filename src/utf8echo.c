@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "trie.h"
+#include "table.h"
 #define ESC ""
 
 int
@@ -41,8 +41,8 @@ main(int argc, char **argv)
 		return 1;
 	}
 
-	conv = g_iconv_open("UTF-8", vte_trie_wide_encoding());
-	if (conv == ((GIConv*) -1)) {
+	conv = g_iconv_open("UTF-8", vte_table_wide_encoding());
+	if (conv == ((GIConv) -1)) {
 		return 1;
 	}
 

@@ -27,7 +27,12 @@
 #include <glib.h>
 #include <glib-object.h>
 #include "debug.h"
+#include "table.h"
 #include "trie.h"
+
+#ifndef HAVE_WINT_T
+typedef long wint_t;
+#endif
 
 #ifdef ENABLE_NLS
 #include <libintl.h>
@@ -78,11 +83,6 @@ struct char_class {
 					/* Extract a parameter. */
 };
 
-/* A table to hold shortcuts. */
-struct vte_trie_table {
-	struct trie_path *paths[128];
-};
-
 /* A trie to hold control sequences. */
 struct vte_trie {
 	const char *result;		/* If this is a terminal node, then this
@@ -96,8 +96,6 @@ struct vte_trie {
 		struct vte_trie *trie;	/* The child node corresponding to this
 					   character. */
 	} *trie_paths;
-	struct vte_trie_table *table;	/* A table filled with pointers to the
-					   child nodes. */
 };
 
 /* Functions for checking if a particular character is part of a class, and
@@ -379,10 +377,6 @@ vte_trie_free(struct vte_trie *trie)
 	if (trie->trie_path_count > 0) {
 		g_free(trie->trie_paths);
 	}
-	if (trie->table != NULL) {
-		g_free(trie->table);
-		trie->table = NULL;
-	}
 	g_free(trie);
 }
 
@@ -526,8 +520,6 @@ vte_trie_matchx(struct vte_trie *trie, const gunichar *pattern, size_t length,
 	unsigned int i;
 	const char *hres;
 	enum cclass cc;
-	ssize_t partial;
-	struct trie_path *path;
 	const char *best = NULL;
 	GValueArray *bestarray = NULL;
 	GQuark bestquark = 0;
@@ -557,37 +549,6 @@ vte_trie_matchx(struct vte_trie *trie, const gunichar *pattern, size_t length,
 			*quark = 0;
 			*consumed = pattern;
 			return *res;
-		}
-	}
-
-	/* Try the precomputed table. */
-	if ((trie->table != NULL) &&
-	    (pattern[0] < G_N_ELEMENTS(trie->table->paths))) {
-		if (trie->table->paths[pattern[0]] != NULL) {
-			path = trie->table->paths[pattern[0]];
-			if (path->cclass->multiple) {
-				for (partial = 0; partial < length; partial++) {
-					if (trie->table->paths[pattern[partial]] != path) {
-						break;
-					}
-				}
-			} else {
-				partial = 1;
-			}
-			if (partial > 0) {
-				path->cclass->extract(pattern,
-						      partial,
-						      &path->data,
-						      array);
-				return vte_trie_matchx(path->trie,
-						       pattern + partial,
-						       length - partial,
-						       FALSE,
-						       res,
-						       consumed,
-						       quark,
-						       array);
-			}
 		}
 	}
 
@@ -693,52 +654,6 @@ vte_trie_matchx(struct vte_trie *trie, const gunichar *pattern, size_t length,
 	*res = best;
 	*consumed = bestconsumed;
 	return *res;
-}
-
-/* Attempt to precompute all of the paths we might take when passing this
- * node, and use that information to fill in a table. */
-TRIE_MAYBE_STATIC void
-vte_trie_precompute(struct vte_trie *trie)
-{
-	struct vte_trie_table *table;
-	enum cclass cc;
-	int i;
-	gunichar c;
-
-	/* Free the precomputed table (if there is one). */
-	if (trie->table != NULL) {
-		g_free(trie->table);
-		trie->table = NULL;
-	}
-
-	/* If there are no child nodes, then there's nothing for us to do. */
-	if (trie->trie_path_count == 0) {
-		return;
-	}
-
-	/* Create a new table and clear it. */
-	table = trie->table = g_malloc(sizeof(*table));
-	for (c = 0; c < G_N_ELEMENTS(trie->table->paths); c++) {
-		trie->table->paths[c] = NULL;
-	}
-
-	/* Decide which path a given character would cause us to take, and
-	 * store it at a fixed offset in the table. */
-	for (cc = exact; cc < invalid; cc++)
-	for (i = 0; i < trie->trie_path_count; i++) {
-		struct char_class *cclass = trie->trie_paths[i].cclass;
-		if (cclass->type == cc)
-		for (c = 0; c < G_N_ELEMENTS(trie->table->paths); c++)
-		if (trie->table->paths[c] == NULL)
-		if (cclass->check(c, &trie->trie_paths[i].data)) {
-			trie->table->paths[c] = &trie->trie_paths[i];
-		}
-	}
-
-	/* Precompute the node's children. */
-	for (i = 0; i < trie->trie_path_count; i++) {
-		vte_trie_precompute(trie->trie_paths[i].trie);
-	}
 }
 
 /* Check if the given pattern matches part of the given trie, returning an
@@ -878,121 +793,16 @@ vte_trie_print(struct vte_trie *trie)
 	printf("Trie has %ld nodes.\n", (long) nodecount);
 }
 
-#define SAMPLE "ABCDEF"
-static char *
-vte_trie_find_valid_encoding(char **list, size_t length, gboolean wide)
-{
-	gunichar wbuffer[8];
-	unsigned char nbuffer[8];
-	void *buffer;
-	char inbuf[BUFSIZ];
-	char outbuf[BUFSIZ];
-	char *ibuf, *obuf;
-	gsize isize, osize;
-	int i;
-	gsize outbytes;
-	GIConv conv;
-
-	if (wide) {
-		buffer = wbuffer;
-	} else {
-		buffer = nbuffer;
-	}
-
-	for (i = 0; SAMPLE[i] != '\0'; i++) {
-		wbuffer[i] = nbuffer[i] = SAMPLE[i];
-	}
-	wbuffer[i] = nbuffer[i] = SAMPLE[i];
-
-	for (i = 0; i < length; i++) {
-		conv = g_iconv_open(list[i], "UTF-8");
-		if (conv == ((GIConv) -1)) {
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_MISC)) {
-				fprintf(stderr, "Conversions to `%s' are not "
-					"supported by giconv.\n", list[i]);
-			}
-#endif
-			continue;
-		}
-
-		ibuf = (char*) &inbuf;
-		strcpy(inbuf, SAMPLE);
-		isize = 3;
-		obuf = (char*) &outbuf;
-		osize = sizeof(outbuf);
-
-		g_iconv(conv, &ibuf, &isize, &obuf, &osize);
-		g_iconv_close(conv);
-
-		outbytes = sizeof(outbuf) - osize;
-		if ((isize == 0) && (outbytes > 0)) {
-			if (memcmp(outbuf, buffer, outbytes) == 0) {
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_MISC)) {
-					fprintf(stderr, "Found iconv target "
-						"`%s'.\n", list[i]);
-				}
-#endif
-				return g_strdup(list[i]);
-			}
-		}
-	}
-
-	return NULL;
-}
-
 TRIE_MAYBE_STATIC const char *
 vte_trie_wide_encoding()
 {
-	char *wide[] = {
-		"10646",
-		"ISO_10646",
-		"ISO-10646",
-		"ISO10646",
-		"ISO-10646-1",
-		"ISO10646-1",
-		"ISO-10646/UCS4",
-		"UCS-4",
-		"UCS4",
-		"UCS-4-BE",
-		"UCS-4BE",
-		"UCS4-BE",
-		"UCS-4-INTERNAL",
-		"UCS-4-LE",
-		"UCS-4LE",
-		"UCS4-LE",
-		"UNICODE",
-		"UNICODE-BIG",
-		"UNICODEBIG",
-		"UNICODE-LITTLE",
-		"UNICODELITTLE",
-		"WCHAR_T",
-	};
-	static char *ret = NULL;
-	if (ret == NULL) {
-		ret = vte_trie_find_valid_encoding(wide,
-						   G_N_ELEMENTS(wide),
-						   TRUE);
-	}
-	return ret;
+	return vte_table_wide_encoding();
 }
 
 TRIE_MAYBE_STATIC const char *
 vte_trie_narrow_encoding()
 {
-	char *narrow[] = {
-		"8859-1",
-		"ISO-8859-1",
-		"ISO8859-1",
-	};
-	static char *ret = NULL;
-	if (ret == NULL) {
-		ret = vte_trie_find_valid_encoding(narrow,
-						   G_N_ELEMENTS(narrow),
-						   FALSE);
-	}
-	return ret;
+	return vte_table_narrow_encoding();
 }
 
 #ifdef TRIE_MAIN
@@ -1077,11 +887,6 @@ main(int argc, char **argv)
 		     g_quark_from_string("greedy"));
 	vte_trie_add(trie, "<esc>]2;%sh", 11, "decset-title",
 		     g_quark_from_string("decset-title"));
-	if (argc > 1) {
-		if (strcmp(argv[1], "--precompute") == 0) {
-			vte_trie_precompute(trie);
-		}
-	}
 
 	printf("Wide encoding is `%s'.\n", vte_trie_wide_encoding());
 	printf("Narrow encoding is `%s'.\n", vte_trie_narrow_encoding());

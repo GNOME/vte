@@ -261,7 +261,7 @@ main(int argc, char **argv)
 	int fd;
 	char c;
 	vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
-	fd = vte_pty_open(&child, "/usr/bin/tty");
+	fd = vte_pty_open(&child, NULL, "/usr/bin/tty", NULL, 0, 0);
 	g_print("Child pid is %d.\n", (int)child);
 	while(read(fd, &c, 1) == 1) {
 		write(STDOUT_FILENO, &c, 1);

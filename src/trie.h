@@ -57,9 +57,6 @@ const char *vte_trie_match(struct vte_trie *trie,
 /* Print the contents of the trie (mainly for diagnostic purposes). */
 void vte_trie_print(struct vte_trie *trie);
 
-/* Precompute internal information to hopefully make traversal faster. */
-void vte_trie_precompute(struct vte_trie *trie);
-
 /* A gunichar-compatible giconv target, if one can be found. */
 const char *vte_trie_wide_encoding(void);
 

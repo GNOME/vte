@@ -80,7 +80,7 @@ typedef struct _VteTerminalClass {
 	guint resize_window_signal;
 	guint move_window_signal;
 
-	gpointer reserved1;
+	guint status_line_changed_signal;
 	gpointer reserved2;
 	gpointer reserved3;
 	gpointer reserved4;
@@ -239,6 +239,9 @@ const char *vte_terminal_get_emulation(VteTerminal *terminal);
 /* Set the character encoding.  Most of the time you won't need this. */
 void vte_terminal_set_encoding(VteTerminal *terminal, const char *encoding);
 const char *vte_terminal_get_encoding(VteTerminal *terminal);
+
+/* Get the contents of the status line. */
+const char *vte_terminal_get_status_line(VteTerminal *terminal);
 
 G_END_DECLS
 

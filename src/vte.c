@@ -51,7 +51,7 @@
 #include "reaper.h"
 #include "ring.h"
 #include "termcap.h"
-#include "trie.h"
+#include "table.h"
 #include "vte.h"
 #include "vteaccess.h"
 #include <X11/Xlib.h>
@@ -61,6 +61,10 @@
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
+#endif
+
+#ifndef HAVE_WINT_T
+typedef long wint_t;
 #endif
 
 #ifdef ENABLE_NLS
@@ -89,6 +93,10 @@
 					"abcdefgjijklmnopqrstuvwxyz" \
 					"0123456789./+@"
 #define VTE_DEFAULT_FONT		"mono 12"
+
+#define VTE_INPUT_PRIORITY		G_PRIORITY_DEFAULT
+#define VTE_FX_PRIORITY			G_PRIORITY_DEFAULT_IDLE
+#define VTE_ITERATION_TUNABLE		512
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
@@ -133,7 +141,7 @@ typedef struct _VteWordCharRange {
 struct _VteTerminalPrivate {
 	/* Emulation setup data. */
 	struct vte_termcap *termcap;	/* termcap storage */
-	struct vte_trie *trie;		/* control sequence trie */
+	struct vte_table *table;		/* control sequence table */
 	const char *termcap_path;	/* path to termcap file */
 	const char *emulation;		/* terminal type to emulate */
 	GTree *sequences;		/* sequence handlers, keyed by GQuark
@@ -193,6 +201,8 @@ struct _VteTerminalPrivate {
 		struct vte_charcell defaults;	/* default characteristics
 						   for insertion of any new
 						   characters */
+		gboolean status_line;
+		GString *status_line_contents;
 	} normal_screen, alternate_screen, *screen;
 
 	/* Selection information. */
@@ -319,11 +329,19 @@ static void vte_sequence_handler_do(VteTerminal *terminal,
 				    const char *match,
 				    GQuark match_quark,
 				    GValueArray *params);
+static void vte_sequence_handler_DO(VteTerminal *terminal,
+				    const char *match,
+				    GQuark match_quark,
+				    GValueArray *params);
 static void vte_sequence_handler_ho(VteTerminal *terminal,
 				    const char *match,
 				    GQuark match_quark,
 				    GValueArray *params);
 static void vte_sequence_handler_le(VteTerminal *terminal,
+				    const char *match,
+				    GQuark match_quark,
+				    GValueArray *params);
+static void vte_sequence_handler_LE(VteTerminal *terminal,
 				    const char *match,
 				    GQuark match_quark,
 				    GValueArray *params);
@@ -336,6 +354,10 @@ static void vte_sequence_handler_ue(VteTerminal *terminal,
 				    GQuark match_quark,
 				    GValueArray *params);
 static void vte_sequence_handler_up(VteTerminal *terminal,
+				    const char *match,
+				    GQuark match_quark,
+				    GValueArray *params);
+static void vte_sequence_handler_UP(VteTerminal *terminal,
 				    const char *match,
 				    GQuark match_quark,
 				    GValueArray *params);
@@ -831,6 +853,18 @@ vte_terminal_emit_move_window(VteTerminal *terminal, guint x, guint y)
 	g_signal_emit_by_name(terminal, "move-window", x, y);
 }
 
+/* Emit a "status-line-changed" signal. */
+static void
+vte_terminal_emit_status_line_changed(VteTerminal *terminal)
+{
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `status-line-changed'.\n");
+	}
+#endif
+	g_signal_emit_by_name(terminal, "status-line-changed");
+}
+
 /* Deselect anything which is selected and refresh the screen if needed. */
 static void
 vte_terminal_deselect_all(VteTerminal *terminal)
@@ -892,14 +926,20 @@ vte_terminal_get_tabstop(VteTerminal *terminal, int column)
 static void
 vte_terminal_set_default_tabstops(VteTerminal *terminal)
 {
-	int i;
+	int i, width;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (terminal->pvt->tabstops != NULL) {
 		g_hash_table_destroy(terminal->pvt->tabstops);
 	}
 	terminal->pvt->tabstops = g_hash_table_new(g_direct_hash,
 						   g_direct_equal);
-	for (i = 0; i <= VTE_TAB_MAX; i += VTE_TAB_WIDTH) {
+	width = vte_termcap_find_numeric(terminal->pvt->termcap,
+					 terminal->pvt->emulation,
+					 "it");
+	if (width == 0) {
+		width = VTE_TAB_WIDTH;
+	}
+	for (i = 0; i <= VTE_TAB_MAX; i += width) {
 		vte_terminal_set_tabstop(terminal, i);
 	}
 }
@@ -1338,19 +1378,19 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	}
 
 	/* Open new conversions. */
-	new_iconv = g_iconv_open(vte_trie_wide_encoding(), codeset);
+	new_iconv = g_iconv_open(vte_table_wide_encoding(), codeset);
 	if (new_iconv == ((GIConv) -1)) {
 		g_warning(_("Unable to convert characters from %s to %s."),
-			  codeset, vte_trie_wide_encoding());
+			  codeset, vte_table_wide_encoding());
 		if (terminal->pvt->encoding != NULL) {
 			/* Keep the current encoding. */
 			return;
 		}
 	}
-	new_oconvw = g_iconv_open(codeset, vte_trie_wide_encoding());
+	new_oconvw = g_iconv_open(codeset, vte_table_wide_encoding());
 	if (new_oconvw == ((GIConv) -1)) {
 		g_warning(_("Unable to convert characters from %s to %s."),
-			  vte_trie_wide_encoding(), codeset);
+			  vte_table_wide_encoding(), codeset);
 		g_iconv_close(new_iconv);
 		if (terminal->pvt->encoding != NULL) {
 			/* Keep the current encoding. */
@@ -1370,16 +1410,16 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	}
 
 	if (new_oconvu == ((GIConv) -1)) {
-		codeset = vte_trie_narrow_encoding();
-		new_iconv = g_iconv_open(vte_trie_wide_encoding(), codeset);
+		codeset = vte_table_narrow_encoding();
+		new_iconv = g_iconv_open(vte_table_wide_encoding(), codeset);
 		if (new_iconv == ((GIConv) -1)) {
 			g_error(_("Unable to convert characters from %s to %s."),
-				codeset, vte_trie_wide_encoding());
+				codeset, vte_table_wide_encoding());
 		}
-		new_oconvw = g_iconv_open(codeset, vte_trie_wide_encoding());
+		new_oconvw = g_iconv_open(codeset, vte_table_wide_encoding());
 		if (new_oconvw == ((GIConv) -1)) {
 			g_error(_("Unable to convert characters from %s to %s."),
-				vte_trie_wide_encoding(), codeset);
+				vte_table_wide_encoding(), codeset);
 		}
 		new_oconvu = g_iconv_open(codeset, "UTF-8");
 		if (new_oconvu == ((GIConv) -1)) {
@@ -1884,6 +1924,46 @@ vte_sequence_handler_ct(VteTerminal *terminal,
 	}
 }
 
+/* Move the cursor to the lower left-hand corner. */
+static void
+vte_sequence_handler_cursor_lower_left(VteTerminal *terminal,
+				       const char *match,
+				       GQuark match_quark,
+				       GValueArray *params)
+{
+	VteScreen *screen;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	screen = terminal->pvt->screen;
+	screen->cursor_current.row = screen->insert_delta +
+				     terminal->row_count - 1;
+	screen->cursor_current.col = 0;
+	vte_terminal_ensure_cursor(terminal, TRUE);
+}
+
+/* Move the cursor to the beginning of the next line, scrolling if necessary. */
+static void
+vte_sequence_handler_cursor_next_line(VteTerminal *terminal,
+				      const char *match,
+				      GQuark match_quark,
+				      GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->screen->cursor_current.col = 0;
+	vte_sequence_handler_DO(terminal, match, match_quark, params);
+}
+
+/* Move the cursor to the beginning of the next line, scrolling if necessary. */
+static void
+vte_sequence_handler_cursor_preceding_line(VteTerminal *terminal,
+					   const char *match,
+					   GQuark match_quark,
+					   GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->screen->cursor_current.col = 0;
+	vte_sequence_handler_UP(terminal, match, match_quark, params);
+}
+
 /* Move the cursor to the given row (vertical position). */
 static void
 vte_sequence_handler_cv(VteTerminal *terminal,
@@ -2211,6 +2291,17 @@ vte_sequence_handler_ei(VteTerminal *terminal,
 	terminal->pvt->screen->insert_mode = FALSE;
 }
 
+/* Move from status line. */
+static void
+vte_sequence_handler_fs(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->screen->status_line = FALSE;
+}
+
 /* Move the cursor to the home position. */
 static void
 vte_sequence_handler_ho(VteTerminal *terminal,
@@ -2223,6 +2314,17 @@ vte_sequence_handler_ho(VteTerminal *terminal,
 	screen = terminal->pvt->screen;
 	screen->cursor_current.row = screen->insert_delta;
 	screen->cursor_current.col = 0;
+}
+
+/* Move the cursor to a specified position. */
+static void
+vte_sequence_handler_horizontal_and_vertical_position(VteTerminal *terminal,
+						      const char *match,
+						      GQuark match_quark,
+						      GValueArray *params)
+{
+	vte_sequence_handler_offset(terminal, match, match_quark, params,
+				    -1, vte_sequence_handler_cm);
 }
 
 /* Insert a character. */
@@ -2466,6 +2568,16 @@ vte_sequence_handler_noop(VteTerminal *terminal,
 			  GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+}
+
+/* Carriage return command(?). */
+static void
+vte_sequence_handler_nw(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	vte_sequence_handler_cr(terminal, match, match_quark, params);
 }
 
 /* Restore cursor (position). */
@@ -2745,7 +2857,7 @@ vte_sequence_handler_tab_clear(VteTerminal *terminal,
 	}
 }
 
-/* Terminal usage starts. */
+/* Move to status line. */
 static void
 vte_sequence_handler_ts(VteTerminal *terminal,
 			const char *match,
@@ -2753,7 +2865,9 @@ vte_sequence_handler_ts(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	/* I think this is a no-op. */
+	terminal->pvt->screen->status_line = TRUE;
+	g_string_truncate(terminal->pvt->screen->status_line_contents, 0);
+	vte_terminal_emit_status_line_changed(terminal);
 }
 
 /* Underline this character and move right. */
@@ -3165,7 +3279,7 @@ vte_sequence_handler_set_title_int(VteTerminal *terminal,
 		if (G_VALUE_HOLDS_POINTER(value)) {
 			/* Convert the unicode-character string into a
 			 * multibyte string. */
-			conv = g_iconv_open("UTF-8", vte_trie_wide_encoding());
+			conv = g_iconv_open("UTF-8", vte_table_wide_encoding());
 			inbuf = g_value_get_pointer(value);
 			inbuf_len = vte_unicode_strlen((gunichar*)inbuf) *
 				    sizeof(gunichar);
@@ -3656,6 +3770,16 @@ vte_sequence_handler_decreset(VteTerminal *terminal,
 	}
 }
 
+/* Erase a specified number of characters. */
+static void
+vte_sequence_handler_erase_characters(VteTerminal *terminal,
+				      const char *match,
+				      GQuark match_quark,
+				      GValueArray *params)
+{
+	vte_sequence_handler_ec(terminal, match, match_quark, params);
+}
+
 /* Erase certain lines in the display. */
 static void
 vte_sequence_handler_erase_in_display(VteTerminal *terminal,
@@ -3749,6 +3873,16 @@ vte_sequence_handler_full_reset(VteTerminal *terminal,
 				GValueArray *params)
 {
 	vte_terminal_reset(terminal, TRUE, TRUE);
+}
+
+/* Insert a specified number of blank characters. */
+static void
+vte_sequence_handler_insert_blank_characters(VteTerminal *terminal,
+					     const char *match,
+					     GQuark match_quark,
+					     GValueArray *params)
+{
+	vte_sequence_handler_IC(terminal, match, match_quark, params);
 }
 
 /* Insert a certain number of lines below the current cursor. */
@@ -3862,10 +3996,10 @@ vte_sequence_handler_local_charset(VteTerminal *terminal,
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 #ifdef VTE_DEFAULT_ISO_8859_1
-	vte_terminal_set_encoding(terminal, vte_trie_narrow_encoding());
+	vte_terminal_set_encoding(terminal, vte_table_narrow_encoding());
 #else
 	if (strcmp(nl_langinfo(CODESET), "UTF-8") == 0) {
-		vte_terminal_set_encoding(terminal, vte_trie_narrow_encoding());
+		vte_terminal_set_encoding(terminal, vte_table_narrow_encoding());
 	} else {
 		vte_terminal_set_encoding(terminal, nl_langinfo(CODESET));
 	}
@@ -4358,7 +4492,7 @@ vte_sequence_handler_designate_gx(VteTerminal *terminal,
 				case '7':
 				case '=':	/* Swiss. */
 					terminal->pvt->gxencoding[x] =
-						vte_trie_narrow_encoding();
+						vte_table_narrow_encoding();
 					break;
 			}
 		}
@@ -4521,7 +4655,7 @@ static struct {
 	{"ei", vte_sequence_handler_ei},
 
 	{"ff", vte_sequence_handler_noop},
-	{"fs", NULL},
+	{"fs", vte_sequence_handler_fs},
 	{"F1", vte_sequence_handler_complain_key},
 	{"F2", vte_sequence_handler_complain_key},
 	{"F3", vte_sequence_handler_complain_key},
@@ -4667,7 +4801,7 @@ static struct {
 	{"MR", NULL},
 
 	{"nd", vte_sequence_handler_nd},
-	{"nw", NULL},
+	{"nw", vte_sequence_handler_nw},
 
 	{"pc", NULL},
 	{"pf", NULL},
@@ -4748,15 +4882,15 @@ static struct {
 	{"character-attributes", vte_sequence_handler_character_attributes},
 	{"character-position-absolute", vte_sequence_handler_character_position_absolute},
 	{"cursor-back-tab", vte_sequence_handler_bt},
-	{"cursor-backward", vte_sequence_handler_le},
+	{"cursor-backward", vte_sequence_handler_LE},
 	{"cursor-character-absolute", vte_sequence_handler_cursor_character_absolute},
 	{"cursor-down", vte_sequence_handler_DO},
 	{"cursor-forward-tabulation", vte_sequence_handler_ta},
 	{"cursor-forward", vte_sequence_handler_RI},
-	{"cursor-lower-left", NULL},
-	{"cursor-next-line", NULL},
+	{"cursor-lower-left", vte_sequence_handler_cursor_lower_left},
+	{"cursor-next-line", vte_sequence_handler_cursor_next_line},
 	{"cursor-position", vte_sequence_handler_cursor_position},
-	{"cursor-preceding-line", NULL},
+	{"cursor-preceding-line", vte_sequence_handler_cursor_preceding_line},
 	{"cursor-up", vte_sequence_handler_UP},
 	{"dec-device-status-report", vte_sequence_handler_dec_device_status_report},
 	{"dec-media-copy", NULL},
@@ -4776,14 +4910,14 @@ static struct {
 	{"enable-filter-rectangle", NULL},
 	{"enable-locator-reporting", NULL},
 	{"end-of-guarded-area", NULL},
-	{"erase-characters", NULL},
+	{"erase-characters", vte_sequence_handler_erase_characters},
 	{"erase-in-display", vte_sequence_handler_erase_in_display},
 	{"erase-in-line", vte_sequence_handler_erase_in_line},
 	{"full-reset", vte_sequence_handler_full_reset},
-	{"horizontal-and-vertical-position", NULL},
+	{"horizontal-and-vertical-position", vte_sequence_handler_horizontal_and_vertical_position},
 	{"index", vte_sequence_handler_index},
 	{"initiate-hilite-mouse-tracking", NULL},
-	{"insert-blank-characters", NULL},
+	{"insert-blank-characters", vte_sequence_handler_insert_blank_characters},
 	{"insert-lines", vte_sequence_handler_insert_lines},
 	{"invoke-g1-character-set-as-gr", NULL},
 	{"invoke-g2-character-set-as-gr", NULL},
@@ -5133,6 +5267,13 @@ vte_terminal_insert_char(GtkWidget *widget, gunichar c, gboolean force_insert)
 			(long)screen->insert_delta);
 	}
 #endif
+	/* If this character is destined for the status line, save it. */
+	if (terminal->pvt->screen->status_line) {
+		g_string_append_unichar(terminal->pvt->screen->status_line_contents,
+					c);
+		vte_terminal_emit_status_line_changed(terminal);
+		return;
+	}
 
 	/* Figure out how many columns this character should occupy. */
 	columns = vte_unichar_width(c);
@@ -5430,7 +5571,7 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 			g_io_channel_unix_new(terminal->pvt->pty_master);
 		terminal->pvt->pty_input_source =
 			g_io_add_watch_full(terminal->pvt->pty_input,
-					    G_PRIORITY_LOW,
+					    G_PRIORITY_DEFAULT,
 					    G_IO_IN | G_IO_HUP,
 					    vte_terminal_io_read,
 					    terminal,
@@ -5516,6 +5657,7 @@ vte_terminal_process_incoming(gpointer data)
 	size_t icount, ocount, ucount;
 	gunichar *wbuf, c;
 	int wcount, start;
+	long iterations = 0;
 	const char *match, *encoding;
 	GIConv unconv;
 	GQuark quark;
@@ -5596,118 +5738,14 @@ vte_terminal_process_incoming(gpointer data)
 	start = 0;
 	modified = leftovers = FALSE;
 	while ((start < wcount) && !leftovers) {
-		/* Check if the first character is part of a control
-		 * sequence. */
-		vte_trie_match(terminal->pvt->trie,
-			       &wbuf[start],
-			       1,
-			       &match,
-			       &next,
-			       &quark,
-			       &params);
-		/* Next now points to the next character in the buffer we're
-		 * uncertain about.  The match string falls into one of three
-		 * classes, but only one of them is ambiguous, and we want to
-		 * clear that up if possible. */
-		if ((match != NULL) && (match[0] == '\0')) {
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_PARSE)) {
-				fprintf(stderr, "Ambiguous sequence  at %d of %d.  "
-					"Resolving.\n", start, wcount);
-			}
-#endif
-			/* Try to match the *entire* string.  This will set
-			 * "next" to a more useful value. */
-			free_params_array(params);
-			params = NULL;
-			vte_trie_match(terminal->pvt->trie,
-				       &wbuf[start],
-				       wcount - start,
-				       &match,
-				       &next,
-				       &quark,
-				       &params);
-			/* Now check just the number of bytes we know about
-			 * to determine what we're doing in this iteration. */
-			if (match == NULL) {
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr,
-						"Looks like a sequence at %d, "
-						"length = %d.\n", start,
-						next - (wbuf + start));
-				}
-#endif
-				free_params_array(params);
-				params = NULL;
-				vte_trie_match(terminal->pvt->trie,
-					       &wbuf[start],
-					       next - (wbuf + start),
-					       &match,
-					       &next,
-					       &quark,
-					       &params);
-			}
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_PARSE)) {
-				if ((match != NULL) && (match[0] != '\0')) {
-					fprintf(stderr,
-						"Ambiguity resolved -- sequence at %d, "
-						"length = %d.\n", start,
-						next - (wbuf + start));
-				}
-				if ((match != NULL) && (match[0] == '\0')) {
-					int i;
-					fprintf(stderr,
-						"Ambiguity resolved -- incomplete `");
-					for (i = 0; i < wcount; i++) {
-						if (i == start) {
-							fprintf(stderr, "=>");
-						} else
-						if (i == (next - wbuf)) {
-							fprintf(stderr, "<=");
-						}
-						if ((wbuf[i] < 32) || (wbuf[i] > 127)) {
-							fprintf(stderr, "{%ld}",
-								(long) wbuf[i]);
-						} else {
-							fprintf(stderr, "%lc",
-								(wint_t) wbuf[i]);
-						}
-					}
-					if (i == (next - wbuf)) {
-						fprintf(stderr, "<=");
-					}
-					fprintf(stderr, "' at %d.\n", start);
-				}
-				if (match == NULL) {
-					fprintf(stderr, "Ambiguity resolved -- "
-						"plain data (%d).\n", start);
-				}
-			}
-#endif
-		}
-
-#ifdef VTE_DEBUG
-		else {
-			if (vte_debug_on(VTE_DEBUG_PARSE)) {
-				if ((match != NULL) && (match[0] != '\0')) {
-					fprintf(stderr,
-						"Sequence (%d).\n", next - wbuf);
-				}
-				if ((match != NULL) && (match[0] == '\0')) {
-					fprintf(stderr,
-						"Incomplete (%d).\n", next - wbuf);
-				}
-				if (match == NULL) {
-					if (vte_debug_on(VTE_DEBUG_MISC)) {
-						fprintf(stderr,
-							"Plain data (%d).\n", next - wbuf);
-					}
-				}
-			}
-		}
-#endif
+		/* Try to match any control sequences. */
+		vte_table_match(terminal->pvt->table,
+			        &wbuf[start],
+			        wcount - start,
+			        &match,
+			        &next,
+			        &quark,
+			        &params);
 		/* We're in one of three possible situations now.
 		 * First, the match string is a non-empty string and next
 		 * points to the first character which isn't part of this
@@ -5776,6 +5814,13 @@ vte_terminal_process_incoming(gpointer data)
 				leftovers = TRUE;
 			}
 		}
+		/* Process updates if we've processed enough characters.  This
+		 * keeps the user from thinking we've hung if we're processing
+		 * a *lot* of data. */
+		if ((start / VTE_ITERATION_TUNABLE) != iterations) {
+			iterations = start / VTE_ITERATION_TUNABLE;
+			gdk_window_process_updates(widget->window, TRUE);
+		}
 		/* Free any parameters we don't care about any more. */
 		free_params_array(params);
 		params = NULL;
@@ -5784,7 +5829,7 @@ vte_terminal_process_incoming(gpointer data)
 	if (leftovers) {
 		/* There are leftovers, so convert them back to the terminal's
 		 * old encoding and save them for later. */
-		unconv = g_iconv_open(encoding, vte_trie_wide_encoding());
+		unconv = g_iconv_open(encoding, vte_table_wide_encoding());
 		if (unconv != ((GIConv) -1)) {
 			icount = sizeof(gunichar) * (wcount - start);
 			ibuf = (char*) &wbuf[start];
@@ -5989,7 +6034,7 @@ vte_terminal_io_read(GIOChannel *channel,
 #endif
 		terminal->pvt->processing = TRUE;
 		terminal->pvt->processing_tag =
-				g_idle_add_full(G_PRIORITY_HIGH,
+				g_idle_add_full(VTE_INPUT_PRIORITY,
 						vte_terminal_process_incoming,
 						terminal,
 						NULL);
@@ -6040,7 +6085,7 @@ vte_terminal_feed(VteTerminal *terminal, const char *data, size_t length)
 #endif
 		terminal->pvt->processing = TRUE;
 		terminal->pvt->processing_tag =
-				g_idle_add_full(G_PRIORITY_HIGH,
+				g_idle_add_full(VTE_INPUT_PRIORITY,
 						vte_terminal_process_incoming,
 						terminal,
 						NULL);
@@ -6109,13 +6154,13 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_assert((strcmp(encoding, "UTF-8") == 0) ||
-		 (strcmp(encoding, vte_trie_wide_encoding()) == 0));
+		 (strcmp(encoding, vte_table_wide_encoding()) == 0));
 
 	conv = NULL;
 	if (strcmp(encoding, "UTF-8") == 0) {
 		conv = &terminal->pvt->outgoing_conv_utf8;
 	}
-	if (strcmp(encoding, vte_trie_wide_encoding()) == 0) {
+	if (strcmp(encoding, vte_table_wide_encoding()) == 0) {
 		conv = &terminal->pvt->outgoing_conv_wide;
 	}
 	g_assert(conv != NULL);
@@ -8714,11 +8759,11 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	/* Find and read the right termcap file. */
 	vte_terminal_set_termcap(terminal, NULL, FALSE);
 
-	/* Create a trie to hold the control sequences. */
-	if (terminal->pvt->trie) {
-		vte_trie_free(terminal->pvt->trie);
+	/* Create a table to hold the control sequences. */
+	if (terminal->pvt->table) {
+		vte_table_free(terminal->pvt->table);
 	}
-	terminal->pvt->trie = vte_trie_new();
+	terminal->pvt->table = vte_table_new();
 
 	/* Create a tree to hold the handlers. */
 	if (terminal->pvt->sequences) {
@@ -8735,25 +8780,31 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	}
 
 	/* Load the known capability strings from the termcap structure into
-	 * the trie for recognition. */
+	 * the table for recognition. */
 	for (i = 0;
 	     vte_terminal_capability_strings[i].capability != NULL;
 	     i++) {
+		if (vte_terminal_capability_strings[i].key) {
+			continue;
+		}
 		code = vte_terminal_capability_strings[i].capability;
 		tmp = vte_termcap_find_string(terminal->pvt->termcap,
 					      terminal->pvt->emulation,
 					      code);
 		if ((tmp != NULL) && (tmp[0] != '\0')) {
 			vte_termcap_strip(tmp, &stripped, &stripped_length);
-			vte_trie_add(terminal->pvt->trie,
-				     stripped, stripped_length,
-				     code,
-				     0);
+			vte_table_add(terminal->pvt->table,
+				      stripped, stripped_length,
+				      code,
+				      0);
 			if (stripped[0] == '\r') {
 				found_cr = TRUE;
 			} else
 			if (stripped[0] == '\n') {
-				found_lf = TRUE;
+				if ((strcmp(code, "sf") == 0) ||
+				    (strcmp(code, "do") == 0)) {
+					found_lf = TRUE;
+				}
 			}
 			g_free(stripped);
 		}
@@ -8769,43 +8820,25 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 			code = vte_xterm_capability_strings[i].code;
 			value = vte_xterm_capability_strings[i].value;
 			vte_termcap_strip(code, &stripped, &stripped_length);
-			vte_trie_add(terminal->pvt->trie,
+			vte_table_add(terminal->pvt->table,
 				     stripped, stripped_length,
 				     value, 0);
 			g_free(stripped);
 		}
-#if 0
-	} else {
-		/* Add at least ANSI color, which everyone wants. */
-		for (i = 0;
-		     vte_xterm_capability_strings[i].value != NULL;
-		     i++) {
-			code = vte_xterm_capability_strings[i].code;
-			value = vte_xterm_capability_strings[i].value;
-			if (strcmp(code, "character-attributes") == 0) {
-				vte_termcap_strip(code,
-						  &stripped, &stripped_length);
-				vte_trie_add(terminal->pvt->trie,
-					     stripped, stripped_length,
-					     value, 0);
-				g_free(stripped);
-			}
-		}
-#endif
 	}
 
 	/* Always define cr and lf. */
 	if (!found_cr) {
-		vte_trie_add(terminal->pvt->trie, "\r", 1, "cr", 0);
+		vte_table_add(terminal->pvt->table, "\r", 1, "cr", 0);
 	}
 	if (!found_lf) {
-		vte_trie_add(terminal->pvt->trie, "\n", 1, "sf", 0);
+		vte_table_add(terminal->pvt->table, "\n", 1, "sf", 0);
 	}
 
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "Trie contents:\n");
-		vte_trie_print(terminal->pvt->trie);
+		vte_table_print(terminal->pvt->table);
 		fprintf(stderr, "\n");
 	}
 #endif
@@ -8960,7 +8993,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* Load the termcap data and set up the emulation. */
 	pvt->termcap = NULL;
-	pvt->trie = NULL;
+	pvt->table = NULL;
 	pvt->termcap_path = NULL;
 	memset(&pvt->flags, 0, sizeof(pvt->flags));
 	pvt->flags.am = FALSE;
@@ -9035,6 +9068,8 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->alternate_screen.scroll_delta = 0;
 	pvt->alternate_screen.insert_mode = FALSE;
 	pvt->alternate_screen.reverse_mode = FALSE;
+	pvt->alternate_screen.status_line = FALSE;
+	pvt->alternate_screen.status_line_contents = g_string_new("");
 	pvt->screen = &terminal->pvt->alternate_screen;
 	vte_terminal_set_default_attributes(terminal);
 
@@ -9049,6 +9084,8 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->normal_screen.scroll_delta = 0;
 	pvt->normal_screen.insert_mode = FALSE;
 	pvt->normal_screen.reverse_mode = FALSE;
+	pvt->normal_screen.status_line = FALSE;
+	pvt->normal_screen.status_line_contents = g_string_new("");
 	pvt->screen = &terminal->pvt->normal_screen;
 	vte_terminal_set_default_attributes(terminal);
 
@@ -9458,6 +9495,14 @@ vte_terminal_finalize(GObject *object)
 	vte_ring_free(terminal->pvt->alternate_screen.row_data, TRUE);
 	terminal->pvt->alternate_screen.row_data = NULL;
 
+	/* Clear the status lines. */
+	terminal->pvt->normal_screen.status_line = FALSE;
+	g_string_free(terminal->pvt->normal_screen.status_line_contents,
+		      TRUE);
+	terminal->pvt->alternate_screen.status_line = FALSE;
+	g_string_free(terminal->pvt->alternate_screen.status_line_contents,
+		      TRUE);
+
 	/* Free conversion descriptors. */
 	if (terminal->pvt->incoming_conv != ((GIConv) -1)) {
 		g_iconv_close(terminal->pvt->incoming_conv);
@@ -9524,8 +9569,8 @@ vte_terminal_finalize(GObject *object)
 	terminal->pvt->sequences= NULL;
 	terminal->pvt->emulation = NULL;
 	terminal->pvt->termcap_path = NULL;
-	vte_trie_free(terminal->pvt->trie);
-	terminal->pvt->trie = NULL;
+	vte_table_free(terminal->pvt->table);
+	terminal->pvt->table = NULL;
 	vte_termcap_free(terminal->pvt->termcap);
 	terminal->pvt->termcap = NULL;
 
@@ -11310,12 +11355,21 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     NULL,
 			     _vte_marshal_VOID__UINT_UINT,
 			     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
+	klass->status_line_changed_signal =
+		g_signal_new("status-line-changed",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     0,
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
 
 	/* Try to determine some acceptable encoding names. */
-	if (vte_trie_narrow_encoding() == NULL) {
+	if (vte_table_narrow_encoding() == NULL) {
 		g_error("Don't know how to read ISO-8859-1 data!");
 	}
-	if (vte_trie_wide_encoding() == NULL) {
+	if (vte_table_wide_encoding() == NULL) {
 		g_error("Don't know how to read native-endian unicode data!");
 	}
 
@@ -11675,7 +11729,7 @@ vte_terminal_update_transparent(gpointer data)
 
 /* Queue an update of the background image, to be done as soon as we can
  * get to it.  Just bail if there's already an update pending, so that if
- * opaque move tries to screw us, we don't end up with an insane backlog
+ * opaque move tables to screw us, we don't end up with an insane backlog
  * of updates after the user finishes moving us. */
 static void
 vte_terminal_queue_background_update(VteTerminal *terminal)
@@ -11684,7 +11738,7 @@ vte_terminal_queue_background_update(VteTerminal *terminal)
 	if (!terminal->pvt->bg_transparent_update_pending) {
 		terminal->pvt->bg_transparent_update_pending = TRUE;
 		terminal->pvt->bg_transparent_update_tag =
-				g_idle_add_full(G_PRIORITY_HIGH_IDLE,
+				g_idle_add_full(VTE_FX_PRIORITY,
 						vte_terminal_update_transparent,
 						terminal,
 						NULL);
@@ -11958,7 +12012,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	terminal->pvt->word_chars = g_array_new(FALSE, TRUE,
 						sizeof(VteWordCharRange));
 	/* Convert the spec from UTF-8 to a string of gunichars . */
-	conv = g_iconv_open(vte_trie_wide_encoding(), "UTF-8");
+	conv = g_iconv_open(vte_table_wide_encoding(), "UTF-8");
 	if (conv == ((GIConv) -1)) {
 		/* Aaargh.  We're screwed. */
 		g_warning(_("g_iconv_open() failed setting word characters"));
@@ -12090,6 +12144,19 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 		terminal->pvt->alternate_screen.cursor_current.row = 0;
 		terminal->pvt->alternate_screen.cursor_current.col = 0;
 	}
+	/* Clear the status lines. */
+	terminal->pvt->normal_screen.status_line = FALSE;
+	if (terminal->pvt->normal_screen.status_line_contents != NULL) {
+		g_string_free(terminal->pvt->normal_screen.status_line_contents,
+			      TRUE);
+	}
+	terminal->pvt->normal_screen.status_line_contents = g_string_new("");
+	terminal->pvt->alternate_screen.status_line = FALSE;
+	if (terminal->pvt->alternate_screen.status_line_contents != NULL) {
+		g_string_free(terminal->pvt->alternate_screen.status_line_contents,
+			      TRUE);
+	}
+	terminal->pvt->alternate_screen.status_line_contents = g_string_new("");
 	/* Do more stuff we refer to as a "full" reset. */
 	if (full) {
 		vte_terminal_set_default_tabstops(terminal);
@@ -12128,4 +12195,11 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	terminal->pvt->mouse_last_button = 0;
 	terminal->pvt->mouse_last_x = 0;
 	terminal->pvt->mouse_last_y = 0;
+}
+
+const char *
+vte_terminal_get_status_line(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+	return terminal->pvt->screen->status_line_contents->str;
 }

@@ -13,10 +13,10 @@
   should probably be using profterm.
 
 * How does it work?
-- The VTE library inserts terminal capability strings into a trie, and then
-  uses it to determine if data received from a pseudo-terminal is a control
-  sequence or just random data.  The sample program "interpret" illustrates
-  more or less what the widget sees after it filters incoming data.
+- The VTE library inserts terminal capability strings into a tree of tables,
+  and then uses it to determine if data received from a pseudo-terminal is a
+  control sequence or just random data.  The sample program "interpret"
+  illustrates more or less what the widget sees after it filters incoming data.
 
 * What's missing?
 - Accessibility isn't completed yet.
@@ -26,7 +26,7 @@
   probably shouldn't.
 - Most control sequences are recognized, but many aren't implemented.  There
   are enough to run ls, vim, less, emacs and mutt, but more need to be
-  implemented (ff, fs, i1, i3, is, iP, LF, LO, MC, mh, ML, mm, mo, nw, pf,
+  implemented (ff, i1, i3, is, iP, LF, LO, MC, mh, ML, mm, mo, nw, pf,
   pk, pl, pf, po, pO, ps, px, r1, r2, r3, RA, RF, rp, rs, RX, SA, SX, wi,
   several more from the XTerm set).
 - I'm not sure the widget implementation itself is correct.  There are many

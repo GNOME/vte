@@ -78,6 +78,13 @@ destroy_and_quit_exited(GtkWidget *widget, gpointer data)
 	destroy_and_quit(widget, data);
 }
 
+static void
+status_line_changed(GtkWidget *widget, gpointer data)
+{
+	g_print("Status = `%s'.\n",
+		vte_terminal_get_status_line(VTE_TERMINAL(widget)));
+}
+
 int
 main(int argc, char **argv)
 {
@@ -190,6 +197,10 @@ main(int argc, char **argv)
 			 G_CALLBACK(destroy_and_quit_eof), widget);
 	g_signal_connect(G_OBJECT(widget), "child-exited",
 			 G_CALLBACK(destroy_and_quit_exited), widget);
+
+	/* Connect to the "status-line-changed" signal. */
+	g_signal_connect(G_OBJECT(widget), "status-line-changed",
+			 G_CALLBACK(status_line_changed), widget);
 
 	/* Create the scrollbar for the widget. */
 	scrollbar = gtk_vscrollbar_new((VTE_TERMINAL(widget))->adjustment);

@@ -33,13 +33,13 @@
 #include "caps.h"
 #include "debug.h"
 #include "termcap.h"
-#include "trie.h"
+#include "table.h"
 
 int
 main(int argc, char **argv)
 {
 	char *terminal = NULL;
-	struct vte_trie *trie = NULL;
+	struct vte_table *table = NULL;
 	struct vte_termcap *termcap = NULL;
 	GByteArray *array = NULL;
 	int i;
@@ -54,7 +54,7 @@ main(int argc, char **argv)
 		return 1;
 	}
 
-	if (argc > 2) {
+	if ((argc > 2) && (strcmp(argv[2], "-") != 0)) {
 		infile = fopen(argv[2], "r");
 		if (infile == NULL) {
 			g_print("error opening %s: %s\n", argv[2],
@@ -67,7 +67,7 @@ main(int argc, char **argv)
 
 	g_type_init();
 	terminal = argv[1];
-	trie = vte_trie_new();
+	table = vte_table_new();
 	termcap = vte_termcap_new("/etc/termcap");
 	array = g_byte_array_new();
 
@@ -77,10 +77,13 @@ main(int argc, char **argv)
 		const char *capability;
 		char *tmp;
 		capability = vte_terminal_capability_strings[i].capability;
+		if (vte_terminal_capability_strings[i].key) {
+			continue;
+		}
 		tmp = vte_termcap_find_string(termcap, terminal, capability);
 		if ((tmp != NULL) && (strlen(tmp) > 0)) {
-			vte_trie_add(trie, tmp, strlen(tmp), capability,
-				     g_quark_from_static_string(capability));
+			vte_table_add(table, tmp, strlen(tmp), capability,
+				      g_quark_from_static_string(capability));
 		}
 		g_free(tmp);
 	}
@@ -88,8 +91,8 @@ main(int argc, char **argv)
 		const char *code, *value;
 		code = vte_xterm_capability_strings[i].code;
 		value = vte_xterm_capability_strings[i].value;
-		vte_trie_add(trie, code, strlen(code), value,
-			     g_quark_from_static_string(code));
+		vte_table_add(table, code, strlen(code), value,
+			      g_quark_from_static_string(code));
 	}
 
 	while (fread(&c, 1, 1, infile) == 1) {
@@ -102,7 +105,7 @@ main(int argc, char **argv)
 			gunichar *ubuf;
 			gsize ubuflen;
 			ubuf = (gunichar*) g_convert(array->data, i,
-						     vte_trie_wide_encoding(),
+						     vte_table_wide_encoding(),
 						     "UTF-8",
 						     NULL, &ubuflen, &error);
 			if (error != NULL) {
@@ -110,8 +113,8 @@ main(int argc, char **argv)
 					error->message ? error->message : "?");
 				g_clear_error(&error);
 			}
-			vte_trie_match(trie, ubuf, ubuflen / sizeof(gunichar),
-				       &tmp, NULL, &quark, &values);
+			vte_table_match(table, ubuf, ubuflen / sizeof(gunichar),
+				        &tmp, NULL, &quark, &values);
 			if (tmp != NULL) {
 				if (strlen(tmp) > 0) {
 					int j;
@@ -158,6 +161,6 @@ main(int argc, char **argv)
 
 	g_byte_array_free(array, TRUE);
 	vte_termcap_free(termcap);
-	vte_trie_free(trie);
+	vte_table_free(table);
 	return 0;
 }

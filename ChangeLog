@@ -1,3 +1,28 @@
+2002-07-30  nalin
+	* configure.in: Check for wint_t and attempt to allow compiles even
+	when wint_t isn't defined (this type is used only debug code, so it
+	shouldn't break anything).
+	* src/caps.c: Remove "te" and "ti", which are logical, in the same way
+	"so" is, from the known capabilities lists.  Add a "is a key" field to
+	the termcap list so that we don't match against keystrokes in case
+	they're also control sequences.
+	* src/interpret.c: Use tables instead of tries.  Don't add key sequences
+	to the table.
+	* src/pty.c: Fix incorrect invocation in sample.
+	* src/reaper.c: Include stdlib.h to quiet compiler warning.
+	* src/trie.c, src/trie.h: Remove the unused precomputing routines.
+	* src/utf8echo.c: Switch to link with tables instead of tries.
+	* src/vte.c: Switch to using tables instead of tries.  Map
+	cursor-backward to LE instead of le, which handles parameters right.
+	Don't add key sequences to the parsing table.  Tune updates so that
+	they occur less often when we're processing large amounts of data from
+	the child.  Add a 'status-line-changed' signal.  Implement fs() and
+	fix ts().  Add ::get_status_line() to get the contents of the status
+	line.  Obey it() when setting default tabstops.  Implement
+	cursor_next_line(), cursor_lower_left(), cursor_preceding_line(),
+	cursor_horizontal_and_vertical_position(), erase_characters(), and
+	insert_blank_characters().  Implement nw().
+
 2002-07-26  nalin
 	* src/vte.c: Initialize new lines added for al().  Spotted by jrb.
 

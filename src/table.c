@@ -50,8 +50,8 @@ enum vte_table_specials {
 struct vte_table {
 	GQuark resultq;
 	const char *result;
-	GQuark originalq;
-	const char *original;
+	unsigned char *original;
+	size_t original_length;
 	int increment;
 	struct vte_table *table[vte_table_max];
 };
@@ -86,13 +86,17 @@ vte_table_free(struct vte_table *table)
 			table->table[i] = NULL;
 		}
 	}
+	if (table->original != NULL) {
+		g_free(table->original);
+		table->original = NULL;
+	}
 	g_free(table);
 }
 
 /* Add a string to the tree with the given increment value. */
 static void
 vte_table_addi(struct vte_table *table,
-	       const unsigned char *original,
+	       const unsigned char *original, size_t original_length,
 	       const unsigned char *pattern, size_t length,
 	       const char *result, GQuark quark, int inc)
 {
@@ -111,8 +115,9 @@ vte_table_addi(struct vte_table *table,
 #endif
 		table->resultq = g_quark_from_string(result);
 		table->result = g_quark_to_string(table->resultq);
-		table->originalq = g_quark_from_string(original);
-		table->original = g_quark_to_string(table->originalq);
+		table->original = g_malloc(original_length);
+		table->original_length = original_length;
+		memcpy(table->original, original, original_length);
 		table->increment = inc;
 		return;
 	}
@@ -121,7 +126,7 @@ vte_table_addi(struct vte_table *table,
 	if (pattern[0] == '%') {
 		/* Handle an increment. */
 		if (pattern[1] == 'i') {
-			vte_table_addi(table, original,
+			vte_table_addi(table, original, original_length,
 				       pattern + 2, length - 2,
 				       result, quark, inc + 1);
 			return;
@@ -139,7 +144,7 @@ vte_table_addi(struct vte_table *table,
 				subtable = table->table[vte_table_number];
 			}
 			/* Add the rest of the string to the subtable. */
-			vte_table_addi(subtable, original,
+			vte_table_addi(subtable, original, original_length,
 				       pattern + 2, length - 2,
 				       result, quark, inc);
 			return;
@@ -157,7 +162,7 @@ vte_table_addi(struct vte_table *table,
 				subtable = table->table[vte_table_string];
 			}
 			/* Add the rest of the string to the subtable. */
-			vte_table_addi(subtable, original,
+			vte_table_addi(subtable, original, original_length,
 				       pattern + 2, length - 2,
 				       result, quark, inc);
 			return;
@@ -173,7 +178,7 @@ vte_table_addi(struct vte_table *table,
 				subtable = table->table['%'];
 			}
 			/* Add the rest of the string to the subtable. */
-			vte_table_addi(subtable, original,
+			vte_table_addi(subtable, original, original_length,
 				       pattern + 2, length - 2,
 				       result, quark, inc);
 			return;
@@ -194,7 +199,8 @@ vte_table_addi(struct vte_table *table,
 					subtable = table->table[i];
 				}
 				/* Add the rest of the string to the subtable. */
-				vte_table_addi(subtable, original,
+				vte_table_addi(subtable,
+					       original, original_length,
 					       pattern + 3, length - 3,
 					       result, quark, inc);
 			}
@@ -206,7 +212,7 @@ vte_table_addi(struct vte_table *table,
 				subtable = table->table[0];
 			}
 			/* Add the rest of the string to the subtable. */
-			vte_table_addi(subtable, original,
+			vte_table_addi(subtable, original, original_length,
 				       pattern + 3, length - 3,
 				       result, quark, inc);
 			return;
@@ -222,7 +228,7 @@ vte_table_addi(struct vte_table *table,
 		subtable = table->table[pattern[0]];
 	}
 	/* Add the rest of the string to the subtable. */
-	vte_table_addi(subtable, original,
+	vte_table_addi(subtable, original, original_length,
 		       pattern + 1, length - 1,
 		       result, quark, inc);
 }
@@ -236,29 +242,20 @@ vte_table_add(struct vte_table *table,
 	unsigned char *pattern_copy, *p;
 	pattern_copy = g_strndup(pattern, length);
 	/* Collapse as many numeric parameters as possible into '%m'. */
-	while ((p = strstr(pattern_copy, "%d;%d")) != NULL) {
-		strcpy(p, p + 3);
-	}
-	while ((p = strstr(pattern_copy, "%2;%d")) != NULL) {
-		strcpy(p, p + 3);
-	}
-	while ((p = strstr(pattern_copy, "%d;%2")) != NULL) {
-		strcpy(p, p + 3);
-	}
-	while ((p = strstr(pattern_copy, "%2;%2")) != NULL) {
-		strcpy(p, p + 3);
-	}
 	while ((p = strstr(pattern_copy, "%d")) != NULL) {
+		memcpy(p, "%m", 2);
+	}
+	while ((p = strstr(pattern_copy, "%3")) != NULL) {
 		memcpy(p, "%m", 2);
 	}
 	while ((p = strstr(pattern_copy, "%2")) != NULL) {
 		memcpy(p, "%m", 2);
 	}
 	while ((p = strstr(pattern_copy, "%m;%m")) != NULL) {
-		strcpy(p, p + 3);
+		memmove(p, p + 3, length - 3 - (p - pattern_copy));
+		length -= 3;
 	}
-	vte_table_addi(table, pattern_copy,
-		       pattern_copy, strlen(pattern_copy),
+	vte_table_addi(table, pattern_copy, length, pattern_copy, length,
 		       result, quark, 0);
 	g_free(pattern_copy);
 }
@@ -267,8 +264,9 @@ vte_table_add(struct vte_table *table,
 static const char *
 vte_table_matchi(struct vte_table *table,
 		 const gunichar *pattern, size_t length,
-		 const char **res, const gunichar **consumed,
-		 GQuark *quark, const char **original, GList **params)
+		 const char **res, const gunichar **consumed, GQuark *quark,
+		 unsigned char **original, size_t *original_length,
+		 GList **params)
 {
 	int i = 0;
 	struct vte_table *subtable = NULL;
@@ -278,6 +276,7 @@ vte_table_matchi(struct vte_table *table,
 	if (table->result != NULL) {
 		*consumed = pattern;
 		*original = table->original;
+		*original_length = table->original_length;
 		*res = table->result;
 		*quark = table->resultq;
 		return table->result;
@@ -307,7 +306,8 @@ vte_table_matchi(struct vte_table *table,
 		*params = g_list_append(*params, arginfo);
 		/* Continue. */
 		return vte_table_matchi(subtable, pattern + i, length - i,
-					res, consumed, quark, original, params);
+					res, consumed, quark,
+					original, original_length, params);
 	}
 
 	/* Check if this could be a number. */
@@ -328,7 +328,8 @@ vte_table_matchi(struct vte_table *table,
 		*params = g_list_append(*params, arginfo);
 		/* Continue. */
 		return vte_table_matchi(subtable, pattern + i, length - i,
-					res, consumed, quark, original, params);
+					res, consumed, quark,
+					original, original_length, params);
 	}
 
 	/* Check for an exact match. */
@@ -342,7 +343,8 @@ vte_table_matchi(struct vte_table *table,
 		*params = g_list_append(*params, arginfo);
 		/* Continue. */
 		return vte_table_matchi(subtable, pattern + 1, length - 1,
-					res, consumed, quark, original, params);
+					res, consumed, quark,
+					original, original_length, params);
 	}
 
 	/* If there's nothing else to do, then we can't go on.  Keep track of
@@ -435,8 +437,9 @@ vte_table_match(struct vte_table *table,
 	GQuark dummy_quark = 0;
 	GValueArray *dummy_array = NULL;
 	GValue *value;
-	const char *ret = NULL, *p;
-	const char *original = NULL;
+	const char *ret = NULL;
+	unsigned char *original = NULL, *p = NULL;
+	size_t original_length;
 	GList *params = NULL, *tmp;
 	long increment = 0;
 	int i;
@@ -494,7 +497,9 @@ vte_table_match(struct vte_table *table,
 
 	/* Check for a pattern match. */
 	ret = vte_table_matchi(table, pattern, length,
-			       res, consumed, quark, &original, &params);
+			       res, consumed, quark,
+			       &original, &original_length,
+			       &params);
 	*res = ret;
 
 	/* If we got a match, extract the parameters. */
@@ -502,7 +507,7 @@ vte_table_match(struct vte_table *table,
 		tmp = params;
 		g_assert(original != NULL);
 		p = original;
-		while (*p != '\0') {
+		while (p < original + original_length) {
 			/* All of the interesting arguments begin with '%'. */
 			if (p[0] == '%') {
 				/* Handle an increment. */

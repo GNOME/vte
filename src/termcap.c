@@ -32,6 +32,8 @@
 #include "termcap.h"
 #endif
 
+#include "debug.h"
+
 struct vte_termcap {
 	char *comment;
 	struct vte_termcap_entry {

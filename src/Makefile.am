@@ -2,7 +2,7 @@ bin_PROGRAMS = vte
 pkginclude_HEADERS = caps.h pty.h ring.h termcap.h trie.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
 pkglib_PROGRAMS = interpret utf8echo utf8mode iso8859mode slowcat
-EXTRA_PROGRAMS = pty reaper ring termcap trie
+EXTRA_PROGRAMS = pty reaper ring table termcap trie
 EXTRA_DIST = marshal.list
 
 CFLAGS = @CFLAGS@ @XFT_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@
@@ -20,6 +20,8 @@ libvte_la_SOURCES = \
 	reaper.h \
 	ring.c \
 	ring.h \
+	table.c \
+	table.h \
 	termcap.c \
 	termcap.h \
 	trie.c \
@@ -30,7 +32,7 @@ libvte_la_SOURCES = \
 	vteaccess.h
 
 libvte_la_LIBADD = @LIBS@ @XFT_LIBS@ @GTK_LIBS@ @X_LIBS@
-libvte_la_LDFLAGS = -version-info 3:0:1
+libvte_la_LDFLAGS = -version-info 4:0:2
 
 CLEANFILES = marshal.c marshal.h
 
@@ -48,10 +50,10 @@ interpret_SOURCES = \
 	caps.h \
 	debug.c \
 	debug.h \
+	table.c \
+	table.h \
 	termcap.c \
 	termcap.h \
-	trie.c \
-	trie.h \
 	interpret.c
 interpret_LDADD = @GLIB_LIBS@
 
@@ -59,8 +61,8 @@ utf8echo_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DUTF8ECHO_MAIN
 utf8echo_SOURCES = \
 	debug.c \
 	debug.h \
-	trie.c \
-	trie.h \
+	table.c \
+	table.h \
 	utf8echo.c
 utf8echo_LDADD = @LIBS@ @GLIB_LIBS@
 
@@ -76,10 +78,20 @@ slowcat_SOURCES = \
 	slowcat.c
 slowcat_LDADD = @LIBS@ @GLIB_LIBS@
 
+table_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DTABLE_MAIN
+table_SOURCES = \
+	debug.c \
+	debug.h \
+	table.c \
+	table.h
+table_LDADD = @LIBS@ @GLIB_LIBS@
+
 trie_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DTRIE_MAIN
 trie_SOURCES = \
 	debug.c \
 	debug.h \
+	table.c \
+	table.h \
 	termcap.c \
 	termcap.h \
 	trie.c \
@@ -104,6 +116,8 @@ pty_LDADD = @LIBS@ @GLIB_LIBS@
 
 reaper_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DREAPER_MAIN
 reaper_SOURCES = \
+	debug.c \
+	debug.h \
 	marshal.c \
 	marshal.h \
 	reaper.c \

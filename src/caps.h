@@ -36,6 +36,7 @@ G_BEGIN_DECLS
  * which means they're either key sequences or commands. */
 struct vte_capability_quark {
 	const char *capability;
+	gboolean key;
 	GQuark quark;
 };
 struct vte_capability_string {
