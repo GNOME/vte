@@ -2,6 +2,7 @@
 #
 # Original code by Bernhard Rosenkraenzer (bero@linux.net.eu.org), 1998.
 # Modifications by Timur Bakeyev (timur@gnu.org), 1999.
+# Patched from http://bugzilla.gnome.org/show_bug.cgi?id=93774
 #
 
 dnl GPH_CHECK_UTMP()
@@ -212,7 +213,7 @@ AC_TRY_COMPILE([#ifdef TIME_WITH_SYS_TIME
 #endif
 #ifdef HAVE_UTMPX_H
 #include <utmpx.h>
-#endif],[UTMP ut; ut.ut_tv={0, 0};],result=yes,result=no)
+#endif],[UTMP ut; ut.ut_tv.tv_sec=0; ut.ut_tv.tv_usec=0; ],result=yes,result=no)
 if test "$result" = "yes"; then
   AC_DEFINE(HAVE_UT_UT_TV,1,[Define if your utmp struct contains a ut_tv field.])
 fi

@@ -1,4 +1,9 @@
 2002-09-24 nalin
+	* gnome-pty-helper/acinclude.m4: Fix HAVE_UT_UT_TV for cases where
+	the static initializer might not work right (#93774, patch from
+	Kalpesh Shah).
+
+2002-09-24 nalin
 	* README, gnome-pty-helper/README:  Doc fixups (mention gnome-terminal
 	instead of profterm, note the proper permissions for gnome-pty-helper,
 	#84505).
