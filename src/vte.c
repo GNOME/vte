@@ -58,6 +58,9 @@
 #include <X11/Xlib.h>
 #ifdef HAVE_XFT
 #include <X11/Xft/Xft.h>
+#ifdef HAVE_XFT2
+#include <fontconfig/fontconfig.h>
+#endif
 #endif
 
 #ifdef HAVE_LOCALE_H

@@ -1,4 +1,9 @@
+2002-09-04 nalin
+	* src/vte.c: Add missing <fontconfig/fontconfig.h> include for Xft2,
+	spotted by Jacob Berkman.
+
 2002-09-04 Brian Cameron <Brian.Cameron@sun.com>
+	* src/vte.c: Avoid double color deallocations with Xft.
 	* configure.in: Added stropts.h check for Solaris.
 	* src/vte.c: Do not send data to the slave if the length is zero.
 	Some shells on Solaris do not handle this well.
