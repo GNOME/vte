@@ -57,11 +57,11 @@
 #include "pty.h"
 #include "reaper.h"
 #include "ring.h"
-#include "termcap.h"
 #include "vte.h"
 #include "vteaccess.h"
 #include "vteconv.h"
 #include "vtedraw.h"
+#include "vtetc.h"
 #include <fontconfig/fontconfig.h>
 
 #ifdef HAVE_LOCALE_H

@@ -3,7 +3,7 @@ pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
 pkglib_PROGRAMS = interpret utf8echo nativeecho utf8mode iso8859mode slowcat vterdb
 pkglib_SCRIPTS = decset osc window
-noinst_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-vte $(REFLECT_ZVT) ring mev ssfe table termcap trie xticker vteconv
+noinst_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-vte $(REFLECT_ZVT) ring mev ssfe table trie xticker vteconv vtetc
 EXTRA_DIST = \
 	$(pkglib_SCRIPTS) \
 	genkeysyms.py \
@@ -22,7 +22,6 @@ EXTRA_DIST = \
 
 AM_CFLAGS = @CFLAGS@ @VTE_CFLAGS@ @X_CFLAGS@
 AM_LDFLAGS = @LDFLAGS@
-DEFAULT_INCLUDES =
 
 EXTRA_libvte_la_SOURCES = keysyms.c
 
@@ -49,8 +48,6 @@ libvte_la_SOURCES = \
 	ring.h \
 	table.c \
 	table.h \
-	termcap.c \
-	termcap.h \
 	trie.c \
 	trie.h \
 	vte.c \
@@ -81,6 +78,8 @@ libvte_la_SOURCES = \
 	vtergb.h \
 	vteskel.c \
 	vteskel.h \
+	vtetc.c \
+	vtetc.h \
 	vtexft.c \
 	vtexft.h
 
@@ -129,12 +128,12 @@ interpret_SOURCES = \
 	matcher.h \
 	table.c \
 	table.h \
-	termcap.c \
-	termcap.h \
 	trie.c \
 	trie.h \
 	vteconv.c \
 	vteconv.h \
+	vtetc.c \
+	vtetc.h \
 	interpret.c
 interpret_LDADD = @LDFLAGS@ @GOBJECT_LIBS@
 
@@ -216,21 +215,21 @@ trie_SOURCES = \
 	matcher.h \
 	table.c \
 	table.h \
-	termcap.c \
-	termcap.h \
 	trie.c \
 	trie.h \
 	vteconv.c \
-	vteconv.h
+	vteconv.h \
+	vtetc.c \
+	vtetc.h
 trie_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
-termcap_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DTERMCAP_MAIN
-termcap_SOURCES = \
+vtetc_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DTERMCAP_MAIN
+vtetc_SOURCES = \
 	debug.c \
 	debug.h \
-	termcap.c \
-	termcap.h
-termcap_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
+	vtetc.c \
+	vtetc.h
+vtetc_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
 
 pty_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DPTY_MAIN
 pty_SOURCES = \

@@ -27,7 +27,7 @@
 #include "caps.h"
 #include "debug.h"
 #include "keymap.h"
-#include "termcap.h"
+#include "vtetc.h"
 #ifdef HAVE_NCURSES
 #include <ncurses.h>
 #ifdef HAVE_TERM_H

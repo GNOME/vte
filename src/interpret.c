@@ -33,7 +33,7 @@
 #include "debug.h"
 #include "iso2022.h"
 #include "matcher.h"
-#include "termcap.h"
+#include "vtetc.h"
 
 int
 main(int argc, char **argv)

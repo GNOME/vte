@@ -29,7 +29,7 @@
 
 #ifndef TERMCAP_MAYBE_STATIC
 #define TERMCAP_MAYBE_STATIC
-#include "termcap.h"
+#include "vtetc.h"
 #endif
 
 #include "debug.h"

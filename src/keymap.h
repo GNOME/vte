@@ -25,7 +25,7 @@
 
 #include <glib.h>
 #include <gdk/gdk.h>
-#include "termcap.h"
+#include "vtetc.h"
 
 G_BEGIN_DECLS
 
