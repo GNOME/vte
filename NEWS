@@ -1,3 +1,5 @@
+0.11: Support for using font sets for better Unicode coverage when drawing.
+      Currently implemented only for Xft2, but more is planned.
 0.10: Rewrote selection to better integrate dingus and autoscroll support.  The
       previous implementation was just a mess.  Changed the APIs so that callers
       have to decide whether or not to log (NOTE: this breaks gnome-terminal
