@@ -54,7 +54,7 @@ AC_DEFINE(PANGO_DISABLE_DEPRECATED,1,[Disable deprecated pango features.])
 
 AC_DEFINE(VTE_UTF8_BPC,6,[Maximum number of bytes used per UTF-8 character.])
 AC_DEFINE_UNQUOTED(PACKAGE,"$PACKAGE",[Package name.])
-AC_CHECK_FUNCS(cfmakeraw getpt grantpt unlockpt ptsname ptsname_r sendmsg)
+AC_CHECK_FUNCS(cfmakeraw getpt grantpt unlockpt ptsname ptsname_r sendmsg wcwidth)
 AC_CHECK_FUNC(socket,[have_socket=1],AC_CHECK_LIB(socket,socket,[have_socket=1; LIBS="$LIBS -lsocket"]))
 AC_CHECK_FUNC(socketpair,[have_socketpair=1],AC_CHECK_LIB(socket,socketpair,[have_socketpair=1; LIBS="$LIBS -lsocket"]))
 AC_CHECK_HEADERS(sys/select.h sys/un.h stropts.h termios.h wchar.h)

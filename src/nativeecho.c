@@ -18,7 +18,6 @@
 
 #ident "$Id$"
 #include "../config.h"
-#include <glib.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,48 +30,25 @@ int
 main(int argc, char **argv)
 {
 	int i;
-	GIConv conv;
-	char buf[LINE_MAX];
-	wchar_t w;
-	char *inbuf, *outbuf, *p;
-	size_t insize, outsize;
-	gboolean do_reset = FALSE;
+	long l;
+	char *p;
 
 	if (argc < 2) {
-		printf("usage: [-r] %s index [...]\n", argv[0]);
-		printf("        -r  reset to default terminal encoding "
-		       "when finished\n");
-		return 1;
-	}
-
-	conv = g_iconv_open("UTF-8", _vte_table_wide_encoding());
-	if (conv == ((GIConv) -1)) {
+		printf("usage: %s index [...]\n", argv[0]);
 		return 1;
 	}
 
 	if (isatty(STDOUT_FILENO)) {
-		printf(ESC "%%G");
-	}
-	for (i = 1; i < argc; i++) {
-		if (strcmp(argv[i], "-r") == 0) {
-			do_reset = !do_reset;
-			continue;
-		}
-		w = (wchar_t)strtol(argv[i], &p, 0);
-		inbuf = (char*)&w;
-		insize = sizeof(w);
-		memset(buf, 0, sizeof(buf));
-		outbuf = buf;
-		outsize = sizeof(buf);
-		if (g_iconv(conv, &inbuf, &insize, &outbuf, &outsize) != -1) {
-			printf("%*s", outbuf - buf, buf);
-		}
-	}
-	if (isatty(STDOUT_FILENO) && do_reset) {
-		printf(ESC "%%@\n");
+		printf(ESC "%%@");
 	}
 
-	g_iconv_close(conv);
+	for (i = 1; i < argc; i++) {
+		l = strtol(argv[i], &p, 0);
+		while (l > 0) {
+			printf("%c", (unsigned char) (l & 0xff));
+			l = l >> 8;
+		}
+	}
 
 	return 0;
 }

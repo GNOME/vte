@@ -1,4 +1,11 @@
 2002-12-02  nalin
+	* po: update-po
+	* src/utf8echo.c: change the default from resetting to the terminal's
+	default encoding before exiting to leaving it alone.  Don't mess with
+	the terminal's encoding if stdout isn't connected to a terminal.
+	* src/nativeecho.c: add, for printing random bytes.
+
+2002-12-02  nalin
 	* src/vte.c: don't zero-fill rows, space-fill them.
 	* src/vte.c(vte_terminal_is_word_char): Don't just fail if the
 	word_chars array doesn't exist.

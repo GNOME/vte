@@ -8357,7 +8357,7 @@ vte_terminal_get_text_range(VteTerminal *terminal,
  * @data: user data to be passed to the callback
  * @attributes: location for storing text attributes
  *
- * Extracts a view of the visible part of the string.  If @is_selected is not
+ * Extracts a view of the visible part of the terminal.  If @is_selected is not
  * NULL, characters will only be read if @is_selected returns TRUE after being
  * passed the column and row, respectively.  A #vte_char_attributes structure
  * is added to @attributes for each byte added to the returned string detailing

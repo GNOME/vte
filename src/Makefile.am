@@ -1,7 +1,7 @@
 bin_PROGRAMS = vte
 pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
-pkglib_PROGRAMS = interpret utf8echo utf8mode iso8859mode slowcat
+pkglib_PROGRAMS = interpret utf8echo nativeecho utf8mode iso8859mode slowcat
 pkglib_SCRIPTS = decset osc window
 noinst_PROGRAMS = dumpkeys iso2022 pty reaper ring table termcap trie
 EXTRA_DIST = \
@@ -98,6 +98,11 @@ utf8echo_SOURCES = \
 	table.h \
 	utf8echo.c
 utf8echo_LDADD = @LIBS@ @GOBJECT_LIBS@
+
+nativeecho_CFLAGS = @CFLAGS@ -DNATIVEECHO_MAIN
+nativeecho_SOURCES = \
+	nativeecho.c
+nativeecho_LDADD = @LIBS@
 
 ring_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DRING_MAIN
 ring_SOURCES = \
