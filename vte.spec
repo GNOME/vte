@@ -6,9 +6,6 @@ License: LGPL
 Group: User Interface/X
 BuildRoot: %{_tmppath}/%{name}-root
 Source: %{name}-%{version}.tar.gz
-Patch0: %{name}-%{version}-spacing.patch
-Patch1: %{name}-%{version}-im.patch
-Patch2: %{name}-%{version}-keymap.patch
 BuildPrereq: gtk2-devel, pygtk2-devel, python-devel
 Requires: bitmap-fonts
 
@@ -26,9 +23,6 @@ package contains the files needed for building applications using VTE.
 
 %prep
 %setup -q
-%patch0 -p0 -b .spacing
-%patch1 -p0 -b .im
-%patch2 -p0 -b .keymap
 
 %build
 if [ -x %{_bindir}/python2.2 ]; then
