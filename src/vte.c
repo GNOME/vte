@@ -1329,6 +1329,17 @@ vte_sequence_handler_us(VteTerminal *terminal,
 	terminal->pvt->screen->defaults.underline = 1;
 }
 
+/* Cursor visible. */
+static void
+vte_sequence_handler_ve(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->screen->cursor_visible = TRUE;
+}
+
 /* Cursor invisible. */
 static void
 vte_sequence_handler_vi(VteTerminal *terminal,
@@ -1348,7 +1359,8 @@ vte_sequence_handler_vs(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->screen->cursor_visible = TRUE;
+	terminal->pvt->screen->cursor_visible = TRUE; /* FIXME: should be
+							 more visible. */
 }
 
 /* Handle ANSI color setting and related stuffs (SGR). */
@@ -2326,7 +2338,7 @@ static struct {
 	{"us", vte_sequence_handler_us},
 
 	{"vb", NULL},
-	{"ve", NULL},
+	{"ve", vte_sequence_handler_ve},
 	{"vi", vte_sequence_handler_vi},
 	{"vs", vte_sequence_handler_vs},
 
