@@ -62,7 +62,9 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 
 %changelog
 * Tue Aug 27 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.10-1
-- only perform cr-lf substitutions when pasting
+- autoscroll (#70481)
+- only perform cr-lf substitutions when pasting (#72639)
+- bind GDK_ISO_Left_Tab to "kB" (part of #70340)
 
 * Tue Aug 27 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.9-1
 - handle forward scrolling again

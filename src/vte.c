@@ -76,7 +76,7 @@ typedef long wint_t;
 #define bindtextdomain(package,dir)
 #endif
 
-#define VTE_PAD_WIDTH			2
+#define VTE_PAD_WIDTH			1
 #define VTE_TAB_WIDTH			8
 #define VTE_LINE_WIDTH			1
 #define VTE_COLOR_SET_SIZE		8
@@ -277,6 +277,8 @@ struct _VteTerminalPrivate {
 	guint mouse_last_button;
 	gdouble mouse_last_x, mouse_last_y;
 	gboolean mouse_autohide;
+	gboolean mouse_autoscrolling;
+	guint mouse_autoscroll_tag;
 
 	/* State variables for handling match checks. */
 	char *match_contents;
@@ -7638,6 +7640,68 @@ vte_terminal_selection_recompute(VteTerminal *terminal)
 	terminal->pvt->selection_end.y = end.y;
 }
 
+static int
+vte_terminal_autoscroll(gpointer data)
+{
+	VteTerminal *terminal;
+	GtkWidget *widget;
+	double adj;
+	long row;
+
+	terminal = VTE_TERMINAL(data);
+	widget = GTK_WIDGET(terminal);
+	/* Provide immediate autoscroll for mouse wigglers. */
+	if (terminal->pvt->mouse_last_y < widget->allocation.y) {
+		if (terminal->adjustment) {
+			adj = CLAMP(terminal->adjustment->value - 1,
+				    terminal->adjustment->lower,
+				    terminal->adjustment->upper -
+				    terminal->row_count);
+			gtk_adjustment_set_value(terminal->adjustment,
+						 adj);
+			terminal->pvt->selection_last.x =
+				terminal->pvt->mouse_last_x;
+			terminal->pvt->selection_last.y =
+				terminal->pvt->mouse_last_y +
+				terminal->char_height * adj;
+			row = terminal->pvt->selection_start.y;
+			vte_terminal_selection_recompute(terminal);
+			vte_invalidate_cells(terminal,
+					     0,
+					     terminal->column_count,
+					     terminal->pvt->selection_start.y,
+					     row + 1 -
+					     terminal->pvt->selection_start.y);
+		}
+	} else
+	if (terminal->pvt->mouse_last_y + 2 * VTE_PAD_WIDTH >
+	    widget->allocation.y + widget->allocation.height) {
+			adj = CLAMP(terminal->adjustment->value + 1,
+				    terminal->adjustment->lower,
+				    terminal->adjustment->upper -
+				    terminal->row_count);
+			gtk_adjustment_set_value(terminal->adjustment,
+						 adj);
+			terminal->pvt->selection_last.x =
+				terminal->pvt->mouse_last_x;
+			terminal->pvt->selection_last.y =
+				terminal->pvt->mouse_last_y +
+				terminal->char_height * adj;
+			row = terminal->pvt->selection_end.y;
+			vte_terminal_selection_recompute(terminal);
+			vte_invalidate_cells(terminal,
+					     0,
+					     terminal->column_count,
+					     row,
+					     terminal->pvt->selection_end.y -
+					     row + 1);
+	} else {
+		terminal->pvt->mouse_autoscrolling = FALSE;
+		terminal->pvt->mouse_autoscroll_tag = -1;
+	}
+	return terminal->pvt->mouse_autoscrolling;
+}
+
 /* Read and handle a motion event. */
 static gint
 vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
@@ -7646,6 +7710,8 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	long delta;
 	GdkModifierType modifiers;
 	long top, height;
+	double adj;
+	gboolean need_autoscroll;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
@@ -7702,7 +7768,6 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 		terminal->pvt->selection_last.x = event->x - VTE_PAD_WIDTH;
 		terminal->pvt->selection_last.y = event->y - VTE_PAD_WIDTH +
 						  terminal->char_height * delta;
-
 		vte_terminal_selection_recompute(terminal);
 
 #ifdef VTE_DEBUG
@@ -7720,10 +7785,43 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 				     top, height);
 
 		vte_terminal_emit_selection_changed (terminal);
+
+		/* Provide immediate autoscroll for mouse wigglers. */
+		need_autoscroll = FALSE;
+		if (event->y < widget->allocation.y) {
+			if (terminal->adjustment) {
+				adj = CLAMP(terminal->adjustment->value - 1,
+					    terminal->adjustment->lower,
+					    terminal->adjustment->upper -
+					    terminal->row_count);
+				gtk_adjustment_set_value(terminal->adjustment,
+							 adj);
+				need_autoscroll = TRUE;
+			}
+		} else
+		if (event->y >=
+		    widget->allocation.y + widget->allocation.height) {
+				adj = CLAMP(terminal->adjustment->value + 1,
+					    terminal->adjustment->lower,
+					    terminal->adjustment->upper -
+					    terminal->row_count);
+				gtk_adjustment_set_value(terminal->adjustment,
+							 adj);
+				need_autoscroll = TRUE;
+		}
+		if (need_autoscroll && !terminal->pvt->mouse_autoscrolling) {
+			terminal->pvt->mouse_autoscroll_tag = g_timeout_add_full(G_PRIORITY_LOW,
+ 50,
+ vte_terminal_autoscroll,
+ terminal,
+ NULL);
+			terminal->pvt->mouse_autoscrolling = TRUE;
+		}
 	} else {
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Mouse move.\n");
+			fprintf(stderr, "Mouse move (button %d).\n",
+				terminal->pvt->mouse_last_button);
 		}
 #endif
 	}
@@ -9689,6 +9787,8 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->mouse_last_x = 0;
 	pvt->mouse_last_y = 0;
 	pvt->mouse_autohide = FALSE;
+	pvt->mouse_autoscrolling = FALSE;
+	pvt->mouse_autoscroll_tag = -1;
 
 	/* Matching data. */
 	pvt->match_contents = NULL;
@@ -10096,6 +10196,11 @@ vte_terminal_finalize(GObject *object)
 		g_signal_handlers_disconnect_by_func(toplevel,
 						     vte_terminal_configure_toplevel,
 						     terminal);
+	}
+
+	/* Disconnect from autoscroll requests. */
+	if (terminal->pvt->mouse_autoscroll_tag != -1) {
+		g_source_remove(terminal->pvt->mouse_autoscroll_tag);
 	}
 
 	/* Tabstop information. */
