@@ -1,3 +1,5 @@
+2002-07-02 nalin
+	* src/vte.c: Make shift+button1 extend selection.
 2002-07-01 nalin
 	* src/vte.c (vte_terminal_draw_char): Draw unicode line-drawing code
 	points natively as we do for the GR1 support, in case the current font

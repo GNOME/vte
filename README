@@ -21,6 +21,9 @@
 * What's missing?
 - Accessibility isn't completed yet.
 - Mouse hilite tracking isn't implemented yet.
+- Extending the selection using shift+click pays attention to whether or not
+  the existing selection was done word-at-a-time or line-at-a-time, but
+  probably shouldn't.
 - Most control sequences are recognized, but many aren't implemented.  There
   are enough to run ls, vim, less, emacs and mutt, but more need to be
   implemented (ff, fs, i1, i3, is, iP, LF, LO, MC, mh, ML, mm, mo, nw, pf,

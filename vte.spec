@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.4.7
+Version: 0.4.8
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -56,9 +56,14 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Tue Jul  2 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.8-1
+- allow shift+click to extend the selection (re: gnome 86246)
+
+* Mon Jul  1 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.7-1
+- recover from encoding errors more gracefully
+
 * Mon Jul  1 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.6-1
 - draw unicode line-drawing characters natively
-- recover from encoding errors more gracefully
 
 * Tue Jun 25 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.5-1
 - don't append spaces to multicolumn characters when reading the screen's

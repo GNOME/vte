@@ -225,7 +225,7 @@ struct _VteTerminalPrivate {
 		selection_type_word,
 		selection_type_line,
 	} selection_type;
-	struct {
+	struct selection_event_coords {
 		double x, y;
 	} selection_origin, selection_last;
 	struct {
@@ -6716,16 +6716,66 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 	}
 }
 
+/* Recalculate the start- and endpoints of the selected text, using the
+ * selection origin and "last" coordinate sets. */
+static void
+vte_terminal_selection_calculate(VteTerminal *terminal)
+{
+	struct {
+		long x, y;
+	} origin, last, start, end;
+	long delta, width, height;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	width = terminal->char_width;
+	height = terminal->char_height;
+	origin.x = (terminal->pvt->selection_origin.x + width / 2) / width;
+	origin.y = (terminal->pvt->selection_origin.y) / height;
+	last.x = (terminal->pvt->selection_last.x + width / 2) / width;
+	last.y = (terminal->pvt->selection_last.y) / height;
+	start.x = start.y = end.x = end.y = 0;
+
+	if (last.y > origin.y) {
+		start.x = origin.x;
+		start.y = origin.y;
+		end.x = last.x;
+		end.y = last.y;
+	} else
+	if (last.y < origin.y) {
+		start.x = last.x;
+		start.y = last.y;
+		end.x = origin.x;
+		end.y = origin.y;
+	} else
+	/* last.y == origin.y */
+	if (last.x > origin.x) {
+		start.x = origin.x;
+		start.y = origin.y;
+		end.x = last.x;
+		end.y = last.y;
+	} else {
+		start.x = last.x;
+		start.y = last.y;
+		end.x = origin.x;
+		end.y = origin.y;
+	}
+
+	delta = terminal->pvt->screen->scroll_delta;
+
+	terminal->pvt->selection_start.x = start.x;
+	terminal->pvt->selection_start.y = start.y + delta;
+	terminal->pvt->selection_end.x = end.x;
+	terminal->pvt->selection_end.y = end.y + delta;
+}
+
 /* Read and handle a motion event. */
 static gint
 vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 {
 	VteTerminal *terminal;
 	GdkModifierType modifiers;
-	struct {
-		long x, y;
-	} o, p, q, origin, last;
-	long delta, top, height, w, h;
+	long top, height;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
@@ -6758,54 +6808,17 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 			fprintf(stderr, "Drag.\n");
 		}
 #endif
-		vte_terminal_emit_selection_changed (terminal);
 		terminal->pvt->has_selection = TRUE;
 
-		w = terminal->char_width;
-		h = terminal->char_height;
-		origin.x = (terminal->pvt->selection_origin.x + w / 2) / w;
-		origin.y = (terminal->pvt->selection_origin.y) / h;
-		last.x = (event->x + w / 2) / w;
-		last.y = (event->y) / h;
-		o.x = (terminal->pvt->selection_last.x + w / 2) / w;
-		o.y = (terminal->pvt->selection_last.y) / h;
+		top = MIN(terminal->pvt->selection_last.y, event->y) /
+		      terminal->char_height;
+		height = (MAX(terminal->pvt->selection_last.y, event->y) /
+			  terminal->char_height) - top + 1;
 
 		terminal->pvt->selection_last.x = event->x;
 		terminal->pvt->selection_last.y = event->y;
 
-		if (last.y > origin.y) {
-			p.x = origin.x;
-			p.y = origin.y;
-			q.x = last.x;
-			q.y = last.y;
-		} else
-		if (last.y < origin.y) {
-			p.x = last.x;
-			p.y = last.y;
-			q.x = origin.x;
-			q.y = origin.y;
-		} else
-		if (last.x > origin.x) {
-			p.x = origin.x;
-			p.y = origin.y;
-			q.x = last.x;
-			q.y = last.y;
-		} else {
-			p.x = last.x;
-			p.y = last.y;
-			q.x = origin.x;
-			q.y = origin.y;
-		}
-
-		delta = terminal->pvt->screen->scroll_delta;
-
-		terminal->pvt->selection_start.x = p.x;
-		terminal->pvt->selection_start.y = p.y + delta;
-		terminal->pvt->selection_end.x = q.x;
-		terminal->pvt->selection_end.y = q.y + delta;
-
-		top = MIN(o.y, MIN(p.y, q.y));
-		height = MAX(o.y, MAX(p.y, q.y)) - top + 1;
+		vte_terminal_selection_calculate(terminal);
 
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
@@ -6814,12 +6827,15 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 				terminal->pvt->selection_start.y,
 				terminal->pvt->selection_end.x,
 				terminal->pvt->selection_end.y);
-			fprintf(stderr, "repainting rows %ld to %ld\n", top, top + height);
+			fprintf(stderr, "repainting rows %ld to %ld\n",
+				top, top + height);
 		}
 #endif
-
 		vte_invalidate_cells(terminal, 0, terminal->column_count,
-				     top + delta, height);
+				     top + terminal->pvt->screen->scroll_delta,
+				     height);
+
+		vte_terminal_emit_selection_changed (terminal);
 	} else {
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
@@ -7046,6 +7062,8 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	long height, width, delta;
 	GdkModifierType modifiers;
 	gboolean ret = FALSE;
+	long cellx, celly, row, col;
+	struct selection_event_coords *start, *end;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
@@ -7053,6 +7071,15 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	width = terminal->char_width;
 	delta = terminal->pvt->screen->scroll_delta;
 	vte_terminal_set_pointer_visible(terminal, TRUE);
+
+	/* Read the modifiers. */
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
+		modifiers = 0;
+	}
+
+	/* Convert the event coordinates to cell coordinates. */
+	cellx = event->x / width;
+	celly = event->y / height;
 
 	if (event->type == GDK_BUTTON_PRESS) {
 #ifdef VTE_DEBUG
@@ -7062,11 +7089,10 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			fprintf(stderr, "Button %d pressed at (%lf,%lf).\n",
 				event->button, event->x, event->y);
 			fprintf(stderr, "Character cell (%lf,%lf).\n",
-				event->x / terminal->char_width,
-				event->y / terminal->char_height);
+				cellx, celly);
 			match = vte_terminal_match_check(terminal,
-							 event->x / terminal->char_width,
-							 event->y / terminal->char_height,
+							 cellx,
+							 celly,
 							 &match_tag);
 			if (match != NULL) {
 				fprintf(stderr, "Matched string %d = \"%s\".\n",
@@ -7075,11 +7101,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			}
 		}
 #endif
-		/* Read the modifiers. */
-		if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
-			modifiers = 0;
-		}
-		/* Shift+click is always ours. */
+		/* If the child is handling mouse events, send it the event. */
 		if ((terminal->pvt->mouse_send_xy_on_button ||
 		     terminal->pvt->mouse_send_xy_on_click) &&
 		    ((modifiers & GDK_SHIFT_MASK) == 0)) {
@@ -7090,6 +7112,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 #endif
 			vte_terminal_send_mouse_button(terminal, event);
 		} else
+		/* Handle this event ourselves. */
 		if (event->button == 1) {
 #ifdef VTE_DEBUG
 			if (vte_debug_on(VTE_DEBUG_EVENTS)) {
@@ -7099,12 +7122,87 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			if (!GTK_WIDGET_HAS_FOCUS(widget)) {
 				gtk_widget_grab_focus(widget);
 			}
-			vte_terminal_deselect_all(terminal);
-			terminal->pvt->selection_origin.x = event->x;
-			terminal->pvt->selection_origin.y = event->y;
-			terminal->pvt->selection_type = selection_type_char;
-			ret = TRUE;
+			/* If the user didn't hold down shift, or if the click
+			 * was in an already-selected cell, we deselect and
+			 * start over. */
+			if (((modifiers & GDK_SHIFT_MASK) == 0) ||
+			    vte_cell_is_selected(terminal, cellx, celly)) {
+				/* Start selection. */
+				vte_terminal_deselect_all(terminal);
+				terminal->pvt->selection_origin.x = event->x;
+				terminal->pvt->selection_origin.y = event->y;
+				terminal->pvt->selection_type =
+					selection_type_char;
+				ret = TRUE;
+			} else {
+#ifdef VTE_DEBUG
+				if (vte_debug_on(VTE_DEBUG_EVENTS)) {
+					fprintf(stderr, "Selection is "
+						"(%ld,%ld) to (%ld,%ld).\n",
+						terminal->pvt->selection_start.x,
+						terminal->pvt->selection_start.y,
+						terminal->pvt->selection_end.x,
+						terminal->pvt->selection_end.y);
+				}
+#endif
+				/* Extend the selection by moving either the
+				 * origin or last pointer to the event's
+				 * coordinates. */
+				if ((terminal->pvt->selection_origin.y <
+				     terminal->pvt->selection_last.y) ||
+				    ((terminal->pvt->selection_origin.y ==
+				      terminal->pvt->selection_last.y) &&
+				     (terminal->pvt->selection_origin.x <
+				      terminal->pvt->selection_last.x))) {
+					/* The origin point is "before" the end
+					 * point. */
+					start = &terminal->pvt->selection_origin;
+					end = &terminal->pvt->selection_last;
+				} else {
+					/* The end point is "before" the origin
+					 * point. */
+					end = &terminal->pvt->selection_origin;
+					start = &terminal->pvt->selection_last;
+				}
+				/* Move the selection start- or endpoint. */
+				if ((event->y < start->y) ||
+				    ((event->y == start->y) &&
+				     (event->x < start->x))) {
+					/* The click was "before" the start
+					 * point. */
+					start->x = event->x;
+					start->y = event->y;
+				} else {
+					/* The click was "after" the start
+					 * point. */
+					end->x = event->x;
+					end->y = event->y;
+				}
+				/* Recalculate the selection area using the
+				 * new origin and "last" coordinates. */
+				vte_terminal_selection_calculate(terminal);
+				/* Redraw the newly-highlited rows. */
+				vte_invalidate_cells(terminal,
+						     0,
+						     terminal->column_count,
+						     terminal->pvt->selection_start.y,
+						     terminal->pvt->selection_end.y -
+						     terminal->pvt->selection_start.y + 1);
+
+#ifdef VTE_DEBUG
+				if (vte_debug_on(VTE_DEBUG_EVENTS)) {
+					fprintf(stderr, "Selection changed to "
+						"(%ld,%ld) to (%ld,%ld).\n",
+						terminal->pvt->selection_start.x,
+						terminal->pvt->selection_start.y,
+						terminal->pvt->selection_end.x,
+						terminal->pvt->selection_end.y);
+				}
+#endif
+				ret = TRUE;
+			}
 		} else
+		/* Paste. */
 		if (event->button == 2) {
 #ifdef VTE_DEBUG
 			if (vte_debug_on(VTE_DEBUG_EVENTS)) {
@@ -7130,9 +7228,8 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			terminal->pvt->has_selection = TRUE;
 			terminal->pvt->selection_origin.x = event->x;
 			terminal->pvt->selection_origin.y = event->y;
-			terminal->pvt->selection_start.x = event->x / width;
-			terminal->pvt->selection_start.y = event->y / height +
-							   delta;
+			terminal->pvt->selection_start.x = cellx;
+			terminal->pvt->selection_start.y = celly + delta;
 			terminal->pvt->selection_end =
 			terminal->pvt->selection_start;
 			terminal->pvt->selection_type = selection_type_word;
@@ -7159,9 +7256,8 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			terminal->pvt->has_selection = TRUE;
 			terminal->pvt->selection_origin.x = event->x;
 			terminal->pvt->selection_origin.y = event->y;
-			terminal->pvt->selection_start.x = event->x / width;
-			terminal->pvt->selection_start.y = event->y / height +
-							   delta;
+			terminal->pvt->selection_start.x = cellx;
+			terminal->pvt->selection_start.y = celly + delta;
 			terminal->pvt->selection_end =
 			terminal->pvt->selection_start;
 			terminal->pvt->selection_type = selection_type_line;
@@ -9041,7 +9137,7 @@ vte_terminal_draw_char(VteTerminal *terminal,
 				break;
 			case 97:  /* a */
 				for (i = x; i <= xright; i++) {
-					drawn = ((i - x) % 2) != 0;
+					drawn = ((i - x) & 1) != 0;
 					for (j = y; j <= ybottom; j++) {
 						if (!drawn) {
 							XDrawPoint(display,
