@@ -1,4 +1,8 @@
 2003-02-12 nalin
+	* src/reflect.c(main): handle cases where the widget has no data and
+	returns NULL when we ask for it.
+
+2003-02-12 nalin
 	* src/reflect.c(main): do a complete read of the widget before we
 	start off in main to ensure we have accurate data.
 	* src/vteaccess.c(vte_terminal_accessible_update_private_data_if_needed):

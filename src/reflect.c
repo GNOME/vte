@@ -397,12 +397,19 @@ main(int argc, char **argv)
 			 G_CALLBACK(text_caret_moved), label);
 
 	count = atk_text_get_character_count(ATK_TEXT(obj));
-	text = atk_text_get_text(ATK_TEXT(obj), 0, count);
-	terminal_shell(terminal);
-	for (p = text; contents->len < count; p = g_utf8_next_char(p)) {
-		c = g_utf8_get_char(p);
-		g_array_append_val(contents, c);
+	if (count > 0) {
+		text = atk_text_get_text(ATK_TEXT(obj), 0, count);
+		if (text != NULL) {
+			for (p = text;
+			     contents->len < count;
+			     p = g_utf8_next_char(p)) {
+				c = g_utf8_get_char(p);
+				g_array_append_val(contents, c);
+			}
+			g_free(text);
+		}
 	}
+	terminal_shell(terminal);
 
 	gtk_window_set_default_size(GTK_WINDOW(window), 600, 450);
 	gtk_widget_show(window);
