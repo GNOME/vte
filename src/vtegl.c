@@ -239,7 +239,7 @@ _vte_gl_start(struct _vte_draw *draw)
 	glXMakeCurrent(display, data->glpixmap, data->context);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-        gluOrtho2D(0, width, height, 0);
+        gluOrtho2D(0, width, 0, height);
         glViewport(0, 0, width, height);
 }
 
@@ -314,8 +314,8 @@ _vte_gl_clear(struct _vte_draw *draw,
 {
 	struct _vte_gl_data *data;
 	data = (struct _vte_gl_data*) draw->impl_data;
-	long xstop, ystop, i, j, h, w;
-	int pixmapw, pixmaph;
+	long xstop, ystop, i, j;
+	int pixmapw, pixmaph, w, h;
 
 	if (GDK_IS_PIXMAP(data->bgpixmap)) {
 		gdk_drawable_get_size(data->bgpixmap, &pixmapw, &pixmaph);
@@ -324,13 +324,14 @@ _vte_gl_clear(struct _vte_draw *draw,
 	}
 	if ((pixmapw == 0) || (pixmaph == 0)) {
 		glXWaitX();
+		gdk_drawable_get_size(data->pixmap, &w, &h);
 		glBegin(GL_POLYGON);
 		glColor4us(data->color.red, data->color.green, data->color.blue,
 			   0xffff);
-		glVertex2d(x, y);
-		glVertex2d(x + width, y);
-		glVertex2d(x + width, y + height);
-		glVertex2d(x, y + height);
+		glVertex2d(x, h - y);
+		glVertex2d(x + width, h - y);
+		glVertex2d(x + width, h - (y + height));
+		glVertex2d(x, h - (y + height));
 		glEnd();
 		return;
 	}
@@ -429,15 +430,18 @@ _vte_gl_draw_text(struct _vte_draw *draw,
 	struct _vte_gl_data *data;
 	const struct _vte_glyph *glyph;
 	guint16 a, r, g, b;
+	int width, height;
 	int i, j, x, y, w, pad;
 
 	data = (struct _vte_gl_data*) draw->impl_data;
 
 	glXWaitX();
 
-	r = color->red >> 8;
-	g = color->green >> 8;
-	b = color->blue >> 8;
+	r = color->red;
+	g = color->green;
+	b = color->blue;
+
+	gdk_drawable_get_size(data->pixmap, &width, &height);
 
 	glBegin(GL_POINTS);
 	for (i = 0; i < n_requests; i++) {
@@ -454,9 +458,12 @@ _vte_gl_draw_text(struct _vte_draw *draw,
 				j = (y * glyph->width + x) *
 				    glyph->bytes_per_pixel;
 				a = glyph->bytes[j] * alpha;
+				if (a == 0) {
+					continue;
+				}
 				glColor4us(r, g, b, a);
 				glVertex2i(requests[i].x + pad + x,
-					   requests[i].y + glyph->skip + y);
+					   height - (requests[i].y + glyph->skip + y));
 			}
 		}
 	}
@@ -469,17 +476,21 @@ _vte_gl_draw_rectangle(struct _vte_draw *draw,
 		       GdkColor *color, guchar alpha)
 {
 	struct _vte_gl_data *data;
+	int w, h;
+
 	data = (struct _vte_gl_data*) draw->impl_data;
 
 	glXWaitX();
 
+	gdk_drawable_get_size(data->pixmap, &w, &h);
+
 	glBegin(GL_LINE_LOOP);
 	glColor4us(color->red, color->green, color->blue,
 		   (alpha == VTE_DRAW_OPAQUE) ? 0xffff : (alpha << 8));
-	glVertex2d(x, y);
-	glVertex2d(x + width, y);
-	glVertex2d(x + width, y + height);
-	glVertex2d(x, y + height);
+	glVertex2d(x, h - y);
+	glVertex2d(x + width, h - y);
+	glVertex2d(x + width, h - (y + height));
+	glVertex2d(x, h - (y + height));
 	glEnd();
 }
 
@@ -489,17 +500,21 @@ _vte_gl_fill_rectangle(struct _vte_draw *draw,
 		       GdkColor *color, guchar alpha)
 {
 	struct _vte_gl_data *data;
+	int w, h;
+
 	data = (struct _vte_gl_data*) draw->impl_data;
 
 	glXWaitX();
 
+	gdk_drawable_get_size(data->pixmap, &w, &h);
+
 	glBegin(GL_POLYGON);
 	glColor4us(color->red, color->green, color->blue,
 		   (alpha == VTE_DRAW_OPAQUE) ? 0xffff : (alpha << 8));
-	glVertex2d(x, y);
-	glVertex2d(x + width, y);
-	glVertex2d(x + width, y + height);
-	glVertex2d(x, y + height);
+	glVertex2d(x, h - y);
+	glVertex2d(x + width, h - y);
+	glVertex2d(x + width, h - (y + height));
+	glVertex2d(x, h - (y + height));
 	glEnd();
 }
 
