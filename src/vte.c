@@ -143,6 +143,10 @@ struct vte_draw_item {
 	guint16 xpad;
 };
 
+/* The scroll delay timeout */
+static int vte_scrolldelay_secs  = 70;
+static int vte_scrolldelay_times = 2;
+
 /* The terminal's keypad state.  A terminal can either be using the normal
  * keypad, or the "application" keypad.  Arrow key sequences, for example,
  * are really only defined for "application" mode. */
@@ -352,6 +356,10 @@ struct _VteTerminalPrivate {
 	GdkPixbuf *bg_transparent_image;
 	GdkPixbuf *bg_image;
 	long bg_saturation;	/* out of VTE_SATURATION_MAX */
+
+	guint scroll_delay_id;
+	guint scroll_delay_count;
+	gboolean scroll_delay_flag;
 };
 
 /* A function which can handle a terminal control sequence. */
@@ -436,6 +444,7 @@ static GdkFilterReturn vte_terminal_filter_property_changes(GdkXEvent *xevent,
 static void vte_terminal_match_hilite_clear(VteTerminal *terminal);
 static void vte_terminal_queue_background_update(VteTerminal *terminal);
 static void vte_terminal_queue_adjustment_changed(VteTerminal *terminal);
+static void vte_terminal_scroll_to_bottom(VteTerminal *terminal);
 
 /* Free a no-longer-used row data array. */
 static void
@@ -766,6 +775,36 @@ vte_invalidate_cursor_periodic(gpointer data)
 		return FALSE;
 	} else {
 		return TRUE;
+	}
+}
+
+static gboolean
+vte_scroll_timeout(gpointer data)
+{
+	VteTerminal *terminal = (VteTerminal *)data;
+
+    /*
+	 * Only skip a maximum number of delays, default is 10.
+	 * By default the delay is 100ms, so this is 1 second.
+	 * This can be tuned via environment variables.
+	 */
+	if (terminal->pvt->scroll_delay_flag == TRUE &&
+		terminal->pvt->scroll_delay_count < vte_scrolldelay_times) {
+
+		terminal->pvt->scroll_delay_count++;
+		terminal->pvt->scroll_delay_flag = FALSE;
+
+		/* return TRUE makes the timeout sleep another interval */
+		return TRUE;
+
+	} else {
+		/* Reset counts and flags */
+		terminal->pvt->scroll_delay_count = 0;
+		terminal->pvt->scroll_delay_id    = 0;
+		terminal->pvt->scroll_delay_flag  = FALSE;
+
+		vte_terminal_scroll_to_bottom(terminal);
+		return FALSE;
 	}
 }
 
@@ -5987,6 +6026,7 @@ vte_terminal_fork_logged_command(VteTerminal *terminal, const char *command,
 		/* Open a channel to listen for input on. */
 		terminal->pvt->pty_input =
 			g_io_channel_unix_new(terminal->pvt->pty_master);
+
 		terminal->pvt->pty_input_source =
 			g_io_add_watch_full(terminal->pvt->pty_input,
 					    VTE_CHILD_INPUT_PRIORITY,
@@ -6090,7 +6130,7 @@ vte_terminal_process_incoming(gpointer data)
 	GValueArray *params = NULL;
 	VteTerminal *terminal;
 	VteScreen *screen;
-	struct vte_cursor_position cursor;
+	struct vte_cursor_position cursor, *cursor_ptr, start_cursor, end_cursor;
 	struct _vte_iso2022 *substitutions;
 	gssize substitution_count;
 	GtkWidget *widget;
@@ -6098,17 +6138,19 @@ vte_terminal_process_incoming(gpointer data)
 	char *ibuf, *obuf, *obufptr, *ubuf, *ubufptr;
 	gsize icount, ocount, ucount;
 	gunichar *wbuf, c;
-	long wcount, start, current_row;
+	long wcount, start;
 	const char *match, *encoding;
 	GIConv unconv;
 	GQuark quark;
 	const gunichar *next;
+	gint min_col, max_col;
 	gboolean leftovers, modified, again, bottom;
 
 	g_return_val_if_fail(GTK_IS_WIDGET(data), FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
 	widget = GTK_WIDGET(data);
 	terminal = VTE_TERMINAL(data);
+
 	bottom = (terminal->pvt->screen->insert_delta ==
 		  terminal->pvt->screen->scroll_delta);
 
@@ -6201,7 +6243,13 @@ vte_terminal_process_incoming(gpointer data)
 	/* Save the current cursor position. */
 	screen = terminal->pvt->screen;
 	cursor = screen->cursor_current;
-	current_row = screen->cursor_current.row;
+    cursor_ptr = &(screen->cursor_current);
+    start_cursor.row = cursor_ptr->row;
+    start_cursor.col = cursor_ptr->col;
+    end_cursor.row = cursor_ptr->row;
+    end_cursor.col = cursor_ptr->col;
+	min_col = cursor_ptr->col;
+	max_col = cursor_ptr->col;
 
 	/* Try initial substrings. */
 	while ((start < wcount) && !leftovers) {
@@ -6257,7 +6305,38 @@ vte_terminal_process_incoming(gpointer data)
 				}
 			}
 #endif
+
 			if (c != 0) {
+				if ((cursor_ptr->row == end_cursor.row &&
+				     cursor_ptr->col == end_cursor.col + 1) ||
+				    (cursor_ptr->row > end_cursor.row)) {
+
+					end_cursor.row = cursor_ptr->row;
+					end_cursor.col = cursor_ptr->col;
+
+					if (cursor_ptr->col > max_col)
+						max_col = cursor_ptr->col;
+					else if (cursor_ptr->col < min_col)
+						min_col = cursor_ptr->col;
+
+				} else if (cursor_ptr->row < start_cursor.row ||
+					   cursor_ptr->row > end_cursor.row ||
+					   cursor_ptr->col < min_col ||
+					   cursor_ptr->col > max_col) {
+
+					vte_invalidate_cells(terminal, min_col, max_col + 1,
+						MIN(start_cursor.row, end_cursor.row),
+						MAX(start_cursor.row, end_cursor.row) -
+						MIN(start_cursor.row, end_cursor.row) + 1);
+
+						start_cursor.row = cursor_ptr->row;
+						start_cursor.col = cursor_ptr->col;
+						end_cursor.row   = cursor_ptr->row;
+						end_cursor.col   = cursor_ptr->col;
+						max_col          = cursor_ptr->col;
+						min_col          = cursor_ptr->col;
+				}
+
 				vte_terminal_insert_char(widget, c, FALSE, FALSE);
 			}
 			modified = TRUE;
@@ -6289,10 +6368,10 @@ vte_terminal_process_incoming(gpointer data)
 	}
 
 	/* Update the screen once after the while loop. */
-	vte_invalidate_cells(terminal, 0, terminal->column_count,
-			     MIN(current_row, screen->cursor_current.row),
-			     MAX(current_row, screen->cursor_current.row) -
-			     MIN(current_row, screen->cursor_current.row) + 1);
+	vte_invalidate_cells(terminal, min_col, max_col + 1,
+		MIN(start_cursor.row, end_cursor.row),
+		MAX(start_cursor.row, end_cursor.row) -
+		MIN(start_cursor.row, end_cursor.row) + 1);
 
 	if (leftovers) {
 		/* There are leftovers, so convert them back to the terminal's
@@ -6362,8 +6441,17 @@ vte_terminal_process_incoming(gpointer data)
 		/* Keep the cursor on-screen if we scroll on output, or if
 		 * we're currently at the bottom of the buffer. */
 		vte_terminal_scroll_insertion(terminal);
-		if (terminal->pvt->scroll_on_output || bottom) {
-			vte_terminal_scroll_to_bottom(terminal);
+
+		terminal->pvt->scroll_delay_flag = FALSE;
+
+		if (terminal->pvt->scroll_delay_id) {
+			terminal->pvt->scroll_delay_flag = TRUE;
+		}
+		else if (terminal->pvt->scroll_on_output || bottom) {
+
+			terminal->pvt->scroll_delay_id =
+				g_timeout_add(vte_scrolldelay_secs,
+				vte_scroll_timeout, (void *)terminal);
 		}
 
 		/* The cursor moved, so force it to be redrawn. */
@@ -6419,6 +6507,7 @@ vte_terminal_process_incoming(gpointer data)
 		}
 	}
 #endif
+
 	return terminal->pvt->processing;
 }
 
@@ -6684,6 +6773,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		if (terminal->pvt->pty_output == NULL) {
 			terminal->pvt->pty_output =
 				g_io_channel_unix_new(terminal->pvt->pty_master);
+
 			terminal->pvt->pty_output_source =
 				g_io_add_watch_full(terminal->pvt->pty_output,
 						    VTE_CHILD_OUTPUT_PRIORITY,
@@ -9713,6 +9803,7 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	long dy, adj;
 	GtkWidget *widget;
 	VteScreen *screen;
+
 	/* Sanity checks. */
 	g_return_if_fail(GTK_IS_WIDGET(terminal));
 	widget = GTK_WIDGET(terminal);
@@ -10232,6 +10323,13 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 			render_max = VteRenderXlib;
 		}
 	}
+
+    if (getenv("VTE_SCROLLDELAY_SECS") != NULL)
+       vte_scrolldelay_secs = atoi(getenv("VTE_SCROLL_DELAY"));
+
+    if (getenv("VTE_SCROLLDELAY_TIMES") != NULL)
+       vte_scrolldelay_times = atoi(getenv("MAX_SCROLL_DELAY"));
+
 	pvt->render_method = render_max;
 
 #ifdef VTE_DEBUG
@@ -10296,6 +10394,10 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* Mapping trees. */
 	pvt->unichar_wc_map = g_tree_new(vte_compare_direct);
+
+    pvt->scroll_delay_id    = 0;
+	pvt->scroll_delay_count = 0;
+	pvt->scroll_delay_flag  = FALSE;
 }
 
 /* Tell GTK+ how much space we need. */
@@ -10518,6 +10620,8 @@ vte_terminal_finalize(GObject *object)
 	terminal = VTE_TERMINAL(object);
 	object_class = G_OBJECT_GET_CLASS(G_OBJECT(object));
 	widget_class = g_type_class_peek(GTK_TYPE_WIDGET);
+
+	terminal->pvt->scroll_delay_id = 0;
 
 	/* The unichar->wchar_t map. */
 	if (terminal->pvt->unichar_wc_map != NULL) {
