@@ -416,6 +416,8 @@ struct vte_capability_string vte_xterm_capability_strings[] = {
 	{CSI "%dE", "cursor-next-line", 0},
 	{CSI "F", "cursor-preceding-line", 0},
 	{CSI "%dF", "cursor-preceding-line", 0},
+	{CSI "G", "cursor-character-absolute", 0},
+	{CSI "%dG", "cursor-character-absolute", 0},
 	{CSI ";H", "cursor-position", 0},
 	{CSI "%d;H", "cursor-position", 0},
 	{CSI ";%dH", "cursor-position", 0},

@@ -1543,6 +1543,17 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 	}
 }
 
+/* Move the cursor to the given column, 1-based. */
+static void
+vte_sequence_handler_cursor_character_absolute(VteTerminal *terminal,
+					       const char *match,
+					       GQuark match_quark,
+					       GValueArray *params)
+{
+	vte_sequence_handler_offset(terminal, match, match_quark, params,
+				    -1, vte_sequence_handler_ch);
+}
+
 /* Move the cursor to the given position, 1-based. */
 static void
 vte_sequence_handler_cursor_position(VteTerminal *terminal,
@@ -2352,6 +2363,7 @@ static struct {
 	{"cursor-forward", vte_sequence_handler_RI},
 	{"cursor-up", vte_sequence_handler_UP},
 	{"cursor-down", vte_sequence_handler_DO},
+	{"cursor-character-absolute", vte_sequence_handler_cursor_character_absolute},
 	{"cursor-position", vte_sequence_handler_cursor_position},
 
 	{"set-icon-title",
@@ -3909,9 +3921,9 @@ vte_terminal_set_fontset(VteTerminal *terminal, const char *xlfds)
 		}
 		terminal->pvt->ftfont = XftFontOpen(GDK_DISPLAY(),
 						    gdk_x11_get_default_screen(),
-						    XFT_FAMILY, XftTypeString, "courier",
+						    XFT_FAMILY, XftTypeString, "mono",
 
-						    XFT_SIZE, XftTypeDouble, 16.0,
+						    XFT_SIZE, XftTypeDouble, 14.0,
 						    0);
 		if (terminal->pvt->ftfont != NULL) {
 			ascent = terminal->pvt->ftfont->ascent;
