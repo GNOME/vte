@@ -18,8 +18,10 @@
 	starting up a default command (as in the test app) -- libtool wrappers
 	keep screwing this up.  Don't limit the number of characters we skip
 	over in invalid multibyte sequences -- sometimes that's not enough.
+	Hook up ts/te, ks/ke sequence handlers.
 	* src/vteaccess.h: Fix a crashbug due to mismatch between parent field
-	in the object's structure and its inherited object's type.  More to go.
+	in the object's structure and its inherited object's type.  Fix more
+	crash bugs due to initialization weirdness.  More to go.
 2002-05-01 nalin
 	* src/vte.c: Try @pkgdatadir@/termcap/$TERM when reading termcap files.
 	This fixes the app on systems with no /etc/termcap, and also speeds up

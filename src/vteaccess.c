@@ -157,16 +157,46 @@ vte_terminal_accessible_invalidate(VteTerminal *terminal, gpointer data)
 	priv->snapshot_invalid = TRUE;
 }
 
+/* Handle hierarchy changes by resetting the parent object. */
+static void
+vte_terminal_accessible_hierarchy_changed(VteTerminal *terminal, gpointer data)
+{
+	AtkObject *atk, *parent;
+	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(data));
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	atk = ATK_OBJECT(data);
+	if (GTK_IS_WIDGET((GTK_WIDGET(terminal))->parent)) {
+		parent = gtk_widget_get_accessible((GTK_WIDGET(terminal))->parent);
+	} else {
+		parent = NULL;
+	}
+	atk_object_set_parent(atk, parent);
+}
+
+/* Handle title changes by resetting the parent object. */
+static void
+vte_terminal_accessible_title_changed(VteTerminal *terminal, gpointer data)
+{
+	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(data));
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	atk_object_set_description(ATK_OBJECT(data), terminal->window_title);
+}
+
 AtkObject *
 vte_terminal_accessible_new(VteTerminal *terminal)
 {
 	GtkAccessible *access;
+	AtkObject *parent;
 	GObject *object;
+
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+
 	object = g_object_new(VTE_TYPE_TERMINAL_ACCESSIBLE, NULL);
 	g_return_val_if_fail(GTK_IS_ACCESSIBLE(object), NULL);
+
 	access = GTK_ACCESSIBLE(object);
 	atk_object_initialize(ATK_OBJECT(access), G_OBJECT(terminal));
+
 	access->widget = GTK_WIDGET(terminal);
 
 	g_object_set_data(G_OBJECT(access),
@@ -178,8 +208,46 @@ vte_terminal_accessible_new(VteTerminal *terminal)
 	g_signal_connect(G_OBJECT(terminal), "cursor_moved",
 			 GTK_SIGNAL_FUNC(vte_terminal_accessible_invalidate),
 			 access);
+        g_signal_connect(G_OBJECT(terminal), "hierarchy-changed",
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_hierarchy_changed),
+			 access);
+        g_signal_connect(G_OBJECT(terminal), "window-title-changed",
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_title_changed),
+			 access);
+
+	if (GTK_IS_WIDGET((GTK_WIDGET(terminal))->parent)) {
+		parent = gtk_widget_get_accessible((GTK_WIDGET(terminal))->parent);
+		atk_object_set_parent(ATK_OBJECT(access), parent);
+	}
+
+	atk_object_set_name(ATK_OBJECT(access), "Terminal");
+	atk_object_set_description(ATK_OBJECT(access), terminal->window_title);
 
 	return ATK_OBJECT(access);
+}
+
+static void
+vte_terminal_accessible_finalize(GObject *object)
+{
+	GtkAccessible *accessible = NULL;
+        GObjectClass *gobject_class; 
+
+	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(object));
+	accessible = GTK_ACCESSIBLE(object);
+	gobject_class = g_type_class_peek_parent(VTE_TERMINAL_ACCESSIBLE_GET_CLASS(object));
+
+	g_signal_handlers_disconnect_by_func(G_OBJECT(accessible->widget),
+					     GTK_SIGNAL_FUNC(vte_terminal_accessible_invalidate),
+					     accessible);
+	g_signal_handlers_disconnect_by_func(G_OBJECT(accessible->widget),
+					     GTK_SIGNAL_FUNC(vte_terminal_accessible_hierarchy_changed),
+					     accessible);
+	g_signal_handlers_disconnect_by_func(G_OBJECT(accessible->widget),
+					     GTK_SIGNAL_FUNC(vte_terminal_accessible_title_changed),
+					     accessible);
+	if (gobject_class->finalize != NULL) {
+		gobject_class->finalize(object);
+	}
 }
 
 static gchar *
@@ -573,8 +641,8 @@ vte_terminal_accessible_text_selection_changed(AtkText *text)
 static void
 vte_terminal_accessible_text_init(gpointer iface, gpointer data)
 {
-	AtkTextIface* text;
-	g_return_if_fail(ATK_IS_TEXT(iface));
+	AtkTextIface *text;
+	g_return_if_fail(G_TYPE_FROM_INTERFACE(iface) == ATK_TYPE_TEXT);
 	text = iface;
 	text->get_text = vte_terminal_accessible_get_text;
 	text->get_text_after_offset = vte_terminal_accessible_get_text_after_offset;
@@ -624,19 +692,11 @@ static void
 vte_terminal_accessible_class_init(gpointer *klass)
 {
         GObjectClass *gobject_class; 
-        GtkAccessibleClass *gtk_accessible_class; 
-	GInterfaceInfo text;
 
         gobject_class = G_OBJECT_CLASS(klass); 
-        gtk_accessible_class = GTK_ACCESSIBLE_CLASS(klass); 
-				 
-        /* Add a text interface to this object class. */
-	text.interface_init = vte_terminal_accessible_text_init;
-	text.interface_finalize = vte_terminal_accessible_text_finalize;
-	text.interface_data = NULL;
-	g_type_add_interface_static(VTE_TYPE_TERMINAL_ACCESSIBLE,
-				    ATK_TYPE_TEXT,
-				    &text);
+
+	/* Override the finalize method. */
+	gobject_class->finalize = vte_terminal_accessible_finalize;
 }
 
 static void
@@ -644,6 +704,7 @@ vte_terminal_accessible_init(gpointer *instance, gpointer *klass)
 {
 	/* Mark the role this object plays. The rest of the work is handled
 	 * by the AtkText interface the object class exports. */
+	g_return_if_fail(ATK_IS_OBJECT(instance));
 	atk_object_set_role(ATK_OBJECT(instance), ATK_ROLE_TERMINAL);
 }
 
@@ -651,6 +712,11 @@ GtkType
 vte_terminal_accessible_get_type(void)
 {
 	static GtkType terminal_accessible_type = 0;
+	static GInterfaceInfo text = {
+		vte_terminal_accessible_text_init,
+		vte_terminal_accessible_text_finalize,
+		NULL,
+	};
 	static const GTypeInfo terminal_accessible_info = {
 		sizeof(VteTerminalAccessibleClass),
 		(GBaseInitFunc)NULL,
@@ -668,10 +734,16 @@ vte_terminal_accessible_get_type(void)
 	};
 
 	if (terminal_accessible_type == 0) {
+		/* Register the class with the GObject type system. */
 		terminal_accessible_type = g_type_register_static(GTK_TYPE_ACCESSIBLE,
 								  "VteTerminalAccessible",
 								  &terminal_accessible_info,
 								  0);
+
+		/* Add a text interface to this object class. */
+		g_type_add_interface_static(terminal_accessible_type,
+					    ATK_TYPE_TEXT,
+					    &text);
 	}
 
 	return terminal_accessible_type;

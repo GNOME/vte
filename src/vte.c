@@ -1461,6 +1461,28 @@ vte_sequence_handler_kb(VteTerminal *terminal,
 	screen->cursor_current.col = MAX(0, screen->cursor_current.col - 1);
 }
 
+/* Keypad mode end. */
+static void
+vte_sequence_handler_ke(VteTerminal *terminal, 
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->keypad = VTE_KEYPAD_NORMAL;
+}
+
+/* Keypad mode start. */
+static void
+vte_sequence_handler_ks(VteTerminal *terminal, 
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->keypad = VTE_KEYPAD_APPLICATION;
+}
+
 /* Cursor left. */
 static void
 vte_sequence_handler_le(VteTerminal *terminal,
@@ -1635,6 +1657,28 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 	} else {
 		terminal->pvt->screen->cursor_current.col = newcol;
 	}
+}
+
+/* Terminal usage ends. */
+static void
+vte_sequence_handler_te(VteTerminal *terminal, 
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	/* I think this is a no-op. */
+}
+
+/* Terminal usage starts. */
+static void
+vte_sequence_handler_ts(VteTerminal *terminal, 
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	/* I think this is a no-op. */
 }
 
 /* Underline end. */
@@ -2695,7 +2739,7 @@ static struct {
 	{"kC", NULL},
 	{"kd", NULL},
 	{"kD", NULL},
-	{"ke", NULL},
+	{"ke", vte_sequence_handler_ke},
 	{"kE", NULL},
 	{"kF", NULL},
 	{"kh", NULL},
@@ -2708,7 +2752,7 @@ static struct {
 	{"kP", NULL},
 	{"kr", NULL},
 	{"kR", NULL},
-	{"ks", NULL},
+	{"ks", vte_sequence_handler_ks},
 	{"kS", NULL},
 	{"kt", NULL},
 	{"kT", NULL},
@@ -2792,9 +2836,9 @@ static struct {
 	{"SX", NULL},
 
 	{"ta", vte_sequence_handler_ta},
-	{"te", NULL},
+	{"te", vte_sequence_handler_te},
 	{"ti", NULL},
-	{"ts", NULL},
+	{"ts", vte_sequence_handler_ts},
 
 	{"uc", NULL},
 	{"ue", vte_sequence_handler_ue},
