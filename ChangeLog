@@ -1,4 +1,8 @@
 2003-02-19 nalin
+	* src/vte.c(vte_terminal_sequence_handler_cs): recognize and discard
+	bogus arguments.
+
+2003-02-19 nalin
 	* src/vteaccess.c: emit focus-event events when the widget receives
 	focus-in/focus-out events.  From HEAD.
 
