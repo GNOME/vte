@@ -1,0 +1,7 @@
+Makefile
+Makefile.in
+marshal.c
+marshal.h
+utf8echo
+utf8mode
+iso8859mode
