@@ -49,6 +49,7 @@
 #include "caps.h"
 #include "debug.h"
 #include "iso2022.h"
+#include "keymap.h"
 #include "marshal.h"
 #include "pty.h"
 #include "reaper.h"
@@ -144,19 +145,12 @@ struct vte_draw_item {
 	guint16 xpad;
 };
 
-/* The terminal's keypad state.  A terminal can either be using the normal
- * keypad, or the "application" keypad.  Arrow key sequences, for example,
- * are really only defined for "application" mode. */
-typedef enum _VteKeypad {
-	VTE_KEYPAD_NORMAL,
-	VTE_KEYPAD_APPLICATION
-} VteKeypad;
-
-/* The terminal's function key setting. */
-typedef enum _VteFKey {
-	VTE_FKEY_VT220,
-	VTE_FKEY_SUNPC
-} VteFKey;
+/* The terminal's keypad/cursor state.  A terminal can either be using the
+ * normal keypad, or the "application" keypad. */
+typedef enum _VteKeymode {
+	VTE_KEYMODE_NORMAL,
+	VTE_KEYMODE_APPLICATION
+} VteKeymode;
 
 typedef struct _VteScreen VteScreen;
 
@@ -178,8 +172,12 @@ struct _VteTerminalPrivate {
 		gboolean bw;
 		gboolean ul;
 	} flags;
-	int keypad;			/* this would be a VteKeypad, but we
+	int keypad_mode, cursor_mode;	/* these would be VteKeymodes, but we
 					   need to guarantee its type */
+	gboolean sun_fkey_mode;
+	gboolean hp_fkey_mode;
+	gboolean legacy_fkey_mode;
+	gboolean vt220_fkey_mode;
 	int fkey;			/* this would be a VteFKey, but we
 					   need to guarantee its type */
 	GHashTable *dec_saved;
@@ -260,7 +258,7 @@ struct _VteTerminalPrivate {
 
 	/* Miscellaneous options. */
 	VteTerminalEraseBinding backspace_binding, delete_binding;
-	gboolean alt_sends_escape;
+	gboolean meta_sends_escape;
 	gboolean audible_bell;
 	gboolean visible_bell;
 	gboolean xterm_font_tweak;
@@ -799,6 +797,18 @@ vte_terminal_emit_selection_changed(VteTerminal *terminal)
 	}
 #endif
 	g_signal_emit_by_name(terminal, "selection-changed");
+}
+
+/* Emit a "commit" signal. */
+static void
+vte_terminal_emit_commit(VteTerminal *terminal, gchar *text, guint length)
+{
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `commit'.\n");
+	}
+#endif
+	g_signal_emit_by_name(terminal, "commit", text, length);
 }
 
 /* Emit an "emulation-changed" signal. */
@@ -1637,23 +1647,16 @@ vte_remove_line_internal(VteTerminal *terminal, glong position)
 
 /* Append a single item to a GArray a given number of times. */
 static void
-vte_g_array_append(GArray *array, gpointer array_end,
-		   gpointer item, guint count)
+vte_g_array_fill(GArray *array, gpointer item, guint final_size)
 {
-	long goal, add, added;
-	if (count == 0) {
+	if (array->len >= final_size) {
 		return;
 	}
-	goal = array->len + count;
+	g_assert(array != NULL);
+	g_assert(item != NULL);
 
-	g_array_append_val(array, item);
-	added = 1;
-	count--;
-
-	while (array->len < goal) {
-		add = MIN(added, goal - array->len);
-		g_array_append_vals(array, array_end, add);
-		added += add;
+	while (array->len < final_size) {
+		g_array_append_vals(array, item, 1);
 	}
 }
 
@@ -1870,9 +1873,8 @@ vte_sequence_handler_al(VteTerminal *terminal,
 		/* Get the data for the new row. */
 		rowdata = _vte_ring_index(screen->row_data, GArray*, start);
 		/* Add enough cells to it so that it has the default colors. */
-		while (rowdata->len < terminal->column_count) {
-			g_array_append_val(rowdata, screen->defaults);
-		}
+		vte_g_array_fill(rowdata, &screen->defaults,
+				 terminal->column_count);
 	}
 
 	/* Update the display. */
@@ -2046,9 +2048,7 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 		g_array_remove_index(rowdata, rowdata->len - 1);
 	}
 	/* Add enough cells to the end of the line to fill out the row. */
-	while (rowdata->len < terminal->column_count) {
-		g_array_append_val(rowdata, screen->defaults);
-	}
+	vte_g_array_fill(rowdata, &screen->defaults, terminal->column_count);
 	/* Repaint this row. */
 	vte_invalidate_cells(terminal,
 			     0, terminal->column_count,
@@ -2144,9 +2144,8 @@ vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 		}
 		/* Add enough cells to the end of the line to fill out the
 		 * row. */
-		while (rowdata->len < terminal->column_count) {
-			g_array_append_val(rowdata, screen->defaults);
-		}
+		vte_g_array_fill(rowdata, &screen->defaults,
+				 terminal->column_count);
 		/* Repaint this row. */
 		vte_invalidate_cells(terminal,
 				     0, terminal->column_count,
@@ -2328,9 +2327,8 @@ vte_sequence_handler_dc(VteTerminal *terminal,
 			g_array_remove_index(rowdata, col);
 		}
 		/* Add new cells until we have enough to fill the row. */
-		while (rowdata->len < terminal->column_count) {
-			g_array_append_val(rowdata, screen->defaults);
-		}
+		vte_g_array_fill(rowdata, &screen->defaults,
+				 terminal->column_count);
 		/* Repaint this row. */
 		vte_invalidate_cells(terminal,
 				     0, terminal->column_count,
@@ -2407,7 +2405,6 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 	VteScreen *screen;
 	struct vte_charcell cell;
 	gboolean readjust = FALSE;
-	long add, i;
 
 	/* Must make sure we're in a sane area. */
 	screen = terminal->pvt->screen;
@@ -2437,25 +2434,7 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 		}
 		/* Add enough cells at the end to make sure we have
 		 * enough for all visible columns. */
-		add = screen->cursor_current.col - array->len;
-		if (add > 0) {
-			vte_g_array_append(array,
-					   &g_array_index(array,
-						  	  struct vte_charcell,
-							  array->len),
-					   &cell,
-					   add);
-#ifdef VTE_DEBUG
-			for (i = 0; i < add; i++) {
-				struct vte_charcell *newcell;
-				newcell = &g_array_index(array,
-						         struct vte_charcell,
-						         array->len - 1 - i);
-				g_assert(memcmp(newcell, &cell,
-						sizeof(cell)) == 0);
-			}
-#endif
-		}
+		vte_g_array_fill(array, &cell, screen->cursor_current.col);
 	}
 }
 
@@ -2699,7 +2678,7 @@ vte_sequence_handler_ke(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	terminal->pvt->keypad = VTE_KEYPAD_NORMAL;
+	terminal->pvt->keypad_mode = VTE_KEYMODE_NORMAL;
 }
 
 /* Keypad mode start. */
@@ -2709,7 +2688,7 @@ vte_sequence_handler_ks(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	terminal->pvt->keypad = VTE_KEYPAD_APPLICATION;
+	terminal->pvt->keypad_mode = VTE_KEYMODE_APPLICATION;
 }
 
 /* Cursor left. */
@@ -3042,6 +3021,7 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 	} else {
 		/* Otherwise, just move the cursor down. */
 		screen->cursor_current.row++;
+		vte_terminal_ensure_cursor(terminal, TRUE);
 	}
 }
 
@@ -3573,9 +3553,8 @@ vte_sequence_handler_clear_above_current(VteTerminal *terminal,
 				g_array_remove_index(rowdata, rowdata->len - 1);
 			}
 			/* Add new cells until we fill the row. */
-			while (rowdata->len < terminal->column_count) {
-				g_array_append_val(rowdata, screen->defaults);
-			}
+			vte_g_array_fill(rowdata, &screen->defaults,
+					 terminal->column_count);
 			/* Repaint the row. */
 			vte_invalidate_cells(terminal,
 					     0, terminal->column_count,
@@ -3605,9 +3584,8 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 		rowdata = vte_new_row_data_sized(terminal->column_count);
 		_vte_ring_append(screen->row_data, rowdata);
 		/* Add new cells until we have enough to fill out the row. */
-		while (rowdata->len < terminal->column_count) {
-			g_array_append_val(rowdata, screen->defaults);
-		}
+		vte_g_array_fill(rowdata, &screen->defaults,
+				 terminal->column_count);
 	}
 	/* Move the cursor and insertion delta to the first line in the
 	 * newly-cleared area and scroll if need be. */
@@ -3870,11 +3848,13 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		gpointer tvalue;
 		VteTerminalSequenceHandler reset, set;
 	} settings[] = {
-		/* Application/normal keypad. */
-		{1, NULL, &terminal->pvt->keypad, NULL,
-		 GINT_TO_POINTER(VTE_KEYPAD_NORMAL),
-		 GINT_TO_POINTER(VTE_KEYPAD_APPLICATION),
+		/* Application/normal cursor keys. */
+		{1, NULL, &terminal->pvt->cursor_mode, NULL,
+		 GINT_TO_POINTER(VTE_KEYMODE_NORMAL),
+		 GINT_TO_POINTER(VTE_KEYMODE_APPLICATION),
 		 NULL, NULL,},
+		/* 2: disallowed, we don't do VT52. */
+		/* 3: disallowed, window size is set by user. */
 		/* Smooth scroll. */
 		{4, &terminal->pvt->smooth_scroll, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
@@ -3897,6 +3877,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
+		/* 8: disallowed, keyboard repeat is set by user. */
 		/* Send-coords-on-click. */
 		{9, &terminal->pvt->mouse_send_xy_on_click, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
@@ -3907,31 +3888,48 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
+		/* 30: disallowed, scrollbar visibility is set by user. */
+		/* 40: disallowed, the user sizes dynamically. */
 		/* Alternate screen. */
 		{47, NULL, NULL, (gpointer*) &terminal->pvt->screen,
 		 &terminal->pvt->normal_screen,
 		 &terminal->pvt->alternate_screen,
 		 NULL, NULL,},
+		/* Keypad mode. */
+		{66, &terminal->pvt->keypad_mode, NULL, NULL,
+		 GINT_TO_POINTER(VTE_KEYMODE_NORMAL),
+		 GINT_TO_POINTER(VTE_KEYMODE_APPLICATION),
+		 NULL, NULL,},
+		/* 67: disallowed, backspace key policy is set by user. */
 		/* Send-coords-on-button. */
 		{1000, &terminal->pvt->mouse_send_xy_on_button, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
-		/* Hilite tracking*/
+		/* Hilite tracking. */
 		{1001, &terminal->pvt->mouse_hilite_tracking, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
-		/* Cell motion tracking*/
+		/* Cell motion tracking. */
 		{1002, &terminal->pvt->mouse_cell_motion_tracking, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
-		/* All motion tracking*/
+		/* All motion tracking. */
 		{1003, &terminal->pvt->mouse_all_motion_tracking, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
+		/* 1010: disallowed, scroll-on-output is set by user. */
+		/* 1011: disallowed, scroll-on-keypress is set by user. */
+		/* 1035: disallowed, don't know what to do with it. */
+		/* Meta-sends-escape. */
+		{1036, &terminal->pvt->meta_sends_escape, NULL, NULL,
+		 GINT_TO_POINTER(FALSE),
+		 GINT_TO_POINTER(TRUE),
+		 NULL, NULL,},
+		/* 1037: disallowed, delete key policy is set by user. */
 		/* Use alternate screen buffer. */
 		{1047, NULL, NULL, (gpointer*) &terminal->pvt->screen,
 		 &terminal->pvt->normal_screen,
@@ -3949,10 +3947,25 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 &terminal->pvt->alternate_screen,
 		 vte_sequence_handler_rc,
 		 vte_sequence_handler_sc,},
-		/* Sun/VT220 keyboard mode. */
-		{1051, NULL, NULL, (gpointer*) &terminal->pvt->fkey,
-		 GINT_TO_POINTER(VTE_FKEY_VT220),
-		 GINT_TO_POINTER(VTE_FKEY_SUNPC),
+		/* Sun function key mode. */
+		{1051, NULL, NULL, (gpointer*) &terminal->pvt->sun_fkey_mode,
+		 GINT_TO_POINTER(FALSE),
+		 GINT_TO_POINTER(TRUE),
+		 NULL, NULL},
+		/* HP function key mode. */
+		{1052, NULL, NULL, (gpointer*) &terminal->pvt->hp_fkey_mode,
+		 GINT_TO_POINTER(FALSE),
+		 GINT_TO_POINTER(TRUE),
+		 NULL, NULL},
+		/* Legacy function key mode. */
+		{1060, NULL, NULL, (gpointer*) &terminal->pvt->legacy_fkey_mode,
+		 GINT_TO_POINTER(FALSE),
+		 GINT_TO_POINTER(TRUE),
+		 NULL, NULL},
+		/* VT220 function key mode. */
+		{1061, NULL, NULL, (gpointer*) &terminal->pvt->vt220_fkey_mode,
+		 GINT_TO_POINTER(FALSE),
+		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL},
 	};
 
@@ -4029,6 +4042,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 
 	/* Do whatever's necessary when the setting changes. */
 	switch (setting) {
+	case 3:
 	case 5:
 		/* Repaint everything in reverse mode. */
 		vte_invalidate_all(terminal);
@@ -4085,7 +4099,7 @@ vte_sequence_handler_application_keypad(VteTerminal *terminal,
 					GQuark match_quark,
 					GValueArray *params)
 {
-	terminal->pvt->keypad = VTE_KEYPAD_APPLICATION;
+	terminal->pvt->keypad_mode = VTE_KEYMODE_APPLICATION;
 }
 
 static void
@@ -4094,7 +4108,7 @@ vte_sequence_handler_normal_keypad(VteTerminal *terminal,
 				   GQuark match_quark,
 				   GValueArray *params)
 {
-	terminal->pvt->keypad = VTE_KEYPAD_NORMAL;
+	terminal->pvt->keypad_mode = VTE_KEYMODE_NORMAL;
 }
 
 /* Move the cursor. */
@@ -4387,9 +4401,8 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 		/* Get the data for the new row. */
 		rowdata = _vte_ring_index(screen->row_data, GArray*, row);
 		/* Add enough cells to it so that it has the default colors. */
-		while (rowdata->len < terminal->column_count) {
-			g_array_append_val(rowdata, screen->defaults);
-		}
+		vte_g_array_fill(rowdata, &screen->defaults,
+				 terminal->column_count);
 	}
 	/* Update the display. */
 	vte_terminal_scroll_region(terminal, row, end - row + 1, param);
@@ -4432,9 +4445,8 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 		/* Get the data for the new row. */
 		rowdata = _vte_ring_index(screen->row_data, GArray*, end);
 		/* Add enough cells to it so that it has the default colors. */
-		while (rowdata->len < terminal->column_count) {
-			g_array_append_val(rowdata, screen->defaults);
-		}
+		vte_g_array_fill(rowdata, &screen->defaults,
+				 terminal->column_count);
 	}
 	/* Update the display. */
 	vte_terminal_scroll_region(terminal, row, end - row + 1, -param);
@@ -4640,9 +4652,7 @@ vte_sequence_handler_screen_alignment_test(VteTerminal *terminal,
 		cell = screen->basic_defaults;
 		cell.c = 'E';
 		cell.columns = 1;
-		while (rowdata->len < terminal->column_count) {
-			g_array_append_val(rowdata, cell);
-		}
+		vte_g_array_fill(rowdata, &cell, terminal->column_count);
 	}
 	vte_invalidate_all(terminal);
 }
@@ -5760,9 +5770,7 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		if (array->len <= col) {
 			/* Add enough cells to fill out the row to at least out
 			 * to the insertion point. */
-			while (array->len < col) {
-				array = g_array_append_val(array, cell);
-			}
+			vte_g_array_fill(array, &cell, col);
 			/* Add one more cell to the end of the line to get
 			 * it into the column, and use it. */
 			array = g_array_append_val(array, cell);
@@ -6598,7 +6606,9 @@ vte_terminal_feed(VteTerminal *terminal, const char *data, glong length)
 	    (_vte_buffer_length(terminal->pvt->incoming) > 0)) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_IO)) {
-			fprintf(stderr, "Queuing handler to process bytes.\n");
+			fprintf(stderr,
+				"Queuing handler to process %ld bytes.\n",
+				(long) length);
 		}
 #endif
 		terminal->pvt->processing = TRUE;
@@ -6693,21 +6703,29 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		g_warning(_("Error (%s) converting data for child, dropping."),
 			  strerror(errno));
 	} else {
-		/* Add the data to the outgoing buffer. */
-		_vte_buffer_append(terminal->pvt->outgoing,
-				   obufptr, obuf - obufptr);
-		/* If we need to start waiting for the child pty to become
-		 * available for writing, set that up here. */
-		if (terminal->pvt->pty_output == NULL) {
-			terminal->pvt->pty_output =
-				g_io_channel_unix_new(terminal->pvt->pty_master);
-			terminal->pvt->pty_output_source =
-				g_io_add_watch_full(terminal->pvt->pty_output,
-						    VTE_CHILD_OUTPUT_PRIORITY,
-						    G_IO_OUT,
-						    vte_terminal_io_write,
-						    terminal,
-						    NULL);
+		/* Tell observers that we're sending this to the child. */
+		if (obuf - obufptr > 0) {
+			vte_terminal_emit_commit(terminal,
+						 obufptr, obuf - obufptr);
+		}
+		/* If there's a place for it to go, add the data to the
+		 * outgoing buffer. */
+		if (terminal->pvt->pty_master != -1) {
+			_vte_buffer_append(terminal->pvt->outgoing,
+					   obufptr, obuf - obufptr);
+			/* If we need to start waiting for the child pty to
+			 * become available for writing, set that up here. */
+			if (terminal->pvt->pty_output == NULL) {
+				terminal->pvt->pty_output =
+					g_io_channel_unix_new(terminal->pvt->pty_master);
+				terminal->pvt->pty_output_source =
+					g_io_add_watch_full(terminal->pvt->pty_output,
+							    VTE_CHILD_OUTPUT_PRIORITY,
+							    G_IO_OUT,
+							    vte_terminal_io_write,
+							    terminal,
+							    NULL);
+			}
 		}
 	}
 	return;
@@ -6897,53 +6915,6 @@ vte_terminal_style_changed(GtkWidget *widget, GtkStyle *style, gpointer data)
 	}
 }
 
-static const struct {
-	gulong keyval;
-	char *special;
-	char *vt_ctrl_special;
-} vte_keysym_map[] = {
-	{GDK_F1,     "k1", "F3"},
-	{GDK_KP_F1,  "k1", "F3"},
-	{GDK_F2,     "k2", "F4"},
-	{GDK_KP_F2,  "k2", "F4"},
-	{GDK_F3,     "k3", "F5"},
-	{GDK_KP_F3,  "k3", "F5"},
-	{GDK_F4,     "k4", "F6"},
-	{GDK_KP_F4,  "k4", "F6"},
-	{GDK_F5,     "k5", "F7"},
-	{GDK_F6,     "k6", "F8"},
-	{GDK_F7,     "k7", "F9"},
-	{GDK_F8,     "k8", "FA"},
-	{GDK_F9,     "k9", "FB"},
-	{GDK_F10,    "k;", "FC"},
-	{GDK_F11,    "F1", NULL},
-	{GDK_F12,    "F2", NULL},
-
-	{GDK_F13,    "F3", NULL},
-	{GDK_F14,    "F4", NULL},
-	{GDK_F15,    "F5", NULL},
-	{GDK_F16,    "F6", NULL},
-	{GDK_F17,    "F7", NULL},
-	{GDK_F18,    "F8", NULL},
-	{GDK_F19,    "F9", NULL},
-	{GDK_F20,    "FA", NULL},
-	{GDK_F21,    "FB", NULL},
-	{GDK_F22,    "FC", NULL},
-	{GDK_F23,    "FD", NULL},
-	{GDK_F24,    "FE", NULL},
-	{GDK_F25,    "FF", NULL},
-	{GDK_F26,    "FG", NULL},
-	{GDK_F27,    "FH", NULL},
-	{GDK_F28,    "FI", NULL},
-	{GDK_F29,    "FJ", NULL},
-	{GDK_F30,    "FK", NULL},
-	{GDK_F31,    "FL", NULL},
-	{GDK_F32,    "FM", NULL},
-	{GDK_F33,    "FN", NULL},
-	{GDK_F34,    "FO", NULL},
-	{GDK_F35,    "FP", NULL},
-};
-
 /* Read and handle a keypress event. */
 static gint
 vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
@@ -6954,14 +6925,17 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	PangoFontDescription *fontdesc;
 	struct _vte_termcap *termcap;
 	const char *tterm;
-	char *normal = NULL;
+	char *normal = NULL, *output;
 	gssize normal_length = 0;
 	int i;
-	char *special = NULL, *specialmods = NULL;
+	const char *special = NULL;
 	struct termios tio;
 	struct timeval tv;
 	struct timezone tz;
-	gboolean scrolled = FALSE, steal = FALSE, modifier = FALSE;
+	gboolean scrolled = FALSE, steal = FALSE, modifier = FALSE, handled;
+	VteKeymode keypad_mode = VTE_KEYMODE_NORMAL,
+		   cursor_mode = VTE_KEYMODE_NORMAL;
+	guint keyval = 0;
 
 	g_return_val_if_fail(widget != NULL, FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
@@ -6970,10 +6944,15 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	/* If it's a keypress, record that we got the event, in case the
 	 * input method takes the event from us. */
 	if (event->type == GDK_KEY_PRESS) {
+		/* Store a copy of the key. */
+		keyval = event->keyval;
+
+		/* Log the time of the last keypress. */
 		if (gettimeofday(&tv, &tz) == 0) {
 			terminal->pvt->last_keypress_time =
 				(tv.tv_sec * 1000) + (tv.tv_usec / 1000);
 		}
+
 		/* Read the modifiers. */
 		if (gdk_event_get_state((GdkEvent*)event,
 					&modifiers) == FALSE) {
@@ -6981,53 +6960,31 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		}
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Keypress, modifiers=%d, keyval=%d, "
-				"string=`%s'.\n", modifiers, event->keyval,
-				event->string);
+			fprintf(stderr, "Keypress, modifiers=0x%x, "
+				"keyval=0x%x, string=`%s'.\n",
+				modifiers, keyval, event->string);
 		}
 #endif
-		/* Determine if this is just a modifier key. */
-		switch (event->keyval) {
-		case GDK_Alt_L:
-		case GDK_Alt_R:
-		case GDK_Caps_Lock:
-		case GDK_Control_L:
-		case GDK_Control_R:
-		case GDK_Eisu_Shift:
-		case GDK_Hyper_L:
-		case GDK_Hyper_R:
-		case GDK_ISO_First_Group_Lock:
-		case GDK_ISO_Group_Lock:
-		case GDK_ISO_Group_Shift:
-		case GDK_ISO_Last_Group_Lock:
-		case GDK_ISO_Level3_Lock:
-		case GDK_ISO_Level3_Shift:
-		case GDK_ISO_Lock:
-		case GDK_ISO_Next_Group_Lock:
-		case GDK_ISO_Prev_Group_Lock:
-		case GDK_Kana_Lock:
-		case GDK_Kana_Shift:
-		case GDK_Meta_L:
-		case GDK_Meta_R:
-		case GDK_Num_Lock:
-		case GDK_Scroll_Lock:
-		case GDK_Shift_L:
-		case GDK_Shift_Lock:
-		case GDK_Shift_R:
-		case GDK_Super_L:
-		case GDK_Super_R:
-			modifier = TRUE;
-			break;
-		default:
-			modifier = FALSE;
-			break;
+
+		/* Determine what the keypad and modes are. */
+		if ((modifiers & VTE_NUMLOCK_MASK) == VTE_NUMLOCK_MASK) {
+			keypad_mode = VTE_KEYMODE_NORMAL;
+		} else {
+			keypad_mode = terminal->pvt->keypad_mode;
 		}
+		cursor_mode = terminal->pvt->cursor_mode;
+
+		/* Determine if this is just a modifier key. */
+		modifier = _vte_keymap_key_is_modifier(keyval);
+
 		/* Unless it's a modifier key, hide the pointer. */
 		if (!modifier) {
 			vte_terminal_set_pointer_visible(terminal, FALSE);
 		}
-		/* Determine if this is a key we want to steal. */
-		switch (event->keyval) {
+
+		/* Determine if this is a key we want to steal from the
+		 * input method. */
+		switch (keyval) {
 		case GDK_KP_Add:
 		case GDK_KP_Subtract:
 			if (modifiers & GDK_SHIFT_MASK) {
@@ -7054,8 +7011,9 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 
 	/* Now figure out what to send to the child. */
 	if (event->type == GDK_KEY_PRESS) {
+		handled = FALSE;
 		/* Map the key to a sequence name if we can. */
-		switch (event->keyval) {
+		switch (keyval) {
 		case GDK_BackSpace:
 			switch (terminal->pvt->backspace_binding) {
 			case VTE_ERASE_ASCII_BACKSPACE:
@@ -7082,6 +7040,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				}
 				break;
 			}
+			handled = TRUE;
 			break;
 		case GDK_KP_Delete:
 		case GDK_Delete:
@@ -7100,6 +7059,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				special = "kD";
 				break;
 			}
+			handled = TRUE;
 			break;
 		case GDK_KP_Insert:
 		case GDK_Insert:
@@ -7109,105 +7069,15 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			} else {
 				special = "kI";
 			}
+			handled = TRUE;
 			break;
-		case GDK_KP_Home:
-		case GDK_Home:
-			special = "kh";
-			break;
-		case GDK_KP_End:
-		case GDK_End:
-			special = "@7";
-			break;
-		case GDK_F1:
-		case GDK_F2:
-		case GDK_F3:
-		case GDK_F4:
-		case GDK_F5:
-		case GDK_F6:
-		case GDK_F7:
-		case GDK_F8:
-		case GDK_F9:
-		case GDK_F10:
-		case GDK_F11:
-		case GDK_F12:
-		case GDK_F13:
-		case GDK_F14:
-		case GDK_F15:
-		case GDK_F16:
-		case GDK_F17:
-		case GDK_F18:
-		case GDK_F19:
-		case GDK_F20:
-		case GDK_F21:
-		case GDK_F22:
-		case GDK_F23:
-		case GDK_F24:
-		case GDK_F25:
-		case GDK_F26:
-		case GDK_F27:
-		case GDK_F28:
-		case GDK_F29:
-		case GDK_F30:
-		case GDK_F31:
-		case GDK_F32:
-		case GDK_F33:
-		case GDK_F34:
-		case GDK_F35:
-			for (i = 0;
-			     i < G_N_ELEMENTS(vte_keysym_map);
-			     i++) {
-				if (vte_keysym_map[i].keyval == event->keyval) {
-					if (terminal->pvt->fkey == VTE_FKEY_VT220) {
-						if ((modifiers & GDK_CONTROL_MASK) && vte_keysym_map[i].vt_ctrl_special) {
-							special = vte_keysym_map[i].vt_ctrl_special;
-						} else {
-							special = vte_keysym_map[i].special;
-						}
-					}
-					if (terminal->pvt->fkey == VTE_FKEY_SUNPC) {
-						special = vte_keysym_map[i].special;
-						i = 0;
-						if (modifiers & GDK_CONTROL_MASK) {
-							i += 4;
-						}
-						if (modifiers & GDK_MOD1_MASK) {
-							i += 2;
-						}
-						if (modifiers & GDK_SHIFT_MASK) {
-							i += 1;
-						}
-						if (i > 0) {
-							specialmods = g_strdup_printf("%d", i + 1);
-						}
-					}
-					break;
-				}
-			}
-			break;
-		/* Cursor keys. */
-		case GDK_KP_Up:
-		case GDK_Up:
-			special = "ku";
-			break;
-		case GDK_KP_Down:
-		case GDK_Down:
-			special = "kd";
-			break;
-		case GDK_KP_Left:
-		case GDK_Left:
-			special = "kl";
-			break;
-		case GDK_KP_Right:
-		case GDK_Right:
-			special = "kr";
-			break;
+		/* Keypad/motion keys. */
 		case GDK_KP_Page_Up:
 		case GDK_Page_Up:
 			if (modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_scroll_pages(terminal, -1);
 				scrolled = TRUE;
-			} else {
-				special = "kP";
+				handled = TRUE;
 			}
 			break;
 		case GDK_KP_Page_Down:
@@ -7215,31 +7085,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			if (modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_scroll_pages(terminal, 1);
 				scrolled = TRUE;
-			} else {
-				special = "kN";
-			}
-			break;
-		case GDK_KP_Tab:
-		case GDK_Tab:
-			if (modifiers & GDK_SHIFT_MASK) {
-				special = "kB";
-			} else {
-				normal = g_strdup("\t");
-				normal_length = 1;
-			}
-			break;
-		case GDK_ISO_Left_Tab:
-			special = "kB";
-			break;
-		case GDK_KP_Space:
-		case GDK_space:
-			if (modifiers & GDK_CONTROL_MASK) {
-				/* Ctrl-Space sends NUL?!?  Madness! */
-				normal = g_strdup("");
-				normal_length = 1;
-			} else {
-				normal = g_strdup(" ");
-				normal_length = 1;
+				handled = TRUE;
 			}
 			break;
 		/* Let Shift +/- tweak the font, like XTerm does. */
@@ -7251,10 +7097,10 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				if (rofontdesc != NULL) {
 					fontdesc = pango_font_description_copy(rofontdesc);
 					i = pango_font_description_get_size(fontdesc);
-					if (event->keyval == GDK_KP_Add) {
+					if (keyval == GDK_KP_Add) {
 						i += PANGO_SCALE;
 					}
-					if (event->keyval == GDK_KP_Subtract) {
+					if (keyval == GDK_KP_Subtract) {
 						i = MAX(PANGO_SCALE,
 							i - PANGO_SCALE);
 					}
@@ -7267,6 +7113,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 					pango_font_description_set_size(fontdesc, i);
 					vte_terminal_set_font(terminal, fontdesc);
 					pango_font_description_free(fontdesc);
+					handled = TRUE;
 				}
 #ifdef VTE_DEBUG
 				if (_vte_debug_on(VTE_DEBUG_MISC)) {
@@ -7275,33 +7122,48 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 					}
 				}
 #endif
-				break;
 			}
 			break;
-		/* The default is to just send the string. */
 		default:
-			if (event->string != NULL) {
-				normal = g_strdup(event->string);
-				normal_length = strlen(normal);
-				if (modifiers & GDK_CONTROL_MASK) {
-					/* Replace characters which have
-					 * "control" counterparts with
-					 * those counterparts. */
-					for (i = 0; i < normal_length; i++) {
-						if ((normal[i] > 64) &&
-						    (normal[i] < 97)) {
-							normal[i] ^= 0x40;
-						}
+			break;
+		}
+		/* If the above switch statement didn't do the job, try mapping
+		 * it to a literal or capability name. */
+		if (handled == FALSE) {
+			_vte_keymap_map(keyval, modifiers,
+					terminal->pvt->sun_fkey_mode,
+					terminal->pvt->hp_fkey_mode,
+					terminal->pvt->legacy_fkey_mode,
+					terminal->pvt->vt220_fkey_mode,
+					terminal->pvt->cursor_mode == VTE_KEYMODE_APPLICATION,
+					terminal->pvt->keypad_mode == VTE_KEYMODE_APPLICATION,
+					&normal,
+					&normal_length,
+					&special);
+		}
+		/* If we didn't manage to do anything, try to salvage a
+		 * printable string. */
+		if (!handled &&
+		    (normal == NULL) && (special == NULL) &&
+		    (event->string != NULL)) {
+			normal = g_strdup(event->string);
+			normal_length = strlen(normal);
+			if (modifiers & GDK_CONTROL_MASK) {
+				/* Replace characters which have "control"
+				 * counterparts with those counterparts. */
+				for (i = 0; i < normal_length; i++) {
+					if ((normal[i] >= 0x40) &&
+					    (normal[i] <= 0x60)) {
+						normal[i] ^= 0x40;
 					}
 				}
 			}
-			break;
 		}
 		/* If we got normal characters, send them to the child. */
 		if (normal != NULL) {
-			if (terminal->pvt->alt_sends_escape &&
+			if (terminal->pvt->meta_sends_escape &&
 			    (normal_length > 0) &&
-			    (modifiers & GDK_MOD1_MASK)) {
+			    (modifiers & VTE_META_MASK)) {
 				vte_terminal_feed_child(terminal, "", 1);
 			}
 			if (normal_length > 0) {
@@ -7318,22 +7180,9 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 								 tterm,
 								 special,
 								 &normal_length);
-			special = g_strdup_printf(normal, 1);
-			if (specialmods) {
-				i = strlen(special);
-				if ((i > 0) && (special[i - 1] == '~')) {
-					/* Insert the modifier before the
-					 * last character, which is '~'. */
-					special = g_realloc(special,
-							    i + strlen(specialmods) + 2);
-					special[i - 1] = ';';
-					strcpy(special + i, specialmods);
-					strcat(special + i + strlen(specialmods), "~");
-				}
-				g_free(specialmods);
-			}
-			vte_terminal_feed_child(terminal, special, -1);
-			g_free(special);
+			output = g_strdup_printf(normal, 1);
+			vte_terminal_feed_child(terminal, output, -1);
+			g_free(output);
 			g_free(normal);
 		}
 		/* Keep the cursor on-screen. */
@@ -8272,9 +8121,8 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 			/* If we added a character to the string, record its
 			 * attributes, one per byte. */
 			if (attributes) {
-				while (attributes->len < string->len) {
-					g_array_append_val(attributes, attr);
-				}
+				vte_g_array_fill(attributes,
+						 &attr, string->len);
 			}
 			col++;
 			if ((col >= terminal->column_count) ||
@@ -8282,9 +8130,14 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 				break;
 			}
 		} while (pcell != NULL);
-		/* Extra spaces at the end of a line become newlines. */
+		/* Extra spaces at the end of a line become newlines unless
+		 * this is the last row of the selection. */
 		if (spaces > 0) {
-			string = g_string_append_c(string, '\n');
+			if (row != end_row) {
+				string = g_string_append_c(string, '\n');
+			} else {
+				string = g_string_append_c(string, ' ');
+			}
 			spaces = 0;
 			attr.column = col;
 		}
@@ -8292,7 +8145,8 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 		 * with missing attributes. */
 		if (attributes) {
 			while (attributes->len < string->len) {
-				g_array_append_val(attributes, attr);
+				vte_g_array_fill(attributes,
+						 &attr, string->len);
 			}
 		}
 	}
@@ -10059,8 +9913,12 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->flags.am = FALSE;
 	pvt->flags.bw = FALSE;
 	pvt->flags.ul = FALSE;
-	pvt->keypad = VTE_KEYPAD_NORMAL;
-	pvt->fkey = VTE_FKEY_VT220;
+	pvt->keypad_mode = VTE_KEYMODE_NORMAL;
+	pvt->cursor_mode = VTE_KEYMODE_NORMAL;
+	pvt->sun_fkey_mode = FALSE;
+	pvt->hp_fkey_mode = FALSE;
+	pvt->legacy_fkey_mode = FALSE;
+	pvt->vt220_fkey_mode = FALSE;
 	pvt->dec_saved = g_hash_table_new(g_direct_hash, g_direct_equal);
 	pvt->default_column_count = 80;
 	pvt->default_row_count = 24;
@@ -10167,7 +10025,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	/* Miscellaneous options. */
 	vte_terminal_set_backspace_binding(terminal, VTE_ERASE_AUTO);
 	vte_terminal_set_delete_binding(terminal, VTE_ERASE_AUTO);
-	pvt->alt_sends_escape = TRUE;
+	pvt->meta_sends_escape = TRUE;
 	pvt->audible_bell = TRUE;
 	pvt->visible_bell = FALSE;
 	pvt->xterm_font_tweak = FALSE;
@@ -12688,6 +12546,15 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     NULL,
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+	klass->commit_signal =
+		g_signal_new("commit",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     0,
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__STRING_UINT,
+			     G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_UINT);
 	klass->emulation_changed_signal =
 		g_signal_new("emulation-changed",
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -13905,8 +13772,15 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 		_vte_iso2022_free(terminal->pvt->substitutions);
 	}
 	terminal->pvt->substitutions = _vte_iso2022_new();
-	/* Reset appkeypad state. */
-	terminal->pvt->keypad = VTE_KEYPAD_NORMAL;
+	/* Reset keypad/cursor/function key modes. */
+	terminal->pvt->keypad_mode = VTE_KEYMODE_NORMAL;
+	terminal->pvt->cursor_mode = VTE_KEYMODE_NORMAL;
+	terminal->pvt->sun_fkey_mode = FALSE;
+	terminal->pvt->hp_fkey_mode = FALSE;
+	terminal->pvt->legacy_fkey_mode = FALSE;
+	terminal->pvt->vt220_fkey_mode = FALSE;
+	/* Enable meta-sends-escape. */
+	terminal->pvt->meta_sends_escape = TRUE;
 	/* Disable smooth scroll. */
 	terminal->pvt->smooth_scroll = FALSE;
 	/* Reset saved settings. */

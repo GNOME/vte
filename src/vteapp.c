@@ -283,7 +283,9 @@ main(int argc, char **argv)
 				  strlen(message));
 	}
 #endif
-	vte_terminal_fork_command(VTE_TERMINAL(widget), command, NULL, env_add);
+	vte_terminal_fork_logged_command(VTE_TERMINAL(widget),
+					 command, NULL, env_add,
+					 TRUE, TRUE, TRUE);
 	if (command == NULL) {
 		vte_terminal_feed_child(VTE_TERMINAL(widget), "pwd\n", -1);
 	}

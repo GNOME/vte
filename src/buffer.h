@@ -18,10 +18,14 @@
  *
  */
 
-#ifndef buffer_h
-#define buffer_h
+/* The interfaces in this file are subject to change at any time. */
+
+#ifndef vte_buffer_h_included
+#define vte_buffer_h_included
 
 #include <sys/types.h>
+
+G_BEGIN_DECLS
 
 struct _vte_buffer {
 	/* public */
@@ -39,5 +43,7 @@ size_t _vte_buffer_length(struct _vte_buffer *buffer);
 void _vte_buffer_consume(struct _vte_buffer *buffer, size_t length);
 void _vte_buffer_clear(struct _vte_buffer *buffer);
 void _vte_buffer_set_minimum_size(struct _vte_buffer *buffer, size_t length);
+
+G_END_DECLS
 
 #endif

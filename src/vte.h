@@ -87,7 +87,7 @@ struct _VteTerminalClass {
 	guint move_window_signal;
 	guint status_line_changed_signal;
 
-	gpointer reserved1;
+	guint commit_signal;
 	gpointer reserved2;
 	gpointer reserved3;
 	gpointer reserved4;

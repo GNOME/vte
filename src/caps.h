@@ -33,6 +33,8 @@ G_BEGIN_DECLS
 #define _VTE_CAP_OSC _VTE_CAP_ESC "]"	/* Operating System Command */
 #define _VTE_CAP_PM  _VTE_CAP_ESC "^"	/* Privacy Message */
 #define _VTE_CAP_APC _VTE_CAP_ESC "_"	/* Application Program Command */
+#define _VTE_CAP_SS2 _VTE_CAP_ESC "N"	/* Single-shift to G2 */
+#define _VTE_CAP_SS3 _VTE_CAP_ESC "O"	/* Single-shift to G3 */
 
 /* A NULL-terminated list of capability strings which have string values,
  * which means they're either key sequences or commands. */

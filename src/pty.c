@@ -64,6 +64,86 @@ static pid_t _vte_pty_helper_pid = -1;
 static int _vte_pty_helper_tunnel = -1;
 static GTree *_vte_pty_helper_map = NULL;
 
+/* Reset the handlers for all known signals to their defaults.  The parent
+ * (or one of the libraries it links to) may have changed one to be ignored. */
+static void
+_vte_pty_reset_signal_handlers(void)
+{
+	signal(SIGHUP,  SIG_DFL);
+	signal(SIGINT,  SIG_DFL);
+	signal(SIGILL,  SIG_DFL);
+	signal(SIGABRT, SIG_DFL);
+	signal(SIGFPE,  SIG_DFL);
+	signal(SIGKILL, SIG_DFL);
+	signal(SIGSEGV, SIG_DFL);
+	signal(SIGPIPE, SIG_DFL);
+	signal(SIGALRM, SIG_DFL);
+	signal(SIGTERM, SIG_DFL);
+	signal(SIGCHLD, SIG_DFL);
+	signal(SIGCONT, SIG_DFL);
+	signal(SIGSTOP, SIG_DFL);
+	signal(SIGTSTP, SIG_DFL);
+	signal(SIGTTIN, SIG_DFL);
+	signal(SIGTTOU, SIG_DFL);
+#ifdef SIGBUS
+	signal(SIGBUS,  SIG_DFL);
+#endif
+#ifdef SIGPOLL
+	signal(SIGPOLL, SIG_DFL);
+#endif
+#ifdef SIGPROF
+	signal(SIGPROF, SIG_DFL);
+#endif
+#ifdef SIGSYS
+	signal(SIGSYS,  SIG_DFL);
+#endif
+#ifdef SIGTRAP
+	signal(SIGTRAP, SIG_DFL);
+#endif
+#ifdef SIGURG
+	signal(SIGURG,  SIG_DFL);
+#endif
+#ifdef SIGVTALARM
+	signal(SIGVTALARM, SIG_DFL);
+#endif
+#ifdef SIGXCPU
+	signal(SIGXCPU, SIG_DFL);
+#endif
+#ifdef SIGXFSZ
+	signal(SIGXFSZ, SIG_DFL);
+#endif
+#ifdef SIGIOT
+	signal(SIGIOT,  SIG_DFL);
+#endif
+#ifdef SIGEMT
+	signal(SIGEMT,  SIG_DFL);
+#endif
+#ifdef SIGSTKFLT
+	signal(SIGSTKFLT, SIG_DFL);
+#endif
+#ifdef SIGIO
+	signal(SIGIO,   SIG_DFL);
+#endif
+#ifdef SIGCLD
+	signal(SIGCLD,  SIG_DFL);
+#endif
+#ifdef SIGPWR
+	signal(SIGPWR,  SIG_DFL);
+#endif
+#ifdef SIGINFO
+	signal(SIGINFO, SIG_DFL);
+#endif
+#ifdef SIGLOST
+	signal(SIGLOST, SIG_DFL);
+#endif
+#ifdef SIGWINCH
+	signal(SIGWINCH, SIG_DFL);
+#endif
+#ifdef SIGUNUSED
+	signal(SIGUNUSED, SIG_DFL);
+#endif
+}
+
 /* Run the given command, using the given descriptor as the controlling
  * terminal. */
 static int
@@ -121,6 +201,10 @@ _vte_pty_run_on_pty(int fd, char **env_add, const char *command, char **argv)
 		}
 #endif
 	}
+
+	/* Reset our signals -- our parent may have done any number of
+	 * weird things to them. */
+	_vte_pty_reset_signal_handlers();
 
 	/* Outta here. */
 	if (argv != NULL) {

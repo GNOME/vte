@@ -1,3 +1,34 @@
+2002-10-14 nalin
+	* configure.in: more $pkglibdir -> $libexecdir fixing.
+	* doc/Makefile.am: add rules for generating ps and text versions of the
+	ctlseqs docs.
+	* doc/reference/tmpl/vte.sgml: add snippet for "commit".
+	* python/python/vte.defs: update to add a binding for
+	vte_terminal_fork_logged_command().
+	* src/buffer.h: add a warning comment that these are private interfaces.
+	Wrap declarations in G_BEGIN_DECLS/G_END_DECLS.
+	* src/caps.h: add macros for the SS2/SS3 sequences.
+	* src/marshal.list: add a marshaller for the "commit" signal.
+	* src/keymap.c, src/keymap.h: move the getting-more-convoluted
+	keypress-handling code to a shell that parses tables of static info.
+	* src/vte.c: use the keymap for most non-printable keys.  Add a "commit"
+	signal to allow an app to just use the terminal for displaying data and
+	grabbing input.  Obey the application's desired meta-sends-escape
+	setting.  Recognize HP function key mode.  Recognize and handle
+	legacy XTerm function key mode.  Force a redraw if the child application
+	tries to switch to 80/132 columns, even though we don't usually let
+	them try.  Don't try to send keystrokes to the child pty when there
+	is no child pty.  Don't convert final whitespace to newlines when
+	copying text (Red Hat #74611).
+	* python/cat.py: test program for running without a command.
+	* termcaps/xterm: change the definitions for ku/kd/kl/kr to match
+	XTerm in normal cursor mode instead of application cursor mode.
+
+2002-10-11 nalin
+	* src/vte.c: properly distinguish cursor key mode and keypad key mode,
+	obey application mode for cursor keys,
+	* src/pty.c: reset signal handlers before exec() (Red Hat #75341)
+
 2002-10-11 nalin
 	* src/trie.c: change the typedef of wint_t here to match vte.c (now
 	a gunichar instead of a long).  Spotted by Brian Cameron.

@@ -51,6 +51,20 @@
   )
 )
 
+(define-method fork_logged_command
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_fork_logged_command")
+  (return-type "pid_t")
+  (parameters
+    '("const-char*" "command")
+    '("char**" "argv")
+    '("char**" "envv")
+    '("gboolean" "lastlog")
+    '("gboolean" "utmp")
+    '("gboolean" "wtmp")
+  )
+)
+
 (define-method feed
   (of-object "VteTerminal")
   (c-name "vte_terminal_feed")

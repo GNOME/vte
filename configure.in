@@ -161,7 +161,9 @@ fi
 if test x$prefix = xNONE ; then
 	mydatadir=`echo $mydatadir | sed s,NONE,$ac_default_prefix,g`
 fi
-AC_DEFINE_UNQUOTED(LIBEXECDIR,"$mylibdir/$PACKAGE",
+AC_DEFINE_UNQUOTED(PKGLIBDIR,"$mylibdir/$PACKAGE",
+                   [The location where package-specific helpers can be found.])
+AC_DEFINE_UNQUOTED(LIBEXECDIR,"$mylibexecdir",
                    [The location where package-specific helpers can be found.])
 AC_DEFINE_UNQUOTED(DATADIR,"$mydatadir",
                    [The location where arch-independent package-specific data can be found.])

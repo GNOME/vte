@@ -630,6 +630,17 @@ vte_terminal_fork_command() has exited.
 
 @vteterminal: the object which received the signal.
 
+<!-- ##### SIGNAL VteTerminal::commit ##### -->
+<para>
+Emitted whenever the terminal receives input from the user and prepares to send
+it to the child process.  The signal is emitted even when there is no child
+process.
+</para>
+
+@vteterminal: the object which received the signal.
+@arg1: a string of text.
+@arg2: the length of that string of text.
+
 <!-- ##### SIGNAL VteTerminal::contents-changed ##### -->
 <para>
 Emitted whenever the visible appearance of the terminal has changed.  Used

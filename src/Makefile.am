@@ -24,6 +24,8 @@ libvte_la_SOURCES = \
 	debug.h \
 	iso2022.c \
 	iso2022.h \
+	keymap.c \
+	keymap.h \
 	marshal.c \
 	marshal.h \
 	pty.c \
