@@ -33,6 +33,7 @@
 #include "iso2022.h"
 #include "matcher.h"
 #include "trie.h"
+#include "vteconv.h"
 
 #ifndef HAVE_WINT_T
 typedef gunichar wint_t;
@@ -486,7 +487,7 @@ _vte_trie_add(struct _vte_trie *trie, const char *pattern, size_t length,
 	      const char *result, GQuark quark)
 {
 	char *wpattern, *wpattern_end, *tpattern;
-	GIConv conv;
+	VteConv conv;
 	size_t wlength;
 
 	g_return_if_fail(trie != NULL);
@@ -500,17 +501,17 @@ _vte_trie_add(struct _vte_trie *trie, const char *pattern, size_t length,
 	wlength = sizeof(gunichar) * (length + 1);
 	wpattern = wpattern_end = g_malloc0(wlength + 1);
 
-	conv = g_iconv_open(_vte_matcher_wide_encoding(), "UTF-8");
-	g_assert(conv != ((GIConv) -1));
+	conv = _vte_conv_open(VTE_CONV_GUNICHAR_TYPE, "UTF-8");
+	g_assert(conv != ((VteConv) -1));
 
 	tpattern = (char*)pattern;
-	g_iconv(conv, &tpattern, &length, &wpattern_end, &wlength);
+	_vte_conv(conv, &tpattern, &length, &wpattern_end, &wlength);
 	if (length == 0) {
 		wlength = (wpattern_end - wpattern) / sizeof(gunichar);
 		_vte_trie_addx(trie, (gunichar*)wpattern, wlength,
 			       result, quark, 0);
 	}
-	g_iconv_close(conv);
+	_vte_conv_close(conv);
 
 	g_free(wpattern);
 }
@@ -839,15 +840,15 @@ static void
 convert_mbstowcs(const char *i, size_t ilen,
 		 gunichar *o, size_t *olen, size_t max_olen)
 {
-	GIConv conv;
+	VteConv conv;
 	size_t outlen;
-	conv = g_iconv_open(_vte_matcher_wide_encoding(), "UTF-8");
-	g_assert(conv != ((GIConv) -1));
+	conv = _vte_conv_open(VTE_CONV_GUNICHAR_TYPE, "UTF-8");
+	g_assert(conv != ((VteConv) -1));
 
 	memset(o, 0, max_olen);
 	outlen = max_olen;
-	g_iconv(conv, (char**)&i, &ilen, (char**)&o, &outlen);
-	g_iconv_close(conv);
+	_vte_conv(conv, (char**)&i, &ilen, (char**)&o, &outlen);
+	_vte_conv_close(conv);
 
 	*olen = (max_olen - outlen) / sizeof(gunichar);
 }
@@ -890,7 +891,7 @@ main(int argc, char **argv)
 	_vte_trie_add(trie, "<esc>]2;%sh", 11, "decset-title",
 		      g_quark_from_string("decset-title"));
 
-	printf("Wide encoding is `%s'.\n", _vte_matcher_wide_encoding());
+	printf("Wide encoding is `%s'.\n", VTE_CONV_GUNICHAR_TYPE);
 
 	_vte_trie_print(trie);
 	printf("\n");

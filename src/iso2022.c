@@ -30,6 +30,7 @@
 #include "buffer.h"
 #include "iso2022.h"
 #include "matcher.h"
+#include "vteconv.h"
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
@@ -75,7 +76,7 @@ struct _vte_iso2022_state {
 	int current, override;
 	gunichar g[4];
 	const gchar *codeset, *native_codeset, *utf8_codeset, *target_codeset;
-	GIConv conv;
+	VteConv conv;
 	_vte_iso2022_codeset_changed_cb_fn codeset_changed;
 	gpointer codeset_changed_data;
 	struct _vte_buffer *buffer;
@@ -707,19 +708,19 @@ _vte_iso2022_state_new(const char *native_codeset,
 	}
 	state->utf8_codeset = "UTF-8";
 	state->codeset = state->native_codeset;
-	state->target_codeset = _vte_matcher_wide_encoding();
+	state->target_codeset = VTE_CONV_GUNICHAR_TYPE;
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
 		fprintf(stderr, "Native codeset \"%s\", currently %s\n",
 			state->native_codeset, state->codeset);
 	}
 #endif
-	state->conv = g_iconv_open(state->target_codeset,
-				   state->codeset);
+	state->conv = _vte_conv_open(state->target_codeset,
+				     state->codeset);
 	state->codeset_changed = fn;
 	state->codeset_changed_data = data;
 	state->buffer = _vte_buffer_new();
-	g_assert(state->conv != (GIConv) -1);
+	g_assert(state->conv != (VteConv) -1);
 	return state;
 }
 
@@ -727,7 +728,7 @@ void
 _vte_iso2022_state_set_codeset(struct _vte_iso2022_state *state,
 			       const char *codeset)
 {
-	GIConv conv;
+	VteConv conv;
 
 	g_return_if_fail(state != NULL);
 	g_return_if_fail(codeset != NULL);
@@ -738,14 +739,14 @@ _vte_iso2022_state_set_codeset(struct _vte_iso2022_state *state,
 		fprintf(stderr, "%s\n", codeset);
 	}
 #endif
-	conv = g_iconv_open(state->target_codeset, codeset);
-	if (conv == (GIConv) -1) {
+	conv = _vte_conv_open(state->target_codeset, codeset);
+	if (conv == (VteConv) -1) {
 		g_warning(_("Unable to convert characters from %s to %s."),
 			  codeset, state->target_codeset);
 		return;
 	}
-	if (state->conv != (GIConv) -1) {
-		g_iconv_close(state->conv);
+	if (state->conv != (VteConv) -1) {
+		_vte_conv_close(state->conv);
 	}
 	state->codeset = g_quark_to_string(g_quark_from_string(codeset));
 	state->conv = conv;
@@ -760,10 +761,10 @@ _vte_iso2022_state_get_codeset(struct _vte_iso2022_state *state)
 void
 _vte_iso2022_state_free(struct _vte_iso2022_state *state)
 {
-	if (state->conv != ((GIConv) -1)) {
-		g_iconv_close(state->conv);
+	if (state->conv != ((VteConv) -1)) {
+		_vte_conv_close(state->conv);
 	}
-	state->conv = (GIConv) -1;
+	state->conv = (VteConv) -1;
 	state->native_codeset = state->utf8_codeset = state->codeset = NULL;
 	state->target_codeset = NULL;
 	state->g[3] = 'B';
@@ -1081,9 +1082,9 @@ process_cdata(struct _vte_iso2022_state *state, guchar *cdata, gsize length,
 		outbuf = (gunichar*)buf;
 		outbytes = sizeof(gunichar) * length * 2;
 		do {
-			converted = g_iconv(state->conv,
-					    &inbuf, &inbytes,
-					    (gchar**) &outbuf, &outbytes);
+			converted = _vte_conv(state->conv,
+					      &inbuf, &inbytes,
+					      (gchar**) &outbuf, &outbytes);
 			switch (converted) {
 			case ((size_t)-1):
 				switch (errno) {

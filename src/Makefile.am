@@ -3,7 +3,7 @@ pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
 pkglib_PROGRAMS = interpret utf8echo nativeecho utf8mode iso8859mode slowcat vterdb
 pkglib_SCRIPTS = decset osc window
-noinst_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-vte $(REFLECT_ZVT) ring mev ssfe table termcap trie xticker
+noinst_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-vte $(REFLECT_ZVT) ring mev ssfe table termcap trie xticker vteconv
 EXTRA_DIST = \
 	$(pkglib_SCRIPTS) \
 	genkeysyms.py \
@@ -55,10 +55,12 @@ libvte_la_SOURCES = \
 	trie.h \
 	vte.c \
 	vte.h \
-	vtebg.c \
-	vtebg.h \
 	vteaccess.c \
 	vteaccess.h \
+	vtebg.c \
+	vtebg.h \
+	vteconv.c \
+	vteconv.h \
 	vtedraw.c \
 	vtedraw.h \
 	vtefc.c \
@@ -127,10 +129,12 @@ interpret_SOURCES = \
 	matcher.h \
 	table.c \
 	table.h \
-	trie.c \
-	trie.h \
 	termcap.c \
 	termcap.h \
+	trie.c \
+	trie.h \
+	vteconv.c \
+	vteconv.h \
 	interpret.c
 interpret_LDADD = @LDFLAGS@ @GOBJECT_LIBS@
 
@@ -147,11 +151,15 @@ iso2022_SOURCES = \
 	table.c \
 	table.h \
 	trie.c \
-	trie.h
+	trie.h \
+	vteconv.c \
+	vteconv.h
 iso2022_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 utf8echo_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DUTF8ECHO_MAIN
 utf8echo_SOURCES = \
+	buffer.c \
+	buffer.h \
 	debug.c \
 	debug.h \
 	matcher.c \
@@ -160,7 +168,9 @@ utf8echo_SOURCES = \
 	table.h \
 	trie.c \
 	trie.h \
-	utf8echo.c
+	utf8echo.c \
+	vteconv.c \
+	vteconv.h
 utf8echo_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 nativeecho_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DNATIVEECHO_MAIN
@@ -182,6 +192,8 @@ slowcat_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
 
 table_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DTABLE_MAIN
 table_SOURCES = \
+	buffer.c \
+	buffer.h \
 	debug.c \
 	debug.h \
 	matcher.c \
@@ -189,11 +201,15 @@ table_SOURCES = \
 	table.c \
 	table.h \
 	trie.c \
-	trie.h
+	trie.h \
+	vteconv.c \
+	vteconv.h
 table_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 trie_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DTRIE_MAIN
 trie_SOURCES = \
+	buffer.c \
+	buffer.h \
 	debug.c \
 	debug.h \
 	matcher.c \
@@ -203,7 +219,9 @@ trie_SOURCES = \
 	termcap.c \
 	termcap.h \
 	trie.c \
-	trie.h
+	trie.h \
+	vteconv.c \
+	vteconv.h
 trie_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 termcap_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DTERMCAP_MAIN
@@ -235,6 +253,16 @@ reaper_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 vterdb_CFLAGS = @CFLAGS@ @GTK_CFLAGS@ -DVTERDB_MAIN
 vterdb_SOURCES = vterdb.c
 vterdb_LDADD = @LDFLAGS@ @LIBS@ @GTK_LIBS@
+
+vteconv_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DVTECONV_MAIN
+vteconv_SOURCES = \
+	buffer.c \
+	buffer.h \
+	debug.c \
+	debug.h \
+	vteconv.c \
+	vteconv.h
+vteconv_LDADD = @LDFLAGS@ @GLIB_LIBS@
 
 buffer_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DBUFFER_MAIN
 buffer_SOURCES = buffer.c

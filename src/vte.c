@@ -60,6 +60,7 @@
 #include "termcap.h"
 #include "vte.h"
 #include "vteaccess.h"
+#include "vteconv.h"
 #include "vtedraw.h"
 #include <fontconfig/fontconfig.h>
 
@@ -203,7 +204,7 @@ struct _VteTerminalPrivate {
 
 	/* Output data queue. */
 	struct _vte_buffer *outgoing;	/* pending input characters */
-	GIConv outgoing_conv;
+	VteConv outgoing_conv;
 
 	/* IConv buffer. */
 	struct _vte_buffer *conv_buffer;
@@ -1971,7 +1972,7 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 {
 	const char *old_codeset;
 	GQuark encoding_quark;
-	GIConv conv;
+	VteConv conv;
 	char *obuf1, *obuf2;
 	gsize bytes_written;
 
@@ -1985,14 +1986,14 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	}
 
 	/* Open new conversions. */
-	conv = g_iconv_open(codeset, "UTF-8");
-	if (conv == ((GIConv) -1)) {
+	conv = _vte_conv_open(codeset, "UTF-8");
+	if (conv == ((VteConv) -1)) {
 		g_warning(_("Unable to convert characters from %s to %s."),
 			  "UTF-8", codeset);
 		return;
 	}
-	if (terminal->pvt->outgoing_conv != (GIConv) -1) {
-		g_iconv_close(terminal->pvt->outgoing_conv);
+	if (terminal->pvt->outgoing_conv != (VteConv) -1) {
+		_vte_conv_close(terminal->pvt->outgoing_conv);
 	}
 	terminal->pvt->outgoing_conv = conv;
 
@@ -4033,7 +4034,7 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 					const char *signal)
 {
 	GValue *value;
-	GIConv conv;
+	VteConv conv;
 	char *inbuf = NULL, *outbuf = NULL, *outbufptr = NULL;
 	gsize inbuf_len, outbuf_len;
 	/* Get the string parameter's value. */
@@ -4051,8 +4052,7 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 		if (G_VALUE_HOLDS_POINTER(value)) {
 			/* Convert the unicode-character string into a
 			 * multibyte string. */
-			conv = g_iconv_open("UTF-8",
-					    _vte_matcher_wide_encoding());
+			conv = _vte_conv_open("UTF-8", VTE_CONV_GUNICHAR_TYPE);
 			inbuf = g_value_get_pointer(value);
 			inbuf_len = vte_unicode_strlen((gunichar*)inbuf) *
 				    sizeof(gunichar);
@@ -4060,9 +4060,9 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 			_vte_buffer_set_minimum_size(terminal->pvt->conv_buffer,
 						     outbuf_len);
 			outbuf = outbufptr = terminal->pvt->conv_buffer->bytes;
-			if (conv != ((GIConv) -1)) {
-				if (g_iconv(conv, &inbuf, &inbuf_len,
-					    &outbuf, &outbuf_len) == -1) {
+			if (conv != ((VteConv) -1)) {
+				if (_vte_conv(conv, &inbuf, &inbuf_len,
+					      &outbuf, &outbuf_len) == -1) {
 #ifdef VTE_DEBUG
 					if (_vte_debug_on(VTE_DEBUG_IO)) {
 						fprintf(stderr, "Error "
@@ -4076,7 +4076,7 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 					outbufptr = NULL;
 				}
 			}
-			g_iconv_close(conv);
+			_vte_conv_close(conv);
 		}
 		if (outbufptr != NULL) {
 			char *p;
@@ -7362,7 +7362,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 {
 	gssize icount, ocount;
 	char *ibuf, *obuf, *obufptr;
-	GIConv *conv;
+	VteConv *conv;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_assert(strcmp(encoding, "UTF-8") == 0);
@@ -7372,7 +7372,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		conv = &terminal->pvt->outgoing_conv;
 	}
 	g_assert(conv != NULL);
-	g_assert(*conv != ((GIConv) -1));
+	g_assert(*conv != ((VteConv) -1));
 
 	icount = length;
 	ibuf = (char *) data;
@@ -7380,7 +7380,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	_vte_buffer_set_minimum_size(terminal->pvt->conv_buffer, ocount);
 	obuf = obufptr = terminal->pvt->conv_buffer->bytes;
 
-	if (g_iconv(*conv, &ibuf, &icount, &obuf, &ocount) == -1) {
+	if (_vte_conv(*conv, &ibuf, &icount, &obuf, &ocount) == -1) {
 		g_warning(_("Error (%s) converting data for child, dropping."),
 			  strerror(errno));
 	} else {
@@ -10469,7 +10469,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->processing = FALSE;
 	pvt->processing_tag = VTE_INVALID_SOURCE;
 	pvt->outgoing = _vte_buffer_new();
-	pvt->outgoing_conv = (GIConv) -1;
+	pvt->outgoing_conv = (VteConv) -1;
 	pvt->conv_buffer = _vte_buffer_new();
 	vte_terminal_set_encoding(terminal, NULL);
 	g_assert(terminal->pvt->encoding != NULL);
@@ -11025,10 +11025,10 @@ vte_terminal_finalize(GObject *object)
 		      TRUE);
 
 	/* Free conversion descriptors. */
-	if (terminal->pvt->outgoing_conv != ((GIConv) -1)) {
-		g_iconv_close(terminal->pvt->outgoing_conv);
+	if (terminal->pvt->outgoing_conv != ((VteConv) -1)) {
+		_vte_conv_close(terminal->pvt->outgoing_conv);
 	}
-	terminal->pvt->outgoing_conv = ((GIConv) -1);
+	terminal->pvt->outgoing_conv = ((VteConv) -1);
 
 	/* Stop listening for child-exited signals. */
 	g_signal_handlers_disconnect_by_func(vte_reaper_get(),
@@ -13152,11 +13152,6 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     _vte_marshal_VOID__INT,
 			     G_TYPE_NONE, 1, G_TYPE_INT);
 
-	/* Try to determine some acceptable encoding names. */
-	if (_vte_matcher_wide_encoding() == NULL) {
-		g_error(_("Don't know how to convert to/from gunichar data!"));
-	}
-
 #ifdef VTE_DEBUG
 	/* Turn on debugging if we were asked to. */
 	if (getenv("VTE_DEBUG_FLAGS") != NULL) {
@@ -13894,7 +13889,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 void
 vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 {
-	GIConv conv;
+	VteConv conv;
 	gunichar *wbuf;
 	char *ibuf, *ibufptr, *obuf, *obufptr;
 	gsize ilen, olen;
@@ -13913,10 +13908,10 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 		return;
 	}
 	/* Convert the spec from UTF-8 to a string of gunichars . */
-	conv = g_iconv_open(_vte_matcher_wide_encoding(), "UTF-8");
-	if (conv == ((GIConv) -1)) {
+	conv = _vte_conv_open(VTE_CONV_GUNICHAR_TYPE, "UTF-8");
+	if (conv == ((VteConv) -1)) {
 		/* Aaargh.  We're screwed. */
-		g_warning(_("g_iconv_open() failed setting word characters"));
+		g_warning(_("_vte_conv_open() failed setting word characters"));
 		return;
 	}
 	ilen = strlen(spec);
@@ -13926,8 +13921,8 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	obuf = obufptr = terminal->pvt->conv_buffer->bytes;
 	wbuf = (gunichar*) obuf;
 	wbuf[ilen] = '\0';
-	g_iconv(conv, &ibuf, &ilen, &obuf, &olen);
-	g_iconv_close(conv);
+	_vte_conv(conv, &ibuf, &ilen, &obuf, &olen);
+	_vte_conv_close(conv);
 	for (i = 0; i < ((obuf - obufptr) / sizeof(gunichar)); i++) {
 		/* The hyphen character. */
 		if (wbuf[i] == '-') {

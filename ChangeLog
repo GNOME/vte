@@ -1,3 +1,13 @@
+2003-05-07 nalin
+	* src/vteconv.c, src/vteconv.h: add VteConv as a thin wrapper around
+	GIConv.
+	* src/iso2022.c: use VteConv.
+	* src/matcher.c(_vte_matcher_find_valid_encoding): remove.
+	* src/matcher.c(_vte_matcher_wide_encoding): remove.
+	* src/trie.c: use VteConv.
+	* src/utf8echo.c: use VteConv.
+	* src/vte.c: use VteConv (#112446).
+
 2003-05-06 nalin
 	* src/vte.c: add "Since: 0.11" to documentation for functions which
 	aren't available in the 0.10 series.

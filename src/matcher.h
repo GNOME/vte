@@ -49,9 +49,6 @@ const char *_vte_matcher_match(struct _vte_matcher *matcher,
 /* Dump out the contents of a matcher, mainly for debugging. */
 void _vte_matcher_print(struct _vte_matcher *matcher);
 
-/* A gunichar-compatible giconv target, if one can be found. */
-const char *_vte_matcher_wide_encoding(void);
-
 G_END_DECLS
 
 #endif

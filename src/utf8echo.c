@@ -25,13 +25,14 @@
 #include <string.h>
 #include <unistd.h>
 #include "matcher.h"
+#include "vteconv.h"
 #define ESC ""
 
 int
 main(int argc, char **argv)
 {
 	int i;
-	GIConv conv;
+	VteConv conv;
 	char buf[LINE_MAX];
 	wchar_t w;
 	char *inbuf, *outbuf, *p;
@@ -44,8 +45,8 @@ main(int argc, char **argv)
 		return 1;
 	}
 
-	conv = g_iconv_open("UTF-8", _vte_matcher_wide_encoding());
-	if (conv == ((GIConv) -1)) {
+	conv = _vte_conv_open("UTF-8", VTE_CONV_GUNICHAR_TYPE);
+	if (conv == ((VteConv) -1)) {
 		return 1;
 	}
 
@@ -56,12 +57,12 @@ main(int argc, char **argv)
 		memset(buf, 0, sizeof(buf));
 		outbuf = buf;
 		outsize = sizeof(buf);
-		if (g_iconv(conv, &inbuf, &insize, &outbuf, &outsize) != -1) {
+		if (_vte_conv(conv, &inbuf, &insize, &outbuf, &outsize) != -1) {
 			printf("%.*s", outbuf - buf, buf);
 		}
 	}
 
-	g_iconv_close(conv);
+	_vte_conv_close(conv);
 
 	return 0;
 }
