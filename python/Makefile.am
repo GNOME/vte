@@ -3,7 +3,7 @@ EXTRA_DIST = vte.defs vte.override
 PYTHON_MODULES = vtemodule.la
 
 if BUILD_PYTHON_MODULES
-pythonsiteexecdir = $(pyexecdir)/gtk-2.0
+pythonsiteexecdir = $(pyexecdir)
 pythonsiteexec_LTLIBRARIES = $(PYTHON_MODULES)
 
 CLEANFILES = vte.c

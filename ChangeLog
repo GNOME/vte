@@ -1,3 +1,9 @@
+2002-10-18 nalin
+	* src/vte.c: make sure that strings passed to a commit signal are zero-
+	terminated (#96131).
+	* python/Makefile.am: install the module in site-packages instead of a
+	subdirectory, which doesn't work on my system.
+
 2002-10-17 nalin
 	* src/vte.c: remove vte_terminal_update_scroll_delta, which only did
 	things vte_terminal_adjust_adjustments already did and was only called

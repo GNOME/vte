@@ -827,12 +827,23 @@ vte_terminal_emit_selection_changed(VteTerminal *terminal)
 static void
 vte_terminal_emit_commit(VteTerminal *terminal, gchar *text, guint length)
 {
+	char *wrapped = NULL;
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `commit'.\n");
+		fprintf(stderr, "Emitting `commit' of %d bytes.\n", length);
 	}
 #endif
-	g_signal_emit_by_name(terminal, "commit", text, length);
+	if (length == -1) {
+		length = strlen(text);
+		wrapped = text;
+	} else {
+		wrapped = g_malloc0(length + 1);
+		memcpy(wrapped, text, length);
+	}
+	g_signal_emit_by_name(terminal, "commit", wrapped, length);
+	if (wrapped != text) {
+		g_free(wrapped);
+	}
 }
 
 /* Emit an "emulation-changed" signal. */
