@@ -1,4 +1,7 @@
 2002-11-25  nalin
+	* termcaps/xterm: add ta back in -- it's not a key sequence.
+
+2002-11-25  nalin
 	* src/vte.c: fix cd() to clear to the right of the cursor on the current
 	line instead of the entire line (#98844).
 
