@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.7.2
+Version: 0.7.3
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -7,6 +7,7 @@ Group: User Interface/X
 BuildRoot: %{_tmppath}/%{name}-root
 Source: %{name}-%{version}.tar.gz
 BuildPrereq: gtk2-devel, pygtk2-devel, python-devel
+Requires: bitmap-fonts
 
 %description
 VTE is an experimental terminal emulator widget for use with GTK+ 2.0.
@@ -58,6 +59,10 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Mon Aug 12 2002 Nalin Dahyabhai <nalin@redhat.com> 0.7.3-1
+- more fixes for behavior when not realized
+- require bitmap-fonts
+
 * Thu Aug  8 2002 Nalin Dahyabhai <nalin@redhat.com> 0.7.2-1
 - fix cursor over reversed text
 - fix character positioning in Xft1
