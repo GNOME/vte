@@ -1,4 +1,7 @@
 2003-02-14 nalin
+	* configure.in: don't equate maintainer mode with debugging.  From HEAD.
+
+2003-02-14 nalin
 	* src/vte.c(vte_terminal_io_read): coalesce data to work better on
 	systems where the scheduler wakes us up as soon as data is available,
 	to better handle cases where the data we have has a pile coming in
