@@ -506,7 +506,7 @@ _vte_glyph_get_uncached(struct _vte_glyph_cache *cache, gunichar c)
 	glyph->width = face->glyph->bitmap.width;
 	glyph->height = face->glyph->bitmap.rows;
 	glyph->skip = MAX((face->size->metrics.ascender >> 6) -
-		          face->glyph->bitmap_top, 0);
+			  face->glyph->bitmap_top, 0);
 	glyph->bytes_per_pixel = DEFAULT_BYTES_PER_PIXEL;
 
 	memset(glyph->bytes, 0,

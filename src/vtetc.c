@@ -502,16 +502,16 @@ _vte_termcap_find_l(struct _vte_termcap *termcap, const char *tname, gssize len,
 				end = strchr(ret + clen + 1, ':');
 				if (end != NULL) {
 					t = _vte_termcap_find_l(termcap,
-							        ret + clen + 1,
-							        end -
-							        (ret + clen + 1),
-							        cap);
+								ret + clen + 1,
+								end -
+								(ret + clen + 1),
+								cap);
 				} else {
 					t = _vte_termcap_find_l(termcap,
-							        ret + clen + 1,
-							        strlen(ret +
+								ret + clen + 1,
+								strlen(ret +
 								       clen + 1),
-							        cap);
+								cap);
 				}
 				if ((t != NULL) && (t[0] != '\0')) {
 					return t;
@@ -634,7 +634,7 @@ _vte_termcap_find_string(struct _vte_termcap *termcap, const char *tname,
  */
 TERMCAP_MAYBE_STATIC char *
 _vte_termcap_find_string_length(struct _vte_termcap *termcap, const char *tname,
-			        const char *cap, gssize *length)
+				const char *cap, gssize *length)
 {
 	const char *val, *p;
 	char *ret;

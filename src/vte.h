@@ -217,7 +217,7 @@ void vte_terminal_im_append_menuitems(VteTerminal *terminal,
 
 /* Set or retrieve the current font. */
 void vte_terminal_set_font(VteTerminal *terminal,
-                           const PangoFontDescription *font_desc);
+			   const PangoFontDescription *font_desc);
 void vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name);
 const PangoFontDescription *vte_terminal_get_font(VteTerminal *terminal);
 gboolean vte_terminal_get_using_xft(VteTerminal *terminal);

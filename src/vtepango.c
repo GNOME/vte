@@ -172,18 +172,18 @@ _vte_pango_set_background_color(struct _vte_draw *draw, GdkColor *color)
 
 static void
 _vte_pango_set_background_image(struct _vte_draw *draw,
-			        enum VteBgSourceType type,
-			        GdkPixbuf *pixbuf,
-			        const char *file,
-			        const GdkColor *color,
-			        double saturation)
+				enum VteBgSourceType type,
+				GdkPixbuf *pixbuf,
+				const char *file,
+				const GdkColor *color,
+				double saturation)
 {
 	GdkPixmap *pixmap;
 	struct _vte_pango_data *data;
 
 	data = (struct _vte_pango_data*) draw->impl_data;
 	pixmap = vte_bg_get_pixmap(vte_bg_get(), type, pixbuf, file,
-				   color, saturation, 
+				   color, saturation,
 				   _vte_draw_get_colormap(draw, TRUE));
 	if (GDK_IS_PIXMAP(data->pixmap)) {
 		g_object_unref(G_OBJECT(data->pixmap));

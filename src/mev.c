@@ -61,7 +61,7 @@ reset(void)
 static void
 clear(void)
 {
-	fprintf(stdout, "%s", 
+	fprintf(stdout, "%s",
 		_VTE_CAP_ESC "7"
 		_VTE_CAP_CSI "8;1H"
 		_VTE_CAP_CSI "1J"
@@ -198,8 +198,8 @@ parse(void)
 							  "[control]" :
 							  "";
 						motion = (b & 32) != 0;
-						x = bytes->data[i + 4] - 32; 
-						y = bytes->data[i + 5] - 32; 
+						x = bytes->data[i + 4] - 32;
+						y = bytes->data[i + 5] - 32;
 						fprintf(stdout, "%d %s%s%s(%s%s%s) at %d,%d\r\n",
 							button,
 							motion ? "motion " : "",
@@ -277,7 +277,7 @@ main(int argc, char **argv)
 
 	flags = fcntl(STDIN_FILENO, F_GETFL);
 	fcntl(STDIN_FILENO, F_SETFL, flags & ~(O_NONBLOCK));
-	fprintf(stdout, "%s", 
+	fprintf(stdout, "%s",
 		_VTE_CAP_CSI "9;1H"
 		_VTE_CAP_CSI "2K"
 		_VTE_CAP_CSI "2J");

@@ -43,7 +43,7 @@
 #define _(String) String
 #define bindtextdomain(package,dir)
 #endif
- 
+
 #define FONT_INDEX_FUDGE 10
 #define CHAR_WIDTH_FUDGE 10
 
@@ -85,7 +85,7 @@ _vte_xft_font_open(const PangoFontDescription *fontdesc)
 
 	patterns = g_array_new(TRUE, TRUE, sizeof(FcPattern*));
 	if (!_vte_fc_patterns_from_pango_font_desc(fontdesc, patterns,
-					 	   NULL, NULL)) {
+						   NULL, NULL)) {
 		g_array_free(patterns, TRUE);
 		return NULL;
 	}

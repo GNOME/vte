@@ -199,11 +199,11 @@ _vte_pango_x_set_background_color(struct _vte_draw *draw, GdkColor *color)
 
 static void
 _vte_pango_x_set_background_image(struct _vte_draw *draw,
-			          enum VteBgSourceType type,
-			          GdkPixbuf *pixbuf,
-			          const char *file,
-			          const GdkColor *color,
-			          double saturation)
+				  enum VteBgSourceType type,
+				  GdkPixbuf *pixbuf,
+				  const char *file,
+				  const GdkColor *color,
+				  double saturation)
 {
 	GdkPixmap *pixmap;
 	struct _vte_pango_x_data *data;

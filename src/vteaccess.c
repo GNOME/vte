@@ -723,16 +723,16 @@ vte_terminal_accessible_new(VteTerminal *terminal)
 	g_signal_connect(G_OBJECT(terminal), "cursor-moved",
 			 GTK_SIGNAL_FUNC(vte_terminal_accessible_invalidate_cursor),
 			 object);
-        g_signal_connect(G_OBJECT(terminal), "window-title-changed",
+	g_signal_connect(G_OBJECT(terminal), "window-title-changed",
 			 GTK_SIGNAL_FUNC(vte_terminal_accessible_title_changed),
 			 access);
-        g_signal_connect(G_OBJECT(terminal), "focus-in-event",
+	g_signal_connect(G_OBJECT(terminal), "focus-in-event",
 			 GTK_SIGNAL_FUNC(vte_terminal_accessible_focus_in),
 			 access);
-        g_signal_connect(G_OBJECT(terminal), "focus-out-event",
+	g_signal_connect(G_OBJECT(terminal), "focus-out-event",
 			 GTK_SIGNAL_FUNC(vte_terminal_accessible_focus_out),
 			 access);
-        g_signal_connect(G_OBJECT(terminal), "visibility-notify-event",
+	g_signal_connect(G_OBJECT(terminal), "visibility-notify-event",
 			 GTK_SIGNAL_FUNC(vte_terminal_accessible_visibility_notify),
 			 access);
 
@@ -764,7 +764,7 @@ vte_terminal_accessible_finalize(GObject *object)
 {
 	VteTerminalAccessiblePrivate *priv;
 	GtkAccessible *accessible = NULL;
-        GObjectClass *gobject_class;
+	GObjectClass *gobject_class;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
@@ -1513,9 +1513,9 @@ vte_terminal_accessible_component_init(gpointer iface, gpointer data)
 static void
 vte_terminal_accessible_class_init(gpointer *klass)
 {
-        GObjectClass *gobject_class;
+	GObjectClass *gobject_class;
 
-        gobject_class = G_OBJECT_CLASS(klass);
+	gobject_class = G_OBJECT_CLASS(klass);
 
 	/* Override the finalize method. */
 	gobject_class->finalize = vte_terminal_accessible_finalize;

@@ -133,7 +133,7 @@ _vte_ft2_end(struct _vte_draw *draw)
 	    (data->bottom == -1)) {
 		_vte_rgb_draw_on_drawable(widget->window,
 					  widget->style->fg_gc[state],
-					  0, 0, 
+					  0, 0,
 					  width, height,
 					  data->rgb,
 					  0, 0);

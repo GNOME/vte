@@ -96,9 +96,9 @@ _vte_table_free(struct _vte_table *table)
 /* Add a string to the tree with the given increment value. */
 static void
 _vte_table_addi(struct _vte_table *table,
-	        const unsigned char *original, gssize original_length,
-	        const char *pattern, gssize length,
-	        const char *result, GQuark quark, int inc)
+		const unsigned char *original, gssize original_length,
+		const char *pattern, gssize length,
+		const char *result, GQuark quark, int inc)
 {
 	int i;
 	guint8 check;
@@ -131,8 +131,8 @@ _vte_table_addi(struct _vte_table *table,
 		/* Handle an increment. */
 		if (pattern[1] == 'i') {
 			_vte_table_addi(table, original, original_length,
-				        pattern + 2, length - 2,
-				        result, quark, inc + 1);
+					pattern + 2, length - 2,
+					result, quark, inc + 1);
 			return;
 		}
 
@@ -149,8 +149,8 @@ _vte_table_addi(struct _vte_table *table,
 			}
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
-				        pattern + 2, length - 2,
-				        result, quark, inc);
+					pattern + 2, length - 2,
+					result, quark, inc);
 			return;
 		}
 
@@ -167,8 +167,8 @@ _vte_table_addi(struct _vte_table *table,
 			}
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
-				        pattern + 2, length - 2,
-				        result, quark, inc);
+					pattern + 2, length - 2,
+					result, quark, inc);
 			return;
 		}
 
@@ -183,8 +183,8 @@ _vte_table_addi(struct _vte_table *table,
 			}
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
-				        pattern + 2, length - 2,
-				        result, quark, inc);
+					pattern + 2, length - 2,
+					result, quark, inc);
 			return;
 		}
 
@@ -204,9 +204,9 @@ _vte_table_addi(struct _vte_table *table,
 				}
 				/* Add the rest of the string to the subtable. */
 				_vte_table_addi(subtable,
-					        original, original_length,
-					        pattern + 3, length - 3,
-					        result, quark, inc);
+						original, original_length,
+						pattern + 3, length - 3,
+						result, quark, inc);
 			}
 			/* Also add a subtable for higher characters. */
 			if (table->table[0] == NULL) {
@@ -217,8 +217,8 @@ _vte_table_addi(struct _vte_table *table,
 			}
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
-				        pattern + 3, length - 3,
-				        result, quark, inc);
+					pattern + 3, length - 3,
+					result, quark, inc);
 			return;
 		}
 	}
@@ -234,8 +234,8 @@ _vte_table_addi(struct _vte_table *table,
 	}
 	/* Add the rest of the string to the subtable. */
 	_vte_table_addi(subtable, original, original_length,
-		        pattern + 1, length - 1,
-		        result, quark, inc);
+			pattern + 1, length - 1,
+			result, quark, inc);
 }
 
 /* Add a string to the matching tree. */
@@ -261,7 +261,7 @@ _vte_table_add(struct _vte_table *table,
 		length -= 3;
 	}
 	_vte_table_addi(table, pattern_copy, length, pattern_copy, length,
-		        result, quark, 0);
+			result, quark, 0);
 	g_free(pattern_copy);
 }
 
@@ -419,7 +419,7 @@ _vte_table_extract_string(GValueArray **array,
 
 static void
 _vte_table_extract_char(GValueArray **array,
-		        struct _vte_table_arginfo *arginfo, long increment)
+			struct _vte_table_arginfo *arginfo, long increment)
 {
 	GValue value = {0,};
 
@@ -505,9 +505,9 @@ _vte_table_match(struct _vte_table *table,
 
 	/* Check for a pattern match. */
 	ret = _vte_table_matchi(table, pattern, length,
-			        res, consumed, quark,
-			        &original, &original_length,
-			        &params);
+				res, consumed, quark,
+				&original, &original_length,
+				&params);
 	*res = ret;
 
 	/* If we got a match, extract the parameters. */
@@ -555,8 +555,8 @@ _vte_table_match(struct _vte_table *table,
 				if (p[1] == '+') {
 					arginfo = tmp->data;
 					_vte_table_extract_char(array,
-							        arginfo,
-							        p[2]);
+								arginfo,
+								p[2]);
 					tmp = g_list_next(tmp);
 					p += 3;
 					continue;
@@ -593,7 +593,7 @@ _vte_table_printi(struct _vte_table *table, const char *lead, int *count)
 	/* Result? */
 	if (table->result != NULL) {
 		fprintf(stderr, "%s = `%s'(%d)\n", lead,
-		        table->result, table->increment);
+			table->result, table->increment);
 	}
 
 	/* Literal? */
@@ -634,7 +634,7 @@ _vte_table_print(struct _vte_table *table)
 	int count = 0;
 	_vte_table_printi(table, "", &count);
 	fprintf(stderr, "%d nodes = %ld bytes.\n",
-	        count, (long) count * sizeof(struct _vte_table));
+		count, (long) count * sizeof(struct _vte_table));
 }
 
 #ifdef TABLE_MAIN

@@ -86,11 +86,11 @@ typedef gunichar wint_t;
 #define VTE_COLOR_SET_SIZE		8
 #define VTE_COLOR_PLAIN_OFFSET		0
 #define VTE_COLOR_BRIGHT_OFFSET		8
-#define VTE_COLOR_DIM_OFFSET            16
+#define VTE_COLOR_DIM_OFFSET		16
 #define VTE_DEF_FG			24
 #define VTE_DEF_BG			25
 #define VTE_BOLD_FG			26
-#define VTE_DIM_FG                      27
+#define VTE_DIM_FG			27
 #define VTE_SATURATION_MAX		10000
 #define VTE_SCROLLBACK_MIN		100
 #define VTE_DEFAULT_EMULATION		"xterm"
@@ -4022,9 +4022,9 @@ vte_sequence_handler_send_primary_device_attributes(VteTerminal *terminal,
 /* Send terminal ID. */
 static void
 vte_sequence_handler_return_terminal_id(VteTerminal *terminal,
-				        const char *match,
-				        GQuark match_quark,
-				        GValueArray *params)
+					const char *match,
+					GQuark match_quark,
+					GValueArray *params)
 {
 	vte_sequence_handler_send_primary_device_attributes(terminal,
 							    match,
@@ -10338,9 +10338,9 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 
 	if (path == NULL) {
 		wpath = g_strdup_printf(DATADIR "/" PACKAGE "/termcap/%s",
-				        terminal->pvt->emulation ?
-				        terminal->pvt->emulation :
-				        VTE_DEFAULT_EMULATION);
+					terminal->pvt->emulation ?
+					terminal->pvt->emulation :
+					VTE_DEFAULT_EMULATION);
 		if (stat(wpath, &st) != 0) {
 			g_free(wpath);
 			wpath = g_strdup("/etc/termcap");
@@ -11494,11 +11494,11 @@ vte_unichar_is_local_graphic(gunichar c)
 
 static void
 vte_terminal_fill_rectangle_int(VteTerminal *terminal,
-			        struct vte_palette_entry *entry,
-			        gint x,
-			        gint y,
-			        gint width,
-			        gint height)
+				struct vte_palette_entry *entry,
+				gint x,
+				gint y,
+				gint width,
+				gint height)
 {
 	GdkColor color;
 	gboolean wasdrawing;
@@ -11668,17 +11668,17 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 	case 0x00b0: /* f */
 		/* litle circle */
 		vte_terminal_draw_point(terminal,
-				        &terminal->pvt->palette[fore],
-				        xcenter - 1, ycenter);
+					&terminal->pvt->palette[fore],
+					xcenter - 1, ycenter);
 		vte_terminal_draw_point(terminal,
-				        &terminal->pvt->palette[fore],
-				        xcenter + 1, ycenter);
+					&terminal->pvt->palette[fore],
+					xcenter + 1, ycenter);
 		vte_terminal_draw_point(terminal,
-				        &terminal->pvt->palette[fore],
-				        xcenter, ycenter - 1);
+					&terminal->pvt->palette[fore],
+					xcenter, ycenter - 1);
 		vte_terminal_draw_point(terminal,
-				        &terminal->pvt->palette[fore],
-				        xcenter, ycenter + 1);
+					&terminal->pvt->palette[fore],
+					xcenter, ycenter + 1);
 		break;
 	case 0x00b1: /* g */
 		xcenter--;
@@ -12283,29 +12283,29 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 	case 0x25c6:
 		/* diamond */
 		vte_terminal_draw_point(terminal,
-				        &terminal->pvt->palette[fore],
-				        xcenter - 2, ycenter);
+					&terminal->pvt->palette[fore],
+					xcenter - 2, ycenter);
 		vte_terminal_draw_point(terminal,
-				        &terminal->pvt->palette[fore],
-				        xcenter + 2, ycenter);
+					&terminal->pvt->palette[fore],
+					xcenter + 2, ycenter);
 		vte_terminal_draw_point(terminal,
-				        &terminal->pvt->palette[fore],
-				        xcenter, ycenter - 2);
+					&terminal->pvt->palette[fore],
+					xcenter, ycenter - 2);
 		vte_terminal_draw_point(terminal,
-				        &terminal->pvt->palette[fore],
-				        xcenter, ycenter + 2);
+					&terminal->pvt->palette[fore],
+					xcenter, ycenter + 2);
 		vte_terminal_draw_point(terminal,
-				        &terminal->pvt->palette[fore],
-				        xcenter - 1, ycenter - 1);
+					&terminal->pvt->palette[fore],
+					xcenter - 1, ycenter - 1);
 		vte_terminal_draw_point(terminal,
-				        &terminal->pvt->palette[fore],
-				        xcenter - 1, ycenter + 1);
+					&terminal->pvt->palette[fore],
+					xcenter - 1, ycenter + 1);
 		vte_terminal_draw_point(terminal,
-				        &terminal->pvt->palette[fore],
-				        xcenter + 1, ycenter - 1);
+					&terminal->pvt->palette[fore],
+					xcenter + 1, ycenter - 1);
 		vte_terminal_draw_point(terminal,
-				        &terminal->pvt->palette[fore],
-				        xcenter + 1, ycenter + 1);
+					&terminal->pvt->palette[fore],
+					xcenter + 1, ycenter + 1);
 		break;
 	default:
 		ret = FALSE;

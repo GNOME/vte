@@ -292,7 +292,7 @@ vte_bg_generate_desat_tables(const GdkColor *color, double saturation,
 				 (saturation * i),
 				 0, 255);
 		blue[i] = CLAMP(((1.0 - saturation) * (color->blue >> 8)) +
-			        (saturation * i),
+				(saturation * i),
 				0, 255);
 	}
 }

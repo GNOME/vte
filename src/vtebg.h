@@ -42,9 +42,9 @@ struct _VteBgClass {
 };
 
 #define VTE_TYPE_BG vte_bg_get_type()
-#define VTE_BG(obj)            (GTK_CHECK_CAST((obj), VTE_TYPE_BG, VteBg))
+#define VTE_BG(obj)	       (GTK_CHECK_CAST((obj), VTE_TYPE_BG, VteBg))
 #define VTE_BG_CLASS(klass)    (GTK_CHECK_CLASS_CAST((klass), VTE_TYPE_BG, VteBgClass)
-#define VTE_IS_BG(obj)         GTK_CHECK_TYPE((obj), VTE_TYPE_BG)
+#define VTE_IS_BG(obj)	       GTK_CHECK_TYPE((obj), VTE_TYPE_BG)
 #define VTE_IS_BG_CLASS(klass) GTK_CHECK_CLASS_TYPE((klass), VTE_TYPE_BG)
 #define VTE_BG_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS((obj), VTE_TYPE_BG, VteBgClass))
 

@@ -35,7 +35,7 @@
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
 #endif
- 
+
 #ifdef ENABLE_NLS
 #include <libintl.h>
 #define _(String) dgettext(PACKAGE, String)
@@ -43,7 +43,7 @@
 #define _(String) String
 #define bindtextdomain(package,dir)
 #endif
- 
+
 /* Maps which jive with XTerm's ESC ()*+ ? sequences, RFC 1468.  Add the
  * PC437 map because despite knowing that XTerm doesn't support it, certain
  * applications try to use it anyway. */
@@ -1711,9 +1711,9 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 			}
 #endif
 			process_control(state,
-				        input->bytes + block.start,
-				        block.end - block.start,
-				        gunichars);
+					input->bytes + block.start,
+					block.end - block.start,
+					gunichars);
 			preserve_last = FALSE;
 			break;
 		case _vte_iso2022_preserve:
