@@ -173,12 +173,12 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text)
 			if ((i == 0) || (attrs.row != row)) {
 #ifdef VTE_DEBUG
 				if (vte_debug_on(VTE_DEBUG_MISC)) {
-					fprintf(stderr, "Row %d/%d begins at "
-						"%ld.\n",
+					fprintf(stderr, "Row %d/%ld begins at "
+						"%d.\n",
 						priv->snapshot_linebreaks->len,
 						attrs.row, i);
-					fprintf(stderr, "Cursor at (%d, %d).\n",
-						ccol, crow);
+					fprintf(stderr, "Cursor at (%ld, "
+						"%ld).\n", ccol, crow);
 				}
 #endif
 				g_array_append_val(priv->snapshot_linebreaks,

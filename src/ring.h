@@ -45,12 +45,11 @@ struct _VteRing {
 #define vte_ring_at(__ring, __position) \
 	((__ring)->array[__position % (__ring)->max] ? \
 	 (__ring)->array[__position % (__ring)->max] : \
-	 (g_error("NULL at %ld(->%ld) delta %ld, length %ld, max %ld next %ld "\
-		  "at %d\n", \
+	 (g_error("NULL at %ld(->%ld) delta %ld, length %ld, max %ld next %ld" \
+		  " at %d\n", \
 		  __position, __position % (__ring)->max, \
 		  (__ring)->delta, (__ring)->length, (__ring)->max, \
 		  (__ring)->delta + (__ring)->length, \
-		  (__ring)->length, (__ring)->max, \
 		  __LINE__), NULL))
 #define vte_ring_index(__ring, __cast, __position) \
 	(__cast) vte_ring_at(__ring, __position)

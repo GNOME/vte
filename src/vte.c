@@ -5655,7 +5655,7 @@ display_control_sequence(const char *name, GValueArray *params)
 			} else
 			if (G_VALUE_HOLDS_POINTER(value)) {
 				w = g_value_get_pointer(value);
-				fprintf(stderr, "\"%ls\"", w);
+				fprintf(stderr, "\"%ls\"", (wchar_t*) w);
 			}
 		}
 	}
@@ -5890,7 +5890,7 @@ vte_terminal_process_incoming(gpointer data)
 	char *ibuf, *obuf, *obufptr, *ubuf, *ubufptr;
 	gssize icount, ocount, ucount;
 	gunichar *wbuf, c;
-	int wcount, start;
+	long wcount, start;
 	const char *match, *encoding;
 	GIConv unconv;
 	GQuark quark;
@@ -7501,7 +7501,7 @@ vte_terminal_match_hilite_clear(VteTerminal *terminal)
 		terminal->pvt->match_end.column = 0;
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Repainting (%d,%d) to (%d,%d).\n",
+			fprintf(stderr, "Repainting (%ld,%ld) to (%ld,%ld).\n",
 				srow, scolumn, erow, ecolumn);
 		}
 #endif
@@ -7861,8 +7861,7 @@ vte_terminal_clear_cb(GtkClipboard *clipboard, gpointer owner)
 	if (terminal->pvt->has_selection) {
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_SELECTION)) {
-			fprintf(stderr, "Lost selection.\n",
-				strlen(terminal->pvt->selection));
+			fprintf(stderr, "Lost selection.\n");
 		}
 #endif
 		vte_terminal_deselect_all(terminal);
@@ -8125,7 +8124,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				event->button,
 				event->x - VTE_PAD_WIDTH,
 				event->y - VTE_PAD_WIDTH);
-			fprintf(stderr, "character cell (%lf,%lf).\n",
+			fprintf(stderr, "character cell (%ld,%ld).\n",
 				cellx, celly);
 			match = vte_terminal_match_check(terminal,
 							 cellx,
@@ -9335,7 +9334,8 @@ vte_terminal_set_size(VteTerminal *terminal, long columns, long rows)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Setting PTY size to %dx%d.\n", columns, rows);
+		fprintf(stderr, "Setting PTY size to %ldx%ld.\n",
+			columns, rows);
 	}
 #endif
 	if (terminal->pvt->pty_master != -1) {
@@ -11273,8 +11273,8 @@ vte_terminal_compute_padding(VteTerminal *terminal, Display *display,
 		      GINT_TO_POINTER(c), GINT_TO_POINTER(rpad));
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_MISC) && 0) {
-		fprintf(stderr, "Padding for %d is %d/%d/%d.\n",
-			c, pad, rpad, terminal->char_width);
+		fprintf(stderr, "Padding for %ld is %d/%d/%ld.\n",
+			(long) c, pad, rpad, terminal->char_width);
 	}
 #endif
 }

@@ -246,6 +246,7 @@ vte_iso2022_new(void)
 	ret->g[1] = '0';
 	ret->g[2] = 'B';
 	ret->g[3] = 'B';
+	return ret;
 }
 
 struct vte_iso2022 *

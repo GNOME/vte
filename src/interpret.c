@@ -180,7 +180,7 @@ main(int argc, char **argv)
 						}
 						if (G_VALUE_HOLDS_POINTER(value)) {
 							printf("`%ls'",
-							       g_value_get_pointer(value));
+							       (wchar_t*) g_value_get_pointer(value));
 						}
 					}
 					if (values != NULL) {

@@ -309,7 +309,7 @@ char_class_string_extract(const gunichar *s, size_t length,
 	unichar_sncpy(ret, s, len);
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_PARSE)) {
-		fprintf(stderr, "Extracting string `%ls'.\n", ret);
+		fprintf(stderr, "Extracting string `%ls'.\n", (wchar_t*) ret);
 	}
 #endif
 	memset(&value, 0, sizeof(value));
@@ -827,7 +827,7 @@ dump_array(GValueArray *array)
 			}
 			if (G_VALUE_HOLDS_POINTER(value)) {
 				printf("`%ls'",
-				       (gunichar*)g_value_get_pointer(value));
+				       (wchar_t*) g_value_get_pointer(value));
 			}
 		}
 		printf("}\n");

@@ -634,7 +634,7 @@ vte_table_print(struct vte_table *table)
 	int count = 0;
 	vte_table_printi(table, "", &count);
 	fprintf(stderr, "%d nodes = %ld bytes.\n",
-	        count, count * sizeof(struct vte_table));
+	        count, (long) count * sizeof(struct vte_table));
 }
 
 /* Determine sensible iconv target names for gunichar and iso-8859-1. */
@@ -815,7 +815,8 @@ print_array(GValueArray *array)
 				printf("\"%s\"", g_value_get_string(value));
 			} else
 			if (G_VALUE_HOLDS_POINTER(value)) {
-				printf("\"%ls\"", g_value_get_pointer(value));
+				printf("\"%ls\"",
+				       (wchar_t*) g_value_get_pointer(value));
 				g_free(g_value_get_pointer(value));
 			}
 		}
