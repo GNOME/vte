@@ -281,7 +281,7 @@ struct _VteTerminalPrivate {
 	 * when realizing. */
 	XFontSet fontset;
 	GTree *fontpaddingl, *fontpaddingr;
-	gboolean use_xft;
+	gboolean use_xft, use_xft2;
 #ifdef HAVE_XFT
 	XftFont *ftfont;
 #endif
@@ -9319,6 +9319,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 #ifdef HAVE_XFT
 	pvt->ftfont = NULL;
 	pvt->use_xft = TRUE;
+	pvt->use_xft2 = TRUE;
 #endif
 	pvt->use_pango = TRUE;
 
@@ -9336,6 +9337,10 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	}
 	if (getenv("VTE_USE_XFT") != NULL) {
 		pvt->use_xft = (atol(getenv("VTE_USE_XFT")) != 0);
+	}
+	/* This is just for debugging.  It will go away. */
+	if (getenv("VTE_USE_XFT2") != NULL) {
+		pvt->use_xft2 = (atol(getenv("VTE_USE_XFT2")) != 0);
 	}
 #endif
 
@@ -10756,7 +10761,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 
 #ifdef HAVE_XFT2
 	/* Draw using Xft2. */
-	if (!drawn && terminal->pvt->use_xft) {
+	if (!drawn && terminal->pvt->use_xft2) {
 		/* Set up the draw request. */
 		ftcharspecs = g_malloc(sizeof(XftCharSpec) * n);
 		for (i = j = columns = 0; i < n; i++) {
@@ -10798,34 +10803,21 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 				    columns * column_width, row_height);
 		}
 		/* Draw the text. */
-		if (monospaced) {
-			ftchars = g_malloc(sizeof(gunichar) * n);
-			for (i = 0; i < n; i++) {
-				ftchars[i] = vte_terminal_xft_remap_char(display,
-									 terminal->pvt->ftfont,
-									 items[i].c);
+		for (i = columns = 0; i < n; i++) {
+			if (!g_unichar_isspace(items[i].c)) {
+				ftchar = vte_terminal_xft_remap_char(display,
+								     terminal->pvt->ftfont,
+								     items[i].c);
+				g_print("Drawing %c with %d padding.\n",
+					ftchar, items[i].xpad);
+				XftDrawString32(ftdraw, &fg->ftcolor,
+						terminal->pvt->ftfont,
+						x + (columns * column_width) +
+						items[i].xpad,
+						y + ascent,
+						&ftchar, 1);
 			}
-			XftDrawString32(ftdraw, &fg->ftcolor,
-					terminal->pvt->ftfont,
-					x,
-					y + ascent,
-					ftchars, n);
-			g_free(ftchars);
-		} else {
-			for (i = columns = 0; i < n; i++) {
-				if (!g_unichar_isspace(items[i].c)) {
-					ftchar = vte_terminal_xft_remap_char(display,
-									     terminal->pvt->ftfont,
-									     items[i].c);
-					XftDrawString32(ftdraw, &fg->ftcolor,
-							terminal->pvt->ftfont,
-							x + (columns * column_width) +
-							items[i].xpad,
-							y + ascent,
-							&ftchar, 1);
-				}
-				columns += g_unichar_iswide(items[i].c) ? 2 : 1;
-			}
+			columns += g_unichar_iswide(items[i].c) ? 2 : 1;
 		}
 		/* Clean up. */
 		drawn = TRUE;
