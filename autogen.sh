@@ -6,7 +6,7 @@ test -z "$srcdir" && srcdir=.
 
 ORIGDIR=`pwd`
 cd $srcdir
-PROJECT=GLib
+PROJECT=vte
 TEST_TYPE=-f
 
 DIE=0
@@ -70,6 +70,7 @@ case $CC in
 *xlc | *xlc\ * | *lcc | *lcc\ *) am_opt=--include-deps;;
 esac
 
+libtoolize -f -c
 aclocal $ACLOCAL_FLAGS
 
 # optionally feature autoheader
