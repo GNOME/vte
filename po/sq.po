@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-29 22:25-0400\n"
+"POT-Creation-Date: 2004-06-23 05:30+0200\n"
 "PO-Revision-Date: 2004-02-23 10:30+0100\n"
 "Last-Translator: Laurent Dhima <laurenti@alblinux.net>\n"
 "Language-Team: Albanian <gnome-albanian-perkthyesit@lists.sourceforge.net>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2091
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "I pamundur konvertimi i simboleve nga %s në %s."
@@ -50,7 +50,7 @@ msgstr "Gabim duke i shtuar `%s' ambientit, po vazhdoj."
 msgid "can not run %s"
 msgstr "I pamundur ekzekutimi i %s"
 
-#: src/reaper.c:137
+#: src/reaper.c:156
 msgid "Error creating signal pipe."
 msgstr "Gabim gjatë krijimit të pipe të sinjalit."
 
@@ -59,45 +59,45 @@ msgstr "Gabim gjatë krijimit të pipe të sinjalit."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikim (%s/%s)!"
 
-#: src/vte.c:1498
+#: src/vte.c:1499
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Gabim gjatë kompilimit të shprehjes së rregullt \"%s\"."
 
-#: src/vte.c:5850
+#: src/vte.c:5851
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "U mor një sekuencë ( kyç?) i papritur `%s'."
 
-#: src/vte.c:6951
+#: src/vte.c:6947
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Asnjë trajtues i prezgjedhur për sekuencën e kontrollit `%s'."
 
-#: src/vte.c:7793
+#: src/vte.c:7789
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Gabim gjatë leximit nga proçesi bir: %s"
 
-#: src/vte.c:7949
+#: src/vte.c:7945
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "Gabim (%s) duke konvertuar të dhënat për proçesin bir, do të lihen si ishin."
 
-#: src/vte.c:10715
+#: src/vte.c:10754
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Gabim gjatë leximit të madhësisë PTY, do të përdoret vlera e prezgjedhur: %s."
 
-#: src/vte.c:10751
+#: src/vte.c:10790
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Gabim gjatë vendosjes së madhësisë PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15235
+#: src/vte.c:15274
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() dështoi në vendosjen e gërmave të fjalës"
 
