@@ -1,13 +1,13 @@
 # Danish translation of VTE.
-# Copyright (C) 2002 Free Software Foundation
+# Copyright (C) 2002, 03 Free Software Foundation
 # This file is distributed under the same license as the VTE package.
-# Ole Laursen <olau@hardworking.dk>, 2002.
+# Ole Laursen <olau@hardworking.dk>, 2002, 03.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2003-05-19 14:33-0400\n"
-"PO-Revision-Date: 2002-12-12 21:18+0100\n"
+"POT-Creation-Date: 2003-05-19 21:54+0200\n"
+"PO-Revision-Date: 2003-05-19 21:54+0200\n"
 "Last-Translator: Ole Laursen <olau@hardworking.dk>\n"
 "Language-Team: Danish <dansk@klid.dk>\n"
 "MIME-Version: 1.0\n"
@@ -22,17 +22,17 @@ msgstr "Kunne ikke konvertere tegn fra %s til %s."
 #: src/iso2022.c:1505
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr ""
+msgstr "Forsøg på at sætte ugyldig NRC-afbildning '%c'."
 
 #. See ECMA-35.
 #: src/iso2022.c:1546
 msgid "Unrecognized identified coding system."
-msgstr ""
+msgstr "Ukendt identificeret kodningssystem."
 
 #: src/iso2022.c:1595 src/iso2022.c:1621
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr ""
+msgstr "Forsøg på at sætte ugyldig bred NRC-afbildning '%c'."
 
 #: src/pty.c:317
 #, c-format
@@ -93,46 +93,23 @@ msgstr "Fejl ved angivelse af PTY-størrelse: %s."
 
 #. Aaargh.  We're screwed.
 #: src/vte.c:14067
-#, fuzzy
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "g_iconv_open() kunne ikke angive ordtegn"
+msgstr "_vte_iconv_open() kunne ikke sætte ordtegn"
 
 #. Bail back to normal mode.
 #: src/vteapp.c:642
 msgid "Could not open console.\n"
-msgstr ""
+msgstr "Kunne ikke åbne konsol.\n"
 
 #: src/vteglyph.c:575
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr ""
+msgstr "Ukendt pixeltilstand %d.\n"
 
 #: src/vtexft.c:664
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr ""
-
-#~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
-#~ msgstr "Bruger skrifttypesættet \"%s\" som mangler disse tegnsæt: %s."
-
-#~ msgid ""
-#~ "Failed to load Xft font pattern \"%s\", falling back to default font."
-#~ msgstr ""
-#~ "Kunne ikke indlæse Xft-skrifttypemønstret \"%s\", falder tilbage til "
-#~ "standardskrifttypen."
-
-#~ msgid "Failed to load default Xft font."
-#~ msgstr "Kunne ikke indlæse standard-Xft-skrifttypen."
-
-#~ msgid "Failed to load font set \"%s\", falling back to default font."
-#~ msgstr ""
-#~ "Kunne ikke indlæse skrifttypesættet \"%s\", falder tilbage til "
-#~ "standardskrifttypen."
-
-#~ msgid "Failed to load default font, crashing or behaving abnormally."
-#~ msgstr ""
-#~ "Kunne ikke indlæse standardskrifttypen; vil nu gå ned eller udvise "
-#~ "anormal adfærd."
+msgstr "Kan ikke tegne tegnet U+%04x.\n"
 
 #~ msgid "Error allocating draw, disabling Xft."
 #~ msgstr "Fejl ved allokering af tegning, deaktiverer Xft."
@@ -145,6 +122,3 @@ msgstr ""
 
 #~ msgid "Character 0x%x is undefined, allocating one column."
 #~ msgstr "Tegn 0x%x er ikke defineret, allokerer en kolonne."
-
-#~ msgid "Error allocating Xft font, disabling Xft."
-#~ msgstr "Fejl ved allokering af Xft-skrifttype, deaktiverer Xft."
