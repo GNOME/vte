@@ -21,6 +21,17 @@
   )
 )
 
+(define-enum TerminalAntiAlias
+  (in-module "Vte")
+  (c-name "VteTerminalAntiAlias")
+  (gtype-id "VTE_TYPE_TERMINAL_ANTI_ALIAS")
+  (values
+    '("use-default" "VTE_ANTI_ALIAS_USE_DEFAULT")
+    '("force-enable" "VTE_ANTI_ALIAS_FORCE_ENABLE")
+    '("force-disable" "VTE_ANTI_ALIAS_FORCE_DISABLE")
+  )
+)
+
 
 ;; From ../src/vte.h
 
@@ -332,12 +343,32 @@
   )
 )
 
+(define-method set_font_full
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_font_full")
+  (return-type "none")
+  (parameters
+    '("const-PangoFontDescription*" "font_desc")
+    '("VteTerminalAntiAlias" "anti_alias")
+  )
+)
+
 (define-method set_font_from_string
   (of-object "VteTerminal")
   (c-name "vte_terminal_set_font_from_string")
   (return-type "none")
   (parameters
     '("const-char*" "name")
+  )
+)
+
+(define-method set_font_from_string_full
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_font_from_string_full")
+  (return-type "none")
+  (parameters
+    '("const-char*" "name")
+    '("VteTerminalAntiAlias" "anti_alias")
   )
 )
 
@@ -440,6 +471,7 @@
   (c-name "vte_terminal_get_text")
   (return-type "char*")
   (parameters
+    '("gboolean(*" "is_selected")
   )
 )
 
@@ -452,6 +484,7 @@
     '("glong" "start_col")
     '("glong" "end_row")
     '("glong" "end_col")
+    '("gboolean(*" "is_selected")
   )
 )
 

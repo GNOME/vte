@@ -29,6 +29,7 @@
 extern void pyvte_register_classes(PyObject * d);
 extern PyMethodDef pyvte_functions[];
 extern DL_EXPORT(void) initvte(void);
+extern PyTypeObject PyVteTerminal_Type;
 
 DL_EXPORT(void)
 init_vte(void)

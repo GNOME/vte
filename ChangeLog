@@ -1,4 +1,8 @@
 2004-04-19 nalin
+	* src/vte.c(vte_terminal_anti_alias_get_type): add, for the sake of
+	bindings.
+
+2004-04-19 nalin
 	* src/vte.c(vte_terminal_key_press): call GtkWidget's key_press_event
 	callback for keys, in case GtkWidget has pre-programmed behavior for
 	that key (#133878).

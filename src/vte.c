@@ -14329,6 +14329,23 @@ vte_terminal_erase_binding_get_type(void)
 }
 
 GtkType
+vte_terminal_anti_alias_get_type(void)
+{
+	static GtkType terminal_anti_alias_type = 0;
+	static GEnumValue values[] = {
+		{VTE_ANTI_ALIAS_USE_DEFAULT, "VTE_ANTI_ALIAS_USE_DEFAULT", "use-default"},
+		{VTE_ANTI_ALIAS_FORCE_ENABLE, "VTE_ANTI_ALIAS_FORCE_ENABLE", "force-enable"},
+		{VTE_ANTI_ALIAS_FORCE_DISABLE, "VTE_ANTI_ALIAS_FORCE_DISABLE", "force-disable"},
+	};
+	if (terminal_anti_alias_type == 0) {
+		terminal_anti_alias_type =
+			g_enum_register_static("VteTerminalAntiAlias",
+					       values);
+	}
+	return terminal_anti_alias_type;
+}
+
+GtkType
 vte_terminal_get_type(void)
 {
 	static GtkType terminal_type = 0;

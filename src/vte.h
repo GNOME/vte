@@ -158,7 +158,7 @@ typedef enum {
 typedef enum {
 	VTE_ANTI_ALIAS_USE_DEFAULT,
 	VTE_ANTI_ALIAS_FORCE_ENABLE,
-	VTE_ANTI_ALIAS_FORCE_DISABLE,
+	VTE_ANTI_ALIAS_FORCE_DISABLE
 } VteTerminalAntiAlias;
 
 /* The structure we return as the supplemental attributes for strings. */
@@ -196,6 +196,9 @@ GtkType vte_terminal_erase_binding_get_type(void);
 #define VTE_TYPE_TERMINAL_ERASE_BINDING	(vte_terminal_erase_binding_get_type())
 #define VTE_IS_TERMINAL_ERASE_BINDING(obj)	GTK_CHECK_TYPE((obj),\
 						VTE_TYPE_TERMINAL_ERASE_BINDING)
+#define VTE_TYPE_TERMINAL_ANTI_ALIAS	(vte_terminal_anti_alias_get_type())
+#define VTE_IS_TERMINAL_ANTI_ALIAS(obj)		GTK_CHECK_TYPE((obj),\
+						VTE_TYPE_TERMINAL_ANTI_ALIAS)
 
 /* You can get by with just these two functions. */
 GtkWidget *vte_terminal_new(void);
