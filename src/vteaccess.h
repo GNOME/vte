@@ -64,7 +64,6 @@ GtkType vte_terminal_accessible_get_type(void);
 								     VTE_TYPE_TERMINAL_ACCESSIBLE)
 #define VTE_TERMINAL_ACCESSIBLE_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS ((obj), VTE_TYPE_TERMINAL_ACCESSIBLE, VteTerminalAccessibleClass))
 
-
 AtkObject *vte_terminal_accessible_new(VteTerminal *terminal);
 
 /* The terminal accessibility object's factory. */

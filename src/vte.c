@@ -10615,7 +10615,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 #ifdef VTE_DEBUG
 	/* In debuggable mode, we always do this. */
 	pvt->accessible = gtk_widget_get_accessible(GTK_WIDGET(terminal));
-	pvt->accessible_emit = TRUE;
 #endif
 }
 
@@ -12822,7 +12821,6 @@ vte_terminal_get_accessible(GtkWidget *widget)
 			terminal->pvt->accessible = access;
 			g_object_add_weak_pointer(G_OBJECT(access),
 						  &terminal->pvt->accessible);
-			terminal->pvt->accessible_emit = TRUE;
 		}
 	}
 	return access;
@@ -14502,6 +14500,15 @@ vte_terminal_get_icon_title(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), "");
 	return terminal->icon_title;
+}
+
+/* We need this bit of glue to ensure that accessible objects will always
+ * get signals. */
+void
+_vte_terminal_accessible_ref(VteTerminal *terminal)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->accessible_emit = TRUE;
 }
 
 #ifdef X_DISPLAY_MISSING

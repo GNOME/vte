@@ -1,4 +1,10 @@
 2003-04-23 nalin
+	* src/vte.c,src/vte.h: (_vte_terminal_accessible_ref): add.
+	* src/vteaccess.c(vte_terminal_accessible_new): call
+	_vte_terminal_accessible_ref to ensure that accessible signals are
+	going to be emitted.
+
+2003-04-23 nalin
 	* src/dumpkeys.c: formatting fixup.
 	* src/iso2022.c: formatting fixups.  Try using U+FFFF as the "invalid"
 	marker character instead of '?', because it's actually invalid.

@@ -700,6 +700,7 @@ vte_terminal_accessible_new(VteTerminal *terminal)
 	atk_object_initialize(ATK_OBJECT(access), G_OBJECT(terminal));
 
 	access->widget = GTK_WIDGET(terminal);
+	_vte_terminal_accessible_ref(terminal);
 	g_object_add_weak_pointer(G_OBJECT(terminal),
 				  (gpointer*)&access->widget);
 
