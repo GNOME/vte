@@ -1,4 +1,11 @@
 2003-08-11 nalin
+	* python/vte.override: add overrides for feed() and feed_child()
+	methods which use the length of the string as given in C, to hopefully
+	allow passing NUL bytes around as part of strings (bug #118711).  Make
+	the length parameter optional, and ignored, to try to avoid breaking
+	existing Python code in an obvious way.
+
+2003-08-11 nalin
 	* src/vte.c(vte_terminal_start_selection,vte_terminal_extend_selection):
 	drop an unnecessary cast-and-check, which we don't need because we have
 	no use for the GtkWidget pointer to the terminal.  Fix initial shift-

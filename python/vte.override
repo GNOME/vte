@@ -11,6 +11,44 @@ import gtk.gdk.Pixbuf as PyGdkPixbuf_Type
 import gtk.MenuShell as PyGtkMenuShell_Type
 import gtk.Widget as PyGtkWidget_Type
 %%
+override vte_terminal_feed kwargs
+static PyObject *
+_wrap_vte_terminal_feed(PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+	static char *kwlist[] = { "data", "length", NULL };
+	char *data;
+	int length;
+	PyObject *length_obj = NULL;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs,
+					 "s#|O:VteTerminal.feed",
+					 kwlist, &data, &length, &length_obj)) {
+		return NULL;
+	}
+	vte_terminal_feed(VTE_TERMINAL(self->obj), data, length);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+%%
+override vte_terminal_feed_child kwargs
+static PyObject *
+_wrap_vte_terminal_feed_child(PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+	static char *kwlist[] = { "data", "length", NULL };
+	char *data;
+	int length;
+	PyObject *length_obj = NULL;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs,
+					 "s#|O:VteTerminal.feed_child",
+					 kwlist, &data, &length, &length_obj)) {
+		return NULL;
+	}
+	vte_terminal_feed_child(VTE_TERMINAL(self->obj), data, length);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+%%
 override vte_terminal_fork_command kwargs
 
 static PyObject *
