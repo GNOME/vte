@@ -461,6 +461,8 @@ struct vte_capability_string vte_xterm_capability_strings[] = {
 	{CSI "%dc", "send-primary-device-attributes", 0},
 	{CSI ">c", "send-secondary-device-attributes", 0},
 	{CSI ">%dc", "send-secondary-device-attributes", 0},
+	{CSI "=c", "send-tertiary-device-attributes", 0},
+	{CSI "=%dc", "send-tertiary-device-attributes", 0},
 	{CSI "d", "line-position-absolute", 0},
 	{CSI "%dd", "line-position-absolute", 0},
 	{CSI ";f", "horizontal-and-vertical-position", 0},

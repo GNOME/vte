@@ -381,6 +381,14 @@ static void vte_sequence_handler_nd(VteTerminal *terminal,
 				    const char *match,
 				    GQuark match_quark,
 				    GValueArray *params);
+static void vte_sequence_handler_sf(VteTerminal *terminal,
+				    const char *match,
+				    GQuark match_quark,
+				    GValueArray *params);
+static void vte_sequence_handler_sr(VteTerminal *terminal,
+				    const char *match,
+				    GQuark match_quark,
+				    GValueArray *params);
 static void vte_sequence_handler_ue(VteTerminal *terminal,
 				    const char *match,
 				    GQuark match_quark,
@@ -1398,7 +1406,6 @@ vte_sequence_handler_offset(VteTerminal *terminal,
 	int i;
 	long val;
 	GValue *value;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	/* Decrement the parameters and let the _cs handler deal with it. */
 	for (i = 0; (params != NULL) && (i < params->n_values); i++) {
 		value = g_value_array_get_nth(params, i);
@@ -1426,6 +1433,7 @@ vte_sequence_handler_multiple(VteTerminal *terminal,
 		value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
 			val = g_value_get_long(value);
+			val = MAX(val, 1);	/* FIXME: vttest. */
 		}
 	}
 	for (i = 0; i < val; i++) {
@@ -1438,7 +1446,6 @@ static void
 vte_insert_line_internal(VteTerminal *terminal, long position)
 {
 	GArray *array;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	/* Pad out the line data to the insertion point. */
 	while (vte_ring_next(terminal->pvt->screen->row_data) < position) {
 		array = vte_new_row_data();
@@ -1457,7 +1464,6 @@ vte_insert_line_internal(VteTerminal *terminal, long position)
 static void
 vte_remove_line_internal(VteTerminal *terminal, long position)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (vte_ring_next(terminal->pvt->screen->row_data) > position) {
 		vte_ring_remove(terminal->pvt->screen->row_data,
 				position, TRUE);
@@ -1616,7 +1622,6 @@ vte_sequence_handler_ae(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->defaults.alternate = 0;
 }
 
@@ -1631,8 +1636,6 @@ vte_sequence_handler_al(VteTerminal *terminal,
 	GArray *rowdata;
 	long start, end, param, i;
 	GValue *value;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	/* Find out which part of the screen we're messing with. */
 	screen = terminal->pvt->screen;
@@ -1675,7 +1678,6 @@ vte_sequence_handler_AL(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	vte_sequence_handler_al(terminal, match, match_quark, params);
 }
 
@@ -1686,7 +1688,6 @@ vte_sequence_handler_as(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->defaults.alternate = 1;
 }
 
@@ -1697,7 +1698,6 @@ vte_sequence_handler_bl(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (terminal->pvt->audible_bell) {
 		/* Feep. */
 		gdk_beep();
@@ -1716,7 +1716,6 @@ vte_sequence_handler_bt(VteTerminal *terminal,
 			GValueArray *params)
 {
 	long newcol;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	/* Calculate which column is the previous tab stop. */
 	newcol = terminal->pvt->screen->cursor_current.col;
@@ -1760,7 +1759,6 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 	struct vte_charcell *pcell;
 	screen = terminal->pvt->screen;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	/* Get the data for the row which the cursor points to. */
 	vte_terminal_ensure_cursor(terminal, FALSE);
 	rowdata = vte_ring_index(screen->row_data,
@@ -1799,7 +1797,7 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 	GArray *rowdata;
 	long i;
 	VteScreen *screen;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
 	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the row
 	 * the cursor is in and all rows below the cursor. */
@@ -1828,7 +1826,7 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 {
 	GArray *rowdata;
 	VteScreen *screen;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
 	screen = terminal->pvt->screen;
 	/* Get the data for the row which the cursor points to. */
 	vte_terminal_ensure_cursor(terminal, FALSE);
@@ -1859,7 +1857,7 @@ vte_sequence_handler_ch(VteTerminal *terminal,
 	VteScreen *screen;
 	GValue *value;
 	long val;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
 	screen = terminal->pvt->screen;
 	/* We only care if there's a parameter in there. */
 	if ((params != NULL) && (params->n_values > 0)) {
@@ -1895,7 +1893,7 @@ vte_sequence_handler_cm(VteTerminal *terminal,
 	GValue *row, *col;
 	long rowval, colval;
 	VteScreen *screen;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
 	screen = terminal->pvt->screen;
 	/* We need at least two parameters. */
 	if ((params != NULL) && (params->n_values >= 2)) {
@@ -1924,7 +1922,7 @@ vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 {
 	GArray *rowdata;
 	VteScreen *screen;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
 	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
@@ -1955,7 +1953,6 @@ vte_sequence_handler_cr(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->cursor_current.col = 0;
 }
 
@@ -1968,7 +1965,7 @@ vte_sequence_handler_cs(VteTerminal *terminal,
 {
 	long start, end, rows;
 	GValue *value;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
 	/* We require two parameters. */
 	if ((params == NULL) || (params->n_values < 2)) {
 		terminal->pvt->screen->scrolling_restricted = FALSE;
@@ -2001,7 +1998,7 @@ vte_sequence_handler_cS(VteTerminal *terminal,
 {
 	long start, end, rows;
 	GValue *value;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
 	/* We require four parameters. */
 	if ((params == NULL) || (params->n_values < 2)) {
 		terminal->pvt->screen->scrolling_restricted = FALSE;
@@ -2032,7 +2029,6 @@ vte_sequence_handler_ct(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (terminal->pvt->tabstops != NULL) {
 		g_hash_table_destroy(terminal->pvt->tabstops);
 		terminal->pvt->tabstops = NULL;
@@ -2047,7 +2043,6 @@ vte_sequence_handler_cursor_lower_left(VteTerminal *terminal,
 				       GValueArray *params)
 {
 	VteScreen *screen;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	screen->cursor_current.row = screen->insert_delta +
 				     terminal->row_count - 1;
@@ -2062,7 +2057,6 @@ vte_sequence_handler_cursor_next_line(VteTerminal *terminal,
 				      GQuark match_quark,
 				      GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->cursor_current.col = 0;
 	vte_sequence_handler_DO(terminal, match, match_quark, params);
 }
@@ -2074,7 +2068,6 @@ vte_sequence_handler_cursor_preceding_line(VteTerminal *terminal,
 					   GQuark match_quark,
 					   GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->cursor_current.col = 0;
 	vte_sequence_handler_UP(terminal, match, match_quark, params);
 }
@@ -2089,7 +2082,6 @@ vte_sequence_handler_cv(VteTerminal *terminal,
 	VteScreen *screen;
 	GValue *value;
 	long val;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	/* We only care if there's a parameter in there. */
 	if ((params != NULL) && (params->n_values > 0)) {
@@ -2115,7 +2107,6 @@ vte_sequence_handler_dc(VteTerminal *terminal,
 	GArray *rowdata;
 	long col;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 
 	if (vte_ring_next(screen->row_data) > screen->cursor_current.row) {
@@ -2146,7 +2137,6 @@ vte_sequence_handler_DC(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	vte_sequence_handler_multiple(terminal, match, match_quark, params,
 				      vte_sequence_handler_dc);
 }
@@ -2161,8 +2151,6 @@ vte_sequence_handler_dl(VteTerminal *terminal,
 	VteScreen *screen;
 	long start, end, param, i;
 	GValue *value;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	/* Find out which part of the screen we're messing with. */
 	screen = terminal->pvt->screen;
@@ -2199,7 +2187,6 @@ vte_sequence_handler_DL(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	vte_sequence_handler_dl(terminal, match, match_quark, params);
 }
 
@@ -2264,7 +2251,6 @@ vte_terminal_scroll_insertion(VteTerminal *terminal)
 	long rows, delta;
 	VteScreen *screen;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 
 	/* Make sure that the bottom row is visible, and that it's in
@@ -2283,7 +2269,7 @@ vte_terminal_scroll_insertion(VteTerminal *terminal)
 	}
 }
 
-/* Scroll forward. */
+/* Cursor down, no scrolling. */
 static void
 vte_sequence_handler_do(VteTerminal *terminal,
 			const char *match,
@@ -2294,7 +2280,6 @@ vte_sequence_handler_do(VteTerminal *terminal,
 	long start, end;
 	VteScreen *screen;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	widget = GTK_WIDGET(terminal);
 	screen = terminal->pvt->screen;
 
@@ -2306,27 +2291,11 @@ vte_sequence_handler_do(VteTerminal *terminal,
 		end = start + terminal->row_count - 1;
 	}
 
-	if (screen->cursor_current.row == end) {
-		if (screen->scrolling_restricted) {
-			/* If we're at the end of the scrolling region, add a
-			 * line at the bottom to scroll the top off. */
-			vte_remove_line_internal(terminal, start);
-			vte_insert_line_internal(terminal, end);
-			/* Update the display. */
-			vte_terminal_scroll_region(terminal, start,
-						   end - start + 1, -1);
-		} else {
-			/* Scroll up with history. */
-			screen->cursor_current.row++;
-			vte_terminal_scroll_insertion(terminal);
-		}
-	} else {
-		/* Otherwise, just move the cursor down. */
-		screen->cursor_current.row++;
-	}
+	/* Move the cursor down. */
+	screen->cursor_current.row = MIN(screen->cursor_current.row + 1, end);
 }
 
-/* Cursor down. */
+/* Cursor down, no scrolling. */
 static void
 vte_sequence_handler_DO(VteTerminal *terminal,
 			const char *match,
@@ -2344,7 +2313,6 @@ vte_sequence_handler_eA(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	vte_sequence_handler_ae(terminal, match, match_quark, params);
 }
 
@@ -2362,7 +2330,6 @@ vte_sequence_handler_ec(VteTerminal *terminal,
 	struct vte_charcell *cell;
 	long col, i, count;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 
 	/* If we got a parameter, use it. */
@@ -2413,7 +2380,6 @@ vte_sequence_handler_ei(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->insert_mode = FALSE;
 }
 
@@ -2424,7 +2390,6 @@ vte_sequence_handler_fs(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->status_line = FALSE;
 }
 
@@ -2436,7 +2401,6 @@ vte_sequence_handler_ho(VteTerminal *terminal,
 			GValueArray *params)
 {
 	VteScreen *screen;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	screen->cursor_current.row = screen->insert_delta;
 	screen->cursor_current.col = 0;
@@ -2463,7 +2427,6 @@ vte_sequence_handler_ic(VteTerminal *terminal,
 	struct vte_cursor_position save;
 	VteScreen *screen;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 
 	save = screen->cursor_current;
@@ -2491,8 +2454,17 @@ vte_sequence_handler_im(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->insert_mode = TRUE;
+}
+
+/* Cursor down, with scrolling. */
+static void
+vte_sequence_handler_index(VteTerminal *terminal,
+			   const char *match,
+			   GQuark match_quark,
+			   GValueArray *params)
+{
+	vte_sequence_handler_sf(terminal, match, match_quark, params);
 }
 
 /* Send me a backspace key sym, will you?  Guess that the application meant
@@ -2514,7 +2486,6 @@ vte_sequence_handler_ke(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->keypad = VTE_KEYPAD_NORMAL;
 }
 
@@ -2525,7 +2496,6 @@ vte_sequence_handler_ks(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->keypad = VTE_KEYPAD_APPLICATION;
 }
 
@@ -2537,7 +2507,7 @@ vte_sequence_handler_le(VteTerminal *terminal,
 			GValueArray *params)
 {
 	VteScreen *screen;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
 	screen = terminal->pvt->screen;
 	if (screen->cursor_current.col > 0) {
 		/* There's room to move left, so do so. */
@@ -2574,7 +2544,6 @@ vte_sequence_handler_ll(VteTerminal *terminal,
 			GValueArray *params)
 {
 	VteScreen *screen;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	screen->cursor_current.row = screen->insert_delta +
 				     terminal->row_count - 1;
@@ -2588,7 +2557,6 @@ vte_sequence_handler_mb(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->defaults.blink = 1;
 }
 
@@ -2599,7 +2567,6 @@ vte_sequence_handler_md(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->defaults.bold = 1;
 }
 
@@ -2610,7 +2577,6 @@ vte_sequence_handler_me(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	vte_terminal_set_default_attributes(terminal);
 }
 
@@ -2621,7 +2587,6 @@ vte_sequence_handler_mh(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->defaults.half = 1;
 }
 
@@ -2632,7 +2597,6 @@ vte_sequence_handler_mk(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->defaults.invisible = 1;
 }
 
@@ -2643,7 +2607,6 @@ vte_sequence_handler_mp(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->defaults.protect = 1;
 }
 
@@ -2654,7 +2617,6 @@ vte_sequence_handler_mr(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->defaults.reverse = 1;
 }
 
@@ -2666,23 +2628,10 @@ vte_sequence_handler_nd(VteTerminal *terminal,
 			GValueArray *params)
 {
 	VteScreen *screen;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	if ((screen->cursor_current.col + 1) < terminal->column_count) {
-		/* Room to move right. */
+		/* There's room to move right. */
 		screen->cursor_current.col++;
-	} else {
-		/* Wrap? */
-		if (terminal->pvt->flags.am) {
-			/* Move on to the next line. */
-			screen->cursor_current.col = 0;
-			screen->cursor_current.row++;
-			/* Scroll to make the new line viewable if need be. */
-			vte_terminal_scroll_insertion(terminal);
-		} else {
-			/* Nope, peg to the rightmost column. */
-			screen->cursor_current.col = terminal->column_count - 1;
-		}
 	}
 }
 
@@ -2693,7 +2642,6 @@ vte_sequence_handler_next_line(VteTerminal *terminal,
 			       GQuark match_quark,
 			       GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->cursor_current.col = 0;
 	vte_sequence_handler_DO(terminal, match, match_quark, params);
 }
@@ -2705,7 +2653,6 @@ vte_sequence_handler_noop(VteTerminal *terminal,
 			  GQuark match_quark,
 			  GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 }
 
 /* Carriage return command(?). */
@@ -2726,7 +2673,6 @@ vte_sequence_handler_rc(VteTerminal *terminal,
 			GValueArray *params)
 {
 	VteScreen *screen;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	screen->cursor_current.col = screen->cursor_saved.col;
 	screen->cursor_current.row = CLAMP(screen->cursor_saved.row +
@@ -2734,6 +2680,16 @@ vte_sequence_handler_rc(VteTerminal *terminal,
 					   screen->insert_delta,
 					   screen->insert_delta +
 					   terminal->row_count - 1);
+}
+
+/* Cursor down, with scrolling. */
+static void
+vte_sequence_handler_reverse_index(VteTerminal *terminal,
+				   const char *match,
+				   GQuark match_quark,
+				   GValueArray *params)
+{
+	vte_sequence_handler_sr(terminal, match, match_quark, params);
 }
 
 /* Cursor right N characters. */
@@ -2755,7 +2711,6 @@ vte_sequence_handler_sc(VteTerminal *terminal,
 			GValueArray *params)
 {
 	VteScreen *screen;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	screen->cursor_saved.col = screen->cursor_current.col;
 	screen->cursor_saved.row = CLAMP(screen->cursor_current.row -
@@ -2771,7 +2726,6 @@ vte_sequence_handler_se(VteTerminal *terminal,
 			GValueArray *params)
 {
 	char *bold, *underline, *standout, *reverse, *half, *blink;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	/* Standout may be mapped to another attribute, so attempt to do
 	 * the Right Thing here. */
@@ -2835,6 +2789,59 @@ vte_sequence_handler_se(VteTerminal *terminal,
 	g_free(standout);
 }
 
+/* Cursor down, with scrolling. */
+static void
+vte_sequence_handler_sf(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	GtkWidget *widget;
+	long start, end;
+	VteScreen *screen;
+
+	widget = GTK_WIDGET(terminal);
+	screen = terminal->pvt->screen;
+
+	if (screen->scrolling_restricted) {
+		start = screen->insert_delta + screen->scrolling_region.start;
+		end = screen->insert_delta + screen->scrolling_region.end;
+	} else {
+		start = screen->insert_delta;
+		end = start + terminal->row_count - 1;
+	}
+
+	if (screen->cursor_current.row == end) {
+		if (screen->scrolling_restricted) {
+			/* If we're at the bottom of the scrolling region, add a
+			 * line at the top to scroll the bottom off. */
+			vte_remove_line_internal(terminal, start);
+			vte_insert_line_internal(terminal, end);
+			/* Update the display. */
+			vte_terminal_scroll_region(terminal, start,
+						   end - start + 1, -1);
+		} else {
+			/* Scroll up with history. */
+			screen->cursor_current.row++;
+			vte_terminal_scroll_insertion(terminal);
+		}
+	} else {
+		/* Otherwise, just move the cursor down. */
+		screen->cursor_current.row++;
+	}
+}
+
+/* Cursor down, with scrolling. */
+static void
+vte_sequence_handler_SF(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	vte_sequence_handler_multiple(terminal, match, match_quark, params,
+				      vte_sequence_handler_sf);
+}
+
 /* Standout start. */
 static void
 vte_sequence_handler_so(VteTerminal *terminal,
@@ -2843,7 +2850,6 @@ vte_sequence_handler_so(VteTerminal *terminal,
 			GValueArray *params)
 {
 	char *bold, *underline, *standout, *reverse, *half, *blink;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	/* Standout may be mapped to another attribute, so attempt to do
 	 * the Right Thing here. */
@@ -2907,6 +2913,52 @@ vte_sequence_handler_so(VteTerminal *terminal,
 	g_free(standout);
 }
 
+/* Cursor up, scrolling if need be. */
+static void
+vte_sequence_handler_sr(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	GtkWidget *widget;
+	long start, end;
+	VteScreen *screen;
+
+	widget = GTK_WIDGET(terminal);
+	screen = terminal->pvt->screen;
+
+	if (screen->scrolling_restricted) {
+		start = screen->scrolling_region.start + screen->insert_delta;
+		end = screen->scrolling_region.end + screen->insert_delta;
+	} else {
+		start = terminal->pvt->screen->insert_delta;
+		end = start + terminal->row_count - 1;
+	}
+
+	if (screen->cursor_current.row == start) {
+		/* If we're at the top of the scrolling region, add a
+		 * line at the top to scroll the bottom off. */
+		vte_remove_line_internal(terminal, end);
+		vte_insert_line_internal(terminal, start);
+		/* Update the display. */
+		vte_terminal_scroll_region(terminal, start, end - start + 1, 1);
+	} else {
+		/* Otherwise, just move the cursor up. */
+		screen->cursor_current.row--;
+	}
+}
+
+/* Cursor up, with scrolling. */
+static void
+vte_sequence_handler_SR(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	vte_sequence_handler_multiple(terminal, match, match_quark, params,
+				      vte_sequence_handler_sr);
+}
+
 /* Set tab stop in the current column. */
 static void
 vte_sequence_handler_st(VteTerminal *terminal,
@@ -2914,7 +2966,6 @@ vte_sequence_handler_st(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (terminal->pvt->tabstops == NULL) {
 		terminal->pvt->tabstops = g_hash_table_new(g_direct_hash,
 							   g_direct_equal);
@@ -2931,7 +2982,6 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 			GValueArray *params)
 {
 	long newcol;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	/* Calculate which column is the next tab stop. */
 	newcol = terminal->pvt->screen->cursor_current.col;
@@ -2980,7 +3030,7 @@ vte_sequence_handler_tab_clear(VteTerminal *terminal,
 {
 	GValue *value;
 	long param = 0;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
@@ -3006,7 +3056,6 @@ vte_sequence_handler_ts(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->status_line = TRUE;
 	g_string_truncate(terminal->pvt->screen->status_line_contents, 0);
 	vte_terminal_emit_status_line_changed(terminal);
@@ -3021,7 +3070,7 @@ vte_sequence_handler_uc(VteTerminal *terminal,
 {
 	struct vte_charcell *cell;
 	VteScreen *screen;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
 	screen = terminal->pvt->screen;
 	cell = vte_terminal_find_charcell(terminal,
 					  screen->cursor_current.col,
@@ -3045,47 +3094,33 @@ vte_sequence_handler_ue(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->defaults.underline = 0;
 }
 
-/* Cursor up, scrolling if need be. */
+/* Cursor up, no scrolling. */
 static void
 vte_sequence_handler_up(VteTerminal *terminal,
 			const char *match,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	GtkWidget *widget;
-	long start, end;
 	VteScreen *screen;
+	long start, end;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	widget = GTK_WIDGET(terminal);
 	screen = terminal->pvt->screen;
 
 	if (screen->scrolling_restricted) {
-		start = screen->scrolling_region.start + screen->insert_delta;
-		end = screen->scrolling_region.end + screen->insert_delta;
+		start = screen->insert_delta + screen->scrolling_region.start;
+		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
-		start = terminal->pvt->screen->insert_delta;
+		start = screen->insert_delta;
 		end = start + terminal->row_count - 1;
 	}
 
-	if (screen->cursor_current.row == start) {
-		/* If we're at the top of the scrolling region, add a
-		 * line at the top to scroll the bottom off. */
-		vte_remove_line_internal(terminal, end);
-		vte_insert_line_internal(terminal, start);
-		/* Update the display. */
-		vte_terminal_scroll_region(terminal, start, end - start + 1, 1);
-	} else {
-		/* Otherwise, just move the cursor up. */
-		screen->cursor_current.row--;
-	}
+	screen->cursor_current.row = MAX(screen->cursor_current.row - 1, start);
 }
 
-/* Cursor up. */
+/* Cursor up N lines, no scrolling. */
 static void
 vte_sequence_handler_UP(VteTerminal *terminal,
 			const char *match,
@@ -3103,7 +3138,6 @@ vte_sequence_handler_us(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->defaults.underline = 1;
 }
 
@@ -3119,8 +3153,6 @@ vte_sequence_handler_vb(VteTerminal *terminal,
 	Drawable drawable;
 	GC gc;
 	gint x_offs, y_offs;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
 		/* Fill the screen with the default foreground color, and then
@@ -3153,7 +3185,6 @@ vte_sequence_handler_ve(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->cursor_visible = TRUE;
 }
 
@@ -3164,7 +3195,6 @@ vte_sequence_handler_vi(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->cursor_visible = FALSE;
 }
 
@@ -3175,7 +3205,6 @@ vte_sequence_handler_vs(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->cursor_visible = TRUE; /* FIXME: should be *more*
 						 visible. */
 }
@@ -3308,7 +3337,6 @@ vte_sequence_handler_clear_above_current(VteTerminal *terminal,
 	GArray *rowdata;
 	long i;
 	VteScreen *screen;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
@@ -3342,7 +3370,6 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 	GArray *rowdata;
 	long i;
 	VteScreen *screen;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	/* Clear the data in all of the visible rows to the defaults. */
 	for (i = screen->insert_delta;
@@ -3399,7 +3426,6 @@ vte_sequence_handler_request_terminal_parameters(VteTerminal *terminal,
 						 GQuark match_quark,
 						 GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	vte_terminal_feed_child(terminal, "[?x", -1);
 }
 
@@ -3410,7 +3436,6 @@ vte_sequence_handler_return_terminal_status(VteTerminal *terminal,
 					    GQuark match_quark,
 					    GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	vte_terminal_feed_child(terminal, "xterm", -1);
 }
 
@@ -3421,7 +3446,6 @@ vte_sequence_handler_send_primary_device_attributes(VteTerminal *terminal,
 						    GQuark match_quark,
 						    GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	/* Claim to be a VT220 with only national character set support. */
 	vte_terminal_feed_child(terminal, "[?60;9c", -1);
 }
@@ -3435,7 +3459,6 @@ vte_sequence_handler_send_secondary_device_attributes(VteTerminal *terminal,
 {
 	char **version, *ret;
 	long ver = 0, i;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	/* Claim to be a VT220, more or less.  The '>' in the response appears
 	 * to be undocumented. */
 	version = g_strsplit(VERSION, ".", 0);
@@ -3463,7 +3486,6 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 	GIConv conv;
 	char *inbuf = NULL, *outbuf = NULL, *outbufptr = NULL;
 	gssize inbuf_len, outbuf_len;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	/* Get the string parameter's value. */
 	value = g_value_array_get_nth(params, 0);
 	if (value) {
@@ -3569,7 +3591,6 @@ static void
 vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 {
 	GdkCursor *cursor = NULL;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (visible || !terminal->pvt->mouse_autohide) {
 		if (terminal->pvt->mouse_send_xy_on_click ||
 		    terminal->pvt->mouse_send_xy_on_button ||
@@ -3615,6 +3636,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 				     gboolean save,
 				     gboolean set)
 {
+	gboolean recognized = FALSE;
 	gpointer p;
 	int i;
 	struct {
@@ -3633,6 +3655,11 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 NULL, NULL,},
 		/* Reverse video. */
 		{5, &terminal->pvt->screen->reverse_mode, NULL, NULL,
+		 GINT_TO_POINTER(FALSE),
+		 GINT_TO_POINTER(TRUE),
+		 NULL, NULL,},
+		/* Wraparound mode. */
+		{7, &terminal->pvt->flags.am, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
@@ -3688,6 +3715,11 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 &terminal->pvt->alternate_screen,
 		 vte_sequence_handler_rc,
 		 vte_sequence_handler_sc,},
+		/* Sun/VT220 keyboard mode. */
+		{1051, NULL, NULL, (gpointer*) &terminal->pvt->fkey,
+		 GINT_TO_POINTER(VTE_FKEY_VT220),
+		 GINT_TO_POINTER(VTE_FKEY_SUNPC),
+		 NULL, NULL},
 	};
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -3695,6 +3727,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 	/* Handle the setting. */
 	for (i = 0; i < G_N_ELEMENTS(settings); i++)
 	if (settings[i].setting == setting) {
+		recognized = TRUE;
 		/* Read the old setting. */
 		if (restore) {
 			p = g_hash_table_lookup(terminal->pvt->dec_saved,
@@ -3797,6 +3830,12 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		default:
 			break;
 	}
+#ifdef VTE_DEBUG
+	if (!recognized) {
+		g_warning("DECSET/DECRESET mode %d not recognized, ignoring.\n",
+			  setting);
+	}
+#endif
 }
 
 /* Set the application or normal keypad. */
@@ -3806,7 +3845,6 @@ vte_sequence_handler_application_keypad(VteTerminal *terminal,
 					GQuark match_quark,
 					GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->keypad = VTE_KEYPAD_APPLICATION;
 }
 
@@ -3816,7 +3854,6 @@ vte_sequence_handler_normal_keypad(VteTerminal *terminal,
 				   GQuark match_quark,
 				   GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->keypad = VTE_KEYPAD_NORMAL;
 }
 
@@ -3827,7 +3864,6 @@ vte_sequence_handler_character_position_absolute(VteTerminal *terminal,
 						 GQuark match_quark,
 						 GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	vte_sequence_handler_offset(terminal, match, match_quark, params,
 				    -1, vte_sequence_handler_ch);
 }
@@ -3837,7 +3873,6 @@ vte_sequence_handler_line_position_absolute(VteTerminal *terminal,
 					    GQuark match_quark,
 					    GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	vte_sequence_handler_offset(terminal, match, match_quark, params,
 				    -1, vte_sequence_handler_cv);
 }
@@ -3847,7 +3882,6 @@ static void
 vte_sequence_handler_set_mode_internal(VteTerminal *terminal,
 				       long setting, gboolean value)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	switch (setting) {
 		case 2:		/* keyboard action mode (?) */
 			break;
@@ -3873,7 +3907,6 @@ vte_sequence_handler_set_mode(VteTerminal *terminal,
 	int i;
 	long setting;
 	GValue *value;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if ((params == NULL) || (params->n_values == 0)) {
 		return;
 	}
@@ -3898,7 +3931,6 @@ vte_sequence_handler_reset_mode(VteTerminal *terminal,
 	int i;
 	long setting;
 	GValue *value;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if ((params == NULL) || (params->n_values == 0)) {
 		return;
 	}
@@ -3923,7 +3955,6 @@ vte_sequence_handler_decset(VteTerminal *terminal,
 	GValue *value;
 	long setting;
 	int i;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if ((params == NULL) || (params->n_values == 0)) {
 		return;
 	}
@@ -3948,7 +3979,6 @@ vte_sequence_handler_decreset(VteTerminal *terminal,
 	GValue *value;
 	long setting;
 	int i;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if ((params == NULL) || (params->n_values == 0)) {
 		return;
 	}
@@ -4005,6 +4035,9 @@ vte_sequence_handler_erase_in_display(VteTerminal *terminal,
 								 NULL,
 								 0,
 								 NULL);
+			/* Clear everything to the left of the cursor, too. */
+			/* FIXME: vttest. */
+			vte_sequence_handler_cb(terminal, NULL, 0, NULL);
 			break;
 		case 2:
 			/* Clear the entire screen. */
@@ -4090,7 +4123,6 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 	VteScreen *screen;
 	long param, end, row;
 	int i;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	/* The default is one. */
 	param = 1;
@@ -4136,7 +4168,6 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 	long param, end, row;
 	int i;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	/* The default is one. */
 	param = 1;
@@ -4169,30 +4200,6 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 	vte_terminal_scroll_region(terminal, row, end - row + 1, -param);
 }
 
-/* Index.  Move the cursor down a row, and if it's in a scrolling region,
- * scroll to keep it on the screen. */
-static void
-vte_sequence_handler_index(VteTerminal *terminal,
-			   const char *match,
-			   GQuark match_quark,
-			   GValueArray *params)
-{
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	vte_sequence_handler_DO(terminal, match, match_quark, params);
-}
-
-/* Reverse index.  Move the cursor up a row, and if it's in a scrolling
- * region, scroll to keep it on the screen. */
-static void
-vte_sequence_handler_reverse_index(VteTerminal *terminal,
-				   const char *match,
-				   GQuark match_quark,
-				   GValueArray *params)
-{
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	vte_sequence_handler_UP(terminal, match, match_quark, params);
-}
-
 /* Set the terminal encoding. */
 static void
 vte_sequence_handler_local_charset(VteTerminal *terminal,
@@ -4201,7 +4208,6 @@ vte_sequence_handler_local_charset(VteTerminal *terminal,
 				   GValueArray *params)
 {
 	G_CONST_RETURN char *locale_encoding;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 #ifdef VTE_DEFAULT_ISO_8859_1
 	vte_terminal_set_encoding(terminal, vte_table_narrow_encoding());
 #else
@@ -4216,7 +4222,6 @@ vte_sequence_handler_utf_8_charset(VteTerminal *terminal,
 				   GQuark match_quark,
 				   GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	vte_terminal_set_encoding(terminal, "UTF-8");
 }
 
@@ -4233,7 +4238,6 @@ vte_sequence_handler_device_status_report(VteTerminal *terminal,
 	long param;
 	char buf[LINE_MAX];
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 
 	if ((params != NULL) && (params->n_values > 0)) {
@@ -4275,7 +4279,6 @@ vte_sequence_handler_dec_device_status_report(VteTerminal *terminal,
 	long param;
 	char buf[LINE_MAX];
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 
 	if ((params != NULL) && (params->n_values > 0)) {
@@ -4332,7 +4335,6 @@ vte_sequence_handler_restore_mode(VteTerminal *terminal,
 	GValue *value;
 	long setting;
 	int i;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if ((params == NULL) || (params->n_values == 0)) {
 		return;
 	}
@@ -4357,7 +4359,6 @@ vte_sequence_handler_save_mode(VteTerminal *terminal,
 	GValue *value;
 	long setting;
 	int i;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if ((params == NULL) || (params->n_values == 0)) {
 		return;
 	}
@@ -4370,6 +4371,47 @@ vte_sequence_handler_save_mode(VteTerminal *terminal,
 		vte_sequence_handler_decset_internal(terminal, setting,
 						     FALSE, TRUE, FALSE);
 	}
+}
+
+/* Perform a screen alignment test -- fill all visible cells with the
+ * letter "E". */
+static void
+vte_sequence_handler_screen_alignment_test(VteTerminal *terminal,
+					   const char *match,
+					   GQuark match_quark,
+					   GValueArray *params)
+{
+	long row;
+	GArray *rowdata;
+	VteScreen *screen;
+	struct vte_charcell cell;
+
+	screen = terminal->pvt->screen;
+
+	for (row = terminal->pvt->screen->insert_delta;
+	     row < terminal->pvt->screen->insert_delta + terminal->row_count;
+	     row++) {
+		/* Find this row. */
+		while (vte_ring_next(screen->row_data) <= row) {
+			rowdata = vte_new_row_data();
+			vte_ring_append(screen->row_data, rowdata);
+		}
+		rowdata = vte_ring_index(screen->row_data, GArray*, row);
+		/* Clear this row. */
+		while (rowdata->len > 0) {
+			g_array_remove_index(rowdata, rowdata->len - 1);
+		}
+		/* Fill this row. */
+		cell = screen->defaults;
+		cell.c = 'E';
+		cell.fore = VTE_DEF_FG;
+		cell.back = VTE_DEF_BG;
+		cell.columns = 1;
+		while (rowdata->len < terminal->column_count) {
+			g_array_append_val(rowdata, cell);
+		}
+	}
+	vte_invalidate_all(terminal);
 }
 
 /* Perform a soft reset. */
@@ -4400,7 +4442,6 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 	guint width, height;
 	int i;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	widget = GTK_WIDGET(terminal);
 	screen = terminal->pvt->screen;
 
@@ -4664,7 +4705,6 @@ vte_sequence_handler_complain_key(VteTerminal *terminal,
 				  GQuark match_quark,
 				  GValueArray *params)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_warning(_("Got unexpected (key?) sequence `%s'."),
 		  match ? match : "???");
 }
@@ -4951,11 +4991,11 @@ static struct {
 	{"SA", NULL},
 	{"sc", vte_sequence_handler_sc},
 	{"se", vte_sequence_handler_se},
-	{"sf", vte_sequence_handler_do},
-	{"SF", vte_sequence_handler_DO},
+	{"sf", vte_sequence_handler_sf},
+	{"SF", vte_sequence_handler_SF},
 	{"so", vte_sequence_handler_so},
-	{"sr", vte_sequence_handler_up},
-	{"SR", vte_sequence_handler_UP},
+	{"sr", vte_sequence_handler_sr},
+	{"SR", vte_sequence_handler_SR},
 	{"st", vte_sequence_handler_st},
 	{"SX", NULL},
 
@@ -5056,7 +5096,7 @@ static struct {
 	{"reverse-index", vte_sequence_handler_reverse_index},
 	{"save-cursor", vte_sequence_handler_sc},
 	{"save-mode", vte_sequence_handler_save_mode},
-	{"screen-alignment-test", NULL},
+	{"screen-alignment-test", vte_sequence_handler_screen_alignment_test},
 	{"scroll-down", NULL},
 	{"scroll-up", NULL},
 	{"select-character-protection", NULL},

@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.8.3
+Version: 0.8.4
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -61,6 +61,10 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Fri Aug 23 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.4-1
+- prevent up/UP/DO from scrolling
+- bind shift+insert to "paste PRIMARY", per xterm/kterm/hanterm
+
 * Thu Aug 22 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.3-1
 - track changes to the style's font
 - always open fonts right away so that the metric information is correct
