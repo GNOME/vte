@@ -2,8 +2,10 @@ bin_PROGRAMS = vte
 pkginclude_HEADERS = caps.h pty.h ring.h termcap.h trie.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
 noinst_PROGRAMS = interpret utf8echo utf8mode iso8859mode
-EXTRA_PROGRAMS = pty reaper ring termcap trie
+EXTRA_PROGRAMS = pty reaper ring termcap trie vtemodule.so
 EXTRA_DIST = marshal.list vte.defs
+pythonsitedir = $(libdir)/python@PYTHONREV/site-packages
+pythonsite_BINARIES = @PYTHONMODULES@
 
 CFLAGS = @CFLAGS@ @XFT_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@
 
@@ -97,3 +99,12 @@ reaper_SOURCES = \
 	reaper.c \
 	reaper.h
 reaper_LDADD = @LIBS@ @GLIB_LIBS@
+
+vtemodule_so_SOURCES = \
+	vtemodule.c
+vtemodule_so_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ @PYGTK_CFLAGS@ -I$(includedir)/python@PYTHONREV@
+vtemodule_so_LDFLAGS = -shared
+vtemodule_so_LDADD = libvte.la @LIBS@ @PYGTK_LIBS@ @XFT_LIBS@ @GTK_LIBS@ @X_LIBS@
+
+vtemodule.c: vte.defs vte.override
+	pygtk-codegen-2.0 -p $(PACKAGE) -o vte.override $< > $@
