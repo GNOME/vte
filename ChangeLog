@@ -1,3 +1,7 @@
+2003-02-12 nalin
+	* src/reflect.c(main): connect to accessible signals before they can
+	be emitted so that we always have a clear picture of what's going on.
+
 2003-02-11 nalin
         * src/vte.c(vte_terminal_get_text_range): skip over fragments properly.
         * src/vte.c(vte_terminal_draw_row): skip over fragments properly.

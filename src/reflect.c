@@ -377,8 +377,6 @@ main(int argc, char **argv)
 	gtk_container_add(GTK_CONTAINER(window), pane);
 	gtk_widget_show(pane);
 
-	terminal_shell(terminal);
-
 	obj = gtk_widget_get_accessible(terminal);
 	g_assert(obj != NULL);
 	g_signal_connect(G_OBJECT(obj), "text-changed::insert",
@@ -387,6 +385,8 @@ main(int argc, char **argv)
 			 G_CALLBACK(text_changed_delete), label);
 	g_signal_connect(G_OBJECT(obj), "text-caret-moved",
 			 G_CALLBACK(text_caret_moved), label);
+
+	terminal_shell(terminal);
 
 	gtk_window_set_default_size(GTK_WINDOW(window), 600, 450);
 	gtk_widget_show(window);
