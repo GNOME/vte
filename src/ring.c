@@ -122,8 +122,8 @@ _vte_ring_insert(VteRing *ring, long position, gpointer data)
 			fprintf(stderr, " Delta = %ld, Length = %ld, "
 				"Max = %ld.\n",
 				ring->delta, ring->length, ring->max);
+			_vte_ring_validate(ring);
 		}
-		_vte_ring_validate(ring);
 #endif
 		return;
 	}
@@ -163,8 +163,8 @@ _vte_ring_insert(VteRing *ring, long position, gpointer data)
 	if (_vte_debug_on(VTE_DEBUG_RING)) {
 		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
 			ring->delta, ring->length, ring->max);
+		_vte_ring_validate(ring);
 	}
-	_vte_ring_validate(ring);
 #endif
 }
 
@@ -214,8 +214,8 @@ _vte_ring_remove(VteRing *ring, long position, gboolean free)
 	if (_vte_debug_on(VTE_DEBUG_RING)) {
 		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
 			ring->delta, ring->length, ring->max);
+		_vte_ring_validate(ring);
 	}
-	_vte_ring_validate(ring);
 #endif
 }
 
