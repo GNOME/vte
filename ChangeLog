@@ -1,3 +1,7 @@
+2003-02-19  Takeshi AIHANA <aihana@gnome.gr.jp>
+
+	* configure.in: Added "ja" (Japanese) to ALL_LINGUAS.
+
 2003-02-17  Alessio Frusciante  <algol@firenze.linux.it>
 
 	* configure.in: Added "it" (Italian) to ALL_LINGUAS.
