@@ -73,6 +73,11 @@ struct char_class {
 					/* Extract a parameter. */
 };
 
+/* A table to hold shortcuts. */
+struct vte_trie_table {
+	struct trie_path *paths[128];
+};
+
 /* A trie to hold control sequences. */
 struct vte_trie {
 	const char *result;		/* If this is a terminal node, then this
@@ -80,12 +85,14 @@ struct vte_trie {
 	GQuark quark;			/* The quark for the value of the
 					   result. */
 	size_t trie_path_count;		/* Number of children of this node. */
-	struct {
+	struct trie_path {
 		struct char_class *cclass;
 		struct char_class_data data;
 		struct vte_trie *trie;	/* The child node corresponding to this
 					   character. */
 	} *trie_paths;
+	struct vte_trie_table *table;	/* A table filled with pointers to the
+					   child nodes. */
 };
 
 /* Functions for checking if a particular character is part of a class, and
@@ -342,6 +349,10 @@ vte_trie_free(struct vte_trie *trie)
 	if (trie->trie_path_count > 0) {
 		g_free(trie->trie_paths);
 	}
+	if (trie->table != NULL) {
+		g_free(trie->table);
+		trie->table = NULL;
+	}
 	g_free(trie);
 }
 
@@ -486,6 +497,8 @@ vte_trie_matchx(struct vte_trie *trie, const wchar_t *pattern, size_t length,
 	unsigned int i;
 	const char *hres;
 	enum cclass cc;
+	ssize_t partial;
+	struct trie_path *path;
 	const char *best = NULL;
 	GValueArray *bestarray = NULL;
 	GQuark bestquark = 0;
@@ -515,6 +528,36 @@ vte_trie_matchx(struct vte_trie *trie, const wchar_t *pattern, size_t length,
 			*quark = 0;
 			*consumed = pattern;
 			return *res;
+		}
+	}
+
+	/* Try the precomputed table. */
+	if ((trie->table != NULL) &&
+	    (pattern[0] < G_N_ELEMENTS(trie->table->paths))) {
+		if (trie->table->paths[pattern[0]] != NULL) {
+			path = trie->table->paths[pattern[0]];
+			if (path->cclass->multiple) {
+				for (partial = 0; partial < length; partial++) {
+					if (trie->table->paths[pattern[partial]] != path) {
+						break;
+					}
+				}
+			} else {
+				partial = 1;
+			}
+			if (partial > 0) {
+				path->cclass->extract(pattern,
+						      partial,
+						      &path->data,
+						      array);
+				return vte_trie_matchx(path->trie,
+						       pattern + partial,
+						       length - partial,
+						       res,
+						       consumed,
+						       quark,
+						       array);
+			}
 		}
 	}
 
@@ -593,6 +636,52 @@ vte_trie_matchx(struct vte_trie *trie, const wchar_t *pattern, size_t length,
 	*res = best;
 	*consumed = bestconsumed;
 	return *res;
+}
+
+/* Attempt to precompute all of the paths we might take when passing this
+ * node, and use that information to fill in a table. */
+TRIE_MAYBE_STATIC void
+vte_trie_precompute(struct vte_trie *trie)
+{
+	struct vte_trie_table *table;
+	enum cclass cc;
+	int i;
+	wchar_t c;
+
+	/* Free the precomputed table (if there is one). */
+	if (trie->table != NULL) {
+		g_free(trie->table);
+		trie->table = NULL;
+	}
+
+	/* If there are no child nodes, then there's nothing for us to do. */
+	if (trie->trie_path_count == 0) {
+		return;
+	}
+
+	/* Create a new table and clear it. */
+	table = trie->table = g_malloc(sizeof(*table));
+	for (c = 0; c < G_N_ELEMENTS(trie->table->paths); c++) {
+		trie->table->paths[c] = NULL;
+	}
+
+	/* Decide which path a given character would cause us to take, and
+	 * store it at a fixed offset in the table. */
+	for (cc = exact; cc < invalid; cc++)
+	for (i = 0; i < trie->trie_path_count; i++) {
+		struct char_class *cclass = trie->trie_paths[i].cclass;
+		if (cclass->type == cc)
+		for (c = 0; c < G_N_ELEMENTS(trie->table->paths); c++)
+		if (trie->table->paths[c] == NULL)
+		if (cclass->check(c, &trie->trie_paths[i].data)) {
+			trie->table->paths[c] = &trie->trie_paths[i];
+		}
+	}
+
+	/* Precompute the node's children. */
+	for (i = 0; i < trie->trie_path_count; i++) {
+		vte_trie_precompute(trie->trie_paths[i].trie);
+	}
 }
 
 /* Check if the given pattern matches part of the given trie, returning an
@@ -810,6 +899,11 @@ main(int argc, char **argv)
 		     g_quark_from_string("multimatch"));
 	vte_trie_add(trie, "<esc>]2;%sh", 11, "decset-title",
 		     g_quark_from_string("decset-title"));
+	if (argc > 1) {
+		if (strcmp(argv[1], "--precompute") == 0) {
+			vte_trie_precompute(trie);
+		}
+	}
 	vte_trie_print(trie);
 	g_print("\n");
 

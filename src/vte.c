@@ -160,7 +160,7 @@ struct _VteTerminalPrivate {
 	gboolean use_pango;
 
 	/* Emulation state. */
-	VteKeypad keypad;
+	int keypad;
 
 	/* Screen data.  We support the normal screen, and an alternate
 	 * screen, which seems to be a DEC-specific feature. */
@@ -173,7 +173,8 @@ struct _VteTerminalPrivate {
 					/* the current and saved positions of
 					   the [insertion] cursor */
 		gboolean cursor_visible;
-		gboolean insert;	/* insert mode */
+		gboolean reverse_mode;	/* reverse mode */
+		gboolean insert_mode;	/* insert mode */
 		struct {
 			int start, end;
 		} scrolling_region;	/* the region we scroll in */
@@ -184,6 +185,9 @@ struct _VteTerminalPrivate {
 						   for insertion of any new
 						   characters */
 	} normal_screen, alternate_screen, *screen;
+
+	/* Saved settings. */
+	GHashTable *dec_saved;
 
 	/* Selection information. */
 	gboolean has_selection;
@@ -253,6 +257,7 @@ typedef void (*VteTerminalSequenceHandler)(VteTerminal *terminal,
 					   const char *match,
 					   GQuark match_quark,
 					   GValueArray *params);
+static void vte_terminal_ensure_cursor(VteTerminal *terminal);
 static void vte_terminal_insert_char(GtkWidget *widget, wchar_t c,
 				     gboolean force_insert);
 static void vte_sequence_handler_clear_screen(VteTerminal *terminal,
@@ -368,6 +373,21 @@ vte_invalidate_cells(VteTerminal *terminal,
 
 	/* Invalidate the rectangle. */
 	gdk_window_invalidate_rect(widget->window, &rect, TRUE);
+}
+
+/* Redraw the entire window. */
+static void
+vte_invalidate_all(VteTerminal *terminal)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	if (!GTK_IS_WIDGET(terminal) ||
+	    !GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
+		return;
+	}
+	vte_invalidate_cells(terminal,
+			     0, terminal->column_count,
+			     terminal->pvt->screen->scroll_delta,
+			     terminal->row_count);
 }
 
 /* Find the character in the given "virtual" position. */
@@ -588,9 +608,7 @@ vte_terminal_deselect_all(VteTerminal *terminal)
 	if (terminal->pvt->has_selection) {
 		terminal->pvt->has_selection = FALSE;
 		vte_terminal_emit_selection_changed (terminal);
-		vte_invalidate_cells(terminal,
-				     0, terminal->column_count,
-				     0, terminal->row_count);
+		vte_invalidate_all(terminal);
 	}
 }
 
@@ -604,6 +622,18 @@ vte_terminal_set_tabstop(VteTerminal *terminal, int column)
 		g_hash_table_insert(terminal->pvt->tabstops,
 				    GINT_TO_POINTER(2 * column + 1),
 				    terminal);
+	}
+}
+
+/* Remove a tabstop. */
+static void
+vte_terminal_clear_tabstop(VteTerminal *terminal, int column)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	if (terminal->pvt->tabstops != NULL) {
+		/* Remove a tab stop from the hash table. */
+		g_hash_table_remove(terminal->pvt->tabstops,
+				    GINT_TO_POINTER(2 * column + 1));
 	}
 }
 
@@ -1072,18 +1102,24 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
 	if (vte_ring_next(screen->row_data) > screen->cursor_current.row) {
+		struct vte_charcell defaults;
 		/* Get the data for the row which the cursor points to. */
 		rowdata = vte_ring_index(screen->row_data,
 					 GArray*,
 					 screen->cursor_current.row);
 		/* Clear the data up to the current column with the default
 		 * attributes. */
+		memset(&defaults, 0, sizeof(defaults));
+		defaults.fore = screen->defaults.fore;
+		defaults.back = screen->defaults.back;
+		defaults.c = 0;
+		defaults.columns = 1;
 		for (i = 0;
 		     (i < screen->cursor_current.col) && (i < rowdata->len);
 		     i++) {
 			pcell = &g_array_index(rowdata, struct vte_charcell, i);
 			if (pcell != NULL) {
-				*pcell = screen->defaults;
+				*pcell = defaults;
 			}
 		}
 		/* Repaint this row. */
@@ -1134,25 +1170,22 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 	VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
-	/* If the cursor is actually on the screen, clear data in the row
-	 * which corresponds to the cursor. */
-	if (vte_ring_next(screen->row_data) > screen->cursor_current.row) {
-		/* Get the data for the row which the cursor points to. */
-		rowdata = vte_ring_index(screen->row_data, GArray*,
-					 screen->cursor_current.row);
-		/* Remove the data at the end of the array. */
-		while (rowdata->len > screen->cursor_current.col) {
-			g_array_remove_index(rowdata, rowdata->len - 1);
-		}
-		/* Now insert empty cells with the default attributes. */
-		while (rowdata->len < terminal->column_count) {
-			g_array_append_val(rowdata, screen->defaults);
-		}
-		/* Repaint this row. */
-		vte_invalidate_cells(terminal,
-				     0, terminal->column_count,
-				     screen->cursor_current.row, 1);
+	/* Get the data for the row which the cursor points to. */
+	vte_terminal_ensure_cursor(terminal);
+	rowdata = vte_ring_index(screen->row_data, GArray*,
+				 screen->cursor_current.row);
+	/* Remove the data at the end of the array. */
+	while (rowdata->len > screen->cursor_current.col) {
+		g_array_remove_index(rowdata, rowdata->len - 1);
 	}
+	/* Now insert empty cells with the default attributes. */
+	while (rowdata->len < terminal->column_count) {
+		g_array_append_val(rowdata, screen->defaults);
+	}
+	/* Repaint this row. */
+	vte_invalidate_cells(terminal,
+			     0, terminal->column_count,
+			     screen->cursor_current.row, 1);
 }
 
 /* Move the cursor to the given column (horizontal position). */
@@ -1422,11 +1455,7 @@ vte_sequence_handler_dl(VteTerminal *terminal,
 	vte_remove_line_int(terminal, screen->cursor_current.row);
 	vte_insert_line_int(terminal, end);
 	/* Repaint the entire screen. */
-	vte_invalidate_cells(terminal,
-			     0,
-			     terminal->column_count,
-			     terminal->pvt->screen->insert_delta,
-			     terminal->row_count);
+	vte_invalidate_all(terminal);
 }
 
 /* Delete N lines at the current cursor position. */
@@ -1657,7 +1686,7 @@ vte_sequence_handler_ei(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->screen->insert = FALSE;
+	terminal->pvt->screen->insert_mode = FALSE;
 }
 
 /* Move the cursor to the home position. */
@@ -1715,7 +1744,7 @@ vte_sequence_handler_im(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->screen->insert = TRUE;
+	terminal->pvt->screen->insert_mode = TRUE;
 }
 
 /* Send me a backspace key sym, will you?  Guess that the application meant
@@ -2167,6 +2196,34 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 #endif
 }
 
+/* Clear tabs selectively. */
+static void
+vte_sequence_handler_tab_clear(VteTerminal *terminal,
+			       const char *match,
+			       GQuark match_quark,
+			       GValueArray *params)
+{
+	GValue *value;
+	long param = 0;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	if ((params != NULL) && (params->n_values > 0)) {
+		value = g_value_array_get_nth(params, 0);
+		if (G_VALUE_HOLDS_LONG(value)) {
+			param = g_value_get_long(value);
+		}
+	}
+	if (param == 0) {
+		vte_terminal_clear_tabstop(terminal,
+					   terminal->pvt->screen->cursor_current.col);
+	} else
+	if (param == 3) {
+		if (terminal->pvt->tabstops != NULL) {
+			g_hash_table_destroy(terminal->pvt->tabstops);
+			terminal->pvt->tabstops = NULL;
+		}
+	}
+}
+
 /* Terminal usage starts. */
 static void
 vte_sequence_handler_ts(VteTerminal *terminal,
@@ -2297,20 +2354,12 @@ vte_sequence_handler_up(VteTerminal *terminal,
 						     terminal->row_count - 1,
 						     1);
 #else
-				vte_invalidate_cells(terminal,
-						     0,
-						     terminal->column_count,
-						     screen->scroll_delta,
-						     terminal->row_count);
+				vte_invalidate_all(terminal);
 #endif
 			} else {
 				/* If we have a background image, we need to
 				 * redraw the entire window. */
-				vte_invalidate_cells(terminal,
-						     0,
-						     terminal->column_count,
-						     screen->scroll_delta,
-						     terminal->row_count);
+				vte_invalidate_all(terminal);
 			}
 		} else {
 			/* Move the cursor up. */
@@ -2376,11 +2425,7 @@ vte_sequence_handler_vb(VteTerminal *terminal,
 			       terminal->row_count * terminal->char_height);
 		gdk_window_process_all_updates();
 
-		vte_invalidate_cells(terminal,
-				     0,
-				     terminal->column_count,
-				     terminal->pvt->screen->scroll_delta,
-				     terminal->row_count);
+		vte_invalidate_all(terminal);
 		gdk_window_process_all_updates();
 	}
 }
@@ -2773,141 +2818,148 @@ vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 /* Manipulate certain terminal attributes. */
 static void
 vte_sequence_handler_decset_internal(VteTerminal *terminal,
-				     const char *match,
-				     GQuark match_quark,
-				     GValueArray *params,
+				     int setting,
+				     gboolean restore,
+				     gboolean save,
 				     gboolean set)
 {
-	GValue *value;
-	GtkWidget *widget;
-	long param;
+	gpointer p;
 	int i;
+	struct {
+		int setting;
+		gboolean *bvalue;
+		gint *ivalue;
+		gpointer *pvalue;
+		gpointer fvalue;
+		gpointer tvalue;
+	} settings[] = {
+		/* Application/normal keypad. */
+		{1, NULL, &terminal->pvt->keypad, NULL,
+		 GINT_TO_POINTER(VTE_KEYPAD_NORMAL),
+		 GINT_TO_POINTER(VTE_KEYPAD_APPLICATION),},
+		/* Reverse video. */
+		{5, &terminal->pvt->screen->reverse_mode, NULL, NULL,
+		 GINT_TO_POINTER(FALSE),
+		 GINT_TO_POINTER(TRUE),},
+		/* Send-coords-on-click. */
+		{9, &terminal->pvt->mouse_send_xy_on_click, NULL, NULL,
+		 GINT_TO_POINTER(FALSE),
+		 GINT_TO_POINTER(TRUE),},
+		/* Cursor visible. */
+		{25, &terminal->pvt->screen->cursor_visible, NULL, NULL,
+		 GINT_TO_POINTER(FALSE),
+		 GINT_TO_POINTER(TRUE),},
+		/* Alternate screen. */
+		{47, NULL, NULL, (gpointer*) &terminal->pvt->screen,
+		 &terminal->pvt->normal_screen,
+		 &terminal->pvt->alternate_screen,},
+		/* Send-coords-on-button. */
+		{1000, &terminal->pvt->mouse_send_xy_on_button, NULL, NULL,
+		 GINT_TO_POINTER(FALSE),
+		 GINT_TO_POINTER(TRUE),},
+		/* Hilite tracking*/
+		{1001, &terminal->pvt->mouse_hilite_tracking, NULL, NULL,
+		 GINT_TO_POINTER(FALSE),
+		 GINT_TO_POINTER(TRUE),},
+		/* Cell motion tracking*/
+		{1002, &terminal->pvt->mouse_cell_motion_tracking, NULL, NULL,
+		 GINT_TO_POINTER(FALSE),
+		 GINT_TO_POINTER(TRUE),},
+		/* All motion tracking*/
+		{1003, &terminal->pvt->mouse_all_motion_tracking, NULL, NULL,
+		 GINT_TO_POINTER(FALSE),
+		 GINT_TO_POINTER(TRUE),},
+	};
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	widget = GTK_WIDGET(terminal);
-	if ((params == NULL) || (params->n_values == 0)) {
-		return;
+
+	/* Handle the setting. */
+	for (i = 0; i < G_N_ELEMENTS(settings); i++)
+	if (settings[i].setting == setting) {
+		/* Read the old setting. */
+		if (restore) {
+			p = g_hash_table_lookup(terminal->pvt->dec_saved,
+						GINT_TO_POINTER(setting));
+			set = (p != NULL);
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_PARSE)) {
+				fprintf(stderr, "Setting %d was %s.\n",
+					setting, set ? "set" : "unset");
+			}
+#endif
+		}
+		/* Save the current setting. */
+		if (save) {
+			if (settings[i].bvalue) {
+				set = *(settings[i].bvalue) != FALSE;
+			} else
+			if (settings[i].ivalue) {
+				set = *(settings[i].ivalue) ==
+				      GPOINTER_TO_INT(settings[i].tvalue);
+			} else
+			if (settings[i].pvalue) {
+				set = *(settings[i].pvalue) ==
+				      settings[i].tvalue;
+			}
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_PARSE)) {
+				fprintf(stderr, "Setting %d is %s, saving.\n",
+					setting, set ? "set" : "unset");
+			}
+#endif
+			g_hash_table_insert(terminal->pvt->dec_saved,
+					    GINT_TO_POINTER(setting),
+					    GINT_TO_POINTER(set));
+		}
+		/* Change the current setting to match the new/saved value. */
+		if (!save) {
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_PARSE)) {
+				fprintf(stderr, "Setting %d to %s.\n",
+					setting, set ? "set" : "unset");
+			}
+#endif
+			if (settings[i].bvalue) {
+				*(settings[i].bvalue) = set;
+			} else
+			if (settings[i].ivalue) {
+				*(settings[i].ivalue) = set ?
+					GPOINTER_TO_INT(settings[i].tvalue) :
+					GPOINTER_TO_INT(settings[i].fvalue);
+			} else
+			if (settings[i].pvalue) {
+				*(settings[i].pvalue) = set ?
+					settings[i].tvalue :
+					settings[i].fvalue;
+			}
+		}
 	}
-	for (i = 0; i < params->n_values; i++) {
-		value = g_value_array_get_nth(params, i);
-		if (!G_VALUE_HOLDS_LONG(value)) {
-			continue;
-		}
-		param = g_value_get_long(value);
-		switch (param) {
-			case 1:
-				/* Set the application keypad. */
-				terminal->pvt->keypad = set ?
-							VTE_KEYPAD_NORMAL :
-							VTE_KEYPAD_APPLICATION;
-				break;
-			case 2:
-				/* FIXME: reset alternate character sets to
-				 * ASCII. */
-				break;
-			case 3:
-				/* FIXME: set 132 (reset to 80) column mode. */
-				break;
-			case 4:
-				/* FIXME: set or unset smooth-scrolling. */
-				break;
-			case 5:
-				/* normal or reverse video. */
-				terminal->pvt->screen->defaults.reverse = set;
-				break;
-			case 6:
-				/* FIXME: origin or normal cursor mode. */
-				break;
-			case 7:
-				/* FIXME: set or unset wraparound mode. */
-				break;
-			case 8:
-				/* FIXME: set or unset autorepeat keys. */
-				break;
-			case 9:
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_IO)) {
-					fprintf(stderr, "Setting send-coords-on-click "
-						"to %s.\n", set ? "ON" : "OFF");
-				}
-#endif
-				terminal->pvt->mouse_send_xy_on_click = set;
-				break;
-			case 25:
-				terminal->pvt->screen->cursor_visible = set;
-				break;
-			case 38:
-				/* FIXME: Tektronix/Xterm mode. */
-				break;
-			case 40:
-				/* FIXME: Allow/disallow 80/132 column mode. */
-				break;
-			case 41:
-				/* FIXME: more(1) fix. */
-				break;
-			case 44:
-				/* FIXME: set/unset margin bell. */
-				break;
-			case 45:
-				/* FIXME: set/unset reverse-wraparound mode. */
-				break;
-			case 46:
-				/* FIXME(?): enable/disable logging. */
-				break;
-			case 47:
-				/* Set or restore alternate screen. */
-				terminal->pvt->screen = set ?
-							&terminal->pvt->alternate_screen :
-							&terminal->pvt->normal_screen;
-				/* Fixup the scrollbars. */
-				vte_terminal_adjust_adjustments(terminal);
-				/* Force the screen to be redrawn. */
-				vte_invalidate_cells(terminal,
-						     0,
-						     terminal->column_count,
-						     terminal->pvt->screen->scroll_delta,
-						     terminal->row_count);
-				break;
-			case 1000:
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Setting send-coords-on"
-						"-button to %s.\n",
-						set ? "ON" : "OFF");
-				}
-#endif
-				terminal->pvt->mouse_send_xy_on_button = set;
-				break;
-			case 1001:
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Setting hilite-"
-						"tracking to %s.\n",
-						set ? "ON" : "OFF");
-				}
-#endif
-				terminal->pvt->mouse_hilite_tracking = set;
-				break;
-			case 1002:
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Setting cell-tracking "
-						"to %s.\n", set ? "ON" : "OFF");
-				}
-#endif
-				terminal->pvt->mouse_cell_motion_tracking = set;
-				break;
-			case 1003:
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Setting all-tracking "
-						"to %s.\n", set ? "ON" : "OFF");
-				}
-#endif
-				terminal->pvt->mouse_all_motion_tracking = set;
-			default:
-				break;
-		}
-		vte_terminal_set_pointer_visible(terminal, TRUE);
+
+	/* Do whatever's necessary when the setting changes. */
+	switch (setting) {
+		case 5:
+			/* Repaint everything in reverse mode. */
+			vte_invalidate_all(terminal);
+			break;
+		case 25:
+			/* Repaint the cell the cursor is in. */
+			vte_invalidate_cursor_once(terminal);
+			break;
+		case 47:
+			/* Reset scrollbars and repaint everything. */
+			vte_terminal_adjust_adjustments(terminal);
+			vte_invalidate_all(terminal);
+			break;
+		case 9:
+		case 1000:
+		case 1001:
+		case 1002:
+		case 1003:
+			/* Make the pointer visible. */
+			vte_terminal_set_pointer_visible(terminal, TRUE);
+			break;
+		default:
+			break;
 	}
 }
 
@@ -2961,9 +3013,22 @@ vte_sequence_handler_decset(VteTerminal *terminal,
 			    GQuark match_quark,
 			    GValueArray *params)
 {
+	GValue *value;
+	long setting;
+	int i;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	vte_sequence_handler_decset_internal(terminal, match, match_quark,
-					     params, TRUE);
+	if ((params == NULL) || (params->n_values == 0)) {
+		return;
+	}
+	for (i = 0; i < params->n_values; i++) {
+		value = g_value_array_get_nth(params, i);
+		if (!G_VALUE_HOLDS_LONG(value)) {
+			continue;
+		}
+		setting = g_value_get_long(value);
+		vte_sequence_handler_decset_internal(terminal, setting,
+						     FALSE, FALSE, TRUE);
+	}
 }
 
 /* Unset certain terminal attributes. */
@@ -2973,9 +3038,22 @@ vte_sequence_handler_decreset(VteTerminal *terminal,
 			      GQuark match_quark,
 			      GValueArray *params)
 {
+	GValue *value;
+	long setting;
+	int i;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	vte_sequence_handler_decset_internal(terminal, match, match_quark,
-					     params, FALSE);
+	if ((params == NULL) || (params->n_values == 0)) {
+		return;
+	}
+	for (i = 0; i < params->n_values; i++) {
+		value = g_value_array_get_nth(params, i);
+		if (!G_VALUE_HOLDS_LONG(value)) {
+			continue;
+		}
+		setting = g_value_get_long(value);
+		vte_sequence_handler_decset_internal(terminal, setting,
+						     FALSE, FALSE, FALSE);
+	}
 }
 
 /* Erase certain lines in the display. */
@@ -3303,6 +3381,56 @@ vte_sequence_handler_dec_device_status_report(VteTerminal *terminal,
 	}
 }
 
+/* Restore a certain terminal attribute. */
+static void
+vte_sequence_handler_restore_mode(VteTerminal *terminal,
+				  const char *match,
+				  GQuark match_quark,
+				  GValueArray *params)
+{
+	GValue *value;
+	long setting;
+	int i;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	if ((params == NULL) || (params->n_values == 0)) {
+		return;
+	}
+	for (i = 0; i < params->n_values; i++) {
+		value = g_value_array_get_nth(params, i);
+		if (!G_VALUE_HOLDS_LONG(value)) {
+			continue;
+		}
+		setting = g_value_get_long(value);
+		vte_sequence_handler_decset_internal(terminal, setting,
+						     TRUE, FALSE, FALSE);
+	}
+}
+
+/* Save a certain terminal attribute. */
+static void
+vte_sequence_handler_save_mode(VteTerminal *terminal,
+			       const char *match,
+			       GQuark match_quark,
+			       GValueArray *params)
+{
+	GValue *value;
+	long setting;
+	int i;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	if ((params == NULL) || (params->n_values == 0)) {
+		return;
+	}
+	for (i = 0; i < params->n_values; i++) {
+		value = g_value_array_get_nth(params, i);
+		if (!G_VALUE_HOLDS_LONG(value)) {
+			continue;
+		}
+		setting = g_value_get_long(value);
+		vte_sequence_handler_decset_internal(terminal, setting,
+						     FALSE, TRUE, FALSE);
+	}
+}
+
 /* Perform a soft reset. */
 static void
 vte_sequence_handler_soft_reset(VteTerminal *terminal,
@@ -3418,9 +3546,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 					fprintf(stderr, "Refreshing window.\n");
 				}
 #endif
-				vte_invalidate_cells(terminal,
-						     0, terminal->column_count,
-						     0, terminal->row_count);
+				vte_invalidate_all(terminal);
 				vte_terminal_emit_refresh_window(terminal);
 				break;
 			case 8:
@@ -4074,11 +4200,11 @@ static struct {
 	{"request-terminal-parameters", NULL},
 	{"reset-mode", NULL},
 	{"restore-cursor", vte_sequence_handler_rc},
-	{"restore-mode", NULL},
+	{"restore-mode", vte_sequence_handler_restore_mode},
 	{"return-terminal-id", NULL},
 	{"reverse-index", vte_sequence_handler_reverse_index},
 	{"save-cursor", vte_sequence_handler_sc},
-	{"save-mode", NULL},
+	{"save-mode", vte_sequence_handler_save_mode},
 	{"screen-alignment-test", NULL},
 	{"scroll-down", NULL},
 	{"scroll-up", NULL},
@@ -4099,7 +4225,7 @@ static struct {
 	{"single-width", NULL},
 	{"soft-reset", vte_sequence_handler_soft_reset},
 	{"start-of-guarded-area", NULL},
-	{"tab-clear", vte_sequence_handler_ct},
+	{"tab-clear", vte_sequence_handler_tab_clear},
 	{"tab-set", vte_sequence_handler_st},
 	{"utf-8-character-set", vte_sequence_handler_utf_8_charset},
 	{"window-manipulation", vte_sequence_handler_window_manipulation},
@@ -4221,11 +4347,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 
 	/* This may have changed the default background color, so trigger
 	 * a repaint. */
-	vte_invalidate_cells(terminal,
-			     0,
-			     terminal->column_count,
-			     terminal->pvt->screen->scroll_delta,
-			     terminal->row_count);
+	vte_invalidate_all(terminal);
 }
 
 /* Reset palette defaults for character colors. */
@@ -4273,7 +4395,7 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
 	screen = terminal->pvt->screen;
-	insert = terminal->pvt->screen->insert || force_insert;
+	insert = terminal->pvt->screen->insert_mode || force_insert;
 
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_IO)) {
@@ -4310,11 +4432,7 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 	/* Read the deltas. */
 	for (i = 0; i < columns; i++) {
 		col = terminal->pvt->screen->cursor_current.col;
-
-		/* Initialize a spare cell which we may insert many times. */
-		cell = terminal->pvt->screen->defaults;
-		cell.c = ' ';
-		cell.columns = wcwidth(cell.c);
+		cell = screen->defaults;
 
 		/* Make sure we have enough columns in this row. */
 		if (array->len <= col) {
@@ -4345,8 +4463,12 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 			}
 		}
 
-		/* Set the character cell to match the current defaults. */
+		/* Set the character cell's attributes to match the current
+		 * defaults, preserving any previous contents. */
+		cell = *pcell;
 		*pcell = terminal->pvt->screen->defaults;
+		pcell->c = cell.c;
+		pcell->columns = cell.columns;
 		if (i == 0) {
 			if ((pcell->c != 0) &&
 			    (c == '_') &&
@@ -4356,7 +4478,7 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 			} else {
 				/* Insert the character. */
 				pcell->c = c;
-				pcell->columns = wcwidth(c);
+				pcell->columns = columns;
 			}
 		}
 
@@ -4448,7 +4570,7 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 
 	/* Signal that the cursor's current position needs redrawing. */
 	vte_invalidate_cells(terminal,
-			     screen->cursor_current.col - 1, 3,
+			     screen->cursor_current.col - 1, 1,
 			     screen->cursor_current.row, 1);
 
 	/* Find the handler for this control sequence. */
@@ -4468,7 +4590,7 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 
 	/* We probably need to update the cursor's new position, too. */
 	vte_invalidate_cells(terminal,
-			     screen->cursor_current.col - 1, 3,
+			     screen->cursor_current.col - 1, 1,
 			     screen->cursor_current.row, 1);
 
 	/* Let the updating begin. */
@@ -4974,7 +5096,9 @@ vte_terminal_process_incoming(gpointer data)
 
 	if ((cursor_row != terminal->pvt->screen->cursor_current.row) ||
 	    (cursor_col != terminal->pvt->screen->cursor_current.col)) {
-		/* Signal that the cursor moved. */
+		/* Signal that the cursor moved and ensure that we have row
+		 * data for the current row. */
+		vte_terminal_ensure_cursor(terminal);
 		vte_terminal_emit_cursor_moved(terminal);
 	}
 
@@ -5421,7 +5545,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	struct termios tio;
 	struct timeval tv;
 	struct timezone tz;
-	gboolean scrolled = FALSE, steal = FALSE;
+	gboolean scrolled = FALSE, steal = FALSE, modifier = FALSE;
 
 	g_return_val_if_fail(widget != NULL, FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
@@ -5464,8 +5588,36 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 					steal = FALSE;
 			}
 		}
-		/* Hide the mouse cursor. */
-		vte_terminal_set_pointer_visible(terminal, FALSE);
+		/* Determine if this is just a modifier key. */
+		switch (event->keyval) {
+			case GDK_Caps_Lock:
+			case GDK_Control_L:
+			case GDK_Control_R:
+			case GDK_Eisu_Shift:
+			case GDK_ISO_First_Group_Lock:
+			case GDK_ISO_Group_Lock:
+			case GDK_ISO_Group_Shift:
+			case GDK_ISO_Last_Group_Lock:
+			case GDK_ISO_Level3_Lock:
+			case GDK_ISO_Level3_Shift:
+			case GDK_ISO_Lock:
+			case GDK_ISO_Next_Group_Lock:
+			case GDK_ISO_Prev_Group_Lock:
+			case GDK_Kana_Lock:
+			case GDK_Kana_Shift:
+			case GDK_Num_Lock:
+			case GDK_Scroll_Lock:
+			case GDK_Shift_L:
+			case GDK_Shift_Lock:
+			case GDK_Shift_R:
+				modifier = TRUE;
+			default:
+				modifier = FALSE;
+		}
+		/* Unless it's a modifier key, hide the pointer. */
+		if (!modifier) {
+			vte_terminal_set_pointer_visible(terminal, FALSE);
+		}
 	}
 
 	/* Let the input method at this one first. */
@@ -5689,7 +5841,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			g_free(special);
 		}
 		/* Keep the cursor on-screen. */
-		if (!scrolled &&
+		if (!scrolled && !modifier &&
 		    ((normal != NULL) || (special != NULL)) &&
 		    terminal->pvt->scroll_on_keystroke) {
 			vte_terminal_scroll_to_bottom(terminal);
@@ -6039,7 +6191,8 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 		modifiers = 0;
 	}
 	/* Handle a drag event. */
-	if ((terminal->pvt->mouse_send_xy_on_button ||
+	if ((terminal->pvt->mouse_last_button != 0) &&
+	    (terminal->pvt->mouse_send_xy_on_button ||
 	     terminal->pvt->mouse_send_xy_on_click ||
 	     terminal->pvt->mouse_hilite_tracking ||
 	     terminal->pvt->mouse_cell_motion_tracking ||
@@ -6166,7 +6319,8 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 {
 	GtkClipboard *clipboard;
 	GtkWidget *widget;
-	long x, y;
+	GArray *row_data;
+	long x, y, nuls;
 	VteScreen *screen;
 	struct vte_charcell *pcell;
 	wchar_t *buffer;
@@ -6187,24 +6341,46 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 
 	/* Build a buffer with the selected wide chars. */
 	screen = terminal->pvt->screen;
-	buffer = g_malloc((terminal->column_count + 1) *
-			  terminal->row_count * sizeof(wchar_t));
+	length = 0;
+	for (y = screen->scroll_delta;
+	     y < terminal->row_count + screen->scroll_delta;
+	     y++) {
+		row_data = vte_ring_index(screen->row_data, GArray *, y);
+		if (row_data != NULL) {
+			length += row_data->len;
+		}
+	}
+	buffer = g_malloc((length * 2 + 1) * sizeof(wchar_t));
+
 	length = 0;
 	for (y = screen->scroll_delta;
 	     y < terminal->row_count + screen->scroll_delta;
 	     y++) {
 		x = 0;
+		nuls = 0;
 		do {
 			pcell = vte_terminal_find_charcell(terminal, y, x);
 			if (vte_cell_is_selected(terminal, y, x)) {
-				if ((pcell != NULL) && (pcell->c != 0)) {
-					if (pcell->columns > 0) {
-						buffer[length++] = pcell->c;
-					}
-				} else {
+				if (pcell == NULL) {
+					/* If there are no more cells on this
+					 * line, and we've hit the right margin,
+					 * add a newline. */
 					if (x < terminal->column_count) {
 						buffer[length++] = '\n';
 					}
+					break;
+				} else
+				if (pcell->c == 0) {
+					/* Count this NUL in case there's
+					 * something to the right of it. */
+					nuls++;
+				} else {
+					/* Stuff any saved NULs in as spaces. */
+					while (nuls-- > 0) {
+						buffer[length++] = ' ';
+					}
+					/* Stuff the charcter in this cell. */
+					buffer[length++] = pcell->c;
 				}
 			}
 			x++;
@@ -6950,9 +7126,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 	}
 
 	/* Make sure the entire window gets repainted. */
-	vte_invalidate_cells(terminal,
-			     0, terminal->column_count,
-			     0, terminal->row_count);
+	vte_invalidate_all(terminal);
 }
 
 void
@@ -7055,11 +7229,7 @@ vte_handle_scroll(VteTerminal *terminal)
 		} else {
 			/* If we have a background image, we need to redraw
 			 * the entire window. */
-			vte_invalidate_cells(terminal,
-					     0,
-					     terminal->column_count,
-					     screen->scroll_delta,
-					     terminal->row_count);
+			vte_invalidate_all(terminal);
 		}
 	}
 	/* Let the refreshing begin. */
@@ -7239,6 +7409,13 @@ vte_terminal_reset_rowdata(VteRing **ring, long lines)
 	VteRing *new_ring;
 	GArray *row;
 	long i, next;
+
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "Sizing scrollback buffer to %ld lines.\n",
+			lines);
+	}
+#endif
 	new_ring = vte_ring_new(lines, vte_free_row_data, NULL);
 	if (*ring) {
 		next = vte_ring_next(*ring);
@@ -7386,7 +7563,8 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->normal_screen.cursor_visible = TRUE;
 	pvt->normal_screen.insert_delta = 0;
 	pvt->normal_screen.scroll_delta = 0;
-	pvt->normal_screen.insert = FALSE;
+	pvt->normal_screen.insert_mode = FALSE;
+	pvt->normal_screen.reverse_mode = FALSE;
 
 	vte_terminal_reset_rowdata(&pvt->alternate_screen.row_data,
 				   pvt->scrollback_lines);
@@ -7397,7 +7575,8 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->alternate_screen.cursor_visible = TRUE;
 	pvt->alternate_screen.insert_delta = 0;
 	pvt->alternate_screen.scroll_delta = 0;
-	pvt->alternate_screen.insert = FALSE;
+	pvt->alternate_screen.insert_mode = FALSE;
+	pvt->alternate_screen.reverse_mode = FALSE;
 
 	pvt->screen = &terminal->pvt->alternate_screen;
 	vte_terminal_set_default_attributes(terminal);
@@ -7441,6 +7620,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	/* Set various other settings. */
 	pvt->xterm_font_tweak = FALSE;
 	vte_terminal_set_default_tabstops(terminal);
+	pvt->dec_saved = g_hash_table_new(g_direct_hash, g_direct_equal);
 }
 
 /* Tell GTK+ how much space we need. */
@@ -7674,6 +7854,12 @@ vte_terminal_finalize(GObject *object)
 	terminal->pvt->normal_screen.row_data = NULL;
 	vte_ring_free(terminal->pvt->alternate_screen.row_data, TRUE);
 	terminal->pvt->alternate_screen.row_data = NULL;
+
+	/* Remove hash tables. */
+	if (terminal->pvt->dec_saved != NULL) {
+		g_hash_table_destroy(terminal->pvt->dec_saved);
+		terminal->pvt->dec_saved = NULL;
+	}
 
 	/* Free strings. */
 	g_free(terminal->window_title);
@@ -7909,9 +8095,10 @@ vte_terminal_draw_char(VteTerminal *terminal,
 
 	/* Determine what the foreground and background colors for rendering
 	 * text should be. */
-	reverse = cell && cell->reverse;
-	reverse = reverse ^ vte_cell_is_selected(terminal, row, col);
-	reverse = reverse || cursor;
+	reverse = (cell && cell->reverse)
+		^ vte_cell_is_selected(terminal, row, col)
+		^ screen->reverse_mode
+		^ cursor;
 	vte_terminal_determine_colors(terminal, cell, reverse, &fore, &back);
 
 	/* Paint the background for the cell. */
@@ -9488,11 +9675,7 @@ vte_terminal_setup_background(VteTerminal *terminal,
 	}
 
 	/* Force a redraw for everything. */
-	vte_invalidate_cells(terminal,
-			     0,
-			     terminal->column_count,
-			     terminal->pvt->screen->scroll_delta,
-			     terminal->row_count);
+	vte_invalidate_all(terminal);
 }
 
 void
@@ -9776,9 +9959,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 
 	/* Adjust the scrollbars to the new locations. */
 	vte_terminal_adjust_adjustments(terminal);
-	vte_invalidate_cells(terminal,
-			     0, terminal->column_count,
-			     0, terminal->row_count);
+	vte_invalidate_all(terminal);
 }
 
 /* Get a snapshot of what's in the visible part of the window. */
@@ -10023,10 +10204,12 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	/* Reset restricted scrolling regions, leave insert mode, make
 	 * the cursor visible again. */
 	terminal->pvt->normal_screen.scrolling_restricted = FALSE;
-	terminal->pvt->normal_screen.insert = FALSE;
+	terminal->pvt->normal_screen.insert_mode = FALSE;
+	terminal->pvt->normal_screen.reverse_mode = FALSE;
 	terminal->pvt->normal_screen.cursor_visible = TRUE;
 	terminal->pvt->alternate_screen.scrolling_restricted = FALSE;
-	terminal->pvt->alternate_screen.insert = FALSE;
+	terminal->pvt->alternate_screen.insert_mode = FALSE;
+	terminal->pvt->alternate_screen.reverse_mode = FALSE;
 	terminal->pvt->alternate_screen.cursor_visible = TRUE;
 	/* Reset the input and output buffers. */
 	if (terminal->pvt->n_incoming > 0) {

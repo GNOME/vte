@@ -1,5 +1,13 @@
 2002-05-14 nalin
-	* src/vte.c: Don't try to draw nul characters, most fonts can't.
+	* src/vte.c: Don't try to draw nul characters, most fonts can't.  Don't
+	send motion-tracking events to the child unless we're dragging.  Fix
+	ce so that it works even right after startup.  Make sure that repainting
+	the entire window actually exposes the visible parts of the window.  Fix
+	tab clearing to also allow removal of the current tabstop.  Implement
+	save-mode and restore-mode.  Start on reverse-video mode.  Don't scroll
+	on modifier keypress events.  Rework part of clipboard copy.
+	* termcaps/xterm: Add missing F11/F12/End keysyms to bundled xterm
+	termcap.
 2002-05-13 nalin
 	* src/debug.c: Add "ALL" as a debug flag, aliased to everything.
 	* src/pty.c: Print debug info after redirecting stdio.

@@ -498,8 +498,8 @@ struct vte_capability_string vte_xterm_capability_strings[] = {
 	{CSI "%d;%d\"p", "set-conformance-level", 0},
 	{CSI "%d\"q", "select-character-protection", 0},
 	{CSI "%d;%dr", "set-scrolling-region", 0},
-	{CSI "?%dr", "restore-mode", 0},
-	{CSI "?%ds", "save-mode", 0},
+	{CSI "?%mr", "restore-mode", 0},
+	{CSI "?%ms", "save-mode", 0},
 
 	{CSI "%mt", "window-manipulation", 0},
 
