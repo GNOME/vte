@@ -5798,6 +5798,8 @@ vte_terminal_process_incoming(gpointer data)
 		g_free(obufptr);
 		return terminal->pvt->processing;
 	} else {
+		vte_iso2022_free(terminal->pvt->substitutions);
+		terminal->pvt->substitutions = substitutions;
 		wcount = substitution_count;
 	}
 

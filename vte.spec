@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.8.0
+Version: 0.8.1
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -38,6 +38,8 @@ rm -fr $RPM_BUILD_ROOT
 rm -fr $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
 %find_lang %{name}
+rm $RPM_BUILD_ROOT/%{_bindir}/%{name}
+rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 
 %post -p /sbin/ldconfig
 
@@ -59,6 +61,9 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Tue Aug 20 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.1-1
+- dispose of the updated iso2022 context properly when processing incoming text
+
 * Tue Aug 20 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.0-1
 - rework font handling to use just-in-time loading
 - handle iso-2022 escape sequences, perhaps as much as they might make sense
