@@ -1,0 +1,117 @@
+# vte
+# Copyright (C) 2003 Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# Nam SungHyun <namsh@kldp.org>, 2003
+msgid ""
+msgstr ""
+"Project-Id-Version: vte 0.10.14\n"
+"POT-Creation-Date: 2003-01-24 10:31+0900\n"
+"PO-Revision-Date: 2003-01-24 10:44+0900\n"
+"Last-Translator: Nam SungHyun <namsh@kldp.org>\n"
+"Language-Team: Korean <gnome-kr-translation@lists.sourceforge.net>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/pty.c:253
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "`%s' 환경변수 더하기 에러, 계속합니다."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:800
+#, c-format
+msgid "can not run %s"
+msgstr "%s을(를) 실행할 수 없습니다"
+
+#: src/reaper.c:107
+msgid "Error creating signal pipe."
+msgstr "시그널 파이프를 만들기 에러."
+
+#: src/trie.c:411
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "중복 (%s/%s)"
+
+#: src/vte.c:1408
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "정규 표현식 \"%s\" 컴파일 에러."
+
+#: src/vte.c:1930 src/vte.c:1939 src/vte.c:1951 src/vte.c:1969 src/vte.c:1975
+#: src/vte.c:1980
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "문자들 %s을(를) %s(으)로 변환할 수 없습니다."
+
+#: src/vte.c:5461
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "잘못된 (키?) 배열 `%s'을(를) 받았습니다."
+
+#: src/vte.c:6553
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "컨트롤 배열 `%s'에 대한 핸들러가 정의되지 않았습니다."
+
+#: src/vte.c:7292
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "자식으로 부터 읽기 에러: %s."
+
+#: src/vte.c:7453
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "자식을 위한 데이타 변환 에러 (%s), 그만둡니다."
+
+#: src/vte.c:9774
+#, c-format
+msgid "Using fontset \"%s\", which is missing these character sets: %s."
+msgstr "다음 문자셋에 없는 글꼴셋 \"%s\"을(를) 사용: %s."
+
+#: src/vte.c:10412
+#, c-format
+msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
+msgstr "Xft 글꼴 패턴 \"%s\"을(를) 읽기 실패, 기본 글꼴을 사용합니다."
+
+#: src/vte.c:10424
+msgid "Failed to load default Xft font."
+msgstr "기본 Xft 글꼴을 읽는 데 실패했습니다."
+
+#: src/vte.c:10517
+#, c-format
+msgid "Failed to load font set \"%s\", falling back to default font."
+msgstr "글꼴셋 \"%s\"을(를) 읽기 실패, 기본 글꼴을 사용합니다."
+
+#: src/vte.c:10529
+msgid "Failed to load default font, crashing or behaving abnormally."
+msgstr "기본 글꼴을 읽기 실패, 죽거나 이상하게 동작할 수 있습니다."
+
+#: src/vte.c:10791
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "PTY 크기 읽기 에러, 기본값 사용: %s."
+
+#: src/vte.c:10827
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "PTY 크기 설정 에러: %s."
+
+#: src/vte.c:13714
+msgid "Error allocating draw, disabling Xft."
+msgstr "draw 할당 에러, Xft를 사용하지 않습니다."
+
+#: src/vte.c:13722
+msgid "Error allocating context, disabling Pango."
+msgstr "콘텍스트 할당 에러, Pango를 사용하지 않습니다."
+
+#: src/vte.c:13728
+msgid "Error allocating layout, disabling Pango."
+msgstr "레이아웃 할당 에러, Pango를 사용하지 않습니다."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:15374
+msgid "g_iconv_open() failed setting word characters"
+msgstr "g_iconv_open()가 단어 문자들을 설정하는 데 실패했습니다"

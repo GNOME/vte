@@ -1,3 +1,7 @@
+2003-01-24  Nam SungHyun  <namsh@kldp.org>
+
+	* configure.in: Added "ko" to ALL_LINGUAS.
+
 2003-01-23 nalin
 	* src/caps.c, src/vte.c: recognize and ignore attempts to set text
 	properties 21 and 2L, whatever those are (possible workaround #104154).
