@@ -84,7 +84,8 @@ _vte_xft_font_open(const PangoFontDescription *fontdesc)
 	GArray *patterns;
 
 	patterns = g_array_new(TRUE, TRUE, sizeof(FcPattern*));
-	if (!_vte_fc_patterns_from_pango_font_desc(fontdesc, patterns)) {
+	if (!_vte_fc_patterns_from_pango_font_desc(fontdesc, patterns,
+					 	   NULL, NULL)) {
 		g_array_free(patterns, TRUE);
 		return NULL;
 	}

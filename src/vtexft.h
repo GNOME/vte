@@ -23,7 +23,6 @@
 
 #ident "$Id$"
 
-#include "../config.h"
 #include "vtedraw.h"
 
 G_BEGIN_DECLS
