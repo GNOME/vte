@@ -173,6 +173,8 @@ struct _VteTerminalPrivate {
 	gboolean alt_sends_escape;
 };
 
+static GtkWidgetClass *parent_class = NULL;
+
 /* A function which can handle a terminal control sequence. */
 typedef void (*VteTerminalSequenceHandler)(VteTerminal *terminal,
 					   const char *match,
@@ -4282,6 +4284,21 @@ vte_terminal_unrealize(GtkWidget *widget)
 	terminal->pvt->alternate_screen.row_data = NULL;
 }
 
+static void
+vte_terminal_finalize(GObject *object)
+{
+	VteTerminal *terminal;
+
+	terminal = VTE_TERMINAL (object);
+
+	g_free (terminal->window_title);
+	g_free (terminal->icon_title);
+	
+	if (G_OBJECT_CLASS (parent_class)->finalize)
+		(* G_OBJECT_CLASS (parent_class)->finalize) (object);
+
+}
+
 /* Handle realizing the widget.  Most of this is copy-paste from GGAD. */
 static void
 vte_terminal_realize(GtkWidget *widget)
@@ -4876,9 +4893,16 @@ vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 static void
 vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 {
+	GObjectClass *gobject_class;
 	GtkWidgetClass *widget_class;
+
+	gobject_class = G_OBJECT_CLASS(klass);
 	widget_class = GTK_WIDGET_CLASS(klass);
+	parent_class = g_type_class_peek_parent (klass);
+	
 	/* Override some of the default handlers. */
+	gobject_class->finalize = vte_terminal_finalize;
+	
 	widget_class->realize = vte_terminal_realize;
 	widget_class->expose_event = vte_terminal_expose;
 	widget_class->key_press_event = vte_terminal_key_press;
