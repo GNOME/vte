@@ -1,6 +1,11 @@
 0.11.12: - Performance improvements:
 	   - Two patches from bug #137864 (Benjamin Otte)
 	   - Patch from bug #143914 (Søren Sandmann)
+	 - Fix crash when resizing a terminal running minicom (Søren Sandmann)
+	   Closes bug #163814 and duplicate.
+	 - Adjust timeouts to make us behave like xterm when
+	   outputing large amounts of text and still be fast (Kjartan)
+	 - Fix build with VTE_DEBUG enabled (Kjartan)
 	 - Build fixes for NetBSD and Darwin. Bug #126377 (Adrian Bunk)
 	 - Build fixes for AIX. Bug #161352
 	 - Make keypad behave like in xterm. Bug #128099. (jylefort at brutele be)
