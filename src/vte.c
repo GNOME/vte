@@ -2687,7 +2687,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			size_t palette_size)
 {
 	int i;
-	XColor color;
+        GdkColor color;
 	GtkWidget *widget;
 	Display *display;
 	GdkColormap *gcolormap;
@@ -2738,10 +2738,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 		}
 
 		/* Allocate a color from the colormap. */
-		color.pixel = i;
-		color.red = proposed->red;
-		color.green = proposed->green;
-		color.blue = proposed->blue;
+		color = *proposed;
 
 		/* If we're guessing about the second half, check how much
 		 * brighter we could make this entry. */
@@ -2759,12 +2756,11 @@ vte_terminal_set_colors(VteTerminal *terminal,
 		}
 
 		/* Get an Xlib color. */
-		if (XAllocColor(display, colormap, &color)) {
-			terminal->pvt->palette[i].red = color.red;
-			terminal->pvt->palette[i].green = color.green;
-			terminal->pvt->palette[i].blue = color.blue;
-			terminal->pvt->palette[i].pixel = color.pixel;
-		}
+                gdk_rgb_find_color (gcolormap, &color); /* fill in pixel */
+                terminal->pvt->palette[i].red = color.red;
+                terminal->pvt->palette[i].green = color.green;
+                terminal->pvt->palette[i].blue = color.blue;
+                terminal->pvt->palette[i].pixel = color.pixel;
 
 #ifdef HAVE_XFT
 		if (terminal->pvt->use_xft) {
@@ -2773,6 +2769,8 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			terminal->pvt->palette[i].rcolor.green = color.green;
 			terminal->pvt->palette[i].rcolor.blue = color.blue;
 			terminal->pvt->palette[i].rcolor.alpha = 0xffff;
+
+                        /* FIXME this probably needs to be freed somewhere */
 			if (!XftColorAllocValue(display,
 					        visual,
 					        colormap,
