@@ -3,3 +3,9 @@
 #
 ISO-2022-JP/156: $B$+$J4A;z(B
 ISO-2022-KR/158: $)C1hD!)B
+
+#
+#  Sample text based on XTerm's specs and random other docs.
+#
+British        : (A$(B$
+ISO-2022-JP    : (J~(B~

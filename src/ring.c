@@ -54,7 +54,7 @@ vte_ring_insert(VteRing *ring, long position, gpointer data)
 {
 	long point, i;
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_MISC)) {
+	if (vte_debug_on(VTE_DEBUG_RING)) {
 		fprintf(stderr, "Inserting at position %ld.\n", position);
 		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
 			ring->delta, ring->length, ring->max);
@@ -79,7 +79,7 @@ vte_ring_insert(VteRing *ring, long position, gpointer data)
 			ring->length++;
 		}
 #ifdef VTE_DEBUG
-		if (vte_debug_on(VTE_DEBUG_MISC)) {
+		if (vte_debug_on(VTE_DEBUG_RING)) {
 			fprintf(stderr, " Delta = %ld, Length = %ld, "
 				"Max = %ld.\n",
 				ring->delta, ring->length, ring->max);
@@ -115,7 +115,7 @@ vte_ring_insert(VteRing *ring, long position, gpointer data)
 	ring->array[position % ring->max] = data;
 	ring->length = MIN(ring->length + 1, ring->max);
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_MISC)) {
+	if (vte_debug_on(VTE_DEBUG_RING)) {
 		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
 			ring->delta, ring->length, ring->max);
 	}
@@ -128,7 +128,7 @@ vte_ring_remove(VteRing *ring, long position, gboolean free)
 {
 	long i;
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_MISC)) {
+	if (vte_debug_on(VTE_DEBUG_RING)) {
 		fprintf(stderr, "Removing item at position %ld.\n", position);
 		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
 			ring->delta, ring->length, ring->max);
@@ -151,7 +151,7 @@ vte_ring_remove(VteRing *ring, long position, gboolean free)
 		ring->length--;
 	}
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_MISC)) {
+	if (vte_debug_on(VTE_DEBUG_RING)) {
 		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
 			ring->delta, ring->length, ring->max);
 	}

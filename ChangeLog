@@ -1,6 +1,16 @@
 2002-08-19 nalin
+	* src/vte.c: Load fonts just-in-time to avoid spurious reloads.  Don't
+	override the focus_in and focus_out event handlers -- the defaults DTRT.
+	* src/debug.c, src/debug.h: Add a RING debug class.
+2002-08-19 nalin
+	* src/iso2022.c: Handle override maps which don't affect the font
+	palette correctly, resetting at newlines and escape marks.  Process
+	bogon data correctly.
+	* src/iso2022.txt: Add some sample text.
+2002-08-19 nalin
 	* src/vte.c: Fixup some fontconfig/Xft mixups.  Set the hint style
-	instead of hinting when reading the GTK hint style setting.
+	instead of hinting when reading the GTK hint style setting (spotted
+	by katzj and otaylor).
 2002-08-19 nalin
 	* src/vte.h, src/vte.c: Use gssize instead of ssize_t.  Perform
 	substitutions while processing.  Use PangoX contexts when we're using

@@ -41,7 +41,7 @@ struct vte_iso2022_map {
 };
 
 struct vte_iso2022 {
-	int current;
+	int current, override;
 	gboolean ss2, ss3;
 	gunichar g[4];
 };
@@ -238,6 +238,7 @@ vte_iso2022_new(void)
 	struct vte_iso2022 *ret = NULL;
 	ret = g_malloc0(sizeof(struct vte_iso2022));
 	ret->current = 0;
+	ret->override = 0;
 	ret->ss2 = FALSE;
 	ret->ss3 = FALSE;
 	ret->g[0] = 'B';
@@ -259,6 +260,7 @@ void
 vte_iso2022_free(struct vte_iso2022 *p)
 {
 	p->current = 0;
+	p->override = 0;
 	p->ss2 = FALSE;
 	p->ss3 = FALSE;
 	p->g[0] = '\0';
@@ -450,11 +452,26 @@ vte_iso2022_substitute(struct vte_iso2022 *outside_state,
 #endif
 		continue;
 		break;
+	case '\r':
+	case '\n':
+		/* Reset overrides. */
+		state.override = '\0';
+		goto plain;
 	case '':
+		/* Reset overrides. */
+		state.override = '\0';
 		/* Begins a control sequence.  Make sure there's another
 		 * character for us to read. */
 		if (i + 1 >= length) {
 			g_free(buf);
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+				fprintf(stderr,
+					"Incomplete specifier: "
+					"need %d bytes, have "
+					"%d.\n", 1, length - i);
+			}
+#endif
 			return -1;
 		}
 		switch (instring[i + 1]) {
@@ -480,6 +497,14 @@ vte_iso2022_substitute(struct vte_iso2022 *outside_state,
 			/* Designate Gx.  Must be another character here. */
 			if (i + 2 >= length) {
 				g_free(buf);
+#ifdef VTE_DEBUG
+				if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+					fprintf(stderr,
+						"Incomplete specifier: "
+						"need %d bytes, have "
+						"%d.\n", 2, length - i);
+				}
+#endif
 				return -1;
 			}
 			/* We only handle maps we recognize. */
@@ -501,6 +526,14 @@ vte_iso2022_substitute(struct vte_iso2022 *outside_state,
 			/* Designate Gx.  Must be another character here. */
 			if (i + 2 >= length) {
 				g_free(buf);
+#ifdef VTE_DEBUG
+				if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+					fprintf(stderr,
+						"Incomplete specifier: "
+						"need %d bytes, have "
+						"%d.\n", 2, length - i);
+				}
+#endif
 				return -1;
 			}
 			switch (instring[i + 2]) {
@@ -511,6 +544,14 @@ vte_iso2022_substitute(struct vte_iso2022 *outside_state,
 				/* Need another character here. */
 				if (i + 3 >= length) {
 					g_free(buf);
+#ifdef VTE_DEBUG
+					if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+						fprintf(stderr,
+							"Incomplete specifier: "
+							"need %d bytes, have "
+							"%d.\n", 3, length - i);
+					}
+#endif
 					return -1;
 				}
 				g = -1;
@@ -545,19 +586,18 @@ vte_iso2022_substitute(struct vte_iso2022 *outside_state,
 				continue;
 				break;
 			default:
-				/* New designation for G0; we only handle maps
-				 * we recognize. */
+				/* Override. */
 				if (strchr(WIDE_MAPS, instring[i + 2]) == NULL) {
 					continue;
 				}
-				/* Set G0. */
-				state.g[0] = instring[i + 2] + WIDE_FUDGE;
+				/* Set the current map. */
+				state.override = instring[i + 2] + WIDE_FUDGE;
 				i += 2;
 #ifdef VTE_DEBUG
 				if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
 					fprintf(stderr,
-						"G0 set to wide `%c'.\n",
-						state.g[0] - WIDE_FUDGE);
+						"Override set to wide `%c'.\n",
+						state.override - WIDE_FUDGE);
 				}
 #endif
 				continue;
@@ -611,8 +651,20 @@ vte_iso2022_substitute(struct vte_iso2022 *outside_state,
 		/* default:
 			fall through */
 		}
+	plain:
 	default:
+		/* Reset override maps. */
+		switch (instring[i]) {
+		case '\n':
+		case '\r':
+		case '':
+			state.override = 0;
+			break;
+		}
 		/* Determine which map we should use here. */
+		if (state.override != 0) {
+			current_map = state.override;
+		} else
 		if (state.ss2) {
 			current_map = state.g[2];
 			state.ss2 = FALSE;
@@ -647,6 +699,13 @@ vte_iso2022_substitute(struct vte_iso2022 *outside_state,
 		}
 		/* We need at least this many characters. */
 		if (i + chars_per_code > length) {
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+				fprintf(stderr, "Incomplete multibyte sequence "
+					"at %d: need %d bytes, have %d.\n",
+					i, chars_per_code, length - i);
+			}
+#endif
 			g_free(buf);
 			return -1;
 		}

@@ -120,6 +120,15 @@ main(int argc, char **argv)
 				g_print("%s\n",
 					error->message ? error->message : "?");
 				g_clear_error(&error);
+				g_print("Data: ");
+				for (j = 0; j < array->len; j++) {
+					if (j > 0) {
+						g_print(", ");
+					}
+					g_print("0x%x", array->data[j]);
+				}
+				g_print("\n");
+				continue;
 			}
 			tmpsubst = vte_iso2022_copy(substitutions);
 			substlen = vte_iso2022_substitute(tmpsubst,
