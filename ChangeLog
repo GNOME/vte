@@ -1,3 +1,7 @@
+2004-08-18  David Lodge <dave@cirt.net>
+
+	* configure.in: Added "ang" to ALL_LINGUAS.
+
 2004-08-18  Kjartan Maraas  <kmaraas@gnome.org>
 
 	* configure.in: Added «nb» to ALL_LINGUAS.
