@@ -5730,8 +5730,9 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 	bgcolor.red = terminal->pvt->palette[VTE_DEF_BG].red;
 	bgcolor.green = terminal->pvt->palette[VTE_DEF_BG].green;
 	bgcolor.blue = terminal->pvt->palette[VTE_DEF_BG].blue;
+        bgcolor.pixel = terminal->pvt->palette[VTE_DEF_BG].pixel;
+        
 	gdk_window_set_background(widget->window, &bgcolor);
-	gdk_window_set_back_pixmap(widget->window, NULL, FALSE);
 
 	if (terminal->pvt->bg_transparent) {
 		if (fresh_transparent ||
