@@ -6258,6 +6258,31 @@ vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 	return TRUE;
 }
 
+static gboolean
+vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
+{
+	GtkAdjustment *adj;
+	gdouble new_value;
+	
+	adj = VTE_TERMINAL (widget)->adjustment;
+	
+	switch (event->direction) {
+	case GDK_SCROLL_UP:
+		new_value = adj->value - adj->page_increment / 2;
+		break;
+	case GDK_SCROLL_DOWN:
+		new_value = adj->value + adj->page_increment / 2;
+		break;
+	default:
+		return FALSE;
+	}
+
+	new_value = CLAMP (new_value, adj->lower, adj->upper - adj->page_size);
+	gtk_adjustment_set_value (adj, new_value);
+
+	return TRUE;
+}
+
 /* Initialize methods. */
 static void
 vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
@@ -6271,6 +6296,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 	/* Override some of the default handlers. */
 	gobject_class->finalize = vte_terminal_finalize;
 	widget_class->realize = vte_terminal_realize;
+	widget_class->scroll_event = vte_terminal_scroll;
 	widget_class->expose_event = vte_terminal_expose;
 	widget_class->key_press_event = vte_terminal_key_press;
 	widget_class->button_press_event = vte_terminal_button_press;
@@ -6281,6 +6307,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 	widget_class->unrealize = vte_terminal_unrealize;
 	widget_class->size_request = vte_terminal_size_request;
 	widget_class->size_allocate = vte_terminal_size_allocate;
+	
 	klass->eof_signal =
 		g_signal_new("eof",
 			     G_OBJECT_CLASS_TYPE(klass),
