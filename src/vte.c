@@ -2928,6 +2928,7 @@ vte_terminal_feed(VteTerminal *terminal, const char *data, size_t length)
 #ifdef VTE_DEBUG
 		fprintf(stderr, "Queuing handler to process bytes.\n");
 #endif
+		terminal->pvt->processing = TRUE;
 		g_idle_add(vte_terminal_process_incoming, terminal);
 	}
 }
