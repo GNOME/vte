@@ -1,10 +1,12 @@
-2002-06-07 nalin
+2002-06-10 nalin
 	* Makefile.am, configure.in: Include gettext support.
-	* src/vte.c: Center characters in their cells, caching their extents.
-	Finish merging otaylor's Xft2 patch (oops).
 	* src/vte.c, src/vte.h: Expose vte_terminal_set_encoding().
+	* src/vte.c: Finish merging otaylor's Xft2 patch (oops).  Compute
+	padding correctly.
 	* src/pty.c, src/reaper.c, src/trie.c, src/vte.c: Mark warnings for
 	possible translation.
+2002-06-07 nalin
+	* src/vte.c: Center characters in their cells, caching their extents.
 2002-06-06 nalin
 	* src/vte.c, src/vte.h: Add get_cursor_position(). Remove get_snapshot()
 	and free_shapshot().

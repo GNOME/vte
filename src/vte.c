@@ -7568,7 +7568,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 					VTE_REPRESENTATIVE_CHARACTERS,
 					strlen(VTE_REPRESENTATIVE_CHARACTERS),
 					&glyph_info);
-			width = howmany(glyph_info.width,
+			width = howmany(glyph_info.xOff,
 					strlen(VTE_REPRESENTATIVE_CHARACTERS));
 			/* width = terminal->pvt->ftfont->max_advance_width; */
 		} else {
@@ -9332,7 +9332,7 @@ vte_terminal_draw_char(VteTerminal *terminal,
 	if (!drawn && terminal->pvt->use_xft) {
 		XftChar32 ftc;
 		XftFont *font;
-		XGlyphInfo info;
+		XGlyphInfo glyph_info;
 		gpointer ptr;
 		font = terminal->pvt->ftfont;
 		ftc = vte_terminal_xft_remap_char(display, font, cell->c);
@@ -9342,10 +9342,11 @@ vte_terminal_draw_char(VteTerminal *terminal,
 		if (padding < 0) {
 			padding = 0;
 		} else if (padding == 0) {
-			XftTextExtents32(GDK_DISPLAY(), font, &ftc, 1, &info);
+			XftTextExtents32(GDK_DISPLAY(), font, &ftc, 1,
+					 &glyph_info);
 			padding = CLAMP((terminal->char_width *
 					 wcwidth(cell->c) -
-					 info.width) / 2,
+					 glyph_info.xOff) / 2,
 					0, 3 * terminal->char_width);
 			g_tree_insert(terminal->pvt->fontpadding,
 				      GINT_TO_POINTER(ftc),

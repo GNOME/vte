@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.3.28
+Version: 0.3.29
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -53,6 +53,9 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Mon Jun 10 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.29-1
+- compute padding correctly
+
 * Mon Jun 10 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.28-1
 - finish merging otaylor's Xft2 patch
 
