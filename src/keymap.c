@@ -89,11 +89,17 @@ static struct _vte_keymap_entry _vte_keymap_GDK_space[] = {
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_Tab[] = {
-	/* Shift+Tab = BackTab */
-	{cursor_all, keypad_all, fkey_all, GDK_SHIFT_MASK, NULL, 0, "kB"},
+	/* Shift+Tab = Back-Tab */
+	{cursor_all, keypad_all, fkey_all,
+	 GDK_SHIFT_MASK, NULL, 0, "kB"},
 	{cursor_all, keypad_all, fkey_all,
 	 GDK_SHIFT_MASK, _VTE_CAP_CSI "Z", -1, NULL},
+	/* Alt+Tab = Esc+Tab */
+	{cursor_all, keypad_all, fkey_all,
+	 VTE_META_MASK, _VTE_CAP_ESC "\t", -1, NULL},
 	/* Regular tab. */
+	{cursor_all, keypad_all, fkey_all,
+	 0, NULL, 0, "ta"},
 	{cursor_all, keypad_all, fkey_all, 0, "\t", 1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
@@ -113,14 +119,9 @@ static struct _vte_keymap_entry _vte_keymap_GDK_Escape[] = {
 
 static struct _vte_keymap_entry _vte_keymap_GDK_Insert[] = {
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, "kI"},
-	{cursor_all, keypad_all, fkey_sun,
-	 GDK_CONTROL_MASK, _VTE_CAP_CSI "2;5z", -1, NULL},
-	{cursor_all, keypad_all, fkey_notsunhp,
-	 GDK_CONTROL_MASK, _VTE_CAP_CSI "2;5~", -1, NULL},
-	{cursor_all, keypad_all, fkey_hp,
-	 GDK_CONTROL_MASK, _VTE_CAP_ESC "Q", -1, NULL},
+	{cursor_all, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "Q", -1, NULL},
 	{cursor_all, keypad_all, fkey_sun, 0, _VTE_CAP_CSI "2z", -1, NULL},
-	{cursor_all, keypad_all, fkey_notsun, 0, _VTE_CAP_CSI "2~", -1, NULL},
+	{cursor_all, keypad_all, fkey_notsunhp, 0, _VTE_CAP_CSI "2~", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
@@ -145,26 +146,16 @@ static struct _vte_keymap_entry _vte_keymap_GDK_End[] = {
 
 static struct _vte_keymap_entry _vte_keymap_GDK_Page_Up[] = {
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, "kP"},
-	{cursor_all, keypad_all, fkey_notsunhp,
-	 GDK_CONTROL_MASK, _VTE_CAP_CSI "5;5~", -1, NULL},
-	{cursor_all, keypad_all, fkey_sun,
-	 GDK_CONTROL_MASK, _VTE_CAP_CSI "5;5z", -1, NULL},
-	{cursor_all, keypad_all, fkey_hp,
-	 GDK_CONTROL_MASK, _VTE_CAP_ESC "T", -1, NULL},
-	{cursor_all, keypad_all, fkey_notsun, 0, _VTE_CAP_CSI "5~", -1, NULL},
+	{cursor_all, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "T", -1, NULL},
+	{cursor_all, keypad_all, fkey_notsunhp, 0, _VTE_CAP_CSI "5~", -1, NULL},
 	{cursor_all, keypad_all, fkey_sun, 0, _VTE_CAP_CSI "5z", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_Page_Down[] = {
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, "kN"},
-	{cursor_all, keypad_all, fkey_notsunhp,
-	 GDK_CONTROL_MASK, _VTE_CAP_CSI "6;5~", -1, NULL},
-	{cursor_all, keypad_all, fkey_sun,
-	 GDK_CONTROL_MASK, _VTE_CAP_CSI "6;5z", -1, NULL},
-	{cursor_all, keypad_all, fkey_hp,
-	 GDK_CONTROL_MASK, _VTE_CAP_ESC "S", -1, NULL},
-	{cursor_all, keypad_all, fkey_notsun, 0, _VTE_CAP_CSI "6~", -1, NULL},
+	{cursor_all, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "S", -1, NULL},
+	{cursor_all, keypad_all, fkey_notsunhp, 0, _VTE_CAP_CSI "6~", -1, NULL},
 	{cursor_all, keypad_all, fkey_sun, 0, _VTE_CAP_CSI "6z", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
@@ -848,7 +839,6 @@ _vte_keymap_map(guint keyval,
 		const char **special)
 {
 	int i;
-	gboolean fkey;
 	struct _vte_keymap_entry *entries;
 	enum _vte_cursor_mode cursor_mode;
 	enum _vte_keypad_mode keypad_mode;
@@ -915,7 +905,6 @@ _vte_keymap_map(guint keyval,
 
 	/* Search for the list for this key. */
 	entries = NULL;
-	fkey = FALSE;
 	for (i = 0; i < G_N_ELEMENTS(_vte_keymap); i++) {
 #ifdef VTE_DEBUG
 		int j;
@@ -945,10 +934,6 @@ _vte_keymap_map(guint keyval,
 		g_assert(mods == 0);
 		entries = NULL;
 #endif
-		if (_vte_keymap[i].keyval == GDK_F1) {
-			/* Every entry after this point is a function key. */
-			fkey = TRUE;
-		}
 		if (_vte_keymap[i].keyval == keyval) {
 			/* Found it! */
 			entries = _vte_keymap[i].entries;
@@ -1002,6 +987,14 @@ _vte_keymap_map(guint keyval,
 				*normal_length = strlen(entries[i].normal);
 				*normal = g_strdup(entries[i].normal);
 			}
+			_vte_keymap_key_add_key_modifiers(keyval,
+							  modifiers,
+							  sun_mode,
+							  hp_mode,
+							  legacy_mode,
+							  vt220_mode,
+							  normal,
+							  normal_length);
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
 				int j;
@@ -1101,11 +1094,27 @@ _vte_keymap_key_is_modifier(guint keyval)
 }
 
 static gboolean
-_vte_keymap_key_is_fkey(guint keyval)
+_vte_keymap_key_gets_modifiers(guint keyval)
 {
 	gboolean fkey = FALSE;
 	/* Determine if this is just a modifier key. */
 	switch (keyval) {
+	case GDK_Up:
+	case GDK_Down:
+	case GDK_Left:
+	case GDK_Right:
+	case GDK_Insert:
+	case GDK_Delete:
+	case GDK_Page_Up:
+	case GDK_Page_Down:
+	case GDK_KP_Up:
+	case GDK_KP_Down:
+	case GDK_KP_Left:
+	case GDK_KP_Right:
+	case GDK_KP_Insert:
+	case GDK_KP_Delete:
+	case GDK_KP_Page_Up:
+	case GDK_KP_Page_Down:
 	case GDK_F1:
 	case GDK_F2:
 	case GDK_F3:
@@ -1151,14 +1160,14 @@ _vte_keymap_key_is_fkey(guint keyval)
 }
 
 void
-_vte_keymap_key_add_fkey_modifiers(guint keyval,
-				   GdkModifierType modifiers,
-				   gboolean sun_mode,
-				   gboolean hp_mode,
-				   gboolean legacy_mode,
-				   gboolean vt220_mode,
-				   char **normal,
-				   gssize *normal_length)
+_vte_keymap_key_add_key_modifiers(guint keyval,
+				  GdkModifierType modifiers,
+				  gboolean sun_mode,
+				  gboolean hp_mode,
+				  gboolean legacy_mode,
+				  gboolean vt220_mode,
+				  char **normal,
+				  gssize *normal_length)
 {
 	int modifier, offset;
 	char *nnormal;
@@ -1168,7 +1177,7 @@ _vte_keymap_key_add_fkey_modifiers(guint keyval,
 				GDK_CONTROL_MASK |
 				VTE_META_MASK;
 
-	if (!_vte_keymap_key_is_fkey(keyval)) {
+	if (!_vte_keymap_key_gets_modifiers(keyval)) {
 		return;
 	}
 	if (sun_mode || hp_mode || vt220_mode) {
@@ -1212,12 +1221,18 @@ _vte_keymap_key_add_fkey_modifiers(guint keyval,
 
 	nnormal = g_malloc0(*normal_length + 3);
 	memcpy(nnormal, *normal, *normal_length);
-	if (strlen(nnormal) > 0) {
+	if (strlen(nnormal) > 1) {
 		offset = strlen(nnormal) - 1;
-		nnormal[offset + 2] = nnormal[offset];
-		nnormal[offset + 1] = modifier + '0';
-		nnormal[offset + 0] = ';';
-		*normal_length += 2;
+		if (g_ascii_isdigit(nnormal[offset - 1])) {
+			nnormal[offset + 2] = nnormal[offset];
+			nnormal[offset + 1] = modifier + '0';
+			nnormal[offset + 0] = ';';
+			*normal_length += 2;
+		} else {
+			nnormal[offset + 1] = nnormal[offset];
+			nnormal[offset + 0] = modifier + '0';
+			*normal_length += 1;
+		}
 		g_free(*normal);
 		*normal = nnormal;
 	} else {

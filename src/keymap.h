@@ -52,14 +52,14 @@ void _vte_keymap_map(guint keyval,
 gboolean _vte_keymap_key_is_modifier(guint keyval);
 
 /* Add modifiers to the sequence if they're needed. */
-void _vte_keymap_key_add_fkey_modifiers(guint keyval,
-					GdkModifierType modifiers,
-					gboolean sun_mode,
-					gboolean hp_mode,
-					gboolean legacy_mode,
-					gboolean vt220_mode,
-					char **normal,
-					gssize *normal_length);
+void _vte_keymap_key_add_key_modifiers(guint keyval,
+				       GdkModifierType modifiers,
+				       gboolean sun_mode,
+				       gboolean hp_mode,
+				       gboolean legacy_mode,
+				       gboolean vt220_mode,
+				       char **normal,
+				       gssize *normal_length);
 
 G_END_DECLS
 

@@ -18,7 +18,7 @@ xterm-xfree86|xterm-new|xterm terminal emulator (XFree86):\
 	:kb=^H:ke=\E[?1l\E>:kh=\E[1~:\
 	:ks=\E[?1h\E=:le=^H:mb=\E[5m:md=\E[1m:\
 	:me=\E[m\017:mr=\E[7m:nd=\E[C:rc=\E8:sc=\E7:se=\E[27m:\
-	:sf=^J:so=\E[7m:sr=\EM:st=\EH:ta=^I:te=\E[?1047l\E[?1048l:\
+	:sf=^J:so=\E[7m:sr=\EM:st=\EH:te=\E[?1047l\E[?1048l:\
 	:ti=\E[?1048h\E[?1047h:ue=\E[24m:up=\E[A:us=\E[4m:\
 	:vb=\E[?5h\E[?5l:ve=\E[?25h:vi=\E[?25l:vs=\E[?25h:
 # xterm-redhat is identical to xterm-xfree86 with the addition of a small

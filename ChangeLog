@@ -1,4 +1,8 @@
 2002-11-25  nalin
+	* src/keymap.c: sort out when we add modifiers to keys.  Fix Alt+Tab.
+	* termcaps/xterm: remove ta definition.
+
+2002-11-25  nalin
 	* src/debug.c, src/debug.h: add keyboard debugging class.
 	* src/dumpkeys.c: refresh on Ctrl-L, reset on 'r'.
 	* src/keymap.c, src/keymap.h: add more setting combinations, and a

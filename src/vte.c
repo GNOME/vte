@@ -7514,14 +7514,6 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				vte_terminal_feed_child(terminal, "", 1);
 			}
 			if (normal_length > 0) {
-				_vte_keymap_key_add_fkey_modifiers(keyval,
-								   modifiers,
-								   terminal->pvt->sun_fkey_mode,
-								   terminal->pvt->hp_fkey_mode,
-								   terminal->pvt->legacy_fkey_mode,
-								   terminal->pvt->vt220_fkey_mode,
-								   &normal,
-								   &normal_length);
 				vte_terminal_feed_child(terminal,
 							normal, normal_length);
 			}
@@ -7535,14 +7527,14 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 								 tterm,
 								 special,
 								 &normal_length);
-			_vte_keymap_key_add_fkey_modifiers(keyval,
-							   modifiers,
-							   terminal->pvt->sun_fkey_mode,
-							   terminal->pvt->hp_fkey_mode,
-							   terminal->pvt->legacy_fkey_mode,
-							   terminal->pvt->vt220_fkey_mode,
-							   &normal,
-							   &normal_length);
+			_vte_keymap_key_add_key_modifiers(keyval,
+							  modifiers,
+							  terminal->pvt->sun_fkey_mode,
+							  terminal->pvt->hp_fkey_mode,
+							  terminal->pvt->legacy_fkey_mode,
+							  terminal->pvt->vt220_fkey_mode,
+							  &normal,
+							  &normal_length);
 			output = g_strdup_printf(normal, 1);
 			vte_terminal_feed_child(terminal, output, -1);
 			g_free(output);
