@@ -239,7 +239,7 @@ struct _VteTerminalPrivate {
 							   plus the current
 							   fore/back */
 		struct vte_charcell fill_defaults;	/* original defaults
-							   plust the current
+							   plus the current
 							   fore/back with no
 							   character data */
 		struct vte_charcell basic_defaults;	/* original defaults */
@@ -341,6 +341,7 @@ struct _VteTerminalPrivate {
 	GtkIMContext *im_context;
 	gboolean im_preedit_active;
 	char *im_preedit;
+	PangoAttrList *im_preedit_attrs;
 	int im_preedit_cursor;
 
 	/* Our accessible peer. */
@@ -7184,6 +7185,10 @@ vte_terminal_im_reset(VteTerminal *terminal)
 			g_free(terminal->pvt->im_preedit);
 			terminal->pvt->im_preedit = NULL;
 		}
+		if (terminal->pvt->im_preedit_attrs != NULL) {
+			pango_attr_list_unref(terminal->pvt->im_preedit_attrs);
+			terminal->pvt->im_preedit_attrs = NULL;
+		}
 	}
 }
 
@@ -8011,11 +8016,16 @@ vte_terminal_im_preedit_changed(GtkIMContext *im_context, gpointer data)
 	 * for repainting. */
 	vte_invalidate_cursor_once(terminal, FALSE);
 
-	pango_attr_list_unref(attrs);
 	if (terminal->pvt->im_preedit != NULL) {
 		g_free(terminal->pvt->im_preedit);
 	}
 	terminal->pvt->im_preedit = str;
+
+	if (terminal->pvt->im_preedit_attrs != NULL) {
+		pango_attr_list_unref(terminal->pvt->im_preedit_attrs);
+	}
+	terminal->pvt->im_preedit_attrs = attrs;
+
 	terminal->pvt->im_preedit_cursor = cursor;
 
 	vte_invalidate_cursor_once(terminal, FALSE);
@@ -11130,6 +11140,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->im_context = NULL;
 	pvt->im_preedit_active = FALSE;
 	pvt->im_preedit = NULL;
+	pvt->im_preedit_attrs = NULL;
 	pvt->im_preedit_cursor = 0;
 
 	/* Bookkeeping data for adjustment-changed signals. */
@@ -11391,6 +11402,10 @@ vte_terminal_unrealize(GtkWidget *widget)
 	if (terminal->pvt->im_preedit != NULL) {
 		g_free(terminal->pvt->im_preedit);
 		terminal->pvt->im_preedit = NULL;
+	}
+	if (terminal->pvt->im_preedit_attrs != NULL) {
+		pango_attr_list_unref(terminal->pvt->im_preedit_attrs);
+		terminal->pvt->im_preedit_attrs = NULL;
 	}
 	terminal->pvt->im_preedit_cursor = 0;
 
@@ -12943,6 +12958,174 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	}
 }
 
+/* Try to map a PangoColor to a palette entry and return its index. */
+static int
+_vte_terminal_map_pango_color(VteTerminal *terminal, PangoColor *color)
+{
+	long distance[G_N_ELEMENTS(terminal->pvt->palette)];
+	struct vte_palette_entry *entry;
+	int i, ret;
+
+	/* Calculate a "distance" value.  Could stand to be improved a bit. */
+	for (i = 0; i < G_N_ELEMENTS(distance); i++) {
+		entry = &terminal->pvt->palette[i];
+		distance[i] = 0;
+		distance[i] += ((entry->red >> 8) - (color->red >> 8)) *
+			       ((entry->red >> 8) - (color->red >> 8));
+		distance[i] += ((entry->blue >> 8) - (color->blue >> 8)) *
+			       ((entry->blue >> 8) - (color->blue >> 8));
+		distance[i] += ((entry->green >> 8) - (color->green >> 8)) *
+			       ((entry->green >> 8) - (color->green >> 8));
+	}
+
+	/* Find the index of the minimum value. */
+	ret = 0;
+	for (i = 1; i < G_N_ELEMENTS(distance); i++) {
+		if (distance[i] < distance[ret]) {
+			ret = i;
+		}
+	}
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_UPDATES)) {
+		fprintf(stderr, "mapped PangoColor(%04x,%04x,%04x) to "
+			"palette entry (%04x,%04x,%04x)\n",
+			color->red, color->green, color->blue,
+			terminal->pvt->palette[ret].red,
+			terminal->pvt->palette[ret].green,
+			terminal->pvt->palette[ret].blue);
+	}
+#endif
+
+	return ret;
+}
+
+/* Apply the attribute given in the PangoAttribute to the list of cells. */
+static void
+_vte_terminal_apply_pango_attr(VteTerminal *terminal, PangoAttribute *attr,
+			       struct vte_charcell *cells, gsize n_cells)
+{
+	int i, ival;
+	PangoAttrInt *attrint;
+	PangoAttrColor *attrcolor;
+
+	switch (attr->klass->type) {
+	case PANGO_ATTR_FOREGROUND:
+	case PANGO_ATTR_BACKGROUND:
+		attrcolor = (PangoAttrColor*) attr;
+		ival = _vte_terminal_map_pango_color(terminal,
+						     &attrcolor->color);
+		for (i = attr->start_index;
+		     (ival >= 0) && (i < attr->end_index) && (i < n_cells);
+		     i++) {
+			if (attr->klass->type == PANGO_ATTR_FOREGROUND) {
+				cells[i].fore = ival;
+			}
+			if (attr->klass->type == PANGO_ATTR_BACKGROUND) {
+				cells[i].back = ival;
+			}
+		}
+		break;
+	case PANGO_ATTR_STRIKETHROUGH:
+		attrint = (PangoAttrInt*) attr;
+		ival = attrint->value;
+		for (i = attr->start_index;
+		     (i < attr->end_index) && (i < n_cells);
+		     i++) {
+			cells[i].strikethrough = (ival != FALSE);
+		}
+		break;
+	case PANGO_ATTR_UNDERLINE:
+		attrint = (PangoAttrInt*) attr;
+		ival = attrint->value;
+		for (i = attr->start_index;
+		     (i < attr->end_index) && (i < n_cells);
+		     i++) {
+			cells[i].underline = (ival != PANGO_UNDERLINE_NONE);
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+/* Convert a PangoAttrList and a location in that list to settings in a
+ * charcell structure.  The cells array is assumed to contain enough items
+ * so that all ranges in the attribute list can be mapped into the array, which
+ * typically means that the cell array should have the same length as the
+ * string (byte-wise) which the attributes describe. */
+static void
+_vte_terminal_pango_attribute_destroy(gpointer attr, gpointer data)
+{
+	pango_attribute_destroy(attr);
+}
+static void
+_vte_terminal_translate_pango_cells(VteTerminal *terminal, PangoAttrList *attrs,
+				    struct vte_charcell *cells, gsize n_cells)
+{
+	PangoAttribute *attr;
+	PangoAttrIterator *attriter;
+	GSList *list, *listiter;
+	int i;
+
+	for (i = 0; i < n_cells; i++) {
+		cells[i] = terminal->pvt->screen->fill_defaults;
+	}
+
+	attriter = pango_attr_list_get_iterator(attrs);
+	if (attriter != NULL) {
+		do {
+			list = pango_attr_iterator_get_attrs(attriter);
+			for (listiter = list;
+			     listiter != NULL;
+			     listiter = g_slist_next(listiter)) {
+				attr = listiter->data;
+				_vte_terminal_apply_pango_attr(terminal, attr,
+							       cells, n_cells);
+			}
+			g_slist_foreach(list,
+					_vte_terminal_pango_attribute_destroy,
+					NULL);
+			g_slist_free(list);
+		} while (pango_attr_iterator_next(attriter) == TRUE);
+		pango_attr_iterator_destroy(attriter);
+	}
+}
+
+/* Draw the listed items using the given attributes.  Tricky because the
+ * attribute string is indexed by byte in the UTF-8 representation of the string
+ * of characters.  Because we draw a character at a time, this is slower. */
+static void
+vte_terminal_draw_cells_with_attributes(VteTerminal *terminal,
+					struct _vte_draw_text_request *items,
+					gssize n,
+					PangoAttrList *attrs,
+					gboolean draw_default_bg,
+					gint column_width, gint height)
+{
+	int i, j, cell_count;
+	struct vte_charcell *cells;
+	char scratch_buf[VTE_UTF8_BPC];
+
+	for (i = 0, cell_count = 0; i < n; i++) {
+		cell_count += g_unichar_to_utf8(items[i].c, scratch_buf);
+	}
+	cells = g_malloc(cell_count * sizeof(struct vte_charcell));
+	_vte_terminal_translate_pango_cells(terminal, attrs, cells, cell_count);
+	for (i = 0, j = 0; i < n; i++) {
+		vte_terminal_draw_cells(terminal, items + i, 1,
+					cells[j].fore,
+					cells[j].back,
+					draw_default_bg,
+					cells[j].bold,
+					cells[j].underline,
+					cells[j].strikethrough,
+					FALSE, FALSE, column_width, height);
+		j += g_unichar_to_utf8(items[i].c, scratch_buf);
+	}
+	g_free(cells);
+}
+
 static gboolean
 vte_terminal_get_blink_state(VteTerminal *terminal)
 {
@@ -13165,6 +13348,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	struct _vte_draw_text_request item, *items;
 	int row, drow, col, row_stop, col_stop, columns;
 	char *preedit;
+	int preedit_cursor;
 	long width, height, ascent, descent, delta, cursor_width;
 	int i, len, fore, back, x, y;
 	GdkRectangle all_area;
@@ -13356,6 +13540,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 		/* Find out how many columns the pre-edit string takes up. */
 		preedit = terminal->pvt->im_preedit;
+		preedit_cursor = -1;
 		columns = vte_terminal_preedit_width(terminal, FALSE);
 		len = vte_terminal_preedit_length(terminal, FALSE);
 
@@ -13372,12 +13557,20 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 					 (len + 1));
 			preedit = terminal->pvt->im_preedit;
 			for (i = columns = 0; i < len; i++) {
+				if ((preedit - terminal->pvt->im_preedit) ==
+				    terminal->pvt->im_preedit_cursor) {
+					preedit_cursor = i;
+				}
 				items[i].c = g_utf8_get_char(preedit);
 				items[i].columns = _vte_iso2022_unichar_width(items[i].c);
 				items[i].x = (col + columns) * width;
 				items[i].y = row * height;
 				columns += items[i].columns;
 				preedit = g_utf8_next_char(preedit);
+			}
+			if ((preedit - terminal->pvt->im_preedit) ==
+			    terminal->pvt->im_preedit_cursor) {
+				preedit_cursor = i;
 			}
 			items[len].c = ' ';
 			items[len].columns = 1;
@@ -13390,17 +13583,12 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 					height);
 			fore = screen->defaults.fore;
 			back = screen->defaults.back;
-			vte_terminal_draw_cells(terminal,
-						items, len + 1,
-						fore, back, TRUE,
-						FALSE,
-						FALSE,
-						FALSE,
-						FALSE,
-						TRUE,
-						width, height);
-			if ((terminal->pvt->im_preedit_cursor >= 0) &&
-			    (terminal->pvt->im_preedit_cursor < len)) {
+			vte_terminal_draw_cells_with_attributes(terminal,
+								items, len + 1,
+								terminal->pvt->im_preedit_attrs,
+								TRUE,
+								width, height);
+			if ((preedit_cursor >= 0) && (preedit_cursor < len)) {
 				/* Cursored letter in reverse. */
 				vte_terminal_draw_cells(terminal,
 							&items[terminal->pvt->im_preedit_cursor], 1,
@@ -13412,7 +13600,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 							TRUE,
 							width, height);
 			} else
-			if (terminal->pvt->im_preedit_cursor == len) {
+			if (preedit_cursor == len) {
 				/* Empty cursor at the end. */
 				vte_terminal_draw_cells(terminal,
 							&items[len], 1,

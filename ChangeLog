@@ -1,3 +1,14 @@
+2003-09-11 nalin
+	* src/vte.c(_vte_terminal_map_pango_color): add.
+	* src/vte.c(vte_terminal_im_preedit_changed): don't discard the
+	attributes list for the preedit string -- save them.
+	* src/vte.c(vte_terminal_draw_cells_with_attributes): add.
+	* src/vte.c(vte_terminal_paint): use draw_cells_with_attributes to
+	use the preedit attributes list when drawing the preedit string.  This
+	changes the way the preedit string is presented to the user, but it
+	now looks [more] like GTK+ suggests it should look, so it should be a
+	good change.
+
 2003-08-13 nalin
 	* src/caps.c: add sequences for linux-console-cursor-attributes, which
 	we'll ignore (bug #108232).
