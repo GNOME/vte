@@ -20,6 +20,7 @@ if libtool --version < /dev/null > /dev/null 2>&1 ; then
 		;;
 	esac
 fi
+
 if $have_libtool ; then : ; else
 	echo
 	echo "You must have libtool 1.4 installed to compile $PROJECT."
@@ -31,8 +32,16 @@ fi
 (autoconf --version) < /dev/null > /dev/null 2>&1 || {
 	echo
 	echo "You must have autoconf installed to compile $PROJECT."
-	echo "libtool the appropriate package for your distribution,"
+	echo "Install the appropriate package for your distribution,"
 	echo "or get the source tarball at ftp://ftp.gnu.org/pub/gnu/"
+	DIE=1
+}
+
+(freetype-config --version) < /dev/null > /dev/null 2>&1 || {
+	echo
+	echo "You must have freetype 2 installed to compile $PROJECT."
+	echo "Install the appropriate package for your distribution, or get the"
+	echo "source tarball at ftp://ftp.freetype.org/freetype/freetype2"
 	DIE=1
 }
 
