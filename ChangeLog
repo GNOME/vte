@@ -1,3 +1,11 @@
+2002-08-22 nalin
+	* src/vte.c, src/vte.h: Make use of the visible bell a separate option
+	from use of the audible bell, allowing both/neither to be used.  Open
+	fonts right away again -- profterm reads the metrics right after calling
+	set_font(), so we have to open fonts ASAP.  Rework the Xft/Pango/Xlib
+	decision code to be more consistent.  Watch for style changes and reset
+	our font to the new style's font when we're already using the old
+	style's font.
 2002-08-21 nalin
 	* src/iso2022.c(vte_iso2022_substitute): Take a vte_table as an
 	additional argument, and don't mess with text that's part of a control

@@ -251,6 +251,7 @@ struct _VteTerminalPrivate {
 	VteTerminalEraseBinding backspace_binding, delete_binding;
 	gboolean alt_sends_escape;
 	gboolean audible_bell;
+	gboolean visible_bell;
 	gboolean xterm_font_tweak;
 	GHashTable *tabstops;
 
@@ -296,11 +297,15 @@ struct _VteTerminalPrivate {
 	PangoContext *pcontext;
 	XFontSet fontset;
 	GTree *fontpaddingl, *fontpaddingr;
-	gboolean use_xft, use_xft2;
+	enum VteRenderMethod {
+		VteRenderXlib = 0,
+		VteRenderPango = 1,
+		VteRenderXft1 = 2,
+		VteRenderXft2 = 3
+	} render_method;
 #ifdef HAVE_XFT
 	XftFont *ftfont;
 #endif
-	gboolean use_pango;
 	gboolean palette_initialized;
 	struct vte_palette_entry {
 		guint16 red, green, blue;
@@ -344,7 +349,6 @@ static void vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 				     gboolean reset);
 static void vte_terminal_setup_background(VteTerminal *terminal,
 					  gboolean refresh_transparent);
-static void vte_terminal_ensure_font(VteTerminal *terminal);
 static void vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current);
 static void vte_terminal_insert_char(GtkWidget *widget, gunichar c,
 				     gboolean force_insert_mode);
@@ -548,9 +552,6 @@ vte_invalidate_cells(VteTerminal *terminal,
 		return;
 	}
 
-	/* Ensure that we have font metrics. */
-	vte_terminal_ensure_font(terminal);
-
 	/* Subtract the scrolling offset from the row start so that the
 	 * resulting rectangle is relative to the visible portion of the
 	 * buffer. */
@@ -585,9 +586,6 @@ vte_invalidate_all(VteTerminal *terminal)
 	if (!GTK_WIDGET_REALIZED(widget)) {
 		return;
 	}
-
-	/* Ensure that we have font metrics. */
-	vte_terminal_ensure_font(terminal);
 
 	/* Expose the entire widget area. */
 	rect.x = 0;
@@ -1702,7 +1700,8 @@ vte_sequence_handler_bl(VteTerminal *terminal,
 	if (terminal->pvt->audible_bell) {
 		/* Feep. */
 		gdk_beep();
-	} else {
+	}
+	if (terminal->pvt->visible_bell) {
 		/* Visual bell. */
 		vte_sequence_handler_vb(terminal, match, match_quark, params);
 	}
@@ -3111,9 +3110,6 @@ vte_sequence_handler_vb(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
-		/* Ensure that we have font metrics. */
-		vte_terminal_ensure_font(terminal);
-
 		/* Fill the screen with the default foreground color, and then
 		 * repaint everything, to provide visual bell. */
 		gdk_window_get_internal_paint_info(GTK_WIDGET(terminal)->window,
@@ -4336,8 +4332,6 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 	widget = GTK_WIDGET(terminal);
 	screen = terminal->pvt->screen;
 
-	vte_terminal_ensure_font(terminal);
-
 	for (i = 0; ((params != NULL) && (i < params->n_values)); i++) {
 		arg1 = arg2 = -1;
 		if (i + 1 < params->n_values) {
@@ -5069,7 +5063,8 @@ vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
 
 #ifdef HAVE_XFT
 	/* If we're using Xft, we need to allocate a RenderColor, too. */
-	if (terminal->pvt->use_xft) {
+	if ((terminal->pvt->render_method == VteRenderXft1) ||
+	    (terminal->pvt->render_method == VteRenderXft2)) {
 		XRenderColor *rcolor;
 		XftColor *ftcolor;
 
@@ -5085,10 +5080,8 @@ vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
 
 		/* FIXME this should probably use a color from the
 		 * color cube. */
-		if (!XftColorAllocValue(display, visual, colormap,
-					rcolor, ftcolor)) {
-			terminal->pvt->use_xft = FALSE;
-		}
+		g_return_if_fail(XftColorAllocValue(display, visual, colormap,
+						    rcolor, ftcolor) != 0);
 	}
 #endif
 
@@ -5986,7 +5979,6 @@ vte_terminal_process_incoming(gpointer data)
 
 	/* Tell the input method where the cursor is. */
 	if (terminal->pvt->im_context) {
-		vte_terminal_ensure_font(terminal);
 		rect.x = terminal->pvt->screen->cursor_current.col *
 			 terminal->char_width;
 		rect.width = terminal->char_width;
@@ -6440,6 +6432,22 @@ vte_terminal_hierarchy_changed(GtkWidget *widget, GtkWidget *old_toplevel,
 		g_signal_connect(G_OBJECT(toplevel), "configure-event",
 				 G_CALLBACK(vte_terminal_configure_toplevel),
 				 terminal);
+	}
+}
+
+/* Handle a style-changed signal. */
+static void
+vte_terminal_style_changed(GtkWidget *widget, GtkStyle *style, gpointer data)
+{
+	VteTerminal *terminal;
+	g_return_if_fail(VTE_IS_TERMINAL(widget));
+	terminal = VTE_TERMINAL(widget);
+	/* If the font we're using is the same as the old default, then we
+	 * need to pick up the new default. */
+	if (pango_font_description_equal(style->font_desc,
+					 widget->style->font_desc) ||
+	    (terminal->pvt->fontdesc == NULL)) {
+		vte_terminal_set_font(terminal, NULL);
 	}
 }
 
@@ -7137,7 +7145,6 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 	char buf[LINE_MAX];
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	vte_terminal_ensure_font(terminal);
 
 	/* Encode the button information in cb. */
 	switch (button) {
@@ -7211,7 +7218,6 @@ vte_terminal_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	GdkModifierType modifiers;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	vte_terminal_ensure_font(terminal);
 
 	/* First determine if we even want to send notification. */
 	if (!terminal->pvt->mouse_cell_motion_tracking &&
@@ -7303,7 +7309,6 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 	char *match;
 	struct vte_char_attributes *attr;
 	VteScreen *screen;
-	vte_terminal_ensure_font(terminal);
 	/* If the pointer hasn't moved to another character cell, then we
 	 * need do nothing. */
 	if ((x / terminal->char_width ==
@@ -7383,7 +7388,6 @@ vte_terminal_selection_compute(VteTerminal *terminal)
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-	vte_terminal_ensure_font(terminal);
 	width = terminal->char_width;
 	height = terminal->char_height;
 	origin.x = (terminal->pvt->selection_origin.x + width / 2) / width;
@@ -7742,7 +7746,6 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
-	vte_terminal_ensure_font(terminal);
 	height = terminal->char_height;
 	width = terminal->char_width;
 	delta = terminal->pvt->screen->scroll_delta;
@@ -8516,7 +8519,7 @@ vte_font_match(VteTerminal *terminal, FcPattern *pattern, FcResult *result)
 #ifdef HAVE_XFT
 /* Ensure that an Xft font is loaded and metrics are known. */
 static void
-vte_terminal_ensure_font_xft(VteTerminal *terminal)
+vte_terminal_open_font_xft(VteTerminal *terminal)
 {
 	XftFont *new_font;
 	XftPattern *pattern;
@@ -8647,9 +8650,6 @@ vte_terminal_ensure_font_xft(VteTerminal *terminal)
 		vte_terminal_apply_metrics(terminal,
 					   width, height,
 					   ascent, descent);
-	} else {
-		g_warning(_("Error allocating Xft font, disabling Xft."));
-		terminal->pvt->use_xft = FALSE;
 	}
 }
 static void
@@ -8669,7 +8669,7 @@ vte_terminal_close_font_xft(VteTerminal *terminal)
 
 /* Ensure that an Xlib font is loaded. */
 static void
-vte_terminal_ensure_font_xlib(VteTerminal *terminal)
+vte_terminal_open_font_xlib(VteTerminal *terminal)
 {
 	char *xlfds;
 	long width, height, ascent, descent;
@@ -8779,7 +8779,7 @@ vte_terminal_close_font_xlib(VteTerminal *terminal)
 
 /* Ensure that a Pango font's metrics are known. */
 static void
-vte_terminal_ensure_font_pango(VteTerminal *terminal)
+vte_terminal_open_font_pango(VteTerminal *terminal)
 {
 	PangoFontDescription *desc = NULL;
 	PangoContext *context = NULL;
@@ -8837,22 +8837,31 @@ vte_terminal_close_font_pango(VteTerminal *terminal)
 
 /* Ensure that the font's metrics are known. */
 static void
-vte_terminal_ensure_font(VteTerminal *terminal)
+vte_terminal_open_font(VteTerminal *terminal)
 {
+	switch (terminal->pvt->render_method) {
 #ifdef HAVE_XFT
-	/* Try to load the Xft font if we can. */
-	if (terminal->pvt->use_xft) {
-		vte_terminal_ensure_font_xft(terminal);
-	}
+	case VteRenderXft2:
+	case VteRenderXft1:
+		vte_terminal_open_font_xft(terminal);
+		break;
 #endif
-	/* Load a pango context which we can use for reading metrics. */
-	if (!terminal->pvt->use_xft && terminal->pvt->use_pango) {
-		vte_terminal_ensure_font_pango(terminal);
+	case VteRenderPango:
+		vte_terminal_open_font_pango(terminal);
+		break;
+	case VteRenderXlib:
+	default:
+		vte_terminal_open_font_xlib(terminal);
 	}
-	/* Try to load an X fontset. */
-	if (!terminal->pvt->use_xft && !terminal->pvt->use_pango) {
-		vte_terminal_ensure_font_xlib(terminal);
-	}
+}
+static void
+vte_terminal_close_font(VteTerminal *terminal)
+{
+	vte_terminal_close_font_xlib(terminal);
+	vte_terminal_close_font_pango(terminal);
+#ifdef HAVE_XFT
+	vte_terminal_close_font_xft(terminal);
+#endif
 }
 
 /* Set the fontset used for rendering text into the widget. */
@@ -8906,12 +8915,9 @@ vte_terminal_set_font(VteTerminal *terminal,
 	}
 	terminal->pvt->fontdesc = (PangoFontDescription*) font_desc;
 
-	/* Free the older fonts. */
-#ifdef HAVE_XFT
-	vte_terminal_close_font_xft(terminal);
-#endif
-	vte_terminal_close_font_pango(terminal);
-	vte_terminal_close_font_xlib(terminal);
+	/* Free the older fonts and load the new ones. */
+	vte_terminal_close_font(terminal);
+	vte_terminal_open_font(terminal);
 }
 
 void
@@ -9263,6 +9269,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	GtkAdjustment *adjustment;
 	struct timezone tz;
 	struct timeval tv;
+	enum VteRenderMethod render_max;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	widget = GTK_WIDGET(terminal);
@@ -9394,6 +9401,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	vte_terminal_set_delete_binding(terminal, VTE_ERASE_AUTO);
 	pvt->alt_sends_escape = TRUE;
 	pvt->audible_bell = TRUE;
+	pvt->visible_bell = FALSE;
 	pvt->xterm_font_tweak = FALSE;
 	pvt->tabstops = NULL;
 	vte_terminal_set_default_tabstops(terminal);
@@ -9441,51 +9449,60 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->fontset = NULL;
 	pvt->fontpaddingl = NULL;
 	pvt->fontpaddingr = NULL;
-	pvt->use_xft = FALSE;
+	render_max = VteRenderPango;
 #ifdef HAVE_XFT
 	pvt->ftfont = NULL;
-	pvt->use_xft = TRUE;
-	pvt->use_xft2 = TRUE;
-#ifndef HAVE_XFT2
+	render_max = VteRenderXft1;
+#ifdef HAVE_XFT2
 	/* GTK+ with Xft1-only = 2.0.  If we have fontconfig, it's either a
 	 * devel version with fontconfig support or 2.2 or later. */
-	pvt->use_xft = FALSE;
-	pvt->use_xft2 = FALSE;
+	render_max = VteRenderXft2;
 #endif
 #endif
-	pvt->use_pango = TRUE;
-
-	/* Try to use PangoX for rednering if the user requests it. */
-	if (getenv("VTE_USE_PANGO") != NULL) {
-		pvt->use_pango = (atol(getenv("VTE_USE_PANGO")) != 0);
+	/* Let debugging users have some influence on how we render text. */
+	if ((render_max == VteRenderXft2) &&
+	    (getenv("VTE_USE_XFT2") != NULL)) {
+		if (atol(getenv("VTE_USE_XFT2")) == 0) {
+			render_max = VteRenderXft1;
+		}
 	}
-
-#ifdef HAVE_XFT
-	/* Try to use Xft unless the user requests that we not.  Try to heed
-	 * both the original variable we consulted (which we should stop
-	 * consulting at some point) and the one GTK itself uses. */
-	if (getenv("GDK_USE_XFT") != NULL) {
-		pvt->use_xft = (atol(getenv("GDK_USE_XFT")) != 0);
+	if ((render_max >= VteRenderXft1) &&
+	    (getenv("VTE_USE_XFT") != NULL)) {
+		if (atol(getenv("VTE_USE_XFT")) == 0) {
+			render_max = VteRenderPango;
+		}
 	}
-	if (getenv("VTE_USE_XFT") != NULL) {
-		pvt->use_xft = (atol(getenv("VTE_USE_XFT")) != 0);
-		pvt->use_xft2 = pvt->use_xft;
+	if ((render_max >= VteRenderXft1) &&
+	    (getenv("GDK_USE_XFT") != NULL)) {
+		if (atol(getenv("VTE_USE_XFT")) == 0) {
+			render_max = VteRenderPango;
+		}
 	}
-	/* This is just for debugging.  It will go away. */
-	if (getenv("VTE_USE_XFT2") != NULL) {
-		pvt->use_xft2 = (atol(getenv("VTE_USE_XFT2")) != 0);
+	if ((render_max == VteRenderPango) &&
+	    (getenv("VTE_USE_PANGO") != NULL)) {
+		if (atol(getenv("VTE_USE_PANGO")) == 0) {
+			render_max = VteRenderXlib;
+		}
 	}
-#endif
+	pvt->render_method = render_max;
 
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_MISC)) {
-		if (terminal->pvt->use_xft) {
-			fprintf(stderr, "Using Xft.\n");
-		} else
-		if (terminal->pvt->use_pango) {
+		switch (pvt->render_method) {
+		case VteRenderXft2:
+#ifdef HAVE_XFT2
+			fprintf(stderr, "Using Xft2.\n");
+			break;
+#endif
+		case VteRenderXft1:
+			fprintf(stderr, "Using Xft1.\n");
+			break;
+		case VteRenderPango:
 			fprintf(stderr, "Using Pango.\n");
-		} else {
-			fprintf(stderr, "Using core fonts.\n");
+			break;
+		case VteRenderXlib:
+		default:
+			fprintf(stderr, "Using Xlib fonts.\n");
 		}
 	}
 #endif
@@ -9494,7 +9511,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->fontdesc = NULL;
 	gtk_widget_ensure_style(widget);
 	vte_terminal_set_font(terminal, NULL);
-	vte_terminal_ensure_font(terminal);
 
 	/* Input method support. */
 	pvt->im_context = NULL;
@@ -9522,6 +9538,11 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 			 G_CALLBACK(vte_terminal_hierarchy_changed),
 			 NULL);
 
+	/* Listen for style changes. */
+	g_signal_connect(G_OBJECT(terminal), "style-set",
+			 G_CALLBACK(vte_terminal_style_changed),
+			 NULL);
+
 	/* Mapping trees. */
 	pvt->unichar_wc_map = g_tree_new(vte_compare_direct);
 }
@@ -9535,8 +9556,6 @@ vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
-
-	vte_terminal_ensure_font(terminal);
 
 	if (terminal->pvt->pty_master != -1) {
 		vte_terminal_refresh_size(terminal);
@@ -9573,7 +9592,6 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 
 	terminal = VTE_TERMINAL(widget);
-	vte_terminal_ensure_font(terminal);
 
 	width = (allocation->width - (2 * VTE_PAD_WIDTH)) /
 		terminal->char_width;
@@ -9661,7 +9679,6 @@ vte_terminal_unrealize(GtkWidget *widget)
 			     colormap,
 			     &terminal->pvt->palette[i].ftcolor);
 	}
-	vte_terminal_close_font_xft(terminal);
 #endif
 
 	/* Clean up after Pango. */
@@ -9673,10 +9690,9 @@ vte_terminal_unrealize(GtkWidget *widget)
 		g_tree_destroy(terminal->pvt->fontpaddingr);
 		terminal->pvt->fontpaddingr = NULL;
 	}
-	vte_terminal_close_font_pango(terminal);
 
-	/* Unload an Xlib font if we're using one. */
-	vte_terminal_close_font_xlib(terminal);
+	/* Unload fonts. */
+	vte_terminal_close_font(terminal);
 
 	/* Disconnect any filters which might be watching for X window
 	 * pixmap changes. */
@@ -9767,11 +9783,7 @@ vte_terminal_finalize(GObject *object)
 #endif
 
 	/* Free the fonts if we still have some loaded. */
-#ifdef HAVE_XFT
-	vte_terminal_close_font_xft(terminal);
-#endif
-	vte_terminal_close_font_pango(terminal);
-	vte_terminal_close_font_xlib(terminal);
+	vte_terminal_close_font(terminal);
 
 	/* Free the font description. */
 	if (terminal->pvt->fontdesc != NULL) {
@@ -10806,23 +10818,21 @@ vte_terminal_compute_padding(VteTerminal *terminal, Display *display,
 #ifdef HAVE_XFT
 	XGlyphInfo extents;
 #endif
-	/* Ensure that we have fonts loaded. */
-	vte_terminal_ensure_font(terminal);
 	/* Check how many columns this character uses up. */
 	columns = g_unichar_iswide(c) ? 2 : 1;
+	switch (terminal->pvt->render_method) {
 #ifdef HAVE_XFT
 	/* Ask Xft. */
-	if (terminal->pvt->use_xft) {
+	case VteRenderXft2:
+	case VteRenderXft1:
 		XftTextExtents32(display, terminal->pvt->ftfont,
 				 &c, 1, &extents);
 		pad = ((columns * terminal->char_width) - extents.xOff) / 2;
 		rpad = ((columns * terminal->char_width) - extents.xOff) - pad;
-	}
+		break;
 #endif
 	/* Ask Pango. */
-	if ((pad == 0) &&
-	    !terminal->pvt->use_xft &&
-	    terminal->pvt->use_pango) {
+	case VteRenderPango:
 		widget = GTK_WIDGET(terminal);
 		layout = pango_layout_new(terminal->pvt->pcontext);
 		pango_layout_set_font_description(layout,
@@ -10834,11 +10844,9 @@ vte_terminal_compute_padding(VteTerminal *terminal, Display *display,
 		g_object_unref(G_OBJECT(layout));
 		pad = ((columns * terminal->char_width) - width) / 2;
 		rpad = ((columns * terminal->char_width) - width) - pad;
-	}
-	/* Ask Xlib. */
-	if ((pad == 0) &&
-	    !terminal->pvt->use_xft &&
-	    !terminal->pvt->use_pango) {
+		break;
+	case VteRenderXlib:
+	default:
 		/* Ask Xlib. */
 		wc = vte_wc_from_unichar(terminal, c);
 		XwcTextExtents(terminal->pvt->fontset, &wc, 1,
@@ -10846,6 +10854,7 @@ vte_terminal_compute_padding(VteTerminal *terminal, Display *display,
 		pad = ((columns * terminal->char_width) - xlogical.width) / 2;
 		rpad = ((columns * terminal->char_width) - xlogical.width) - pad;
 	}
+	/* Sanitize possibly-negative padding values and save them. */
 	pad = MAX(0, pad);
 	if (pad == 0) {
 		pad = -1;
@@ -10859,7 +10868,7 @@ vte_terminal_compute_padding(VteTerminal *terminal, Display *display,
 	g_tree_insert(terminal->pvt->fontpaddingr,
 		      GINT_TO_POINTER(c), GINT_TO_POINTER(rpad));
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_MISC)) {
+	if (vte_debug_on(VTE_DEBUG_MISC) && 0) {
 		fprintf(stderr, "Padding for %d is %d/%d/%d.\n",
 			c, pad, rpad, terminal->char_width);
 	}
@@ -10931,7 +10940,6 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 #endif
 			PangoLayout *layout)
 {
-	gboolean drawn = FALSE;
 	int i;
 	gint columns = 0;
 	struct vte_palette_entry *fg, *bg;
@@ -10954,9 +10962,10 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	x += VTE_PAD_WIDTH;
 	y += VTE_PAD_WIDTH;
 
+	switch (terminal->pvt->render_method) {
+	case VteRenderXft2:
+#ifdef HAVE_XFT
 #ifdef HAVE_XFT2
-	/* Draw using Xft2. */
-	if (!drawn && terminal->pvt->use_xft2 && terminal->pvt->use_xft) {
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_MISC) && 0) {
 			fprintf(stderr, "Rendering with Xft2.\n");
@@ -10987,12 +10996,9 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		}
 		/* Clean up. */
 		g_free(ftcharspecs);
-		drawn = TRUE;
-	}
+		break;
 #endif
-#ifdef HAVE_XFT
-	/* Draw using Xft1. */
-	if (!drawn && terminal->pvt->use_xft) {
+	case VteRenderXft1:
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_MISC) && 0) {
 			fprintf(stderr, "Rendering with Xft1.\n");
@@ -11022,12 +11028,9 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 					&ftchar, 1);
 			columns += g_unichar_iswide(c) ? 2 : 1;
 		}
-		/* Clean up. */
-		drawn = TRUE;
-	}
+		break;
 #endif
-	/* Draw using PangoX. */
-	if (!drawn && !terminal->pvt->use_xft && terminal->pvt->use_pango) {
+	case VteRenderPango:
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_MISC) && 0) {
 			fprintf(stderr, "Rendering with Pango.\n");
@@ -11085,11 +11088,9 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 #endif
 			columns += g_unichar_iswide(c) ? 2 : 1;
 		}
-		/* Clean up. */
-		drawn = TRUE;
-	}
-	/* Draw using core fonts. */
-	if (!drawn) {
+		break;
+	case VteRenderXlib:
+	default:
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_MISC) && 0) {
 			fprintf(stderr, "Rendering with Xlib.\n");
@@ -11354,7 +11355,6 @@ static void
 vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 {
 	VteTerminal *terminal = NULL;
-	PangoContext *pcontext = NULL;
 	PangoLayout *layout = NULL;
 	VteScreen *screen;
 	Display *display;
@@ -11391,46 +11391,48 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 					   &x_offs, &y_offs);
 	display = gdk_x11_drawable_get_xdisplay(gdrawable);
 	drawable = gdk_x11_drawable_get_xid(gdrawable);
-	gc = XCreateGC(display, drawable, 0, NULL);
 	gcolormap = gdk_drawable_get_colormap(widget->window);
 	colormap = gdk_x11_colormap_get_xcolormap(gcolormap);
 	gvisual = gtk_widget_get_visual(widget);
 	visual = gdk_x11_visual_get_xvisual(gvisual);
 
-	/* Get the already-buffered GDK drawing structures. */
+	/* Reset the GDK drawable to the buffered version. */
 	gdrawable = widget->window;
-	ggc = gdk_gc_new(gdrawable);
 
+	switch (terminal->pvt->render_method) {
 #ifdef HAVE_XFT
-	/* Create a new XftDraw context. */
-	if (terminal->pvt->use_xft) {
+	case VteRenderXft2:
+	case VteRenderXft1:
 		ftdraw = XftDrawCreate(display, drawable, visual, colormap);
 		if (ftdraw == NULL) {
 			g_warning(_("Error allocating draw, disabling Xft."));
-			terminal->pvt->use_xft = FALSE;
+			return;
 		}
-	}
+		break;
 #endif
-
-	/* Create a new pango layout in the correct font. */
-	if (!terminal->pvt->use_xft && terminal->pvt->use_pango) {
-		pcontext = terminal->pvt->pcontext;
-		if (pcontext == NULL) {
+	case VteRenderPango:
+		if (terminal->pvt->pcontext == NULL) {
 			g_warning(_("Error allocating context, "
 				    "disabling Pango."));
-			terminal->pvt->use_pango = FALSE;
-		} else {
-			layout = pango_layout_new(pcontext);
-			if (layout == NULL) {
-				g_warning(_("Error allocating layout, "
-					    "disabling Pango."));
-				terminal->pvt->use_pango = FALSE;
-			} else {
-				pango_layout_set_font_description(layout,
-								  terminal->pvt->fontdesc);
-			}
+			return;
 		}
+		layout = pango_layout_new(terminal->pvt->pcontext);
+		if (layout == NULL) {
+			g_warning(_("Error allocating layout, "
+				    "disabling Pango."));
+			return;
+		}
+		pango_layout_set_font_description(layout,
+						  terminal->pvt->fontdesc);
+		break;
+	case VteRenderXlib:
+	default:
+		/* do nothing */
+		break;
 	}
+
+	gc = XCreateGC(display, drawable, 0, NULL);
+	ggc = gdk_gc_new(gdrawable);
 
 	/* Keep local copies of rendering information. */
 	width = terminal->char_width;
@@ -12009,6 +12011,25 @@ vte_terminal_set_audible_bell(VteTerminal *terminal, gboolean audible)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->audible_bell = audible;
 }
+gboolean
+vte_terminal_get_audible_bell(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	return terminal->pvt->audible_bell;
+}
+
+void
+vte_terminal_set_visible_bell(VteTerminal *terminal, gboolean visible)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->visible_bell = visible;
+}
+gboolean
+vte_terminal_get_visible_bell(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	return terminal->pvt->visible_bell;
+}
 
 void
 vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll)
@@ -12522,7 +12543,8 @@ gboolean
 vte_terminal_get_using_xft(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return terminal->pvt->use_xft;
+	return (terminal->pvt->render_method == VteRenderXft2) ||
+	       (terminal->pvt->render_method == VteRenderXft1);
 }
 
 /* Toggle the cursor blink setting. */
