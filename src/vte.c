@@ -209,7 +209,9 @@ struct _VteTerminalPrivate {
 			long row, col;
 		} cursor_current, cursor_saved;
 					/* the current and saved positions of
-					   the [insertion] cursor */
+					   the [insertion] cursor -- current is
+					   absolute, saved is relative to the
+					   insertion delta */
 		gboolean reverse_mode;	/* reverse mode */
 		gboolean insert_mode;	/* insert mode */
 		struct vte_scrolling_region {
@@ -2678,8 +2680,11 @@ vte_sequence_handler_rc(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	screen->cursor_current.col = screen->cursor_saved.col;
-	screen->cursor_current.row = screen->cursor_saved.row +
-				     screen->insert_delta;
+	screen->cursor_current.row = CLAMP(screen->cursor_saved.row +
+					   screen->insert_delta,
+					   screen->insert_delta,
+					   screen->insert_delta +
+					   terminal->row_count - 1);
 }
 
 /* Cursor right N characters. */
@@ -2704,8 +2709,9 @@ vte_sequence_handler_sc(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	screen->cursor_saved.col = screen->cursor_current.col;
-	screen->cursor_saved.row = screen->cursor_current.row -
-				   screen->insert_delta;
+	screen->cursor_saved.row = CLAMP(screen->cursor_current.row -
+					 screen->insert_delta,
+					 0, terminal->row_count - 1);
 }
 
 /* Standout end. */
@@ -7668,7 +7674,7 @@ vte_terminal_get_cursor_position(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	*column = terminal->pvt->screen->cursor_current.col;
 	*row    = terminal->pvt->screen->cursor_current.row -
-		  terminal->pvt->screen->scroll_delta;
+		  terminal->pvt->screen->insert_delta;
 }
 
 /* Place the selected text onto the clipboard.  Do this asynchronously so that
@@ -12357,7 +12363,7 @@ vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
 void
 vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 {
-	long old_delta = 0, new_delta = 0, delta;
+	long old_next = 0, new_next = 0, delta;
 	VteScreen *screens[2];
 	int i;
 
@@ -12379,9 +12385,9 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 		 * in the buffer is so that we can compensate for it being
 		 * moved.  We track the end of the data instead of the start
 		 * so that the visible portion of the buffer doesn't change. */
-		old_delta = 0;
+		old_next = 0;
 		if (screens[i]->row_data != NULL) {
-			old_delta = vte_ring_next(screens[i]->row_data);
+			old_next = vte_ring_next(screens[i]->row_data);
 		}
 		/* The main screen gets the full scrollback buffer, but the
 		 * alternate screen isn't allowed to scroll at all. */
@@ -12392,10 +12398,12 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 			vte_terminal_reset_rowdata(&screens[i]->row_data,
 						   lines);
 		}
-		new_delta = vte_ring_next(screens[i]->row_data);
-		delta = MAX(0, new_delta - old_delta);
+		new_next = vte_ring_next(screens[i]->row_data);
+		/* Adjust the scrolling delta by the difference of the two --
+		 * this should keep the same lines in the same places on the
+		 * screen. */
+		delta = MAX(0, new_next - old_next);
 		screens[i]->cursor_current.row += delta;
-		screens[i]->cursor_saved.row += delta;
 		screens[i]->scroll_delta += delta;
 		screens[i]->insert_delta += delta;
 	}
