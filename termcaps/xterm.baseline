@@ -1,22 +1,19 @@
-# This is a cut-down version of the termcap file from my box with some entries
-# removed (add them back in to override the terminal's behavior):
-# kI (Insert, Delete is handled programmatically)
-# kP/kN (Page Up, Page Down)
-# ku/kd/kl/kr (Up, Down, Left, Right)
-# k1/kd2/k3/k4/k5/k6/k7/k8/k9/k; (F1-F10)
-# K1/K2/K3/K4/K5 (KP Up, Down, Left, Right, Begin)
+# XFree86 updates/notes/new entries (including xterm-8bit, xterm-16color)
+# - Thomas E. Dickey <dickey@clark.net>
+# [snip]
 xterm-xfree86|xterm-new|xterm terminal emulator (XFree86):\
 	:am:km:mi:ms:xn:\
 	:co#80:it#8:li#24:\
 	:AL=\E[%dL:DC=\E[%dP:DL=\E[%dM:DO=\E[%dB:IC=\E[%d@:\
-	:LE=\E[%dD:\
+	:K1=\EOw:K2=\EOy:K3=\EOu:K4=\EOq:K5=\EOs:LE=\E[%dD:\
 	:RI=\E[%dC:UP=\E[%dA:ae=^O:al=\E[L:as=^N:bl=^G:bt=\E[Z:\
 	:cd=\E[J:ce=\E[K:cl=\E[H\E[2J:cm=\E[%i%d;%dH:cr=^M:\
 	:cs=\E[%i%d;%dr:ct=\E[3g:dc=\E[P:dl=\E[M:do=^J:ec=\E[%dX:\
 	:ei=\E[4l:ho=\E[H:im=\E[4h:is=\E[!p\E[?3;4l\E[4l\E>:\
-	:kD=\177:\
-	:kb=^H:ke=\E[?1l\E>:kh=\E[1~:\
-	:ks=\E[?1h\E=:le=^H:mb=\E[5m:md=\E[1m:\
+	:k1=\EOP:k2=\EOQ:k3=\EOR:k4=\EOS:k5=\E[15~:k6=\E[17~:\
+	:k7=\E[18~:k8=\E[19~:k9=\E[20~:kD=\177:kI=\E[2~:kN=\E[6~:\
+	:kP=\E[5~:kb=^H:kd=\EOB:ke=\E[?1l\E>:kh=\E[1~:kl=\EOD:\
+	:kr=\EOC:ks=\E[?1h\E=:ku=\EOA:le=^H:mb=\E[5m:md=\E[1m:\
 	:me=\E[m\017:mr=\E[7m:nd=\E[C:rc=\E8:sc=\E7:se=\E[27m:\
 	:sf=^J:so=\E[7m:sr=\EM:st=\EH:ta=^I:te=\E[?1047l\E[?1048l:\
 	:ti=\E[?1048h\E[?1047h:ue=\E[24m:up=\E[A:us=\E[4m:\
@@ -26,6 +23,11 @@ xterm-xfree86|xterm-new|xterm terminal emulator (XFree86):\
 # the keyboard configuration section of the Debian Policy Manual.
 xterm-redhat|Red Hat xterm (backspace and delete changed):\
 	:kD=\E[3~:kb=\177:tc=xterm-xfree86:
+# This should work for the commonly used "color xterm" variations (XFree86
+# xterm, color_xterm, nxterm, rxvt):
+xterm-color|generic "ANSI" color xterm (X Window System):\
+	:Co#8:NC@:pa#64:\
+	:AB=\E[4%dm:AF=\E[3%dm:op=\E[m:tc=xterm-r6:
 # This is the only entry which you should have to customize, since "xterm"
 # is widely used for a variety of incompatible terminal emulations including
 # color_xterm and rxvt.

@@ -66,44 +66,46 @@ clear(void)
 static void
 print_help(void)
 {
+	g_print(ESC "[m");
 	home();
 	g_print(ESC "[K" "A - KEYPAD ");
 	if (keypad_mode == application) {
-		g_print("APPLICATION\n");
+		g_print("APPLICATION\r\n");
 	} else {
-		g_print("NORMAL\n");
+		g_print("NORMAL\r\n");
 	}
 	g_print(ESC "[K" "B - CURSOR ");
 	if (cursor_mode == application) {
-		g_print("APPLICATION\n");
+		g_print("APPLICATION\r\n");
 	} else {
-		g_print("NORMAL\n");
+		g_print("NORMAL\r\n");
 	}
 	g_print(ESC "[K" "C - SUN    ");
 	if (sun_fkeys) {
-		g_print("TRUE\n");
+		g_print("TRUE\r\n");
 	} else {
-		g_print("FALSE\n");
+		g_print("FALSE\r\n");
 	}
 	g_print(ESC "[K" "D - HP     ");
 	if (hp_fkeys) {
-		g_print("TRUE\n");
+		g_print("TRUE\r\n");
 	} else {
-		g_print("FALSE\n");
+		g_print("FALSE\r\n");
 	}
 	g_print(ESC "[K" "E - XTERM  ");
 	if (xterm_fkeys) {
-		g_print("TRUE\n");
+		g_print("TRUE\r\n");
 	} else {
-		g_print("FALSE\n");
+		g_print("FALSE\r\n");
 	}
 	g_print(ESC "[K" "F - VT220  ");
 	if (vt220_fkeys) {
-		g_print("TRUE\n");
+		g_print("TRUE\r\n");
 	} else {
-		g_print("FALSE\n");
+		g_print("FALSE\r\n");
 	}
-	g_print(ESC "[K" "Q - QUIT\n");
+	g_print(ESC "[K" "R - RESET\r\n");
+	g_print(ESC "[K" "Q - QUIT\r\n");
 }
 
 static void
@@ -115,7 +117,7 @@ reset_scrolling_region(void)
 static void
 set_scrolling_region(void)
 {
-	g_print(ESC "[9;24r");
+	g_print(ESC "[10;24r");
 	g_print(ESC "[9;1H");
 }
 
@@ -171,7 +173,7 @@ main(int argc, char **argv)
 	}
 	original = tcattr;
 	signal(SIGINT, sigint_handler);
-	tcattr.c_lflag = tcattr.c_lflag & ~(ICANON | ECHO);
+	cfmakeraw(&tcattr);
 	if (tcsetattr(STDIN_FILENO, TCSANOW, &tcattr) != 0) {
 		perror("tcsetattr");
 		return 1;
@@ -227,9 +229,22 @@ main(int argc, char **argv)
 			vt220_fkeys = !vt220_fkeys;
 			decset(MODE_VT220_FUNCTION_KEYS, vt220_fkeys);
 			break;
+		case 'R':
+		case 'r':
+			keypad_mode = cursor_mode = normal;
+			sun_fkeys = hp_fkeys = xterm_fkeys = vt220_fkeys = FALSE;
+			reset();
+			break;
 		case 'Q':
 		case 'q':
 			done = TRUE;
+			break;
+		case 0x0c:
+			clear();
+			if (saved) {
+				restore_cursor();
+				saved = FALSE;
+			}
 			break;
 		default:
 			if (saved) {
@@ -248,6 +263,7 @@ main(int argc, char **argv)
 			case 27:
 				g_print("<ESC> ");
 				break;
+			case 0:
 			case 1:
 			case 2:
 			case 3:

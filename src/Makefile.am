@@ -6,6 +6,7 @@ pkglib_SCRIPTS = decset osc window
 noinst_PROGRAMS = dumpkeys iso2022 pty reaper ring table termcap trie
 EXTRA_DIST = \
 	$(pkglib_SCRIPTS) \
+	genkeysyms.py \
 	marshal.list \
 	unitable.CNS11643 \
 	unitable.GB12345 \
@@ -16,6 +17,8 @@ EXTRA_DIST = \
 	unitable.KSC5601
 
 CFLAGS = @CFLAGS@ @VTE_CFLAGS@ @X_CFLAGS@
+
+EXTRA_libvte_la_SOURCES = keysyms.c
 
 libvte_la_SOURCES = \
 	buffer.c \

@@ -1,3 +1,16 @@
+2002-11-25  nalin
+	* src/debug.c, src/debug.h: add keyboard debugging class.
+	* src/dumpkeys.c: refresh on Ctrl-L, reset on 'r'.
+	* src/keymap.c, src/keymap.h: add more setting combinations, and a
+	simplistic check for more complete coverage.
+	* src/vte.c: add debug messages for keyboard handling.  Improve
+	detection of invalid coordinates as a signal that no text is selected
+	or hilited.
+	* termcaps/xterm.baseline: add a baseline copy of xterm from my termcap,
+	so that I can diff it more easily.
+	* termcaps/xterm: remove key definitions -- xterm's way more complicated
+	than the capability strings suggest.
+	
 2002-11-22  nalin
 	* configure.in: incorporate more correct check for the right version of
 	gtk-doc (#99314).

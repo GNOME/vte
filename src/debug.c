@@ -67,6 +67,9 @@ _vte_debug_parse_string(const char *string)
 			} else
 			if (g_ascii_strcasecmp(flags[i], "CURSOR") == 0) {
 				_vte_debug_flags |= VTE_DEBUG_CURSOR;
+			} else
+			if (g_ascii_strcasecmp(flags[i], "KEYBOARD") == 0) {
+				_vte_debug_flags |= VTE_DEBUG_KEYBOARD;
 			}
 		}
 		g_strfreev(flags);

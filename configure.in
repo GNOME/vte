@@ -28,12 +28,12 @@ X_LIBS="$X_PRE_LIBS $X_LIBS -lX11 $X_EXTRA_LIBS"
 PKG_CHECK_MODULES(GOBJECT,[glib-2.0 gobject-2.0])
 savelibs="$LIBS"
 LIBS="$X_LIBS $LIBS"
+wantedmodules="glib-2.0 gobject-2.0 gdk-pixbuf-2.0 gtk+-2.0 pangox"
 if pkg-config --exists pangoxft '>=' 1.1.0 ; then
 	AC_DEFINE(HAVE_XFT2,1,[Whether we have Xft version 2])
-	PKG_CHECK_MODULES(VTE,[glib-2.0 gobject-2.0 gdk-pixbuf-2.0 gtk+-2.0 pangox fontconfig xft])
-else
-	PKG_CHECK_MODULES(VTE,[glib-2.0 gobject-2.0 gdk-pixbuf-2.0 gtk+-2.0 pangox])
+	wantedmodules="$wantedmodules fontconfig xft"
 fi
+PKG_CHECK_MODULES(VTE,[$wantedmodules])
 LIBS="$savelibs"
 # Check whether the combination of X and GLib/Pango/GTK+ libraries includes
 # Xft somewhere.

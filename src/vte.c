@@ -98,7 +98,7 @@ typedef gunichar wint_t;
 #define VTE_DEFAULT_EMULATION		"xterm"
 #define VTE_DEFAULT_CURSOR		GDK_XTERM
 #define VTE_MOUSING_CURSOR		GDK_LEFT_PTR
-#define VTE_XFT_HARD_LIMIT		88
+#define VTE_DRAW_MAX_LENGTH		88
 #define VTE_TAB_MAX			999
 #define VTE_X_FIXED			"-*-fixed-medium-r-normal-*-20-*"
 #define VTE_REPRESENTATIVE_CHARACTERS	"ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
@@ -347,6 +347,11 @@ struct _VteTerminalPrivate {
 		gboolean ftcolor_allocated;
 #endif
 	} palette[VTE_DIM_FG + 1];
+	XwcTextItem xlib_textitem[VTE_DRAW_MAX_LENGTH];
+	wchar_t xlib_wcitem[VTE_DRAW_MAX_LENGTH];
+#ifdef HAVE_XFT
+	XftCharSpec xft_textitem[VTE_DRAW_MAX_LENGTH];
+#endif
 
 	/* Mouse cursors. */
 	GdkCursor *mouse_default_cursor,
@@ -4304,6 +4309,46 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		/* Make the pointer visible. */
 		vte_terminal_set_pointer_visible(terminal, TRUE);
 		break;
+	case 1051:
+		/* Sun mode? Make it mutually-exclusive. */
+		if (set) {
+#ifdef VTE_DEBUG
+			if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+				fprintf(stderr, "Entering Sun fkey mode.\n");
+			}
+#endif
+		}
+		break;
+	case 1052:
+		/* HP mode? Make it mutually-exclusive. */
+		if (set) {
+#ifdef VTE_DEBUG
+			if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+				fprintf(stderr, "Entering HP fkey mode.\n");
+			}
+#endif
+		}
+		break;
+	case 1060:
+		/* Legacy mode? Make it mutually-exclusive. */
+		if (set) {
+#ifdef VTE_DEBUG
+			if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+				fprintf(stderr, "Entering Legacy fkey mode.\n");
+			}
+#endif
+		}
+		break;
+	case 1061:
+		/* VT220 mode? Make it mutually-exclusive. */
+		if (set) {
+#ifdef VTE_DEBUG
+			if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+				fprintf(stderr, "Entering VT220 fkey mode.\n");
+			}
+#endif
+		}
+		break;
 	default:
 		break;
 	}
@@ -7205,7 +7250,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	struct termios tio;
 	struct timeval tv;
 	struct timezone tz;
-	gboolean scrolled = FALSE, steal = FALSE, modifier = FALSE, handled;
+	gboolean scrolled = FALSE, steal = FALSE, modifier = FALSE, handled,
+		 suppress_meta_esc = FALSE;
 	VteKeymode keypad_mode = VTE_KEYMODE_NORMAL,
 		   cursor_mode = VTE_KEYMODE_NORMAL;
 	guint keyval = 0;
@@ -7298,7 +7344,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	}
 
 	/* Now figure out what to send to the child. */
-	if (event->type == GDK_KEY_PRESS) {
+	if ((event->type == GDK_KEY_PRESS) && !modifier) {
 		handled = FALSE;
 		/* Map the key to a sequence name if we can. */
 		switch (keyval) {
@@ -7329,6 +7375,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				break;
 			}
 			handled = TRUE;
+			suppress_meta_esc = TRUE;
 			break;
 		case GDK_KP_Delete:
 		case GDK_Delete:
@@ -7348,16 +7395,16 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				break;
 			}
 			handled = TRUE;
+			suppress_meta_esc = TRUE;
 			break;
 		case GDK_KP_Insert:
 		case GDK_Insert:
 			if (modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_paste(terminal,
 						   GDK_SELECTION_PRIMARY);
-			} else {
-				special = "kI";
+				handled = TRUE;
+				suppress_meta_esc = TRUE;
 			}
-			handled = TRUE;
 			break;
 		/* Keypad/motion keys. */
 		case GDK_KP_Page_Up:
@@ -7366,6 +7413,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				vte_terminal_scroll_pages(terminal, -1);
 				scrolled = TRUE;
 				handled = TRUE;
+				suppress_meta_esc = TRUE;
 			}
 			break;
 		case GDK_KP_Page_Down:
@@ -7374,6 +7422,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				vte_terminal_scroll_pages(terminal, 1);
 				scrolled = TRUE;
 				handled = TRUE;
+				suppress_meta_esc = TRUE;
 			}
 			break;
 		/* Let Shift +/- tweak the font, like XTerm does. */
@@ -7384,10 +7433,12 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				case GDK_KP_Add:
 					vte_terminal_emit_increase_font_size(terminal);
 					handled = TRUE;
+					suppress_meta_esc = TRUE;
 					break;
 				case GDK_KP_Subtract:
 					vte_terminal_emit_decrease_font_size(terminal);
 					handled = TRUE;
+					suppress_meta_esc = TRUE;
 					break;
 				}
 			}
@@ -7405,9 +7456,18 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 					terminal->pvt->vt220_fkey_mode,
 					terminal->pvt->cursor_mode == VTE_KEYMODE_APPLICATION,
 					terminal->pvt->keypad_mode == VTE_KEYMODE_APPLICATION,
+					terminal->pvt->termcap,
+					terminal->pvt->emulation ?
+					terminal->pvt->emulation : "xterm",
 					&normal,
 					&normal_length,
 					&special);
+			/* If we found something this way, suppress
+			 * escape-on-meta. */
+			if (((normal != NULL) && (normal_length > 0)) ||
+			    (special != NULL)) {
+				suppress_meta_esc = TRUE;
+			}
 		}
 		/* If we didn't manage to do anything, try to salvage a
 		 * printable string. */
@@ -7448,19 +7508,20 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		/* If we got normal characters, send them to the child. */
 		if (normal != NULL) {
 			if (terminal->pvt->meta_sends_escape &&
+			    !suppress_meta_esc &&
 			    (normal_length > 0) &&
 			    (modifiers & VTE_META_MASK)) {
 				vte_terminal_feed_child(terminal, "", 1);
 			}
 			if (normal_length > 0) {
-				_vte_keymap_key_add_modifiers(keyval,
-							      modifiers,
-							      terminal->pvt->sun_fkey_mode,
-							      terminal->pvt->hp_fkey_mode,
-							      terminal->pvt->legacy_fkey_mode,
-							      terminal->pvt->vt220_fkey_mode,
-							      &normal,
-							      &normal_length);
+				_vte_keymap_key_add_fkey_modifiers(keyval,
+								   modifiers,
+								   terminal->pvt->sun_fkey_mode,
+								   terminal->pvt->hp_fkey_mode,
+								   terminal->pvt->legacy_fkey_mode,
+								   terminal->pvt->vt220_fkey_mode,
+								   &normal,
+								   &normal_length);
 				vte_terminal_feed_child(terminal,
 							normal, normal_length);
 			}
@@ -7474,14 +7535,14 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 								 tterm,
 								 special,
 								 &normal_length);
-			_vte_keymap_key_add_modifiers(keyval,
-						      modifiers,
-						      terminal->pvt->sun_fkey_mode,
-						      terminal->pvt->hp_fkey_mode,
-						      terminal->pvt->legacy_fkey_mode,
-						      terminal->pvt->vt220_fkey_mode,
-						      &normal,
-						      &normal_length);
+			_vte_keymap_key_add_fkey_modifiers(keyval,
+							   modifiers,
+							   terminal->pvt->sun_fkey_mode,
+							   terminal->pvt->hp_fkey_mode,
+							   terminal->pvt->legacy_fkey_mode,
+							   terminal->pvt->vt220_fkey_mode,
+							   &normal,
+							   &normal_length);
 			output = g_strdup_printf(normal, 1);
 			vte_terminal_feed_child(terminal, output, -1);
 			g_free(output);
@@ -7598,6 +7659,10 @@ vte_cell_is_between(glong col, glong row,
 		    glong acol, glong arow, glong bcol, glong brow,
 		    gboolean inclusive)
 {
+	/* Negative between never allowed. */
+	if ((arow > brow) || ((arow == brow) && (acol > bcol))) {
+		return FALSE;
+	}
 	/* Zero-length between only allowed if we're being inclusive. */
 	if ((row == arow) && (row == brow) && (col == acol) && (col == bcol)) {
 		return inclusive;
@@ -7659,10 +7724,15 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 		return FALSE;
 	}
 
-	/* Now it boils down to whether or not the point is between the
-	 * begin and endpoint of the selection. */
+	/* If the selection is obviously bogus, then it's also very easy. */
 	ss = terminal->pvt->selection_start;
 	se = terminal->pvt->selection_end;
+	if ((ss.y < 0) || (se.y < 0)) {
+		return FALSE;
+	}
+
+	/* Now it boils down to whether or not the point is between the
+	 * begin and endpoint of the selection. */
 	return vte_cell_is_between(col, row, ss.x, ss.y, se.x, se.y, TRUE);
 }
 
@@ -7885,11 +7955,11 @@ vte_terminal_match_hilite_clear(VteTerminal *terminal)
 	scolumn = terminal->pvt->match_start.column;
 	erow = terminal->pvt->match_end.row;
 	ecolumn = terminal->pvt->match_end.column;
-	if ((srow != erow) || (scolumn != ecolumn)) {
-		terminal->pvt->match_start.row = 0;
-		terminal->pvt->match_start.column = 0;
-		terminal->pvt->match_end.row = 0;
-		terminal->pvt->match_end.column = 0;
+	terminal->pvt->match_start.row = -1;
+	terminal->pvt->match_start.column = -1;
+	terminal->pvt->match_end.row = -2;
+	terminal->pvt->match_end.column = -2;
+	if ((srow < erow) || ((srow == erow) && (scolumn < ecolumn))) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
 			fprintf(stderr, "Repainting (%ld,%ld) to (%ld,%ld).\n",
@@ -8502,18 +8572,25 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 		/* Find the last non-space character on the first line. */
 		last_nonspace = -1;
 		for (i = 0; i < rowdata->len; i++) {
-			cell = &g_array_index(rowdata, struct vte_charcell, i);
+			cell = &g_array_index(rowdata,
+					      struct vte_charcell, i);
 			if (!g_unichar_isspace(cell->c)) {
 				last_nonspace = i;
 			}
 		}
-		/* Now find the space after it. */
+		/* Now find the first space after it. */
 		i = last_nonspace + 1;
-		/* If the start point is to its right, then move the startpoint
-		 * up to the beginning of the next line. */
+		/* If the start point is to its right, then move the
+		 * startpoint up to the beginning of the next line
+		 * unless that would move the startpoint after the end
+		 * point. */
 		if (sc->x > i) {
-			sc->x = 0;
-			sc->y++;
+			if (sc->y < ec->y) {
+				sc->x = 0;
+				sc->y++;
+			} else {
+				sc->x = i;
+			}
 		}
 	} else {
 		/* Snap to the leftmost column. */
@@ -8535,10 +8612,10 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 				last_nonspace = i;
 			}
 		}
-		/* Now find the space after it. */
+		/* Now find the first space after it. */
 		i = last_nonspace + 1;
-		/* If the end point is to its right, then extend the endpoint
-		 * as far right as we can expect. */
+		/* If the end point is to its right, then extend the
+		 * endpoint as far right as we can expect. */
 		if (ec->x >= i) {
 			ec->x = MAX(ec->x,
 				    MAX(terminal->column_count - 1,
@@ -10675,9 +10752,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->match_attributes = NULL;
 	pvt->match_regexes = g_array_new(FALSE, TRUE,
 					 sizeof(struct vte_match_regex));
-	pvt->match_start.row = 0;
-	pvt->match_start.column = 0;
-	pvt->match_end = pvt->match_start;
+	vte_terminal_match_hilite_clear(terminal);
 
 	/* Server-side rendering data.  Try everything. */
 	pvt->palette_initialized = FALSE;
@@ -12328,7 +12403,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	XftChar32 ftchar;
 #endif
 	gunichar c;
-	char utf8_buf[VTE_UTF8_BPC];
+	char utf8_buf[VTE_UTF8_BPC * VTE_DRAW_MAX_LENGTH];
 
 	wchar_t wc;
 	XwcTextItem textitem;
@@ -12362,7 +12437,8 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		}
 #endif
 		/* Set up the draw request. */
-		ftcharspecs = g_malloc(sizeof(XftCharSpec) * n);
+		ftcharspecs = terminal->pvt->xft_textitem;
+		g_assert(n <= G_N_ELEMENTS(terminal->pvt->xft_textitem));
 		for (i = columns = 0; i < n; i++) {
 			c = items[i].c ? items[i].c : ' ';
 			ftcharspecs[i].ucs4 = vte_terminal_xft_remap_char(display,
@@ -12393,8 +12469,6 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 						ftcharspecs, n);
 			}
 		}
-		/* Clean up. */
-		g_free(ftcharspecs);
 		break;
 #endif
 	case VteRenderXft1:
@@ -12756,7 +12830,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		/* Now find out how many cells have the same attributes. */
 		for (j = i + 1;
 		     (j < column + column_count) &&
-		     (j - i < VTE_XFT_HARD_LIMIT);
+		     (j - i < VTE_DRAW_MAX_LENGTH);
 		     j++) {
 			/* Retrieve the cell. */
 			cell = vte_terminal_find_charcell(terminal, j, row);
