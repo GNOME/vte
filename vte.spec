@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.8.9
+Version: 0.8.10
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -61,6 +61,9 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Tue Aug 27 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.10-1
+- only perform cr-lf substitutions when pasting
+
 * Tue Aug 27 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.9-1
 - handle forward scrolling again
 

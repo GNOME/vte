@@ -1,4 +1,10 @@
 2002-08-27 nalin
+	* src/vte.c: Only perform cr-lf substitutions when pasting text, not
+	when inputting from a live user (Red Hat #72639).  Bind GDK_ISO_Left_Tab
+	to kB.  Formatting changes.
+	* termcaps/xterm: Bind kB to back-tab (Red Hat #70340).
+
+2002-08-27 nalin
 	* src/vte.c: Don't tamper with the scrolling offsets -- they're updated
 	when we handle adjustment_changed notifications.  Scroll instead of just
 	moving the cursor down when soft-wrapping to the next line.  Avoid
@@ -375,7 +381,7 @@
 2002-07-13 nalin
 	* src/vte.c (vte_terminal_get_text): Add the proper number of attribute
 	structs to the attribute array to fix crashes which occurred when the
-	buffer contains non-ASCII text (#67930).
+	buffer contains non-ASCII text (Red Hat #67930).
 2002-07-12 nalin
 	* src/vte.c: Small optimization in the al() and dl() handlers.  al()
 	doesn't move the cursor, per GNU termcap docs.  Check for a pixbuf in

@@ -1,4 +1,4 @@
-# This is a cut-down version of the termcap file from my box, with @7, k;,
+# This is a cut-down version of the termcap file from my box, with @7, k;, kB,
 # F1-FA added.
 xterm-xfree86|xterm-new|xterm terminal emulator (XFree86):\
 	:am:km:mi:ms:xn:\
@@ -18,7 +18,7 @@ xterm-xfree86|xterm-new|xterm terminal emulator (XFree86):\
 	:ti=\E[?1048h\E[?1047h:ue=\E[24m:up=\E[A:us=\E[4m:\
 	:vb=\E[?5h\E[?5l:ve=\E[?25h:vi=\E[?25l:vs=\E[?25h:@7=\E[4~:\
 	:F1=\E[23~:F2=\E[24~:F3=\E[25~:F4=\E[26~:F5=\E[28~:\
-	:F6=\E[29~:F7=\E[31~:F8=\E[32~:F9=\E[33~:FA=\E[34~:
+	:F6=\E[29~:F7=\E[31~:F8=\E[32~:F9=\E[33~:FA=\E[34~:kB=\E^I:
 # xterm-redhat is identical to xterm-xfree86 with the addition of a small
 # VT220-ism regarding the backspace and delete keys; this is mandated by
 # the keyboard configuration section of the Debian Policy Manual.

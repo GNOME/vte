@@ -3297,94 +3297,94 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 		}
 		param = g_value_get_long(value);
 		switch (param) {
-			case 0:
-				vte_terminal_set_default_attributes(terminal);
-				break;
-			case 1:
-				terminal->pvt->screen->defaults.bold = 1;
-				break;
-			case 4:
-				terminal->pvt->screen->defaults.underline = 1;
-				break;
-			case 5:
-				terminal->pvt->screen->defaults.blink = 1;
-				break;
-			case 7:
-				terminal->pvt->screen->defaults.reverse = 1;
-				break;
-			case 8:
-				terminal->pvt->screen->defaults.invisible = 1;
-				break;
-			case 21: /* one of these is the linux console */
-			case 22: /* one of these is ecma, i forget which */
-				terminal->pvt->screen->defaults.bold = 0;
-				break;
-			case 24:
-				terminal->pvt->screen->defaults.underline = 0;
-				break;
-			case 25:
-				terminal->pvt->screen->defaults.blink = 0;
-				break;
-			case 27:
-				terminal->pvt->screen->defaults.reverse = 0;
-				break;
-			case 28:
-				terminal->pvt->screen->defaults.invisible = 0;
-				break;
-			case 30:
-			case 31:
-			case 32:
-			case 33:
-			case 34:
-			case 35:
-			case 36:
-			case 37:
-				terminal->pvt->screen->defaults.fore = param - 30;
-				break;
-			case 38:
-				/* default foreground, underscore */
-				terminal->pvt->screen->defaults.fore = VTE_DEF_FG;
-				terminal->pvt->screen->defaults.underline = 1;
-				break;
-			case 39:
-				/* default foreground, no underscore */
-				terminal->pvt->screen->defaults.fore = VTE_DEF_FG;
-				terminal->pvt->screen->defaults.underline = 0;
-				break;
-			case 40:
-			case 41:
-			case 42:
-			case 43:
-			case 44:
-			case 45:
-			case 46:
-			case 47:
-				terminal->pvt->screen->defaults.back = param - 40;
-				break;
-			case 49:
-				/* default background */
-				terminal->pvt->screen->defaults.back = VTE_DEF_BG;
-				break;
-			case 90:
-			case 91:
-			case 92:
-			case 93:
-			case 94:
-			case 95:
-			case 96:
-			case 97:
-				terminal->pvt->screen->defaults.fore = param - 90;
-				break;
-			case 100:
-			case 101:
-			case 102:
-			case 103:
-			case 104:
-			case 105:
-			case 106:
-			case 107:
-				terminal->pvt->screen->defaults.back = param - 100;
-				break;
+		case 0:
+			vte_terminal_set_default_attributes(terminal);
+			break;
+		case 1:
+			terminal->pvt->screen->defaults.bold = 1;
+			break;
+		case 4:
+			terminal->pvt->screen->defaults.underline = 1;
+			break;
+		case 5:
+			terminal->pvt->screen->defaults.blink = 1;
+			break;
+		case 7:
+			terminal->pvt->screen->defaults.reverse = 1;
+			break;
+		case 8:
+			terminal->pvt->screen->defaults.invisible = 1;
+			break;
+		case 21: /* one of these is the linux console */
+		case 22: /* one of these is ecma, i forget which */
+			terminal->pvt->screen->defaults.bold = 0;
+			break;
+		case 24:
+			terminal->pvt->screen->defaults.underline = 0;
+			break;
+		case 25:
+			terminal->pvt->screen->defaults.blink = 0;
+			break;
+		case 27:
+			terminal->pvt->screen->defaults.reverse = 0;
+			break;
+		case 28:
+			terminal->pvt->screen->defaults.invisible = 0;
+			break;
+		case 30:
+		case 31:
+		case 32:
+		case 33:
+		case 34:
+		case 35:
+		case 36:
+		case 37:
+			terminal->pvt->screen->defaults.fore = param - 30;
+			break;
+		case 38:
+			/* default foreground, underscore */
+			terminal->pvt->screen->defaults.fore = VTE_DEF_FG;
+			terminal->pvt->screen->defaults.underline = 1;
+			break;
+		case 39:
+			/* default foreground, no underscore */
+			terminal->pvt->screen->defaults.fore = VTE_DEF_FG;
+			terminal->pvt->screen->defaults.underline = 0;
+			break;
+		case 40:
+		case 41:
+		case 42:
+		case 43:
+		case 44:
+		case 45:
+		case 46:
+		case 47:
+			terminal->pvt->screen->defaults.back = param - 40;
+			break;
+		case 49:
+			/* default background */
+			terminal->pvt->screen->defaults.back = VTE_DEF_BG;
+			break;
+		case 90:
+		case 91:
+		case 92:
+		case 93:
+		case 94:
+		case 95:
+		case 96:
+		case 97:
+			terminal->pvt->screen->defaults.fore = param - 90;
+			break;
+		case 100:
+		case 101:
+		case 102:
+		case 103:
+		case 104:
+		case 105:
+		case 106:
+		case 107:
+			terminal->pvt->screen->defaults.back = param - 100;
+			break;
 		}
 	}
 	/* If we had no parameters, default to the defaults. */
@@ -3867,46 +3867,46 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 
 	/* Do whatever's necessary when the setting changes. */
 	switch (setting) {
-		case 5:
-			/* Repaint everything in reverse mode. */
-			vte_invalidate_all(terminal);
-			break;
-		case 6:
-			/* Reposition the cursor in its new home position. */
-			terminal->pvt->screen->cursor_current.col = 0;
-			terminal->pvt->screen->cursor_current.row =
-				terminal->pvt->screen->insert_delta;
-			break;
-		case 25:
-		case 1048:
-			/* Repaint the cell the cursor is in. */
-			vte_invalidate_cursor_once(terminal);
-			break;
-		case 47:
-		case 1047:
-		case 1049:
-			/* Clear the alternate screen if we're switching
-			 * to it. */
-			if (set) {
-				vte_sequence_handler_clear_screen(terminal,
-								  NULL,
-								  0,
-								  NULL);
-			}
-			/* Reset scrollbars and repaint everything. */
-			vte_terminal_adjust_adjustments(terminal, TRUE);
-			vte_invalidate_all(terminal);
-			break;
-		case 9:
-		case 1000:
-		case 1001:
-		case 1002:
-		case 1003:
-			/* Make the pointer visible. */
-			vte_terminal_set_pointer_visible(terminal, TRUE);
-			break;
-		default:
-			break;
+	case 5:
+		/* Repaint everything in reverse mode. */
+		vte_invalidate_all(terminal);
+		break;
+	case 6:
+		/* Reposition the cursor in its new home position. */
+		terminal->pvt->screen->cursor_current.col = 0;
+		terminal->pvt->screen->cursor_current.row =
+			terminal->pvt->screen->insert_delta;
+		break;
+	case 25:
+	case 1048:
+		/* Repaint the cell the cursor is in. */
+		vte_invalidate_cursor_once(terminal);
+		break;
+	case 47:
+	case 1047:
+	case 1049:
+		/* Clear the alternate screen if we're switching
+		 * to it. */
+		if (set) {
+			vte_sequence_handler_clear_screen(terminal,
+							  NULL,
+							  0,
+							  NULL);
+		}
+		/* Reset scrollbars and repaint everything. */
+		vte_terminal_adjust_adjustments(terminal, TRUE);
+		vte_invalidate_all(terminal);
+		break;
+	case 9:
+	case 1000:
+	case 1001:
+	case 1002:
+	case 1003:
+		/* Make the pointer visible. */
+		vte_terminal_set_pointer_visible(terminal, TRUE);
+		break;
+	default:
+		break;
 	}
 #ifdef VTE_DEBUG
 	if (!recognized) {
@@ -3961,17 +3961,17 @@ vte_sequence_handler_set_mode_internal(VteTerminal *terminal,
 				       long setting, gboolean value)
 {
 	switch (setting) {
-		case 2:		/* keyboard action mode (?) */
-			break;
-		case 4:		/* insert/overtype mode */
-			terminal->pvt->screen->insert_mode = value;
-			break;
-		case 12:	/* send/receive mode (local echo?) */
-			break;
-		case 20:	/* automatic newline / normal linefeed mode */
-			break;
-		default:
-			break;
+	case 2:		/* keyboard action mode (?) */
+		break;
+	case 4:		/* insert/overtype mode */
+		terminal->pvt->screen->insert_mode = value;
+		break;
+	case 12:	/* send/receive mode (local echo?) */
+		break;
+	case 20:	/* automatic newline / normal linefeed mode */
+		break;
+	default:
+		break;
 	}
 }
 
@@ -4103,29 +4103,29 @@ vte_sequence_handler_erase_in_display(VteTerminal *terminal,
 	}
 	/* Clear the right area. */
 	switch (param) {
-		case 0:
-			/* Clear below the current line. */
-			vte_sequence_handler_cd(terminal, NULL, 0, NULL);
-			break;
-		case 1:
-			/* Clear above the current line. */
-			vte_sequence_handler_clear_above_current(terminal,
-								 NULL,
-								 0,
-								 NULL);
-			/* Clear everything to the left of the cursor, too. */
-			/* FIXME: vttest. */
-			vte_sequence_handler_cb(terminal, NULL, 0, NULL);
-			break;
-		case 2:
-			/* Clear the entire screen. */
-			vte_sequence_handler_clear_screen(terminal,
-							  NULL,
-							  0,
-							  NULL);
-			break;
-		default:
-			break;
+	case 0:
+		/* Clear below the current line. */
+		vte_sequence_handler_cd(terminal, NULL, 0, NULL);
+		break;
+	case 1:
+		/* Clear above the current line. */
+		vte_sequence_handler_clear_above_current(terminal,
+							 NULL,
+							 0,
+							 NULL);
+		/* Clear everything to the left of the cursor, too. */
+		/* FIXME: vttest. */
+		vte_sequence_handler_cb(terminal, NULL, 0, NULL);
+		break;
+	case 2:
+		/* Clear the entire screen. */
+		vte_sequence_handler_clear_screen(terminal,
+						  NULL,
+						  0,
+						  NULL);
+		break;
+	default:
+		break;
 	}
 }
 
@@ -4151,21 +4151,21 @@ vte_sequence_handler_erase_in_line(VteTerminal *terminal,
 	}
 	/* Clear the right area. */
 	switch (param) {
-		case 0:
-			/* Clear to end of the line. */
-			vte_sequence_handler_ce(terminal, NULL, 0, NULL);
-			break;
-		case 1:
-			/* Clear to start of the line. */
-			vte_sequence_handler_cb(terminal, NULL, 0, NULL);
-			break;
-		case 2:
-			/* Clear the entire line. */
-			vte_sequence_handler_clear_current_line(terminal,
-								NULL, 0, NULL);
-			break;
-		default:
-			break;
+	case 0:
+		/* Clear to end of the line. */
+		vte_sequence_handler_ce(terminal, NULL, 0, NULL);
+		break;
+	case 1:
+		/* Clear to start of the line. */
+		vte_sequence_handler_cb(terminal, NULL, 0, NULL);
+		break;
+	case 2:
+		/* Clear the entire line. */
+		vte_sequence_handler_clear_current_line(terminal,
+							NULL, 0, NULL);
+		break;
+	default:
+		break;
 	}
 }
 
@@ -4322,25 +4322,22 @@ vte_sequence_handler_device_status_report(VteTerminal *terminal,
 		value = g_value_array_get_nth(params, 0);
 		param = g_value_get_long(value);
 		switch (param) {
-			case 5:
-				/* Send a thumbs-up sequence. */
-				snprintf(buf, sizeof(buf),
-					 "%s%dn", VTE_CAP_CSI, 0);
-				vte_terminal_feed_child(terminal,
-							buf, strlen(buf));
-				break;
-			case 6:
-				/* Send the cursor position. */
-				snprintf(buf, sizeof(buf),
-					 "%s%ld;%ldR", VTE_CAP_CSI,
-					 screen->cursor_current.row + 1 -
-					 screen->insert_delta,
-					 screen->cursor_current.col + 1);
-				vte_terminal_feed_child(terminal,
-							buf, strlen(buf));
-				break;
-			default:
-				break;
+		case 5:
+			/* Send a thumbs-up sequence. */
+			snprintf(buf, sizeof(buf), "%s%dn", VTE_CAP_CSI, 0);
+			vte_terminal_feed_child(terminal, buf, strlen(buf));
+			break;
+		case 6:
+			/* Send the cursor position. */
+			snprintf(buf, sizeof(buf),
+				 "%s%ld;%ldR", VTE_CAP_CSI,
+				 screen->cursor_current.row + 1 -
+				 screen->insert_delta,
+				 screen->cursor_current.col + 1);
+			vte_terminal_feed_child(terminal, buf, strlen(buf));
+			break;
+		default:
+			break;
 		}
 	}
 }
@@ -4363,42 +4360,35 @@ vte_sequence_handler_dec_device_status_report(VteTerminal *terminal,
 		value = g_value_array_get_nth(params, 0);
 		param = g_value_get_long(value);
 		switch (param) {
-			case 6:
-				/* Send the cursor position. */
-				snprintf(buf, sizeof(buf),
-					 "%s?%ld;%ldR", VTE_CAP_CSI,
-					 screen->cursor_current.row + 1 -
-					 screen->insert_delta,
-					 screen->cursor_current.col + 1);
-				vte_terminal_feed_child(terminal,
-							buf, strlen(buf));
-				break;
-			case 15:
-				/* Send printer status -- 10 = ready,
-				 * 11 = not ready.  We don't print. */
-				snprintf(buf, sizeof(buf),
-					 "%s?%dn", VTE_CAP_CSI, 11);
-				vte_terminal_feed_child(terminal,
-							buf, strlen(buf));
-				break;
-			case 25:
-				/* Send UDK status -- 20 = locked,
-				 * 21 = not locked.  I don't even know what
-				 * that means, but punt anyway. */
-				snprintf(buf, sizeof(buf),
-					 "%s?%dn", VTE_CAP_CSI, 20);
-				vte_terminal_feed_child(terminal,
-							buf, strlen(buf));
-				break;
-			case 26:
-				/* Send keyboard status.  50 = no locator. */
-				snprintf(buf, sizeof(buf),
-					 "%s?%dn", VTE_CAP_CSI, 50);
-				vte_terminal_feed_child(terminal,
-							buf, strlen(buf));
-				break;
-			default:
-				break;
+		case 6:
+			/* Send the cursor position. */
+			snprintf(buf, sizeof(buf),
+				 "%s?%ld;%ldR", VTE_CAP_CSI,
+				 screen->cursor_current.row + 1 -
+				 screen->insert_delta,
+				 screen->cursor_current.col + 1);
+			vte_terminal_feed_child(terminal, buf, strlen(buf));
+			break;
+		case 15:
+			/* Send printer status -- 10 = ready,
+			 * 11 = not ready.  We don't print. */
+			snprintf(buf, sizeof(buf), "%s?%dn", VTE_CAP_CSI, 11);
+			vte_terminal_feed_child(terminal, buf, strlen(buf));
+			break;
+		case 25:
+			/* Send UDK status -- 20 = locked,
+			 * 21 = not locked.  I don't even know what
+			 * that means, but punt anyway. */
+			snprintf(buf, sizeof(buf), "%s?%dn", VTE_CAP_CSI, 20);
+			vte_terminal_feed_child(terminal, buf, strlen(buf));
+			break;
+		case 26:
+			/* Send keyboard status.  50 = no locator. */
+			snprintf(buf, sizeof(buf), "%s?%dn", VTE_CAP_CSI, 50);
+			vte_terminal_feed_child(terminal, buf, strlen(buf));
+			break;
+		default:
+			break;
 		}
 	}
 }
@@ -4544,235 +4534,239 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 		}
 		param = g_value_get_long(value);
 		switch (param) {
+		case 1:
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_PARSE)) {
+				fprintf(stderr, "Deiconifying window.\n");
+			}
+#endif
+			vte_terminal_emit_deiconify_window(terminal);
+			break;
+		case 2:
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_PARSE)) {
+				fprintf(stderr, "Iconifying window.\n");
+			}
+#endif
+			vte_terminal_emit_iconify_window(terminal);
+			break;
+		case 3:
+			if ((arg1 != -1) && (arg2 != -2)) {
+#ifdef VTE_DEBUG
+				if (vte_debug_on(VTE_DEBUG_PARSE)) {
+					fprintf(stderr, "Moving window to "
+						"%ld,%ld.\n", arg1, arg2);
+				}
+#endif
+				vte_terminal_emit_move_window(terminal,
+							      arg1, arg2);
+				i += 2;
+			}
+			break;
+		case 4:
+			if ((arg1 != -1) && (arg2 != -1)) {
+#ifdef VTE_DEBUG
+				if (vte_debug_on(VTE_DEBUG_PARSE)) {
+					fprintf(stderr, "Resizing window "
+						"(to %ldx%ld pixels).\n",
+						arg2, arg1);
+				}
+#endif
+				vte_terminal_emit_resize_window(terminal,
+								arg2,
+								arg1);
+				i += 2;
+			}
+			break;
+		case 5:
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_PARSE)) {
+				fprintf(stderr, "Raising window.\n");
+			}
+#endif
+			vte_terminal_emit_raise_window(terminal);
+			break;
+		case 6:
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_PARSE)) {
+				fprintf(stderr, "Lowering window.\n");
+			}
+#endif
+			vte_terminal_emit_lower_window(terminal);
+			break;
+		case 7:
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_PARSE)) {
+				fprintf(stderr, "Refreshing window.\n");
+			}
+#endif
+			vte_invalidate_all(terminal);
+			vte_terminal_emit_refresh_window(terminal);
+			break;
+		case 8:
+			if ((arg1 != -1) && (arg2 != -1)) {
+#ifdef VTE_DEBUG
+				if (vte_debug_on(VTE_DEBUG_PARSE)) {
+					fprintf(stderr, "Resizing window "
+						"(to %ld columns, %ld rows).\n",
+						arg2, arg1);
+				}
+#endif
+				vte_terminal_emit_resize_window(terminal,
+								arg2 * terminal->char_width,
+								arg1 * terminal->char_height);
+				i += 2;
+			}
+			break;
+		case 9:
+			switch (arg1) {
+			case 0:
+#ifdef VTE_DEBUG
+				if (vte_debug_on(VTE_DEBUG_PARSE)) {
+					fprintf(stderr, "Restoring window.\n");
+				}
+#endif
+				vte_terminal_emit_restore_window(terminal);
+				break;
 			case 1:
 #ifdef VTE_DEBUG
 				if (vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Deiconifying window.\n");
+					fprintf(stderr, "Maximizing window.\n");
 				}
 #endif
-				vte_terminal_emit_deiconify_window(terminal);
-				break;
-			case 2:
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Iconifying window.\n");
-				}
-#endif
-				vte_terminal_emit_iconify_window(terminal);
-				break;
-			case 3:
-				if ((arg1 != -1) && (arg2 != -2)) {
-#ifdef VTE_DEBUG
-					if (vte_debug_on(VTE_DEBUG_PARSE)) {
-						fprintf(stderr, "Moving window to %ld,%ld.\n", arg1, arg2);
-					}
-#endif
-					vte_terminal_emit_move_window(terminal, arg1, arg2);
-					i += 2;
-				}
-				break;
-			case 4:
-				if ((arg1 != -1) && (arg2 != -1)) {
-#ifdef VTE_DEBUG
-					if (vte_debug_on(VTE_DEBUG_PARSE)) {
-						fprintf(stderr, "Resizing window (%ldx%ld pixels).\n",
-							arg2, arg1);
-					}
-#endif
-					vte_terminal_emit_resize_window(terminal,
-									arg2,
-									arg1);
-					i += 2;
-				}
-				break;
-			case 5:
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Raising window.\n");
-				}
-#endif
-				vte_terminal_emit_raise_window(terminal);
-				break;
-			case 6:
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Lowering window.\n");
-				}
-#endif
-				vte_terminal_emit_lower_window(terminal);
-				break;
-			case 7:
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Refreshing window.\n");
-				}
-#endif
-				vte_invalidate_all(terminal);
-				vte_terminal_emit_refresh_window(terminal);
-				break;
-			case 8:
-				if ((arg1 != -1) && (arg2 != -1)) {
-#ifdef VTE_DEBUG
-					if (vte_debug_on(VTE_DEBUG_PARSE)) {
-						fprintf(stderr, "Resizing window (%ld columns, %ld rows).\n",
-							arg2, arg1);
-					}
-#endif
-					vte_terminal_emit_resize_window(terminal,
-									arg2 * terminal->char_width,
-									arg1 * terminal->char_height);
-					i += 2;
-				}
-				break;
-			case 9:
-				switch (arg1) {
-					case 0:
-#ifdef VTE_DEBUG
-						if (vte_debug_on(VTE_DEBUG_PARSE)) {
-							fprintf(stderr, "Restoring window.\n");
-						}
-#endif
-						vte_terminal_emit_restore_window(terminal);
-						break;
-					case 1:
-#ifdef VTE_DEBUG
-						if (vte_debug_on(VTE_DEBUG_PARSE)) {
-							fprintf(stderr, "Maximizing window.\n");
-						}
-#endif
-						vte_terminal_emit_maximize_window(terminal);
-						break;
-					default:
-						break;
-				}
-				i++;
-				break;
-			case 11:
-				/* If we're unmapped, then we're iconified. */
-				snprintf(buf, sizeof(buf),
-					 "%s%dt", VTE_CAP_CSI,
-					 1 + !GTK_WIDGET_MAPPED(widget));
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Reporting window state %s.\n",
-						GTK_WIDGET_MAPPED(widget) ?
-						"non-iconified" : "iconified");
-				}
-#endif
-				vte_terminal_feed_child(terminal,
-							buf, strlen(buf));
-				break;
-			case 13:
-				/* Send window location, in pixels. */
-				gdk_window_get_origin(widget->window,
-						      &width, &height);
-				snprintf(buf, sizeof(buf),
-					 "%s%d;%dt", VTE_CAP_CSI,
-					 width, height);
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Reporting window location"
-						"(%d,%d).\n",
-						width, height);
-				}
-#endif
-				vte_terminal_feed_child(terminal,
-							buf, strlen(buf));
-				break;
-			case 14:
-				/* Send window size, in pixels. */
-				gdk_drawable_get_size(widget->window,
-						      &width, &height);
-				snprintf(buf, sizeof(buf),
-					 "%s%d;%dt", VTE_CAP_CSI,
-					 height, width);
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Reporting window size "
-						"(%dx%d).\n", width, height);
-				}
-#endif
-				vte_terminal_feed_child(terminal,
-							buf, strlen(buf));
-				break;
-			case 18:
-				/* Send widget size, in cells. */
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Reporting widget size.\n");
-				}
-#endif
-				snprintf(buf, sizeof(buf),
-					 "%s%ld;%ldt", VTE_CAP_CSI,
-					 terminal->row_count,
-					 terminal->column_count);
-				vte_terminal_feed_child(terminal,
-							buf, strlen(buf));
-				break;
-			case 19:
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Reporting screen size.\n");
-				}
-#endif
-				display = gdk_x11_drawable_get_xdisplay(widget->window);
-				i = gdk_x11_get_default_screen();
-				snprintf(buf, sizeof(buf),
-					 "%s%ld;%ldt", VTE_CAP_CSI,
-					 DisplayHeight(display, i) /
-					 terminal->char_height,
-					 DisplayWidth(display, i) /
-					 terminal->char_width);
-				vte_terminal_feed_child(terminal,
-							buf, strlen(buf));
-				break;
-			case 20:
-				/* Report the icon title. */
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Reporting icon title.\n");
-				}
-#endif
-				snprintf(buf, sizeof(buf),
-					 "%sL%s%s",
-					 VTE_CAP_OSC,
-					 terminal->icon_title ?
-					 terminal->icon_title : "",
-					 VTE_CAP_ST);
-				vte_terminal_feed_child(terminal,
-							buf, strlen(buf));
-				break;
-			case 21:
-				/* Report the window title. */
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Reporting window title.\n");
-				}
-#endif
-				snprintf(buf, sizeof(buf),
-					 "%sL%s%s",
-					 VTE_CAP_OSC,
-					 terminal->window_title ?
-					 terminal->window_title : "",
-					 VTE_CAP_ST);
-				vte_terminal_feed_child(terminal,
-							buf, strlen(buf));
+				vte_terminal_emit_maximize_window(terminal);
 				break;
 			default:
-				if (param >= 24) {
-#ifdef VTE_DEBUG
-					if (vte_debug_on(VTE_DEBUG_PARSE)) {
-						fprintf(stderr, "Resizing to %ld rows.\n",
-							param);
-					}
-#endif
-					/* Resize to the specified number of
-					 * rows. */
-					vte_terminal_emit_resize_window(terminal,
-									terminal->column_count * terminal->char_width,
-									param * terminal->char_height);
-				}
 				break;
+			}
+			i++;
+			break;
+		case 11:
+			/* If we're unmapped, then we're iconified. */
+			snprintf(buf, sizeof(buf),
+				 "%s%dt", VTE_CAP_CSI,
+				 1 + !GTK_WIDGET_MAPPED(widget));
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_PARSE)) {
+				fprintf(stderr, "Reporting window state %s.\n",
+					GTK_WIDGET_MAPPED(widget) ?
+					"non-iconified" : "iconified");
+			}
+#endif
+			vte_terminal_feed_child(terminal,
+						buf, strlen(buf));
+			break;
+		case 13:
+			/* Send window location, in pixels. */
+			gdk_window_get_origin(widget->window,
+					      &width, &height);
+			snprintf(buf, sizeof(buf),
+				 "%s%d;%dt", VTE_CAP_CSI,
+				 width, height);
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_PARSE)) {
+				fprintf(stderr, "Reporting window location"
+					"(%d,%d).\n",
+					width, height);
+			}
+#endif
+			vte_terminal_feed_child(terminal,
+						buf, strlen(buf));
+			break;
+		case 14:
+			/* Send window size, in pixels. */
+			gdk_drawable_get_size(widget->window,
+					      &width, &height);
+			snprintf(buf, sizeof(buf),
+				 "%s%d;%dt", VTE_CAP_CSI,
+				 height, width);
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_PARSE)) {
+				fprintf(stderr, "Reporting window size "
+					"(%dx%d).\n", width, height);
+			}
+#endif
+			vte_terminal_feed_child(terminal,
+						buf, strlen(buf));
+			break;
+		case 18:
+			/* Send widget size, in cells. */
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_PARSE)) {
+				fprintf(stderr, "Reporting widget size.\n");
+			}
+#endif
+			snprintf(buf, sizeof(buf),
+				 "%s%ld;%ldt", VTE_CAP_CSI,
+				 terminal->row_count,
+				 terminal->column_count);
+			vte_terminal_feed_child(terminal,
+						buf, strlen(buf));
+			break;
+		case 19:
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_PARSE)) {
+				fprintf(stderr, "Reporting screen size.\n");
+			}
+#endif
+			display = gdk_x11_drawable_get_xdisplay(widget->window);
+			i = gdk_x11_get_default_screen();
+			snprintf(buf, sizeof(buf),
+				 "%s%ld;%ldt", VTE_CAP_CSI,
+				 DisplayHeight(display, i) /
+				 terminal->char_height,
+				 DisplayWidth(display, i) /
+				 terminal->char_width);
+			vte_terminal_feed_child(terminal,
+						buf, strlen(buf));
+			break;
+		case 20:
+			/* Report the icon title. */
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_PARSE)) {
+				fprintf(stderr, "Reporting icon title.\n");
+			}
+#endif
+			snprintf(buf, sizeof(buf),
+				 "%sL%s%s",
+				 VTE_CAP_OSC,
+				 terminal->icon_title ?
+				 terminal->icon_title : "",
+				 VTE_CAP_ST);
+			vte_terminal_feed_child(terminal,
+						buf, strlen(buf));
+			break;
+		case 21:
+			/* Report the window title. */
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_PARSE)) {
+				fprintf(stderr, "Reporting window title.\n");
+			}
+#endif
+			snprintf(buf, sizeof(buf),
+				 "%sL%s%s",
+				 VTE_CAP_OSC,
+				 terminal->window_title ?
+				 terminal->window_title : "",
+				 VTE_CAP_ST);
+			vte_terminal_feed_child(terminal,
+						buf, strlen(buf));
+			break;
+		default:
+			if (param >= 24) {
+#ifdef VTE_DEBUG
+				if (vte_debug_on(VTE_DEBUG_PARSE)) {
+					fprintf(stderr, "Resizing to %ld rows.\n",
+						param);
+				}
+#endif
+				/* Resize to the specified number of
+				 * rows. */
+				vte_terminal_emit_resize_window(terminal,
+								terminal->column_count * terminal->char_width,
+								param * terminal->char_height);
+			}
+			break;
 		}
 	}
 }
@@ -5395,58 +5389,58 @@ vte_terminal_set_colors(VteTerminal *terminal,
 	 * with. */
 	for (i = 0; (i < G_N_ELEMENTS(terminal->pvt->palette)); i++) {
 		switch (i) {
-			case VTE_DEF_FG:
-				if (foreground != NULL) {
-					color = *foreground;
-				} else {
-					color.red = 0xc000;
-					color.blue = 0xc000;
-					color.green = 0xc000;
-				}
-				break;
-			case VTE_DEF_BG:
-				if (background != NULL) {
-					color = *background;
-				} else {
-					color.red = 0;
-					color.blue = 0;
-					color.green = 0;
-				}
-				break;
-			case VTE_BOLD_FG:
-				vte_terminal_generate_bold(&terminal->pvt->palette[VTE_DEF_FG],
-							   &terminal->pvt->palette[VTE_DEF_BG],
-							   1.8,
-							   &color);
-				break;
-			case 0 + 0:
-			case 0 + 1:
-			case 0 + 2:
-			case 0 + 3:
-			case 0 + 4:
-			case 0 + 5:
-			case 0 + 6:
-			case 0 + 7:
-			case 8 + 0:
-			case 8 + 1:
-			case 8 + 2:
-			case 8 + 3:
-			case 8 + 4:
-			case 8 + 5:
-			case 8 + 6:
-			case 8 + 7:
-				color.blue = (i & 4) ? 0xc000 : 0;
-				color.green = (i & 2) ? 0xc000 : 0;
-				color.red = (i & 1) ? 0xc000 : 0;
-				if (i > 8) {
-					color.blue += 0x3fff;
-					color.green += 0x3fff;
-					color.red += 0x3fff;
-				}
-				break;
-			default:
-				g_assert_not_reached();
-				break;
+		case VTE_DEF_FG:
+			if (foreground != NULL) {
+				color = *foreground;
+			} else {
+				color.red = 0xc000;
+				color.blue = 0xc000;
+				color.green = 0xc000;
+			}
+			break;
+		case VTE_DEF_BG:
+			if (background != NULL) {
+				color = *background;
+			} else {
+				color.red = 0;
+				color.blue = 0;
+				color.green = 0;
+			}
+			break;
+		case VTE_BOLD_FG:
+			vte_terminal_generate_bold(&terminal->pvt->palette[VTE_DEF_FG],
+						   &terminal->pvt->palette[VTE_DEF_BG],
+						   1.8,
+						   &color);
+			break;
+		case 0 + 0:
+		case 0 + 1:
+		case 0 + 2:
+		case 0 + 3:
+		case 0 + 4:
+		case 0 + 5:
+		case 0 + 6:
+		case 0 + 7:
+		case 8 + 0:
+		case 8 + 1:
+		case 8 + 2:
+		case 8 + 3:
+		case 8 + 4:
+		case 8 + 5:
+		case 8 + 6:
+		case 8 + 7:
+			color.blue = (i & 4) ? 0xc000 : 0;
+			color.green = (i & 2) ? 0xc000 : 0;
+			color.red = (i & 1) ? 0xc000 : 0;
+			if (i > 8) {
+				color.blue += 0x3fff;
+				color.green += 0x3fff;
+				color.red += 0x3fff;
+			}
+			break;
+		default:
+			g_assert_not_reached();
+			break;
 		}
 
 		/* Override from the supplied palette if there is one. */
@@ -6253,28 +6247,28 @@ vte_terminal_io_read(GIOChannel *channel,
 	/* Catch errors. */
 	leave_open = TRUE;
 	switch (bcount) {
-		case 0:
-			/* EOF */
-			eof = TRUE;
-			break;
-		case -1:
-			switch (errno) {
-				case EIO: /* Fake an EOF. */
-					eof = TRUE;
-					break;
-				case EAGAIN:
-				case EBUSY:
-					leave_open = TRUE;
-					break;
-				default:
-					g_warning(_("Error reading from child: "
-						    "%s."), strerror(errno));
-					leave_open = TRUE;
-					break;
-			}
-			break;
-		default:
-			break;
+	case 0:
+		/* EOF */
+		eof = TRUE;
+		break;
+	case -1:
+		switch (errno) {
+			case EIO: /* Fake an EOF. */
+				eof = TRUE;
+				break;
+			case EAGAIN:
+			case EBUSY:
+				leave_open = TRUE;
+				break;
+			default:
+				g_warning(_("Error reading from child: "
+					    "%s."), strerror(errno));
+				leave_open = TRUE;
+				break;
+		}
+		break;
+	default:
+		break;
 	}
 
 	/* If we got data, modify the pending buffer. */
@@ -6414,7 +6408,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 {
 	gssize icount, ocount;
 	char *ibuf, *obuf, *obufptr;
-	char *outgoing, *p;
+	char *outgoing;
 	gssize n_outgoing;
 	GIConv *conv;
 
@@ -6449,16 +6443,6 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		/* Save the new outgoing buffer. */
 		terminal->pvt->n_outgoing = n_outgoing;
 		terminal->pvt->outgoing = outgoing;
-		/* Convert newlines to carriage returns, which more software
-		 * is able to cope with (cough, pico, cough). */
-		p = terminal->pvt->outgoing;
-		while ((p != NULL) && (p - outgoing < n_outgoing)) {
-			p = memchr(p, '\n', n_outgoing - (p - outgoing));
-			if (p != NULL) {
-				*p = '\r';
-				p++;
-			}
-		}
 		/* If we need to start waiting for the child pty to become
 		 * available for writing, set that up here. */
 		if (terminal->pvt->pty_output == NULL) {
@@ -6741,39 +6725,39 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 #endif
 		/* Determine if this is just a modifier key. */
 		switch (event->keyval) {
-			case GDK_Alt_L:
-			case GDK_Alt_R:
-			case GDK_Caps_Lock:
-			case GDK_Control_L:
-			case GDK_Control_R:
-			case GDK_Eisu_Shift:
-			case GDK_Hyper_L:
-			case GDK_Hyper_R:
-			case GDK_ISO_First_Group_Lock:
-			case GDK_ISO_Group_Lock:
-			case GDK_ISO_Group_Shift:
-			case GDK_ISO_Last_Group_Lock:
-			case GDK_ISO_Level3_Lock:
-			case GDK_ISO_Level3_Shift:
-			case GDK_ISO_Lock:
-			case GDK_ISO_Next_Group_Lock:
-			case GDK_ISO_Prev_Group_Lock:
-			case GDK_Kana_Lock:
-			case GDK_Kana_Shift:
-			case GDK_Meta_L:
-			case GDK_Meta_R:
-			case GDK_Num_Lock:
-			case GDK_Scroll_Lock:
-			case GDK_Shift_L:
-			case GDK_Shift_Lock:
-			case GDK_Shift_R:
-			case GDK_Super_L:
-			case GDK_Super_R:
-				modifier = TRUE;
-				break;
-			default:
-				modifier = FALSE;
-				break;
+		case GDK_Alt_L:
+		case GDK_Alt_R:
+		case GDK_Caps_Lock:
+		case GDK_Control_L:
+		case GDK_Control_R:
+		case GDK_Eisu_Shift:
+		case GDK_Hyper_L:
+		case GDK_Hyper_R:
+		case GDK_ISO_First_Group_Lock:
+		case GDK_ISO_Group_Lock:
+		case GDK_ISO_Group_Shift:
+		case GDK_ISO_Last_Group_Lock:
+		case GDK_ISO_Level3_Lock:
+		case GDK_ISO_Level3_Shift:
+		case GDK_ISO_Lock:
+		case GDK_ISO_Next_Group_Lock:
+		case GDK_ISO_Prev_Group_Lock:
+		case GDK_Kana_Lock:
+		case GDK_Kana_Shift:
+		case GDK_Meta_L:
+		case GDK_Meta_R:
+		case GDK_Num_Lock:
+		case GDK_Scroll_Lock:
+		case GDK_Shift_L:
+		case GDK_Shift_Lock:
+		case GDK_Shift_R:
+		case GDK_Super_L:
+		case GDK_Super_R:
+			modifier = TRUE;
+			break;
+		default:
+			modifier = FALSE;
+			break;
 		}
 		/* Unless it's a modifier key, hide the pointer. */
 		if (!modifier) {
@@ -6781,14 +6765,14 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		}
 		/* Determine if this is a key we want to steal. */
 		switch (event->keyval) {
-			case GDK_KP_Add:
-			case GDK_KP_Subtract:
-				if (modifiers & GDK_SHIFT_MASK) {
-					steal = TRUE;
-				}
-				break;
-			default:
-				break;
+		case GDK_KP_Add:
+		case GDK_KP_Subtract:
+			if (modifiers & GDK_SHIFT_MASK) {
+				steal = TRUE;
+			}
+			break;
+		default:
+			break;
 		}
 	}
 
@@ -6804,244 +6788,246 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	if (event->type == GDK_KEY_PRESS) {
 		/* Map the key to a sequence name if we can. */
 		switch (event->keyval) {
-			case GDK_BackSpace:
-				switch (terminal->pvt->backspace_binding) {
-					case VTE_ERASE_ASCII_BACKSPACE:
-						normal = g_strdup("");
+		case GDK_BackSpace:
+			switch (terminal->pvt->backspace_binding) {
+			case VTE_ERASE_ASCII_BACKSPACE:
+				normal = g_strdup("");
+				normal_length = 1;
+				break;
+			case VTE_ERASE_ASCII_DELETE:
+				normal = g_strdup("");
+				normal_length = 1;
+				break;
+			case VTE_ERASE_DELETE_SEQUENCE:
+				special = "kD";
+				break;
+			/* Use the tty's erase character. */
+			case VTE_ERASE_AUTO:
+			default:
+				if (terminal->pvt->pty_master != -1) {
+					if (tcgetattr(terminal->pvt->pty_master,
+						      &tio) != -1) {
+						normal = g_strdup_printf("%c",
+									 tio.c_cc[VERASE]);
 						normal_length = 1;
-						break;
-					case VTE_ERASE_ASCII_DELETE:
-						normal = g_strdup("");
-						normal_length = 1;
-						break;
-					case VTE_ERASE_DELETE_SEQUENCE:
-						special = "kD";
-						break;
-					/* Use the tty's erase character. */
-					case VTE_ERASE_AUTO:
-					default:
-						if (terminal->pvt->pty_master != -1) {
-							if (tcgetattr(terminal->pvt->pty_master,
-								      &tio) != -1) {
-								normal = g_strdup_printf("%c",
-											 tio.c_cc[VERASE]);
-								normal_length = 1;
-							}
-						}
-						break;
-				}
-				break;
-			case GDK_KP_Delete:
-			case GDK_Delete:
-				switch (terminal->pvt->delete_binding) {
-					case VTE_ERASE_ASCII_BACKSPACE:
-						normal = g_strdup("");
-						normal_length = 1;
-						break;
-					case VTE_ERASE_ASCII_DELETE:
-						normal = g_strdup("");
-						normal_length = 1;
-						break;
-					case VTE_ERASE_DELETE_SEQUENCE:
-					case VTE_ERASE_AUTO:
-					default:
-						special = "kD";
-						break;
-				}
-				break;
-			case GDK_KP_Insert:
-			case GDK_Insert:
-				if (modifiers & GDK_SHIFT_MASK) {
-					vte_terminal_paste(terminal,
-							   GDK_SELECTION_PRIMARY);
-				} else {
-					special = "kI";
-				}
-				break;
-			case GDK_KP_Home:
-			case GDK_Home:
-				special = "kh";
-				break;
-			case GDK_KP_End:
-			case GDK_End:
-				special = "@7";
-				break;
-			case GDK_F1:
-			case GDK_F2:
-			case GDK_F3:
-			case GDK_F4:
-			case GDK_F5:
-			case GDK_F6:
-			case GDK_F7:
-			case GDK_F8:
-			case GDK_F9:
-			case GDK_F10:
-			case GDK_F11:
-			case GDK_F12:
-			case GDK_F13:
-			case GDK_F14:
-			case GDK_F15:
-			case GDK_F16:
-			case GDK_F17:
-			case GDK_F18:
-			case GDK_F19:
-			case GDK_F20:
-			case GDK_F21:
-			case GDK_F22:
-			case GDK_F23:
-			case GDK_F24:
-			case GDK_F25:
-			case GDK_F26:
-			case GDK_F27:
-			case GDK_F28:
-			case GDK_F29:
-			case GDK_F30:
-			case GDK_F31:
-			case GDK_F32:
-			case GDK_F33:
-			case GDK_F34:
-			case GDK_F35:
-				for (i = 0;
-				     i < G_N_ELEMENTS(vte_keysym_map);
-				     i++) {
-					if (vte_keysym_map[i].keyval == event->keyval) {
-						if (terminal->pvt->fkey == VTE_FKEY_VT220) {
-							if ((modifiers & GDK_CONTROL_MASK) && vte_keysym_map[i].vt_ctrl_special) {
-								special = vte_keysym_map[i].vt_ctrl_special;
-							} else {
-								special = vte_keysym_map[i].special;
-							}
-						}
-						if (terminal->pvt->fkey == VTE_FKEY_SUNPC) {
-							special = vte_keysym_map[i].special;
-							i = 0;
-							if (modifiers & GDK_CONTROL_MASK) {
-								i += 4;
-							}
-							if (modifiers & GDK_MOD1_MASK) {
-								i += 2;
-							}
-							if (modifiers & GDK_SHIFT_MASK) {
-								i += 1;
-							}
-							if (i > 0) {
-								specialmods = g_strdup_printf("%d", i + 1);
-							}
-						}
-						break;
 					}
 				}
 				break;
-			/* Cursor keys. */
-			case GDK_KP_Up:
-			case GDK_Up:
-				special = "ku";
+			}
+			break;
+		case GDK_KP_Delete:
+		case GDK_Delete:
+			switch (terminal->pvt->delete_binding) {
+			case VTE_ERASE_ASCII_BACKSPACE:
+				normal = g_strdup("");
+				normal_length = 1;
 				break;
-			case GDK_KP_Down:
-			case GDK_Down:
-				special = "kd";
+			case VTE_ERASE_ASCII_DELETE:
+				normal = g_strdup("");
+				normal_length = 1;
 				break;
-			case GDK_KP_Left:
-			case GDK_Left:
-				special = "kl";
+			case VTE_ERASE_DELETE_SEQUENCE:
+			case VTE_ERASE_AUTO:
+			default:
+				special = "kD";
 				break;
-			case GDK_KP_Right:
-			case GDK_Right:
-				special = "kr";
-				break;
-			case GDK_KP_Page_Up:
-			case GDK_Page_Up:
-				if (modifiers & GDK_SHIFT_MASK) {
-					vte_terminal_scroll_pages(terminal, -1);
-					scrolled = TRUE;
-				} else {
-					special = "kP";
-				}
-				break;
-			case GDK_KP_Page_Down:
-			case GDK_Page_Down:
-				if (modifiers & GDK_SHIFT_MASK) {
-					vte_terminal_scroll_pages(terminal, 1);
-					scrolled = TRUE;
-				} else {
-					special = "kN";
-				}
-				break;
-			case GDK_KP_Tab:
-			case GDK_Tab:
-				if (modifiers & GDK_SHIFT_MASK) {
-					special = "kB";
-				} else {
-					normal = g_strdup("\t");
-					normal_length = 1;
-				}
-				break;
-			case GDK_KP_Space:
-			case GDK_space:
-				if (modifiers & GDK_CONTROL_MASK) {
-					/* Ctrl-Space sends NUL?!?  Madness! */
-					normal = g_strdup("");
-					normal_length = 1;
-				} else {
-					normal = g_strdup(" ");
-					normal_length = 1;
-				}
-				break;
-			/* Let Shift +/- tweak the font, like XTerm does. */
-			case GDK_KP_Add:
-			case GDK_KP_Subtract:
-				if ((modifiers & GDK_SHIFT_MASK) &&
-				    terminal->pvt->xterm_font_tweak) {
-					rofontdesc = vte_terminal_get_font(terminal);
-					if (rofontdesc != NULL) {
-						fontdesc = pango_font_description_copy(rofontdesc);
-						i = pango_font_description_get_size(fontdesc);
-						if (event->keyval == GDK_KP_Add) {
-							i += PANGO_SCALE;
+			}
+			break;
+		case GDK_KP_Insert:
+		case GDK_Insert:
+			if (modifiers & GDK_SHIFT_MASK) {
+				vte_terminal_paste(terminal,
+						   GDK_SELECTION_PRIMARY);
+			} else {
+				special = "kI";
+			}
+			break;
+		case GDK_KP_Home:
+		case GDK_Home:
+			special = "kh";
+			break;
+		case GDK_KP_End:
+		case GDK_End:
+			special = "@7";
+			break;
+		case GDK_F1:
+		case GDK_F2:
+		case GDK_F3:
+		case GDK_F4:
+		case GDK_F5:
+		case GDK_F6:
+		case GDK_F7:
+		case GDK_F8:
+		case GDK_F9:
+		case GDK_F10:
+		case GDK_F11:
+		case GDK_F12:
+		case GDK_F13:
+		case GDK_F14:
+		case GDK_F15:
+		case GDK_F16:
+		case GDK_F17:
+		case GDK_F18:
+		case GDK_F19:
+		case GDK_F20:
+		case GDK_F21:
+		case GDK_F22:
+		case GDK_F23:
+		case GDK_F24:
+		case GDK_F25:
+		case GDK_F26:
+		case GDK_F27:
+		case GDK_F28:
+		case GDK_F29:
+		case GDK_F30:
+		case GDK_F31:
+		case GDK_F32:
+		case GDK_F33:
+		case GDK_F34:
+		case GDK_F35:
+			for (i = 0;
+			     i < G_N_ELEMENTS(vte_keysym_map);
+			     i++) {
+				if (vte_keysym_map[i].keyval == event->keyval) {
+					if (terminal->pvt->fkey == VTE_FKEY_VT220) {
+						if ((modifiers & GDK_CONTROL_MASK) && vte_keysym_map[i].vt_ctrl_special) {
+							special = vte_keysym_map[i].vt_ctrl_special;
+						} else {
+							special = vte_keysym_map[i].special;
 						}
-						if (event->keyval == GDK_KP_Subtract) {
-							i = MAX(PANGO_SCALE,
-								i - PANGO_SCALE);
+					}
+					if (terminal->pvt->fkey == VTE_FKEY_SUNPC) {
+						special = vte_keysym_map[i].special;
+						i = 0;
+						if (modifiers & GDK_CONTROL_MASK) {
+							i += 4;
 						}
-#ifdef VTE_DEBUG
-						if (vte_debug_on(VTE_DEBUG_MISC)) {
-							fprintf(stderr, "Changing font size from %d to %d.\n",
-								pango_font_description_get_size(fontdesc), i);
+						if (modifiers & GDK_MOD1_MASK) {
+							i += 2;
 						}
-#endif
-						pango_font_description_set_size(fontdesc, i);
-						vte_terminal_set_font(terminal, fontdesc);
-						pango_font_description_free(fontdesc);
+						if (modifiers & GDK_SHIFT_MASK) {
+							i += 1;
+						}
+						if (i > 0) {
+							specialmods = g_strdup_printf("%d", i + 1);
+						}
+					}
+					break;
+				}
+			}
+			break;
+		/* Cursor keys. */
+		case GDK_KP_Up:
+		case GDK_Up:
+			special = "ku";
+			break;
+		case GDK_KP_Down:
+		case GDK_Down:
+			special = "kd";
+			break;
+		case GDK_KP_Left:
+		case GDK_Left:
+			special = "kl";
+			break;
+		case GDK_KP_Right:
+		case GDK_Right:
+			special = "kr";
+			break;
+		case GDK_KP_Page_Up:
+		case GDK_Page_Up:
+			if (modifiers & GDK_SHIFT_MASK) {
+				vte_terminal_scroll_pages(terminal, -1);
+				scrolled = TRUE;
+			} else {
+				special = "kP";
+			}
+			break;
+		case GDK_KP_Page_Down:
+		case GDK_Page_Down:
+			if (modifiers & GDK_SHIFT_MASK) {
+				vte_terminal_scroll_pages(terminal, 1);
+				scrolled = TRUE;
+			} else {
+				special = "kN";
+			}
+			break;
+		case GDK_KP_Tab:
+		case GDK_Tab:
+			if (modifiers & GDK_SHIFT_MASK) {
+				special = "kB";
+			} else {
+				normal = g_strdup("\t");
+				normal_length = 1;
+			}
+			break;
+		case GDK_ISO_Left_Tab:
+			special = "kB";
+			break;
+		case GDK_KP_Space:
+		case GDK_space:
+			if (modifiers & GDK_CONTROL_MASK) {
+				/* Ctrl-Space sends NUL?!?  Madness! */
+				normal = g_strdup("");
+				normal_length = 1;
+			} else {
+				normal = g_strdup(" ");
+				normal_length = 1;
+			}
+			break;
+		/* Let Shift +/- tweak the font, like XTerm does. */
+		case GDK_KP_Add:
+		case GDK_KP_Subtract:
+			if ((modifiers & GDK_SHIFT_MASK) &&
+			    terminal->pvt->xterm_font_tweak) {
+				rofontdesc = vte_terminal_get_font(terminal);
+				if (rofontdesc != NULL) {
+					fontdesc = pango_font_description_copy(rofontdesc);
+					i = pango_font_description_get_size(fontdesc);
+					if (event->keyval == GDK_KP_Add) {
+						i += PANGO_SCALE;
+					}
+					if (event->keyval == GDK_KP_Subtract) {
+						i = MAX(PANGO_SCALE,
+							i - PANGO_SCALE);
 					}
 #ifdef VTE_DEBUG
 					if (vte_debug_on(VTE_DEBUG_MISC)) {
-						if (rofontdesc == NULL) {
-							fprintf(stderr, "Font can't be modified.\n");
-						}
+						fprintf(stderr, "Changing font size from %d to %d.\n",
+							pango_font_description_get_size(fontdesc), i);
 					}
 #endif
-					break;
+					pango_font_description_set_size(fontdesc, i);
+					vte_terminal_set_font(terminal, fontdesc);
+					pango_font_description_free(fontdesc);
 				}
-			/* The default is to just send the string. */
-			default:
-				if (event->string != NULL) {
-					normal = g_strdup(event->string);
-					normal_length = strlen(normal);
-					if (modifiers & GDK_CONTROL_MASK) {
-						/* Replace characters which have
-						 * "control" counterparts with
-						 * those counterparts. */
-						for (i = 0;
-						     i < normal_length;
-						     i++) {
-							if ((normal[i] > 64) &&
-							    (normal[i] < 97)) {
-								normal[i] ^= 0x40;
-							}
+#ifdef VTE_DEBUG
+				if (vte_debug_on(VTE_DEBUG_MISC)) {
+					if (rofontdesc == NULL) {
+						fprintf(stderr, "Font can't be modified.\n");
+					}
+				}
+#endif
+				break;
+			}
+			break;
+		/* The default is to just send the string. */
+		default:
+			if (event->string != NULL) {
+				normal = g_strdup(event->string);
+				normal_length = strlen(normal);
+				if (modifiers & GDK_CONTROL_MASK) {
+					/* Replace characters which have
+					 * "control" counterparts with
+					 * those counterparts. */
+					for (i = 0; i < normal_length; i++) {
+						if ((normal[i] > 64) &&
+						    (normal[i] < 97)) {
+							normal[i] ^= 0x40;
 						}
 					}
 				}
-				break;
+			}
+			break;
 		}
 		/* If we got normal characters, send them to the child. */
 		if (normal != NULL) {
@@ -7229,94 +7215,94 @@ vte_cell_is_selected(VteTerminal *terminal, long col, long row)
 		   terminal->pvt->selection_end.x);
 
 	switch (terminal->pvt->selection_type) {
-		case selection_type_char:
-			/* A cell is selected if it's between the start and
-			 * endpoints of the selection. */
-			if (vte_cell_is_between(col, row,
-						terminal->pvt->selection_start.x,
-						terminal->pvt->selection_start.y,
-						terminal->pvt->selection_end.x,
-						terminal->pvt->selection_end.y,
-						FALSE)) {
-				return TRUE;
-			}
-			break;
-		case selection_type_word:
-			/* A cell is selected if it's on the line where the
-			 * selected area starts, or the line where it ends,
-			 * or any of the lines in between. */
-			if ((row > terminal->pvt->selection_start.y) &&
-			    (row < terminal->pvt->selection_end.y)) {
+	case selection_type_char:
+		/* A cell is selected if it's between the start and
+		 * endpoints of the selection. */
+		if (vte_cell_is_between(col, row,
+					terminal->pvt->selection_start.x,
+					terminal->pvt->selection_start.y,
+					terminal->pvt->selection_end.x,
+					terminal->pvt->selection_end.y,
+					FALSE)) {
+			return TRUE;
+		}
+		break;
+	case selection_type_word:
+		/* A cell is selected if it's on the line where the
+		 * selected area starts, or the line where it ends,
+		 * or any of the lines in between. */
+		if ((row > terminal->pvt->selection_start.y) &&
+		    (row < terminal->pvt->selection_end.y)) {
+			return TRUE;
+		} else
+		/* It's also selected if the selection is confined to
+		 * one line and the character lies between the start
+		 * and end columns (which may not be in the more obvious
+		 * of two possible orders). */
+		if ((terminal->pvt->selection_start.y == row) &&
+		    (terminal->pvt->selection_end.y == row)) {
+			if ((col >= scol) && (col <= ecol)) {
 				return TRUE;
 			} else
-			/* It's also selected if the selection is confined to
-			 * one line and the character lies between the start
-			 * and end columns (which may not be in the more obvious
-			 * of two possible orders). */
-			if ((terminal->pvt->selection_start.y == row) &&
-			    (terminal->pvt->selection_end.y == row)) {
-				if ((col >= scol) && (col <= ecol)) {
-					return TRUE;
-				} else
-				/* If the character is before the beginning of
-				 * the region, it's also selected if it and
-				 * everything else in between belongs to the
-				 * same character class. */
-				if (col < scol) {
-					if (vte_uniform_class(terminal,
-							      row,
-							      col,
-							      scol)) {
-						return TRUE;
-					}
-				} else
-				if (col > ecol) {
-					if (vte_uniform_class(terminal,
-							      row,
-							      ecol,
-							      col)) {
-						return TRUE;
-					}
-				}
-			} else
-			/* It's also selected if it's on the line where the
-			 * selected area starts and it's after the start column,
-			 * or on the line where the selection ends, after the
-			 * last selected column. */
-			if (row == terminal->pvt->selection_start.y) {
-				if (col >= terminal->pvt->selection_start.x) {
-					return TRUE;
-				} else
+			/* If the character is before the beginning of
+			 * the region, it's also selected if it and
+			 * everything else in between belongs to the
+			 * same character class. */
+			if (col < scol) {
 				if (vte_uniform_class(terminal,
 						      row,
 						      col,
-						      terminal->pvt->selection_start.x)) {
+						      scol)) {
 					return TRUE;
 				}
 			} else
-			if (row == terminal->pvt->selection_end.y) {
-				if (col < terminal->pvt->selection_end.x) {
-					return TRUE;
-				} else
+			if (col > ecol) {
 				if (vte_uniform_class(terminal,
 						      row,
-						      terminal->pvt->selection_end.x,
+						      ecol,
 						      col)) {
 					return TRUE;
 				}
 			}
-			break;
-		case selection_type_line:
-			/* A cell is selected if it's on the line where the
-			 * selected area starts, or the line where it ends,
-			 * or any of the lines in between. */
-			if ((row >= terminal->pvt->selection_start.y) &&
-			    (row <= terminal->pvt->selection_end.y)) {
+		} else
+		/* It's also selected if it's on the line where the
+		 * selected area starts and it's after the start column,
+		 * or on the line where the selection ends, after the
+		 * last selected column. */
+		if (row == terminal->pvt->selection_start.y) {
+			if (col >= terminal->pvt->selection_start.x) {
+				return TRUE;
+			} else
+			if (vte_uniform_class(terminal,
+					      row,
+					      col,
+					      terminal->pvt->selection_start.x)) {
 				return TRUE;
 			}
-			break;
-		default:
-			break;
+		} else
+		if (row == terminal->pvt->selection_end.y) {
+			if (col < terminal->pvt->selection_end.x) {
+				return TRUE;
+			} else
+			if (vte_uniform_class(terminal,
+					      row,
+					      terminal->pvt->selection_end.x,
+					      col)) {
+				return TRUE;
+			}
+		}
+		break;
+	case selection_type_line:
+		/* A cell is selected if it's on the line where the
+		 * selected area starts, or the line where it ends,
+		 * or any of the lines in between. */
+		if ((row >= terminal->pvt->selection_start.y) &&
+		    (row <= terminal->pvt->selection_end.y)) {
+			return TRUE;
+		}
+		break;
+	default:
+		break;
 	}
 	return FALSE;
 }
@@ -7326,6 +7312,8 @@ static void
 vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 {
 	VteTerminal *terminal;
+	gchar *paste, *p;
+	long length;
 	g_return_if_fail(VTE_IS_TERMINAL(data));
 	terminal = VTE_TERMINAL(data);
 	if (text != NULL) {
@@ -7336,7 +7324,20 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 		}
 #endif
 		vte_terminal_im_reset(terminal);
-		vte_terminal_send(terminal, "UTF-8", text, strlen(text));
+		/* Convert newlines to carriage returns, which more software
+		 * is able to cope with (cough, pico, cough). */
+		paste = g_strdup(text);
+		length = strlen(paste);
+		p = paste;
+		while ((p != NULL) && (p - paste < length)) {
+			p = memchr(p, '\n', length - (p - paste));
+			if (p != NULL) {
+				*p = '\r';
+				p++;
+			}
+		}
+		vte_terminal_send(terminal, "UTF-8", paste, length);
+		g_free(paste);
 	}
 }
 
@@ -7354,24 +7355,24 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 
 	/* Encode the button information in cb. */
 	switch (button) {
-		case 0:			/* Release/no buttons. */
-			cb = 3;
-			break;
-		case 1:			/* Left. */
-			cb = 0;
-			break;
-		case 2:			/* Middle. */
-			cb = 1;
-			break;
-		case 3:			/* Right. */
-			cb = 2;
-			break;
-		case 4:
-			cb = 64;	/* Scroll up. FIXME: check */
-			break;
-		case 5:
-			cb = 65;	/* Scroll down. FIXME: check */
-			break;
+	case 0:			/* Release/no buttons. */
+		cb = 3;
+		break;
+	case 1:			/* Left. */
+		cb = 0;
+		break;
+	case 2:			/* Middle. */
+		cb = 1;
+		break;
+	case 3:			/* Right. */
+		cb = 2;
+		break;
+	case 4:
+		cb = 64;	/* Scroll up. FIXME: check */
+		break;
+	case 5:
+		cb = 65;	/* Scroll down. FIXME: check */
+		break;
 	}
 	cb += 32; /* 32 for normal */
 
@@ -7457,21 +7458,21 @@ vte_terminal_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 
 	/* Encode which button we're being dragged with. */
 	switch (terminal->pvt->mouse_last_button) {
-		case 1:
-			cb = 0;
-			break;
-		case 2:
-			cb = 1;
-			break;
-		case 3:
-			cb = 2;
-			break;
-		case 4:
-			cb = 64;	/* FIXME: check */
-			break;
-		case 5:
-			cb = 65;	/* FIXME: check */
-			break;
+	case 1:
+		cb = 0;
+		break;
+	case 2:
+		cb = 1;
+		break;
+	case 3:
+		cb = 2;
+		break;
+	case 4:
+		cb = 64;	/* FIXME: check */
+		break;
+	case 5:
+		cb = 65;	/* FIXME: check */
+		break;
 	}
 	cb += 64; /* 32 for normal, 32 for movement */
 
@@ -8819,21 +8820,21 @@ vte_terminal_open_font_xft(VteTerminal *terminal)
 			free(name);
 		}
 		switch (result) {
-			case XftResultMatch:
-			       fprintf(stderr, "matched.\n");
-			       break;
-			case XftResultNoMatch:
-			       fprintf(stderr, "no match.\n");
-			       break;
-			case XftResultTypeMismatch:
-			       fprintf(stderr, "type mismatch.\n");
-			       break;
-			case XftResultNoId:
-			       fprintf(stderr, "no ID.\n");
-			       break;
-			default:
-			       fprintf(stderr, "undefined/bogus result.\n");
-			       break;
+		case XftResultMatch:
+		       fprintf(stderr, "matched.\n");
+		       break;
+		case XftResultNoMatch:
+		       fprintf(stderr, "no match.\n");
+		       break;
+		case XftResultTypeMismatch:
+		       fprintf(stderr, "type mismatch.\n");
+		       break;
+		case XftResultNoId:
+		       fprintf(stderr, "no ID.\n");
+		       break;
+		default:
+		       fprintf(stderr, "undefined/bogus result.\n");
+		       break;
 		}
 	}
 #endif
@@ -10398,20 +10399,20 @@ vte_terminal_xft_remap_char(Display *display, XftFont *font, XftChar32 orig)
 	}
 
 	switch (orig) {
-		case 0:			/* NUL */
-		case 0x00A0:		/* NO-BREAK SPACE */
-			new = 0x0020;	/* SPACE */
-			break;
-		case 0x2010:		/* HYPHEN */
-		case 0x2011:		/* NON-BREAKING HYPHEN */
-		case 0x2012:		/* FIGURE DASH */
-		case 0x2013:		/* EN DASH */
-		case 0x2014:		/* EM DASH */
-		case 0x2212:		/* MINUS SIGN */
-			new = 0x002D;	/* HYPHEN-MINUS */
-			break;
-		default:
-			return orig;
+	case 0:			/* NUL */
+	case 0x00A0:		/* NO-BREAK SPACE */
+		new = 0x0020;	/* SPACE */
+		break;
+	case 0x2010:		/* HYPHEN */
+	case 0x2011:		/* NON-BREAKING HYPHEN */
+	case 0x2012:		/* FIGURE DASH */
+	case 0x2013:		/* EN DASH */
+	case 0x2014:		/* EM DASH */
+	case 0x2212:		/* MINUS SIGN */
+		new = 0x002D;	/* HYPHEN-MINUS */
+		break;
+	default:
+		return orig;
 	}
 
 	if (XftGlyphExists(display, font, new)) {
@@ -10428,31 +10429,31 @@ static gboolean
 vte_unichar_isgraphic(gunichar c)
 {
 	switch (c) {
-		case 0x2500: /* horizontal line */
-		case 0x2502: /* vertical line */
-		case 0x250c: /* upleft corner */
-		case 0x2510: /* upright corner */
-		case 0x2514: /* downleft corner */
-		case 0x2518: /* downright corner */
-		case 0x2524: /* right t */
-		case 0x251c: /* left t */
-		case 0x2534: /* up tee */
-		case 0x252c: /* down tee */
-		case 0x253c: /* cross */
-		case 0x2592: /* checkerboard */
-		case 0x25c6: /* diamond */
-		case 0x00b0: /* degree */
-		case 0x00b1: /* plus/minus */
-		case 0x00b7: /* bullet */
-		case 0x2190: /* left arrow */
-		case 0x2192: /* right arrow */
-		case 0x2193: /* down arrow */
-		case 0x2191: /* up arrow */
-		case 0x25ae: /* block */
-			return TRUE;
-			break;
-		default:
-			break;
+	case 0x2500: /* horizontal line */
+	case 0x2502: /* vertical line */
+	case 0x250c: /* upleft corner */
+	case 0x2510: /* upright corner */
+	case 0x2514: /* downleft corner */
+	case 0x2518: /* downright corner */
+	case 0x2524: /* right t */
+	case 0x251c: /* left t */
+	case 0x2534: /* up tee */
+	case 0x252c: /* down tee */
+	case 0x253c: /* cross */
+	case 0x2592: /* checkerboard */
+	case 0x25c6: /* diamond */
+	case 0x00b0: /* degree */
+	case 0x00b1: /* plus/minus */
+	case 0x00b7: /* bullet */
+	case 0x2190: /* left arrow */
+	case 0x2192: /* right arrow */
+	case 0x2193: /* down arrow */
+	case 0x2191: /* up arrow */
+	case 0x25ae: /* block */
+		return TRUE;
+		break;
+	default:
+		break;
 	}
 	return FALSE;
 }
@@ -10475,61 +10476,61 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 	/* If this is a unicode special graphics character, map it to one of
 	 * the characters we know how to draw. */
 	switch (c) {
-		case 0x2500: /* horizontal line */
-			c = 'q';
-			break;
-		case 0x2502: /* vertical line */
-			c = 'x';
-			break;
-		case 0x250c: /* upleft corner */
-			c = 'l';
-			break;
-		case 0x2510: /* upright corner */
-			c = 'k';
-			break;
-		case 0x2514: /* downleft corner */
-			c = 'm';
-			break;
-		case 0x2518: /* downright corner */
-			c = 'j';
-			break;
-		case 0x2524: /* right t */
-			c = 'u';
-			break;
-		case 0x251c: /* left t */
-			c = 't';
-			break;
-		case 0x2534: /* up tee */
-			c = 'w';
-			break;
-		case 0x252c: /* down tee */
-			c = 'v';
-			break;
-		case 0x253c: /* cross */
-			c = 'n';
-			break;
-		case 0x2592: /* checkerboard */
-			c = 'a';
-			break;
-		case 0x25c6: /* diamond */
-			c = 96;
-			break;
-		case 0x00b0: /* degree */
-			c = 'f';
-			break;
-		case 0x00b1: /* plus/minus */
-			c = 'g';
-			break;
-		case 0x00b7: /* bullet */
-			c = 127;
-			break;
-		case 0x2190: /* left arrow */
-		case 0x2192: /* right arrow */
-		case 0x2193: /* down arrow */
-		case 0x2191: /* up arrow */
-		case 0x25ae: /* block */
-		default:
-			break;
+	case 0x2500: /* horizontal line */
+		c = 'q';
+		break;
+	case 0x2502: /* vertical line */
+		c = 'x';
+		break;
+	case 0x250c: /* upleft corner */
+		c = 'l';
+		break;
+	case 0x2510: /* upright corner */
+		c = 'k';
+		break;
+	case 0x2514: /* downleft corner */
+		c = 'm';
+		break;
+	case 0x2518: /* downright corner */
+		c = 'j';
+		break;
+	case 0x2524: /* right t */
+		c = 'u';
+		break;
+	case 0x251c: /* left t */
+		c = 't';
+		break;
+	case 0x2534: /* up tee */
+		c = 'w';
+		break;
+	case 0x252c: /* down tee */
+		c = 'v';
+		break;
+	case 0x253c: /* cross */
+		c = 'n';
+		break;
+	case 0x2592: /* checkerboard */
+		c = 'a';
+		break;
+	case 0x25c6: /* diamond */
+		c = 96;
+		break;
+	case 0x00b0: /* degree */
+		c = 'f';
+		break;
+	case 0x00b1: /* plus/minus */
+		c = 'g';
+		break;
+	case 0x00b7: /* bullet */
+		c = 127;
+		break;
+	case 0x2190: /* left arrow */
+	case 0x2192: /* right arrow */
+	case 0x2193: /* down arrow */
+	case 0x2191: /* up arrow */
+	case 0x25ae: /* block */
+	default:
+		break;
 	}
 
 	xright = x + column_width;
@@ -10545,538 +10546,538 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 	}
 	XSetForeground(display, gc, terminal->pvt->palette[fore].pixel);
 	switch (c) {
-		case 95:
-			/* drawing a blank */
-			break;
-		case 96:
-			/* diamond */
-			diamond[0].x = xcenter;
-			diamond[0].y = y + 1;
-			diamond[1].x = xright - 1;
-			diamond[1].y = ycenter;
-			diamond[2].x = xcenter;
-			diamond[2].y = ybottom - 1;
-			diamond[3].x = x + 1;
-			diamond[3].y = ycenter;
-			XFillPolygon(display, drawable, gc,
-				     diamond, 4,
-				     Convex, CoordModeOrigin);
-			break;
-		case 97:  /* a */
-			for (i = x; i <= xright; i++) {
-				draw = ((i - x) & 1) == 0;
-				for (j = y; j <= ybottom; j++) {
-					if (draw) {
-						XDrawPoint(display,
-							   drawable,
-							   gc, i, j);
-					}
-					draw = !draw;
+	case 95:
+		/* drawing a blank */
+		break;
+	case 96:
+		/* diamond */
+		diamond[0].x = xcenter;
+		diamond[0].y = y + 1;
+		diamond[1].x = xright - 1;
+		diamond[1].y = ycenter;
+		diamond[2].x = xcenter;
+		diamond[2].y = ybottom - 1;
+		diamond[3].x = x + 1;
+		diamond[3].y = ycenter;
+		XFillPolygon(display, drawable, gc,
+			     diamond, 4,
+			     Convex, CoordModeOrigin);
+		break;
+	case 97:  /* a */
+		for (i = x; i <= xright; i++) {
+			draw = ((i - x) & 1) == 0;
+			for (j = y; j <= ybottom; j++) {
+				if (draw) {
+					XDrawPoint(display,
+						   drawable,
+						   gc, i, j);
 				}
+				draw = !draw;
 			}
-			break;
-		case 98:  /* b */
-			xcenter--;
-			ycenter--;
-			xright--;
-			ybottom--;
-			/* H */
-			XDrawLine(display, drawable, gc,
-				  x, y,
-				  x, ycenter);
-			XDrawLine(display, drawable, gc,
-				  xcenter, y,
-				  xcenter, ycenter);
-			XDrawLine(display, drawable, gc,
-				  x, (y + ycenter) / 2,
-				  xcenter, (y + ycenter) / 2);
-			/* T */
-			XDrawLine(display, drawable, gc,
-				  xcenter, ycenter,
-				  xright - 1, ycenter);
-			XDrawLine(display, drawable, gc,
-				  (xcenter + xright) / 2, ycenter,
-				  (xcenter + xright) / 2, ybottom - 1);
-			break;
-		case 99:  /* c */
-			xcenter--;
-			ycenter--;
-			xright--;
-			ybottom--;
-			/* F */
-			XDrawLine(display, drawable, gc,
-				  x, y,
-				  x, ycenter);
-			XDrawLine(display, drawable, gc,
-				  x, y,
-				  xcenter, y);
-			XDrawLine(display, drawable, gc,
-				  x, (y + ycenter) / 2,
-				  xcenter, (y + ycenter) / 2);
-			/* F */
-			XDrawLine(display, drawable, gc,
-				  xcenter, ycenter,
-				  xcenter, ybottom - 1);
-			XDrawLine(display, drawable, gc,
-				  xcenter, ycenter,
-				  xright - 1, ycenter);
-			XDrawLine(display, drawable, gc,
-				  xcenter, (ycenter + ybottom) / 2,
-				  xright - 1, (ycenter + ybottom) / 2);
-			break;
-		case 100: /* d */
-			xcenter--;
-			ycenter--;
-			xright--;
-			ybottom--;
-			/* C */
-			XDrawLine(display, drawable, gc,
-				  x, y,
-				  x, ycenter);
-			XDrawLine(display, drawable, gc,
-				  x, y,
-				  xcenter, y);
-			XDrawLine(display, drawable, gc,
-				  x, ycenter,
-				  xcenter, ycenter);
-			/* R */
-			XDrawLine(display, drawable, gc,
-				  xcenter, ycenter,
-				  xcenter, ybottom - 1);
-			XDrawLine(display, drawable, gc,
-				  xcenter, ycenter,
-				  xright - 1, ycenter);
-			XDrawLine(display, drawable, gc,
-				  xright - 1, ycenter,
-				  xright - 1, (ycenter + ybottom) / 2);
-			XDrawLine(display, drawable, gc,
-				  xright - 1, (ycenter + ybottom) / 2,
-				  xcenter, (ycenter + ybottom) / 2);
-			XDrawLine(display, drawable, gc,
-				  xcenter, (ycenter + ybottom) / 2,
-				  xright - 1, ybottom - 1);
-			break;
-		case 101: /* e */
-			xcenter--;
-			ycenter--;
-			xright--;
-			ybottom--;
-			/* L */
-			XDrawLine(display, drawable, gc,
-				  x, y,
-				  x, ycenter);
-			XDrawLine(display, drawable, gc,
-				  x, ycenter,
-				  xcenter, ycenter);
-			/* F */
-			XDrawLine(display, drawable, gc,
-				  xcenter, ycenter,
-				  xcenter, ybottom - 1);
-			XDrawLine(display, drawable, gc,
-				  xcenter, ycenter,
-				  xright - 1, ycenter);
-			XDrawLine(display, drawable, gc,
-				  xcenter, (ycenter + ybottom) / 2,
-				  xright - 1, (ycenter + ybottom) / 2);
-			break;
-		case 102: /* f */
-			/* litle circle */
-			diamond[0].x = xcenter - 1;
-			diamond[0].y = ycenter;
-			diamond[1].x = xcenter;
-			diamond[1].y = ycenter - 1;
-			diamond[2].x = xcenter + 1;
-			diamond[2].y = ycenter;
-			diamond[3].x = xcenter;
-			diamond[3].y = ycenter + 1;
-			XFillPolygon(display, drawable, gc,
-				     diamond, 4,
-				     Convex, CoordModeOrigin);
-			break;
-		case 103: /* g */
-			xcenter--;
-			ycenter--;
-			xright--;
-			ybottom--;
-			/* +/- */
-			XDrawLine(display, drawable, gc,
-				  xcenter, (y + ycenter) / 2,
-				  xcenter, (ycenter + ybottom) / 2);
-			XDrawLine(display, drawable, gc,
-				  (x + xcenter) / 2, ycenter,
-				  (xcenter + xright) / 2, ycenter);
-			XDrawLine(display, drawable, gc,
-				  (x + xcenter) / 2,
-				  (ycenter + ybottom) / 2,
-				  (xcenter + xright) / 2,
-				  (ycenter + ybottom) / 2);
-			break;
-		case 104: /* h */
-			xcenter--;
-			ycenter--;
-			xright--;
-			ybottom--;
-			/* N */
-			XDrawLine(display, drawable, gc,
-				  x, y,
-				  x, ycenter);
-			XDrawLine(display, drawable, gc,
-				  x, y,
-				  xcenter, ycenter);
-			XDrawLine(display, drawable, gc,
-				  xcenter, y,
-				  xcenter, ycenter);
-			/* L */
-			XDrawLine(display, drawable, gc,
-				  xcenter, ycenter,
-				  xcenter, ybottom - 1);
-			XDrawLine(display, drawable, gc,
-				  xcenter, ybottom - 1,
-				  xright - 1, ybottom - 1);
-			break;
-		case 105: /* i */
-			xcenter--;
-			ycenter--;
-			xright--;
-			ybottom--;
-			/* V */
-			XDrawLine(display, drawable, gc,
-				  x, y,
-				  (x + xcenter) / 2, ycenter);
-			XDrawLine(display, drawable, gc,
-				  (x + xcenter) / 2, ycenter,
-				  xcenter, y);
-			/* T */
-			XDrawLine(display, drawable, gc,
-				  xcenter, ycenter,
-				  xright - 1, ycenter);
-			XDrawLine(display, drawable, gc,
-				  (xcenter + xright) / 2, ycenter,
-				  (xcenter + xright) / 2, ybottom - 1);
-			break;
-		case 106: /* j */
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       x,
-				       ycenter,
-				       xcenter - x + VTE_LINE_WIDTH,
-				       VTE_LINE_WIDTH);
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       xcenter,
-				       y,
-				       VTE_LINE_WIDTH,
-				       ycenter - y + VTE_LINE_WIDTH);
-			break;
-		case 107: /* k */
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       x,
-				       ycenter,
-				       xcenter - x + VTE_LINE_WIDTH,
-				       VTE_LINE_WIDTH);
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       xcenter,
-				       ycenter,
-				       VTE_LINE_WIDTH,
-				       ybottom - ycenter);
-			break;
-		case 108: /* l */
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       xcenter,
-				       ycenter,
-				       xright - xcenter,
-				       VTE_LINE_WIDTH);
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       xcenter,
-				       ycenter,
-				       VTE_LINE_WIDTH,
-				       ybottom - ycenter);
-			break;
-		case 109: /* m */
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       xcenter,
-				       ycenter,
-				       xright - xcenter,
-				       VTE_LINE_WIDTH);
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       xcenter,
-				       y,
-				       VTE_LINE_WIDTH,
-				       ycenter - y + VTE_LINE_WIDTH);
-			break;
-		case 110: /* n */
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       xcenter,
-				       y,
-				       VTE_LINE_WIDTH,
-				       row_height);
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       x,
-				       ycenter,
-				       column_width,
-				       VTE_LINE_WIDTH);
-			break;
-		case 111: /* o */
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       x,
-				       y,
-				       column_width,
-				       VTE_LINE_WIDTH);
-			break;
-		case 112: /* p */
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       x,
-				       (y + ycenter) / 2,
-				       column_width,
-				       VTE_LINE_WIDTH);
-			break;
-		case 113: /* q */
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       x,
-				       ycenter,
-				       column_width,
-				       VTE_LINE_WIDTH);
-			break;
-		case 114: /* r */
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       x,
-				       (ycenter + ybottom) / 2,
-				       column_width,
-				       VTE_LINE_WIDTH);
-			break;
-		case 115: /* s */
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       x,
-				       ybottom,
-				       column_width,
-				       VTE_LINE_WIDTH);
-			break;
-		case 116: /* t */
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       xcenter,
-				       y,
-				       VTE_LINE_WIDTH,
-				       row_height);
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       xcenter,
-				       ycenter,
-				       xright - xcenter,
-				       VTE_LINE_WIDTH);
-			break;
-		case 117: /* u */
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       xcenter,
-				       y,
-				       VTE_LINE_WIDTH,
-				       row_height);
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       x,
-				       ycenter,
-				       xcenter - x + VTE_LINE_WIDTH,
-				       VTE_LINE_WIDTH);
-			break;
-		case 118: /* v */
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       xcenter,
-				       y,
-				       VTE_LINE_WIDTH,
-				       ycenter - y + VTE_LINE_WIDTH);
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       x,
-				       ycenter,
-				       column_width,
-				       VTE_LINE_WIDTH);
-			break;
-		case 119: /* w */
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       xcenter,
-				       ycenter,
-				       VTE_LINE_WIDTH,
-				       ybottom - ycenter);
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       x,
-				       ycenter,
-				       column_width,
-				       VTE_LINE_WIDTH);
-			break;
-		case 120: /* x */
-			XFillRectangle(display,
-				       drawable,
-				       gc,
-				       xcenter,
-				       y,
-				       VTE_LINE_WIDTH,
-				       row_height);
-			break;
-		case 121: /* y */
-			xcenter--;
-			ycenter--;
-			xright--;
-			ybottom--;
-			/* <= */
-			XDrawLine(display, drawable, gc,
-				  xright - 1, y,
-				  x, (y + ycenter) / 2);
-			XDrawLine(display, drawable, gc,
-				  x, (y + ycenter) / 2,
-				  xright - 1, ycenter);
-			XDrawLine(display, drawable, gc,
-				  x, ycenter,
-				  xright - 1, (ycenter + ybottom) / 2);
-			break;
-		case 122: /* z */
-			xcenter--;
-			ycenter--;
-			xright--;
-			ybottom--;
-			/* >= */
-			XDrawLine(display, drawable, gc,
-				  x, y,
-				  xright - 1, (y + ycenter) / 2);
-			XDrawLine(display, drawable, gc,
-				  xright - 1, (y + ycenter) / 2,
-				  x, ycenter);
-			XDrawLine(display, drawable, gc,
-				  xright - 1, ycenter,
-				  x, (ycenter + ybottom) / 2);
-			break;
-		case 123: /* pi */
-			xcenter--;
-			ycenter--;
-			xright--;
-			ybottom--;
-			XDrawLine(display, drawable, gc,
-				  (x + xcenter) / 2 - 1,
-				  (y + ycenter) / 2,
-				  (xright + xcenter) / 2 + 1,
-				  (y + ycenter) / 2);
-			XDrawLine(display, drawable, gc,
-				  (x + xcenter) / 2,
-				  (y + ycenter) / 2,
-				  (x + xcenter) / 2,
-				  (ybottom + ycenter) / 2);
-			XDrawLine(display, drawable, gc,
-				  (xright + xcenter) / 2,
-				  (y + ycenter) / 2,
-				  (xright + xcenter) / 2,
-				  (ybottom + ycenter) / 2);
-			break;
-		case 124:
-			xcenter--;
-			ycenter--;
-			xright--;
-			ybottom--;
-			/* != */
-			XDrawLine(display, drawable, gc,
-				  (x + xcenter) / 2 - 1, ycenter,
-				  (xright + xcenter) / 2 + 1, ycenter);
-			XDrawLine(display, drawable, gc,
-				  (x + xcenter) / 2 - 1,
-				  (ybottom + ycenter) / 2,
-				  (xright + xcenter) / 2 + 1,
-				  (ybottom + ycenter) / 2);
-			XDrawLine(display, drawable, gc,
-				  xright - 1, y + 1,
-				  x + 1, ybottom - 1);
-			break;
-		case 125:
-			xcenter--;
-			ycenter--;
-			xright--;
-			ybottom--;
-			/* British pound.  An "L" with a hyphen. */
-			XDrawLine(display, drawable, gc,
-				  (x + xcenter) / 2,
-				  (y + ycenter) / 2,
-				  (x + xcenter) / 2,
-				  (ycenter + ybottom) / 2);
-			XDrawLine(display, drawable, gc,
-				  (x + xcenter) / 2,
-				  (ycenter + ybottom) / 2,
-				  (xcenter + xright) / 2,
-				  (ycenter + ybottom) / 2);
-			XDrawLine(display, drawable, gc,
-				  x, ycenter,
-				  xcenter + 1, ycenter);
-			break;
-		case 126:
-			xcenter--;
-			ycenter--;
-			xright--;
-			ybottom--;
-			/* short hyphen? */
-			XDrawLine(display, drawable, gc,
-				  xcenter - 1, ycenter,
-				  xcenter + 1, ycenter);
-			break;
-		case 127:
-			xcenter--;
-			ycenter--;
-			xright--;
-			ybottom--;
-			/* A "delete" symbol I saw somewhere. */
-			XDrawLine(display, drawable, gc,
-				  x, ycenter,
-				  xcenter, y);
-			XDrawLine(display, drawable, gc,
-				  xcenter, y,
-				  xright - 1, ycenter);
-			XDrawLine(display, drawable, gc,
-				  xright - 1, ycenter,
-				  xright - 1, ybottom - 1);
-			XDrawLine(display, drawable, gc,
-				  xright - 1, ybottom - 1,
-				  x, ybottom - 1);
-			XDrawLine(display, drawable, gc,
-				  x, ybottom - 1,
-				  x, ycenter);
-			break;
-		default:
-			break;
+		}
+		break;
+	case 98:  /* b */
+		xcenter--;
+		ycenter--;
+		xright--;
+		ybottom--;
+		/* H */
+		XDrawLine(display, drawable, gc,
+			  x, y,
+			  x, ycenter);
+		XDrawLine(display, drawable, gc,
+			  xcenter, y,
+			  xcenter, ycenter);
+		XDrawLine(display, drawable, gc,
+			  x, (y + ycenter) / 2,
+			  xcenter, (y + ycenter) / 2);
+		/* T */
+		XDrawLine(display, drawable, gc,
+			  xcenter, ycenter,
+			  xright - 1, ycenter);
+		XDrawLine(display, drawable, gc,
+			  (xcenter + xright) / 2, ycenter,
+			  (xcenter + xright) / 2, ybottom - 1);
+		break;
+	case 99:  /* c */
+		xcenter--;
+		ycenter--;
+		xright--;
+		ybottom--;
+		/* F */
+		XDrawLine(display, drawable, gc,
+			  x, y,
+			  x, ycenter);
+		XDrawLine(display, drawable, gc,
+			  x, y,
+			  xcenter, y);
+		XDrawLine(display, drawable, gc,
+			  x, (y + ycenter) / 2,
+			  xcenter, (y + ycenter) / 2);
+		/* F */
+		XDrawLine(display, drawable, gc,
+			  xcenter, ycenter,
+			  xcenter, ybottom - 1);
+		XDrawLine(display, drawable, gc,
+			  xcenter, ycenter,
+			  xright - 1, ycenter);
+		XDrawLine(display, drawable, gc,
+			  xcenter, (ycenter + ybottom) / 2,
+			  xright - 1, (ycenter + ybottom) / 2);
+		break;
+	case 100: /* d */
+		xcenter--;
+		ycenter--;
+		xright--;
+		ybottom--;
+		/* C */
+		XDrawLine(display, drawable, gc,
+			  x, y,
+			  x, ycenter);
+		XDrawLine(display, drawable, gc,
+			  x, y,
+			  xcenter, y);
+		XDrawLine(display, drawable, gc,
+			  x, ycenter,
+			  xcenter, ycenter);
+		/* R */
+		XDrawLine(display, drawable, gc,
+			  xcenter, ycenter,
+			  xcenter, ybottom - 1);
+		XDrawLine(display, drawable, gc,
+			  xcenter, ycenter,
+			  xright - 1, ycenter);
+		XDrawLine(display, drawable, gc,
+			  xright - 1, ycenter,
+			  xright - 1, (ycenter + ybottom) / 2);
+		XDrawLine(display, drawable, gc,
+			  xright - 1, (ycenter + ybottom) / 2,
+			  xcenter, (ycenter + ybottom) / 2);
+		XDrawLine(display, drawable, gc,
+			  xcenter, (ycenter + ybottom) / 2,
+			  xright - 1, ybottom - 1);
+		break;
+	case 101: /* e */
+		xcenter--;
+		ycenter--;
+		xright--;
+		ybottom--;
+		/* L */
+		XDrawLine(display, drawable, gc,
+			  x, y,
+			  x, ycenter);
+		XDrawLine(display, drawable, gc,
+			  x, ycenter,
+			  xcenter, ycenter);
+		/* F */
+		XDrawLine(display, drawable, gc,
+			  xcenter, ycenter,
+			  xcenter, ybottom - 1);
+		XDrawLine(display, drawable, gc,
+			  xcenter, ycenter,
+			  xright - 1, ycenter);
+		XDrawLine(display, drawable, gc,
+			  xcenter, (ycenter + ybottom) / 2,
+			  xright - 1, (ycenter + ybottom) / 2);
+		break;
+	case 102: /* f */
+		/* litle circle */
+		diamond[0].x = xcenter - 1;
+		diamond[0].y = ycenter;
+		diamond[1].x = xcenter;
+		diamond[1].y = ycenter - 1;
+		diamond[2].x = xcenter + 1;
+		diamond[2].y = ycenter;
+		diamond[3].x = xcenter;
+		diamond[3].y = ycenter + 1;
+		XFillPolygon(display, drawable, gc,
+			     diamond, 4,
+			     Convex, CoordModeOrigin);
+		break;
+	case 103: /* g */
+		xcenter--;
+		ycenter--;
+		xright--;
+		ybottom--;
+		/* +/- */
+		XDrawLine(display, drawable, gc,
+			  xcenter, (y + ycenter) / 2,
+			  xcenter, (ycenter + ybottom) / 2);
+		XDrawLine(display, drawable, gc,
+			  (x + xcenter) / 2, ycenter,
+			  (xcenter + xright) / 2, ycenter);
+		XDrawLine(display, drawable, gc,
+			  (x + xcenter) / 2,
+			  (ycenter + ybottom) / 2,
+			  (xcenter + xright) / 2,
+			  (ycenter + ybottom) / 2);
+		break;
+	case 104: /* h */
+		xcenter--;
+		ycenter--;
+		xright--;
+		ybottom--;
+		/* N */
+		XDrawLine(display, drawable, gc,
+			  x, y,
+			  x, ycenter);
+		XDrawLine(display, drawable, gc,
+			  x, y,
+			  xcenter, ycenter);
+		XDrawLine(display, drawable, gc,
+			  xcenter, y,
+			  xcenter, ycenter);
+		/* L */
+		XDrawLine(display, drawable, gc,
+			  xcenter, ycenter,
+			  xcenter, ybottom - 1);
+		XDrawLine(display, drawable, gc,
+			  xcenter, ybottom - 1,
+			  xright - 1, ybottom - 1);
+		break;
+	case 105: /* i */
+		xcenter--;
+		ycenter--;
+		xright--;
+		ybottom--;
+		/* V */
+		XDrawLine(display, drawable, gc,
+			  x, y,
+			  (x + xcenter) / 2, ycenter);
+		XDrawLine(display, drawable, gc,
+			  (x + xcenter) / 2, ycenter,
+			  xcenter, y);
+		/* T */
+		XDrawLine(display, drawable, gc,
+			  xcenter, ycenter,
+			  xright - 1, ycenter);
+		XDrawLine(display, drawable, gc,
+			  (xcenter + xright) / 2, ycenter,
+			  (xcenter + xright) / 2, ybottom - 1);
+		break;
+	case 106: /* j */
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       x,
+			       ycenter,
+			       xcenter - x + VTE_LINE_WIDTH,
+			       VTE_LINE_WIDTH);
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       xcenter,
+			       y,
+			       VTE_LINE_WIDTH,
+			       ycenter - y + VTE_LINE_WIDTH);
+		break;
+	case 107: /* k */
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       x,
+			       ycenter,
+			       xcenter - x + VTE_LINE_WIDTH,
+			       VTE_LINE_WIDTH);
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       xcenter,
+			       ycenter,
+			       VTE_LINE_WIDTH,
+			       ybottom - ycenter);
+		break;
+	case 108: /* l */
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       xcenter,
+			       ycenter,
+			       xright - xcenter,
+			       VTE_LINE_WIDTH);
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       xcenter,
+			       ycenter,
+			       VTE_LINE_WIDTH,
+			       ybottom - ycenter);
+		break;
+	case 109: /* m */
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       xcenter,
+			       ycenter,
+			       xright - xcenter,
+			       VTE_LINE_WIDTH);
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       xcenter,
+			       y,
+			       VTE_LINE_WIDTH,
+			       ycenter - y + VTE_LINE_WIDTH);
+		break;
+	case 110: /* n */
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       xcenter,
+			       y,
+			       VTE_LINE_WIDTH,
+			       row_height);
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       x,
+			       ycenter,
+			       column_width,
+			       VTE_LINE_WIDTH);
+		break;
+	case 111: /* o */
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       x,
+			       y,
+			       column_width,
+			       VTE_LINE_WIDTH);
+		break;
+	case 112: /* p */
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       x,
+			       (y + ycenter) / 2,
+			       column_width,
+			       VTE_LINE_WIDTH);
+		break;
+	case 113: /* q */
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       x,
+			       ycenter,
+			       column_width,
+			       VTE_LINE_WIDTH);
+		break;
+	case 114: /* r */
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       x,
+			       (ycenter + ybottom) / 2,
+			       column_width,
+			       VTE_LINE_WIDTH);
+		break;
+	case 115: /* s */
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       x,
+			       ybottom,
+			       column_width,
+			       VTE_LINE_WIDTH);
+		break;
+	case 116: /* t */
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       xcenter,
+			       y,
+			       VTE_LINE_WIDTH,
+			       row_height);
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       xcenter,
+			       ycenter,
+			       xright - xcenter,
+			       VTE_LINE_WIDTH);
+		break;
+	case 117: /* u */
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       xcenter,
+			       y,
+			       VTE_LINE_WIDTH,
+			       row_height);
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       x,
+			       ycenter,
+			       xcenter - x + VTE_LINE_WIDTH,
+			       VTE_LINE_WIDTH);
+		break;
+	case 118: /* v */
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       xcenter,
+			       y,
+			       VTE_LINE_WIDTH,
+			       ycenter - y + VTE_LINE_WIDTH);
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       x,
+			       ycenter,
+			       column_width,
+			       VTE_LINE_WIDTH);
+		break;
+	case 119: /* w */
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       xcenter,
+			       ycenter,
+			       VTE_LINE_WIDTH,
+			       ybottom - ycenter);
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       x,
+			       ycenter,
+			       column_width,
+			       VTE_LINE_WIDTH);
+		break;
+	case 120: /* x */
+		XFillRectangle(display,
+			       drawable,
+			       gc,
+			       xcenter,
+			       y,
+			       VTE_LINE_WIDTH,
+			       row_height);
+		break;
+	case 121: /* y */
+		xcenter--;
+		ycenter--;
+		xright--;
+		ybottom--;
+		/* <= */
+		XDrawLine(display, drawable, gc,
+			  xright - 1, y,
+			  x, (y + ycenter) / 2);
+		XDrawLine(display, drawable, gc,
+			  x, (y + ycenter) / 2,
+			  xright - 1, ycenter);
+		XDrawLine(display, drawable, gc,
+			  x, ycenter,
+			  xright - 1, (ycenter + ybottom) / 2);
+		break;
+	case 122: /* z */
+		xcenter--;
+		ycenter--;
+		xright--;
+		ybottom--;
+		/* >= */
+		XDrawLine(display, drawable, gc,
+			  x, y,
+			  xright - 1, (y + ycenter) / 2);
+		XDrawLine(display, drawable, gc,
+			  xright - 1, (y + ycenter) / 2,
+			  x, ycenter);
+		XDrawLine(display, drawable, gc,
+			  xright - 1, ycenter,
+			  x, (ycenter + ybottom) / 2);
+		break;
+	case 123: /* pi */
+		xcenter--;
+		ycenter--;
+		xright--;
+		ybottom--;
+		XDrawLine(display, drawable, gc,
+			  (x + xcenter) / 2 - 1,
+			  (y + ycenter) / 2,
+			  (xright + xcenter) / 2 + 1,
+			  (y + ycenter) / 2);
+		XDrawLine(display, drawable, gc,
+			  (x + xcenter) / 2,
+			  (y + ycenter) / 2,
+			  (x + xcenter) / 2,
+			  (ybottom + ycenter) / 2);
+		XDrawLine(display, drawable, gc,
+			  (xright + xcenter) / 2,
+			  (y + ycenter) / 2,
+			  (xright + xcenter) / 2,
+			  (ybottom + ycenter) / 2);
+		break;
+	case 124:
+		xcenter--;
+		ycenter--;
+		xright--;
+		ybottom--;
+		/* != */
+		XDrawLine(display, drawable, gc,
+			  (x + xcenter) / 2 - 1, ycenter,
+			  (xright + xcenter) / 2 + 1, ycenter);
+		XDrawLine(display, drawable, gc,
+			  (x + xcenter) / 2 - 1,
+			  (ybottom + ycenter) / 2,
+			  (xright + xcenter) / 2 + 1,
+			  (ybottom + ycenter) / 2);
+		XDrawLine(display, drawable, gc,
+			  xright - 1, y + 1,
+			  x + 1, ybottom - 1);
+		break;
+	case 125:
+		xcenter--;
+		ycenter--;
+		xright--;
+		ybottom--;
+		/* British pound.  An "L" with a hyphen. */
+		XDrawLine(display, drawable, gc,
+			  (x + xcenter) / 2,
+			  (y + ycenter) / 2,
+			  (x + xcenter) / 2,
+			  (ycenter + ybottom) / 2);
+		XDrawLine(display, drawable, gc,
+			  (x + xcenter) / 2,
+			  (ycenter + ybottom) / 2,
+			  (xcenter + xright) / 2,
+			  (ycenter + ybottom) / 2);
+		XDrawLine(display, drawable, gc,
+			  x, ycenter,
+			  xcenter + 1, ycenter);
+		break;
+	case 126:
+		xcenter--;
+		ycenter--;
+		xright--;
+		ybottom--;
+		/* short hyphen? */
+		XDrawLine(display, drawable, gc,
+			  xcenter - 1, ycenter,
+			  xcenter + 1, ycenter);
+		break;
+	case 127:
+		xcenter--;
+		ycenter--;
+		xright--;
+		ybottom--;
+		/* A "delete" symbol I saw somewhere. */
+		XDrawLine(display, drawable, gc,
+			  x, ycenter,
+			  xcenter, y);
+		XDrawLine(display, drawable, gc,
+			  xcenter, y,
+			  xright - 1, ycenter);
+		XDrawLine(display, drawable, gc,
+			  xright - 1, ycenter,
+			  xright - 1, ybottom - 1);
+		XDrawLine(display, drawable, gc,
+			  xright - 1, ybottom - 1,
+			  x, ybottom - 1);
+		XDrawLine(display, drawable, gc,
+			  x, ybottom - 1,
+			  x, ycenter);
+		break;
+	default:
+		break;
 	}
 }
 
@@ -11950,14 +11951,14 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_EVENTS)) {
 		switch (event->direction) {
-			case GDK_SCROLL_UP:
-				fprintf(stderr, "Scroll up.\n");
-				break;
-			case GDK_SCROLL_DOWN:
-				fprintf(stderr, "Scroll down.\n");
-				break;
-			default:
-				break;
+		case GDK_SCROLL_UP:
+			fprintf(stderr, "Scroll up.\n");
+			break;
+		case GDK_SCROLL_DOWN:
+			fprintf(stderr, "Scroll down.\n");
+			break;
+		default:
+			break;
 		}
 	}
 #endif
@@ -11970,15 +11971,15 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 	    terminal->pvt->mouse_cell_motion_tracking ||
 	    terminal->pvt->mouse_all_motion_tracking) {
 		switch (event->direction) {
-			case GDK_SCROLL_UP:
-				button = 4;
-				break;
-			case GDK_SCROLL_DOWN:
-				button = 5;
-				break;
-			default:
-				button = 0;
-				break;
+		case GDK_SCROLL_UP:
+			button = 4;
+			break;
+		case GDK_SCROLL_DOWN:
+			button = 5;
+			break;
+		default:
+			button = 0;
+			break;
 		}
 		if (button != 0) {
 			/* Encode the parameters and send them to the app. */
@@ -11995,14 +11996,14 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 	adj = (VTE_TERMINAL(widget))->adjustment;
 
 	switch (event->direction) {
-		case GDK_SCROLL_UP:
-			new_value = adj->value - adj->page_increment / 2;
-			break;
-		case GDK_SCROLL_DOWN:
-			new_value = adj->value + adj->page_increment / 2;
-			break;
-		default:
-			return FALSE;
+	case GDK_SCROLL_UP:
+		new_value = adj->value - adj->page_increment / 2;
+		break;
+	case GDK_SCROLL_DOWN:
+		new_value = adj->value + adj->page_increment / 2;
+		break;
+	default:
+		return FALSE;
 	}
 
 	new_value = CLAMP(new_value, adj->lower, adj->upper - adj->page_size);
