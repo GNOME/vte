@@ -1,4 +1,4 @@
-# vte faylının Azərbaycan dilinə tərcüməsi.
+# Translation of vte.HEAD.az.po to Azerbaijani Turkish
 # Copyright (C) 2003 Mətin Əmirov
 # This file is distributed under the same license as the vte package.
 # Mətin Əmirov <metin@karegen.com>, 2003.
@@ -7,10 +7,10 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte gnome-2-2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2003-12-27 21:17+0100\n"
+"POT-Creation-Date: 2004-03-05 15:33+0100\n"
 "PO-Revision-Date: 2003-07-10 20:54+0200\n"
 "Last-Translator: Mətin Əmirov <metin@karegen.com>\n"
-"Language-Team: Azerbaijani <gnome@azitt.com>\n"
+"Language-Team: Azerbaijani <translation-team-az@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -18,7 +18,7 @@ msgstr ""
 #: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2072
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "Hərflər %s'dən %s'ə çevirilə bilmir."
+msgstr "Hərflər %s-dən %s-ə çevirilə bilmir."
 
 #: src/iso2022.c:1578
 #, c-format
@@ -55,7 +55,7 @@ msgstr "Signal borusu yaradıla bilmədi."
 #: src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
-msgstr "Surətini Çıxar (%s/%s)!)"
+msgstr "Cütləşdir (%s/%s)!)"
 
 #: src/vte.c:1480
 #, c-format
