@@ -10790,8 +10790,6 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 				ftchar = vte_terminal_xft_remap_char(display,
 								     terminal->pvt->ftfont,
 								     items[i].c);
-				g_print("Drawing %c with %d padding.\n",
-					ftchar, items[i].xpad);
 				XftDrawString32(ftdraw, &fg->ftcolor,
 						terminal->pvt->ftfont,
 						x + (columns * column_width) +
