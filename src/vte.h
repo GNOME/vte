@@ -64,6 +64,7 @@ typedef struct _VteTerminalClass {
 	/*< private > */
 	/* Signals we might emit. */
 	guint eof_signal;
+	guint child_exited_signal;
 	guint char_size_changed_signal;
 	guint window_title_changed_signal;
 	guint icon_title_changed_signal;
@@ -81,26 +82,6 @@ typedef struct _VteTerminalClass {
 	guint resize_window_signal;
 	guint move_window_signal;
 } VteTerminalClass;
-
-/* A snapshot of the screen contents. */
-typedef struct _VteTerminalSnapshot {
-	struct {
-		int x, y;			/* Location of the cursor. */
-	} cursor;
-	int rows, columns;			/* Size of the screen[shot]. */
-	gboolean cursor_visible;
-	struct VteTerminalSnapshotCell {
-		gunichar c;			/* The character itself. */
-		struct {
-			/* Colors of this character. */
-			GdkColor foreground, background;
-			/* Is it underlined? */
-			gboolean underline;
-			/* Is it a graphic character? */
-			gboolean alternate;
-		} attributes;
-	} **contents;
-} VteTerminalSnapshot;
 
 /* Values for "what should happen when the user hits backspace/delete".  Use
  * AUTO unless the user can cause them to be overridden. */
@@ -225,6 +206,8 @@ char *vte_terminal_get_text(VteTerminal *terminal,
 			    gboolean(*is_selected)(VteTerminal * terminal,
 						    long column, long row),
 			    GArray *attributes);
+void vte_terminal_get_cursor_position(VteTerminal *terminal,
+				      long *column, long *row);
 
 /* Display string matching:  clear all matching expressions. */
 void vte_terminal_match_clear_all(VteTerminal *terminal);

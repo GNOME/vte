@@ -386,16 +386,21 @@ vte_termcap_free(struct vte_termcap *termcap)
 	for (entry = termcap->entries; entry != NULL; entry = nextentry) {
 		nextentry = entry->next;
 		g_free(entry->comment);
+		entry->comment = NULL;
 		g_free(entry->string);
+		entry->string = NULL;
 		g_free(entry);
 	}
 	for (alias = termcap->names; alias != NULL; alias = nextalias) {
 		nextalias = alias->next;
 		g_free(alias->name);
+		alias->name = NULL;
 		g_free(alias);
 	}
 	g_tree_destroy(termcap->nametree);
+	termcap->nametree = NULL;
 	g_free(termcap->comment);
+	termcap->comment = NULL;
 	g_free(termcap);
 }
 

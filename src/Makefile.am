@@ -1,11 +1,11 @@
 bin_PROGRAMS = vte
 pkginclude_HEADERS = caps.h pty.h ring.h termcap.h trie.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
-noinst_PROGRAMS = interpret utf8echo utf8mode iso8859mode
+noinst_PROGRAMS = interpret utf8echo utf8mode iso8859mode reaper
 EXTRA_PROGRAMS = pty ring termcap trie
-EXTRA_DIST = marshal.list
+EXTRA_DIST = marshal.list vte.defs
 
-CFLAGS = @CFLAGS@ @X_CFLAGS@ @GTK_CFLAGS@
+CFLAGS = @CFLAGS@ @XFT_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@
 
 libvte_la_SOURCES = \
 	caps.c \
@@ -16,6 +16,8 @@ libvte_la_SOURCES = \
 	marshal.h \
 	pty.c \
 	pty.h \
+	reaper.c \
+	reaper.h \
 	ring.c \
 	ring.h \
 	termcap.c \
@@ -35,7 +37,7 @@ marshal.c marshal.h: marshal.list
 
 vte_SOURCES = \
 	vteapp.c
-vte_LDADD = libvte.la @GTK_LIBS@ @X_LIBS@
+vte_LDADD = libvte.la @LIBS@ @XFT_LIBS@ @GTK_LIBS@ @X_LIBS@
 
 interpret_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DINTERPRET_MAIN
 interpret_SOURCES = \
@@ -52,7 +54,7 @@ interpret_LDADD = @GLIB_LIBS@
 
 utf8echo_SOURCES = \
 	utf8echo.c
-utf8echo_LDADD = @GLIB_LIBS@
+utf8echo_LDADD = @LIBS@ @GLIB_LIBS@
 
 ring_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DRING_MAIN
 ring_SOURCES = \
@@ -60,7 +62,7 @@ ring_SOURCES = \
 	debug.h \
 	ring.c \
 	ring.h
-ring_LDADD = @GLIB_LIBS@
+ring_LDADD = @LIBS@ @GLIB_LIBS@
 
 trie_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DTRIE_MAIN
 trie_SOURCES = \
@@ -70,7 +72,7 @@ trie_SOURCES = \
 	termcap.h \
 	trie.c \
 	trie.h
-trie_LDADD = @GLIB_LIBS@
+trie_LDADD = @LIBS@ @GLIB_LIBS@
 
 termcap_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DTERMCAP_MAIN
 termcap_SOURCES = \
@@ -78,7 +80,7 @@ termcap_SOURCES = \
 	debug.h \
 	termcap.c \
 	termcap.h
-termcap_LDADD = @GLIB_LIBS@
+termcap_LDADD = @LIBS@ @GLIB_LIBS@
 
 pty_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DPTY_MAIN
 pty_SOURCES = \
@@ -86,4 +88,12 @@ pty_SOURCES = \
 	debug.h \
 	pty.c \
 	pty.h
-pty_LDADD = @GLIB_LIBS@
+pty_LDADD = @LIBS@ @GLIB_LIBS@
+
+reaper_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DREAPER_MAIN
+reaper_SOURCES = \
+	marshal.c \
+	marshal.h \
+	reaper.c \
+	reaper.h
+reaper_LDADD = @LIBS@ @GLIB_LIBS@

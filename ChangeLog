@@ -1,3 +1,24 @@
+2002-06-06 nalin
+	* src/vte.c, src/vte.h: Add get_cursor_position(). Remove get_snapshot()
+	and free_shapshot().
+	* src/vte.c: Fix a logic bug that caused us to scroll to the bottom
+	even if the user just pressed and released a modifier key.  Fix saving
+	of the font in set_font() in most cases, where we weren't saving the
+	new font before.  Scroll-to-bottom on input method commits, which are
+	also the result of keystrokes, when scroll-on-keystroke is enabled.
+	* src/vteaccess.c: Rework to use get_text() and get_cursor_position()
+	instead of get_snapshot(), so that selection and accessibility both
+	agree on what's visible (or "visible").
+2002-06-05 nalin
+	* configure.in: Check for pangoxft with Xft1 or Xft2, hopefully getting
+	things right for either case.  Originally from patch by andersca.
+	* src/reaper.c, src/reaper.h: Add a singleton object to watch for
+	SIGCHLD when child processes quit.
+	* src/vte.c: Emit a "child-exited" signal when a child started with
+	fork_command() exits.
+	* src/vte.c: Make a better guess at font metrics when using Xft by
+	measuring the extents for a string of representative characters.
+	* src/vte.defs: Add.  Not very useful yet.
 2002-05-31 nalin
 	* src/vte.c: Implement font setting using PangoX to convert Pango
 	font descriptions to core font xlfds for use when drawing with Xlib.

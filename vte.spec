@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.3.25
+Version: 0.3.26
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -41,7 +41,6 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %doc ChangeLog COPYING HACKING NEWS README
-%{_bindir}/*
 %{_libdir}/*.so.*.*
 %{_datadir}/*
 
@@ -53,6 +52,11 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Thu Jun  6 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.26-1
+- don't package up the test program
+- emit "child-exited" signals properly
+- try to allow building with either pangoxft-with-Xft1 or pangoxft-with-Xft2
+
 * Wed Jun  5 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.25-1
 - compute font widths better
 

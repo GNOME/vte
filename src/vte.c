@@ -49,30 +49,35 @@
 #include "debug.h"
 #include "marshal.h"
 #include "pty.h"
-#include "termcap.h"
+#include "reaper.h"
 #include "ring.h"
+#include "termcap.h"
 #include "trie.h"
 #include "vte.h"
 #include "vteaccess.h"
 #include <X11/Xlib.h>
 #ifdef HAVE_XFT
-#include <X11/extensions/Xrender.h>
 #include <X11/Xft/Xft.h>
 #endif
 
-#define VTE_TAB_WIDTH	8
-#define VTE_LINE_WIDTH	1
-#define VTE_DEF_FG	16
-#define VTE_DEF_BG	17
-#define VTE_SATURATION_MAX 10000
-#define VTE_SCROLLBACK_MIN 100
-#define VTE_DEFAULT_EMULATION "xterm"
-#define VTE_DEFAULT_CURSOR GDK_XTERM
-#define VTE_MOUSING_CURSOR GDK_LEFT_PTR
-#define VTE_TAB_MAX	999
+#define VTE_TAB_WIDTH			8
+#define VTE_LINE_WIDTH			1
+#define VTE_COLOR_SET_SIZE		8
+#define VTE_COLOR_PLAIN_OFFSET		0
+#define VTE_COLOR_BRIGHT_OFFSET		8
+#define VTE_DEF_FG			16
+#define VTE_DEF_BG			(VTE_DEF_FG + 1)
+#define VTE_BOLD_FG			(VTE_DEF_BG + 1)
+#define VTE_SATURATION_MAX		10000
+#define VTE_SCROLLBACK_MIN		100
+#define VTE_DEFAULT_EMULATION		"xterm"
+#define VTE_DEFAULT_CURSOR		GDK_XTERM
+#define VTE_MOUSING_CURSOR		GDK_LEFT_PTR
+#define VTE_TAB_MAX			999
 #define VTE_REPRESENTATIVE_CHARACTERS	"ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
 					"abcdefgjijklmnopqrstuvwxyz" \
 					"0123456789./+"
+#define VTE_DEFAULT_FONT		"Luxi Mono 12"
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
@@ -132,9 +137,7 @@ struct _VteTerminalPrivate {
 	const char *shell;		/* shell we started */
 	int pty_master;			/* pty master descriptor */
 	GIOChannel *pty_input;		/* master input watch */
-	int pty_input_tag;
 	GIOChannel *pty_output;		/* master output watch */
-	int pty_output_tag;
 	pid_t pty_pid;			/* pid of child using pty slave */
 	const char *encoding;		/* the pty's encoding */
 	const char *gxencoding[4];	/* alternate encodings */
@@ -160,7 +163,7 @@ struct _VteTerminalPrivate {
 		XRenderColor rcolor;
 		XftColor ftcolor;
 #endif
-	} palette[18];
+	} palette[VTE_BOLD_FG + 1];
 	XFontSet fontset;
 #ifdef HAVE_XFT
 	XftFont *ftfont;
@@ -510,6 +513,13 @@ static void
 vte_terminal_emit_selection_changed(VteTerminal *terminal)
 {
 	g_signal_emit_by_name(terminal, "selection-changed");
+}
+
+/* Emit a "child-exited" signal. */
+static void
+vte_terminal_emit_child_exited(VteTerminal *terminal)
+{
+	g_signal_emit_by_name(terminal, "child-exited");
 }
 
 /* Emit a "contents_changed" signal. */
@@ -1004,10 +1014,9 @@ vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
 	destination = floor(gtk_adjustment_get_value(terminal->adjustment));
 	destination += (pages * terminal->row_count);
 	/* Can't scroll past data we have. */
-	destination = MIN(destination,
-			  terminal->adjustment->upper - terminal->row_count);
-	/* Can't scroll up past zero. */
-	destination = MAX(terminal->adjustment->lower, destination);
+	destination = CLAMP(destination,
+			    terminal->adjustment->lower,
+			    terminal->adjustment->upper - terminal->row_count);
 	/* Tell the scrollbar to adjust itself. */
 	gtk_adjustment_set_value(terminal->adjustment, destination);
 	gtk_adjustment_changed(terminal->adjustment);
@@ -1479,10 +1488,8 @@ vte_sequence_handler_cm(VteTerminal *terminal,
 		    G_VALUE_HOLDS_LONG(col)) {
 			rowval = g_value_get_long(row);
 			colval = g_value_get_long(col);
-			rowval = MAX(0, rowval);
-			rowval = MIN(rowval, terminal->row_count - 1);
-			colval = MAX(0, colval);
-			colval = MIN(colval, terminal->column_count - 1);
+			rowval = CLAMP(rowval, 0, terminal->row_count - 1);
+			colval = CLAMP(colval, 0, terminal->column_count - 1);
 			screen->cursor_current.row = rowval +
 						     screen->insert_delta;
 			screen->cursor_current.col = colval;
@@ -2665,7 +2672,7 @@ vte_sequence_handler_vb(VteTerminal *terminal,
 		gc = XCreateGC(display, drawable, 0, NULL);
 
 		XSetForeground(display, gc,
-			       terminal->pvt->palette[VTE_DEF_FG].pixel);
+			       terminal->pvt->palette[VTE_BOLD_FG].pixel);
 		XFillRectangle(display, drawable, gc,
 			       x_offs, y_offs,
 			       terminal->column_count * terminal->char_width,
@@ -4495,19 +4502,21 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			size_t palette_size)
 {
 	int i;
-	GdkColor color;
+	GdkColor color, proposed;
 	GtkWidget *widget;
 	Display *display;
 	GdkColormap *gcolormap;
 	Colormap colormap;
 	GdkVisual *gvisual;
 	Visual *visual;
-	const GdkColor *proposed;
 	int bright;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(palette_size >= 8);
-	g_return_if_fail((palette_size == 8) || (palette_size == 16));
+	g_return_if_fail((palette_size == 8)  ||
+			 (palette_size == 16) ||
+			 (palette_size == 24));
+
+	/* Accept NULL as the default foreground and background colors. */
 	if (foreground == NULL) {
 		foreground = &palette[7];
 	}
@@ -4517,54 +4526,51 @@ vte_terminal_set_colors(VteTerminal *terminal,
 
 	memset(&color, 0, sizeof(color));
 
-	widget = NULL;
-	display = NULL;
-	gcolormap = NULL;
-	colormap = 0;
-	gvisual = NULL;
-	visual = NULL;
+	/* Get X11 attributes used by GDK for the widget. */
+	widget = GTK_WIDGET(terminal);
+	display = GDK_DISPLAY();
+	gcolormap = gtk_widget_get_colormap(widget);
+	colormap = gdk_x11_colormap_get_xcolormap(gcolormap);
+	gvisual = gtk_widget_get_visual(widget);
+	visual = gdk_x11_visual_get_xvisual(gvisual);
 
 	/* Initialize each item in the palette. */
 	for (i = 0; i < G_N_ELEMENTS(terminal->pvt->palette); i++) {
+		/* Default foreground and background. */
 		if (i == VTE_DEF_FG) {
-			proposed = foreground;
+			proposed = *foreground;
 		} else
 		if (i == VTE_DEF_BG) {
-			proposed = background;
+			proposed = *background;
+		} else
+		/* Use a supplied color. */
+		if (i < palette_size) {
+			proposed = palette[i];
 		} else {
-			proposed = &palette[i % palette_size];
+			/* We have to guess at the rest, the bolder
+			 * colors, where "bold" means "less like the
+			 * default background color". */
+			if (i == VTE_BOLD_FG) {
+				color = *foreground;
+			} else {
+				color = palette[i % VTE_COLOR_SET_SIZE];
+			}
+			bright = 0;
+			bright = MAX(bright, 0xffff - color.red);
+			bright = MAX(bright, 0xffff - color.green);
+			bright = MAX(bright, 0xffff - color.blue);
+			bright = MIN(bright, 0x6000);
+			proposed.red = CLAMP(color.red + bright, 0, 0xffff);
+			proposed.green = CLAMP(color.green + bright, 0, 0xffff);
+			proposed.blue = CLAMP(color.blue + bright, 0, 0xffff);
 		}
 
-		/* Get X11 attributes used by GDK for the widget. */
-		if (widget == NULL) {
-			widget = GTK_WIDGET(terminal);
-			display = GDK_DISPLAY();
-			gcolormap = gtk_widget_get_colormap(widget);
-			colormap = gdk_x11_colormap_get_xcolormap(gcolormap);
-			gvisual = gtk_widget_get_visual(widget);
-			visual = gdk_x11_visual_get_xvisual(gvisual);
-		}
+		/* Create a working copy of what we want, which GDK will
+		 * adjust below when it fills in the pixel value. */
+		color = proposed;
 
-		/* We need a temporary space to hold the pixel value. */
-		color = *proposed;
-
-		/* If we're guessing about the second half, check how much
-		 * brighter we could make this entry. */
-		if ((i != VTE_DEF_FG) &&
-		    (i != VTE_DEF_BG) &&
-		    (i >= palette_size)) {
-			bright = 0xffff;
-			bright = MIN(bright, 0xffff - color.red);
-			bright = MIN(bright, 0xffff - color.green);
-			bright = MIN(bright, 0xffff - color.blue);
-			bright = MIN(bright, 0xc000);
-			color.red += bright;
-			color.green += bright;
-			color.blue += bright;
-		}
-
-		/* Get an Xlib color. */
-		gdk_rgb_find_color(gcolormap, &color); /* fill in pixel */
+		/* Get a GDK color. */
+		gdk_rgb_find_color(gcolormap, &color); /* fills in pixel */
 		terminal->pvt->palette[i].red = color.red;
 		terminal->pvt->palette[i].green = color.green;
 		terminal->pvt->palette[i].blue = color.blue;
@@ -4572,27 +4578,31 @@ vte_terminal_set_colors(VteTerminal *terminal,
 
 #ifdef HAVE_XFT
 		if (terminal->pvt->use_xft) {
-			/* Get an Xft color. */
-			terminal->pvt->palette[i].rcolor.red = color.red;
-			terminal->pvt->palette[i].rcolor.green = color.green;
-			terminal->pvt->palette[i].rcolor.blue = color.blue;
-			terminal->pvt->palette[i].rcolor.alpha = 0xffff;
+			XRenderColor *rcolor;
+			XftColor *ftcolor;
+
+			rcolor = &terminal->pvt->palette[i].rcolor;
+			ftcolor = &terminal->pvt->palette[i].ftcolor;
+
+			/* Fill the render color in with what we got from GDK,
+			 * hopefully so that they match. */
+			rcolor->red = color.red;
+			rcolor->green = color.green;
+			rcolor->blue = color.blue;
+			rcolor->alpha = 0xffff;
 
 			/* FIXME this should probably use a color from the
 			 * color cube. */
-			if (!XftColorAllocValue(display,
-						visual,
-						colormap,
-						&terminal->pvt->palette[i].rcolor,
-						&terminal->pvt->palette[i].ftcolor)) {
+			if (!XftColorAllocValue(display, visual, colormap,
+						rcolor, ftcolor)) {
 				terminal->pvt->use_xft = FALSE;
 			}
 		}
 #endif
 	}
 
-	/* This may have changed the default background color, so trigger
-	 * a repaint. */
+	/* We may just have chnged the default background color, so queue
+	 * a repaint of the entire viewable area. */
 	vte_invalidate_all(terminal);
 }
 
@@ -4616,11 +4626,9 @@ vte_terminal_set_default_colors(VteTerminal *terminal)
 		colors[i].red = red;
 	}
 
-	/* Set the default background to look the same as color 7, and the
-	 * default background to look like color 0. */
-	fg = colors[7];
-	bg = colors[0];
-
+	/* Set the default color set. */
+	fg.red = fg.green = fg.blue = 0xc000;
+	bg.red = bg.green = bg.blue = 0x0000;
 	vte_terminal_set_colors(terminal, &fg, &bg,
 				colors, G_N_ELEMENTS(colors));
 }
@@ -4863,6 +4871,20 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 	gdk_window_thaw_updates(widget->window);
 }
 
+/* Catch a VteReaper child-exited signal, and if it matches the one we're
+ * looking for, emit one of our own. */
+static void
+vte_terminal_catch_child_exited(VteReaper *reaper, guint pid, guint status,
+				VteTerminal *data)
+{
+	VteTerminal *terminal;
+	g_return_if_fail(VTE_IS_TERMINAL(data));
+	terminal = VTE_TERMINAL(data);
+	if (pid == terminal->pvt->pty_pid) {
+		vte_terminal_emit_child_exited(terminal);
+	}
+}
+
 /* Start up a command in a slave PTY. */
 pid_t
 vte_terminal_fork_command(VteTerminal *terminal, const char *command,
@@ -4900,6 +4922,11 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 		/* Set this as the child's pid. */
 		terminal->pvt->pty_pid = pid;
 
+		/* Catch a child-exited signal from the child pid. */
+		g_signal_connect(G_OBJECT(vte_reaper_get()), "child-exited",
+				 G_CALLBACK(vte_terminal_catch_child_exited),
+				 terminal);
+
 		/* Set the pty to be non-blocking. */
 		i = fcntl(terminal->pvt->pty_master, F_GETFL);
 		fcntl(terminal->pvt->pty_master, F_SETFL, i | O_NONBLOCK);
@@ -4908,13 +4935,12 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 		terminal->pvt->pty_input =
 			g_io_channel_unix_new(terminal->pvt->pty_master);
 		terminal->pvt->pty_output = NULL;
-		terminal->pvt->pty_input_tag =
-			g_io_add_watch_full(terminal->pvt->pty_input,
-					    G_PRIORITY_LOW,
-					    G_IO_IN | G_IO_HUP,
-					    vte_terminal_io_read,
-					    terminal,
-					    NULL);
+		g_io_add_watch_full(terminal->pvt->pty_input,
+				    G_PRIORITY_LOW,
+				    G_IO_IN | G_IO_HUP,
+				    vte_terminal_io_read,
+				    terminal,
+				    NULL);
 		g_io_channel_unref(terminal->pvt->pty_input);
 	}
 
@@ -4935,8 +4961,6 @@ vte_terminal_eof(GIOChannel *channel, gpointer data)
 	 * has already been dereferenced. */
 	if (channel == terminal->pvt->pty_input) {
 		terminal->pvt->pty_input = NULL;
-		g_source_remove(terminal->pvt->pty_input_tag);
-		terminal->pvt->pty_input_tag = -1;
 	}
 
 	/* Emit a signal that we read an EOF. */
@@ -5590,8 +5614,6 @@ vte_terminal_io_write(GIOChannel *channel,
 	if (terminal->pvt->n_outgoing == 0) {
 		if (channel == terminal->pvt->pty_output) {
 			terminal->pvt->pty_output = NULL;
-			g_source_remove(terminal->pvt->pty_output_tag);
-			terminal->pvt->pty_output_tag = -1;
 		}
 		leave_open = FALSE;
 	} else {
@@ -5648,13 +5670,12 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		if (terminal->pvt->pty_output == NULL) {
 			terminal->pvt->pty_output =
 				g_io_channel_unix_new(terminal->pvt->pty_master);
-			terminal->pvt->pty_output_tag =
-				g_io_add_watch_full(terminal->pvt->pty_output,
-						    G_PRIORITY_HIGH,
-						    G_IO_OUT,
-						    vte_terminal_io_write,
-						    terminal,
-						    NULL);
+			g_io_add_watch_full(terminal->pvt->pty_output,
+					    G_PRIORITY_HIGH,
+					    G_IO_OUT,
+					    vte_terminal_io_write,
+					    terminal,
+					    NULL);
 			g_io_channel_unref(terminal->pvt->pty_output);
 		}
 	}
@@ -5678,13 +5699,21 @@ vte_terminal_feed_child(VteTerminal *terminal, const char *text, size_t length)
 static void
 vte_terminal_im_commit(GtkIMContext *im_context, gchar *text, gpointer data)
 {
+	VteTerminal *terminal;
+
 	g_return_if_fail(VTE_IS_TERMINAL(data));
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_EVENTS)) {
 		fprintf(stderr, "Input method committed `%s'.\n", text);
 	}
 #endif
-	vte_terminal_send(VTE_TERMINAL(data), "UTF-8", text, strlen(text));
+	terminal = VTE_TERMINAL(data);
+	vte_terminal_send(terminal, "UTF-8", text, strlen(text));
+	/* Committed text was committed because the user pressed a key, so
+	 * we need to obey the scroll-on-keystroke setting. */
+	if (terminal->pvt->scroll_on_keystroke) {
+		vte_terminal_scroll_to_bottom(terminal);
+	}
 }
 
 /* We've started pre-editing. */
@@ -5848,24 +5877,6 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				event->string);
 		}
 #endif
-		/* Determine if we want to steal this keysym from the input
-		 * method.  Ideally the answer would be "no" always. */
-		steal = FALSE;
-		if (modifiers & GDK_SHIFT_MASK) {
-			switch (event->keyval) {
-				case GDK_KP_Add:
-				case GDK_KP_Subtract:
-					steal = TRUE;
-#ifdef VTE_DEBUG
-					if (vte_debug_on(VTE_DEBUG_EVENTS)) {
-						fprintf(stderr, "Hiding key from input method.\n");
-					}
-#endif
-					break;
-				default:
-					steal = FALSE;
-			}
-		}
 		/* Determine if this is just a modifier key. */
 		switch (event->keyval) {
 			case GDK_Caps_Lock:
@@ -5889,12 +5900,25 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			case GDK_Shift_Lock:
 			case GDK_Shift_R:
 				modifier = TRUE;
+				break;
 			default:
 				modifier = FALSE;
+				break;
 		}
 		/* Unless it's a modifier key, hide the pointer. */
 		if (!modifier) {
 			vte_terminal_set_pointer_visible(terminal, FALSE);
+		}
+		/* Determine if this is a key we want to steal. */
+		switch (event->keyval) {
+			case GDK_KP_Add:
+			case GDK_KP_Subtract:
+				if (modifiers & GDK_SHIFT_MASK) {
+					steal = TRUE;
+				}
+				break;
+			default:
+				break;
 		}
 	}
 
@@ -6071,10 +6095,23 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 							i = MAX(PANGO_SCALE,
 								i - PANGO_SCALE);
 						}
+#ifdef VTE_DEBUG
+						if (vte_debug_on(VTE_DEBUG_MISC)) {
+							fprintf(stderr, "Changing font size from %d to %d.\n",
+								pango_font_description_get_size(fontdesc), i);
+						}
+#endif
 						pango_font_description_set_size(fontdesc, i);
 						vte_terminal_set_font(terminal, fontdesc);
 						pango_font_description_free(fontdesc);
 					}
+#ifdef VTE_DEBUG
+					if (vte_debug_on(VTE_DEBUG_MISC)) {
+						if (rofontdesc == NULL) {
+							fprintf(stderr, "Font can't be modified.\n");
+						}
+					}
+#endif
 					break;
 				}
 			/* The default is to just send the string. */
@@ -6125,7 +6162,6 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		}
 		/* Keep the cursor on-screen. */
 		if (!scrolled && !modifier &&
-		    ((normal != NULL) || (special != NULL)) &&
 		    terminal->pvt->scroll_on_keystroke) {
 			vte_terminal_scroll_to_bottom(terminal);
 		}
@@ -6813,6 +6849,16 @@ vte_terminal_get_text(VteTerminal *terminal,
 	}
 	return g_string_free(string, FALSE);
 }
+/* Tell the caller where the cursor is, in screen coordinates. */
+void
+vte_terminal_get_cursor_position(VteTerminal *terminal,
+				 long *column, long *row)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	*column = terminal->pvt->screen->cursor_current.col;
+	*row    = terminal->pvt->screen->cursor_current.row -
+		  terminal->pvt->screen->scroll_delta;
+}
 
 /* Place the selected text onto the clipboard.  Do this asynchronously so that
  * we get notified when the selection we placed on the clipboard is replaced. */
@@ -7266,6 +7312,24 @@ xlfd_from_pango_font_description(GtkWidget *widget,
 	return xlfd;
 }
 
+#ifdef HAVE_XFT
+/* Convert an Xft pattern to a font name. */
+static char *
+vte_unparse_xft_pattern(XftPattern *pattern)
+{
+#ifdef HAVE_XFT2
+	return FcNameUnparse(pattern);
+#else /* !HAVE_XFT2 */
+	char buf[256];
+	if (!XftNameUnparse(pattern, buf, sizeof(buf)-1)) {
+		buf[0] = '\0';
+	}
+	buf[sizeof(buf) - 1] = '\0';
+	return strdup(buf);
+#endif /* HAVE_XFT2 */
+}
+#endif /* HAVE_XFT */
+
 /* Set the fontset used for rendering text into the widget. */
 void
 vte_terminal_set_font(VteTerminal *terminal,
@@ -7289,54 +7353,58 @@ vte_terminal_set_font(VteTerminal *terminal,
 	descent = 0;
 	ascent = height - descent;
 
+	/* Free the old font description. */
+	if (terminal->pvt->fontdesc != NULL) {
+		pango_font_description_free(terminal->pvt->fontdesc);
+		terminal->pvt->fontdesc = NULL;
+	}
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		if (font_desc) {
+			char *tmp;
+			tmp = pango_font_description_to_string(font_desc);
+			fprintf(stderr, "Using pango font \"%s\".\n",
+				tmp);
+			g_free (tmp);
+		} else {
+			fprintf(stderr, "Using default pango font.\n");
+		}
+	}
+#endif
+	/* Set up the normal font description. */
+	if (font_desc != NULL) {
+		terminal->pvt->fontdesc =
+			pango_font_description_copy(font_desc);
+	} else {
+		terminal->pvt->fontdesc =
+			pango_font_description_from_string(VTE_DEFAULT_FONT);
+	}
+
+	/* Set the parameter we were passed to point to a known-usable
+	 * PangoFontDescription. */
+	font_desc = terminal->pvt->fontdesc;
+
 	if (terminal->pvt->use_pango) {
 		/* Create the layout if we don't have one yet. */
 		if (terminal->pvt->layout == NULL) {
-			terminal->pvt->layout = pango_layout_new(gdk_pango_context_get());
-		}
-		/* Free the old font description. */
-		if (terminal->pvt->fontdesc != NULL) {
-			pango_font_description_free(terminal->pvt->fontdesc);
-			terminal->pvt->fontdesc = NULL;
-		}
-
-		/* Create the new font description. */
-#ifdef VTE_DEBUG
-		if (vte_debug_on(VTE_DEBUG_MISC)) {
-			if (font_desc != NULL) {
-				char *tmp;
-				tmp = pango_font_description_to_string(font_desc);
-				fprintf(stderr, "Using pango font \"%s\".\n",
-					tmp);
-				g_free (tmp);
-			} else {
-				fprintf(stderr, "Using default pango font.\n");
-			}
-		}
-#endif
-		if (font_desc != NULL) {
-			terminal->pvt->fontdesc = pango_font_description_copy(font_desc);
-		} else {
-			terminal->pvt->fontdesc = pango_font_description_from_string("Luxi Mono 8");
+			terminal->pvt->layout =
+				pango_layout_new(gdk_pango_context_get());
 		}
 
 		/* Try to load the described font. */
-		if (terminal->pvt->fontdesc != NULL) {
+		if (font_desc != NULL) {
 			PangoFont *font = NULL;
 			PangoFontDescription *desc = NULL;
 			PangoContext *pcontext = NULL;
 			PangoFontMetrics *pmetrics = NULL;
 			PangoLanguage *lang = NULL;
 			pcontext = gdk_pango_context_get();
-			font = pango_context_load_font(pcontext,
-						       terminal->pvt->fontdesc);
+			font = pango_context_load_font(pcontext, font_desc);
 			if (PANGO_IS_FONT(font)) {
-				/* We got a font, reset the description so that
-				 * it describes this font, and read its metrics. */
+				/* We got a font, now reset the description so
+				 * that it describes this font, and read its
+				 * metrics. */
 				desc = pango_font_describe(font);
-				pango_font_description_free(terminal->pvt->fontdesc);
-				terminal->pvt->fontdesc = desc;
-
 				pango_layout_set_font_description(terminal->pvt->layout, desc);
 				lang = pango_context_get_language(pcontext);
 				pmetrics = pango_font_get_metrics(font, lang);
@@ -7350,6 +7418,10 @@ vte_terminal_set_font(VteTerminal *terminal,
 				height = ascent + descent;
 				pango_font_metrics_unref(pmetrics);
 			}
+			/* Remove the actual description. */
+			if (desc != NULL) {
+				pango_font_description_free(desc);
+			}
 		}
 	}
 
@@ -7360,23 +7432,9 @@ vte_terminal_set_font(VteTerminal *terminal,
 		XftPattern *matched_pattern;
 		XftResult result;
 		XGlyphInfo glyph_info;
-		char buf[256];
+		char *name;
 
-#ifdef VTE_DEBUG
-		if (vte_debug_on(VTE_DEBUG_MISC)) {
-			if (font_desc) {
-				char *tmp;
-				tmp = pango_font_description_to_string(font_desc);
-				fprintf(stderr, "Using pango font \"%s\".\n",
-					tmp);
-				g_free (tmp);
-			} else {
-				fprintf(stderr, "Using default pango font.\n");
-			}
-		}
-#endif
-
-		pattern = xft_pattern_from_pango_font_description(font_desc);
+		pattern = xft_pattern_from_pango_font_description(terminal->pvt->fontdesc);
 
 		/* Xft is on a lot of crack here - it fills in "result" when it
 		 * feels like it, and leaves it uninitialized the rest of the
@@ -7390,14 +7448,10 @@ vte_terminal_set_font(VteTerminal *terminal,
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_MISC)) {
 			if (matched_pattern != NULL) {
-				char buf[256];
-				if (!XftNameUnparse(matched_pattern,
-						    buf, sizeof(buf)-1)) {
-					buf[0] = '\0';
-				}
-				buf[sizeof(buf) - 1] = '\0';
+				name = vte_unparse_xft_pattern(matched_pattern);
 				fprintf(stderr, "Matched pattern \"%s\".\n",
-					buf);
+					name);
+				free(name);
 			}
 
 			switch (result) {
@@ -7434,13 +7488,10 @@ vte_terminal_set_font(VteTerminal *terminal,
 		}
 
 		if (new_font == NULL) {
-			if (!XftNameUnparse(matched_pattern, buf, sizeof(buf)-1)) {
-				buf[0] = '\0';
-			}
-			buf[sizeof(buf) - 1] = '\0';
-
+			name = vte_unparse_xft_pattern(matched_pattern);
 			g_warning("Failed to load Xft font pattern \"%s\", "
-				  "falling back to default font.", buf);
+				  "falling back to default font.", name);
+			free(name);
 
 			/* Try to use the default font. */
 			new_font = XftFontOpen(GDK_DISPLAY(),
@@ -7462,15 +7513,11 @@ vte_terminal_set_font(VteTerminal *terminal,
 		}
 
 		if (new_font) {
-			char buf[256];
-			if (!XftNameUnparse (new_font->pattern, buf, sizeof(buf)-1)) {
-				buf[0] = '\0';
-			}
-			buf[sizeof(buf) - 1] = '\0';
-
 #ifdef VTE_DEBUG
 			if (vte_debug_on(VTE_DEBUG_MISC)) {
-				fprintf(stderr, "Opened new font `%s'.\n", buf);
+				name = vte_unparse_xft_pattern(new_font->pattern);
+				fprintf(stderr, "Opened new font `%s'.\n", name);
+				free(name);
 			}
 #endif
 
@@ -7502,26 +7549,8 @@ vte_terminal_set_font(VteTerminal *terminal,
 #endif
 
 	if (!terminal->pvt->use_xft && !terminal->pvt->use_pango) {
-		/* Load the font set, freeing another one if we loaded one
-		 * before. */
-#ifdef VTE_DEBUG
-		if (vte_debug_on(VTE_DEBUG_MISC)) {
-			if (font_desc) {
-				char *tmp;
-				tmp = pango_font_description_to_string(font_desc);
-				fprintf(stderr, "Using pango font \"%s\".\n",
-					tmp);
-				g_free(tmp);
-			} else {
-				fprintf(stderr, "Using default pango font.\n");
-			}
-		}
-#endif
-		xlfds = NULL;
-		if (font_desc) {
-			xlfds = xlfd_from_pango_font_description(GTK_WIDGET(widget),
-								 font_desc);
-		}
+		xlfds = xlfd_from_pango_font_description(GTK_WIDGET(widget),
+							 terminal->pvt->fontdesc);
 		if (xlfds == NULL) {
 			xlfds = g_strdup("-misc-fixed-medium-r-normal--12-*-*-*-*-*-*-*");
 		}
@@ -8344,6 +8373,11 @@ vte_terminal_finalize(GObject *object)
 	}
 	terminal->pvt->pty_pid = 0;
 
+	/* Stop listening for child-exited signals. */
+	g_signal_handlers_disconnect_by_func(vte_reaper_get(),
+					     vte_terminal_catch_child_exited,
+					     terminal);
+
 	/* Clear some of our strings. */
 	terminal->pvt->termcap_path = NULL;
 	terminal->pvt->shell = NULL;
@@ -8353,14 +8387,10 @@ vte_terminal_finalize(GObject *object)
 	if (terminal->pvt->pty_input != NULL) {
 		g_io_channel_unref(terminal->pvt->pty_input);
 		terminal->pvt->pty_input = NULL;
-		g_source_remove(terminal->pvt->pty_input_tag);
-		terminal->pvt->pty_input_tag = -1;
 	}
 	if (terminal->pvt->pty_output != NULL) {
 		g_io_channel_unref(terminal->pvt->pty_output);
 		terminal->pvt->pty_output = NULL;
-		g_source_remove(terminal->pvt->pty_output_tag);
-		terminal->pvt->pty_output_tag = -1;
 	}
 
 	/* Discard any pending data. */
@@ -8529,17 +8559,16 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 		*fore = *back;
 	}
 	if (cell && cell->bold) {
-		if ((*fore != VTE_DEF_FG) &&
-		    (*fore != VTE_DEF_BG) &&
-		    (*fore < 8)) {
-			*fore += 8;
+		if (*fore == VTE_DEF_FG) {
+			*fore = VTE_BOLD_FG;
+		} else
+		if ((*fore != VTE_DEF_BG) && (*fore < VTE_COLOR_SET_SIZE)) {
+			*fore += VTE_COLOR_BRIGHT_OFFSET;
 		}
 	}
 	if (cell && cell->standout) {
-		if ((*back != VTE_DEF_FG) &&
-		    (*back != VTE_DEF_BG) &&
-		    (*back < 8)) {
-			*back += 8;
+		if (*back < VTE_COLOR_SET_SIZE) {
+			*back += VTE_COLOR_BRIGHT_OFFSET;
 		}
 	}
 }
@@ -9274,13 +9303,12 @@ vte_terminal_draw_char(VteTerminal *terminal,
 	/* If we haven't drawn anything, try to draw the text using Xft. */
 	if (!drawn && terminal->pvt->use_xft) {
 		XftChar32 ftc;
-		ftc = vte_terminal_xft_remap_char(display,
-						  terminal->pvt->ftfont,
-						  cell->c);
+		XftFont *font;
+		font = terminal->pvt->ftfont;
+		ftc = vte_terminal_xft_remap_char(display, font, cell->c);
 		XftDrawString32(ftdraw,
 				&terminal->pvt->palette[fore].ftcolor,
-				terminal->pvt->ftfont,
-				x, y + ascent, &ftc, 1);
+				font, x, y + ascent, &ftc, 1);
 		drawn = TRUE;
 	}
 #endif
@@ -9845,6 +9873,15 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     NULL,
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+	klass->child_exited_signal =
+		g_signal_new("child-exited",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     0,
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
 	klass->window_title_changed_signal =
 		g_signal_new("window-title-changed",
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -9970,7 +10007,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     NULL,
 			     NULL,
 			     _vte_marshal_VOID__UINT_UINT,
-			     G_TYPE_NONE, 0);
+			     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
 	klass->move_window_signal =
 		g_signal_new("move-window",
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -9979,7 +10016,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     NULL,
 			     NULL,
 			     _vte_marshal_VOID__UINT_UINT,
-			     G_TYPE_NONE, 0);
+			     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
 
 #ifdef VTE_DEBUG
 	/* Turn on debugging if we were asked to. */
@@ -10596,104 +10633,6 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 	/* Adjust the scrollbars to the new locations. */
 	vte_terminal_adjust_adjustments(terminal);
 	vte_invalidate_all(terminal);
-}
-
-/* Get a snapshot of what's in the visible part of the window. */
-VteTerminalSnapshot *
-vte_terminal_get_snapshot(VteTerminal *terminal)
-{
-	VteTerminalSnapshot *ret;
-	int row, column, x;
-	struct vte_charcell *cell;
-	int fore, back;
-
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-
-	ret = g_malloc0(sizeof(VteTerminalSnapshot));
-
-	/* Save the cursor position and visibility. */
-	ret->cursor.x = terminal->pvt->screen->cursor_current.col;
-	ret->cursor.y = terminal->pvt->screen->cursor_current.row -
-			terminal->pvt->screen->insert_delta;
-	ret->cursor_visible = terminal->pvt->screen->cursor_visible;
-
-	/* Save the window size. */
-	ret->rows = terminal->row_count;
-	ret->columns = terminal->column_count;
-
-	/* Save the window contents. */
-	ret->contents = g_malloc0(sizeof(struct VteTerminalSnapshotCell*) *
-				  (ret->rows + 1));
-	for (row = 0; row < ret->rows; row++) {
-		ret->contents[row] = g_malloc0(sizeof(struct VteTerminalSnapshotCell) *
-					       (ret->columns + 1));
-		column = x = 0;
-		while (column < ret->columns) {
-			cell = vte_terminal_find_charcell(terminal,
-							  x++,
-							  row + terminal->pvt->screen->scroll_delta);
-			if (cell == NULL) {
-				break;
-			}
-			if (cell->columns == 0) {
-				continue;
-			}
-
-			/* Get the text. FIXME: convert from wchar_t to
-			 * gunichar when they're not interchangeable. */
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_MISC)) {
-				fprintf(stderr, "%lc", (wint_t) cell->c);
-			}
-#endif
-			ret->contents[row][column].c = cell->c;
-
-			/* Get text attributes which aren't represented as
-			 * colors. */
-			ret->contents[row][column].attributes.underline =
-				cell->underline;
-			ret->contents[row][column].attributes.alternate =
-				cell->alternate;
-
-			/* Get text colors. */
-			vte_terminal_determine_colors(terminal, cell, FALSE,
-						      &fore, &back);
-
-			ret->contents[row][column].attributes.foreground.red =
-				terminal->pvt->palette[fore].red;
-			ret->contents[row][column].attributes.foreground.green =
-				terminal->pvt->palette[fore].green;
-			ret->contents[row][column].attributes.foreground.blue =
-				terminal->pvt->palette[fore].blue;
-
-			ret->contents[row][column].attributes.background.red =
-				terminal->pvt->palette[back].red;
-			ret->contents[row][column].attributes.background.green =
-				terminal->pvt->palette[back].green;
-			ret->contents[row][column].attributes.background.blue =
-				terminal->pvt->palette[back].blue;
-
-			column++;
-		}
-	}
-	ret->contents[row] = NULL;
-
-	return ret;
-}
-
-void
-vte_terminal_free_snapshot(VteTerminalSnapshot *snapshot)
-{
-	int row;
-	g_return_if_fail(snapshot != NULL);
-	for (row = 0; snapshot->contents[row] != NULL; row++) {
-		memset(snapshot->contents[row], 0,
-		       sizeof(snapshot->contents[row][0]) * snapshot->columns);
-		g_free(snapshot->contents[row]);
-	}
-	g_free(snapshot->contents);
-	memset(snapshot, 0, sizeof(*snapshot));
-	g_free(snapshot);
 }
 
 /* Set the list of characters we consider to be parts of words.  Everything
