@@ -252,6 +252,7 @@ struct _VteTerminalPrivate {
 	GArray *word_chars;
 	gboolean has_selection;
 	gboolean restart_selection;
+	gboolean selecting;
 	char *selection;
 	enum vte_selection_type {
 		selection_type_char,
@@ -260,7 +261,7 @@ struct _VteTerminalPrivate {
 	} selection_type;
 	struct selection_event_coords {
 		double x, y;
-	} selection_origin, selection_last, selection_delayed;
+	} selection_origin, selection_last;
 	struct selection_cell_coords {
 		long x, y;
 	} selection_start, selection_end;
@@ -1682,7 +1683,7 @@ vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
 
 /* Scroll so that the scroll delta is the insertion delta. */
 static void
-vte_terminal_scroll_to_bottom(VteTerminal *terminal)
+vte_terminal_maybe_scroll_to_bottom(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (floor(gtk_adjustment_get_value(terminal->adjustment)) !=
@@ -3623,7 +3624,7 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 			/* default foreground, no underscore */
 			terminal->pvt->screen->defaults.fore = VTE_DEF_FG;
 			/* By ECMA 48, this underline off has no business
-                           being here */
+                           being here, but the Linux console specifies it. */
 			terminal->pvt->screen->defaults.underline = 0;
 			break;
 		case 40:
@@ -5776,16 +5777,17 @@ vte_terminal_set_color_background(VteTerminal *terminal,
  * @palette_size: the number of entries in @palette
  *
  * The terminal widget uses a 28-color model comprised of the default foreground
- * and background colors, the bold foreground color, the cursor foreground
- * color,an eight color palette, and bold versions of the eight color palette,
- * and dim verson of the foreground and the eight colors.
+ * and background colors, the bold foreground color, the dim foreground
+ * color, an eight color palette, and bold versions of the eight color palette,
+ * and a dim version of the the eight color palette.
  *
  * @palette_size must be either 0, 8, 16, or 24.  If @foreground is NULL and
  * @palette_size is greater than 0, the new foreground color is taken from
  * @palette[7].  If @background is NULL and @palette_size is greater than 0,
  * the new background color is taken from @palette[0].  If
  * @palette_size is 8 or 16, the third (dim) and possibly second (bold)
- * 8-color palette is extrapolated from the new background color and the items in @palette.
+ * 8-color palette is extrapolated from the new background color and the items
+ * in @palette.
  *
  */
 void
@@ -6666,7 +6668,7 @@ vte_terminal_process_incoming(gpointer data)
 		 * we're currently at the bottom of the buffer. */
 		vte_terminal_update_insert_delta(terminal);
 		if (terminal->pvt->scroll_on_output || bottom) {
-			vte_terminal_scroll_to_bottom(terminal);
+			vte_terminal_maybe_scroll_to_bottom(terminal);
 		}
 		/* Deselect any existing selection. */
 		vte_terminal_deselect_all(terminal);
@@ -6737,6 +6739,13 @@ vte_terminal_io_read(GIOChannel *channel,
 	g_return_val_if_fail(VTE_IS_TERMINAL(data), TRUE);
 	widget = GTK_WIDGET(data);
 	terminal = VTE_TERMINAL(data);
+
+	/* If the terminal is selecting, then we need to stop reading input (for
+	 * at least a moment) to keep data from scrolling off the top of our
+	 * backscroll buffer, but come back later. */
+	if (terminal->pvt->selecting) {
+		return TRUE;
+	}
 
 	/* Check that the channel is still open. */
 	fd = g_io_channel_unix_get_fd(channel);
@@ -7005,7 +7014,7 @@ vte_terminal_im_commit(GtkIMContext *im_context, gchar *text, gpointer data)
 	/* Committed text was committed because the user pressed a key, so
 	 * we need to obey the scroll-on-keystroke setting. */
 	if (terminal->pvt->scroll_on_keystroke) {
-		vte_terminal_scroll_to_bottom(terminal);
+		vte_terminal_maybe_scroll_to_bottom(terminal);
 	}
 }
 
@@ -7471,7 +7480,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		/* Keep the cursor on-screen. */
 		if (!scrolled && !modifier &&
 		    terminal->pvt->scroll_on_keystroke) {
-			vte_terminal_scroll_to_bottom(terminal);
+			vte_terminal_maybe_scroll_to_bottom(terminal);
 		}
 		return TRUE;
 	}
@@ -8159,7 +8168,7 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 			    glong start_row, glong start_col,
 			    glong end_row, glong end_col,
 			    gboolean(*is_selected)(VteTerminal *, glong, glong,
-				    		   gpointer),
+						   gpointer),
 			    gpointer data,
 			    GArray *attributes)
 {
@@ -8293,7 +8302,7 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 char *
 vte_terminal_get_text(VteTerminal *terminal,
 		      gboolean(*is_selected)(VteTerminal *, glong, glong,
-			      		     gpointer),
+					     gpointer),
 		      gpointer data,
 		      GArray *attributes)
 {
@@ -8560,7 +8569,7 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
 			fprintf(stderr, "Refreshing lines %ld to %ld.\n",
 				MIN(old_start.y,
-				    terminal->pvt->selection_start.y), 
+				    terminal->pvt->selection_start.y),
 				MAX(old_start.y,
 				    terminal->pvt->selection_start.y));
 		}
@@ -8578,7 +8587,7 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
 			fprintf(stderr, "Refreshing lines %ld to %ld.\n",
-				MIN(old_end.y, terminal->pvt->selection_end.y), 
+				MIN(old_end.y, terminal->pvt->selection_end.y),
 				MAX(old_end.y, terminal->pvt->selection_end.y));
 		}
 #endif
@@ -8875,6 +8884,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				vte_terminal_start_selection(widget,
 							     event,
 							     selection_type_char);
+				terminal->pvt->selecting = TRUE;
 				handled = TRUE;
 			}
 			if (extend_selecting) {
@@ -8921,6 +8931,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			vte_terminal_start_selection(widget,
 						     event,
 						     selection_type_word);
+			terminal->pvt->selecting = TRUE;
 			handled = TRUE;
 			break;
 		case 2:
@@ -8944,6 +8955,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			vte_terminal_start_selection(widget,
 						     event,
 						     selection_type_line);
+			terminal->pvt->selecting = TRUE;
 			handled = TRUE;
 			break;
 		case 2:
@@ -9014,6 +9026,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 					vte_terminal_copy(terminal,
 							  GDK_SELECTION_PRIMARY);
 				}
+				terminal->pvt->selecting = FALSE;
 				handled = TRUE;
 			}
 			break;
@@ -10489,6 +10502,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->word_chars = NULL;
 	pvt->has_selection = FALSE;
 	pvt->restart_selection = FALSE;
+	pvt->selecting = FALSE;
 	pvt->selection = NULL;
 	pvt->selection_start.x = 0;
 	pvt->selection_start.y = 0;
@@ -11284,8 +11298,8 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 		}
 	}
 	if (cell && cell->half) {
-	  	if (*fore == VTE_DEF_FG) {
-	  		*fore = VTE_DIM_FG;
+		if (*fore == VTE_DEF_FG) {
+			*fore = VTE_DIM_FG;
 		} else
 		if ((*fore < VTE_COLOR_SET_SIZE)) {
 			*fore += VTE_COLOR_DIM_OFFSET;
@@ -11450,17 +11464,17 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 		c = 126;
 		break;
 	case 0x23ba: /* scanline 1/9 */
-	  	c = 'o';
-	  	break;
+		c = 'o';
+		break;
 	case 0x23bb: /* scanline 3/9 */
-	  	c = 'p';
-	  	break;
+		c = 'p';
+		break;
 	case 0x23bc: /* scanline 7/9 */
-	  	c = 'r';
-	  	break;
+		c = 'r';
+		break;
 	case 0x23bd: /* scanline 9/9 */
-	  	c = 's';
-	  	break;		  
+		c = 's';
+		break;
 	case 0x2409: /* ht */
 		c = 'b';
 		break;
@@ -11480,14 +11494,14 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 		c = 'i';
 		break;
 	case 0x2264: /* <= */
-	  	c = 'y';
-	  	break;
+		c = 'y';
+		break;
 	case 0x2265: /* >= */
-	  	c = 'z';
-	  	break;
+		c = 'z';
+		break;
 	case 0x2260: /* != */
-	  	c = '|';
-	  	break;
+		c = '|';
+		break;
 
 	case 0x2190: /* left arrow */
 	case 0x2192: /* right arrow */
@@ -11512,8 +11526,8 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 	XSetForeground(display, gc, terminal->pvt->palette[fore].pixel);
 	switch (c) {
 	case 0x25ae: /* solid rectangle */
-	  	XFillRectangle(display, drawable, gc, x, y, xright-x, ybottom-y);
-	  	break;
+		XFillRectangle(display, drawable, gc, x, y, xright-x, ybottom-y);
+		break;
 	case 95:
 		/* drawing a blank */
 		break;
@@ -12635,7 +12649,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 				break;
 			}
 			nbold = (cell != NULL) ?
-			       	(cell->bold != 0) :
+				(cell->bold != 0) :
 			        FALSE;
 			if (nbold != bold) {
 				break;
@@ -14553,6 +14567,7 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	vte_terminal_deselect_all(terminal);
 	terminal->pvt->has_selection = FALSE;
 	terminal->pvt->restart_selection = FALSE;
+	terminal->pvt->selecting = FALSE;
 	if (terminal->pvt->selection != NULL) {
 		g_free(terminal->pvt->selection);
 		terminal->pvt->selection = NULL;
@@ -14575,7 +14590,7 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	terminal->pvt->mouse_last_x = 0;
 	terminal->pvt->mouse_last_y = 0;
 	/* Cause everything to be redrawn (or cleared). */
-	vte_terminal_scroll_to_bottom(terminal);
+	vte_terminal_maybe_scroll_to_bottom(terminal);
 	vte_invalidate_all(terminal);
 }
 

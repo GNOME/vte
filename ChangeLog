@@ -1,4 +1,8 @@
 2002-10-30  nalin
+	* src/buffer.c, src/iso2022.c, src/vteaccess.c: add ident tags.
+	* src/vte.c: don't scroll-to-bottom if we're selecting (#96913).
+
+2002-10-30  nalin
 	* src/vteapp.c: implement iconify, deiconify, raise, lower, maximize,
 	restore, refresh, resize, and move signals.
 	* src/vte.c: add vte_terminal_match_remove().
