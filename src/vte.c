@@ -2831,6 +2831,7 @@ vte_terminal_process_incoming(gpointer data)
 				if (strcmp(encoding, terminal->pvt->encoding)) {
 					leftovers = TRUE;
 				}
+				inserted = TRUE;
 				break;
 			} else {
 				/* Empty string. */
