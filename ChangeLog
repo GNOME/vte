@@ -1,14 +1,29 @@
-2002-08-28  Gustavo Noronha Silva  <kov@debian.org>
+2002-08-29 nalin
+	* src/vte.c: Clean up bookkeeping for mouse autoscrolling and adjustment
+	change notifications.  Reset the scrolling and insertion deltas when
+	clearing the history.
+	* src/interpret.c: Don't dump data on incomplete conversion errors,
+	which we're going to retry anyway.
+	* src/iso2022.txt: Add iso-2022-kr examples (no workee -- uses GR).
 
+2002-08-28 nalin
+	* src/vte.c, src/vte.h: Add vte_terminal_copy_primary and
+	vte_terminal_paste_primary(), because I really want to let
+	profterm decide default values for key bindings.
+
+2002-08-28  Gustavo Noronha Silva  <kov@debian.org>
 	* configure.in (ALL_LINGUAS): added pt_BR
 
 2002-08-27 nalin
 	* src/vte.c: Stop autoscrolling on button release.
+
 2002-08-27 nalin
 	* src/vte.c: When autoscrolling, clamp the new boundary to what the user
 	can see.
+
 2002-08-27 nalin
 	* src/vte.c: Implement autoscroll (Red Hat #70481).
+
 2002-08-27 nalin
 	* src/vte.c: Only perform cr-lf substitutions when pasting text, not
 	when inputting from a live user (Red Hat #72639).  Bind GDK_ISO_Left_Tab

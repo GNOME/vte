@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.8.10
+Version: 0.8.11
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -61,6 +61,10 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Thu Aug 29 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.11-1
+- clean up autoscroll (#70481)
+- add Korean text examples to docs
+
 * Tue Aug 27 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.10-1
 - autoscroll (#70481)
 - only perform cr-lf substitutions when pasting (#72639)

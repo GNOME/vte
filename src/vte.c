@@ -277,7 +277,6 @@ struct _VteTerminalPrivate {
 	guint mouse_last_button;
 	gdouble mouse_last_x, mouse_last_y;
 	gboolean mouse_autohide;
-	gboolean mouse_autoscrolling;
 	guint mouse_autoscroll_tag;
 
 	/* State variables for handling match checks. */
@@ -334,7 +333,6 @@ struct _VteTerminalPrivate {
 	AtkObject *accessible;
 
 	/* Adjustment updates pending. */
-	gboolean adjustment_changed_pending;
 	gboolean adjustment_changed_tag;
 
 	/* Background images/"transparency". */
@@ -1292,13 +1290,12 @@ vte_terminal_emit_adjustment_changed(gpointer data)
 {
 	VteTerminal *terminal;
 	terminal = VTE_TERMINAL(data);
-	if (terminal->pvt->adjustment_changed_pending) {
+	if (terminal->pvt->adjustment_changed_tag != -1) {
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
 			fprintf(stderr, "Emitting adjustment_changed.\n");
 		}
 #endif
-		terminal->pvt->adjustment_changed_pending = FALSE;
 		terminal->pvt->adjustment_changed_tag = -1;
 		gtk_adjustment_changed(terminal->adjustment);
 	}
@@ -1309,8 +1306,7 @@ vte_terminal_emit_adjustment_changed(gpointer data)
 static void
 vte_terminal_queue_adjustment_changed(VteTerminal *terminal)
 {
-	if (!terminal->pvt->adjustment_changed_pending) {
-		terminal->pvt->adjustment_changed_pending = TRUE;
+	if (terminal->pvt->adjustment_changed_tag != -1) {
 		terminal->pvt->adjustment_changed_tag =
 				g_idle_add_full(VTE_ADJUSTMENT_PRIORITY,
 						vte_terminal_emit_adjustment_changed,
@@ -2262,6 +2258,7 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 	GArray *array;
 	VteScreen *screen;
 	struct vte_charcell cell, *cells;
+	gboolean readjust = FALSE;
 	long add, i;
 
 	/* Must make sure we're in a sane area. */
@@ -2273,8 +2270,11 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 		/* Create a new row. */
 		array = vte_new_row_data();
 		vte_ring_append(screen->row_data, array);
+		readjust = TRUE;
 	}
-	vte_terminal_adjust_adjustments(terminal, FALSE);
+	if (readjust) {
+		vte_terminal_adjust_adjustments(terminal, FALSE);
+	}
 
 	/* Find the row the cursor is in. */
 	array = vte_ring_index(screen->row_data,
@@ -2331,8 +2331,6 @@ vte_terminal_scroll_insertion(VteTerminal *terminal)
 	if (delta != screen->insert_delta) {
 		vte_terminal_ensure_cursor(terminal, FALSE);
 		screen->insert_delta = delta;
-		/* Update scroll bar adjustments. */
-		vte_terminal_adjust_adjustments(terminal, FALSE);
 	}
 }
 
@@ -7666,6 +7664,7 @@ vte_terminal_autoscroll(gpointer data)
 				terminal->char_height * adj;
 			row = terminal->pvt->selection_start.y;
 			vte_terminal_selection_recompute(terminal);
+			terminal->pvt->selection_start.x = 0;
 			terminal->pvt->selection_start.y = adj;
 			vte_invalidate_cells(terminal,
 					     0,
@@ -7674,9 +7673,14 @@ vte_terminal_autoscroll(gpointer data)
 					     row + 1 -
 					     terminal->pvt->selection_start.y);
 		}
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
+			fprintf(stderr, "Autoscrolling down.\n");
+		}
+#endif
 	} else
 	if (terminal->pvt->mouse_last_y + 2 * VTE_PAD_WIDTH >
-	    widget->allocation.y + widget->allocation.height) {
+	    widget->allocation.height) {
 			adj = CLAMP(terminal->adjustment->value + 1,
 				    terminal->adjustment->lower,
 				    terminal->adjustment->upper -
@@ -7690,6 +7694,8 @@ vte_terminal_autoscroll(gpointer data)
 				terminal->char_height * adj;
 			row = terminal->pvt->selection_end.y;
 			vte_terminal_selection_recompute(terminal);
+			terminal->pvt->selection_end.x =
+				terminal->column_count;
 			terminal->pvt->selection_end.y =
 				adj + terminal->row_count - 1;
 			vte_invalidate_cells(terminal,
@@ -7698,11 +7704,15 @@ vte_terminal_autoscroll(gpointer data)
 					     row,
 					     terminal->pvt->selection_end.y -
 					     row + 1);
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_EVENTS)) {
+				fprintf(stderr, "Autoscrolling down.\n");
+			}
+#endif
 	} else {
-		terminal->pvt->mouse_autoscrolling = FALSE;
 		terminal->pvt->mouse_autoscroll_tag = -1;
 	}
-	return terminal->pvt->mouse_autoscrolling;
+	return (terminal->pvt->mouse_autoscroll_tag != -1);
 }
 
 /* Read and handle a motion event. */
@@ -7812,13 +7822,13 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 							 adj);
 				need_autoscroll = TRUE;
 		}
-		if (need_autoscroll && !terminal->pvt->mouse_autoscrolling) {
+		if (need_autoscroll &&
+		    (terminal->pvt->mouse_autoscroll_tag == -1)) {
 			terminal->pvt->mouse_autoscroll_tag = g_timeout_add_full(G_PRIORITY_LOW,
  50,
  vte_terminal_autoscroll,
  terminal,
  NULL);
-			terminal->pvt->mouse_autoscrolling = TRUE;
 		}
 	} else {
 #ifdef VTE_DEBUG
@@ -8362,6 +8372,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 		/* Disconnect from autoscroll requests. */
 		if (terminal->pvt->mouse_autoscroll_tag != -1) {
 			g_source_remove(terminal->pvt->mouse_autoscroll_tag);
+			terminal->pvt->mouse_autoscroll_tag = -1;
 		}
 	}
 
@@ -9795,7 +9806,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->mouse_last_x = 0;
 	pvt->mouse_last_y = 0;
 	pvt->mouse_autohide = FALSE;
-	pvt->mouse_autoscrolling = FALSE;
 	pvt->mouse_autoscroll_tag = -1;
 
 	/* Matching data. */
@@ -9888,7 +9898,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->connected_settings = NULL;
 
 	/* Bookkeeping data for adjustment-changed signals. */
-	pvt->adjustment_changed_pending = FALSE;
 	pvt->adjustment_changed_tag = -1;
 
 	/* Set up background information. */
@@ -10150,10 +10159,6 @@ vte_terminal_finalize(GObject *object)
 		g_object_unref(G_OBJECT(terminal->pvt->bg_transparent_image));
 		terminal->pvt->bg_transparent_image = NULL;
 	}
-	if (terminal->pvt->adjustment_changed_tag != -1) {
-		g_source_remove(terminal->pvt->adjustment_changed_tag);
-		terminal->pvt->adjustment_changed_tag = -1;
-	}
 	if (terminal->pvt->bg_transparent_update_tag != -1) {
 		g_source_remove(terminal->pvt->bg_transparent_update_tag);
 		terminal->pvt->bg_transparent_update_tag = -1;
@@ -10209,6 +10214,13 @@ vte_terminal_finalize(GObject *object)
 	/* Disconnect from autoscroll requests. */
 	if (terminal->pvt->mouse_autoscroll_tag != -1) {
 		g_source_remove(terminal->pvt->mouse_autoscroll_tag);
+		terminal->pvt->mouse_autoscroll_tag = -1;
+	}
+
+	/* Cancel pending adjustment change notifications. */
+	if (terminal->pvt->adjustment_changed_tag != -1) {
+		g_source_remove(terminal->pvt->adjustment_changed_tag);
+		terminal->pvt->adjustment_changed_tag = -1;
 	}
 
 	/* Tabstop information. */
@@ -12455,6 +12467,20 @@ vte_terminal_paste_clipboard(VteTerminal *terminal)
 	vte_terminal_paste(terminal, GDK_SELECTION_CLIPBOARD);
 }
 
+void
+vte_terminal_copy_primary(VteTerminal *terminal)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	vte_terminal_copy(terminal, GDK_SELECTION_PRIMARY);
+}
+
+void
+vte_terminal_paste_primary(VteTerminal *terminal)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	vte_terminal_paste(terminal, GDK_SELECTION_PRIMARY);
+}
+
 /* Append the menu items for our input method context to the given shell. */
 void
 vte_terminal_im_append_menuitems(VteTerminal *terminal, GtkMenuShell *menushell)
@@ -12992,7 +13018,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 		screens[i]->scroll_delta = CLAMP(screens[i]->scroll_delta,
 						 low, highd);
 		screens[i]->cursor_current.row = CLAMP(screens[i]->cursor_current.row,
-						       low, high);
+						       low, highd);
 	}
 	terminal->pvt->scrollback_lines = lines;
 
@@ -13168,10 +13194,15 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 		terminal->pvt->normal_screen.cursor_saved.col = 0;
 		terminal->pvt->normal_screen.cursor_current.row = 0;
 		terminal->pvt->normal_screen.cursor_current.col = 0;
+		terminal->pvt->normal_screen.scroll_delta = 0;
+		terminal->pvt->normal_screen.insert_delta = 0;
 		terminal->pvt->alternate_screen.cursor_saved.row = 0;
 		terminal->pvt->alternate_screen.cursor_saved.col = 0;
 		terminal->pvt->alternate_screen.cursor_current.row = 0;
 		terminal->pvt->alternate_screen.cursor_current.col = 0;
+		terminal->pvt->alternate_screen.scroll_delta = 0;
+		terminal->pvt->alternate_screen.insert_delta = 0;
+		vte_terminal_adjust_adjustments(terminal, TRUE);
 	}
 	/* Clear the status lines. */
 	terminal->pvt->normal_screen.status_line = FALSE;

@@ -134,6 +134,8 @@ void vte_terminal_feed_child(VteTerminal *terminal,
  * the terminal. */
 void vte_terminal_copy_clipboard(VteTerminal *terminal);
 void vte_terminal_paste_clipboard(VteTerminal *terminal);
+void vte_terminal_copy_primary(VteTerminal *terminal);
+void vte_terminal_paste_primary(VteTerminal *terminal);
 
 /* Set the terminal's size. */
 void vte_terminal_set_size(VteTerminal *terminal, long columns, long rows);
