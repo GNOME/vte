@@ -7119,8 +7119,8 @@ vte_terminal_process_incoming(gpointer data)
 	 * the current location of the cursor, so we won't need to redraw
 	 * it below. */
 	vte_invalidate_cells(terminal,
-			     bbox_topleft.x,
-			     bbox_bottomright.x - bbox_topleft.x + 1,
+			     bbox_topleft.x - 1,
+			     bbox_bottomright.x - (bbox_topleft.x - 1) + 1,
 			     bbox_topleft.y,
 			     bbox_bottomright.y - bbox_topleft.y + 1);
 
@@ -11616,12 +11616,16 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 		/* +/- */
 		vte_terminal_draw_line(terminal,
 				       &terminal->pvt->palette[fore],
-				       xcenter, (y + ycenter) / 2,
-				       xcenter, (ycenter + ybottom) / 2);
+				       xcenter,
+				       (y + ycenter) / 2,
+				       xcenter,
+				       (ycenter + ybottom) / 2);
 		vte_terminal_draw_line(terminal,
 				       &terminal->pvt->palette[fore],
-				       (x + xcenter) / 2, ycenter,
-				       (xcenter + xright) / 2, ycenter);
+				       (x + xcenter) / 2,
+				       ycenter,
+				       (xcenter + xright) / 2,
+				       ycenter);
 		vte_terminal_draw_line(terminal,
 				       &terminal->pvt->palette[fore],
 				       (x + xcenter) / 2,
