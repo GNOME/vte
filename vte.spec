@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.4.8
+Version: 0.4.9
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -51,11 +51,16 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %files devel
 %defattr(-,root,root)
 %{_includedir}/*
+%{_libdir}/%{name}
 %{_libdir}/*.a
 %{_libdir}/*.so
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Sat Jul 13 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.9-1
+- fix segfaulting during dingus highlighting when the buffer contains non-ASCII
+  characters (#67930)
+
 * Fri Jul 12 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.8-1
 - implement BCE (#68414)
 - bind F13-F35 per termcap

@@ -302,7 +302,7 @@ typedef void (*VteTerminalSequenceHandler)(VteTerminal *terminal,
 					   GValueArray *params);
 static void vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 				     gboolean reset);
-static void vte_terminal_ensure_cursor(VteTerminal *terminal);
+static void vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current);
 static void vte_terminal_insert_char(GtkWidget *widget, wchar_t c,
 				     gboolean force_insert);
 static void vte_sequence_handler_clear_screen(VteTerminal *terminal,
@@ -314,6 +314,10 @@ static void vte_sequence_handler_do(VteTerminal *terminal,
 				    GQuark match_quark,
 				    GValueArray *params);
 static void vte_sequence_handler_ho(VteTerminal *terminal,
+				    const char *match,
+				    GQuark match_quark,
+				    GValueArray *params);
+static void vte_sequence_handler_le(VteTerminal *terminal,
 				    const char *match,
 				    GQuark match_quark,
 				    GValueArray *params);
@@ -1481,7 +1485,7 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	/* Get the data for the row which the cursor points to. */
-	vte_terminal_ensure_cursor(terminal);
+	vte_terminal_ensure_cursor(terminal, FALSE);
 	rowdata = vte_ring_index(screen->row_data,
 				 GArray*,
 				 screen->cursor_current.row);
@@ -1550,7 +1554,7 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	/* Get the data for the row which the cursor points to. */
-	vte_terminal_ensure_cursor(terminal);
+	vte_terminal_ensure_cursor(terminal, FALSE);
 	rowdata = vte_ring_index(screen->row_data, GArray*,
 				 screen->cursor_current.row);
 	/* Remove the data at the end of the array until the current column
@@ -1865,7 +1869,7 @@ vte_sequence_handler_DL(VteTerminal *terminal,
 /* Make sure we have enough rows and columns to hold data at the current
  * cursor position. */
 static void
-vte_terminal_ensure_cursor(VteTerminal *terminal)
+vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 {
 	GArray *array;
 	VteScreen *screen;
@@ -1879,6 +1883,10 @@ vte_terminal_ensure_cursor(VteTerminal *terminal)
 	cell = screen->defaults;
 	cell.c = ' ';
 	cell.columns = wcwidth(cell.c);
+	if (!current) {
+		cell.fore = VTE_DEF_FG;
+		cell.back = VTE_DEF_BG;
+	}
 
 	while (screen->cursor_current.row >= vte_ring_next(screen->row_data)) {
 		/* Create a new row for this part of the screen. */
@@ -1918,7 +1926,7 @@ vte_terminal_scroll_insertion(VteTerminal *terminal)
 
 	/* Adjust the insert delta and scroll if needed. */
 	if (delta != screen->insert_delta) {
-		vte_terminal_ensure_cursor(terminal);
+		vte_terminal_ensure_cursor(terminal, FALSE);
 		screen->insert_delta = delta;
 		/* Update scroll bar adjustments. */
 		vte_terminal_adjust_adjustments(terminal);
@@ -2129,23 +2137,8 @@ vte_sequence_handler_kb(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	VteScreen *screen;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->pvt->screen;
-	if (screen->cursor_current.col > 0) {
-		/* There's room to move left, so do so. */
-		screen->cursor_current.col--;
-	} else {
-		if (terminal->pvt->flags.bw) {
-			/* Wrap to the previous line. */
-			screen->cursor_current.col = terminal->column_count - 1;
-			screen->cursor_current.row = MAX(screen->cursor_current.row - 1,
-							 screen->insert_delta);
-		} else {
-			/* Stick to the first column. */
-			screen->cursor_current.col = 0;
-		}
-	}
+	/* Move the cursor left. */
+	vte_sequence_handler_le(terminal, match, match_quark, params);
 }
 
 /* Keypad mode end. */
@@ -2177,7 +2170,23 @@ vte_sequence_handler_le(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	vte_sequence_handler_kb(terminal, match, match_quark, params);
+	VteScreen *screen;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	screen = terminal->pvt->screen;
+	if (screen->cursor_current.col > 0) {
+		/* There's room to move left, so do so. */
+		screen->cursor_current.col--;
+	} else {
+		if (terminal->pvt->flags.bw) {
+			/* Wrap to the previous line. */
+			screen->cursor_current.col = terminal->column_count - 1;
+			screen->cursor_current.row = MAX(screen->cursor_current.row - 1,
+							 screen->insert_delta);
+		} else {
+			/* Stick to the first column. */
+			screen->cursor_current.col = 0;
+		}
+	}
 }
 
 /* Move the cursor left N columns. */
@@ -4883,7 +4892,7 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 	}
 
 	/* Make sure we have enough rows to hold this data. */
-	vte_terminal_ensure_cursor(terminal);
+	vte_terminal_ensure_cursor(terminal, FALSE);
 
 	/* Get a handle on the array for the insertion row. */
 	array = vte_ring_index(screen->row_data,
@@ -4976,7 +4985,7 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 	}
 
 	/* Redraw where the cursor has moved to. */
-	vte_terminal_ensure_cursor(terminal);
+	vte_terminal_ensure_cursor(terminal, FALSE);
 	vte_invalidate_cursor_once(terminal);
 
 #ifdef VTE_DEBUG
@@ -5485,7 +5494,7 @@ vte_terminal_process_incoming(gpointer data)
 				}
 #endif
 				/* Discard. */
-				start = next - wbuf;
+				start = next - wbuf + 1;
 			} else {
 				/* Pause processing and wait for more data. */
 				leftovers = TRUE;
@@ -7184,7 +7193,7 @@ vte_terminal_get_text(VteTerminal *terminal,
 						string = g_string_append_c(string, ' ');
                                                 --spaces;
 					}
-					/* Stuff the charcter in this cell. */
+					/* Stuff the character in this cell. */
 					string = g_string_append_unichar(string, pcell->c);
 				}
 			}
@@ -7785,6 +7794,7 @@ vte_xft_changed_cb(GtkSettings *settings, GParamSpec *spec,
 	vte_terminal_set_font(terminal, terminal->pvt->fontdesc);
 }
 
+#ifdef HAVE_XFT
 /* Add default specifiers to the pattern which incorporate the current Xft
  * settings. */
 static void
@@ -7945,6 +7955,7 @@ vte_font_match(VteTerminal *terminal, XftPattern *pattern, XftResult *result)
 	XftPatternDestroy(spec);
 	return match;
 }
+#endif
 
 /* Set the fontset used for rendering text into the widget. */
 void
