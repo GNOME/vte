@@ -120,7 +120,6 @@ vte_bg_root_pixmap(VteBg *bg)
 #else
 			pixmap = gdk_pixmap_foreign_new(pixmaps[0]);
 #endif
-			g_print("Got new root pixmap.\n");
 		}
 		if (pixmaps != NULL) {
 			g_free(pixmaps);
@@ -366,7 +365,6 @@ vte_bg_set_root_pixmap(VteBg *bg, GdkPixmap *pixmap)
 	}
 	bg->root_pixmap = pixmap;
 	vte_bg_cache_prune_int(bg, TRUE);
-	g_print("Root pixmap changed.\n");
 	g_signal_emit_by_name(bg, "root-pixmap-changed");
 }
 

@@ -1096,6 +1096,9 @@ process_cdata(struct _vte_iso2022_state *state, guchar *cdata, gsize length,
 		/* Append the unichars to the array. */
 		for (i = 0; &buf[i] < (char*)outbuf; i += sizeof(gunichar)) {
 			c = *(gunichar*)(buf + i);
+			if (c == '\0') {
+				continue;
+			}
 			if (_vte_iso2022_is_ambiguous(c)) {
 				width = ambiguous_width;
 				c = _vte_iso2022_set_encoded_width(c, width);

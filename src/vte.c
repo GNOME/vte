@@ -13457,6 +13457,7 @@ vte_terminal_background_update(gpointer data)
 {
 	VteTerminal *terminal;
 	GtkWidget *widget;
+	GdkColormap *colormap;
 	GdkColor bgcolor;
 	double saturation;
 
@@ -13486,6 +13487,15 @@ vte_terminal_background_update(gpointer data)
 	bgcolor.red = terminal->pvt->palette[VTE_DEF_BG].red;
 	bgcolor.green = terminal->pvt->palette[VTE_DEF_BG].green;
 	bgcolor.blue = terminal->pvt->palette[VTE_DEF_BG].blue;
+	bgcolor.pixel = 0;
+	colormap = _vte_draw_get_colormap(terminal->pvt->draw);
+	if (colormap == NULL) {
+		gtk_widget_ensure_style(widget);
+		colormap = gdk_gc_get_colormap(widget->style->fg_gc[GTK_WIDGET_STATE(widget)]);
+	}
+	if (colormap) {
+		gdk_rgb_find_color(colormap, &bgcolor);
+	}
 	gdk_window_set_background(widget->window, &bgcolor);
 	_vte_draw_set_background_color(terminal->pvt->draw, &bgcolor);
 

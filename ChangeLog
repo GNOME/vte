@@ -1,4 +1,12 @@
 2003-05-01 nalin
+	* src/vtebg.c(vte_bg_set_root_pixmap,vte_bg_root_pixmap): remove some
+	debugging g_print() calls.
+	* src/iso2022.c(process_cdata): skip over NUL bytes (#112022).
+	* src/vte.c(vte_terminal_background_update): map the bgcolor values to
+	a pixel value before setting the window background color.
+	* src/nativeecho.c(main): echo NUL bytes if asked to do so.
+
+2003-05-01 nalin
 	* src/vtebg.c, src/vtebg.h: add a singleton object for managing
 	copies of background images, either the desktop background, an
 	in-memory pixbuf, or an on-disk file, with tinting.  Using a single

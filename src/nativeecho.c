@@ -40,10 +40,10 @@ main(int argc, char **argv)
 
 	for (i = 1; i < argc; i++) {
 		l = strtol(argv[i], &p, 0);
-		while (l > 0) {
+		do {
 			printf("%c", (unsigned char) (l & 0xff));
 			l = l >> 8;
-		}
+		} while (l > 0);
 	}
 
 	return 0;
