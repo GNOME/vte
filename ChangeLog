@@ -1,3 +1,7 @@
+2004-03-20  Gareth Owen  <gowen72@yahoo.com>
+
+	* configure.in: Added en_GB to ALL_LINGUAS
+
 2004-03-10  Alexander Winston  <alexander.winston@comcast.net>
 
 	* configure.in: Added en_CA to ALL_LINGUAS.
