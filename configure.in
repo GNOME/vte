@@ -105,17 +105,7 @@ wcs_funcs_includes="
 #endif
 "
 
-AC_CACHE_CHECK(for wchar_t type,
-  ac_cv_type_wint_t,
-[
-AC_TRY_COMPILE($wcs_funcs_includes, [wint_t s = sizeof (wint_t *);],
-  ac_cv_type_wint_t=yes,
-  ac_cv_type_wint_t=no)
-])
-if test "$ac_cv_type_wint_t" = "yes" ; then
-  AC_DEFINE(HAVE_WINT_T, ,
-    [Defined when the wint_t type is supported])
-fi
+AC_CHECK_TYPES(wint_t, AC_DEFINE(HAVE_WINT_T, , [Defined when the wint_t type is supported]), ,$wcs_funcs_includes)
 
 BUILD_PYTHON=false
 AC_MSG_CHECKING([for pygtk-2.0])

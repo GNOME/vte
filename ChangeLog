@@ -1,4 +1,7 @@
 2002-10-17 nalin
+	* configure.in: clean up tests for wint_t.  Patch from Brian Cameron.
+
+2002-10-17 nalin
 	* src/pty.c: close a possible race on systems where pty initialization
 	requires more than just opening the pty (for example, Solaris).  Spotted
 	by Brian Cameron.
