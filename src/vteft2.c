@@ -212,7 +212,8 @@ _vte_ft2_clear(struct _vte_draw *draw,
 
 static void
 _vte_ft2_set_text_font(struct _vte_draw *draw,
-		       const PangoFontDescription *fontdesc)
+		       const PangoFontDescription *fontdesc,
+		       VteTerminalAntiAlias anti_alias)
 {
 	struct _vte_ft2_data *data;
 
@@ -224,7 +225,7 @@ _vte_ft2_set_text_font(struct _vte_draw *draw,
 	}
 	data->cache = _vte_glyph_cache_new();
 	_vte_glyph_cache_set_font_description(draw->widget, NULL,
-					      data->cache, fontdesc,
+					      data->cache, fontdesc, anti_alias,
 					      NULL, NULL);
 }
 

@@ -105,14 +105,15 @@ _vte_xft_text_extents(struct _vte_xft_font *font, XftFont *ftfont, FcChar32 c,
 }
 
 static struct _vte_xft_font *
-_vte_xft_font_open(GtkWidget *widget, const PangoFontDescription *fontdesc)
+_vte_xft_font_open(GtkWidget *widget, const PangoFontDescription *fontdesc,
+		   VteTerminalAntiAlias antialias)
 {
 	struct _vte_xft_font *font;
 	GArray *patterns;
 
 	patterns = g_array_new(TRUE, TRUE, sizeof(FcPattern*));
-	if (!_vte_fc_patterns_from_pango_font_desc(widget, fontdesc, patterns,
-						   NULL, NULL)) {
+	if (!_vte_fc_patterns_from_pango_font_desc(widget, fontdesc, antialias,
+						   patterns, NULL, NULL)) {
 		g_array_free(patterns, TRUE);
 		return NULL;
 	}
@@ -530,7 +531,8 @@ _vte_xft_clear(struct _vte_draw *draw,
 
 static void
 _vte_xft_set_text_font(struct _vte_draw *draw,
-		       const PangoFontDescription *fontdesc)
+		       const PangoFontDescription *fontdesc,
+		       VteTerminalAntiAlias antialias)
 {
 	GString *string;
 	XftFont *font;
@@ -546,7 +548,7 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 		_vte_xft_font_close(data->font);
 		data->font = NULL;
 	}
-	data->font = _vte_xft_font_open(draw->widget, fontdesc);
+	data->font = _vte_xft_font_open(draw->widget, fontdesc, antialias);
 
 	draw->width = 1;
 	draw->height = 1;

@@ -138,6 +138,7 @@ _vte_glyph_cache_set_font_description(GtkWidget *widget,
 				      FcConfig *config,
 				      struct _vte_glyph_cache *cache,
 				      const PangoFontDescription *fontdesc,
+				      VteTerminalAntiAlias antialias,
 				      _vte_fc_defaults_cb defaults_cb,
 				      gpointer defaults_data)
 {
@@ -155,7 +156,9 @@ _vte_glyph_cache_set_font_description(GtkWidget *widget,
 
 	/* Convert the font description to a sorted set of patterns. */
 	patterns = g_array_new(TRUE, TRUE, sizeof(FcPattern*));
-	if (!_vte_fc_patterns_from_pango_font_desc(widget, fontdesc, patterns,
+	if (!_vte_fc_patterns_from_pango_font_desc(widget, fontdesc,
+						   antialias,
+						   patterns,
 						   defaults_cb,
 						   defaults_data)) {
 		g_array_free(patterns, TRUE);

@@ -1,3 +1,10 @@
+2004-04-19 nalin
+	* src/vte.h, src/vte.c (vte_terminal_set_font_full): Add (#134429).
+	* src/vteglyph.c(_vte_glyph_cache_set_font_description): take a
+	VteTerminalAntiAlias argument.
+	* src/vteft2.c, src/vtegl.c, src/pango.c, src/pango.x, src/vtexft.c
+	(*_set_text_font): take a VteTerminalAntiAlias argument.
+
 2004-04-19  Victor Zverovich  <vitaut@users.sourceforge.net>
 	* src/vte.h src/vte.c: Added default signal handlers to
 	VteTerminalClass (#137961).  [NOTE: ABI change.]

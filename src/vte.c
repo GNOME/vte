@@ -322,6 +322,7 @@ struct _VteTerminalPrivate {
 	/* Data used when rendering the text which does not require server
 	 * resources and which can be kept after unrealizing. */
 	PangoFontDescription *fontdesc;
+	VteTerminalAntiAlias fontantialias;
 	GtkSettings *connected_settings;
 
 	/* Data used when rendering the text which reflects server resources
@@ -8156,7 +8157,8 @@ vte_terminal_style_changed(GtkWidget *widget, GtkStyle *style, gpointer data)
 	if (pango_font_description_equal(style->font_desc,
 					 widget->style->font_desc) ||
 	    (terminal->pvt->fontdesc == NULL)) {
-		vte_terminal_set_font(terminal, terminal->pvt->fontdesc);
+		vte_terminal_set_font_full(terminal, terminal->pvt->fontdesc,
+					   terminal->pvt->fontantialias);
 	}
 }
 
@@ -10420,9 +10422,10 @@ vte_terminal_apply_metrics(VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_set_font:
+ * vte_terminal_set_font_full:
  * @terminal: a #VteTerminal
  * @font_desc: The #PangoFontDescription of the desired font.
+ * @anti_alias: Specify if anti aliasing of the fonts is to be used or not.
  *
  * Sets the font used for rendering all text displayed by the terminal,
  * overriding any fonts set using gtk_widget_modify_font().  The terminal
@@ -10430,10 +10433,12 @@ vte_terminal_apply_metrics(VteTerminal *terminal,
  * metrics, and attempt to resize itself to keep the same number of rows
  * and columns.
  *
+ * Since: 0.11.11
  */
 void
-vte_terminal_set_font(VteTerminal *terminal,
-		      const PangoFontDescription *font_desc)
+vte_terminal_set_font_full(VteTerminal *terminal,
+			   const PangoFontDescription *font_desc,
+			   VteTerminalAntiAlias anti_alias)
 {
 	GtkWidget *widget;
 	PangoFontDescription *desc;
@@ -10464,15 +10469,19 @@ vte_terminal_set_font(VteTerminal *terminal,
 		}
 #endif
 	}
+	terminal->pvt->fontantialias = anti_alias;
 
 	/* Free the old font description and save the new one. */
 	if (terminal->pvt->fontdesc != NULL) {
 		pango_font_description_free(terminal->pvt->fontdesc);
 	}
 	terminal->pvt->fontdesc = desc;
+	terminal->pvt->fontantialias = anti_alias;
 
 	/* Set the drawing font. */
-	_vte_draw_set_text_font(terminal->pvt->draw, terminal->pvt->fontdesc);
+	_vte_draw_set_text_font(terminal->pvt->draw,
+				terminal->pvt->fontdesc,
+				anti_alias);
 	vte_terminal_apply_metrics(terminal,
 				   _vte_draw_get_text_width(terminal->pvt->draw),
 				   _vte_draw_get_text_height(terminal->pvt->draw),
@@ -10481,6 +10490,51 @@ vte_terminal_set_font(VteTerminal *terminal,
 				   _vte_draw_get_text_ascent(terminal->pvt->draw));
 	/* Repaint with the new font. */
 	vte_invalidate_all(terminal);
+}
+
+/**
+ * vte_terminal_set_font:
+ * @terminal: a #VteTerminal
+ * @font_desc: The #PangoFontDescription of the desired font.
+ *
+ * Sets the font used for rendering all text displayed by the terminal,
+ * overriding any fonts set using gtk_widget_modify_font().  The terminal
+ * will immediately attempt to load the desired font, retrieve its
+ * metrics, and attempt to resize itself to keep the same number of rows
+ * and columns.
+ *
+ */
+void
+vte_terminal_set_font(VteTerminal *terminal,
+		      const PangoFontDescription *font_desc)
+{
+	vte_terminal_set_font_full(terminal, font_desc,
+				   VTE_ANTI_ALIAS_USE_DEFAULT);
+}
+
+/**
+ * vte_terminal_set_font_from_string_full:
+ * @terminal: a #VteTerminal
+ * @name: A string describing the font.
+ * @antialias: Whether or not to antialias the font (if possible).
+ *
+ * A convenience function which converts @name into a #PangoFontDescription and
+ * passes it to vte_terminal_set_font_full().
+ *
+ * Since: 0.11.11
+ */
+void
+vte_terminal_set_font_from_string_full(VteTerminal *terminal, const char *name,
+				       VteTerminalAntiAlias antialias)
+{
+	PangoFontDescription *font_desc;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail(name != NULL);
+	g_return_if_fail(strlen(name) > 0);
+
+	font_desc = pango_font_description_from_string(name);
+	vte_terminal_set_font_full(terminal, font_desc, antialias);
+	pango_font_description_free(font_desc);
 }
 
 /**
@@ -10495,14 +10549,8 @@ vte_terminal_set_font(VteTerminal *terminal,
 void
 vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name)
 {
-	PangoFontDescription *font_desc;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(name != NULL);
-	g_return_if_fail(strlen(name) > 0);
-
-	font_desc = pango_font_description_from_string(name);
-	vte_terminal_set_font(terminal, font_desc);
-	pango_font_description_free(font_desc);
+	vte_terminal_set_font_from_string_full(terminal, name,
+					       VTE_ANTI_ALIAS_USE_DEFAULT);
 }
 
 /**
@@ -10892,7 +10940,8 @@ vte_terminal_fc_settings_changed(GtkSettings *settings, GParamSpec *spec,
 			spec->name);
 	}
 #endif
-	vte_terminal_set_font(terminal, terminal->pvt->fontdesc);
+	vte_terminal_set_font_full(terminal, terminal->pvt->fontdesc,
+				   terminal->pvt->fontantialias);
 }
 
 /* Connect to notifications from our settings object that font hints have
@@ -11197,10 +11246,11 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* The font description. */
 	pvt->fontdesc = NULL;
+	pvt->fontantialias = VTE_ANTI_ALIAS_USE_DEFAULT;
 	pvt->connected_settings = NULL;
 	gtk_widget_ensure_style(widget);
 	vte_terminal_connect_xft_settings(terminal);
-	vte_terminal_set_font(terminal, NULL);
+	vte_terminal_set_font_full(terminal, NULL, VTE_ANTI_ALIAS_USE_DEFAULT);
 
 	/* Input method support. */
 	pvt->im_context = NULL;
@@ -11555,6 +11605,7 @@ vte_terminal_finalize(GObject *object)
 		pango_font_description_free(terminal->pvt->fontdesc);
 		terminal->pvt->fontdesc = NULL;
 	}
+	terminal->pvt->fontantialias = VTE_ANTI_ALIAS_USE_DEFAULT;
 	vte_terminal_disconnect_xft_settings(terminal);
 
 	/* Free matching data. */
@@ -11839,7 +11890,8 @@ vte_terminal_realize(GtkWidget *widget)
 	GTK_WIDGET_SET_FLAGS(widget, GTK_REALIZED);
 
 	/* Actually load the font. */
-	vte_terminal_set_font(terminal, terminal->pvt->fontdesc);
+	vte_terminal_set_font_full(terminal, terminal->pvt->fontdesc,
+				   terminal->pvt->fontantialias);
 
 	/* Allocate colors. */
 	for (i = 0; i < G_N_ELEMENTS(terminal->pvt->palette); i++) {

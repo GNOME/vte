@@ -137,7 +137,8 @@ _vte_skel_clear(struct _vte_draw *draw,
 
 static void
 _vte_skel_set_text_font(struct _vte_draw *draw,
-			const PangoFontDescription *fontdesc)
+			const PangoFontDescription *fontdesc,
+			VteTerminalAntiAlias antialias)
 {
 	struct _vte_skel_data *data;
 	data = (struct _vte_skel_data*) draw->impl_data;

@@ -158,6 +158,7 @@ _vte_rdb_double(GtkWidget *widget, const char *setting, double default_value)
 	return dbl;
 }
 
+#if 0
 static int
 _vte_rdb_integer(GtkWidget *widget, const char *setting, int default_value)
 {
@@ -174,6 +175,7 @@ _vte_rdb_integer(GtkWidget *widget, const char *setting, int default_value)
 	g_free(start);
 	return n;
 }
+#endif
 
 static gboolean
 _vte_rdb_boolean(GtkWidget *widget, const char *setting, gboolean default_value)

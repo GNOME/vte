@@ -271,7 +271,8 @@ _vte_pango_x_clear(struct _vte_draw *draw,
 
 static void
 _vte_pango_x_set_text_font(struct _vte_draw *draw,
-			   const PangoFontDescription *fontdesc)
+			   const PangoFontDescription *fontdesc,
+			   VteTerminalAntiAlias antialias)
 {
 	PangoContext *ctx;
 	Display *display;

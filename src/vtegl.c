@@ -384,7 +384,8 @@ _vte_gl_fcpattern_disable_rgba(FcPattern *pattern, gpointer data)
 
 static void
 _vte_gl_set_text_font(struct _vte_draw *draw,
-		      const PangoFontDescription *fontdesc)
+		     const PangoFontDescription *fontdesc,
+		     VteTerminalAntiAlias antialias)
 {
 	struct _vte_gl_data *data;
 
@@ -397,6 +398,7 @@ _vte_gl_set_text_font(struct _vte_draw *draw,
 
 	_vte_glyph_cache_set_font_description(draw->widget,
 					      NULL, data->cache, fontdesc,
+					      antialias,
 					      _vte_gl_fcpattern_disable_rgba,
 					      NULL);
 }

@@ -154,6 +154,13 @@ typedef enum {
 	VTE_ERASE_DELETE_SEQUENCE
 } VteTerminalEraseBinding;
 
+/* Values for the anti alias setting */
+typedef enum {
+	VTE_ANTI_ALIAS_USE_DEFAULT,
+	VTE_ANTI_ALIAS_FORCE_ENABLE,
+	VTE_ANTI_ALIAS_FORCE_DISABLE,
+} VteTerminalAntiAlias;
+
 /* The structure we return as the supplemental attributes for strings. */
 struct _VteCharAttributes {
 	long row, column;
@@ -277,7 +284,13 @@ void vte_terminal_im_append_menuitems(VteTerminal *terminal,
 /* Set or retrieve the current font. */
 void vte_terminal_set_font(VteTerminal *terminal,
 			   const PangoFontDescription *font_desc);
+void vte_terminal_set_font_full(VteTerminal *terminal,
+				const PangoFontDescription *font_desc,
+				VteTerminalAntiAlias anti_alias);
 void vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name);
+void vte_terminal_set_font_from_string_full(VteTerminal *terminal,
+					    const char *name,
+					    VteTerminalAntiAlias anti_alias);
 const PangoFontDescription *vte_terminal_get_font(VteTerminal *terminal);
 gboolean vte_terminal_get_using_xft(VteTerminal *terminal);
 void vte_terminal_set_allow_bold(VteTerminal *terminal, gboolean allow_bold);

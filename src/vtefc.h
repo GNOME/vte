@@ -26,6 +26,7 @@
 #include <fontconfig/fontconfig.h>
 #include <pango/pango.h>
 #include <glib.h>
+#include "vte.h"
 
 G_BEGIN_DECLS
 
@@ -34,6 +35,7 @@ typedef void (*_vte_fc_defaults_cb)(FcPattern *pattern, gpointer data);
 gboolean
 _vte_fc_patterns_from_pango_font_desc(GtkWidget *widget,
 				      const PangoFontDescription *font_desc,
+				      VteTerminalAntiAlias antialias,
 				      GArray *pattern_array,
 				      _vte_fc_defaults_cb defaults_cb,
 				      gpointer defaults_data);

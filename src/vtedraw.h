@@ -26,6 +26,7 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 #include "vtebg.h"
+#include "vte.h"
 
 G_BEGIN_DECLS
 
@@ -66,7 +67,9 @@ struct _vte_draw_impl {
 				     double saturation);
 	gboolean requires_repaint;
 	void (*clear)(struct _vte_draw *, gint, gint, gint, gint);
-	void (*set_text_font)(struct _vte_draw *, const PangoFontDescription *);
+	void (*set_text_font)(struct _vte_draw *,
+			      const PangoFontDescription *,
+			      VteTerminalAntiAlias);
 	int (*get_text_width)(struct _vte_draw *);
 	int (*get_text_height)(struct _vte_draw *);
 	int (*get_text_ascent)(struct _vte_draw *);
@@ -126,7 +129,8 @@ void _vte_draw_clear(struct _vte_draw *draw,
 
 /* Set the font which will be used to draw text. */
 void _vte_draw_set_text_font(struct _vte_draw *draw,
-			     const PangoFontDescription *fontdesc);
+			     const PangoFontDescription *fontdesc,
+			     VteTerminalAntiAlias anti_alias);
 /* Read font metrics. */
 int _vte_draw_get_text_width(struct _vte_draw *draw);
 int _vte_draw_get_text_height(struct _vte_draw *draw);

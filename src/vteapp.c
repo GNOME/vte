@@ -399,6 +399,7 @@ main(int argc, char **argv)
 		 console = FALSE, scroll = FALSE, keep = FALSE,
 		 icon_title = FALSE, shell = TRUE, highlight_set = FALSE,
 		 cursor_set = FALSE;
+	VteTerminalAntiAlias antialias = VTE_ANTI_ALIAS_USE_DEFAULT;
 	long lines = 100;
 	const char *message = "Launching interactive shell...\r\n";
 	const char *font = NULL;
@@ -463,9 +464,21 @@ main(int argc, char **argv)
 	g_assert(i < (g_list_length(args) + 2));
 
 	/* Parse some command-line options. */
-	while ((opt = getopt(argc, argv, "B:CDST2abc:df:ghkn:rst:w:-")) != -1) {
+	while ((opt = getopt(argc, argv,
+			     "AB:CDST2abc:df:ghkn:rst:w:-")) != -1) {
 		gboolean bail = FALSE;
 		switch (opt) {
+			case 'A':
+				switch (antialias) {
+				case VTE_ANTI_ALIAS_FORCE_DISABLE:
+					antialias = VTE_ANTI_ALIAS_FORCE_ENABLE;
+					break;
+				case VTE_ANTI_ALIAS_USE_DEFAULT:
+				case VTE_ANTI_ALIAS_FORCE_ENABLE:
+					antialias = VTE_ANTI_ALIAS_FORCE_DISABLE;
+					break;
+				}
+				break;
 			case 'B':
 				background = optarg;
 				break;
@@ -656,9 +669,11 @@ main(int argc, char **argv)
 	}
 
 	/* Set the default font. */
-	if (font != NULL) {
-		vte_terminal_set_font_from_string(VTE_TERMINAL(widget), font);
+	if (font == NULL) {
+		font = "Sans 12";
 	}
+	vte_terminal_set_font_from_string_full(VTE_TERMINAL(widget),
+					       font, antialias);
 
 	/* Match "abcdefg". */
 	vte_terminal_match_add(VTE_TERMINAL(widget), "abcdefg");

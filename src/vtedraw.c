@@ -215,11 +215,12 @@ _vte_draw_clear(struct _vte_draw *draw, gint x, gint y, gint width, gint height)
 
 void
 _vte_draw_set_text_font(struct _vte_draw *draw,
-			const PangoFontDescription *fontdesc)
+			const PangoFontDescription *fontdesc,
+			VteTerminalAntiAlias anti_alias)
 {
 	g_return_if_fail(draw->impl != NULL);
 	g_return_if_fail(draw->impl->set_text_font != NULL);
-	draw->impl->set_text_font(draw, fontdesc);
+	draw->impl->set_text_font(draw, fontdesc, anti_alias);
 }
 
 int

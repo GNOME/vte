@@ -258,7 +258,8 @@ _vte_pango_clear(struct _vte_draw *draw,
 
 static void
 _vte_pango_set_text_font(struct _vte_draw *draw,
-			 const PangoFontDescription *fontdesc)
+			 const PangoFontDescription *fontdesc,
+			 VteTerminalAntiAlias antialias)
 {
 #if GTK_CHECK_VERSION(2,2,0)
 	GdkScreen *screen;

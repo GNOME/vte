@@ -70,6 +70,7 @@ const FcPattern *_vte_glyph_cache_get_pattern(struct _vte_glyph_cache *cache);
 void _vte_glyph_cache_set_font_description(GtkWidget *widget, FcConfig *config,
 					   struct _vte_glyph_cache *cache,
 					   const PangoFontDescription *fontdesc,
+					   VteTerminalAntiAlias anti_alias,
 					   _vte_fc_defaults_cb defaults_cb,
 					   gpointer defaults_data);
 gboolean _vte_glyph_cache_has_char(struct _vte_glyph_cache *cache, gunichar c);

@@ -174,7 +174,23 @@ _vte_fc_transcribe_from_pango_font_description(GtkWidget *widget,
 }
 
 static void
-_vte_fc_defaults_from_gtk(GtkWidget *widget, FcPattern *pattern)
+_vte_fc_set_antialias(FcPattern *pattern, VteTerminalAntiAlias antialias)
+{
+	FcBool aa;
+	if (antialias != VTE_ANTI_ALIAS_USE_DEFAULT) {
+		if (FcPatternGetBool(pattern, FC_ANTIALIAS, 0,
+				     &aa) != FcResultNoMatch) {
+			FcPatternDel(pattern, FC_ANTIALIAS);
+		}
+		aa = (antialias == VTE_ANTI_ALIAS_FORCE_ENABLE) ?
+		     FcTrue : FcFalse;
+		FcPatternAddBool(pattern, FC_ANTIALIAS, aa);
+	}
+}
+
+static void
+_vte_fc_defaults_from_gtk(GtkWidget *widget, FcPattern *pattern,
+			  VteTerminalAntiAlias explicit_antialias)
 {
 	GtkSettings *settings;
 #if GTK_CHECK_VERSION(2,2,0)
@@ -219,6 +235,7 @@ _vte_fc_defaults_from_gtk(GtkWidget *widget, FcPattern *pattern)
 		FcPatternDel(pattern, FC_ANTIALIAS);
 		FcPatternAddBool(pattern, FC_ANTIALIAS, antialias > 0);
 	}
+	_vte_fc_set_antialias(pattern, explicit_antialias);
 
 	/* Pick up the configured DPI setting. */
 	if (dpi >= 0) {
@@ -302,7 +319,8 @@ _vte_fc_defaults_from_gtk(GtkWidget *widget, FcPattern *pattern)
 }
 
 static void
-_vte_fc_defaults_from_rdb(GtkWidget *widget, FcPattern *pattern)
+_vte_fc_defaults_from_rdb(GtkWidget *widget, FcPattern *pattern,
+			  VteTerminalAntiAlias explicit_antialias)
 {
 	FcBool fcb;
 	double fcd;
@@ -319,6 +337,16 @@ _vte_fc_defaults_from_rdb(GtkWidget *widget, FcPattern *pattern)
 			     &fcb) == FcResultNoMatch) {
 		antialias = _vte_rdb_get_antialias(widget);
 		FcPatternAddBool(pattern, FC_ANTIALIAS, antialias);
+	}
+	if (explicit_antialias != VTE_ANTI_ALIAS_USE_DEFAULT) {
+		FcBool aa;
+		if (FcPatternGetBool(pattern, FC_ANTIALIAS, 0,
+				     &aa) != FcResultNoMatch) {
+			FcPatternDel(pattern, FC_ANTIALIAS);
+		}
+		aa = (explicit_antialias == VTE_ANTI_ALIAS_FORCE_ENABLE) ?
+		     FcTrue : FcFalse;
+		FcPatternAddBool(pattern, FC_ANTIALIAS, aa);
 	}
 
 	/* Pick up the hinting setting. */
@@ -388,6 +416,7 @@ _vte_fc_defaults_from_rdb(GtkWidget *widget, FcPattern *pattern)
 gboolean
 _vte_fc_patterns_from_pango_font_desc(GtkWidget *widget,
 				      const PangoFontDescription *font_desc,
+				      VteTerminalAntiAlias antialias,
 				      GArray *pattern_array,
 				      _vte_fc_defaults_cb defaults_cb,
 				      gpointer defaults_data)
@@ -412,10 +441,13 @@ _vte_fc_patterns_from_pango_font_desc(GtkWidget *widget,
 	FcConfigSubstitute(NULL, pattern, FcMatchPattern);
 
 	/* Add any defaults configured for GTK+. */
-	_vte_fc_defaults_from_gtk(widget, pattern);
+	_vte_fc_defaults_from_gtk(widget, pattern, antialias);
 
 	/* Add defaults configured via the resource database. */
-	_vte_fc_defaults_from_rdb(widget, pattern);
+	_vte_fc_defaults_from_rdb(widget, pattern, antialias);
+
+	/* Add any hard-coded default for antialiasing. */
+	_vte_fc_set_antialias(pattern, antialias);
 
 	/* Add any defaults which are hard-coded in fontconfig. */
 	FcDefaultSubstitute(pattern);
@@ -433,7 +465,8 @@ _vte_fc_patterns_from_pango_font_desc(GtkWidget *widget,
 			tmp = FcFontRenderPrepare(NULL,
 						  pattern,
 						  fontset->fonts[i]);
-			_vte_fc_defaults_from_gtk(widget, tmp);
+			_vte_fc_defaults_from_gtk(widget, tmp, antialias);
+			_vte_fc_set_antialias(tmp, antialias);
 			save = FcPatternDuplicate(tmp);
 			FcPatternDestroy(tmp);
 			g_array_append_val(pattern_array, save);
@@ -447,7 +480,8 @@ _vte_fc_patterns_from_pango_font_desc(GtkWidget *widget,
 		match = FcFontMatch(NULL, pattern, &result);
 		if (result == FcResultMatch) {
 			tmp = FcPatternDuplicate(match);
-			_vte_fc_defaults_from_gtk(widget, tmp);
+			_vte_fc_defaults_from_gtk(widget, tmp, antialias);
+			_vte_fc_set_antialias(tmp, antialias);
 			save = FcPatternDuplicate(tmp);
 			FcPatternDestroy(tmp);
 			g_array_append_val(pattern_array, save);
