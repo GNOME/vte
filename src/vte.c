@@ -3983,7 +3983,7 @@ vte_sequence_handler_designate_gx(VteTerminal *terminal,
 				case 'K':	/* German. */
 				case 'Y':	/* Italian. */
 				case 'E':	/* Norwegian/Danish. */
-				case '6':	
+				case '6':
 				case 'Z':	/* Spanish. */
 				case 'H':	/* Swedish. */
 				case '7':
@@ -5025,7 +5025,6 @@ vte_terminal_process_incoming(gpointer data)
 					if ((end > start) &&
 					    (strcmp(terminal->pvt->encoding, "UTF-8") == 0) &&
 					    ((terminal->pvt->incoming[end] & 0xc0) != 0x80)) {
-					    
 						break;
 					}
 					if ((terminal->pvt->incoming[end] & 0x80) != 0x80) {
@@ -5753,9 +5752,10 @@ vte_terminal_configure_toplevel(GtkWidget *widget, GdkEventConfigure *event,
 	g_return_val_if_fail(GTK_WIDGET_TOPLEVEL(widget), FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
 
-	if (VTE_TERMINAL (data)->pvt->bg_transparent)
-	  vte_terminal_queue_background_update(VTE_TERMINAL(data));
-	
+	if (VTE_TERMINAL(data)->pvt->bg_transparent) {
+		vte_terminal_queue_background_update(VTE_TERMINAL(data));
+	}
+
 	return FALSE;
 }
 
@@ -6331,7 +6331,7 @@ vte_terminal_send_mouse_button_int(VteTerminal *terminal,
 {
 	unsigned char cb = 0, cx = 0, cy = 0;
 	char buf[LINE_MAX];
-	
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	/* Encode the button information in cb. */
@@ -6496,6 +6496,7 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 	long rows, rowe;
 	char *match;
 	struct vte_char_attributes *attr;
+	VteScreen *screen;
 	/* If the pointer hasn't moved to another character cell, then we
 	 * need do nothing. */
 	if ((x / terminal->char_width ==
@@ -6520,6 +6521,7 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 #endif
 		vte_terminal_match_hilite_clear(terminal);
 	} else {
+		screen = terminal->pvt->screen;
 		/* Save the old hilite area. */
 		rows = terminal->pvt->match_start.row;
 		rowe = terminal->pvt->match_end.row;
@@ -6538,7 +6540,7 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 		vte_invalidate_cells(terminal,
 				     0,
 				     terminal->column_count,
-				     terminal->pvt->screen->scroll_delta +
+				     screen->scroll_delta +
 				     terminal->pvt->match_start.row,
 				     terminal->pvt->match_end.row -
 				     terminal->pvt->match_start.row + 1);
@@ -6546,8 +6548,10 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
 			fprintf(stderr, "Matched (%ld,%ld) to (%ld,%ld).\n",
 				terminal->pvt->match_start.column,
+				screen->scroll_delta +
 				terminal->pvt->match_start.row,
 				terminal->pvt->match_end.column,
+				screen->scroll_delta +
 				terminal->pvt->match_end.row);
 		}
 #endif
@@ -6555,7 +6559,7 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 		vte_invalidate_cells(terminal,
 				     0,
 				     terminal->column_count,
-				     terminal->pvt->screen->scroll_delta + rows,
+				     rows,
 				     rowe - rows + 1);
 	}
 }
@@ -7768,7 +7772,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	if (tmp == NULL) {
 		vte_trie_add(terminal->pvt->trie, "\r", 1, "cr", 0);
 	} else {
-	       	g_free(tmp);
+		g_free(tmp);
 	}
 	tmp = vte_termcap_find_string(terminal->pvt->termcap,
 				      terminal->pvt->terminal,
@@ -7776,7 +7780,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	if (tmp == NULL) {
 		vte_trie_add(terminal->pvt->trie, "\n", 1, "sf", 0);
 	} else {
-	       	g_free(tmp);
+		g_free(tmp);
 	}
 
 #ifdef VTE_DEBUG
@@ -9283,18 +9287,17 @@ vte_terminal_draw_char(VteTerminal *terminal,
 	/* Draw a hilite if this cell is hilited. */
 	if ((terminal->pvt->match_start.row != terminal->pvt->match_end.row) ||
 	    (terminal->pvt->match_start.column != terminal->pvt->match_end.column)) {
-		if (((row > terminal->pvt->match_start.row) &&
-		     (row < terminal->pvt->match_end.row)) ||
-		    ((row == terminal->pvt->match_start.row) &&
-		     (row == terminal->pvt->match_end.row) &&
-		     (col >= terminal->pvt->match_start.column) &&
-		     (col <= terminal->pvt->match_end.column)) ||
-		    ((row == terminal->pvt->match_start.row) &&
-		     (row != terminal->pvt->match_end.row) &&
-		     (col >= terminal->pvt->match_start.column)) ||
-		    ((row == terminal->pvt->match_end.row) &&
-		     (row != terminal->pvt->match_start.row) &&
-		     (col <= terminal->pvt->match_end.column))) {
+		long rows, rowe, cols, cole;
+		rows = terminal->pvt->match_start.row + screen->scroll_delta;
+		rowe = terminal->pvt->match_end.row + screen->scroll_delta;
+		cols = terminal->pvt->match_start.column;
+		cole = terminal->pvt->match_end.column;
+
+		if (((row > rows) && (row < rowe)) ||
+		    ((row == rows) && (row == rowe) &&
+		     (col >= cols) && (col <= cole)) ||
+		    ((row == rows) && (row != rowe) && (col >= cols)) ||
+		    ((row == rowe) && (row != rows) && (col <= cole))) {
 			XSetForeground(display, gc,
 				       terminal->pvt->palette[fore].pixel);
 			XDrawLine(display, drawable, gc,
@@ -9670,7 +9673,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
-	
+
 	/* Read the modifiers. */
 	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
 		modifiers = 0;
@@ -10265,12 +10268,16 @@ vte_terminal_update_transparent(gpointer data)
 	VteTerminal *terminal;
 	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
 	terminal = VTE_TERMINAL(data);
-	if (terminal->pvt->bg_transparent_update_pending == FALSE) {
-		return FALSE;
+	if (terminal->pvt->bg_transparent_update_pending) {
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
+			fprintf(stderr, "Starting background update.\n");
+		}
+#endif
+		vte_terminal_setup_background(terminal, TRUE);
+		terminal->pvt->bg_transparent_update_pending = FALSE;
+		terminal->pvt->bg_transparent_update_tag = -1;
 	}
-	vte_terminal_setup_background(terminal, TRUE);
-	terminal->pvt->bg_transparent_update_pending = FALSE;
-	terminal->pvt->bg_transparent_update_tag = -1;
 	return FALSE;
 }
 
@@ -10282,12 +10289,20 @@ static void
 vte_terminal_queue_background_update(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->bg_transparent_update_pending = TRUE;
-	terminal->pvt->bg_transparent_update_tag =
-				g_idle_add_full(G_PRIORITY_HIGH,
+	if (!terminal->pvt->bg_transparent_update_pending) {
+		terminal->pvt->bg_transparent_update_pending = TRUE;
+		terminal->pvt->bg_transparent_update_tag =
+				g_idle_add_full(G_PRIORITY_HIGH_IDLE,
 						vte_terminal_update_transparent,
 						terminal,
 						NULL);
+	} else {
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
+			fprintf(stderr, "Skipping background update.\n");
+		}
+#endif
+	}
 }
 
 /* Watch for property change events. */

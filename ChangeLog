@@ -1,5 +1,6 @@
 2002-05-28 nalin
-	* src/vte.c: Fix matching when scrolling delta isn't zero.
+	* src/vte.c: Fix matching when scrolling delta isn't zero.  Fix async
+	background updating (report from Richard Neal Plana).
 
 2002-05-24 nalin
 	* autogen.sh: Call libtoolize. (#82836)
