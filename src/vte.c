@@ -2945,25 +2945,22 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 			    vte_terminal_io_read,
 			    terminal,
 			    NULL);
+	g_io_channel_unref(terminal->pvt->pty_input);
 }
 
 /* Handle an EOF from the client. */
 static void
-vte_terminal_eof(GIOChannel *source, gpointer data)
+vte_terminal_eof(GIOChannel *channel, gpointer data)
 {
 	VteTerminal *terminal;
 
 	g_return_if_fail(VTE_IS_TERMINAL(data));
 	terminal = VTE_TERMINAL(data);
 
-	/* Close the connections to the child. */
-	g_io_channel_unref(source);
-	if (source == terminal->pvt->pty_input) {
+	/* Close the connections to the child -- note that the source channel
+	 * has already been dereferenced. */
+	if (channel == terminal->pvt->pty_input) {
 		terminal->pvt->pty_input = NULL;
-		if (terminal->pvt->pty_output != NULL) {
-			g_io_channel_unref(terminal->pvt->pty_output);
-			terminal->pvt->pty_output = NULL;
-		}
 	}
 
 	/* Emit a signal that we read an EOF. */
@@ -3202,10 +3199,14 @@ vte_terminal_io_read(GIOChannel *channel,
 	char *buf;
 	size_t bufsize;
 	int bcount, fd;
-	gboolean empty, leave_open = TRUE;
+	gboolean empty, eof, leave_open = TRUE;
 
+	g_return_val_if_fail(VTE_IS_TERMINAL(data), TRUE);
 	widget = GTK_WIDGET(data);
 	terminal = VTE_TERMINAL(data);
+
+	/* Check that the channel is still open. */
+	fd = g_io_channel_unix_get_fd(channel);
 
 	/* Allocate a buffer to hold whatever data's available. */
 	bufsize = terminal->pvt->n_incoming + LINE_MAX;
@@ -3216,24 +3217,27 @@ vte_terminal_io_read(GIOChannel *channel,
 	empty = (terminal->pvt->n_incoming == 0);
 
 	/* Read some more data in from this channel. */
-	fd = g_io_channel_unix_get_fd(channel);
-	bcount = read(fd, buf + terminal->pvt->n_incoming,
-		      bufsize - terminal->pvt->n_incoming);
+	bcount = 0;
+	if (condition & G_IO_IN) {
+		bcount = read(fd, buf + terminal->pvt->n_incoming,
+			      bufsize - terminal->pvt->n_incoming);
+	}
+	eof = FALSE;
+	if (condition & G_IO_HUP) {
+		eof = TRUE;
+	}
 
 	/* Catch errors. */
 	leave_open = TRUE;
 	switch (bcount) {
 		case 0:
 			/* EOF */
-			vte_terminal_eof(terminal->pvt->pty_input, data);
-			leave_open = FALSE;
+			eof = TRUE;
 			break;
 		case -1:
 			switch (errno) {
 				case EIO: /* Fake an EOF. */
-					vte_terminal_eof(terminal->pvt->pty_input,
-							 data);
-					leave_open = FALSE;
+					eof = TRUE;
 					break;
 				case EAGAIN:
 				case EBUSY:
@@ -3265,6 +3269,12 @@ vte_terminal_io_read(GIOChannel *channel,
 #endif
 		terminal->pvt->processing = TRUE;
 		g_idle_add(vte_terminal_process_incoming, terminal);
+	}
+
+	/* If we detected an eof condition, signal one. */
+	if (eof) {
+		vte_terminal_eof(channel, terminal);
+		leave_open = FALSE;
 	}
 
 	/* If there's more data coming, return TRUE, otherwise return FALSE. */
@@ -3342,7 +3352,6 @@ vte_terminal_io_write(GIOChannel *channel,
 	}
 
 	if (terminal->pvt->n_outgoing == 0) {
-		g_io_channel_unref(channel);
 		if (channel == terminal->pvt->pty_output) {
 			terminal->pvt->pty_output = NULL;
 		}
@@ -3406,6 +3415,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 					    vte_terminal_io_write,
 					    terminal,
 					    NULL);
+			g_io_channel_unref(terminal->pvt->pty_output);
 		}
 	}
 	g_free(obufptr);
@@ -4573,7 +4583,6 @@ static void
 vte_terminal_unrealize(GtkWidget *widget)
 {
 	VteTerminal *terminal;
-	GArray *array;
 	Display *display;
 	GdkColormap *gcolormap;
 	Colormap colormap;
@@ -4586,6 +4595,7 @@ vte_terminal_unrealize(GtkWidget *widget)
 	terminal = VTE_TERMINAL(widget);
 
 	/* Free the color palette. */
+	;
 
 #ifdef HAVE_XFT
 	/* Clean up after Xft. */
@@ -4619,11 +4629,22 @@ vte_terminal_unrealize(GtkWidget *widget)
 
 	/* Mark that we no longer have a GDK window. */
 	GTK_WIDGET_UNSET_FLAGS(widget, GTK_REALIZED);
+}
 
-	/* Free some of our strings. */
-	terminal->pvt->termcap_path = NULL;
-	terminal->pvt->shell = NULL;
-	terminal->pvt->terminal = NULL;
+/* Perform final cleanups for the widget before it's freed. */
+static void
+vte_terminal_finalize(GObject *object)
+{
+	VteTerminal *terminal;
+	GArray *array;
+	int i;
+	GObjectClass *object_class;
+	GtkWidgetClass *widget_class;
+
+	g_return_if_fail(VTE_IS_TERMINAL(object));
+	terminal = VTE_TERMINAL(object);
+	object_class = G_OBJECT_GET_CLASS(G_OBJECT(object));
+	widget_class = g_type_class_peek(GTK_TYPE_WIDGET);
 
 	/* Shut down the child terminal. */
 	close(terminal->pvt->pty_master);
@@ -4632,6 +4653,11 @@ vte_terminal_unrealize(GtkWidget *widget)
 		kill(-terminal->pvt->pty_pid, SIGHUP);
 	}
 	terminal->pvt->pty_pid = 0;
+
+	/* Clear some of our strings. */
+	terminal->pvt->termcap_path = NULL;
+	terminal->pvt->shell = NULL;
+	terminal->pvt->terminal = NULL;
 
 	/* Stop watching for input from the child. */
 	if (terminal->pvt->pty_input != NULL) {
@@ -4646,6 +4672,7 @@ vte_terminal_unrealize(GtkWidget *widget)
 	/* Discard any pending data. */
 	g_free(terminal->pvt->incoming);
 	terminal->pvt->incoming = NULL;
+	terminal->pvt->n_incoming = 0;
 
 	/* Clean up emulation structures. */
 	g_tree_destroy(terminal->pvt->sequences);
@@ -4673,24 +4700,14 @@ vte_terminal_unrealize(GtkWidget *widget)
 	}
 	g_array_free(terminal->pvt->alternate_screen.row_data, TRUE);
 	terminal->pvt->alternate_screen.row_data = NULL;
-}
 
-/* Perform final cleanups for the widget before it's freed. */
-static void
-vte_terminal_finalize(GObject *object)
-{
-	VteTerminal *terminal;
-	GObjectClass *object_class;
-
-	g_return_if_fail(VTE_IS_TERMINAL(object));
-	terminal = VTE_TERMINAL (object);
-	object_class = G_OBJECT_GET_CLASS(G_OBJECT(object));
-
-	/* Clean up terminal fields. */
+	/* Free strings. */
 	g_free(terminal->window_title);
 	terminal->window_title = NULL;
 	g_free(terminal->icon_title);
 	terminal->icon_title = NULL;
+
+	/* Free background images. */
 	if (terminal->pvt->bg_image_full != NULL) {
 		g_object_unref(G_OBJECT(terminal->pvt->bg_image_full));
 		terminal->pvt->bg_image_full = NULL;
@@ -4700,9 +4717,9 @@ vte_terminal_finalize(GObject *object)
 		terminal->pvt->bg_image = NULL;
 	}
 
-	/* Call the GObject finalize() method. */
-	if (object_class->finalize) {
-		object_class->finalize(object);
+	/* Call the inherited finalize() method. */
+	if (G_OBJECT_CLASS(widget_class)->finalize) {
+		(G_OBJECT_CLASS(widget_class))->finalize(object);
 	}
 }
 

@@ -58,6 +58,17 @@ char_size_changed(GtkWidget *widget, guint width, guint height, gpointer win)
 				      GDK_HINT_MIN_SIZE);
 }
 
+static void
+destroy_and_quit(GtkWidget *widget, gpointer data)
+{
+	if (GTK_IS_CONTAINER(data)) {
+		gtk_container_remove(GTK_CONTAINER(data), widget);
+	} else {
+		gtk_widget_destroy(widget);
+	}
+	gtk_main_quit();
+}
+
 int
 main(int argc, char **argv)
 {
@@ -96,7 +107,7 @@ main(int argc, char **argv)
 
 	/* Connect to the "eof" signal to quit when the session ends. */
 	g_signal_connect(G_OBJECT(widget), "eof",
-			 G_CALLBACK(gtk_main_quit), NULL);
+			 G_CALLBACK(destroy_and_quit), widget);
 
 	/* Create the scrollbar for the widget. */
 	scrollbar = gtk_vscrollbar_new((VTE_TERMINAL(widget))->adjustment);
