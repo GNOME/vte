@@ -1,3 +1,7 @@
+2003-01-24 nalin
+	* src/vte.c(vte_terminal_background_update): fix declaration order
+	(#13795).
+
 2003-01-24  Nam SungHyun  <namsh@kldp.org>
 
 	* configure.in: Added "ko" to ALL_LINGUAS.

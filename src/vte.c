@@ -14884,13 +14884,13 @@ vte_terminal_background_update(gpointer data)
 
 		/* Desaturate the image if we need to. */
 		if (terminal->pvt->bg_saturation != VTE_SATURATION_MAX) {
+			guchar *pixels, desat_lut[256];
+			gulong pixel_count;
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_MISC)) {
 				fprintf(stderr, "Desaturating background.\n");
 			}
 #endif
-			guchar *pixels, desat_lut[256];
-			gulong pixel_count;
 			/* Calculate the new value for each original value. */
 			for (i = 0; i < G_N_ELEMENTS(desat_lut); i++) {
 				desat_lut[i] = i *

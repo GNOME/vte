@@ -96,6 +96,9 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 * Wed Jan 22 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.14-1
 - fix assorted mouse event bugs
 
+* Wed Jan 22 2003 Tim Powers <timp@redhat.com> 0.10.12-2
+- rebuilt
+ 
 * Tue Jan 21 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.13-1
 - use less memory when setting up pseudo-transparent backgrounds
 
