@@ -3940,7 +3940,7 @@ vte_terminal_hierarchy_changed(GtkWidget *widget, GtkWidget *old_toplevel,
 	if (GTK_IS_WIDGET(old_toplevel)) {
 		g_signal_handlers_disconnect_by_func(G_OBJECT(old_toplevel),
 						     vte_terminal_configure_toplevel,
-						     NULL);
+						     terminal);
 	}
 
 	toplevel = gtk_widget_get_toplevel(widget);
@@ -5652,6 +5652,7 @@ static void
 vte_terminal_finalize(GObject *object)
 {
 	VteTerminal *terminal;
+	GtkWidget *toplevel;
 	GObjectClass *object_class;
 	GtkWidgetClass *widget_class;
 
@@ -5671,6 +5672,14 @@ vte_terminal_finalize(GObject *object)
 	}
 	if (terminal->pvt->bg_transparent_update_tag != -1) {
 		g_source_remove(terminal->pvt->bg_transparent_update_tag);
+	}
+
+	/* Disconnect from toplevel window configure events. */
+	toplevel = gtk_widget_get_toplevel(GTK_WIDGET(object));
+	if ((toplevel != NULL) && (G_OBJECT(toplevel) != G_OBJECT(object))) {
+		g_signal_handlers_disconnect_by_func(toplevel,
+						     vte_terminal_configure_toplevel,
+						     terminal);
 	}
 
 	/* Free any selected text. */
