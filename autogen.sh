@@ -1,7 +1,5 @@
 #!/bin/bash -e
-#PROTOTYPES="-Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations"
-WARNINGS="-Wcast-align $PROTOTYPES"
-CFLAGS="${CFLAGS:--g3 -Wall $WARNINGS}" ; export CFLAGS
+CFLAGS="${CFLAGS:--g3 -Wall}" ; export CFLAGS
 set -x
 libtoolize -f
 autoheader
