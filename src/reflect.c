@@ -19,12 +19,107 @@
 #ident "$Id$"
 #include "../config.h"
 #include <sys/types.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <gtk/gtk.h>
 #include <atk/atk.h>
-#include "vte.h"
 
 static GArray *contents = NULL;
+
+#ifdef USE_ZVT
+#ifdef HAVE_ZVT
+#include <libzvt/libzvt.h>
+static void
+terminal_hint(GtkWidget *widget, gpointer data)
+{
+	ZvtTerm *terminal;
+	GtkStyle *style;
+	GdkGeometry hints;
+	GtkWidget *toplevel;
+
+	terminal = ZVT_TERM(widget);
+
+	toplevel = gtk_widget_get_toplevel(widget);
+	g_assert(toplevel != NULL);
+
+	gtk_widget_ensure_style(widget);
+	style = widget->style;
+	hints.base_width = style->xthickness * 2 + 2;
+	hints.base_height = style->ythickness * 2;
+
+	hints.width_inc = terminal->charwidth;
+	hints.height_inc = terminal->charheight;
+	hints.min_width = hints.base_width + hints.width_inc;
+	hints.min_height = hints.base_height + hints.height_inc;
+
+	gtk_window_set_geometry_hints(GTK_WINDOW(toplevel),
+				      widget,
+				      &hints,
+				      GDK_HINT_RESIZE_INC |
+				      GDK_HINT_MIN_SIZE |
+				      GDK_HINT_BASE_SIZE);
+	gtk_widget_queue_resize(widget);
+}
+static void
+terminal_init(GtkWidget **terminal, GtkWidget **vscroll)
+{
+	*terminal = zvt_term_new();
+	*vscroll = gtk_vscrollbar_new((ZVT_TERM(*terminal))->adjustment);
+	g_signal_connect_after(G_OBJECT(*terminal), "realize",
+			       G_CALLBACK(terminal_hint), NULL);
+}
+static void
+terminal_shell(GtkWidget *terminal)
+{
+	const char *shell;
+	shell = getenv("SHELL") ? getenv("SHELL") : "/bin/sh";
+	g_signal_connect(G_OBJECT(terminal), "child-died",
+			 G_CALLBACK(gtk_main_quit), NULL);
+	if (zvt_term_forkpty(ZVT_TERM(terminal), 0) == 0) {
+		execlp(shell, shell, NULL);
+		g_assert_not_reached();
+	}
+}
+#else
+static void
+terminal_init(GtkWidget **terminal, GtkWidget **vscroll)
+{
+	/* We built the ZVT version, but we don't have ZVT. Bail. */
+	g_assert_not_reached();
+}
+static void
+terminal_shell(GtkWidget *terminal)
+{
+	/* We built the ZVT version, but we don't have ZVT. Bail. */
+	g_assert_not_reached();
+}
+#endif
+#else
+#include "vte.h"
+static void
+terminal_init(GtkWidget **terminal, GtkWidget **vscroll)
+{
+	*terminal = vte_terminal_new();
+	*vscroll = gtk_vscrollbar_new((VTE_TERMINAL(*terminal))->adjustment);
+	g_signal_connect(G_OBJECT(*terminal), "eof",
+			 G_CALLBACK(gtk_main_quit), NULL);
+	g_signal_connect(G_OBJECT(*terminal), "child-exited",
+			 G_CALLBACK(gtk_main_quit), NULL);
+}
+static void
+terminal_shell(GtkWidget *terminal)
+{
+	vte_terminal_fork_command(VTE_TERMINAL(terminal),
+				  getenv("SHELL") ? getenv("SHELL") : "/bin/sh",
+				  NULL,
+				  NULL,
+				  g_get_home_dir() ? g_get_home_dir() : NULL,
+				  FALSE,
+				  FALSE,
+				  FALSE);
+}
+#endif
 
 /*
  * Update the contents of the widget with the data from our contents array.
@@ -123,8 +218,8 @@ main(int argc, char **argv)
 
 	contents = g_array_new(TRUE, FALSE, sizeof(gunichar));
 
-	terminal = vte_terminal_new();
-	termvscroll = gtk_vscrollbar_new((VTE_TERMINAL(terminal))->adjustment);
+	terminal_init(&terminal, &termvscroll);
+
 	termbox = gtk_hbox_new(FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(termbox), terminal, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(termbox), termvscroll, FALSE, FALSE, 0);
@@ -175,19 +270,11 @@ main(int argc, char **argv)
 	gtk_container_add(GTK_CONTAINER(window), pane);
 	gtk_widget_show(pane);
 
-	vte_terminal_fork_command(VTE_TERMINAL(terminal),
-				  getenv("SHELL") ? getenv("SHELL") : "/bin/sh",
-				  NULL,
-				  NULL,
-				  g_get_home_dir() ? g_get_home_dir() : NULL,
-				  FALSE,
-				  FALSE,
-				  FALSE);
+#ifdef USE_ZVT
+	gtk_widget_set_usize(terminal, 80 * 7, 25 * 13);
+#endif
+	terminal_shell(terminal);
 
-	g_signal_connect(G_OBJECT(terminal), "eof",
-			 G_CALLBACK(gtk_main_quit), NULL);
-	g_signal_connect(G_OBJECT(terminal), "child-exited",
-			 G_CALLBACK(gtk_main_quit), NULL);
 	obj = gtk_widget_get_accessible(terminal);
 	g_signal_connect(G_OBJECT(obj), "text-changed::insert",
 			 G_CALLBACK(text_changed_insert), text);

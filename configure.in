@@ -171,6 +171,15 @@ AC_SUBST(PYTHONREV)
 AC_SUBST(PYTHONMODULES)
 AM_CONDITIONAL(BUILD_PYTHON_MODULES, $BUILD_PYTHON)
 
+REFLECT_ZVT=false
+if pkg-config --exists libzvt-2.0 ; then
+	REFLECT_ZVT=true
+	ZVT_DEFS=-DHAVE_ZVT
+	PKG_CHECK_MODULES(ZVT,[gtk+-2.0 libzvt-2.0])
+fi
+AC_SUBST(ZVT_DEFS)
+AM_CONDITIONAL(REFLECT_USE_ZVT, $REFLECT_ZVT)
+
 mylibdir=`eval echo $libdir`
 mylibexecdir=`eval echo $libexecdir`
 mydatadir=`eval echo $datadir`

@@ -3,7 +3,7 @@ pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
 pkglib_PROGRAMS = interpret utf8echo nativeecho utf8mode iso8859mode slowcat
 pkglib_SCRIPTS = decset osc window
-noinst_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect ring ssfe table termcap trie
+noinst_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-vte $(REFLECT_ZVT) ring ssfe table termcap trie
 EXTRA_DIST = \
 	$(pkglib_SCRIPTS) \
 	genkeysyms.py \
@@ -66,9 +66,18 @@ vte_SOURCES = \
 	vteapp.c
 vte_LDADD = libvte.la @LIBS@ @VTE_LIBS@ @X_LIBS@
 
-reflect_SOURCES = \
-	reflect.c
-reflect_LDADD = libvte.la @LIBS@ @VTE_LIBS@ @X_LIBS@
+reflect_vte_CFLAGS = @CFLAGS@ @VTE_CFLAGS@ @X_CFLAGS@
+reflect_vte_SOURCES = reflect.c
+reflect_vte_LDADD = libvte.la @LIBS@ @VTE_LIBS@ @X_LIBS@
+
+if REFLECT_USE_ZVT
+REFLECT_ZVT = reflect-zvt
+reflect_zvt_CFLAGS = @CFLAGS@ -DUSE_ZVT @ZVT_DEFS@ @ZVT_CFLAGS@ @X_CFLAGS@
+reflect_zvt_SOURCES = reflect.c
+reflect_zvt_LDADD = @LIBS@ @ZVT_LIBS@ @X_LIBS@
+else
+REFLECT_ZVT = 
+endif
 
 interpret_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DINTERPRET_MAIN
 interpret_SOURCES = \

@@ -1,4 +1,9 @@
 2003-01-20 nalin
+	* configure.in, src/Makefile.am, src/reflect.c: try to build reflect
+	with both vte and libzvt, building a useless binary if libzvt isn't
+	available.
+
+2003-01-20 nalin
 	* src/vte.c: colors 90-97 and 100-107 are bold colors, noted and patched
 	by Matthijs Melchior (#103874).
 
