@@ -856,8 +856,8 @@ _vte_keymap_map(guint keyval,
 	enum _vte_keypad_mode keypad_mode;
 	enum _vte_fkey_mode fkey_mode;
 	char *cap, *tmp;
-#ifdef HAVE_NCURSES
 	const char *termcap_special = NULL;
+#ifdef HAVE_NCURSES
 	char ncurses_buffer[4096];
 	char ncurses_area[512];
 #endif
