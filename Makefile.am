@@ -22,7 +22,7 @@ archive:
 	cvs -d $$root export -r $(CVSTAG) $$repo ; \
 	cd $$tmpdir/$$repo ; \
 	./autogen.sh ; \
-	make distcheck ; \
+	make all distcheck ; \
 	cp $(PACKAGE)-$(VERSION).tar.gz $$dir/ ; \
 	rm -fr $$tmpdir
 

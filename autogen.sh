@@ -77,9 +77,16 @@ aclocal $ACLOCAL_FLAGS
 
 # optionally feature autoheader
 (autoheader --version)  < /dev/null > /dev/null 2>&1 && autoheader
-
 automake -a -c $am_opt
 autoconf
+
+cd gnome-pty-helper
+touch config.h.in
+aclocal $ACLOCAL_FLAGS
+(autoheader --version)  < /dev/null > /dev/null 2>&1 && autoheader
+automake -a -c $am_opt
+autoconf
+
 cd $ORIGDIR
 
 if test -z "$AUTOGEN_SUBDIR_MODE"; then
