@@ -699,8 +699,8 @@ _vte_iso2022_state_new(const char *native_codeset,
 	state->override = -1;
 	state->g[0] = 'B';
 	state->g[1] = '0';
-	state->g[2] = 'B';
-	state->g[3] = 'B';
+	state->g[2] = 'J';
+	state->g[3] = WIDE_FUDGE + 'D';
 	state->native_codeset = native_codeset;
 	if (state->native_codeset == NULL) {
 		g_get_charset(&state->native_codeset);

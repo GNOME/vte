@@ -46,7 +46,7 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 
 # Work around AM_PATH_PYTHON from automake 1.6.3 not being multilib-aware.
 if test %{_libdir} != %{_prefix}/lib ; then
-	badpyexecdir=`ls -d $RPM_BUILD_ROOT/%{_prefix}/lib/python* 2> /dev/null`
+	badpyexecdir=`ls -d $RPM_BUILD_ROOT/%{_prefix}/lib/python* 2> /dev/null || true`
 	if test -n "$badpyexecdir" ; then
 		pyexecdirver=`basename $badpyexecdir`
 		install -d -m755 $RPM_BUILD_ROOT/%{_libdir}/${pyexecdirver}
@@ -68,7 +68,7 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %files -f %{name}.lang
 %defattr(-,root,root)
 %doc ChangeLog COPYING HACKING NEWS README doc/utmpwtmp.txt doc/boxes.txt
-%{_libdir}/*.so.*.*
+%{_libdir}/*.so.*
 %dir %{_libdir}/%{name}
 %attr(2711,root,utmp) %{_libdir}/%{name}/gnome-pty-helper
 %{_datadir}/%{name}
@@ -120,8 +120,66 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 - rework drawing with Xft2 to use font sets
 - implement drawing with freetype using font sets
 
+* Mon Feb 24 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.25-1
+- incorporate fix for issues noted by H D Moore (CAN-2003-0070)
+
+* Mon Feb 24 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.24-3
+- home the cursor when we switch to the alternate screen
+ 
+* Mon Feb 24 2003 Elliot Lee <sopwith@redhat.com> 0.10.24-2
+- rebuilt
+  
+* Fri Feb 21 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.24-1
+- be consistently wrong about the width of ACS characters (#84783)
+
+* Fri Feb 21 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.23-1
+- update to 0.10.23
+- don't always perform character centering
+
+* Thu Feb 20 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.22-3
+- refix ctrl-[2-8] (#83563) to not break meta variants
+
+* Thu Feb 20 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.22-2
+- stop gratuitously resetting the IM (#81542)
+- be more careful about assuming the IM exists when it might not
+
+* Thu Feb 20 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.22-1
+- be more careful about when we reset the IM (#81542)
+- always perform character centering
+- fix drawing of rows where the first exposed cell is the second half of a
+  full-width character
+
+* Wed Feb 19 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.21-1
+- report accessible focus-changed events properly
+- fix window_scroll optimization check (#83679)
+- fix ctrl-[2-8] (#83563)
+- grab focus on button 1 click (#84384)
+
+* Fri Feb 14 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.20-1
+- don't mix up maintainer mode with debugging mode
+- coalesce data reads to spare the X server from too many small updates (#83472)
+- fix backtab
+
+* Thu Feb 13 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.19-1
+- close descriptor leak
+- skip over fragments correctly when retrieving text and drawing rows
+
+* Tue Feb 11 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.18-1
+- fix for uncertain finalize order between the terminal and its accessible peer
+- always update the cursor position on accessibe-changed events so that the
+  accessibility layer doesn't ask for text past the end of the buffer
+
+* Tue Feb 04 2003 Florian La Roche <Florian.LaRoche@redhat.de>
+- add symlink to shared lib
+
+* Mon Feb  3 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.17-1
+- draw 0x2592 natively
+
+* Fri Jan 31 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.16-1
+- fix "selection always extends by default" bug
+
 * Thu Jan 30 2003 Nalin Dahyabhai <nalin@redhat.com> 0.11.0-1
-- start of experimental series
+- fork stable branch
 
 * Wed Jan 22 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.15-1
 - make mouse modes mutually-exclusive

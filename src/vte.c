@@ -1462,6 +1462,8 @@ vte_terminal_match_add(VteTerminal *terminal, const char *match)
  * Sets which cursor the terminal will use if the pointer is over the pattern
  * specified by @tag.  The terminal keeps a reference to @cursor.
  *
+ * Since: 0.11
+ *
  */
 void
 vte_terminal_match_set_cursor(VteTerminal *terminal, int tag, GdkCursor *cursor)
@@ -13326,6 +13328,8 @@ vte_terminal_get_allow_bold(VteTerminal *terminal)
  * Controls whether or not the terminal will scroll the background image (if
  * one is set) when the text in the window must be scrolled.
  *
+ * Since: 0.11
+ *
  */
 void
 vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll)
@@ -13625,9 +13629,7 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
  * the terminal will create a copy of the background image (or snapshot of
  * the root window) and modify its pixel values.
  *
- * If your application intends to create multiple terminal widgets with the
- * same settings, performing this step yourself and just using
- * vte_terminal_set_background_image() will save memory.
+ * Since: 0.11
  *
  */
 void

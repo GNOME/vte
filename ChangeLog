@@ -1,4 +1,11 @@
 2003-05-06 nalin
+	* src/vte.c: add "Since: 0.11" to documentation for functions which
+	aren't available in the 0.10 series.
+	* src/iso2022.c: default G2 to JIS0201, G3 to JIS0212 for Japanese,
+	because they appear to not be used by anyone else.
+	* vte.spec: merge with .spec file from RHL.
+
+2003-05-06 nalin
 	* src/vtegl.c: get text rendering semi-working.
 
 2003-05-06 nalin
