@@ -21,11 +21,6 @@
     &vte-VteTerminal;
     &vte-vteaccess;
     &vte-VteReaper;
-    &vte-caps;
-    &vte-iso2022;
     &vte-pty;
-    &vte-ring;
-    &vte-termcap;
-    &vte-trie;
   </chapter>
 </book>
