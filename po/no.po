@@ -5,23 +5,26 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte 0.5\n"
-"POT-Creation-Date: 2002-12-11 14:57-0500\n"
-"PO-Revision-Date: 2002-08-25 01:11+0200\n"
+"POT-Creation-Date: 2003-01-21 11:21+0100\n"
+"PO-Revision-Date: 2003-01-21 11:26+0100\n"
 "Last-Translator: Kjartan Maraas <kmaraas@gnome.org>\n"
 "Language-Team: Norwegian <no@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:249
+#: src/pty.c:253
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Feil under tillegg av «%s» i miljøet. Fortsetter."
 
-#: src/pty.c:792
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:800
 #, c-format
 msgid "can not run %s"
-msgstr ""
+msgstr "kan ikke kjøre %s"
 
 #: src/reaper.c:107
 msgid "Error creating signal pipe."
@@ -32,88 +35,85 @@ msgstr "Feil ved oppretting av signalrør."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikat (%s/%s)!"
 
-#: src/vte.c:1338
+#: src/vte.c:1407
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Feil under sammensetting av regulært uttrykk «%s»."
 
-#: src/vte.c:1846 src/vte.c:1855 src/vte.c:1867 src/vte.c:1885 src/vte.c:1891
-#: src/vte.c:1896
+#: src/vte.c:1929 src/vte.c:1938 src/vte.c:1950 src/vte.c:1968 src/vte.c:1974
+#: src/vte.c:1979
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Kan ikke konvertere tegn fra %s til %s."
 
-#: src/vte.c:5308
+#: src/vte.c:5459
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Mottok uventet (nøkkel?) sekvens «%s»."
 
-#: src/vte.c:6524
+#: src/vte.c:6549
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Ingen håndterer definert for kontrollsekvens «%s»."
 
-#: src/vte.c:7134
+#: src/vte.c:7288
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Feil under lesing fra underprosess: %s."
 
-#: src/vte.c:7300
+#: src/vte.c:7449
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Feil (%s) ved konvertering av data for underprosess. Hopper over."
 
-#: src/vte.c:9571
+#: src/vte.c:9740
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
 msgstr "Bruker fontset «%s» som mangler disse tegnsettene: %s"
 
-#: src/vte.c:10206
+#: src/vte.c:10378
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr "Feil under lasting av Xft-skriftmønster «%s». Bruker forvalgt skrift."
 
-#: src/vte.c:10218
+#: src/vte.c:10390
 msgid "Failed to load default Xft font."
 msgstr "Feil under lasting av forvalgt Xft-skrift."
 
-#: src/vte.c:10311
+#: src/vte.c:10483
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr "Feil under lasting av fontset «%s». Bruker forvalgt skrift."
 
-#: src/vte.c:10323
+#: src/vte.c:10495
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr ""
 "Feil under lasting av forvalgt skrift. Krasj eller abnormal oppførsel kan "
 "ventes."
 
-#: src/vte.c:10586
+#: src/vte.c:10757
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Feil under lesing av PTY-størrelse. Bruker forvalg: %s."
 
-#: src/vte.c:10622
+#: src/vte.c:10793
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Feil under setting av PTY-størrelse: %s."
 
-#: src/vte.c:13487
+#: src/vte.c:13679
 msgid "Error allocating draw, disabling Xft."
 msgstr "Feil under allokering av tegning. Deaktiverer Xft."
 
-#: src/vte.c:13495
+#: src/vte.c:13687
 msgid "Error allocating context, disabling Pango."
 msgstr "Feil under allokering av kontekst. Deaktiverer Pango."
 
-#: src/vte.c:13501
+#: src/vte.c:13693
 msgid "Error allocating layout, disabling Pango."
 msgstr "Feil under allokering av «layout». Deaktiverer Pango."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15086
+#: src/vte.c:15326
 msgid "g_iconv_open() failed setting word characters"
 msgstr "g_iconv_open() feilet ved setting av ord-tegn"
-
-#~ msgid "Character 0x%x is undefined, allocating one column."
-#~ msgstr "Tegnet 0x%x er udefinert. Allokerer én kolonne."
