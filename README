@@ -20,7 +20,7 @@
 
 * What's missing?
 - Accessibility isn't completed yet.
-- Mouse tracking isn't started yet.
+- Mouse tracking isn't completed yet.
 - Entries in the termcap file also don't contain the sequences which a terminal
   is supposed to send to the application when a specific sequence is received
   (for example, the query-cursor-position control sequence).  This mostly looks

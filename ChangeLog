@@ -4,6 +4,9 @@
 	and use them everywhere.  Support pangox even when XFT isn't available.
 	Try to provide bold text again.  Added signals for most of the window
 	manipulation control sequences.  Start handling mouse button events.
+	Hide the mouse cursor when we get keyboard events.  Use a different
+	mouse cursor if the child is mouse-aware.  Handle eA() by treating it as
+	as().
 	* src/caps.c, src/caps.h: Export definitions of VTE_CAP_CSI and friends.
 2002-05-04 nalin
 	* src/vte.c: Implement device-status-report and dec-device-status-

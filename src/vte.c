@@ -66,6 +66,8 @@
 #define VTE_SATURATION_MAX 10000
 #define VTE_SCROLLBACK_MIN 100
 #define VTE_DEFAULT_EMULATION "xterm-color"
+#define VTE_DEFAULT_CURSOR GDK_XTERM
+#define VTE_MOUSING_CURSOR GDK_LEFT_PTR
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
@@ -232,6 +234,11 @@ struct _VteTerminalPrivate {
 	gboolean mouse_hilite_tracking;
 	gboolean mouse_cell_motion_tracking;
 	gboolean mouse_all_motion_tracking;
+	GdkCursor *mouse_default_cursor,
+		  *mouse_mousing_cursor,
+		  *mouse_inviso_cursor;
+	guint mouse_last_button;
+	gboolean mouse_autohide;
 };
 
 /* A function which can handle a terminal control sequence. */
@@ -1435,6 +1442,17 @@ vte_sequence_handler_DO(VteTerminal *terminal,
 				      vte_sequence_handler_do);
 }
 
+/* Start using alternate character set. */
+static void
+vte_sequence_handler_eA(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	vte_sequence_handler_ae(terminal, match, match_quark, params);
+}
+
 /* Erase characters starting at the cursor position (overwriting N with
  * spaces, but not moving the cursor). */
 static void
@@ -2270,6 +2288,42 @@ vte_sequence_handler_set_scrolling_region(VteTerminal *terminal,
 				    -1, vte_sequence_handler_cs);
 }
 
+/* Show or hide the pointer. */
+static void
+vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
+{
+	GdkCursor *cursor = NULL;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	if (visible || !terminal->pvt->mouse_autohide) {
+		if (terminal->pvt->mouse_send_xy_on_click ||
+		    terminal->pvt->mouse_send_xy_on_button ||
+		    terminal->pvt->mouse_hilite_tracking ||
+		    terminal->pvt->mouse_cell_motion_tracking ||
+		    terminal->pvt->mouse_all_motion_tracking) {
+#ifdef VTE_DEBUG
+			fprintf(stderr, "Setting mousing cursor.\n");
+#endif
+			cursor = terminal->pvt->mouse_mousing_cursor;
+		} else {
+#ifdef VTE_DEBUG
+			fprintf(stderr, "Setting default mouse cursor.\n");
+#endif
+			cursor = terminal->pvt->mouse_default_cursor;
+		}
+	} else {
+#ifdef VTE_DEBUG
+		fprintf(stderr, "Setting to invisible cursor.\n");
+#endif
+		cursor = terminal->pvt->mouse_inviso_cursor;
+	}
+	if (cursor) {
+		if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
+			gdk_window_set_cursor((GTK_WIDGET(terminal))->window,
+					      cursor);
+		}
+	}
+}
+
 /* Manipulate certain terminal attributes. */
 static void
 vte_sequence_handler_decset_internal(VteTerminal *terminal,
@@ -2279,8 +2333,11 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 				     gboolean set)
 {
 	GValue *value;
+	GtkWidget *widget;
 	long param;
 	int i;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	widget = GTK_WIDGET(terminal);
 	if ((params == NULL) || (params->n_values == 0)) {
 		return;
 	}
@@ -2382,6 +2439,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 					"to %s.\n", set ? "ON" : "OFF");
 #endif
 				terminal->pvt->mouse_cell_motion_tracking = set;
+				break;
 			case 1003:
 #ifdef VTE_DEBUG
 				fprintf(stderr, "Setting all-tracking "
@@ -2391,6 +2449,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 			default:
 				break;
 		}
+		vte_terminal_set_pointer_visible(terminal, TRUE);
 	}
 }
 
@@ -3113,7 +3172,7 @@ static struct {
 	{"DO", vte_sequence_handler_DO},
 	{"ds", NULL},
 
-	{"eA", NULL},
+	{"eA", vte_sequence_handler_eA},
 	{"ec", vte_sequence_handler_ec},
 	{"ed", NULL},
 	{"ei", vte_sequence_handler_ei},
@@ -4665,6 +4724,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 					steal = FALSE;
 			}
 		}
+		/* Hide the mouse cursor. */
+		vte_terminal_set_pointer_visible(terminal, FALSE);
 	}
 
 	/* Let the input method at this one first. */
@@ -5106,66 +5167,79 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
 
-	vte_terminal_emit_selection_changed (terminal);
-	terminal->pvt->has_selection = TRUE;
+	/* Show the cursor. */
+	vte_terminal_set_pointer_visible(terminal, TRUE);
 
-	w = terminal->char_width;
-	h = terminal->char_height;
-	origin.x = (terminal->pvt->selection_origin.x + w / 2) / w;
-	origin.y = (terminal->pvt->selection_origin.y) / h;
-	last.x = (event->x + w / 2) / w;
-	last.y = (event->y) / h;
-	o.x = (terminal->pvt->selection_last.x + w / 2) / w;
-	o.y = (terminal->pvt->selection_last.y) / h;
+	/* Handle a drag event. */
+	if (terminal->pvt->mouse_last_button == 1) {
+#ifdef VTE_DEBUG
+		fprintf(stderr, "Drag.\n");
+#endif
+		vte_terminal_emit_selection_changed (terminal);
+		terminal->pvt->has_selection = TRUE;
 
-	terminal->pvt->selection_last.x = event->x;
-	terminal->pvt->selection_last.y = event->y;
+		w = terminal->char_width;
+		h = terminal->char_height;
+		origin.x = (terminal->pvt->selection_origin.x + w / 2) / w;
+		origin.y = (terminal->pvt->selection_origin.y) / h;
+		last.x = (event->x + w / 2) / w;
+		last.y = (event->y) / h;
+		o.x = (terminal->pvt->selection_last.x + w / 2) / w;
+		o.y = (terminal->pvt->selection_last.y) / h;
 
-	if (last.y > origin.y) {
-		p.x = origin.x;
-		p.y = origin.y;
-		q.x = last.x;
-		q.y = last.y;
-	} else
-	if (last.y < origin.y) {
-		p.x = last.x;
-		p.y = last.y;
-		q.x = origin.x;
-		q.y = origin.y;
-	} else
-	if (last.x > origin.x) {
-		p.x = origin.x;
-		p.y = origin.y;
-		q.x = last.x;
-		q.y = last.y;
-	} else {
-		p.x = last.x;
-		p.y = last.y;
-		q.x = origin.x;
-		q.y = origin.y;
-	}
+		terminal->pvt->selection_last.x = event->x;
+		terminal->pvt->selection_last.y = event->y;
 
-	delta = terminal->pvt->screen->scroll_delta;
+		if (last.y > origin.y) {
+			p.x = origin.x;
+			p.y = origin.y;
+			q.x = last.x;
+			q.y = last.y;
+		} else
+		if (last.y < origin.y) {
+			p.x = last.x;
+			p.y = last.y;
+			q.x = origin.x;
+			q.y = origin.y;
+		} else
+		if (last.x > origin.x) {
+			p.x = origin.x;
+			p.y = origin.y;
+			q.x = last.x;
+			q.y = last.y;
+		} else {
+			p.x = last.x;
+			p.y = last.y;
+			q.x = origin.x;
+			q.y = origin.y;
+		}
 
-	terminal->pvt->selection_start.x = p.x;
-	terminal->pvt->selection_start.y = p.y + delta;
-	terminal->pvt->selection_end.x = q.x;
-	terminal->pvt->selection_end.y = q.y + delta;
+		delta = terminal->pvt->screen->scroll_delta;
 
-	top = MIN(o.y, MIN(p.y, q.y));
-	height = MAX(o.y, MAX(p.y, q.y)) - top + 1;
+		terminal->pvt->selection_start.x = p.x;
+		terminal->pvt->selection_start.y = p.y + delta;
+		terminal->pvt->selection_end.x = q.x;
+		terminal->pvt->selection_end.y = q.y + delta;
+
+		top = MIN(o.y, MIN(p.y, q.y));
+		height = MAX(o.y, MAX(p.y, q.y)) - top + 1;
 
 #ifdef VTE_DEBUG
-	fprintf(stderr, "selection is (%ld,%ld) to (%ld,%ld)\n",
-		terminal->pvt->selection_start.x,
-		terminal->pvt->selection_start.y,
-		terminal->pvt->selection_end.x,
-		terminal->pvt->selection_end.y);
-	fprintf(stderr, "repainting rows %ld to %ld\n", top, top + height);
+		fprintf(stderr, "selection is (%ld,%ld) to (%ld,%ld)\n",
+			terminal->pvt->selection_start.x,
+			terminal->pvt->selection_start.y,
+			terminal->pvt->selection_end.x,
+			terminal->pvt->selection_end.y);
+		fprintf(stderr, "repainting rows %ld to %ld\n", top, top + height);
 #endif
 
-	vte_invalidate_cells(terminal, 0, terminal->column_count,
-			     top + delta, height);
+		vte_invalidate_cells(terminal, 0, terminal->column_count,
+				     top + delta, height);
+	} else {
+#ifdef VTE_DEBUG
+		fprintf(stderr, "Mouse move.\n");
+#endif
+	}
 
 	return FALSE;
 }
@@ -5366,6 +5440,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	height = terminal->char_height;
 	width = terminal->char_width;
 	delta = terminal->pvt->screen->scroll_delta;
+	vte_terminal_set_pointer_visible(terminal, TRUE);
 
 	if (event->type == GDK_BUTTON_PRESS) {
 #ifdef VTE_DEBUG
@@ -5376,6 +5451,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		    (terminal->pvt->mouse_send_xy_on_click)) {
 			vte_terminal_send_mouse_button(terminal, event);
 		}
+		terminal->pvt->mouse_last_button = event->button;
 		if (event->button == 1) {
 			if (!GTK_WIDGET_HAS_FOCUS(widget)) {
 				gtk_widget_grab_focus(widget);
@@ -5456,6 +5532,8 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
+	vte_terminal_set_pointer_visible(terminal, TRUE);
+
 
 	if (event->type == GDK_BUTTON_RELEASE) {
 #ifdef VTE_DEBUG
@@ -5468,6 +5546,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 		if (event->button == 1) {
 			vte_terminal_copy(terminal, GDK_SELECTION_PRIMARY);
 		}
+		terminal->pvt->mouse_last_button = 0;
 	}
 
 	return FALSE;
@@ -6424,13 +6503,20 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	vte_terminal_set_backspace_binding(terminal, VTE_ERASE_AUTO);
 	vte_terminal_set_delete_binding(terminal, VTE_ERASE_AUTO);
 
-	/* Set various other settings. */
-	pvt->xterm_font_tweak = FALSE;
+	/* Set mouse pointer settings. */
 	pvt->mouse_send_xy_on_click = FALSE;
 	pvt->mouse_send_xy_on_button = FALSE;
 	pvt->mouse_hilite_tracking = FALSE;
 	pvt->mouse_cell_motion_tracking = FALSE;
 	pvt->mouse_all_motion_tracking = FALSE;
+	pvt->mouse_last_button = 0;
+	pvt->mouse_default_cursor = NULL;
+	pvt->mouse_mousing_cursor = NULL;
+	pvt->mouse_inviso_cursor = NULL;
+	pvt->mouse_autohide = FALSE;
+
+	/* Set various other settings. */
+	pvt->xterm_font_tweak = FALSE;
 }
 
 /* Tell GTK+ how much space we need. */
@@ -6556,6 +6642,14 @@ vte_terminal_unrealize(GtkWidget *widget)
 		gtk_widget_unmap(widget);
 	}
 
+	/* Deallocate the cursors. */
+	gdk_cursor_unref(terminal->pvt->mouse_default_cursor);
+	terminal->pvt->mouse_default_cursor = NULL;
+	gdk_cursor_unref(terminal->pvt->mouse_mousing_cursor);
+	terminal->pvt->mouse_mousing_cursor = NULL;
+	gdk_cursor_unref(terminal->pvt->mouse_inviso_cursor);
+	terminal->pvt->mouse_inviso_cursor = NULL;
+
 	/* Remove the GDK window. */
 	if (widget->window != NULL) {
 		gdk_window_destroy(widget->window);
@@ -6680,11 +6774,19 @@ vte_terminal_realize(GtkWidget *widget)
 {
 	VteTerminal *terminal = NULL;
 	GdkWindowAttr attributes;
+	GdkPixmap *pixmap;
+	GdkColor black = {0,};
 	int attributes_mask = 0;
 
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
+
+	/* Create the stock cursors. */
+	terminal->pvt->mouse_default_cursor =
+		gdk_cursor_new(VTE_DEFAULT_CURSOR);
+	terminal->pvt->mouse_mousing_cursor =
+		gdk_cursor_new(VTE_MOUSING_CURSOR);
 
 	/* Create a GDK window for the widget. */
 	attributes.window_type = GDK_WINDOW_CHILD;
@@ -6699,10 +6801,11 @@ vte_terminal_realize(GtkWidget *widget)
 				GDK_EXPOSURE_MASK |
 				GDK_BUTTON_PRESS_MASK |
 				GDK_BUTTON_RELEASE_MASK |
+				GDK_POINTER_MOTION_MASK |
 				GDK_BUTTON1_MOTION_MASK |
 				GDK_KEY_PRESS_MASK |
 				GDK_KEY_RELEASE_MASK;
-	attributes.cursor = gdk_cursor_new(GDK_XTERM);
+	attributes.cursor = terminal->pvt->mouse_default_cursor;
 	attributes_mask = GDK_WA_X |
 			  GDK_WA_Y |
 			  GDK_WA_VISUAL |
@@ -6711,7 +6814,6 @@ vte_terminal_realize(GtkWidget *widget)
 	widget->window = gdk_window_new(gtk_widget_get_parent_window(widget),
 					&attributes,
 					attributes_mask);
-	gdk_cursor_unref(attributes.cursor);
 	gdk_window_move_resize(widget->window,
 			       widget->allocation.x,
 			       widget->allocation.y,
@@ -6745,6 +6847,14 @@ vte_terminal_realize(GtkWidget *widget)
 			 GTK_SIGNAL_FUNC(vte_terminal_im_preedit_end),
 			 terminal);
 	gtk_im_context_set_use_preedit(terminal->pvt->im_context, TRUE);
+
+	/* Create our invisible cursor. */
+	pixmap = gdk_pixmap_new(widget->window, 1, 1, 1);
+	terminal->pvt->mouse_inviso_cursor =
+		gdk_cursor_new_from_pixmap(pixmap, pixmap,
+					   &black, &black, 0, 0);
+	g_object_unref(G_OBJECT(pixmap));
+	pixmap = NULL;
 
 	/* Grab input focus. */
 	gtk_widget_grab_focus(widget);
@@ -8505,4 +8615,18 @@ vte_terminal_set_delete_binding(VteTerminal *terminal,
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->delete_binding = binding;
+}
+
+void
+vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->mouse_autohide = setting;
+}
+
+gboolean
+vte_terminal_get_mouse_autohide(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	return terminal->pvt->mouse_autohide;
 }

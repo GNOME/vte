@@ -176,6 +176,9 @@ void vte_terminal_set_backspace_binding(VteTerminal *terminal,
 void vte_terminal_set_delete_binding(VteTerminal *terminal,
 				     VteTerminalEraseBinding binding);
 
+void vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting);
+gboolean vte_terminal_get_mouse_autohide(VteTerminal *terminal);
+
 VteTerminalSnapshot *vte_terminal_get_snapshot(VteTerminal *terminal);
 void vte_terminal_free_snapshot(VteTerminalSnapshot *snapshot);
 
