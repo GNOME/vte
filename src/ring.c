@@ -26,9 +26,11 @@
 
 #ifdef VTE_DEBUG
 static void
-_vte_ring_validate(VteRing *ring)
+_vte_ring_validate(VteRing * ring)
 {
 	long i, max;
+	g_return_if_fail(ring != NULL);
+	g_assert(ring->length <= ring->max);
 	max = ring->delta + ring->length;
 	for (i = ring->delta; i < max; i++) {
 		g_assert(_vte_ring_contains(ring, i));
@@ -63,7 +65,7 @@ _vte_ring_new(glong max_elements, VteRingFreeFunc free, gpointer data)
 
 VteRing *
 _vte_ring_new_with_delta(glong max_elements, glong delta,
-			VteRingFreeFunc free, gpointer data)
+			 VteRingFreeFunc free, gpointer data)
 {
 	VteRing *ret;
 	ret = _vte_ring_new(max_elements, free, data);
@@ -83,7 +85,7 @@ _vte_ring_new_with_delta(glong max_elements, glong delta,
  *
  */
 void
-_vte_ring_insert(VteRing *ring, long position, gpointer data)
+_vte_ring_insert(VteRing * ring, long position, gpointer data)
 {
 	long point, i;
 #ifdef VTE_DEBUG
@@ -92,7 +94,9 @@ _vte_ring_insert(VteRing *ring, long position, gpointer data)
 		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
 			ring->delta, ring->length, ring->max);
 	}
+	_vte_ring_validate(ring);
 #endif
+	g_return_if_fail(ring != NULL);
 	g_return_if_fail(position >= ring->delta);
 	g_return_if_fail(position <= ring->delta + ring->length);
 	g_return_if_fail(data != NULL);
@@ -111,6 +115,10 @@ _vte_ring_insert(VteRing *ring, long position, gpointer data)
 			ring->free(ring->array[position % ring->max],
 				   ring->user_data);
 		}
+		/* Set the new item, and if the buffer wasn't "full", increase
+		 * our idea of how big it is, otherwise increase the delta so
+		 * that this becomes the "last" item and the previous item
+		 * scrolls off the *top*. */
 		ring->array[position % ring->max] = data;
 		if (ring->length == ring->max) {
 			ring->delta++;
@@ -128,14 +136,17 @@ _vte_ring_insert(VteRing *ring, long position, gpointer data)
 		return;
 	}
 
-	/* All other cases. */
+	/* All other cases.  Calculate the location where the last "item" in the
+	 * buffer is going to end up in the array. */
 	point = ring->delta + ring->length - 1;
-	while (point <= 0) {
+	while (point < 0) {
 		point += ring->max;
 	}
 
-	/* If the buffer's full, then the last item will be lost. */
 	if (ring->length == ring->max) {
+		/* If the buffer's full, then the last item will have to be
+		 * "lost" to make room for the new item so that the buffer
+		 * doesn't grow (here we scroll off the *bottom*). */
 		if (ring->free && ring->array[point % ring->max]) {
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_RING)) {
@@ -146,19 +157,21 @@ _vte_ring_insert(VteRing *ring, long position, gpointer data)
 			ring->free(ring->array[point % ring->max],
 				   ring->user_data);
 		}
-	}
-
-	/* Bubble the rest down.  This isn't as slow as you probably think
-	 * it is due to the pattern of usage. */
-	if (ring->length != ring->max) {
-		/* We'll need to copy the last item, too. */
+	} else {
+		/* We don't want to discard the last item. */
 		point++;
 	}
+
+	/* We need to bubble the remaining valid elements down.  This isn't as
+	 * slow as you probably think it is due to the pattern of usage. */
 	for (i = point; i > position; i--) {
 		ring->array[i % ring->max] = ring->array[(i - 1) % ring->max];
 	}
+
+	/* Store the new item and bump up the length, unless we've hit the
+	 * maximum length already. */
 	ring->array[position % ring->max] = data;
-	ring->length = MIN(ring->length + 1, ring->max);
+	ring->length = CLAMP(ring->length + 1, 0, ring->max);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_RING)) {
 		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
@@ -179,7 +192,7 @@ _vte_ring_insert(VteRing *ring, long position, gpointer data)
  *
  */
 void
-_vte_ring_remove(VteRing *ring, long position, gboolean free)
+_vte_ring_remove(VteRing * ring, long position, gboolean free)
 {
 	long i;
 #ifdef VTE_DEBUG
@@ -188,6 +201,7 @@ _vte_ring_remove(VteRing *ring, long position, gboolean free)
 		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
 			ring->delta, ring->length, ring->max);
 	}
+	_vte_ring_validate(ring);
 #endif
 	/* Remove the data at this position. */
 	if (free && ring->array[position % ring->max] && ring->free) {
@@ -206,8 +220,11 @@ _vte_ring_remove(VteRing *ring, long position, gboolean free)
 	for (i = position; i < ring->delta + ring->length - 1; i++) {
 		ring->array[i % ring->max] = ring->array[(i + 1) % ring->max];
 	}
+	
+	/* Store a NULL in the position at the end of the buffer and decrement
+	 * its length (got room for one more now). */
+	ring->array[(ring->delta + ring->length - 1) % ring->max] = NULL;
 	if (ring->length > 0) {
-		ring->array[(ring->delta + ring->length - 1) % ring->max] = NULL;
 		ring->length--;
 	}
 #ifdef VTE_DEBUG
@@ -229,8 +246,9 @@ _vte_ring_remove(VteRing *ring, long position, gboolean free)
  *
  */
 void
-_vte_ring_append(VteRing *ring, gpointer data)
+_vte_ring_append(VteRing * ring, gpointer data)
 {
+	g_assert(data != NULL);
 	_vte_ring_insert(ring, ring->delta + ring->length, data);
 }
 
@@ -243,20 +261,23 @@ _vte_ring_append(VteRing *ring, gpointer data)
  *
  */
 void
-_vte_ring_free(VteRing *ring, gboolean free_elements)
+_vte_ring_free(VteRing * ring, gboolean free_elements)
 {
 	long i;
-	if (free_elements) {
+	if (free_elements && ring->free) {
 		for (i = 0; i < ring->max; i++) {
 			/* Remove this item. */
-			if ((ring->free != NULL) && (ring->array[i] != NULL)) {
+			if (ring->array[i] != NULL) {
 				ring->free(ring->array[i], ring->user_data);
 				ring->array[i] = NULL;
 			}
 		}
 	}
 	g_free(ring->array);
-	memset(ring, 0, sizeof(ring));
+	ring->free = NULL;
+	ring->user_data = NULL;
+	ring->array = NULL;
+	ring->delta = ring->length = ring->max = 0;
 	g_free(ring);
 }
 
@@ -290,11 +311,14 @@ main(int argc, char **argv)
 		k = 0;
 		fprintf(stderr, "[%ld] ", i);
 		for (j = 0; j < G_N_ELEMENTS(values); j++) {
-			value = _vte_ring_index(ring, long *, j);
+			if (_vte_ring_contains(ring, j)) {
+				value = _vte_ring_index(ring, long *, j);
+			} else {
+				value = NULL;
+			}
 			if (value) {
 				fprintf(stderr, "%s%ld->%ld",
-					(k > 0) ? ", " : "",
-					j, *value);
+					(k > 0) ? ", " : "", j, *value);
 				k++;
 			}
 		}
@@ -315,18 +339,15 @@ main(int argc, char **argv)
 			fprintf(stderr, "Removing item 3.\n");
 			_vte_ring_remove(ring, 4, TRUE);
 			bias--;
-		} else
-		if (i == 10) {
+		} else if (i == 10) {
 			fprintf(stderr, "Inserting item 7.\n");
 			_vte_ring_insert(ring, 7, &lone);
 			bias--;
-		} else
-		if (i == 20) {
+		} else if (i == 20) {
 			fprintf(stderr, "Inserting item 13.\n");
 			_vte_ring_insert(ring, 13, &lone);
 			bias--;
-		} else
-		if (i < G_N_ELEMENTS(values)) {
+		} else if (i < G_N_ELEMENTS(values)) {
 			fprintf(stderr, "Appending item.\n");
 			_vte_ring_append(ring, &values[i + bias]);
 		}

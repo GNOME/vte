@@ -1,3 +1,7 @@
+2002-09-20 nalin
+	* src/ring.c: Fix a ring-buffer manipulation bug (Red Hat #74290) which
+	might cause a new item to be inserted in the wrong location.
+
 2002-09-19 nalin
 	* src/interpret.c: Munge input data the way the terminal does so that
 	conversion failures don't wedge us.

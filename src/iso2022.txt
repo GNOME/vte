@@ -1,4 +1,9 @@
 #
+#  Sample text using terminal national character set suppport.
+#
+General format: [ISO-2022] [UTF-8]
+
+#
 #  Sample text from Ken Lunde's [4mCJKV Information Processing[m.
 #
 ISO-2022-JP/156: [$B$+$J4A;z(B] [かな漢字]
