@@ -1,11 +1,16 @@
+0.11.7: Properly recognizes 8-bit versions of SS2 and SS3 intermixed with
+        UTF-8.  Add Macedonian and Welsh translations (yay GTP!).  Fix keypad
+        page down key in application keypad mode.  Internalize some conversions
+        to work better on platforms which lack a gunichar-compatible iconv
+        target or UTF-8 to UTF-8 conversions.
 0.11.6: Recognizes 8-bit versions of SS2 and SS3.
         Shares pixmap and pixbuf backgrounds between multiple terminal widgets
         within the same process, reducing both memory and CPU use.
 0.11.5: Support for PC437.  Fix Ctrl+/.  Use xrdb font settings if GTK+ doesn't
         have anything to say.
 0.11.4: Speedier transparency update when you move the windows, fixes for
-	flickering when scrolling part of the screen, accessibility fixes.
-	Bold works again.
+        flickering when scrolling part of the screen, accessibility fixes.
+        Bold works again.
 0.11.3: Reworked handling of ISO-2022 text, handles Chinese and Korean
         correctly.
 0.11.2: Fix for wrapping when selecting by word or lines.  Fix to conform to
