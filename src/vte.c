@@ -199,7 +199,6 @@ struct _VteTerminalPrivate {
 		} cursor_current, cursor_saved;
 					/* the current and saved positions of
 					   the [insertion] cursor */
-		gboolean cursor_visible;
 		gboolean reverse_mode;	/* reverse mode */
 		gboolean insert_mode;	/* insert mode */
 		struct {
@@ -247,6 +246,7 @@ struct _VteTerminalPrivate {
 	/* Cursor blinking. */
 	gboolean cursor_blinks;
 	gint cursor_blink_tag;
+	gboolean cursor_visible;
 
 	/* Background images/"transparency". */
 	gboolean bg_transparent;
@@ -2827,7 +2827,7 @@ vte_sequence_handler_ve(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->screen->cursor_visible = TRUE;
+	terminal->pvt->cursor_visible = TRUE;
 }
 
 /* Cursor invisible. */
@@ -2838,7 +2838,7 @@ vte_sequence_handler_vi(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->screen->cursor_visible = FALSE;
+	terminal->pvt->cursor_visible = FALSE;
 }
 
 /* Cursor standout. */
@@ -2849,8 +2849,8 @@ vte_sequence_handler_vs(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->screen->cursor_visible = TRUE; /* FIXME: should be
-							 *more* visible. */
+	terminal->pvt->cursor_visible = TRUE; /* FIXME: should be *more*
+						 visible. */
 }
 
 /* Handle ANSI color setting and related stuffs (SGR). */
@@ -3239,7 +3239,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
 		/* Cursor visible. */
-		{25, &terminal->pvt->screen->cursor_visible, NULL, NULL,
+		{25, &terminal->pvt->cursor_visible, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
@@ -8283,7 +8283,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->normal_screen.cursor_current.col = 0;
 	pvt->normal_screen.cursor_saved.row = 0;
 	pvt->normal_screen.cursor_saved.col = 0;
-	pvt->normal_screen.cursor_visible = TRUE;
 	pvt->normal_screen.insert_delta = 0;
 	pvt->normal_screen.scroll_delta = 0;
 	pvt->normal_screen.insert_mode = FALSE;
@@ -8296,7 +8295,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->alternate_screen.cursor_current.col = 0;
 	pvt->alternate_screen.cursor_saved.row = 0;
 	pvt->alternate_screen.cursor_saved.col = 0;
-	pvt->alternate_screen.cursor_visible = TRUE;
 	pvt->alternate_screen.insert_delta = 0;
 	pvt->alternate_screen.scroll_delta = 0;
 	pvt->alternate_screen.insert_mode = FALSE;
@@ -8343,6 +8341,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->mouse_mousing_cursor = NULL;
 	pvt->mouse_inviso_cursor = NULL;
 	pvt->mouse_autohide = FALSE;
+	pvt->cursor_visible = TRUE;
 
 	/* Set up matching checks. */
 	pvt->match_contents = NULL;
@@ -9808,7 +9807,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	}
 
 	/* Draw the cursor if it's visible. */
-	if (terminal->pvt->screen->cursor_visible) {
+	if (terminal->pvt->cursor_visible) {
 		/* Get the character under the cursor. */
 		col = screen->cursor_current.col;
 		if (terminal->pvt->im_preedit != NULL) {
@@ -11051,11 +11050,10 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	terminal->pvt->normal_screen.scrolling_restricted = FALSE;
 	terminal->pvt->normal_screen.insert_mode = FALSE;
 	terminal->pvt->normal_screen.reverse_mode = FALSE;
-	terminal->pvt->normal_screen.cursor_visible = TRUE;
 	terminal->pvt->alternate_screen.scrolling_restricted = FALSE;
 	terminal->pvt->alternate_screen.insert_mode = FALSE;
 	terminal->pvt->alternate_screen.reverse_mode = FALSE;
-	terminal->pvt->alternate_screen.cursor_visible = TRUE;
+	terminal->pvt->cursor_visible = TRUE;
 	/* Reset the input and output buffers. */
 	if (terminal->pvt->n_incoming > 0) {
 		terminal->pvt->n_incoming = 0;

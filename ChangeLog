@@ -1,4 +1,6 @@
 2002-06-18 nalin
+	* src/vte.c: Make cursor_visible a widget-wide (not per-screen) setting.
+2002-06-18 nalin
 	* autogen.sh: Correct automake version check to require 1.5, heads
 	up from Glynn Foster.
 2002-06-18 nalin
