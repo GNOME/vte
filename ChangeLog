@@ -1,3 +1,7 @@
+2003-01-18 Andras Timar  <timar@gnome.hu>
+
+	* configure.in: Added "hu" to ALL_LINGUAS.
+
 2003-01-17 nalin
 	* src/vte.c(vte_terminal_set_size): emit a "text-modified" signal,
 	because what you see changes when you resize the terminal.
