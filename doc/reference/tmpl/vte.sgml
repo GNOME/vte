@@ -752,7 +752,9 @@ Emitted at the child application's request.
 
 <!-- ##### SIGNAL VteTerminal::eof ##### -->
 <para>
-
+Emitted when the terminal receives an end-of-file from a child which is running
+in the terminal.  This signal is frequently (but not always) emitted with a
+"child-exited" signal.
 </para>
 
 @vteterminal: the object which received the signal.

@@ -572,6 +572,7 @@ main(int argc, char **argv)
 
 	/* Set some defaults. */
 	vte_terminal_set_audible_bell(VTE_TERMINAL(widget), audible);
+	vte_terminal_set_visible_bell(VTE_TERMINAL(widget), !audible);
 	vte_terminal_set_cursor_blinks(VTE_TERMINAL(widget), blink);
 	vte_terminal_set_scroll_background(VTE_TERMINAL(widget), scroll);
 	vte_terminal_set_scroll_on_output(VTE_TERMINAL(widget), FALSE);

@@ -1,4 +1,14 @@
 2003-05-21 nalin
+	* src/vte.c(vte_terminal_scroll_region): force an entire window repaint
+	if we're supposed to scroll the background but we're not scrolling the
+	entire window.  This means we need to repaint the scrolled region, and
+	to keep things looking right, we need to repaint everything.
+	* src/vteapp.c(main): enable visible bell if we're disabling the
+	audible bell, and vice-versa.
+	* src/vte.c: flesh out some doc comments.
+	* doc/reference/tmpl/vte.sgml: flesh out some notes on signals.
+
+2003-05-21 nalin
 	* src/vteconv.c(_vte_conv): pass zero bytes which trigger EILSEQ
 	through and keep going.
 	* src/vteconv.c: replace use of g_utf8_strlen with an internal function

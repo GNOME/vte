@@ -685,10 +685,16 @@ vte_terminal_scroll_region(VteTerminal *terminal,
 	}
 
 	if (repaint) {
-		/* We have to repaint the area which is to be scrolled. */
-		vte_invalidate_cells(terminal,
-				     0, terminal->column_count,
-				     row, count);
+		if (terminal->pvt->scroll_background) {
+			/* We have to repaint the entire window. */
+			vte_invalidate_all(terminal);
+		} else {
+			/* We have to repaint the area which is to be
+			 * scrolled. */
+			vte_invalidate_cells(terminal,
+					     0, terminal->column_count,
+					     row, count);
+		}
 	}
 }
 
@@ -1966,7 +1972,7 @@ vte_remove_line_internal(VteTerminal *terminal, glong position)
 /**
  * vte_terminal_set_encoding:
  * @terminal: a #VteTerminal
- * @codeset: a valid #gconv target
+ * @codeset: a valid #g_iconv target
  *
  * Changes the encoding the terminal will expect data from the child to
  * be encoded with.  For certain terminal types, applications executing in the
@@ -13731,10 +13737,6 @@ vte_terminal_queue_background_update(VteTerminal *terminal)
  * the image.  To do so, the terminal will create a copy of the background
  * image (or snapshot of the root window) and modify its pixel values.
  *
- * If your application intends to create multiple terminal widgets with the
- * same settings, performing this step yourself and just using
- * vte_terminal_set_background_image() will save memory.
- *
  */
 void
 vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
@@ -13765,7 +13767,8 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
  * vte_terminal_set_background_saturation() is less than one, the terminal
  * will adjust the color of the image before drawing the image.  To do so,
  * the terminal will create a copy of the background image (or snapshot of
- * the root window) and modify its pixel values.
+ * the root window) and modify its pixel values.  The initial tint color
+ * is black.
  *
  * Since: 0.11
  *
@@ -13824,7 +13827,9 @@ vte_terminal_set_background_transparent(VteTerminal *terminal,
  * Sets a background image for the widget.  Text which would otherwise be
  * drawn using the default background color will instead be drawn over the
  * specified image.  If necessary, the image will be tiled to cover the
- * widget's entire visible area.
+ * widget's entire visible area. If specified by
+ * vte_terminal_set_background_saturation(), the terminal will tint its
+ * in-memory copy of the image before applying it to the terminal.
  *
  */
 void
@@ -13958,7 +13963,7 @@ vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
  * of visible rows the widget can display, so 0 can safely be used to disable
  * scrollback.  Note that this setting only affects the normal screen buffer.
  * For terminal types which have an alternate screen buffer, no scrollback is
- * allowed.
+ * allowed on the alternate screen buffer.
  *
  */
 void
@@ -14378,14 +14383,14 @@ vte_terminal_get_status_line(VteTerminal *terminal)
  * @ypad: address in which to store top/bottom-edge ypadding
  *
  * Determines the amount of additional space the widget is using to pad the
- * edges of its visible area.  This is necessary for cases where characters
- * in the selected font don't themselves include a padding area and the
- * text itself would be contiguous with the window border.  Applications
+ * edges of its visible area.  This is necessary for cases where characters in
+ * the selected font don't themselves include a padding area and the text
+ * itself would otherwise be contiguous with the window border.  Applications
  * which use the widget's #row_count, #column_count, #char_height, and
  * #char_width fields to set geometry hints using
  * gtk_window_set_geometry_hints() will need to add this value to the base
- * size.  The values returned in @xpad and @ypad are the total padding used
- * in each direction, and do not need to be doubled.
+ * size.  The values returned in @xpad and @ypad are the total padding used in
+ * each direction, and do not need to be doubled.
  *
  */
 void
