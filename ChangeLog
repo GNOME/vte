@@ -1,3 +1,12 @@
+2004-04-27 nalin
+	* src/vte.c(vte_terminal_fork_command): more clearly document what
+	the argv and envv arguments are expected to contain (#127979).
+	* src/vte.c(vte_terminal_insert_char): attempt to more closely match
+	the behavior of am and xn on terminals -- if am is set {if xn is set,
+	autowrap should only happen before a character is output, and then only
+	if it's a graphic character, otherwise we autowrap after a character is
+	output}
+
 2004-04-21 nalin
 	* src/vte.c(vte_terminal_get_text_range_maybe_wrapped): also trim back
 	lines which are nothing but whitespace (#140765).

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001,2002,2003 Red Hat, Inc.
+ * Copyright (C) 2001-2004 Red Hat, Inc.
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Library General Public License as published by
@@ -173,6 +173,7 @@ struct _VteTerminalPrivate {
 	struct vte_terminal_flags {	/* boolean termcap flags */
 		gboolean am;
 		gboolean bw;
+		gboolean LP;
 		gboolean ul;
 		gboolean xn;
 	} flags;
@@ -517,7 +518,11 @@ vte_new_row_data(VteTerminal *terminal)
 {
 	VteRowData *row = NULL;
 	row = g_malloc0(sizeof(VteRowData));
+#ifdef VTE_DEBUG
+	row->cells = g_array_new(FALSE, TRUE, sizeof(struct vte_charcell));
+#else
 	row->cells = g_array_new(FALSE, FALSE, sizeof(struct vte_charcell));
+#endif
 	row->soft_wrapped = 0;
 	return row;
 }
@@ -528,9 +533,15 @@ vte_new_row_data_sized(VteTerminal *terminal, gboolean fill)
 {
 	VteRowData *row = NULL;
 	row = g_malloc0(sizeof(VteRowData));
+#ifdef VTE_DEBUG
+	row->cells = g_array_sized_new(FALSE, TRUE,
+				       sizeof(struct vte_charcell),
+				       terminal->column_count);
+#else
 	row->cells = g_array_sized_new(FALSE, FALSE,
 				       sizeof(struct vte_charcell),
 				       terminal->column_count);
+#endif
 	row->soft_wrapped = 0;
 	if (fill) {
 		vte_g_array_fill(row->cells,
@@ -676,7 +687,8 @@ vte_terminal_scroll_region(VteTerminal *terminal,
 	}
 
 	/* We only do this if we're scrolling the entire window. */
-	if (!terminal->pvt->bg_transparent &&
+	if (!terminal->pvt->screen->scrolling_restricted &&
+	    !terminal->pvt->bg_transparent &&
 	    (terminal->pvt->bg_pixbuf == NULL) &&
 	    (terminal->pvt->bg_file == NULL) &&
 	    (row == terminal->pvt->screen->scroll_delta) &&
@@ -685,6 +697,7 @@ vte_terminal_scroll_region(VteTerminal *terminal,
 		height = terminal->char_height;
 		gdk_window_scroll((GTK_WIDGET(terminal))->window,
 				  0, delta * height);
+		fprintf(stderr, "Fast scroll.\n");
 		if (delta > 0) {
 			vte_invalidate_cells(terminal,
 					     0, terminal->column_count,
@@ -2193,6 +2206,7 @@ vte_sequence_handler_al(VteTerminal *terminal,
 		/* Get the data for the new row. */
 		rowdata = _vte_ring_index(screen->row_data,
 					  VteRowData *, start);
+		g_assert(rowdata != NULL);
 		/* Add enough cells to it so that it has the default colors. */
 		vte_g_array_fill(rowdata->cells, &screen->fill_defaults,
 				 terminal->column_count);
@@ -2387,6 +2401,7 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 		if (_vte_ring_contains(screen->row_data, i)) {
 			rowdata = _vte_ring_index(screen->row_data,
 						  VteRowData *, i);
+			g_assert(rowdata != NULL);
 		} else {
 			rowdata = vte_new_row_data(terminal);
 			_vte_ring_append(screen->row_data, rowdata);
@@ -2421,6 +2436,7 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 	vte_terminal_ensure_cursor(terminal, FALSE);
 	rowdata = _vte_ring_index(screen->row_data, VteRowData *,
 				  screen->cursor_current.row);
+	g_assert(rowdata != NULL);
 	/* Remove the data at the end of the array until the current column
 	 * is the end of the array. */
 	if (rowdata->cells->len > screen->cursor_current.col) {
@@ -2536,6 +2552,7 @@ vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 		/* Get the data for the row which the cursor points to. */
 		rowdata = _vte_ring_index(screen->row_data, VteRowData *,
 					  screen->cursor_current.row);
+		g_assert(rowdata != NULL);
 		/* Remove it. */
 		if (rowdata->cells->len > 0) {
 			g_array_set_size(rowdata->cells, 0);
@@ -2581,6 +2598,7 @@ vte_sequence_handler_cs(VteTerminal *terminal,
 	/* We require two parameters.  Anything less is a reset. */
 	screen = terminal->pvt->screen;
 	if ((params == NULL) || (params->n_values < 2)) {
+		fprintf(stderr, "cs()\n");
 		screen->scrolling_restricted = FALSE;
 		return FALSE;
 	}
@@ -2589,6 +2607,7 @@ vte_sequence_handler_cs(VteTerminal *terminal,
 	start = g_value_get_long(value);
 	value = g_value_array_get_nth(params, 1);
 	end = g_value_get_long(value);
+	fprintf(stderr, "cs(%d,%d)\n", start, end);
 	/* Catch garbage. */
 	rows = terminal->row_count;
 	if ((start <= 0) || (start >= rows)) {
@@ -2757,6 +2776,7 @@ vte_sequence_handler_dc(VteTerminal *terminal,
 		rowdata = _vte_ring_index(screen->row_data,
 					  VteRowData *,
 					  screen->cursor_current.row);
+		g_assert(rowdata != NULL);
 		col = screen->cursor_current.col;
 		/* Remove the column. */
 		if (col < rowdata->cells->len) {
@@ -2875,6 +2895,7 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 	row = _vte_ring_index(screen->row_data,
 			      VteRowData *,
 			      screen->cursor_current.row);
+	g_assert(row != NULL);
 	if ((row->cells->len <= screen->cursor_current.col) &&
 	    (row->cells->len < terminal->column_count)) {
 		/* Set up defaults we'll use when adding new cells. */
@@ -2998,6 +3019,7 @@ vte_sequence_handler_ec(VteTerminal *terminal,
 		rowdata = _vte_ring_index(screen->row_data,
 					  VteRowData *,
 					  screen->cursor_current.row);
+		g_assert(rowdata != NULL);
 		/* Write over the characters.  (If there aren't enough, we'll
 		 * need to create them.) */
 		for (i = 0; i < count; i++) {
@@ -3190,8 +3212,12 @@ vte_sequence_handler_le(VteTerminal *terminal,
 		if (terminal->pvt->flags.bw) {
 			/* Wrap to the previous line. */
 			screen->cursor_current.col = terminal->column_count - 1;
-			screen->cursor_current.row = MAX(screen->cursor_current.row - 1,
-							 screen->insert_delta);
+			if (screen->scrolling_restricted) {
+				vte_sequence_handler_sr(terminal, match, match_quark, params);
+			} else {
+				screen->cursor_current.row = MAX(screen->cursor_current.row - 1,
+								 screen->insert_delta);
+			}
 		} else {
 			/* Stick to the first column. */
 			screen->cursor_current.col = 0;
@@ -4120,6 +4146,7 @@ vte_sequence_handler_clear_above_current(VteTerminal *terminal,
 			/* Get the data for the row we're erasing. */
 			rowdata = _vte_ring_index(screen->row_data,
 						  VteRowData *, i);
+			g_assert(rowdata != NULL);
 			/* Remove it. */
 			if (rowdata->cells->len > 0) {
 				g_array_set_size(rowdata->cells, 0);
@@ -5231,6 +5258,7 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 		vte_insert_line_internal(terminal, row);
 		/* Get the data for the new row. */
 		rowdata = _vte_ring_index(screen->row_data, VteRowData *, row);
+		g_assert(rowdata != NULL);
 		/* Add enough cells to it so that it has the default colors. */
 		vte_g_array_fill(rowdata->cells,
 				 &screen->fill_defaults,
@@ -5281,6 +5309,7 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 		vte_insert_line_internal(terminal, end);
 		/* Get the data for the new row. */
 		rowdata = _vte_ring_index(screen->row_data, VteRowData *, end);
+		g_assert(rowdata != NULL);
 		/* Add enough cells to it so that it has the default colors. */
 		vte_g_array_fill(rowdata->cells,
 				 &screen->fill_defaults,
@@ -5491,6 +5520,7 @@ vte_sequence_handler_screen_alignment_test(VteTerminal *terminal,
 		}
 		vte_terminal_adjust_adjustments(terminal, TRUE);
 		rowdata = _vte_ring_index(screen->row_data, VteRowData *, row);
+		g_assert(rowdata != NULL);
 		/* Clear this row. */
 		if (rowdata->cells->len > 0) {
 			g_array_set_size(rowdata->cells, 0);
@@ -6682,10 +6712,13 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 #endif
 
-	/* If we're autowrapping here, do it. */
+	/* If we're autowrapping here (am and xn), do it, for graphic
+ 	 * characters only. */
 	col = screen->cursor_current.col;
 	if (col + columns > terminal->column_count) {
-		if (terminal->pvt->flags.am) {
+		if (terminal->pvt->flags.am &&
+		    terminal->pvt->flags.xn &&
+		    g_unichar_isgraph(c)) {
 			/* Mark this line as soft-wrapped. */
 			row = _vte_ring_index(screen->row_data,
 					      VteRowData *,
@@ -6710,6 +6743,7 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	row = _vte_ring_index(screen->row_data,
 			      VteRowData *,
 			      screen->cursor_current.row);
+	g_assert(row != NULL);
 
 	/* Insert the right number of columns. */
 	for (i = 0; i < columns; i++) {
@@ -6787,6 +6821,23 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		 * see it. */
 		if (row->cells->len > terminal->column_count) {
 			g_array_set_size(row->cells, terminal->column_count);
+		}
+	}
+
+	/* If we're autowrapping *here* (am but not xn), do it. */
+	col = screen->cursor_current.col;
+	if (col >= terminal->column_count) {
+		if (terminal->pvt->flags.am && !terminal->pvt->flags.xn) {
+			/* Mark this line as soft-wrapped. */
+			row = _vte_ring_index(screen->row_data,
+					      VteRowData *,
+					      screen->cursor_current.row);
+			if (row != NULL) {
+				row->soft_wrapped = 1;
+			}
+			/* Wrap. */
+			vte_sequence_handler_sf(terminal, NULL, 0, NULL);
+			screen->cursor_current.col = 0;
 		}
 	}
 
@@ -7138,9 +7189,11 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
  * @wtmp: TRUE if the session should be logged to the wtmp/wtmpx log
  *
  * Starts the specified command under a newly-allocated controlling
- * pseudo-terminal.  TERM is automatically set to reflect the terminal widget's
- * emulation setting.  If @lastlog, @utmp, or @wtmp are TRUE, logs the session
- * to the specified system log files.
+ * pseudo-terminal.  The @argv and @envv lists should be NULL-terminated, and
+ * argv[0] is expected to be the name of the file being run, as it would be if
+ * execve() were being called.  TERM is automatically set to reflect the
+ * terminal widget's emulation setting.  If @lastlog, @utmp, or @wtmp are TRUE,
+ * logs the session to the specified system log files.
  *
  * Returns: the ID of the new process
  */
@@ -10875,6 +10928,9 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	terminal->pvt->flags.bw = _vte_termcap_find_boolean(terminal->pvt->termcap,
 							    terminal->pvt->emulation,
 							    "bw");
+	terminal->pvt->flags.LP = _vte_termcap_find_boolean(terminal->pvt->termcap,
+							    terminal->pvt->emulation,
+							    "LP");
 	terminal->pvt->flags.ul = _vte_termcap_find_boolean(terminal->pvt->termcap,
 							    terminal->pvt->emulation,
 							    "ul");
@@ -11120,6 +11176,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	memset(&pvt->flags, 0, sizeof(pvt->flags));
 	pvt->flags.am = FALSE;
 	pvt->flags.bw = FALSE;
+	pvt->flags.LP = FALSE;
 	pvt->flags.ul = FALSE;
 	pvt->flags.xn = FALSE;
 	pvt->keypad_mode = VTE_KEYMODE_NORMAL;

@@ -25,14 +25,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <glib.h>
 
 static void
-catfile(const char *pathname, long delay)
+catfile(const char *pathname, long delay, long chunksize)
 {
 	FILE *fp;
 	struct timeval tv;
+	char *buf;
 	int c;
+	long i;
 
 	if (!((pathname == NULL) || (strcmp(pathname, "-") == 0))) {
 		fp = fopen(pathname, "r");
@@ -45,16 +48,27 @@ catfile(const char *pathname, long delay)
 		fp = stdin;
 	}
 
+	buf = g_malloc(chunksize);
+
 	while (!feof(fp)) {
 		tv.tv_sec = delay / 1000000;
 		tv.tv_usec = delay % 1000000;
 		select(0, NULL, NULL, NULL, &tv);
-		c = fgetc(fp);
-		if (c != EOF) {
-			fputc(c, stdout);
+		for (i = 0; i < chunksize; i++) {
+			c = fgetc(fp);
+			if (c != EOF) {
+				buf[i] = c;
+			} else {
+				break;
+			}
 		}
-		fflush(stdout);
+		if (i > 0) {
+			write(STDOUT_FILENO, buf, i);
+			fsync(STDOUT_FILENO);
+		}
 	}
+
+	g_free(buf);
 
 	if (fp != stdin) {
 		fclose(fp);
@@ -64,34 +78,41 @@ catfile(const char *pathname, long delay)
 int
 main(int argc, char **argv)
 {
-	int i;
-	long delay = 200000, tmp;
+	int i, c;
+	long delay = 200000, chunksize = 1, tmp;
 	char *p;
 	GList *files = NULL, *file;
 
-	for (i = 1; i < argc; i++) {
-		if (argv[i][0] == '-') {
-			if (argv[i][1] == '-') {
-				break;
-			}
-			tmp = strtol(argv[i] + 1, &p, 0);
-			g_assert(p != NULL);
-			if (*p == '\0') {
+	while ((c = getopt(argc, argv, "t:c:")) != -1) {
+		switch (c) {
+		case 't':
+			tmp = strtol(optarg, &p, 0);
+			if ((p != NULL) && (*p == '\0')) {
 				delay = tmp;
-			} else {
-				files = g_list_append(files, argv[i]);
 			}
-		} else {
-			files = g_list_append(files, argv[i]);
+			break;
+		case 'c':
+			tmp = strtol(optarg, &p, 0);
+			if ((p != NULL) && (*p == '\0')) {
+				chunksize = tmp;
+			}
+			break;
+		default:
+			fprintf(stderr, "Usage: slowcat [-t delay] [-c chunksize] [file ...]\n");
+			exit(1);
+			break;
 		}
+	}
+	for (i = optind; i < argc; i++) {
+		files = g_list_append(files, argv[i]);
 	}
 
 	if (files) {
 		for (file = files; file != NULL; file = g_list_next(file)) {
-			catfile((const char*)file->data, delay);
+			catfile((const char*)file->data, delay, chunksize);
 		}
 	} else {
-		catfile(NULL, delay);
+		catfile(NULL, delay, chunksize);
 	}
 	return 0;
 }
