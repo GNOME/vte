@@ -637,8 +637,6 @@ vte_terminal_set_default_attributes(VteTerminal *terminal)
 	terminal->pvt->screen->basic_defaults = terminal->pvt->screen->defaults;
 	terminal->pvt->screen->color_defaults = terminal->pvt->screen->defaults;
 	terminal->pvt->screen->fill_defaults = terminal->pvt->screen->defaults;
-	terminal->pvt->screen->fill_defaults.c = '\0';
-	terminal->pvt->screen->fill_defaults.columns = 1;
 }
 
 /* Cause certain cells to be updated. */
@@ -1422,7 +1420,8 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 	}
 
 	/* If the pointer is on a newline, bug out. */
-	if (g_ascii_isspace(terminal->pvt->match_contents[offset])) {
+	if ((g_ascii_isspace(terminal->pvt->match_contents[offset])) ||
+	    (terminal->pvt->match_contents[offset] == '\0')) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
 			fprintf(stderr, "Cursor is on whitespace.\n");
@@ -7668,9 +7667,13 @@ vte_terminal_is_word_char(VteTerminal *terminal, gunichar c)
 	int i;
 	VteWordCharRange *range;
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	/* We need an array, even if it's empty. */
-	if (terminal->pvt->word_chars == NULL) {
-		return FALSE;
+	/* If we have no array, or it's empty, assume the defaults. */
+	if ((terminal->pvt->word_chars == NULL) ||
+	    (terminal->pvt->word_chars->len == 0)) {
+		return g_unichar_isgraph(c) &&
+		       !g_unichar_ispunct(c) &&
+		       !g_unichar_isspace(c) &&
+		       (c != '\0');
 	}
 	/* Go through each range and check if the character is included. */
 	for (i = 0; i < terminal->pvt->word_chars->len; i++) {
@@ -7681,10 +7684,7 @@ vte_terminal_is_word_char(VteTerminal *terminal, gunichar c)
 			return TRUE;
 		}
 	}
-	/* Special case:  if there are no ranges, assume the defaults. */
-	if (i == 0) {
-		return g_unichar_isgraph(c) && (!g_unichar_ispunct(c));
-	}
+	/* Default. */
 	return FALSE;
 }
 
@@ -7730,8 +7730,8 @@ vte_line_is_wrappable(VteTerminal *terminal, glong row)
 					   0,
 					   row + 1);
 	if (acell && bcell) {
-		return !g_unichar_isspace(acell->c) &&
-		       !g_unichar_isspace(bcell->c);
+		return !g_unichar_isspace(acell->c) && (acell->c != '\0') &&
+		       !g_unichar_isspace(bcell->c) && (bcell->c != '\0');
 	}
 	return FALSE;
 }
@@ -8253,7 +8253,9 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 				attr.alternate = pcell->alternate;
 				/* Store the character. */
 				string = g_string_append_unichar(string,
-								 pcell->c);
+								 pcell->c ?
+								 pcell->c :
+								 ' ');
 				/* Record whether or not this was
 				 * whitespace. */
 				if ((pcell->c == ' ') || (pcell->c == '\0')) {
@@ -8658,7 +8660,7 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 		for (i = 0; i < rowdata->len; i++) {
 			cell = &g_array_index(rowdata,
 					      struct vte_charcell, i);
-			if (!g_unichar_isspace(cell->c)) {
+			if (!g_unichar_isspace(cell->c) && (cell->c != '\0')) {
 				last_nonspace = i;
 			}
 		}
@@ -8692,7 +8694,7 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 		last_nonspace = -1;
 		for (i = 0; i < rowdata->len; i++) {
 			cell = &g_array_index(rowdata, struct vte_charcell, i);
-			if (!g_unichar_isspace(cell->c)) {
+			if (!g_unichar_isspace(cell->c) && (cell->c != '\0')) {
 				last_nonspace = i;
 			}
 		}

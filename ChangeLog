@@ -1,4 +1,9 @@
 2002-12-02  nalin
+	* src/vte.c: don't zero-fill rows, space-fill them.
+	* src/vte.c(vte_terminal_is_word_char): Don't just fail if the
+	word_chars array doesn't exist.
+
+2002-12-02  nalin
 	* acinclude.m4: add AC_CHECK_CC_OPT from ac-archive.
 	* configure.in: check for cfmakeraw, sys/select.h, compiler support
 	for -std= (#99698)
