@@ -92,6 +92,8 @@ typedef gunichar wint_t;
 #define VTE_DEF_BG			25
 #define VTE_BOLD_FG			26
 #define VTE_DIM_FG			27
+#define VTE_DEF_HL			28
+#define VTE_CUR_BG			29
 #define VTE_SATURATION_MAX		10000
 #define VTE_SCROLLBACK_MIN		100
 #define VTE_DEFAULT_EMULATION		"xterm"
@@ -327,9 +329,11 @@ struct _VteTerminalPrivate {
 	struct _vte_draw *draw;
 
 	gboolean palette_initialized;
+	gboolean highlight_color_set;
+	gboolean cursor_color_set;
 	struct vte_palette_entry {
 		guint16 red, green, blue;
-	} palette[VTE_DIM_FG + 1];
+	} palette[VTE_CUR_BG + 1];
 
 	/* Mouse cursors. */
 	gboolean mouse_cursor_visible;
@@ -6392,6 +6396,56 @@ vte_terminal_set_color_background(VteTerminal *terminal,
 }
 
 /**
+ * vte_terminal_set_color_cursor
+ * @terminal: a #VteTerminal
+ * @background: the new color to use for the text cursor
+ *
+ * Sets the background color for text which is under the cursor.  If NULL, text
+ * under the cursor will be drawn with foreground and background colors
+ * reversed.
+ *
+ * Since: 0.11.11
+ *
+ */
+void
+vte_terminal_set_color_cursor(VteTerminal *terminal,
+			      const GdkColor *cursor_background)
+{
+	if (cursor_background != NULL) {
+		vte_terminal_set_color_internal(terminal, VTE_CUR_BG,
+						cursor_background);
+		terminal->pvt->cursor_color_set = TRUE;
+	} else {
+		terminal->pvt->cursor_color_set = FALSE;
+	}
+}
+
+/**
+ * vte_terminal_set_color_highlight
+ * @terminal: a #VteTerminal
+ * @background: the new color to use for highlighted text
+ *
+ * Sets the background color for text which is highlighted.  If NULL,
+ * highlighted text (which is usually highlighted because it is selected) will
+ * be drawn with foreground and background colors reversed.
+ *
+ * Since: 0.11.11
+ *
+ */
+void
+vte_terminal_set_color_highlight(VteTerminal *terminal,
+				 const GdkColor *highlight_background)
+{
+	if (highlight_background != NULL) {
+		vte_terminal_set_color_internal(terminal, VTE_DEF_HL,
+						highlight_background);
+		terminal->pvt->highlight_color_set = TRUE;
+	} else {
+		terminal->pvt->highlight_color_set = FALSE;
+	}
+}
+
+/**
  * vte_terminal_set_colors
  * @terminal: a #VteTerminal
  * @foreground: the new foreground color, or #NULL
@@ -6475,6 +6529,16 @@ vte_terminal_set_colors(VteTerminal *terminal,
 						   &terminal->pvt->palette[VTE_DEF_BG],
 						   0.5,
 						   &color);
+			break;
+		case VTE_DEF_HL:
+			color.red = 0xc000;
+			color.blue = 0xc000;
+			color.green = 0xc000;
+			break;
+		case VTE_CUR_BG:
+			color.red = 0x0000;
+			color.blue = 0x0000;
+			color.green = 0x0000;
 			break;
 		case 0 + 0:
 		case 0 + 1:
@@ -11126,6 +11190,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* Rendering data.  Try everything. */
 	pvt->palette_initialized = FALSE;
+	pvt->highlight_color_set = FALSE;
 	memset(&pvt->palette, 0, sizeof(pvt->palette));
 	pvt->draw = _vte_draw_new(GTK_WIDGET(terminal));
 
@@ -11849,13 +11914,28 @@ vte_terminal_realize(GtkWidget *widget)
 static void
 vte_terminal_determine_colors(VteTerminal *terminal,
 			      const struct vte_charcell *cell,
-			      gboolean reverse, int *fore, int *back)
+			      gboolean reverse,
+			      gboolean highlight,
+			      gboolean cursor,
+			      int *fore, int *back)
 {
 	g_assert(fore != NULL);
 	g_assert(back != NULL);
 
 	/* Determine what the foreground and background colors for rendering
-	 * text should be. */
+	 * text should be.  If highlight is set and we have a highlight color,
+	 * use that scheme.  If cursor is set and we have a cursor color, use
+	 * that scheme.  If neither is set, and reverse is set, then use
+	 * reverse colors, else use the defaults.  This means that many callers
+	 * who specify highlight or cursor should also specify reverse. */
+	if (cursor && !highlight && terminal->pvt->cursor_color_set) {
+		*fore = cell ? cell->back : VTE_DEF_BG;
+		*back = VTE_CUR_BG;
+	} else
+	if (highlight && !cursor && terminal->pvt->highlight_color_set) {
+		*fore = cell ? cell->fore : VTE_DEF_FG;
+		*back = VTE_DEF_HL;
+	} else
 	if (reverse ^ ((cell != NULL) && (cell->reverse))) {
 		*fore = cell ? cell->back : VTE_DEF_BG;
 		*back = cell ? cell->fore : VTE_DEF_FG;
@@ -13181,7 +13261,10 @@ vte_terminal_draw_cells_with_attributes(VteTerminal *terminal,
 	cells = g_malloc(cell_count * sizeof(struct vte_charcell));
 	_vte_terminal_translate_pango_cells(terminal, attrs, cells, cell_count);
 	for (i = 0, j = 0; i < n; i++) {
-		vte_terminal_determine_colors(terminal, &cells[j], FALSE,
+		vte_terminal_determine_colors(terminal, &cells[j],
+					      FALSE,
+					      FALSE,
+					      FALSE,
 					      &fore, &back);
 		vte_terminal_draw_cells(terminal, items + i, 1,
 					fore,
@@ -13250,7 +13333,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 	GArray *items;
 	int i, j, fore, nfore, back, nback;
 	gboolean underline, nunderline, bold, nbold, hilite, nhilite, reverse,
-		 strikethrough, nstrikethrough, drawn;
+		 selected, strikethrough, nstrikethrough, drawn;
 	struct _vte_draw_text_request item;
 	struct vte_charcell *cell;
 
@@ -13274,9 +13357,12 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		/* Get the character cell's contents. */
 		cell = vte_terminal_find_charcell(terminal, i, row);
 		/* Find the colors for this cell. */
-		reverse = vte_cell_is_selected(terminal, i, row, NULL) ^
-			  terminal->pvt->screen->reverse_mode;
-		vte_terminal_determine_colors(terminal, cell, reverse,
+		reverse = terminal->pvt->screen->reverse_mode;
+		selected = vte_cell_is_selected(terminal, i, row, NULL);
+		vte_terminal_determine_colors(terminal, cell,
+					      reverse || selected,
+					      selected,
+					      FALSE,
 					      &fore, &back);
 		underline = (cell != NULL) ? (cell->underline != 0) : FALSE;
 		strikethrough = (cell != NULL) ? (cell->strikethrough != 0) : FALSE;
@@ -13327,9 +13413,12 @@ vte_terminal_draw_row(VteTerminal *terminal,
 			/* Resolve attributes to colors where possible and
 			 * compare visual attributes to the first character
 			 * in this chunk. */
-			reverse = vte_cell_is_selected(terminal, j, row, NULL) ^
-				  terminal->pvt->screen->reverse_mode;
-			vte_terminal_determine_colors(terminal, cell, reverse,
+			reverse = terminal->pvt->screen->reverse_mode;
+			selected = vte_cell_is_selected(terminal, j, row, NULL);
+			vte_terminal_determine_colors(terminal, cell,
+						      reverse || selected,
+						      selected,
+						      FALSE,
 						      &nfore, &nback);
 			if ((nfore != fore) || (nback != back)) {
 				break;
@@ -13422,7 +13511,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	long width, height, ascent, descent, delta, cursor_width;
 	int i, len, fore, back, x, y;
 	GdkRectangle all_area;
-	gboolean blink;
+	gboolean blink, selected;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
@@ -13529,9 +13618,14 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								    cell->columns));
 		}
 		if (GTK_WIDGET_HAS_FOCUS(GTK_WIDGET(terminal))) {
+			selected = vte_cell_is_selected(terminal, col, drow,
+							NULL);
 			blink = vte_terminal_get_blink_state(terminal) ^
 				terminal->pvt->screen->reverse_mode;
-			vte_terminal_determine_colors(terminal, cell, blink,
+			vte_terminal_determine_colors(terminal, cell,
+						      blink,
+						      selected,
+						      blink,
 						      &fore, &back);
 			_vte_draw_clear(terminal->pvt->draw,
 					col * width + VTE_PAD_WIDTH,
@@ -13575,7 +13669,10 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		} else {
 			GdkColor color;
 			/* Draw it as a hollow rectangle. */
-			vte_terminal_determine_colors(terminal, cell, FALSE,
+			vte_terminal_determine_colors(terminal, cell,
+						      FALSE,
+						      FALSE,
+						      FALSE,
 						      &fore, &back);
 			_vte_draw_clear(terminal->pvt->draw,
 					col * width + VTE_PAD_WIDTH,

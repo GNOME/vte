@@ -201,6 +201,10 @@ void vte_terminal_set_color_foreground(VteTerminal *terminal,
 				       const GdkColor *foreground);
 void vte_terminal_set_color_background(VteTerminal *terminal,
 				       const GdkColor *background);
+void vte_terminal_set_color_cursor(VteTerminal *terminal,
+				   const GdkColor *cursor_background);
+void vte_terminal_set_color_highlight(VteTerminal *terminal,
+				      const GdkColor *highlight_background);
 void vte_terminal_set_colors(VteTerminal *terminal,
 			     const GdkColor *foreground,
 			     const GdkColor *background,

@@ -1,4 +1,13 @@
 2003-09-15 nalin
+	* src/vte.h,src/vte.c: add vte_terminal_set_color_cursor.
+	* src/vte.h,src/vte.c: add vte_terminal_set_color_highlight (#69776).
+	* src/vte.c(vte_terminal_determine_colors): add parameters for
+	specifying if the cell being rendered is the cursor or is highlighted,
+	probably for being selected.  If either flag is set, and we've been
+	given a color to use for the purpose by a caller, use the supplied
+	color, else use inverse colors.
+
+2003-09-15 nalin
 	* src/iso2022.c(process_control): don't reset the conversion state
 	when we hit an end-of-line.  I wasn't reading RFC1468 closely enough,
 	as it states that each line begins in the same encoding as the end of
