@@ -34,5 +34,5 @@
   things is currently scarce, so some of it's guesswork.
 - An actual property interface needs to be retrofitted over the various options
   which are currently hard-coded at startup-time.
-- Input method support isn't started yet.
+- Accessibility isn't started yet.
 - Mouse tracking isn't started yet.

@@ -112,7 +112,7 @@ nextline_with_continuation(FILE *fp)
 		g_free(s);
 		ret = tmp;
 		rlen += slen;
-		if (ret[rlen - 1] == '\\') {
+		if ((rlen > 0) && (ret[rlen - 1] == '\\')) {
 			ret[rlen - 1] = '\0';
 			rlen--;
 			continuation = TRUE;

@@ -21,6 +21,7 @@
 #include <sys/types.h>
 #include <assert.h>
 #include <ctype.h>
+#include <iconv.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -269,6 +270,9 @@ char_class_string_extract(const wchar_t *s, size_t length,
 	len = xwcsnlen(s, length);
 	ret = g_malloc0((len + 1) * sizeof(wchar_t));
 	wcsncpy(ret, s, len);
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Extracting string `%ls'.\n", ret);
+#endif
 	memset(&value, 0, sizeof(value));
 
 	g_value_init(&value, G_TYPE_POINTER);
@@ -434,9 +438,8 @@ vte_trie_add(struct vte_trie *trie, const char *pattern, size_t length,
 	     const char *result, GQuark quark)
 {
 	mbstate_t state;
-	wchar_t *wpattern;
-	char *tpattern;
-	const char *pat;
+	char *wpattern, *wpattern_end, *tpattern;
+	iconv_t conv;
 	size_t wlength;
 
 	g_return_if_fail(trie != NULL);
@@ -447,15 +450,23 @@ vte_trie_add(struct vte_trie *trie, const char *pattern, size_t length,
 		quark = g_quark_from_string(result);
 	}
 
-	wpattern = g_malloc0(sizeof(wchar_t) * (length + 1));
+	wlength = sizeof(wchar_t) * (length + 1);
+	wpattern = wpattern_end = g_malloc0(wlength + 1);
 	memset(&state, 0, sizeof(state));
-	pat = tpattern = g_strndup(pattern, length);
 
-	wlength = mbsrtowcs(wpattern, &pat, length, &state);
-	vte_trie_addx(trie, wpattern, wlength, result, quark, 0);
+	conv = iconv_open("WCHAR_T", "UTF-8");
+	if (conv != NULL) {
+		tpattern = (char*)pattern;
+		iconv(conv, &tpattern, &length, &wpattern_end, &wlength);
+		if (length == 0) {
+			wlength = (wpattern_end - wpattern) / sizeof(wchar_t);
+			vte_trie_addx(trie, (wchar_t*)wpattern, wlength,
+				      result, quark, 0);
+		}
+		iconv_close(conv);
+	}
 
 	g_free(wpattern);
-	g_free(tpattern);
 }
 
 /* Check if the given pattern matches part of the given trie, returning an
@@ -581,6 +592,9 @@ vte_trie_match(struct vte_trie *trie, wchar_t *pattern, size_t length,
 	const char *ret = NULL;
 	GQuark tmpquark;
 	GValueArray *valuearray;
+	GValue *value;
+	gpointer ptr;
+	int i;
 
 	valuearray = g_value_array_new(0);
 	if (quark == NULL) {
@@ -591,7 +605,18 @@ vte_trie_match(struct vte_trie *trie, wchar_t *pattern, size_t length,
 	ret = vte_trie_matchx(trie, pattern, length, res, quark, valuearray);
 
 	if (((ret == NULL) || (ret[0] == '\0')) || (valuearray->n_values == 0)){
-		g_value_array_free(valuearray);
+		if (valuearray != NULL) {
+			for (i = 0; i < valuearray->n_values; i++) {
+				value = g_value_array_get_nth(valuearray, i);
+				if (G_VALUE_HOLDS_POINTER(value)) {
+					ptr = g_value_get_pointer(value);
+					if (ptr != NULL) {
+						g_free(ptr);
+					}
+				}
+			}
+			g_value_array_free(valuearray);
+		}
 		*array = NULL;
 	} else {
 		*array = valuearray;
@@ -696,11 +721,21 @@ dump_array(GValueArray *array)
 }
 
 static void
-convert_mbstowcs(const char *i, size_t ilen, wchar_t *o, size_t *olen)
+convert_mbstowcs(const char *i, size_t ilen,
+		 wchar_t *o, size_t *olen, size_t max_olen)
 {
-	mbstate_t state;
-	memset(&state, 0, sizeof(state));
-	*olen = mbsrtowcs(o, &i, ilen, &state);
+	iconv_t conv;
+	size_t outlen;
+	conv = iconv_open("WCHAR_T", "UTF-8");
+	if (conv != NULL) {
+		memset(o, 0, max_olen);
+		outlen = max_olen;
+		iconv(conv, &i, &ilen, &o, &outlen);
+		iconv_close(conv);
+	}
+	if (olen) {
+		*olen = (max_olen - outlen) / sizeof(wchar_t);
+	}
 }
 
 int
@@ -738,7 +773,7 @@ main(int argc, char **argv)
 	vte_trie_print(trie);
 
 	quark = 0;
-	convert_mbstowcs("abc", 3, buf, &buflen);
+	convert_mbstowcs("abc", 3, buf, &buflen, sizeof(buf));
 	g_print("`%s' = `%s'\n", "abc",
 	        vte_trie_match(trie, buf, buflen, NULL, &quark, &array));
 	g_print("=> `%s'\n", g_quark_to_string(quark));
@@ -749,7 +784,7 @@ main(int argc, char **argv)
 	}
 
 	quark = 0;
-	convert_mbstowcs("abcdef", 6, buf, &buflen);
+	convert_mbstowcs("abcdef", 6, buf, &buflen, sizeof(buf));
 	g_print("`%s' = `%s'\n", "abcdef",
 	        vte_trie_match(trie, buf, buflen, NULL, &quark, &array));
 	g_print("=> `%s'\n", g_quark_to_string(quark));
@@ -760,7 +795,7 @@ main(int argc, char **argv)
 	}
 
 	quark = 0;
-	convert_mbstowcs("abcde", 5, buf, &buflen);
+	convert_mbstowcs("abcde", 5, buf, &buflen, sizeof(buf));
 	g_print("`%s' = `%s'\n", "abcde",
 	        vte_trie_match(trie, buf, buflen, NULL, &quark, &array));
 	g_print("=> `%s'\n", g_quark_to_string(quark));
@@ -771,7 +806,7 @@ main(int argc, char **argv)
 	}
 
 	quark = 0;
-	convert_mbstowcs("abcdeg", 6, buf, &buflen);
+	convert_mbstowcs("abcdeg", 6, buf, &buflen, sizeof(buf));
 	g_print("`%s' = `%s'\n", "abcdeg",
 	        vte_trie_match(trie, buf, buflen, NULL, &quark, &array));
 	g_print("=> `%s'\n", g_quark_to_string(quark));
@@ -782,7 +817,7 @@ main(int argc, char **argv)
 	}
 
 	quark = 0;
-	convert_mbstowcs("abc%deg", 7, buf, &buflen);
+	convert_mbstowcs("abc%deg", 7, buf, &buflen, sizeof(buf));
 	g_print("`%s' = `%s'\n", "abc%deg",
 	        vte_trie_match(trie, buf, buflen, NULL, &quark, &array));
 	g_print("=> `%s'\n", g_quark_to_string(quark));
@@ -793,7 +828,7 @@ main(int argc, char **argv)
 	}
 
 	quark = 0;
-	convert_mbstowcs("abc10eg", 7, buf, &buflen);
+	convert_mbstowcs("abc10eg", 7, buf, &buflen, sizeof(buf));
 	g_print("`%s' = `%s'\n", "abc10eg",
 	        vte_trie_match(trie, buf, buflen, NULL, &quark, &array));
 	g_print("=> `%s'\n", g_quark_to_string(quark));
@@ -804,7 +839,7 @@ main(int argc, char **argv)
 	}
 
 	quark = 0;
-	convert_mbstowcs("abc%eg", 6, buf, &buflen);
+	convert_mbstowcs("abc%eg", 6, buf, &buflen, sizeof(buf));
 	g_print("`%s' = `%s'\n", "abc%eg",
 	        vte_trie_match(trie, buf, buflen, NULL, &quark, &array));
 	g_print("=> `%s'\n", g_quark_to_string(quark));
@@ -815,7 +850,7 @@ main(int argc, char **argv)
 	}
 
 	quark = 0;
-	convert_mbstowcs("abc%10eg", 8, buf, &buflen);
+	convert_mbstowcs("abc%10eg", 8, buf, &buflen, sizeof(buf));
 	g_print("`%s' = `%s'\n", "abc%10eg",
 	        vte_trie_match(trie, buf, buflen, NULL, &quark, &array));
 	g_print("=> `%s'\n", g_quark_to_string(quark));
@@ -826,7 +861,7 @@ main(int argc, char **argv)
 	}
 
 	quark = 0;
-	convert_mbstowcs("abcBeg", 6, buf, &buflen);
+	convert_mbstowcs("abcBeg", 6, buf, &buflen, sizeof(buf));
 	g_print("`%s' = `%s'\n", "abcBeg",
 	        vte_trie_match(trie, buf, buflen, NULL, &quark, &array));
 	g_print("=> `%s'\n", g_quark_to_string(quark));
@@ -837,7 +872,7 @@ main(int argc, char **argv)
 	}
 
 	quark = 0;
-	convert_mbstowcs("<esc>[25;26H", 12, buf, &buflen);
+	convert_mbstowcs("<esc>[25;26H", 12, buf, &buflen, sizeof(buf));
 	g_print("`%s' = `%s'\n", "<esc>[25;26H",
 	        vte_trie_match(trie, buf, buflen, NULL, &quark, &array));
 	g_print("=> `%s'\n", g_quark_to_string(quark));
@@ -848,7 +883,7 @@ main(int argc, char **argv)
 	}
 
 	quark = 0;
-	convert_mbstowcs("<esc>[25;26L", 12, buf, &buflen);
+	convert_mbstowcs("<esc>[25;26L", 12, buf, &buflen, sizeof(buf));
 	g_print("`%s' = `%s'\n", "<esc>[25;26L",
 	        vte_trie_match(trie, buf, buflen, NULL, &quark, &array));
 	g_print("=> `%s'\n", g_quark_to_string(quark));
@@ -858,7 +893,7 @@ main(int argc, char **argv)
 	}
 
 	quark = 0;
-	convert_mbstowcs("<esc>]2;WoofWoofh", 17, buf, &buflen);
+	convert_mbstowcs("<esc>]2;WoofWoofh", 17, buf, &buflen, sizeof(buf));
 	g_print("`%s' = `%s'\n", "<esc>]2;WoofWoofh",
 	        vte_trie_match(trie, buf, buflen, NULL, &quark, &array));
 	g_print("=> `%s'\n", g_quark_to_string(quark));

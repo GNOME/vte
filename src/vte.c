@@ -100,7 +100,7 @@ struct _VteTerminalPrivate {
 	} flags;
 
 	/* PTY handling data. */
-	char *shell;			/* shell we started */
+	const char *shell;		/* shell we started */
 	int pty_master;			/* pty master descriptor */
 	GIOChannel *pty_input;		/* master input watch */
 	GIOChannel *pty_output;		/* master output watch */
@@ -3162,10 +3162,12 @@ static void
 vte_terminal_im_reset(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	gtk_im_context_reset(terminal->pvt->im_context);
-	if (terminal->pvt->im_preedit != NULL) {
-		g_free(terminal->pvt->im_preedit);
-		terminal->pvt->im_preedit = NULL;
+	if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
+		gtk_im_context_reset(terminal->pvt->im_context);
+		if (terminal->pvt->im_preedit != NULL) {
+			g_free(terminal->pvt->im_preedit);
+			terminal->pvt->im_preedit = NULL;
+		}
 	}
 }
 
@@ -3174,17 +3176,19 @@ vte_terminal_im_reset(VteTerminal *terminal)
 static gboolean
 vte_terminal_process_incoming(gpointer data)
 {
-	GValueArray *params;
+	GValueArray *params = NULL;
 	VteTerminal *terminal;
 	GtkWidget *widget;
 	GdkRectangle rect;
 	char *ibuf, *obuf, *obufptr, *ubuf, *ubufptr;
 	size_t icount, ocount, ucount;
 	wchar_t *wbuf, c;
-	int i, j, wcount;
+	int i, j, k, wcount;
 	const char *match, *encoding;
 	iconv_t unconv;
 	GQuark quark;
+	GValue *value;
+	gpointer ptr;
 	gboolean leftovers, inserted, again, bottom;
 
 	g_return_val_if_fail(GTK_IS_WIDGET(data), FALSE);
@@ -3308,9 +3312,6 @@ vte_terminal_process_incoming(gpointer data)
 							     match,
 							     quark,
 							     params);
-				if (params != NULL) {
-					g_value_array_free(params);
-				}
 				/* Skip over the proper number of wide chars. */
 				i = j;
 				/* Check if the encoding's changed. */
@@ -3329,6 +3330,40 @@ vte_terminal_process_incoming(gpointer data)
 					g_warning("Unhandled data.\n");
 				}
 			}
+			/* Free any wide-character strings we got. */
+			if (params != NULL) {
+				for (k = 0; k < params->n_values; k++) {
+					value = g_value_array_get_nth(params,
+								      k);
+					if (G_VALUE_HOLDS_POINTER(value)) {
+						ptr = g_value_get_pointer(value);
+						if (ptr != NULL) {
+							g_free(ptr);
+						}
+						g_value_set_pointer(value,
+								    NULL);
+					}
+				}
+				g_value_array_free(params);
+				params = NULL;
+			}
+		}
+		/* Free any wide-character strings we got if we broke out
+		 * of the loop. */
+		if (params != NULL) {
+			for (k = 0; k < params->n_values; k++) {
+				value = g_value_array_get_nth(params,
+							      k);
+				if (G_VALUE_HOLDS_POINTER(value)) {
+					ptr = g_value_get_pointer(value);
+					if (ptr != NULL) {
+						g_free(ptr);
+					}
+					g_value_set_pointer(value, NULL);
+				}
+			}
+			g_value_array_free(params);
+			params = NULL;
 		}
 	}
 	again = TRUE;
@@ -3374,6 +3409,7 @@ vte_terminal_process_incoming(gpointer data)
 		terminal->pvt->incoming = NULL;
 		again = FALSE;
 	}
+	g_free(obufptr);
 
 	if (inserted) {
 		/* Keep the cursor on-screen if we scroll on output, or if
@@ -3481,6 +3517,9 @@ vte_terminal_io_read(GIOChannel *channel,
 
 	/* If we got data, modify the pending buffer. */
 	if (bcount >= 0) {
+		if (terminal->pvt->incoming != NULL) {
+			g_free(terminal->pvt->incoming);
+		}
 		terminal->pvt->incoming = buf;
 		terminal->pvt->n_incoming += bcount;
 	} else {
@@ -4550,7 +4589,7 @@ xft_pattern_from_pango_font_description(const PangoFontDescription *font_desc)
 	const char *family = "mono";
 	int pango_mask = 0;
 	int weight, style;
-	double size = 12.0;
+	double size = 14.0;
 
 	if (font_desc != NULL) {
 		pango_mask = pango_font_description_get_set_fields (font_desc);
@@ -4596,9 +4635,9 @@ vte_terminal_setup_font(VteTerminal *terminal, const char *xlfds,
 	long width, height, ascent, descent;
 	GtkWidget *widget;
 	XFontStruct **font_struct_list, font_struct;
-	char **missing_charset_list, *def_string, *tmp;
-	int missing_charset_count;
-	char **font_name_list;
+	char **missing_charset_list = NULL, *def_string = NULL, *tmp = NULL;
+	int missing_charset_count = 0;
+	char **font_name_list = NULL;
 
 	g_return_if_fail(terminal != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -4698,7 +4737,7 @@ vte_terminal_setup_font(VteTerminal *terminal, const char *xlfds,
 					       gdk_x11_get_default_screen(),
 					       XFT_FAMILY, XftTypeString,
 					       "mono",
-					       XFT_SIZE, XftTypeDouble, 12.0,
+					       XFT_SIZE, XftTypeDouble, 14.0,
 					       0);
 		}
 		if (new_font == NULL) {
@@ -4747,7 +4786,7 @@ vte_terminal_setup_font(VteTerminal *terminal, const char *xlfds,
 	if (!terminal->pvt->use_xft) {
 		/* Load the font set, freeing another one if we loaded one
 		 * before. */
-		if (terminal->pvt->fontset) {
+		if (terminal->pvt->fontset != NULL) {
 			XFreeFontSet(GDK_DISPLAY(), terminal->pvt->fontset);
 		}
 		terminal->pvt->fontset = XCreateFontSet(GDK_DISPLAY(),
@@ -4854,6 +4893,7 @@ vte_terminal_set_size(VteTerminal *terminal, long columns, long rows)
 	struct winsize size;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (terminal->pvt->pty_master != -1) {
+		memset(&size, 0, sizeof(size));
 		size.ws_row = rows;
 		size.ws_col = columns;
 		/* Try to set the terminal size. */
@@ -5059,7 +5099,8 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Initialize data members with settings from the environment and
 	 * structures to use for these. */
 	pvt = terminal->pvt = g_malloc0(sizeof(*terminal->pvt));
-	pvt->shell = g_strdup(getenv("SHELL") ?: "/bin/sh");
+	pvt->shell = getenv("SHELL") ?: "/bin/sh";
+	pvt->shell = g_quark_to_string(g_quark_from_string(pvt->shell));
 	pvt->pty_master = -1;
 	pvt->pty_pid = -1;
 	pvt->incoming = NULL;
@@ -5093,8 +5134,11 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->selection_end.x = 0;
 	pvt->selection_end.y = 0;
 
+	pvt->fontset = NULL;
+
 #ifdef HAVE_XFT
 	/* Try to use Xft if the user requests it. */
+	pvt->ftfont = NULL;
 	pvt->use_xft = FALSE;
 	if (getenv("VTE_USE_XFT") != NULL) {
 		if (atol(getenv("VTE_USE_XFT")) != 0) {
@@ -5231,9 +5275,6 @@ vte_terminal_unrealize(GtkWidget *widget)
 	/* Shut down input methods. */
 	g_object_unref(G_OBJECT(terminal->pvt->im_context));
 	terminal->pvt->im_context = NULL;
-
-	/* Free the color palette. */
-	;
 
 #ifdef HAVE_XFT
 	/* Clean up after Xft. */
@@ -5418,6 +5459,7 @@ vte_terminal_realize(GtkWidget *widget)
 	widget->window = gdk_window_new(gtk_widget_get_parent_window(widget),
 					&attributes,
 					attributes_mask);
+	gdk_cursor_unref(attributes.cursor);
 	gdk_window_move_resize(widget->window,
 			       widget->allocation.x,
 			       widget->allocation.y,
@@ -6337,7 +6379,7 @@ vte_terminal_im_append_menuitems(VteTerminal *terminal, GtkMenuShell *menushell)
 static void
 vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 {
-	long i;
+	long i, pixel_count;
 	GtkWidget *widget;
 	guchar *pixels, *oldpixels;
 	GdkColormap *colormap = NULL;
@@ -6382,6 +6424,7 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 					 (guchar**)&prop_data);
 
 			/* If we got something, try to create a pixmap. */
+			pixbuf = NULL;
 			if ((prop_type == GDK_TARGET_PIXMAP) &&
 			    (prop_data != NULL) &&
 			    (prop_data[0] != 0)) {
@@ -6403,7 +6446,7 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 			gdk_error_trap_pop();
 
 			/* Save the image. */
-			if (terminal->pvt->bg_transparent_image) {
+			if (terminal->pvt->bg_transparent_image != NULL) {
 				g_object_unref(G_OBJECT(terminal->pvt->bg_transparent_image));
 			}
 			terminal->pvt->bg_transparent_image = pixbuf;
@@ -6411,7 +6454,12 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 
 		/* Get a copy of the root image. */
 		if (GDK_IS_PIXBUF(terminal->pvt->bg_transparent_image)) {
-			pixbuf = gdk_pixbuf_copy(terminal->pvt->bg_transparent_image);
+			if (terminal->pvt->bg_saturation != VTE_SATURATION_MAX) {
+				pixbuf = gdk_pixbuf_copy(terminal->pvt->bg_transparent_image);
+			} else {
+				pixbuf = terminal->pvt->bg_transparent_image;
+				g_object_ref(G_OBJECT(pixbuf));
+			}
 		}
 
 		/* Rotate the copy of the image left or up. */
@@ -6451,20 +6499,26 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 	if (terminal->pvt->bg_image != NULL) {
 		/* Set up a possibly desaturated background.  Start by
 		 * creating a copy we can mess with. */
-		pixbuf = gdk_pixbuf_copy(terminal->pvt->bg_image);
+		if (terminal->pvt->bg_saturation != VTE_SATURATION_MAX) {
+			pixbuf = gdk_pixbuf_copy(terminal->pvt->bg_image);
+		} else {
+			pixbuf = terminal->pvt->bg_image;
+			g_object_ref(G_OBJECT(pixbuf));
+		}
 		width = gdk_pixbuf_get_width(pixbuf);
 		height = gdk_pixbuf_get_height(pixbuf);
 	}
 
 	if (GDK_IS_PIXBUF(pixbuf)) {
 		/* Adjust the brightness of the pixbuf. */
-		pixels = gdk_pixbuf_get_pixels(pixbuf);
-		i = height * gdk_pixbuf_get_rowstride(pixbuf);
-		while (i >= 0) {
-			pixels[i] = pixels[i]
-				    * terminal->pvt->bg_saturation
-				    / VTE_SATURATION_MAX;
-			i--;
+		if (terminal->pvt->bg_saturation != VTE_SATURATION_MAX) {
+			pixels = gdk_pixbuf_get_pixels(pixbuf);
+			pixel_count = height * gdk_pixbuf_get_rowstride(pixbuf);
+			for (i = 0; i < pixel_count; i++) {
+				pixels[i] = pixels[i]
+					    * terminal->pvt->bg_saturation
+					    / VTE_SATURATION_MAX;
+			}
 		}
 
 		/* Render the modified image into a pixmap/bitmap pair. */
@@ -6475,16 +6529,23 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 							       &bitmap,
 							       0);
 
-		/* Set the pixmap as the window background. */
-		gdk_window_set_back_pixmap(widget->window, pixmap, FALSE);
-
-		/* Get rid of the pixbuf and bitmap, which are not useful. */
+		/* Get rid of the pixbuf, which is no longer useful. */
 		g_object_unref(G_OBJECT(pixbuf));
+		pixbuf = NULL;
+
+		/* Set the pixmap as the window background, and then get rid
+		 * of it. */
 		if (GDK_IS_PIXMAP(pixmap)) {
+			/* Set the pixmap as the window background. */
+			gdk_window_set_back_pixmap(widget->window,
+						   pixmap,
+						   FALSE);
 			g_object_unref(G_OBJECT(pixmap));
+			pixmap = NULL;
 		}
-		if (bitmap != NULL) {
+		if (GDK_IS_DRAWABLE(bitmap)) {
 			g_object_unref(G_OBJECT(bitmap));
+			bitmap = NULL;
 		}
 	}
 
@@ -6535,13 +6596,19 @@ vte_terminal_set_background_image_file(VteTerminal *terminal, const char *path)
 	GdkPixbuf *image;
 	GError *error = NULL;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	image = gdk_pixbuf_new_from_file(path, &error);
-	if ((image != NULL) && (error == NULL)) {
-		vte_terminal_set_background_image(terminal, image);
-		g_object_unref(G_OBJECT(image));
+	if (path != NULL) {
+		image = gdk_pixbuf_new_from_file(path, &error);
+		if ((image != NULL) && (error == NULL)) {
+			vte_terminal_set_background_image(terminal, image);
+			g_object_unref(G_OBJECT(image));
+		} else {
+			/* FIXME: do something better with the error. */
+			vte_terminal_set_background_image(terminal, NULL);
+			g_error_free(error);
+		}
 	} else {
-		/* FIXME: do something better with the error. */
-		g_error_free(error);
+		/* gnome terminal crackrock */
+		vte_terminal_set_background_image(terminal, NULL);
 	}
 }
 

@@ -9,4 +9,4 @@ autoconf
 if test -f config.cache ; then
 	rm -f config.cache
 fi
-./configure --disable-shared --enable-maintainer-mode $@
+./configure $@

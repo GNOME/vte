@@ -196,6 +196,7 @@ vte_pty_open_unix98(pid_t *child, const char **env_add,
 				close(fd);
 				fd = -1;
 			}
+			g_free(buf);
 		}
 	}
 	return fd;
