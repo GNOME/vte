@@ -1,4 +1,8 @@
 2002-08-21 nalin
+	* src/vte.c(vte_terminal_draw_rows): Cap the maximum number of
+	characters we draw in a single call to vte_terminal_draw_cells at a
+	reasonable number.
+2002-08-21 nalin
 	* src/table.c: Don't overwrite the original pattern pointers before
 	freeing the old value.
 	* src/vte.c: Use the same pango context whenever possible, to save on

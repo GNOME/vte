@@ -90,6 +90,7 @@ typedef long wint_t;
 #define VTE_DEFAULT_EMULATION		"xterm"
 #define VTE_DEFAULT_CURSOR		GDK_XTERM
 #define VTE_MOUSING_CURSOR		GDK_LEFT_PTR
+#define VTE_XFT_HARD_LIMIT		88
 #define VTE_TAB_MAX			999
 #define VTE_X_FIXED			"-*-fixed-medium-r-normal-*-20-*"
 #define VTE_REPRESENTATIVE_CHARACTERS	"ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
@@ -722,7 +723,6 @@ vte_invalidate_cursor_periodic(gpointer data)
 							     vte_invalidate_cursor_periodic,
 							     terminal,
 							     NULL);
-
 	return FALSE;
 }
 
@@ -8357,7 +8357,10 @@ vte_default_substitute(VteTerminal *terminal, FcPattern *pattern)
 	int antialias = -1, hinting = -1, dpi = -1;
 	char *rgba = NULL, *hintstyle = NULL;
 
-	settings = gtk_settings_get_default();
+	settings = gtk_widget_get_settings(GTK_WIDGET(terminal));
+	if (settings == NULL) {
+		return;
+	}
 
 	/* Check that the properties we're looking at are defined. */
 	klass = G_OBJECT_CLASS(GTK_SETTINGS_GET_CLASS(settings));
@@ -8369,15 +8372,20 @@ vte_default_substitute(VteTerminal *terminal, FcPattern *pattern)
 	 * to the Xft settings. */
 	if (terminal->pvt->connected_settings == NULL) {
 		terminal->pvt->connected_settings = settings;
-		g_signal_connect(settings, "notify::gtk-xft-antialias",
+		g_signal_connect(G_OBJECT(settings),
+				 "notify::gtk-xft-antialias",
 				 G_CALLBACK(vte_xft_changed_cb), terminal);
-		g_signal_connect(settings, "notify::gtk-xft-hinting",
+		g_signal_connect(G_OBJECT(settings),
+				 "notify::gtk-xft-hinting",
 				 G_CALLBACK(vte_xft_changed_cb), terminal);
-		g_signal_connect(settings, "notify::gtk-xft-hintstyle",
+		g_signal_connect(G_OBJECT(settings),
+				 "notify::gtk-xft-hintstyle",
 				 G_CALLBACK(vte_xft_changed_cb), terminal);
-		g_signal_connect(settings, "notify::gtk-xft-rgba",
+		g_signal_connect(G_OBJECT(settings),
+				 "notify::gtk-xft-rgba",
 				 G_CALLBACK(vte_xft_changed_cb), terminal);
-		g_signal_connect(settings, "notify::gtk-xft-dpi",
+		g_signal_connect(G_OBJECT(settings),
+				 "notify::gtk-xft-dpi",
 				 G_CALLBACK(vte_xft_changed_cb), terminal);
 	}
 
@@ -9059,7 +9067,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	vte_terminal_set_termcap(terminal, NULL, FALSE);
 
 	/* Create a table to hold the control sequences. */
-	if (terminal->pvt->table) {
+	if (terminal->pvt->table != NULL) {
 		vte_table_free(terminal->pvt->table);
 	}
 	terminal->pvt->table = vte_table_new();
@@ -9757,6 +9765,13 @@ vte_terminal_finalize(GObject *object)
 	}
 #endif
 
+	/* Free the fonts if we still have some loaded. */
+#ifdef HAVE_XFT
+	vte_terminal_close_font_xft(terminal);
+#endif
+	vte_terminal_close_font_pango(terminal);
+	vte_terminal_close_font_xlib(terminal);
+
 	/* Free the font description. */
 	if (terminal->pvt->fontdesc != NULL) {
 		pango_font_description_free(terminal->pvt->fontdesc);
@@ -9896,8 +9911,10 @@ vte_terminal_finalize(GObject *object)
 	terminal->pvt->sequences= NULL;
 	terminal->pvt->emulation = NULL;
 	terminal->pvt->termcap_path = NULL;
-	vte_table_free(terminal->pvt->table);
-	terminal->pvt->table = NULL;
+	if (terminal->pvt->table != NULL) {
+		vte_table_free(terminal->pvt->table);
+		terminal->pvt->table = NULL;
+	}
 	vte_termcap_free(terminal->pvt->termcap);
 	terminal->pvt->termcap = NULL;
 
@@ -10006,6 +10023,10 @@ vte_terminal_realize(GtkWidget *widget)
 	
 	/* Set up input method support.  FIXME: do we need to handle the
 	 * "retrieve-surrounding" and "delete-surrounding" events? */
+	if (terminal->pvt->im_context != NULL) {
+		g_object_unref(G_OBJECT(terminal->pvt->im_context));
+		terminal->pvt->im_context = NULL;
+	}
 	terminal->pvt->im_context = gtk_im_multicontext_new();
 	gtk_im_context_set_client_window(terminal->pvt->im_context,
 					 widget->window);
@@ -10247,7 +10268,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 			diamond[3].x = x + 1;
 			diamond[3].y = ycenter;
 			XFillPolygon(display, drawable, gc,
-				     diamond, G_N_ELEMENTS(diamond),
+				     diamond, 4,
 				     Convex, CoordModeOrigin);
 			break;
 		case 97:  /* a */
@@ -10378,7 +10399,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 			diamond[3].x = xcenter;
 			diamond[3].y = ycenter + 1;
 			XFillPolygon(display, drawable, gc,
-				     diamond, G_N_ELEMENTS(diamond),
+				     diamond, 4,
 				     Convex, CoordModeOrigin);
 			break;
 		case 103: /* g */
@@ -11249,7 +11270,10 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		g_array_append_val(items, item);
 
 		/* Now find out how many cells have the same attributes. */
-		for (j = i + 1; j < column + column_count; j++) {
+		for (j = i + 1;
+		     (j < column + column_count) &&
+		     (j - i < VTE_XFT_HARD_LIMIT);
+		     j++) {
 			/* Don't render fragments of multicolumn characters. */
 			cell = vte_terminal_find_charcell(terminal, j, row);
 			if ((cell != NULL) && (cell->columns == 0)) {
@@ -11413,6 +11437,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	ascent = terminal->char_ascent;
 	descent = terminal->char_descent;
 	delta = screen->scroll_delta;
+
 	monospaced =
 		(vte_terminal_get_char_padding(terminal, display,
 					       VTE_REPRESENTATIVE_WIDER_CHARACTER) == 0) &&

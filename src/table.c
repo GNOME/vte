@@ -86,7 +86,13 @@ vte_table_free(struct vte_table *table)
 			table->table[i] = NULL;
 		}
 	}
+	if (table->original_length == 0) {
+		g_assert(table->original == NULL);
+	} else {
+		g_assert(table->original != NULL);
+	}
 	if (table->original != NULL) {
+		table->original_length = 0;
 		g_free(table->original);
 		table->original = NULL;
 	}
@@ -853,6 +859,7 @@ main(int argc, char **argv)
 	};
 	const char *result, *p;
 	const gunichar *consumed;
+	char *tmp;
 	gunichar *pattern;
 	GQuark quark;
 	GValueArray *array;
@@ -877,7 +884,9 @@ main(int argc, char **argv)
 		array = NULL;
 		vte_table_match(table, pattern, strlen(p),
 				&result, &consumed, &quark, &array);
-		printf("`%s' => `%s'", escape(p), (result ? result : "(NULL)"));
+		tmp = escape(p);
+		printf("`%s' => `%s'", tmp, (result ? result : "(NULL)"));
+		g_free(tmp);
 		print_array(array);
 		printf(" (%d chars)\n", consumed ? consumed - pattern : 0);
 		g_free(pattern);
