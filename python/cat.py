@@ -10,8 +10,10 @@ def main_quit(object, *args):
 
 def commit_cb(object, *args):
 	(text, length) = args
+	# Echo the text input by the user to stdout.
 	sys.stdout.write(text)
 	sys.stdout.flush()
+	# Also display it.
 	object.feed(text, length)
 
 if __name__ == '__main__':

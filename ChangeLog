@@ -13,13 +13,13 @@
 	keypress-handling code to a shell that parses tables of static info.
 	* src/vte.c: use the keymap for most non-printable keys.  Add a "commit"
 	signal to allow an app to just use the terminal for displaying data and
-	grabbing input.  Obey the application's desired meta-sends-escape
-	setting.  Recognize HP function key mode.  Recognize and handle
-	legacy XTerm function key mode.  Force a redraw if the child application
-	tries to switch to 80/132 columns, even though we don't usually let
-	them try.  Don't try to send keystrokes to the child pty when there
-	is no child pty.  Don't convert final whitespace to newlines when
-	copying text (Red Hat #74611).
+	grabbing input (missing functionality noted by ha shao).  Obey the
+	application's desired meta-sends-escape setting.  Recognize HP function
+	key mode.  Recognize and handle legacy XTerm function key mode.  Force
+	a redraw if the child application tries to switch to 80/132 columns,
+	even though we don't usually let them succeed.  Don't try to send
+	keystrokes to the child pty when there is no child pty.  Don't convert
+	final whitespace to newlines when copying text (Red Hat #74611).
 	* python/cat.py: test program for running without a command.
 	* termcaps/xterm: change the definitions for ku/kd/kl/kr to match
 	XTerm in normal cursor mode instead of application cursor mode.
