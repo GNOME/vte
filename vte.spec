@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.4.2
+Version: 0.4.3
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -57,6 +57,9 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Tue Jun 18 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.3-1
+- correct referencing/dereferencing of I/O channels
+
 * Tue Jun 18 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.2-1
 - fix "cursor mistakenly hidden when app exits" by making cursor visibility
   a widget-wide (as opposed to per-screen) setting

@@ -149,7 +149,9 @@ struct _VteTerminalPrivate {
 	const char *shell;		/* shell we started */
 	int pty_master;			/* pty master descriptor */
 	GIOChannel *pty_input;		/* master input watch */
+	guint pty_input_source;
 	GIOChannel *pty_output;		/* master output watch */
+	guint pty_output_source;
 	pid_t pty_pid;			/* pid of child using pty slave */
 	const char *encoding;		/* the pty's encoding */
 	const char *gxencoding[4];	/* alternate encodings */
@@ -3087,19 +3089,24 @@ vte_sequence_handler_set_title_int(VteTerminal *terminal,
 			inbuf_len = wcslen((wchar_t*)inbuf) * sizeof(wchar_t);
 			outbuf_len = (inbuf_len * VTE_UTF8_BPC) + 1;
 			outbuf = outbufptr = g_malloc0(outbuf_len);
-			if (g_iconv(conv, &inbuf, &inbuf_len,
-				  &outbuf, &outbuf_len) == -1) {
+			if (conv != NULL) {
+				if (g_iconv(conv, &inbuf, &inbuf_len,
+					    &outbuf, &outbuf_len) == -1) {
 #ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_IO)) {
-					fprintf(stderr, "Error converting %ld "
-						"title bytes (%s), skipping.\n",
-						(long) terminal->pvt->n_outgoing,
-						strerror(errno));
-				}
+					if (vte_debug_on(VTE_DEBUG_IO)) {
+						fprintf(stderr, "Error "
+							"converting %ld title "
+							"bytes (%s), "
+							"skipping.\n",
+							(long) terminal->pvt->n_outgoing,
+							strerror(errno));
+					}
 #endif
+				}
 				g_free(outbufptr);
 				outbufptr = NULL;
 			}
+			g_iconv_close(conv);
 		}
 		if (outbufptr != NULL) {
 			/* Emit the signal */
@@ -5102,14 +5109,13 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 		/* Open a channel to listen for input on. */
 		terminal->pvt->pty_input =
 			g_io_channel_unix_new(terminal->pvt->pty_master);
-		terminal->pvt->pty_output = NULL;
-		g_io_add_watch_full(terminal->pvt->pty_input,
-				    G_PRIORITY_LOW,
-				    G_IO_IN | G_IO_HUP,
-				    vte_terminal_io_read,
-				    terminal,
-				    NULL);
-		g_io_channel_unref(terminal->pvt->pty_input);
+		terminal->pvt->pty_input_source =
+			g_io_add_watch_full(terminal->pvt->pty_input,
+					    G_PRIORITY_LOW,
+					    G_IO_IN | G_IO_HUP,
+					    vte_terminal_io_read,
+					    terminal,
+					    NULL);
 	}
 
 	/* Return the pid to the caller. */
@@ -5128,7 +5134,10 @@ vte_terminal_eof(GIOChannel *channel, gpointer data)
 	/* Close the connections to the child -- note that the source channel
 	 * has already been dereferenced. */
 	if (channel == terminal->pvt->pty_input) {
+		g_io_channel_unref(terminal->pvt->pty_input);
 		terminal->pvt->pty_input = NULL;
+		g_source_remove(terminal->pvt->pty_input_source);
+		terminal->pvt->pty_input_source = -1;
 	}
 
 	/* Emit a signal that we read an EOF. */
@@ -5838,13 +5847,13 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		if (terminal->pvt->pty_output == NULL) {
 			terminal->pvt->pty_output =
 				g_io_channel_unix_new(terminal->pvt->pty_master);
-			g_io_add_watch_full(terminal->pvt->pty_output,
-					    G_PRIORITY_HIGH,
-					    G_IO_OUT,
-					    vte_terminal_io_write,
-					    terminal,
-					    NULL);
-			g_io_channel_unref(terminal->pvt->pty_output);
+			terminal->pvt->pty_output_source =
+				g_io_add_watch_full(terminal->pvt->pty_output,
+						    G_PRIORITY_HIGH,
+						    G_IO_OUT,
+						    vte_terminal_io_write,
+						    terminal,
+						    NULL);
 		}
 	}
 	g_free(obufptr);
@@ -8185,6 +8194,10 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->shell = g_quark_to_string(g_quark_from_string(pvt->shell));
 	pvt->pty_master = -1;
 	pvt->pty_pid = -1;
+	pvt->pty_input = NULL;
+	pvt->pty_input_source = -1;
+	pvt->pty_output = NULL;
+	pvt->pty_output_source = -1;
 	pvt->incoming = NULL;
 	pvt->n_incoming = 0;
 	pvt->processing = FALSE;
@@ -8577,6 +8590,20 @@ vte_terminal_finalize(GObject *object)
 	}
 	terminal->pvt->pty_pid = 0;
 
+	/* Free conversion descriptors. */
+	if (terminal->pvt->incoming_conv != NULL) {
+		g_iconv_close(terminal->pvt->incoming_conv);
+	}
+	terminal->pvt->incoming_conv = NULL;
+	if (terminal->pvt->outgoing_conv_wide != NULL) {
+		g_iconv_close(terminal->pvt->outgoing_conv_wide);
+	}
+	terminal->pvt->outgoing_conv_wide = NULL;
+	if (terminal->pvt->outgoing_conv_utf8 != NULL) {
+		g_iconv_close(terminal->pvt->outgoing_conv_utf8);
+	}
+	terminal->pvt->outgoing_conv_utf8 = NULL;
+
 	/* Stop listening for child-exited signals. */
 	g_signal_handlers_disconnect_by_func(vte_reaper_get(),
 					     vte_terminal_catch_child_exited,
@@ -8591,10 +8618,14 @@ vte_terminal_finalize(GObject *object)
 	if (terminal->pvt->pty_input != NULL) {
 		g_io_channel_unref(terminal->pvt->pty_input);
 		terminal->pvt->pty_input = NULL;
+		g_source_remove(terminal->pvt->pty_input_source);
+		terminal->pvt->pty_input_source = -1;
 	}
 	if (terminal->pvt->pty_output != NULL) {
 		g_io_channel_unref(terminal->pvt->pty_output);
 		terminal->pvt->pty_output = NULL;
+		g_source_remove(terminal->pvt->pty_output_source);
+		terminal->pvt->pty_output_source = -1;
 	}
 
 	/* Discard any pending data. */
@@ -10938,6 +10969,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	wbuf = (wchar_t*) obuf;
 	wbuf[ilen] = '\0';
 	g_iconv(conv, &ibuf, &ilen, &obuf, &olen);
+	g_iconv_close(conv);
 	for (i = 0; i < ((obuf - obufptr) / sizeof(wchar_t)); i++) {
 		/* The hyphen character. */
 		if (wbuf[i] == '-') {

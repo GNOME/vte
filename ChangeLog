@@ -1,4 +1,7 @@
 2002-06-18 nalin
+	* src/vte.c: Fix refs/derefs with IOChannels and sources.  Clean up
+	I/O GIConv descriptors at finalize-time.
+2002-06-18 nalin
 	* src/vte.c: Make cursor_visible a widget-wide (not per-screen) setting.
 2002-06-18 nalin
 	* autogen.sh: Correct automake version check to require 1.5, heads
