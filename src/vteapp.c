@@ -18,6 +18,7 @@
 
 #ident "$Id$"
 #include "../config.h"
+#include <sys/stat.h>
 #include <string.h>
 #include <gtk/gtk.h>
 #include <glib-object.h>
@@ -74,6 +75,7 @@ main(int argc, char **argv)
 {
 	GtkWidget *window, *hbox, *scrollbar, *widget;
 	const char *message = "Launching interactive shell...\r\n";
+	struct stat st;
 
 	gtk_init(&argc, &argv);
 
@@ -118,9 +120,13 @@ main(int argc, char **argv)
 	vte_terminal_set_cursor_blinks(VTE_TERMINAL(widget), TRUE);
 	vte_terminal_set_scroll_on_output(VTE_TERMINAL(widget), FALSE);
 	vte_terminal_set_scroll_on_keystroke(VTE_TERMINAL(widget), TRUE);
-	vte_terminal_set_background_image_file(VTE_TERMINAL(widget),
-					       "./background");
-	/* vte_terminal_set_background_transparent(VTE_TERMINAL(widget)); */
+	if (stat("./background", &st) == 0) {
+		vte_terminal_set_background_image_file(VTE_TERMINAL(widget),
+						       "./background");
+	} else {
+		vte_terminal_set_background_transparent(VTE_TERMINAL(widget),
+							TRUE);
+	}
 
 	/* Launch a shell. */
 #ifdef VTE_DEBUG

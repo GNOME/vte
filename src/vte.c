@@ -118,7 +118,6 @@ struct _VteTerminalPrivate {
 	iconv_t outgoing_conv_utf8;
 
 	/* Data used when rendering the text. */
-	gboolean palette_initialized;
 	struct {
 		guint16 red, green, blue;
 		unsigned long pixel;
@@ -180,7 +179,7 @@ struct _VteTerminalPrivate {
 	gboolean audible_bell;
 	gboolean cursor_blinks;
 	guint blink_period;
-	GdkPixbuf *bg_image_full;
+	gboolean bg_transparent;
 	GdkPixbuf *bg_image;
 	double bg_saturation;
 };
@@ -213,10 +212,11 @@ static gboolean vte_terminal_io_read(GIOChannel *channel,
 static gboolean vte_terminal_io_write(GIOChannel *channel,
 				      GdkInputCondition condition,
 				      gpointer data);
+static void vte_terminal_setup_background(VteTerminal *terminal);
 
 /* Allocate a new line. */
 static GArray *
-vte_new_row_data()
+vte_new_row_data(void)
 {
 	return g_array_new(FALSE, FALSE, sizeof(struct vte_charcell));
 }
@@ -278,8 +278,8 @@ vte_invalidate_cursor(gpointer data)
 	if (!VTE_IS_TERMINAL(data)) {
 		return FALSE;
 	}
-	if (GTK_WIDGET_REALIZED(GTK_WIDGET(data))) {
-		terminal = VTE_TERMINAL(data);
+	terminal = VTE_TERMINAL(data);
+	if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
 		vte_invalidate_cells(terminal,
 				     terminal->pvt->screen->cursor_current.col,
 				     1,
@@ -2701,7 +2701,10 @@ vte_terminal_set_colors(VteTerminal *terminal,
 		}
 #endif
 	}
-	terminal->pvt->palette_initialized = TRUE;
+
+	/* This may have changed the default background color, so trigger
+	 * a repaint. */
+	vte_terminal_setup_background(terminal);
 }
 
 /* Reset palette defaults for character colors. */
@@ -4489,16 +4492,15 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->processing = FALSE;
 	pvt->outgoing = NULL;
 	pvt->n_outgoing = 0;
-	pvt->palette_initialized = FALSE;
 	pvt->keypad = VTE_KEYPAD_NORMAL;
 
 	pvt->scroll_on_output = FALSE;
 	pvt->scroll_on_keystroke = TRUE;
 	pvt->alt_sends_escape = TRUE;
 	pvt->audible_bell = TRUE;
-	pvt->bg_image_full = NULL;
 	pvt->bg_image = NULL;
 	pvt->bg_saturation = 0.4;
+	pvt->bg_transparent = FALSE;
 
 	pvt->cursor_blinks = FALSE;
 	pvt->blink_period = 1000;
@@ -4557,6 +4559,9 @@ vte_terminal_init(VteTerminal *terminal)
 
 	pvt->screen = &terminal->pvt->normal_screen;
 	vte_terminal_set_default_attributes(terminal);
+
+	/* Set up the default palette. */
+	vte_terminal_set_default_colors(terminal);
 
 	/* Set up an adjustment to control scrolling. */
 	adjustment = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0, 0, 0, 0));
@@ -4743,10 +4748,6 @@ vte_terminal_finalize(GObject *object)
 	terminal->icon_title = NULL;
 
 	/* Free background images. */
-	if (terminal->pvt->bg_image_full != NULL) {
-		g_object_unref(G_OBJECT(terminal->pvt->bg_image_full));
-		terminal->pvt->bg_image_full = NULL;
-	}
 	if (terminal->pvt->bg_image != NULL) {
 		g_object_unref(G_OBJECT(terminal->pvt->bg_image));
 		terminal->pvt->bg_image = NULL;
@@ -4764,7 +4765,6 @@ vte_terminal_realize(GtkWidget *widget)
 {
 	VteTerminal *terminal = NULL;
 	GdkWindowAttr attributes;
-	GdkColor black = {0, 0, 0};
 	int attributes_mask = 0;
 
 	g_return_if_fail(widget != NULL);
@@ -4804,15 +4804,11 @@ vte_terminal_realize(GtkWidget *widget)
 	gdk_window_set_user_data(widget->window, widget);
 	gdk_window_show(widget->window);
 
-	/* Set up styles, backgrounds, and whatnot. */
-	widget->style = gtk_style_attach(widget->style, widget->window);
-	gtk_style_set_background(widget->style,
-				 widget->window,
-				 GTK_STATE_NORMAL);
-	gdk_window_set_background(widget->window, &black);
-
 	/* Set the realized flag. */
 	GTK_WIDGET_SET_FLAGS(widget, GTK_REALIZED);
+
+	/* Set up the background image. */
+	vte_terminal_setup_background(terminal);
 
 	/* Grab input focus. */
 	gtk_widget_grab_focus(widget);
@@ -5241,9 +5237,6 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		blink = TRUE;
 	}
 
-	/* Set up the default palette. */
-	vte_terminal_set_default_colors(terminal);
-
 	/* Get the X11 structures we need for the drawing area. */
 	gdk_window_get_internal_paint_info(widget->window, &gdrawable,
 					   &x_offs, &y_offs);
@@ -5268,37 +5261,11 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	}
 #endif
 
+#if 0
 	/* Paint the background for this area, using a filled rectangle.  We
 	 * have to do this even when the GDK background matches, otherwise
 	 * we may miss character removals before an area is re-exposed. */
-	if (terminal->pvt->bg_image != NULL) {
-		long x, y, w, h;
-		width = gdk_pixbuf_get_width(terminal->pvt->bg_image);
-		height = gdk_pixbuf_get_height(terminal->pvt->bg_image);
-
-		y = area->y;
-		while (y < area->y + area->height) {
-			h = MIN(area->y + area->height - y, height - (y % height));
-
-			x = area->x;
-			while (x < area->x + area->width) {
-				w = MIN(area->x + area->width - x, width - (x % width));
-
-				gdk_pixbuf_render_to_drawable(terminal->pvt->bg_image,
-							      gdrawable, ggc,
-							      x % width,
-							      y % height,
-							      x - x_offs,
-							      y - y_offs,
-							      w,
-							      h,
-							      GDK_RGB_DITHER_NONE,
-							      0, 0);
-				x += w;
-			}
-			y += h;
-		}
-	} else {
+	if (terminal->pvt->bg_image == NULL) {
 		XSetForeground(display, gc,
 			       terminal->pvt->palette[VTE_DEF_BG].pixel);
 		XFillRectangle(display, drawable, gc,
@@ -5307,6 +5274,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			       area->width,
 			       area->height);
 	}
+#endif
 
 	/* Keep local copies of rendering information. */
 	width = terminal->char_width;
@@ -5571,32 +5539,81 @@ vte_terminal_paste_clipboard(VteTerminal *terminal)
 	vte_terminal_paste(terminal, GDK_SELECTION_CLIPBOARD);
 }
 
-void
-vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
+/* Set up whatever background we want. */
+static void
+vte_terminal_setup_background(VteTerminal *terminal)
 {
 	long i;
+	GtkWidget *widget;
 	guchar *pixels, *oldpixels;
+	GdkColormap *colormap = NULL;
+	GdkPixbuf *pixbuf = NULL;
+	GdkPixmap *pixmap = NULL;
+	GdkBitmap *bitmap = NULL;
+	GdkColor bgcolor;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->bg_saturation = saturation;
+	widget = GTK_WIDGET(terminal);
+	if (!GTK_WIDGET_REALIZED(widget)) {
+		return;
+	}
+
+	/* Set the default background color. */
+	bgcolor.red = terminal->pvt->palette[VTE_DEF_BG].red;
+	bgcolor.green = terminal->pvt->palette[VTE_DEF_BG].green;
+	bgcolor.blue = terminal->pvt->palette[VTE_DEF_BG].blue;
+	gdk_window_set_background(widget->window, &bgcolor);
+
+	if (terminal->pvt->bg_transparent) {
+		/* Set the background to be relative to the window's parent. */
+		gdk_window_set_back_pixmap(widget->window, NULL, TRUE);
+	} else
 	if (terminal->pvt->bg_image != NULL) {
+		/* Set up a possibly desaturated background.  Start by
+		 * creating a copy we can mess with. */
+		pixbuf = gdk_pixbuf_copy(terminal->pvt->bg_image);
+
 		/* Adjust the brightness of the copy. */
-		oldpixels = gdk_pixbuf_get_pixels(terminal->pvt->bg_image_full);
-		pixels = gdk_pixbuf_get_pixels(terminal->pvt->bg_image);
+		oldpixels = gdk_pixbuf_get_pixels(terminal->pvt->bg_image);
+		pixels = gdk_pixbuf_get_pixels(pixbuf);
 		i = gdk_pixbuf_get_height(terminal->pvt->bg_image) *
 		    gdk_pixbuf_get_rowstride(terminal->pvt->bg_image);
 		while (i >= 0) {
 			pixels[i] = oldpixels[i] * terminal->pvt->bg_saturation;
 			i--;
 		}
-		/* Force a redraw for everything. */
-		if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
-			vte_invalidate_cells(terminal,
-					     0,
-					     terminal->column_count,
-					     terminal->pvt->screen->scroll_delta,
-					     terminal->row_count);
-		}
+
+		/* Render the modified image into a pixmap/bitmap pair. */
+		colormap = gdk_drawable_get_colormap(widget->window);
+		gdk_pixbuf_render_pixmap_and_mask_for_colormap(pixbuf,
+							       colormap,
+							       &pixmap,
+							       &bitmap,
+							       0);
+		/* Set the pixmap as the window background. */
+		gdk_window_set_back_pixmap((GTK_WIDGET(terminal))->window,
+					   pixmap,
+					   FALSE);
+
+		g_object_unref(G_OBJECT(pixmap));
+		g_object_unref(G_OBJECT(bitmap));
+		g_object_unref(G_OBJECT(pixbuf));
 	}
+
+	/* Force a redraw for everything. */
+	vte_invalidate_cells(terminal,
+			     0,
+			     terminal->column_count,
+			     terminal->pvt->screen->scroll_delta,
+			     terminal->row_count);
+}
+
+void
+vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->bg_saturation = saturation;
+	vte_terminal_setup_background(terminal);
 }
 
 void
@@ -5610,25 +5627,14 @@ vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
 		g_object_ref(G_OBJECT(image));
 	}
 
-	/* Free the previous background images. */
-	if (terminal->pvt->bg_image_full != NULL) {
-		g_object_unref(G_OBJECT(terminal->pvt->bg_image_full));
-		terminal->pvt->bg_image_full = NULL;
-	}
+	/* Free the previous background image. */
 	if (terminal->pvt->bg_image != NULL) {
 		g_object_unref(G_OBJECT(terminal->pvt->bg_image));
-		terminal->pvt->bg_image = NULL;
 	}
 
-	if (image != NULL) {
-		/* Set our image fields. */
-		terminal->pvt->bg_image_full = image;
-		terminal->pvt->bg_image = gdk_pixbuf_copy(image);
-
-		/* Desaturate the copy. */
-		vte_terminal_set_background_saturation(terminal,
-						       terminal->pvt->bg_saturation);
-	}
+	/* Set the new background. */
+	terminal->pvt->bg_image = image;
+	vte_terminal_setup_background(terminal);
 }
 
 void
@@ -5640,29 +5646,19 @@ vte_terminal_set_background_image_file(VteTerminal *terminal, const char *path)
 	image = gdk_pixbuf_new_from_file(path, &error);
 	if ((image != NULL) && (error == NULL)) {
 		vte_terminal_set_background_image(terminal, image);
+		g_object_unref(G_OBJECT(image));
 	} else {
 		/* FIXME: do something better with the error. */
 		g_error_free(error);
 	}
 }
 
-/* FIXME: this function doesn't actually work. */
 void
-vte_terminal_set_background_transparent(VteTerminal *terminal)
+vte_terminal_set_background_transparent(VteTerminal *terminal, gboolean setting)
 {
-	GdkPixbuf *image;
-	Window root;
-	Display *display;
-
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-	root = gdk_x11_get_default_root_xwindow();
-	display = gdk_x11_get_default_xdisplay();
-	image = NULL;
-
-	if (image != NULL) {
-		vte_terminal_set_background_image(terminal, image);
-	}
+	terminal->pvt->bg_transparent = setting;
+	vte_terminal_setup_background(terminal);
 }
 
 gboolean

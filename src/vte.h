@@ -113,7 +113,8 @@ void vte_terminal_set_background_image_file(VteTerminal *terminal,
 					    const char *path);
 void vte_terminal_set_background_saturation(VteTerminal *terminal,
 					    double saturation);
-void vte_terminal_set_background_transparent(VteTerminal *terminal);
+void vte_terminal_set_background_transparent(VteTerminal *terminal,
+					     gboolean transparent);
 void vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink);
 void vte_terminal_set_blink_period(VteTerminal *terminal, guint period);
 gboolean vte_terminal_get_has_selection(VteTerminal *terminal);
