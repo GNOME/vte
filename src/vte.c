@@ -4629,9 +4629,11 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 	case 3:
 		vte_terminal_emit_resize_window(terminal,
 						(set ? 132 : 80) *
-						terminal->char_width,
+						terminal->char_width +
+						VTE_PAD_WIDTH * 2,
 						terminal->row_count *
-						terminal->char_height);
+						terminal->char_height +
+						VTE_PAD_WIDTH * 2);
 		/* Request a resize and redraw. */
 		vte_invalidate_all(terminal);
 		break;
@@ -5460,8 +5462,10 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 				}
 #endif
 				vte_terminal_emit_resize_window(terminal,
-								arg2,
-								arg1);
+								arg2 +
+								VTE_PAD_WIDTH * 2,
+								arg1 +
+								VTE_PAD_WIDTH * 2);
 				i += 2;
 			}
 			break;
@@ -5500,8 +5504,10 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 				}
 #endif
 				vte_terminal_emit_resize_window(terminal,
-								arg2 * terminal->char_width,
-								arg1 * terminal->char_height);
+								arg2 * terminal->char_width +
+								VTE_PAD_WIDTH * 2,
+								arg1 * terminal->char_height +
+								VTE_PAD_WIDTH * 2);
 				i += 2;
 			}
 			break;
@@ -5652,8 +5658,10 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 				/* Resize to the specified number of
 				 * rows. */
 				vte_terminal_emit_resize_window(terminal,
-								terminal->column_count * terminal->char_width,
-								param * terminal->char_height);
+								terminal->column_count * terminal->char_width +
+								VTE_PAD_WIDTH * 2,
+								param * terminal->char_height +
+								VTE_PAD_WIDTH * 2);
 			}
 			break;
 		}

@@ -1,3 +1,8 @@
+2003-08-05 nalin
+	* vte.c(vte_sequence_handler_decset_internal,
+	vte_sequence_handler_window_manipulation): include the widget's padding
+	widths in resize requests (bug #119141).
+
 2003-07-30 nalin
 	* autogen.sh: check for autoconf-2.51, autoconf-2.50, autoconf-2.5 when
 	looking for autoconf 2.5x (bug #118627).
