@@ -512,7 +512,7 @@ _vte_iso2022_map_get(gunichar mapname,
 			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_at,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_at));
 		}
-		width = 0;
+		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
 	case 'A' + WIDE_FUDGE:
@@ -520,7 +520,7 @@ _vte_iso2022_map_get(gunichar mapname,
 			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_A,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_A));
 		}
-		width = 0;
+		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
 	case 'B' + WIDE_FUDGE:
@@ -528,7 +528,7 @@ _vte_iso2022_map_get(gunichar mapname,
 			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_B,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_B));
 		}
-		width = 0;
+		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
 	case 'C' + WIDE_FUDGE:
@@ -536,7 +536,7 @@ _vte_iso2022_map_get(gunichar mapname,
 			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_C,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_C));
 		}
-		width = 0;
+		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
 	case 'D' + WIDE_FUDGE:
@@ -544,7 +544,7 @@ _vte_iso2022_map_get(gunichar mapname,
 			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_D,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_D));
 		}
-		width = 0;
+		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
 	case 'G' + WIDE_FUDGE:
@@ -552,10 +552,10 @@ _vte_iso2022_map_get(gunichar mapname,
 			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
-		/* Return the plane number. */
+		/* Return the plane number as part of the "or" mask. */
 		g_assert(or_mask != NULL);
 		*or_mask = 0x10000;
-		width = 0;
+		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
 	case 'H' + WIDE_FUDGE:
@@ -563,10 +563,10 @@ _vte_iso2022_map_get(gunichar mapname,
 			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
-		/* Return the plane number. */
+		/* Return the plane number as part of the "or" mask. */
 		g_assert(or_mask != NULL);
 		*or_mask = 0x20000;
-		width = 0;
+		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
 	case 'I' + WIDE_FUDGE:
@@ -574,10 +574,10 @@ _vte_iso2022_map_get(gunichar mapname,
 			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
-		/* Return the plane number. */
+		/* Return the plane number as part of the "or" mask. */
 		g_assert(or_mask != NULL);
 		*or_mask = 0x30000;
-		width = 0;
+		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
 	case 'J' + WIDE_FUDGE:
@@ -585,10 +585,10 @@ _vte_iso2022_map_get(gunichar mapname,
 			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
-		/* Return the plane number. */
+		/* Return the plane number as part of the "or" mask. */
 		g_assert(or_mask != NULL);
 		*or_mask = 0x40000;
-		width = 0;
+		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
 	case 'K' + WIDE_FUDGE:
@@ -596,10 +596,10 @@ _vte_iso2022_map_get(gunichar mapname,
 			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
-		/* Return the plane number. */
+		/* Return the plane number as part of the "or" mask. */
 		g_assert(or_mask != NULL);
 		*or_mask = 0x50000;
-		width = 0;
+		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
 	case 'L' + WIDE_FUDGE:
@@ -607,10 +607,10 @@ _vte_iso2022_map_get(gunichar mapname,
 			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
-		/* Return the plane number. */
+		/* Return the plane number as part of the "or" mask. */
 		g_assert(or_mask != NULL);
 		*or_mask = 0x60000;
-		width = 0;
+		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
 	case 'M' + WIDE_FUDGE:
@@ -618,10 +618,10 @@ _vte_iso2022_map_get(gunichar mapname,
 			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
-		/* Return the plane number. */
+		/* Return the plane number as part of the "or" mask. */
 		g_assert(or_mask != NULL);
 		*or_mask = 0x70000;
-		width = 0;
+		width = 2; /* CJKV expects 2 bytes -> 2 columns */
 		bytes = 2;
 		break;
 	default:
@@ -775,7 +775,7 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input, GArray *blocks)
 {
 	unsigned char *nextctl = NULL, *p, *q;
 	const unsigned char *valids = NULL;
-	glong sequence_length;
+	glong sequence_length, i;
 	struct _vte_iso2022_block block;
 	gboolean quit;
 
@@ -821,6 +821,73 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input, GArray *blocks)
 				sequence_length = 0;
 			} else {
 				switch (nextctl[1]) {
+				case '[':
+					/* ESC [, the CSI.  The first not a
+					 * letter is the end of the sequence, */
+					for (i = 2; i < q - nextctl; i++) {
+						if (g_unichar_isalpha(nextctl[i])) {
+							break;
+						}
+					}
+					if (i < q - nextctl) {
+						/* Return the length of this
+						 * sequence. */
+						sequence_length = i + 1;
+					} else {
+						/* Inconclusive. */
+						sequence_length = 0;
+					}
+					break;
+				case '^':
+				case 'P':
+					/* ESC ^, the PM, or ESC P, the DCS.
+					 * Search for a string terminator. */
+					for (i = 2; i < q - nextctl - 1; i++) {
+						if ((nextctl[i] == '\033') &&
+						    (nextctl[i + 1] == '\\')) {
+							break;
+						}
+					}
+					if (i < q - nextctl - 1) {
+						/* Return the length of this
+						 * sequence. */
+						sequence_length = i + 1;
+					} else {
+						/* Inconclusive. */
+						sequence_length = 0;
+					}
+					break;
+				case ']':
+					/* ESC ], the OSC.  Search for a string
+					 * terminator or a BEL. */
+					for (i = 2; i < q - nextctl - 1; i++) {
+						if ((nextctl[i] == '\033') &&
+						    (nextctl[i + 1] == '\\')) {
+							break;
+						}
+					}
+					if (i < q - nextctl - 1) {
+						/* Return the length of this
+						 * sequence. */
+						sequence_length = i + 1;
+					} else {
+						for (i = 2;
+						     i < q - nextctl;
+						     i++) {
+							if (nextctl[i] == '\007') {
+								break;
+							}
+						}
+						if (i < q - nextctl) {
+							/* Return the length of
+							 * this sequence. */
+							sequence_length = i + 1;
+						} else {
+							/* Inconclusive. */
+							sequence_length = 0;
+						}
+					}
+					break;
 				case 'N':
 				case 'O':
 				case 'n':
@@ -1099,6 +1166,7 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 		GArray *gunichars)
 {
 	gunichar c;
+	int i;
 	if (length >= 1) {
 		switch (ctl[0]) {
 		case '\r':  /* CR */
@@ -1144,6 +1212,15 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 		default:
 			if ((length >= 2) && (ctl[0] == '\033')) {
 				switch (ctl[1]) {
+				case '[': /* CSI */
+				case ']': /* OSC */
+				case 'P': /* DCS */
+					for (i = 0; i < length; i++) {
+						c = (guchar) ctl[i];
+						g_array_append_val(gunichars,
+								   c);
+					}
+					break;
 				case 'N': /* SS2 */
 					state->override = 2;
 #ifdef VTE_DEBUG
@@ -1444,6 +1521,8 @@ main(int argc, char **argv)
 		{"abcd\033$(Cefgh\ri\nj\033)0k\017lmn\033Nopqrst\033%G", TRUE},
 		{"ABCD\033$(C\033)", TRUE},
 		{"0", TRUE},
+		{"\014\033[33;41m", TRUE},
+		{"\015", TRUE},
 		{"\014{|}\015\r\n", TRUE},
 		{"\033(B\033)0\033*B\033+B", TRUE},
 		{"\033$B$+$J4A;z\033(J~", TRUE},

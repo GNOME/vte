@@ -1,4 +1,13 @@
 2003-04-22 nalin
+	* src/iso2022.c(_vte_iso2022_map_get): force visible widths to 2 columns
+	for CJK maps which use 2 bytes per character.
+	* src/iso2022.c(_vte_iso2022_fragment_input): recognize CSI/OSC/PM
+	sequences as control sequences and not raw text, allowing us to treat
+	them specially later.
+	* src/iso2022.c(process_control): pass CSI/OSC/PM sequences through
+	unmodified (without going through maps).
+
+2003-04-22 nalin
 	* src/vte.c(vte_invalidate_cursor_once): don't bother doing anything if
 	we're fully obscured (related to #102703).
 
