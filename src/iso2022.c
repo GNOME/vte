@@ -298,24 +298,29 @@ _vte_iso2022_is_ambiguous(gunichar c)
 {
 	int i;
 	gpointer p;
-	static GTree *ambiguous = NULL;
+	static GHashTable *ambiguous = NULL;
 	for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_ambiguous_ranges); i++) {
 		if ((c >= _vte_iso2022_ambiguous_ranges[i].start) &&
 		    (c <= _vte_iso2022_ambiguous_ranges[i].end)) {
 			return TRUE;
 		}
 	}
-	if (ambiguous == NULL) {
-		ambiguous = g_tree_new(_vte_direct_compare);
-		for (i = 0;
-		     i < G_N_ELEMENTS(_vte_iso2022_ambiguous_chars);
-		     i++) {
-			p = GINT_TO_POINTER(_vte_iso2022_ambiguous_chars[i]);
-			g_tree_insert(ambiguous, p, p);
+	for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_unambiguous_ranges); i++) {
+		if ((c >= _vte_iso2022_unambiguous_ranges[i].start) &&
+		    (c <= _vte_iso2022_unambiguous_ranges[i].end)) {
+			return FALSE;
 		}
 	}
-	p = GINT_TO_POINTER(c);
-	return g_tree_lookup(ambiguous, p) == p;
+	if (!ambiguous) {
+		ambiguous = g_hash_table_new (g_direct_hash, g_direct_equal);
+
+		for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_ambiguous_chars); i++) {
+			p = GINT_TO_POINTER(_vte_iso2022_ambiguous_chars[i]);
+			g_hash_table_insert(ambiguous, p, p);
+		}
+	}
+
+	return g_hash_table_lookup(ambiguous, GINT_TO_POINTER(c)) != NULL;
 }
 
 /* If we only have a codepoint, guess what the ambiguous width should be based
@@ -862,35 +867,34 @@ _vte_iso2022_state_get_codeset(struct _vte_iso2022_state *state)
 }
 
 static char *
-_vte_iso2022_better(char *p, char *q)
-{
-	if (p == NULL) {
-		return q;
-	}
-	if (q == NULL) {
-		return p;
-	}
-	return MIN(p, q);
-}
-
-static char *
 _vte_iso2022_find_nextctl(const char *p, size_t length)
 {
 	char *ret;
+	int i;
+
 	if (length == 0) {
 		return NULL;
 	}
-	ret = memchr(p, '\033', length);
-	ret = _vte_iso2022_better(ret, memchr(p, '\n', length));
-	ret = _vte_iso2022_better(ret, memchr(p, '\r', length));
-	ret = _vte_iso2022_better(ret, memchr(p, '\016', length));
-	ret = _vte_iso2022_better(ret, memchr(p, '\017', length));
+
+	for (i = 0; i < length; ++i) {
+		if (p[i] == '\033' ||
+		    p[i] == '\n' ||
+		    p[i] == '\r' ||
+		    p[i] == '\016' ||
+		    p[i] == '\017'
 #ifdef VTE_ISO2022_8_BIT_CONTROLS
-	/* This breaks UTF-8 and other encodings which use the high bits. */
-	ret = _vte_iso2022_better(ret, memchr(p, 0x8e, length));
-	ret = _vte_iso2022_better(ret, memchr(p, 0x8f, length));
+		    /* This breaks UTF-8 and other encodings which
+		     * use the high bits.
+		     */
+  		                 ||
+		    p[i] == 0x8e ||
+		    p[i] == 0x8f
 #endif
-	return ret;
+			) {
+			return (char *)p + i;
+		}
+	}
+	return NULL;
 }
 
 static long

@@ -5,6 +5,13 @@ static const struct {
 	{0xf0000, 0xffffd},
 	{0x100000, 0x10fffd},
 };
+static const struct {
+	gunichar start, end;
+} _vte_iso2022_unambiguous_ranges[] = {
+	{0x01, 0xa0},
+	{0x452, 0x200f},
+};
+
 static const gunichar _vte_iso2022_ambiguous_chars[] = {
 	0xa1,
 	0xa4,

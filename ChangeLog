@@ -1,5 +1,22 @@
 2005-02-28  Kjartan Maraas  <kmaraas@gnome.org>
 
+	* src/iso2022.c: (_vte_iso2022_is_ambiguous),
+	(_vte_iso2022_find_nextctl):
+	* src/uniwidths:
+	* src/vte.c: (vte_terminal_catch_child_exited), (vte_terminal_eof),
+	(vte_terminal_process_incoming), (vte_terminal_feed),
+	(vte_terminal_init), (vte_terminal_finalize), (vte_terminal_reset),
+	(add_display_timeout), (add_coalesce_timeout),
+	(remove_display_timeout), (remove_coalesce_timeout),
+	(vte_terminal_stop_processing), (vte_terminal_start_processing),
+	(vte_terminal_is_processing), (display_timeout),
+	(coalesce_timeout):
+	* src/vtexft.c: (_vte_xft_drawcharfontspec), (_vte_xft_draw_text):
+	Apply fix from Fedora package for performance problems. Closes
+	bug #143914. Patch was written by Søren Sandmann.
+
+2005-02-28  Kjartan Maraas  <kmaraas@gnome.org>
+
 	* src/vte.c: (vte_terminal_scroll_region): Fix for
 	problem with redrawing when scrolling back then forward
 	Closes bug #122150. Patch from Benjamin Otte.

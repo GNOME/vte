@@ -661,6 +661,7 @@ _vte_xft_drawcharfontspec(XftDraw *draw, XftColor *color,
 			  XftCharFontSpec *specs, int n)
 {
 	int i, j;
+
 	i = j = 0;
 	while (i < n) {
 		for (j = i + 1; j < n; j++) {
@@ -695,7 +696,7 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 	for (i = j = 0; i < n_requests; i++) {
 		specs[j].font = _vte_xft_font_for_char(data->font,
 						       requests[i].c);
-		if (specs[j].font != NULL) {
+		if (specs[j].font != NULL && requests[i].c != 32) {
 			specs[j].x = requests[i].x - data->x_offs;
 			width = _vte_xft_char_width(data->font,
 						    specs[j].font,
@@ -708,7 +709,7 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 			specs[j].y = requests[i].y - data->y_offs + draw->ascent;
 			specs[j].ucs4 = requests[i].c;
 			j++;
-		} else {
+		} else if (requests[i].c != 32) {
 			g_warning(_("Can not draw character U+%04x.\n"),
 				  requests[i].c);
 		}
