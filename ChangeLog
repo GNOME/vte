@@ -1,3 +1,7 @@
+2003-06-09 nalin
+	* src/vte.c(vte_terminal_set_encoding): set the encoding for the iso2022
+	converter (spotted by havill).
+
 2003-06-04 nalin
 	* src/vtebg.c, src/vterdb.c: sync the display before trapping errors
 	to ensure that any errors we'll get will be handled before we remove

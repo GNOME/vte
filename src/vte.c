@@ -2088,6 +2088,10 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 		}
 	}
 
+	/* Set the encoding for incoming text. */
+	_vte_iso2022_state_set_codeset(terminal->pvt->iso2022,
+				       terminal->pvt->encoding);
+
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_IO)) {
 		fprintf(stderr, "Set terminal encoding to `%s'.\n",
