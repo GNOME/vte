@@ -1,3 +1,7 @@
+2003-07-21 nalin
+	* gnome-pty-helper/configure.in: pull up from HEAD to add preprocessor
+	definitions for Solaris (#117984).
+
 2003-07-03 nalin
 	* src/vte.c(vte_terminal_set_termcap): add a missing piece of the
 	previous change so that it works right.
