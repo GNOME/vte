@@ -470,6 +470,9 @@ static char *vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 									gpointer),
 						 gpointer data,
 						 GArray *attributes);
+static void _vte_terminal_disconnect_pty_read(VteTerminal *terminal);
+static void _vte_terminal_disconnect_pty_write(VteTerminal *terminal);
+
 /* Free a no-longer-used row data array. */
 static void
 vte_free_row_data(gpointer freeing, gpointer data)
@@ -6524,6 +6527,33 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 	g_return_if_fail(VTE_IS_TERMINAL(data));
 	terminal = VTE_TERMINAL(data);
 	if (pid == terminal->pvt->pty_pid) {
+		/* Close out the PTY. */
+		_vte_terminal_disconnect_pty_read(terminal);
+		_vte_terminal_disconnect_pty_write(terminal);
+		if (terminal->pvt->pty_master != -1) {
+			_vte_pty_close(terminal->pvt->pty_master);
+			close(terminal->pvt->pty_master);
+			terminal->pvt->pty_master = -1;
+		}
+
+		/* Take one last shot at processing whatever data is pending,
+		 * then flush the buffers in case we're about to run a new
+		 * command, disconnecting the timeout. */
+		if (terminal->pvt->processing) {
+			g_source_remove(terminal->pvt->processing_tag);
+			terminal->pvt->processing = FALSE;
+			terminal->pvt->processing_tag = VTE_INVALID_SOURCE;
+		}
+		if (_vte_buffer_length(terminal->pvt->incoming) > 0) {
+			vte_terminal_process_incoming(terminal);
+		}
+		_vte_buffer_clear(terminal->pvt->incoming);
+		g_array_set_size(terminal->pvt->pending, 0);
+
+		/* Clear the outgoing buffer as well. */
+		_vte_buffer_clear(terminal->pvt->outgoing);
+
+		/* Tell observers what's happened. */
 		vte_terminal_emit_child_exited(terminal);
 	}
 }
@@ -6711,6 +6741,14 @@ vte_terminal_eof(GIOChannel *channel, gpointer data)
 	 * has already been dereferenced. */
 	if (channel == terminal->pvt->pty_input) {
 		_vte_terminal_disconnect_pty_read(terminal);
+	}
+
+	/* Close out the PTY. */
+	_vte_terminal_disconnect_pty_write(terminal);
+	if (terminal->pvt->pty_master != -1) {
+		_vte_pty_close(terminal->pvt->pty_master);
+		close(terminal->pvt->pty_master);
+		terminal->pvt->pty_master = -1;
 	}
 
 	/* Take one last shot at processing whatever data is pending, then
