@@ -1,3 +1,7 @@
+2003-02-28  Takeshi AIHANA <aihana@gnome.gr.jp>
+
+	* po/ja.po: Added Japanese translations from gnome-2-2.
+
 2003-02-26 nalin
 	* src/iso2022.c(_vte_iso2022_substitute,_vte_iso2022_substitute_single):
 	force characters substituted through the ACS map to have width of 1.
