@@ -1,3 +1,11 @@
+2002-05-09 nalin
+	* src/vte.c: Fixes to usage of iconv, from otaylor.  Remap certain
+	characters which are missing in the current Xft font to similar
+	characters if they are in the font, from otaylor.  Change default
+	emulation to "xterm", cleaning up confusion over what standout really
+	means.  Reorganize some internals.  Complain when an application sends
+	us a key-press sequence, as if we knew what to do with one of those.
+	* src/debug.c, src/debug.h: Added.
 2002-05-08 nalin
 	* src/vte.c: Implement mouse motion-event and any-event tracking.
 2002-05-07 nalin

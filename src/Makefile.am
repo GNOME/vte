@@ -10,6 +10,8 @@ CFLAGS = @CFLAGS@ @X_CFLAGS@ @GTK_CFLAGS@
 libvte_la_SOURCES = \
 	caps.c \
 	caps.h \
+	debug.c \
+	debug.h \
 	marshal.c \
 	marshal.h \
 	pty.c \
@@ -38,6 +40,8 @@ vte_LDADD = libvte.la @GTK_LIBS@ @X_LIBS@
 interpret_SOURCES = \
 	caps.c \
 	caps.h \
+	debug.c \
+	debug.h \
 	termcap.c \
 	termcap.h \
 	trie.c \
@@ -50,12 +54,16 @@ utf8echo_SOURCES = \
 
 ring_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DRING_MAIN
 ring_SOURCES = \
+	debug.c \
+	debug.h \
 	ring.c \
 	ring.h
 ring_LDADD = @GLIB_LIBS@
 
 trie_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DTRIE_MAIN
 trie_SOURCES = \
+	debug.c \
+	debug.h \
 	termcap.c \
 	termcap.h \
 	trie.c \
@@ -64,12 +72,16 @@ trie_LDADD = @GLIB_LIBS@
 
 termcap_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DTERMCAP_MAIN
 termcap_SOURCES = \
+	debug.c \
+	debug.h \
 	termcap.c \
 	termcap.h
 termcap_LDADD = @GLIB_LIBS@
 
 pty_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DPTY_MAIN
 pty_SOURCES = \
+	debug.c \
+	debug.h \
 	pty.c \
 	pty.h
 pty_LDADD = @GLIB_LIBS@

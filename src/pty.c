@@ -28,6 +28,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <glib.h>
+#include "debug.h"
 #include "pty.h"
 
 /* Open the named PTY slave, fork off a child (storing its PID in child),
@@ -61,7 +62,9 @@ vte_pty_fork_on_fd(const char *path, const char **env_add,
 				  "continuing.", env_add[i]);
 		}
 #ifdef VTE_DEBUG
-		fprintf(stderr, "Set `%s'.\n", env_add[i]);
+		if (vte_debug_on(VTE_DEBUG_MISC)) {
+			fprintf(stderr, "Set `%s'.\n", env_add[i]);
+		}
 #endif
 	}
 

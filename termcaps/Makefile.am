@@ -1,3 +1,3 @@
-EXTRA_DIST = xterm-color
+EXTRA_DIST = xterm
 termcapdir = $(pkgdatadir)/termcap
-termcap_DATA = xterm-color
+termcap_DATA = xterm

@@ -22,6 +22,7 @@
 #include <string.h>
 #include <gtk/gtk.h>
 #include <glib-object.h>
+#include "debug.h"
 #include "vte.h"
 
 static void
@@ -136,7 +137,10 @@ main(int argc, char **argv)
 
 	/* Launch a shell. */
 #ifdef VTE_DEBUG
-	vte_terminal_feed(VTE_TERMINAL(widget), message, strlen(message));
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		vte_terminal_feed(VTE_TERMINAL(widget), message,
+				  strlen(message));
+	}
 #endif
 	vte_terminal_fork_command(VTE_TERMINAL(widget), NULL, NULL);
 	vte_terminal_feed_child(VTE_TERMINAL(widget), "pwd\n", -1);

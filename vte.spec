@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.3.11
+Version: 0.3.12
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -53,6 +53,10 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Thu May  9 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.12-1
+- iconv and remapping from otaylor
+- implement custom tabstopping
+
 * Wed May  8 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.11-1
 - add mouse drag event handling
 

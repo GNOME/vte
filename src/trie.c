@@ -28,6 +28,7 @@
 #include <wchar.h>
 #include <glib.h>
 #include <glib-object.h>
+#include "debug.h"
 #include "trie.h"
 
 #ifndef TRIE_MAYBE_STATIC
@@ -270,8 +271,10 @@ char_class_string_extract(const wchar_t *s, size_t length,
 	len = xwcsnlen(s, length);
 	ret = g_malloc0((len + 1) * sizeof(wchar_t));
 	wcsncpy(ret, s, len);
-#ifdef VTE_DEBUG_TRIE
-	fprintf(stderr, "Extracting string `%ls'.\n", ret);
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_PARSE)) {
+		fprintf(stderr, "Extracting string `%ls'.\n", ret);
+	}
 #endif
 	memset(&value, 0, sizeof(value));
 
@@ -360,9 +363,12 @@ vte_trie_addx(struct vte_trie *trie, wchar_t *pattern, size_t length,
 		if (trie->result == NULL) {
 			trie->quark = g_quark_from_string(result);
 			trie->result = g_quark_to_string(trie->quark);
-#ifdef VTE_DEBUG
 		} else {
-			g_warning("Duplicate (%s/%s)!", result, trie->result);
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_PARSE)) {
+				g_warning("Duplicate (%s/%s)!",
+					  result, trie->result);
+			}
 #endif
 		}
 		return;
@@ -642,10 +648,14 @@ vte_trie_match(struct vte_trie *trie, const wchar_t *pattern, size_t length,
 
 /* Print the next layer of the trie, indented by length spaces. */
 static void
-vte_trie_printx(struct vte_trie *trie, const char *previous)
+vte_trie_printx(struct vte_trie *trie, const char *previous, size_t *nodecount)
 {
 	unsigned int i;
 	char buf[LINE_MAX];
+
+	if (nodecount) {
+		(*nodecount)++;
+	}
 
 	for (i = 0; i < trie->trie_path_count; i++) {
 		memset(buf, '\0', sizeof(buf));
@@ -708,7 +718,7 @@ vte_trie_printx(struct vte_trie *trie, const char *previous)
 			g_print("%s = `%s'\n", buf,
 			        trie->trie_paths[i].trie->result);
 		}
-		vte_trie_printx(trie->trie_paths[i].trie, buf);
+		vte_trie_printx(trie->trie_paths[i].trie, buf, nodecount);
 	}
 }
 
@@ -716,7 +726,9 @@ vte_trie_printx(struct vte_trie *trie, const char *previous)
 TRIE_MAYBE_STATIC void
 vte_trie_print(struct vte_trie *trie)
 {
-	vte_trie_printx(trie, "");
+	size_t nodecount = 0;
+	vte_trie_printx(trie, "", &nodecount);
+	g_print("Trie has %ld nodes.\n", (long) nodecount);
 }
 
 #ifdef TRIE_MAIN

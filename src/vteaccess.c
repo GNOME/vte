@@ -23,6 +23,7 @@
 #include <iconv.h>
 #include <atk/atk.h>
 #include <gtk/gtk.h>
+#include "debug.h"
 #include "vte.h"
 #include "vteaccess.h"
 
@@ -112,7 +113,9 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text)
 			}
 			cell = priv->snapshot->contents[row][col];
 #ifdef VTE_DEBUG
-			fprintf(stderr, "%lc", cell.c);
+			if (vte_debug_on(VTE_DEBUG_MISC)) {
+				fprintf(stderr, "%lc", cell.c);
+			}
 #endif
 			g_array_append_val(priv->snapshot_cells, cell);
 
@@ -128,8 +131,10 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text)
 	}
 	priv->snapshot_caret = caret;
 #ifdef VTE_DEBUG
-	fprintf(stderr, "Refreshed accessibility snapshot, %ld cells.\n",
-		(long)priv->snapshot_cells->len);
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "Refreshed accessibility snapshot, "
+			"%ld cells.\n", (long)priv->snapshot_cells->len);
+	}
 #endif
 	priv->snapshot_invalid = FALSE;
 }
@@ -167,7 +172,9 @@ vte_terminal_accessible_invalidate(VteTerminal *terminal, gpointer data)
 	g_return_if_fail(priv != NULL);
 
 #ifdef VTE_DEBUG
-	fprintf(stderr, "Invalidating accessibility snapshot.\n");
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "Invalidating accessibility snapshot.\n");
+	}
 #endif
 
 	priv->snapshot_invalid = TRUE;
@@ -308,8 +315,10 @@ vte_terminal_accessible_get_text(AtkText *text,
 	priv = g_object_get_data(G_OBJECT(text),
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
 #ifdef VTE_DEBUG
-	fprintf(stderr, "Getting text from %d to %d of %d.\n",
-		start_offset, end_offset, priv->snapshot_cells->len);
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "Getting text from %d to %d of %d.\n",
+			start_offset, end_offset, priv->snapshot_cells->len);
+	}
 #endif
 	g_return_val_if_fail(ATK_IS_TEXT(text), NULL);
 
@@ -356,17 +365,19 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
 
 #ifdef VTE_DEBUG
-	fprintf(stderr, "Getting %s %s at %d of %d.\n",
-		(direction == 0) ? "this" :
-		((direction == 1) ? "next" : "previous"),
-		(boundary_type == ATK_TEXT_BOUNDARY_CHAR) ? "char" :
-		((boundary_type == ATK_TEXT_BOUNDARY_LINE_START) ? "line (start)" :
-		((boundary_type == ATK_TEXT_BOUNDARY_LINE_END) ? "line (end)" :
-		((boundary_type == ATK_TEXT_BOUNDARY_WORD_START) ? "word (start)" :
-		((boundary_type == ATK_TEXT_BOUNDARY_WORD_END) ? "word (end)" :
-		((boundary_type == ATK_TEXT_BOUNDARY_SENTENCE_START) ? "sentence (start)" :
-		((boundary_type == ATK_TEXT_BOUNDARY_SENTENCE_END) ? "sentence (end)" : "unknown")))))),
-		offset, priv->snapshot_cells->len);
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "Getting %s %s at %d of %d.\n",
+			(direction == 0) ? "this" :
+			((direction == 1) ? "next" : "previous"),
+			(boundary_type == ATK_TEXT_BOUNDARY_CHAR) ? "char" :
+			((boundary_type == ATK_TEXT_BOUNDARY_LINE_START) ? "line (start)" :
+			((boundary_type == ATK_TEXT_BOUNDARY_LINE_END) ? "line (end)" :
+			((boundary_type == ATK_TEXT_BOUNDARY_WORD_START) ? "word (start)" :
+			((boundary_type == ATK_TEXT_BOUNDARY_WORD_END) ? "word (end)" :
+			((boundary_type == ATK_TEXT_BOUNDARY_SENTENCE_START) ? "sentence (start)" :
+			((boundary_type == ATK_TEXT_BOUNDARY_SENTENCE_END) ? "sentence (end)" : "unknown")))))),
+			offset, priv->snapshot_cells->len);
+	}
 #endif
 	g_return_val_if_fail(priv->snapshot_cells != NULL, g_strdup(""));
 	g_return_val_if_fail(offset < priv->snapshot_cells->len, g_strdup(""));

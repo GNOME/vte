@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <glib.h>
+#include "debug.h"
 #include "ring.h"
 
 struct _VteRing {
@@ -59,9 +60,11 @@ vte_ring_insert(VteRing *ring, long position, gpointer data)
 {
 	long point, i;
 #ifdef VTE_DEBUG
-	fprintf(stderr, "Inserting at position %ld.\n", position);
-	fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
-		ring->delta, ring->length, ring->max);
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "Inserting at position %ld.\n", position);
+		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
+			ring->delta, ring->length, ring->max);
+	}
 #endif
 	g_return_if_fail(position >= ring->delta);
 	g_return_if_fail(position <= ring->delta + ring->length);
@@ -81,8 +84,11 @@ vte_ring_insert(VteRing *ring, long position, gpointer data)
 			ring->length++;
 		}
 #ifdef VTE_DEBUG
-		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
-			ring->delta, ring->length, ring->max);
+		if (vte_debug_on(VTE_DEBUG_MISC)) {
+			fprintf(stderr, " Delta = %ld, Length = %ld, "
+				"Max = %ld.\n",
+				ring->delta, ring->length, ring->max);
+		}
 		vte_ring_validate(ring);
 #endif
 		return;
@@ -114,8 +120,10 @@ vte_ring_insert(VteRing *ring, long position, gpointer data)
 	ring->array[position % ring->max] = data;
 	ring->length = MIN(ring->length + 1, ring->max);
 #ifdef VTE_DEBUG
-	fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
-		ring->delta, ring->length, ring->max);
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
+			ring->delta, ring->length, ring->max);
+	}
 	vte_ring_validate(ring);
 #endif
 }
@@ -125,9 +133,11 @@ vte_ring_remove(VteRing *ring, long position, gboolean free)
 {
 	long i;
 #ifdef VTE_DEBUG
-	fprintf(stderr, "Removing item at position %ld.\n", position);
-	fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
-		ring->delta, ring->length, ring->max);
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "Removing item at position %ld.\n", position);
+		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
+			ring->delta, ring->length, ring->max);
+	}
 #endif
 	/* Remove the data at this position. */
 	if (ring->array[position % ring->max] && ring->free) {
@@ -146,8 +156,10 @@ vte_ring_remove(VteRing *ring, long position, gboolean free)
 		ring->length--;
 	}
 #ifdef VTE_DEBUG
-	fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
-		ring->delta, ring->length, ring->max);
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
+			ring->delta, ring->length, ring->max);
+	}
 	vte_ring_validate(ring);
 #endif
 }
