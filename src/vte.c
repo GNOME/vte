@@ -150,6 +150,11 @@ typedef struct _VteWordCharRange {
 	gunichar start, end;
 } VteWordCharRange;
 
+typedef struct _VteRowData {
+	GArray *cells;
+	guchar soft_wrapped: 1;
+} VteRowData;
+
 /* Terminal private data. */
 struct _VteTerminalPrivate {
 	/* Emulation setup data. */
@@ -445,12 +450,34 @@ static void vte_terminal_queue_background_update(VteTerminal *terminal,
 						 gboolean refresh_transparent);
 static void vte_terminal_queue_adjustment_changed(VteTerminal *terminal);
 
+static char *vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
+						       glong start_row,
+						       glong start_col,
+						       glong end_row,
+						       glong end_col,
+						       gboolean wrap,
+						       gboolean(*is_selected)(VteTerminal *,
+						      			      glong,
+									      glong,
+									      gpointer),
+						       gpointer data,
+						       GArray *attributes);
+static char *vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
+						 gboolean wrap,
+						 gboolean(*is_selected)(VteTerminal *,
+						      			glong,
+									glong,
+									gpointer),
+						 gpointer data,
+						 GArray *attributes);
 /* Free a no-longer-used row data array. */
 static void
 vte_free_row_data(gpointer freeing, gpointer data)
 {
 	if (freeing) {
-		g_array_free((GArray*)freeing, TRUE);
+		VteRowData *row = (VteRowData*) freeing;
+		g_array_free(row->cells, TRUE);
+		g_free(row);
 	}
 }
 
@@ -471,22 +498,28 @@ vte_g_array_fill(GArray *array, gpointer item, guint final_size)
 }
 
 /* Allocate a new line. */
-static GArray *
+static VteRowData *
 vte_new_row_data(VteTerminal *terminal)
 {
-	return g_array_new(FALSE, FALSE, sizeof(struct vte_charcell));
+	VteRowData *row = NULL;
+	row = g_malloc0(sizeof(VteRowData));
+	row->cells = g_array_new(FALSE, FALSE, sizeof(struct vte_charcell));
+	row->soft_wrapped = 0;
+	return row;
 }
 
 /* Allocate a new line of a given size. */
-static GArray *
+static VteRowData *
 vte_new_row_data_sized(VteTerminal *terminal, gboolean fill)
 {
-	GArray *row;
-	row = g_array_sized_new(FALSE, FALSE,
-				sizeof(struct vte_charcell),
-				terminal->column_count);
+	VteRowData *row = NULL;
+	row = g_malloc0(sizeof(VteRowData));
+	row->cells = g_array_sized_new(FALSE, FALSE,
+				       sizeof(struct vte_charcell),
+				       terminal->column_count);
+	row->soft_wrapped = 0;
 	if (fill) {
-		vte_g_array_fill(row,
+		vte_g_array_fill(row->cells,
 				 &terminal->pvt->screen->fill_defaults,
 				 terminal->column_count);
 	}
@@ -632,15 +665,17 @@ vte_terminal_scroll_region(VteTerminal *terminal,
 static struct vte_charcell *
 vte_terminal_find_charcell(VteTerminal *terminal, glong col, glong row)
 {
-	GArray *rowdata;
+	VteRowData *rowdata;
 	struct vte_charcell *ret = NULL;
 	VteScreen *screen;
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 	screen = terminal->pvt->screen;
 	if (_vte_ring_contains(screen->row_data, row)) {
-		rowdata = _vte_ring_index(screen->row_data, GArray*, row);
-		if (rowdata->len > col) {
-			ret = &g_array_index(rowdata, struct vte_charcell, col);
+		rowdata = _vte_ring_index(screen->row_data, VteRowData *, row);
+		if (rowdata->cells->len > col) {
+			ret = &g_array_index(rowdata->cells,
+					     struct vte_charcell,
+					     col);
 		}
 	}
 	return ret;
@@ -1801,19 +1836,19 @@ vte_sequence_handler_multiple(VteTerminal *terminal,
 static void
 vte_insert_line_internal(VteTerminal *terminal, glong position)
 {
-	GArray *array;
+	VteRowData *row;
 	/* Pad out the line data to the insertion point. */
 	while (_vte_ring_next(terminal->pvt->screen->row_data) < position) {
-		array = vte_new_row_data_sized(terminal, TRUE);
-		_vte_ring_append(terminal->pvt->screen->row_data, array);
+		row = vte_new_row_data_sized(terminal, TRUE);
+		_vte_ring_append(terminal->pvt->screen->row_data, row);
 	}
 	/* If we haven't inserted a line yet, insert a new one. */
-	array = vte_new_row_data_sized(terminal, TRUE);
+	row = vte_new_row_data_sized(terminal, TRUE);
 	if (_vte_ring_next(terminal->pvt->screen->row_data) >= position) {
 		_vte_ring_insert(terminal->pvt->screen->row_data,
-				 position, array);
+				 position, row);
 	} else {
-		_vte_ring_append(terminal->pvt->screen->row_data, array);
+		_vte_ring_append(terminal->pvt->screen->row_data, row);
 	}
 }
 
@@ -2013,7 +2048,7 @@ vte_sequence_handler_al(VteTerminal *terminal,
 			GValueArray *params)
 {
 	VteScreen *screen;
-	GArray *rowdata;
+	VteRowData *rowdata;
 	long start, end, param, i;
 	GValue *value;
 
@@ -2040,9 +2075,10 @@ vte_sequence_handler_al(VteTerminal *terminal,
 		vte_remove_line_internal(terminal, end);
 		vte_insert_line_internal(terminal, start);
 		/* Get the data for the new row. */
-		rowdata = _vte_ring_index(screen->row_data, GArray*, start);
+		rowdata = _vte_ring_index(screen->row_data,
+					  VteRowData *, start);
 		/* Add enough cells to it so that it has the default colors. */
-		vte_g_array_fill(rowdata, &screen->fill_defaults,
+		vte_g_array_fill(rowdata->cells, &screen->fill_defaults,
 				 terminal->column_count);
 		/* Adjust the scrollbars if necessary. */
 		vte_terminal_adjust_adjustments(terminal, FALSE);
@@ -2136,7 +2172,7 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	GArray *rowdata;
+	VteRowData *rowdata;
 	long i;
 	VteScreen *screen;
 	struct vte_charcell *pcell;
@@ -2145,21 +2181,22 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 	/* Get the data for the row which the cursor points to. */
 	vte_terminal_ensure_cursor(terminal, FALSE);
 	rowdata = _vte_ring_index(screen->row_data,
-				  GArray*,
+				  VteRowData *,
 				  screen->cursor_current.row);
 	/* Clear the data up to the current column with the default
 	 * attributes.  If there is no such character cell, we need
 	 * to add one. */
 	for (i = 0; i <= screen->cursor_current.col; i++) {
-		if (i < rowdata->len) {
+		if (i < rowdata->cells->len) {
 			/* Muck with the cell in this location. */
-			pcell = &g_array_index(rowdata,
+			pcell = &g_array_index(rowdata->cells,
 					       struct vte_charcell,
 					       i);
 			*pcell = screen->color_defaults;
 		} else {
 			/* Add new cells until we have one here. */
-			g_array_append_val(rowdata, screen->color_defaults);
+			g_array_append_val(rowdata->cells,
+					   screen->color_defaults);
 		}
 	}
 	/* Repaint this row. */
@@ -2178,7 +2215,7 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	GArray *rowdata;
+	VteRowData *rowdata;
 	long i;
 	VteScreen *screen;
 
@@ -2188,11 +2225,11 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 	i = screen->cursor_current.row;
 	if (i < _vte_ring_next(screen->row_data)) {
 		/* Get the data for the row we're clipping. */
-		rowdata = _vte_ring_index(screen->row_data, GArray*, i);
+		rowdata = _vte_ring_index(screen->row_data, VteRowData *, i);
 		/* Clear everything to the right of the cursor. */
 		if ((rowdata != NULL) &&
-		    (rowdata->len > screen->cursor_current.col)) {
-			g_array_set_size(rowdata,
+		    (rowdata->cells->len > screen->cursor_current.col)) {
+			g_array_set_size(rowdata->cells,
 					 screen->cursor_current.col);
 		}
 	}
@@ -2201,10 +2238,10 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 	     i < _vte_ring_next(screen->row_data);
 	     i++) {
 		/* Get the data for the row we're removing. */
-		rowdata = _vte_ring_index(screen->row_data, GArray*, i);
+		rowdata = _vte_ring_index(screen->row_data, VteRowData *, i);
 		/* Remove it. */
-		if ((rowdata != NULL) && (rowdata->len > 0)) {
-			g_array_set_size(rowdata, 0);
+		if ((rowdata != NULL) && (rowdata->cells->len > 0)) {
+			g_array_set_size(rowdata->cells, 0);
 		}
 	}
 	/* Now fill the cleared areas. */
@@ -2213,13 +2250,14 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 	     i++) {
 		/* Retrieve the row's data, creating it if necessary. */
 		if (_vte_ring_contains(screen->row_data, i)) {
-			rowdata = _vte_ring_index(screen->row_data, GArray*, i);
+			rowdata = _vte_ring_index(screen->row_data,
+						  VteRowData *, i);
 		} else {
 			rowdata = vte_new_row_data(terminal);
 			_vte_ring_append(screen->row_data, rowdata);
 		}
 		/* Pad out the row. */
-		vte_g_array_fill(rowdata,
+		vte_g_array_fill(rowdata->cells,
 				 &screen->fill_defaults,
 				 terminal->column_count);
 		/* Repaint this row. */
@@ -2239,21 +2277,21 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	GArray *rowdata;
+	VteRowData *rowdata;
 	VteScreen *screen;
 
 	screen = terminal->pvt->screen;
 	/* Get the data for the row which the cursor points to. */
 	vte_terminal_ensure_cursor(terminal, FALSE);
-	rowdata = _vte_ring_index(screen->row_data, GArray*,
+	rowdata = _vte_ring_index(screen->row_data, VteRowData *,
 				  screen->cursor_current.row);
 	/* Remove the data at the end of the array until the current column
 	 * is the end of the array. */
-	if (rowdata->len > screen->cursor_current.col) {
-		g_array_set_size(rowdata, screen->cursor_current.col);
+	if (rowdata->cells->len > screen->cursor_current.col) {
+		g_array_set_size(rowdata->cells, screen->cursor_current.col);
 	}
 	/* Add enough cells to the end of the line to fill out the row. */
-	vte_g_array_fill(rowdata,
+	vte_g_array_fill(rowdata->cells,
 			 &screen->fill_defaults,
 			 terminal->column_count);
 	/* Repaint this row. */
@@ -2341,7 +2379,7 @@ vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 					GQuark match_quark,
 					GValueArray *params)
 {
-	GArray *rowdata;
+	VteRowData *rowdata;
 	VteScreen *screen;
 
 	screen = terminal->pvt->screen;
@@ -2350,15 +2388,15 @@ vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 	 * which corresponds to the cursor. */
 	if (_vte_ring_next(screen->row_data) > screen->cursor_current.row) {
 		/* Get the data for the row which the cursor points to. */
-		rowdata = _vte_ring_index(screen->row_data, GArray*,
+		rowdata = _vte_ring_index(screen->row_data, VteRowData *,
 					  screen->cursor_current.row);
 		/* Remove it. */
-		if (rowdata->len > 0) {
-			g_array_set_size(rowdata, 0);
+		if (rowdata->cells->len > 0) {
+			g_array_set_size(rowdata->cells, 0);
 		}
 		/* Add enough cells to the end of the line to fill out the
 		 * row. */
-		vte_g_array_fill(rowdata,
+		vte_g_array_fill(rowdata->cells,
 				 &screen->fill_defaults,
 				 terminal->column_count);
 		/* Repaint this row. */
@@ -2537,7 +2575,7 @@ vte_sequence_handler_dc(VteTerminal *terminal,
 			GValueArray *params)
 {
 	VteScreen *screen;
-	GArray *rowdata;
+	VteRowData *rowdata;
 	long col;
 
 	screen = terminal->pvt->screen;
@@ -2545,15 +2583,15 @@ vte_sequence_handler_dc(VteTerminal *terminal,
 	if (_vte_ring_next(screen->row_data) > screen->cursor_current.row) {
 		/* Get the data for the row which the cursor points to. */
 		rowdata = _vte_ring_index(screen->row_data,
-					  GArray*,
+					  VteRowData *,
 					  screen->cursor_current.row);
 		col = screen->cursor_current.col;
 		/* Remove the column. */
-		if (col < rowdata->len) {
-			g_array_remove_index(rowdata, col);
+		if (col < rowdata->cells->len) {
+			g_array_remove_index(rowdata->cells, col);
 		}
 		/* Add new cells until we have enough to fill the row. */
-		vte_g_array_fill(rowdata,
+		vte_g_array_fill(rowdata->cells,
 				 &screen->color_defaults,
 				 terminal->column_count);
 		/* Repaint this row. */
@@ -2636,7 +2674,7 @@ vte_sequence_handler_DL(VteTerminal *terminal,
 static void
 vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 {
-	GArray *array;
+	VteRowData *row;
 	VteScreen *screen;
 	gboolean readjust = FALSE, fill = FALSE;
 
@@ -2648,11 +2686,11 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 	while (screen->cursor_current.row >= _vte_ring_next(screen->row_data)) {
 		/* Create a new row. */
 		if (fill) {
-			array = vte_new_row_data_sized(terminal, TRUE);
+			row = vte_new_row_data_sized(terminal, TRUE);
 		} else {
-			array = vte_new_row_data(terminal);
+			row = vte_new_row_data(terminal);
 		}
-		_vte_ring_append(screen->row_data, array);
+		_vte_ring_append(screen->row_data, row);
 		readjust = TRUE;
 	}
 	if (readjust) {
@@ -2660,21 +2698,21 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 	}
 
 	/* Find the row the cursor is in. */
-	array = _vte_ring_index(screen->row_data,
-				GArray*,
-				screen->cursor_current.row);
-	if ((array->len <= screen->cursor_current.col) &&
-	    (array->len < terminal->column_count)) {
+	row = _vte_ring_index(screen->row_data,
+			      VteRowData *,
+			      screen->cursor_current.row);
+	if ((row->cells->len <= screen->cursor_current.col) &&
+	    (row->cells->len < terminal->column_count)) {
 		/* Set up defaults we'll use when adding new cells. */
 		if (current) {
 			/* Add new cells until we have one here. */
-			vte_g_array_fill(array,
+			vte_g_array_fill(row->cells,
 					 &screen->color_defaults,
 					 screen->cursor_current.col + 1);
 		} else {
 			/* Add enough cells at the end to make sure we have
 			 * enough for all visible columns. */
-			vte_g_array_fill(array,
+			vte_g_array_fill(row->cells,
 					 &screen->basic_defaults,
 					 screen->cursor_current.col + 1);
 		}
@@ -2762,7 +2800,7 @@ vte_sequence_handler_ec(VteTerminal *terminal,
 			GValueArray *params)
 {
 	VteScreen *screen;
-	GArray *rowdata;
+	VteRowData *rowdata;
 	GValue *value;
 	struct vte_charcell *cell;
 	long col, i, count;
@@ -2783,23 +2821,23 @@ vte_sequence_handler_ec(VteTerminal *terminal,
 	if (_vte_ring_next(screen->row_data) > screen->cursor_current.row) {
 		/* Get the data for the row which the cursor points to. */
 		rowdata = _vte_ring_index(screen->row_data,
-					  GArray*,
+					  VteRowData *,
 					  screen->cursor_current.row);
 		/* Write over the characters.  (If there aren't enough, we'll
 		 * need to create them.) */
 		for (i = 0; i < count; i++) {
 			col = screen->cursor_current.col + i;
 			if (col >= 0) {
-				if (col < rowdata->len) {
+				if (col < rowdata->cells->len) {
 					/* Replace this cell with the current
 					 * defaults. */
-					cell = &g_array_index(rowdata,
+					cell = &g_array_index(rowdata->cells,
 							      struct vte_charcell,
 							      col);
 					*cell = screen->color_defaults;
 				} else {
 					/* Add new cells until we have one here. */
-					vte_g_array_fill(rowdata,
+					vte_g_array_fill(rowdata->cells,
 							 &screen->color_defaults,
 							 col);
 				}
@@ -3241,7 +3279,7 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 			GValueArray *params)
 {
 	GtkWidget *widget;
-	GArray *array;
+	VteRowData *row;
 	long start, end, bottom;
 	VteScreen *screen;
 
@@ -3262,12 +3300,12 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 				/* Scroll this line into the scrollback
 				 * buffer by inserting a line at the next
 				 * line and scrolling the area up. */
-				array = vte_new_row_data_sized(terminal, TRUE);
+				row = vte_new_row_data_sized(terminal, TRUE);
 				screen->insert_delta++;
 				screen->cursor_current.row++;
 				_vte_ring_insert_preserve(terminal->pvt->screen->row_data,
 							  screen->cursor_current.row,
-							  array);
+							  row);
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
 				bottom = screen->insert_delta +
@@ -3816,7 +3854,7 @@ vte_sequence_handler_clear_above_current(VteTerminal *terminal,
 					 GQuark match_quark,
 					 GValueArray *params)
 {
-	GArray *rowdata;
+	VteRowData *rowdata;
 	long i;
 	VteScreen *screen;
 	screen = terminal->pvt->screen;
@@ -3825,13 +3863,14 @@ vte_sequence_handler_clear_above_current(VteTerminal *terminal,
 	for (i = screen->insert_delta; i < screen->cursor_current.row; i++) {
 		if (_vte_ring_next(screen->row_data) > i) {
 			/* Get the data for the row we're erasing. */
-			rowdata = _vte_ring_index(screen->row_data, GArray*, i);
+			rowdata = _vte_ring_index(screen->row_data,
+						  VteRowData *, i);
 			/* Remove it. */
-			if (rowdata->len > 0) {
-				g_array_set_size(rowdata, 0);
+			if (rowdata->cells->len > 0) {
+				g_array_set_size(rowdata->cells, 0);
 			}
 			/* Add new cells until we fill the row. */
-			vte_g_array_fill(rowdata,
+			vte_g_array_fill(rowdata->cells,
 					 &screen->fill_defaults,
 					 terminal->column_count);
 			/* Repaint the row. */
@@ -3851,7 +3890,7 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 				  GQuark match_quark,
 				  GValueArray *params)
 {
-	GArray *rowdata;
+	VteRowData *rowdata;
 	long i, initial, row;
 	VteScreen *screen;
 	screen = terminal->pvt->screen;
@@ -4838,7 +4877,7 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 				  GQuark match_quark,
 				  GValueArray *params)
 {
-	GArray *rowdata;
+	VteRowData *rowdata;
 	GValue *value;
 	VteScreen *screen;
 	long param, end, row;
@@ -4865,9 +4904,9 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 		vte_remove_line_internal(terminal, end);
 		vte_insert_line_internal(terminal, row);
 		/* Get the data for the new row. */
-		rowdata = _vte_ring_index(screen->row_data, GArray*, row);
+		rowdata = _vte_ring_index(screen->row_data, VteRowData *, row);
 		/* Add enough cells to it so that it has the default colors. */
-		vte_g_array_fill(rowdata,
+		vte_g_array_fill(rowdata->cells,
 				 &screen->fill_defaults,
 				 terminal->column_count);
 	}
@@ -4887,7 +4926,7 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 				  GValueArray *params)
 {
 	GValue *value;
-	GArray *rowdata;
+	VteRowData *rowdata;
 	VteScreen *screen;
 	long param, end, row;
 	int i;
@@ -4914,9 +4953,9 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 		vte_remove_line_internal(terminal, row);
 		vte_insert_line_internal(terminal, end);
 		/* Get the data for the new row. */
-		rowdata = _vte_ring_index(screen->row_data, GArray*, end);
+		rowdata = _vte_ring_index(screen->row_data, VteRowData *, end);
 		/* Add enough cells to it so that it has the default colors. */
-		vte_g_array_fill(rowdata,
+		vte_g_array_fill(rowdata->cells,
 				 &screen->fill_defaults,
 				 terminal->column_count);
 	}
@@ -5100,7 +5139,7 @@ vte_sequence_handler_screen_alignment_test(VteTerminal *terminal,
 					   GValueArray *params)
 {
 	long row;
-	GArray *rowdata;
+	VteRowData *rowdata;
 	VteScreen *screen;
 	struct vte_charcell cell;
 
@@ -5115,17 +5154,17 @@ vte_sequence_handler_screen_alignment_test(VteTerminal *terminal,
 			_vte_ring_append(screen->row_data, rowdata);
 		}
 		vte_terminal_adjust_adjustments(terminal, TRUE);
-		rowdata = _vte_ring_index(screen->row_data, GArray*, row);
+		rowdata = _vte_ring_index(screen->row_data, VteRowData *, row);
 		/* Clear this row. */
-		if (rowdata->len > 0) {
-			g_array_set_size(rowdata, 0);
+		if (rowdata->cells->len > 0) {
+			g_array_set_size(rowdata->cells, 0);
 		}
 		vte_terminal_emit_text_deleted(terminal);
 		/* Fill this row. */
 		cell = screen->basic_defaults;
 		cell.c = 'E';
 		cell.columns = 1;
-		vte_g_array_fill(rowdata, &cell, terminal->column_count);
+		vte_g_array_fill(rowdata->cells, &cell, terminal->column_count);
 		vte_terminal_emit_text_inserted(terminal);
 	}
 	vte_invalidate_all(terminal);
@@ -6174,7 +6213,7 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			 gboolean force_insert_mode, gboolean invalidate_now,
 			 gboolean paint_cells, gint forced_width)
 {
-	GArray *array;
+	VteRowData *row;
 	struct vte_charcell cell, *pcell;
 	int columns, i;
 	long col;
@@ -6236,6 +6275,13 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	col = screen->cursor_current.col;
 	if (col + columns > terminal->column_count) {
 		if (terminal->pvt->flags.am) {
+			/* Mark this line as soft-wrapped. */
+			row = _vte_ring_index(screen->row_data,
+					      VteRowData *,
+					      screen->cursor_current.row);
+			if (row != NULL) {
+				row->soft_wrapped = 1;
+			}
 			/* Wrap. */
 			vte_sequence_handler_sf(terminal, NULL, 0, NULL);
 			screen->cursor_current.col = 0;
@@ -6250,24 +6296,24 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	vte_terminal_ensure_cursor(terminal, FALSE);
 
 	/* Get a handle on the array for the insertion row. */
-	array = _vte_ring_index(screen->row_data,
-				GArray*,
-				screen->cursor_current.row);
+	row = _vte_ring_index(screen->row_data,
+			      VteRowData *,
+			      screen->cursor_current.row);
 
 	/* Insert the right number of columns. */
 	for (i = 0; i < columns; i++) {
 		col = screen->cursor_current.col;
 
 		/* Make sure we have enough columns in this row. */
-		if (array->len <= col) {
+		if (row->cells->len <= col) {
 			/* Add enough cells to fill out the row to at least out
 			 * to (and including) the insertion point. */
 			if (paint_cells) {
-				vte_g_array_fill(array,
+				vte_g_array_fill(row->cells,
 						 &screen->color_defaults,
 						 col + 1);
 			} else {
-				vte_g_array_fill(array,
+				vte_g_array_fill(row->cells,
 						 &screen->basic_defaults,
 						 col + 1);
 			}
@@ -6277,7 +6323,7 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			 * and use it. */
 			if (insert) {
 				cell = screen->color_defaults;
-				g_array_insert_val(array, col, cell);
+				g_array_insert_val(row->cells, col, cell);
 				clean = FALSE;
 			} else {
 				/* We're in overtype mode, so we can use the
@@ -6288,8 +6334,8 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 		/* Set the character cell's attributes to match the current
 		 * defaults, preserving any previous contents. */
-		cell = g_array_index(array, struct vte_charcell, col);
-		pcell = &g_array_index(array, struct vte_charcell, col);
+		cell = g_array_index(row->cells, struct vte_charcell, col);
+		pcell = &g_array_index(row->cells, struct vte_charcell, col);
 		*pcell = screen->defaults;
 		if (!paint_cells) {
 			pcell->fore = cell.fore;
@@ -6328,8 +6374,8 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		/* Make sure we're not getting random stuff past the right
 		 * edge of the screen at this point, because the user can't
 		 * see it. */
-		if (array->len > terminal->column_count) {
-			g_array_set_size(array, terminal->column_count);
+		if (row->cells->len > terminal->column_count) {
+			g_array_set_size(row->cells, terminal->column_count);
 		}
 	}
 
@@ -7994,24 +8040,19 @@ vte_uniform_class(VteTerminal *terminal, glong row, glong scol, glong ecol)
 	return FALSE;
 }
 
-/* Check if the last visible column of the requested line and the first visible
- * column of the one after it contain non-whitespace characters. */
+/* Check if we soft-wrapped on the given line. */
 static gboolean
 vte_line_is_wrappable(VteTerminal *terminal, glong row)
 {
-	struct vte_charcell *acell = NULL, *bcell = NULL;
-
+	VteRowData *rowdata;
+	VteScreen *screen;
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-
-	acell = vte_terminal_find_charcell(terminal,
-					   terminal->column_count - 1,
-					   row);
-	bcell = vte_terminal_find_charcell(terminal,
-					   0,
-					   row + 1);
-	if (acell && bcell) {
-		return !g_unichar_isspace(acell->c) && (acell->c != '\0') &&
-		       !g_unichar_isspace(bcell->c) && (bcell->c != '\0');
+	screen = terminal->pvt->screen;
+	if (_vte_ring_contains(screen->row_data, row)) {
+		rowdata = _vte_ring_index(screen->row_data, VteRowData *, row);
+		if (rowdata->soft_wrapped) {
+			return TRUE;
+		}
 	}
 	return FALSE;
 }
@@ -8485,10 +8526,33 @@ char *
 vte_terminal_get_text_range(VteTerminal *terminal,
 			    glong start_row, glong start_col,
 			    glong end_row, glong end_col,
-			    gboolean(*is_selected)(VteTerminal *, glong, glong,
+			    gboolean(*is_selected)(VteTerminal *,
+			 			   glong,
+						   glong,
 						   gpointer),
 			    gpointer data,
 			    GArray *attributes)
+{
+	return vte_terminal_get_text_range_maybe_wrapped(terminal,
+							 start_row, start_col,
+							 end_row, end_col,
+							 TRUE,
+							 is_selected,
+							 data,
+							 attributes);
+}
+
+static char *
+vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
+					  glong start_row, glong start_col,
+					  glong end_row, glong end_col,
+					  gboolean wrap,
+					  gboolean(*is_selected)(VteTerminal *,
+					 			 glong,
+								 glong,
+								 gpointer),
+					  gpointer data,
+					  GArray *attributes)
 {
 	long col, row, last_space, last_spacecol,
 	     last_nonspace, last_nonspacecol;
@@ -8611,13 +8675,22 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 							   terminal->column_count - 1,
 							   row);
 			/* If it's whitespace, we snipped it off, so add a
-			 * newline. */
+			 * newline, unless we soft-wrapped. */
 			if ((pcell == NULL) ||
 			    (pcell->c == '\0') ||
 			    (pcell->c == ' ')) {
-				string = g_string_append_c(string, '\n');
+				if (vte_line_is_wrappable(terminal, row) &&
+				    wrap) {
+					string = g_string_append_c(string,
+								   pcell ?
+								   pcell->c :
+								   ' ');
+				} else {
+					string = g_string_append_c(string,
+								   '\n');
+				}
 			}
-			/* Move this newline to the end of the line. */
+			/* Move this last character to the end of the line. */
 			attr.column = MAX(terminal->column_count,
 					  attr.column + 1);
 			/* If we broke out of the loop, there's at least one
@@ -8633,6 +8706,32 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 		g_assert(string->len == attributes->len);
 	}
 	return g_string_free(string, FALSE);
+}
+
+static char *
+vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
+				    gboolean wrap,
+				    gboolean(*is_selected)(VteTerminal *,
+				   			   glong,
+							   glong,
+							   gpointer),
+				    gpointer data,
+				    GArray *attributes)
+{
+	long start_row, start_col, end_row, end_col;
+	start_row = terminal->pvt->screen->scroll_delta;
+	start_col = 0;
+	end_row = start_row + terminal->row_count - 1;
+	end_col = terminal->column_count - 1;
+	return vte_terminal_get_text_range_maybe_wrapped(terminal,
+							 start_row, start_col,
+							 end_row, end_col,
+							 wrap,
+							 is_selected ?
+							 is_selected :
+							 always_selected,
+							 data,
+							 attributes);
 }
 
 /**
@@ -8652,23 +8751,20 @@ vte_terminal_get_text_range(VteTerminal *terminal,
  */
 char *
 vte_terminal_get_text(VteTerminal *terminal,
-		      gboolean(*is_selected)(VteTerminal *, glong, glong,
+		      gboolean(*is_selected)(VteTerminal *,
+		     			     glong,
+					     glong,
 					     gpointer),
 		      gpointer data,
 		      GArray *attributes)
 {
-	long start_row, start_col, end_row, end_col;
-	start_row = terminal->pvt->screen->scroll_delta;
-	start_col = 0;
-	end_row = start_row + terminal->row_count - 1;
-	end_col = terminal->column_count - 1;
-	return vte_terminal_get_text_range(terminal,
-					   start_row, start_col,
-					   end_row, end_col,
-					   is_selected ?
-					   is_selected : always_selected,
-					   data,
-					   attributes);
+	return vte_terminal_get_text_maybe_wrapped(terminal,
+						   TRUE,
+						   is_selected ?
+						   is_selected :
+						   always_selected,
+						   data,
+						   attributes);
 }
 
 /**
@@ -8834,7 +8930,7 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 {
 	VteTerminal *terminal;
 	VteScreen *screen;
-	GArray *rowdata;
+	VteRowData *rowdata;
 	long delta, height, width, last_nonspace, i, j;
 	struct vte_charcell *cell;
 	struct selection_event_coords *origin, *last, *start, *end;
@@ -8938,15 +9034,16 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 
 	/* Handle end-of-line at the start-cell. */
 	if (_vte_ring_contains(screen->row_data, sc->y)) {
-		rowdata = _vte_ring_index(screen->row_data, GArray*, sc->y);
+		rowdata = _vte_ring_index(screen->row_data,
+					  VteRowData *, sc->y);
 	} else {
 		rowdata = NULL;
 	}
 	if (rowdata != NULL) {
 		/* Find the last non-space character on the first line. */
 		last_nonspace = -1;
-		for (i = 0; i < rowdata->len; i++) {
-			cell = &g_array_index(rowdata,
+		for (i = 0; i < rowdata->cells->len; i++) {
+			cell = &g_array_index(rowdata->cells,
 					      struct vte_charcell, i);
 			if (!g_unichar_isspace(cell->c) && (cell->c != '\0')) {
 				last_nonspace = i;
@@ -8974,15 +9071,17 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 
 	/* Handle end-of-line at the end-cell. */
 	if (_vte_ring_contains(screen->row_data, ec->y)) {
-		rowdata = _vte_ring_index(screen->row_data, GArray*, ec->y);
+		rowdata = _vte_ring_index(screen->row_data,
+					  VteRowData *, ec->y);
 	} else {
 		rowdata = NULL;
 	}
 	if (rowdata != NULL) {
 		/* Find the last non-space character on the last line. */
 		last_nonspace = -1;
-		for (i = 0; i < rowdata->len; i++) {
-			cell = &g_array_index(rowdata, struct vte_charcell, i);
+		for (i = 0; i < rowdata->cells->len; i++) {
+			cell = &g_array_index(rowdata->cells,
+					      struct vte_charcell, i);
 			if (!g_unichar_isspace(cell->c) && (cell->c != '\0')) {
 				last_nonspace = i;
 			}
@@ -8994,7 +9093,7 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 		if (ec->x >= i) {
 			ec->x = MAX(ec->x,
 				    MAX(terminal->column_count - 1,
-					rowdata->len));
+					rowdata->cells->len));
 		}
 	} else {
 		/* Snap to the rightmost column. */
@@ -9013,7 +9112,8 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 		j = sc->y;
 		while (_vte_ring_contains(screen->row_data, j)) {
 			/* Get the data for the row we're looking at. */
-			rowdata = _vte_ring_index(screen->row_data, GArray*, j);
+			rowdata = _vte_ring_index(screen->row_data,
+						  VteRowData *, j);
 			if (rowdata == NULL) {
 				break;
 			}
@@ -9053,7 +9153,8 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 		j = ec->y;
 		while (_vte_ring_contains(screen->row_data, j)) {
 			/* Get the data for the row we're looking at. */
-			rowdata = _vte_ring_index(screen->row_data, GArray*, j);
+			rowdata = _vte_ring_index(screen->row_data,
+						  VteRowData *, j);
 			if (rowdata == NULL) {
 				break;
 			}
@@ -9109,10 +9210,9 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 		ec->x = terminal->column_count - 1;
 		if (_vte_ring_contains(screen->row_data, ec->y)) {
 			rowdata = _vte_ring_index(screen->row_data,
-						  GArray*,
-						  ec->y);
+						  VteRowData *, ec->y);
 			if (rowdata != NULL) {
-				ec->x = MAX(ec->x, rowdata->len);
+				ec->x = MAX(ec->x, rowdata->cells->len);
 			}
 		}
 		break;
@@ -10172,7 +10272,7 @@ static void
 vte_terminal_reset_rowdata(VteRing **ring, glong lines)
 {
 	VteRing *new_ring;
-	GArray *row;
+	VteRowData *row;
 	long i, next;
 
 #ifdef VTE_DEBUG
@@ -10191,7 +10291,7 @@ vte_terminal_reset_rowdata(VteRing **ring, glong lines)
 	if (*ring) {
 		next = _vte_ring_next(*ring);
 		for (i = _vte_ring_delta(*ring); i < next; i++) {
-			row = _vte_ring_index(*ring, GArray*, i);
+			row = _vte_ring_index(*ring, VteRowData *, i);
 			_vte_ring_append(new_ring, row);
 		}
 		_vte_ring_free(*ring, FALSE);

@@ -340,7 +340,7 @@ terminal_adjustment(GtkWidget *terminal)
 int
 main(int argc, char **argv)
 {
-	GtkWidget *label, *terminal, *tophalf, *pane, *window, *scrollbar;
+	GtkWidget *label, *terminal, *tophalf, *pane, *window, *scrollbar, *sw;
 	AtkObject *obj;
 	char *text, *p;
 	gunichar c;
@@ -375,11 +375,15 @@ main(int argc, char **argv)
 	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_LEFT);
 	gtk_misc_set_alignment(GTK_MISC(label), 0, 0);
 
+	sw = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(sw), label);
+	gtk_widget_show(label);
+
 	pane = gtk_vpaned_new();
 	gtk_paned_pack1(GTK_PANED(pane), tophalf, TRUE, FALSE);
-	gtk_paned_pack2(GTK_PANED(pane), label, TRUE, FALSE);
+	gtk_paned_pack2(GTK_PANED(pane), sw, TRUE, FALSE);
 	gtk_widget_show(tophalf);
-	gtk_widget_show(label);
+	gtk_widget_show(sw);
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	g_signal_connect(G_OBJECT(window), "delete_event",

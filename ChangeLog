@@ -1,3 +1,17 @@
+2003-04-15 nalin
+	* src/vte.c: make row_data a structure containing an array instead of a
+	simple array.  Add a field to row data structures which tracks whether
+	or not we soft-wrapped from this line to the next one.  Make use of the
+	field when copying text and selecting by "line".
+	* src/reflect.c: put the label in a scrolled window to avoid mad loops
+	when we resize it to accomodate more text, which shrinks the terminal,
+	which removes text from the label, which resizes it to be smaller, which
+	gives the terminal more space, which adds text to the viewable area,
+	which requires a bigger label, and so on.
+	* src/vte.c: move vte_terminal_get_text_range logic into
+	vte_terminal_get_text_range_maybe_wrapped for internal use,
+	vte_terminal_get_text likewise.
+
 2003-04-14 nalin
 	* src/vte.c: don't snap the beginning of selection to the next line in
 	select-by-line mode.

@@ -403,7 +403,7 @@ init_term_with_defaults(struct termios* term)
 #endif
 
 	/* These two may overlap so set them first */
-	/* That setup means, that read() will be blocked untill */
+	/* That setup means, that read() will be blocked until  */
 	/* at least 1 symbol will be read.                      */
 	term->c_cc[VMIN]  = 1;
 	term->c_cc[VTIME] = 0;
