@@ -2,39 +2,40 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
+#Samúel Jón Gunnarsson  <sammi@techattack.nu>, 2003
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2003-05-19 14:33-0400\n"
-"PO-Revision-Date: 2003-02-25 19:52--100\n"
+"POT-Creation-Date: 2003-06-07 09:07+0200\n"
+"PO-Revision-Date: 2003-06-07 09:07--100\n"
 "Last-Translator: Samuel Jon Gunnarsson <sammi@techattack.nu>\n"
 "Language-Team: Icelandic <gnome@techattack.nu>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#: src/iso2022.c:786 src/iso2022.c:797 src/iso2022.c:846 src/vte.c:2048
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Ekki tókst að umbreyta rittáknum frá %s yfir í %s."
 
-#: src/iso2022.c:1505
+#: src/iso2022.c:1559
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr ""
+msgstr "Reyndi að setja ógilt NRC kort '%c'."
 
-#. See ECMA-35.
-#: src/iso2022.c:1546
+#  Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1600
 msgid "Unrecognized identified coding system."
-msgstr ""
+msgstr "Óþekkt \"identified coding system\"."
 
-#: src/iso2022.c:1595 src/iso2022.c:1621
+#: src/iso2022.c:1649 src/iso2022.c:1675
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr ""
+msgstr "Reyndi að setja upp ógilda breidd á NRC korti '%c'."
 
-#: src/pty.c:317
+#: src/pty.c:319
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Villa. Ekki tókst að bæta `%s' við í umhverfið, held áfram."
@@ -42,7 +43,7 @@ msgstr "Villa. Ekki tókst að bæta `%s' við í umhverfið, held áfram."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:877
+#: src/pty.c:882
 #, c-format
 msgid "can not run %s"
 msgstr "get ekki keyrt %s"
@@ -56,88 +57,57 @@ msgstr "Villa. Ekki tókst að búa til merkja pípu."
 msgid "Duplicate (%s/%s)!"
 msgstr "Tvöfalda (%s/%s)!"
 
-#: src/vte.c:1430
-#, fuzzy, c-format
+#: src/vte.c:1460
+#, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "Villa. Ekki tókst að vistþýða regular expression \"%s\"."
+msgstr "Villa. Ekki tókst að vistþýða venjulega segð \"%s\"."
 
-#: src/vte.c:5534
+#: src/vte.c:5634
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Meðtók óvænta (flýtilykla?) runu `%s'."
 
-#: src/vte.c:6547
+#: src/vte.c:6647
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Engin aðgerð fyrir stjórnun á runu `%s' skilgreind."
 
-#: src/vte.c:7293
+#: src/vte.c:7394
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Villa. Ekki tókst að lesa frá barni: %s"
 
-#: src/vte.c:7449
+#: src/vte.c:7550
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Villa (%s) við umbreytingu á gögnum frá barni, hætti við."
 
-#: src/vte.c:10069
+#: src/vte.c:10182
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Villa. Ekki tókst að lesa PTY stærð, nota sjálfgefið: %s"
 
-#: src/vte.c:10105
+#: src/vte.c:10218
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Villa. Ekki tókst að setja PTY stærð: %s"
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14067
-#, fuzzy
+#: src/vte.c:14310
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "g_iconv_open() tókst ekki að setja orðarittákn"
+msgstr "g_iconv_open() tókst ekki að setja orðrittákn"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:642
+#: src/vteapp.c:680
 msgid "Could not open console.\n"
-msgstr ""
+msgstr "Ekki tókst að opna skel.\n"
 
-#: src/vteglyph.c:575
+#: src/vteglyph.c:576
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr ""
+msgstr "Óþekktur punkta hamur %d.\n"
 
-#: src/vtexft.c:664
+#: src/vtexft.c:696
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr ""
-
-#~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
-#~ msgstr "Nota letursett \"%s\", sem ekki inniheldur þessi prenttáknsett: %s."
-
-#~ msgid ""
-#~ "Failed to load Xft font pattern \"%s\", falling back to default font."
-#~ msgstr ""
-#~ "Misstókst að hlaða Xft letur mynstri \"%s\", nota sjálfgefið letur í "
-#~ "staðin."
-
-#~ msgid "Failed to load default Xft font."
-#~ msgstr "Ekki tókst að hlaða sjálfgefið Xft letur."
-
-#~ msgid "Failed to load font set \"%s\", falling back to default font."
-#~ msgstr ""
-#~ "Ekki tókst að hlaða letursetti \"%s\", nota sjálfgefið letur í staðin."
-
-#~ msgid "Failed to load default font, crashing or behaving abnormally."
-#~ msgstr ""
-#~ "Misstókst að hlaða sjálfgefnu letri, gæti ollið hruni eða óeðlilegri "
-#~ "hegðun."
-
-#~ msgid "Error allocating draw, disabling Xft."
-#~ msgstr "Villa. Ekki tóskt að deila út draw, Xft er nú óvirkt."
-
-#~ msgid "Error allocating context, disabling Pango."
-#~ msgstr "Villa. Ekki tókst að deila út context, Pango er nú óvirkt."
-
-#~ msgid "Error allocating layout, disabling Pango."
-#~ msgstr "Villa. Ekki tókst að deila út layout. Pango er nú óvirkt."
+msgstr "Ekki tókst að teikna tákn U+%04x.\n"
