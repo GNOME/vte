@@ -1,3 +1,23 @@
+2003-03-05 nalin	
+	* configure.in: require Xft2 and fontconfig, drop Xft1.  Require
+	freetype2.
+	* src/Makefile.am, src/xticker.c: add xticker, useless but interesting.
+	* src/vte.c, src/vte.h: add vte_terminal_set_scroll_background() to
+	enable background scrolling (where supported by the drawing code).
+	* src/vteapp.c: set the tinting color to the default background color
+	to see what that's like.  Add -s option to toggle scrolling backgrounds.
+	* src/vtefc.c, src/vtefc.h: add.  For converting PangoFontDescriptions
+	to sorted lists of FcPatterns suitable for passing to XftFontOpenPattern
+	or FT_New_Face.
+	* src/vtedraw.c, src/vtedraw.h: add.  New drawing layer.
+	* src/vtepango.c, src/vtepango.h: add.  Drawing layer using Pango.
+	* src/vtexft.c, src/vtexft.h: add.  Drawing layer using Xft2.
+	* src/vte.c: add render type VteRenderDraw for transitional period in
+	preparation for nuking other drawing code.  Merge HAVE_XFT bits into
+	HAVE_XFT2 areas.  Nuke Xft1-specific stuff.  Move drawing of lines
+	and rectangles to dedicated functions.  Always call vte_unichar_width()
+	instead of g_unichar_iswide().
+
 2003-03-04 nalin	
 	* src/vte.c(vte_sequence_handler_set_title_internal): fix swap of
 	one variable for another which prevented stripping of control chars,

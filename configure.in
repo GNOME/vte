@@ -12,14 +12,6 @@ AM_PROG_LIBTOOL
 ALL_LINGUAS="am az be bg bn ca cs da de el es fa fi fr he hu id is it ja ko lv mn ms nl no pl pt pt_BR ro ru sk sl sv uk tr vi zh_CN zh_TW"
 
 AM_GLIB_GNU_GETTEXT
-AC_EGREP_CPP(glibc,
-		[
-		 #include <stdio.h>
-		 #ifdef __GLIBC__
-		 glibc
-		 #endif
-		],
-		AC_DEFINE(_GNU_SOURCE,1,[Use all features.]))
 
 # On some OSs, AC_PATH_XTRA doesn't work right(?), so let the user specify
 # X_PRE_LIBS and X_EXTRA_LIBS to add even more libraries, and add -lX11 to
@@ -30,43 +22,96 @@ X_LIBS="$X_PRE_LIBS $X_LIBS -lX11 $X_EXTRA_LIBS"
 PKG_CHECK_MODULES(GOBJECT,[glib-2.0 gobject-2.0])
 savelibs="$LIBS"
 LIBS="$X_LIBS $LIBS"
-wantedmodules="glib-2.0 gobject-2.0 gdk-pixbuf-2.0 gtk+-2.0 pangox"
-if pkg-config --exists pangoxft '>=' 1.1.0 ; then
-	AC_DEFINE(HAVE_XFT2,1,[Whether we have Xft version 2])
-	HAVE_XFT=yes
-	wantedmodules="$wantedmodules fontconfig xft"
-else
-	AC_MSG_WARN([Xft2 not detected - performance will suffer])
-fi
-PKG_CHECK_MODULES(VTE,[$wantedmodules])
-LIBS="$savelibs"
-# Check whether the combination of X and GLib/Pango/GTK+ libraries includes
-# Xft somewhere.
-savecppflags="$CPPFLAGS"
-savelibs="$LIBS"
-CPPFLAGS="$VTE_CFLAGS $X_CFLAGS $CPPFLAGS"
-LIBS="$VTE_LIBS $X_LIBS"
-AC_CHECK_FUNC(XftDrawString32,HAVE_XFT=yes,[AC_MSG_WARN([Xft not detected - performance will suffer])])
-CPPFLAGS="$savecppflags"
-LIBS="$savelibs"
-if test x$HAVE_XFT = xyes ; then
-	AC_DEFINE(HAVE_XFT,1,[If we have any version of Xft.])
-fi
 
-# Define macros to disable accidental use of deprecated functionality.
+# Require GTK+ 2.0 and fontconfig.
+wantedmodules="glib-2.0 gobject-2.0 gdk-pixbuf-2.0 gtk+-2.0 fontconfig"
+# Use Xft2 if Pango has Xft2 support.
+if pkg-config --exists pangoxft '>=' 1.1.0 ; then
+	AC_DEFINE(HAVE_XFT2,1,[Whether we have Xft2])
+	wantedmodules="$wantedmodules xft"
+else
+	AC_MSG_WARN([Xft2 not detected])
+fi
+# Search for the required modules.
+PKG_CHECK_MODULES(VTE,[$wantedmodules])
+
+# Require Freetype2.
+AC_CHECK_FT2
+
+# Temporarily pull in the Freetype cflags and libs for checking what's
+# available in this version.
+savecflags="$CFLAGS"
+CFLAGS="$CFLAGS $FT2_CFLAGS"
+savecppflags="$CPPFLAGS"
+CPPFLAGS="$CPPFLAGS $FT2_CFLAGS"
+AC_CHECK_HEADERS(ft2build.h)
+
+AC_CHECK_DECLS(FT_RENDER_MODE_MONO,,,[
+#ifdef HAVE_FT2BUILD_H
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#endif
+])
+AC_CHECK_DECLS(FT_LOAD_NO_HINTING,,,[
+#ifdef HAVE_FT2BUILD_H
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#endif
+])
+AC_CHECK_DECLS(FT_RENDER_MODE_LIGHT,,,[
+#ifdef HAVE_FT2BUILD_H
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#endif
+])
+AC_CHECK_DECLS(FT_RENDER_MODE_NORMAL,,,[
+#ifdef HAVE_FT2BUILD_H
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#endif
+])
+CFLAGS="$savecflags"
+CPPFLAGS="$savecppflags"
+
+# Use all available featurs under glibc, and disable accidental use of
+# deprecated functionality.
+AC_EGREP_CPP(glibc,
+		[
+		 #include <stdio.h>
+		 #ifdef __GLIBC__
+		 glibc
+		 #endif
+		],
+		AC_DEFINE(_GNU_SOURCE,1,[Use all features.]))
 AC_DEFINE(G_DISABLE_DEPRECATED,1,[Disable deprecated GLib features.])
 AC_DEFINE(GDK_DISABLE_DEPRECATED,1,[Disable deprecated GDK features.])
 AC_DEFINE(GDK_PIXBUF_DISABLE_DEPRECATED,1,[Disable deprecated gdk-pixbuf features.])
 AC_DEFINE(GTK_DISABLE_DEPRECATED,1,[Disable deprecated GTK+ features.])
 AC_DEFINE(PANGO_DISABLE_DEPRECATED,1,[Disable deprecated Pango features.])
 
+# Miscellaneous definitions.
 AC_DEFINE(VTE_UTF8_BPC,6,[Maximum number of bytes used per UTF-8 character.])
 AC_DEFINE_UNQUOTED(PACKAGE,"$PACKAGE",[Package name.])
-AC_CHECK_FUNCS(cfmakeraw getpt grantpt unlockpt ptsname ptsname_r sendmsg wcwidth)
-AC_CHECK_FUNC(socket,[have_socket=1],AC_CHECK_LIB(socket,socket,[have_socket=1; LIBS="$LIBS -lsocket"]))
-AC_CHECK_FUNC(socketpair,[have_socketpair=1],AC_CHECK_LIB(socket,socketpair,[have_socketpair=1; LIBS="$LIBS -lsocket"]))
+
+# Check for headers.
 AC_CHECK_HEADERS(sys/select.h sys/un.h stropts.h termios.h wchar.h)
 
+# Check for PTY handling functions.
+AC_CHECK_FUNCS(cfmakeraw getpt grantpt unlockpt ptsname ptsname_r)
+
+# Pull in the right libraries for various functions which might not be
+# bundled into an exploded libc.
+AC_CHECK_FUNC(socket,[have_socket=1],AC_CHECK_LIB(socket,socket,[have_socket=1; LIBS="$LIBS -lsocket"]))
+AC_CHECK_FUNC(socketpair,[have_socketpair=1],AC_CHECK_LIB(socket,socketpair,[have_socketpair=1; LIBS="$LIBS -lsocket"]))
+if test x$have_socket = x1 ; then
+	AC_DEFINE(HAVE_SOCKET,1,[Define if you have the socket function.])
+fi
+if test x$have_socketpair = x1 ; then
+	AC_DEFINE(HAVE_SOCKETPAIR,1,[Define if you have the socketpair function.])
+fi
+
+
+# Look for ncurses or curses or termcap.
 AC_CHECK_HEADER(ncurses.h,[AC_CHECK_HEADER(term.h,[AC_CHECK_LIB(ncurses,tgetent,[LIBS="-lncurses $LIBS";AC_DEFINE(HAVE_NCURSES,1,[Define if you have ncurses.h and libncurses])])])])
 if test x$ac_cv_lib_ncurses_tgetent != xyes ; then
 	AC_CHECK_HEADER(curses.h,[AC_CHECK_HEADER(term.h,[AC_CHECK_LIB(curses,tgetent,[LIBS="-lcurses $LIBS";AC_DEFINE(HAVE_CURSES,1,[Define if you have curses.h and libcurses])])])])
@@ -75,18 +120,12 @@ if test x$ac_cv_lib_ncurses_tgetent != xyes ; then
 	fi
 fi
 
+# Save the names of these other libraries.
 OTHERLIBS="$LIBS"
 AC_SUBST(OTHERLIBS)
 
-if test x$have_socket = x1 ; then
-	AC_DEFINE(HAVE_SOCKET,1,[Define if you have the `socket' function.])
-fi
-if test x$have_socketpair = x1 ; then
-	AC_DEFINE(HAVE_SOCKETPAIR,1,[Define if you have the `socketpair' function.])
-fi
-
+# Enable debugging messages and additional run-time checks.
 AC_ARG_ENABLE(debugging,[  --enable-debugging      enable extra debugging checks and logging messages],DEBUG=$enableval,DEBUG=no)
-
 if test x$DEBUG != x ; then
 	if test x$DEBUG != xno ; then
 		if test x$GCC = xyes ; then
@@ -130,6 +169,7 @@ wcs_funcs_includes="
 
 AC_CHECK_TYPES(wint_t, AC_DEFINE(HAVE_WINT_T, , [Defined when the wint_t type is supported]), ,$wcs_funcs_includes)
 
+# Search for Python.
 BUILD_PYTHON=true
 AC_ARG_ENABLE(python, [  --enable-python           Build python bindings [default=yes]],[
 if test x"$enableval" != xno ; then
@@ -177,6 +217,8 @@ AC_SUBST(PYTHONREV)
 AC_SUBST(PYTHONMODULES)
 AM_CONDITIONAL(BUILD_PYTHON_MODULES, $BUILD_PYTHON)
 
+# If we can find libzvt on the system, set up to build a variant of "reflect"
+# which uses it.
 REFLECT_ZVT=false
 if pkg-config --exists libzvt-2.0 ; then
 	REFLECT_ZVT=true

@@ -1,0 +1,728 @@
+/*
+ * Copyright (C) 2003 Red Hat, Inc.
+ *
+ * This is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Library General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public
+ * License along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+#include "../config.h"
+
+#ifdef HAVE_XFT2
+
+#include <sys/param.h>
+#include <string.h>
+#include <gtk/gtk.h>
+#include <gdk/gdkx.h>
+#include <glib.h>
+#include <fontconfig/fontconfig.h>
+#include <X11/Xft/Xft.h>
+#include "debug.h"
+#include "vtedraw.h"
+#include "vtefc.h"
+#include "vtexft.h"
+
+#define FONT_INDEX_FUDGE 10
+#define CHAR_WIDTH_FUDGE 10
+
+struct _vte_xft_font {
+	GArray *patterns;
+	GArray *fonts;
+	GTree *fontmap;
+	GTree *widths;
+};
+
+struct _vte_xft_data
+{
+	struct _vte_xft_font *font;
+	Display *display;
+	Drawable drawable;
+	int x_offs, y_offs;
+	Visual *visual;
+	Colormap colormap;
+	XftDraw *draw;
+	GC gc;
+	GdkColor color;
+	GdkPixmap *pixmap;
+	Pixmap xpixmap;
+	gint pixmapw, pixmaph;
+	gint scrollx, scrolly;
+};
+
+static int
+_vte_xft_direct_compare(gconstpointer a, gconstpointer b)
+{
+	return GPOINTER_TO_INT(a) - GPOINTER_TO_INT(b);
+}
+
+static struct _vte_xft_font *
+_vte_xft_font_open(const PangoFontDescription *fontdesc)
+{
+	struct _vte_xft_font *font;
+	GArray *patterns;
+
+	patterns = g_array_new(TRUE, TRUE, sizeof(FcPattern*));
+	if (!_vte_fc_patterns_from_pango_font_desc(fontdesc, patterns)) {
+		g_array_free(patterns, TRUE);
+		return NULL;
+	}
+
+	font = g_malloc0(sizeof(struct _vte_xft_font));
+	font->patterns = patterns;
+	font->fonts = g_array_new(TRUE, TRUE, sizeof(XftFont*));
+	font->fontmap = g_tree_new(_vte_xft_direct_compare);
+	font->widths = g_tree_new(_vte_xft_direct_compare);
+
+	return font;
+}
+
+static void
+_vte_xft_font_close(struct _vte_xft_font *font)
+{
+	GdkDisplay *gdisplay;
+	Display *display;
+	XftFont *ftfont;
+	FcPattern *pattern;
+	int i;
+
+	g_return_if_fail(font != NULL);
+	g_return_if_fail(font->patterns != NULL);
+	g_return_if_fail(font->fonts != NULL);
+	g_return_if_fail(font->fontmap != NULL);
+	g_return_if_fail(font->widths != NULL);
+
+	/* Fonts which were opened apparently "own" the patterns which were
+	   used to open them, so don't mess with them. */
+	for (i = font->fonts->len; i < font->patterns->len; i++) {
+		pattern = g_array_index(font->patterns, FcPattern*, i);
+		if (pattern == NULL) {
+			continue;
+		}
+		FcPatternDestroy(pattern);
+	}
+	g_array_free(font->patterns, TRUE);
+	font->patterns = NULL;
+
+	gdisplay = gdk_display_get_default();
+	display = gdk_x11_display_get_xdisplay(gdisplay);
+	for (i = 0; i < font->fonts->len; i++) {
+		ftfont = g_array_index(font->fonts, XftFont*, i);
+		if (ftfont != NULL) {
+			XftFontClose(display, ftfont);
+		}
+	}
+	g_array_free(font->fonts, TRUE);
+	font->fonts = NULL;
+
+	g_tree_destroy(font->fontmap);
+	font->fontmap = NULL;
+	g_tree_destroy(font->widths);
+	font->widths = NULL;
+
+	g_free(font);
+}
+
+static XftFont *
+_vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
+{
+	int i;
+	XftFont *ftfont;
+	FcPattern *pattern;
+	GdkDisplay *gdisplay;
+	Display *display;
+	gpointer p = GINT_TO_POINTER(c);
+
+	g_return_val_if_fail(font != NULL, NULL);
+	g_return_val_if_fail(font->patterns != NULL, NULL);
+	g_return_val_if_fail(font->fonts != NULL, NULL);
+	g_return_val_if_fail(font->fontmap != NULL, NULL);
+	g_return_val_if_fail(font->widths != NULL, NULL);
+
+	/* Check if we have a char-to-font entry for it. */
+	i = GPOINTER_TO_INT(g_tree_lookup(font->fontmap, p));
+	if (i != 0) {
+		switch (i) {
+		/* Checked before, no luck. */
+		case -FONT_INDEX_FUDGE:
+			if (font->fonts->len > 0) {
+				return g_array_index(font->fonts,
+						     XftFont *,
+						     0);
+			} else {
+				/* What to do? */
+				g_assert_not_reached();
+			}
+		/* Matched before. */
+		default:
+			return g_array_index(font->fonts,
+					     XftFont *,
+					     i - FONT_INDEX_FUDGE);
+		}
+	}
+
+	/* Look the character up in the fonts we have. */
+	gdisplay = gdk_display_get_default();
+	display = gdk_x11_display_get_xdisplay(gdisplay);
+	for (i = 0; i < font->fonts->len; i++) {
+		ftfont = g_array_index(font->fonts, XftFont *, i);
+		if ((ftfont != NULL) &&
+		    (XftCharExists(display, ftfont, (FcChar32) c) == FcTrue)) {
+			break;
+		}
+	}
+
+	/* Match? */
+	if (i < font->fonts->len) {
+		g_tree_insert(font->fontmap,
+			      p,
+			      GINT_TO_POINTER(i + FONT_INDEX_FUDGE));
+		ftfont = g_array_index(font->fonts, XftFont *, i);
+		if (ftfont != NULL) {
+			return ftfont;
+		} else {
+			g_assert_not_reached();
+		}
+	}
+
+	/* Look the character up in other fonts. */
+	for (i = font->fonts->len; i < font->patterns->len; i++) {
+		pattern = g_array_index(font->patterns, FcPattern *, i);
+		ftfont = XftFontOpenPattern(display, pattern);
+		g_array_append_val(font->fonts, ftfont);
+		if ((ftfont != NULL) &&
+		    (XftCharExists(display, ftfont, (FcChar32) c) == FcTrue)) {
+			break;
+		}
+	}
+
+	/* No match? */
+	if (i >= font->patterns->len) {
+		g_tree_insert(font->fontmap,
+			      p,
+			      GINT_TO_POINTER(-FONT_INDEX_FUDGE));
+		if (font->fonts->len > 0) {
+			return g_array_index(font->fonts,
+					     XftFont *,
+					     0);
+		} else {
+			/* What to do? */
+			g_assert_not_reached();
+		}
+	}
+
+	/* Return the match. */
+	if (i < font->fonts->len) {
+		return g_array_index(font->fonts, XftFont *, i);
+	} else {
+		return NULL;
+	}
+}
+
+static int
+_vte_xft_char_width(struct _vte_xft_font *font, gunichar c)
+{
+	XftFont *ftfont;
+	XGlyphInfo extents;
+	gpointer p = GINT_TO_POINTER(c);
+	int i;
+
+	g_return_val_if_fail(font != NULL, 0);
+	g_return_val_if_fail(font->patterns != NULL, 0);
+	g_return_val_if_fail(font->fonts != NULL, 0);
+	g_return_val_if_fail(font->fontmap != NULL, 0);
+	g_return_val_if_fail(font->widths != NULL, 0);
+
+	/* Check if we have a char-to-width entry for it. */
+	i = GPOINTER_TO_INT(g_tree_lookup(font->widths, p));
+	if (i != 0) {
+		switch (i) {
+		case -CHAR_WIDTH_FUDGE:
+			return 0;
+			break;
+		default:
+			return i - CHAR_WIDTH_FUDGE;
+			break;
+		}
+	}
+
+	/* Compute and store the width. */
+	ftfont = _vte_xft_font_for_char(font, c);
+	memset(&extents, 0, sizeof(extents));
+	if (ftfont != NULL) {
+		XftTextExtents32(GDK_DISPLAY(), ftfont, &c, 1, &extents);
+	}
+	i = extents.xOff + CHAR_WIDTH_FUDGE;
+	g_tree_insert(font->widths, p, GINT_TO_POINTER(i));
+	return extents.xOff;
+}
+
+static gboolean
+_vte_xft_check(struct _vte_draw *draw, GtkWidget *widget)
+{
+	/* We can draw onto any widget. */
+	return TRUE;
+}
+
+static void
+_vte_xft_create(struct _vte_draw *draw, GtkWidget *widget)
+{
+	struct _vte_xft_data *data;
+	data = (struct _vte_xft_data*) g_malloc0(sizeof(struct _vte_xft_data));
+	draw->impl_data = data;
+	data->font = NULL;
+	data->display = NULL;
+	data->drawable = -1;
+	data->visual = NULL;
+	data->colormap = -1;
+	data->draw = NULL;
+	data->gc = NULL;
+	memset(&data->color, 0, sizeof(data->color));
+	data->pixmap = NULL;
+	data->xpixmap = -1;
+	data->pixmapw = data->pixmaph = -1;
+	data->scrollx = data->scrolly = 0;
+}
+
+static void
+_vte_xft_destroy(struct _vte_draw *draw)
+{
+	struct _vte_xft_data *data;
+	data = (struct _vte_xft_data*) draw->impl_data;
+	if (data->font != NULL) {
+		_vte_xft_font_close(data->font);
+		data->font = NULL;
+	}
+	data->display = NULL;
+	data->drawable = -1;
+	data->x_offs = data->y_offs = 0;
+	data->visual = NULL;
+	data->colormap = -1;
+	if (data->draw != NULL) {
+		XftDrawDestroy(data->draw);
+		data->draw = NULL;
+		data->display = NULL;
+		data->drawable = -1;
+		data->visual = NULL;
+		data->colormap = -1;
+	}
+	if (data->gc != NULL) {
+		XFreeGC(data->display, data->gc);
+		data->gc = NULL;
+	}
+	memset(&data->color, 0, sizeof(data->color));
+	data->pixmap = NULL;
+	data->xpixmap = -1;
+	data->pixmapw = data->pixmaph = -1;
+	data->scrollx = data->scrolly = 0;
+	g_free(data);
+}
+
+static void
+_vte_xft_start(struct _vte_draw *draw)
+{
+	GdkVisual *gvisual;
+	GdkColormap *gcolormap;
+	GdkDrawable *drawable;
+
+	struct _vte_xft_data *data;
+	data = (struct _vte_xft_data*) draw->impl_data;
+
+	gdk_window_get_internal_paint_info(draw->widget->window,
+					   &drawable,
+					   &data->x_offs,
+					   &data->y_offs);
+
+	data->display = gdk_x11_drawable_get_xdisplay(drawable);
+	data->drawable = gdk_x11_drawable_get_xid(drawable);
+	gvisual = gdk_drawable_get_visual(drawable);
+	data->visual = gdk_x11_visual_get_xvisual(gvisual);
+	gcolormap = gdk_drawable_get_colormap(drawable);
+	data->colormap = gdk_x11_colormap_get_xcolormap(gcolormap);
+
+	if (data->draw != NULL) {
+		XftDrawDestroy(data->draw);
+	}
+	data->draw = XftDrawCreate(data->display, data->drawable,
+				   data->visual, data->colormap);
+	if (data->gc != NULL) {
+		XFreeGC(data->display, data->gc);
+	}
+	data->gc = XCreateGC(data->display, data->drawable, 0, NULL);
+}
+
+static void
+_vte_xft_end(struct _vte_draw *draw)
+{
+	struct _vte_xft_data *data;
+	data = (struct _vte_xft_data*) draw->impl_data;
+	if (data->draw != NULL) {
+		XftDrawDestroy(data->draw);
+		data->draw = NULL;
+	}
+	if (data->gc != NULL) {
+		XFreeGC(data->display, data->gc);
+		data->gc = NULL;
+	}
+	data->drawable = -1;
+	data->x_offs = data->y_offs = 0;
+}
+
+static void
+_vte_xft_set_background_color(struct _vte_draw *draw, GdkColor *color)
+{
+	struct _vte_xft_data *data;
+	data = (struct _vte_xft_data*) draw->impl_data;
+	data->color = *color;
+}
+
+static void
+_vte_xft_set_background_pixbuf(struct _vte_draw *draw, GdkPixbuf *pixbuf)
+{
+	struct _vte_xft_data *data;
+	GdkColormap *colormap;
+	GdkPixmap *pixmap;
+	GdkBitmap *bitmap;
+
+	data = (struct _vte_xft_data*) draw->impl_data;
+
+	if (GDK_IS_PIXMAP(data->pixmap)) {
+		g_object_unref(G_OBJECT(data->pixmap));
+	}
+	data->pixmap = NULL;
+	data->xpixmap = -1;
+	data->pixmapw = data->pixmaph = 0;
+	if ((pixbuf != NULL) &&
+	    (gdk_pixbuf_get_width(pixbuf) > 0) &&
+	    (gdk_pixbuf_get_height(pixbuf) > 0)) {
+		colormap = gdk_drawable_get_colormap(draw->widget->window);
+		gdk_pixbuf_render_pixmap_and_mask_for_colormap(pixbuf, colormap,
+							       &pixmap, &bitmap,
+							       0);
+		if (bitmap) {
+			g_object_unref(G_OBJECT(bitmap));
+		}
+		if (pixmap) {
+			data->pixmap = pixmap;
+			data->xpixmap = gdk_x11_drawable_get_xid(pixmap);
+			data->pixmapw = gdk_pixbuf_get_width(pixbuf);
+			data->pixmaph = gdk_pixbuf_get_height(pixbuf);
+		}
+	}
+}
+
+static void
+_vte_xft_clear(struct _vte_draw *draw,
+	       gint x, gint y, gint width, gint height)
+{
+	struct _vte_xft_data *data;
+	XRenderColor rcolor;
+	XftColor ftcolor;
+	gint h, w, txstop, tystop, sx, sy, tx, ty;
+
+	data = (struct _vte_xft_data*) draw->impl_data;
+
+	if (!GDK_IS_PIXMAP(data->pixmap) ||
+	    (data->pixmapw <= 0) ||
+	    (data->pixmaph <= 0)) {
+		rcolor.red = data->color.red;
+		rcolor.green = data->color.green;
+		rcolor.blue = data->color.blue;
+		rcolor.alpha = 0xffff;
+		if (XftColorAllocValue(data->display, data->visual,
+				       data->colormap, &rcolor, &ftcolor)) {
+			XftDrawRect(data->draw, &ftcolor,
+				    x - data->x_offs,
+				    y - data->y_offs,
+				    width, height);
+			XftColorFree(data->display, data->visual,
+				     data->colormap, &ftcolor);
+		}
+		return;
+	}
+
+	/* Adjust the drawing offsets. */
+	tx = x;
+	ty = y;
+	txstop = x + width;
+	tystop = y + height;
+
+	/* Flood fill. */
+	sy = (data->scrolly + y) % data->pixmaph;
+	while (ty < tystop) {
+		h = MIN(data->pixmaph - sy, tystop - ty);
+		tx = x;
+		sx = (data->scrollx + x) % data->pixmapw;
+		while (tx < txstop) {
+			w = MIN(data->pixmapw - sx, txstop - tx);
+			XCopyArea(data->display,
+				  data->xpixmap,
+				  data->drawable,
+				  data->gc,
+				  sx, sy,
+				  w, h,
+				  tx - data->x_offs, ty - data->y_offs);
+			tx += w;
+			sx = 0;
+		}
+		ty += h;
+		sy = 0;
+	}
+}
+
+static void
+_vte_xft_set_text_font(struct _vte_draw *draw,
+		       const PangoFontDescription *fontdesc)
+{
+	GString *string;
+	XftFont *font;
+	XGlyphInfo extents;
+	struct _vte_xft_data *data;
+	gunichar wide_chars[] = {VTE_DRAW_DOUBLE_WIDE_CHARACTERS};
+	int i, n, width, height;
+	FcChar32 c;
+
+	data = (struct _vte_xft_data*) draw->impl_data;
+
+	if (data->font != NULL) {
+		_vte_xft_font_close(data->font);
+		data->font = NULL;
+	}
+	data->font = _vte_xft_font_open(fontdesc);
+
+	draw->width = 1;
+	draw->height = 1;
+	draw->base = 1;
+
+	string = g_string_new("");
+	n = width = height = 0;
+	/* Estimate a typical cell width by looking at single-width
+	 * characters. */
+	for (i = 0; i < strlen(VTE_DRAW_SINGLE_WIDE_CHARACTERS); i++) {
+		c = VTE_DRAW_SINGLE_WIDE_CHARACTERS[i];
+		font = _vte_xft_font_for_char(data->font, c);
+		if ((font != NULL) &&
+		    (XftCharExists(GDK_DISPLAY(), font, c) == FcTrue)) {
+			memset(&extents, 0, sizeof(extents));
+			XftTextExtents32(GDK_DISPLAY(), font, &c, 1, &extents);
+			n++;
+			width += extents.xOff;
+		}
+	}
+	if (n > 0) {
+		draw->width = howmany(width, n);
+		draw->height = (font != NULL) ?
+			       font->ascent + font->descent : height;
+		draw->base = (font != NULL) ?
+			     font->ascent : height;
+	}
+	/* Estimate a typical cell width by looking at double-width
+	 * characters, and if it's the same as the single width, assume the
+	 * single-width stuff is broken. */
+	n = 0;
+	for (i = 0; i < G_N_ELEMENTS(wide_chars); i++) {
+		c = wide_chars[i];
+		font = _vte_xft_font_for_char(data->font, c);
+		if ((font != NULL) &&
+		    (XftCharExists(GDK_DISPLAY(), font, c) == FcTrue)) {
+			memset(&extents, 0, sizeof(extents));
+			XftTextExtents32(GDK_DISPLAY(), font, &c, 1, &extents);
+			n++;
+			width += extents.xOff;
+		}
+	}
+	if (n > 0) {
+		if (howmany(width, n) == draw->width) {
+			g_print("Bogus font.\n");
+			draw->width /= 2;
+		}
+	}
+	g_string_free(string, TRUE);
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "VteXft font metrics = %dx%d (%d).\n",
+			draw->width, draw->height, draw->base);
+	}
+#endif
+}
+
+static int
+_vte_xft_get_text_width(struct _vte_draw *draw)
+{
+	return draw->width;
+}
+
+static int
+_vte_xft_get_text_height(struct _vte_draw *draw)
+{
+	return draw->height;
+}
+
+static int
+_vte_xft_get_text_base(struct _vte_draw *draw)
+{
+	return draw->base;
+}
+
+static void
+_vte_xft_draw_text(struct _vte_draw *draw,
+		   struct _vte_draw_text_request *requests, gsize n_requests,
+		   GdkColor *color, guchar alpha)
+{
+	XftCharFontSpec local_specs[VTE_DRAW_MAX_LENGTH], *specs;
+	XRenderColor rcolor;
+	XftColor ftcolor;
+	struct _vte_xft_data *data;
+	int i, j, width, pad;
+
+	data = (struct _vte_xft_data*) draw->impl_data;
+	if (n_requests > G_N_ELEMENTS(local_specs)) {
+		specs = g_malloc(n_requests * sizeof(XftCharFontSpec));
+	} else {
+		specs = local_specs;
+	}
+
+	for (i = j = 0; i < n_requests; i++) {
+		specs[j].font = _vte_xft_font_for_char(data->font,
+						       requests[i].c);
+		if (specs[j].font != NULL) {
+			specs[j].x = requests[i].x - data->x_offs;
+			width = _vte_xft_char_width(data->font, requests[i].c);
+			if (width != 0) {
+				pad = requests[i].columns * draw->width - width;
+				pad = CLAMP(pad / 2, 0, draw->width);
+				specs[j].x += pad;
+			}
+			specs[j].y = requests[i].y - data->y_offs + draw->base;
+			specs[j].ucs4 = requests[i].c;
+			j++;
+		} else {
+			g_warning("Cannot draw character U%04x.\n",
+				  requests[i].c);
+		}
+	}
+	if (j > 0) {
+		rcolor.red = color->red;
+		rcolor.green = color->green;
+		rcolor.blue = color->blue;
+		rcolor.alpha = (alpha == VTE_DRAW_OPAQUE) ?
+			       0xffff : (alpha << 8);
+		if (XftColorAllocValue(data->display, data->visual,
+				       data->colormap, &rcolor, &ftcolor)) {
+			XftDrawCharFontSpec(data->draw, &ftcolor, specs, j);
+			XftColorFree(data->display, data->visual,
+				     data->colormap, &ftcolor);
+		}
+	}
+
+	if (specs != local_specs) {
+		g_free(specs);
+	}
+}
+
+static void
+_vte_xft_draw_rectangle(struct _vte_draw *draw,
+			gint x, gint y, gint width, gint height,
+			GdkColor *color, guchar alpha)
+{
+	struct _vte_xft_data *data;
+	XRenderColor rcolor;
+	XftColor ftcolor;
+
+	data = (struct _vte_xft_data*) draw->impl_data;
+
+	rcolor.red = color->red;
+	rcolor.green = color->green;
+	rcolor.blue = color->blue;
+	rcolor.alpha = (alpha == VTE_DRAW_OPAQUE) ? 0xffff : alpha << 8;
+	if (XftColorAllocValue(data->display, data->visual,
+			       data->colormap, &rcolor, &ftcolor)) {
+		XftDrawRect(data->draw, &ftcolor,
+			    x - data->x_offs, y - data->y_offs,
+			    width, 1);
+		XftDrawRect(data->draw, &ftcolor,
+			    x - data->x_offs, y - data->y_offs,
+			    1, height);
+		XftDrawRect(data->draw, &ftcolor,
+			    x - data->x_offs, y + height - 1 - data->y_offs,
+			    width, 1);
+		XftDrawRect(data->draw, &ftcolor,
+			    x + width - 1 - data->x_offs, y - data->y_offs,
+			    1, height);
+		XftColorFree(data->display, data->visual, data->colormap,
+			     &ftcolor);
+	}
+}
+
+static void
+_vte_xft_fill_rectangle(struct _vte_draw *draw,
+			gint x, gint y, gint width, gint height,
+			GdkColor *color, guchar alpha)
+{
+	struct _vte_xft_data *data;
+	XRenderColor rcolor;
+	XftColor ftcolor;
+
+	data = (struct _vte_xft_data*) draw->impl_data;
+
+	rcolor.red = color->red;
+	rcolor.green = color->green;
+	rcolor.blue = color->blue;
+	rcolor.alpha = (alpha == VTE_DRAW_OPAQUE) ? 0xffff : alpha << 8;
+	if (XftColorAllocValue(data->display, data->visual,
+			       data->colormap, &rcolor, &ftcolor)) {
+		XftDrawRect(data->draw, &ftcolor,
+			    x - data->x_offs, y - data->y_offs, width, height);
+		XftColorFree(data->display, data->visual, data->colormap,
+			     &ftcolor);
+	}
+}
+
+static gboolean
+_vte_xft_scroll(struct _vte_draw *draw, gint dx, gint dy)
+{
+	struct _vte_xft_data *data;
+	data = (struct _vte_xft_data*) draw->impl_data;
+	return FALSE;
+}
+
+static void
+_vte_xft_set_scroll(struct _vte_draw *draw, gint x, gint y)
+{
+	struct _vte_xft_data *data;
+	data = (struct _vte_xft_data*) draw->impl_data;
+	data->scrollx = x;
+	data->scrolly = y;
+}
+
+struct _vte_draw_impl _vte_draw_xft = {
+	"VteXft", "VTE_USE_XFT",
+	_vte_xft_check,
+	_vte_xft_create,
+	_vte_xft_destroy,
+	_vte_xft_start,
+	_vte_xft_end,
+	_vte_xft_set_background_color,
+	_vte_xft_set_background_pixbuf,
+	_vte_xft_clear,
+	_vte_xft_set_text_font,
+	_vte_xft_get_text_width,
+	_vte_xft_get_text_height,
+	_vte_xft_get_text_base,
+	_vte_xft_draw_text,
+	_vte_xft_draw_rectangle,
+	_vte_xft_fill_rectangle,
+	_vte_xft_scroll,
+	_vte_xft_set_scroll,
+};
+#endif

@@ -60,12 +60,11 @@
 #include "termcap.h"
 #include "vte.h"
 #include "vteaccess.h"
+#include "vtedraw.h"
 #include <X11/Xlib.h>
-#ifdef HAVE_XFT
-#include <X11/Xft/Xft.h>
 #ifdef HAVE_XFT2
+#include <X11/Xft/Xft.h>
 #include <fontconfig/fontconfig.h>
-#endif
 #endif
 
 #ifdef HAVE_LOCALE_H
@@ -100,7 +99,6 @@ typedef gunichar wint_t;
 #define VTE_DEFAULT_EMULATION		"xterm"
 #define VTE_DEFAULT_CURSOR		GDK_XTERM
 #define VTE_MOUSING_CURSOR		GDK_LEFT_PTR
-#define VTE_DRAW_MAX_LENGTH		88
 #define VTE_TAB_MAX			999
 #define VTE_X_FIXED			"-*-fixed-medium-r-normal-*-20-*"
 #define VTE_REPRESENTATIVE_CHARACTERS	"ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
@@ -296,6 +294,7 @@ struct _VteTerminalPrivate {
 	glong text_deleted_count;
 
 	/* Scrolling options. */
+	gboolean scroll_background;
 	gboolean scroll_on_output;
 	gboolean scroll_on_keystroke;
 	long scrollback_lines;
@@ -345,19 +344,21 @@ struct _VteTerminalPrivate {
 		VteRenderXlib = 0,
 		VteRenderPangoX = 1,
 		VteRenderPango = 2,
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 		VteRenderXft1 = 3,
 		VteRenderXft2 = 4,
 #endif
+		VteRenderDraw = 5,
 	} render_method;
-#ifdef HAVE_XFT
+	struct _vte_draw *draw;
+#ifdef HAVE_XFT2
 	XftFont *ftfont;
 #endif
 	gboolean palette_initialized;
 	struct vte_palette_entry {
 		guint16 red, green, blue;
 		unsigned long pixel;
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 		XRenderColor rcolor;
 		XftColor ftcolor;
 		gboolean ftcolor_allocated;
@@ -6039,7 +6040,7 @@ vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
 	terminal->pvt->palette[entry].blue = color.blue;
 	terminal->pvt->palette[entry].pixel = color.pixel;
 
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 	/* If we're using Xft, we need to allocate a RenderColor, too. */
 	if ((terminal->pvt->render_method == VteRenderXft1) ||
 	    (terminal->pvt->render_method == VteRenderXft2)) {
@@ -9921,7 +9922,7 @@ vte_terminal_font_complain(const char *font,
 	}
 }
 
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 static int
 xft_weight_from_pango_weight (int weight)
 {
@@ -10000,9 +10001,7 @@ xft_pattern_from_pango_font_desc(const PangoFontDescription *font_desc)
 
 	return pattern;
 }
-#endif
 
-#ifdef HAVE_XFT
 /* Use Xft's handy parse-this-xlfd function to convert the font description to
  * an xlfd.  Apparently even font aliases work with this method. */
 static char *
@@ -10208,26 +10207,14 @@ xlfd_from_pango_font_description(GtkWidget *widget,
 }
 #endif
 
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 /* Convert an Xft pattern to a font name for displaying to the user. */
 static char *
 vte_unparse_xft_pattern(XftPattern *pattern)
 {
-#ifdef HAVE_XFT2
 	return FcNameUnparse(pattern);
-#else /* !HAVE_XFT2 */
-	char buf[256];
-	const char *family;
-	double size;
-	family = "Unknown";
-	size = 10.0;
-	XftPatternGetString(pattern, XFT_FAMILY, 0, &family);
-	XftPatternGetDouble(pattern, XFT_SIZE, 0, &size);
-	sprintf(buf, "%s %lf", family ? family : "Unknown", size);
-	return strdup(buf);
-#endif /* HAVE_XFT2 */
 }
-#endif /* HAVE_XFT */
+#endif /* HAVE_XFT2 */
 
 /* A comparison function which helps sort quarks. */
 static gint
@@ -10466,9 +10453,7 @@ vte_font_match(VteTerminal *terminal, FcPattern *pattern, FcResult *result)
 	FcPatternDestroy(spec);
 	return match;
 }
-#endif
 
-#ifdef HAVE_XFT
 /* Ensure that an Xft font is loaded and metrics are known. */
 static void
 vte_terminal_open_font_xft(VteTerminal *terminal)
@@ -10504,13 +10489,7 @@ vte_terminal_open_font_xft(VteTerminal *terminal)
 	 * time.  Whether it's filled in is impossible to determine
 	 * afaict.  We don't care about its value anyhow.  */
 	result = 0xffff; /* some bogus value to help in debugging */
-#ifdef HAVE_XFT2
 	matched_pattern = vte_font_match(terminal, pattern, &result);
-#else
-	matched_pattern = XftFontMatch(GDK_DISPLAY(),
-				       gdk_x11_get_default_screen(),
-				       pattern, &result);
-#endif
 	/* Keep track of whether or not we need to destroy this pattern. */
 	if (matched_pattern != NULL) {
 		need_destroy = TRUE;
@@ -10851,8 +10830,19 @@ vte_terminal_close_font_pango(VteTerminal *terminal)
 static void
 vte_terminal_open_font(VteTerminal *terminal)
 {
+	struct _vte_draw *draw;
 	switch (terminal->pvt->render_method) {
-#ifdef HAVE_XFT
+	case VteRenderDraw:
+		draw = terminal->pvt->draw;
+		_vte_draw_set_text_font(draw, terminal->pvt->fontdesc);
+		vte_terminal_apply_metrics(terminal,
+					   _vte_draw_get_text_width(draw),
+					   _vte_draw_get_text_height(draw),
+					   _vte_draw_get_text_base(draw),
+					   _vte_draw_get_text_height(draw) -
+					   _vte_draw_get_text_base(draw));
+		break;
+#ifdef HAVE_XFT2
 	case VteRenderXft2:
 	case VteRenderXft1:
 		vte_terminal_open_font_xft(terminal);
@@ -10872,7 +10862,7 @@ vte_terminal_close_font(VteTerminal *terminal)
 {
 	vte_terminal_close_font_xlib(terminal);
 	vte_terminal_close_font_pango(terminal);
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 	vte_terminal_close_font_xft(terminal);
 #endif
 }
@@ -11507,6 +11497,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	vte_terminal_set_default_tabstops(terminal);
 
 	/* Scrolling options. */
+	pvt->scroll_background = FALSE;
 	pvt->scroll_on_output = FALSE;
 	pvt->scroll_on_keystroke = TRUE;
 	pvt->scrollback_lines = VTE_SCROLLBACK_MIN;
@@ -11551,16 +11542,25 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->fontset = NULL;
 	pvt->fontpaddingl = NULL;
 	pvt->fontpaddingr = NULL;
+	pvt->draw = _vte_draw_new(GTK_WIDGET(terminal));
 	render_max = VteRenderPango;
-#ifdef HAVE_XFT
-	pvt->ftfont = NULL;
-	render_max = VteRenderXft1;
 #ifdef HAVE_XFT2
-	/* GTK+ with Xft1-only = 2.0.  If we have fontconfig, it's either a
-	 * devel version with fontconfig support or 2.2 or later. */
+	pvt->ftfont = NULL;
 	render_max = VteRenderXft2;
 #endif
+	render_max = VteRenderDraw;
 	/* Let debugging users have some influence on how we render text. */
+	if ((render_max == VteRenderDraw) &&
+	    (getenv("VTE_USE_DRAW") != NULL)) {
+		if (atol(getenv("VTE_USE_DRAW")) == 0) {
+#ifdef HAVE_XFT2
+			render_max = VteRenderXft2;
+#else
+			render_max = VteRenderPango;
+#endif
+		}
+	}
+#ifdef HAVE_XFT2
 	if ((render_max == VteRenderXft2) &&
 	    (getenv("VTE_USE_XFT2") != NULL)) {
 		if (atol(getenv("VTE_USE_XFT2")) == 0) {
@@ -11595,14 +11595,15 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->render_method = render_max;
 
 #ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
+	if (_vte_debug_on(VTE_DEBUG_MISC) && 0) {
 		switch (pvt->render_method) {
+		case VteRenderDraw:
+			fprintf(stderr, "Using Draw.\n");
+			break;
 #ifdef HAVE_XFT2
 		case VteRenderXft2:
 			fprintf(stderr, "Using Xft2.\n");
 			break;
-#endif
-#ifdef HAVE_XFT
 		case VteRenderXft1:
 			fprintf(stderr, "Using Xft1.\n");
 			break;
@@ -11879,7 +11880,7 @@ vte_terminal_unrealize(GtkWidget *widget)
 	}
 	terminal->pvt->im_preedit_cursor = 0;
 
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 	if ((terminal->pvt->render_method == VteRenderXft1) ||
 	    (terminal->pvt->render_method == VteRenderXft2)) {
 		/* Clean up after Xft. */
@@ -12028,6 +12029,10 @@ vte_terminal_finalize(GObject *object)
 		pango_font_description_free(terminal->pvt->fontdesc);
 		terminal->pvt->fontdesc = NULL;
 	}
+
+	/* Clean up our draw structure. */
+	_vte_draw_free(terminal->pvt->draw);
+	terminal->pvt->draw = NULL;
 
 	/* Free matching data. */
 	if (terminal->pvt->match_attributes != NULL) {
@@ -12403,7 +12408,7 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 	}
 }
 
-#if HAVE_XFT
+#if HAVE_XFT2
 /* Try to map some common characters which are frequently missing from fonts
  * to others which look the same and may be there. */
 static XftChar32
@@ -12482,11 +12487,97 @@ vte_unichar_is_graphic(gunichar c)
 	return FALSE;
 }
 
+static void
+vte_terminal_fill_rectangle(VteTerminal *terminal,
+			    Display *display,
+			    Drawable drawable,
+			    GC gc,
+			    struct vte_palette_entry *entry,
+			    gint x_offs,
+			    gint y_offs,
+			    gint x,
+			    gint y,
+			    gint width,
+			    gint height)
+{
+	GdkColor color;
+	gboolean drawing;
+	switch (terminal->pvt->render_method) {
+	case VteRenderDraw:
+		drawing = terminal->pvt->draw->started;
+		if (!drawing) {
+			_vte_draw_start(terminal->pvt->draw);
+		}
+		color.red = entry->red;
+		color.green = entry->green;
+		color.blue = entry->blue;
+		_vte_draw_fill_rectangle(terminal->pvt->draw,
+					 x + x_offs, y + y_offs, width, height,
+					 &color, VTE_DRAW_OPAQUE);
+		if (!drawing) {
+			_vte_draw_end(terminal->pvt->draw);
+		}
+		break;
+	default:
+		XSetForeground(display, gc, entry->pixel);
+		XFillRectangle(display, drawable, gc,
+			       x, y, width, height);
+		break;
+	}
+}
+
+static void
+vte_terminal_draw_line(VteTerminal *terminal,
+		       Display *display,
+		       Drawable drawable,
+		       GC gc,
+		       struct vte_palette_entry *entry,
+		       gint x_offs,
+		       gint y_offs,
+		       gint x,
+		       gint y,
+		       gint xp,
+		       gint yp)
+{
+	vte_terminal_fill_rectangle(terminal,
+				    display, drawable, gc, entry,
+				    x_offs, y_offs, x, y,
+				    MAX(1, xp - x + 1), MAX(1, yp - y + 1));
+}
+
+static void
+vte_terminal_draw_rectangle(VteTerminal *terminal,
+			    Display *display,
+			    Drawable drawable,
+			    GC gc,
+			    struct vte_palette_entry *entry,
+			    gint x_offs,
+			    gint y_offs,
+			    gint x,
+			    gint y,
+			    gint width,
+			    gint height)
+{
+	vte_terminal_draw_line(terminal, display, drawable, gc, entry,
+			       x_offs, y_offs,
+			       x, y, x, y + height);
+	vte_terminal_draw_line(terminal, display, drawable, gc, entry,
+			       x_offs, y_offs,
+			       x + width, y, x + width, y + height);
+	vte_terminal_draw_line(terminal, display, drawable, gc, entry,
+			       x_offs, y_offs,
+			       x, y, x + width, y);
+	vte_terminal_draw_line(terminal, display, drawable, gc, entry,
+			       x_offs, y_offs,
+			       x, y + height, x + width, y + height);
+}
+
 /* Draw the graphic representation of a line-drawing or special graphics
  * character. */
 static gboolean
 vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 			  gint fore, gint back, gboolean draw_default_bg,
+			  gint x_offs, gint y_offs,
 			  gint x, gint y, gint column_width, gint row_height,
 			  Display *display,
 			  GdkDrawable *gdrawable, Drawable drawable,
@@ -12505,9 +12596,11 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 	ycenter = (y + ybottom) / 2;
 
 	if ((back != VTE_DEF_BG) || draw_default_bg) {
-		XSetForeground(display, gc, terminal->pvt->palette[back].pixel);
-		XFillRectangle(display, drawable, gc,
-			       x, y, column_width, row_height);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[back],
+					    x_offs, y_offs,
+					    x, y, column_width, row_height);
 	}
 
 	XSetForeground(display, gc, terminal->pvt->palette[fore].pixel);
@@ -12521,17 +12614,32 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 		xright--;
 		ybottom--;
 		/* != */
-		XDrawLine(display, drawable, gc,
-			  (x + xcenter) / 2 - 1, ycenter,
-			  (xright + xcenter) / 2 + 1, ycenter);
-		XDrawLine(display, drawable, gc,
-			  (x + xcenter) / 2 - 1,
-			  (ybottom + ycenter) / 2,
-			  (xright + xcenter) / 2 + 1,
-			  (ybottom + ycenter) / 2);
-		XDrawLine(display, drawable, gc,
-			  xright - 1, y + 1,
-			  x + 1, ybottom - 1);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       (x + xcenter) / 2 - 1, ycenter,
+				       (xright + xcenter) / 2 + 1, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       (x + xcenter) / 2 - 1,
+				       (ybottom + ycenter) / 2,
+				       (xright + xcenter) / 2 + 1,
+				       (ybottom + ycenter) / 2);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xright - 1, y + 1,
+				       x + 1, ybottom - 1);
 		break;
 	case 127:
 		xcenter--;
@@ -12539,21 +12647,46 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 		xright--;
 		ybottom--;
 		/* A "delete" symbol I saw somewhere. */
-		XDrawLine(display, drawable, gc,
-			  x, ycenter,
-			  xcenter, y);
-		XDrawLine(display, drawable, gc,
-			  xcenter, y,
-			  xright - 1, ycenter);
-		XDrawLine(display, drawable, gc,
-			  xright - 1, ycenter,
-			  xright - 1, ybottom - 1);
-		XDrawLine(display, drawable, gc,
-			  xright - 1, ybottom - 1,
-			  x, ybottom - 1);
-		XDrawLine(display, drawable, gc,
-			  x, ybottom - 1,
-			  x, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, ycenter,
+				       xcenter, y);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xcenter, y,
+				       xright - 1, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xright - 1, ycenter,
+				       xright - 1, ybottom - 1);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xright - 1, ybottom - 1,
+				       x, ybottom - 1);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, ybottom - 1,
+				       x, ycenter);
 		break;
 	case 0x00a3:
 		xcenter--;
@@ -12561,19 +12694,34 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 		xright--;
 		ybottom--;
 		/* British pound.  An "L" with a hyphen. */
-		XDrawLine(display, drawable, gc,
-			  (x + xcenter) / 2,
-			  (y + ycenter) / 2,
-			  (x + xcenter) / 2,
-			  (ycenter + ybottom) / 2);
-		XDrawLine(display, drawable, gc,
-			  (x + xcenter) / 2,
-			  (ycenter + ybottom) / 2,
-			  (xcenter + xright) / 2,
-			  (ycenter + ybottom) / 2);
-		XDrawLine(display, drawable, gc,
-			  x, ycenter,
-			  xcenter + 1, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       (x + xcenter) / 2,
+				       (y + ycenter) / 2,
+				       (x + xcenter) / 2,
+				       (ycenter + ybottom) / 2);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       (x + xcenter) / 2,
+				       (ycenter + ybottom) / 2,
+				       (xcenter + xright) / 2,
+				       (ycenter + ybottom) / 2);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, ycenter,
+				       xcenter + 1, ycenter);
 		break;
 	case 0x00b0: /* f */
 		/* litle circle */
@@ -12595,17 +12743,32 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 		xright--;
 		ybottom--;
 		/* +/- */
-		XDrawLine(display, drawable, gc,
-			  xcenter, (y + ycenter) / 2,
-			  xcenter, (ycenter + ybottom) / 2);
-		XDrawLine(display, drawable, gc,
-			  (x + xcenter) / 2, ycenter,
-			  (xcenter + xright) / 2, ycenter);
-		XDrawLine(display, drawable, gc,
-			  (x + xcenter) / 2,
-			  (ycenter + ybottom) / 2,
-			  (xcenter + xright) / 2,
-			  (ycenter + ybottom) / 2);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xcenter, (y + ycenter) / 2,
+				       xcenter, (ycenter + ybottom) / 2);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       (x + xcenter) / 2, ycenter,
+				       (xcenter + xright) / 2, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       (x + xcenter) / 2,
+				       (ycenter + ybottom) / 2,
+				       (xcenter + xright) / 2,
+				       (ycenter + ybottom) / 2);
 		break;
 	case 0x00b7:
 		xcenter--;
@@ -12613,9 +12776,14 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 		xright--;
 		ybottom--;
 		/* short hyphen? */
-		XDrawLine(display, drawable, gc,
-			  xcenter - 1, ycenter,
-			  xcenter + 1, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xcenter - 1, ycenter,
+				       xcenter + 1, ycenter);
 		break;
 	case 0x3c0: /* pi */
 		xcenter--;
@@ -12649,15 +12817,30 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 		xright--;
 		ybottom--;
 		/* <= */
-		XDrawLine(display, drawable, gc,
-			  xright - 1, y,
-			  x, (y + ycenter) / 2);
-		XDrawLine(display, drawable, gc,
-			  x, (y + ycenter) / 2,
-			  xright - 1, ycenter);
-		XDrawLine(display, drawable, gc,
-			  x, ycenter,
-			  xright - 1, (ycenter + ybottom) / 2);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xright - 1, y,
+				       x, (y + ycenter) / 2);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, (y + ycenter) / 2,
+				       xright - 1, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, ycenter,
+				       xright - 1, (ycenter + ybottom) / 2);
 		break;
 	case 0x2265: /* z */
 		xcenter--;
@@ -12665,51 +12848,66 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 		xright--;
 		ybottom--;
 		/* >= */
-		XDrawLine(display, drawable, gc,
-			  x, y,
-			  xright - 1, (y + ycenter) / 2);
-		XDrawLine(display, drawable, gc,
-			  xright - 1, (y + ycenter) / 2,
-			  x, ycenter);
-		XDrawLine(display, drawable, gc,
-			  xright - 1, ycenter,
-			  x, (ycenter + ybottom) / 2);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, y,
+				       xright - 1, (y + ycenter) / 2);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xright - 1, (y + ycenter) / 2,
+				       x, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xright - 1, ycenter,
+				       x, (ycenter + ybottom) / 2);
 		break;
 	case 0x23ba: /* o */
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       x,
-			       y,
-			       column_width,
-			       VTE_LINE_WIDTH);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x, y, column_width, VTE_LINE_WIDTH);
 		break;
 	case 0x23bb: /* p */
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       x,
-			       (y + ycenter) / 2,
-			       column_width,
-			       VTE_LINE_WIDTH);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x, (y + ycenter) / 2,
+					    column_width,
+					    VTE_LINE_WIDTH);
 		break;
 	case 0x23bc: /* r */
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       x,
-			       (ycenter + ybottom) / 2,
-			       column_width,
-			       VTE_LINE_WIDTH);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x,
+					    (ycenter + ybottom) / 2,
+					    column_width,
+					    VTE_LINE_WIDTH);
 		break;
 	case 0x23bd: /* s */
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       x,
-			       ybottom-1,
-			       column_width,
-			       VTE_LINE_WIDTH);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x,
+					    ybottom - 1,
+					    column_width,
+					    VTE_LINE_WIDTH);
 		break;
 	case 0x2409:  /* b */
 		xcenter--;
@@ -12717,22 +12915,47 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 		xright--;
 		ybottom--;
 		/* H */
-		XDrawLine(display, drawable, gc,
-			  x, y,
-			  x, ycenter);
-		XDrawLine(display, drawable, gc,
-			  xcenter, y,
-			  xcenter, ycenter);
-		XDrawLine(display, drawable, gc,
-			  x, (y + ycenter) / 2,
-			  xcenter, (y + ycenter) / 2);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, y,
+				       x, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xcenter, y,
+				       xcenter, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, (y + ycenter) / 2,
+				       xcenter, (y + ycenter) / 2);
 		/* T */
-		XDrawLine(display, drawable, gc,
-			  xcenter, ycenter,
-			  xright - 1, ycenter);
-		XDrawLine(display, drawable, gc,
-			  (xcenter + xright) / 2, ycenter,
-			  (xcenter + xright) / 2, ybottom - 1);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xcenter, ycenter,
+				       xright - 1, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       (xcenter + xright) / 2, ycenter,
+				       (xcenter + xright) / 2, ybottom - 1);
 		break;
 	case 0x240a: /* e */
 		xcenter--;
@@ -12740,22 +12963,47 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 		xright--;
 		ybottom--;
 		/* L */
-		XDrawLine(display, drawable, gc,
-			  x, y,
-			  x, ycenter);
-		XDrawLine(display, drawable, gc,
-			  x, ycenter,
-			  xcenter, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, y,
+				       x, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, ycenter,
+				       xcenter, ycenter);
 		/* F */
-		XDrawLine(display, drawable, gc,
-			  xcenter, ycenter,
-			  xcenter, ybottom - 1);
-		XDrawLine(display, drawable, gc,
-			  xcenter, ycenter,
-			  xright - 1, ycenter);
-		XDrawLine(display, drawable, gc,
-			  xcenter, (ycenter + ybottom) / 2,
-			  xright - 1, (ycenter + ybottom) / 2);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xcenter, ycenter,
+				       xcenter, ybottom - 1);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xcenter, ycenter,
+				       xright - 1, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xcenter, (ycenter + ybottom) / 2,
+				       xright - 1, (ycenter + ybottom) / 2);
 		break;
 	case 0x240b: /* i */
 		xcenter--;
@@ -12763,19 +13011,39 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 		xright--;
 		ybottom--;
 		/* V */
-		XDrawLine(display, drawable, gc,
-			  x, y,
-			  (x + xcenter) / 2, ycenter);
-		XDrawLine(display, drawable, gc,
-			  (x + xcenter) / 2, ycenter,
-			  xcenter, y);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, y,
+				       (x + xcenter) / 2, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       (x + xcenter) / 2, ycenter,
+				       xcenter, y);
 		/* T */
-		XDrawLine(display, drawable, gc,
-			  xcenter, ycenter,
-			  xright - 1, ycenter);
-		XDrawLine(display, drawable, gc,
-			  (xcenter + xright) / 2, ycenter,
-			  (xcenter + xright) / 2, ybottom - 1);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xcenter, ycenter,
+				       xright - 1, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       (xcenter + xright) / 2, ycenter,
+				       (xcenter + xright) / 2, ybottom - 1);
 		break;
 	case 0x240c:  /* c */
 		xcenter--;
@@ -12783,25 +13051,55 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 		xright--;
 		ybottom--;
 		/* F */
-		XDrawLine(display, drawable, gc,
-			  x, y,
-			  x, ycenter);
-		XDrawLine(display, drawable, gc,
-			  x, y,
-			  xcenter, y);
-		XDrawLine(display, drawable, gc,
-			  x, (y + ycenter) / 2,
-			  xcenter, (y + ycenter) / 2);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, y,
+				       x, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, y,
+				       xcenter, y);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, (y + ycenter) / 2,
+				       xcenter, (y + ycenter) / 2);
 		/* F */
-		XDrawLine(display, drawable, gc,
-			  xcenter, ycenter,
-			  xcenter, ybottom - 1);
-		XDrawLine(display, drawable, gc,
-			  xcenter, ycenter,
-			  xright - 1, ycenter);
-		XDrawLine(display, drawable, gc,
-			  xcenter, (ycenter + ybottom) / 2,
-			  xright - 1, (ycenter + ybottom) / 2);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xcenter, ycenter,
+				       xcenter, ybottom - 1);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xcenter, ycenter,
+				       xright - 1, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xcenter, (ycenter + ybottom) / 2,
+				       xright - 1, (ycenter + ybottom) / 2);
 		break;
 	case 0x240d: /* d */
 		xcenter--;
@@ -12809,31 +13107,71 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 		xright--;
 		ybottom--;
 		/* C */
-		XDrawLine(display, drawable, gc,
-			  x, y,
-			  x, ycenter);
-		XDrawLine(display, drawable, gc,
-			  x, y,
-			  xcenter, y);
-		XDrawLine(display, drawable, gc,
-			  x, ycenter,
-			  xcenter, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, y,
+				       x, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, y,
+				       xcenter, y);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, ycenter,
+				       xcenter, ycenter);
 		/* R */
-		XDrawLine(display, drawable, gc,
-			  xcenter, ycenter,
-			  xcenter, ybottom - 1);
-		XDrawLine(display, drawable, gc,
-			  xcenter, ycenter,
-			  xright - 1, ycenter);
-		XDrawLine(display, drawable, gc,
-			  xright - 1, ycenter,
-			  xright - 1, (ycenter + ybottom) / 2);
-		XDrawLine(display, drawable, gc,
-			  xright - 1, (ycenter + ybottom) / 2,
-			  xcenter, (ycenter + ybottom) / 2);
-		XDrawLine(display, drawable, gc,
-			  xcenter, (ycenter + ybottom) / 2,
-			  xright - 1, ybottom - 1);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xcenter, ycenter,
+				       xcenter, ybottom - 1);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xcenter, ycenter,
+				       xright - 1, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xright - 1, ycenter,
+				       xright - 1, (ycenter + ybottom) / 2);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xright - 1, (ycenter + ybottom) / 2,
+				       xcenter, (ycenter + ybottom) / 2);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xcenter, (ycenter + ybottom) / 2,
+				       xright - 1, ybottom - 1);
 		break;
 	case 0x2424: /* h */
 		xcenter--;
@@ -12841,330 +13179,393 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 		xright--;
 		ybottom--;
 		/* N */
-		XDrawLine(display, drawable, gc,
-			  x, y,
-			  x, ycenter);
-		XDrawLine(display, drawable, gc,
-			  x, y,
-			  xcenter, ycenter);
-		XDrawLine(display, drawable, gc,
-			  xcenter, y,
-			  xcenter, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, y,
+				       x, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, y,
+				       xcenter, ycenter);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xcenter, y,
+				       xcenter, ycenter);
 		/* L */
-		XDrawLine(display, drawable, gc,
-			  xcenter, ycenter,
-			  xcenter, ybottom - 1);
-		XDrawLine(display, drawable, gc,
-			  xcenter, ybottom - 1,
-			  xright - 1, ybottom - 1);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xcenter, ycenter,
+				       xcenter, ybottom - 1);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       xcenter, ybottom - 1,
+				       xright - 1, ybottom - 1);
 		break;
 	case 0x2500: /* q */
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       x,
-			       ycenter,
-			       column_width,
-			       VTE_LINE_WIDTH);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x,
+					    ycenter,
+					    column_width,
+					    VTE_LINE_WIDTH);
 		break;
 	case 0x2501:
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       x,
-			       ycenter,
-			       column_width,
-			       VTE_LINE_WIDTH * 2);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x,
+					    ycenter,
+					    column_width,
+					    VTE_LINE_WIDTH * 2);
 		break;
 	case 0x2502: /* x */
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       y,
-			       VTE_LINE_WIDTH,
-			       row_height);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    y,
+					    VTE_LINE_WIDTH,
+					    row_height);
 		break;
 	case 0x2503:
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       y,
-			       VTE_LINE_WIDTH * 2,
-			       row_height);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    y,
+					    VTE_LINE_WIDTH * 2,
+					    row_height);
 		break;
 	case 0x250c: /* l */
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       ycenter,
-			       xright - xcenter,
-			       VTE_LINE_WIDTH);
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       ycenter,
-			       VTE_LINE_WIDTH,
-			       ybottom - ycenter);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    ycenter,
+					    xright - xcenter,
+					    VTE_LINE_WIDTH);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    ycenter,
+					    VTE_LINE_WIDTH,
+					    ybottom - ycenter);
 		break;
 	case 0x250f:
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       ycenter,
-			       xright - xcenter,
-			       VTE_LINE_WIDTH * 2);
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       ycenter,
-			       VTE_LINE_WIDTH * 2,
-			       ybottom - ycenter);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    ycenter,
+					    xright - xcenter,
+					    VTE_LINE_WIDTH * 2);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    ycenter,
+					    VTE_LINE_WIDTH * 2,
+					    ybottom - ycenter);
 		break;
 	case 0x2510: /* k */
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       x,
-			       ycenter,
-			       xcenter - x + VTE_LINE_WIDTH,
-			       VTE_LINE_WIDTH);
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       ycenter,
-			       VTE_LINE_WIDTH,
-			       ybottom - ycenter);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x,
+					    ycenter,
+					    xcenter - x + VTE_LINE_WIDTH,
+					    VTE_LINE_WIDTH);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    ycenter,
+					    VTE_LINE_WIDTH,
+					    ybottom - ycenter);
 		break;
 	case 0x2513:
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       x,
-			       ycenter,
-			       xcenter - x + VTE_LINE_WIDTH * 2,
-			       VTE_LINE_WIDTH * 2);
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       ycenter,
-			       VTE_LINE_WIDTH * 2,
-			       ybottom - ycenter);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x,
+					    ycenter,
+					    xcenter - x + VTE_LINE_WIDTH * 2,
+					    VTE_LINE_WIDTH * 2);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    ycenter,
+					    VTE_LINE_WIDTH * 2,
+					    ybottom - ycenter);
 		break;
 	case 0x2514: /* m */
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       ycenter,
-			       xright - xcenter,
-			       VTE_LINE_WIDTH);
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       y,
-			       VTE_LINE_WIDTH,
-			       ycenter - y + VTE_LINE_WIDTH);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    ycenter,
+					    xright - xcenter,
+					    VTE_LINE_WIDTH);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    y,
+					    VTE_LINE_WIDTH,
+					    ycenter - y + VTE_LINE_WIDTH);
 		break;
 	case 0x2517:
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       ycenter,
-			       xright - xcenter,
-			       VTE_LINE_WIDTH * 2);
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       y,
-			       VTE_LINE_WIDTH * 2,
-			       ycenter - y + VTE_LINE_WIDTH * 2);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    ycenter,
+					    xright - xcenter,
+					    VTE_LINE_WIDTH * 2);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    y,
+					    VTE_LINE_WIDTH * 2,
+					    ycenter - y + VTE_LINE_WIDTH * 2);
 		break;
 	case 0x2518: /* j */
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       x,
-			       ycenter,
-			       xcenter - x + VTE_LINE_WIDTH,
-			       VTE_LINE_WIDTH);
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       y,
-			       VTE_LINE_WIDTH,
-			       ycenter - y + VTE_LINE_WIDTH);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x,
+					    ycenter,
+					    xcenter - x + VTE_LINE_WIDTH,
+					    VTE_LINE_WIDTH);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    y,
+					    VTE_LINE_WIDTH,
+					    ycenter - y + VTE_LINE_WIDTH);
 		break;
 	case 0x251b:
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       x,
-			       ycenter,
-			       xcenter - x + VTE_LINE_WIDTH * 2,
-			       VTE_LINE_WIDTH * 2);
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       y,
-			       VTE_LINE_WIDTH * 2,
-			       ycenter - y + VTE_LINE_WIDTH * 2);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x,
+					    ycenter,
+					    xcenter - x + VTE_LINE_WIDTH * 2,
+					    VTE_LINE_WIDTH * 2);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    y,
+					    VTE_LINE_WIDTH * 2,
+					    ycenter - y + VTE_LINE_WIDTH * 2);
 		break;
 	case 0x251c: /* t */
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       y,
-			       VTE_LINE_WIDTH,
-			       row_height);
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       ycenter,
-			       xright - xcenter,
-			       VTE_LINE_WIDTH);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    y,
+					    VTE_LINE_WIDTH,
+					    row_height);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    ycenter,
+					    xright - xcenter,
+					    VTE_LINE_WIDTH);
 		break;
 	case 0x2523:
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       y,
-			       VTE_LINE_WIDTH * 2,
-			       row_height);
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       ycenter,
-			       xright - xcenter,
-			       VTE_LINE_WIDTH * 2);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    y,
+					    VTE_LINE_WIDTH * 2,
+					    row_height);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    ycenter,
+					    xright - xcenter,
+					    VTE_LINE_WIDTH * 2);
 		break;
 	case 0x2524: /* u */
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       y,
-			       VTE_LINE_WIDTH,
-			       row_height);
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       x,
-			       ycenter,
-			       xcenter - x + VTE_LINE_WIDTH,
-			       VTE_LINE_WIDTH);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    y,
+					    VTE_LINE_WIDTH,
+					    row_height);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x,
+					    ycenter,
+					    xcenter - x + VTE_LINE_WIDTH,
+					    VTE_LINE_WIDTH);
 		break;
 	case 0x252b:
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       y,
-			       VTE_LINE_WIDTH * 2,
-			       row_height);
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       x,
-			       ycenter,
-			       xcenter - x + VTE_LINE_WIDTH * 2,
-			       VTE_LINE_WIDTH * 2);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    y,
+					    VTE_LINE_WIDTH * 2,
+					    row_height);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x,
+					    ycenter,
+					    xcenter - x + VTE_LINE_WIDTH * 2,
+					    VTE_LINE_WIDTH * 2);
 		break;
 	case 0x252c: /* w */
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       ycenter,
-			       VTE_LINE_WIDTH,
-			       ybottom - ycenter);
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       x,
-			       ycenter,
-			       column_width,
-			       VTE_LINE_WIDTH);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    ycenter,
+					    VTE_LINE_WIDTH,
+					    ybottom - ycenter);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x,
+					    ycenter,
+					    column_width,
+					    VTE_LINE_WIDTH);
 		break;
 	case 0x2533:
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       ycenter,
-			       VTE_LINE_WIDTH * 2,
-			       ybottom - ycenter);
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       x,
-			       ycenter,
-			       column_width,
-			       VTE_LINE_WIDTH * 2);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    ycenter,
+					    VTE_LINE_WIDTH * 2,
+					    ybottom - ycenter);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x,
+					    ycenter,
+					    column_width,
+					    VTE_LINE_WIDTH * 2);
 		break;
 	case 0x2534: /* v */
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       y,
-			       VTE_LINE_WIDTH,
-			       ycenter - y + VTE_LINE_WIDTH);
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       x,
-			       ycenter,
-			       column_width,
-			       VTE_LINE_WIDTH);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    y,
+					    VTE_LINE_WIDTH,
+					    ycenter - y + VTE_LINE_WIDTH);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x,
+					    ycenter,
+					    column_width,
+					    VTE_LINE_WIDTH);
 		break;
 	case 0x253c: /* n */
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       y,
-			       VTE_LINE_WIDTH,
-			       row_height);
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       x,
-			       ycenter,
-			       column_width,
-			       VTE_LINE_WIDTH);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    y,
+					    VTE_LINE_WIDTH,
+					    row_height);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x,
+					    ycenter,
+					    column_width,
+					    VTE_LINE_WIDTH);
 		break;
 	case 0x254b:
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       xcenter,
-			       y,
-			       VTE_LINE_WIDTH * 2,
-			       row_height);
-		XFillRectangle(display,
-			       drawable,
-			       gc,
-			       x,
-			       ycenter,
-			       column_width,
-			       VTE_LINE_WIDTH * 2);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    xcenter,
+					    y,
+					    VTE_LINE_WIDTH * 2,
+					    row_height);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x,
+					    ycenter,
+					    column_width,
+					    VTE_LINE_WIDTH * 2);
 		break;
 	case 0x2592:  /* a */
 		for (i = x; i <= xright; i++) {
@@ -13178,8 +13579,12 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 		}
 		break;
 	case 0x25ae: /* solid rectangle */
-		XFillRectangle(display, drawable, gc, x, y,
-			       xright - x, ybottom - y);
+		vte_terminal_fill_rectangle(terminal,
+					    display, drawable, gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x, y,
+					    xright - x, ybottom - y);
 		break;
 	case 0x25c6:
 		/* diamond */
@@ -13215,13 +13620,16 @@ vte_terminal_compute_padding(VteTerminal *terminal, Display *display,
 	PangoRectangle pink, plogical;
 	XRectangle xink, xlogical;
 	wchar_t wc;
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 	XGlyphInfo extents;
 #endif
 	/* Check how many columns this character uses up. */
-	columns = g_unichar_iswide(c) ? 2 : 1;
+	columns = vte_unichar_width(terminal, c);
 	switch (terminal->pvt->render_method) {
-#ifdef HAVE_XFT
+	case VteRenderDraw:
+		pad = rpad = 0;
+		break;
+#ifdef HAVE_XFT2
 	/* Ask Xft. */
 	case VteRenderXft2:
 	case VteRenderXft1:
@@ -13253,6 +13661,7 @@ vte_terminal_compute_padding(VteTerminal *terminal, Display *display,
 			       &xink, &xlogical);
 		pad = ((columns * terminal->char_width) - xlogical.width) / 2;
 		rpad = ((columns * terminal->char_width) - xlogical.width) - pad;
+		break;
 	}
 	/* Sanitize possibly-negative padding values and save them. */
 	pad = MAX(0, pad);
@@ -13336,24 +13745,25 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			Visual *visual,
 			GdkGC *ggc,
 			GC gc,
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 			XftDraw *ftdraw,
 #endif
 			PangoLayout *layout)
 {
 	int i;
 	gint columns = 0;
-	struct vte_palette_entry *fg, *bg;
+	struct vte_palette_entry *fg, *bg, *defbg;
 	GdkColor color;
 
 #ifdef HAVE_XFT2
 	XftCharSpec *ftcharspecs;
-#endif
-#ifdef HAVE_XFT
 	XftChar32 ftchar;
 #endif
 	gunichar c;
 	char utf8_buf[VTE_UTF8_BPC * VTE_DRAW_MAX_LENGTH];
+
+	struct _vte_draw_text_request *draw_requests;
+	struct _vte_draw_text_request local_draw_requests[VTE_DRAW_MAX_LENGTH];
 
 	wchar_t wc;
 	XwcTextItem textitem;
@@ -13361,6 +13771,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	bold = bold && terminal->pvt->allow_bold;
 	fg = &terminal->pvt->palette[fore];
 	bg = &terminal->pvt->palette[back];
+	defbg = &terminal->pvt->palette[VTE_DEF_BG];
 	x += VTE_PAD_WIDTH;
 	y += VTE_PAD_WIDTH;
 
@@ -13378,9 +13789,52 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 #endif
 
 	switch (terminal->pvt->render_method) {
-#ifdef HAVE_XFT
-	case VteRenderXft2:
+	case VteRenderDraw:
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_MISC)) {
+			fprintf(stderr, "Rendering with Draw.\n");
+		}
+#endif
+		if (n > G_N_ELEMENTS(local_draw_requests)) {
+			draw_requests = g_malloc(n * sizeof(struct _vte_draw_text_request));
+		} else {
+			draw_requests = local_draw_requests;
+		}
+		columns = 0;
+		for (i = 0; i < n; i++) {
+			columns += items[i].columns;
+		}
+		if (bg != defbg) {
+			color.red = bg->red;
+			color.blue = bg->blue;
+			color.green = bg->green;
+			_vte_draw_fill_rectangle(terminal->pvt->draw,
+						 x + x_offs, y + y_offs,
+						 columns * column_width,
+						 row_height,
+						 &color, VTE_DRAW_OPAQUE);
+		}
+		columns = 0;
+		for (i = 0; i < n; i++) {
+			draw_requests[i].c = items[i].c;
+			draw_requests[i].x = x + (columns * column_width) +
+					     items[i].xpad + x_offs;
+			draw_requests[i].y = y + y_offs;
+			draw_requests[i].columns = items[i].columns;
+			columns += items[i].columns;
+		}
+		color.red = fg->red;
+		color.blue = fg->blue;
+		color.green = fg->green;
+		_vte_draw_text(terminal->pvt->draw,
+			       draw_requests, n,
+			       &color, VTE_DRAW_OPAQUE);
+		if (draw_requests != local_draw_requests) {
+			g_free(local_draw_requests);
+		}
+		break;
 #ifdef HAVE_XFT2
+	case VteRenderXft2:
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_MISC) && 0) {
 			fprintf(stderr, "Rendering with Xft2.\n");
@@ -13420,7 +13874,6 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			}
 		}
 		break;
-#endif
 	case VteRenderXft1:
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_MISC) && 0) {
@@ -13521,10 +13974,14 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 				c = items[i].c ? items[i].c : ' ';
 				columns += items[i].columns;
 			}
-			XSetForeground(display, gc, bg->pixel);
-			XFillRectangle(display, drawable, gc,
-				       x, y,
-				       columns * column_width, row_height);
+			vte_terminal_fill_rectangle(terminal,
+						    display, drawable, gc,
+						    &terminal->pvt->palette[back],
+						    x_offs, y_offs,
+						    x,
+						    y,
+						    columns * column_width,
+						    row_height);
 		}
 		/* Draw the text in a monospaced manner. */
 		color.red = terminal->pvt->palette[fore].red;
@@ -13600,28 +14057,53 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	/* Draw whatever SFX are required. */
 	if (underline) {
 		XSetForeground(display, gc, fg->pixel);
-		XDrawLine(display, drawable, gc,
-			  x, y + ascent+2,
-			  x + (columns * column_width) - 1, y + ascent+2);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x,
+				       y + ascent + 2,
+				       x + (columns * column_width) - 1,
+				       y + ascent + 2);
 	}
 	if (strikethrough) {
 		XSetForeground(display, gc, fg->pixel);
-		XDrawLine(display, drawable, gc,
-			  x, y + (ascent+row_height)/4,
-			  x + (columns * column_width) - 1, y + (ascent+row_height)/4);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, y + (ascent + row_height)/4,
+				       x + (columns * column_width) - 1,
+				       y + (ascent + row_height)/4);
 	}
 	if (hilite) {
 		XSetForeground(display, gc, fg->pixel);
-		XDrawLine(display, drawable, gc,
-			  x, y + row_height - 1,
-			  x + (columns * column_width) - 1, y + row_height - 1);
+		vte_terminal_draw_line(terminal,
+				       display,
+				       drawable,
+				       gc,
+				       &terminal->pvt->palette[fore],
+				       x_offs, y_offs,
+				       x, y + row_height - 1,
+				       x + (columns * column_width) - 1,
+				       y + row_height - 1);
 	}
 	if (boxed) {
-		XSetForeground(display, gc, fg->pixel);
-		XDrawRectangle(display, drawable, gc,
-			       x, y,
-			       MAX(0, (columns * column_width) - 1),
-			       MAX(0, row_height - 1));
+		vte_terminal_draw_rectangle(terminal,
+					    display,
+					    drawable,
+					    gc,
+					    &terminal->pvt->palette[fore],
+					    x_offs, y_offs,
+					    x, y,
+					    MAX(0,
+						(columns * column_width) - 1),
+					    MAX(0,
+						row_height - 1));
 	}
 }
 
@@ -13684,7 +14166,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		      Visual *visual,
 		      GdkGC *ggc,
 		      GC gc,
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 		      XftDraw *ftdraw,
 #endif
 		      PangoLayout *layout)
@@ -13739,6 +14221,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 			item.columns = cell ? cell->columns : 1;
 			drawn = vte_terminal_draw_graphic(terminal, cell->c, fore, back,
 							  FALSE,
+							  x_offs, y_offs,
 							  x +
 							  ((i - column) * column_width),
 							  y,
@@ -13774,7 +14257,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 							colormap,
 							visual,
 							ggc, gc,
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 							ftdraw,
 #endif
 							layout);
@@ -13899,7 +14382,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 					column_width, row_height,
 					display, gdrawable, drawable,
 					colormap, visual, ggc, gc,
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 					ftdraw,
 #endif
 					layout);
@@ -13937,7 +14420,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	int i, len, fore, back;
 	gboolean blink, bold, underline, hilite, monospaced, strikethrough;
 	gboolean drawn;
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 	XftDraw *ftdraw = NULL;
 #endif
 
@@ -13969,8 +14452,53 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	/* Reset the GDK drawable to the buffered version. */
 	gdrawable = widget->window;
 
+	gc = XCreateGC(display, drawable, 0, NULL);
+	ggc = gdk_gc_new(gdrawable);
+
+	/* Keep local copies of rendering information. */
+	width = terminal->char_width;
+	height = terminal->char_height;
+	ascent = terminal->char_ascent;
+	descent = terminal->char_descent;
+	delta = screen->scroll_delta;
+
+	monospaced =
+		(vte_terminal_get_char_padding(terminal, display,
+					       VTE_REPRESENTATIVE_WIDER_CHARACTER) == 0) &&
+		(vte_terminal_get_char_padding(terminal, display,
+					       VTE_REPRESENTATIVE_NARROWER_CHARACTER) == 0);
+
+	/* Clear the area if we're not double-buffered. */
+	if (!GTK_WIDGET_DOUBLE_BUFFERED(widget)) {
+		gdk_window_clear_area(widget->window,
+				      area->x, area->y,
+				      area->width, area->height);
+	}
+
+	/* Calculate the bounding rectangle. */
+	row = (area->y - VTE_PAD_WIDTH) / height;
+	row_stop = MIN(howmany((area->y - VTE_PAD_WIDTH) + area->height,
+			       height),
+		       terminal->row_count);
+	col = (area->x - VTE_PAD_WIDTH) / width;
+	col_stop = MIN(howmany((area->x - VTE_PAD_WIDTH) + area->width,
+			       width),
+		       terminal->column_count);
+
 	switch (terminal->pvt->render_method) {
-#ifdef HAVE_XFT
+	case VteRenderDraw:
+		_vte_draw_start(terminal->pvt->draw);
+		_vte_draw_clear(terminal->pvt->draw,
+				area->x, area->y, area->width, area->height);
+		if (terminal->pvt->scroll_background) {
+			_vte_draw_set_scroll(terminal->pvt->draw,
+					     0,
+					     delta * terminal->char_height);
+		} else {
+			_vte_draw_set_scroll(terminal->pvt->draw, 0, 0);
+		}
+		break;
+#ifdef HAVE_XFT2
 	case VteRenderXft2:
 	case VteRenderXft1:
 		ftdraw = XftDrawCreate(display, drawable, visual, colormap);
@@ -14001,37 +14529,9 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		break;
 	}
 
-	gc = XCreateGC(display, drawable, 0, NULL);
-	ggc = gdk_gc_new(gdrawable);
-
-	/* Keep local copies of rendering information. */
-	width = terminal->char_width;
-	height = terminal->char_height;
-	ascent = terminal->char_ascent;
-	descent = terminal->char_descent;
-	delta = screen->scroll_delta;
-
-	monospaced =
-		(vte_terminal_get_char_padding(terminal, display,
-					       VTE_REPRESENTATIVE_WIDER_CHARACTER) == 0) &&
-		(vte_terminal_get_char_padding(terminal, display,
-					       VTE_REPRESENTATIVE_NARROWER_CHARACTER) == 0);
-
-	/* Clear the area if we're not double-buffered. */
-	if (!GTK_WIDGET_DOUBLE_BUFFERED(widget)) {
-		gdk_window_clear_area(widget->window, area->x, area->y,
-				      area->width, area->height);
-	}
-
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */
-	row = (area->y - VTE_PAD_WIDTH) / height;
-	row_stop = ((area->y - VTE_PAD_WIDTH) + area->height + height - 1) / height;
 	while (row < row_stop) {
-		col = (area->x - VTE_PAD_WIDTH) / width;
-		col_stop = MIN(howmany((area->x - VTE_PAD_WIDTH) + area->width,
-				       width),
-			       terminal->column_count);
 		vte_terminal_draw_row(terminal,
 				      screen,
 				      row + delta,
@@ -14045,7 +14545,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 				      height,
 				      display, gdrawable, drawable,
 				      colormap, visual, ggc, gc,
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 				      ftdraw,
 #endif
 				      layout);
@@ -14083,16 +14583,34 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 				terminal->pvt->screen->reverse_mode;
 			vte_terminal_determine_colors(terminal, cell, blink,
 						      &fore, &back);
+			columns = cell ? cell->columns : 1;
+			switch (terminal->pvt->render_method) {
+			case VteRenderDraw:
+				_vte_draw_clear(terminal->pvt->draw,
+						col * width, row * height,
+						width * columns, height);
+				break;
+			default:
+				gdk_window_clear_area(widget->window,
+						      col * width, row * height,
+						      width * columns, height);
+				break;
+			}
 			if ((cell != NULL) && vte_unichar_is_graphic(cell->c)) {
 				item.c = cell->c;
 				item.columns = cell->columns;
 				drawn = vte_terminal_draw_graphic(terminal,
-								  cell->c, fore, back,
+								  cell->c,
+								  fore, back,
 								  TRUE,
-								  col * width - x_offs,
-								  row * height - y_offs,
-								  width * cell->columns,
-								  height,
+								  x_offs,
+								  y_offs,
+								  col * width -
+								  x_offs,
+								  row * height -
+								  y_offs,
+								  terminal->char_width * cell->columns,
+								  terminal->char_height,
 								  display,
 								  gdrawable,
 								  drawable,
@@ -14105,7 +14623,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 					vte_terminal_draw_cells(terminal,
 								&item, 1,
 								fore, back,
-								FALSE,
+								TRUE,
 								cell->bold,
 								cell->underline,
 								cell->strikethrough,
@@ -14125,7 +14643,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								colormap,
 								visual,
 								ggc, gc,
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 								ftdraw,
 #endif
 								layout);
@@ -14157,7 +14675,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 							height,
 							display, gdrawable, drawable,
 							colormap, visual, ggc, gc,
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 							ftdraw,
 #endif
 							layout);
@@ -14167,13 +14685,29 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			/* Draw it as a hollow rectangle. */
 			columns = cell ? cell->columns : 1;
 			fore = cell ? cell->fore : VTE_DEF_FG;
-			XSetForeground(display, gc,
-				       terminal->pvt->palette[fore].pixel);
-			XDrawRectangle(display, drawable, gc,
-				       col * width - x_offs + VTE_PAD_WIDTH,
-				       row * height - y_offs + VTE_PAD_WIDTH,
-				       columns * width - 1,
-				       height - 1);
+			switch (terminal->pvt->render_method) {
+			case VteRenderDraw:
+				_vte_draw_clear(terminal->pvt->draw,
+						col * width, row * height,
+						width * columns, height);
+				break;
+			default:
+				gdk_window_clear_area(widget->window,
+						      col * width, row * height,
+						      width * columns, height);
+				break;
+			}
+			vte_terminal_draw_rectangle(terminal,
+						    display,
+						    drawable,
+						    gc,
+						    &terminal->pvt->palette[fore],
+						    x_offs,
+						    y_offs,
+						    col * width + VTE_PAD_WIDTH - x_offs,
+						    row * height + VTE_PAD_WIDTH - y_offs,
+						    columns * width - 1,
+						    height - 1);
 		}
 	}
 
@@ -14201,24 +14735,25 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 				items[i].xpad = vte_terminal_get_char_padding(terminal,
 									      display,
 									      item.c);
-				items[i].columns = g_unichar_iswide(items[i].c) ? 2 : 1;
+				items[i].columns = vte_unichar_width(terminal, items[i].c);
 				columns += items[i].columns;
 				preedit = g_utf8_next_char(preedit);
 			}
 			fore = screen->defaults.fore;
 			back = screen->defaults.back;
-			XSetForeground(display, gc,
-				       terminal->pvt->palette[back].pixel);
-			XFillRectangle(display, drawable, gc,
-				       col * width - x_offs + VTE_PAD_WIDTH,
-				       row * height - y_offs + VTE_PAD_WIDTH,
-				       columns * terminal->char_width,
-				       terminal->char_height);
+			vte_terminal_fill_rectangle(terminal,
+						    display, drawable, gc,
+						    &terminal->pvt->palette[back],
+						    x_offs, y_offs,
+						    col * width - x_offs + VTE_PAD_WIDTH,
+						    row * height - y_offs + VTE_PAD_WIDTH,
+						    columns * terminal->char_width,
+						    terminal->char_height);
 			vte_terminal_draw_cells(terminal,
 						items, len,
 						screen->defaults.fore,
 						screen->defaults.back,
-						FALSE, FALSE, FALSE,
+						TRUE, FALSE, FALSE,
 						FALSE, FALSE, TRUE,
 						col * width - x_offs,
 						row * height - y_offs,
@@ -14229,7 +14764,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 						terminal->char_height,
 						display, gdrawable, drawable,
 						colormap, visual, ggc, gc,
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 						ftdraw,
 #endif
 						layout);
@@ -14238,7 +14773,10 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	}
 
 	/* Done with various structures. */
-#ifdef HAVE_XFT
+	if (terminal->pvt->render_method == VteRenderDraw) {
+		_vte_draw_end(terminal->pvt->draw);
+	}
+#ifdef HAVE_XFT2
 	if (ftdraw != NULL) {
 		XftDrawDestroy(ftdraw);
 	}
@@ -14843,6 +15381,23 @@ vte_terminal_get_allow_bold(VteTerminal *terminal)
 }
 
 /**
+ * vte_terminal_set_scroll_background:
+ * @terminal: a #VteTerminal
+ * @scroll: TRUE if the terminal should scroll the background image along with
+ * text.
+ *
+ * Controls whether or not the terminal will scroll the background image (if
+ * one is set) when the text in the window must be scrolled.
+ *
+ */
+void
+vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->scroll_background = scroll;
+}
+
+/**
  * vte_terminal_set_scroll_on_output:
  * @terminal: a #VteTerminal
  * @scroll: TRUE if the terminal should scroll on output
@@ -15001,6 +15556,8 @@ vte_terminal_background_update(gpointer data)
 	bgcolor.blue = terminal->pvt->palette[VTE_DEF_BG].blue;
 	bgcolor.pixel = terminal->pvt->palette[VTE_DEF_BG].pixel;
 	gdk_window_set_background(widget->window, &bgcolor);
+	_vte_draw_set_background_color(terminal->pvt->draw, &bgcolor);
+	_vte_draw_set_background_pixbuf(terminal->pvt->draw, NULL);
 
 	/* If we're transparent, and either have no root image or are being
 	 * told to update it, get a new copy of the root window. */
@@ -15203,6 +15760,9 @@ vte_terminal_background_update(gpointer data)
 			fprintf(stderr, "Setting final background.\n");
 		}
 #endif
+		/* Set the modified pixbuf as the background. */
+		_vte_draw_set_background_pixbuf(terminal->pvt->draw, pixbuf);
+
 		/* Render the modified image into a pixmap/bitmap pair. */
 		colormap = gdk_drawable_get_colormap(widget->window);
 		gdk_pixbuf_render_pixmap_and_mask_for_colormap(pixbuf,
@@ -15574,12 +16134,18 @@ gboolean
 vte_terminal_get_using_xft(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-#ifdef HAVE_XFT
-	return (terminal->pvt->render_method == VteRenderXft2) ||
-	       (terminal->pvt->render_method == VteRenderXft1);
-#else
-	return FALSE;
+	switch (terminal->pvt->render_method) {
+	case VteRenderDraw:
+#ifdef HAVE_XFT2
+	case VteRenderXft2:
+	case VteRenderXft1:
 #endif
+		return TRUE;
+		break;
+	default:
+		break;
+	}
+	return FALSE;
 }
 
 /**

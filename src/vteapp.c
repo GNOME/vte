@@ -378,7 +378,7 @@ main(int argc, char **argv)
 	const char *background = NULL;
 	gboolean transparent = FALSE, audible = TRUE, blink = TRUE,
 		 debug = FALSE, dingus = FALSE, geometry = TRUE, dbuffer = TRUE,
-		 console = TRUE;
+		 console = FALSE, scroll = FALSE;
 	long lines = 100;
 	const char *message = "Launching interactive shell...\r\n";
 	const char *font = NULL;
@@ -407,6 +407,7 @@ main(int argc, char **argv)
 	back.red = back.green = back.blue = 0xffff;
 	fore.red = fore.green = fore.blue = 0x0000;
 	tint.red = tint.green = tint.blue = 0;
+	tint = back;
 
 	/* Have to do this early. */
 	if (getenv("VTE_PROFILE_MEMORY")) {
@@ -434,7 +435,7 @@ main(int argc, char **argv)
 	argv2[i] = NULL;
 	g_assert(i < (g_list_length(args) + 2));
 	/* Parse some command-line options. */
-	while ((opt = getopt(argc, argv, "B:CDT2abc:df:ghn:t:w:")) != -1) {
+	while ((opt = getopt(argc, argv, "B:CDT2abc:df:ghn:st:w:")) != -1) {
 		switch (opt) {
 			case 'B':
 				background = optarg;
@@ -474,6 +475,9 @@ main(int argc, char **argv)
 				if (lines == 0) {
 					lines = 100;
 				}
+				break;
+			case 's':
+				scroll = !scroll;
 				break;
 			case 't':
 				terminal = optarg;
@@ -567,6 +571,7 @@ main(int argc, char **argv)
 	/* Set some defaults. */
 	vte_terminal_set_audible_bell(VTE_TERMINAL(widget), audible);
 	vte_terminal_set_cursor_blinks(VTE_TERMINAL(widget), blink);
+	vte_terminal_set_scroll_background(VTE_TERMINAL(widget), scroll);
 	vte_terminal_set_scroll_on_output(VTE_TERMINAL(widget), FALSE);
 	vte_terminal_set_scroll_on_keystroke(VTE_TERMINAL(widget), TRUE);
 	vte_terminal_set_scrollback_lines(VTE_TERMINAL(widget), lines);

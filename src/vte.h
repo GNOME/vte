@@ -172,6 +172,7 @@ void vte_terminal_set_audible_bell(VteTerminal *terminal, gboolean is_audible);
 gboolean vte_terminal_get_audible_bell(VteTerminal *terminal);
 void vte_terminal_set_visible_bell(VteTerminal *terminal, gboolean is_visible);
 gboolean vte_terminal_get_visible_bell(VteTerminal *terminal);
+void vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll);
 void vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll);
 void vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 					  gboolean scroll);

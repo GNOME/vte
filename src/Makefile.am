@@ -3,7 +3,7 @@ pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
 pkglib_PROGRAMS = interpret utf8echo nativeecho utf8mode iso8859mode slowcat
 pkglib_SCRIPTS = decset osc window
-noinst_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-vte $(REFLECT_ZVT) ring mev ssfe table termcap trie
+noinst_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-vte $(REFLECT_ZVT) ring mev ssfe table termcap trie xticker
 EXTRA_DIST = \
 	$(pkglib_SCRIPTS) \
 	genkeysyms.py \
@@ -55,9 +55,18 @@ libvte_la_SOURCES = \
 	vte.c \
 	vte.h \
 	vteaccess.c \
-	vteaccess.h
+	vteaccess.h \
+	vtedraw.c \
+	vtedraw.h \
+	vtefc.c \
+	vtefc.h \
+	vtepango.c \
+	vtepango.h \
+	vtexft.c \
+	vtexft.h
 
 libvte_la_LIBADD = @LIBS@ @VTE_LIBS@ @X_LIBS@
+# libvte_la_LDFLAGS = @LDFLAGS@ -version-info 5:0:1
 libvte_la_LDFLAGS = @LDFLAGS@ -version-info 4:0:0
 
 CLEANFILES = marshal.c marshal.h
@@ -216,3 +225,7 @@ mev_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 ssfe_SOURCES = ssfe.c
 ssfe_LDADD = @LDFLAGS@ @OTHERLIBS@
+
+xticker_CFLAGS = @CFLAGS@
+xticker_SOURCES = xticker.c
+xticker_LDADD = @LIBS@ @GOBJECT_LIBS@
