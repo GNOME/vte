@@ -1,4 +1,7 @@
 2004-04-29 nalin
+	* python/vte.defs: include get_default_emulation binding.
+
+2004-04-29 nalin
 	* vte.spec: update version to 0.11.11
 
 2004-04-29 nalin

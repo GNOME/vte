@@ -1,4 +1,4 @@
-; -*- scheme -*-
+;; -*- scheme -*-
 ; object definitions ...
 (define-object Terminal
   (in-module "Vte")
@@ -354,7 +354,7 @@
   (return-type "none")
   (parameters
     '("const-PangoFontDescription*" "font_desc")
-    '("VteTerminalAntiAlias" "anti_alias")
+    '("VteTerminalAntiAlias" "antialias")
   )
 )
 
@@ -373,7 +373,7 @@
   (return-type "none")
   (parameters
     '("const-char*" "name")
-    '("VteTerminalAntiAlias" "anti_alias")
+    '("VteTerminalAntiAlias" "antialias")
   )
 )
 
@@ -570,6 +570,12 @@
 (define-method get_emulation
   (of-object "VteTerminal")
   (c-name "vte_terminal_get_emulation")
+  (return-type "const-char*")
+)
+
+(define-method get_default_emulation
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_default_emulation")
   (return-type "const-char*")
 )
 
