@@ -1,4 +1,14 @@
 2002-10-18 nalin
+	* src/vte.c: implement decset 42 (enable/disable NRC processing), but
+	enable it by default.  Implement decset 44 (margin bell).
+	* src/vte.c: do not trust the event->string.  Use gdk_keyval_to_unicode
+	and the built-in keymapping to cope with the weirdness.  Extend the
+	range of characters we controlify from 0x40-0x60 to 0x40-0x7f so that
+	lower-case ascii chars controlify (not a word, I know).
+	* src/keymap.c: add map entries for GDK_Return and GDK_KP_Enter for
+	GDK_CONTROL_MASK = cr, normal = lf.
+
+2002-10-18 nalin
 	* src/vte.c: make sure that strings passed to a commit signal are zero-
 	terminated (#96131).
 	* python/Makefile.am: install the module in site-packages instead of a

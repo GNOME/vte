@@ -261,8 +261,11 @@ struct _VteTerminalPrivate {
 	gboolean meta_sends_escape;
 	gboolean audible_bell;
 	gboolean visible_bell;
+	gboolean margin_bell;
+	guint bell_margin;
 	gboolean allow_bold;
 	gboolean xterm_font_tweak;
+	gboolean nrc_mode;
 	gboolean smooth_scroll;
 	GHashTable *tabstops;
 
@@ -3879,7 +3882,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		gpointer tvalue;
 		VteTerminalSequenceHandler reset, set;
 	} settings[] = {
-		/* Application/normal cursor keys. */
+		/* 1: Application/normal cursor keys. */
 		{1, NULL, &terminal->pvt->cursor_mode, NULL,
 		 GINT_TO_POINTER(VTE_KEYMODE_NORMAL),
 		 GINT_TO_POINTER(VTE_KEYMODE_APPLICATION),
@@ -3888,18 +3891,18 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		{2, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 3: disallowed, window size is set by user. */
 		{3, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
-		/* Smooth scroll. */
+		/* 4: Smooth scroll. */
 		{4, &terminal->pvt->smooth_scroll, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
-		/* Reverse video. */
+		/* 5: Reverse video. */
 		{5, &terminal->pvt->screen->reverse_mode, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
 #if 0
-		/* Origin mode. */
+		/* 6: Origin mode. */
 		{6, &terminal->pvt->screen->origin_mode, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
@@ -3907,105 +3910,122 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 #else
 		{6, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 #endif
-		/* Wraparound mode. */
+		/* 7: Wraparound mode. */
 		{7, &terminal->pvt->flags.am, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
 		/* 8: disallowed, keyboard repeat is set by user. */
 		{8, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
-		/* Send-coords-on-click. */
+		/* 9: Send-coords-on-click. */
 		{9, &terminal->pvt->mouse_send_xy_on_click, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
-		/* Cursor visible. */
+		/* 18: print form feed. */
+		/* 19: set print extent to full screen. */
+		/* 25: Cursor visible. */
 		{25, &terminal->pvt->cursor_visible, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
-		/* 30: disallowed, scrollbar visibility is set by user. */
+		/* 30/rxvt: disallowed, scrollbar visibility is set by user. */
 		{30, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
+		/* 35/rxvt: disallowed, fonts set by user. */
+		{35, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
+		/* 38: enter Tektronix mode. */
 		/* 40: disallowed, the user sizes dynamically. */
 		{40, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
-		/* Alternate screen. */
+		/* 41: more(1) fix. */
+		/* 42: Enable NLS replacements. */
+		{42, &terminal->pvt->nrc_mode, NULL, NULL,
+		 GINT_TO_POINTER(FALSE),
+		 GINT_TO_POINTER(TRUE),
+		 NULL, NULL,},
+		/* 44: Margin bell. */
+		{44, &terminal->pvt->margin_bell, NULL, NULL,
+		 GINT_TO_POINTER(FALSE),
+		 GINT_TO_POINTER(TRUE),
+		 NULL, NULL,},
+		/* 47: Alternate screen. */
 		{47, NULL, NULL, (gpointer*) &terminal->pvt->screen,
 		 &terminal->pvt->normal_screen,
 		 &terminal->pvt->alternate_screen,
 		 NULL, NULL,},
-		/* Keypad mode. */
+		/* 66: Keypad mode. */
 		{66, &terminal->pvt->keypad_mode, NULL, NULL,
 		 GINT_TO_POINTER(VTE_KEYMODE_NORMAL),
 		 GINT_TO_POINTER(VTE_KEYMODE_APPLICATION),
 		 NULL, NULL,},
 		/* 67: disallowed, backspace key policy is set by user. */
 		{67, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
-		/* Send-coords-on-button. */
+		/* 1000: Send-coords-on-button. */
 		{1000, &terminal->pvt->mouse_send_xy_on_button, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
-		/* Hilite tracking. */
+		/* 1001: Hilite tracking. */
 		{1001, &terminal->pvt->mouse_hilite_tracking, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
-		/* Cell motion tracking. */
+		/* 1002: Cell motion tracking. */
 		{1002, &terminal->pvt->mouse_cell_motion_tracking, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
-		/* All motion tracking. */
+		/* 1003: All motion tracking. */
 		{1003, &terminal->pvt->mouse_all_motion_tracking, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
-		/* 1010: disallowed, scroll-on-output is set by user. */
+		/* 1010/rxvt: disallowed, scroll-on-output is set by user. */
 		{1010, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
-		/* 1011: disallowed, scroll-on-keypress is set by user. */
+		/* 1011/rxvt: disallowed, scroll-on-keypress is set by user. */
 		{1011, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 1035: disallowed, don't know what to do with it. */
 		{1035, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
-		/* Meta-sends-escape. */
+		/* 1036: Meta-sends-escape. */
 		{1036, &terminal->pvt->meta_sends_escape, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
 		/* 1037: disallowed, delete key policy is set by user. */
 		{1037, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
-		/* Use alternate screen buffer. */
+		/* 1047: Use alternate screen buffer. */
 		{1047, NULL, NULL, (gpointer*) &terminal->pvt->screen,
 		 &terminal->pvt->normal_screen,
 		 &terminal->pvt->alternate_screen,
 		 NULL, NULL,},
-		/* Save/restore cursor position. */
+		/* 1048: Save/restore cursor position. */
 		{1048, NULL, NULL, NULL,
 		 NULL,
 		 NULL,
 		 vte_sequence_handler_rc,
 		 vte_sequence_handler_sc,},
-		/* Use alternate screen buffer, saving the cursor position. */
+		/* 1049: Use alternate screen buffer, saving the cursor
+		 * position. */
 		{1049, NULL, NULL, (gpointer*) &terminal->pvt->screen,
 		 &terminal->pvt->normal_screen,
 		 &terminal->pvt->alternate_screen,
 		 vte_sequence_handler_rc,
 		 vte_sequence_handler_sc,},
-		/* Sun function key mode. */
+		/* 1051: Sun function key mode. */
 		{1051, NULL, NULL, (gpointer*) &terminal->pvt->sun_fkey_mode,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL},
-		/* HP function key mode. */
+		/* 1052: HP function key mode. */
 		{1052, NULL, NULL, (gpointer*) &terminal->pvt->hp_fkey_mode,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL},
-		/* Legacy function key mode. */
+		/* 1060: Legacy function key mode. */
 		{1060, NULL, NULL, (gpointer*) &terminal->pvt->legacy_fkey_mode,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL},
-		/* VT220 function key mode. */
+		/* 1061: VT220 function key mode. */
 		{1061, NULL, NULL, (gpointer*) &terminal->pvt->vt220_fkey_mode,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
@@ -6276,19 +6296,22 @@ vte_terminal_process_incoming(gpointer data)
 	start = 0;
 	modified = leftovers = again = FALSE;
 
-	/* Perform ISO-2022 and XTerm national charset substitutions. */
-	substitutions = _vte_iso2022_copy(terminal->pvt->substitutions);
-	substitution_count = _vte_iso2022_substitute(substitutions,
-						     wbuf, wcount, wbuf,
-						     terminal->pvt->table);
-	if (substitution_count < 0) {
-		_vte_iso2022_free(substitutions);
-		leftovers = TRUE;
-		again = FALSE;
-	} else {
-		_vte_iso2022_free(terminal->pvt->substitutions);
-		terminal->pvt->substitutions = substitutions;
-		wcount = substitution_count;
+	/* Perform ISO-2022 and XTerm national replacement charset
+	 * substitutions. */
+	if (terminal->pvt->nrc_mode) {
+		substitutions = _vte_iso2022_copy(terminal->pvt->substitutions);
+		substitution_count = _vte_iso2022_substitute(substitutions,
+							     wbuf, wcount, wbuf,
+							     terminal->pvt->table);
+		if (substitution_count < 0) {
+			_vte_iso2022_free(substitutions);
+			leftovers = TRUE;
+			again = FALSE;
+		} else {
+			_vte_iso2022_free(terminal->pvt->substitutions);
+			terminal->pvt->substitutions = substitutions;
+			wcount = substitution_count;
+		}
 	}
 
 	/* Save the current cursor position. */
@@ -6986,6 +7009,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	VteKeymode keypad_mode = VTE_KEYMODE_NORMAL,
 		   cursor_mode = VTE_KEYMODE_NORMAL;
 	guint keyval = 0;
+	gunichar keychar = 0;
+	char keybuf[VTE_UTF8_BPC];
 
 	g_return_val_if_fail(widget != NULL, FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
@@ -6996,6 +7021,19 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	if (event->type == GDK_KEY_PRESS) {
 		/* Store a copy of the key. */
 		keyval = event->keyval;
+
+		/* If we're in margin bell mode and on the border of the
+		 * margin, bell. */
+		if (terminal->pvt->margin_bell) {
+			if ((terminal->pvt->screen->cursor_current.col +
+			     terminal->pvt->bell_margin) ==
+			    terminal->column_count) {
+				vte_sequence_handler_bl(terminal,
+							"bl",
+							0,
+							NULL);
+			}
+		}
 
 		/* Log the time of the last keypress. */
 		if (gettimeofday(&tv, &tz) == 0) {
@@ -7011,7 +7049,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
 			fprintf(stderr, "Keypress, modifiers=0x%x, "
-				"keyval=0x%x, string=`%s'.\n",
+				"keyval=0x%x, raw string=`%s'.\n",
 				modifiers, keyval, event->string);
 		}
 #endif
@@ -7193,21 +7231,39 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		}
 		/* If we didn't manage to do anything, try to salvage a
 		 * printable string. */
-		if (!handled &&
-		    (normal == NULL) && (special == NULL) &&
-		    (event->string != NULL)) {
-			normal = g_strdup(event->string);
-			normal_length = strlen(normal);
-			if (modifiers & GDK_CONTROL_MASK) {
+		if (!handled && (normal == NULL) && (special == NULL)) {
+			/* Convert the keyval to a gunichar. */
+			keychar = gdk_keyval_to_unicode(keyval);
+			normal_length = 0;
+			if (keychar != 0) {
+				/* Convert the gunichar to a string. */
+				normal_length = g_unichar_to_utf8(keychar,
+								  keybuf);
+				if (normal_length != 0) {
+					normal = g_malloc0(normal_length + 1);
+					memcpy(normal, keybuf, normal_length);
+				} else {
+					normal = NULL;
+				}
+			}
+			if ((normal != NULL) &&
+			    (modifiers & GDK_CONTROL_MASK)) {
 				/* Replace characters which have "control"
 				 * counterparts with those counterparts. */
 				for (i = 0; i < normal_length; i++) {
-					if ((normal[i] >= 0x40) &&
-					    (normal[i] <= 0x60)) {
-						normal[i] ^= 0x40;
+					if ((((guint8)normal[i]) >= 0x40) &&
+					    (((guint8)normal[i]) <  0x80)) {
+						normal[i] &= (~(0x60));
 					}
 				}
 			}
+#ifdef VTE_DEBUG
+			if (normal && _vte_debug_on(VTE_DEBUG_EVENTS)) {
+				fprintf(stderr, "Keypress, modifiers=0x%x, "
+					"keyval=0x%x, cooked string=`%s'.\n",
+					modifiers, keyval, normal);
+			}
+#endif
 		}
 		/* If we got normal characters, send them to the child. */
 		if (normal != NULL) {
@@ -7579,7 +7635,7 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 	if (modifiers & GDK_SHIFT_MASK) {
 		cb |= 4;
 	}
-	if (modifiers & GDK_MOD1_MASK) {
+	if (modifiers & VTE_META_MASK) {
 		cb |= 8;
 	}
 	if (modifiers & GDK_CONTROL_MASK) {
@@ -7648,7 +7704,7 @@ vte_terminal_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	if (modifiers & GDK_SHIFT_MASK) {
 		cb |= 4;
 	}
-	if (modifiers & GDK_MOD1_MASK) {
+	if (modifiers & VTE_META_MASK) {
 		cb |= 8;
 	}
 	if (modifiers & GDK_CONTROL_MASK) {
@@ -10095,8 +10151,11 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->meta_sends_escape = TRUE;
 	pvt->audible_bell = TRUE;
 	pvt->visible_bell = FALSE;
+	pvt->margin_bell = FALSE;
+	pvt->bell_margin = 10;
 	pvt->allow_bold = TRUE;
 	pvt->xterm_font_tweak = FALSE;
+	pvt->nrc_mode = TRUE;
 	pvt->smooth_scroll = FALSE;
 	pvt->tabstops = NULL;
 	vte_terminal_set_default_tabstops(terminal);
@@ -13943,6 +14002,10 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	terminal->pvt->meta_sends_escape = TRUE;
 	/* Disable smooth scroll. */
 	terminal->pvt->smooth_scroll = FALSE;
+	/* Disable margin bell. */
+	terminal->pvt->margin_bell = FALSE;
+	/* Enable iso2022/NRC processing. */
+	terminal->pvt->nrc_mode = TRUE;
 	/* Reset saved settings. */
 	if (terminal->pvt->dec_saved != NULL) {
 		g_hash_table_destroy(terminal->pvt->dec_saved);

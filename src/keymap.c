@@ -76,6 +76,12 @@ static struct _vte_keymap_entry _vte_keymap_GDK_Tab[] = {
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
+static struct _vte_keymap_entry _vte_keymap_GDK_Return[] = {
+	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\n", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, "\r", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
+};
+
 static struct _vte_keymap_entry _vte_keymap_GDK_Insert[] = {
 	{cursor_all, keypad_app, fkey_all, 0, NULL, 0, "kI"},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
@@ -150,6 +156,8 @@ static struct _vte_keymap_entry _vte_keymap_GDK_KP_Enter[] = {
 	{cursor_all, keypad_normal, fkey_all, 0, NULL, 0, "@8"},
 	{cursor_all, keypad_app, fkey_all, 0, _VTE_CAP_SS3 "M", -1, NULL},
 	{cursor_all, keypad_vt220, fkey_all, 0, _VTE_CAP_SS3 "M", -1, NULL},
+	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\n", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, "\r", 1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
@@ -562,6 +570,7 @@ static struct _vte_keymap_group {
 	struct _vte_keymap_entry *entries;
 } _vte_keymap[] = {
 	{GDK_space,		_vte_keymap_GDK_space},
+	{GDK_Return,		_vte_keymap_GDK_Return},
 	{GDK_Tab,		_vte_keymap_GDK_Tab},
 	{GDK_ISO_Left_Tab,	_vte_keymap_GDK_ISO_Left_Tab},
 	{GDK_Home,		_vte_keymap_GDK_Home},
