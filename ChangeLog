@@ -1,4 +1,7 @@
 2004-05-01 nalin
+	* README: add pointers to info on bidirectional text and shaping.
+
+2004-05-01 nalin
 	* src/vte.c(vte_terminal_get_text_maybe_wrapped): add a parameter to
 	control whether or not trailing whitespace is trimmed (padraig.obriain,
 	#141148).
