@@ -1,3 +1,8 @@
+2002-06-13 nalin
+	* src/vteaccess.c: Re-read cursor position immediately on "cursor-moved"
+	events, and emit the "text-caret-moved" signal then as well.  Don't
+	override the signal handlers for signals we emit, bad things can
+	happen (from msw).
 2002-06-12 nalin
 	* src/vte.c: Re-read the termcap when we change emulation, because
 	the location of the file may have changed.

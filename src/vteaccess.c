@@ -40,7 +40,8 @@
 
 #define VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA "VteTerminalAccessiblePrivateData"
 typedef struct _VteTerminalAccessiblePrivate {
-	gboolean snapshot_invalid;	/* This data needs to be refreshed. */
+	gboolean snapshot_contents_invalid;	/* This data is stale. */
+	gboolean snapshot_caret_invalid;	/* This data is stale. */
 	gchar *snapshot_text;		/* Pointer to UTF-8 text. */
 	GArray *snapshot_characters;	/* Offsets to character begin points. */
 	GArray *snapshot_attributes;	/* Attributes, per byte. */
@@ -66,8 +67,9 @@ vte_terminal_accessible_new_private_data(void)
 	priv->snapshot_characters = NULL;
 	priv->snapshot_attributes = NULL;
 	priv->snapshot_linebreaks = NULL;
-	priv->snapshot_caret = 0;
-	priv->snapshot_invalid = TRUE;
+	priv->snapshot_caret = -1;
+	priv->snapshot_contents_invalid = TRUE;
+	priv->snapshot_caret_invalid = TRUE;
 	return priv;
 }
 
@@ -96,106 +98,131 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text)
 	g_return_if_fail(priv != NULL);
 
 	/* If nothing's changed, just return immediately. */
-	if (priv->snapshot_invalid == FALSE) {
+	if ((priv->snapshot_contents_invalid == FALSE) &&
+	    (priv->snapshot_caret_invalid == FALSE)) {
 		return;
 	}
 
-	/* Free the possibly-outdated snapshot data. */
-	if (priv->snapshot_text != NULL) {
-		g_free(priv->snapshot_text);
-		priv->snapshot_text = NULL;
-	}
-
-	if (priv->snapshot_characters != NULL) {
-		g_array_free(priv->snapshot_characters, TRUE);
-		priv->snapshot_characters = NULL;
-	}
-	priv->snapshot_characters = g_array_new(FALSE, TRUE, sizeof(int));
-
-	if (priv->snapshot_attributes != NULL) {
-		g_array_free(priv->snapshot_attributes, TRUE);
-		priv->snapshot_attributes = NULL;
-	}
-	priv->snapshot_attributes = g_array_new(FALSE, TRUE,
-						sizeof(struct vte_char_attributes));
-
-	if (priv->snapshot_linebreaks != NULL) {
-		g_array_free(priv->snapshot_linebreaks, TRUE);
-		priv->snapshot_linebreaks = NULL;
-	}
-	priv->snapshot_linebreaks = g_array_new(FALSE, TRUE, sizeof(int));
-
-	priv->snapshot_caret = 0;
-
-	/* Get a new view of the uber-label. */
 	terminal = VTE_TERMINAL((GTK_ACCESSIBLE(text))->widget);
-	priv->snapshot_text = vte_terminal_get_text(terminal, all_selected,
-						    priv->snapshot_attributes);
-	if (priv->snapshot_text == NULL) {
-		/* Aaargh!  We're screwed. */
-		return;
-	}
-	vte_terminal_get_cursor_position(terminal, &ccol, &crow);
 
-	/* Get the offsets to the beginnings of each character. */
-	i = 0;
-	while (i < priv->snapshot_attributes->len) {
-		g_array_append_val(priv->snapshot_characters, i);
-		next = g_utf8_find_next_char(priv->snapshot_text + i, NULL);
-		if (next == NULL) {
-			break;
-		} else {
-	       		i = next - priv->snapshot_text;
+	/* Re-read the contents of the widget if the contents have changed. */
+	if (priv->snapshot_contents_invalid) {
+		/* Free the outdated snapshot data. */
+		if (priv->snapshot_text != NULL) {
+			g_free(priv->snapshot_text);
+			priv->snapshot_text = NULL;
 		}
-	}
 
-	/* Get the offsets to the beginnings of each line. */
-	caret = -1;
-	for (i = 0, row = 0; i < priv->snapshot_characters->len; i++) {
-		/* Get the attributes for the current cell. */
-		offset = g_array_index(priv->snapshot_characters, int, i);
-		attrs = g_array_index(priv->snapshot_attributes,
-				      struct vte_char_attributes, offset);
-		/* If this cell is "before" the cursor, move the caret to
-		 * be "here". */
-		if ((attrs.row < crow) ||
-		    ((attrs.row == crow) && (attrs.column <= ccol))) {
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_MISC)) {
-				fprintf(stderr, "Caret is after (%d/%d).\n",
-					attrs.column, attrs.row);
-			}
-#endif
-			caret = i;
+		/* Free the character offsets and allocate a new array to hold
+		 * them. */
+		if (priv->snapshot_characters != NULL) {
+			g_array_free(priv->snapshot_characters, TRUE);
+			priv->snapshot_characters = NULL;
 		}
-		/* If this character is on a row different from the row the
-		 * character we looked at previously was on, then it's a new
-		 * line and we need to keep track of where it is. */
-		if ((i == 0) || (attrs.row != row)) {
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_MISC)) {
-				fprintf(stderr, "Row %d/%d begins at %ld.\n",
-					priv->snapshot_linebreaks->len,
-					attrs.row,
-					i);
-				fprintf(stderr, "Cursor at (%d, %d).\n",
-					ccol, crow);
-			}
-#endif
-			g_array_append_val(priv->snapshot_linebreaks, i);
+		priv->snapshot_characters = g_array_new(FALSE, TRUE, sizeof(int));
+
+		/* Free the attribute lists and allocate a new array to hold
+		 * them. */
+		if (priv->snapshot_attributes != NULL) {
+			g_array_free(priv->snapshot_attributes, TRUE);
+			priv->snapshot_attributes = NULL;
 		}
-		row = attrs.row;
+		priv->snapshot_attributes = g_array_new(FALSE, TRUE,
+							sizeof(struct vte_char_attributes));
+
+		/* Free the linebreak offsets and allocate a new array to hold
+		 * them. */
+		if (priv->snapshot_linebreaks != NULL) {
+			g_array_free(priv->snapshot_linebreaks, TRUE);
+			priv->snapshot_linebreaks = NULL;
+		}
+		priv->snapshot_linebreaks = g_array_new(FALSE, TRUE, sizeof(int));
+
+		/* Get a new view of the uber-label. */
+		priv->snapshot_text = vte_terminal_get_text(terminal, all_selected,
+							    priv->snapshot_attributes);
+		if (priv->snapshot_text == NULL) {
+			/* Aaargh!  We're screwed. */
+			return;
+		}
+
+		/* Get the offsets to the beginnings of each character. */
+		i = 0;
+		while (i < priv->snapshot_attributes->len) {
+			g_array_append_val(priv->snapshot_characters, i);
+			next = g_utf8_find_next_char(priv->snapshot_text + i,
+						     NULL);
+			if (next == NULL) {
+				break;
+			} else {
+				i = next - priv->snapshot_text;
+			}
+		}
+		/* Find offsets for the beginning of lines. */
+		for (i = 0, row = 0; i < priv->snapshot_characters->len; i++) {
+			/* Get the attributes for the current cell. */
+			offset = g_array_index(priv->snapshot_characters,
+					       int, i);
+			attrs = g_array_index(priv->snapshot_attributes,
+					      struct vte_char_attributes,
+					      offset);
+			/* If this character is on a row different from the row
+			 * the character we looked at previously was on, then
+			 * it's a new line and we need to keep track of where
+			 * it is. */
+			if ((i == 0) || (attrs.row != row)) {
+#ifdef VTE_DEBUG
+				if (vte_debug_on(VTE_DEBUG_MISC)) {
+					fprintf(stderr, "Row %d/%d begins at "
+						"%ld.\n",
+						priv->snapshot_linebreaks->len,
+						attrs.row, i);
+					fprintf(stderr, "Cursor at (%d, %d).\n",
+						ccol, crow);
+				}
+#endif
+				g_array_append_val(priv->snapshot_linebreaks,
+						   i);
+			}
+			row = attrs.row;
+		}
+		/* Add the final line break. */
+		g_array_append_val(priv->snapshot_linebreaks, i);
+		/* We're finished updating this. */
+		priv->snapshot_contents_invalid = FALSE;
 	}
-	/* Add the final line break. */
-	g_array_append_val(priv->snapshot_linebreaks, i);
-	/* Store the caret position. */
-	if (caret == -1) {
-		caret = priv->snapshot_attributes->len;
-	}
-	if (caret != priv->snapshot_caret) {
-		priv->snapshot_caret = caret;
-		g_signal_emit_by_name(G_OBJECT(text), "text_caret_moved",
-				      caret);
+	if (priv->snapshot_caret_invalid) {
+		vte_terminal_get_cursor_position(terminal, &ccol, &crow);
+
+		/* Get the offsets to the beginnings of each line. */
+		caret = -1;
+		for (i = 0; i < priv->snapshot_characters->len; i++) {
+			/* Get the attributes for the current cell. */
+			offset = g_array_index(priv->snapshot_characters,
+					       int, i);
+			attrs = g_array_index(priv->snapshot_attributes,
+					      struct vte_char_attributes,
+					      offset);
+			/* If this cell is "before" the cursor, move the
+			 * caret to be "here". */
+			if ((attrs.row < crow) ||
+			    ((attrs.row == crow) && (attrs.column <= ccol))) {
+				caret = i;
+			}
+		}
+		/* If no cells are before the caret, then the caret must be
+		 * at the end of the buffer. */
+		if (caret == -1) {
+			caret = priv->snapshot_attributes->len;
+		}
+		/* The caret may have moved. */
+		if (caret != priv->snapshot_caret) {
+			priv->snapshot_caret = caret;
+			g_signal_emit_by_name(G_OBJECT(text), "text_caret_moved",
+					      caret);
+		}
+		/* Done updating the caret position, too. */
+		priv->snapshot_caret_invalid = FALSE;
 	}
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_MISC)) {
@@ -203,7 +230,6 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text)
 			"%ld cells.\n", (long)priv->snapshot_attributes->len);
 	}
 #endif
-	priv->snapshot_invalid = FALSE;
 }
 
 /* Free snapshot private data. */
@@ -230,9 +256,10 @@ vte_terminal_accessible_free_private_data(VteTerminalAccessiblePrivate *priv)
 	g_free(priv);
 }
 
-/* A signal handler to catch "contents_changed" and "cursor_moved" signals. */
+/* A signal handler to catch "contents_changed" signals. */
 static void
-vte_terminal_accessible_invalidate(VteTerminal *terminal, gpointer data)
+vte_terminal_accessible_invalidate_contents(VteTerminal *terminal,
+					    gpointer data)
 {
 	VteTerminalAccessiblePrivate *priv;
 
@@ -244,11 +271,32 @@ vte_terminal_accessible_invalidate(VteTerminal *terminal, gpointer data)
 
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Invalidating accessibility snapshot.\n");
+		fprintf(stderr, "Invalidating accessibility contents.\n");
 	}
 #endif
 
-	priv->snapshot_invalid = TRUE;
+	priv->snapshot_contents_invalid = TRUE;
+}
+
+/* A signal handler to catch "cursor-moved" signals. */
+static void
+vte_terminal_accessible_invalidate_cursor(VteTerminal *terminal, gpointer data)
+{
+	VteTerminalAccessiblePrivate *priv;
+
+	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(data));
+
+	priv = g_object_get_data(G_OBJECT(data),
+				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
+	g_return_if_fail(priv != NULL);
+
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "Invalidating accessibility cursor.\n");
+	}
+#endif
+	priv->snapshot_caret_invalid = TRUE;
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(data));
 }
 
 /* Handle hierarchy changes by resetting the parent object. */
@@ -299,10 +347,10 @@ vte_terminal_accessible_new(VteTerminal *terminal)
 			  VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA,
 			  vte_terminal_accessible_new_private_data());
 	g_signal_connect(G_OBJECT(terminal), "contents-changed",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_invalidate),
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_invalidate_contents),
 			 object);
 	g_signal_connect(G_OBJECT(terminal), "cursor-moved",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_invalidate),
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_invalidate_cursor),
 			 object);
         g_signal_connect(G_OBJECT(terminal), "hierarchy-changed",
 			 GTK_SIGNAL_FUNC(vte_terminal_accessible_hierarchy_changed),
@@ -336,7 +384,7 @@ vte_terminal_accessible_finalize(GObject *object)
 					     G_SIGNAL_MATCH_FUNC |
 					     G_SIGNAL_MATCH_DATA,
 					     0, 0, NULL,
-					     vte_terminal_accessible_invalidate,
+					     vte_terminal_accessible_invalidate_contents,
 					     object);
 	g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
 					     G_SIGNAL_MATCH_FUNC |
@@ -814,9 +862,11 @@ vte_terminal_accessible_text_init(gpointer iface, gpointer data)
 	text->remove_selection = vte_terminal_accessible_remove_selection;
 	text->set_selection = vte_terminal_accessible_set_selection;
 	text->set_caret_offset = vte_terminal_accessible_set_caret_offset;
+#if 0
 	text->text_changed = vte_terminal_accessible_text_changed;
 	text->text_caret_moved = vte_terminal_accessible_text_caret_moved;
 	text->text_selection_changed = vte_terminal_accessible_text_selection_changed;
+#endif
 }
 
 static void
