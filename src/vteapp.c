@@ -434,8 +434,10 @@ main(int argc, char **argv)
 	}
 	argv2[i] = NULL;
 	g_assert(i < (g_list_length(args) + 2));
+
 	/* Parse some command-line options. */
-	while ((opt = getopt(argc, argv, "B:CDT2abc:df:ghn:st:w:")) != -1) {
+	while ((opt = getopt(argc, argv, "B:CDT2abc:df:ghn:st:w:-")) != -1) {
+		gboolean bail = FALSE;
 		switch (opt) {
 			case 'B':
 				background = optarg;
@@ -485,11 +487,17 @@ main(int argc, char **argv)
 			case 'w':
 				working_directory = optarg;
 				break;
+			case '-':
+				bail = TRUE;
+				break;
 			case 'h':
 			default:
 				g_print(usage, argv[0]);
 				exit(1);
 				break;
+		}
+		if (bail) {
+			break;
 		}
 	}
 

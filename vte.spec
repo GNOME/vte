@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.11.0
+Version: 0.11.1
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -93,6 +93,10 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Wed Apr  9 2003 Nalin Dahyabhai <nalin@redhat.com> 0.11.1-1
+- rework drawing with Xft2 to use font sets
+- implement drawing with freetype using font sets
+
 * Thu Jan 30 2003 Nalin Dahyabhai <nalin@redhat.com> 0.11.0-1
 - start of experimental series
 

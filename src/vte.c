@@ -10856,9 +10856,9 @@ vte_terminal_open_font(VteTerminal *terminal)
 		vte_terminal_apply_metrics(terminal,
 					   _vte_draw_get_text_width(draw),
 					   _vte_draw_get_text_height(draw),
-					   _vte_draw_get_text_base(draw),
+					   _vte_draw_get_text_ascent(draw),
 					   _vte_draw_get_text_height(draw) -
-					   _vte_draw_get_text_base(draw));
+					   _vte_draw_get_text_ascent(draw));
 		break;
 #ifdef HAVE_XFT2
 	case VteRenderXft2:
@@ -11585,13 +11585,14 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 			render_max = VteRenderXft1;
 		}
 	}
-	if ((render_max >= VteRenderXft1) &&
+	if ((render_max == VteRenderXft1) &&
 	    (getenv("VTE_USE_XFT") != NULL)) {
 		if (atol(getenv("VTE_USE_XFT")) == 0) {
 			render_max = VteRenderPango;
 		}
 	}
-	if ((render_max >= VteRenderXft1) &&
+	if (((render_max == VteRenderXft2) ||
+	     (render_max == VteRenderXft1)) &&
 	    (getenv("GDK_USE_XFT") != NULL)) {
 		if (atol(getenv("GDK_USE_XFT")) == 0) {
 			render_max = VteRenderPango;
@@ -11851,12 +11852,6 @@ static void
 vte_terminal_unrealize(GtkWidget *widget)
 {
 	VteTerminal *terminal;
-	Display *display;
-	GdkColormap *gcolormap;
-	Colormap colormap;
-	GdkVisual *gvisual;
-	Visual *visual;
-	int i;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
@@ -12277,8 +12272,8 @@ vte_terminal_realize(GtkWidget *widget)
 	attributes.width = widget->allocation.width;
 	attributes.height = widget->allocation.height;
 	attributes.wclass = GDK_INPUT_OUTPUT;
-	attributes.visual = gtk_widget_get_visual(widget);
-	attributes.colormap = gtk_widget_get_colormap(widget);
+	attributes.visual = _vte_draw_get_visual(terminal->pvt->draw);
+	attributes.colormap = _vte_draw_get_colormap(terminal->pvt->draw);
 	attributes.event_mask = gtk_widget_get_events(widget) |
 				GDK_EXPOSURE_MASK |
 				GDK_VISIBILITY_NOTIFY_MASK |
@@ -12291,8 +12286,8 @@ vte_terminal_realize(GtkWidget *widget)
 	attributes.cursor = terminal->pvt->mouse_default_cursor;
 	attributes_mask = GDK_WA_X |
 			  GDK_WA_Y |
-			  GDK_WA_VISUAL |
-			  GDK_WA_COLORMAP |
+			  (attributes.visual ? GDK_WA_VISUAL : 0) |
+			  (attributes.colormap ? GDK_WA_COLORMAP : 0) |
 			  GDK_WA_CURSOR;
 	widget->window = gdk_window_new(gtk_widget_get_parent_window(widget),
 					&attributes,

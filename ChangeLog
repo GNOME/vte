@@ -1,3 +1,22 @@
+2003-04-09 nalin
+	* configure.in: add specific checks for PangoX and glX.
+	* src/vteft2.c, src/vteft2.h: add drawing method using freetype and
+	GdkRGB.
+	* src/vteglyph.c, src/vteglyph.h: add.
+	* src/vtepangox.c, src/vtepangox.h: add drawing method using PangoX.
+	* src/vtergb.c, src/vtergb.h: add.
+	* src/vtegl.c, src/vtegl.h: add placeholder drawing method using
+	freetype and glX.
+	* src/Makefile.am: add newly-added source files to libvte.la target.
+	* src/vtedraw.c, src/vtedraw.h: add get_visual and get_colormap
+	methods so that drawing methods can override the default visual and
+	colormap.  Rename get_text_base() to get_text_ascent(), which is more
+	correct.  Remove scroll(), which would just wrap gdk_window_scroll().
+	* src/vte.c: fix logic for choosing alternate render methods when
+	VTE_USE_XFT is "0".
+	* src/vteapp.c: add -- option to stop parsing options with getopt.
+	* src/vtefc.c: fix incorrect DPI read due to type mismatch (#109513).
+
 2003-03-31  Laurent Dhima  <laurenti@alblinux.net>
 
 	* configure.in: Added "sq" to ALL_LINGUAS.

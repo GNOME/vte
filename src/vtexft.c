@@ -327,6 +327,18 @@ _vte_xft_destroy(struct _vte_draw *draw)
 	g_free(data);
 }
 
+static GdkVisual *
+_vte_xft_get_visual(struct _vte_draw *draw)
+{
+	return gtk_widget_get_visual(draw->widget);
+}
+
+static GdkColormap *
+_vte_xft_get_colormap(struct _vte_draw *draw)
+{
+	return gtk_widget_get_colormap(draw->widget);
+}
+
 static void
 _vte_xft_start(struct _vte_draw *draw)
 {
@@ -501,7 +513,7 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 
 	draw->width = 1;
 	draw->height = 1;
-	draw->base = 1;
+	draw->ascent = 1;
 
 	string = g_string_new("");
 	n = width = height = 0;
@@ -522,8 +534,8 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 		draw->width = howmany(width, n);
 		draw->height = (font != NULL) ?
 			       font->ascent + font->descent : height;
-		draw->base = (font != NULL) ?
-			     font->ascent : height;
+		draw->ascent = (font != NULL) ?
+			       font->ascent : height;
 	}
 	/* Estimate a typical cell width by looking at double-width
 	 * characters, and if it's the same as the single width, assume the
@@ -550,7 +562,7 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "VteXft font metrics = %dx%d (%d).\n",
-			draw->width, draw->height, draw->base);
+			draw->width, draw->height, draw->ascent);
 	}
 #endif
 }
@@ -568,9 +580,9 @@ _vte_xft_get_text_height(struct _vte_draw *draw)
 }
 
 static int
-_vte_xft_get_text_base(struct _vte_draw *draw)
+_vte_xft_get_text_ascent(struct _vte_draw *draw)
 {
-	return draw->base;
+	return draw->ascent;
 }
 
 static void
@@ -602,7 +614,7 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 				pad = CLAMP(pad / 2, 0, draw->width);
 				specs[j].x += pad;
 			}
-			specs[j].y = requests[i].y - data->y_offs + draw->base;
+			specs[j].y = requests[i].y - data->y_offs + draw->ascent;
 			specs[j].ucs4 = requests[i].c;
 			j++;
 		} else {
@@ -687,14 +699,6 @@ _vte_xft_fill_rectangle(struct _vte_draw *draw,
 	}
 }
 
-static gboolean
-_vte_xft_scroll(struct _vte_draw *draw, gint dx, gint dy)
-{
-	struct _vte_xft_data *data;
-	data = (struct _vte_xft_data*) draw->impl_data;
-	return FALSE;
-}
-
 static void
 _vte_xft_set_scroll(struct _vte_draw *draw, gint x, gint y)
 {
@@ -709,6 +713,8 @@ struct _vte_draw_impl _vte_draw_xft = {
 	_vte_xft_check,
 	_vte_xft_create,
 	_vte_xft_destroy,
+	_vte_xft_get_visual,
+	_vte_xft_get_colormap,
 	_vte_xft_start,
 	_vte_xft_end,
 	_vte_xft_set_background_color,
@@ -717,11 +723,10 @@ struct _vte_draw_impl _vte_draw_xft = {
 	_vte_xft_set_text_font,
 	_vte_xft_get_text_width,
 	_vte_xft_get_text_height,
-	_vte_xft_get_text_base,
+	_vte_xft_get_text_ascent,
 	_vte_xft_draw_text,
 	_vte_xft_draw_rectangle,
 	_vte_xft_fill_rectangle,
-	_vte_xft_scroll,
 	_vte_xft_set_scroll,
 };
 #endif

@@ -74,6 +74,18 @@ _vte_skel_destroy(struct _vte_draw *draw)
 	g_free(draw->impl_data);
 }
 
+static GdkVisual *
+_vte_skel_get_visual(struct _vte_draw *draw)
+{
+	return gtk_widget_get_visual(draw->widget);
+}
+
+static GdkColormap *
+_vte_skel_get_colormap(struct _vte_draw *draw)
+{
+	return gtk_widget_get_colormap(draw->widget);
+}
+
 static void
 _vte_skel_start(struct _vte_draw *draw)
 {
@@ -99,12 +111,8 @@ _vte_skel_set_background_color(struct _vte_draw *draw, GdkColor *color)
 }
 
 static void
-_vte_skel_set_background_pixbuf(struct _vte_draw *draw, GdkPixbuf *pixbuf,
-				 gboolean pan, gboolean scroll)
+_vte_skel_set_background_pixbuf(struct _vte_draw *draw, GdkPixbuf *pixbuf)
 {
-	GdkColormap *colormap;
-	GdkPixmap *pixmap;
-	GdkBitmap *bitmap;
 	struct _vte_skel_data *data;
 
 	data = (struct _vte_skel_data*) draw->impl_data;
@@ -139,9 +147,9 @@ _vte_skel_get_text_height(struct _vte_draw *draw)
 }
 
 static int
-_vte_skel_get_text_base(struct _vte_draw *draw)
+_vte_skel_get_text_ascent(struct _vte_draw *draw)
 {
-	return draw->base;
+	return draw->ascent;
 }
 
 static void
@@ -171,14 +179,6 @@ _vte_skel_fill_rectangle(struct _vte_draw *draw,
 	data = (struct _vte_skel_data*) draw->impl_data;
 }
 
-static gboolean
-_vte_skel_scroll(struct _vte_draw *draw, gint dx, gint dy)
-{
-	struct _vte_skel_data *data;
-	data = (struct _vte_skel_data*) draw->impl_data;
-	return FALSE;
-}
-
 static void
 _vte_skel_set_scroll(struct _vte_draw *draw, gint x, gint y)
 {
@@ -193,6 +193,8 @@ struct _vte_draw_impl _vte_draw_skel = {
 	_vte_skel_check,
 	_vte_skel_create,
 	_vte_skel_destroy,
+	_vte_skel_get_visual,
+	_vte_skel_get_colormap,
 	_vte_skel_start,
 	_vte_skel_end,
 	_vte_skel_set_background_color,
@@ -201,10 +203,9 @@ struct _vte_draw_impl _vte_draw_skel = {
 	_vte_skel_set_text_font,
 	_vte_skel_get_text_width,
 	_vte_skel_get_text_height,
-	_vte_skel_get_text_base,
+	_vte_skel_get_text_ascent,
 	_vte_skel_draw_text,
 	_vte_skel_draw_rectangle,
 	_vte_skel_fill_rectangle,
-	_vte_skel_scroll,
 	_vte_skel_set_scroll,
 };

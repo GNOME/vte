@@ -60,8 +60,18 @@ libvte_la_SOURCES = \
 	vtedraw.h \
 	vtefc.c \
 	vtefc.h \
+	vteft2.c \
+	vteft2.h \
+	vtegl.c \
+	vtegl.h \
+	vteglyph.c \
+	vteglyph.h \
 	vtepango.c \
 	vtepango.h \
+	vtepangox.c \
+	vtepangox.h \
+	vtergb.c \
+	vtergb.h \
 	vteskel.c \
 	vteskel.h \
 	vtexft.c \
@@ -98,7 +108,7 @@ else
 REFLECT_ZVT = 
 endif
 
-interpret_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ @VTE_CFLAGS@ -DINTERPRET_MAIN
+interpret_CFLAGS = @CFLAGS@ @GTK_CFLAGS@ -DINTERPRET_MAIN
 interpret_SOURCES = \
 	buffer.c \
 	buffer.h \
@@ -119,7 +129,7 @@ interpret_SOURCES = \
 	interpret.c
 interpret_LDADD = @LDFLAGS@ @GOBJECT_LIBS@
 
-iso2022_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ @VTE_CFLAGS@ -DISO2022_MAIN
+iso2022_CFLAGS = @CFLAGS@ @GTK_CFLAGS@ -DISO2022_MAIN
 iso2022_SOURCES = \
 	debug.c \
 	debug.h \
@@ -146,22 +156,22 @@ utf8echo_SOURCES = \
 	utf8echo.c
 utf8echo_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
-nativeecho_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DNATIVEECHO_MAIN
+nativeecho_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DNATIVEECHO_MAIN
 nativeecho_SOURCES = \
 	nativeecho.c
 nativeecho_LDADD = @LDFLAGS@ @LIBS@
 
-ring_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DRING_MAIN
+ring_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DRING_MAIN
 ring_SOURCES = \
 	debug.c \
 	debug.h \
 	ring.c \
 	ring.h
-ring_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
+ring_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
 
 slowcat_SOURCES = \
 	slowcat.c
-slowcat_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
+slowcat_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
 
 table_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DTABLE_MAIN
 table_SOURCES = \
@@ -189,23 +199,23 @@ trie_SOURCES = \
 	trie.h
 trie_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
-termcap_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DTERMCAP_MAIN
+termcap_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DTERMCAP_MAIN
 termcap_SOURCES = \
 	debug.c \
 	debug.h \
 	termcap.c \
 	termcap.h
-termcap_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
+termcap_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
 
-pty_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DPTY_MAIN
+pty_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DPTY_MAIN
 pty_SOURCES = \
 	debug.c \
 	debug.h \
 	pty.c \
 	pty.h
-pty_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
+pty_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
 
-reaper_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ @VTE_CFLAGS@ -DREAPER_MAIN
+reaper_CFLAGS = @CFLAGS@ @GTK_CFLAGS@ -DREAPER_MAIN
 reaper_SOURCES = \
 	debug.c \
 	debug.h \
@@ -215,19 +225,19 @@ reaper_SOURCES = \
 	reaper.h
 reaper_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
-buffer_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DBUFFER_MAIN
+buffer_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DBUFFER_MAIN
 buffer_SOURCES = buffer.c
-buffer_LDADD = @LDFLAGS@ @GOBJECT_LIBS@
+buffer_LDADD = @LDFLAGS@ @GLIB_LIBS@
 
 dumpkeys_SOURCES = dumpkeys.c
-dumpkeys_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
+dumpkeys_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
 
 mev_SOURCES = mev.c
-mev_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
+mev_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
 
 ssfe_SOURCES = ssfe.c
 ssfe_LDADD = @LDFLAGS@ @OTHERLIBS@
 
-xticker_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@
+xticker_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@
 xticker_SOURCES = xticker.c
-xticker_LDADD = @LIBS@ @GOBJECT_LIBS@
+xticker_LDADD = @LIBS@ @GLIB_LIBS@

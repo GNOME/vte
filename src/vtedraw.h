@@ -47,6 +47,8 @@ struct _vte_draw_impl {
 	gboolean (*check)(struct _vte_draw *draw, GtkWidget *widget);
 	void (*create)(struct _vte_draw *draw, GtkWidget *widget);
 	void (*destroy)(struct _vte_draw *draw);
+	GdkVisual* (*get_visual)(struct _vte_draw *draw);
+	GdkColormap* (*get_colormap)(struct _vte_draw *draw);
 	void (*start)(struct _vte_draw *draw);
 	void (*end)(struct _vte_draw *draw);
 	void (*set_background_color)(struct _vte_draw *, GdkColor *);
@@ -55,7 +57,7 @@ struct _vte_draw_impl {
 	void (*set_text_font)(struct _vte_draw *, const PangoFontDescription *);
 	int (*get_text_width)(struct _vte_draw *);
 	int (*get_text_height)(struct _vte_draw *);
-	int (*get_text_base)(struct _vte_draw *);
+	int (*get_text_ascent)(struct _vte_draw *);
 	void (*draw_text)(struct _vte_draw *,
 			  struct _vte_draw_text_request *, gsize,
 			  GdkColor *, guchar);
@@ -65,20 +67,21 @@ struct _vte_draw_impl {
 	void (*fill_rectangle)(struct _vte_draw *,
 			       gint, gint, gint, gint,
 			       GdkColor *, guchar);
-	gboolean (*scroll)(struct _vte_draw *, gint, gint);
 	void (*set_scroll)(struct _vte_draw *, gint, gint);
 };
 
 struct _vte_draw {
 	GtkWidget *widget;
 	gboolean started;
-	gint width, height, base;
+	gint width, height, ascent;
 	struct _vte_draw_impl *impl;
 	gpointer impl_data;
 };
 
 struct _vte_draw *_vte_draw_new(GtkWidget *widget);
 void _vte_draw_free(struct _vte_draw *draw);
+GdkVisual *_vte_draw_get_visual(struct _vte_draw *draw);
+GdkColormap *_vte_draw_get_colormap(struct _vte_draw *draw);
 void _vte_draw_start(struct _vte_draw *draw);
 void _vte_draw_end(struct _vte_draw *draw);
 
@@ -91,7 +94,7 @@ void _vte_draw_set_text_font(struct _vte_draw *draw,
 			     const PangoFontDescription *fontdesc);
 int _vte_draw_get_text_width(struct _vte_draw *draw);
 int _vte_draw_get_text_height(struct _vte_draw *draw);
-int _vte_draw_get_text_base(struct _vte_draw *draw);
+int _vte_draw_get_text_ascent(struct _vte_draw *draw);
 void _vte_draw_text(struct _vte_draw *draw,
 		    struct _vte_draw_text_request *requests, gsize n_requests,
 		    GdkColor *color, guchar alpha);
@@ -102,7 +105,6 @@ void _vte_draw_fill_rectangle(struct _vte_draw *draw,
 void _vte_draw_draw_rectangle(struct _vte_draw *draw,
 			      gint x, gint y, gint width, gint height,
 			      GdkColor *color, guchar alpha);
-gboolean _vte_draw_scroll(struct _vte_draw *draw, gint dx, gint dy);
 void _vte_draw_set_scroll(struct _vte_draw *draw, gint x, gint y);
 
 G_END_DECLS

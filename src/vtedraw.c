@@ -27,17 +27,27 @@
 #include <gtk/gtk.h>
 #include "debug.h"
 #include "vtedraw.h"
+#include "vteft2.h"
+#include "vtegl.h"
 #include "vtepango.h"
+#include "vtepangox.h"
 #include "vteskel.h"
 #include "vtexft.h"
 
 struct _vte_draw_impl
 *_vte_draw_impls[] = {
 	&_vte_draw_skel,
+#ifdef HAVE_GL
+	/* &_vte_draw_gl, */
+#endif
 #ifdef HAVE_XFT2
 	&_vte_draw_xft,
 #endif
+	&_vte_draw_ft2,
 	&_vte_draw_pango,
+#ifdef HAVE_PANGOX
+	&_vte_draw_pango_x,
+#endif
 };
 
 struct _vte_draw *
@@ -96,6 +106,22 @@ _vte_draw_free(struct _vte_draw *draw)
 	draw->started = FALSE;
 	
 	g_free(draw);
+}
+
+GdkVisual *
+_vte_draw_get_visual(struct _vte_draw *draw)
+{
+	g_return_val_if_fail(draw->impl != NULL, NULL);
+	g_return_val_if_fail(draw->impl->get_visual != NULL, NULL);
+	return draw->impl->get_visual(draw);
+}
+
+GdkColormap *
+_vte_draw_get_colormap(struct _vte_draw *draw)
+{
+	g_return_val_if_fail(draw->impl != NULL, NULL);
+	g_return_val_if_fail(draw->impl->get_colormap != NULL, NULL);
+	return draw->impl->get_colormap(draw);
 }
 
 void
@@ -169,11 +195,11 @@ _vte_draw_get_text_height(struct _vte_draw *draw)
 }
 
 int
-_vte_draw_get_text_base(struct _vte_draw *draw)
+_vte_draw_get_text_ascent(struct _vte_draw *draw)
 {
 	g_return_val_if_fail(draw->impl != NULL, 1);
-	g_return_val_if_fail(draw->impl->get_text_base != NULL, 1);
-	return draw->impl->get_text_base(draw);
+	g_return_val_if_fail(draw->impl->get_text_ascent != NULL, 1);
+	return draw->impl->get_text_ascent(draw);
 }
 
 void
@@ -184,8 +210,7 @@ _vte_draw_text(struct _vte_draw *draw,
 	g_return_if_fail(draw->started == TRUE);
 	g_return_if_fail(draw->impl != NULL);
 	g_return_if_fail(draw->impl->draw_text != NULL);
-	draw->impl->draw_text(draw, requests, n_requests,
-			      color, alpha);
+	draw->impl->draw_text(draw, requests, n_requests, color, alpha);
 }
 
 void
@@ -208,15 +233,6 @@ _vte_draw_draw_rectangle(struct _vte_draw *draw,
 	g_return_if_fail(draw->impl != NULL);
 	g_return_if_fail(draw->impl->draw_rectangle != NULL);
 	draw->impl->draw_rectangle(draw, x, y, width, height, color, alpha);
-}
-
-gboolean
-_vte_draw_scroll(struct _vte_draw *draw, gint dx, gint dy)
-{
-	g_return_val_if_fail(draw->started == TRUE, FALSE);
-	g_return_val_if_fail(draw->impl != NULL, FALSE);
-	g_return_val_if_fail(draw->impl->scroll != NULL, FALSE);
-	return draw->impl->scroll(draw, dx, dy);
 }
 
 void

@@ -17,6 +17,7 @@
  */
 
 #include "../config.h"
+#include <stdio.h>
 #include <string.h>
 #include <gtk/gtk.h>
 #include <pango/pango.h>
@@ -82,8 +83,8 @@ _vte_fc_transcribe_from_pango_font_description(FcPattern *pattern,
 
 	/* Set the font size for the pattern, or use a sensible default. */
 	if (pango_mask & PANGO_FONT_MASK_SIZE) {
-		size = (double) pango_font_description_get_size(font_desc);
-		size /= (double) PANGO_SCALE;
+		size = pango_font_description_get_size(font_desc);
+		size /= PANGO_SCALE;
 	}
 	FcPatternAddDouble(pattern, FC_SIZE, size);
 
@@ -114,14 +115,16 @@ static void
 _vte_fc_defaults_from_gtk(FcPattern *pattern)
 {
 	GtkSettings *settings;
+	GdkScreen *screen;
 	GObjectClass *klass;
-	int i, antialias = -1, hinting = -1;
-	double d, dpi = -1;
+	int i, antialias = -1, hinting = -1, dpi = -1;
+	double d;
 	char *rgba = NULL, *hintstyle = NULL;
 	FcResult result;
 
 	/* Add any defaults configured for GTK+. */
-	settings = gtk_settings_get_for_screen(gdk_screen_get_default());
+	screen = gdk_screen_get_default();
+	settings = gtk_settings_get_for_screen(screen);
 	if (settings == NULL) {
 		return;
 	}

@@ -17,6 +17,9 @@
  */
 
 #include "../config.h"
+
+#ifdef HAVE_PANGOX
+
 #include <sys/param.h>
 #include <stdio.h>
 #include <string.h>
@@ -24,9 +27,12 @@
 #include <pango/pango.h>
 #include "debug.h"
 #include "vtedraw.h"
-#include "vtepango.h"
+#include "vtepangox.h"
 
-struct _vte_pango_data
+#include <pango/pangox.h>
+#include <gdk/gdkx.h>
+
+struct _vte_pango_x_data
 {
 	GdkColor color;
 	GdkPixmap *pixmap;
@@ -35,22 +41,25 @@ struct _vte_pango_data
 	PangoFontDescription *font;
 	PangoLayout *layout;
 	GdkGC *gc;
+	PangoContext *ctx;
+	Drawable drawable;
+	int x_offs, y_offs;
 };
 
 static gboolean
-_vte_pango_check(struct _vte_draw *draw, GtkWidget *widget)
+_vte_pango_x_check(struct _vte_draw *draw, GtkWidget *widget)
 {
 	/* We can draw onto any widget. */
 	return TRUE;
 }
 
 static void
-_vte_pango_create(struct _vte_draw *draw, GtkWidget *widget)
+_vte_pango_x_create(struct _vte_draw *draw, GtkWidget *widget)
 {
-	struct _vte_pango_data *data;
+	struct _vte_pango_x_data *data;
 
-	draw->impl_data = g_malloc(sizeof(struct _vte_pango_data));
-	data = (struct _vte_pango_data*) draw->impl_data;
+	draw->impl_data = g_malloc(sizeof(struct _vte_pango_x_data));
+	data = (struct _vte_pango_x_data*) draw->impl_data;
 
 	data->color.red = 0;
 	data->color.green = 0;
@@ -61,13 +70,14 @@ _vte_pango_create(struct _vte_draw *draw, GtkWidget *widget)
 	data->font = NULL;
 	data->layout = NULL;
 	data->gc = NULL;
+	data->ctx = NULL;
 }
 
 static void
-_vte_pango_destroy(struct _vte_draw *draw)
+_vte_pango_x_destroy(struct _vte_draw *draw)
 {
-	struct _vte_pango_data *data;
-	data = (struct _vte_pango_data*) draw->impl_data;
+	struct _vte_pango_x_data *data;
+	data = (struct _vte_pango_x_data*) draw->impl_data;
 
 	data->scrollx = data->scrolly = 0;
 
@@ -88,6 +98,10 @@ _vte_pango_destroy(struct _vte_draw *draw)
 		g_object_unref(G_OBJECT(data->gc));
 		data->gc = NULL;
 	}
+	if (PANGO_IS_CONTEXT(data->ctx)) {
+		g_object_unref(G_OBJECT(data->ctx));
+		data->ctx = NULL;
+	}
 
 	memset(&data->color, 0, sizeof(data->color));
 
@@ -95,32 +109,38 @@ _vte_pango_destroy(struct _vte_draw *draw)
 }
 
 static GdkVisual *
-_vte_pango_get_visual(struct _vte_draw *draw)
+_vte_pango_x_get_visual(struct _vte_draw *draw)
 {
 	return gtk_widget_get_visual(draw->widget);
 }
 
 static GdkColormap *
-_vte_pango_get_colormap(struct _vte_draw *draw)
+_vte_pango_x_get_colormap(struct _vte_draw *draw)
 {
 	return gtk_widget_get_colormap(draw->widget);
 }
 
 static void
-_vte_pango_start(struct _vte_draw *draw)
+_vte_pango_x_start(struct _vte_draw *draw)
 {
-	GdkScreen *screen;
-	PangoContext *ctx;
-	struct _vte_pango_data *data;
-	data = (struct _vte_pango_data*) draw->impl_data;
+	struct _vte_pango_x_data *data;
+	Display *display;
+	GdkDrawable *drawable;
+	int x_offs, y_offs;
 
-	screen = gdk_drawable_get_screen(draw->widget->window);
-	ctx = gdk_pango_context_get_for_screen(screen);
+	data = (struct _vte_pango_x_data*) draw->impl_data;
+
+	display = gdk_x11_drawable_get_xdisplay(draw->widget->window);
+	if (PANGO_IS_CONTEXT(data->ctx)) {
+		g_object_unref(G_OBJECT(data->ctx));
+	}
+	data->ctx = pango_x_get_context(display);
 
 	if (PANGO_IS_LAYOUT(data->layout)) {
 		g_object_unref(G_OBJECT(data->layout));
 	}
-	data->layout = pango_layout_new(ctx);
+	data->layout = pango_layout_new(data->ctx);
+
 	if (data->font) {
 		pango_layout_set_font_description(data->layout, data->font);
 	}
@@ -132,13 +152,23 @@ _vte_pango_start(struct _vte_draw *draw)
 
 	gdk_rgb_find_color(gdk_drawable_get_colormap(draw->widget->window),
 			   &data->color);
+
+	gdk_window_get_internal_paint_info(draw->widget->window, &drawable,
+					&x_offs, &y_offs);
+	data->drawable = gdk_x11_drawable_get_xid(drawable);
+	data->x_offs = x_offs;
+	data->y_offs = y_offs;
 }
 
 static void
-_vte_pango_end(struct _vte_draw *draw)
+_vte_pango_x_end(struct _vte_draw *draw)
 {
-	struct _vte_pango_data *data;
-	data = (struct _vte_pango_data*) draw->impl_data;
+	struct _vte_pango_x_data *data;
+	data = (struct _vte_pango_x_data*) draw->impl_data;
+
+	data->drawable = -1;
+	data->x_offs = 0;
+	data->y_offs = 0;
 
 	if (PANGO_IS_LAYOUT(data->layout)) {
 		g_object_unref(G_OBJECT(data->layout));
@@ -149,25 +179,30 @@ _vte_pango_end(struct _vte_draw *draw)
 		g_object_unref(G_OBJECT(data->gc));
 	}
 	data->gc = NULL;
+
+	if (PANGO_IS_CONTEXT(data->ctx)) {
+		g_object_unref(G_OBJECT(data->ctx));
+	}
+	data->ctx = NULL;
 }
 
 static void
-_vte_pango_set_background_color(struct _vte_draw *draw, GdkColor *color)
+_vte_pango_x_set_background_color(struct _vte_draw *draw, GdkColor *color)
 {
-	struct _vte_pango_data *data;
-	data = (struct _vte_pango_data*) draw->impl_data;
+	struct _vte_pango_x_data *data;
+	data = (struct _vte_pango_x_data*) draw->impl_data;
 	data->color = *color;
 }
 
 static void
-_vte_pango_set_background_pixbuf(struct _vte_draw *draw, GdkPixbuf *pixbuf)
+_vte_pango_x_set_background_pixbuf(struct _vte_draw *draw, GdkPixbuf *pixbuf)
 {
 	GdkColormap *colormap;
 	GdkPixmap *pixmap;
 	GdkBitmap *bitmap;
-	struct _vte_pango_data *data;
+	struct _vte_pango_x_data *data;
 
-	data = (struct _vte_pango_data*) draw->impl_data;
+	data = (struct _vte_pango_x_data*) draw->impl_data;
 	if (data->pixmap) {
 		g_object_unref(G_OBJECT(data->pixmap));
 		data->pixmap = NULL;
@@ -192,13 +227,13 @@ _vte_pango_set_background_pixbuf(struct _vte_draw *draw, GdkPixbuf *pixbuf)
 }
 
 static void
-_vte_pango_clear(struct _vte_draw *draw,
-		 gint x, gint y, gint width, gint height)
+_vte_pango_x_clear(struct _vte_draw *draw,
+		   gint x, gint y, gint width, gint height)
 {
-	struct _vte_pango_data *data;
+	struct _vte_pango_x_data *data;
 	gint i, j, istart, jstart, h, w, xstop, ystop;
 
-	data = (struct _vte_pango_data*) draw->impl_data;
+	data = (struct _vte_pango_x_data*) draw->impl_data;
 
 	if ((data->pixmap == NULL) ||
 	    (data->pixmapw == 0) ||
@@ -245,8 +280,8 @@ _vte_pango_clear(struct _vte_draw *draw,
 }
 
 static void
-_vte_pango_set_text_font(struct _vte_draw *draw,
-			 const PangoFontDescription *fontdesc)
+_vte_pango_x_set_text_font(struct _vte_draw *draw,
+			   const PangoFontDescription *fontdesc)
 {
 	GdkScreen *screen;
 	PangoContext *ctx;
@@ -256,9 +291,9 @@ _vte_pango_set_text_font(struct _vte_draw *draw,
 	GString *full_string;
 	gint full_width;
 	int i;
-	struct _vte_pango_data *data;
+	struct _vte_pango_x_data *data;
 
-	data = (struct _vte_pango_data*) draw->impl_data;
+	data = (struct _vte_pango_x_data*) draw->impl_data;
 
 	screen = gdk_screen_get_default();
 	ctx = gdk_pango_context_get_for_screen(screen);
@@ -309,59 +344,67 @@ _vte_pango_set_text_font(struct _vte_draw *draw,
 }
 
 static int
-_vte_pango_get_text_width(struct _vte_draw *draw)
+_vte_pango_x_get_text_width(struct _vte_draw *draw)
 {
 	return draw->width;
 }
 
 static int
-_vte_pango_get_text_height(struct _vte_draw *draw)
+_vte_pango_x_get_text_height(struct _vte_draw *draw)
 {
 	return draw->height;
 }
 
 static int
-_vte_pango_get_text_ascent(struct _vte_draw *draw)
+_vte_pango_x_get_text_ascent(struct _vte_draw *draw)
 {
 	return draw->ascent;
 }
 
 static void
-_vte_pango_draw_text(struct _vte_draw *draw,
-		     struct _vte_draw_text_request *requests, gsize n_requests,
-		     GdkColor *color, guchar alpha)
+_vte_pango_x_draw_text(struct _vte_draw *draw,
+		       struct _vte_draw_text_request *requests,
+		       gsize n_requests,
+		       GdkColor *color, guchar alpha)
 {
-	struct _vte_pango_data *data;
+	Display *display;
+	GC gc;
+	struct _vte_pango_x_data *data;
 	char buf[VTE_UTF8_BPC];
 	int i;
 	gsize length;
 	GdkColor wcolor;
 
-	data = (struct _vte_pango_data*) draw->impl_data;
+	data = (struct _vte_pango_x_data*) draw->impl_data;
 
 	wcolor = *color;
 	gdk_rgb_find_color(gdk_drawable_get_colormap(draw->widget->window),
 			   &wcolor);
 	gdk_gc_set_foreground(data->gc, &wcolor);
+	display = gdk_x11_drawable_get_xdisplay(draw->widget->window);
+	gc = gdk_x11_gc_get_xgc(data->gc);
 
 	for (i = 0; i < n_requests; i++) {
 		length = g_unichar_to_utf8(requests[i].c, buf);
 		pango_layout_set_text(data->layout, buf, length);
-		gdk_draw_layout(draw->widget->window, data->gc,
-				requests[i].x, requests[i].y,
-				data->layout);
+		pango_x_render_layout(display,
+				      data->drawable,
+				      gc,
+				      data->layout,
+				      requests[i].x - data->x_offs,
+				      requests[i].y - data->y_offs);
 	}
 }
 
 static void
-_vte_pango_draw_rectangle(struct _vte_draw *draw,
+_vte_pango_x_draw_rectangle(struct _vte_draw *draw,
 			  gint x, gint y, gint width, gint height,
 			  GdkColor *color, guchar alpha)
 {
-	struct _vte_pango_data *data;
+	struct _vte_pango_x_data *data;
 	GdkColor wcolor;
 
-	data = (struct _vte_pango_data*) draw->impl_data;
+	data = (struct _vte_pango_x_data*) draw->impl_data;
 
 	wcolor = *color;
 	gdk_rgb_find_color(gdk_drawable_get_colormap(draw->widget->window),
@@ -373,14 +416,14 @@ _vte_pango_draw_rectangle(struct _vte_draw *draw,
 }
 
 static void
-_vte_pango_fill_rectangle(struct _vte_draw *draw,
+_vte_pango_x_fill_rectangle(struct _vte_draw *draw,
 			  gint x, gint y, gint width, gint height,
 			  GdkColor *color, guchar alpha)
 {
-	struct _vte_pango_data *data;
+	struct _vte_pango_x_data *data;
 	GdkColor wcolor;
 
-	data = (struct _vte_pango_data*) draw->impl_data;
+	data = (struct _vte_pango_x_data*) draw->impl_data;
 	wcolor = *color;
 	gdk_rgb_find_color(gdk_drawable_get_colormap(draw->widget->window),
 			   &wcolor);
@@ -390,32 +433,34 @@ _vte_pango_fill_rectangle(struct _vte_draw *draw,
 }
 
 static void
-_vte_pango_set_scroll(struct _vte_draw *draw, gint x, gint y)
+_vte_pango_x_set_scroll(struct _vte_draw *draw, gint x, gint y)
 {
-	struct _vte_pango_data *data;
-	data = (struct _vte_pango_data*) draw->impl_data;
+	struct _vte_pango_x_data *data;
+	data = (struct _vte_pango_x_data*) draw->impl_data;
 	data->scrollx = x;
 	data->scrolly = y;
 }
 
-struct _vte_draw_impl _vte_draw_pango = {
-	"VtePango", "VTE_USE_PANGO",
-	_vte_pango_check,
-	_vte_pango_create,
-	_vte_pango_destroy,
-	_vte_pango_get_visual,
-	_vte_pango_get_colormap,
-	_vte_pango_start,
-	_vte_pango_end,
-	_vte_pango_set_background_color,
-	_vte_pango_set_background_pixbuf,
-	_vte_pango_clear,
-	_vte_pango_set_text_font,
-	_vte_pango_get_text_width,
-	_vte_pango_get_text_height,
-	_vte_pango_get_text_ascent,
-	_vte_pango_draw_text,
-	_vte_pango_draw_rectangle,
-	_vte_pango_fill_rectangle,
-	_vte_pango_set_scroll,
+struct _vte_draw_impl _vte_draw_pango_x = {
+	"VtePangoX", "VTE_USE_PANGOX",
+	_vte_pango_x_check,
+	_vte_pango_x_create,
+	_vte_pango_x_destroy,
+	_vte_pango_x_get_visual,
+	_vte_pango_x_get_colormap,
+	_vte_pango_x_start,
+	_vte_pango_x_end,
+	_vte_pango_x_set_background_color,
+	_vte_pango_x_set_background_pixbuf,
+	_vte_pango_x_clear,
+	_vte_pango_x_set_text_font,
+	_vte_pango_x_get_text_width,
+	_vte_pango_x_get_text_height,
+	_vte_pango_x_get_text_ascent,
+	_vte_pango_x_draw_text,
+	_vte_pango_x_draw_rectangle,
+	_vte_pango_x_fill_rectangle,
+	_vte_pango_x_set_scroll,
 };
+
+#endif

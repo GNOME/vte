@@ -17,23 +17,64 @@ AM_GLIB_GNU_GETTEXT
 # X_PRE_LIBS and X_EXTRA_LIBS to add even more libraries, and add -lX11 to
 # the list of libraries for grins.
 AC_PATH_XTRA
-HAVE_XFT=no
-X_LIBS="$X_PRE_LIBS $X_LIBS -lX11 $X_EXTRA_LIBS"
-PKG_CHECK_MODULES(GOBJECT,[glib-2.0 gobject-2.0])
+X_LIBS=
+if test $with_x = yes ; then
+	X_LIBS="$X_PRE_LIBS $X_LIBS -lX11 $X_EXTRA_LIBS"
+fi
+
 savelibs="$LIBS"
 LIBS="$X_LIBS $LIBS"
 
+PKG_CHECK_MODULES(GLIB,glib-2.0)
+PKG_CHECK_MODULES(GOBJECT,[glib-2.0 gobject-2.0])
+PKG_CHECK_MODULES(GTK,[glib-2.0 gobject-2.0 gtk+-2.0])
+
 # Require GTK+ 2.0 and fontconfig.
-wantedmodules="glib-2.0 gobject-2.0 gdk-pixbuf-2.0 gtk+-2.0 fontconfig"
-# Use Xft2 if Pango has Xft2 support.
-if pkg-config --exists pangoxft '>=' 1.1.0 ; then
-	AC_DEFINE(HAVE_XFT2,1,[Whether we have Xft2])
-	wantedmodules="$wantedmodules xft"
-else
-	AC_MSG_WARN([Xft2 not detected])
+wantedmodules="glib-2.0 gobject-2.0 gtk+-2.0 fontconfig"
+
+# Use Xft2 if Pango has Xft2 support and it isn't disabled.
+AC_ARG_WITH(xft2,[  --with-xft2             enable drawing using Xft2],with_xft2=$withval,with_xft2=yes)
+if test $with_xft2 = yes ; then
+	if pkg-config --exists pangoxft '>=' 1.1.0 ; then
+		AC_DEFINE(HAVE_XFT2,1,[Whether we have Xft2])
+		wantedmodules="$wantedmodules pangoxft >= 1.1.0 xft >= 2.0"
+	else
+		AC_MSG_WARN([Xft2 not detected])
+	fi
 fi
+
+# Use PangoX if we have it and it isn't disabled.
+AC_ARG_WITH(pangox,[  --with-pangox           enable drawing using PangoX],with_pangox=$withval,with_pangox=yes)
+if test $with_pangox = yes ; then
+	if pkg-config --exists pangox ; then
+		AC_DEFINE(HAVE_PANGOX,1,[Whether we have PangoX])
+		wantedmodules="$wantedmodules pangox"
+	else
+		AC_MSG_WARN([PangoX not detected])
+	fi
+fi
+
+# Use glX if we have it and it isn't disabled.
+AC_ARG_WITH(glX,[  --with-glX              enable drawing using glX],with_glx=$withval,with_glx=yes)
+if test $with_glx = yes ; then
+	have_gl=0
+	have_libgl=0
+	AC_CHECK_HEADERS(GL/glx.h)
+	if test $ac_cv_header_GL_glx_h = yes ; then
+		AC_CHECK_FUNC(glXQueryExtension,[have_gl=1],AC_CHECK_LIB(GL,glXQueryExtension,[have_gl=1;have_libgl=1]))
+	fi
+	if test $have_gl = 1 ; then
+		AC_DEFINE(HAVE_GL,1,[Whether we have GL and glX.])
+	fi
+	if test $have_libgl = 1 ; then
+		LIBS="-lGLU -lGL $LIBS"
+	fi
+fi
+
 # Search for the required modules.
 PKG_CHECK_MODULES(VTE,[$wantedmodules])
+NEEDEDPACKAGES="$wantedmodules"
+AC_SUBST(NEEDEDPACKAGES)
 
 # Require Freetype2.  We use our local copy of the macro because packages of
 # freetype's development files don't always include the proper macro.
@@ -53,24 +94,28 @@ AC_CHECK_DECLS(FT_RENDER_MODE_MONO,,,[
 #include FT_FREETYPE_H
 #endif
 ])
+
 AC_CHECK_DECLS(FT_LOAD_NO_HINTING,,,[
 #ifdef HAVE_FT2BUILD_H
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #endif
 ])
+
 AC_CHECK_DECLS(FT_RENDER_MODE_LIGHT,,,[
 #ifdef HAVE_FT2BUILD_H
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #endif
 ])
+
 AC_CHECK_DECLS(FT_RENDER_MODE_NORMAL,,,[
 #ifdef HAVE_FT2BUILD_H
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #endif
 ])
+
 CFLAGS="$savecflags"
 CPPFLAGS="$savecppflags"
 
@@ -84,6 +129,7 @@ AC_EGREP_CPP(glibc,
 		 #endif
 		],
 		AC_DEFINE(_GNU_SOURCE,1,[Use all features.]))
+
 AC_DEFINE(G_DISABLE_DEPRECATED,1,[Disable deprecated GLib features.])
 AC_DEFINE(GDK_DISABLE_DEPRECATED,1,[Disable deprecated GDK features.])
 AC_DEFINE(GDK_PIXBUF_DISABLE_DEPRECATED,1,[Disable deprecated gdk-pixbuf features.])
@@ -110,7 +156,7 @@ fi
 if test x$have_socketpair = x1 ; then
 	AC_DEFINE(HAVE_SOCKETPAIR,1,[Define if you have the socketpair function.])
 fi
-
+AC_CHECK_FUNC(floor,,AC_CHECK_LIB(m,floor,LIBS=["$LIBS -lm"]))
 
 # Look for ncurses or curses or termcap.
 AC_CHECK_HEADER(ncurses.h,[AC_CHECK_HEADER(term.h,[AC_CHECK_LIB(ncurses,tgetent,[LIBS="-lncurses $LIBS";AC_DEFINE(HAVE_NCURSES,1,[Define if you have ncurses.h and libncurses])])])])
