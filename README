@@ -19,7 +19,7 @@
 - Entries in the termcap file also don't contain the sequences which a terminal
   is supposed to send to the application when a specific sequence is received
   (for example, the query-cursor-position control sequence).  This mostly looks
-  like XTerm's DCS command, but ther may be others.
+  like XTerm's DCS command, but there may be others.
 - Most commands specific to Xterm or dtterm are recognized, but very few of
   their behaviors are implemented.  Luckily, many of them are duplicates of
   standard termcap behaviors, and because we parse termcap first, they work

@@ -58,6 +58,7 @@
 #define VTE_UTF8_BPC	6
 #define VTE_DEF_FG	16
 #define VTE_DEF_BG	17
+#define VTE_SATURATION_MAX 10000
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
@@ -183,6 +184,7 @@ struct _VteTerminalPrivate {
 
 	gboolean cursor_blinks;
 	guint blink_period;
+	guint last_keypress_time;
 
 	gboolean bg_transparent;
 	GdkAtom bg_transparent_atom;
@@ -192,7 +194,7 @@ struct _VteTerminalPrivate {
 
 	GdkPixbuf *bg_image;
 
-	double bg_saturation;
+	guint bg_saturation;	/* out of VTE_SATURATION_MAX */
 };
 
 /* A function which can handle a terminal control sequence. */
@@ -291,7 +293,7 @@ vte_invalidate_cells(VteTerminal *terminal,
 
 /* Cause the cursor to be redrawn. */
 static gboolean
-vte_invalidate_cursor(gpointer data)
+vte_invalidate_cursor_once(gpointer data)
 {
 	VteTerminal *terminal;
 	if (!VTE_IS_TERMINAL(data)) {
@@ -305,15 +307,27 @@ vte_invalidate_cursor(gpointer data)
 				     terminal->pvt->screen->cursor_current.row,
 				     1);
 	}
-	g_timeout_add(terminal->pvt->blink_period / 2,
-		      vte_invalidate_cursor,
-		      terminal);
 #ifdef VTE_DEBUG
 #ifdef VTE_DEBUG_DRAW_CURSOR
 	fprintf(stderr, "Invalidating cursor.\n");
 #endif
 #endif
 	return FALSE;
+}
+
+/* Invalidate the cursor repeatedly. */
+static gboolean
+vte_invalidate_cursor(gpointer data)
+{
+	gboolean ret;
+	VteTerminal *terminal;
+	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
+	terminal = VTE_TERMINAL(data);
+	ret = vte_invalidate_cursor_once(data);
+	g_timeout_add(terminal->pvt->blink_period / 2,
+		      vte_invalidate_cursor,
+		      terminal);
+	return ret;
 }
 
 /* Emit a "selection_changed" signal. */
@@ -1033,17 +1047,41 @@ vte_sequence_handler_DL(VteTerminal *terminal,
 				      vte_sequence_handler_dl);
 }
 
-/* Make sure we have enough rows to hold data at the current cursor position. */
+/* Make sure we have enough rows and columns to hold data at the current
+ * cursor position. */
 static void
-vte_terminal_ensure_rows(VteTerminal *terminal)
+vte_terminal_ensure_cursor(VteTerminal *terminal)
 {
 	GArray *array;
 	struct _VteScreen *screen;
+	struct vte_charcell cell;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
 	screen = terminal->pvt->screen;
+
 	while (screen->cursor_current.row >= screen->row_data->len) {
 		array = vte_new_row_data();
 		g_array_append_val(screen->row_data, array);
+	}
+
+	array = g_array_index(screen->row_data,
+			      GArray*,
+			      screen->cursor_current.row);
+
+	if (array != NULL) {
+		/* Add enough characters to fill out the row. */
+		memset(&cell, 0, sizeof(cell));
+		cell.fore = VTE_DEF_FG;
+		cell.back = VTE_DEF_BG;
+		cell.c = ' ';
+		cell.columns = wcwidth(cell.c);
+		while (array->len < screen->cursor_current.col) {
+			g_array_append_val(array, cell);
+		}
+		/* Add one more cell to the end of the line to get
+		 * it into the column, and use it. */
+		g_array_append_val(array, cell);
 	}
 }
 
@@ -1112,7 +1150,7 @@ vte_sequence_handler_do(VteTerminal *terminal,
 			   screen->cursor_current.row + 1);
 		delta = MAX(0, rows - terminal->row_count);
 		if (delta != screen->insert_delta) {
-			vte_terminal_ensure_rows(terminal);
+			vte_terminal_ensure_cursor(terminal);
 		}
 		screen->insert_delta = delta;
 
@@ -2825,7 +2863,7 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 	}
 
 	/* Make sure we have enough rows to hold this data. */
-	vte_terminal_ensure_rows(terminal);
+	vte_terminal_ensure_cursor(terminal);
 
 	/* Get a handle on the array for the insertion row. */
 	array = g_array_index(screen->row_data,
@@ -3567,6 +3605,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	size_t normal_length = 0;
 	unsigned char *special = NULL;
 	struct termios tio;
+	struct timeval tv;
+	struct timezone tz;
 	gboolean scrolled = FALSE;
 
 	g_return_val_if_fail(widget != NULL, FALSE);
@@ -3578,6 +3618,11 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		if (gdk_event_get_state((GdkEvent*)event,
 					&modifiers) == FALSE) {
 			modifiers = 0;
+		}
+		/* Record the last time the a key was pressed. */
+		if (gettimeofday(&tv, &tz) == 0) {
+			terminal->pvt->last_keypress_time =
+				(tv.tv_sec * 1000) + (tv.tv_usec / 1000);
 		}
 		/* Map the key to a sequence name if we can. */
 		switch (event->keyval) {
@@ -4212,7 +4257,7 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 {
 	g_return_val_if_fail(GTK_IS_WIDGET(widget), 0);
 	GTK_WIDGET_SET_FLAGS(widget, GTK_HAS_FOCUS);
-	vte_invalidate_cursor(VTE_TERMINAL(widget));
+	vte_invalidate_cursor_once(VTE_TERMINAL(widget));
 	return TRUE;
 }
 
@@ -4221,7 +4266,7 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 {
 	g_return_val_if_fail(GTK_WIDGET(widget), 0);
 	GTK_WIDGET_UNSET_FLAGS(widget, GTK_HAS_FOCUS);
-	vte_invalidate_cursor(VTE_TERMINAL(widget));
+	vte_invalidate_cursor_once(VTE_TERMINAL(widget));
 	return TRUE;
 }
 
@@ -4288,7 +4333,7 @@ vte_terminal_set_fontset(VteTerminal *terminal, const char *xlfds)
 						    gdk_x11_get_default_screen(),
 						    XFT_FAMILY, XftTypeString, "mono",
 
-						    XFT_SIZE, XftTypeDouble, 14.0,
+						    XFT_SIZE, XftTypeDouble, 12.0,
 						    0);
 		if (terminal->pvt->ftfont != NULL) {
 			ascent = terminal->pvt->ftfont->ascent;
@@ -4571,11 +4616,12 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->bg_transparent_window = NULL;
 	pvt->bg_transparent_image = NULL;
 	pvt->bg_toplevel = NULL;
-	pvt->bg_saturation = 0.4;
+	pvt->bg_saturation = 0.4 * VTE_SATURATION_MAX;
 	pvt->bg_image = NULL;
 
 	pvt->cursor_blinks = FALSE;
 	pvt->blink_period = 1000;
+	pvt->last_keypress_time = 0;
 	g_timeout_add(pvt->blink_period / 2, vte_invalidate_cursor, terminal);
 
 	pvt->selection = FALSE;
@@ -5325,6 +5371,9 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	if (terminal->pvt->cursor_blinks) {
 		if (gettimeofday(&tv, &tz) == 0) {
 			daytime = (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
+			if (daytime >= terminal->pvt->last_keypress_time) {
+				daytime -= terminal->pvt->last_keypress_time;
+			}
 			daytime = daytime % terminal->pvt->blink_period;
 			blink = daytime < (terminal->pvt->blink_period / 2);
 		} else {
@@ -5769,7 +5818,9 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 		pixels = gdk_pixbuf_get_pixels(pixbuf);
 		i = height * gdk_pixbuf_get_rowstride(pixbuf);
 		while (i >= 0) {
-			pixels[i] = pixels[i] * terminal->pvt->bg_saturation;
+			pixels[i] = pixels[i]
+				    * terminal->pvt->bg_saturation
+				    / VTE_SATURATION_MAX;
 			i--;
 		}
 
@@ -5806,7 +5857,7 @@ void
 vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->bg_saturation = saturation;
+	terminal->pvt->bg_saturation = saturation * VTE_SATURATION_MAX;
 	vte_terminal_setup_background(terminal, FALSE);
 }
 
