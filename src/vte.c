@@ -1335,32 +1335,32 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
-	if (vte_ring_next(screen->row_data) > screen->cursor_current.row) {
-		struct vte_charcell defaults;
-		/* Get the data for the row which the cursor points to. */
-		rowdata = vte_ring_index(screen->row_data,
-					 GArray*,
-					 screen->cursor_current.row);
-		/* Clear the data up to the current column with the default
-		 * attributes. */
-		memset(&defaults, 0, sizeof(defaults));
-		defaults.fore = screen->defaults.fore;
-		defaults.back = screen->defaults.back;
-		defaults.c = 0;
-		defaults.columns = 1;
-		for (i = 0;
-		     (i < screen->cursor_current.col) && (i < rowdata->len);
-		     i++) {
-			pcell = &g_array_index(rowdata, struct vte_charcell, i);
+	vte_terminal_ensure_cursor(terminal);
+	/* Get the data for the row which the cursor points to. */
+	rowdata = vte_ring_index(screen->row_data,
+				 GArray*,
+				 screen->cursor_current.row);
+	/* Clear the data up to the current column with the default
+	 * attributes.  If there is no such character cell, we need
+	 * to add one. */
+	for (i = 0; i < screen->cursor_current.col; i++) {
+		if (i < rowdata->len) {
+			/* Muck with the cell in this location. */
+			pcell = &g_array_index(rowdata,
+					       struct vte_charcell,
+					       i);
 			if (pcell != NULL) {
-				*pcell = defaults;
+				*pcell = screen->defaults;
 			}
+		} else {
+			/* Add a new cell in this location. */
+			g_array_append_val(rowdata, screen->defaults);
 		}
-		/* Repaint this row. */
-		vte_invalidate_cells(terminal,
-				     0, terminal->column_count,
-				     screen->cursor_current.row, 1);
 	}
+	/* Repaint this row. */
+	vte_invalidate_cells(terminal,
+			     0, terminal->column_count,
+			     screen->cursor_current.row, 1);
 }
 
 /* Clear below the current line. */
@@ -1408,11 +1408,13 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 	vte_terminal_ensure_cursor(terminal);
 	rowdata = vte_ring_index(screen->row_data, GArray*,
 				 screen->cursor_current.row);
-	/* Remove the data at the end of the array. */
+	/* Remove the data at the end of the array until the current column
+	 * is the end of the array. */
 	while (rowdata->len > screen->cursor_current.col) {
 		g_array_remove_index(rowdata, rowdata->len - 1);
 	}
-	/* Now insert empty cells with the default attributes. */
+	/* Now append empty cells with the default attributes to fill out the
+	 * line. */
 	while (rowdata->len < terminal->column_count) {
 		g_array_append_val(rowdata, screen->defaults);
 	}
@@ -1895,14 +1897,23 @@ vte_sequence_handler_ec(VteTerminal *terminal,
 		rowdata = vte_ring_index(screen->row_data,
 					 GArray*,
 					 screen->cursor_current.row);
-		/* Write over the same characters. */
+		/* Write over the characters.  (If there aren't enough, we'll
+		 * need to create them.) */
 		for (i = 0; i < count; i++) {
 			col = screen->cursor_current.col + i;
-			if ((col < rowdata->len) && (col >= 0)) {
-				cell = &g_array_index(rowdata,
-						      struct vte_charcell,
-						      col);
-				*cell = screen->defaults;
+			if (col >= 0) {
+				if (col < rowdata->len) {
+					/* Replace this cell with the current
+					 * defaults. */
+					cell = &g_array_index(rowdata,
+							      struct vte_charcell,
+							      col);
+					*cell = screen->defaults;
+				} else {
+					/* Add this cell to the row. */
+					g_array_append_val(rowdata,
+							   screen->defaults);
+				}
 			}
 		}
 		/* Repaint this row. */
@@ -4533,7 +4544,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			visual = gdk_x11_visual_get_xvisual(gvisual);
 		}
 
-		/* Allocate a color from the colormap. */
+		/* We need a temporary space to hold the pixel value. */
 		color = *proposed;
 
 		/* If we're guessing about the second half, check how much
@@ -4629,11 +4640,13 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
 	screen = terminal->pvt->screen;
-	insert = terminal->pvt->screen->insert_mode || force_insert;
+	insert = screen->insert_mode || force_insert;
 
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_IO)) {
-		fprintf(stderr, "Inserting %ld, delta = %ld.\n", (long)c,
+		fprintf(stderr, "Inserting %ld (%d/%d), delta = %ld.\n",
+			(long)c,
+			screen->defaults.fore, screen->defaults.back,
 			(long)screen->insert_delta);
 	}
 #endif
@@ -4649,16 +4662,15 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 	}
 
 	/* If we're autowrapping here, do it. */
-	col = terminal->pvt->screen->cursor_current.col;
+	col = screen->cursor_current.col;
 	if (col >= terminal->column_count) {
 		if (terminal->pvt->flags.am) {
 			/* Wrap. */
-			terminal->pvt->screen->cursor_current.col = 0;
-			terminal->pvt->screen->cursor_current.row++;
+			screen->cursor_current.col = 0;
+			screen->cursor_current.row++;
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
-			terminal->pvt->screen->cursor_current.col =
-				terminal->column_count - 1;
+			screen->cursor_current.col = terminal->column_count - 1;
 		}
 	}
 
@@ -4670,9 +4682,9 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 			       GArray*,
 			       screen->cursor_current.row);
 
-	/* Read the deltas. */
+	/* Insert the right number of columns. */
 	for (i = 0; i < columns; i++) {
-		col = terminal->pvt->screen->cursor_current.col;
+		col = screen->cursor_current.col;
 		cell = screen->defaults;
 
 		/* Make sure we have enough columns in this row. */
@@ -4707,9 +4719,11 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 		/* Set the character cell's attributes to match the current
 		 * defaults, preserving any previous contents. */
 		cell = *pcell;
-		*pcell = terminal->pvt->screen->defaults;
+		*pcell = screen->defaults;
 		pcell->c = cell.c;
 		pcell->columns = cell.columns;
+
+		/* Now set the character and column count. */
 		if (i == 0) {
 			if ((pcell->c != 0) &&
 			    (c == '_') &&
@@ -4721,6 +4735,9 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 				pcell->c = c;
 				pcell->columns = columns;
 			}
+		} else {
+			/* This is a continuation cell. */
+			pcell->columns = 0;
 		}
 
 		/* Signal that this part of the window needs drawing. */
@@ -8481,15 +8498,16 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 		*fore = *back;
 	}
 	if (cell && cell->bold) {
-		if ((*fore != VTE_DEF_FG) && (*fore != VTE_DEF_BG)) {
+		if ((*fore != VTE_DEF_FG) &&
+		    (*fore != VTE_DEF_BG) &&
+		    (*fore < 8)) {
 			*fore += 8;
-		} else {
-			/* Aaargh. We have to do *something*. */
-			*fore = 15;
 		}
 	}
 	if (cell && cell->standout) {
-		if ((*back != VTE_DEF_FG) && (*back != VTE_DEF_BG)) {
+		if ((*back != VTE_DEF_FG) &&
+		    (*back != VTE_DEF_BG) &&
+		    (*back < 8)) {
 			*back += 8;
 		}
 	}
@@ -9214,6 +9232,11 @@ vte_terminal_draw_char(VteTerminal *terminal,
 			default:
 				break;
 		}
+	}
+
+	/* If the text is invisible, we have an easy out. */
+	if (fore == back) {
+		drawn = TRUE;
 	}
 
 #if HAVE_XFT

@@ -1,6 +1,8 @@
 2002-05-28 nalin
 	* src/vte.c: Fix matching when scrolling delta isn't zero.  Fix async
-	background updating (report from Richard Neal Plana).
+	background updating (report from Richard Neal Plana).  Fix cb() and ce()
+	when the cursor is on a line without data (needed to create it) and when
+	cells being cleared don't exist (needed to create them).
 
 2002-05-24 nalin
 	* autogen.sh: Call libtoolize. (#82836)
