@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.3.29
+Version: 0.3.30
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -51,8 +51,12 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/*.a
 %{_libdir}/*.so
 %{_libdir}/pkgconfig/*
+%{_libdir}/python*/site-packages/*
 
 %changelog
+* Fri Jun 14 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.30-1
+- package up the python module
+
 * Mon Jun 10 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.29-1
 - compute padding correctly
 
