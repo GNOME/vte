@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.10.28
+Version: 0.10.29
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -96,6 +96,11 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Mon Jun  9 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.29-1
+- fix pagedown in application keypad mode
+- fix for potential communication problems with the pty helper
+- fix saving/restoring the cursor using DECSET/DECRST 1048
+
 * Mon May 12 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.28-1
 - pty helper cleanups
 - support for CP437
