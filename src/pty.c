@@ -47,7 +47,7 @@
 #include "../gnome-pty-helper/gnome-pty.h"
 
 #ifdef MSG_NOSIGNAL
-#define PTY_RECVSMSG_FLAGS MSG_NOSIGNAL
+#define PTY_RECVMSG_FLAGS MSG_NOSIGNAL
 #else
 #define PTY_RECVMSG_FLAGS 0
 #endif
