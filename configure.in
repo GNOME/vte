@@ -72,7 +72,7 @@ if pkg-config --exists pygtk-2.0 ; then
 	AC_MSG_RESULT([found])
 	PKG_CHECK_MODULES(PYGTK,[pygtk-2.0])
 	PYGTK_DATADIR=`pkg-config --variable=datadir pygtk-2.0`
-	AC_SUBST(PYGTK_DATA)
+	AC_SUBST(PYGTK_DATADIR)
 	AM_PATH_PYTHON
 	AC_MSG_CHECKING(for python >= 2.2)
 	prog="
