@@ -9854,19 +9854,24 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 {
 	VteTerminal *terminal;
 	GdkModifierType modifiers;
-	g_return_val_if_fail(GTK_IS_WIDGET(widget), 0);
-	g_return_val_if_fail(VTE_IS_TERMINAL(widget), 0);
+	g_return_val_if_fail(GTK_IS_WIDGET(widget), FALSE);
+	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
 	GTK_WIDGET_SET_FLAGS(widget, GTK_HAS_FOCUS);
+	/* Read the keyboard modifiers, though they're probably garbage. */
 	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
 		terminal->pvt->modifiers = modifiers;
 	}
-	gtk_im_context_focus_in(terminal->pvt->im_context);
-	/* Force the cursor to be the foreground color twice, in case we're
-	 * in blinking mode and the next scheduled redraw occurs just after
-	 * the one we're about to perform. */
-	terminal->pvt->cursor_force_fg = 2;
-	vte_invalidate_cursor_once(terminal);
+	/* We only have an IM context when we're realized, and there's not much
+	 * point to painting the cursor if we don't have a window. */
+	if (GTK_WIDGET_REALIZED(widget)) {
+		gtk_im_context_focus_in(terminal->pvt->im_context);
+		/* Force the cursor to be the foreground color twice, in case
+		   we're in blinking mode and the next scheduled redraw occurs
+		   just after the one we're about to perform. */
+		terminal->pvt->cursor_force_fg = 2;
+		vte_invalidate_cursor_once(terminal);
+	}
 	return FALSE;
 }
 
@@ -9875,15 +9880,20 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 {
 	VteTerminal *terminal;
 	GdkModifierType modifiers;
-	g_return_val_if_fail(GTK_WIDGET(widget), 0);
-	g_return_val_if_fail(VTE_IS_TERMINAL(widget), 0);
+	g_return_val_if_fail(GTK_WIDGET(widget), FALSE);
+	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
 	GTK_WIDGET_UNSET_FLAGS(widget, GTK_HAS_FOCUS);
+	/* Read the keyboard modifiers, though they're probably garbage. */
 	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
 		terminal->pvt->modifiers = modifiers;
 	}
-	gtk_im_context_focus_out(terminal->pvt->im_context);
-	vte_invalidate_cursor_once(terminal);
+	/* We only have an IM context when we're realized, and there's not much
+	 * point to painting ourselves if we don't have a window. */
+	if (GTK_WIDGET_REALIZED(widget)) {
+		gtk_im_context_focus_out(terminal->pvt->im_context);
+		vte_invalidate_cursor_once(terminal);
+	}
 	return FALSE;
 }
 
@@ -15164,10 +15174,12 @@ vte_terminal_background_update(gpointer data)
 	}
 
 	/* Note that the update has finished. */
-	terminal->pvt->bg_update_pending = FALSE;
-	terminal->pvt->bg_update_transparent = FALSE;
-	terminal->pvt->bg_update_tag = VTE_INVALID_SOURCE;
-	terminal->pvt->bg_update_transparent = FALSE;
+	if (terminal->pvt->bg_update_pending) {
+		terminal->pvt->bg_update_pending = FALSE;
+		terminal->pvt->bg_update_transparent = FALSE;
+		g_source_remove(terminal->pvt->bg_update_tag);
+		terminal->pvt->bg_update_tag = VTE_INVALID_SOURCE;
+	}
 
 	/* Force a redraw for everything. */
 	vte_invalidate_all(terminal);

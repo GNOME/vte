@@ -1,4 +1,14 @@
 2003-02-19 nalin
+	* src/vte.c(vte_terminal_focus_in,vte_terminal_focus_out): if we're not
+	currently realized, don't try to tell our IM context that our focus
+	state changed, because we don't have one.  While we're at it, it's
+	silly to try to force the cursor to be drawn when we're not realized,
+	either.
+	* src/vte.c(vte_terminal_background_update): disconnect self, just in
+	case we were called directly while still queued, which would otherwise
+	leak the source, leading to potential problems later (Red Hat #84368).
+
+2003-02-19 nalin
 	* src/vte.c(vte_terminal_scroll_window): use gdk_window_scroll if the
 	first row to be scrolled is the first visible row, not just if it's the
 	first row we ever saw (Red Hat #83472).
