@@ -515,10 +515,10 @@ vte_iso2022_substitute(struct vte_iso2022 *outside_state,
 				if (instring[i + 1] == ')') {
 					g = 1;
 				} else
-				if (instring[i + 2] == '*') {
+				if (instring[i + 1] == '*') {
 					g = 2;
 				} else
-				if (instring[i + 2] == '+') {
+				if (instring[i + 1] == '+') {
 					g = 3;
 				} else {
 					g_assert_not_reached();

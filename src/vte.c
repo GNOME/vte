@@ -350,6 +350,7 @@ static void vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 static void vte_terminal_setup_background(VteTerminal *terminal,
 					  gboolean refresh_transparent);
 static void vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current);
+static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
 static void vte_terminal_insert_char(GtkWidget *widget, gunichar c,
 				     gboolean force_insert_mode);
 static void vte_sequence_handler_clear_screen(VteTerminal *terminal,
@@ -2685,6 +2686,18 @@ vte_sequence_handler_nd(VteTerminal *terminal,
 	}
 }
 
+/* Move the cursor to the beginning of the next line, scrolling if necessary. */
+static void
+vte_sequence_handler_next_line(VteTerminal *terminal,
+			       const char *match,
+			       GQuark match_quark,
+			       GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->screen->cursor_current.col = 0;
+	vte_sequence_handler_DO(terminal, match, match_quark, params);
+}
+
 /* No-op. */
 static void
 vte_sequence_handler_noop(VteTerminal *terminal,
@@ -3379,6 +3392,65 @@ vte_sequence_handler_cursor_position(VteTerminal *terminal,
 				    -1, vte_sequence_handler_cm);
 }
 
+/* Request terminal attributes. */
+static void
+vte_sequence_handler_request_terminal_parameters(VteTerminal *terminal,
+						 const char *match,
+						 GQuark match_quark,
+						 GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	vte_terminal_feed_child(terminal, "[?x", -1);
+}
+
+/* Request terminal attributes. */
+static void
+vte_sequence_handler_return_terminal_status(VteTerminal *terminal,
+					    const char *match,
+					    GQuark match_quark,
+					    GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	vte_terminal_feed_child(terminal, "xterm", -1);
+}
+
+/* Send primary device attributes. */
+static void
+vte_sequence_handler_send_primary_device_attributes(VteTerminal *terminal,
+						    const char *match,
+						    GQuark match_quark,
+						    GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	/* Claim to be a VT220 with only national character set support. */
+	vte_terminal_feed_child(terminal, "[?60;9c", -1);
+}
+
+/* Send secondary device attributes. */
+static void
+vte_sequence_handler_send_secondary_device_attributes(VteTerminal *terminal,
+						      const char *match,
+						      GQuark match_quark,
+						      GValueArray *params)
+{
+	char **version, *ret;
+	long ver = 0, i;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	/* Claim to be a VT220, more or less.  The '>' in the response appears
+	 * to be undocumented. */
+	version = g_strsplit(VERSION, ".", 0);
+	if (version != NULL) {
+		for (i = 0; version[i] != NULL; i++) {
+			ver = ver * 100;
+			ver += atol(version[i]);
+		}
+		g_strfreev(version);
+	}
+	ret = g_strdup_printf("[>1;%ld;0c", ver);
+	vte_terminal_feed_child(terminal, ret, -1);
+	g_free(ret);
+}
+
 /* Set icon/window titles. */
 static void
 vte_sequence_handler_set_title_internal(VteTerminal *terminal,
@@ -3706,7 +3778,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 			 * to it. */
 			if (set) {
 				vte_sequence_handler_clear_screen(terminal,
-					       			  NULL,
+								  NULL,
 								  0,
 								  NULL);
 			}
@@ -4544,7 +4616,8 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 				snprintf(buf, sizeof(buf),
 					 "%sL%s%s",
 					 VTE_CAP_OSC,
-					 terminal->icon_title,
+					 terminal->icon_title ?
+					 terminal->icon_title : "",
 					 VTE_CAP_ST);
 				vte_terminal_feed_child(terminal,
 							buf, strlen(buf));
@@ -4559,7 +4632,8 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 				snprintf(buf, sizeof(buf),
 					 "%sL%s%s",
 					 VTE_CAP_OSC,
-					 terminal->window_title,
+					 terminal->window_title ?
+					 terminal->window_title : "",
 					 VTE_CAP_ST);
 				vte_terminal_feed_child(terminal,
 							buf, strlen(buf));
@@ -4969,14 +5043,15 @@ static struct {
 	{"media-copy", NULL},
 	{"memory-lock", NULL},
 	{"memory-unlock", NULL},
-	{"next-line", NULL},
+	{"next-line", vte_sequence_handler_next_line},
 	{"normal-keypad", vte_sequence_handler_normal_keypad},
 	{"repeat", NULL},
 	{"request-locator-position", NULL},
-	{"request-terminal-parameters", NULL},
+	{"request-terminal-parameters", vte_sequence_handler_request_terminal_parameters},
 	{"reset-mode", vte_sequence_handler_reset_mode},
 	{"restore-cursor", vte_sequence_handler_rc},
 	{"restore-mode", vte_sequence_handler_restore_mode},
+	{"return-terminal-status", vte_sequence_handler_return_terminal_status},
 	{"return-terminal-id", NULL},
 	{"reverse-index", vte_sequence_handler_reverse_index},
 	{"save-cursor", vte_sequence_handler_sc},
@@ -4988,8 +5063,8 @@ static struct {
 	{"selective-erase-in-display", NULL},
 	{"selective-erase-in-line", NULL},
 	{"select-locator-events", NULL},
-	{"send-primary-device-attributes", NULL},
-	{"send-secondary-device-attributes", NULL},
+	{"send-primary-device-attributes", vte_sequence_handler_send_primary_device_attributes},
+	{"send-secondary-device-attributes", vte_sequence_handler_send_secondary_device_attributes},
 	{"set-conformance-level", NULL},
 	{"set-icon-and-window-title", vte_sequence_handler_set_icon_and_window_title},
 	{"set-icon-title", vte_sequence_handler_set_icon_title},
@@ -5497,7 +5572,7 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 	if (GTK_WIDGET_REALIZED (widget)) {
 		gdk_window_freeze_updates(widget->window);
 	}
-	
+
 	/* Save the cursor's current position for future use. */
 	position = screen->cursor_current;
 
@@ -5987,7 +6062,7 @@ vte_terminal_process_incoming(gpointer data)
 		rect.height = terminal->char_height;
 		gtk_im_context_set_cursor_location(terminal->pvt->im_context, &rect);
 	}
-	
+
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_IO)) {
 		fprintf(stderr, "%d bytes left to process.\n",
@@ -6650,7 +6725,12 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				break;
 			case GDK_KP_Insert:
 			case GDK_Insert:
-				special = "kI";
+				if (modifiers & GDK_SHIFT_MASK) {
+					vte_terminal_paste(terminal,
+							   GDK_SELECTION_PRIMARY);
+				} else {
+					special = "kI";
+				}
 				break;
 			case GDK_KP_Home:
 			case GDK_Home:
@@ -7203,7 +7283,7 @@ vte_terminal_send_mouse_button(VteTerminal *terminal, GdkEventButton *event)
 	/* Encode the parameters and send them to the app. */
 	vte_terminal_send_mouse_button_internal(terminal,
 						(event->type == GDK_BUTTON_PRESS) ?
-					       	event->button : 0,
+						event->button : 0,
 						event->x - VTE_PAD_WIDTH,
 						event->y - VTE_PAD_WIDTH,
 						modifiers);
@@ -10033,7 +10113,7 @@ vte_terminal_realize(GtkWidget *widget)
 							     vte_invalidate_cursor_periodic,
 							     terminal,
 							     NULL);
-	
+
 	/* Set up input method support.  FIXME: do we need to handle the
 	 * "retrieve-surrounding" and "delete-surrounding" events? */
 	if (terminal->pvt->im_context != NULL) {

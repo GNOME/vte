@@ -29,6 +29,7 @@
 #define PM  VTE_CAP_PM
 #define APC VTE_CAP_APC
 
+#define ENQ ""
 #define BEL ""
 #define BS  ""
 #define TAB "	"
@@ -362,6 +363,8 @@ struct vte_capability_quark vte_terminal_capability_strings[] = {
 /* From some really old XTerm docs we had at the office, and an updated
  * version at Moy, Gildea, and Dickey. */
 struct vte_capability_string vte_xterm_capability_strings[] = {
+	{ENQ, "return-terminal-status", 0},
+
 	{ESC " F", "7-bit-controls", 0},
 	{ESC " G", "8-bit-controls", 0},
 	{ESC " L", "ansi-conformance-level-1", 0},

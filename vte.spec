@@ -61,7 +61,7 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %{_libdir}/pkgconfig/*
 
 %changelog
-* Wed Aug 21 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.3-1
+* Thu Aug 22 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.3-1
 - track changes to the style's font
 - always open fonts right away so that the metric information is correct
 - make audible and visual bell independent options
