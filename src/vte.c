@@ -13461,7 +13461,8 @@ vte_terminal_background_update(gpointer data)
 	/* If we're transparent, and either have no root image or are being
 	 * told to update it, get a new copy of the root window. */
 	if (terminal->pvt->bg_transparent &&
-	    terminal->pvt->bg_update_transparent) {
+	    (terminal->pvt->bg_update_transparent ||
+	     (terminal->pvt->bg_image == NULL))) {
 		GdkAtom atom, prop_type;
 		Pixmap *prop_data = NULL;
 		gint width, height;
