@@ -45,7 +45,6 @@ savelibs="$LIBS"
 CPPFLAGS="$VTE_CFLAGS $X_CFLAGS $CPPFLAGS"
 LIBS="$VTE_LIBS $X_LIBS"
 AC_CHECK_FUNC(XftDrawString32,[AC_DEFINE(HAVE_XFT,1,[Whether or not Xft is available.])],[AC_MSG_WARN([Xft not detected - performance will suffer])])
-AC_CHECK_FUNCS(XftNameUnparse)
 CPPFLAGS="$savecppflags"
 LIBS="$savelibs"
 
@@ -120,31 +119,44 @@ wcs_funcs_includes="
 
 AC_CHECK_TYPES(wint_t, AC_DEFINE(HAVE_WINT_T, , [Defined when the wint_t type is supported]), ,$wcs_funcs_includes)
 
-BUILD_PYTHON=false
-AC_MSG_CHECKING([for pygtk-2.0])
-if pkg-config --exists pygtk-2.0 ; then
-	AC_MSG_RESULT([found])
-	PKG_CHECK_MODULES(PYGTK,[pygtk-2.0])
-	PYGTK_DATADIR=`pkg-config --variable=datadir pygtk-2.0`
-	AC_SUBST(PYGTK_DATADIR)
-	AM_PATH_PYTHON
-	AC_MSG_CHECKING(for python >= 2.2)
-	prog="
+BUILD_PYTHON=true
+AC_ARG_ENABLE(python, [  --enable-python           Build python bindings [default=yes]],[
+if test x"$enableval" != xno ; then
+  BUILD_PYTHON=true
+else
+  BUILD_PYTHON=false
+fi],BUILD_PYTHON=true)
+AM_PATH_PYTHON
+AM_CHECK_PYTHON_HEADERS
+if $BUILD_PYTHON ; then
+	AC_MSG_CHECKING([for pygtk-2.0])
+	if pkg-config --exists pygtk-2.0 ; then
+		AC_MSG_RESULT([found])
+		PKG_CHECK_MODULES(PYGTK,[pygtk-2.0])
+		PYGTK_DATADIR=`pkg-config --variable=datadir pygtk-2.0`
+		AC_SUBST(PYGTK_DATADIR)
+		AC_MSG_CHECKING(for python >= 2.2)
+		prog="
 import sys, string
 minver = (2,2,0,'final',0)
 if sys.version_info < minver:
-  sys.exit(1)
-sys.exit(0)"
-	if $PYTHON -c "$prog" 1>&AC_FD_CC 2>&AC_FD_CC
-	then
-	  AC_MSG_RESULT(okay)
-          AM_CHECK_PYTHON_HEADERS([BUILD_PYTHON=true],
-			          [AC_MSG_RESULT(could not find Python headers)])
+	sys.exit(1)
+sys.exit(0)
+"
+		if $PYTHON -c "$prog" 1>&AC_FD_CC 2>&AC_FD_CC
+		then
+		  AC_MSG_RESULT(okay)
+		  AM_CHECK_PYTHON_HEADERS([BUILD_PYTHON=true],
+					  [AC_MSG_RESULT(could not find Python headers)])
+		else
+		  BUILD_PYTHON=false
+		  AC_MSG_RESULT(too old)
+		fi
 	else
-	  AC_MSG_RESULT(too old)
+		AC_MSG_RESULT([not found])
 	fi
 else
-	AC_MSG_RESULT([not found])
+		AC_MSG_RESULT([Python bindings disabled.])
 fi
 AC_SUBST(PYTHONREV)
 AC_SUBST(PYTHONMODULES)

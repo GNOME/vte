@@ -1,3 +1,24 @@
+2003-01-09  nalin
+	* src/vte.c: don't just skip reading data if selection is in progress --
+	we wedge if we do that (#101739).  Instead, temporarily stop reading
+	from the child pty.
+	* src/vte.c(vte_terminal_open_font_xft): if we get NULL when matching
+	fonts, use the desired pattern's name when displaying an error,
+	preventing a NULL dereference (#96769).
+	* configure.in: make building of python modules depend on configure
+	having been run with --enable-python. make --enable-python the default.
+	Fix an indentation error in the version check which chokes Python 2.2.2.
+	* src/vte.h, src/vte.c: add new signals to VteTerminalClass (NOTE: may
+	break ABI, so might as well add some padding)
+	* src/vteaccess.c: be more precise about locations in text_changed
+	signals (part of #95901)
+	* src/vte.c: get more selective about when we consider it necessary to
+	emit text-insert and text-delete events.
+
+2003-01-07  nalin
+	* src/vte.c(vte_terminal_key_press): Only suppress meta-sends-escape on
+	Backspace if backspace is mapped to the delete sequence.
+
 2003-01-07  nalin
 	* src/vte.c(vte_terminal_setup_background): Use a lookup table
 	instead of a mess of floating point math when desaturating images.

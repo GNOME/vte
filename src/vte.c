@@ -117,6 +117,7 @@ typedef gunichar wint_t;
 #define VTE_REGCOMP_FLAGS		REG_EXTENDED
 #define VTE_REGEXEC_FLAGS		0
 #define VTE_INPUT_CHUNK_SIZE		0x1000
+#define VTE_INVALID_SOURCE		-1
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
@@ -286,7 +287,9 @@ struct _VteTerminalPrivate {
 	gboolean nrc_mode;
 	gboolean smooth_scroll;
 	GHashTable *tabstops;
-	gboolean modified_flag;
+	gboolean text_modified_flag;
+	glong text_inserted_count;
+	glong text_deleted_count;
 
 	/* Scrolling options. */
 	gboolean scroll_on_output;
@@ -373,6 +376,7 @@ struct _VteTerminalPrivate {
 
 	/* Our accessible peer. */
 	AtkObject *accessible;
+	gboolean accessible_exists;
 
 	/* Adjustment updates pending. */
 	gboolean adjustment_changed_tag;
@@ -1139,6 +1143,66 @@ vte_terminal_emit_decrease_font_size(VteTerminal *terminal)
 	g_signal_emit_by_name(terminal, "decrease-font-size");
 }
 
+/* Emit a "text-inserted" signal. */
+static void
+vte_terminal_emit_text_inserted(VteTerminal *terminal)
+{
+	if (!terminal->pvt->accessible_exists) {
+		return;
+	}
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `text-inserted'.\n");
+	}
+#endif
+	g_signal_emit_by_name(terminal, "text-inserted");
+}
+
+/* Emit a "text-deleted" signal. */
+static void
+vte_terminal_emit_text_deleted(VteTerminal *terminal)
+{
+	if (!terminal->pvt->accessible_exists) {
+		return;
+	}
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `text-deleted'.\n");
+	}
+#endif
+	g_signal_emit_by_name(terminal, "text-deleted");
+}
+
+/* Emit a "text-modified" signal. */
+static void
+vte_terminal_emit_text_modified(VteTerminal *terminal)
+{
+	if (!terminal->pvt->accessible_exists) {
+		return;
+	}
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `text-modified'.\n");
+	}
+#endif
+	g_signal_emit_by_name(terminal, "text-modified");
+}
+
+/* Emit a "text-scrolled" signal. */
+static void
+vte_terminal_emit_text_scrolled(VteTerminal *terminal, gint delta)
+{
+	if (!terminal->pvt->accessible_exists) {
+		return;
+	}
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `text-scrolled'(%d).\n", delta);
+	}
+#endif
+	g_signal_emit_by_name(terminal, "text-scrolled", delta);
+}
+
 /* Deselect anything which is selected and refresh the screen if needed. */
 static void
 vte_terminal_deselect_all(VteTerminal *terminal)
@@ -1577,7 +1641,7 @@ vte_terminal_emit_adjustment_changed(gpointer data)
 	terminal = VTE_TERMINAL(data);
 	if (terminal->pvt->adjustment_changed_tag) {
 #ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
+		if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
 			fprintf(stderr, "Emitting adjustment_changed.\n");
 		}
 #endif
@@ -1743,11 +1807,12 @@ vte_terminal_maybe_scroll_to_top(VteTerminal *terminal)
 static void
 vte_terminal_maybe_scroll_to_bottom(VteTerminal *terminal)
 {
+	glong delta;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (floor(gtk_adjustment_get_value(terminal->adjustment)) !=
 	    terminal->pvt->screen->insert_delta) {
-		gtk_adjustment_set_value(terminal->adjustment,
-					 terminal->pvt->screen->insert_delta);
+		delta = terminal->pvt->screen->insert_delta;
+		gtk_adjustment_set_value(terminal->adjustment, delta);
 	}
 }
 
@@ -2054,7 +2119,7 @@ vte_sequence_handler_al(VteTerminal *terminal,
 	vte_terminal_scroll_region(terminal, start, end - start + 1, param);
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->modified_flag = TRUE;
+	terminal->pvt->text_deleted_count++;
 }
 
 /* Add N lines at the current cursor position. */
@@ -2171,7 +2236,7 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 			     screen->cursor_current.row, 1);
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->modified_flag = TRUE;
+	terminal->pvt->text_deleted_count++;
 }
 
 /* Clear to the right of the cursor and below the current line. */
@@ -2232,7 +2297,7 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 	}
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->modified_flag = TRUE;
+	terminal->pvt->text_deleted_count++;
 }
 
 /* Clear from the cursor position to the end of the line. */
@@ -2265,7 +2330,7 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 			     screen->cursor_current.row, 1);
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->modified_flag = TRUE;
+	terminal->pvt->text_deleted_count++;
 }
 
 /* Move the cursor to the given column (horizontal position). */
@@ -2304,7 +2369,7 @@ vte_sequence_handler_cl(VteTerminal *terminal,
 	vte_sequence_handler_ho(terminal, NULL, 0, NULL);
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->modified_flag = TRUE;
+	terminal->pvt->text_deleted_count++;
 }
 
 /* Move the cursor to the given position. */
@@ -2371,7 +2436,7 @@ vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 	}
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->modified_flag = TRUE;
+	terminal->pvt->text_deleted_count++;
 }
 
 /* Carriage return. */
@@ -2559,7 +2624,7 @@ vte_sequence_handler_dc(VteTerminal *terminal,
 	}
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->modified_flag = TRUE;
+	terminal->pvt->text_deleted_count++;
 }
 
 /* Delete N characters at the current cursor position. */
@@ -2614,7 +2679,7 @@ vte_sequence_handler_dl(VteTerminal *terminal,
 	vte_terminal_scroll_region(terminal, start, end - start + 1, -param);
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->modified_flag = TRUE;
+	terminal->pvt->text_deleted_count++;
 }
 
 /* Delete N lines at the current cursor position. */
@@ -2808,7 +2873,7 @@ vte_sequence_handler_ec(VteTerminal *terminal,
 	}
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->modified_flag = TRUE;
+	terminal->pvt->text_deleted_count++;
 }
 
 /* End insert mode. */
@@ -3534,8 +3599,9 @@ vte_sequence_handler_uc(VteTerminal *terminal,
 		vte_sequence_handler_nd(terminal, match, match_quark, params);
 	}
 
-	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->modified_flag = TRUE;
+	/* We've modified the display without changing the text.  Make a note
+	 * of it. */
+	terminal->pvt->text_modified_flag = TRUE;
 }
 
 /* Underline end. */
@@ -3836,7 +3902,7 @@ vte_sequence_handler_clear_above_current(VteTerminal *terminal,
 		}
 	}
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->modified_flag = TRUE;
+	terminal->pvt->text_deleted_count++;
 }
 
 /* Clear the entire screen. */
@@ -3868,7 +3934,7 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 	/* Redraw everything. */
 	vte_invalidate_all(terminal);
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->modified_flag = TRUE;
+	terminal->pvt->text_deleted_count++;
 }
 
 /* Move the cursor to the given column, 1-based. */
@@ -4706,7 +4772,7 @@ vte_sequence_handler_erase_in_display(VteTerminal *terminal,
 		break;
 	}
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->modified_flag = TRUE;
+	terminal->pvt->text_deleted_count++;
 }
 
 /* Erase certain parts of the current line in the display. */
@@ -4748,7 +4814,7 @@ vte_sequence_handler_erase_in_line(VteTerminal *terminal,
 		break;
 	}
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->modified_flag = TRUE;
+	terminal->pvt->text_deleted_count++;
 }
 
 /* Perform a full-bore reset. */
@@ -4816,7 +4882,7 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 	/* Adjust the scrollbars if necessary. */
 	vte_terminal_adjust_adjustments(terminal, FALSE);
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->modified_flag = TRUE;
+	terminal->pvt->text_inserted_count++;
 }
 
 /* Delete certain lines from the scrolling region. */
@@ -4865,7 +4931,7 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 	/* Adjust the scrollbars if necessary. */
 	vte_terminal_adjust_adjustments(terminal, FALSE);
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->modified_flag = TRUE;
+	terminal->pvt->text_deleted_count++;
 }
 
 /* Set the terminal encoding. */
@@ -5060,15 +5126,18 @@ vte_sequence_handler_screen_alignment_test(VteTerminal *terminal,
 		if (rowdata->len > 0) {
 			g_array_set_size(rowdata, 0);
 		}
+		vte_terminal_emit_text_deleted(terminal);
 		/* Fill this row. */
 		cell = screen->basic_defaults;
 		cell.c = 'E';
 		cell.columns = 1;
 		vte_g_array_fill(rowdata, &cell, terminal->column_count);
+		vte_terminal_emit_text_inserted(terminal);
 	}
 	vte_invalidate_all(terminal);
-	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->modified_flag = TRUE;
+
+	/* We modified the display, so make a note of it for completeness. */
+	terminal->pvt->text_modified_flag = TRUE;
 }
 
 /* Perform a soft reset. */
@@ -6371,6 +6440,9 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	/* Make sure the location the cursor is on exists. */
 	vte_terminal_ensure_cursor(terminal, FALSE);
 
+	/* We added text, so make a note of it. */
+	terminal->pvt->text_inserted_count++;
+
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_IO) && _vte_debug_on(VTE_DEBUG_PARSE)) {
 		fprintf(stderr, "insertion delta => %ld.\n",
@@ -6476,6 +6548,80 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 	}
 }
 
+static void
+_vte_terminal_connect_pty_read(VteTerminal *terminal)
+{
+	if (terminal->pvt->pty_master == -1) {
+		return;
+	}
+	if (terminal->pvt->pty_input == NULL) {
+		terminal->pvt->pty_input =
+			g_io_channel_unix_new(terminal->pvt->pty_master);
+	}
+	if (terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
+		terminal->pvt->pty_input_source =
+			g_io_add_watch_full(terminal->pvt->pty_input,
+					    VTE_CHILD_INPUT_PRIORITY,
+					    G_IO_IN | G_IO_HUP,
+					    vte_terminal_io_read,
+					    terminal,
+					    NULL);
+	}
+}
+
+static void
+_vte_terminal_connect_pty_write(VteTerminal *terminal)
+{
+	if (terminal->pvt->pty_master == -1) {
+		return;
+	}
+	if (terminal->pvt->pty_output == NULL) {
+		terminal->pvt->pty_output =
+			g_io_channel_unix_new(terminal->pvt->pty_master);
+	}
+	if (terminal->pvt->pty_output_source == VTE_INVALID_SOURCE) {
+		terminal->pvt->pty_output_source =
+			g_io_add_watch_full(terminal->pvt->pty_output,
+					    VTE_CHILD_OUTPUT_PRIORITY,
+					    G_IO_OUT,
+					    vte_terminal_io_write,
+					    terminal,
+					    NULL);
+	}
+}
+
+static void
+_vte_terminal_disconnect_pty_read(VteTerminal *terminal)
+{
+	if (terminal->pvt->pty_master == -1) {
+		return;
+	}
+	if (terminal->pvt->pty_input != NULL) {
+		g_io_channel_unref(terminal->pvt->pty_input);
+		terminal->pvt->pty_input = NULL;
+	}
+	if (terminal->pvt->pty_input_source != VTE_INVALID_SOURCE) {
+		g_source_remove(terminal->pvt->pty_input_source);
+		terminal->pvt->pty_input_source = VTE_INVALID_SOURCE;
+	}
+}
+
+static void
+_vte_terminal_disconnect_pty_write(VteTerminal *terminal)
+{
+	if (terminal->pvt->pty_master == -1) {
+		return;
+	}
+	if (terminal->pvt->pty_output != NULL) {
+		g_io_channel_unref(terminal->pvt->pty_output);
+		terminal->pvt->pty_output = NULL;
+	}
+	if (terminal->pvt->pty_output_source != VTE_INVALID_SOURCE) {
+		g_source_remove(terminal->pvt->pty_output_source);
+		terminal->pvt->pty_output_source = VTE_INVALID_SOURCE;
+	}
+}
+
 /**
  * vte_terminal_fork_command:
  * @terminal: a #VteTerminal
@@ -6564,15 +6710,7 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 		}
 
 		/* Open a channel to listen for input on. */
-		terminal->pvt->pty_input =
-			g_io_channel_unix_new(terminal->pvt->pty_master);
-		terminal->pvt->pty_input_source =
-			g_io_add_watch_full(terminal->pvt->pty_input,
-					    VTE_CHILD_INPUT_PRIORITY,
-					    G_IO_IN | G_IO_HUP,
-					    vte_terminal_io_read,
-					    terminal,
-					    NULL);
+		_vte_terminal_connect_pty_read(terminal);
 	}
 
 	/* Return the pid to the caller. */
@@ -6591,10 +6729,7 @@ vte_terminal_eof(GIOChannel *channel, gpointer data)
 	/* Close the connections to the child -- note that the source channel
 	 * has already been dereferenced. */
 	if (channel == terminal->pvt->pty_input) {
-		g_io_channel_unref(terminal->pvt->pty_input);
-		terminal->pvt->pty_input = NULL;
-		g_source_remove(terminal->pvt->pty_input_source);
-		terminal->pvt->pty_input_source = -1;
+		_vte_terminal_disconnect_pty_read(terminal);
 	}
 
 	/* Emit a signal that we read an EOF. */
@@ -6636,6 +6771,69 @@ free_params_array(GValueArray *params)
 			}
 		}
 		g_value_array_free(params);
+	}
+}
+
+/* Emit whichever signals are called for here. */
+static void
+vte_terminal_emit_pending_text_signals(VteTerminal *terminal, GQuark quark)
+{
+	static struct {
+		const char *name;
+		GQuark quark;
+	} non_visual_quarks[] = {
+		{"mb", 0},
+		{"md", 0},
+		{"mr", 0},
+		{"mu", 0},
+		{"se", 0},
+		{"so", 0},
+		{"ta", 0},
+		{"character-attributes", 0},
+	};
+	GQuark tmp;
+	int i;
+
+	if (quark != 0) {
+		for (i = 0; i < G_N_ELEMENTS(non_visual_quarks); i++) {
+			if (non_visual_quarks[i].quark == 0) {
+				tmp = g_quark_from_string(non_visual_quarks[i].name);
+				non_visual_quarks[i].quark = tmp;
+			}
+			if (quark == non_visual_quarks[i].quark) {
+				return;
+			}
+		}
+	}
+
+	if (terminal->pvt->text_modified_flag) {
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
+			fprintf(stderr, "Emitting buffered `text-modified'.\n");
+		}
+#endif
+		vte_terminal_emit_text_modified(terminal);
+		terminal->pvt->text_modified_flag = FALSE;
+	}
+	if (terminal->pvt->text_inserted_count) {
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
+			fprintf(stderr, "Emitting buffered `text-inserted' "
+				"(%ld).\n", terminal->pvt->text_inserted_count);
+		}
+#endif
+		vte_terminal_emit_text_inserted(terminal);
+		terminal->pvt->text_inserted_count = 0;
+	}
+	if (terminal->pvt->text_deleted_count) {
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
+			fprintf(stderr, "Emitting buffered `text-deleted' "
+				"(%ld).\n", terminal->pvt->text_deleted_count);
+		}
+#endif
+		vte_terminal_emit_text_deleted(terminal);
+		terminal->pvt->text_deleted_count = 0;
 	}
 }
 
@@ -6772,7 +6970,9 @@ vte_terminal_process_incoming(gpointer data)
 	bbox_bottomright.y = cursor.row;
 
 	/* We're going to check if the text was modified, so keep a flag. */
-	terminal->pvt->modified_flag = FALSE;
+	terminal->pvt->text_modified_flag = FALSE;
+	terminal->pvt->text_inserted_count = 0;
+	terminal->pvt->text_deleted_count = 0;
 
 	/* Try initial substrings. */
 	while ((start < wcount) && !leftovers) {
@@ -6789,6 +6989,8 @@ vte_terminal_process_incoming(gpointer data)
 		 * points to the first character which isn't part of this
 		 * sequence. */
 		if ((match != NULL) && (match[0] != '\0')) {
+			/* Flush any pending "inserted" signals. */
+			vte_terminal_emit_pending_text_signals(terminal, quark);
 			/* Call the right sequence handler for the requested
 			 * behavior. */
 			vte_terminal_handle_sequence(GTK_WIDGET(terminal),
@@ -6803,6 +7005,8 @@ vte_terminal_process_incoming(gpointer data)
 			if (strcmp(encoding, terminal->pvt->encoding)) {
 				leftovers = TRUE;
 			}
+			/* Flush any pending signals. */
+			vte_terminal_emit_pending_text_signals(terminal, quark);
 			modified = TRUE;
 		} else
 		/* Second, we have a NULL match, and next points the very
@@ -6835,6 +7039,7 @@ vte_terminal_process_incoming(gpointer data)
 							 FALSE, FALSE, TRUE,
 							 -1);
 			}
+			/* We *don't* emit flush pending signals here. */
 			modified = TRUE;
 			start++;
 		} else {
@@ -6884,6 +7089,8 @@ vte_terminal_process_incoming(gpointer data)
 		free_params_array(params);
 		params = NULL;
 	}
+	/* Flush any pending "inserted" signals. */
+	vte_terminal_emit_pending_text_signals(terminal, 0);
 
 	/* Clip off any part of the box which isn't already on-screen. */
 	bbox_topleft.x = MAX(bbox_topleft.x, 0);
@@ -6962,17 +7169,10 @@ vte_terminal_process_incoming(gpointer data)
 		vte_terminal_deselect_all(terminal);
 	}
 
-	if (modified ||
-	    terminal->pvt->modified_flag ||
-	    (screen != terminal->pvt->screen)) {
+	if (modified || (screen != terminal->pvt->screen)) {
 		/* Signal that the visible contents changed. */
 		vte_terminal_match_contents_clear(terminal);
-		/* Notify viewers that the contents have changed. */
-		vte_terminal_emit_contents_changed(terminal);
 	}
-
-	/* Reset the text-modified flag. */
-	terminal->pvt->modified_flag = FALSE;
 
 	if ((cursor.col != terminal->pvt->screen->cursor_current.col) ||
 	    (cursor.row != terminal->pvt->screen->cursor_current.row)) {
@@ -7037,7 +7237,7 @@ vte_terminal_io_read(GIOChannel *channel,
 	 * (for at least a moment) to keep data from scrolling off the top of
 	 * our backscroll buffer, but come back later. */
 	if (terminal->pvt->selecting) {
-		return TRUE;
+		// return TRUE;
 	}
 
 	/* Check that the channel is still open. */
@@ -7192,12 +7392,7 @@ vte_terminal_io_write(GIOChannel *channel,
 	}
 
 	if (_vte_buffer_length(terminal->pvt->outgoing) == 0) {
-		if (channel == terminal->pvt->pty_output) {
-			g_io_channel_unref(terminal->pvt->pty_output);
-			terminal->pvt->pty_output = NULL;
-			g_source_remove(terminal->pvt->pty_output_source);
-			terminal->pvt->pty_output_source = -1;
-		}
+		_vte_terminal_disconnect_pty_write(terminal);
 		leave_open = FALSE;
 	} else {
 		leave_open = TRUE;
@@ -7270,17 +7465,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 #endif
 			/* If we need to start waiting for the child pty to
 			 * become available for writing, set that up here. */
-			if (terminal->pvt->pty_output == NULL) {
-				terminal->pvt->pty_output =
-					g_io_channel_unix_new(terminal->pvt->pty_master);
-				terminal->pvt->pty_output_source =
-					g_io_add_watch_full(terminal->pvt->pty_output,
-							    VTE_CHILD_OUTPUT_PRIORITY,
-							    G_IO_OUT,
-							    vte_terminal_io_write,
-							    terminal,
-							    NULL);
-			}
+			_vte_terminal_connect_pty_write(terminal);
 		}
 	}
 	return;
@@ -7588,13 +7773,16 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			case VTE_ERASE_ASCII_BACKSPACE:
 				normal = g_strdup("");
 				normal_length = 1;
+				suppress_meta_esc = FALSE;
 				break;
 			case VTE_ERASE_ASCII_DELETE:
 				normal = g_strdup("");
 				normal_length = 1;
+				suppress_meta_esc = FALSE;
 				break;
 			case VTE_ERASE_DELETE_SEQUENCE:
 				special = "kD";
+				suppress_meta_esc = TRUE;
 				break;
 			/* Use the tty's erase character. */
 			case VTE_ERASE_AUTO:
@@ -7607,10 +7795,10 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 						normal_length = 1;
 					}
 				}
+				suppress_meta_esc = FALSE;
 				break;
 			}
 			handled = TRUE;
-			suppress_meta_esc = TRUE;
 			break;
 		case GDK_KP_Delete:
 		case GDK_Delete:
@@ -8696,6 +8884,9 @@ vte_terminal_start_selection(GtkWidget *widget, GdkEventButton *event,
 	}
 #endif
 	vte_terminal_emit_selection_changed(terminal);
+
+	/* Temporarily stop caring about input from the child. */
+	_vte_terminal_disconnect_pty_read(terminal);
 }
 
 /* Extend selection to include the given event coordinates. */
@@ -8963,14 +9154,14 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 		sc->x = 0;
 		/* Now back up as far as we can go. */
 		j = sc->y;
-		while (_vte_ring_contains(screen->row_data, j - 1) && 
+		while (_vte_ring_contains(screen->row_data, j - 1) &&
 		       vte_line_is_wrappable(terminal, j - 1)) {
 			j--;
 			sc->y = j;
 		}
 		/* And move forward as far as we can go. */
 		j = ec->y;
-		while (_vte_ring_contains(screen->row_data, j) && 
+		while (_vte_ring_contains(screen->row_data, j) &&
 		       vte_line_is_wrappable(terminal, j)) {
 			j++;
 			ec->y = j;
@@ -9048,7 +9239,7 @@ vte_terminal_autoscroll(gpointer data)
 	GtkWidget *widget;
 	gboolean extend = FALSE;
 	gdouble x, y, xmax, ymax;
-	double adj;
+	glong adj;
 
 	terminal = VTE_TERMINAL(data);
 	widget = GTK_WIDGET(terminal);
@@ -9449,6 +9640,8 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 				terminal->pvt->selecting = FALSE;
 				handled = TRUE;
 			}
+			/* Reconnect to input from the child if we paused it. */
+			_vte_terminal_connect_pty_read(terminal);
 			break;
 		case 2:
 		case 3:
@@ -10159,8 +10352,8 @@ vte_terminal_open_font_xft(VteTerminal *terminal)
 		new_font = NULL;
 	}
 
-	if (new_font == NULL) {
-		name = vte_unparse_xft_pattern(matched_pattern);
+	if ((new_font == NULL) || (matched_pattern == NULL)) {
+		name = vte_unparse_xft_pattern(pattern);
 		g_warning(_("Failed to load Xft font pattern \"%s\", "
 			    "falling back to default font."), name);
 		free(name);
@@ -10606,12 +10799,13 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 
 	/* Read the new adjustment value and save the difference. */
 	adj = floor(gtk_adjustment_get_value(terminal->adjustment));
-	dy = screen->scroll_delta - adj;
+	dy = adj - screen->scroll_delta;
 	screen->scroll_delta = adj;
 	if (dy != 0) {
 		vte_terminal_match_contents_clear(terminal);
 		vte_terminal_scroll_region(terminal, screen->scroll_delta,
-					   terminal->row_count, dy);
+					   terminal->row_count, -dy);
+		vte_terminal_emit_text_scrolled(terminal, dy);
 		vte_terminal_emit_contents_changed(terminal);
 	}
 
@@ -10966,9 +11160,9 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->shell = g_quark_to_string(g_quark_from_string(pvt->shell));
 	pvt->pty_master = -1;
 	pvt->pty_input = NULL;
-	pvt->pty_input_source = -1;
+	pvt->pty_input_source = VTE_INVALID_SOURCE;
 	pvt->pty_output = NULL;
-	pvt->pty_output_source = -1;
+	pvt->pty_output_source = VTE_INVALID_SOURCE;
 	pvt->pty_pid = -1;
 
 	/* Set up I/O encodings. */
@@ -11046,7 +11240,9 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->nrc_mode = TRUE;
 	pvt->smooth_scroll = FALSE;
 	pvt->tabstops = NULL;
-	pvt->modified_flag = FALSE;
+	pvt->text_modified_flag = FALSE;
+	pvt->text_inserted_count = 0;
+	pvt->text_deleted_count = 0;
 	vte_terminal_set_default_tabstops(terminal);
 
 	/* Scrolling options. */
@@ -11174,6 +11370,11 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* Our accessible peer. */
 	pvt->accessible = NULL;
+	pvt->accessible_exists = FALSE;
+#ifdef VTE_DEBUG
+	/* In maintainer mode, we always do this. */
+	pvt->accessible_exists = TRUE;
+#endif
 
 	/* Settings we're monitoring. */
 	pvt->connected_settings = NULL;
@@ -11571,7 +11772,9 @@ vte_terminal_finalize(GObject *object)
 		g_hash_table_destroy(terminal->pvt->tabstops);
 		terminal->pvt->tabstops = NULL;
 	}
-	terminal->pvt->modified_flag = FALSE;
+	terminal->pvt->text_modified_flag = FALSE;
+	terminal->pvt->text_inserted_count = 0;
+	terminal->pvt->text_deleted_count = 0;
 
 	/* Free any selected text, but if we currently own the selection,
 	 * throw the text onto the clipboard without an owner so that it
@@ -11649,18 +11852,8 @@ vte_terminal_finalize(GObject *object)
 		kill(-terminal->pvt->pty_pid, SIGHUP);
 	}
 	terminal->pvt->pty_pid = 0;
-	if (terminal->pvt->pty_input != NULL) {
-		g_io_channel_unref(terminal->pvt->pty_input);
-		terminal->pvt->pty_input = NULL;
-		g_source_remove(terminal->pvt->pty_input_source);
-		terminal->pvt->pty_input_source = -1;
-	}
-	if (terminal->pvt->pty_output != NULL) {
-		g_io_channel_unref(terminal->pvt->pty_output);
-		terminal->pvt->pty_output = NULL;
-		g_source_remove(terminal->pvt->pty_output_source);
-		terminal->pvt->pty_output_source = -1;
-	}
+	_vte_terminal_disconnect_pty_read(terminal);
+	_vte_terminal_disconnect_pty_write(terminal);
 	if (terminal->pvt->pty_master != -1) {
 		_vte_pty_close(terminal->pvt->pty_master);
 		terminal->pvt->pty_master = -1;
@@ -13325,7 +13518,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 				break;
 			}
 			nstrikethrough = (cell != NULL) ?
-			      		 (cell->strikethrough != 0) :
+					 (cell->strikethrough != 0) :
 					 FALSE;
 			if (nstrikethrough != strikethrough) {
 				break;
@@ -13837,6 +14030,7 @@ vte_terminal_get_accessible(GtkWidget *widget)
 		access = vte_terminal_accessible_new(terminal);
 		terminal->pvt->accessible = access;
 	}
+	terminal->pvt->accessible_exists = TRUE;
 	return access;
 }
 
@@ -14086,6 +14280,42 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     NULL,
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+	klass->text_modified_signal =
+		g_signal_new("text-modified",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     0,
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
+	klass->text_inserted_signal =
+		g_signal_new("text-inserted",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     0,
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
+	klass->text_deleted_signal =
+		g_signal_new("text-deleted",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     0,
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
+	klass->text_scrolled_signal =
+		g_signal_new("text-scrolled",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     0,
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__INT,
+			     G_TYPE_NONE, 1);
 
 	/* Try to determine some acceptable encoding names. */
 	if (_vte_matcher_narrow_encoding() == NULL) {

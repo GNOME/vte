@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2002 Red Hat, Inc.
+ * Copyright (C) 2002,2003 Red Hat, Inc.
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Library General Public License as published by
@@ -23,6 +23,7 @@
 #include "../config.h"
 #include <atk/atk.h>
 #include <gtk/gtk.h>
+#include <string.h>
 #include "debug.h"
 #include "vte.h"
 #include "vteaccess.h"
@@ -74,13 +75,86 @@ vte_terminal_accessible_new_private_data(void)
 
 /* "Oh yeah, that's selected.  Sure."  */
 static gboolean
-all_selected(VteTerminal *terminal, glong column, glong row)
+all_selected(VteTerminal *terminal, glong column, glong row, gpointer data)
 {
 	return TRUE;
 }
 
 static void
-vte_terminal_accessible_update_private_data_if_needed(AtkObject *text)
+emit_text_caret_moved(GObject *object, glong caret)
+{
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Accessibility peer emitting "
+			"`text-caret-moved'.\n");
+	}
+#endif
+	g_signal_emit_by_name(object, "text-caret-moved", caret);
+}
+
+static void
+emit_text_changed_insert(GObject *object,
+			 const char *text, glong offset, glong len)
+{
+	const char *p;
+	glong start, count;
+	if (len == 0) {
+		return;
+	}
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Accessibility peer emitting "
+			"`text-changed::insert' (%ld, %ld).\n",
+			offset, len);
+	}
+#endif
+	/* Convert the byte offsets to characters. */
+	for (p = text, start = 0;
+	     p < text + offset;
+	     p = g_utf8_next_char(p)) {
+		start++;
+	}
+	for (p = text + offset, count = 0;
+	     p < text + offset + len;
+	     p = g_utf8_next_char(p)) {
+		count++;
+	}
+	g_signal_emit_by_name(object, "text-changed::insert", start, count);
+}
+
+static void
+emit_text_changed_delete(GObject *object,
+			 const char *text, glong offset, glong len)
+{
+	const char *p;
+	glong start, count;
+	if (len == 0) {
+		return;
+	}
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Accessibility peer emitting "
+			"`text-changed::delete' (%ld, %ld).\n",
+			offset, len);
+	}
+#endif
+	/* Convert the byte offsets to characters. */
+	for (p = text, start = 0;
+	     p < text + offset;
+	     p = g_utf8_next_char(p)) {
+		start++;
+	}
+	for (p = text + offset, count = 0;
+	     p < text + offset + len;
+	     p = g_utf8_next_char(p)) {
+		count++;
+	}
+	g_signal_emit_by_name(object, "text-changed::delete", start, count);
+}
+
+static void
+vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
+						      char **old)
 {
 	VteTerminal *terminal;
 	VteTerminalAccessiblePrivate *priv;
@@ -99,6 +173,13 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text)
 	/* If nothing's changed, just return immediately. */
 	if ((priv->snapshot_contents_invalid == FALSE) &&
 	    (priv->snapshot_caret_invalid == FALSE)) {
+		if (old) {
+			if (priv->snapshot_text) {
+				*old = g_strdup(priv->snapshot_text);
+			} else {
+				*old = g_strdup("");
+			}
+		}
 		return;
 	}
 
@@ -106,11 +187,18 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text)
 
 	/* Re-read the contents of the widget if the contents have changed. */
 	if (priv->snapshot_contents_invalid) {
-		/* Free the outdated snapshot data. */
-		if (priv->snapshot_text != NULL) {
+		/* Free the outdated snapshot data, unless the caller
+		 * wants it. */
+		if (old) {
+			if (priv->snapshot_text != NULL) {
+				*old = priv->snapshot_text;
+			} else {
+				*old = g_strdup("");
+			}
+		} else {
 			g_free(priv->snapshot_text);
-			priv->snapshot_text = NULL;
 		}
+		priv->snapshot_text = NULL;
 
 		/* Free the character offsets and allocate a new array to hold
 		 * them. */
@@ -219,8 +307,7 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text)
 		/* The caret may have moved. */
 		if (caret != priv->snapshot_caret) {
 			priv->snapshot_caret = caret;
-			g_signal_emit_by_name(G_OBJECT(text), "text_caret_moved",
-					      caret);
+			emit_text_caret_moved(G_OBJECT(text), caret);
 		}
 		/* Done updating the caret position, too. */
 		priv->snapshot_caret_invalid = FALSE;
@@ -255,6 +342,105 @@ vte_terminal_accessible_free_private_data(VteTerminalAccessiblePrivate *priv)
 		priv->snapshot_linebreaks = NULL;
 	}
 	g_free(priv);
+}
+
+/* A signal handler to catch "text-inserted/deleted/modified" signals. */
+static void
+vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
+{
+	VteTerminalAccessiblePrivate *priv;
+	char *old;
+	glong offset, olen, nlen;
+
+	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(data));
+
+	priv = g_object_get_data(G_OBJECT(data),
+				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
+	g_return_if_fail(priv != NULL);
+
+	priv->snapshot_contents_invalid = TRUE;
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(data),
+							      &old);
+	g_return_if_fail(old != NULL);
+
+	olen = strlen(old);
+	nlen = strlen(priv->snapshot_text);
+
+	/* Find the offset where they don't match. */
+	offset = 0;
+	while ((offset < olen) && (offset < nlen)) {
+		if (old[offset] != priv->snapshot_text[offset]) {
+			break;
+		}
+		offset++;
+	}
+
+	/* At least one of them had better have more data, right? */
+	if ((offset < olen) || (offset < nlen)) {
+		/* Back up both end points until we find the *last* point
+		 * where they differed. */
+		while ((olen > offset) && (nlen > offset)) {
+			if (old[olen - 1] !=
+			    priv->snapshot_text[nlen - 1]) {
+				break;
+			}
+			olen--;
+			nlen--;
+		}
+		/* At least one of them has to have text the other
+		 * doesn't. */
+		g_assert((nlen > offset) || (olen > offset));
+		/* Now emit a deleted signal for text that was in the old
+		 * string but isn't in the new one... */
+		emit_text_changed_delete(G_OBJECT(data),
+					 old,
+					 offset, olen - offset);
+		/* .. and an inserted signal for text that wasn't in the old
+		 * string but is in the new one. */
+		emit_text_changed_insert(G_OBJECT(data),
+					 priv->snapshot_text,
+					 offset, nlen - offset);
+	}
+
+	g_free(old);
+}
+
+/* A signal handler to catch "text-scrolled" signals. */
+static void
+vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
+				      gint howmuch,
+				      gpointer data)
+{
+	VteTerminalAccessiblePrivate *priv;
+
+	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(data));
+
+	priv = g_object_get_data(G_OBJECT(data),
+				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
+	g_return_if_fail(priv != NULL);
+
+	/* FIXME: don't wuss out here, be more specific if it the delta is
+	 * less than the terminal's vertical height. */
+
+	if (priv->snapshot_text != NULL) {
+		if (priv->snapshot_text) {
+			emit_text_changed_delete(G_OBJECT(data),
+						 priv->snapshot_text,
+						 0,
+						 strlen(priv->snapshot_text));
+		}
+	}
+	priv->snapshot_contents_invalid = TRUE;
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(data),
+							      NULL);
+	if (priv->snapshot_text != NULL) {
+		if (priv->snapshot_text) {
+			emit_text_changed_insert(G_OBJECT(data),
+						 priv->snapshot_text,
+						 0,
+						 strlen(priv->snapshot_text));
+		}
+	}
 }
 
 /* A signal handler to catch "contents_changed" signals. */
@@ -297,7 +483,8 @@ vte_terminal_accessible_invalidate_cursor(VteTerminal *terminal, gpointer data)
 	}
 #endif
 	priv->snapshot_caret_invalid = TRUE;
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(data));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(data),
+							      NULL);
 }
 
 /* Handle title changes by resetting the parent object. */
@@ -337,6 +524,19 @@ vte_terminal_accessible_new(VteTerminal *terminal)
 	g_object_set_data(G_OBJECT(access),
 			  VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA,
 			  vte_terminal_accessible_new_private_data());
+
+	g_signal_connect(G_OBJECT(terminal), "text-inserted",
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_text_modified),
+			 object);
+	g_signal_connect(G_OBJECT(terminal), "text-deleted",
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_text_modified),
+			 object);
+	g_signal_connect(G_OBJECT(terminal), "text-modified",
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_text_modified),
+			 object);
+	g_signal_connect(G_OBJECT(terminal), "text-scrolled",
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_text_scrolled),
+			 object);
 	g_signal_connect(G_OBJECT(terminal), "contents-changed",
 			 GTK_SIGNAL_FUNC(vte_terminal_accessible_invalidate_contents),
 			 object);
@@ -353,7 +553,10 @@ vte_terminal_accessible_new(VteTerminal *terminal)
 	}
 
 	atk_object_set_name(ATK_OBJECT(access), "Terminal");
-	atk_object_set_description(ATK_OBJECT(access), terminal->window_title ? terminal->window_title : "");
+	atk_object_set_description(ATK_OBJECT(access),
+				   terminal->window_title ?
+				   terminal->window_title :
+				   "");
 	
 	return ATK_OBJECT(access);
 }
@@ -395,7 +598,8 @@ vte_terminal_accessible_get_text(AtkText *text,
 	g_return_val_if_fail((start_offset >= 0) && (end_offset >= -1),
 			     g_strdup(""));
 
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
+							      NULL);
 
 	priv = g_object_get_data(G_OBJECT(text),
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
@@ -443,7 +647,8 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 	gunichar current, prev, next;
 	int line;
 
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
+							      NULL);
 
 	priv = g_object_get_data(G_OBJECT(text),
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
@@ -610,7 +815,8 @@ vte_terminal_accessible_get_text_before_offset(AtkText *text, gint offset,
 					       gint *end_offset)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(text), NULL);
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
+							      NULL);
 	return vte_terminal_accessible_get_text_somewhere(text,
 							  offset,
 							  boundary_type,
@@ -626,7 +832,8 @@ vte_terminal_accessible_get_text_after_offset(AtkText *text, gint offset,
 					      gint *end_offset)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(text), NULL);
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
+							      NULL);
 	return vte_terminal_accessible_get_text_somewhere(text,
 							  offset,
 							  boundary_type,
@@ -642,7 +849,8 @@ vte_terminal_accessible_get_text_at_offset(AtkText *text, gint offset,
 					   gint *end_offset)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(text), NULL);
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
+							      NULL);
 	return vte_terminal_accessible_get_text_somewhere(text,
 							  offset,
 							  boundary_type,
@@ -659,7 +867,8 @@ vte_terminal_accessible_get_character_at_offset(AtkText *text, gint offset)
 	char *unichar;
 	gunichar ret;
 
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
+							      NULL);
 
 	priv = g_object_get_data(G_OBJECT(text),
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
@@ -680,7 +889,8 @@ vte_terminal_accessible_get_caret_offset(AtkText *text)
 {
 	VteTerminalAccessiblePrivate *priv;
 
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
+							      NULL);
 
 	priv = g_object_get_data(G_OBJECT(text),
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
@@ -693,7 +903,8 @@ vte_terminal_accessible_get_run_attributes(AtkText *text, gint offset,
 					   gint *start_offset, gint *end_offset)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(text), NULL);
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
+							      NULL);
 	/* FIXME */
 	return NULL;
 }
@@ -702,7 +913,8 @@ static AtkAttributeSet *
 vte_terminal_accessible_get_default_attributes(AtkText *text)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(text), NULL);
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
+							      NULL);
 	/* FIXME */
 	return NULL;
 }
@@ -714,7 +926,8 @@ vte_terminal_accessible_get_character_extents(AtkText *text, gint offset,
 					      AtkCoordType coords)
 {
 	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(text));
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
+							      NULL);
 	/* FIXME */
 }
 
@@ -723,7 +936,8 @@ vte_terminal_accessible_get_character_count(AtkText *text)
 {
 	VteTerminalAccessiblePrivate *priv;
 
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
+							      NULL);
 
 	priv = g_object_get_data(G_OBJECT(text),
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
@@ -737,7 +951,8 @@ vte_terminal_accessible_get_offset_at_point(AtkText *text,
 					    AtkCoordType coords)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(text), 0);
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
+							      NULL);
 	/* FIXME */
 	return 0;
 }
@@ -746,7 +961,8 @@ static gint
 vte_terminal_accessible_get_n_selections(AtkText *text)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(text), 0);
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
+							      NULL);
 	/* FIXME? */
 	return 0;
 }
@@ -756,7 +972,8 @@ vte_terminal_accessible_get_selection(AtkText *text, gint selection_number,
 				      gint *start_offset, gint *end_offset)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(text), NULL);
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
+							      NULL);
 	/* FIXME? */
 	return NULL;
 }
@@ -766,7 +983,8 @@ vte_terminal_accessible_add_selection(AtkText *text,
 				      gint start_offset, gint end_offset)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(text), FALSE);
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
+							      NULL);
 	/* FIXME? */
 	return FALSE;
 }
@@ -776,7 +994,8 @@ vte_terminal_accessible_remove_selection(AtkText *text,
 					 gint selection_number)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(text), FALSE);
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
+							      NULL);
 	/* FIXME? */
 	return FALSE;
 }
@@ -786,7 +1005,8 @@ vte_terminal_accessible_set_selection(AtkText *text, gint selection_number,
 				      gint start_offset, gint end_offset)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(text), FALSE);
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
+							      NULL);
 	/* FIXME? */
 	return FALSE;
 }
@@ -795,7 +1015,8 @@ static gboolean
 vte_terminal_accessible_set_caret_offset(AtkText *text, gint offset)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(text), FALSE);
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
+	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
+							      NULL);
 	/* Whoa, very not allowed. */
 	return FALSE;
 }

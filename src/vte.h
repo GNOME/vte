@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001,2002 Red Hat, Inc.
+ * Copyright (C) 2001,2002,2003 Red Hat, Inc.
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Library General Public License as published by
@@ -75,6 +75,8 @@ struct _VteTerminalClass {
 	guint selection_changed_signal;
 	guint contents_changed_signal;
 	guint cursor_moved_signal;
+	guint status_line_changed_signal;
+	guint commit_signal;
 
 	guint deiconify_window_signal;
 	guint iconify_window_signal;
@@ -85,13 +87,21 @@ struct _VteTerminalClass {
 	guint maximize_window_signal;
 	guint resize_window_signal;
 	guint move_window_signal;
-	guint status_line_changed_signal;
-	guint commit_signal;
 
 	guint increase_font_size_signal;
 	guint decrease_font_size_signal;
-	gpointer reserved3;
-	gpointer reserved4;
+
+	guint text_modified_signal;
+	guint text_inserted_signal;
+	guint text_deleted_signal;
+	guint text_scrolled_signal;
+
+	guint reserved1;
+	guint reserved2;
+	guint reserved3;
+	guint reserved4;
+	guint reserved5;
+	guint reserved6;
 };
 
 /* Values for "what should happen when the user hits backspace/delete".  Use

@@ -48,7 +48,6 @@ A VteTerminal is a terminal emulator implemented as a GTK2 widget.
 
 <!-- ##### FUNCTION vte_terminal_new ##### -->
 <para>
-
 </para>
 
 @Returns: 
@@ -56,7 +55,6 @@ A VteTerminal is a terminal emulator implemented as a GTK2 widget.
 
 <!-- ##### FUNCTION vte_terminal_im_append_menuitems ##### -->
 <para>
-
 </para>
 
 @terminal: 
@@ -65,7 +63,6 @@ A VteTerminal is a terminal emulator implemented as a GTK2 widget.
 
 <!-- ##### FUNCTION vte_terminal_fork_command ##### -->
 <para>
-
 </para>
 
 @terminal: 
@@ -703,7 +700,7 @@ by #VteTerminalAccessible.
 
 <!-- ##### SIGNAL VteTerminal::decrease-font-size ##### -->
 <para>
-
+Emitted when the user hits the '-' key while holding the Control key.
 </para>
 
 @vteterminal: the object which received the signal.
@@ -752,7 +749,7 @@ Emitted at the child application's request.
 
 <!-- ##### SIGNAL VteTerminal::increase-font-size ##### -->
 <para>
-
+Emitted when the user hits the '+' key while holding the Control key.
 </para>
 
 @vteterminal: the object which received the signal.
@@ -823,6 +820,39 @@ Emitted whenever the contents of the status line are modified or cleared.
 </para>
 
 @vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::text-deleted ##### -->
+<para>
+An internal signal used for communication between the terminal and its
+accessibility peer.  May not be emitted under certain circumstances.
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::text-inserted ##### -->
+<para>
+An internal signal used for communication between the terminal and its
+accessibility peer.  May not be emitted under certain circumstances.
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::text-modified ##### -->
+<para>
+An internal signal used for communication between the terminal and its
+accessibility peer.  May not be emitted under certain circumstances.
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::text-scrolled ##### -->
+<para>
+An internal signal used for communication between the terminal and its
+accessibility peer.  May not be emitted under certain circumstances.
+</para>
+
+@vteterminal: the object which received the signal.
+@arg1: 
 
 <!-- ##### SIGNAL VteTerminal::window-title-changed ##### -->
 <para>
