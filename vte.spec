@@ -1,6 +1,6 @@
 Name: vte
 Version: 0.11.10
-Release: 1
+Release: 2
 Summary: An experimental terminal emulator.
 License: LGPL
 Group: User Interface/X
@@ -94,8 +94,13 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Mon Jun 16 2003 Nalin Dahyabhai <nalin@redhat.com> 0.11.10-2
+- rebuild
+
 * Mon Jun 16 2003 Nalin Dahyabhai <nalin@redhat.com> 0.11.10-1
--
+- fix vte_terminal_set_encoding() so that the Terminal/Character Coding
+  menu works in gnome-terminal again
+- fix display of the character under the cursor in cases where it's too wide
 
 * Wed Jun 04 2003 Elliot Lee <sopwith@redhat.com>
 - rebuilt
