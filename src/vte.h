@@ -107,7 +107,7 @@ typedef enum {
 struct vte_char_attributes {
 	long row, column;
 	GdkColor fore, back;
-	gboolean underline, alternate;
+	gboolean underline:1, alternate:1, strikethrough:1;
 };
 
 /* The widget's type. */
