@@ -3,7 +3,7 @@
 	signals to be more consistent.  Add thin wrappers for emitting signals,
 	and use them everywhere.  Support pangox even when XFT isn't available.
 	Try to provide bold text again.  Added signals for most of the window
-	manipulation control sequences.
+	manipulation control sequences.  Start handling mouse button events.
 	* src/caps.c, src/caps.h: Export definitions of VTE_CAP_CSI and friends.
 2002-05-04 nalin
 	* src/vte.c: Implement device-status-report and dec-device-status-

@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.3.8
+Version: 0.3.9
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -53,6 +53,9 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Mon May  6 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.9-1
+- start handling mouse events
+
 * Mon May  6 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.8-1
 - handle window manipulation sequences
 

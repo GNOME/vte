@@ -226,6 +226,12 @@ struct _VteTerminalPrivate {
 	VteTerminalEraseBinding backspace_binding, delete_binding;
 
 	gboolean xterm_font_tweak;
+
+	gboolean mouse_send_xy_on_click;
+	gboolean mouse_send_xy_on_button;
+	gboolean mouse_hilite_tracking;
+	gboolean mouse_cell_motion_tracking;
+	gboolean mouse_all_motion_tracking;
 };
 
 /* A function which can handle a terminal control sequence. */
@@ -2315,7 +2321,11 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 				/* FIXME: set or unset autorepeat keys. */
 				break;
 			case 9:
-				/* FIXME: send mouse X and Y on button. */
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Setting send-coords-on-click "
+					"to %s.\n", set ? "ON" : "OFF");
+#endif
+				terminal->pvt->mouse_send_xy_on_click = set;
 				break;
 			case 25:
 				terminal->pvt->screen->cursor_visible = set;
@@ -2353,12 +2363,31 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 						     terminal->row_count);
 				break;
 			case 1000:
-				/* FIXME: send mouse X and Y on press and
-				 * release. */
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Setting send-coords-on-button "
+					"to %s.\n", set ? "ON" : "OFF");
+#endif
+				terminal->pvt->mouse_send_xy_on_button = set;
 				break;
 			case 1001:
-				/* FIXME: use (or not) hilite mouse tracking. */
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Setting hilite-tracking "
+					"to %s.\n", set ? "ON" : "OFF");
+#endif
+				terminal->pvt->mouse_hilite_tracking = set;
 				break;
+			case 1002:
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Setting cell-tracking "
+					"to %s.\n", set ? "ON" : "OFF");
+#endif
+				terminal->pvt->mouse_cell_motion_tracking = set;
+			case 1003:
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Setting all-tracking "
+					"to %s.\n", set ? "ON" : "OFF");
+#endif
+				terminal->pvt->mouse_all_motion_tracking = set;
 			default:
 				break;
 		}
@@ -3876,7 +3905,7 @@ vte_terminal_process_incoming(gpointer data)
 					 * bytes that claim to be part of this character. */
 					if ((end > start) &&
 					    (strcmp(terminal->pvt->encoding, "UTF-8") == 0) &&
-					    ((terminal->pvt->incoming[end] & 0xc0) != 0xc0)) {
+					    ((terminal->pvt->incoming[end] & 0xc0) == 0xc0)) {
 					    
 						break;
 					}
@@ -5271,6 +5300,60 @@ vte_terminal_paste(VteTerminal *terminal, GdkAtom board)
 	}
 }
 
+/* Send a button down or up notification. */
+static void
+vte_terminal_send_mouse_button(VteTerminal *terminal, GdkEventButton *event)
+{
+	unsigned char cb = 0, cx = 0, cy = 0;
+	char buf[LINE_MAX];
+	GdkModifierType modifiers;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	/* Read the modifiers. */
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
+		modifiers = 0;
+	}
+	/* Encode the button information in cb. */
+	if (event->type == GDK_BUTTON_PRESS) {
+		switch (event->button) {
+			case 1:
+				cb = 0;
+				break;
+			case 2:
+				cb = 1;
+				break;
+			case 3:
+				cb = 2;
+				break;
+			case 4:
+				cb = 64;	/* FIXME: check */
+				break;
+			case 5:
+				cb = 65;	/* FIXME: check */
+				break;
+		}
+	}
+	if (event->type == GDK_BUTTON_RELEASE) {
+		cb = 3;
+	}
+	cb |= 32;
+	/* Encode the modifiers. */
+	if (modifiers & GDK_SHIFT_MASK) {
+		cb |= 4;
+	}
+	if (modifiers & GDK_MOD1_MASK) {
+		cb |= 8;
+	}
+	if (modifiers & GDK_CONTROL_MASK) {
+		cb |= 16;
+	}
+	/* Encode the cursor coordinates. */
+	cx = 32 + 1 + (event->x / terminal->char_width);
+	cy = 32 + 1 + (event->y / terminal->char_height);
+	/* Send the event to the child. */
+	snprintf(buf, sizeof(buf), "%sM%c%c%c", VTE_CAP_CSI, cb, cx, cy);
+	vte_terminal_feed_child(terminal, buf, strlen(buf));
+}
+
 /* Read and handle a pointing device buttonpress event. */
 static gint
 vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
@@ -5289,6 +5372,10 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		fprintf(stderr, "button %d pressed at (%lf,%lf)\n",
 			event->button, event->x, event->y);
 #endif
+		if ((terminal->pvt->mouse_send_xy_on_button) ||
+		    (terminal->pvt->mouse_send_xy_on_click)) {
+			vte_terminal_send_mouse_button(terminal, event);
+		}
 		if (event->button == 1) {
 			if (!GTK_WIDGET_HAS_FOCUS(widget)) {
 				gtk_widget_grab_focus(widget);
@@ -5375,6 +5462,9 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 		fprintf(stderr, "button %d released at (%lf,%lf)\n",
 			event->button, event->x, event->y);
 #endif
+		if (terminal->pvt->mouse_send_xy_on_button) {
+			vte_terminal_send_mouse_button(terminal, event);
+		}
 		if (event->button == 1) {
 			vte_terminal_copy(terminal, GDK_SELECTION_PRIMARY);
 		}
@@ -6336,6 +6426,11 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* Set various other settings. */
 	pvt->xterm_font_tweak = FALSE;
+	pvt->mouse_send_xy_on_click = FALSE;
+	pvt->mouse_send_xy_on_button = FALSE;
+	pvt->mouse_hilite_tracking = FALSE;
+	pvt->mouse_cell_motion_tracking = FALSE;
+	pvt->mouse_all_motion_tracking = FALSE;
 }
 
 /* Tell GTK+ how much space we need. */
