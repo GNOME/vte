@@ -1,3 +1,10 @@
+2002-10-30  Abi Brady  <morwen@evilmagic.org>
+
+	* src/vte.c, src/vte.h : Support dim (halfbright) colours. All the
+	infrastructure for this was here already (apart from making sure bold
+	and half are mutually exclusive).  Add API set_color_dim, and let
+	set_colors take a palette of size 24.
+
 2002-10-29  Abi Brady  <morwen@evilmagic.org>
 	* src/iso2022.c (_vte_iso2022_map_[J4]): Map to UCS, not keysyms.
 	(which differ > 0xff).

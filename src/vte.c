@@ -88,9 +88,11 @@ typedef gunichar wint_t;
 #define VTE_COLOR_SET_SIZE		8
 #define VTE_COLOR_PLAIN_OFFSET		0
 #define VTE_COLOR_BRIGHT_OFFSET		8
-#define VTE_DEF_FG			16
-#define VTE_DEF_BG			(VTE_DEF_FG + 1)
-#define VTE_BOLD_FG			(VTE_DEF_BG + 1)
+#define VTE_COLOR_DIM_OFFSET            16
+#define VTE_DEF_FG			24
+#define VTE_DEF_BG			25
+#define VTE_BOLD_FG			26
+#define VTE_DIM_FG                      27
 #define VTE_SATURATION_MAX		10000
 #define VTE_SCROLLBACK_MIN		100
 #define VTE_DEFAULT_EMULATION		"xterm"
@@ -339,7 +341,7 @@ struct _VteTerminalPrivate {
 		XftColor ftcolor;
 		gboolean ftcolor_allocated;
 #endif
-	} palette[VTE_BOLD_FG + 1];
+	} palette[VTE_DIM_FG + 1];
 
 	/* Mouse cursors. */
 	GdkCursor *mouse_default_cursor,
@@ -2817,6 +2819,7 @@ vte_sequence_handler_md(VteTerminal *terminal,
 			GValueArray *params)
 {
 	terminal->pvt->screen->defaults.bold = 1;
+	terminal->pvt->screen->defaults.half = 0;
 }
 
 /* End modes. */
@@ -2837,6 +2840,7 @@ vte_sequence_handler_mh(VteTerminal *terminal,
 			GValueArray *params)
 {
 	terminal->pvt->screen->defaults.half = 1;
+	terminal->pvt->screen->defaults.bold = 0;
 }
 
 /* Invisible on. */
@@ -3489,6 +3493,11 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 			break;
 		case 1:
 			terminal->pvt->screen->defaults.bold = 1;
+			terminal->pvt->screen->defaults.half = 0;
+			break;
+		case 2:
+			terminal->pvt->screen->defaults.half = 1;
+			terminal->pvt->screen->defaults.bold = 0;
 			break;
 		case 4:
 			terminal->pvt->screen->defaults.underline = 1;
@@ -3502,9 +3511,10 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 		case 8:
 			terminal->pvt->screen->defaults.invisible = 1;
 			break;
-		case 21: /* one of these is the linux console */
-		case 22: /* one of these is ecma, i forget which */
+		case 21: /* Error in old versions of linux console. */
+		case 22: /* ECMA 48. */
 			terminal->pvt->screen->defaults.bold = 0;
+			terminal->pvt->screen->defaults.half = 0;
 			break;
 		case 24:
 			terminal->pvt->screen->defaults.underline = 0;
@@ -3536,6 +3546,8 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 		case 39:
 			/* default foreground, no underscore */
 			terminal->pvt->screen->defaults.fore = VTE_DEF_FG;
+			/* By ECMA 48, this underline off has no business
+                           being here */
 			terminal->pvt->screen->defaults.underline = 0;
 			break;
 		case 40:
@@ -5618,6 +5630,20 @@ vte_terminal_set_color_bold(VteTerminal *terminal, const GdkColor *bold)
 }
 
 /**
+ * vte_terminal_set_color_dim
+ * @terminal: a #VteTerminal
+ * @dim: the new dim color
+ *
+ * Sets the color used to draw dim text in the default foreground color.
+ *
+ */
+void
+vte_terminal_set_color_dim(VteTerminal *terminal, const GdkColor *dim)
+{
+	vte_terminal_set_color_internal(terminal, VTE_DIM_FG, dim);
+}
+
+/**
  * vte_terminal_set_color_foreground
  * @terminal: a #VteTerminal
  * @foreground: the new foreground color
@@ -5657,16 +5683,17 @@ vte_terminal_set_color_background(VteTerminal *terminal,
  * @palette: the color palette
  * @palette_size: the number of entries in @palette
  *
- * The terminal widget uses a 20-color model comprised of the default foreground
+ * The terminal widget uses a 28-color model comprised of the default foreground
  * and background colors, the bold foreground color, the cursor foreground
- * color,an eight color palette, and bold versions of the eight color palette.
+ * color,an eight color palette, and bold versions of the eight color palette,
+ * and dim verson of the foreground and the eight colors.
  *
- * @palette_size must be either 0, 8, or 16.  If @foreground is NULL and
+ * @palette_size must be either 0, 8, 16, or 24.  If @foreground is NULL and
  * @palette_size is greater than 0, the new foreground color is taken from
  * @palette[7].  If @background is NULL and @palette_size is greater than 0,
  * the new background color is taken from @palette[0].  If
- * @palette_size is 8, the second 8-color palette is extrapolated from the new
- * background color and the items in @palette.
+ * @palette_size is 8 or 16, the third (dim) and possibly second (bold)
+ * 8-color palette is extrapolated from the new background color and the items in @palette.
  *
  */
 void
@@ -5726,6 +5753,12 @@ vte_terminal_set_colors(VteTerminal *terminal,
 						   1.8,
 						   &color);
 			break;
+		case VTE_DIM_FG:
+			vte_terminal_generate_bold(&terminal->pvt->palette[VTE_DEF_FG],
+						   &terminal->pvt->palette[VTE_DEF_BG],
+						   0.5,
+						   &color);
+			break;
 		case 0 + 0:
 		case 0 + 1:
 		case 0 + 2:
@@ -5750,6 +5783,18 @@ vte_terminal_set_colors(VteTerminal *terminal,
 				color.green += 0x3fff;
 				color.red += 0x3fff;
 			}
+			break;
+		case 16 + 0:
+		case 16 + 1:
+		case 16 + 2:
+		case 16 + 3:
+		case 16 + 4:
+		case 16 + 5:
+		case 16 + 6:
+		case 16 + 7:
+			color.blue = (i & 4) ? 0x8000 : 0;
+			color.green = (i & 2) ? 0x8000 : 0;
+			color.red = (i & 1) ? 0x8000 : 0;
 			break;
 		default:
 			g_assert_not_reached();
@@ -11128,6 +11173,14 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 		} else
 		if ((*fore != VTE_DEF_BG) && (*fore < VTE_COLOR_SET_SIZE)) {
 			*fore += VTE_COLOR_BRIGHT_OFFSET;
+		}
+	}
+	if (cell && cell->half) {
+	  	if (*fore == VTE_DEF_FG) {
+	  		*fore = VTE_DIM_FG;
+		} else
+		if ((*fore < VTE_COLOR_SET_SIZE)) {
+			*fore += VTE_COLOR_DIM_OFFSET;
 		}
 	}
 	if (cell && cell->standout) {
