@@ -247,6 +247,17 @@ char_class_string_setup(const wchar_t *s, struct char_class_data *data, int inc)
 	data->c = s[0];
 	return;
 }
+static size_t
+xwcsnlen(const wchar_t *s, size_t length)
+{
+	size_t i;
+	for (i = 0; i < length; i++) {
+		if (s[i] == '\0') {
+			return i;
+		}
+	}
+	return length;
+}
 static gboolean
 char_class_string_extract(const wchar_t *s, size_t length,
 			  struct char_class_data *data, GValueArray *array)
@@ -255,7 +266,7 @@ char_class_string_extract(const wchar_t *s, size_t length,
 	size_t len;
 	GValue value;
 
-	len = wcsnlen(s, length);
+	len = xwcsnlen(s, length);
 	ret = g_malloc0((len + 1) * sizeof(wchar_t));
 	wcsncpy(ret, s, len);
 	memset(&value, 0, sizeof(value));
