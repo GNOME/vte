@@ -128,9 +128,19 @@ _vte_draw_get_visual(struct _vte_draw *draw)
 GdkColormap *
 _vte_draw_get_colormap(struct _vte_draw *draw)
 {
+	GdkColormap *colormap;
 	g_return_val_if_fail(draw->impl != NULL, NULL);
 	g_return_val_if_fail(draw->impl->get_colormap != NULL, NULL);
-	return draw->impl->get_colormap(draw);
+	colormap = draw->impl->get_colormap(draw);
+	if (colormap) {
+		return colormap;
+	}
+#if GTK_CHECK_VERSION(2,2,0)
+	colormap = gdk_screen_get_default_colormap(gdk_screen_get_default());
+#else
+	colormap = gdk_colormap_get_system();
+#endif
+	return colormap;
 }
 
 void
@@ -164,11 +174,17 @@ _vte_draw_set_background_color(struct _vte_draw *draw, GdkColor *color)
 }
 
 void
-_vte_draw_set_background_pixbuf(struct _vte_draw *draw, GdkPixbuf *pixbuf)
+_vte_draw_set_background_image(struct _vte_draw *draw,
+			       enum VteBgSourceType type,
+			       GdkPixbuf *pixbuf,
+			       const char *filename,
+			       const GdkColor *color,
+			       double saturation)
 {
 	g_return_if_fail(draw->impl != NULL);
-	g_return_if_fail(draw->impl->set_background_pixbuf != NULL);
-	draw->impl->set_background_pixbuf(draw, pixbuf);
+	g_return_if_fail(draw->impl->set_background_image != NULL);
+	draw->impl->set_background_image(draw, type, pixbuf, filename,
+					 color, saturation);
 }
 void
 _vte_draw_clear(struct _vte_draw *draw, gint x, gint y, gint width, gint height)

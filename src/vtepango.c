@@ -27,6 +27,7 @@
 #include <gtk/gtk.h>
 #include <pango/pango.h>
 #include "debug.h"
+#include "vtebg.h"
 #include "vtedraw.h"
 #include "vtepango.h"
 
@@ -170,11 +171,14 @@ _vte_pango_set_background_color(struct _vte_draw *draw, GdkColor *color)
 }
 
 static void
-_vte_pango_set_background_pixbuf(struct _vte_draw *draw, GdkPixbuf *pixbuf)
+_vte_pango_set_background_image(struct _vte_draw *draw,
+			        enum VteBgSourceType type,
+			        GdkPixbuf *pixbuf,
+			        const char *file,
+			        const GdkColor *color,
+			        double saturation)
 {
-	GdkColormap *colormap;
 	GdkPixmap *pixmap;
-	GdkBitmap *bitmap;
 	struct _vte_pango_data *data;
 
 	data = (struct _vte_pango_data*) draw->impl_data;
@@ -183,21 +187,12 @@ _vte_pango_set_background_pixbuf(struct _vte_draw *draw, GdkPixbuf *pixbuf)
 		data->pixmap = NULL;
 		data->pixmapw = data->pixmaph = 0;
 	}
-	if ((pixbuf != NULL) &&
-	    (gdk_pixbuf_get_width(pixbuf) > 0) &&
-	    (gdk_pixbuf_get_height(pixbuf) > 0)) {
-		colormap = gdk_drawable_get_colormap(draw->widget->window);
-		gdk_pixbuf_render_pixmap_and_mask_for_colormap(pixbuf, colormap,
-							       &pixmap, &bitmap,
-							       0);
-		if (bitmap) {
-			g_object_unref(G_OBJECT(bitmap));
-		}
-		if (pixmap) {
-			data->pixmap = pixmap;
-			data->pixmapw = gdk_pixbuf_get_width(pixbuf);
-			data->pixmaph = gdk_pixbuf_get_height(pixbuf);
-		}
+	pixmap = vte_bg_get_pixmap(vte_bg_get(), type, pixbuf, file,
+				   color, saturation, 
+				   _vte_draw_get_colormap(draw));
+	if (pixmap) {
+		data->pixmap = pixmap;
+		gdk_drawable_get_size(pixmap, &data->pixmapw, &data->pixmaph);
 	}
 }
 
@@ -206,7 +201,7 @@ _vte_pango_clear(struct _vte_draw *draw,
 		 gint x, gint y, gint width, gint height)
 {
 	struct _vte_pango_data *data;
-	gint i, j, istart, jstart, h, w, xstop, ystop;
+	gint i, j, h, w, xstop, ystop;
 
 	data = (struct _vte_pango_data*) draw->impl_data;
 
@@ -441,7 +436,7 @@ struct _vte_draw_impl _vte_draw_pango = {
 	_vte_pango_start,
 	_vte_pango_end,
 	_vte_pango_set_background_color,
-	_vte_pango_set_background_pixbuf,
+	_vte_pango_set_background_image,
 	_vte_pango_clear,
 	_vte_pango_set_text_font,
 	_vte_pango_get_text_width,

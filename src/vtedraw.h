@@ -25,6 +25,7 @@
 
 #include <glib.h>
 #include <gtk/gtk.h>
+#include "vtebg.h"
 
 G_BEGIN_DECLS
 
@@ -57,7 +58,12 @@ struct _vte_draw_impl {
 	void (*start)(struct _vte_draw *draw);
 	void (*end)(struct _vte_draw *draw);
 	void (*set_background_color)(struct _vte_draw *, GdkColor *);
-	void (*set_background_pixbuf)(struct _vte_draw *, GdkPixbuf *);
+	void (*set_background_image)(struct _vte_draw *,
+				     enum VteBgSourceType type,
+				     GdkPixbuf *pixbuf,
+				     const char *file,
+				     const GdkColor *color,
+				     double saturation);
 	void (*clear)(struct _vte_draw *, gint, gint, gint, gint);
 	void (*set_text_font)(struct _vte_draw *, const PangoFontDescription *);
 	int (*get_text_width)(struct _vte_draw *);
@@ -102,7 +108,12 @@ void _vte_draw_end(struct _vte_draw *draw);
 /* Set the background color, a background pixbuf (if you want transparency,
    you'll have to do that yourself), and clear an area to the default. */
 void _vte_draw_set_background_color(struct _vte_draw *draw, GdkColor *color);
-void _vte_draw_set_background_pixbuf(struct _vte_draw *draw, GdkPixbuf *pixbuf);
+void _vte_draw_set_background_image(struct _vte_draw *draw,
+				    enum VteBgSourceType type,
+				    GdkPixbuf *pixbuf,
+				    const char *file,
+				    const GdkColor *color,
+				    double saturation);
 void _vte_draw_clear(struct _vte_draw *draw,
 		     gint x, gint y, gint width, gint height);
 

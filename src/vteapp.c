@@ -89,11 +89,7 @@ char_size_changed(GtkWidget *widget, guint width, guint height, gpointer data)
 static void
 destroy_and_quit(GtkWidget *widget, gpointer data)
 {
-	if (GTK_IS_CONTAINER(data)) {
-		gtk_container_remove(GTK_CONTAINER(data), widget);
-	} else {
-		gtk_widget_destroy(widget);
-	}
+	gtk_widget_destroy(GTK_WIDGET(data));
 	gtk_main_quit();
 }
 static void
@@ -520,9 +516,9 @@ main(int argc, char **argv)
 
 	/* Connect to the "eof" signal to quit when the session ends. */
 	g_signal_connect(G_OBJECT(widget), "eof",
-			 G_CALLBACK(destroy_and_quit_eof), widget);
+			 G_CALLBACK(destroy_and_quit_eof), window);
 	g_signal_connect(G_OBJECT(widget), "child-exited",
-			 G_CALLBACK(destroy_and_quit_exited), widget);
+			 G_CALLBACK(destroy_and_quit_exited), window);
 
 	/* Connect to the "status-line-changed" signal. */
 	g_signal_connect(G_OBJECT(widget), "status-line-changed",

@@ -733,7 +733,9 @@ _vte_iso2022_state_set_codeset(struct _vte_iso2022_state *state,
 			  codeset, state->target_codeset);
 		return;
 	}
-	g_iconv_close(state->conv);
+	if (state->conv != (GIConv) -1) {
+		g_iconv_close(state->conv);
+	}
 	state->codeset = g_quark_to_string(g_quark_from_string(codeset));
 	state->conv = conv;
 }
@@ -747,8 +749,10 @@ _vte_iso2022_state_get_codeset(struct _vte_iso2022_state *state)
 void
 _vte_iso2022_state_free(struct _vte_iso2022_state *state)
 {
-	g_iconv_close(state->conv);
-	state->conv = NULL;
+	if (state->conv != ((GIConv) -1)) {
+		g_iconv_close(state->conv);
+	}
+	state->conv = (GIConv) -1;
 	state->native_codeset = state->utf8_codeset = state->codeset = NULL;
 	state->target_codeset = NULL;
 	state->g[3] = 'B';

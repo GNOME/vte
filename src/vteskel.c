@@ -25,6 +25,7 @@
 #include <string.h>
 #include <gtk/gtk.h>
 #include "debug.h"
+#include "vtebg.h"
 #include "vtedraw.h"
 
 struct _vte_skel_data
@@ -114,7 +115,12 @@ _vte_skel_set_background_color(struct _vte_draw *draw, GdkColor *color)
 }
 
 static void
-_vte_skel_set_background_pixbuf(struct _vte_draw *draw, GdkPixbuf *pixbuf)
+_vte_skel_set_background_image(struct _vte_draw *draw,
+			       enum VteBgSourceType type,
+			       const GdkPixbuf *pixbuf,
+			       const char *filename,
+			       const GdkColor *tint,
+			       double saturation)
 {
 	struct _vte_skel_data *data;
 
@@ -207,7 +213,7 @@ struct _vte_draw_impl _vte_draw_skel = {
 	_vte_skel_start,
 	_vte_skel_end,
 	_vte_skel_set_background_color,
-	_vte_skel_set_background_pixbuf,
+	_vte_skel_set_background_image,
 	_vte_skel_clear,
 	_vte_skel_set_text_font,
 	_vte_skel_get_text_width,

@@ -26,6 +26,7 @@
 #include <glib.h>
 #include <fontconfig/fontconfig.h>
 #include "debug.h"
+#include "vtebg.h"
 #include "vtedraw.h"
 #include "vtefc.h"
 #include "vteglyph.h"
@@ -156,7 +157,12 @@ _vte_ft2_set_background_color(struct _vte_draw *draw, GdkColor *color)
 }
 
 static void
-_vte_ft2_set_background_pixbuf(struct _vte_draw *draw, GdkPixbuf *pixbuf)
+_vte_ft2_set_background_image(struct _vte_draw *draw,
+			      enum VteBgSourceType type,
+			      GdkPixbuf *pixbuf,
+			      const char *file,
+			      const GdkColor *color,
+			      double saturation)
 {
 	struct _vte_ft2_data *data;
 
@@ -165,10 +171,8 @@ _vte_ft2_set_background_pixbuf(struct _vte_draw *draw, GdkPixbuf *pixbuf)
 	if (GDK_IS_PIXBUF(data->pixbuf)) {
 		g_object_unref(G_OBJECT(data->pixbuf));
 	}
-	data->pixbuf = pixbuf;
-	if (GDK_IS_PIXBUF(data->pixbuf)) {
-		g_object_ref(G_OBJECT(data->pixbuf));
-	}
+	data->pixbuf = vte_bg_get_pixbuf(vte_bg_get(), type, pixbuf, file,
+					 color, saturation);
 }
 
 static void
@@ -332,7 +336,7 @@ struct _vte_draw_impl _vte_draw_ft2 = {
 	_vte_ft2_start,
 	_vte_ft2_end,
 	_vte_ft2_set_background_color,
-	_vte_ft2_set_background_pixbuf,
+	_vte_ft2_set_background_image,
 	_vte_ft2_clear,
 	_vte_ft2_set_text_font,
 	_vte_ft2_get_text_width,

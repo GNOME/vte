@@ -46,7 +46,7 @@ struct _vte_gl_data
 	GLXContext context;
 	GLXPixmap pixmap;
 	GdkColor color;
-	GdkPixbuf *pixbuf;
+	GdkPixmap *gpixmap;
 	gint scrollx, scrolly;
 };
 
@@ -151,7 +151,7 @@ _vte_gl_create(struct _vte_draw *draw, GtkWidget *widget)
 	data->color.red = 0;
 	data->color.green = 0;
 	data->color.blue = 0;
-	data->pixbuf = NULL;
+	data->gpixmap = NULL;
 	data->pixmap = -1;
 	data->scrollx = data->scrolly = 0;
 }
@@ -178,10 +178,10 @@ _vte_gl_destroy(struct _vte_draw *draw)
 
 	data->scrollx = data->scrolly = 0;
 
-	if (GDK_IS_PIXBUF(data->pixbuf)) {
-		g_object_unref(G_OBJECT(data->pixbuf));
+	if (GDK_IS_PIXBUF(data->gpixmap)) {
+		g_object_unref(G_OBJECT(data->gpixmap));
 	}
-	data->pixbuf = NULL;
+	data->gpixmap = NULL;
 	memset(&data->color, 0, sizeof(data->color));
 
 	glXDestroyContext(display, data->context);
@@ -290,18 +290,22 @@ _vte_gl_set_background_color(struct _vte_draw *draw, GdkColor *color)
 }
 
 static void
-_vte_gl_set_background_pixbuf(struct _vte_draw *draw, GdkPixbuf *pixbuf)
+_vte_gl_set_background_image(struct _vte_draw *draw,
+			     enum VteBgSourceType type,
+			     GdkPixbuf *pixbuf,
+			     const char *file,
+			     const GdkColor *tint,
+			     double saturation)
 {
 	struct _vte_gl_data *data;
 
 	data = (struct _vte_gl_data*) draw->impl_data;
-	if (GDK_IS_PIXBUF(pixbuf)) {
-		g_object_ref(G_OBJECT(pixbuf));
+	if (GDK_IS_PIXMAP(data->gpixmap)) {
+		g_object_unref(G_OBJECT(data->gpixmap));
 	}
-	if (GDK_IS_PIXBUF(data->pixbuf)) {
-		g_object_unref(G_OBJECT(data->pixbuf));
-	}
-	data->pixbuf = pixbuf;
+	data->gpixmap = vte_bg_get_pixmap(vte_bg_get(), type, pixbuf, file,
+					  tint, saturation,
+					  _vte_draw_get_colormap(draw));
 }
 
 static void
@@ -413,7 +417,7 @@ struct _vte_draw_impl _vte_draw_gl = {
 	_vte_gl_start,
 	_vte_gl_end,
 	_vte_gl_set_background_color,
-	_vte_gl_set_background_pixbuf,
+	_vte_gl_set_background_image,
 	_vte_gl_clear,
 	_vte_gl_set_text_font,
 	_vte_gl_get_text_width,

@@ -55,6 +55,8 @@ libvte_la_SOURCES = \
 	trie.h \
 	vte.c \
 	vte.h \
+	vtebg.c \
+	vtebg.h \
 	vteaccess.c \
 	vteaccess.h \
 	vtedraw.c \

@@ -1,3 +1,18 @@
+2003-05-01 nalin
+	* src/vtebg.c, src/vtebg.h: add a singleton object for managing
+	copies of background images, either the desktop background, an
+	in-memory pixbuf, or an on-disk file, with tinting.  Using a single
+	store for this stuff lets multiple widgets share images and should
+	reduce both CPU and memory consumption in applications which create
+	more than one VteTerminal instance with similar settings.
+	* src/vtedraw.c, src/vtedraw.h: adapt the set_background_pixbuf()
+	interface to the vtebg method and rename to set_background_image().
+	* src/vteft2.c, src/vtegl.c, src/vtepango.c, src/vtepangox.c,
+	src/vteskel.c, src/vtexft.c: update to work with newer vtebg/vtedraw
+	interfaces.
+	* src/vte.c(vte_terminal_filter_property_changes): remove in favor
+	of vtebg method.  Manage background state for vtebg.
+
 2003-05-01 Kang Jeong-Hee <Keizi@mail.co.kr>
 	* doc/reference/Makefile.am: s/index.sgml/index.html/.
 	There's no index.sgml in html directory, but a index.html.
