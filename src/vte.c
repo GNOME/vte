@@ -6383,7 +6383,8 @@ vte_terminal_im_append_menuitems(VteTerminal *terminal, GtkMenuShell *menushell)
 
 /* Set up whatever background we want. */
 static void
-vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
+vte_terminal_setup_background(VteTerminal *terminal,
+			      gboolean refresh_transparent)
 {
 	long i, pixel_count;
 	GtkWidget *widget;
@@ -6400,8 +6401,15 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	widget = GTK_WIDGET(terminal);
 	if (!GTK_WIDGET_REALIZED(widget)) {
+#ifdef VTE_DEBUG
+		fprintf(stderr, "Can not set background image without window.\n");
+#endif
 		return;
 	}
+
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Setting up background image.\n");
+#endif
 
 	/* Set the default background color. */
 	bgcolor.red = terminal->pvt->palette[VTE_DEF_BG].red;
@@ -6412,11 +6420,21 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 	gdk_window_set_background(widget->window, &bgcolor);
 
 	if (terminal->pvt->bg_transparent) {
+#ifdef VTE_DEBUG
+		fprintf(stderr, "Setting up background transparent.\n");
+#endif
+		/* If we don't have a root pixmap, try to fetch one regardless
+		 * of what the caller told us to do. */
+		if (terminal->pvt->bg_transparent_image == NULL) {
+			refresh_transparent = TRUE;
+		}
 		/* If we need a new copy of the desktop, get it. */
-		if (fresh_transparent ||
-		    (terminal->pvt->bg_transparent_image == NULL)) {
+		if (refresh_transparent) {
 			guint width, height;
 
+#ifdef VTE_DEBUG
+			fprintf(stderr, "Fetching new background pixmap.\n");
+#endif
 			gdk_error_trap_push();
 
 			/* Retrieve the window and its property which
@@ -6425,18 +6443,24 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 			atom = terminal->pvt->bg_transparent_atom;
 			prop_data = NULL;
 
-			/* Read the pixmap. */
+			/* Read the pixmap property off of the window. */
 			gdk_property_get(window, atom, 0, 0, 10, FALSE,
 					 &prop_type, NULL, NULL,
 					 (guchar**)&prop_data);
 
-			/* If we got something, try to create a pixmap. */
+			/* If we got something, try to create a pixmap we
+			 * can mess with. */
 			pixbuf = NULL;
 			if ((prop_type == GDK_TARGET_PIXMAP) &&
 			    (prop_data != NULL) &&
 			    (prop_data[0] != 0)) {
+				/* Create a pixmap from the window we're
+				 * watching, which is foreign because we
+				 * didn't create it. */
 				gdk_drawable_get_size(window, &width, &height);
 				pixmap = gdk_pixmap_foreign_new(prop_data[0]);
+				/* If we got a pixmap, create a pixbuf for
+				 * us to work with. */
 				if (GDK_IS_PIXMAP(pixmap)) {
 					colormap = gdk_drawable_get_colormap(window);
 					pixbuf = gdk_pixbuf_get_from_drawable(NULL,
@@ -6446,13 +6470,15 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 									      0, 0,
 									      width,
 									      height);
+					/* Get rid of the pixmap. */
 					g_object_unref(G_OBJECT(pixmap));
 					pixmap = NULL;
 				}
 			}
 			gdk_error_trap_pop();
 
-			/* Save the image. */
+			/* Get rid of any previous snapshot we've got, and
+			 * save the new one in its place. */
 			if (GDK_IS_PIXBUF(terminal->pvt->bg_transparent_image)) {
 				g_object_unref(G_OBJECT(terminal->pvt->bg_transparent_image));
 			}
@@ -6465,7 +6491,8 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 			pixbuf = gdk_pixbuf_copy(terminal->pvt->bg_transparent_image);
 		}
 
-		/* Rotate the copy of the image left or up. */
+		/* Rotate the copy of the image left or up to compensate for
+		 * our window not having the same origin. */
 		if (GDK_IS_PIXBUF(pixbuf)) {
 			guint width, height;
 			gint x, y;
@@ -6504,9 +6531,12 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 			g_free(pixels);
 		}
 	} else
-	if (terminal->pvt->bg_image != NULL) {
-		/* Set up a possibly desaturated background.  Start by
-		 * creating a copy we can mess with. */
+	if (GDK_IS_PIXBUF(terminal->pvt->bg_image)) {
+		/* If we need to desaturate the image, create a copy we can
+		 * safely modify.  Otherwise just ref the one we were passed. */
+#ifdef VTE_DEBUG
+		fprintf(stderr, "Applying new background pixbuf.\n");
+#endif
 		if (terminal->pvt->bg_saturation != VTE_SATURATION_MAX) {
 			pixbuf = gdk_pixbuf_copy(terminal->pvt->bg_image);
 		} else {
@@ -6515,8 +6545,11 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 		}
 	}
 
+	/* Desaturate the image if we need to. */
 	if (GDK_IS_PIXBUF(pixbuf)) {
-		/* Adjust the brightness of the pixbuf. */
+#ifdef VTE_DEBUG
+		fprintf(stderr, "Desaturating background.\n");
+#endif
 		if (terminal->pvt->bg_saturation != VTE_SATURATION_MAX) {
 			pixels = gdk_pixbuf_get_pixels(pixbuf);
 			pixel_count = gdk_pixbuf_get_height(pixbuf) *
@@ -6527,7 +6560,12 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 					    / VTE_SATURATION_MAX;
 			}
 		}
+	}
 
+	if (GDK_IS_PIXBUF(pixbuf)) {
+#ifdef VTE_DEBUG
+		fprintf(stderr, "Setting final background.\n");
+#endif
 		/* Render the modified image into a pixmap/bitmap pair. */
 		colormap = gdk_drawable_get_colormap(widget->window);
 		gdk_pixbuf_render_pixmap_and_mask_for_colormap(pixbuf,
@@ -6540,8 +6578,8 @@ vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 		g_object_unref(G_OBJECT(pixbuf));
 		pixbuf = NULL;
 
-		/* Set the pixmap as the window background, and then get rid
-		 * of it. */
+		/* Set the pixmap as the window background, and then get unref
+		 * it (the drawable should keep a ref). */
 		if (GDK_IS_PIXMAP(pixmap)) {
 			/* Set the pixmap as the window background. */
 			gdk_window_set_back_pixmap(widget->window,
@@ -6569,51 +6607,11 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->bg_saturation = saturation * VTE_SATURATION_MAX;
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Setting background saturation to %ld/%ld.\n",
+		terminal->pvt->bg_saturation, VTE_SATURATION_MAX);
+#endif
 	vte_terminal_setup_background(terminal, FALSE);
-}
-
-void
-vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
-{
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-	/* Get a ref to the new image if there is one.  Do it here just in
-	 * case we're actually given the same one we're already using. */
-	if (GDK_IS_PIXBUF(image)) {
-		g_object_ref(G_OBJECT(image));
-	}
-
-	/* Free the previous background image. */
-	if (GDK_IS_PIXBUF(terminal->pvt->bg_image)) {
-		g_object_unref(G_OBJECT(terminal->pvt->bg_image));
-	}
-
-	/* Set the new background. */
-	terminal->pvt->bg_image = image;
-	if (terminal->pvt->bg_transparent) {
-		vte_terminal_set_background_transparent(terminal, FALSE);
-	} else {
-		vte_terminal_setup_background(terminal, FALSE);
-	}
-}
-
-void
-vte_terminal_set_background_image_file(VteTerminal *terminal, const char *path)
-{
-	GdkPixbuf *image;
-	GError *error = NULL;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(path != NULL);
-	g_return_if_fail(strlen(path) > 0);
-	image = gdk_pixbuf_new_from_file(path, &error);
-	if ((image != NULL) && (error == NULL)) {
-		vte_terminal_set_background_image(terminal, image);
-		g_object_unref(G_OBJECT(image));
-	} else {
-		/* FIXME: do something better with the error. */
-		vte_terminal_set_background_image(terminal, NULL);
-		g_error_free(error);
-	}
 }
 
 static GdkFilterReturn
@@ -6627,8 +6625,7 @@ vte_terminal_filter_property_changes(GdkXEvent *xevent, GdkEvent *event,
 
 	xev = (XEvent*) xevent;
 
-	if (VTE_IS_TERMINAL(data) &&
-	    GTK_WIDGET_REALIZED(GTK_WIDGET(data))) {
+	if (VTE_IS_TERMINAL(data) && GTK_WIDGET_REALIZED(GTK_WIDGET(data))) {
 		terminal = VTE_TERMINAL(data);
 	} else {
 		return GDK_FILTER_CONTINUE;
@@ -6656,36 +6653,108 @@ vte_terminal_filter_property_changes(GdkXEvent *xevent, GdkEvent *event,
 	return GDK_FILTER_CONTINUE;
 }
 
+/* Turn background "transparency" on or off. */
 void
 vte_terminal_set_background_transparent(VteTerminal *terminal, gboolean setting)
 {
 	GdkWindow *window;
 	GdkAtom atom;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Turning background transparency %s.\n",
+		setting ? "on" : "off");
+#endif
 	terminal->pvt->bg_transparent = setting;
+
 	window = gdk_get_default_root_window();
 	if (setting) {
+		/* Get the window and property name we'll be watching for
+		 * changes in. */
 		atom = gdk_atom_intern("_XROOTPMAP_ID", TRUE);
 		terminal->pvt->bg_transparent_window = window;
 		terminal->pvt->bg_transparent_atom = atom;
+		/* Add a filter to watch for this property changing. */
 		gdk_window_add_filter(window,
 				      vte_terminal_filter_property_changes,
 				      terminal);
 		gdk_window_set_events(window,
 				      gdk_window_get_events(window) |
 				      GDK_PROPERTY_CHANGE_MASK);
+		/* Remove a background image, if we have one. */
+		if (GDK_IS_PIXBUF(terminal->pvt->bg_image)) {
+			g_object_unref(G_OBJECT(terminal->pvt->bg_image));
+			terminal->pvt->bg_image = NULL;
+		}
 	} else {
+		/* Remove the watch filter in case it was added before. */
 		gdk_window_remove_filter(window,
 				         vte_terminal_filter_property_changes,
 				         terminal);
 	}
+	/* Update the background now. */
+	vte_terminal_setup_background(terminal, TRUE);
+}
+
+void
+vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+#ifdef VTE_DEBUG
+	fprintf(stderr, "%s background image.\n",
+		GDK_IS_PIXBUF(image) ? "Setting" : "Clearing");
+#endif
+
+	/* Get a ref to the new image if there is one.  Do it here just in
+	 * case we're actually given the same one we're already using. */
+	if (GDK_IS_PIXBUF(image)) {
+		g_object_ref(G_OBJECT(image));
+	}
+
+	/* Unref the previous background image. */
 	if (GDK_IS_PIXBUF(terminal->pvt->bg_image)) {
-		vte_terminal_set_background_image(terminal, FALSE);
+		g_object_unref(G_OBJECT(terminal->pvt->bg_image));
+	}
+
+	/* Set the new background. */
+	terminal->pvt->bg_image = image;
+
+	/* Turn off transparency and finish setting things up. */
+	if (terminal->pvt->bg_transparent) {
+		vte_terminal_set_background_transparent(terminal, FALSE);
 	} else {
-		vte_terminal_setup_background(terminal, TRUE);
+		vte_terminal_setup_background(terminal, FALSE);
 	}
 }
 
+/* Set the background image using just a file.  It's more efficient for a
+ * caller to pass us an already-desaturated pixbuf if we've got multiple
+ * instances going, but this is handy for the single-widget case. */
+void
+vte_terminal_set_background_image_file(VteTerminal *terminal, const char *path)
+{
+	GdkPixbuf *image;
+	GError *error = NULL;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail(path != NULL);
+	g_return_if_fail(strlen(path) > 0);
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Loading background image from `%s'.\n", path);
+#endif
+	image = gdk_pixbuf_new_from_file(path, &error);
+	if ((image != NULL) && (error == NULL)) {
+		vte_terminal_set_background_image(terminal, image);
+		g_object_unref(G_OBJECT(image));
+	} else {
+		/* Set "no image" as the background. */
+		vte_terminal_set_background_image(terminal, NULL);
+		/* FIXME: do something better with the error. */
+		g_error_free(error);
+	}
+}
+
+/* Check if we're the current owner of the clipboard. */
 gboolean
 vte_terminal_get_has_selection(VteTerminal *terminal)
 {
@@ -6693,6 +6762,7 @@ vte_terminal_get_has_selection(VteTerminal *terminal)
 	return (terminal->pvt->has_selection != FALSE);
 }
 
+/* Tell the caller if we're [planning on] using Xft for rendering. */
 gboolean
 vte_terminal_get_using_xft(VteTerminal *terminal)
 {
@@ -6700,6 +6770,7 @@ vte_terminal_get_using_xft(VteTerminal *terminal)
 	return (terminal->pvt->use_xft);
 }
 
+/* Toggle the cursor blink setting. */
 void
 vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
 {
