@@ -669,9 +669,14 @@ main(int argc, char **argv)
 	}
 
 	/* Go for it! */
+	g_object_add_weak_pointer(G_OBJECT(widget), (gpointer*)&widget);
+	g_object_add_weak_pointer(G_OBJECT(window), (gpointer*)&window);
 	gtk_widget_show_all(window);
 
 	gtk_main();
+
+	g_assert(widget == NULL);
+	g_assert(window == NULL);
 
 	return 0;
 }

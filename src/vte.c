@@ -10944,6 +10944,12 @@ vte_terminal_unrealize(GtkWidget *widget)
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
 
+	/* Clean up our draw structure. */
+	if (terminal->pvt->draw != NULL) {
+		_vte_draw_free(terminal->pvt->draw);
+	}
+	terminal->pvt->draw = NULL;
+
 	/* Disconnect from background-change events. */
 	g_signal_handlers_disconnect_by_func(G_OBJECT(vte_bg_get()),
 					     root_pixmap_changed_cb,
@@ -11043,6 +11049,12 @@ vte_terminal_finalize(GObject *object)
 	object_class = G_OBJECT_GET_CLASS(G_OBJECT(object));
 	widget_class = g_type_class_peek(GTK_TYPE_WIDGET);
 
+	/* Free the draw structure. */
+	if (terminal->pvt->draw != NULL) {
+		_vte_draw_free(terminal->pvt->draw);
+	}
+	terminal->pvt->draw = NULL;
+
 	/* The NLS maps. */
 	if (terminal->pvt->iso2022 != NULL) {
 		_vte_iso2022_state_free(terminal->pvt->iso2022);
@@ -11062,10 +11074,6 @@ vte_terminal_finalize(GObject *object)
 		terminal->pvt->fontdesc = NULL;
 	}
 	vte_terminal_disconnect_xft_settings(terminal);
-
-	/* Clean up our draw structure. */
-	_vte_draw_free(terminal->pvt->draw);
-	terminal->pvt->draw = NULL;
 
 	/* Free matching data. */
 	if (terminal->pvt->match_attributes != NULL) {
@@ -11282,6 +11290,12 @@ vte_terminal_realize(GtkWidget *widget)
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
+
+	/* Create the draw structure if we don't already have one. */
+	if (terminal->pvt->draw != NULL) {
+		_vte_draw_free(terminal->pvt->draw);
+	}
+	terminal->pvt->draw = _vte_draw_new(GTK_WIDGET(terminal));
 
 	/* Create the stock cursors. */
 	terminal->pvt->mouse_cursor_visible = TRUE;
