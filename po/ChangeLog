@@ -1,3 +1,7 @@
+2003-07-20  Abel Cheung  <maddog@linux.org.hk>
+
+	* li.po: Mark wrong entry as fuzzy (msgfmt check failed).
+
 2003-07-15  Kostas Papadimas <pkst@gmx.net>
 
 	* el.po: Updated Greek translation.

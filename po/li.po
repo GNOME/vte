@@ -19,7 +19,7 @@ msgid "Unable to convert characters from %s to %s."
 msgstr "Kèn teikes neet konvertere van %s nao %s."
 
 #: src/iso2022.c:1559
-#, c-format
+#, fuzzy, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Geprobeerd óngeljige NRC-map in te sjtèlle"
 
@@ -29,7 +29,7 @@ msgid "Unrecognized identified coding system."
 msgstr "Geïdentifiseerd koodsysteem neet herkènd"
 
 #: src/iso2022.c:1649 src/iso2022.c:1675
-#, c-format
+#, fuzzy, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Geprobeerd óngeljig wieje NRC-map in te sjtèlle"
 
