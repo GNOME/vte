@@ -1,4 +1,8 @@
 2003-02-20
+	* src/keymap.c: pull up from HEAD to get proper fix for Ctrl+digit
+	keys, which shouldn't break Meta+digit keys (#106667).
+
+2003-02-20
 	* src/vte.c: fix gratuitous IM resetting, don't mess with the IM when
 	we're not realized and it's a NULL pointer.  From HEAD.
 
