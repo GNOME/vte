@@ -1,5 +1,11 @@
 2005-02-28  Kjartan Maraas  <kmaraas@gnome.org>
 
+	* src/vte.c: (vte_sequence_handler_send_primary_device_attributes):
+	Patch from Mariano to make vte claim to be the right type terminal.
+	Closes bug #130671.
+
+2005-02-28  Kjartan Maraas  <kmaraas@gnome.org>
+
 	* src/iso2022.c: (_vte_iso2022_is_ambiguous),
 	(_vte_iso2022_find_nextctl):
 	* src/uniwidths:
