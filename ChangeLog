@@ -1,4 +1,8 @@
 2002-09-11 nalin
+	* python/Makefile.am: Fix my broken merge of Jacob's patch to make
+	inability to build python modules non-fatal.
+
+2002-09-11 nalin
 	* src/vte.c: Skip lookups for padding information if we're pretty sure
 	we're using a monospaced font.
 
