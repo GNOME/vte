@@ -1,0 +1,113 @@
+# vte eesti tõlge.
+# Copyright (C) 2003 Free Software Foundation, Inc
+# This file is distributed under the same license as the vte package.
+# Allan Sims <allsi@eau.ee>, 2003.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2003-08-07 12:57+0200\n"
+"PO-Revision-Date: 2003-09-29 08:21+0200\n"
+"Last-Translator: Allan Sims <allsi@eau.ee>\n"
+"Language-Team: Estonian <gnome-et@linux.ee>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2060
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Ei suuda konventeerida %s'i %s'iks."
+
+#: src/iso2022.c:1560
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr "Üritatakse seada vigast NRC kaarti '%c'."
+
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1601
+msgid "Unrecognized identified coding system."
+msgstr "Tundmatu koodi süsteem."
+
+#: src/iso2022.c:1650 src/iso2022.c:1676
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr "Üritatakse seada vigast laia NRC kaarti '%c'."
+
+#: src/pty.c:319
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "Viga `%s'i lisamisel keskkonda, jätkan."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:882
+#, c-format
+msgid "can not run %s"
+msgstr "ei saa käivitada %s"
+
+#: src/reaper.c:110
+msgid "Error creating signal pipe."
+msgstr "Viga luues signal pipe"
+
+#: src/trie.c:412
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "Dublikaat (%s/%s)!"
+
+#: src/vte.c:1473
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Viga regulaaravaldise kompileerimisel \"%s\"."
+
+#: src/vte.c:5678
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "Saadi ootamatu (võtme?) jada `%s'."
+
+#: src/vte.c:6693
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "Kontrolljadale `%s' haldaja defineerimata."
+
+#: src/vte.c:7440
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Viga lapse %s lugemisel"
+
+#: src/vte.c:7596
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Viga (%s) andmete konventeerimisel lapsele, peatumine."
+
+#: src/vte.c:10240
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "Viga lugedes PTY suurust, kasutatakse vaikeväärtust: %s."
+
+#: src/vte.c:10276
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "Viga seades PTY suurust: %s."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:14399
+msgid "_vte_conv_open() failed setting word characters"
+msgstr "_vte_conv_open() ebaõnnestus seades sõna märke"
+
+#. Bail back to normal mode.
+#: src/vteapp.c:680
+msgid "Could not open console.\n"
+msgstr "Ei saa konsooli avada.\n"
+
+#: src/vteglyph.c:576
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr "Tundmatu pikseli mood %d.\n"
+
+#: src/vtexft.c:710
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr " Ei saa moodustada märki U+%04x.\n"
