@@ -108,7 +108,7 @@ main(int argc, char **argv)
 	vte_terminal_set_scroll_on_keystroke(VTE_TERMINAL(widget), TRUE);
 	vte_terminal_set_background_image_file(VTE_TERMINAL(widget),
 					       "./background");
-	vte_terminal_set_background_transparent(VTE_TERMINAL(widget));
+	/* vte_terminal_set_background_transparent(VTE_TERMINAL(widget)); */
 
 	/* Launch a shell. */
 #ifdef VTE_DEBUG
