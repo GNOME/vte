@@ -29,16 +29,16 @@
 #define PM  _VTE_CAP_PM
 #define APC _VTE_CAP_APC
 
-#define ENQ ""
-#define BEL ""
-#define BS  ""
-#define TAB "	"
-#define LF  "\n"
-#define VT  ""
-#define FF  ""
-#define CR  "\r"
-#define SO  ""
-#define SI  ""
+#define ENQ "\005"
+#define BEL "\007"
+#define BS  "\010"
+#define TAB "\011"
+#define LF  "\012"
+#define VT  "\013"
+#define FF  "\014"
+#define CR  "\015"
+#define SO  "\016"
+#define SI  "\017"
 
 /* This list combined from the Linux termcap(5) man page, and
  * termcap_&_terminfo by Strang, Mui, and O'Reilly. */
@@ -364,6 +364,8 @@ struct _vte_capability_quark _vte_terminal_capability_strings[] = {
  * version at Moy, Gildea, and Dickey. */
 struct _vte_capability_string _vte_xterm_capability_strings[] = {
 	{ENQ, "return-terminal-status", 0},
+	{VT,  "vertical-tab", 0},
+	{FF,  "form-feed", 0},
 
 	{ESC " F", "7-bit-controls", 0},
 	{ESC " G", "8-bit-controls", 0},

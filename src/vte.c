@@ -397,6 +397,10 @@ static void vte_sequence_handler_ho(VteTerminal *terminal,
 				    const char *match,
 				    GQuark match_quark,
 				    GValueArray *params);
+static void vte_sequence_handler_index(VteTerminal *terminal,
+				       const char *match,
+				       GQuark match_quark,
+				       GValueArray *params);
 static void vte_sequence_handler_le(VteTerminal *terminal,
 				    const char *match,
 				    GQuark match_quark,
@@ -2996,6 +3000,16 @@ vte_sequence_handler_ei(VteTerminal *terminal,
 	terminal->pvt->screen->insert_mode = FALSE;
 }
 
+/* Form-feed / next-page. */
+static void
+vte_sequence_handler_form_feed(VteTerminal *terminal,
+			       const char *match,
+			       GQuark match_quark,
+			       GValueArray *params)
+{
+	vte_sequence_handler_index(terminal, match, match_quark, params);
+}
+
 /* Move from status line. */
 static void
 vte_sequence_handler_fs(VteTerminal *terminal,
@@ -3838,6 +3852,16 @@ vte_sequence_handler_ve(VteTerminal *terminal,
 			GValueArray *params)
 {
 	terminal->pvt->cursor_visible = TRUE;
+}
+
+/* Vertical tab. */
+static void
+vte_sequence_handler_vertical_tab(VteTerminal *terminal,
+				  const char *match,
+				  GQuark match_quark,
+				  GValueArray *params)
+{
+	vte_sequence_handler_index(terminal, match, match_quark, params);
 }
 
 /* Cursor invisible. */
@@ -6004,6 +6028,7 @@ static struct {
 	{"erase-characters", vte_sequence_handler_erase_characters},
 	{"erase-in-display", vte_sequence_handler_erase_in_display},
 	{"erase-in-line", vte_sequence_handler_erase_in_line},
+	{"form-feed", vte_sequence_handler_form_feed},
 	{"full-reset", vte_sequence_handler_full_reset},
 	{"horizontal-and-vertical-position", vte_sequence_handler_horizontal_and_vertical_position},
 	{"index", vte_sequence_handler_index},
@@ -6058,6 +6083,7 @@ static struct {
 	{"tab-clear", vte_sequence_handler_tab_clear},
 	{"tab-set", vte_sequence_handler_st},
 	{"utf-8-character-set", vte_sequence_handler_utf_8_charset},
+	{"vertical-tab", vte_sequence_handler_vertical_tab},
 	{"window-manipulation", vte_sequence_handler_window_manipulation},
 };
 

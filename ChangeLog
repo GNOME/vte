@@ -1,4 +1,10 @@
 2003-06-16 nalin
+	* src/caps.c: add vertical-tab and form-feed to the list of control
+	sequences.
+	* src/vte.c(vte_controL_sequence_handler_form_feed): add.
+	* src/vte.c(vte_controL_sequence_handler_vertical_tab): add.
+
+2003-06-16 nalin
 	* src/vteaccess.c(xy_from_offset): fix a compiler warning.
 
 2003-06-16 nalin
