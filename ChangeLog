@@ -1,3 +1,12 @@
+2003-05-08 nalin
+	* src/vtedraw.c, src/vtedraw.h (_vte_draw_get_colormap): let the caller
+	control whether or not we return the default colormap.
+	* src/vtegl.c: enable blending.  Don't specify any buffer depths.  Set
+	the current drawable before we do any drawing.  Call gluOrtho2D with
+	the right args to set up the right projection.
+	* src/vteskel.c: quiet compiler warning by removing a "const".
+	* src/vtedraw.c: juggle the preferred render order again.
+
 2003-05-08  Abel Cheung  <maddog@linux.org.hk>
 
 	* configure.in: Added "mk" to ALL_LINGUAS.

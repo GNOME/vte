@@ -98,7 +98,8 @@ void _vte_draw_free(struct _vte_draw *draw);
    implementations may require that this visual/colormap pair be used when
    creating a window, and may fail otherwise. */
 GdkVisual *_vte_draw_get_visual(struct _vte_draw *draw);
-GdkColormap *_vte_draw_get_colormap(struct _vte_draw *draw);
+GdkColormap *_vte_draw_get_colormap(struct _vte_draw *draw,
+				    gboolean maybe_use_default);
 
 /* Begin and end a drawing operation.  If anything is buffered locally, it is
    flushed to the window system when _end() is called. */

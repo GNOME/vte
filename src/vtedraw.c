@@ -44,17 +44,17 @@ struct _vte_draw_impl
 #endif
 #endif
 	&_vte_draw_ft2,
-	&_vte_draw_pango,
-#ifndef X_DISPLAY_MISSING
-#ifdef HAVE_PANGOX
-	&_vte_draw_pango_x,
-#endif
-#endif
 #if GTK_CHECK_VERSION(2,2,0)
 #ifndef X_DISPLAY_MISSING
 #ifdef HAVE_GL
 	&_vte_draw_gl,
 #endif
+#endif
+#endif
+	&_vte_draw_pango,
+#ifndef X_DISPLAY_MISSING
+#ifdef HAVE_PANGOX
+	&_vte_draw_pango_x,
 #endif
 #endif
 };
@@ -126,7 +126,7 @@ _vte_draw_get_visual(struct _vte_draw *draw)
 }
 
 GdkColormap *
-_vte_draw_get_colormap(struct _vte_draw *draw)
+_vte_draw_get_colormap(struct _vte_draw *draw, gboolean maybe_use_default)
 {
 	GdkColormap *colormap;
 	g_return_val_if_fail(draw->impl != NULL, NULL);
@@ -134,6 +134,9 @@ _vte_draw_get_colormap(struct _vte_draw *draw)
 	colormap = draw->impl->get_colormap(draw);
 	if (colormap) {
 		return colormap;
+	}
+	if (!maybe_use_default) {
+		return NULL;
 	}
 #if GTK_CHECK_VERSION(2,2,0)
 	colormap = gdk_screen_get_default_colormap(gdk_screen_get_default());

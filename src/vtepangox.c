@@ -211,7 +211,7 @@ _vte_pango_x_set_background_image(struct _vte_draw *draw,
 	data = (struct _vte_pango_x_data*) draw->impl_data;
 	pixmap = vte_bg_get_pixmap(vte_bg_get(), type, pixbuf, file,
 				   color, saturation,
-				   _vte_draw_get_colormap(draw));
+				   _vte_draw_get_colormap(draw, TRUE));
 	if (data->pixmap) {
 		g_object_unref(G_OBJECT(data->pixmap));
 	}

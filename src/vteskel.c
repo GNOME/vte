@@ -117,7 +117,7 @@ _vte_skel_set_background_color(struct _vte_draw *draw, GdkColor *color)
 static void
 _vte_skel_set_background_image(struct _vte_draw *draw,
 			       enum VteBgSourceType type,
-			       const GdkPixbuf *pixbuf,
+			       GdkPixbuf *pixbuf,
 			       const char *filename,
 			       const GdkColor *tint,
 			       double saturation)

@@ -52,13 +52,7 @@ struct _vte_gl_data
 	struct _vte_glyph_cache *cache;
 };
 
-#define _vte_gl_pixmap_attributes \
-	GLX_RGBA, \
-	GLX_RED_SIZE, 8, \
-	GLX_BLUE_SIZE, 8, \
-	GLX_GREEN_SIZE, 8, \
-	GLX_ALPHA_SIZE, 8, \
-	None,
+#define _vte_gl_pixmap_attributes GLX_RGBA, None,
 
 static gboolean
 _vte_gl_check(struct _vte_draw *draw, GtkWidget *widget)
@@ -239,8 +233,10 @@ _vte_gl_start(struct _vte_draw *draw)
 	glXMakeCurrent(display, data->glpixmap, data->context);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-        gluOrtho2D(0, width, 0, height);
-        glViewport(0, 0, width, height);
+	gluOrtho2D(0, width - 1, 0, height - 1);
+	glViewport(0, 0, width, height);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 static void
@@ -254,6 +250,8 @@ _vte_gl_end(struct _vte_draw *draw)
 	data = (struct _vte_gl_data*) draw->impl_data;
 	gdisplay = gdk_display_get_default();
 	display = gdk_x11_display_get_xdisplay(gdisplay);
+
+	glXMakeCurrent(display, data->glpixmap, data->context);
 
 	glFlush();
 	glXWaitX();
@@ -301,7 +299,7 @@ _vte_gl_set_background_image(struct _vte_draw *draw,
 	data = (struct _vte_gl_data*) draw->impl_data;
 	bgpixmap = vte_bg_get_pixmap(vte_bg_get(), type, pixbuf, file,
 				     tint, saturation,
-				     _vte_draw_get_colormap(draw));
+				     gdk_drawable_get_colormap(draw->widget->window));
 	if (GDK_IS_PIXMAP(data->bgpixmap)) {
 		g_object_unref(G_OBJECT(data->bgpixmap));
 	}
@@ -312,10 +310,17 @@ static void
 _vte_gl_clear(struct _vte_draw *draw,
 		 gint x, gint y, gint width, gint height)
 {
+	GdkDisplay *gdisplay;
+	Display *display;
 	struct _vte_gl_data *data;
 	data = (struct _vte_gl_data*) draw->impl_data;
 	long xstop, ystop, i, j;
 	int pixmapw, pixmaph, w, h;
+
+	gdisplay = gdk_display_get_default();
+	display = gdk_x11_display_get_xdisplay(gdisplay);
+
+	glXMakeCurrent(display, data->glpixmap, data->context);
 
 	if (GDK_IS_PIXMAP(data->bgpixmap)) {
 		gdk_drawable_get_size(data->bgpixmap, &pixmapw, &pixmaph);
@@ -427,14 +432,20 @@ _vte_gl_draw_text(struct _vte_draw *draw,
 		  struct _vte_draw_text_request *requests, gsize n_requests,
 		  GdkColor *color, guchar alpha)
 {
+	GdkDisplay *gdisplay;
+	Display *display;
 	struct _vte_gl_data *data;
 	const struct _vte_glyph *glyph;
 	guint16 a, r, g, b;
 	int width, height;
 	int i, j, x, y, w, pad;
 
+	gdisplay = gdk_display_get_default();
+	display = gdk_x11_display_get_xdisplay(gdisplay);
+
 	data = (struct _vte_gl_data*) draw->impl_data;
 
+	glXMakeCurrent(display, data->glpixmap, data->context);
 	glXWaitX();
 
 	r = color->red;
@@ -458,9 +469,6 @@ _vte_gl_draw_text(struct _vte_draw *draw,
 				j = (y * glyph->width + x) *
 				    glyph->bytes_per_pixel;
 				a = glyph->bytes[j] * alpha;
-				if (a == 0) {
-					continue;
-				}
 				glColor4us(r, g, b, a);
 				glVertex2i(requests[i].x + pad + x,
 					   height - (requests[i].y + glyph->skip + y));
@@ -475,11 +483,17 @@ _vte_gl_draw_rectangle(struct _vte_draw *draw,
 		       gint x, gint y, gint width, gint height,
 		       GdkColor *color, guchar alpha)
 {
+	GdkDisplay *gdisplay;
+	Display *display;
 	struct _vte_gl_data *data;
 	int w, h;
 
+	gdisplay = gdk_display_get_default();
+	display = gdk_x11_display_get_xdisplay(gdisplay);
+
 	data = (struct _vte_gl_data*) draw->impl_data;
 
+	glXMakeCurrent(display, data->glpixmap, data->context);
 	glXWaitX();
 
 	gdk_drawable_get_size(data->pixmap, &w, &h);
@@ -499,11 +513,17 @@ _vte_gl_fill_rectangle(struct _vte_draw *draw,
 		       gint x, gint y, gint width, gint height,
 		       GdkColor *color, guchar alpha)
 {
+	GdkDisplay *gdisplay;
+	Display *display;
 	struct _vte_gl_data *data;
 	int w, h;
 
+	gdisplay = gdk_display_get_default();
+	display = gdk_x11_display_get_xdisplay(gdisplay);
+
 	data = (struct _vte_gl_data*) draw->impl_data;
 
+	glXMakeCurrent(display, data->glpixmap, data->context);
 	glXWaitX();
 
 	gdk_drawable_get_size(data->pixmap, &w, &h);

@@ -11155,7 +11155,8 @@ vte_terminal_realize(GtkWidget *widget)
 	attributes.height = widget->allocation.height;
 	attributes.wclass = GDK_INPUT_OUTPUT;
 	attributes.visual = _vte_draw_get_visual(terminal->pvt->draw);
-	attributes.colormap = _vte_draw_get_colormap(terminal->pvt->draw);
+	attributes.colormap = _vte_draw_get_colormap(terminal->pvt->draw,
+						     FALSE);
 	attributes.event_mask = gtk_widget_get_events(widget) |
 				GDK_EXPOSURE_MASK |
 				GDK_VISIBILITY_NOTIFY_MASK |
@@ -13487,11 +13488,8 @@ vte_terminal_background_update(gpointer data)
 	bgcolor.green = terminal->pvt->palette[VTE_DEF_BG].green;
 	bgcolor.blue = terminal->pvt->palette[VTE_DEF_BG].blue;
 	bgcolor.pixel = 0;
-	colormap = _vte_draw_get_colormap(terminal->pvt->draw);
-	if (colormap == NULL) {
-		gtk_widget_ensure_style(widget);
-		colormap = gdk_gc_get_colormap(widget->style->fg_gc[GTK_WIDGET_STATE(widget)]);
-	}
+	gtk_widget_ensure_style(widget);
+	colormap = gdk_gc_get_colormap(widget->style->fg_gc[GTK_WIDGET_STATE(widget)]);
 	if (colormap) {
 		gdk_rgb_find_color(colormap, &bgcolor);
 	}
