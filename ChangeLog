@@ -1,8 +1,16 @@
+2002-05-31 nalin
+	* src/vte.c: Implement font setting using PangoX to convert Pango
+	font descriptions to core font xlfds for use when drawing with Xlib.
+2002-05-29 nalin
+	* src/trie.c, src,vte.c: Finish switching iconv to g_iconv.  I think
+	this was a part of Hidetoshi Tajima's patch that I lost.  Free regexes
+	when we're done with them.
 2002-05-28 nalin
 	* src/vte.c: Fix matching when scrolling delta isn't zero.  Fix async
 	background updating (report from Richard Neal Plana).  Fix cb() and ce()
 	when the cursor is on a line without data (needed to create it) and when
-	cells being cleared don't exist (needed to create them).
+	cells being cleared don't exist (needed to create them) (report from
+	Garret LeSage).
 	* src/vte.c, src/vteaccess.c: Always free the segment when freeing
 	arrays and strings.
 

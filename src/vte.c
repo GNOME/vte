@@ -25,7 +25,6 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <iconv.h>
 #include <langinfo.h>
 #include <math.h>
 #include <pwd.h>
@@ -138,7 +137,7 @@ struct _VteTerminalPrivate {
 	const char *gxencoding[4];	/* alternate encodings */
 
 	/* Input data queues. */
-	iconv_t incoming_conv;		/* narrow/wide conversion state */
+	GIConv incoming_conv;		/* narrow/wide conversion state */
 	unsigned char *incoming;	/* pending output characters */
 	size_t n_incoming;
 	gboolean processing;
@@ -147,8 +146,8 @@ struct _VteTerminalPrivate {
 	/* Output data queue. */
 	unsigned char *outgoing;	/* pending input characters */
 	size_t n_outgoing;
-	iconv_t outgoing_conv_wide;
-	iconv_t outgoing_conv_utf8;
+	GIConv outgoing_conv_wide;
+	GIConv outgoing_conv_utf8;
 
 	/* Data used when rendering the text. */
 	struct {
@@ -1109,7 +1108,7 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 {
 	const char *old_codeset;
 	GQuark encoding_quark;
-	iconv_t conv;
+	GIConv conv;
 	char *ibuf, *obuf, *obufptr;
 	size_t icount, ocount;
 
@@ -1121,20 +1120,20 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 
 	/* Set up the conversion for incoming-to-wchars. */
 	if (terminal->pvt->incoming_conv != NULL) {
-		iconv_close(terminal->pvt->incoming_conv);
+		g_iconv_close(terminal->pvt->incoming_conv);
 	}
-	terminal->pvt->incoming_conv = iconv_open("WCHAR_T", codeset);
+	terminal->pvt->incoming_conv = g_iconv_open("WCHAR_T", codeset);
 
 	/* Set up the conversions for wchar/utf-8 to outgoing. */
 	if (terminal->pvt->outgoing_conv_wide != NULL) {
-		iconv_close(terminal->pvt->outgoing_conv_wide);
+		g_iconv_close(terminal->pvt->outgoing_conv_wide);
 	}
-	terminal->pvt->outgoing_conv_wide = iconv_open(codeset, "WCHAR_T");
+	terminal->pvt->outgoing_conv_wide = g_iconv_open(codeset, "WCHAR_T");
 
 	if (terminal->pvt->outgoing_conv_utf8 != NULL) {
-		iconv_close(terminal->pvt->outgoing_conv_utf8);
+		g_iconv_close(terminal->pvt->outgoing_conv_utf8);
 	}
-	terminal->pvt->outgoing_conv_utf8 = iconv_open(codeset, "UTF-8");
+	terminal->pvt->outgoing_conv_utf8 = g_iconv_open(codeset, "UTF-8");
 
 	/* Set the terminal's encoding to the new value. */
 	encoding_quark = g_quark_from_string(codeset);
@@ -1146,9 +1145,9 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 		ibuf = terminal->pvt->outgoing;
 		ocount = icount * VTE_UTF8_BPC + 1;
 		obuf = obufptr = g_malloc(ocount);
-		conv = iconv_open(codeset, old_codeset);
+		conv = g_iconv_open(codeset, old_codeset);
 		if (conv != NULL) {
-			if (iconv(conv, &ibuf, &icount, &obuf, &ocount) == -1) {
+			if (g_iconv(conv, &ibuf, &icount, &obuf, &ocount) == -1) {
 				/* Darn, it failed.  Leave it alone. */
 				g_free(obufptr);
 #ifdef VTE_DEBUG
@@ -1172,7 +1171,7 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 				}
 #endif
 			}
-			iconv_close(conv);
+			g_iconv_close(conv);
 		}
 	}
 
@@ -2919,7 +2918,7 @@ vte_sequence_handler_set_title_int(VteTerminal *terminal,
 				   const char *signal)
 {
 	GValue *value;
-	iconv_t conv;
+	GIConv conv;
 	char *inbuf = NULL, *outbuf = NULL, *outbufptr = NULL;
 	size_t inbuf_len, outbuf_len;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -2938,12 +2937,12 @@ vte_sequence_handler_set_title_int(VteTerminal *terminal,
 		if (G_VALUE_HOLDS_POINTER(value)) {
 			/* Convert the wide-character string into a
 			 * multibyte string. */
-			conv = iconv_open("UTF-8", "WCHAR_T");
+			conv = g_iconv_open("UTF-8", "WCHAR_T");
 			inbuf = g_value_get_pointer(value);
 			inbuf_len = wcslen((wchar_t*)inbuf) * sizeof(wchar_t);
 			outbuf_len = (inbuf_len * VTE_UTF8_BPC) + 1;
 			outbuf = outbufptr = g_malloc0(outbuf_len);
-			if (iconv(conv, &inbuf, &inbuf_len,
+			if (g_iconv(conv, &inbuf, &inbuf_len,
 				  &outbuf, &outbuf_len) == -1) {
 #ifdef VTE_DEBUG
 				if (vte_debug_on(VTE_DEBUG_IO)) {
@@ -4996,7 +4995,7 @@ vte_terminal_process_incoming(gpointer data)
 	wchar_t *wbuf, c;
 	int wcount, start, end, i;
 	const char *match, *encoding;
-	iconv_t unconv;
+	GIConv unconv;
 	GQuark quark;
 	const wchar_t *next;
 	gboolean leftovers, inserted, again, bottom;
@@ -5025,7 +5024,7 @@ vte_terminal_process_incoming(gpointer data)
 	ibuf = terminal->pvt->incoming;
 
 	/* Convert the data to wide characters. */
-	if (iconv(terminal->pvt->incoming_conv, &ibuf, &icount,
+	if (g_iconv(terminal->pvt->incoming_conv, &ibuf, &icount,
 		  &obuf, &ocount) == -1) {
 		/* No dice.  Try again when we have more data. */
 		if ((icount > VTE_UTF8_BPC) &&
@@ -5286,13 +5285,13 @@ vte_terminal_process_incoming(gpointer data)
 	if (leftovers) {
 		/* There are leftovers, so convert them back to the terminal's
 		 * old encoding and save them for later. */
-		unconv = iconv_open(encoding, "WCHAR_T");
+		unconv = g_iconv_open(encoding, "WCHAR_T");
 		if (unconv != NULL) {
 			icount = sizeof(wchar_t) * (wcount - start);
 			ibuf = (char*) &wbuf[start];
 			ucount = VTE_UTF8_BPC * (wcount - start) + 1;
 			ubuf = ubufptr = g_malloc(ucount);
-			if (iconv(unconv, &ibuf, &icount,
+			if (g_iconv(unconv, &ibuf, &icount,
 				  &ubuf, &ucount) != -1) {
 				/* Store it. */
 				if (terminal->pvt->incoming) {
@@ -5326,7 +5325,7 @@ vte_terminal_process_incoming(gpointer data)
 				g_free(ubufptr);
 				again = FALSE;
 			}
-			iconv_close(unconv);
+			g_iconv_close(unconv);
 		} else {
 			/* Discard the data, we can't use it. */
 			if (terminal->pvt->incoming != NULL) {
@@ -5611,7 +5610,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	char *ibuf, *obuf, *obufptr;
 	char *outgoing;
 	size_t n_outgoing;
-	iconv_t *conv;
+	GIConv *conv;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_assert((strcmp(encoding, "UTF-8") == 0) ||
@@ -5632,7 +5631,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	ocount = ((length + 1) * VTE_UTF8_BPC) + 1;
 	obuf = obufptr = g_malloc0(ocount);
 
-	if (iconv(*conv, &ibuf, &icount, &obuf, &ocount) == -1) {
+	if (g_iconv(*conv, &ibuf, &icount, &obuf, &ocount) == -1) {
 		g_warning("Error (%s) converting data for child, dropping.\n",
 			  strerror(errno));
 	} else {
@@ -6738,7 +6737,6 @@ vte_terminal_get_text(VteTerminal *terminal,
 	long x, y, spaces;
 	VteScreen *screen;
 	struct vte_charcell *pcell;
-	char *ret = NULL;
 	GString *string;
 	struct vte_char_attributes attr;
 
@@ -6813,9 +6811,7 @@ vte_terminal_get_text(VteTerminal *terminal,
 			x++;
 		} while (pcell != NULL);
 	}
-	ret = g_strdup(string->str);
-	g_string_free(string, TRUE);
-	return ret;
+	return g_string_free(string, FALSE);
 }
 
 /* Place the selected text onto the clipboard.  Do this asynchronously so that
@@ -7195,26 +7191,56 @@ xlfd_from_pango_font_description(GtkWidget *widget,
 	PangoXSubfont *subfont_ids;
 	PangoFontMap *fontmap;
 	int *subfont_charsets, i, count;
-	char *xlfd = NULL, *tmp, *subfont, *charset;
+	char *xlfd = NULL, *tmp, *subfont;
+	char *encodings[] = {
+		"ascii-0",
+		"big5-0",
+		"dos-437",
+		"dos-737",
+		"gb18030.2000-0",
+		"gb18030.2000-1",
+		"gb2312.1980-0",
+		"iso8859-1",
+		"iso8859-2",
+		"iso8859-3",
+		"iso8859-4",
+		"iso8859-5",
+		"iso8859-7",
+		"iso8859-8",
+		"iso8859-9",
+		"iso8859-10",
+		"iso8859-15",
+		"iso10646-0",
+		"iso10646-1",
+		"jisx0201.1976-0",
+		"jisx0208.1983-0",
+		"jisx0208.1990-0",
+		"jisx0208.1997-0",
+		"jisx0212.1990-0",
+		"jisx0213.2000-1",
+		"jisx0213.2000-2",
+		"koi8-r",
+		"koi8-u",
+		"koi8-ub",
+		"misc-fontspecific",
+	};
 
 	g_return_val_if_fail(fontdesc != NULL, NULL);
 	g_return_val_if_fail(GTK_IS_WIDGET(widget), NULL);
 
 	context = gtk_widget_get_pango_context(GTK_WIDGET(widget));
 	fontmap = pango_x_font_map_for_display(GDK_DISPLAY());
-	font = pango_font_map_load_font(fontmap, context, fontdesc);
-
-	if (font == NULL) {
-		g_print("no font loaded\n");
+	if (fontmap == NULL) {
 		return g_strdup("fixed");
 	}
 
-	charset = g_strdup(nl_langinfo(CODESET));	/* FIXME */
+	font = pango_font_map_load_font(fontmap, context, fontdesc);
+	if (font == NULL) {
+		return g_strdup("fixed");
+	}
 
-	count = pango_x_list_subfonts(font, &charset, 1,
+	count = pango_x_list_subfonts(font, encodings, G_N_ELEMENTS(encodings),
 				      &subfont_ids, &subfont_charsets);
-	g_print("pango_x_list_subfonts returned %d\n", count);
-
 	for (i = 0; i < count; i++) {
 		subfont = pango_x_font_subfont_xlfd(font, subfont_ids[i]);
 		if (xlfd) {
@@ -7229,15 +7255,12 @@ xlfd_from_pango_font_description(GtkWidget *widget,
 
 	spec = pango_font_description_to_string(fontdesc);
 
-	g_print("Converted `%s' to `%s'.\n", spec, xlfd);
-
 	if (subfont_ids != NULL) {
 		g_free(subfont_ids);
 	}
 	if (subfont_charsets != NULL) {
 		g_free(subfont_charsets);
 	}
-	g_free(charset);
 	g_free(spec);
 
 	return xlfd;
@@ -7978,32 +8001,24 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	/* Decide if we're going to use Pango (pangox) for rendering. */
 	pvt->fontdesc = NULL;
 	pvt->layout = NULL;
-	pvt->use_pango = TRUE;
-	if (pvt->use_pango) {
-		if (getenv("VTE_USE_PANGO") != NULL) {
-			if (atol(getenv("VTE_USE_PANGO")) == 0) {
-				pvt->use_pango = FALSE;
-			}
-		}
+	pvt->use_xft = FALSE;
+	pvt->use_pango = FALSE;
+
+	/* Try to use PangoX for rednering if the user requests it. */
+	if (getenv("VTE_USE_PANGO") != NULL) {
+		pvt->use_pango = (atol(getenv("VTE_USE_PANGO")) != 0);
 	}
 
-	pvt->use_xft = FALSE;
 #ifdef HAVE_XFT
 	/* Try to use Xft if the user requests it.  Provide both the original
 	 * variable we consulted (which we should stop consulting at some
 	 * point) and the one GTK itself uses. */
 	pvt->ftfont = NULL;
-	if (getenv("VTE_USE_XFT") != NULL) {
-		if (atol(getenv("VTE_USE_XFT")) != 0) {
-			pvt->use_xft = TRUE;
-		}
+	if (getenv("GDK_USE_XFT") != NULL) {
+		pvt->use_xft = (atol(getenv("GDK_USE_XFT")) != 0);
 	}
-	if (!pvt->use_xft) {
-		if (getenv("GDK_USE_XFT") != NULL) {
-			if (atol(getenv("GDK_USE_XFT")) != 0) {
-				pvt->use_xft = TRUE;
-			}
-		}
+	if (getenv("VTE_USE_XFT") != NULL) {
+		pvt->use_xft = (atol(getenv("VTE_USE_XFT")) != 0);
 	}
 #endif
 
@@ -8263,6 +8278,8 @@ vte_terminal_finalize(GObject *object)
 	GtkWidget *toplevel;
 	GObjectClass *object_class;
 	GtkWidgetClass *widget_class;
+	struct vte_match_regex *regex;
+	int i;
 
 	g_return_if_fail(VTE_IS_TERMINAL(object));
 	terminal = VTE_TERMINAL(object);
@@ -8302,6 +8319,12 @@ vte_terminal_finalize(GObject *object)
 		terminal->pvt->match_contents = NULL;
 	}
 	if (terminal->pvt->match_regexes != NULL) {
+		for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
+			regex = &g_array_index(terminal->pvt->match_regexes,
+					       struct vte_match_regex,
+					       i);
+			regfree(&regex->reg);
+		}
 		g_array_free(terminal->pvt->match_regexes, TRUE);
 		terminal->pvt->match_regexes = NULL;
 	}
@@ -10672,7 +10695,7 @@ vte_terminal_free_snapshot(VteTerminalSnapshot *snapshot)
 void
 vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 {
-	iconv_t conv;
+	GIConv conv;
 	wchar_t *wbuf;
 	char *ibuf, *ibufptr, *obuf, *obufptr;
 	size_t ilen, olen;
@@ -10687,10 +10710,10 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	terminal->pvt->word_chars = g_array_new(FALSE, TRUE,
 						sizeof(VteWordCharRange));
 	/* Convert the spec from UTF-8 to a string of wchar_t. */
-	conv = iconv_open("WCHAR_T", "UTF-8");
+	conv = g_iconv_open("WCHAR_T", "UTF-8");
 	if (conv == NULL) {
 		/* Aaargh.  We're screwed. */
-		g_warning("iconv_open() failed setting word characters");
+		g_warning("g_iconv_open() failed setting word characters");
 		return;
 	}
 	ilen = strlen(spec);
@@ -10699,7 +10722,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	obuf = obufptr = g_malloc0(sizeof(wchar_t) * (strlen(spec) + 1));
 	wbuf = (wchar_t*) obuf;
 	wbuf[ilen] = '\0';
-	iconv(conv, &ibuf, &ilen, &obuf, &olen);
+	g_iconv(conv, &ibuf, &ilen, &obuf, &olen);
 	for (i = 0; i < ((obuf - obufptr) / sizeof(wchar_t)); i++) {
 		/* The hyphen character. */
 		if (wbuf[i] == '-') {

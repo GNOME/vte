@@ -21,7 +21,6 @@
 #include <sys/types.h>
 #include <assert.h>
 #include <ctype.h>
-#include <iconv.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -456,7 +455,7 @@ vte_trie_add(struct vte_trie *trie, const char *pattern, size_t length,
 {
 	mbstate_t state;
 	char *wpattern, *wpattern_end, *tpattern;
-	iconv_t conv;
+	GIConv conv;
 	size_t wlength;
 
 	g_return_if_fail(trie != NULL);
@@ -471,16 +470,16 @@ vte_trie_add(struct vte_trie *trie, const char *pattern, size_t length,
 	wpattern = wpattern_end = g_malloc0(wlength + 1);
 	memset(&state, 0, sizeof(state));
 
-	conv = iconv_open("WCHAR_T", "UTF-8");
+	conv = g_iconv_open("WCHAR_T", "UTF-8");
 	if (conv != NULL) {
 		tpattern = (char*)pattern;
-		iconv(conv, &tpattern, &length, &wpattern_end, &wlength);
+		g_iconv(conv, &tpattern, &length, &wpattern_end, &wlength);
 		if (length == 0) {
 			wlength = (wpattern_end - wpattern) / sizeof(wchar_t);
 			vte_trie_addx(trie, (wchar_t*)wpattern, wlength,
 				      result, quark, 0);
 		}
-		iconv_close(conv);
+		g_iconv_close(conv);
 	}
 
 	g_free(wpattern);
@@ -852,14 +851,14 @@ static void
 convert_mbstowcs(const char *i, size_t ilen,
 		 wchar_t *o, size_t *olen, size_t max_olen)
 {
-	iconv_t conv;
+	GIConv conv;
 	size_t outlen;
-	conv = iconv_open("WCHAR_T", "UTF-8");
+	conv = g_iconv_open("WCHAR_T", "UTF-8");
 	if (conv != NULL) {
 		memset(o, 0, max_olen);
 		outlen = max_olen;
-		iconv(conv, (char**)&i, &ilen, (char**)&o, &outlen);
-		iconv_close(conv);
+		g_iconv(conv, (char**)&i, &ilen, (char**)&o, &outlen);
+		g_iconv_close(conv);
 	}
 	if (olen) {
 		*olen = (max_olen - outlen) / sizeof(wchar_t);
