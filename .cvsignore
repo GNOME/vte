@@ -11,6 +11,7 @@ stamp-h
 stamp-h1
 stamp-h.in
 vte.pc
+vte-uninstalled.pc
 INSTALL
 autom4te.cache
 compile
