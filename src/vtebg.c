@@ -529,9 +529,12 @@ vte_bg_get_pixmap(VteBg *bg,
 		if (GDK_IS_PIXMAP(bg->root_pixmap)) {
 			gdk_drawable_get_size(bg->root_pixmap, &width, &height);
 			rcolormap = gdk_drawable_get_colormap(gdk_get_default_root_window());
+			if (gdk_drawable_get_colormap(bg->root_pixmap) == NULL) {
+				gdk_drawable_set_colormap(bg->root_pixmap, rcolormap);
+			}
 			pixbuf = gdk_pixbuf_get_from_drawable(NULL,
 							      bg->root_pixmap,
-							      rcolormap,
+							      NULL,
 							      0, 0,
 							      0, 0,
 							      width, height);
@@ -597,6 +600,7 @@ vte_bg_get_pixbuf(VteBg *bg,
 	struct VteBgCacheItem *item;
 	GObject *cached;
 	GdkPixbuf *pixbuf;
+	GdkColormap *rcolormap;
 	char *file;
 
 	if (bg == NULL) {
@@ -628,13 +632,15 @@ vte_bg_get_pixbuf(VteBg *bg,
 	switch (source_type) {
 	case VTE_BG_SOURCE_ROOT:
 		if (GDK_IS_PIXMAP(bg->root_pixmap)) {
-			GdkColormap *colormap;
 			gint width, height;
 			gdk_drawable_get_size(bg->root_pixmap, &width, &height);
-			colormap = gdk_drawable_get_colormap(bg->root_pixmap);
+			rcolormap = gdk_drawable_get_colormap(gdk_get_default_root_window());
+			if (gdk_drawable_get_colormap(bg->root_pixmap) == NULL) {
+				gdk_drawable_set_colormap(bg->root_pixmap, rcolormap);
+			}
 			pixbuf = gdk_pixbuf_get_from_drawable(NULL,
 							      bg->root_pixmap,
-							      colormap,
+							      NULL,
 							      0, 0,
 							      0, 0,
 							      width, height);
