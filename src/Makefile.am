@@ -2,6 +2,7 @@ bin_PROGRAMS = vte
 lib_LTLIBRARIES = libvte.la
 noinst_PROGRAMS = interpret utf8echo
 EXTRA_PROGRAMS = pty termcap trie
+EXTRA_DIST = marshal.list
 
 CFLAGS = @CFLAGS@ @X_CFLAGS@ @GTK_CFLAGS@
 
