@@ -626,6 +626,8 @@ vte_terminal_accessible_focus_in(VteTerminal *terminal, GdkEventFocus *event,
 	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(data));
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_signal_emit_by_name(data, "focus-event", TRUE);
+	atk_object_notify_state_change(ATK_OBJECT(data),
+				       ATK_STATE_FOCUSED, TRUE);
 }
 
 /* Reflect focus-out events. */
@@ -636,6 +638,38 @@ vte_terminal_accessible_focus_out(VteTerminal *terminal, GdkEventFocus *event,
 	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(data));
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_signal_emit_by_name(data, "focus-event", FALSE);
+	atk_object_notify_state_change(ATK_OBJECT(data),
+				       ATK_STATE_FOCUSED, TRUE);
+}
+
+/* Reflect visibility-notify events. */
+static void
+vte_terminal_accessible_visibility_notify(VteTerminal *terminal,
+					  GdkEventVisibility *event,
+					  gpointer data)
+{
+	GtkWidget *widget;
+	gboolean visible;
+	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(data));
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	visible = event->state != GDK_VISIBILITY_FULLY_OBSCURED;
+	atk_object_notify_state_change(ATK_OBJECT(data),
+				       ATK_STATE_VISIBLE,
+				       visible);
+	widget = GTK_WIDGET(terminal);
+	while (visible) {
+		if (gtk_widget_get_toplevel(widget) == widget) {
+			break;
+		}
+		if (widget == NULL) {
+			break;
+		}
+		visible = visible && (GTK_WIDGET_VISIBLE(widget));
+		widget = gtk_widget_get_parent(widget);
+	}
+	atk_object_notify_state_change(ATK_OBJECT(data),
+				       ATK_STATE_SHOWING,
+				       visible);
 }
 
 /**
@@ -693,6 +727,9 @@ vte_terminal_accessible_new(VteTerminal *terminal)
         g_signal_connect(G_OBJECT(terminal), "focus-out-event",
 			 GTK_SIGNAL_FUNC(vte_terminal_accessible_focus_out),
 			 access);
+        g_signal_connect(G_OBJECT(terminal), "visibility-notify",
+			 GTK_SIGNAL_FUNC(vte_terminal_accessible_visibility_notify),
+			 access);
 
 	if (GTK_IS_WIDGET((GTK_WIDGET(terminal))->parent)) {
 		parent = gtk_widget_get_accessible((GTK_WIDGET(terminal))->parent);
@@ -704,7 +741,10 @@ vte_terminal_accessible_new(VteTerminal *terminal)
 				   terminal->window_title ?
 				   terminal->window_title :
 				   "");
-	
+
+	atk_object_notify_state_change(ATK_OBJECT(access),
+				       ATK_STATE_FOCUSABLE, TRUE);
+
 	return ATK_OBJECT(access);
 }
 
@@ -764,6 +804,12 @@ vte_terminal_accessible_finalize(GObject *object)
 						     G_SIGNAL_MATCH_DATA,
 						     0, 0, NULL,
 						     (gpointer)vte_terminal_accessible_focus_out,
+						     object);
+		g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+						     G_SIGNAL_MATCH_FUNC |
+						     G_SIGNAL_MATCH_DATA,
+						     0, 0, NULL,
+						     (gpointer)vte_terminal_accessible_visibility_notify,
 						     object);
 	}
 	if (gobject_class->finalize != NULL) {
@@ -1218,6 +1264,12 @@ vte_terminal_accessible_text_init(gpointer iface, gpointer data)
 	AtkTextIface *text;
 	g_return_if_fail(G_TYPE_FROM_INTERFACE(iface) == ATK_TYPE_TEXT);
 	text = iface;
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "Initializing accessible peer's "
+			"AtkText interface.\n");
+	}
+#endif
 	text->get_text = vte_terminal_accessible_get_text;
 	text->get_text_after_offset = vte_terminal_accessible_get_text_after_offset;
 	text->get_text_at_offset = vte_terminal_accessible_get_text_at_offset;
@@ -1246,7 +1298,8 @@ vte_terminal_accessible_text_finalize(gpointer iface, gpointer data)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Finalizing accessible peer AtkText interface.\n");
+		fprintf(stderr, "Finalizing accessible peer's "
+			"AtkText interface.\n");
 	}
 #endif
 
@@ -1263,6 +1316,219 @@ vte_terminal_accessible_text_finalize(gpointer iface, gpointer data)
 	if ((G_OBJECT_CLASS(accessible_class))->finalize) {
 		(G_OBJECT_CLASS(accessible_class))->finalize(iface);
 	}
+}
+
+static AtkLayer
+vte_terminal_accessible_component_get_layer(AtkComponent *component)
+{
+	return ATK_LAYER_WIDGET;
+}
+
+static gint
+vte_terminal_accessible_component_get_mdi_zorder(AtkComponent *component)
+{
+	return G_MININT;
+}
+
+static gboolean
+vte_terminal_accessible_component_contains(AtkComponent *component,
+					   gint x, gint y,
+					   AtkCoordType coord_type)
+{
+	gint ex, ey, ewidth, eheight;
+	atk_component_get_extents(component, &ex, &ey, &ewidth, &eheight,
+				  coord_type);
+	return ((x >= ex) &&
+		(x < ex + ewidth) &&
+		(y >= ey) &&
+		(y < ey + eheight));
+}
+
+static void
+vte_terminal_accessible_component_get_extents(AtkComponent *component,
+					      gint *x, gint *y,
+					      gint *width, gint *height,
+					      AtkCoordType coord_type)
+{
+	atk_component_get_position(component, x, y, coord_type);
+	atk_component_get_size(component, width, height);
+}
+
+static void
+vte_terminal_accessible_component_get_position(AtkComponent *component,
+					       gint *x, gint *y,
+					       AtkCoordType coord_type)
+{
+	GtkWidget *widget;
+	*x = 0;
+	*y = 0;
+	widget = (GTK_ACCESSIBLE(component))->widget;
+	if (!GTK_WIDGET_REALIZED(widget)) {
+		return;
+	}
+	switch (coord_type) {
+	case ATK_XY_SCREEN:
+		gdk_window_get_origin(widget->window, x, y);
+		break;
+	case ATK_XY_WINDOW:
+		gdk_window_get_position(widget->window, x, y);
+		break;
+	default:
+		g_assert_not_reached();
+		break;
+	}
+}
+
+static void
+vte_terminal_accessible_component_get_size(AtkComponent *component,
+					   gint *width, gint *height)
+{
+	GtkWidget *widget;
+	*width = 0;
+	*height = 0;
+	widget = (GTK_ACCESSIBLE(component))->widget;
+	if (!GTK_WIDGET_REALIZED(widget)) {
+		return;
+	}
+	gdk_drawable_get_size(widget->window, width, height);
+}
+
+static gboolean
+vte_terminal_accessible_component_set_extents(AtkComponent *component,
+					      gint x, gint y,
+					      gint width, gint height,
+					      AtkCoordType coord_type)
+{
+	/* FIXME (?) */
+	return FALSE;
+}
+
+static gboolean
+vte_terminal_accessible_component_set_position(AtkComponent *component,
+					       gint x, gint y,
+					       AtkCoordType coord_type)
+{
+	/* FIXME (?) */
+	return FALSE;
+}
+
+static gboolean
+vte_terminal_accessible_component_set_size(AtkComponent *component,
+					   gint width, gint height)
+{
+	VteTerminal *terminal;
+	gint columns, rows, xpad, ypad;
+	terminal = VTE_TERMINAL((GTK_ACCESSIBLE(component))->widget);
+	vte_terminal_get_padding(terminal, &xpad, &ypad);
+	if (width % terminal->char_width == 0) {
+		columns = width / terminal->char_width;
+	} else {
+		columns = (width + xpad) / terminal->char_width;
+	}
+	if (height % terminal->char_height == 0) {
+		rows = height / terminal->char_height;
+	} else {
+		rows = (height + xpad) / terminal->char_height;
+	}
+	vte_terminal_set_size(terminal, columns, rows);
+	return (terminal->row_count == rows) &&
+	       (terminal->column_count == columns);
+}
+
+static gboolean
+vte_terminal_accessible_component_grab_focus(AtkComponent *component)
+{
+	GtkWidget *widget;
+	widget = (GTK_ACCESSIBLE(component))->widget;
+	if (GTK_WIDGET_HAS_FOCUS(widget)) {
+		return TRUE;
+	}
+	gtk_widget_grab_focus(widget);
+	if (GTK_WIDGET_HAS_FOCUS(widget)) {
+		return TRUE;
+	}
+	return FALSE;
+}
+
+static AtkObject *
+vte_terminal_accessible_component_ref_accessible_at_point(AtkComponent *component,
+							  gint x, gint y,
+							  AtkCoordType coord_type)
+{
+	/* There are no children. */
+	return NULL;
+}
+
+static guint
+vte_terminal_accessible_component_add_focus_handler(AtkComponent *component,
+						    AtkFocusHandler handler)
+{
+	guint signal_id;
+	signal_id = g_signal_lookup("focus-event",
+				    VTE_TYPE_TERMINAL_ACCESSIBLE);
+	if (g_signal_handler_find(component,
+				  G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_ID,
+				  signal_id,
+				  0,
+				  NULL,
+				  handler,
+				  NULL) != 0) {
+		return 0;
+	}
+	return g_signal_connect(component, "focus-event",
+				G_CALLBACK(handler), NULL);
+}
+
+static void
+vte_terminal_accessible_component_remove_focus_handler(AtkComponent *component,
+						       guint handler_id)
+{
+	g_return_if_fail(g_signal_handler_is_connected(component, handler_id));
+	g_signal_handler_disconnect(component, handler_id);
+}
+
+static void
+vte_terminal_accessible_component_init(gpointer iface, gpointer data)
+{
+	AtkComponentIface *component;
+	g_return_if_fail(G_TYPE_FROM_INTERFACE(iface) == ATK_TYPE_COMPONENT);
+	component = iface;
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "Initializing accessible peer's "
+			"AtkComponent interface.\n");
+	}
+#endif
+	/* Set our virtual functions. */
+	component->add_focus_handler = vte_terminal_accessible_component_add_focus_handler;
+	component->contains = vte_terminal_accessible_component_contains;
+	component->ref_accessible_at_point = vte_terminal_accessible_component_ref_accessible_at_point;
+	component->get_extents = vte_terminal_accessible_component_get_extents;
+	component->get_position = vte_terminal_accessible_component_get_position;
+	component->get_size = vte_terminal_accessible_component_get_size;
+	component->grab_focus = vte_terminal_accessible_component_grab_focus;
+	component->remove_focus_handler = vte_terminal_accessible_component_remove_focus_handler;
+	component->set_extents = vte_terminal_accessible_component_set_extents;
+	component->set_position = vte_terminal_accessible_component_set_position;
+	component->set_size = vte_terminal_accessible_component_set_size;
+	component->get_layer = vte_terminal_accessible_component_get_layer;
+	component->get_mdi_zorder = vte_terminal_accessible_component_get_mdi_zorder;
+
+}
+
+static void
+vte_terminal_accessible_component_finalize(gpointer iface, gpointer data)
+{
+	GtkAccessibleClass *accessible_class;
+	accessible_class = g_type_class_peek(GTK_TYPE_ACCESSIBLE); 
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "Finalizing accessible peer's "
+			"AtkComponent interface.\n");
+	}
+#endif
 }
 
 static void
@@ -1296,6 +1562,11 @@ vte_terminal_accessible_get_type(void)
 		vte_terminal_accessible_text_finalize,
 		NULL,
 	};
+	static GInterfaceInfo component = {
+		vte_terminal_accessible_component_init,
+		vte_terminal_accessible_component_finalize,
+		NULL,
+	};
 	static const GTypeInfo terminal_accessible_info = {
 		sizeof(VteTerminalAccessibleClass),
 		(GBaseInitFunc)NULL,
@@ -1323,6 +1594,10 @@ vte_terminal_accessible_get_type(void)
 		g_type_add_interface_static(terminal_accessible_type,
 					    ATK_TYPE_TEXT,
 					    &text);
+		/* Add a component interface to this object class. */
+		g_type_add_interface_static(terminal_accessible_type,
+					    ATK_TYPE_COMPONENT,
+					    &component);
 	}
 
 	return terminal_accessible_type;

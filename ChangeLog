@@ -1,4 +1,16 @@
 2003-04-23 nalin
+	* src/vteaccess.c: implement an AtkComponent interface (part of
+	#110770).
+	* src/vteaccess.c(vte_terminal_accessible_focus_in): set the focus
+	state on the accessible peer (part of #110770).
+	* src/vteaccess.c(vte_terminal_accessible_focus_out): unset the focus
+	state on the accessible peer (part of #110770).
+	* src/vteaccess.c(vte_terminal_accessible_init): connect to the widget's
+	visibility-notify signals.
+	* src/vteaccess.c(vte_terminal_accessible_finalize): disconnect from
+	the widget's visibility-notify signals.
+
+2003-04-23 nalin
 	* src/vte.c(vte_terminal_background_update): don't bother generating
 	a new pixmap or panning the pixbuf -- we can use the desaturated
 	pixbuf directly now (#111386).
