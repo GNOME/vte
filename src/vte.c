@@ -7666,6 +7666,7 @@ vte_terminal_autoscroll(gpointer data)
 				terminal->char_height * adj;
 			row = terminal->pvt->selection_start.y;
 			vte_terminal_selection_recompute(terminal);
+			terminal->pvt->selection_start.y = adj;
 			vte_invalidate_cells(terminal,
 					     0,
 					     terminal->column_count,
@@ -7689,6 +7690,8 @@ vte_terminal_autoscroll(gpointer data)
 				terminal->char_height * adj;
 			row = terminal->pvt->selection_end.y;
 			vte_terminal_selection_recompute(terminal);
+			terminal->pvt->selection_end.y =
+				adj + terminal->row_count - 1;
 			vte_invalidate_cells(terminal,
 					     0,
 					     terminal->column_count,
