@@ -118,6 +118,9 @@ struct _VteTerminalPrivate {
 						   for insertion of any new
 						   characters */
 	} normal_screen, alternate_screen, *screen;
+	struct {			/* where selection started */
+		gdouble x, y;
+	} selection_start;
 
 	/* Options. */
 	gboolean scroll_on_output;
@@ -2855,6 +2858,8 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			if (!GTK_WIDGET_HAS_FOCUS(widget)) {
 				gtk_widget_grab_focus(widget);
 			}
+			terminal->pvt->selection_start.x = event->x;
+			terminal->pvt->selection_start.y = event->y;
 			return TRUE;
 		}
 		if (event->button == 2) {
