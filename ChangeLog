@@ -1,3 +1,8 @@
+2003-07-16 nalin
+	* gnome-pty-helper/configure.in: check for grantpt in libc and then
+	in libpt.  Check for openpty in libc before checking libutil.  Check for
+	sendmsg in libc before checking libsocket (with libnsl) (#117636).
+
 2003-07-11  Pablo Saratxaga <pablo@mandrakesoft.com>
 	* configure.in: Added Walloon (wa) to ALL_LINGUAS
 
