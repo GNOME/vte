@@ -1,3 +1,4 @@
+0.11.8: Fix some memory leaks.  Fix compilation on Solaris.  Fix Ctrl-Space.
 0.11.7: Properly recognizes 8-bit versions of SS2 and SS3 intermixed with
         UTF-8.  Add Macedonian and Welsh translations (yay GTP!).  Fix keypad
         page down key in application keypad mode.  Internalize some conversions

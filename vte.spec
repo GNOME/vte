@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.11.7
+Version: 0.11.8
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -94,6 +94,10 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Thu May 22 2003 Nalin Dahyabhai <nalin@redhat.com> 0.11.8-1
+- close some memory leaks
+- fix conversions of NUL bytes (Ctrl-Space)
+
 * Tue May 20 2003 Nalin Dahyabhai <nalin@redhat.com> 0.11.7-1
 - make handling of 8-bit SS2 and SS3 coexist properly with UTF-8 and other
   encodings where valid text can't be mistaken for the control codes
