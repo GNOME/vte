@@ -7,6 +7,7 @@ noinst_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-v
 EXTRA_DIST = \
 	$(pkglib_SCRIPTS) \
 	genkeysyms.py \
+	iso2022.txt \
 	marshal.list \
 	unitable.CNS11643 \
 	unitable.GB12345 \
