@@ -1,3 +1,10 @@
+2003-01-30 nalin	
+	* MESSAGE-OF-DOOM: added, for scaring people away.
+	* vte.spec: bump to 0.11.x for development.
+	* src/mev.c(main): reset modes before quitting.
+	* src/vte.c(vte_terminal_button_press): don't always extend selection
+	when not in event mode.
+
 2003-01-28 nalin	
 	* configure.in: make debugging support an explicit option to configure.
 	don't automatically enable debugging in maintainer mode.

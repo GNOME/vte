@@ -295,6 +295,7 @@ main(int argc, char **argv)
 			break;
 		}
 	} while (!stop);
+	reset();
 	fcntl(STDIN_FILENO, F_SETFL, flags);
 
 	if (tcsetattr(STDIN_FILENO, TCSANOW, &original) != 0) {

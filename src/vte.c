@@ -7125,8 +7125,8 @@ vte_terminal_process_incoming(gpointer data)
 			}
 		}
 
-		/* Add the cell we just moved to the region we need to
-		 * refresh for the user. */
+		/* Add the cell into which we just moved to the region we
+		 * need to refresh for the user. */
 		bbox_topleft.x = MIN(bbox_topleft.x,
 				     screen->cursor_current.col);
 		bbox_topleft.y = MIN(bbox_topleft.y,
@@ -9532,14 +9532,19 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				fprintf(stderr, "Handling click ourselves.\n");
 			}
 #endif
-			/* If the user hit shift, override event mode. */
-			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    !event_mode) {
-				/* If shift is pressed in non-event
-				 * mode, extend selection if the cell
-				 * isn't already selected, otherwise
-				 * start selection. */
-				if (terminal->pvt->has_selection &&
+			/* If we're in event mode, and the user held down the
+			 * shift key, we start selecting. */
+			if (event_mode) {
+				if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
+					start_selecting = TRUE;
+				}
+			} else {
+				/* If the user hit shift, and the location
+				 * clicked isn't selected, and we already have
+				 * a selection, extend selection, otherwise
+				 * start over. */
+				if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) &&
+				    terminal->pvt->has_selection &&
 				    !vte_cell_is_selected(terminal,
 							  cellx,
 							  celly,
