@@ -2743,7 +2743,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			vte_terminal_send(terminal, normal, normal_length);
 			g_free(normal);
 			normal = NULL;
-		}
+		} else
 		/* If the key maps to characters, send them to the child. */
 		if (special != NULL) {
 			termcap = terminal->pvt->termcap;

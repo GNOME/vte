@@ -37,7 +37,7 @@ struct vte_termcap {
 	struct vte_termcap_entry {
 		char *comment;
 		char *string;
-		size_t length;
+		ssize_t length;
 		struct vte_termcap_entry *next;
 	} *entries;
 	struct vte_termcap_alias {
@@ -49,12 +49,12 @@ struct vte_termcap {
 };
 
 static char *
-nextline(FILE *fp, size_t *outlen)
+nextline(FILE *fp, ssize_t *outlen)
 {
 	char buf[LINE_MAX];
-	size_t len = 0;
+	ssize_t len = 0;
 	char *ret = NULL;
-	size_t retlen = 0;
+	ssize_t retlen = 0;
 	char *tmp = NULL;
 
 	if (!feof(fp)) do {
@@ -75,12 +75,12 @@ nextline(FILE *fp, size_t *outlen)
 		ret[retlen] = '\0';
 	} while ((len > 0) && (buf[retlen - 1] != '\n') && !feof(fp));
 
-	if ((ret != NULL) && (ret[retlen - 1] == '\n')) {
+	if ((ret != NULL) && (retlen > 0) && (ret[retlen - 1] == '\n')) {
 		retlen--;
 		ret[retlen] = '\0';
 	}
 
-	if ((ret != NULL) && (ret[retlen - 1] == '\r')) {
+	if ((ret != NULL) && (retlen > 0) && (ret[retlen - 1] == '\r')) {
 		retlen--;
 		ret[retlen] = '\0';
 	}
@@ -93,7 +93,7 @@ static char *
 nextline_with_continuation(FILE *fp)
 {
 	char *ret = NULL;
-	size_t rlen = 0, slen = 0;
+	ssize_t rlen = 0, slen = 0;
 	char *s, *tmp;
 	gboolean continuation = FALSE;
 	do {
@@ -128,7 +128,7 @@ vte_termcap_add_aliases(struct vte_termcap *termcap,
 			struct vte_termcap_entry *entry,
 			const char *aliases)
 {
-	size_t l;
+	ssize_t l;
 	struct vte_termcap_alias *alias = NULL;
 	const char *p;
 
@@ -161,12 +161,12 @@ vte_termcap_add_aliases(struct vte_termcap *termcap,
 }
 
 static void
-vte_termcap_add_entry(struct vte_termcap *termcap, const char *s, size_t length,
+vte_termcap_add_entry(struct vte_termcap *termcap, const char *s, ssize_t length,
 		      char *comment)
 {
 	struct vte_termcap_entry *entry = NULL;
 	char *p = NULL;
-	size_t l;
+	ssize_t l;
 
 	entry = g_malloc(sizeof(struct vte_termcap_entry));
 	if (entry != NULL) {
@@ -202,10 +202,10 @@ vte_termcap_add_entry(struct vte_termcap *termcap, const char *s, size_t length,
 }
 
 static void
-vte_termcap_strip(const char *termcap, char **stripped, size_t *len)
+vte_termcap_strip(const char *termcap, char **stripped, ssize_t *len)
 {
 	char *ret;
-	size_t i, o, length;
+	ssize_t i, o, length;
 	length = strlen(termcap);
 
 	ret = g_malloc(length + 2);
@@ -318,7 +318,7 @@ vte_termcap_new(const char *filename)
 	fp = fopen(filename, "r");
 	if (fp != NULL) {
 		while ((s = nextline_with_continuation(fp)) != NULL) {
-			size_t slen;
+			ssize_t slen;
 			if ((s[0] != '#') && (isprint(s[0]))) {
 				if (ret == NULL) {
 					ret = g_malloc(sizeof(struct vte_termcap));
@@ -345,7 +345,7 @@ vte_termcap_new(const char *filename)
 					comment[slen + 1] = '\0';
 				} else {
 					char *tmp;
-					size_t clen;
+					ssize_t clen;
 					clen = strlen(comment);
 					tmp = g_malloc(slen + clen + 2);
 					if (tmp == NULL) {
@@ -389,13 +389,13 @@ vte_termcap_free(struct vte_termcap *termcap)
 }
 
 static const char *
-vte_termcap_find_l(struct vte_termcap *termcap, const char *tname, size_t len,
+vte_termcap_find_l(struct vte_termcap *termcap, const char *tname, ssize_t len,
 		   const char *cap)
 {
 	const char *ret;
 	struct vte_termcap_alias *alias;
 	char ttname[len + 1];
-	size_t clen;
+	ssize_t clen;
 
 	/* Find the entry by this name. */
 	memcpy(ttname, tname, len);
@@ -407,7 +407,7 @@ vte_termcap_find_l(struct vte_termcap *termcap, const char *tname, size_t len,
 	if (alias != NULL) {
 		char *str = alias->entry->string;
 		const char *nextcap = "tc";
-		size_t len = alias->entry->length;
+		ssize_t len = alias->entry->length;
 
 		clen = strlen(cap);
 		ret = str;
@@ -505,7 +505,7 @@ vte_termcap_find_numeric(struct vte_termcap *termcap, const char *tname,
 {
 	const char *val;
 	char *p;
-	size_t l;
+	ssize_t l;
 	long ret;
 	val = vte_termcap_find(termcap, tname, cap);
 	if ((val != NULL) && (val[0] != '\0')) {
@@ -523,7 +523,7 @@ vte_termcap_find_string(struct vte_termcap *termcap, const char *tname,
 			const char *cap)
 {
 	const char *val, *p;
-	size_t l;
+	ssize_t l;
 	val = vte_termcap_find(termcap, tname, cap);
 	if ((val != NULL) && (val[0] != '\0')) {
 		l = strlen(cap);
@@ -540,13 +540,13 @@ vte_termcap_find_string(struct vte_termcap *termcap, const char *tname,
 
 TERMCAP_MAYBE_STATIC char *
 vte_termcap_find_string_length(struct vte_termcap *termcap, const char *tname,
-			       const char *cap, size_t *length)
+			       const char *cap, ssize_t *length)
 {
 	const char *val, *p;
 	char *ret;
-	size_t l;
+	ssize_t l;
 	val = vte_termcap_find(termcap, tname, cap);
-	if (val != NULL) {
+	if ((val != NULL) && (val[0] != '\0')) {
 		l = strlen(cap);
 		val += (l + 1);
 		p = val;
@@ -566,7 +566,7 @@ TERMCAP_MAYBE_STATIC const char *
 vte_termcap_comment(struct vte_termcap *termcap, const char *tname)
 {
 	struct vte_termcap_alias *alias;
-	size_t len;
+	ssize_t len;
 	if ((tname == NULL) || (tname[0] == '\0')) {
 		return termcap->comment;
 	}
@@ -588,7 +588,7 @@ vte_termcap_comment(struct vte_termcap *termcap, const char *tname)
 TERMCAP_MAYBE_STATIC char *
 vte_termcap_generate(struct vte_termcap *termcap)
 {
-	size_t size;
+	ssize_t size;
 	char *ret = NULL;
 	struct vte_termcap_entry *entry;
 	size = strlen(termcap->comment ?: "");

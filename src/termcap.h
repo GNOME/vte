@@ -49,7 +49,7 @@ char *vte_termcap_find_string(struct vte_termcap *termcap, const char *tname,
  * be freed with g_free(). */
 char *vte_termcap_find_string_length(struct vte_termcap *termcap,
 				     const char *tname,
-				     const char *cap, size_t *length);
+				     const char *cap, ssize_t *length);
 
 G_END_DECLS
 
