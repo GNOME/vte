@@ -7394,9 +7394,11 @@ vte_terminal_is_word_char(VteTerminal *terminal, gunichar c)
 	int i;
 	VteWordCharRange *range;
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	/* We need an array, even if it's empty. */
 	if (terminal->pvt->word_chars == NULL) {
 		return FALSE;
 	}
+	/* Go through each range and check if the character is included. */
 	for (i = 0; i < terminal->pvt->word_chars->len; i++) {
 		range = &g_array_index(terminal->pvt->word_chars,
 				       VteWordCharRange,
@@ -7404,6 +7406,10 @@ vte_terminal_is_word_char(VteTerminal *terminal, gunichar c)
 		if ((c >= range->start) && (c <= range->end)) {
 			return TRUE;
 		}
+	}
+	/* Special case:  if there are no ranges, assume the defaults. */
+	if (i == 0) {
+		return g_unichar_isgraph(c) && (!g_unichar_ispunct(c));
 	}
 	return FALSE;
 }
@@ -10178,7 +10184,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->selection_start.y = 0;
 	pvt->selection_end.x = 0;
 	pvt->selection_end.y = 0;
-	vte_terminal_set_word_chars(terminal, "-a-zA-Z0-9");
+	vte_terminal_set_word_chars(terminal, NULL);
 
 	/* Miscellaneous options. */
 	vte_terminal_set_backspace_binding(terminal, VTE_ERASE_AUTO);
@@ -13688,6 +13694,8 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
  * as parts of words, and all other characters as word separators.  Ranges of
  * characters can be specified by separating them with a hyphen.
  *
+ * As a special case, if @spec is NULL or the empty string, the terminal will
+ * treat all graphic non-punctuation characters as word characters.
  */
 void
 vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
@@ -13706,6 +13714,10 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	}
 	terminal->pvt->word_chars = g_array_new(FALSE, TRUE,
 						sizeof(VteWordCharRange));
+	/* Special case: if spec is NULL, try to do the right thing. */
+	if ((spec == NULL) || (strlen(spec) == 0)) {
+		return;
+	}
 	/* Convert the spec from UTF-8 to a string of gunichars . */
 	conv = g_iconv_open(_vte_table_wide_encoding(), "UTF-8");
 	if (conv == ((GIConv) -1)) {

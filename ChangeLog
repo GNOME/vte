@@ -1,4 +1,10 @@
 2002-09-24 nalin
+	* src/vte.c(vte_terminal_set_word_chars,vte_terminal_is_word_char):
+	if the list of word characters is NULL or zero-length, try to guess
+	with (g_unichar_isgraph() && !g_unichar_ispunct()), which seems to
+	produce reasonable results (#77134).
+
+2002-09-24 nalin
 	* gnome-pty-helper/acinclude.m4: Fix HAVE_UT_UT_TV for cases where
 	the static initializer might not work right (#93774, patch from
 	Kalpesh Shah).
