@@ -85,8 +85,10 @@ if test x$have_socketpair = x1 ; then
 	AC_DEFINE(HAVE_SOCKETPAIR,1,[Define if you have the `socketpair' function.])
 fi
 
-if test x$USE_MAINTAINER_MODE != x ; then
-	if test x$USE_MAINTAINER_MODE != xno ; then
+AC_ARG_ENABLE(debugging,[  --enable-debugging      enable extra debugging checks and logging messages],DEBUG=$enableval,DEBUG=no)
+
+if test x$DEBUG != x ; then
+	if test x$DEBUG != xno ; then
 		if test x$GCC = xyes ; then
 			AC_CHECK_CC_OPT(-std=c99,vte_std_c99)
 			CFLAGS="${CFLAGS} $vte_std_c99"
@@ -106,6 +108,7 @@ if test x$USE_MAINTAINER_MODE != x ; then
 	fi
 fi
 if test x$VTE_DEBUG = x1 ; then
+	AC_MSG_RESULT([enabling debug checks and messages])
 	AC_DEFINE(VTE_DEBUG,,[Enable debugging messages.])
 fi
 
