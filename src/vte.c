@@ -1985,7 +1985,7 @@ static struct {
 	{"mr", vte_sequence_handler_mr},
 	{"MR", NULL},
 
-	{"nd", NULL},
+	{"nd", vte_sequence_handler_nd},
 	{"nw", NULL},
 
 	{"pc", NULL},
