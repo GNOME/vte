@@ -90,7 +90,10 @@ main(int argc, char **argv)
 	const char *font = NULL;
 	const char *terminal = NULL;
 	const char *command = NULL;
+	char **argv2;
 	int opt;
+	int i, j;
+	GList *args = NULL;
 	GdkColor fore, back;
 	const char *usage = "Usage: %s "
 			    "[ [-B image] | [-T] ] "
@@ -102,6 +105,24 @@ main(int argc, char **argv)
 			    "[-t terminaltype]\n";
 	back.red = back.green = back.blue = 0x0000;
 	fore.red = fore.green = fore.blue = 0xbfff;
+	/* Pull out long options for GTK+. */
+	for (i = j = 1; i < argc; i++) {
+		if (g_ascii_strncasecmp("--", argv[i], 2) == 0) {
+			args = g_list_append(args, argv[i]);
+			for (j = i; j < argc; j++) {
+				argv[j] = argv[j + 1];
+			}
+			argc--;
+			i--;
+		}
+	}
+	argv2 = g_malloc0(sizeof(char*) * (g_list_length(args) + 2));
+	argv2[0] = argv[0];
+	for (i = 1; i <= g_list_length(args); i++) {
+		argv2[i] = (char*) g_list_nth(args, i - 1);
+	}
+	argv2[i] = NULL;
+	g_assert(i < (g_list_length(args) + 2));
 	/* Parse some command-line options. */
 	while ((opt = getopt(argc, argv, "B:Tabc:df:ht:")) != -1) {
 		switch (opt) {

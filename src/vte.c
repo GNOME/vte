@@ -538,7 +538,8 @@ vte_invalidate_cursor_once(gpointer data)
 	}
 	terminal = VTE_TERMINAL(data);
 
-	if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
+	if (terminal->pvt->cursor_visible &&
+	    GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
 		if (terminal->pvt->im_preedit != NULL) {
 			preedit_length = strlen(terminal->pvt->im_preedit);
 		} else {
@@ -2004,13 +2005,13 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 {
 	GArray *array;
 	VteScreen *screen;
-	struct vte_charcell cell;
+	struct vte_charcell cell, *cells;
+	long add, i;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 
 	/* Set up defaults we'll use when adding new cells. */
-	memset(&cell, 0, sizeof(cell));
 	cell = screen->defaults;
 	cell.c = ' ';
 	cell.columns = vte_unichar_width(cell.c);
@@ -2019,8 +2020,9 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 		cell.back = VTE_DEF_BG;
 	}
 
+	/* Figure out how many rows we need to add. */
 	while (screen->cursor_current.row >= vte_ring_next(screen->row_data)) {
-		/* Create a new row for this part of the screen. */
+		/* Create a new row. */
 		array = vte_new_row_data();
 		vte_ring_append(screen->row_data, array);
 	}
@@ -2029,13 +2031,17 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 	array = vte_ring_index(screen->row_data,
 			       GArray*,
 			       screen->cursor_current.row);
-	if (array != NULL) {
-		/* Add enough cells at the end to make sure we have enough for
-		 * all visible columns. */
-		while ((array->len <= screen->cursor_current.col) &&
-		       (array->len < terminal->column_count)) {
-			array = g_array_append_val(array, cell);
+	if ((array->len <= screen->cursor_current.col) &&
+	    (array->len < terminal->column_count)) {
+		/* Add enough cells at the end to make sure we have
+		 * enough for all visible columns. */
+		add = screen->cursor_current.col - array->len;
+		cells = g_malloc(sizeof(cell) * add);
+		for (i = 0; i < add; i++) {
+			cells[i] = cell;
 		}
+		array = g_array_append_vals(array, cells, add);
+		g_free(cells);
 	}
 }
 
@@ -5222,9 +5228,7 @@ vte_terminal_insert_char(GtkWidget *widget, gunichar c, gboolean force_insert)
 					     screen->cursor_current.row, 2);
 		}
 
-		/* And take a step to the to the right, making sure we redraw
-		 * both where the cursor was moved from. */
-		vte_invalidate_cursor_once(terminal);
+		/* And take a step to the to the right. */
 		screen->cursor_current.col++;
 
 		/* Make sure we're not getting random stuff past the right
@@ -5235,9 +5239,8 @@ vte_terminal_insert_char(GtkWidget *widget, gunichar c, gboolean force_insert)
 		}
 	}
 
-	/* Redraw where the cursor has moved to. */
+	/* Make sure the location the cursor is on exists. */
 	vte_terminal_ensure_cursor(terminal, FALSE);
-	vte_invalidate_cursor_once(terminal);
 
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_IO)) {
@@ -9722,6 +9725,7 @@ vte_terminal_draw_chars(VteTerminal *terminal,
 			struct vte_charcell *cell,
 			gunichar *string,
 			size_t count,
+			size_t columns,
 			long col,
 			long row,
 			long x,
@@ -9766,6 +9770,9 @@ vte_terminal_draw_chars(VteTerminal *terminal,
 	} else {
 		ch = 0;
 	}
+	if (columns == 0) {
+		columns = 1;
+	}
 
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_UPDATES)) {
@@ -9788,7 +9795,7 @@ vte_terminal_draw_chars(VteTerminal *terminal,
 		XSetForeground(display, gc,
 			       terminal->pvt->palette[back].pixel);
 		XFillRectangle(display, drawable, gc,
-			       x, y, width, height);
+			       x, y, width * columns, height);
 	}
 
 	/* If there's no data, bug out here. */
@@ -10775,7 +10782,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 #endif
 			/* Draw the character. */
 			vte_terminal_draw_chars(terminal, screen, cell,
-						NULL, 0,
+						NULL, 0, 0,
 						col,
 						drow,
 						col * width - x_offs,
@@ -10855,7 +10862,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			}
 #endif
 			vte_terminal_draw_chars(terminal, screen, cell,
-						NULL, 0,
+						NULL, 0, 0,
 						col,
 						drow,
 						col * width - x_offs,
@@ -10929,7 +10936,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 				       width,
 				       height);
 			vte_terminal_draw_chars(terminal, screen, &im_cell,
-						NULL, 0,
+						NULL, 0, 0,
 						col,
 						drow,
 						col * width - x_offs,

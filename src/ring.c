@@ -24,13 +24,6 @@
 #include "debug.h"
 #include "ring.h"
 
-struct _VteRing {
-	VteRingFreeFunc free;
-	gpointer user_data;
-	gpointer *array;
-	long delta, length, max;
-};
-
 #ifdef VTE_DEBUG
 static void
 vte_ring_validate(VteRing *ring)
@@ -168,49 +161,6 @@ void
 vte_ring_append(VteRing *ring, gpointer data)
 {
 	vte_ring_insert(ring, ring->delta + ring->length, data);
-}
-
-gpointer
-vte_ring_at(VteRing *ring, long position)
-{
-	if (ring->array[position % ring->max] == NULL) {
-		g_error("NULL at %ld(%ld) delta %ld, length %ld.\n",
-			position, position % ring->max,
-			ring->delta, ring->length);
-	}
-	g_assert(ring->array[position % ring->max] != NULL);
-	return ring->array[position % ring->max];
-}
-
-gboolean
-vte_ring_contains(VteRing *ring, long position)
-{
-	return (position >= ring->delta) &&
-	       (position < (ring->delta + ring->length));
-}
-
-long
-vte_ring_delta(VteRing *ring)
-{
-	return ring->delta;
-}
-
-long
-vte_ring_length(VteRing *ring)
-{
-	return ring->length;
-}
-
-long
-vte_ring_next(VteRing *ring)
-{
-	return ring->delta + ring->length;
-}
-
-long
-vte_ring_max(VteRing *ring)
-{
-	return ring->max;
 }
 
 void

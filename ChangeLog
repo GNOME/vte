@@ -1,4 +1,8 @@
 2002-07-23  nalin
+	* src/ring.c, ring.h: Expose the ring implementation and convert several
+	simple functions into macros.
+	* src/vteapp.c: Pass all long options on to gtk_init().
+2002-07-23  nalin
 	* src/vte.c: Fix realize/unrealize to be properly reversible.  Use the
 	font from the default style unless we're explicitly given one.
 	* src/vteapp.c: Don't set base size or minimum size geometry hints when

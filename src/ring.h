@@ -28,17 +28,32 @@ G_BEGIN_DECLS
 typedef struct _VteRing VteRing;
 typedef void (*VteRingFreeFunc)(gpointer freeing, gpointer data);
 
+struct _VteRing {
+	VteRingFreeFunc free;
+	gpointer user_data;
+	gpointer *array;
+	long delta, length, max;
+};
+
+#define vte_ring_contains(ring, position) \
+	((position >= (ring)->delta) && \
+	 (position < (ring)->delta + (ring)->length))
+#define vte_ring_delta(ring) ((ring)->delta)
+#define vte_ring_length(ring) ((ring)->length)
+#define vte_ring_next(ring) ((ring)->delta + (ring)->length)
+#define vte_ring_max(ring) ((ring)->max)
+#define vte_ring_at(ring, position) \
+	((ring)->array[position % (ring)->max] ? \
+	 (ring)->array[position % (ring)->max] : \
+	 (g_error("NULL at %ld(%ld) delta %ld, length %ld at %d\n", \
+		  position, position % (ring)->max, \
+		  (ring)->delta, (ring)->length, __LINE__), NULL))
 #define vte_ring_index(ring, cast, position) (cast) vte_ring_at(ring, position)
+
 VteRing *vte_ring_new(long max_elements, VteRingFreeFunc free, gpointer data);
 void vte_ring_insert(VteRing *ring, long position, gpointer data);
 void vte_ring_remove(VteRing *ring, long position, gboolean free_element);
-gpointer vte_ring_at(VteRing *ring, long position);
 void vte_ring_append(VteRing *ring, gpointer data);
-long vte_ring_delta(VteRing *ring);
-long vte_ring_length(VteRing *ring);
-long vte_ring_max(VteRing *ring);
-long vte_ring_next(VteRing *ring);
-gboolean vte_ring_contains(VteRing *ring, long position);
 void vte_ring_free(VteRing *ring, gboolean free_elements);
 
 G_END_DECLS
