@@ -1,4 +1,8 @@
 2003-03-05 nalin	
+	* vte.pc.in: add FT2_LIBS and FT2_CFLAGS to our libs and cflags.  Add
+	xft >= 2.0 and fontconfig as hard requirements.
+
+2003-03-05 nalin	
 	* src/vtedraw.c: don't spit out which rendering method we're using
 	except in debug mode.
 
