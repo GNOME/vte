@@ -925,10 +925,14 @@ _vte_iso2022_sequence_length(const unsigned char *nextctl, gsize length)
 				}
 				break;
 #endif
+#if 0
 			case '^':
+				/* ESC ^, the PM.  Search for a string
+				 * terminator. */
+#endif
 			case 'P':
-				/* ESC ^, the PM, or ESC P, the DCS.
-				 * Search for a string terminator. */
+				/* ESC P, the DCS.  Search for a string
+				 * terminator. */
 				for (i = 2; i < length - 1; i++) {
 					if ((nextctl[i] == '\033') &&
 					    (nextctl[i + 1] == '\\')) {

@@ -1,3 +1,19 @@
+2003-05-29 nalin
+	* src/vte.c(vte_terminal_process_incoming): handle control characters
+	in the middle of control sequences.
+	* src/vte.c(vte_sequence_handler_cm): fix origin mode.
+	* src/vte.c(vte_sequence_handler_cv): fix origin mode.
+	* src/vte.c(vte_sequence_handler_cs): snap the cursor to the scrolling
+	region which is set.
+	* src/table.c(_vte_table_extract_number): extract a number digit by
+	digit as we do in the trie parser.
+	* src/vte.h: declare 'struct vte_char_attributes' again to restore API
+	back compat with 0.10.x.
+	* src/iso2022.c(_vte_iso2022_sequence_length): don't recognize PM
+	messages -- Xterm doesn't do anything with them and we don't want to
+	appear to hang when we're really just waiting for the end of the
+	message.
+
 2003-05-28 nalin
 	* src/vtefc.c(_vte_fc_defaults_from_rdb): only apply DPI if we were
 	able to get a value.

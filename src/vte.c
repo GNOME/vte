@@ -2447,7 +2447,7 @@ vte_sequence_handler_cm(VteTerminal *terminal,
 			GValueArray *params)
 {
 	GValue *row, *col;
-	long rowval, colval;
+	long rowval, colval, origin;
 	VteScreen *screen;
 
 	screen = terminal->pvt->screen;
@@ -2458,7 +2458,13 @@ vte_sequence_handler_cm(VteTerminal *terminal,
 		col = g_value_array_get_nth(params, 1);
 		if (G_VALUE_HOLDS_LONG(row) &&
 		    G_VALUE_HOLDS_LONG(col)) {
-			rowval = g_value_get_long(row);
+			if (screen->origin_mode &&
+			    screen->scrolling_restricted) {
+				origin = screen->scrolling_region.start;
+			} else {
+				origin = 0;
+			}
+			rowval = g_value_get_long(row) + origin;
 			colval = g_value_get_long(col);
 			rowval = CLAMP(rowval, 0, terminal->row_count - 1);
 			colval = CLAMP(colval, 0, terminal->column_count - 1);
@@ -2553,6 +2559,11 @@ vte_sequence_handler_cs(VteTerminal *terminal,
 	    (terminal->pvt->screen->scrolling_region.end == rows - 1)) {
 		terminal->pvt->screen->scrolling_restricted = FALSE;
 	}
+	/* Clamp the cursor to the scrolling region. */
+	terminal->pvt->screen->cursor_current.row = CLAMP(terminal->pvt->screen->cursor_current.row,
+							  terminal->pvt->screen->insert_delta + start,
+							  terminal->pvt->screen->insert_delta + end);
+	vte_terminal_ensure_cursor(terminal, TRUE);
 }
 
 /* Restrict scrolling and updates to a subset of the visible lines, because
@@ -2587,6 +2598,11 @@ vte_sequence_handler_cS(VteTerminal *terminal,
 	    (terminal->pvt->screen->scrolling_region.end == rows - 1)) {
 		terminal->pvt->screen->scrolling_restricted = FALSE;
 	}
+	/* Clamp the cursor to the scrolling region. */
+	terminal->pvt->screen->cursor_current.row = CLAMP(terminal->pvt->screen->cursor_current.row,
+							  terminal->pvt->screen->insert_delta + start,
+							  terminal->pvt->screen->insert_delta + end);
+	vte_terminal_ensure_cursor(terminal, TRUE);
 }
 
 /* Clear all tab stops. */
@@ -2649,16 +2665,21 @@ vte_sequence_handler_cv(VteTerminal *terminal,
 {
 	VteScreen *screen;
 	GValue *value;
-	long val;
+	long val, origin;
 	screen = terminal->pvt->screen;
 	/* We only care if there's a parameter in there. */
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
 			/* Move the cursor. */
-			val = CLAMP(g_value_get_long(value),
-				    0,
-				    terminal->row_count - 1);
+			if (screen->origin_mode &&
+			    screen->scrolling_restricted) {
+				origin = screen->scrolling_region.start;
+			} else {
+				origin = 0;
+			}
+			val = g_value_get_long(value) + origin;
+			val = CLAMP(val, 0, terminal->row_count - 1);
 			screen->cursor_current.row = screen->insert_delta + val;
 		}
 	}
@@ -4339,15 +4360,11 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
-#if 0
 		/* 6: Origin mode. */
 		{6, &terminal->pvt->screen->origin_mode, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
-#else
-		{6, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
-#endif
 		/* 7: Wraparound mode. */
 		{7, &terminal->pvt->flags.am, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
@@ -7082,6 +7099,23 @@ vte_terminal_process_incoming(gpointer data)
 		 * we're currently examining into the screen. */
 		if (match == NULL) {
 			c = wbuf[start];
+			/* If it's a control character, permute the order, per
+			 * vttest. */
+			if ((c != *next) &&
+			    ((*next & 0x1f) == *next) &&
+			    (start + 1 < next - wbuf)) {
+				gunichar ctrl;
+				int i;
+				/* Save the control character. */
+				ctrl = *next;
+				/* Move everything before it up a slot. */
+				for (i = next - wbuf; i > start; i--) {
+					wbuf[i] = wbuf[i - 1];
+				}
+				/* Move the control character to the front. */
+				wbuf[i] = ctrl;
+				continue;
+			}
 #ifdef VTE_DEBUG
 			c = c & ~VTE_ISO2022_ENCODED_WIDTH_MASK;
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {

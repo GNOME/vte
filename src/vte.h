@@ -121,6 +121,13 @@ struct _VteCharAttributes {
 };
 typedef struct _VteCharAttributes VteCharAttributes;
 
+/* The name of the same structure in the 0.10 series, for API compatibility. */
+struct vte_char_attributes {
+	long row, column;
+	GdkColor fore, back;
+	gboolean underline:1, strikethrough:1;
+};
+
 /* The widget's type. */
 GtkType vte_terminal_get_type(void);
 GtkType vte_terminal_erase_binding_get_type(void);

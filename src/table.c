@@ -365,7 +365,8 @@ _vte_table_extract_number(GValueArray **array,
 	GValue value = {0,};
 	GString *tmp;
 	char **vals;
-	int i;
+	int i, j;
+	long total;
 
 	tmp = g_string_new("");
 	for (i = 0; i < arginfo->length; i++) {
@@ -381,7 +382,12 @@ _vte_table_extract_number(GValueArray **array,
 			if (*array == NULL) {
 				*array = g_value_array_new(1);
 			}
-			g_value_set_long(&value, atol(vals[i]));
+			for (total = 0, j = 0; vals[i][j] != '\0'; j++) {
+				total *= 10;
+				total += g_unichar_digit_value(vals[i][j]) == -1 ?
+					 0 : g_unichar_digit_value(vals[i][j]);
+			}
+			g_value_set_long(&value, total);
 			g_value_array_append(*array, &value);
 		}
 
