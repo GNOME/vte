@@ -456,6 +456,7 @@ termcaps/Makefile
 python/Makefile
 po/Makefile.in
 doc/Makefile
+doc/openi18n/Makefile
 doc/reference/Makefile
 vte.pc
 ])
