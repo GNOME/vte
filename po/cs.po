@@ -5,13 +5,28 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte VERSION\n"
-"POT-Creation-Date: 2003-05-08 13:33+0200\n"
-"PO-Revision-Date: 2003-05-08 14:46+0200\n"
+"POT-Creation-Date: 2003-05-09 05:36+0200\n"
+"PO-Revision-Date: 2003-05-09 14:14+0200\n"
 "Last-Translator: Miloslav Trmac <mitr@volny.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+#: src/iso2022.c:744 src/vte.c:1991
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Nemohu konvertovat znaky z %s do %s."
+
+#: src/iso2022.c:1355
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr "Pokus nastavit neplatnou mapu NRC '%c'."
+
+#: src/iso2022.c:1406 src/iso2022.c:1432
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr "Pokus nastavit neplatnou širokou mapu NRC '%c'."
 
 #: src/pty.c:317
 #, c-format
@@ -39,11 +54,6 @@ msgstr "Duplikát (%s/%s)!"
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Chyba při kompilaci regulárního výrazu \"%s\"."
-
-#: src/vte.c:1991
-#, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Nemohu konvertovat znaky z %s do %s."
 
 #: src/vte.c:5501
 #, c-format
@@ -79,3 +89,18 @@ msgstr "Chyba při nastavování velikosti PTY: %s."
 #: src/vte.c:13914
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() selhal při nastavování znaků slova"
+
+#. Bail back to normal mode.
+#: src/vteapp.c:640
+msgid "Could not open console.\n"
+msgstr "Nemohu otevřít konzoli.\n"
+
+#: src/vteglyph.c:575
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr "Neznámý režim pixelu %d.\n"
+
+#: src/vtexft.c:664
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr "Nemohu vykreslit znak U+%04x.\n"
