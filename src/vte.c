@@ -6794,16 +6794,6 @@ vte_terminal_eof(GIOChannel *channel, gpointer data)
 	g_return_if_fail(VTE_IS_TERMINAL(data));
 	terminal = VTE_TERMINAL(data);
 
-	/* Stop waiting for SIGCHLD notification for this child. */
-	if (VTE_IS_REAPER(terminal->pvt->pty_reaper)) {
-		g_signal_handlers_disconnect_by_func(terminal->pvt->pty_reaper,
-						     (gpointer)vte_terminal_catch_child_exited,
-						     terminal);
-		g_object_unref(G_OBJECT(terminal->pvt->pty_reaper));
-	}
-	terminal->pvt->pty_pid = -1;
-	terminal->pvt->pty_reaper = NULL;
-
 	/* Close the connections to the child -- note that the source channel
 	 * has already been dereferenced. */
 	if (channel == terminal->pvt->pty_input) {

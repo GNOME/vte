@@ -1,4 +1,9 @@
-2003-05-20 nalin
+2003-05-19 nalin
+	* src/vteapp.c: don't exit on eof, just child-exited.
+	* src/vte.c(vte_terminal_eof): don't disconnect from SIGCHLD on eof,
+	the child might still be running.
+
+2003-05-19 nalin
 	* src/Makefile.am: change all instances of "termcap" to "vtetc".
 	* src/termcap.c, src/termcap.h: rename to vtetc.c, vtetc.h, to avoid
 	conflicts with system headers.

@@ -96,7 +96,6 @@ static void
 destroy_and_quit_eof(GtkWidget *widget, gpointer data)
 {
 	g_print("Detected EOF.\n");
-	destroy_and_quit(widget, data);
 }
 static void
 destroy_and_quit_exited(GtkWidget *widget, gpointer data)
