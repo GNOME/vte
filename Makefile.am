@@ -7,7 +7,7 @@ pkgconfig_DATA = vte.pc
 CVSTAG=$(shell echo $(PACKAGE)-$(VERSION) | sed 's,[\.\-],_,g')
 
 tag:
-	: cvs tag -cFR $(CVSTAG) .
+	cvs tag -cFR $(CVSTAG) .
 
 archive:
 	root=`cat CVS/Root` ; \
