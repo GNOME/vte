@@ -30,13 +30,6 @@
 #include "iso2022.h"
 #include "table.h"
 
-#ifdef ENABLE_NLS
-#include <libintl.h>
-#define _(String) dgettext(PACKAGE, String)
-#else
-#define _(String) String
-#endif
-
 /* Table info. */
 #define VTE_TABLE_MAX_LITERAL 160
 #define _vte_table_map_literal(__c) \

@@ -303,7 +303,7 @@ main(int argc, char **argv)
 	char *env_add[] = {"FOO=BAR", "BOO=BIZ", NULL};
 	const char *background = NULL;
 	gboolean transparent = FALSE, audible = TRUE, blink = TRUE,
-		 debug = FALSE, dingus = FALSE, geometry = TRUE;
+		 debug = FALSE, dingus = FALSE, geometry = TRUE, dbuffer = TRUE;
 	long lines = 100;
 	const char *message = "Launching interactive shell...\r\n";
 	const char *font = NULL;
@@ -318,6 +318,7 @@ main(int argc, char **argv)
 	const char *usage = "Usage: %s "
 			    "[ [-B image] | [-T] ] "
 			    "[-D] "
+			    "[-2] "
 			    "[-a] "
 			    "[-b] "
 			    "[-c command] "
@@ -356,7 +357,7 @@ main(int argc, char **argv)
 	argv2[i] = NULL;
 	g_assert(i < (g_list_length(args) + 2));
 	/* Parse some command-line options. */
-	while ((opt = getopt(argc, argv, "B:DTabc:df:ghn:t:w:")) != -1) {
+	while ((opt = getopt(argc, argv, "B:DT2abc:df:ghn:t:w:")) != -1) {
 		switch (opt) {
 			case 'B':
 				background = optarg;
@@ -366,6 +367,9 @@ main(int argc, char **argv)
 				break;
 			case 'T':
 				transparent = TRUE;
+				break;
+			case '2':
+				dbuffer = !dbuffer;
 				break;
 			case 'a':
 				audible = !audible;
@@ -420,6 +424,7 @@ main(int argc, char **argv)
 
 	/* Create the terminal widget and add it to the scrolling shell. */
 	widget = vte_terminal_new();
+	gtk_widget_set_double_buffered(widget, dbuffer);
 	gtk_box_pack_start(GTK_BOX(hbox), widget, TRUE, TRUE, 0);
 
 	/* Connect to the "char_size_changed" signal to set geometry hints

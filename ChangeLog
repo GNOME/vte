@@ -1,3 +1,9 @@
+2002-12-18  nalin
+	* configure.in: complain if Xft2 and Xft aren't found.
+	* src/vte.c (vte_terminal_paint): if we're not double-buffered, clear
+	the drawing area before we draw text.
+	* src/vteapp.c: add -2 to toggle double-buffering.
+
 2002-12-16  nalin
 	* src/vte.c (vte_terminal_key_press): wire Shift+Home/Shift+End to
 	scroll-to-top and scroll-to-bottom.

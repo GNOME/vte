@@ -13426,6 +13426,12 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		(vte_terminal_get_char_padding(terminal, display,
 					       VTE_REPRESENTATIVE_NARROWER_CHARACTER) == 0);
 
+	/* Clear the area if we're not double-buffered. */
+	if (!GTK_WIDGET_DOUBLE_BUFFERED(widget)) {
+		gdk_window_clear_area(widget->window, area->x, area->y,
+				      area->width, area->height);
+	}
+
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */
 	row = (area->y - VTE_PAD_WIDTH) / height;
