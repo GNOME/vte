@@ -1,4 +1,8 @@
 2002-08-07 nalin
+	* src/vte.c(vte_terminal_draw_cells): once again, avoid drawing NULs.
+	* src/vte.c: add a small pad to each edge (#89048).
+	* src/vteapp.c: handle widget padding.
+2002-08-07 nalin
 	* src/interpret.c: look for $pkgdatadir/termcap/$TERM first, as the
 	widget does, before consulting /etc/termcap.
 	* src/ring.c(vte_ring_free): check for a non-NULL removal function

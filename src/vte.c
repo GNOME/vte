@@ -75,6 +75,7 @@ typedef long wint_t;
 #define bindtextdomain(package,dir)
 #endif
 
+#define VTE_PAD_WIDTH			1
 #define VTE_TAB_WIDTH			8
 #define VTE_LINE_WIDTH			1
 #define VTE_COLOR_SET_SIZE		8
@@ -527,9 +528,9 @@ vte_invalidate_cells(VteTerminal *terminal,
 
 	/* Convert the column and row start and end to pixel values
 	 * by multiplying by the size of a character cell. */
-	rect.x = column_start * terminal->char_width;
+	rect.x = column_start * terminal->char_width + VTE_PAD_WIDTH;
 	rect.width = column_count * terminal->char_width;
-	rect.y = row_start * terminal->char_height;
+	rect.y = row_start * terminal->char_height + VTE_PAD_WIDTH;
 	rect.height = row_count * terminal->char_height;
 
 	/* Invalidate the rectangle. */
@@ -540,15 +541,18 @@ vte_invalidate_cells(VteTerminal *terminal,
 static void
 vte_invalidate_all(VteTerminal *terminal)
 {
+	GdkRectangle *rect;
+	GtkWidget *widget;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	if (!GTK_IS_WIDGET(terminal) ||
-	    !GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
+	if (!GTK_IS_WIDGET(terminal)) {
+	       return;
+	}
+	widget = GTK_WIDGET(terminal);
+	if (!GTK_WIDGET_REALIZED(widget)) {
 		return;
 	}
-	vte_invalidate_cells(terminal,
-			     0, terminal->column_count,
-			     terminal->pvt->screen->scroll_delta,
-			     terminal->row_count);
+	rect = &widget->allocation;
+	gdk_window_invalidate_rect((GTK_WIDGET(terminal))->window, rect, TRUE);
 }
 
 /* Scroll a rectangular region up or down by a fixed number of lines. */
@@ -1252,8 +1256,7 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal)
 	 * one to the cursor offset because it's zero-based.) */
 	next = vte_ring_delta(terminal->pvt->screen->row_data) +
 	       vte_ring_length(terminal->pvt->screen->row_data);
-	rows = MAX(next,
-		   terminal->pvt->screen->cursor_current.row + 1);
+	rows = MAX(next, terminal->pvt->screen->cursor_current.row + 1);
 	if (terminal->adjustment->upper != rows) {
 		terminal->adjustment->upper = rows;
 		changed = TRUE;
@@ -1811,14 +1814,18 @@ vte_sequence_handler_ch(VteTerminal *terminal,
 {
 	VteScreen *screen;
 	GValue *value;
+	long val;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	/* We only care if there's a parameter in there. */
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
+			val = CLAMP(g_value_get_long(value),
+				    0,
+				    terminal->column_count - 1);
 			/* Move the cursor. */
-			screen->cursor_current.col = g_value_get_long(value);
+			screen->cursor_current.col = val;
 		}
 	}
 }
@@ -2037,6 +2044,7 @@ vte_sequence_handler_cv(VteTerminal *terminal,
 {
 	VteScreen *screen;
 	GValue *value;
+	long val;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	/* We only care if there's a parameter in there. */
@@ -2044,8 +2052,10 @@ vte_sequence_handler_cv(VteTerminal *terminal,
 		value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
 			/* Move the cursor. */
-			screen->cursor_current.row = g_value_get_long(value) +
-						     screen->insert_delta;
+			val = CLAMP(g_value_get_long(value),
+				    0,
+				    terminal->row_count - 1);
+			screen->cursor_current.row = val + screen->insert_delta;
 		}
 	}
 }
@@ -6435,8 +6445,8 @@ vte_terminal_hierarchy_changed(GtkWidget *widget, GtkWidget *old_toplevel,
 
 static struct {
 	gulong keyval;
-	const unsigned char *special;
-	const unsigned char *vt_ctrl_special;
+	unsigned char *special;
+	unsigned char *vt_ctrl_special;
 } vte_keysym_map[] = {
 	{GDK_F1,     "k1", "F3"},
 	{GDK_KP_F1,  "k1", "F3"},
@@ -7186,8 +7196,8 @@ vte_terminal_send_mouse_button(VteTerminal *terminal, GdkEventButton *event)
 	vte_terminal_send_mouse_button_internal(terminal,
 						(event->type == GDK_BUTTON_PRESS) ?
 					       	event->button : 0,
-						event->x,
-						event->y,
+						event->x - VTE_PAD_WIDTH,
+						event->y - VTE_PAD_WIDTH,
 						modifiers);
 }
 
@@ -7207,9 +7217,9 @@ vte_terminal_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 		return;
 	}
 	if (terminal->pvt->mouse_cell_motion_tracking) {
-		if ((event->x / terminal->char_width ==
+		if (((event->x - VTE_PAD_WIDTH) / terminal->char_width ==
 		     terminal->pvt->mouse_last_x / terminal->char_width) &&
-		    (event->y / terminal->char_height ==
+		    ((event->y - VTE_PAD_WIDTH) / terminal->char_height ==
 		     terminal->pvt->mouse_last_y / terminal->char_height)) {
 			return;
 		}
@@ -7252,8 +7262,8 @@ vte_terminal_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	cb += 64; /* 32 for normal, 32 for movement */
 
 	/* Encode the cursor coordinates. */
-	cx = 32 + 1 + (event->x / terminal->char_width);
-	cy = 32 + 1 + (event->y / terminal->char_height);
+	cx = 32 + 1 + ((event->x - VTE_PAD_WIDTH) / terminal->char_width);
+	cy = 32 + 1 + ((event->y - VTE_PAD_WIDTH) / terminal->char_height);
 
 	/* Send the event to the child. */
 	snprintf(buf, sizeof(buf), "%sM%c%c%c", VTE_CAP_CSI, cb, cx, cy);
@@ -7461,13 +7471,15 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 		}
 		terminal->pvt->has_selection = TRUE;
 
-		top = MIN(terminal->pvt->selection_last.y, event->y) /
+		top = MIN(terminal->pvt->selection_last.y,
+			  event->y - VTE_PAD_WIDTH) /
 		      terminal->char_height;
-		height = (MAX(terminal->pvt->selection_last.y, event->y) /
+		height = (MAX(terminal->pvt->selection_last.y,
+			      event->y - VTE_PAD_WIDTH) /
 			  terminal->char_height) - top + 1;
 
-		terminal->pvt->selection_last.x = event->x;
-		terminal->pvt->selection_last.y = event->y;
+		terminal->pvt->selection_last.x = event->x - VTE_PAD_WIDTH;
+		terminal->pvt->selection_last.y = event->y - VTE_PAD_WIDTH;
 
 		vte_terminal_selection_compute(terminal);
 
@@ -7496,11 +7508,13 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	}
 
 	/* Hilite any matches. */
-	vte_terminal_match_hilite(terminal, event->x, event->y);
+	vte_terminal_match_hilite(terminal,
+				  event->x - VTE_PAD_WIDTH,
+				  event->y - VTE_PAD_WIDTH);
 
 	/* Save the pointer coordinates for later use. */
-	terminal->pvt->mouse_last_x = event->x;
-	terminal->pvt->mouse_last_y = event->y;
+	terminal->pvt->mouse_last_x = event->x - VTE_PAD_WIDTH;
+	terminal->pvt->mouse_last_y = event->y - VTE_PAD_WIDTH;
 
 	return FALSE;
 }
@@ -7735,8 +7749,8 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	}
 
 	/* Convert the event coordinates to cell coordinates. */
-	cellx = event->x / width;
-	celly = event->y / height;
+	cellx = (event->x - VTE_PAD_WIDTH) / width;
+	celly = (event->y - VTE_PAD_WIDTH) / height;
 
 	if (event->type == GDK_BUTTON_PRESS) {
 #ifdef VTE_DEBUG
@@ -7744,7 +7758,9 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			char *match;
 			int match_tag;
 			fprintf(stderr, "Button %d pressed at (%lf,%lf).\n",
-				event->button, event->x, event->y);
+				event->button,
+				event->x - VTE_PAD_WIDTH,
+				event->y - VTE_PAD_WIDTH);
 			fprintf(stderr, "Character cell (%lf,%lf).\n",
 				cellx, celly);
 			match = vte_terminal_match_check(terminal,
@@ -7786,8 +7802,10 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			    vte_cell_is_selected(terminal, cellx, celly)) {
 				/* Start selection later. */
 				terminal->pvt->start_selection = TRUE;
-				terminal->pvt->selection_delayed.x = event->x;
-				terminal->pvt->selection_delayed.y = event->y;
+				terminal->pvt->selection_delayed.x =
+					event->x - VTE_PAD_WIDTH;
+				terminal->pvt->selection_delayed.y =
+					event->y - VTE_PAD_WIDTH;
 				ret = TRUE;
 			} else {
 				/* Don't restart selection later. */
@@ -7822,18 +7840,18 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 					start = &terminal->pvt->selection_last;
 				}
 				/* Move the selection start- or endpoint. */
-				if ((event->y < start->y) ||
-				    ((event->y == start->y) &&
-				     (event->x < start->x))) {
+				if (((event->y - VTE_PAD_WIDTH) < start->y) ||
+				    (((event->y - VTE_PAD_WIDTH) == start->y) &&
+				     ((event->x - VTE_PAD_WIDTH) < start->x))) {
 					/* The click was "before" the start
 					 * point. */
-					start->x = event->x;
-					start->y = event->y;
+					start->x = event->x - VTE_PAD_WIDTH;
+					start->y = event->y - VTE_PAD_WIDTH;
 				} else {
 					/* The click was "after" the start
 					 * point. */
-					end->x = event->x;
-					end->y = event->y;
+					end->x = event->x - VTE_PAD_WIDTH;
+					end->y = event->y - VTE_PAD_WIDTH;
 				}
 				/* Recalculate the selection area using the
 				 * new origin and "last" coordinates. */
@@ -7874,7 +7892,9 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
 			fprintf(stderr, "Button %d double-click at (%lf,%lf)\n",
-				event->button, event->x, event->y);
+				event->button,
+				event->x - VTE_PAD_WIDTH,
+				event->y - VTE_PAD_WIDTH);
 		}
 #endif
 		if (event->button == 1) {
@@ -7883,8 +7903,10 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			}
 			vte_terminal_deselect_all(terminal);
 			terminal->pvt->has_selection = TRUE;
-			terminal->pvt->selection_origin.x = event->x;
-			terminal->pvt->selection_origin.y = event->y;
+			terminal->pvt->selection_origin.x =
+				event->x - VTE_PAD_WIDTH;
+			terminal->pvt->selection_origin.y =
+				event->y - VTE_PAD_WIDTH;
 			terminal->pvt->selection_start.x = cellx;
 			terminal->pvt->selection_start.y = celly + delta;
 			terminal->pvt->selection_end =
@@ -7902,7 +7924,9 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
 			fprintf(stderr, "Button %d triple-click at (%lf,%lf).\n",
-				event->button, event->x, event->y);
+				event->button,
+				event->x - VTE_PAD_WIDTH,
+				event->y - VTE_PAD_WIDTH);
 		}
 #endif
 		if (event->button == 1) {
@@ -7911,8 +7935,10 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			}
 			vte_terminal_deselect_all(terminal);
 			terminal->pvt->has_selection = TRUE;
-			terminal->pvt->selection_origin.x = event->x;
-			terminal->pvt->selection_origin.y = event->y;
+			terminal->pvt->selection_origin.x =
+				event->x - VTE_PAD_WIDTH;
+			terminal->pvt->selection_origin.y =
+				event->y - VTE_PAD_WIDTH;
 			terminal->pvt->selection_start.x = cellx;
 			terminal->pvt->selection_start.y = celly + delta;
 			terminal->pvt->selection_end =
@@ -7928,12 +7954,14 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	}
 
 	/* Hilite any matches. */
-	vte_terminal_match_hilite(terminal, event->x, event->y);
+	vte_terminal_match_hilite(terminal,
+				  event->x - VTE_PAD_WIDTH,
+				  event->y - VTE_PAD_WIDTH);
 
 	/* Save the pointer state for later use. */
 	terminal->pvt->mouse_last_button = event->button;
-	terminal->pvt->mouse_last_x = event->x;
-	terminal->pvt->mouse_last_y = event->y;
+	terminal->pvt->mouse_last_x = event->x - VTE_PAD_WIDTH;
+	terminal->pvt->mouse_last_y = event->y - VTE_PAD_WIDTH;
 
 	return ret;
 }
@@ -7953,7 +7981,9 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
 			fprintf(stderr, "Button %d released at (%lf,%lf).\n",
-				event->button, event->x, event->y);
+				event->button,
+				event->x - VTE_PAD_WIDTH,
+				event->y - VTE_PAD_WIDTH);
 		}
 #endif
 		/* Read the modifiers. */
@@ -7970,12 +8000,14 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 	}
 
 	/* Hilite any matches. */
-	vte_terminal_match_hilite(terminal, event->x, event->y);
+	vte_terminal_match_hilite(terminal,
+				  event->x - VTE_PAD_WIDTH,
+				  event->y - VTE_PAD_WIDTH);
 
 	/* Save the pointer state for later use. */
 	terminal->pvt->mouse_last_button = 0;
-	terminal->pvt->mouse_last_x = event->x;
-	terminal->pvt->mouse_last_y = event->y;
+	terminal->pvt->mouse_last_x = event->x - VTE_PAD_WIDTH;
+	terminal->pvt->mouse_last_y = event->y - VTE_PAD_WIDTH;
 
 	return FALSE;
 }
@@ -9392,6 +9424,9 @@ vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
 				      terminal->pvt->default_row_count;
 	}
 
+	requisition->width += VTE_PAD_WIDTH * 2;
+	requisition->height += VTE_PAD_WIDTH * 2;
+
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "Size request is %dx%d.\n",
@@ -9411,8 +9446,10 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
 
-	width = allocation->width / terminal->char_width;
-	height = allocation->height / terminal->char_height;
+	width = (allocation->width - (2 * VTE_PAD_WIDTH)) /
+		terminal->char_width;
+	height = (allocation->height - (2 * VTE_PAD_WIDTH)) /
+		 terminal->char_height;
 
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_MISC)) {
@@ -9761,6 +9798,7 @@ vte_terminal_realize(GtkWidget *widget)
 	GdkWindowAttr attributes;
 	GdkPixmap *pixmap;
 	GdkColor black = {0,}, color;
+	GdkGeometry geometry;
 	int attributes_mask = 0, i;
 
 	g_return_if_fail(widget != NULL);
@@ -9793,6 +9831,11 @@ vte_terminal_realize(GtkWidget *widget)
 	widget->window = gdk_window_new(gtk_widget_get_parent_window(widget),
 					&attributes,
 					attributes_mask);
+	geometry.base_width = VTE_PAD_WIDTH * 2;
+	geometry.base_height = VTE_PAD_WIDTH * 2;
+	gdk_window_set_geometry_hints(widget->window,
+				      &geometry,
+				      GDK_HINT_BASE_SIZE);
 	gdk_window_move_resize(widget->window,
 			       widget->allocation.x,
 			       widget->allocation.y,
@@ -9906,6 +9949,10 @@ vte_terminal_xft_remap_char(Display *display, XftFont *font, XftChar32 orig)
 {
 	XftChar32 new;
 
+	if (XftGlyphExists(display, font, orig)) {
+		return orig;
+	}
+
 	switch (orig) {
 		case 0:			/* NUL */
 		case 0x00A0:		/* NO-BREAK SPACE */
@@ -9921,10 +9968,6 @@ vte_terminal_xft_remap_char(Display *display, XftFont *font, XftChar32 orig)
 			break;
 		default:
 			return orig;
-	}
-
-	if (XftGlyphExists(display, font, orig)) {
-		return orig;
 	}
 
 	if (XftGlyphExists(display, font, new)) {
@@ -9981,6 +10024,9 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 {
 	XPoint diamond[4];
 	gint xcenter, xright, ycenter, ybottom, i, j, draw;
+
+	x += VTE_PAD_WIDTH;
+	y += VTE_PAD_WIDTH;
 
 	/* If this is a unicode special graphics character, map it to one of
 	 * the characters we know how to draw. */
@@ -10733,6 +10779,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 #ifdef HAVE_XFT
 	XftChar32 ftchar;
 #endif
+	gunichar c;
 	char utf8_buf[VTE_UTF8_BPC];
 
 	wchar_t wc;
@@ -10740,6 +10787,8 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 
 	fg = &terminal->pvt->palette[fore];
 	bg = &terminal->pvt->palette[back];
+	x += VTE_PAD_WIDTH;
+	y += VTE_PAD_WIDTH;
 
 #ifdef HAVE_XFT2
 	/* Draw using Xft2. */
@@ -10747,16 +10796,17 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		/* Set up the draw request. */
 		ftcharspecs = g_malloc(sizeof(XftCharSpec) * n);
 		for (i = j = columns = 0; i < n; i++) {
-			if (!g_unichar_isspace(items[i].c)) {
+			c = items[i].c ? items[i].c : ' ';
+			if (!g_unichar_isspace(c)) {
 				ftcharspecs[j].ucs4 = vte_terminal_xft_remap_char(display,
 									      terminal->pvt->ftfont,
-									      items[i].c);
+									      c);
 				ftcharspecs[j].x = x + (columns * column_width) +
 						   items[i].xpad;
 				ftcharspecs[j].y = y + ascent;
 				j++;
 			}
-			columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+			columns += g_unichar_iswide(c) ? 2 : 1;
 		}
 		/* Draw the background rectangle. */
 		if (back != VTE_DEF_BG) {
@@ -10777,7 +10827,8 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	if (!drawn && terminal->pvt->use_xft) {
 		/* Set up the draw request. */
 		for (i = columns = 0; i < n; i++) {
-			columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+			c = items[i].c ? items[i].c : ' ';
+			columns += g_unichar_iswide(c) ? 2 : 1;
 		}
 		/* Draw the background rectangle. */
 		if (back != VTE_DEF_BG) {
@@ -10786,10 +10837,11 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		}
 		/* Draw the text. */
 		for (i = columns = 0; i < n; i++) {
-			if (!g_unichar_isspace(items[i].c)) {
+			c = items[i].c ? items[i].c : ' ';
+			if (!g_unichar_isspace(c)) {
 				ftchar = vte_terminal_xft_remap_char(display,
 								     terminal->pvt->ftfont,
-								     items[i].c);
+								     c);
 				XftDrawString32(ftdraw, &fg->ftcolor,
 						terminal->pvt->ftfont,
 						x + (columns * column_width) +
@@ -10797,7 +10849,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 						y + ascent,
 						&ftchar, 1);
 			}
-			columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+			columns += g_unichar_iswide(c) ? 2 : 1;
 		}
 		/* Clean up. */
 		drawn = TRUE;
@@ -10808,7 +10860,8 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		/* Draw the background. */
 		if (back != VTE_DEF_BG) {
 			for (i = columns = 0; i < n; i++) {
-				columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+				c = items[i].c ? items[i].c : ' ';
+				columns += g_unichar_iswide(c) ? 2 : 1;
 			}
 #ifdef VTE_PREFER_PANGOX
 			XSetForeground(display, gc, bg->pixel);
@@ -10835,10 +10888,10 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		color.pixel = terminal->pvt->palette[fore].pixel;
 		gdk_gc_set_foreground(ggc, &color);
 		for (i = columns = 0; i < n; i++) {
-			if ((items[i].c != 0) &&
-			    !g_unichar_isspace(items[i].c)) {
+			c = items[i].c ? items[i].c : ' ';
+			if (!g_unichar_isspace(c)) {
 				pango_layout_set_text(layout, utf8_buf,
-						      g_unichar_to_utf8(items[i].c,
+						      g_unichar_to_utf8(items[i].c ? items[i].c : ' ',
 									utf8_buf));
 #ifdef VTE_PREFER_PANGOX
 				XSetForeground(display, gc, fg->pixel);
@@ -10857,7 +10910,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 						layout);
 #endif
 			}
-			columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+			columns += g_unichar_iswide(c) ? 2 : 1;
 		}
 		/* Clean up. */
 		drawn = TRUE;
@@ -10879,18 +10932,15 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		textitem.nchars = 1;
 		textitem.font_set = terminal->pvt->fontset;
 		for (i = columns = 0; i < n; i++) {
-			if (items[i].c == 0) {
-				columns++;
-				continue;
-			}
-			wc = vte_wc_from_unichar(terminal, items[i].c);
+			c = items[i].c ? items[i].c : ' ';
+			wc = vte_wc_from_unichar(terminal, c);
 			textitem.chars = &wc;
 			textitem.delta = items[i].xpad;
 			XwcDrawText(display, drawable, gc,
 				    x + (columns * column_width) +
 				    items[i].xpad,
 				    y + ascent, &textitem, 1);
-			columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+			columns += g_unichar_iswide(c) ? 2 : 1;
 		}
 	}
 
@@ -11222,11 +11272,12 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */
-	row = area->y / height;
-	row_stop = (area->y + area->height + height - 1) / height;
+	row = (area->y - VTE_PAD_WIDTH) / height;
+	row_stop = ((area->y - VTE_PAD_WIDTH) + area->height + height - 1) / height;
 	while (row < row_stop) {
-		col = area->x / width;
-		col_stop = howmany(area->x + area->width, width);
+		col = (area->x - VTE_PAD_WIDTH) / width;
+		col_stop = howmany((area->x - VTE_PAD_WIDTH) + area->width,
+				   width);
 		vte_terminal_draw_row(terminal,
 				      screen,
 				      row + delta,
@@ -11304,8 +11355,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			XSetForeground(display, gc,
 				       terminal->pvt->palette[fore].pixel);
 			XDrawRectangle(display, drawable, gc,
-				       col * width - x_offs,
-				       row * height - y_offs,
+				       col * width - x_offs + VTE_PAD_WIDTH,
+				       row * height - y_offs + VTE_PAD_WIDTH,
 				       columns * width - 1,
 				       height - 1);
 		}
@@ -11343,8 +11394,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			XSetForeground(display, gc,
 				       terminal->pvt->palette[back].pixel);
 			XFillRectangle(display, drawable, gc,
-				       col * width - x_offs,
-				       row * height - y_offs,
+				       col * width - x_offs + VTE_PAD_WIDTH,
+				       row * height - y_offs + VTE_PAD_WIDTH,
 				       columns * terminal->char_width,
 				       terminal->char_height);
 			vte_terminal_draw_cells(terminal,
@@ -11457,8 +11508,8 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 			/* Encode the parameters and send them to the app. */
 			vte_terminal_send_mouse_button_internal(terminal,
 								button,
-								event->x,
-								event->y,
+								event->x - VTE_PAD_WIDTH,
+								event->y - VTE_PAD_WIDTH,
 								modifiers);
 			return TRUE;
 		}
@@ -12557,4 +12608,14 @@ vte_terminal_get_status_line(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 	return terminal->pvt->screen->status_line_contents->str;
+}
+
+void
+vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail(xpad != NULL);
+	g_return_if_fail(ypad != NULL);
+	*xpad = 2 * VTE_PAD_WIDTH;
+	*ypad = 2 * VTE_PAD_WIDTH;
 }

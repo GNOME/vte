@@ -45,14 +45,18 @@ char_size_changed(GtkWidget *widget, guint width, guint height, gpointer win)
 	VteTerminal *terminal;
 	GtkWindow *window;
 	GdkGeometry geometry;
+	int xpad, ypad;
 	g_return_if_fail(GTK_IS_WINDOW(win));
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
 	window = GTK_WINDOW(win);
+	vte_terminal_get_padding(terminal, &xpad, &ypad);
 	geometry.width_inc = terminal->char_width;
 	geometry.height_inc = terminal->char_height;
+	geometry.base_width = xpad;
+	geometry.base_height = ypad;
 	gtk_window_set_geometry_hints(window, widget, &geometry,
-				      GDK_HINT_RESIZE_INC);
+				      GDK_HINT_RESIZE_INC | GDK_HINT_BASE_SIZE);
 }
 
 static void

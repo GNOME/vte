@@ -243,6 +243,9 @@ const char *vte_terminal_get_encoding(VteTerminal *terminal);
 /* Get the contents of the status line. */
 const char *vte_terminal_get_status_line(VteTerminal *terminal);
 
+/* Get the padding the widget is using. */
+void vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad);
+
 G_END_DECLS
 
 #endif
