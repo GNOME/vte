@@ -1,0 +1,108 @@
+# GNOME yn Gymraeg.
+# Copyright (C) 2003 Free Software Foundation, Inc.
+# Dafydd Harries <daf@parnassus.ath.cx>, 2003
+# This file is distributed under the same license as the metacity package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte\n"
+"POT-Creation-Date: 2003-05-16 13:06+0200\n"
+"PO-Revision-Date: 2003-05-16 15:13+0100\n"
+"Last-Translator: Dafydd Harries <daf@parnassus.ath.cx>\n"
+"Language-Team: Welsh <gnome-cy@pengwyn.linux.org.uk>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/iso2022.c:723 src/iso2022.c:734 src/iso2022.c:758 src/vte.c:1991
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Methu trosi nodau o %s i %s."
+
+#: src/iso2022.c:1372
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr "Cais gosod map NRC annilys '%c'."
+
+#: src/iso2022.c:1423 src/iso2022.c:1449
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr "Cais gosod map NRC llydan annilys '%c'."
+
+#: src/pty.c:317
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "Gwall wrth ycwannegu '%s' i'r amgylchedd, parhau."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:877
+#, c-format
+msgid "can not run %s"
+msgstr "methu gweithredu %s"
+
+#: src/reaper.c:108
+msgid "Error creating signal pipe."
+msgstr "Gwall wrth greu piben arwyddion."
+
+#: src/trie.c:412
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "Dyblyg (%s/%s)!"
+
+#: src/vte.c:1427
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Gwall wrth grynhoi mynegiad rheolaidd \"%s\"."
+
+#: src/vte.c:5501
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "Cafwyd dilyniant (bysellau?) annisgwyl `%s'."
+
+#: src/vte.c:6514
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "Dim trinydd ar gyfer y dilyniant rheoli `%s' wedi ei ddiffinio."
+
+#: src/vte.c:7230
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Gwall wrth ddarllen o blentyn: %s."
+
+#: src/vte.c:7384
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Gwall (%s) trosi data ar gyfer plentyn, gollwng."
+
+#: src/vte.c:9934
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "Gwall wrth ddarllen maint PTY, defnyddio rhagosodiadau: %s."
+
+#: src/vte.c:9970
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "Gwall wrth osod maint PTY: %s."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:13922
+msgid "_vte_conv_open() failed setting word characters"
+msgstr "methodd _vte_conv_open() wrth osod nodau geiriau"
+
+#. Bail back to normal mode.
+#: src/vteapp.c:642
+msgid "Could not open console.\n"
+msgstr "Methu agor consol.\n"
+
+#: src/vteglyph.c:575
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr "Modd picseli anhysbys %d.\n"
+
+#: src/vtexft.c:664
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr "Methu arlunio'r nod U+%04x.\n"
+
