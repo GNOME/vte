@@ -5157,12 +5157,21 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->fontset = NULL;
 
 #ifdef HAVE_XFT
-	/* Try to use Xft if the user requests it. */
+	/* Try to use Xft if the user requests it.  Provide both the original
+	 * variable we consulted (which we should stop consulting at some
+	 * point) and the one GTK itself uses. */
 	pvt->ftfont = NULL;
 	pvt->use_xft = FALSE;
 	if (getenv("VTE_USE_XFT") != NULL) {
 		if (atol(getenv("VTE_USE_XFT")) != 0) {
 			pvt->use_xft = TRUE;
+		}
+	}
+	if (!pvt->use_xft) {
+		if (getenv("GDK_USE_XFT") != NULL) {
+			if (atol(getenv("GDK_USE_XFT")) != 0) {
+				pvt->use_xft = TRUE;
+			}
 		}
 	}
 #endif
