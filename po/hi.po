@@ -1,0 +1,114 @@
+# translation of vte.HEAD.po to 
+# This file is distributed under the same license as the PACKAGE package.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER, 2004.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte.HEAD\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2004-12-07 04:44+0100\n"
+"PO-Revision-Date: 2004-12-07 12:26+0530\n"
+"Last-Translator: \n"
+"Language-Team:  <en@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.9.1\n"
+
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2094
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "%s में %s संप्रतीकों को बदलने में असमर्थ."
+
+#: src/iso2022.c:1578
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr "अमान्य NRC मानचित्र '%c' को सेट करने के लिये प्रयास."
+
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1619
+msgid "Unrecognized identified coding system."
+msgstr "अनजान पहचाना गया कोडिंग सिस्टम"
+
+#: src/iso2022.c:1668 src/iso2022.c:1694
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr "अमान्य विस्तृत NRC मानचित्र '%c' के लिये सेट करने का प्रयास"
+
+#: src/pty.c:329
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "वातावरण में %s' को जोड़ने में त्रुटि, जारी."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:914
+#, c-format
+msgid "can not run %s"
+msgstr "%s को नहीं चला सकता"
+
+#: src/reaper.c:156
+msgid "Error creating signal pipe."
+msgstr "सिग्नल पाइप बनाने में त्रुटि"
+
+#: src/trie.c:412
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "डुप्लीकेट (%s/%s)!"
+
+#: src/vte.c:1502
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "नियमित अभिव्यक्ति \"%s\" के संयोजन में त्रुटि."
+
+#: src/vte.c:5947
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "अप्रत्याशित (कुंजी?) श्रृंखला `%s' पाया."
+
+#: src/vte.c:7043
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "नियंत्रण श्रृंखला `%s' के लिये कोई संभालने वाला परिभाषित नहीं है."
+
+#: src/vte.c:7885
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "चाइल्ड से पढ़ने में त्रुटि: %s."
+
+#: src/vte.c:8041 src/vte.c:8916
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "चाइल्ड से आंकड़ों को बदलने में त्रुटि (%s), छोड़ रहा है."
+
+#: src/vte.c:10855
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "PTY आकार को पढने में त्रुटि, मूलभूत का प्रयोग कर रहा है: %s."
+
+#: src/vte.c:10891
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "PTY आकार की जमावट में त्रुटि: %s."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:15375
+msgid "_vte_conv_open() failed setting word characters"
+msgstr "_vte_conv_open() शब्द संप्रतीकों की जमावट में विफल"
+
+#. Bail back to normal mode.
+#: src/vteapp.c:728
+msgid "Could not open console.\n"
+msgstr "कंसोल को नहीं खोल सका.\n"
+
+#: src/vteglyph.c:579
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr "अज्ञात पिक्सेल मोड %d.\n"
+
+#: src/vtexft.c:712
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr "U+%04x संप्रतीक को नहीं खींच सका.\n"
+
