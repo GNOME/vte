@@ -1,3 +1,6 @@
+2003-06-02 nalin
+	* src/Makefile.am: start using libtool versioning in earnest.
+
 2003-06-01 nalin
 	* src/vtegl.c(_vte_gl_set_text_font): compile fix.
 

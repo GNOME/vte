@@ -1,3 +1,9 @@
+0.11.9: Accessibility improvements.  Multihead fixes.  Revert to the 0.10 way
+        of determining how wide an ambiguously-wide character should be.  Fix
+        origin mode.  Fix linefeed mode, really.  Fix saving/restoring the
+        cursor position via DECSET/DECRST.  Fix handling of control characters
+        in the middle of control sequences.  Don't subject users to my crude
+        approximation of U00A3 if any available font can be used instead.
 0.11.8: Fix some memory leaks.  Fix compilation on Solaris.  Fix Ctrl-Space.
 0.11.7: Properly recognizes 8-bit versions of SS2 and SS3 intermixed with
         UTF-8.  Add Macedonian and Welsh translations (yay GTP!).  Fix keypad

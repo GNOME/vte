@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.11.8
+Version: 0.11.9
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -94,6 +94,10 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Mon Jun  2 2003 Nalin Dahyabhai <nalin@redhat.com> 0.11.9-1
+- fix saving/restoring the cursor with DECSET/DECRST
+- revert behavior wrt ambiguously-wide characters to be more like 0.10.x
+
 * Thu May 22 2003 Nalin Dahyabhai <nalin@redhat.com> 0.11.8-1
 - close some memory leaks
 - fix conversions of NUL bytes (Ctrl-Space)

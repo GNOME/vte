@@ -358,8 +358,8 @@ _vte_iso2022_ambiguous_width_guess(void)
 }
 
 /* If we have the encoding, decide how wide an ambiguously-wide character is
- * based on the encoding.  This is basically what GNU libc does, and it sounds
- * reasonable, so.... */
+ * based on the encoding.  This is basically what GNU libc does, and it agrees
+ * with my reading of Unicode UAX 11, so.... */
 static int
 _vte_iso2022_ambiguous_width(struct _vte_iso2022_state *state)
 {
