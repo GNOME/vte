@@ -7883,16 +7883,18 @@ vte_default_substitute(VteTerminal *terminal, XftPattern *pattern)
 		}
 	}
 
-#ifdef FC_HINTING
 	/* If we're using Xft2/fontconfig, then all of the Xft1 API calls are
 	 * being mapped to fontconfig by the preprocessor, but these settings
 	 * are fontconfig-only, so we use the native FontConfig API here. */
+#ifdef FC_HINTING
 	if (hinting >= 0) {
 		result = FcPatternGetBool(pattern, FC_HINTING, 0, &i);
 		if (result == FcResultNoMatch) {
 			FcPatternAddBool(pattern, FC_HINTING, hinting > 0);
 		}
 	}
+#endif
+#ifdef FC_HINT_STYLE
 	if (hintstyle != NULL) {
 		result = FcPatternGetInteger(pattern, FC_HINT_STYLE, 0, &i);
 		if (result == FcResultNoMatch) {
