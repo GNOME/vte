@@ -1,3 +1,8 @@
+2003-07-03 nalin
+	* src/vte.c(vte_sequence_handler_return_terminal_status): return an
+	empty string in response to the ENQ control sequence instead of "xterm".
+	Report and patch from Mariano Suárez-Alvarez (#116495).
+
 2003-06-27 nalin
 	* src/iso2022.c: treat the "big5hkscs" encoding as an East Asian
 	encoding, which uses ambiguous widths (#116078).  Report and patch

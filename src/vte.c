@@ -4134,7 +4134,7 @@ vte_sequence_handler_return_terminal_status(VteTerminal *terminal,
 					    GQuark match_quark,
 					    GValueArray *params)
 {
-	vte_terminal_feed_child(terminal, "xterm", -1);
+	vte_terminal_feed_child(terminal, "", -1);
 }
 
 /* Send primary device attributes. */
