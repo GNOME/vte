@@ -542,7 +542,6 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 	}
 	if (n > 0) {
 		if (howmany(width, n) == draw->width) {
-			g_print("Bogus font.\n");
 			draw->width /= 2;
 		}
 	}

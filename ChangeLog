@@ -1,4 +1,8 @@
 2003-03-05 nalin	
+	* src/vtepango.c, src/vtexft.c: don't print "Bogus font." when we think
+	the font metrics are screwy.
+
+2003-03-05 nalin	
 	* configure.in: require Xft2 and fontconfig, drop Xft1.  Require
 	freetype2.
 	* src/Makefile.am, src/xticker.c: add xticker, useless but interesting.

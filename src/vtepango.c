@@ -280,7 +280,6 @@ _vte_pango_set_text_font(struct _vte_draw *draw,
 
 	/* If they're the same, then we have a screwy font. */
 	if (full_width == draw->width) {
-		g_print("Bogus font.\n");
 		draw->width /= 2;
 	}
 
