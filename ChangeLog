@@ -1,3 +1,8 @@
+2003-06-21 nalin
+	* gnome-pty-helper/configure.in: define _XOPEN_SOURCE_EXTENDED,
+	_XOPEN_SOURCE, and __EXTENSIONS__ for Solaris, as we do in the top-level
+	configure (#117636).
+
 2003-07-16 nalin
 	* gnome-pty-helper/configure.in: check for grantpt in libc and then
 	in libpt.  Check for openpty in libc before checking libutil.  Check for

@@ -19,6 +19,21 @@ AC_CHECK_FUNCS(endutent fcntl forkpty getttyent getutent getutmpx grantpt flock 
 GPH_CHECK_UTMP
 
 AC_CHECK_HEADERS(stropts.h)
+
+# Use all available features under glibc, and disable accidental use of
+# deprecated functionality.
+AC_EGREP_CPP(glibc,
+		[
+		 #include <stdio.h>
+		 #ifdef __GLIBC__
+		 glibc
+		 #endif
+		],
+		AC_DEFINE(_GNU_SOURCE,1,[Use all glibc features.]))
+AC_DEFINE(_XOPEN_SOURCE_EXTENDED,1,[Needed to get declarations for msg_control and msg_controllen on Solaris])
+AC_DEFINE(_XOPEN_SOURCE,1,[Needed to get declarations for msg_control and msg_controllen on Solaris])
+AC_DEFINE(__EXTENSIONS__,1,[Needed to get declarations for msg_control and msg_controllen on Solaris])
+
 AM_CONFIG_HEADER(config.h)
 
 AC_OUTPUT(Makefile)
