@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.7.3
+Version: 0.7.4
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -59,6 +59,11 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Wed Aug 14 2002 Nalin Dahyabhai <nalin@redhat.com> 0.7.4-1
+- handle massive amounts of invalid data better (the /dev/urandom case)
+- munged up patch from Owen to fix language matching
+- fix initialization of new rows when deleting lines
+
 * Mon Aug 12 2002 Nalin Dahyabhai <nalin@redhat.com> 0.7.3-1
 - more fixes for behavior when not realized
 - require bitmap-fonts

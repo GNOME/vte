@@ -1,12 +1,22 @@
-2002-08-10 nalin
+2002-08-14 nalin
+	* src/vte.c(vte_terminal_reset): drop pending incoming data on reset.
+	* src/vte.c: give reprocessing of pending input data a higher priority
+	than reading it from the child to prevent backlogs on corrupt or invalid
+	multibyte data from building up and whacking us exponentially.
+2002-08-13 nalin
+	* src/vte.c(vte_sequence_handler_delete_lines): initialize lines added
+	to the current default colors.  Spotted by jrb.
+	* src/vte.c(vte_terminal_set_font): don't try to pick up GTK Xft
+	settings unless we're using FontConfig.  Patch from otaylor.
+2002-08-11 nalin
 	* src/vte.c: reorder set/reset processing for decset so that 1049
 	properly represents the combination of 1047 and 1048 (#90027).
-2002-08-10 nalin
+2002-08-11 nalin
 	* src/caps.c: properly escape a sequence which had a bare '%' in it.
-2002-08-10 nalin
+2002-08-11 nalin
 	* src/vte.c: change Xft-related defaults match whichever version of GTK
 	we were built with (hopefully).
-2002-08-10 nalin
+2002-08-11 nalin
 	* src/vte.c: don't bother with cursor blinking or freezing/thawing
 	updates when the widget isn't realized.  Patch from Gustavo Giráldez.
 2002-08-08 nalin

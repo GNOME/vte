@@ -96,6 +96,7 @@ typedef long wint_t;
 					"0123456789./+@"
 #define VTE_REPRESENTATIVE_WIDER_CHARACTER	'M'
 #define VTE_REPRESENTATIVE_NARROWER_CHARACTER	'l'
+#define VTE_INPUT_RETRY_PRIORITY	G_PRIORITY_HIGH
 #define VTE_INPUT_PRIORITY		G_PRIORITY_DEFAULT_IDLE
 #define VTE_CHILD_INPUT_PRIORITY	G_PRIORITY_DEFAULT_IDLE
 #define VTE_CHILD_OUTPUT_PRIORITY	G_PRIORITY_HIGH
@@ -4023,9 +4024,11 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 				  GValueArray *params)
 {
 	GValue *value;
+	GArray *rowdata;
 	VteScreen *screen;
 	long param, end, row;
 	int i;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	/* The default is one. */
@@ -4048,6 +4051,12 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 		 * the top of the region. */
 		vte_remove_line_internal(terminal, row);
 		vte_insert_line_internal(terminal, end);
+		/* Get the data for the new row. */
+		rowdata = vte_ring_index(screen->row_data, GArray*, end);
+		/* Add enough cells to it so that it has the default colors. */
+		while (rowdata->len < terminal->column_count) {
+			g_array_append_val(rowdata, screen->defaults);
+		}
 	}
 	/* Update the display. */
 	vte_terminal_scroll_region(terminal, row, end - row + 1, -param);
@@ -5786,11 +5795,11 @@ vte_terminal_process_incoming(gpointer data)
 	if (g_iconv(terminal->pvt->incoming_conv, &ibuf, &icount,
 		    &obuf, &ocount) == -1) {
 		/* No dice.  Try again when we have more data. */
-		if ((errno == EILSEQ) && (terminal->pvt->n_incoming > 0)) {
+		if ((errno == EILSEQ) && (terminal->pvt->n_incoming >= icount)) {
 			/* Discard the offending byte. */
 			start = terminal->pvt->n_incoming - icount;
 #ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_IO) || 1) {
+			if (vte_debug_on(VTE_DEBUG_IO)) {
 				fprintf(stderr, "Error converting %ld incoming "
 					"data bytes: %s, discarding byte %ld "
 					"(0x%02x) and trying again.\n",
@@ -5800,9 +5809,17 @@ vte_terminal_process_incoming(gpointer data)
 			}
 #endif
 			terminal->pvt->incoming[start] = '?';
-			/* Try again. */
+			/* Try again, before we try anything else. */
 			g_free(obufptr);
-			return TRUE;
+			/* To pull this off we add ourselves as a higher
+			 * priority idle handler, and cause this handler to
+			 * be dropped. */
+			terminal->pvt->processing_tag =
+					g_idle_add_full(VTE_INPUT_RETRY_PRIORITY,
+							vte_terminal_process_incoming,
+							terminal,
+						NULL);
+			return FALSE;
 		}
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_IO)) {
@@ -5926,7 +5943,7 @@ vte_terminal_process_incoming(gpointer data)
 			ucount = VTE_UTF8_BPC * (wcount - start) + 1;
 			ubuf = ubufptr = g_malloc(ucount);
 			if (g_iconv(unconv, &ibuf, &icount,
-				  &ubuf, &ucount) != -1) {
+				    &ubuf, &ucount) != -1) {
 				/* Store it. */
 				if (terminal->pvt->incoming) {
 					g_free(terminal->pvt->incoming);
@@ -8295,7 +8312,7 @@ vte_xft_changed_cb(GtkSettings *settings, GParamSpec *spec,
 	vte_terminal_set_font(terminal, terminal->pvt->fontdesc);
 }
 
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 /* Add default specifiers to the pattern which incorporate the current Xft
  * settings. */
 static void
@@ -8345,45 +8362,45 @@ vte_default_substitute(VteTerminal *terminal, XftPattern *pattern)
 
 	/* First get and set the settings Xft1 "knows" about. */
 	if (antialias >= 0) {
-		result = XftPatternGetBool(pattern, XFT_ANTIALIAS, 0, &i);
+		result = XftPatternGetBool(pattern, FC_ANTIALIAS, 0, &i);
 		if (result == XftResultNoMatch) {
-			XftPatternAddBool(pattern, XFT_ANTIALIAS,
+			XftPatternAddBool(pattern, FC_ANTIALIAS,
 					  antialias > 0);
 		}
 	}
 
 	if (rgba != NULL) {
-		result = XftPatternGetInteger(pattern, XFT_RGBA, 0, &i);
+		result = XftPatternGetInteger(pattern, FC_RGBA, 0, &i);
 		if (result == XftResultNoMatch) {
-			i = XFT_RGBA_NONE;
+			i = FC_RGBA_NONE;
 			found = TRUE;
 			if (strcmp(rgba, "none") == 0) {
-				i = XFT_RGBA_NONE;
+				i = FC_RGBA_NONE;
 			} else
 			if (strcmp(rgba, "rgb") == 0) {
-				i = XFT_RGBA_RGB;
+				i = FC_RGBA_RGB;
 			} else
 			if (strcmp(rgba, "bgr") == 0) {
-				i = XFT_RGBA_BGR;
+				i = FC_RGBA_BGR;
 			} else
 			if (strcmp(rgba, "vrgb") == 0) {
-				i = XFT_RGBA_VRGB;
+				i = FC_RGBA_VRGB;
 			} else
 			if (strcmp(rgba, "vbgr") == 0) {
-				i = XFT_RGBA_VBGR;
+				i = FC_RGBA_VBGR;
 			} else {
 				found = FALSE;
 			}
 			if (found) {
-				XftPatternAddInteger(pattern, XFT_RGBA, i);
+				XftPatternAddInteger(pattern, FC_RGBA, i);
 			}
 		}
 	}
 
 	if (dpi >= 0) {
-		result = XftPatternGetDouble(pattern, XFT_DPI, 0, &d);
+		result = XftPatternGetDouble(pattern, FC_DPI, 0, &d);
 		if (result == XftResultNoMatch) {
-			XftPatternAddDouble(pattern, XFT_DPI, dpi / 1024.0);
+			XftPatternAddDouble(pattern, FC_DPI, dpi / 1024.0);
 		}
 	}
 
@@ -8431,15 +8448,15 @@ vte_default_substitute(VteTerminal *terminal, XftPattern *pattern)
 #endif
 }
 
-/* Find a font which matches the request, figuring in the Xft settings. */
-static XftPattern *
-vte_font_match(VteTerminal *terminal, XftPattern *pattern, XftResult *result)
+/* Find a font which matches the request, figuring in FontConfig settings. */
+static FcPattern *
+vte_font_match(VteTerminal *terminal, FcPattern *pattern, FcResult *result)
 {
-	XftPattern *spec, *match;
+	FcPattern *spec, *match;
 	Display *display;
 	int screen;
 
-	spec = XftPatternDuplicate(pattern);
+	spec = FcPatternDuplicate(pattern);
 	if (spec == NULL) {
 		return NULL;
 	}
@@ -8447,13 +8464,13 @@ vte_font_match(VteTerminal *terminal, XftPattern *pattern, XftResult *result)
 	display = GDK_DISPLAY();
 	screen = gdk_x11_get_default_screen();
 
-	XftConfigSubstitute(spec);
+	FcConfigSubstitute(NULL, spec, FcMatchPattern);
 	vte_default_substitute(terminal, spec);
-	XftDefaultSubstitute(display, screen, spec);
+	FcDefaultSubstitute(spec);
 
-	match = XftFontMatch(display, screen, spec, result);
+	match = FcFontMatch(NULL, spec, result);
 
-	XftPatternDestroy(spec);
+	FcPatternDestroy(spec);
 	return match;
 }
 #endif
@@ -8591,7 +8608,13 @@ vte_terminal_set_font(VteTerminal *terminal,
 		 * time.  Whether it's filled in is impossible to determine
 		 * afaict.  We don't care about its value anyhow.  */
 		result = 0xffff; /* some bogus value to help in debugging */
+#ifdef HAVE_XFT2
 		matched_pattern = vte_font_match(terminal, pattern, &result);
+#else
+		matched_pattern = XftFontMatch(GDK_DISPLAY(),
+					       gdk_x11_get_default_screen(),
+					       pattern, &result);
+#endif
 		if (matched_pattern != NULL) {
 			need_destroy = TRUE;
 		}
@@ -9735,6 +9758,7 @@ vte_terminal_finalize(GObject *object)
 	/* Stop processing input. */
 	if (terminal->pvt->processing_tag != -1) {
 		g_source_remove(terminal->pvt->processing_tag);
+		terminal->pvt->processing_tag = -1;
 	}
 
 	/* Discard any pending data. */
@@ -12541,6 +12565,17 @@ void
 vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	/* Ditch any pending input data. */
+	if (terminal->pvt->incoming) {
+		g_free(terminal->pvt->incoming);
+	}
+	terminal->pvt->incoming = NULL;
+	terminal->pvt->n_incoming = 0;
+	if (terminal->pvt->processing) {
+		g_source_remove(terminal->pvt->processing_tag);
+		terminal->pvt->processing_tag = -1;
+		terminal->pvt->processing = FALSE;
+	}
 	/* Reset appkeypad state. */
 	terminal->pvt->keypad = VTE_KEYPAD_NORMAL;
 	/* Reset saved settings. */
