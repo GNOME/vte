@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.10.17
+Version: 0.10.18
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -93,6 +93,11 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Tue Feb 11 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.18-1
+- fix for uncertain finalize order between the terminal and its accessible peer
+- always update the cursor position on accessibe-changed events so that the
+  accessibility layer doesn't ask for text past the end of the buffer
+
 * Mon Feb  3 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.17-1
 - draw 0x2592 natively
 
