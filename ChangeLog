@@ -1,3 +1,7 @@
+2003-01-26  Daniel Yacob <locales@geez.org>
+
+	* configure.in: Added "am" to ALL_LINGUAS.
+
 2003-01-24 nalin
 	* src/vte.c(vte_terminal_background_update): fix declaration order
 	(#13795).
