@@ -6,8 +6,11 @@ pkgconfig_DATA = vte.pc
 
 CVSTAG=$(shell echo $(PACKAGE)-$(VERSION) | sed 's,[\.\-],_,g')
 
-reallytag:
+forcetag:
 	cvs tag -cFR $(CVSTAG) .
+
+reallytag:
+	cvs tag -cR $(CVSTAG) .
 
 tag:
 	$(top_srcdir)/autogen.sh

@@ -3,6 +3,7 @@
 headers
 #include <Python.h>
 #include <pygtk/pygtk.h>
+#include <pygobject.h>
 #include <gtk/gtk.h>
 #include "../src/vte.h"
 %%
@@ -10,24 +11,26 @@ import gtk.gdk.Pixbuf as PyGdkPixbuf_Type
 import gtk.MenuShell as PyGtkMenuShell_Type
 import gtk.Widget as PyGtkWidget_Type
 %%
-ignore vte_terminal_get_text
-ignore vte_terminal_get_text_range
-%%
 override vte_terminal_fork_command kwargs
+
 static PyObject *
 _wrap_vte_terminal_fork_command(PyGObject * self, PyObject * args,
 				PyObject * kwargs)
 {
 	gchar **argv = NULL, **envv = NULL;
-	gchar *command = NULL;
-	static char *kwlist[] = { "command", "argv", "envv", NULL };
-	PyObject *py_argv = NULL, *py_envv = NULL;
+	gchar *command = NULL, *directory = NULL;
+	static char *kwlist[] = { "command", "argv", "envv", "directory",
+				  "loglastlog", "logutmp", "logwtmp",
+				  NULL };
+	PyObject *py_argv = NULL, *py_envv = NULL,
+		 *loglastlog = NULL, *logutmp = NULL, *logwtmp = NULL;
 	int i, n_args, n_envs;
 	pid_t pid;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|sOO:fork_command",
-					 kwlist, &command, &py_argv,
-					 &py_envv)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|sOOsOOO:fork_command",
+					 kwlist, &command, &py_argv, &py_envv,
+					 &directory,
+					 &loglastlog, &logutmp, &logwtmp)) {
 		return NULL;
 	}
 
@@ -67,12 +70,237 @@ _wrap_vte_terminal_fork_command(PyGObject * self, PyObject * args,
 	}
 
 	pid = vte_terminal_fork_command(VTE_TERMINAL(self->obj),
-					command, argv, envv);
+					command, argv, envv, directory,
+					(loglastlog != NULL) &&
+					PyObject_IsTrue(loglastlog),
+					(logutmp != NULL) &&
+					PyObject_IsTrue(logutmp),
+					(logwtmp != NULL) &&
+					PyObject_IsTrue(logwtmp));
 
 	if (argv) {
 		g_free(argv);
 	}
 
 	return PyInt_FromLong(pid);
+}
+%%
+override vte_terminal_get_text kwargs
+
+static gboolean
+call_callback(VteTerminal *terminal, glong column, glong row, gpointer data)
+{
+    PyObject *cb, *self, *args, *result;
+    gboolean ret;
+    int i;
+    if (!PyArg_ParseTuple(data, "|O:call_callback", &args)) {
+        return FALSE;
+    }
+    args = PyList_New(0);
+    cb = PySequence_GetItem(args, 0); /* INCREFs */
+    Py_DECREF(cb);
+    self = PySequence_GetItem(args, 1); /* INCREFs */
+    Py_DECREF(self);
+    PyList_Append(args, self);
+    PyList_Append(args, PyInt_FromLong(column));
+    PyList_Append(args, PyInt_FromLong(row));
+    for (i = 2; i < PySequence_Length(args); i++) {
+        PyObject *item = PySequence_GetItem(args, i);
+	Py_DECREF(item);
+        PyList_Append(args, item);
+    }
+    result = PyObject_CallObject(cb, args);
+    ret = (result && PyObject_IsTrue(result));
+    Py_DECREF(args);
+    Py_DECREF(result);
+    return ret;
+}
+
+static gboolean
+always_true(VteTerminal *terminal, glong row, glong column, gpointer data)
+{
+    return TRUE;
+}
+static PyObject *
+_wrap_vte_terminal_get_text(PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "callback", "attributes", "data", NULL };
+    PyObject *callback = NULL, *do_attr = NULL, *data = NULL;
+    PyObject *callback_and_args = NULL;
+    GArray *attrs = NULL;
+    PyObject *text;
+    PyObject *py_attrs;
+    int count;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OOO:terminal_get_text",
+				     kwlist, &callback, &do_attr, &args)) {
+        return NULL;
+    }
+
+    if (do_attr != NULL && do_attr != Py_None) {
+	attrs = g_array_new(FALSE, TRUE, sizeof(struct vte_char_attributes));
+    } else {
+    	attrs = NULL;
+    }
+
+    if ((callback != NULL) && (callback != Py_None)) {
+	if (!PyCallable_Check(callback)) {
+	    PyErr_SetString(PyExc_TypeError, "1st argument not callable.");
+            if (attrs) {
+                g_array_free(attrs, TRUE);
+            }
+	    return NULL;
+	}
+    } else {
+    	callback = NULL;
+    }
+
+    if (callback != NULL) {
+        callback_and_args = PyList_New(0);
+        PyList_Append(callback_and_args, callback);
+        PyList_Append(callback_and_args, (PyObject*) self);
+        if (PyList_Check(data)) {
+            for (count = 0; count < PyList_Size(data); count++) {
+                PyList_Append(callback_and_args, PyList_GetItem(data, count));
+            }
+        } else {
+            PyList_Append(callback_and_args, data);
+        }
+    }
+
+    text = PyString_FromString(vte_terminal_get_text(VTE_TERMINAL(self->obj),
+						     callback ?
+						     call_callback :
+						     always_true,
+						     callback ?
+						     callback_and_args :
+						     NULL,
+						     attrs));
+    Py_XDECREF(callback_and_args);
+
+    if (attrs) {
+	py_attrs = PyTuple_New(attrs->len);
+	for (count = 0; count < attrs->len; count++) {
+	    struct vte_char_attributes *cht;
+	    PyObject *py_char_attr;
+	    PyObject *py_gdkcolor;
+
+	    cht = &g_array_index(attrs, struct vte_char_attributes, count);
+	    py_char_attr = PyDict_New();
+	    PyDict_SetItemString(py_char_attr, "row", PyInt_FromLong(cht->row));
+	    PyDict_SetItemString(py_char_attr, "column", PyInt_FromLong(cht->column));
+	    
+	    py_gdkcolor = pyg_boxed_new(GDK_TYPE_COLOR, &cht->fore, TRUE, TRUE);
+	    PyDict_SetItemString(py_char_attr, "fore", py_gdkcolor);
+	    py_gdkcolor = pyg_boxed_new(GDK_TYPE_COLOR, &cht->back, TRUE, TRUE);
+	    PyDict_SetItemString(py_char_attr, "back", py_gdkcolor);
+	    
+	    PyDict_SetItemString(py_char_attr, "underline", 
+		    PyInt_FromLong(cht->underline));
+	    PyDict_SetItemString(py_char_attr, "alternate", 
+		    PyInt_FromLong(cht->alternate));
+
+	    PyTuple_SetItem(py_attrs, count, py_char_attr);
+	}
+	g_array_free(attrs, TRUE);
+	return Py_BuildValue("(OO)", text, py_attrs);
+    } else {
+    	return Py_BuildValue("O", text);
+    }
+}
+%%
+override vte_terminal_get_text_range kwargs
+static PyObject *
+_wrap_vte_terminal_get_text_range(PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "callback", "start_row", "start_col", "end_row",
+			      "end_col", "attributes", "data", NULL };
+    PyObject *callback = NULL, *do_attr = NULL, *data = NULL;
+    glong start_row, start_col, end_row, end_col;
+    PyObject *callback_and_args = NULL;
+    GArray *attrs = NULL;
+    PyObject *text;
+    PyObject *py_attrs;
+    int count;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|llllOOO:terminal_get_text",
+				     kwlist,
+				     &start_row, &start_col, &end_row, &end_col,
+				     &callback, &do_attr, &args)) {
+        return NULL;
+    }
+
+    if (do_attr != NULL && do_attr != Py_None) {
+	attrs = g_array_new(FALSE, TRUE, sizeof(struct vte_char_attributes));
+    } else {
+    	attrs = NULL;
+    }
+
+    if ((callback != NULL) && (callback != Py_None)) {
+	if (!PyCallable_Check(callback)) {
+	    PyErr_SetString(PyExc_TypeError, "1st argument not callable.");
+            if (attrs) {
+                g_array_free(attrs, TRUE);
+            }
+	    return NULL;
+	}
+    } else {
+    	callback = NULL;
+    }
+
+    if (callback != NULL) {
+        callback_and_args = PyList_New(0);
+        PyList_Append(callback_and_args, callback);
+        PyList_Append(callback_and_args, (PyObject*) self);
+        if (PyList_Check(data)) {
+            for (count = 0; count < PyList_Size(data); count++) {
+                PyList_Append(callback_and_args, PyList_GetItem(data, count));
+            }
+        } else {
+            PyList_Append(callback_and_args, data);
+        }
+    }
+
+    text = PyString_FromString(vte_terminal_get_text_range(VTE_TERMINAL(self->obj),
+							   start_row, start_col,
+							   end_row, end_col,
+							   callback ?
+							   call_callback :
+							   always_true,
+							   callback ?
+							   callback_and_args :
+							   NULL,
+							   attrs));
+    Py_XDECREF(callback_and_args);
+
+    if (attrs) {
+	py_attrs = PyTuple_New(attrs->len);
+	for (count = 0; count < attrs->len; count++) {
+	    struct vte_char_attributes *cht;
+	    PyObject *py_char_attr;
+	    PyObject *py_gdkcolor;
+
+	    cht = &g_array_index(attrs, struct vte_char_attributes, count);
+	    py_char_attr = PyDict_New();
+	    PyDict_SetItemString(py_char_attr, "row", PyInt_FromLong(cht->row));
+	    PyDict_SetItemString(py_char_attr, "column", PyInt_FromLong(cht->column));
+	    
+	    py_gdkcolor = pyg_boxed_new(GDK_TYPE_COLOR, &cht->fore, TRUE, TRUE);
+	    PyDict_SetItemString(py_char_attr, "fore", py_gdkcolor);
+	    py_gdkcolor = pyg_boxed_new(GDK_TYPE_COLOR, &cht->back, TRUE, TRUE);
+	    PyDict_SetItemString(py_char_attr, "back", py_gdkcolor);
+	    
+	    PyDict_SetItemString(py_char_attr, "underline", 
+		    PyInt_FromLong(cht->underline));
+	    PyDict_SetItemString(py_char_attr, "alternate", 
+		    PyInt_FromLong(cht->alternate));
+
+	    PyTuple_SetItem(py_attrs, count, py_char_attr);
+	}
+	g_array_free(attrs, TRUE);
+	return Py_BuildValue("(OO)", text, py_attrs);
+    } else {
+    	return Py_BuildValue("O", text);
+    }
 }
 %%

@@ -1,0 +1,73 @@
+<!-- ##### SECTION ./tmpl/pty.sgml:Long_Description ##### -->
+<para>
+The terminal widget uses these functions to start commands with new controlling
+pseudo-terminals and to resize psuedo-terminals.
+</para>
+
+
+<!-- ##### SECTION ./tmpl/pty.sgml:See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/pty.sgml:Short_Description ##### -->
+Functions for starting a new process on a new pseudo-terminal and for
+manipulating psuedo-terminals.
+
+
+<!-- ##### SECTION ./tmpl/pty.sgml:Title ##### -->
+pty
+
+
+<!-- ##### FUNCTION vte_pty_get_size ##### -->
+<para>
+
+</para>
+
+@master: 
+@columns: 
+@rows: 
+@Returns: 
+
+<!-- ##### FUNCTION vte_pty_open ##### -->
+<para>
+
+</para>
+
+@child: 
+@env_add: 
+@command: 
+@argv: 
+@directory: 
+@columns: 
+@rows: 
+@lastlog: 
+@utmp: 
+@wtmp: 
+@Returns: 
+
+<!-- ##### FUNCTION vte_pty_set_size ##### -->
+<para>
+
+</para>
+
+@master: 
+@columns: 
+@rows: 
+@Returns: 
+
+<!-- ##### FUNCTION vte_terminal_fork_logged_command ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@command: 
+@argv: 
+@envv: 
+@lastlog: 
+@utmp: 
+@wtmp: 
+@Returns: 
+

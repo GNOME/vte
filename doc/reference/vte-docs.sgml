@@ -3,7 +3,6 @@
 <!ENTITY vte-vteaccess SYSTEM "sgml/vteaccess.sgml">
 <!ENTITY vte-VteReaper SYSTEM "sgml/reaper.sgml">
 <!ENTITY vte-caps SYSTEM "sgml/caps.sgml">
-<!ENTITY vte-pty SYSTEM "sgml/pty.sgml">
 <!ENTITY vte-termcap SYSTEM "sgml/termcap.sgml">
 <!ENTITY vte-trie SYSTEM "sgml/trie.sgml">
 <!ENTITY vte-debug SYSTEM "sgml/debug.sgml">
@@ -21,6 +20,5 @@
     &vte-VteTerminal;
     &vte-vteaccess;
     &vte-VteReaper;
-    &vte-pty;
   </chapter>
 </book>

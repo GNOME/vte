@@ -118,19 +118,22 @@ typedef gunichar wint_t;
  * includes any supported visible attributes. */
 struct vte_charcell {
 	gunichar c;		/* The Unicode character. */
-	guint16 columns: 2;	/* Number of visible columns (as determined
-				   by g_unicode_iswide(c)). */
-	guint16 fore: 5;	/* Indices in the color palette for the */
-	guint16 back: 5;	/* foreground and background of the cell. */
-	guint16 standout: 1;	/* Single-bit attributes. */
-	guint16 underline: 1;
-	guint16 reverse: 1;
-	guint16 blink: 1;
-	guint16 half: 1;
-	guint16 bold: 1;
-	guint16 invisible: 1;
-	guint16 protect: 1;
-	guint16 alternate: 1;
+	guint32 columns: 12;	/* Number of visible columns (as determined
+				   by g_unicode_iswide(c)).  Use as many bits
+				   as possible without making this structure
+				   grow any larger. */
+	guint32 fragment: 1;	/* The nth fragment of a wide character. */
+	guint32 fore: 5;	/* Indices in the color palette for the */
+	guint32 back: 5;	/* foreground and background of the cell. */
+	guint32 standout: 1;	/* Single-bit attributes. */
+	guint32 underline: 1;
+	guint32 reverse: 1;
+	guint32 blink: 1;
+	guint32 half: 1;
+	guint32 bold: 1;
+	guint32 invisible: 1;
+	guint32 protect: 1;
+	guint32 alternate: 1;
 };
 
 /* A match regex, with a tag. */
@@ -142,6 +145,7 @@ struct vte_match_regex {
 /* A drawing request record, for simplicity. */
 struct vte_draw_item {
 	gunichar c;
+	guint16 columns;
 	guint16 xpad;
 };
 
@@ -244,7 +248,7 @@ struct _VteTerminalPrivate {
 	gboolean has_selection;
 	gboolean restart_selection;
 	char *selection;
-	enum {
+	enum vte_selection_type {
 		selection_type_char,
 		selection_type_word,
 		selection_type_line
@@ -252,7 +256,7 @@ struct _VteTerminalPrivate {
 	struct selection_event_coords {
 		double x, y;
 	} selection_origin, selection_last, selection_delayed;
-	struct {
+	struct selection_cell_coords {
 		long x, y;
 	} selection_start, selection_end;
 
@@ -318,8 +322,10 @@ struct _VteTerminalPrivate {
 		VteRenderXlib = 0,
 		VteRenderPangoX = 1,
 		VteRenderPango = 2,
+#ifdef HAVE_XFT
 		VteRenderXft1 = 3,
-		VteRenderXft2 = 4
+		VteRenderXft2 = 4,
+#endif
 	} render_method;
 #ifdef HAVE_XFT
 	XftFont *ftfont;
@@ -375,7 +381,8 @@ static void vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
 static void vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 				     gboolean force_insert_mode,
-				     gboolean invalidate_cells);
+				     gboolean invalidate_cells,
+				     gint forced_width);
 static void vte_sequence_handler_clear_screen(VteTerminal *terminal,
 					      const char *match,
 					      GQuark match_quark,
@@ -459,10 +466,10 @@ vte_free_row_data(gpointer freeing, gpointer data)
 static void
 vte_g_array_fill(GArray *array, gpointer item, guint final_size)
 {
+	g_assert(array != NULL);
 	if (array->len >= final_size) {
 		return;
 	}
-	g_assert(array != NULL);
 	g_assert(item != NULL);
 
 	while (array->len < final_size) {
@@ -472,7 +479,7 @@ vte_g_array_fill(GArray *array, gpointer item, guint final_size)
 
 /* Allocate a new line. */
 static GArray *
-vte_new_row_data(void)
+vte_new_row_data(VteTerminal *terminal)
 {
 	return g_array_new(FALSE, FALSE, sizeof(struct vte_charcell));
 }
@@ -496,7 +503,7 @@ vte_new_row_data_sized(VteTerminal *terminal, gboolean fill)
 static gssize
 vte_unichar_width(gunichar c)
 {
-	return g_unichar_isdefined(c) ? (g_unichar_iswide(c) ? 2 : 1) : -1;
+	return g_unichar_isdefined(c) ? (g_unichar_iswide(c) ? 2 : 1) : 1;
 }
 
 /* Check how long a string of unichars is.  Slow version. */
@@ -590,8 +597,9 @@ static void
 vte_terminal_set_default_attributes(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->screen->defaults.c = 0;
+	terminal->pvt->screen->defaults.c = ' ';
 	terminal->pvt->screen->defaults.columns = 1;
+	terminal->pvt->screen->defaults.fragment = 0;
 	terminal->pvt->screen->defaults.fore = VTE_DEF_FG;
 	terminal->pvt->screen->defaults.back = VTE_DEF_BG;
 	terminal->pvt->screen->defaults.reverse = 0;
@@ -746,7 +754,7 @@ vte_invalidate_cursor_once(gpointer data)
 		cell = vte_terminal_find_charcell(terminal,
 						  column,
 						  screen->cursor_current.row);
-		while ((cell != NULL) && (cell->columns == 0) && (column > 0)) {
+		while ((cell != NULL) && (cell->fragment) && (column > 0)) {
 			column--;
 			cell = vte_terminal_find_charcell(terminal,
 							  column,
@@ -756,10 +764,8 @@ vte_invalidate_cursor_once(gpointer data)
 			columns = cell->columns;
 		}
 		vte_invalidate_cells(terminal,
-				     column,
-				     columns + preedit_length,
-				     screen->cursor_current.row,
-				     1);
+				     column, columns + preedit_length,
+				     screen->cursor_current.row, 1);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_UPDATES)) {
 			fprintf(stderr, "Invalidating cursor at (%ld,%ld-%ld)."
@@ -1095,7 +1101,6 @@ vte_terminal_deselect_all(VteTerminal *terminal)
 		vte_terminal_emit_selection_changed(terminal);
 		vte_invalidate_all(terminal);
 	}
-	terminal->pvt->restart_selection = FALSE;
 }
 
 /* Reset the set of tab stops to the default. */
@@ -1169,7 +1174,7 @@ vte_terminal_match_contents_clear(VteTerminal *terminal)
 		g_free(terminal->pvt->match_contents);
 		terminal->pvt->match_contents = NULL;;
 	}
-	while (terminal->pvt->match_attributes != NULL) {
+	if (terminal->pvt->match_attributes != NULL) {
 		g_array_free(terminal->pvt->match_attributes, TRUE);
 		terminal->pvt->match_attributes = NULL;
 	}
@@ -1178,7 +1183,7 @@ vte_terminal_match_contents_clear(VteTerminal *terminal)
 
 /* Refresh the cache of the screen contents we keep. */
 static gboolean
-always_selected(VteTerminal *terminal, glong row, glong column)
+always_selected(VteTerminal *terminal, glong row, glong column, gpointer data)
 {
 	return TRUE;
 }
@@ -1191,6 +1196,7 @@ vte_terminal_match_contents_refresh(VteTerminal *terminal)
 	array = g_array_new(FALSE, TRUE, sizeof(struct vte_char_attributes));
 	terminal->pvt->match_contents = vte_terminal_get_text(terminal,
 							      always_selected,
+							      NULL,
 							      array);
 	terminal->pvt->match_attributes = array;
 }
@@ -1263,6 +1269,12 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 	struct vte_char_attributes *attr = NULL;
 	gssize coffset;
 	regmatch_t matches[256];
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
+		fprintf(stderr, "Checking for match at (%ld,%ld).\n",
+			row, column);
+	}
+#endif
 	if (tag != NULL) {
 		*tag = -1;
 	}
@@ -1283,12 +1295,10 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 		attr = &g_array_index(terminal->pvt->match_attributes,
 				      struct vte_char_attributes,
 				      offset);
-		if (attr != NULL) {
-			if ((row == attr->row) &&
-			    (column == attr->column) &&
-			    !g_ascii_isspace(terminal->pvt->match_contents[offset])) {
-				break;
-			}
+		if ((row == attr->row) &&
+		    (column == attr->column) &&
+		    (terminal->pvt->match_contents[offset] != ' ')) {
+			break;
 		}
 	}
 #ifdef VTE_DEBUG
@@ -1300,10 +1310,12 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 		}
 	}
 #endif
+
 	/* If the pointer isn't on a matchable character, bug out. */
 	if (offset < 0) {
 		return NULL;
 	}
+
 	/* If the pointer is on a newline, bug out. */
 	if (g_ascii_isspace(terminal->pvt->match_contents[offset])) {
 #ifdef VTE_DEBUG
@@ -1319,76 +1331,83 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 		regex = &g_array_index(terminal->pvt->match_regexes,
 				       struct vte_match_regex,
 				       i);
-		if (regex != NULL) {
-			/* We'll only match the first item in the buffer which
-			 * matches, so we'll have to skip each match until we
-			 * stop getting matches. */
-			coffset = 0;
+		g_assert(regex != NULL);
+		/* We'll only match the first item in the buffer which
+		 * matches, so we'll have to skip each match until we
+		 * stop getting matches. */
+		coffset = 0;
+		ret = regexec(&regex->reg,
+			      terminal->pvt->match_contents + coffset,
+			      G_N_ELEMENTS(matches),
+			      matches,
+			      VTE_REGEXEC_FLAGS);
+		while (ret == 0) {
+			for (j = 0;
+			     (j < G_N_ELEMENTS(matches)) &&
+			     (matches[j].rm_so != -1);
+			     j++) {
+				/* The offsets should be "sane". */
+				g_assert(matches[j].rm_so + coffset <
+					 terminal->pvt->match_attributes->len);
+				g_assert(matches[j].rm_eo + coffset <=
+					 terminal->pvt->match_attributes->len);
+#ifdef VTE_DEBUG
+				if (_vte_debug_on(VTE_DEBUG_MISC)) {
+					char *match;
+					struct vte_char_attributes *sattr, *eattr;
+					match = g_strndup(terminal->pvt->match_contents + matches[j].rm_so + coffset,
+							  matches[j].rm_eo - matches[j].rm_so);
+					sattr = &g_array_index(terminal->pvt->match_attributes,
+							       struct vte_char_attributes,
+							       matches[j].rm_so + coffset);
+					eattr = &g_array_index(terminal->pvt->match_attributes,
+							       struct vte_char_attributes,
+							       matches[j].rm_eo + coffset - 1);
+					fprintf(stderr, "Match %d `%s' from %d(%ld,%ld) to %d(%ld,%ld) (%d).\n",
+						j, match,
+						matches[j].rm_so + coffset,
+						sattr->column,
+						sattr->row,
+						matches[j].rm_eo + coffset - 1,
+						eattr->column,
+						eattr->row,
+						offset);
+					g_free(match);
+
+				}
+#endif
+				/* Snip off any final newlines. */
+				while ((matches[j].rm_eo > matches[j].rm_so) &&
+				       (terminal->pvt->match_contents[coffset + matches[j].rm_eo - 1] == '\n')) {
+					matches[j].rm_eo--;
+				}
+				/* If the pointer is in this substring,
+				 * then we're done. */
+				if ((offset >= (matches[j].rm_so + coffset)) &&
+				    (offset < (matches[j].rm_eo + coffset))) {
+					if (tag != NULL) {
+						*tag = regex->tag;
+					}
+					if (start != NULL) {
+						*start = coffset +
+							 matches[j].rm_so;
+					}
+					if (end != NULL) {
+						*end = coffset +
+						       matches[j].rm_eo - 1;
+					}
+					return g_strndup(terminal->pvt->match_contents + coffset + matches[j].rm_so,
+							 matches[j].rm_eo - matches[j].rm_so);
+				}
+			}
+			/* Skip past the beginning of this match to
+			 * look for more. */
+			coffset += (matches[0].rm_so + 1);
 			ret = regexec(&regex->reg,
 				      terminal->pvt->match_contents + coffset,
 				      G_N_ELEMENTS(matches),
 				      matches,
 				      VTE_REGEXEC_FLAGS);
-			while (ret == 0) {
-				for (j = 0;
-				     j < G_N_ELEMENTS(matches) &&
-				     (matches[j].rm_so != -1);
-				     j++) {
-					/* The offsets should be "sane". */
-					g_assert(matches[j].rm_so + coffset < terminal->pvt->match_attributes->len);
-					g_assert(matches[j].rm_eo + coffset <= terminal->pvt->match_attributes->len);
-#ifdef VTE_DEBUG
-					if (_vte_debug_on(VTE_DEBUG_MISC)) {
-						char *match;
-						struct vte_char_attributes *sattr, *eattr;
-						match = g_strndup(terminal->pvt->match_contents + matches[j].rm_so + coffset,
-								  matches[j].rm_eo - matches[j].rm_so);
-						sattr = &g_array_index(terminal->pvt->match_attributes,
-								       struct vte_char_attributes,
-								       matches[j].rm_so + coffset);
-						eattr = &g_array_index(terminal->pvt->match_attributes,
-								       struct vte_char_attributes,
-								       matches[j].rm_eo + coffset - 1);
-						fprintf(stderr, "Match %d `%s' from %d(%ld,%ld) to %d(%ld,%ld) (%d).\n",
-							j, match,
-							matches[j].rm_so + coffset,
-							sattr->column,
-							sattr->row,
-							matches[j].rm_eo + coffset - 1,
-							eattr->column,
-							eattr->row,
-							offset);
-						g_free(match);
-
-					}
-#endif
-					/* If the pointer is in this substring,
-					 * then we're done. */
-					if ((offset >= matches[j].rm_so + coffset) &&
-					    (offset < matches[j].rm_eo + coffset)) {
-						if (tag != NULL) {
-							*tag = regex->tag;
-						}
-						if (start != NULL) {
-							*start = matches[j].rm_so + coffset;
-						}
-						if (end != NULL) {
-							*end = matches[j].rm_eo + coffset - 1;
-						}
-						return g_strndup(terminal->pvt->match_contents + matches[j].rm_so + coffset,
-								 matches[j].rm_eo - matches[j].rm_so);
-					}
-				}
-				/* Skip past the beginning of this match to
-				 * look for more. */
-				coffset += (matches[0].rm_so + 1);
-				ret = regexec(&regex->reg,
-					      terminal->pvt->match_contents +
-					      coffset,
-					      G_N_ELEMENTS(matches),
-					      matches,
-					      VTE_REGEXEC_FLAGS);
-			}
 		}
 	}
 	return NULL;
@@ -1591,6 +1610,8 @@ vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
 	gtk_adjustment_set_value(terminal->adjustment, destination);
 	/* Clear dingus match set. */
 	vte_terminal_match_contents_clear(terminal);
+	/* Notify viewers that the contents have changed. */
+	vte_terminal_emit_contents_changed(terminal);
 }
 
 /* Scroll so that the scroll delta is the insertion delta. */
@@ -2444,7 +2465,7 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 		if (fill) {
 			array = vte_new_row_data_sized(terminal, TRUE);
 		} else {
-			array = vte_new_row_data();
+			array = vte_new_row_data(terminal);
 		}
 		_vte_ring_append(screen->row_data, array);
 		readjust = TRUE;
@@ -2658,7 +2679,7 @@ vte_sequence_handler_ic(VteTerminal *terminal,
 
 	save = screen->cursor_current;
 
-	vte_terminal_insert_char(terminal, ' ', TRUE, TRUE);
+	vte_terminal_insert_char(terminal, ' ', TRUE, TRUE, -1);
 
 	screen->cursor_current = save;
 }
@@ -3231,23 +3252,14 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 		newcol = terminal->column_count - 1;
 	}
 
-	/* Wrap to the next line if need be. */
-	if (newcol >= terminal->column_count) {
-		if (terminal->pvt->flags.am) {
-			/* Move to the next line. */
-			terminal->pvt->screen->cursor_current.col = 0;
-			vte_sequence_handler_sf(terminal, match,
-						match_quark, params);
-		} else {
-			/* Stay in the rightmost column. */
-			newcol = terminal->column_count - 1;
-		}
-	} else {
-		terminal->pvt->screen->cursor_current.col = newcol;
-	}
+	/* Insert a tab character with the right width. */
+	vte_terminal_insert_char(terminal, '\t',
+				 FALSE, FALSE,
+				 newcol -
+				 terminal->pvt->screen->cursor_current.col);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-		fprintf(stderr, "Moving cursor to column %ld.\n", (long)newcol);
+		fprintf(stderr, "Inserting tab.\n");
 	}
 #endif
 }
@@ -3308,7 +3320,7 @@ vte_sequence_handler_uc(VteTerminal *terminal,
 	cell = vte_terminal_find_charcell(terminal,
 					  column,
 					  screen->cursor_current.row);
-	while ((cell != NULL) && (cell->columns == 0) && (column > 0)) {
+	while ((cell != NULL) && (cell->fragment) && (column > 0)) {
 		column--;
 		cell = vte_terminal_find_charcell(terminal,
 						  column,
@@ -3836,14 +3848,14 @@ vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 		    terminal->pvt->mouse_cell_motion_tracking ||
 		    terminal->pvt->mouse_all_motion_tracking) {
 #ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_IO)) {
+			if (_vte_debug_on(VTE_DEBUG_CURSOR)) {
 				fprintf(stderr, "Setting mousing cursor.\n");
 			}
 #endif
 			cursor = terminal->pvt->mouse_mousing_cursor;
 		} else {
 #ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_IO)) {
+			if (_vte_debug_on(VTE_DEBUG_CURSOR)) {
 				fprintf(stderr, "Setting default mouse "
 					"cursor.\n");
 			}
@@ -3852,7 +3864,7 @@ vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 		}
 	} else {
 #ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_IO)) {
+		if (_vte_debug_on(VTE_DEBUG_CURSOR)) {
 			fprintf(stderr, "Setting to invisible cursor.\n");
 		}
 #endif
@@ -4144,6 +4156,10 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		/* Reset scrollbars and repaint everything. */
 		vte_terminal_adjust_adjustments(terminal, TRUE);
 		vte_invalidate_all(terminal);
+		/* Clear the matching view. */
+		vte_terminal_match_contents_clear(terminal);
+		/* Notify viewers that the contents have changed. */
+		vte_terminal_emit_contents_changed(terminal);
 		break;
 	case 9:
 	case 1000:
@@ -4711,7 +4727,7 @@ vte_sequence_handler_screen_alignment_test(VteTerminal *terminal,
 	     row++) {
 		/* Find this row. */
 		while (_vte_ring_next(screen->row_data) <= row) {
-			rowdata = vte_new_row_data();
+			rowdata = vte_new_row_data(terminal);
 			_vte_ring_append(screen->row_data, rowdata);
 		}
 		vte_terminal_adjust_adjustments(terminal, TRUE);
@@ -5641,16 +5657,16 @@ vte_terminal_set_color_background(VteTerminal *terminal,
  * @palette: the color palette
  * @palette_size: the number of entries in @palette
  *
- * The terminal widget uses a 19-color model comprised of the default foreground
- * and background colors, the bold foreground color, an eight color palette, and
- * bold versions of the eight color palette.
+ * The terminal widget uses a 20-color model comprised of the default foreground
+ * and background colors, the bold foreground color, the cursor foreground
+ * color,an eight color palette, and bold versions of the eight color palette.
  *
  * @palette_size must be either 0, 8, or 16.  If @foreground is NULL and
  * @palette_size is greater than 0, the new foreground color is taken from
  * @palette[7].  If @background is NULL and @palette_size is greater than 0,
- * the new background color is taken from @palette[0].  If @palette_size is
- * 8, the second 8-color palette is extrapolated from the new background
- * color and the items in @palette.
+ * the new background color is taken from @palette[0].  If
+ * @palette_size is 8, the second 8-color palette is extrapolated from the new
+ * background color and the items in @palette.
  *
  */
 void
@@ -5773,7 +5789,8 @@ vte_terminal_set_default_colors(VteTerminal *terminal)
 /* Insert a single character into the stored data array. */
 static void
 vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
-			 gboolean force_insert_mode, gboolean invalidate_cells)
+			 gboolean force_insert_mode, gboolean invalidate_cells,
+			 gint forced_width)
 {
 	GArray *array;
 	struct vte_charcell cell, *pcell;
@@ -5805,11 +5822,15 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 
 	/* Figure out how many columns this character should occupy. */
-	columns = vte_unichar_width(c);
-	if (columns < 0) {
-		g_warning(_("Character 0x%x is undefined, allocating one "
-			  "column."), c);
-		columns = 1;
+	if (forced_width == -1) {
+		columns = vte_unichar_width(c);
+		if (columns < 0) {
+			g_warning(_("Character 0x%x is undefined, allocating "
+				    "one column."), c);
+			columns = 1;
+		}
+	} else {
+		columns = forced_width;
 	}
 
 	/* If we're autowrapping here, do it. */
@@ -5862,9 +5883,12 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		*pcell = screen->defaults;
 		pcell->c = cell.c;
 		pcell->columns = cell.columns;
+		pcell->fragment = cell.fragment;
 
 		/* Now set the character and column count. */
 		if (i == 0) {
+			/* This is an entire character or the first column of
+			 * a multi-column character. */
 			if ((pcell->c != 0) &&
 			    (c == '_') &&
 			    (terminal->pvt->flags.ul)) {
@@ -5874,27 +5898,13 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 				/* Insert the character. */
 				pcell->c = c;
 				pcell->columns = columns;
+				pcell->fragment = 0;
 			}
 		} else {
 			/* This is a continuation cell. */
-			pcell->columns = 0;
-		}
-
-		/* Signal that this part of the window needs drawing. */
-		if (invalidate_cells) {
-			if (insert) {
-				vte_invalidate_cells(terminal,
-						     col,
-						     terminal->column_count -
-						     col,
-						     screen->cursor_current.row,
-						     2);
-			} else {
-				vte_invalidate_cells(terminal,
-						     col, 1,
-						     screen->cursor_current.row,
-						     2);
-			}
+			pcell->c = c;
+			pcell->columns = columns;
+			pcell->fragment = 1;
 		}
 
 		/* And take a step to the to the right. */
@@ -5905,6 +5915,20 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		 * see it. */
 		while (array->len > terminal->column_count) {
 			g_array_remove_index(array, array->len - 1);
+		}
+	}
+
+	/* Signal that this part of the window needs drawing. */
+	if (invalidate_cells) {
+		col = screen->cursor_current.col - columns;
+		if (insert) {
+			vte_invalidate_cells(terminal,
+					     col, terminal->column_count - col,
+					     screen->cursor_current.row, 1);
+		} else {
+			vte_invalidate_cells(terminal,
+					     col, columns,
+					     screen->cursor_current.row, 1);
 		}
 	}
 
@@ -6017,12 +6041,13 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 }
 
 /**
- * vte_terminal_fork_logged_command:
+ * vte_terminal_fork_command:
  * @terminal: a #VteTerminal
  * @command: the name of a binary to run
  * @argv: the argument list to be passed to @command
  * @envv: a list of environment variables to be added to the environment before
  * starting @command
+ * @directory: the name of a directory the command should start in, or NULL
  * @lastlog: TRUE if the session should be logged to the lastlog
  * @utmp: TRUE if the session should be logged to the utmp/utmpx log
  * @wtmp: TRUE if the session should be logged to the wtmp/wtmpx log
@@ -6035,9 +6060,9 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
  * Returns: the ID of the new process
  */
 pid_t
-vte_terminal_fork_logged_command(VteTerminal *terminal, const char *command,
-				 char **argv, char **envv,
-				 gboolean lastlog, gboolean utmp, gboolean wtmp)
+vte_terminal_fork_command(VteTerminal *terminal, const char *command,
+			  char **argv, char **envv, const char *directory,
+			  gboolean lastlog, gboolean utmp, gboolean wtmp)
 {
 	char **env_add;
 	int i;
@@ -6062,17 +6087,18 @@ vte_terminal_fork_logged_command(VteTerminal *terminal, const char *command,
 	env_add[i + 1] = NULL;
 
 	if (terminal->pvt->pty_master != -1) {
-		vte_pty_close(terminal->pvt->pty_master);
+		_vte_pty_close(terminal->pvt->pty_master);
 	}
-	terminal->pvt->pty_master = vte_pty_open_with_logging(&pid,
-							      env_add,
-							      command,
-							      argv,
-							      terminal->column_count,
-							      terminal->row_count,
-							      lastlog,
-							      utmp,
-							      wtmp);
+	terminal->pvt->pty_master = _vte_pty_open(&pid,
+						  env_add,
+						  command,
+						  argv,
+						  directory,
+						  terminal->column_count,
+						  terminal->row_count,
+						  lastlog,
+						  utmp,
+						  wtmp);
 
 	for (i = 0; env_add[i] != NULL; i++) {
 		g_free(env_add[i]);
@@ -6115,28 +6141,6 @@ vte_terminal_fork_logged_command(VteTerminal *terminal, const char *command,
 
 	/* Return the pid to the caller. */
 	return pid;
-}
-
-/**
- * vte_terminal_fork_command:
- * @terminal: a #VteTerminal
- * @command: the name of a binary to run
- * @argv: the argument list to be passed to @command
- * @envv: a list of environment variables to be added to the environment before
- * starting @command
- *
- * Starts the specified command under a newly-alllocated control
- * pseudo-terminal.  TERM is automatically set to reflect the terminal widget's
- * emulation setting.
- *
- * Returns: the ID of the new process
- */
-pid_t
-vte_terminal_fork_command(VteTerminal *terminal, const char *command,
-			  char **argv, char **envv)
-{
-	return vte_terminal_fork_logged_command(terminal, command, argv, envv,
-						FALSE, FALSE, FALSE);
 }
 
 /* Handle an EOF from the client. */
@@ -6386,7 +6390,7 @@ vte_terminal_process_incoming(gpointer data)
 			if (c != 0) {
 				/* Insert the character. */
 				vte_terminal_insert_char(terminal, c,
-							 FALSE, FALSE);
+							 FALSE, FALSE, -1);
 			}
 			modified = TRUE;
 			start++;
@@ -6511,7 +6515,6 @@ vte_terminal_process_incoming(gpointer data)
 		if (terminal->pvt->scroll_on_output || bottom) {
 			vte_terminal_scroll_to_bottom(terminal);
 		}
-
 		/* Deselect any existing selection. */
 		vte_terminal_deselect_all(terminal);
 	}
@@ -6519,6 +6522,7 @@ vte_terminal_process_incoming(gpointer data)
 	if (modified || (screen != terminal->pvt->screen)) {
 		/* Signal that the visible contents changed. */
 		vte_terminal_match_contents_clear(terminal);
+		/* Notify viewers that the contents have changed. */
 		vte_terminal_emit_contents_changed(terminal);
 	}
 
@@ -7398,23 +7402,6 @@ vte_cell_is_between(glong col, glong row,
 		    glong acol, glong arow, glong bcol, glong brow,
 		    gboolean inclusive)
 {
-	long t;
-	/* Sort endpoints on the same row properly. */
-	if (arow == brow) {
-		if (acol > bcol) {
-			t = acol;
-			acol = bcol;
-			bcol = t;
-		}
-	} else
-	if (arow > brow) {
-		t = arow;
-		arow = brow;
-		brow = t;
-		t = acol;
-		acol = bcol;
-		bcol = t;
-	}
 	/* No zero-length between allowed. */
 	if ((row == arow) && (row == brow) && (col == acol) && (col == bcol)) {
 		return FALSE;
@@ -7424,32 +7411,42 @@ vte_cell_is_between(glong col, glong row,
 	 * or any of the lines in between. */
 	if ((row > arow) && (row < brow)) {
 		return TRUE;
-	} else
+	}
 	/* It's also between the two points if they're on the same row
-	 * the cell lies between the start and end columns (which may not
-	 * be in the more obvious of two possible orders). */
+	 * the cell lies between the start and end columns. */
 	if ((row == arow) && (row == brow)) {
 		if (col >= acol) {
 			if (col < bcol) {
 				return TRUE;
-			} else
-			if ((col == bcol) && inclusive) {
-				return TRUE;
+			} else {
+				if ((col == bcol) && inclusive) {
+					return TRUE;
+				} else {
+					return FALSE;
+				}
 			}
+		} else {
+			return FALSE;
 		}
-	} else
+	}
 	/* It's also "between" if it's on the line where the area starts and
 	 * at or after the start column, or on the line where the area ends and
 	 * before the end column. */
 	if ((row == arow) && (col >= acol)) {
 		return TRUE;
-	} else
-	if (row == brow) {
-		if (col < bcol) {
-			return TRUE;
-		} else
-		if ((col == bcol) && inclusive) {
-			return TRUE;
+	} else {
+		if (row == brow) {
+			if (col < bcol) {
+				return TRUE;
+			} else {
+				if ((col == bcol) && inclusive) {
+					return TRUE;
+				} else {
+					return FALSE;
+				}
+			}
+		} else {
+			return FALSE;
 		}
 	}
 	return FALSE;
@@ -7457,9 +7454,13 @@ vte_cell_is_between(glong col, glong row,
 
 /* Check if a cell is selected or not. */
 static gboolean
-vte_cell_is_selected(VteTerminal *terminal, glong col, glong row)
+vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 {
-	long scol, ecol;
+	long i;
+	GArray *rowdata;
+	struct vte_charcell *cell;
+	struct selection_cell_coords ss, se;
+	VteScreen *screen;
 
 	/* If there's nothing selected, it's an easy question to answer. */
 	if (!terminal->pvt->has_selection) {
@@ -7468,21 +7469,87 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row)
 
 	/* Sort the two columns, for the cases where the selection is
 	 * entirely within a single line. */
-	scol = MIN(terminal->pvt->selection_start.x,
-		   terminal->pvt->selection_end.x);
-	ecol = MAX(terminal->pvt->selection_start.x,
-		   terminal->pvt->selection_end.x);
+	ss = terminal->pvt->selection_start;
+	se = terminal->pvt->selection_end;
+	screen = terminal->pvt->screen;
+
+	/* Adjust the endpoint so that it it's an inclusive range. */
+	if (se.x > 0) {
+		se.x--;
+	}
+
+	/* Retrieve this row's data. */
+	if (!_vte_ring_contains(screen->row_data, row)) {
+		return FALSE;
+	}
+	rowdata = _vte_ring_index(screen->row_data, GArray*, row);
+
+	/* Handle end-of-line selection wackiness. */
+	if ((row == ss.y) && (row == se.y)) {
+		/* It's not selected if the both the start and end are after
+		 * the end of the line. */
+		if ((ss.x >= rowdata->len) &&
+		    (se.x >= rowdata->len) &&
+		    (col >= rowdata->len)) {
+			return FALSE;
+		}
+	}
+	/* Checks for if we're at the start of the selection. */
+	if (row == ss.y) {
+		/* It's selected if the both the start of the selection and the
+		 * current column are after the end. */
+		if ((ss.x >= rowdata->len) && (col >= rowdata->len)) {
+			return TRUE;
+		}
+		/* Also selected if it's before the start of the selection and
+		 * there's nothing between here and the end of the line but
+		 * spaces. */
+		if ((col < ss.x) && (ss.x < rowdata->len)) {
+			for (i = col; i < rowdata->len; i++) {
+				cell = &g_array_index(rowdata,
+						      struct vte_charcell,
+						      i);
+				if ((cell->c != 0) && (cell->c != ' ')) {
+					break;
+				}
+			}
+			if (i >= rowdata->len) {
+				return TRUE;
+			}
+		}
+	}
+	/* Checks for if we're at the end of the selection. */
+	if (row == se.y) {
+		/* It's selected if the both the end of the selection and the
+		 * current column are after the end. */
+		if ((se.x >= rowdata->len) && (col >= rowdata->len)) {
+			return TRUE;
+		}
+		/* Also selected if it's past the end of the selection and
+		 * there's nothing between here and the end of the line but
+		 * spaces. */
+		if ((se.x < rowdata->len) && (se.x < col)) {
+			for (i = se.x; i < rowdata->len; i++) {
+				cell = &g_array_index(rowdata,
+						      struct vte_charcell,
+						      i);
+				if ((cell->c != 0) && (cell->c != ' ')) {
+					break;
+				}
+			}
+			if (i >= rowdata->len) {
+				return TRUE;
+			}
+		}
+	}
 
 	switch (terminal->pvt->selection_type) {
 	case selection_type_char:
 		/* A cell is selected if it's between the start and
 		 * endpoints of the selection. */
 		if (vte_cell_is_between(col, row,
-					terminal->pvt->selection_start.x,
-					terminal->pvt->selection_start.y,
-					terminal->pvt->selection_end.x,
-					terminal->pvt->selection_end.y,
-					FALSE)) {
+					ss.x, ss.y, se.x, se.y,
+					TRUE)) {
 			return TRUE;
 		}
 		break;
@@ -7490,35 +7557,33 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row)
 		/* A cell is selected if it's on the line where the
 		 * selected area starts, or the line where it ends,
 		 * or any of the lines in between. */
-		if ((row > terminal->pvt->selection_start.y) &&
-		    (row < terminal->pvt->selection_end.y)) {
+		if ((row > ss.y) && (row < se.y)) {
 			return TRUE;
 		} else
 		/* It's also selected if the selection is confined to
 		 * one line and the character lies between the start
 		 * and end columns (which may not be in the more obvious
 		 * of two possible orders). */
-		if ((terminal->pvt->selection_start.y == row) &&
-		    (terminal->pvt->selection_end.y == row)) {
-			if ((col >= scol) && (col <= ecol)) {
+		if ((ss.y == row) && (se.y == row)) {
+			if ((col >= ss.x) && (col <= se.x)) {
 				return TRUE;
 			} else
 			/* If the character is before the beginning of
 			 * the region, it's also selected if it and
 			 * everything else in between belongs to the
 			 * same character class. */
-			if (col < scol) {
+			if (col < ss.x) {
 				if (vte_uniform_class(terminal,
 						      row,
 						      col,
-						      scol)) {
+						      ss.x)) {
 					return TRUE;
 				}
 			} else
-			if (col > ecol) {
+			if (col > se.x) {
 				if (vte_uniform_class(terminal,
 						      row,
-						      ecol,
+						      se.x,
 						      col)) {
 					return TRUE;
 				}
@@ -7528,24 +7593,24 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row)
 		 * selected area starts and it's after the start column,
 		 * or on the line where the selection ends, after the
 		 * last selected column. */
-		if (row == terminal->pvt->selection_start.y) {
-			if (col >= terminal->pvt->selection_start.x) {
+		if (row == ss.y) {
+			if (col >= ss.x) {
 				return TRUE;
 			} else
 			if (vte_uniform_class(terminal,
 					      row,
 					      col,
-					      terminal->pvt->selection_start.x)) {
+					      ss.x)) {
 				return TRUE;
 			}
 		} else
-		if (row == terminal->pvt->selection_end.y) {
-			if (col < terminal->pvt->selection_end.x) {
+		if (row == se.y) {
+			if (col <= se.x) {
 				return TRUE;
 			} else
 			if (vte_uniform_class(terminal,
 					      row,
-					      terminal->pvt->selection_end.x,
+					      se.x,
 					      col)) {
 				return TRUE;
 			}
@@ -7555,8 +7620,7 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row)
 		/* A cell is selected if it's on the line where the
 		 * selected area starts, or the line where it ends,
 		 * or any of the lines in between. */
-		if ((row >= terminal->pvt->selection_start.y) &&
-		    (row <= terminal->pvt->selection_end.y)) {
+		if ((row >= ss.y) && (row <= se.y)) {
 			return TRUE;
 		}
 		break;
@@ -7657,13 +7721,32 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 
 /* Send a mouse button click/release notification. */
 static void
-vte_terminal_send_mouse_button(VteTerminal *terminal, GdkEventButton *event)
+vte_terminal_maybe_send_mouse_button(VteTerminal *terminal,
+				     GdkEventButton *event)
 {
 	GdkModifierType modifiers;
 
 	/* Read the modifiers. */
 	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
 		modifiers = 0;
+	}
+
+	/* Decide whether or not to do anything. */
+	switch (event->type) {
+	case GDK_BUTTON_PRESS:
+		if (!terminal->pvt->mouse_send_xy_on_button &&
+		    !terminal->pvt->mouse_send_xy_on_click) {
+			return;
+		}
+		break;
+	case GDK_BUTTON_RELEASE:
+		if (!terminal->pvt->mouse_send_xy_on_button) {
+			return;
+		}
+		break;
+	default:
+		return;
+		break;
 	}
 
 	/* Encode the parameters and send them to the app. */
@@ -7677,7 +7760,7 @@ vte_terminal_send_mouse_button(VteTerminal *terminal, GdkEventButton *event)
 
 /* Send a mouse motion notification. */
 static void
-vte_terminal_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
+vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 {
 	unsigned char cb = 0, cx = 0, cy = 0;
 	char buf[LINE_MAX];
@@ -7686,18 +7769,30 @@ vte_terminal_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	/* First determine if we even want to send notification. */
-	if (!terminal->pvt->mouse_cell_motion_tracking &&
-	    !terminal->pvt->mouse_all_motion_tracking) {
-		return;
-	}
-	if (terminal->pvt->mouse_cell_motion_tracking) {
-		if (((event->x - VTE_PAD_WIDTH) / terminal->char_width ==
-		     terminal->pvt->mouse_last_x / terminal->char_width) &&
-		    ((event->y - VTE_PAD_WIDTH) / terminal->char_height ==
-		     terminal->pvt->mouse_last_y / terminal->char_height)) {
+	switch (event->type) {
+	case GDK_MOTION_NOTIFY:
+		if (!terminal->pvt->mouse_cell_motion_tracking &&
+		    !terminal->pvt->mouse_all_motion_tracking) {
 			return;
 		}
+		if (terminal->pvt->mouse_cell_motion_tracking) {
+			if (((event->x - VTE_PAD_WIDTH) /
+			     terminal->char_width ==
+			     terminal->pvt->mouse_last_x /
+			     terminal->char_width) &&
+			    ((event->y - VTE_PAD_WIDTH) /
+			     terminal->char_height ==
+			     terminal->pvt->mouse_last_y /
+			     terminal->char_height)) {
+				return;
+			}
+		}
+		break;
+	default:
+		return;
+		break;
 	}
+
 
 	/* Read the modifiers. */
 	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
@@ -7736,7 +7831,8 @@ vte_terminal_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	cb += 64; /* 32 for normal, 32 for movement */
 
 	/* Encode the cursor coordinates. */
-	cx = 32 + 1 + ((event->x - VTE_PAD_WIDTH) / terminal->char_width);
+	cx = 32 + 1 + ((event->x - VTE_PAD_WIDTH + terminal->char_width / 2) /
+	     terminal->char_width);
 	cy = 32 + 1 + ((event->y - VTE_PAD_WIDTH) / terminal->char_height);
 
 	/* Send the event to the child. */
@@ -7765,10 +7861,8 @@ vte_terminal_match_hilite_clear(VteTerminal *terminal)
 		}
 #endif
 		vte_invalidate_cells(terminal,
-				     0,
-				     terminal->column_count,
-				     srow,
-				     erow - srow + 1);
+				     0, terminal->column_count,
+				     srow, erow - srow + 1);
 	}
 }
 
@@ -7844,274 +7938,11 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 #endif
 		/* Repaint what used to be hilited, if anything. */
 		vte_invalidate_cells(terminal,
-				     0,
-				     terminal->column_count,
+				     0, terminal->column_count,
 				     rows, rowe - rows + 1);
 	}
 }
 
-/* Recalculate the start- and endpoints of the selected text, using the
- * selection origin and "last" coordinate sets. */
-static void
-vte_terminal_selection_recompute(VteTerminal *terminal)
-{
-	struct {
-		long x, y;
-	} origin, last, start, end;
-	long width, height;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-	width = terminal->char_width;
-	height = terminal->char_height;
-	origin.x = (terminal->pvt->selection_origin.x + width / 2) / width;
-	origin.y = (terminal->pvt->selection_origin.y) / height;
-	last.x = (terminal->pvt->selection_last.x + width / 2) / width;
-	last.y = (terminal->pvt->selection_last.y) / height;
-	start.x = start.y = end.x = end.y = 0;
-
-	if (last.y > origin.y) {
-		start.x = origin.x;
-		start.y = origin.y;
-		end.x = last.x;
-		end.y = last.y;
-	} else
-	if (last.y < origin.y) {
-		start.x = last.x;
-		start.y = last.y;
-		end.x = origin.x;
-		end.y = origin.y;
-	} else
-	/* last.y == origin.y */
-	if (last.x > origin.x) {
-		start.x = origin.x;
-		start.y = origin.y;
-		end.x = last.x;
-		end.y = last.y;
-	} else {
-		start.x = last.x;
-		start.y = last.y;
-		end.x = origin.x;
-		end.y = origin.y;
-	}
-
-	terminal->pvt->selection_start.x = start.x;
-	terminal->pvt->selection_start.y = start.y;
-	terminal->pvt->selection_end.x = end.x;
-	terminal->pvt->selection_end.y = end.y;
-}
-
-static int
-vte_terminal_autoscroll(gpointer data)
-{
-	VteTerminal *terminal;
-	GtkWidget *widget;
-	double adj;
-	long row;
-
-	terminal = VTE_TERMINAL(data);
-	widget = GTK_WIDGET(terminal);
-	/* Provide immediate autoscroll for mouse wigglers. */
-	if (terminal->pvt->mouse_last_y < widget->allocation.y) {
-		if (terminal->adjustment) {
-			adj = CLAMP(terminal->adjustment->value - 1,
-				    terminal->adjustment->lower,
-				    terminal->adjustment->upper -
-				    terminal->row_count);
-			gtk_adjustment_set_value(terminal->adjustment,
-						 adj);
-			terminal->pvt->selection_last.x =
-				terminal->pvt->mouse_last_x;
-			terminal->pvt->selection_last.y =
-				terminal->pvt->mouse_last_y +
-				terminal->char_height * adj;
-			row = terminal->pvt->selection_start.y;
-			vte_terminal_selection_recompute(terminal);
-			terminal->pvt->selection_start.x = 0;
-			terminal->pvt->selection_start.y = adj;
-			vte_invalidate_cells(terminal,
-					     0,
-					     terminal->column_count,
-					     terminal->pvt->selection_start.y,
-					     row + 1 -
-					     terminal->pvt->selection_start.y);
-		}
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Autoscrolling down.\n");
-		}
-#endif
-	} else
-	if (terminal->pvt->mouse_last_y + 2 * VTE_PAD_WIDTH >
-	    widget->allocation.height) {
-			adj = CLAMP(terminal->adjustment->value + 1,
-				    terminal->adjustment->lower,
-				    terminal->adjustment->upper -
-				    terminal->row_count);
-			gtk_adjustment_set_value(terminal->adjustment,
-						 adj);
-			terminal->pvt->selection_last.x =
-				terminal->pvt->mouse_last_x;
-			terminal->pvt->selection_last.y =
-				terminal->pvt->mouse_last_y +
-				terminal->char_height * adj;
-			row = terminal->pvt->selection_end.y;
-			vte_terminal_selection_recompute(terminal);
-			terminal->pvt->selection_end.x =
-				terminal->column_count;
-			terminal->pvt->selection_end.y =
-				adj + terminal->row_count - 1;
-			vte_invalidate_cells(terminal,
-					     0,
-					     terminal->column_count,
-					     row,
-					     terminal->pvt->selection_end.y -
-					     row + 1);
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-				fprintf(stderr, "Autoscrolling down.\n");
-			}
-#endif
-	} else {
-		terminal->pvt->mouse_autoscroll_tag = 0;
-	}
-	return (terminal->pvt->mouse_autoscroll_tag != 0);
-}
-
-/* Read and handle a motion event. */
-static gint
-vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
-{
-	VteTerminal *terminal;
-	long delta;
-	GdkModifierType modifiers;
-	long top, height;
-	double adj;
-	gboolean need_autoscroll;
-
-	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
-	terminal = VTE_TERMINAL(widget);
-	delta = terminal->pvt->screen->scroll_delta;
-
-	/* Show the cursor. */
-	vte_terminal_set_pointer_visible(terminal, TRUE);
-
-	/* Read the modifiers. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
-		modifiers = 0;
-	}
-	/* Handle a drag event if we're running a mouse-aware application. */
-	if ((terminal->pvt->mouse_last_button != 0) &&
-	    (terminal->pvt->mouse_send_xy_on_click ||
-	     terminal->pvt->mouse_send_xy_on_button ||
-	     terminal->pvt->mouse_hilite_tracking ||
-	     terminal->pvt->mouse_cell_motion_tracking ||
-	     terminal->pvt->mouse_all_motion_tracking) &&
-	    ((modifiers & GDK_SHIFT_MASK) == 0)) {
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Mousing drag.\n");
-		}
-#endif
-		vte_terminal_send_mouse_drag(terminal, event);
-	} else
-	if (terminal->pvt->mouse_last_button == 1) {
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Drag.\n");
-		}
-#endif
-		/* If we delayed resetting selection, reset here. */
-		if (terminal->pvt->restart_selection) {
-			vte_terminal_deselect_all(terminal);
-			terminal->pvt->selection_origin.x =
-				terminal->pvt->selection_delayed.x;
-			terminal->pvt->selection_origin.y =
-				terminal->pvt->selection_delayed.y;
-			terminal->pvt->selection_type = selection_type_char;
-		}
-		terminal->pvt->has_selection = TRUE;
-
-		top = MIN(terminal->pvt->selection_last.y,
-			  event->y - VTE_PAD_WIDTH +
-			  (delta * terminal->char_height)) /
-			terminal->char_height;
-		height = (MAX(terminal->pvt->selection_last.y,
-			      event->y - VTE_PAD_WIDTH +
-			      (delta * terminal->char_height)) /
-			terminal->char_height) - top + 1;
-
-		terminal->pvt->selection_last.x = event->x - VTE_PAD_WIDTH;
-		terminal->pvt->selection_last.y = event->y - VTE_PAD_WIDTH +
-						  terminal->char_height * delta;
-		vte_terminal_selection_recompute(terminal);
-
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "selection is (%ld,%ld) to (%ld,%ld)\n",
-				terminal->pvt->selection_start.x,
-				terminal->pvt->selection_start.y,
-				terminal->pvt->selection_end.x,
-				terminal->pvt->selection_end.y);
-			fprintf(stderr, "repainting rows %ld to %ld\n",
-				top, top + height);
-		}
-#endif
-		vte_invalidate_cells(terminal, 0, terminal->column_count,
-				     top, height);
-
-		vte_terminal_emit_selection_changed (terminal);
-
-		/* Provide immediate autoscroll for mouse wigglers. */
-		need_autoscroll = FALSE;
-		if (event->y < 0) {
-			if (terminal->adjustment) {
-				adj = CLAMP(terminal->adjustment->value - 1,
-					    terminal->adjustment->lower,
-					    terminal->adjustment->upper -
-					    terminal->row_count);
-				gtk_adjustment_set_value(terminal->adjustment,
-							 adj);
-				need_autoscroll = TRUE;
-			}
-		} else
-		if (event->y >= widget->allocation.height) {
-				adj = CLAMP(terminal->adjustment->value + 1,
-					    terminal->adjustment->lower,
-					    terminal->adjustment->upper -
-					    terminal->row_count);
-				gtk_adjustment_set_value(terminal->adjustment,
-							 adj);
-				need_autoscroll = TRUE;
-		}
-		if (need_autoscroll &&
-		    (terminal->pvt->mouse_autoscroll_tag == 0)) {
-			terminal->pvt->mouse_autoscroll_tag = g_timeout_add_full(G_PRIORITY_LOW,
- 50,
- vte_terminal_autoscroll,
- terminal,
- NULL);
-		}
-	} else {
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Mouse move (button %d).\n",
-				terminal->pvt->mouse_last_button);
-		}
-#endif
-	}
-
-	/* Hilite any matches. */
-	vte_terminal_match_hilite(terminal,
-				  event->x - VTE_PAD_WIDTH,
-				  event->y - VTE_PAD_WIDTH);
-
-	/* Save the pointer coordinates for later use. */
-	terminal->pvt->mouse_last_x = event->x - VTE_PAD_WIDTH;
-	terminal->pvt->mouse_last_y = event->y - VTE_PAD_WIDTH;
-
-	return FALSE;
-}
 
 /* Note that the clipboard has cleared. */
 static void
@@ -8162,6 +7993,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
  * @end_row: last row to search for data
  * @end_col: last column to search for data
  * @is_selected: a callback
+ * @data: user data to be passed to the callback
  * @attributes: location for storing text attributes
  *
  * Extracts a view of the visible part of the string.  If @is_selected is not
@@ -8178,15 +8010,17 @@ char *
 vte_terminal_get_text_range(VteTerminal *terminal,
 			    glong start_row, glong start_col,
 			    glong end_row, glong end_col,
-			    gboolean(*is_selected)(VteTerminal *, glong, glong),
+			    gboolean(*is_selected)(VteTerminal *, glong, glong,
+				    		   gpointer),
+			    gpointer data,
 			    GArray *attributes)
 {
-	long col, row, spaces;
+	long col, row, last_space, last_nonspace, last_nonspacecol;
 	VteScreen *screen;
-	struct vte_charcell *pcell;
+	struct vte_charcell *pcell = NULL;
 	GString *string;
 	struct vte_char_attributes attr;
-	struct vte_palette_entry fore, back;
+	struct vte_palette_entry fore, back, *palette;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 	g_return_val_if_fail(is_selected != NULL, NULL);
@@ -8195,53 +8029,45 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 	string = g_string_new("");
 	memset(&attr, 0, sizeof(attr));
 
+	palette = terminal->pvt->palette;
 	for (row = start_row; row <= end_row; row++) {
 		col = (row == start_row) ? start_col : 0;
-		spaces = 0;
+		last_space = last_nonspace = last_nonspacecol = -1;
 		attr.row = row;
+		pcell = NULL;
 		do {
+			/* If it's not part of a multi-column character,
+			 * and passes the selection criterion, add it to
+			 * the selection. */
+			attr.column = col;
 			pcell = vte_terminal_find_charcell(terminal, col, row);
-			if (is_selected(terminal, col, row)) {
-				if (pcell == NULL) {
-					/* If there are no more cells on this
-					 * line, and we haven't hit the right
-					 * margin yet, add a newline. */
-					if ((col < terminal->column_count) ||
-					    (spaces > 0)) {
-						string = g_string_append_c(string, '\n');
-						spaces = 0;
-					}
-					break;
-				} else
-				if (pcell->columns == 0) {
-					/* Ignore this padding cell. */
-				} else
-				if ((pcell->c == 0) ||
-				    (g_unichar_isspace(pcell->c))) {
-					/* Count this in case there's something
-					 * to the right of it. */
-					spaces++;
+			if (pcell == NULL) {
+				/* No more characters on this line. */
+				break;
+			}
+			if (!pcell->fragment &&
+			    is_selected(terminal, col, row, data)) {
+				/* Store the attributes of this character. */
+				fore = palette[pcell->fore];
+				back = palette[pcell->back];
+				attr.fore.red = fore.red;
+				attr.fore.green = fore.green;
+				attr.fore.blue = fore.blue;
+				attr.back.red = back.red;
+				attr.back.green = back.green;
+				attr.back.blue = back.blue;
+				attr.underline = pcell->underline;
+				attr.alternate = pcell->alternate;
+				/* Store the character. */
+				string = g_string_append_unichar(string,
+								 pcell->c);
+				/* Record whether or not this was
+				 * whitespace. */
+				if ((pcell->c == ' ') || (pcell->c == '\0')) {
+					last_space = string->len - 1;
 				} else {
-					/* Use the attributes of this
-					 * character. */
-					fore = terminal->pvt->palette[pcell->fore];
-					back = terminal->pvt->palette[pcell->back];
-					attr.fore.red = fore.red;
-					attr.fore.green = fore.green;
-					attr.fore.blue = fore.blue;
-					attr.back.red = back.red;
-					attr.back.green = back.green;
-					attr.back.blue = back.blue;
-					attr.underline = pcell->underline;
-					attr.alternate = pcell->alternate;
-					attr.column = col;
-					/* Stuff any saved spaces in. */
-					while (spaces > 0) {
-						string = g_string_append_c(string, ' ');
-						spaces--;
-					}
-					/* Stuff the character in this cell. */
-					string = g_string_append_unichar(string, pcell->c);
+					last_nonspace = string->len - 1;
+					last_nonspacecol = col;
 				}
 			}
 			/* If we added a character to the string, record its
@@ -8250,29 +8076,51 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 				vte_g_array_fill(attributes,
 						 &attr, string->len);
 			}
-			col++;
-			if ((col >= terminal->column_count) ||
-			    ((row == end_row) && (col > end_col))) {
+			/* If we're on the last line, and have just looked in
+			 * the last column, stop. */
+			if ((row == end_row) && (col == end_col)) {
 				break;
 			}
+			col++;
 		} while (pcell != NULL);
-		/* Extra spaces at the end of a line become newlines unless
-		 * this is the last row of the selection. */
-		if (spaces > 0) {
-			if (row != end_row) {
-				string = g_string_append_c(string, '\n');
-			} else {
-				string = g_string_append_c(string, ' ');
-			}
-			spaces = 0;
-			attr.column = col;
+		/* If the last thing we saw was a space, trim the
+		 * trailing spaces off of the line. */
+		if ((last_space != -1) &&
+		    (last_nonspace != -1) &&
+		    (last_space > last_nonspace)) {
+			g_string_truncate(string, last_nonspace + 1);
 		}
-		/* If we broke out of the loop, there might be more characters
-		 * with missing attributes. */
+		/* Make sure that the attributes array is as long as the
+		 * string. */
 		if (attributes) {
-			vte_g_array_fill(attributes, &attr, string->len);
+			g_array_set_size(attributes, string->len);
+		}
+		/* If the last visible column on this line was selected and
+		 * it contained whitespace, append a newline. */
+		if (is_selected(terminal, terminal->column_count - 1,
+				row, data)) {
+			pcell = vte_terminal_find_charcell(terminal,
+							   terminal->column_count - 1,
+							   row);
+			/* If it's whitespace, we snipped it off, so add a
+			 * newline. */
+			if ((pcell == NULL) ||
+			    (pcell->c == '\0') ||
+			    (pcell->c == ' ')) {
+				string = g_string_append_c(string, '\n');
+			}
+			/* Move this newline to the end of the line. */
+			attr.column = MAX(terminal->column_count,
+					  attr.column + 1);
+			/* If we broke out of the loop, there's at least one
+			 * character with missing attributes. */
+			if (attributes) {
+				vte_g_array_fill(attributes, &attr,
+						 string->len);
+			}
 		}
 	}
+	/* Sanity check. */
 	if (attributes) {
 		g_assert(string->len == attributes->len);
 	}
@@ -8283,6 +8131,7 @@ vte_terminal_get_text_range(VteTerminal *terminal,
  * vte_terminal_get_text:
  * @terminal: a #VteTerminal
  * @is_selected: a callback
+ * @data: user data to be passed to the callback
  * @attributes: location for storing text attributes
  *
  * Extracts a view of the visible part of the string.  If @is_selected is not
@@ -8295,7 +8144,9 @@ vte_terminal_get_text_range(VteTerminal *terminal,
  */
 char *
 vte_terminal_get_text(VteTerminal *terminal,
-		      gboolean(*is_selected)(VteTerminal *, glong, glong),
+		      gboolean(*is_selected)(VteTerminal *, glong, glong,
+			      		     gpointer),
+		      gpointer data,
 		      GArray *attributes)
 {
 	long start_row, start_col, end_row, end_col;
@@ -8308,6 +8159,7 @@ vte_terminal_get_text(VteTerminal *terminal,
 					   end_row, end_col,
 					   is_selected ?
 					   is_selected : always_selected,
+					   data,
 					   attributes);
 }
 
@@ -8354,13 +8206,15 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 	if (terminal->pvt->selection != NULL) {
 		g_free(terminal->pvt->selection);
 	}
-	terminal->pvt->selection = vte_terminal_get_text_range(terminal,
-							       terminal->pvt->selection_start.y,
-							       0,
-							       terminal->pvt->selection_end.y,
-							       terminal->column_count,
-							       vte_cell_is_selected,
-							       NULL);
+	terminal->pvt->selection =
+		vte_terminal_get_text_range(terminal,
+					    terminal->pvt->selection_start.y,
+					    0,
+					    terminal->pvt->selection_end.y,
+					    terminal->column_count,
+					    vte_cell_is_selected,
+					    NULL,
+					    NULL);
 
 	/* Place the text on the clipboard. */
 	if (terminal->pvt->selection != NULL) {
@@ -8397,6 +8251,400 @@ vte_terminal_paste(VteTerminal *terminal, GdkAtom board)
 	}
 }
 
+/* Start selection at the location of the event. */
+static void
+vte_terminal_start_selection(GtkWidget *widget, GdkEventButton *event,
+			     enum vte_selection_type selection_type)
+{
+	VteTerminal *terminal;
+	long cellx, celly, delta;
+
+	terminal = VTE_TERMINAL(widget);
+
+	/* Convert the event coordinates to cell coordinates. */
+	delta = terminal->pvt->screen->scroll_delta;
+	cellx = (event->x - VTE_PAD_WIDTH) / terminal->char_width;
+	celly = (event->y - VTE_PAD_WIDTH) / terminal->char_height + delta;
+
+	/* Remove our pre-existing selection unless we're performing a
+	 * delayed selection start. . */
+	switch (selection_type) {
+	case selection_type_char:
+		terminal->pvt->restart_selection = TRUE;
+		break;
+	case selection_type_word:
+	case selection_type_line:
+		vte_terminal_deselect_all(terminal);
+		terminal->pvt->restart_selection = FALSE;
+		break;
+	}
+
+	/* Record that we have the selection, and where it started. */
+	terminal->pvt->has_selection = TRUE;
+	terminal->pvt->selection_last.x = event->x - VTE_PAD_WIDTH;
+	terminal->pvt->selection_last.y = event->y - VTE_PAD_WIDTH +
+					  (terminal->char_height * delta);
+	terminal->pvt->selection_origin = terminal->pvt->selection_last;
+	terminal->pvt->selection_start.x = cellx;
+	terminal->pvt->selection_start.y = celly;
+	terminal->pvt->selection_end = terminal->pvt->selection_start;
+
+	/* Record the selection type. */
+	terminal->pvt->selection_type = selection_type;
+
+	/* Draw the row the selection started on. */
+	vte_invalidate_cells(terminal,
+			     0, terminal->column_count,
+			     terminal->pvt->selection_start.y, 1);
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
+		fprintf(stderr, "Selection started at (%ld,%ld).\n",
+			terminal->pvt->selection_start.x,
+			terminal->pvt->selection_start.y);
+	}
+#endif
+	vte_terminal_emit_selection_changed(terminal);
+}
+
+/* Extend selection to include the given event coordinates. */
+static void
+vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
+			      gboolean always_grow)
+{
+	VteTerminal *terminal;
+	long delta, height, width;
+	struct selection_event_coords *origin, *last, *start, *end;
+	struct selection_cell_coords old_start, old_end, *sc, *ec, tc;
+
+	terminal = VTE_TERMINAL(widget);
+	old_start = terminal->pvt->selection_start;
+	old_end = terminal->pvt->selection_end;
+	height = terminal->char_height;
+	width = terminal->char_width;
+
+	/* Convert the event coordinates to cell coordinates. */
+	delta = terminal->pvt->screen->scroll_delta;
+
+	/* If we're restarting selection, set the origin to the last recorded
+	 * position for the mouse. */
+	if (terminal->pvt->restart_selection) {
+		vte_terminal_deselect_all(terminal);
+		terminal->pvt->selection_origin.x =
+			terminal->pvt->mouse_last_x;
+		terminal->pvt->selection_origin.y =
+			terminal->pvt->mouse_last_y + (height * delta);
+		terminal->pvt->restart_selection = FALSE;
+		terminal->pvt->has_selection = TRUE;
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
+			fprintf(stderr, "Selection restarted at (%lf,%lf).\n",
+				terminal->pvt->selection_origin.x / width,
+				terminal->pvt->selection_origin.y / height);
+		}
+#endif
+	}
+
+	/* Extend the selection by moving the "last" pointer to the event's
+	 * coordinates. */
+	last = &terminal->pvt->selection_last;
+	if (!always_grow) {
+		last->x = x + width / 2;
+		last->y = y + height * delta;
+	}
+
+	/* Recalculate the selected area. */
+	origin = &terminal->pvt->selection_origin;
+	if ((origin->y / height < last->y / height) ||
+	    ((origin->y / height == last->y / height) &&
+	     (origin->x / width < last->x / width ))) {
+		/* The origin point is "before" the last point. */
+		start = origin;
+		end = last;
+	} else {
+		/* The last point is "before" the origin point. */
+		start = last;
+		end = origin;
+	}
+
+	/* Extend the selection by moving whichever end of the selection is
+	 * closer to the new point. */
+	if (always_grow) {
+		/* New endpoint is before existing selection. */
+		if ((y / height < start->y / height) ||
+		    ((y / height == start->y / height) &&
+		     (x / width < start->x / width))) {
+			start->x = x;
+			start->y = y + height * delta;
+		} else {
+			/* New endpoint is after existing selection. */
+			end->x = x;
+			end->y = y + height * delta;
+		}
+	}
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
+		fprintf(stderr, "Selection is (%lf,%lf) to (%lf,%lf).\n",
+			start->x, start->y, end->x, end->y);
+	}
+#endif
+
+	/* Recalculate the selection area in terms of cell positions. */
+	terminal->pvt->selection_start.x = start->x / width;
+	terminal->pvt->selection_start.y = start->y / height;
+	terminal->pvt->selection_end.x = end->x / width;
+	terminal->pvt->selection_end.y = end->y / height;
+
+	/* Re-sort. */
+	sc = &terminal->pvt->selection_start;
+	ec = &terminal->pvt->selection_end;
+	if ((sc->y > ec->y) || ((sc->y == ec->y) && (sc->x > ec->x))) {
+		tc = *sc;
+		*sc = *ec;
+		*ec = tc;
+	}
+
+	/* Redraw the rows which have contain cells which have changed their
+	 * is-selected status. */
+	if ((old_start.x != terminal->pvt->selection_start.x) ||
+	    (old_start.y != terminal->pvt->selection_start.y)) {
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
+			fprintf(stderr, "Refreshing lines %ld to %ld.\n",
+				MIN(old_start.y,
+				    terminal->pvt->selection_start.y), 
+				MAX(old_start.y,
+				    terminal->pvt->selection_start.y));
+		}
+#endif
+		vte_invalidate_cells(terminal,
+				     0,
+				     terminal->column_count,
+				     MIN(old_start.y,
+					 terminal->pvt->selection_start.y),
+				     ABS(old_start.y -
+					 terminal->pvt->selection_start.y) + 1);
+	}
+	if ((old_end.x != terminal->pvt->selection_end.x) ||
+	    (old_end.y != terminal->pvt->selection_end.y)) {
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
+			fprintf(stderr, "Refreshing lines %ld to %ld.\n",
+				MIN(old_end.y, terminal->pvt->selection_end.y), 
+				MAX(old_end.y, terminal->pvt->selection_end.y));
+		}
+#endif
+		vte_invalidate_cells(terminal,
+				     0,
+				     terminal->column_count,
+				     MIN(old_end.y,
+					 terminal->pvt->selection_end.y),
+				     ABS(old_end.y -
+					 terminal->pvt->selection_end.y) + 1);
+	}
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
+		fprintf(stderr, "Selection changed to "
+			"(%ld,%ld) to (%ld,%ld).\n",
+			terminal->pvt->selection_start.x,
+			terminal->pvt->selection_start.y,
+			terminal->pvt->selection_end.x,
+			terminal->pvt->selection_end.y);
+	}
+#endif
+	vte_terminal_emit_selection_changed(terminal);
+}
+
+/* Autoscroll a bit. */
+static int
+vte_terminal_autoscroll(gpointer data)
+{
+	VteTerminal *terminal;
+	GtkWidget *widget;
+	gboolean extend = FALSE;
+	gdouble x, y, xmax, ymax;
+	double adj;
+
+	terminal = VTE_TERMINAL(data);
+	widget = GTK_WIDGET(terminal);
+
+	/* Provide an immediate effect for mouse wigglers. */
+	if (terminal->pvt->mouse_last_y < 0) {
+		if (terminal->adjustment) {
+			/* Try to scroll up by one line. */
+			adj = CLAMP(terminal->adjustment->value - 1,
+				    terminal->adjustment->lower,
+				    terminal->adjustment->upper -
+				    terminal->row_count);
+			gtk_adjustment_set_value(terminal->adjustment, adj);
+			extend = TRUE;
+		}
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
+			fprintf(stderr, "Autoscrolling down.\n");
+		}
+#endif
+	}
+	if (terminal->pvt->mouse_last_y >
+	    terminal->row_count * terminal->char_height) {
+		if (terminal->adjustment) {
+			/* Try to scroll up by one line. */
+			adj = CLAMP(terminal->adjustment->value + 1,
+				    terminal->adjustment->lower,
+				    terminal->adjustment->upper -
+				    terminal->row_count);
+			gtk_adjustment_set_value(terminal->adjustment, adj);
+			extend = TRUE;
+		}
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
+			fprintf(stderr, "Autoscrolling up.\n");
+		}
+#endif
+	}
+	if (extend) {
+		/* Don't select off-screen areas.  That just confuses people. */
+		xmax = terminal->column_count * terminal->char_width;
+		ymax = terminal->row_count * terminal->char_height;
+
+		x = CLAMP(terminal->pvt->mouse_last_x, 0, xmax);
+		y = CLAMP(terminal->pvt->mouse_last_y, 0, ymax);
+		/* If we clamped the Y, mess with the X to get the entire
+		 * lines. */
+		if (terminal->pvt->mouse_last_y < 0) {
+			x = 0;
+		}
+		if (terminal->pvt->mouse_last_y > ymax) {
+			x = terminal->column_count * terminal->char_width;
+		}
+		/* Extend selection to cover the newly-scrolled area. */
+		vte_terminal_extend_selection(widget, x, y, FALSE);
+	} else {
+		/* Stop autoscrolling. */
+		terminal->pvt->mouse_autoscroll_tag = 0;
+	}
+	return (terminal->pvt->mouse_autoscroll_tag != 0);
+}
+
+/* Start autoscroll. */
+static void
+vte_terminal_start_autoscroll(VteTerminal *terminal)
+{
+	if (terminal->pvt->mouse_autoscroll_tag == 0) {
+		terminal->pvt->mouse_autoscroll_tag =
+			g_timeout_add_full(G_PRIORITY_LOW,
+					   1000 / terminal->row_count,
+					   vte_terminal_autoscroll,
+					   terminal,
+					   NULL);
+	}
+}
+
+/* Stop autoscroll. */
+static void
+vte_terminal_stop_autoscroll(VteTerminal *terminal)
+{
+	if (terminal->pvt->mouse_autoscroll_tag != 0) {
+		g_source_remove(terminal->pvt->mouse_autoscroll_tag);
+		terminal->pvt->mouse_autoscroll_tag = 0;
+	}
+}
+
+/* Read and handle a motion event. */
+static gint
+vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
+{
+	VteTerminal *terminal;
+	GdkModifierType modifiers;
+
+	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
+	terminal = VTE_TERMINAL(widget);
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
+		fprintf(stderr, "Motion notify (%lf,%lf).\n",
+			event->x, event->y);
+	}
+#endif
+
+	/* Show the cursor. */
+	vte_terminal_set_pointer_visible(terminal, TRUE);
+
+	/* Grab input focus. */
+	if (!GTK_WIDGET_HAS_FOCUS(widget)) {
+		gtk_widget_grab_focus(widget);
+	}
+
+	/* Read the modifiers. */
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
+		modifiers = 0;
+	}
+
+	switch (event->type) {
+	case GDK_MOTION_NOTIFY:
+		switch (terminal->pvt->mouse_last_button) {
+		case 1:
+#ifdef VTE_DEBUG
+			if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
+				fprintf(stderr, "Mousing drag 1.\n");
+			}
+#endif
+			if (((modifiers & GDK_SHIFT_MASK) == GDK_SHIFT_MASK) ||
+			    (!terminal->pvt->mouse_send_xy_on_click &&
+			     !terminal->pvt->mouse_send_xy_on_button &&
+			     !terminal->pvt->mouse_hilite_tracking &&
+			     !terminal->pvt->mouse_cell_motion_tracking &&
+			     !terminal->pvt->mouse_all_motion_tracking)) {
+				vte_terminal_extend_selection(widget,
+							      event->x - VTE_PAD_WIDTH,
+							      event->y - VTE_PAD_WIDTH,
+							      FALSE);
+			} else {
+				vte_terminal_maybe_send_mouse_drag(terminal,
+								   event);
+			}
+			break;
+		case 2:
+		case 3:
+		default:
+			break;
+		}
+		break;
+	default:
+		break;
+	}
+
+	/* Start scrolling if we need to. */
+	if ((event->y < VTE_PAD_WIDTH) ||
+	    (event->y > (widget->allocation.height - VTE_PAD_WIDTH))) {
+		switch (terminal->pvt->mouse_last_button) {
+		case 1:
+			/* Give mouse wigglers something. */
+			vte_terminal_autoscroll(terminal);
+			/* Start a timed autoscroll if we're not doing it
+			 * already. */
+			vte_terminal_start_autoscroll(terminal);
+			break;
+		case 2:
+		case 3:
+		default:
+			break;
+		}
+	}
+
+	/* Hilite any matches. */
+	vte_terminal_match_hilite(terminal,
+				  event->x - VTE_PAD_WIDTH,
+				  event->y - VTE_PAD_WIDTH);
+
+	/* Save the pointer coordinates for later use. */
+	terminal->pvt->mouse_last_x = event->x - VTE_PAD_WIDTH;
+	terminal->pvt->mouse_last_y = event->y - VTE_PAD_WIDTH;
+
+	return FALSE;
+}
+
 /* Read and handle a pointing device buttonpress event. */
 static gint
 vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
@@ -8404,9 +8652,9 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	VteTerminal *terminal;
 	long height, width, delta;
 	GdkModifierType modifiers;
-	gboolean ret = FALSE;
+	gboolean handled = FALSE;
+	gboolean start_selecting = FALSE, extend_selecting = FALSE;
 	long cellx, celly;
-	struct selection_event_coords *start, *end;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
@@ -8414,6 +8662,11 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	width = terminal->char_width;
 	delta = terminal->pvt->screen->scroll_delta;
 	vte_terminal_set_pointer_visible(terminal, TRUE);
+
+	/* Grab input focus. */
+	if (!GTK_WIDGET_HAS_FOCUS(widget)) {
+		gtk_widget_grab_focus(widget);
+	}
 
 	/* Read the modifiers. */
 	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
@@ -8424,180 +8677,111 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	cellx = (event->x - VTE_PAD_WIDTH) / width;
 	celly = (event->y - VTE_PAD_WIDTH) / height + delta;
 
-	if (event->type == GDK_BUTTON_PRESS) {
+	switch (event->type) {
+	case GDK_BUTTON_PRESS:
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			char *match;
-			int match_tag;
-			fprintf(stderr, "Button %d pressed at (%lf,%lf) -> ",
+			fprintf(stderr, "Button %d single-click at (%lf,%lf)\n",
 				event->button,
 				event->x - VTE_PAD_WIDTH,
-				event->y - VTE_PAD_WIDTH);
-			fprintf(stderr, "character cell (%ld,%ld).\n",
-				cellx, celly);
-			match = vte_terminal_match_check(terminal,
-							 cellx,
-							 celly - delta,
-							 &match_tag);
-			if (match != NULL) {
-				fprintf(stderr, "Matched string %d = \"%s\".\n",
-					match_tag, match);
-				g_free(match);
-			}
+				event->y - VTE_PAD_WIDTH +
+				(terminal->char_height * delta));
 		}
 #endif
-		/* If the child is handling mouse events, send it the event. */
-		if ((terminal->pvt->mouse_send_xy_on_button ||
-		     terminal->pvt->mouse_send_xy_on_click) &&
-		    ((modifiers & GDK_SHIFT_MASK) == 0)) {
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-				fprintf(stderr, "Sending click to child.\n");
-			}
-#endif
-			vte_terminal_send_mouse_button(terminal, event);
-		} else
 		/* Handle this event ourselves. */
-		if (event->button == 1) {
+		switch (event->button) {
+		case 1:
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
 				fprintf(stderr, "Handling click ourselves.\n");
 			}
 #endif
-			if (!GTK_WIDGET_HAS_FOCUS(widget)) {
-				gtk_widget_grab_focus(widget);
-			}
-			/* If the user didn't hold down shift, or if the click
-			 * was in an already-selected cell, we deselect and
-			 * start over. */
-			if (((modifiers & GDK_SHIFT_MASK) == 0) ||
-			    vte_cell_is_selected(terminal, cellx, celly)) {
-				/* Start or restart selection later. */
-				terminal->pvt->restart_selection = TRUE;
-				terminal->pvt->selection_delayed.x =
-					event->x - VTE_PAD_WIDTH;
-				terminal->pvt->selection_delayed.y =
-					event->y - VTE_PAD_WIDTH +
-					(terminal->char_height * delta);
-				ret = TRUE;
-			} else {
-				/* Don't restart selection later -- we're
-				 * extending it instead. */
-				terminal->pvt->restart_selection = FALSE;
-#ifdef VTE_DEBUG
-				if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-					fprintf(stderr, "Selection is "
-						"(%ld,%ld) to (%ld,%ld).\n",
-						terminal->pvt->selection_start.x,
-						terminal->pvt->selection_start.y,
-						terminal->pvt->selection_end.x,
-						terminal->pvt->selection_end.y);
-				}
-#endif
-				/* Extend the selection by moving either the
-				 * origin or last pointer to the event's
-				 * coordinates. */
-				if ((terminal->pvt->selection_origin.y <
-				     terminal->pvt->selection_last.y) ||
-				    ((terminal->pvt->selection_origin.y ==
-				      terminal->pvt->selection_last.y) &&
-				     (terminal->pvt->selection_origin.x <
-				      terminal->pvt->selection_last.x))) {
-					/* The origin point is "before" the end
-					 * point. */
-					start = &terminal->pvt->selection_origin;
-					end = &terminal->pvt->selection_last;
-				} else {
-					/* The end point is "before" the origin
-					 * point. */
-					end = &terminal->pvt->selection_origin;
-					start = &terminal->pvt->selection_last;
-				}
-				/* Move the selection start- or endpoint. */
-				if (((event->y - VTE_PAD_WIDTH) < start->y) ||
-				    (((event->y - VTE_PAD_WIDTH) == start->y) &&
-				     ((event->x - VTE_PAD_WIDTH) < start->x))) {
-					/* The click was "before" the start
-					 * point. */
-					start->x = event->x - VTE_PAD_WIDTH;
-					start->y = event->y - VTE_PAD_WIDTH +
-						(terminal->char_height * delta);
-				} else {
-					/* The click was "after" the start
-					 * point. */
-					end->x = event->x - VTE_PAD_WIDTH;
-					end->y = event->y - VTE_PAD_WIDTH +
-						(terminal->char_height * delta);
-				}
-				/* Recalculate the selection area using the
-				 * new origin and "last" coordinates. */
-				vte_terminal_selection_recompute(terminal);
-				/* Redraw the newly-highlited rows. */
-				vte_invalidate_cells(terminal,
-						     0,
-						     terminal->column_count,
-						     terminal->pvt->selection_start.y,
-						     terminal->pvt->selection_end.y -
-						     terminal->pvt->selection_start.y + 1);
 
-#ifdef VTE_DEBUG
-				if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-					fprintf(stderr, "Selection changed to "
-						"(%ld,%ld) to (%ld,%ld).\n",
-						terminal->pvt->selection_start.x,
-						terminal->pvt->selection_start.y,
-						terminal->pvt->selection_end.x,
-						terminal->pvt->selection_end.y);
+			/* If the user hit shift, override event mode. */
+			if ((modifiers & GDK_SHIFT_MASK) == GDK_SHIFT_MASK) {
+				if (terminal->pvt->mouse_send_xy_on_button ||
+				    terminal->pvt->mouse_send_xy_on_click) {
+					/* If shift is pressed in event mode,
+					 * start selecting. */
+					start_selecting = TRUE;
+				} else {
+					/* If shift is pressed in non-event
+					 * mode, extend selection if the cell
+					 * isn't already selected, otherwise
+					 * start selection. */
+					if (!vte_cell_is_selected(terminal,
+								  cellx,
+								  celly,
+								  NULL)) {
+						extend_selecting = TRUE;
+					} else {
+						start_selecting = TRUE;
+					}
 				}
-#endif
-				ret = TRUE;
+			} else {
+				/* If shift isn't set, start selecting. */
+				start_selecting = TRUE;
 			}
-		} else
-		/* Paste. */
-		if (event->button == 2) {
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-				fprintf(stderr, "Handling click ourselves.\n");
+			if (start_selecting) {
+				vte_terminal_deselect_all(terminal);
+				vte_terminal_start_selection(widget,
+							     event,
+							     selection_type_char);
+				handled = TRUE;
 			}
-#endif
-			vte_terminal_paste_primary(terminal);
-			ret = TRUE;
+			if (extend_selecting) {
+				vte_terminal_extend_selection(widget,
+							      event->x - VTE_PAD_WIDTH,
+							      event->y - VTE_PAD_WIDTH,
+							      TRUE);
+				handled = TRUE;
+			}
+			break;
+		/* Paste if the user pressed shift or we're not sending events
+		 * to the app. */
+		case 2:
+			if (((modifiers & GDK_SHIFT_MASK) == GDK_SHIFT_MASK) ||
+			    (!terminal->pvt->mouse_send_xy_on_button &&
+			     !terminal->pvt->mouse_send_xy_on_click)) {
+				vte_terminal_paste_primary(terminal);
+				handled = TRUE;
+			}
+			break;
+		case 3:
+		default:
+			break;
 		}
-	} else
-	if (event->type == GDK_2BUTTON_PRESS) {
+		/* If we haven't done anything yet, try sending the mouse
+		 * event to the app. */
+		if (handled == FALSE) {
+			vte_terminal_maybe_send_mouse_button(terminal, event);
+			handled = TRUE;
+		}
+		break;
+	case GDK_2BUTTON_PRESS:
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
 			fprintf(stderr, "Button %d double-click at (%lf,%lf)\n",
 				event->button,
 				event->x - VTE_PAD_WIDTH,
-				event->y - VTE_PAD_WIDTH);
+				event->y - VTE_PAD_WIDTH +
+				(terminal->char_height * delta));
 		}
 #endif
-		if (event->button == 1) {
-			if (!GTK_WIDGET_HAS_FOCUS(widget)) {
-				gtk_widget_grab_focus(widget);
-			}
-			vte_terminal_deselect_all(terminal);
-			terminal->pvt->has_selection = TRUE;
-			terminal->pvt->selection_origin.x =
-				event->x - VTE_PAD_WIDTH;
-			terminal->pvt->selection_origin.y =
-				event->y - VTE_PAD_WIDTH +
-				(terminal->char_height * delta);
-			terminal->pvt->selection_start.x = cellx;
-			terminal->pvt->selection_start.y = celly;
-			terminal->pvt->selection_end =
-			terminal->pvt->selection_start;
-			terminal->pvt->selection_type = selection_type_word;
-			vte_invalidate_cells(terminal,
-					     0,
-					     terminal->column_count,
-					     terminal->pvt->selection_start.y,
-					     1);
-			ret = TRUE;
+		switch (event->button) {
+		case 1:
+			vte_terminal_start_selection(widget,
+						     event,
+						     selection_type_word);
+			handled = TRUE;
+			break;
+		case 2:
+		case 3:
+		default:
+			break;
 		}
-	} else
-	if (event->type == GDK_3BUTTON_PRESS) {
+		break;
+	case GDK_3BUTTON_PRESS:
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
 			fprintf(stderr, "Button %d triple-click at (%lf,%lf).\n",
@@ -8607,29 +8791,20 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				(terminal->char_height * delta));
 		}
 #endif
-		if (event->button == 1) {
-			if (!GTK_WIDGET_HAS_FOCUS(widget)) {
-				gtk_widget_grab_focus(widget);
-			}
-			vte_terminal_deselect_all(terminal);
-			terminal->pvt->has_selection = TRUE;
-			terminal->pvt->selection_origin.x =
-				event->x - VTE_PAD_WIDTH;
-			terminal->pvt->selection_origin.y =
-				event->y - VTE_PAD_WIDTH +
-				(terminal->char_height * delta);
-			terminal->pvt->selection_start.x = cellx;
-			terminal->pvt->selection_start.y = celly;
-			terminal->pvt->selection_end =
-			terminal->pvt->selection_start;
-			terminal->pvt->selection_type = selection_type_line;
-			vte_invalidate_cells(terminal,
-					     0,
-					     terminal->column_count,
-					     terminal->pvt->selection_start.y,
-					     1);
-			ret = TRUE;
+		switch (event->button) {
+		case 1:
+			vte_terminal_start_selection(widget,
+						     event,
+						     selection_type_line);
+			handled = TRUE;
+			break;
+		case 2:
+		case 3:
+		default:
+			break;
 		}
+	default:
+		break;
 	}
 
 	/* Hilite any matches. */
@@ -8642,7 +8817,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	terminal->pvt->mouse_last_x = event->x - VTE_PAD_WIDTH;
 	terminal->pvt->mouse_last_y = event->y - VTE_PAD_WIDTH;
 
-	return ret;
+	return FALSE;
 }
 
 /* Read and handle a pointing device buttonrelease event. */
@@ -8651,12 +8826,27 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 {
 	VteTerminal *terminal;
 	GdkModifierType modifiers;
+	gboolean handled = FALSE;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
 	vte_terminal_set_pointer_visible(terminal, TRUE);
 
-	if (event->type == GDK_BUTTON_RELEASE) {
+	/* Grab input focus. */
+	if (!GTK_WIDGET_HAS_FOCUS(widget)) {
+		gtk_widget_grab_focus(widget);
+	}
+
+	/* Disconnect from autoscroll requests. */
+	vte_terminal_stop_autoscroll(terminal);
+
+	/* Read the modifiers. */
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
+		modifiers = 0;
+	}
+
+	switch (event->type) {
+	case GDK_BUTTON_RELEASE:
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
 			fprintf(stderr, "Button %d released at (%lf,%lf).\n",
@@ -8665,23 +8855,32 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 				event->y - VTE_PAD_WIDTH);
 		}
 #endif
-		/* Read the modifiers. */
-		if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
-			modifiers = 0;
+		switch (event->button) {
+		case 1:
+			/* If Shift is held down, or we're not in events mode,
+			 * copy the selected text. */
+			if (((modifiers & GDK_SHIFT_MASK) == GDK_SHIFT_MASK) ||
+			    (!terminal->pvt->mouse_send_xy_on_button)) {
+				/* Copy only if something was selected. */
+				if (!terminal->pvt->restart_selection) {
+					vte_terminal_copy(terminal,
+							  GDK_SELECTION_PRIMARY);
+				}
+				handled = TRUE;
+			}
+			break;
+		case 2:
+		case 3:
+		default:
+			break;
 		}
-		if ((terminal->pvt->mouse_send_xy_on_button) &&
-		    ((modifiers & GDK_SHIFT_MASK) == 0)) {
-			vte_terminal_send_mouse_button(terminal, event);
-		} else
-		if (event->button == 1) {
-			vte_terminal_copy(terminal, GDK_SELECTION_PRIMARY);
+		if (handled == FALSE) {
+			vte_terminal_maybe_send_mouse_button(terminal, event);
+			handled = TRUE;
 		}
-
-		/* Disconnect from autoscroll requests. */
-		if (terminal->pvt->mouse_autoscroll_tag) {
-			g_source_remove(terminal->pvt->mouse_autoscroll_tag);
-			terminal->pvt->mouse_autoscroll_tag = 0;
-		}
+		break;
+	default:
+		break;
 	}
 
 	/* Hilite any matches. */
@@ -9662,7 +9861,7 @@ vte_terminal_refresh_size(VteTerminal *terminal)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (terminal->pvt->pty_master != -1) {
 		/* Use an ioctl to read the size of the terminal. */
-		if (vte_pty_get_size(terminal->pvt->pty_master, &columns, &rows) != 0) {
+		if (_vte_pty_get_size(terminal->pvt->pty_master, &columns, &rows) != 0) {
 			g_warning(_("Error reading PTY size, using defaults: "
 				    "%s."), strerror(errno));
 		} else {
@@ -9698,7 +9897,7 @@ vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 		size.ws_row = rows;
 		size.ws_col = columns;
 		/* Try to set the terminal size. */
-		if (vte_pty_set_size(terminal->pvt->pty_master, columns, rows) != 0) {
+		if (_vte_pty_set_size(terminal->pvt->pty_master, columns, rows) != 0) {
 			g_warning(_("Error setting PTY size: %s."),
 				    strerror(errno));
 		}
@@ -10219,7 +10418,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	 * devel version with fontconfig support or 2.2 or later. */
 	render_max = VteRenderXft2;
 #endif
-#endif
 	/* Let debugging users have some influence on how we render text. */
 	if ((render_max == VteRenderXft2) &&
 	    (getenv("VTE_USE_XFT2") != NULL)) {
@@ -10239,6 +10437,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 			render_max = VteRenderPango;
 		}
 	}
+#endif
 	if ((render_max == VteRenderPango) &&
 	    (getenv("VTE_USE_PANGO") != NULL)) {
 		if (atol(getenv("VTE_USE_PANGO")) == 0) {
@@ -10256,14 +10455,16 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
 		switch (pvt->render_method) {
-		case VteRenderXft2:
 #ifdef HAVE_XFT2
+		case VteRenderXft2:
 			fprintf(stderr, "Using Xft2.\n");
 			break;
 #endif
+#ifdef HAVE_XFT
 		case VteRenderXft1:
 			fprintf(stderr, "Using Xft1.\n");
 			break;
+#endif
 		case VteRenderPango:
 			fprintf(stderr, "Using Pango.\n");
 			break;
@@ -10620,10 +10821,7 @@ vte_terminal_finalize(GObject *object)
 	}
 
 	/* Disconnect from autoscroll requests. */
-	if (terminal->pvt->mouse_autoscroll_tag) {
-		g_source_remove(terminal->pvt->mouse_autoscroll_tag);
-		terminal->pvt->mouse_autoscroll_tag = 0;
-	}
+	vte_terminal_stop_autoscroll(terminal);
 
 	/* Cancel pending adjustment change notifications. */
 	if (terminal->pvt->adjustment_changed_tag) {
@@ -10726,7 +10924,7 @@ vte_terminal_finalize(GObject *object)
 		terminal->pvt->pty_output_source = -1;
 	}
 	if (terminal->pvt->pty_master != -1) {
-		vte_pty_close(terminal->pvt->pty_master);
+		_vte_pty_close(terminal->pvt->pty_master);
 		terminal->pvt->pty_master = -1;
 	}
 
@@ -10897,14 +11095,19 @@ vte_terminal_realize(GtkWidget *widget)
 	g_object_unref(G_OBJECT(mask));
 
 	/* Grab input focus. */
-	gtk_widget_grab_focus(widget);
+	if (!GTK_WIDGET_HAS_FOCUS(widget)) {
+		gtk_widget_grab_focus(widget);
+	}
 }
 
 static void
 vte_terminal_determine_colors(VteTerminal *terminal,
-			      const struct vte_charcell *cell, gboolean reverse,
-			      int *fore, int *back)
+			      const struct vte_charcell *cell,
+			      gboolean reverse, int *fore, int *back)
 {
+	g_assert(fore != NULL);
+	g_assert(back != NULL);
+
 	/* Determine what the foreground and background colors for rendering
 	 * text should be. */
 	if (reverse ^ ((cell != NULL) && (cell->reverse))) {
@@ -11791,9 +11994,22 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	x += VTE_PAD_WIDTH;
 	y += VTE_PAD_WIDTH;
 
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_MISC) && 0) {
+		fprintf(stderr, "Rendering");
+		for (i = 0; i < n; i++) {
+			fprintf(stderr, " (%ld,%ld)",
+				(long) items[i].c,
+				(long) items[i].columns);
+			g_assert(items[i].columns > 0);
+		}
+		fprintf(stderr, ".\n");
+	}
+#endif
+
 	switch (terminal->pvt->render_method) {
-	case VteRenderXft2:
 #ifdef HAVE_XFT
+	case VteRenderXft2:
 #ifdef HAVE_XFT2
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_MISC) && 0) {
@@ -11802,7 +12018,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 #endif
 		/* Set up the draw request. */
 		ftcharspecs = g_malloc(sizeof(XftCharSpec) * n);
-		for (i =  columns = 0; i < n; i++) {
+		for (i = columns = 0; i < n; i++) {
 			c = items[i].c ? items[i].c : ' ';
 			ftcharspecs[i].ucs4 = vte_terminal_xft_remap_char(display,
 									  terminal->pvt->ftfont,
@@ -11810,7 +12026,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			ftcharspecs[i].x = x + (columns * column_width) +
 					   items[i].xpad;
 			ftcharspecs[i].y = y + ascent;
-			columns += g_unichar_iswide(c) ? 2 : 1;
+			columns += items[i].columns;
 		}
 		if (ftdraw != NULL) {
 			/* Draw the background rectangle. */
@@ -11842,10 +12058,10 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			fprintf(stderr, "Rendering with Xft1.\n");
 		}
 #endif
-		/* Set up the draw request. */
+		/* Set up the draw request -- calculate the total width. */
 		for (i = columns = 0; i < n; i++) {
 			c = items[i].c ? items[i].c : ' ';
-			columns += g_unichar_iswide(c) ? 2 : 1;
+			columns += items[i].columns;
 		}
 		/* Draw the background rectangle. */
 		if ((back != VTE_DEF_BG) || draw_default_bg) {
@@ -11872,7 +12088,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 						y + ascent,
 						&ftchar, 1);
 			}
-			columns += g_unichar_iswide(c) ? 2 : 1;
+			columns += items[i].columns;
 		}
 		break;
 #endif
@@ -11886,7 +12102,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		if ((back != VTE_DEF_BG) || draw_default_bg) {
 			for (i = columns = 0; i < n; i++) {
 				c = items[i].c ? items[i].c : ' ';
-				columns += g_unichar_iswide(c) ? 2 : 1;
+				columns += items[i].columns;
 			}
 			color.red = terminal->pvt->palette[back].red;
 			color.blue = terminal->pvt->palette[back].blue;
@@ -11921,7 +12137,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 						y + y_offs,
 						layout);
 			}
-			columns += g_unichar_iswide(c) ? 2 : 1;
+			columns += items[i].columns;
 		}
 		break;
 	case VteRenderPangoX:
@@ -11934,7 +12150,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		if ((back != VTE_DEF_BG) || draw_default_bg) {
 			for (i = columns = 0; i < n; i++) {
 				c = items[i].c ? items[i].c : ' ';
-				columns += g_unichar_iswide(c) ? 2 : 1;
+				columns += items[i].columns;
 			}
 			XSetForeground(display, gc, bg->pixel);
 			XFillRectangle(display, drawable, gc,
@@ -11969,7 +12185,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 						      items[i].xpad + 1,
 						      y);
 			}
-			columns += g_unichar_iswide(c) ? 2 : 1;
+			columns += items[i].columns;
 		}
 		break;
 	case VteRenderXlib:
@@ -11982,7 +12198,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		if ((back != VTE_DEF_BG) || draw_default_bg) {
 			for (i = columns = 0; i < n; i++) {
 				c = items[i].c ? items[i].c : ' ';
-				columns += g_unichar_iswide(c) ? 2 : 1;
+				columns += items[i].columns;
 			}
 			XSetForeground(display, gc, bg->pixel);
 			XFillRectangle(display, drawable, gc,
@@ -12008,7 +12224,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 					    items[i].xpad + 1,
 					    y + ascent, &textitem, 1);
 			}
-			columns += g_unichar_iswide(c) ? 2 : 1;
+			columns += items[i].columns;
 		}
 	}
 
@@ -12071,11 +12287,12 @@ vte_terminal_get_blink_state(VteTerminal *terminal)
 		terminal->pvt->cursor_force_fg--;
 		blink = TRUE;
 	}
-	terminal->pvt->cursor_force_fg = FALSE;
 	return blink;
 }
 
-/* Paint the contents of a given row at the given location. */
+/* Paint the contents of a given row at the given location.  Take advantage
+ * of multiple-draw APIs by finding runs of characters with identical
+ * attributes and bundling them together. */
 static void
 vte_terminal_draw_row(VteTerminal *terminal,
 		      VteScreen *screen,
@@ -12106,23 +12323,22 @@ vte_terminal_draw_row(VteTerminal *terminal,
 	/* Allocate an array to hold draw requests. */
 	items = g_array_new(FALSE, FALSE, sizeof(struct vte_draw_item));
 
-	/* Find groups of characters with identical attributes and bundle
-	 * them together. */
+	/* Back up in case this is a multicolumn character, making the drawing
+	 * area a little wider. */
 	i = column;
-
-	/* Back up in case this is a multicolumn character. */
 	cell = vte_terminal_find_charcell(terminal, i, row);
-	if ((cell != NULL) && (cell->columns == 0) && (i > 0)) {
+	if ((cell != NULL) && (cell->fragment) && (i > 0)) {
 		cell = vte_terminal_find_charcell(terminal, i - 1, row);
 		column--;
 		column_count++;
 	}
+
 	/* Walk the line. */
 	while (i < column + column_count) {
 		/* Get the character cell's contents. */
 		cell = vte_terminal_find_charcell(terminal, i, row);
 		/* Find the colors for this cell. */
-		reverse = vte_cell_is_selected(terminal, i, row) ^
+		reverse = vte_cell_is_selected(terminal, i, row, NULL) ^
 			  terminal->pvt->screen->reverse_mode;
 		vte_terminal_determine_colors(terminal, cell, reverse,
 					      &fore, &back);
@@ -12143,6 +12359,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		if ((cell != NULL) &&
 		    (cell->alternate || vte_unichar_isgraphic(cell->c))) {
 			item.c = cell ? cell->c : ' ';
+			item.columns = cell ? cell->columns : 1;
 			vte_terminal_draw_graphic(terminal, cell->c, fore, back,
 						  FALSE,
 						  x +
@@ -12155,12 +12372,25 @@ vte_terminal_draw_row(VteTerminal *terminal,
 						  drawable,
 						  ggc,
 						  gc);
-			i++;
+			i += item.columns;
 			continue;
 		}
 
 		/* Add this cell to the draw list. */
 		item.c = cell ? cell->c : ' ';
+		item.columns = cell ? cell->columns : 1;
+		/* Special case certain whitespace characters which the font
+		 * probably can't render correctly, if at all. */
+		switch (item.c) {
+		case '\0':
+		case '\t':
+			item.c = ' ';
+			break;
+		default:
+			break;
+		}
+		/* Compute the left padding necessary to draw this character
+		 * in the approximate middle of its columns. */
 		if (monospaced) {
 			item.xpad = 0;
 		} else {
@@ -12177,19 +12407,24 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		     j++) {
 			/* Don't render fragments of multicolumn characters. */
 			cell = vte_terminal_find_charcell(terminal, j, row);
-			if ((cell != NULL) && (cell->columns == 0)) {
+			if ((cell != NULL) && (cell->fragment)) {
 				continue;
 			}
+			/* Graphic characters must be drawn individually. */
 			if ((cell != NULL) && (cell->alternate)) {
 				break;
 			}
 			if ((cell != NULL) && vte_unichar_isgraphic(cell->c)) {
 				break;
 			}
+			/* Special case certain non-printing characters. */
+			if ((cell != NULL) && (cell->c == '\t')) {
+				break;
+			}
 			/* Resolve attributes to colors where possible and
 			 * compare visual attributes to the first character
 			 * in this chunk. */
-			reverse = vte_cell_is_selected(terminal, j, row) ^
+			reverse = vte_cell_is_selected(terminal, j, row, NULL) ^
 				  terminal->pvt->screen->reverse_mode;
 			vte_terminal_determine_colors(terminal, cell, reverse,
 						      &nfore, &nback);
@@ -12223,7 +12458,8 @@ vte_terminal_draw_row(VteTerminal *terminal,
 				break;
 			}
 			/* Add this cell to the draw list. */
-			item.c = cell ? cell->c : ' ';
+			item.c = cell ? (cell->c ? cell->c : ' ') : ' ';
+			item.columns = cell ? cell->columns : 1;
 			if (monospaced) {
 				item.xpad = 0;
 			} else {
@@ -12404,7 +12640,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 		/* Find the character "under" the cursor. */
 		cell = vte_terminal_find_charcell(terminal, col, drow);
-		while ((cell != NULL) && (cell->columns == 0) && (col >= 0)) {
+		while ((cell != NULL) && (cell->fragment) && (col >= 0)) {
 			col--;
 			cell = vte_terminal_find_charcell(terminal, col, drow);
 		}
@@ -12431,6 +12667,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 							  gc);
 			} else {
 				item.c = cell ? cell->c : ' ';
+				item.columns = cell ? cell->columns : 1;
 				item.xpad = vte_terminal_get_char_padding(terminal,
 									  display,
 									  item.c);
@@ -12497,7 +12734,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 				items[i].xpad = vte_terminal_get_char_padding(terminal,
 									      display,
 									      item.c);
-				columns += g_unichar_iswide(items[i].c) ? 2 : 1;
+				items[i].columns = g_unichar_iswide(items[i].c) ? 2 : 1;
+				columns += items[i].columns;
 				preedit = g_utf8_next_char(preedit);
 			}
 			fore = screen->defaults.fore;
@@ -13706,8 +13944,12 @@ gboolean
 vte_terminal_get_using_xft(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+#ifdef HAVE_XFT
 	return (terminal->pvt->render_method == VteRenderXft2) ||
 	       (terminal->pvt->render_method == VteRenderXft1);
+#else
+	return FALSE;
+#endif
 }
 
 /**
@@ -13782,6 +14024,10 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 						 low, highd);
 		screens[i]->cursor_current.row = CLAMP(screens[i]->cursor_current.row,
 						       low, high);
+		/* Clear the matching view. */
+		vte_terminal_match_contents_clear(terminal);
+		/* Notify viewers that the contents have changed. */
+		vte_terminal_emit_contents_changed(terminal);
 	}
 	terminal->pvt->scrollback_lines = lines;
 
@@ -14083,6 +14329,20 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	g_assert(terminal->pvt->encoding != NULL);
 	/* Reset selection. */
 	vte_terminal_deselect_all(terminal);
+	terminal->pvt->has_selection = FALSE;
+	terminal->pvt->restart_selection = FALSE;
+	if (terminal->pvt->selection != NULL) {
+		g_free(terminal->pvt->selection);
+		terminal->pvt->selection = NULL;
+		memset(&terminal->pvt->selection_origin, 0,
+		       sizeof(&terminal->pvt->selection_origin));
+		memset(&terminal->pvt->selection_last, 0,
+		       sizeof(&terminal->pvt->selection_last));
+		memset(&terminal->pvt->selection_start, 0,
+		       sizeof(&terminal->pvt->selection_start));
+		memset(&terminal->pvt->selection_end, 0,
+		       sizeof(&terminal->pvt->selection_end));
+	}
 	/* Reset mouse motion events. */
 	terminal->pvt->mouse_send_xy_on_click = FALSE;
 	terminal->pvt->mouse_send_xy_on_button = FALSE;

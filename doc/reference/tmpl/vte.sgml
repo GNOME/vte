@@ -72,18 +72,7 @@ A VteTerminal is a terminal emulator implemented as a GTK2 widget.
 @command: 
 @argv: 
 @envv: 
-@Returns: 
-
-
-<!-- ##### FUNCTION vte_terminal_fork_logged_command ##### -->
-<para>
-
-</para>
-
-@terminal: 
-@command: 
-@argv: 
-@envv: 
+@directory: 
 @lastlog: 
 @utmp: 
 @wtmp: 
@@ -447,6 +436,7 @@ A VteTerminal is a terminal emulator implemented as a GTK2 widget.
 
 @terminal: 
 @is_selected: 
+@data: 
 @attributes: 
 @Returns: 
 
@@ -462,6 +452,7 @@ A VteTerminal is a terminal emulator implemented as a GTK2 widget.
 @end_row: 
 @end_col: 
 @is_selected: 
+@data: 
 @attributes: 
 @Returns: 
 

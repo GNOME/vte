@@ -10,9 +10,16 @@ def main_quit(object, *args):
 
 def commit_cb(object, *args):
 	(text, length) = args
-	# Echo the text input by the user to stdout.
-	sys.stdout.write(text)
-	sys.stdout.flush()
+	# Echo the text input by the user to stdout.  Note that the string's
+	# length isn't always going to be right.
+	if (0):
+		sys.stdout.write(text)
+		sys.stdout.flush()
+	else:
+	# Test the get_text() function.
+		for line in (string.splitfields(object.get_text(),"\n")):
+			if (line.__len__() > 0):
+				print line
 	# Also display it.
 	object.feed(text, length)
 

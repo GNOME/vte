@@ -139,7 +139,9 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text)
 		priv->snapshot_linebreaks = g_array_new(FALSE, TRUE, sizeof(int));
 
 		/* Get a new view of the uber-label. */
-		priv->snapshot_text = vte_terminal_get_text(terminal, all_selected,
+		priv->snapshot_text = vte_terminal_get_text(terminal,
+							    all_selected,
+							    NULL,
 							    priv->snapshot_attributes);
 		if (priv->snapshot_text == NULL) {
 			/* Aaargh!  We're screwed. */

@@ -106,6 +106,7 @@ main(int argc, char **argv)
 	const char *font = NULL;
 	const char *terminal = NULL;
 	const char *command = NULL;
+	const char *working_directory = NULL;
 	char **argv2;
 	int opt;
 	int i, j;
@@ -152,7 +153,7 @@ main(int argc, char **argv)
 	argv2[i] = NULL;
 	g_assert(i < (g_list_length(args) + 2));
 	/* Parse some command-line options. */
-	while ((opt = getopt(argc, argv, "B:DTabc:df:ghn:t:")) != -1) {
+	while ((opt = getopt(argc, argv, "B:DTabc:df:ghn:t:w:")) != -1) {
 		switch (opt) {
 			case 'B':
 				background = optarg;
@@ -189,6 +190,9 @@ main(int argc, char **argv)
 				break;
 			case 't':
 				terminal = optarg;
+				break;
+			case 'w':
+				working_directory = optarg;
 				break;
 			case 'h':
 			default:
@@ -283,9 +287,9 @@ main(int argc, char **argv)
 				  strlen(message));
 	}
 #endif
-	vte_terminal_fork_logged_command(VTE_TERMINAL(widget),
-					 command, NULL, env_add,
-					 TRUE, TRUE, TRUE);
+	vte_terminal_fork_command(VTE_TERMINAL(widget),
+				  command, NULL, env_add, working_directory,
+				  TRUE, TRUE, TRUE);
 	if (command == NULL) {
 		vte_terminal_feed_child(VTE_TERMINAL(widget), "pwd\n", -1);
 	}

@@ -27,24 +27,20 @@ G_BEGIN_DECLS
 
 /* Start up the given binary (exact path, not interpreted at all) in a
  * pseudo-terminal of its own, returning the descriptor for the master
- * side of the PTY pair, storing the child's PID in the given argument. */
-int vte_pty_open(pid_t *child, char **env_add,
-		 const char *command, char **argv,
-		 int columns, int rows);
-
-/* As above, but with session logging. */
-int vte_pty_open_with_logging(pid_t *child, char **env_add,
-			      const char *command, char **argv,
-			      int columns, int rows,
-			      gboolean lastlog, gboolean utmp, gboolean wtmp);
+ * side of the PTY pair, logging the session to the specified files, and
+ * storing the child's PID in the given argument. */
+int _vte_pty_open(pid_t *child, char **env_add,
+		  const char *command, char **argv, const char *directory,
+		  int columns, int rows,
+		  gboolean lastlog, gboolean utmp, gboolean wtmp);
 
 /* Set or read the size of a terminal.  Returns 0 on success, -1 on failure,
  * with errno set to defined return codes from ioctl(). */
-int vte_pty_get_size(int master, int *columns, int *rows);
-int vte_pty_set_size(int master, int columns, int rows);
+int _vte_pty_get_size(int master, int *columns, int *rows);
+int _vte_pty_set_size(int master, int columns, int rows);
 
 /* Close a pty. */
-void vte_pty_close(int pty);
+void _vte_pty_close(int pty);
 
 G_END_DECLS
 

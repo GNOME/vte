@@ -86,8 +86,9 @@ struct _VteTerminalClass {
 	guint resize_window_signal;
 	guint move_window_signal;
 	guint status_line_changed_signal;
-
 	guint commit_signal;
+
+	gpointer reserved1;
 	gpointer reserved2;
 	gpointer reserved3;
 	gpointer reserved4;
@@ -133,15 +134,11 @@ GtkType vte_terminal_erase_binding_get_type(void);
 /* You can get by with just these two functions. */
 GtkWidget *vte_terminal_new(void);
 pid_t vte_terminal_fork_command(VteTerminal *terminal,
-			        const char *command, char **argv, char **envv);
-
-/* If you need the session logged, try this instead. */
-pid_t vte_terminal_fork_logged_command(VteTerminal *terminal,
-				       const char *command, char **argv,
-				       char **envv,
-				       gboolean lastlog,
-				       gboolean utmp,
-				       gboolean wtmp);
+				const char *command, char **argv,
+				char **envv, const char *directory,
+				gboolean lastlog,
+				gboolean utmp,
+				gboolean wtmp);
 
 /* Send data to the terminal to display, or to the terminal's forked command
  * to handle in some way.  If it's 'cat', they should be the same. */
@@ -243,14 +240,18 @@ void vte_terminal_reset(VteTerminal *terminal, gboolean full,
 char *vte_terminal_get_text(VteTerminal *terminal,
 			    gboolean(*is_selected)(VteTerminal *terminal,
 						   glong column,
-						   glong row),
+						   glong row,
+						   gpointer data),
+			    gpointer data,
 			    GArray *attributes);
 char *vte_terminal_get_text_range(VteTerminal *terminal,
 				  glong start_row, glong start_col,
 				  glong end_row, glong end_col,
 				  gboolean(*is_selected)(VteTerminal *terminal,
 							 glong column,
-							 glong row),
+							 glong row,
+							 gpointer data),
+				  gpointer data,
 				  GArray *attributes);
 void vte_terminal_get_cursor_position(VteTerminal *terminal,
 				      glong *column, glong *row);

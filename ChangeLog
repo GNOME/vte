@@ -1,5 +1,39 @@
-2002-10-21  jacob berkman  <jacob@ximian.com>
+2002-10-25  nalin
+	* src/vte.c (vte_terminal_match_check_internal): snip off final
+	newlines when we're matching, they're usually not wanted.
 
+2002-10-24  nalin
+	* src/pty.c, src/pty.h: replace the simpler pty_open() function with
+	a logging version, adding the ability to specify a startup directory
+	(Red Hat #76529).
+	* src/vte.c, src/vte.h: replace the simpler fork_command() function with
+	a logging version, adding the ability to specify a startup directory
+	(Red Hat #76529).
+	* src/vteapp.c: modify call to handle new fork_command().
+	* python/vte.defs: update as above.
+	* python/vte.override: modify call to handle new fork_command(), adding
+	an optional "directory" argument.
+
+2002-10-23  nalin
+	* src/vte.c: refactor the selection code, cleaning up when selection is
+	cleared/started/extended (#95783).
+
+2002-10-22  nalin
+	* src/vte.c: rework how wide characters are stored to allow storing
+	tabs (#95958).
+
+2002-10-21  nalin
+	* python/vte.override: wrap vte_terminal_get_text() and
+	vte_terminal_get_text_range().  Based on patch from ha shao (#96230).
+
+2002-10-21  nalin
+	* src/vte.c, src/vte.h: add a user pointer argument to get_text
+	callbacks (#96230).
+	* src/Makefile.am: bump shared library version because we changed
+	a public function's signature.  Take the opportunity to replace padding
+	fields which had previously been used up.
+
+2002-10-21  jacob berkman  <jacob@ximian.com>
 	* src/Makefile.am (EXTRA_DIST): include decset, osc, and window
 
 2002-10-18 nalin

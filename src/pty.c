@@ -201,7 +201,8 @@ _vte_pty_pipe_open_bi(int *a, int *b, int *c, int *d)
  * terminal. */
 static int
 _vte_pty_run_on_pty(int fd, int ready_reader, int ready_writer,
-		    char **env_add, const char *command, char **argv)
+		    char **env_add, const char *command, char **argv,
+		    const char *directory)
 {
 	int i;
 	char c;
@@ -261,6 +262,11 @@ _vte_pty_run_on_pty(int fd, int ready_reader, int ready_writer,
 	 * weird things to them. */
 	_vte_pty_reset_signal_handlers();
 
+	/* Change to the requested directory. */
+	if (directory != NULL) {
+		chdir(directory);
+	}
+
 	/* Signal to the parent that we've finished setting things up by
 	 * sending an arbitrary byte over the status pipe and waiting for
 	 * a response.  This synchronization step ensures that the pty is
@@ -310,6 +316,7 @@ _vte_pty_run_on_pty(int fd, int ready_reader, int ready_writer,
 static int
 _vte_pty_fork_on_pty_name(const char *path, int parent_fd, char **env_add,
 			  const char *command, char **argv,
+			  const char *directory,
 			  int columns, int rows, pid_t *child)
 {
 	int fd, i;
@@ -353,7 +360,7 @@ _vte_pty_fork_on_pty_name(const char *path, int parent_fd, char **env_add,
 			fprintf(stderr, "Parent received child-ready.\n");
 		}
 #endif
-		vte_pty_set_size(parent_fd, columns, rows);
+		_vte_pty_set_size(parent_fd, columns, rows);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
 			fprintf(stderr, "Parent sending parent-ready.\n");
@@ -389,7 +396,7 @@ _vte_pty_fork_on_pty_name(const char *path, int parent_fd, char **env_add,
 		return -1;
 	}
 	return _vte_pty_run_on_pty(fd, ready_b[0], ready_a[1],
-				   env_add, command, argv);
+				   env_add, command, argv, directory);
 }
 
 /* Fork off a child (storing its PID in child), and exec the named command
@@ -397,6 +404,7 @@ _vte_pty_fork_on_pty_name(const char *path, int parent_fd, char **env_add,
 static int
 _vte_pty_fork_on_pty_fd(int fd, char **env_add,
 			const char *command, char **argv,
+			const char *directory,
 			int columns, int rows, pid_t *child)
 {
 	int i;
@@ -441,7 +449,7 @@ _vte_pty_fork_on_pty_fd(int fd, char **env_add,
 			fprintf(stderr, "Parent received child-ready.\n");
 		}
 #endif
-		vte_pty_set_size(fd, columns, rows);
+		_vte_pty_set_size(fd, columns, rows);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
 			fprintf(stderr, "Parent sending parent-ready.\n");
@@ -484,7 +492,7 @@ _vte_pty_fork_on_pty_fd(int fd, char **env_add,
 	}
 
 	return _vte_pty_run_on_pty(fd, ready_b[0], ready_a[1],
-				   env_add, command, argv);
+				   env_add, command, argv, directory);
 }
 
 /**
@@ -499,7 +507,7 @@ _vte_pty_fork_on_pty_fd(int fd, char **env_add,
  * Returns: 0 on success, -1 on failure.
  */
 int
-vte_pty_set_size(int master, int columns, int rows)
+_vte_pty_set_size(int master, int columns, int rows)
 {
 	struct winsize size;
 	int ret;
@@ -535,7 +543,7 @@ vte_pty_set_size(int master, int columns, int rows)
  * Returns: 0 on success, -1 on failure.
  */
 int
-vte_pty_get_size(int master, int *columns, int *rows)
+_vte_pty_get_size(int master, int *columns, int *rows)
 {
 	struct winsize size;
 	int ret;
@@ -638,8 +646,8 @@ _vte_pty_unlockpt(int fd)
 
 static int
 _vte_pty_open_unix98(pid_t *child, char **env_add,
-		    const char *command, char **argv,
-		    int columns, int rows)
+		     const char *command, char **argv,
+		     const char *directory, int columns, int rows)
 {
 	int fd;
 	char *buf;
@@ -666,7 +674,8 @@ _vte_pty_open_unix98(pid_t *child, char **env_add,
 		} else {
 			/* Start up a child process with the given command. */
 			if (_vte_pty_fork_on_pty_name(buf, fd, env_add, command,
-						      argv, columns, rows,
+						      argv, directory,
+						      columns, rows,
 						      child) != 0) {
 				close(fd);
 				fd = -1;
@@ -809,6 +818,7 @@ _vte_pty_start_helper(void)
 static int
 _vte_pty_open_with_helper(pid_t *child, char **env_add,
 			  const char *command, char **argv,
+			  const char *directory,
 			  int columns, int rows, int op)
 {
 	GnomePtyOps ops;
@@ -864,7 +874,8 @@ _vte_pty_open_with_helper(pid_t *child, char **env_add,
 			      tag);
 		/* Start up a child process with the given command. */
 		if (_vte_pty_fork_on_pty_fd(childfd, env_add, command,
-					    argv, columns, rows, child) != 0) {
+					    argv, directory,
+					    columns, rows, child) != 0) {
 			close(parentfd);
 			close(childfd);
 			return -1;
@@ -881,24 +892,26 @@ _vte_pty_open_with_helper(pid_t *child, char **env_add,
  * @env_add: a list of environment variables to add to the child's environment
  * @command: name of the binary to run
  * @argv: arguments to pass to @command
+ * @directory: directory to start the new command in, or NULL
  * @columns: desired window columns
  * @rows: desired window rows
  * @lastlog: TRUE if the lastlog should be updated
  * @utmp: TRUE if the utmp or utmpx log should be updated
  * @wtmp: TRUE if the wtmp or wtmpx log should be updated
  *
- * Starts a new copy of @command running under a psuedo-terminal, with window
- * size set to @rows x @columns and variables in @env_add added to its
- * environment.  If any combination of @lastlog, @utmp, and @wtmp is set,
- * then the session is logged in the appropriate system log.
+ * Starts a new copy of @command running under a psuedo-terminal, optionally in
+ * the supplied @directory, with window size set to @rows x @columns
+ * and variables in @env_add added to its environment.  If any combination of
+ * @lastlog, @utmp, and @wtmp is set, then the session is logged in the
+ * corresponding system files.
  *
  * Returns: an open file descriptor for the pty master, -1 on failure
  */
 int
-vte_pty_open_with_logging(pid_t *child, char **env_add,
-			  const char *command, char **argv,
-			  int columns, int rows,
-			  gboolean lastlog, gboolean utmp, gboolean wtmp)
+_vte_pty_open(pid_t *child, char **env_add,
+	      const char *command, char **argv, const char *directory,
+	      int columns, int rows,
+	      gboolean lastlog, gboolean utmp, gboolean wtmp)
 {
 	int ret = -1;
 	int op = 0;
@@ -925,11 +938,12 @@ vte_pty_open_with_logging(pid_t *child, char **env_add,
 	g_assert(op < G_N_ELEMENTS(opmap));
 	if (ret == -1) {
 		ret = _vte_pty_open_with_helper(child, env_add, command, argv,
+						directory,
 						columns, rows, opmap[op]);
 	}
 	if (ret == -1) {
 		ret = _vte_pty_open_unix98(child, env_add, command, argv,
-					   columns, rows);
+					   directory, columns, rows);
 	}
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_PTY)) {
@@ -940,32 +954,6 @@ vte_pty_open_with_logging(pid_t *child, char **env_add,
 }
 
 /**
- * vte_pty_open:
- * @child: location to store the new process's ID
- * @env_add: a list of environment variables to add to the child's environment
- * @command: name of the binary to run
- * @argv: arguments to pass to @command
- * @columns: desired window columns
- * @rows: desired window rows
- *
- * Starts a new copy of @command running under a psuedo-terminal, with window
- * size set to @rows x @columns and variables in @env_add added to its
- * environment.  A convenience wrapper for vte_pty_open_with_logging().
- *
- * Returns: an open file descriptor for the pty master, -1 on failure
- */
-int
-vte_pty_open(pid_t *child, char **env_add,
-	     const char *command, char **argv,
-	     int columns, int rows)
-{
-	return vte_pty_open_with_logging(child, env_add, command, argv,
-					 columns, rows,
-					 FALSE, FALSE, FALSE);
-}
-
-
-/**
  * vte_pty_close:
  * @pty: the pty master descriptor.
  *
@@ -973,7 +961,7 @@ vte_pty_open(pid_t *child, char **env_add,
  * performed for the session.  The descriptor itself remains open.
  */
 void
-vte_pty_close(int pty)
+_vte_pty_close(int pty)
 {
 	gpointer tag;
 	GnomePtyOps ops;
@@ -1001,7 +989,7 @@ static void
 sigchld_handler(int signum)
 {
 	/* This is very unsafe.  Never do it in production code. */
-	vte_pty_close(fd);
+	_vte_pty_close(fd);
 }
 
 int
@@ -1012,10 +1000,12 @@ main(int argc, char **argv)
 	int ret;
 	signal(SIGCHLD, sigchld_handler);
 	_vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
-	fd = vte_pty_open(&child, NULL,
-			  (argc > 1) ? argv[1] : "/usr/bin/tty",
-			  (argc > 1) ? argv + 1 : NULL,
-			  0, 0);
+	fd = _vte_pty_open(&child, NULL,
+			   (argc > 1) ? argv[1] : "/usr/bin/tty",
+			   (argc > 1) ? argv + 1 : NULL,
+			   NULL,
+			   0, 0,
+			   FALSE, FALSE, FALSE);
 	g_print("Child pid is %d.\n", (int)child);
 	do {
 		ret = read(fd, &c, 1);

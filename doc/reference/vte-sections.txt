@@ -7,7 +7,6 @@ VteTerminal
 vte_terminal_new
 vte_terminal_im_append_menuitems
 vte_terminal_fork_command
-vte_terminal_fork_logged_command
 vte_terminal_feed
 vte_terminal_feed_child
 vte_terminal_copy_clipboard
@@ -109,11 +108,4 @@ vte_reaper_get_type
 VTE_REAPER_CLASS
 VTE_IS_REAPER_CLASS
 VTE_REAPER_GET_CLASS
-</SECTION>
-
-<SECTION>
-<FILE>pty</FILE>
-vte_pty_open
-vte_pty_get_size
-vte_pty_set_size
 </SECTION>

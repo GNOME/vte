@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.9.2
+Version: 0.10
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -64,6 +64,9 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Thu Oct 24 2002 Nalin Dahyabhai <nalin@redhat.com> 0.10-1
+- allow setting the working directory (#76529)
+
 * Thu Oct 17 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.2-1
 - fix the crash-on-resize bug (#75871)
 - add bold
