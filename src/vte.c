@@ -164,6 +164,7 @@ vte_terminal_set_default_attributes(VteTerminal *terminal)
 	terminal->pvt->screen->defaults.blink = 0;
 	terminal->pvt->screen->defaults.standout = 0;
 	terminal->pvt->screen->defaults.bold = 0;
+	terminal->pvt->screen->defaults.alternate = 0;
 }
 
 /* Cause certain cells to be updated. */
@@ -352,6 +353,17 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 #endif
 }
 
+/* End alternate character set. */
+static void
+vte_sequence_handler_ae(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->screen->defaults.alternate = 0;
+}
+
 /* Add a line at the current cursor position. */
 static void
 vte_sequence_handler_al(VteTerminal *terminal,
@@ -388,6 +400,17 @@ vte_sequence_handler_AL(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	vte_sequence_handler_multiple(terminal, match, match_quark, params,
 				      vte_sequence_handler_al);
+}
+
+/* Begin alternate character set. */
+static void
+vte_sequence_handler_as(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->screen->defaults.alternate = 1;
 }
 
 /* Beep. */
@@ -1868,8 +1891,8 @@ static struct {
 	{"al", vte_sequence_handler_al},
 	{"AL", vte_sequence_handler_AL},
 	{"ac", NULL},
-	{"ae", NULL},
-	{"as", NULL},
+	{"ae", vte_sequence_handler_ae},
+	{"as", vte_sequence_handler_as},
 
 	{"bc", NULL},
 	{"bl", vte_sequence_handler_bl},
@@ -2320,6 +2343,7 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 		pcell->underline = terminal->pvt->screen->defaults.underline;
 		pcell->bold = terminal->pvt->screen->defaults.bold;
 		pcell->standout = terminal->pvt->screen->defaults.standout;
+		pcell->alternate = terminal->pvt->screen->defaults.alternate;
 
 		/* Signal that this part of the window needs drawing. */
 		if (terminal->pvt->screen->insert) {
@@ -3482,6 +3506,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			/* Get the character cell's contents. */
 			cell = vte_terminal_find_charcell(terminal, drow, col);
 			if (cell != NULL) {
+				gboolean drawn = FALSE;
 				/* If this column is zero-width, backtrack
 				 * until we find the multi-column character
 				 * which renders into this column. */
@@ -3533,8 +3558,239 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 					       row * height - y_offs,
 					       cell->columns * width,
 					       height);
+				drawn = FALSE;
+				if (cell->alternate) {
+					long xleft, ytop, xcenter, ycenter,
+					     xright, ybottom;
+					xleft = col * width - x_offs;
+					ytop = row * height - y_offs;
+					xright = xleft + width - 1;
+					ybottom = ytop + height - 1;
+					xcenter = (xleft + xright) / 2;
+					ycenter = (ytop + ybottom) / 2;
+					/* Draw the alternate charset data. */
+					XSetForeground(display, gc,
+						       terminal->pvt->palette[fore].pixel);
+					switch (cell->c) {
+						case 106:
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xleft,
+								  ycenter,
+								  xcenter,
+								  ycenter);
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xcenter,
+								  ycenter,
+								  xcenter,
+								  ytop);
+							drawn = TRUE;
+							break;
+						case 107:
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xleft,
+								  ycenter,
+								  xcenter,
+								  ycenter);
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xcenter,
+								  ycenter,
+								  xcenter,
+								  ybottom);
+							drawn = TRUE;
+							break;
+						case 108:
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xright,
+								  ycenter,
+								  xcenter,
+								  ycenter);
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xcenter,
+								  ycenter,
+								  xcenter,
+								  ybottom);
+							drawn = TRUE;
+							break;
+						case 109:
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xright,
+								  ycenter,
+								  xcenter,
+								  ycenter);
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xcenter,
+								  ycenter,
+								  xcenter,
+								  ytop);
+							drawn = TRUE;
+							break;
+						case 110:
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xcenter,
+								  ytop,
+								  xcenter,
+								  ybottom);
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xleft,
+								  ycenter,
+								  xright,
+								  ycenter);
+							drawn = TRUE;
+							break;
+						case 111:
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xleft,
+								  ytop,
+								  xright,
+								  ytop);
+							drawn = TRUE;
+							break;
+						case 112:
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xleft,
+								  (ytop + ycenter) / 2,
+								  xright,
+								  (ytop + ycenter) / 2);
+							drawn = TRUE;
+							break;
+						case 113:
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xleft,
+								  ycenter,
+								  xright,
+								  ycenter);
+							drawn = TRUE;
+							break;
+						case 114:
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xleft,
+								  (ycenter + ybottom) / 2,
+								  xright,
+								  (ycenter + ybottom) / 2);
+							drawn = TRUE;
+							break;
+						case 115:
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xleft,
+								  ybottom,
+								  xright,
+								  ybottom);
+							drawn = TRUE;
+							break;
+						case 116:
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xcenter,
+								  ytop,
+								  xcenter,
+								  ybottom);
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xright,
+								  ycenter,
+								  xcenter,
+								  ycenter);
+							drawn = TRUE;
+							break;
+						case 117:
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xcenter,
+								  ytop,
+								  xcenter,
+								  ybottom);
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xleft,
+								  ycenter,
+								  xcenter,
+								  ycenter);
+							drawn = TRUE;
+							break;
+						case 118:
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xcenter,
+								  ytop,
+								  xcenter,
+								  ycenter);
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xleft,
+								  ycenter,
+								  xright,
+								  ycenter);
+							drawn = TRUE;
+							break;
+						case 119:
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xcenter,
+								  ybottom,
+								  xcenter,
+								  ycenter);
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xleft,
+								  ycenter,
+								  xright,
+								  ycenter);
+							drawn = TRUE;
+							break;
+						case 120:
+							XDrawLine(display,
+								  drawable,
+								  gc,
+								  xcenter,
+								  ytop,
+								  xcenter,
+								  ybottom);
+							drawn = TRUE;
+							break;
+						default:
+							break;
+					}
+				}
 #if HAVE_XFT
-				if (terminal->pvt->use_xft) {
+				if (!drawn && terminal->pvt->use_xft) {
 					XftChar32 ftc;
 					ftc = cell->c;
 					XftDrawString32(ftdraw,
@@ -3543,8 +3799,10 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 							col * width - x_offs,
 							row * height - y_offs + ascent,
 							&ftc, 1);
-				} else {
+					drawn = TRUE;
+				}
 #endif
+				if (!drawn) {
 					/* Draw the text.  We've handled bold,
 					 * standout and reverse already, but we
 					 * need to handle half, and maybe
@@ -3555,9 +3813,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 						    col * width - x_offs,
 						    row * height - y_offs + ascent,
 						    &textitem, 1);
-#if HAVE_XFT
+					drawn = TRUE;
 				}
-#endif
 				/* FX */
 				if (cell->underline) {
 					XDrawLine(display, drawable, gc,

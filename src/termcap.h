@@ -16,10 +16,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ident "$Id$"
-
 #ifndef termcap_h
 #define termcap_h
+
+#ident "$Id$"
 
 G_BEGIN_DECLS
 

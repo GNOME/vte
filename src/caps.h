@@ -16,10 +16,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ident "$Id$"
-
 #ifndef caps_h
 #define caps_h
+
+#ident "$Id$"
 
 #include <glib.h>
 

@@ -16,10 +16,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ident "$Id$"
-
 #ifndef vte_h_included
 #define vte_h_included
+
+#ident "$Id$"
 
 #include <sys/types.h>
 #include <iconv.h>
@@ -52,6 +52,7 @@ struct vte_charcell {
 	guint16 underline: 1;
 	guint16 half: 1;
 	guint16 blink: 1;
+	guint16 alternate: 1;
 };
 
 /* The terminal's keypad state.  A terminal can either be using the normal

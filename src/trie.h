@@ -16,10 +16,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ident "$Id$"
-
 #ifndef trie_h
 #define trie_h
+
+#ident "$Id$"
 
 #include <wchar.h>
 #include <glib.h>
