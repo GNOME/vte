@@ -1,4 +1,8 @@
 2003-02-19 nalin
+	* src/vte.c(vte_terminal_button_press): grab input focus on button 1
+	press (#106573).
+
+2003-02-19 nalin
 	* src/vte.c(vte_terminal_sequence_handler_bt): add missing chunk of
 	fix for backtab.
 

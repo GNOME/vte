@@ -9624,6 +9624,11 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				fprintf(stderr, "Handling click ourselves.\n");
 			}
 #endif
+			/* Grab focus. */
+			if (!GTK_WIDGET_HAS_FOCUS(widget)) {
+				gtk_widget_grab_focus(widget);
+			}
+
 			/* If we're in event mode, and the user held down the
 			 * shift key, we start selecting. */
 			if (event_mode) {
