@@ -1,3 +1,15 @@
+2002-09-11 Brian Cameron <Brian.Cameron@sun.com>
+	* configure.in: Added check for socket library and SendMsg
+	check. 
+	* acconfig.h: Added this file with a HAVE_SENDMSG definition.
+	* gnome-pty-helper/configure.in: Added checks needed for the
+	source code, including the SendMsg check.
+	* src/pty.c: Corrected _vte_pty_pipe_open so it works on
+	Solaris.
+	*src/vte.c: Made some speed improvements so vte_invalidate_cells
+	is not called for every character in the while loop in 
+	vte_process_incoming, but only once when the while loop is done.
+
 2002-09-11 nalin
 	* gnome-pty-helper: Update from libzvt CVS.
 	* python/Makefile.am: Fix some automake breakage.

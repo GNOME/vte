@@ -37,8 +37,8 @@ fi
 }
 
 have_automake=false
-if automake --version < /dev/null > /dev/null 2>&1 ; then
-	automake_version=`automake --version | grep 'automake (GNU automake.*)' | sed 's/^[^0-9]*\(.*\)/\1/'`
+if automake-1.6 --version < /dev/null > /dev/null 2>&1 ; then
+	automake_version=`automake-1.6 --version | grep 'automake-1.6 (GNU automake.*)' | sed 's/^[^0-9]*\(.*\)/\1/'`
 	case $automake_version in
 	   1.2*|1.3*|1.4*)
 		;;
@@ -73,18 +73,18 @@ esac
 libtoolize -f -c
 glib-gettextize -f -c
 touch config.h.in
-aclocal $ACLOCAL_FLAGS
+aclocal-1.6 $ACLOCAL_FLAGS
 
 # optionally feature autoheader
 (autoheader --version)  < /dev/null > /dev/null 2>&1 && autoheader
-automake -a -c $am_opt
+automake-1.6 -a -c $am_opt
 autoconf
 
 cd gnome-pty-helper
 touch config.h.in
-aclocal $ACLOCAL_FLAGS
+aclocal-1.6 $ACLOCAL_FLAGS
 (autoheader --version)  < /dev/null > /dev/null 2>&1 && autoheader
-automake -a -c $am_opt
+automake-1.6 -a -c $am_opt
 autoconf
 
 cd $ORIGDIR

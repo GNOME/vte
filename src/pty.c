@@ -417,27 +417,6 @@ _vte_pty_open_unix98(pid_t *child, char **env_add,
 	return fd;
 }
 
-static int
-_vte_pty_pipe_open(int *a, int *b)
-{
-	int p[2], ret = -1;
-#ifdef PF_UNIX
-#ifdef SOCK_STREAM
-	ret = socketpair(PF_UNIX, SOCK_STREAM, 0, p);
-#else
-#ifdef SOCK_DGRAM
-	ret = socketpair(PF_UNIX, SOCK_DGRAM, 0, p);
-#endif
-#endif
-	if (ret == 0) {
-		*a = p[0];
-		*b = p[1];
-		return 0;
-	}
-#endif
-	return ret;
-}
-
 static void
 _vte_pty_stop_helper(void)
 {
@@ -506,7 +485,7 @@ _vte_pty_start_helper(void)
 	return TRUE;
 }
 
-#ifdef SCM_RIGHTS
+#ifdef HAVE_SENDMSG
 static void
 _vte_pty_read_ptypair(int tunnel, int *parentfd, int *childfd)
 {
@@ -549,6 +528,28 @@ _vte_pty_read_ptypair(int tunnel, int *parentfd, int *childfd)
 		}
 	}
 }
+
+static int
+_vte_pty_pipe_open(int *a, int *b)
+{
+	int p[2], ret = -1;
+#ifdef PF_UNIX
+#ifdef SOCK_STREAM
+	ret = socketpair(PF_UNIX, SOCK_STREAM, 0, p);
+#else
+#ifdef SOCK_DGRAM
+	ret = socketpair(PF_UNIX, SOCK_DGRAM, 0, p);
+#endif
+#endif
+	if (ret == 0) {
+		*a = p[0];
+		*b = p[1];
+		return 0;
+	}
+#endif
+	return ret;
+}
+
 #else
 #ifdef I_RECVFD
 static void
@@ -565,6 +566,21 @@ _vte_pty_read_ptypair(int tunnel, int *parentfd, int *childfd)
 	*childfd = i;
 }
 #endif
+
+static int
+_vte_pty_pipe_open(int *a, int *b)
+{
+    int p[2], ret = -1;
+
+    ret = pipe(p);
+
+    if (ret == 0) {
+		*a = p[0];
+		*b = p[1];
+    }
+    return ret;
+}
+
 #endif
 
 static int
@@ -604,11 +620,21 @@ _vte_pty_open_old_school(pid_t *child, char **env_add,
 		/* Receive the master and slave ptys. */
 		_vte_pty_read_ptypair(_vte_pty_helper_tunnel,
 				      &parentfd, &childfd);
+
 		if ((parentfd == -1) || (childfd == -1)) {
 			close(parentfd);
 			close(childfd);
 			return -1;
 		}
+
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_MISC) ||
+		    _vte_debug_on(VTE_DEBUG_PTY)) {
+			fprintf(stderr, "Got master pty %d and slave pty %d.\n",
+				parentfd, childfd);
+		}
+#endif
+
 		/* Add the parent and the tag to our map. */
 		g_tree_insert(_vte_pty_helper_map,
 			      GINT_TO_POINTER(parentfd),

@@ -366,7 +366,7 @@ static void vte_terminal_setup_background(VteTerminal *terminal,
 static void vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
 static void vte_terminal_insert_char(GtkWidget *widget, gunichar c,
-				     gboolean force_insert_mode);
+				     gboolean force_insert_mode, gboolean invalid_cells);
 static void vte_sequence_handler_clear_screen(VteTerminal *terminal,
 					      const char *match,
 					      GQuark match_quark,
@@ -673,7 +673,7 @@ vte_terminal_find_charcell(VteTerminal *terminal, glong col, glong row)
 
 /* Cause the cursor to be redrawn. */
 static void
-vte_invalidate_cursor_once(gpointer data)
+vte_invalidate_cursor_once(gpointer data, gboolean invalid_cells)
 {
 	VteTerminal *terminal;
 	VteScreen *screen;
@@ -709,11 +709,13 @@ vte_invalidate_cursor_once(gpointer data)
 		if (cell != NULL) {
 			columns = cell->columns;
 		}
-		vte_invalidate_cells(terminal,
+	    if (invalid_cells) {
+			vte_invalidate_cells(terminal,
 				     column,
 				     columns + preedit_length,
 				     screen->cursor_current.row,
 				     1);
+		}
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_UPDATES)) {
 			fprintf(stderr, "Invalidating cursor at (%ld,%ld-%ld)."
@@ -746,7 +748,7 @@ vte_invalidate_cursor_periodic(gpointer data)
 
 	terminal = VTE_TERMINAL(widget);
 	if (terminal->pvt->cursor_blinks) {
-		vte_invalidate_cursor_once(terminal);
+		vte_invalidate_cursor_once(terminal, TRUE);
 	}
 
 	settings = gtk_widget_get_settings(GTK_WIDGET(data));
@@ -2599,7 +2601,7 @@ vte_sequence_handler_ic(VteTerminal *terminal,
 
 	save = screen->cursor_current;
 
-	vte_terminal_insert_char(GTK_WIDGET(terminal), ' ', TRUE);
+	vte_terminal_insert_char(GTK_WIDGET(terminal), ' ', TRUE, TRUE);
 
 	screen->cursor_current = save;
 }
@@ -3989,7 +3991,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 	case 25:
 	case 1048:
 		/* Repaint the cell the cursor is in. */
-		vte_invalidate_cursor_once(terminal);
+		vte_invalidate_cursor_once(terminal, TRUE);
 		break;
 	case 47:
 	case 1047:
@@ -5640,7 +5642,7 @@ vte_terminal_set_default_colors(VteTerminal *terminal)
 /* Insert a single character into the stored data array. */
 static void
 vte_terminal_insert_char(GtkWidget *widget, gunichar c,
-			 gboolean force_insert_mode)
+			 gboolean force_insert_mode, gboolean invalid_cells)
 {
 	VteTerminal *terminal;
 	GArray *array;
@@ -5763,16 +5765,18 @@ vte_terminal_insert_char(GtkWidget *widget, gunichar c,
 		}
 
 		/* Signal that this part of the window needs drawing. */
-		if (insert) {
-			vte_invalidate_cells(terminal,
+		if (invalid_cells) {
+			if (insert) {
+				vte_invalidate_cells(terminal,
 					     col,
 					     terminal->column_count - col,
 					     screen->cursor_current.row,
 					     2);
-		} else {
-			vte_invalidate_cells(terminal,
+			} else {
+				vte_invalidate_cells(terminal,
 					     col, 1,
 					     screen->cursor_current.row, 2);
+			}
 		}
 
 		/* And take a step to the to the right. */
@@ -5873,20 +5877,6 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 		g_warning(_("No handler for control sequence `%s' defined."),
 			  match_s);
 	}
-
-	/* If the cursor moved, then we need to redraw the cell in which
-	 * it used to be. */
-	if ((screen->cursor_current.col != position.col) ||
-	    (screen->cursor_current.row != position.row)) {
-		vte_invalidate_cells(terminal,
-				     position.col, 1,
-				     position.row, 1);
-	}
-
-	/* We probably need to update the cursor's new position, too. */
-	vte_invalidate_cells(terminal,
-			     screen->cursor_current.col, 1,
-			     screen->cursor_current.row, 1);
 
 	/* Let the updating begin. */
 	if (GTK_WIDGET_REALIZED (widget)) {
@@ -6107,7 +6097,7 @@ vte_terminal_process_incoming(gpointer data)
 	char *ibuf, *obuf, *obufptr, *ubuf, *ubufptr;
 	gsize icount, ocount, ucount;
 	gunichar *wbuf, c;
-	long wcount, start;
+	long wcount, start, current_row;
 	const char *match, *encoding;
 	GIConv unconv;
 	GQuark quark;
@@ -6210,6 +6200,7 @@ vte_terminal_process_incoming(gpointer data)
 	/* Save the current cursor position. */
 	screen = terminal->pvt->screen;
 	cursor = screen->cursor_current;
+	current_row = screen->cursor_current.row;
 
 	/* Try initial substrings. */
 	while ((start < wcount) && !leftovers) {
@@ -6226,7 +6217,7 @@ vte_terminal_process_incoming(gpointer data)
 		 * points to the first character which isn't part of this
 		 * sequence. */
 		if ((match != NULL) && (match[0] != '\0')) {
-			vte_invalidate_cursor_once(terminal);
+			vte_invalidate_cursor_once(terminal, FALSE);
 			vte_terminal_handle_sequence(GTK_WIDGET(terminal),
 						     match,
 						     quark,
@@ -6266,7 +6257,7 @@ vte_terminal_process_incoming(gpointer data)
 			}
 #endif
 			if (c != 0) {
-				vte_terminal_insert_char(widget, c, FALSE);
+				vte_terminal_insert_char(widget, c, FALSE, FALSE);
 			}
 			modified = TRUE;
 			start++;
@@ -6295,6 +6286,10 @@ vte_terminal_process_incoming(gpointer data)
 		free_params_array(params);
 		params = NULL;
 	}
+
+	/* Update the screen once after the while loop */
+	vte_invalidate_cells(terminal, 0, terminal->column_count,
+		current_row, screen->cursor_current.row);
 
 	if (leftovers) {
 		/* There are leftovers, so convert them back to the terminal's
@@ -6369,7 +6364,7 @@ vte_terminal_process_incoming(gpointer data)
 		}
 
 		/* The cursor moved, so force it to be redrawn. */
-		vte_invalidate_cursor_once(terminal);
+		vte_invalidate_cursor_once(terminal, TRUE);
 
 		/* Deselect any existing selection. */
 		vte_terminal_deselect_all(terminal);
@@ -6798,7 +6793,7 @@ vte_terminal_im_preedit_changed(GtkIMContext *im_context, gpointer data)
 	}
 #endif
 
-	vte_invalidate_cursor_once(terminal);
+	vte_invalidate_cursor_once(terminal, TRUE);
 
 	pango_attr_list_unref(attrs);
 	if (terminal->pvt->im_preedit != NULL) {
@@ -6807,7 +6802,7 @@ vte_terminal_im_preedit_changed(GtkIMContext *im_context, gpointer data)
 	terminal->pvt->im_preedit = str;
 	terminal->pvt->im_preedit_cursor = cursor;
 
-	vte_invalidate_cursor_once(terminal);
+	vte_invalidate_cursor_once(terminal, TRUE);
 }
 
 /* Handle the toplevel being reconfigured. */
@@ -8707,7 +8702,7 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 	g_return_val_if_fail(GTK_IS_WIDGET(widget), 0);
 	GTK_WIDGET_SET_FLAGS(widget, GTK_HAS_FOCUS);
 	gtk_im_context_focus_in((VTE_TERMINAL(widget))->pvt->im_context);
-	vte_invalidate_cursor_once(VTE_TERMINAL(widget));
+	vte_invalidate_cursor_once(VTE_TERMINAL(widget), TRUE);
 	return FALSE;
 }
 
@@ -8717,7 +8712,7 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 	g_return_val_if_fail(GTK_WIDGET(widget), 0);
 	GTK_WIDGET_UNSET_FLAGS(widget, GTK_HAS_FOCUS);
 	gtk_im_context_focus_out((VTE_TERMINAL(widget))->pvt->im_context);
-	vte_invalidate_cursor_once(VTE_TERMINAL(widget));
+	vte_invalidate_cursor_once(VTE_TERMINAL(widget), TRUE);
 	return FALSE;
 }
 
@@ -9818,7 +9813,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 		if (vte_sequence_handlers[i].handler != NULL) {
 			code = vte_sequence_handlers[i].code;
 			g_tree_insert(terminal->pvt->sequences,
-				      GINT_TO_POINTER(g_quark_from_string(code)),
+				      (gpointer)GINT_TO_POINTER(g_quark_from_string(code)),
 				      vte_sequence_handlers[i].handler);
 		}
 	}
