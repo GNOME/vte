@@ -1,5 +1,12 @@
 2005-02-15  Kjartan Maraas  <kmaraas@gnome.org>
 
+	* src/vte.c: (vte_terminal_visibility_notify): Fix black
+	backgrounds in new terminals. Fix from Jon Nettleton
+	<nettleton at gmail com>. Closes bug #125364. Has been
+	in Fedora Core for months already.
+
+2005-02-15  Kjartan Maraas  <kmaraas@gnome.org>
+
 	* src/keymap.c: (_vte_keymap_map): Fix keypad behaviour
 	to be like xterm. Closes bug #128099. Fix is from
 	<jylefort at brutele be> and has been used in Fedora the last

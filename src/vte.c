@@ -10635,9 +10635,13 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 static gint
 vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
 {
+	VteTerminal *terminal;
 	g_return_val_if_fail(GTK_WIDGET(widget), FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
-	(VTE_TERMINAL(widget))->pvt->visibility_state = event->state;
+	terminal = VTE_TERMINAL(widget);
+	terminal->pvt->visibility_state = event->state;
+	if (terminal->pvt->visibility_state == GDK_VISIBILITY_UNOBSCURED)
+		vte_invalidate_all(terminal);
 	return FALSE;
 }
 
