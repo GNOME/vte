@@ -1,4 +1,7 @@
 2002-07-12 nalin
+	* src/vte.c: Add patch to heed Xft/fontconfig settings as kept by GTK.
+	Based on patch from otaylor.
+2002-07-12 nalin
 	* src/slowcat.c: Added.
 	* src/vteapp.c: Add -a/-b flags to control audible bell and blinking
 	cursors.  Only send "pwd" as an initial command if there wasn't a

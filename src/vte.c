@@ -269,6 +269,9 @@ struct _VteTerminalPrivate {
 	/* Our accessible peer. */
 	AtkObject *accessible;
 
+	/* GtkSettings that we are monitoring. */
+	GtkSettings *connected_settings;
+
 	/* Input device options. */
 	guint last_keypress_time;
 	gboolean mouse_send_xy_on_click;
@@ -7780,6 +7783,167 @@ vte_compare_direct(gconstpointer a, gconstpointer b)
 	return GPOINTER_TO_INT(a) - GPOINTER_TO_INT(b);
 }
 
+/* Handle notification that Xft-related GTK settings have changed by resetting
+ * the font using the new settings. */
+static void
+vte_xft_changed_cb(GtkSettings *settings, GParamSpec *spec,
+		   VteTerminal *terminal)
+{
+	vte_terminal_set_font(terminal, terminal->pvt->fontdesc);
+}
+
+/* Add default specifiers to the pattern which incorporate the current Xft
+ * settings. */
+static void
+vte_default_substitute(VteTerminal *terminal, XftPattern *pattern)
+{
+	GtkSettings *settings;
+	XftResult result;
+	gboolean found;
+	int i;
+	double d;
+	int antialias, hinting, dpi;
+	char *rgba, *hintstyle;
+
+	settings = gtk_settings_get_default();
+
+	/* If this is our first time in here, start listening for changes
+	 * to the Xft settings. */
+	if (terminal->pvt->connected_settings == NULL) {
+		terminal->pvt->connected_settings = settings;
+		g_signal_connect(settings, "notify::gtk-xft-antialias",
+				 G_CALLBACK(vte_xft_changed_cb), terminal);
+		g_signal_connect(settings, "notify::gtk-xft-hinting",
+				 G_CALLBACK(vte_xft_changed_cb), terminal);
+		g_signal_connect(settings, "notify::gtk-xft-hintstyle",
+				 G_CALLBACK(vte_xft_changed_cb), terminal);
+		g_signal_connect(settings, "notify::gtk-xft-rgba",
+				 G_CALLBACK(vte_xft_changed_cb), terminal);
+		g_signal_connect(settings, "notify::gtk-xft-dpi",
+				 G_CALLBACK(vte_xft_changed_cb), terminal);
+	}
+
+	/* Read the settings. */
+	g_object_get(G_OBJECT(settings),
+		     "gtk-xft-antialias", &antialias,
+		     "gtk-xft-hinting", &hinting,
+		     "gtk-xft-hintstyle", &hintstyle,
+		     "gtk-xft-rgba", &rgba,
+		     "gtk-xft-dpi", &dpi,
+		     NULL);
+
+	/* First get and set the settings Xft1 "knows" about. */
+	if (antialias >= 0) {
+		result = XftPatternGetBool(pattern, XFT_ANTIALIAS, 0, &i);
+		if (result == XftResultNoMatch) {
+			XftPatternAddBool(pattern, XFT_ANTIALIAS,
+					  antialias > 0);
+		}
+	}
+
+	if (rgba != NULL) {
+		result = XftPatternGetInteger(pattern, XFT_RGBA, 0, &i);
+		if (result == XftResultNoMatch) {
+			i = XFT_RGBA_NONE;
+			found = TRUE;
+			if (strcmp(rgba, "none") == 0) {
+				i = XFT_RGBA_NONE;
+			} else
+			if (strcmp(rgba, "rgb") == 0) {
+				i = XFT_RGBA_RGB;
+			} else
+			if (strcmp(rgba, "bgr") == 0) {
+				i = XFT_RGBA_BGR;
+			} else
+			if (strcmp(rgba, "vrgb") == 0) {
+				i = XFT_RGBA_VRGB;
+			} else
+			if (strcmp(rgba, "vbgr") == 0) {
+				i = XFT_RGBA_VBGR;
+			} else {
+				found = FALSE;
+			}
+			if (found) {
+				XftPatternAddInteger(pattern, XFT_RGBA, i);
+			}
+		}
+	}
+
+	if (dpi >= 0) {
+		result = XftPatternGetDouble(pattern, XFT_DPI, 0, &d);
+		if (result == XftResultNoMatch) {
+			XftPatternAddDouble(pattern, XFT_DPI, dpi / 1024.0);
+		}
+	}
+
+#ifdef FC_HINTING
+	/* If we're using Xft2/fontconfig, then all of the Xft1 API calls are
+	 * being mapped to fontconfig by the preprocessor, but these settings
+	 * are fontconfig-only, so we use the native FontConfig API here. */
+	if (hinting >= 0) {
+		result = FcPatternGetBool(pattern, FC_HINTING, 0, &i);
+		if (result == FcResultNoMatch) {
+			FcPatternAddBool(pattern, FC_HINTING, hinting > 0);
+		}
+	}
+	if (hintstyle != NULL) {
+		result = FcPatternGetInteger(pattern, FC_HINT_STYLE, 0, &i);
+		if (result == FcResultNoMatch) {
+			i = FC_HINT_NONE;
+			found = TRUE;
+			if (strcmp(hintstyle, "hintnone") == 0) {
+				i = FC_HINT_NONE;
+			} else
+			if (strcmp(hintstyle, "hintslight") == 0) {
+				i = FC_HINT_SLIGHT;
+			} else
+			if (strcmp(hintstyle, "hintmedium") == 0) {
+				i = FC_HINT_MEDIUM;
+			} else
+			if (strcmp(hintstyle, "hintfull") == 0) {
+				i = FC_HINT_FULL;
+			} else {
+				found = FALSE;
+			}
+			if (found) {
+				FcPatternAddInteger(pattern, FC_HINTING, i);
+			}
+		}
+	}
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		FcPatternPrint(pattern);
+	}
+#endif
+#endif
+}
+
+/* Find a font which matches the request, figuring in the Xft settings. */
+static XftPattern *
+vte_font_match(VteTerminal *terminal, XftPattern *pattern, XftResult *result)
+{
+	XftPattern *spec, *match;
+	Display *display;
+	int screen;
+
+	spec = XftPatternDuplicate(pattern);
+	if (spec == NULL) {
+		return NULL;
+	}
+
+	display = GDK_DISPLAY();
+	screen = gdk_x11_get_default_screen();
+
+	XftConfigSubstitute(spec);
+	vte_default_substitute(terminal, spec);
+	XftDefaultSubstitute(display, screen, spec);
+
+	match = XftFontMatch(display, screen, spec, result);
+
+	XftPatternDestroy(spec);
+	return match;
+}
+
 /* Set the fontset used for rendering text into the widget. */
 void
 vte_terminal_set_font(VteTerminal *terminal,
@@ -7804,11 +7968,6 @@ vte_terminal_set_font(VteTerminal *terminal,
 	descent = 0;
 	ascent = height - descent;
 
-	/* Free the old font description. */
-	if (terminal->pvt->fontdesc != NULL) {
-		pango_font_description_free(terminal->pvt->fontdesc);
-		terminal->pvt->fontdesc = NULL;
-	}
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_MISC)) {
 		if (font_desc) {
@@ -7826,18 +7985,21 @@ vte_terminal_set_font(VteTerminal *terminal,
 		g_tree_destroy(terminal->pvt->fontpadding);
 	}
 	terminal->pvt->fontpadding = g_tree_new(vte_compare_direct);
-	/* Set up the normal font description. */
+
+	/* Set up an owned font description. */
 	if (font_desc != NULL) {
-		terminal->pvt->fontdesc =
+		font_desc =
 			pango_font_description_copy(font_desc);
 	} else {
-		terminal->pvt->fontdesc =
+		font_desc =
 			pango_font_description_from_string(VTE_DEFAULT_FONT);
 	}
 
-	/* Set the parameter we were passed to point to a known-usable
-	 * PangoFontDescription. */
-	font_desc = terminal->pvt->fontdesc;
+	/* Save the new font description. */
+	if (terminal->pvt->fontdesc != NULL) {
+		pango_font_description_free(terminal->pvt->fontdesc);
+	}
+	terminal->pvt->fontdesc = (PangoFontDescription*) font_desc;
 
 	if (terminal->pvt->use_pango) {
 		/* Create the layout if we don't have one yet. */
@@ -7896,9 +8058,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 		 * time.  Whether it's filled in is impossible to determine
 		 * afaict.  We don't care about its value anyhow.  */
 		result = 0xffff; /* some bogus value to help in debugging */
-		matched_pattern = XftFontMatch (GDK_DISPLAY(),
-						gdk_x11_get_default_screen(),
-						pattern, &result);
+		matched_pattern = vte_font_match(terminal, pattern, &result);
 		if (matched_pattern != NULL) {
 			need_destroy = TRUE;
 		}
@@ -8632,6 +8792,9 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	/* Initialize our accessible peer. */
 	pvt->accessible = NULL;
 
+	/* Initialize settings we're monitoring. */
+	pvt->connected_settings = NULL;
+
 	/* Set backspace/delete bindings. */
 	vte_terminal_set_backspace_binding(terminal, VTE_ERASE_AUTO);
 	vte_terminal_set_delete_binding(terminal, VTE_ERASE_AUTO);
@@ -8858,6 +9021,14 @@ vte_terminal_finalize(GObject *object)
 		g_signal_handlers_disconnect_by_func(toplevel,
 						     vte_terminal_configure_toplevel,
 						     terminal);
+	}
+
+	/* Disconnect from settings changes. */
+	if (terminal->pvt->connected_settings) {
+		g_signal_handlers_disconnect_by_func(G_OBJECT(terminal->pvt->connected_settings),
+						     vte_xft_changed_cb,
+						     terminal);
+		terminal->pvt->connected_settings = NULL;
 	}
 
 	/* Free any selected text, but if we currently own the selection,
