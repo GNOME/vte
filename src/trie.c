@@ -34,7 +34,7 @@
 #include "trie.h"
 
 #ifndef HAVE_WINT_T
-typedef long wint_t;
+typedef gunichar wint_t;
 #endif
 
 #ifdef ENABLE_NLS

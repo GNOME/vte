@@ -1,3 +1,7 @@
+2002-10-11 nalin
+	* src/trie.c: change the typedef of wint_t here to match vte.c (now
+	a gunichar instead of a long).  Spotted by Brian Cameron.
+
 2002-10-11 Brian Cameron <Brian.Cameron@sun.com>
 	* configure.in: Changed to that wchar.h is included when checking for
 	wint_t on Solaris.  This was needed because on Solaris wint_t is defined
@@ -11,7 +15,7 @@
 2002-10-10 nalin
 	* src/vteapp.c, python/vte-demo.py: allow specifying the scrollback
 	buffer size.
-	* src/vte.c: if we don't have <wchar.h>, typedef wchar_t as a gunichar,
+	* src/vte.c: if we don't have wint_t, typedef wint_t as a gunichar,
 	not a long.
 
 2002-10-09 nalin
