@@ -19,7 +19,7 @@ _wrap_vte_terminal_fork_command(PyGObject * self, PyObject * args,
 {
 	gchar **argv = NULL, **envv = NULL;
 	gchar *command = NULL;
-	static char *kwlist[] = { "command", "argv", NULL };
+	static char *kwlist[] = { "command", "argv", "envv", NULL };
 	PyObject *py_argv = NULL, *py_envv = NULL;
 	int i, n_args, n_envs;
 	pid_t pid;
