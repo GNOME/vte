@@ -76,6 +76,13 @@ _vte_rdb_get(GtkWidget *widget, gboolean screen_setting)
 	gdk_property_get(root, atom, GDK_TARGET_STRING, 0, INT_MAX, FALSE,
 			 &prop_type, NULL, &prop_length,
 			 (guchar**) &prop_data);
+#if GTK_CHECK_VERSION(2,2,0)
+	gdk_display_sync(display);
+#else
+#ifndef X_DISPLAY_MISSING
+	XSync(GDK_DISPLAY(), FALSE);
+#endif
+#endif
 	gdk_error_trap_pop();
 
 	/* Only parse the information if we got a string. */

@@ -1,3 +1,8 @@
+2003-06-04 nalin
+	* src/vtebg.c, src/vterdb.c: sync the display before trapping errors
+	to ensure that any errors we'll get will be handled before we remove
+	the error handlers.
+
 2003-06-03 nalin
 	* src/vtebg.c(_vte_bg_get_pixmap, _vte_bg_get_pixbuf): trap X errors
 	while retrieving the contents of the root pixmap.

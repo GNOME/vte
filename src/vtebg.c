@@ -91,6 +91,16 @@ vte_bg_native_new(GdkWindow *window)
 	return pvt;
 }
 
+static void
+_vte_bg_display_sync(VteBg *bg)
+{
+#if GTK_CHECK_VERSION(2,2,0)
+	gdk_display_sync(gdk_drawable_get_display(bg->native->window));
+#else
+	XSync(GDK_DISPLAY(), FALSE);
+#endif
+}
+
 static GdkPixmap *
 vte_bg_root_pixmap(VteBg *bg)
 {
@@ -125,6 +135,7 @@ vte_bg_root_pixmap(VteBg *bg)
 			g_free(pixmaps);
 		}
 	}
+	_vte_bg_display_sync(bg);
 	gdk_error_trap_pop();
 	return pixmap;
 }
@@ -166,9 +177,7 @@ vte_bg_root_filter(GdkXEvent *xevent, GdkEvent *event, gpointer data)
 {
 	return GDK_FILTER_CONTINUE;
 }
-
 #endif
-
 
 static void
 vte_bg_class_init(VteBgClass *klass, gpointer data)
@@ -539,6 +548,7 @@ vte_bg_get_pixmap(VteBg *bg,
 			gdk_error_trap_push();
 			width = height = -1;
 			gdk_drawable_get_size(bg->root_pixmap, &width, &height);
+			_vte_bg_display_sync(bg);
 			gdk_error_trap_pop();
 
 			/* If the pixmap gave us a valid size, retrieve its
@@ -551,6 +561,7 @@ vte_bg_get_pixmap(VteBg *bg,
 								      0, 0,
 								      0, 0,
 								      width, height);
+				_vte_bg_display_sync(bg);
 				gdk_error_trap_pop();
 			}
 		}
@@ -660,6 +671,7 @@ vte_bg_get_pixbuf(VteBg *bg,
 			gdk_error_trap_push();
 			width = height = -1;
 			gdk_drawable_get_size(bg->root_pixmap, &width, &height);
+			_vte_bg_display_sync(bg);
 			gdk_error_trap_pop();
 
 			/* If we got a valid size, read the pixmap's
@@ -672,6 +684,7 @@ vte_bg_get_pixbuf(VteBg *bg,
 								      0, 0,
 								      0, 0,
 								      width, height);
+				_vte_bg_display_sync(bg);
 				gdk_error_trap_pop();
 			}
 		}
