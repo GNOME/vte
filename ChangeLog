@@ -1,3 +1,10 @@
+2003-02-03 nalin
+	* src/vte.c: cause the native drawing code for code points
+	0xa3, 0x3c0 0x2592, 0x25ae, 0x25c6 to be used again, so that they can
+	be seen in cases where the current font doesn't include them, ok
+	release-team.
+	* vte.spec: 0.10.17
+
 2003-02-02  Duarte Loreto <happyguy_pt@hotmail.com>
 
         * configure.in: Added "pt" to ALL_LINGUAS.

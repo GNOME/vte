@@ -12237,9 +12237,11 @@ vte_unichar_isgraphic(gunichar c)
 		return TRUE;
 	}
 	switch (c) {
+	case 0x00a3: /* british pound */
 	case 0x00b0: /* degree */
 	case 0x00b1: /* plus/minus */
 	case 0x00b7: /* bullet */
+	case 0x03c0: /* pi */
 	case 0x2190: /* left arrow */
 	case 0x2191: /* up arrow */
 	case 0x2192: /* right arrow */
@@ -12257,6 +12259,9 @@ vte_unichar_isgraphic(gunichar c)
 	case 0x240c: /* FF symbol */
 	case 0x240d: /* CR symbol */
 	case 0x2424: /* NL symbol */
+	case 0x2592: /* checkerboard */
+	case 0x25ae: /* solid rectangle */
+	case 0x25c6: /* diamond */
 		return TRUE;
 		break;
 	default:
