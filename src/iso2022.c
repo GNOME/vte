@@ -26,7 +26,15 @@
 #include <gdk/gdkkeysyms.h>
 #include "debug.h"
 #include "iso2022.h"
-#define WIDE94_FUDGE 0x100
+
+/* Maps which jive with XTerm's ESC ()*+ ? sequences and RFC 1468. */
+#define NARROW_MAPS	"0AB4C5RQKYE6ZH7=" "J"
+/* Maps which jive with RFC 1468's ESC $ ? sequences. */
+#define WIDE_MAPS	"@B"
+/* Maps which jive with RFC 1557/1922/2237's ESC $ ()*+ ? sequences. */
+#define WIDE_GMAPS	"C" "AGH" "D"
+/* Fudge factor we add to wide map identifiers to keep them distinct. */
+#define WIDE_FUDGE	0x10000
 
 struct vte_iso2022_map {
 	gunichar from, to;
@@ -40,11 +48,11 @@ struct vte_iso2022 {
 
 /* DEC Special Character and Line Drawing Set.  VT100 and higher (per XTerm
  * docs). */
-static struct vte_iso2022_map vte_iso2022_map_0[] = {
+static const struct vte_iso2022_map vte_iso2022_map_0[] = {
 	{ 96, 0x25c6},	/* diamond */
 	{'a', 0x2592},	/* checkerboard */
-	{'f', 0x00b0},	/* degree */
-	{'g', 0x00b1},	/* plus/minus */
+	{'f', GDK_degree},	/* degree */
+	{'g', GDK_plusminus},	/* plus/minus */
 	{'j', 0x2518},	/* downright corner */
 	{'k', 0x2510},	/* upright corner */
 	{'l', 0x250c},	/* upleft corner */
@@ -59,14 +67,14 @@ static struct vte_iso2022_map vte_iso2022_map_0[] = {
 	{127, 0x00b7},	/* bullet */
 };
 /* United Kingdom.  VT100 and higher (per XTerm docs). */
-static struct vte_iso2022_map vte_iso2022_map_A[] = {
+static const struct vte_iso2022_map vte_iso2022_map_A[] = {
 	{'$', GDK_sterling},
 };
 /* US-ASCII (no conversions).  VT100 and higher (per XTerm docs). */
-static struct vte_iso2022_map vte_iso2022_map_B[] = {
+static const struct vte_iso2022_map vte_iso2022_map_B[] = {
 };
 /* Dutch. VT220 and higher (per XTerm docs). */
-static struct vte_iso2022_map vte_iso2022_map_4[] = {
+static const struct vte_iso2022_map vte_iso2022_map_4[] = {
 	{0x23, GDK_sterling},
 	{0x40, GDK_threequarters},
 	{0x5b, GDK_ydiaeresis},
@@ -78,7 +86,7 @@ static struct vte_iso2022_map vte_iso2022_map_4[] = {
 	{0x7e, GDK_acute}
 };
 /* Finnish. VT220 and higher (per XTerm docs). */
-static struct vte_iso2022_map vte_iso2022_map_C[] = {
+static const struct vte_iso2022_map vte_iso2022_map_C[] = {
 	{0x5b, GDK_Adiaeresis},
 	{0x5c, GDK_Odiaeresis},
 	{0x5d, GDK_Aring},
@@ -90,7 +98,7 @@ static struct vte_iso2022_map vte_iso2022_map_C[] = {
 	{0x7e, GDK_udiaeresis},
 };
 /* French. VT220 and higher (per XTerm docs). */
-static struct vte_iso2022_map vte_iso2022_map_R[] = {
+static const struct vte_iso2022_map vte_iso2022_map_R[] = {
 	{0x23, GDK_sterling},
 	{0x40, GDK_agrave},
 	{0x5b, GDK_degree},
@@ -102,7 +110,7 @@ static struct vte_iso2022_map vte_iso2022_map_R[] = {
 	{0x7e, GDK_diaeresis},
 };
 /* French Canadian. VT220 and higher (per XTerm docs). */
-static struct vte_iso2022_map vte_iso2022_map_Q[] = {
+static const struct vte_iso2022_map vte_iso2022_map_Q[] = {
 	{0x40, GDK_agrave},
 	{0x5b, GDK_acircumflex},
 	{0x5c, GDK_ccedilla},
@@ -115,7 +123,7 @@ static struct vte_iso2022_map vte_iso2022_map_Q[] = {
 	{0x7e, GDK_ucircumflex},
 };
 /* German. VT220 and higher (per XTerm docs). */
-static struct vte_iso2022_map vte_iso2022_map_K[] = {
+static const struct vte_iso2022_map vte_iso2022_map_K[] = {
 	{0x40, GDK_section},
 	{0x5b, GDK_Adiaeresis},
 	{0x5c, GDK_Odiaeresis},
@@ -126,7 +134,7 @@ static struct vte_iso2022_map vte_iso2022_map_K[] = {
 	{0x7e, GDK_ssharp},
 };
 /* Italian. VT220 and higher (per XTerm docs). */
-static struct vte_iso2022_map vte_iso2022_map_Y[] = {
+static const struct vte_iso2022_map vte_iso2022_map_Y[] = {
 	{0x23, GDK_sterling},
 	{0x40, GDK_section},
 	{0x5b, GDK_degree},
@@ -139,7 +147,7 @@ static struct vte_iso2022_map vte_iso2022_map_Y[] = {
 	{0x7e, GDK_igrave},
 };
 /* Norwegian and Danish. VT220 and higher (per XTerm docs). */
-static struct vte_iso2022_map vte_iso2022_map_E[] = {
+static const struct vte_iso2022_map vte_iso2022_map_E[] = {
 	{0x40, GDK_Adiaeresis},
 	{0x5b, GDK_AE},
 	{0x5c, GDK_Ooblique},
@@ -152,7 +160,7 @@ static struct vte_iso2022_map vte_iso2022_map_E[] = {
 	{0x7e, GDK_udiaeresis},
 };
 /* Spanish. VT220 and higher (per XTerm docs). */
-static struct vte_iso2022_map vte_iso2022_map_Z[] = {
+static const struct vte_iso2022_map vte_iso2022_map_Z[] = {
 	{0x23, GDK_sterling},
 	{0x40, GDK_section},
 	{0x5b, GDK_exclamdown},
@@ -163,7 +171,7 @@ static struct vte_iso2022_map vte_iso2022_map_Z[] = {
 	{0x7d, GDK_ccedilla},
 };
 /* Swedish. VT220 and higher (per XTerm docs). */
-static struct vte_iso2022_map vte_iso2022_map_H[] = {
+static const struct vte_iso2022_map vte_iso2022_map_H[] = {
 	{0x40, GDK_Eacute},
 	{0x5b, GDK_Adiaeresis},
 	{0x5c, GDK_Odiaeresis},
@@ -176,7 +184,7 @@ static struct vte_iso2022_map vte_iso2022_map_H[] = {
 	{0x7e, GDK_udiaeresis},
 };
 /* Swiss. VT220 and higher (per XTerm docs). */
-static struct vte_iso2022_map vte_iso2022_map_equal[] = {
+static const struct vte_iso2022_map vte_iso2022_map_equal[] = {
 	{0x23, GDK_ugrave},
 	{0x40, GDK_agrave},
 	{0x5b, GDK_eacute},
@@ -191,15 +199,37 @@ static struct vte_iso2022_map vte_iso2022_map_equal[] = {
 	{0x7e, GDK_ucircumflex},
 };
 /* Japanese.  JIS X 0201-1976 ("Roman" set), per RFC 1468/2237. */
-static struct vte_iso2022_map vte_iso2022_map_J[] = {
+static const struct vte_iso2022_map vte_iso2022_map_J[] = {
 	{'\\', GDK_overline},
 	{'~', GDK_yen},
 };
 /* Japanese.  JIS X 0208-1978, per RFC 1468/2237. */
-static struct vte_iso2022_map vte_iso2022_map_dollar_at[] = {
+static const struct vte_iso2022_map vte_iso2022_map_wide_at[] = {
+#include "unitable.JIS0208"
+};
+/* Chinese.  GB 2312-80, per RFC 1922. */
+static const struct vte_iso2022_map vte_iso2022_map_wide_A[] = {
+#include "unitable.GB2312"
 };
 /* Japanese.  JIS X 0208-1983, per RFC 1468/2237. */
-static struct vte_iso2022_map vte_iso2022_map_dollar_B[] = {
+static const struct vte_iso2022_map vte_iso2022_map_wide_B[] = {
+#include "unitable.JIS0208"
+};
+/* Korean.  KSC 5601, per RFC 1557. */
+static const struct vte_iso2022_map vte_iso2022_map_wide_C[] = {
+#include "unitable.KSC5601"
+};
+/* Japanese.  JIS X 0212-1990, per RFC 2237. */
+static const struct vte_iso2022_map vte_iso2022_map_wide_D[] = {
+#include "unitable.JIS0212"
+};
+/* Chinese.  CNS 11643-plane-1, per RFC 1922. */
+static const struct vte_iso2022_map vte_iso2022_map_wide_G[] = {
+#include "unitable.CNS11643"
+};
+/* Chinese.  CNS 11643-plane-2, per RFC 1922. */
+static const struct vte_iso2022_map vte_iso2022_map_wide_H[] = {
+#include "unitable.CNS11643"
 };
 
 struct vte_iso2022 *
@@ -245,7 +275,7 @@ vte_direct_compare(gconstpointer a, gconstpointer b)
 }
 
 static GTree *
-vte_iso2022_map_init(struct vte_iso2022_map *map, gssize length)
+vte_iso2022_map_init(const struct vte_iso2022_map *map, gssize length)
 {
 	GTree *ret;
 	int i;
@@ -337,13 +367,33 @@ vte_iso2022_map_get(gunichar mapname)
 			ret = vte_iso2022_map_init(vte_iso2022_map_J,
 						   G_N_ELEMENTS(vte_iso2022_map_J));
 			break;
-		case '@' + WIDE94_FUDGE:
-			ret = vte_iso2022_map_init(vte_iso2022_map_dollar_at,
-						   G_N_ELEMENTS(vte_iso2022_map_dollar_at));
+		case '@' + WIDE_FUDGE:
+			ret = vte_iso2022_map_init(vte_iso2022_map_wide_at,
+						   G_N_ELEMENTS(vte_iso2022_map_wide_at));
 			break;
-		case 'B' + WIDE94_FUDGE:
-			ret = vte_iso2022_map_init(vte_iso2022_map_dollar_B,
-						   G_N_ELEMENTS(vte_iso2022_map_dollar_B));
+		case 'A' + WIDE_FUDGE:
+			ret = vte_iso2022_map_init(vte_iso2022_map_wide_A,
+						   G_N_ELEMENTS(vte_iso2022_map_wide_A));
+			break;
+		case 'B' + WIDE_FUDGE:
+			ret = vte_iso2022_map_init(vte_iso2022_map_wide_B,
+						   G_N_ELEMENTS(vte_iso2022_map_wide_B));
+			break;
+		case 'C' + WIDE_FUDGE:
+			ret = vte_iso2022_map_init(vte_iso2022_map_wide_C,
+						   G_N_ELEMENTS(vte_iso2022_map_wide_C));
+			break;
+		case 'D' + WIDE_FUDGE:
+			ret = vte_iso2022_map_init(vte_iso2022_map_wide_D,
+						   G_N_ELEMENTS(vte_iso2022_map_wide_D));
+			break;
+		case 'G' + WIDE_FUDGE:
+			ret = vte_iso2022_map_init(vte_iso2022_map_wide_G,
+						   G_N_ELEMENTS(vte_iso2022_map_wide_G));
+			break;
+		case 'H' + WIDE_FUDGE:
+			ret = vte_iso2022_map_init(vte_iso2022_map_wide_H,
+						   G_N_ELEMENTS(vte_iso2022_map_wide_H));
 			break;
 		default:
 			ret = NULL;
@@ -359,23 +409,27 @@ vte_iso2022_map_get(gunichar mapname)
 
 gssize
 vte_iso2022_substitute(struct vte_iso2022 *outside_state,
-		       gunichar *string, gssize length)
+		       gunichar *instring, gssize length,
+		       gunichar *outstring)
 {
-	int i, j;
+	int i, j, k, g;
 	struct vte_iso2022 state;
 	GTree *charmap = NULL;
 	gpointer ptr;
 	gunichar *buf, current_map = '\0', last_map = '\0', result;
+	unsigned int accumulator;
+	int chars_per_code = 1;
 
 	g_return_val_if_fail(outside_state != NULL, 0);
-	g_return_val_if_fail(string != NULL, 0);
+	g_return_val_if_fail(instring != NULL, 0);
+	g_return_val_if_fail(outstring != NULL, 0);
 	g_return_val_if_fail(length != 0, 0);
 
 	buf = g_malloc(sizeof(gunichar) * length);
 	state = *outside_state;
 
 	for (i = j = 0; i < length; i++)
-	switch (string[i]) {
+	switch (instring[i]) {
 	case '':
 		/* SO/LS1 */
 		state.current = 1;
@@ -403,87 +457,113 @@ vte_iso2022_substitute(struct vte_iso2022 *outside_state,
 			g_free(buf);
 			return -1;
 		}
-		switch (string[i + 1]) {
-		case '(':
-			/* Designate G0.  Must be another character here. */
+		switch (instring[i + 1]) {
+		case '(':	/* Designate G0/GL. */
+		case ')':	/* Designate G1/GR. */
+		case '*':	/* Designate G2. */
+		case '+':	/* Designate G3. */
+			g = -1;
+			if (instring[i + 1] == '(') {
+				g = 0;
+			} else
+			if (instring[i + 1] == ')') {
+				g = 1;
+			} else
+			if (instring[i + 2] == '*') {
+				g = 2;
+			} else
+			if (instring[i + 2] == '+') {
+				g = 3;
+			} else {
+				g_assert_not_reached();
+			}
+			/* Designate Gx.  Must be another character here. */
 			if (i + 2 >= length) {
 				g_free(buf);
 				return -1;
 			}
-			state.g[0] = string[i + 2];
+			/* We only handle maps we recognize. */
+			if (strchr(NARROW_MAPS, instring[i + 2]) == NULL) {
+				continue;
+			}
+			/* Set Gx. */
+			state.g[g] = instring[i + 2];
 			i += 2;
 #ifdef VTE_DEBUG
 			if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-				fprintf(stderr, "G0 set to `%c'.\n",
-					state.g[0]);
+				fprintf(stderr, "G%d set to `%c'.\n",
+					g, state.g[g]);
 			}
 #endif
 			continue;
 			break;
 		case '$':
-			/* Designate G0.  Must be another character here. */
+			/* Designate Gx.  Must be another character here. */
 			if (i + 2 >= length) {
 				g_free(buf);
 				return -1;
 			}
-			state.g[0] = string[i + 2] + WIDE94_FUDGE;
-			i += 2;
+			switch (instring[i + 2]) {
+			case '(':	/* Designate G0/GL wide. */
+			case ')':	/* Designate G1/GR wide. */
+			case '*':	/* Designate G2 wide. */
+			case '+':	/* Designate G3 wide. */
+				/* Need another character here. */
+				if (i + 3 >= length) {
+					g_free(buf);
+					return -1;
+				}
+				g = -1;
+				if (instring[i + 2] == '(') {
+					g = 0;
+				} else
+				if (instring[i + 2] == ')') {
+					g = 1;
+				} else
+				if (instring[i + 2] == '*') {
+					g = 2;
+				} else
+				if (instring[i + 2] == '+') {
+					g = 3;
+				} else {
+					g_assert_not_reached();
+				}
+				/* We only handle maps we recognize. */
+				if (strchr(WIDE_GMAPS, instring[i + 3]) == NULL) {
+					continue;
+				}
+				/* Set Gx. */
+				state.g[g] = instring[i + 3] + WIDE_FUDGE;
+				i += 3;
 #ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-				fprintf(stderr, "G0 set to wide `%c'.\n",
-					state.g[0] & 0xFF);
-			}
+				if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+					fprintf(stderr,
+						"G%d set to wide `%c'.\n",
+						g, state.g[g] - WIDE_FUDGE);
+				}
 #endif
-			continue;
-			break;
-		case ')':
-			/* Designate G1.  Must be another character here. */
-			if (i + 2 >= length) {
-				g_free(buf);
-				return -1;
-			}
-			state.g[1] = string[i + 2];
-			i += 2;
+				continue;
+				break;
+			default:
+				/* New designation for G0; we only handle maps
+				 * we recognize. */
+				if (strchr(WIDE_MAPS, instring[i + 2]) == NULL) {
+					continue;
+				}
+				/* Set G0. */
+				state.g[0] = instring[i + 2] + WIDE_FUDGE;
+				i += 2;
 #ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-				fprintf(stderr, "G1 set to `%c'.\n",
-					state.g[1]);
-			}
+				if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+					fprintf(stderr,
+						"G0 set to wide `%c'.\n",
+						state.g[0] - WIDE_FUDGE);
+				}
 #endif
-			continue;
+				continue;
+			}
 			break;
-		case '*':
-			/* Designate G2.  Must be another character here. */
-			if (i + 2 >= length) {
-				g_free(buf);
-				return -1;
-			}
-			state.g[2] = string[i + 2];
-			i += 2;
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-				fprintf(stderr, "G2 set to `%c'.\n",
-					state.g[2]);
-			}
-#endif
-			continue;
-			break;
-		case '+':
-			/* Designate G3.  Must be another character here. */
-			if (i + 2 >= length) {
-				g_free(buf);
-				return -1;
-			}
-			state.g[3] = string[i + 2];
-			i += 2;
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-				fprintf(stderr, "G3 set to `%c'.\n",
-					state.g[3]);
-			}
-#endif
-			continue;
-			break;
+
 		case 'n':
 			/* LS2 */
 			state.current = 2;
@@ -544,18 +624,53 @@ vte_iso2022_substitute(struct vte_iso2022 *outside_state,
 			g_assert(state.current < G_N_ELEMENTS(state.g));
 			current_map = state.g[state.current];
 		}
+		/* Build. */
+		if (current_map > WIDE_FUDGE) {
+			switch (current_map) {
+			case '@' + WIDE_FUDGE:
+			case 'A' + WIDE_FUDGE:
+			case 'B' + WIDE_FUDGE:
+			case 'C' + WIDE_FUDGE:
+			case 'D' + WIDE_FUDGE:
+				chars_per_code = 2;
+				break;
+			case 'G' + WIDE_FUDGE:
+			case 'H' + WIDE_FUDGE:
+				chars_per_code = 3;
+				break;
+			default:
+				chars_per_code = 1;
+				break;
+			}
+		} else {
+			chars_per_code = 1;
+		}
+		/* We need at least this many characters. */
+		if (i + chars_per_code > length) {
+			g_free(buf);
+			return -1;
+		}
+		/* Build up the character. */
+		accumulator = 0;
+		for (k = 0; k < chars_per_code; k++) {
+			accumulator = (accumulator << 8) | instring[i + k];
+		}
 		/* Load a new map if need be. */
 		if (current_map != last_map) {
 #ifdef VTE_DEBUG
 			if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
 				if (last_map == '\0') {
 					fprintf(stderr,
-						"Charmap set to `%c'.\n",
-						current_map);
+						"Charmap set to %s`%c'.\n",
+						(current_map > WIDE_FUDGE) ?
+						"wide " : "",
+						current_map % WIDE_FUDGE);
 				} else {
 					fprintf(stderr,
-						"Charmap changed to `%c'.\n",
-						current_map);
+						"Charmap changed to %s`%c'.\n",
+						(current_map > WIDE_FUDGE) ?
+						"wide " : "",
+						current_map % WIDE_FUDGE);
 				}
 			}
 #endif
@@ -564,18 +679,19 @@ vte_iso2022_substitute(struct vte_iso2022 *outside_state,
 		}
 		/* Translate. */
 		if (charmap == NULL) {
-			result = string[i];
+			result = accumulator;
 		} else {
-			ptr = GINT_TO_POINTER(string[i]);
+			ptr = GINT_TO_POINTER(accumulator);
 			result = GPOINTER_TO_INT(g_tree_lookup(charmap, ptr));
 			if (result == 0) {
-				result = string[i];
+				result = accumulator;
 #ifdef VTE_DEBUG
 			} else {
 				if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-					if (string[i] != result) {
-						fprintf(stderr, "%d -> 0x%x\n",
-							string[i], result);
+					if (accumulator != result) {
+						fprintf(stderr,
+							"0x%x -> 0x%x\n",
+							accumulator, result);
 					}
 				}
 #endif
@@ -583,17 +699,19 @@ vte_iso2022_substitute(struct vte_iso2022 *outside_state,
 		}
 		/* Store. */
 		buf[j++] = result;
+		accumulator = 0;
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_SUBSTITUTION) && 0) {
 			fprintf(stderr, "`%c' (%d)\n", result, result);
 		}
 #endif
+		i += (chars_per_code - 1);
 		break;
 	}
 
 	if (j > 0) {
 		g_assert(j <= length);
-		memcpy(string, buf, j * sizeof(gunichar));
+		memcpy(outstring, buf, j * sizeof(gunichar));
 	}
 	*outside_state = state;
 	g_free(buf);
@@ -654,6 +772,56 @@ main(int argc, char **argv)
 		vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
 	}
 
+	if (argc > 1) {
+		putc('', stdout);
+		switch(argv[1][0]) {
+		case '0':
+		case 'A':
+		case 'B':
+		case '4':
+		case 'C':
+		case '5':
+		case 'R':
+		case 'Q':
+		case 'K':
+		case 'Y':
+		case 'E':
+		case '6':
+		case 'Z':
+		case 'H':
+		case '7':
+		case '=':
+
+		case 'J':
+			putc('(', stdout);
+			putc(argv[1][0], stdout);
+			break;
+		case '-':
+			switch(argv[1][1]) {
+			case '@':
+			case 'B':
+				putc('$', stdout);
+				putc(argv[1][1], stdout);
+				break;
+			case 'A':
+			case 'C':
+			case 'D':
+			case 'G':
+			case 'H':
+				putc('$', stdout);
+				putc('(', stdout);
+				putc(argv[1][1], stdout);
+				break;
+			}
+			break;
+		}
+		if (argc > 2) {
+			printf("%s(B\n", argv[2]);
+		}
+		fflush(NULL);
+		return 0;
+	}
+
 	for (i = 0; i < G_N_ELEMENTS(samples); i++) {
 		length = strlen(samples[i]);
 		sample = g_malloc(sizeof(gunichar) * (length + 1));
@@ -669,7 +837,7 @@ main(int argc, char **argv)
 #endif
 		state = vte_iso2022_new();
 		debug_print(stderr, samples[i]);
-		length = vte_iso2022_substitute(state, sample, j);
+		length = vte_iso2022_substitute(state, sample, j, sample);
 		debug_printu(stderr, sample, length);
 		vte_iso2022_free(state);
 		g_free(sample);

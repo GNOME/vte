@@ -39,7 +39,7 @@ struct vte_termcap {
 	struct vte_termcap_entry {
 		char *comment;
 		char *string;
-		ssize_t length;
+		gssize length;
 		struct vte_termcap_entry *next;
 	} *entries;
 	struct vte_termcap_alias {
@@ -51,12 +51,12 @@ struct vte_termcap {
 };
 
 static char *
-nextline(FILE *fp, ssize_t *outlen)
+nextline(FILE *fp, gssize *outlen)
 {
 	char buf[LINE_MAX];
-	ssize_t len = 0;
+	gssize len = 0;
 	char *ret = NULL;
-	ssize_t retlen = 0;
+	gssize retlen = 0;
 	char *tmp = NULL;
 
 	if (!feof(fp)) do {
@@ -95,7 +95,7 @@ static char *
 nextline_with_continuation(FILE *fp)
 {
 	char *ret = NULL;
-	ssize_t rlen = 0, slen = 0;
+	gssize rlen = 0, slen = 0;
 	char *s, *tmp;
 	gboolean continuation = FALSE;
 	do {
@@ -130,7 +130,7 @@ vte_termcap_add_aliases(struct vte_termcap *termcap,
 			struct vte_termcap_entry *entry,
 			const char *aliases)
 {
-	ssize_t l;
+	gssize l;
 	struct vte_termcap_alias *alias = NULL;
 	const char *p;
 
@@ -163,12 +163,12 @@ vte_termcap_add_aliases(struct vte_termcap *termcap,
 }
 
 static void
-vte_termcap_add_entry(struct vte_termcap *termcap, const char *s, ssize_t length,
+vte_termcap_add_entry(struct vte_termcap *termcap, const char *s, gssize length,
 		      char *comment)
 {
 	struct vte_termcap_entry *entry = NULL;
 	char *p = NULL;
-	ssize_t l;
+	gssize l;
 
 	entry = g_malloc(sizeof(struct vte_termcap_entry));
 	if (entry != NULL) {
@@ -204,10 +204,10 @@ vte_termcap_add_entry(struct vte_termcap *termcap, const char *s, ssize_t length
 }
 
 static void
-vte_termcap_strip_with_pad(const char *termcap, char **stripped, ssize_t *len)
+vte_termcap_strip_with_pad(const char *termcap, char **stripped, gssize *len)
 {
 	char *ret;
-	ssize_t i, o, length;
+	gssize i, o, length;
 	length = strlen(termcap);
 
 	ret = g_malloc(length + 2);
@@ -307,7 +307,7 @@ vte_termcap_strip_with_pad(const char *termcap, char **stripped, ssize_t *len)
 }
 
 void
-vte_termcap_strip(const char *termcap, char **stripped, ssize_t *len)
+vte_termcap_strip(const char *termcap, char **stripped, gssize *len)
 {
 	vte_termcap_strip_with_pad(termcap, stripped, len);
 	while ((len > 0) && ((*stripped)[(*len) - 1] == ':')) {
@@ -331,7 +331,7 @@ vte_termcap_new(const char *filename)
 	fp = fopen(filename, "r");
 	if (fp != NULL) {
 		while ((s = nextline_with_continuation(fp)) != NULL) {
-			ssize_t slen;
+			gssize slen;
 			if ((s[0] != '#') && (isprint(s[0]))) {
 				if (ret == NULL) {
 					ret = g_malloc(sizeof(struct vte_termcap));
@@ -358,7 +358,7 @@ vte_termcap_new(const char *filename)
 					comment[slen + 1] = '\0';
 				} else {
 					char *tmp;
-					ssize_t clen;
+					gssize clen;
 					clen = strlen(comment);
 					tmp = g_malloc(slen + clen + 2);
 					if (tmp == NULL) {
@@ -407,13 +407,13 @@ vte_termcap_free(struct vte_termcap *termcap)
 }
 
 static const char *
-vte_termcap_find_l(struct vte_termcap *termcap, const char *tname, ssize_t len,
+vte_termcap_find_l(struct vte_termcap *termcap, const char *tname, gssize len,
 		   const char *cap)
 {
 	const char *ret;
 	struct vte_termcap_alias *alias;
 	char ttname[len + 1];
-	ssize_t clen;
+	gssize clen;
 
 	g_return_val_if_fail(termcap != NULL, "");
 	g_return_val_if_fail(tname != NULL, "");
@@ -431,7 +431,7 @@ vte_termcap_find_l(struct vte_termcap *termcap, const char *tname, ssize_t len,
 	if (alias != NULL) {
 		char *str = alias->entry->string;
 		const char *nextcap = "tc";
-		ssize_t len = alias->entry->length;
+		gssize len = alias->entry->length;
 
 		clen = strlen(cap);
 		ret = str;

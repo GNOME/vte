@@ -2,8 +2,16 @@ bin_PROGRAMS = vte
 pkginclude_HEADERS = caps.h pty.h ring.h termcap.h trie.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
 pkglib_PROGRAMS = interpret utf8echo utf8mode iso8859mode slowcat
-EXTRA_PROGRAMS = pty reaper ring table termcap trie
-EXTRA_DIST = marshal.list
+noinst_PROGRAMS = iso2022 pty reaper ring table termcap trie
+EXTRA_DIST = \
+	marshal.list \
+	unitable.CNS11643 \
+	unitable.GB12345 \
+	unitable.GB2312 \
+	unitable.JIS0201 \
+	unitable.JIS0208 \
+	unitable.JIS0212 \
+	unitable.KSC5601
 
 CFLAGS = @CFLAGS@ @XFT_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@
 
@@ -12,6 +20,8 @@ libvte_la_SOURCES = \
 	caps.h \
 	debug.c \
 	debug.h \
+	iso2022.c \
+	iso2022.h \
 	marshal.c \
 	marshal.h \
 	pty.c \
@@ -32,7 +42,7 @@ libvte_la_SOURCES = \
 	vteaccess.h
 
 libvte_la_LIBADD = @LIBS@ @XFT_LIBS@ @GTK_LIBS@ @X_LIBS@
-libvte_la_LDFLAGS = -version-info 5:0:3
+libvte_la_LDFLAGS = -version-info 6:0:4
 
 CLEANFILES = marshal.c marshal.h
 
@@ -50,12 +60,22 @@ interpret_SOURCES = \
 	caps.h \
 	debug.c \
 	debug.h \
+	iso2022.c \
+	iso2022.h \
 	table.c \
 	table.h \
 	termcap.c \
 	termcap.h \
 	interpret.c
 interpret_LDADD = @GLIB_LIBS@
+
+iso2022_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DISO2022_MAIN
+iso2022_SOURCES = \
+	debug.c \
+	debug.h \
+	iso2022.c \
+	iso2022.h
+iso2022_LDADD = @LIBS@ @GLIB_LIBS@
 
 utf8echo_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DUTF8ECHO_MAIN
 utf8echo_SOURCES = \

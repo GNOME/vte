@@ -31,12 +31,12 @@ void vte_table_free(struct vte_table *table);
 
 /* Add a string to the matching tree. */
 void vte_table_add(struct vte_table *table,
-		   const unsigned char *pattern, size_t length,
+		   const unsigned char *pattern, gssize length,
 		   const char *result, GQuark quark);
 
 /* Check if a string matches something in the tree. */
 const char *vte_table_match(struct vte_table *table,
-			    const gunichar *pattern, size_t length,
+			    const gunichar *pattern, gssize length,
 			    const char **res, const gunichar **consumed,
 			    GQuark *quark, GValueArray **array);
 /* Dump out the contents of a tree. */

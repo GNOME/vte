@@ -49,10 +49,10 @@ char *vte_termcap_find_string(struct vte_termcap *termcap, const char *tname,
  * be freed with g_free(). */
 char *vte_termcap_find_string_length(struct vte_termcap *termcap,
 				     const char *tname,
-				     const char *cap, ssize_t *length);
+				     const char *cap, gssize *length);
 
 /* Preprocess a termcap-style string, expanding any escape sequences. */
-void vte_termcap_strip(const char *termcap, char **stripped, ssize_t *len);
+void vte_termcap_strip(const char *termcap, char **stripped, gssize *len);
 
 G_END_DECLS
 

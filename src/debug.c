@@ -55,6 +55,9 @@ vte_debug_parse_string(const char *string)
 			} else
 			if (g_ascii_strcasecmp(flags[i], "SELECTION") == 0) {
 				vte_debug_flags |= VTE_DEBUG_SELECTION;
+			} else
+			if (g_ascii_strcasecmp(flags[i], "SUBSTITUTION") == 0) {
+				vte_debug_flags |= VTE_DEBUG_SUBSTITUTION;
 			}
 		}
 		g_strfreev(flags);

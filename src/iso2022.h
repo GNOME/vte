@@ -31,7 +31,8 @@ struct vte_iso2022 *vte_iso2022_new(void);
 struct vte_iso2022 *vte_iso2022_copy(struct vte_iso2022 *original);
 void vte_iso2022_free(struct vte_iso2022 *p);
 gssize vte_iso2022_substitute(struct vte_iso2022 *state,
-			      gunichar *string, gssize length);
+			      gunichar *instring, gssize length,
+			      gunichar *outstring);
 
 G_END_DECLS
 

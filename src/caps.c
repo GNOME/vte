@@ -376,11 +376,6 @@ struct vte_capability_string vte_xterm_capability_strings[] = {
 	{ESC "%%@", "iso8859-1-character-set", 0},
 	{ESC "%%G", "utf-8-character-set", 0},
 
-	{ESC "(%+\\0", "designate-g0-character-set", 0},
-	{ESC ")%+\\0", "designate-g1-character-set", 0},
-	{ESC "*%+\\0", "designate-g2-character-set", 0},
-	{ESC "+%+\\0", "designate-g3-character-set", 0},
-
 	{ESC "7", "save-cursor", 0},
 	{ESC "8", "restore-cursor", 0},
 	{ESC "=", "application-keypad", 0},
@@ -390,8 +385,8 @@ struct vte_capability_string vte_xterm_capability_strings[] = {
 	{ESC "F", "cursor-lower-left", 0},
 	{ESC "H", "tab-set", 0},
 	{ESC "M", "reverse-index", 0},
-	{ESC "N", "single-shift-g2", 0},
-	{ESC "O", "single-shift-g3", 0},
+	/* {ESC "N", "single-shift-g2", 0}, */
+	/* {ESC "O", "single-shift-g3", 0}, */
 	{ESC "P%s" ESC "\\", "device-control-string", 0},
 	{ESC "V", "start-of-guarded-area", 0},
 	{ESC "W", "end-of-guarded-area", 0},
@@ -400,11 +395,11 @@ struct vte_capability_string vte_xterm_capability_strings[] = {
 	{ESC "c", "full-reset", 0},
 	{ESC "l", "memory-lock", 0},
 	{ESC "m", "memory-unlock", 0},
-	{ESC "n", "invoke-g2-character-set", 0},
-	{ESC "o", "invoke-g3-character-set", 0},
-	{ESC "|", "invoke-g3-character-set-as-gr", 0},
-	{ESC "}", "invoke-g2-character-set-as-gr", 0},
-	{ESC "~", "invoke-g1-character-set-as-gr", 0},
+	/* {ESC "n", "invoke-g2-character-set", 0}, */
+	/* {ESC "o", "invoke-g3-character-set", 0}, */
+	/* {ESC "|", "invoke-g3-character-set-as-gr", 0}, */
+	/* {ESC "}", "invoke-g2-character-set-as-gr", 0}, */
+	/* {ESC "~", "invoke-g1-character-set-as-gr", 0}, */
 
 	/* APC stuff omitted. */
 

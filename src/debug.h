@@ -31,6 +31,7 @@ typedef enum {
 	VTE_DEBUG_EVENTS	= 1 << 4,
 	VTE_DEBUG_SIGNALS	= 1 << 5,
 	VTE_DEBUG_SELECTION	= 1 << 6,
+	VTE_DEBUG_SUBSTITUTION	= 1 << 7,
 } VteDebugFlags;
 
 void vte_debug_parse_string(const char *string);

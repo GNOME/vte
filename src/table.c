@@ -51,7 +51,7 @@ struct vte_table {
 	GQuark resultq;
 	const char *result;
 	unsigned char *original;
-	size_t original_length;
+	gssize original_length;
 	int increment;
 	struct vte_table *table[vte_table_max];
 };
@@ -65,7 +65,7 @@ enum vte_table_argtype {
 struct vte_table_arginfo {
 	enum vte_table_argtype type;
 	const gunichar *start;
-	ssize_t length;
+	gssize length;
 };
 
 /* Create an empty, one-level table. */
@@ -96,8 +96,8 @@ vte_table_free(struct vte_table *table)
 /* Add a string to the tree with the given increment value. */
 static void
 vte_table_addi(struct vte_table *table,
-	       const unsigned char *original, size_t original_length,
-	       const unsigned char *pattern, size_t length,
+	       const unsigned char *original, gssize original_length,
+	       const unsigned char *pattern, gssize length,
 	       const char *result, GQuark quark, int inc)
 {
 	int i;
@@ -236,7 +236,7 @@ vte_table_addi(struct vte_table *table,
 /* Add a string to the matching tree. */
 void
 vte_table_add(struct vte_table *table,
-	      const unsigned char *pattern, size_t length,
+	      const unsigned char *pattern, gssize length,
 	      const char *result, GQuark quark)
 {
 	unsigned char *pattern_copy, *p;
@@ -263,9 +263,9 @@ vte_table_add(struct vte_table *table,
 /* Match a string in a subtree. */
 static const char *
 vte_table_matchi(struct vte_table *table,
-		 const gunichar *pattern, size_t length,
+		 const gunichar *pattern, gssize length,
 		 const char **res, const gunichar **consumed, GQuark *quark,
-		 unsigned char **original, size_t *original_length,
+		 unsigned char **original, gssize *original_length,
 		 GList **params)
 {
 	int i = 0;
@@ -427,7 +427,7 @@ vte_table_extract_char(GValueArray **array,
 /* Check if a string matches something in the tree. */
 const char *
 vte_table_match(struct vte_table *table,
-		const gunichar *pattern, size_t length,
+		const gunichar *pattern, gssize length,
 		const char **res, const gunichar **consumed,
 		GQuark *quark, GValueArray **array)
 {
@@ -439,7 +439,7 @@ vte_table_match(struct vte_table *table,
 	GValue *value;
 	const char *ret = NULL;
 	unsigned char *original = NULL, *p = NULL;
-	size_t original_length;
+	gssize original_length;
 	GList *params = NULL, *tmp;
 	long increment = 0;
 	int i;
@@ -643,7 +643,7 @@ vte_table_print(struct vte_table *table)
 /* Determine sensible iconv target names for gunichar and iso-8859-1. */
 #define SAMPLE "ABCDEF"
 static char *
-vte_table_find_valid_encoding(char **list, size_t length, gboolean wide)
+vte_table_find_valid_encoding(char **list, gssize length, gboolean wide)
 {
 	gunichar wbuffer[8];
 	unsigned char nbuffer[8];

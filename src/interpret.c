@@ -32,6 +32,7 @@
 #include <glib-object.h>
 #include "caps.h"
 #include "debug.h"
+#include "iso2022.h"
 #include "termcap.h"
 #include "table.h"
 
@@ -42,10 +43,17 @@ main(int argc, char **argv)
 	struct vte_table *table = NULL;
 	struct vte_termcap *termcap = NULL;
 	GByteArray *array = NULL;
-	int i;
+	int i, j;
 	char c;
 	GValue *value;
 	FILE *infile = NULL;
+	struct vte_iso2022 *substitutions, *tmpsubst;
+	const char *tmp;
+	GQuark quark;
+	GValueArray *values;
+	GError *error = NULL;
+	gunichar *ubuf;
+	gssize ubuflen, substlen;
 
 	vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
 
@@ -99,15 +107,11 @@ main(int argc, char **argv)
 			      g_quark_from_static_string(code));
 	}
 
+	substitutions = vte_iso2022_new();
+
 	while (fread(&c, 1, 1, infile) == 1) {
 		g_byte_array_append(array, &c, 1);
 		for (i = 1; i <= array->len; i++) {
-			const char *tmp;
-			GQuark quark;
-			GValueArray *values;
-			GError *error = NULL;
-			gunichar *ubuf;
-			gsize ubuflen;
 			ubuf = (gunichar*) g_convert(array->data, i,
 						     vte_table_wide_encoding(),
 						     "UTF-8",
@@ -117,11 +121,34 @@ main(int argc, char **argv)
 					error->message ? error->message : "?");
 				g_clear_error(&error);
 			}
-			vte_table_match(table, ubuf, ubuflen / sizeof(gunichar),
+			tmpsubst = vte_iso2022_copy(substitutions);
+			substlen = vte_iso2022_substitute(tmpsubst,
+							  ubuf,
+							  ubuflen / sizeof(gunichar),
+							  ubuf);
+			if (substlen < 0) {
+				/* Incomplete state-change. */
+				vte_iso2022_free(tmpsubst);
+				g_free(ubuf);
+				continue;
+			}
+			if (substlen == 0) {
+				/* State change. (We gave it more than one
+				 * character, so that one's and all of the
+				 * others have been consumed.) */
+				vte_iso2022_free(substitutions);
+				substitutions = tmpsubst;
+				while (array->len > 0) {
+					g_byte_array_remove_index(array, 0);
+				}
+				g_free(ubuf);
+				break;
+			}
+
+			vte_table_match(table, ubuf, substlen,
 				        &tmp, NULL, &quark, &values);
 			if (tmp != NULL) {
 				if (strlen(tmp) > 0) {
-					int j;
 					printf("%s(", g_quark_to_string(quark));
 					for (j = 0; (values != NULL) && (j < values->n_values); j++) {
 						if (j > 0) {
@@ -148,14 +175,28 @@ main(int argc, char **argv)
 						g_byte_array_remove_index(array, 0);
 					}
 					printf(")\n");
+					g_free(ubuf);
 					break;
+				} else {
+					g_free(ubuf);
+					continue;
 				}
 			} else {
 				while (array->len > 0) {
-					printf("`%c'\n", array->data[0]);
 					g_byte_array_remove_index(array, 0);
 				}
+				for (j = 0; j < substlen; j++) {
+					if (ubuf[j] < 32) {
+						printf("`^%c'\n", ubuf[j]);
+					} else
+					if (ubuf[j] < 127) {
+						printf("`%c'\n", ubuf[j]);
+					} else {
+						printf("`0x%x'\n", ubuf[j]);
+					}
+				}
 			}
+			g_free(ubuf);
 		}
 	}
 
@@ -163,6 +204,7 @@ main(int argc, char **argv)
 		fclose(infile);
 	}
 
+	vte_iso2022_free(substitutions);
 	g_byte_array_free(array, TRUE);
 	vte_termcap_free(termcap);
 	vte_table_free(table);

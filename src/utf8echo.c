@@ -33,7 +33,7 @@ main(int argc, char **argv)
 	GIConv conv;
 	char buf[LINE_MAX];
 	wchar_t w;
-	char *inbuf, *outbuf;
+	char *inbuf, *outbuf, *p;
 	size_t insize, outsize;
 
 	if (argc < 2) {
@@ -48,7 +48,7 @@ main(int argc, char **argv)
 
 	printf(ESC "%%G");
 	for (i = 1; i < argc; i++) {
-		w = (wchar_t)atol(argv[i]);
+		w = (wchar_t)strtol(argv[i], &p, 0);
 		inbuf = (char*)&w;
 		insize = sizeof(w);
 		memset(buf, 0, sizeof(buf));
