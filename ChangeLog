@@ -1,4 +1,8 @@
 2003-01-17 nalin
+	* src/vte.c(vte_terminal_set_size): emit a "text-modified" signal,
+	because what you see changes when you resize the terminal.
+
+2003-01-17 nalin
 	* src/vte.c(vte_terminal_paint): don't draw cursors below or above the
 	screen, correctly compute the clear area when drawing the cursor,
 	if we're ignoring padding in general because we're monospaced, also
