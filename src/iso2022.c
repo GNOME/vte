@@ -232,9 +232,9 @@ static const struct _vte_iso2022_map _vte_iso2022_map_wide_A[] = {
 static const struct _vte_iso2022_map _vte_iso2022_map_wide_B[] = {
 #include "unitable.JIS0208"
 };
-/* Korean.  KSC 5601, per RFC 1557. */
+/* Korean.  KS X 1001, per RFC 1557. */
 static const struct _vte_iso2022_map _vte_iso2022_map_wide_C[] = {
-#include "unitable.KSC5601"
+#include "unitable.KSX1001"
 };
 /* Japanese.  JIS X 0212-1990, per RFC 2237. */
 static const struct _vte_iso2022_map _vte_iso2022_map_wide_D[] = {

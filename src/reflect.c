@@ -181,6 +181,7 @@ update_contents(AtkObject *obj, GtkWidget *widget)
 {
 	int caret, i;
 	GString *s;
+
 	caret = atk_text_get_caret_offset(ATK_TEXT(obj));
 	s = g_string_new("");
 	for (i = 0; i < contents->len; i++) {
@@ -217,9 +218,9 @@ text_changed_insert(AtkObject *obj, gint offset, gint length, gpointer data)
 		return;
 	}
 
-	for (p = inserted, i = 0;
-	     (i < length);
-	     p = g_utf8_next_char(p)) {
+	p = inserted;
+	i = 0;
+	while (i < length) {
 		c = g_utf8_get_char(p);
 		if (offset + i >= contents->len) {
 			g_array_append_val(contents, c);
@@ -227,13 +228,16 @@ text_changed_insert(AtkObject *obj, gint offset, gint length, gpointer data)
 			g_array_insert_val(contents, offset + i, c);
 		}
 		i++;
+		p = g_utf8_next_char(p);
 	}
 
 #ifdef VTE_DEBUG
 	if ((getenv("REFLECT_VERBOSE") != NULL) &&
 	    (atol(getenv("REFLECT_VERBOSE")) != 0)) {
-		fprintf(stderr, "Inserted %d chars ('%.*s') at %d.\n",
+		fprintf(stderr, "Inserted %d chars ('%.*s') at %d,",
 			length, (int)(p - inserted), inserted, offset);
+		fprintf(stderr, " buffer contains %d characters.\n",
+			contents->len);
 	}
 #endif
 
@@ -248,7 +252,10 @@ text_changed_delete(AtkObject *obj, gint offset, gint length, gpointer data)
 {
 	int i;
 	for (i = offset + length - 1; i >= offset; i--) {
-		contents = g_array_remove_index(contents, i);
+		if (i > contents->len - 1) {
+			g_warning("Invalid character %d was deleted.\n", i);
+		}
+		g_array_remove_index(contents, i);
 	}
 #ifdef VTE_DEBUG
 	if ((getenv("REFLECT_VERBOSE") != NULL) &&
@@ -333,8 +340,11 @@ terminal_adjustment(GtkWidget *terminal)
 int
 main(int argc, char **argv)
 {
-	GtkWidget *label, *terminal, *tophalf, *pane, *window, *scrollbar;
+	GtkWidget *label, *terminal, *tophalf, *pane, *window, *scrollbar, *sw;
 	AtkObject *obj;
+	char *text, *p;
+	gunichar c;
+	gint count;
 
 	gtk_init(&argc, &argv);
 
@@ -365,11 +375,15 @@ main(int argc, char **argv)
 	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_LEFT);
 	gtk_misc_set_alignment(GTK_MISC(label), 0, 0);
 
+	sw = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(sw), label);
+	gtk_widget_show(label);
+
 	pane = gtk_vpaned_new();
 	gtk_paned_pack1(GTK_PANED(pane), tophalf, TRUE, FALSE);
-	gtk_paned_pack2(GTK_PANED(pane), label, TRUE, FALSE);
+	gtk_paned_pack2(GTK_PANED(pane), sw, TRUE, FALSE);
 	gtk_widget_show(tophalf);
-	gtk_widget_show(label);
+	gtk_widget_show(sw);
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	g_signal_connect(G_OBJECT(window), "delete_event",
@@ -386,14 +400,30 @@ main(int argc, char **argv)
 	g_signal_connect(G_OBJECT(obj), "text-caret-moved",
 			 G_CALLBACK(text_caret_moved), label);
 
+	count = atk_text_get_character_count(ATK_TEXT(obj));
+	if (count > 0) {
+		text = atk_text_get_text(ATK_TEXT(obj), 0, count);
+		if (text != NULL) {
+			for (p = text;
+			     contents->len < count;
+			     p = g_utf8_next_char(p)) {
+				c = g_utf8_get_char(p);
+				g_array_append_val(contents, c);
+			}
+			g_free(text);
+		}
+	}
 	terminal_shell(terminal);
 
 	gtk_window_set_default_size(GTK_WINDOW(window), 600, 450);
 	gtk_widget_show(window);
 
+	update_contents(obj, terminal);
+
 	gtk_main();
 
 	g_array_free(contents, TRUE);
+	contents = NULL;
 
 	return 0;
 }

@@ -1,3 +1,12 @@
+2003-04-21 nalin
+	* src/mkunitables.sh: pull up from HEAD.
+	* src/unitable.KSX1001: pull up from HEAD.
+	* src/unitable.KSC5601: remove.
+	* src/Makefile.am: include unitable.KSX1001 in tarballs.
+	* src/vte.c: merge in selection changes from HEAD to fix triple-click.
+	* src/reflect.c: merge in changes from HEAD to set up the initial
+	contents right.
+
 2003-04-20  Taneem Ahmed  <taneem@eyetap.org>
 
 	* configure.in:  Added "bn" to ALL_LINGUAS.
