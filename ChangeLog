@@ -1,4 +1,8 @@
 2003-04-21 nalin
+	* src/vte.c(vte_terminal_io_read): add a couple of assertions here
+	just to be sure (#108066).
+
+2003-04-21 nalin
 	* src/pty.c(_vte_pty_ptsname): don't depend on PATH_MAX being
 	available and correct (#109805).
 	* src/vte.c(vte_terminal_set_termcap): don't depend on PATH_MAX being

@@ -7109,6 +7109,8 @@ vte_terminal_io_read(GIOChannel *channel,
 			/* Read half of the chunk size. */
 			bcount = sizeof(buf) / 2;
 		}
+		g_assert(bcount >= 0);
+		g_assert(bcount <= sizeof(buf));
 		bcount = read(fd, buf, MAX(bcount, sizeof(buf) / 2));
 	}
 
