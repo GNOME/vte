@@ -1,4 +1,7 @@
 2002-08-10 nalin
+	* src/vte.c: change Xft-related defaults match whichever version of GTK
+	we were built with (hopefully).
+2002-08-10 nalin
 	* src/vte.c: don't bother with cursor blinking or freezing/thawing
 	updates when the widget isn't realized.  Patch from Gustavo Giráldez.
 2002-08-08 nalin

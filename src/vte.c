@@ -9349,6 +9349,12 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->ftfont = NULL;
 	pvt->use_xft = TRUE;
 	pvt->use_xft2 = TRUE;
+#ifndef HAVE_XFT2
+	/* GTK+ with Xft1-only = 2.0.  If we have fontconfig, it's either a
+	 * devel version with fontconfig support or 2.2 or later. */
+	pvt->use_xft = FALSE;
+	pvt->use_xft2 = FALSE;
+#endif
 #endif
 	pvt->use_pango = TRUE;
 
