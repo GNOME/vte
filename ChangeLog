@@ -1,4 +1,13 @@
 2003-02-14 nalin
+	* src/vte.c(vte_terminal_sequence_handler_bt): fix to move back to the
+	leftmost column if there are no previous tabstops, exercised by
+	make menuconfig.
+
+2003-02-14 nalin
+	* src/vte.c(vte_terminal_background_update): handle pixbufs with
+	n_channels != 3.
+
+2003-02-14 nalin
 	* src/interpret.c: handle width masks now that we're encoding widths for
 	all characters.
 

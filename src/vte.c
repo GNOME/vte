@@ -2181,13 +2181,12 @@ vte_sequence_handler_bt(VteTerminal *terminal,
 
 	if (terminal->pvt->tabstops != NULL) {
 		/* Find the next tabstop. */
-		for (newcol += (terminal->column_count - 1);
-		     newcol >= 0;
-		     newcol--) {
+		while (newcol >= 0) {
 			if (vte_terminal_get_tabstop(terminal,
 						     newcol % terminal->column_count)) {
 				break;
 			}
+			newcol--;
 		}
 	}
 
@@ -6335,12 +6334,11 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 				"for 0x%04x.\n", c);
 		}
 #endif
-		/* See if there's a mapping for it, and if there is, force
-		 * the result's width to 1. */
+		/* See if there's a mapping for it. */
 		cell.c = _vte_iso2022_substitute_single('0', c);
 		if (cell.c != c) {
+			forced_width = _vte_iso2022_get_encoded_width(c);
 			c = cell.c & ~(VTE_ISO2022_ENCODED_WIDTH_MASK);
-			forced_width = 1;
 		}
 	}
 
@@ -7080,6 +7078,7 @@ vte_terminal_process_incoming(gpointer data)
 		if (match == NULL) {
 			c = wbuf[start];
 #ifdef VTE_DEBUG
+			c = c & ~VTE_ISO2022_ENCODED_WIDTH_MASK;
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
 				if (c > 255) {
 					fprintf(stderr, "%ld\n", (long) c);
@@ -7097,6 +7096,7 @@ vte_terminal_process_incoming(gpointer data)
 					}
 				}
 			}
+			c = wbuf[start];
 #endif
 			if (c != 0) {
 				/* Insert the character. */
@@ -15004,7 +15004,8 @@ vte_terminal_background_update(gpointer data)
 			guchar *pixels, desat_lut_r[256],
 			       desat_lut_g[256], desat_lut_b[256];
 			GdkColor bgcolor;
-			gulong pixel_count, sat, satr, satg, satb, stride;
+			gulong pixel_count, sat, satr, satg, satb, stride,
+			       nchannels;
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_MISC)) {
 				fprintf(stderr, "Desaturating background.\n");
@@ -15031,8 +15032,9 @@ vte_terminal_background_update(gpointer data)
 			pixels = gdk_pixbuf_get_pixels(pixbuf);
 			stride = gdk_pixbuf_get_rowstride(pixbuf);
 			pixel_count = gdk_pixbuf_get_height(pixbuf) * stride;
+			nchannels = gdk_pixbuf_get_n_channels(pixbuf);
 			for (i = 0; i < pixel_count; i++) {
-				switch ((i % stride) % 3) {
+				switch ((i % stride) % nchannels) {
 				case 0:
 					pixels[i] = desat_lut_r[pixels[i]];
 					break;
@@ -15041,6 +15043,8 @@ vte_terminal_background_update(gpointer data)
 					break;
 				case 2:
 					pixels[i] = desat_lut_b[pixels[i]];
+					break;
+				default:
 					break;
 				}
 			}
