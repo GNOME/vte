@@ -262,6 +262,9 @@ struct _VteTerminalPrivate {
 	char *match_contents;
 	GArray *match_attributes;
 	GArray *match_regexes;
+	struct {
+		long row, column;
+	} match_start, match_end;
 };
 
 /* A function which can handle a terminal control sequence. */
@@ -313,6 +316,7 @@ static gboolean vte_terminal_io_write(GIOChannel *channel,
 static GdkFilterReturn vte_terminal_filter_property_changes(GdkXEvent *xevent,
 							    GdkEvent *event,
 							    gpointer data);
+static void vte_terminal_match_hilite_clear(VteTerminal *terminal);
 static void vte_terminal_queue_background_update(VteTerminal *terminal);
 
 /* Free a no-longer-used row data array. */
@@ -691,7 +695,9 @@ vte_terminal_match_contents_clear(VteTerminal *terminal)
 	}
 	while (terminal->pvt->match_attributes != NULL) {
 		g_array_free(terminal->pvt->match_attributes, FALSE);
+		terminal->pvt->match_attributes = NULL;
 	}
+	vte_terminal_match_hilite_clear(terminal);
 }
 
 /* Refresh the cache of the screen contents we keep. */
@@ -729,6 +735,7 @@ vte_terminal_match_clear_all(VteTerminal *terminal)
 		g_array_remove_index(terminal->pvt->match_regexes,
 				     terminal->pvt->match_regexes->len - 1);
 	}
+	vte_terminal_match_hilite_clear(terminal);
 }
 
 /* Add a matching expression, returning the tag the widget assigns to that
@@ -739,7 +746,8 @@ vte_terminal_match_add(VteTerminal *terminal, const char *match)
 	struct vte_match_regex regex;
 	int ret;
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-	ret = regcomp(&regex.reg, match, 0);
+	memset(&regex, 0, sizeof(regex));
+	ret = regcomp(&regex.reg, match, REG_EXTENDED);
 	if (ret != 0) {
 		g_warning("Error compiling regular expression \"%s\".", match);
 		return -1;
@@ -752,17 +760,29 @@ vte_terminal_match_add(VteTerminal *terminal, const char *match)
 /* Check if a given cell on the screen contains part of a matched string.  If
  * it does, return the string, and store the match tag in the optional tag
  * argument. */
-char *
-vte_terminal_match_check(VteTerminal *terminal, long column, long row, int *tag)
+static char *
+vte_terminal_match_check_int(VteTerminal *terminal, long column,
+			     long row, int *tag, int *start, int *end)
 {
 	int i, j, ret, offset;
 	struct vte_match_regex *regex = NULL;
 	struct vte_char_attributes *attr = NULL;
+	size_t coffset;
 	regmatch_t matches[256];
 	if (tag != NULL) {
 		*tag = -1;
 	}
+	if (start != NULL) {
+		*start = 0;
+	}
+	if (end != NULL) {
+		*end = 0;
+	}
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+	if (terminal->pvt->match_contents == NULL) {
+		vte_terminal_match_contents_refresh(terminal);
+	}
+	/* Map the pointer position to a portion of the string. */
 	for (offset = 0;
 	     offset < terminal->pvt->match_attributes->len;
 	     offset++) {
@@ -770,39 +790,104 @@ vte_terminal_match_check(VteTerminal *terminal, long column, long row, int *tag)
 				      struct vte_char_attributes,
 				      offset);
 		if (attr != NULL) {
-			if ((row >= attr->row) && (column >= attr->column)) {
+			if ((row == attr->row) && (column == attr->column)) {
 				break;
 			}
 		}
 	}
+	/* If the pointer isn't on a matchable character, bug out. */
+	if (offset >= terminal->pvt->match_attributes->len) {
+		return NULL;
+	}
+	/* If the pointer is on a newline, bug out. */
+	if (g_ascii_isspace(terminal->pvt->match_contents[offset])) {
+		return NULL;
+	}
+
+	/* Now iterate over each regex we need to match against. */
 	for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
 		regex = &g_array_index(terminal->pvt->match_regexes,
 				       struct vte_match_regex,
 				       i);
 		if (regex != NULL) {
+			/* We'll only match the first item in the buffer which
+			 * matches, so we'll have to skip each match until we
+			 * stop getting matches. */
+			coffset = 0;
 			ret = regexec(&regex->reg,
-				      terminal->pvt->match_contents,
+				      terminal->pvt->match_contents + coffset,
 				      G_N_ELEMENTS(matches),
 				      matches,
 				      0);
-			if (ret == 0) {
+			while (ret == 0) {
 				for (j = 0;
 				     j < G_N_ELEMENTS(matches) &&
 				     (matches[j].rm_so != -1);
 				     j++) {
-					if ((offset >= matches[j].rm_so) &&
-					    (offset <= matches[j].rm_eo)) {
+					/* The offsets should be "sane". */
+					g_assert(matches[j].rm_so + coffset < terminal->pvt->match_attributes->len);
+					g_assert(matches[j].rm_eo + coffset < terminal->pvt->match_attributes->len);
+#ifdef VTE_DEBUG
+					if (vte_debug_on(VTE_DEBUG_MISC)) {
+						char *match;
+						struct vte_char_attributes *sattr, *eattr;
+						match = g_strndup(terminal->pvt->match_contents + matches[j].rm_so + coffset,
+								  matches[j].rm_eo - matches[j].rm_so);
+						sattr = &g_array_index(terminal->pvt->match_attributes,
+								       struct vte_char_attributes,
+								       matches[j].rm_so + coffset);
+						eattr = &g_array_index(terminal->pvt->match_attributes,
+								       struct vte_char_attributes,
+								       matches[j].rm_eo + coffset);
+						fprintf(stderr, "Match %d `%s' from %d(%ld,%ld) to %d(%ld,%ld) (%d).\n",
+							j, match,
+							matches[j].rm_so + coffset,
+							sattr->column,
+							sattr->row,
+							matches[j].rm_eo + coffset,
+							eattr->column,
+							eattr->row,
+							offset);
+						g_free(match);
+
+					}
+#endif
+					/* If the pointer is in this substring,
+					 * then we're done. */
+					if ((offset >= matches[j].rm_so + coffset) &&
+					    (offset <= matches[j].rm_eo + coffset)) {
 						if (tag != NULL) {
 							*tag = regex->tag;
-							return g_strndup(terminal->pvt->match_contents + matches[j].rm_so,
-									 matches[j].rm_eo - matches[j].rm_so);
 						}
+						if (start != NULL) {
+							*start = matches[j].rm_so + coffset;
+						}
+						if (end != NULL) {
+							*end = matches[j].rm_eo + coffset;
+						}
+						return g_strndup(terminal->pvt->match_contents + matches[j].rm_so + coffset,
+								 matches[j].rm_eo - matches[j].rm_so);
 					}
 				}
+				/* Skip past the beginning of this match to
+				 * look for more. */
+				coffset += (matches[0].rm_so + 1);
+				ret = regexec(&regex->reg,
+					      terminal->pvt->match_contents + coffset,
+					      G_N_ELEMENTS(matches),
+					      matches,
+					      0);
 			}
 		}
 	}
 	return NULL;
+}
+
+char *
+vte_terminal_match_check(VteTerminal *terminal, long column, long row, int *tag)
+{
+	return vte_terminal_match_check_int(terminal, column, row, tag,
+					    NULL, NULL);
 }
 
 /* Update the adjustment field of the widget.  This function should be called
@@ -1639,10 +1724,10 @@ vte_terminal_ensure_cursor(VteTerminal *terminal)
 		cell.columns = wcwidth(cell.c);
 		/* Add enough cells at the end to make sure we have one for
 		 * this column. */
-		while (array->len <= screen->cursor_current.col) {
+		while ((array->len <= screen->cursor_current.col) &&
+		       (array->len < terminal->column_count)) {
 			array = g_array_append_val(array, cell);
 		}
-		array = g_array_append_val(array, cell);
 	}
 }
 
@@ -4644,6 +4729,7 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 		 * both where the cursor was moved from. */
 		vte_invalidate_cursor_once(terminal);
 		screen->cursor_current.col++;
+
 		/* Make sure we're not getting random stuff past the right
 		 * edge of the screen at this point, because the user can't
 		 * see it. */
@@ -4764,7 +4850,9 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 	colorterm = g_strdup("COLORTERM=" PACKAGE);
 	env_add[0] = term;
 #ifdef VTE_DEBUG
-	env_add[1] = colorterm;
+	if (getenv("COLORTERM") == NULL) {
+		env_add[1] = colorterm;
+	}
 #endif
 	env_add[2] = NULL;
 	terminal->pvt->pty_master = vte_pty_open(&pid,
@@ -6346,6 +6434,100 @@ vte_terminal_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	vte_terminal_feed_child(terminal, buf, strlen(buf));
 }
 
+/* Clear all match hilites. */
+static void
+vte_terminal_match_hilite_clear(VteTerminal *terminal)
+{
+	long srow, scolumn, erow, ecolumn;
+	srow = terminal->pvt->match_start.row;
+	scolumn = terminal->pvt->match_start.column;
+	erow = terminal->pvt->match_end.row;
+	ecolumn = terminal->pvt->match_end.column;
+	if ((srow != erow) || (scolumn != ecolumn)) {
+		terminal->pvt->match_start.row = 0;
+		terminal->pvt->match_start.column = 0;
+		terminal->pvt->match_end.row = 0;
+		terminal->pvt->match_end.column = 0;
+		vte_invalidate_cells(terminal,
+				     0,
+				     terminal->column_count,
+				     terminal->pvt->screen->scroll_delta + srow,
+				     erow - srow + 1);
+	}
+}
+
+/* Update the hilited text if the pointer has moved to a new character cell. */
+static void
+vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
+{
+	int start, end;
+	long rows, rowe;
+	char *match;
+	struct vte_char_attributes *attr;
+	/* If the pointer hasn't moved to another character cell, then we
+	 * need do nothing. */
+	if ((x / terminal->char_width ==
+	     terminal->pvt->mouse_last_x / terminal->char_width) &&
+	    (y / terminal->char_height ==
+	     terminal->pvt->mouse_last_y / terminal->char_height)) {
+		return;
+	}
+	/* Check for matches. */
+	match = vte_terminal_match_check_int(terminal,
+					     x / terminal->char_width,
+					     y / terminal->char_height,
+					     NULL,
+					     &start,
+					     &end);
+	/* If there are no matches, repaint what we had matched before. */
+	if (match == NULL) {
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
+			fprintf(stderr, "No matches.\n");
+		}
+#endif
+		vte_terminal_match_hilite_clear(terminal);
+	} else {
+		/* Save the old hilite area. */
+		rows = terminal->pvt->match_start.row;
+		rowe = terminal->pvt->match_end.row;
+		/* Read the new locations. */
+		attr = &g_array_index(terminal->pvt->match_attributes,
+				      struct vte_char_attributes,
+				      start);
+		terminal->pvt->match_start.row = attr->row;
+		terminal->pvt->match_start.column = attr->column;
+		attr = &g_array_index(terminal->pvt->match_attributes,
+				      struct vte_char_attributes,
+				      end);
+		terminal->pvt->match_end.row = attr->row;
+		terminal->pvt->match_end.column = attr->column;
+		/* Repaint the newly-hilited area. */
+		vte_invalidate_cells(terminal,
+				     0,
+				     terminal->column_count,
+				     terminal->pvt->screen->scroll_delta +
+				     terminal->pvt->match_start.row,
+				     terminal->pvt->match_end.row -
+				     terminal->pvt->match_start.row + 1);
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
+			fprintf(stderr, "Matched (%ld,%ld) to (%ld,%ld).\n",
+				terminal->pvt->match_start.column,
+				terminal->pvt->match_start.row,
+				terminal->pvt->match_end.column,
+				terminal->pvt->match_end.row);
+		}
+#endif
+		/* Repaint what used to be hilited, if anything. */
+		vte_invalidate_cells(terminal,
+				     0,
+				     terminal->column_count,
+				     terminal->pvt->screen->scroll_delta + rows,
+				     rowe - rows + 1);
+	}
+}
+
 /* Read and handle a motion event. */
 static gint
 vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
@@ -6458,6 +6640,10 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 #endif
 	}
 
+	/* Hilite any matches. */
+	vte_terminal_match_hilite(terminal, event->x, event->y);
+
+	/* Save the pointer coordinates for later use. */
 	terminal->pvt->mouse_last_x = event->x;
 	terminal->pvt->mouse_last_y = event->y;
 
@@ -6646,8 +6832,22 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	if (event->type == GDK_BUTTON_PRESS) {
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
+			char *match;
+			int match_tag;
 			fprintf(stderr, "Button %d pressed at (%lf,%lf).\n",
 				event->button, event->x, event->y);
+			fprintf(stderr, "Character cell (%lf,%lf).\n",
+				event->x / terminal->char_width,
+				event->y / terminal->char_height);
+			match = vte_terminal_match_check(terminal,
+							 event->x / terminal->char_width,
+							 event->y / terminal->char_height,
+							 &match_tag);
+			if (match != NULL) {
+				fprintf(stderr, "Matched string %d = \"%s\".\n",
+					match_tag, match);
+				g_free(match);
+			}
 		}
 #endif
 		/* Read the modifiers. */
@@ -6749,6 +6949,10 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		}
 	}
 
+	/* Hilite any matches. */
+	vte_terminal_match_hilite(terminal, event->x, event->y);
+
+	/* Save the pointer state for later use. */
 	terminal->pvt->mouse_last_button = event->button;
 	terminal->pvt->mouse_last_x = event->x;
 	terminal->pvt->mouse_last_y = event->y;
@@ -6787,6 +6991,10 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 		}
 	}
 
+	/* Hilite any matches. */
+	vte_terminal_match_hilite(terminal, event->x, event->y);
+
+	/* Save the pointer state for later use. */
 	terminal->pvt->mouse_last_button = 0;
 	terminal->pvt->mouse_last_x = event->x;
 	terminal->pvt->mouse_last_y = event->y;
@@ -7805,7 +8013,8 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	/* Set up matching checks. */
 	pvt->match_contents = NULL;
 	pvt->match_attributes = NULL;
-	pvt->match_regexes = g_array_new(FALSE, TRUE, sizeof(regex_t));
+	pvt->match_regexes = g_array_new(FALSE, TRUE,
+					 sizeof(struct vte_match_regex));
 
 	/* Set various other settings. */
 	pvt->xterm_font_tweak = FALSE;
@@ -8993,8 +9202,32 @@ vte_terminal_draw_char(VteTerminal *terminal,
 
 	/* SFX */
 	if (cell->underline) {
+		XSetForeground(display, gc, terminal->pvt->palette[fore].pixel);
 		XDrawLine(display, drawable, gc,
-			  x, y + height - 1, x + width - 1, y + height - 1);
+			  x, y + height - 2, x + width - 1, y + height - 2);
+	}
+
+	/* Draw a hilite if this cell is hilited. */
+	if ((terminal->pvt->match_start.row != terminal->pvt->match_end.row) ||
+	    (terminal->pvt->match_start.column != terminal->pvt->match_end.column)) {
+		if (((row > terminal->pvt->match_start.row) &&
+		     (row < terminal->pvt->match_end.row)) ||
+		    ((row == terminal->pvt->match_start.row) &&
+		     (row == terminal->pvt->match_end.row) &&
+		     (col >= terminal->pvt->match_start.column) &&
+		     (col < terminal->pvt->match_end.column)) ||
+		    ((row == terminal->pvt->match_start.row) &&
+		     (row != terminal->pvt->match_end.row) &&
+		     (col >= terminal->pvt->match_start.column)) ||
+		    ((row == terminal->pvt->match_end.row) &&
+		     (row != terminal->pvt->match_start.row) &&
+		     (col < terminal->pvt->match_end.column))) {
+			XSetForeground(display, gc,
+				       terminal->pvt->palette[fore].pixel);
+			XDrawLine(display, drawable, gc,
+				  x, y + height - 1,
+				  x + width - 1, y + height - 1);
+		}
 	}
 }
 

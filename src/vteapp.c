@@ -135,6 +135,9 @@ main(int argc, char **argv)
 	vte_terminal_set_font_from_string(VTE_TERMINAL(widget),
 					  "fixed 12");
 
+	/* Match "abcdefg". */
+	vte_terminal_match_add(VTE_TERMINAL(widget), "abcdefg");
+
 	/* Launch a shell. */
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_MISC)) {
