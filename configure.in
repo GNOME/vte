@@ -126,8 +126,11 @@ if test x"$enableval" != xno ; then
 else
   BUILD_PYTHON=false
 fi],BUILD_PYTHON=true)
-AM_PATH_PYTHON
 AM_CHECK_PYTHON_HEADERS
+if test -z "$PYTHON" ; then
+	AC_MSG_RESULT([python not found, disabling bindings])
+	BUILD_PYTHON=false
+fi
 if $BUILD_PYTHON ; then
 	AC_MSG_CHECKING([for pygtk-2.0])
 	if pkg-config --exists pygtk-2.0 ; then

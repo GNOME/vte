@@ -1,4 +1,8 @@
 2003-01-09  nalin
+	* configure.in: disable the python bindings if we can't find python,
+	from Brian Cameron.
+
+2003-01-09  nalin
 	* src/vte.c: don't just skip reading data if selection is in progress --
 	we wedge if we do that (#101739).  Instead, temporarily stop reading
 	from the child pty.
