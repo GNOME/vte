@@ -1,0 +1,133 @@
+# GNOME yn Gymraeg.
+# Copyright (C) 2003 Free Software Foundation, Inc.
+# Dafydd Harries <daf@parnassus.ath.cx>, 2003
+# This file is distributed under the same license as the metacity package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte\n"
+"POT-Creation-Date: 2003-05-19 20:37+0100\n"
+"PO-Revision-Date: 2003-05-16 15:13+0100\n"
+"Last-Translator: Dafydd Harries <daf@parnassus.ath.cx>\n"
+"Language-Team: Welsh <gnome-cy@pengwyn.linux.org.uk>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/pty.c:311
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "Gwall wrth ycwannegu '%s' i'r amgylchedd, parhau."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:871
+#, c-format
+msgid "can not run %s"
+msgstr "methu gweithredu %s"
+
+#: src/reaper.c:107
+msgid "Error creating signal pipe."
+msgstr "Gwall wrth greu piben arwyddion."
+
+#: src/trie.c:411
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "Dyblyg (%s/%s)!"
+
+#: src/vte.c:1450
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Gwall wrth grynhoi mynegiad rheolaidd \"%s\"."
+
+#: src/vte.c:1972 src/vte.c:1981 src/vte.c:1993 src/vte.c:2011 src/vte.c:2017
+#: src/vte.c:2022
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Methu trosi nodau o %s i %s."
+
+#: src/vte.c:5559
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "Cafwyd dilyniant (bysellau?) annisgwyl `%s'."
+
+#: src/vte.c:6658
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "Dim trinydd ar gyfer y dilyniant rheoli `%s' wedi ei ddiffinio."
+
+#: src/vte.c:7444
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Gwall wrth ddarllen o blentyn: %s."
+
+#: src/vte.c:7628
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Gwall (%s) trosi data ar gyfer plentyn, gollwng."
+
+#: src/vte.c:10025
+#, c-format
+msgid "Using fontset \"%s\", which is missing these character sets: %s."
+msgstr ""
+
+#: src/vte.c:10666
+#, c-format
+msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
+msgstr ""
+
+#: src/vte.c:10678
+msgid "Failed to load default Xft font."
+msgstr ""
+
+#: src/vte.c:10806
+#, c-format
+msgid "Failed to load font set \"%s\", falling back to default font."
+msgstr ""
+
+#: src/vte.c:10818
+msgid "Failed to load default font, crashing or behaving abnormally."
+msgstr ""
+
+#: src/vte.c:11106
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "Gwall wrth ddarllen maint PTY, defnyddio rhagosodiadau: %s."
+
+#: src/vte.c:11142
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "Gwall wrth osod maint PTY: %s."
+
+#: src/vte.c:14047
+msgid "Error allocating draw, disabling Xft."
+msgstr ""
+
+#: src/vte.c:14055
+msgid "Error allocating context, disabling Pango."
+msgstr ""
+
+#: src/vte.c:14061
+msgid "Error allocating layout, disabling Pango."
+msgstr ""
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:15711
+msgid "g_iconv_open() failed setting word characters"
+msgstr "methodd _vte_conv_open() wrth osod nodau geiriau"
+
+#~ msgid "Attempt to set invalid NRC map '%c'."
+#~ msgstr "Cais gosod map NRC annilys '%c'."
+
+#~ msgid "Attempt to set invalid wide NRC map '%c'."
+#~ msgstr "Cais gosod map NRC llydan annilys '%c'."
+
+#~ msgid "Could not open console.\n"
+#~ msgstr "Methu agor consol.\n"
+
+#~ msgid "Unknown pixel mode %d.\n"
+#~ msgstr "Modd picseli anhysbys %d.\n"
+
+#~ msgid "Can not draw character U+%04x.\n"
+#~ msgstr "Methu arlunio'r nod U+%04x.\n"
