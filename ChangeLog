@@ -1,4 +1,7 @@
 2002-07-16  nalin
+	* configure.in: Set GETTEXT_PACKAGE correctly, noted by menthos.
+
+2002-07-16  nalin
 	* src/vte.c (vte_terminal_set_colors): Guess at an appropriate bold
 	version of the foreground color instead of hard-coding in a default.
 	* src/vte.c, src/vte.h (vte_terminal_set_color_bold): Add.

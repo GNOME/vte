@@ -104,7 +104,7 @@ AC_DEFINE_UNQUOTED(DATADIR,"$mydatadir",
 AC_DEFINE_UNQUOTED(LOCALEDIR,"$mydatadir/locale",
                    [The location where locale data can be found.])
 
-GETTEXT_PACKAGE="$PACKAGE"
+GETTEXT_PACKAGE=vte
 AC_SUBST(GETTEXT_PACKAGE)
 
 AM_CONFIG_HEADER(config.h)
