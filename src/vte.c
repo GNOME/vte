@@ -11852,6 +11852,12 @@ static void
 vte_terminal_unrealize(GtkWidget *widget)
 {
 	VteTerminal *terminal;
+	Display *display = NULL;
+	GdkVisual *gvisual = NULL;
+	Visual *visual = NULL;
+	GdkColormap *gcolormap = NULL;
+	Colormap colormap = 0;
+	int i = 0;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {

@@ -1,4 +1,7 @@
 2003-04-09 nalin
+	* src/vte.c: add back some variables which are used after all.
+
+2003-04-09 nalin
 	* configure.in: add specific checks for PangoX and glX.
 	* src/vteft2.c, src/vteft2.h: add drawing method using freetype and
 	GdkRGB.
