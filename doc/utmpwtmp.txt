@@ -1,0 +1,31 @@
+The utmp, wtmp, and lastlog files are used to track which users are logged in,
+but in slightly different ways.
+
+Summary:
+
+The utmp file contains at most one entry per terminal.
+The wtmp file has the same format as the utmp file, but has no limit on the
+number of entries it contains.
+The lastlog file contains at most one entry per UID.
+
+When a user logs in, the entry for the terminal is set in utmp.
+When a user logs in, an entry is appended to wtmp.
+When a user logs in, the entry for the user's UID is set in lastlog.
+
+When a user logs out, the entry for the terminal is cleared from utmp.
+This prevents the utmp file from growing beyond a fixed size.
+
+When a user logs out, an entry is appended to wtmp.  This provides a
+complete history of who logged in and out and when.
+
+When a user logs out, nothing happens to the lastlog.
+
+Conclusions:
+A terminal should always log to utmp, because it keeps track of who's using
+a given terminal device.
+A terminal should probably log to wtmp, because it correlates with utmp.
+A terminal should not log to lastlog, but a display manager should.
+
+References:
+http://netbsd.gw.com/cgi-bin/man-cgi?utmp++NetBSD-current
+http://www.netsys.com/sunmgr/1997-12/msg00155.html
