@@ -54,24 +54,10 @@ AC_DEFINE(PANGO_DISABLE_DEPRECATED,1,[Disable deprecated pango features.])
 
 AC_DEFINE(VTE_UTF8_BPC,6,[Maximum number of bytes used per UTF-8 character.])
 AC_DEFINE_UNQUOTED(PACKAGE,"$PACKAGE",[Package name.])
-AC_CHECK_FUNCS(getpt grantpt unlockpt ptsname ptsname_r)
+AC_CHECK_FUNCS(getpt grantpt unlockpt ptsname ptsname_r sendmsg)
 AC_CHECK_HEADERS(sys/un.h stropts.h termios.h wchar.h)
 
 AC_CHECK_LIB(socket, socket)
-
-AC_MSG_CHECKING([for Unix98 sendmsg])
-AC_TRY_LINK([
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-],[
-struct msghdr hdr;
-hdr.msg_control = NULL;
-hdr.msg_controllen = 0;
-sendmsg (0, &hdr, 0);
-],[
-AC_DEFINE(HAVE_SENDMSG)
-AC_MSG_RESULT(yes)],[AC_MSG_RESULT(no)])
 
 if test x$USE_MAINTAINER_MODE != x ; then
 	if test x$USE_MAINTAINER_MODE != xno ; then

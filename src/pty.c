@@ -570,15 +570,15 @@ _vte_pty_read_ptypair(int tunnel, int *parentfd, int *childfd)
 static int
 _vte_pty_pipe_open(int *a, int *b)
 {
-    int p[2], ret = -1;
+	int p[2], ret = -1;
 
-    ret = pipe(p);
+	ret = pipe(p);
 
-    if (ret == 0) {
+	if (ret == 0) {
 		*a = p[0];
 		*b = p[1];
-    }
-    return ret;
+	}
+	return ret;
 }
 
 #endif

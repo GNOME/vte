@@ -23,18 +23,4 @@ else
 	 AC_CHECK_LIB(pt, grantpt)
 fi
 
-AC_MSG_CHECKING([for Unix98 sendmsg])
-AC_TRY_LINK([
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-],[
-struct msghdr hdr;
-hdr.msg_control = NULL;
-hdr.msg_controllen = 0;
-sendmsg (0, &hdr, 0);
-],[
-AC_DEFINE(HAVE_SENDMSG)
-AC_MSG_RESULT(yes)],[AC_MSG_RESULT(no)])
-
 AC_OUTPUT(Makefile)

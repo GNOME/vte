@@ -1,3 +1,9 @@
+2002-09-11 nalin
+	* configure.in, gnome-pty-helper/cofnigure.in: Test for sendmsg() with
+	AC_CHECK_FUNCS instead of AC_TRY_COMPILE.
+	* acconfig.h: Removed.
+	* src/pty.c: Formatting.
+
 2002-09-11 Brian Cameron <Brian.Cameron@sun.com>
 	* configure.in: Added check for socket library and SendMsg
 	check. 
