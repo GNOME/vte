@@ -1286,18 +1286,31 @@ _vte_keymap_key_add_key_modifiers(guint keyval,
 	nnormal = g_malloc0(*normal_length + 4);
 	memcpy(nnormal, *normal, *normal_length);
 	if (strlen(nnormal) > 1) {
+		/* Get the offset of the last character. */
 		offset = strlen(nnormal) - 1;
 		if (g_ascii_isdigit(nnormal[offset - 1])) {
+			/* Stuff a semicolon and the modifier in right before
+			 * that last character. */
 			nnormal[offset + 2] = nnormal[offset];
 			nnormal[offset + 1] = modifier + '0';
 			nnormal[offset + 0] = ';';
 			*normal_length += 2;
 		} else {
+#if 0
+			/* Stuff a "1", a semicolon and the modifier in right
+			 * before that last character, matching Xterm. */
 			nnormal[offset + 3] = nnormal[offset];
 			nnormal[offset + 2] = modifier + '0';
 			nnormal[offset + 1] = ';';
 			nnormal[offset + 0] = '1';
 			*normal_length += 3;
+#else
+			/* Stuff the modifier in right before that last
+			 * character, matching what people expect. */
+			nnormal[offset + 1] = nnormal[offset];
+			nnormal[offset + 0] = modifier + '0';
+			*normal_length += 1;
+#endif
 		}
 		g_free(*normal);
 		*normal = nnormal;

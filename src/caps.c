@@ -513,6 +513,7 @@ struct _vte_capability_string _vte_xterm_capability_strings[] = {
 	{CSI "%m'{", "select-locator-events", 0},
 	{CSI "%d'|", "request-locator-position", 0},
 
+	/* Set text parameters, BEL-terminated versions. */
 	{OSC ";%s" BEL, "set-icon-and-window-title", 0}, /* undocumented default */
 	{OSC "0;%s" BEL, "set-icon-and-window-title", 0},
 	{OSC "1;%s" BEL, "set-icon-title", 0},
@@ -530,6 +531,25 @@ struct _vte_capability_string _vte_xterm_capability_strings[] = {
 	{OSC "46;%s" BEL, "change-logfile", 0},
 	{OSC "50;#%d" BEL, "change-font-number", 0},
 	{OSC "50;%s" BEL, "change-font-name", 0},
+
+	/* Set text parameters, ST-terminated versions. */
+	{OSC ";%s" ST, "set-icon-and-window-title", 0}, /* undocumented default */
+	{OSC "0;%s" ST, "set-icon-and-window-title", 0},
+	{OSC "1;%s" ST, "set-icon-title", 0},
+	{OSC "2;%s" ST, "set-window-title", 0},
+	{OSC "3;%s" ST, "set-xproperty", 0},
+	{OSC "4;%s" ST, "change-color", 0},
+	{OSC "10;%s" ST, "change-foreground-colors", 0},
+	{OSC "11;%s" ST, "change-background-colors", 0},
+	{OSC "12;%s" ST, "change-cursor-colors", 0},
+	{OSC "13;%s" ST, "change-mouse-cursor-foreground-colors", 0},
+	{OSC "14;%s" ST, "change-mouse-cursor-foreground-colors", 0},
+	{OSC "15;%s" ST, "change-tek-background-colors", 0},
+	{OSC "16;%s" ST, "change-tek-background-colors", 0},
+	{OSC "17;%s" ST, "change-highlight-colors", 0},
+	{OSC "46;%s" ST, "change-logfile", 0},
+	{OSC "50;#%d" ST, "change-font-number", 0},
+	{OSC "50;%s" ST, "change-font-name", 0},
 
 	{NULL, NULL, 0},
 };

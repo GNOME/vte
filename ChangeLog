@@ -1,3 +1,9 @@
+2003-01-22 nalin
+	* src/caps.c: accept OSC{number};{string}ST as set-text-parameters,
+	per XTerm docs (part of #104154).
+	* src/keymap.c: revert change to prepend "1;" to keys with
+	modifiers (#104139).
+
 2003-01-22  Christian Rose  <menthos@menthos.com>
 
 	* configure.in: Added "mn" to ALL_LINGUAS.
