@@ -284,38 +284,42 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 		/* We're finished updating this. */
 		priv->snapshot_contents_invalid = FALSE;
 	}
-	if (priv->snapshot_caret_invalid) {
-		vte_terminal_get_cursor_position(terminal, &ccol, &crow);
 
-		/* Get the offsets to the beginnings of each line. */
-		caret = -1;
-		for (i = 0; i < priv->snapshot_characters->len; i++) {
-			/* Get the attributes for the current cell. */
-			offset = g_array_index(priv->snapshot_characters,
-					       int, i);
-			attrs = g_array_index(priv->snapshot_attributes,
-					      struct vte_char_attributes,
-					      offset);
-			/* If this cell is "before" the cursor, move the
-			 * caret to be "here". */
-			if ((attrs.row < crow) ||
-			    ((attrs.row == crow) && (attrs.column < ccol))) {
-				caret = i + 1;
-			}
+	/* Update the caret position. */
+	vte_terminal_get_cursor_position(terminal, &ccol, &crow);
+
+	/* Get the offsets to the beginnings of each line. */
+	caret = -1;
+	for (i = 0; i < priv->snapshot_characters->len; i++) {
+		/* Get the attributes for the current cell. */
+		offset = g_array_index(priv->snapshot_characters,
+				       int, i);
+		attrs = g_array_index(priv->snapshot_attributes,
+				      struct vte_char_attributes,
+				      offset);
+		/* If this cell is "before" the cursor, move the
+		 * caret to be "here". */
+		if ((attrs.row < crow) ||
+		    ((attrs.row == crow) && (attrs.column < ccol))) {
+			caret = i + 1;
 		}
-		/* If no cells are before the caret, then the caret must be
-		 * at the end of the buffer. */
-		if (caret == -1) {
-			caret = priv->snapshot_characters->len;
-		}
-		/* The caret may have moved. */
-		if (caret != priv->snapshot_caret) {
-			priv->snapshot_caret = caret;
-			emit_text_caret_moved(G_OBJECT(text), caret);
-		}
-		/* Done updating the caret position, too. */
-		priv->snapshot_caret_invalid = FALSE;
 	}
+
+	/* If no cells are before the caret, then the caret must be
+	 * at the end of the buffer. */
+	if (caret == -1) {
+		caret = priv->snapshot_characters->len;
+	}
+
+	/* Notify observers if the caret moved. */
+	if (caret != priv->snapshot_caret) {
+		priv->snapshot_caret = caret;
+		emit_text_caret_moved(G_OBJECT(text), caret);
+	}
+
+	/* Done updating the caret position, whether we needed to or not. */
+	priv->snapshot_caret_invalid = FALSE;
+
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "Refreshed accessibility snapshot, "
@@ -751,6 +755,10 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 	}
 #endif
 	g_return_val_if_fail(priv->snapshot_text != NULL, g_strdup(""));
+	g_return_val_if_fail(priv->snapshot_characters != NULL, g_strdup(""));
+	if (offset == priv->snapshot_characters->len) {
+		return g_strdup("");
+	}
 	g_return_val_if_fail(offset < priv->snapshot_characters->len,
 			     g_strdup(""));
 	g_return_val_if_fail(offset >= 0, g_strdup(""));

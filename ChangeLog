@@ -1,3 +1,11 @@
+2003-02-10 nalin
+	* src/vteaccess.c(vte_terminal_accessible_update_private_data_if_needed):
+	always update the cursor position, in case text was added or removed
+	without the cursor itself moving.  Backport from HEAD.
+	* src/vteaccess.c(vte_terminal_accessible_get_text_somewhere): don't
+	emit a warning when the caller attempts to read the Nth character when
+	we have 0 to N-1, just return an empty string.  Backport from HEAD.
+
 2003-02-06  Christian Rose  <menthos@menthos.com>
 
 	* configure.in: Added "id" to ALL_LINGUAS.
