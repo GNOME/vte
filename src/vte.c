@@ -460,7 +460,7 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal)
 	/* The upper value is the number of rows which might be visible.  (Add
 	 * one to the cursor offset because it's zero-based.) */
 	next = vte_ring_delta(terminal->pvt->screen->row_data) +
-	       terminal->row_count;
+	       vte_ring_length(terminal->pvt->screen->row_data);
 	rows = MAX(next,
 		   terminal->pvt->screen->cursor_current.row + 1);
 	if (terminal->adjustment->upper != rows) {
@@ -619,7 +619,6 @@ vte_remove_line_int(VteTerminal *terminal, long position)
 	if (vte_ring_next(terminal->pvt->screen->row_data) > position) {
 		vte_ring_remove(terminal->pvt->screen->row_data, position, TRUE);
 	}
-	vte_terminal_adjust_adjustments(terminal);
 }
 
 /* Change the encoding used for the terminal to the given codeset, or the

@@ -2,7 +2,7 @@
 	* src/Makefile.am, src/ring.c, ring.h: add a ring buffer for storing
 	scrollback data.
 	* src/vte.c: use a ring buffer instead of a GArray to hold scrollback
-	rows.
+	rows.  Fix a bug in that.
 2002-04-26 00:49  nalin
 	* Makefile.am: run autogen before tagging so that the tag is always
 	correct.
