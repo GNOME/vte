@@ -152,6 +152,22 @@ static struct _vte_keymap_entry _vte_keymap_GDK_ISO_Left_Tab[] = {
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
+static struct _vte_keymap_entry _vte_keymap_GDK_slash[] = {
+	{cursor_all, keypad_all, fkey_all,
+	 VTE_META_MASK, _VTE_CAP_ESC "/", 2, NULL},
+	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\037", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, "/", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
+};
+
+static struct _vte_keymap_entry _vte_keymap_GDK_question[] = {
+	{cursor_all, keypad_all, fkey_all,
+	 VTE_META_MASK, _VTE_CAP_ESC "?", 2, NULL},
+	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\177", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, "?", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
+};
+
 /* Various numeric keys enter control characters. */
 static struct _vte_keymap_entry _vte_keymap_GDK_2[] = {
 	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\0", 1, NULL},
@@ -794,6 +810,8 @@ static struct _vte_keymap_group {
 	{GDK_Home,		_vte_keymap_GDK_Home},
 	{GDK_End,		_vte_keymap_GDK_End},
 	{GDK_Insert,		_vte_keymap_GDK_Insert},
+	{GDK_slash,		_vte_keymap_GDK_slash},
+	{GDK_question,		_vte_keymap_GDK_question},
 	/* GDK_Delete is all handled in code, due to funkiness. */
 	{GDK_Page_Up,		_vte_keymap_GDK_Page_Up},
 	{GDK_Page_Down,		_vte_keymap_GDK_Page_Down},
