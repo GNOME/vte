@@ -1,6 +1,10 @@
+2002-05-22 nalin
+	* src/vte.c: Fix hiliting of matched strings.
+
 2002-05-21 nalin
 	* src/vte.c: Filter key release events through input methods.  (Patch
 	from otaylor.)  When building with gcc, use -std=c99.
+
 2002-05-21 nalin
 	* autogen.sh, src/termcap.c, src/utf8echo.c, src/vte.c: Patch from
 	Hidetoshi Tajima to fix building on Solaris systems, remove use of

@@ -29,8 +29,6 @@
 - Currently doesn't handle children exiting quite right (if the child spawned
   a background process which keeps its stdio open, we don't close because we
   don't get an EOF).
-- Small dingus bug -- if the string is at the end of the buffer, too much
-  is hilited.
 - Sequence matching is greedy, so that C=AB matches C and not A and then B.
 - Bold doesn't work right if the default foreground color isn't gray.  Need
   to move to 20-color palette to fix this right.

@@ -130,7 +130,9 @@ struct _VteTerminalPrivate {
 	const char *shell;		/* shell we started */
 	int pty_master;			/* pty master descriptor */
 	GIOChannel *pty_input;		/* master input watch */
+	int pty_input_tag;
 	GIOChannel *pty_output;		/* master output watch */
+	int pty_output_tag;
 	pid_t pty_pid;			/* pid of child using pty slave */
 	const char *encoding;		/* the pty's encoding */
 	const char *gxencoding[4];	/* alternate encodings */
@@ -783,9 +785,9 @@ vte_terminal_match_check_int(VteTerminal *terminal, long column,
 		vte_terminal_match_contents_refresh(terminal);
 	}
 	/* Map the pointer position to a portion of the string. */
-	for (offset = 0;
-	     offset < terminal->pvt->match_attributes->len;
-	     offset++) {
+	for (offset = terminal->pvt->match_attributes->len - 1;
+	     offset >= 0;
+	     offset--) {
 		attr = &g_array_index(terminal->pvt->match_attributes,
 				      struct vte_char_attributes,
 				      offset);
@@ -795,8 +797,17 @@ vte_terminal_match_check_int(VteTerminal *terminal, long column,
 			}
 		}
 	}
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_EVENTS)) {
+		if (offset < 0) {
+			fprintf(stderr, "Cursor is not on a character.\n");
+		} else {
+			fprintf(stderr, "Cursor is on character %d.\n", offset);
+		}
+	}
+#endif
 	/* If the pointer isn't on a matchable character, bug out. */
-	if (offset >= terminal->pvt->match_attributes->len) {
+	if (offset < 0) {
 		return NULL;
 	}
 	/* If the pointer is on a newline, bug out. */
@@ -838,13 +849,13 @@ vte_terminal_match_check_int(VteTerminal *terminal, long column,
 								       matches[j].rm_so + coffset);
 						eattr = &g_array_index(terminal->pvt->match_attributes,
 								       struct vte_char_attributes,
-								       matches[j].rm_eo + coffset);
+								       matches[j].rm_eo + coffset - 1);
 						fprintf(stderr, "Match %d `%s' from %d(%ld,%ld) to %d(%ld,%ld) (%d).\n",
 							j, match,
 							matches[j].rm_so + coffset,
 							sattr->column,
 							sattr->row,
-							matches[j].rm_eo + coffset,
+							matches[j].rm_eo + coffset - 1,
 							eattr->column,
 							eattr->row,
 							offset);
@@ -855,7 +866,7 @@ vte_terminal_match_check_int(VteTerminal *terminal, long column,
 					/* If the pointer is in this substring,
 					 * then we're done. */
 					if ((offset >= matches[j].rm_so + coffset) &&
-					    (offset <= matches[j].rm_eo + coffset)) {
+					    (offset < matches[j].rm_eo + coffset)) {
 						if (tag != NULL) {
 							*tag = regex->tag;
 						}
@@ -863,7 +874,7 @@ vte_terminal_match_check_int(VteTerminal *terminal, long column,
 							*start = matches[j].rm_so + coffset;
 						}
 						if (end != NULL) {
-							*end = matches[j].rm_eo + coffset;
+							*end = matches[j].rm_eo + coffset - 1;
 						}
 						return g_strndup(terminal->pvt->match_contents + matches[j].rm_so + coffset,
 								 matches[j].rm_eo - matches[j].rm_so);
@@ -4879,12 +4890,13 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 		terminal->pvt->pty_input =
 			g_io_channel_unix_new(terminal->pvt->pty_master);
 		terminal->pvt->pty_output = NULL;
-		g_io_add_watch_full(terminal->pvt->pty_input,
-				    G_PRIORITY_LOW,
-				    G_IO_IN | G_IO_HUP,
-				    vte_terminal_io_read,
-				    terminal,
-				    NULL);
+		terminal->pvt->pty_input_tag =
+			g_io_add_watch_full(terminal->pvt->pty_input,
+					    G_PRIORITY_LOW,
+					    G_IO_IN | G_IO_HUP,
+					    vte_terminal_io_read,
+					    terminal,
+					    NULL);
 		g_io_channel_unref(terminal->pvt->pty_input);
 	}
 
@@ -4905,6 +4917,8 @@ vte_terminal_eof(GIOChannel *channel, gpointer data)
 	 * has already been dereferenced. */
 	if (channel == terminal->pvt->pty_input) {
 		terminal->pvt->pty_input = NULL;
+		g_source_remove(terminal->pvt->pty_input_tag);
+		terminal->pvt->pty_input_tag = -1;
 	}
 
 	/* Emit a signal that we read an EOF. */
@@ -5561,6 +5575,8 @@ vte_terminal_io_write(GIOChannel *channel,
 	if (terminal->pvt->n_outgoing == 0) {
 		if (channel == terminal->pvt->pty_output) {
 			terminal->pvt->pty_output = NULL;
+			g_source_remove(terminal->pvt->pty_output_tag);
+			terminal->pvt->pty_output_tag = -1;
 		}
 		leave_open = FALSE;
 	} else {
@@ -5617,12 +5633,13 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		if (terminal->pvt->pty_output == NULL) {
 			terminal->pvt->pty_output =
 				g_io_channel_unix_new(terminal->pvt->pty_master);
-			g_io_add_watch_full(terminal->pvt->pty_output,
-					    G_PRIORITY_HIGH,
-					    G_IO_OUT,
-					    vte_terminal_io_write,
-					    terminal,
-					    NULL);
+			terminal->pvt->pty_output_tag =
+				g_io_add_watch_full(terminal->pvt->pty_output,
+						    G_PRIORITY_HIGH,
+						    G_IO_OUT,
+						    vte_terminal_io_write,
+						    terminal,
+						    NULL);
 			g_io_channel_unref(terminal->pvt->pty_output);
 		}
 	}
@@ -6489,8 +6506,8 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 	}
 	/* Check for matches. */
 	match = vte_terminal_match_check_int(terminal,
-					     x / terminal->char_width,
-					     y / terminal->char_height,
+					     floor(x) / terminal->char_width,
+					     floor(y) / terminal->char_height,
 					     NULL,
 					     &start,
 					     &end);
@@ -6690,7 +6707,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 	}
 }
 
-/* Extract a view of the widget as if we were goint to copy it. */
+/* Extract a view of the widget as if we were going to copy it. */
 char *
 vte_terminal_get_text(VteTerminal *terminal,
 		      gboolean(*is_selected)(VteTerminal *, long, long),
@@ -8254,10 +8271,14 @@ vte_terminal_finalize(GObject *object)
 	if (terminal->pvt->pty_input != NULL) {
 		g_io_channel_unref(terminal->pvt->pty_input);
 		terminal->pvt->pty_input = NULL;
+		g_source_remove(terminal->pvt->pty_input_tag);
+		terminal->pvt->pty_input_tag = -1;
 	}
 	if (terminal->pvt->pty_output != NULL) {
 		g_io_channel_unref(terminal->pvt->pty_output);
 		terminal->pvt->pty_output = NULL;
+		g_source_remove(terminal->pvt->pty_output_tag);
+		terminal->pvt->pty_output_tag = -1;
 	}
 
 	/* Discard any pending data. */
@@ -9237,13 +9258,13 @@ vte_terminal_draw_char(VteTerminal *terminal,
 		    ((row == terminal->pvt->match_start.row) &&
 		     (row == terminal->pvt->match_end.row) &&
 		     (col >= terminal->pvt->match_start.column) &&
-		     (col < terminal->pvt->match_end.column)) ||
+		     (col <= terminal->pvt->match_end.column)) ||
 		    ((row == terminal->pvt->match_start.row) &&
 		     (row != terminal->pvt->match_end.row) &&
 		     (col >= terminal->pvt->match_start.column)) ||
 		    ((row == terminal->pvt->match_end.row) &&
 		     (row != terminal->pvt->match_start.row) &&
-		     (col < terminal->pvt->match_end.column))) {
+		     (col <= terminal->pvt->match_end.column))) {
 			XSetForeground(display, gc,
 				       terminal->pvt->palette[fore].pixel);
 			XDrawLine(display, drawable, gc,
