@@ -17,7 +17,6 @@ EXTRA_DIST = \
 	unitable.JIS0201 \
 	unitable.JIS0208 \
 	unitable.JIS0212 \
-	unitable.KSC5601 \
 	unitable.KSX1001
 
 AM_CFLAGS = @CFLAGS@ @VTE_CFLAGS@ @X_CFLAGS@

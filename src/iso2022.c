@@ -263,7 +263,8 @@ static const struct _vte_iso2022_map _vte_iso2022_map_wide_A[] = {
 static const struct _vte_iso2022_map _vte_iso2022_map_wide_B[] = {
 #include "unitable.JIS0208"
 };
-/* Korean.  KS X 1001, per Ken Lunde's CJKV Information Processing. */
+/* Korean.  KS X 1001 (formerly KS C 5601), per Ken Lunde's
+ * CJKV_Information_Processing. */
 static const struct _vte_iso2022_map _vte_iso2022_map_wide_C[] = {
 #include "unitable.KSX1001"
 };

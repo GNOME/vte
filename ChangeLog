@@ -1,4 +1,9 @@
 2003-04-21 nalin
+	* src/Makefile.am: drop unitable.KSC5601
+	* src/iso2022.c: fixup comment re: KS X 1001 (#107119).
+	* src/mkunitables.sh: add two characters from KS X 1001:1998 (#107119).
+
+2003-04-21 nalin
 	* src/vte.c(vte_terminal_eof): don't try to process incoming data if
 	there isn't any (#110946).
 	* src/vtexft.c: mark a warning message for translation.
@@ -17,10 +22,10 @@
 
 2003-04-17 nalin
 	* src/vteglyph.c(_vte_glyph_get): quiet a compiler warning.
-	* src/iso2022.c: use KSX-1001 instead of KSC-5601 for Korean, add maps
-	for CNS 11643 planes 3,4,5,6,7 (can't test them, but hey).  Rework
-	so that we get the data before it's passed to g_iconv(), and return
-	gunichars.
+	* src/iso2022.c: use KSX-1001 instead of KSC-5601 for Korean (#107119),
+	add maps for CNS 11643 planes 3,4,5,6,7 (can't test them, but hey).
+	Rework so that we get the data before it's passed to g_iconv(), and
+	return gunichars.
 	* src/interpret.c: adapt to changes in the iso2022 interfaces.
 	* src/vte.c: adapt to changes in the iso2022 interfaces.
 	* src/mkunitables.sh: add snippets for KSX 1001.
