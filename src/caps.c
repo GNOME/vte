@@ -105,7 +105,6 @@ struct vte_capability_quark vte_terminal_capability_strings[] = {
 	{"@8", 0},
 	{"@9", 0},
 
-	{"ac", 0},
 	{"ae", 0},
 	{"al", 0},
 	{"AL", 0},
@@ -276,7 +275,6 @@ struct vte_capability_quark vte_terminal_capability_strings[] = {
 	{"ll", 0},
 	{"LO", 0},
 
-	{"ma", 0},
 	{"mb", 0},
 	{"MC", 0},
 	{"md", 0},
