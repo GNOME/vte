@@ -397,7 +397,8 @@ main(int argc, char **argv)
 	gboolean transparent = FALSE, audible = TRUE, blink = TRUE,
 		 debug = FALSE, dingus = FALSE, geometry = TRUE, dbuffer = TRUE,
 		 console = FALSE, scroll = FALSE, keep = FALSE,
-		 icon_title = FALSE, shell = TRUE;
+		 icon_title = FALSE, shell = TRUE, highlight_set = FALSE,
+		 cursor_set = FALSE;
 	long lines = 100;
 	const char *message = "Launching interactive shell...\r\n";
 	const char *font = NULL;
@@ -408,9 +409,10 @@ main(int argc, char **argv)
 	int opt;
 	int i, j;
 	GList *args = NULL;
-	GdkColor fore, back, tint;
+	GdkColor fore, back, tint, highlight, cursor;
 	const char *usage = "Usage: %s "
 			    "[ [-B image] | [-T] ] "
+			    "[-C] "
 			    "[-D] "
 			    "[-2] "
 			    "[-a] "
@@ -423,9 +425,14 @@ main(int argc, char **argv)
 			    "[-i] "
 			    "[-k] "
 			    "[-n] "
+			    "[-r] "
+			    "[-s] "
 			    "[-t terminaltype]\n";
 	back.red = back.green = back.blue = 0xffff;
 	fore.red = fore.green = fore.blue = 0x0000;
+	highlight.red = highlight.green = highlight.blue = 0xc000;
+	cursor.red = 0xffff;
+	cursor.green = cursor.blue = 0x8000;
 	tint.red = tint.green = tint.blue = 0;
 	tint = back;
 
@@ -456,7 +463,7 @@ main(int argc, char **argv)
 	g_assert(i < (g_list_length(args) + 2));
 
 	/* Parse some command-line options. */
-	while ((opt = getopt(argc, argv, "B:CDST2abc:df:ghkn:st:w:-")) != -1) {
+	while ((opt = getopt(argc, argv, "B:CDST2abc:df:ghkn:rst:w:-")) != -1) {
 		gboolean bail = FALSE;
 		switch (opt) {
 			case 'B':
@@ -495,6 +502,9 @@ main(int argc, char **argv)
 			case 'g':
 				geometry = !geometry;
 				break;
+			case 'h':
+				highlight_set = !highlight_set;
+				break;
 			case 'i':
 				icon_title = !icon_title;
 				break;
@@ -506,6 +516,9 @@ main(int argc, char **argv)
 				if (lines == 0) {
 					lines = 100;
 				}
+				break;
+			case 'r':
+				cursor_set = !cursor_set;
 				break;
 			case 's':
 				scroll = !scroll;
@@ -519,7 +532,6 @@ main(int argc, char **argv)
 			case '-':
 				bail = TRUE;
 				break;
-			case 'h':
 			default:
 				g_print(usage, argv[0]);
 				exit(1);
@@ -632,6 +644,13 @@ main(int argc, char **argv)
 	}
 	vte_terminal_set_background_tint_color(VTE_TERMINAL(widget), &tint);
 	vte_terminal_set_colors(VTE_TERMINAL(widget), &fore, &back, NULL, 0);
+	if (highlight_set) {
+		vte_terminal_set_color_highlight(VTE_TERMINAL(widget),
+						 &highlight);
+	}
+	if (cursor_set) {
+		vte_terminal_set_color_cursor(VTE_TERMINAL(widget), &cursor);
+	}
 	if (terminal != NULL) {
 		vte_terminal_set_emulation(VTE_TERMINAL(widget), terminal);
 	}

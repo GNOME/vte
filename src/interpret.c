@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001,2002 Red Hat, Inc.
+ * Copyright (C) 2001,2002,2003 Red Hat, Inc.
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Library General Public License as published by
@@ -55,7 +55,7 @@ main(int argc, char **argv)
 	_vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
 
 	if (argc < 2) {
-		printf("usage: %s terminal [file]\n", argv[0]);
+		g_print("usage: %s terminal [file]\n", argv[0]);
 		return 1;
 	}
 
@@ -139,41 +139,41 @@ main(int argc, char **argv)
 				c &= ~VTE_ISO2022_ENCODED_WIDTH_MASK;
 			}
 			if (c < 32) {
-				printf("`^%c'\n", c + 64);
+				g_print("`^%c'\n", c + 64);
 			} else
 			if (c < 127) {
-				printf("`%c'\n", c);
+				g_print("`%c'\n", c);
 			} else {
-				printf("`0x%x'\n", c);
+				g_print("`0x%x'\n", c);
 			}
 			i++;
 			continue;
 		}
 
 		l = j;
-		printf("%s(", g_quark_to_string(quark));
+		g_print("%s(", g_quark_to_string(quark));
 		for (j = 0; (values != NULL) && (j < values->n_values); j++) {
 			if (j > 0) {
-				printf(", ");
+				g_print(", ");
 			}
 			value = g_value_array_get_nth(values, j);
 			if (G_VALUE_HOLDS_LONG(value)) {
-				printf("%ld", g_value_get_long(value));
+				g_print("%ld", g_value_get_long(value));
 			}
 			if (G_VALUE_HOLDS_STRING(value)) {
-				printf("`%s'",
-				       g_value_get_string(value));
+				g_print("`%s'",
+				        g_value_get_string(value));
 			}
 			if (G_VALUE_HOLDS_POINTER(value)) {
-				printf("`%ls'",
-				       (wchar_t*)
-				       g_value_get_pointer(value));
+				g_print("`%ls'",
+				        (wchar_t*)
+				        g_value_get_pointer(value));
 			}
 		}
 		if (values != NULL) {
 			_vte_matcher_free_params_array(values);
 		}
-		printf(")\n");
+		g_print(")\n");
 		i += l;
 	}
 

@@ -1,4 +1,15 @@
 2003-09-15 nalin
+	* src/vteapp.c: add options for exercising the cursor and highlight
+	colors.
+	* src/debug.c: flush output streams when we check if debugging is
+	enabled, because we'll probably output a string next.
+	* src/iso2022.c: don't print a zero-length string.  Yay compiler
+	warnings.
+	* src/interpret.c: use g_print() instead of fprintf() to print.
+	* src/keymap.c,src/ssfe.c: include <stdarg.h>, hopefully fixing
+	bug #121880 (or not).
+
+2003-09-15 nalin
 	* python/vte.defs: add specs for set_color_cursor and
 	set_color_highlight.
 

@@ -20,6 +20,8 @@
 
 #include "../config.h"
 
+#include <stdarg.h>
+
 #ifdef HAVE_NCURSES
 #include <ncurses.h>
 #include <term.h>

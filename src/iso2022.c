@@ -1777,9 +1777,6 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 			}
 			break;
 		case _vte_iso2022_control:
-			if (i >= blocks->len - 20) {
-				fprintf(stderr, "");
-			}
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
 				fprintf(stderr, "%3ld %3ld CONTROL ",

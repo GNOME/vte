@@ -19,6 +19,7 @@
 #ident "$Id$"
 #include "../config.h"
 #include <stdlib.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <glib.h>
