@@ -215,6 +215,24 @@
   )
 )
 
+(define-method set_color_cursor
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_color_cursor")
+  (return-type "none")
+  (parameters
+    '("const-GdkColor*" "cursor_background")
+  )
+)
+
+(define-method set_color_highlight
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_color_highlight")
+  (return-type "none")
+  (parameters
+    '("const-GdkColor*" "highlight_background")
+  )
+)
+
 (define-method set_colors
   (of-object "VteTerminal")
   (c-name "vte_terminal_set_colors")

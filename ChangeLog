@@ -1,4 +1,8 @@
 2003-09-15 nalin
+	* python/vte.defs: add specs for set_color_cursor and
+	set_color_highlight.
+
+2003-09-15 nalin
 	* src/vte.h,src/vte.c: add vte_terminal_set_color_cursor.
 	* src/vte.h,src/vte.c: add vte_terminal_set_color_highlight (#69776).
 	* src/vte.c(vte_terminal_determine_colors): add parameters for
