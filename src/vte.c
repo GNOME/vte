@@ -2622,6 +2622,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	unsigned char *normal = NULL;
 	size_t normal_length = 0;
 	unsigned char *special = NULL;
+	struct termios tio;
 
 	g_return_val_if_fail(widget != NULL, FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
@@ -2635,11 +2636,15 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		}
 		/* Map the key to a sequence name if we can. */
 		switch (event->keyval) {
-#if 0
 			case GDK_BackSpace:
-				special = "kb";
+				/* Use the tty's erase character. */
+				if (tcgetattr(terminal->pvt->pty_master,
+					      &tio) != -1) {
+					normal = g_strdup_printf("%c",
+								 tio.c_cc[VERASE]);
+					normal_length = 1;
+				}
 				break;
-#endif
 			case GDK_Delete:
 				special = "kD";
 				break;

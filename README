@@ -22,7 +22,8 @@
   out how to do those yet.
 - Most commands specific to Xterm or dtterm are recognized, but very few of
   their behaviors are implemented.
-- Alternate charset support (usually needed for line-drawing) isn't done yet.
+- Portions of the alternate charset support (usually used for line-drawing)
+  aren't done yet, but most of it is.
 - Certain termcap-specific commands aren't implemented yet.  There are enough
   to run ls, vim, less, and probably emacs and mutt, but more need to be
   implemented.
