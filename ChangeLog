@@ -1,4 +1,7 @@
 2003-01-31 nalin
+	* src/Makefile.am: include iso2022.txt in tarballs.
+
+2003-01-31 nalin
 	* src/vte.c: pull up selection-always-extending-by-default fix from
 	HEAD, ok release-team.
 	* vte.spec: 0.10.16
