@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2002 Red Hat, Inc.
+ * Copyright (C) 2002,2003 Red Hat, Inc.
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Library General Public License as published by
@@ -28,6 +28,14 @@
 #include "debug.h"
 #include "keymap.h"
 #include "termcap.h"
+#ifdef HAVE_NCURSES
+#include <ncurses.h>
+#include <term.h>
+#else
+#ifdef HAVE_TERMCAP
+#include <termcap.h>
+#endif
+#endif
 
 #ifdef VTE_DEBUG
 static const char *
@@ -43,31 +51,32 @@ _vte_keysym_name(guint keyval)
 #endif
 
 enum _vte_cursor_mode {
-	cursor_normal =	1 << 0,
-	cursor_app =	1 << 1,
+	cursor_default =	1 << 0,
+	cursor_app =		1 << 1,
 };
 
 enum _vte_keypad_mode {
-	keypad_normal =	1 << 0,
-	keypad_app =	1 << 1
+	keypad_default =	1 << 0,
+	keypad_app =		1 << 1
 };
 
 enum _vte_fkey_mode {
-	fkey_normal =	1 << 0,
+	fkey_default =	1 << 0,
 	fkey_sun =	1 << 1,
 	fkey_hp =	1 << 2,
 	fkey_legacy =	1 << 3,
 	fkey_vt220 =	1 << 4,
 };
 
-#define cursor_all	(cursor_normal | cursor_app)
-#define keypad_all	(keypad_normal | keypad_app)
-#define fkey_all	(fkey_normal | fkey_sun | fkey_hp | fkey_legacy | fkey_vt220)
-#define fkey_notvt220	(fkey_normal | fkey_sun | fkey_hp | fkey_legacy)
-#define fkey_notsun	(fkey_normal | fkey_hp | fkey_legacy | fkey_vt220)
-#define fkey_nothp	(fkey_normal | fkey_sun | fkey_legacy | fkey_vt220)
-#define fkey_notsunvt	(fkey_normal | fkey_hp | fkey_legacy)
-#define fkey_notsunhp	(fkey_normal | fkey_legacy | fkey_vt220)
+#define cursor_all	(cursor_default | cursor_app)
+#define keypad_all	(keypad_default | keypad_app)
+#define fkey_all	(fkey_default | fkey_sun | fkey_hp | fkey_legacy | fkey_vt220)
+#define fkey_notvt220	(fkey_default | fkey_sun | fkey_hp | fkey_legacy)
+#define fkey_notsun	(fkey_default | fkey_hp | fkey_legacy | fkey_vt220)
+#define fkey_nothp	(fkey_default | fkey_sun | fkey_legacy | fkey_vt220)
+#define fkey_notsunvt	(fkey_default | fkey_hp | fkey_legacy)
+#define fkey_notsunhp	(fkey_default | fkey_legacy | fkey_vt220)
+#define fkey_nothpvt	(fkey_default | fkey_sun | fkey_legacy)
 
 struct _vte_keymap_entry {
 	enum _vte_cursor_mode cursor_mode;
@@ -131,16 +140,20 @@ static struct _vte_keymap_entry _vte_keymap_GDK_ISO_Left_Tab[] = {
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
+/* Home and End are strange cases because their sequences vary wildly from
+ * system to system, or mine's just broken.  But anyway. */
 static struct _vte_keymap_entry _vte_keymap_GDK_Home[] = {
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, "kh"},
-	{cursor_all, keypad_all, fkey_nothp, 0, _VTE_CAP_CSI "1~", -1, NULL},
+	{cursor_all, keypad_all, fkey_vt220, 0, _VTE_CAP_CSI "1~", -1, NULL},
 	{cursor_all, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "h", -1, NULL},
+	{cursor_all, keypad_all, fkey_nothpvt, 0, NULL, 0, "kh"},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_End[] = {
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, "@7"},
-	{cursor_all, keypad_all, fkey_all, 0, _VTE_CAP_CSI "4~", -1, NULL},
+	{cursor_all, keypad_all, fkey_vt220, 0, _VTE_CAP_CSI "4~", -1, NULL},
+	{cursor_all, keypad_all, fkey_notvt220, 0, NULL, 0, "@7"},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
@@ -162,52 +175,52 @@ static struct _vte_keymap_entry _vte_keymap_GDK_Page_Down[] = {
 
 /* Keys affected by the cursor key mode. */
 static struct _vte_keymap_entry _vte_keymap_GDK_Up[] = {
-	{cursor_normal, keypad_all, fkey_all, 0, NULL, 0, "ku"},
-	{cursor_normal, keypad_all, fkey_nothp, 0, _VTE_CAP_CSI "A", -1, NULL},
-	{cursor_normal, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "A", -1, NULL},
+	{cursor_default, keypad_all, fkey_all, 0, NULL, 0, "ku"},
+	{cursor_default, keypad_all, fkey_nothp, 0, _VTE_CAP_CSI "A", -1, NULL},
+	{cursor_default, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "A", -1, NULL},
 	{cursor_app, keypad_all, fkey_all, 0, _VTE_CAP_SS3 "A", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_Down[] = {
-	{cursor_normal, keypad_all, fkey_all, 0, NULL, 0, "kd"},
-	{cursor_normal, keypad_all, fkey_nothp, 0, _VTE_CAP_CSI "B", -1, NULL},
-	{cursor_normal, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "B", -1, NULL},
+	{cursor_default, keypad_all, fkey_all, 0, NULL, 0, "kd"},
+	{cursor_default, keypad_all, fkey_nothp, 0, _VTE_CAP_CSI "B", -1, NULL},
+	{cursor_default, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "B", -1, NULL},
 	{cursor_app, keypad_all, fkey_all, 0, _VTE_CAP_SS3 "B", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_Right[] = {
-	{cursor_normal, keypad_all, fkey_all, 0, NULL, 0, "kr"},
-	{cursor_normal, keypad_all, fkey_nothp, 0, _VTE_CAP_CSI "C", -1, NULL},
-	{cursor_normal, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "C", -1, NULL},
+	{cursor_default, keypad_all, fkey_all, 0, NULL, 0, "kr"},
+	{cursor_default, keypad_all, fkey_nothp, 0, _VTE_CAP_CSI "C", -1, NULL},
+	{cursor_default, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "C", -1, NULL},
 	{cursor_app, keypad_all, fkey_all, 0, _VTE_CAP_SS3 "C", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_Left[] = {
-	{cursor_normal, keypad_all, fkey_all, 0, NULL, 0, "kl"},
-	{cursor_normal, keypad_all, fkey_nothp, 0, _VTE_CAP_CSI "D", -1, NULL},
-	{cursor_normal, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "D", -1, NULL},
+	{cursor_default, keypad_all, fkey_all, 0, NULL, 0, "kl"},
+	{cursor_default, keypad_all, fkey_nothp, 0, _VTE_CAP_CSI "D", -1, NULL},
+	{cursor_default, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "D", -1, NULL},
 	{cursor_app, keypad_all, fkey_all, 0, _VTE_CAP_SS3 "D", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 /* Keys (potentially) affected by the keypad key mode. */
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Space[] = {
-	{cursor_all, keypad_normal, fkey_all, 0, " ", 1, NULL},
+	{cursor_all, keypad_default, fkey_all, 0, " ", 1, NULL},
 	{cursor_all, keypad_app, fkey_all, 0, _VTE_CAP_SS3 " ", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Tab[] = {
-	{cursor_all, keypad_normal, fkey_all, 0, "\t", 1, NULL},
+	{cursor_all, keypad_default, fkey_all, 0, "\t", 1, NULL},
 	{cursor_all, keypad_app, fkey_all, 0, _VTE_CAP_SS3 "I", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Enter[] = {
-	{cursor_all, keypad_normal, fkey_all, 0, NULL, 0, "@8"},
+	{cursor_all, keypad_default, fkey_all, 0, NULL, 0, "@8"},
 	{cursor_all, keypad_app, fkey_all, 0, _VTE_CAP_SS3 "M", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\n", 1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, "\r", 1, NULL},
@@ -239,47 +252,47 @@ static struct _vte_keymap_entry _vte_keymap_GDK_KP_F4[] = {
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Multiply[] = {
-	{cursor_all, keypad_normal, fkey_all, 0, "*", 1, NULL},
+	{cursor_all, keypad_default, fkey_all, 0, "*", 1, NULL},
 	{cursor_all, keypad_app, fkey_all, 0, _VTE_CAP_SS3 "j", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Add[] = {
-	{cursor_all, keypad_normal, fkey_notvt220, 0, "+", 1, NULL},
-	{cursor_all, keypad_normal, fkey_vt220, 0, ",", 1, NULL},
+	{cursor_all, keypad_default, fkey_notvt220, 0, "+", 1, NULL},
+	{cursor_all, keypad_default, fkey_vt220, 0, ",", 1, NULL},
 	{cursor_all, keypad_app, fkey_notvt220, 0, _VTE_CAP_SS3 "k", -1, NULL},
 	{cursor_all, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "l", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Separator[] = {
-	{cursor_all, keypad_normal, fkey_all, 0, ",", 1, NULL},
+	{cursor_all, keypad_default, fkey_all, 0, ",", 1, NULL},
 	{cursor_all, keypad_app, fkey_all, 0, _VTE_CAP_SS3 "l", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Subtract[] = {
-	{cursor_all, keypad_normal, fkey_all, 0, "-", 1, NULL},
+	{cursor_all, keypad_default, fkey_all, 0, "-", 1, NULL},
 	{cursor_all, keypad_app, fkey_all, 0, _VTE_CAP_SS3 "m", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Decimal_Delete[] = {
-	{cursor_all, keypad_normal, fkey_normal, 0, ".", 1, NULL},
+	{cursor_all, keypad_default, fkey_default, 0, ".", 1, NULL},
 	{cursor_all, keypad_app, fkey_notsun, 0, _VTE_CAP_SS3 "3~", -1, NULL},
 	{cursor_all, keypad_app, fkey_sun, 0, _VTE_CAP_SS3 "3~", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Divide[] = {
-	{cursor_all, keypad_normal, fkey_all, 0, "/", 1, NULL},
+	{cursor_all, keypad_default, fkey_all, 0, "/", 1, NULL},
 	{cursor_all, keypad_app, fkey_all, 0, _VTE_CAP_SS3 "o", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 /* GDK already separates keypad "0" from keypad "Insert", so the only time
  * we'll see this key is when NumLock is on, and that means that we're in
- * "normal" mode. */
+ * "default" mode. */
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_0[] = {
 	{cursor_all, keypad_all, fkey_all, 0, "0", 1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
@@ -334,20 +347,20 @@ static struct _vte_keymap_entry _vte_keymap_GDK_KP_9[] = {
  * capability associated with the key, then we send that, unless we're in
  * application mode. */
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Insert[] = {
-	{cursor_all, keypad_normal, fkey_notsunvt,
+	{cursor_all, keypad_default, fkey_notsunvt,
 	 0, _VTE_CAP_CSI "2~", -1, NULL},
-	{cursor_all, keypad_normal, fkey_sun, 0, _VTE_CAP_CSI "2z", -1, NULL},
-	{cursor_all, keypad_normal, fkey_vt220, 0, "0", 1, NULL},
+	{cursor_all, keypad_default, fkey_sun, 0, _VTE_CAP_CSI "2z", -1, NULL},
+	{cursor_all, keypad_default, fkey_vt220, 0, "0", 1, NULL},
 	{cursor_all, keypad_app, fkey_notvt220, 0, _VTE_CAP_CSI "2~", -1, NULL},
 	{cursor_all, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "p", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_End[] = {
-	{cursor_all, keypad_normal, fkey_all, 0, NULL, 0, "K4"},
-	{cursor_all, keypad_normal, fkey_notvt220,
+	{cursor_all, keypad_default, fkey_all, 0, NULL, 0, "K4"},
+	{cursor_all, keypad_default, fkey_notvt220,
 	 0, _VTE_CAP_CSI "4~", -1, NULL},
-	{cursor_all, keypad_normal, fkey_vt220, 0, "1", 1, NULL},
+	{cursor_all, keypad_default, fkey_vt220, 0, "1", 1, NULL},
 	{cursor_all, keypad_app, fkey_notvt220, 0, _VTE_CAP_CSI "4~", -1, NULL},
 	{cursor_all, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "q", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
@@ -356,19 +369,19 @@ static struct _vte_keymap_entry _vte_keymap_GDK_KP_End[] = {
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Down[] = {
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, "kd"},
 	{cursor_app, keypad_all, fkey_all, 0, _VTE_CAP_SS3 "B", -1, NULL},
-	{cursor_normal, keypad_all, fkey_notvt220,
+	{cursor_default, keypad_all, fkey_notvt220,
 	 0, _VTE_CAP_CSI "B", -1, NULL},
-	{cursor_normal, keypad_normal, fkey_vt220, 0, "2", 1, NULL},
-	{cursor_normal, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "r", -1, NULL},
+	{cursor_default, keypad_default, fkey_vt220, 0, "2", 1, NULL},
+	{cursor_default, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "r", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Page_Down[] = {
-	{cursor_all, keypad_normal, fkey_all, 0, NULL, 0, "K5"},
-	{cursor_all, keypad_normal, fkey_notsunvt,
+	{cursor_all, keypad_default, fkey_all, 0, NULL, 0, "K5"},
+	{cursor_all, keypad_default, fkey_notsunvt,
 	 0, _VTE_CAP_CSI "6~", -1, NULL},
-	{cursor_all, keypad_normal, fkey_sun, 0, _VTE_CAP_CSI "6z", -1, NULL},
-	{cursor_all, keypad_normal, fkey_vt220, 0, "3", 1, NULL},
+	{cursor_all, keypad_default, fkey_sun, 0, _VTE_CAP_CSI "6z", -1, NULL},
+	{cursor_all, keypad_default, fkey_vt220, 0, "3", 1, NULL},
 	{cursor_all, keypad_app, fkey_notvt220, 0, _VTE_CAP_CSI "5~", -1, NULL},
 	{cursor_all, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "s", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
@@ -377,18 +390,18 @@ static struct _vte_keymap_entry _vte_keymap_GDK_KP_Page_Down[] = {
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Left[] = {
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, "kl"},
 	{cursor_app, keypad_all, fkey_all, 0, _VTE_CAP_SS3 "D", -1, NULL},
-	{cursor_normal, keypad_all, fkey_notvt220,
+	{cursor_default, keypad_all, fkey_notvt220,
 	 0, _VTE_CAP_CSI "D", -1, NULL},
-	{cursor_normal, keypad_normal, fkey_vt220, 0, "4", 1, NULL},
-	{cursor_normal, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "t", -1, NULL},
+	{cursor_default, keypad_default, fkey_vt220, 0, "4", 1, NULL},
+	{cursor_default, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "t", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Begin[] = {
-	{cursor_all, keypad_normal, fkey_all, 0, NULL, 0, "K2"},
-	{cursor_all, keypad_normal, fkey_notvt220,
+	{cursor_all, keypad_default, fkey_all, 0, NULL, 0, "K2"},
+	{cursor_all, keypad_default, fkey_notvt220,
 	 0, _VTE_CAP_CSI "E", -1, NULL},
-	{cursor_all, keypad_normal, fkey_vt220, 0, "5", 1, NULL},
+	{cursor_all, keypad_default, fkey_vt220, 0, "5", 1, NULL},
 	{cursor_all, keypad_app, fkey_notvt220, 0, _VTE_CAP_CSI "E", -1, NULL},
 	{cursor_all, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "u", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
@@ -397,18 +410,18 @@ static struct _vte_keymap_entry _vte_keymap_GDK_KP_Begin[] = {
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Right[] = {
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, "kr"},
 	{cursor_app, keypad_all, fkey_all, 0, _VTE_CAP_SS3 "C", -1, NULL},
-	{cursor_normal, keypad_all, fkey_notvt220,
+	{cursor_default, keypad_all, fkey_notvt220,
 	 0, _VTE_CAP_CSI "C", -1, NULL},
-	{cursor_normal, keypad_normal, fkey_vt220, 0, "6", 1, NULL},
-	{cursor_normal, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "v", -1, NULL},
+	{cursor_default, keypad_default, fkey_vt220, 0, "6", 1, NULL},
+	{cursor_default, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "v", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Home[] = {
-	{cursor_all, keypad_normal, fkey_all, 0, NULL, 0, "K1"},
-	{cursor_all, keypad_normal, fkey_notvt220,
+	{cursor_all, keypad_default, fkey_all, 0, NULL, 0, "K1"},
+	{cursor_all, keypad_default, fkey_notvt220,
 	 0, _VTE_CAP_CSI "1~", -1, NULL},
-	{cursor_all, keypad_normal, fkey_vt220, 0, "7", 1, NULL},
+	{cursor_all, keypad_default, fkey_vt220, 0, "7", 1, NULL},
 	{cursor_all, keypad_app, fkey_notvt220, 0, _VTE_CAP_CSI "1~", -1, NULL},
 	{cursor_all, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "w", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
@@ -417,18 +430,18 @@ static struct _vte_keymap_entry _vte_keymap_GDK_KP_Home[] = {
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Up[] = {
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, "ku"},
 	{cursor_app, keypad_all, fkey_all, 0, _VTE_CAP_SS3 "A", -1, NULL},
-	{cursor_normal, keypad_all, fkey_notvt220,
+	{cursor_default, keypad_all, fkey_notvt220,
 	 0, _VTE_CAP_CSI "A", -1, NULL},
-	{cursor_normal, keypad_normal, fkey_vt220, 0, "8", 1, NULL},
-	{cursor_normal, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "x", -1, NULL},
+	{cursor_default, keypad_default, fkey_vt220, 0, "8", 1, NULL},
+	{cursor_default, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "x", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_KP_Page_Up[] = {
-	{cursor_all, keypad_normal, fkey_all, 0, NULL, 0, "K3"},
-	{cursor_all, keypad_normal, fkey_notvt220,
+	{cursor_all, keypad_default, fkey_all, 0, NULL, 0, "K3"},
+	{cursor_all, keypad_default, fkey_notvt220,
 	 0, _VTE_CAP_CSI "5~", -1, NULL},
-	{cursor_all, keypad_normal, fkey_vt220, 0, "9", 1, NULL},
+	{cursor_all, keypad_default, fkey_vt220, 0, "9", 1, NULL},
 	{cursor_all, keypad_app, fkey_notvt220, 0, _VTE_CAP_CSI "5~", -1, NULL},
 	{cursor_all, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "y", -1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
@@ -440,7 +453,7 @@ static struct _vte_keymap_entry _vte_keymap_GDK_F1[] = {
 	{cursor_all, keypad_all, fkey_notvt220, 0, NULL, 0, "k1"},
 	{cursor_all, keypad_all, fkey_vt220, GDK_CONTROL_MASK, NULL, 0, "F3"},
 	{cursor_all, keypad_all, fkey_vt220, 0, NULL, 0, "k1"},
-	{cursor_all, keypad_all, fkey_normal, 0, _VTE_CAP_SS3 "P", -1, NULL},
+	{cursor_all, keypad_all, fkey_default, 0, _VTE_CAP_SS3 "P", -1, NULL},
 	{cursor_all, keypad_all, fkey_sun, 0, _VTE_CAP_CSI "224z", -1, NULL},
 	{cursor_all, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "p", -1, NULL},
 	{cursor_all, keypad_all, fkey_legacy, 0, _VTE_CAP_CSI "11~", -1, NULL},
@@ -454,7 +467,7 @@ static struct _vte_keymap_entry _vte_keymap_GDK_F2[] = {
 	{cursor_all, keypad_all, fkey_notvt220, 0, NULL, 0, "k2"},
 	{cursor_all, keypad_all, fkey_vt220, GDK_CONTROL_MASK, NULL, 0, "F4"},
 	{cursor_all, keypad_all, fkey_vt220, 0, NULL, 0, "k2"},
-	{cursor_all, keypad_all, fkey_normal, 0, _VTE_CAP_SS3 "Q", -1, NULL},
+	{cursor_all, keypad_all, fkey_default, 0, _VTE_CAP_SS3 "Q", -1, NULL},
 	{cursor_all, keypad_all, fkey_sun, 0, _VTE_CAP_CSI "225z", -1, NULL},
 	{cursor_all, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "q", -1, NULL},
 	{cursor_all, keypad_all, fkey_legacy, 0, _VTE_CAP_CSI "12~", -1, NULL},
@@ -468,7 +481,7 @@ static struct _vte_keymap_entry _vte_keymap_GDK_F3[] = {
 	{cursor_all, keypad_all, fkey_notvt220, 0, NULL, 0, "k3"},
 	{cursor_all, keypad_all, fkey_vt220, GDK_CONTROL_MASK, NULL, 0, "F5"},
 	{cursor_all, keypad_all, fkey_vt220, 0, NULL, 0, "k3"},
-	{cursor_all, keypad_all, fkey_normal, 0, _VTE_CAP_SS3 "R", -1, NULL},
+	{cursor_all, keypad_all, fkey_default, 0, _VTE_CAP_SS3 "R", -1, NULL},
 	{cursor_all, keypad_all, fkey_sun, 0, _VTE_CAP_CSI "226z", -1, NULL},
 	{cursor_all, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "r", -1, NULL},
 	{cursor_all, keypad_all, fkey_legacy, 0, _VTE_CAP_CSI "13~", -1, NULL},
@@ -482,7 +495,7 @@ static struct _vte_keymap_entry _vte_keymap_GDK_F4[] = {
 	{cursor_all, keypad_all, fkey_notvt220, 0, NULL, 0, "k4"},
 	{cursor_all, keypad_all, fkey_vt220, GDK_CONTROL_MASK, NULL, 0, "F6"},
 	{cursor_all, keypad_all, fkey_vt220, 0, NULL, 0, "k4"},
-	{cursor_all, keypad_all, fkey_normal, 0, _VTE_CAP_SS3 "S", -1, NULL},
+	{cursor_all, keypad_all, fkey_default, 0, _VTE_CAP_SS3 "S", -1, NULL},
 	{cursor_all, keypad_all, fkey_sun, 0, _VTE_CAP_CSI "227z", -1, NULL},
 	{cursor_all, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "s", -1, NULL},
 	{cursor_all, keypad_all, fkey_legacy, 0, _VTE_CAP_CSI "14~", -1, NULL},
@@ -496,7 +509,7 @@ static struct _vte_keymap_entry _vte_keymap_GDK_F5[] = {
 	{cursor_all, keypad_all, fkey_notvt220, 0, NULL, 0, "k5"},
 	{cursor_all, keypad_all, fkey_vt220, GDK_CONTROL_MASK, NULL, 0, "F7"},
 	{cursor_all, keypad_all, fkey_vt220, 0, NULL, 0, "k5"},
-	{cursor_all, keypad_all, fkey_normal, 0, _VTE_CAP_CSI "15~", -1, NULL},
+	{cursor_all, keypad_all, fkey_default, 0, _VTE_CAP_CSI "15~", -1, NULL},
 	{cursor_all, keypad_all, fkey_sun, 0, _VTE_CAP_CSI "228z", -1, NULL},
 	{cursor_all, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "t", -1, NULL},
 	{cursor_all, keypad_all, fkey_legacy, 0, _VTE_CAP_CSI "15~", -1, NULL},
@@ -510,7 +523,7 @@ static struct _vte_keymap_entry _vte_keymap_GDK_F6[] = {
 	{cursor_all, keypad_all, fkey_notvt220, 0, NULL, 0, "k6"},
 	{cursor_all, keypad_all, fkey_vt220, GDK_CONTROL_MASK, NULL, 0, "F8"},
 	{cursor_all, keypad_all, fkey_vt220, 0, NULL, 0, "k6"},
-	{cursor_all, keypad_all, fkey_normal, 0, _VTE_CAP_CSI "17~", -1, NULL},
+	{cursor_all, keypad_all, fkey_default, 0, _VTE_CAP_CSI "17~", -1, NULL},
 	{cursor_all, keypad_all, fkey_sun, 0, _VTE_CAP_CSI "229z", -1, NULL},
 	{cursor_all, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "u", -1, NULL},
 	{cursor_all, keypad_all, fkey_legacy, 0, _VTE_CAP_CSI "17~", -1, NULL},
@@ -524,7 +537,7 @@ static struct _vte_keymap_entry _vte_keymap_GDK_F7[] = {
 	{cursor_all, keypad_all, fkey_notvt220, 0, NULL, 0, "k7"},
 	{cursor_all, keypad_all, fkey_vt220, GDK_CONTROL_MASK, NULL, 0, "F9"},
 	{cursor_all, keypad_all, fkey_vt220, 0, NULL, 0, "k7"},
-	{cursor_all, keypad_all, fkey_normal, 0, _VTE_CAP_CSI "18~", -1, NULL},
+	{cursor_all, keypad_all, fkey_default, 0, _VTE_CAP_CSI "18~", -1, NULL},
 	{cursor_all, keypad_all, fkey_sun, 0, _VTE_CAP_CSI "230z", -1, NULL},
 	{cursor_all, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "v", -1, NULL},
 	{cursor_all, keypad_all, fkey_legacy, 0, _VTE_CAP_CSI "18~", -1, NULL},
@@ -538,7 +551,7 @@ static struct _vte_keymap_entry _vte_keymap_GDK_F8[] = {
 	{cursor_all, keypad_all, fkey_notvt220, 0, NULL, 0, "k8"},
 	{cursor_all, keypad_all, fkey_vt220, GDK_CONTROL_MASK, NULL, 0, "FA"},
 	{cursor_all, keypad_all, fkey_vt220, 0, NULL, 0, "k8"},
-	{cursor_all, keypad_all, fkey_normal, 0, _VTE_CAP_CSI "19~", -1, NULL},
+	{cursor_all, keypad_all, fkey_default, 0, _VTE_CAP_CSI "19~", -1, NULL},
 	{cursor_all, keypad_all, fkey_sun, 0, _VTE_CAP_CSI "231z", -1, NULL},
 	{cursor_all, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "w", -1, NULL},
 	{cursor_all, keypad_all, fkey_legacy, 0, _VTE_CAP_CSI "19~", -1, NULL},
@@ -552,7 +565,7 @@ static struct _vte_keymap_entry _vte_keymap_GDK_F9[] = {
 	{cursor_all, keypad_all, fkey_notvt220, 0, NULL, 0, "k9"},
 	{cursor_all, keypad_all, fkey_vt220, GDK_CONTROL_MASK, NULL, 0, "FB"},
 	{cursor_all, keypad_all, fkey_vt220, 0, NULL, 0, "k9"},
-	{cursor_all, keypad_all, fkey_normal, 0, _VTE_CAP_CSI "20~", -1, NULL},
+	{cursor_all, keypad_all, fkey_default, 0, _VTE_CAP_CSI "20~", -1, NULL},
 	{cursor_all, keypad_all, fkey_sun, 0, _VTE_CAP_CSI "232z", -1, NULL},
 	{cursor_all, keypad_all, fkey_hp, 0, _VTE_CAP_CSI "20~", -1, NULL},
 	{cursor_all, keypad_all, fkey_legacy, 0, _VTE_CAP_CSI "20~", -1, NULL},
@@ -566,7 +579,7 @@ static struct _vte_keymap_entry _vte_keymap_GDK_F10[] = {
 	{cursor_all, keypad_all, fkey_notvt220, 0, NULL, 0, "k;"},
 	{cursor_all, keypad_all, fkey_vt220, GDK_CONTROL_MASK, NULL, 0, "FC"},
 	{cursor_all, keypad_all, fkey_vt220, 0, NULL, 0, "k;"},
-	{cursor_all, keypad_all, fkey_normal, 0, _VTE_CAP_CSI "21~", -1, NULL},
+	{cursor_all, keypad_all, fkey_default, 0, _VTE_CAP_CSI "21~", -1, NULL},
 	{cursor_all, keypad_all, fkey_sun, 0, _VTE_CAP_CSI "233z", -1, NULL},
 	{cursor_all, keypad_all, fkey_hp, 0, _VTE_CAP_CSI "21~", -1, NULL},
 	{cursor_all, keypad_all, fkey_legacy, 0, _VTE_CAP_CSI "21~", -1, NULL},
@@ -578,7 +591,7 @@ static struct _vte_keymap_entry _vte_keymap_GDK_F10[] = {
 
 static struct _vte_keymap_entry _vte_keymap_GDK_F11[] = {
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, "F1"},
-	{cursor_all, keypad_all, fkey_normal, 0, _VTE_CAP_CSI "23~", -1, NULL},
+	{cursor_all, keypad_all, fkey_default, 0, _VTE_CAP_CSI "23~", -1, NULL},
 	{cursor_all, keypad_all, fkey_sun, 0, _VTE_CAP_CSI "192z", -1, NULL},
 	{cursor_all, keypad_all, fkey_hp, 0, _VTE_CAP_CSI "23~", -1, NULL},
 	{cursor_all, keypad_all, fkey_legacy, 0, _VTE_CAP_CSI "23~", -1, NULL},
@@ -588,7 +601,7 @@ static struct _vte_keymap_entry _vte_keymap_GDK_F11[] = {
 
 static struct _vte_keymap_entry _vte_keymap_GDK_F12[] = {
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, "F2"},
-	{cursor_all, keypad_all, fkey_normal, 0, _VTE_CAP_CSI "24~", -1, NULL},
+	{cursor_all, keypad_all, fkey_default, 0, _VTE_CAP_CSI "24~", -1, NULL},
 	{cursor_all, keypad_all, fkey_sun, 0, _VTE_CAP_CSI "193z", -1, NULL},
 	{cursor_all, keypad_all, fkey_hp, 0, _VTE_CAP_CSI "24~", -1, NULL},
 	{cursor_all, keypad_all, fkey_legacy, 0, _VTE_CAP_CSI "24~", -1, NULL},
@@ -842,7 +855,12 @@ _vte_keymap_map(guint keyval,
 	enum _vte_cursor_mode cursor_mode;
 	enum _vte_keypad_mode keypad_mode;
 	enum _vte_fkey_mode fkey_mode;
-	char *cap;
+	char *cap, *tmp;
+#ifdef HAVE_NCURSES
+	const char *termcap_special = NULL;
+	char ncurses_buffer[4096];
+	char ncurses_area[512];
+#endif
 
 	g_return_if_fail(normal != NULL);
 	g_return_if_fail(normal_length != NULL);
@@ -950,11 +968,11 @@ _vte_keymap_map(guint keyval,
 
 	/* Build mode masks.  Numlock negates application cursor mode. */
 	if (modifiers & VTE_NUMLOCK_MASK) {
-		cursor_mode = cursor_normal;
+		cursor_mode = cursor_default;
 	} else {
-		cursor_mode = app_cursor_keys ? cursor_app : cursor_normal;
+		cursor_mode = app_cursor_keys ? cursor_app : cursor_default;
 	}
-	keypad_mode = app_keypad_keys ? keypad_app : keypad_normal;
+	keypad_mode = app_keypad_keys ? keypad_app : keypad_default;
 	if (sun_mode) {
 		fkey_mode = fkey_sun;
 	} else
@@ -967,7 +985,7 @@ _vte_keymap_map(guint keyval,
 	if (vt220_mode) {
 		fkey_mode = fkey_vt220;
 	} else {
-		fkey_mode = fkey_normal;
+		fkey_mode = fkey_default;
 	}
 	modifiers &= (GDK_SHIFT_MASK | GDK_CONTROL_MASK | VTE_META_MASK);
 
@@ -1014,7 +1032,9 @@ _vte_keymap_map(guint keyval,
 			return;
 		}
 		if (entries[i].special) {
-			cap = _vte_termcap_find_string(termcap, terminal,
+			termcap_special = entries[i].special;
+			cap = _vte_termcap_find_string(termcap,
+						       terminal,
 						       entries[i].special);
 			if (cap != NULL) {
 				*special = NULL;
@@ -1042,6 +1062,49 @@ _vte_keymap_map(guint keyval,
 			}
 		}
 	}
+#if defined(HAVE_NCURSES) || defined(HAVE_TERMCAP)
+	if (termcap_special != NULL) {
+		tmp = g_strdup(terminal);
+		if (tgetent(ncurses_buffer, tmp) == 1) {
+			cap = ncurses_area;
+			g_free(tmp);
+			tmp = g_strdup(termcap_special);
+			cap = tgetstr(tmp, &cap);
+			if ((cap != NULL) && (*cap != '\0')) {
+				g_free(tmp);
+				*normal_length = strlen(cap);
+				*normal = g_strdup(cap);
+#ifdef VTE_DEBUG
+				if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+					int j;
+#ifdef HAVE_NCURSES
+					fprintf(stderr, " via ncurses to '");
+#else
+#ifdef HAVE_TERMCAP
+					fprintf(stderr, " via termcap to '");
+#endif
+#endif
+					for (j = 0; j < *normal_length; j++) {
+						if (((*normal)[j] < 32) ||
+						    ((*normal)[j] >= 127)) {
+							fprintf(stderr, "<0x%02x>",
+								(*normal)[j]);
+						} else {
+							fprintf(stderr, "%c",
+								(*normal)[j]);
+						}
+					}
+					fprintf(stderr,
+						"', returning.\n");
+				}
+#endif
+				return;
+			}
+		}
+		g_free(tmp);
+	}
+#endif
+
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
 		fprintf(stderr, " (ignoring, no match for modifier state).\n");

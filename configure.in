@@ -62,6 +62,14 @@ AC_CHECK_FUNC(socket,[have_socket=1],AC_CHECK_LIB(socket,socket,[have_socket=1; 
 AC_CHECK_FUNC(socketpair,[have_socketpair=1],AC_CHECK_LIB(socket,socketpair,[have_socketpair=1; LIBS="$LIBS -lsocket"]))
 AC_CHECK_HEADERS(sys/select.h sys/un.h stropts.h termios.h wchar.h)
 
+AC_CHECK_HEADER(ncurses.h,[AC_CHECK_HEADER(term.h,[AC_CHECK_LIB(ncurses,tgetent,[LIBS="-lncurses $LIBS";AC_DEFINE(HAVE_NCURSES,1,[Define if you have ncurses.h and libncurses])])])])
+if test $ac_cv_lib_ncurses_tgetent != yes ; then
+	AC_CHECK_HEADER(termcap.h,[AC_CHECK_LIB(termcap,tgetent,[LIBS="-ltermcap $LIBS";AC_DEFINE(HAVE_TERMCAP,1,[Define if you have termcap.h and libtermcap])])])
+fi
+
+OTHERLIBS="$LIBS"
+AC_SUBST(OTHERLIBS)
+
 if test x$have_socket = x1 ; then
 	AC_DEFINE(HAVE_SOCKET,1,[Define if you have the `socket' function.])
 fi

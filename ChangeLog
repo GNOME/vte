@@ -1,3 +1,14 @@
+2003-01-02  nalin
+	* configure.in: look for libncurses or libtermcap
+	* vte.pc.in: include other libraries (ncurses, termcap, socket,
+	whatever) in the list of libraries.
+	* src/keymap.c(_vte_keymap_map): for Home and End, consult libncurses
+	or libtermcap if we have no hard-wired mapping and there's none in the
+	termcap file.  Should fix #100472, even in cases where Home and End
+	vary wildly from what I've got on my box.
+	* src/keymap.c: rename cursor/fkey_normal to cursor/fkey_default,
+	which makes a little more sense.
+
 2003-01-02  Zbigniew Chyla  <cyba@gnome.pl>
 
 	* configure.in: (ALL_LINGUAS) Added pl (Polish).
