@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.3.16
+Version: 0.3.17
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -53,6 +53,9 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Thu May 16 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.17-1
+- tweak finding of selected text
+
 * Wed May 15 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.16-1
 - hook up Insert->kI
 - convert scroll events to button 4/5 if an app wants mouse events

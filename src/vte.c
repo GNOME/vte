@@ -4554,9 +4554,16 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 
 	/* If we're autowrapping here, do it. */
 	col = terminal->pvt->screen->cursor_current.col;
-	if ((col >= terminal->column_count) && terminal->pvt->flags.am) {
-		terminal->pvt->screen->cursor_current.col = 0;
-		terminal->pvt->screen->cursor_current.row++;
+	if (col >= terminal->column_count) {
+		if (terminal->pvt->flags.am) {
+			/* Wrap. */
+			terminal->pvt->screen->cursor_current.col = 0;
+			terminal->pvt->screen->cursor_current.row++;
+		} else {
+			/* Don't wrap, stay at the rightmost column. */
+			terminal->pvt->screen->cursor_current.col =
+				terminal->column_count - 1;
+		}
 	}
 
 	/* Make sure we have enough rows to hold this data. */
@@ -4637,6 +4644,12 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 		 * both where the cursor was moved from. */
 		vte_invalidate_cursor_once(terminal);
 		screen->cursor_current.col++;
+		/* Make sure we're not getting random stuff past the right
+		 * edge of the screen at this point, because the user can't
+		 * see it. */
+		while (array->len > terminal->column_count) {
+			g_array_remove_index(array, array->len - 1);
+		}
 	}
 
 	/* Redraw where the cursor has moved to. */
@@ -6482,7 +6495,7 @@ vte_terminal_get_text(VteTerminal *terminal,
 		      gboolean(*is_selected)(VteTerminal *, long, long),
 		      GArray *attributes)
 {
-	long x, y, nuls;
+	long x, y, spaces;
 	VteScreen *screen;
 	struct vte_charcell *pcell;
 	char *ret = NULL;
@@ -6499,7 +6512,7 @@ vte_terminal_get_text(VteTerminal *terminal,
 	     y < terminal->row_count + screen->scroll_delta;
 	     y++) {
 		x = 0;
-		nuls = 0;
+		spaces = 0;
 		attr.row = y;
 		do {
 			pcell = vte_terminal_find_charcell(terminal, x, y);
@@ -6509,7 +6522,8 @@ vte_terminal_get_text(VteTerminal *terminal,
 					/* If there are no more cells on this
 					 * line, and we've hit the right margin,
 					 * add a newline. */
-					if (x < terminal->column_count) {
+					if ((x < terminal->column_count - 1) ||
+					    (spaces > 0)) {
 						string = g_string_append_c(string, '\n');
 						if (attributes) {
 							g_array_append_val(attributes,
@@ -6518,10 +6532,11 @@ vte_terminal_get_text(VteTerminal *terminal,
 					}
 					break;
 				} else
-				if (pcell->c == 0) {
-					/* Count this NUL in case there's
-					 * something to the right of it. */
-					nuls++;
+				if ((pcell->c == 0) ||
+				    (g_unichar_isspace(pcell->c))) {
+					/* Count this in case there's something
+					 * to the right of it. */
+					spaces++;
 				} else {
 					/* Use the attributes for this character. */
 					attr.fore.red =
@@ -6538,13 +6553,14 @@ vte_terminal_get_text(VteTerminal *terminal,
 						terminal->pvt->palette[pcell->back].blue;
 					attr.underline = pcell->underline;
 					attr.alternate = pcell->alternate;
-					/* Stuff any saved NULs in as spaces. */
-					while (nuls-- > 0) {
+					/* Stuff any saved spaces in. */
+					while (spaces > 0) {
 						string = g_string_append_c(string, ' ');
 						if (attributes != NULL) {
 							g_array_append_val(attributes,
 									   attr);
 						}
+						spaces--;
 					}
 					/* Stuff the charcter in this cell. */
 					string = g_string_append_unichar(string, pcell->c);

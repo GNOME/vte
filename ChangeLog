@@ -1,3 +1,7 @@
+2002-05-16 nalin
+	* src/vte.c: Snip trailing whitespace off of copied lines, insert
+	an end-of-line only when the copied line doesn't go to the right edge,
+	don't overrun right edge, even in insert mode.
 2002-05-15 nalin
 	* src/vte.c: Send kI on insert key.  Don't send drag events when the
 	child has only asked for click events.  Fix crashbugs in selection.
