@@ -30,16 +30,12 @@
 #include "vtetc.h"
 #ifdef HAVE_NCURSES
 #include <ncurses.h>
-#ifdef HAVE_TERM_H
 #include <term.h>
-#endif
 #define HAVE_CURSES
 #else
 #ifdef HAVE_CURSES
 #include <curses.h>
-#ifdef HAVE_TERM_H
 #include <term.h>
-#endif
 #else
 #ifdef HAVE_TERMCAP
 #include <termcap.h>
@@ -62,7 +58,7 @@ _vte_keysym_name(guint keyval)
 
 enum _vte_cursor_mode {
 	cursor_default =	1 << 0,
-	cursor_app =		1 << 1,
+	cursor_app =		1 << 1
 };
 
 enum _vte_keypad_mode {
@@ -75,7 +71,7 @@ enum _vte_fkey_mode {
 	fkey_sun =	1 << 1,
 	fkey_hp =	1 << 2,
 	fkey_legacy =	1 << 3,
-	fkey_vt220 =	1 << 4,
+	fkey_vt220 =	1 << 4
 };
 
 #define cursor_all	(cursor_default | cursor_app)

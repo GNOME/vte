@@ -38,7 +38,7 @@ static enum {
 	tracking_mouse = 1000,
 	tracking_hilite = 1001,
 	tracking_cell_motion = 1002,
-	tracking_all_motion = 1003,
+	tracking_all_motion = 1003
 } tracking_mode = 0;
 
 static void

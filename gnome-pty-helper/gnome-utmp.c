@@ -33,14 +33,16 @@
 #  endif
 #endif
 
-#include <utmp.h>
-
 #if defined(HAVE_LASTLOG_H)
 #    include <lastlog.h>
 #endif
 
 #if defined(HAVE_PATHS_H)
 #    include <paths.h>
+#endif
+
+#if defined(HAVE_UTMP_H)
+#    include <utmp.h>
 #endif
 
 #if defined(HAVE_UTMPX_H)

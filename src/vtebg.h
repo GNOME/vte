@@ -56,7 +56,7 @@ enum VteBgSourceType {
 	VTE_BG_SOURCE_NONE,
 	VTE_BG_SOURCE_ROOT,
 	VTE_BG_SOURCE_PIXBUF,
-	VTE_BG_SOURCE_FILE,
+	VTE_BG_SOURCE_FILE
 };
 
 GdkPixmap *vte_bg_get_pixmap(VteBg *bg, enum VteBgSourceType source_type,

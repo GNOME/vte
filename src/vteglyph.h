@@ -36,7 +36,7 @@ enum vte_glyph_flags {
 	vte_glyph_underline	= 1 << 2,
 	vte_glyph_underline2	= 1 << 3,
 	vte_glyph_strikethrough	= 1 << 4,
-	vte_glyph_boxed		= 1 << 5,
+	vte_glyph_boxed		= 1 << 5
 };
 
 #define vte_glyph_double_underline \

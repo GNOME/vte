@@ -710,6 +710,9 @@ _vte_pty_getpt(void)
 #else
 	/* Try to allocate a pty by accessing the pty master multiplex. */
 	fd = open("/dev/ptmx", O_RDWR | O_NOCTTY);
+	if ((fd == -1) && (errno == ENOENT)) {
+		fd = open("/dev/ptc", O_RDWR | O_NOCTTY); /* AIX */
+	}
 #endif
 	/* Set it to blocking. */
 	flags = fcntl(fd, F_GETFL);

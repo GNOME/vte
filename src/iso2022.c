@@ -66,7 +66,7 @@ struct _vte_iso2022_block {
 	enum {
 		_vte_iso2022_cdata,
 		_vte_iso2022_preserve,
-		_vte_iso2022_control,
+		_vte_iso2022_control
 	} type;
 	gulong start, end;
 };
@@ -123,6 +123,7 @@ static const struct _vte_iso2022_map _vte_iso2022_map_A[] = {
 };
 /* US-ASCII (no conversions).  VT100 and higher (per XTerm docs). */
 static const struct _vte_iso2022_map _vte_iso2022_map_B[] = {
+	{0, 0},
 };
 /* Dutch. VT220 and higher (per XTerm docs). */
 static const struct _vte_iso2022_map _vte_iso2022_map_4[] = {

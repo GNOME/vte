@@ -191,6 +191,11 @@ pty_open_master (char *pty_name, int *used_bsd)
 
 	pty_master = open (pty_name, O_RDWR);
 
+	if ((pty_master == -1) && (errno == ENOENT)) {
+		strcpy (pty_name, "/dev/ptc"); /* AIX */
+		pty_master = open (pty_name, O_RDWR);
+	}
+
 	/*
 	 * Try BSD open, this is needed for Linux which
 	 * might have Unix98 devices but no kernel support

@@ -431,7 +431,7 @@ _vte_termcap_find_l(struct _vte_termcap *termcap, const char *tname, gssize len,
 {
 	const char *ret;
 	struct _vte_termcap_alias *alias;
-	char ttname[len + 1];
+	char *ttname;
 	gssize clen;
 
 	g_return_val_if_fail(termcap != NULL, "");
@@ -441,10 +441,10 @@ _vte_termcap_find_l(struct _vte_termcap *termcap, const char *tname, gssize len,
 	g_return_val_if_fail(strlen(cap) > 0, "");
 
 	/* Find the entry by this name. */
-	memcpy(ttname, tname, len);
-	ttname[len] = '\0';
+	ttname = g_strndup(tname, len);
 	alias = g_tree_lookup(termcap->nametree,
 			      GINT_TO_POINTER(g_quark_from_string(ttname)));
+	g_free(ttname);
 
 	/* If we found the entry, poke around in it. */
 	if (alias != NULL) {

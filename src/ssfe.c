@@ -38,15 +38,12 @@
 
 #ifdef HAVE_NCURSES
 #include <ncurses.h>
-#ifdef HAVE_TERM_H
 #include <term.h>
-#endif
+#define HAVE_CURSES
 #else
 #ifdef HAVE_CURSES
 #include <curses.h>
-#ifdef HAVE_TERM_H
 #include <term.h>
-#endif
 #else
 #ifdef HAVE_TERMCAP
 #include <termcap.h>
@@ -141,7 +138,7 @@ static void putcap(unsigned char *s) {
 static int do_cs(int y1, int y2) {
   static char temp[16];
   if (ansi_cs) {
-    sprintf(temp, "\e[%d;%dr", y1, y2);
+    sprintf(temp, "%c[%d;%dr", 27, y1, y2);
     write(1, temp, strlen(temp));
   } else putcap((char *)tgoto(t_cs, y2-1, y1-1));
   return 0;

@@ -1,4 +1,21 @@
 2003-05-19 nalin
+	* src/iso2022.c, src/keymap.c, src/mev.c, src/vtebg.h, src/vteglyph.h:
+	remove comma from end of enum declaration (#111925).
+	* src/vtetc.c: don't use parameter-as-array-size compiler
+	extension (#111925).
+	* src/ssfe.c: don't assume that the compiler interprets \e correctly,
+	use %c with value of 27 instead (#111925).
+	* doc/reference/Makefile.am: obey CPPFLAGS and LDFLAGS (#111925).
+	* gnome-pty-helper/gnome-utmp.c: only include <utmp.h> if HAVE_UTMP_H
+	was defined (#111925).
+	* src/keymap.c, src/ssfe.c: unconditionally include <term.h> if we
+	defined HAVE_CURSES or HAVE_NCURSES, as having the header is a
+	precondition for defining either (#111925).
+	* src/iso2022.c: make each array have at least one element (#111925).
+	* src/pty.c, src/gnome-login-support.c: try to open /dev/ptc if opening
+	/dev/ptmx fails due to ENOENT (#111925).
+
+2003-05-19 nalin
 	* src/vteapp.c: don't exit on eof, just child-exited.
 	* src/vte.c(vte_terminal_eof): don't disconnect from SIGCHLD on eof,
 	the child might still be running.
