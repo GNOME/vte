@@ -1,113 +1,133 @@
-#
-# (c)2002 Enric BalletbÛ Serra 
+# vte Catalan translation.
+# Copyright (C) 2002 Free Software Foundation, Inc.
+# Enric Balletb√≥ Serra <enric.balletbo@campus.uab.es>, 2002.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: VTE\n"
-"POT-Creation-Date: 2002-11-21 04:43+0100\n"
-"PO-Revision-Date: 2002-12-9 04:43+0100\n"
-"Last-Translator: enric.balletbo@campus.uab.es\n"
+"Project-Id-Version: vte 0.10.7\n"
+"POT-Creation-Date: 2002-12-21 16:23+0100\n"
+"PO-Revision-Date: 2002-12-21 16:26+0100\n"
+"Last-Translator: Enric Balletb√≥ Serra <enric.balletbo@campus.uab.es>\n"
 "Language-Team: Catalan <tradgnome@softcatala.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=iso-8859-1\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:249
+#: src/pty.c:253
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr "S'ha produÔt un error en afegir '%s' a l'entorn. Es continua l'execuciÛ."
+msgstr ""
+"S'ha produ√Øt un error en afegir '%s' a l'entorn. Es continua l'execuci√≥."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:800
+#, c-format
+msgid "can not run %s"
+msgstr "no es pot executar %s"
 
 #: src/reaper.c:107
 msgid "Error creating signal pipe."
-msgstr "S'ha produÔt un error en crear el senyal de conducte (SIGPIPE)."
+msgstr "S'ha produ√Øt un error en crear el senyal de conducte (SIGPIPE)."
 
-#: src/trie.c:405
+#: src/trie.c:411
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicat (%s/%s)!"
 
-#: src/vte.c:1321
+#: src/vte.c:1338
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "S'ha produÔt un error en compilar l'expressiÛ regular \"%s\"."
+msgstr "S'ha produ√Øt un error en compilar l'expressi√≥ regular \"%s\"."
 
-#: src/vte.c:1828 src/vte.c:1837 src/vte.c:1849 src/vte.c:1867 src/vte.c:1872
-#: src/vte.c:1877
+#: src/vte.c:1859 src/vte.c:1868 src/vte.c:1880 src/vte.c:1898 src/vte.c:1904
+#: src/vte.c:1909
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "No es pot convertir el car‡cter %s a %s."
+msgstr "No es pot convertir el car√†cter %s a %s."
 
-#: src/vte.c:5179
+#: src/vte.c:5321
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr "S'ha produÔt una seq¸Ëncia inesperada (de tecles?) '%s'."
+msgstr "S'ha produ√Øt una seq√º√®ncia inesperada (de tecles?) '%s'."
 
-#: src/vte.c:5999
-#, c-format
-msgid "Character 0x%x is undefined, allocating one column."
-msgstr "El car‡cter 0x%x no est‡ definit; es reservar‡ una columna."
-
-#: src/vte.c:6205
+#: src/vte.c:6408
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr "No hi ha cap gestor definit per a la seq¸Ëncia de control '%s'."
+msgstr "No hi ha cap gestor definit per a la seq√º√®ncia de control '%s'."
 
-#: src/vte.c:6812
+#: src/vte.c:7018
 #, c-format
 msgid "Error reading from child: %s."
-msgstr "S'ha produÔt un error en llegir del fill: %s."
+msgstr "S'ha produ√Øt un error en llegir del fill: %s."
 
-#: src/vte.c:6978
+#: src/vte.c:7184
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "S'ha produÔt un error (%s) en convertir dades per al fill; s'ometr‡ la conversiÛ."
+msgstr ""
+"S'ha produ√Øt un error (%s) en convertir dades per al fill; s'ometr√† la "
+"conversi√≥."
 
-#: src/vte.c:9219
+#: src/vte.c:9471
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
-msgstr "S'est‡ utilitzant la font \"%s\", que no tÈ els seg¸ents jocs de car‡cters: %s."
+msgstr ""
+"S'est√† utilitzant la font \"%s\", que no t√© els seg√ºents jocs de car√†cters: %"
+"s."
 
-#: src/vte.c:9760
+#: src/vte.c:10106
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
-msgstr "No s'ha pogut carregar el patrÛ de font Xft \"%s\"; es carregar‡ la font per defecte."
+msgstr ""
+"No s'ha pogut carregar el patr√≥ de font Xft \"%s\"; es carregar√† la font per "
+"defecte."
 
-#: src/vte.c:9772
+#: src/vte.c:10118
 msgid "Failed to load default Xft font."
 msgstr "No s'ha pogut carregar la font Xft per defecte."
 
-#: src/vte.c:9865
+#: src/vte.c:10211
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
-msgstr "No s'ha pogut carregar la font \"%s\"; es carregar‡ la font per defecte."
+msgstr ""
+"No s'ha pogut carregar la font \"%s\"; es carregar√† la font per defecte."
 
-#: src/vte.c:9877
+#: src/vte.c:10223
 msgid "Failed to load default font, crashing or behaving abnormally."
-msgstr "No s'ha pogut carregar la font per defecte; fallada o comportament anormal."
+msgstr ""
+"No s'ha pogut carregar la font per defecte; fallada o comportament anormal."
 
-#: src/vte.c:10140
+#: src/vte.c:10486
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr "S'ha produÔt un error en llegir la mida de PTY; s'usar‡ el valor per defecte: %s."
+msgstr ""
+"S'ha produ√Øt un error en llegir la mida de PTY; s'usar√† el valor per "
+"defecte: %s."
 
-#: src/vte.c:10176
+#: src/vte.c:10522
 #, c-format
 msgid "Error setting PTY size: %s."
-msgstr "S'ha produÔt un error en establir la mida de PTY: %s."
+msgstr "S'ha produ√Øt un error en establir la mida de PTY: %s."
 
-#: src/vte.c:12919
+#: src/vte.c:13387
 msgid "Error allocating draw, disabling Xft."
-msgstr "S'ha produÔt un error en assignar el dibuix, s'est‡ inhabilitant Xft."
+msgstr "S'ha produ√Øt un error en assignar el dibuix, s'est√† inhabilitant Xft."
 
-#: src/vte.c:12927
+#: src/vte.c:13395
 msgid "Error allocating context, disabling Pango."
-msgstr "S'ha produÔt un error en assignar el context, s'est‡ inhabilitant Pango."
+msgstr ""
+"S'ha produ√Øt un error en assignar el context, s'est√† inhabilitant Pango."
 
-#: src/vte.c:12933
+#: src/vte.c:13401
 msgid "Error allocating layout, disabling Pango."
-msgstr "S'ha produÔt un error en assignar el format, s'est‡ inhabilitant Pango."
+msgstr ""
+"S'ha produ√Øt un error en assignar el format, s'est√† inhabilitant Pango."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14460
+#: src/vte.c:14992
 msgid "g_iconv_open() failed setting word characters"
-msgstr "g_iconv_open() no ha pogut establir els car‡cters de paraula"
+msgstr "g_iconv_open() no ha pogut establir els car√†cters de paraula"
+
+#~ msgid "Character 0x%x is undefined, allocating one column."
+#~ msgstr "El car√†cter 0x%x no est√† definit; es reservar√† una columna."
