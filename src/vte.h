@@ -101,6 +101,13 @@ void vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 					  gboolean scroll);
 void vte_terminal_copy_clipboard(VteTerminal *terminal);
 void vte_terminal_paste_clipboard(VteTerminal *terminal);
+void vte_terminal_set_colors(VteTerminal *terminal,
+			     const GdkColor *foreground,
+			     const GdkColor *background,
+			     const GdkColor *palette,
+			     size_t palette_size);
+void vte_terminal_set_default_colors(VteTerminal *terminal);
+void vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image);
 void vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image);
 void vte_terminal_set_background_image_file(VteTerminal *terminal,
 					    const char *path);

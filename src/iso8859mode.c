@@ -18,6 +18,7 @@
 
 #ident "$Id$"
 #include "../config.h"
+#include <stdio.h>
 #define ESC ""
 
 int

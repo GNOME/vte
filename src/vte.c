@@ -2570,11 +2570,15 @@ vte_terminal_new(void)
 	return GTK_WIDGET(g_object_new(vte_terminal_get_type(), NULL));
 }
 
-/* Reset palette defaults for character colors. */
-static void
-vte_terminal_set_default_palette(VteTerminal *terminal)
+/* Set a given set of colors as the palette. */
+void
+vte_terminal_set_colors(VteTerminal *terminal,
+			const GdkColor *foreground,
+			const GdkColor *background,
+			const GdkColor *palette,
+			size_t palette_size)
 {
-	int i, j;
+	int i;
 	XColor color;
 	GtkWidget *widget;
 	Display *display;
@@ -2582,12 +2586,19 @@ vte_terminal_set_default_palette(VteTerminal *terminal)
 	Colormap colormap;
 	GdkVisual *gvisual;
 	Visual *visual;
-	int bright, red, green, blue;
+	const GdkColor *proposed;
+	int bright;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	if (terminal->pvt->palette_initialized) {
-		return;
+	g_return_if_fail(palette_size >= 8);
+	g_return_if_fail((palette_size == 8) || (palette_size == 16));
+	if (foreground == NULL) {
+		foreground = &palette[7];
 	}
+	if (background == NULL) {
+		background = &palette[0];
+	}
+
 	memset(&color, 0, sizeof(color));
 
 	widget = NULL;
@@ -2599,6 +2610,15 @@ vte_terminal_set_default_palette(VteTerminal *terminal)
 
 	/* Initialize each item in the palette. */
 	for (i = 0; i < G_N_ELEMENTS(terminal->pvt->palette); i++) {
+		if (i == VTE_DEF_FG) {
+			proposed = foreground;
+		} else
+		if (i == VTE_DEF_BG) {
+			proposed = background;
+		} else {
+			proposed = &palette[i % palette_size];
+		}
+
 		/* Get X11 attributes used by GDK for the widget. */
 		if (widget == NULL) {
 			widget = GTK_WIDGET(terminal);
@@ -2609,29 +2629,28 @@ vte_terminal_set_default_palette(VteTerminal *terminal)
 			visual = gdk_x11_visual_get_xvisual(gvisual);
 		}
 
-		/* Map this index to a number useful for generating colors. */
-		if (i == VTE_DEF_FG) {
-			j = 7;
-		} else
-		if (i == VTE_DEF_BG) {
-			j = 0;
-		} else {
-			j = i;
-		}
-
-		/* Make the difference between normal and bright about three
-		 * fourths of the total available brightness. */
-		bright = (j & 8) ? 0x3fff : 0;
-		blue = (j & 4) ? 0xc000 : 0;
-		green = (j & 2) ? 0xc000 : 0;
-		red = (j & 1) ? 0xc000 : 0;
-
 		/* Allocate a color from the colormap. */
 		color.pixel = i;
-		color.red = bright + red;
-		color.green = bright + green;
-		color.blue = bright + blue;
+		color.red = proposed->red;
+		color.green = proposed->green;
+		color.blue = proposed->blue;
 
+		/* If we're guessing about the second half, check how much
+		 * brighter we could make this entry. */
+		if ((i != VTE_DEF_FG) &&
+		    (i != VTE_DEF_BG) &&
+		    (i >= palette_size)) {
+			bright = 0xffff;
+			bright = MIN(bright, 0xffff - color.red);
+			bright = MIN(bright, 0xffff - color.green);
+			bright = MIN(bright, 0xffff - color.blue);
+			bright = MIN(bright, 0xc000);
+			color.red += bright;
+			color.green += bright;
+			color.blue += bright;
+		}
+
+		/* Get an Xlib color. */
 		if (XAllocColor(display, colormap, &color)) {
 			terminal->pvt->palette[i].red = color.red;
 			terminal->pvt->palette[i].green = color.green;
@@ -2641,6 +2660,7 @@ vte_terminal_set_default_palette(VteTerminal *terminal)
 
 #ifdef HAVE_XFT
 		if (terminal->pvt->use_xft) {
+			/* Get an Xft color. */
 			terminal->pvt->palette[i].rcolor.red = color.red;
 			terminal->pvt->palette[i].rcolor.green = color.green;
 			terminal->pvt->palette[i].rcolor.blue = color.blue;
@@ -2656,6 +2676,35 @@ vte_terminal_set_default_palette(VteTerminal *terminal)
 #endif
 	}
 	terminal->pvt->palette_initialized = TRUE;
+}
+
+/* Reset palette defaults for character colors. */
+void
+vte_terminal_set_default_colors(VteTerminal *terminal)
+{
+	GdkColor colors[8], fg, bg;
+	int i;
+	guint16 red, green, blue;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	/* Generate a default palette. */
+	for (i = 0; i < G_N_ELEMENTS(colors); i++) {
+		blue = (i & 4) ? 0xc000 : 0;
+		green = (i & 2) ? 0xc000 : 0;
+		red = (i & 1) ? 0xc000 : 0;
+		colors[i].blue = blue;
+		colors[i].green = green;
+		colors[i].red = red;
+	}
+
+	/* Set the default background to look the same as color 7, and the
+	 * default background to look like color 0. */
+	fg = colors[7];
+	bg = colors[0];
+
+	vte_terminal_set_colors(terminal, &fg, &bg,
+				colors, G_N_ELEMENTS(colors));
 }
 
 /* Insert a single character into the stored data array. */
@@ -4616,11 +4665,11 @@ vte_terminal_finalize(GObject *object)
 	g_free(terminal->icon_title);
 	terminal->icon_title = NULL;
 	if (terminal->pvt->bg_image_full != NULL) {
-		gdk_pixbuf_unref(terminal->pvt->bg_image_full);
+		g_object_unref(G_OBJECT(terminal->pvt->bg_image_full));
 		terminal->pvt->bg_image_full = NULL;
 	}
 	if (terminal->pvt->bg_image != NULL) {
-		gdk_pixbuf_unref(terminal->pvt->bg_image);
+		g_object_unref(G_OBJECT(terminal->pvt->bg_image));
 		terminal->pvt->bg_image = NULL;
 	}
 
@@ -5098,7 +5147,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	screen = terminal->pvt->screen;
 
 	/* Set up the default palette. */
-	vte_terminal_set_default_palette(terminal);
+	vte_terminal_set_default_colors(terminal);
 
 	/* Get the X11 structures we need for the drawing area. */
 	gdk_window_get_internal_paint_info(widget->window, &gdrawable,
@@ -5135,7 +5184,28 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	 * have to do this even when the GDK background matches, otherwise
 	 * we may miss character removals before an area is re-exposed. */
 	if (terminal->pvt->bg_image != NULL) {
-		/* FIXME: tile if the image isn't big enough. */
+#ifdef VTE_DEBUG
+#ifdef VTE_DEBUG_DRAW
+		fprintf(stderr, "Background dimensions are %dx%d.\n",
+			gdk_pixbuf_get_width(terminal->pvt->bg_image),
+			gdk_pixbuf_get_height(terminal->pvt->bg_image));
+#endif
+#endif
+		/* If the image isn't big enough, cause it to be resized. */
+		if ((gdk_pixbuf_get_width(terminal->pvt->bg_image) <
+		     area->x - x_offs + area->width) ||
+		    (gdk_pixbuf_get_height(terminal->pvt->bg_image) <
+		     area->y - y_offs + area->height)) {
+			vte_terminal_set_background_image(terminal,
+							  terminal->pvt->bg_image_full);
+#ifdef VTE_DEBUG
+#ifdef VTE_DEBUG_DRAW
+			fprintf(stderr, "Background resized to %dx%d.\n",
+				gdk_pixbuf_get_width(terminal->pvt->bg_image),
+				gdk_pixbuf_get_height(terminal->pvt->bg_image));
+#endif
+#endif
+		}
 		gdk_pixbuf_render_to_drawable(terminal->pvt->bg_image,
 					      gdrawable, ggc,
 					      (area->x) % gdk_pixbuf_get_width(terminal->pvt->bg_image),
@@ -5427,38 +5497,83 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, float saturation)
 void
 vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
 {
-	long bits, width, height, i;
+	long bits, width, oldwidth, height, oldheight, stride, oldstride, i, j;
+	GdkColorspace colorspace;
+	gboolean alpha;
 	guchar *pixels, *oldpixels;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	/* Free the previous background. */
+
+	/* Get a ref to the new image if there is one.  Do it here just in
+	 * case we're actually using the same one we're already using. */
+	if (image != NULL) {
+		g_object_ref(G_OBJECT(image));
+	}
+
+	/* Free the previous background images. */
 	if (terminal->pvt->bg_image != NULL) {
-		gdk_pixbuf_unref(terminal->pvt->bg_image);
+		g_object_unref(G_OBJECT(terminal->pvt->bg_image));
 		terminal->pvt->bg_image = NULL;
 	}
 	if (terminal->pvt->bg_image_full != NULL) {
-		gdk_pixbuf_unref(terminal->pvt->bg_image_full);
+		g_object_unref(G_OBJECT(terminal->pvt->bg_image_full));
 		terminal->pvt->bg_image_full = NULL;
 	}
-	/* Load the image. */
+
 	if (image != NULL) {
-		/* Get information about the new image. */
+		/* Get information about the image. */
+		colorspace = gdk_pixbuf_get_colorspace(image);
+		alpha = gdk_pixbuf_get_has_alpha(image);
 		bits = gdk_pixbuf_get_bits_per_sample(image),
-		width = gdk_pixbuf_get_width(image),
-		height = gdk_pixbuf_get_height(image);
-		/* Use the image. */
-		gdk_pixbuf_ref(image);
+		oldwidth = gdk_pixbuf_get_width(image),
+		oldheight = gdk_pixbuf_get_height(image);
+
+		/* Set our image fields. */
 		terminal->pvt->bg_image_full = image;
-		terminal->pvt->bg_image = gdk_pixbuf_copy(image);
-		/* Adjust the brightness of the copy. */
+		if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
+			/* Realized, so make sure the new image is big
+			 * enough to cover the entire widget. */
+			width = (GTK_WIDGET(terminal))->allocation.width;
+			height = (GTK_WIDGET(terminal))->allocation.height;
+			terminal->pvt->bg_image = gdk_pixbuf_new(colorspace,
+								 alpha,
+								 bits,
+								 width,
+								 height);
+		} else {
+			/* Not realized yet, just make a copy of the
+			 * background. */
+			width = oldwidth;
+			height = oldheight;
+			terminal->pvt->bg_image = gdk_pixbuf_copy(image);
+		}
+
+		/* Get image information. */
 		oldpixels = gdk_pixbuf_get_pixels(terminal->pvt->bg_image_full);
 		pixels = gdk_pixbuf_get_pixels(terminal->pvt->bg_image);
-		i = gdk_pixbuf_get_height(image) *
-		    gdk_pixbuf_get_rowstride(image);
-		while (i >= 0) {
-			pixels[i] = oldpixels[i] * terminal->pvt->bg_saturation;
-			i--;
+		oldstride = gdk_pixbuf_get_rowstride(terminal->pvt->bg_image_full);
+		stride = gdk_pixbuf_get_rowstride(terminal->pvt->bg_image);
+		/* Tile the old image into the new one. */
+		j = 0;
+		while (j < height) {
+			i = 0;
+			while (i < width) {
+				gdk_pixbuf_copy_area(terminal->pvt->bg_image_full,
+						     0, 0,
+						     MIN(oldwidth, width - i),
+						     MIN(oldheight, height - j),
+						     terminal->pvt->bg_image,
+						     i, j);
+				i += oldwidth;
+			}
+			j += oldheight;
+		}
+		/* Desaturate the new image. */
+		for (i = 0; i < stride * height; i++) {
+			pixels[i] = pixels[i] * terminal->pvt->bg_saturation;
 		}
 	}
+
 	/* Repaint everyting. */
 	if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
 		vte_invalidate_cells(terminal,
@@ -5489,10 +5604,8 @@ void
 vte_terminal_set_background_transparent(VteTerminal *terminal)
 {
 	GdkPixbuf *image;
-	XWindowAttributes attrs;
 	Window root;
 	Display *display;
-	long width, height;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
