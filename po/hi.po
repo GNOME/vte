@@ -1,15 +1,16 @@
-# translation of vte.HEAD.po to 
+# translation of hi.po to Hindi
+# translation of vte.HEAD.po to
 # This file is distributed under the same license as the PACKAGE package.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER, 2004.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: vte.HEAD\n"
+"Project-Id-Version: hi\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2004-12-07 04:44+0100\n"
-"PO-Revision-Date: 2004-12-07 12:26+0530\n"
+"PO-Revision-Date: 2004-12-08 10:00+0530\n"
 "Last-Translator: \n"
-"Language-Team:  <en@li.org>\n"
+"Language-Team: Hindi <en@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -18,7 +19,7 @@ msgstr ""
 #: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2094
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "%s में %s संप्रतीकों को बदलने में असमर्थ."
+msgstr "%s से %s में संप्रतीकों को बदलने में असमर्थ."
 
 #: src/iso2022.c:1578
 #, c-format
