@@ -164,7 +164,7 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 	VteTerminalAccessiblePrivate *priv;
 	struct vte_char_attributes attrs;
 	char *next;
-	int row, i, offset, caret;
+	long row, i, offset, caret;
 	long ccol, crow;
 
 	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(text));
@@ -241,10 +241,10 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 
 		/* Get the offsets to the beginnings of each character. */
 		i = 0;
+		next = priv->snapshot_text;
 		while (i < priv->snapshot_attributes->len) {
 			g_array_append_val(priv->snapshot_characters, i);
-			next = g_utf8_find_next_char(priv->snapshot_text + i,
-						     NULL);
+			next = g_utf8_find_next_char(next, NULL);
 			if (next == NULL) {
 				break;
 			} else {
@@ -267,7 +267,7 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 #ifdef VTE_DEBUG
 				if (_vte_debug_on(VTE_DEBUG_MISC)) {
 					fprintf(stderr, "Row %d/%ld begins at "
-						"%d.\n",
+						"%ld.\n",
 						priv->snapshot_linebreaks->len,
 						attrs.row, i);
 					fprintf(stderr, "Cursor at (%ld, "
@@ -691,7 +691,7 @@ vte_terminal_accessible_get_text(AtkText *text,
 			priv->snapshot_characters->len);
 	}
 #endif
-	g_return_val_if_fail(ATK_IS_TEXT(text), NULL);
+	g_return_val_if_fail(ATK_IS_TEXT(text), g_strdup(""));
 
 	/* If the requested area is after all of the text, just return an
 	 * empty string. */
@@ -701,9 +701,9 @@ vte_terminal_accessible_get_text(AtkText *text,
 
 	/* Map the offsets to, er, offsets. */
 	start = g_array_index(priv->snapshot_characters, int, start_offset);
-	if ((end_offset == -1) || (end_offset >= priv->snapshot_attributes->len) ) {
+	if ((end_offset == -1) || (end_offset >= priv->snapshot_characters->len) ) {
 		/* Get everything up to the end of the buffer. */
-		end = priv->snapshot_attributes->len;
+		end = strlen(priv->snapshot_text);
 	} else {
 		/* Map the stopping point. */
 		end = g_array_index(priv->snapshot_characters, int, end_offset);

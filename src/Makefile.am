@@ -3,7 +3,7 @@ pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
 pkglib_PROGRAMS = interpret utf8echo nativeecho utf8mode iso8859mode slowcat
 pkglib_SCRIPTS = decset osc window
-noinst_PROGRAMS = buffer dumpkeys iso2022 pty reaper ring ssfe table termcap trie
+noinst_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect ring ssfe table termcap trie
 EXTRA_DIST = \
 	$(pkglib_SCRIPTS) \
 	genkeysyms.py \
@@ -65,6 +65,10 @@ marshal.c marshal.h: marshal.list
 vte_SOURCES = \
 	vteapp.c
 vte_LDADD = libvte.la @LIBS@ @VTE_LIBS@ @X_LIBS@
+
+reflect_SOURCES = \
+	reflect.c
+reflect_LDADD = libvte.la @LIBS@ @VTE_LIBS@ @X_LIBS@
 
 interpret_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DINTERPRET_MAIN
 interpret_SOURCES = \
@@ -187,10 +191,8 @@ buffer_CFLAGS = @CFLAGS@ -DBUFFER_MAIN
 buffer_SOURCES = buffer.c
 buffer_LDADD = @GOBJECT_LIBS@
 
-dumpkeys_CFLAGS = @CFLAGS@
 dumpkeys_SOURCES = dumpkeys.c
 dumpkeys_LDADD = @LIBS@ @GOBJECT_LIBS@
 
-ssfe_CFLAGS= @CFLAGS@
 ssfe_SOURCES = ssfe.c
 ssfe_LDADD = @OTHERLIBS@
