@@ -63,18 +63,23 @@ struct _VteTerminalPrivate {
 	/* PTY handling data. */
 	char *shell;			/* shell we started */
 	int pty_master;			/* pty master descriptor */
-	guint pty_input;		/* master I/O channel */
+	GIOChannel *pty_input;		/* master input watch */
+	GIOChannel *pty_output;		/* master output watch */
 	pid_t pty_pid;			/* pid of child using pty slave */
 	const char *encoding;		/* the pty's encoding */
 
 	/* Input data queues. */
-	iconv_t pending_conv;		/* narrow/wide conversion state */
-	wchar_t *pending;		/* pending output characters */
-	size_t n_pending;
-	char *narrow_pending;		/* pending output characters */
-	size_t n_narrow_pending;
-	iconv_t outgoing_conv_w;	/* outgoing wide chars */
-	iconv_t outgoing_conv_u;	/* outgoing utf-8 chars */
+	iconv_t incoming_conv;		/* narrow/wide conversion state */
+	wchar_t *incoming;		/* pending output characters */
+	size_t n_incoming;
+	char *narrow_incoming;		/* pending output characters */
+	size_t n_narrow_incoming;
+
+	/* Output data queue. */
+	char *outgoing;			/* pending input characters */
+	size_t n_outgoing;
+	iconv_t outgoing_conv_w;
+	iconv_t outgoing_conv_u;
 
 	/* Data used when rendering the text. */
 	gboolean palette_initialized;
@@ -125,6 +130,7 @@ struct _VteTerminalPrivate {
 	/* Options. */
 	gboolean scroll_on_output;
 	gboolean scroll_on_keypress;
+	gboolean alt_sends_escape;
 };
 
 /* A function which can handle a terminal control sequence. */
@@ -380,15 +386,20 @@ vte_remove_line_int(VteTerminal *terminal, long position)
 static void
 vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 {
+	const char *old_codeset;
+	old_codeset = terminal->pvt->encoding;
+
 	if (codeset == NULL) {
 		codeset = nl_langinfo(CODESET);
 	}
 
-	if (terminal->pvt->pending_conv != NULL) {
-		iconv_close(terminal->pvt->pending_conv);
+	/* Set up the conversion for incoming-to-wchars. */
+	if (terminal->pvt->incoming_conv != NULL) {
+		iconv_close(terminal->pvt->incoming_conv);
 	}
-	terminal->pvt->pending_conv = iconv_open("WCHAR_T", codeset);
+	terminal->pvt->incoming_conv = iconv_open("WCHAR_T", codeset);
 
+	/* Set up the conversions for wchar/utf-8 to outgoing. */
 	if (terminal->pvt->outgoing_conv_w != NULL) {
 		iconv_close(terminal->pvt->outgoing_conv_w);
 	}
@@ -400,6 +411,9 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	terminal->pvt->outgoing_conv_u = iconv_open(codeset, "UTF-8");
 
 	terminal->pvt->encoding = g_quark_to_string(g_quark_from_string(codeset));
+
+	/* FIXME: convert existing data chunks to the proper new encoding. */
+
 #ifdef VTE_DEBUG
 	g_print("Set encoding to `%s'.\n", terminal->pvt->encoding);
 #endif
@@ -2454,16 +2468,22 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 
 /* Handle an EOF from the client. */
 static void
-vte_terminal_eof(gint source, gpointer data)
+vte_terminal_eof(GIOChannel *source, gpointer data)
 {
 	VteTerminal *terminal;
 
 	g_return_if_fail(VTE_IS_TERMINAL(data));
 	terminal = VTE_TERMINAL(data);
 
-	/* Stop reading input. */
-	gtk_input_remove(source);
-	terminal->pvt->pty_input = -1;
+	/* Close the connections to the child. */
+	g_io_channel_unref(source);
+	if (source == terminal->pvt->pty_input) {
+		terminal->pvt->pty_input = NULL;
+		if (terminal->pvt->pty_output != NULL) {
+			g_io_channel_unref(terminal->pvt->pty_output);
+			terminal->pvt->pty_output = NULL;
+		}
+	}
 
 	/* Emit a signal that we read an EOF. */
 	g_signal_emit_by_name(terminal, "eof");
@@ -2492,35 +2512,35 @@ vte_terminal_io_read(GIOChannel *channel,
 	terminal = VTE_TERMINAL(data);
 
 	/* Allocate a buffer to hold both existing data and new data. */
-	bufsize = terminal->pvt->n_narrow_pending + LINE_MAX;
+	bufsize = terminal->pvt->n_narrow_incoming + LINE_MAX;
 	buf = g_malloc0(bufsize);
-	if (terminal->pvt->n_narrow_pending > 0) {
-		memcpy(buf, terminal->pvt->narrow_pending,
-		       terminal->pvt->n_narrow_pending);
-		g_free(terminal->pvt->narrow_pending);
-		terminal->pvt->n_narrow_pending = 0;
+	if (terminal->pvt->n_narrow_incoming > 0) {
+		memcpy(buf, terminal->pvt->narrow_incoming,
+		       terminal->pvt->n_narrow_incoming);
+		g_free(terminal->pvt->narrow_incoming);
+		terminal->pvt->n_narrow_incoming = 0;
 	}
 
 	/* Read some more data in. */
 	fd = g_io_channel_unix_get_fd(channel);
-	bcount = read(fd, buf + terminal->pvt->n_narrow_pending,
-		      bufsize - terminal->pvt->n_narrow_pending);
+	bcount = read(fd, buf + terminal->pvt->n_narrow_incoming,
+		      bufsize - terminal->pvt->n_narrow_incoming);
 
 	/* Convert any read bytes into wide characters.  FIXME: handle
 	 * cases where the encoding changes mid-stream. */
 	if (bcount > 0) {
 		inbuf = buf;
-		inbuf_len = terminal->pvt->n_narrow_pending + bcount;
+		inbuf_len = terminal->pvt->n_narrow_incoming + bcount;
 		outbuf = (char*)wbuf;
 		outbuf_len = sizeof(wbuf);
-		if (iconv(terminal->pvt->pending_conv,
+		if (iconv(terminal->pvt->incoming_conv,
 			  &inbuf, &inbuf_len,
 			  &outbuf, &outbuf_len) != -1) {
-			/* Save the resulting bytes as the narrow pending data
+			/* Save the resulting bytes as the narrow incoming data
 			 * queue. */
-			terminal->pvt->n_narrow_pending = inbuf_len;
-			terminal->pvt->narrow_pending = g_malloc(inbuf_len);
-			memcpy(terminal->pvt->narrow_pending, inbuf, inbuf_len);
+			terminal->pvt->n_narrow_incoming = inbuf_len;
+			terminal->pvt->narrow_incoming = g_malloc(inbuf_len);
+			memcpy(terminal->pvt->narrow_incoming, inbuf, inbuf_len);
 			wcount = (outbuf - (char*)wbuf) / sizeof(wchar_t);
 		} else {
 			wcount = 0;
@@ -2529,30 +2549,30 @@ vte_terminal_io_read(GIOChannel *channel,
 		wcount = 0;
 	}
 
-	/* Add the read wchars to the pending array one at a time, then try
+	/* Add the read wchars to the incoming array one at a time, then try
 	 * to handle the entire array. */
-	terminal->pvt->pending = g_realloc(terminal->pvt->pending,
-				      (terminal->pvt->n_pending + wcount) *
-				      sizeof(wchar_t));
+	terminal->pvt->incoming = g_realloc(terminal->pvt->incoming,
+					    (terminal->pvt->n_incoming+ wcount) *
+					    sizeof(wchar_t));
 	for (i = 0; i < wcount; i++) {
-		terminal->pvt->pending[terminal->pvt->n_pending] = wbuf[i];
-		terminal->pvt->n_pending++;
+		terminal->pvt->incoming[terminal->pvt->n_incoming] = wbuf[i];
+		terminal->pvt->n_incoming++;
 		/* Check if the contents of the array is a control string or
 		 * not.  The match function returns NULL if the data is not
 		 * a control sequence, the name of the control sequence if it
 		 * is one, and an empty string if it might be the beginning of
 		 * a control sequence. */
 		vte_trie_match(terminal->pvt->trie,
-			       terminal->pvt->pending,
-			       terminal->pvt->n_pending,
+			       terminal->pvt->incoming,
+			       terminal->pvt->n_incoming,
 			       &match,
 			       &quark,
 			       &params);
 		if (match == NULL) {
 			/* No interesting stuff in the buffer, so dump the
 			 * accumulated data out. */
-			for (j = 0; j < terminal->pvt->n_pending; j++) {
-				c = terminal->pvt->pending[j];
+			for (j = 0; j < terminal->pvt->n_incoming; j++) {
+				c = terminal->pvt->incoming[j];
 #ifdef VTE_DEBUG
 				if (c > 127) {
 					fprintf(stderr, "%ld = ", (long) c);
@@ -2566,7 +2586,7 @@ vte_terminal_io_read(GIOChannel *channel,
 #endif
 				vte_terminal_insert_char(widget, c);
 			}
-			terminal->pvt->n_pending = 0;
+			terminal->pvt->n_incoming = 0;
 		} else if (match[0] != '\0') {
 			/* A terminal sequence. */
 			vte_terminal_handle_sequence(GTK_WIDGET(terminal),
@@ -2576,7 +2596,7 @@ vte_terminal_io_read(GIOChannel *channel,
 			if (params != NULL) {
 				g_value_array_free(params);
 			}
-			terminal->pvt->n_pending = 0;
+			terminal->pvt->n_incoming = 0;
 		} else {
 			/* It's a zero-length string, so we need to wait for
 			 * more data from the client. */
@@ -2587,13 +2607,11 @@ vte_terminal_io_read(GIOChannel *channel,
 	if (bcount <= 0) {
 		if (bcount == 0) {
 			/* EOF */
-			g_source_remove(terminal->pvt->pty_input);
 			vte_terminal_eof(terminal->pvt->pty_input, data);
 		} else {
 			switch (errno) {
 				case EIO:
 					/* Fake EOF. */
-					g_source_remove(terminal->pvt->pty_input);
 					vte_terminal_eof(terminal->pvt->pty_input,
 							 data);
 					leave_open = FALSE;
@@ -2611,60 +2629,101 @@ vte_terminal_io_read(GIOChannel *channel,
 	return leave_open;
 }
 
-/* Send some data to the child. */
-static void
-vte_terminal_send_utf8(VteTerminal *terminal, const guchar *data, size_t length)
+/* Send wide characters to the child. */
+static gboolean
+vte_terminal_io_write(GIOChannel *channel,
+		      GdkInputCondition condition,
+		      gpointer data)
 {
-	size_t icount, ocount;
+	VteTerminal *terminal;
 	ssize_t count;
-	char *ibuf, *obuf, *obufptr;
+	int fd;
+	gboolean leave_open;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
+	terminal = VTE_TERMINAL(data);
 
-	icount = length;
-	ibuf = (char*) data;
-	ocount = icount * 2 + 1;
-	obuf = obufptr = g_malloc0(ocount - 1);
+	fd = g_io_channel_unix_get_fd(channel);
 
-	if (iconv(terminal->pvt->outgoing_conv_u,
-		  &ibuf, &icount, &obuf, &ocount) == -1) {
-		g_warning("%s converting data for child\n", strerror(errno));
-	} else {
-		count = write(terminal->pvt->pty_master, obufptr,
-			      obuf - obufptr);
-		if (count != (obuf - obufptr)) {
-			g_warning("%s sending data to child\n",
-				  strerror(errno));
+	count = write(fd, terminal->pvt->outgoing, terminal->pvt->n_outgoing);
+	if (count != -1) {
+#ifdef VTE_DEBUG
+		int i;
+		for (i = 0; i < count; i++) {
+			g_print("Wrote %c%c\n",
+				terminal->pvt->outgoing[i] > 32 ?  ' ' : '^',
+				terminal->pvt->outgoing[i] > 32 ?
+				terminal->pvt->outgoing[i] : 
+				terminal->pvt->outgoing[i]  + 64);
 		}
+#endif
+		memmove(terminal->pvt->outgoing,
+			terminal->pvt->outgoing + count,
+			terminal->pvt->n_outgoing - count);
+		terminal->pvt->n_outgoing -= count;
 	}
-	g_free(obufptr);
-	return;
+
+	if (terminal->pvt->n_outgoing == 0) {
+		g_io_channel_unref(channel);
+		if (channel == terminal->pvt->pty_output) {
+			terminal->pvt->pty_output = NULL;
+		}
+		leave_open = FALSE;
+	} else {
+		leave_open = TRUE;
+	}
+
+	return leave_open;
 }
 
-/* Send some data to the child. */
+/* Convert some arbitrarily-encoded data to send to the child. */
 static void
-vte_terminal_send_wc(VteTerminal *terminal, const wchar_t *data, size_t wlength)
+vte_terminal_send(VteTerminal *terminal, const char *encoding,
+		  const void *data, size_t length)
 {
 	size_t icount, ocount;
-	ssize_t count;
 	char *ibuf, *obuf, *obufptr;
+	char *outgoing;
+	size_t n_outgoing;
+	iconv_t *conv;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_assert((strcmp(encoding, "UTF-8") == 0) ||
+		 (strcmp(encoding, "WCHAR_T") == 0));
 
-	icount = wlength * sizeof(wchar_t);
-	ibuf = (char*) data;
-	ocount = icount * 2 + 1;
-	obuf = obufptr = g_malloc0(ocount - 1);
+	if (strcmp(encoding, "UTF-8") == 0) {
+		conv = &terminal->pvt->outgoing_conv_u;
+	}
+	if (strcmp(encoding, "WCHAR_T") == 0) {
+		conv = &terminal->pvt->outgoing_conv_w;
+	}
 
-	if (iconv(terminal->pvt->outgoing_conv_w,
-		  &ibuf, &icount, &obuf, &ocount) == -1) {
+	icount = length;
+	ibuf = (char *) data;
+	ocount = (length + 1) * sizeof(wchar_t);
+	obuf = obufptr = g_malloc0(ocount);
+
+	if (iconv(*conv, &ibuf, &icount, &obuf, &ocount) == -1) {
 		g_warning("%s converting data for child\n", strerror(errno));
 	} else {
-		count = write(terminal->pvt->pty_master, obufptr,
-			      obuf - obufptr);
-		if (count != (obuf - obufptr)) {
-			g_warning("%s sending data to child\n",
-				  strerror(errno));
+		n_outgoing = terminal->pvt->n_outgoing + (obuf - obufptr);
+		outgoing = g_realloc(terminal->pvt->outgoing, n_outgoing);
+		/* Move some data around. */
+		memcpy(outgoing + terminal->pvt->n_outgoing,
+		       obufptr, obuf - obufptr);
+		/* Save the new outgoing buffer. */
+		terminal->pvt->n_outgoing = n_outgoing;
+		terminal->pvt->outgoing = outgoing;
+		/* If we need to start waiting for the child pty to become
+		 * available for writing, set that up here. */
+		if (terminal->pvt->pty_output == NULL) {
+			terminal->pvt->pty_output = g_io_channel_unix_new(terminal->pvt->pty_master);
+			g_io_add_watch_full(terminal->pvt->pty_output,
+					    G_PRIORITY_LOW,
+					    G_IO_OUT,
+					    vte_terminal_io_write,
+					    terminal,
+					    NULL);
 		}
 	}
 	g_free(obufptr);
@@ -2801,8 +2860,13 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		}
 		/* If we got normal characters, send them to the child. */
 		if (normal != NULL) {
-			vte_terminal_send_utf8(terminal, normal,
-					       normal_length);
+			if (terminal->pvt->alt_sends_escape &&
+			    (normal_length > 0) &&
+			    (modifiers & GDK_MOD1_MASK)) {
+				vte_terminal_send(terminal, "UTF-8", "", 1);
+			}
+			vte_terminal_send(terminal, "UTF-8",
+					  normal, normal_length);
 			g_free(normal);
 			normal = NULL;
 		} else
@@ -2815,8 +2879,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 								special,
 								&normal_length);
 			special = g_strdup_printf(normal, 1);
-			vte_terminal_send_utf8(terminal, special,
-					       strlen(special));
+			vte_terminal_send(terminal, "UTF-8",
+					  special, strlen(special));
 			g_free(special);
 		}
 		/* Keep the cursor on-screen. */
@@ -2835,7 +2899,17 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 	VteTerminal *terminal;
 	g_return_if_fail(VTE_IS_TERMINAL(data));
 	terminal = VTE_TERMINAL(data);
-	vte_terminal_send_utf8(terminal, text, strlen(text));
+	vte_terminal_send(terminal, "UTF-8", text, strlen(text));
+}
+
+/* Read and handle a motion event. */
+static gint
+vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
+{
+#ifdef VTE_DEBUG
+	g_print("pointer moved to (%lf,%lf)\n", event->x, event->y);
+#endif
+	return FALSE;
 }
 
 /* Read and handle a pointing device buttonpress event. */
@@ -2844,22 +2918,26 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 {
 	GtkClipboard *clipboard;
 	VteTerminal *terminal;
+	GdkEventMask events;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
 
-#ifdef VTE_DEBUG
-	g_print("button %d pressed at (%lf,%lf)\n",
-		event->button, event->x, event->y);
-#endif
-
 	if (event->type == GDK_BUTTON_PRESS) {
+#ifdef VTE_DEBUG
+		g_print("button %d pressed at (%lf,%lf)\n",
+			event->button, event->x, event->y);
+#endif
 		if (event->button == 1) {
 			if (!GTK_WIDGET_HAS_FOCUS(widget)) {
 				gtk_widget_grab_focus(widget);
 			}
 			terminal->pvt->selection_start.x = event->x;
 			terminal->pvt->selection_start.y = event->y;
+			/* start listening to motion events */
+			events = gdk_window_get_events(widget->window);
+			events |= GDK_BUTTON1_MOTION_MASK;
+			gdk_window_set_events(widget->window, events);
 			return TRUE;
 		}
 		if (event->button == 2) {
@@ -2880,10 +2958,26 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 static gint
 vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 {
+	GtkClipboard *clipboard;
+	VteTerminal *terminal;
+	GdkEventMask events;
+
+	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
+	terminal = VTE_TERMINAL(widget);
+
+	if (event->type == GDK_BUTTON_RELEASE) {
 #ifdef VTE_DEBUG
-	g_print("button %d released at (%lf,%lf)\n",
-		event->button, event->x, event->y);
+		g_print("button %d released at (%lf,%lf)\n",
+			event->button, event->x, event->y);
 #endif
+		if (event->button == 1) {
+			/* stop listening to motion events */
+			events = gdk_window_get_events(widget->window);
+			events &= ~(GDK_BUTTON1_MOTION_MASK);
+			gdk_window_set_events(widget->window, events);
+		}
+	}
+
 	return FALSE;
 }
 
@@ -3193,7 +3287,6 @@ vte_terminal_init(VteTerminal *terminal)
 {
 	struct _VteTerminalPrivate *pvt;
 	GtkAdjustment *adjustment;
-	GIOChannel *channel;
 	const char **env_add;
 	int i;
 
@@ -3206,12 +3299,15 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->shell = g_strdup(getenv("SHELL") ?: "/bin/sh");
 	pvt->pty_master = -1;
 	pvt->pty_pid = -1;
-	pvt->pending = NULL;
-	pvt->n_pending = 0;
+	pvt->incoming = NULL;
+	pvt->n_incoming = 0;
+	pvt->narrow_incoming = NULL;
+	pvt->n_narrow_incoming = 0;
 	pvt->palette_initialized = FALSE;
 	pvt->keypad = VTE_KEYPAD_NORMAL;
 	pvt->scroll_on_output = TRUE;
 	pvt->scroll_on_keypress = TRUE;
+	pvt->alt_sends_escape = TRUE;
 	adjustment = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0, 0, 0, 0));
 
 #ifdef HAVE_XFT
@@ -3273,13 +3369,14 @@ vte_terminal_init(VteTerminal *terminal)
 
 	i = fcntl(terminal->pvt->pty_master, F_GETFL);
 	fcntl(terminal->pvt->pty_master, F_SETFL, i | O_NONBLOCK);
-	channel = g_io_channel_unix_new(terminal->pvt->pty_master);
-	pvt->pty_input = g_io_add_watch_full(channel,
-					     G_PRIORITY_LOW,
-					     G_IO_IN | G_IO_HUP,
-					     vte_terminal_io_read,
-					     terminal,
-					     NULL);
+	pvt->pty_input = g_io_channel_unix_new(terminal->pvt->pty_master);
+	pvt->pty_output = NULL;
+	g_io_add_watch_full(pvt->pty_input,
+			    G_PRIORITY_LOW,
+			    G_IO_IN | G_IO_HUP,
+			    vte_terminal_io_read,
+			    terminal,
+			    NULL);
 
 	/* Set the PTY window size based on the terminal type. */
 	vte_terminal_pty_size_set(terminal,
@@ -3409,14 +3506,20 @@ vte_terminal_unrealize(GtkWidget *widget)
 	terminal->pvt->pty_pid = 0;
 
 	/* Stop watching for input from the child. */
-	if (terminal->pvt->pty_input != -1) {
-		gtk_input_remove(terminal->pvt->pty_input);
-		terminal->pvt->pty_input = -1;
+	if (terminal->pvt->pty_input != NULL) {
+		g_io_channel_unref(terminal->pvt->pty_input);
+		terminal->pvt->pty_input = NULL;
+	}
+	if (terminal->pvt->pty_output != NULL) {
+		g_io_channel_unref(terminal->pvt->pty_output);
+		terminal->pvt->pty_output = NULL;
 	}
 
 	/* Discard any pending data. */
-	g_free(terminal->pvt->pending);
-	terminal->pvt->pending = NULL;
+	g_free(terminal->pvt->incoming);
+	terminal->pvt->incoming = NULL;
+	g_free(terminal->pvt->narrow_incoming);
+	terminal->pvt->narrow_incoming = NULL;
 
 	/* Clean up emulation structures. */
 	g_tree_destroy(terminal->pvt->sequences);
@@ -4029,6 +4132,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 	widget_class->key_press_event = vte_terminal_key_press;
 	widget_class->button_press_event = vte_terminal_button_press;
 	widget_class->button_release_event = vte_terminal_button_release;
+	widget_class->motion_notify_event = vte_terminal_motion_notify;
 	widget_class->focus_in_event = vte_terminal_focus_in;
 	widget_class->focus_out_event = vte_terminal_focus_out;
 	widget_class->unrealize = vte_terminal_unrealize;
