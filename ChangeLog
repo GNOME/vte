@@ -1,17 +1,22 @@
-2003-02-20
+2003-02-21 nalin
+	* src/iso2022.c: special case the rest of the graphic characters in
+	the way we already do for the 0x2500-0x257f range.  It's still wrong,
+	but at least now it's consistent (Red Hat #84783).
+	
+2003-02-20 nalin
 	* src/keymap.c: pull up from HEAD to get proper fix for Ctrl+digit
 	keys, which shouldn't break Meta+digit keys (#106667).
 
-2003-02-20
+2003-02-20 nalin
 	* src/vte.c: fix gratuitous IM resetting, don't mess with the IM when
 	we're not realized and it's a NULL pointer.  From HEAD.
 
-2003-02-20
+2003-02-20 nalin
 	* src/vte.c(vte_terminal_draw_row): fix "jittering" when the left edge
 	of the row we're drawing is the right half of a multicolumn character.
 	From HEAD.
 
-2003-02-20
+2003-02-20 nalin
 	* src/vte.c(vte_terminal_feed_child): don't reset the input method
 	here -- it may be in the middle of something (Red Hat #81542).  From
 	HEAD.

@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.10.23
+Version: 0.10.24
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -96,6 +96,9 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Fri Feb 21 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.24-1
+- be consistently wrong about the width of ACS characters (#84783)
+
 * Fri Feb 21 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.23-1
 - update to 0.10.23
 - don't always perform character centering

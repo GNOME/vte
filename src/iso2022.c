@@ -474,6 +474,37 @@ _vte_iso2022_substitute_single(gunichar mapname, gunichar c)
 	if (mapname == '0') {
 		if ((result >= 0x2500) && (result <= 0x257f)) {
 			width = 1;
+		} else
+		switch (c) {
+		case 0x00a3: /* british pound */
+		case 0x00b0: /* degree */
+		case 0x00b1: /* plus/minus */
+		case 0x00b7: /* bullet */
+		case 0x03c0: /* pi */
+		case 0x2190: /* left arrow */
+		case 0x2191: /* up arrow */
+		case 0x2192: /* right arrow */
+		case 0x2193: /* down arrow */
+		case 0x2260: /* != */
+		case 0x2264: /* <= */
+		case 0x2265: /* >= */
+		case 0x23ba: /* scanline 1/9 */
+		case 0x23bb: /* scanline 3/9 */
+		case 0x23bc: /* scanline 7/9 */
+		case 0x23bd: /* scanline 9/9 */
+		case 0x2409: /* HT symbol */
+		case 0x240a: /* LF symbol */
+		case 0x240b: /* VT symbol */
+		case 0x240c: /* FF symbol */
+		case 0x240d: /* CR symbol */
+		case 0x2424: /* NL symbol */
+		case 0x2592: /* checkerboard */
+		case 0x25ae: /* solid rectangle */
+		case 0x25c6: /* diamond */
+			width = 1;
+			break;
+		default:
+			break;
 		}
 	}
 	/* Save the width if one was set. */
@@ -881,6 +912,37 @@ _vte_iso2022_substitute(struct _vte_iso2022 *outside_state,
 			if (current_map == '0') {
 				if ((result >= 0x2500) && (result <= 0x257f)) {
 					width = 1;
+				} else
+				switch (result) {
+				case 0x00a3: /* british pound */
+				case 0x00b0: /* degree */
+				case 0x00b1: /* plus/minus */
+				case 0x00b7: /* bullet */
+				case 0x03c0: /* pi */
+				case 0x2190: /* left arrow */
+				case 0x2191: /* up arrow */
+				case 0x2192: /* right arrow */
+				case 0x2193: /* down arrow */
+				case 0x2260: /* != */
+				case 0x2264: /* <= */
+				case 0x2265: /* >= */
+				case 0x23ba: /* scanline 1/9 */
+				case 0x23bb: /* scanline 3/9 */
+				case 0x23bc: /* scanline 7/9 */
+				case 0x23bd: /* scanline 9/9 */
+				case 0x2409: /* HT symbol */
+				case 0x240a: /* LF symbol */
+				case 0x240b: /* VT symbol */
+				case 0x240c: /* FF symbol */
+				case 0x240d: /* CR symbol */
+				case 0x2424: /* NL symbol */
+				case 0x2592: /* checkerboard */
+				case 0x25ae: /* solid rectangle */
+				case 0x25c6: /* diamond */
+					width = 1;
+					break;
+				default:
+					break;
 				}
 			}
 			/* Save the width if one was set. */
