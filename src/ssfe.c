@@ -19,6 +19,22 @@
 */
 
 #include "../config.h"
+
+#ifdef HAVE_NCURSES
+#include <ncurses.h>
+#include <term.h>
+#define HAVE_CURSES
+#else
+#ifdef HAVE_CURSES
+#include <curses.h>
+#include <term.h>
+#else
+#ifdef HAVE_TERMCAP
+#include <termcap.h>
+#endif
+#endif
+#endif
+
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
@@ -34,21 +50,6 @@
 
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
-#endif
-
-#ifdef HAVE_NCURSES
-#include <ncurses.h>
-#include <term.h>
-#define HAVE_CURSES
-#else
-#ifdef HAVE_CURSES
-#include <curses.h>
-#include <term.h>
-#else
-#ifdef HAVE_TERMCAP
-#include <termcap.h>
-#endif
-#endif
 #endif
 
 #define BUF_SIZE 512

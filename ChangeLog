@@ -1,4 +1,7 @@
 2003-05-20 nalin
+	* src/ssfe.c: compile fix for Solaris, patch from #113344.
+
+2003-05-20 nalin
 	* src/vte.c: remove no-longer-used tree structure.
 	* src/vtefc.c: free strings returned by g_object_get().
 
