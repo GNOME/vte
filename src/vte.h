@@ -118,6 +118,7 @@ GtkType vte_terminal_get_type(void);
 							     VTE_TYPE_TERMINAL)
 #define VTE_TERMINAL_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS ((obj), VTE_TYPE_TERMINAL, VteTerminalClass))
 
+/* You can get by with just these two functions. */
 GtkWidget *vte_terminal_new(void);
 pid_t vte_terminal_fork_command(VteTerminal *terminal,
 			        const char *command, char **argv, char **envv);
@@ -133,6 +134,7 @@ void vte_terminal_feed_child(VteTerminal *terminal,
 void vte_terminal_copy_clipboard(VteTerminal *terminal);
 void vte_terminal_paste_clipboard(VteTerminal *terminal);
 
+/* Set the terminal's size. */
 void vte_terminal_set_size(VteTerminal *terminal, long columns, long rows);
 
 /* Set various one-off settings. */

@@ -1,3 +1,8 @@
+2002-07-23  nalin
+	* src/vte.c: Fix realize/unrealize to be properly reversible.  Use the
+	font from the default style unless we're explicitly given one.
+	* src/vteapp.c: Don't set base size or minimum size geometry hints when
+	sizing the terminal widget.
 2002-07-22  nalin
 	* src/pty.c(vte_pty_ptsname): Fix an incorrect logic check.
 2002-07-19  nalin

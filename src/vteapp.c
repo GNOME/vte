@@ -49,16 +49,10 @@ char_size_changed(GtkWidget *widget, guint width, guint height, gpointer win)
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
 	window = GTK_WINDOW(win);
-	geometry.base_width = 0;
-	geometry.base_height = 0;
-	geometry.min_width = terminal->char_width;
-	geometry.min_height = terminal->char_height;
 	geometry.width_inc = terminal->char_width;
 	geometry.height_inc = terminal->char_height;
 	gtk_window_set_geometry_hints(window, widget, &geometry,
-				      GDK_HINT_RESIZE_INC |
-				      GDK_HINT_BASE_SIZE |
-				      GDK_HINT_MIN_SIZE);
+				      GDK_HINT_RESIZE_INC);
 }
 
 static void
@@ -106,8 +100,8 @@ main(int argc, char **argv)
 			    "[-c command] "
 			    "[-f font] "
 			    "[-t terminaltype]\n";
-	back.red = back.green = back.blue = 0xffff;
-	fore.red = fore.green = fore.blue = 0x7000;
+	back.red = back.green = back.blue = 0x0000;
+	fore.red = fore.green = fore.blue = 0xbfff;
 	/* Parse some command-line options. */
 	while ((opt = getopt(argc, argv, "B:Tabc:df:ht:")) != -1) {
 		switch (opt) {
@@ -158,20 +152,16 @@ main(int argc, char **argv)
 
 	/* Create the terminal widget and add it to the scrolling shell. */
 	widget = vte_terminal_new();
-	char_size_changed(widget,
-			  (VTE_TERMINAL(widget)->char_width),
-			  (VTE_TERMINAL(widget)->char_height),
-			  window);
 	gtk_box_pack_start(GTK_BOX(hbox), widget, TRUE, TRUE, 0);
 
 	/* Connect to the "char_size_changed" signal to set geometry hints
 	 * whenever the font used by the terminal is changed. */
-	g_signal_connect_object(G_OBJECT(widget), "char_size_changed",
+	g_signal_connect_object(G_OBJECT(widget), "char-size-changed",
 				G_CALLBACK(char_size_changed), window, 0);
 
 	/* Connect to the "window_title_changed" signal to set the main
 	 * window's title. */
-	g_signal_connect(G_OBJECT(widget), "window_title_changed",
+	g_signal_connect(G_OBJECT(widget), "window-title-changed",
 			 G_CALLBACK(window_title_changed), window);
 
 	/* Connect to the "eof" signal to quit when the session ends. */
@@ -205,8 +195,9 @@ main(int argc, char **argv)
 	}
 
 	/* Set the default font. */
-	vte_terminal_set_font_from_string(VTE_TERMINAL(widget),
-					  font ? font : "fixed 12");
+	if (font != NULL) {
+		vte_terminal_set_font_from_string(VTE_TERMINAL(widget), font);
+	}
 
 	/* Match "abcdefg". */
 	vte_terminal_match_add(VTE_TERMINAL(widget), "abcdefg");
