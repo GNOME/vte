@@ -259,9 +259,9 @@ vte_invalidate_cells(VteTerminal *terminal,
 
 	/* Convert the column and row start and end to pixel values
 	 * by multiplying by the size of a character cell. */
-	rect.x = widget->allocation.x + column_start * terminal->char_width;
+	rect.x = column_start * terminal->char_width;
 	rect.width = column_count * terminal->char_width;
-	rect.y = widget->allocation.y + row_start * terminal->char_height;
+	rect.y = row_start * terminal->char_height;
 	rect.height = row_count * terminal->char_height;
 
 	/* Invalidate the rectangle. */
@@ -269,9 +269,9 @@ vte_invalidate_cells(VteTerminal *terminal,
 }
 
 static void
-vte_terminal_emit_selection_changed (VteTerminal *terminal)
+vte_terminal_emit_selection_changed(VteTerminal *terminal)
 {
-	g_signal_emit_by_name (terminal, "selection_changed");
+	g_signal_emit_by_name(terminal, "selection_changed");
 }
 
 /* Deselect anything which is selected and refresh the screen if needed. */
@@ -1855,7 +1855,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 			case 1:
 				/* Set the application keypad. */
 				terminal->pvt->keypad = set ?
-				      		 	VTE_KEYPAD_NORMAL :
+							VTE_KEYPAD_NORMAL :
 							VTE_KEYPAD_APPLICATION;
 				break;
 			case 2:
@@ -1908,7 +1908,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 			case 47:
 				/* Set or restore alternate screen. */
 				terminal->pvt->screen = set ?
-				      		 	&terminal->pvt->alternate_screen :
+							&terminal->pvt->alternate_screen :
 							&terminal->pvt->normal_screen;
 				/* Fixup the scrollbars. */
 				vte_terminal_adjust_adjustments(terminal);
@@ -2550,10 +2550,10 @@ static struct {
 	{"delete-lines", vte_sequence_handler_delete_lines},
 	{"index", vte_sequence_handler_index},
 	{"reverse-index", vte_sequence_handler_reverse_index},
-        {"iso8859-1-character-set", vte_sequence_handler_iso8859_1},
+	{"iso8859-1-character-set", vte_sequence_handler_iso8859_1},
 	{"utf-8-character-set", vte_sequence_handler_utf_8},
-        {"character-position-absolute", vte_sequence_handler_character_position_absolute},
-        {"line-position-absolute", vte_sequence_handler_line_position_absolute},
+	{"character-position-absolute", vte_sequence_handler_character_position_absolute},
+	{"line-position-absolute", vte_sequence_handler_line_position_absolute},
 };
 
 /* Create the basic widget.  This more or less creates and initializes a
@@ -4225,7 +4225,7 @@ vte_terminal_set_scroll_adjustment(VteTerminal *terminal,
 		if (terminal->adjustment != NULL) {
 			/* Disconnect our signal handlers from this object. */
 			g_signal_handlers_disconnect_by_func(terminal->adjustment,
-					 		     G_CALLBACK(vte_handle_scroll),
+							     G_CALLBACK(vte_handle_scroll),
 							     terminal);
 			g_object_unref(terminal->adjustment);
 		}
