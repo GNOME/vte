@@ -1459,13 +1459,7 @@ vte_sequence_handler_me(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->screen->defaults.blink = 0;
-	terminal->pvt->screen->defaults.half = 0;
-	terminal->pvt->screen->defaults.invisible = 0;
-	terminal->pvt->screen->defaults.reverse = 0;
-	terminal->pvt->screen->defaults.underline = 0;
-	terminal->pvt->screen->defaults.bold = 0;
-	terminal->pvt->screen->defaults.standout = 0;
+	vte_terminal_set_default_attributes(terminal);
 }
 
 /* Invisible on. */

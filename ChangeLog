@@ -1,4 +1,8 @@
-2002-04-29 20:57  nalin
+2002-04-29 14:25  nalin
+	* src/vte.c: Handle me() by resetting all attributes (including
+	colors, which we weren't resetting before).
+
+2002-04-29 10:57  nalin
 	* src/vte.c: Handle kb by treating it as a backspace.  Make pangox
 	rendering the default.  Handle control-key sequences better, unless
 	the input method is hiding the modifiers from us.  Set the default
