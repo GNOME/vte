@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2002-07-25 23:14+0200\n"
+"POT-Creation-Date: 2002-07-25 17:52-0400\n"
 "PO-Revision-Date: 2002-07-25 23:33+0200\n"
 "Last-Translator: Ole Laursen <olau@hardworking.dk>\n"
 "Language-Team: Danish <dansk@klid.dk>\n"
@@ -78,7 +78,9 @@ msgstr "Advarsel: bruger skrifttypesættet \"%s\" som mangle disse tegnsæt: %s.
 #: src/vte.c:8411
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
-msgstr "Kunne ikke indlæse Xft-skrifttypemønstret \"%s\", falder tilbage til standardskrifttypen."
+msgstr ""
+"Kunne ikke indlæse Xft-skrifttypemønstret \"%s\", falder tilbage til "
+"standardskrifttypen."
 
 #: src/vte.c:8424
 msgid "Failed to load default Xft font."
@@ -91,11 +93,15 @@ msgstr "Fejl ved allokering af Xft-skrifttype, deaktiverer Xft."
 #: src/vte.c:8491
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
-msgstr "Kunne ikke indlæse skrifttypesættet \"%s\", falder tilbage til standardskrifttypen."
+msgstr ""
+"Kunne ikke indlæse skrifttypesættet \"%s\", falder tilbage til "
+"standardskrifttypen."
 
 #: src/vte.c:8503
 msgid "Failed to load default font, crashing or behaving abnormally."
-msgstr "Kunne ikke indlæse standardskrifttypen; vil nu gå ned eller udvise anormal adfærd."
+msgstr ""
+"Kunne ikke indlæse standardskrifttypen; vil nu gå ned eller udvise anormal "
+"adfærd."
 
 #: src/vte.c:8586
 #, c-format
