@@ -66,7 +66,7 @@ fi
 
 # Use glX if we have it and it isn't disabled.
 if test "$have_x" = yes ; then
-	AC_ARG_WITH(glX,[  --with-glX              enable drawing using glX],with_glx=$withval,with_glx=yes)
+	AC_ARG_WITH(glX,[  --with-glX              enable drawing using glX],with_glx=$withval,with_glx=no)
 	if test $with_glx = yes ; then
 		have_gl=0
 		have_libgl=0
