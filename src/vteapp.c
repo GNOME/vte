@@ -90,7 +90,8 @@ main(int argc, char **argv)
 	GtkWidget *window, *hbox, *scrollbar, *widget;
 	char *env_add[] = {"FOO=BAR", "BOO=BIZ", NULL};
 	const char *background = NULL;
-	gboolean transparent = FALSE, audible = TRUE, blink = TRUE;
+	gboolean transparent = FALSE, audible = TRUE, blink = TRUE,
+		 debug = FALSE;
 	const char *message = "Launching interactive shell...\r\n";
 	const char *font = NULL;
 	const char *terminal = NULL;
@@ -101,13 +102,14 @@ main(int argc, char **argv)
 			    "[ [-B image] | [-T] ] "
 			    "[-a] "
 			    "[-b] "
+			    "[-d] "
 			    "[-c command] "
 			    "[-f font] "
 			    "[-t terminaltype]\n";
 	back.red = back.green = back.blue = 0xffff;
 	fore.red = fore.green = fore.blue = 0x7000;
 	/* Parse some command-line options. */
-	while ((opt = getopt(argc, argv, "B:Tabc:f:ht:")) != -1) {
+	while ((opt = getopt(argc, argv, "B:Tabc:df:ht:")) != -1) {
 		switch (opt) {
 			case 'B':
 				background = optarg;
@@ -124,6 +126,9 @@ main(int argc, char **argv)
 			case 'c':
 				command = optarg;
 				break;
+			case 'd':
+				debug = !debug;
+				break;
 			case 'f':
 				font = optarg;
 				break;
@@ -139,6 +144,7 @@ main(int argc, char **argv)
 	}
 
 	gtk_init(&argc, &argv);
+	gdk_window_set_debug_updates(debug);
 
 	/* Create a window to hold the scrolling shell, and hook its
 	 * delete event to the quit function.. */

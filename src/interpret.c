@@ -21,6 +21,8 @@
 #include <sys/types.h>
 #include <assert.h>
 #include <ctype.h>
+#include <errno.h>
+#include <langinfo.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,6 +31,7 @@
 #include <glib.h>
 #include <glib-object.h>
 #include "caps.h"
+#include "debug.h"
 #include "termcap.h"
 #include "trie.h"
 
@@ -53,6 +56,11 @@ main(int argc, char **argv)
 
 	if (argc > 2) {
 		infile = fopen(argv[2], "r");
+		if (infile == NULL) {
+			g_print("error opening %s: %s\n", argv[2],
+				strerror(errno));
+			exit(1);
+		}
 	} else {
 		infile = stdin;
 	}
@@ -97,6 +105,11 @@ main(int argc, char **argv)
 						     vte_trie_wide_encoding(),
 						     "UTF-8",
 						     NULL, &ubuflen, &error);
+			if (error != NULL) {
+				g_print("%s\n",
+					error->message ? error->message : "?");
+				g_clear_error(&error);
+			}
 			vte_trie_match(trie, ubuf, ubuflen / sizeof(gunichar),
 				       &tmp, NULL, &quark, &values);
 			if (tmp != NULL) {

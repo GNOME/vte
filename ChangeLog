@@ -1,3 +1,6 @@
+2002-07-19  nalin
+	* src/vte.c: Undo the scrolling changes -- there too many combinations
+	of circumstances that cause them to not work right.
 2002-07-18  nalin
 	* src/vte.c: Fudge the repaint line count by one when scrolling regions
 	to ensure that the old cursor gets repainted.  Calculate the area which

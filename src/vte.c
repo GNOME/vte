@@ -472,10 +472,6 @@ vte_terminal_scroll_region(VteTerminal *terminal,
 			   long row, long count, long delta)
 {
 	GtkWidget *widget;
-	VteScreen *screen;
-	GdkGC *gc;
-	gint src_x, src_y, width, height, dest_x, dest_y, w, h;
-	gint refresh_row, refresh_count;
 	gboolean repaint = TRUE;
 
 	if ((delta == 0) || (count == 0)) {
@@ -483,52 +479,14 @@ vte_terminal_scroll_region(VteTerminal *terminal,
 		return;
 	}
 
-	/* We only do this if we don't have a background to keep looking right
-	 * and if we're not scrolling the entire region. */
+	/* We only do this if we're scrolling the entire window. */
 	if (!terminal->pvt->bg_transparent &&
 	    (terminal->pvt->bg_image == NULL) &&
-	    (MAX(delta, -delta) < count)) {
+	    (row == 0) &&
+	    (count == terminal->row_count)) {
 		widget = GTK_WIDGET(terminal);
-		gc = widget->style->mid_gc[GTK_WIDGET_STATE(widget)];
-
-		/* Convenience variables. */
-		w = terminal->char_width;
-		h = terminal->char_height;
-		screen = terminal->pvt->screen;
-
-		/* Things which are the same regardless of which direction
-		 * we're going to scroll. */
-		src_x = dest_x = 0;
-		width = w * terminal->column_count;
-		height = h * (count - MAX(delta, -delta));
-
-		/* The source and destination locations depend on the scrolling
-		 * direction and amount, and we fudge by one because the cursor
-		 * is likely to be on the edge, and we need to redraw it. */
-		if (delta > 0) {
-			src_y = h * (row - screen->scroll_delta);
-			dest_y = src_y + h * delta;
-			refresh_row = row;
-			refresh_count = delta + 1;
-		} else {
-			dest_y = h * (row - screen->scroll_delta);
-			src_y = dest_y + h * (-delta);
-			refresh_row = row + count - (-delta) - 1;
-			refresh_count = (-delta) + 1;
-		}
-
-		/* XCopyArea. */
-		gdk_draw_drawable(widget->window, gc, widget->window,
-				  src_x, src_y,
-				  dest_x, dest_y,
-				  width, height);
-
-		/* Expose the newly-exposed portion of the area. */
-		vte_invalidate_cells(terminal,
-				     0, terminal->column_count,
-				     refresh_row, refresh_count);
-
-		/* Don't need to repaint the entire region any more. */
+		gdk_window_scroll(widget->window,
+				  0, delta * terminal->char_height);
 		repaint = FALSE;
 	}
 
@@ -1513,10 +1471,12 @@ vte_sequence_handler_al(VteTerminal *terminal,
 			GValueArray *params)
 {
 	VteScreen *screen;
-	GtkWidget *widget;
-	long start, end;
+	long start, end, param, i;
+	GValue *value;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	widget = GTK_WIDGET(terminal);
+
+	/* Find out which part of the screen we're messing with. */
 	screen = terminal->pvt->screen;
 	start = screen->cursor_current.row;
 	if (screen->scrolling_restricted) {
@@ -1524,10 +1484,24 @@ vte_sequence_handler_al(VteTerminal *terminal,
 	} else {
 		end = screen->insert_delta + terminal->row_count - 1;
 	}
-	vte_remove_line_int(terminal, end);
-	vte_insert_line_int(terminal, start);
+
+	/* Extract any parameters. */
+	param = 1;
+	if ((params != NULL) && (params->n_values > 0)) {
+		value = g_value_array_get_nth(params, 0);
+		param = g_value_get_long(value);
+	}
+
+	/* Insert the right number of lines. */
+	for (i = 0; i < param; i++) {
+		/* Clear a line off the end of the region and add one to the
+		 * top of the region. */
+		vte_remove_line_int(terminal, end);
+		vte_insert_line_int(terminal, start);
+	}
+
 	/* Update the display. */
-	vte_terminal_scroll_region(terminal, start, end - start + 1, 1);
+	vte_terminal_scroll_region(terminal, start, end - start + 1, param);
 }
 
 /* Add N lines at the current cursor position. */
@@ -1538,8 +1512,7 @@ vte_sequence_handler_AL(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	vte_sequence_handler_multiple(terminal, match, match_quark, params,
-				      vte_sequence_handler_al);
+	vte_sequence_handler_al(terminal, match, match_quark, params);
 }
 
 /* Start using alternate character set. */
@@ -1973,8 +1946,12 @@ vte_sequence_handler_dl(VteTerminal *terminal,
 			GValueArray *params)
 {
 	VteScreen *screen;
-	long start, end;
+	long start, end, param, i;
+	GValue *value;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	/* Find out which part of the screen we're messing with. */
 	screen = terminal->pvt->screen;
 	start = screen->cursor_current.row;
 	if (screen->scrolling_restricted) {
@@ -1982,10 +1959,24 @@ vte_sequence_handler_dl(VteTerminal *terminal,
 	} else {
 		end = screen->insert_delta + terminal->row_count - 1;
 	}
-	vte_remove_line_int(terminal, start);
-	vte_insert_line_int(terminal, end);
+
+	/* Extract any parameters. */
+	param = 1;
+	if ((params != NULL) && (params->n_values > 0)) {
+		value = g_value_array_get_nth(params, 0);
+		param = g_value_get_long(value);
+	}
+
+	/* Delete the right number of lines. */
+	for (i = 0; i < param; i++) {
+		/* Clear a line off the end of the region and add one to the
+		 * top of the region. */
+		vte_remove_line_int(terminal, start);
+		vte_insert_line_int(terminal, end);
+	}
+
 	/* Update the display. */
-	vte_terminal_scroll_region(terminal, start, end - start + 1, -1);
+	vte_terminal_scroll_region(terminal, start, end - start + 1, -param);
 }
 
 /* Delete N lines at the current cursor position. */
@@ -1996,8 +1987,7 @@ vte_sequence_handler_DL(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	vte_sequence_handler_multiple(terminal, match, match_quark, params,
-				      vte_sequence_handler_dl);
+	vte_sequence_handler_dl(terminal, match, match_quark, params);
 }
 
 /* Make sure we have enough rows and columns to hold data at the current
@@ -2086,8 +2076,8 @@ vte_sequence_handler_do(VteTerminal *terminal,
 		start = screen->insert_delta + screen->scrolling_region.start;
 		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
-		start = screen->scrolling_region.start + screen->insert_delta;
-		end = screen->insert_delta + terminal->row_count - 1;
+		start = screen->insert_delta;
+		end = start + terminal->row_count - 1;
 	}
 
 	if (screen->cursor_current.row == end) {
@@ -3764,7 +3754,7 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 	/* Find the region we're messing with. */
 	row = screen->cursor_current.row;
 	if (screen->scrolling_restricted) {
-		end = screen->scrolling_region.end + screen->insert_delta;
+		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
 		end = screen->insert_delta + terminal->row_count - 1;
 	}
@@ -3803,7 +3793,7 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 	/* Find the region we're messing with. */
 	row = screen->cursor_current.row;
 	if (screen->scrolling_restricted) {
-		end = screen->scrolling_region.end + screen->insert_delta;
+		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
 		end = screen->insert_delta + terminal->row_count - 1;
 	}
@@ -3811,8 +3801,8 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 	for (i = 0; i < param; i++) {
 		/* Insert a line at the end of the region and remove one from
 		 * the top of the region. */
-		vte_insert_line_int(terminal, end);
 		vte_remove_line_int(terminal, row);
+		vte_insert_line_int(terminal, end);
 	}
 	/* Update the display. */
 	vte_terminal_scroll_region(terminal, row,
@@ -8585,6 +8575,7 @@ vte_handle_scroll(VteTerminal *terminal)
 	}
 	/* This may generate multiple redraws, so freeze it while we do them. */
 	gdk_window_freeze_updates(widget->window);
+
 	/* Read the new adjustment value and save the difference. */
 	adj = floor(gtk_adjustment_get_value(terminal->adjustment));
 	dy = screen->scroll_delta - adj;
@@ -8593,6 +8584,7 @@ vte_handle_scroll(VteTerminal *terminal)
 		vte_terminal_scroll_region(terminal, screen->scroll_delta,
 					   terminal->row_count, dy);
 	}
+
 	/* Let the refreshing begin. */
 	gdk_window_thaw_updates(widget->window);
 }
