@@ -1,3 +1,7 @@
+2003-02-21  Metin Amiroff  <metin@karegen.com>
+
+	* configure.in:  Added az to ALL_LINGUAS.
+
 2003-02-20 nalin
 	* src/keymap.c(_vte_keymap_map): in debug mode, skip coverage assertions
 	for specific keys (GDK_2 - GDK_8).
