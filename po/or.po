@@ -1,0 +1,114 @@
+# Oriya translation of vte.HEAD.pot.
+# Copyright (C) 2004, Free Software Foundation, Inc.
+# This file is distributed under the same license as the vte package.
+# Gora Mohanty <gora_mohanty@yahoo.co.in>, 2004.
+# $Id$
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte.HEAD.or\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2004-08-11 12:24+0200\n"
+"PO-Revision-Date: 2004-08-11 23:00+0530\n"
+"Last-Translator: Gora Mohanty <gora_mohanty@yahoo.co.in>\n"
+"Language-Team: Oriya <oriya-group@lists.sarovar.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2091
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "ଅକ୍ଷରଗୁଡ଼ିକୁ %sରୁ %sରେ ବଦଳାଇବାରେ ଅସମର୍ଥ."
+
+#: src/iso2022.c:1578
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr "ଅବୈଧ ଏନ.ଆର.ସି. ନକ୍ସା '%c' ବିନ୍ଯାସ କରିବାର ଚେଷ୍ଟା."
+
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1619
+msgid "Unrecognized identified coding system."
+msgstr "ଅଚିହ୍ନା ପରିଚିତ ସଙ୍କେତ ତନ୍ତ୍ର"
+
+#: src/iso2022.c:1668 src/iso2022.c:1694
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr "ଅବୈଧ ଓସାରିଆ ଏନ.ଆର.ସି. ନକ୍ସା '%c' ବିନ୍ଯାସ କରିବାର ଚେଷ୍ଟା."
+
+#: src/pty.c:329
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "`%s'କୁ ପରିବେଶରେ ଯୋଗେଇବାରେ ତ୍ରୁଟି, ଆଗଉଛି."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:914
+#, c-format
+msgid "can not run %s"
+msgstr "%s ଚଳେଇ ହେଲା ନାହିଁ"
+
+#: src/reaper.c:156
+msgid "Error creating signal pipe."
+msgstr "ସଙ୍କେତ ପାଇପ୍ ସୃଷ୍ଟି କରିବାରେ ତ୍ରୁଟି."
+
+#: src/trie.c:412
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "ନକଲ (%s/%s)!"
+
+#: src/vte.c:1499
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "\"%s\" ନିୟମିତ ପରିପ୍ରକାଶ ସଂକଳନ କରିବାରେ ତ୍ରୁଟି."
+
+#: src/vte.c:5851
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "ଅପ୍ରତ୍ଯାଶିତ (ଚାବି?) ଅନୁକ୍ରମ `%s' ମିଳିଲା."
+
+#: src/vte.c:6947
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "`%s' ନିୟନ୍ତ୍ରଣ ଅନୁକ୍ରମ ପାଇଁ କୌଣସି ଚାଳକ ନିର୍ଦ୍ଦିଷ୍ଟ ହୋଇ ନାହିଁ."
+
+#: src/vte.c:7789
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "ନିର୍ଭରକରୁ ପଢ଼ିବାରେ ତ୍ରୁଟି: %s."
+
+#: src/vte.c:7945
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "ନିର୍ଭରକ ପାଇଁ ତଥ୍ଯ ରୂପାନ୍ତର କରିବାରେ ତ୍ରୁଟି (%s), ଛାଡ଼ୁଛି."
+
+#: src/vte.c:10754
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "ପି.ଟି.ୱାଇ. ଆକାର ପଢ଼ିବାରେ ତ୍ରୁଟି: %s, ପୂର୍ବନିର୍ଦ୍ଧାରିତ ମୂଲ୍ଯ ବ୍ଯବହାର କରାଯାଉଛି."
+
+#: src/vte.c:10790
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "ପି.ଟି.ୱାଇ. ଆକାର ବିନ୍ଯାସ କରିବାରେ ତ୍ରୁଟି: %s."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:15274
+msgid "_vte_conv_open() failed setting word characters"
+msgstr "_vte_conv_open() ଶବ୍ଦର ଅକ୍ଷରଗୁଡ଼ିକ ବିନ୍ଯାସ କରିବାରେ ଅସମର୍ଥ"
+
+#. Bail back to normal mode.
+#: src/vteapp.c:728
+msgid "Could not open console.\n"
+msgstr "କନ୍ସୋଲ ଖୋଲିହେଲା ନାହିଁ.\n"
+
+#: src/vteglyph.c:579
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr "ଅଜଣା ପିକ୍ସେଲ ଧାରା %d.\n"
+
+#: src/vtexft.c:712
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr "U+%04x ଅକ୍ଷର ଅଙ୍କନ କରିହେଲା ନାହିଁ.\n"
