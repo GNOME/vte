@@ -86,6 +86,7 @@ struct _VteTerminalPrivate {
 #endif
 	} palette[16];
 	XFontSet fontset;
+
 #ifdef HAVE_XFT
 	XftFont *ftfont;
 	gboolean use_xft;
@@ -153,18 +154,16 @@ static void
 vte_terminal_set_default_attributes(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	memset(&terminal->pvt->screen->defaults, 0,
-	       sizeof(terminal->pvt->screen->defaults));
 	terminal->pvt->screen->defaults.fore = 7;
 	terminal->pvt->screen->defaults.back = 0;
 	terminal->pvt->screen->defaults.reverse = 0;
-	terminal->pvt->screen->defaults.invisible = 0;
-	terminal->pvt->screen->defaults.half = 0;
-	terminal->pvt->screen->defaults.underline = 0;
-	terminal->pvt->screen->defaults.blink = 0;
-	terminal->pvt->screen->defaults.standout = 0;
 	terminal->pvt->screen->defaults.bold = 0;
-	terminal->pvt->screen->defaults.alternate = 0;
+	terminal->pvt->screen->defaults.invisible = 0;
+	terminal->pvt->screen->defaults.standout = 0;
+	terminal->pvt->screen->defaults.underline = 0;
+	terminal->pvt->screen->defaults.half = 0;
+	terminal->pvt->screen->defaults.blink = 0;
+	/* terminal->pvt->screen->defaults.alternate = 0; */
 }
 
 /* Cause certain cells to be updated. */
@@ -237,6 +236,13 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal)
 	 * page size to the number of visible rows. */
 	if (terminal->adjustment->page_increment != page_size) {
 		terminal->adjustment->page_increment = page_size;
+		changed = TRUE;
+	}
+	/* Set the scrollbar adjustment to where the screen wants it to be. */
+	if (floor(gtk_adjustment_get_value(terminal->adjustment)) !=
+	    terminal->pvt->screen->scroll_delta) {
+		gtk_adjustment_set_value(terminal->adjustment,
+					 terminal->pvt->screen->scroll_delta);
 		changed = TRUE;
 	}
 	/* If anything changed, signal that there was a change. */
@@ -402,7 +408,7 @@ vte_sequence_handler_AL(VteTerminal *terminal,
 				      vte_sequence_handler_al);
 }
 
-/* Begin alternate character set. */
+/* Start using alternate character set. */
 static void
 vte_sequence_handler_as(VteTerminal *terminal,
 			const char *match,
@@ -765,11 +771,6 @@ vte_sequence_handler_do(VteTerminal *terminal,
 		rows = MAX(screen->row_data->len,
 			   screen->cursor_current.row + 1);
 		delta = MAX(0, rows - terminal->row_count);
-
-		/* Invalidate the cells the cursor was on and is on. */
-		vte_invalidate_cells(terminal,
-				     col, 1,
-				     row - delta, 2);
 
 		/* Update scroll bar adjustments. */
 		vte_terminal_adjust_adjustments(terminal);
@@ -2941,22 +2942,6 @@ vte_handle_scroll(VteTerminal *terminal)
 		 * as much as possible. */
 		gdk_window_scroll(widget->window,
 				  0, dy * terminal->char_height);
-#if 0
-		/* Trigger an expose on newly-exposed areas. */
-		if (dy > 0) {
-			vte_invalidate_cells(terminal,
-					     0,
-					     terminal->column_count,
-					     screen->cursor_current.row - dy,
-					     dy);
-		} else {
-			vte_invalidate_cells(terminal,
-					     0,
-					     terminal->column_count,
-					     0,
-					     -dy);
-		}
-#endif
 	}
 	/* Let the refreshing begin. */
 	gdk_window_thaw_updates(widget->window);
@@ -3567,11 +3552,18 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 					xright = xleft + width - 1;
 					ybottom = ytop + height - 1;
 					xcenter = (xleft + xright) / 2;
+#if 0
+					ycenter = ytop + ascent / 2;
+#else
 					ycenter = (ytop + ybottom) / 2;
+#endif
 					/* Draw the alternate charset data. */
 					XSetForeground(display, gc,
 						       terminal->pvt->palette[fore].pixel);
 					switch (cell->c) {
+						case 95:
+							/* drawing a blank */
+							break;
 						case 106:
 							XDrawLine(display,
 								  drawable,
@@ -3834,8 +3826,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 	if (terminal->pvt->screen->cursor_visible) {
 		/* Draw the insertion cursor in the foreground color for this
-		 * cell, shrinking it by one pixel to keep from overflowing
-		 * into the next character cell. */
+		 * cell. */
 		col = screen->cursor_current.col;
 		row = screen->cursor_current.row;
 		cell = vte_terminal_find_charcell(terminal, row - delta, col);
@@ -3846,8 +3837,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		XFillRectangle(display, drawable, gc,
 			       col * width - x_offs,
 			       (row - delta) * height - y_offs,
-			       width - 1,
-			       height - 1);
+			       width,
+			       height);
 		/* If we have a character in this spot, draw it in the reverse
 		 * of the normal color. */
 		if (cell != NULL) {
@@ -3874,6 +3865,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		XftDrawDestroy(ftdraw);
 	}
 #endif
+
 	XFreeGC(display, gc);
 }
 
