@@ -1,3 +1,9 @@
+2005-02-15  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* src/dumpkeys.c: Fix build on NetBSD and Darwin.
+	Patch from Adrian Bunk <bunk at stusta de>. Closes
+	bug #126377.
+
 2004-12-07 Rajesh Ranjan<rranjan@redhat.com>
 	* configure.in: included the hi locale in ALL_LINGUAS 
 2004-11-16 nalin

@@ -18,6 +18,9 @@
 
 #ident "$Id$"
 #include "../config.h"
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif
@@ -25,7 +28,6 @@
 #include <sys/termios.h>
 #endif
 #include <sys/time.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <signal.h>
