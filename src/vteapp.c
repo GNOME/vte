@@ -385,7 +385,8 @@ main(int argc, char **argv)
 	const char *background = NULL;
 	gboolean transparent = FALSE, audible = TRUE, blink = TRUE,
 		 debug = FALSE, dingus = FALSE, geometry = TRUE, dbuffer = TRUE,
-		 console = FALSE, scroll = FALSE, keep = FALSE;
+		 console = FALSE, scroll = FALSE, keep = FALSE,
+		 icon_title = FALSE;
 	long lines = 100;
 	const char *message = "Launching interactive shell...\r\n";
 	const char *font = NULL;
@@ -408,6 +409,7 @@ main(int argc, char **argv)
 			    "[-f font] "
 			    "[-g] "
 			    "[-h] "
+			    "[-i] "
 			    "[-k] "
 			    "[-n] "
 			    "[-t terminaltype]\n";
@@ -479,6 +481,9 @@ main(int argc, char **argv)
 			case 'g':
 				geometry = !geometry;
 				break;
+			case 'i':
+				icon_title = !icon_title;
+				break;
 			case 'k':
 				keep = !keep;
 				break;
@@ -545,8 +550,10 @@ main(int argc, char **argv)
 	 * window's title. */
 	g_signal_connect(G_OBJECT(widget), "window-title-changed",
 			 G_CALLBACK(window_title_changed), window);
-	g_signal_connect(G_OBJECT(widget), "icon-title-changed",
-			 G_CALLBACK(icon_title_changed), window);
+	if (icon_title) {
+		g_signal_connect(G_OBJECT(widget), "icon-title-changed",
+				 G_CALLBACK(icon_title_changed), window);
+	}
 
 	/* Connect to the "eof" signal to quit when the session ends. */
 	g_signal_connect(G_OBJECT(widget), "eof",

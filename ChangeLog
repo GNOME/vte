@@ -1,4 +1,9 @@
 2003-05-29 nalin
+	* src/vteapp.c: require -i for icon-title-changed messages, which got
+	really annoying really fast.
+	* src/trie.c(main): use g_quark_from_static_string for static strings.
+
+2003-05-29 nalin
 	* src/vte.c(vte_terminal_send): fix newline stuffing (used in linefeed
 	mode).
 	* src/vte.c(vte_unicode_strlen): rename to vte_unichar_strlen.

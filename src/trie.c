@@ -869,27 +869,27 @@ main(int argc, char **argv)
 	trie = _vte_trie_new();
 
 	_vte_trie_add(trie, "abcdef", 6, "abcdef",
-		      g_quark_from_string("abcdef"));
+		      g_quark_from_static_string("abcdef"));
 	_vte_trie_add(trie, "abcde", 5, "abcde",
-		      g_quark_from_string("abcde"));
+		      g_quark_from_static_string("abcde"));
 	_vte_trie_add(trie, "abcdeg", 6, "abcdeg",
-		      g_quark_from_string("abcdeg"));
+		      g_quark_from_static_string("abcdeg"));
 	_vte_trie_add(trie, "abc%+Aeg", 8, "abc%+Aeg",
-		      g_quark_from_string("abc%+Aeg"));
+		      g_quark_from_static_string("abc%+Aeg"));
 	_vte_trie_add(trie, "abc%deg", 7, "abc%deg",
-		      g_quark_from_string("abc%deg"));
+		      g_quark_from_static_string("abc%deg"));
 	_vte_trie_add(trie, "abc%%eg", 7, "abc%%eg",
-		      g_quark_from_string("abc%%eg"));
+		      g_quark_from_static_string("abc%%eg"));
 	_vte_trie_add(trie, "abc%%%i%deg", 11, "abc%%%i%deg",
-		      g_quark_from_string("abc%%%i%deg"));
+		      g_quark_from_static_string("abc%%%i%deg"));
 	_vte_trie_add(trie, "<esc>[%i%d;%dH", 14, "vtmatch",
-		      g_quark_from_string("vtmatch"));
+		      g_quark_from_static_string("vtmatch"));
 	_vte_trie_add(trie, "<esc>[%i%mL", 11, "multimatch",
-		      g_quark_from_string("multimatch"));
+		      g_quark_from_static_string("multimatch"));
 	_vte_trie_add(trie, "<esc>[%mL<esc>[%mL", 18, "greedy",
-		      g_quark_from_string("greedy"));
+		      g_quark_from_static_string("greedy"));
 	_vte_trie_add(trie, "<esc>]2;%sh", 11, "decset-title",
-		      g_quark_from_string("decset-title"));
+		      g_quark_from_static_string("decset-title"));
 
 	printf("Wide encoding is `%s'.\n", VTE_CONV_GUNICHAR_TYPE);
 
