@@ -6183,6 +6183,7 @@ static struct {
 	{"invoke-g3-character-set-as-gr", NULL},
 	{"invoke-g3-character-set", NULL},
 	{"iso8859-1-character-set", vte_sequence_handler_local_charset},
+	{"linux-console-cursor-attributes", vte_sequence_handler_noop},
 	{"line-position-absolute", vte_sequence_handler_line_position_absolute},
 	{"media-copy", NULL},
 	{"memory-lock", NULL},

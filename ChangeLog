@@ -1,4 +1,8 @@
 2003-08-13 nalin
+	* src/caps.c: add sequences for linux-console-cursor-attributes, which
+	we'll ignore (bug #108232).
+
+2003-08-13 nalin
 	* configure.in: if we don't find the python headers (even if we found
 	python), disable compilation of python bindings (bug #116756).  Make the
 	checks for python support sequential for easier maintenance.
