@@ -3892,6 +3892,7 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 				  GQuark match_quark,
 				  GValueArray *params)
 {
+	GArray *rowdata;
 	GValue *value;
 	VteScreen *screen;
 	long param, end, row;
@@ -3918,6 +3919,12 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 		 * top of the region. */
 		vte_remove_line_int(terminal, end);
 		vte_insert_line_int(terminal, row);
+		/* Get the data for the new row. */
+		rowdata = vte_ring_index(screen->row_data, GArray*, row);
+		/* Add enough cells to it so that it has the default colors. */
+		while (rowdata->len < terminal->column_count) {
+			g_array_append_val(rowdata, screen->defaults);
+		}
 	}
 	/* Update the display. */
 	vte_terminal_scroll_region(terminal, row,

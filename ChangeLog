@@ -1,3 +1,6 @@
+2002-07-31  nalin
+	* src/vte.c: Initialize new lines created in insert_lines() to the
+	current default attributes like al() does.
 2002-07-30  nalin
 	* configure.in: Check for wint_t and attempt to allow compiles even
 	when wint_t isn't defined (this type is used only debug code, so it
