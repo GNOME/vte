@@ -1,3 +1,7 @@
+2004-07-17  Dinesh Nadarajah <dinesh_list@sbcglobal.net>
+
+	* ta.po: Added tamil Translation
+
 2004-05-02 nalin
 	* src/reaper.c(vte_reaper_add_child): pass the global reaper in as
 	data when adding the child source, not the terminal which called us.
