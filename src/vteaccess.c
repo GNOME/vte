@@ -299,24 +299,6 @@ vte_terminal_accessible_invalidate_cursor(VteTerminal *terminal, gpointer data)
 	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(data));
 }
 
-/* Handle hierarchy changes by resetting the parent object. */
-static void
-vte_terminal_accessible_hierarchy_changed(VteTerminal *terminal, gpointer data)
-{
-	AtkObject *object, *parent;
-
-	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(data));
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-	object = ATK_OBJECT(data);
-	if (GTK_IS_WIDGET((GTK_WIDGET(terminal))->parent)) {
-		parent = gtk_widget_get_accessible((GTK_WIDGET(terminal))->parent);
-	} else {
-		parent = NULL;
-	}
-	atk_object_set_parent(object, parent);
-}
-
 /* Handle title changes by resetting the parent object. */
 static void
 vte_terminal_accessible_title_changed(VteTerminal *terminal, gpointer data)
@@ -351,9 +333,6 @@ vte_terminal_accessible_new(VteTerminal *terminal)
 			 object);
 	g_signal_connect(G_OBJECT(terminal), "cursor-moved",
 			 GTK_SIGNAL_FUNC(vte_terminal_accessible_invalidate_cursor),
-			 object);
-        g_signal_connect(G_OBJECT(terminal), "hierarchy-changed",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_hierarchy_changed),
 			 object);
         g_signal_connect(G_OBJECT(terminal), "window-title-changed",
 			 GTK_SIGNAL_FUNC(vte_terminal_accessible_title_changed),
@@ -391,12 +370,6 @@ vte_terminal_accessible_finalize(GObject *object)
 					     G_SIGNAL_MATCH_DATA,
 					     0, 0, NULL,
 					     vte_terminal_accessible_title_changed,
-					     object);
-	g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
-					     G_SIGNAL_MATCH_FUNC |
-					     G_SIGNAL_MATCH_DATA,
-					     0, 0, NULL,
-					     vte_terminal_accessible_hierarchy_changed,
 					     object);
 	if (gobject_class->finalize != NULL) {
 		gobject_class->finalize(object);
@@ -819,27 +792,6 @@ vte_terminal_accessible_set_caret_offset(AtkText *text, gint offset)
 }
 
 static void
-vte_terminal_accessible_text_changed(AtkText *text, gint position, gint length)
-{
-	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(text));
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
-}
-
-static void
-vte_terminal_accessible_text_caret_moved(AtkText *text, gint location)
-{
-	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(text));
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
-}
-
-static void
-vte_terminal_accessible_text_selection_changed(AtkText *text)
-{
-	g_return_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(text));
-	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
-}
-
-static void
 vte_terminal_accessible_text_init(gpointer iface, gpointer data)
 {
 	AtkTextIface *text;
@@ -862,11 +814,6 @@ vte_terminal_accessible_text_init(gpointer iface, gpointer data)
 	text->remove_selection = vte_terminal_accessible_remove_selection;
 	text->set_selection = vte_terminal_accessible_set_selection;
 	text->set_caret_offset = vte_terminal_accessible_set_caret_offset;
-#if 0
-	text->text_changed = vte_terminal_accessible_text_changed;
-	text->text_caret_moved = vte_terminal_accessible_text_caret_moved;
-	text->text_selection_changed = vte_terminal_accessible_text_selection_changed;
-#endif
 }
 
 static void
