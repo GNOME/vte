@@ -70,6 +70,9 @@
 #define VTE_DEFAULT_CURSOR GDK_XTERM
 #define VTE_MOUSING_CURSOR GDK_LEFT_PTR
 #define VTE_TAB_MAX	999
+#define VTE_REPRESENTATIVE_CHARACTERS	"ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
+					"abcdefgjijklmnopqrstuvwxyz" \
+					"0123456789./+"
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
@@ -4127,7 +4130,6 @@ static struct {
 
 	{"al", vte_sequence_handler_al},
 	{"AL", vte_sequence_handler_AL},
-	{"ac", NULL},
 	{"ae", vte_sequence_handler_ae},
 	{"as", vte_sequence_handler_as},
 
@@ -7357,6 +7359,8 @@ vte_terminal_set_font(VteTerminal *terminal,
 		XftPattern *pattern;
 		XftPattern *matched_pattern;
 		XftResult result;
+		XGlyphInfo glyph_info;
+		char buf[256];
 
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_MISC)) {
@@ -7430,7 +7434,6 @@ vte_terminal_set_font(VteTerminal *terminal,
 		}
 
 		if (new_font == NULL) {
-			char buf[256];
 			if (!XftNameUnparse(matched_pattern, buf, sizeof(buf)-1)) {
 				buf[0] = '\0';
 			}
@@ -7484,7 +7487,13 @@ vte_terminal_set_font(VteTerminal *terminal,
 			ascent = terminal->pvt->ftfont->ascent;
 			descent = terminal->pvt->ftfont->descent;
 			height = terminal->pvt->ftfont->height;
-			width = terminal->pvt->ftfont->max_advance_width;
+			XftTextExtents8(GDK_DISPLAY(), terminal->pvt->ftfont,
+					VTE_REPRESENTATIVE_CHARACTERS,
+					strlen(VTE_REPRESENTATIVE_CHARACTERS),
+					&glyph_info);
+			width = howmany(glyph_info.width,
+					strlen(VTE_REPRESENTATIVE_CHARACTERS));
+			/* width = terminal->pvt->ftfont->max_advance_width; */
 		} else {
 			g_warning("Error allocating Xft font, disabling Xft.");
 			terminal->pvt->use_xft = FALSE;
