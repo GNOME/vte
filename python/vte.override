@@ -7,6 +7,8 @@ headers
 #include <gtk/gtk.h>
 #include "../src/vte.h"
 %%
+modulename vte
+%%
 import gtk.gdk.Pixbuf as PyGdkPixbuf_Type
 import gtk.MenuShell as PyGtkMenuShell_Type
 import gtk.Widget as PyGtkWidget_Type

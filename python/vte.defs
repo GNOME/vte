@@ -1,4 +1,4 @@
-;; -*- scheme -*-
+; -*- scheme -*-
 ; object definitions ...
 (define-object Terminal
   (in-module "Vte")
@@ -42,6 +42,11 @@
 
 (define-function vte_terminal_erase_binding_get_type
   (c-name "vte_terminal_erase_binding_get_type")
+  (return-type "GtkType")
+)
+
+(define-function vte_terminal_anti_alias_get_type
+  (c-name "vte_terminal_anti_alias_get_type")
   (return-type "GtkType")
 )
 

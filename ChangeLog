@@ -1,4 +1,9 @@
 2004-04-19 nalin
+	* python/vte.override: define a modulename override so that the
+	Terminal class is registered in the proper namespace so that python's
+	help() builtin sees the Terminal class (#130267).
+
+2004-04-19 nalin
 	* src/vte.c(vte_terminal_anti_alias_get_type): add, for the sake of
 	bindings.
 
