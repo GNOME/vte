@@ -7296,7 +7296,7 @@ vte_terminal_process_incoming(gpointer data)
 	}
 
 	/* Tell the input method where the cursor is. */
-	if (terminal->pvt->im_context) {
+	if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
 		rect.x = terminal->pvt->screen->cursor_current.col *
 			 terminal->char_width + VTE_PAD_WIDTH;
 		rect.width = terminal->char_width;
@@ -7639,7 +7639,6 @@ vte_terminal_im_commit(GtkIMContext *im_context, gchar *text, gpointer data)
 #endif
 	terminal = VTE_TERMINAL(data);
 	vte_terminal_feed_child(terminal, text, -1);
-	vte_terminal_im_reset(terminal);
 	/* Committed text was committed because the user pressed a key, so
 	 * we need to obey the scroll-on-keystroke setting. */
 	if (terminal->pvt->scroll_on_keystroke) {
@@ -7878,7 +7877,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 
 	/* Let the input method at this one first. */
 	if (!steal) {
-		if (gtk_im_context_filter_keypress(terminal->pvt->im_context,
+		if (GTK_WIDGET_REALIZED(terminal) &&
+		    gtk_im_context_filter_keypress(terminal->pvt->im_context,
 						   event)) {
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
@@ -8129,7 +8129,8 @@ vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
 		terminal->pvt->modifiers = modifiers;
 	}
 
-	return gtk_im_context_filter_keypress(terminal->pvt->im_context, event);
+	return GTK_WIDGET_REALIZED(terminal) &&
+	       gtk_im_context_filter_keypress(terminal->pvt->im_context, event);
 }
 
 /**
@@ -8317,7 +8318,6 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 				strlen(text));
 		}
 #endif
-		vte_terminal_im_reset(terminal);
 		/* Convert newlines to carriage returns, which more software
 		 * is able to cope with (cough, pico, cough). */
 		paste = g_strdup(text);

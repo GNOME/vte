@@ -1,4 +1,12 @@
 2003-02-20 nalin
+	* src/vte.c(vte_terminal_im_commit,vte_terminal_paste_cb): stop
+	gratuitously resetting the IM context.
+	* src/vte.c(vte_terminal_process_incoming): correctly determine when
+	we have an IM context -- it should be iff we're realized.
+	* src/vte.c(vte_terminal_key_press/release): only filter keypresses
+	through the IM context if we're realized, otherwise it doesn't exist.
+
+2003-02-20 nalin
 	* src/vte.c(vte_terminal_paint): reverse that last change -- don't
 	always assume proportional text.
 	* src/vte.c(vte_sequence_handler_ta): eliminate dead code.
