@@ -47,7 +47,7 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %defattr(-,root,root)
 %doc ChangeLog COPYING HACKING NEWS README
 %{_libdir}/*.so.*.*
-%{_datadir}/*
+%{_datadir}/%{name}
 %{_libdir}/python*/site-packages/*
 
 %files devel
@@ -62,6 +62,7 @@ make install DESTDIR=$RPM_BUILD_ROOT
 * Mon Aug 12 2002 Nalin Dahyabhai <nalin@redhat.com> 0.7.3-1
 - more fixes for behavior when not realized
 - require bitmap-fonts
+- escape a control sequence properly
 
 * Thu Aug  8 2002 Nalin Dahyabhai <nalin@redhat.com> 0.7.2-1
 - fix cursor over reversed text
