@@ -74,7 +74,9 @@ iso2022_SOURCES = \
 	debug.c \
 	debug.h \
 	iso2022.c \
-	iso2022.h
+	iso2022.h \
+	table.c \
+	table.h
 iso2022_LDADD = @LIBS@ @GLIB_LIBS@
 
 utf8echo_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DUTF8ECHO_MAIN

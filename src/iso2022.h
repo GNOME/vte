@@ -23,6 +23,7 @@
 
 #include <glib.h>
 #include <glib-object.h>
+#include "table.h"
 
 G_BEGIN_DECLS
 
@@ -32,7 +33,7 @@ struct vte_iso2022 *vte_iso2022_copy(struct vte_iso2022 *original);
 void vte_iso2022_free(struct vte_iso2022 *p);
 gssize vte_iso2022_substitute(struct vte_iso2022 *state,
 			      gunichar *instring, gssize length,
-			      gunichar *outstring);
+			      gunichar *outstring, struct vte_table *specials);
 
 G_END_DECLS
 

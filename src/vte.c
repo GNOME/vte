@@ -5794,7 +5794,8 @@ vte_terminal_process_incoming(gpointer data)
 	/* Perform ISO-2022 and XTerm national charset substitutions. */
 	substitutions = vte_iso2022_copy(terminal->pvt->substitutions);
 	substitution_count = vte_iso2022_substitute(substitutions,
-						    wbuf, wcount, wbuf);
+						    wbuf, wcount, wbuf,
+						    terminal->pvt->table);
 	if (substitution_count < 0) {
 		vte_iso2022_free(substitutions);
 		g_free(obufptr);

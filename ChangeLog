@@ -1,4 +1,10 @@
 2002-08-21 nalin
+	* src/iso2022.c(vte_iso2022_substitute): Take a vte_table as an
+	additional argument, and don't mess with text that's part of a control
+	sequence, even if it's in shifted-out text.
+	* src/table.c(vte_table_match): Speed up for the no-arguments-requested
+	case, which just became much more common.
+2002-08-21 nalin
 	* src/vte.c(vte_terminal_draw_rows): Cap the maximum number of
 	characters we draw in a single call to vte_terminal_draw_cells at a
 	reasonable number.

@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.8.1
+Version: 0.8.2
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -61,6 +61,9 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Wed Aug 21 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.2-1
+- don't perform text substitution on text that is part of a control sequence
+
 * Tue Aug 20 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.1-1
 - dispose of the updated iso2022 context properly when processing incoming text
 

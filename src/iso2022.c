@@ -25,6 +25,7 @@
 #include <glib-object.h>
 #include <gdk/gdkkeysyms.h>
 #include "debug.h"
+#include "table.h"
 #include "iso2022.h"
 
 /* Maps which jive with XTerm's ESC ()*+ ? sequences and RFC 1468. */
@@ -412,7 +413,7 @@ vte_iso2022_map_get(gunichar mapname)
 gssize
 vte_iso2022_substitute(struct vte_iso2022 *outside_state,
 		       gunichar *instring, gssize length,
-		       gunichar *outstring)
+		       gunichar *outstring, struct vte_table *specials)
 {
 	int i, j, k, g;
 	struct vte_iso2022 state;
@@ -420,6 +421,8 @@ vte_iso2022_substitute(struct vte_iso2022 *outside_state,
 	gpointer ptr;
 	gunichar *buf, current_map = '\0', last_map = '\0', result;
 	unsigned int accumulator;
+	const char *match;
+	const gunichar *used;
 	int chars_per_code = 1;
 
 	g_return_val_if_fail(outside_state != NULL, 0);
@@ -430,101 +433,65 @@ vte_iso2022_substitute(struct vte_iso2022 *outside_state,
 	buf = g_malloc(sizeof(gunichar) * length);
 	state = *outside_state;
 
-	for (i = j = 0; i < length; i++)
-	switch (instring[i]) {
-	case '':
-		/* SO/LS1 */
-		state.current = 1;
-#ifdef VTE_DEBUG
-		if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-			fprintf(stderr, "SO/LS1.\n");
-		}
-#endif
-		continue;
-		break;
-	case '':
-		/* SI/LS0 */
-		state.current = 0;
-#ifdef VTE_DEBUG
-		if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-			fprintf(stderr, "SI/LS0.\n");
-		}
-#endif
-		continue;
-		break;
-	case '\r':
-	case '\n':
-		/* Reset overrides. */
-		state.override = '\0';
-		goto plain;
-	case '':
-		/* Reset overrides. */
-		state.override = '\0';
-		/* Begins a control sequence.  Make sure there's another
-		 * character for us to read. */
-		if (i + 1 >= length) {
-			g_free(buf);
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-				fprintf(stderr,
-					"Incomplete specifier: "
-					"need %d bytes, have "
-					"%d.\n", 1, length - i);
-			}
-#endif
-			return -1;
-		}
-		switch (instring[i + 1]) {
-		case '(':	/* Designate G0/GL. */
-		case ')':	/* Designate G1/GR. */
-		case '*':	/* Designate G2. */
-		case '+':	/* Designate G3. */
-			g = -1;
-			if (instring[i + 1] == '(') {
-				g = 0;
-			} else
-			if (instring[i + 1] == ')') {
-				g = 1;
-			} else
-			if (instring[i + 2] == '*') {
-				g = 2;
-			} else
-			if (instring[i + 2] == '+') {
-				g = 3;
+	for (i = j = 0; i < length; i++) {
+		if ((specials != NULL) &&
+		    (vte_table_match(specials, instring + i, length - i,
+				     &match, &used, NULL, NULL) != NULL)) {
+			if (strlen(match) > 0) {
+				/* Aaargh, SI/SO masquerade as capabilities. */
+				if ((strcmp(match, "as") != 0) &&
+				    (strcmp(match, "ae") != 0)) {
+					memcpy(buf + j, instring + i,
+					       sizeof(gunichar) *
+					       (used - (instring + i)));
+					j += (used - (instring + i));
+					i = (used - instring) - 1;
+					continue;
+				}
 			} else {
-				g_assert_not_reached();
-			}
-			/* Designate Gx.  Must be another character here. */
-			if (i + 2 >= length) {
 				g_free(buf);
 #ifdef VTE_DEBUG
 				if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
 					fprintf(stderr,
-						"Incomplete specifier: "
-						"need %d bytes, have "
-						"%d.\n", 2, length - i);
+						"Incomplete sequence: "
+						"need %d bytes,\n", length);
 				}
 #endif
 				return -1;
 			}
-			/* We only handle maps we recognize. */
-			if (strchr(NARROW_MAPS, instring[i + 2]) == NULL) {
-				continue;
-			}
-			/* Set Gx. */
-			state.g[g] = instring[i + 2];
-			i += 2;
+		}
+		switch (instring[i]) {
+		case '':
+			/* SO/LS1 */
+			state.current = 1;
 #ifdef VTE_DEBUG
 			if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-				fprintf(stderr, "G%d set to `%c'.\n",
-					g, state.g[g]);
+				fprintf(stderr, "SO/LS1.\n");
 			}
 #endif
 			continue;
 			break;
-		case '$':
-			/* Designate Gx.  Must be another character here. */
-			if (i + 2 >= length) {
+		case '':
+			/* SI/LS0 */
+			state.current = 0;
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+				fprintf(stderr, "SI/LS0.\n");
+			}
+#endif
+			continue;
+			break;
+		case '\r':
+		case '\n':
+			/* Reset overrides. */
+			state.override = '\0';
+			goto plain;
+		case '':
+			/* Reset overrides. */
+			state.override = '\0';
+			/* Begins a control sequence.  Make sure there's another
+			 * character for us to read. */
+			if (i + 1 >= length) {
 				g_free(buf);
 #ifdef VTE_DEBUG
 				if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
@@ -536,13 +503,28 @@ vte_iso2022_substitute(struct vte_iso2022 *outside_state,
 #endif
 				return -1;
 			}
-			switch (instring[i + 2]) {
-			case '(':	/* Designate G0/GL wide. */
-			case ')':	/* Designate G1/GR wide. */
-			case '*':	/* Designate G2 wide. */
-			case '+':	/* Designate G3 wide. */
-				/* Need another character here. */
-				if (i + 3 >= length) {
+			switch (instring[i + 1]) {
+			case '(':	/* Designate G0/GL. */
+			case ')':	/* Designate G1/GR. */
+			case '*':	/* Designate G2. */
+			case '+':	/* Designate G3. */
+				g = -1;
+				if (instring[i + 1] == '(') {
+					g = 0;
+				} else
+				if (instring[i + 1] == ')') {
+					g = 1;
+				} else
+				if (instring[i + 2] == '*') {
+					g = 2;
+				} else
+				if (instring[i + 2] == '+') {
+					g = 3;
+				} else {
+					g_assert_not_reached();
+				}
+				/* Designate Gx.  Must be another character here. */
+				if (i + 2 >= length) {
 					g_free(buf);
 #ifdef VTE_DEBUG
 					if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
@@ -554,218 +536,267 @@ vte_iso2022_substitute(struct vte_iso2022 *outside_state,
 #endif
 					return -1;
 				}
-				g = -1;
-				if (instring[i + 2] == '(') {
-					g = 0;
-				} else
-				if (instring[i + 2] == ')') {
-					g = 1;
-				} else
-				if (instring[i + 2] == '*') {
-					g = 2;
-				} else
-				if (instring[i + 2] == '+') {
-					g = 3;
-				} else {
-					g_assert_not_reached();
-				}
 				/* We only handle maps we recognize. */
-				if (strchr(WIDE_GMAPS, instring[i + 3]) == NULL) {
-					continue;
+				if (strchr(NARROW_MAPS, instring[i + 2]) == NULL) {
+					goto plain;
 				}
 				/* Set Gx. */
-				state.g[g] = instring[i + 3] + WIDE_FUDGE;
-				i += 3;
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-					fprintf(stderr,
-						"G%d set to wide `%c'.\n",
-						g, state.g[g] - WIDE_FUDGE);
-				}
-#endif
-				continue;
-				break;
-			default:
-				/* Override. */
-				if (strchr(WIDE_MAPS, instring[i + 2]) == NULL) {
-					continue;
-				}
-				/* Set the current map. */
-				state.override = instring[i + 2] + WIDE_FUDGE;
+				state.g[g] = instring[i + 2];
 				i += 2;
 #ifdef VTE_DEBUG
 				if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-					fprintf(stderr,
-						"Override set to wide `%c'.\n",
-						state.override - WIDE_FUDGE);
+					fprintf(stderr, "G%d set to `%c'.\n",
+						g, state.g[g]);
 				}
 #endif
 				continue;
-			}
-			break;
-
-		case 'n':
-			/* LS2 */
-			state.current = 2;
-			i++;
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-				fprintf(stderr, "LS2.\n");
-			}
-#endif
-			continue;
-			break;
-		case 'o':
-			/* LS3 */
-			state.current = 3;
-			i++;
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-				fprintf(stderr, "LS3.\n");
-			}
-#endif
-			continue;
-			break;
-		case 'N':
-			/* SS2 */
-			state.ss2 = TRUE;
-			i++;
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-				fprintf(stderr, "SS2.\n");
-			}
-#endif
-			continue;
-			break;
-		case 'O':
-			/* SS3 */
-			state.ss3 = TRUE;
-			i++;
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-				fprintf(stderr, "SS3.\n");
-			}
-#endif
-			continue;
-			break;
-		/* default:
-			fall through */
-		}
-	plain:
-	default:
-		/* Reset override maps. */
-		switch (instring[i]) {
-		case '\n':
-		case '\r':
-		case '':
-			state.override = 0;
-			break;
-		}
-		/* Determine which map we should use here. */
-		if (state.override != 0) {
-			current_map = state.override;
-		} else
-		if (state.ss2) {
-			current_map = state.g[2];
-			state.ss2 = FALSE;
-		} else
-		if (state.ss3) {
-			current_map = state.g[3];
-			state.ss3 = FALSE;
-		} else {
-			g_assert(state.current < G_N_ELEMENTS(state.g));
-			current_map = state.g[state.current];
-		}
-		/* Build. */
-		if (current_map > WIDE_FUDGE) {
-			switch (current_map) {
-			case '@' + WIDE_FUDGE:
-			case 'A' + WIDE_FUDGE:
-			case 'B' + WIDE_FUDGE:
-			case 'C' + WIDE_FUDGE:
-			case 'D' + WIDE_FUDGE:
-				chars_per_code = 2;
 				break;
-			case 'G' + WIDE_FUDGE:
-			case 'H' + WIDE_FUDGE:
-				chars_per_code = 3;
+			case '$':
+				/* Designate Gx.  Must be another character here. */
+				if (i + 2 >= length) {
+					g_free(buf);
+#ifdef VTE_DEBUG
+					if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+						fprintf(stderr,
+							"Incomplete specifier: "
+							"need %d bytes, have "
+							"%d.\n", 3, length - i);
+					}
+#endif
+					return -1;
+				}
+				switch (instring[i + 2]) {
+				case '(':	/* Designate G0/GL wide. */
+				case ')':	/* Designate G1/GR wide. */
+				case '*':	/* Designate G2 wide. */
+				case '+':	/* Designate G3 wide. */
+					/* Need another character here. */
+					if (i + 3 >= length) {
+						g_free(buf);
+#ifdef VTE_DEBUG
+						if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+							fprintf(stderr,
+								"Incomplete specifier: "
+								"need %d bytes, have "
+								"%d.\n", 4, length - i);
+						}
+#endif
+						return -1;
+					}
+					g = -1;
+					if (instring[i + 2] == '(') {
+						g = 0;
+					} else
+					if (instring[i + 2] == ')') {
+						g = 1;
+					} else
+					if (instring[i + 2] == '*') {
+						g = 2;
+					} else
+					if (instring[i + 2] == '+') {
+						g = 3;
+					} else {
+						g_assert_not_reached();
+					}
+					/* We only handle maps we recognize. */
+					if (strchr(WIDE_GMAPS, instring[i + 3]) == NULL) {
+						goto plain;
+					}
+					/* Set Gx. */
+					state.g[g] = instring[i + 3] + WIDE_FUDGE;
+					i += 3;
+#ifdef VTE_DEBUG
+					if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+						fprintf(stderr,
+							"G%d set to wide `%c'.\n",
+							g, state.g[g] - WIDE_FUDGE);
+					}
+#endif
+					continue;
+					break;
+				default:
+					/* Override. */
+					if (strchr(WIDE_MAPS, instring[i + 2]) == NULL) {
+						goto plain;
+					}
+					/* Set the current map. */
+					state.override = instring[i + 2] + WIDE_FUDGE;
+					i += 2;
+#ifdef VTE_DEBUG
+					if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+						fprintf(stderr,
+							"Override set to wide `%c'.\n",
+							state.override - WIDE_FUDGE);
+					}
+#endif
+					continue;
+				}
+				break;
+
+			case 'n':
+				/* LS2 */
+				state.current = 2;
+				i++;
+#ifdef VTE_DEBUG
+				if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+					fprintf(stderr, "LS2.\n");
+				}
+#endif
+				continue;
+				break;
+			case 'o':
+				/* LS3 */
+				state.current = 3;
+				i++;
+#ifdef VTE_DEBUG
+				if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+					fprintf(stderr, "LS3.\n");
+				}
+#endif
+				continue;
+				break;
+			case 'N':
+				/* SS2 */
+				state.ss2 = TRUE;
+				i++;
+#ifdef VTE_DEBUG
+				if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+					fprintf(stderr, "SS2.\n");
+				}
+#endif
+				continue;
+				break;
+			case 'O':
+				/* SS3 */
+				state.ss3 = TRUE;
+				i++;
+#ifdef VTE_DEBUG
+				if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+					fprintf(stderr, "SS3.\n");
+				}
+#endif
+				continue;
 				break;
 			default:
-				chars_per_code = 1;
+				goto plain;
 				break;
 			}
-		} else {
-			chars_per_code = 1;
-		}
-		/* We need at least this many characters. */
-		if (i + chars_per_code > length) {
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-				fprintf(stderr, "Incomplete multibyte sequence "
-					"at %d: need %d bytes, have %d.\n",
-					i, chars_per_code, length - i);
+		plain:
+		default:
+			/* Reset override maps. */
+			switch (instring[i]) {
+			case '\n':
+			case '\r':
+			case '':
+				state.override = 0;
+				break;
 			}
-#endif
-			g_free(buf);
-			return -1;
-		}
-		/* Build up the character. */
-		accumulator = 0;
-		for (k = 0; k < chars_per_code; k++) {
-			accumulator = (accumulator << 8) | instring[i + k];
-		}
-		/* Load a new map if need be. */
-		if (current_map != last_map) {
-#ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-				if (last_map == '\0') {
-					fprintf(stderr,
-						"Charmap set to %s`%c'.\n",
-						(current_map > WIDE_FUDGE) ?
-						"wide " : "",
-						current_map % WIDE_FUDGE);
-				} else {
-					fprintf(stderr,
-						"Charmap changed to %s`%c'.\n",
-						(current_map > WIDE_FUDGE) ?
-						"wide " : "",
-						current_map % WIDE_FUDGE);
-				}
-			}
-#endif
-			charmap = vte_iso2022_map_get(current_map);
-			last_map = current_map;
-		}
-		/* Translate. */
-		if (charmap == NULL) {
-			result = accumulator;
-		} else {
-			ptr = GINT_TO_POINTER(accumulator);
-			result = GPOINTER_TO_INT(g_tree_lookup(charmap, ptr));
-			if (result == 0) {
-				result = accumulator;
-#ifdef VTE_DEBUG
+			/* Determine which map we should use here. */
+			if (state.override != 0) {
+				current_map = state.override;
+			} else
+			if (state.ss2) {
+				current_map = state.g[2];
+				state.ss2 = FALSE;
+			} else
+			if (state.ss3) {
+				current_map = state.g[3];
+				state.ss3 = FALSE;
 			} else {
+				g_assert(state.current < G_N_ELEMENTS(state.g));
+				current_map = state.g[state.current];
+			}
+			/* Build. */
+			if (current_map > WIDE_FUDGE) {
+				switch (current_map) {
+				case '@' + WIDE_FUDGE:
+				case 'A' + WIDE_FUDGE:
+				case 'B' + WIDE_FUDGE:
+				case 'C' + WIDE_FUDGE:
+				case 'D' + WIDE_FUDGE:
+					chars_per_code = 2;
+					break;
+				case 'G' + WIDE_FUDGE:
+				case 'H' + WIDE_FUDGE:
+					chars_per_code = 3;
+					break;
+				default:
+					chars_per_code = 1;
+					break;
+				}
+			} else {
+				chars_per_code = 1;
+			}
+			/* We need at least this many characters. */
+			if (i + chars_per_code > length) {
+#ifdef VTE_DEBUG
 				if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-					if (accumulator != result) {
+					fprintf(stderr, "Incomplete multibyte sequence "
+						"at %d: need %d bytes, have %d.\n",
+						i, chars_per_code, length - i);
+				}
+#endif
+				g_free(buf);
+				return -1;
+			}
+			/* Build up the character. */
+			accumulator = 0;
+			for (k = 0; k < chars_per_code; k++) {
+				accumulator = (accumulator << 8) | instring[i + k];
+			}
+			/* Load a new map if need be. */
+			if (current_map != last_map) {
+#ifdef VTE_DEBUG
+				if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+					if (last_map == '\0') {
 						fprintf(stderr,
-							"0x%x -> 0x%x\n",
-							accumulator, result);
+							"Charmap set to %s`%c'.\n",
+							(current_map > WIDE_FUDGE) ?
+							"wide " : "",
+							current_map % WIDE_FUDGE);
+					} else {
+						fprintf(stderr,
+							"Charmap changed to %s`%c'.\n",
+							(current_map > WIDE_FUDGE) ?
+							"wide " : "",
+							current_map % WIDE_FUDGE);
 					}
 				}
 #endif
+				charmap = vte_iso2022_map_get(current_map);
+				last_map = current_map;
 			}
-		}
-		/* Store. */
-		buf[j++] = result;
-		accumulator = 0;
+			/* Translate. */
+			if (charmap == NULL) {
+				result = accumulator;
+			} else {
+				ptr = GINT_TO_POINTER(accumulator);
+				result = GPOINTER_TO_INT(g_tree_lookup(charmap, ptr));
+				if (result == 0) {
+					result = accumulator;
 #ifdef VTE_DEBUG
-		if (vte_debug_on(VTE_DEBUG_SUBSTITUTION) && 0) {
-			fprintf(stderr, "`%c' (%d)\n", result, result);
-		}
+				} else {
+					if (vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+						if (accumulator != result) {
+							fprintf(stderr,
+								"0x%x -> 0x%x\n",
+								accumulator, result);
+						}
+					}
 #endif
-		i += (chars_per_code - 1);
-		break;
+				}
+			}
+			/* Store. */
+			buf[j++] = result;
+			accumulator = 0;
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_SUBSTITUTION) && 0) {
+				fprintf(stderr, "`%c' (%d)\n", result, result);
+			}
+#endif
+			i += (chars_per_code - 1);
+			break;
+		}
 	}
 
 	if (j > 0) {
@@ -896,7 +927,7 @@ main(int argc, char **argv)
 #endif
 		state = vte_iso2022_new();
 		debug_print(stderr, samples[i]);
-		length = vte_iso2022_substitute(state, sample, j, sample);
+		length = vte_iso2022_substitute(state, sample, j, sample, NULL);
 		debug_printu(stderr, sample, length);
 		vte_iso2022_free(state);
 		g_free(sample);

@@ -445,7 +445,6 @@ vte_table_match(struct vte_table *table,
 	const char *dummy_res = NULL;
 	GQuark dummy_quark = 0;
 	GValueArray *dummy_array = NULL;
-	GValue *value;
 	const char *ret = NULL;
 	unsigned char *original = NULL, *p = NULL;
 	gssize original_length;
@@ -512,7 +511,7 @@ vte_table_match(struct vte_table *table,
 	*res = ret;
 
 	/* If we got a match, extract the parameters. */
-	if ((ret != NULL) && (strlen(ret) > 0)) {
+	if ((ret != NULL) && (strlen(ret) > 0) && (array != &dummy_array)) {
 		tmp = params;
 		g_assert(original != NULL);
 		p = original;
@@ -578,17 +577,6 @@ vte_table_match(struct vte_table *table,
 			g_free(tmp->data);
 		}
 		g_list_free(params);
-	}
-
-	/* Clean up the array if the caller doesn't want it. */
-	if (dummy_array != NULL) {
-		for (i = 0; i < dummy_array->n_values; i++) {
-			value = g_value_array_get_nth(dummy_array, i);
-			if (G_VALUE_HOLDS_POINTER(value)) {
-				g_free(g_value_get_pointer(value));
-			}
-		}
-		g_value_array_free(dummy_array);
 	}
 
 	return ret;

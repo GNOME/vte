@@ -134,7 +134,8 @@ main(int argc, char **argv)
 			substlen = vte_iso2022_substitute(tmpsubst,
 							  ubuf,
 							  ubuflen / sizeof(gunichar),
-							  ubuf);
+							  ubuf,
+							  table);
 			if (substlen < 0) {
 				/* Incomplete state-change. */
 				vte_iso2022_free(tmpsubst);
@@ -196,7 +197,7 @@ main(int argc, char **argv)
 				}
 				for (j = 0; j < substlen; j++) {
 					if (ubuf[j] < 32) {
-						printf("`^%c'\n", ubuf[j]);
+						printf("`^%c'\n", ubuf[j] + 64);
 					} else
 					if (ubuf[j] < 127) {
 						printf("`%c'\n", ubuf[j]);
