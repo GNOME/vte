@@ -150,6 +150,36 @@ static struct _vte_keymap_entry _vte_keymap_GDK_ISO_Left_Tab[] = {
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
+/* Various numeric keys enter control characters. */
+static struct _vte_keymap_entry _vte_keymap_GDK_2[] = {
+	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\0", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
+};
+static struct _vte_keymap_entry _vte_keymap_GDK_3[] = {
+	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\033", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
+};
+static struct _vte_keymap_entry _vte_keymap_GDK_4[] = {
+	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\034", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
+};
+static struct _vte_keymap_entry _vte_keymap_GDK_5[] = {
+	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\035", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
+};
+static struct _vte_keymap_entry _vte_keymap_GDK_6[] = {
+	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\036", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
+};
+static struct _vte_keymap_entry _vte_keymap_GDK_7[] = {
+	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\037", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
+};
+static struct _vte_keymap_entry _vte_keymap_GDK_8[] = {
+	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\177", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
+};
+
 /* Home and End are strange cases because their sequences vary wildly from
  * system to system, or mine's just broken.  But anyway. */
 static struct _vte_keymap_entry _vte_keymap_GDK_Home[] = {
@@ -765,6 +795,14 @@ static struct _vte_keymap_group {
 	/* GDK_Delete is all handled in code, due to funkiness. */
 	{GDK_Page_Up,		_vte_keymap_GDK_Page_Up},
 	{GDK_Page_Down,		_vte_keymap_GDK_Page_Down},
+
+	{GDK_2,			_vte_keymap_GDK_2},
+	{GDK_3,			_vte_keymap_GDK_3},
+	{GDK_4,			_vte_keymap_GDK_4},
+	{GDK_5,			_vte_keymap_GDK_5},
+	{GDK_6,			_vte_keymap_GDK_6},
+	{GDK_7,			_vte_keymap_GDK_7},
+	{GDK_8,			_vte_keymap_GDK_8},
 
 	{GDK_Up,		_vte_keymap_GDK_Up},
 	{GDK_Down,		_vte_keymap_GDK_Down},
