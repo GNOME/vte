@@ -135,6 +135,14 @@ GtkWidget *vte_terminal_new(void);
 pid_t vte_terminal_fork_command(VteTerminal *terminal,
 			        const char *command, char **argv, char **envv);
 
+/* If you need the session logged, try this instead. */
+pid_t vte_terminal_fork_logged_command(VteTerminal *terminal,
+				       const char *command, char **argv,
+				       char **envv,
+				       gboolean lastlog,
+				       gboolean utmp,
+				       gboolean wtmp);
+
 /* Send data to the terminal to display, or to the terminal's forked command
  * to handle in some way.  If it's 'cat', they should be the same. */
 void vte_terminal_feed(VteTerminal *terminal, const char *data, glong length);
@@ -272,6 +280,17 @@ const char *vte_terminal_get_status_line(VteTerminal *terminal);
 
 /* Get the padding the widget is using. */
 void vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad);
+
+/* Accessors for bindings. */
+GtkAdjustment *vte_terminal_get_adjustment(VteTerminal *terminal);
+glong vte_terminal_get_char_width(VteTerminal *terminal);
+glong vte_terminal_get_char_height(VteTerminal *terminal);
+glong vte_terminal_get_char_descent(VteTerminal *terminal);
+glong vte_terminal_get_char_ascent(VteTerminal *terminal);
+glong vte_terminal_get_row_count(VteTerminal *terminal);
+glong vte_terminal_get_column_count(VteTerminal *terminal);
+const char *vte_terminal_get_window_title(VteTerminal *terminal);
+const char *vte_terminal_get_icon_title(VteTerminal *terminal);
 
 G_END_DECLS
 

@@ -4,19 +4,35 @@ import getopt
 import gtk
 import vte
 
-# FIXME: figure out why we don't get a PID here.
-def exited_cb(terminal):
+def child_exited_cb(terminal):
 	gtk.mainquit()
 
 if __name__ == '__main__':
 	child_pid = -1;
 	# Defaults.
+	audible = 0
+	background = None
+	blink = 0
+	command = None
 	emulation = "xterm"
 	font = "fixed 12"
-	command = None
+	transparent = 0
+	visible = 0
 	# Let the user override them.
-	(shorts, longs) = getopt.getopt(sys.argv[1:], "c:t:f:", ["command=", "terminal=", "font="])
+	(shorts, longs) = getopt.getopt(sys.argv[1:], "B:Tabc:f:t:v", ["background", "transparent", "audible", "blink", "command=", "font=", "terminal=", "visible"])
 	for argpair in (shorts + longs):
+		if ((argpair[0] == '-B') or (argpair[0] == '--background')):
+			print "Setting background image to `" + argpair[1] + "'."
+			background = argpair[1]
+		if ((argpair[0] == '-T') or (argpair[0] == '--transparent')):
+			print "Setting transparency."
+			transparent = not transparent
+		if ((argpair[0] == '-a') or (argpair[0] == '--audible')):
+			print "Setting audible bell."
+			audible = not audible
+		if ((argpair[0] == '-b') or (argpair[0] == '--blink')):
+			print "Setting blinking cursor."
+			blink = not blink
 		if ((argpair[0] == '-c') or (argpair[0] == '--command')):
 			print "Running command `" + argpair[1] + "'."
 			command = argpair[1]
@@ -26,11 +42,21 @@ if __name__ == '__main__':
 		if ((argpair[0] == '-t') or (argpair[0] == '--terminal')):
 			print "Setting terminal type to `" + argpair[1] + "'."
 			emulation = argpair[1]
+		if ((argpair[0] == '-v') or (argpair[0] == '--visible')):
+			print "Setting visible bell."
+			visible = not visible
 	window = gtk.Window()
 	terminal = vte.Terminal()
+	if (background):
+		terminal.set_background_image(background)
+	if (transparent):
+		terminal.set_background_transparent(gtk.TRUE)
+	terminal.set_cursor_blinks(blink)
 	terminal.set_emulation(emulation)
 	terminal.set_font_from_string(font)
-	terminal.connect("child-exited", exited_cb)
+	terminal.set_audible_bell(audible)
+	terminal.set_visible_bell(visible)
+	terminal.connect("child-exited", child_exited_cb)
 	if (command):
 		# Start up the specified command.
 		child_pid = terminal.fork_command(command)
@@ -38,6 +64,14 @@ if __name__ == '__main__':
 		# Start up the default command, the user's shell.
 		child_pid = terminal.fork_command()
 	terminal.show()
-	window.add(terminal)
-	window.show()
+
+	scrollbar = gtk.VScrollbar()
+	scrollbar.set_adjustment(terminal.get_adjustment())
+
+	box = gtk.HBox()
+	box.pack_start(terminal)
+	box.pack_start(scrollbar)
+
+	window.add(box)
+	window.show_all()
 	gtk.main()

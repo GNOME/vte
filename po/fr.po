@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte 0.7.0\n"
-"POT-Creation-Date: 2002-09-05 01:51-0400\n"
+"POT-Creation-Date: 2002-09-11 00:56-0400\n"
 "PO-Revision-Date: 2002-08-02 12:01+0200\n"
 "Last-Translator: Laurent RICHARD <kouran@iespana.es>\n"
 "Language-Team: GNOME French Team <gnomefr@traduc.org>\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:126
+#: src/pty.c:106
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Erreur lors de l'ajout de « %s » à l'environnement, ignore."
@@ -27,98 +27,98 @@ msgstr "Erreur lors de la création du signal de tube."
 msgid "Duplicate (%s/%s)!"
 msgstr "Dupliquer (%s/%s) ! "
 
-#: src/vte.c:1167
+#: src/vte.c:1175
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Erreur lors de la compilation de l'expression régulière « %s »."
 
-#: src/vte.c:1637 src/vte.c:1646 src/vte.c:1658 src/vte.c:1676 src/vte.c:1681
-#: src/vte.c:1686
+#: src/vte.c:1645 src/vte.c:1654 src/vte.c:1666 src/vte.c:1684 src/vte.c:1689
+#: src/vte.c:1694
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Impossible de convertir les caractères %s en %s."
 
-#: src/vte.c:4886
+#: src/vte.c:4893
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Séquence (clé ?) imprévue « %s »."
 
-#: src/vte.c:5671
+#: src/vte.c:5679
 #, c-format
 msgid "Character 0x%x is undefined, allocating one column."
 msgstr "Caractère 0x%x non défini, attribution d'une colonne."
 
-#: src/vte.c:5865
+#: src/vte.c:5873
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Pas de manipulation définie pour la séquence de contrôle « %s »."
 
-#: src/vte.c:6442
+#: src/vte.c:6483
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Erreur lors de la lecture du fils : « %s »."
 
-#: src/vte.c:6628
+#: src/vte.c:6673
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Erreur (%s) lors de la conversion de données pour le fils, abandon."
 
-#: src/vte.c:8698
+#: src/vte.c:8745
 #, fuzzy, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
 msgstr ""
 "Avertissement : utilisation de la police de caractère « %s » dans lequel ces "
 "caractères sont manquants : %s. "
 
-#: src/vte.c:9238
+#: src/vte.c:9285
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr ""
 "Échec du chargement du modèle de police Xft « %s », utilisation de la police "
 "par défaut."
 
-#: src/vte.c:9250
+#: src/vte.c:9297
 msgid "Failed to load default Xft font."
 msgstr "Échec du chargement la police Xft par défaut."
 
-#: src/vte.c:9343
+#: src/vte.c:9390
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr ""
 "Échec du chargement du jeu de police « %s », utilisation de la police par "
 "défaut."
 
-#: src/vte.c:9355
+#: src/vte.c:9402
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr ""
 "Échec du chargement de la police par défaut, crash ou comportement anormal."
 
-#: src/vte.c:9614
+#: src/vte.c:9664
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Erreur lors de la lecture de la taille PTY, utilisation par défaut : %s."
 
-#: src/vte.c:9650
+#: src/vte.c:9700
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Erreur lors du paramètrage de la taille PTY : « %s »."
 
-#: src/vte.c:12148
+#: src/vte.c:12205
 msgid "Error allocating draw, disabling Xft."
 msgstr "Erreur lors de l'attribution du dessin, désactivation de Xft."
 
-#: src/vte.c:12155
+#: src/vte.c:12212
 msgid "Error allocating context, disabling Pango."
 msgstr "Erreur lors de l'attribution du contexte, désactivation de Pango."
 
-#: src/vte.c:12161
+#: src/vte.c:12218
 msgid "Error allocating layout, disabling Pango."
 msgstr ""
 "Erreur lors de l'attribution de la disposition, désactivation de Pango."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:13608
+#: src/vte.c:13669
 msgid "g_iconv_open() failed setting word characters"
 msgstr "g_iconv_open() a échoué dans le paramètrage des caractères."
 

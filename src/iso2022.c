@@ -42,7 +42,7 @@ struct _vte_iso2022_map {
 };
 
 struct _vte_iso2022 {
-	int current, override;
+	unsigned int current, override;
 	gboolean ss2, ss3;
 	gunichar g[4];
 };
@@ -811,14 +811,14 @@ _vte_iso2022_substitute(struct _vte_iso2022 *outside_state,
 
 #ifdef ISO2022_MAIN
 static void
-debug_print(FILE *fp, const unsigned char *string)
+debug_print(FILE *fp, const char *string)
 {
 	int i;
 	for (i = 0; string[i] != '\0'; i++) {
-		if (string[i] < 32) {
+		if (((guint8)string[i]) < 32) {
 			fprintf(fp, "^%c", string[i] + 64);
 		} else
-		if (string[i] < 128) {
+		if (((guint8)string[i]) < 128) {
 			fprintf(fp, "%c", string[i]);
 		} else {
 			fprintf(fp, "{0x%02x}", string[i]);
@@ -865,7 +865,7 @@ main(int argc, char **argv)
 
 	if (argc > 1) {
 		putc('', stdout);
-		switch(argv[1][0]) {
+		switch (argv[1][0]) {
 		case '0':
 		case 'A':
 		case 'B':
@@ -888,7 +888,7 @@ main(int argc, char **argv)
 			putc(argv[1][0], stdout);
 			break;
 		case '-':
-			switch(argv[1][1]) {
+			switch (argv[1][1]) {
 			case '@':
 			case 'B':
 				putc('$', stdout);

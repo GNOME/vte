@@ -348,9 +348,9 @@ struct _vte_capability_quark _vte_terminal_capability_strings[] = {
 	{"us", FALSE, 0},
 
 	{"vb", FALSE, 0},
-	/* {"ve", 0}, */
-	{"vi", 0},
-	/* {"vsFALSE, ", 0}, */
+	/* {"ve", FALSE, 0}, */
+	{"vi", FALSE, 0},
+	/* {"vs", FALSE, 0}, */
 
 	{"wi", FALSE, 0},
 

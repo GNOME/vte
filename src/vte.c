@@ -25,7 +25,6 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <langinfo.h>
 #include <math.h>
 #include <pwd.h>
 #include <regex.h>
@@ -35,7 +34,9 @@
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
+#ifdef HAVE_WCHAR_H
 #include <wchar.h>
+#endif
 #include <glib.h>
 #include <glib-object.h>
 #include <gdk/gdk.h>
@@ -198,14 +199,14 @@ struct _VteTerminalPrivate {
 	const char *encoding;		/* the pty's encoding */
 	struct _vte_iso2022 *substitutions;
 	GIConv incoming_conv;		/* narrow/unichar conversion state */
-	unsigned char *incoming;	/* pending output characters */
-	gssize n_incoming;
+	char *incoming;			/* pending output characters */
+	gsize n_incoming;
 	gboolean processing;
 	gint processing_tag;
 
 	/* Output data queue. */
-	unsigned char *outgoing;	/* pending input characters */
-	gssize n_outgoing;
+	char *outgoing;			/* pending input characters */
+	gsize n_outgoing;
 	GIConv outgoing_conv_wide;
 	GIConv outgoing_conv_utf8;
 
@@ -481,7 +482,7 @@ vte_wc_from_unichar(VteTerminal *terminal, gunichar c)
 	int ret;
 	gsize length, bytes_read, bytes_written;
 	mbstate_t state;
-	GError *error;
+	GError *error = NULL;
 	/* Check the cache. */
 	if (g_tree_lookup_extended(terminal->pvt->unichar_wc_map,
 				   GINT_TO_POINTER(c),
@@ -730,16 +731,23 @@ static gboolean
 vte_invalidate_cursor_periodic(gpointer data)
 {
 	VteTerminal *terminal;
+	GtkWidget *widget;
 	GtkSettings *settings;
 	gint blink_cycle = 1000;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
-	if (!GTK_WIDGET_REALIZED(GTK_WIDGET(data))) {
+	widget = GTK_WIDGET(data);
+	if (!GTK_WIDGET_REALIZED(widget)) {
+		return TRUE;
+	}
+	if (!GTK_WIDGET_HAS_FOCUS(widget)) {
 		return TRUE;
 	}
 
-	terminal = VTE_TERMINAL(data);
-	vte_invalidate_cursor_once(data);
+	terminal = VTE_TERMINAL(widget);
+	if (terminal->pvt->cursor_blinks) {
+		vte_invalidate_cursor_once(terminal);
+	}
 
 	settings = gtk_widget_get_settings(GTK_WIDGET(data));
 	if (G_IS_OBJECT(settings)) {
@@ -1367,13 +1375,13 @@ vte_terminal_emit_adjustment_changed(gpointer data)
 {
 	VteTerminal *terminal;
 	terminal = VTE_TERMINAL(data);
-	if (terminal->pvt->adjustment_changed_tag != -1) {
+	if (terminal->pvt->adjustment_changed_tag) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
 			fprintf(stderr, "Emitting adjustment_changed.\n");
 		}
 #endif
-		terminal->pvt->adjustment_changed_tag = -1;
+		terminal->pvt->adjustment_changed_tag = 0;
 		gtk_adjustment_changed(terminal->adjustment);
 	}
 	return FALSE;
@@ -1383,7 +1391,7 @@ vte_terminal_emit_adjustment_changed(gpointer data)
 static void
 vte_terminal_queue_adjustment_changed(VteTerminal *terminal)
 {
-	if (terminal->pvt->adjustment_changed_tag != -1) {
+	if (terminal->pvt->adjustment_changed_tag == 0) {
 		terminal->pvt->adjustment_changed_tag =
 				g_idle_add_full(VTE_ADJUSTMENT_PRIORITY,
 						vte_terminal_emit_adjustment_changed,
@@ -1538,7 +1546,7 @@ vte_sequence_handler_offset(VteTerminal *terminal,
 			    int increment,
 			    VteTerminalSequenceHandler handler)
 {
-	int i;
+	guint i;
 	long val;
 	GValue *value;
 	/* Decrement the parameters and let the _cs handler deal with it. */
@@ -1624,7 +1632,7 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	GQuark encoding_quark;
 	GIConv conv, new_iconv, new_oconvw, new_oconvu;
 	char *ibuf, *obuf, *obufptr;
-	gssize icount, ocount;
+	gsize icount, ocount;
 
 	old_codeset = terminal->pvt->encoding;
 	if (codeset == NULL) {
@@ -3651,7 +3659,7 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 	GValue *value;
 	GIConv conv;
 	char *inbuf = NULL, *outbuf = NULL, *outbufptr = NULL;
-	gssize inbuf_len, outbuf_len;
+	gsize inbuf_len, outbuf_len;
 	/* Get the string parameter's value. */
 	value = g_value_array_get_nth(params, 0);
 	if (value) {
@@ -4613,8 +4621,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 	Display *display;
 	char buf[LINE_MAX];
 	long param, arg1, arg2;
-	guint width, height;
-	int i;
+	guint width, height, i;
 
 	widget = GTK_WIDGET(terminal);
 	screen = terminal->pvt->screen;
@@ -5327,6 +5334,7 @@ vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
 	GdkColor color;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail(entry >= 0);
 	g_return_if_fail(entry < G_N_ELEMENTS(terminal->pvt->palette));
 
 	/* Save the requested color. */
@@ -5796,7 +5804,7 @@ display_control_sequence(const char *name, GValueArray *params)
 	/* Display the control sequence with its parameters, to
 	 * help me debug this thing.  I don't have all of the
 	 * sequences implemented yet. */
-	int i;
+	guint i;
 	long l;
 	const char *s;
 	const gunichar *w;
@@ -5818,7 +5826,7 @@ display_control_sequence(const char *name, GValueArray *params)
 			} else
 			if (G_VALUE_HOLDS_POINTER(value)) {
 				w = g_value_get_pointer(value);
-				fprintf(stderr, "\"%ls\"", (wchar_t*) w);
+				fprintf(stderr, "\"%ls\"", (const wchar_t*) w);
 			}
 		}
 	}
@@ -5901,22 +5909,27 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 }
 
 /**
- * vte_terminal_fork_command:
+ * vte_terminal_fork_logged_command:
  * @terminal: a #VteTerminal
  * @command: the name of a binary to run
  * @argv: the argument list to be passed to @command
  * @envv: a list of environment variables to be added to the environment before
  * starting @command
+ * @lastlog: TRUE if the session should be logged to the lastlog
+ * @utmp: TRUE if the session should be logged to the utmp/utmpx log
+ * @wtmp: TRUE if the session should be logged to the wtmp/wtmpx log
  *
  * Starts the specified command under a newly-alllocated control
  * pseudo-terminal.  TERM is automatically set to reflect the terminal widget's
- * emulation setting.
+ * emulation setting.  If @lastlog, @utmp, or @wtmp are TRUE, logs the session
+ * to the specified system log files.
  *
  * Returns: the ID of the new process
  */
 pid_t
-vte_terminal_fork_command(VteTerminal *terminal, const char *command,
-			  char **argv, char **envv)
+vte_terminal_fork_logged_command(VteTerminal *terminal, const char *command,
+				 char **argv, char **envv,
+				 gboolean lastlog, gboolean utmp, gboolean wtmp)
 {
 	char **env_add;
 	int i;
@@ -5940,12 +5953,18 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 	}
 	env_add[i + 1] = NULL;
 
-	terminal->pvt->pty_master = vte_pty_open(&pid,
-						 env_add,
-						 command,
-						 argv,
-						 terminal->column_count,
-						 terminal->row_count);
+	if (terminal->pvt->pty_master != -1) {
+		vte_pty_close(terminal->pvt->pty_master);
+	}
+	terminal->pvt->pty_master = vte_pty_open_with_logging(&pid,
+							      env_add,
+							      command,
+							      argv,
+							      terminal->column_count,
+							      terminal->row_count,
+							      lastlog,
+							      utmp,
+							      wtmp);
 
 	for (i = 0; env_add[i] != NULL; i++) {
 		g_free(env_add[i]);
@@ -5990,6 +6009,28 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 	return pid;
 }
 
+/**
+ * vte_terminal_fork_command:
+ * @terminal: a #VteTerminal
+ * @command: the name of a binary to run
+ * @argv: the argument list to be passed to @command
+ * @envv: a list of environment variables to be added to the environment before
+ * starting @command
+ *
+ * Starts the specified command under a newly-alllocated control
+ * pseudo-terminal.  TERM is automatically set to reflect the terminal widget's
+ * emulation setting.
+ *
+ * Returns: the ID of the new process
+ */
+pid_t
+vte_terminal_fork_command(VteTerminal *terminal, const char *command,
+			  char **argv, char **envv)
+{
+	return vte_terminal_fork_logged_command(terminal, command, argv, envv,
+						FALSE, FALSE, FALSE);
+}
+
 /* Handle an EOF from the client. */
 static void
 vte_terminal_eof(GIOChannel *channel, gpointer data)
@@ -6032,7 +6073,7 @@ vte_terminal_im_reset(VteTerminal *terminal)
 static void
 free_params_array(GValueArray *params)
 {
-	int i;
+	guint i;
 	GValue *value;
 	gpointer ptr;
 	if (params != NULL) {
@@ -6064,7 +6105,7 @@ vte_terminal_process_incoming(gpointer data)
 	GtkWidget *widget;
 	GdkRectangle rect;
 	char *ibuf, *obuf, *obufptr, *ubuf, *ubufptr;
-	gssize icount, ocount, ucount;
+	gsize icount, ocount, ucount;
 	gunichar *wbuf, c;
 	long wcount, start;
 	const char *match, *encoding;
@@ -6135,7 +6176,7 @@ vte_terminal_process_incoming(gpointer data)
 		}
 #endif
 		terminal->pvt->processing = FALSE;
-		terminal->pvt->processing_tag = -1;
+		terminal->pvt->processing_tag = 0;
 		g_free(obufptr);
 		return terminal->pvt->processing;
 	}
@@ -6369,7 +6410,7 @@ vte_terminal_process_incoming(gpointer data)
 	 * note that our source tag is about to become invalid. */
 	terminal->pvt->processing = again && (terminal->pvt->n_incoming > 0);
 	if (terminal->pvt->processing == FALSE) {
-		terminal->pvt->processing_tag = -1;
+		terminal->pvt->processing_tag = 0;
 	}
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_IO)) {
@@ -6565,11 +6606,11 @@ vte_terminal_io_write(GIOChannel *channel,
 			int i;
 			for (i = 0; i < count; i++) {
 				fprintf(stderr, "Wrote %c%c\n",
-					terminal->pvt->outgoing[i] >= 32 ?
+					((guint8)terminal->pvt->outgoing[i]) >= 32 ?
 					' ' : '^',
-					terminal->pvt->outgoing[i] >= 32 ?
+					((guint8)terminal->pvt->outgoing[i]) >= 32 ?
 					terminal->pvt->outgoing[i] :
-					terminal->pvt->outgoing[i]  + 64);
+					((guint8)terminal->pvt->outgoing[i])  + 64);
 			}
 		}
 #endif
@@ -6585,6 +6626,10 @@ vte_terminal_io_write(GIOChannel *channel,
 			terminal->pvt->pty_output = NULL;
 			g_source_remove(terminal->pvt->pty_output_source);
 			terminal->pvt->pty_output_source = -1;
+		}
+		if (terminal->pvt->outgoing != NULL) {
+			g_free(terminal->pvt->outgoing);
+			terminal->pvt->outgoing = NULL;
 		}
 		leave_open = FALSE;
 	} else {
@@ -6602,7 +6647,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	gssize icount, ocount;
 	char *ibuf, *obuf, *obufptr;
 	char *outgoing;
-	gssize n_outgoing;
+	gsize n_outgoing;
 	GIConv *conv;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -6810,7 +6855,7 @@ vte_terminal_hierarchy_changed(GtkWidget *widget, GtkWidget *old_toplevel,
 
 	if (GTK_IS_WIDGET(old_toplevel)) {
 		g_signal_handlers_disconnect_by_func(G_OBJECT(old_toplevel),
-						     vte_terminal_configure_toplevel,
+						     (gpointer)vte_terminal_configure_toplevel,
 						     terminal);
 	}
 
@@ -6840,8 +6885,8 @@ vte_terminal_style_changed(GtkWidget *widget, GtkStyle *style, gpointer data)
 
 static struct {
 	gulong keyval;
-	unsigned char *special;
-	unsigned char *vt_ctrl_special;
+	char *special;
+	char *vt_ctrl_special;
 } vte_keysym_map[] = {
 	{GDK_F1,     "k1", "F3"},
 	{GDK_KP_F1,  "k1", "F3"},
@@ -6895,10 +6940,10 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	PangoFontDescription *fontdesc;
 	struct _vte_termcap *termcap;
 	const char *tterm;
-	unsigned char *normal = NULL;
+	char *normal = NULL;
 	gssize normal_length = 0;
 	int i;
-	unsigned char *special = NULL, *specialmods = NULL;
+	char *special = NULL, *specialmods = NULL;
 	struct termios tio;
 	struct timeval tv;
 	struct timezone tz;
@@ -7239,14 +7284,16 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			break;
 		}
 		/* If we got normal characters, send them to the child. */
-		if (normal != NULL && normal_length > 0) {
+		if (normal != NULL) {
 			if (terminal->pvt->alt_sends_escape &&
 			    (normal_length > 0) &&
 			    (modifiers & GDK_MOD1_MASK)) {
 				vte_terminal_feed_child(terminal, "", 1);
 			}
-			vte_terminal_feed_child(terminal,
-						normal, normal_length);
+			if (normal_length > 0) {
+				vte_terminal_feed_child(terminal,
+							normal, normal_length);
+			}
 			g_free(normal);
 		} else
 		/* If the key maps to characters, send them to the child. */
@@ -7931,9 +7978,9 @@ vte_terminal_autoscroll(gpointer data)
 			}
 #endif
 	} else {
-		terminal->pvt->mouse_autoscroll_tag = -1;
+		terminal->pvt->mouse_autoscroll_tag = 0;
 	}
-	return (terminal->pvt->mouse_autoscroll_tag != -1);
+	return (terminal->pvt->mouse_autoscroll_tag != 0);
 }
 
 /* Read and handle a motion event. */
@@ -8043,7 +8090,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 				need_autoscroll = TRUE;
 		}
 		if (need_autoscroll &&
-		    (terminal->pvt->mouse_autoscroll_tag == -1)) {
+		    (terminal->pvt->mouse_autoscroll_tag == 0)) {
 			terminal->pvt->mouse_autoscroll_tag = g_timeout_add_full(G_PRIORITY_LOW,
  50,
  vte_terminal_autoscroll,
@@ -8126,7 +8173,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
  * NULL, characters will only be read if @is_selected returns TRUE after being
  * passed the column and row, respectively.  A #vte_char_attributes structure
  * is added to @attributes for each byte added to the returned string detailing
- * the character&apos;s position, colors, and other characteristics.  The
+ * the character's position, colors, and other characteristics.  The
  * entire scrollback buffer is scanned, so it is possible to read the entire
  * contents of the buffer using this function.
  *
@@ -8245,7 +8292,7 @@ vte_terminal_get_text_range(VteTerminal *terminal,
  * NULL, characters will only be read if @is_selected returns TRUE after being
  * passed the column and row, respectively.  A #vte_char_attributes structure
  * is added to @attributes for each byte added to the returned string detailing
- * the character&apos;s position, colors, and other characteristics.
+ * the character's position, colors, and other characteristics.
  *
  * Returns: a text string which must be freed by the caller.
  */
@@ -8634,9 +8681,9 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 		}
 
 		/* Disconnect from autoscroll requests. */
-		if (terminal->pvt->mouse_autoscroll_tag != -1) {
+		if (terminal->pvt->mouse_autoscroll_tag) {
 			g_source_remove(terminal->pvt->mouse_autoscroll_tag);
-			terminal->pvt->mouse_autoscroll_tag = -1;
+			terminal->pvt->mouse_autoscroll_tag = 0;
 		}
 	}
 
@@ -8747,35 +8794,35 @@ xft_pattern_from_pango_font_desc(const PangoFontDescription *font_desc)
 	double size = 14.0;
 
 	if (font_desc != NULL) {
-		pango_mask = pango_font_description_get_set_fields (font_desc);
+		pango_mask = pango_font_description_get_set_fields(font_desc);
 	}
 
 	pattern = XftPatternCreate ();
 
 	/* Set the family for the pattern, or use a sensible default. */
 	if (pango_mask & PANGO_FONT_MASK_FAMILY) {
-		family = pango_font_description_get_family (font_desc);
+		family = pango_font_description_get_family(font_desc);
 	}
-	XftPatternAddString (pattern, XFT_FAMILY, family);
+	XftPatternAddString(pattern, XFT_FAMILY, family);
 
 	/* Set the font size for the pattern, or use a sensible default. */
 	if (pango_mask & PANGO_FONT_MASK_SIZE) {
-		size = (double) pango_font_description_get_size (font_desc);
+		size = (double) pango_font_description_get_size(font_desc);
 		size /= (double) PANGO_SCALE;
 	}
-	XftPatternAddDouble (pattern, XFT_SIZE, size);
+	XftPatternAddDouble(pattern, XFT_SIZE, size);
 
 	/* There aren'ty any fallbacks for these, so just omit them from the
 	 * pattern if they're not set in the pango font. */
 	if (pango_mask & PANGO_FONT_MASK_WEIGHT) {
-		weight = pango_font_description_get_weight (font_desc);
-		XftPatternAddInteger (pattern, XFT_WEIGHT,
-				      xft_weight_from_pango_weight (weight));
+		weight = pango_font_description_get_weight(font_desc);
+		XftPatternAddInteger(pattern, XFT_WEIGHT,
+				     xft_weight_from_pango_weight (weight));
 	}
 	if (pango_mask & PANGO_FONT_MASK_STYLE) {
-		style = pango_font_description_get_style (font_desc);
-		XftPatternAddInteger (pattern, XFT_SLANT,
-				      xft_slant_from_pango_style (style));
+		style = pango_font_description_get_style(font_desc);
+		XftPatternAddInteger(pattern, XFT_SLANT,
+				     xft_slant_from_pango_style (style));
 	}
 
 	return pattern;
@@ -9516,6 +9563,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 		      const PangoFontDescription *font_desc)
 {
 	GtkWidget *widget;
+	PangoFontDescription *desc;
 
 	g_return_if_fail(terminal != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -9533,12 +9581,12 @@ vte_terminal_set_font(VteTerminal *terminal,
 
 	/* Create an owned font description. */
 	if (font_desc != NULL) {
-		font_desc = pango_font_description_copy(font_desc);
+		desc = pango_font_description_copy(font_desc);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_MISC)) {
-			if (font_desc) {
+			if (desc) {
 				char *tmp;
-				tmp = pango_font_description_to_string(font_desc);
+				tmp = pango_font_description_to_string(desc);
 				fprintf(stderr, "Using pango font \"%s\".\n", tmp);
 				g_free (tmp);
 			}
@@ -9546,8 +9594,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 #endif
 	} else {
 		gtk_widget_ensure_style(widget);
-		font_desc =
-			pango_font_description_copy(widget->style->font_desc);
+		desc = pango_font_description_copy(widget->style->font_desc);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_MISC)) {
 			fprintf(stderr, "Using default pango font.\n");
@@ -9559,7 +9606,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 	if (terminal->pvt->fontdesc != NULL) {
 		pango_font_description_free(terminal->pvt->fontdesc);
 	}
-	terminal->pvt->fontdesc = (PangoFontDescription*) font_desc;
+	terminal->pvt->fontdesc = desc;
 
 	/* Free the older fonts and load the new ones. */
 	vte_terminal_close_font(terminal);
@@ -9591,6 +9638,9 @@ vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name)
 /**
  * vte_terminal_get_font:
  * @terminal: a #VteTerminal
+ *
+ * Queries the terminal for information about the fonts which will be
+ * used to draw text in the terminal.
  *
  * Returns: a #PangoFontDescription describing the font the terminal is
  * currently using to render text.
@@ -9703,7 +9753,7 @@ vte_terminal_set_scroll_adjustment(VteTerminal *terminal,
 		if (terminal->adjustment != NULL) {
 			/* Disconnect our signal handlers from this object. */
 			g_signal_handlers_disconnect_by_func(terminal->adjustment,
-							     G_CALLBACK(vte_terminal_handle_scroll),
+							     (gpointer)vte_terminal_handle_scroll,
 							     terminal);
 			g_object_unref(terminal->adjustment);
 		}
@@ -9865,6 +9915,9 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 /**
  * vte_terminal_get_emulation:
  * @terminal: a #VteTerminal
+ *
+ * Queries the terminal for its current emulation, as last set by a call to
+ * vte_terminal_set_emulation().
  *
  * Returns: the name of the terminal type the widget is attempting to emulate
  */
@@ -10036,7 +10089,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->incoming = NULL;
 	pvt->n_incoming = 0;
 	pvt->processing = FALSE;
-	pvt->processing_tag = -1;
+	pvt->processing_tag = 0;
 	pvt->outgoing = NULL;
 	pvt->n_outgoing = 0;
 	pvt->incoming_conv = (GIConv) -1;
@@ -10110,7 +10163,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* Cursor blinking. */
 	pvt->cursor_blinks = FALSE;
-	pvt->cursor_blink_tag = -1;
+	pvt->cursor_blink_tag = 0;
 	pvt->cursor_visible = TRUE;
 	pvt->cursor_blink_timeout = 1000;
 
@@ -10129,7 +10182,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->mouse_last_x = 0;
 	pvt->mouse_last_y = 0;
 	pvt->mouse_autohide = FALSE;
-	pvt->mouse_autoscroll_tag = -1;
+	pvt->mouse_autoscroll_tag = 0;
 
 	/* Matching data. */
 	pvt->match_contents = NULL;
@@ -10221,12 +10274,12 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->connected_settings = NULL;
 
 	/* Bookkeeping data for adjustment-changed signals. */
-	pvt->adjustment_changed_tag = -1;
+	pvt->adjustment_changed_tag = 0;
 
 	/* Set up background information. */
 	pvt->bg_transparent = FALSE;
 	pvt->bg_transparent_update_pending = FALSE;
-	pvt->bg_transparent_update_tag = -1;
+	pvt->bg_transparent_update_tag = 0;
 	pvt->bg_transparent_atom = 0;
 	pvt->bg_transparent_window = NULL;
 	pvt->bg_transparent_image = NULL;
@@ -10443,7 +10496,7 @@ vte_terminal_unrealize(GtkWidget *widget)
 	}
 
 	/* Remove the blink timeout function. */
-	if (terminal->pvt->cursor_blink_tag != -1) {
+	if (terminal->pvt->cursor_blink_tag) {
 		g_source_remove(terminal->pvt->cursor_blink_tag);
 	}
 
@@ -10493,16 +10546,16 @@ vte_terminal_finalize(GObject *object)
 		g_object_unref(G_OBJECT(terminal->pvt->bg_transparent_image));
 		terminal->pvt->bg_transparent_image = NULL;
 	}
-	if (terminal->pvt->bg_transparent_update_tag != -1) {
+	if (terminal->pvt->bg_transparent_update_tag) {
 		g_source_remove(terminal->pvt->bg_transparent_update_tag);
-		terminal->pvt->bg_transparent_update_tag = -1;
+		terminal->pvt->bg_transparent_update_tag = 0;
 	}
 
 #ifdef HAVE_XFT2
 	/* Disconnect from settings changes. */
 	if (terminal->pvt->connected_settings) {
 		g_signal_handlers_disconnect_by_func(G_OBJECT(terminal->pvt->connected_settings),
-						     vte_xft_changed_cb,
+						     (gpointer)vte_xft_changed_cb,
 						     terminal);
 		terminal->pvt->connected_settings = NULL;
 	}
@@ -10541,20 +10594,20 @@ vte_terminal_finalize(GObject *object)
 	toplevel = gtk_widget_get_toplevel(GTK_WIDGET(object));
 	if ((toplevel != NULL) && (G_OBJECT(toplevel) != G_OBJECT(object))) {
 		g_signal_handlers_disconnect_by_func(toplevel,
-						     vte_terminal_configure_toplevel,
+						     (gpointer)vte_terminal_configure_toplevel,
 						     terminal);
 	}
 
 	/* Disconnect from autoscroll requests. */
-	if (terminal->pvt->mouse_autoscroll_tag != -1) {
+	if (terminal->pvt->mouse_autoscroll_tag) {
 		g_source_remove(terminal->pvt->mouse_autoscroll_tag);
-		terminal->pvt->mouse_autoscroll_tag = -1;
+		terminal->pvt->mouse_autoscroll_tag = 0;
 	}
 
 	/* Cancel pending adjustment change notifications. */
-	if (terminal->pvt->adjustment_changed_tag != -1) {
+	if (terminal->pvt->adjustment_changed_tag) {
 		g_source_remove(terminal->pvt->adjustment_changed_tag);
-		terminal->pvt->adjustment_changed_tag = -1;
+		terminal->pvt->adjustment_changed_tag = 0;
 	}
 
 	/* Tabstop information. */
@@ -10611,13 +10664,13 @@ vte_terminal_finalize(GObject *object)
 
 	/* Stop listening for child-exited signals. */
 	g_signal_handlers_disconnect_by_func(vte_reaper_get(),
-					     vte_terminal_catch_child_exited,
+					     (gpointer)vte_terminal_catch_child_exited,
 					     terminal);
 
 	/* Stop processing input. */
-	if (terminal->pvt->processing_tag != -1) {
+	if (terminal->pvt->processing_tag != 0) {
 		g_source_remove(terminal->pvt->processing_tag);
-		terminal->pvt->processing_tag = -1;
+		terminal->pvt->processing_tag = 0;
 	}
 
 	/* Discard any pending data. */
@@ -10644,7 +10697,7 @@ vte_terminal_finalize(GObject *object)
 		g_source_remove(terminal->pvt->pty_output_source);
 		terminal->pvt->pty_output_source = -1;
 	}
-	close(terminal->pvt->pty_master);
+	vte_pty_close(terminal->pvt->pty_master);
 	terminal->pvt->pty_master = -1;
 
 	/* Clear some of our strings. */
@@ -10668,6 +10721,10 @@ vte_terminal_finalize(GObject *object)
 	}
 	_vte_termcap_free(terminal->pvt->termcap);
 	terminal->pvt->termcap = NULL;
+
+	/* Done with our private data. */
+	g_free(terminal->pvt);
+	terminal->pvt = NULL;
 
 	/* Free public-facing data. */
 	if (terminal->window_title != NULL) {
@@ -10696,7 +10753,7 @@ vte_terminal_realize(GtkWidget *widget)
 	VteTerminal *terminal = NULL;
 	GdkWindowAttr attributes;
 	GdkPixmap *pixmap;
-	GdkColor black = {0,}, color;
+	GdkColor black = {0,0,0}, color;
 	int attributes_mask = 0, i;
 
 	g_return_if_fail(widget != NULL);
@@ -12005,9 +12062,13 @@ vte_terminal_draw_row(VteTerminal *terminal,
 
 		/* Add this cell to the draw list. */
 		item.c = cell ? cell->c : ' ';
-		item.xpad = vte_terminal_get_char_padding(terminal,
-							  display,
-							  item.c);
+		if (monospaced) {
+			item.xpad = 0;
+		} else {
+			item.xpad = vte_terminal_get_char_padding(terminal,
+								  display,
+								  item.c);
+		}
 		g_array_append_val(items, item);
 
 		/* Now find out how many cells have the same attributes. */
@@ -12057,9 +12118,13 @@ vte_terminal_draw_row(VteTerminal *terminal,
 			}
 			/* Add this cell to the draw list. */
 			item.c = cell ? cell->c : ' ';
-			item.xpad = vte_terminal_get_char_padding(terminal,
-								  display,
-								  item.c);
+			if (monospaced) {
+				item.xpad = 0;
+			} else {
+				item.xpad = vte_terminal_get_char_padding(terminal,
+									  display,
+									  item.c);
+			}
 			g_array_append_val(items, item);
 		}
 		/* Draw the cells. */
@@ -13006,7 +13071,7 @@ vte_terminal_setup_background(VteTerminal *terminal,
 		}
 		/* If we need a new copy of the desktop, get it. */
 		if (refresh_transparent) {
-			guint width, height, pwidth, pheight;
+			gint width, height, pwidth, pheight;
 
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_MISC)) {
@@ -13236,7 +13301,7 @@ vte_terminal_update_transparent(gpointer data)
 #endif
 		vte_terminal_setup_background(terminal, TRUE);
 		terminal->pvt->bg_transparent_update_pending = FALSE;
-		terminal->pvt->bg_transparent_update_tag = -1;
+		terminal->pvt->bg_transparent_update_tag = 0;
 	}
 	return FALSE;
 }
@@ -13429,7 +13494,7 @@ vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
  * vte_terminal_set_background_saturation, the terminal will make its
  * in-memory copy of the image darker for its own use.
  * 
- * This is a convenience function for vte_terminal_set_background_image().
+ * This is a convenience wrapper for vte_terminal_set_background_image().
  * If your application intends to create multiple terminal widgets using the
  * same background, performing this step yourself and just using
  * vte_terminal_set_background_image() will reduce memory consumption.
@@ -13463,6 +13528,10 @@ vte_terminal_set_background_image_file(VteTerminal *terminal, const char *path)
 /**
  * vte_terminal_get_has_selection:
  * @terminal: a #VteTerminal
+ *
+ * Checks if the terminal currently contains selected text.  Note that this
+ * is different from determining if the terminal is the owner of any
+ * #GtkClipboard items.
  *
  * Returns: TRUE if part of the text in the terminal is selected.
  */
@@ -13590,7 +13659,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	GIConv conv;
 	gunichar *wbuf;
 	char *ibuf, *ibufptr, *obuf, *obufptr;
-	gssize ilen, olen;
+	gsize ilen, olen;
 	VteWordCharRange range;
 	int i;
 
@@ -13762,7 +13831,7 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	terminal->pvt->n_incoming = 0;
 	if (terminal->pvt->processing) {
 		g_source_remove(terminal->pvt->processing_tag);
-		terminal->pvt->processing_tag = -1;
+		terminal->pvt->processing_tag = 0;
 		terminal->pvt->processing = FALSE;
 	}
 	/* Reset charset substitution state. */
@@ -13843,11 +13912,15 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	/* Reset the input and output buffers. */
 	if (terminal->pvt->n_incoming > 0) {
 		terminal->pvt->n_incoming = 0;
+	}
+	if (terminal->pvt->incoming != NULL) {
 		g_free(terminal->pvt->incoming);
 		terminal->pvt->incoming = NULL;
 	}
 	if (terminal->pvt->n_outgoing > 0) {
 		terminal->pvt->n_outgoing = 0;
+	}
+	if (terminal->pvt->outgoing != NULL) {
 		g_free(terminal->pvt->outgoing);
 		terminal->pvt->outgoing = NULL;
 	}
@@ -13914,4 +13987,139 @@ vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad)
 	g_return_if_fail(ypad != NULL);
 	*xpad = 2 * VTE_PAD_WIDTH;
 	*ypad = 2 * VTE_PAD_WIDTH;
+}
+
+/**
+ * vte_terminal_get_adjustment:
+ * @terminal: a #VteTerminal
+ *
+ * An accessor function provided for the benefit of language bindings.
+ *
+ * Returns: the contents of @terminal's adjustment field
+ */
+GtkAdjustment *
+vte_terminal_get_adjustment(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+	return terminal->adjustment;
+}
+
+/**
+ * vte_terminal_get_char_width:
+ * @terminal: a #VteTerminal
+ *
+ * An accessor function provided for the benefit of language bindings.
+ *
+ * Returns: the contents of @terminal's char_width field
+ */
+glong
+vte_terminal_get_char_width(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+	return terminal->char_width;
+}
+
+/**
+ * vte_terminal_get_char_height:
+ * @terminal: a #VteTerminal
+ *
+ * An accessor function provided for the benefit of language bindings.
+ *
+ * Returns: the contents of @terminal's char_height field
+ */
+glong
+vte_terminal_get_char_height(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+	return terminal->char_height;
+}
+
+/**
+ * vte_terminal_get_char_descent:
+ * @terminal: a #VteTerminal
+ *
+ * An accessor function provided for the benefit of language bindings.
+ *
+ * Returns: the contents of @terminal's char_descent field
+ */
+glong
+vte_terminal_get_char_descent(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+	return terminal->char_descent;
+}
+
+/**
+ * vte_terminal_get_char_ascent:
+ * @terminal: a #VteTerminal
+ *
+ * An accessor function provided for the benefit of language bindings.
+ *
+ * Returns: the contents of @terminal's char_ascent field
+ */
+glong
+vte_terminal_get_char_ascent(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+	return terminal->char_ascent;
+}
+
+/**
+ * vte_terminal_get_row_count:
+ * @terminal: a #VteTerminal
+ *
+ * An accessor function provided for the benefit of language bindings.
+ *
+ * Returns: the contents of @terminal's row_count field
+ */
+glong
+vte_terminal_get_row_count(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+	return terminal->row_count;
+}
+
+/**
+ * vte_terminal_get_column_count:
+ * @terminal: a #VteTerminal
+ *
+ * An accessor function provided for the benefit of language bindings.
+ *
+ * Returns: the contents of @terminal's column_count field
+ */
+glong
+vte_terminal_get_column_count(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+	return terminal->column_count;
+}
+
+/**
+ * vte_terminal_get_window_title:
+ * @terminal: a #VteTerminal
+ *
+ * An accessor function provided for the benefit of language bindings.
+ *
+ * Returns: the contents of @terminal's window_title field
+ */
+const char *
+vte_terminal_get_window_title(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), "");
+	return terminal->window_title;
+}
+
+/**
+ * vte_terminal_get_icon_title:
+ * @terminal: a #VteTerminal
+ *
+ * An accessor function provided for the benefit of language bindings.
+ *
+ * Returns: the contents of @terminal's icon_title field
+ */
+const char *
+vte_terminal_get_icon_title(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), "");
+	return terminal->icon_title;
 }

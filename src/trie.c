@@ -24,7 +24,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_WCHAR_H
 #include <wchar.h>
+#endif
 #include <glib.h>
 #include <glib-object.h>
 #include "debug.h"
@@ -144,7 +146,6 @@ char_class_digit_check(gunichar c, struct char_class_data *data)
 		default:
 			return FALSE;
 	}
-	return FALSE;
 }
 static void
 char_class_digit_setup(const gunichar *s, struct char_class_data *data, int inc)
@@ -190,7 +191,6 @@ char_class_multi_check(gunichar c, struct char_class_data *data)
 		default:
 			return FALSE;
 	}
-	return FALSE;
 }
 static void
 char_class_multi_setup(const gunichar *s, struct char_class_data *data, int inc)
@@ -272,9 +272,9 @@ unichar_snlen(const gunichar *s, size_t length)
 	return length;
 }
 static void
-unichar_sncpy(gunichar *d, const gunichar *s, size_t length)
+unichar_sncpy(gunichar *d, const gunichar *s, gsize length)
 {
-	int i;
+	unsigned int i;
 	for (i = 0; i < length; i++) {
 		d[i] = s[i];
 		if (s[i] == 0) {

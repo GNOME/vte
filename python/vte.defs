@@ -1,6 +1,5 @@
 ;; -*- scheme -*-
 ; object definitions ...
-
 (define-object Terminal
   (in-module "Vte")
   (parent "GtkWidget")
@@ -23,7 +22,7 @@
 )
 
 
-;; From vte.h
+;; From ../src/vte.h
 
 (define-function vte_terminal_get_type
   (c-name "vte_terminal_get_type")
@@ -101,8 +100,8 @@
   (c-name "vte_terminal_set_size")
   (return-type "none")
   (parameters
-    '("long" "columns")
-    '("long" "rows")
+    '("glong" "columns")
+    '("glong" "rows")
   )
 )
 
@@ -249,7 +248,7 @@
   (c-name "vte_terminal_set_scrollback_lines")
   (return-type "none")
   (parameters
-    '("long" "lines")
+    '("glong" "lines")
   )
 )
 
@@ -384,8 +383,8 @@
   (c-name "vte_terminal_get_cursor_position")
   (return-type "none")
   (parameters
-    '("long*" "column")
-    '("long*" "row")
+    '("glong*" "column")
+    '("glong*" "row")
   )
 )
 
@@ -409,8 +408,8 @@
   (c-name "vte_terminal_match_check")
   (return-type "char*")
   (parameters
-    '("long" "column")
-    '("long" "row")
+    '("glong" "column")
+    '("glong" "row")
     '("int*" "tag")
   )
 )
@@ -435,7 +434,7 @@
   (c-name "vte_terminal_set_encoding")
   (return-type "none")
   (parameters
-    '("const-char*" "encoding")
+    '("const-char*" "codeset")
   )
 )
 
@@ -459,6 +458,60 @@
     '("int*" "xpad")
     '("int*" "ypad")
   )
+)
+
+(define-method get_adjustment
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_adjustment")
+  (return-type "GtkAdjustment*")
+)
+
+(define-method get_char_width
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_char_width")
+  (return-type "glong")
+)
+
+(define-method get_char_height
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_char_height")
+  (return-type "glong")
+)
+
+(define-method get_char_descent
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_char_descent")
+  (return-type "glong")
+)
+
+(define-method get_char_ascent
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_char_ascent")
+  (return-type "glong")
+)
+
+(define-method get_row_count
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_row_count")
+  (return-type "glong")
+)
+
+(define-method get_column_count
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_column_count")
+  (return-type "glong")
+)
+
+(define-method get_window_title
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_window_title")
+  (return-type "const-char*")
+)
+
+(define-method get_icon_title
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_icon_title")
+  (return-type "const-char*")
 )
 
 

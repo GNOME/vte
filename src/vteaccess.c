@@ -371,13 +371,13 @@ vte_terminal_accessible_finalize(GObject *object)
 					     G_SIGNAL_MATCH_FUNC |
 					     G_SIGNAL_MATCH_DATA,
 					     0, 0, NULL,
-					     vte_terminal_accessible_invalidate_contents,
+					     (gpointer)vte_terminal_accessible_invalidate_contents,
 					     object);
 	g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
 					     G_SIGNAL_MATCH_FUNC |
 					     G_SIGNAL_MATCH_DATA,
 					     0, 0, NULL,
-					     vte_terminal_accessible_title_changed,
+					     (gpointer)vte_terminal_accessible_title_changed,
 					     object);
 	if (gobject_class->finalize != NULL) {
 		gobject_class->finalize(object);

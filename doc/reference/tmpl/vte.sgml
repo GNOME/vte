@@ -531,6 +531,87 @@ A VteTerminal is a terminal emulator implemented as a GTK2 widget.
 @ypad: 
 
 
+<!-- ##### FUNCTION vte_terminal_get_adjustment ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_char_ascent ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_char_descent ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_char_height ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_char_width ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_column_count ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_icon_title ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_row_count ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_window_title ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
 <!-- ##### SIGNAL VteTerminal::char-size-changed ##### -->
 <para>
 Emitted whenever selection of a new font causes the values of the

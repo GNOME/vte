@@ -66,6 +66,16 @@ vte_terminal_get_type
 VTE_TERMINAL_CLASS
 VTE_IS_TERMINAL_CLASS
 VTE_TERMINAL_GET_CLASS
+<SUBSECTION Binding Accessors>
+vte_terminal_get_adjustment
+vte_terminal_get_char_ascent
+vte_terminal_get_char_descent
+vte_terminal_get_char_height
+vte_terminal_get_char_width
+vte_terminal_get_column_count
+vte_terminal_get_icon_title
+vte_terminal_get_row_count
+vte_terminal_get_window_title
 </SECTION>
 
 <SECTION>

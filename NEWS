@@ -1,0 +1,8 @@
+0.9: gnome-pty-helper integration, with lastlog/utmp/wtmp logging
+0.8: iso-2022 substitutions
+0.7: faster rendering
+0.6: faster input parsing
+0.5: internal wchar_t -> gunichar migration
+0.4: (later than should have been) Xft2, python
+0.3: accessibility peer
+prehistory

@@ -52,7 +52,7 @@ struct _VteRing {
 		  __position, __position % (__ring)->max, \
 		  (__ring)->delta, (__ring)->length, (__ring)->max, \
 		  (__ring)->delta + (__ring)->length, \
-		  __LINE__), NULL))
+		  __LINE__), (gpointer) NULL))
 #define _vte_ring_index(__ring, __cast, __position) \
 	(__cast) _vte_ring_at(__ring, __position)
 

@@ -33,7 +33,7 @@ void _vte_table_free(struct _vte_table *table);
 
 /* Add a string to the matching tree. */
 void _vte_table_add(struct _vte_table *table,
-		    const unsigned char *pattern, gssize length,
+		    const char *pattern, gssize length,
 		    const char *result, GQuark quark);
 
 /* Check if a string matches something in the tree. */

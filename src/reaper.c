@@ -166,6 +166,9 @@ vte_reaper_get_type(void)
 /**
  * vte_reaper_get:
  *
+ * Finds the address of the global #VteReaper object, creating the object if
+ * necessary.
+ *
  * Returns: the global #VteReaper object
  */
 VteReaper *

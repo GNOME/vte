@@ -215,7 +215,7 @@ _vte_termcap_strip_with_pad(const char *termcap, char **stripped, gssize *len)
 		ret[o++] = termcap[i];
 		if (termcap[i] == '\\') {
 			char *p;
-			switch(termcap[i + 1]) {
+			switch (termcap[i + 1]) {
 				case '\n':
 					while ((termcap[i + 1] == ' ') ||
 					       (termcap[i + 1] == '\t')) {
@@ -257,7 +257,7 @@ _vte_termcap_strip_with_pad(const char *termcap, char **stripped, gssize *len)
 			}
 		} else
 		if (termcap[i] == '^') {
-			switch(termcap[i + 1]) {
+			switch (termcap[i + 1]) {
 				case 'A':
 				case 'B':
 				case 'C':
@@ -572,7 +572,7 @@ _vte_termcap_find_numeric(struct _vte_termcap *termcap, const char *tname,
 {
 	const char *val;
 	char *p;
-	ssize_t l;
+	gssize l;
 	long ret;
 	g_return_val_if_fail(termcap != NULL, 0);
 	val = _vte_termcap_find(termcap, tname, cap);
@@ -603,7 +603,7 @@ _vte_termcap_find_string(struct _vte_termcap *termcap, const char *tname,
 			 const char *cap)
 {
 	const char *val, *p;
-	ssize_t l;
+	gssize l;
 	val = _vte_termcap_find(termcap, tname, cap);
 	if ((val != NULL) && (val[0] != '\0')) {
 		l = strlen(cap);
@@ -634,11 +634,11 @@ _vte_termcap_find_string(struct _vte_termcap *termcap, const char *tname,
  */
 TERMCAP_MAYBE_STATIC char *
 _vte_termcap_find_string_length(struct _vte_termcap *termcap, const char *tname,
-			        const char *cap, ssize_t *length)
+			        const char *cap, gssize *length)
 {
 	const char *val, *p;
 	char *ret;
-	ssize_t l;
+	gssize l;
 	val = _vte_termcap_find(termcap, tname, cap);
 	if ((val != NULL) && (val[0] != '\0')) {
 		l = strlen(cap);
@@ -664,7 +664,7 @@ TERMCAP_MAYBE_STATIC const char *
 vte_termcap_comment(struct vte_termcap *termcap, const char *tname)
 {
 	struct vte_termcap_alias *alias;
-	ssize_t len;
+	gssize len;
 	if ((tname == NULL) || (tname[0] == '\0')) {
 		return termcap->comment;
 	}
@@ -686,7 +686,7 @@ vte_termcap_comment(struct vte_termcap *termcap, const char *tname)
 TERMCAP_MAYBE_STATIC char *
 vte_termcap_generate(struct vte_termcap *termcap)
 {
-	ssize_t size;
+	gssize size;
 	char *ret = NULL;
 	struct vte_termcap_entry *entry;
 	size = strlen(termcap->comment ? termcap->comment: "");

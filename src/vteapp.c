@@ -123,6 +123,14 @@ main(int argc, char **argv)
 			    "[-t terminaltype]\n";
 	back.red = back.green = back.blue = 0xffff;
 	fore.red = fore.green = fore.blue = 0x3000;
+
+	/* Have to do this early. */
+	if (getenv("VTE_PROFILE_MEMORY")) {
+		if (atol(getenv("VTE_PROFILE_MEMORY")) != 0) {
+			g_mem_set_vtable(glib_mem_profiler_table);
+		}
+	}
+
 	/* Pull out long options for GTK+. */
 	for (i = j = 1; i < argc; i++) {
 		if (g_ascii_strncasecmp("--", argv[i], 2) == 0) {
@@ -274,6 +282,7 @@ main(int argc, char **argv)
 
 	/* Go for it! */
 	gtk_widget_show_all(window);
+
 	gtk_main();
 
 	return 0;

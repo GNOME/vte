@@ -22,7 +22,6 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
-#include <langinfo.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,7 +52,8 @@ main(int argc, char **argv)
 	GValueArray *values;
 	GError *error = NULL;
 	gunichar *ubuf;
-	gssize ubuflen, substlen;
+	gssize substlen;
+	gsize ubuflen;
 
 	_vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
 
@@ -110,9 +110,10 @@ main(int argc, char **argv)
 	substitutions = _vte_iso2022_new();
 
 	while (fread(&c, 1, 1, infile) == 1) {
-		g_byte_array_append(array, &c, 1);
+		g_byte_array_append(array, (guint8*) &c, 1);
 		for (i = 1; i <= array->len; i++) {
-			ubuf = (gunichar*) g_convert(array->data, i,
+			ubuf = (gunichar*) g_convert((const gchar*)array->data,
+						     i,
 						     _vte_table_wide_encoding(),
 						     "UTF-8",
 						     NULL, &ubuflen, &error);

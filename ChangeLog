@@ -1,11 +1,56 @@
-2002-09-10  Jacob Berkman  <jacob@ximian.com>
+2002-09-11 nalin
+	* src/vte.c: Skip lookups for padding information if we're pretty sure
+	we're using a monospaced font.
 
+2002-09-10 nalin
+	* src/vte.c: Fix from Brian Cameron for uninitialized GError in
+	vte_wc_from_unichar().
+	* src/interpret.c, src/iso2022.c, src/pty.c, src/ring.h, src/table.c,
+	src/table.h, src/trie.c, src/vte.c, src/vteaccess.c: Signed/unsigned
+	int/size_t/gsize and pointer typecast warning fixes from Brian Cameron.
+	* src/vte.c: Avoid invalidating the cursor in the cursor blink
+	timeout unless we have focus.
+
+2002-09-10  Jacob Berkman  <jacob@ximian.com>
 	* configure.in (ALL_LINGUAS: remove es until the file really gets
 	added.  also it wasn't added alphabetically
 
 2002-09-10 Pablo Gonzalo del Campo <pablodc@bigfoot.com>
 
         * configure.in: Added "es" to ALL_LINGUAS
+
+2002-09-10 nalin
+	* src/pty.c, src/pty.h: Add vte_pty_close() and
+	vte_pty_open_with_logging(), breaking the ABI.
+	* src/vte.c, src/vte.h: Add vte_terminal_fork_logged_command(), breaking
+	the ABI.
+	* gnome-pty-helper/*: Swallow the pty helper bits of gnome-libs,
+	but install into $pkglibdir instead of $sbindir so that existing
+	packages don't suddenly start breaking.
+	* src/termcap.c(_vte_termcap_find_string_length): Fix signature to
+	match the declaration in termcap.h.  From patch by Jacob Berkman.
+
+2002-09-06 nalin
+	* configure.in: Add $X_PRE_LIBS to the front of $X_LIBS, -lX11 and
+	$X_EXTRA_LIBS to the end of $X_LIBS.  Remove some cruftiness and set
+	CPPFLAGS when checking for Xft.  Check for the existence of wchar.h,
+	because it might not exist.  Use an automake conditional to make
+	compilation of the Python bindings non-critical.  From patch by
+	Jacob Berkman.
+	* src/pty.c: Silence compiler warning when exec() fails.  From patch
+	by Jacob Berkman.
+	* src/interpret.c, src/vte.c: Stop including langinfo.h since we don't
+	call nl_langinfo() any more.  Adapted from patch by Jacob Berkman.
+	* src/caps.c: Fill in a couple of missing initializers.
+	* src/vte.c, src/vte.h: Add accessor functions for use in language
+	bindings.
+	* python/vte.defs: Add defs for the new accessor functions.
+	* python/vte-demo.py: Add a scrollbar to the sample window, handle
+	more of the options the C version handles.  Stop expecting additional
+	arguments with a signal that doesn't include any.
+	* python/Makefile.am: We only have one target, so don't bother with
+	target-specific primaries if we can avoid it (#92252).
+	* vte.pc.in: Note build dependencies on ATK, Pango, and PangoX.
 
 2002-09-05 nalin
 	* src/caps.c, src/caps.h, src/debug.c, src/debug.h, src/interpret.c,

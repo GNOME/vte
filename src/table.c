@@ -79,7 +79,7 @@ _vte_table_new(void)
 void
 _vte_table_free(struct _vte_table *table)
 {
-	int i;
+	unsigned int i;
 	for (i = 0; i < G_N_ELEMENTS(table->table); i++) {
 		if (table->table[i] != NULL) {
 			_vte_table_free(table->table[i]);
@@ -103,10 +103,11 @@ _vte_table_free(struct _vte_table *table)
 static void
 _vte_table_addi(struct _vte_table *table,
 	        const unsigned char *original, gssize original_length,
-	        const unsigned char *pattern, gssize length,
+	        const char *pattern, gssize length,
 	        const char *result, GQuark quark, int inc)
 {
 	int i;
+	guint8 check;
 	struct _vte_table *subtable;
 
 	/* If this is the terminal node, set the result. */
@@ -229,12 +230,13 @@ _vte_table_addi(struct _vte_table *table,
 	}
 
 	/* A literal (or an unescaped '%', which is also a literal). */
-	g_assert(pattern[0] < VTE_TABLE_MAX_LITERAL);
-	if (table->table[pattern[0]] == NULL) {
+	check = (guint8) pattern[0];
+	g_assert(check < VTE_TABLE_MAX_LITERAL);
+	if (table->table[check] == NULL) {
 		subtable = _vte_table_new();
-		table->table[pattern[0]] = subtable;
+		table->table[check] = subtable;
 	} else {
-		subtable = table->table[pattern[0]];
+		subtable = table->table[check];
 	}
 	/* Add the rest of the string to the subtable. */
 	_vte_table_addi(subtable, original, original_length,
@@ -245,10 +247,10 @@ _vte_table_addi(struct _vte_table *table,
 /* Add a string to the matching tree. */
 void
 _vte_table_add(struct _vte_table *table,
-	       const unsigned char *pattern, gssize length,
+	       const char *pattern, gssize length,
 	       const char *result, GQuark quark)
 {
-	unsigned char *pattern_copy, *p;
+	char *pattern_copy, *p;
 	pattern_copy = g_strndup(pattern, length);
 	/* Collapse as many numeric parameters as possible into '%m'. */
 	while ((p = strstr(pattern_copy, "%d")) != NULL) {
@@ -758,21 +760,23 @@ _vte_table_narrow_encoding()
 #ifdef TABLE_MAIN
 /* Return an escaped version of a string suitable for printing. */
 static char *
-escape(const unsigned char *p)
+escape(const char *p)
 {
 	char *tmp;
 	GString *ret;
 	int i;
+	guint8 check;
 	ret = g_string_new("");
 	for (i = 0; p[i] != '\0'; i++) {
 		tmp = NULL;
-		if (p[i] < 32) {
-			tmp = g_strdup_printf("^%c", p[i] + 64);
+		check = p[i];
+		if (check < 32) {
+			tmp = g_strdup_printf("^%c", check + 64);
 		} else
-		if (p[i] >= 0x80) {
-			tmp = g_strdup_printf("{0x%x}", p[i]);
+		if (check >= 0x80) {
+			tmp = g_strdup_printf("{0x%x}", check);
 		} else {
-			tmp = g_strdup_printf("%c", p[i]);
+			tmp = g_strdup_printf("%c", check);
 		}
 		g_string_append(ret, tmp);
 		g_free(tmp);
@@ -782,14 +786,16 @@ escape(const unsigned char *p)
 
 /* Spread out a narrow ASCII string into a wide-character string. */
 static gunichar *
-make_wide(const unsigned char *p)
+make_wide(const char *p)
 {
 	gunichar *ret;
+	guint8 check;
 	int i;
 	ret = g_malloc((strlen(p) + 1) * sizeof(gunichar));
 	for (i = 0; p[i] != 0; i++) {
-		g_assert(p[i] < 0x80);
-		ret[i] = p[i];
+		check = (guint8) p[i];
+		g_assert(check < 0x80);
+		ret[i] = check;
 	}
 	ret[i] = '\0';
 	return ret;

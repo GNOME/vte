@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.8.19
+Version: 0.9.0
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -49,8 +49,10 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %defattr(-,root,root)
 %doc ChangeLog COPYING HACKING NEWS README
 %{_libdir}/*.so.*.*
+%dir %{_libdir}/%{name}
+%attr(2711,root,utmp) %{_libdir}/%{name}/gnome-pty-helper
 %{_datadir}/%{name}
-%{_libdir}/python*/site-packages/*
+%{_libdir}/python*/site-packages/gtk-2.0/*
 
 %files devel
 %defattr(-,root,root)
@@ -62,6 +64,15 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Wed Sep 11 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.0-1
+- build fixes from Jacob Berkman
+- warning fixes from Brian Cameron
+- gnome-pty-helper integration
+
+* Fri Sep  6 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.20-1
+- build fixups from Jacob Berkman
+- move the python module into the gtk-2.0 subdirectory, from James Henstridge
+
 * Thu Sep  5 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.19-1
 - possible fix for focusing bugs
 

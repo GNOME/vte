@@ -1,6 +1,13 @@
-AC_INIT(configure.in)
+AC_INIT(vte.pc.in)
 VERSION=`grep ^Version: $srcdir/vte.spec | awk '{print $NF}'`
 AM_INIT_AUTOMAKE(vte,$VERSION)
+
+AC_ISC_POSIX
+AC_PROG_CC
+AC_STDC_HEADERS
+AM_PROG_CC_STDC
+AM_MAINTAINER_MODE
+
 AM_PROG_LIBTOOL
 ALL_LINGUAS="da de fr nl no pt_BR sv vi"
 AM_GLIB_GNU_GETTEXT
@@ -12,57 +19,59 @@ AC_EGREP_CPP(glibc,
 		 #endif
 		],
 		AC_DEFINE(_GNU_SOURCE,1,[Use all features.]))
-# AC_SYS_LARGEFILE
+
+# On some OSs, AC_PATH_XTRA doesn't work right(?), so let the user specify
+# X_PRE_LIBS and X_EXTRA_LIBS to add even more libraries, and add -lX11 to
+# the list of libraries for grins.
 AC_PATH_XTRA
-PKG_CHECK_MODULES(GLIB,[glib-2.0 gobject-2.0])
-PKG_CHECK_MODULES(GTK, [glib-2.0 gobject-2.0 gdk-pixbuf-2.0 gtk+-2.0 pangox])
+X_LIBS="$X_PRE_LIBS $X_LIBS -lX11 $X_EXTRA_LIBS"
+PKG_CHECK_MODULES(GOBJECT,[glib-2.0 gobject-2.0])
+savelibs="$LIBS"
+LIBS="$X_LIBS $LIBS"
 if pkg-config --exists pangoxft '>=' 1.1.0 ; then
-	havexft=1
 	AC_DEFINE(HAVE_XFT2,1,[Whether we have Xft version 2])
-	PKG_CHECK_MODULES(XFT,[xft])
+	PKG_CHECK_MODULES(VTE,[glib-2.0 gobject-2.0 gdk-pixbuf-2.0 gtk+-2.0 pangox fontconfig xft])
 else
-	savelibs="$LIBS"
-	LIBS="$GTK_LIBS"
-	AC_CHECK_FUNC(XftDrawString32,
-		      [AC_CHECK_HEADER(X11/Xft/Xft.h, havexft=1)])
-	LIBS="$savelibs"
+	PKG_CHECK_MODULES(VTE,[glib-2.0 gobject-2.0 gdk-pixbuf-2.0 gtk+-2.0 pangox])
 fi
+LIBS="$savelibs"
+# Check whether the combination of X and GLib/Pango/GTK+ libraries includes
+# Xft somewhere.
+savecppflags="$CPPFLAGS"
+savelibs="$LIBS"
+CPPFLAGS="$VTE_CFLAGS $X_CFLAGS $CPPFLAGS"
+LIBS="$VTE_LIBS $X_LIBS"
+AC_CHECK_FUNC(XftDrawString32,[AC_DEFINE(HAVE_XFT,1,[Whether or not Xft is available.])])
+CPPFLAGS="$savecppflags"
+LIBS="$savelibs"
+
+# Define macros to disable accidental use of deprecated functionality.
 AC_DEFINE(G_DISABLE_DEPRECATED,1,[Disable deprecated glib features.])
 AC_DEFINE(GDK_DISABLE_DEPRECATED,1,[Disable deprecated gdk features.])
 AC_DEFINE(GDK_PIXBUF_DISABLE_DEPRECATED,1,[Disable deprecated gdk-pixbuf features.])
 AC_DEFINE(GTK_DISABLE_DEPRECATED,1,[Disable deprecated gtk features.])
 AC_DEFINE(PANGO_DISABLE_DEPRECATED,1,[Disable deprecated pango features.])
+
 AC_DEFINE(VTE_UTF8_BPC,6,[Maximum number of bytes used per UTF-8 character.])
 AC_DEFINE_UNQUOTED(PACKAGE,"$PACKAGE",[Package name.])
 AC_CHECK_FUNCS(getpt grantpt unlockpt ptsname ptsname_r)
-AC_CHECK_HEADERS(termios.h)
-AC_CHECK_HEADERS(stropts.h)
-
-# Double-check that the GTK libraries pulled in Xft functionality, then use
-# the GTK CFLAGS to find the Xft headers.
-savelibs="$LIBS"
-LIBS="$GTK_LIBS"
-havexft=0
-AC_CHECK_FUNC(XftDrawString32,havexft=1)
-LIBS="$savelibs"
-if test x$havexft = x1 ; then
-	AC_DEFINE(HAVE_XFT, 1, [Whether not Xft is available.])
-fi
-
-AM_MAINTAINER_MODE
+AC_CHECK_HEADERS(sys/un.h stropts.h termios.h wchar.h)
 
 if test x$USE_MAINTAINER_MODE != x ; then
 	if test x$USE_MAINTAINER_MODE != xno ; then
 		if test x$GCC = xyes ; then
 			CFLAGS="${CFLAGS} -std=c99"
 			CFLAGS="${CFLAGS} -Wall"
-			CFLAGS="${CFLAGS} -Wunused"
-			CFLAGS="${CFLAGS} -Wuninitialized"
-			CFLAGS="${CFLAGS} -Wimplicit"
-			CFLAGS="${CFLAGS} -Wstrict-prototypes"
-			CFLAGS="${CFLAGS} -Wmissing-prototypes"
-			CFLAGS="${CFLAGS} -Wmissing-declarations"
+			CFLAGS="${CFLAGS} -Waggregate-return"
 			CFLAGS="${CFLAGS} -Wcast-align"
+			CFLAGS="${CFLAGS} -Wimplicit"
+			CFLAGS="${CFLAGS} -Wmissing-declarations"
+			CFLAGS="${CFLAGS} -Wmissing-prototypes"
+			CFLAGS="${CFLAGS} -Wpointer-arith"
+			CFLAGS="${CFLAGS} -Wstrict-prototypes"
+			CFLAGS="${CFLAGS} -Wuninitialized"
+			#CFLAGS="${CFLAGS} −Wsign−compare"
+			#CFLAGS="${CFLAGS} −Wunused-value"
 		fi
 		VTE_DEBUG=1
 	fi
@@ -99,11 +108,22 @@ else
 fi
 AC_SUBST(PYTHONREV)
 AC_SUBST(PYTHONMODULES)
+AM_CONDITIONAL(BUILD_PYTHON_BINDINGS, test "x$PYTHONMODULES" '!=' "x")
 
+mylibdir=`eval echo $libdir`
 mydatadir=`eval echo $datadir`
+if test x$exec_prefix = xNONE ; then
+	if test x$prefix = xNONE ; then
+		mylibdir=` echo $mylibdir  | sed s,NONE,$ac_default_prefix,g`
+	else
+		mylibdir=` echo $mylibdir  | sed s,NONE,$prefix,g`
+	fi
+fi
 if test x$prefix = xNONE ; then
 	mydatadir=`echo $mydatadir | sed s,NONE,$ac_default_prefix,g`
 fi
+AC_DEFINE_UNQUOTED(PKGLIBDIR,"$mylibdir/$PACKAGE",
+                   [The location where package-specific helpers can be found.])
 AC_DEFINE_UNQUOTED(DATADIR,"$mydatadir",
                    [The location where arch-independent package-specific data can be found.])
 AC_DEFINE_UNQUOTED(LOCALEDIR,"$mydatadir/locale",
@@ -111,6 +131,11 @@ AC_DEFINE_UNQUOTED(LOCALEDIR,"$mydatadir/locale",
 
 GETTEXT_PACKAGE=vte
 AC_SUBST(GETTEXT_PACKAGE)
+
+AC_ARG_ENABLE(gnome-pty-helper, [  --enable-gnome-pty-helper Build a setuid helper for opening ptys [default=yes]], enable_gnome_pty_helper="$enableval", enable_gnome_pty_helper=yes)
+if test "$enable_gnome_pty_helper" != no; then
+	AC_CONFIG_SUBDIRS(gnome-pty-helper)
+fi
 
 ################################################################################
 
@@ -164,6 +189,7 @@ AM_CONDITIONAL(ENABLE_GTK_DOC, test x$enable_gtk_doc = xyes)
 ################################################################################
 
 AM_CONFIG_HEADER(config.h)
+
 AC_OUTPUT([
 Makefile
 src/Makefile

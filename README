@@ -19,7 +19,7 @@
   illustrates more or less what the widget sees after it filters incoming data.
 
 * What's missing?
-- Accessibility isn't completed yet.
+- Accessibility may not work yet.
 - Mouse hilite tracking isn't implemented yet.
 - Extending the selection using shift+click pays attention to whether or not
   the existing selection was done word-at-a-time or line-at-a-time, but
