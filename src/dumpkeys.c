@@ -18,6 +18,12 @@
 
 #ident "$Id$"
 #include "../config.h"
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
@@ -44,18 +50,21 @@ gboolean sun_fkeys = FALSE, hp_fkeys = FALSE,
 	 xterm_fkeys = FALSE, vt220_fkeys = FALSE;
 struct termios original;
 
+/* Output the DEC private mode set sequence. */
 static void
 decset(int mode, gboolean value)
 {
 	g_print(ESC "[?%d%c", mode, value ? 'h' : 'l');
 }
 
+/* Move the cursor to the upper left corner of the screen. */
 static void
 home(void)
 {
        	g_print(ESC "[1;1H");
 }
 
+/* Clear the screen. */
 static void
 clear(void)
 {
@@ -63,6 +72,7 @@ clear(void)
 	home();
 }
 
+/* Print the what-does-this-key-do help messages and current status. */
 static void
 print_help(void)
 {
@@ -108,12 +118,16 @@ print_help(void)
 	g_print(ESC "[K" "Q - QUIT\r\n");
 }
 
+/* Reset the scrolling region, so that the entire screen becomes
+ * addressable again. */
 static void
 reset_scrolling_region(void)
 {
 	g_print(ESC "[r");
 }
 
+/* Set the scrolling region, so that the help/status at the top of the
+ * screen doesn't scroll off. */
 static void
 set_scrolling_region(void)
 {
@@ -121,18 +135,21 @@ set_scrolling_region(void)
 	g_print(ESC "[9;1H");
 }
 
+/* Save the current location of the cursor in the terminal's memory. */
 static void
 save_cursor(void)
 {
 	g_print(ESC "7");
 }
 
+/* Restore the cursor to the location stored in the terminal's memory. */
 static void
 restore_cursor(void)
 {
 	g_print(ESC "8");
 }
 
+/* Reset all of the keyboard modes. */
 static void
 reset(void)
 {
@@ -146,6 +163,7 @@ reset(void)
 	restore_cursor();
 }
 
+/* Cleanly exit. */
 static void
 sigint_handler(int signum)
 {
@@ -160,11 +178,15 @@ int
 main(int argc, char **argv)
 {
 	char c;
-	int flags, i;
+	guint i;
 	struct termios tcattr;
 	GByteArray *bytes;
 	gboolean done = FALSE, saved = FALSE;
+	struct timeval tv;
+	fd_set readset;
 
+	/* Start up: save the cursor location and put the terminal in
+	 * raw mode. */
 	bytes = g_byte_array_new();
 	save_cursor();
 	if (tcgetattr(STDIN_FILENO, &tcattr) != 0) {
@@ -173,16 +195,28 @@ main(int argc, char **argv)
 	}
 	original = tcattr;
 	signal(SIGINT, sigint_handler);
+	/* Here we approximate what cfmakeraw() would do, for the benefit
+	 * of systems which don't actually provide the function. */
+	tcattr.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP |
+			    INLCR | IGNCR | ICRNL | IXON);
+	tcattr.c_oflag &= ~(OPOST);
+	tcattr.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+	tcattr.c_cflag &= ~(CSIZE | PARENB);
+	tcattr.c_cflag |= CS8;
+#ifdef HAVE_CFMAKERAW
 	cfmakeraw(&tcattr);
+#endif
 	if (tcsetattr(STDIN_FILENO, TCSANOW, &tcattr) != 0) {
 		perror("tcsetattr");
 		return 1;
 	}
 
+	/* Switch to the alternate screen, clear it, and reset the keyboard. */
 	decset(MODE_ALTERNATE_SCREEN, TRUE);
 	clear();
 	reset();
 
+	/* Main processing loop. */
 	while (!done) {
 		print_help();
 		set_scrolling_region();
@@ -190,6 +224,7 @@ main(int argc, char **argv)
 			restore_cursor();
 		}
 
+		/* Read a single byte. */
 		if (read(STDIN_FILENO, &c, 1) != 1) {
 			done = TRUE;
 		}
@@ -239,7 +274,7 @@ main(int argc, char **argv)
 		case 'q':
 			done = TRUE;
 			break;
-		case 0x0c:
+		case 0x0c: /* ^L */
 			clear();
 			if (saved) {
 				restore_cursor();
@@ -247,58 +282,41 @@ main(int argc, char **argv)
 			}
 			break;
 		default:
+			/* We get here if it's not one of the keys we care
+			 * about, so it might be a sequence. */
 			if (saved) {
 				restore_cursor();
 			}
 			g_byte_array_append(bytes, &c, 1);
-			flags = fcntl(STDIN_FILENO, F_GETFL);
-			fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
-			while (read(STDIN_FILENO, &c, 1) == 1) {
-				g_byte_array_append(bytes, &c, 1);
+			/* Wait for up to just under 1/50 second. */
+			tv.tv_sec = 0;
+			tv.tv_usec = 1000000 / 50;
+			FD_ZERO(&readset);
+			FD_SET(STDIN_FILENO, &readset);
+			while (select(STDIN_FILENO + 1,
+				      &readset, NULL, NULL, &tv) == 1) {
+				if (read(STDIN_FILENO, &c, 1) == 1) {
+					g_byte_array_append(bytes, &c, 1);
+				} else {
+					break;
+				}
+				tv.tv_sec = 0;
+				tv.tv_usec = 1000000 / 50;
+				FD_ZERO(&readset);
+				FD_SET(STDIN_FILENO, &readset);
 			}
-			fcntl(STDIN_FILENO, F_SETFL, flags);
+			/* Clear this line, and print the sequence. */
 			g_print(ESC "[K");
-			for (i = 0; i < bytes->len; i++)
-			switch (bytes->data[i]) {
-			case 27:
-				g_print("<ESC> ");
-				break;
-			case 0:
-			case 1:
-			case 2:
-			case 3:
-			case 4:
-			case 5:
-			case 6:
-			case 7:
-			case 8:
-			case 9:
-			case 10:
-			case 11:
-			case 12:
-			case 13:
-			case 14:
-			case 15:
-			case 16:
-			case 17:
-			case 18:
-			case 19:
-			case 20:
-			case 21:
-			case 22:
-			case 23:
-			case 24:
-			case 25:
-			case 26:
-			case 28:
-			case 29:
-			case 30:
-			case 31:
-				g_print("<0x%02x> ", bytes->data[i]);
-				break;
-			default:
-				g_print("`%c' ", bytes->data[i]);
-				break;
+			for (i = 0; i < bytes->len; i++) {
+				if (bytes->data[i] == 27) {
+					g_print("<ESC> ");
+				} else
+				if ((((guint8)bytes->data[i]) < 32) ||
+				    (((guint8)bytes->data[i]) > 126)) {
+					g_print("<0x%02x> ", bytes->data[i]);
+				} else {
+					g_print("`%c' ", bytes->data[i]);
+				}
 			}
 			g_print("\r\n");
 			g_byte_array_set_size(bytes, 0);

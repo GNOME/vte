@@ -23,6 +23,9 @@
 #include <unistd.h>
 #include <gtk/gtk.h>
 #include <glib-object.h>
+#ifdef HAVE_XFT2
+#include <fontconfig/fontconfig.h>
+#endif
 #include "debug.h"
 #include "vte.h"
 
@@ -282,6 +285,17 @@ decrease_font_size(GtkWidget *widget, gpointer data)
 	adjust_font_size(widget, data, -1);
 }
 
+static void
+mess_with_fontconfig(void)
+{
+#ifdef HAVE_XFT2
+	/* Is this even a good idea?  Probably not, since this doesn't expose
+	 * these fonts to the gnome-font-properties capplet. */
+	FcInit();
+	FcConfigAppFontAddDir(NULL, DATADIR "/" PACKAGE "/fonts");
+#endif
+}
+
 int
 main(int argc, char **argv)
 {
@@ -484,6 +498,9 @@ main(int argc, char **argv)
 	if (terminal != NULL) {
 		vte_terminal_set_emulation(VTE_TERMINAL(widget), terminal);
 	}
+
+	/* Mess with our fontconfig setup. */
+	mess_with_fontconfig();
 
 	/* Set the default font. */
 	if (font != NULL) {

@@ -614,11 +614,19 @@ _vte_pty_ptsname(int master)
 static int
 _vte_pty_getpt(void)
 {
+	int fd, flags;
 #ifdef HAVE_GETPT
-	return getpt();
+	/* Call the system's function for allocating a pty. */
+	fd = getpt();
 #else
-	return open("/dev/ptmx", O_RDWR | O_NOCTTY);
+	/* Try to allocate a pty by accessing the pty master multiplex. */
+	fd = open("/dev/ptmx", O_RDWR | O_NOCTTY);
 #endif
+	/* Set it to blocking. */
+	flags = fcntl(fd, F_GETFL);
+	flags &= ~(O_NONBLOCK);
+	fcntl(fd, F_SETFL, flags);
+	return fd;
 }
 
 static int
@@ -887,7 +895,7 @@ _vte_pty_open_with_helper(pid_t *child, char **env_add,
 }
 
 /**
- * vte_pty_open_with_logging:
+ * _vte_pty_open:
  * @child: location to store the new process's ID
  * @env_add: a list of environment variables to add to the child's environment
  * @command: name of the binary to run
@@ -954,7 +962,7 @@ _vte_pty_open(pid_t *child, char **env_add,
 }
 
 /**
- * vte_pty_close:
+ * _vte_pty_close:
  * @pty: the pty master descriptor.
  *
  * Cleans up the PTY associated with the descriptor, specifically any logging
@@ -965,20 +973,25 @@ _vte_pty_close(int pty)
 {
 	gpointer tag;
 	GnomePtyOps ops;
-	if (g_tree_lookup(_vte_pty_helper_map, GINT_TO_POINTER(pty))) {
-		/* Signal the helper that it needs to close its connection. */
-		ops = GNOME_PTY_CLOSE_PTY;
-		tag = g_tree_lookup(_vte_pty_helper_map, GINT_TO_POINTER(pty));
-		if (write(_vte_pty_helper_tunnel,
-			  &ops, sizeof(ops)) != sizeof(ops)) {
-			return;
+	if (_vte_pty_helper_map != NULL) {
+		if (g_tree_lookup(_vte_pty_helper_map, GINT_TO_POINTER(pty))) {
+			/* Signal the helper that it needs to close its
+			 * connection. */
+			ops = GNOME_PTY_CLOSE_PTY;
+			tag = g_tree_lookup(_vte_pty_helper_map,
+					    GINT_TO_POINTER(pty));
+			if (write(_vte_pty_helper_tunnel,
+				  &ops, sizeof(ops)) != sizeof(ops)) {
+				return;
+			}
+			if (write(_vte_pty_helper_tunnel,
+				  &tag, sizeof(tag)) != sizeof(tag)) {
+				return;
+			}
+			/* Remove the item from the map. */
+			g_tree_remove(_vte_pty_helper_map,
+				      GINT_TO_POINTER(pty));
 		}
-		if (write(_vte_pty_helper_tunnel,
-			  &tag, sizeof(tag)) != sizeof(tag)) {
-			return;
-		}
-		/* Remove the item from the map. */
-		g_tree_remove(_vte_pty_helper_map, GINT_TO_POINTER(pty));
 	}
 }
 

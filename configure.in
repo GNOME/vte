@@ -54,10 +54,10 @@ AC_DEFINE(PANGO_DISABLE_DEPRECATED,1,[Disable deprecated pango features.])
 
 AC_DEFINE(VTE_UTF8_BPC,6,[Maximum number of bytes used per UTF-8 character.])
 AC_DEFINE_UNQUOTED(PACKAGE,"$PACKAGE",[Package name.])
-AC_CHECK_FUNCS(getpt grantpt unlockpt ptsname ptsname_r sendmsg)
+AC_CHECK_FUNCS(cfmakeraw getpt grantpt unlockpt ptsname ptsname_r sendmsg)
 AC_CHECK_FUNC(socket,[have_socket=1],AC_CHECK_LIB(socket,socket,[have_socket=1; LIBS="$LIBS -lsocket"]))
 AC_CHECK_FUNC(socketpair,[have_socketpair=1],AC_CHECK_LIB(socket,socketpair,[have_socketpair=1; LIBS="$LIBS -lsocket"]))
-AC_CHECK_HEADERS(sys/un.h stropts.h termios.h wchar.h)
+AC_CHECK_HEADERS(sys/select.h sys/un.h stropts.h termios.h wchar.h)
 
 if test x$have_socket = x1 ; then
 	AC_DEFINE(HAVE_SOCKET,1,[Define if you have the `socket' function.])
@@ -69,7 +69,8 @@ fi
 if test x$USE_MAINTAINER_MODE != x ; then
 	if test x$USE_MAINTAINER_MODE != xno ; then
 		if test x$GCC = xyes ; then
-			CFLAGS="${CFLAGS} -std=c99"
+			AC_CHECK_CC_OPT(-std=c99,vte_std_c99)
+			CFLAGS="${CFLAGS} $vte_std_c99"
 			CFLAGS="${CFLAGS} -Wall"
 			CFLAGS="${CFLAGS} -Waggregate-return"
 			CFLAGS="${CFLAGS} -Wcast-align"
@@ -79,8 +80,8 @@ if test x$USE_MAINTAINER_MODE != x ; then
 			CFLAGS="${CFLAGS} -Wpointer-arith"
 			CFLAGS="${CFLAGS} -Wstrict-prototypes"
 			CFLAGS="${CFLAGS} -Wuninitialized"
-			#CFLAGS="${CFLAGS} −Wsign−compare"
-			#CFLAGS="${CFLAGS} −Wunused-value"
+			#CFLAGS="${CFLAGS} -Wsign-compare"
+			#CFLAGS="${CFLAGS} -Wunused-value"
 		fi
 		VTE_DEBUG=1
 	fi

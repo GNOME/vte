@@ -353,7 +353,7 @@ struct _VteTerminalPrivate {
 	} palette[VTE_DIM_FG + 1];
 	XwcTextItem xlib_textitem[VTE_DRAW_MAX_LENGTH];
 	wchar_t xlib_wcitem[VTE_DRAW_MAX_LENGTH];
-#ifdef HAVE_XFT
+#ifdef HAVE_XFT2
 	XftCharSpec xft_textitem[VTE_DRAW_MAX_LENGTH];
 #endif
 
@@ -517,13 +517,6 @@ vte_new_row_data_sized(VteTerminal *terminal, gboolean fill)
 	return row;
 }
 
-/* Guess at how many columns a character takes up. */
-static gssize
-vte_unichar_width(gunichar c)
-{
-	return g_unichar_isdefined(c) ? (g_unichar_iswide(c) ? 2 : 1) : 1;
-}
-
 /* Check how long a string of unichars is.  Slow version. */
 static gssize
 vte_unicode_strlen(gunichar *c)
@@ -579,6 +572,16 @@ vte_wc_from_unichar(VteTerminal *terminal, gunichar c)
 	}
 	return (wchar_t) c;
 #endif
+}
+
+/* Guess at how many columns a character takes up. */
+static gssize
+vte_unichar_width(VteTerminal *terminal, gunichar c)
+{
+	gssize width;
+	width = g_unichar_isdefined(c) ? (g_unichar_iswide(c) ? 2 : 1) : -1;
+	width = CLAMP(width, 1, 2);
+	return width;
 }
 
 /* Avoid driving myself nuts on the differing semantics of Pango and PangoX. */
@@ -6100,7 +6103,7 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			(long)c,
 			c < 256 ? c : ' ',
 			screen->defaults.fore, screen->defaults.back,
-			vte_unichar_width(c),
+			vte_unichar_width(terminal, c),
 			(long)screen->insert_delta);
 	}
 #endif
@@ -6114,12 +6117,7 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 	/* Figure out how many columns this character should occupy. */
 	if (forced_width == -1) {
-		columns = vte_unichar_width(c);
-		if (columns < 0) {
-			g_warning(_("Character 0x%x is undefined, allocating "
-				    "one column."), c);
-			columns = 1;
-		}
+		columns = vte_unichar_width(terminal, c);
 	} else {
 		columns = forced_width;
 	}
@@ -7108,6 +7106,25 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		if (terminal->pvt->pty_master != -1) {
 			_vte_buffer_append(terminal->pvt->outgoing,
 					   obufptr, obuf - obufptr);
+#ifdef VTE_DEBUG
+			if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+				while (obufptr < obuf) {
+					if ((((guint8) obufptr[0]) < 32) ||
+					    (((guint8) obufptr[0]) > 127)) {
+						fprintf(stderr,
+							"Sending <%02x> "
+							"to child.\n",
+							obufptr[0]);
+					} else {
+						fprintf(stderr,
+							"Sending '%c' "
+							"to child.\n",
+							obufptr[0]);
+					}
+					obufptr++;
+				}
+			}
+#endif
 			/* If we need to start waiting for the child pty to
 			 * become available for writing, set that up here. */
 			if (terminal->pvt->pty_output == NULL) {
@@ -7888,7 +7905,7 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 	cy = 32 + 1 + (y / terminal->char_height);
 
 	/* Send the event to the child. */
-	snprintf(buf, sizeof(buf), "%sM%c%c%c", _VTE_CAP_CSI, cb, cx, cy);
+	snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, cx, cy);
 	vte_terminal_feed_child(terminal, buf, strlen(buf));
 }
 
@@ -11782,7 +11799,8 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 	XSetForeground(display, gc, terminal->pvt->palette[fore].pixel);
 	switch (c) {
 	case 0x25ae: /* solid rectangle */
-		XFillRectangle(display, drawable, gc, x, y, xright-x, ybottom-y);
+		XFillRectangle(display, drawable, gc, x, y,
+			       xright - x, ybottom - y);
 		break;
 	case 95:
 		/* drawing a blank */
@@ -11806,9 +11824,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 			draw = ((i - x) & 1) == 0;
 			for (j = y; j < ybottom; j++) {
 				if (draw) {
-					XDrawPoint(display,
-						   drawable,
-						   gc, i, j);
+					XDrawPoint(display, drawable, gc, i, j);
 				}
 				draw = !draw;
 			}
@@ -12859,7 +12875,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 						  x +
 						  ((i - column) * column_width),
 						  y,
-						  column_width,
+						  item.columns * column_width,
 						  row_height,
 						  display,
 						  gdrawable,
@@ -13136,7 +13152,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		if (terminal->pvt->im_preedit != NULL) {
 			preedit = terminal->pvt->im_preedit;
 			for (i = 0; i < terminal->pvt->im_preedit_cursor; i++) {
-				col += vte_unichar_width(g_utf8_get_char(preedit));
+				col += vte_unichar_width(terminal, g_utf8_get_char(preedit));
 				preedit = g_utf8_next_char(preedit);
 			}
 		}

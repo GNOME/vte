@@ -1,3 +1,20 @@
+2002-12-02  nalin
+	* acinclude.m4: add AC_CHECK_CC_OPT from ac-archive.
+	* configure.in: check for cfmakeraw, sys/select.h, compiler support
+	for -std= (#99698)
+	* doc/boxes.txt: change reference to online Docbook reference to the
+	charts at the Unicode web site.
+	* src/dumpkeys.c: make a best-effort at making a terminal raw on systems
+	where cfmakeraw() isn't available, from patch by Brian Cameron.  Wait
+	for up to 1/50 of a second for more bytes we'll consider to be part of
+	a sequence.
+	* src/pty.c(getpt): ensure that the new terminal is opened in non-
+	blocking mode.
+	* src/trie.c: use g_unichar_digit_value() instead of subtracting '0'.
+	* src/vte.c: don't declare the xft_textitem member on non-Xft2 systems,
+	because it uses an Xft2-specific type (#99685).
+	* src/vteapp.c: add $pkgdatadir/fonts to the font path for testing.
+
 2002-11-25  nalin
 	* src/vte.c: fix mapping of Unicode code chars 0x252c and 0x2534 which
 	incorrectly mixed them up (#99474).

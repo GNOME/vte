@@ -162,7 +162,8 @@ char_class_digit_extract(const gunichar *s, size_t length,
 	GValue value;
 	for (i = 0; i < length; i++) {
 		ret *= 10;
-		ret += (s[i] - '0');
+		ret += g_unichar_digit_value(s[i]) == -1 ?
+		       0 : g_unichar_digit_value(s[i]);
 	}
 	memset(&value, 0, sizeof(value));
 	g_value_init(&value, G_TYPE_LONG);
