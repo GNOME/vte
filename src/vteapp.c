@@ -18,6 +18,7 @@
 
 #ident "$Id$"
 #include "../config.h"
+#include <string.h>
 #include <gtk/gtk.h>
 #include <glib-object.h>
 #include "vte.h"

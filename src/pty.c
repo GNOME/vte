@@ -38,7 +38,7 @@ vte_pty_fork_on_fd(const char *path, const char **env_add,
 {
 	int fd, i;
 	pid_t pid;
-	char **args;
+	char **args, *arg;
 
 	/* Start up a child. */
 	pid = fork();
@@ -103,7 +103,13 @@ vte_pty_fork_on_fd(const char *path, const char **env_add,
 		}
 		execv(command, args);
 	} else {
-		execl(command, command, NULL);
+		if (strchr(command, '/')) {
+			arg = g_strdup(strrchr(command, '/'));
+		} else {
+			arg = g_strdup_printf("/%s", command);
+		}
+		arg[0] = '-';
+		execl(command, arg, NULL);
 	}
 
 	/* Avoid calling any atexit() code. */
