@@ -1,4 +1,8 @@
 2004-04-30 nalin
+	* vte.pc.in, vte-uninstalled.pc.in: declare the defaultemulation
+	variable as one kind of variable, not that other kind (#141515).
+
+2004-04-30 nalin
 	* src/vte.c(vte_terminal_button_release): complete selection if we were
 	selecting, not just if Shift is held down (allows Press Shift, Press
 	Button, Release Shift, Release Button in addition to already-recognized

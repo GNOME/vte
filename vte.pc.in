@@ -3,10 +3,11 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
+defaultemulation=@VTE_DEFAULT_EMULATION@
+
 Name: vte
 Description: Vte terminal widget.
 Version: @VERSION@
 Requires: @NEEDEDPACKAGES@
 Libs: -L${libdir} -lvte @FT2_LIBS@ @OTHERLIBS@
 Cflags: -I${includedir} @FT2_CFLAGS@ @OTHERCFLAGS@
-DefaultEmulation: @VTE_DEFAULT_EMULATION@
