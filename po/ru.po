@@ -3,7 +3,6 @@
 # This file is distributed under the same license as the vte package.
 # Dmitry G. Mastrukov <dmitry@taurussoft.org>, 2003.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
@@ -78,7 +77,7 @@ msgstr ""
 "набор символов: %s."
 
 #: src/vte.c:10663
-#, c-format
+#, fuzzy, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr ""
 "Произошёл сбой при загрузке шрифта через систему Xft, идёт откат на исходный "
@@ -89,7 +88,7 @@ msgid "Failed to load default Xft font."
 msgstr "Произошёл сбой при загрузке исходного шрифта через систему Xft."
 
 #: src/vte.c:10803
-#, c-format
+#, fuzzy, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr ""
 "Произошёл сбой при загрузке семейства шрифтов, идёт откат на исходный шрифт."
