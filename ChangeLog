@@ -1,4 +1,11 @@
 2002-09-11 nalin
+	* src/pty.c: Reorder definitions to avoid implicit declaration warnings.
+	* configure.in: Check for socketpair().  Check for socket() in libc
+	before poking around in libsocket.
+	* gnome-pty-helper/configure.in: Check for openpty() in libutil as well,
+	and do so before we check for other functions.
+
+2002-09-11 nalin
 	* configure.in, gnome-pty-helper/cofnigure.in: Test for sendmsg() with
 	AC_CHECK_FUNCS instead of AC_TRY_COMPILE.
 	* acconfig.h: Removed.

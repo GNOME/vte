@@ -417,6 +417,104 @@ _vte_pty_open_unix98(pid_t *child, char **env_add,
 	return fd;
 }
 
+#ifdef HAVE_SENDMSG
+static void
+_vte_pty_read_ptypair(int tunnel, int *parentfd, int *childfd)
+{
+	int i, ret;
+	char control[LINE_MAX], iobuf[LINE_MAX];
+	struct cmsghdr *cmsg;
+	struct msghdr msg;
+	struct iovec vec;
+
+	for (i = 0; i < 2; i++) {
+		vec.iov_base = iobuf;
+		vec.iov_len = sizeof(iobuf);
+		msg.msg_name = NULL;
+		msg.msg_namelen = 0;
+		msg.msg_iov = &vec;
+		msg.msg_iovlen = 1;
+		msg.msg_control = control;
+		msg.msg_controllen = sizeof(control);
+		ret = recvmsg(tunnel, &msg, MSG_NOSIGNAL);
+		if (ret == -1) {
+			return;
+		}
+		for (cmsg = CMSG_FIRSTHDR(&msg);
+		     cmsg != NULL;
+		     cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+			if (cmsg->cmsg_type == SCM_RIGHTS) {
+				memcpy(&ret, CMSG_DATA(cmsg), sizeof(ret));
+				switch (i) {
+					case 0:
+						*parentfd = ret;
+						break;
+					case 1:
+						*childfd = ret;
+						break;
+					default:
+						g_assert_not_reached();
+						break;
+				}
+			}
+		}
+	}
+}
+#else
+#ifdef I_RECVFD
+static void
+_vte_pty_read_ptypair(int tunnel, int *parentfd, int *childfd)
+{
+	int i;
+	if (ioctl(tunnel, I_RECVFD, &i) == -1) {
+		return;
+	}
+	*parentfd = i;
+	if (ioctl(tunnel, I_RECVFD, &i) == -1) {
+		return;
+	}
+	*childfd = i;
+}
+#endif
+#endif
+
+#ifdef HAVE_SOCKETPAIR
+static int
+_vte_pty_pipe_open(int *a, int *b)
+{
+	int p[2], ret = -1;
+#ifdef PF_UNIX
+#ifdef SOCK_STREAM
+	ret = socketpair(PF_UNIX, SOCK_STREAM, 0, p);
+#else
+#ifdef SOCK_DGRAM
+	ret = socketpair(PF_UNIX, SOCK_DGRAM, 0, p);
+#endif
+#endif
+	if (ret == 0) {
+		*a = p[0];
+		*b = p[1];
+		return 0;
+	}
+#endif
+	return ret;
+}
+#else
+static int
+_vte_pty_pipe_open(int *a, int *b)
+{
+	int p[2], ret = -1;
+
+	ret = pipe(p);
+
+	if (ret == 0) {
+		*a = p[0];
+		*b = p[1];
+	}
+	return ret;
+}
+#endif
+
 static void
 _vte_pty_stop_helper(void)
 {
@@ -484,104 +582,6 @@ _vte_pty_start_helper(void)
 	atexit(_vte_pty_stop_helper);
 	return TRUE;
 }
-
-#ifdef HAVE_SENDMSG
-static void
-_vte_pty_read_ptypair(int tunnel, int *parentfd, int *childfd)
-{
-	int i, ret;
-	char control[LINE_MAX], iobuf[LINE_MAX];
-	struct cmsghdr *cmsg;
-	struct msghdr msg;
-	struct iovec vec;
-
-	for (i = 0; i < 2; i++) {
-		vec.iov_base = iobuf;
-		vec.iov_len = sizeof(iobuf);
-		msg.msg_name = NULL;
-		msg.msg_namelen = 0;
-		msg.msg_iov = &vec;
-		msg.msg_iovlen = 1;
-		msg.msg_control = control;
-		msg.msg_controllen = sizeof(control);
-		ret = recvmsg(tunnel, &msg, MSG_NOSIGNAL);
-		if (ret == -1) {
-			return;
-		}
-		for (cmsg = CMSG_FIRSTHDR(&msg);
-		     cmsg != NULL;
-		     cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-			if (cmsg->cmsg_type == SCM_RIGHTS) {
-				memcpy(&ret, CMSG_DATA(cmsg), sizeof(ret));
-				switch (i) {
-					case 0:
-						*parentfd = ret;
-						break;
-					case 1:
-						*childfd = ret;
-						break;
-					default:
-						g_assert_not_reached();
-						break;
-				}
-			}
-		}
-	}
-}
-
-static int
-_vte_pty_pipe_open(int *a, int *b)
-{
-	int p[2], ret = -1;
-#ifdef PF_UNIX
-#ifdef SOCK_STREAM
-	ret = socketpair(PF_UNIX, SOCK_STREAM, 0, p);
-#else
-#ifdef SOCK_DGRAM
-	ret = socketpair(PF_UNIX, SOCK_DGRAM, 0, p);
-#endif
-#endif
-	if (ret == 0) {
-		*a = p[0];
-		*b = p[1];
-		return 0;
-	}
-#endif
-	return ret;
-}
-
-#else
-#ifdef I_RECVFD
-static void
-_vte_pty_read_ptypair(int tunnel, int *parentfd, int *childfd)
-{
-	int i;
-	if (ioctl(tunnel, I_RECVFD, &i) == -1) {
-		return;
-	}
-	*parentfd = i;
-	if (ioctl(tunnel, I_RECVFD, &i) == -1) {
-		return;
-	}
-	*childfd = i;
-}
-#endif
-
-static int
-_vte_pty_pipe_open(int *a, int *b)
-{
-	int p[2], ret = -1;
-
-	ret = pipe(p);
-
-	if (ret == 0) {
-		*a = p[0];
-		*b = p[1];
-	}
-	return ret;
-}
-
-#endif
 
 static int
 _vte_pty_open_old_school(pid_t *child, char **env_add,
