@@ -5,16 +5,31 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: 2.2\n"
-"POT-Creation-Date: 2003-02-23 02:50+0000\n"
-"PO-Revision-Date: 2003-02-23 02:51+0000\n"
+"Project-Id-Version: 2.4\n"
+"POT-Creation-Date: 2003-05-13 22:04+0000\n"
+"PO-Revision-Date: 2003-05-13 22:05+0000\n"
 "Last-Translator: Duarte Loreto <happyguy_pt@hotmail.com>\n"
 "Language-Team: pt <gnome_pt@yahoogroups.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:253
+#: src/iso2022.c:723 src/iso2022.c:734 src/iso2022.c:758 src/vte.c:1991
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Incapaz de converter caracteres de %s em %s."
+
+#: src/iso2022.c:1372
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr "Tentativa de definir um mapa NRC inválido '%c'."
+
+#: src/iso2022.c:1423 src/iso2022.c:1449
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr "Tentativa de definir um mapa abrangente NRC inválido '%c'."
+
+#: src/pty.c:317
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Erro ao adicionar `%s' ao ambiente, a continuar."
@@ -22,102 +37,103 @@ msgstr "Erro ao adicionar `%s' ao ambiente, a continuar."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:800
+#: src/pty.c:877
 #, c-format
 msgid "can not run %s"
 msgstr "incapaz de executar %s"
 
-#: src/reaper.c:107
+#: src/reaper.c:108
 msgid "Error creating signal pipe."
 msgstr "Erro ao criar canal de sinal."
 
-#: src/trie.c:411
+#: src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicado (%s/%s)!"
 
-#: src/vte.c:1422
+#: src/vte.c:1427
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Erro ao compilar expressão regular \"%s\"."
 
-#: src/vte.c:1980 src/vte.c:1989 src/vte.c:2001 src/vte.c:2019 src/vte.c:2025
-#: src/vte.c:2030
-#, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Incapaz de converter caracteres de %s em %s."
-
-#: src/vte.c:5548
+#: src/vte.c:5501
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Obtida sequência (chave?) inesperada `%s'."
 
-#: src/vte.c:6639
+#: src/vte.c:6514
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Nenhum gestor definido para a sequência de controlo `%s'."
 
-#: src/vte.c:7383
+#: src/vte.c:7230
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Erro ao ler do filho: %s."
 
-#: src/vte.c:7566
+#: src/vte.c:7384
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Erro (%s) a converter dados do filho, a ignora-los."
 
-#: src/vte.c:9908
-#, c-format
-msgid "Using fontset \"%s\", which is missing these character sets: %s."
-msgstr ""
-"A utilizar conjunto de fontes \"%s\", a que faltam os seguintes conjuntos de "
-"caracteres: %s."
-
-#: src/vte.c:10546
-#, c-format
-msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
-msgstr ""
-"Falha ao carregar padrão de fontes Xft \"%s\", a utilizar fonte por omissão."
-
-#: src/vte.c:10558
-msgid "Failed to load default Xft font."
-msgstr "Falha ao ler fonte Xft por omissão."
-
-#: src/vte.c:10651
-#, c-format
-msgid "Failed to load font set \"%s\", falling back to default font."
-msgstr "Falha ao ler conjunto de fontes \"%s\", a utilizar fonte por omissão."
-
-#: src/vte.c:10663
-msgid "Failed to load default font, crashing or behaving abnormally."
-msgstr ""
-"Falha ao carregar a fonte por omissão, a rebentar ou com comportamento "
-"anormal."
-
-#: src/vte.c:10925
+#: src/vte.c:9934
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Erro ao ler tamanho PTY, a utilizar valores por omissão: %s."
 
-#: src/vte.c:10961
+#: src/vte.c:9970
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Erro ao definir tamanho PTY: %s."
 
-#: src/vte.c:13908
-msgid "Error allocating draw, disabling Xft."
-msgstr "Erro ao alocar desenho, a desabilitar Xft."
-
-#: src/vte.c:13916
-msgid "Error allocating context, disabling Pango."
-msgstr "Erro ao alocar contexto, a desabilitar Pango."
-
-#: src/vte.c:13922
-msgid "Error allocating layout, disabling Pango."
-msgstr "Erro ao alocar disposição, a desabilitar Pango."
-
 #. Aaargh.  We're screwed.
-#: src/vte.c:15637
-msgid "g_iconv_open() failed setting word characters"
-msgstr "g_iconv_open() falhou ao definir caracteres de palavra"
+#: src/vte.c:13922
+msgid "_vte_conv_open() failed setting word characters"
+msgstr "_vte_conv_open() falhou ao definir caracteres de palavra"
+
+#. Bail back to normal mode.
+#: src/vteapp.c:642
+msgid "Could not open console.\n"
+msgstr "Incapaz de abrir consola.\n"
+
+#: src/vteglyph.c:575
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr "Modo de pixel %d desconhecido.\n"
+
+#: src/vtexft.c:664
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr "Incapaz de desenhar caracter U+%04x.\n"
+
+#~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
+#~ msgstr ""
+#~ "A utilizar conjunto de fontes \"%s\", a que faltam os seguintes conjuntos "
+#~ "de caracteres: %s."
+
+#~ msgid ""
+#~ "Failed to load Xft font pattern \"%s\", falling back to default font."
+#~ msgstr ""
+#~ "Falha ao carregar padrão de fontes Xft \"%s\", a utilizar fonte por "
+#~ "omissão."
+
+#~ msgid "Failed to load default Xft font."
+#~ msgstr "Falha ao ler fonte Xft por omissão."
+
+#~ msgid "Failed to load font set \"%s\", falling back to default font."
+#~ msgstr ""
+#~ "Falha ao ler conjunto de fontes \"%s\", a utilizar fonte por omissão."
+
+#~ msgid "Failed to load default font, crashing or behaving abnormally."
+#~ msgstr ""
+#~ "Falha ao carregar a fonte por omissão, a rebentar ou com comportamento "
+#~ "anormal."
+
+#~ msgid "Error allocating draw, disabling Xft."
+#~ msgstr "Erro ao alocar desenho, a desabilitar Xft."
+
+#~ msgid "Error allocating context, disabling Pango."
+#~ msgstr "Erro ao alocar contexto, a desabilitar Pango."
+
+#~ msgid "Error allocating layout, disabling Pango."
+#~ msgstr "Erro ao alocar disposição, a desabilitar Pango."
