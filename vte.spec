@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.3.18
+Version: 0.3.19
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -53,6 +53,9 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Tue May 21 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.19-1
+- fixes from andersca and Hidetoshi Tajima
+
 * Thu May 16 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.18-1
 - finish implementing matching
 
