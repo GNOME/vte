@@ -1,5 +1,22 @@
 2005-03-14  Kjartan Maraas  <kmaraas@gnome.org>
 
+	* src/Makefile.am: 
+	* src/interpret.c: (main):
+	* src/matcher.c: (_vte_matcher_add), (_vte_matcher_init),
+	(_vte_matcher_create), (_vte_matcher_destroy), (_vte_matcher_new),
+	(_vte_matcher_free):
+	* src/matcher.h:
+	* src/vte.c: (vte_terminal_set_emulation), (vte_terminal_init):
+	* src/vtetc.c: (_vte_termcap_create), (_vte_termcap_destroy),
+	(_vte_termcap_new), (_vte_termcap_free):
+	* src/vtetc.h: Add patch for excessive memory consumption when
+	opening new tabs. This patch makes struct _vte_matcher and
+	struct _vte_termcap shared between terminals and should reduce
+	memory consumption with multiple tabs a lot. Patch from Aivars
+	Kalvans <kalvans at inbox lv>. From bug #160993.
+
+2005-03-14  Kjartan Maraas  <kmaraas@gnome.org>
+
 	* src/vte.c: (vte_terminal_scroll_region),
 	(vte_sequence_handler_al), (vte_sequence_handler_dl),
 	(vte_sequence_handler_sr), (vte_sequence_handler_insert_lines),

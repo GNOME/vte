@@ -11003,13 +11003,9 @@ vte_terminal_set_scroll_adjustment(VteTerminal *terminal,
 void
 vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 {
-	const char *code, *value;
-	gboolean found_cr = FALSE, found_lf = FALSE;
-	char *stripped;
-	gssize stripped_length;
+	const char *code;
 	int columns, rows;
 	GQuark quark;
-	char *tmp;
 	int i;
 
 	/* Set the emulation type, for reference. */
@@ -11030,7 +11026,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	if (terminal->pvt->matcher != NULL) {
 		_vte_matcher_free(terminal->pvt->matcher);
 	}
-	terminal->pvt->matcher = _vte_matcher_new(emulation);
+	terminal->pvt->matcher = _vte_matcher_new(emulation, terminal->pvt->termcap);
 
 	/* Create a tree to hold the handlers. */
 	if (terminal->pvt->sequences) {
@@ -11045,69 +11041,6 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 				      (gpointer)vte_sequence_handlers[i].handler);
 		}
 	}
-
-	/* Load the known capability strings from the termcap structure into
-	 * the table for recognition. */
-	for (i = 0;
-	     _vte_terminal_capability_strings[i].capability != NULL;
-	     i++) {
-		if (_vte_terminal_capability_strings[i].key) {
-			continue;
-		}
-		code = _vte_terminal_capability_strings[i].capability;
-		tmp = _vte_termcap_find_string(terminal->pvt->termcap,
-					       terminal->pvt->emulation,
-					       code);
-		if ((tmp != NULL) && (tmp[0] != '\0')) {
-			_vte_termcap_strip(tmp, &stripped, &stripped_length);
-			_vte_matcher_add(terminal->pvt->matcher,
-					 stripped, stripped_length,
-					 code, 0);
-			if (stripped[0] == '\r') {
-				found_cr = TRUE;
-			} else
-			if (stripped[0] == '\n') {
-				if ((strcmp(code, "sf") == 0) ||
-				    (strcmp(code, "do") == 0)) {
-					found_lf = TRUE;
-				}
-			}
-			g_free(stripped);
-		}
-		g_free(tmp);
-	}
-
-	/* Add emulator-specific sequences. */
-	if (strstr(emulation, "xterm") || strstr(emulation, "dtterm")) {
-		/* Add all of the xterm-specific stuff. */
-		for (i = 0;
-		     _vte_xterm_capability_strings[i].value != NULL;
-		     i++) {
-			code = _vte_xterm_capability_strings[i].code;
-			value = _vte_xterm_capability_strings[i].value;
-			_vte_termcap_strip(code, &stripped, &stripped_length);
-			_vte_matcher_add(terminal->pvt->matcher,
-					 stripped, stripped_length,
-					 value, 0);
-			g_free(stripped);
-		}
-	}
-
-	/* Always define cr and lf. */
-	if (!found_cr) {
-		_vte_matcher_add(terminal->pvt->matcher, "\r", 1, "cr", 0);
-	}
-	if (!found_lf) {
-		_vte_matcher_add(terminal->pvt->matcher, "\n", 1, "sf", 0);
-	}
-
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Trie contents:\n");
-		_vte_matcher_print(terminal->pvt->matcher);
-		fprintf(stderr, "\n");
-	}
-#endif
 
 	/* Read emulation flags. */
 	terminal->pvt->flags.am = _vte_termcap_find_boolean(terminal->pvt->termcap,
@@ -11397,7 +11330,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	/* Setting the terminal type and size requires the PTY master to
 	 * be set up properly first. */
 	pvt->pty_master = -1;
-	vte_terminal_set_termcap(terminal, NULL, FALSE);
 	vte_terminal_set_emulation(terminal, NULL);
 	vte_terminal_set_size(terminal,
 			      pvt->default_column_count,

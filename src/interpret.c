@@ -72,7 +72,6 @@ main(int argc, char **argv)
 
 	g_type_init();
 	terminal = argv[1];
-	matcher = _vte_matcher_new(terminal);
 	termcap = _vte_termcap_new(g_strdup_printf(DATADIR "/" PACKAGE
 						   "/termcap/%s", terminal));
 	if (termcap == NULL) {
@@ -81,29 +80,7 @@ main(int argc, char **argv)
 	buffer = _vte_buffer_new();
 	array = g_array_new(TRUE, TRUE, sizeof(gunichar));
 
-	for (i = 0;
-	     _vte_terminal_capability_strings[i].capability != NULL;
-	     i++) {
-		const char *capability;
-		char *tmp;
-		capability = _vte_terminal_capability_strings[i].capability;
-		if (_vte_terminal_capability_strings[i].key) {
-			continue;
-		}
-		tmp = _vte_termcap_find_string(termcap, terminal, capability);
-		if ((tmp != NULL) && (strlen(tmp) > 0)) {
-			_vte_matcher_add(matcher, tmp, strlen(tmp), capability,
-				       g_quark_from_static_string(capability));
-		}
-		g_free(tmp);
-	}
-	for (i = 0; _vte_xterm_capability_strings[i].value != NULL; i++) {
-		const char *code, *value;
-		code = _vte_xterm_capability_strings[i].code;
-		value = _vte_xterm_capability_strings[i].value;
-		_vte_matcher_add(matcher, code, strlen(code), value,
-				 g_quark_from_static_string(code));
-	}
+	matcher = _vte_matcher_new(terminal, termcap);
 
 	subst = _vte_iso2022_state_new(NULL, NULL, NULL);
 

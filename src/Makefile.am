@@ -155,6 +155,8 @@ iso2022_CFLAGS = @CFLAGS@ @GTK_CFLAGS@ -DISO2022_MAIN
 iso2022_SOURCES = \
 	buffer.c \
 	buffer.h \
+	caps.c \
+	caps.h \
 	debug.c \
 	debug.h \
 	iso2022.c \
@@ -166,13 +168,17 @@ iso2022_SOURCES = \
 	trie.c \
 	trie.h \
 	vteconv.c \
-	vteconv.h
+	vteconv.h \
+	vtetc.c \
+	vtetc.h
 iso2022_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 utf8echo_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DUTF8ECHO_MAIN
 utf8echo_SOURCES = \
 	buffer.c \
 	buffer.h \
+	caps.c \
+	caps.h \
 	debug.c \
 	debug.h \
 	matcher.c \
@@ -183,7 +189,9 @@ utf8echo_SOURCES = \
 	trie.h \
 	utf8echo.c \
 	vteconv.c \
-	vteconv.h
+	vteconv.h \
+	vtetc.c \
+	vtetc.h
 utf8echo_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 nativeecho_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DNATIVEECHO_MAIN
@@ -207,22 +215,8 @@ table_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DTABLE_MAIN
 table_SOURCES = \
 	buffer.c \
 	buffer.h \
-	debug.c \
-	debug.h \
-	matcher.c \
-	matcher.h \
-	table.c \
-	table.h \
-	trie.c \
-	trie.h \
-	vteconv.c \
-	vteconv.h
-table_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
-
-trie_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DTRIE_MAIN
-trie_SOURCES = \
-	buffer.c \
-	buffer.h \
+	caps.c \
+	caps.h \
 	debug.c \
 	debug.h \
 	matcher.c \
@@ -235,6 +229,26 @@ trie_SOURCES = \
 	vteconv.h \
 	vtetc.c \
 	vtetc.h
+table_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
+
+trie_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DTRIE_MAIN
+trie_SOURCES = \
+	buffer.c \
+	buffer.h \
+	caps.c \
+	caps.h \
+	debug.c \
+	debug.h \
+	matcher.c \
+	matcher.h \
+	table.c \
+	table.h \
+	trie.c \
+	trie.h \
+	vteconv.c \
+	vteconv.h \
+	vtetc.c \
+	vtetc.h 
 trie_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 vtetc_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DTERMCAP_MAIN

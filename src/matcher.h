@@ -24,21 +24,18 @@
 #ident "$Id$"
 
 #include <glib-object.h>
+#include "vtetc.h"
 
 G_BEGIN_DECLS
 
 struct _vte_matcher;
 
-/* Create an initial matcher. */
-struct _vte_matcher *_vte_matcher_new(const char *emulation_hint);
+/* Create and init matcher. */
+struct _vte_matcher *_vte_matcher_new(char *emulation,
+				      struct _vte_termcap *termcap);
 
 /* Free a matcher. */
 void _vte_matcher_free(struct _vte_matcher *matcher);
-
-/* Add a string to the matcher. */
-void _vte_matcher_add(struct _vte_matcher *matcher,
-		      const char *pattern, gssize length,
-		      const char *result, GQuark quark);
 
 /* Check if a string matches a sequence the matcher knows about. */
 const char *_vte_matcher_match(struct _vte_matcher *matcher,
