@@ -1,4 +1,15 @@
 2003-09-11 nalin
+	* src/vte.c(vte_terminal_draw_cells_with_attributes): properly resolve
+	colors and cell properties to drawing colors.
+	* src/vte.c(_vte_terminal_fudge_pango_colors): add a function for
+	mapping GTK+ white-on-black preedit text to default reverse-colored
+	text for the terminal.
+	* src/vte.c(_vte_terminal_translate_pango_cells): don't bother
+	doing anything with the attribute for a range if the list is NULL.
+	Fudge white-on-black text to default colors in reverse so that it
+	works when the terminal is in a black-on-white color scheme.
+
+2003-09-11 nalin
 	* src/vte.c(_vte_terminal_apply_pango_attr): map weight attributes to
 	the terminal's bold attribute.
 

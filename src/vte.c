@@ -13000,6 +13000,52 @@ _vte_terminal_map_pango_color(VteTerminal *terminal, PangoColor *color)
 	return ret;
 }
 
+/* FIXME: we don't have a way to tell GTK+ what the default text attributes
+ * should be, so for now at least it's assuming white-on-black is the norm and
+ * is using "black-on-white" to signify "inverse".  Pick up on that state and
+ * fix things.  Do this here, so that if we suddenly get red-on-black, we'll do
+ * the right thing. */
+_vte_terminal_fudge_pango_colors(VteTerminal *terminal, GSList *attributes,
+				 struct vte_charcell *cells, gssize n)
+{
+	gboolean saw_fg, saw_bg;
+	PangoAttribute *attr;
+	PangoAttrColor *color;
+	PangoColor fg, bg;
+	int i;
+
+	saw_fg = saw_bg = FALSE;
+
+	while (attributes != NULL) {
+		attr = attributes->data;
+		switch (attr->klass->type) {
+		case PANGO_ATTR_FOREGROUND:
+			saw_fg = TRUE;
+			color = (PangoAttrColor*) attr;
+			fg = color->color;
+			break;
+		case PANGO_ATTR_BACKGROUND:
+			saw_bg = TRUE;
+			color = (PangoAttrColor*) attr;
+			bg = color->color;
+			break;
+		default:
+			break;
+		}
+		attributes = g_slist_next(attributes);
+	}
+
+	if (saw_fg && saw_bg &&
+	    (fg.red == 0xffff) && (fg.green == 0xffff) && (fg.blue == 0xffff) &&
+	    (bg.red == 0) && (bg.green == 0) && (bg.blue == 0)) {
+		for (i = 0; i < n; i++) {
+			cells[i].fore = terminal->pvt->screen->color_defaults.fore;
+			cells[i].back = terminal->pvt->screen->color_defaults.back;
+			cells[i].reverse = TRUE;
+		}
+	}
+}
+
 /* Apply the attribute given in the PangoAttribute to the list of cells. */
 static void
 _vte_terminal_apply_pango_attr(VteTerminal *terminal, PangoAttribute *attr,
@@ -13085,17 +13131,28 @@ _vte_terminal_translate_pango_cells(VteTerminal *terminal, PangoAttrList *attrs,
 	if (attriter != NULL) {
 		do {
 			list = pango_attr_iterator_get_attrs(attriter);
-			for (listiter = list;
-			     listiter != NULL;
-			     listiter = g_slist_next(listiter)) {
-				attr = listiter->data;
-				_vte_terminal_apply_pango_attr(terminal, attr,
-							       cells, n_cells);
+			if (list != NULL) {
+				for (listiter = list;
+				     listiter != NULL;
+				     listiter = g_slist_next(listiter)) {
+					attr = listiter->data;
+					_vte_terminal_apply_pango_attr(terminal,
+								       attr,
+								       cells,
+								       n_cells);
+				}
+				attr = list->data;
+				_vte_terminal_fudge_pango_colors(terminal,
+								 list,
+								 cells +
+								 attr->start_index,
+								 attr->end_index -
+								 attr->start_index);
+				g_slist_foreach(list,
+						_vte_terminal_pango_attribute_destroy,
+						NULL);
+				g_slist_free(list);
 			}
-			g_slist_foreach(list,
-					_vte_terminal_pango_attribute_destroy,
-					NULL);
-			g_slist_free(list);
 		} while (pango_attr_iterator_next(attriter) == TRUE);
 		pango_attr_iterator_destroy(attriter);
 	}
@@ -13115,6 +13172,7 @@ vte_terminal_draw_cells_with_attributes(VteTerminal *terminal,
 	int i, j, cell_count;
 	struct vte_charcell *cells;
 	char scratch_buf[VTE_UTF8_BPC];
+	int fore, back;
 
 	for (i = 0, cell_count = 0; i < n; i++) {
 		cell_count += g_unichar_to_utf8(items[i].c, scratch_buf);
@@ -13122,9 +13180,11 @@ vte_terminal_draw_cells_with_attributes(VteTerminal *terminal,
 	cells = g_malloc(cell_count * sizeof(struct vte_charcell));
 	_vte_terminal_translate_pango_cells(terminal, attrs, cells, cell_count);
 	for (i = 0, j = 0; i < n; i++) {
+		vte_terminal_determine_colors(terminal, &cells[j], FALSE,
+					      &fore, &back);
 		vte_terminal_draw_cells(terminal, items + i, 1,
-					cells[j].fore,
-					cells[j].back,
+					fore,
+					back,
 					draw_default_bg,
 					cells[j].bold,
 					cells[j].underline,
