@@ -98,7 +98,7 @@ else
 REFLECT_ZVT = 
 endif
 
-interpret_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DINTERPRET_MAIN
+interpret_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ @VTE_CFLAGS@ -DINTERPRET_MAIN
 interpret_SOURCES = \
 	buffer.c \
 	buffer.h \
@@ -119,7 +119,7 @@ interpret_SOURCES = \
 	interpret.c
 interpret_LDADD = @LDFLAGS@ @GOBJECT_LIBS@
 
-iso2022_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DISO2022_MAIN
+iso2022_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ @VTE_CFLAGS@ -DISO2022_MAIN
 iso2022_SOURCES = \
 	debug.c \
 	debug.h \
@@ -146,7 +146,7 @@ utf8echo_SOURCES = \
 	utf8echo.c
 utf8echo_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
-nativeecho_CFLAGS = @CFLAGS@ -DNATIVEECHO_MAIN
+nativeecho_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DNATIVEECHO_MAIN
 nativeecho_SOURCES = \
 	nativeecho.c
 nativeecho_LDADD = @LDFLAGS@ @LIBS@
@@ -205,7 +205,7 @@ pty_SOURCES = \
 	pty.h
 pty_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
-reaper_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DREAPER_MAIN
+reaper_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ @VTE_CFLAGS@ -DREAPER_MAIN
 reaper_SOURCES = \
 	debug.c \
 	debug.h \
@@ -215,7 +215,7 @@ reaper_SOURCES = \
 	reaper.h
 reaper_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
-buffer_CFLAGS = @CFLAGS@ -DBUFFER_MAIN
+buffer_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DBUFFER_MAIN
 buffer_SOURCES = buffer.c
 buffer_LDADD = @LDFLAGS@ @GOBJECT_LIBS@
 
@@ -228,6 +228,6 @@ mev_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 ssfe_SOURCES = ssfe.c
 ssfe_LDADD = @LDFLAGS@ @OTHERLIBS@
 
-xticker_CFLAGS = @CFLAGS@
+xticker_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@
 xticker_SOURCES = xticker.c
 xticker_LDADD = @LIBS@ @GOBJECT_LIBS@
