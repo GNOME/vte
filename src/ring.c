@@ -69,6 +69,12 @@ vte_ring_insert(VteRing *ring, long position, gpointer data)
 		/* If there was something there before, free it. */
 		if ((ring->free != NULL) &&
 		    (ring->array[position % ring->max] != NULL)) {
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_RING)) {
+				fprintf(stderr, "Freeing item at position "
+					"%ld.\n", position);
+			}
+#endif
 			ring->free(ring->array[position % ring->max],
 				   ring->user_data);
 		}
@@ -98,6 +104,12 @@ vte_ring_insert(VteRing *ring, long position, gpointer data)
 	/* If the buffer's full, then the last item will be lost. */
 	if (ring->length == ring->max) {
 		if (ring->free && ring->array[point % ring->max]) {
+#ifdef VTE_DEBUG
+			if (vte_debug_on(VTE_DEBUG_RING)) {
+				fprintf(stderr, "Freeing item at position "
+					"%ld.\n", point);
+			}
+#endif
 			ring->free(ring->array[point % ring->max],
 				   ring->user_data);
 		}
@@ -135,9 +147,14 @@ vte_ring_remove(VteRing *ring, long position, gboolean free)
 	}
 #endif
 	/* Remove the data at this position. */
-	if (ring->array[position % ring->max] && ring->free) {
-		ring->free(ring->array[position % ring->max],
-			   ring->user_data);
+	if (free && ring->array[position % ring->max] && ring->free) {
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_RING)) {
+			fprintf(stderr, "Freeing item at position %ld.\n",
+				position);
+		}
+#endif
+		ring->free(ring->array[position % ring->max], ring->user_data);
 	}
 	ring->array[position % ring->max] = NULL;
 

@@ -1,4 +1,10 @@
 2002-08-20 nalin
+	* src/ring.c: Debug when rows get freed.
+	* src/vte.c: Maybe-release pango contexts after unreffing layouts which
+	refer to them.  Decide on how we want to draw fonts before deciding
+	which fonts to draw, to avoid spurious font loading.  Remove output tags
+	when the output tag's callback is about to return FALSE.
+2002-08-20 nalin
 	* src/vte.c: Don't leak the hintstyle and rgba settings.  Patch from
 	Arjan van de Ven.  Free PangoX contexts when we're done with them,
 	spotted by Arjan van de Ven.

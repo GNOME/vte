@@ -583,6 +583,11 @@ vte_invalidate_all(VteTerminal *terminal)
 	if (!GTK_WIDGET_REALIZED(widget)) {
 		return;
 	}
+
+	/* Ensure that we have font metrics. */
+	vte_terminal_ensure_font(terminal);
+
+	/* Expose the entire widget area. */
 	rect.x = 0;
 	rect.y = 0;
 	rect.width = terminal->column_count * terminal->char_width +
@@ -3104,6 +3109,9 @@ vte_sequence_handler_vb(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
+		/* Ensure that we have font metrics. */
+		vte_terminal_ensure_font(terminal);
+
 		/* Fill the screen with the default foreground color, and then
 		 * repaint everything, to provide visual bell. */
 		gdk_window_get_internal_paint_info(GTK_WIDGET(terminal)->window,
@@ -4325,6 +4333,8 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	widget = GTK_WIDGET(terminal);
 	screen = terminal->pvt->screen;
+
+	vte_terminal_ensure_font(terminal);
 
 	for (i = 0; ((params != NULL) && (i < params->n_values)); i++) {
 		arg1 = arg2 = -1;
@@ -5971,8 +5981,9 @@ vte_terminal_process_incoming(gpointer data)
 
 	/* Tell the input method where the cursor is. */
 	if (terminal->pvt->im_context) {
+		vte_terminal_ensure_font(terminal);
 		rect.x = terminal->pvt->screen->cursor_current.col *
-			terminal->char_width;
+			 terminal->char_width;
 		rect.width = terminal->char_width;
 		rect.y = terminal->pvt->screen->cursor_current.row *
 			terminal->char_height;
@@ -6148,7 +6159,7 @@ vte_terminal_feed(VteTerminal *terminal, const char *data, gssize length)
 	}
 }
 
-/* Send unicode characters to the child. */
+/* Send locally-encoded characters to the child. */
 static gboolean
 vte_terminal_io_write(GIOChannel *channel,
 		      GdkInputCondition condition,
@@ -6188,6 +6199,8 @@ vte_terminal_io_write(GIOChannel *channel,
 	if (terminal->pvt->n_outgoing == 0) {
 		if (channel == terminal->pvt->pty_output) {
 			terminal->pvt->pty_output = NULL;
+			g_source_remove(terminal->pvt->pty_output_source);
+			terminal->pvt->pty_output_source = -1;
 		}
 		leave_open = FALSE;
 	} else {
@@ -7118,6 +7131,7 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 	char buf[LINE_MAX];
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	vte_terminal_ensure_font(terminal);
 
 	/* Encode the button information in cb. */
 	switch (button) {
@@ -7191,6 +7205,7 @@ vte_terminal_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	GdkModifierType modifiers;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	vte_terminal_ensure_font(terminal);
 
 	/* First determine if we even want to send notification. */
 	if (!terminal->pvt->mouse_cell_motion_tracking &&
@@ -7282,6 +7297,7 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 	char *match;
 	struct vte_char_attributes *attr;
 	VteScreen *screen;
+	vte_terminal_ensure_font(terminal);
 	/* If the pointer hasn't moved to another character cell, then we
 	 * need do nothing. */
 	if ((x / terminal->char_width ==
@@ -7361,6 +7377,7 @@ vte_terminal_selection_compute(VteTerminal *terminal)
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
+	vte_terminal_ensure_font(terminal);
 	width = terminal->char_width;
 	height = terminal->char_height;
 	origin.x = (terminal->pvt->selection_origin.x + width / 2) / width;
@@ -7719,6 +7736,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
+	vte_terminal_ensure_font(terminal);
 	height = terminal->char_height;
 	width = terminal->char_width;
 	delta = terminal->pvt->screen->scroll_delta;
@@ -9382,12 +9400,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->match_start.column = 0;
 	pvt->match_end = pvt->match_start;
 
-	/* The font description. */
-	pvt->fontdesc = NULL;
-	gtk_widget_ensure_style(widget);
-	vte_terminal_set_font(terminal, NULL);
-	vte_terminal_ensure_font(terminal);
-
 	/* Server-side rendering data.  Try everything. */
 	pvt->palette_initialized = FALSE;
 	memset(&pvt->palette, 0, sizeof(pvt->palette));
@@ -9443,6 +9455,12 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	}
 #endif
 
+	/* The font description. */
+	pvt->fontdesc = NULL;
+	gtk_widget_ensure_style(widget);
+	vte_terminal_set_font(terminal, NULL);
+	vte_terminal_ensure_font(terminal);
+
 	/* Input method support. */
 	pvt->im_context = NULL;
 	pvt->im_preedit = NULL;
@@ -9483,6 +9501,8 @@ vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
 
+	vte_terminal_ensure_font(terminal);
+
 	if (terminal->pvt->pty_master != -1) {
 		vte_terminal_refresh_size(terminal);
 		requisition->width = terminal->char_width *
@@ -9516,7 +9536,9 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
+
 	terminal = VTE_TERMINAL(widget);
+	vte_terminal_ensure_font(terminal);
 
 	width = (allocation->width - (2 * VTE_PAD_WIDTH)) /
 		terminal->char_width;
@@ -9554,6 +9576,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 
 	/* Adjust the adjustments. */
 	vte_terminal_adjust_adjustments(terminal);
+	vte_invalidate_all(terminal);
 }
 
 /* The window is being destroyed. */
@@ -11539,10 +11562,10 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 #endif
 	g_object_unref(G_OBJECT(ggc));
 	if (pcontext != NULL) {
-		vte_terminal_maybe_unref_pango_context(terminal, pcontext);
 		if (layout != NULL) {
 			g_object_unref(G_OBJECT(layout));
 		}
+		vte_terminal_maybe_unref_pango_context(terminal, pcontext);
 	}
 	XFreeGC(display, gc);
 }
