@@ -35,8 +35,9 @@ fi
 # Search for the required modules.
 PKG_CHECK_MODULES(VTE,[$wantedmodules])
 
-# Require Freetype2.
-AC_CHECK_FT2
+# Require Freetype2.  We use our local copy of the macro because packages of
+# freetype's development files don't always include the proper macro.
+VTE_CHECK_FT2
 
 # Temporarily pull in the Freetype cflags and libs for checking what's
 # available in this version.
