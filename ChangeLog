@@ -1,3 +1,6 @@
+2003-06-03  Kenneth Rohde Christiansen  <kenneth@gnu.org>
+	* configure.in: Added Limburgish (li) to ALL_LINGUAS.
+
 2003-06-02 nalin
 	* src/Makefile.am: start using libtool versioning in earnest.
 
