@@ -1,46 +1,48 @@
+# translation of vte.HEAD.po to Basque
 # translation of vte.HEAD.eu.po to Basque
 # translation of vte_2.HEAD.eu.po to Basque
-# translation of vte.HEAD.eu.po to 
+# translation of vte.HEAD.eu.po to
 # , 2003
-# Alberto Fernández Benito <afernn@euskalnet.net>, 2003
+# Alberto Fernández Benito <afernn@euskalnet.net>, 2003.
+# Iñaki Larrañaga Murgoitio <dooteo@euskalgnu.org>, 2004.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: vte.HEAD.eu\n"
+"Project-Id-Version: vte.HEAD\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-29 22:25-0400\n"
-"PO-Revision-Date: 2003-10-08 21:47+0200\n"
-"Last-Translator: Alberto Fernández Benito <afernn@euskalnet.net>\n"
+"POT-Creation-Date: 2004-05-15 04:42+0200\n"
+"PO-Revision-Date: 2004-06-17 23:10+0200\n"
+"Last-Translator: Iñaki Larrañaga Murgoitio <dooteo@euskalgnu.org>\n"
 "Language-Team: Basque <itzulpena@euskalgnu.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 1.0.1\n"
+"X-Generator: KBabel 1.0.2\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2091
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "Karaktereak ezin dira %s -tik %s -ra bihurtu."
+msgstr "Karaktereak ezin dira %s-(e)tik %s-(e)ra bihurtu."
 
 #: src/iso2022.c:1578
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr "'%c' baliogabeko NRC mapa ezartzen saiatu da."
+msgstr "Saiatu '%c' baliogabeko NRC mapa ezartzen."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #: src/iso2022.c:1619
 msgid "Unrecognized identified coding system."
-msgstr "Identifikatu den kodeketa-sistema ezin da arakatu."
+msgstr "Identifikatu kodeketa-sistema ezezaguna."
 
 #: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "'%c' baliogabeko zabalera NRC mapan ezartzen saiatu da."
+msgstr "Saiatu baliogabeko zabalera NRC mapan ezartzen '%c'."
 
 #: src/pty.c:329
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr "`%s' ingurumenera gehitzean errorea gertatu da, jarraitzen."
+msgstr "Errorea `%s' ingurumenera gehitzean, jarraitzen."
 
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
@@ -50,67 +52,67 @@ msgstr "`%s' ingurumenera gehitzean errorea gertatu da, jarraitzen."
 msgid "can not run %s"
 msgstr "%s ezin da exekutatu"
 
-#: src/reaper.c:137
+#: src/reaper.c:156
 msgid "Error creating signal pipe."
-msgstr "Pipe motako seinalea sortzean errore bat gertatu da."
+msgstr "Errorea kanalizazio seinalea sortzean."
 
 #: src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
-msgstr "Bikoiztua (%s/%s)!"
+msgstr "Bikoiztu (%s / %s)!"
 
-#: src/vte.c:1498
+#: src/vte.c:1499
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "\"%s\" adierazpen erregularra konpilatzean errorea gertatu da"
+msgstr "Errorea \"%s\" adierazpen erregularra konpilatzean."
 
-#: src/vte.c:5850
+#: src/vte.c:5851
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr "`%s' ustekabeko (teklako?) sekuentzia lortu da."
+msgstr "`%s' ustekabeko (tekla?) sekuentzia jaso da."
 
-#: src/vte.c:6951
+#: src/vte.c:6947
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr "Ez dago `%s' kontrol sekuentziarako maneiatzailerik definituta"
+msgstr "Ez da `%s' kontrol sekuentziarako kudeatzailerik definitu."
 
-#: src/vte.c:7793
+#: src/vte.c:7789
 #, c-format
 msgid "Error reading from child: %s."
-msgstr "Umetik irakurtzen errorea gertatu da: %s. "
+msgstr "Errorea umetik irakurtzean: %s. "
 
-#: src/vte.c:7949
+#: src/vte.c:7945
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "Umerako datuak bihurtzen (%s) errorea gertatu da, saltatzen."
+msgstr "Errorea umerako datuak bihurtzean (%s), jaregiten."
 
-#: src/vte.c:10715
+#: src/vte.c:10754
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr ""
-"PTY-ren tamaina irakurtzen errorea gertatu da, lehenetsiak erabiltzen: %s."
+msgstr "Errorea PTY-ren tamaina irakurtzean, lehenetsiak erabiltzen: %s."
 
-#: src/vte.c:10751
+#: src/vte.c:10790
 #, c-format
 msgid "Error setting PTY size: %s."
-msgstr "PTY-ren tamaina ezartzen errorea gertatu da: %s."
+msgstr "Errorea PTY-ren tamaina ezartzean: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15235
+#: src/vte.c:15274
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "_vte_conv_open() deiak hitzaren karaktereak ezarten huts egin du"
+msgstr "_vte_conv_open()-k ezin izan du hitzaren karaktereak ezarri"
 
 #. Bail back to normal mode.
 #: src/vteapp.c:728
 msgid "Could not open console.\n"
-msgstr "Ezin da kontsola ireki.\n"
+msgstr "Ezin izan da kontsola ireki.\n"
 
 #: src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr "%d pixel modua ezezaguna.\n"
+msgstr "%d pixelaren modu ezezaguna.\n"
 
 #: src/vtexft.c:712
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "Ezin da U+%04x karakterea marraztu.\n"
+
