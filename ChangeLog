@@ -1,4 +1,10 @@
 2003-04-14 nalin
+	* configure.in, src/vteglyph.c: fix macro invocations so that when
+	LCD and GRAY2/GRAY4 pixel modes are supported by freetype, we don't
+	get confused by them.
+	* src/vtepango.c, src/vtepangox.c: fix background scrolling.
+
+2003-04-14 nalin
 	* autogen.sh: require automake 1.6, 1.5 chokes on AM_LDFLAGS, which 1.7
 	wants instead of LDFLAGS(!).  Require autoconf 2.52 or newer, because
 	older versions bail on configure.in.

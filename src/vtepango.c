@@ -218,25 +218,18 @@ _vte_pango_clear(struct _vte_draw *draw,
 		return;
 	}
 
-	/* Determine the origin of the pixmap if x = y = 0. */
-	i = data->scrollx % data->pixmapw;
-	j = data->scrolly % data->pixmaph;
-
-	/* Adjust the drawing offsets. */
-	istart = (i + x) % data->pixmapw;
-	jstart = (j + y) % data->pixmaph;
-
 	/* Flood fill. */
 	xstop = x + width;
 	ystop = y + height;
-	j = jstart;
+
+	y = ystop - height;
+	j = (data->scrolly + y) % data->pixmaph;
 	while (y < ystop) {
-		h = MIN(data->pixmaph - (j % data->pixmaph),
-			ystop - j);
-		i = istart;
+		x = xstop - width;
+		i = (data->scrollx + x) % data->pixmapw;
+		h = MIN(data->pixmaph - (j % data->pixmaph), ystop - y);
 		while (x < xstop) {
-			w = MIN(data->pixmapw - (i % data->pixmapw),
-				xstop - i);
+			w = MIN(data->pixmapw - (i % data->pixmapw), xstop - x);
 			gdk_draw_drawable(draw->widget->window,
 					  data->gc,
 					  data->pixmap,

@@ -118,21 +118,21 @@ AC_CHECK_DECL(FT_RENDER_MODE_MONO,[AC_DEFINE(HAVE_DECL_FT_RENDER_MODE_MONO,1,Def
 #endif
 ])
 
-AC_CHECK_DECL(FT_LOAD_NO_HINTING,,,[
+AC_CHECK_DECLS(FT_LOAD_NO_HINTING,,,[
 #ifdef HAVE_FT2BUILD_H
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #endif
 ])
 
-AC_CHECK_DECL(FT_RENDER_MODE_LIGHT,,,[
+AC_CHECK_DECLS(FT_RENDER_MODE_LIGHT,,,[
 #ifdef HAVE_FT2BUILD_H
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #endif
 ])
 
-AC_CHECK_DECL(FT_RENDER_MODE_NORMAL,,,[
+AC_CHECK_DECLS(FT_RENDER_MODE_NORMAL,,,[
 #ifdef HAVE_FT2BUILD_H
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -152,13 +152,13 @@ AC_CHECK_DECL(ft_pixel_mode_mono,[AC_DEFINE(HAVE_DECL_ft_pixel_mode_mono,1,Defin
 #endif
 ])
 
-AC_CHECK_DECL(FT_PIXEL_MODE_GRAY2,,,[
+AC_CHECK_DECLS(FT_PIXEL_MODE_GRAY2,,,[
 #ifdef HAVE_FT2BUILD_H
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #endif
 ])
-AC_CHECK_DECL(FT_PIXEL_MODE_GRAY4,,,[
+AC_CHECK_DECLS(FT_PIXEL_MODE_GRAY4,,,[
 #ifdef HAVE_FT2BUILD_H
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -178,7 +178,7 @@ AC_CHECK_DECL(ft_pixel_mode_grays,[AC_DEFINE(HAVE_DECL_ft_pixel_mode_grays,1,Def
 #endif
 ])
 
-AC_CHECK_DECL(FT_PIXEL_MODE_LCD,,,[
+AC_CHECK_DECLS(FT_PIXEL_MODE_LCD,,,[
 #ifdef HAVE_FT2BUILD_H
 #include <ft2build.h>
 #include FT_FREETYPE_H

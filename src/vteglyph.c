@@ -553,11 +553,16 @@ _vte_glyph_get(struct _vte_glyph_cache *cache, gunichar c)
 #else
 #ifdef HAVE_DECL_ft_pixel_mode_grays
 		case ft_pixel_mode_grays:
+#else
+#error Neither FT_PIXEL_MODE_GRAY nor ft_pixel_mode_grays is defined!
+#endif
 #endif
 			ioffset += x;
 			r = g = b = face->glyph->bitmap.buffer[ioffset];
-#endif
+			break;
 		default:
+			g_error("Unknown pixel mode %d.\n",
+				face->glyph->bitmap.pixel_mode);
 			g_assert_not_reached();
 			break;
 		}
