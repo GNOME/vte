@@ -421,15 +421,15 @@ _vte_xft_set_background_image(struct _vte_draw *draw,
 
 	data = (struct _vte_xft_data*) draw->impl_data;
 
-	if (GDK_IS_PIXMAP(data->pixmap)) {
-		g_object_unref(G_OBJECT(data->pixmap));
-	}
-	data->pixmap = NULL;
 	data->xpixmap = -1;
 	data->pixmapw = data->pixmaph = 0;
 	pixmap = vte_bg_get_pixmap(vte_bg_get(), type,
 				   pixbuf, file, color, saturation,
 				   _vte_draw_get_colormap(draw));
+	if (GDK_IS_PIXMAP(data->pixmap)) {
+		g_object_unref(G_OBJECT(data->pixmap));
+	}
+	data->pixmap = NULL;
 	if (GDK_IS_PIXMAP(pixmap)) {
 		data->pixmap = pixmap;
 		data->xpixmap = gdk_x11_drawable_get_xid(pixmap);

@@ -1,4 +1,11 @@
 2003-05-06 nalin
+	* src/vteft2.c, src/vtegl.c, src/vtepango.c, src/vtepangox.c,
+	src/vtexft.c: when setting up backgrounds, don't deref an existing
+	background before fetching a new one, in case they're the same.
+	* src/vteglyph.c(_vte_glyph_draw): fix computation of the input offset.
+	* src/vtegl.c: implement drawing of backgrounds.
+
+2003-05-06 nalin
 	* src/iso2022.c(_vte_iso2022_map_J): include the whole JIS0201 map
 	instead of just the lower half.
 	* src/iso2022.c(_vte_iso2022_map_get): set the and_mask to clear the

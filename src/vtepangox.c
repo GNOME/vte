@@ -209,14 +209,14 @@ _vte_pango_x_set_background_image(struct _vte_draw *draw,
 	struct _vte_pango_x_data *data;
 
 	data = (struct _vte_pango_x_data*) draw->impl_data;
-	if (data->pixmap) {
-		g_object_unref(G_OBJECT(data->pixmap));
-		data->pixmap = NULL;
-		data->pixmapw = data->pixmaph = 0;
-	}
 	pixmap = vte_bg_get_pixmap(vte_bg_get(), type, pixbuf, file,
 				   color, saturation,
 				   _vte_draw_get_colormap(draw));
+	if (data->pixmap) {
+		g_object_unref(G_OBJECT(data->pixmap));
+	}
+	data->pixmap = NULL;
+	data->pixmapw = data->pixmaph = 0;
 	if (pixmap) {
 		data->pixmap = pixmap;
 		gdk_drawable_get_size(pixmap, &data->pixmapw, &data->pixmaph);

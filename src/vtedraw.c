@@ -38,13 +38,6 @@
 struct _vte_draw_impl
 *_vte_draw_impls[] = {
 	&_vte_draw_skel,
-#if GTK_CHECK_VERSION(2,2,0)
-#ifndef X_DISPLAY_MISSING
-#ifdef HAVE_GL
-	/* &_vte_draw_gl, */
-#endif
-#endif
-#endif
 #ifndef X_DISPLAY_MISSING
 #ifdef HAVE_XFT2
 	&_vte_draw_xft,
@@ -55,6 +48,13 @@ struct _vte_draw_impl
 #ifndef X_DISPLAY_MISSING
 #ifdef HAVE_PANGOX
 	&_vte_draw_pango_x,
+#endif
+#endif
+#if GTK_CHECK_VERSION(2,2,0)
+#ifndef X_DISPLAY_MISSING
+#ifdef HAVE_GL
+	&_vte_draw_gl,
+#endif
 #endif
 #endif
 };

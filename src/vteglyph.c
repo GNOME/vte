@@ -554,9 +554,9 @@ _vte_glyph_get_uncached(struct _vte_glyph_cache *cache, gunichar c)
 		case FT_PIXEL_MODE_LCD:
 		case FT_PIXEL_MODE_LCD_V:
 			ioffset += (x * 3);
-			r = face->glyph->bitmap.buffer[ioffset++];
-			g = face->glyph->bitmap.buffer[ioffset++];
-			b = face->glyph->bitmap.buffer[ioffset++];
+			r = face->glyph->bitmap.buffer[ioffset + 0];
+			g = face->glyph->bitmap.buffer[ioffset + 1];
+			b = face->glyph->bitmap.buffer[ioffset + 2];
 			break;
 #endif
 #if HAVE_DECL_FT_PIXEL_MODE_GRAY
@@ -684,7 +684,8 @@ _vte_glyph_draw_loop:
 		}
 		ooffset = (y + row) * buffer->stride +
 			  ((x + ocol) * 3);
-		ioffset = (((row - glyph->skip) * glyph->width) + icol) * 4;
+		ioffset = (((row - glyph->skip) * glyph->width) + icol) *
+			  DEFAULT_BYTES_PER_PIXEL;
 		ecol = MIN(cache->width * columns, glyph->width);
 		for (col = 0; col < ecol; col++) {
 			if (col + x >= buffer->width) {

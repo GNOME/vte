@@ -165,14 +165,16 @@ _vte_ft2_set_background_image(struct _vte_draw *draw,
 			      double saturation)
 {
 	struct _vte_ft2_data *data;
+	GdkPixbuf *bgpixbuf;
 
 	data = (struct _vte_ft2_data*) draw->impl_data;
 
+	bgpixbuf = vte_bg_get_pixbuf(vte_bg_get(), type, pixbuf, file,
+				     color, saturation);
 	if (GDK_IS_PIXBUF(data->pixbuf)) {
 		g_object_unref(G_OBJECT(data->pixbuf));
 	}
-	data->pixbuf = vte_bg_get_pixbuf(vte_bg_get(), type, pixbuf, file,
-					 color, saturation);
+	data->pixbuf = bgpixbuf;
 }
 
 static void

@@ -37,17 +37,19 @@
 #include <X11/Xutil.h>
 #include "debug.h"
 #include "vtedraw.h"
+#include "vtefc.h"
 #include "vtegl.h"
+#include "vteglyph.h"
 
 struct _vte_gl_data
 {
 	XVisualInfo *visual_info;
-	gboolean double_buffered;
 	GLXContext context;
-	GLXPixmap pixmap;
 	GdkColor color;
-	GdkPixmap *gpixmap;
+	GdkPixmap *bgpixmap, *pixmap;
+	GLXPixmap glpixmap;
 	gint scrollx, scrolly;
+	struct _vte_glyph_cache *cache;
 };
 
 #define _vte_gl_pixmap_attributes \
@@ -57,19 +59,10 @@ struct _vte_gl_data
 	GLX_GREEN_SIZE, 8, \
 	GLX_ALPHA_SIZE, 8, \
 	None,
-#define _vte_gl_window_attributes \
-	GLX_RGBA, \
-	GLX_RED_SIZE, 8, \
-	GLX_BLUE_SIZE, 8, \
-	GLX_GREEN_SIZE, 8, \
-	GLX_ALPHA_SIZE, 8, \
-	GLX_DOUBLEBUFFER, \
-	None,
 
 static gboolean
 _vte_gl_check(struct _vte_draw *draw, GtkWidget *widget)
 {
-	int window_attributes[] = {_vte_gl_window_attributes};
 	int pixmap_attributes[] = {_vte_gl_pixmap_attributes};
 	XVisualInfo *visual_info;
 	GLXContext context = NULL;
@@ -96,18 +89,21 @@ _vte_gl_check(struct _vte_draw *draw, GtkWidget *widget)
 	visual_info = glXChooseVisual(display, screen,
 				      pixmap_attributes);
 	if (visual_info == NULL) {
-		visual_info = glXChooseVisual(display, screen,
-					      window_attributes);
-	}
-	if (visual_info == NULL) {
+#ifdef VTE_DEBUG
+		g_warning("Unable to find a suitable GLX visual.\n");
+#endif
 		return FALSE;
 	}
 
 	/* Create a GLX context. */
 	context = glXCreateContext(display, visual_info, NULL, False);
 	if (context == NULL) {
+#ifdef VTE_DEBUG
+		g_warning("Unable to create a GLX context.\n");
+#endif
 		return FALSE;
 	}
+	glXDestroyContext(display, context);
 
 	return TRUE;
 }
@@ -116,7 +112,6 @@ static void
 _vte_gl_create(struct _vte_draw *draw, GtkWidget *widget)
 {
 	struct _vte_gl_data *data;
-	int window_attributes[] = {_vte_gl_window_attributes};
 	int pixmap_attributes[] = {_vte_gl_pixmap_attributes};
 	GdkDisplay *gdisplay;
 	Display *display;
@@ -133,15 +128,9 @@ _vte_gl_create(struct _vte_draw *draw, GtkWidget *widget)
 
 	data->visual_info = glXChooseVisual(display, screen,
 					    pixmap_attributes);
-	if (data->visual_info != NULL) {
-		data->double_buffered = FALSE;
-	} else {
-		data->visual_info = glXChooseVisual(display, screen,
-						    window_attributes);
-		data->double_buffered = TRUE;
+	if (data->visual_info == NULL) {
+		g_error("Unable to select GLX visual.\n");
 	}
-	gtk_widget_set_double_buffered(widget, !data->double_buffered);
-
 	data->context = glXCreateContext(display, data->visual_info,
 					 NULL, False);
 	if (data->context == NULL) {
@@ -151,9 +140,11 @@ _vte_gl_create(struct _vte_draw *draw, GtkWidget *widget)
 	data->color.red = 0;
 	data->color.green = 0;
 	data->color.blue = 0;
-	data->gpixmap = NULL;
-	data->pixmap = -1;
+	data->bgpixmap = NULL;
+	data->pixmap = NULL;
+	data->glpixmap = -1;
 	data->scrollx = data->scrolly = 0;
+	data->cache = _vte_glyph_cache_new();
 }
 
 static void
@@ -171,20 +162,30 @@ _vte_gl_destroy(struct _vte_draw *draw)
 	gscreen = gdk_screen_get_default();
 	screen = gdk_x11_screen_get_screen_number(gscreen);
 
-	if (data->pixmap != -1) {
-		glXDestroyGLXPixmap(display, data->pixmap);
+	_vte_glyph_cache_free(data->cache);
+	data->cache = NULL;
+
+	if (data->glpixmap != -1) {
+		glXDestroyGLXPixmap(display, data->glpixmap);
 	}
+	data->glpixmap = -1;
+
+	if (GDK_IS_PIXBUF(data->pixmap)) {
+		g_object_unref(G_OBJECT(data->pixmap));
+	}
+	data->pixmap = NULL;
+
+	if (GDK_IS_PIXBUF(data->bgpixmap)) {
+		g_object_unref(G_OBJECT(data->bgpixmap));
+	}
+	data->bgpixmap = NULL;
+
 	glXDestroyContext(display, data->context);
+	data->context = NULL;
 
 	data->scrollx = data->scrolly = 0;
 
-	if (GDK_IS_PIXBUF(data->gpixmap)) {
-		g_object_unref(G_OBJECT(data->gpixmap));
-	}
-	data->gpixmap = NULL;
 	memset(&data->color, 0, sizeof(data->color));
-
-	glXDestroyContext(display, data->context);
 
 	g_free(draw->impl_data);
 }
@@ -213,48 +214,33 @@ _vte_gl_start(struct _vte_draw *draw)
 	struct _vte_gl_data *data;
 	GdkDisplay *gdisplay;
 	Display *display;
-	GdkScreen *gscreen;
-	int screen;
-	guint width, height;
-	GdkDrawable *drawable;
-	gint x_offset, y_offset;
-	GLXDrawable glx_drawable = -1;
+	gint width, height, depth;
 
 	data = (struct _vte_gl_data*) draw->impl_data;
 	gdisplay = gdk_display_get_default();
 	display = gdk_x11_display_get_xdisplay(gdisplay);
-	gscreen = gdk_screen_get_default();
-	screen = gdk_x11_screen_get_screen_number(gscreen);
 
-	gdk_window_get_internal_paint_info(draw->widget->window,
-					   &drawable,
-					   &x_offset,
-					   &y_offset);
-	if (GDK_IS_PIXMAP(drawable)) {
-		gdk_drawable_get_size(drawable, &width, &height);
-		data->pixmap = glXCreateGLXPixmap(display, data->visual_info,
-						  GDK_WINDOW_XID(drawable));
-		glx_drawable = data->pixmap;
-	} else
-	if (GDK_IS_WINDOW(draw->widget->window)) {
-		gdk_drawable_get_size(draw->widget->window, &width, &height);
-		x_offset = y_offset = 0;
-		glx_drawable = GDK_WINDOW_XID(drawable);
-	} else {
-		g_assert_not_reached();
+	if (data->glpixmap != -1) {
+		glXDestroyGLXPixmap(display, data->glpixmap);
+		data->glpixmap = -1;
+	}
+	if (GDK_IS_PIXMAP(data->pixmap)) {
+		g_object_unref(G_OBJECT(data->pixmap));
 	}
 
-	glXMakeCurrent(display, glx_drawable, data->context);
+	width = height = depth = 0;
+	gdk_drawable_get_size(draw->widget->window, &width, &height);
+	depth = gdk_drawable_get_depth(draw->widget->window);
+	data->pixmap = gdk_pixmap_new(draw->widget->window,
+				      width, height, depth);
+	data->glpixmap = glXCreateGLXPixmap(display, data->visual_info,
+					    GDK_WINDOW_XID(data->pixmap));
+
+	glXMakeCurrent(display, data->glpixmap, data->context);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-        gluOrtho2D(x_offset, width, y_offset, height);
-        glViewport(x_offset, y_offset, width - x_offset, height - y_offset);
-
-	glClearColor(data->color.red / 65535.0,
-		     data->color.green / 65535.0,
-		     data->color.blue / 65535.0,
-		     1.0);
-	glClear(GL_COLOR_BUFFER_BIT);
+        gluOrtho2D(0, width, height, 0);
+        glViewport(0, 0, width, height);
 }
 
 static void
@@ -263,22 +249,34 @@ _vte_gl_end(struct _vte_draw *draw)
 	struct _vte_gl_data *data;
 	GdkDisplay *gdisplay;
 	Display *display;
-	GdkScreen *gscreen;
-	int screen;
+	int state, width, height;
 
 	data = (struct _vte_gl_data*) draw->impl_data;
 	gdisplay = gdk_display_get_default();
 	display = gdk_x11_display_get_xdisplay(gdisplay);
-	gscreen = gdk_screen_get_default();
-	screen = gdk_x11_screen_get_screen_number(gscreen);
 
 	glFlush();
-	if (data->double_buffered) {
-		glXSwapBuffers(display, GDK_WINDOW_XID(draw->widget->window));
-	} else {
-		glXDestroyGLXPixmap(display, data->pixmap);
-		data->pixmap = -1;
+	glXWaitX();
+	glXWaitGL();
+
+	if (GDK_IS_PIXMAP(data->pixmap)) {
+		state = GTK_WIDGET_STATE(draw->widget);
+		width = height = 0;
+		gdk_drawable_get_size(data->pixmap, &width, &height);
+		gdk_draw_drawable(draw->widget->window,
+				  draw->widget->style->fg_gc[state],
+				  data->pixmap,
+				  0, 0, 0, 0,
+				  width, height);
 	}
+	if (data->glpixmap != -1) {
+		glXDestroyGLXPixmap(display, data->glpixmap);
+		data->glpixmap = -1;
+	}
+	if (GDK_IS_PIXMAP(data->pixmap)) {
+		g_object_unref(G_OBJECT(data->pixmap));
+	}
+	data->pixmap = NULL;
 }
 
 static void
@@ -298,14 +296,16 @@ _vte_gl_set_background_image(struct _vte_draw *draw,
 			     double saturation)
 {
 	struct _vte_gl_data *data;
+	GdkPixmap *bgpixmap;
 
 	data = (struct _vte_gl_data*) draw->impl_data;
-	if (GDK_IS_PIXMAP(data->gpixmap)) {
-		g_object_unref(G_OBJECT(data->gpixmap));
+	bgpixmap = vte_bg_get_pixmap(vte_bg_get(), type, pixbuf, file,
+				     tint, saturation,
+				     _vte_draw_get_colormap(draw));
+	if (GDK_IS_PIXMAP(data->bgpixmap)) {
+		g_object_unref(G_OBJECT(data->bgpixmap));
 	}
-	data->gpixmap = vte_bg_get_pixmap(vte_bg_get(), type, pixbuf, file,
-					  tint, saturation,
-					  _vte_draw_get_colormap(draw));
+	data->bgpixmap = bgpixmap;
 }
 
 static void
@@ -314,39 +314,105 @@ _vte_gl_clear(struct _vte_draw *draw,
 {
 	struct _vte_gl_data *data;
 	data = (struct _vte_gl_data*) draw->impl_data;
+	long xstop, ystop, i, j, h, w;
+	int pixmapw, pixmaph;
 
-	glBegin(GL_POLYGON);
-	glColor4us(data->color.red, data->color.green, data->color.blue,
-		   0xffff);
-	glVertex2d(x, y);
-	glVertex2d(x + width, y);
-	glVertex2d(x + width, y + height);
-	glVertex2d(x, y + height);
-	glEnd();
+	if (GDK_IS_PIXMAP(data->bgpixmap)) {
+		gdk_drawable_get_size(data->bgpixmap, &pixmapw, &pixmaph);
+	} else {
+		pixmapw = pixmaph = 0;
+	}
+	if ((pixmapw == 0) || (pixmaph == 0)) {
+		glXWaitX();
+		glBegin(GL_POLYGON);
+		glColor4us(data->color.red, data->color.green, data->color.blue,
+			   0xffff);
+		glVertex2d(x, y);
+		glVertex2d(x + width, y);
+		glVertex2d(x + width, y + height);
+		glVertex2d(x, y + height);
+		glEnd();
+		return;
+	}
+
+	/* Flood fill. */
+	glXWaitGL();
+
+	xstop = x + width;
+	ystop = y + height;
+
+	y = ystop - height;
+	j = (data->scrolly + y) % pixmaph;
+	while (y < ystop) {
+		x = xstop - width;
+		i = (data->scrollx + x) % pixmapw;
+		h = MIN(pixmaph - (j % pixmaph), ystop - y);
+		while (x < xstop) {
+			w = MIN(pixmapw - (i % pixmapw), xstop - x);
+			gdk_draw_drawable(data->pixmap,
+					  draw->widget->style->fg_gc[GTK_WIDGET_STATE(draw->widget)],
+					  data->bgpixmap,
+					  i, j,
+					  x, y,
+					  w, h);
+			x += w;
+			i = 0;
+		}
+		y += h;
+		j = 0;
+	}
+}
+
+static void
+_vte_gl_fcpattern_disable_rgba(FcPattern *pattern, gpointer data)
+{
+	int rgba;
+	if (FcPatternGetInteger(pattern,
+				FC_RGBA, 0, &rgba) != FcResultNoMatch) {
+		FcPatternDel(pattern, FC_RGBA);
+	}
+	FcPatternAddInteger(pattern, FC_RGBA, FC_RGBA_NONE);
 }
 
 static void
 _vte_gl_set_text_font(struct _vte_draw *draw,
-			 const PangoFontDescription *fontdesc)
+		      const PangoFontDescription *fontdesc)
 {
+	struct _vte_gl_data *data;
+	data = (struct _vte_gl_data*) draw->impl_data;
+
+	if (data->cache != NULL) {
+		_vte_glyph_cache_free(data->cache);
+		data->cache = NULL;
+	}
+	data->cache = _vte_glyph_cache_new();
+	_vte_glyph_cache_set_font_description(NULL, data->cache, fontdesc,
+					      _vte_gl_fcpattern_disable_rgba,
+					      NULL);
 }
 
 static int
 _vte_gl_get_text_width(struct _vte_draw *draw)
 {
-	return 5;
+	struct _vte_gl_data *data;
+	data = (struct _vte_gl_data*) draw->impl_data;
+	return data->cache->width;
 }
 
 static int
 _vte_gl_get_text_height(struct _vte_draw *draw)
 {
-	return 10;
+	struct _vte_gl_data *data;
+	data = (struct _vte_gl_data*) draw->impl_data;
+	return data->cache->height;
 }
 
 static int
 _vte_gl_get_text_ascent(struct _vte_draw *draw)
 {
-	return 8;
+	struct _vte_gl_data *data;
+	data = (struct _vte_gl_data*) draw->impl_data;
+	return data->cache->ascent;
 }
 
 static gboolean
@@ -361,7 +427,40 @@ _vte_gl_draw_text(struct _vte_draw *draw,
 		  GdkColor *color, guchar alpha)
 {
 	struct _vte_gl_data *data;
+	const struct _vte_glyph *glyph;
+	guint16 a, r, g, b;
+	int i, j, x, y, w, pad;
+
 	data = (struct _vte_gl_data*) draw->impl_data;
+
+	glXWaitX();
+
+	r = color->red >> 8;
+	g = color->green >> 8;
+	b = color->blue >> 8;
+
+	glBegin(GL_POINTS);
+	for (i = 0; i < n_requests; i++) {
+		glyph = _vte_glyph_get(data->cache, requests[i].c);
+		if ((glyph == NULL) ||
+		    (glyph->width == 0) ||
+		    (glyph->height == 0)) {
+			continue;
+		}
+		w = requests[i].columns * data->cache->width;
+		pad = (w - glyph->width) / 2;
+		for (y = 0; y < glyph->height; y++) {
+			for (x = 0; x < glyph->width; x++) {
+				j = (y * glyph->width + x) *
+				    glyph->bytes_per_pixel;
+				a = glyph->bytes[j] * alpha;
+				glColor4us(r, g, b, a);
+				glVertex2i(requests[i].x + pad + x,
+					   requests[i].y + glyph->skip + y);
+			}
+		}
+	}
+	glEnd();
 }
 
 static void
@@ -371,6 +470,9 @@ _vte_gl_draw_rectangle(struct _vte_draw *draw,
 {
 	struct _vte_gl_data *data;
 	data = (struct _vte_gl_data*) draw->impl_data;
+
+	glXWaitX();
+
 	glBegin(GL_LINE_LOOP);
 	glColor4us(color->red, color->green, color->blue,
 		   (alpha == VTE_DRAW_OPAQUE) ? 0xffff : (alpha << 8));
@@ -388,6 +490,9 @@ _vte_gl_fill_rectangle(struct _vte_draw *draw,
 {
 	struct _vte_gl_data *data;
 	data = (struct _vte_gl_data*) draw->impl_data;
+
+	glXWaitX();
+
 	glBegin(GL_POLYGON);
 	glColor4us(color->red, color->green, color->blue,
 		   (alpha == VTE_DRAW_OPAQUE) ? 0xffff : (alpha << 8));
