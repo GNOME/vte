@@ -5552,8 +5552,10 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 	screen = terminal->pvt->screen;
 
 	/* This may generate multiple redraws, so freeze it while we do them. */
-	gdk_window_freeze_updates(widget->window);
-
+	if (GTK_WIDGET_REALIZED (widget)) {
+		gdk_window_freeze_updates(widget->window);
+	}
+	
 	/* Save the cursor's current position for future use. */
 	position = screen->cursor_current;
 
@@ -5587,7 +5589,9 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 			     screen->cursor_current.row, 1);
 
 	/* Let the updating begin. */
-	gdk_window_thaw_updates(widget->window);
+	if (GTK_WIDGET_REALIZED (widget)) {
+		gdk_window_thaw_updates(widget->window);
+	}
 }
 
 /* Catch a VteReaper child-exited signal, and if it matches the one we're
@@ -6007,14 +6011,16 @@ vte_terminal_process_incoming(gpointer data)
 	}
 
 	/* Tell the input method where the cursor is. */
-	rect.x = terminal->pvt->screen->cursor_current.col *
-		 terminal->char_width;
-	rect.width = terminal->char_width;
-	rect.y = terminal->pvt->screen->cursor_current.row *
-		 terminal->char_height;
-	rect.height = terminal->char_height;
-	gtk_im_context_set_cursor_location(terminal->pvt->im_context, &rect);
-
+	if (terminal->pvt->im_context) {
+		rect.x = terminal->pvt->screen->cursor_current.col *
+			terminal->char_width;
+		rect.width = terminal->char_width;
+		rect.y = terminal->pvt->screen->cursor_current.row *
+			terminal->char_height;
+		rect.height = terminal->char_height;
+		gtk_im_context_set_cursor_location(terminal->pvt->im_context, &rect);
+	}
+	
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_IO)) {
 		fprintf(stderr, "%d bytes left to process.\n",
@@ -9305,9 +9311,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* Cursor blinking. */
 	pvt->cursor_blinks = FALSE;
-	pvt->cursor_blink_tag = g_timeout_add(0,
-					      vte_invalidate_cursor_periodic,
-					      terminal);
+	pvt->cursor_blink_tag = -1;
 	pvt->cursor_visible = TRUE;
 
 	/* Input options. */
@@ -9580,6 +9584,11 @@ vte_terminal_unrealize(GtkWidget *widget)
 		widget->window = NULL;
 	}
 
+	/* Remove the blink timeout function. */
+	if (terminal->pvt->cursor_blink_tag != -1) {
+		g_source_remove(terminal->pvt->cursor_blink_tag);
+	}
+
 	/* Mark that we no longer have a GDK window. */
 	GTK_WIDGET_UNSET_FLAGS(widget, GTK_REALIZED);
 }
@@ -9657,11 +9666,6 @@ vte_terminal_finalize(GObject *object)
 		}
 		g_array_free(terminal->pvt->match_regexes, TRUE);
 		terminal->pvt->match_regexes = NULL;
-	}
-
-	/* Remove the blink timeout function. */
-	if (terminal->pvt->cursor_blink_tag != -1) {
-		g_source_remove(terminal->pvt->cursor_blink_tag);
 	}
 
 	/* Disconnect from toplevel window configure events. */
@@ -9883,6 +9887,11 @@ vte_terminal_realize(GtkWidget *widget)
 	/* Set up the background. */
 	vte_terminal_setup_background(terminal, TRUE);
 
+	/* Setup cursor blink */
+	terminal->pvt->cursor_blink_tag = g_timeout_add(0,
+							vte_invalidate_cursor_periodic,
+							terminal);
+	
 	/* Set up input method support.  FIXME: do we need to handle the
 	 * "retrieve-surrounding" and "delete-surrounding" events? */
 	terminal->pvt->im_context = gtk_im_multicontext_new();
