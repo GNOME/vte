@@ -1,3 +1,5 @@
+0.11.5: Support for PC437.  Fix Ctrl+/.  Use xrdb font settings if GTK+ doesn't
+        have anything to say.
 0.11.4: Speedier transparency update when you move the windows, fixes for
 	flickering when scrolling part of the screen, accessibility fixes.
 	Bold works again.
