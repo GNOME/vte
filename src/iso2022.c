@@ -318,8 +318,10 @@ _vte_iso2022_is_ambiguous(gunichar c)
 	return g_tree_lookup(ambiguous, p) == p;
 }
 
+/* If we only have a codepoint, guess what the ambiguous width should be based
+ * on the default region.  Just hope we don't do this too often. */
 static int
-_vte_iso2022_ambiguous_width(void)
+_vte_iso2022_ambiguous_width_guess(void)
 {
 	const char *lang = NULL;
 	int ret = 1;
@@ -353,6 +355,54 @@ _vte_iso2022_ambiguous_width(void)
 	}
 #endif
 	return ret;
+}
+
+/* If we have the encoding, decide how wide an ambiguously-wide character is
+ * based on the encoding.  This is basically what GNU libc does, and it sounds
+ * reasonable, so.... */
+static int
+_vte_iso2022_ambiguous_width(struct _vte_iso2022_state *state)
+{
+	const char *wide_codelist[] = {
+		"big5",
+		"euccn",
+		"eucjp",
+		"euckr",
+		"euctw",
+		"gb18030",
+		"gb2312",
+		"gbk",
+		"tcvn",
+	};
+	int i, j;
+	char codeset[16];
+
+	/* Catch weirdo cases. */
+	if ((state->codeset == NULL) || (state->codeset[0] == '\0')) {
+		return 1;
+	}
+
+	/* Sort-of canonify the encoding name. */
+	i = j = 0;
+	for (i = 0; state->codeset[i] != '\0'; i++) {
+		if (g_ascii_isalnum(state->codeset[i])) {
+			codeset[j++] = g_ascii_tolower(state->codeset[i]);
+		}
+		if (j >= sizeof(codeset) - 1) {
+			break;
+		}
+	}
+	codeset[j] = '\0';
+
+	/* Check for the name in the list. */
+	for (i = 0; i < G_N_ELEMENTS(wide_codelist); i++) {
+		if (strcmp(codeset, wide_codelist[i]) == 0) {
+			return 2;
+		}
+	}
+
+	/* Not in the list => not wide. */
+	return 1;
 }
 
 static GTree *
@@ -1159,7 +1209,7 @@ process_8_bit_sequence(struct _vte_iso2022_state *state,
 			width = force_width;
 		} else {
 			if (_vte_iso2022_is_ambiguous(c)) {
-				width = _vte_iso2022_ambiguous_width();
+				width = _vte_iso2022_ambiguous_width(state);
 			}
 		}
 #ifdef VTE_DEBUG
@@ -1182,7 +1232,7 @@ static glong
 process_cdata(struct _vte_iso2022_state *state, guchar *cdata, gsize length,
 	      GArray *gunichars)
 {
-	static int ambiguous_width = 0;
+	int ambiguous_width = 0;
 	glong processed = 0;
 	GTree *map;
 	gint bytes_per_char, force_width, current;
@@ -1196,9 +1246,7 @@ process_cdata(struct _vte_iso2022_state *state, guchar *cdata, gsize length,
 	gpointer p;
 	gboolean single, stop;
 
-	if (ambiguous_width == 0) {
-		ambiguous_width = _vte_iso2022_ambiguous_width();
-	}
+	ambiguous_width = _vte_iso2022_ambiguous_width(state);
 
 	single = (state->override != -1);
 	current = (state->override != -1) ? state->override : state->current;
@@ -1269,6 +1317,7 @@ process_cdata(struct _vte_iso2022_state *state, guchar *cdata, gsize length,
 		for (i = 0; &buf[i] < (char*)outbuf; i += sizeof(gunichar)) {
 			c = *(gunichar*)(buf + i);
 			if (c == '\0') {
+				/* Skip the padding character. */
 				continue;
 			}
 			if (_vte_iso2022_is_ambiguous(c)) {
@@ -1762,7 +1811,7 @@ _vte_iso2022_unichar_width(gunichar c)
 {
 	c = c & ~(VTE_ISO2022_ENCODED_WIDTH_MASK); /* just in case */
 	if (_vte_iso2022_is_ambiguous(c)) {
-		return _vte_iso2022_ambiguous_width();
+		return _vte_iso2022_ambiguous_width_guess();
 	}
 	if (g_unichar_iswide(c)) {
 		return 2;

@@ -1,3 +1,15 @@
+2003-05-30 nalin
+	* src/vte.c(vte_sequence_handler_decset_internal): fix logic for
+	skipping over particular settings so that setting 1048 actually works.
+	* src/vte.c(vte_terminal_process_incoming): in debug mode, print out
+	characters with codepoints higher than 255 in hex rather than decimal.
+	* src/iso2022.c(_vte_iso2022_ambiguous_width): rename to
+	_vte_iso2022_ambiguous_width_guess because that's all we can do without
+	more context.
+	* src/iso2022.c(_vte_iso2022_ambiguous_width): add for using the
+	current encoding to determine what the width of an ambiguously-wide
+	character should be.  This seems to work better.
+
 2003-05-30  Padraig O'Briain  <padraig.obriain@sun.com>
 	* src/vteaccess.c: Add implementation for get_character_extents,
 	get_offset_at_point and get_run_attributes. This fixes bug #110770.

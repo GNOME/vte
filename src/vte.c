@@ -4506,7 +4506,9 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 	if (settings[i].setting == setting) {
 		recognized = TRUE;
 		/* Handle settings we want to ignore. */
-		if (settings[i].fvalue == settings[i].tvalue) {
+		if ((settings[i].fvalue == settings[i].tvalue) &&
+		    (settings[i].set == NULL) &&
+		    (settings[i].reset == NULL)) {
 			continue;
 		}
 
@@ -7150,7 +7152,7 @@ vte_terminal_process_incoming(gpointer data)
 			c = c & ~VTE_ISO2022_ENCODED_WIDTH_MASK;
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
 				if (c > 255) {
-					fprintf(stderr, "%ld\n", (long) c);
+					fprintf(stderr, "U+%04lx\n", (long) c);
 				} else {
 					if (c > 127) {
 						fprintf(stderr, "%ld = ",
