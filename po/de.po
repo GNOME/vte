@@ -1,14 +1,14 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# German vte translation
+# Copyright (C) 2002-2003 Free Software Foundation, Inc.
+# This file is distributed under the same license as the vte package.
+# Christian Neumair <chris@gnome-de.org>, 2002, 2003.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte HEAD\n"
-"POT-Creation-Date: 2003-01-04 15:21+0100\n"
-"PO-Revision-Date: 2003-01-04 15:21+0100\n"
-"Last-Translator: Benjamin Greiner <nadaschauher@gmx.de>\n"
+"POT-Creation-Date: 2003-01-20 16:13+0100\n"
+"PO-Revision-Date: 2003-01-20 16:12+0100\n"
+"Last-Translator: Christian Neumair <chris@gnome-de.org>\n"
 "Language-Team: German <gnome-de@gnome.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -17,7 +17,7 @@ msgstr ""
 #: src/pty.c:253
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr "Fehler beim Hinzufügen von »%s« zur Umgebung, fortfahren."
+msgstr "Fehler beim Hinzufügen von „%s” zur Umgebung, fortfahren."
 
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
@@ -25,7 +25,7 @@ msgstr "Fehler beim Hinzufügen von »%s« zur Umgebung, fortfahren."
 #: src/pty.c:800
 #, c-format
 msgid "can not run %s"
-msgstr "Kann %s nicht ausführen"
+msgstr "%s konnte nicht ausgeführt werden"
 
 #: src/reaper.c:107
 msgid "Error creating signal pipe."
@@ -36,91 +36,91 @@ msgstr "Fehler beim Erstellen der Signalweiterleitung."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikat (%s/%s)!"
 
-#: src/vte.c:1338
+#: src/vte.c:1407
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "Fehler beim Kompilieren des regulären Ausdrucks »%s«."
+msgstr "Fehler beim Kompilieren des regulären Ausdrucks „%s”."
 
-#: src/vte.c:1859 src/vte.c:1868 src/vte.c:1880 src/vte.c:1898 src/vte.c:1904
-#: src/vte.c:1909
+#: src/vte.c:1929 src/vte.c:1938 src/vte.c:1950 src/vte.c:1968 src/vte.c:1974
+#: src/vte.c:1979
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Zeichen konnten nicht von %s nach %s konvertiert werden."
 
-#: src/vte.c:5321
+#: src/vte.c:5459
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr "Unerwartete (Schlüssel?)-Sequenz »%s« erhalten."
+msgstr "Unerwartete (Schlüssel?)-Sequenz „%s” erhalten."
 
-#: src/vte.c:6408
+#: src/vte.c:6549
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr "Kein Handler für Kontrollsequenz »%s« definiert."
+msgstr "Kein Handler für Kontrollsequenz „%s” definiert."
 
-#: src/vte.c:7018
+#: src/vte.c:7288
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Fehler beim Lesen von Kind: %s."
 
-#: src/vte.c:7184
+#: src/vte.c:7449
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Fehler (%s) beim Konvertieren der Daten für Kind, wird abgebrochen."
 
-#: src/vte.c:9471
+#: src/vte.c:9740
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
 msgstr ""
-"Schriftsatz »%s« wird verwendet, welchem folgende Zeichensätze fehlen: %s."
+"Schriftsatz „%s” wird verwendet, welchem folgende Zeichensätze fehlen: %s."
 
-#: src/vte.c:10106
+#: src/vte.c:10378
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr ""
-"Laden des Xft-Schriftmusters »%s« fehlgeschlagen, Rückfall zur vorgegebenen "
+"Laden des Xft-Schriftmusters „%s” fehlgeschlagen, Rückfall zur vorgegebenen "
 "Schrift."
 
-#: src/vte.c:10118
+#: src/vte.c:10390
 msgid "Failed to load default Xft font."
 msgstr "Laden der vorgegebenen Xft-Schrift fehlgeschlagen"
 
-#: src/vte.c:10211
+#: src/vte.c:10483
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr ""
-"Laden des Schriftsatzes »%s« fehlgeschlagen, Rückfall zur vorgegebenen "
+"Laden des Schriftsatzes „%s” fehlgeschlagen, Rückfall zur vorgegebenen "
 "Schrift."
 
-#: src/vte.c:10223
+#: src/vte.c:10495
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr ""
 "Laden der vorgebenen Schrift fehlgeschlagen, Absturz oder abnormales "
 "Verhalten."
 
-#: src/vte.c:10486
+#: src/vte.c:10757
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Fehler beim Lesen der PTY-Größe, Vorgaben werden verwendet: %s."
 
-#: src/vte.c:10522
+#: src/vte.c:10793
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Fehler beim Festlegen der PTY-Größe: %s."
 
-#: src/vte.c:13387
+#: src/vte.c:13679
 msgid "Error allocating draw, disabling Xft."
 msgstr "Fehler beim Zuweisen der Zeichnung, Xft wird deaktiviert."
 
-#: src/vte.c:13395
+#: src/vte.c:13687
 msgid "Error allocating context, disabling Pango."
 msgstr "Fehler beim Zuweisen des Kontextes, Pango wird deaktiviert."
 
-#: src/vte.c:13401
+#: src/vte.c:13693
 msgid "Error allocating layout, disabling Pango."
 msgstr "Fehler beim Zuweisen des Layouts, Pango wird deaktiviert."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14992
+#: src/vte.c:15326
 msgid "g_iconv_open() failed setting word characters"
 msgstr "g_iconv_open() konnte die Zeichen des Wortes nicht festlegen"
 
