@@ -119,7 +119,7 @@ typedef gunichar wint_t;
 #define VTE_INPUT_CHUNK_SIZE		0x1000
 #define VTE_INVALID_SOURCE		-1
 #define VTE_INVALID_BYTE		'?'
-#define VTE_COALESCE_TIMEOUT		10
+#define VTE_COALESCE_TIMEOUT		2
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
