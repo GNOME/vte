@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte 0.5\n"
-"POT-Creation-Date: 2002-10-25 18:08-0400\n"
+"POT-Creation-Date: 2002-10-29 22:22+0100\n"
 "PO-Revision-Date: 2002-08-25 01:11+0200\n"
 "Last-Translator: Kjartan Maraas <kmaraas@gnome.org>\n"
 "Language-Team: Norwegian <no@li.org>\n"
@@ -98,19 +98,19 @@ msgstr "Feil under lesing av PTY-størrelse. Bruker forvalg: %s."
 msgid "Error setting PTY size: %s."
 msgstr "Feil under setting av PTY-størrelse: %s."
 
-#: src/vte.c:12555
+#: src/vte.c:12611
 msgid "Error allocating draw, disabling Xft."
 msgstr "Feil under allokering av tegning. Deaktiverer Xft."
 
-#: src/vte.c:12563
+#: src/vte.c:12619
 msgid "Error allocating context, disabling Pango."
 msgstr "Feil under allokering av kontekst. Deaktiverer Pango."
 
-#: src/vte.c:12569
+#: src/vte.c:12625
 msgid "Error allocating layout, disabling Pango."
 msgstr "Feil under allokering av «layout». Deaktiverer Pango."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14077
+#: src/vte.c:14133
 msgid "g_iconv_open() failed setting word characters"
 msgstr "g_iconv_open() feilet ved setting av ord-tegn"
