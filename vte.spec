@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.10.25
+Version: 0.10.26
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -96,6 +96,11 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Tue Mar  4 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.26-1
+- calculate widths properly for monospaced fonts which include double-wide
+  characters
+- line autowrap properly when a scrolling region is set
+
 * Mon Feb 24 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.25-1
 - incorporate fix for issues noted by H D Moore (CAN-2003-0070)
 
