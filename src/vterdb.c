@@ -23,6 +23,9 @@
 #include <limits.h>
 #include <string.h>
 #include <gtk/gtk.h>
+#ifndef X_DISPLAY_MISSING
+#include <gdk/gdkx.h>
+#endif
 #include "vterdb.h"
 
 #define DEFAULT_ANTIALIAS	TRUE
