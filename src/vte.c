@@ -1394,9 +1394,10 @@ vte_sequence_handler_im(VteTerminal *terminal,
 	terminal->pvt->screen->insert = TRUE;
 }
 
-/* Cursor left. */
+/* Send me a backspace key sym, will you?  Guess that the application meant
+ * to send the cursor back one position. */
 static void
-vte_sequence_handler_le(VteTerminal *terminal,
+vte_sequence_handler_kb(VteTerminal *terminal, 
 			const char *match,
 			GQuark match_quark,
 			GValueArray *params)
@@ -1405,6 +1406,16 @@ vte_sequence_handler_le(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	screen->cursor_current.col = MAX(0, screen->cursor_current.col - 1);
+}
+
+/* Cursor left. */
+static void
+vte_sequence_handler_le(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	vte_sequence_handler_kb(terminal, match, match_quark, params);
 }
 
 /* Move the cursor left N columns. */
@@ -2617,7 +2628,7 @@ static struct {
 	{"k;", NULL},
 	{"ka", NULL},
 	{"kA", NULL},
-	{"kb", NULL},
+	{"kb", vte_sequence_handler_kb},
 	{"kB", NULL},
 	{"kC", NULL},
 	{"kd", NULL},
@@ -3874,6 +3885,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	const char *tterm;
 	unsigned char *normal = NULL;
 	size_t normal_length = 0;
+	int i;
 	unsigned char *special = NULL;
 	struct termios tio;
 	struct timeval tv;
@@ -4009,6 +4021,19 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				if (event->string != NULL) {
 					normal = g_strdup(event->string);
 					normal_length = strlen(normal);
+					if (modifiers & GDK_CONTROL_MASK) {
+						/* Replace characters which have
+						 * "control" counterparts with
+						 * those counterparts. */
+						for (i = 0;
+						     i < normal_length;
+						     i++) {
+							if ((normal[i] > 64) &&
+							    (normal[i] < 97)) {
+								normal[i] ^= 0x40;
+							}
+						}
+					}
 				}
 				break;
 		}
@@ -4680,13 +4705,14 @@ xft_pattern_from_pango_font_description(const PangoFontDescription *font_desc)
 #endif
 
 /* Set the fontset used for rendering text into the widget. */
-static void
-vte_terminal_setup_font(VteTerminal *terminal, const char *xlfds,
-			const PangoFontDescription *font_desc)
+void
+vte_terminal_set_font(VteTerminal *terminal,
+		      const PangoFontDescription *font_desc)
 {
 	long width, height, ascent, descent;
 	GtkWidget *widget;
 	XFontStruct **font_struct_list, font_struct;
+	char *xlfds = NULL;
 	char **missing_charset_list = NULL, *def_string = NULL;
 	int missing_charset_count = 0;
 	char **font_name_list = NULL;
@@ -4973,14 +4999,6 @@ vte_terminal_setup_font(VteTerminal *terminal, const char *xlfds,
 }
 
 void
-vte_terminal_set_font(VteTerminal *terminal,
-		      const PangoFontDescription *font_desc)
-{
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	vte_terminal_setup_font (terminal, NULL, font_desc);
-}
-
-void
 vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name)
 {
 	PangoFontDescription *font_desc;
@@ -4989,16 +5007,8 @@ vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name)
 	g_return_if_fail(strlen(name) > 0);
 
 	font_desc = pango_font_description_from_string(name);
-	vte_terminal_setup_font (terminal, NULL, font_desc);
+	vte_terminal_set_font(terminal, font_desc);
 	pango_font_description_free(font_desc);
-}
-
-void
-vte_terminal_set_core_font(VteTerminal *terminal,
-			   const char *xlfd)
-{
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	vte_terminal_setup_font (terminal, xlfd, NULL);
 }
 
 /* A comparison function which helps sort quarks. */
@@ -5133,7 +5143,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 
 	/* Set the emulation type, for reference. */
 	if (emulation == NULL) {
-		emulation = "xterm";
+		emulation = "xterm-color";
 	}
 	quark = g_quark_from_string(emulation);
 	terminal->pvt->terminal = g_quark_to_string(quark);
@@ -5313,7 +5323,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->use_xft = FALSE;
 	pvt->fontdesc = NULL;
 	pvt->layout = NULL;
-	pvt->use_pango = FALSE;
+	pvt->use_pango = TRUE;
 	if (getenv("VTE_USE_XFT") != NULL) {
 		if (atol(getenv("VTE_USE_XFT")) != 0) {
 			pvt->use_xft = TRUE;
@@ -5328,15 +5338,15 @@ vte_terminal_init(VteTerminal *terminal)
 	}
 	if (!pvt->use_pango) {
 		if (getenv("VTE_USE_PANGO") != NULL) {
-			if (atol(getenv("VTE_USE_PANGO")) != 0) {
-				pvt->use_pango = TRUE;
+			if (atol(getenv("VTE_USE_PANGO")) == 0) {
+				pvt->use_pango = FALSE;
 			}
 		}
 	}
 #endif
 
 	/* Set the default font. */
-	vte_terminal_setup_font(terminal, NULL, NULL);
+	vte_terminal_set_font(terminal, NULL);
 
 	/* Load the termcap data and set up the emulation and default
 	 * terminal encoding. */

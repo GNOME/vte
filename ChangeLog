@@ -1,3 +1,10 @@
+2002-04-29 20:57  nalin
+	* src/vte.c: Handle kb by treating it as a backspace.  Make pangox
+	rendering the default.  Handle control-key sequences better, unless
+	the input method is hiding the modifiers from us.  Set the default
+	TERM variable to "xterm-color".
+	* src/vte.c src/vte.h: Get rid of vte_terminal_set_core_font().
+
 2002-04-26 19:14  nalin
 	* src/vte.c: Punt all changes to background images and transparency
 	to an idle task.  Only insert newlines into the copy buffer when the

@@ -125,7 +125,6 @@ void vte_terminal_im_append_menuitems(VteTerminal *terminal,
 void vte_terminal_set_font(VteTerminal *terminal,
                            const PangoFontDescription *font_desc);
 void vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name);
-void vte_terminal_set_core_font(VteTerminal *terminal, const char *xlfds);
 void vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines);
 
 G_END_DECLS
