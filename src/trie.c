@@ -30,7 +30,8 @@
 #include <glib.h>
 #include <glib-object.h>
 #include "debug.h"
-#include "table.h"
+#include "iso2022.h"
+#include "matcher.h"
 #include "trie.h"
 
 #ifndef HAVE_WINT_T
@@ -303,11 +304,15 @@ char_class_string_extract(const gunichar *s, size_t length,
 {
 	gunichar *ret = NULL;
 	size_t len;
+	int i;
 	GValue value;
 
 	len = unichar_snlen(s, length);
 	ret = g_malloc0((len + 1) * sizeof(gunichar));
 	unichar_sncpy(ret, s, len);
+	for (i = 0; i < len; i++) {
+		ret[i] &= ~(VTE_ISO2022_WIDTH_MASK);
+	}
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_PARSE)) {
 		fprintf(stderr, "Extracting string `%ls'.\n", (wchar_t*) ret);
@@ -495,7 +500,7 @@ _vte_trie_add(struct _vte_trie *trie, const char *pattern, size_t length,
 	wlength = sizeof(gunichar) * (length + 1);
 	wpattern = wpattern_end = g_malloc0(wlength + 1);
 
-	conv = g_iconv_open(_vte_trie_wide_encoding(), "UTF-8");
+	conv = g_iconv_open(_vte_matcher_wide_encoding(), "UTF-8");
 	g_assert(conv != ((GIConv) -1));
 
 	tpattern = (char*)pattern;
@@ -702,9 +707,15 @@ _vte_trie_match(struct _vte_trie *trie, const gunichar *pattern, size_t length,
 			}
 			g_value_array_free(valuearray);
 		}
-		*array = NULL;
+		if (array != NULL) {
+			*array = NULL;
+		}
 	} else {
-		*array = valuearray;
+		if (array != NULL) {
+			*array = valuearray;
+		} else {
+			g_value_array_free(valuearray);
+		}
 	}
 
 	return ret;
@@ -796,18 +807,6 @@ _vte_trie_print(struct _vte_trie *trie)
 	printf("Trie has %ld nodes.\n", (long) nodecount);
 }
 
-TRIE_MAYBE_STATIC const char *
-_vte_trie_wide_encoding()
-{
-	return _vte_table_wide_encoding();
-}
-
-TRIE_MAYBE_STATIC const char *
-_vte_trie_narrow_encoding()
-{
-	return _vte_table_narrow_encoding();
-}
-
 #ifdef TRIE_MAIN
 static void
 dump_array(GValueArray *array)
@@ -842,7 +841,7 @@ convert_mbstowcs(const char *i, size_t ilen,
 {
 	GIConv conv;
 	size_t outlen;
-	conv = g_iconv_open(_vte_trie_wide_encoding(), "UTF-8");
+	conv = g_iconv_open(_vte_matcher_wide_encoding(), "UTF-8");
 	g_assert(conv != ((GIConv) -1));
 
 	memset(o, 0, max_olen);
@@ -891,8 +890,8 @@ main(int argc, char **argv)
 	_vte_trie_add(trie, "<esc>]2;%sh", 11, "decset-title",
 		      g_quark_from_string("decset-title"));
 
-	printf("Wide encoding is `%s'.\n", _vte_trie_wide_encoding());
-	printf("Narrow encoding is `%s'.\n", _vte_trie_narrow_encoding());
+	printf("Wide encoding is `%s'.\n", _vte_matcher_wide_encoding());
+	printf("Narrow encoding is `%s'.\n", _vte_matcher_narrow_encoding());
 
 	_vte_trie_print(trie);
 	printf("\n");

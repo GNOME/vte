@@ -44,7 +44,7 @@ struct _vte_iso2022_map {
 
 struct _vte_iso2022 {
 	unsigned int current, override;
-	gboolean ss2, ss3;
+	gboolean ss0, ss1, ss2, ss3;
 	gunichar g[4];
 };
 
@@ -256,6 +256,8 @@ _vte_iso2022_new(void)
 	ret = g_malloc0(sizeof(struct _vte_iso2022));
 	ret->current = 0;
 	ret->override = 0;
+	ret->ss0 = FALSE;
+	ret->ss1 = FALSE;
 	ret->ss2 = FALSE;
 	ret->ss3 = FALSE;
 	ret->g[0] = 'B';
@@ -430,9 +432,26 @@ _vte_iso2022_map_get(gunichar mapname)
 }
 
 gssize
+_vte_iso2022_get_width(gunichar c)
+{
+	gssize width;
+	width = (c & VTE_ISO2022_WIDTH_MASK) >> VTE_ISO2022_WIDTH_BIT_OFFSET;
+	return CLAMP(width, 0, 2);
+}
+
+static gunichar
+_vte_iso2022_set_width(gunichar c, gssize width)
+{
+	width = CLAMP(width, 0, 2);
+	c &= ~(VTE_ISO2022_WIDTH_MASK);
+	c |= (width << VTE_ISO2022_WIDTH_BIT_OFFSET);
+	return c;
+}
+
+gssize
 _vte_iso2022_substitute(struct _vte_iso2022 *outside_state,
 		       gunichar *instring, gssize length,
-		       gunichar *outstring, struct _vte_table *specials)
+		       gunichar *outstring, struct _vte_matcher *specials)
 {
 	int i, j, k, g;
 	struct _vte_iso2022 state;
@@ -443,6 +462,7 @@ _vte_iso2022_substitute(struct _vte_iso2022 *outside_state,
 	const char *match;
 	const gunichar *used;
 	int chars_per_code = 1;
+	gssize width;
 
 	g_return_val_if_fail(outside_state != NULL, 0);
 	g_return_val_if_fail(instring != NULL, 0);
@@ -454,8 +474,8 @@ _vte_iso2022_substitute(struct _vte_iso2022 *outside_state,
 
 	for (i = j = 0; i < length; i++) {
 		if ((specials != NULL) &&
-		    (_vte_table_match(specials, instring + i, length - i,
-				      &match, &used, NULL, NULL) != NULL)) {
+		    (_vte_matcher_match(specials, instring + i, length - i,
+					&match, &used, NULL, NULL) != NULL)) {
 			if (strlen(match) > 0) {
 				/* Aaargh, SI/SO masquerade as capabilities. */
 				if ((strcmp(match, "as") != 0) &&
@@ -721,6 +741,14 @@ _vte_iso2022_substitute(struct _vte_iso2022 *outside_state,
 			if (state.ss3) {
 				current_map = state.g[3];
 				state.ss3 = FALSE;
+			} else
+			if (state.ss0) {
+				current_map = state.g[0];
+				state.ss0 = FALSE;
+			} else
+			if (state.ss1) {
+				current_map = state.g[1];
+				state.ss1 = FALSE;
 			} else {
 				g_assert(state.current < G_N_ELEMENTS(state.g));
 				current_map = state.g[state.current];
@@ -804,6 +832,18 @@ _vte_iso2022_substitute(struct _vte_iso2022 *outside_state,
 					}
 #endif
 				}
+			}
+			/* Calculate width for ambiguous characters. */
+			switch (result) {
+				/* To be filled in some time, I guess. */
+			default:
+				/* For nonambiguous characters, just use
+				 * the width glib has later on. */
+				width = 0;
+				break;
+			}
+			if (width != 0) {
+				result = _vte_iso2022_set_width(result, width);
 			}
 			/* Store. */
 			buf[j++] = result;

@@ -29,6 +29,8 @@ struct _vte_table;
 
 /* Create an empty, one-level table. */
 struct _vte_table *_vte_table_new(void);
+
+/* Free a table tree. */
 void _vte_table_free(struct _vte_table *table);
 
 /* Add a string to the matching tree. */
@@ -43,11 +45,5 @@ const char *_vte_table_match(struct _vte_table *table,
 			     GQuark *quark, GValueArray **array);
 /* Dump out the contents of a tree. */
 void _vte_table_print(struct _vte_table *table);
-
-/* A gunichar-compatible giconv target, if one can be found. */
-const char *_vte_table_wide_encoding(void);
-
-/* A single-byte iso-8859-1 giconv target, if one can be found. */
-const char *_vte_table_narrow_encoding(void);
 
 #endif

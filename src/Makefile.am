@@ -33,6 +33,8 @@ libvte_la_SOURCES = \
 	keymap.h \
 	marshal.c \
 	marshal.h \
+	matcher.c \
+	matcher.h \
 	pty.c \
 	pty.h \
 	reaper.c \
@@ -73,8 +75,12 @@ interpret_SOURCES = \
 	debug.h \
 	iso2022.c \
 	iso2022.h \
+	matcher.c \
+	matcher.h \
 	table.c \
 	table.h \
+	trie.c \
+	trie.h \
 	termcap.c \
 	termcap.h \
 	interpret.c
@@ -86,16 +92,24 @@ iso2022_SOURCES = \
 	debug.h \
 	iso2022.c \
 	iso2022.h \
+	matcher.c \
+	matcher.h \
 	table.c \
-	table.h
+	table.h \
+	trie.c \
+	trie.h
 iso2022_LDADD = @LIBS@ @GOBJECT_LIBS@
 
 utf8echo_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DUTF8ECHO_MAIN
 utf8echo_SOURCES = \
 	debug.c \
 	debug.h \
+	matcher.c \
+	matcher.h \
 	table.c \
 	table.h \
+	trie.c \
+	trie.h \
 	utf8echo.c
 utf8echo_LDADD = @LIBS@ @GOBJECT_LIBS@
 
@@ -120,14 +134,20 @@ table_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DTABLE_MAIN
 table_SOURCES = \
 	debug.c \
 	debug.h \
+	matcher.c \
+	matcher.h \
 	table.c \
-	table.h
+	table.h \
+	trie.c \
+	trie.h
 table_LDADD = @LIBS@ @GOBJECT_LIBS@
 
 trie_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DTRIE_MAIN
 trie_SOURCES = \
 	debug.c \
 	debug.h \
+	matcher.c \
+	matcher.h \
 	table.c \
 	table.h \
 	termcap.c \

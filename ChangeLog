@@ -1,3 +1,43 @@
+2002-12-09  nalin
+	* configure.in: add "uk" to the list of languages.
+	* src/vte.h: remove the alternate attribute bit -- it's no longer
+	meaningful.
+	* python/vte.override: remove the alternate attribute, add the
+	strikethrough attribute.
+	* src/vte.c (vte_terminal_insert_char): perform drawing character set
+	to Unicode mapping at insertion time if the alternate attribute is set,
+	otherwise discarding the attribute.  If the character being inserted is
+	a graphic character, force its width to 1 or 2 depending on the current
+	codeset (#99603).
+	* src/vte.c (xlfd_from_pango_font_description): take advantage of
+	XftXlfdParse if we were built with Xft, as it appears to handle family
+	aliases.
+	* src/vte.c (vte_terminal_draw_graphic): decide what to draw using
+	Unicode code points (instead of reverse mappings to drawing set), and
+	implement the double-thick versions of many of the existing glyphs.
+	Return a boolean indicating whether or not we drew something.
+	* src/vte.c (vte_terminal_draw_row): if vte_terminal_draw_graphic()
+	returns FALSE, try to draw the graphic character using the current font.
+	* src/vte.c (vte_terminal_paint): if vte_terminal_draw_graphic()
+	returns FALSE, try to draw the graphic character using the current font.
+	* src/caps.c: add the undocumented default 0 to the OSC set text
+	parameters sequence (#100468).
+
+2002-12-03  nalin
+	* README: updates.
+	* src/iso2022.c, src/iso2022.h: add a width mask for overriding widths
+	for ambiguous Unicode characters, and _vte_iso2022_get_width() for
+	reading the width, using unused bits in Unicode in a manner similar to
+	http://www.cl.cam.ac.uk/~mgk25/ucs/iso2022-wc.html
+	* src/table.c,src/trie.c: strip out iso2022 widths when extracting
+	parameters of control sequences.
+	* src/vte.c: heed iso2022 widths when inserting characters into the
+	screen buffer, but clear then before storing them so that copy and
+	paste will continue to work.
+	* src/matcher.c, src/matcher.h: add matcher, a wrapper for table and
+	trie, and move _vte_table_narrow_encoding and _vte_table_wide_encoding
+	to this module.
+
 2002-12-03  nalin
 	* src/pty.c: if TIOCSCTTY is defined, use it, even if it's redundant.
 

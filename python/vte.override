@@ -197,8 +197,8 @@ _wrap_vte_terminal_get_text(PyGObject *self, PyObject *args, PyObject *kwargs)
 	    
 	    PyDict_SetItemString(py_char_attr, "underline", 
 		    PyInt_FromLong(cht->underline));
-	    PyDict_SetItemString(py_char_attr, "alternate", 
-		    PyInt_FromLong(cht->alternate));
+	    PyDict_SetItemString(py_char_attr, "strikethrough", 
+		    PyInt_FromLong(cht->strikethrough));
 
 	    PyTuple_SetItem(py_attrs, count, py_char_attr);
 	}
@@ -292,8 +292,8 @@ _wrap_vte_terminal_get_text_range(PyGObject *self, PyObject *args, PyObject *kwa
 	    
 	    PyDict_SetItemString(py_char_attr, "underline", 
 		    PyInt_FromLong(cht->underline));
-	    PyDict_SetItemString(py_char_attr, "alternate", 
-		    PyInt_FromLong(cht->alternate));
+	    PyDict_SetItemString(py_char_attr, "strikethrough", 
+		    PyInt_FromLong(cht->strikethrough));
 
 	    PyTuple_SetItem(py_attrs, count, py_char_attr);
 	}

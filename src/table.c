@@ -27,6 +27,7 @@
 #include <glib.h>
 #include <glib-object.h>
 #include "debug.h"
+#include "iso2022.h"
 #include "table.h"
 
 #ifdef ENABLE_NLS
@@ -405,9 +406,13 @@ _vte_table_extract_string(GValueArray **array,
 {
 	GValue value = {0,};
 	gunichar *ptr;
+	int i;
 
 	ptr = g_malloc(sizeof(gunichar) * (arginfo->length + 1));
 	memcpy(ptr, arginfo->start, (arginfo->length * sizeof(gunichar)));
+	for (i = 0; i < arginfo->length; i++) {
+		ptr[i] &= ~(VTE_ISO2022_WIDTH_MASK);
+	}
 	ptr[arginfo->length] = '\0';
 	g_value_init(&value, G_TYPE_POINTER);
 	g_value_set_pointer(&value, ptr);
@@ -637,124 +642,6 @@ _vte_table_print(struct _vte_table *table)
 	_vte_table_printi(table, "", &count);
 	fprintf(stderr, "%d nodes = %ld bytes.\n",
 	        count, (long) count * sizeof(struct _vte_table));
-}
-
-/* Determine sensible iconv target names for gunichar and iso-8859-1. */
-#define SAMPLE "ABCDEF"
-static char *
-_vte_table_find_valid_encoding(char **list, gssize length, gboolean wide)
-{
-	gunichar wbuffer[8];
-	unsigned char nbuffer[8];
-	void *buffer;
-	char inbuf[BUFSIZ];
-	char outbuf[BUFSIZ];
-	char *ibuf, *obuf;
-	gsize isize, osize;
-	int i;
-	gsize outbytes;
-	GIConv conv;
-
-	if (wide) {
-		buffer = wbuffer;
-	} else {
-		buffer = nbuffer;
-	}
-
-	for (i = 0; SAMPLE[i] != '\0'; i++) {
-		wbuffer[i] = nbuffer[i] = SAMPLE[i];
-	}
-	wbuffer[i] = nbuffer[i] = SAMPLE[i];
-
-	for (i = 0; i < length; i++) {
-		conv = g_iconv_open(list[i], "UTF-8");
-		if (conv == ((GIConv) -1)) {
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_MISC)) {
-				fprintf(stderr, "Conversions to `%s' are not "
-					"supported by giconv.\n", list[i]);
-			}
-#endif
-			continue;
-		}
-
-		ibuf = (char*) &inbuf;
-		strcpy(inbuf, SAMPLE);
-		isize = 3;
-		obuf = (char*) &outbuf;
-		osize = sizeof(outbuf);
-
-		g_iconv(conv, &ibuf, &isize, &obuf, &osize);
-		g_iconv_close(conv);
-
-		outbytes = sizeof(outbuf) - osize;
-		if ((isize == 0) && (outbytes > 0)) {
-			if (memcmp(outbuf, buffer, outbytes) == 0) {
-#ifdef VTE_DEBUG
-				if (_vte_debug_on(VTE_DEBUG_MISC)) {
-					fprintf(stderr, "Found iconv target "
-						"`%s'.\n", list[i]);
-				}
-#endif
-				return g_strdup(list[i]);
-			}
-		}
-	}
-
-	return NULL;
-}
-
-const char *
-_vte_table_wide_encoding()
-{
-	char *wide[] = {
-		"10646",
-		"ISO_10646",
-		"ISO-10646",
-		"ISO10646",
-		"ISO-10646-1",
-		"ISO10646-1",
-		"ISO-10646/UCS4",
-		"UCS-4",
-		"UCS4",
-		"UCS-4-BE",
-		"UCS-4BE",
-		"UCS4-BE",
-		"UCS-4-INTERNAL",
-		"UCS-4-LE",
-		"UCS-4LE",
-		"UCS4-LE",
-		"UNICODE",
-		"UNICODE-BIG",
-		"UNICODEBIG",
-		"UNICODE-LITTLE",
-		"UNICODELITTLE",
-		"WCHAR_T",
-	};
-	static char *ret = NULL;
-	if (ret == NULL) {
-		ret = _vte_table_find_valid_encoding(wide,
-						     G_N_ELEMENTS(wide),
-						     TRUE);
-	}
-	return ret;
-}
-
-const char *
-_vte_table_narrow_encoding()
-{
-	char *narrow[] = {
-		"8859-1",
-		"ISO-8859-1",
-		"ISO8859-1",
-	};
-	static char *ret = NULL;
-	if (ret == NULL) {
-		ret = _vte_table_find_valid_encoding(narrow,
-						     G_N_ELEMENTS(narrow),
-						     FALSE);
-	}
-	return ret;
 }
 
 #ifdef TABLE_MAIN

@@ -59,12 +59,6 @@ const char *_vte_trie_match(struct _vte_trie *trie,
 /* Print the contents of the trie (mainly for diagnostic purposes). */
 void _vte_trie_print(struct _vte_trie *trie);
 
-/* A gunichar-compatible giconv target, if one can be found. */
-const char *_vte_trie_wide_encoding(void);
-
-/* A single-byte iso-8859-1 giconv target, if one can be found. */
-const char *_vte_trie_narrow_encoding(void);
-
 G_END_DECLS
 
 #endif

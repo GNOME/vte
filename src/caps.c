@@ -513,6 +513,7 @@ struct _vte_capability_string _vte_xterm_capability_strings[] = {
 	{CSI "%m'{", "select-locator-events", 0},
 	{CSI "%d'|", "request-locator-position", 0},
 
+	{OSC ";%s" BEL, "set-icon-and-window-title", 0}, /* undocumented default */
 	{OSC "0;%s" BEL, "set-icon-and-window-title", 0},
 	{OSC "1;%s" BEL, "set-icon-title", 0},
 	{OSC "2;%s" BEL, "set-window-title", 0},

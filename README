@@ -20,7 +20,6 @@
 
 * What's missing?
 - Accessibility doesn't work right yet.
-- The keymapping doesn't mimic XTerm as well as it's meant to.
 - Chinese and Korean text isn't displayed correctly because we pass it through
   iconv() before performing substitutions, and they both use GR characters.
   Japanese works because it only uses GL characters, which iconv() essentially
@@ -58,3 +57,5 @@
   http://czyborra.com/unicode/terminals.html
   http://mail.nl.linux.org/linux-utf8/1999-10/msg00014.html
   http://www.debian.org/doc/manuals/intro-i18n/ch-output.en.html
+- Depending on your locale, the current encoding, and possibly the strengh
+  of cosmic rays, the display width of certain Unicode characters changes.

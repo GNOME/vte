@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "table.h"
+#include "matcher.h"
 #define ESC ""
 
 int
@@ -45,7 +45,7 @@ main(int argc, char **argv)
 		return 1;
 	}
 
-	conv = g_iconv_open("UTF-8", _vte_table_wide_encoding());
+	conv = g_iconv_open("UTF-8", _vte_matcher_wide_encoding());
 	if (conv == ((GIConv) -1)) {
 		return 1;
 	}

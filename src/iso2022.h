@@ -25,7 +25,7 @@
 
 #include <glib.h>
 #include <glib-object.h>
-#include "table.h"
+#include "matcher.h"
 
 G_BEGIN_DECLS
 
@@ -35,7 +35,12 @@ void _vte_iso2022_free(struct _vte_iso2022 *p);
 gssize _vte_iso2022_substitute(struct _vte_iso2022 *state,
 			       gunichar *instring, gssize length,
 			       gunichar *outstring,
-			       struct _vte_table *specials);
+			       struct _vte_matcher *specials);
+
+#define VTE_ISO2022_WIDTH_BIT_OFFSET	28
+#define VTE_ISO2022_WIDTH_MASK		(3 << VTE_ISO2022_WIDTH_BIT_OFFSET)
+#define VTE_ISO2022_HAS_WIDTH(__c)	(((__c) & VTE_ISO2022_WIDTH_MASK) != 0)
+gssize _vte_iso2022_get_width(gunichar c);
 
 G_END_DECLS
 

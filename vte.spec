@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.10.5
+Version: 0.10.6
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -37,9 +37,29 @@ rm -fr $RPM_BUILD_ROOT
 %install
 rm -fr $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
-%find_lang %{name}
+
+# Remove the sample app.
 rm $RPM_BUILD_ROOT/%{_bindir}/%{name}
+
+# Remove the .la file.
 rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
+
+# Work around AM_PATH_PYTHON from automake 1.6.3 not being multilib-aware.
+if test %{_libdir} != %{_prefix}/lib ; then
+	badpyexecdir=`ls -d $RPM_BUILD_ROOT/%{_prefix}/lib/python* 2> /dev/null`
+	if test -n "$badpyexecdir" ; then
+		pyexecdirver=`basename $badpyexecdir`
+		install -d -m755 $RPM_BUILD_ROOT/%{_libdir}/${pyexecdirver}
+		mv ${badpyexecdir}/site-packages $RPM_BUILD_ROOT/%{_libdir}/${pyexecdirver}/
+	fi
+fi
+
+# Remove static python modules and la files, which are probably useless to
+# Python anyway.
+rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.la
+rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
+
+%find_lang %{name}
 
 %post -p /sbin/ldconfig
 
@@ -73,6 +93,12 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Mon Dec  9 2002 Nalin Dahyabhai <nalin@redhat.com> 0.10.6-1
+- handle ambiguous-width line-drawing characters
+
+* Mon Dec  9 2002 Nalin Dahyabhai <nalin@redhat.com> 0.10.5-2
+- work around AM_PATH_PYTHON not being multilib-aware
+
 * Tue Dec  3 2002 Nalin Dahyabhai <nalin@redhat.com> 0.10.5-1
 - cleaned up the keyboard
 
