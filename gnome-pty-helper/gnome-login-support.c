@@ -32,7 +32,7 @@ int
 login_tty (int fd)
 {
 	pid_t pid = getpid ();
-	 
+
 	/* Create the session */
 	setsid ();
 
@@ -60,7 +60,7 @@ login_tty (int fd)
 #elif defined (TIOCSPGRP)
 	ioctl (0, TIOCSPGRP, &pid);
 #endif
-	
+
 	dup2 (fd, 0);
 	dup2 (fd, 1);
 	dup2 (fd, 2);
@@ -79,7 +79,7 @@ pty_open_master_bsd (char *pty_name, int *used_bsd)
 	char *ptr1, *ptr2;
 
 	*used_bsd = 1;
-	
+
 	strcpy (pty_name, "/dev/ptyXX");
 	for (ptr1 = "pqrstuvwxyzPQRST"; *ptr1; ++ptr1)
 	{
@@ -87,7 +87,7 @@ pty_open_master_bsd (char *pty_name, int *used_bsd)
 		for (ptr2 = "0123456789abcdef"; *ptr2; ++ptr2)
 		{
 			pty_name [9] = *ptr2;
-			
+
 			/* Try to open master */
 			if ((pty_master = open (pty_name, O_RDWR)) == -1) {
 				if (errno == ENOENT)  /* Different from EIO */
@@ -112,11 +112,11 @@ pty_open_slave_bsd (const char *pty_name)
 {
 	int pty_slave;
 	struct group *group_info = getgrnam ("tty");
-	
+
 	if (group_info != NULL)
 	{
 		/* The following two calls will only succeed if we are root */
-		
+
 		chown (pty_name, getuid (), group_info->gr_gid);
 		chmod (pty_name, S_IRUSR | S_IWUSR | S_IWGRP);
 	}
@@ -148,7 +148,7 @@ static int
 pty_open_slave (const char *pty_name)
 {
 	int pty_slave = open (pty_name, O_RDWR);
-	
+
 	if (pty_slave == -1)
 		return -1;
 
@@ -159,13 +159,13 @@ pty_open_slave (const char *pty_name)
 			close (pty_slave);
 			return -1;
 		}
-	
+
     if (!ioctl (pty_slave, I_FIND, "ldterm"))
 	    if (ioctl (pty_slave, I_PUSH, "ldterm") == -1){
 		    close (pty_slave);
 		    return -1;
 	    }
-    
+
 #if !defined(sgi) && !defined(__sgi)
     if (!ioctl (pty_slave, I_FIND, "ttcompat"))
 	    if (ioctl (pty_slave, I_PUSH, "ttcompat") == -1)
@@ -177,7 +177,7 @@ pty_open_slave (const char *pty_name)
 #endif /* sgi || __sgi */
 #endif /* __osf__ */
 #endif /* HAVE_STROPTS_H */
-    
+
     return pty_slave;
 }
 
@@ -186,7 +186,7 @@ pty_open_master (char *pty_name, int *used_bsd)
 {
 	int pty_master;
 	char *slave_name;
-	
+
 	strcpy (pty_name, "/dev/ptmx");
 
 	pty_master = open (pty_name, O_RDWR);
@@ -238,7 +238,7 @@ openpty (int *master_fd, int *slave_fd, char *name,
 		return -1;
 
 	group_info = getgrnam ("tty");
-	
+
 	if (group_info != NULL){
 		chown (line, getuid (), group_info->gr_gid);
 		chmod (line, S_IRUSR | S_IWUSR | S_IWGRP);
@@ -250,13 +250,13 @@ openpty (int *master_fd, int *slave_fd, char *name,
 #ifdef HAVE_REVOKE
 	revoke (line);
 #endif
-	
+
 	/* Open slave side */
 	if (used_bsd)
 		pty_slave = pty_open_slave_bsd (line);
 	else
 		pty_slave = pty_open_slave (line);
-	
+
 	if (pty_slave == -1){
 		close (pty_master);
 
@@ -273,7 +273,7 @@ openpty (int *master_fd, int *slave_fd, char *name,
 
 	if (winp)
 		ioctl (pty_slave, TIOCSWINSZ, winp);
-	
+
 	if (name)
 		strcpy (name, line);
 
@@ -285,7 +285,7 @@ forkpty (int *master_fd, char *name, struct termios *termp, struct winsize *winp
 {
 	int master, slave;
 	pid_t pid;
-	
+
 	if (openpty (&master, &slave, name, termp, winp) == -1)
 		return -1;
 
@@ -302,7 +302,7 @@ forkpty (int *master_fd, char *name, struct termios *termp, struct winsize *winp
 		*master_fd = master;
 		close (slave);
 	}
-	
+
 	return pid;
 }
 #endif /* HAVE_OPENPTY */
@@ -339,7 +339,7 @@ n_read (int fd, void *buf, int count)
 			break;
 		}
 	}
-	
+
 	return n;
 }
 
@@ -375,6 +375,6 @@ n_write (int fd, const void *buf, int count)
 			break;
 		}
 	}
-	
+
 	return n;
 }

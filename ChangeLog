@@ -1,3 +1,15 @@
+2004-05-01 nalin
+	* src/vte.c(vte_terminal_get_text_maybe_wrapped): add a parameter to
+	control whether or not trailing whitespace is trimmed (padraig.obriain,
+	#141148).
+	* src/vte.c,src/vte.h(vte_terminal_get_text_include_trailing_spaces):
+	add as a wrapper for the new vte_terminal_get_text_maybe_wrapped()
+	(padraig.obriain, #141148).
+	* src/vteaccess.c(vte_terminal_accessible_update_private_d): use
+	vte_terminal_get_text_include_trailing_spaces to ensure that we get
+	trailing spaces (padraig.obriain, #141148).
+	* src/vte.c(vte_terminal_insert_char): clean up some autowrap stuff.
+
 2004-04-30 nalin
 	* vte.pc.in, vte-uninstalled.pc.in: declare the defaultemulation
 	variable as one kind of variable, not that other kind (#141515).

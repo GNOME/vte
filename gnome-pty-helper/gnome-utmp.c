@@ -10,7 +10,7 @@
  *
  * FIXME: Solaris (utmpx) stuff need to be checked.
  */
- 
+
 #include <config.h>
 #include <sys/types.h>
 #include <sys/file.h>
@@ -108,7 +108,7 @@ update_wtmp (char *file, UTMP *putmp)
 	lck.l_start  = 0;
 	lck.l_type   = F_WRLCK;
 #endif
-	
+
 	if ((fd = open (file, O_WRONLY|O_APPEND, 0)) < 0)
 		return;
 
@@ -141,7 +141,7 @@ update_wtmp (char *file, UTMP *putmp)
 	write (fd, putmp, sizeof(UTMP));
 
 	/* unlock the file */
-#if defined(HAVE_FCNTL)	
+#if defined(HAVE_FCNTL)
 	lck.l_type = F_UNLCK;
 	fcntl (fd, F_SETLK, &lck);
 #elif defined(HAVE_FLOCK)
@@ -173,10 +173,10 @@ update_utmp (UTMP *ut)
 {
 	struct ttyent *ty;
 	int fd, pos = 0;
-	
-	if ((fd = open (UTMP_OUTPUT_FILENAME, O_RDWR|O_CREAT, 0644)) < 0) 
+
+	if ((fd = open (UTMP_OUTPUT_FILENAME, O_RDWR|O_CREAT, 0644)) < 0)
 		return;
-	
+
 	setttyent ();
 	while ((ty = getttyent ()) != NULL)
 	{
@@ -188,7 +188,7 @@ update_utmp (UTMP *ut)
 		}
 	}
 	endttyent ();
-	
+
 	close(fd);
 }
 #else
@@ -212,9 +212,9 @@ update_lastlog(char* login_name, UTMP *ut)
 	return;
 
     memset (&ll, 0, sizeof(ll));
-    
+
     lseek (fd, (off_t)pwd->pw_uid * sizeof (ll), SEEK_SET);
-    
+
     time (&ll.ll_time);
 
     strncpy (ll.ll_line, ut->ut_line, sizeof (ll.ll_line));
@@ -223,13 +223,13 @@ update_lastlog(char* login_name, UTMP *ut)
     if (ut->ut_host)
 	strncpy (ll.ll_host, ut->ut_host, sizeof (ll.ll_host));
 #endif
-    
+
     write (fd, (void *)&ll, sizeof (ll));
     close (fd);
 }
 #endif /* HAVE_LASTLOG */
 
-void 
+void
 write_logout_record (void *data, int utmp, int wtmp)
 {
 	UTMP put, *ut = data;
@@ -269,7 +269,7 @@ write_login_record (char *login_name, char *display_name,
 
 	if ((ut=(UTMP *) malloc (sizeof (UTMP))) == NULL)
 		return NULL;
-	
+
 	memset (ut, 0, sizeof (UTMP));
 
 #if defined(HAVE_UT_UT_NAME)
@@ -285,20 +285,20 @@ write_login_record (char *login_name, char *display_name,
 #if defined(HAVE_STRRCHR)
 	{
 		char *p;
-		
+
 		if (strncmp (pty, "pts", 3) &&
 		    (p = strrchr (pty, '/')) != NULL)
 			pty = p + 1;
 	}
 #endif
-	    
+
 #if defined(HAVE_UT_UT_ID)
 	/* Just a safe-guard */
 	ut->ut_id [0] = '\0';
 
 	/* BSD-like terminal name */
 	if (strncmp (pty, "pts", 3) == 0 ||
-	    strncmp (pty, "pty", 3) == 0 || 
+	    strncmp (pty, "pty", 3) == 0 ||
 	    strncmp (pty, "tty", 3) == 0) {
 		strncpy (ut->ut_id, pty+3, sizeof (ut->ut_id));
 	} else {

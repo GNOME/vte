@@ -477,7 +477,8 @@ static char *vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 									      glong,
 									      gpointer),
 						       gpointer data,
-						       GArray *attributes);
+						       GArray *attributes,
+						       gboolean include_trailing_spaces);
 static char *vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 						 gboolean wrap,
 						 gboolean(*is_selected)(VteTerminal *,
@@ -485,7 +486,8 @@ static char *vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 									glong,
 									gpointer),
 						 gpointer data,
-						 GArray *attributes);
+						 GArray *attributes,
+						 gboolean include_trailing_spaces);
 static void _vte_terminal_disconnect_pty_read(VteTerminal *terminal);
 static void _vte_terminal_disconnect_pty_write(VteTerminal *terminal);
 
@@ -6713,14 +6715,10 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 #endif
 
-	/* If we're autowrapping here (am and xn), do it, for graphic
- 	 * characters only. */
+	/* If we're autowrapping here, do it. */
 	col = screen->cursor_current.col;
 	if (col + columns > terminal->column_count) {
-		if (terminal->pvt->flags.am &&
-		    terminal->pvt->flags.xn &&
-		    terminal->pvt->flags.LP &&
-		    g_unichar_isgraph(c)) {
+		if (terminal->pvt->flags.am) {
 			/* Mark this line as soft-wrapped. */
 			row = _vte_ring_index(screen->row_data,
 					      VteRowData *,
@@ -6826,11 +6824,10 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		}
 	}
 
-	/* If we're autowrapping *here* (am but not xn), do it. */
+	/* If we're autowrapping *here*, do it. */
 	col = screen->cursor_current.col;
 	if (col >= terminal->column_count) {
-		if (terminal->pvt->flags.am &&
-		    !(terminal->pvt->flags.xn && terminal->pvt->flags.LP)) {
+		if (terminal->pvt->flags.am && !terminal->pvt->flags.xn) {
 			/* Mark this line as soft-wrapped. */
 			row = _vte_ring_index(screen->row_data,
 					      VteRowData *,
@@ -7657,7 +7654,7 @@ vte_terminal_process_incoming(gpointer data)
 			vte_terminal_maybe_scroll_to_bottom(terminal);
 		}
 		/* Deselect the current selection if its contents are changed
- 		 * by this insertion. */
+		 * by this insertion. */
 		if (terminal->pvt->has_selection) {
 			char *selection;
 			selection =
@@ -8276,7 +8273,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	terminal = VTE_TERMINAL(widget);
 
 	/* First, check if GtkWidget's behavior already does something with
- 	 * this key. */
+	 * this key. */
 	widget_class = g_type_class_peek(GTK_TYPE_WIDGET);
 	if (GTK_WIDGET_CLASS(widget_class)->key_press_event) {
 		if ((GTK_WIDGET_CLASS(widget_class))->key_press_event(widget,
@@ -9203,7 +9200,8 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 							 TRUE,
 							 is_selected,
 							 data,
-							 attributes);
+							 attributes,
+							 FALSE);
 }
 
 static char *
@@ -9216,7 +9214,8 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 								 glong,
 								 gpointer),
 					  gpointer data,
-					  GArray *attributes)
+					  GArray *attributes,
+					  gboolean include_trailing_spaces)
 {
 	long col, row, last_space, last_spacecol,
 	     last_nonspace, last_nonspacecol, line_start;
@@ -9323,7 +9322,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 			/* If pcell is NULL, then there was no printing
 			 * character to the right of the endpoint, so truncate
 			 * the string at the end of the printing chars. */
-			if (pcell == NULL) {
+			if ((pcell == NULL) && !include_trailing_spaces) {
 				g_string_truncate(string, last_nonspace + 1);
 			}
 		}
@@ -9386,7 +9385,8 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 							   glong,
 							   gpointer),
 				    gpointer data,
-				    GArray *attributes)
+				    GArray *attributes,
+				    gboolean include_trailing_spaces)
 {
 	long start_row, start_col, end_row, end_col;
 	start_row = terminal->pvt->screen->scroll_delta;
@@ -9401,7 +9401,8 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 							 is_selected :
 							 always_selected,
 							 data,
-							 attributes);
+							 attributes,
+							 include_trailing_spaces);
 }
 
 /**
@@ -9435,7 +9436,47 @@ vte_terminal_get_text(VteTerminal *terminal,
 						   is_selected :
 						   always_selected,
 						   data,
-						   attributes);
+						   attributes,
+						   FALSE);
+}
+
+/**
+ * vte_terminal_get_text_include_trailing_spaces:
+ * @terminal: a #VteTerminal
+ * @is_selected: a callback
+ * @data: user data to be passed to the callback
+ * @attributes: location for storing text attributes
+ *
+ * Extracts a view of the visible part of the terminal.  If @is_selected is not
+ * NULL, characters will only be read if @is_selected returns TRUE after being
+ * passed the column and row, respectively.  A #VteCharAttributes structure
+ * is added to @attributes for each byte added to the returned string detailing
+ * the character's position, colors, and other characteristics. This function
+ * differs from vte_terminal_get_text in that trailing spaces at the end of
+ * lines are included.
+ *
+ * Returns: a text string which must be freed by the caller, or NULL.
+ *
+ * Since 0.11.11
+ */
+char *
+vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
+					      gboolean(*is_selected)(VteTerminal *,
+								     glong,
+								     glong,
+								     gpointer),
+					      gpointer data,
+					      GArray *attributes)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+	return vte_terminal_get_text_maybe_wrapped(terminal,
+						   TRUE,
+						   is_selected ?
+						   is_selected :
+						   always_selected,
+						   data,
+						   attributes,
+						   TRUE);
 }
 
 /**
@@ -13819,7 +13860,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		if (cell) {
 			cursor_width = MAX(cursor_width,
 					   _vte_draw_get_char_width(terminal->pvt->draw,
-					  			    cell->c,
+								    cell->c,
 								    cell->columns));
 		}
 		if (GTK_WIDGET_HAS_FOCUS(GTK_WIDGET(terminal))) {

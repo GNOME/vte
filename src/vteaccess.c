@@ -105,7 +105,7 @@ vte_terminal_accessible_free_private_data(VteTerminalAccessiblePrivate *priv)
 }
 
 static gint
-offset_from_xy (VteTerminalAccessiblePrivate *priv, 
+offset_from_xy (VteTerminalAccessiblePrivate *priv,
 		gint x, gint y)
 {
 	gint offset;
@@ -118,9 +118,9 @@ offset_from_xy (VteTerminalAccessiblePrivate *priv,
 	linebreak = g_array_index (priv->snapshot_linebreaks, int, y);
 	if (y +1 == priv->snapshot_linebreaks->len)
 		next_linebreak = priv->snapshot_characters->len;
-	else 
+	else
 		next_linebreak = g_array_index (priv->snapshot_linebreaks, int, y + 1);
-	
+
 	offset = linebreak + x;
 	if (offset >= next_linebreak)
 		offset = next_linebreak -1;
@@ -128,7 +128,7 @@ offset_from_xy (VteTerminalAccessiblePrivate *priv,
 }
 
 static void
-xy_from_offset (VteTerminalAccessiblePrivate *priv, 
+xy_from_offset (VteTerminalAccessiblePrivate *priv,
 		gint offset, gint *x, gint *y)
 {
 	gint i;
@@ -142,9 +142,9 @@ xy_from_offset (VteTerminalAccessiblePrivate *priv,
 		linebreak = g_array_index (priv->snapshot_linebreaks, int, i);
 		if (offset < linebreak) {
 			cur_x = offset - cur_offset;
-			cur_y = i - 1;	
+			cur_y = i - 1;
 			break;
-			
+
 		}  else {
 			cur_offset = linebreak;
 		}
@@ -152,11 +152,11 @@ xy_from_offset (VteTerminalAccessiblePrivate *priv,
 	if (i == priv->snapshot_linebreaks->len) {
 		if (offset < priv->snapshot_characters->len) {
 			cur_x = offset - cur_offset;
-			cur_y = i - 1;	
+			cur_y = i - 1;
 		}
 	}
 	*x = cur_x;
-	*y = cur_y;	
+	*y = cur_y;
 }
 
 /* "Oh yeah, that's selected.  Sure." callback. */
@@ -345,10 +345,10 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 		priv->snapshot_linebreaks = g_array_new(FALSE, TRUE, sizeof(int));
 
 		/* Get a new view of the uber-label. */
-		tmp = vte_terminal_get_text(terminal,
-					    all_selected,
-					    NULL,
-					    priv->snapshot_attributes);
+		tmp = vte_terminal_get_text_include_trailing_spaces(terminal,
+								    all_selected,
+								    NULL,
+								    priv->snapshot_attributes);
 		if (tmp == NULL) {
 			/* Aaargh!  We're screwed. */
 			return;
@@ -1239,19 +1239,19 @@ get_attribute_set (struct _VteCharAttributes attr)
 	}
 	at = g_new (AtkAttribute, 1);
 	at->name = g_strdup ("fg-color");
-	at->value = g_strdup_printf ("%u,%u,%u", 
+	at->value = g_strdup_printf ("%u,%u,%u",
 				     attr.fore.red, attr.fore.green, attr.fore.blue);
 	set = g_slist_append (set, at);
 
 	at = g_new (AtkAttribute, 1);
 	at->name = g_strdup ("bg-color");
-	at->value = g_strdup_printf ("%u,%u,%u", 
+	at->value = g_strdup_printf ("%u,%u,%u",
 				     attr.back.red, attr.back.green, attr.back.blue);
 	set = g_slist_append (set, at);
 
 	return set;
 }
-	
+
 static AtkAttributeSet *
 vte_terminal_accessible_get_run_attributes(AtkText *text, gint offset,
 					   gint *start_offset, gint *end_offset)
@@ -1279,7 +1279,7 @@ vte_terminal_accessible_get_run_attributes(AtkText *text, gint offset,
 		    !gdk_color_equal (&cur_attr.back, &attr.back) ||
 		    cur_attr.underline != attr.underline ||
 		    cur_attr.strikethrough != attr.strikethrough) {
-			*start_offset = i + 1;	
+			*start_offset = i + 1;
 			break;
 		}
 	}
@@ -1296,7 +1296,7 @@ vte_terminal_accessible_get_run_attributes(AtkText *text, gint offset,
 			break;
 		}
 	}
-	
+
 	return get_attribute_set (attr);
 }
 

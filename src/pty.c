@@ -385,7 +385,7 @@ _vte_pty_run_on_pty(int fd, int ready_reader, int ready_writer,
 		} else {
 			arg = g_strdup(command);
 			execlp(command, arg, NULL);
-		} 
+		}
 
 		/* Avoid calling any atexit() code. */
 		_exit(0);

@@ -23,8 +23,8 @@
  *
  * <tag> is a pointer.  If tag is NULL, then the ptys were not allocated.
  * ptys are passed using file descriptor passing on the stdin file descriptor
- * 
- * We use as little as possible external libraries.  
+ *
+ * We use as little as possible external libraries.
  */
 #include <config.h>
 
@@ -124,7 +124,7 @@ pass_fd (int client_fd, int fd)
 	msg.msg_namelen    = 0;
 	msg.msg_control    = (caddr_t) cmptr;
 	msg.msg_controllen = CONTROLLEN;
-		
+
 	cmptr->cmsg_level = SOL_SOCKET;
 	cmptr->cmsg_type  = SCM_RIGHTS;
 	cmptr->cmsg_len   = CONTROLLEN;
@@ -138,12 +138,12 @@ pass_fd (int client_fd, int fd)
 
 #elif defined(__sgi) && !defined(HAVE_SENDMSG)
 
-/* 
- * IRIX 6.2 is like 4.3BSD; it will not have HAVE_SENDMSG set, 
- * because msghdr used msg_accrights and msg_accrightslen rather 
+/*
+ * IRIX 6.2 is like 4.3BSD; it will not have HAVE_SENDMSG set,
+ * because msghdr used msg_accrights and msg_accrightslen rather
  * than the newer msg_control and msg_controllen fields configure
  * checks.  The SVR4 code below doesn't work because pipe()
- * semantics are controlled by the svr3pipe systune variable, 
+ * semantics are controlled by the svr3pipe systune variable,
  * which defaults to uni-directional pipes.  Also sending
  * file descriptors through pipes isn't implemented.
  */
@@ -173,7 +173,7 @@ pass_fd (int client_fd, int fd)
   msg.msg_namelen    = 0;
   msg.msg_accrights    = (caddr_t) &fd;
   msg.msg_accrightslen = sizeof(fd);
-               
+
   if (sendmsg (client_fd, &msg, 0) != 1)
     return -1;
 
@@ -212,7 +212,7 @@ pty_remove (pty_info *pi)
 	pty_info *l, *last;
 
 	last = (void *) 0;
-	
+
 	for (l = pty_list; l; l = l->next) {
 		if (l == pi) {
 			if (last == (void *) 0)
@@ -235,7 +235,7 @@ shutdown_pty (pty_info *pi)
 	if (pi->utmp || pi->wtmp || pi->lastlog)
 		if (pi->data)
 			write_logout_record (pi->data, pi->utmp, pi->wtmp);
-	
+
 	pty_remove (pi);
 }
 
@@ -243,7 +243,7 @@ static void
 shutdown_helper (void)
 {
 	pty_info *pi;
-	
+
 	for (pi = pty_list; pi; pi = pty_list)
 		shutdown_pty (pi);
 }
@@ -259,7 +259,7 @@ pty_add (int utmp, int wtmp, int lastlog, char *line)
 	}
 
 	memset (pi, 0, sizeof (pty_info));
-	
+
 	if (strncmp (line, "/dev/", 5))
 		pi->line = strdup (line);
 	else
@@ -269,7 +269,7 @@ pty_add (int utmp, int wtmp, int lastlog, char *line)
 		shutdown_helper ();
 		exit (1);
 	}
-	
+
 	pi->next = pty_list;
 	pi->utmp = utmp;
 	pi->wtmp = wtmp;
@@ -410,7 +410,7 @@ init_term_with_defaults(struct termios* term)
 	/* at least 1 symbol will be read.                      */
 	term->c_cc[VMIN]  = 1;
 	term->c_cc[VTIME] = 0;
-	
+
 	/*
 	 * Now set the characters. This is of course a religious matter
 	 * but we use the defaults, with erase bound to the key gnome-terminal
@@ -418,7 +418,7 @@ init_term_with_defaults(struct termios* term)
 	 *
 	 * These are the ones set by "stty sane".
 	 */
-	   
+
 	term->c_cc[VINTR]  = 'C'-64;
 	term->c_cc[VQUIT]  = '\\'-64;
 	term->c_cc[VERASE] = 127;
@@ -431,30 +431,30 @@ init_term_with_defaults(struct termios* term)
 	term->c_cc[VSTOP]  = 'S'-64;
 	term->c_cc[VSUSP]  = 'Z'-64;
 	term->c_cc[VEOL]   = 255;
-	
+
 	/*
 	 *	Extended stuff.
 	 */
-	 
-#ifdef VREPRINT	
+
+#ifdef VREPRINT
 	term->c_cc[VREPRINT] = 'R'-64;
 #endif
 #ifdef VSTATUS
 	term->c_cc[VSTATUS]  = 'T'-64;
 #endif
-#ifdef VDISCARD	
+#ifdef VDISCARD
 	term->c_cc[VDISCARD] = 'O'-64;
 #endif
 #ifdef VWERASE
 	term->c_cc[VWERASE]  = 'W'-64;
-#endif	
+#endif
 #ifdef VLNEXT
 	term->c_cc[VLNEXT]   = 'V'-64;
 #endif
 #ifdef VDSUSP
 	term->c_cc[VDSUSP]   = 'Y'-64;
 #endif
-#ifdef VEOL2	
+#ifdef VEOL2
 	term->c_cc[VEOL2]    = 255;
 #endif
     return term;
@@ -471,7 +471,7 @@ open_ptys (int utmp, int wtmp, int lastlog)
 	gid_t savedGid;
 	struct group *group_info;
 	struct termios term;
-	
+
 	term_name = (char *) g_alloca (path_max () + 1);
 
 	if (term_name == NULL) {
@@ -483,7 +483,7 @@ open_ptys (int utmp, int wtmp, int lastlog)
 	/* root privileges */
 	savedUid = geteuid();
 	savedGid = getegid();
-	
+
 	/* drop privileges to the user level */
 #if defined(HAVE_SETEUID)
 	seteuid (pwent->pw_uid);
@@ -521,7 +521,7 @@ open_ptys (int utmp, int wtmp, int lastlog)
 	fchmod (slave_pty, S_IRUSR | S_IWUSR | S_IWGRP);
 	/* It's too late to call revoke at this time... */
 	/* revoke(term_name); */
-	
+
 	/* add pty to the list of allocated by us */
 	p = pty_add (utmp, wtmp, lastlog, term_name);
 	result = 1;
@@ -537,7 +537,7 @@ open_ptys (int utmp, int wtmp, int lastlog)
 		p->data = write_login_record (login_name, display_name,
 					      term_name, utmp, wtmp, lastlog);
 	}
-	
+
 	close (master_pty);
 	close (slave_pty);
 
@@ -622,7 +622,7 @@ sanity_checks (void)
 	/* Check sensible resource limits */
 	for (i = 0; sensible_limits [i].value != -1; i++) {
 		struct rlimit rlim;
-		
+
 		if (getrlimit (sensible_limits [i].limit, &rlim) != 0)
 			continue;
 
@@ -648,7 +648,7 @@ sanity_checks (void)
 		sigaddset(&sigset, SIGIO);
 		sigaddset(&sigset, SIGINT);
 		sigprocmask(SIG_UNBLOCK, &sigset, NULL);
-		
+
 		sigaction (SIGIO, &sa, NULL);
 		sigaction (SIGINT, &sa, NULL);
 	}
@@ -674,8 +674,8 @@ main (int argc, char *argv [])
 	display_name = getenv ("DISPLAY");
 	if (!display_name)
 		display_name = "localhost";
-	
-	
+
+
 	if (init_msg_pass () == -1)
 		exit (1);
 
@@ -691,15 +691,15 @@ main (int argc, char *argv [])
 		case GNOME_PTY_OPEN_PTY_UTMP:
 			open_ptys (1, 0, 0);
 			break;
-			
+
 		case GNOME_PTY_OPEN_PTY_UWTMP:
 			open_ptys (1, 1, 0);
 			break;
-			
+
 		case GNOME_PTY_OPEN_PTY_WTMP:
 			open_ptys (0, 1, 0);
 			break;
-			
+
 		case GNOME_PTY_OPEN_PTY_LASTLOG:
 			open_ptys (0, 0, 1);
 			break;
@@ -722,7 +722,7 @@ main (int argc, char *argv [])
 
 		case GNOME_PTY_RESET_TO_DEFAULTS:
 			break;
-			
+
 		case GNOME_PTY_CLOSE_PTY:
 			n = n_read (STDIN_FILENO, &tag, sizeof (tag));
 			if (n != sizeof (tag)) {
@@ -732,7 +732,7 @@ main (int argc, char *argv [])
 			close_pty_pair (tag);
 			break;
 		}
-		
+
 	}
 
 	return 0;

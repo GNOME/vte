@@ -336,6 +336,13 @@ char *vte_terminal_get_text(VteTerminal *terminal,
 						   gpointer data),
 			    gpointer data,
 			    GArray *attributes);
+char *vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
+						    gboolean(*is_selected)(VteTerminal *terminal,
+									   glong column,
+									   glong row,
+									   gpointer data),
+						    gpointer data,
+						    GArray *attributes);
 char *vte_terminal_get_text_range(VteTerminal *terminal,
 				  glong start_row, glong start_col,
 				  glong end_row, glong end_col,
