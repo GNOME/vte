@@ -67,21 +67,21 @@ marshal.c marshal.h: marshal.list
 
 vte_SOURCES = \
 	vteapp.c
-vte_LDADD = libvte.la @LIBS@ @VTE_LIBS@ @X_LIBS@
+vte_LDADD = libvte.la @LDFLAGS@ @LIBS@ @VTE_LIBS@ @X_LIBS@
 
 reflect_text_view_CFLAGS = @CFLAGS@ -DUSE_TEXT_VIEW @VTE_CFLAGS@ @X_CFLAGS@
 reflect_text_view_SOURCES = reflect.c
-reflect_text_view_LDADD = @LIBS@ @VTE_LIBS@ @X_LIBS@
+reflect_text_view_LDADD = @LDFLAGS@ @LIBS@ @VTE_LIBS@ @X_LIBS@
 
 reflect_vte_CFLAGS = @CFLAGS@ -DUSE_VTE @VTE_CFLAGS@ @X_CFLAGS@
 reflect_vte_SOURCES = reflect.c
-reflect_vte_LDADD = libvte.la @LIBS@ @VTE_LIBS@ @X_LIBS@
+reflect_vte_LDADD = libvte.la @LDFLAGS@ @LIBS@ @VTE_LIBS@ @X_LIBS@
 
 if REFLECT_USE_ZVT
 REFLECT_ZVT = reflect-zvt
 reflect_zvt_CFLAGS = @CFLAGS@ -DUSE_ZVT @ZVT_DEFS@ @ZVT_CFLAGS@ @X_CFLAGS@
 reflect_zvt_SOURCES = reflect.c
-reflect_zvt_LDADD = @LIBS@ @ZVT_LIBS@ @X_LIBS@
+reflect_zvt_LDADD = @LDFLAGS@ @LIBS@ @ZVT_LIBS@ @X_LIBS@
 else
 REFLECT_ZVT = 
 endif
@@ -105,7 +105,7 @@ interpret_SOURCES = \
 	termcap.c \
 	termcap.h \
 	interpret.c
-interpret_LDADD = @GOBJECT_LIBS@
+interpret_LDADD = @LDFLAGS@ @GOBJECT_LIBS@
 
 iso2022_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DISO2022_MAIN
 iso2022_SOURCES = \
@@ -119,7 +119,7 @@ iso2022_SOURCES = \
 	table.h \
 	trie.c \
 	trie.h
-iso2022_LDADD = @LIBS@ @GOBJECT_LIBS@
+iso2022_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 utf8echo_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DUTF8ECHO_MAIN
 utf8echo_SOURCES = \
@@ -132,12 +132,12 @@ utf8echo_SOURCES = \
 	trie.c \
 	trie.h \
 	utf8echo.c
-utf8echo_LDADD = @LIBS@ @GOBJECT_LIBS@
+utf8echo_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 nativeecho_CFLAGS = @CFLAGS@ -DNATIVEECHO_MAIN
 nativeecho_SOURCES = \
 	nativeecho.c
-nativeecho_LDADD = @LIBS@
+nativeecho_LDADD = @LDFLAGS@ @LIBS@
 
 ring_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DRING_MAIN
 ring_SOURCES = \
@@ -145,11 +145,11 @@ ring_SOURCES = \
 	debug.h \
 	ring.c \
 	ring.h
-ring_LDADD = @LIBS@ @GOBJECT_LIBS@
+ring_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 slowcat_SOURCES = \
 	slowcat.c
-slowcat_LDADD = @LIBS@ @GOBJECT_LIBS@
+slowcat_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 table_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DTABLE_MAIN
 table_SOURCES = \
@@ -161,7 +161,7 @@ table_SOURCES = \
 	table.h \
 	trie.c \
 	trie.h
-table_LDADD = @LIBS@ @GOBJECT_LIBS@
+table_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 trie_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DTRIE_MAIN
 trie_SOURCES = \
@@ -175,7 +175,7 @@ trie_SOURCES = \
 	termcap.h \
 	trie.c \
 	trie.h
-trie_LDADD = @LIBS@ @GOBJECT_LIBS@
+trie_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 termcap_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DTERMCAP_MAIN
 termcap_SOURCES = \
@@ -183,7 +183,7 @@ termcap_SOURCES = \
 	debug.h \
 	termcap.c \
 	termcap.h
-termcap_LDADD = @LIBS@ @GOBJECT_LIBS@
+termcap_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 pty_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DPTY_MAIN
 pty_SOURCES = \
@@ -191,7 +191,7 @@ pty_SOURCES = \
 	debug.h \
 	pty.c \
 	pty.h
-pty_LDADD = @LIBS@ @GOBJECT_LIBS@
+pty_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 reaper_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DREAPER_MAIN
 reaper_SOURCES = \
@@ -201,17 +201,17 @@ reaper_SOURCES = \
 	marshal.h \
 	reaper.c \
 	reaper.h
-reaper_LDADD = @LIBS@ @GOBJECT_LIBS@
+reaper_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 buffer_CFLAGS = @CFLAGS@ -DBUFFER_MAIN
 buffer_SOURCES = buffer.c
-buffer_LDADD = @GOBJECT_LIBS@
+buffer_LDADD = @LDFLAGS@ @GOBJECT_LIBS@
 
 dumpkeys_SOURCES = dumpkeys.c
-dumpkeys_LDADD = @LIBS@ @GOBJECT_LIBS@
+dumpkeys_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 mev_SOURCES = mev.c
-mev_LDADD = @LIBS@ @GOBJECT_LIBS@
+mev_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 
 ssfe_SOURCES = ssfe.c
-ssfe_LDADD = @OTHERLIBS@
+ssfe_LDADD = @LDFLAGS@ @OTHERLIBS@

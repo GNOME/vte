@@ -1,3 +1,7 @@
+2003-02-18 nalin
+	* src/Makefile.am: add @LDFLAGS@ to all of the LDADD clauses, hopefully
+	fixing #105415.
+
 2003-02-17 nalin
 	* src/vte.c(vte_terminal_sequence_handler_cs): recognize and discard
 	invalid arguments (#57453).
