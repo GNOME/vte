@@ -1,4 +1,9 @@
 2003-02-26 nalin
+	* src/vte.c(vte_terminal_font_open_xft,vte_terminal_font_open_pango):
+	use an array of codepoints instead of a UTF-8 string so that we can
+	check for lack of font coverage in Xft fonts.
+
+2003-02-26 nalin
 	* src/vte.c: formatting fixups.
 
 2003-02-26 nalin
