@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte.tr\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-02-26 04:35+0100\n"
+"POT-Creation-Date: 2004-04-20 02:16-0400\n"
 "PO-Revision-Date: 2004-02-26 13:54+0200\n"
 "Last-Translator: Baris Cicek <baris@teamforce.name.tr>\n"
 "Language-Team: Turkish <gnome-turk@gnome.org>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 1.0.2\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2072
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Karakterler %s'den %s'e dönüştürülemiyor."
@@ -62,58 +62,57 @@ msgstr "Sinyal borusu oluştururken hata."
 msgid "Duplicate (%s/%s)!"
 msgstr "Çift (%s/%s)!"
 
-#: src/vte.c:1480
+#: src/vte.c:1482
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Düzenli ifade derlenirken hata: \"%s\"."
 
-#: src/vte.c:5815
+#: src/vte.c:5819
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Beklenmeyen (tuş?) serisi `%s' alındı."
 
-#: src/vte.c:6893
+#: src/vte.c:6897
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "`%s' kontrol serisi için işlemci tanımlanmamış."
 
-#: src/vte.c:7714
+#: src/vte.c:7719
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Oğul süreçten okunurken hata: %s."
 
-#: src/vte.c:7870
+#: src/vte.c:7875
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Oğul süreç için veriyi çeviriken hata (%s), bırakılıyor."
 
-#: src/vte.c:10537
+#: src/vte.c:10625
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "PTY boyutu okunurken hata, öntanımlı değerler kullanılıyor: %s."
 
-#: src/vte.c:10573
+#: src/vte.c:10661
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTY boyutu ayarlanırken hata: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14977
+#: src/vte.c:15125
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_iconv_open() kelime karakterlerini ayarlarken başarısız oldu"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:713
+#: src/vteapp.c:728
 msgid "Could not open console.\n"
 msgstr "Konsol açılamadı.\n"
 
-#: src/vteglyph.c:576
+#: src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "Bilinmeyen benek kipi %d.\n"
 
-#: src/vtexft.c:710
+#: src/vtexft.c:712
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "U+%04x karakteri çizilemiyor.\n"
-

@@ -9,15 +9,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE 0.11\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2003-11-12 04:30+0100\n"
+"POT-Creation-Date: 2004-04-20 02:16-0400\n"
 "PO-Revision-Date: 2003-12-20 16:52+0100\n"
 "Last-Translator: Arafat Medini <lumina@silverpen.de>\n"
 "Language-Team: Arabic <doc@arabeyes.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit"
+"Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2072
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "لا يمكن تحويل الرموز من %s إلى %s."
@@ -59,58 +59,57 @@ msgstr "خطأ انشاء أنبوب الإشارات."
 msgid "Duplicate (%s/%s)!"
 msgstr "نسخة (%s/%s)!"
 
-#: src/vte.c:1480
+#: src/vte.c:1482
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "خطأ عند تجميع التعبير النظامي \"%s\"."
 
-#: src/vte.c:5815
+#: src/vte.c:5819
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "تلقيت سلسلة(مفتاح؟) غير مرتقبة `%s'."
 
-#: src/vte.c:6893
+#: src/vte.c:6897
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "لم يخصص معالج لسلسلة التحكم `%s'."
 
-#: src/vte.c:7714
+#: src/vte.c:7719
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "خطأ عند القراءة من الابن: %s."
 
-#: src/vte.c:7870
+#: src/vte.c:7875
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "خطأ (%s) عند تحويل البيانات من الابن، تخلي."
 
-#: src/vte.c:10537
+#: src/vte.c:10625
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "خطأ عند قراءة حجم PTY، استعمال الافتراض: %s."
 
-#: src/vte.c:10573
+#: src/vte.c:10661
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "خطأ·عند ضبط·حجم·PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14977
+#: src/vte.c:15125
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "فشل _vte_conv_open() في ضبط رموز الكلمة"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:713
+#: src/vteapp.c:728
 msgid "Could not open console.\n"
 msgstr "لا يمكن فتح الهيكل.\n"
 
-#: src/vteglyph.c:576
+#: src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "نمط بكسلي %d مجهول.\n"
 
-#: src/vtexft.c:710
+#: src/vtexft.c:712
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "لا يمكن كتابة الرمز U+%04x.\n"
-

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-02-23 10:29+0100\n"
+"POT-Creation-Date: 2004-04-20 02:16-0400\n"
 "PO-Revision-Date: 2004-02-23 10:30+0100\n"
 "Last-Translator: Laurent Dhima <laurenti@alblinux.net>\n"
 "Language-Team: Albanian <gnome-albanian-perkthyesit@lists.sourceforge.net>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2072
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "I pamundur konvertimi i simboleve nga %s në %s."
@@ -34,7 +34,8 @@ msgstr "U identifikua një sistem kodifikimi i pavlefshëm."
 #: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "Përpjekje për të vendosur një hartë NRC të zgjeruar të pavlefshme '%c'."
+msgstr ""
+"Përpjekje për të vendosur një hartë NRC të zgjeruar të pavlefshme '%c'."
 
 #: src/pty.c:323
 #, c-format
@@ -58,60 +59,59 @@ msgstr "Gabim gjatë krijimit të pipe të sinjalit."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikim (%s/%s)!"
 
-#: src/vte.c:1480
+#: src/vte.c:1482
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Gabim gjatë kompilimit të shprehjes së rregullt \"%s\"."
 
-#: src/vte.c:5815
+#: src/vte.c:5819
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "U mor një sekuencë ( kyç?) i papritur `%s'."
 
-#: src/vte.c:6893
+#: src/vte.c:6897
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Asnjë trajtues i prezgjedhur për sekuencën e kontrollit `%s'."
 
-#: src/vte.c:7714
+#: src/vte.c:7719
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Gabim gjatë leximit nga proçesi bir: %s"
 
-#: src/vte.c:7870
+#: src/vte.c:7875
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
-"Gabim (%s) duke konvertuar të dhënat për proçesin bir, do të lihen si "
-"ishin."
+"Gabim (%s) duke konvertuar të dhënat për proçesin bir, do të lihen si ishin."
 
-#: src/vte.c:10537
+#: src/vte.c:10625
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr "Gabim gjatë leximit të madhësisë PTY, do të përdoret vlera e prezgjedhur: %s."
+msgstr ""
+"Gabim gjatë leximit të madhësisë PTY, do të përdoret vlera e prezgjedhur: %s."
 
-#: src/vte.c:10573
+#: src/vte.c:10661
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Gabim gjatë vendosjes së madhësisë PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14977
+#: src/vte.c:15125
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() dështoi në vendosjen e gërmave të fjalës"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:713
+#: src/vteapp.c:728
 msgid "Could not open console.\n"
 msgstr "E pamundur hapja e konsolës.\n"
 
-#: src/vteglyph.c:576
+#: src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "Metodë pixel %d e panjohur.\n"
 
-#: src/vtexft.c:710
+#: src/vtexft.c:712
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "I pamundur vizatimi i simbolit U+%04x.\n"
-

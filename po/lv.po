@@ -6,7 +6,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2003-05-19 14:33-0400\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2004-04-20 02:16-0400\n"
 "PO-Revision-Date: 2002-12-24 02:39+0200\n"
 "Last-Translator: Artis Trops <hornet@navigators.lv>\n"
 "Language-Team: Latvian <ll10nt@os.lv>\n"
@@ -14,27 +15,27 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Neiespējami konvertēt rakstzīmes no %s uz %s."
 
-#: src/iso2022.c:1505
+#: src/iso2022.c:1578
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr ""
 
-#. See ECMA-35.
-#: src/iso2022.c:1546
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1619
 msgid "Unrecognized identified coding system."
 msgstr ""
 
-#: src/iso2022.c:1595 src/iso2022.c:1621
+#: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr ""
 
-#: src/pty.c:317
+#: src/pty.c:323
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Kļūda pievienojot `%s' videi, turpinu."
@@ -42,7 +43,7 @@ msgstr "Kļūda pievienojot `%s' videi, turpinu."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:877
+#: src/pty.c:908
 #, c-format
 msgid "can not run %s"
 msgstr "nevaru palaist %s"
@@ -56,58 +57,58 @@ msgstr "Kļūda izveidojot signāla programkanālu."
 msgid "Duplicate (%s/%s)!"
 msgstr "Divkāršs (%s/%s)!"
 
-#: src/vte.c:1430
+#: src/vte.c:1482
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Kļūda kompilējot parasto izteiksmi \"%s\"."
 
-#: src/vte.c:5534
+#: src/vte.c:5819
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Saņemta negaidīta (taustiņu?) secība `%s'."
 
-#: src/vte.c:6547
+#: src/vte.c:6897
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Nav definēts apdarinātājs kontroles secībai `%s'."
 
-#: src/vte.c:7293
+#: src/vte.c:7719
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Kļūda lasot no bērna: %s."
 
-#: src/vte.c:7449
+#: src/vte.c:7875
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Kļūda (%s) konvertējot datus bērnam, nometu."
 
-#: src/vte.c:10069
+#: src/vte.c:10625
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Kļūda lasot PTY izmēru, lietoju noklusētos: %s."
 
-#: src/vte.c:10105
+#: src/vte.c:10661
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Kļūda iestatot PTY izmēru: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14067
+#: src/vte.c:15125
 #, fuzzy
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "g_iconv_open() neizdevās iestatot vārdu rakstzīmes"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:642
+#: src/vteapp.c:728
 msgid "Could not open console.\n"
 msgstr ""
 
-#: src/vteglyph.c:575
+#: src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr ""
 
-#: src/vtexft.c:664
+#: src/vtexft.c:712
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr ""

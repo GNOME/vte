@@ -26,12 +26,12 @@ This should not be accessed directly.
 
 <!-- ##### SIGNAL VteReaper::child-exited ##### -->
 <para>
-
+Emitted when the #VteReaper object detects that a child of the current process has exited.
 </para>
 
 @vtereaper: the object which received the signal.
 @arg1: the process ID of the exited child.
-@arg2: the status of the exited child, as returned by #waitpid.
+@arg2: the status of the exited child, as returned by waitpid().
 
 <!-- ##### FUNCTION vte_reaper_get ##### -->
 <para>

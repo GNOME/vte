@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte HEAD\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2003-06-20 23:17+0900\n"
+"POT-Creation-Date: 2004-04-20 02:16-0400\n"
 "PO-Revision-Date: 2003-06-20 23:16+0900\n"
 "Last-Translator: Takeshi AIHANA <aihana@gnome.gr.jp>\n"
 "Language-Team: Japanese <gnome-translation@gnome.gr.jp>\n"
@@ -16,27 +16,27 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:786 src/iso2022.c:797 src/iso2022.c:846 src/vte.c:2059
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "%s から %s への文字の変換に失敗しました。"
 
-#: src/iso2022.c:1559
+#: src/iso2022.c:1578
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "無効な NRC マップ '%c' を設定しようとしています"
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1600
+#: src/iso2022.c:1619
 msgid "Unrecognized identified coding system."
 msgstr "認識されていないコーディング識別システムです。"
 
-#: src/iso2022.c:1649 src/iso2022.c:1675
+#: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "無効なワイド NRC マップ '%c' を設定しようとしています"
 
-#: src/pty.c:319
+#: src/pty.c:323
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "環境に '%s' を追加するのに失敗しました。処理を継続します。"
@@ -44,7 +44,7 @@ msgstr "環境に '%s' を追加するのに失敗しました。処理を継続
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:882
+#: src/pty.c:908
 #, c-format
 msgid "can not run %s"
 msgstr "%s を実行できません。"
@@ -58,58 +58,58 @@ msgstr "シグナルパイプの生成に失敗しました。"
 msgid "Duplicate (%s/%s)!"
 msgstr "重複しています！ (%s/%s)"
 
-#: src/vte.c:1471
+#: src/vte.c:1482
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "正規表現 \"%s\" のコンパイルの失敗しました。"
 
-#: src/vte.c:5669
+#: src/vte.c:5819
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "予測しない (キー?) シーケンス '%s' が返されました。"
 
-#: src/vte.c:6684
+#: src/vte.c:6897
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "コントロール・シーケンス '%s' のハンドラは定義されていません。"
 
-#: src/vte.c:7431
+#: src/vte.c:7719
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "子プロセスの読み込み中にエラー: %s。"
 
-#: src/vte.c:7587
+#: src/vte.c:7875
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "子プロセスのデータ変換中にエラー (%s) が発生しました。取り消します。"
 
-#: src/vte.c:10229
+#: src/vte.c:10625
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "PTY サイズの読み込みに失敗しました。デフォルトのサイズ: %s を利用します。"
 
-#: src/vte.c:10265
+#: src/vte.c:10661
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTY サイズ: %s の設定に失敗しました。"
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14387
+#: src/vte.c:15125
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() は文字の設定に失敗しました"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:680
+#: src/vteapp.c:728
 msgid "Could not open console.\n"
 msgstr "コンソールを開けませんでした。\n"
 
-#: src/vteglyph.c:576
+#: src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "不明なピクセル・モード %d です。\n"
 
-#: src/vtexft.c:710
+#: src/vtexft.c:712
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "文字 U+%04x を描画できません。\n"

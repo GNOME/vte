@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-03-20 11:55-0500\n"
+"POT-Creation-Date: 2004-04-20 02:16-0400\n"
 "PO-Revision-Date: 2004-03-20 11:57-0500\n"
 "Last-Translator: Gareth Owen <gowen72@yahoo.comg>\n"
 "Language-Team: \n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2072
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Unable to convert characters from %s to %s."
@@ -57,57 +57,57 @@ msgstr "Error creating signal pipe."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicate (%s/%s)!"
 
-#: src/vte.c:1480
+#: src/vte.c:1482
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Error compiling regular expression \"%s\"."
 
-#: src/vte.c:5815
+#: src/vte.c:5819
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Got unexpected (key?) sequence `%s'."
 
-#: src/vte.c:6893
+#: src/vte.c:6897
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "No handler for control sequence `%s' defined."
 
-#: src/vte.c:7714
+#: src/vte.c:7719
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Error reading from child: %s."
 
-#: src/vte.c:7870
+#: src/vte.c:7875
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Error (%s) converting data for child, dropping."
 
-#: src/vte.c:10537
+#: src/vte.c:10625
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Error reading PTY size, using defaults: %s."
 
-#: src/vte.c:10573
+#: src/vte.c:10661
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Error setting PTY size: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14977
+#: src/vte.c:15125
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() failed setting word characters"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:713
+#: src/vteapp.c:728
 msgid "Could not open console.\n"
 msgstr "Could not open console.\n"
 
-#: src/vteglyph.c:576
+#: src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "Unknown pixel mode %d.\n"
 
-#: src/vtexft.c:710
+#: src/vtexft.c:712
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "Can not draw character U+%04x.\n"

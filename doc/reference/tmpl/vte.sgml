@@ -91,14 +91,17 @@ Emitted at the child application's request.
 
 <!-- ##### SIGNAL VteTerminal::emulation-changed ##### -->
 <para>
-
+Emitted whenever the terminal's emulation changes, only possible at the
+parent application's request.
 </para>
 
 @vteterminal: the object which received the signal.
 
 <!-- ##### SIGNAL VteTerminal::encoding-changed ##### -->
 <para>
-
+Emitted whenever the terminal's current encoding has changed, either as a
+result of receiving a control sequence which toggled between the local and
+UTF-8 encodings, or at the parent application's request.
 </para>
 
 @vteterminal: the object which received the signal.

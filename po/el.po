@@ -10,7 +10,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: el\n"
-"POT-Creation-Date: 2004-03-15 01:38+0200\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2004-04-20 02:16-0400\n"
 "PO-Revision-Date: 2004-03-15 01:41-0200\n"
 "Last-Translator: Nikos Charonitakis <charosn@her.fothnet.gr>\n"
 "Language-Team: Greek <nls@tux.hellug.gr>\n"
@@ -18,10 +19,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787
-#: src/iso2022.c:798
-#: src/iso2022.c:847
-#: src/vte.c:2072
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Αδυναμία μετατροπής χαρακτήρων από %s σε %s."
@@ -36,8 +34,7 @@ msgstr "Προσπάθεια ορισμού μη έγκυρου χάρτη NRC'%
 msgid "Unrecognized identified coding system."
 msgstr "Μη αναγνωρίσιμο σύστημα κωδικοποίησης."
 
-#: src/iso2022.c:1668
-#: src/iso2022.c:1694
+#: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Προσπάθεια ορισμού μή έγκυρου γενικού χάρτη NRC'%c'."
@@ -64,58 +61,57 @@ msgstr "Σφάλμα δημιουργίας σήματος σωλήνωσης."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicate (%s/%s)!"
 
-#: src/vte.c:1480
+#: src/vte.c:1482
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Σφάλμα σύνταξης κανονικής έκφρασης \"%s\"."
 
-#: src/vte.c:5815
+#: src/vte.c:5819
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Λήψη απρόσμενης σειράς (κλειδί;) `%s'."
 
-#: src/vte.c:6893
+#: src/vte.c:6897
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Δεν υπάρχει χειριστής για την σειρά ελέγχου `%s' ορίσθηκε."
 
-#: src/vte.c:7714
+#: src/vte.c:7719
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Σφάλμα ανάγνωσης από θυγατρικό: %s."
 
-#: src/vte.c:7870
+#: src/vte.c:7875
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Σφάλμα (%s) μετατροπής δεδομένων από θυγατρικό, γίνεται παραίτηση."
 
-#: src/vte.c:10537
+#: src/vte.c:10625
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Σφάλμα ανάγνωσης μεγέθους PTY , χρήση εξ ορισμού: %s."
 
-#: src/vte.c:10573
+#: src/vte.c:10661
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Σφάλμα ορισμού μεγέθους PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14977
+#: src/vte.c:15125
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() απέτυχε να ορίσει χαρακτήρες λέξης"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:713
+#: src/vteapp.c:728
 msgid "Could not open console.\n"
 msgstr "Αδυναμία ανοίγματος κονσόλας.\n"
 
-#: src/vteglyph.c:576
+#: src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "Άγνωστη λειτουργία εικονοστοιχείου %d.\n"
 
-#: src/vtexft.c:710
+#: src/vtexft.c:712
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "Αδυναμία σχεδίασης χαρακτήρα U+%04x.\n"
-

@@ -5,7 +5,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte 0.5\n"
-"POT-Creation-Date: 2003-08-20 15:31+0200\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2004-04-20 02:16-0400\n"
 "PO-Revision-Date: 2003-08-20 15:32+0200\n"
 "Last-Translator: Kjartan Maraas <kmaraas@gnome.org>\n"
 "Language-Team: Norwegian <no@li.org>\n"
@@ -13,22 +14,22 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2067
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Kan ikke konvertere tegn fra %s til %s."
 
-#: src/iso2022.c:1560
+#: src/iso2022.c:1578
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Forsøk på å sette ugyldig NRC-kart «%c»."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1601
+#: src/iso2022.c:1619
 msgid "Unrecognized identified coding system."
 msgstr "Identifisert kodingssystem gjenkjennes ikke."
 
-#: src/iso2022.c:1650 src/iso2022.c:1676
+#: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Forsøk på å sette ugyldig bredt NRC-kart «%c»."
@@ -55,57 +56,57 @@ msgstr "Feil ved oppretting av signalrør."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikat (%s/%s)!"
 
-#: src/vte.c:1475
+#: src/vte.c:1482
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Feil under sammensetting av regulært uttrykk «%s»."
 
-#: src/vte.c:5810
+#: src/vte.c:5819
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Mottok uventet (nøkkel?) sekvens «%s»."
 
-#: src/vte.c:6828
+#: src/vte.c:6897
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Ingen håndterer definert for kontrollsekvens «%s»."
 
-#: src/vte.c:7645
+#: src/vte.c:7719
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Feil under lesing fra underprosess: %s."
 
-#: src/vte.c:7801
+#: src/vte.c:7875
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Feil (%s) ved konvertering av data for underprosess. Hopper over."
 
-#: src/vte.c:10463
+#: src/vte.c:10625
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Feil under lesing av PTY-størrelse. Bruker forvalg: %s."
 
-#: src/vte.c:10499
+#: src/vte.c:10661
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Feil under setting av PTY-størrelse: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14622
+#: src/vte.c:15125
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() feilet ved setting av ord-tegn"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:688
+#: src/vteapp.c:728
 msgid "Could not open console.\n"
 msgstr "Kunne ikke åpne konsollet.\n"
 
-#: src/vteglyph.c:576
+#: src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "Ukjent pikselmodus %d.\n"
 
-#: src/vtexft.c:710
+#: src/vtexft.c:712
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "Kan ikke tegne tegnet U+%04x.\n"

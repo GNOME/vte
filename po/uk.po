@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-03-10 17:36+0200\n"
+"POT-Creation-Date: 2004-04-20 02:16-0400\n"
 "PO-Revision-Date: 2003-01-21 08:23--500\n"
 "Last-Translator: Yuriy Syrota <yuri@renome.rovno.ua>\n"
 "Language-Team: Ukrainian <linux@linux.org.ua>\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2072
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Неможливо перетворити символи з %s у %s."
@@ -23,7 +23,8 @@ msgstr "Неможливо перетворити символи з %s у %s."
 #: src/iso2022.c:1578
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr "Спроба встановити неправильну мапу заміни національних символів \"%c\"."
+msgstr ""
+"Спроба встановити неправильну мапу заміни національних символів \"%c\"."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #: src/iso2022.c:1619
@@ -33,7 +34,8 @@ msgstr "Нерозмізнано встановлену систему коду�
 #: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "Спроба встановити неправильну широку мапу заміни національних символів \"%c\""
+msgstr ""
+"Спроба встановити неправильну широку мапу заміни національних символів \"%c\""
 
 #: src/pty.c:323
 #, c-format
@@ -57,57 +59,57 @@ msgstr "Помилка створення сигнального каналу."
 msgid "Duplicate (%s/%s)!"
 msgstr "Повторення (%s/%s)!"
 
-#: src/vte.c:1480
+#: src/vte.c:1482
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Помилка компіляції регулярного виразу \"%s\"."
 
-#: src/vte.c:5815
+#: src/vte.c:5819
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Отримано неочікувану послідовність \"%s\"."
 
-#: src/vte.c:6893
+#: src/vte.c:6897
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Не визначено обробника для керівної послідовності \"%s\"."
 
-#: src/vte.c:7714
+#: src/vte.c:7719
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Помилка зчитування з нащадка: %s."
 
-#: src/vte.c:7870
+#: src/vte.c:7875
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Помилка (%s) перетворення даних для нащадка, відкинуто."
 
-#: src/vte.c:10537
+#: src/vte.c:10625
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Помилка зчитування розміру PTY, використання початкових: %s."
 
-#: src/vte.c:10573
+#: src/vte.c:10661
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Помилка встановлення розміру PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14977
+#: src/vte.c:15125
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() не вдалось встановити алфавітно-цифрові символи"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:713
+#: src/vteapp.c:728
 msgid "Could not open console.\n"
 msgstr "Не вдалось відкрити консоль.\n"
 
-#: src/vteglyph.c:576
+#: src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "Невідомий піксельний режим %d.\n"
 
-#: src/vtexft.c:710
+#: src/vtexft.c:712
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "Не вдалось відтворити символ U+%04x.\n"

@@ -290,10 +290,10 @@ vte_bg_init(VteBg *bg, gpointer *klass)
 /* Generate lookup tables for desaturating an image toward a given color.  The
  * saturation value is a floating point number between 0 and 1. */
 static void
-vte_bg_generate_desat_tables(const GdkColor *color, double saturation,
-			     guchar red[256],
-			     guchar green[256],
-			     guchar blue[256])
+_vte_bg_generate_desat_tables(const GdkColor *color, double saturation,
+			      guchar red[256],
+			      guchar green[256],
+			      guchar blue[256])
 {
 	int i;
 	/* Zero saturation -> exactly match the tinting color. */
@@ -483,7 +483,7 @@ vte_bg_desaturate_pixbuf(GdkPixbuf *pixbuf,
 	long stride, width, height, channels, x, y;
 	guchar *pixels;
 
-	vte_bg_generate_desat_tables(tint, saturation, red, green, blue);
+	_vte_bg_generate_desat_tables(tint, saturation, red, green, blue);
 
 	stride = gdk_pixbuf_get_rowstride(pixbuf);
 	width = gdk_pixbuf_get_width(pixbuf);

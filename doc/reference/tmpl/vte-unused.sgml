@@ -40,6 +40,68 @@ pty
 reaper.sgml
 
 
+<!-- ##### SECTION ./tmpl/vtebg.sgml:Long_Description ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/vtebg.sgml:See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/vtebg.sgml:Short_Description ##### -->
+
+
+
+<!-- ##### SECTION ./tmpl/vtebg.sgml:Title ##### -->
+VteBg
+
+
+<!-- ##### MACRO VTE_BG ##### -->
+<para>
+
+</para>
+
+@obj: 
+
+<!-- ##### MACRO VTE_BGWATCHER ##### -->
+<para>
+
+</para>
+
+@obj: 
+
+<!-- ##### MACRO VTE_BGWATCHER_CLASS ##### -->
+<para>
+
+</para>
+
+@klass: 
+
+<!-- ##### MACRO VTE_BGWATCHER_GET_CLASS ##### -->
+<para>
+
+</para>
+
+@obj: 
+
+<!-- ##### MACRO VTE_BG_CLASS ##### -->
+<para>
+
+</para>
+
+@klass: 
+
+<!-- ##### MACRO VTE_BG_GET_CLASS ##### -->
+<para>
+
+</para>
+
+@obj: 
+
 <!-- ##### MACRO VTE_META_MASK ##### -->
 <para>
 
@@ -51,6 +113,41 @@ reaper.sgml
 
 </para>
 
+
+<!-- ##### STRUCT VteBg ##### -->
+<para>
+
+</para>
+
+@parent: 
+@root_pixmap: 
+@native: 
+@pvt: 
+
+<!-- ##### STRUCT VteBgClass ##### -->
+<para>
+
+</para>
+
+@parent_class: 
+@root_pixmap_changed: 
+
+<!-- ##### STRUCT VteBgWatcher ##### -->
+<para>
+
+</para>
+
+@object: 
+@pixbuf: 
+@pixmap: 
+
+<!-- ##### STRUCT VteBgWatcherClass ##### -->
+<para>
+
+</para>
+
+@parent_class: 
+@background_changed_signal: 
 
 <!-- ##### ENUM VteDebugFlags ##### -->
 <para>
@@ -96,6 +193,66 @@ reaper.sgml
 
 </para>
 
+
+<!-- ##### FUNCTION vte_bg_get ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+<!-- ##### FUNCTION vte_bg_get_pixbuf ##### -->
+<para>
+
+</para>
+
+@bg: 
+@Returns: 
+
+<!-- ##### FUNCTION vte_bg_get_pixmap ##### -->
+<para>
+
+</para>
+
+@bg: 
+@Returns: 
+
+<!-- ##### FUNCTION vte_bg_get_type ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+<!-- ##### FUNCTION vte_bg_watcher_get ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+<!-- ##### FUNCTION vte_bg_watcher_get_pixbuf ##### -->
+<para>
+
+</para>
+
+@watcher: 
+@Returns: 
+
+<!-- ##### FUNCTION vte_bg_watcher_get_pixmap ##### -->
+<para>
+
+</para>
+
+@watcher: 
+@Returns: 
+
+<!-- ##### FUNCTION vte_bg_watcher_get_type ##### -->
+<para>
+
+</para>
+
+@Returns: 
 
 <!-- ##### STRUCT vte_buffer ##### -->
 <para>

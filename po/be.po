@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD.be\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2003-08-01 12:57+0200\n"
+"POT-Creation-Date: 2004-04-20 02:16-0400\n"
 "PO-Revision-Date: 2003-08-04 16:26+0300\n"
 "Last-Translator: Ales Nyakhaychyk <nab@mail.by>\n"
 "Language-Team: Belarusian <i18n@mova.org>\n"
@@ -17,27 +17,27 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 0.9.6\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2060
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Немагчыма пераўтварыць знакі з %s у %s."
 
-#: src/iso2022.c:1560
+#: src/iso2022.c:1578
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Спроба ўсталяваць недапушчальную NRC мапу '%c'."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1601
+#: src/iso2022.c:1619
 msgid "Unrecognized identified coding system."
 msgstr "Нераспазнаная вызначаная сыстэма кадаваньня."
 
-#: src/iso2022.c:1650 src/iso2022.c:1676
+#: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Спроба усталяваць недапушчальную шырокую мапу '%c'."
 
-#: src/pty.c:319
+#: src/pty.c:323
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Памылка даданьня `%s' да асяродьдзя, працягваем."
@@ -45,7 +45,7 @@ msgstr "Памылка даданьня `%s' да асяродьдзя, прац
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:882
+#: src/pty.c:908
 #, c-format
 msgid "can not run %s"
 msgstr "немагчыма запусьціць %s"
@@ -59,57 +59,57 @@ msgstr "Памылка стварэньня сыгнальнага канала.
 msgid "Duplicate (%s/%s)!"
 msgstr "Двайнік (%s/%s)!"
 
-#: src/vte.c:1473
+#: src/vte.c:1482
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Памылка кампіляцыі сталага выраза \"%s\"."
 
-#: src/vte.c:5670
+#: src/vte.c:5819
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Атрымана нечаканая (key?) пасьлядоўнасьць `%s'."
 
-#: src/vte.c:6685
+#: src/vte.c:6897
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Ня вызначаны апрацоўшчык для кіруючае пасьлядоўнасьці `%s'."
 
-#: src/vte.c:7432
+#: src/vte.c:7719
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Памылка чытаньня з нашчадка: %s."
 
-#: src/vte.c:7588
+#: src/vte.c:7875
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Памылка (%s) пераўтварэньня даньняў для нашчадка; скіданьне."
 
-#: src/vte.c:10232
+#: src/vte.c:10625
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Памылка чытаньня PTY памера, выкарыстоўваецца дапомны: %s."
 
-#: src/vte.c:10268
+#: src/vte.c:10661
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Памылка ўсталяваньня памера PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14391
+#: src/vte.c:15125
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() памылка усталяваньня знакаў слова"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:680
+#: src/vteapp.c:728
 msgid "Could not open console.\n"
 msgstr "Немагчыма адчыніць кансоль.\n"
 
-#: src/vteglyph.c:576
+#: src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "Невядомы рэжым піксэля %d.\n"
 
-#: src/vtexft.c:710
+#: src/vtexft.c:712
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "Немагчыма намаляваць знак U+%04x.\n"
@@ -141,4 +141,3 @@ msgstr "Немагчыма намаляваць знак U+%04x.\n"
 
 #~ msgid "Error allocating layout, disabling Pango."
 #~ msgstr "Памылка разьмяшчэньня разьметкі, выключэньне Pango."
-

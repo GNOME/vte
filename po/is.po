@@ -2,11 +2,12 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#Samúel Jón Gunnarsson  <sammi@techattack.nu>, 2003
+# Samúel Jón Gunnarsson  <sammi@techattack.nu>, 2003
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2003-06-07 09:07+0200\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2004-04-20 02:16-0400\n"
 "PO-Revision-Date: 2003-06-07 09:07--100\n"
 "Last-Translator: Samuel Jon Gunnarsson <sammi@techattack.nu>\n"
 "Language-Team: Icelandic <gnome@techattack.nu>\n"
@@ -14,28 +15,28 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:786 src/iso2022.c:797 src/iso2022.c:846 src/vte.c:2048
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Ekki tókst að umbreyta rittáknum frá %s yfir í %s."
 
-#: src/iso2022.c:1559
+#: src/iso2022.c:1578
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Reyndi að setja ógilt NRC kort '%c'."
 
 #  Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1600
+#: src/iso2022.c:1619
 msgid "Unrecognized identified coding system."
 msgstr "Óþekkt \"identified coding system\"."
 
-#: src/iso2022.c:1649 src/iso2022.c:1675
+#: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Reyndi að setja upp ógilda breidd á NRC korti '%c'."
 
-#: src/pty.c:319
+#: src/pty.c:323
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Villa. Ekki tókst að bæta `%s' við í umhverfið, held áfram."
@@ -43,7 +44,7 @@ msgstr "Villa. Ekki tókst að bæta `%s' við í umhverfið, held áfram."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:882
+#: src/pty.c:908
 #, c-format
 msgid "can not run %s"
 msgstr "get ekki keyrt %s"
@@ -57,57 +58,57 @@ msgstr "Villa. Ekki tókst að búa til merkja pípu."
 msgid "Duplicate (%s/%s)!"
 msgstr "Tvöfalda (%s/%s)!"
 
-#: src/vte.c:1460
+#: src/vte.c:1482
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Villa. Ekki tókst að vistþýða venjulega segð \"%s\"."
 
-#: src/vte.c:5634
+#: src/vte.c:5819
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Meðtók óvænta (flýtilykla?) runu `%s'."
 
-#: src/vte.c:6647
+#: src/vte.c:6897
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Engin aðgerð fyrir stjórnun á runu `%s' skilgreind."
 
-#: src/vte.c:7394
+#: src/vte.c:7719
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Villa. Ekki tókst að lesa frá barni: %s"
 
-#: src/vte.c:7550
+#: src/vte.c:7875
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Villa (%s) við umbreytingu á gögnum frá barni, hætti við."
 
-#: src/vte.c:10182
+#: src/vte.c:10625
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Villa. Ekki tókst að lesa PTY stærð, nota sjálfgefið: %s"
 
-#: src/vte.c:10218
+#: src/vte.c:10661
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Villa. Ekki tókst að setja PTY stærð: %s"
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14310
+#: src/vte.c:15125
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "g_iconv_open() tókst ekki að setja orðrittákn"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:680
+#: src/vteapp.c:728
 msgid "Could not open console.\n"
 msgstr "Ekki tókst að opna skel.\n"
 
-#: src/vteglyph.c:576
+#: src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "Óþekktur punkta hamur %d.\n"
 
-#: src/vtexft.c:696
+#: src/vtexft.c:712
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "Ekki tókst að teikna tákn U+%04x.\n"

@@ -6,7 +6,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2003-05-20 13:17+0200\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2004-04-20 02:16-0400\n"
 "PO-Revision-Date: 2003-06-01 12:38+0100\n"
 "Last-Translator: Dafydd Harries <daf@parnassus.ath.cx>\n"
 "Language-Team: Welsh <gnome-cy@pengwyn.linux.org.uk>\n"
@@ -14,33 +15,33 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:736 src/iso2022.c:747 src/iso2022.c:796 src/vte.c:1992
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Methu trosi nodau o %s i %s."
 
-#: src/iso2022.c:1506
+#: src/iso2022.c:1578
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Cais gosod map NRC annilys '%c'."
 
 # EFALLAI
-#. See ECMA-35.
-#msgstr "System amgodio andnabyddig anghydnabyddedig."
-#msgstr "System amgodio adnabyddig ni cydnabyddir."
-#msgstr "\"identified coding system\" anghydnabyddedig."
+# msgstr "System amgodio andnabyddig anghydnabyddedig."
+# msgstr "System amgodio adnabyddig ni cydnabyddir."
+# msgstr "\"identified coding system\" anghydnabyddedig."
 # This is a weird one. Daf asked nalin (maintainer) about it and nalin
 # attempted to explain it to him.
-#: src/iso2022.c:1547
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1619
 msgid "Unrecognized identified coding system."
 msgstr "Ni cydnabyddir y system amgodio adnabyddedig yma."
 
-#: src/iso2022.c:1596 src/iso2022.c:1622
+#: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Cais gosod map NRC llydan annilys '%c'."
 
-#: src/pty.c:317
+#: src/pty.c:323
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Gwall wrth ycwannegu '%s' i'r amgylchedd, parhau."
@@ -48,7 +49,7 @@ msgstr "Gwall wrth ycwannegu '%s' i'r amgylchedd, parhau."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:880
+#: src/pty.c:908
 #, c-format
 msgid "can not run %s"
 msgstr "methu gweithredu %s"
@@ -62,57 +63,57 @@ msgstr "Gwall wrth greu piben arwyddion."
 msgid "Duplicate (%s/%s)!"
 msgstr "Dyblyg (%s/%s)!"
 
-#: src/vte.c:1428
+#: src/vte.c:1482
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Gwall wrth grynhoi mynegiad rheolaidd \"%s\"."
 
-#: src/vte.c:5533
+#: src/vte.c:5819
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Cafwyd dilyniant (bysellau?) annisgwyl `%s'."
 
-#: src/vte.c:6546
+#: src/vte.c:6897
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Dim trinydd ar gyfer y dilyniant rheoli `%s' wedi ei ddiffinio."
 
-#: src/vte.c:7282
+#: src/vte.c:7719
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Gwall wrth ddarllen o blentyn: %s."
 
-#: src/vte.c:7438
+#: src/vte.c:7875
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Gwall (%s) trosi data ar gyfer plentyn, gollwng."
 
-#: src/vte.c:10058
+#: src/vte.c:10625
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Gwall wrth ddarllen maint PTY, defnyddio rhagosodiadau: %s."
 
-#: src/vte.c:10094
+#: src/vte.c:10661
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Gwall wrth osod maint PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14075
+#: src/vte.c:15125
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "methodd _vte_conv_open() wrth osod nodau geiriau"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:648
+#: src/vteapp.c:728
 msgid "Could not open console.\n"
 msgstr "Methu agor consol.\n"
 
-#: src/vteglyph.c:575
+#: src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "Modd picseli anhysbys %d.\n"
 
-#: src/vtexft.c:664
+#: src/vtexft.c:712
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "Methu arlunio'r nod U+%04x.\n"

@@ -4,7 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte 0\n"
-"POT-Creation-Date: 2004-02-01 17:15+0100\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2004-04-20 02:16-0400\n"
 "PO-Revision-Date: 2004-02-05 23:53+CET\n"
 "Last-Translator: auto\n"
 "Language-Team: Croatian <lokalizacija@linux.hr>\n"
@@ -13,7 +14,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: TransDict server\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2072
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Ne mogu konvertirati znakovi iz %s u %s."
@@ -39,8 +40,8 @@ msgid "Error adding `%s' to environment, continuing."
 msgstr "Greška pri dodavanju `%s'  u okruženje, nastavljam."
 
 #. Give the user some clue as to why session logging is not
-#.  * going to work (assuming we can open a pty using some other
-#.  * method).
+#. * going to work (assuming we can open a pty using some other
+#. * method).
 #: src/pty.c:908
 #, c-format
 msgid "can not run %s"
@@ -55,58 +56,58 @@ msgstr "Greška prilikom stvaranja signalne cijevi."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikat (%s/%s)!"
 
-#: src/vte.c:1480
+#: src/vte.c:1482
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Greška u kompilaciji regularnog izraza \"%s\"."
 
-#: src/vte.c:5815
+#: src/vte.c:5819
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Dobio sam neočekivanu (tipkanjem?) sekvencu `%s'."
 
-#: src/vte.c:6893
+#: src/vte.c:6897
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Nema rukovatelja za kontrolnu sekvencu `%s' ."
 
-#: src/vte.c:7714
+#: src/vte.c:7719
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Greška prilikom čitanja od dijeteta: %s."
 
-#: src/vte.c:7870
+#: src/vte.c:7875
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Greška (%s) pri konverziji podataka za dijete, odbacujem."
 
-#: src/vte.c:10537
+#: src/vte.c:10625
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr "Greška prilikom čitanja PTY veličine, koristim uobičajene postavke: %s."
+msgstr ""
+"Greška prilikom čitanja PTY veličine, koristim uobičajene postavke: %s."
 
-#: src/vte.c:10573
+#: src/vte.c:10661
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Greška u postavljanju veličine PTY-a: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14977
+#: src/vte.c:15125
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() nije uspio postaviti znakove riječi"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:713
+#: src/vteapp.c:728
 msgid "Could not open console.\n"
 msgstr "Ne mogu otvoriti konzolu\n"
 
-#: src/vteglyph.c:576
+#: src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "Nepoznati način piksela %d.\n"
 
-#: src/vtexft.c:710
+#: src/vtexft.c:712
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "Ne mogu iscrtati znak U+%04x.\n"
-
