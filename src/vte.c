@@ -176,14 +176,12 @@ struct _VteTerminalPrivate {
 	gboolean alt_sends_escape;
 };
 
-static GtkWidgetClass *parent_class = NULL;
-
 /* A function which can handle a terminal control sequence. */
 typedef void (*VteTerminalSequenceHandler)(VteTerminal *terminal,
 					   const char *match,
 					   GQuark match_quark,
 					   GValueArray *params);
-
+static void vte_terminal_insert_char(GtkWidget *widget, wchar_t c);
 static void vte_sequence_handler_clear_screen(VteTerminal *terminal,
 					      const char *match,
 					      GQuark match_quark,
@@ -1006,6 +1004,56 @@ vte_sequence_handler_DO(VteTerminal *terminal,
 				      vte_sequence_handler_do);
 }
 
+/* Erase characters starting at the cursor position (overwriting N with
+ * spaces, but not moving the cursor). */
+static void
+vte_sequence_handler_ec(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	struct _VteScreen *screen;
+	GArray *rowdata;
+	GValue *value;
+	struct vte_charcell *cell;
+	long col, i, count;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	screen = terminal->pvt->screen;
+
+	/* If we got a parameter, use it. */
+	count = 1;
+	if ((params != NULL) && (params->n_values > 0)) {
+		value = g_value_array_get_nth(params, 0);
+		if (G_VALUE_HOLDS_LONG(value)) {
+			count = g_value_get_long(value);
+		}
+	}
+
+	/* Clear out the given number of characters. */
+	if (screen->row_data->len > screen->cursor_current.row) {
+		/* Get the data for the row which the cursor points to. */
+		rowdata = g_array_index(screen->row_data,
+					GArray*,
+					screen->cursor_current.row);
+		/* Write over the same characters. */
+		for (i = 0; i < count; i++) {
+			col = screen->cursor_current.col + i;
+			if ((col < rowdata->len) && (col >= 0)) {
+				cell = &g_array_index(rowdata,
+						      struct vte_charcell,
+						      col);
+				cell->c = ' ';
+				cell->columns = wcwidth(cell->c);
+			}
+		}
+		/* Repaint this row. */
+		vte_invalidate_cells(terminal,
+				     0, terminal->column_count,
+				     screen->cursor_current.row, 1);
+	}
+}
+
 /* End insert mode. */
 static void
 vte_sequence_handler_ei(VteTerminal *terminal,
@@ -1029,6 +1077,39 @@ vte_sequence_handler_ho(VteTerminal *terminal,
 	screen = terminal->pvt->screen;
 	screen->cursor_current.row = screen->insert_delta;
 	screen->cursor_current.col = 0;
+}
+
+/* Insert a character. */
+static void
+vte_sequence_handler_ic(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	long row, col;
+	struct _VteScreen *screen;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	screen = terminal->pvt->screen;
+
+	row = screen->cursor_current.row;
+	col = screen->cursor_current.col;
+
+	vte_terminal_insert_char(GTK_WIDGET(terminal), ' ');
+
+	screen->cursor_current.row = row;
+	screen->cursor_current.col = col;
+}
+
+/* Insert N characters. */
+static void
+vte_sequence_handler_IC(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	vte_sequence_handler_multiple(terminal, match, match_quark, params,
+				      vte_sequence_handler_ic);
 }
 
 /* Begin insert mode. */
@@ -2141,7 +2222,7 @@ static struct {
 	{"ds", NULL},
 
 	{"eA", NULL},
-	{"ec", NULL},
+	{"ec", vte_sequence_handler_ec},
 	{"ed", NULL},
 	{"ei", vte_sequence_handler_ei},
 
@@ -2210,8 +2291,8 @@ static struct {
 	{"i3", NULL},
 
 	{"is", NULL},
-	{"ic", NULL},
-	{"IC", NULL},
+	{"ic", vte_sequence_handler_ic},
+	{"IC", vte_sequence_handler_IC},
 	{"if", NULL},
 	{"im", vte_sequence_handler_im},
 	{"ip", NULL},
@@ -3342,7 +3423,7 @@ vte_charclass(wchar_t c)
 }
 
 /* Find the character in the given "virtual" position. */
-struct vte_charcell *
+static struct vte_charcell *
 vte_terminal_find_charcell(VteTerminal *terminal, long row, long col)
 {
 	GArray *rowdata;
@@ -4404,19 +4485,25 @@ vte_terminal_unrealize(GtkWidget *widget)
 	terminal->pvt->alternate_screen.row_data = NULL;
 }
 
+/* Perform final cleanups for the widget before it's freed. */
 static void
 vte_terminal_finalize(GObject *object)
 {
 	VteTerminal *terminal;
+	GObjectClass *object_class;
 
+	g_return_if_fail(VTE_IS_TERMINAL(object));
 	terminal = VTE_TERMINAL (object);
+	object_class = G_OBJECT_GET_CLASS(G_OBJECT(object));
 
-	g_free (terminal->window_title);
-	g_free (terminal->icon_title);
-	
-	if (G_OBJECT_CLASS (parent_class)->finalize)
-		(* G_OBJECT_CLASS (parent_class)->finalize) (object);
+	/* Clean up terminal fields. */
+	g_free(terminal->window_title);
+	g_free(terminal->icon_title);
 
+	/* Call the GObject finalize() method. */
+	if (object_class->finalize) {
+		object_class->finalize(object);
+	}
 }
 
 /* Handle realizing the widget.  Most of this is copy-paste from GGAD. */
@@ -5034,7 +5121,6 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 
 	gobject_class = G_OBJECT_CLASS(klass);
 	widget_class = GTK_WIDGET_CLASS(klass);
-	parent_class = g_type_class_peek_parent (klass);
 	
 	/* Override some of the default handlers. */
 	gobject_class->finalize = vte_terminal_finalize;
