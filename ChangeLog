@@ -1,3 +1,7 @@
+2003-05-01 Kang Jeong-Hee <Keizi@mail.co.kr>
+	* doc/reference/Makefile.am: s/index.sgml/index.html/.
+	There's no index.sgml in html directory, but a index.html.
+
 2003-04-29 nalin
 	* src/vte.c(vte_sequence_handler_local_charset): remove the unused
 	DEFAULT_ISO_8859_1 case.

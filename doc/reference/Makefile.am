@@ -156,8 +156,8 @@ install-data-local:
 	    echo '-- Installing '$$i ; \
 	    $(INSTALL_DATA) $$i $(DESTDIR)$(TARGET_DIR); \
 	  done; \
-	  echo '-- Installing $(srcdir)/html/index.sgml' ; \
-	  $(INSTALL_DATA) $(srcdir)/html/index.sgml $(DESTDIR)$(TARGET_DIR); \
+	  echo '-- Installing $(srcdir)/html/index.html' ; \
+	  $(INSTALL_DATA) $(srcdir)/html/index.html $(DESTDIR)$(TARGET_DIR); \
 	fi)
 
 #
@@ -177,7 +177,7 @@ dist-hook: dist-check-gtkdoc dist-hook-local
 	mkdir $(distdir)/html
 	-cp $(srcdir)/tmpl/*.sgml $(distdir)/tmpl
 	-cp $(srcdir)/sgml/*.sgml $(distdir)/sgml
-	-cp $(srcdir)/html/index.sgml $(distdir)/html
+	-cp $(srcdir)/html/index.html $(distdir)/html
 	-cp $(srcdir)/html/*.html $(srcdir)/html/*.css $(distdir)/html
 
 	images=$(HTML_IMAGES) ;    	      \
