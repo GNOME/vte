@@ -267,6 +267,7 @@ struct _VteTerminalPrivate {
 	/* Cursor blinking. */
 	gboolean cursor_blinks;
 	gint cursor_blink_tag;
+	gint cursor_blink_timeout;
 	gboolean cursor_visible;
 
 	/* Input device options. */
@@ -587,7 +588,7 @@ vte_invalidate_cells(VteTerminal *terminal,
 	rect.height = row_count * terminal->char_height;
 
 	/* Invalidate the rectangle. */
-	gdk_window_invalidate_rect(widget->window, &rect, TRUE);
+	gdk_window_invalidate_rect(widget->window, &rect, FALSE);
 }
 
 /* Redraw the entire visible portion of the window. */
@@ -612,7 +613,7 @@ vte_invalidate_all(VteTerminal *terminal)
 		     2 * VTE_PAD_WIDTH;
 	rect.height = terminal->row_count * terminal->char_height +
 		      2 * VTE_PAD_WIDTH;
-	gdk_window_invalidate_rect((GTK_WIDGET(terminal))->window, &rect, TRUE);
+	gdk_window_invalidate_rect((GTK_WIDGET(terminal))->window, &rect, FALSE);
 }
 
 /* Scroll a rectangular region up or down by a fixed number of lines. */
@@ -741,12 +742,18 @@ vte_invalidate_cursor_periodic(gpointer data)
 		g_object_get(G_OBJECT(settings), "gtk-cursor-blink-time",
 			     &blink_cycle, NULL);
 	}
-	terminal->pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
-							     blink_cycle / 2,
-							     vte_invalidate_cursor_periodic,
-							     terminal,
-							     NULL);
-	return FALSE;
+
+	if (terminal->pvt->cursor_blink_timeout != blink_cycle) {
+		terminal->pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
+								     blink_cycle / 2,
+								     vte_invalidate_cursor_periodic,
+								     terminal,
+								     NULL);
+		terminal->pvt->cursor_blink_timeout = blink_cycle;
+		return FALSE;
+	} else {
+		return TRUE;
+	}
 }
 
 /* Emit a "selection_changed" signal. */
@@ -9845,6 +9852,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->cursor_blinks = FALSE;
 	pvt->cursor_blink_tag = -1;
 	pvt->cursor_visible = TRUE;
+	pvt->cursor_blink_timeout = 1000;
 
 	/* Input options. */
 	if (gettimeofday(&tv, &tz) == 0) {
@@ -12105,10 +12113,9 @@ vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), 0);
 	if (event->window == widget->window) {
-		if ((GTK_WIDGET_REALIZED(widget) &&
-		    (GTK_WIDGET_DRAWABLE(widget) &&
-		    (gdk_window_get_state(widget->window) !=
-		     GDK_VISIBILITY_FULLY_OBSCURED)))) {
+		if (GTK_WIDGET_REALIZED(widget) &&
+		    GTK_WIDGET_VISIBLE(widget) &&
+		    GTK_WIDGET_MAPPED(widget)) {
 			vte_terminal_paint(widget, &event->area);
 		}
 	} else {

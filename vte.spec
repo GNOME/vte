@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.8.14
+Version: 0.8.15
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -61,6 +61,9 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Mon Sep  2 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.15-1
+- cleanups
+
 * Fri Aug 30 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.14-1
 - get smarter about adjusting our adjustments (#73091)
 
