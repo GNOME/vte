@@ -1,8 +1,12 @@
+2002-05-08 nalin
+	* src/vte.c: Implement mouse motion-event and any-event tracking.
+2002-05-07 nalin
+	* src/vte.c: Implement the rest of the special graphics characters.
 2002-05-06 nalin
 	* src/vte.c: Finish implementing window-manipulation sequences.  Rename
 	signals to be more consistent.  Add thin wrappers for emitting signals,
 	and use them everywhere.  Support pangox even when XFT isn't available.
-	Try to provide bold text again.  Added signals for most of the window
+	Try to provide bold text again.  Add signals for most of the window
 	manipulation control sequences.  Start handling mouse button events.
 	Hide the mouse cursor when we get keyboard events.  Use a different
 	mouse cursor if the child is mouse-aware.  Handle eA() by treating it as

@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.3.10
+Version: 0.3.11
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -53,6 +53,9 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Wed May  8 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.11-1
+- add mouse drag event handling
+
 * Mon May  6 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.10-1
 - do mouse autohide and cursor switching
 

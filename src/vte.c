@@ -121,6 +121,7 @@ struct _VteTerminalPrivate {
 	GIOChannel *pty_output;		/* master output watch */
 	pid_t pty_pid;			/* pid of child using pty slave */
 	const char *encoding;		/* the pty's encoding */
+	const char *gxencoding[4];	/* alternate encodings */
 
 	/* Input data queues. */
 	iconv_t incoming_conv;		/* narrow/wide conversion state */
@@ -238,6 +239,7 @@ struct _VteTerminalPrivate {
 		  *mouse_mousing_cursor,
 		  *mouse_inviso_cursor;
 	guint mouse_last_button;
+	gdouble mouse_last_x, mouse_last_y;
 	gboolean mouse_autohide;
 };
 
@@ -1323,11 +1325,11 @@ vte_terminal_ensure_cursor(VteTerminal *terminal)
 		cell.back = VTE_DEF_BG;
 		cell.c = ' ';
 		cell.columns = wcwidth(cell.c);
-		while (array->len < screen->cursor_current.col) {
+		/* Add enough cells at the end to make sure we have one for
+		 * this column. */
+		while (array->len <= screen->cursor_current.col) {
 			array = g_array_append_val(array, cell);
 		}
-		/* Add one more cell to the end of the line to get
-		 * one for the column. */
 		array = g_array_append_val(array, cell);
 	}
 }
@@ -3074,6 +3076,96 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 	}
 }
 
+/* Designate particular character sets as the "G0/G1/G2/G3" charsets. */
+static void
+vte_sequence_handler_designate_gx(VteTerminal *terminal,
+				  const char *match,
+				  GQuark match_quark,
+				  GValueArray *params,
+				  int x)
+{
+	GValue *value;
+	GtkWidget *widget;
+	long param, arg1, arg2;
+	int i;
+	char c;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail((x == 0) || (x == 1) || (x == 2) || (x == 3));
+	widget = GTK_WIDGET(terminal);
+
+	if ((params != NULL) && (params->n_values > 0)) {
+		value = g_value_array_get_nth(params, 0);
+		if (G_VALUE_HOLDS_CHAR(value)) {
+			c = g_value_get_char(value);
+			switch (c) {
+				case '0':	/* DEC */
+					terminal->pvt->gxencoding[x] =
+						NULL;
+					break;
+				case 'A':	/* UK. */
+				case 'B':	/* USA (ASCII). */
+				case '4':	/* Dutch. */
+				case 'C':	/* Finnish. */
+				case '5':
+				case 'R':	/* French. */
+				case 'Q':	/* French Canadian. */
+				case 'K':	/* German. */
+				case 'Y':	/* Italian. */
+				case 'E':	/* Norwegian/Danish. */
+				case '6':	
+				case 'Z':	/* Spanish. */
+				case 'H':	/* Swedish. */
+				case '7':
+				case '=':	/* Swiss. */
+					terminal->pvt->gxencoding[x] =
+						"ISO-8859-15";
+					break;
+			}
+		}
+	}
+}
+
+static void
+vte_sequence_handler_designate_g0(VteTerminal *terminal,
+				  const char *match,
+				  GQuark match_quark,
+				  GValueArray *params)
+{
+	vte_sequence_handler_designate_gx(terminal, match, match_quark,
+					  params, 0);
+}
+
+static void
+vte_sequence_handler_designate_g1(VteTerminal *terminal,
+				  const char *match,
+				  GQuark match_quark,
+				  GValueArray *params)
+{
+	vte_sequence_handler_designate_gx(terminal, match, match_quark,
+					  params, 1);
+}
+
+static void
+vte_sequence_handler_designate_g2(VteTerminal *terminal,
+				  const char *match,
+				  GQuark match_quark,
+				  GValueArray *params)
+{
+	vte_sequence_handler_designate_gx(terminal, match, match_quark,
+					  params, 2);
+}
+
+static void
+vte_sequence_handler_designate_g3(VteTerminal *terminal,
+				  const char *match,
+				  GQuark match_quark,
+				  GValueArray *params)
+{
+	vte_sequence_handler_designate_gx(terminal, match, match_quark,
+					  params, 3);
+}
+
 /* The table of handlers.  Primarily used at initialization time. */
 static struct {
 	const char *code;
@@ -3427,6 +3519,10 @@ static struct {
 	{"device-status-report", vte_sequence_handler_device_status_report},
 	{"dec-device-status-report", vte_sequence_handler_dec_device_status_report},
 	{"window-manipulation", vte_sequence_handler_window_manipulation},
+	{"designate-g0-character-set", vte_sequence_handler_designate_g0},
+	{"designate-g1-character-set", vte_sequence_handler_designate_g1},
+	{"designate-g2-character-set", vte_sequence_handler_designate_g2},
+	{"designate-g3-character-set", vte_sequence_handler_designate_g3},
 };
 
 /* Create the basic widget.  This more or less creates and initializes a
@@ -3633,14 +3729,14 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 	for (i = 0; i < columns; i++) {
 		col = terminal->pvt->screen->cursor_current.col;
 
+		/* Initialize a spare cell which we may insert many times. */
+		cell = terminal->pvt->screen->defaults;
+		cell.c = ' ';
+		cell.columns = wcwidth(cell.c);
+
 		/* Make sure we have enough columns in this row. */
 		if (array->len <= col) {
 			/* Add enough characters to fill out the row. */
-			memset(&cell, 0, sizeof(cell));
-			cell.fore = VTE_DEF_FG;
-			cell.back = VTE_DEF_BG;
-			cell.c = ' ';
-			cell.columns = wcwidth(cell.c);
 			while (array->len < col) {
 				array = g_array_append_val(array, cell);
 			}
@@ -3654,11 +3750,6 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 			/* If we're in insert mode, insert a new cell here
 			 * and use it. */
 			if (screen->insert) {
-				memset(&cell, 0, sizeof(cell));
-				cell.fore = VTE_DEF_FG;
-				cell.back = VTE_DEF_BG;
-				cell.c = ' ';
-				cell.columns = wcwidth(cell.c);
 				g_array_insert_val(array, col, cell);
 				pcell = &g_array_index(array,
 						       struct vte_charcell,
@@ -3672,18 +3763,12 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 			}
 		}
 
-		/* Initialize the character cell with the proper data. */
-		pcell->c = c;
-		pcell->columns = (i == 0) ? columns : 0;
-		pcell->fore = terminal->pvt->screen->defaults.fore;
-		pcell->back = terminal->pvt->screen->defaults.back;
-		pcell->reverse = terminal->pvt->screen->defaults.reverse;
-		pcell->invisible = terminal->pvt->screen->defaults.invisible;
-		pcell->half = terminal->pvt->screen->defaults.half;
-		pcell->underline = terminal->pvt->screen->defaults.underline;
-		pcell->bold = terminal->pvt->screen->defaults.bold;
-		pcell->standout = terminal->pvt->screen->defaults.standout;
-		pcell->alternate = terminal->pvt->screen->defaults.alternate;
+		/* Set the character cell to match the current defaults. */
+		*pcell = terminal->pvt->screen->defaults;
+		if (i == 0) {
+			pcell->c = c;
+			pcell->columns = wcwidth(c);
+		}
 
 		/* Signal that this part of the window needs drawing. */
 		if (terminal->pvt->screen->insert) {
@@ -4385,7 +4470,10 @@ vte_terminal_io_read(GIOChannel *channel,
 #endif
 		terminal->pvt->processing = TRUE;
 		terminal->pvt->processing_tag =
-			g_idle_add(vte_terminal_process_incoming, terminal);
+				g_idle_add_full(G_PRIORITY_HIGH,
+						vte_terminal_process_incoming,
+						terminal,
+						NULL);
 	}
 
 	/* If we detected an eof condition, signal one. */
@@ -4430,8 +4518,11 @@ vte_terminal_feed(VteTerminal *terminal, const char *data, size_t length)
 		fprintf(stderr, "Queuing handler to process bytes.\n");
 #endif
 		terminal->pvt->processing = TRUE;
-		terminal->pvt->processing_tag = g_idle_add(vte_terminal_process_incoming,
-							   terminal);
+		terminal->pvt->processing_tag =
+				g_idle_add_full(G_PRIORITY_HIGH,
+						vte_terminal_process_incoming,
+						terminal,
+						NULL);
 	}
 }
 
@@ -4526,7 +4617,8 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		/* If we need to start waiting for the child pty to become
 		 * available for writing, set that up here. */
 		if (terminal->pvt->pty_output == NULL) {
-			terminal->pvt->pty_output = g_io_channel_unix_new(terminal->pvt->pty_master);
+			terminal->pvt->pty_output =
+				g_io_channel_unix_new(terminal->pvt->pty_master);
 			g_io_add_watch_full(terminal->pvt->pty_output,
 					    G_PRIORITY_HIGH,
 					    G_IO_OUT,
@@ -5154,11 +5246,130 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 	}
 }
 
+/* Send a button down or up notification. */
+static void
+vte_terminal_send_mouse_button(VteTerminal *terminal, GdkEventButton *event)
+{
+	unsigned char cb = 0, cx = 0, cy = 0;
+	char buf[LINE_MAX];
+	GdkModifierType modifiers;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	/* Read the modifiers. */
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
+		modifiers = 0;
+	}
+
+	/* Encode the button information in cb. */
+	if (event->type == GDK_BUTTON_PRESS) {
+		switch (event->button) {
+			case 1:
+				cb = 0;
+				break;
+			case 2:
+				cb = 1;
+				break;
+			case 3:
+				cb = 2;
+				break;
+			case 4:
+				cb = 64;	/* FIXME: check */
+				break;
+			case 5:
+				cb = 65;	/* FIXME: check */
+				break;
+		}
+	}
+	if (event->type == GDK_BUTTON_RELEASE) {
+		cb = 3;
+	}
+	cb += 32; /* 32 for normal */
+
+	/* Encode the modifiers. */
+	if (modifiers & GDK_SHIFT_MASK) {
+		cb |= 4;
+	}
+	if (modifiers & GDK_MOD1_MASK) {
+		cb |= 8;
+	}
+	if (modifiers & GDK_CONTROL_MASK) {
+		cb |= 16;
+	}
+
+	/* Encode the cursor coordinates. */
+	cx = 32 + 1 + (event->x / terminal->char_width);
+	cy = 32 + 1 + (event->y / terminal->char_height);
+
+	/* Send the event to the child. */
+	snprintf(buf, sizeof(buf), "%sM%c%c%c", VTE_CAP_CSI, cb, cx, cy);
+	vte_terminal_feed_child(terminal, buf, strlen(buf));
+}
+
+/* Send a mouse motion notification. */
+static void
+vte_terminal_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
+{
+	unsigned char cb = 0, cx = 0, cy = 0;
+	char buf[LINE_MAX];
+	GdkModifierType modifiers;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	/* First determine if we even want to send notification. */
+	if (terminal->pvt->mouse_cell_motion_tracking) {
+		if ((event->x / terminal->char_width ==
+		     terminal->pvt->mouse_last_x / terminal->char_width) &&
+		    (event->y / terminal->char_height ==
+		     terminal->pvt->mouse_last_y / terminal->char_height)) {
+			return;
+		}
+	}
+
+	/* Encode the modifiers. */
+	if (modifiers & GDK_SHIFT_MASK) {
+		cb |= 4;
+	}
+	if (modifiers & GDK_MOD1_MASK) {
+		cb |= 8;
+	}
+	if (modifiers & GDK_CONTROL_MASK) {
+		cb |= 16;
+	}
+
+	/* Encode which button we're being dragged with. */
+	switch (terminal->pvt->mouse_last_button) {
+		case 1:
+			cb = 0;
+			break;
+		case 2:
+			cb = 1;
+			break;
+		case 3:
+			cb = 2;
+			break;
+		case 4:
+			cb = 64;	/* FIXME: check */
+			break;
+		case 5:
+			cb = 65;	/* FIXME: check */
+			break;
+	}
+	cb += 64; /* 32 for normal, 32 for movement */
+
+	/* Encode the cursor coordinates. */
+	cx = 32 + 1 + (event->x / terminal->char_width);
+	cy = 32 + 1 + (event->y / terminal->char_height);
+
+	/* Send the event to the child. */
+	snprintf(buf, sizeof(buf), "%sM%c%c%c", VTE_CAP_CSI, cb, cx, cy);
+	vte_terminal_feed_child(terminal, buf, strlen(buf));
+}
+
 /* Read and handle a motion event. */
 static gint
 vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 {
 	VteTerminal *terminal;
+	GdkModifierType modifiers;
 	struct {
 		long x, y;
 	} o, p, q, origin, last;
@@ -5170,7 +5381,22 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	/* Show the cursor. */
 	vte_terminal_set_pointer_visible(terminal, TRUE);
 
+	/* Read the modifiers. */
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
+		modifiers = 0;
+	}
 	/* Handle a drag event. */
+	if ((terminal->pvt->mouse_send_xy_on_button ||
+	     terminal->pvt->mouse_send_xy_on_click ||
+	     terminal->pvt->mouse_hilite_tracking ||
+	     terminal->pvt->mouse_cell_motion_tracking ||
+	     terminal->pvt->mouse_all_motion_tracking) &&
+	    ((modifiers & GDK_SHIFT_MASK) == 0)) {
+#ifdef VTE_DEBUG
+		fprintf(stderr, "Mousing drag.\n");
+#endif
+		vte_terminal_send_mouse_drag(terminal, event);
+	} else
 	if (terminal->pvt->mouse_last_button == 1) {
 #ifdef VTE_DEBUG
 		fprintf(stderr, "Drag.\n");
@@ -5240,6 +5466,9 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 		fprintf(stderr, "Mouse move.\n");
 #endif
 	}
+
+	terminal->pvt->mouse_last_x = event->x;
+	terminal->pvt->mouse_last_y = event->y;
 
 	return FALSE;
 }
@@ -5374,66 +5603,14 @@ vte_terminal_paste(VteTerminal *terminal, GdkAtom board)
 	}
 }
 
-/* Send a button down or up notification. */
-static void
-vte_terminal_send_mouse_button(VteTerminal *terminal, GdkEventButton *event)
-{
-	unsigned char cb = 0, cx = 0, cy = 0;
-	char buf[LINE_MAX];
-	GdkModifierType modifiers;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	/* Read the modifiers. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
-		modifiers = 0;
-	}
-	/* Encode the button information in cb. */
-	if (event->type == GDK_BUTTON_PRESS) {
-		switch (event->button) {
-			case 1:
-				cb = 0;
-				break;
-			case 2:
-				cb = 1;
-				break;
-			case 3:
-				cb = 2;
-				break;
-			case 4:
-				cb = 64;	/* FIXME: check */
-				break;
-			case 5:
-				cb = 65;	/* FIXME: check */
-				break;
-		}
-	}
-	if (event->type == GDK_BUTTON_RELEASE) {
-		cb = 3;
-	}
-	cb |= 32;
-	/* Encode the modifiers. */
-	if (modifiers & GDK_SHIFT_MASK) {
-		cb |= 4;
-	}
-	if (modifiers & GDK_MOD1_MASK) {
-		cb |= 8;
-	}
-	if (modifiers & GDK_CONTROL_MASK) {
-		cb |= 16;
-	}
-	/* Encode the cursor coordinates. */
-	cx = 32 + 1 + (event->x / terminal->char_width);
-	cy = 32 + 1 + (event->y / terminal->char_height);
-	/* Send the event to the child. */
-	snprintf(buf, sizeof(buf), "%sM%c%c%c", VTE_CAP_CSI, cb, cx, cy);
-	vte_terminal_feed_child(terminal, buf, strlen(buf));
-}
-
 /* Read and handle a pointing device buttonpress event. */
 static gint
 vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 {
 	VteTerminal *terminal;
 	long height, width, delta;
+	GdkModifierType modifiers;
+	gboolean ret = FALSE;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
@@ -5447,12 +5624,23 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		fprintf(stderr, "button %d pressed at (%lf,%lf)\n",
 			event->button, event->x, event->y);
 #endif
-		if ((terminal->pvt->mouse_send_xy_on_button) ||
-		    (terminal->pvt->mouse_send_xy_on_click)) {
-			vte_terminal_send_mouse_button(terminal, event);
+		/* Read the modifiers. */
+		if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
+			modifiers = 0;
 		}
-		terminal->pvt->mouse_last_button = event->button;
+		/* Shift+click is always ours. */
+		if ((terminal->pvt->mouse_send_xy_on_button) ||
+		    (terminal->pvt->mouse_send_xy_on_click) &&
+		    ((modifiers & GDK_SHIFT_MASK) == 0)) {
+#ifdef VTE_DEBUG
+			fprintf(stderr, "Sending click to child.\n");
+#endif
+			vte_terminal_send_mouse_button(terminal, event);
+		} else
 		if (event->button == 1) {
+#ifdef VTE_DEBUG
+			fprintf(stderr, "Handling click ourselves.\n");
+#endif
 			if (!GTK_WIDGET_HAS_FOCUS(widget)) {
 				gtk_widget_grab_focus(widget);
 			}
@@ -5460,13 +5648,16 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			terminal->pvt->selection_origin.x = event->x;
 			terminal->pvt->selection_origin.y = event->y;
 			terminal->pvt->selection_type = selection_type_char;
-			return TRUE;
-		}
+			ret = TRUE;
+		} else
 		if (event->button == 2) {
+#ifdef VTE_DEBUG
+			fprintf(stderr, "Handling click ourselves.\n");
+#endif
 			vte_terminal_paste(terminal, GDK_SELECTION_PRIMARY);
-			return TRUE;
+			ret = TRUE;
 		}
-	}
+	} else
 	if (event->type == GDK_2BUTTON_PRESS) {
 #ifdef VTE_DEBUG
 		fprintf(stderr, "button %d double-clicked at (%lf,%lf)\n",
@@ -5491,9 +5682,9 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 					     terminal->column_count,
 					     terminal->pvt->selection_start.y,
 					     1);
-			return TRUE;
+			ret = TRUE;
 		}
-	}
+	} else
 	if (event->type == GDK_3BUTTON_PRESS) {
 #ifdef VTE_DEBUG
 		fprintf(stderr, "button %d triple-clicked at (%lf,%lf)\n",
@@ -5518,10 +5709,15 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 					     terminal->column_count,
 					     terminal->pvt->selection_start.y,
 					     1);
-			return TRUE;
+			ret = TRUE;
 		}
 	}
-	return FALSE;
+
+	terminal->pvt->mouse_last_button = event->button;
+	terminal->pvt->mouse_last_x = event->x;
+	terminal->pvt->mouse_last_y = event->y;
+
+	return ret;
 }
 
 /* Read and handle a pointing device buttonrelease event. */
@@ -5529,25 +5725,33 @@ static gint
 vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 {
 	VteTerminal *terminal;
+	GdkModifierType modifiers;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
 	vte_terminal_set_pointer_visible(terminal, TRUE);
-
 
 	if (event->type == GDK_BUTTON_RELEASE) {
 #ifdef VTE_DEBUG
 		fprintf(stderr, "button %d released at (%lf,%lf)\n",
 			event->button, event->x, event->y);
 #endif
-		if (terminal->pvt->mouse_send_xy_on_button) {
-			vte_terminal_send_mouse_button(terminal, event);
+		/* Read the modifiers. */
+		if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
+			modifiers = 0;
 		}
+		if ((terminal->pvt->mouse_send_xy_on_button) &&
+		    ((modifiers & GDK_SHIFT_MASK) == 0)) {
+			vte_terminal_send_mouse_button(terminal, event);
+		} else
 		if (event->button == 1) {
 			vte_terminal_copy(terminal, GDK_SELECTION_PRIMARY);
 		}
-		terminal->pvt->mouse_last_button = 0;
 	}
+
+	terminal->pvt->mouse_last_button = 0;
+	terminal->pvt->mouse_last_x = event->x;
+	terminal->pvt->mouse_last_y = event->y;
 
 	return FALSE;
 }
@@ -6346,6 +6550,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 {
 	struct _VteTerminalPrivate *pvt;
 	struct passwd *pwd;
+	int i;
 	GtkAdjustment *adjustment;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -6454,6 +6659,9 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	vte_terminal_set_termcap(terminal, NULL);
 	vte_terminal_set_emulation(terminal, NULL);
 	vte_terminal_set_encoding(terminal, NULL);
+	for (i = 0; i < G_N_ELEMENTS(pvt->gxencoding); i++) {
+		pvt->gxencoding[i] = NULL;
+	}
 
 	/* Initialize the screen history. */
 	vte_terminal_reset_rowdata(&pvt->normal_screen.row_data,
@@ -6510,6 +6718,8 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->mouse_cell_motion_tracking = FALSE;
 	pvt->mouse_all_motion_tracking = FALSE;
 	pvt->mouse_last_button = 0;
+	pvt->mouse_last_x = 0;
+	pvt->mouse_last_y = 0;
 	pvt->mouse_default_cursor = NULL;
 	pvt->mouse_mousing_cursor = NULL;
 	pvt->mouse_inviso_cursor = NULL;
@@ -6924,13 +7134,14 @@ vte_terminal_draw_char(VteTerminal *terminal,
 #endif
 		       gboolean cursor)
 {
-	int fore, back, dcol;
+	int fore, back, dcol, i, j;
 	long xcenter, ycenter, xright, ybottom;
 	char utf8_buf[7] = {0,};
 	gboolean drawn, reverse;
 	PangoAttribute *attr;
 	PangoAttrList *attrlist;
 	XwcTextItem textitem;
+	XPoint diamond[4];
 
 #ifdef VTE_DEBUG
 #ifdef VTE_DEBUG_DRAW
@@ -7003,25 +7214,225 @@ vte_terminal_draw_char(VteTerminal *terminal,
 		xcenter = (x + xright) / 2;
 		ycenter = (y + ybottom) / 2;
 
-		/* Draw the alternate charset data. */
+		/* Draw the alternate charset characters which differ from
+		 * the ASCII character set. */
 		XSetForeground(display, gc, terminal->pvt->palette[fore].pixel);
 		switch (cell->c) {
 			case 95:
 				/* drawing a blank */
 				break;
-			case 96:  /* ` */
+			case 96:
+				/* diamond */
+				diamond[0].x = xcenter;
+				diamond[0].y = y + 1;
+				diamond[1].x = xright - 1;
+				diamond[1].y = ycenter;
+				diamond[2].x = xcenter;
+				diamond[2].y = ybottom - 1;
+				diamond[3].x = x + 1;
+				diamond[3].y = ycenter;
+				XFillPolygon(display, drawable, gc,
+					     diamond, G_N_ELEMENTS(diamond),
+					     Convex, CoordModeOrigin);
+				drawn = TRUE;
+				break;
 			case 97:  /* a */
+				for (i = y; i < ybottom; i++) {
+					for (j = x + (i % 2);
+					     j < xright;
+					     j += 2) {
+						XDrawPoint(display, drawable,
+							   gc, j, i);
+					}
+				}
+				drawn = TRUE;
+				break;
 			case 98:  /* b */
+				xcenter--;
+				ycenter--;
+				xright--;
+				ybottom--;
+				/* H */
+				XDrawLine(display, drawable, gc,
+					  x, y,
+					  x, ycenter);
+				XDrawLine(display, drawable, gc,
+					  xcenter, y,
+					  xcenter, ycenter);
+				XDrawLine(display, drawable, gc,
+					  x, (y + ycenter) / 2,
+					  xcenter, (y + ycenter) / 2);
+				/* T */
+				XDrawLine(display, drawable, gc,
+					  xcenter, ycenter,
+					  xright - 1, ycenter);
+				XDrawLine(display, drawable, gc,
+					  (xcenter + xright) / 2, ycenter,
+					  (xcenter + xright) / 2, ybottom - 1);
+				drawn = TRUE;
+				break;
 			case 99:  /* c */
+				xcenter--;
+				ycenter--;
+				xright--;
+				ybottom--;
+				/* F */
+				XDrawLine(display, drawable, gc,
+					  x, y,
+					  x, ycenter);
+				XDrawLine(display, drawable, gc,
+					  x, y,
+					  xcenter, y);
+				XDrawLine(display, drawable, gc,
+					  x, (y + ycenter) / 2,
+					  xcenter, (y + ycenter) / 2);
+				/* F */
+				XDrawLine(display, drawable, gc,
+					  xcenter, ycenter,
+					  xcenter, ybottom - 1);
+				XDrawLine(display, drawable, gc,
+					  xcenter, ycenter,
+					  xright - 1, ycenter);
+				XDrawLine(display, drawable, gc,
+					  xcenter, (ycenter + ybottom) / 2,
+					  xright - 1, (ycenter + ybottom) / 2);
+				drawn = TRUE;
+				break;
 			case 100: /* d */
+				xcenter--;
+				ycenter--;
+				xright--;
+				ybottom--;
+				/* C */
+				XDrawLine(display, drawable, gc,
+					  x, y,
+					  x, ycenter);
+				XDrawLine(display, drawable, gc,
+					  x, y,
+					  xcenter, y);
+				XDrawLine(display, drawable, gc,
+					  x, ycenter,
+					  xcenter, ycenter);
+				/* R */
+				XDrawLine(display, drawable, gc,
+					  xcenter, ycenter,
+					  xcenter, ybottom - 1);
+				XDrawLine(display, drawable, gc,
+					  xcenter, ycenter,
+					  xright - 1, ycenter);
+				XDrawLine(display, drawable, gc,
+					  xright - 1, ycenter,
+					  xright - 1, (ycenter + ybottom) / 2);
+				XDrawLine(display, drawable, gc,
+					  xright - 1, (ycenter + ybottom) / 2,
+					  xcenter, (ycenter + ybottom) / 2);
+				XDrawLine(display, drawable, gc,
+					  xcenter, (ycenter + ybottom) / 2,
+					  xright - 1, ybottom - 1);
+				drawn = TRUE;
+				break;
 			case 101: /* e */
+				xcenter--;
+				ycenter--;
+				xright--;
+				ybottom--;
+				/* L */
+				XDrawLine(display, drawable, gc,
+					  x, y,
+					  x, ycenter);
+				XDrawLine(display, drawable, gc,
+					  x, ycenter,
+					  xcenter, ycenter);
+				/* F */
+				XDrawLine(display, drawable, gc,
+					  xcenter, ycenter,
+					  xcenter, ybottom - 1);
+				XDrawLine(display, drawable, gc,
+					  xcenter, ycenter,
+					  xright - 1, ycenter);
+				XDrawLine(display, drawable, gc,
+					  xcenter, (ycenter + ybottom) / 2,
+					  xright - 1, (ycenter + ybottom) / 2);
+				drawn = TRUE;
+				break;
 			case 102: /* f */
+				/* litle circle */
+				diamond[0].x = xcenter - 1;
+				diamond[0].y = ycenter;
+				diamond[1].x = xcenter;
+				diamond[1].y = ycenter - 1;
+				diamond[2].x = xcenter + 1;
+				diamond[2].y = ycenter;
+				diamond[3].x = xcenter;
+				diamond[3].y = ycenter + 1;
+				XFillPolygon(display, drawable, gc,
+					     diamond, G_N_ELEMENTS(diamond),
+					     Convex, CoordModeOrigin);
+				drawn = TRUE;
+				break;
 			case 103: /* g */
+				xcenter--;
+				ycenter--;
+				xright--;
+				ybottom--;
+				/* +/- */
+				XDrawLine(display, drawable, gc,
+					  xcenter, (y + ycenter) / 2,
+					  xcenter, (ycenter + ybottom) / 2);
+				XDrawLine(display, drawable, gc,
+					  (x + xcenter) / 2, ycenter,
+					  (xcenter + xright) / 2, ycenter);
+				XDrawLine(display, drawable, gc,
+					  (x + xcenter) / 2,
+					  (ycenter + ybottom) / 2,
+					  (xcenter + xright) / 2,
+					  (ycenter + ybottom) / 2);
+				drawn = TRUE;
+				break;
 			case 104: /* h */
+				xcenter--;
+				ycenter--;
+				xright--;
+				ybottom--;
+				/* N */
+				XDrawLine(display, drawable, gc,
+					  x, y,
+					  x, ycenter);
+				XDrawLine(display, drawable, gc,
+					  x, y,
+					  xcenter, ycenter);
+				XDrawLine(display, drawable, gc,
+					  xcenter, y,
+					  xcenter, ycenter);
+				/* L */
+				XDrawLine(display, drawable, gc,
+					  xcenter, ycenter,
+					  xcenter, ybottom - 1);
+				XDrawLine(display, drawable, gc,
+					  xcenter, ybottom - 1,
+					  xright - 1, ybottom - 1);
+				drawn = TRUE;
+				break;
 			case 105: /* i */
-				g_warning("Alternate character `%lc' not "
-					  "implemented, ignoring.\n",
-					  (wint_t) cell->c);
+				xcenter--;
+				ycenter--;
+				xright--;
+				ybottom--;
+				/* V */
+				XDrawLine(display, drawable, gc,
+					  x, y,
+					  (x + xcenter) / 2, ycenter);
+				XDrawLine(display, drawable, gc,
+					  (x + xcenter) / 2, ycenter,
+					  xcenter, y);
+				/* T */
+				XDrawLine(display, drawable, gc,
+					  xcenter, ycenter,
+					  xright - 1, ycenter);
+				XDrawLine(display, drawable, gc,
+					  (xcenter + xright) / 2, ycenter,
+					  (xcenter + xright) / 2, ybottom - 1);
+				drawn = TRUE;
 				break;
 			case 106: /* j */
 				XFillRectangle(display,
@@ -7234,6 +7645,136 @@ vte_terminal_draw_char(VteTerminal *terminal,
 					       y,
 					       VTE_LINE_WIDTH,
 					       height);
+				drawn = TRUE;
+				break;
+			case 121: /* y */
+				xcenter--;
+				ycenter--;
+				xright--;
+				ybottom--;
+				/* <= */
+				XDrawLine(display, drawable, gc,
+					  xright - 1, y,
+					  x, (y + ycenter) / 2);
+				XDrawLine(display, drawable, gc,
+					  x, (y + ycenter) / 2,
+					  xright - 1, ycenter);
+				XDrawLine(display, drawable, gc,
+					  x, ycenter,
+					  xright - 1, (ycenter + ybottom) / 2);
+				drawn = TRUE;
+				break;
+			case 122: /* z */
+				xcenter--;
+				ycenter--;
+				xright--;
+				ybottom--;
+				/* >= */
+				XDrawLine(display, drawable, gc,
+					  x, y,
+					  xright - 1, (y + ycenter) / 2);
+				XDrawLine(display, drawable, gc,
+					  xright - 1, (y + ycenter) / 2,
+					  x, ycenter);
+				XDrawLine(display, drawable, gc,
+					  xright - 1, ycenter,
+					  x, (ycenter + ybottom) / 2);
+				drawn = TRUE;
+				break;
+			case 123: /* pi */
+				xcenter--;
+				ycenter--;
+				xright--;
+				ybottom--;
+				XDrawLine(display, drawable, gc,
+					  (x + xcenter) / 2 - 1,
+					  (y + ycenter) / 2,
+					  (xright + xcenter) / 2 + 1,
+					  (y + ycenter) / 2);
+				XDrawLine(display, drawable, gc,
+					  (x + xcenter) / 2,
+					  (y + ycenter) / 2,
+					  (x + xcenter) / 2,
+					  (ybottom + ycenter) / 2);
+				XDrawLine(display, drawable, gc,
+					  (xright + xcenter) / 2,
+					  (y + ycenter) / 2,
+					  (xright + xcenter) / 2,
+					  (ybottom + ycenter) / 2);
+				drawn = TRUE;
+				break;
+			case 124:
+				xcenter--;
+				ycenter--;
+				xright--;
+				ybottom--;
+				/* != */
+				XDrawLine(display, drawable, gc,
+					  (x + xcenter) / 2 - 1, ycenter,
+					  (xright + xcenter) / 2 + 1, ycenter);
+				XDrawLine(display, drawable, gc,
+					  (x + xcenter) / 2 - 1,
+					  (ybottom + ycenter) / 2,
+					  (xright + xcenter) / 2 + 1,
+					  (ybottom + ycenter) / 2);
+				XDrawLine(display, drawable, gc,
+					  xright - 1, y + 1,
+					  x + 1, ybottom - 1);
+				drawn = TRUE;
+				break;
+			case 125:
+				xcenter--;
+				ycenter--;
+				xright--;
+				ybottom--;
+				/* British pound.  An "L" with a hyphen. */
+				XDrawLine(display, drawable, gc,
+					  (x + xcenter) / 2,
+					  (y + ycenter) / 2,
+					  (x + xcenter) / 2,
+					  (ycenter + ybottom) / 2);
+				XDrawLine(display, drawable, gc,
+					  (x + xcenter) / 2,
+					  (ycenter + ybottom) / 2,
+					  (xcenter + xright) / 2,
+					  (ycenter + ybottom) / 2);
+				XDrawLine(display, drawable, gc,
+					  x, ycenter,
+					  xcenter + 1, ycenter);
+				drawn = TRUE;
+				break;
+			case 126:
+				xcenter--;
+				ycenter--;
+				xright--;
+				ybottom--;
+				/* short hyphen? */
+				XDrawLine(display, drawable, gc,
+					  xcenter - 1, ycenter,
+					  xcenter + 1, ycenter);
+				drawn = TRUE;
+				break;
+			case 127:
+				xcenter--;
+				ycenter--;
+				xright--;
+				ybottom--;
+				/* A "delete" symbol I saw somewhere. */
+				XDrawLine(display, drawable, gc,
+					  x, ycenter,
+					  xcenter, y);
+				XDrawLine(display, drawable, gc,
+					  xcenter, y,
+					  xright - 1, ycenter);
+				XDrawLine(display, drawable, gc,
+					  xright - 1, ycenter,
+					  xright - 1, ybottom - 1);
+				XDrawLine(display, drawable, gc,
+					  xright - 1, ybottom - 1,
+					  x, ybottom - 1);
+				XDrawLine(display, drawable, gc,
+					  x, ybottom - 1,
+					  x, ycenter);
 				drawn = TRUE;
 				break;
 			default:
@@ -8203,8 +8744,11 @@ vte_terminal_queue_background_update(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->bg_transparent_update_pending = TRUE;
-	terminal->pvt->bg_transparent_update_tag = g_idle_add(vte_terminal_update_transparent,
-								      terminal);
+	terminal->pvt->bg_transparent_update_tag =
+				g_idle_add_full(G_PRIORITY_HIGH,
+						vte_terminal_update_transparent,
+						terminal,
+						NULL);
 }
 
 /* Watch for property change events. */

@@ -20,19 +20,9 @@
 
 * What's missing?
 - Accessibility isn't completed yet.
-- Mouse tracking isn't completed yet.
-- Entries in the termcap file also don't contain the sequences which a terminal
-  is supposed to send to the application when a specific sequence is received
-  (for example, the query-cursor-position control sequence).  This mostly looks
-  like XTerm's DCS command, but there may be others.
-- Most commands specific to Xterm or dtterm are recognized, but very few of
-  their behaviors are implemented.  Luckily, many of them are duplicates of
-  standard termcap behaviors, and because we parse termcap first, they work
-  correctly for "xterm".
-- Portions of the alternate charset support (usually used for line-drawing)
-  aren't done yet, but most of it is.
-- Certain termcap-specific commands aren't implemented yet.  There are enough
-  to run ls, vim, less, and probably emacs and mutt, but more need to be
+- Mouse hilite tracking isn't implemented yet.
+- Most control sequences are recognized, but many aren't implemented.  There
+  are enough to run ls, vim, less, emacs and mutt, but more need to be
   implemented.
 - I'm not sure the widget implementation itself is correct.  There are many
   changes in going from GTK+ 1.2 to 2.0, and examples of the proper way to do

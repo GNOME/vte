@@ -161,16 +161,13 @@ vte_ring_append(VteRing *ring, gpointer data)
 gpointer
 vte_ring_at(VteRing *ring, long position)
 {
-	if (vte_ring_contains(ring, position)) {
-		if (ring->array[position % ring->max] == NULL) {
-			g_error("NULL at %ld(%ld) delta %ld, length %ld.\n",
-				position, position % ring->max,
-				ring->delta, ring->length);
-		}
-		g_assert(ring->array[position % ring->max]);
-		return ring->array[position % ring->max];
+	if (ring->array[position % ring->max] == NULL) {
+		g_error("NULL at %ld(%ld) delta %ld, length %ld.\n",
+			position, position % ring->max,
+			ring->delta, ring->length);
 	}
-	return NULL;
+	g_assert(ring->array[position % ring->max] != NULL);
+	return ring->array[position % ring->max];
 }
 
 gboolean
