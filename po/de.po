@@ -6,33 +6,33 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte HEAD\n"
-"POT-Creation-Date: 2003-05-19 14:33-0400\n"
-"PO-Revision-Date: 2003-01-20 22:57+0100\n"
+"POT-Creation-Date: 2003-05-31 11:29+0200\n"
+"PO-Revision-Date: 2003-05-31 11:29+0200\n"
 "Last-Translator: Christian Neumair <chris@gnome-de.org>\n"
 "Language-Team: German <gnome-de@gnome.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#: src/iso2022.c:736 src/iso2022.c:747 src/iso2022.c:796 src/vte.c:2048
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Zeichen konnten nicht von %s nach %s konvertiert werden."
 
-#: src/iso2022.c:1505
+#: src/iso2022.c:1510
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr ""
+msgstr "Es wurde versucht, die ungültige NRC-Map »%c« zu setzen."
 
-#. See ECMA-35.
-#: src/iso2022.c:1546
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1551
 msgid "Unrecognized identified coding system."
-msgstr ""
+msgstr "Nicht erkanntes, identifiziertes Kodiersystem"
 
-#: src/iso2022.c:1595 src/iso2022.c:1621
+#: src/iso2022.c:1600 src/iso2022.c:1626
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr ""
+msgstr "Es wurde versucht, die ungültige weite NRC-Map »%c« zu setzen."
 
 #: src/pty.c:317
 #, c-format
@@ -42,7 +42,7 @@ msgstr "Fehler beim Hinzufügen von »%s« zur Umgebung, fortfahren."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:877
+#: src/pty.c:880
 #, c-format
 msgid "can not run %s"
 msgstr "%s konnte nicht ausgeführt werden"
@@ -56,96 +56,57 @@ msgstr "Fehler beim Erstellen der Signalweiterleitung."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikat (%s/%s)!"
 
-#: src/vte.c:1430
+#: src/vte.c:1460
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Fehler beim Kompilieren des regulären Ausdrucks »%s«."
 
-#: src/vte.c:5534
+#: src/vte.c:5632
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Unerwartete (Schlüssel?)-Sequenz »%s« erhalten."
 
-#: src/vte.c:6547
+#: src/vte.c:6645
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr "Kein Handler für Kontrollsequenz »%s« definiert."
+msgstr "Kein Handler für Kontrollsequenz »%s« festgelegt."
 
-#: src/vte.c:7293
+#: src/vte.c:7392
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Fehler beim Lesen von Kind: %s."
 
-#: src/vte.c:7449
+#: src/vte.c:7548
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "Fehler (%s) beim Konvertieren der Daten für Kind, wird abgebrochen."
+msgstr "Fehler (%s) beim Konvertieren der Daten für Kind, abgebrochen."
 
-#: src/vte.c:10069
+#: src/vte.c:10180
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr "Fehler beim Lesen der PTY-Größe, Vorgaben werden verwendet: %s."
+msgstr "Fehler beim Ermitteln der PTY-Größe, Vorgaben werden verwendet: %s."
 
-#: src/vte.c:10105
+#: src/vte.c:10216
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Fehler beim Festlegen der PTY-Größe: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14067
-#, fuzzy
+#: src/vte.c:14308
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "g_iconv_open() konnte die Zeichen des Wortes nicht festlegen"
+msgstr "_vte_conv_open() konnte die Zeichen des Wortes nicht festlegen"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:642
+#: src/vteapp.c:680
 msgid "Could not open console.\n"
-msgstr ""
+msgstr "Konsole konnte nicht geöffnet werden.\n"
 
-#: src/vteglyph.c:575
+#: src/vteglyph.c:576
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr ""
+msgstr "Unbekannter Pixelmodus %d.\n"
 
-#: src/vtexft.c:664
+#: src/vtexft.c:696
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr ""
-
-#~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
-#~ msgstr ""
-#~ "Schriftsatz »%s« wird verwendet, welchem folgende Zeichensätze fehlen: %s."
-
-#~ msgid ""
-#~ "Failed to load Xft font pattern \"%s\", falling back to default font."
-#~ msgstr ""
-#~ "Laden des Xft-Schriftmusters »%s« fehlgeschlagen, Rückfall zur "
-#~ "vorgegebenen Schrift."
-
-#~ msgid "Failed to load default Xft font."
-#~ msgstr "Laden der vorgegebenen Xft-Schrift fehlgeschlagen"
-
-#~ msgid "Failed to load font set \"%s\", falling back to default font."
-#~ msgstr ""
-#~ "Laden des Schriftsatzes »%s« fehlgeschlagen, Rückfall zur vorgegebenen "
-#~ "Schrift."
-
-#~ msgid "Failed to load default font, crashing or behaving abnormally."
-#~ msgstr ""
-#~ "Laden der vorgebenen Schrift fehlgeschlagen, Absturz oder abnormales "
-#~ "Verhalten."
-
-#~ msgid "Error allocating draw, disabling Xft."
-#~ msgstr "Fehler beim Zuweisen der Zeichnung, Xft wird deaktiviert."
-
-#~ msgid "Error allocating context, disabling Pango."
-#~ msgstr "Fehler beim Zuweisen des Kontextes, Pango wird deaktiviert."
-
-#~ msgid "Error allocating layout, disabling Pango."
-#~ msgstr "Fehler beim Zuweisen des Layouts, Pango wird deaktiviert."
-
-#~ msgid "Character 0x%x is undefined, allocating one column."
-#~ msgstr "Zeichen 0x%x ist undefiniert, eine Spalte wird zugewiesen."
-
-#~ msgid "Error allocating Xft font, disabling Xft."
-#~ msgstr "Fehler beim Zuweisen der Xft-Schrift, Xft wird deaktivert."
+msgstr "Zeichen U+%04x konnte nicht gezeichnet werden.\n"
