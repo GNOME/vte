@@ -38,8 +38,8 @@ typedef enum {
 	VTE_DEBUG_PTY		= 1 << 9
 } VteDebugFlags;
 
-void vte_debug_parse_string(const char *string);
-gboolean vte_debug_on(VteDebugFlags flags);
+void _vte_debug_parse_string(const char *string);
+gboolean _vte_debug_on(VteDebugFlags flags);
 
 G_END_DECLS
 

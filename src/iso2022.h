@@ -29,12 +29,13 @@
 
 G_BEGIN_DECLS
 
-struct vte_iso2022 *vte_iso2022_new(void);
-struct vte_iso2022 *vte_iso2022_copy(struct vte_iso2022 *original);
-void vte_iso2022_free(struct vte_iso2022 *p);
-gssize vte_iso2022_substitute(struct vte_iso2022 *state,
-			      gunichar *instring, gssize length,
-			      gunichar *outstring, struct vte_table *specials);
+struct _vte_iso2022 *_vte_iso2022_new(void);
+struct _vte_iso2022 *_vte_iso2022_copy(struct _vte_iso2022 *original);
+void _vte_iso2022_free(struct _vte_iso2022 *p);
+gssize _vte_iso2022_substitute(struct _vte_iso2022 *state,
+			       gunichar *instring, gssize length,
+			       gunichar *outstring,
+			       struct _vte_table *specials);
 
 G_END_DECLS
 

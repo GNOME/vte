@@ -37,14 +37,14 @@ struct _VteRing {
 	glong delta, length, max;
 };
 
-#define vte_ring_contains(__ring, __position) \
+#define _vte_ring_contains(__ring, __position) \
 	((__position >= (__ring)->delta) && \
 	 (__position < (__ring)->delta + (__ring)->length))
-#define vte_ring_delta(__ring) ((__ring)->delta)
-#define vte_ring_length(__ring) ((__ring)->length)
-#define vte_ring_next(__ring) ((__ring)->delta + (__ring)->length)
-#define vte_ring_max(__ring) ((__ring)->max)
-#define vte_ring_at(__ring, __position) \
+#define _vte_ring_delta(__ring) ((__ring)->delta)
+#define _vte_ring_length(__ring) ((__ring)->length)
+#define _vte_ring_next(__ring) ((__ring)->delta + (__ring)->length)
+#define _vte_ring_max(__ring) ((__ring)->max)
+#define _vte_ring_at(__ring, __position) \
 	((__ring)->array[__position % (__ring)->max] ? \
 	 (__ring)->array[__position % (__ring)->max] : \
 	 (g_error("NULL at %ld(->%ld) delta %ld, length %ld, max %ld next %ld" \
@@ -53,18 +53,18 @@ struct _VteRing {
 		  (__ring)->delta, (__ring)->length, (__ring)->max, \
 		  (__ring)->delta + (__ring)->length, \
 		  __LINE__), NULL))
-#define vte_ring_index(__ring, __cast, __position) \
-	(__cast) vte_ring_at(__ring, __position)
+#define _vte_ring_index(__ring, __cast, __position) \
+	(__cast) _vte_ring_at(__ring, __position)
 
-VteRing *vte_ring_new(glong max_elements,
+VteRing *_vte_ring_new(glong max_elements,
 		      VteRingFreeFunc free,
 		      gpointer data);
-VteRing *vte_ring_new_with_delta(glong max_elements, glong delta,
-				 VteRingFreeFunc free, gpointer data);
-void vte_ring_insert(VteRing *ring, glong position, gpointer data);
-void vte_ring_remove(VteRing *ring, glong position, gboolean free_element);
-void vte_ring_append(VteRing *ring, gpointer data);
-void vte_ring_free(VteRing *ring, gboolean free_elements);
+VteRing *_vte_ring_new_with_delta(glong max_elements, glong delta,
+				  VteRingFreeFunc free, gpointer data);
+void _vte_ring_insert(VteRing *ring, glong position, gpointer data);
+void _vte_ring_remove(VteRing *ring, glong position, gboolean free_element);
+void _vte_ring_append(VteRing *ring, gpointer data);
+void _vte_ring_free(VteRing *ring, gboolean free_elements);
 
 G_END_DECLS
 

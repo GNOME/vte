@@ -22,12 +22,12 @@
 #include <glib.h>
 #include "caps.h"
 
-#define ESC VTE_CAP_ESC
-#define CSI VTE_CAP_CSI
-#define ST  VTE_CAP_ST
-#define OSC VTE_CAP_OSC
-#define PM  VTE_CAP_PM
-#define APC VTE_CAP_APC
+#define ESC _VTE_CAP_ESC
+#define CSI _VTE_CAP_CSI
+#define ST  _VTE_CAP_ST
+#define OSC _VTE_CAP_OSC
+#define PM  _VTE_CAP_PM
+#define APC _VTE_CAP_APC
 
 #define ENQ ""
 #define BEL ""
@@ -42,7 +42,7 @@
 
 /* This list combined from the Linux termcap(5) man page, and
  * termcap_&_terminfo by Strang, Mui, and O'Reilly. */
-struct vte_capability_quark vte_terminal_capability_strings[] = {
+struct _vte_capability_quark _vte_terminal_capability_strings[] = {
 	{"!1", TRUE, 0},
 	{"!2", TRUE, 0},
 	{"!3", TRUE, 0},
@@ -362,7 +362,7 @@ struct vte_capability_quark vte_terminal_capability_strings[] = {
 
 /* From some really old XTerm docs we had at the office, and an updated
  * version at Moy, Gildea, and Dickey. */
-struct vte_capability_string vte_xterm_capability_strings[] = {
+struct _vte_capability_string _vte_xterm_capability_strings[] = {
 	{ENQ, "return-terminal-status", 0},
 
 	{ESC " F", "7-bit-controls", 0},
@@ -538,24 +538,24 @@ struct vte_capability_string vte_xterm_capability_strings[] = {
  */
 
 void
-vte_capability_init(void)
+_vte_capability_init(void)
 {
 	unsigned int i;
 	GQuark quark;
-	for (i = 0; i < G_N_ELEMENTS(vte_terminal_capability_strings); i++) {
+	for (i = 0; i < G_N_ELEMENTS(_vte_terminal_capability_strings); i++) {
 		const char *tmp;
-		tmp = vte_terminal_capability_strings[i].capability;
+		tmp = _vte_terminal_capability_strings[i].capability;
 		if (tmp != NULL) {
 			quark = g_quark_from_static_string(tmp);
-			vte_terminal_capability_strings[i].quark = quark;
+			_vte_terminal_capability_strings[i].quark = quark;
 		}
 	}
-	for (i = 0; i < G_N_ELEMENTS(vte_xterm_capability_strings); i++) {
+	for (i = 0; i < G_N_ELEMENTS(_vte_xterm_capability_strings); i++) {
 		const char *tmp;
-		tmp = vte_xterm_capability_strings[i].value;
+		tmp = _vte_xterm_capability_strings[i].value;
 		if (tmp != NULL) {
 			quark = g_quark_from_static_string(tmp);
-			vte_xterm_capability_strings[i].quark = quark;
+			_vte_xterm_capability_strings[i].quark = quark;
 		}
 	}
 }

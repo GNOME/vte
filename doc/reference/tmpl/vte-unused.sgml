@@ -1,3 +1,45 @@
+<!-- ##### SECTION ./tmpl/caps.sgml:Long_Description ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/caps.sgml:See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/caps.sgml:Short_Description ##### -->
+Global structures which contain terminal capability names and Xterm control
+sequence definitions.
+
+
+<!-- ##### SECTION ./tmpl/caps.sgml:Title ##### -->
+caps
+
+
+<!-- ##### SECTION ./tmpl/debug.sgml:Long_Description ##### -->
+<para>
+Functions in libvte will only output debugging information if the library was
+configured with --enable-maintainer-mode.
+</para>
+
+
+<!-- ##### SECTION ./tmpl/debug.sgml:See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/debug.sgml:Short_Description ##### -->
+Facilities for enabling debugging message output from libvte.
+
+
+<!-- ##### SECTION ./tmpl/debug.sgml:Title ##### -->
+debug
+
+
 <!-- ##### SECTION ./tmpl/iso2022.sgml:Long_Description ##### -->
 <para>
 
@@ -39,6 +81,26 @@ Signal marshalers.
 marshal
 
 
+<!-- ##### SECTION ./tmpl/ring.sgml:Long_Description ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/ring.sgml:See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/ring.sgml:Short_Description ##### -->
+
+
+
+<!-- ##### SECTION ./tmpl/ring.sgml:Title ##### -->
+ring
+
+
 <!-- ##### SECTION ./tmpl/table.sgml:Long_Description ##### -->
 <para>
 This control sequence parser uses a tree of tables, similar in design to that
@@ -59,6 +121,26 @@ The tree-of-tables sequence parser.
 
 <!-- ##### SECTION ./tmpl/table.sgml:Title ##### -->
 table
+
+
+<!-- ##### SECTION ./tmpl/termcap.sgml:Long_Description ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/termcap.sgml:See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/termcap.sgml:Short_Description ##### -->
+A set of functions for parsing the system termcap database.
+
+
+<!-- ##### SECTION ./tmpl/termcap.sgml:Title ##### -->
+termcap
 
 
 <!-- ##### SECTION ./tmpl/trie.sgml:Long_Description ##### -->
@@ -82,6 +164,42 @@ The trie sequence parser.
 trie
 
 
+<!-- ##### MACRO VTE_CAP_APC ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### MACRO VTE_CAP_CSI ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### MACRO VTE_CAP_ESC ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### MACRO VTE_CAP_OSC ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### MACRO VTE_CAP_PM ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### MACRO VTE_CAP_ST ##### -->
+<para>
+
+</para>
+
+
 <!-- ##### MACRO VTE_IS_TERMINAL_ERASE_BINDING ##### -->
 <para>
 
@@ -94,6 +212,63 @@ trie
 
 </para>
 
+
+<!-- ##### ENUM VteDebugFlags ##### -->
+<para>
+
+</para>
+
+@VTE_DEBUG_MISC: 
+@VTE_DEBUG_PARSE: 
+@VTE_DEBUG_IO: 
+@VTE_DEBUG_UPDATES: 
+@VTE_DEBUG_EVENTS: 
+@VTE_DEBUG_SIGNALS: 
+@VTE_DEBUG_SELECTION: 
+@VTE_DEBUG_SUBSTITUTION: 
+@VTE_DEBUG_RING: 
+@VTE_DEBUG_PTY: 
+
+<!-- ##### STRUCT VteRing ##### -->
+<para>
+
+</para>
+
+@free: 
+@user_data: 
+@array: 
+@delta: 
+@length: 
+@max: 
+
+<!-- ##### USER_FUNCTION VteRingFreeFunc ##### -->
+<para>
+
+</para>
+
+@freeing: 
+@data: 
+
+<!-- ##### FUNCTION vte_capability_init ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### FUNCTION vte_debug_on ##### -->
+<para>
+
+</para>
+
+@flags: 
+@Returns: 
+
+<!-- ##### FUNCTION vte_debug_parse_string ##### -->
+<para>
+
+</para>
+
+@string: 
 
 <!-- ##### FUNCTION vte_iso2022_free ##### -->
 <para>
@@ -113,6 +288,114 @@ trie
 @outstring: 
 @specials: 
 @Returns: 
+
+<!-- ##### FUNCTION vte_ring_append ##### -->
+<para>
+
+</para>
+
+@ring: 
+@data: 
+
+<!-- ##### FUNCTION vte_ring_at ##### -->
+<para>
+
+</para>
+
+@ring: 
+@Param2: 
+@Returns: 
+@__ring: 
+@__position: 
+
+<!-- ##### FUNCTION vte_ring_contains ##### -->
+<para>
+
+</para>
+
+@ring: 
+@Param2: 
+@Returns: 
+@__ring: 
+@__position: 
+
+<!-- ##### FUNCTION vte_ring_delta ##### -->
+<para>
+
+</para>
+
+@ring: 
+@Returns: 
+@__ring: 
+
+<!-- ##### FUNCTION vte_ring_free ##### -->
+<para>
+
+</para>
+
+@ring: 
+@free_elements: 
+
+<!-- ##### MACRO vte_ring_index ##### -->
+<para>
+
+</para>
+
+@ring: 
+@cast: 
+@position: 
+@__ring: 
+@__cast: 
+@__position: 
+
+<!-- ##### FUNCTION vte_ring_insert ##### -->
+<para>
+
+</para>
+
+@ring: 
+@Param2: 
+@data: 
+@position: 
+
+<!-- ##### FUNCTION vte_ring_length ##### -->
+<para>
+
+</para>
+
+@ring: 
+@Returns: 
+@__ring: 
+
+<!-- ##### FUNCTION vte_ring_new ##### -->
+<para>
+
+</para>
+
+@Param1: 
+@free: 
+@data: 
+@Returns: 
+@max_elements: 
+
+<!-- ##### FUNCTION vte_ring_next ##### -->
+<para>
+
+</para>
+
+@ring: 
+@Returns: 
+@__ring: 
+
+<!-- ##### FUNCTION vte_ring_remove ##### -->
+<para>
+
+</para>
+
+@ring: 
+@Param2: 
+@free_element: 
+@position: 
 
 <!-- ##### FUNCTION vte_table_add ##### -->
 <para>
@@ -167,12 +450,69 @@ trie
 
 @Returns: 
 
+<!-- ##### FUNCTION vte_termcap_find_boolean ##### -->
+<para>
+
+</para>
+
+@termcap: 
+@tname: 
+@cap: 
+@Returns: 
+
+<!-- ##### FUNCTION vte_termcap_find_numeric ##### -->
+<para>
+
+</para>
+
+@termcap: 
+@tname: 
+@cap: 
+@Returns: 
+
+<!-- ##### FUNCTION vte_termcap_find_string ##### -->
+<para>
+
+</para>
+
+@termcap: 
+@tname: 
+@cap: 
+@Returns: 
+
+<!-- ##### FUNCTION vte_termcap_find_string_length ##### -->
+<para>
+
+</para>
+
+@termcap: 
+@tname: 
+@cap: 
+@length: 
+@Returns: 
+
+<!-- ##### FUNCTION vte_termcap_free ##### -->
+<para>
+
+</para>
+
+@termcap: 
+
 <!-- ##### FUNCTION vte_termcap_new ##### -->
 <para>
 
 </para>
 
 @Returns: 
+
+<!-- ##### FUNCTION vte_termcap_strip ##### -->
+<para>
+
+</para>
+
+@termcap: 
+@stripped: 
+@len: 
 
 <!-- ##### FUNCTION vte_terminal_erase_binding_get_type ##### -->
 <para>

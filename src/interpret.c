@@ -40,14 +40,14 @@ int
 main(int argc, char **argv)
 {
 	char *terminal = NULL;
-	struct vte_table *table = NULL;
-	struct vte_termcap *termcap = NULL;
+	struct _vte_table *table = NULL;
+	struct _vte_termcap *termcap = NULL;
 	GByteArray *array = NULL;
 	int i, j;
 	char c;
 	GValue *value;
 	FILE *infile = NULL;
-	struct vte_iso2022 *substitutions, *tmpsubst;
+	struct _vte_iso2022 *substitutions, *tmpsubst;
 	const char *tmp;
 	GQuark quark;
 	GValueArray *values;
@@ -55,7 +55,7 @@ main(int argc, char **argv)
 	gunichar *ubuf;
 	gssize ubuflen, substlen;
 
-	vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
+	_vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
 
 	if (argc < 2) {
 		printf("usage: %s terminal [file]\n", argv[0]);
@@ -75,45 +75,45 @@ main(int argc, char **argv)
 
 	g_type_init();
 	terminal = argv[1];
-	table = vte_table_new();
-	termcap = vte_termcap_new(g_strdup_printf(DATADIR "/" PACKAGE
-						  "/termcap/%s", terminal));
+	table = _vte_table_new();
+	termcap = _vte_termcap_new(g_strdup_printf(DATADIR "/" PACKAGE
+						   "/termcap/%s", terminal));
 	if (termcap == NULL) {
-		termcap = vte_termcap_new("/etc/termcap");
+		termcap = _vte_termcap_new("/etc/termcap");
 	}
 	array = g_byte_array_new();
 
 	for (i = 0;
-	     vte_terminal_capability_strings[i].capability != NULL;
+	     _vte_terminal_capability_strings[i].capability != NULL;
 	     i++) {
 		const char *capability;
 		char *tmp;
-		capability = vte_terminal_capability_strings[i].capability;
-		if (vte_terminal_capability_strings[i].key) {
+		capability = _vte_terminal_capability_strings[i].capability;
+		if (_vte_terminal_capability_strings[i].key) {
 			continue;
 		}
-		tmp = vte_termcap_find_string(termcap, terminal, capability);
+		tmp = _vte_termcap_find_string(termcap, terminal, capability);
 		if ((tmp != NULL) && (strlen(tmp) > 0)) {
-			vte_table_add(table, tmp, strlen(tmp), capability,
-				      g_quark_from_static_string(capability));
+			_vte_table_add(table, tmp, strlen(tmp), capability,
+				       g_quark_from_static_string(capability));
 		}
 		g_free(tmp);
 	}
-	for (i = 0; vte_xterm_capability_strings[i].value != NULL; i++) {
+	for (i = 0; _vte_xterm_capability_strings[i].value != NULL; i++) {
 		const char *code, *value;
-		code = vte_xterm_capability_strings[i].code;
-		value = vte_xterm_capability_strings[i].value;
-		vte_table_add(table, code, strlen(code), value,
-			      g_quark_from_static_string(code));
+		code = _vte_xterm_capability_strings[i].code;
+		value = _vte_xterm_capability_strings[i].value;
+		_vte_table_add(table, code, strlen(code), value,
+			       g_quark_from_static_string(code));
 	}
 
-	substitutions = vte_iso2022_new();
+	substitutions = _vte_iso2022_new();
 
 	while (fread(&c, 1, 1, infile) == 1) {
 		g_byte_array_append(array, &c, 1);
 		for (i = 1; i <= array->len; i++) {
 			ubuf = (gunichar*) g_convert(array->data, i,
-						     vte_table_wide_encoding(),
+						     _vte_table_wide_encoding(),
 						     "UTF-8",
 						     NULL, &ubuflen, &error);
 			if (error != NULL) {
@@ -135,15 +135,15 @@ main(int argc, char **argv)
 				g_clear_error(&error);
 				continue;
 			}
-			tmpsubst = vte_iso2022_copy(substitutions);
-			substlen = vte_iso2022_substitute(tmpsubst,
-							  ubuf,
-							  ubuflen / sizeof(gunichar),
-							  ubuf,
-							  table);
+			tmpsubst = _vte_iso2022_copy(substitutions);
+			substlen = _vte_iso2022_substitute(tmpsubst,
+							   ubuf,
+							   ubuflen / sizeof(gunichar),
+							   ubuf,
+							   table);
 			if (substlen < 0) {
 				/* Incomplete state-change. */
-				vte_iso2022_free(tmpsubst);
+				_vte_iso2022_free(tmpsubst);
 				g_free(ubuf);
 				continue;
 			}
@@ -151,7 +151,7 @@ main(int argc, char **argv)
 				/* State change. (We gave it more than one
 				 * character, so that one's and all of the
 				 * others have been consumed.) */
-				vte_iso2022_free(substitutions);
+				_vte_iso2022_free(substitutions);
 				substitutions = tmpsubst;
 				while (array->len > 0) {
 					g_byte_array_remove_index(array, 0);
@@ -160,8 +160,8 @@ main(int argc, char **argv)
 				break;
 			}
 
-			vte_table_match(table, ubuf, substlen,
-				        &tmp, NULL, &quark, &values);
+			_vte_table_match(table, ubuf, substlen,
+				         &tmp, NULL, &quark, &values);
 			if (tmp != NULL) {
 				if (strlen(tmp) > 0) {
 					printf("%s(", g_quark_to_string(quark));
@@ -219,9 +219,9 @@ main(int argc, char **argv)
 		fclose(infile);
 	}
 
-	vte_iso2022_free(substitutions);
+	_vte_iso2022_free(substitutions);
 	g_byte_array_free(array, TRUE);
-	vte_termcap_free(termcap);
-	vte_table_free(table);
+	_vte_termcap_free(termcap);
+	_vte_table_free(table);
 	return 0;
 }

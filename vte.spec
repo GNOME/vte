@@ -95,7 +95,7 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 - bind GDK_ISO_Left_Tab to "kB" (part of #70340)
 
 * Tue Aug 27 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.9-1
-- handle forward scrolling again
+- handle forward scrolling again (#73409)
 
 * Tue Aug 27 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.8-1
 - fix crashes on resize

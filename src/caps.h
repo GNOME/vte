@@ -27,33 +27,33 @@
 
 G_BEGIN_DECLS
 
-#define VTE_CAP_ESC "\033"		/* Escape */
-#define VTE_CAP_CSI VTE_CAP_ESC "["	/* Control Sequence Introducer */
-#define VTE_CAP_ST  VTE_CAP_ESC "\\"	/* String Terminator */
-#define VTE_CAP_OSC VTE_CAP_ESC "]"	/* Operating System Command */
-#define VTE_CAP_PM  VTE_CAP_ESC "^"	/* Privacy Message */
-#define VTE_CAP_APC VTE_CAP_ESC "_"	/* Application Program Command */
+#define _VTE_CAP_ESC "\033"		/* Escape */
+#define _VTE_CAP_CSI _VTE_CAP_ESC "["	/* Control Sequence Introducer */
+#define _VTE_CAP_ST  _VTE_CAP_ESC "\\"	/* String Terminator */
+#define _VTE_CAP_OSC _VTE_CAP_ESC "]"	/* Operating System Command */
+#define _VTE_CAP_PM  _VTE_CAP_ESC "^"	/* Privacy Message */
+#define _VTE_CAP_APC _VTE_CAP_ESC "_"	/* Application Program Command */
 
 /* A NULL-terminated list of capability strings which have string values,
  * which means they're either key sequences or commands. */
-struct vte_capability_quark {
+struct _vte_capability_quark {
 	const char *capability;
 	gboolean key;
 	GQuark quark;
 };
-struct vte_capability_string {
+struct _vte_capability_string {
 	const char *code, *value;
 	GQuark quark;
 };
 
 /* The known capability strings in termcap entries, terminated by NULLs. */
-extern struct vte_capability_quark vte_terminal_capability_strings[];
+extern struct _vte_capability_quark _vte_terminal_capability_strings[];
 
 /* The xterm-specific terminal control strings, terminated by NULLs. */
-extern struct vte_capability_string vte_xterm_capability_strings[];
+extern struct _vte_capability_string _vte_xterm_capability_strings[];
 
 /* Initialize the Quarks in the various tables. */
-void vte_capability_init(void);
+void _vte_capability_init(void);
 
 G_END_DECLS
 

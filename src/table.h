@@ -25,29 +25,29 @@
 
 #include <glib-object.h>
 
-struct vte_table;
+struct _vte_table;
 
 /* Create an empty, one-level table. */
-struct vte_table *vte_table_new(void);
-void vte_table_free(struct vte_table *table);
+struct _vte_table *_vte_table_new(void);
+void _vte_table_free(struct _vte_table *table);
 
 /* Add a string to the matching tree. */
-void vte_table_add(struct vte_table *table,
-		   const unsigned char *pattern, gssize length,
-		   const char *result, GQuark quark);
+void _vte_table_add(struct _vte_table *table,
+		    const unsigned char *pattern, gssize length,
+		    const char *result, GQuark quark);
 
 /* Check if a string matches something in the tree. */
-const char *vte_table_match(struct vte_table *table,
-			    const gunichar *pattern, gssize length,
-			    const char **res, const gunichar **consumed,
-			    GQuark *quark, GValueArray **array);
+const char *_vte_table_match(struct _vte_table *table,
+			     const gunichar *pattern, gssize length,
+			     const char **res, const gunichar **consumed,
+			     GQuark *quark, GValueArray **array);
 /* Dump out the contents of a tree. */
-void vte_table_print(struct vte_table *table);
+void _vte_table_print(struct _vte_table *table);
 
 /* A gunichar-compatible giconv target, if one can be found. */
-const char *vte_table_wide_encoding(void);
+const char *_vte_table_wide_encoding(void);
 
 /* A single-byte iso-8859-1 giconv target, if one can be found. */
-const char *vte_table_narrow_encoding(void);
+const char *_vte_table_narrow_encoding(void);
 
 #endif

@@ -172,7 +172,7 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text)
 			 * it is. */
 			if ((i == 0) || (attrs.row != row)) {
 #ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_MISC)) {
+				if (_vte_debug_on(VTE_DEBUG_MISC)) {
 					fprintf(stderr, "Row %d/%ld begins at "
 						"%d.\n",
 						priv->snapshot_linebreaks->len,
@@ -225,7 +225,7 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text)
 		priv->snapshot_caret_invalid = FALSE;
 	}
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_MISC)) {
+	if (_vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "Refreshed accessibility snapshot, "
 			"%ld cells.\n", (long)priv->snapshot_attributes->len);
 	}
@@ -270,7 +270,7 @@ vte_terminal_accessible_invalidate_contents(VteTerminal *terminal,
 	g_return_if_fail(priv != NULL);
 
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_MISC)) {
+	if (_vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "Invalidating accessibility contents.\n");
 	}
 #endif
@@ -291,7 +291,7 @@ vte_terminal_accessible_invalidate_cursor(VteTerminal *terminal, gpointer data)
 	g_return_if_fail(priv != NULL);
 
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_MISC)) {
+	if (_vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "Invalidating accessibility cursor.\n");
 	}
 #endif
@@ -399,7 +399,7 @@ vte_terminal_accessible_get_text(AtkText *text,
 	priv = g_object_get_data(G_OBJECT(text),
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_MISC)) {
+	if (_vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "Getting text from %d to %d of %d.\n",
 			start_offset, end_offset,
 			priv->snapshot_characters->len);
@@ -449,7 +449,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 	terminal = VTE_TERMINAL((GTK_ACCESSIBLE(text))->widget);
 
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_MISC)) {
+	if (_vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "Getting %s %s at %d of %d.\n",
 			(direction == direction_current) ? "this" :
 			((direction == direction_next) ? "next" : "previous"),
@@ -563,7 +563,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 				}
 			}
 #ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_MISC)) {
+			if (_vte_debug_on(VTE_DEBUG_MISC)) {
 				fprintf(stderr, "Character %d is on line %d.\n",
 					offset, line);
 			}
@@ -581,7 +581,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			*end_offset = g_array_index(priv->snapshot_linebreaks,
 						    int, line);
 #ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_MISC)) {
+			if (_vte_debug_on(VTE_DEBUG_MISC)) {
 				fprintf(stderr, "Line runs from %d to %d.\n",
 					*start_offset, *end_offset);
 			}

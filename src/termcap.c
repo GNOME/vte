@@ -34,18 +34,18 @@
 
 #include "debug.h"
 
-struct vte_termcap {
+struct _vte_termcap {
 	char *comment;
-	struct vte_termcap_entry {
+	struct _vte_termcap_entry {
 		char *comment;
 		char *string;
 		gssize length;
-		struct vte_termcap_entry *next;
+		struct _vte_termcap_entry *next;
 	} *entries;
-	struct vte_termcap_alias {
+	struct _vte_termcap_alias {
 		char *name;
-		struct vte_termcap_entry *entry;
-		struct vte_termcap_alias *next;
+		struct _vte_termcap_entry *entry;
+		struct _vte_termcap_alias *next;
 	} *names;
 	GTree *nametree;
 };
@@ -126,12 +126,12 @@ nextline_with_continuation(FILE *fp)
 }
 
 static void
-vte_termcap_add_aliases(struct vte_termcap *termcap,
-			struct vte_termcap_entry *entry,
-			const char *aliases)
+_vte_termcap_add_aliases(struct _vte_termcap *termcap,
+			 struct _vte_termcap_entry *entry,
+			 const char *aliases)
 {
 	gssize l;
-	struct vte_termcap_alias *alias = NULL;
+	struct _vte_termcap_alias *alias = NULL;
 	const char *p;
 
 	for (p = aliases, l = 0; p != NULL; l++) {
@@ -141,7 +141,7 @@ vte_termcap_add_aliases(struct vte_termcap *termcap,
 		if ((aliases[l] == '|') ||
 		   (aliases[l] == ':') ||
 		   (aliases[l] == '\0')) {
-			alias = g_malloc(sizeof(struct vte_termcap_alias));
+			alias = g_malloc(sizeof(struct _vte_termcap_alias));
 			if (alias) {
 				memset(alias, 0, sizeof(*alias));
 				alias->name = g_strndup(p, &aliases[l] - p);
@@ -163,16 +163,16 @@ vte_termcap_add_aliases(struct vte_termcap *termcap,
 }
 
 static void
-vte_termcap_add_entry(struct vte_termcap *termcap, const char *s, gssize length,
-		      char *comment)
+_vte_termcap_add_entry(struct _vte_termcap *termcap,
+		       const char *s, gssize length, char *comment)
 {
-	struct vte_termcap_entry *entry = NULL;
+	struct _vte_termcap_entry *entry = NULL;
 	char *p = NULL;
 	gssize l;
 
-	entry = g_malloc(sizeof(struct vte_termcap_entry));
+	entry = g_malloc(sizeof(struct _vte_termcap_entry));
 	if (entry != NULL) {
-		memset(entry, 0, sizeof(struct vte_termcap_entry));
+		memset(entry, 0, sizeof(struct _vte_termcap_entry));
 		entry->string = g_malloc(length + 1);
 		if (length > 0) {
 			memcpy(entry->string, s, length);
@@ -196,7 +196,7 @@ vte_termcap_add_entry(struct vte_termcap *termcap, const char *s, gssize length,
 			if (p) {
 				strncpy(p, s, l);
 				p[l] = '\0';
-				vte_termcap_add_aliases(termcap, entry, p);
+				_vte_termcap_add_aliases(termcap, entry, p);
 				g_free(p);
 			}
 		}
@@ -204,7 +204,7 @@ vte_termcap_add_entry(struct vte_termcap *termcap, const char *s, gssize length,
 }
 
 static void
-vte_termcap_strip_with_pad(const char *termcap, char **stripped, gssize *len)
+_vte_termcap_strip_with_pad(const char *termcap, char **stripped, gssize *len)
 {
 	char *ret;
 	gssize i, o, length;
@@ -308,7 +308,7 @@ vte_termcap_strip_with_pad(const char *termcap, char **stripped, gssize *len)
 }
 
 /**
- * vte_termcap_strip:
+ * _vte_termcap_strip:
  * @termcap: a termcap structure
  * @stripped: a location to store the new stripped version of the string
  * @len: a location to store the length of the new string
@@ -319,9 +319,9 @@ vte_termcap_strip_with_pad(const char *termcap, char **stripped, gssize *len)
  *
  */
 void
-vte_termcap_strip(const char *termcap, char **stripped, gssize *len)
+_vte_termcap_strip(const char *termcap, char **stripped, gssize *len)
 {
-	vte_termcap_strip_with_pad(termcap, stripped, len);
+	_vte_termcap_strip_with_pad(termcap, stripped, len);
 	while (((*len) > 0) && ((*stripped)[(*len) - 1] == ':')) {
 		(*len)--;
 		(*stripped)[*len] = '\0';
@@ -329,35 +329,35 @@ vte_termcap_strip(const char *termcap, char **stripped, gssize *len)
 }
 
 static gint
-vte_direct_compare(gconstpointer a, gconstpointer b)
+_vte_direct_compare(gconstpointer a, gconstpointer b)
 {
 	return GPOINTER_TO_INT(a) - GPOINTER_TO_INT(b);
 }
 
-TERMCAP_MAYBE_STATIC struct vte_termcap *
-vte_termcap_new(const char *filename)
+TERMCAP_MAYBE_STATIC struct _vte_termcap *
+_vte_termcap_new(const char *filename)
 {
 	FILE *fp;
 	char *s, *stripped, *comment = NULL;
-	struct vte_termcap *ret = NULL;
+	struct _vte_termcap *ret = NULL;
 	fp = fopen(filename, "r");
 	if (fp != NULL) {
 		while ((s = nextline_with_continuation(fp)) != NULL) {
 			gssize slen;
 			if ((s[0] != '#') && (isprint(s[0]))) {
 				if (ret == NULL) {
-					ret = g_malloc(sizeof(struct vte_termcap));
+					ret = g_malloc(sizeof(struct _vte_termcap));
 					if (ret == NULL) {
 						return NULL;
 					}
-					memset(ret, 0, sizeof(struct vte_termcap));
-					ret->nametree = g_tree_new(vte_direct_compare);
+					memset(ret, 0, sizeof(struct _vte_termcap));
+					ret->nametree = g_tree_new(_vte_direct_compare);
 				}
 				stripped = NULL;
-				vte_termcap_strip_with_pad(s, &stripped, &slen);
+				_vte_termcap_strip_with_pad(s, &stripped, &slen);
 				if (stripped) {
-					vte_termcap_add_entry(ret, stripped,
-							      slen, comment);
+					_vte_termcap_add_entry(ret, stripped,
+							       slen, comment);
 					comment = NULL;
 					g_free(stripped);
 				}
@@ -393,17 +393,17 @@ vte_termcap_new(const char *filename)
 }
 
 /**
- * vte_termcap_free:
+ * _vte_termcap_free:
  * @termcap: the structure to be freed
  *
  * Frees the indicated structure.
  *
  */
 TERMCAP_MAYBE_STATIC void
-vte_termcap_free(struct vte_termcap *termcap)
+_vte_termcap_free(struct _vte_termcap *termcap)
 {
-	struct vte_termcap_entry *entry, *nextentry;
-	struct vte_termcap_alias *alias, *nextalias;
+	struct _vte_termcap_entry *entry, *nextentry;
+	struct _vte_termcap_alias *alias, *nextalias;
 	for (entry = termcap->entries; entry != NULL; entry = nextentry) {
 		nextentry = entry->next;
 		g_free(entry->comment);
@@ -426,11 +426,11 @@ vte_termcap_free(struct vte_termcap *termcap)
 }
 
 static const char *
-vte_termcap_find_l(struct vte_termcap *termcap, const char *tname, gssize len,
-		   const char *cap)
+_vte_termcap_find_l(struct _vte_termcap *termcap, const char *tname, gssize len,
+		    const char *cap)
 {
 	const char *ret;
-	struct vte_termcap_alias *alias;
+	struct _vte_termcap_alias *alias;
 	char ttname[len + 1];
 	gssize clen;
 
@@ -501,17 +501,17 @@ vte_termcap_find_l(struct vte_termcap *termcap, const char *tname, gssize len,
 				char *end;
 				end = strchr(ret + clen + 1, ':');
 				if (end != NULL) {
-					t = vte_termcap_find_l(termcap,
-							       ret + clen + 1,
-							       end -
-							       (ret + clen + 1),
-							       cap);
+					t = _vte_termcap_find_l(termcap,
+							        ret + clen + 1,
+							        end -
+							        (ret + clen + 1),
+							        cap);
 				} else {
-					t = vte_termcap_find_l(termcap,
-							       ret + clen + 1,
-							       strlen(ret +
-								      clen + 1),
-							       cap);
+					t = _vte_termcap_find_l(termcap,
+							        ret + clen + 1,
+							        strlen(ret +
+								       clen + 1),
+							        cap);
 				}
 				if ((t != NULL) && (t[0] != '\0')) {
 					return t;
@@ -524,15 +524,15 @@ vte_termcap_find_l(struct vte_termcap *termcap, const char *tname, gssize len,
 }
 
 static const char *
-vte_termcap_find(struct vte_termcap *termcap,
-		 const char *tname, const char *cap)
+_vte_termcap_find(struct _vte_termcap *termcap,
+		  const char *tname, const char *cap)
 {
 	g_return_val_if_fail(termcap != NULL, "");
-	return vte_termcap_find_l(termcap, tname, strlen(tname), cap);
+	return _vte_termcap_find_l(termcap, tname, strlen(tname), cap);
 }
 
 /**
- * vte_termcap_find_boolean:
+ * _vte_termcap_find_boolean:
  * @termcap: a termcap structure
  * @tname: the name of the terminal type being queried
  * @cap: the name of the capability being queried
@@ -543,12 +543,12 @@ vte_termcap_find(struct vte_termcap *termcap,
  * for it
  */
 TERMCAP_MAYBE_STATIC gboolean
-vte_termcap_find_boolean(struct vte_termcap *termcap, const char *tname,
-			 const char *cap)
+_vte_termcap_find_boolean(struct _vte_termcap *termcap, const char *tname,
+			  const char *cap)
 {
 	const char *val;
 	g_return_val_if_fail(termcap != NULL, FALSE);
-	val = vte_termcap_find(termcap, tname, cap);
+	val = _vte_termcap_find(termcap, tname, cap);
 	if ((val != NULL) && (val[0] != '\0')) {
 		return TRUE;
 	}
@@ -556,7 +556,7 @@ vte_termcap_find_boolean(struct vte_termcap *termcap, const char *tname,
 }
 
 /**
- * vte_termcap_find_numeric:
+ * _vte_termcap_find_numeric:
  * @termcap: a termcap structure
  * @tname: the name of the terminal type being queried
  * @cap: the name of the capability being queried
@@ -567,15 +567,15 @@ vte_termcap_find_boolean(struct vte_termcap *termcap, const char *tname,
  * to a non-zero value for it
  */
 TERMCAP_MAYBE_STATIC long
-vte_termcap_find_numeric(struct vte_termcap *termcap, const char *tname,
-			 const char *cap)
+_vte_termcap_find_numeric(struct _vte_termcap *termcap, const char *tname,
+			  const char *cap)
 {
 	const char *val;
 	char *p;
 	ssize_t l;
 	long ret;
 	g_return_val_if_fail(termcap != NULL, 0);
-	val = vte_termcap_find(termcap, tname, cap);
+	val = _vte_termcap_find(termcap, tname, cap);
 	if ((val != NULL) && (val[0] != '\0')) {
 		l = strlen(cap);
 		ret = strtol(val + l + 1, &p, 0);
@@ -587,7 +587,7 @@ vte_termcap_find_numeric(struct vte_termcap *termcap, const char *tname,
 }
 
 /**
- * vte_termcap_find_string:
+ * _vte_termcap_find_string:
  * @termcap: a termcap structure
  * @tname: the name of the terminal type being queried
  * @cap: the name of the capability being queried
@@ -599,12 +599,12 @@ vte_termcap_find_numeric(struct vte_termcap *termcap, const char *tname,
  * always be freed by the caller.
  */
 TERMCAP_MAYBE_STATIC char *
-vte_termcap_find_string(struct vte_termcap *termcap, const char *tname,
-			const char *cap)
+_vte_termcap_find_string(struct _vte_termcap *termcap, const char *tname,
+			 const char *cap)
 {
 	const char *val, *p;
 	ssize_t l;
-	val = vte_termcap_find(termcap, tname, cap);
+	val = _vte_termcap_find(termcap, tname, cap);
 	if ((val != NULL) && (val[0] != '\0')) {
 		l = strlen(cap);
 		val += (l + 1);
@@ -619,27 +619,27 @@ vte_termcap_find_string(struct vte_termcap *termcap, const char *tname,
 }
 
 /**
- * vte_termcap_find_string_length:
+ * _vte_termcap_find_string_length:
  * @termcap: a termcap structure
  * @tname: the name of the terminal type being queried
  * @cap: the name of the capability being queried
  * @length: the location to store the length of the returned string
  *
  * Checks if the given string capability is defined.  This version of
- * vte_termcap_find_string() properly handles zero bytes in the result.
+ * _vte_termcap_find_string() properly handles zero bytes in the result.
  *
  * Returns: the value of the capability if the terminal type is known and the
  * capability is defined for it, else an empty string.  The return value must
  * always be freed by the caller.
  */
 TERMCAP_MAYBE_STATIC char *
-vte_termcap_find_string_length(struct vte_termcap *termcap, const char *tname,
-			       const char *cap, ssize_t *length)
+_vte_termcap_find_string_length(struct _vte_termcap *termcap, const char *tname,
+			        const char *cap, ssize_t *length)
 {
 	const char *val, *p;
 	char *ret;
 	ssize_t l;
-	val = vte_termcap_find(termcap, tname, cap);
+	val = _vte_termcap_find(termcap, tname, cap);
 	if ((val != NULL) && (val[0] != '\0')) {
 		l = strlen(cap);
 		val += (l + 1);
@@ -730,13 +730,13 @@ main(int argc, char **argv)
 	const char *tc = (argc > 1) ? argv[1] : "linux";
 	const char *cap = (argc > 2) ? argv[2] : "so";
 	char *value;
-	struct vte_termcap *termcap;
-	vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
-	termcap = vte_termcap_new("/etc/termcap");
-	value = vte_termcap_find_string(termcap, tc, cap);
+	struct _vte_termcap *termcap;
+	_vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
+	termcap = _vte_termcap_new("/etc/termcap");
+	value = _vte_termcap_find_string(termcap, tc, cap);
 	printf("%s\n", value);
 	g_free(value);
-	vte_termcap_free(termcap);
+	_vte_termcap_free(termcap);
 	return 0;
 }
 #endif

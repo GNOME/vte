@@ -199,7 +199,7 @@ main(int argc, char **argv)
 	VteReaper *reaper;
 	pid_t p, q;
 
-	vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
+	_vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
 
 	g_type_init();
 	context = g_main_context_default();

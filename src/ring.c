@@ -26,19 +26,19 @@
 
 #ifdef VTE_DEBUG
 static void
-vte_ring_validate(VteRing *ring)
+_vte_ring_validate(VteRing *ring)
 {
 	long i, max;
 	max = ring->delta + ring->length;
 	for (i = ring->delta; i < max; i++) {
-		g_assert(vte_ring_contains(ring, i));
+		g_assert(_vte_ring_contains(ring, i));
 		g_assert(ring->array[i % ring->max] != NULL);
 	}
 }
 #endif
 
 /**
- * vte_ring_new:
+ * _vte_ring_new:
  * @max_elements: the maximum size the new ring will be allowed to reach
  * @free: a #VteRingFreeFunc
  * @data: user data for @free
@@ -50,7 +50,7 @@ vte_ring_validate(VteRing *ring)
  * Returns: a new ring
  */
 VteRing *
-vte_ring_new(glong max_elements, VteRingFreeFunc free, gpointer data)
+_vte_ring_new(glong max_elements, VteRingFreeFunc free, gpointer data)
 {
 	VteRing *ret = g_malloc0(sizeof(VteRing));
 	ret->user_data = data;
@@ -62,17 +62,17 @@ vte_ring_new(glong max_elements, VteRingFreeFunc free, gpointer data)
 }
 
 VteRing *
-vte_ring_new_with_delta(glong max_elements, glong delta,
+_vte_ring_new_with_delta(glong max_elements, glong delta,
 			VteRingFreeFunc free, gpointer data)
 {
 	VteRing *ret;
-	ret = vte_ring_new(max_elements, free, data);
+	ret = _vte_ring_new(max_elements, free, data);
 	ret->delta = delta;
 	return ret;
 }
 
 /**
- * vte_ring_insert:
+ * _vte_ring_insert:
  * @ring: a #VteRing
  * @position: an index
  * @data: the new item
@@ -83,11 +83,11 @@ vte_ring_new_with_delta(glong max_elements, glong delta,
  *
  */
 void
-vte_ring_insert(VteRing *ring, long position, gpointer data)
+_vte_ring_insert(VteRing *ring, long position, gpointer data)
 {
 	long point, i;
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_RING)) {
+	if (_vte_debug_on(VTE_DEBUG_RING)) {
 		fprintf(stderr, "Inserting at position %ld.\n", position);
 		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
 			ring->delta, ring->length, ring->max);
@@ -103,7 +103,7 @@ vte_ring_insert(VteRing *ring, long position, gpointer data)
 		if ((ring->free != NULL) &&
 		    (ring->array[position % ring->max] != NULL)) {
 #ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_RING)) {
+			if (_vte_debug_on(VTE_DEBUG_RING)) {
 				fprintf(stderr, "Freeing item at position "
 					"%ld.\n", position);
 			}
@@ -118,12 +118,12 @@ vte_ring_insert(VteRing *ring, long position, gpointer data)
 			ring->length++;
 		}
 #ifdef VTE_DEBUG
-		if (vte_debug_on(VTE_DEBUG_RING)) {
+		if (_vte_debug_on(VTE_DEBUG_RING)) {
 			fprintf(stderr, " Delta = %ld, Length = %ld, "
 				"Max = %ld.\n",
 				ring->delta, ring->length, ring->max);
 		}
-		vte_ring_validate(ring);
+		_vte_ring_validate(ring);
 #endif
 		return;
 	}
@@ -138,7 +138,7 @@ vte_ring_insert(VteRing *ring, long position, gpointer data)
 	if (ring->length == ring->max) {
 		if (ring->free && ring->array[point % ring->max]) {
 #ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_RING)) {
+			if (_vte_debug_on(VTE_DEBUG_RING)) {
 				fprintf(stderr, "Freeing item at position "
 					"%ld.\n", point);
 			}
@@ -160,16 +160,16 @@ vte_ring_insert(VteRing *ring, long position, gpointer data)
 	ring->array[position % ring->max] = data;
 	ring->length = MIN(ring->length + 1, ring->max);
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_RING)) {
+	if (_vte_debug_on(VTE_DEBUG_RING)) {
 		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
 			ring->delta, ring->length, ring->max);
 	}
-	vte_ring_validate(ring);
+	_vte_ring_validate(ring);
 #endif
 }
 
 /**
- * vte_ring_remove:
+ * _vte_ring_remove:
  * @ring: a #VteRing
  * @position: an index
  * @free_element: TRUE if the item should be freed
@@ -179,11 +179,11 @@ vte_ring_insert(VteRing *ring, long position, gpointer data)
  *
  */
 void
-vte_ring_remove(VteRing *ring, long position, gboolean free)
+_vte_ring_remove(VteRing *ring, long position, gboolean free)
 {
 	long i;
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_RING)) {
+	if (_vte_debug_on(VTE_DEBUG_RING)) {
 		fprintf(stderr, "Removing item at position %ld.\n", position);
 		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
 			ring->delta, ring->length, ring->max);
@@ -192,7 +192,7 @@ vte_ring_remove(VteRing *ring, long position, gboolean free)
 	/* Remove the data at this position. */
 	if (free && ring->array[position % ring->max] && ring->free) {
 #ifdef VTE_DEBUG
-		if (vte_debug_on(VTE_DEBUG_RING)) {
+		if (_vte_debug_on(VTE_DEBUG_RING)) {
 			fprintf(stderr, "Freeing item at position %ld.\n",
 				position);
 		}
@@ -211,16 +211,16 @@ vte_ring_remove(VteRing *ring, long position, gboolean free)
 		ring->length--;
 	}
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_RING)) {
+	if (_vte_debug_on(VTE_DEBUG_RING)) {
 		fprintf(stderr, " Delta = %ld, Length = %ld, Max = %ld.\n",
 			ring->delta, ring->length, ring->max);
 	}
-	vte_ring_validate(ring);
+	_vte_ring_validate(ring);
 #endif
 }
 
 /**
- * vte_ring_append:
+ * _vte_ring_append:
  * @ring: a #VteRing
  * @data: the new item
  *
@@ -229,13 +229,13 @@ vte_ring_remove(VteRing *ring, long position, gboolean free)
  *
  */
 void
-vte_ring_append(VteRing *ring, gpointer data)
+_vte_ring_append(VteRing *ring, gpointer data)
 {
-	vte_ring_insert(ring, ring->delta + ring->length, data);
+	_vte_ring_insert(ring, ring->delta + ring->length, data);
 }
 
 /**
- * vte_ring_free:
+ * _vte_ring_free:
  * @ring: a #VteRing
  * @free_elements: TRUE if items in the ring should be freed
  *
@@ -243,7 +243,7 @@ vte_ring_append(VteRing *ring, gpointer data)
  *
  */
 void
-vte_ring_free(VteRing *ring, gboolean free_elements)
+_vte_ring_free(VteRing *ring, gboolean free_elements)
 {
 	long i;
 	if (free_elements) {
@@ -283,14 +283,14 @@ main(int argc, char **argv)
 		values[i] = i;
 	}
 
-	ring = vte_ring_new(size, scrolled_off, "Lost value %ld.\n");
+	ring = _vte_ring_new(size, scrolled_off, "Lost value %ld.\n");
 	bias = 0;
 	fprintf(stderr, "Initializing.\n");
 	for (i = 0; i + bias <= G_N_ELEMENTS(values); i++) {
 		k = 0;
 		fprintf(stderr, "[%ld] ", i);
 		for (j = 0; j < G_N_ELEMENTS(values); j++) {
-			value = vte_ring_index(ring, long *, j);
+			value = _vte_ring_index(ring, long *, j);
 			if (value) {
 				fprintf(stderr, "%s%ld->%ld",
 					(k > 0) ? ", " : "",
@@ -313,26 +313,26 @@ main(int argc, char **argv)
 		fprintf(stderr, "}\n");
 		if (i == 3) {
 			fprintf(stderr, "Removing item 3.\n");
-			vte_ring_remove(ring, 4, TRUE);
+			_vte_ring_remove(ring, 4, TRUE);
 			bias--;
 		} else
 		if (i == 10) {
 			fprintf(stderr, "Inserting item 7.\n");
-			vte_ring_insert(ring, 7, &lone);
+			_vte_ring_insert(ring, 7, &lone);
 			bias--;
 		} else
 		if (i == 20) {
 			fprintf(stderr, "Inserting item 13.\n");
-			vte_ring_insert(ring, 13, &lone);
+			_vte_ring_insert(ring, 13, &lone);
 			bias--;
 		} else
 		if (i < G_N_ELEMENTS(values)) {
 			fprintf(stderr, "Appending item.\n");
-			vte_ring_append(ring, &values[i + bias]);
+			_vte_ring_append(ring, &values[i + bias]);
 		}
 	}
 
-	vte_ring_free(ring, TRUE);
+	_vte_ring_free(ring, TRUE);
 
 	return 0;
 }

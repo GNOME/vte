@@ -262,7 +262,7 @@ main(int argc, char **argv)
 
 	/* Launch a shell. */
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_MISC)) {
+	if (_vte_debug_on(VTE_DEBUG_MISC)) {
 		vte_terminal_feed(VTE_TERMINAL(widget), message,
 				  strlen(message));
 	}

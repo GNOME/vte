@@ -127,8 +127,8 @@ vte_pty_fork_on_pty(const char *path, char **env_add,
 				    "continuing."), env_add[i]);
 		}
 #ifdef VTE_DEBUG
-		if (vte_debug_on(VTE_DEBUG_MISC) ||
-		    vte_debug_on(VTE_DEBUG_PTY)) {
+		if (_vte_debug_on(VTE_DEBUG_MISC) ||
+		    _vte_debug_on(VTE_DEBUG_PTY)) {
 			fprintf(stderr, "%ld: Set `%s'.\n", (long) getpid(),
 				env_add[i]);
 		}
@@ -172,14 +172,14 @@ vte_pty_set_size(int master, int columns, int rows)
 	size.ws_row = rows ? rows : 24;
 	size.ws_col = columns ? columns : 80;
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_PTY)) {
+	if (_vte_debug_on(VTE_DEBUG_PTY)) {
 		fprintf(stderr, "Setting size on fd %d to (%d,%d).\n",
 			master, columns, rows);
 	}
 #endif
 	ret = ioctl(master, TIOCSWINSZ, &size);
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_PTY)) {
+	if (_vte_debug_on(VTE_DEBUG_PTY)) {
 		if (ret != 0) {
 			fprintf(stderr, "Failed to set size on %d: %s.\n",
 				master, strerror(errno));
@@ -214,14 +214,14 @@ vte_pty_get_size(int master, int *columns, int *rows)
 			*rows = size.ws_row;
 		}
 #ifdef VTE_DEBUG
-		if (vte_debug_on(VTE_DEBUG_PTY)) {
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
 			fprintf(stderr, "Size on fd %d is (%d,%d).\n",
 				master, size.ws_col, size.ws_row);
 		}
 #endif
 	} else {
 #ifdef VTE_DEBUG
-		if (vte_debug_on(VTE_DEBUG_PTY)) {
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
 			fprintf(stderr, "Failed to read size from fd %d.\n",
 				master);
 		}
@@ -238,7 +238,7 @@ vte_pty_ptsname(int master)
 	memset(buf, 0, sizeof(buf));
 	if (ptsname_r(master, buf, sizeof(buf) - 1) == 0) {
 #ifdef VTE_DEBUG
-		if (vte_debug_on(VTE_DEBUG_PTY)) {
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
 			fprintf(stderr, "PTY slave is `%s'.\n", buf);
 		}
 #endif
@@ -248,7 +248,7 @@ vte_pty_ptsname(int master)
 	char *p;
 	if ((p = ptsname(master)) != NULL) {
 #ifdef VTE_DEBUG
-		if (vte_debug_on(VTE_DEBUG_PTY)) {
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
 			fprintf(stderr, "PTY slave is `%s'.\n", p);
 		}
 #endif
@@ -258,7 +258,7 @@ vte_pty_ptsname(int master)
 	int pty = 0;
 	if (ioctl(master, TIOCGPTN, &pty) == 0) {
 #ifdef VTE_DEBUG
-		if (vte_debug_on(VTE_DEBUG_PTY)) {
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
 			fprintf(stderr, "PTY slave is `/dev/pts/%d'.\n", pty);
 		}
 #endif
@@ -311,7 +311,7 @@ vte_pty_open_unix98(pid_t *child, char **env_add,
 	/* Attempt to open the master. */
 	fd = vte_pty_getpt();
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_PTY)) {
+	if (_vte_debug_on(VTE_DEBUG_PTY)) {
 		fprintf(stderr, "Allocated pty on fd %d.\n", fd);
 	}
 #endif
@@ -321,7 +321,7 @@ vte_pty_open_unix98(pid_t *child, char **env_add,
 		    (vte_pty_grantpt(fd) != 0) ||
 		    (vte_pty_unlockpt(fd) != 0)) {
 #ifdef VTE_DEBUG
-			if (vte_debug_on(VTE_DEBUG_PTY)) {
+			if (_vte_debug_on(VTE_DEBUG_PTY)) {
 				fprintf(stderr, "PTY setup failed, bailing.\n");
 			}
 #endif
@@ -381,7 +381,7 @@ vte_pty_open(pid_t *child, char **env_add,
 					      columns, rows);
 	}
 #ifdef VTE_DEBUG
-	if (vte_debug_on(VTE_DEBUG_PTY)) {
+	if (_vte_debug_on(VTE_DEBUG_PTY)) {
 		fprintf(stderr, "Returning ptyfd = %d.\n", ret);
 	}
 #endif
@@ -395,7 +395,7 @@ main(int argc, char **argv)
 	pid_t child;
 	int fd;
 	char c;
-	vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
+	_vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
 	fd = vte_pty_open(&child, NULL, "/usr/bin/tty", NULL, 0, 0);
 	g_print("Child pid is %d.\n", (int)child);
 	while(read(fd, &c, 1) == 1) {

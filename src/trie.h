@@ -28,19 +28,19 @@
 
 G_BEGIN_DECLS
 
-struct vte_trie;
+struct _vte_trie;
 
 /* Create a new trie structure. */
-struct vte_trie *vte_trie_new(void);
+struct _vte_trie *_vte_trie_new(void);
 
 /* Free a trie structure. */
-void vte_trie_free(struct vte_trie *trie);
+void _vte_trie_free(struct _vte_trie *trie);
 
 /* Add a string to the trie, along with its associated result and an optional
  * Quark to store with it. */
-void vte_trie_add(struct vte_trie *trie,
-		  const char *pattern, size_t length,
-		  const char *result, GQuark quark);
+void _vte_trie_add(struct _vte_trie *trie,
+		   const char *pattern, size_t length,
+		   const char *result, GQuark quark);
 
 /* See if a given pattern of a given length is in the trie.  The result is
  * returned both as the result of the function, and in the pointer res (if
@@ -49,21 +49,21 @@ void vte_trie_add(struct vte_trie *trie,
  * empty string is returned for the answer.  If no match is found, and the
  * passed-in string can not be an initial substring of one of the strings in
  * the trie, then NULL is returned. */
-const char *vte_trie_match(struct vte_trie *trie,
-			   const gunichar *pattern, size_t length,
-			   const char **res,
-			   const gunichar **consumed,
-			   GQuark *quark,
-			   GValueArray **array);
+const char *_vte_trie_match(struct _vte_trie *trie,
+			    const gunichar *pattern, size_t length,
+			    const char **res,
+			    const gunichar **consumed,
+			    GQuark *quark,
+			    GValueArray **array);
 
 /* Print the contents of the trie (mainly for diagnostic purposes). */
-void vte_trie_print(struct vte_trie *trie);
+void _vte_trie_print(struct _vte_trie *trie);
 
 /* A gunichar-compatible giconv target, if one can be found. */
-const char *vte_trie_wide_encoding(void);
+const char *_vte_trie_wide_encoding(void);
 
 /* A single-byte iso-8859-1 giconv target, if one can be found. */
-const char *vte_trie_narrow_encoding(void);
+const char *_vte_trie_narrow_encoding(void);
 
 G_END_DECLS
 
