@@ -1,0 +1,5 @@
+#
+#  Sample text from Ken Lunde's [4mCJKV Information Processing[m.
+#
+ISO-2022-JP/156: かな漢字
+ISO-2022-KR/158: 1hD!
