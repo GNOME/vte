@@ -7,7 +7,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2003-05-19 14:33-0400\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2003-12-28 21:52+0000\n"
 "PO-Revision-Date: 2003-02-10 19:53+0200\n"
 "Last-Translator: Arman Aksoy (Armish) <armish@linux-sevenler.de>\n"
 "Language-Team: Turkish <gnome-turk@gnome.org>\n"
@@ -15,27 +16,27 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2072
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Karakterlerde %s -> %s dönüşümü yapılamıyor."
 
-#: src/iso2022.c:1505
+#: src/iso2022.c:1578
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr ""
 
-#. See ECMA-35.
-#: src/iso2022.c:1546
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1619
 msgid "Unrecognized identified coding system."
 msgstr ""
 
-#: src/iso2022.c:1595 src/iso2022.c:1621
+#: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr ""
 
-#: src/pty.c:317
+#: src/pty.c:323
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Çevreye '%s' eklenirken bir hata oluştu, devam ediliyor."
@@ -43,7 +44,7 @@ msgstr "Çevreye '%s' eklenirken bir hata oluştu, devam ediliyor."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:877
+#: src/pty.c:908
 #, c-format
 msgid "can not run %s"
 msgstr "%s çalıştırılamadı"
@@ -57,58 +58,58 @@ msgstr "Sinyal borusu oluştururken hata"
 msgid "Duplicate (%s/%s)!"
 msgstr "Çift (%s/%s)!"
 
-#: src/vte.c:1430
+#: src/vte.c:1480
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Düzenli ifade yorumlanırken hata: \"%s\"."
 
-#: src/vte.c:5534
+#: src/vte.c:5815
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Anlaşılamayan klavye girdisi '%s'"
 
-#: src/vte.c:6547
+#: src/vte.c:6893
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "`%s' kontrol dizisi için işlemci tanımlanmamış."
 
-#: src/vte.c:7293
+#: src/vte.c:7714
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Oğul süreçten okunurken hata: %s"
 
-#: src/vte.c:7449
+#: src/vte.c:7870
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Bir hata oluştu (%s)"
 
-#: src/vte.c:10069
+#: src/vte.c:10537
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "PTY boyutu okunamadı, öntanımlı değer kullanılıyor: %s"
 
-#: src/vte.c:10105
+#: src/vte.c:10573
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTY boyutu tanımlanamadı: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14067
+#: src/vte.c:14977
 #, fuzzy
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "g_iconv_open() komutunda bir hata oluştu"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:642
+#: src/vteapp.c:713
 msgid "Could not open console.\n"
 msgstr ""
 
-#: src/vteglyph.c:575
+#: src/vteglyph.c:576
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr ""
 
-#: src/vtexft.c:664
+#: src/vtexft.c:710
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr ""
