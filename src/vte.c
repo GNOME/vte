@@ -45,6 +45,9 @@
 #include "termcap.h"
 #include "trie.h"
 #include "vte.h"
+#ifdef HAVE_XFT
+#include <X11/Xft/Xft.h>
+#endif
 
 #define VTE_TAB_WIDTH 8
 
@@ -1480,6 +1483,28 @@ vte_sequence_handler_normal_keypad(VteTerminal *terminal,
 	terminal->keypad = VTE_KEYPAD_NORMAL;
 }
 
+/* Move the cursor. */
+static void
+vte_sequence_handler_character_position_absolute(VteTerminal *terminal,
+						 const char *match,
+						 GQuark match_quark,
+						 GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	vte_sequence_handler_offset(terminal, match, match_quark, params,
+				    -1, vte_sequence_handler_ch);
+}
+static void
+vte_sequence_handler_line_position_absolute(VteTerminal *terminal,
+					    const char *match,
+					    GQuark match_quark,
+					    GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	vte_sequence_handler_offset(terminal, match, match_quark, params,
+				    -1, vte_sequence_handler_cv);
+}
+
 /* Set certain terminal attributes. */
 static void
 vte_sequence_handler_decset(VteTerminal *terminal,
@@ -2058,7 +2083,8 @@ static struct {
 	{"reverse-index", vte_sequence_handler_reverse_index},
         {"iso8859-1-character-set", vte_sequence_handler_iso8859_1},
 	{"utf-8-character-set", vte_sequence_handler_utf_8},
-
+        {"character-position-absolute", vte_sequence_handler_character_position_absolute},
+        {"line-position-absolute", vte_sequence_handler_line_position_absolute},
 };
 
 /* Create the basic widget.  This more or less creates and initializes a
@@ -2117,7 +2143,10 @@ vte_terminal_set_default_palette(VteTerminal *terminal)
 		color.blue = bright + blue;
 
 		if (XAllocColor(display, colormap, &color)) {
-			terminal->palette[i] = color.pixel;
+			terminal->palette[i].red = color.red;
+			terminal->palette[i].green = color.green;
+			terminal->palette[i].blue = color.blue;
+			terminal->palette[i].pixel = color.pixel;
 		}
 	}
 	terminal->palette_initialized = TRUE;
@@ -3216,14 +3245,25 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	VteTerminal *terminal = NULL;
 	struct _VteScreen *screen;
 	Display *display;
-	Drawable drawable;
 	GdkDrawable *gdrawable;
+	Drawable drawable;
 	GC gc;
 	struct vte_charcell *cell;
 	int row, drow, col, dcol, row_stop, col_stop, x_offs = 0, y_offs = 0;
 	int fore, back, width, height, ascent, descent;
 	long delta;
 	XwcTextItem textitem;
+#ifdef HAVE_XFT
+	GdkColormap *gcolormap;
+	Colormap colormap;
+	GdkVisual *gvisual;
+	Visual *visual;
+	XftFont *ftfont;
+	XftDraw *ftdraw;
+	XftColor ftcolor;
+	XRenderColor rcolor;
+	gboolean use_xft;
+#endif
 
 	/* Make a few sanity checks. */
 	g_return_if_fail(widget != NULL);
@@ -3245,6 +3285,40 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	drawable = gdk_x11_drawable_get_xid(gdrawable);
 	gc = XCreateGC(display, drawable, 0, NULL);
 
+#ifdef HAVE_XFT
+	use_xft = FALSE;
+	if (getenv("VTE_USE_XFT") != NULL) {
+		if (atol(getenv("VTE_USE_XFT")) > 0) {
+			use_xft = TRUE;
+		}
+	}
+	if (use_xft) {
+		gcolormap = gdk_drawable_get_colormap(widget->window);
+		colormap = gdk_x11_colormap_get_xcolormap(gcolormap);
+		gvisual = gtk_widget_get_visual(widget);
+		visual = gdk_x11_visual_get_xvisual(gvisual);
+		/* FIXME: do this when we change the font, to avoid the
+		 * need to do this for each repaint. */
+		ftfont = XftFontOpen(display,
+				     gdk_x11_get_default_screen(),
+				     XFT_FAMILY, XftTypeString, "mono",
+				     XFT_SIZE, XftTypeDouble, 14.0,
+				     0);
+		if (ftfont == NULL) {
+			g_warning("Error allocating font, disabling Xft.");
+			use_xft = FALSE;
+		}
+		ftdraw = XftDrawCreate(display,
+				       drawable,
+				       visual,
+				       colormap);
+		if (ftdraw == NULL) {
+			g_warning("Error allocating draw, disabling Xft.");
+			use_xft = FALSE;
+		}
+	}
+#endif
+
 	/* Keep local copies of rendering information. */
 	width = terminal->char_width;
 	height = terminal->char_height;
@@ -3252,17 +3326,15 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	descent = terminal->char_descent;
 	delta = screen->delta;
 
-#if 1
 	/* Paint the background for this area, using a filled rectangle.  We
 	 * have to do this even when the GDK background matches, otherwise
 	 * we may miss character removals before an area is re-exposed. */
-	XSetForeground(display, gc, terminal->palette[0]);
+	XSetForeground(display, gc, terminal->palette[0].pixel);
 	XFillRectangle(display, drawable, gc,
 		       area->x - x_offs,
 		       area->y - y_offs,
 		       area->width,
 		       area->height);
-#endif
 
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */
@@ -3323,22 +3395,62 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 				/* Paint the background for the cell. */
 				XSetForeground(display, gc,
-					       terminal->palette[back]);
+					       terminal->palette[back].pixel);
 				XFillRectangle(display, drawable, gc,
 					       col * width - x_offs,
 					       row * height - y_offs,
 					       cell->columns * width,
 					       height);
-
-				/* Draw the text.  We've handled bold, standout
-				 * and reverse already, but we need to handle
-				 * half, and maybe blink. */
-				XSetForeground(display, gc,
-					       terminal->palette[fore]);
-				XwcDrawText(display, drawable, gc,
-					    col * width - x_offs,
-					    row * height - y_offs + ascent,
-					    &textitem, 1);
+#if HAVE_XFT
+				if (use_xft) {
+					/* FIXME: save the colors when we do
+					 * palette initialization. */
+					rcolor.red = terminal->palette[fore].red;
+					rcolor.green = terminal->palette[fore].green;
+					rcolor.blue = terminal->palette[fore].blue;
+					rcolor.alpha = 0xffff;
+					if (XftColorAllocValue(display,
+							       visual,
+							       colormap,
+							       &rcolor,
+							       &ftcolor)) {
+						/* FIXME: need to do the proper
+						 * encoding changes in here if
+						 * wchar_t isn't suitable.
+						 * Also this will probably be
+						 * hideously slow. */
+						XftChar32 ftc;
+						ftc = cell->c;
+						XftDrawString32(ftdraw,
+								&ftcolor,
+								ftfont,
+								col * width -
+								x_offs,
+								row * height -
+								y_offs + ascent,
+								&ftc, 1);
+						XftColorFree(display,
+							     visual,
+							     colormap,
+							     &ftcolor);
+					} else {
+						g_warning("Unable to allocate color, not rendering.");
+					}
+				} else {
+#endif
+					/* Draw the text.  We've handled bold,
+					 * standout and reverse already, but we
+					 * need to handle half, and maybe
+					 * blink, if we decide to be evil. */
+					XSetForeground(display, gc,
+						       terminal->palette[fore].pixel);
+					XwcDrawText(display, drawable, gc,
+						    col * width - x_offs,
+						    row * height - y_offs + ascent,
+						    &textitem, 1);
+#if HAVE_XFT
+				}
+#endif
 				/* FX */
 				if (cell->underline) {
 					XDrawLine(display, drawable, gc,
@@ -3365,8 +3477,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		cell = vte_terminal_find_charcell(terminal, row - delta, col);
 		XSetForeground(display, gc,
 			       cell ?
-			       terminal->palette[cell->fore] :
-			       terminal->palette[screen->defaults.fore]);
+			       terminal->palette[cell->fore].pixel :
+			       terminal->palette[screen->defaults.fore].pixel);
 		XFillRectangle(display, drawable, gc,
 			       col * width - x_offs,
 			       (row - delta) * height - y_offs,
@@ -3376,11 +3488,11 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		 * of the normal color. */
 		if (cell != NULL) {
 			/* Draw the text reversed.  FIXME: handle half, bold,
-			 * standout (isn't that just bold?), blink. */
+			 * standout, blink. */
 			XSetForeground(display, gc,
 				       cell ?
-				       terminal->palette[cell->back] :
-				       terminal->palette[screen->defaults.back]);
+				       terminal->palette[cell->back].pixel :
+				       terminal->palette[screen->defaults.back].pixel);
 			textitem.chars = &cell->c;
 			textitem.nchars = 1;
 			textitem.delta = 0;
@@ -3393,6 +3505,16 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	}
 
 	/* Done with various structures. */
+#ifdef HAVE_XFT
+	if (use_xft) {
+		if (ftdraw != NULL) {
+			XftDrawDestroy(ftdraw);
+		}
+		if (ftfont != NULL) {
+			XftFontClose(display, ftfont);
+		}
+	}
+#endif
 	XFreeGC(display, gc);
 }
 

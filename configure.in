@@ -12,11 +12,23 @@ AC_EGREP_CPP(glibc,
 # AC_SYS_LARGEFILE
 AC_PATH_XTRA
 PKG_CHECK_MODULES(GLIB,[glib-2.0 gobject-2.0])
-PKG_CHECK_MODULES(GTK, [glib-2.0 gobject-2.0 gtk+-2.0])
+PKG_CHECK_MODULES(GTK, [glib-2.0 gobject-2.0 gtk+-2.0 pango])
 AC_DEFINE(G_DISABLE_DEPRECATED,1,[Disable deprecated glib features.])
 AC_DEFINE(GDK_DISABLE_DEPRECATED,1,[Disable deprecated gdk features.])
 AC_DEFINE(GTK_DISABLE_DEPRECATED,1,[Disable deprecated gtk features.])
 AC_CHECK_FUNCS(getpt grantpt unlockpt ptsname ptsname_r)
+
+savelibs="$LIBS"
+LIBS="$GTK_LIBS"
+havexft=0
+AC_CHECK_FUNC(XftDrawString32,havexft=1)
+LIBS="$savelibs"
+if test x$havexft = x1 ; then
+	AC_CHECK_HEADER(X11/Xft/Xft.h,
+			[AC_DEFINE(HAVE_XFT,
+				   1,
+				   [Whether not Xft is available.])])
+fi
 AM_MAINTAINER_MODE
 
 if test x$USE_MAINTAINER_MODE != x ; then

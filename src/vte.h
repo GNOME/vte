@@ -95,7 +95,10 @@ struct _VteTerminal {
 
 	/* Defaults and settings to apply to new input data. */
 	gboolean palette_initialized;
-	unsigned long palette[16];	/* palette of colors we use for drawing
+	struct {
+		guint16 red, green, blue;
+		unsigned long pixel;
+	} palette[16];			/* palette of colors we use for drawing
 					   text */
 
 	/* Metric and sizing data. */
