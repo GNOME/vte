@@ -1572,11 +1572,11 @@ vte_terminal_accessible_get_type(void)
 		parent_accessible_type = atk_object_factory_get_accessible_type(factory);
 		if (!g_type_is_a(parent_accessible_type, GTK_TYPE_ACCESSIBLE)) {
 #ifdef VTE_DEBUG
-			g_warning("Accessibility (%s) is derived from "
+			g_warning("Accessibility (%s) is not derived from "
 				  "%s (GTK_MODULES=gail not set?), "
 				  "deriving from %s instead.\n",
-				  g_type_name(GTK_TYPE_ACCESSIBLE),
 				  g_type_name(parent_accessible_type),
+				  g_type_name(GTK_TYPE_ACCESSIBLE),
 				  g_type_name(GTK_TYPE_ACCESSIBLE));
 #endif
 			/* Fudge it. */
