@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.3.26
+Version: 0.3.27
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -14,7 +14,7 @@ a sample application which places the widget in a terminal window.
 %package devel
 Summary: Files needed for developing applications which use vte.
 Group: Development/Libraries
-Requires: %{name} = %{version}-%{release}
+Requires: %{name} = %{version}-%{release}, gtk2-devel
 
 %description devel
 VTE is an experimental terminal emulator widget.  This package contains
@@ -52,6 +52,9 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Mon Jun 10 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.27-1
+- rework accessibility
+
 * Thu Jun  6 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.26-1
 - don't package up the test program
 - emit "child-exited" signals properly
