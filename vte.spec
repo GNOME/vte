@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.10.19
+Version: 0.10.20
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -96,6 +96,11 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Fri Feb 14 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.20-1
+- don't mix up maintainer mode with debugging mode
+- coalesce data reads to spare the X server from too many small updates (#83472)
+- fix backtab
+
 * Thu Feb 13 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.19-1
 - close descriptor leak
 - skip over fragments correctly when retrieving text and drawing rows
