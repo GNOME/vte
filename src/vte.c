@@ -1262,7 +1262,7 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 {
 	const char *old_codeset;
 	GQuark encoding_quark;
-	GIConv conv;
+	GIConv conv, new_iconv, new_oconvw, new_oconvu;
 	char *ibuf, *obuf, *obufptr;
 	size_t icount, ocount;
 
@@ -1272,35 +1272,58 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 		codeset = nl_langinfo(CODESET);
 	}
 
+	/* Open new conversions. */
+	new_iconv = g_iconv_open("WCHAR_T", codeset);
+	new_oconvw = g_iconv_open(codeset, "WCHAR_T");
+	new_oconvu = g_iconv_open(codeset, "UTF-8");
+	if (new_iconv == ((GIConv) -1)) {
+		g_warning(_("Unable to convert characters from %s to %s."),
+			  codeset, "WCHAR_T");
+		return;
+	}
+	if (new_oconvw == ((GIConv) -1)) {
+		g_warning(_("Unable to convert characters from %s to %s."),
+			  "WCHAR_T", codeset);
+		g_iconv_close(new_iconv);
+		return;
+	}
+	if (new_oconvu == ((GIConv) -1)) {
+		g_warning(_("Unable to convert characters from %s to %s."),
+			  "UTF-8", codeset);
+		g_iconv_close(new_iconv);
+		g_iconv_close(new_oconvw);
+		return;
+	}
+
 	/* Set up the conversion for incoming-to-wchars. */
-	if (terminal->pvt->incoming_conv != NULL) {
+	if (terminal->pvt->incoming_conv != ((GIConv) -1)) {
 		g_iconv_close(terminal->pvt->incoming_conv);
 	}
-	terminal->pvt->incoming_conv = g_iconv_open("WCHAR_T", codeset);
+	terminal->pvt->incoming_conv = new_iconv;
 
 	/* Set up the conversions for wchar/utf-8 to outgoing. */
-	if (terminal->pvt->outgoing_conv_wide != NULL) {
+	if (terminal->pvt->outgoing_conv_wide != ((GIConv) -1)) {
 		g_iconv_close(terminal->pvt->outgoing_conv_wide);
 	}
-	terminal->pvt->outgoing_conv_wide = g_iconv_open(codeset, "WCHAR_T");
+	terminal->pvt->outgoing_conv_wide = new_oconvw;
 
-	if (terminal->pvt->outgoing_conv_utf8 != NULL) {
+	if (terminal->pvt->outgoing_conv_utf8 != ((GIConv) -1)) {
 		g_iconv_close(terminal->pvt->outgoing_conv_utf8);
 	}
-	terminal->pvt->outgoing_conv_utf8 = g_iconv_open(codeset, "UTF-8");
+	terminal->pvt->outgoing_conv_utf8 = new_oconvu;
 
 	/* Set the terminal's encoding to the new value. */
 	encoding_quark = g_quark_from_string(codeset);
 	terminal->pvt->encoding = g_quark_to_string(encoding_quark);
 
 	/* Convert any buffered output bytes. */
-	if (terminal->pvt->n_outgoing > 0) {
+	if ((terminal->pvt->n_outgoing > 0) && (old_codeset != NULL)) {
 		icount = terminal->pvt->n_outgoing;
 		ibuf = terminal->pvt->outgoing;
 		ocount = icount * VTE_UTF8_BPC + 1;
 		obuf = obufptr = g_malloc(ocount);
 		conv = g_iconv_open(codeset, old_codeset);
-		if (conv != ((GIConv)-1)) {
+		if (conv != ((GIConv) -1)) {
 			if (g_iconv(conv, &ibuf, &icount, &obuf, &ocount) == -1) {
 				/* Darn, it failed.  Leave it alone. */
 				g_free(obufptr);
@@ -3055,7 +3078,7 @@ vte_sequence_handler_set_title_int(VteTerminal *terminal,
 			inbuf_len = wcslen((wchar_t*)inbuf) * sizeof(wchar_t);
 			outbuf_len = (inbuf_len * VTE_UTF8_BPC) + 1;
 			outbuf = outbufptr = g_malloc0(outbuf_len);
-			if (conv != ((GIConv)-1)) {
+			if (conv != ((GIConv) -1)) {
 				if (g_iconv(conv, &inbuf, &inbuf_len,
 					    &outbuf, &outbuf_len) == -1) {
 #ifdef VTE_DEBUG
@@ -5509,7 +5532,7 @@ vte_terminal_process_incoming(gpointer data)
 		/* There are leftovers, so convert them back to the terminal's
 		 * old encoding and save them for later. */
 		unconv = g_iconv_open(encoding, "WCHAR_T");
-		if (unconv != ((GIConv)-1)) {
+		if (unconv != ((GIConv) -1)) {
 			icount = sizeof(wchar_t) * (wcount - start);
 			ibuf = (char*) &wbuf[start];
 			ucount = VTE_UTF8_BPC * (wcount - start) + 1;
@@ -8672,6 +8695,10 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->outgoing = NULL;
 	pvt->n_outgoing = 0;
 	pvt->keypad = VTE_KEYPAD_NORMAL;
+	pvt->encoding = NULL;
+	pvt->incoming_conv = (GIConv) -1;
+	pvt->outgoing_conv_wide = (GIConv) -1;
+	pvt->outgoing_conv_utf8 = (GIConv) -1;
 
 	vte_terminal_set_word_chars(terminal, "-a-zA-Z0-9");
 
@@ -8752,6 +8779,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	vte_terminal_set_termcap(terminal, NULL, FALSE);
 	vte_terminal_set_emulation(terminal, NULL);
 	vte_terminal_set_encoding(terminal, NULL);
+	g_assert(terminal->pvt->encoding != NULL);
 	for (i = 0; i < G_N_ELEMENTS(pvt->gxencoding); i++) {
 		pvt->gxencoding[i] = NULL;
 	}
@@ -9083,18 +9111,18 @@ vte_terminal_finalize(GObject *object)
 	terminal->pvt->pty_pid = 0;
 
 	/* Free conversion descriptors. */
-	if (terminal->pvt->incoming_conv != NULL) {
+	if (terminal->pvt->incoming_conv != ((GIConv) -1)) {
 		g_iconv_close(terminal->pvt->incoming_conv);
 	}
-	terminal->pvt->incoming_conv = NULL;
-	if (terminal->pvt->outgoing_conv_wide != NULL) {
+	terminal->pvt->incoming_conv = ((GIConv) -1);
+	if (terminal->pvt->outgoing_conv_wide != ((GIConv) -1)) {
 		g_iconv_close(terminal->pvt->outgoing_conv_wide);
 	}
-	terminal->pvt->outgoing_conv_wide = NULL;
-	if (terminal->pvt->outgoing_conv_utf8 != NULL) {
+	terminal->pvt->outgoing_conv_wide = ((GIConv) -1);
+	if (terminal->pvt->outgoing_conv_utf8 != ((GIConv) -1)) {
 		g_iconv_close(terminal->pvt->outgoing_conv_utf8);
 	}
-	terminal->pvt->outgoing_conv_utf8 = NULL;
+	terminal->pvt->outgoing_conv_utf8 = ((GIConv) -1);
 
 	/* Stop listening for child-exited signals. */
 	g_signal_handlers_disconnect_by_func(vte_reaper_get(),
@@ -11539,7 +11567,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 						sizeof(VteWordCharRange));
 	/* Convert the spec from UTF-8 to a string of wchar_t. */
 	conv = g_iconv_open("WCHAR_T", "UTF-8");
-	if (conv == ((GIConv)-1)) {
+	if (conv == ((GIConv) -1)) {
 		/* Aaargh.  We're screwed. */
 		g_warning(_("g_iconv_open() failed setting word characters"));
 		return;
@@ -11689,6 +11717,7 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	vte_terminal_set_default_attributes(terminal);
 	/* Reset the encoding. */
 	vte_terminal_set_encoding(terminal, NULL);
+	g_assert(terminal->pvt->encoding != NULL);
 	/* Reset selection. */
 	vte_terminal_deselect_all(terminal);
 	/* Reset mouse motion events. */

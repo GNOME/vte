@@ -1,4 +1,9 @@
-2002-07-14  nalin
+2002-07-16  nalin
+	* src/trie.c: Correctly check for g_iconv_open() failure.
+	* src/vte.c (vte_terminal_set_encoding): Try to give a meaningful
+	error when g_iconv_open() fails, even though we're screwed.
+
+2002-07-15  nalin
 	* src/vte.c: wrap the new Xft/fontconfig-specific code in HAVE_XFT
 	* src/vte.c: Revert some changes in how new cells were initialized,
 	removing various cosmetic problems.

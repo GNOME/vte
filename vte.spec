@@ -57,7 +57,13 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
-* Sat Jul 13 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.9-1
+* Tue Jul 16 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.9-1
+- check for iconv failures properly and report them more aggressively
+
+* Mon Jul 15 2002 Nalin Dahyabhai <nalin@redhat.com>
+- cosmetic fixes
+
+* Sat Jul 13 2002 Nalin Dahyabhai <nalin@redhat.com>
 - fix segfaulting during dingus highlighting when the buffer contains non-ASCII
   characters (#67930)
 

@@ -478,16 +478,16 @@ vte_trie_add(struct vte_trie *trie, const char *pattern, size_t length,
 	memset(&state, 0, sizeof(state));
 
 	conv = g_iconv_open("WCHAR_T", "UTF-8");
-	if (conv != NULL) {
-		tpattern = (char*)pattern;
-		g_iconv(conv, &tpattern, &length, &wpattern_end, &wlength);
-		if (length == 0) {
-			wlength = (wpattern_end - wpattern) / sizeof(wchar_t);
-			vte_trie_addx(trie, (wchar_t*)wpattern, wlength,
-				      result, quark, 0);
-		}
-		g_iconv_close(conv);
+	g_assert(conv != ((GIConv) -1));
+
+	tpattern = (char*)pattern;
+	g_iconv(conv, &tpattern, &length, &wpattern_end, &wlength);
+	if (length == 0) {
+		wlength = (wpattern_end - wpattern) / sizeof(wchar_t);
+		vte_trie_addx(trie, (wchar_t*)wpattern, wlength,
+			      result, quark, 0);
 	}
+	g_iconv_close(conv);
 
 	g_free(wpattern);
 }
@@ -891,15 +891,14 @@ convert_mbstowcs(const char *i, size_t ilen,
 	GIConv conv;
 	size_t outlen;
 	conv = g_iconv_open("WCHAR_T", "UTF-8");
-	if (conv != NULL) {
-		memset(o, 0, max_olen);
-		outlen = max_olen;
-		g_iconv(conv, (char**)&i, &ilen, (char**)&o, &outlen);
-		g_iconv_close(conv);
-	}
-	if (olen) {
-		*olen = (max_olen - outlen) / sizeof(wchar_t);
-	}
+	g_assert(conv != ((GIConv) -1));
+
+	memset(o, 0, max_olen);
+	outlen = max_olen;
+	g_iconv(conv, (char**)&i, &ilen, (char**)&o, &outlen);
+	g_iconv_close(conv);
+
+	*olen = (max_olen - outlen) / sizeof(wchar_t);
 }
 
 int

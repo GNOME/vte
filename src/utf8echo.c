@@ -41,7 +41,7 @@ main(int argc, char **argv)
 	}
 
 	conv = g_iconv_open("UTF-8", "WCHAR_T");
-	if (conv == NULL) {
+	if (conv == ((GIConv*) -1)) {
 		return 1;
 	}
 
