@@ -58,7 +58,16 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %defattr(-,root,root)
 %{_datadir}/gtk-doc/html/%{name}
 %{_includedir}/*
-%{_libdir}/%{name}
+%dir %{_libdir}/%{name}
+%{_libdir}/%{name}/decset
+%{_libdir}/%{name}/interpret
+%{_libdir}/%{name}/iso8859mode
+%{_libdir}/%{name}/nativeecho
+%{_libdir}/%{name}/osc
+%{_libdir}/%{name}/slowcat
+%{_libdir}/%{name}/utf8echo
+%{_libdir}/%{name}/utf8mode
+%{_libdir}/%{name}/window
 %{_libdir}/*.a
 %{_libdir}/*.so
 %{_libdir}/pkgconfig/*
