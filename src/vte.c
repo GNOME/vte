@@ -12797,8 +12797,8 @@ vte_terminal_draw_row(VteTerminal *terminal,
 				break;
 			}
 			nstrikethrough = (cell != NULL) ?
-				      (cell->strikethrough != 0) :
-				      FALSE;
+			      		 (cell->strikethrough != 0) :
+					 FALSE;
 			if (nstrikethrough != strikethrough) {
 				break;
 			}

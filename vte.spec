@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.10.3
+Version: 0.10.4
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -64,6 +64,9 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Mon Nov 11 2002 Nalin Dahyabhai <nalin@redhat.com> 0.10.4-1
+- make selection wrap like XTerm
+
 * Thu Nov  7 2002 Nalin Dahyabhai <nalin@redhat.com> 0.10.3-1
 - get selection sorted out, really this time
 
