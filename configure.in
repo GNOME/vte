@@ -45,15 +45,16 @@ savelibs="$LIBS"
 CPPFLAGS="$VTE_CFLAGS $X_CFLAGS $CPPFLAGS"
 LIBS="$VTE_LIBS $X_LIBS"
 AC_CHECK_FUNC(XftDrawString32,[AC_DEFINE(HAVE_XFT,1,[Whether or not Xft is available.])],[AC_MSG_WARN([Xft not detected - performance will suffer])])
+AC_CHECK_FUNCS(XftNameUnparse)
 CPPFLAGS="$savecppflags"
 LIBS="$savelibs"
 
 # Define macros to disable accidental use of deprecated functionality.
-AC_DEFINE(G_DISABLE_DEPRECATED,1,[Disable deprecated glib features.])
-AC_DEFINE(GDK_DISABLE_DEPRECATED,1,[Disable deprecated gdk features.])
+AC_DEFINE(G_DISABLE_DEPRECATED,1,[Disable deprecated GLib features.])
+AC_DEFINE(GDK_DISABLE_DEPRECATED,1,[Disable deprecated GDK features.])
 AC_DEFINE(GDK_PIXBUF_DISABLE_DEPRECATED,1,[Disable deprecated gdk-pixbuf features.])
-AC_DEFINE(GTK_DISABLE_DEPRECATED,1,[Disable deprecated gtk features.])
-AC_DEFINE(PANGO_DISABLE_DEPRECATED,1,[Disable deprecated pango features.])
+AC_DEFINE(GTK_DISABLE_DEPRECATED,1,[Disable deprecated GTK+ features.])
+AC_DEFINE(PANGO_DISABLE_DEPRECATED,1,[Disable deprecated Pango features.])
 
 AC_DEFINE(VTE_UTF8_BPC,6,[Maximum number of bytes used per UTF-8 character.])
 AC_DEFINE_UNQUOTED(PACKAGE,"$PACKAGE",[Package name.])

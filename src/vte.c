@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001,2002 Red Hat, Inc.
+ * Copyright (C) 2001,2002,2003 Red Hat, Inc.
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Library General Public License as published by
@@ -286,6 +286,7 @@ struct _VteTerminalPrivate {
 	gboolean nrc_mode;
 	gboolean smooth_scroll;
 	GHashTable *tabstops;
+	gboolean modified_flag;
 
 	/* Scrolling options. */
 	gboolean scroll_on_output;
@@ -2051,6 +2052,9 @@ vte_sequence_handler_al(VteTerminal *terminal,
 
 	/* Update the display. */
 	vte_terminal_scroll_region(terminal, start, end - start + 1, param);
+
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->modified_flag = TRUE;
 }
 
 /* Add N lines at the current cursor position. */
@@ -2165,6 +2169,9 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 	vte_invalidate_cells(terminal,
 			     0, terminal->column_count,
 			     screen->cursor_current.row, 1);
+
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->modified_flag = TRUE;
 }
 
 /* Clear to the right of the cursor and below the current line. */
@@ -2223,6 +2230,9 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 				     0, terminal->column_count,
 				     i, 1);
 	}
+
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->modified_flag = TRUE;
 }
 
 /* Clear from the cursor position to the end of the line. */
@@ -2253,6 +2263,9 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 	vte_invalidate_cells(terminal,
 			     0, terminal->column_count,
 			     screen->cursor_current.row, 1);
+
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->modified_flag = TRUE;
 }
 
 /* Move the cursor to the given column (horizontal position). */
@@ -2289,6 +2302,9 @@ vte_sequence_handler_cl(VteTerminal *terminal,
 {
 	vte_sequence_handler_clear_screen(terminal, NULL, 0, NULL);
 	vte_sequence_handler_ho(terminal, NULL, 0, NULL);
+
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->modified_flag = TRUE;
 }
 
 /* Move the cursor to the given position. */
@@ -2321,7 +2337,7 @@ vte_sequence_handler_cm(VteTerminal *terminal,
 	}
 }
 
-/* Clear from the current line. */
+/* Clear the current line. */
 static void
 vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 					const char *match,
@@ -2332,6 +2348,7 @@ vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 	VteScreen *screen;
 
 	screen = terminal->pvt->screen;
+
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
 	if (_vte_ring_next(screen->row_data) > screen->cursor_current.row) {
@@ -2352,6 +2369,9 @@ vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 				     0, terminal->column_count,
 				     screen->cursor_current.row, 1);
 	}
+
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->modified_flag = TRUE;
 }
 
 /* Carriage return. */
@@ -2537,6 +2557,9 @@ vte_sequence_handler_dc(VteTerminal *terminal,
 				     0, terminal->column_count,
 				     screen->cursor_current.row, 1);
 	}
+
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->modified_flag = TRUE;
 }
 
 /* Delete N characters at the current cursor position. */
@@ -2589,6 +2612,9 @@ vte_sequence_handler_dl(VteTerminal *terminal,
 
 	/* Update the display. */
 	vte_terminal_scroll_region(terminal, start, end - start + 1, -param);
+
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->modified_flag = TRUE;
 }
 
 /* Delete N lines at the current cursor position. */
@@ -2780,6 +2806,9 @@ vte_sequence_handler_ec(VteTerminal *terminal,
 				     0, terminal->column_count,
 				     screen->cursor_current.row, 1);
 	}
+
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->modified_flag = TRUE;
 }
 
 /* End insert mode. */
@@ -3504,6 +3533,9 @@ vte_sequence_handler_uc(VteTerminal *terminal,
 		/* Move the cursor right. */
 		vte_sequence_handler_nd(terminal, match, match_quark, params);
 	}
+
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->modified_flag = TRUE;
 }
 
 /* Underline end. */
@@ -3592,6 +3624,7 @@ vte_sequence_handler_vb(VteTerminal *terminal,
 			       x_offs, y_offs,
 			       terminal->column_count * terminal->char_width,
 			       terminal->row_count * terminal->char_height);
+
 		gdk_window_process_updates(widget->window, TRUE);
 
 		vte_invalidate_all(terminal);
@@ -3802,6 +3835,8 @@ vte_sequence_handler_clear_above_current(VteTerminal *terminal,
 					     i, 1);
 		}
 	}
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->modified_flag = TRUE;
 }
 
 /* Clear the entire screen. */
@@ -3832,6 +3867,8 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 	vte_terminal_adjust_adjustments(terminal, FALSE);
 	/* Redraw everything. */
 	vte_invalidate_all(terminal);
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->modified_flag = TRUE;
 }
 
 /* Move the cursor to the given column, 1-based. */
@@ -4668,6 +4705,8 @@ vte_sequence_handler_erase_in_display(VteTerminal *terminal,
 	default:
 		break;
 	}
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->modified_flag = TRUE;
 }
 
 /* Erase certain parts of the current line in the display. */
@@ -4708,6 +4747,8 @@ vte_sequence_handler_erase_in_line(VteTerminal *terminal,
 	default:
 		break;
 	}
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->modified_flag = TRUE;
 }
 
 /* Perform a full-bore reset. */
@@ -4774,6 +4815,8 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 	vte_terminal_scroll_region(terminal, row, end - row + 1, param);
 	/* Adjust the scrollbars if necessary. */
 	vte_terminal_adjust_adjustments(terminal, FALSE);
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->modified_flag = TRUE;
 }
 
 /* Delete certain lines from the scrolling region. */
@@ -4821,6 +4864,8 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 	vte_terminal_scroll_region(terminal, row, end - row + 1, -param);
 	/* Adjust the scrollbars if necessary. */
 	vte_terminal_adjust_adjustments(terminal, FALSE);
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->modified_flag = TRUE;
 }
 
 /* Set the terminal encoding. */
@@ -5022,6 +5067,8 @@ vte_sequence_handler_screen_alignment_test(VteTerminal *terminal,
 		vte_g_array_fill(rowdata, &cell, terminal->column_count);
 	}
 	vte_invalidate_all(terminal);
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->modified_flag = TRUE;
 }
 
 /* Perform a soft reset. */
@@ -6724,6 +6771,9 @@ vte_terminal_process_incoming(gpointer data)
 	bbox_bottomright.x = cursor.col + 1; /* Assume it's on a wide char. */
 	bbox_bottomright.y = cursor.row;
 
+	/* We're going to check if the text was modified, so keep a flag. */
+	terminal->pvt->modified_flag = FALSE;
+
 	/* Try initial substrings. */
 	while ((start < wcount) && !leftovers) {
 		/* Try to match any control sequences. */
@@ -6912,12 +6962,17 @@ vte_terminal_process_incoming(gpointer data)
 		vte_terminal_deselect_all(terminal);
 	}
 
-	if (modified || (screen != terminal->pvt->screen)) {
+	if (modified ||
+	    terminal->pvt->modified_flag ||
+	    (screen != terminal->pvt->screen)) {
 		/* Signal that the visible contents changed. */
 		vte_terminal_match_contents_clear(terminal);
 		/* Notify viewers that the contents have changed. */
 		vte_terminal_emit_contents_changed(terminal);
 	}
+
+	/* Reset the text-modified flag. */
+	terminal->pvt->modified_flag = FALSE;
 
 	if ((cursor.col != terminal->pvt->screen->cursor_current.col) ||
 	    (cursor.row != terminal->pvt->screen->cursor_current.row)) {
@@ -9762,7 +9817,7 @@ xlfd_from_pango_font_description(GtkWidget *widget,
 #endif
 
 #ifdef HAVE_XFT
-/* Convert an Xft pattern to a font name. */
+/* Convert an Xft pattern to a font name for displaying to the user. */
 static char *
 vte_unparse_xft_pattern(XftPattern *pattern)
 {
@@ -9770,10 +9825,13 @@ vte_unparse_xft_pattern(XftPattern *pattern)
 	return FcNameUnparse(pattern);
 #else /* !HAVE_XFT2 */
 	char buf[256];
-	if (!XftNameUnparse(pattern, buf, sizeof(buf)-1)) {
-		buf[0] = '\0';
-	}
-	buf[sizeof(buf) - 1] = '\0';
+	const char *family;
+	double size;
+	family = "Unknown";
+	size = 10.0;
+	XftPatternGetString(pattern, XFT_FAMILY, 0, &family);
+	XftPatternGetDouble(pattern, XFT_SIZE, 0, &size);
+	sprintf(buf, "%s %lf", family ? family : "Unknown", size);
 	return strdup(buf);
 #endif /* HAVE_XFT2 */
 }
@@ -10264,7 +10322,6 @@ vte_terminal_open_font_xlib(VteTerminal *terminal)
 	/* Save the new font metrics. */
 	vte_terminal_apply_metrics(terminal, width, height, ascent, descent);
 }
-
 /* Free the Xlib font. */
 static void
 vte_terminal_close_font_xlib(VteTerminal *terminal)
@@ -10989,6 +11046,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->nrc_mode = TRUE;
 	pvt->smooth_scroll = FALSE;
 	pvt->tabstops = NULL;
+	pvt->modified_flag = FALSE;
 	vte_terminal_set_default_tabstops(terminal);
 
 	/* Scrolling options. */
@@ -11512,6 +11570,7 @@ vte_terminal_finalize(GObject *object)
 		g_hash_table_destroy(terminal->pvt->tabstops);
 		terminal->pvt->tabstops = NULL;
 	}
+	terminal->pvt->modified_flag = FALSE;
 
 	/* Free any selected text, but if we currently own the selection,
 	 * throw the text onto the clipboard without an owner so that it
@@ -11828,18 +11887,18 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 /* Try to map some common characters which are frequently missing from fonts
  * to others which look the same and may be there. */
 static XftChar32
-vte_terminal_xft_remap_char(Display *display, XftFont *font, XftChar32 orig)
+vte_terminal_xft_remap_char(Display *display, XftFont *font, XftChar32 origc)
 {
-	XftChar32 new;
+	XftChar32 newc;
 
-	if (XftGlyphExists(display, font, orig)) {
-		return orig;
+	if (XftGlyphExists(display, font, origc)) {
+		return origc;
 	}
 
-	switch (orig) {
+	switch (origc) {
 	case 0:			/* NUL */
 	case 0x00A0:		/* NO-BREAK SPACE */
-		new = 0x0020;	/* SPACE */
+		newc = 0x0020;	/* SPACE */
 		break;
 	case 0x2010:		/* HYPHEN */
 	case 0x2011:		/* NON-BREAKING HYPHEN */
@@ -11847,16 +11906,16 @@ vte_terminal_xft_remap_char(Display *display, XftFont *font, XftChar32 orig)
 	case 0x2013:		/* EN DASH */
 	case 0x2014:		/* EM DASH */
 	case 0x2212:		/* MINUS SIGN */
-		new = 0x002D;	/* HYPHEN-MINUS */
+		newc = 0x002D;	/* HYPHEN-MINUS */
 		break;
 	default:
-		return orig;
+		return origc;
 	}
 
-	if (XftGlyphExists(display, font, new)) {
-		return new;
+	if (XftGlyphExists(display, font, newc)) {
+		return newc;
 	} else {
-		return orig;
+		return origc;
 	}
 }
 #endif
@@ -13555,9 +13614,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 							x_offs,
 							y_offs,
 							ascent, monospaced,
-							terminal->char_width *
-							item.columns,
-							terminal->char_height,
+							width * item.columns,
+							height,
 							display, gdrawable, drawable,
 							colormap, visual, ggc, gc,
 #ifdef HAVE_XFT
@@ -13565,6 +13623,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 #endif
 							layout);
 			}
+			columns = item.columns;
 		} else {
 			/* Determine how wide the cursor is. */
 			columns = 1;

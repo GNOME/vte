@@ -1,6 +1,6 @@
 Name: vte
-Version: 0.10.7
-Release: 2
+Version: 0.10.8
+Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
 Group: User Interface/X
@@ -93,6 +93,11 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Mon Jan  6 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.8-1
+- report changes to the accessibility layer when text is removed or moved
+  around, still needs work
+- don't use XftNameUnparse, it might not always be there
+
 * Fri Dec 13 2002 Nalin Dahyabhai <nalin@redhat.com> 0.10.7-2
 - rebuild
 
