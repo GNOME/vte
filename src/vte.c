@@ -3281,12 +3281,14 @@ vte_terminal_process_incoming(gpointer data)
 			/* Discard the data, we can't use it. */
 			terminal->pvt->n_incoming = 0;
 			g_free(terminal->pvt->incoming);
+			terminal->pvt->incoming;
 			again = FALSE;
 		}
 	} else {
 		/* No leftovers, clean out the data. */
 		terminal->pvt->n_incoming = 0;
 		g_free(terminal->pvt->incoming);
+		terminal->pvt->incoming;
 		again = FALSE;
 	}
 
