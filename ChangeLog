@@ -1,3 +1,7 @@
+2003-03-13  Christian Rose  <menthos@menthos.com>
+
+	* configure.in: Added "ml" to ALL_LINGUAS.
+
 2003-03-04 nalin
 	* src/vte.c(vte_terminal_insert_char): wrap properly when a scrolling
 	region is set (#107559).  From HEAD.

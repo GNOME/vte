@@ -1,0 +1,120 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FSF-India <locale@gnu.org.in>, 2003.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte 0.10.x\n"
+"POT-Creation-Date: 2003-03-10 05:29+0100\n"
+"PO-Revision-Date: 2003-03-05 10:29+0530\n"
+"Last-Translator: FSF-India <locale@gnu.org.in>\n"
+"Language-Team: Malayalam <locale@gnu.org.in>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/pty.c:253
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "%s നെ ചുറ്റുപാടുമായി ചേര്ക്കുന്നതില് പിശക്"
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:800
+#, c-format
+msgid "can not run %s"
+msgstr "%s പ്രവ‌ര്ത്തിപ്പിക്കാന് കഴിയുന്നില്ല"
+
+#: src/reaper.c:107
+#, fuzzy
+msgid "Error creating signal pipe."
+msgstr "രചനാ സൂചിക വായിക്കുന്നതില്‌ പരാജയം"
+
+#: src/trie.c:411
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "തനിപ്പക‍ര്പ്പ് (%s/%s)!"
+
+#: src/vte.c:1433
+#, fuzzy, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "[ഇനങ്ങള്‌]\"%s\" ല്‌ ആരംഭിക്കുന്നു"
+
+#: src/vte.c:1991 src/vte.c:2000 src/vte.c:2012 src/vte.c:2030 src/vte.c:2036
+#: src/vte.c:2041
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr ""
+
+#: src/vte.c:5568
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr ""
+
+#: src/vte.c:6659
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr ""
+
+#: src/vte.c:7403
+#, fuzzy, c-format
+msgid "Error reading from child: %s."
+msgstr "%s വായിക്കുന്നതില്‌ പരാജയം : %s"
+
+#: src/vte.c:7586
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr ""
+
+#: src/vte.c:9937
+#, c-format
+msgid "Using fontset \"%s\", which is missing these character sets: %s."
+msgstr ""
+
+#: src/vte.c:10556
+#, c-format
+msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
+msgstr ""
+
+#: src/vte.c:10568
+#, fuzzy
+msgid "Failed to load default Xft font."
+msgstr "ചിത്ര-വിവരം ലഭിക്കുന്നതില്‌ പരാജയം"
+
+#: src/vte.c:10692
+#, c-format
+msgid "Failed to load font set \"%s\", falling back to default font."
+msgstr ""
+
+#: src/vte.c:10704
+msgid "Failed to load default font, crashing or behaving abnormally."
+msgstr ""
+
+#: src/vte.c:11003
+#, fuzzy, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "PTY വലിപ്പം സജ്ജീകരിക്കുന്നതില് തകരാറ്: %s."
+
+#: src/vte.c:11039
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "PTY വലിപ്പം സജ്ജീകരിക്കുന്നതില് തകരാറ്: %s."
+
+#: src/vte.c:14531
+msgid "Error allocating draw, disabling Xft."
+msgstr ""
+
+#: src/vte.c:14539
+msgid "Error allocating context, disabling Pango."
+msgstr ""
+
+#: src/vte.c:14545
+msgid "Error allocating layout, disabling Pango."
+msgstr ""
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:16350
+msgid "g_iconv_open() failed setting word characters"
+msgstr ""
