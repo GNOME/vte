@@ -703,6 +703,14 @@ vte_terminal_scroll_region(VteTerminal *terminal,
 	    (count == terminal->row_count) &&
 	    (terminal->pvt->scroll_lock_count == 0)) {
 		height = terminal->char_height;
+		
+		/* If we scroll with invalid areas, we will copy
+		 * invalid contents around the screen. So, we must
+		 * handle pending redraws first.
+		 */
+		gdk_window_process_updates (GTK_WIDGET(terminal)->window,
+					    FALSE);
+
 		gdk_window_scroll((GTK_WIDGET(terminal))->window,
 				  0, delta * height);
 		if (delta > 0) {
@@ -2269,6 +2277,9 @@ vte_sequence_handler_al(VteTerminal *terminal,
 		param = g_value_get_long(value);
 	}
 
+	/* Update the display. */
+	vte_terminal_scroll_region(terminal, start, end - start + 1, param);
+
 	/* Insert the right number of lines. */
 	for (i = 0; i < param; i++) {
 		/* Clear a line off the end of the region and add one to the
@@ -2285,9 +2296,6 @@ vte_sequence_handler_al(VteTerminal *terminal,
 		/* Adjust the scrollbars if necessary. */
 		vte_terminal_adjust_adjustments(terminal, FALSE);
 	}
-
-	/* Update the display. */
-	vte_terminal_scroll_region(terminal, start, end - start + 1, param);
 
 	/* We've modified the display.  Make a note of it. */
 	terminal->pvt->text_deleted_count++;
@@ -2905,6 +2913,9 @@ vte_sequence_handler_dl(VteTerminal *terminal,
 		param = g_value_get_long(value);
 	}
 
+	/* Update the display. */
+	vte_terminal_scroll_region(terminal, start, end - start + 1, -param);
+
 	/* Delete the right number of lines. */
 	for (i = 0; i < param; i++) {
 		/* Clear a line off the end of the region and add one to the
@@ -2914,9 +2925,6 @@ vte_sequence_handler_dl(VteTerminal *terminal,
 		/* Adjust the scrollbars if necessary. */
 		vte_terminal_adjust_adjustments(terminal, FALSE);
 	}
-
-	/* Update the display. */
-	vte_terminal_scroll_region(terminal, start, end - start + 1, -param);
 
 	/* We've modified the display.  Make a note of it. */
 	terminal->pvt->text_deleted_count++;
@@ -3868,12 +3876,12 @@ vte_sequence_handler_sr(VteTerminal *terminal,
 	}
 
 	if (screen->cursor_current.row == start) {
+		/* Update the display. */
+		vte_terminal_scroll_region(terminal, start, end - start + 1, 1);
 		/* If we're at the top of the scrolling region, add a
 		 * line at the top to scroll the bottom off. */
 		vte_remove_line_internal(terminal, end);
 		vte_insert_line_internal(terminal, start);
-		/* Update the display. */
-		vte_terminal_scroll_region(terminal, start, end - start + 1, 1);
 		vte_invalidate_cells(terminal,
 				     0, terminal->column_count,
 				     start, 2);
@@ -5420,6 +5428,8 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 	} else {
 		end = screen->insert_delta + terminal->row_count - 1;
 	}
+	/* Update the display. */
+	vte_terminal_scroll_region(terminal, row, end - row + 1, param);
 	/* Insert the new lines at the cursor. */
 	for (i = 0; i < param; i++) {
 		/* Clear a line off the end of the region and add one to the
@@ -5434,8 +5444,6 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 				 &screen->fill_defaults,
 				 terminal->column_count);
 	}
-	/* Update the display. */
-	vte_terminal_scroll_region(terminal, row, end - row + 1, param);
 	/* Adjust the scrollbars if necessary. */
 	vte_terminal_adjust_adjustments(terminal, FALSE);
 	/* We've modified the display.  Make a note of it. */
@@ -5471,6 +5479,8 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 	} else {
 		end = screen->insert_delta + terminal->row_count - 1;
 	}
+	/* Update the display. */
+	vte_terminal_scroll_region(terminal, row, end - row + 1, -param);
 	/* Clear them from below the current cursor. */
 	for (i = 0; i < param; i++) {
 		/* Insert a line at the end of the region and remove one from
@@ -5485,8 +5495,6 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 				 &screen->fill_defaults,
 				 terminal->column_count);
 	}
-	/* Update the display. */
-	vte_terminal_scroll_region(terminal, row, end - row + 1, -param);
 	/* Adjust the scrollbars if necessary. */
 	vte_terminal_adjust_adjustments(terminal, FALSE);
 	/* We've modified the display.  Make a note of it. */
@@ -11006,9 +11014,9 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 		    fprintf(stderr, "Scrolling by %ld\n", dy);
 	      }
 #endif
-		vte_terminal_match_contents_clear(terminal);
 		vte_terminal_scroll_region(terminal, screen->scroll_delta,
 					   terminal->row_count, -dy);
+		vte_terminal_match_contents_clear(terminal);
 		vte_terminal_emit_text_scrolled(terminal, dy);
 		vte_terminal_emit_contents_changed(terminal);
 	}
