@@ -67,7 +67,7 @@ fi
 if test x$VTE_DEBUG = x1 ; then
 	AC_DEFINE(VTE_DEBUG,,[Enable debugging messages.])
 fi
-AC_CHECK_TYPE(wint_t,AC_DEFINE(HAVE_WINT_T,1,[Define if your OS provides a wint_t type and a corresponding %lc format specifier.]))
+AC_CHECK_TYPE(wint_t,[AC_DEFINE(HAVE_WINT_T,1,[Define if your OS provides a wint_t type and a corresponding %lc format specifier.])])
 
 AC_MSG_CHECKING([for pygtk-2.0])
 if pkg-config --exists pygtk-2.0 ; then
