@@ -90,7 +90,7 @@ GtkWidget *vte_terminal_new(void);
 void vte_terminal_fork_command(VteTerminal *terminal,
 			       const char *command,
 			       const char **argv);
-void vte_terminal_set_size(VteTerminal *terminal, long columns, long rows);
+void vte_terminal_size_set(VteTerminal *terminal, long columns, long rows);
 void vte_terminal_feed(VteTerminal *terminal,
 		       const char *data,
 		       size_t length);
