@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.8.16
+Version: 0.8.17
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -61,6 +61,9 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Tue Sep  3 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.17-1
+- track Xft color deallocation to prevent freeing of colors we don't own
+
 * Tue Sep  3 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.16-1
 - handle color allocation failures better
 

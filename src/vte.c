@@ -319,6 +319,7 @@ struct _VteTerminalPrivate {
 #ifdef HAVE_XFT
 		XRenderColor rcolor;
 		XftColor ftcolor;
+		gboolean ftcolor_allocated;
 #endif
 	} palette[VTE_BOLD_FG + 1];
 
@@ -5314,9 +5315,12 @@ vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
 
 		/* Try to allocate a color with Xft, otherwise fudge it. */
 		if (XftColorAllocValue(display, visual, colormap,
-				       rcolor, ftcolor) == 0) {
+				       rcolor, ftcolor) != 0) {
+			terminal->pvt->palette[entry].ftcolor_allocated = TRUE;
+		} else {
 			ftcolor->color = *rcolor;
 			ftcolor->pixel = color.pixel;
+			terminal->pvt->palette[entry].ftcolor_allocated = FALSE;
 		}
 	}
 #endif
@@ -10129,17 +10133,23 @@ vte_terminal_unrealize(GtkWidget *widget)
 	terminal->pvt->im_preedit_cursor = 0;
 
 #ifdef HAVE_XFT
-	/* Clean up after Xft. */
-	display = gdk_x11_drawable_get_xdisplay(widget->window);
-	gvisual = gtk_widget_get_visual(widget);
-	visual = gdk_x11_visual_get_xvisual(gvisual);
-	gcolormap = gtk_widget_get_colormap(widget);
-	colormap = gdk_x11_colormap_get_xcolormap(gcolormap);
-	for (i = 0; i < G_N_ELEMENTS(terminal->pvt->palette); i++) {
-		XftColorFree(display,
-			     visual,
-			     colormap,
-			     &terminal->pvt->palette[i].ftcolor);
+	if ((terminal->pvt->render_method == VteRenderXft1) ||
+	    (terminal->pvt->render_method == VteRenderXft2)) {
+		/* Clean up after Xft. */
+		display = gdk_x11_drawable_get_xdisplay(widget->window);
+		gvisual = gtk_widget_get_visual(widget);
+		visual = gdk_x11_visual_get_xvisual(gvisual);
+		gcolormap = gtk_widget_get_colormap(widget);
+		colormap = gdk_x11_colormap_get_xcolormap(gcolormap);
+		for (i = 0; i < G_N_ELEMENTS(terminal->pvt->palette); i++) {
+			if (terminal->pvt->palette[i].ftcolor_allocated) {
+				XftColorFree(display,
+					     visual,
+					     colormap,
+					     &terminal->pvt->palette[i].ftcolor);
+				terminal->pvt->palette[i].ftcolor_allocated = FALSE;
+			}
+		}
 	}
 #endif
 
