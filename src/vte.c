@@ -35,7 +35,6 @@
 #include <wctype.h>
 #include <glib.h>
 #include <glib-object.h>
-#include <gdk-pixbuf-xlib/gdk-pixbuf-xlib.h>
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
 #include <gdk/gdkx.h>
@@ -682,8 +681,11 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 		     i++) {
 			pcell = &g_array_index(rowdata, struct vte_charcell, i);
 			if (pcell != NULL) {
+				memset(pcell, sizeof(*pcell), 0);
+				pcell->fore = VTE_DEF_FG;
+				pcell->back = VTE_DEF_BG;
 				pcell->c = ' ';
-				pcell->columns = 1;
+				pcell->columns = wcwidth(pcell->c);
 			}
 		}
 		/* Repaint this row. */
@@ -1101,6 +1103,9 @@ vte_sequence_handler_ec(VteTerminal *terminal,
 				cell = &g_array_index(rowdata,
 						      struct vte_charcell,
 						      col);
+				memset(cell, sizeof(*cell), 0);
+				cell->fore = VTE_DEF_FG;
+				cell->back = VTE_DEF_BG;
 				cell->c = ' ';
 				cell->columns = wcwidth(cell->c);
 			}
@@ -2705,10 +2710,10 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 		if (array->len <= col) {
 			/* Add enough characters to fill out the row. */
 			memset(&cell, 0, sizeof(cell));
-			cell.c = ' ';
-			cell.columns = 1;
 			cell.fore = VTE_DEF_FG;
 			cell.back = VTE_DEF_BG;
+			cell.c = ' ';
+			cell.columns = wcwidth(cell.c);
 			while (array->len < col) {
 				g_array_append_val(array, cell);
 			}
@@ -2723,10 +2728,10 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 			 * and use it. */
 			if (screen->insert) {
 				memset(&cell, 0, sizeof(cell));
-				cell.c = ' ';
-				cell.columns = 1;
 				cell.fore = VTE_DEF_FG;
 				cell.back = VTE_DEF_BG;
+				cell.c = ' ';
+				cell.columns = wcwidth(cell.c);
 				g_array_insert_val(array, col, cell);
 				pcell = &g_array_index(array,
 						       struct vte_charcell,
@@ -4376,7 +4381,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->audible_bell = TRUE;
 	pvt->bg_image_full = NULL;
 	pvt->bg_image = NULL;
-	pvt->bg_saturation = 0.5;
+	pvt->bg_saturation = 0.4;
 
 	pvt->selection = FALSE;
 	pvt->selection_start.x = 0;
@@ -5072,6 +5077,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	Colormap colormap;
 	GdkVisual *gvisual;
 	Visual *visual;
+	GdkGC *ggc;
 	GC gc;
 	struct vte_charcell *cell;
 	int row, drow, col, row_stop, col_stop, x_offs = 0, y_offs = 0;
@@ -5099,6 +5105,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 					   &x_offs, &y_offs);
 	display = gdk_x11_drawable_get_xdisplay(gdrawable);
 	drawable = gdk_x11_drawable_get_xid(gdrawable);
+	ggc = gdk_gc_new(gdrawable);
 	gc = XCreateGC(display, drawable, 0, NULL);
 	gcolormap = gdk_drawable_get_colormap(widget->window);
 	colormap = gdk_x11_colormap_get_xcolormap(gcolormap);
@@ -5129,15 +5136,15 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	 * we may miss character removals before an area is re-exposed. */
 	if (terminal->pvt->bg_image != NULL) {
 		/* FIXME: tile if the image isn't big enough. */
-		gdk_pixbuf_xlib_render_to_drawable(terminal->pvt->bg_image,
-						   drawable, gc,
-						   (area->x) % gdk_pixbuf_get_width(terminal->pvt->bg_image),
-						   (area->y) % gdk_pixbuf_get_height(terminal->pvt->bg_image),
-						   area->x - x_offs,
-						   area->y - y_offs,
-						   area->width,
-						   area->height,
-						   XLIB_RGB_DITHER_NONE, 0, 0);
+		gdk_pixbuf_render_to_drawable(terminal->pvt->bg_image,
+					      gdrawable, ggc,
+					      (area->x) % gdk_pixbuf_get_width(terminal->pvt->bg_image),
+					      (area->y) % gdk_pixbuf_get_height(terminal->pvt->bg_image),
+					      area->x - x_offs,
+					      area->y - y_offs,
+					      area->width,
+					      area->height,
+					      GDK_RGB_DITHER_NONE, 0, 0);
 	} else {
 		XSetForeground(display, gc,
 			       terminal->pvt->palette[VTE_DEF_BG].pixel);
@@ -5237,6 +5244,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		XftDrawDestroy(ftdraw);
 	}
 #endif
+	g_object_unref(G_OBJECT(ggc));
 	XFreeGC(display, gc);
 }
 
@@ -5392,14 +5400,20 @@ vte_terminal_paste_clipboard(VteTerminal *terminal)
 void
 vte_terminal_set_background_saturation(VteTerminal *terminal, float saturation)
 {
+	long i;
+	guchar *pixels, *oldpixels;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->bg_saturation = saturation;
 	if (terminal->pvt->bg_image != NULL) {
-		/* Adjust the brightness of the background image. */
-		gdk_pixbuf_saturate_and_pixelate(terminal->pvt->bg_image_full,
-						 terminal->pvt->bg_image,
-						 terminal->pvt->bg_saturation,
-						 FALSE);
+		/* Adjust the brightness of the copy. */
+		oldpixels = gdk_pixbuf_get_pixels(terminal->pvt->bg_image_full);
+		pixels = gdk_pixbuf_get_pixels(terminal->pvt->bg_image);
+		i = gdk_pixbuf_get_height(terminal->pvt->bg_image) *
+		    gdk_pixbuf_get_rowstride(terminal->pvt->bg_image);
+		while (i >= 0) {
+			pixels[i] = oldpixels[i] * terminal->pvt->bg_saturation;
+			i--;
+		}
 		if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
 			vte_invalidate_cells(terminal,
 					     0,
@@ -5413,11 +5427,9 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, float saturation)
 void
 vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
 {
-	long bits, width, height;
+	long bits, width, height, i;
+	guchar *pixels, *oldpixels;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	/* Do some other initialization. */
-	gdk_pixbuf_xlib_init(gdk_x11_get_default_xdisplay(),
-			     gdk_x11_get_default_screen());
 	/* Free the previous background. */
 	if (terminal->pvt->bg_image != NULL) {
 		gdk_pixbuf_unref(terminal->pvt->bg_image);
@@ -5434,19 +5446,18 @@ vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
 		width = gdk_pixbuf_get_width(image),
 		height = gdk_pixbuf_get_height(image);
 		/* Use the image. */
+		gdk_pixbuf_ref(image);
 		terminal->pvt->bg_image_full = image;
-		gdk_pixbuf_ref(terminal->pvt->bg_image_full);
-		/* Create a copy to make dimmer. */
-		terminal->pvt->bg_image = gdk_pixbuf_new(GDK_COLORSPACE_RGB,
-							 FALSE,
-							 bits,
-							 width,
-							 height);
-		/* Adjust the brightness. */
-		gdk_pixbuf_saturate_and_pixelate(terminal->pvt->bg_image_full,
-						 terminal->pvt->bg_image,
-						 terminal->pvt->bg_saturation,
-						 FALSE);
+		terminal->pvt->bg_image = gdk_pixbuf_copy(image);
+		/* Adjust the brightness of the copy. */
+		oldpixels = gdk_pixbuf_get_pixels(terminal->pvt->bg_image_full);
+		pixels = gdk_pixbuf_get_pixels(terminal->pvt->bg_image);
+		i = gdk_pixbuf_get_height(image) *
+		    gdk_pixbuf_get_rowstride(image);
+		while (i >= 0) {
+			pixels[i] = oldpixels[i] * terminal->pvt->bg_saturation;
+			i--;
+		}
 	}
 	/* Repaint everyting. */
 	if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
@@ -5488,17 +5499,6 @@ vte_terminal_set_background_transparent(VteTerminal *terminal)
 	root = gdk_x11_get_default_root_xwindow();
 	display = gdk_x11_get_default_xdisplay();
 	image = NULL;
-	if (XGetWindowAttributes(display, root, &attrs)) {
-		height = attrs.height;
-		width = attrs.width;
-		image = gdk_pixbuf_xlib_get_from_drawable(NULL,
-							  root,
-							  0,
-							  NULL,
-							  0, 0,
-							  0, 0,
-							  width, height);
-	}
 
 	if (image != NULL) {
 		vte_terminal_set_background_image(terminal, image);
@@ -5510,4 +5510,3 @@ vte_terminal_get_has_selection(VteTerminal *terminal)
 {
 	return (terminal->pvt->selection != FALSE);
 }
-

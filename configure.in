@@ -12,7 +12,7 @@ AC_EGREP_CPP(glibc,
 # AC_SYS_LARGEFILE
 AC_PATH_XTRA
 PKG_CHECK_MODULES(GLIB,[glib-2.0 gobject-2.0])
-PKG_CHECK_MODULES(GTK, [glib-2.0 gobject-2.0 gdk-pixbuf-xlib-2.0 gtk+-2.0])
+PKG_CHECK_MODULES(GTK, [glib-2.0 gobject-2.0 gdk-pixbuf-2.0 gtk+-2.0])
 AC_DEFINE(G_DISABLE_DEPRECATED,1,[Disable deprecated glib features.])
 AC_DEFINE(GDK_DISABLE_DEPRECATED,1,[Disable deprecated gdk features.])
 AC_DEFINE(GTK_DISABLE_DEPRECATED,1,[Disable deprecated gtk features.])

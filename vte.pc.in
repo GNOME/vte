@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: vte
 Description: Vte terminal widget.
 Version: @VERSION@
-Requires: gtk+-2.0 gdk-pixbuf-xlib-2.0
+Requires: glib-2.0 gobject-2.0 gtk+-2.0 gdk-pixbuf-2.0
 Libs: -L${libdir} -lvte
 Cflags: -I${includedir}
