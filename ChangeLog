@@ -1,4 +1,8 @@
 2003-05-20 nalin
+	* src/vte.c: remove no-longer-used tree structure.
+	* src/vtefc.c: free strings returned by g_object_get().
+
+2003-05-20 nalin
 	* src/vte.c(vte_terminal_realize): create the terminal's draw structure.
 	* src/vte.c(vte_terminal_unrealize): free the terminal's draw structure.
 	* src/vteapp.c(main): enforce a clean shutdown by requiring that the

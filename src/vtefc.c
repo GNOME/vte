@@ -200,6 +200,7 @@ _vte_fc_defaults_from_gtk(FcPattern *pattern)
 			FcPatternDel(pattern, FC_RGBA);
 			FcPatternAddInteger(pattern, FC_RGBA, i);
 		}
+		g_free(rgba);
 	}
 
 	/* Pick up the configured hinting setting. */
@@ -237,6 +238,7 @@ _vte_fc_defaults_from_gtk(FcPattern *pattern)
 			FcPatternDel(pattern, FC_HINT_STYLE);
 			FcPatternAddInteger(pattern, FC_HINT_STYLE, i);
 		}
+		g_free(hintstyle);
 	}
 #endif
 }

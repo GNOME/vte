@@ -182,8 +182,6 @@ struct _VteTerminalPrivate {
 					   need to guarantee its type */
 	GHashTable *dec_saved;
 	int default_column_count, default_row_count;	/* default sizes */
-	GTree *unichar_wc_map;		/* mapping between gunichars and wide
-					   characters */
 
 	/* PTY handling data. */
 	const char *shell;		/* shell we started */
@@ -10759,9 +10757,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 			 G_CALLBACK(vte_terminal_style_changed),
 			 NULL);
 
-	/* Mapping trees. */
-	pvt->unichar_wc_map = g_tree_new(vte_compare_direct);
-
 	/* Our accessible peer. */
 	pvt->accessible = NULL;
 	pvt->accessible_emit = FALSE;
@@ -11066,6 +11061,7 @@ vte_terminal_finalize(GObject *object)
 		g_source_remove(terminal->pvt->bg_update_tag);
 		terminal->pvt->bg_update_tag = VTE_INVALID_SOURCE;
 		terminal->pvt->bg_update_pending = FALSE;
+		g_free(terminal->pvt->bg_file);
 	}
 
 	/* Free the font description. */
