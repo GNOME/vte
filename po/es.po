@@ -1,29 +1,32 @@
+# traducción de es.po al Spanish
 # translation of vte.HEAD.po to Spanish
 # translation of vte.HEAD.es.po to Spanish
 # VTE Spanish translation file.
-# Copyright (C) 2002,2003 Free Software Foundation, Inc.
+# Copyright (C) 2002,2003, 2004 Free Software Foundation, Inc.
 # This file is distributed under the same license as the VTE package.
 # Pablo Gonzalo del Campo <pablodc@bigfoot.com>, 2002.
 # Germán Poo Caamaño <gpoo@ubiobio.cl>, 2002.
 # Francisco Javier F. Serrador <serrador@arrakis.es>, 2003.
+# Francisco Javier F. Serrador <serrador@cvs.gnome.org>, 2004.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: vte.HEAD\n"
+"Project-Id-Version: es\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2004-04-29 22:25-0400\n"
-"PO-Revision-Date: 2003-08-28 08:40+0200\n"
-"Last-Translator: Francisco Javier F. Serrador <serrador@arrakis.es>\n"
+"PO-Revision-Date: 2004-08-28 17:57+0200\n"
+"Last-Translator: Francisco Javier F. Serrador <serrador@cvs.gnome.org>\n"
 "Language-Team: Spanish <traductores@es.gnome.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 1.0.2\n"
+"X-Generator: KBabel 1.3.1\n"
+"Plural-Forms:  nplurals=2; plural=(n != 1);\n"
 
 #: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "No se pueden convertir caracteres de %s a %s"
+msgstr "No se pueden convertir caracteres de %s a %s."
 
 #: src/iso2022.c:1578
 #, c-format
@@ -70,7 +73,7 @@ msgstr "Ha ocurrido un error al compilar la expresión regular «%s»."
 #: src/vte.c:5850
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr "Se obtuvo una secuencia inesperada (¿de teclas?) «%s»"
+msgstr "Se obtuvo una secuencia inesperada (¿de teclas?) «%s»."
 
 #: src/vte.c:6951
 #, c-format
@@ -80,7 +83,7 @@ msgstr "No existe un manejador para la secuencia de control «%s» definida."
 #: src/vte.c:7793
 #, c-format
 msgid "Error reading from child: %s."
-msgstr "Ha ocurrido un error al leer desde el hijo: %s"
+msgstr "Ha ocurrido un error al leer desde el hijo: %s."
 
 #: src/vte.c:7949
 #, c-format
@@ -90,8 +93,7 @@ msgstr "Ha ocurrido un error (%s) al convertir datos desde el hijo, omitiendo."
 #: src/vte.c:10715
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr ""
-"Ha ocurrido un error al leer el tamaño PTY, utilizando el predeterminado: %s."
+msgstr "Ha ocurrido un error al leer el tamaño PTY, utilizando el predeterminado: %s."
 
 #: src/vte.c:10751
 #, c-format
@@ -118,7 +120,7 @@ msgstr "Modo de píxel %d desconocido.\n"
 #: src/vtexft.c:712
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr "No se puede dibujar el caracter U+%04x.\n"
+msgstr "No se puede representar el carácter U+%04x.\n"
 
 #~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
 #~ msgstr ""
@@ -153,3 +155,4 @@ msgstr "No se puede dibujar el caracter U+%04x.\n"
 
 #~ msgid "Error allocating layout, disabling Pango."
 #~ msgstr "Ha ocurrido un error al ubicar el formato, deshabilitando Pango."
+
