@@ -1,3 +1,7 @@
+2003-01-05  Pauli Virtanen <pauli.virtanen@hut.fi>
+
+	* configure.in (ALL_LINGUAS): Added "fi" (Finnish).
+
 2003-01-04  Stanislav Visnovsky  <visnovsky@nenya.ms.mff.cuni.cz>
 
 	* configure.in: (ALL_LINGUAS) Added sk (Slovak).
