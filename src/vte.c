@@ -105,6 +105,8 @@ typedef long wint_t;
 #define VTE_CHILD_OUTPUT_PRIORITY	G_PRIORITY_HIGH
 #define VTE_FX_PRIORITY			G_PRIORITY_DEFAULT_IDLE
 #define VTE_PREFER_PANGOX
+#define VTE_REGCOMP_FLAGS		REG_EXTENDED
+#define VTE_REGEXEC_FLAGS		0
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
@@ -671,7 +673,7 @@ vte_invalidate_cursor_once(gpointer data)
 	VteScreen *screen;
 	struct vte_charcell *cell;
 	gssize preedit_length;
-	int columns;
+	int column, columns;
 
 	if (!VTE_IS_TERMINAL(data)) {
 		return;
@@ -687,15 +689,22 @@ vte_invalidate_cursor_once(gpointer data)
 		}
 
 		screen = terminal->pvt->screen;
+		column = screen->cursor_current.col;
 		columns = 1;
 		cell = vte_terminal_find_charcell(terminal,
-						  screen->cursor_current.col,
+						  column,
 						  screen->cursor_current.row);
+		while ((cell != NULL) && (cell->columns == 0) && (column > 0)) {
+			column--;
+			cell = vte_terminal_find_charcell(terminal,
+							  column,
+							  screen->cursor_current.row);
+		}
 		if (cell != NULL) {
 			columns = cell->columns;
 		}
 		vte_invalidate_cells(terminal,
-				     screen->cursor_current.col,
+				     column,
 				     columns + preedit_length,
 				     screen->cursor_current.row,
 				     1);
@@ -1126,7 +1135,7 @@ vte_terminal_match_add(VteTerminal *terminal, const char *match)
 	int ret;
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
 	memset(&regex, 0, sizeof(regex));
-	ret = regcomp(&regex.reg, match, REG_EXTENDED);
+	ret = regcomp(&regex.reg, match, VTE_REGCOMP_FLAGS);
 	if (ret != 0) {
 		g_warning(_("Error compiling regular expression \"%s\"."),
 			  match);
@@ -1171,7 +1180,9 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 				      struct vte_char_attributes,
 				      offset);
 		if (attr != NULL) {
-			if ((row == attr->row) && (column == attr->column)) {
+			if ((row == attr->row) &&
+			    (column == attr->column) &&
+			    !g_ascii_isspace(terminal->pvt->match_contents[offset])) {
 				break;
 			}
 		}
@@ -1191,6 +1202,11 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 	}
 	/* If the pointer is on a newline, bug out. */
 	if (g_ascii_isspace(terminal->pvt->match_contents[offset])) {
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
+			fprintf(stderr, "Cursor is on whitespace.\n");
+		}
+#endif
 		return NULL;
 	}
 
@@ -1208,7 +1224,7 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 				      terminal->pvt->match_contents + coffset,
 				      G_N_ELEMENTS(matches),
 				      matches,
-				      0);
+				      VTE_REGEXEC_FLAGS);
 			while (ret == 0) {
 				for (j = 0;
 				     j < G_N_ELEMENTS(matches) &&
@@ -1263,10 +1279,11 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 				 * look for more. */
 				coffset += (matches[0].rm_so + 1);
 				ret = regexec(&regex->reg,
-					      terminal->pvt->match_contents + coffset,
+					      terminal->pvt->match_contents +
+					      coffset,
 					      G_N_ELEMENTS(matches),
 					      matches,
-					      0);
+					      VTE_REGEXEC_FLAGS);
 			}
 		}
 	}
@@ -1277,11 +1294,24 @@ char *
 vte_terminal_match_check(VteTerminal *terminal, long column, long row, int *tag)
 {
 	long delta;
+	char *ret;
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 	delta = terminal->pvt->screen->scroll_delta;
-	return vte_terminal_match_check_internal(terminal,
-						 column, row + delta,
-						 tag, NULL, NULL);
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_EVENTS)) {
+		fprintf(stderr, "Checking for match at (%ld,%ld).\n",
+			row, column);
+	}
+#endif
+	ret = vte_terminal_match_check_internal(terminal,
+						column, row + delta,
+						tag, NULL, NULL);
+#ifdef VTE_DEBUG
+	if ((ret != NULL) && vte_debug_on(VTE_DEBUG_EVENTS)) {
+		fprintf(stderr, "Matched `%s'.\n", ret);
+	}
+#endif
+	return ret;
 }
 
 /* Emit an adjustment changed signal on our adjustment object. */
@@ -3134,18 +3164,26 @@ vte_sequence_handler_uc(VteTerminal *terminal,
 			GValueArray *params)
 {
 	struct vte_charcell *cell;
+	int column;
 	VteScreen *screen;
 
 	screen = terminal->pvt->screen;
+	column = screen->cursor_current.col;
 	cell = vte_terminal_find_charcell(terminal,
-					  screen->cursor_current.col,
+					  column,
 					  screen->cursor_current.row);
+	while ((cell != NULL) && (cell->columns == 0) && (column > 0)) {
+		column--;
+		cell = vte_terminal_find_charcell(terminal,
+						  column,
+						  screen->cursor_current.row);
+	}
 	if (cell != NULL) {
 		/* Set this character to be underlined. */
 		cell->underline = 1;
 		/* Cause the character to be repainted. */
 		vte_invalidate_cells(terminal,
-				     screen->cursor_current.col, 1,
+				     column, cell->columns,
 				     screen->cursor_current.row, 1);
 		/* Move the cursor right. */
 		vte_sequence_handler_nd(terminal, match, match_quark, params);
@@ -6474,7 +6512,9 @@ vte_terminal_feed_child(VteTerminal *terminal, const char *text, glong length)
 		length = strlen(text);
 	}
 	vte_terminal_im_reset(terminal);
-	vte_terminal_send(terminal, "UTF-8", text, length);
+	if (length > 0) {
+		vte_terminal_send(terminal, "UTF-8", text, length);
+	}
 }
 
 /* Send text from the input method to the child. */
@@ -7071,8 +7111,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				}
 				g_free(specialmods);
 			}
-			vte_terminal_feed_child(terminal,
-						special, strlen(special));
+			vte_terminal_feed_child(terminal, special, -1);
 			g_free(special);
 			g_free(normal);
 		}
@@ -7526,29 +7565,33 @@ vte_terminal_match_hilite_clear(VteTerminal *terminal)
 static void
 vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 {
-	int start, end;
+	int start, end, width, height;
 	long rows, rowe;
 	char *match;
 	struct vte_char_attributes *attr;
 	VteScreen *screen;
 	long delta;
+
+	width = terminal->char_width;
+	height = terminal->char_height;
+
 	/* If the pointer hasn't moved to another character cell, then we
 	 * need do nothing. */
-	if ((x / terminal->char_width ==
-	     terminal->pvt->mouse_last_x / terminal->char_width) &&
-	    (y / terminal->char_height ==
-	     terminal->pvt->mouse_last_y / terminal->char_height)) {
+	if ((x / width == terminal->pvt->mouse_last_x / width) &&
+	    (y / height == terminal->pvt->mouse_last_y / height)) {
 		return;
 	}
+
 	/* Check for matches. */
 	screen = terminal->pvt->screen;
 	delta = screen->scroll_delta;
 	match = vte_terminal_match_check_internal(terminal,
-						  floor(x) / terminal->char_width,
-						  floor(y) / terminal->char_height + delta,
+						  floor(x) / width,
+						  floor(y) / height + delta,
 						  NULL,
 						  &start,
 						  &end);
+
 	/* If there are no matches, repaint what we had matched before. */
 	if (match == NULL) {
 #ifdef VTE_DEBUG
@@ -7810,7 +7853,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 
 		/* Provide immediate autoscroll for mouse wigglers. */
 		need_autoscroll = FALSE;
-		if (event->y < widget->allocation.y) {
+		if (event->y < 0) {
 			if (terminal->adjustment) {
 				adj = CLAMP(terminal->adjustment->value - 1,
 					    terminal->adjustment->lower,
@@ -7821,8 +7864,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 				need_autoscroll = TRUE;
 			}
 		} else
-		if (event->y >=
-		    widget->allocation.y + widget->allocation.height) {
+		if (event->y >= widget->allocation.height) {
 				adj = CLAMP(terminal->adjustment->value + 1,
 					    terminal->adjustment->lower,
 					    terminal->adjustment->upper -
@@ -7914,6 +7956,7 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 	struct vte_charcell *pcell;
 	GString *string;
 	struct vte_char_attributes attr;
+	struct vte_palette_entry fore, back;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 	g_return_val_if_fail(is_selected != NULL, NULL);
@@ -7931,11 +7974,12 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 			if (is_selected(terminal, col, row)) {
 				if (pcell == NULL) {
 					/* If there are no more cells on this
-					 * line, and we've hit the right margin,
-					 * add a newline. */
-					if ((col < terminal->column_count - 1) ||
+					 * line, and we haven't hit the right
+					 * margin yet, add a newline. */
+					if ((col < terminal->column_count) ||
 					    (spaces > 0)) {
 						string = g_string_append_c(string, '\n');
+						spaces = 0;
 					}
 					break;
 				} else
@@ -7948,19 +7992,16 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 					 * to the right of it. */
 					spaces++;
 				} else {
-					/* Use the attributes for this character. */
-					attr.fore.red =
-						terminal->pvt->palette[pcell->fore].red;
-					attr.fore.green =
-						terminal->pvt->palette[pcell->fore].green;
-					attr.fore.blue =
-						terminal->pvt->palette[pcell->fore].blue;
-					attr.back.red =
-						terminal->pvt->palette[pcell->back].red;
-					attr.back.green =
-						terminal->pvt->palette[pcell->back].green;
-					attr.back.blue =
-						terminal->pvt->palette[pcell->back].blue;
+					/* Use the attributes of this
+					 * character. */
+					fore = terminal->pvt->palette[pcell->fore];
+					back = terminal->pvt->palette[pcell->back];
+					attr.fore.red = fore.red;
+					attr.fore.green = fore.green;
+					attr.fore.blue = fore.blue;
+					attr.back.red = back.red;
+					attr.back.green = back.green;
+					attr.back.blue = back.blue;
 					attr.underline = pcell->underline;
 					attr.alternate = pcell->alternate;
 					attr.column = col;
@@ -7986,10 +8027,11 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 				break;
 			}
 		} while (pcell != NULL);
-		/* Stuff any saved spaces in. */
-		while (spaces > 0) {
-			string = g_string_append_c(string, ' ');
-			spaces--;
+		/* Extra spaces at the end of a line become newlines. */
+		if (spaces > 0) {
+			string = g_string_append_c(string, '\n');
+			spaces = 0;
+			attr.column = col;
 		}
 		/* If we broke out of the loop, there might be more characters
 		 * with missing attributes. */
@@ -10070,6 +10112,11 @@ vte_terminal_unrealize(GtkWidget *widget)
 	/* Shut down input methods. */
 	g_object_unref(G_OBJECT(terminal->pvt->im_context));
 	terminal->pvt->im_context = NULL;
+	if (terminal->pvt->im_preedit != NULL) {
+		g_free(terminal->pvt->im_preedit);
+		terminal->pvt->im_preedit = NULL;
+	}
+	terminal->pvt->im_preedit_cursor = 0;
 
 #ifdef HAVE_XFT
 	/* Clean up after Xft. */
@@ -11895,7 +11942,9 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		row++;
 	}
 
-	if (terminal->pvt->cursor_visible) {
+	if (terminal->pvt->cursor_visible &&
+	    (CLAMP(screen->cursor_current.col, 0, terminal->column_count - 1) ==
+	     screen->cursor_current.col)) {
 		/* Get the location of the cursor. */
 		col = screen->cursor_current.col;
 		if (terminal->pvt->im_preedit != NULL) {
@@ -11910,7 +11959,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 		/* Find the character "under" the cursor. */
 		cell = vte_terminal_find_charcell(terminal, col, drow);
-		if ((cell != NULL) && (cell->columns == 0)) {
+		while ((cell != NULL) && (cell->columns == 0) && (col >= 0)) {
 			col--;
 			cell = vte_terminal_find_charcell(terminal, col, drow);
 		}

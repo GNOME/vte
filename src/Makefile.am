@@ -42,7 +42,7 @@ libvte_la_SOURCES = \
 	vteaccess.h
 
 libvte_la_LIBADD = @LIBS@ @XFT_LIBS@ @GTK_LIBS@ @X_LIBS@
-libvte_la_LDFLAGS = -version-info 7:0:5
+libvte_la_LDFLAGS = -version-info 8:0:6
 
 CLEANFILES = marshal.c marshal.h
 
