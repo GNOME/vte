@@ -6604,7 +6604,7 @@ vte_terminal_set_background_image_file(VteTerminal *terminal, const char *path)
 	GError *error = NULL;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail(path != NULL);
-	g_return_if_fail(strlen(path) == 0);
+	g_return_if_fail(strlen(path) > 0);
 	image = gdk_pixbuf_new_from_file(path, &error);
 	if ((image != NULL) && (error == NULL)) {
 		vte_terminal_set_background_image(terminal, image);
