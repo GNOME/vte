@@ -304,3 +304,49 @@ _wrap_vte_terminal_get_text_range(PyGObject *self, PyObject *args, PyObject *kwa
     }
 }
 %%
+override vte_terminal_set_colors kwargs
+static PyObject *
+_wrap_vte_terminal_set_colors(PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "foreground", "background", "palette", NULL };
+    PyObject *py_foreground, *py_background, *py_palette, *item;
+    int palette_size, i;
+    GdkColor *foreground = NULL, *background = NULL, *palette = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOO:VteTerminal.set_colors", kwlist, &py_foreground, &py_background, &py_palette, &palette_size))
+        return NULL;
+    if (pyg_boxed_check(py_foreground, GDK_TYPE_COLOR))
+        foreground = pyg_boxed_get(py_foreground, GdkColor);
+    else {
+        PyErr_SetString(PyExc_TypeError, "foreground should be a GdkColor");
+        return NULL;
+    }
+    if (pyg_boxed_check(py_background, GDK_TYPE_COLOR))
+        background = pyg_boxed_get(py_background, GdkColor);
+    else {
+        PyErr_SetString(PyExc_TypeError, "background should be a GdkColor");
+        return NULL;
+    }
+    if (PySequence_Check(py_palette)) {
+	palette_size = PySequence_Length(py_palette);
+        palette = g_malloc(sizeof(GdkColor) * palette_size);
+	for (i = 0; i < palette_size; i++) {
+	    item = PySequence_GetItem(py_palette, i);
+            if (!pyg_boxed_check(item, GDK_TYPE_COLOR)) {
+		g_free(palette);
+        	PyErr_SetString(PyExc_TypeError, "palette should be a list of GdkColors");
+		return NULL;
+	    }
+	    palette[i] = *((GdkColor*)pyg_boxed_get(py_palette, GdkColor));
+            Py_DECREF(item);
+	}
+    } else {
+        PyErr_SetString(PyExc_TypeError, "palette should be a list of GdkColors");
+        return NULL;
+    }
+    vte_terminal_set_colors(VTE_TERMINAL(self->obj), foreground, background, palette, palette_size);
+    g_free(palette);
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+%%

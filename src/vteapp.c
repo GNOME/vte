@@ -49,17 +49,22 @@ char_size_changed(GtkWidget *widget, guint width, guint height, gpointer data)
 	GtkWindow *window;
 	GdkGeometry geometry;
 	int xpad, ypad;
+
 	g_return_if_fail(GTK_IS_WINDOW(data));
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
+
 	terminal = VTE_TERMINAL(widget);
 	window = GTK_WINDOW(data);
+
 	vte_terminal_get_padding(terminal, &xpad, &ypad);
+
 	geometry.width_inc = terminal->char_width;
 	geometry.height_inc = terminal->char_height;
 	geometry.base_width = xpad;
 	geometry.base_height = ypad;
 	geometry.min_width = xpad + terminal->char_width * 2;
 	geometry.min_height = ypad + terminal->char_height * 2;
+
 	gtk_window_set_geometry_hints(window, widget, &geometry,
 				      GDK_HINT_RESIZE_INC |
 				      GDK_HINT_BASE_SIZE |
@@ -228,6 +233,53 @@ move_window(GtkWidget *widget, guint x, guint y, gpointer data)
 			gdk_window_move((GTK_WIDGET(data))->window, x, y);
 		}
 	}
+}
+
+static void
+adjust_font_size(GtkWidget *widget, gpointer data, gint howmuch)
+{
+	VteTerminal *terminal;
+	PangoFontDescription *desired;
+	gint newsize;
+	gint columns, rows, owidth, oheight;
+
+	/* Read the screen dimensions in cells. */
+	terminal = VTE_TERMINAL(widget);
+	columns = terminal->column_count;
+	rows = terminal->row_count;
+
+	/* Take into account padding and border overhead. */
+	gtk_window_get_size(GTK_WINDOW(data), &owidth, &oheight);
+	owidth -= terminal->char_width * terminal->column_count;
+	oheight -= terminal->char_height * terminal->row_count;
+
+	/* Calculate the new font size. */
+	desired = pango_font_description_copy(vte_terminal_get_font(terminal));
+	newsize = pango_font_description_get_size(desired) / PANGO_SCALE;
+	newsize += howmuch;
+	pango_font_description_set_size(desired,
+					CLAMP(newsize, 4, 144) * PANGO_SCALE);
+
+	/* Change the font, then resize the window so that we have the same
+	 * number of rows and columns. */
+	vte_terminal_set_font(terminal, desired);
+	gtk_window_resize(GTK_WINDOW(data),
+			  columns * terminal->char_width + owidth,
+			  rows * terminal->char_height + oheight);
+
+	pango_font_description_free(desired);
+}
+
+static void
+increase_font_size(GtkWidget *widget, gpointer data)
+{
+	adjust_font_size(widget, data, 1);
+}
+
+static void
+decrease_font_size(GtkWidget *widget, gpointer data)
+{
+	adjust_font_size(widget, data, -1);
 }
 
 int
@@ -402,6 +454,12 @@ main(int argc, char **argv)
 			 G_CALLBACK(resize_window), window);
 	g_signal_connect(G_OBJECT(widget), "move-window",
 			 G_CALLBACK(move_window), window);
+
+	/* Connect to font tweakage. */
+	g_signal_connect(G_OBJECT(widget), "increase-font-size",
+			 G_CALLBACK(increase_font_size), window);
+	g_signal_connect(G_OBJECT(widget), "decrease-font-size",
+			 G_CALLBACK(decrease_font_size), window);
 
 	/* Create the scrollbar for the widget. */
 	scrollbar = gtk_vscrollbar_new((VTE_TERMINAL(widget))->adjustment);

@@ -88,8 +88,8 @@ struct _VteTerminalClass {
 	guint status_line_changed_signal;
 	guint commit_signal;
 
-	gpointer reserved1;
-	gpointer reserved2;
+	guint increase_font_size_signal;
+	guint decrease_font_size_signal;
 	gpointer reserved3;
 	gpointer reserved4;
 };

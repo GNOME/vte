@@ -690,6 +690,13 @@ by #VteTerminalAccessible.
 
 @vteterminal: the object which received the signal.
 
+<!-- ##### SIGNAL VteTerminal::decrease-font-size ##### -->
+<para>
+
+</para>
+
+@vteterminal: the object which received the signal.
+
 <!-- ##### SIGNAL VteTerminal::deiconify-window ##### -->
 <para>
 Emitted at the child application's request.
@@ -728,6 +735,13 @@ Emitted when the terminal's @icon_title field is modified.
 <!-- ##### SIGNAL VteTerminal::iconify-window ##### -->
 <para>
 Emitted at the child application's request.
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::increase-font-size ##### -->
+<para>
+
 </para>
 
 @vteterminal: the object which received the signal.

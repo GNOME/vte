@@ -3,7 +3,7 @@ pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
 pkglib_PROGRAMS = interpret utf8echo utf8mode iso8859mode slowcat
 pkglib_SCRIPTS = decset osc window
-noinst_PROGRAMS = iso2022 pty reaper ring table termcap trie
+noinst_PROGRAMS = dumpkeys iso2022 pty reaper ring table termcap trie
 EXTRA_DIST = \
 	$(pkglib_SCRIPTS) \
 	marshal.list \
@@ -153,3 +153,7 @@ reaper_SOURCES = \
 	reaper.c \
 	reaper.h
 reaper_LDADD = @LIBS@ @GOBJECT_LIBS@
+
+dumpkeys_CFLAGS = @CFLAGS@
+dumpkeys_SOURCES = dumpkeys.c
+dumpkeys_LDADD = @LIBS@ @GOBJECT_LIBS@

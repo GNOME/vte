@@ -1,3 +1,12 @@
+2002-11-05  nalin
+	* src/vte.c: handle end-of-line selection correctly.  Stop highlighting
+	selection on click, but don't lose it until new text is selected.
+	* python/vte.override: fix binding for set_colors() to properly take a
+	list of colors for the palette (#97682).
+	* src/vte.c, src/vte.h: add increase-font-size and decrease-font-size
+	to allow mimicking XTerm's behavior on Shift/Control+KP_Add/KP_Subtract
+	* src/vteapp.c: handle increase-font-size and decrease-font-size.
+
 2002-11-05  Abi Brady  <morwen@evilmagic.org>
 	* src/vte.c: Add and implement the strikethrough attribute.
 	Change underline to be drawn using the ascent, rather than
