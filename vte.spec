@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.10.20
+Version: 0.10.21
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -96,6 +96,12 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Wed Feb 19 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.21-1
+- report accessible focus-changed events properly
+- fix window_scroll optimization check (#83679)
+- fix ctrl-[2-8] (#83563)
+- grab focus on button 1 click (#84384)
+
 * Fri Feb 14 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.20-1
 - don't mix up maintainer mode with debugging mode
 - coalesce data reads to spare the X server from too many small updates (#83472)
