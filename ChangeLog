@@ -1,3 +1,13 @@
+2002-06-25 nalin
+	* src/vte.c (vte_terminal_reset_rowdata): Check for redundant resizes.
+	* src/vte.c (vte_terminal_set_scrollback_lines): Keep the alternate
+	screen buffer size the same as the window height, because xterm's
+	alternate screen doesn't backscroll.
+	* src/vte.c (vte_terminal_get_text): Don't append spaces to multicolumn
+	characters when reading the screen's contents.
+	* src/vte.c: Don't overexpose neighboring cells any more.  Cleanups.
+	* src/ring.h, src/ring.c: Add vte_ring_max() to read a ring's maximum
+	size.
 2002-06-24 nalin
 	* src/vte.c (vte_sequence_handler_decset_internal): Treat option 1049
 	as a combination of 1047 and 1048.

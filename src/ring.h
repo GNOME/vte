@@ -34,6 +34,7 @@ gpointer vte_ring_at(VteRing *ring, long position);
 void vte_ring_append(VteRing *ring, gpointer data);
 long vte_ring_delta(VteRing *ring);
 long vte_ring_length(VteRing *ring);
+long vte_ring_max(VteRing *ring);
 long vte_ring_next(VteRing *ring);
 gboolean vte_ring_contains(VteRing *ring, long position);
 void vte_ring_free(VteRing *ring, gboolean free_elements);

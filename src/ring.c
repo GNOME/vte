@@ -207,6 +207,12 @@ vte_ring_next(VteRing *ring)
 	return ring->delta + ring->length;
 }
 
+long
+vte_ring_max(VteRing *ring)
+{
+	return ring->max;
+}
+
 void
 vte_ring_free(VteRing *ring, gboolean free)
 {

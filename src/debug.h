@@ -22,12 +22,13 @@
 #define vte_debug_h_included
 
 typedef enum {
-	VTE_DEBUG_MISC    = 1 << 0,
-	VTE_DEBUG_PARSE   = 1 << 1,
-	VTE_DEBUG_IO      = 1 << 2,
-	VTE_DEBUG_UPDATES = 1 << 3,
-	VTE_DEBUG_EVENTS  = 1 << 4,
-	VTE_DEBUG_SIGNALS = 1 << 5,
+	VTE_DEBUG_MISC		= 1 << 0,
+	VTE_DEBUG_PARSE		= 1 << 1,
+	VTE_DEBUG_IO		= 1 << 2,
+	VTE_DEBUG_UPDATES	= 1 << 3,
+	VTE_DEBUG_EVENTS	= 1 << 4,
+	VTE_DEBUG_SIGNALS	= 1 << 5,
+	VTE_DEBUG_SELECTION	= 1 << 6,
 } VteDebugFlags;
 
 void vte_debug_parse_string(const char *string);

@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.4.4
+Version: 0.4.5
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -56,12 +56,18 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Tue Jun 25 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.5-1
+- don't append spaces to multicolumn characters when reading the screen's
+  contents (part of #67379)
+- fix overexpose of neighboring cells (part of #67379)
+- prevent backscroll on the alternate screen for consistency with xterm
+
 * Tue Jun 25 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.4-1
 - clear alternate buffer when switching screens (#67094)
 - fix setting of titles, but crept in when cleaning up GIConv usage (#67236)
 
 * Tue Jun 18 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.3-1
-- correct referencing/dereferencing of I/O channels
+- correct referencing/dereferencing of I/O channels (#66248)
 - correct package description to not mention the sample app which is no longer
   included
 

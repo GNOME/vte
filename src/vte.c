@@ -481,7 +481,6 @@ vte_invalidate_cursor_once(gpointer data)
 		if (cell != NULL) {
 			columns = cell->columns;
 		}
-
 		vte_invalidate_cells(terminal,
 				     screen->cursor_current.col,
 				     columns + preedit_length,
@@ -493,7 +492,7 @@ vte_invalidate_cursor_once(gpointer data)
 				"\n", screen->cursor_current.row,
 				screen->cursor_current.col,
 				screen->cursor_current.col +
-				columns + preedit_length);
+				columns + preedit_length - 1);
 		}
 #endif
 	}
@@ -766,6 +765,11 @@ vte_terminal_deselect_all(VteTerminal *terminal)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (terminal->pvt->has_selection) {
 		terminal->pvt->has_selection = FALSE;
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_SELECTION)) {
+			fprintf(stderr, "Deselecting all text.\n");
+		}
+#endif
 		vte_terminal_emit_selection_changed (terminal);
 		vte_invalidate_all(terminal);
 	}
@@ -1366,27 +1370,9 @@ vte_sequence_handler_al(VteTerminal *terminal,
 	vte_remove_line_int(terminal, end);
 	vte_insert_line_int(terminal, screen->cursor_current.row);
 	screen->cursor_current.row++;
-	if (start - screen->insert_delta < terminal->row_count / 2) {
-#if 0
-		gdk_window_scroll(widget->window,
-				  0,
-				  terminal->char_height);
-		vte_invalidate_cells(terminal,
-				     0, terminal->column_count,
-				     0, start + 2);
-		vte_invalidate_cells(terminal,
-				     0, terminal->column_count,
-				     end, terminal->row_count);
-#else
-		vte_invalidate_cells(terminal,
-				     0, terminal->column_count,
-				     start, end - start + 1);
-#endif
-	} else {
-		vte_invalidate_cells(terminal,
-				     0, terminal->column_count,
-				     start, end - start + 1);
-	}
+	vte_invalidate_cells(terminal,
+			     0, terminal->column_count,
+			     start, end - start + 1);
 }
 
 /* Add N lines at the current cursor position. */
@@ -1941,39 +1927,12 @@ vte_sequence_handler_do(VteTerminal *terminal,
 			 * line at the bottom to scroll the top off. */
 			vte_remove_line_int(terminal, start);
 			vte_insert_line_int(terminal, end);
-			if ((terminal->pvt->bg_image == NULL) &&
-			    (!terminal->pvt->bg_transparent)) {
-#if 0
-				/* Scroll the window. */
-				gdk_window_scroll(widget->window,
-						  0,
-						  -terminal->char_height);
-				/* We need to redraw the last row of the
-				 * scrolling region, and anything beyond. */
-				vte_invalidate_cells(terminal,
-						     0, terminal->column_count,
-						     end, terminal->row_count);
-				/* Also redraw anything above the scrolling
-				 * region. */
-				vte_invalidate_cells(terminal,
-						     0, terminal->column_count,
-						     0, start);
-#else
-				vte_invalidate_cells(terminal,
-						     0,
-						     terminal->column_count,
-						     start,
-						     end - start + 1);
-#endif
-			} else {
-				/* If we have a background image, we need to
-				 * redraw the entire window. */
-				vte_invalidate_cells(terminal,
-						     0,
-						     terminal->column_count,
-						     start,
-						     end - start + 1);
-			}
+			/* Redraw the affected region. */
+			vte_invalidate_cells(terminal,
+					     0,
+					     terminal->column_count,
+					     start,
+					     end - start + 1);
 		} else {
 			/* Otherwise, just move the cursor down. */
 			screen->cursor_current.row++;
@@ -2643,9 +2602,9 @@ vte_sequence_handler_uc(VteTerminal *terminal,
 	if (cell != NULL) {
 		/* Set this character to be underlined. */
 		cell->underline = 1;
-		/* Cause it to be repainted. */
+		/* Cause the character to be repainted. */
 		vte_invalidate_cells(terminal,
-				     screen->cursor_current.col, 2,
+				     screen->cursor_current.col, 1,
 				     screen->cursor_current.row, 1);
 		/* Move the cursor right. */
 		vte_sequence_handler_nd(terminal, match, match_quark, params);
@@ -2689,34 +2648,10 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			 * line at the top to scroll the bottom off. */
 			vte_remove_line_int(terminal, end);
 			vte_insert_line_int(terminal, start);
-			if ((terminal->pvt->bg_image == NULL) &&
-			    (!terminal->pvt->bg_transparent)) {
-#if 0
-				/* Scroll the window. */
-				gdk_window_scroll(widget->window,
-						  0,
-						  terminal->char_height);
-				/* We need to redraw the first row of the
-				 * scrolling region, and anything above. */
-				vte_invalidate_cells(terminal,
-						     0, terminal->column_count,
-						     0, start + 1);
-				/* Also redraw anything below the scrolling
-				 * region. */
-				vte_invalidate_cells(terminal,
-						     0, terminal->column_count,
-						     end, terminal->row_count);
-#endif
-				vte_invalidate_cells(terminal,
-						     0, terminal->column_count,
-						     start, end - start + 1);
-			} else {
-				/* If we have a background image, we need to
-				 * redraw the entire window. */
-				vte_invalidate_cells(terminal,
-						     0, terminal->column_count,
-						     start, end - start + 1);
-			}
+			/* Repaint the affected region. */
+			vte_invalidate_cells(terminal,
+					     0, terminal->column_count,
+					     start, end - start + 1);
 		} else {
 			/* Otherwise, just move the cursor up. */
 			screen->cursor_current.row--;
@@ -2731,27 +2666,10 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			 * history. */
 			vte_remove_line_int(terminal, end);
 			vte_insert_line_int(terminal, start);
-			if ((terminal->pvt->bg_image == NULL) &&
-			    (!terminal->pvt->bg_transparent)) {
-#if 0
-				/* Scroll the window. */
-				gdk_window_scroll(widget->window,
-						  0,
-						  terminal->char_height);
-				/* We need to redraw the bottom row. */
-				vte_invalidate_cells(terminal,
-						     0,
-						     terminal->column_count,
-						     terminal->row_count - 1,
-						     1);
-#else
-				vte_invalidate_all(terminal);
-#endif
-			} else {
-				/* If we have a background image, we need to
-				 * redraw the entire window. */
-				vte_invalidate_all(terminal);
-			}
+			/* Repaint the affected area. */
+			vte_invalidate_cells(terminal,
+					     0, terminal->column_count,
+					     start, end - start + 1);
 		} else {
 			/* Move the cursor up. */
 			screen->cursor_current.row--;
@@ -2995,7 +2913,7 @@ vte_sequence_handler_clear_above_current(VteTerminal *terminal,
 			while (rowdata->len > 0) {
 				g_array_remove_index(rowdata, rowdata->len - 1);
 			}
-			/* Repaint this row. */
+			/* Repaint the row. */
 			vte_invalidate_cells(terminal,
 					     0, terminal->column_count,
 					     i, 1);
@@ -3026,7 +2944,7 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 			while (rowdata->len > 0) {
 				g_array_remove_index(rowdata, rowdata->len - 1);
 			}
-			/* Repaint this row. */
+			/* Repaint the row. */
 			vte_invalidate_cells(terminal,
 					     0, terminal->column_count,
 					     i, 1);
@@ -4945,13 +4863,13 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 		/* Signal that this part of the window needs drawing. */
 		if (insert) {
 			vte_invalidate_cells(terminal,
-					     col - 1,
-					     terminal->column_count - col + 1,
+					     col,
+					     terminal->column_count - col,
 					     screen->cursor_current.row,
 					     2);
 		} else {
 			vte_invalidate_cells(terminal,
-					     col - 1, 3,
+					     col, 1,
 					     screen->cursor_current.row, 2);
 		}
 
@@ -5037,7 +4955,7 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 
 	/* Signal that the cursor's current position needs redrawing. */
 	vte_invalidate_cells(terminal,
-			     screen->cursor_current.col - 1, 1,
+			     screen->cursor_current.col, 1,
 			     screen->cursor_current.row, 1);
 
 	/* Find the handler for this control sequence. */
@@ -5057,7 +4975,7 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 
 	/* We probably need to update the cursor's new position, too. */
 	vte_invalidate_cells(terminal,
-			     screen->cursor_current.col - 1, 1,
+			     screen->cursor_current.col, 1,
 			     screen->cursor_current.row, 1);
 
 	/* Let the updating begin. */
@@ -6566,6 +6484,12 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 	g_return_if_fail(VTE_IS_TERMINAL(data));
 	terminal = VTE_TERMINAL(data);
 	if (text != NULL) {
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_SELECTION)) {
+			fprintf(stderr, "Pasting %d UTF-8 bytes.\n",
+				strlen(text));
+		}
+#endif
 		vte_terminal_im_reset(terminal);
 		vte_terminal_send(terminal, "UTF-8", text, strlen(text));
 	}
@@ -6943,6 +6867,12 @@ vte_terminal_clear_cb(GtkClipboard *clipboard, gpointer owner)
 	g_return_if_fail(VTE_IS_TERMINAL(owner));
 	terminal = VTE_TERMINAL(owner);
 	if (terminal->pvt->has_selection) {
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_SELECTION)) {
+			fprintf(stderr, "Lost selection.\n",
+				strlen(terminal->pvt->selection));
+		}
+#endif
 		vte_terminal_deselect_all(terminal);
 	}
 }
@@ -6956,6 +6886,17 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 	g_return_if_fail(VTE_IS_TERMINAL(owner));
 	terminal = VTE_TERMINAL(owner);
 	if (terminal->pvt->selection != NULL) {
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_SELECTION)) {
+			int i;
+			fprintf(stderr, "Setting selection (%d UTF-8 bytes.)\n",
+				strlen(terminal->pvt->selection));
+			for (i = 0; terminal->pvt->selection[i] != '\0'; i++) {
+				fprintf(stderr, "0x%04x\n",
+					terminal->pvt->selection[i]);
+			}
+		}
+#endif
 		gtk_selection_data_set_text(data, terminal->pvt->selection, -1);
 	}
 }
@@ -7001,6 +6942,9 @@ vte_terminal_get_text(VteTerminal *terminal,
 						}
 					}
 					break;
+				} else
+				if (pcell->columns == 0) {
+					/* Ignore this padding cell. */
 				} else
 				if ((pcell->c == 0) ||
 				    (g_unichar_isspace(pcell->c))) {
@@ -7082,6 +7026,11 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 
 	/* Place the text on the clipboard. */
 	if (terminal->pvt->selection != NULL) {
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_SELECTION)) {
+			fprintf(stderr, "Assuming ownership of selection.\n");
+		}
+#endif
 		gtk_clipboard_set_with_owner(clipboard,
 					     targets,
 					     G_N_ELEMENTS(targets),
@@ -7099,6 +7048,11 @@ vte_terminal_paste(VteTerminal *terminal, GdkAtom board)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	clipboard = gtk_clipboard_get(board);
 	if (clipboard != NULL) {
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_SELECTION)) {
+			fprintf(stderr, "Requesting clipboard contents.\n");
+		}
+#endif
 		gtk_clipboard_request_text(clipboard,
 					   vte_terminal_paste_cb,
 					   terminal);
@@ -8160,6 +8114,9 @@ vte_terminal_reset_rowdata(VteRing **ring, long lines)
 			lines);
 	}
 #endif
+	if (*ring && (vte_ring_max(*ring) == lines)) {
+		return;
+	}
 	new_ring = vte_ring_new(lines, vte_free_row_data, NULL);
 	if (*ring) {
 		next = vte_ring_next(*ring);
@@ -8434,6 +8391,10 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	vte_terminal_set_size(terminal,
 			      allocation->width / terminal->char_width,
 			      allocation->height / terminal->char_height);
+
+	/* Adjust scrollback buffers to ensure that they're big enough. */
+	vte_terminal_set_scrollback_lines(terminal,
+					  terminal->pvt->scrollback_lines);
 
 	/* Resize the GDK window. */
 	if (widget->window != NULL) {
@@ -10923,19 +10884,12 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 
 	/* We require a minimum buffer size. */
 	lines = MAX(lines, VTE_SCROLLBACK_MIN);
+	lines = MAX(lines, terminal->row_count);
 
 	/* We need to resize both scrollback buffers, and this beats copying
 	 * and pasting the same code twice. */
 	screens[0] = &terminal->pvt->normal_screen;
 	screens[1] = &terminal->pvt->alternate_screen;
-
-	/* If we're being asked to resize to the same size, just save ourselves
-	 * the trouble, nod our heads, and smile. */
-	if ((terminal->pvt->scrollback_lines != 0) &&
-	    (terminal->pvt->scrollback_lines == lines) &&
-	    (screens[0]->row_data != NULL) && (screens[1]->row_data != NULL)) {
-		return;
-	}
 
 	/* We want to do the same thing to both screens, so we use a loop
 	 * to avoid cut/paste madness. */
@@ -10948,7 +10902,15 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 		if (screens[i]->row_data != NULL) {
 			old_delta = vte_ring_next(screens[i]->row_data);
 		}
-		vte_terminal_reset_rowdata(&screens[i]->row_data, lines);
+		/* The main screen gets the full scrollback buffer, but the
+		 * alternate screen isn't allowed to scroll at all. */
+		if (screens[i] == &terminal->pvt->alternate_screen) {
+			vte_terminal_reset_rowdata(&screens[i]->row_data,
+						   terminal->row_count);
+		} else {
+			vte_terminal_reset_rowdata(&screens[i]->row_data,
+						   lines);
+		}
 		new_delta = vte_ring_next(screens[i]->row_data);
 		delta = (new_delta - old_delta);
 		screens[i]->cursor_current.row += delta;
