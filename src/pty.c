@@ -139,7 +139,7 @@ vte_pty_ptsname(int master)
 }
 
 static int
-vte_pty_getpt()
+vte_pty_getpt(void)
 {
 #ifdef HAVE_GETPT
 	return getpt();
