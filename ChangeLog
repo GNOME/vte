@@ -1,4 +1,8 @@
 2002-06-12 msw
+	* acinclude.m4: added AM_CHECK_PYTHON_HEADERS from pygtk
+	* configure.in: rewrote python checks to be more robust
+	* python/Makefile.am (CFLAGS): include @PYTHON_INCLUDES@
+2002-06-12 msw
 	* src/vte.c (vte_terminal_get_accessible): turn the logic around
 	to be the right way
 2002-06-12 nalin

@@ -71,10 +71,22 @@ AC_MSG_CHECKING([for pygtk-2.0])
 if pkg-config --exists pygtk-2.0 ; then
 	AC_MSG_RESULT([found])
 	PKG_CHECK_MODULES(PYGTK,[pygtk-2.0])
-	AC_MSG_CHECKING([python version])
-	[PYTHONREV=`python -c 'import sys;print "%s.%s" % (sys.version_info[0], sys.version_info[1])'`]
-	AC_MSG_RESULT($PYTHONREV)
-	PYTHONMODULES="vtemodule.so"
+	AM_PATH_PYTHON
+	AC_MSG_CHECKING(for python >= 2.2)
+	prog="
+import sys, string
+minver = (2,2,0,'final',0)
+if sys.version_info < minver:
+  sys.exit(1)
+sys.exit(0)"
+	if $PYTHON -c "$prog" 1>&AC_FD_CC 2>&AC_FD_CC
+	then
+	  AC_MSG_RESULT(okay)
+          AM_CHECK_PYTHON_HEADERS([PYTHONMODULES="vtemodule.so"],
+			          [AC_MSG_RESULT(could not find Python headers)])
+	else
+	  AC_MSG_RESULT(too old)
+	fi
 else
 	AC_MSG_RESULT([not found])
 fi

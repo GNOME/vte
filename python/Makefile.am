@@ -1,9 +1,9 @@
 EXTRA_PROGRAMS = vtemodule.so
 EXTRA_DIST = vte.defs vte.override
-pythonsiteexecdir = $(libdir)/python@PYTHONREV@/site-packages
+pythonsiteexecdir = $(pyexecdir)
 pythonsiteexec_PROGRAMS = @PYTHONMODULES@
 
-CFLAGS = @CFLAGS@ @XFT_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@
+CFLAGS = @CFLAGS@ @XFT_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@ @PYTHON_INCLUDES@
 
 CLEANFILES = vte.c
 
