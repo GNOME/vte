@@ -533,6 +533,7 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal)
 			"(delta = %ld, scroll = %ld).\n",
 			delta, terminal->pvt->screen->scroll_delta);
 #endif
+		vte_terminal_emit_contents_changed(terminal);
 		gtk_adjustment_changed(terminal->adjustment);
 	}
 }
@@ -3615,8 +3616,21 @@ vte_terminal_process_incoming(gpointer data)
 		} else {
 			/* Case three: the read broke in the middle of a
 			 * control sequence, so we're undecided with no more
-			 * data to consult. */
-			leftovers = TRUE;
+			 * data to consult. If we have data following the
+			 * middle of the sequence, then it's just garbage data,
+			 * and for compatibility, we should discard it. */
+			if (wbuf + wcount > next) {
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Invalid control sequence, "
+					"discarding %d characters.\n",
+					next - (wbuf + start));
+#endif
+				/* Discard. */
+				start = next - wbuf;
+			} else {
+				/* Pause processing and wait for more data. */
+				leftovers = TRUE;
+			}
 		}
 		/* Free any parameters we don't care about any more. */
 		free_params_array(params);
@@ -4326,7 +4340,6 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			vte_terminal_send(terminal, "UTF-8",
 					  normal, normal_length);
 			g_free(normal);
-			normal = NULL;
 		} else
 		/* If the key maps to characters, send them to the child. */
 		if (special != NULL) {
@@ -4342,7 +4355,9 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			g_free(special);
 		}
 		/* Keep the cursor on-screen. */
-		if (!scrolled && terminal->pvt->scroll_on_keystroke) {
+		if (!scrolled &&
+		    ((normal != NULL) || (special != NULL)) &&
+		    terminal->pvt->scroll_on_keystroke) {
 			vte_terminal_scroll_to_bottom(terminal);
 		}
 		return TRUE;
@@ -5511,6 +5526,8 @@ static void
 vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 {
 	const char *code, *value;
+	char *stripped;
+	size_t stripped_length;
 	GQuark quark;
 	char *tmp;
 	int i;
@@ -5555,9 +5572,12 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 					      terminal->pvt->terminal,
 					      code);
 		if ((tmp != NULL) && (tmp[0] != '\0')) {
-			vte_trie_add(terminal->pvt->trie, tmp, strlen(tmp),
+			vte_termcap_strip(tmp, &stripped, &stripped_length);
+			vte_trie_add(terminal->pvt->trie,
+				     stripped, stripped_length,
 				     vte_terminal_capability_strings[i].capability,
 				     0);
+			g_free(stripped);
 		}
 		g_free(tmp);
 	}
@@ -5566,7 +5586,10 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	for (i = 0; vte_xterm_capability_strings[i].value != NULL; i++) {
 		code = vte_xterm_capability_strings[i].code;
 		value = vte_xterm_capability_strings[i].value;
-		vte_trie_add(terminal->pvt->trie, code, strlen(code), value, 0);
+		vte_termcap_strip(code, &stripped, &stripped_length);
+		vte_trie_add(terminal->pvt->trie, stripped, stripped_length,
+			     value, 0);
+		g_free(stripped);
 	}
 #ifdef VTE_DEBUG
 	fprintf(stderr, "Trie contents:\n");
@@ -6984,7 +7007,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->window_title_changed_signal =
-		g_signal_new("window_title_changed",
+		g_signal_new("window-title-changed",
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     0,
@@ -6993,7 +7016,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->icon_title_changed_signal =
-		g_signal_new("icon_title_changed",
+		g_signal_new("icon-title-changed",
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     0,
@@ -7002,7 +7025,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->char_size_changed_signal =
-		g_signal_new("char_size_changed",
+		g_signal_new("char-size-changed",
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     0,
@@ -7011,7 +7034,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     _vte_marshal_VOID__UINT_UINT,
 			     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
 	klass->selection_changed_signal =
-		g_signal_new ("selection_changed",
+		g_signal_new ("selection-changed",
 			      G_OBJECT_CLASS_TYPE(klass),
 			      G_SIGNAL_RUN_LAST,
 			      0,
@@ -7020,7 +7043,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			      _vte_marshal_VOID__VOID,
 			      G_TYPE_NONE, 0);
 	klass->contents_changed_signal =
-		g_signal_new("contents_changed",
+		g_signal_new("contents-changed",
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     0,
@@ -7029,7 +7052,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->cursor_moved_signal =
-		g_signal_new("cursor_moved",
+		g_signal_new("cursor-moved",
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     0,
@@ -7623,15 +7646,15 @@ vte_terminal_get_snapshot(VteTerminal *terminal)
 	ret->columns = terminal->column_count;
 
 	/* Save the window contents. */
-	ret->contents = g_malloc(sizeof(struct VteTerminalSnapshotCell*) *
-				 (ret->rows + 1));
+	ret->contents = g_malloc0(sizeof(struct VteTerminalSnapshotCell*) *
+				  (ret->rows + 1));
 	for (row = 0; row < ret->rows; row++) {
-		ret->contents[row] = g_malloc(sizeof(struct VteTerminalSnapshotCell) *
-					      (ret->columns + 1));
+		ret->contents[row] = g_malloc0(sizeof(struct VteTerminalSnapshotCell) *
+					       (ret->columns + 1));
 		column = x = 0;
 		while (column < ret->columns) {
 			cell = vte_terminal_find_charcell(terminal,
-							  row + terminal->pvt->screen->insert_delta,
+							  row + terminal->pvt->screen->scroll_delta,
 							  x++);
 			if (cell == NULL) {
 				break;
@@ -7642,6 +7665,9 @@ vte_terminal_get_snapshot(VteTerminal *terminal)
 
 			/* Get the text. FIXME: convert from wchar_t to
 			 * gunichar when they're not interchangeable. */
+#ifdef VTE_DEBUG
+			fprintf(stderr, "%lc", cell->c);
+#endif
 			ret->contents[row][column].c = cell->c;
 
 			/* Get text attributes which aren't represented as
@@ -7668,6 +7694,8 @@ vte_terminal_get_snapshot(VteTerminal *terminal)
 				terminal->pvt->palette[back].green;
 			ret->contents[row][column].attributes.background.blue =
 				terminal->pvt->palette[back].blue;
+
+			column++;
 		}
 	}
 	ret->contents[row] = NULL;

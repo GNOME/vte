@@ -98,15 +98,22 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text)
 	priv->snapshot_cells = g_array_new(FALSE, TRUE, sizeof(cell));
 	priv->snapshot_linebreaks = g_array_new(FALSE, TRUE, sizeof(int));
 	caret = -1;
-	for (row = 0; priv->snapshot->contents[row] != NULL; row++) {
+	for (row = 0;
+             (row < priv->snapshot->rows) &&
+	     (priv->snapshot->contents[row] != NULL);
+	     row++) {
 		for (col = 0;
-		     priv->snapshot->contents[row][col].c != 0;
+	             (col < priv->snapshot->columns) &&
+		     (priv->snapshot->contents[row][col].c != 0);
 		     col++) {
 			if ((row == priv->snapshot->cursor.y) &&
 			    (col == priv->snapshot->cursor.x)) {
 				caret = priv->snapshot_cells->len;
 			}
 			cell = priv->snapshot->contents[row][col];
+#ifdef VTE_DEBUG
+			fprintf(stderr, "%lc", cell.c);
+#endif
 			g_array_append_val(priv->snapshot_cells, cell);
 
 		}
@@ -120,6 +127,11 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text)
 		caret = priv->snapshot_cells->len;
 	}
 	priv->snapshot_caret = caret;
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Refreshed accessibility snapshot, %ld cells.\n",
+		(long)priv->snapshot_cells->len);
+#endif
+	priv->snapshot_invalid = FALSE;
 }
 
 static void
@@ -153,6 +165,10 @@ vte_terminal_accessible_invalidate(VteTerminal *terminal, gpointer data)
 	priv = g_object_get_data(G_OBJECT(data),
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
 	g_return_if_fail(priv != NULL);
+
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Invalidating accessibility snapshot.\n");
+#endif
 
 	priv->snapshot_invalid = TRUE;
 }
@@ -202,10 +218,10 @@ vte_terminal_accessible_new(VteTerminal *terminal)
 	g_object_set_data(G_OBJECT(access),
 			  VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA,
 			  vte_terminal_accessible_new_private_data());
-	g_signal_connect(G_OBJECT(terminal), "contents_changed",
+	g_signal_connect(G_OBJECT(terminal), "contents-changed",
 			 GTK_SIGNAL_FUNC(vte_terminal_accessible_invalidate),
 			 access);
-	g_signal_connect(G_OBJECT(terminal), "cursor_moved",
+	g_signal_connect(G_OBJECT(terminal), "cursor-moved",
 			 GTK_SIGNAL_FUNC(vte_terminal_accessible_invalidate),
 			 access);
         g_signal_connect(G_OBJECT(terminal), "hierarchy-changed",
@@ -236,14 +252,41 @@ vte_terminal_accessible_finalize(GObject *object)
 	accessible = GTK_ACCESSIBLE(object);
 	gobject_class = g_type_class_peek_parent(VTE_TERMINAL_ACCESSIBLE_GET_CLASS(object));
 
-	g_signal_handlers_disconnect_by_func(G_OBJECT(accessible->widget),
-					     GTK_SIGNAL_FUNC(vte_terminal_accessible_invalidate),
+	g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+					     (G_SIGNAL_MATCH_ID |
+					      G_SIGNAL_MATCH_DATA),
+					     g_signal_lookup("contents-changed",
+						             VTE_TYPE_TERMINAL),
+					     0,
+					     NULL,
+					     NULL,
 					     accessible);
-	g_signal_handlers_disconnect_by_func(G_OBJECT(accessible->widget),
-					     GTK_SIGNAL_FUNC(vte_terminal_accessible_hierarchy_changed),
+	g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+					     (G_SIGNAL_MATCH_ID |
+					      G_SIGNAL_MATCH_DATA),
+					     g_signal_lookup("cursor-moved",
+						             VTE_TYPE_TERMINAL),
+					     0,
+					     NULL,
+					     NULL,
 					     accessible);
-	g_signal_handlers_disconnect_by_func(G_OBJECT(accessible->widget),
-					     GTK_SIGNAL_FUNC(vte_terminal_accessible_title_changed),
+	g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+					     (G_SIGNAL_MATCH_ID |
+					      G_SIGNAL_MATCH_DATA),
+					     g_signal_lookup("hierarchy-changed",
+						             VTE_TYPE_TERMINAL),
+					     0,
+					     NULL,
+					     NULL,
+					     accessible);
+	g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+					     (G_SIGNAL_MATCH_ID |
+					      G_SIGNAL_MATCH_DATA),
+					     g_signal_lookup("window-title-changed",
+						             VTE_TYPE_TERMINAL),
+					     0,
+					     NULL,
+					     NULL,
 					     accessible);
 	if (gobject_class->finalize != NULL) {
 		gobject_class->finalize(object);
@@ -258,22 +301,33 @@ vte_terminal_accessible_get_text(AtkText *text,
 	gchar *buf, *p;
 	int i;
 
+	g_return_val_if_fail(end_offset >= start_offset, g_strdup(""));
+
 	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
 
 	priv = g_object_get_data(G_OBJECT(text),
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
-	g_return_val_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(text), NULL);
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Getting text from %d to %d of %d.\n",
+		start_offset, end_offset, priv->snapshot_cells->len);
+#endif
+	g_return_val_if_fail(ATK_IS_TEXT(text), NULL);
 
 	/* If the requested area is after all of the text, just return an
 	 * empty string. */
 	if (start_offset >= priv->snapshot_cells->len) {
 		return g_strdup("");
 	}
+	if (end_offset > priv->snapshot_cells->len) {
+		return g_strdup("");
+	}
 
 	/* Allocate space to hold as many UTF-8 characters as we have
 	 * unicode characters. */
 	p = buf = g_malloc((end_offset - start_offset) * VTE_UTF8_BPC + 1);
-	for (i = start_offset; i < end_offset; i++) {
+	for (i = start_offset;
+	     (i < end_offset) && (i < priv->snapshot_cells->len);
+	     i++) {
 		p += g_unichar_to_utf8(g_array_index(priv->snapshot_cells,
 						     struct VteTerminalSnapshotCell,
 						     i).c,
@@ -300,6 +354,23 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 
 	priv = g_object_get_data(G_OBJECT(text),
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
+
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Getting %s %s at %d of %d.\n",
+		(direction == 0) ? "this" :
+		((direction == 1) ? "next" : "previous"),
+		(boundary_type == ATK_TEXT_BOUNDARY_CHAR) ? "char" :
+		((boundary_type == ATK_TEXT_BOUNDARY_LINE_START) ? "line (start)" :
+		((boundary_type == ATK_TEXT_BOUNDARY_LINE_END) ? "line (end)" :
+		((boundary_type == ATK_TEXT_BOUNDARY_WORD_START) ? "word (start)" :
+		((boundary_type == ATK_TEXT_BOUNDARY_WORD_END) ? "word (end)" :
+		((boundary_type == ATK_TEXT_BOUNDARY_SENTENCE_START) ? "sentence (start)" :
+		((boundary_type == ATK_TEXT_BOUNDARY_SENTENCE_END) ? "sentence (end)" : "unknown")))))),
+		offset, priv->snapshot_cells->len);
+#endif
+	g_return_val_if_fail(priv->snapshot_cells != NULL, g_strdup(""));
+	g_return_val_if_fail(offset < priv->snapshot_cells->len, g_strdup(""));
+	g_return_val_if_fail(offset >= 0, g_strdup(""));
 
 	switch (boundary_type) {
 		case ATK_TEXT_BOUNDARY_CHAR:
@@ -424,6 +495,9 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			*start_offset = *end_offset = 0;
 			break;
 	}
+	*start_offset = MAX(*start_offset, priv->snapshot_cells->len - 1);
+	*end_offset = MAX(*start_offset, *end_offset);
+	*end_offset = MIN(*end_offset, priv->snapshot_cells->len);
 	return vte_terminal_accessible_get_text(text,
 						*start_offset,
 						*end_offset);

@@ -202,7 +202,7 @@ vte_termcap_add_entry(struct vte_termcap *termcap, const char *s, ssize_t length
 }
 
 static void
-vte_termcap_strip(const char *termcap, char **stripped, ssize_t *len)
+vte_termcap_strip_with_pad(const char *termcap, char **stripped, ssize_t *len)
 {
 	char *ret;
 	ssize_t i, o, length;
@@ -304,6 +304,16 @@ vte_termcap_strip(const char *termcap, char **stripped, ssize_t *len)
 	*len = o;
 }
 
+void
+vte_termcap_strip(const char *termcap, char **stripped, ssize_t *len)
+{
+	vte_termcap_strip_with_pad(termcap, stripped, len);
+	while ((len > 0) && ((*stripped)[(*len) - 1] == ':')) {
+		(*len)--;
+		(*stripped)[*len] = '\0';
+	}
+}
+
 static gint
 vte_direct_compare(gconstpointer a, gconstpointer b)
 {
@@ -330,7 +340,7 @@ vte_termcap_new(const char *filename)
 					ret->nametree = g_tree_new(vte_direct_compare);
 				}
 				stripped = NULL;
-				vte_termcap_strip(s, &stripped, &slen);
+				vte_termcap_strip_with_pad(s, &stripped, &slen);
 				if (stripped) {
 					vte_termcap_add_entry(ret, stripped,
 							      slen, comment);

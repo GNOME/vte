@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.3.6
+Version: 0.3.7
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -53,6 +53,10 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Fri May  3 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.7-1
+- discard invalid control sequences
+- recognize designate-??-character-set correctly
+
 * Thu May  2 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.6-1
 - add a couple of sequence handlers, fix a couple of accessibility crashbugs
 

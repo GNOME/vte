@@ -684,10 +684,17 @@ vte_trie_printx(struct vte_trie *trie, const char *previous)
 					 trie->trie_paths[i].data.inc);
 				break;
 			case any:
-				snprintf(buf + strlen(buf),
-					 sizeof(buf) - strlen(buf),
-					 "{char+`%lc'}",
-					 (wint_t)trie->trie_paths[i].data.c);
+				if (trie->trie_paths[i].data.c < 32) {
+					snprintf(buf + strlen(buf),
+						 sizeof(buf) - strlen(buf),
+						 "{char+0x%02lx}",
+						 (long)trie->trie_paths[i].data.c);
+				} else {
+					snprintf(buf + strlen(buf),
+						 sizeof(buf) - strlen(buf),
+						 "{char+`%lc'}",
+						 (wint_t)trie->trie_paths[i].data.c);
+				}
 				break;
 			case string:
 				snprintf(buf + strlen(buf),

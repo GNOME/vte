@@ -51,6 +51,9 @@ char *vte_termcap_find_string_length(struct vte_termcap *termcap,
 				     const char *tname,
 				     const char *cap, ssize_t *length);
 
+/* Preprocess a termcap-style string, expanding any escape sequences. */
+void vte_termcap_strip(const char *termcap, char **stripped, ssize_t *len);
+
 G_END_DECLS
 
 #endif

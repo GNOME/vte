@@ -1,3 +1,15 @@
+2002-05-03 nalin
+	* src/termcap.c: Export a vte_termcap_strip() function for preprocessing
+	escape sequences and whatnot from capability values.
+	* src/typescrypt: Removed.
+	* src/vte.c: Pass the hard-coded xterm-specific capabilities through
+	vte_termcap_strip(), which fixes a few weird bugs.  Discard invalid
+	might-be-control-sequence sequences, like other emulators do.  Don't
+	consider modifier keys, by themselves, to be enough to scroll-on-key.
+	When snapshotting, actually snapshot all of a row instead of just the
+	last character.  Don't run past the end of snapshot contents when
+	reading them.
+	* src/vteaccess.c: Clamp offsets so that they always sort right.
 2002-05-02 nalin
 	* src/termcap.c: Fix handling of triple-digit escaped characters,
 	which weren't being processed right if the first digit was '1' instead
