@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.10.12
+Version: 0.10.13
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -93,6 +93,9 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Tue Jan 21 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.13-1
+- use less memory when setting up pseudo-transparent backgrounds
+
 * Mon Jan 20 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.12-1
 - fix a few accessibility bugs
 - fix colors 90-97,100-107 not bright (GNOME #103713)

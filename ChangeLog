@@ -1,3 +1,7 @@
+2003-01-21 nalin
+	* src/vte.c: streamline background images and transparency handling,
+	should use less memory now.
+
 2003-01-20 nalin
 	* src/reflect.c: add some debugging messages if REFLECT_VERBOSE is
 	set in the environment.
