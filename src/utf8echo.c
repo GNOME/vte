@@ -45,7 +45,7 @@ main(int argc, char **argv)
 		return 1;
 	}
 
-	printf(ESC "%%G ");
+	printf(ESC "%%G");
 	for (i = 1; i < argc; i++) {
 		w = (wint_t)atol(argv[i]);
 		inbuf = (char*)&w;
@@ -57,7 +57,7 @@ main(int argc, char **argv)
 			printf("%*s", outbuf - buf, buf);
 		}
 	}
-	printf(" " ESC "%%@\n");
+	printf(ESC "%%@\n");
 
 	iconv_close(conv);
 

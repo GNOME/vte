@@ -51,6 +51,7 @@
 #endif
 
 #define VTE_TAB_WIDTH	8
+#define VTE_LINE_WIDTH	1
 #define VTE_UTF8_BPC	6
 
 /* The structure we use to hold characters we're supposed to display -- this
@@ -101,12 +102,13 @@ struct _VteTerminalPrivate {
 	iconv_t incoming_conv;		/* narrow/wide conversion state */
 	char *incoming;			/* pending output characters */
 	size_t n_incoming;
+	gboolean processing;
 
 	/* Output data queue. */
 	char *outgoing;			/* pending input characters */
 	size_t n_outgoing;
-	iconv_t outgoing_conv_w;
-	iconv_t outgoing_conv_u;
+	iconv_t outgoing_conv_wide;
+	iconv_t outgoing_conv_utf8;
 
 	/* Data used when rendering the text. */
 	gboolean palette_initialized;
@@ -425,6 +427,11 @@ static void
 vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 {
 	const char *old_codeset;
+	GQuark encoding_quark;
+	iconv_t conv;
+	char *ibuf, *obuf, *obufptr;
+	size_t icount, ocount;
+
 	old_codeset = terminal->pvt->encoding;
 
 	if (codeset == NULL) {
@@ -438,22 +445,54 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	terminal->pvt->incoming_conv = iconv_open("WCHAR_T", codeset);
 
 	/* Set up the conversions for wchar/utf-8 to outgoing. */
-	if (terminal->pvt->outgoing_conv_w != NULL) {
-		iconv_close(terminal->pvt->outgoing_conv_w);
+	if (terminal->pvt->outgoing_conv_wide != NULL) {
+		iconv_close(terminal->pvt->outgoing_conv_wide);
 	}
-	terminal->pvt->outgoing_conv_w = iconv_open(codeset, "WCHAR_T");
+	terminal->pvt->outgoing_conv_wide = iconv_open(codeset, "WCHAR_T");
 
-	if (terminal->pvt->outgoing_conv_u != NULL) {
-		iconv_close(terminal->pvt->outgoing_conv_u);
+	if (terminal->pvt->outgoing_conv_utf8 != NULL) {
+		iconv_close(terminal->pvt->outgoing_conv_utf8);
 	}
-	terminal->pvt->outgoing_conv_u = iconv_open(codeset, "UTF-8");
+	terminal->pvt->outgoing_conv_utf8 = iconv_open(codeset, "UTF-8");
 
-	terminal->pvt->encoding = g_quark_to_string(g_quark_from_string(codeset));
+	/* Set the terminal's encoding to the new value. */
+	encoding_quark = g_quark_from_string(codeset);
+	terminal->pvt->encoding = g_quark_to_string(encoding_quark);
 
-	/* FIXME: convert existing data chunks to the proper new encoding. */
+	/* Convert any buffered output bytes. */
+	if (terminal->pvt->n_outgoing > 0) {
+		icount = terminal->pvt->n_outgoing;
+		ibuf = terminal->pvt->outgoing;
+		ocount = icount * VTE_UTF8_BPC + 1;
+		obuf = obufptr = g_malloc(ocount);
+		conv = iconv_open(codeset, old_codeset);
+		if (conv != NULL) {
+			if (iconv(conv, &ibuf, &icount, &obuf, &ocount) == -1) {
+				/* Darn, it failed.  Leave it alone. */
+				g_free(obufptr);
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Error converting %ld pending "
+					"output bytes: %s.\n",
+					(long) terminal->pvt->n_outgoing,
+					strerror(errno));
+#endif
+			} else {
+				g_free(terminal->pvt->outgoing);
+				terminal->pvt->outgoing = obufptr;
+				terminal->pvt->n_outgoing = obuf - obufptr;
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Converted %ld pending "
+					"output bytes.\n",
+					(long) terminal->pvt->n_outgoing);
+#endif
+			}
+			iconv_close(conv);
+		}
+	}
 
 #ifdef VTE_DEBUG
-	g_print("Set encoding to `%s'.\n", terminal->pvt->encoding);
+	fprintf(stderr, "Set terminal encoding to `%s'.\n",
+		terminal->pvt->encoding);
 #endif
 }
 
@@ -2485,6 +2524,9 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 	terminal = VTE_TERMINAL(widget);
 	screen = terminal->pvt->screen;
 
+	/* This may generate multiple redraws, so freeze it while we do them. */
+	gdk_window_freeze_updates(widget->window);
+
 	/* Signal that the cursor's current position needs redrawing. */
 	vte_invalidate_cells(terminal,
 			     screen->cursor_current.col - 1, 3,
@@ -2507,6 +2549,9 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 	vte_invalidate_cells(terminal,
 			     screen->cursor_current.col - 1, 3,
 			     screen->cursor_current.row, 1);
+
+	/* Let the updating begin. */
+	gdk_window_thaw_updates(widget->window);
 }
 
 /* Start up a command in a slave PTY. */
@@ -2542,7 +2587,7 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 		g_io_channel_unix_new(terminal->pvt->pty_master);
 	terminal->pvt->pty_output = NULL;
 	g_io_add_watch_full(terminal->pvt->pty_input,
-			    G_PRIORITY_LOW,
+			    G_PRIORITY_DEFAULT,
 			    G_IO_IN | G_IO_HUP,
 			    vte_terminal_io_read,
 			    terminal,
@@ -2575,23 +2620,32 @@ vte_terminal_eof(GIOChannel *source, gpointer data)
 /* Process incoming data, first converting it to wide characters, and then
  * processing escape sequences. */
 static gboolean
-vte_terminal_process_bytes(gpointer data)
+vte_terminal_process_incoming(gpointer data)
 {
 	GValueArray *params;
 	VteTerminal *terminal;
 	GtkWidget *widget;
-	char *ibuf, *obuf, *obufptr;
-	size_t icount, ocount;
+	char *ibuf, *obuf, *obufptr, *ubuf, *ubufptr;
+	size_t icount, ocount, ucount;
 	wchar_t *wbuf, c;
 	int i, j, wcount;
-	const char *match;
+	const char *match, *encoding;
+	iconv_t unconv;
 	GQuark quark;
-	gboolean leftovers, inserted;
+	gboolean leftovers, inserted, again;
 
 	g_return_val_if_fail(GTK_IS_WIDGET(data), FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
 	widget = GTK_WIDGET(data);
 	terminal = VTE_TERMINAL(data);
+
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Handler processing %d bytes.\n",
+		terminal->pvt->n_incoming);
+#endif
+
+	/* We should only be called when there's data to process. */
+	g_assert(terminal->pvt->n_incoming > 0);
 
 	/* Try to convert the data into wide characters. */
 	ocount = sizeof(wchar_t) * terminal->pvt->n_incoming;
@@ -2602,9 +2656,12 @@ vte_terminal_process_bytes(gpointer data)
 	/* Convert the data to wide characters. */
 	if (iconv(terminal->pvt->incoming_conv, &ibuf, &icount,
 		  &obuf, &ocount) == -1) {
-		/* Nope, try again. */
-		return TRUE;
+		/* No dice.  Try again when we have more data. */
+		return FALSE;
 	}
+
+	/* Store the current encoding. */
+	encoding = terminal->pvt->encoding;
 
 	/* Compute the number of wide characters we got. */
 	wcount = (obuf - obufptr) / sizeof(wchar_t);
@@ -2632,14 +2689,20 @@ vte_terminal_process_bytes(gpointer data)
 				 * character into the buffer. */
 				c = wbuf[i];
 #ifdef VTE_DEBUG
-				if (c > 127) {
-					fprintf(stderr, "%ld = ", (long) c);
-				}
-				if (c < 32) {
-					fprintf(stderr, "^%lc\n",
-						(wint_t)c + 64);
+				if (c > 255) {
+					fprintf(stderr, "%ld\n", (long) c);
 				} else {
-					fprintf(stderr, "`%lc'\n", (wint_t)c);
+					if (c > 127) {
+						fprintf(stderr, "%ld = ",
+							(long) c);
+					}
+					if (c < 32) {
+						fprintf(stderr, "^%lc\n",
+							(wint_t)c + 64);
+					} else {
+						fprintf(stderr, "`%lc'\n",
+							(wint_t)c);
+					}
 				}
 #endif
 				vte_terminal_insert_char(widget, c);
@@ -2658,8 +2721,13 @@ vte_terminal_process_bytes(gpointer data)
 				}
 				/* Skip over the proper number of wide chars. */
 				i = j;
+				/* Check if the encoding's changed. */
+				if (strcmp(encoding, terminal->pvt->encoding)) {
+					leftovers = TRUE;
+				}
 				break;
 			} else {
+				/* Empty string. */
 				if (j == wcount) {
 					/* We have the initial portion of a
 					 * control sequence, but no more
@@ -2670,12 +2738,40 @@ vte_terminal_process_bytes(gpointer data)
 			}
 		}
 	}
+	again = TRUE;
 	if (leftovers) {
-		/* FIXME: there are leftovers, convert them back. */
+		/* There are leftovers, so convert them back to the terminal's
+		 * encoding and save them for later. */
+		unconv = iconv_open(encoding, "WCHAR_T");
+		if (unconv != NULL) {
+			icount = sizeof(wchar_t) * (wcount - i);
+			ibuf = (char*) &wbuf[i];
+			ucount = VTE_UTF8_BPC * (wcount - i + 1);
+			ubuf = ubufptr = g_malloc(ucount);
+			if (iconv(unconv, &ibuf, &icount,
+				  &ubuf, &ucount) != -1) {
+				/* Store it. */
+				g_free(terminal->pvt->incoming);
+				terminal->pvt->incoming = ubufptr;
+				terminal->pvt->n_incoming = ubuf - ubufptr;
+				*ubuf = '\0';
+				again = TRUE;
+			} else {
+				again = FALSE;
+			}
+			iconv_close(unconv);
+		} else {
+			/* Discard the data, we can't use it. */
+			g_free(ubufptr);
+			terminal->pvt->n_incoming = 0;
+			g_free(terminal->pvt->incoming);
+			again = FALSE;
+		}
 	} else {
 		/* No leftovers, clean out the data. */
 		terminal->pvt->n_incoming = 0;
 		g_free(terminal->pvt->incoming);
+		again = FALSE;
 	}
 
 	if (inserted) {
@@ -2692,7 +2788,19 @@ vte_terminal_process_bytes(gpointer data)
 		}
 	}
 
-	return (terminal->pvt->n_incoming > 0);
+#ifdef VTE_DEBUG
+	fprintf(stderr, "%d bytes left to process.\n",
+		terminal->pvt->n_incoming);
+#endif
+	terminal->pvt->processing = again && (terminal->pvt->n_incoming > 0);
+#ifdef VTE_DEBUG
+	if (terminal->pvt->processing) {
+		fprintf(stderr, "Leaving processing handler on.\n");
+	} else {
+		fprintf(stderr, "Turning processing handler off.\n");
+	}
+#endif
+	return terminal->pvt->processing;
 }
 
 /* Read and handle data from the child. */
@@ -2762,9 +2870,13 @@ vte_terminal_io_read(GIOChannel *channel,
 		g_free(buf);
 	}
 
-	/* If we didn't have data before, but we do now, process it. */
-	if (empty && (terminal->pvt->n_incoming > 0)) {
-		g_idle_add(vte_terminal_process_bytes, terminal);
+	/* If we have data to process, schedule some time to process it. */
+	if (!terminal->pvt->processing && (terminal->pvt->n_incoming > 0)) {
+#ifdef VTE_DEBUG
+		fprintf(stderr, "Queuing handler to process bytes.\n");
+#endif
+		terminal->pvt->processing = TRUE;
+		g_idle_add(vte_terminal_process_incoming, terminal);
 	}
 
 	/* If there's more data coming, return TRUE, otherwise return FALSE. */
@@ -2798,8 +2910,11 @@ vte_terminal_feed(VteTerminal *terminal, const char *data, size_t length)
 	}
 
 	/* If we didn't have data before, but we do now, process it. */
-	if (empty && (terminal->pvt->n_incoming > 0)) {
-		g_idle_add(vte_terminal_process_bytes, terminal);
+	if (!terminal->pvt->processing && (terminal->pvt->n_incoming > 0)) {
+#ifdef VTE_DEBUG
+		fprintf(stderr, "Queuing handler to process bytes.\n");
+#endif
+		g_idle_add(vte_terminal_process_incoming, terminal);
 	}
 }
 
@@ -2824,7 +2939,7 @@ vte_terminal_io_write(GIOChannel *channel,
 #ifdef VTE_DEBUG
 		int i;
 		for (i = 0; i < count; i++) {
-			g_print("Wrote %c%c\n",
+			fprintf(stderr, "Wrote %c%c\n",
 				terminal->pvt->outgoing[i] > 32 ?  ' ' : '^',
 				terminal->pvt->outgoing[i] > 32 ?
 				terminal->pvt->outgoing[i] : 
@@ -2866,10 +2981,10 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		 (strcmp(encoding, "WCHAR_T") == 0));
 
 	if (strcmp(encoding, "UTF-8") == 0) {
-		conv = &terminal->pvt->outgoing_conv_u;
+		conv = &terminal->pvt->outgoing_conv_utf8;
 	}
 	if (strcmp(encoding, "WCHAR_T") == 0) {
-		conv = &terminal->pvt->outgoing_conv_w;
+		conv = &terminal->pvt->outgoing_conv_wide;
 	}
 
 	icount = length;
@@ -2893,7 +3008,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		if (terminal->pvt->pty_output == NULL) {
 			terminal->pvt->pty_output = g_io_channel_unix_new(terminal->pvt->pty_master);
 			g_io_add_watch_full(terminal->pvt->pty_output,
-					    G_PRIORITY_LOW,
+					    G_PRIORITY_DEFAULT,
 					    G_IO_OUT,
 					    vte_terminal_io_write,
 					    terminal,
@@ -2982,6 +3097,9 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				break;
 			case GDK_F11:
 				special = "k;";
+				break;
+			case GDK_F12:
+				special = "F1";
 				break;
 			/* Cursor keys. */
 			case GDK_KP_Up:
@@ -3192,12 +3310,12 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	height = MAX(o.y, MAX(p.y, q.y)) - top + 1;
 
 #ifdef VTE_DEBUG
-	g_print("selection is (%ld,%ld) to (%ld,%ld)\n",
+	fprintf(stderr, "selection is (%ld,%ld) to (%ld,%ld)\n",
 		terminal->pvt->selection_start.x,
 		terminal->pvt->selection_start.y,
 		terminal->pvt->selection_end.x,
 		terminal->pvt->selection_end.y);
-	g_print("repainting rows %ld to %ld\n", top, top + height);
+	fprintf(stderr, "repainting rows %ld to %ld\n", top, top + height);
 #endif
 
 	vte_invalidate_cells(terminal, 0, terminal->column_count, top, height);
@@ -3298,7 +3416,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 
 	if (event->type == GDK_BUTTON_PRESS) {
 #ifdef VTE_DEBUG
-		g_print("button %d pressed at (%lf,%lf)\n",
+		fprintf(stderr, "button %d pressed at (%lf,%lf)\n",
 			event->button, event->x, event->y);
 #endif
 		if (event->button == 1) {
@@ -3332,7 +3450,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 
 	if (event->type == GDK_BUTTON_RELEASE) {
 #ifdef VTE_DEBUG
-		g_print("button %d released at (%lf,%lf)\n",
+		fprintf(stderr, "button %d released at (%lf,%lf)\n",
 			event->button, event->x, event->y);
 #endif
 		if (event->button == 1) {
@@ -3573,7 +3691,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	quark = g_quark_from_string(emulation);
 	terminal->pvt->terminal = g_quark_to_string(quark);
 #ifdef VTE_DEBUG
-	g_print("Setting emulation to `%s'...", emulation);
+	fprintf(stderr, "Setting emulation to `%s'...", emulation);
 #endif
 
 	/* Create a trie to hold the control sequences. */
@@ -3620,7 +3738,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 		vte_trie_add(terminal->pvt->trie, code, strlen(code), value, 0);
 	}
 #ifdef VTE_DEBUG
-	g_print("\n");
+	fprintf(stderr, "\n");
 #endif
 
 	/* Resize to the given default. */
@@ -3642,14 +3760,14 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path)
 	}
 	terminal->pvt->termcap_path = g_quark_to_string(g_quark_from_string(path));
 #ifdef VTE_DEBUG
-	g_print("Loading termcap `%s'...", terminal->pvt->termcap_path);
+	fprintf(stderr, "Loading termcap `%s'...", terminal->pvt->termcap_path);
 #endif
 	if (terminal->pvt->termcap) {
 		vte_termcap_free(terminal->pvt->termcap);
 	}
 	terminal->pvt->termcap = vte_termcap_new(path);
 #ifdef VTE_DEBUG
-	g_print("\n");
+	fprintf(stderr, "\n");
 #endif
 	vte_terminal_set_emulation(terminal, terminal->pvt->terminal);
 }
@@ -3674,6 +3792,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->pty_pid = -1;
 	pvt->incoming = NULL;
 	pvt->n_incoming = 0;
+	pvt->processing = FALSE;
 	pvt->outgoing = NULL;
 	pvt->n_outgoing = 0;
 	pvt->palette_initialized = FALSE;
@@ -3754,7 +3873,7 @@ vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
 	requisition->height = terminal->char_height * terminal->row_count;
 
 #ifdef VTE_DEBUG
-	g_print("Initial size request is %dx%d.\n",
+	fprintf(stderr, "Initial size request is %dx%d.\n",
 		requisition->width, requisition->height);
 #endif
 }
@@ -4091,12 +4210,6 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 					back += 8;
 				}
 
-				/* Set the textitem's fields. */
-				textitem.chars = &cell->c;
-				textitem.nchars = 1;
-				textitem.delta = 0;
-				textitem.font_set = terminal->pvt->fontset;
-
 				/* Paint the background for the cell. */
 				XSetForeground(display, gc,
 					       terminal->pvt->palette[back].pixel);
@@ -4111,8 +4224,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 					     xright, ybottom;
 					xleft = col * width - x_offs;
 					ytop = row * height - y_offs;
-					xright = xleft + width - 1;
-					ybottom = ytop + height - 1;
+					xright = xleft + width;
+					ybottom = ytop + height;
 					xcenter = (xleft + xright) / 2;
 #if 0
 					ycenter = ytop + ascent / 2;
@@ -4130,7 +4243,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 						case 97:  /* a */
 						case 98:  /* b */
 						case 99:  /* c */
-						case 100:  /* d */
+						case 100: /* d */
 						case 101: /* e */
 						case 102: /* f */
 						case 103: /* g */
@@ -4140,216 +4253,216 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								  (wint_t) cell->c);
 							break;
 						case 106: /* j */
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xleft,
-								  ycenter,
-								  xcenter,
-								  ycenter);
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xcenter,
-								  ycenter,
-								  xcenter,
-								  ytop);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xleft,
+								       ycenter,
+								       xcenter - xleft + VTE_LINE_WIDTH,
+								       VTE_LINE_WIDTH);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xcenter,
+								       ytop,
+								       VTE_LINE_WIDTH,
+								       ycenter - ytop + VTE_LINE_WIDTH);
 							drawn = TRUE;
 							break;
 						case 107: /* k */
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xleft,
-								  ycenter,
-								  xcenter,
-								  ycenter);
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xcenter,
-								  ycenter,
-								  xcenter,
-								  ybottom);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xleft,
+								       ycenter,
+								       xcenter - xleft + VTE_LINE_WIDTH,
+								       VTE_LINE_WIDTH);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xcenter,
+								       ycenter,
+								       VTE_LINE_WIDTH,
+								       ybottom - ycenter);
 							drawn = TRUE;
 							break;
 						case 108: /* l */
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xright,
-								  ycenter,
-								  xcenter,
-								  ycenter);
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xcenter,
-								  ycenter,
-								  xcenter,
-								  ybottom);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xcenter,
+								       ycenter,
+								       xright - xcenter,
+								       VTE_LINE_WIDTH);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xcenter,
+								       ycenter,
+								       VTE_LINE_WIDTH,
+								       ybottom - ycenter);
 							drawn = TRUE;
 							break;
 						case 109: /* m */
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xright,
-								  ycenter,
-								  xcenter,
-								  ycenter);
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xcenter,
-								  ycenter,
-								  xcenter,
-								  ytop);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xcenter,
+								       ycenter,
+								       xright - xcenter,
+								       VTE_LINE_WIDTH);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xcenter,
+								       ytop,
+								       VTE_LINE_WIDTH,
+								       ycenter - ytop + VTE_LINE_WIDTH);
 							drawn = TRUE;
 							break;
 						case 110: /* n */
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xcenter,
-								  ytop,
-								  xcenter,
-								  ybottom);
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xleft,
-								  ycenter,
-								  xright,
-								  ycenter);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xcenter,
+								       ytop,
+								       VTE_LINE_WIDTH,
+								       ybottom - ytop);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xleft,
+								       ycenter,
+								       xright - xleft,
+								       VTE_LINE_WIDTH);
 							drawn = TRUE;
 							break;
 						case 111: /* o */
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xleft,
-								  ytop,
-								  xright,
-								  ytop);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xleft,
+								       ytop,
+								       xright - xleft,
+								       VTE_LINE_WIDTH);
 							drawn = TRUE;
 							break;
 						case 112: /* p */
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xleft,
-								  (ytop + ycenter) / 2,
-								  xright,
-								  (ytop + ycenter) / 2);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xleft,
+								       (ytop + ycenter) / 2,
+								       xright - xleft,
+								       VTE_LINE_WIDTH);
 							drawn = TRUE;
 							break;
 						case 113: /* q */
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xleft,
-								  ycenter,
-								  xright,
-								  ycenter);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xleft,
+								       ycenter,
+								       xright - xleft,
+								       VTE_LINE_WIDTH);
 							drawn = TRUE;
 							break;
 						case 114: /* r */
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xleft,
-								  (ycenter + ybottom) / 2,
-								  xright,
-								  (ycenter + ybottom) / 2);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xleft,
+								       (ycenter + ybottom) / 2,
+								       xright - xleft,
+								       VTE_LINE_WIDTH);
 							drawn = TRUE;
 							break;
 						case 115: /* s */
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xleft,
-								  ybottom,
-								  xright,
-								  ybottom);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xleft,
+								       ybottom,
+								       xright - xleft,
+								       VTE_LINE_WIDTH);
 							drawn = TRUE;
 							break;
 						case 116: /* t */
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xcenter,
-								  ytop,
-								  xcenter,
-								  ybottom);
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xright,
-								  ycenter,
-								  xcenter,
-								  ycenter);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xcenter,
+								       ytop,
+								       VTE_LINE_WIDTH,
+								       ybottom - ytop);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xcenter,
+								       ycenter,
+								       xright - xcenter,
+								       VTE_LINE_WIDTH);
 							drawn = TRUE;
 							break;
 						case 117: /* u */
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xcenter,
-								  ytop,
-								  xcenter,
-								  ybottom);
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xleft,
-								  ycenter,
-								  xcenter,
-								  ycenter);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xcenter,
+								       ytop,
+								       VTE_LINE_WIDTH,
+								       ybottom - ytop);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xleft,
+								       ycenter,
+								       xcenter - xleft + VTE_LINE_WIDTH,
+								       VTE_LINE_WIDTH);
 							drawn = TRUE;
 							break;
 						case 118: /* v */
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xcenter,
-								  ytop,
-								  xcenter,
-								  ycenter);
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xleft,
-								  ycenter,
-								  xright,
-								  ycenter);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xcenter,
+								       ytop,
+								       VTE_LINE_WIDTH,
+								       ycenter - ytop + VTE_LINE_WIDTH);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xleft,
+								       ycenter,
+								       xright - xleft,
+								       VTE_LINE_WIDTH);
 							drawn = TRUE;
 							break;
 						case 119: /* w */
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xcenter,
-								  ybottom,
-								  xcenter,
-								  ycenter);
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xleft,
-								  ycenter,
-								  xright,
-								  ycenter);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xcenter,
+								       ycenter,
+								       VTE_LINE_WIDTH,
+								       ybottom - ycenter);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xleft,
+								       ycenter,
+								       xright - xleft,
+								       VTE_LINE_WIDTH);
 							drawn = TRUE;
 							break;
 						case 120: /* x */
-							XDrawLine(display,
-								  drawable,
-								  gc,
-								  xcenter,
-								  ytop,
-								  xcenter,
-								  ybottom);
+							XFillRectangle(display,
+								       drawable,
+								       gc,
+								       xcenter,
+								       ytop,
+								       VTE_LINE_WIDTH,
+								       ybottom - ytop);
 							drawn = TRUE;
 							break;
 						default:
@@ -4370,6 +4483,12 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 				}
 #endif
 				if (!drawn) {
+					/* Set the textitem's fields. */
+					textitem.chars = &cell->c;
+					textitem.nchars = 1;
+					textitem.delta = 0;
+					textitem.font_set = terminal->pvt->fontset;
+
 					/* Draw the text.  We've handled bold,
 					 * standout and reverse already, but we
 					 * need to handle half, and maybe
@@ -4400,37 +4519,73 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	}
 
 	if (terminal->pvt->screen->cursor_visible) {
+		gboolean drawn = FALSE;
 		/* Draw the insertion cursor in the foreground color for this
 		 * cell. */
 		col = screen->cursor_current.col;
 		row = screen->cursor_current.row;
+		fore = screen->defaults.fore;
+		back = screen->defaults.back;
 		cell = vte_terminal_find_charcell(terminal, row - delta, col);
-		XSetForeground(display, gc,
-			       cell ?
-			       terminal->pvt->palette[cell->fore].pixel :
-			       terminal->pvt->palette[screen->defaults.fore].pixel);
+		if (cell != NULL) {
+			/* Determine what the foreground and background
+			 * colors for rendering text should be. */
+			if (cell->reverse) {
+				fore = cell->back;
+				back = cell->fore;
+			} else {
+				fore = cell->fore;
+				back = cell->back;
+			}
+			if (cell->invisible) {
+				fore = back;
+			}
+			if (cell->bold) {
+				fore += 8;
+			}
+			if (cell->standout) {
+				back += 8;
+			}
+		}
+
+		/* Draw a rectangle in the foreground color for this cell. */
+		XSetForeground(display, gc, 
+			       terminal->pvt->palette[fore].pixel);
 		XFillRectangle(display, drawable, gc,
 			       col * width - x_offs,
 			       (row - delta) * height - y_offs,
 			       width,
 			       height);
+
 		/* If we have a character in this spot, draw it in the reverse
 		 * of the normal color. */
 		if (cell != NULL) {
-			/* Draw the text reversed.  FIXME: handle half, bold,
-			 * standout, blink. */
+			/* Draw the text reversed. FIXME: handle half, blink. */
 			XSetForeground(display, gc,
-				       cell ?
-				       terminal->pvt->palette[cell->back].pixel :
-				       terminal->pvt->palette[screen->defaults.back].pixel);
-			textitem.chars = &cell->c;
-			textitem.nchars = 1;
-			textitem.delta = 0;
-			textitem.font_set = terminal->pvt->fontset;
-			XwcDrawText(display, drawable, gc,
-				    col * width - x_offs,
-				    row * height - y_offs + ascent,
-				    &textitem, 1);
+				       terminal->pvt->palette[back].pixel);
+#if HAVE_XFT
+			if (!drawn && terminal->pvt->use_xft) {
+				XftChar32 ftc;
+				ftc = cell->c;
+				XftDrawString32(ftdraw,
+						&terminal->pvt->palette[back].ftcolor,
+						terminal->pvt->ftfont,
+						col * width - x_offs,
+						row * height - y_offs + ascent,
+						&ftc, 1);
+				drawn = TRUE;
+			}
+#endif
+			if (!drawn) {
+				textitem.chars = &cell->c;
+				textitem.nchars = 1;
+				textitem.delta = 0;
+				textitem.font_set = terminal->pvt->fontset;
+				XwcDrawText(display, drawable, gc,
+					    col * width - x_offs,
+					    row * height - y_offs + ascent,
+					    &textitem, 1);
+			}
 		}
 	}
 
