@@ -3202,34 +3202,49 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 
 /* Check if a cell is selected or not. */
 static gboolean
-vte_cell_is_selected(VteTerminal *terminal, long drow, long col)
+vte_cell_is_selected(VteTerminal *terminal, long row, long col)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 	if (!terminal->pvt->selection) {
 		return FALSE;
 	}
-	if ((drow > terminal->pvt->selection_start.y) &&
-	    (drow < terminal->pvt->selection_end.y)) {
-		return TRUE;
-	} else
-	if ((terminal->pvt->selection_start.y == drow) &&
-	    (terminal->pvt->selection_end.y == drow)) {
-		if ((col >= terminal->pvt->selection_start.x) &&
-		    (col < terminal->pvt->selection_end.x)) {
-			return TRUE;
-		} else
-		if ((col >= terminal->pvt->selection_end.x) &&
-		    (col < terminal->pvt->selection_start.x)) {
-			return TRUE;
-		}
-	} else
-	if ((drow == terminal->pvt->selection_start.y) &&
-	    (col >= terminal->pvt->selection_start.x)) {
-		return TRUE;
-	} else
-	if ((drow == terminal->pvt->selection_end.y) &&
-	    (col < terminal->pvt->selection_end.x)) {
-		return TRUE;
+	switch (terminal->pvt->selection_type) {
+		case selection_type_char:
+			if ((row > terminal->pvt->selection_start.y) &&
+			    (row < terminal->pvt->selection_end.y)) {
+				return TRUE;
+			} else
+			if ((terminal->pvt->selection_start.y == row) &&
+			    (terminal->pvt->selection_end.y == row)) {
+				if ((col >= terminal->pvt->selection_start.x) &&
+				    (col < terminal->pvt->selection_end.x)) {
+					return TRUE;
+				} else
+				if ((col >= terminal->pvt->selection_end.x) &&
+				    (col < terminal->pvt->selection_start.x)) {
+					return TRUE;
+				}
+			} else
+			if ((row == terminal->pvt->selection_start.y) &&
+			    (col >= terminal->pvt->selection_start.x)) {
+				return TRUE;
+			} else
+			if ((row == terminal->pvt->selection_end.y) &&
+			    (col < terminal->pvt->selection_end.x)) {
+				return TRUE;
+			}
+			break;
+		case selection_type_word:
+			/* FIXME */
+			break;
+		case selection_type_line:
+			if ((row >= terminal->pvt->selection_start.y) &&
+			    (row <= terminal->pvt->selection_end.y)) {
+				return TRUE;
+			}
+			break;
+		default:
+			break;
 	}
 	return FALSE;
 }
@@ -3334,7 +3349,8 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	fprintf(stderr, "repainting rows %ld to %ld\n", top, top + height);
 #endif
 
-	vte_invalidate_cells(terminal, 0, terminal->column_count, top, height);
+	vte_invalidate_cells(terminal, 0, terminal->column_count,
+			     top + delta, height);
 
 	return FALSE;
 }
@@ -3366,20 +3382,23 @@ vte_terminal_get_clipboard(GtkClipboard *clipboard,
 	length = 0;
 	for (y = screen->scroll_delta;
 	     y < terminal->row_count + screen->scroll_delta;
-	     y++)
-	for (x = 0; x < terminal->column_count; x++) {
-		pcell = vte_terminal_find_charcell(terminal, y, x);
-		if (vte_cell_is_selected(terminal, y, x)) {
-			if (pcell != NULL) {
-				if (pcell->columns > 0) {
-					buffer[length++] = pcell->c;
-				}
-			} else {
-				if (x == terminal->column_count - 1) {
-					buffer[length++] = '\n';
+	     y++) {
+		x = 0;
+		do {
+			pcell = vte_terminal_find_charcell(terminal, y, x);
+			if (vte_cell_is_selected(terminal, y, x)) {
+				if (pcell != NULL) {
+					if (pcell->columns > 0) {
+						buffer[length++] = pcell->c;
+					}
+				} else {
+					if (x == terminal->column_count - 1) {
+						buffer[length++] = '\n';
+					}
 				}
 			}
-		}
+			x++;
+		} while (pcell != NULL);
 	}
 	/* Now convert it all to UTF-8. */
 	if (length > 0) {
@@ -3543,11 +3562,9 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 			event->button, event->x, event->y);
 #endif
 		if (event->button == 1) {
-			if ((event->x != terminal->pvt->selection_start.x) ||
-			    (event->y != terminal->pvt->selection_start.y)) {
-				vte_terminal_copy(terminal,
-						  GDK_SELECTION_PRIMARY);
-			}
+			/* FIXME: if the cursor didn't move, don't replace
+			 * the selection. */
+			vte_terminal_copy(terminal, GDK_SELECTION_PRIMARY);
 		}
 	}
 
