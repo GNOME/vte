@@ -17,6 +17,7 @@ AC_DEFINE(G_DISABLE_DEPRECATED,1,[Disable deprecated glib features.])
 AC_DEFINE(GDK_DISABLE_DEPRECATED,1,[Disable deprecated gdk features.])
 AC_DEFINE(GDK_PIXBUF_DISABLE_DEPRECATED,1,[Disable deprecated gdk-pixbuf features.])
 AC_DEFINE(GTK_DISABLE_DEPRECATED,1,[Disable deprecated gtk features.])
+AC_DEFINE(PACKAGE,"$PACKAGE",[Package name.])
 AC_CHECK_FUNCS(getpt grantpt unlockpt ptsname ptsname_r)
 
 savelibs="$LIBS"
