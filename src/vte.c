@@ -7633,7 +7633,6 @@ vte_terminal_feed_child(VteTerminal *terminal, const char *data, glong length)
 	if (length == ((gssize)-1)) {
 		length = strlen(data);
 	}
-	vte_terminal_im_reset(terminal);
 	if (length > 0) {
 		vte_terminal_send(terminal, "UTF-8", data, length);
 	}
@@ -7653,6 +7652,7 @@ vte_terminal_im_commit(GtkIMContext *im_context, gchar *text, gpointer data)
 #endif
 	terminal = VTE_TERMINAL(data);
 	vte_terminal_feed_child(terminal, text, -1);
+	vte_terminal_im_reset(terminal);
 	/* Committed text was committed because the user pressed a key, so
 	 * we need to obey the scroll-on-keystroke setting. */
 	if (terminal->pvt->scroll_on_keystroke) {
