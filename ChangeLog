@@ -1,3 +1,7 @@
+2002-09-10 Pablo Gonzalo del Campo <pablodc@bigfoot.com>
+
+        * configure.in: Added "es" to ALL_LINGUAS
+
 2002-09-05 nalin
 	* src/caps.c, src/caps.h, src/debug.c, src/debug.h, src/interpret.c,
 	src/iso2022.c, src/iso2022.h, src/pty.c, src/reaper.c, src/ring.c,
