@@ -118,6 +118,12 @@ main(int argc, char **argv)
 						     "UTF-8",
 						     NULL, &ubuflen, &error);
 			if (error != NULL) {
+				if (error->code ==
+				    G_CONVERT_ERROR_ILLEGAL_SEQUENCE) {
+					g_print("Munging input byte %02x->?.\n",
+						array->data[0]);
+					array->data[0] = '?';
+				} else
 				if (error->code !=
 				    G_CONVERT_ERROR_PARTIAL_INPUT) {
 					g_print("%s\n",
