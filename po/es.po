@@ -1,0 +1,117 @@
+# VTE Spanish translation file.
+# Copyright (C) 2002 Free Software Foundation, Inc.
+# This file is distributed under the same license as the VTE package.
+# Pablo Gonzalo del Campo <pablodc@bigfoot.com>, 2002.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: VTE\n"
+"POT-Creation-Date: 2002-09-11 04:53+0200\n"
+"PO-Revision-Date: 2002-09-11 13:55GMT-03:00\n"
+"Last-Translator: Pablo del Campo <pablodc@bigfoot.com>\n"
+"Language-Team: Español <traductores@es.gnome.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 0.9.6\n"
+
+#: src/pty.c:126
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "Error al agregar «%s» al entorno, continuando."
+
+#: src/reaper.c:107
+msgid "Error creating signal pipe."
+msgstr "Error al crear el caño de señal."
+
+#: src/trie.c:405
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "¡Duplicado (%s/%s)!"
+
+#: src/vte.c:1167
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Error al compilar la expresión regular «%s»."
+
+#: src/vte.c:1637 src/vte.c:1646 src/vte.c:1658 src/vte.c:1676 src/vte.c:1681
+#: src/vte.c:1686
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "No se pueden convertir caracteres de %s a %s"
+
+#: src/vte.c:4886
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "Se obtuvo una secuencia inesperada (¿de teclas?) «%s»"
+
+#: src/vte.c:5671
+#, c-format
+msgid "Character 0x%x is undefined, allocating one column."
+msgstr "El caracter 0x%x no esta definido, reservando una columna."
+
+#: src/vte.c:5865
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "No hay manejador para la secuencia de control «%s» definida."
+
+#: src/vte.c:6442
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Error al leer desde el hijo: %s"
+
+#: src/vte.c:6628
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Error (%s) al convertir datos desde el hijo, omitiendo."
+
+#: src/vte.c:8698
+#, c-format
+msgid "Using fontset \"%s\", which is missing these character sets: %s."
+msgstr "Se esta usando el juego de tipografía «%s», el cual no posee este juego de caracteres: %s."
+
+#: src/vte.c:9238
+#, c-format
+msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
+msgstr "Ha fallado la carga del patrón de tipografía Xft «%s», volviendo a la tipografía predeterminada."
+
+#: src/vte.c:9250
+msgid "Failed to load default Xft font."
+msgstr "Ha fallado la carga del la tipografía predeterminada Xft."
+
+#: src/vte.c:9343
+#, c-format
+msgid "Failed to load font set \"%s\", falling back to default font."
+msgstr "Ha fallado la carga del conjunto de tipografía «%s», volviendo a la tipografía predeterminada."
+
+#: src/vte.c:9355
+msgid "Failed to load default font, crashing or behaving abnormally."
+msgstr "Ha fallado la carga de la tipografía predeterminada, ha fallado o se ha comportado anormalmente."
+
+#: src/vte.c:9614
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "Error al leer el tamaño PTY, utilizando el predeterminado: %s."
+
+#: src/vte.c:9650
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "Error al establecer el tamaño PTY: %s."
+
+#: src/vte.c:12148
+msgid "Error allocating draw, disabling Xft."
+msgstr "Error al reservar el dibujo, deshabilitando Xft."
+
+#: src/vte.c:12155
+msgid "Error allocating context, disabling Pango."
+msgstr "Error al reservar contexto, deshabilitando Pango."
+
+#: src/vte.c:12161
+msgid "Error allocating layout, disabling Pango."
+msgstr "Error al reservar forma, deshabilitando Pango."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:13608
+msgid "g_iconv_open() failed setting word characters"
+msgstr "Ha fallado g_iconv_open() al establecer los caracteres de la palabra"
+
