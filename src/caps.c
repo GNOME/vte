@@ -336,8 +336,8 @@ struct vte_capability_quark vte_terminal_capability_strings[] = {
 	{"SX", 0},
 
 	{"ta", 0},
-	{"te", 0},
-	{"ti", 0},
+	/* {"te", 0}, terminal end-use is "logical". */
+	/* {"ti", 0}, terminal init is "logical". */
 	{"ts", 0},
 
 	{"uc", 0},
