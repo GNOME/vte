@@ -1,4 +1,8 @@
 2003-09-11 nalin
+	* src/vte.c(_vte_terminal_apply_pango_attr): map weight attributes to
+	the terminal's bold attribute.
+
+2003-09-11 nalin
 	* src/vte.c(_vte_terminal_map_pango_color): add.
 	* src/vte.c(vte_terminal_im_preedit_changed): don't discard the
 	attributes list for the preedit string -- save them.

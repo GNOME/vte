@@ -13044,6 +13044,15 @@ _vte_terminal_apply_pango_attr(VteTerminal *terminal, PangoAttribute *attr,
 			cells[i].underline = (ival != PANGO_UNDERLINE_NONE);
 		}
 		break;
+	case PANGO_ATTR_WEIGHT:
+		attrint = (PangoAttrInt*) attr;
+		ival = attrint->value;
+		for (i = attr->start_index;
+		     (i < attr->end_index) && (i < n_cells);
+		     i++) {
+			cells[i].bold = (ival >= PANGO_WEIGHT_BOLD);
+		}
+		break;
 	default:
 		break;
 	}
