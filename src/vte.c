@@ -2829,13 +2829,39 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 static gint
 vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 {
-	fprintf(stderr, "button %d pressed at (%lf,%lf)\n",
+	GtkClipboard *clipboard;
+	VteTerminal *terminal;
+	char *cliptext;
+
+	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
+	terminal = VTE_TERMINAL(widget);
+
+#ifdef VTE_DEBUG
+	g_print("button %d pressed at (%lf,%lf)\n",
 		event->button, event->x, event->y);
+#endif
+
 	if (event->type == GDK_BUTTON_PRESS) {
-		if (!GTK_WIDGET_HAS_FOCUS(widget)) {
-			gtk_widget_grab_focus(widget);
+		if (event->button == 1) {
+			if (!GTK_WIDGET_HAS_FOCUS(widget)) {
+				gtk_widget_grab_focus(widget);
+			}
+			return TRUE;
 		}
-		return TRUE;
+		if (event->button == 2) {
+			/* paste from clipboard */
+			clipboard = gtk_clipboard_get(GDK_SELECTION_PRIMARY);
+			if (gtk_clipboard_wait_is_text_available(clipboard)) {
+				cliptext = gtk_clipboard_wait_for_text(clipboard);
+				if (cliptext != NULL) {
+					vte_terminal_send_utf8(terminal,
+							       cliptext,
+							       strlen(cliptext));
+					/* FIXME: free this? */
+				}
+			}
+			return TRUE;
+		}
 	}
 	return FALSE;
 }
@@ -2844,8 +2870,10 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 static gint
 vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 {
-	fprintf(stderr, "button %d released at (%lf,%lf)\n",
+#ifdef VTE_DEBUG
+	g_print("button %d released at (%lf,%lf)\n",
 		event->button, event->x, event->y);
+#endif
 	return FALSE;
 }
 
