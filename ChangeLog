@@ -1,4 +1,8 @@
-2003-06-21 nalin
+2003-07-30 nalin
+	* autogen.sh: check for autoconf-2.51, autoconf-2.50, autoconf-2.5 when
+	looking for autoconf 2.5x (bug #118627).
+
+2003-07-21 nalin
 	* gnome-pty-helper/configure.in: define _XOPEN_SOURCE_EXTENDED,
 	_XOPEN_SOURCE, and __EXTENSIONS__ for Solaris, as we do in the top-level
 	configure (#117636).
