@@ -1,3 +1,7 @@
+2003-01-02  Zbigniew Chyla  <cyba@gnome.pl>
+
+	* configure.in: (ALL_LINGUAS) Added pl (Polish).
+
 2002-12-22  Artis Trops  <hornet@navigator.lv>
 
 	* configure.in: Added Latvian (lv) to ALL_LINGUAS.
