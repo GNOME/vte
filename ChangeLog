@@ -1,3 +1,7 @@
+2003-04-25 nalin
+	* src/vte.c(vte_sequence_handler_sf): freeze the window when scrolling
+	down in a restricted scrolling area again.
+
 2003-04-23 nalin
 	* src/iso2022.c(_vte_iso2022_state_set_codeset): save the new codeset.
 	* src/iso2022.c(process_cdata): compare the new codeset to the name of

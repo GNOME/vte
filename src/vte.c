@@ -3323,6 +3323,7 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 				/* This may generate multiple redraws, so
 				 * disable fast scrolling for now. */
 				terminal->pvt->scroll_lock_count++;
+				gdk_window_freeze_updates(widget->window);
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
 				top = screen->cursor_current.row;
@@ -3334,6 +3335,7 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 				vte_terminal_ensure_cursor(terminal, FALSE);
 				vte_terminal_adjust_adjustments(terminal, TRUE);
 				/* Allow updates again. */
+				gdk_window_thaw_updates(widget->window);
 				terminal->pvt->scroll_lock_count--;
 			} else {
 				/* If we're at the bottom of the scrolling
