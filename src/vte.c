@@ -2811,8 +2811,8 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 				}
 				break;
 			case 4:
-#ifdef VTE_DEBUG
 				if ((arg1 != -1) && (arg2 != -1)) {
+#ifdef VTE_DEBUG
 					fprintf(stderr, "Resizing window (%ldx%ld pixels).\n",
 						arg2, arg1);
 #endif
@@ -2844,8 +2844,8 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 				vte_terminal_emit_refresh_window(terminal);
 				break;
 			case 8:
-#ifdef VTE_DEBUG
 				if ((arg1 != -1) && (arg2 != -1)) {
+#ifdef VTE_DEBUG
 					fprintf(stderr, "Resizing window (%ld columns, %ld rows).\n",
 						arg2, arg1);
 #endif
