@@ -161,7 +161,8 @@ struct _VteTerminalPrivate {
 						   characters */
 	} normal_screen, alternate_screen, *screen;
 
-	gboolean selection;
+	gboolean has_selection;
+	char *selection;
 	enum {
 		selection_type_char,
 		selection_type_word,
@@ -401,8 +402,8 @@ static void
 vte_terminal_deselect_all(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	if (terminal->pvt->selection) {
-		terminal->pvt->selection = FALSE;
+	if (terminal->pvt->has_selection) {
+		terminal->pvt->has_selection = FALSE;
 		vte_terminal_emit_selection_changed (terminal);
 		vte_invalidate_cells(terminal,
 				     0, terminal->column_count,
@@ -3156,6 +3157,18 @@ vte_terminal_eof(GIOChannel *channel, gpointer data)
 	g_signal_emit_by_name(terminal, "eof");
 }
 
+/* Reset the input method context. */
+static void
+vte_terminal_im_reset(VteTerminal *terminal)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	gtk_im_context_reset(terminal->pvt->im_context);
+	if (terminal->pvt->im_preedit != NULL) {
+		g_free(terminal->pvt->im_preedit);
+		terminal->pvt->im_preedit = NULL;
+	}
+}
+
 /* Process incoming data, first converting it to wide characters, and then
  * processing escape sequences. */
 static gboolean
@@ -3642,6 +3655,7 @@ vte_terminal_feed_child(VteTerminal *terminal, const char *text, size_t length)
 	if (length == (size_t)-1) {
 		length = strlen(text);
 	}
+	vte_terminal_im_reset(terminal);
 	vte_terminal_send(terminal, "UTF-8", text, length);
 }
 
@@ -3992,7 +4006,7 @@ vte_cell_is_selected(VteTerminal *terminal, long row, long col)
 
 	/* If there's nothing selected, it's an easy question to answer. */
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	if (!terminal->pvt->selection) {
+	if (!terminal->pvt->has_selection) {
 		return FALSE;
 	}
 
@@ -4123,6 +4137,7 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 	g_return_if_fail(VTE_IS_TERMINAL(data));
 	terminal = VTE_TERMINAL(data);
 	if (text != NULL) {
+		vte_terminal_im_reset(terminal);
 		vte_terminal_send(terminal, "UTF-8", text, strlen(text));
 	}
 }
@@ -4141,7 +4156,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	terminal = VTE_TERMINAL(widget);
 
 	vte_terminal_emit_selection_changed (terminal);
-	terminal->pvt->selection = TRUE;
+	terminal->pvt->has_selection = TRUE;
 
 	w = terminal->char_width;
 	h = terminal->char_height;
@@ -4204,9 +4219,33 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	return FALSE;
 }
 
-/* Place the selected text onto the clipboard.  Do this synchronously so that
- * we don't accidentally clear the clipboard on ourselves.  FIXME: needs to
- * deselect the selected area when another app sets the clipboard contents. */
+/* Note that the clipboard has cleared. */
+static void
+vte_terminal_clear_cb(GtkClipboard *clipboard, gpointer owner)
+{
+	VteTerminal *terminal;
+	g_return_if_fail(VTE_IS_TERMINAL(owner));
+	terminal = VTE_TERMINAL(owner);
+	if (terminal->pvt->has_selection) {
+		vte_terminal_deselect_all(terminal);
+	}
+}
+
+/* Supply the selected text to the clipboard. */
+static void
+vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
+		     guint info, gpointer owner)
+{
+	VteTerminal *terminal;
+	g_return_if_fail(VTE_IS_TERMINAL(owner));
+	terminal = VTE_TERMINAL(owner);
+	if (terminal->pvt->selection != NULL) {
+		gtk_selection_data_set_text(data, terminal->pvt->selection, -1);
+	}
+}
+
+/* Place the selected text onto the clipboard.  Do this asynchronously so that
+ * we get notified when the selection we placed on the clipboard is replaced. */
 static void
 vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 {
@@ -4220,6 +4259,12 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 	char *ibuf, *obuf, *obufptr;
 	size_t icount, ocount;
 	iconv_t conv;
+	GtkTargetEntry targets[] = {
+		{"UTF8_STRING", 0, 0},
+		{"COMPOUND_TEXT", 0, 0},
+		{"TEXT", 0, 0},
+		{"STRING", 0, 0},
+	};
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	widget = GTK_WIDGET(terminal);
@@ -4263,15 +4308,18 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 				fprintf(stderr, "Passing `%*s' to clipboard.\n",
 					obuf - obufptr, obufptr);
 #endif
-				gtk_clipboard_set_text(clipboard,
-						       obufptr,
-						       obuf - obufptr);
-				/* Tell X that we want to know when something
-				 * changes in the clipboard. */
-				XSetSelectionOwner(GDK_WINDOW_XDISPLAY(widget->window),
-						   gdk_x11_atom_to_xatom(board),
-						   GDK_DRAWABLE_XID(widget->window),
-						   CurrentTime);
+				if (terminal->pvt->selection != NULL) {
+					g_free(terminal->pvt->selection);
+				}
+				terminal->pvt->selection = g_strndup(obufptr,
+								     obuf -
+								     obufptr);
+				gtk_clipboard_set_with_owner(clipboard,
+							     targets,
+							     G_N_ELEMENTS(targets),
+							     vte_terminal_copy_cb,
+							     vte_terminal_clear_cb,
+							     G_OBJECT(terminal));
 			} else {
 				g_warning("Conversion error in copy (%s), "
 					  "dropping.", strerror(errno));
@@ -4342,7 +4390,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				gtk_widget_grab_focus(widget);
 			}
 			vte_terminal_deselect_all(terminal);
-			terminal->pvt->selection = TRUE;
+			terminal->pvt->has_selection = TRUE;
 			terminal->pvt->selection_origin.x = event->x;
 			terminal->pvt->selection_origin.y = event->y;
 			terminal->pvt->selection_start.x = event->x / width;
@@ -4369,7 +4417,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				gtk_widget_grab_focus(widget);
 			}
 			vte_terminal_deselect_all(terminal);
-			terminal->pvt->selection = TRUE;
+			terminal->pvt->has_selection = TRUE;
 			terminal->pvt->selection_origin.x = event->x;
 			terminal->pvt->selection_origin.y = event->y;
 			terminal->pvt->selection_start.x = event->x / width;
@@ -5038,7 +5086,8 @@ vte_terminal_init(VteTerminal *terminal)
 					  terminal);
 	pvt->last_keypress_time = 0;
 
-	pvt->selection = FALSE;
+	pvt->has_selection = FALSE;
+	pvt->selection = NULL;
 	pvt->selection_start.x = 0;
 	pvt->selection_start.y = 0;
 	pvt->selection_end.x = 0;
@@ -5249,6 +5298,12 @@ vte_terminal_finalize(GObject *object)
 	/* Remove the blink timeout function. */
 	g_source_remove(terminal->pvt->blink_source);
 
+	/* Free any selected text. */
+	if (terminal->pvt->selection != NULL) {
+		g_free(terminal->pvt->selection);
+		terminal->pvt->selection = NULL;
+	}
+
 	/* Shut down the child terminal. */
 	close(terminal->pvt->pty_master);
 	terminal->pvt->pty_master = -1;
@@ -5323,18 +5378,6 @@ vte_terminal_finalize(GObject *object)
 	/* Call the inherited finalize() method. */
 	if (G_OBJECT_CLASS(widget_class)->finalize) {
 		(G_OBJECT_CLASS(widget_class))->finalize(object);
-	}
-}
-
-/* Reset the input method context. */
-static void
-vte_terminal_im_reset(VteTerminal *terminal)
-{
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	gtk_im_context_reset(terminal->pvt->im_context);
-	if (terminal->pvt->im_preedit != NULL) {
-		g_free(terminal->pvt->im_preedit);
-		terminal->pvt->im_preedit = NULL;
 	}
 }
 
@@ -5829,11 +5872,13 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	GC gc;
 	struct vte_charcell *cell, im_cell;
 	int row, drow, col, row_stop, col_stop, x_offs = 0, y_offs = 0, columns;
+	char *preedit;
 	long width, height, ascent, descent, delta;
 	struct timezone tz;
 	struct timeval tv;
 	guint daytime;
 	gint blink_cycle = 1000;
+	int i, len;
 	gboolean blink;
 #ifdef HAVE_XFT
 	XftDraw *ftdraw = NULL;
@@ -5975,7 +6020,11 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		/* Get the character under the cursor. */
 		col = screen->cursor_current.col;
 		if (terminal->pvt->im_preedit != NULL) {
-			col += terminal->pvt->im_preedit_cursor;
+			preedit = terminal->pvt->im_preedit;
+			for (i = 0; i < terminal->pvt->im_preedit_cursor; i++) {
+				col += wcwidth(g_utf8_get_char(preedit));
+				preedit = g_utf8_next_char(preedit);
+			}
 		}
 		drow = screen->cursor_current.row;
 		row = drow - delta;
@@ -6043,8 +6092,6 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 	/* Draw the pre-edit string (if one exists) over the cursor. */
 	if (terminal->pvt->im_preedit) {
-		int i, len;
-		char *preedit;
 		drow = screen->cursor_current.row;
 		row = drow - delta;
 		memset(&im_cell, 0, sizeof(im_cell));
@@ -6055,23 +6102,22 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		/* If the pre-edit string won't fit on the screen, drop initial
 		 * characters until it does. */
 		preedit = terminal->pvt->im_preedit;
-		len = strlen(preedit);
+		len = g_utf8_strlen(preedit, -1);
 		col = screen->cursor_current.col;
-		if ((col + len) > terminal->column_count) {
-			preedit += ((col + len) - terminal->column_count);
+		while ((col + len) > terminal->column_count) {
+			preedit = g_utf8_next_char(preedit);
 		}
-		len = strlen(preedit);
+		len = g_utf8_strlen(preedit, -1);
+		col = screen->cursor_current.col;
 
 		/* Draw the preedit string, one character at a time.  Fill the
 		 * background to prevent double-draws. */
 		for (i = 0; i < len; i++) {
-			im_cell.c = preedit[i];
-			col = screen->cursor_current.col + i;
+			im_cell.c = g_utf8_get_char(preedit);
 #ifdef VTE_DEBUG
 #ifdef VTE_DEBUG_DRAW
-			fprintf(stderr, "Drawing preedit[%d] = %c.\n",
-				i + (preedit - terminal->pvt->im_preedit),
-				preedit[i]);
+			fprintf(stderr, "Drawing preedit[%d] = %lc.\n",
+				i, im_cell.c);
 #endif
 #endif
 			XSetForeground(display, gc,
@@ -6100,6 +6146,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 					       ftdraw,
 #endif
 					       FALSE);
+			col += wcwidth(im_cell.c);
+			preedit = g_utf8_next_char(preedit);
 		}
 		if (len > 0) {
 			/* Draw a rectangle around the pre-edit string, to help
@@ -6111,7 +6159,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 				       gc,
 				       screen->cursor_current.col * width - x_offs,
 				       row * height - y_offs,
-				       len * width - 1,
+				       (col - screen->cursor_current.col) * width - 1,
 				       height - 1);
 		}
 	}
@@ -6516,12 +6564,6 @@ vte_terminal_filter_property_changes(GdkXEvent *xevent, GdkEvent *event,
 	}
 
 	switch (xev->type) {
-	case SelectionClear:
-#ifdef VTE_DEBUG
-		fprintf(stderr, "Selection modified by another window.\n");
-#endif
-		vte_terminal_deselect_all(terminal);
-		break;
 	case PropertyNotify:
 #ifdef VTE_DEBUG
 		fprintf(stderr, "Property changed.\n");
@@ -6577,7 +6619,7 @@ gboolean
 vte_terminal_get_has_selection(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return (terminal->pvt->selection != FALSE);
+	return (terminal->pvt->has_selection != FALSE);
 }
 
 gboolean
