@@ -106,12 +106,12 @@ struct _VteTerminalPrivate {
 
 	/* Input data queues. */
 	iconv_t incoming_conv;		/* narrow/wide conversion state */
-	char *incoming;			/* pending output characters */
+	unsigned char *incoming;	/* pending output characters */
 	size_t n_incoming;
 	gboolean processing;
 
 	/* Output data queue. */
-	char *outgoing;			/* pending input characters */
+	unsigned char *outgoing;	/* pending input characters */
 	size_t n_outgoing;
 	iconv_t outgoing_conv_wide;
 	iconv_t outgoing_conv_utf8;
@@ -3010,6 +3010,33 @@ vte_terminal_process_incoming(gpointer data)
 	if (iconv(terminal->pvt->incoming_conv, &ibuf, &icount,
 		  &obuf, &ocount) == -1) {
 		/* No dice.  Try again when we have more data. */
+		if ((icount > VTE_UTF8_BPC) &&
+		    (icount < terminal->pvt->n_incoming)) {
+			/* We barfed on something that had a high bit, so
+			 * discard it. */
+			i = terminal->pvt->n_incoming - icount;
+			if (terminal->pvt->incoming[i] > 128) {
+				/* Count the number of non-ascii chars. */
+				for (j = i; j < i + VTE_UTF8_BPC; j++) {
+					if (terminal->pvt->incoming[j] < 128) {
+						break;
+					}
+				}
+				/* Be conservative about discarding data. */
+				i = MIN(icount, j - i);
+				g_warning("Invalid multibyte sequence detected.  Discarding %d bytes of data.", i);
+				/* Remove the offending bytes. */
+				obuf = &terminal->pvt->incoming[terminal->pvt->n_incoming - icount];
+				ibuf = obuf + i;
+				memmove(obuf, ibuf, icount - i);
+				/* Reset the incoming buffer size. */
+				terminal->pvt->n_incoming -= i;
+				/* If we still have data, try again right
+				 * away. */
+				terminal->pvt->processing = (terminal->pvt->n_incoming > 0);
+				return terminal->pvt->processing;
+			}
+		}
 #ifdef VTE_DEBUG
 		fprintf(stderr, "Error converting %ld incoming data "
 			"bytes: %s, leaving for later.\n",
