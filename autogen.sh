@@ -32,12 +32,12 @@ fi
 # Tell the Mandrake autoconf wrapper to prefer autoconf 2.5.
 WANT_AUTOCONF_2_5=1
 export WANT_AUTOCONF_2_5
-for autoconf in autoconf autoconf-2.57 autoconf-2.56 autoconf-2.55 autoconf-2.54 autoconf-2.53 autoconf-2.52 autoconf-2.51 autoconf-2.50 autoconf-2.5 ; do
+for autoconf in autoconf autoconf-2.59 autoconf-2.58 autoconf-2.57 autoconf-2.56 autoconf-2.55 autoconf-2.54 autoconf-2.53 autoconf-2.52 autoconf-2.51 autoconf-2.50 autoconf-2.5 ; do
 	if "$autoconf" --version < /dev/null > /dev/null 2>&1 ; then
 		version=`"$autoconf" --version | head -1 | awk '{print $NF}'`
 		acmajor=`echo "$version" | cut -f1 -d.`
 		acminor=`echo "$version" | cut -f2 -d.`
-		if test "$acmajor" -gt 3 ; then
+		if test "$acmajor" -ge 3 ; then
 			break
 		fi
 		if test "$acmajor" -ge 2 ; then
@@ -47,6 +47,7 @@ for autoconf in autoconf autoconf-2.57 autoconf-2.56 autoconf-2.55 autoconf-2.54
 		fi
 	fi
 done
+autoheader=`echo "$autoconf" | sed -e s,autoconf,autoheader,g`
 if ! "$autoconf" --version < /dev/null > /dev/null 2>&1 ; then
 	echo
 	echo "You must have autoconf 2.52 installed to compile $PROJECT."
@@ -65,7 +66,7 @@ autoheader=`echo "$autoconf" | sed s,autoconf,autoheader,g`
 }
 
 have_automake=false
-for automakev in 1.7 1.6 ; do
+for automakev in 1.9 1.8 1.7 1.6 ; do
 	if automake-$automakev --version < /dev/null > /dev/null 2>&1 ; then
 		have_automake=true
 		break;
@@ -96,16 +97,13 @@ esac
 
 libtoolize -f -c
 glib-gettextize -f -c
-touch config.h.in
 aclocal-$automakev $ACLOCAL_FLAGS
-
-# optionally feature autoheader
 $autoheader
 automake-$automakev -a -c $am_opt
 $autoconf
 
 cd gnome-pty-helper
-touch config.h.in
+$autoheader
 aclocal-$automakev $ACLOCAL_FLAGS
 $autoheader
 automake-$automakev -a -c $am_opt
