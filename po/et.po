@@ -2,14 +2,15 @@
 # Copyright (C) 2003 Free Software Foundation, Inc
 # This file is distributed under the same license as the vte package.
 # Allan Sims <allsi@eau.ee>, 2003.
-#
+# Ivar Smolin <okul@linux.ee>, 2005.
+
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2004-08-06 12:26+0200\n"
-"PO-Revision-Date: 2003-09-29 08:21+0200\n"
-"Last-Translator: Allan Sims <allsi@eau.ee>\n"
+"PO-Revision-Date: 2005-02-02 13:56+0200\n"
+"Last-Translator: Ivar Smolin <okul@linux.ee>\n"
 "Language-Team: Estonian <gnome-et@linux.ee>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -18,7 +19,7 @@ msgstr ""
 #: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2091
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "Ei suuda konventeerida %s'i %s'iks."
+msgstr "Ei suuda teisendada sümboleid %s -> %s."
 
 #: src/iso2022.c:1578
 #, c-format
@@ -28,7 +29,7 @@ msgstr "Üritatakse seada vigast NRC kaarti '%c'."
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #: src/iso2022.c:1619
 msgid "Unrecognized identified coding system."
-msgstr "Tundmatu koodi süsteem."
+msgstr "Tundmatu tuvastatud kodeerimissüsteem."
 
 #: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
@@ -50,12 +51,12 @@ msgstr "ei saa käivitada %s"
 
 #: src/reaper.c:156
 msgid "Error creating signal pipe."
-msgstr "Viga luues signal pipe"
+msgstr "Viga signaalitoru loomisel"
 
 #: src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
-msgstr "Dublikaat (%s/%s)!"
+msgstr "Duplikaat (%s/%s)!"
 
 #: src/vte.c:1499
 #, c-format
@@ -70,27 +71,27 @@ msgstr "Saadi ootamatu (võtme?) jada `%s'."
 #: src/vte.c:6947
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr "Kontrolljadale `%s' haldaja defineerimata."
+msgstr "Kontrolljadale `%s' ei ole haldajat kirjeldatud."
 
 #: src/vte.c:7789
 #, c-format
 msgid "Error reading from child: %s."
-msgstr "Viga lapse %s lugemisel"
+msgstr "Viga lapsprotsessilt lugemisel: %s."
 
 #: src/vte.c:7945
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "Viga (%s) andmete konventeerimisel lapsele, peatumine."
+msgstr "Viga (%s) lapsprotsessile andmete teisendamisel, peatumine."
 
 #: src/vte.c:10754
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr "Viga lugedes PTY suurust, kasutatakse vaikeväärtust: %s."
+msgstr "Viga PTY suuruse lugemisel, kasutatakse vaikeväärtust: %s."
 
 #: src/vte.c:10790
 #, c-format
 msgid "Error setting PTY size: %s."
-msgstr "Viga seades PTY suurust: %s."
+msgstr "Viga PTY suuruse seadmisel: %s."
 
 #. Aaargh.  We're screwed.
 #: src/vte.c:15274
@@ -100,7 +101,7 @@ msgstr "Tõrge _vte_conv_open() sõnamärkide seadmisel"
 #. Bail back to normal mode.
 #: src/vteapp.c:728
 msgid "Could not open console.\n"
-msgstr "Ei saa konsooli avada.\n"
+msgstr "Konsooli ei saa avada.\n"
 
 #: src/vteglyph.c:579
 #, c-format
@@ -110,4 +111,4 @@ msgstr "Tundmatu pikseli mood %d.\n"
 #: src/vtexft.c:712
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr " Ei saa moodustada märki U+%04x.\n"
+msgstr "Märki U+%04x ei saa moodustada.\n"
