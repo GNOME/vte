@@ -563,6 +563,7 @@ _vte_glyph_get(struct _vte_glyph_cache *cache, gunichar c)
 		default:
 			g_error("Unknown pixel mode %d.\n",
 				face->glyph->bitmap.pixel_mode);
+			r = g = b = 0;
 			g_assert_not_reached();
 			break;
 		}

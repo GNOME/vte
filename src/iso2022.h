@@ -25,24 +25,31 @@
 
 #include <glib.h>
 #include <glib-object.h>
+#include "buffer.h"
 #include "matcher.h"
 
 G_BEGIN_DECLS
 
-struct _vte_iso2022 *_vte_iso2022_new(void);
-struct _vte_iso2022 *_vte_iso2022_copy(struct _vte_iso2022 *original);
-void _vte_iso2022_free(struct _vte_iso2022 *p);
-gunichar _vte_iso2022_substitute_single(gunichar mapname, gunichar c);
-gssize _vte_iso2022_substitute(struct _vte_iso2022 *state,
-			       gunichar *instring, gssize length,
-			       gunichar *outstring,
-			       struct _vte_matcher *specials);
+struct _vte_iso2022_state;
+typedef void (*_vte_iso2022_codeset_changed_cb_fn)(struct _vte_iso2022_state *,
+						   gpointer);
+struct _vte_iso2022_state *_vte_iso2022_state_new(const char *native_codeset,
+						  _vte_iso2022_codeset_changed_cb_fn,
+						  gpointer);
+void _vte_iso2022_state_set_codeset(struct _vte_iso2022_state *state,
+				    const char *codeset);
+const char *_vte_iso2022_state_get_codeset(struct _vte_iso2022_state *state);
+void _vte_iso2022_process(struct _vte_iso2022_state *state,
+			  struct _vte_buffer *input, GArray *gunichars);
+gunichar _vte_iso2022_process_single(struct _vte_iso2022_state *state,
+				     gunichar c, gunichar map);
+void _vte_iso2022_state_free(struct _vte_iso2022_state *);
+
 
 #define VTE_ISO2022_ENCODED_WIDTH_BIT_OFFSET	28
 #define VTE_ISO2022_ENCODED_WIDTH_MASK		(3 << VTE_ISO2022_ENCODED_WIDTH_BIT_OFFSET)
 #define VTE_ISO2022_HAS_ENCODED_WIDTH(__c)	(((__c) & VTE_ISO2022_ENCODED_WIDTH_MASK) != 0)
 gssize _vte_iso2022_get_encoded_width(gunichar c);
-gboolean _vte_iso2022_is_ambiguous(gunichar c);
 gssize _vte_iso2022_unichar_width(gunichar c);
 
 G_END_DECLS

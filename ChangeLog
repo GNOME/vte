@@ -1,4 +1,15 @@
 2003-04-17 nalin
+	* src/vteglyph.c(_vte_glyph_get): quiet a compiler warning.
+	* src/iso2022.c: use KSX-1001 instead of KSC-5601 for Korean, add maps
+	for CNS 11643 planes 3,4,5,6,7 (can't test them, but hey).  Rework
+	so that we get the data before it's passed to g_iconv(), and return
+	gunichars.
+	* src/interpret.c: adapt to changes in the iso2022 interfaces.
+	* src/vte.c: adapt to changes in the iso2022 interfaces.
+	* src/mkunitables.sh: add snippets for KSX 1001.
+	* src/iso2022.txt: add iso-2022-cn example text.
+
+2003-04-17 nalin
 	* src/vte.c(vte_terminal_process_incoming): invalidate a larger
 	rectangle to fix behavior wrt openi18n assertion 2.
 

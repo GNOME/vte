@@ -193,17 +193,15 @@ struct _VteTerminalPrivate {
 
 	/* Input data queues. */
 	const char *encoding;		/* the pty's encoding */
-	GQuark encodingq;		/* the pty's encoding */
-	struct _vte_iso2022 *substitutions;
-	GIConv incoming_conv;		/* narrow/unichar conversion state */
-	struct _vte_buffer *incoming;	/* pending output characters */
+	struct _vte_iso2022_state *iso2022;
+	struct _vte_buffer *incoming;	/* pending bytestream */
+	GArray *pending;		/* pending characters */
 	gboolean processing;
 	gint processing_tag;
 
 	/* Output data queue. */
 	struct _vte_buffer *outgoing;	/* pending input characters */
-	GIConv outgoing_conv_wide;
-	GIConv outgoing_conv_utf8;
+	GIConv outgoing_conv;
 
 	/* IConv buffer. */
 	struct _vte_buffer *conv_buffer;
@@ -1933,130 +1931,62 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 {
 	const char *old_codeset;
 	GQuark encoding_quark;
-	GIConv conv, new_iconv, new_oconvw, new_oconvu;
-	char *ibuf, *obuf, *obufptr;
-	gsize icount, ocount;
+	GIConv conv;
+	char *obuf1, *obuf2;
+	gsize bytes_written;
 
 	old_codeset = terminal->pvt->encoding;
 	if (codeset == NULL) {
 		g_get_charset(&codeset);
 	}
+	if ((old_codeset != NULL) && (strcmp(codeset, old_codeset) == 0)) {
+		/* Nothing to do! */
+		return;
+	}
 
 	/* Open new conversions. */
-	new_iconv = g_iconv_open(_vte_matcher_wide_encoding(), codeset);
-	if (new_iconv == ((GIConv) -1)) {
+	conv = g_iconv_open(codeset, "UTF-8");
+	if (conv == ((GIConv) -1)) {
 		g_warning(_("Unable to convert characters from %s to %s."),
-			  codeset, _vte_matcher_wide_encoding());
-		if (terminal->pvt->encoding != NULL) {
-			/* Keep the current encoding. */
-			return;
-		}
+			  "UTF-8", _vte_matcher_wide_encoding());
+		return;
 	}
-	new_oconvw = g_iconv_open(codeset, _vte_matcher_wide_encoding());
-	if (new_oconvw == ((GIConv) -1)) {
-		g_warning(_("Unable to convert characters from %s to %s."),
-			  _vte_matcher_wide_encoding(), codeset);
-		if (new_iconv != ((GIConv) -1)) {
-			g_iconv_close(new_iconv);
-		}
-		if (terminal->pvt->encoding != NULL) {
-			/* Keep the current encoding. */
-			return;
-		}
+	if (terminal->pvt->outgoing_conv != (GIConv) -1) {
+		g_iconv_close(terminal->pvt->outgoing_conv);
 	}
-	new_oconvu = g_iconv_open(codeset, "UTF-8");
-	if (new_oconvu == ((GIConv) -1)) {
-		g_warning(_("Unable to convert characters from %s to %s."),
-			  "UTF-8", codeset);
-		if (new_iconv != ((GIConv) -1)) {
-			g_iconv_close(new_iconv);
-		}
-		if (new_oconvw != ((GIConv) -1)) {
-			g_iconv_close(new_oconvw);
-		}
-		if (terminal->pvt->encoding != NULL) {
-			/* Keep the current encoding. */
-			return;
-		}
-	}
-
-	if (new_oconvu == ((GIConv) -1)) {
-		codeset = _vte_matcher_narrow_encoding();
-		new_iconv = g_iconv_open(_vte_matcher_wide_encoding(), codeset);
-		if (new_iconv == ((GIConv) -1)) {
-			g_error(_("Unable to convert characters from %s to %s."),
-				codeset, _vte_matcher_wide_encoding());
-		}
-		new_oconvw = g_iconv_open(codeset,
-					  _vte_matcher_wide_encoding());
-		if (new_oconvw == ((GIConv) -1)) {
-			g_error(_("Unable to convert characters from %s to %s."),
-				_vte_matcher_wide_encoding(), codeset);
-		}
-		new_oconvu = g_iconv_open(codeset, "UTF-8");
-		if (new_oconvu == ((GIConv) -1)) {
-			g_error(_("Unable to convert characters from %s to %s."),
-				"UTF-8", codeset);
-		}
-	}
-
-	/* Set up the conversion for incoming-to-gunichar. */
-	if (terminal->pvt->incoming_conv != ((GIConv) -1)) {
-		g_iconv_close(terminal->pvt->incoming_conv);
-	}
-	terminal->pvt->incoming_conv = new_iconv;
-
-	/* Set up the conversions for gunichar/utf-8 to outgoing. */
-	if (terminal->pvt->outgoing_conv_wide != ((GIConv) -1)) {
-		g_iconv_close(terminal->pvt->outgoing_conv_wide);
-	}
-	terminal->pvt->outgoing_conv_wide = new_oconvw;
-
-	if (terminal->pvt->outgoing_conv_utf8 != ((GIConv) -1)) {
-		g_iconv_close(terminal->pvt->outgoing_conv_utf8);
-	}
-	terminal->pvt->outgoing_conv_utf8 = new_oconvu;
+	terminal->pvt->outgoing_conv = conv;
 
 	/* Set the terminal's encoding to the new value. */
 	encoding_quark = g_quark_from_string(codeset);
 	terminal->pvt->encoding = g_quark_to_string(encoding_quark);
-	terminal->pvt->encodingq = encoding_quark;
 
 	/* Convert any buffered output bytes. */
 	if ((_vte_buffer_length(terminal->pvt->outgoing) > 0) &&
 	    (old_codeset != NULL)) {
-		icount = _vte_buffer_length(terminal->pvt->outgoing);
-		ibuf = terminal->pvt->incoming->bytes;
-		ocount = icount * VTE_UTF8_BPC + 1;
-		_vte_buffer_set_minimum_size(terminal->pvt->conv_buffer,
-					     ocount);
-		obuf = obufptr = terminal->pvt->conv_buffer->bytes;
-		conv = g_iconv_open(codeset, old_codeset);
-		if (conv != ((GIConv) -1)) {
-			if (g_iconv(conv, &ibuf, &icount, &obuf, &ocount) == -1) {
-				/* Darn, it failed.  Leave it alone. */
-#ifdef VTE_DEBUG
-				if (_vte_debug_on(VTE_DEBUG_IO)) {
-					fprintf(stderr, "Error converting %ld "
-						"pending output bytes (%s) "
-						"skipping.\n",
-						(long) _vte_buffer_length(terminal->pvt->outgoing),
-						strerror(errno));
-				}
-#endif
-			} else {
+		/* Convert back to UTF-8. */
+		obuf1 = g_convert(terminal->pvt->outgoing->bytes,
+				  _vte_buffer_length(terminal->pvt->outgoing),
+				  "UTF-8",
+				  old_codeset,
+				  NULL,
+				  &bytes_written,
+				  NULL);
+		if (obuf1 != NULL) {
+			/* Convert to the new encoding. */
+			obuf2 = g_convert(obuf1,
+					  bytes_written,
+					  codeset,
+					  "UTF-8",
+					  NULL,
+					  &bytes_written,
+					  NULL);
+			if (obuf2 != NULL) {
 				_vte_buffer_clear(terminal->pvt->outgoing);
 				_vte_buffer_append(terminal->pvt->outgoing,
-						   obufptr, obuf - obufptr);
-#ifdef VTE_DEBUG
-				if (_vte_debug_on(VTE_DEBUG_IO)) {
-					fprintf(stderr, "Converted %ld pending "
-						"output bytes.\n",
-						(long) _vte_buffer_length(terminal->pvt->outgoing));
-				}
-#endif
+						   obuf2, bytes_written);
+				g_free(obuf2);
 			}
-			g_iconv_close(conv);
+			g_free(obuf1);
 		}
 	}
 
@@ -6289,7 +6219,8 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		}
 #endif
 		/* See if there's a mapping for it. */
-		cell.c = _vte_iso2022_substitute_single('0', c);
+		cell.c = _vte_iso2022_process_single(terminal->pvt->iso2022,
+						     c, '0');
 		if (cell.c != c) {
 			forced_width = _vte_iso2022_get_encoded_width(c);
 			c = cell.c & ~(VTE_ISO2022_ENCODED_WIDTH_MASK);
@@ -6744,6 +6675,21 @@ vte_terminal_eof(GIOChannel *channel, gpointer data)
 		_vte_terminal_disconnect_pty_read(terminal);
 	}
 
+	/* Take one last shot at processing whatever data is pending, then
+	 * flush the buffers in case we're about to run a new command,
+	 * disconnecting the timeout. */
+	if (terminal->pvt->processing) {
+		g_source_remove(terminal->pvt->processing_tag);
+		terminal->pvt->processing = FALSE;
+		terminal->pvt->processing_tag = VTE_INVALID_SOURCE;
+	}
+	vte_terminal_process_incoming(terminal);
+	_vte_buffer_clear(terminal->pvt->incoming);
+	g_array_set_size(terminal->pvt->pending, 0);
+
+	/* Clear the outgoing buffer as well. */
+	_vte_buffer_clear(terminal->pvt->outgoing);
+
 	/* Emit a signal that we read an EOF. */
 	vte_terminal_emit_eof(terminal);
 }
@@ -6858,20 +6804,16 @@ vte_terminal_process_incoming(gpointer data)
 	VteTerminal *terminal;
 	VteScreen *screen;
 	struct vte_cursor_position cursor;
-	struct _vte_iso2022 *substitutions;
-	gssize substitution_count;
 	GtkWidget *widget;
 	GdkRectangle rect;
 	GdkPoint bbox_topleft, bbox_bottomright;
-	char *ibuf, *obuf, *obufptr, *ubuf, *ubufptr;
-	gsize icount, ocount, ucount;
 	gunichar *wbuf, c;
 	long wcount, start;
-	const char *match, *encoding;
-	GIConv unconv;
+	const char *match;
 	GQuark quark;
 	const gunichar *next;
-	gboolean leftovers, modified, again, bottom;
+	gboolean leftovers, modified, bottom;
+	GArray *unichars;
 
 	g_return_val_if_fail(GTK_IS_WIDGET(data), FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
@@ -6888,89 +6830,6 @@ vte_terminal_process_incoming(gpointer data)
 	}
 #endif
 
-	/* We should only be called when there's data to process. */
-	g_assert(_vte_buffer_length(terminal->pvt->incoming) > 0);
-
-	/* Try to convert the data into unicode characters. */
-	ocount = sizeof(gunichar) * _vte_buffer_length(terminal->pvt->incoming);
-	_vte_buffer_set_minimum_size(terminal->pvt->conv_buffer, ocount);
-	obuf = obufptr = terminal->pvt->conv_buffer->bytes;
-	icount = _vte_buffer_length(terminal->pvt->incoming);
-	ibuf = terminal->pvt->incoming->bytes;
-
-	/* Convert the data to unicode characters. */
-	if (g_iconv(terminal->pvt->incoming_conv, &ibuf, &icount,
-		    &obuf, &ocount) == -1) {
-		/* No dice.  Try again when we have more data. */
-		if ((errno == EILSEQ) &&
-		    (_vte_buffer_length(terminal->pvt->incoming) >= icount)) {
-			/* Munge up the offending byte. */
-			start = _vte_buffer_length(terminal->pvt->incoming) -
-				icount;
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_IO)) {
-				fprintf(stderr, "Error converting %ld incoming "
-					"data bytes: %s, discarding byte %ld "
-					"(0x%02x) and trying again.\n",
-					(long) _vte_buffer_length(terminal->pvt->incoming),
-					strerror(errno), start,
-					terminal->pvt->incoming->bytes[start]);
-			}
-#endif
-			terminal->pvt->incoming->bytes[start] = VTE_INVALID_BYTE;
-			/* Try again, before we try anything else.  To pull this
-			 * off we add ourselves as a higher priority idle
-			 * handler, and cause this lower-priority instance
-			 * to be dropped. */
-			terminal->pvt->processing_tag =
-					g_idle_add_full(VTE_INPUT_RETRY_PRIORITY,
-							vte_terminal_process_incoming,
-							terminal,
-						NULL);
-			return FALSE;
-		}
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_IO)) {
-			fprintf(stderr, "Error converting %ld incoming data "
-				"bytes: %s, leaving for later.\n",
-				(long) _vte_buffer_length(terminal->pvt->incoming),
-				strerror(errno));
-		}
-#endif
-		terminal->pvt->processing = FALSE;
-		terminal->pvt->processing_tag = VTE_INVALID_SOURCE;
-		return terminal->pvt->processing;
-	}
-
-	/* Store the current encoding. */
-	encoding = terminal->pvt->encoding;
-
-	/* Compute the number of unicode characters we got. */
-	wcount = (obuf - obufptr) / sizeof(gunichar);
-	wbuf = (gunichar*) obufptr;
-
-	/* Initialize some state info we'll use to decide what to do next. */
-	start = 0;
-	modified = leftovers = again = FALSE;
-
-	/* Perform ISO-2022 and XTerm national replacement charset
-	 * substitutions. */
-	if (terminal->pvt->nrc_mode) {
-		substitutions = _vte_iso2022_copy(terminal->pvt->substitutions);
-		substitution_count = _vte_iso2022_substitute(substitutions,
-							     wbuf, wcount, wbuf,
-							     terminal->pvt->matcher);
-		if (substitution_count < 0) {
-			_vte_iso2022_free(substitutions);
-			leftovers = TRUE;
-			again = FALSE;
-		} else {
-			_vte_iso2022_free(terminal->pvt->substitutions);
-			terminal->pvt->substitutions = substitutions;
-			wcount = substitution_count;
-		}
-	}
-
 	/* Save the current cursor position. */
 	screen = terminal->pvt->screen;
 	cursor = screen->cursor_current;
@@ -6981,12 +6840,29 @@ vte_terminal_process_incoming(gpointer data)
 	bbox_bottomright.x = cursor.col + 1; /* Assume it's on a wide char. */
 	bbox_bottomright.y = cursor.row;
 
-	/* We're going to check if the text was modified, so keep a flag. */
+	/* We're going to check if the text was modified once we're done here,
+	 * so keep a flag. */
 	terminal->pvt->text_modified_flag = FALSE;
 	terminal->pvt->text_inserted_count = 0;
 	terminal->pvt->text_deleted_count = 0;
 
+	/* We should only be called when there's data to process. */
+	g_assert(_vte_buffer_length(terminal->pvt->incoming) > 0);
+
+	/* Convert the data into unicode characters. */
+	unichars = terminal->pvt->pending;
+	_vte_iso2022_process(terminal->pvt->iso2022,
+			     terminal->pvt->incoming,
+			     unichars);
+
+	/* Compute the number of unicode characters we got. */
+	wbuf = &g_array_index(unichars, gunichar, 0);
+	wcount = unichars->len;
+
 	/* Try initial substrings. */
+	start = 0;
+	modified = leftovers = FALSE;
+
 	while ((start < wcount) && !leftovers) {
 		/* Try to match any control sequences. */
 		_vte_matcher_match(terminal->pvt->matcher,
@@ -7011,19 +6887,13 @@ vte_terminal_process_incoming(gpointer data)
 						     params);
 			/* Skip over the proper number of unicode chars. */
 			start = (next - wbuf);
-			/* Check if the encoding's changed. If it has, we need
-			 * to force our caller to call us again to parse the
-			 * rest of the data. */
-			if (strcmp(encoding, terminal->pvt->encoding)) {
-				leftovers = TRUE;
-			}
 			/* Flush any pending signals. */
 			vte_terminal_emit_pending_text_signals(terminal, quark);
 			modified = TRUE;
 		} else
-		/* Second, we have a NULL match, and next points the very
-		 * next character in the buffer.  Insert the character we're
-		 * which we're currently examining. */
+		/* Second, we have a NULL match, and next points to the very
+		 * next character in the buffer.  Insert the character which
+		 * we're currently examining into the screen. */
 		if (match == NULL) {
 			c = wbuf[start];
 #ifdef VTE_DEBUG
@@ -7053,6 +6923,7 @@ vte_terminal_process_incoming(gpointer data)
 							 FALSE, FALSE, TRUE,
 							 0);
 			}
+
 			/* We *don't* emit flush pending signals here. */
 			modified = TRUE;
 			start++;
@@ -7065,20 +6936,22 @@ vte_terminal_process_incoming(gpointer data)
 			if (wbuf + wcount > next) {
 #ifdef VTE_DEBUG
 				if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Invalid control sequence, "
-						"discarding %d characters.\n",
+					fprintf(stderr, "Invalid control "
+						"sequence, discarding %d "
+						"characters.\n",
 						next - (wbuf + start));
 				}
 #endif
 				/* Discard. */
 				start = next - wbuf + 1;
 			} else {
-				/* Pause processing and wait for more data. */
+				/* Pause processing here and wait for more
+				 * data before continuing. */
 				leftovers = TRUE;
 			}
 		}
 
-		/* Add the cell into which we just moved to the region we
+		/* Add the cell into which we just moved to the region which we
 		 * need to refresh for the user. */
 		bbox_topleft.x = MIN(bbox_topleft.x,
 				     screen->cursor_current.col);
@@ -7103,6 +6976,21 @@ vte_terminal_process_incoming(gpointer data)
 		free_params_array(params);
 		params = NULL;
 	}
+
+	/* Remove most of the processed characters. */
+	if (start < wcount) {
+		unichars = g_array_new(TRUE, TRUE, sizeof(gunichar));
+		g_array_append_vals(unichars,
+				    &g_array_index(terminal->pvt->pending,
+						   gunichar,
+						   start),
+				    wcount - start);
+		g_array_free(terminal->pvt->pending, TRUE);
+		terminal->pvt->pending = unichars;
+	} else {
+		g_array_set_size(terminal->pvt->pending, 0);
+	}
+
 	/* Flush any pending "inserted" signals. */
 	vte_terminal_emit_pending_text_signals(terminal, 0);
 
@@ -7116,61 +7004,12 @@ vte_terminal_process_incoming(gpointer data)
 				 terminal->row_count);
 
 	/* Update the screen to draw any modified areas.  This includes
-	 * the current location of the cursor, so we won't need to redraw
-	 * it below. */
+	 * the current location of the cursor. */
 	vte_invalidate_cells(terminal,
 			     bbox_topleft.x - 1,
 			     bbox_bottomright.x - (bbox_topleft.x - 1) + 1,
 			     bbox_topleft.y,
 			     bbox_bottomright.y - bbox_topleft.y + 1);
-
-	if (leftovers) {
-		/* There are leftovers, so convert them back to the terminal's
-		 * old encoding and save them for later.  We can't use the
-		 * scratch buffer here because it already holds ibuf. */
-		unconv = g_iconv_open(encoding, _vte_matcher_wide_encoding());
-		if (unconv != ((GIConv) -1)) {
-			icount = sizeof(gunichar) * (wcount - start);
-			ibuf = (char*) &wbuf[start];
-			ucount = VTE_UTF8_BPC * (wcount - start) + 1;
-			ubuf = ubufptr = g_malloc(ucount);
-			if (g_iconv(unconv, &ibuf, &icount,
-				    &ubuf, &ucount) != -1) {
-				/* Store it. */
-				_vte_buffer_clear(terminal->pvt->incoming);
-				_vte_buffer_append(terminal->pvt->incoming,
-						   ubufptr,
-						   ubuf - ubufptr);
-				/* If we're doing this because the encoding
-				 * was changed out from under us, we need to
-				 * keep trying to process the incoming data. */
-				if (strcmp(encoding, terminal->pvt->encoding)) {
-					again = TRUE;
-				}
-			} else {
-#ifdef VTE_DEBUG
-				if (_vte_debug_on(VTE_DEBUG_IO)) {
-					fprintf(stderr, "Error unconverting %ld "
-						"pending input bytes (%s), dropping.\n",
-						(long) (sizeof(gunichar) * (wcount - start)),
-						strerror(errno));
-				}
-#endif
-				_vte_buffer_clear(terminal->pvt->incoming);
-				again = FALSE;
-			}
-			g_free(ubufptr);
-			g_iconv_close(unconv);
-		} else {
-			/* Discard the data, we can't use it. */
-			_vte_buffer_clear(terminal->pvt->incoming);
-			again = FALSE;
-		}
-	} else {
-		/* No leftovers, clean out the data. */
-		_vte_buffer_clear(terminal->pvt->incoming);
-		again = FALSE;
-	}
 
 	if (modified) {
 		/* Keep the cursor on-screen if we scroll on output, or if
@@ -7209,16 +7048,18 @@ vte_terminal_process_incoming(gpointer data)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_IO)) {
-		fprintf(stderr, "%ld bytes left to process.\n",
+		fprintf(stderr, "%ld chars and %ld bytes left to process.\n",
+			(long) unichars->len,
 			(long) _vte_buffer_length(terminal->pvt->incoming));
 	}
 #endif
-	/* Decide if we're going to keep on processing data, and if not,
-	 * note that our source tag is about to become invalid. */
-	terminal->pvt->processing = again && (_vte_buffer_length(terminal->pvt->incoming) > 0);
-	if (terminal->pvt->processing == FALSE) {
-		terminal->pvt->processing_tag = VTE_INVALID_SOURCE;
+	/* Disconnect this function from the main loop. */
+	terminal->pvt->processing = FALSE;
+	if (terminal->pvt->processing_tag != VTE_INVALID_SOURCE) {
+		g_source_remove(terminal->pvt->processing_tag);
 	}
+	terminal->pvt->processing_tag = VTE_INVALID_SOURCE;
+
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_IO)) {
 		if (terminal->pvt->processing) {
@@ -7228,6 +7069,7 @@ vte_terminal_process_incoming(gpointer data)
 		}
 	}
 #endif
+
 	return terminal->pvt->processing;
 }
 
@@ -7257,26 +7099,27 @@ vte_terminal_io_read(GIOChannel *channel,
 			 _vte_buffer_length(terminal->pvt->incoming);
 		bcount = read(fd, buf, MAX(bcount, sizeof(buf) / 2));
 	}
+
+	/* Check for end-of-file. */
 	eof = FALSE;
 	if (condition & G_IO_HUP) {
 		eof = TRUE;
 	}
 
 	/* Catch errors. */
-	leave_open = TRUE;
 	switch (bcount) {
 	case 0:
 		/* EOF */
 		eof = TRUE;
 		break;
 	case -1:
+		/* Error! */
 		switch (errno) {
 			case EIO: /* Fake an EOF. */
 				eof = TRUE;
 				break;
 			case EAGAIN:
-			case EBUSY:
-				leave_open = TRUE;
+			case EBUSY: /* do nothing */
 				break;
 			default:
 				g_warning(_("Error reading from child: "
@@ -7286,52 +7129,9 @@ vte_terminal_io_read(GIOChannel *channel,
 		}
 		break;
 	default:
+		/* Queue up the data for processing. */
+		vte_terminal_feed(terminal, buf, bcount);
 		break;
-	}
-
-	/* If we got data, modify the pending buffer. */
-	if (bcount >= 0) {
-		_vte_buffer_append(terminal->pvt->incoming, buf, bcount);
-	}
-
-	/* If we have data to process, schedule some time to process it. */
-	if (_vte_buffer_length(terminal->pvt->incoming) >
-	    VTE_INPUT_CHUNK_SIZE) {
-		/* Disconnect any pending timeouts so that the processing
-		 * function can register itself if it wants to do so. */
-		if (terminal->pvt->processing) {
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_IO)) {
-				fprintf(stderr, "Removing timed handler.\n");
-			}
-#endif
-			terminal->pvt->processing = FALSE;
-			g_source_remove(terminal->pvt->processing_tag);
-			terminal->pvt->processing_tag = VTE_INVALID_SOURCE;
-		}
-		/* Process the data *now*. */
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_IO)) {
-			fprintf(stderr, "Processing data immediately.\n");
-		}
-#endif
-		vte_terminal_process_incoming(terminal);
-	} else {
-		/* Wait no more than N milliseconds for more data.  We don't
-		 * touch the timeout if we're already slated to call it again
-		 * because if the output were carefully timed, we could
-		 * conceivably put it off forever. */
-		if (!terminal->pvt->processing) {
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_IO)) {
-				fprintf(stderr, "Adding timed handler.\n");
-			}
-#endif
-			terminal->pvt->processing = TRUE;
-			terminal->pvt->processing_tag = g_timeout_add(VTE_COALESCE_TIMEOUT,
-								      vte_terminal_process_incoming,
-								      terminal);
-		}
 	}
 
 	/* If we detected an eof condition, signal one. */
@@ -7347,7 +7147,7 @@ vte_terminal_io_read(GIOChannel *channel,
 /**
  * vte_terminal_feed:
  * @terminal: a #VteTerminal
- * @data: a string
+ * @data: a string in the terminal's current encoding
  * @length: the length of the string
  *
  * Interprets @data as if it were data received from a child process.  This
@@ -7364,26 +7164,44 @@ vte_terminal_feed(VteTerminal *terminal, const char *data, glong length)
 	}
 
 	/* If we got data, modify the pending buffer. */
-	if (length >= 0) {
+	if (length > 0) {
 		_vte_buffer_append(terminal->pvt->incoming, data, length);
 	}
 
-	/* If we didn't have data before, but we do now, start processing it. */
+	/* If we have sufficient data, just process it now. */
+	if (_vte_buffer_length(terminal->pvt->incoming) >
+	    VTE_INPUT_CHUNK_SIZE) {
+		/* Disconnect the timeout if one is pending. */
+		if (terminal->pvt->processing) {
+			g_source_remove(terminal->pvt->processing_tag);
+			terminal->pvt->processing = FALSE;
+			terminal->pvt->processing_tag = VTE_INVALID_SOURCE;
+		}
+		vte_terminal_process_incoming(terminal);
+	}
+
+	/* Wait no more than N milliseconds for more data.  We don't
+	 * touch the timeout if we're already slated to call it again
+	 * because if the output were carefully timed, we could
+	 * conceivably put it off forever. */
 	if (!terminal->pvt->processing &&
 	    (_vte_buffer_length(terminal->pvt->incoming) > 0)) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_IO)) {
-			fprintf(stderr,
-				"Queuing handler to process %ld bytes.\n",
-				(long) length);
+			fprintf(stderr, "Adding timed handler.\n");
 		}
 #endif
 		terminal->pvt->processing = TRUE;
-		terminal->pvt->processing_tag =
-				g_idle_add_full(VTE_INPUT_PRIORITY,
-						vte_terminal_process_incoming,
-						terminal,
-						NULL);
+		terminal->pvt->processing_tag = g_timeout_add(VTE_COALESCE_TIMEOUT,
+							      vte_terminal_process_incoming,
+							      terminal);
+	} else {
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_IO)) {
+			fprintf(stderr, "Not touching timed handler, "
+				"or no data.\n");
+		}
+#endif
 	}
 }
 
@@ -7442,15 +7260,11 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	GIConv *conv;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_assert((strcmp(encoding, "UTF-8") == 0) ||
-		 (strcmp(encoding, _vte_matcher_wide_encoding()) == 0));
+	g_assert(strcmp(encoding, "UTF-8") == 0);
 
 	conv = NULL;
 	if (strcmp(encoding, "UTF-8") == 0) {
-		conv = &terminal->pvt->outgoing_conv_utf8;
-	}
-	if (strcmp(encoding, _vte_matcher_wide_encoding()) == 0) {
-		conv = &terminal->pvt->outgoing_conv_wide;
+		conv = &terminal->pvt->outgoing_conv;
 	}
 	g_assert(conv != NULL);
 	g_assert(*conv != ((GIConv) -1));
@@ -10430,6 +10244,14 @@ vte_terminal_disconnect_xft_settings(VteTerminal *terminal)
 	}
 }
 
+static void
+_vte_terminal_codeset_changed_cb(struct _vte_iso2022_state *state, gpointer p)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(p));
+	vte_terminal_set_encoding(VTE_TERMINAL(p),
+				  _vte_iso2022_state_get_codeset(state));
+}
+
 /* Initialize the terminal widget after the base widget stuff is initialized.
  * We need to create a new psuedo-terminal pair, read in the termcap file, and
  * set ourselves up to do the interpretation of sequences. */
@@ -10529,15 +10351,15 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* Set up I/O encodings. */
 	pvt->encoding = NULL;
-	pvt->encodingq = 0;
-	pvt->substitutions = _vte_iso2022_new();
+	pvt->iso2022 = _vte_iso2022_state_new(pvt->encoding,
+					      &_vte_terminal_codeset_changed_cb,
+					      (gpointer)terminal);
 	pvt->incoming = _vte_buffer_new();
+	pvt->pending = g_array_new(TRUE, TRUE, sizeof(gunichar));
 	pvt->processing = FALSE;
 	pvt->processing_tag = VTE_INVALID_SOURCE;
 	pvt->outgoing = _vte_buffer_new();
-	pvt->incoming_conv = (GIConv) -1;
-	pvt->outgoing_conv_wide = (GIConv) -1;
-	pvt->outgoing_conv_utf8 = (GIConv) -1;
+	pvt->outgoing_conv = (GIConv) -1;
 	pvt->conv_buffer = _vte_buffer_new();
 	vte_terminal_set_encoding(terminal, NULL);
 	g_assert(terminal->pvt->encoding != NULL);
@@ -10975,9 +10797,9 @@ vte_terminal_finalize(GObject *object)
 	widget_class = g_type_class_peek(GTK_TYPE_WIDGET);
 
 	/* The NLS maps. */
-	if (terminal->pvt->substitutions != NULL) {
-		_vte_iso2022_free(terminal->pvt->substitutions);
-		terminal->pvt->substitutions = NULL;
+	if (terminal->pvt->iso2022 != NULL) {
+		_vte_iso2022_state_free(terminal->pvt->iso2022);
+		terminal->pvt->iso2022 = NULL;
 	}
 
 	/* Free background info. */
@@ -11099,18 +10921,10 @@ vte_terminal_finalize(GObject *object)
 		      TRUE);
 
 	/* Free conversion descriptors. */
-	if (terminal->pvt->incoming_conv != ((GIConv) -1)) {
-		g_iconv_close(terminal->pvt->incoming_conv);
+	if (terminal->pvt->outgoing_conv != ((GIConv) -1)) {
+		g_iconv_close(terminal->pvt->outgoing_conv);
 	}
-	terminal->pvt->incoming_conv = ((GIConv) -1);
-	if (terminal->pvt->outgoing_conv_wide != ((GIConv) -1)) {
-		g_iconv_close(terminal->pvt->outgoing_conv_wide);
-	}
-	terminal->pvt->outgoing_conv_wide = ((GIConv) -1);
-	if (terminal->pvt->outgoing_conv_utf8 != ((GIConv) -1)) {
-		g_iconv_close(terminal->pvt->outgoing_conv_utf8);
-	}
-	terminal->pvt->outgoing_conv_utf8 = ((GIConv) -1);
+	terminal->pvt->outgoing_conv = ((GIConv) -1);
 
 	/* Stop listening for child-exited signals. */
 	g_signal_handlers_disconnect_by_func(vte_reaper_get(),
@@ -11128,10 +10942,18 @@ vte_terminal_finalize(GObject *object)
 		_vte_buffer_free(terminal->pvt->incoming);
 	}
 	terminal->pvt->incoming = NULL;
+	if (terminal->pvt->pending != NULL) {
+		g_array_free(terminal->pvt->pending, TRUE);
+	}
+	terminal->pvt->pending = NULL;
 	if (terminal->pvt->outgoing != NULL) {
 		_vte_buffer_free(terminal->pvt->outgoing);
 	}
 	terminal->pvt->outgoing = NULL;
+	if (terminal->pvt->pending != NULL) {
+		g_array_free(terminal->pvt->pending, TRUE);
+	}
+	terminal->pvt->pending = NULL;
 	if (terminal->pvt->conv_buffer != NULL) {
 		_vte_buffer_free(terminal->pvt->conv_buffer);
 	}
@@ -14351,14 +14173,21 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	if (terminal->pvt->incoming != NULL) {
 		_vte_buffer_clear(terminal->pvt->incoming);
 	}
+	if (terminal->pvt->pending != NULL) {
+		g_array_set_size(terminal->pvt->pending, 0);
+	}
 	if (terminal->pvt->outgoing != NULL) {
 		_vte_buffer_clear(terminal->pvt->outgoing);
 	}
 	/* Reset charset substitution state. */
-	if (terminal->pvt->substitutions != NULL) {
-		_vte_iso2022_free(terminal->pvt->substitutions);
+	if (terminal->pvt->iso2022 != NULL) {
+		_vte_iso2022_state_free(terminal->pvt->iso2022);
 	}
-	terminal->pvt->substitutions = _vte_iso2022_new();
+	terminal->pvt->iso2022 = _vte_iso2022_state_new(NULL,
+							&_vte_terminal_codeset_changed_cb,
+							(gpointer)terminal);
+	_vte_iso2022_state_set_codeset(terminal->pvt->iso2022,
+				       terminal->pvt->encoding);
 	/* Reset keypad/cursor/function key modes. */
 	terminal->pvt->keypad_mode = VTE_KEYMODE_NORMAL;
 	terminal->pvt->cursor_mode = VTE_KEYMODE_NORMAL;

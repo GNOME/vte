@@ -17,7 +17,7 @@ generate() {
 
 maphome=http://www.unicode.org/Public/MAPPINGS/OBSOLETE/EASTASIA/
 
-encodings="CNS11643 GB12345 GB2312 JIS0201 JIS0208 JIS0212 KSC5601"
+encodings="CNS11643 GB12345 GB2312 JIS0201 JIS0208 JIS0212 KSC5601 KSX1001"
 if test "$#" != 0 ; then
 	encodings="$*"
 fi
@@ -29,7 +29,7 @@ for encoding in $encodings ; do
 				CNS*) wget -qc $maphome/OTHER/$encoding.TXT ;;
 				GB*) wget -qc $maphome/GB/$encoding.TXT ;;
 				JIS*) wget -qc $maphome/JIS/$encoding.TXT ;;
-				KSC*) wget -qc $maphome/KSC/$encoding.TXT ;;
+				KS*) wget -qc $maphome/KSC/$encoding.TXT ;;
 			esac
 		fi
 		echo -n $encoding
