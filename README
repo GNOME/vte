@@ -32,6 +32,7 @@
 - Sequence matching is greedy, so that C=AB matches C and not A and then B.
 - Bold doesn't work right if the default foreground color isn't gray.  Need
   to move to 20-color palette to fix this right.
+- Matching doesn't always work right.
 - I'm not sure the widget implementation itself is correct.  There are many
   changes in going from GTK+ 1.2 to 2.0, and examples of the proper way to do
   things is currently scarce, so some of it's guesswork.

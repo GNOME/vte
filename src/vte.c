@@ -837,7 +837,7 @@ vte_terminal_match_check_int(VteTerminal *terminal, long column,
 				     j++) {
 					/* The offsets should be "sane". */
 					g_assert(matches[j].rm_so + coffset < terminal->pvt->match_attributes->len);
-					g_assert(matches[j].rm_eo + coffset < terminal->pvt->match_attributes->len);
+					g_assert(matches[j].rm_eo + coffset <= terminal->pvt->match_attributes->len);
 #ifdef VTE_DEBUG
 					if (vte_debug_on(VTE_DEBUG_MISC)) {
 						char *match;
@@ -7164,68 +7164,61 @@ xft_pattern_from_pango_font_description(const PangoFontDescription *font_desc)
 #endif
 
 static char *
-xlfd_from_pango_font_description(const PangoFontDescription *fontdesc)
+xlfd_from_pango_font_description(GtkWidget *widget,
+				 const PangoFontDescription *fontdesc)
 {
-	int weighti, stylei, stretchi, size, count;
-	const char *weight, *style, *stretch, *family;
-	char *ret = NULL;
-	char **fonts;
+	char *spec;
+	PangoContext *context;
+	PangoFont *font;
+	PangoXSubfont *subfont_ids;
+	PangoFontMap *fontmap;
+	int *subfont_charsets, i, count;
+	char *xlfd = NULL, *tmp, *subfont, *charset;
 
-	family = pango_font_description_get_family(fontdesc);
-	weighti = pango_font_description_get_weight(fontdesc);
-	if (weighti > ((PANGO_WEIGHT_NORMAL + PANGO_WEIGHT_BOLD) / 2)) {
-		weight = "bold";
-	} else {
-		weight = "medium";
-	}
-	stylei = pango_font_description_get_style(fontdesc);
-	switch (stylei) {
-		case PANGO_STYLE_ITALIC:
-			style = "i";
-			break;
-		case PANGO_STYLE_OBLIQUE:
-			style = "o";
-			break;
-		default:
-			style = "r";
-			break;
-	}
-	stretchi = pango_font_description_get_stretch(fontdesc);
-	if (stretchi <= PANGO_STRETCH_CONDENSED) {
-		stretch = "condensed";
-	} else
-	if (stretchi <= PANGO_STRETCH_SEMI_CONDENSED) {
-		stretch = "semicondensed";
-	} else {
-		stretch = "normal";
+	g_return_val_if_fail(fontdesc != NULL, NULL);
+	g_return_val_if_fail(GTK_IS_WIDGET(widget), NULL);
+
+	context = gtk_widget_get_pango_context(GTK_WIDGET(widget));
+	fontmap = pango_x_font_map_for_display(GDK_DISPLAY());
+	font = pango_font_map_load_font(fontmap, context, fontdesc);
+
+	if (font == NULL) {
+		g_print("no font loaded\n");
+		return g_strdup("fixed");
 	}
 
-	size = pango_font_description_get_size(fontdesc);
+	charset = g_strdup(nl_langinfo(CODESET));	/* FIXME */
 
-	ret = g_strdup_printf("-*-%s*-%s-%s-%s--%d-*-*-*-*-*-*-*",
-			      family, weight, style, stretch,
-			      PANGO_PIXELS(size));
-	fonts = XListFonts(GDK_DISPLAY(), ret, 1, &count);
-	if (fonts != NULL) {
-#ifdef VTE_DEBUG
-		if (vte_debug_on(VTE_DEBUG_MISC)) {
-			int i;
-			char *desc = pango_font_description_to_string(fontdesc);
-			for (i = 0; i < count; i++) {
-				fprintf(stderr, "Font `%s' matched `%s'.\n",
-					desc, fonts[i]);
-			}
-			g_free(desc);
+	count = pango_x_list_subfonts(font, &charset, 1,
+				      &subfont_ids, &subfont_charsets);
+	g_print("pango_x_list_subfonts returned %d\n", count);
+
+	for (i = 0; i < count; i++) {
+		subfont = pango_x_font_subfont_xlfd(font, subfont_ids[i]);
+		if (xlfd) {
+			tmp = g_strconcat(xlfd, ",", subfont, NULL);
+			g_free(xlfd);
+			g_free(subfont);
+			xlfd = tmp;
+		} else {
+			xlfd = subfont;
 		}
-#endif
-		XFreeFontNames(fonts);
 	}
-	if (count > 0) {
-		return ret;
-	} else {
-		g_free(ret);
-		return NULL;
+
+	spec = pango_font_description_to_string(fontdesc);
+
+	g_print("Converted `%s' to `%s'.\n", spec, xlfd);
+
+	if (subfont_ids != NULL) {
+		g_free(subfont_ids);
 	}
+	if (subfont_charsets != NULL) {
+		g_free(subfont_charsets);
+	}
+	g_free(charset);
+	g_free(spec);
+
+	return xlfd;
 }
 
 /* Set the fontset used for rendering text into the widget. */
@@ -7294,7 +7287,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 						       terminal->pvt->fontdesc);
 			if (PANGO_IS_FONT(font)) {
 				/* We got a font, reset the description so that
-				 * it describes this font, and read metrics. */
+				 * it describes this font, and read its metrics. */
 				desc = pango_font_describe(font);
 				pango_font_description_free(terminal->pvt->fontdesc);
 				terminal->pvt->fontdesc = desc;
@@ -7306,9 +7299,9 @@ vte_terminal_set_font(VteTerminal *terminal,
 			}
 			/* Pull character cell size info from the metrics. */
 			if (pmetrics != NULL) {
-				ascent = howmany(pango_font_metrics_get_ascent(pmetrics), PANGO_SCALE);
-				descent = howmany(pango_font_metrics_get_descent(pmetrics), PANGO_SCALE);
-				width = howmany(pango_font_metrics_get_approximate_char_width(pmetrics), PANGO_SCALE);
+				ascent = pango_font_metrics_get_ascent(pmetrics) / PANGO_SCALE;
+				descent = pango_font_metrics_get_descent(pmetrics) / PANGO_SCALE;
+				width = pango_font_metrics_get_approximate_char_width(pmetrics) / PANGO_SCALE;
 				height = ascent + descent;
 				pango_font_metrics_unref(pmetrics);
 			}
@@ -7472,13 +7465,13 @@ vte_terminal_set_font(VteTerminal *terminal,
 			}
 		}
 #endif
+		xlfds = NULL;
 		if (font_desc) {
-			xlfds = xlfd_from_pango_font_description(font_desc);
-		} else {
-			xlfds = "-misc-fixed-medium-r-normal--12-*-*-*-*-*-*-*";
+			xlfds = xlfd_from_pango_font_description(GTK_WIDGET(widget),
+								 font_desc);
 		}
 		if (xlfds == NULL) {
-			xlfds = "-misc-fixed-medium-r-normal--12-*-*-*-*-*-*-*";
+			xlfds = g_strdup("-misc-fixed-medium-r-normal--12-*-*-*-*-*-*-*");
 		}
 		if (terminal->pvt->fontset != NULL) {
 			XFreeFontSet(GDK_DISPLAY(), terminal->pvt->fontset);
@@ -7532,6 +7525,8 @@ vte_terminal_set_font(VteTerminal *terminal,
 			}
 			font_name_list = NULL;
 		}
+		g_free(xlfds);
+		xlfds = NULL;
 	}
 
 	/* Now save the values. */
@@ -7692,7 +7687,7 @@ vte_terminal_set_scroll_adjustment(VteTerminal *terminal,
 }
 
 /* Set the type of terminal we're emulating. */
-static void
+void
 vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 {
 	const char *code, *value;
@@ -7748,7 +7743,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 			vte_termcap_strip(tmp, &stripped, &stripped_length);
 			vte_trie_add(terminal->pvt->trie,
 				     stripped, stripped_length,
-				     vte_terminal_capability_strings[i].capability,
+				     code,
 				     0);
 			g_free(stripped);
 		}
@@ -7756,6 +7751,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	}
 
 	/* Add emulator-specific sequences. */
+	if (strstr(emulation, "xterm") || strstr(emulation, "dtterm"))
 	for (i = 0; vte_xterm_capability_strings[i].value != NULL; i++) {
 		code = vte_xterm_capability_strings[i].code;
 		value = vte_xterm_capability_strings[i].value;
@@ -7764,6 +7760,25 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 			     value, 0);
 		g_free(stripped);
 	}
+
+	/* Always define cr and lf. */
+	tmp = vte_termcap_find_string(terminal->pvt->termcap,
+				      terminal->pvt->terminal,
+				      "cr");
+	if (tmp == NULL) {
+		vte_trie_add(terminal->pvt->trie, "\r", 1, "cr", 0);
+	} else {
+	       	g_free(tmp);
+	}
+	tmp = vte_termcap_find_string(terminal->pvt->termcap,
+				      terminal->pvt->terminal,
+				      "sf");
+	if (tmp == NULL) {
+		vte_trie_add(terminal->pvt->trie, "\n", 1, "sf", 0);
+	} else {
+	       	g_free(tmp);
+	}
+
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "Trie contents:\n");
@@ -7970,6 +7985,19 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	}
 #endif
 
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		if (terminal->pvt->use_xft) {
+			fprintf(stderr, "Using Xft.\n");
+		} else
+		if (terminal->pvt->use_pango) {
+			fprintf(stderr, "Using Pango.\n");
+		} else {
+			fprintf(stderr, "Using core fonts.\n");
+		}
+	}
+#endif
+
 	/* Set the default font. */
 	vte_terminal_set_font(terminal, NULL);
 
@@ -7983,6 +8011,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	}
 
 	/* Initialize the screen history. */
+	pvt->normal_screen.row_data = NULL;
 	vte_terminal_reset_rowdata(&pvt->normal_screen.row_data,
 				   pvt->scrollback_lines);
 	pvt->normal_screen.cursor_current.row = 0;
@@ -7995,6 +8024,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->normal_screen.insert_mode = FALSE;
 	pvt->normal_screen.reverse_mode = FALSE;
 
+	pvt->alternate_screen.row_data = NULL;
 	vte_terminal_reset_rowdata(&pvt->alternate_screen.row_data,
 				   pvt->scrollback_lines);
 	pvt->alternate_screen.cursor_current.row = 0;
@@ -10460,6 +10490,11 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 	/* We require a minimum buffer size. */
 	lines = MAX(lines, VTE_SCROLLBACK_MIN);
 
+	/* We need to resize both scrollback buffers, and this beats copying
+	 * and pasting the same code twice. */
+	screens[0] = &terminal->pvt->normal_screen;
+	screens[1] = &terminal->pvt->alternate_screen;
+
 	/* If we're being asked to resize to the same size, just save ourselves
 	 * the trouble, nod our heads, and smile. */
 	if ((terminal->pvt->scrollback_lines != 0) &&
@@ -10468,10 +10503,8 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 		return;
 	}
 
-	/* We need to resize both scrollback buffers, and this beats copying
-	 * and pasting the same code twice. */
-	screens[0] = &terminal->pvt->normal_screen;
-	screens[1] = &terminal->pvt->alternate_screen;
+	/* We want to do the same thing to both screens, so we use a loop
+	 * to avoid cut/paste madness. */
 	for (i = 0; i < G_N_ELEMENTS(screens); i++) {
 		/* Resize the buffers, but keep track of where the last data
 		 * in the buffer is so that we can compensate for it being

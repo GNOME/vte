@@ -19,6 +19,7 @@
 #ident "$Id$"
 #include "../config.h"
 #include <sys/stat.h>
+#include <getopt.h>
 #include <string.h>
 #include <gtk/gtk.h>
 #include <glib-object.h>
@@ -76,7 +77,26 @@ main(int argc, char **argv)
 {
 	GtkWidget *window, *hbox, *scrollbar, *widget;
 	const char *message = "Launching interactive shell...\r\n";
+	const char *font = NULL;
+	const char *terminal = NULL;
+	const char *command = NULL;
 	struct stat st;
+	int opt;
+
+	/* Parse some command-line options. */
+	while ((opt = getopt(argc, argv, "c:f:t:")) != -1) {
+		switch (opt) {
+			case 'c':
+				command = optarg;
+				break;
+			case 'f':
+				font = optarg;
+				break;
+			case 't':
+				terminal = optarg;
+				break;
+		}
+	}
 
 	gtk_init(&argc, &argv);
 
@@ -130,10 +150,13 @@ main(int argc, char **argv)
 		vte_terminal_set_background_transparent(VTE_TERMINAL(widget),
 							TRUE);
 	}
+	if (terminal != NULL) {
+		vte_terminal_set_emulation(VTE_TERMINAL(widget), terminal);
+	}
 
 	/* Set the default font. */
 	vte_terminal_set_font_from_string(VTE_TERMINAL(widget),
-					  "fixed 12");
+					  font ? font : "fixed 12");
 
 	/* Match "abcdefg". */
 	vte_terminal_match_add(VTE_TERMINAL(widget), "abcdefg");
@@ -145,7 +168,7 @@ main(int argc, char **argv)
 				  strlen(message));
 	}
 #endif
-	vte_terminal_fork_command(VTE_TERMINAL(widget), NULL, NULL);
+	vte_terminal_fork_command(VTE_TERMINAL(widget), command, NULL);
 	vte_terminal_feed_child(VTE_TERMINAL(widget), "pwd\n", -1);
 
 	/* Go for it! */

@@ -239,6 +239,9 @@ int vte_terminal_match_add(VteTerminal *terminal, const char *match);
 char *vte_terminal_match_check(VteTerminal *terminal, long column, long row,
 			       int *tag);
 
+/* Set the emulation type.  Most of the time you won't need this. */
+void vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation);
+
 G_END_DECLS
 
 #endif

@@ -1,3 +1,10 @@
+2002-05-24 nalin
+	* autogen.sh: Call libtoolize. (#82836)
+	* src/vte.c: Fix stupid segfault in set_scrollback_lines.  (Patch
+	from notting.)  Make another attempt to convert Pango font descriptions
+	to xlfds.
+	* src/vteapp.c: Add -c, -f, -t command-line flags for easier testing.
+
 2002-05-22 nalin
 	* src/vte.c: Fix hiliting of matched strings.
 
