@@ -314,7 +314,7 @@ main(int argc, char **argv)
 	int opt;
 	int i, j;
 	GList *args = NULL;
-	GdkColor fore, back;
+	GdkColor fore, back, tint;
 	const char *usage = "Usage: %s "
 			    "[ [-B image] | [-T] ] "
 			    "[-D] "
@@ -330,6 +330,7 @@ main(int argc, char **argv)
 			    "[-t terminaltype]\n";
 	back.red = back.green = back.blue = 0xffff;
 	fore.red = fore.green = fore.blue = 0x0000;
+	tint.red = tint.green = tint.blue = 0;
 
 	/* Have to do this early. */
 	if (getenv("VTE_PROFILE_MEMORY")) {
@@ -499,6 +500,7 @@ main(int argc, char **argv)
 		vte_terminal_set_background_transparent(VTE_TERMINAL(widget),
 							TRUE);
 	}
+	vte_terminal_set_background_tint_color(VTE_TERMINAL(widget), &tint);
 	vte_terminal_set_colors(VTE_TERMINAL(widget), &fore, &back, NULL, 0);
 	if (terminal != NULL) {
 		vte_terminal_set_emulation(VTE_TERMINAL(widget), terminal);

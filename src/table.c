@@ -404,7 +404,7 @@ _vte_table_extract_string(GValueArray **array,
 	ptr = g_malloc(sizeof(gunichar) * (arginfo->length + 1));
 	memcpy(ptr, arginfo->start, (arginfo->length * sizeof(gunichar)));
 	for (i = 0; i < arginfo->length; i++) {
-		ptr[i] &= ~(VTE_ISO2022_WIDTH_MASK);
+		ptr[i] &= ~(VTE_ISO2022_ENCODED_WIDTH_MASK);
 	}
 	ptr[arginfo->length] = '\0';
 	g_value_init(&value, G_TYPE_POINTER);

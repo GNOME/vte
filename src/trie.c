@@ -311,7 +311,7 @@ char_class_string_extract(const gunichar *s, size_t length,
 	ret = g_malloc0((len + 1) * sizeof(gunichar));
 	unichar_sncpy(ret, s, len);
 	for (i = 0; i < len; i++) {
-		ret[i] &= ~(VTE_ISO2022_WIDTH_MASK);
+		ret[i] &= ~(VTE_ISO2022_ENCODED_WIDTH_MASK);
 	}
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_PARSE)) {

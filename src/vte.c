@@ -388,6 +388,7 @@ struct _VteTerminalPrivate {
 	guint bg_update_tag;
 	GdkPixbuf *bg_image;
 	long bg_saturation;	/* out of VTE_SATURATION_MAX */
+	GdkColor bg_tint_color;
 
 	gboolean bg_transparent;
 	GdkAtom bg_transparent_atom;
@@ -594,8 +595,8 @@ static gssize
 vte_unichar_width(VteTerminal *terminal, gunichar c)
 {
 	gssize width;
-	width = g_unichar_isdefined(c) ? (g_unichar_iswide(c) ? 2 : 1) : -1;
-	width = CLAMP(width, 1, 2);
+	c = _vte_iso2022_substitute_single(0, c);
+	width = _vte_iso2022_get_encoded_width(c);
 	return width;
 }
 
@@ -5383,11 +5384,11 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 					      &width, &height);
 			snprintf(buf, sizeof(buf),
 				 "%s%d;%dt", _VTE_CAP_CSI,
-				 width, height);
+				 width + VTE_PAD_WIDTH, height + VTE_PAD_WIDTH);
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
 				fprintf(stderr, "Reporting window location"
-					"(%d,%d).\n",
+					"(%d++,%d++).\n",
 					width, height);
 			}
 #endif
@@ -5399,11 +5400,12 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 					      &width, &height);
 			snprintf(buf, sizeof(buf),
 				 "%s%d;%dt", _VTE_CAP_CSI,
-				 height, width);
+				 height - 2 * VTE_PAD_WIDTH,
+				 width - 2 * VTE_PAD_WIDTH);
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
 				fprintf(stderr, "Reporting window size "
-					"(%dx%d).\n", width, height);
+					"(%d----x%d----).\n", width, height);
 			}
 #endif
 			vte_terminal_feed_child(terminal, buf, strlen(buf));
@@ -6336,7 +6338,7 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		 * the result's width to 1. */
 		cell.c = _vte_iso2022_substitute_single('0', c);
 		if (cell.c != c) {
-			c = cell.c & ~(VTE_ISO2022_WIDTH_MASK);
+			c = cell.c & ~(VTE_ISO2022_ENCODED_WIDTH_MASK);
 			forced_width = 1;
 		}
 	}
@@ -6351,8 +6353,8 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 	/* Figure out how many columns this character should occupy. */
 	if (forced_width == -1) {
-		if (VTE_ISO2022_HAS_WIDTH(c)) {
-			columns = _vte_iso2022_get_width(c);
+		if (VTE_ISO2022_HAS_ENCODED_WIDTH(c)) {
+			columns = _vte_iso2022_get_encoded_width(c);
 		} else {
 			/* The width of certain graphic characters changes
 			 * with the encoding, so override them here. */
@@ -6371,7 +6373,7 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	} else {
 		columns = forced_width;
 	}
-	c &= ~(VTE_ISO2022_WIDTH_MASK);
+	c &= ~(VTE_ISO2022_ENCODED_WIDTH_MASK);
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_IO) && _vte_debug_on(VTE_DEBUG_PARSE)) {
@@ -8705,6 +8707,7 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 				}
 				/* Skip over fragments. */
 				if (pcell->fragment) {
+					col++;
 					continue;
 				}
 				/* Check whether or not it holds whitespace. */
@@ -11480,6 +11483,9 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->bg_transparent_window = NULL;
 	pvt->bg_transparent_image = NULL;
 	pvt->bg_saturation = 0.4 * VTE_SATURATION_MAX;
+	pvt->bg_tint_color.red = 0;
+	pvt->bg_tint_color.green = 0;
+	pvt->bg_tint_color.blue = 0;
 	pvt->bg_image = NULL;
 
 	/* Clear modifiers. */
@@ -11554,7 +11560,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 {
 	VteTerminal *terminal;
 	glong width, height;
-	gint x, y;
+	gint x, y, w, h;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
@@ -11609,22 +11615,28 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	/* Resize the GDK window. */
 	if (widget->window != NULL) {
 		gdk_window_get_geometry(widget->window,
-					&x, &y, NULL, NULL, NULL);
+					&x, &y, &w, &h, NULL);
 		gdk_window_move_resize(widget->window,
 				       allocation->x,
 				       allocation->y,
 				       allocation->width,
 				       allocation->height);
-		if ((x != allocation->x) ||
-		    (y != allocation->y) ||
-		    (terminal->pvt->bg_image == NULL)) {
+		/* Refresh the background if we moved. */
+		if (terminal->pvt->bg_transparent &&
+		    ((x != allocation->x) ||
+		     (y != allocation->y) ||
+		     (terminal->pvt->bg_transparent_image == NULL))) {
 			vte_terminal_queue_background_update(terminal, TRUE);
+		}
+		/* Repaint if we were resized. */
+		if ((w != allocation->width) ||
+		    (h != allocation->height)) {
+			vte_invalidate_all(terminal);
 		}
 	}
 
 	/* Adjust the adjustments. */
 	vte_terminal_adjust_adjustments(terminal, TRUE);
-	vte_invalidate_all(terminal);
 }
 
 /* Show the window. */
@@ -11767,6 +11779,13 @@ vte_terminal_unrealize(GtkWidget *widget)
 	}
 	terminal->pvt->cursor_force_fg = 0;
 
+	/* Cancel any pending background updates. */
+	if (terminal->pvt->bg_update_tag != VTE_INVALID_SOURCE) {
+		g_source_remove(terminal->pvt->bg_update_tag);
+		terminal->pvt->bg_update_tag = VTE_INVALID_SOURCE;
+		terminal->pvt->bg_update_pending = FALSE;
+	}
+
 	/* Clear modifiers. */
 	terminal->pvt->modifiers = 0;
 
@@ -11825,6 +11844,7 @@ vte_terminal_finalize(GObject *object)
 	if (terminal->pvt->bg_update_tag != VTE_INVALID_SOURCE) {
 		g_source_remove(terminal->pvt->bg_update_tag);
 		terminal->pvt->bg_update_tag = VTE_INVALID_SOURCE;
+		terminal->pvt->bg_update_pending = FALSE;
 	}
 
 #ifdef HAVE_XFT2
@@ -13641,6 +13661,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 			 * which have the same attributes as the initial
 			 * portions. */
 			if ((cell != NULL) && (cell->fragment)) {
+				j++;
 				continue;
 			}
 			/* Break up underlined/not-underlined text. */
@@ -14953,24 +14974,48 @@ vte_terminal_background_update(gpointer data)
 
 		/* Desaturate the image if we need to. */
 		if (terminal->pvt->bg_saturation != VTE_SATURATION_MAX) {
-			guchar *pixels, desat_lut[256];
-			gulong pixel_count;
+			guchar *pixels, desat_lut_r[256],
+			       desat_lut_g[256], desat_lut_b[256];
+			GdkColor bgcolor;
+			gulong pixel_count, sat, satr, satg, satb, stride;
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_MISC)) {
 				fprintf(stderr, "Desaturating background.\n");
 			}
 #endif
-			/* Calculate the new value for each original value. */
-			for (i = 0; i < G_N_ELEMENTS(desat_lut); i++) {
-				desat_lut[i] = i *
-					       terminal->pvt->bg_saturation /
-					       VTE_SATURATION_MAX;
+			/* Calculate the new value for each possible original
+			 * value. */
+			bgcolor = terminal->pvt->bg_tint_color;
+			for (i = 0; i < G_N_ELEMENTS(desat_lut_r); i++) {
+				sat = VTE_SATURATION_MAX -
+				      terminal->pvt->bg_saturation;
+				satr = bgcolor.red * sat / VTE_SATURATION_MAX;
+				satr >>= 8;
+				satg = bgcolor.green * sat / VTE_SATURATION_MAX;
+				satg >>= 8;
+				satb = bgcolor.blue * sat / VTE_SATURATION_MAX;
+				satb >>= 8;
+				sat = i * terminal->pvt->bg_saturation /
+				      VTE_SATURATION_MAX;
+				desat_lut_r[i] = CLAMP(sat + satr, 0, 0xff);
+				desat_lut_g[i] = CLAMP(sat + satg, 0, 0xff);
+				desat_lut_b[i] = CLAMP(sat + satb, 0, 0xff);
 			}
 			pixels = gdk_pixbuf_get_pixels(pixbuf);
-			pixel_count = gdk_pixbuf_get_height(pixbuf) *
-				      gdk_pixbuf_get_rowstride(pixbuf);
+			stride = gdk_pixbuf_get_rowstride(pixbuf);
+			pixel_count = gdk_pixbuf_get_height(pixbuf) * stride;
 			for (i = 0; i < pixel_count; i++) {
-				pixels[i] = desat_lut[pixels[i]];
+				switch ((i % stride) % 3) {
+				case 0:
+					pixels[i] = desat_lut_r[pixels[i]];
+					break;
+				case 1:
+					pixels[i] = desat_lut_g[pixels[i]];
+					break;
+				case 2:
+					pixels[i] = desat_lut_b[pixels[i]];
+					break;
+				}
 			}
 		}
 #ifdef VTE_DEBUG
@@ -15057,7 +15102,7 @@ vte_terminal_queue_background_update(VteTerminal *terminal,
  * vte_terminal_set_background_image(),
  * vte_terminal_set_background_image_file(), or
  * vte_terminal_set_background_transparent(), the terminal will adjust the
- * brightness of the image before drawing the image.  To do so, the terminal
+ * colors of the image before drawing the image.  To do so, the terminal
  * will create a copy of the background image (or snapshot of the root
  * window) and modify its pixel values.
  *
@@ -15070,12 +15115,49 @@ void
 vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->bg_saturation = saturation * VTE_SATURATION_MAX;
+	terminal->pvt->bg_saturation = CLAMP(saturation * VTE_SATURATION_MAX,
+					     0, VTE_SATURATION_MAX);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "Setting background saturation to %ld/%ld.\n",
 			terminal->pvt->bg_saturation,
 			(long) VTE_SATURATION_MAX);
+	}
+#endif
+	vte_terminal_queue_background_update(terminal, FALSE);
+}
+
+/**
+ * vte_terminal_set_background_tint_color:
+ * @terminal: a #VteTerminal
+ * @color: a color which the terminal background should be tinted to if its
+ * saturation is not 1.0.
+ *
+ * If a background image has been set using
+ * vte_terminal_set_background_image(),
+ * vte_terminal_set_background_image_file(), or
+ * vte_terminal_set_background_transparent(), the terminal will adjust the
+ * brightness of the image before drawing the image.  To do so, the terminal
+ * will create a copy of the background image (or snapshot of the root
+ * window) and modify its pixel values.
+ *
+ * If your application intends to create multiple terminal widgets with the
+ * same settings, performing this step yourself and just using
+ * vte_terminal_set_background_image() will save memory.
+ *
+ */
+void
+vte_terminal_set_background_tint_color(VteTerminal *terminal, GdkColor *color)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail(color != NULL);
+	terminal->pvt->bg_tint_color = *color;
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "Setting background tint to %d,%d,%d.\n",
+			terminal->pvt->bg_tint_color.red >> 8,
+			terminal->pvt->bg_tint_color.green >> 8,
+			terminal->pvt->bg_tint_color.blue >> 8);
 	}
 #endif
 	vte_terminal_queue_background_update(terminal, FALSE);

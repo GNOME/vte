@@ -249,6 +249,39 @@ static const struct _vte_iso2022_map _vte_iso2022_map_wide_H[] = {
 #include "unitable.CNS11643"
 };
 
+#include "uniwidths"
+
+static gint
+_vte_direct_compare(gconstpointer a, gconstpointer b)
+{
+	return GPOINTER_TO_INT(a) - GPOINTER_TO_INT(b);
+}
+
+gboolean
+_vte_iso2022_is_ambiguous(gunichar c)
+{
+	int i;
+	gpointer p;
+	static GTree *ambiguous = NULL;
+	for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_ambiguous_ranges); i++) {
+		if ((c >= _vte_iso2022_ambiguous_ranges[i].start) &&
+		    (c <= _vte_iso2022_ambiguous_ranges[i].end)) {
+			return TRUE;
+		}
+	}
+	if (ambiguous == NULL) {
+		ambiguous = g_tree_new(_vte_direct_compare);
+		for (i = 0;
+		     i < G_N_ELEMENTS(_vte_iso2022_ambiguous_chars);
+		     i++) {
+			p = GINT_TO_POINTER(_vte_iso2022_ambiguous_chars[i]);
+			g_tree_insert(ambiguous, p, p);
+		}
+	}
+	p = GINT_TO_POINTER(c);
+	return g_tree_lookup(ambiguous, p) != NULL;
+}
+
 struct _vte_iso2022 *
 _vte_iso2022_new(void)
 {
@@ -288,12 +321,6 @@ _vte_iso2022_free(struct _vte_iso2022 *p)
 	p->g[2] = '\0';
 	p->g[3] = '\0';
 	g_free(p);
-}
-
-static gint
-_vte_direct_compare(gconstpointer a, gconstpointer b)
-{
-	return GPOINTER_TO_INT(a) - GPOINTER_TO_INT(b);
 }
 
 static GTree *
@@ -432,20 +459,57 @@ _vte_iso2022_map_get(gunichar mapname)
 }
 
 gssize
-_vte_iso2022_get_width(gunichar c)
+_vte_iso2022_get_encoded_width(gunichar c)
 {
 	gssize width;
-	width = (c & VTE_ISO2022_WIDTH_MASK) >> VTE_ISO2022_WIDTH_BIT_OFFSET;
+	width = (c & VTE_ISO2022_ENCODED_WIDTH_MASK) >> VTE_ISO2022_ENCODED_WIDTH_BIT_OFFSET;
 	return CLAMP(width, 0, 2);
 }
 
 static gunichar
-_vte_iso2022_set_width(gunichar c, gssize width)
+_vte_iso2022_set_encoded_width(gunichar c, gssize width)
 {
 	width = CLAMP(width, 0, 2);
-	c &= ~(VTE_ISO2022_WIDTH_MASK);
-	c |= (width << VTE_ISO2022_WIDTH_BIT_OFFSET);
+	c &= ~(VTE_ISO2022_ENCODED_WIDTH_MASK);
+	c |= (width << VTE_ISO2022_ENCODED_WIDTH_BIT_OFFSET);
 	return c;
+}
+
+static int
+_vte_iso2022_ambiguous_width(void)
+{
+	const char *lang = NULL;
+	int ret = 1;
+	if ((lang == NULL) && (g_getenv("LC_ALL") != NULL)) {
+		lang = g_getenv("LC_ALL");
+	}
+	if ((lang == NULL) && (g_getenv("LC_CTYPE") != NULL)) {
+		lang = g_getenv("LC_CTYPE");
+	}
+	if ((lang == NULL) && (g_getenv("LANG") != NULL)) {
+		lang = g_getenv("LANG");
+	}
+	if (lang != NULL) {
+		if (g_ascii_strncasecmp(lang, "ja", 2) == 0) {
+			ret = 2;
+		} else
+		if (g_ascii_strncasecmp(lang, "ko", 2) == 0) {
+			ret = 2;
+		} else
+		if (g_ascii_strncasecmp(lang, "vi", 2) == 0) {
+			ret = 2;
+		} else
+		if (g_ascii_strncasecmp(lang, "zh", 2) == 0) {
+			ret = 2;
+		}
+	}
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+		fprintf(stderr, "Ambiguous characters will have width = %d.\n",
+			ret);
+	}
+#endif
+	return ret;
 }
 
 gunichar
@@ -454,6 +518,7 @@ _vte_iso2022_substitute_single(gunichar mapname, gunichar c)
 	GTree *charmap;
 	gunichar result = c;
 	gssize width;
+	static int ambiguous_width = 0;
 	charmap = _vte_iso2022_map_get(mapname);
 	if (charmap) {
 		c = GPOINTER_TO_INT(g_tree_lookup(charmap, GINT_TO_POINTER(c)));
@@ -462,24 +527,25 @@ _vte_iso2022_substitute_single(gunichar mapname, gunichar c)
 		}
 	}
 	/* Calculate width for ambiguous characters. */
-	switch (result) {
-		/* To be filled in some time, I guess. */
-	default:
-		/* For nonambiguous characters, just use
-		 * the width glib has later on. */
-		width = 0;
-		break;
-	}
-	/* Override for drawing characters. */
-	if (mapname == '0') {
-		if ((result >= 0x2500) && (result <= 0x257f)) {
-			width = 1;
+	if (_vte_iso2022_is_ambiguous(result)) {
+		if (ambiguous_width == 0) {
+			ambiguous_width = _vte_iso2022_ambiguous_width();
 		}
+		width = ambiguous_width;
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+			fprintf(stderr, "Character U%lx has ambiguous width.\n",
+				(long) c);
+		}
+#endif
+	} else
+	if (g_unichar_iswide(result)) {
+		width = 2;
+	} else {
+		width = 1;
 	}
-	/* Save the width if one was set. */
-	if (width != 0) {
-		result = _vte_iso2022_set_width(result, width);
-	}
+	/* Encode the width. */
+	result = _vte_iso2022_set_encoded_width(result, width);
 	return result;
 }
 
@@ -498,6 +564,7 @@ _vte_iso2022_substitute(struct _vte_iso2022 *outside_state,
 	const gunichar *used;
 	int chars_per_code = 1;
 	gssize width;
+	static int ambiguous_width = 0;
 
 	g_return_val_if_fail(outside_state != NULL, 0);
 	g_return_val_if_fail(instring != NULL, 0);
@@ -869,24 +936,18 @@ _vte_iso2022_substitute(struct _vte_iso2022 *outside_state,
 				}
 			}
 			/* Calculate width for ambiguous characters. */
-			switch (result) {
-				/* To be filled in some time, I guess. */
-			default:
-				/* For nonambiguous characters, just use
-				 * the width glib has later on. */
-				width = 0;
-				break;
-			}
-			/* Override for drawing characters. */
-			if (current_map == '0') {
-				if ((result >= 0x2500) && (result <= 0x257f)) {
-					width = 1;
+			if (_vte_iso2022_is_ambiguous(result)) {
+				if (ambiguous_width == 0) {
+					ambiguous_width = _vte_iso2022_ambiguous_width();
 				}
+				width = ambiguous_width;
+			} else
+			if (g_unichar_iswide(result)) {
+				width = 2;
+			} else {
+				width = 1;
 			}
-			/* Save the width if one was set. */
-			if (width != 0) {
-				result = _vte_iso2022_set_width(result, width);
-			}
+			result = _vte_iso2022_set_encoded_width(result, width);
 			/* Store. */
 			buf[j++] = result;
 			accumulator = 0;

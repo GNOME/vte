@@ -1,3 +1,29 @@
+2003-02-11 nalin
+	* src/genwidths, src/uniwidths: add data for tracking ambiguous-width
+	Unicode characters.
+	* src/iso2022.c, src/iso2022.h: add _vte_iso2022_is_ambiguous() for
+	checking if a character is ambiguous, and _vte_iso2022_ambiguous_width()
+	for guessing how wide it should be based on the current locale.  Rename
+	_vte_iso2022_get/set_width to ...encoded_width to clarify the intent,
+	ditto for the related macros.
+	* src/table.c,src/trie.c: use renamed macros for reading encoded widths.
+	* src/iso2022.c(_vte_iso2022_substitute_single,_vte_iso2022_substitute):
+	handle ambiguous widths properly, and always encode a width.
+	* src/Makefile.am: use the default LDFLAGS, I think.
+	* src/vte.c,src/vte.h: add vte_terminal_set_background_tint_color().
+	* src/vte.c(vte_terminal_unrealize): unhook from background update
+	sources, because we may not have a display after that.
+	* src/vte.c(vte_terminal_size_allocate): only queue a background update
+	if we're in transparent mode and either we've been moved or we have no
+	background yet.  If our size changed, force a repaint.
+	* src/vte.c(vte_sequence_handler_window_manipulation): snip off the
+	padding along the edges when responding to requests for the window size
+	and location -- apps have no way to query it.
+	* src/vte.c(vte_terminal_get_text_range): skip over fragments properly.
+	* src/vte.c(vte_terminal_draw_row): skip over fragments properly.
+	* src/vte.c(vte_unichar_width): rework in terms of the width checking
+	in the iso2022 module for consistency.
+
 2003-02-06  Christian Rose  <menthos@menthos.com>
 
 	* configure.in: Added "id" to ALL_LINGUAS.

@@ -9,6 +9,7 @@ EXTRA_DIST = \
 	genkeysyms.py \
 	iso2022.txt \
 	marshal.list \
+	uniwidths \
 	unitable.CNS11643 \
 	unitable.GB12345 \
 	unitable.GB2312 \
@@ -18,6 +19,7 @@ EXTRA_DIST = \
 	unitable.KSC5601
 
 CFLAGS = @CFLAGS@ @VTE_CFLAGS@ @X_CFLAGS@
+LDFLAGS = @LDFLAGS@
 DEFAULT_INCLUDES =
 
 EXTRA_libvte_la_SOURCES = keysyms.c
@@ -55,7 +57,7 @@ libvte_la_SOURCES = \
 	vteaccess.h
 
 libvte_la_LIBADD = @LIBS@ @VTE_LIBS@ @X_LIBS@
-libvte_la_LDFLAGS = -version-info 4:0:0
+libvte_la_LDFLAGS = @LDFLAGS@ -version-info 4:0:0
 
 CLEANFILES = marshal.c marshal.h
 
