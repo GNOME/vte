@@ -5733,7 +5733,10 @@ vte_terminal_configure_toplevel(GtkWidget *widget, GdkEventConfigure *event,
 	g_return_val_if_fail(GTK_IS_WIDGET(widget), FALSE);
 	g_return_val_if_fail(GTK_WIDGET_TOPLEVEL(widget), FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
-	vte_terminal_queue_background_update(VTE_TERMINAL(data));
+
+	if (VTE_TERMINAL (data)->pvt->bg_transparent)
+	  vte_terminal_queue_background_update(VTE_TERMINAL(data));
+	
 	return FALSE;
 }
 
