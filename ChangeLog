@@ -1,3 +1,7 @@
+2002-09-12 Brian Cameron <Brian.Cameron@sun.com>
+	* src/vte.c Fixed minor error with my previous patch.  This just makes
+	a warning go away.
+  
 2002-09-11 nalin
 	* src/pty.c: Reorder definitions to avoid implicit declaration warnings.
 	* configure.in: Check for socketpair().  Check for socket() in libc

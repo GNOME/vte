@@ -9813,8 +9813,8 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 		if (vte_sequence_handlers[i].handler != NULL) {
 			code = vte_sequence_handlers[i].code;
 			g_tree_insert(terminal->pvt->sequences,
-				      (gpointer)GINT_TO_POINTER(g_quark_from_string(code)),
-				      vte_sequence_handlers[i].handler);
+				      GINT_TO_POINTER(g_quark_from_string(code)),
+				      (gpointer)vte_sequence_handlers[i].handler);
 		}
 	}
 
