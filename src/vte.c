@@ -716,11 +716,11 @@ vte_terminal_scroll_region(VteTerminal *terminal,
 		if (delta > 0) {
 			vte_invalidate_cells(terminal,
 					     0, terminal->column_count,
-					     0, delta);
+					     row, delta);
 		} else {
 			vte_invalidate_cells(terminal,
 					     0, terminal->column_count,
-					     terminal->row_count + delta,
+					     row + terminal->row_count + delta,
 					     -delta);
 		}
 		repaint = FALSE;

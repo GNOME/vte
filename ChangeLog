@@ -1,5 +1,11 @@
 2005-02-28  Kjartan Maraas  <kmaraas@gnome.org>
 
+	* src/vte.c: (vte_terminal_scroll_region): Fix for
+	problem with redrawing when scrolling back then forward
+	Closes bug #122150. Patch from Benjamin Otte.
+
+2005-02-28  Kjartan Maraas  <kmaraas@gnome.org>
+
 	* src/vte.c: (vte_terminal_unrealize): Fix a crash
 	when trying to use input methods. From Fedora.
 	Closes bug #168213.
