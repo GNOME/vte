@@ -1,4 +1,8 @@
 2003-03-06 nalin	
+	* src/vte.c, src/vte.h(vte_terminal_set_background_tint_color): take a
+	const GdkColor* instead of a non-const color.
+
+2003-03-06 nalin	
 	* python/vte.defs: regenerate.
 	* python/vte.override: update for vte_char_attributes rename.
 

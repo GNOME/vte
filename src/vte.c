@@ -15890,7 +15890,8 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
  *
  */
 void
-vte_terminal_set_background_tint_color(VteTerminal *terminal, GdkColor *color)
+vte_terminal_set_background_tint_color(VteTerminal *terminal,
+				       const GdkColor *color)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail(color != NULL);
