@@ -3378,7 +3378,7 @@ vte_terminal_process_incoming(gpointer data)
 			start = terminal->pvt->n_incoming - icount;
 			if (terminal->pvt->incoming[start] > 128) {
 				/* Count the number of non-ascii chars. */
-				for (end = start; end < start + VTE_UTF8_BPC; end++) {
+				for (end = start; end < terminal->pvt->n_incoming; end++) {
 					if (terminal->pvt->incoming[end] < 128) {
 						break;
 					}
@@ -3777,8 +3777,8 @@ vte_terminal_io_read(GIOChannel *channel,
 		fprintf(stderr, "Queuing handler to process bytes.\n");
 #endif
 		terminal->pvt->processing = TRUE;
-		terminal->pvt->processing_tag = g_idle_add(vte_terminal_process_incoming,
-							   terminal);
+		terminal->pvt->processing_tag =
+			g_idle_add(vte_terminal_process_incoming, terminal);
 	}
 
 	/* If we detected an eof condition, signal one. */
@@ -5525,7 +5525,8 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 		vte_trie_add(terminal->pvt->trie, code, strlen(code), value, 0);
 	}
 #ifdef VTE_DEBUG
-	/* vte_trie_print(terminal->pvt->trie); */
+	fprintf(stderr, "Trie contents:\n");
+	vte_trie_print(terminal->pvt->trie);
 	fprintf(stderr, "\n");
 #endif
 

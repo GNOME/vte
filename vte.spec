@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.3.4
+Version: 0.3.5
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -53,6 +53,9 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Thu May  2 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.5-1
+- fix cap parsing error and "handle" long invalid multibyte sequences better
+
 * Thu May  2 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.4-1
 - try to speed up sequence recognition a bit
 - disable some window_scroll speedups that appear to cause flickering

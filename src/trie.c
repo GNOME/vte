@@ -658,6 +658,12 @@ vte_trie_printx(struct vte_trie *trie, const char *previous)
 						 "^%lc",
 						 (wint_t)trie->trie_paths[i].data.c +
 						 64);
+				} else
+				if (trie->trie_paths[i].data.c > 126) {
+					snprintf(buf + strlen(buf),
+						 sizeof(buf) - strlen(buf),
+						 "[:%ld:]",
+						 (long)trie->trie_paths[i].data.c);
 				} else {
 					snprintf(buf + strlen(buf),
 						 sizeof(buf) - strlen(buf),

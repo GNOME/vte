@@ -245,6 +245,7 @@ vte_termcap_strip(const char *termcap, char **stripped, ssize_t *len)
 					ret[o - 1] = 12;
 					continue;
 				case '0':
+				case '1':
 					i++;
 					ret[o - 1] = strtol(termcap + i, &p, 8);
 					p--;

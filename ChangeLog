@@ -1,4 +1,7 @@
 2002-05-02 nalin
+	* src/termcap.c: Fix handling of triple-digit escaped characters,
+	which weren't being processed right if the first digit was '1' instead
+	of '0'.
 	* src/trie.c: Rework trie matching to return the address of the
 	character which ended the match attempt, which should cut down on
 	useless initial-substring checks.  Fix a subtle bug which caused
@@ -13,7 +16,8 @@
 	terminal size to 80x24 instead of 60x18, which was originally chosen for
 	debugging purposes.  Don't use $SHELL as the command to invoke when
 	starting up a default command (as in the test app) -- libtool wrappers
-	keep screwing this up.
+	keep screwing this up.  Don't limit the number of characters we skip
+	over in invalid multibyte sequences -- sometimes that's not enough.
 	* src/vteaccess.h: Fix a crashbug due to mismatch between parent field
 	in the object's structure and its inherited object's type.  More to go.
 2002-05-01 nalin
