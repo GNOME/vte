@@ -407,7 +407,7 @@ static void vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 				     gboolean reset);
 static void vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
-static gboolean vte_unichar_isgraphic(gunichar c);
+static gboolean vte_unichar_is_graphic(gunichar c);
 static void vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 				     gboolean force_insert_mode,
 				     gboolean invalidate_cells,
@@ -6356,7 +6356,7 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		} else {
 			/* The width of certain graphic characters changes
 			 * with the encoding, so override them here. */
-			if (vte_unichar_isgraphic(c)) {
+			if (vte_unichar_is_graphic(c)) {
 				quark = g_quark_from_string(terminal->pvt->encoding);
 				if (g_hash_table_lookup(vte_ambiguous_wide_codeset_table,
 							GINT_TO_POINTER(quark))) {
@@ -12231,15 +12231,17 @@ vte_terminal_xft_remap_char(Display *display, XftFont *font, XftChar32 origc)
 /* Check if a unicode character is actually a graphic character we draw
  * ourselves to handle cases where fonts don't have glyphs for them. */
 static gboolean
-vte_unichar_isgraphic(gunichar c)
+vte_unichar_is_graphic(gunichar c)
 {
 	if ((c >= 0x2500) && (c <= 0x257f)) {
 		return TRUE;
 	}
 	switch (c) {
+	case 0x00a3: /* british pound */
 	case 0x00b0: /* degree */
 	case 0x00b1: /* plus/minus */
 	case 0x00b7: /* bullet */
+	case 0x03c0: /* pi */
 	case 0x2190: /* left arrow */
 	case 0x2191: /* up arrow */
 	case 0x2192: /* right arrow */
@@ -12257,6 +12259,9 @@ vte_unichar_isgraphic(gunichar c)
 	case 0x240c: /* FF symbol */
 	case 0x240d: /* CR symbol */
 	case 0x2424: /* NL symbol */
+	case 0x2592: /* checkerboard */
+	case 0x25ae: /* solid rectangle */
+	case 0x25c6: /* diamond */
 		return TRUE;
 		break;
 	default:
@@ -12298,27 +12303,6 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 	ret = TRUE;
 
 	switch (c) {
-	case 0x3c0: /* pi */
-		xcenter--;
-		ycenter--;
-		xright--;
-		ybottom--;
-		XDrawLine(display, drawable, gc,
-			  (x + xcenter) / 2 - 1,
-			  (y + ycenter) / 2,
-			  (xright + xcenter) / 2 + 1,
-			  (y + ycenter) / 2);
-		XDrawLine(display, drawable, gc,
-			  (x + xcenter) / 2,
-			  (y + ycenter) / 2,
-			  (x + xcenter) / 2,
-			  (ybottom + ycenter) / 2);
-		XDrawLine(display, drawable, gc,
-			  (xright + xcenter) / 2,
-			  (y + ycenter) / 2,
-			  (xright + xcenter) / 2,
-			  (ybottom + ycenter) / 2);
-		break;
 	case 124:
 		xcenter--;
 		ycenter--;
@@ -12421,6 +12405,32 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 			  xcenter - 1, ycenter,
 			  xcenter + 1, ycenter);
 		break;
+	case 0x3c0: /* pi */
+		xcenter--;
+		ycenter--;
+		xright--;
+		ybottom--;
+		XDrawLine(display, drawable, gc,
+			  (x + xcenter) / 2 - 1,
+			  (y + ycenter) / 2,
+			  (xright + xcenter) / 2 + 1,
+			  (y + ycenter) / 2);
+		XDrawLine(display, drawable, gc,
+			  (x + xcenter) / 2,
+			  (y + ycenter) / 2,
+			  (x + xcenter) / 2,
+			  (ybottom + ycenter) / 2);
+		XDrawLine(display, drawable, gc,
+			  (xright + xcenter) / 2,
+			  (y + ycenter) / 2,
+			  (xright + xcenter) / 2,
+			  (ybottom + ycenter) / 2);
+		break;
+	/* case 0x2190: FIXME */
+	/* case 0x2191: FIXME */
+	/* case 0x2192: FIXME */
+	/* case 0x2193: FIXME */
+	/* case 0x2260: FIXME */
 	case 0x2264: /* y */
 		xcenter--;
 		ycenter--;
@@ -13511,7 +13521,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		}
 
 		/* If this is a graphics character, draw it locally. */
-		if ((cell != NULL) && vte_unichar_isgraphic(cell->c)) {
+		if ((cell != NULL) && vte_unichar_is_graphic(cell->c)) {
 			item.c = cell ? cell->c : ' ';
 			item.columns = cell ? cell->columns : 1;
 			drawn = vte_terminal_draw_graphic(terminal, cell->c, fore, back,
@@ -13607,7 +13617,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 				break;
 			}
 			/* Graphic characters must be drawn individually. */
-			if ((cell != NULL) && vte_unichar_isgraphic(cell->c)) {
+			if ((cell != NULL) && vte_unichar_is_graphic(cell->c)) {
 				break;
 			}
 			/* Don't render fragments of multicolumn characters
@@ -13859,7 +13869,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 				terminal->pvt->screen->reverse_mode;
 			vte_terminal_determine_colors(terminal, cell, blink,
 						      &fore, &back);
-			if ((cell != NULL) && vte_unichar_isgraphic(cell->c)) {
+			if ((cell != NULL) && vte_unichar_is_graphic(cell->c)) {
 				item.c = cell->c;
 				item.columns = cell->columns;
 				drawn = vte_terminal_draw_graphic(terminal,

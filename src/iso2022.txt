@@ -13,6 +13,8 @@ ISO-2022-KR/158:  [$)C1hD!)B] [ㅨ䐡]
 #  Sample text based on XTerm's specs and random other docs.
 #
 US-ASCII:         [(B#$@[\]^_{|}~(B] [#$@[\]^_{|}~]
+Graphics:         [(0abcdefghijklmnopqrstuvwxyz_{|}~(B]
+                  [▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥_π≠£·] 
 British:          [(A#$@[\]^_{|}~(B] [#£@[\]^_{|}~]
 Dutch:            [(4#$@[\]^_{|}~(B] [£$¾ÿ½|^_¨f¼´]
 Finnish:          [(C#$@[\]^_{|}~(B] [#$@ÄÖÅÜ_äöåü]
