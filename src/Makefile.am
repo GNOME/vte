@@ -37,6 +37,7 @@ vte_SOURCES = \
 	vteapp.c
 vte_LDADD = libvte.la @GTK_LIBS@ @X_LIBS@
 
+interpret_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DINTERPRET_MAIN
 interpret_SOURCES = \
 	caps.c \
 	caps.h \
