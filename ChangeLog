@@ -1,3 +1,10 @@
+2003-05-06 nalin
+	* src/vte.c(vte_terminal_scroll_region): compare the top line to be
+	scrolled to the scrolling delta instead of 0 (in HEAD, got lost
+	somewhere).
+	* src/vte.c(vte_terminal_class_init): specify a type for the argument
+	for the text-scrolled signal.
+
 2003-05-05  Danilo Šegan  <dsegan@gmx.net>
 
 	* configure.in: Added "sr" and "sr@Latn" to ALL_LINGUAS.

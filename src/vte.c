@@ -769,7 +769,7 @@ vte_terminal_scroll_region(VteTerminal *terminal,
 	/* We only do this if we're scrolling the entire window. */
 	if (!terminal->pvt->bg_transparent &&
 	    (terminal->pvt->bg_image == NULL) &&
-	    (row == 0) &&
+	    (row == terminal->pvt->screen->scroll_delta) &&
 	    (count == terminal->row_count)) {
 		widget = GTK_WIDGET(terminal);
 		gdk_window_scroll(widget->window,
@@ -14726,7 +14726,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     NULL,
 			     NULL,
 			     _vte_marshal_VOID__INT,
-			     G_TYPE_NONE, 1);
+			     G_TYPE_NONE, 1, G_TYPE_INT);
 
 	/* Try to determine some acceptable encoding names. */
 	if (_vte_matcher_narrow_encoding() == NULL) {
