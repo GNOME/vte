@@ -1,4 +1,8 @@
 2003-02-20
+	* src/vte.c: fix gratuitous IM resetting, don't mess with the IM when
+	we're not realized and it's a NULL pointer.  From HEAD.
+
+2003-02-20
 	* src/vte.c(vte_terminal_draw_row): fix "jittering" when the left edge
 	of the row we're drawing is the right half of a multicolumn character.
 	From HEAD.
