@@ -3008,12 +3008,14 @@ vte_terminal_process_incoming(gpointer data)
 	const char *match, *encoding;
 	iconv_t unconv;
 	GQuark quark;
-	gboolean leftovers, inserted, again;
+	gboolean leftovers, inserted, again, bottom;
 
 	g_return_val_if_fail(GTK_IS_WIDGET(data), FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
 	widget = GTK_WIDGET(data);
 	terminal = VTE_TERMINAL(data);
+	bottom = (terminal->pvt->screen->insert_delta ==
+		  terminal->pvt->screen->scroll_delta);
 
 #ifdef VTE_DEBUG
 	fprintf(stderr, "Handler processing %d bytes.\n",
@@ -3191,8 +3193,9 @@ vte_terminal_process_incoming(gpointer data)
 	}
 
 	if (inserted) {
-		/* Keep the cursor on-screen. */
-		if (terminal->pvt->scroll_on_output) {
+		/* Keep the cursor on-screen if we scroll on output, or if
+		 * we're currently at the bottom of the buffer. */
+		if (terminal->pvt->scroll_on_output || bottom) {
 			vte_terminal_scroll_on_something(terminal);
 		}
 		/* Deselect any existing selection. */
@@ -4487,7 +4490,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->palette_initialized = FALSE;
 	pvt->keypad = VTE_KEYPAD_NORMAL;
 
-	pvt->scroll_on_output = TRUE;
+	pvt->scroll_on_output = FALSE;
 	pvt->scroll_on_keystroke = TRUE;
 	pvt->alt_sends_escape = TRUE;
 	pvt->audible_bell = TRUE;
