@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.4.3
+Version: 0.4.4
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -56,6 +56,10 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Tue Jun 25 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.4-1
+- clear alternate buffer when switching screens (#67094)
+- fix setting of titles, but crept in when cleaning up GIConv usage (#67236)
+
 * Tue Jun 18 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.3-1
 - correct referencing/dereferencing of I/O channels
 - correct package description to not mention the sample app which is no longer

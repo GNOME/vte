@@ -1,3 +1,9 @@
+2002-06-24 nalin
+	* src/vte.c (vte_sequence_handler_decset_internal): Treat option 1049
+	as a combination of 1047 and 1048.
+	* src/vte.c (vte_terminal_finalize): When finalizing while holding the
+	selection, throw the selection onto the clipboard without an owner so
+	that it doesn't just disappear.
 2002-06-19 nalin
 	* src/vte.c (vte_sequence_handler_set_title_int): Fix a logic bug
 	that got rid of the title always, not just when conversion failed.

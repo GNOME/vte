@@ -3286,6 +3286,16 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 NULL,
 		 vte_sequence_handler_rc,
 		 vte_sequence_handler_sc,},
+		/* Use alternate screen buffer, saving the cursor position. */
+		{1049, NULL, NULL, (gpointer*) &terminal->pvt->screen,
+		 &terminal->pvt->normal_screen,
+		 &terminal->pvt->alternate_screen,
+		 NULL, NULL,},
+		{1049, NULL, NULL, NULL,
+		 NULL,
+		 NULL,
+		 vte_sequence_handler_rc,
+		 vte_sequence_handler_sc,},
 	};
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -3374,6 +3384,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 			break;
 		case 47:
 		case 1047:
+		case 1049:
 			/* Clear the alternate screen if we're switching
 			 * to it. */
 			if (set) {
@@ -8539,6 +8550,7 @@ vte_terminal_finalize(GObject *object)
 	GtkWidget *toplevel;
 	GObjectClass *object_class;
 	GtkWidgetClass *widget_class;
+	GtkClipboard *clipboard;
 	struct vte_match_regex *regex;
 	int i;
 
@@ -8568,8 +8580,16 @@ vte_terminal_finalize(GObject *object)
 						     terminal);
 	}
 
-	/* Free any selected text. */
+	/* Free any selected text, but if we currently own the selection,
+	 * throw the text onto the clipboard without an owner so that it
+	 * doesn't just disappear. */
 	if (terminal->pvt->selection != NULL) {
+		clipboard = gtk_clipboard_get(GDK_SELECTION_PRIMARY);
+		if (gtk_clipboard_get_owner(clipboard) == G_OBJECT(terminal)) {
+			gtk_clipboard_set_text(clipboard,
+					       terminal->pvt->selection,
+					       -1);
+		}
 		g_free(terminal->pvt->selection);
 		terminal->pvt->selection = NULL;
 	}
