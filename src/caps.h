@@ -25,12 +25,12 @@
 
 G_BEGIN_DECLS
 
-#define VTE_CAP_ESC ""
-#define VTE_CAP_CSI VTE_CAP_ESC "["
-#define VTE_CAP_ST  VTE_CAP_ESC "\\"
-#define VTE_CAP_OSC VTE_CAP_ESC "]"
-#define VTE_CAP_PM  VTE_CAP_ESC "^"
-#define VTE_CAP_APC VTE_CAP_ESC "_"
+#define VTE_CAP_ESC "\033"		/* Escape */
+#define VTE_CAP_CSI VTE_CAP_ESC "["	/* Control Sequence Introducer */
+#define VTE_CAP_ST  VTE_CAP_ESC "\\"	/* String Terminator */
+#define VTE_CAP_OSC VTE_CAP_ESC "]"	/* Operating System Command */
+#define VTE_CAP_PM  VTE_CAP_ESC "^"	/* Privacy Message */
+#define VTE_CAP_APC VTE_CAP_ESC "_"	/* Application Program Command */
 
 /* A NULL-terminated list of capability strings which have string values,
  * which means they're either key sequences or commands. */

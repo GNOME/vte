@@ -44,12 +44,13 @@ struct _VteTerminal {
 	GtkAdjustment *adjustment;	/* Scrolling adjustment. */
 
 	/* Metric and sizing data. */
-	long char_width, char_height;	/* dimensions of character cells */
-	long char_ascent, char_descent; /* important font metrics */
-	long row_count, column_count;	/* dimensions of the window */
+	glong char_width, char_height;	/* dimensions of character cells */
+	glong char_ascent, char_descent; /* important font metrics */
+	glong row_count, column_count;	/* dimensions of the window */
 
 	/* Titles. */
-	char *window_title, *icon_title;
+	char *window_title;
+	char *icon_title;
 
 	/*< private >*/
 	VteTerminalPrivate *pvt;
@@ -98,7 +99,7 @@ typedef enum {
 	VTE_ERASE_AUTO,
 	VTE_ERASE_ASCII_BACKSPACE,
 	VTE_ERASE_ASCII_DELETE,
-	VTE_ERASE_DELETE_SEQUENCE,
+	VTE_ERASE_DELETE_SEQUENCE
 } VteTerminalEraseBinding;
 
 /* The structure we return as the supplemental attributes for strings. */
@@ -148,7 +149,8 @@ void vte_terminal_copy_primary(VteTerminal *terminal);
 void vte_terminal_paste_primary(VteTerminal *terminal);
 
 /* Set the terminal's size. */
-void vte_terminal_set_size(VteTerminal *terminal, long columns, long rows);
+void vte_terminal_set_size(VteTerminal *terminal,
+			   glong columns, glong rows);
 
 /* Set various one-off settings. */
 void vte_terminal_set_audible_bell(VteTerminal *terminal, gboolean is_audible);
@@ -186,7 +188,7 @@ void vte_terminal_set_background_transparent(VteTerminal *terminal,
 void vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink);
 
 /* Set the number of scrollback lines, above or at an internal minimum. */
-void vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines);
+void vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines);
 
 /* Append the input method menu items to a given shell. */
 void vte_terminal_im_append_menuitems(VteTerminal *terminal,
@@ -229,18 +231,19 @@ void vte_terminal_reset(VteTerminal *terminal, gboolean full,
  * Note that it will have one entry per byte, not per character, so indexes
  * should match up exactly. */
 char *vte_terminal_get_text(VteTerminal *terminal,
-			    gboolean(*is_selected)(VteTerminal * terminal,
-						   long column, long row),
+			    gboolean(*is_selected)(VteTerminal *terminal,
+						   glong column,
+						   glong row),
 			    GArray *attributes);
 char *vte_terminal_get_text_range(VteTerminal *terminal,
 				  glong start_row, glong start_col,
 				  glong end_row, glong end_col,
-				  gboolean(*is_selected)(VteTerminal * terminal,
-							 long column,
-							 long row),
+				  gboolean(*is_selected)(VteTerminal *terminal,
+							 glong column,
+							 glong row),
 				  GArray *attributes);
 void vte_terminal_get_cursor_position(VteTerminal *terminal,
-				      long *column, long *row);
+				      glong *column, glong *row);
 
 /* Display string matching:  clear all matching expressions. */
 void vte_terminal_match_clear_all(VteTerminal *terminal);
@@ -252,7 +255,8 @@ int vte_terminal_match_add(VteTerminal *terminal, const char *match);
 /* Check if a given cell on the screen contains part of a matched string.  If
  * it does, return the string, and store the match tag in the optional tag
  * argument. */
-char *vte_terminal_match_check(VteTerminal *terminal, long column, long row,
+char *vte_terminal_match_check(VteTerminal *terminal,
+			       glong column, glong row,
 			       int *tag);
 
 /* Set the emulation type.  Most of the time you won't need this. */
@@ -260,7 +264,7 @@ void vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation);
 const char *vte_terminal_get_emulation(VteTerminal *terminal);
 
 /* Set the character encoding.  Most of the time you won't need this. */
-void vte_terminal_set_encoding(VteTerminal *terminal, const char *encoding);
+void vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset);
 const char *vte_terminal_get_encoding(VteTerminal *terminal);
 
 /* Get the contents of the status line. */

@@ -147,13 +147,13 @@ struct vte_draw_item {
  * are really only defined for "application" mode. */
 typedef enum _VteKeypad {
 	VTE_KEYPAD_NORMAL,
-	VTE_KEYPAD_APPLICATION,
+	VTE_KEYPAD_APPLICATION
 } VteKeypad;
 
 /* The terminal's function key setting. */
 typedef enum _VteFKey {
 	VTE_FKEY_VT220,
-	VTE_FKEY_SUNPC,
+	VTE_FKEY_SUNPC
 } VteFKey;
 
 typedef struct _VteScreen VteScreen;
@@ -245,7 +245,7 @@ struct _VteTerminalPrivate {
 	enum {
 		selection_type_char,
 		selection_type_word,
-		selection_type_line,
+		selection_type_line
 	} selection_type;
 	struct selection_event_coords {
 		double x, y;
@@ -623,7 +623,7 @@ vte_invalidate_all(VteTerminal *terminal)
 /* Scroll a rectangular region up or down by a fixed number of lines. */
 static void
 vte_terminal_scroll_region(VteTerminal *terminal,
-			   long row, long count, long delta)
+			   long row, glong count, glong delta)
 {
 	GtkWidget *widget;
 	gboolean repaint = TRUE;
@@ -654,7 +654,7 @@ vte_terminal_scroll_region(VteTerminal *terminal,
 
 /* Find the character in the given "virtual" position. */
 static struct vte_charcell *
-vte_terminal_find_charcell(VteTerminal *terminal, long col, long row)
+vte_terminal_find_charcell(VteTerminal *terminal, glong col, glong row)
 {
 	GArray *rowdata;
 	struct vte_charcell *ret = NULL;
@@ -1101,7 +1101,7 @@ vte_terminal_match_contents_clear(VteTerminal *terminal)
 
 /* Refresh the cache of the screen contents we keep. */
 static gboolean
-always_selected(VteTerminal *terminal, long row, long column)
+always_selected(VteTerminal *terminal, glong row, glong column)
 {
 	return TRUE;
 }
@@ -1118,7 +1118,14 @@ vte_terminal_match_contents_refresh(VteTerminal *terminal)
 	terminal->pvt->match_attributes = array;
 }
 
-/* Display string matching:  clear all matching expressions. */
+/**
+ * vte_terminal_match_clear_all:
+ * @terminal: a #VteTerminal
+ *
+ * Clears the list of regular expressions the terminal uses to highlight text
+ * when the user moves the mouse cursor.
+ * 
+ */
 void
 vte_terminal_match_clear_all(VteTerminal *terminal)
 {
@@ -1137,8 +1144,17 @@ vte_terminal_match_clear_all(VteTerminal *terminal)
 	vte_terminal_match_hilite_clear(terminal);
 }
 
-/* Add a matching expression, returning the tag the widget assigns to that
- * expression. */
+/**
+ * vte_terminal_match_add:
+ * @terminal: a #VteTerminal
+ * @match: a regular expression
+ *
+ * Adds a regular expression to the list of matching expressions.  When the
+ * user moves the mouse cursor over a section of displayed text which matches
+ * this expression, the text will be highlighted.
+ * 
+ * Returns: an integer associated with this expression
+ */
 int
 vte_terminal_match_add(VteTerminal *terminal, const char *match)
 {
@@ -1162,7 +1178,7 @@ vte_terminal_match_add(VteTerminal *terminal, const char *match)
  * argument. */
 static char *
 vte_terminal_match_check_internal(VteTerminal *terminal,
-				  long column, long row,
+				  long column, glong row,
 				  int *tag, int *start, int *end)
 {
 	int i, j, ret, offset;
@@ -1301,8 +1317,28 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 	return NULL;
 }
 
+/**
+ * vte_terminal_match_check:
+ * @terminal: a #VteTerminal
+ * @column: the text column
+ * @row: the text row
+ * @tag: pointer to an integer
+ *
+ * Checks if the text in and around the specified position matches any of the
+ * regular expressions previously set using vte_terminal_match_add().  If a
+ * match exists, the text string is returned and if @tag is not NULL, the number
+ * associated with the matched regular expression will be stored in @tag.
+ * 
+ * If more than one regular expression has been set with
+ * vte_terminal_match_add(), then expressions are checked in the order in
+ * which they were added.
+ * 
+ * Returns: a string which matches one of the previously set regular
+ * expressions, and which must be freed by the caller.
+ */
 char *
-vte_terminal_match_check(VteTerminal *terminal, long column, long row, int *tag)
+vte_terminal_match_check(VteTerminal *terminal, glong column, glong row,
+			 int *tag)
 {
 	long delta;
 	char *ret;
@@ -1542,7 +1578,7 @@ vte_sequence_handler_multiple(VteTerminal *terminal,
 
 /* Insert a blank line at an arbitrary position. */
 static void
-vte_insert_line_internal(VteTerminal *terminal, long position)
+vte_insert_line_internal(VteTerminal *terminal, glong position)
 {
 	GArray *array;
 	/* Pad out the line data to the insertion point. */
@@ -1562,7 +1598,7 @@ vte_insert_line_internal(VteTerminal *terminal, long position)
 
 /* Remove a line at an arbitrary position. */
 static void
-vte_remove_line_internal(VteTerminal *terminal, long position)
+vte_remove_line_internal(VteTerminal *terminal, glong position)
 {
 	if (vte_ring_next(terminal->pvt->screen->row_data) > position) {
 		vte_ring_remove(terminal->pvt->screen->row_data,
@@ -1570,8 +1606,17 @@ vte_remove_line_internal(VteTerminal *terminal, long position)
 	}
 }
 
-/* Change the encoding used for the terminal to the given codeset, or the
- * locale default if NULL is passed in. */
+/**
+ * vte_terminal_set_encoding:
+ * @terminal: a #VteTerminal
+ * @codeset: a valid #gconv target
+ *
+ * Changes the encoding the terminal will expect data from the child to
+ * be encoded with.  For certain terminal types, applications executing in the
+ * terminal can change the encoding.  The default encoding is defined by the
+ * application's locale settings.
+ *
+ */
 void
 vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 {
@@ -1708,6 +1753,16 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 #endif
 	vte_terminal_emit_encoding_changed(terminal);
 }
+
+/**
+ * vte_terminal_get_encoding:
+ * @terminal: a #VteTerminal
+ *
+ * Determines the name of the encoding in which the terminal expects data to be
+ * encoded.
+ *
+ * Returns: the current encoding for the terminal.
+ */
 const char *
 vte_terminal_get_encoding(VteTerminal *terminal)
 {
@@ -5245,9 +5300,13 @@ static struct {
 	{"window-manipulation", vte_sequence_handler_window_manipulation},
 };
 
-/* Create the basic widget.  This more or less creates and initializes a
- * GtkWidget and clears out the rest of the data which is specific to our
- * widget class. */
+/**
+ * vte_terminal_new:
+ *
+ * Create a new terminal widget.
+ *
+ * Returns: a new #VteTerminal object
+ */
 GtkWidget *
 vte_terminal_new(void)
 {
@@ -5387,14 +5446,28 @@ vte_terminal_generate_bold(const struct vte_palette_entry *foreground,
 #endif
 }
 
-/* Set the bold foreground color. */
+/**
+ * vte_terminal_set_color_bold
+ * @terminal: a #VteTerminal
+ * @bold: the new bold color
+ *
+ * Sets the color used to draw bold text in the default foreground color.
+ *
+ */
 void
 vte_terminal_set_color_bold(VteTerminal *terminal, const GdkColor *bold)
 {
 	vte_terminal_set_color_internal(terminal, VTE_BOLD_FG, bold);
 }
 
-/* Set the foreground color. */
+/**
+ * vte_terminal_set_color_foreground
+ * @terminal: a #VteTerminal
+ * @foreground: the new foreground color
+ *
+ * Sets the foreground color used to draw normal text
+ *
+ */
 void
 vte_terminal_set_color_foreground(VteTerminal *terminal,
 				  const GdkColor *foreground)
@@ -5402,7 +5475,16 @@ vte_terminal_set_color_foreground(VteTerminal *terminal,
 	vte_terminal_set_color_internal(terminal, VTE_DEF_FG, foreground);
 }
 
-/* Set the background color. */
+/**
+ * vte_terminal_set_color_background
+ * @terminal: a #VteTerminal
+ * @background: the new background color
+ *
+ * Sets the background color for text which does not have a specific background
+ * color assigned.  Only has effect when no background image is set and when
+ * the terminal is not transparent.
+ *
+ */
 void
 vte_terminal_set_color_background(VteTerminal *terminal,
 				  const GdkColor *background)
@@ -5410,7 +5492,26 @@ vte_terminal_set_color_background(VteTerminal *terminal,
 	vte_terminal_set_color_internal(terminal, VTE_DEF_BG, background);
 }
 
-/* Set a given set of colors as the palette. */
+/**
+ * vte_terminal_set_colors
+ * @terminal: a #VteTerminal
+ * @foreground: the new foreground color, or #NULL
+ * @background: the new background color, or #NULL
+ * @palette: the color palette
+ * @palette_size: the number of entries in @palette
+ *
+ * The terminal widget uses a 19-color model comprised of the default foreground
+ * and background colors, the bold foreground color, an eight color palette, and
+ * bold versions of the eight color palette.
+ *
+ * @palette_size must be either 0, 8, or 16.  If @foreground is NULL and
+ * @palette_size is greater than 0, the new foreground color is taken from
+ * @palette[7].  If @background is NULL and @palette_size is greater than 0,
+ * the new background color is taken from @palette[0].  If @palette_size is
+ * 8, the second 8-color palette is extrapolated from the new background
+ * color and the items in @palette.
+ *
+ */
 void
 vte_terminal_set_colors(VteTerminal *terminal,
 			const GdkColor *foreground,
@@ -5515,7 +5616,13 @@ vte_terminal_set_colors(VteTerminal *terminal,
 	terminal->pvt->palette_initialized = TRUE;
 }
 
-/* Reset palette defaults for character colors. */
+/**
+ * vte_terminal_set_default_colors:
+ * @terminal: a #VteTerminal
+ *
+ * Reset the terminal palette to reasonable compiled-in defaults.
+ *
+ */
 void
 vte_terminal_set_default_colors(VteTerminal *terminal)
 {
@@ -5793,7 +5900,20 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 	}
 }
 
-/* Start up a command in a slave PTY. */
+/**
+ * vte_terminal_fork_command:
+ * @terminal: a #VteTerminal
+ * @command: the name of a binary to run
+ * @argv: the argument list to be passed to @command
+ * @envv: a list of environment variables to be added to the environment before
+ * starting @command
+ *
+ * Starts the specified command under a newly-alllocated control
+ * pseudo-terminal.  TERM is automatically set to reflect the terminal widget's
+ * emulation setting.
+ *
+ * Returns: the ID of the new process
+ */
 pid_t
 vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 			  char **argv, char **envv)
@@ -6365,12 +6485,27 @@ vte_terminal_io_read(GIOChannel *channel,
 	return leave_open;
 }
 
-/* Render some UTF-8 text. */
+/**
+ * vte_terminal_feed:
+ * @terminal: a #VteTerminal
+ * @data: a string
+ * @length: the length of the string
+ *
+ * Interprets @data as if it were data received from a child process.  This
+ * can either be used to drive the terminal without a child process, or just
+ * to mess with your users.
+ *
+ */
 void
 vte_terminal_feed(VteTerminal *terminal, const char *data, glong length)
 {
 	char *buf;
 	gboolean empty;
+
+	/* If length == -1, use the length of the data string. */
+	if (length == ((gssize)-1)) {
+		length = strlen(data);
+	}
 
 	/* Allocate space for old and new data. */
 	buf = g_malloc(terminal->pvt->n_incoming + length + 1);
@@ -6519,17 +6654,26 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	return;
 }
 
-/* Send a chunk of UTF-8 text to the child. */
+/**
+ * vte_terminal_feed_child:
+ * @terminal: a #VteTerminal
+ * @data: data to send to the child
+ * @length: length of @text
+ *
+ * Sends a block of UTF-8 text to the child as if it were entered by the user
+ * at the keyboard.
+ *
+ */
 void
-vte_terminal_feed_child(VteTerminal *terminal, const char *text, glong length)
+vte_terminal_feed_child(VteTerminal *terminal, const char *data, glong length)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (length == ((gssize)-1)) {
-		length = strlen(text);
+		length = strlen(data);
 	}
 	vte_terminal_im_reset(terminal);
 	if (length > 0) {
-		vte_terminal_send(terminal, "UTF-8", text, length);
+		vte_terminal_send(terminal, "UTF-8", data, length);
 	}
 }
 
@@ -7151,7 +7295,16 @@ vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
 	return gtk_im_context_filter_keypress(terminal->pvt->im_context, event);
 }
 
-/* Check if a particular character is part of a "word" or not. */
+/**
+ * vte_terminal_is_word_char:
+ * @terminal: a #VteTerminal
+ * @c: a candidate Unicode code point
+ *
+ * Checks if a particular character is considered to be part of a word or not,
+ * based on the values last passed to vte_terminal_set_word_chars().
+ * 
+ * Returns: TRUE if the character is considered to be part of a word
+ */
 gboolean
 vte_terminal_is_word_char(VteTerminal *terminal, gunichar c)
 {
@@ -7175,7 +7328,7 @@ vte_terminal_is_word_char(VteTerminal *terminal, gunichar c)
 /* Check if the characters in the given block are in the same class (word vs.
  * non-word characters). */
 static gboolean
-vte_uniform_class(VteTerminal *terminal, long row, long scol, long ecol)
+vte_uniform_class(VteTerminal *terminal, glong row, glong scol, glong ecol)
 {
 	struct vte_charcell *pcell = NULL;
 	long col;
@@ -7199,8 +7352,8 @@ vte_uniform_class(VteTerminal *terminal, long row, long scol, long ecol)
 }
 
 static gboolean
-vte_cell_is_between(long col, long row,
-		    long acol, long arow, long bcol, long brow,
+vte_cell_is_between(glong col, glong row,
+		    glong acol, glong arow, glong bcol, glong brow,
 		    gboolean inclusive)
 {
 	long t;
@@ -7262,7 +7415,7 @@ vte_cell_is_between(long col, long row,
 
 /* Check if a cell is selected or not. */
 static gboolean
-vte_cell_is_selected(VteTerminal *terminal, long col, long row)
+vte_cell_is_selected(VteTerminal *terminal, glong col, glong row)
 {
 	long scol, ecol;
 
@@ -7959,12 +8112,31 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 	}
 }
 
-/* Extract a view of the widget as if we were going to copy it. */
+/**
+ * vte_terminal_get_text_range:
+ * @terminal: a #VteTerminal
+ * @start_row: first row to search for data
+ * @start_col: first column to search for data
+ * @end_row: last row to search for data
+ * @end_col: last column to search for data
+ * @is_selected: a callback
+ * @attributes: location for storing text attributes
+ *
+ * Extracts a view of the visible part of the string.  If @is_selected is not
+ * NULL, characters will only be read if @is_selected returns TRUE after being
+ * passed the column and row, respectively.  A #vte_char_attributes structure
+ * is added to @attributes for each byte added to the returned string detailing
+ * the character&apos;s position, colors, and other characteristics.  The
+ * entire scrollback buffer is scanned, so it is possible to read the entire
+ * contents of the buffer using this function.
+ *
+ * Returns: a text string which must be freed by the caller.
+ */
 char *
 vte_terminal_get_text_range(VteTerminal *terminal,
 			    glong start_row, glong start_col,
 			    glong end_row, glong end_col,
-			    gboolean(*is_selected)(VteTerminal *, long, long),
+			    gboolean(*is_selected)(VteTerminal *, glong, glong),
 			    GArray *attributes)
 {
 	long col, row, spaces;
@@ -8063,10 +8235,23 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 	return g_string_free(string, FALSE);
 }
 
-/* Extract a view of the widget as if we were going to copy it. */
+/**
+ * vte_terminal_get_text:
+ * @terminal: a #VteTerminal
+ * @is_selected: a callback
+ * @attributes: location for storing text attributes
+ *
+ * Extracts a view of the visible part of the string.  If @is_selected is not
+ * NULL, characters will only be read if @is_selected returns TRUE after being
+ * passed the column and row, respectively.  A #vte_char_attributes structure
+ * is added to @attributes for each byte added to the returned string detailing
+ * the character&apos;s position, colors, and other characteristics.
+ *
+ * Returns: a text string which must be freed by the caller.
+ */
 char *
 vte_terminal_get_text(VteTerminal *terminal,
-		      gboolean(*is_selected)(VteTerminal *, long, long),
+		      gboolean(*is_selected)(VteTerminal *, glong, glong),
 		      GArray *attributes)
 {
 	long start_row, start_col, end_row, end_col;
@@ -8077,19 +8262,32 @@ vte_terminal_get_text(VteTerminal *terminal,
 	return vte_terminal_get_text_range(terminal,
 					   start_row, start_col,
 					   end_row, end_col,
-					   is_selected,
+					   is_selected ?
+					   is_selected : always_selected,
 					   attributes);
 }
 
-/* Tell the caller where the cursor is, in screen coordinates. */
+/**
+ * vte_terminal_get_cursor_position:
+ * @terminal: a #VteTerminal
+ * @column: long which will hold the column 
+ * @row : long which will hold the row
+ *
+ * Reads the location of the insertion cursor and returns it.  The row
+ * coordinate is absolute.
+ *
+ */
 void
 vte_terminal_get_cursor_position(VteTerminal *terminal,
-				 long *column, long *row)
+				 glong *column, glong *row)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	*column = terminal->pvt->screen->cursor_current.col;
-	*row    = terminal->pvt->screen->cursor_current.row -
-		  terminal->pvt->screen->insert_delta;
+	if (column) {
+		*column = terminal->pvt->screen->cursor_current.col;
+	}
+	if (row) {
+		*row = terminal->pvt->screen->cursor_current.row;
+	}
 }
 
 /* Place the selected text onto the clipboard.  Do this asynchronously so that
@@ -8318,7 +8516,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				fprintf(stderr, "Handling click ourselves.\n");
 			}
 #endif
-			vte_terminal_paste(terminal, GDK_SELECTION_PRIMARY);
+			vte_terminal_paste_primary(terminal);
 			ret = TRUE;
 		}
 	} else
@@ -9301,7 +9499,18 @@ vte_terminal_close_font(VteTerminal *terminal)
 #endif
 }
 
-/* Set the fontset used for rendering text into the widget. */
+/**
+ * vte_terminal_set_font:
+ * @terminal: a #VteTerminal
+ * @font_desc: The #PangoFontDescription of the desired font.
+ *
+ * Sets the font used for rendering all text displayed by the terminal,
+ * overriding any fonts set using gtk_widget_modify_font().  The terminal
+ * will immediately attempt to load the desired font, retrieve its
+ * metrics, and attempts to resize itself to keep the same number of rows
+ * and columns.
+ *
+ */
 void
 vte_terminal_set_font(VteTerminal *terminal,
 		      const PangoFontDescription *font_desc)
@@ -9357,6 +9566,15 @@ vte_terminal_set_font(VteTerminal *terminal,
 	vte_terminal_open_font(terminal);
 }
 
+/**
+ * vte_terminal_set_font_from_string:
+ * @terminal: a #VteTerminal
+ * @name: A string describing the font.
+ *
+ * A convenience function which converts @name into a #PangoFontDescription and
+ * passes it to vte_terminal_set_font().
+ *
+ */
 void
 vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name)
 {
@@ -9370,6 +9588,13 @@ vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name)
 	pango_font_description_free(font_desc);
 }
 
+/**
+ * vte_terminal_get_font:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: a #PangoFontDescription describing the font the terminal is
+ * currently using to render text.
+ */
 const PangoFontDescription *
 vte_terminal_get_font(VteTerminal *terminal)
 {
@@ -9395,9 +9620,18 @@ vte_terminal_refresh_size(VteTerminal *terminal)
 	}
 }
 
-/* Set the size of the PTY. */
+/**
+ * vte_terminal_set_size:
+ * @terminal: a #VteTerminal
+ * @columns: the desired number of columns
+ * @rows: the desired number of rows
+ *
+ * Attempts to change the terminal's size in terms of rows and columns.  If
+ * the attempt succeeds, the widget will resize itself to the proper size.
+ *
+ */
 void
-vte_terminal_set_size(VteTerminal *terminal, long columns, long rows)
+vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 {
 	struct winsize size;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -9483,7 +9717,16 @@ vte_terminal_set_scroll_adjustment(VteTerminal *terminal,
 	}
 }
 
-/* Set the type of terminal we're emulating. */
+/**
+ * vte_terminal_set_emulation:
+ * @terminal: a #VteTerminal
+ * @emulation: the name of a terminal description
+ *
+ * Sets what type of terminal the widget attempts to emulate by scanning for
+ * control sequences defined in the system's termcap file.  Unless you
+ * are interested in this feature, always use "xterm".
+ *
+ */
 void
 vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 {
@@ -9619,6 +9862,12 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	vte_terminal_emit_emulation_changed(terminal);
 }
 
+/**
+ * vte_terminal_get_emulation:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: the name of the terminal type the widget is attempting to emulate
+ */
 const char *
 vte_terminal_get_emulation(VteTerminal *terminal)
 {
@@ -9667,7 +9916,7 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 }
 
 static void
-vte_terminal_reset_rowdata(VteRing **ring, long lines)
+vte_terminal_reset_rowdata(VteRing **ring, glong lines)
 {
 	VteRing *new_ring;
 	GArray *row;
@@ -12519,13 +12768,31 @@ vte_terminal_get_type(void)
 	return terminal_type;
 }
 
-/* External access functions. */
+/**
+ * vte_terminal_set_audible_bell:
+ * @terminal: a #VteTerminal
+ * @is_audible: TRUE if the terminal should beep
+ *
+ * Controls whether or not the terminal will beep when the child outputs the
+ * "bl" sequence.
+ *
+ */
 void
-vte_terminal_set_audible_bell(VteTerminal *terminal, gboolean audible)
+vte_terminal_set_audible_bell(VteTerminal *terminal, gboolean is_audible)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->audible_bell = audible;
+	terminal->pvt->audible_bell = is_audible;
 }
+
+/**
+ * vte_terminal_get_audible_bell:
+ * @terminal: a #VteTerminal
+ *
+ * Checks whether or not the terminal will beep when the child outputs the
+ * "bl" sequence.
+ *
+ * Returns: TRUE if audible bell is enabled, FALSE if not
+ */
 gboolean
 vte_terminal_get_audible_bell(VteTerminal *terminal)
 {
@@ -12533,12 +12800,33 @@ vte_terminal_get_audible_bell(VteTerminal *terminal)
 	return terminal->pvt->audible_bell;
 }
 
+/**
+ * vte_terminal_set_visible_bell:
+ * @terminal: a #VteTerminal
+ * @is_visible: TRUE if the terminal should flash
+ *
+ * Controls whether or not the terminal will present a visible bell to the
+ * user when the child outputs the "bl" sequence.  The terminal
+ * will clear itself to the default foreground color and then repaint itself.
+ *
+ */
 void
-vte_terminal_set_visible_bell(VteTerminal *terminal, gboolean visible)
+vte_terminal_set_visible_bell(VteTerminal *terminal, gboolean is_visible)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->visible_bell = visible;
+	terminal->pvt->visible_bell = is_visible;
 }
+
+/**
+ * vte_terminal_get_visible_bell:
+ * @terminal: a #VteTerminal
+ *
+ * Checks whether or not the terminal will present a visible bell to the
+ * user when the child outputs the "bl" sequence.  The terminal
+ * will clear itself to the default foreground color and then repaint itself.
+ *
+ * Returns: TRUE if visible bell is enabled, FALSE if not
+ */
 gboolean
 vte_terminal_get_visible_bell(VteTerminal *terminal)
 {
@@ -12546,6 +12834,15 @@ vte_terminal_get_visible_bell(VteTerminal *terminal)
 	return terminal->pvt->visible_bell;
 }
 
+/**
+ * vte_terminal_set_scroll_on_output:
+ * @terminal: a #VteTerminal
+ * @scroll: TRUE if the terminal should scroll on output
+ *
+ * Controls whether or not the terminal will forcibly scroll to the bottom of
+ * the viewable history when the new data is received from the child.
+ *
+ */
 void
 vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll)
 {
@@ -12553,6 +12850,16 @@ vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll)
 	terminal->pvt->scroll_on_output = scroll;
 }
 
+/**
+ * vte_terminal_set_scroll_on_keystroke:
+ * @terminal: a #VteTerminal
+ * @scroll: TRUE if the terminal should scroll on keystrokes
+ *
+ * Controls whether or not the terminal will forcibly scroll to the bottom of
+ * the viewable history when the user presses a key.  Modifier keys do not
+ * trigger this behavior.
+ *
+ */
 void
 vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal, gboolean scroll)
 {
@@ -12560,6 +12867,14 @@ vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal, gboolean scroll)
 	terminal->pvt->scroll_on_keystroke = scroll;
 }
 
+/**
+ * vte_terminal_copy_clipboard:
+ * @terminal: a #VteTerminal
+ *
+ * Places the selected text in the terminal in the #GDK_SELECTION_CLIPBOARD
+ * selection.
+ *
+ */
 void
 vte_terminal_copy_clipboard(VteTerminal *terminal)
 {
@@ -12567,6 +12882,15 @@ vte_terminal_copy_clipboard(VteTerminal *terminal)
 	vte_terminal_copy(terminal, GDK_SELECTION_CLIPBOARD);
 }
 
+/**
+ * vte_terminal_paste_clipboard:
+ * @terminal: a #VteTerminal
+ *
+ * Sends the contents of the #GDK_SELECTION_CLIPBOARD selection to the
+ * terminal's child.  If necessary, the data is converted from UTF-8 to the
+ * terminal's current encoding.
+ *
+ */
 void
 vte_terminal_paste_clipboard(VteTerminal *terminal)
 {
@@ -12574,6 +12898,14 @@ vte_terminal_paste_clipboard(VteTerminal *terminal)
 	vte_terminal_paste(terminal, GDK_SELECTION_CLIPBOARD);
 }
 
+/**
+ * vte_terminal_copy_primary:
+ * @terminal: a #VteTerminal
+ *
+ * Places the selected text in the terminal in the #GDK_SELECTION_PRIMARY
+ * selection.
+ *
+ */
 void
 vte_terminal_copy_primary(VteTerminal *terminal)
 {
@@ -12581,6 +12913,17 @@ vte_terminal_copy_primary(VteTerminal *terminal)
 	vte_terminal_copy(terminal, GDK_SELECTION_PRIMARY);
 }
 
+/**
+ * vte_terminal_paste_primary:
+ * @terminal: a #VteTerminal
+ *
+ * Sends the contents of the #GDK_SELECTION_PRIMARY selection to the terminal's
+ * child.  If necessary, the data is converted from UTF-8 to the terminal's
+ * current encoding.  The terminal will call also paste the
+ * #GDK_SELECTION_PRIMARY selection when the user clicks with the the second
+ * mouse button.
+ *
+ */
 void
 vte_terminal_paste_primary(VteTerminal *terminal)
 {
@@ -12588,7 +12931,16 @@ vte_terminal_paste_primary(VteTerminal *terminal)
 	vte_terminal_paste(terminal, GDK_SELECTION_PRIMARY);
 }
 
-/* Append the menu items for our input method context to the given shell. */
+/**
+ * vte_terminal_im_append_menuitems:
+ * @terminal: a #VteTerminal
+ * @menushell: a GtkMenuShell
+ *
+ * Appends menu items for various input methods to the given menu.  The
+ * user can select one of these items to modify the input method used by
+ * the terminal.
+ *
+ */
 void
 vte_terminal_im_append_menuitems(VteTerminal *terminal, GtkMenuShell *menushell)
 {
@@ -12836,6 +13188,24 @@ vte_terminal_setup_background(VteTerminal *terminal,
 	vte_invalidate_all(terminal);
 }
 
+/**
+ * vte_terminal_set_background_saturation:
+ * @terminal: a #VteTerminal
+ * @saturation: TRUE if the terminal should fake transparency
+ *
+ * If a background image has been set using
+ * vte_terminal_set_background_image(), 
+ * vte_terminal_set_background_image_file(), or
+ * vte_terminal_set_background_transparent(), the terminal will adjust the
+ * brightness of the image before drawing the image.  To do so, the terminal
+ * will create a copy of the background image (or snapshot of the root
+ * window) and modify its pixel values.
+ * 
+ * If your application intends to create multiple terminal widgets with the
+ * same settings, performing this step yourself and just using
+ * vte_terminal_set_background_image() will save memory.
+ * 
+ */
 void
 vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
 {
@@ -12947,9 +13317,19 @@ vte_terminal_filter_property_changes(GdkXEvent *xevent, GdkEvent *event,
 	return GDK_FILTER_CONTINUE;
 }
 
-/* Turn background "transparency" on or off. */
+/**
+ * vte_terminal_set_background_transparent:
+ * @terminal: a #VteTerminal
+ * @transparent: TRUE if the terminal should fake transparency
+ *
+ * Sets the terminal's background image to the pixmap stored in the root
+ * window, adjusted so that if there are no windows below your application,
+ * the widget will appear to be transparent.
+ * 
+ */
 void
-vte_terminal_set_background_transparent(VteTerminal *terminal, gboolean setting)
+vte_terminal_set_background_transparent(VteTerminal *terminal,
+					gboolean transparent)
 {
 	GdkWindow *window;
 	GdkAtom atom;
@@ -12958,17 +13338,17 @@ vte_terminal_set_background_transparent(VteTerminal *terminal, gboolean setting)
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "Turning background transparency %s.\n",
-			setting ? "on" : "off");
+			transparent ? "on" : "off");
 	}
 #endif
-	terminal->pvt->bg_transparent = setting;
+	terminal->pvt->bg_transparent = transparent;
 
 	/* To be "transparent", we treat the _XROOTPMAP_ID attribute of the
 	 * root window as a picture of what's beneath us, and use that as
 	 * the background.  It's a little tricky because we need to "scroll"
 	 * the image to match our window position. */
 	window = gdk_get_default_root_window();
-	if (setting) {
+	if (transparent) {
 		/* Get the window and property name we'll be watching for
 		 * changes in. */
 		atom = gdk_atom_intern("_XROOTPMAP_ID", TRUE);
@@ -12996,6 +13376,17 @@ vte_terminal_set_background_transparent(VteTerminal *terminal, gboolean setting)
 	vte_terminal_queue_background_update(terminal);
 }
 
+/**
+ * vte_terminal_set_background_image:
+ * @terminal: a #VteTerminal
+ * @image: a #GdkPixbuf to use, or #NULL to cancel
+ *
+ * Sets a background image for the widget.  Text which would otherwise be
+ * drawn using the default background color will instead be drawn over the
+ * specified image.  If necessary, the image will be tiled to cover the
+ * widget's entire visible area.
+ * 
+ */
 void
 vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
 {
@@ -13029,9 +13420,21 @@ vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
 	vte_terminal_queue_background_update(terminal);
 }
 
-/* Set the background image using just a file.  It's more efficient for a
- * caller to pass us an already-desaturated pixbuf if we've got multiple
- * instances going, but this is handy for the single-widget case. */
+/**
+ * vte_terminal_set_background_image_file:
+ * @terminal: a #VteTerminal
+ * @path: path to an image file
+ *
+ * Sets a background image for the widget.  If specified by
+ * vte_terminal_set_background_saturation, the terminal will make its
+ * in-memory copy of the image darker for its own use.
+ * 
+ * This is a convenience function for vte_terminal_set_background_image().
+ * If your application intends to create multiple terminal widgets using the
+ * same background, performing this step yourself and just using
+ * vte_terminal_set_background_image() will reduce memory consumption.
+ *
+ */
 void
 vte_terminal_set_background_image_file(VteTerminal *terminal, const char *path)
 {
@@ -13057,7 +13460,12 @@ vte_terminal_set_background_image_file(VteTerminal *terminal, const char *path)
 	}
 }
 
-/* Check if we're the current owner of the clipboard. */
+/**
+ * vte_terminal_get_has_selection:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: TRUE if part of the text in the terminal is selected.
+ */
 gboolean
 vte_terminal_get_has_selection(VteTerminal *terminal)
 {
@@ -13065,7 +13473,18 @@ vte_terminal_get_has_selection(VteTerminal *terminal)
 	return terminal->pvt->has_selection;
 }
 
-/* Tell the caller if we're [planning on] using Xft for rendering. */
+/**
+ * vte_terminal_get_using_xft:
+ * @terminal: a #VteTerminal
+ *
+ * A #VteTerminal can use Xft, Pango, or Xlib to draw text.  This function
+ * allows an application to determine which mode the widget is in.  This
+ * setting cannot be changed by the caller, but in practice usually matches
+ * the behavior of GTK+ itself.
+ *
+ * Returns: TRUE if the terminal is using Xft to render, FALSE if the terminal
+ * is using Pango or Xlib.
+ */
 gboolean
 vte_terminal_get_using_xft(VteTerminal *terminal)
 {
@@ -13074,7 +13493,15 @@ vte_terminal_get_using_xft(VteTerminal *terminal)
 	       (terminal->pvt->render_method == VteRenderXft1);
 }
 
-/* Toggle the cursor blink setting. */
+/**
+ * vte_terminal_set_cursor_blinks:
+ * @terminal: a #VteTerminal
+ * @blink: TRUE if the cursor should blink
+ *
+ * Sets whether or not the cursor will blink.  The length of the blinking cycle
+ * is controlled by the "gtk-cursor-blink-time" GTK+ setting.
+ *
+ */
 void
 vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
 {
@@ -13082,9 +13509,21 @@ vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
 	terminal->pvt->cursor_blinks = blink;
 }
 
-/* Set the length of the scrollback buffers. */
+/**
+ * vte_terminal_set_scrollback_lines:
+ * @terminal: a #VteTerminal
+ * @lines: the length of the history buffer
+ *
+ * Sets the length of the scrollback buffer used by the terminal.  The size of
+ * the scrollback buffer will be set to the larger of this value and the number
+ * of visible rows the widget can display, so 0 can safely be used to disable
+ * scrollback.  Note that this setting only affects the normal screen buffer.
+ * For terminal types which have an alternate screen buffer, no scrollback is
+ * allowed.
+ *
+ */
 void
-vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
+vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 {
 	long highd, high, low, delta, max, next;
 	VteScreen *screens[2];
@@ -13134,9 +13573,17 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 	vte_invalidate_all(terminal);
 }
 
-/* Set the list of characters we consider to be parts of words.  Everything
- * else will be a non-word character, and we'll use transitions between the
- * two sets when doing selection-by-words. */
+/**
+ * vte_terminal_set_word_chars:
+ * @terminal: a #VteTerminal
+ * @spec: a specification
+ *
+ * When the user double-clicks to start selection, the terminal will extend
+ * the selection on word boundaries.  It will treat characters included in @spec
+ * as parts of words, and all other characters as word separators.  Ranges of
+ * characters can be specified by separating them with a hyphen.
+ *
+ */
 void
 vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 {
@@ -13218,6 +13665,16 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	g_free(obufptr);
 }
 
+/**
+ * vte_terminal_set_backspace_binding:
+ * @terminal: a #VteTerminal
+ * @binding: a #VteTerminalEraseBinding for the backspace key
+ *
+ * Modifies the terminal's backspace key binding, which controls what
+ * string or control sequence the terminal sends to its child when the user
+ * presses the backspace key.
+ *
+ */
 void
 vte_terminal_set_backspace_binding(VteTerminal *terminal,
 				   VteTerminalEraseBinding binding)
@@ -13227,6 +13684,16 @@ vte_terminal_set_backspace_binding(VteTerminal *terminal,
 	terminal->pvt->backspace_binding = binding;
 }
 
+/**
+ * vte_terminal_set_delete_binding:
+ * @terminal: a #VteTerminal
+ * @binding: a #VteTerminalEraseBinding for the delete key
+ *
+ * Modifies the terminal's delete key binding, which controls what
+ * string or control sequence the terminal sends to its child when the user
+ * presses the delete key.
+ *
+ */
 void
 vte_terminal_set_delete_binding(VteTerminal *terminal,
 				VteTerminalEraseBinding binding)
@@ -13235,6 +13702,17 @@ vte_terminal_set_delete_binding(VteTerminal *terminal,
 	terminal->pvt->delete_binding = binding;
 }
 
+/**
+ * vte_terminal_set_mouse_autohide:
+ * @terminal: a #VteTerminal
+ * @setting: TRUE if the autohide should be enabled
+ *
+ * Changes the value of the terminal's mouse autohide setting.  When autohiding
+ * is enabled, the mouse cursor will be hidden when the user presses a key and
+ * shown when the user moves the mouse.  This setting can be read using
+ * vte_terminal_get_mouse_autohide().
+ *
+ */
 void
 vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting)
 {
@@ -13242,6 +13720,17 @@ vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting)
 	terminal->pvt->mouse_autohide = setting;
 }
 
+/**
+ * vte_terminal_get_mouse_autohide:
+ * @terminal: a #VteTerminal
+ *
+ * Determines the value of the terminal's mouse autohide setting.  When
+ * autohiding is enabled, the mouse cursor will be hidden when the user presses
+ * a key and shown when the user moves the mouse.  This setting can be changed
+ * using vte_terminal_set_mouse_autohide().
+ *
+ * Returns: TRUE if autohiding is enabled, FALSE if not.
+ */
 gboolean
 vte_terminal_get_mouse_autohide(VteTerminal *terminal)
 {
@@ -13249,6 +13738,18 @@ vte_terminal_get_mouse_autohide(VteTerminal *terminal)
 	return terminal->pvt->mouse_autohide;
 }
 
+/**
+ * vte_terminal_reset:
+ * @terminal: a #VteTerminal
+ * @full: TRUE to reset tabstops
+ * @clear_history: TRUE to empty the terminal's scrollback buffer
+ *
+ * Resets as much of the terminal's internal state as possible, discarding any
+ * unprocessed input data, resetting character attributes, cursor state, 
+ * national character set state, status line, terminal modes (insert/delete),
+ * selection state, and encoding.
+ * 
+ */
 void
 vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 {
@@ -13369,6 +13870,18 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	vte_invalidate_all(terminal);
 }
 
+/**
+ * vte_terminal_get_status_line:
+ * @terminal: a #VteTerminal
+ *
+ * Some terminal emulations specify a status line which is separate from the
+ * main display area, and define a means for applications to move the cursor
+ * to the status line and back.
+ *
+ * Returns: the current contents of the terminal's status line.  For terminals
+ * like "xterm", this will usually be the empty string.  The string must not
+ * be modified or freed by the caller.
+ */
 const char *
 vte_terminal_get_status_line(VteTerminal *terminal)
 {
@@ -13376,6 +13889,23 @@ vte_terminal_get_status_line(VteTerminal *terminal)
 	return terminal->pvt->screen->status_line_contents->str;
 }
 
+/**
+ * vte_terminal_get_padding:
+ * @terminal: a #VteTerminal
+ * @xpad: address in which to store left/right-edge padding
+ * @ypad: address in which to store top/bottom-edge ypadding
+ *
+ * Determines the amount of additional space the widget is using to pad the
+ * edges of its visible area.  This is necessary for cases where characters
+ * in the selected font don't themselves include a padding area and the
+ * text itself would be contiguous with the window border.  Applications
+ * which use the widget's #row_count, #column_count, #char_height, and
+ * #char_width fields to set geometry hints using
+ * gtk_window_set_geometry_hints() will need to add this value to the base
+ * size.  The values returned in @xpad and @ypad are the total padding used
+ * in each direction, and do not need to be doubled.
+ *
+ */
 void
 vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad)
 {

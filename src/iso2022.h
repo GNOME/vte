@@ -27,7 +27,6 @@
 
 G_BEGIN_DECLS
 
-struct vte_iso2022;
 struct vte_iso2022 *vte_iso2022_new(void);
 struct vte_iso2022 *vte_iso2022_copy(struct vte_iso2022 *original);
 void vte_iso2022_free(struct vte_iso2022 *p);

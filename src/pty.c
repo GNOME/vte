@@ -152,6 +152,17 @@ vte_pty_fork_on_pty(const char *path, char **env_add,
 	_exit(0);
 }
 
+/**
+ * vte_pty_set_size:
+ * @master: the file descriptor of the pty master
+ * @columns: the desired number of columns
+ * @rows: the desired number of rows
+ *
+ * Attempts to resize the pseudo terminal's window size.  If successful, the
+ * OS kernel will send #SIGWINCH to the child process group.
+ *
+ * Returns: 0 on success, -1 on failure.
+ */
 int
 vte_pty_set_size(int master, int columns, int rows)
 {
@@ -178,6 +189,16 @@ vte_pty_set_size(int master, int columns, int rows)
 	return ret;
 }
 
+/**
+ * vte_pty_get_size:
+ * @master: the file descriptor of the pty master
+ * @columns: a place to store the number of columns
+ * @rows: a place to store the number of rows
+ *
+ * Attempts to read the pseudo terminal's window size.
+ *
+ * Returns: 0 on success, -1 on failure.
+ */
 int
 vte_pty_get_size(int master, int *columns, int *rows)
 {
@@ -330,6 +351,21 @@ vte_pty_open_old_school(pid_t *child, char **env_add,
 	return -1;
 }
 
+/**
+ * vte_pty_open:
+ * @child: location to store the new process's ID
+ * @env_add: a list of environment variables to add to the child's environment
+ * @command: name of the binary to run
+ * @argv: arguments to pass to @command
+ * @columns: desired window columns
+ * @rows: desired window rows
+ *
+ * Starts a new copy of @command running under a psuedo-terminal, with window
+ * size set to @rows x @columns and variables in @env_add added to its
+ * environment.
+ *
+ * Returns: an open file descriptor for the pty master, -1 on failure
+ */
 int
 vte_pty_open(pid_t *child, char **env_add,
 	     const char *command, char **argv,

@@ -52,7 +52,7 @@ typedef struct _VteTerminalAccessiblePrivate {
 enum direction {
 	direction_previous = -1,
 	direction_current = 0,
-	direction_next = 1,
+	direction_next = 1
 };
 
 static gunichar vte_terminal_accessible_get_character_at_offset(AtkText *text,
@@ -75,7 +75,7 @@ vte_terminal_accessible_new_private_data(void)
 
 /* "Oh yeah, that's selected.  Sure."  */
 static gboolean
-all_selected(VteTerminal *terminal, long column, long row)
+all_selected(VteTerminal *terminal, glong column, glong row)
 {
 	return TRUE;
 }
@@ -308,6 +308,14 @@ vte_terminal_accessible_title_changed(VteTerminal *terminal, gpointer data)
 	atk_object_set_description(ATK_OBJECT(data), terminal->window_title);
 }
 
+/**
+ * vte_terminal_accessible_new:
+ * @terminal: a #VteTerminal
+ *
+ * Creates a new accessibility peer for the terminal widget.
+ *
+ * Returns: the new #AtkObject
+ */
 AtkObject *
 vte_terminal_accessible_new(VteTerminal *terminal)
 {

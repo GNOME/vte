@@ -1,0 +1,77 @@
+<!-- ##### SECTION Title ##### -->
+table
+
+<!-- ##### SECTION Short_Description ##### -->
+The tree-of-tables sequence parser.
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+This control sequence parser uses a tree of tables, similar in design to that
+used by Xterm, but generated dynamically at run-time using data from the system
+termcap database.
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### FUNCTION vte_table_free ##### -->
+<para>
+
+</para>
+
+@table: 
+
+
+<!-- ##### FUNCTION vte_table_add ##### -->
+<para>
+
+</para>
+
+@table: 
+@pattern: 
+@length: 
+@result: 
+@quark: 
+
+
+<!-- ##### FUNCTION vte_table_match ##### -->
+<para>
+
+</para>
+
+@table: 
+@pattern: 
+@length: 
+@res: 
+@consumed: 
+@quark: 
+@array: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_table_print ##### -->
+<para>
+
+</para>
+
+@table: 
+
+
+<!-- ##### FUNCTION vte_table_wide_encoding ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_table_narrow_encoding ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+

@@ -1,0 +1,43 @@
+<!-- ##### SECTION Title ##### -->
+VteReaper
+
+<!-- ##### SECTION Short_Description ##### -->
+A singleton object which catches %SIGCHLD signals and converts them into
+GObject-style &quot;child-exited&quot; signals.
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+Because an application may need to be notified when child processes
+exit, and because there is only one %SIGCHLD handler, the #VteTerminal
+widget relies on a #VteReaper to watch for %SIGCHLD notifications and
+retrieve the exit status of child processes which have exited.
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### STRUCT VteReaper ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### FUNCTION vte_reaper_get ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+
+<!-- ##### SIGNAL VteReaper::child-exited ##### -->
+<para>
+
+</para>
+
+@vtereaper: the object which received the signal.
+@arg1: the process ID of the exited child.
+@arg2: the status of the exited child, as returned by #waitpid.
+

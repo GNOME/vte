@@ -37,8 +37,20 @@ vte_ring_validate(VteRing *ring)
 }
 #endif
 
+/**
+ * vte_ring_new:
+ * @max_elements: the maximum size the new ring will be allowed to reach
+ * @free: a #VteRingFreeFunc
+ * @data: user data for @free
+ *
+ * Allocates a new ring capable of holding up to @max_elements elements at a
+ * time, using @free to free them when they are removed from the ring.  The
+ * @data pointer is passed to the @free callback whenever it is called.
+ *
+ * Returns: a new ring
+ */
 VteRing *
-vte_ring_new(long max_elements, VteRingFreeFunc free, gpointer data)
+vte_ring_new(glong max_elements, VteRingFreeFunc free, gpointer data)
 {
 	VteRing *ret = g_malloc0(sizeof(VteRing));
 	ret->user_data = data;
@@ -50,7 +62,7 @@ vte_ring_new(long max_elements, VteRingFreeFunc free, gpointer data)
 }
 
 VteRing *
-vte_ring_new_with_delta(long max_elements, long delta,
+vte_ring_new_with_delta(glong max_elements, glong delta,
 			VteRingFreeFunc free, gpointer data)
 {
 	VteRing *ret;
@@ -59,6 +71,17 @@ vte_ring_new_with_delta(long max_elements, long delta,
 	return ret;
 }
 
+/**
+ * vte_ring_insert:
+ * @ring: a #VteRing
+ * @position: an index
+ * @data: the new item
+ *
+ * Inserts a new item (@data) into @ring at the @position'th offset.  If @ring
+ * already has an item stored at the desired location, it will be freed before
+ * being replaced by the new @data.
+ *
+ */
 void
 vte_ring_insert(VteRing *ring, long position, gpointer data)
 {
@@ -145,6 +168,16 @@ vte_ring_insert(VteRing *ring, long position, gpointer data)
 #endif
 }
 
+/**
+ * vte_ring_remove:
+ * @ring: a #VteRing
+ * @position: an index
+ * @free_element: TRUE if the item should be freed
+ *
+ * Removes the @position'th item from @ring, freeing it only if @free_element is
+ * TRUE.
+ *
+ */
 void
 vte_ring_remove(VteRing *ring, long position, gboolean free)
 {
@@ -186,17 +219,34 @@ vte_ring_remove(VteRing *ring, long position, gboolean free)
 #endif
 }
 
+/**
+ * vte_ring_append:
+ * @ring: a #VteRing
+ * @data: the new item
+ *
+ * Appends a new item to the ring.  If an item must be removed to make room for
+ * the new item, it is freed.
+ *
+ */
 void
 vte_ring_append(VteRing *ring, gpointer data)
 {
 	vte_ring_insert(ring, ring->delta + ring->length, data);
 }
 
+/**
+ * vte_ring_free:
+ * @ring: a #VteRing
+ * @free_elements: TRUE if items in the ring should be freed
+ *
+ * Frees the ring and, optionally, each of the items it contains.
+ *
+ */
 void
-vte_ring_free(VteRing *ring, gboolean free)
+vte_ring_free(VteRing *ring, gboolean free_elements)
 {
 	long i;
-	if (free) {
+	if (free_elements) {
 		for (i = 0; i < ring->max; i++) {
 			/* Remove this item. */
 			if ((ring->free != NULL) && (ring->array[i] != NULL)) {

@@ -32,7 +32,7 @@ struct _VteRing {
 	VteRingFreeFunc free;
 	gpointer user_data;
 	gpointer *array;
-	long delta, length, max;
+	glong delta, length, max;
 };
 
 #define vte_ring_contains(__ring, __position) \
@@ -54,11 +54,13 @@ struct _VteRing {
 #define vte_ring_index(__ring, __cast, __position) \
 	(__cast) vte_ring_at(__ring, __position)
 
-VteRing *vte_ring_new(long max_elements, VteRingFreeFunc free, gpointer data);
-VteRing *vte_ring_new_with_delta(long max_elements, long delta,
+VteRing *vte_ring_new(glong max_elements,
+		      VteRingFreeFunc free,
+		      gpointer data);
+VteRing *vte_ring_new_with_delta(glong max_elements, glong delta,
 				 VteRingFreeFunc free, gpointer data);
-void vte_ring_insert(VteRing *ring, long position, gpointer data);
-void vte_ring_remove(VteRing *ring, long position, gboolean free_element);
+void vte_ring_insert(VteRing *ring, glong position, gpointer data);
+void vte_ring_remove(VteRing *ring, glong position, gboolean free_element);
 void vte_ring_append(VteRing *ring, gpointer data);
 void vte_ring_free(VteRing *ring, gboolean free_elements);
 

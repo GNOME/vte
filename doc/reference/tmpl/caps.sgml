@@ -1,0 +1,66 @@
+<!-- ##### SECTION Title ##### -->
+caps
+
+<!-- ##### SECTION Short_Description ##### -->
+Global structures which contain terminal capability names and Xterm control
+sequence definitions.
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### MACRO VTE_CAP_ESC ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO VTE_CAP_CSI ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO VTE_CAP_ST ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO VTE_CAP_OSC ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO VTE_CAP_PM ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO VTE_CAP_APC ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### FUNCTION vte_capability_init ##### -->
+<para>
+
+</para>
+
+
+

@@ -1,0 +1,79 @@
+<!-- ##### SECTION Title ##### -->
+termcap
+
+<!-- ##### SECTION Short_Description ##### -->
+A set of functions for parsing the system termcap database.
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### FUNCTION vte_termcap_free ##### -->
+<para>
+
+</para>
+
+@termcap: 
+
+
+<!-- ##### FUNCTION vte_termcap_find_boolean ##### -->
+<para>
+
+</para>
+
+@termcap: 
+@tname: 
+@cap: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_termcap_find_numeric ##### -->
+<para>
+
+</para>
+
+@termcap: 
+@tname: 
+@cap: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_termcap_find_string ##### -->
+<para>
+
+</para>
+
+@termcap: 
+@tname: 
+@cap: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_termcap_find_string_length ##### -->
+<para>
+
+</para>
+
+@termcap: 
+@tname: 
+@cap: 
+@length: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_termcap_strip ##### -->
+<para>
+
+</para>
+
+@termcap: 
+@stripped: 
+@len: 
+
+

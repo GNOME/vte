@@ -1,0 +1,10 @@
+#include <glib.h>
+#include <glib-object.h>
+#include <gtk/gtk.h>
+#include "../../src/vte.h"
+#include "../../src/vteaccess.h"
+#include "../../src/reaper.h"
+
+vte_terminal_get_type
+vte_terminal_accessible_get_type
+vte_reaper_get_type

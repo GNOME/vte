@@ -60,7 +60,7 @@ struct vte_table {
 enum vte_table_argtype {
 	vte_table_arg_number,
 	vte_table_arg_string,
-	vte_table_arg_char,
+	vte_table_arg_char
 };
 struct vte_table_arginfo {
 	enum vte_table_argtype type;

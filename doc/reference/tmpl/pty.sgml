@@ -1,0 +1,54 @@
+<!-- ##### SECTION Title ##### -->
+pty
+
+<!-- ##### SECTION Short_Description ##### -->
+Functions for starting a new process on a new pseudo-terminal and for
+manipulating psuedo-terminals.
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+The terminal widget uses these functions to start commands with new controlling
+pseudo-terminals and to resize psuedo-terminals.
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### FUNCTION vte_pty_open ##### -->
+<para>
+
+</para>
+
+@child: 
+@env_add: 
+@command: 
+@argv: 
+@columns: 
+@rows: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_pty_get_size ##### -->
+<para>
+
+</para>
+
+@master: 
+@columns: 
+@rows: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_pty_set_size ##### -->
+<para>
+
+</para>
+
+@master: 
+@columns: 
+@rows: 
+@Returns: 
+
+

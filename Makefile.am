@@ -1,4 +1,4 @@
-SUBDIRS = src python termcaps po
+SUBDIRS = src python termcaps po doc
 EXTRA_DIST = HACKING vte.spec vte.pc.in
 
 pkgconfigdir = $(libdir)/pkgconfig

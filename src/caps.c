@@ -527,6 +527,16 @@ struct vte_capability_string vte_xterm_capability_strings[] = {
 	{NULL, NULL, 0},
 };
 
+/**
+ * vte_capability_init:
+ *
+ * Initializes the vte_terminal_capability_strings and
+ * vte_xterm_capability_strings structures used by the terminal.  Can
+ * be called multiple times without ill effect.
+ *
+ * Returns: void
+ */
+
 void
 vte_capability_init(void)
 {

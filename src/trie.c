@@ -61,7 +61,7 @@ struct char_class {
 		multi,			/* Multiple-number special class. */
 		any,			/* Any single character. */
 		string,			/* Any string of characters. */
-		invalid,		/* A placeholder. */
+		invalid			/* A placeholder. */
 	} type;
 	gboolean multiple;		/* Whether a sequence of multiple
 					   characters in this class should be

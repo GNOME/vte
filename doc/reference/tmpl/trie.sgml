@@ -1,0 +1,76 @@
+<!-- ##### SECTION Title ##### -->
+trie
+
+<!-- ##### SECTION Short_Description ##### -->
+The trie sequence parser.
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+This control sequence parser uses a tree of nodes and attempts to find the
+control sequence which best matches a given chunk of data.
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### FUNCTION vte_trie_free ##### -->
+<para>
+
+</para>
+
+@trie: 
+
+
+<!-- ##### FUNCTION vte_trie_add ##### -->
+<para>
+
+</para>
+
+@trie: 
+@pattern: 
+@length: 
+@result: 
+@quark: 
+
+
+<!-- ##### FUNCTION vte_trie_match ##### -->
+<para>
+
+</para>
+
+@trie: 
+@pattern: 
+@length: 
+@res: 
+@consumed: 
+@quark: 
+@array: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_trie_print ##### -->
+<para>
+
+</para>
+
+@trie: 
+
+
+<!-- ##### FUNCTION vte_trie_wide_encoding ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_trie_narrow_encoding ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+

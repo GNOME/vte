@@ -1,0 +1,683 @@
+<!-- ##### SECTION Title ##### -->
+VteTerminal
+
+<!-- ##### SECTION Short_Description ##### -->
+A terminal widget implementation.
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+A VteTerminal is a terminal emulator implemented as a GTK2 widget.
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### STRUCT VteTerminalPrivate ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### ENUM VteTerminalEraseBinding ##### -->
+<para>
+
+</para>
+
+@VTE_ERASE_AUTO: For backspace, attempt to determine the right value from the terminal's IO settings.  For delete, use the control sequence.
+@VTE_ERASE_ASCII_BACKSPACE: Send an ASCII backspace character (0x08).
+@VTE_ERASE_ASCII_DELETE: Send an ASCII delete character (0x7F).
+@VTE_ERASE_DELETE_SEQUENCE: Send the "@7" control sequence.
+
+<!-- ##### STRUCT VteTerminal ##### -->
+<para>
+
+</para>
+
+@widget: 
+@adjustment: Scroll bar adjustments.
+@char_width: Width of a narrow character cell.
+@char_height: Height of a character cell.
+@char_ascent: 
+@char_descent: 
+@row_count: Number of visible rows.
+@column_count: Number of visible columns.
+@window_title: The terminal's idea of what the window's title should be.
+@icon_title: The terminal's idea of what the window's title should be when iconified.
+
+<!-- ##### FUNCTION vte_terminal_new ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_im_append_menuitems ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@menushell: 
+
+
+<!-- ##### FUNCTION vte_terminal_fork_command ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@command: 
+@argv: 
+@envv: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_feed ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@data: 
+@length: 
+
+
+<!-- ##### FUNCTION vte_terminal_feed_child ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@data: 
+@length: 
+
+
+<!-- ##### FUNCTION vte_terminal_copy_clipboard ##### -->
+<para>
+
+</para>
+
+@terminal: 
+
+
+<!-- ##### FUNCTION vte_terminal_paste_clipboard ##### -->
+<para>
+
+</para>
+
+@terminal: 
+
+
+<!-- ##### FUNCTION vte_terminal_copy_primary ##### -->
+<para>
+
+</para>
+
+@terminal: 
+
+
+<!-- ##### FUNCTION vte_terminal_paste_primary ##### -->
+<para>
+
+</para>
+
+@terminal: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_size ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@columns: 
+@rows: 
+<!-- # Unused Parameters # -->
+@Param2: 
+@Param3: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_audible_bell ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@is_audible: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_audible_bell ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_visible_bell ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@is_visible: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_visible_bell ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_scroll_on_output ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@scroll: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_scroll_on_keystroke ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@scroll: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_color_bold ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@bold: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_color_foreground ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@foreground: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_color_background ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@background: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_colors ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@foreground: 
+@background: 
+@palette: 
+@palette_size: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_default_colors ##### -->
+<para>
+
+</para>
+
+@terminal: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_background_image ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@image: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_background_image_file ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@path: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_background_saturation ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@saturation: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_background_transparent ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@transparent: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_cursor_blinks ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@blink: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_scrollback_lines ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@lines: 
+<!-- # Unused Parameters # -->
+@Param2: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_font ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@font_desc: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_font_from_string ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@name: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_font ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_using_xft ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_has_selection ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_word_chars ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@spec: 
+
+
+<!-- ##### FUNCTION vte_terminal_is_word_char ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@c: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_backspace_binding ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@binding: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_delete_binding ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@binding: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_mouse_autohide ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@setting: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_mouse_autohide ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_reset ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@full: 
+@clear_history: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_text ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@is_selected: 
+@attributes: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_text_range ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@start_row: 
+@start_col: 
+@end_row: 
+@end_col: 
+@is_selected: 
+@attributes: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_cursor_position ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@column: 
+@row: 
+
+
+<!-- ##### FUNCTION vte_terminal_match_clear_all ##### -->
+<para>
+
+</para>
+
+@terminal: 
+
+
+<!-- ##### FUNCTION vte_terminal_match_add ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@match: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_match_check ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@column: 
+@row: 
+@tag: 
+@Returns: 
+<!-- # Unused Parameters # -->
+@Param2: 
+@Param3: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_emulation ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@emulation: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_emulation ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_encoding ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@codeset: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_encoding ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_status_line ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_padding ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@xpad: 
+@ypad: 
+
+
+<!-- ##### SIGNAL VteTerminal::char-size-changed ##### -->
+<para>
+Emitted whenever selection of a new font causes the values of the
+@char_width or @char_height fields to change.
+</para>
+
+@vteterminal: the object which received the signal.
+@arg1: the new character cell width.
+@arg2: the new character cell height.
+
+<!-- ##### SIGNAL VteTerminal::child-exited ##### -->
+<para>
+This signal is emitted when the terminal detects that a child started using
+vte_terminal_fork_command() has exited.
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::contents-changed ##### -->
+<para>
+Emitted whenever the visible appearance of the terminal has changed.  Used
+primarily by #VteTerminalAccessible.
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::cursor-moved ##### -->
+<para>
+Emitted whenever the cursor moves to a new character cell.  Used primarily
+by #VteTerminalAccessible.
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::deiconify-window ##### -->
+<para>
+Emitted at the child application's request.
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::emulation-changed ##### -->
+<para>
+
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::encoding-changed ##### -->
+<para>
+
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::eof ##### -->
+<para>
+
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::icon-title-changed ##### -->
+<para>
+Emitted when the terminal's @icon_title field is modified.
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::iconify-window ##### -->
+<para>
+Emitted at the child application's request.
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::lower-window ##### -->
+<para>
+Emitted at the child application's request.
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::maximize-window ##### -->
+<para>
+Emitted at the child application's request.
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::move-window ##### -->
+<para>
+Emitted at the child application's request.
+</para>
+
+@vteterminal: the object which received the signal.
+@arg1: the terminal's desired location, X coordinate.
+@arg2: the terminal's desired location, Y coordinate.
+
+<!-- ##### SIGNAL VteTerminal::raise-window ##### -->
+<para>
+Emitted at the child application's request.
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::refresh-window ##### -->
+<para>
+Emitted at the child application's request.
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::resize-window ##### -->
+<para>
+Emitted at the child application's request.
+</para>
+
+@vteterminal: the object which received the signal.
+@arg1: the desired width in pixels.
+@arg2: the desired height in pixels.
+
+<!-- ##### SIGNAL VteTerminal::restore-window ##### -->
+<para>
+Emitted at the child application's request.
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::selection-changed ##### -->
+<para>
+Emitted whenever the contents of terminal's selection changes.
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::status-line-changed ##### -->
+<para>
+Emitted whenever the contents of the status line are modified or cleared.
+</para>
+
+@vteterminal: the object which received the signal.
+
+<!-- ##### SIGNAL VteTerminal::window-title-changed ##### -->
+<para>
+Emitted when the terminal's @window_title field is modified.
+</para>
+
+@vteterminal: the object which received the signal.
+

@@ -163,6 +163,11 @@ vte_reaper_get_type(void)
 	return reaper_type;
 }
 
+/**
+ * vte_reaper_get:
+ *
+ * Returns: the global #VteReaper object
+ */
 VteReaper *
 vte_reaper_get(void)
 {

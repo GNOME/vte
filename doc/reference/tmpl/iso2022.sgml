@@ -1,0 +1,38 @@
+<!-- ##### SECTION Title ##### -->
+iso2022
+
+<!-- ##### SECTION Short_Description ##### -->
+A state machine for converting #gunichar strings with embedded ISO-2022 control
+sequences into plain #gunichar strings.
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### FUNCTION vte_iso2022_free ##### -->
+<para>
+
+</para>
+
+@p: 
+
+
+<!-- ##### FUNCTION vte_iso2022_substitute ##### -->
+<para>
+
+</para>
+
+@state: 
+@instring: 
+@length: 
+@outstring: 
+@specials: 
+@Returns: 
+
+

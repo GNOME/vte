@@ -1,0 +1,50 @@
+<!-- ##### SECTION Title ##### -->
+debug
+
+<!-- ##### SECTION Short_Description ##### -->
+Facilities for enabling debugging message output from libvte.
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+Functions in libvte will only output debugging information if the library was
+configured with --enable-maintainer-mode.
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### ENUM VteDebugFlags ##### -->
+<para>
+
+</para>
+
+@VTE_DEBUG_MISC: 
+@VTE_DEBUG_PARSE: 
+@VTE_DEBUG_IO: 
+@VTE_DEBUG_UPDATES: 
+@VTE_DEBUG_EVENTS: 
+@VTE_DEBUG_SIGNALS: 
+@VTE_DEBUG_SELECTION: 
+@VTE_DEBUG_SUBSTITUTION: 
+@VTE_DEBUG_RING: 
+@VTE_DEBUG_PTY: 
+
+<!-- ##### FUNCTION vte_debug_parse_string ##### -->
+<para>
+
+</para>
+
+@string: 
+
+
+<!-- ##### FUNCTION vte_debug_on ##### -->
+<para>
+
+</para>
+
+@flags: 
+@Returns: 
+
+

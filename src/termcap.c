@@ -223,6 +223,7 @@ vte_termcap_strip_with_pad(const char *termcap, char **stripped, gssize *len)
 					}
 					continue;
 				case 'E':
+				case 'e':
 					i++;
 					ret[o - 1] = 27;
 					continue;
@@ -306,11 +307,22 @@ vte_termcap_strip_with_pad(const char *termcap, char **stripped, gssize *len)
 	*len = o;
 }
 
+/**
+ * vte_termcap_strip:
+ * @termcap: a termcap structure
+ * @stripped: a location to store the new stripped version of the string
+ * @len: a location to store the length of the new string
+ *
+ * Converts various types of sequences used to represent non-printable data
+ * into the data they represent.  Specifically, this resolves ^{char} sequences,
+ * octal escapes. and the \r, \n, \E, \t, \b, and \f sequences.
+ *
+ */
 void
 vte_termcap_strip(const char *termcap, char **stripped, gssize *len)
 {
 	vte_termcap_strip_with_pad(termcap, stripped, len);
-	while ((len > 0) && ((*stripped)[(*len) - 1] == ':')) {
+	while (((*len) > 0) && ((*stripped)[(*len) - 1] == ':')) {
 		(*len)--;
 		(*stripped)[*len] = '\0';
 	}
@@ -380,6 +392,13 @@ vte_termcap_new(const char *filename)
 	return ret;
 }
 
+/**
+ * vte_termcap_free:
+ * @termcap: the structure to be freed
+ *
+ * Frees the indicated structure.
+ *
+ */
 TERMCAP_MAYBE_STATIC void
 vte_termcap_free(struct vte_termcap *termcap)
 {
@@ -512,6 +531,17 @@ vte_termcap_find(struct vte_termcap *termcap,
 	return vte_termcap_find_l(termcap, tname, strlen(tname), cap);
 }
 
+/**
+ * vte_termcap_find_boolean:
+ * @termcap: a termcap structure
+ * @tname: the name of the terminal type being queried
+ * @cap: the name of the capability being queried
+ *
+ * Checks if the given boolean capability is defined.
+ *
+ * Returns: TRUE if the terminal type is known and the capability is defined
+ * for it
+ */
 TERMCAP_MAYBE_STATIC gboolean
 vte_termcap_find_boolean(struct vte_termcap *termcap, const char *tname,
 			 const char *cap)
@@ -525,6 +555,17 @@ vte_termcap_find_boolean(struct vte_termcap *termcap, const char *tname,
 	return FALSE;
 }
 
+/**
+ * vte_termcap_find_numeric:
+ * @termcap: a termcap structure
+ * @tname: the name of the terminal type being queried
+ * @cap: the name of the capability being queried
+ *
+ * Checks if the given numeric capability is defined.
+ *
+ * Returns: non-zero if the terminal type is known and the capability is defined
+ * to a non-zero value for it
+ */
 TERMCAP_MAYBE_STATIC long
 vte_termcap_find_numeric(struct vte_termcap *termcap, const char *tname,
 			 const char *cap)
@@ -545,6 +586,18 @@ vte_termcap_find_numeric(struct vte_termcap *termcap, const char *tname,
 	return 0;
 }
 
+/**
+ * vte_termcap_find_string:
+ * @termcap: a termcap structure
+ * @tname: the name of the terminal type being queried
+ * @cap: the name of the capability being queried
+ *
+ * Checks if the given string capability is defined.
+ *
+ * Returns: the value of the capability if the terminal type is known and the
+ * capability is defined for it, else an empty string.  The return value must
+ * always be freed by the caller.
+ */
 TERMCAP_MAYBE_STATIC char *
 vte_termcap_find_string(struct vte_termcap *termcap, const char *tname,
 			const char *cap)
@@ -565,6 +618,20 @@ vte_termcap_find_string(struct vte_termcap *termcap, const char *tname,
 	return g_strdup("");
 }
 
+/**
+ * vte_termcap_find_string_length:
+ * @termcap: a termcap structure
+ * @tname: the name of the terminal type being queried
+ * @cap: the name of the capability being queried
+ * @length: the location to store the length of the returned string
+ *
+ * Checks if the given string capability is defined.  This version of
+ * vte_termcap_find_string() properly handles zero bytes in the result.
+ *
+ * Returns: the value of the capability if the terminal type is known and the
+ * capability is defined for it, else an empty string.  The return value must
+ * always be freed by the caller.
+ */
 TERMCAP_MAYBE_STATIC char *
 vte_termcap_find_string_length(struct vte_termcap *termcap, const char *tname,
 			       const char *cap, ssize_t *length)
@@ -578,7 +645,10 @@ vte_termcap_find_string_length(struct vte_termcap *termcap, const char *tname,
 		val += (l + 1);
 		p = val;
 		while (*p != ':') p++;
-		*length = l = p - val;
+		l = p - val;
+		if (length) {
+			*length = l;
+		}
 		ret = g_malloc(l + 1);
 		if (l > 0) {
 			memcpy(ret, val, l);
