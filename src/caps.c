@@ -373,8 +373,8 @@ struct vte_capability_string vte_xterm_capability_strings[] = {
 	{ESC "#6", "double-width", 0},
 	{ESC "#8", "screen-alignment-test", 0},
 
-	{ESC "%@", "iso8859-1-character-set", 0},
-	{ESC "%G", "utf-8-character-set", 0},
+	{ESC "%%@", "iso8859-1-character-set", 0},
+	{ESC "%%G", "utf-8-character-set", 0},
 
 	{ESC "(%+\\0", "designate-g0-character-set", 0},
 	{ESC ")%+\\0", "designate-g1-character-set", 0},
