@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.10.26
+Version: 0.10.27
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -96,6 +96,11 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Mon Apr 28 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.27-1
+- use KS X 1001 instead of KS C 5601 for Korean display
+- adjust selection so that triple-click hopefully works better
+- fix meta-sends-escape for the return key
+
 * Tue Mar  4 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.26-1
 - calculate widths properly for monospaced fonts which include double-wide
   characters
