@@ -55,19 +55,6 @@ vte_pty_fork_on_fd(const char *path, const char **env_add,
 		return 0;
 	}
 
-	/* Set any environment variables. */
-	for (i = 0; (env_add != NULL) && (env_add[i] != NULL); i++) {
-		if (putenv(g_strdup(env_add[i])) == -1) {
-			g_warning("Error adding `%s' to environment, "
-				  "continuing.", env_add[i]);
-		}
-#ifdef VTE_DEBUG
-		if (vte_debug_on(VTE_DEBUG_MISC)) {
-			fprintf(stderr, "Set `%s'.\n", env_add[i]);
-		}
-#endif
-	}
-
 	/* Child.  Start a new session and become process-group leader. */
 	setsid();
 	setpgid(0, 0);
@@ -99,6 +86,20 @@ vte_pty_fork_on_fd(const char *path, const char **env_add,
 	    (fd != STDOUT_FILENO) &&
 	    (fd != STDERR_FILENO)) {
 		close(fd);
+	}
+
+	/* Set any environment variables. */
+	for (i = 0; (env_add != NULL) && (env_add[i] != NULL); i++) {
+		if (putenv(g_strdup(env_add[i])) != 0) {
+			g_warning("Error adding `%s' to environment, "
+				  "continuing.", env_add[i]);
+		}
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_MISC)) {
+			fprintf(stderr, "%ld: Set `%s'.\n", (long) getpid(),
+				env_add[i]);
+		}
+#endif
 	}
 
 	/* Outta here. */

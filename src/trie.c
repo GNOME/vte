@@ -653,7 +653,7 @@ vte_trie_printx(struct vte_trie *trie, const char *previous, size_t *nodecount)
 	unsigned int i;
 	char buf[LINE_MAX];
 
-	if (nodecount) {
+	if ((nodecount) && (trie->trie_path_count > 0)) {
 		(*nodecount)++;
 	}
 

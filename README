@@ -23,9 +23,9 @@
 - Mouse hilite tracking isn't implemented yet.
 - Most control sequences are recognized, but many aren't implemented.  There
   are enough to run ls, vim, less, emacs and mutt, but more need to be
-  implemented (dm/ed, ff, fs, i1, i3, is, iP, LF, ll, LO, MC, mh, ML,
-  mm, mo, mp, nw, pf, pk, pl, pf, po, pO, ps, px, r1, r2, r3, RA, RF, rp, rs,
-  RX, SA, SX, uc, vb, wi, several more from the XTerm set).
+  implemented (ff, fs, i1, i3, is, iP, LF, LO, MC, mh, ML, mm, mo, nw, pf,
+  pk, pl, pf, po, pO, ps, px, r1, r2, r3, RA, RF, rp, rs, RX, SA, SX, wi,
+  several more from the XTerm set).
 - I'm not sure the widget implementation itself is correct.  There are many
   changes in going from GTK+ 1.2 to 2.0, and examples of the proper way to do
   things is currently scarce, so some of it's guesswork.

@@ -1,7 +1,7 @@
 #!/bin/bash -e
 CFLAGS="${CFLAGS:--g3 -O -Wall}" ; export CFLAGS
 set -x
-libtoolize -f
+libtoolize -f -c
 autoheader
 aclocal
 automake -a

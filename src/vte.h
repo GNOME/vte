@@ -181,7 +181,8 @@ gboolean vte_terminal_get_mouse_autohide(VteTerminal *terminal);
 
 VteTerminalSnapshot *vte_terminal_get_snapshot(VteTerminal *terminal);
 void vte_terminal_free_snapshot(VteTerminalSnapshot *snapshot);
-void vte_terminal_reset(VteTerminal *terminal, gboolean clear_history);
+void vte_terminal_reset(VteTerminal *terminal, gboolean full,
+			gboolean clear_history);
 
 G_END_DECLS
 

@@ -1,3 +1,16 @@
+2002-05-13 nalin
+	* src/debug.c: Add "ALL" as a debug flag, aliased to everything.
+	* src/pty.c: Print debug info after redirecting stdio.
+	* src/trie.c: When debugging, count only decision nodes.
+	* src/vte.c: Fix se, for real this time.  Add a mostly-ignored protected
+	attribute.  Handle am, bw, ul flags properly.  Make cd clear the current
+	line, too.  Make ce fill the current default attributes through the end
+	of the line.  Handle cS.  Fix cv to work when we have a scrollback
+	buffer.  Handle ll, mp.  Line wrap on nd.  Reset tab stops on hard
+	reset only.  Handle soft-reset and full-reset.  Handle uc.  Initialize
+	scrollback line count properly.  Tweak drawing of alternate 'a' to
+	get rid of artifacts.  Reset insert mode, cursor visibility, and
+	scrolling regions when resetting.
 2002-05-10 nalin
 	* src/vte.c: Fix IC, which should *always* be done in insert mode,
 	from otaylor.  Make delete mode do nothing.

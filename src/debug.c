@@ -32,6 +32,9 @@ vte_debug_parse_string(const char *string)
 	flags = g_strsplit(string, ",", 0);
 	if (flags != NULL) {
 		for (i = 0; flags[i] != NULL; i++) {
+			if (g_ascii_strcasecmp(flags[i], "ALL") == 0) {
+				vte_debug_flags |= 0xffffffff;
+			} else
 			if (g_ascii_strcasecmp(flags[i], "MISC") == 0) {
 				vte_debug_flags |= VTE_DEBUG_MISC;
 			} else
