@@ -1,3 +1,7 @@
+2003-02-25 Samúel Jón Gunnarsson <sammi@techattack.nu>
+
+	* configure.in: added "is" to ALL_LINGUAS.
+
 2003-02-24 nalin
 	* src/vte.c(vte_sequence_handler_window_manipulation): don't report the
 	user-settable title and icon strings to applications, based on H D
