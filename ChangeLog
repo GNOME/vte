@@ -17,7 +17,7 @@
 
 2003-01-07  nalin
 	* src/vte.c(vte_terminal_key_press): Only suppress meta-sends-escape on
-	Backspace if backspace is mapped to the delete sequence.
+	Backspace if backspace is mapped to the delete sequence. (#100635)
 
 2003-01-07  nalin
 	* src/vte.c(vte_terminal_setup_background): Use a lookup table
