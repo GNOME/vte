@@ -8,15 +8,30 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: profterm HEAD\n"
-"POT-Creation-Date: 2002-12-16 16:19+0800\n"
-"PO-Revision-Date: 2002-11-17 12:59+0800\n"
+"POT-Creation-Date: 2003-05-11 08:57+0800\n"
+"PO-Revision-Date: 2003-05-11 08:56+0800\n"
 "Last-Translator: Hasbullah Bin Pit <sebol@ikhlas.com>\n"
 "Language-Team: ms <sebol@ikhlas.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:253
+#: src/iso2022.c:744 src/vte.c:1991
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Tak dapat menukar aksara drpd %s ke %s."
+
+#: src/iso2022.c:1355
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr "Cuba menetapkan peta NRC yang tidak sah '%c'."
+
+#: src/iso2022.c:1406 src/iso2022.c:1432
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr "Cuba menetapkan peta lebar NRC tidak sah '%c'."
+
+#: src/pty.c:317
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Ralat menambah `%s' ke persekitaran, diteruskan."
@@ -24,101 +39,71 @@ msgstr "Ralat menambah `%s' ke persekitaran, diteruskan."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:800
+#: src/pty.c:877
 #, c-format
 msgid "can not run %s"
 msgstr "tak dapat melaksanakan %s"
 
-#: src/reaper.c:107
+#: src/reaper.c:108
 msgid "Error creating signal pipe."
 msgstr "Ralat mencipta paip isyarat"
 
-#: src/trie.c:411
+#: src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Gandakan (%s/%s)!"
 
-#: src/vte.c:1338
+#: src/vte.c:1427
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Ralat menkompil ungkapan regular \"%s\"."
 
-#: src/vte.c:1846 src/vte.c:1855 src/vte.c:1867 src/vte.c:1885 src/vte.c:1891
-#: src/vte.c:1896
-#, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Tak dapat menukar aksara drpd %s ke %s."
-
-#: src/vte.c:5308
+#: src/vte.c:5501
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Dapat turutan (key?) tanpa diduga `%s'."
 
-#: src/vte.c:6395
+#: src/vte.c:6514
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Tiada pengendali bai turutan kawalan '%s' ditakrif."
 
-#: src/vte.c:7005
+#: src/vte.c:7230
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Ralat membaca daripada proses anak: %s."
 
-#: src/vte.c:7171
+#: src/vte.c:7384
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Ralat (%s) menukar data bagi anak, digugurkan."
 
-#: src/vte.c:9442
-#, c-format
-msgid "Using fontset \"%s\", which is missing these character sets: %s."
-msgstr "Menggunakan fontset \"%s\", dimana ketiadaan set aksara: %s."
-
-#: src/vte.c:10077
-#, c-format
-msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
-msgstr "Gagal memuatkan corak font Xft \"%s\", kembali ke font default."
-
-#: src/vte.c:10089
-msgid "Failed to load default Xft font."
-msgstr "Gagal memuatkan font default Xft."
-
-#: src/vte.c:10182
-#, c-format
-msgid "Failed to load font set \"%s\", falling back to default font."
-msgstr "Gagal memuatkan set font \"%s\", kembali ke font default."
-
-#: src/vte.c:10194
-msgid "Failed to load default font, crashing or behaving abnormally."
-msgstr ""
-"Gagal memuatkan font default, telah musnah atau berkelakuan tidak normal."
-
-#: src/vte.c:10457
+#: src/vte.c:9934
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Ralat membaca saiz PTY, menggunakan default: %s"
 
-#: src/vte.c:10493
+#: src/vte.c:9970
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Ralat menetapkan saiz PTY: %s."
 
-#: src/vte.c:13358
-msgid "Error allocating draw, disabling Xft."
-msgstr "Ralat memperuntukkan lukisan, mematikan Xft."
-
-#: src/vte.c:13366
-msgid "Error allocating context, disabling Pango."
-msgstr "Ralat memperuntukkan konteks, mematikan Pango."
-
-#: src/vte.c:13372
-msgid "Error allocating layout, disabling Pango."
-msgstr "Ralat memperuntukkan susunatur, mematikan Pango."
-
 #. Aaargh.  We're screwed.
-#: src/vte.c:14957
-msgid "g_iconv_open() failed setting word characters"
-msgstr "g_iconv_open() gagal menetapkan aksara perkataan"
+#: src/vte.c:13912
+msgid "_vte_conv_open() failed setting word characters"
+msgstr "_vte_conv_open() gagal menetapkan aksara perkataan"
 
-#~ msgid "Character 0x%x is undefined, allocating one column."
-#~ msgstr "Aksara 0x%x tak ditakrif, memperuntukkan satu kolum."
+#. Bail back to normal mode.
+#: src/vteapp.c:640
+msgid "Could not open console.\n"
+msgstr "Tak dapat membuka konsol.\n"
+
+#: src/vteglyph.c:575
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr "Mod piksel tidak diketahui: %d\n"
+
+#: src/vtexft.c:664
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr "Tak dapat melukis aksara U+%04x.\n"
