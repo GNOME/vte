@@ -7921,7 +7921,7 @@ vte_terminal_draw_char(VteTerminal *terminal,
 	}
 
 	/* If there's no data, bug out here. */
-	if (cell == NULL) {
+	if ((cell == NULL) || (cell->c == 0)) {
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_UPDATES)) {
 			fprintf(stderr, " skipping.\n");

@@ -1,3 +1,5 @@
+2002-05-14 nalin
+	* src/vte.c: Don't try to draw nul characters, most fonts can't.
 2002-05-13 nalin
 	* src/debug.c: Add "ALL" as a debug flag, aliased to everything.
 	* src/pty.c: Print debug info after redirecting stdio.
