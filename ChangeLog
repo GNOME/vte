@@ -1,4 +1,8 @@
 2003-04-22 nalin
+	* src/iso2022.c(_vte_iso2022_fragment_input): account for valid CSI
+	sequences which were missed earlier.
+
+2003-04-22 nalin
 	* src/vte.c(vte_terminal_eof): dispose of the PTY completely.
 	* src/vte.c(vte_terminal_child_exited): dispose of the PTY completely.
 

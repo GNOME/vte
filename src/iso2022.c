@@ -775,7 +775,7 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input, GArray *blocks)
 {
 	unsigned char *nextctl = NULL, *p, *q;
 	const unsigned char *valids = NULL;
-	glong sequence_length, i;
+	glong sequence_length = 0, i;
 	struct _vte_iso2022_block block;
 	gboolean quit;
 
@@ -822,10 +822,16 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input, GArray *blocks)
 			} else {
 				switch (nextctl[1]) {
 				case '[':
-					/* ESC [, the CSI.  The first not a
-					 * letter is the end of the sequence, */
+					/* ESC [, the CSI.  The first letter
+					 * is the end of the sequence, */
 					for (i = 2; i < q - nextctl; i++) {
 						if (g_unichar_isalpha(nextctl[i])) {
+							break;
+						}
+						if ((nextctl[i] == '@') ||
+						    (nextctl[i] == '`') ||
+						    (nextctl[i] == '{') ||
+						    (nextctl[i] == '|')) {
 							break;
 						}
 					}
@@ -963,6 +969,8 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input, GArray *blocks)
 							break;
 						}
 					}
+					break;
+				default:
 					break;
 				}
 			}
