@@ -30,7 +30,7 @@
 #include "iso2022.h"
 
 /* Maps which jive with XTerm's ESC ()*+ ? sequences and RFC 1468. */
-#define NARROW_MAPS	"0AB4C5RQKYE6ZH7=" "J"
+#define NARROW_MAPS	"012AB4C5RQKYE6ZH7=" "J"
 /* Maps which jive with RFC 1468's ESC $ ? sequences. */
 #define WIDE_MAPS	"@B"
 /* Maps which jive with RFC 1557/1922/2237's ESC $ ()*+ ? sequences. */
@@ -338,8 +338,8 @@ _vte_iso2022_map_get(gunichar mapname)
 			ret = _vte_iso2022_map_init(_vte_iso2022_map_A,
 						    G_N_ELEMENTS(_vte_iso2022_map_A));
 			break;
-		case '1':
-		case '2':
+		case '1': /* treated as an alias in xterm */
+		case '2': /* treated as an alias in xterm */
 		case 'B':
 			ret = _vte_iso2022_map_init(_vte_iso2022_map_B,
 						    G_N_ELEMENTS(_vte_iso2022_map_B));

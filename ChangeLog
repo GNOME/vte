@@ -1,4 +1,7 @@
 2003-01-23 nalin
+	* src/iso2022.c: accept "1" and "2" as aliases for "B" (#104257).
+
+2003-01-23 nalin
 	* configure.in: check for curses if we don't have ncurses (the order
 	is ncurses, curses, libtermcap), as Solaris has neither ncurses nor
 	libtermcap.  Reported by Brian Cameron.
