@@ -1,3 +1,4 @@
+/* -*- Mode: C; c-basic-offset: 4 -*- */
 %%
 headers
 #include <Python.h>
@@ -10,3 +11,45 @@ import gtk.MenuShell as PyGtkMenuShell_Type
 import gtk.Widget as PyGtkWidget_Type
 %%
 ignore vte_terminal_get_text
+%%
+override vte_terminal_fork_command kwargs
+static PyObject *
+_wrap_vte_terminal_fork_command(PyGObject *self, PyObject *args,
+				PyObject *kwargs)
+{
+    gchar **argv = NULL;
+    gchar *command;
+    static char *kwlist[] = { "command", "argv", NULL };
+    PyObject *py_argv = NULL;
+    int i, n_args;
+    pid_t pid;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O:fork_command",
+				     kwlist, &command, &py_argv))
+        return NULL;
+
+
+    if (py_argv != NULL && py_argv != Py_None) {
+	if (!PySequence_Check(py_argv)) {
+	    PyErr_SetString(PyExc_TypeError, "argv must be a sequence");
+	    return NULL;
+	}
+
+	n_args = PySequence_Length(py_argv);
+	argv = g_new(gchar *, n_args + 1);
+	for (i = 0; i < n_args; i++) {
+	    PyObject *item = PySequence_GetItem(py_argv, i);
+	    Py_DECREF(item); /* PySequence_GetItem INCREF's */
+	    argv[i] = PyString_AsString(item);
+	}
+	argv[n_args] = NULL;
+    }
+
+    pid = vte_terminal_fork_command(VTE_TERMINAL(self->obj), command, argv);
+
+    if (argv)
+	g_free(argv);
+    
+    return PyInt_FromLong(pid);
+}
+%%

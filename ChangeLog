@@ -1,4 +1,6 @@
 2002-06-12 msw
+	* python/vte.override (_wrap_vte_terminal_fork_command): implement
+2002-06-12 msw
 	* acinclude.m4: added AM_CHECK_PYTHON_HEADERS from pygtk
 	* configure.in: rewrote python checks to be more robust
 	* python/Makefile.am (CFLAGS): include @PYTHON_INCLUDES@
