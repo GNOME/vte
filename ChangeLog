@@ -1,4 +1,7 @@
 2003-04-21 nalin
+	* src/keymap.c: make Alt+Return generate ESC newline (#108863).
+
+2003-04-21 nalin
 	* src/mkunitables.sh: pull up from HEAD.
 	* src/unitable.KSX1001: pull up from HEAD.
 	* src/unitable.KSC5601: remove.
@@ -6,6 +9,7 @@
 	* src/vte.c: merge in selection changes from HEAD to fix triple-click.
 	* src/reflect.c: merge in changes from HEAD to set up the initial
 	contents right.
+	* src/iso2022.c: use the KS X 1001 table instead of KS C 5601.
 
 2003-04-20  Taneem Ahmed  <taneem@eyetap.org>
 
