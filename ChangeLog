@@ -1,4 +1,8 @@
 2002-11-11  nalin
+	* src/vte.c: properly set the "selecting" flag again when we start
+	selection (#97923).
+
+2002-11-11  nalin
 	* src/vte.c: rework selection so that word- and line-based selection
 	can wrap like XTerm does (#97057,#97719).
 

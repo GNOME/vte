@@ -8466,6 +8466,7 @@ vte_terminal_start_selection(GtkWidget *widget, GdkEventButton *event,
 
 	/* Record the selection type. */
 	terminal->pvt->selection_type = selection_type;
+	terminal->pvt->selecting = TRUE;
 
 	/* Draw the row the selection started on. */
 	vte_invalidate_cells(terminal,
