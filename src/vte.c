@@ -5133,7 +5133,7 @@ vte_terminal_process_incoming(gpointer data)
 	char *ibuf, *obuf, *obufptr, *ubuf, *ubufptr;
 	size_t icount, ocount, ucount;
 	wchar_t *wbuf, c;
-	int wcount, start, end, i;
+	int wcount, start;
 	const char *match, *encoding;
 	GIConv unconv;
 	GQuark quark;
@@ -5167,44 +5167,21 @@ vte_terminal_process_incoming(gpointer data)
 	if (g_iconv(terminal->pvt->incoming_conv, &ibuf, &icount,
 		    &obuf, &ocount) == -1) {
 		/* No dice.  Try again when we have more data. */
-		if ((icount > VTE_UTF8_BPC) && (errno == EILSEQ)) {
-			/* We barfed on something that had a high bit, so
-			 * discard it. */
+		if ((errno == EILSEQ) && (terminal->pvt->n_incoming > 0)) {
+			/* Discard the offending byte. */
 			start = terminal->pvt->n_incoming - icount;
-			if ((terminal->pvt->incoming[start] & 0x80) == 0x80) {
-				/* Count the number of non-ascii chars. */
-				for (end = start; end < terminal->pvt->n_incoming; end++) {
-					/* If we're in UTF-8, just discard any
-					 * bytes that claim to be part of this character. */
-					if ((end > start) &&
-					    (strcmp(terminal->pvt->encoding, "UTF-8") == 0) &&
-					    ((terminal->pvt->incoming[end] & 0xc0) != 0x80)) {
-						break;
-					}
-					if ((terminal->pvt->incoming[end] & 0x80) != 0x80) {
-						break;
-					}
-				}
-				/* Be conservative about discarding data. */
-				g_warning(_("Invalid multibyte sequence detected.  Munging up %d bytes of data."), end - start);
-				/* Remove the offending bytes. */
-				for (i = start; i < end; i++) {
+			terminal->pvt->incoming[start] = '?';
 #ifdef VTE_DEBUG
-					if (vte_debug_on(VTE_DEBUG_IO)) {
-						fprintf(stderr, "Nuking byte %d/%02x.\n",
-							terminal->pvt->incoming[i],
-							terminal->pvt->incoming[i]);
-					}
-#endif
-					terminal->pvt->incoming[i] = '?';
-				}
-				/* Try again right away. */
-				terminal->pvt->processing = (terminal->pvt->n_incoming > 0);
-				if (terminal->pvt->processing == FALSE) {
-					terminal->pvt->processing_tag = -1;
-				}
-				return terminal->pvt->processing;
+			if (vte_debug_on(VTE_DEBUG_IO)) {
+				fprintf(stderr, "Error converting %ld incoming "
+					"data bytes: %s, discarding byte %ld "
+					"and trying again.\n",
+					(long) terminal->pvt->n_incoming,
+					strerror(errno), start);
 			}
+#endif
+			/* Try again. */
+			return TRUE;
 		}
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_IO)) {

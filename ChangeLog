@@ -4,6 +4,8 @@
 	doesn't include glyphs for them.
 	* src/vte.c: Test for g_iconv_open() failure properly (compare result
 	to ((GIConv)-1), not NULL).
+	* src/vte.c: Rework recovery from illegal sequence errors in the input
+	stream to be much more aggressive about it.
 2002-06-25 nalin
 	* src/vte.c: Bind F10 to "k;", not "k0".
 	* termcaps/xterm: Add "k;" defined as F10.
