@@ -112,8 +112,8 @@ typedef gunichar wint_t;
 #define VTE_REGEXEC_FLAGS		0
 #define VTE_INPUT_CHUNK_SIZE		0x1000
 #define VTE_INVALID_BYTE		'?'
-#define VTE_COALESCE_TIMEOUT		10
-#define VTE_DISPLAY_TIMEOUT		15
+#define VTE_COALESCE_TIMEOUT		2
+#define VTE_DISPLAY_TIMEOUT		2
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
@@ -7874,17 +7874,6 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 			(long) _vte_buffer_length(terminal->pvt->incoming));
 	}
 #endif
-
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_IO)) {
-		if (terminal->pvt->processing) {
-			fprintf(stderr, "Leaving processing handler on.\n");
-		} else {
-			fprintf(stderr, "Turning processing handler off.\n");
-		}
-	}
-#endif
-
 	return again;
 }
 

@@ -1,5 +1,14 @@
 2005-03-02  Kjartan Maraas  <kmaraas@gnome.org>
 
+	* src/vte.c: (vte_terminal_process_incoming): Fix the
+	crash in minicom when resizing the window. Closes
+	bug #163814. Also adjust the coalesce and display timeouts.
+	This makes g-t and xterm behave just about the same visually
+	but g-t is still a bit faster when using the same font and
+	utf8.
+
+2005-03-02  Kjartan Maraas  <kmaraas@gnome.org>
+
 	* src/Makefile.am: Add vtetree.[ch]
 	* src/vte.c: (vte_terminal_draw_row): Don't use a GArray
 	but use calloc'ed memory to speed up things further.

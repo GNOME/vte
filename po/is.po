@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-29 22:25-0400\n"
+"POT-Creation-Date: 2005-03-02 09:58+0100\n"
 "PO-Revision-Date: 2003-06-07 09:07--100\n"
 "Last-Translator: Samuel Jon Gunnarsson <sammi@techattack.nu>\n"
 "Language-Team: Icelandic <gnome@techattack.nu>\n"
@@ -15,23 +15,23 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
+#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2171
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Ekki tókst að umbreyta rittáknum frá %s yfir í %s."
 
-#: src/iso2022.c:1578
+#: src/iso2022.c:1582
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Reyndi að setja ógilt NRC kort '%c'."
 
 #  Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1619
+#: src/iso2022.c:1623
 msgid "Unrecognized identified coding system."
 msgstr "Óþekkt \"identified coding system\"."
 
-#: src/iso2022.c:1668 src/iso2022.c:1694
+#: src/iso2022.c:1672 src/iso2022.c:1698
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Reyndi að setja upp ógilda breidd á NRC korti '%c'."
@@ -49,7 +49,7 @@ msgstr "Villa. Ekki tókst að bæta `%s' við í umhverfið, held áfram."
 msgid "can not run %s"
 msgstr "get ekki keyrt %s"
 
-#: src/reaper.c:137
+#: src/reaper.c:156
 msgid "Error creating signal pipe."
 msgstr "Villa. Ekki tókst að búa til merkja pípu."
 
@@ -58,43 +58,43 @@ msgstr "Villa. Ekki tókst að búa til merkja pípu."
 msgid "Duplicate (%s/%s)!"
 msgstr "Tvöfalda (%s/%s)!"
 
-#: src/vte.c:1498
+#: src/vte.c:1514
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Villa. Ekki tókst að vistþýða venjulega segð \"%s\"."
 
-#: src/vte.c:5850
+#: src/vte.c:6031
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Meðtók óvænta (flýtilykla?) runu `%s'."
 
-#: src/vte.c:6951
+#: src/vte.c:7127
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Engin aðgerð fyrir stjórnun á runu `%s' skilgreind."
 
-#: src/vte.c:7793
+#: src/vte.c:7950
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Villa. Ekki tókst að lesa frá barni: %s"
 
-#: src/vte.c:7949
+#: src/vte.c:8072 src/vte.c:8947
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Villa (%s) við umbreytingu á gögnum frá barni, hætti við."
 
-#: src/vte.c:10715
+#: src/vte.c:10890
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Villa. Ekki tókst að lesa PTY stærð, nota sjálfgefið: %s"
 
-#: src/vte.c:10751
+#: src/vte.c:10926
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Villa. Ekki tókst að setja PTY stærð: %s"
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15235
+#: src/vte.c:15426
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "g_iconv_open() tókst ekki að setja orðrittákn"
 
@@ -108,7 +108,7 @@ msgstr "Ekki tókst að opna skel.\n"
 msgid "Unknown pixel mode %d.\n"
 msgstr "Óþekktur punkta hamur %d.\n"
 
-#: src/vtexft.c:712
+#: src/vtexft.c:714
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "Ekki tókst að teikna tákn U+%04x.\n"

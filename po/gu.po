@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte-2.6\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-29 22:25-0400\n"
+"POT-Creation-Date: 2005-03-02 09:58+0100\n"
 "PO-Revision-Date: 2004-02-29 20:47+0530\n"
 "Last-Translator: Nirav, Ankit, Ankur, Atit, Bhavin, Kartik, Khushbu, Sweta. "
 "<magnet@magnet-i.com>\n"
@@ -14,22 +14,22 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
+#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2171
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "અક્ષરોને %s માંથી %s માં રૂપાંતરીત કરવામાં અસમર્થ."
 
-#: src/iso2022.c:1578
+#: src/iso2022.c:1582
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "અયોગ્ય NRC નક્શો '%c'નું સુયોજન કરવાનો પ્રયાસ."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1619
+#: src/iso2022.c:1623
 msgid "Unrecognized identified coding system."
 msgstr "ઓળખાતી ન હોય તેવી કોડવાળી સિસ્ટમ."
 
-#: src/iso2022.c:1668 src/iso2022.c:1694
+#: src/iso2022.c:1672 src/iso2022.c:1698
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "અયોગ્ય પહોળા NRC નક્શા '%c' નું સુયોજન કરવાનો પ્રયાસ."
@@ -47,7 +47,7 @@ msgstr "પર્યાવરણમાં `%s' ઉમેરવામાં ભ�
 msgid "can not run %s"
 msgstr "%s ચલાવી શકાતું નથી"
 
-#: src/reaper.c:137
+#: src/reaper.c:156
 msgid "Error creating signal pipe."
 msgstr "સંકેત માટેની પાઈપ બનાવવામાં ભૂલ."
 
@@ -56,43 +56,43 @@ msgstr "સંકેત માટેની પાઈપ બનાવવામા
 msgid "Duplicate (%s/%s)!"
 msgstr "નકલી (%s/%s)!"
 
-#: src/vte.c:1498
+#: src/vte.c:1514
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "નિયમિત સમીકરણ \"%s\" ને કમ્પાઈલ કરવામાં ભૂલ."
 
-#: src/vte.c:5850
+#: src/vte.c:6031
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "અણધાર્યો (કી?) ક્રમ `%s' મળ્યો."
 
-#: src/vte.c:6951
+#: src/vte.c:7127
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "નિયંત્રણ ક્રમ `%s' માટે કોઈ હેન્ડલર વ્યાખ્યાયિત નથી."
 
-#: src/vte.c:7793
+#: src/vte.c:7950
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "બાળમાંથી વાંચતી વખતે ભૂલ: %s."
 
-#: src/vte.c:7949
+#: src/vte.c:8072 src/vte.c:8947
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "બાળ માટે માહિતીનું (%s) રૂપાંતર કરવામાં ભૂલ, છોડી રહ્યા છે."
 
-#: src/vte.c:10715
+#: src/vte.c:10890
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "PTYનું માપ વાંચવામાં ભૂલ, મૂળભૂત વાપરી રહ્યા છે: %s."
 
-#: src/vte.c:10751
+#: src/vte.c:10926
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTYનાં માપ ને સુયોજીત કરવામાં ભૂલ: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15235
+#: src/vte.c:15426
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "શબ્દના અક્ષરોને સુયોજીત _vte_conv_open() કરવામાં નિષ્ફળ ગયુ"
 
@@ -106,7 +106,7 @@ msgstr "કોન્સોલને ખોલી શકાતુ નથી.\n"
 msgid "Unknown pixel mode %d.\n"
 msgstr "અજાણીતી %d પિક્સેલ સ્થિતિ.\n"
 
-#: src/vtexft.c:712
+#: src/vtexft.c:714
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "અક્ષર U+%04x દોરી શકાતો નથી.\n"

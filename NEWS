@@ -1,3 +1,21 @@
+0.11.12: - Performance improvements:
+	   - Two patches from bug #137864 (Benjamin Otte)
+	   - Patch from bug #143914 (Søren Sandmann)
+	 - Build fixes for NetBSD and Darwin. Bug #126377 (Adrian Bunk)
+	 - Build fixes for AIX. Bug #161352
+	 - Make keypad behave like in xterm. Bug #128099. (jylefort at brutele be)
+	 - Fix black background in new terminals. Bug #125364. (Fedora)
+	 - Fix scrolling issues. Bug #168210 (Fedora)
+	 - Fix screen corruption with multibyte charsets. Bug #168211 (Fedora)
+	 - Redraw terminal fully before scrolling. Bug #168212 (Fedora)
+	 - Fix crash with IM-methods. Bug #168213 (Fedora)
+	 - Fix for scrolling back then forward. Bug 122150 (Benjamin Otte)
+	 - Make terminal report correct type. Bug 130761 (Mariano)
+	 - Updated translations:
+	   Estii (et), Old English (ang), Canadian English (en_CA),
+	   Spanish (es), Hungarian (hu), Albanian (sq), Norwegian bokmål
+	   (nb), Bosnian (bs), Finnish (fi), Oriya (or), Georgian (ka),
+	   Hindi (hi)
 0.11.11: Add APIs for setting font with/without antialiasing, cursor color,
 	 hilite color, and a forkpty()-alike.  Fix meta-space.  Use glib 2.4's
 	 child watch API if available.

@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: profterm HEAD\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-29 22:25-0400\n"
+"POT-Creation-Date: 2005-03-02 09:58+0100\n"
 "PO-Revision-Date: 2003-07-23 21:11+0800\n"
 "Last-Translator: Hasbullah Bin Pit <sebol@ikhlas.com>\n"
 "Language-Team: ms <sebol@ikhlas.com>\n"
@@ -17,22 +17,22 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
+#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2171
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Tak dapat menukar aksara drpd %s ke %s."
 
-#: src/iso2022.c:1578
+#: src/iso2022.c:1582
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Cuba menetapkan peta NRC yang tidak sah '%c'."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1619
+#: src/iso2022.c:1623
 msgid "Unrecognized identified coding system."
 msgstr "Sistem kod kenalpasti tak dikenali."
 
-#: src/iso2022.c:1668 src/iso2022.c:1694
+#: src/iso2022.c:1672 src/iso2022.c:1698
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Cuba menetapkan peta lebar NRC tidak sah '%c'."
@@ -50,7 +50,7 @@ msgstr "Ralat menambah `%s' ke persekitaran, diteruskan."
 msgid "can not run %s"
 msgstr "tak dapat melaksanakan %s"
 
-#: src/reaper.c:137
+#: src/reaper.c:156
 msgid "Error creating signal pipe."
 msgstr "Ralat mencipta paip isyarat"
 
@@ -59,43 +59,43 @@ msgstr "Ralat mencipta paip isyarat"
 msgid "Duplicate (%s/%s)!"
 msgstr "Gandakan (%s/%s)!"
 
-#: src/vte.c:1498
+#: src/vte.c:1514
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Ralat menkompil ungkapan regular \"%s\"."
 
-#: src/vte.c:5850
+#: src/vte.c:6031
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Dapat turutan (key?) tanpa diduga `%s'."
 
-#: src/vte.c:6951
+#: src/vte.c:7127
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Tiada pengendali bai turutan kawalan '%s' ditakrif."
 
-#: src/vte.c:7793
+#: src/vte.c:7950
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Ralat membaca daripada proses anak: %s."
 
-#: src/vte.c:7949
+#: src/vte.c:8072 src/vte.c:8947
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Ralat (%s) menukar data bagi anak, digugurkan."
 
-#: src/vte.c:10715
+#: src/vte.c:10890
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Ralat membaca saiz PTY, menggunakan default: %s"
 
-#: src/vte.c:10751
+#: src/vte.c:10926
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Ralat menetapkan saiz PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15235
+#: src/vte.c:15426
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() gagal menetapkan aksara perkataan"
 
@@ -109,7 +109,7 @@ msgstr "Tak dapat membuka konsol.\n"
 msgid "Unknown pixel mode %d.\n"
 msgstr "Mod piksel tidak diketahui: %d\n"
 
-#: src/vtexft.c:712
+#: src/vtexft.c:714
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "Tak dapat melukis aksara U+%04x.\n"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-06-25 19:05+0200\n"
+"POT-Creation-Date: 2005-03-02 09:58+0100\n"
 "PO-Revision-Date: 2004-06-26 19:15+1200\n"
 "Last-Translator: John C Barstow <jbowtie@amathaine.com>\n"
 "Language-Team: Maori <maori@nzlinux.org.nz>\n"
@@ -16,29 +16,28 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 1.3.1\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2091
+#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2171
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr ""
 
-#: src/iso2022.c:1578
+#: src/iso2022.c:1582
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr ""
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1619
+#: src/iso2022.c:1623
 msgid "Unrecognized identified coding system."
 msgstr ""
 
-#: src/iso2022.c:1668 src/iso2022.c:1694
+#: src/iso2022.c:1672 src/iso2022.c:1698
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr ""
 
 #: src/pty.c:329
-#, c-format
-#, fuzzy
+#, fuzzy, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "He."
 
@@ -60,49 +59,43 @@ msgstr "He."
 msgid "Duplicate (%s/%s)!"
 msgstr ""
 
-#: src/vte.c:1499
-#, c-format
-#, fuzzy
+#: src/vte.c:1514
+#, fuzzy, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "He."
 
-#: src/vte.c:5851
+#: src/vte.c:6031
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr ""
 
-#: src/vte.c:6947
-#, c-format
-#, fuzzy
+#: src/vte.c:7127
+#, fuzzy, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Kāo."
 
-#: src/vte.c:7789
-#, c-format
-#, fuzzy
+#: src/vte.c:7950
+#, fuzzy, c-format
 msgid "Error reading from child: %s."
 msgstr "He."
 
-#: src/vte.c:7945
-#, c-format
-#, fuzzy
+#: src/vte.c:8072 src/vte.c:8947
+#, fuzzy, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "He."
 
-#: src/vte.c:10754
-#, c-format
-#, fuzzy
+#: src/vte.c:10890
+#, fuzzy, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "He."
 
-#: src/vte.c:10790
-#, c-format
-#, fuzzy
+#: src/vte.c:10926
+#, fuzzy, c-format
 msgid "Error setting PTY size: %s."
 msgstr "He."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15274
+#: src/vte.c:15426
 #, fuzzy
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "huaki"
@@ -114,13 +107,11 @@ msgid "Could not open console.\n"
 msgstr "huaki"
 
 #: src/vteglyph.c:579
-#, c-format
-#, fuzzy
+#, fuzzy, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "Kaore e mōhio"
 
-#: src/vtexft.c:712
+#: src/vtexft.c:714
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr ""
-

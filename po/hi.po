@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-12-07 04:44+0100\n"
+"POT-Creation-Date: 2005-03-02 09:58+0100\n"
 "PO-Revision-Date: 2004-12-14 12:28+0530\n"
 "Last-Translator: Rajesh Ranjan <rranjan@redhat.com>\n"
 "Language-Team: Hindi\n"
@@ -17,22 +17,22 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 1.9.1\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2094
+#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2171
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "%s से %s में संप्रतीकों को बदलने में असमर्थ."
 
-#: src/iso2022.c:1578
+#: src/iso2022.c:1582
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "अमान्य NRC मानचित्र '%c' को सेट करने के लिये प्रयास."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1619
+#: src/iso2022.c:1623
 msgid "Unrecognized identified coding system."
 msgstr "अनजान पहचाना गया कोडिंग सिस्टम"
 
-#: src/iso2022.c:1668 src/iso2022.c:1694
+#: src/iso2022.c:1672 src/iso2022.c:1698
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "अमान्य विस्तृत NRC मानचित्र '%c' के लिये सेट करने का प्रयास"
@@ -59,43 +59,43 @@ msgstr "सिग्नल पाइप बनाने में त्रु�
 msgid "Duplicate (%s/%s)!"
 msgstr "डुप्लीकेट (%s/%s)!"
 
-#: src/vte.c:1502
+#: src/vte.c:1514
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "नियमित अभिव्यक्ति \"%s\" के संयोजन में त्रुटि."
 
-#: src/vte.c:5947
+#: src/vte.c:6031
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "अप्रत्याशित (कुंजी?) श्रृंखला `%s' पाया."
 
-#: src/vte.c:7043
+#: src/vte.c:7127
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "नियंत्रण श्रृंखला `%s' के लिये कोई संभालने वाला परिभाषित नहीं है."
 
-#: src/vte.c:7885
+#: src/vte.c:7950
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "चाइल्ड से पढ़ने में त्रुटि: %s."
 
-#: src/vte.c:8041 src/vte.c:8916
+#: src/vte.c:8072 src/vte.c:8947
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "चाइल्ड से आंकड़ों को बदलने में त्रुटि (%s), छोड़ रहा है."
 
-#: src/vte.c:10855
+#: src/vte.c:10890
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "PTY आकार को पढने में त्रुटि, मूलभूत का प्रयोग कर रहा है: %s."
 
-#: src/vte.c:10891
+#: src/vte.c:10926
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTY आकार की जमावट में त्रुटि: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15375
+#: src/vte.c:15426
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() शब्द संप्रतीकों की जमावट में विफल"
 
@@ -109,8 +109,7 @@ msgstr "कंसोल को नहीं खोल सका.\n"
 msgid "Unknown pixel mode %d.\n"
 msgstr "अज्ञात पिक्सेल मोड %d.\n"
 
-#: src/vtexft.c:712
+#: src/vtexft.c:714
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "U+%04x संप्रतीक को नहीं खींच सका.\n"
-

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte HEAD\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-29 22:25-0400\n"
+"POT-Creation-Date: 2005-03-02 09:58+0100\n"
 "PO-Revision-Date: 2003-05-31 11:29+0200\n"
 "Last-Translator: Christian Neumair <chris@gnome-de.org>\n"
 "Language-Team: German <gnome-de@gnome.org>\n"
@@ -15,22 +15,22 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
+#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2171
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Zeichen konnten nicht von %s nach %s konvertiert werden."
 
-#: src/iso2022.c:1578
+#: src/iso2022.c:1582
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Es wurde versucht, die ungültige NRC-Map »%c« zu setzen."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1619
+#: src/iso2022.c:1623
 msgid "Unrecognized identified coding system."
 msgstr "Nicht erkanntes, identifiziertes Kodiersystem"
 
-#: src/iso2022.c:1668 src/iso2022.c:1694
+#: src/iso2022.c:1672 src/iso2022.c:1698
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Es wurde versucht, die ungültige weite NRC-Map »%c« zu setzen."
@@ -48,7 +48,7 @@ msgstr "Fehler beim Hinzufügen von »%s« zur Umgebung, fortfahren."
 msgid "can not run %s"
 msgstr "%s konnte nicht ausgeführt werden"
 
-#: src/reaper.c:137
+#: src/reaper.c:156
 msgid "Error creating signal pipe."
 msgstr "Fehler beim Erstellen der Signalweiterleitung."
 
@@ -57,43 +57,43 @@ msgstr "Fehler beim Erstellen der Signalweiterleitung."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikat (%s/%s)!"
 
-#: src/vte.c:1498
+#: src/vte.c:1514
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Fehler beim Kompilieren des regulären Ausdrucks »%s«."
 
-#: src/vte.c:5850
+#: src/vte.c:6031
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Unerwartete (Schlüssel?)-Sequenz »%s« erhalten."
 
-#: src/vte.c:6951
+#: src/vte.c:7127
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Kein Handler für Kontrollsequenz »%s« festgelegt."
 
-#: src/vte.c:7793
+#: src/vte.c:7950
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Fehler beim Lesen von Kind: %s."
 
-#: src/vte.c:7949
+#: src/vte.c:8072 src/vte.c:8947
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Fehler (%s) beim Konvertieren der Daten für Kind, abgebrochen."
 
-#: src/vte.c:10715
+#: src/vte.c:10890
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Fehler beim Ermitteln der PTY-Größe, Vorgaben werden verwendet: %s."
 
-#: src/vte.c:10751
+#: src/vte.c:10926
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Fehler beim Festlegen der PTY-Größe: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15235
+#: src/vte.c:15426
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() konnte die Zeichen des Wortes nicht festlegen"
 
@@ -107,7 +107,7 @@ msgstr "Konsole konnte nicht geöffnet werden.\n"
 msgid "Unknown pixel mode %d.\n"
 msgstr "Unbekannter Pixelmodus %d.\n"
 
-#: src/vtexft.c:712
+#: src/vtexft.c:714
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "Zeichen U+%04x konnte nicht gezeichnet werden.\n"
