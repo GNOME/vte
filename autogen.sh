@@ -46,16 +46,12 @@ fi
 }
 
 have_automake=false
-if automake-1.6 --version < /dev/null > /dev/null 2>&1 ; then
-	automake_version=`automake-1.6 --version | grep 'automake-1.6 (GNU automake.*)' | sed 's/^[^0-9]*\(.*\)/\1/'`
-	case $automake_version in
-	   1.2*|1.3*|1.4*)
-		;;
-	   *)
+for automakev in 1.7 1.6 1.5 ; do
+	if automake-$automakev --version < /dev/null > /dev/null 2>&1 ; then
 		have_automake=true
-		;;
-	esac
-fi
+		break;
+	fi
+done
 if $have_automake ; then : ; else
 	echo
 	echo "You must have automake 1.5 installed to compile $PROJECT."
@@ -82,18 +78,18 @@ esac
 libtoolize -f -c
 glib-gettextize -f -c
 touch config.h.in
-aclocal-1.6 $ACLOCAL_FLAGS
+aclocal-$automakev $ACLOCAL_FLAGS
 
 # optionally feature autoheader
 (autoheader --version)  < /dev/null > /dev/null 2>&1 && autoheader
-automake-1.6 -a -c $am_opt
+automake-$automakev -a -c $am_opt
 autoconf
 
 cd gnome-pty-helper
 touch config.h.in
-aclocal-1.6 $ACLOCAL_FLAGS
+aclocal-$automakev $ACLOCAL_FLAGS
 (autoheader --version)  < /dev/null > /dev/null 2>&1 && autoheader
-automake-1.6 -a -c $am_opt
+automake-$automakev -a -c $am_opt
 autoconf
 
 cd $ORIGDIR
