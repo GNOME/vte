@@ -1,6 +1,8 @@
 2002-06-12 nalin
 	* src/vte.c: Re-read the termcap when we change emulation, because
 	the location of the file may have changed.
+	* src/reaper.c: Also tell the parent the child died when the child
+	dies due to an uncaught signal.
 	* python/vte.override (_wrap_vte_terminal_fork_command): Handle default
 	value for the command.
 2002-06-12 msw

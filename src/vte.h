@@ -83,6 +83,11 @@ typedef struct _VteTerminalClass {
 	guint maximize_window_signal;
 	guint resize_window_signal;
 	guint move_window_signal;
+
+	gpointer reserved1;
+	gpointer reserved2;
+	gpointer reserved3;
+	gpointer reserved4;
 } VteTerminalClass;
 
 /* Values for "what should happen when the user hits backspace/delete".  Use

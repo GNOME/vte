@@ -69,6 +69,13 @@ vte_reaper_signal_handler(int signum)
 				write(singleton_reaper->iopipe[1],
 				      &info, sizeof(info));
 			}
+		} else
+		if ((info.pid != -1) && WIFSIGNALED(status)) {
+			info.status = -1;
+			if (write(singleton_reaper->iopipe[1], "", 0) == 0) {
+				write(singleton_reaper->iopipe[1],
+				      &info, sizeof(info));
+			}
 		}
 	}
 }
