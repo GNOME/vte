@@ -1,4 +1,8 @@
 2003-04-29 nalin
+	* src/vterdb.c(_vte_rdb_get): use INT_MAX instead of LONG_MAX when
+	passing in the maximum length, because it's returned in an int.
+
+2003-04-29 nalin
 	* src/iso2022.txt: fix the UTF-8 sample text which corresponds to the
 	ISO-2022-KR sample text so that it actually matches the text.
 

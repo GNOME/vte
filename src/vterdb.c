@@ -50,7 +50,7 @@ _vte_rdb_get(void)
 	/* Read the string property off of the window. */
 	prop_data = NULL;
 	gdk_error_trap_push();
-	gdk_property_get(root, atom, GDK_TARGET_STRING, 0, LONG_MAX, FALSE,
+	gdk_property_get(root, atom, GDK_TARGET_STRING, 0, INT_MAX, FALSE,
 			 &prop_type, NULL, &prop_length,
 			 (guchar**) &prop_data);
 	gdk_error_trap_pop();
