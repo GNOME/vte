@@ -7,15 +7,15 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte HEAD\n"
-"POT-Creation-Date: 2003-02-28 00:50+0900\n"
-"PO-Revision-Date: 2003-02-28 00:49+0900\n"
+"POT-Creation-Date: 2003-05-08 23:19+0900\n"
+"PO-Revision-Date: 2003-05-08 23:21+0900\n"
 "Last-Translator: KAMAGASAKO Masatoshi <emerald@gnome.gr.jp>\n"
 "Language-Team: Japanese <gnome-translation@gnome.gr.jp>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:253
+#: src/pty.c:317
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "環境に '%s' を追加するのに失敗しました。処理を継続します。"
@@ -23,104 +23,94 @@ msgstr "環境に '%s' を追加するのに失敗しました。処理を継続
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:800
+#: src/pty.c:877
 #, c-format
 msgid "can not run %s"
 msgstr "%s を実行できません。"
 
-#: src/reaper.c:107
+#: src/reaper.c:108
 msgid "Error creating signal pipe."
 msgstr "シグナルパイプの生成に失敗しました。"
 
-#: src/trie.c:411
+#: src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "重複しています! (%s/%s)"
 
-#: src/vte.c:1423
+#: src/vte.c:1427
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "正規表現 \"%s\" のコンパイルの失敗しました。"
 
-#: src/vte.c:1981 src/vte.c:1990 src/vte.c:2002 src/vte.c:2020 src/vte.c:2026
-#: src/vte.c:2031
+#: src/vte.c:1991
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "%s から %s への文字の変換に失敗しました。"
 
-#: src/vte.c:5558
+#: src/vte.c:5501
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "予測しない (キー?) シーケンス '%s' が返されました。"
 
-#: src/vte.c:6649
+#: src/vte.c:6514
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr "コントロールシーケンス '%s' のハンドラは定義されていません。"
+msgstr "コントロール・シーケンス '%s' のハンドラは定義されていません。"
 
-#: src/vte.c:7393
+#: src/vte.c:7230
 #, c-format
 msgid "Error reading from child: %s."
-msgstr "子プロセスの読み込み中にエラー: %s"
+msgstr "子プロセスの読み込み中にエラー: %s。"
 
-#: src/vte.c:7576
+#: src/vte.c:7384
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "子プロセスのデータ変換中にエラー (%s) が発生しました。取り消します。"
 
-#: src/vte.c:9918
-#, c-format
-msgid "Using fontset \"%s\", which is missing these character sets: %s."
-msgstr "フォントセット \"%s\" を利用しますが、 文字セット: %s が抜けています。"
-
-#: src/vte.c:10559
-#, c-format
-msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
-msgstr ""
-"Xft フォントパターン \"%s\" の読み込みに失敗しました。デフォルトのフォントに"
-"戻します。"
-
-#: src/vte.c:10571
-msgid "Failed to load default Xft font."
-msgstr "デフォルトの Xft フォントの読み込みに失敗しました。"
-
-#: src/vte.c:10695
-#, c-format
-msgid "Failed to load font set \"%s\", falling back to default font."
-msgstr ""
-"フォントセット \"%s\" の読み込みに失敗しました。デフォルトのフォントに戻しま"
-"す。"
-
-#: src/vte.c:10707
-msgid "Failed to load default font, crashing or behaving abnormally."
-msgstr ""
-"フォントの読み込みに失敗しました。クラッシュあるいは異常な挙動を示すかも知れ"
-"ません。"
-
-#: src/vte.c:10995
+#: src/vte.c:9934
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "PTY サイズの読み込みに失敗しました。デフォルトのサイズ: %s を利用します。"
 
-#: src/vte.c:11031
+#: src/vte.c:9970
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTY サイズ: %s の設定に失敗しました。"
 
-#: src/vte.c:13978
-msgid "Error allocating draw, disabling Xft."
-msgstr "描画の割り当てに失敗しました。Xft は無効になります。"
-
-#: src/vte.c:13986
-msgid "Error allocating context, disabling Pango."
-msgstr "コンテキストの割り当てに失敗しました。Pango を無効にします。"
-
-#: src/vte.c:13992
-msgid "Error allocating layout, disabling Pango."
-msgstr "レイアウトの割り当てに失敗しました。Pango を無効します。"
-
 #. Aaargh.  We're screwed.
-#: src/vte.c:15707
-msgid "g_iconv_open() failed setting word characters"
-msgstr "単語の設定を行う g_iconv_open() に失敗しました。"
+#: src/vte.c:13914
+msgid "_vte_conv_open() failed setting word characters"
+msgstr "_vte_conv_open() は文字の設定に失敗しました"
+
+#~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
+#~ msgstr ""
+#~ "フォントセット \"%s\" を利用しますが、 文字セット: %s が抜けています。"
+
+#~ msgid ""
+#~ "Failed to load Xft font pattern \"%s\", falling back to default font."
+#~ msgstr ""
+#~ "Xft フォントパターン \"%s\" の読み込みに失敗しました。デフォルトのフォント"
+#~ "に戻します。"
+
+#~ msgid "Failed to load default Xft font."
+#~ msgstr "デフォルトの Xft フォントの読み込みに失敗しました。"
+
+#~ msgid "Failed to load font set \"%s\", falling back to default font."
+#~ msgstr ""
+#~ "フォントセット \"%s\" の読み込みに失敗しました。デフォルトのフォントに戻し"
+#~ "ます。"
+
+#~ msgid "Failed to load default font, crashing or behaving abnormally."
+#~ msgstr ""
+#~ "フォントの読み込みに失敗しました。クラッシュあるいは異常な挙動を示すかも知"
+#~ "れません。"
+
+#~ msgid "Error allocating draw, disabling Xft."
+#~ msgstr "描画の割り当てに失敗しました。Xft は無効になります。"
+
+#~ msgid "Error allocating context, disabling Pango."
+#~ msgstr "コンテキストの割り当てに失敗しました。Pango を無効にします。"
+
+#~ msgid "Error allocating layout, disabling Pango."
+#~ msgstr "レイアウトの割り当てに失敗しました。Pango を無効します。"
