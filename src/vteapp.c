@@ -51,10 +51,24 @@ window_title_changed(GtkWidget *widget, gpointer win)
 
 	g_return_if_fail(VTE_TERMINAL(widget));
 	g_return_if_fail(GTK_IS_WINDOW(win));
-	g_return_if_fail(VTE_TERMINAL (widget)->window_title != NULL);
+	g_return_if_fail(VTE_TERMINAL(widget)->window_title != NULL);
 	window = GTK_WINDOW(win);
 
-	gtk_window_set_title(window, VTE_TERMINAL (widget)->window_title);
+	gtk_window_set_title(window, VTE_TERMINAL(widget)->window_title);
+}
+
+static void
+icon_title_changed(GtkWidget *widget, gpointer win)
+{
+	GtkWindow *window;
+
+	g_return_if_fail(VTE_TERMINAL(widget));
+	g_return_if_fail(GTK_IS_WINDOW(win));
+	g_return_if_fail(VTE_TERMINAL(widget)->icon_title != NULL);
+	window = GTK_WINDOW(win);
+
+	g_message("Icon title changed to \"%s\".\n",
+		  VTE_TERMINAL(widget)->icon_title);
 }
 
 static void
@@ -503,6 +517,8 @@ main(int argc, char **argv)
 	/* Create a window to hold the scrolling shell, and hook its
 	 * delete event to the quit function.. */
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_container_set_resize_mode(GTK_CONTAINER(window),
+				      GTK_RESIZE_IMMEDIATE);
 	g_signal_connect(G_OBJECT(window), "delete_event",
 			 GTK_SIGNAL_FUNC(deleted_and_quit), window);
 
@@ -529,6 +545,8 @@ main(int argc, char **argv)
 	 * window's title. */
 	g_signal_connect(G_OBJECT(widget), "window-title-changed",
 			 G_CALLBACK(window_title_changed), window);
+	g_signal_connect(G_OBJECT(widget), "icon-title-changed",
+			 G_CALLBACK(icon_title_changed), window);
 
 	/* Connect to the "eof" signal to quit when the session ends. */
 	g_signal_connect(G_OBJECT(widget), "eof",

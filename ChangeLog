@@ -1,4 +1,14 @@
 2003-05-29 nalin
+	* src/vte.c(vte_terminal_send): fix newline stuffing (used in linefeed
+	mode).
+	* src/vte.c(vte_unicode_strlen): rename to vte_unichar_strlen.
+	* src/vte.c(vte_terminal_set_title_internal): don't leak the new title
+	in the unlikely cases.
+	* src/vte.c(vte_terminal_process_incoming): be more careful with control
+	characters to avoid cases where we could be tricked into a loop.
+	* src/vteapp.c: emit a message when the icon title is changed.
+
+2003-05-29 nalin
 	* src/vte.c(vte_terminal_process_incoming): handle control characters
 	in the middle of control sequences.
 	* src/vte.c(vte_sequence_handler_cm): fix origin mode.

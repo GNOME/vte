@@ -528,7 +528,7 @@ vte_new_row_data_sized(VteTerminal *terminal, gboolean fill)
 
 /* Check how long a string of unichars is.  Slow version. */
 static gssize
-vte_unicode_strlen(gunichar *c)
+vte_unichar_strlen(gunichar *c)
 {
 	int i;
 	for (i = 0; c[i] != 0; i++) ;
@@ -2531,10 +2531,12 @@ vte_sequence_handler_cs(VteTerminal *terminal,
 {
 	long start, end, rows;
 	GValue *value;
+	VteScreen *screen;
 
 	/* We require two parameters.  Anything less is a reset. */
+	screen = terminal->pvt->screen;
 	if ((params == NULL) || (params->n_values < 2)) {
-		terminal->pvt->screen->scrolling_restricted = FALSE;
+		screen->scrolling_restricted = FALSE;
 		return;
 	}
 	/* Extract the two values. */
@@ -2551,18 +2553,18 @@ vte_sequence_handler_cs(VteTerminal *terminal,
 		end = rows - 1;
 	}
 	/* Set the right values. */
-	terminal->pvt->screen->scrolling_region.start = start;
-	terminal->pvt->screen->scrolling_region.end = end;
-	terminal->pvt->screen->scrolling_restricted = TRUE;
+	screen->scrolling_region.start = start;
+	screen->scrolling_region.end = end;
+	screen->scrolling_restricted = TRUE;
 	/* Special case -- run wild, run free. */
-	if ((terminal->pvt->screen->scrolling_region.start == 0) &&
-	    (terminal->pvt->screen->scrolling_region.end == rows - 1)) {
-		terminal->pvt->screen->scrolling_restricted = FALSE;
+	if ((screen->scrolling_region.start == 0) &&
+	    (screen->scrolling_region.end == rows - 1)) {
+		screen->scrolling_restricted = FALSE;
 	}
 	/* Clamp the cursor to the scrolling region. */
-	terminal->pvt->screen->cursor_current.row = CLAMP(terminal->pvt->screen->cursor_current.row,
-							  terminal->pvt->screen->insert_delta + start,
-							  terminal->pvt->screen->insert_delta + end);
+	screen->cursor_current.row = CLAMP(screen->cursor_current.row,
+					   screen->insert_delta + start,
+					   screen->insert_delta + end);
 	vte_terminal_ensure_cursor(terminal, TRUE);
 }
 
@@ -2576,10 +2578,12 @@ vte_sequence_handler_cS(VteTerminal *terminal,
 {
 	long start, end, rows;
 	GValue *value;
+	VteScreen *screen;
 
 	/* We require four parameters. */
+	screen = terminal->pvt->screen;
 	if ((params == NULL) || (params->n_values < 2)) {
-		terminal->pvt->screen->scrolling_restricted = FALSE;
+		screen->scrolling_restricted = FALSE;
 		return;
 	}
 	/* Extract the two parameters we care about, encoded as the number
@@ -2589,19 +2593,19 @@ vte_sequence_handler_cS(VteTerminal *terminal,
 	value = g_value_array_get_nth(params, 2);
 	end = (terminal->row_count - 1) - g_value_get_long(value);
 	/* Set the right values. */
-	terminal->pvt->screen->scrolling_region.start = start;
-	terminal->pvt->screen->scrolling_region.end = end;
-	terminal->pvt->screen->scrolling_restricted = TRUE;
+	screen->scrolling_region.start = start;
+	screen->scrolling_region.end = end;
+	screen->scrolling_restricted = TRUE;
 	/* Special case -- run wild, run free. */
 	rows = terminal->row_count;
-	if ((terminal->pvt->screen->scrolling_region.start == 0) &&
-	    (terminal->pvt->screen->scrolling_region.end == rows - 1)) {
-		terminal->pvt->screen->scrolling_restricted = FALSE;
+	if ((screen->scrolling_region.start == 0) &&
+	    (screen->scrolling_region.end == rows - 1)) {
+		screen->scrolling_restricted = FALSE;
 	}
 	/* Clamp the cursor to the scrolling region. */
-	terminal->pvt->screen->cursor_current.row = CLAMP(terminal->pvt->screen->cursor_current.row,
-							  terminal->pvt->screen->insert_delta + start,
-							  terminal->pvt->screen->insert_delta + end);
+	screen->cursor_current.row = CLAMP(screen->cursor_current.row,
+					   screen->insert_delta + start,
+					   screen->insert_delta + end);
 	vte_terminal_ensure_cursor(terminal, TRUE);
 }
 
@@ -4156,26 +4160,25 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 {
 	GValue *value;
 	VteConv conv;
-	char *inbuf = NULL, *outbuf = NULL, *outbufptr = NULL;
+	char *inbuf = NULL, *outbuf = NULL, *outbufptr = NULL, *title = NULL;
 	gsize inbuf_len, outbuf_len;
 	/* Get the string parameter's value. */
 	value = g_value_array_get_nth(params, 0);
 	if (value) {
 		if (G_VALUE_HOLDS_LONG(value)) {
 			/* Convert the long to a string. */
-			outbufptr = g_strdup_printf("%ld",
-						    g_value_get_long(value));
+			title = g_strdup_printf("%ld", g_value_get_long(value));
 		} else
 		if (G_VALUE_HOLDS_STRING(value)) {
 			/* Copy the string into the buffer. */
-			outbufptr = g_value_dup_string(value);
+			title = g_value_dup_string(value);
 		} else
 		if (G_VALUE_HOLDS_POINTER(value)) {
 			/* Convert the unicode-character string into a
 			 * multibyte string. */
 			conv = _vte_conv_open("UTF-8", VTE_CONV_GUNICHAR_TYPE);
 			inbuf = g_value_get_pointer(value);
-			inbuf_len = vte_unicode_strlen((gunichar*)inbuf) *
+			inbuf_len = vte_unichar_strlen((gunichar*)inbuf) *
 				    sizeof(gunichar);
 			outbuf_len = (inbuf_len * VTE_UTF8_BPC) + 1;
 			_vte_buffer_set_minimum_size(terminal->pvt->conv_buffer,
@@ -4195,33 +4198,41 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 					}
 #endif
 					outbufptr = NULL;
+				} else {
+					title = g_strndup(outbufptr,
+							  outbuf - outbufptr);
 				}
 				_vte_conv_close(conv);
 			}
 		}
-		if (outbufptr != NULL) {
-			char *p;
+		if (title != NULL) {
+			char *p, *validated;
+			const char *end;
+
+			/* Validate the text. */
+			g_utf8_validate(title, strlen(title), &end);
+			validated = g_strndup(title, end - title);
+
 			/* No control characters allowed. */
-			for (p = outbufptr; p < outbuf; p++) {
-				if (((guint8)(*p)) < 0x20) {
+			for (p = validated; *p != '\0'; p++) {
+				if ((*p & 0x1f) == *p) {
 					*p = ' ';
 				}
 			}
+
 			/* Emit the signal */
-			if (strcmp(signal, "window_title_changed") == 0) {
+			if (strcmp(signal, "window") == 0) {
 				g_free(terminal->window_title);
-				terminal->window_title = g_strndup(outbufptr,
-								   outbuf -
-								   outbufptr);
+				terminal->window_title = g_strdup(validated);
 				vte_terminal_emit_window_title_changed(terminal);
 			} else
-			if (strcmp(signal, "icon_title_changed") == 0) {
+			if (strcmp(signal, "icon") == 0) {
 				g_free (terminal->icon_title);
-				terminal->icon_title = g_strndup(outbufptr,
-								 outbuf -
-								 outbufptr);
+				terminal->icon_title = g_strdup(validated);
 				vte_terminal_emit_icon_title_changed(terminal);
 			}
+			g_free(validated);
+			g_free(title);
 		}
 	}
 }
@@ -4234,7 +4245,7 @@ vte_sequence_handler_set_icon_title(VteTerminal *terminal,
 				    GValueArray *params)
 {
 	vte_sequence_handler_set_title_internal(terminal, match, match_quark,
-						params, "icon_title_changed");
+						params, "icon");
 }
 static void
 vte_sequence_handler_set_window_title(VteTerminal *terminal,
@@ -4243,7 +4254,7 @@ vte_sequence_handler_set_window_title(VteTerminal *terminal,
 				      GValueArray *params)
 {
 	vte_sequence_handler_set_title_internal(terminal, match, match_quark,
-						params, "window_title_changed");
+						params, "window");
 }
 
 /* Set both the window and icon titles to the same string. */
@@ -4254,9 +4265,9 @@ vte_sequence_handler_set_icon_and_window_title(VteTerminal *terminal,
 						  GValueArray *params)
 {
 	vte_sequence_handler_set_title_internal(terminal, match, match_quark,
-						params, "icon_title_changed");
+						params, "icon");
 	vte_sequence_handler_set_title_internal(terminal, match, match_quark,
-						params, "window_title_changed");
+						params, "window");
 }
 
 /* Restrict the scrolling region. */
@@ -4360,7 +4371,8 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
-		/* 6: Origin mode. */
+		/* 6: Origin mode: when enabled, cursor positioning is
+		 * relative to the scrolling region. */
 		{6, &terminal->pvt->screen->origin_mode, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
@@ -7104,17 +7116,35 @@ vte_terminal_process_incoming(gpointer data)
 			if ((c != *next) &&
 			    ((*next & 0x1f) == *next) &&
 			    (start + 1 < next - wbuf)) {
+				const gunichar *tnext = NULL;
+				const char *tmatch = NULL;
+				GQuark tquark = 0;
 				gunichar ctrl;
 				int i;
-				/* Save the control character. */
-				ctrl = *next;
-				/* Move everything before it up a slot. */
-				for (i = next - wbuf; i > start; i--) {
-					wbuf[i] = wbuf[i - 1];
+				/* We don't want to permute it if it's another
+				 * control sequence, so check if it is. */
+				_vte_matcher_match(terminal->pvt->matcher,
+						   next,
+						   wcount - (next - wbuf),
+						   &tmatch,
+						   &tnext,
+						   &tquark,
+						   NULL);
+				/* We only do this for non-control-sequence
+				 * characters and random garbage. */
+				if (tnext == next + 1) {
+					/* Save the control character. */
+					ctrl = *next;
+					/* Move everything before it up a
+					 * slot.  */
+					for (i = next - wbuf; i > start; i--) {
+						wbuf[i] = wbuf[i - 1];
+					}
+					/* Move the control character to the
+					 * front. */
+					wbuf[i] = ctrl;
+					continue;
 				}
-				/* Move the control character to the front. */
-				wbuf[i] = ctrl;
-				continue;
 			}
 #ifdef VTE_DEBUG
 			c = c & ~VTE_ISO2022_ENCODED_WIDTH_MASK;
@@ -7521,8 +7551,8 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		crcount = 0;
 		if (newline_stuff) {
 			for (i = 0; i < obuf - obufptr; i++) {
-				switch (obuf[i]) {
-				case '\r':
+				switch (obufptr[i]) {
+				case '\015':
 					crcount++;
 					break;
 				default:
@@ -7534,13 +7564,13 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 			cooked = g_malloc(obuf - obufptr + crcount);
 			cooked_length = 0;
 			for (i = 0; i < obuf - obufptr; i++) {
-				switch (obuf[i]) {
-				case '\r':
-					cooked[cooked_length++] = '\r';
-					cooked[cooked_length++] = '\n';
+				switch (obufptr[i]) {
+				case '\015':
+					cooked[cooked_length++] = '\015';
+					cooked[cooked_length++] = '\012';
 					break;
 				default:
-					cooked[cooked_length++] = obuf[i];
+					cooked[cooked_length++] = obufptr[i];
 					break;
 				}
 			}
