@@ -228,7 +228,9 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 			if (olen) {
 				g_assert_not_reached();
 			}
-			g_string_free(priv->snapshot_text, TRUE);
+			if (priv->snapshot_text != NULL) {
+				g_string_free(priv->snapshot_text, TRUE);
+			}
 		}
 		priv->snapshot_text = NULL;
 

@@ -1,4 +1,10 @@
 2003-02-12 nalin
+	* src/reflect.c(main): do a complete read of the widget before we
+	start off in main to ensure we have accurate data.
+	* src/vteaccess.c(vte_terminal_accessible_update_private_data_if_needed):
+	only attempt to free the previous snapshot if it existed.
+
+2003-02-12 nalin
 	* src/reflect.c(main): connect to signals before any get emitted.
 	* src/vteaccess.c: use a GString to store snapshot text so that we
 	always have proper length information.

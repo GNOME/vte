@@ -342,6 +342,9 @@ main(int argc, char **argv)
 {
 	GtkWidget *label, *terminal, *tophalf, *pane, *window, *scrollbar;
 	AtkObject *obj;
+	char *text, *p;
+	gunichar c;
+	gint count;
 
 	gtk_init(&argc, &argv);
 
@@ -393,10 +396,18 @@ main(int argc, char **argv)
 	g_signal_connect(G_OBJECT(obj), "text-caret-moved",
 			 G_CALLBACK(text_caret_moved), label);
 
+	count = atk_text_get_character_count(ATK_TEXT(obj));
+	text = atk_text_get_text(ATK_TEXT(obj), 0, count);
 	terminal_shell(terminal);
+	for (p = text; contents->len < count; p = g_utf8_next_char(p)) {
+		c = g_utf8_get_char(p);
+		g_array_append_val(contents, c);
+	}
 
 	gtk_window_set_default_size(GTK_WINDOW(window), 600, 450);
 	gtk_widget_show(window);
+
+	update_contents(obj, terminal);
 
 	gtk_main();
 
