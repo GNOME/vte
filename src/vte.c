@@ -6685,7 +6685,9 @@ vte_terminal_eof(GIOChannel *channel, gpointer data)
 		terminal->pvt->processing = FALSE;
 		terminal->pvt->processing_tag = VTE_INVALID_SOURCE;
 	}
-	vte_terminal_process_incoming(terminal);
+	if (_vte_buffer_length(terminal->pvt->incoming) > 0) {
+		vte_terminal_process_incoming(terminal);
+	}
 	_vte_buffer_clear(terminal->pvt->incoming);
 	g_array_set_size(terminal->pvt->pending, 0);
 

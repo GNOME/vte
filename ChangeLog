@@ -1,4 +1,10 @@
 2003-04-21 nalin
+	* src/vte.c(vte_terminal_eof): don't try to process incoming data if
+	there isn't any (#110946).
+	* src/vtexft.c: mark a warning message for translation.
+	* src/vtegl.c: make the warning when glX isn't available debug-only.
+
+2003-04-21 nalin
 	* src/vteglyph.c: use #if HAVE_DECL_XXX instead of #ifdef HAVE_DECL_XXX,
 	noted by Bob Doan.
 

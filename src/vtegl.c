@@ -86,7 +86,9 @@ _vte_gl_check(struct _vte_draw *draw, GtkWidget *widget)
 
 	/* Check for GLX. */
 	if (!glXQueryExtension(display, &error, &event)) {
+#ifdef VTE_DEBUG
 		g_warning("Unable to use GLX.\n");
+#endif
 		return FALSE;
 	}
 

@@ -35,6 +35,14 @@
 #include "vtefc.h"
 #include "vtexft.h"
 
+#ifdef ENABLE_NLS
+#include <libintl.h>
+#define _(String) dgettext(PACKAGE, String)
+#else
+#define _(String) String
+#define bindtextdomain(package,dir)
+#endif
+ 
 #define FONT_INDEX_FUDGE 10
 #define CHAR_WIDTH_FUDGE 10
 
@@ -657,7 +665,7 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 			specs[j].ucs4 = requests[i].c;
 			j++;
 		} else {
-			g_warning("Cannot draw character U%04x.\n",
+			g_warning(_("Can not draw character U+%04x.\n"),
 				  requests[i].c);
 		}
 	}
