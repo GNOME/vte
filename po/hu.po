@@ -1,29 +1,30 @@
-# VTE Hungarian po.
-# Copyright (C) 2003, Free Software Foundation Inc.
+# Hungarian translation of vte.
+# Copyright (C) 2003, 2004 Free Software Foundation, Inc.
 # This file is distributed under the same license as the vte package.
 # Andras Timar <timar@gnome.hu>, 2003.
+# Laszlo Dvornik <dvornik@gnome.hu>, 2004.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: vte CVS\n"
+"Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-29 22:25-0400\n"
-"PO-Revision-Date: 2003-09-26 10:46+0200\n"
-"Last-Translator: Andras Timar <timar@gnome.hu>\n"
-"Language-Team: Hungarian <hu@gnome.hu>\n"
+"POT-Creation-Date: 2004-08-27 04:16+0200\n"
+"PO-Revision-Date: 2004-08-27 12:14+0200\n"
+"Last-Translator: Laszlo Dvornik <dvornik@gnome.hu>\n"
+"Language-Team: Hungarian <gnome@gnome.hu>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2091
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "Nem sikerült a karakterek átalakítása %s és %s között."
+msgstr "Nem lehet konvertálni a karaktereket %s és %s között."
 
 #: src/iso2022.c:1578
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr "Kísérlet történt érvénytelen NRC map beállítására: '%c'."
+msgstr "Kísérlet érvénytelen '%c' NRC map beállítására."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #: src/iso2022.c:1619
@@ -33,12 +34,12 @@ msgstr "Ismeretlen azonosított kódolási rendszer."
 #: src/iso2022.c:1668 src/iso2022.c:1694
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "Kísérlet történt érvénytelen széles NRC map beállítására: '%c'."
+msgstr "Kísérlet érvénytelen szélességű '%c' NRC map beállítására."
 
 #: src/pty.c:329
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr "Hiba a(z) `%s'a környezethez hozzáadása közben, folytatás."
+msgstr "Hiba a(z) `%s' környezethez való hozzáadása közben, folytatás."
 
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
@@ -48,67 +49,67 @@ msgstr "Hiba a(z) `%s'a környezethez hozzáadása közben, folytatás."
 msgid "can not run %s"
 msgstr "%s nem futtatható"
 
-#: src/reaper.c:137
+#: src/reaper.c:156
 msgid "Error creating signal pipe."
-msgstr "Hiba a jelzéscső létrehozása közben."
+msgstr "Hiba a szignálcső létrehozása közben."
 
 #: src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Dupla (%s/%s)!"
 
-#: src/vte.c:1498
+#: src/vte.c:1499
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Hiba a(z) \"%s\" reguláris kifejezés lefordítása közben."
 
-#: src/vte.c:5850
+#: src/vte.c:5851
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr "Váratlan (billentyű?) sorozat érkezett: `%s'."
+msgstr "Váratlan (billentyű?) `%s' sorozat érkezett."
 
-#: src/vte.c:6951
+#: src/vte.c:6947
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Nincs kezelő megadva a(z) `%s' vezérlőszekvenciához."
 
-#: src/vte.c:7793
+#: src/vte.c:7789
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Hiba a gyermekből olvasás közben: %s."
 
-#: src/vte.c:7949
+#: src/vte.c:7945
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Hiba (%s) történt az adatkonverzió közben a gyermek számára, eldobva."
 
-#: src/vte.c:10715
+#: src/vte.c:10754
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Hiba a PTY-méret beolvasása közben, az alapértelmezés lesz használva: %s."
 
-#: src/vte.c:10751
+#: src/vte.c:10790
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Hiba a PTY-méret beállítása közben: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15235
+#: src/vte.c:15274
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "A _vte_conv_open() nem tudta beállítani a szó karaktereit."
+msgstr "A _vte_conv_open() nem tudta beállítani a szó karaktereit"
 
 #. Bail back to normal mode.
 #: src/vteapp.c:728
 msgid "Could not open console.\n"
-msgstr "A konzol megnyitása nem sikerült.\n"
+msgstr "Nem lehet megnyitni a konzolt.\n"
 
 #: src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr "Ismeretlen képpontmód: %d.\n"
+msgstr "Ismeretlen %d képpontmód.\n"
 
 #: src/vtexft.c:712
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr "Nem sikerült kirajzolni a következő karaktert: U+%04x.\n"
+msgstr "Nem lehet kirajzolni az U+%04x karaktert.\n"
