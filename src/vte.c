@@ -8358,6 +8358,11 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 		if (event->button == 1) {
 			vte_terminal_copy(terminal, GDK_SELECTION_PRIMARY);
 		}
+
+		/* Disconnect from autoscroll requests. */
+		if (terminal->pvt->mouse_autoscroll_tag != -1) {
+			g_source_remove(terminal->pvt->mouse_autoscroll_tag);
+		}
 	}
 
 	/* Hilite any matches. */
