@@ -225,6 +225,7 @@ n_read(int fd, void *buffer, size_t count)
 			default:
 				return -1;
 			}
+			break;
 		default:
 			n += i;
 			break;
@@ -257,6 +258,7 @@ n_write(int fd, const void *buffer, size_t count)
 			default:
 				return -1;
 			}
+			break;
 		default:
 			n += i;
 			break;

@@ -1,3 +1,7 @@
+Tue Jun  3 15:50:38 2003  Jonathan Blandford  <jrb@redhat.com>
+
+	* src/pty.c (n_read): add a missing break in the switch statement.
+
 2003-06-03  Kenneth Rohde Christiansen  <kenneth@gnu.org>
 	* configure.in: Added Limburgish (li) to ALL_LINGUAS.
 
