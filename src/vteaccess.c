@@ -1573,7 +1573,8 @@ vte_terminal_accessible_get_type(void)
 		if (!g_type_is_a(parent_accessible_type, GTK_TYPE_ACCESSIBLE)) {
 #ifdef VTE_DEBUG
 			g_warning("Accessibility (%s) is derived from "
-				  "%s, deriving from %s instead.\n",
+				  "%s (GTK_MODULES=gail not set?), "
+				  "deriving from %s instead.\n",
 				  g_type_name(GTK_TYPE_ACCESSIBLE),
 				  g_type_name(parent_accessible_type),
 				  g_type_name(GTK_TYPE_ACCESSIBLE));
