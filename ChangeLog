@@ -1,6 +1,12 @@
+2002-10-17 nalin
+	* src/pty.c: close a possible race on systems where pty initialization
+	requires more than just opening the pty (for example, Solaris).  Spotted
+	by Brian Cameron.
+	* src/utf8echo.c: don't reset to iso-8859-1 unless -r is used.
+
 2002-10-16 nalin
 	* src/vte.c: remove a bogus assertion for a case which we were already
-	handling a little further down.
+	handling a little further down (incorrectly triggered by autowrap).
 
 2002-10-16 nalin
 	* src/vte.c: adjust our adjustments whenever a line might scroll off

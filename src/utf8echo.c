@@ -35,9 +35,10 @@ main(int argc, char **argv)
 	wchar_t w;
 	char *inbuf, *outbuf, *p;
 	size_t insize, outsize;
+	gboolean dont_reset = FALSE;
 
 	if (argc < 2) {
-		printf("usage: %s index [...]\n", argv[0]);
+		printf("usage: [-r] %s index [...]\n", argv[0]);
 		return 1;
 	}
 
@@ -48,6 +49,10 @@ main(int argc, char **argv)
 
 	printf(ESC "%%G");
 	for (i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-r") == 0) {
+			dont_reset = !dont_reset;
+			continue;
+		}
 		w = (wchar_t)strtol(argv[i], &p, 0);
 		inbuf = (char*)&w;
 		insize = sizeof(w);
@@ -58,7 +63,9 @@ main(int argc, char **argv)
 			printf("%*s", outbuf - buf, buf);
 		}
 	}
-	printf(ESC "%%@\n");
+	if (!dont_reset) {
+		printf(ESC "%%@\n");
+	}
 
 	g_iconv_close(conv);
 

@@ -144,12 +144,67 @@ _vte_pty_reset_signal_handlers(void)
 #endif
 }
 
+#ifdef HAVE_SOCKETPAIR
+static int
+_vte_pty_pipe_open(int *a, int *b)
+{
+	int p[2], ret = -1;
+#ifdef PF_UNIX
+#ifdef SOCK_STREAM
+	ret = socketpair(PF_UNIX, SOCK_STREAM, 0, p);
+#else
+#ifdef SOCK_DGRAM
+	ret = socketpair(PF_UNIX, SOCK_DGRAM, 0, p);
+#endif
+#endif
+	if (ret == 0) {
+		*a = p[0];
+		*b = p[1];
+		return 0;
+	}
+#endif
+	return ret;
+}
+#else
+static int
+_vte_pty_pipe_open(int *a, int *b)
+{
+	int p[2], ret = -1;
+
+	ret = pipe(p);
+
+	if (ret == 0) {
+		*a = p[0];
+		*b = p[1];
+	}
+	return ret;
+}
+#endif
+
+static int
+_vte_pty_pipe_open_bi(int *a, int *b, int *c, int *d)
+{
+	int ret;
+	ret = _vte_pty_pipe_open(a, b);
+	if (ret != 0) {
+		return ret;
+	}
+	ret = _vte_pty_pipe_open(c, d);
+	if (ret != 0) {
+		close(*a);
+		close(*b);
+	}
+	return ret;
+}
+
 /* Run the given command, using the given descriptor as the controlling
  * terminal. */
 static int
-_vte_pty_run_on_pty(int fd, char **env_add, const char *command, char **argv)
+_vte_pty_run_on_pty(int fd, int ready_reader, int ready_writer,
+		    char **env_add, const char *command, char **argv)
 {
 	int i;
+	char c;
 	char **args, *arg;
 	if (fd != STDIN_FILENO) {
 		dup2(fd, STDIN_FILENO);
@@ -206,6 +261,31 @@ _vte_pty_run_on_pty(int fd, char **env_add, const char *command, char **argv)
 	 * weird things to them. */
 	_vte_pty_reset_signal_handlers();
 
+	/* Signal to the parent that we've finished setting things up by
+	 * sending an arbitrary byte over the status pipe and waiting for
+	 * a response.  This synchronization step ensures that the pty is
+	 * fully initialized before the parent process attempts to do anything
+	 * with it, and is required on systems where additional setup, beyond
+	 * merely opening the device, is required.  This is at least the case
+	 * on Solaris. */
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_PTY)) {
+		fprintf(stderr, "Child sending child-ready.\n");
+	}
+#endif
+	write(ready_writer, &c, 1);
+	fsync(ready_writer);
+	read(ready_reader, &c, 1);
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_PTY)) {
+		fprintf(stderr, "Child received parent-ready.\n");
+	}
+#endif
+	close(ready_writer);
+	if (ready_writer != ready_reader) {
+		close(ready_reader);
+	}
+
 	/* Outta here. */
 	if (argv != NULL) {
 		for (i = 0; (argv[i] != NULL); i++) ;
@@ -228,11 +308,22 @@ _vte_pty_run_on_pty(int fd, char **env_add, const char *command, char **argv)
 /* Open the named PTY slave, fork off a child (storing its PID in child),
  * and exec the named command in its own session as a process group leader */
 static int
-_vte_pty_fork_on_pty_name(const char *path, char **env_add,
-			  const char *command, char **argv, pid_t *child)
+_vte_pty_fork_on_pty_name(const char *path, int parent_fd, char **env_add,
+			  const char *command, char **argv,
+			  int columns, int rows, pid_t *child)
 {
 	int fd, i;
+	char c;
+	int ready_a[2], ready_b[2];
 	pid_t pid;
+
+	/* Open pipes for synchronizing between parent and child. */
+	if (_vte_pty_pipe_open_bi(&ready_a[0], &ready_a[1],
+				  &ready_b[0], &ready_b[1]) == -1) {
+		/* Error setting up pipes.  Bail. */
+		*child = -1;
+		return -1;
+	}
 
 	/* Start up a child. */
 	pid = fork();
@@ -242,19 +333,53 @@ _vte_pty_fork_on_pty_name(const char *path, char **env_add,
 		return -1;
 	}
 	if (pid != 0) {
-		/* Parent.  Close our connection to the slave and return the
-		 * new child's PID. */
+		/* Parent.  Close the child's ends of the pipes, do the ready
+		 * handshake, and return the child's PID. */
+		close(ready_b[0]);
+		close(ready_a[1]);
+
+		/* Wait for the child to be ready, set the window size, then
+		 * signal that we're ready.  We need to synchronize here to
+		 * avoid possible races when the child has to do more setup
+		 * of the terminal than just opening it. */
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
+			fprintf(stderr, "Parent ready, waiting for child.\n");
+		}
+#endif
+		read(ready_a[0], &c, 1);
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
+			fprintf(stderr, "Parent received child-ready.\n");
+		}
+#endif
+		vte_pty_set_size(parent_fd, columns, rows);
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
+			fprintf(stderr, "Parent sending parent-ready.\n");
+		}
+#endif
+		write(ready_b[1], &c, 1);
+		close(ready_a[0]);
+		close(ready_b[1]);
+
 		*child = pid;
 		return 0;
 	}
 
-	/* Child.  Start a new session and become process-group leader. */
+	/* Child.  Close the parent's ends of the pipes. */
+	close(ready_a[0]);
+	close(ready_b[1]);
+
+	/* Start a new session and become process-group leader. */
 	setsid();
 	setpgid(0, 0);
 
 	/* Close all descriptors. */
 	for (i = 0; i < sysconf(_SC_OPEN_MAX); i++) {
-		close(i);
+		if ((i != ready_b[0]) && (i != ready_a[1])) {
+			close(i);
+		}
 	}
 
 	/* Open the slave PTY, acquiring it as the controlling terminal for
@@ -263,18 +388,30 @@ _vte_pty_fork_on_pty_name(const char *path, char **env_add,
 	if (fd == -1) {
 		return -1;
 	}
-	return _vte_pty_run_on_pty(fd, env_add, command, argv);
+	return _vte_pty_run_on_pty(fd, ready_b[0], ready_a[1],
+				   env_add, command, argv);
 }
 
 /* Fork off a child (storing its PID in child), and exec the named command
  * in its own session as a process group leader using the given terminal. */
 static int
 _vte_pty_fork_on_pty_fd(int fd, char **env_add,
-			const char *command, char **argv, pid_t *child)
+			const char *command, char **argv,
+			int columns, int rows, pid_t *child)
 {
 	int i;
 	char *tty;
+	char c;
+	int ready_a[2], ready_b[2];
 	pid_t pid;
+
+	/* Open pipes for synchronizing between parent and child. */
+	if (_vte_pty_pipe_open_bi(&ready_a[0], &ready_a[1],
+				  &ready_b[0], &ready_b[1]) == -1) {
+		/* Error setting up pipes.  Bail. */
+		*child = -1;
+		return -1;
+	}
 
 	/* Start up a child. */
 	pid = fork();
@@ -284,23 +421,55 @@ _vte_pty_fork_on_pty_fd(int fd, char **env_add,
 		return -1;
 	}
 	if (pid != 0) {
-		/* Parent.  Close our connection to the slave and return the
-		 * new child's PID. */
+		/* Parent.  Close the child's ends of the pipes, do the ready
+		 * handshake, and return the child's PID. */
+		close(ready_b[0]);
+		close(ready_a[1]);
+
+		/* Wait for the child to be ready, set the window size, then
+		 * signal that we're ready.  We need to synchronize here to
+		 * avoid possible races when the child has to do more setup
+		 * of the terminal than just opening it. */
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
+			fprintf(stderr, "Parent ready.\n");
+		}
+#endif
+		read(ready_a[0], &c, 1);
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
+			fprintf(stderr, "Parent received child-ready.\n");
+		}
+#endif
+		vte_pty_set_size(fd, columns, rows);
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
+			fprintf(stderr, "Parent sending parent-ready.\n");
+		}
+#endif
+		write(ready_b[1], &c, 1);
+		close(ready_a[0]);
+		close(ready_b[1]);
+
 		*child = pid;
 		return 0;
 	}
+
+	/* Child.  CLose the parent's ends of the pipes. */
+	close(ready_a[0]);
+	close(ready_b[1]);
 
 	/* Save the name of the pty -- we'll need it later to acquire it as
 	 * our controlling terminal. */
 	tty = ttyname(fd);
 
-	/* Child.  Start a new session and become process-group leader. */
+	/* Start a new session and become process-group leader. */
 	setsid();
 	setpgid(0, 0);
 
 	/* Close all other descriptors. */
 	for (i = 0; i < sysconf(_SC_OPEN_MAX); i++) {
-		if (i != fd) {
+		if ((i != fd) && (i != ready_b[0]) && (i != ready_a[1])) {
 			close(i);
 		}
 	}
@@ -314,7 +483,8 @@ _vte_pty_fork_on_pty_fd(int fd, char **env_add,
 		}
 	}
 
-	return _vte_pty_run_on_pty(fd, env_add, command, argv);
+	return _vte_pty_run_on_pty(fd, ready_b[0], ready_a[1],
+				   env_add, command, argv);
 }
 
 /**
@@ -494,11 +664,10 @@ _vte_pty_open_unix98(pid_t *child, char **env_add,
 			close(fd);
 			fd = -1;
 		} else {
-			/* Set the window size. */
-			vte_pty_set_size(fd, columns, rows);
 			/* Start up a child process with the given command. */
-			if (_vte_pty_fork_on_pty_name(buf, env_add, command,
-						      argv, child) != 0) {
+			if (_vte_pty_fork_on_pty_name(buf, fd, env_add, command,
+						      argv, columns, rows,
+						      child) != 0) {
 				close(fd);
 				fd = -1;
 			}
@@ -567,43 +736,6 @@ _vte_pty_read_ptypair(int tunnel, int *parentfd, int *childfd)
 	*childfd = i;
 }
 #endif
-#endif
-
-#ifdef HAVE_SOCKETPAIR
-static int
-_vte_pty_pipe_open(int *a, int *b)
-{
-	int p[2], ret = -1;
-#ifdef PF_UNIX
-#ifdef SOCK_STREAM
-	ret = socketpair(PF_UNIX, SOCK_STREAM, 0, p);
-#else
-#ifdef SOCK_DGRAM
-	ret = socketpair(PF_UNIX, SOCK_DGRAM, 0, p);
-#endif
-#endif
-	if (ret == 0) {
-		*a = p[0];
-		*b = p[1];
-		return 0;
-	}
-#endif
-	return ret;
-}
-#else
-static int
-_vte_pty_pipe_open(int *a, int *b)
-{
-	int p[2], ret = -1;
-
-	ret = pipe(p);
-
-	if (ret == 0) {
-		*a = p[0];
-		*b = p[1];
-	}
-	return ret;
-}
 #endif
 
 static void
@@ -675,9 +807,9 @@ _vte_pty_start_helper(void)
 }
 
 static int
-_vte_pty_open_old_school(pid_t *child, char **env_add,
-			 const char *command, char **argv,
-			 int columns, int rows, int op)
+_vte_pty_open_with_helper(pid_t *child, char **env_add,
+			  const char *command, char **argv,
+			  int columns, int rows, int op)
 {
 	GnomePtyOps ops;
 	int ret;
@@ -730,11 +862,9 @@ _vte_pty_open_old_school(pid_t *child, char **env_add,
 		g_tree_insert(_vte_pty_helper_map,
 			      GINT_TO_POINTER(parentfd),
 			      tag);
-		/* Set the window size. */
-		vte_pty_set_size(parentfd, columns, rows);
 		/* Start up a child process with the given command. */
 		if (_vte_pty_fork_on_pty_fd(childfd, env_add, command,
-					    argv, child) != 0) {
+					    argv, columns, rows, child) != 0) {
 			close(parentfd);
 			close(childfd);
 			return -1;
@@ -794,8 +924,8 @@ vte_pty_open_with_logging(pid_t *child, char **env_add,
 	g_assert(op >= 0);
 	g_assert(op < G_N_ELEMENTS(opmap));
 	if (ret == -1) {
-		ret = _vte_pty_open_old_school(child, env_add, command, argv,
-					       columns, rows, opmap[op]);
+		ret = _vte_pty_open_with_helper(child, env_add, command, argv,
+						columns, rows, opmap[op]);
 	}
 	if (ret == -1) {
 		ret = _vte_pty_open_unix98(child, env_add, command, argv,
