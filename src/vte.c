@@ -6136,105 +6136,144 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	/* If we've enabled the special drawing set, map the characters to
 	 * Unicode. */
 	if (screen->defaults.alternate) {
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+			fprintf(stderr, "Attempting charset substitution"
+				"for 0x%04x.\n", c);
+		}
+#endif
 		switch (c) {
 		case 95:
 			c = 0x0020; /* empty space */
+			forced_width = 1;
 			break;
 		case 96:
 			c = 0x25c6; /* diamond */
+			forced_width = 1;
 			break;
 		case 'a':
 			c = 0x2592; /* checkerboard */
+			forced_width = 1;
 			break;
 		case 'b':
 			c = 0x2409; /* ht */
+			forced_width = 1;
 			break;
 		case 'c':
 			c = 0x240c; /*  ff */
+			forced_width = 1;
 			break;
 		case 'd':
 			c = 0x240d; /* cr */
+			forced_width = 1;
 			break;
 		case 'e':
 			c = 0x240a; /* lf */
+			forced_width = 1;
 			break;
 		case 'f':
 			c = 0x00b0; /* degree */
+			forced_width = 1;
 			break;
 		case 'g':
 			c = 0x00b1; /* plus/minus */
+			forced_width = 1;
 			break;
 		case 'h':
 			c = 0x2424; /* nl */
+			forced_width = 1;
 			break;
 		case 'i':
 			c = 0x240b; /* vt */
+			forced_width = 1;
 			break;
 		case 'j':
 			c = 0x2518; /* downright corner */
+			forced_width = 1;
 			break;
 		case 'k':
 			c = 0x2510; /* upright corner */
+			forced_width = 1;
 			break;
 		case 'l':
 			c = 0x250c; /* upleft corner */
+			forced_width = 1;
 			break;
 		case 'm':
 			c = 0x2514; /* downleft corner */
+			forced_width = 1;
 			break;
 		case 'n':
 			c = 0x253c; /* cross */
+			forced_width = 1;
 			break;
 		case 'o':
 			c = 0x23ba; /* scanline 1/9 */
+			forced_width = 1;
 			break;
 		case 'p':
 			c = 0x23bb; /* scanline 3/9 */
+			forced_width = 1;
 			break;
 		case 'q':
 			c = 0x2500; /* horizontal line */
+			forced_width = 1;
 			break;
 		case 'r':
 			c = 0x23bc; /* scanline 7/9 */
+			forced_width = 1;
 			break;
 		case 's':
 			c = 0x23bd; /* scanline 9/9 */
+			forced_width = 1;
 			break;
 		case 't':
 			c = 0x251c; /* left t (points right) */
+			forced_width = 1;
 			break;
 		case 'u':
 			c = 0x2524; /* right t (points left) */
+			forced_width = 1;
 			break;
 		case 'v':
 			c = 0x2534; /* bottom tee (points up) */
+			forced_width = 1;
 			break;
 		case 'w':
 			c = 0x252c; /* top tee (points down) */
+			forced_width = 1;
 			break;
 		case 'x':
 			c = 0x2502; /* vertical line */
+			forced_width = 1;
 			break;
 		case 'y':
 			c = 0x2264; /* <= */
+			forced_width = 1;
 			break;
 		case 'z':
 			c = 0x2265; /* >= */
+			forced_width = 1;
 			break;
 		case '{':
 			c = 0x03c0; /* pi */
+			forced_width = 1;
 			break;
 		case '|':
 			c = 0x2260; /* != */
+			forced_width = 1;
 			break;
 		case '}':
 			c = 0x00a3; /* british pound */
+			forced_width = 1;
 			break;
 		case '~':
 			c = 0x00b7; /* bullet */
+			forced_width = 1;
 			break;
 		case 127:
 			          ; /* delete */
+			forced_width = 1;
 			break;
 		default:
 			break;
@@ -6798,7 +6837,7 @@ vte_terminal_process_incoming(gpointer data)
 	/* Estimate how much of the screen we'll need to update. */
 	bbox_topleft.x = cursor.col;
 	bbox_topleft.y = cursor.row;
-	bbox_bottomright.x = cursor.col;
+	bbox_bottomright.x = cursor.col + 1; /* Assume it's on a wide char. */
 	bbox_bottomright.y = cursor.row;
 
 	/* Try initial substrings. */
@@ -6893,7 +6932,7 @@ vte_terminal_process_incoming(gpointer data)
 		bbox_topleft.y = MIN(bbox_topleft.y,
 				     screen->cursor_current.row);
 		bbox_bottomright.x = MAX(bbox_bottomright.x,
-					 screen->cursor_current.col);
+					 screen->cursor_current.col + 1);
 		bbox_bottomright.y = MAX(bbox_bottomright.y,
 					 screen->cursor_current.row);
 
@@ -13552,7 +13591,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								  TRUE,
 								  col * width - x_offs,
 								  row * height - y_offs,
-								  terminal->char_width,
+								  terminal->char_width * cell->columns,
 								  terminal->char_height,
 								  display,
 								  gdrawable,
@@ -13578,8 +13617,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								height - y_offs,
 								x_offs, y_offs,
 								ascent, FALSE,
-								width *
-								cell->columns,
+								width,
 								height,
 								display,
 								gdrawable,
@@ -13611,7 +13649,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 							x_offs,
 							y_offs,
 							ascent, monospaced,
-							terminal->char_width,
+							terminal->char_width *
+							item.columns,
 							terminal->char_height,
 							display, gdrawable, drawable,
 							colormap, visual, ggc, gc,

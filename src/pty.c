@@ -44,7 +44,9 @@
 #include "debug.h"
 #include "pty.h"
 
+#ifdef VTE_USE_GNOME_PTY_HELPER
 #include "../gnome-pty-helper/gnome-pty.h"
+#endif
 
 #ifdef MSG_NOSIGNAL
 #define PTY_RECVMSG_FLAGS MSG_NOSIGNAL
@@ -59,10 +61,12 @@
 #define _(String) String
 #endif
 
+#ifdef VTE_USE_GNOME_PTY_HELPER
 static gboolean _vte_pty_helper_started = FALSE;
 static pid_t _vte_pty_helper_pid = -1;
 static int _vte_pty_helper_tunnel = -1;
 static GTree *_vte_pty_helper_map = NULL;
+#endif
 
 /* Reset the handlers for all known signals to their defaults.  The parent
  * (or one of the libraries it links to) may have changed one to be ignored. */
@@ -763,6 +767,7 @@ _vte_pty_read_ptypair(int tunnel, int *parentfd, int *childfd)
 #endif
 #endif
 
+#ifdef VTE_USE_GNOME_PTY_HELPER
 static void
 _vte_pty_stop_helper(void)
 {
@@ -789,6 +794,10 @@ _vte_pty_start_helper(void)
 	int i, tmp[2], tunnel;
 	/* Sanity check. */
 	if (access(LIBEXECDIR "/gnome-pty-helper", X_OK) != 0) {
+		/* Give the user some clue as to why session logging is not
+		 * going to work (assuming we can open a pty using some other
+		 * method). */
+		g_warning(_("can not run %s"), LIBEXECDIR "/gnome-pty-helper");
 	 	return FALSE;
 	}
 	/* Create a communication link for use with the helper. */
@@ -905,6 +914,7 @@ _vte_pty_open_with_helper(pid_t *child, char **env_add,
 	}
 	return -1;
 }
+#endif
 
 /**
  * _vte_pty_open:
@@ -934,6 +944,7 @@ _vte_pty_open(pid_t *child, char **env_add,
 	      gboolean lastlog, gboolean utmp, gboolean wtmp)
 {
 	int ret = -1;
+#ifdef VTE_USE_GNOME_PTY_HELPER
 	int op = 0;
 	int opmap[8] = {
 		GNOME_PTY_OPEN_NO_DB_UPDATE,		/* 0 0 0 */
@@ -961,6 +972,7 @@ _vte_pty_open(pid_t *child, char **env_add,
 						directory,
 						columns, rows, opmap[op]);
 	}
+#endif
 	if (ret == -1) {
 		ret = _vte_pty_open_unix98(child, env_add, command, argv,
 					   directory, columns, rows);
@@ -983,6 +995,7 @@ _vte_pty_open(pid_t *child, char **env_add,
 void
 _vte_pty_close(int pty)
 {
+#ifdef VTE_USE_GNOME_PTY_HELPER
 	gpointer tag;
 	GnomePtyOps ops;
 	if (_vte_pty_helper_map != NULL) {
@@ -1005,6 +1018,7 @@ _vte_pty_close(int pty)
 				      GINT_TO_POINTER(pty));
 		}
 	}
+#endif
 }
 
 #ifdef PTY_MAIN

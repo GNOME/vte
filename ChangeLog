@@ -1,3 +1,20 @@
+2002-12-11  nalin
+	* configure.in: define VTE_USE_GNOME_PTY_HELPER if use of the helper
+	is enabled at compile-time (enabled by default).
+	* src/iso2022.c(_vte_iso2022_substitute): force characters received in
+	the line-drawing map to have width = 1 (more #99603), so that we can
+	distinguish them from line-drawing characters received in eucXX, which
+	have width = 2.
+	* src/vte.c(vte_terminal_insert_char): when mapping from line-drawing
+	to gunichars, force a width of 1.
+	* src/vte.c(vte_terminal_process_incoming): extend the bounding box
+	for updates one cell further to the right, in case the cursor is in
+	a cell which contains a wide character.
+	* src/pty.c(_vte_pty_start_helper): spit out a warning if the helper
+	isn't installed.
+	* src/pty.c: don't compile in any gnome-pty-helper-specific code if
+	VTE_USE_GNOME_PTY_HELPER isn't defined.
+
 2002-12-10  nalin
 	* src/buffer.c, src/buffer.h: centralize buffer length sanity checks,
 	add some utility functions for stuffing things into buffers and pulling

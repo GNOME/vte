@@ -842,6 +842,13 @@ _vte_iso2022_substitute(struct _vte_iso2022 *outside_state,
 				width = 0;
 				break;
 			}
+			/* Override for drawing characters. */
+			if (current_map == '0') {
+				if ((result >= 0x2500) && (result <= 0x257f)) {
+					width = 1;
+				}
+			}
+			/* Save the width if one was set. */
 			if (width != 0) {
 				result = _vte_iso2022_set_width(result, width);
 			}
