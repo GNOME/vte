@@ -1,3 +1,7 @@
+2003-12-10  Tõivo Leedjärv  <toivo@linux.ee>
+
+	* configure.in: Added et to ALL_LINGUAS.
+
 2003-12-06  Iñaki Larrañaga  <dooteo@euskalgnu.org>
 
 	* configure.in: Added "eu" (Basque) to ALL_LINGUAS.
