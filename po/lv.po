@@ -1,0 +1,120 @@
+# vte for Latvian.
+# Copyright (C) 2002 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the vte package.
+# Artis Trops <hornet@navigator.lv>, 2002.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte\n"
+"POT-Creation-Date: 2002-11-09 04:42+0100\n"
+"PO-Revision-Date: 2002-12-22 16:55+0200\n"
+"Last-Translator: Artis Trops <hornet@navigators.lv>\n"
+"Language-Team: Latvian <ll10nt@os.lv>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/pty.c:249
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "Kļūda pievienojot `%s' videi, turpinu."
+
+#: src/reaper.c:107
+msgid "Error creating signal pipe."
+msgstr "Kļūda izveidojot signāla programkanālu."
+
+#: src/trie.c:405
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "Divkāršs (%s/%s)!"
+
+#: src/vte.c:1321
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Kļūda kompilējot parasto izteiksmi \"%s\"."
+
+#: src/vte.c:1828
+#: src/vte.c:1837
+#: src/vte.c:1849
+#: src/vte.c:1867
+#: src/vte.c:1872
+#: src/vte.c:1877
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Neiespējami konvertēt rakstzīmes no %s uz %s."
+
+#: src/vte.c:5179
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "Saņemta negaidīta (taustiņu?) secība `%s'."
+
+#: src/vte.c:5999
+#, c-format
+msgid "Character 0x%x is undefined, allocating one column."
+msgstr "Rakstzīme 0x%x ir nedefinēta, aizņemot vienu kolonnu."
+
+#: src/vte.c:6205
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "Nav definēts apdarinātājs kontroles secībai `%s'."
+
+#: src/vte.c:6812
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Kļūda lasot no bērna: %s."
+
+#: src/vte.c:6978
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Kļūda (%s) konvertējot datus bērnam, nometu."
+
+#: src/vte.c:9102
+#, c-format
+msgid "Using fontset \"%s\", which is missing these character sets: %s."
+msgstr "Lietoju fontu kopu \"%s\", kurai iztrūkst šādas rakstzīmju kopas: %s."
+
+#: src/vte.c:9642
+#, c-format
+msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
+msgstr "Neizdevās ielādēt Xft fonta rakstu \"%s\", atkrītu atpakaļ uz noklusēto fontu."
+
+#: src/vte.c:9654
+msgid "Failed to load default Xft font."
+msgstr "Neizdevās ielādēt noklusēto Xft fontu."
+
+#: src/vte.c:9747
+#, c-format
+msgid "Failed to load font set \"%s\", falling back to default font."
+msgstr "Neizdevās ielādēt fontu kopu \"%s\", atkrītu atpakaļ uz noklusēto fontu."
+
+#: src/vte.c:9759
+msgid "Failed to load default font, crashing or behaving abnormally."
+msgstr "Neizdevās ielādēt noklusēto fontu, avarēju vai izturos nenormāli."
+
+#: src/vte.c:10022
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "Kļūda lasot PTY izmēru, lietoju noklusētos: %s."
+
+#: src/vte.c:10058
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "Kļūda iestatot PTY izmēru: %s."
+
+#: src/vte.c:12801
+msgid "Error allocating draw, disabling Xft."
+msgstr "Kļūa piešķirot zīmēšanu, deaktivizēju Xft."
+
+#: src/vte.c:12809
+msgid "Error allocating context, disabling Pango."
+msgstr "Kļūa piešķirot kontekstu, deaktivizēju Pango."
+
+#: src/vte.c:12815
+msgid "Error allocating layout, disabling Pango."
+msgstr "Kļūa piešķirot izkārtojumu, deaktivizēju Pango."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:14342
+msgid "g_iconv_open() failed setting word characters"
+msgstr "g_iconv_open() neizdevās iestatot vārdu rakstzīmes"
+
