@@ -491,26 +491,33 @@ vte_terminal_scroll_region(VteTerminal *terminal,
 		widget = GTK_WIDGET(terminal);
 		gc = widget->style->mid_gc[GTK_WIDGET_STATE(widget)];
 
+		/* Convenience variables. */
 		w = terminal->char_width;
 		h = terminal->char_height;
 		screen = terminal->pvt->screen;
 
+		/* Things which are the same regardless of which direction
+		 * we're going to scroll. */
 		src_x = dest_x = 0;
 		width = w * terminal->column_count;
 		height = h * (count - MAX(delta, -delta));
 
+		/* The source and destination locations depend on the scrolling
+		 * direction and amount, and we fudge by one because the cursor
+		 * is likely to be on the edge, and we need to redraw it. */
 		if (delta > 0) {
 			src_y = h * (row - screen->scroll_delta);
 			dest_y = src_y + h * delta;
 			refresh_row = row;
-			refresh_count = delta;
+			refresh_count = delta + 1;
 		} else {
 			dest_y = h * (row - screen->scroll_delta);
 			src_y = dest_y + h * (-delta);
-			refresh_row = row + (-delta);
-			refresh_count = count - (-delta);
+			refresh_row = row + count - (-delta) - 1;
+			refresh_count = (-delta) + 1;
 		}
 
+		/* XCopyArea. */
 		gdk_draw_drawable(widget->window, gc, widget->window,
 				  src_x, src_y,
 				  dest_x, dest_y,

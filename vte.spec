@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.5.0
+Version: 0.5.1
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -58,11 +58,20 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Thu Jul 18 2002 Nalin Dahyabhai <nalin@redhat.com> 0.5.1-1
+- fix a couple of scrolling artifacts
+
 * Thu Jul 18 2002 Nalin Dahyabhai <nalin@redhat.com> 0.5.0-1
 - use gunichars internally
 - scroll regions more effectively
 - implement part of set-mode/reset-mode (maybe fixes #69143)
 - fix corner case in dingus hiliting (#67930, really this time)
+
+* Thu Jul 18 2002 Jeremy Katz <katzj@redhat.com> 0.4.9-3
+- free trip through the build system
+
+* Tue Jul 16 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.9-2
+- build in different environment
 
 * Tue Jul 16 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.9-1
 - check for iconv failures properly and report them more aggressively

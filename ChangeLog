@@ -1,4 +1,8 @@
 2002-07-18  nalin
+	* src/vte.c: Fudge the repaint line count by one when scrolling regions
+	to ensure that the old cursor gets repainted.  Calculate the area which
+	needs to be repainted when reverse-scrolling correctly.
+2002-07-18  nalin
 	* src/vte.c: Implement enough of set-mode and reset-mode to allow
 	toggling of insert mode using this sequence.  Move all scrolling into
 	vte_terminal_scroll_region and use gdk_draw_drawable to avoid repainting
