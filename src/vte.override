@@ -1,6 +1,0 @@
-%%
-headers
-#include <Python.h>
-#include <pygtk/pygtk.h>
-#include <gtk/gtk.h>
-#include "vte.h"

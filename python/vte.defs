@@ -1,0 +1,369 @@
+;; -*- scheme -*-
+; object definitions ...
+
+(define-object Terminal
+  (in-module "Vte")
+  (parent "GtkWidget")
+  (c-name "VteTerminal")
+  (gtype-id "VTE_TYPE_TERMINAL")
+)
+
+;; Enumerations and flags ...
+
+(define-enum TerminalEraseBinding
+  (in-module "Vte")
+  (c-name "VteTerminalEraseBinding")
+  (values
+    '("auto" "VTE_ERASE_AUTO")
+    '("ascii-backspace" "VTE_ERASE_ASCII_BACKSPACE")
+    '("ascii-delete" "VTE_ERASE_ASCII_DELETE")
+    '("delete-sequence" "VTE_ERASE_DELETE_SEQUENCE")
+  )
+)
+
+
+;; From vte.h
+
+(define-function vte_terminal_get_type
+  (c-name "vte_terminal_get_type")
+  (return-type "GtkType")
+)
+
+(define-function vte_terminal_new
+  (c-name "vte_terminal_new")
+  (is-constructor-of VteTerminal)
+  (return-type "VteTerminal*")
+)
+
+(define-method fork_command
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_fork_command")
+  (return-type "pid_t")
+  (parameters
+    '("const-char*" "command")
+    '("const-char**" "argv")
+  )
+)
+
+(define-method feed
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_feed")
+  (return-type "none")
+  (parameters
+    '("const-char*" "data")
+    '("size_t" "length")
+  )
+)
+
+(define-method feed_child
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_feed_child")
+  (return-type "none")
+  (parameters
+    '("const-char*" "data")
+    '("size_t" "length")
+  )
+)
+
+(define-method copy_clipboard
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_copy_clipboard")
+  (return-type "none")
+)
+
+(define-method paste_clipboard
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_paste_clipboard")
+  (return-type "none")
+)
+
+(define-method set_size
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_size")
+  (return-type "none")
+  (parameters
+    '("long" "columns")
+    '("long" "rows")
+  )
+)
+
+(define-method set_audible_bell
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_audible_bell")
+  (return-type "none")
+  (parameters
+    '("gboolean" "is_audible")
+  )
+)
+
+(define-method set_scroll_on_output
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_scroll_on_output")
+  (return-type "none")
+  (parameters
+    '("gboolean" "scroll")
+  )
+)
+
+(define-method set_scroll_on_keystroke
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_scroll_on_keystroke")
+  (return-type "none")
+  (parameters
+    '("gboolean" "scroll")
+  )
+)
+
+(define-method set_colors
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_colors")
+  (return-type "none")
+  (parameters
+    '("const-GdkColor*" "foreground")
+    '("const-GdkColor*" "background")
+    '("const-GdkColor*" "palette")
+    '("size_t" "palette_size")
+  )
+)
+
+(define-method set_default_colors
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_default_colors")
+  (return-type "none")
+)
+
+(define-method set_background_image
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_background_image")
+  (return-type "none")
+  (parameters
+    '("GdkPixbuf*" "image")
+  )
+)
+
+(define-method set_background_image_file
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_background_image_file")
+  (return-type "none")
+  (parameters
+    '("const-char*" "path")
+  )
+)
+
+(define-method set_background_saturation
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_background_saturation")
+  (return-type "none")
+  (parameters
+    '("double" "saturation")
+  )
+)
+
+(define-method set_background_transparent
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_background_transparent")
+  (return-type "none")
+  (parameters
+    '("gboolean" "transparent")
+  )
+)
+
+(define-method set_cursor_blinks
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_cursor_blinks")
+  (return-type "none")
+  (parameters
+    '("gboolean" "blink")
+  )
+)
+
+(define-method set_scrollback_lines
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_scrollback_lines")
+  (return-type "none")
+  (parameters
+    '("long" "lines")
+  )
+)
+
+(define-method im_append_menuitems
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_im_append_menuitems")
+  (return-type "none")
+  (parameters
+    '("GtkMenuShell*" "menushell")
+  )
+)
+
+(define-method set_font
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_font")
+  (return-type "none")
+  (parameters
+    '("const-PangoFontDescription*" "font_desc")
+  )
+)
+
+(define-method set_font_from_string
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_font_from_string")
+  (return-type "none")
+  (parameters
+    '("const-char*" "name")
+  )
+)
+
+(define-method get_font
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_font")
+  (return-type "const-PangoFontDescription*")
+)
+
+(define-method get_using_xft
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_using_xft")
+  (return-type "gboolean")
+)
+
+(define-method get_has_selection
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_has_selection")
+  (return-type "gboolean")
+)
+
+(define-method set_word_chars
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_word_chars")
+  (return-type "none")
+  (parameters
+    '("const-char*" "spec")
+  )
+)
+
+(define-method is_word_char
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_is_word_char")
+  (return-type "gboolean")
+  (parameters
+    '("gunichar" "c")
+  )
+)
+
+(define-method set_backspace_binding
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_backspace_binding")
+  (return-type "none")
+  (parameters
+    '("VteTerminalEraseBinding" "binding")
+  )
+)
+
+(define-method set_delete_binding
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_delete_binding")
+  (return-type "none")
+  (parameters
+    '("VteTerminalEraseBinding" "binding")
+  )
+)
+
+(define-method set_mouse_autohide
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_mouse_autohide")
+  (return-type "none")
+  (parameters
+    '("gboolean" "setting")
+  )
+)
+
+(define-method get_mouse_autohide
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_mouse_autohide")
+  (return-type "gboolean")
+)
+
+(define-method reset
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_reset")
+  (return-type "none")
+  (parameters
+    '("gboolean" "full")
+    '("gboolean" "clear_history")
+  )
+)
+
+(define-method get_text
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_text")
+  (return-type "char*")
+  (parameters
+  )
+)
+
+(define-method get_cursor_position
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_cursor_position")
+  (return-type "none")
+  (parameters
+    '("long*" "column")
+    '("long*" "row")
+  )
+)
+
+(define-method match_clear_all
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_match_clear_all")
+  (return-type "none")
+)
+
+(define-method match_add
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_match_add")
+  (return-type "int")
+  (parameters
+    '("const-char*" "match")
+  )
+)
+
+(define-method match_check
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_match_check")
+  (return-type "char*")
+  (parameters
+    '("long" "column")
+    '("long" "row")
+    '("int*" "tag")
+  )
+)
+
+(define-method set_emulation
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_emulation")
+  (return-type "none")
+  (parameters
+    '("const-char*" "emulation")
+  )
+)
+
+(define-method get_emulation
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_emulation")
+  (return-type "const-char*")
+)
+
+(define-method set_encoding
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_encoding")
+  (return-type "none")
+  (parameters
+    '("const-char*" "encoding")
+  )
+)
+
+(define-method get_encoding
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_encoding")
+  (return-type "const-char*")
+)
+
+

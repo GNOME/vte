@@ -74,7 +74,7 @@ if pkg-config --exists pygtk-2.0 ; then
 	AC_MSG_CHECKING([python version])
 	[PYTHONREV=`python -c 'import sys;print "%s.%s" % (sys.version_info[0], sys.version_info[1])'`]
 	AC_MSG_RESULT($PYTHONREV)
-	PYTHON_MODULES="vtemodule.so"
+	PYTHONMODULES="vtemodule.so"
 else
 	AC_MSG_RESULT([not found])
 fi
@@ -94,4 +94,11 @@ GETTEXT_PACKAGE="$PACKAGE"
 AC_SUBST(GETTEXT_PACKAGE)
 
 AM_CONFIG_HEADER(config.h)
-AC_OUTPUT([Makefile src/Makefile termcaps/Makefile po/Makefile.in vte.pc])
+AC_OUTPUT([
+Makefile
+src/Makefile
+termcaps/Makefile
+python/Makefile
+po/Makefile.in
+vte.pc
+])
