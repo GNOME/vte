@@ -97,7 +97,7 @@ static const struct _vte_iso2022_map _vte_iso2022_map_4[] = {
 	{'\\', GDK_onehalf},
 	{']',  GDK_bar},
 	{'{',  GDK_diaeresis},
-	{'|',  GDK_f},
+	{'|',  0x192}, /* f with hook (florin) */
 	{'}',  GDK_onequarter},
 	{'~',  GDK_acute}
 };
@@ -216,7 +216,7 @@ static const struct _vte_iso2022_map _vte_iso2022_map_equal[] = {
 };
 /* Japanese.  JIS X 0201-1976 ("Roman" set), per RFC 1468/2237. */
 static const struct _vte_iso2022_map _vte_iso2022_map_J[] = {
-	{'\\', GDK_overline},
+	{'\\', 0x203e},
 	{'~',  GDK_yen},
 };
 /* Japanese.  JIS X 0208-1978, per RFC 1468/2237. */

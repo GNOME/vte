@@ -1,3 +1,7 @@
+2002-10-29  Abi Brady  <morwen@evilmagic.org>
+	* src/iso2022.c (_vte_iso2022_map_[J4]): Map to UCS, not keysyms.
+	(which differ > 0xff).
+
 2002-10-28  Abi Brady  <morwen@evilmagic.org>
 	* src/vte.c: Add line-drawing representation for full block. Draw 
 	U+23BA-23BD. Fix drawing of U+23BD (scan line 9) and U+2592 
