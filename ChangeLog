@@ -1,4 +1,10 @@
 2002-08-30 nalin
+	* src/vte.c: Get smarter about when it's necessary to start messing
+	with our adjustments (Red Hat #73091).  Change the way we clear the
+	screen so that all of the contents of the current screen become
+	scrollback data.
+
+2002-08-30 nalin
 	* src/vte.c: Register VteTerminalEraseBinding with GObject as an
 	enumerated type.
 	* python/vte.defs: Update.

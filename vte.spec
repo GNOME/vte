@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.8.13
+Version: 0.8.14
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -61,6 +61,9 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Fri Aug 30 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.14-1
+- get smarter about adjusting our adjustments (#73091)
+
 * Fri Aug 30 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.13-1
 - restore the IM status window by restoring our own focus-in/focus-out
   handlers (#72946)

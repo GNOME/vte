@@ -1517,7 +1517,6 @@ vte_insert_line_internal(VteTerminal *terminal, long position)
 	} else {
 		vte_ring_append(terminal->pvt->screen->row_data, array);
 	}
-	vte_terminal_adjust_adjustments(terminal, FALSE);
 }
 
 /* Remove a line at an arbitrary position. */
@@ -2262,7 +2261,6 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 	long add, i;
 
 	/* Must make sure we're in a sane area. */
-	vte_terminal_adjust_adjustments(terminal, FALSE);
 	screen = terminal->pvt->screen;
 
 	/* Figure out how many rows we need to add. */
@@ -2330,6 +2328,7 @@ vte_terminal_scroll_insertion(VteTerminal *terminal)
 	/* Adjust the insert delta and scroll if needed. */
 	if (delta != screen->insert_delta) {
 		vte_terminal_ensure_cursor(terminal, FALSE);
+		vte_terminal_adjust_adjustments(terminal, TRUE);
 		screen->insert_delta = delta;
 	}
 }
@@ -3434,29 +3433,27 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 				  GValueArray *params)
 {
 	GArray *rowdata;
-	long i;
+	long i, initial;
 	VteScreen *screen;
 	screen = terminal->pvt->screen;
-	/* Clear the data in all of the visible rows to the defaults. */
-	for (i = screen->insert_delta;
-	     i < screen->insert_delta + terminal->row_count;
-	     i++) {
-		while (vte_ring_next(screen->row_data) <= i) {
-			/* Add a new row */
-			rowdata = vte_new_row_data();
-			vte_ring_append(screen->row_data, rowdata);
+	initial = screen->insert_delta;
+	/* Add a new screen's worth of rows. */
+	for (i = 0; i < terminal->row_count; i++) {
+		/* Add a new row */
+		if (i == 0) {
+			initial = vte_ring_next(screen->row_data);
 		}
-		/* Get the data for the row we're removing. */
-		rowdata = vte_ring_index(screen->row_data, GArray*, i);
-		/* Remove the row's contents. */
-		while (rowdata->len > 0) {
-			g_array_remove_index(rowdata, rowdata->len - 1);
-		}
-		/* Add new cells until we have enough to fill the row. */
+		rowdata = vte_new_row_data();
+		vte_ring_append(screen->row_data, rowdata);
+		/* Add new cells until we have enough to fill out the row. */
 		while (rowdata->len < terminal->column_count) {
 			g_array_append_val(rowdata, screen->defaults);
 		}
 	}
+	/* Move the cursor and insertion delta to the first line in the
+	 * newly-cleared area and scroll if need be. */
+	screen->insert_delta = initial;
+	screen->cursor_current.row = initial;
 	vte_terminal_adjust_adjustments(terminal, FALSE);
 	/* Redraw everything. */
 	vte_invalidate_all(terminal);
@@ -4452,6 +4449,7 @@ vte_sequence_handler_screen_alignment_test(VteTerminal *terminal,
 	long row;
 	GArray *rowdata;
 	VteScreen *screen;
+	gboolean readjust = FALSE;
 	struct vte_charcell cell;
 
 	screen = terminal->pvt->screen;
@@ -4463,8 +4461,11 @@ vte_sequence_handler_screen_alignment_test(VteTerminal *terminal,
 		while (vte_ring_next(screen->row_data) <= row) {
 			rowdata = vte_new_row_data();
 			vte_ring_append(screen->row_data, rowdata);
+			readjust = TRUE;
 		}
-		vte_terminal_adjust_adjustments(terminal, FALSE);
+		if (readjust) {
+			vte_terminal_adjust_adjustments(terminal, TRUE);
+		}
 		rowdata = vte_ring_index(screen->row_data, GArray*, row);
 		/* Clear this row. */
 		while (rowdata->len > 0) {
@@ -10031,7 +10032,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	}
 
 	/* Adjust the adjustments. */
-	vte_terminal_adjust_adjustments(terminal, FALSE);
+	vte_terminal_adjust_adjustments(terminal, TRUE);
 	vte_invalidate_all(terminal);
 }
 
