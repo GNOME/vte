@@ -29,6 +29,7 @@
 #include <langinfo.h>
 #include <math.h>
 #include <pwd.h>
+#include <regex.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,6 +89,12 @@ struct vte_charcell {
 	guint16 invisible: 1;
 	guint16 protect: 1;
 	guint16 alternate: 1;
+};
+
+/* A match regex, with a tag. */
+struct vte_match_regex {
+	regex_t reg;
+	gint tag;
 };
 
 /* The terminal's keypad state.  A terminal can either be using the normal
@@ -250,6 +257,11 @@ struct _VteTerminalPrivate {
 	guint mouse_last_button;
 	gdouble mouse_last_x, mouse_last_y;
 	gboolean mouse_autohide;
+
+	/* State variables for handling match checks. */
+	char *match_contents;
+	GArray *match_attributes;
+	GArray *match_regexes;
 };
 
 /* A function which can handle a terminal control sequence. */
@@ -392,7 +404,7 @@ vte_invalidate_all(VteTerminal *terminal)
 
 /* Find the character in the given "virtual" position. */
 static struct vte_charcell *
-vte_terminal_find_charcell(VteTerminal *terminal, long row, long col)
+vte_terminal_find_charcell(VteTerminal *terminal, long col, long row)
 {
 	GArray *rowdata;
 	struct vte_charcell *ret = NULL;
@@ -433,8 +445,8 @@ vte_invalidate_cursor_once(gpointer data)
 		screen = terminal->pvt->screen;
 		columns = 1;
 		cell = vte_terminal_find_charcell(terminal,
-				     		  screen->cursor_current.row,
-				     		  screen->cursor_current.col);
+				     		  screen->cursor_current.col,
+				     		  screen->cursor_current.row);
 		if (cell != NULL) {
 			columns = cell->columns;
 		}
@@ -668,6 +680,131 @@ vte_terminal_set_default_tabstops(VteTerminal *terminal)
 	}
 }
 
+/* Clear the cache of the screen contents we keep. */
+static void
+vte_terminal_match_contents_clear(VteTerminal *terminal)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	if (terminal->pvt->match_contents != NULL) {
+		g_free(terminal->pvt->match_contents);
+		terminal->pvt->match_contents = NULL;;
+	}
+	while (terminal->pvt->match_attributes != NULL) {
+		g_array_free(terminal->pvt->match_attributes, FALSE);
+	}
+}
+
+/* Refresh the cache of the screen contents we keep. */
+static gboolean
+always_selected(VteTerminal *terminal, long row, long column)
+{
+	return TRUE;
+}
+static void
+vte_terminal_match_contents_refresh(VteTerminal *terminal)
+{
+	GArray *array;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	vte_terminal_match_contents_clear(terminal);
+	array = g_array_new(FALSE, TRUE, sizeof(struct vte_char_attributes));
+	terminal->pvt->match_contents = vte_terminal_get_text(terminal,
+							      always_selected,
+							      array);
+	terminal->pvt->match_attributes = array;
+}
+
+/* Display string matching:  clear all matching expressions. */
+void
+vte_terminal_match_clear_all(VteTerminal *terminal)
+{
+	struct vte_match_regex *regex;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	while (terminal->pvt->match_regexes->len > 0) {
+		regex = &g_array_index(terminal->pvt->match_regexes,
+				       struct vte_match_regex,
+				       terminal->pvt->match_regexes->len - 1);
+		regfree(&regex->reg);
+		memset(&regex->reg, 0, sizeof(regex->reg));
+		regex->tag = 0;
+		g_array_remove_index(terminal->pvt->match_regexes,
+				     terminal->pvt->match_regexes->len - 1);
+	}
+}
+
+/* Add a matching expression, returning the tag the widget assigns to that
+ * expression. */
+int
+vte_terminal_match_add(VteTerminal *terminal, const char *match)
+{
+	struct vte_match_regex regex;
+	int ret;
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+	ret = regcomp(&regex.reg, match, 0);
+	if (ret != 0) {
+		g_warning("Error compiling regular expression \"%s\".", match);
+		return -1;
+	}
+	regex.tag = terminal->pvt->match_regexes->len;
+	g_array_append_val(terminal->pvt->match_regexes, regex);
+	return regex.tag;
+}
+
+/* Check if a given cell on the screen contains part of a matched string.  If
+ * it does, return the string, and store the match tag in the optional tag
+ * argument. */
+char *
+vte_terminal_match_check(VteTerminal *terminal, long column, long row, int *tag)
+{
+	int i, j, ret, offset;
+	struct vte_match_regex *regex = NULL;
+	struct vte_char_attributes *attr = NULL;
+	regmatch_t matches[256];
+	if (tag != NULL) {
+		*tag = -1;
+	}
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+	for (offset = 0;
+	     offset < terminal->pvt->match_attributes->len;
+	     offset++) {
+		attr = &g_array_index(terminal->pvt->match_attributes,
+				      struct vte_char_attributes,
+				      offset);
+		if (attr != NULL) {
+			if ((row >= attr->row) && (column >= attr->column)) {
+				break;
+			}
+		}
+	}
+	for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
+		regex = &g_array_index(terminal->pvt->match_regexes,
+				       struct vte_match_regex,
+				       i);
+		if (regex != NULL) {
+			ret = regexec(&regex->reg,
+				      terminal->pvt->match_contents,
+				      G_N_ELEMENTS(matches),
+				      matches,
+				      0);
+			if (ret == 0) {
+				for (j = 0;
+				     j < G_N_ELEMENTS(matches) &&
+				     (matches[j].rm_so != -1);
+				     j++) {
+					if ((offset >= matches[j].rm_so) &&
+					    (offset <= matches[j].rm_eo)) {
+						if (tag != NULL) {
+							*tag = regex->tag;
+							return g_strndup(terminal->pvt->match_contents + matches[j].rm_so,
+									 matches[j].rm_eo - matches[j].rm_so);
+						}
+					}
+				}
+			}
+		}
+	}
+	return NULL;
+}
+
 /* Update the adjustment field of the widget.  This function should be called
  * whenever we add rows to the history or switch screens. */
 static void
@@ -748,6 +885,7 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal)
 				delta, terminal->pvt->screen->scroll_delta);
 		}
 #endif
+		vte_terminal_match_contents_clear(terminal);
 		vte_terminal_emit_contents_changed(terminal);
 		gtk_adjustment_changed(terminal->adjustment);
 	}
@@ -2247,8 +2385,8 @@ vte_sequence_handler_uc(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	cell = vte_terminal_find_charcell(terminal,
-					  screen->cursor_current.row,
-					  screen->cursor_current.col);
+					  screen->cursor_current.col,
+					  screen->cursor_current.row);
 	if (cell != NULL) {
 		/* Set this character to be underlined. */
 		cell->underline = 1;
@@ -5091,6 +5229,7 @@ vte_terminal_process_incoming(gpointer data)
 
 	if (inserted || (screen != terminal->pvt->screen)) {
 		/* Signal that the visible contents changed. */
+		vte_terminal_match_contents_clear(terminal);
 		vte_terminal_emit_contents_changed(terminal);
 	}
 
@@ -5674,6 +5813,10 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 						break;
 				}
 				break;
+			case GDK_KP_Insert:
+			case GDK_Insert:
+				special = "kI";
+				break;
 			case GDK_KP_Home:
 			case GDK_Home:
 				special = "kh";
@@ -5885,10 +6028,10 @@ vte_uniform_class(VteTerminal *terminal, long row, long scol, long ecol)
 	long col;
 	gboolean word_char;
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	if ((pcell = vte_terminal_find_charcell(terminal, row, scol)) != NULL) {
+	if ((pcell = vte_terminal_find_charcell(terminal, scol, row)) != NULL) {
 		word_char = vte_terminal_is_word_char(terminal, pcell->c);
 		for (col = scol + 1; col <= ecol; col++) {
-			pcell = vte_terminal_find_charcell(terminal, row, col);
+			pcell = vte_terminal_find_charcell(terminal, col, row);
 			if (pcell == NULL) {
 				return FALSE;
 			}
@@ -5904,7 +6047,7 @@ vte_uniform_class(VteTerminal *terminal, long row, long scol, long ecol)
 
 /* Check if a cell is selected or not. */
 static gboolean
-vte_cell_is_selected(VteTerminal *terminal, long row, long col)
+vte_cell_is_selected(VteTerminal *terminal, long col, long row)
 {
 	long scol, ecol;
 
@@ -6048,40 +6191,36 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 
 /* Send a button down or up notification. */
 static void
-vte_terminal_send_mouse_button(VteTerminal *terminal, GdkEventButton *event)
+vte_terminal_send_mouse_button_int(VteTerminal *terminal,
+				   int button,
+				   double x, double y,
+				   GdkModifierType modifiers)
 {
 	unsigned char cb = 0, cx = 0, cy = 0;
 	char buf[LINE_MAX];
-	GdkModifierType modifiers;
+	
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-	/* Read the modifiers. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
-		modifiers = 0;
-	}
-
 	/* Encode the button information in cb. */
-	if (event->type == GDK_BUTTON_PRESS) {
-		switch (event->button) {
-			case 1:
-				cb = 0;
-				break;
-			case 2:
-				cb = 1;
-				break;
-			case 3:
-				cb = 2;
-				break;
-			case 4:
-				cb = 64;	/* FIXME: check */
-				break;
-			case 5:
-				cb = 65;	/* FIXME: check */
-				break;
-		}
-	}
-	if (event->type == GDK_BUTTON_RELEASE) {
-		cb = 3;
+	switch (button) {
+		case 0:			/* Release/no buttons. */
+			cb = 3;
+			break;
+		case 1:			/* Left. */
+			cb = 0;
+			break;
+		case 2:			/* Middle. */
+			cb = 1;
+			break;
+		case 3:			/* Right. */
+			cb = 2;
+			break;
+		case 4:
+			cb = 64;	/* Scroll up. FIXME: check */
+			break;
+		case 5:
+			cb = 65;	/* Scroll down. FIXME: check */
+			break;
 	}
 	cb += 32; /* 32 for normal */
 
@@ -6097,12 +6236,32 @@ vte_terminal_send_mouse_button(VteTerminal *terminal, GdkEventButton *event)
 	}
 
 	/* Encode the cursor coordinates. */
-	cx = 32 + 1 + (event->x / terminal->char_width);
-	cy = 32 + 1 + (event->y / terminal->char_height);
+	cx = 32 + 1 + (x / terminal->char_width);
+	cy = 32 + 1 + (y / terminal->char_height);
 
 	/* Send the event to the child. */
 	snprintf(buf, sizeof(buf), "%sM%c%c%c", VTE_CAP_CSI, cb, cx, cy);
 	vte_terminal_feed_child(terminal, buf, strlen(buf));
+}
+
+/* Send a mouse button click/release notification. */
+static void
+vte_terminal_send_mouse_button(VteTerminal *terminal, GdkEventButton *event)
+{
+	GdkModifierType modifiers;
+
+	/* Read the modifiers. */
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
+		modifiers = 0;
+	}
+
+	/* Encode the parameters and send them to the app. */
+	vte_terminal_send_mouse_button_int(terminal,
+		       			   (event->type == GDK_BUTTON_PRESS) ?
+					   event->button : 0,
+					   event->x,
+					   event->y,
+					   modifiers);
 }
 
 /* Send a mouse motion notification. */
@@ -6112,9 +6271,14 @@ vte_terminal_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	unsigned char cb = 0, cx = 0, cy = 0;
 	char buf[LINE_MAX];
 	GdkModifierType modifiers;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	/* First determine if we even want to send notification. */
+	if (!terminal->pvt->mouse_cell_motion_tracking &&
+	    !terminal->pvt->mouse_all_motion_tracking) {
+		return;
+	}
 	if (terminal->pvt->mouse_cell_motion_tracking) {
 		if ((event->x / terminal->char_width ==
 		     terminal->pvt->mouse_last_x / terminal->char_width) &&
@@ -6190,10 +6354,10 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
 		modifiers = 0;
 	}
-	/* Handle a drag event. */
+	/* Handle a drag event if we're running a mouse-aware application. */
 	if ((terminal->pvt->mouse_last_button != 0) &&
-	    (terminal->pvt->mouse_send_xy_on_button ||
-	     terminal->pvt->mouse_send_xy_on_click ||
+	    (terminal->pvt->mouse_send_xy_on_click ||
+	     terminal->pvt->mouse_send_xy_on_button ||
 	     terminal->pvt->mouse_hilite_tracking ||
 	     terminal->pvt->mouse_cell_motion_tracking ||
 	     terminal->pvt->mouse_all_motion_tracking) &&
@@ -6312,61 +6476,45 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 	}
 }
 
-/* Place the selected text onto the clipboard.  Do this asynchronously so that
- * we get notified when the selection we placed on the clipboard is replaced. */
-static void
-vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
+/* Extract a view of the widget as if we were goint to copy it. */
+char *
+vte_terminal_get_text(VteTerminal *terminal,
+		      gboolean(*is_selected)(VteTerminal *, long, long),
+		      GArray *attributes)
 {
-	GtkClipboard *clipboard;
-	GtkWidget *widget;
-	GArray *row_data;
 	long x, y, nuls;
 	VteScreen *screen;
 	struct vte_charcell *pcell;
-	wchar_t *buffer;
-	size_t length;
-	char *ibuf, *obuf, *obufptr;
-	size_t icount, ocount;
-	iconv_t conv;
-	GtkTargetEntry targets[] = {
-		{"UTF8_STRING", 0, 0},
-		{"COMPOUND_TEXT", 0, 0},
-		{"TEXT", 0, 0},
-		{"STRING", 0, 0},
-	};
+	char *ret = NULL;
+	GString *string;
+	struct vte_char_attributes attr;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	widget = GTK_WIDGET(terminal);
-	clipboard = gtk_clipboard_get(board);
-
-	/* Build a buffer with the selected wide chars. */
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+	g_return_val_if_fail(is_selected != NULL, NULL);
 	screen = terminal->pvt->screen;
-	length = 0;
-	for (y = screen->scroll_delta;
-	     y < terminal->row_count + screen->scroll_delta;
-	     y++) {
-		row_data = vte_ring_index(screen->row_data, GArray *, y);
-		if (row_data != NULL) {
-			length += row_data->len;
-		}
-	}
-	buffer = g_malloc((length * 2 + 1) * sizeof(wchar_t));
 
-	length = 0;
+	string = g_string_new("");
+
 	for (y = screen->scroll_delta;
 	     y < terminal->row_count + screen->scroll_delta;
 	     y++) {
 		x = 0;
 		nuls = 0;
+		attr.row = y;
 		do {
-			pcell = vte_terminal_find_charcell(terminal, y, x);
-			if (vte_cell_is_selected(terminal, y, x)) {
+			pcell = vte_terminal_find_charcell(terminal, x, y);
+			if (is_selected(terminal, x, y)) {
+				attr.column = x;
 				if (pcell == NULL) {
 					/* If there are no more cells on this
 					 * line, and we've hit the right margin,
 					 * add a newline. */
 					if (x < terminal->column_count) {
-						buffer[length++] = '\n';
+						string = g_string_append_c(string, '\n');
+						if (attributes) {
+							g_array_append_val(attributes,
+									   attr);
+						}
 					}
 					break;
 				} else
@@ -6375,57 +6523,78 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 					 * something to the right of it. */
 					nuls++;
 				} else {
+					/* Use the attributes for this character. */
+					attr.fore.red =
+						terminal->pvt->palette[pcell->fore].red;
+					attr.fore.green =
+						terminal->pvt->palette[pcell->fore].green;
+					attr.fore.blue =
+						terminal->pvt->palette[pcell->fore].blue;
+					attr.back.red =
+						terminal->pvt->palette[pcell->back].red;
+					attr.back.green =
+						terminal->pvt->palette[pcell->back].green;
+					attr.back.blue =
+						terminal->pvt->palette[pcell->back].blue;
+					attr.underline = pcell->underline;
+					attr.alternate = pcell->alternate;
 					/* Stuff any saved NULs in as spaces. */
 					while (nuls-- > 0) {
-						buffer[length++] = ' ';
+						string = g_string_append_c(string, ' ');
+						if (attributes != NULL) {
+							g_array_append_val(attributes,
+									   attr);
+						}
 					}
 					/* Stuff the charcter in this cell. */
-					buffer[length++] = pcell->c;
+					string = g_string_append_unichar(string, pcell->c);
+					if (attributes != NULL) {
+						g_array_append_val(attributes,
+								   attr);
+					}
 				}
 			}
 			x++;
 		} while (pcell != NULL);
 	}
-	/* Now convert it all to UTF-8. */
-	if (length > 0) {
-		icount = sizeof(wchar_t) * length;
-		ibuf = (char*) buffer;
-		ocount = (terminal->column_count + 1) *
-			 terminal->row_count * sizeof(wchar_t);
-		obuf = obufptr = g_malloc0(ocount);
-		conv = iconv_open("UTF-8", "WCHAR_T");
-		if (conv) {
-			if (iconv(conv, &ibuf, &icount,
-				  &obuf, &ocount) != -1) {
-#ifdef VTE_DEBUG
-				if (vte_debug_on(VTE_DEBUG_EVENTS)) {
-					fprintf(stderr, "Passing `%*s' to clipboard.\n",
-						obuf - obufptr, obufptr);
-				}
-#endif
-				if (terminal->pvt->selection != NULL) {
-					g_free(terminal->pvt->selection);
-				}
-				terminal->pvt->selection = g_strndup(obufptr,
-								     obuf -
-								     obufptr);
-				gtk_clipboard_set_with_owner(clipboard,
-							     targets,
-							     G_N_ELEMENTS(targets),
-							     vte_terminal_copy_cb,
-							     vte_terminal_clear_cb,
-							     G_OBJECT(terminal));
-			} else {
-				g_warning("Conversion error in copy (%s), "
-					  "dropping.", strerror(errno));
-			}
-			iconv_close(conv);
-		} else {
-			g_warning("Error initializing for conversion.");
-		}
-		g_free(obufptr);
+	ret = g_strdup(string->str);
+	g_string_free(string, FALSE);
+	return ret;
+}
+
+/* Place the selected text onto the clipboard.  Do this asynchronously so that
+ * we get notified when the selection we placed on the clipboard is replaced. */
+static void
+vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
+{
+	GtkClipboard *clipboard;
+	GtkTargetEntry targets[] = {
+		{"UTF8_STRING", 0, 0},
+		{"COMPOUND_TEXT", 0, 0},
+		{"TEXT", 0, 0},
+		{"STRING", 0, 0},
+	};
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	clipboard = gtk_clipboard_get(board);
+
+	/* Retrieve newly-selected text. */
+	if (terminal->pvt->selection != NULL) {
+		g_free(terminal->pvt->selection);
 	}
-	g_free(buffer);
+	terminal->pvt->selection = vte_terminal_get_text(terminal,
+							 vte_cell_is_selected,
+							 NULL);
+
+	/* Place the text on the clipboard. */
+	if (terminal->pvt->selection != NULL) {
+		gtk_clipboard_set_with_owner(clipboard,
+					     targets,
+					     G_N_ELEMENTS(targets),
+					     vte_terminal_copy_cb,
+					     vte_terminal_clear_cb,
+					     G_OBJECT(terminal));
+	}
 }
 
 /* Paste from the given clipboard. */
@@ -7617,6 +7786,11 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->mouse_inviso_cursor = NULL;
 	pvt->mouse_autohide = FALSE;
 
+	/* Set up matching checks. */
+	pvt->match_contents = NULL;
+	pvt->match_attributes = NULL;
+	pvt->match_regexes = g_array_new(FALSE, TRUE, sizeof(regex_t));
+
 	/* Set various other settings. */
 	pvt->xterm_font_tweak = FALSE;
 	vte_terminal_set_default_tabstops(terminal);
@@ -7807,6 +7981,16 @@ vte_terminal_finalize(GObject *object)
 	if (terminal->pvt->selection != NULL) {
 		g_free(terminal->pvt->selection);
 		terminal->pvt->selection = NULL;
+	}
+
+	/* Free matching data. */
+	if (terminal->pvt->match_contents != NULL) {
+		g_free(terminal->pvt->match_contents);
+		terminal->pvt->match_contents = NULL;
+	}
+	if (terminal->pvt->match_regexes != NULL) {
+		g_array_free(terminal->pvt->match_regexes, TRUE);
+		terminal->pvt->match_regexes = NULL;
 	}
 
 	/* Shut down the child terminal. */
@@ -8096,7 +8280,7 @@ vte_terminal_draw_char(VteTerminal *terminal,
 	/* Determine what the foreground and background colors for rendering
 	 * text should be. */
 	reverse = (cell && cell->reverse)
-		^ vte_cell_is_selected(terminal, row, col)
+		^ vte_cell_is_selected(terminal, col, row)
 		^ screen->reverse_mode
 		^ cursor;
 	vte_terminal_determine_colors(terminal, cell, reverse, &fore, &back);
@@ -8124,7 +8308,7 @@ vte_terminal_draw_char(VteTerminal *terminal,
 		/* Search for a suitable cell. */
 		for (dcol = col - 1; dcol >= 0; dcol--) {
 			cell = vte_terminal_find_charcell(terminal,
-							  row, dcol);
+							  dcol, row);
 			if (cell->columns > 0) {
 				break;
 			}
@@ -8913,7 +9097,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		col_stop = (area->x + area->width + width - 1) / width;
 		while (col < col_stop) {
 			/* Get the character cell's contents. */
-			cell = vte_terminal_find_charcell(terminal, drow, col);
+			cell = vte_terminal_find_charcell(terminal, col, drow);
 			columns = 1;
 			if ((cell != NULL) && (cell->columns > 1)) {
 				columns = cell->columns;
@@ -8986,7 +9170,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		}
 		drow = screen->cursor_current.row;
 		row = drow - delta;
-		cell = vte_terminal_find_charcell(terminal, drow, col);
+		cell = vte_terminal_find_charcell(terminal, col, drow);
 		columns = 1;
 		if ((cell != NULL) && (cell->columns > 1)) {
 			columns = cell->columns;
@@ -9152,27 +9336,84 @@ vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 	return TRUE;
 }
 
+/* Handle a scroll event. */
 static gboolean
 vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 {
 	GtkAdjustment *adj;
+	VteTerminal *terminal;
 	gdouble new_value;
+	GdkModifierType modifiers;
+	int button;
 
-	adj = VTE_TERMINAL (widget)->adjustment;
-
-	switch (event->direction) {
-	case GDK_SCROLL_UP:
-		new_value = adj->value - adj->page_increment / 2;
-		break;
-	case GDK_SCROLL_DOWN:
-		new_value = adj->value + adj->page_increment / 2;
-		break;
-	default:
-		return FALSE;
+	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
+	terminal = VTE_TERMINAL(widget);
+	
+	/* Read the modifiers. */
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers) == FALSE) {
+		modifiers = 0;
 	}
 
-	new_value = CLAMP (new_value, adj->lower, adj->upper - adj->page_size);
-	gtk_adjustment_set_value (adj, new_value);
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_EVENTS)) {
+		switch (event->direction) {
+			case GDK_SCROLL_UP:
+				fprintf(stderr, "Scroll up.\n");
+				break;
+			case GDK_SCROLL_DOWN:
+				fprintf(stderr, "Scroll down.\n");
+				break;
+			default:
+				break;
+		}
+	}
+#endif
+
+	/* If we're running a mouse-aware application, map the scroll event
+	 * to a button press on buttons four and five. */
+	if (terminal->pvt->mouse_send_xy_on_click ||
+	    terminal->pvt->mouse_send_xy_on_button ||
+	    terminal->pvt->mouse_hilite_tracking ||
+	    terminal->pvt->mouse_cell_motion_tracking ||
+	    terminal->pvt->mouse_all_motion_tracking) {
+		switch (event->direction) {
+			case GDK_SCROLL_UP:
+				button = 4;
+				break;
+			case GDK_SCROLL_DOWN:
+				button = 5;
+				break;
+			default:
+				button = 0;
+				break;
+		}
+		if (button != 0) {
+			/* Encode the parameters and send them to the app. */
+			vte_terminal_send_mouse_button_int(terminal,
+							   button,
+							   event->x,
+							   event->y,
+							   modifiers);
+			return TRUE;
+		}
+	}
+
+	/* Perform a history scroll. */
+	adj = (VTE_TERMINAL(widget))->adjustment;
+
+	switch (event->direction) {
+		case GDK_SCROLL_UP:
+			new_value = adj->value - adj->page_increment / 2;
+			break;
+		case GDK_SCROLL_DOWN:
+			new_value = adj->value + adj->page_increment / 2;
+			break;
+		default:
+			return FALSE;
+	}
+
+	new_value = CLAMP(new_value, adj->lower, adj->upper - adj->page_size);
+	gtk_adjustment_set_value(adj, new_value);
 
 	return TRUE;
 }
@@ -9994,8 +10235,8 @@ vte_terminal_get_snapshot(VteTerminal *terminal)
 		column = x = 0;
 		while (column < ret->columns) {
 			cell = vte_terminal_find_charcell(terminal,
-							  row + terminal->pvt->screen->scroll_delta,
-							  x++);
+							  x++,
+							  row + terminal->pvt->screen->scroll_delta);
 			if (cell == NULL) {
 				break;
 			}

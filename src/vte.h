@@ -102,12 +102,21 @@ typedef struct _VteTerminalSnapshot {
 	} **contents;
 } VteTerminalSnapshot;
 
+/* Values for "what should happen when the user hits backspace/delete".  Use
+ * AUTO unless the user can cause them to be overridden. */
 typedef enum {
 	VTE_ERASE_AUTO,
 	VTE_ERASE_ASCII_BACKSPACE,
 	VTE_ERASE_ASCII_DELETE,
 	VTE_ERASE_DELETE_SEQUENCE,
 } VteTerminalEraseBinding;
+
+/* The structure we return as the supplemental attributes for strings. */
+struct vte_char_attributes {
+	long row, column;
+	GdkColor fore, back;
+	gboolean underline, alternate;
+};
 
 /* The widget's type. */
 GtkType vte_terminal_get_type(void);
@@ -129,27 +138,35 @@ GtkWidget *vte_terminal_new(void);
 pid_t vte_terminal_fork_command(VteTerminal *terminal,
 			        const char *command,
 			        const char **argv);
-void vte_terminal_feed(VteTerminal *terminal,
-		       const char *data,
-		       size_t length);
-void vte_terminal_feed_child(VteTerminal *terminal,
-			     const char *data,
-			     size_t length);
 
+/* Send data to the terminal to display, or to the terminal's forked command
+ * to handle in some way.  If it's 'cat', they should be the same. */
+void vte_terminal_feed(VteTerminal *terminal, const char *data, size_t length);
+void vte_terminal_feed_child(VteTerminal *terminal,
+			     const char *data, size_t length);
+
+/* Copy currently-selected text to the clipboard, or from the clipboard to
+ * the terminal. */
 void vte_terminal_copy_clipboard(VteTerminal *terminal);
 void vte_terminal_paste_clipboard(VteTerminal *terminal);
 
 void vte_terminal_set_size(VteTerminal *terminal, long columns, long rows);
-void vte_terminal_set_audible_bell(VteTerminal *terminal, gboolean audible);
+
+/* Set various one-off settings. */
+void vte_terminal_set_audible_bell(VteTerminal *terminal, gboolean is_audible);
 void vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll);
 void vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 					  gboolean scroll);
+
+/* Set the color scheme. */
 void vte_terminal_set_colors(VteTerminal *terminal,
 			     const GdkColor *foreground,
 			     const GdkColor *background,
 			     const GdkColor *palette,
 			     size_t palette_size);
 void vte_terminal_set_default_colors(VteTerminal *terminal);
+
+/* Background effects. */
 void vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image);
 void vte_terminal_set_background_image_file(VteTerminal *terminal,
 					    const char *path);
@@ -157,32 +174,70 @@ void vte_terminal_set_background_saturation(VteTerminal *terminal,
 					    double saturation);
 void vte_terminal_set_background_transparent(VteTerminal *terminal,
 					     gboolean transparent);
+
+/* Set whether or not the cursor blinks. */
 void vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink);
+
+/* Set the number of scrollback lines, above or at an internal minimum. */
 void vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines);
-void vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec);
+
+/* Append the input method menu items to a given shell. */
 void vte_terminal_im_append_menuitems(VteTerminal *terminal,
 				      GtkMenuShell *menushell);
+
+/* Set or retrieve the current font. */
 void vte_terminal_set_font(VteTerminal *terminal,
                            const PangoFontDescription *font_desc);
 void vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name);
 const PangoFontDescription *vte_terminal_get_font(VteTerminal *terminal);
-
-gboolean vte_terminal_get_has_selection(VteTerminal *terminal);
 gboolean vte_terminal_get_using_xft(VteTerminal *terminal);
+
+/* Check if the terminal is the current selection owner. */
+gboolean vte_terminal_get_has_selection(VteTerminal *terminal);
+
+/* Set the list of word chars, optionally using hyphens to specify ranges
+ * (to get a hyphen, place it first), and check if a character is in the
+ * range. */
+void vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec);
 gboolean vte_terminal_is_word_char(VteTerminal *terminal, gunichar c);
 
+/* Set what happens when the user strikes backspace or delete. */
 void vte_terminal_set_backspace_binding(VteTerminal *terminal,
 					VteTerminalEraseBinding binding);
 void vte_terminal_set_delete_binding(VteTerminal *terminal,
 				     VteTerminalEraseBinding binding);
 
+/* Manipulate the autohide setting. */
 void vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting);
 gboolean vte_terminal_get_mouse_autohide(VteTerminal *terminal);
 
-VteTerminalSnapshot *vte_terminal_get_snapshot(VteTerminal *terminal);
-void vte_terminal_free_snapshot(VteTerminalSnapshot *snapshot);
+/* Reset the terminal, optionally clearing the tab stops and line history. */
 void vte_terminal_reset(VteTerminal *terminal, gboolean full,
 			gboolean clear_history);
+
+/* Read the contents of the terminal, using a callback function to determine
+ * if a particular location on the screen (0-based) is interesting enough to
+ * include.  Each byte in the returned string will have a corresponding
+ * struct vte_char_attributes in the passed GArray, if the array was not NULL.
+ * Note that it will have one entry per byte, not per character, so indexes
+ * should match up exactly. */
+char *vte_terminal_get_text(VteTerminal *terminal,
+			    gboolean(*is_selected)(VteTerminal * terminal,
+						    long column, long row),
+			    GArray *attributes);
+
+/* Display string matching:  clear all matching expressions. */
+void vte_terminal_match_clear_all(VteTerminal *terminal);
+
+/* Add a matching expression, returning the tag the widget assigns to that
+ * expression. */
+int vte_terminal_match_add(VteTerminal *terminal, const char *match);
+
+/* Check if a given cell on the screen contains part of a matched string.  If
+ * it does, return the string, and store the match tag in the optional tag
+ * argument. */
+char *vte_terminal_match_check(VteTerminal *terminal, long column, long row,
+			       int *tag);
 
 G_END_DECLS
 

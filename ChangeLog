@@ -1,3 +1,10 @@
+2002-05-15 nalin
+	* src/vte.c: Send kI on insert key.  Don't send drag events when the
+	child has only asked for click events.  Fix crashbugs in selection.
+	When getting scroll events, send mouse 4/5 events to the child instead
+	of performing a history scroll if the child wants mouse events.  Start
+	adding match support, merging how selection views the buffer with how
+	matching views the buffer, though matching doesn't work yet.
 2002-05-14 nalin
 	* src/vte.c: Don't try to draw nul characters, most fonts can't.  Don't
 	send motion-tracking events to the child unless we're dragging.  Fix
