@@ -1,4 +1,7 @@
 2003-02-18 nalin
+	* src/keymap.c: add map entries for unmodified digit keypresses.
+
+2003-02-18 nalin
 	* src/vte.c(vte_terminal_match_add): use the default cursor by default,
 	so that we don't look weird to people who aren't used to the cursor
 	changing this way.

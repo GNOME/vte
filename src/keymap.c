@@ -153,30 +153,37 @@ static struct _vte_keymap_entry _vte_keymap_GDK_ISO_Left_Tab[] = {
 /* Various numeric keys enter control characters. */
 static struct _vte_keymap_entry _vte_keymap_GDK_2[] = {
 	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\0", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, "2", 1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 static struct _vte_keymap_entry _vte_keymap_GDK_3[] = {
 	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\033", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, "3", 1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 static struct _vte_keymap_entry _vte_keymap_GDK_4[] = {
 	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\034", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, "4", 1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 static struct _vte_keymap_entry _vte_keymap_GDK_5[] = {
 	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\035", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, "5", 1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 static struct _vte_keymap_entry _vte_keymap_GDK_6[] = {
 	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\036", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, "6", 1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 static struct _vte_keymap_entry _vte_keymap_GDK_7[] = {
 	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\037", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, "7", 1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 static struct _vte_keymap_entry _vte_keymap_GDK_8[] = {
 	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\177", 1, NULL},
+	{cursor_all, keypad_all, fkey_all, 0, "8", 1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},
 };
 
