@@ -255,11 +255,7 @@ char_class_string_extract(const wchar_t *s, size_t length,
 	size_t len;
 	GValue value;
 
-	len = wcslen(s);
-	if (len > length) {
-		len = length;
-	}
-
+	len = wcsnlen(s, length);
 	ret = g_malloc0((len + 1) * sizeof(wchar_t));
 	wcsncpy(ret, s, len);
 	memset(&value, 0, sizeof(value));

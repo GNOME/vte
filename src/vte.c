@@ -51,6 +51,73 @@
 
 #define VTE_TAB_WIDTH 8
 
+struct _VteTerminalPrivate {
+	/* Emulation setup data. */
+	struct vte_termcap *termcap;	/* termcap storage */
+	struct vte_trie *trie;		/* control sequence trie */
+	const char *termcap_path;	/* path to termcap file */
+	const char *terminal;		/* terminal type to emulate */
+	GTree *sequences;		/* sequence handlers, keyed by GQuark
+					   based on the sequence name */
+
+	/* PTY handling data. */
+	char *shell;			/* shell we started */
+	int pty_master;			/* pty master descriptor */
+	guint pty_input;		/* master I/O channel */
+	pid_t pty_pid;			/* pid of child using pty slave */
+	const char *encoding;		/* the pty's encoding */
+
+	/* Input data queues. */
+	iconv_t pending_conv;		/* narrow/wide conversion state */
+	wchar_t *pending;		/* pending output characters */
+	size_t n_pending;
+	char *narrow_pending;		/* pending output characters */
+	size_t n_narrow_pending;
+	iconv_t outgoing_conv;		/* narrow/wide conversion state */
+
+	/* Data used when rendering the text. */
+	gboolean palette_initialized;
+	struct {
+		guint16 red, green, blue;
+		unsigned long pixel;
+#ifdef HAVE_XFT
+		XRenderColor rcolor;
+		XftColor ftcolor;
+#endif
+	} palette[16];
+	XFontSet fontset;
+#ifdef HAVE_XFT
+	XftFont *ftfont;
+	gboolean use_xft;
+#endif
+
+	/* Emulation state. */
+	VteKeypad keypad;
+
+	/* Screen data.  We support the normal screen, and an alternate
+	 * screen, which seems to be a DEC-specific feature. */
+	struct _VteScreen {
+		GArray *row_data;	/* row data, arranged as a GArray of
+					   vte_charcell structures */
+		struct {
+			gint row, col;
+		} cursor_current, cursor_saved;
+					/* the current and saved positions of
+					   the [insertion] cursor */
+		gboolean cursor_visible;
+		gboolean insert;	/* insert mode */
+		struct {
+			gint start, end;
+		} scrolling_region;	/* the region we scroll in */
+		gboolean scrolling_restricted;
+		long delta;		/* cached Y offset (the saved cursor
+					   position is relative to this) */
+		struct vte_charcell defaults;	/* default characteristics
+						   for insertion of any new
+						   characters */
+	} normal_screen, alternate_screen, *screen;
+};
+
 /* A function which can handle a terminal control sequence. */
 typedef void (*VteTerminalSequenceHandler)(VteTerminal *terminal,
 					   const char *match,
@@ -86,17 +153,17 @@ static void
 vte_terminal_set_default_attributes(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	memset(&terminal->screen->defaults, 0,
-	       sizeof(terminal->screen->defaults));
-	terminal->screen->defaults.fore = 7;
-	terminal->screen->defaults.back = 0;
-	terminal->screen->defaults.reverse = 0;
-	terminal->screen->defaults.invisible = 0;
-	terminal->screen->defaults.half = 0;
-	terminal->screen->defaults.underline = 0;
-	terminal->screen->defaults.blink = 0;
-	terminal->screen->defaults.standout = 0;
-	terminal->screen->defaults.bold = 0;
+	memset(&terminal->pvt->screen->defaults, 0,
+	       sizeof(terminal->pvt->screen->defaults));
+	terminal->pvt->screen->defaults.fore = 7;
+	terminal->pvt->screen->defaults.back = 0;
+	terminal->pvt->screen->defaults.reverse = 0;
+	terminal->pvt->screen->defaults.invisible = 0;
+	terminal->pvt->screen->defaults.half = 0;
+	terminal->pvt->screen->defaults.underline = 0;
+	terminal->pvt->screen->defaults.blink = 0;
+	terminal->pvt->screen->defaults.standout = 0;
+	terminal->pvt->screen->defaults.bold = 0;
 }
 
 /* Cause certain cells to be updated. */
@@ -142,8 +209,8 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal)
 	}
 	/* The upper value is the number of rows which might be visible.  (Add
 	 * one to the cursor offset because it's zero-based.) */
-	rows = MAX(terminal->screen->row_data->len,
-		   terminal->screen->cursor_current.row + 1);
+	rows = MAX(terminal->pvt->screen->row_data->len,
+		   terminal->pvt->screen->cursor_current.row + 1);
 	if (terminal->adjustment->upper != rows) {
 		terminal->adjustment->upper = rows;
 		changed = TRUE;
@@ -227,16 +294,16 @@ vte_insert_line_int(VteTerminal *terminal, long position)
 	GArray *array;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	/* Pad out the line data to the insertion point. */
-	while (terminal->screen->row_data->len < position) {
+	while (terminal->pvt->screen->row_data->len < position) {
 		array = vte_new_row_data();
-		g_array_append_val(terminal->screen->row_data, array);
+		g_array_append_val(terminal->pvt->screen->row_data, array);
 	}
 	/* If we haven't inserted a line yet, insert a new one. */
 	array = vte_new_row_data();
-	if (terminal->screen->row_data->len >= position) {
-		g_array_insert_val(terminal->screen->row_data, position, array);
+	if (terminal->pvt->screen->row_data->len >= position) {
+		g_array_insert_val(terminal->pvt->screen->row_data, position, array);
 	} else {
-		g_array_append_val(terminal->screen->row_data, array);
+		g_array_append_val(terminal->pvt->screen->row_data, array);
 	}
 }
 
@@ -246,11 +313,11 @@ vte_remove_line_int(VteTerminal *terminal, long position)
 {
 	GArray *array;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	if (terminal->screen->row_data->len > position) {
-		array = g_array_index(terminal->screen->row_data,
+	if (terminal->pvt->screen->row_data->len > position) {
+		array = g_array_index(terminal->pvt->screen->row_data,
 				      GArray *,
 				      position);
-		g_array_remove_index(terminal->screen->row_data, position);
+		g_array_remove_index(terminal->pvt->screen->row_data, position);
 		g_array_free(array, TRUE);
 	}
 }
@@ -264,19 +331,19 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 		codeset = nl_langinfo(CODESET);
 	}
 
-	if (terminal->pending_conv != NULL) {
-		iconv_close(terminal->pending_conv);
+	if (terminal->pvt->pending_conv != NULL) {
+		iconv_close(terminal->pvt->pending_conv);
 	}
-	terminal->pending_conv = iconv_open("WCHAR_T", codeset);
+	terminal->pvt->pending_conv = iconv_open("WCHAR_T", codeset);
 
-	if (terminal->outgoing_conv != NULL) {
-		iconv_close(terminal->outgoing_conv);
+	if (terminal->pvt->outgoing_conv != NULL) {
+		iconv_close(terminal->pvt->outgoing_conv);
 	}
-	terminal->outgoing_conv = iconv_open(codeset, "WCHAR_T");
+	terminal->pvt->outgoing_conv = iconv_open(codeset, "WCHAR_T");
 
-	terminal->encoding = g_quark_to_string(g_quark_from_string(codeset));
+	terminal->pvt->encoding = g_quark_to_string(g_quark_from_string(codeset));
 #ifdef VTE_DEBUG
-	g_print("Set encoding to `%s'.\n", terminal->encoding);
+	g_print("Set encoding to `%s'.\n", terminal->pvt->encoding);
 #endif
 }
 
@@ -290,7 +357,7 @@ vte_sequence_handler_al(VteTerminal *terminal,
 	struct _VteScreen *screen;
 	long start, end;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	if (screen->scrolling_restricted) {
 		start = screen->delta + screen->scrolling_region.start;
 		end = screen->delta + screen->scrolling_region.end;
@@ -341,7 +408,7 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 	struct _VteScreen *screen;
 	struct vte_charcell *pcell;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
 	if (screen->row_data->len > screen->cursor_current.row) {
@@ -376,7 +443,7 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 	long delta, i;
 	struct _VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the rows
 	 * below the cursor. */
 	delta = screen->delta;
@@ -407,7 +474,7 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 	long delta;
 	struct _VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
 	delta = screen->delta;
@@ -437,7 +504,7 @@ vte_sequence_handler_ch(VteTerminal *terminal,
 	GValue *value;
 	long delta;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	delta = screen->delta;
 	/* Repaint the current cursor position. */
 	vte_invalidate_cells(terminal,
@@ -479,7 +546,7 @@ vte_sequence_handler_cm(VteTerminal *terminal,
 	GValue *row, *col;
 	struct _VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	/* We need at least two parameters. */
 	if ((params != NULL) && (params->n_values >= 2)) {
 		/* The first is the row, the second is the column. */
@@ -505,7 +572,7 @@ vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 	long delta;
 	struct _VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
 	delta = screen->delta;
@@ -532,7 +599,7 @@ vte_sequence_handler_cr(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->screen->cursor_current.col = 0;
+	terminal->pvt->screen->cursor_current.col = 0;
 }
 
 /* Restrict scrolling and updates to a subset of the visible lines. */
@@ -547,7 +614,7 @@ vte_sequence_handler_cs(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	/* We require two parameters. */
 	if ((params == NULL) || (params->n_values < 2)) {
-		terminal->screen->scrolling_restricted = FALSE;
+		terminal->pvt->screen->scrolling_restricted = FALSE;
 		return;
 	}
 	/* Extract the two values. */
@@ -556,14 +623,14 @@ vte_sequence_handler_cs(VteTerminal *terminal,
 	value = g_value_array_get_nth(params, 1);
 	end = g_value_get_long(value);
 	/* Set the right values. */
-	terminal->screen->scrolling_region.start = start;
-	terminal->screen->scrolling_region.end = end;
-	terminal->screen->scrolling_restricted = TRUE;
+	terminal->pvt->screen->scrolling_region.start = start;
+	terminal->pvt->screen->scrolling_region.end = end;
+	terminal->pvt->screen->scrolling_restricted = TRUE;
 	/* Special case -- run wild, run free. */
 	rows = terminal->row_count;
-	if ((terminal->screen->scrolling_region.start == 0) &&
-	    (terminal->screen->scrolling_region.end == rows - 1)) {
-		terminal->screen->scrolling_restricted = FALSE;
+	if ((terminal->pvt->screen->scrolling_region.start == 0) &&
+	    (terminal->pvt->screen->scrolling_region.end == rows - 1)) {
+		terminal->pvt->screen->scrolling_restricted = FALSE;
 	}
 }
 
@@ -578,7 +645,7 @@ vte_sequence_handler_cv(VteTerminal *terminal,
 	GValue *value;
 	long delta;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	delta = screen->delta;
 	/* Repaint the current cursor position. */
 	vte_invalidate_cells(terminal,
@@ -609,7 +676,7 @@ vte_sequence_handler_dl(VteTerminal *terminal,
 	struct _VteScreen *screen;
 	long end;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	if (screen->scrolling_restricted) {
 		end = screen->delta + screen->scrolling_region.end;
 	} else {
@@ -647,7 +714,7 @@ vte_sequence_handler_do(VteTerminal *terminal,
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	widget = GTK_WIDGET(terminal);
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 
 	delta = screen->delta;
 	start = screen->scrolling_region.start + delta;
@@ -717,7 +784,7 @@ vte_sequence_handler_ei(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->screen->insert = FALSE;
+	terminal->pvt->screen->insert = FALSE;
 }
 
 /* Move the cursor to the home position. */
@@ -729,7 +796,7 @@ vte_sequence_handler_ho(VteTerminal *terminal,
 {
 	struct _VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	screen->cursor_current.row = screen->delta;
 	screen->cursor_current.col = 0;
 }
@@ -742,7 +809,7 @@ vte_sequence_handler_im(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->screen->insert = TRUE;
+	terminal->pvt->screen->insert = TRUE;
 }
 
 /* Cursor left. */
@@ -754,7 +821,7 @@ vte_sequence_handler_le(VteTerminal *terminal,
 {
 	struct _VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	screen->cursor_current.col = MAX(0, screen->cursor_current.col - 1);
 	vte_invalidate_cells(terminal,
 			     screen->cursor_current.col, 2,
@@ -780,7 +847,7 @@ vte_sequence_handler_mb(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->screen->defaults.blink = 1;
+	terminal->pvt->screen->defaults.blink = 1;
 }
 
 /* Bold on. */
@@ -791,7 +858,7 @@ vte_sequence_handler_md(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->screen->defaults.bold = 1;
+	terminal->pvt->screen->defaults.bold = 1;
 }
 
 /* End modes. */
@@ -802,13 +869,13 @@ vte_sequence_handler_me(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->screen->defaults.blink = 0;
-	terminal->screen->defaults.half = 0;
-	terminal->screen->defaults.invisible = 0;
-	terminal->screen->defaults.reverse = 0;
-	terminal->screen->defaults.underline = 0;
-	terminal->screen->defaults.bold = 0;
-	terminal->screen->defaults.standout = 0;
+	terminal->pvt->screen->defaults.blink = 0;
+	terminal->pvt->screen->defaults.half = 0;
+	terminal->pvt->screen->defaults.invisible = 0;
+	terminal->pvt->screen->defaults.reverse = 0;
+	terminal->pvt->screen->defaults.underline = 0;
+	terminal->pvt->screen->defaults.bold = 0;
+	terminal->pvt->screen->defaults.standout = 0;
 }
 
 /* Invisible on. */
@@ -819,7 +886,7 @@ vte_sequence_handler_mk(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->screen->defaults.invisible = 1;
+	terminal->pvt->screen->defaults.invisible = 1;
 }
 
 /* Reverse on. */
@@ -830,7 +897,7 @@ vte_sequence_handler_mr(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->screen->defaults.reverse = 1;
+	terminal->pvt->screen->defaults.reverse = 1;
 }
 
 /* Cursor right. */
@@ -842,7 +909,7 @@ vte_sequence_handler_nd(VteTerminal *terminal,
 {
 	struct _VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	screen->cursor_current.col++;
 }
 
@@ -855,7 +922,7 @@ vte_sequence_handler_rc(VteTerminal *terminal,
 {
 	struct _VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	screen->cursor_current.col = screen->cursor_saved.col;
 	screen->cursor_current.row = screen->cursor_saved.row + screen->delta;
 }
@@ -880,7 +947,7 @@ vte_sequence_handler_sc(VteTerminal *terminal,
 {
 	struct _VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	screen->cursor_saved.col = screen->cursor_current.col;
 	screen->cursor_saved.row = screen->cursor_current.row - screen->delta;
 }
@@ -893,7 +960,7 @@ vte_sequence_handler_se(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->screen->defaults.standout = 0;
+	terminal->pvt->screen->defaults.standout = 0;
 }
 
 /* Standout start. */
@@ -904,7 +971,7 @@ vte_sequence_handler_so(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->screen->defaults.standout = 1;
+	terminal->pvt->screen->defaults.standout = 1;
 }
 
 /* Tab.  FIXME: implement custom tabstop setting and the whole nine yards. */
@@ -918,24 +985,24 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	/* Invalidate the cell the cursor is in. */
 	vte_invalidate_cells(terminal,
-			     terminal->screen->cursor_current.col, 1,
-			     terminal->screen->cursor_current.row, 1);
+			     terminal->pvt->screen->cursor_current.col, 1,
+			     terminal->pvt->screen->cursor_current.row, 1);
 	/* Calculate which column is the next tab stop. */
-	newcol = terminal->screen->cursor_current.col;
+	newcol = terminal->pvt->screen->cursor_current.col;
 	do {
 		newcol++;
 	} while ((newcol % VTE_TAB_WIDTH) != 0);
 	/* Wrap to the next line if need be. */
 	if (newcol >= terminal->column_count) {
-		terminal->screen->cursor_current.col = 0;
+		terminal->pvt->screen->cursor_current.col = 0;
 		vte_sequence_handler_do(terminal, match, match_quark, params);
 	} else {
-		terminal->screen->cursor_current.col = newcol;
+		terminal->pvt->screen->cursor_current.col = newcol;
 	}
 	/* Invalidate the cell the cursor is in. */
 	vte_invalidate_cells(terminal,
-			     terminal->screen->cursor_current.col, 1,
-			     terminal->screen->cursor_current.row, 1);
+			     terminal->pvt->screen->cursor_current.col, 1,
+			     terminal->pvt->screen->cursor_current.row, 1);
 }
 
 /* Underline end. */
@@ -946,7 +1013,7 @@ vte_sequence_handler_ue(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->screen->defaults.underline = 0;
+	terminal->pvt->screen->defaults.underline = 0;
 }
 
 /* Cursor up, scrolling if need be. */
@@ -962,7 +1029,7 @@ vte_sequence_handler_up(VteTerminal *terminal,
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	widget = GTK_WIDGET(terminal);
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 
 	delta = screen->delta;
 	col = screen->cursor_current.col;
@@ -1033,7 +1100,7 @@ vte_sequence_handler_us(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->screen->defaults.underline = 1;
+	terminal->pvt->screen->defaults.underline = 1;
 }
 
 /* Cursor invisible. */
@@ -1044,7 +1111,7 @@ vte_sequence_handler_vi(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->screen->cursor_visible = FALSE;
+	terminal->pvt->screen->cursor_visible = FALSE;
 }
 
 /* Cursor standout. */
@@ -1055,7 +1122,7 @@ vte_sequence_handler_vs(VteTerminal *terminal,
 			GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->screen->cursor_visible = TRUE;
+	terminal->pvt->screen->cursor_visible = TRUE;
 }
 
 /* Handle ANSI color setting and related stuffs (SGR). */
@@ -1084,35 +1151,35 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 				vte_terminal_set_default_attributes(terminal);
 				break;
 			case 1:
-				terminal->screen->defaults.bold = 1;
+				terminal->pvt->screen->defaults.bold = 1;
 				break;
 			case 4:
-				terminal->screen->defaults.underline = 1;
+				terminal->pvt->screen->defaults.underline = 1;
 				break;
 			case 5:
-				terminal->screen->defaults.blink = 1;
+				terminal->pvt->screen->defaults.blink = 1;
 				break;
 			case 7:
-				terminal->screen->defaults.reverse = 1;
+				terminal->pvt->screen->defaults.reverse = 1;
 				break;
 			case 8:
-				terminal->screen->defaults.invisible = 1;
+				terminal->pvt->screen->defaults.invisible = 1;
 				break;
 			case 21: /* one of these is the linux console */
 			case 22: /* one of these is ecma, i forget which */
-				terminal->screen->defaults.bold = 0;
+				terminal->pvt->screen->defaults.bold = 0;
 				break;
 			case 24:
-				terminal->screen->defaults.underline = 0;
+				terminal->pvt->screen->defaults.underline = 0;
 				break;
 			case 25:
-				terminal->screen->defaults.blink = 0;
+				terminal->pvt->screen->defaults.blink = 0;
 				break;
 			case 27:
-				terminal->screen->defaults.reverse = 0;
+				terminal->pvt->screen->defaults.reverse = 0;
 				break;
 			case 28:
-				terminal->screen->defaults.invisible = 0;
+				terminal->pvt->screen->defaults.invisible = 0;
 				break;
 			case 30:
 			case 31:
@@ -1122,17 +1189,17 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 			case 35:
 			case 36:
 			case 37:
-				terminal->screen->defaults.fore = param - 30;
+				terminal->pvt->screen->defaults.fore = param - 30;
 				break;
 			case 38:
 				/* default foreground, underscore */
-				terminal->screen->defaults.fore = 7;
-				terminal->screen->defaults.underline = 1;
+				terminal->pvt->screen->defaults.fore = 7;
+				terminal->pvt->screen->defaults.underline = 1;
 				break;
 			case 39:
 				/* default foreground, no underscore */
-				terminal->screen->defaults.fore = 7;
-				terminal->screen->defaults.underline = 0;
+				terminal->pvt->screen->defaults.fore = 7;
+				terminal->pvt->screen->defaults.underline = 0;
 				break;
 			case 40:
 			case 41:
@@ -1142,11 +1209,11 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 			case 45:
 			case 46:
 			case 47:
-				terminal->screen->defaults.back = param - 40;
+				terminal->pvt->screen->defaults.back = param - 40;
 				break;
 			case 49:
 				/* default background */
-				terminal->screen->defaults.back = 0;
+				terminal->pvt->screen->defaults.back = 0;
 				break;
 			case 90:
 			case 91:
@@ -1156,7 +1223,7 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 			case 95:
 			case 96:
 			case 97:
-				terminal->screen->defaults.fore = param - 90;
+				terminal->pvt->screen->defaults.fore = param - 90;
 				break;
 			case 100:
 			case 101:
@@ -1166,7 +1233,7 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 			case 105:
 			case 106:
 			case 107:
-				terminal->screen->defaults.back = param - 100;
+				terminal->pvt->screen->defaults.back = param - 100;
 				break;
 		}
 	}
@@ -1187,7 +1254,7 @@ vte_sequence_handler_clear_above_current(VteTerminal *terminal,
 	long delta, i;
 	struct _VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
 	delta = screen->delta;
@@ -1218,7 +1285,7 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 	long delta, i;
 	struct _VteScreen *screen;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
 	delta = screen->delta;
@@ -1389,9 +1456,9 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		switch (param) {
 			case 1:
 				/* Set the application keypad. */
-				terminal->keypad = set ?
-						   VTE_KEYPAD_NORMAL :
-						   VTE_KEYPAD_APPLICATION;
+				terminal->pvt->keypad = set ?
+				      		 	VTE_KEYPAD_NORMAL :
+							VTE_KEYPAD_APPLICATION;
 				break;
 			case 2:
 				/* FIXME: reset alternate character sets to
@@ -1405,7 +1472,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 				break;
 			case 5:
 				/* normal or reverse video. */
-				terminal->screen->defaults.reverse = set;
+				terminal->pvt->screen->defaults.reverse = set;
 				break;
 			case 6:
 				/* FIXME: origin or normal cursor mode. */
@@ -1439,9 +1506,9 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 				break;
 			case 47:
 				/* Set or restore alternate screen. */
-				terminal->screen = set ?
-						   &terminal->alternate_screen :
-						   &terminal->normal_screen;
+				terminal->pvt->screen = set ?
+				      		 	&terminal->pvt->alternate_screen :
+							&terminal->pvt->normal_screen;
 				/* Force the screen to be redrawn. */
 				vte_invalidate_cells(terminal,
 						     0, terminal->column_count,
@@ -1470,7 +1537,7 @@ vte_sequence_handler_application_keypad(VteTerminal *terminal,
 					GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->keypad = VTE_KEYPAD_APPLICATION;
+	terminal->pvt->keypad = VTE_KEYPAD_APPLICATION;
 }
 
 static void
@@ -1480,7 +1547,7 @@ vte_sequence_handler_normal_keypad(VteTerminal *terminal,
 				   GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->keypad = VTE_KEYPAD_NORMAL;
+	terminal->pvt->keypad = VTE_KEYPAD_NORMAL;
 }
 
 /* Move the cursor. */
@@ -1626,7 +1693,7 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 	long param, delta, end, row;
 	int i;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	/* The default is one. */
 	param = 1;
 	/* Extract any parameters. */
@@ -1664,7 +1731,7 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 	long param, delta, end, row;
 	int i;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	/* The default is one. */
 	param = 1;
 	/* Extract any parameters. */
@@ -2106,10 +2173,12 @@ vte_terminal_set_default_palette(VteTerminal *terminal)
 	Display *display;
 	GdkColormap *gcolormap;
 	Colormap colormap;
+	GdkVisual *gvisual;
+	Visual *visual;
 	int bright, red, green, blue;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	if (terminal->palette_initialized) {
+	if (terminal->pvt->palette_initialized) {
 		return;
 	}
 	memset(&color, 0, sizeof(color));
@@ -2118,15 +2187,19 @@ vte_terminal_set_default_palette(VteTerminal *terminal)
 	display = NULL;
 	gcolormap = NULL;
 	colormap = 0;
+	gvisual = NULL;
+	visual = NULL;
 
 	/* Initialize each item in the palette. */
-	for (i = 0; i < G_N_ELEMENTS(terminal->palette); i++) {
+	for (i = 0; i < G_N_ELEMENTS(terminal->pvt->palette); i++) {
 		/* Get X11 attributes used by GDK for the widget. */
 		if (widget == NULL) {
 			widget = GTK_WIDGET(terminal);
 			display = GDK_DISPLAY();
 			gcolormap = gtk_widget_get_colormap(widget);
 			colormap = gdk_x11_colormap_get_xcolormap(gcolormap);
+			gvisual = gtk_widget_get_visual(widget);
+			visual = gdk_x11_visual_get_xvisual(gvisual);
 		}
 
 		/* Make the difference between normal and bright about three
@@ -2143,13 +2216,29 @@ vte_terminal_set_default_palette(VteTerminal *terminal)
 		color.blue = bright + blue;
 
 		if (XAllocColor(display, colormap, &color)) {
-			terminal->palette[i].red = color.red;
-			terminal->palette[i].green = color.green;
-			terminal->palette[i].blue = color.blue;
-			terminal->palette[i].pixel = color.pixel;
+			terminal->pvt->palette[i].red = color.red;
+			terminal->pvt->palette[i].green = color.green;
+			terminal->pvt->palette[i].blue = color.blue;
+			terminal->pvt->palette[i].pixel = color.pixel;
 		}
+
+#ifdef HAVE_XFT
+		if (terminal->pvt->use_xft) {
+			terminal->pvt->palette[i].rcolor.red = color.red;
+			terminal->pvt->palette[i].rcolor.green = color.green;
+			terminal->pvt->palette[i].rcolor.blue = color.blue;
+			terminal->pvt->palette[i].rcolor.alpha = 0xffff;
+			if (!XftColorAllocValue(display,
+					        visual,
+					        colormap,
+					        &terminal->pvt->palette[i].rcolor,
+					        &terminal->pvt->palette[i].ftcolor)) {
+				terminal->pvt->use_xft = FALSE;
+			}
+		}
+#endif
 	}
-	terminal->palette_initialized = TRUE;
+	terminal->pvt->palette_initialized = TRUE;
 }
 
 /* Insert a single character into the stored data array. */
@@ -2166,7 +2255,7 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 
 	/* Make sure we have enough rows to hold this data. */
 	while (screen->cursor_current.row >= screen->row_data->len) {
@@ -2186,7 +2275,7 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 	delta = floor(gtk_adjustment_get_value(terminal->adjustment));
 
 	for (i = 0; i < columns; i++) {
-		col = terminal->screen->cursor_current.col;
+		col = terminal->pvt->screen->cursor_current.col;
 
 		/* Make sure we have enough columns in this row. */
 		if (array->len <= col) {
@@ -2230,17 +2319,17 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 		/* Initialize the character cell with the proper data. */
 		pcell->c = c;
 		pcell->columns = (i == 0) ? columns : 0;
-		pcell->fore = terminal->screen->defaults.fore;
-		pcell->back = terminal->screen->defaults.back;
-		pcell->reverse = terminal->screen->defaults.reverse;
-		pcell->invisible = terminal->screen->defaults.invisible;
-		pcell->half = terminal->screen->defaults.half;
-		pcell->underline = terminal->screen->defaults.underline;
-		pcell->bold = terminal->screen->defaults.bold;
-		pcell->standout = terminal->screen->defaults.standout;
+		pcell->fore = terminal->pvt->screen->defaults.fore;
+		pcell->back = terminal->pvt->screen->defaults.back;
+		pcell->reverse = terminal->pvt->screen->defaults.reverse;
+		pcell->invisible = terminal->pvt->screen->defaults.invisible;
+		pcell->half = terminal->pvt->screen->defaults.half;
+		pcell->underline = terminal->pvt->screen->defaults.underline;
+		pcell->bold = terminal->pvt->screen->defaults.bold;
+		pcell->standout = terminal->pvt->screen->defaults.standout;
 
 		/* Signal that this part of the window needs drawing. */
-		if (terminal->screen->insert) {
+		if (terminal->pvt->screen->insert) {
 			vte_invalidate_cells(terminal,
 					     screen->cursor_current.col - 1,
 					     terminal->column_count - screen->cursor_current.col + 1,
@@ -2310,7 +2399,7 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 
 	/* Read the deltas. */
 	delta = floor(gtk_adjustment_get_value(terminal->adjustment));
@@ -2321,7 +2410,7 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 			     screen->cursor_current.row - delta, 1);
 
 	/* Find the handler for this control sequence. */
-	handler = g_tree_lookup(terminal->sequences, GINT_TO_POINTER(match));
+	handler = g_tree_lookup(terminal->pvt->sequences, GINT_TO_POINTER(match));
 #ifdef VTE_DEBUG
 	display_control_sequence(match_s, params);
 #endif
@@ -2350,7 +2439,7 @@ vte_terminal_eof(gint source, gpointer data)
 
 	/* Stop reading input. */
 	gtk_input_remove(source);
-	terminal->pty_input = -1;
+	terminal->pvt->pty_input = -1;
 
 	/* Emit a signal that we read an EOF. */
 	g_signal_emit_by_name(terminal, "eof");
@@ -2379,35 +2468,35 @@ vte_terminal_io_read(GIOChannel *channel,
 	terminal = VTE_TERMINAL(data);
 
 	/* Allocate a buffer to hold both existing data and new data. */
-	bufsize = terminal->n_narrow_pending + LINE_MAX;
+	bufsize = terminal->pvt->n_narrow_pending + LINE_MAX;
 	buf = g_malloc0(bufsize);
-	if (terminal->n_narrow_pending > 0) {
-		memcpy(buf, terminal->narrow_pending,
-		       terminal->n_narrow_pending);
-		g_free(terminal->narrow_pending);
-		terminal->n_narrow_pending = 0;
+	if (terminal->pvt->n_narrow_pending > 0) {
+		memcpy(buf, terminal->pvt->narrow_pending,
+		       terminal->pvt->n_narrow_pending);
+		g_free(terminal->pvt->narrow_pending);
+		terminal->pvt->n_narrow_pending = 0;
 	}
 
 	/* Read some more data in. */
 	fd = g_io_channel_unix_get_fd(channel);
-	bcount = read(fd, buf + terminal->n_narrow_pending,
-		      bufsize - terminal->n_narrow_pending);
+	bcount = read(fd, buf + terminal->pvt->n_narrow_pending,
+		      bufsize - terminal->pvt->n_narrow_pending);
 
 	/* Convert any read bytes into wide characters.  FIXME: handle
 	 * cases where the encoding changes mid-stream. */
 	if (bcount > 0) {
 		inbuf = buf;
-		inbuf_len = terminal->n_narrow_pending + bcount;
+		inbuf_len = terminal->pvt->n_narrow_pending + bcount;
 		outbuf = (char*)wbuf;
 		outbuf_len = sizeof(wbuf);
-		if (iconv(terminal->pending_conv,
+		if (iconv(terminal->pvt->pending_conv,
 			  &inbuf, &inbuf_len,
 			  &outbuf, &outbuf_len) != -1) {
 			/* Save the resulting bytes as the narrow pending data
 			 * queue. */
-			terminal->n_narrow_pending = inbuf_len;
-			terminal->narrow_pending = g_malloc(inbuf_len);
-			memcpy(terminal->narrow_pending, inbuf, inbuf_len);
+			terminal->pvt->n_narrow_pending = inbuf_len;
+			terminal->pvt->narrow_pending = g_malloc(inbuf_len);
+			memcpy(terminal->pvt->narrow_pending, inbuf, inbuf_len);
 			wcount = (outbuf - (char*)wbuf) / sizeof(wchar_t);
 		} else {
 			wcount = 0;
@@ -2418,28 +2507,28 @@ vte_terminal_io_read(GIOChannel *channel,
 
 	/* Add the read wchars to the pending array one at a time, then try
 	 * to handle the entire array. */
-	terminal->pending = g_realloc(terminal->pending,
-				      (terminal->n_pending + wcount) *
+	terminal->pvt->pending = g_realloc(terminal->pvt->pending,
+				      (terminal->pvt->n_pending + wcount) *
 				      sizeof(wchar_t));
 	for (i = 0; i < wcount; i++) {
-		terminal->pending[terminal->n_pending] = wbuf[i];
-		terminal->n_pending++;
+		terminal->pvt->pending[terminal->pvt->n_pending] = wbuf[i];
+		terminal->pvt->n_pending++;
 		/* Check if the contents of the array is a control string or
 		 * not.  The match function returns NULL if the data is not
 		 * a control sequence, the name of the control sequence if it
 		 * is one, and an empty string if it might be the beginning of
 		 * a control sequence. */
-		vte_trie_match(terminal->trie,
-			       terminal->pending,
-			       terminal->n_pending,
+		vte_trie_match(terminal->pvt->trie,
+			       terminal->pvt->pending,
+			       terminal->pvt->n_pending,
 			       &match,
 			       &quark,
 			       &params);
 		if (match == NULL) {
 			/* No interesting stuff in the buffer, so dump the
 			 * accumulated data out. */
-			for (j = 0; j < terminal->n_pending; j++) {
-				c = terminal->pending[j];
+			for (j = 0; j < terminal->pvt->n_pending; j++) {
+				c = terminal->pvt->pending[j];
 #ifdef VTE_DEBUG
 				if (c > 127) {
 					fprintf(stderr, "%ld = ", (long) c);
@@ -2453,7 +2542,7 @@ vte_terminal_io_read(GIOChannel *channel,
 #endif
 				vte_terminal_insert_char(widget, c);
 			}
-			terminal->n_pending = 0;
+			terminal->pvt->n_pending = 0;
 		} else if (match[0] != '\0') {
 			/* A terminal sequence. */
 			vte_terminal_handle_sequence(GTK_WIDGET(terminal),
@@ -2463,7 +2552,7 @@ vte_terminal_io_read(GIOChannel *channel,
 			if (params != NULL) {
 				g_value_array_free(params);
 			}
-			terminal->n_pending = 0;
+			terminal->pvt->n_pending = 0;
 		} else {
 			/* It's a zero-length string, so we need to wait for
 			 * more data from the client. */
@@ -2474,14 +2563,14 @@ vte_terminal_io_read(GIOChannel *channel,
 	if (bcount <= 0) {
 		if (bcount == 0) {
 			/* EOF */
-			g_source_remove(terminal->pty_input);
-			vte_terminal_eof(terminal->pty_input, data);
+			g_source_remove(terminal->pvt->pty_input);
+			vte_terminal_eof(terminal->pvt->pty_input, data);
 		} else {
 			switch (errno) {
 				case EIO:
 					/* Fake EOF. */
-					g_source_remove(terminal->pty_input);
-					vte_terminal_eof(terminal->pty_input,
+					g_source_remove(terminal->pvt->pty_input);
+					vte_terminal_eof(terminal->pvt->pty_input,
 							 data);
 					leave_open = FALSE;
 					break;
@@ -2504,7 +2593,7 @@ vte_terminal_send(VteTerminal *terminal, const guchar *data, size_t length)
 {
 	size_t count;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	count = write(terminal->pty_master, data, length);
+	count = write(terminal->pvt->pty_master, data, length);
 	if (count != length) {
 		g_warning("%s sending data to child\n", strerror(errno));
 	}
@@ -2638,8 +2727,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		}
 		/* If the key maps to characters, send them to the child. */
 		if (special != NULL) {
-			termcap = terminal->termcap;
-			tterm = terminal->terminal;
+			termcap = terminal->pvt->termcap;
+			tterm = terminal->pvt->terminal;
 			normal = vte_termcap_find_string_length(termcap,
 								tterm,
 								special,
@@ -2709,19 +2798,19 @@ vte_terminal_set_fontset(VteTerminal *terminal, const char *xlfds)
 	ascent = height - descent;
 
 	/* Load the font set, freeing another one if we loaded one before. */
-	if (terminal->fontset) {
-		XFreeFontSet(GDK_DISPLAY(), terminal->fontset);
+	if (terminal->pvt->fontset) {
+		XFreeFontSet(GDK_DISPLAY(), terminal->pvt->fontset);
 	}
-	terminal->fontset = XCreateFontSet(GDK_DISPLAY(),
-					   xlfds,
-					   &missing_charset_list,
-					   &missing_charset_count,
-					   &def_string);
-	g_return_if_fail(terminal->fontset != NULL);
+	terminal->pvt->fontset = XCreateFontSet(GDK_DISPLAY(),
+						xlfds,
+						&missing_charset_list,
+						&missing_charset_count,
+						&def_string);
+	g_return_if_fail(terminal->pvt->fontset != NULL);
 	XFreeStringList(missing_charset_list);
 	missing_charset_list = NULL;
 	/* Read the font metrics. */
-	if (XFontsOfFontSet(terminal->fontset,
+	if (XFontsOfFontSet(terminal->pvt->fontset,
 			    &font_struct_list,
 			    &font_name_list)) {
 		if (font_struct_list) {
@@ -2736,6 +2825,26 @@ vte_terminal_set_fontset(VteTerminal *terminal, const char *xlfds)
 		XFreeStringList(font_name_list);
 		font_name_list = NULL;
 	}
+
+#ifdef HAVE_XFT
+	if (terminal->pvt->use_xft) {
+		if (terminal->pvt->ftfont != NULL) {
+			XftFontClose(GDK_DISPLAY(), terminal->pvt->ftfont);
+		}
+		terminal->pvt->ftfont = XftFontOpenName(GDK_DISPLAY(),
+							gdk_x11_get_default_screen(),
+							"mono");
+		if (terminal->pvt->ftfont != NULL) {
+			ascent = terminal->pvt->ftfont->ascent;
+			descent = terminal->pvt->ftfont->descent;
+			height = terminal->pvt->ftfont->height;
+			width = terminal->pvt->ftfont->max_advance_width;
+		} else {
+			g_warning("Error allocating Xft font, disabling Xft.");
+			terminal->pvt->use_xft = FALSE;
+		}
+	}
+#endif
 
 	/* Now save the values. */
 	terminal->char_width = width;
@@ -2763,9 +2872,9 @@ vte_terminal_pty_size_get(VteTerminal *terminal)
 {
 	struct winsize size;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(terminal->pty_master != -1);
+	g_return_if_fail(terminal->pvt->pty_master != -1);
 	/* Use an ioctl to read the size of the terminal. */
-	if (ioctl(terminal->pty_master, TIOCGWINSZ, &size) != 0) {
+	if (ioctl(terminal->pvt->pty_master, TIOCGWINSZ, &size) != 0) {
 		g_warning("Error reading PTY size, assuming defaults: %s.",
 			  strerror(errno));
 		terminal->row_count = 10;
@@ -2784,9 +2893,9 @@ vte_terminal_pty_size_set(VteTerminal *terminal, guint columns, guint rows)
 	size.ws_row = rows;
 	size.ws_col = columns;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(terminal->pty_master != -1);
+	g_return_if_fail(terminal->pvt->pty_master != -1);
 	/* Try to set the terminal size. */
-	if (ioctl(terminal->pty_master, TIOCSWINSZ, &size) != 0) {
+	if (ioctl(terminal->pvt->pty_master, TIOCSWINSZ, &size) != 0) {
 		g_warning("Error setting PTY size: %s.", strerror(errno));
 	}
 	/* Read the terminal size, in case something went awry. */
@@ -2803,7 +2912,7 @@ vte_handle_scroll(VteTerminal *terminal)
 	/* Sanity checks. */
 	g_return_if_fail(GTK_IS_WIDGET(terminal));
 	widget = GTK_WIDGET(terminal);
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	if (GTK_WIDGET_REALIZED(widget) == FALSE) {
 		return;
 	}
@@ -2879,26 +2988,26 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	if (emulation == NULL) {
 		emulation = "xterm";
 	}
-	terminal->terminal = g_quark_to_string(g_quark_from_string(emulation));
+	terminal->pvt->terminal = g_quark_to_string(g_quark_from_string(emulation));
 #ifdef VTE_DEBUG
 	g_print("Setting emulation to `%s'...", emulation);
 #endif
 
 	/* Create a trie to hold the control sequences. */
-	if (terminal->trie) {
-		vte_trie_free(terminal->trie);
+	if (terminal->pvt->trie) {
+		vte_trie_free(terminal->pvt->trie);
 	}
-	terminal->trie = vte_trie_new();
+	terminal->pvt->trie = vte_trie_new();
 
 	/* Create a tree to hold the handlers. */
-	if (terminal->sequences) {
-		g_tree_destroy(terminal->sequences);
+	if (terminal->pvt->sequences) {
+		g_tree_destroy(terminal->pvt->sequences);
 	}
-	terminal->sequences = g_tree_new(vte_compare_direct);
+	terminal->pvt->sequences = g_tree_new(vte_compare_direct);
 	for (i = 0; i < G_N_ELEMENTS(vte_sequence_handlers); i++) {
 		if (vte_sequence_handlers[i].handler != NULL) {
 			code = vte_sequence_handlers[i].code;
-			g_tree_insert(terminal->sequences,
+			g_tree_insert(terminal->pvt->sequences,
 				      GINT_TO_POINTER(g_quark_from_string(code)),
 				      vte_sequence_handlers[i].handler);
 		}
@@ -2910,11 +3019,11 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	     vte_terminal_capability_strings[i].capability != NULL;
 	     i++) {
 		code = vte_terminal_capability_strings[i].capability;
-		tmp = vte_termcap_find_string(terminal->termcap,
-					      terminal->terminal,
+		tmp = vte_termcap_find_string(terminal->pvt->termcap,
+					      terminal->pvt->terminal,
 					      code);
 		if ((tmp != NULL) && (tmp[0] != '\0')) {
-			vte_trie_add(terminal->trie, tmp, strlen(tmp),
+			vte_trie_add(terminal->pvt->trie, tmp, strlen(tmp),
 				     vte_terminal_capability_strings[i].capability,
 				     0);
 		}
@@ -2925,7 +3034,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	for (i = 0; vte_xterm_capability_strings[i].value != NULL; i++) {
 		code = vte_xterm_capability_strings[i].code;
 		value = vte_xterm_capability_strings[i].value;
-		vte_trie_add(terminal->trie, code, strlen(code), value, 0);
+		vte_trie_add(terminal->pvt->trie, code, strlen(code), value, 0);
 	}
 #ifdef VTE_DEBUG
 	g_print("\n");
@@ -2939,18 +3048,18 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path)
 	if (path == NULL) {
 		path = "/etc/termcap";
 	}
-	terminal->termcap_path = g_quark_to_string(g_quark_from_string(path));
+	terminal->pvt->termcap_path = g_quark_to_string(g_quark_from_string(path));
 #ifdef VTE_DEBUG
-	g_print("Loading termcap `%s'...", terminal->termcap_path);
+	g_print("Loading termcap `%s'...", terminal->pvt->termcap_path);
 #endif
-	if (terminal->termcap) {
-		vte_termcap_free(terminal->termcap);
+	if (terminal->pvt->termcap) {
+		vte_termcap_free(terminal->pvt->termcap);
 	}
-	terminal->termcap = vte_termcap_new(path);
+	terminal->pvt->termcap = vte_termcap_new(path);
 #ifdef VTE_DEBUG
 	g_print("\n");
 #endif
-	vte_terminal_set_emulation(terminal, terminal->terminal);
+	vte_terminal_set_emulation(terminal, terminal->pvt->terminal);
 }
 
 /* Initialize the terminal widget after the base widget stuff is initialized.
@@ -2959,6 +3068,7 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path)
 static void
 vte_terminal_init(VteTerminal *terminal)
 {
+	struct _VteTerminalPrivate *pvt;
 	GtkAdjustment *adjustment;
 	GIOChannel *channel;
 	int i;
@@ -2968,67 +3078,78 @@ vte_terminal_init(VteTerminal *terminal)
 
 	/* Initialize data members with settings from the environment and
 	 * structures to use for these. */
-	terminal->shell = g_strdup(getenv("SHELL") ?: "/bin/sh");
-	terminal->pty_master = -1;
-	terminal->pty_pid = -1;
-	terminal->pending = NULL;
-	terminal->n_pending = 0;
-	terminal->palette_initialized = FALSE;
-	terminal->keypad = VTE_KEYPAD_NORMAL;
+	pvt = terminal->pvt = g_malloc0(sizeof(*terminal->pvt));
+	pvt->shell = g_strdup(getenv("SHELL") ?: "/bin/sh");
+	pvt->pty_master = -1;
+	pvt->pty_pid = -1;
+	pvt->pending = NULL;
+	pvt->n_pending = 0;
+	pvt->palette_initialized = FALSE;
+	pvt->keypad = VTE_KEYPAD_NORMAL;
 	adjustment = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0, 0, 0, 0));
+
+#ifdef HAVE_XFT
+	/* Try to use Xft if the user requests it. */
+	pvt->use_xft = FALSE;
+	if (getenv("VTE_USE_XFT") != NULL) {
+		if (atol(getenv("VTE_USE_XFT")) != 0) {
+			pvt->use_xft = TRUE;
+		}
+	}
+#endif
 
 	vte_terminal_set_termcap(terminal, NULL);
 	vte_terminal_set_emulation(terminal, NULL);
 	vte_terminal_set_encoding(terminal, NULL);
 
-	terminal->normal_screen.row_data = g_array_new(FALSE, TRUE,
+	pvt->normal_screen.row_data = g_array_new(FALSE, TRUE,
 						       sizeof(GArray *));
-	terminal->normal_screen.cursor_current.row = 0;
-	terminal->normal_screen.cursor_current.col = 0;
-	terminal->normal_screen.cursor_saved.row = 0;
-	terminal->normal_screen.cursor_saved.col = 0;
-	terminal->normal_screen.cursor_visible = TRUE;
-	terminal->normal_screen.delta = 0;
-	terminal->normal_screen.insert = FALSE;
+	pvt->normal_screen.cursor_current.row = 0;
+	pvt->normal_screen.cursor_current.col = 0;
+	pvt->normal_screen.cursor_saved.row = 0;
+	pvt->normal_screen.cursor_saved.col = 0;
+	pvt->normal_screen.cursor_visible = TRUE;
+	pvt->normal_screen.delta = 0;
+	pvt->normal_screen.insert = FALSE;
 
-	terminal->alternate_screen.row_data = g_array_new(FALSE, TRUE,
-							  sizeof(GArray*));
-	terminal->alternate_screen.cursor_current.row = 0;
-	terminal->alternate_screen.cursor_current.col = 0;
-	terminal->alternate_screen.cursor_saved.row = 0;
-	terminal->alternate_screen.cursor_saved.col = 0;
-	terminal->alternate_screen.cursor_visible = TRUE;
-	terminal->alternate_screen.delta = 0;
-	terminal->alternate_screen.insert = FALSE;
+	pvt->alternate_screen.row_data = g_array_new(FALSE, TRUE,
+							 sizeof(GArray*));
+	pvt->alternate_screen.cursor_current.row = 0;
+	pvt->alternate_screen.cursor_current.col = 0;
+	pvt->alternate_screen.cursor_saved.row = 0;
+	pvt->alternate_screen.cursor_saved.col = 0;
+	pvt->alternate_screen.cursor_visible = TRUE;
+	pvt->alternate_screen.delta = 0;
+	pvt->alternate_screen.insert = FALSE;
 
-	terminal->screen = &terminal->alternate_screen;
+	pvt->screen = &terminal->pvt->alternate_screen;
 	vte_terminal_set_default_attributes(terminal);
 
-	terminal->screen = &terminal->normal_screen;
+	pvt->screen = &terminal->pvt->normal_screen;
 	vte_terminal_set_default_attributes(terminal);
 
 	vte_terminal_set_scroll_adjustment(terminal, adjustment);
 
 	/* Start up the shell. */
-	terminal->pty_master = vte_pty_open(&terminal->pty_pid,
-					    terminal->shell);
-	i = fcntl(terminal->pty_master, F_GETFL);
-	fcntl(terminal->pty_master, F_SETFL, i | O_NONBLOCK);
-	channel = g_io_channel_unix_new(terminal->pty_master);
-	terminal->pty_input = g_io_add_watch_full(channel,
-						  G_PRIORITY_LOW,
-						  G_IO_IN | G_IO_HUP,
-						  vte_terminal_io_read,
-						  terminal,
-						  NULL);
+	pvt->pty_master = vte_pty_open(&terminal->pvt->pty_pid,
+				       terminal->pvt->shell);
+	i = fcntl(terminal->pvt->pty_master, F_GETFL);
+	fcntl(terminal->pvt->pty_master, F_SETFL, i | O_NONBLOCK);
+	channel = g_io_channel_unix_new(terminal->pvt->pty_master);
+	pvt->pty_input = g_io_add_watch_full(channel,
+					     G_PRIORITY_LOW,
+					     G_IO_IN | G_IO_HUP,
+					     vte_terminal_io_read,
+					     terminal,
+					     NULL);
 
 	/* Set the PTY window size based on the terminal type. */
 	vte_terminal_pty_size_set(terminal,
-				  vte_termcap_find_numeric(terminal->termcap,
-					  		   terminal->terminal,
+				  vte_termcap_find_numeric(pvt->termcap,
+					  		   pvt->terminal,
 							   "co") ?: 60,
-				  vte_termcap_find_numeric(terminal->termcap,
-					  		   terminal->terminal,
+				  vte_termcap_find_numeric(pvt->termcap,
+					  		   pvt->terminal,
 							   "li") ?: 18);
 
 	/* Set the font. */
@@ -3090,11 +3211,37 @@ vte_terminal_unrealize(GtkWidget *widget)
 {
 	VteTerminal *terminal;
 	GArray *array;
+	Display *display;
+	GdkColormap *gcolormap;
+	Colormap colormap;
+	GdkVisual *gvisual;
+	Visual *visual;
 	int i;
 
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
+
+	/* Free the color palette. */
+
+#ifdef HAVE_XFT
+	/* Clean up after Xft. */
+	display = gdk_x11_drawable_get_xdisplay(widget->window);
+	gvisual = gtk_widget_get_visual(widget);
+	visual = gdk_x11_visual_get_xvisual(gvisual);
+	gcolormap = gtk_widget_get_colormap(widget);
+	colormap = gdk_x11_colormap_get_xcolormap(gcolormap);
+	for (i = 0; i < G_N_ELEMENTS(terminal->pvt->palette); i++) {
+		XftColorFree(display,
+			     visual,
+			     colormap,
+			     &terminal->pvt->palette[i].ftcolor);
+	}
+	if (terminal->pvt->ftfont != NULL) {
+		XftFontClose(display, terminal->pvt->ftfont);
+		terminal->pvt->ftfont = NULL;
+	}
+#endif
 
 	/* Unmap the widget if it hasn't been already. */
 	if (GTK_WIDGET_MAPPED(widget)) {
@@ -3111,54 +3258,54 @@ vte_terminal_unrealize(GtkWidget *widget)
 	GTK_WIDGET_UNSET_FLAGS(widget, GTK_REALIZED);
 
 	/* Free some of our strings. */
-	terminal->termcap_path = NULL;
-	terminal->shell = NULL;
-	terminal->terminal = NULL;
+	terminal->pvt->termcap_path = NULL;
+	terminal->pvt->shell = NULL;
+	terminal->pvt->terminal = NULL;
 
 	/* Shut down the child terminal. */
-	close(terminal->pty_master);
-	terminal->pty_master = -1;
-	if (terminal->pty_pid > 0) {
-		kill(-terminal->pty_pid, SIGHUP);
+	close(terminal->pvt->pty_master);
+	terminal->pvt->pty_master = -1;
+	if (terminal->pvt->pty_pid > 0) {
+		kill(-terminal->pvt->pty_pid, SIGHUP);
 	}
-	terminal->pty_pid = 0;
+	terminal->pvt->pty_pid = 0;
 
 	/* Stop watching for input from the child. */
-	if (terminal->pty_input != -1) {
-		gtk_input_remove(terminal->pty_input);
-		terminal->pty_input = -1;
+	if (terminal->pvt->pty_input != -1) {
+		gtk_input_remove(terminal->pvt->pty_input);
+		terminal->pvt->pty_input = -1;
 	}
 
 	/* Discard any pending data. */
-	g_free(terminal->pending);
-	terminal->pending = NULL;
+	g_free(terminal->pvt->pending);
+	terminal->pvt->pending = NULL;
 
 	/* Clean up emulation structures. */
-	g_tree_destroy(terminal->sequences);
-	terminal->sequences= NULL;
-	vte_termcap_free(terminal->termcap);
-	terminal->termcap = NULL;
-	vte_trie_free(terminal->trie);
-	terminal->trie = NULL;
+	g_tree_destroy(terminal->pvt->sequences);
+	terminal->pvt->sequences= NULL;
+	vte_termcap_free(terminal->pvt->termcap);
+	terminal->pvt->termcap = NULL;
+	vte_trie_free(terminal->pvt->trie);
+	terminal->pvt->trie = NULL;
 
 	/* Clear the output histories. */
-	for (i = 0; i < terminal->normal_screen.row_data->len; i++) {
-		array = g_array_index(terminal->normal_screen.row_data,
+	for (i = 0; i < terminal->pvt->normal_screen.row_data->len; i++) {
+		array = g_array_index(terminal->pvt->normal_screen.row_data,
 				      GArray*,
 				      i);
 		g_array_free(array, TRUE);
 	}
-	g_array_free(terminal->normal_screen.row_data, TRUE);
-	terminal->normal_screen.row_data = NULL;
+	g_array_free(terminal->pvt->normal_screen.row_data, TRUE);
+	terminal->pvt->normal_screen.row_data = NULL;
 
-	for (i = 0; i < terminal->alternate_screen.row_data->len; i++) {
-		array = g_array_index(terminal->alternate_screen.row_data,
+	for (i = 0; i < terminal->pvt->alternate_screen.row_data->len; i++) {
+		array = g_array_index(terminal->pvt->alternate_screen.row_data,
 				      GArray*,
 				      i);
 		g_array_free(array, TRUE);
 	}
-	g_array_free(terminal->alternate_screen.row_data, TRUE);
-	terminal->alternate_screen.row_data = NULL;
+	g_array_free(terminal->pvt->alternate_screen.row_data, TRUE);
+	terminal->pvt->alternate_screen.row_data = NULL;
 }
 
 /* Handle realizing the widget.  Most of this is copy-paste from GGAD. */
@@ -3228,7 +3375,7 @@ vte_terminal_find_charcell(VteTerminal *terminal, long row, long col)
 	struct vte_charcell *ret = NULL;
 	struct _VteScreen *screen;
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 	if (screen->row_data->len > row) {
 		rowdata = g_array_index(screen->row_data, GArray*, row);
 		if (rowdata->len > col) {
@@ -3247,6 +3394,10 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	Display *display;
 	GdkDrawable *gdrawable;
 	Drawable drawable;
+	GdkColormap *gcolormap;
+	Colormap colormap;
+	GdkVisual *gvisual;
+	Visual *visual;
 	GC gc;
 	struct vte_charcell *cell;
 	int row, drow, col, dcol, row_stop, col_stop, x_offs = 0, y_offs = 0;
@@ -3254,15 +3405,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	long delta;
 	XwcTextItem textitem;
 #ifdef HAVE_XFT
-	GdkColormap *gcolormap;
-	Colormap colormap;
-	GdkVisual *gvisual;
-	Visual *visual;
-	XftFont *ftfont;
-	XftDraw *ftdraw;
-	XftColor ftcolor;
-	XRenderColor rcolor;
-	gboolean use_xft;
+	XftDraw *ftdraw = NULL;
 #endif
 
 	/* Make a few sanity checks. */
@@ -3273,7 +3416,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	if (!GTK_WIDGET_DRAWABLE(widget)) {
 		return;
 	}
-	screen = terminal->screen;
+	screen = terminal->pvt->screen;
 
 	/* Set up the default palette. */
 	vte_terminal_set_default_palette(terminal);
@@ -3284,37 +3427,19 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	display = gdk_x11_drawable_get_xdisplay(gdrawable);
 	drawable = gdk_x11_drawable_get_xid(gdrawable);
 	gc = XCreateGC(display, drawable, 0, NULL);
+	gcolormap = gdk_drawable_get_colormap(widget->window);
+	colormap = gdk_x11_colormap_get_xcolormap(gcolormap);
+	gvisual = gtk_widget_get_visual(widget);
+	visual = gdk_x11_visual_get_xvisual(gvisual);
 
 #ifdef HAVE_XFT
-	use_xft = FALSE;
-	if (getenv("VTE_USE_XFT") != NULL) {
-		if (atol(getenv("VTE_USE_XFT")) > 0) {
-			use_xft = TRUE;
-		}
-	}
-	if (use_xft) {
-		gcolormap = gdk_drawable_get_colormap(widget->window);
-		colormap = gdk_x11_colormap_get_xcolormap(gcolormap);
-		gvisual = gtk_widget_get_visual(widget);
-		visual = gdk_x11_visual_get_xvisual(gvisual);
-		/* FIXME: do this when we change the font, to avoid the
-		 * need to do this for each repaint. */
-		ftfont = XftFontOpen(display,
-				     gdk_x11_get_default_screen(),
-				     XFT_FAMILY, XftTypeString, "mono",
-				     XFT_SIZE, XftTypeDouble, 14.0,
-				     0);
-		if (ftfont == NULL) {
-			g_warning("Error allocating font, disabling Xft.");
-			use_xft = FALSE;
-		}
-		ftdraw = XftDrawCreate(display,
-				       drawable,
-				       visual,
-				       colormap);
+	if (terminal->pvt->use_xft) {
+		gdk_window_get_internal_paint_info(widget->window, &gdrawable,
+						   &x_offs, &y_offs);
+		ftdraw = XftDrawCreate(display, drawable, visual, colormap);
 		if (ftdraw == NULL) {
 			g_warning("Error allocating draw, disabling Xft.");
-			use_xft = FALSE;
+			terminal->pvt->use_xft = FALSE;
 		}
 	}
 #endif
@@ -3329,7 +3454,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	/* Paint the background for this area, using a filled rectangle.  We
 	 * have to do this even when the GDK background matches, otherwise
 	 * we may miss character removals before an area is re-exposed. */
-	XSetForeground(display, gc, terminal->palette[0].pixel);
+	XSetForeground(display, gc, terminal->pvt->palette[0].pixel);
 	XFillRectangle(display, drawable, gc,
 		       area->x - x_offs,
 		       area->y - y_offs,
@@ -3391,51 +3516,26 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 				textitem.chars = &cell->c;
 				textitem.nchars = 1;
 				textitem.delta = 0;
-				textitem.font_set = terminal->fontset;
+				textitem.font_set = terminal->pvt->fontset;
 
 				/* Paint the background for the cell. */
 				XSetForeground(display, gc,
-					       terminal->palette[back].pixel);
+					       terminal->pvt->palette[back].pixel);
 				XFillRectangle(display, drawable, gc,
 					       col * width - x_offs,
 					       row * height - y_offs,
 					       cell->columns * width,
 					       height);
 #if HAVE_XFT
-				if (use_xft) {
-					/* FIXME: save the colors when we do
-					 * palette initialization. */
-					rcolor.red = terminal->palette[fore].red;
-					rcolor.green = terminal->palette[fore].green;
-					rcolor.blue = terminal->palette[fore].blue;
-					rcolor.alpha = 0xffff;
-					if (XftColorAllocValue(display,
-							       visual,
-							       colormap,
-							       &rcolor,
-							       &ftcolor)) {
-						/* FIXME: need to do the proper
-						 * encoding changes in here if
-						 * wchar_t isn't suitable.
-						 * Also this will probably be
-						 * hideously slow. */
-						XftChar32 ftc;
-						ftc = cell->c;
-						XftDrawString32(ftdraw,
-								&ftcolor,
-								ftfont,
-								col * width -
-								x_offs,
-								row * height -
-								y_offs + ascent,
-								&ftc, 1);
-						XftColorFree(display,
-							     visual,
-							     colormap,
-							     &ftcolor);
-					} else {
-						g_warning("Unable to allocate color, not rendering.");
-					}
+				if (terminal->pvt->use_xft) {
+					XftChar32 ftc;
+					ftc = cell->c;
+					XftDrawString32(ftdraw,
+							&terminal->pvt->palette[fore].ftcolor,
+							terminal->pvt->ftfont,
+							col * width - x_offs,
+							row * height - y_offs + ascent,
+							&ftc, 1);
 				} else {
 #endif
 					/* Draw the text.  We've handled bold,
@@ -3443,7 +3543,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 					 * need to handle half, and maybe
 					 * blink, if we decide to be evil. */
 					XSetForeground(display, gc,
-						       terminal->palette[fore].pixel);
+						       terminal->pvt->palette[fore].pixel);
 					XwcDrawText(display, drawable, gc,
 						    col * width - x_offs,
 						    row * height - y_offs + ascent,
@@ -3468,7 +3568,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		row++;
 	}
 
-	if (terminal->screen->cursor_visible) {
+	if (terminal->pvt->screen->cursor_visible) {
 		/* Draw the insertion cursor in the foreground color for this
 		 * cell, shrinking it by one pixel to keep from overflowing
 		 * into the next character cell. */
@@ -3477,8 +3577,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		cell = vte_terminal_find_charcell(terminal, row - delta, col);
 		XSetForeground(display, gc,
 			       cell ?
-			       terminal->palette[cell->fore].pixel :
-			       terminal->palette[screen->defaults.fore].pixel);
+			       terminal->pvt->palette[cell->fore].pixel :
+			       terminal->pvt->palette[screen->defaults.fore].pixel);
 		XFillRectangle(display, drawable, gc,
 			       col * width - x_offs,
 			       (row - delta) * height - y_offs,
@@ -3491,12 +3591,12 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			 * standout, blink. */
 			XSetForeground(display, gc,
 				       cell ?
-				       terminal->palette[cell->back].pixel :
-				       terminal->palette[screen->defaults.back].pixel);
+				       terminal->pvt->palette[cell->back].pixel :
+				       terminal->pvt->palette[screen->defaults.back].pixel);
 			textitem.chars = &cell->c;
 			textitem.nchars = 1;
 			textitem.delta = 0;
-			textitem.font_set = terminal->fontset;
+			textitem.font_set = terminal->pvt->fontset;
 			XwcDrawText(display, drawable, gc,
 				    col * width - x_offs,
 				    row * height - y_offs + ascent,
@@ -3506,13 +3606,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 	/* Done with various structures. */
 #ifdef HAVE_XFT
-	if (use_xft) {
-		if (ftdraw != NULL) {
-			XftDrawDestroy(ftdraw);
-		}
-		if (ftfont != NULL) {
-			XftFontClose(display, ftfont);
-		}
+	if (ftdraw != NULL) {
+		XftDrawDestroy(ftdraw);
 	}
 #endif
 	XFreeGC(display, gc);

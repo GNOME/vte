@@ -63,75 +63,21 @@ typedef enum {
 } VteKeypad;
 
 /* The terminal widget itself. */
+struct _VteTerminalPrivate;
 struct _VteTerminal {
 	/*< public >*/
+
+	/* Widget implementation stuffs. */
 	GtkWidget widget;
 	GtkAdjustment *adjustment;	/* Scrolling adjustment. */
-
-	/*< private >*/
-
-	/* Emulation setup data. */
-	struct vte_termcap *termcap;	/* termcap storage */
-	struct vte_trie *trie;		/* control sequence trie */
-	const char *termcap_path;	/* path to termcap file */
-	const char *terminal;		/* terminal type to emulate */
-	GTree *sequences;		/* sequence handlers, keyed by GQuark
-					   based on the sequence name */
-
-	/* PTY handling data. */
-	char *shell;			/* shell we started */
-	int pty_master;			/* pty master descriptor */
-	guint pty_input;		/* master I/O channel */
-	pid_t pty_pid;			/* pid of child using pty slave */
-	const char *encoding;		/* the pty's encoding */
-
-	/* Input data queues. */
-	iconv_t pending_conv;		/* narrow/wide conversion state */
-	wchar_t *pending;		/* pending output characters */
-	size_t n_pending;
-	char *narrow_pending;		/* pending output characters */
-	size_t n_narrow_pending;
-	iconv_t outgoing_conv;		/* narrow/wide conversion state */
-
-	/* Defaults and settings to apply to new input data. */
-	gboolean palette_initialized;
-	struct {
-		guint16 red, green, blue;
-		unsigned long pixel;
-	} palette[16];			/* palette of colors we use for drawing
-					   text */
 
 	/* Metric and sizing data. */
 	guint char_width, char_height;	/* dimensions of character cells */
 	guint char_ascent, char_descent;/* important font metrics */
 	guint row_count, column_count;	/* dimensions of the window */
 
-	/* Emulation state. */
-	VteKeypad keypad;
-
-	/* Screen data.  We support the normal screen, and an alternate
-	 * screen, which seems to be a DEC-specific feature. */
-	XFontSet fontset;		/* the font set to draw text with */
-	struct _VteScreen {
-		GArray *row_data;	/* row data, arranged as a GArray of
-					   vte_charcell structures */
-		struct {
-			gint row, col;
-		} cursor_current, cursor_saved;
-					/* the current and saved positions of
-					   the [insertion] cursor */
-		gboolean cursor_visible;
-		gboolean insert;	/* insert mode */
-		struct {
-			gint start, end;
-		} scrolling_region;	/* the region we scroll in */
-		gboolean scrolling_restricted;
-		long delta;		/* cached Y offset (the saved cursor
-					   position is relative to this) */
-		struct vte_charcell defaults;	/* default characteristics
-						   for insertion of any new
-						   characters */
-	} normal_screen, alternate_screen, *screen;
+	/*< private >*/
+	struct _VteTerminalPrivate *pvt;
 };
 
 /* The widget's class structure. */
