@@ -20,7 +20,7 @@ EXTRA_DIST = \
 	unitable.JIS0212 \
 	unitable.KSX1001
 
-AM_CFLAGS = @CFLAGS@ @VTE_CFLAGS@ @X_CFLAGS@
+AM_CFLAGS = @VTE_CFLAGS@ @CFLAGS@ @X_CFLAGS@
 AM_LDFLAGS = @LDFLAGS@
 
 EXTRA_libvte_la_SOURCES = keysyms.c
@@ -83,7 +83,7 @@ libvte_la_SOURCES = \
 	vtexft.c \
 	vtexft.h
 
-libvte_la_LIBADD = @LIBS@ @VTE_LIBS@ @X_LIBS@
+libvte_la_LIBADD = @VTE_LIBS@ @LIBS@ @X_LIBS@
 # libvte_la_LDFLAGS = @LDFLAGS@ -version-info 5:0:1
 libvte_la_LDFLAGS = @LDFLAGS@ -version-info 4:0:0
 
