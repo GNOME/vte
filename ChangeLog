@@ -1,3 +1,16 @@
+2003-06-16 nalin
+	* src/vteint.h: add.  Move private VteTerminal stuff which needs to be
+	shared with other modules in the library here.
+	* src/vtedraw.c, src/vtedraw.h: add get_char_width(), for use in drawing
+	the cursor.
+	* src/vte.c(vte_invalidate_cursor_once): if the character under the
+	cursor doesn't fit into its cell, expose the column to the right of
+	it so that we can paint into the adjacent cell.
+	* src/vte.c(vte_terminal_paint): when clearing the area behind the
+	cursor or drawing the hollow rectangle to indicate its position when
+	we don't have focus, use the visible width of the character instead
+	of just assuming it will fit.  This complies better with assertion 2.
+
 2003-06-09 nalin
 	* src/vte.c(vte_terminal_set_encoding): set the encoding for the iso2022
 	converter (spotted by havill).

@@ -252,6 +252,22 @@ _vte_ft2_get_text_ascent(struct _vte_draw *draw)
 	return data->cache->ascent;
 }
 
+static int
+_vte_ft2_get_char_width(struct _vte_draw *draw, gunichar c, int columns)
+{
+	struct _vte_ft2_data *data;
+	const struct _vte_glyph *glyph;
+
+	data = (struct _vte_ft2_data*) draw->impl_data;
+
+	glyph = _vte_glyph_get(data->cache, c);
+	if (glyph != NULL) {
+		return glyph->width;
+	}
+
+	return _vte_ft2_get_text_width(draw) * columns;
+}
+
 static gboolean
 _vte_ft2_get_using_fontconfig(struct _vte_draw *draw)
 {
@@ -365,6 +381,7 @@ struct _vte_draw_impl _vte_draw_ft2 = {
 	_vte_ft2_get_text_width,
 	_vte_ft2_get_text_height,
 	_vte_ft2_get_text_ascent,
+	_vte_ft2_get_char_width,
 	_vte_ft2_get_using_fontconfig,
 	_vte_ft2_draw_text,
 	_vte_ft2_draw_char,

@@ -70,6 +70,7 @@ struct _vte_draw_impl {
 	int (*get_text_width)(struct _vte_draw *);
 	int (*get_text_height)(struct _vte_draw *);
 	int (*get_text_ascent)(struct _vte_draw *);
+	int (*get_char_width)(struct _vte_draw *, gunichar c, int columns);
 	gboolean (*get_using_fontconfig)(struct _vte_draw *);
 	void (*draw_text)(struct _vte_draw *,
 			  struct _vte_draw_text_request *, gsize,
@@ -130,6 +131,7 @@ void _vte_draw_set_text_font(struct _vte_draw *draw,
 int _vte_draw_get_text_width(struct _vte_draw *draw);
 int _vte_draw_get_text_height(struct _vte_draw *draw);
 int _vte_draw_get_text_ascent(struct _vte_draw *draw);
+int _vte_draw_get_char_width(struct _vte_draw *draw, gunichar c, int columns);
 gboolean _vte_draw_get_using_fontconfig(struct _vte_draw *draw);
 
 /* Draw text or rectangles. */

@@ -325,9 +325,6 @@ glong vte_terminal_get_column_count(VteTerminal *terminal);
 const char *vte_terminal_get_window_title(VteTerminal *terminal);
 const char *vte_terminal_get_icon_title(VteTerminal *terminal);
 
-/* You never saw this. */
-void _vte_terminal_accessible_ref(VteTerminal *terminal);
-
 G_END_DECLS
 
 #endif

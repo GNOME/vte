@@ -161,6 +161,12 @@ _vte_skel_get_text_ascent(struct _vte_draw *draw)
 	return draw->ascent;
 }
 
+static int
+_vte_skel_get_char_width(struct _vte_draw *draw, gunichar c, int columns)
+{
+	return _vte_skel_get_text_width(draw) * columns;
+}
+
 static gboolean
 _vte_skel_get_using_fontconfig(struct _vte_draw *draw)
 {
@@ -230,6 +236,7 @@ struct _vte_draw_impl _vte_draw_skel = {
 	_vte_skel_get_text_width,
 	_vte_skel_get_text_height,
 	_vte_skel_get_text_ascent,
+	_vte_skel_get_char_width,
 	_vte_skel_get_using_fontconfig,
 	_vte_skel_draw_text,
 	_vte_skel_draw_char,

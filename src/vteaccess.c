@@ -29,6 +29,7 @@
 #include "debug.h"
 #include "vte.h"
 #include "vteaccess.h"
+#include "vteint.h"
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>

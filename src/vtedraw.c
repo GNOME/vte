@@ -246,6 +246,14 @@ _vte_draw_get_text_ascent(struct _vte_draw *draw)
 	return draw->impl->get_text_ascent(draw);
 }
 
+int
+_vte_draw_get_char_width(struct _vte_draw *draw, gunichar c, int columns)
+{
+	g_return_val_if_fail(draw->impl != NULL, 1);
+	g_return_val_if_fail(draw->impl->get_char_width != NULL, 1);
+	return draw->impl->get_char_width(draw, c, columns);
+}
+
 gboolean
 _vte_draw_get_using_fontconfig(struct _vte_draw *draw)
 {

@@ -622,6 +622,20 @@ _vte_xft_get_text_ascent(struct _vte_draw *draw)
 	return draw->ascent;
 }
 
+static int
+_vte_xft_get_char_width(struct _vte_draw *draw, gunichar c, int columns)
+{
+	struct _vte_xft_data *data;
+	XftFont *ftfont;
+
+	data = (struct _vte_xft_data*) draw->impl_data;
+	ftfont = _vte_xft_font_for_char(data->font, c);
+	if (ftfont == NULL) {
+		return _vte_xft_get_text_width(draw) * columns;
+	}
+	return _vte_xft_char_width(data->font, ftfont, c);
+}
+
 static gboolean
 _vte_xft_get_using_fontconfig(struct _vte_draw *draw)
 {
@@ -816,6 +830,7 @@ struct _vte_draw_impl _vte_draw_xft = {
 	_vte_xft_get_text_width,
 	_vte_xft_get_text_height,
 	_vte_xft_get_text_ascent,
+	_vte_xft_get_char_width,
 	_vte_xft_get_using_fontconfig,
 	_vte_xft_draw_text,
 	_vte_xft_draw_char,

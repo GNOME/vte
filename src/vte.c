@@ -61,6 +61,7 @@
 #include "vteaccess.h"
 #include "vteconv.h"
 #include "vtedraw.h"
+#include "vteint.h"
 #include "vtetc.h"
 #include <fontconfig/fontconfig.h>
 
@@ -817,6 +818,12 @@ vte_invalidate_cursor_once(gpointer data, gboolean periodic)
 		}
 		if (cell != NULL) {
 			columns = cell->columns;
+			if (_vte_draw_get_char_width(terminal->pvt->draw,
+						     cell->c,
+						     cell->columns) >
+			    terminal->char_width * columns) {
+				columns++;
+			}
 		}
 		if (preedit_width > 0) {
 			columns += preedit_width;
@@ -9968,6 +9975,11 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 	GdkModifierType modifiers;
 	g_return_val_if_fail(GTK_IS_WIDGET(widget), FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
+		fprintf(stderr, "Focus in.\n");
+	}
+#endif
 	terminal = VTE_TERMINAL(widget);
 	GTK_WIDGET_SET_FLAGS(widget, GTK_HAS_FOCUS);
 	/* Read the keyboard modifiers, though they're probably garbage. */
@@ -9994,6 +10006,11 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 	GdkModifierType modifiers;
 	g_return_val_if_fail(GTK_WIDGET(widget), FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
+		fprintf(stderr, "Focus out.\n");
+	}
+#endif
 	terminal = VTE_TERMINAL(widget);
 	GTK_WIDGET_UNSET_FLAGS(widget, GTK_HAS_FOCUS);
 	/* Read the keyboard modifiers, though they're probably garbage. */
@@ -11442,6 +11459,7 @@ vte_terminal_realize(GtkWidget *widget)
 	attributes.event_mask = gtk_widget_get_events(widget) |
 				GDK_EXPOSURE_MASK |
 				GDK_VISIBILITY_NOTIFY_MASK |
+				GDK_FOCUS_CHANGE_MASK |
 				GDK_BUTTON_PRESS_MASK |
 				GDK_BUTTON_RELEASE_MASK |
 				GDK_POINTER_MOTION_MASK |
@@ -12886,7 +12904,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	struct _vte_draw_text_request item, *items;
 	int row, drow, col, row_stop, col_stop, columns;
 	char *preedit;
-	long width, height, ascent, descent, delta;
+	long width, height, ascent, descent, delta, cursor_width;
 	int i, len, fore, back, x, y;
 	GdkRectangle all_area;
 	gboolean blink;
@@ -12988,6 +13006,13 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		item.columns = cell ? cell->columns : 1;
 		item.x = col * width;
 		item.y = row * height;
+		cursor_width = item.columns * width;
+		if (cell) {
+			cursor_width = MAX(cursor_width,
+					   _vte_draw_get_char_width(terminal->pvt->draw,
+					  			    cell->c,
+								    cell->columns));
+		}
 		if (GTK_WIDGET_HAS_FOCUS(GTK_WIDGET(terminal))) {
 			blink = vte_terminal_get_blink_state(terminal) ^
 				terminal->pvt->screen->reverse_mode;
@@ -12996,8 +13021,20 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			_vte_draw_clear(terminal->pvt->draw,
 					col * width + VTE_PAD_WIDTH,
 					row * height + VTE_PAD_WIDTH,
-					width * item.columns,
+					cursor_width,
 					height);
+			if (blink) {
+				GdkColor color;
+				color.red = terminal->pvt->palette[back].red;
+				color.green = terminal->pvt->palette[back].green;
+				color.blue = terminal->pvt->palette[back].blue;
+				_vte_draw_fill_rectangle(terminal->pvt->draw,
+							 item.x + VTE_PAD_WIDTH,
+							 item.y + VTE_PAD_WIDTH,
+							 cursor_width, height,
+							 &color,
+							 VTE_DRAW_OPAQUE);
+			}
 			if (!vte_unichar_is_local_graphic(item.c) ||
 			    !vte_terminal_draw_graphic(terminal,
 						       item.c,
@@ -13021,13 +13058,14 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 							height);
 			}
 		} else {
+			GdkColor color;
 			/* Draw it as a hollow rectangle. */
 			vte_terminal_determine_colors(terminal, cell, FALSE,
 						      &fore, &back);
 			_vte_draw_clear(terminal->pvt->draw,
 					col * width + VTE_PAD_WIDTH,
 					row * height + VTE_PAD_WIDTH,
-					width * item.columns, height);
+					cursor_width, height);
 			vte_terminal_draw_cells(terminal,
 						&item, 1,
 						fore, back, TRUE,
@@ -13035,9 +13073,18 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 						cell && cell->underline,
 						cell && cell->strikethrough,
 						FALSE,
-						TRUE,
+						FALSE,
 						width,
 						height);
+			color.red = terminal->pvt->palette[fore].red;
+			color.green = terminal->pvt->palette[fore].green;
+			color.blue = terminal->pvt->palette[fore].blue;
+			_vte_draw_draw_rectangle(terminal->pvt->draw,
+						 item.x + VTE_PAD_WIDTH,
+						 item.y + VTE_PAD_WIDTH,
+						 cursor_width, height,
+						 &color,
+						 VTE_DRAW_OPAQUE);
 		}
 	}
 
