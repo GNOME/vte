@@ -1,3 +1,17 @@
+0.11.11: Add APIs for setting font with/without antialiasing, cursor color,
+	 hilite color, and a forkpty()-alike.  Fix meta-space.  Use glib 2.4's
+	 child watch API if available.
+	 Add a configure switch for setting the default emulation instead of
+	 hard-coding it to be "xterm".
+	 Tweak autowrapping of text to handle cases where the terminal has
+	 both LP and xn capabilities.
+	 Truncate empty lines when copying text to mimic xterm.
+	 Internally abstract out matching APIs, though we still use POSIX regex.
+	 Try to set UTF8 line editing mode under sufficiently-new Linux.
+	 Obey Pango's specified attributes when displaying pre-edit text.
+	 Never steal modifier keys which might affect the input method from
+	 the input methods.
+	 Fix python binding so that help() lists the terminal class.
 0.11.10: Fix cases where the application sets the encoding.  Adjust display of
          way-too-wide characters to better comply with openi18n.
 0.11.9: Accessibility improvements.  Multihead fixes.  Revert to the 0.10 way

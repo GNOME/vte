@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-20 02:16-0400\n"
+"POT-Creation-Date: 2004-04-29 22:25-0400\n"
 "PO-Revision-Date: 2004-02-23 10:30+0100\n"
 "Last-Translator: Laurent Dhima <laurenti@alblinux.net>\n"
 "Language-Team: Albanian <gnome-albanian-perkthyesit@lists.sourceforge.net>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "I pamundur konvertimi i simboleve nga %s në %s."
@@ -37,7 +37,7 @@ msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr ""
 "Përpjekje për të vendosur një hartë NRC të zgjeruar të pavlefshme '%c'."
 
-#: src/pty.c:323
+#: src/pty.c:329
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Gabim duke i shtuar `%s' ambientit, po vazhdoj."
@@ -45,12 +45,12 @@ msgstr "Gabim duke i shtuar `%s' ambientit, po vazhdoj."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:908
+#: src/pty.c:914
 #, c-format
 msgid "can not run %s"
 msgstr "I pamundur ekzekutimi i %s"
 
-#: src/reaper.c:110
+#: src/reaper.c:137
 msgid "Error creating signal pipe."
 msgstr "Gabim gjatë krijimit të pipe të sinjalit."
 
@@ -59,45 +59,45 @@ msgstr "Gabim gjatë krijimit të pipe të sinjalit."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikim (%s/%s)!"
 
-#: src/vte.c:1482
+#: src/vte.c:1498
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Gabim gjatë kompilimit të shprehjes së rregullt \"%s\"."
 
-#: src/vte.c:5819
+#: src/vte.c:5850
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "U mor një sekuencë ( kyç?) i papritur `%s'."
 
-#: src/vte.c:6897
+#: src/vte.c:6951
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Asnjë trajtues i prezgjedhur për sekuencën e kontrollit `%s'."
 
-#: src/vte.c:7719
+#: src/vte.c:7793
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Gabim gjatë leximit nga proçesi bir: %s"
 
-#: src/vte.c:7875
+#: src/vte.c:7949
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "Gabim (%s) duke konvertuar të dhënat për proçesin bir, do të lihen si ishin."
 
-#: src/vte.c:10625
+#: src/vte.c:10715
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Gabim gjatë leximit të madhësisë PTY, do të përdoret vlera e prezgjedhur: %s."
 
-#: src/vte.c:10661
+#: src/vte.c:10751
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Gabim gjatë vendosjes së madhësisë PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15125
+#: src/vte.c:15235
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() dështoi në vendosjen e gërmave të fjalës"
 

@@ -1529,7 +1529,7 @@ vte_terminal_match_add(VteTerminal *terminal, const char *match)
  * vte_terminal_match_set_cursor:
  * @terminal: a #VteTerminal
  * @tag: the tag of the regex which should use the specified cursor
- * @cursor: the cursor which the terminal should use when the pattern is
+ * @cursor: the #GdkCursor which the terminal should use when the pattern is
  * highlighted
  *
  * Sets which cursor the terminal will use if the pointer is over the pattern
@@ -1555,10 +1555,10 @@ vte_terminal_match_set_cursor(VteTerminal *terminal, int tag, GdkCursor *cursor)
 }
 
 /**
- * vte_terminal_match_set_cursor:
+ * vte_terminal_match_set_cursor_type:
  * @terminal: a #VteTerminal
  * @tag: the tag of the regex which should use the specified cursor
- * @cursor: a #GdkCursorType
+ * @cursor_type: a #GdkCursorType
  *
  * Sets which cursor the terminal will use if the pointer is over the pattern
  * specified by @tag.  A convenience wrapper for

@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte 0.11.10\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-20 02:16-0400\n"
+"POT-Creation-Date: 2004-04-29 22:25-0400\n"
 "PO-Revision-Date: 2003-08-19 00:45+0800\n"
 "Last-Translator: Abel Cheung <maddog@linux.org.hk>\n"
 "Language-Team: Chinese (traditional) <zh-l10n@linux.org.tw>\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "無法將字元從 %s 轉換至 %s。"
@@ -34,7 +34,7 @@ msgstr "無法辨認編碼系統。"
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "嘗試設定無效的多位元組 NRC 字元映射‘%c’。"
 
-#: src/pty.c:323
+#: src/pty.c:329
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "加入‘%s’環境變數時出現錯誤，將會繼續。"
@@ -42,12 +42,12 @@ msgstr "加入‘%s’環境變數時出現錯誤，將會繼續。"
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:908
+#: src/pty.c:914
 #, c-format
 msgid "can not run %s"
 msgstr "無法執行 %s"
 
-#: src/reaper.c:110
+#: src/reaper.c:137
 msgid "Error creating signal pipe."
 msgstr "建立訊號管道出現錯誤。"
 
@@ -56,43 +56,43 @@ msgstr "建立訊號管道出現錯誤。"
 msgid "Duplicate (%s/%s)!"
 msgstr "重複 (%s/%s)！"
 
-#: src/vte.c:1482
+#: src/vte.c:1498
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "計算正規表示式“%s”時出現錯誤。"
 
-#: src/vte.c:5819
+#: src/vte.c:5850
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "收到預料之外的跳出字元序列 (可能是按鍵?)‘%s’。"
 
-#: src/vte.c:6897
+#: src/vte.c:6951
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "未指定控制字元序列‘%s’的處理程序。"
 
-#: src/vte.c:7719
+#: src/vte.c:7793
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "從副程序讀取資料時出現錯誤：%s"
 
-#: src/vte.c:7875
+#: src/vte.c:7949
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "從副程序轉換資料時出現錯誤 (%s)，放棄。"
 
-#: src/vte.c:10625
+#: src/vte.c:10715
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "無法讀取 PTY 的大小，使用預設定值：%s。"
 
-#: src/vte.c:10661
+#: src/vte.c:10751
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "無法設定 PTY 的大小：%s。"
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15125
+#: src/vte.c:15235
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() 無法轉換字元"
 

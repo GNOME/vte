@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte-2.6\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-20 02:16-0400\n"
+"POT-Creation-Date: 2004-04-29 22:25-0400\n"
 "PO-Revision-Date: 2004-02-29 20:47+0530\n"
 "Last-Translator: Nirav, Ankit, Ankur, Atit, Bhavin, Kartik, Khushbu, Sweta. "
 "<magnet@magnet-i.com>\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "અક્ષરોને %s માંથી %s માં રૂપાંતરીત કરવામાં અસમર્થ."
@@ -34,7 +34,7 @@ msgstr "ઓળખાતી ન હોય તેવી કોડવાળી સ�
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "અયોગ્ય પહોળા NRC નક્શા '%c' નું સુયોજન કરવાનો પ્રયાસ."
 
-#: src/pty.c:323
+#: src/pty.c:329
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "પર્યાવરણમાં `%s' ઉમેરવામાં ભૂલ, ચાલુ છે."
@@ -42,12 +42,12 @@ msgstr "પર્યાવરણમાં `%s' ઉમેરવામાં ભ�
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:908
+#: src/pty.c:914
 #, c-format
 msgid "can not run %s"
 msgstr "%s ચલાવી શકાતું નથી"
 
-#: src/reaper.c:110
+#: src/reaper.c:137
 msgid "Error creating signal pipe."
 msgstr "સંકેત માટેની પાઈપ બનાવવામાં ભૂલ."
 
@@ -56,43 +56,43 @@ msgstr "સંકેત માટેની પાઈપ બનાવવામા
 msgid "Duplicate (%s/%s)!"
 msgstr "નકલી (%s/%s)!"
 
-#: src/vte.c:1482
+#: src/vte.c:1498
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "નિયમિત સમીકરણ \"%s\" ને કમ્પાઈલ કરવામાં ભૂલ."
 
-#: src/vte.c:5819
+#: src/vte.c:5850
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "અણધાર્યો (કી?) ક્રમ `%s' મળ્યો."
 
-#: src/vte.c:6897
+#: src/vte.c:6951
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "નિયંત્રણ ક્રમ `%s' માટે કોઈ હેન્ડલર વ્યાખ્યાયિત નથી."
 
-#: src/vte.c:7719
+#: src/vte.c:7793
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "બાળમાંથી વાંચતી વખતે ભૂલ: %s."
 
-#: src/vte.c:7875
+#: src/vte.c:7949
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "બાળ માટે માહિતીનું (%s) રૂપાંતર કરવામાં ભૂલ, છોડી રહ્યા છે."
 
-#: src/vte.c:10625
+#: src/vte.c:10715
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "PTYનું માપ વાંચવામાં ભૂલ, મૂળભૂત વાપરી રહ્યા છે: %s."
 
-#: src/vte.c:10661
+#: src/vte.c:10751
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTYનાં માપ ને સુયોજીત કરવામાં ભૂલ: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15125
+#: src/vte.c:15235
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "શબ્દના અક્ષરોને સુયોજીત _vte_conv_open() કરવામાં નિષ્ફળ ગયુ"
 

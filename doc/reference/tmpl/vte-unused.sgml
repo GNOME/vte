@@ -168,6 +168,14 @@ VteBg
 @VTE_DEBUG_KEYBOARD: 
 @VTE_DEBUG_LIFECYCLE: 
 
+<!-- ##### STRUCT VteReaperClass ##### -->
+<para>
+
+</para>
+
+@parent_class: 
+@child_exited_signal: 
+
 <!-- ##### STRUCT VteRing ##### -->
 <para>
 
@@ -187,6 +195,13 @@ VteBg
 
 @freeing: 
 @data: 
+
+<!-- ##### STRUCT VteTerminalClass ##### -->
+<para>
+
+</para>
+
+@parent_class: 
 
 <!-- ##### STRUCT VteTerminalPrivate ##### -->
 <para>

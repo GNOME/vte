@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-20 02:16-0400\n"
+"POT-Creation-Date: 2004-04-29 22:25-0400\n"
 "PO-Revision-Date: 2003-07-11 10:40+0200\n"
 "Last-Translator: Pablo Saratxaga <pablo@mandrakesoft.com>\n"
 "Language-Team: Walon <linux-wa@walon.org>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 1.0.2\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Dji n' a savou cviersî les caracteres di %s a %s."
@@ -36,7 +36,7 @@ msgstr "Sistinme d' ecôdaedje nén ricnoxhou."
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr ""
 
-#: src/pty.c:323
+#: src/pty.c:329
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Åk n' a nén stî tot radjoutant «%s» a l' evironmint, dji continowe."
@@ -44,12 +44,12 @@ msgstr "Åk n' a nén stî tot radjoutant «%s» a l' evironmint, dji continow
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:908
+#: src/pty.c:914
 #, c-format
 msgid "can not run %s"
 msgstr "dji n' sai enonder %s"
 
-#: src/reaper.c:110
+#: src/reaper.c:137
 msgid "Error creating signal pipe."
 msgstr "Åk n' a nén stî tot-z ahivant l' buze des signås."
 
@@ -58,45 +58,45 @@ msgstr "Åk n' a nén stî tot-z ahivant l' buze des signås."
 msgid "Duplicate (%s/%s)!"
 msgstr "E dobe (%s/%s)!"
 
-#: src/vte.c:1482
+#: src/vte.c:1498
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Åk n' a nén stî tot copilant l' erîlêye ratourneure «%s»."
 
-#: src/vte.c:5819
+#: src/vte.c:5850
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr ""
 
-#: src/vte.c:6897
+#: src/vte.c:6951
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr ""
 
-#: src/vte.c:7719
+#: src/vte.c:7793
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Åk n' a nén stî tot léjhant a pårti d' l' efant: %s."
 
-#: src/vte.c:7875
+#: src/vte.c:7949
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Åk n' a nén stî (%s) tot cviersant les dnêyes po l' efant, dji rnonce."
 
-#: src/vte.c:10625
+#: src/vte.c:10715
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Åk n' a nén stî tot léjhant l' grandeu do PTY, eployant li prémetowe "
 "grandeu: %s."
 
-#: src/vte.c:10661
+#: src/vte.c:10751
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Åk n' a nén stî tot metant l' grandeu do PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15125
+#: src/vte.c:15235
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "Li fonccion _vte_conv_open() a fwait berwete"
 

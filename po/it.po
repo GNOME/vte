@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-20 02:16-0400\n"
+"POT-Creation-Date: 2004-04-29 22:25-0400\n"
 "PO-Revision-Date: 2003-06-07 13:51+0100\n"
 "Last-Translator: Francesco Marletta <francesco.marletta@tiscali.it>\n"
 "Language-Team: Italian <tp@lists.linux.it>\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Impossibile convertire i caratteri da %s a %s."
@@ -35,7 +35,7 @@ msgstr "«Sistema di codifica identificato» non riconosciuto."
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Tentativo di impostare una mappa NRC ampia non valida '%c'."
 
-#: src/pty.c:323
+#: src/pty.c:329
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Errore nell'aggiungere \"%s\" all'ambiente, continuo."
@@ -43,12 +43,12 @@ msgstr "Errore nell'aggiungere \"%s\" all'ambiente, continuo."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:908
+#: src/pty.c:914
 #, c-format
 msgid "can not run %s"
 msgstr "impossibile eseguire %s"
 
-#: src/reaper.c:110
+#: src/reaper.c:137
 msgid "Error creating signal pipe."
 msgstr "Errore nel creare la pipe dei segnali."
 
@@ -57,47 +57,47 @@ msgstr "Errore nel creare la pipe dei segnali."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicato (%s/%s)!"
 
-#: src/vte.c:1482
+#: src/vte.c:1498
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Errore nel compilare l'espressione regolare \"%s\"."
 
-#: src/vte.c:5819
+#: src/vte.c:5850
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Ricevuta una sequenza (tasto?) inattesa \"%s\"."
 
-#: src/vte.c:6897
+#: src/vte.c:6951
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Nessun gestore definito per la sequenza di controllo \"%s\"."
 
-#: src/vte.c:7719
+#: src/vte.c:7793
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Errore nella lettura dal processo figlio: %s."
 
-#: src/vte.c:7875
+#: src/vte.c:7949
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "Errore (%s) nel convertire i dati per il processo figlio, rimarranno "
 "invariati."
 
-#: src/vte.c:10625
+#: src/vte.c:10715
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Errore nella lettura della dimensione PTY, sarà usato il valore predefinito: "
 "%s."
 
-#: src/vte.c:10661
+#: src/vte.c:10751
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Errore nell'impostazione della dimensione PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15125
+#: src/vte.c:15235
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_con_open() ha fallito nell'impostare i caratteri della parola"
 

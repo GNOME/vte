@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-20 02:16-0400\n"
+"POT-Creation-Date: 2004-04-29 22:25-0400\n"
 "PO-Revision-Date: 2003-06-01 12:38+0100\n"
 "Last-Translator: Dafydd Harries <daf@parnassus.ath.cx>\n"
 "Language-Team: Welsh <gnome-cy@pengwyn.linux.org.uk>\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Methu trosi nodau o %s i %s."
@@ -41,7 +41,7 @@ msgstr "Ni cydnabyddir y system amgodio adnabyddedig yma."
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Cais gosod map NRC llydan annilys '%c'."
 
-#: src/pty.c:323
+#: src/pty.c:329
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Gwall wrth ycwannegu '%s' i'r amgylchedd, parhau."
@@ -49,12 +49,12 @@ msgstr "Gwall wrth ycwannegu '%s' i'r amgylchedd, parhau."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:908
+#: src/pty.c:914
 #, c-format
 msgid "can not run %s"
 msgstr "methu gweithredu %s"
 
-#: src/reaper.c:110
+#: src/reaper.c:137
 msgid "Error creating signal pipe."
 msgstr "Gwall wrth greu piben arwyddion."
 
@@ -63,43 +63,43 @@ msgstr "Gwall wrth greu piben arwyddion."
 msgid "Duplicate (%s/%s)!"
 msgstr "Dyblyg (%s/%s)!"
 
-#: src/vte.c:1482
+#: src/vte.c:1498
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Gwall wrth grynhoi mynegiad rheolaidd \"%s\"."
 
-#: src/vte.c:5819
+#: src/vte.c:5850
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Cafwyd dilyniant (bysellau?) annisgwyl `%s'."
 
-#: src/vte.c:6897
+#: src/vte.c:6951
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Dim trinydd ar gyfer y dilyniant rheoli `%s' wedi ei ddiffinio."
 
-#: src/vte.c:7719
+#: src/vte.c:7793
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Gwall wrth ddarllen o blentyn: %s."
 
-#: src/vte.c:7875
+#: src/vte.c:7949
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Gwall (%s) trosi data ar gyfer plentyn, gollwng."
 
-#: src/vte.c:10625
+#: src/vte.c:10715
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Gwall wrth ddarllen maint PTY, defnyddio rhagosodiadau: %s."
 
-#: src/vte.c:10661
+#: src/vte.c:10751
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Gwall wrth osod maint PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15125
+#: src/vte.c:15235
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "methodd _vte_conv_open() wrth osod nodau geiriau"
 

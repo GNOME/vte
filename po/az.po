@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte gnome-2-2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-20 02:16-0400\n"
+"POT-Creation-Date: 2004-04-29 22:25-0400\n"
 "PO-Revision-Date: 2003-07-10 20:54+0200\n"
 "Last-Translator: Mətin Əmirov <metin@karegen.com>\n"
 "Language-Team: Azerbaijani <translation-team-az@lists.sourceforge.net>\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Hərflər %s-dən %s-ə çevirilə bilmir."
@@ -35,7 +35,7 @@ msgstr "Namə'lum tanınmış kodlama sistemi."
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Hökmsüz geniş '%c' NRC xəritəsi tə'yin etmə təşəbbüsü."
 
-#: src/pty.c:323
+#: src/pty.c:329
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "`%s' ətraf mühitə əlavə oluna bilmədi, gedişat davam edir."
@@ -43,12 +43,12 @@ msgstr "`%s' ətraf mühitə əlavə oluna bilmədi, gedişat davam edir."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:908
+#: src/pty.c:914
 #, c-format
 msgid "can not run %s"
 msgstr "%s icra edilə bilmir"
 
-#: src/reaper.c:110
+#: src/reaper.c:137
 msgid "Error creating signal pipe."
 msgstr "Signal borusu yaradıla bilmədi."
 
@@ -57,43 +57,43 @@ msgstr "Signal borusu yaradıla bilmədi."
 msgid "Duplicate (%s/%s)!"
 msgstr "Cütləşdir (%s/%s)!)"
 
-#: src/vte.c:1482
+#: src/vte.c:1498
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "%s qaydalı ifadəsini tərtib edərkən xəta yarandı."
 
-#: src/vte.c:5819
+#: src/vte.c:5850
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Gözlənilməyən (açar?) `%s' ardıcıllığı alındı."
 
-#: src/vte.c:6897
+#: src/vte.c:6951
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "`%s' nəzarət ardıcıllığı üçün dəstək tə'yin edilməyib."
 
-#: src/vte.c:7719
+#: src/vte.c:7793
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Törəmədən oxuma xətası: %s."
 
-#: src/vte.c:7875
+#: src/vte.c:7949
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Törəmə üçün verilənləri çevirmə xətası (%s), atılır."
 
-#: src/vte.c:10625
+#: src/vte.c:10715
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "PTY böyüklüyünü oxuma xətası, əsaslar işlədiləcək: %s."
 
-#: src/vte.c:10661
+#: src/vte.c:10751
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTY böyüklüyünü tə'yin etmə xətası: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15125
+#: src/vte.c:15235
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() sözün hərflərini yerləşdirə bilmədi"
 

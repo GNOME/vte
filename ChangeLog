@@ -1,4 +1,10 @@
 2004-04-29 nalin
+	* src/vte.c, NEWS, doc/reference/vte-sections.txt,
+	doc/reference/tmpl/vte-unused.sgml: documentation updates.
+	* doc/reference/tmpl/reaper.sgml: note that we just proxy for glib 2.4
+	child_watch functionality, if present.
+
+2004-04-29 nalin
 	* python/vte.defs: include get_default_emulation binding.
 
 2004-04-29 nalin

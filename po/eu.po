@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD.eu\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-20 02:16-0400\n"
+"POT-Creation-Date: 2004-04-29 22:25-0400\n"
 "PO-Revision-Date: 2003-10-08 21:47+0200\n"
 "Last-Translator: Alberto Fernández Benito <afernn@euskalnet.net>\n"
 "Language-Team: Basque <itzulpena@euskalgnu.org>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 1.0.1\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Karaktereak ezin dira %s -tik %s -ra bihurtu."
@@ -37,7 +37,7 @@ msgstr "Identifikatu den kodeketa-sistema ezin da arakatu."
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "'%c' baliogabeko zabalera NRC mapan ezartzen saiatu da."
 
-#: src/pty.c:323
+#: src/pty.c:329
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "`%s' ingurumenera gehitzean errorea gertatu da, jarraitzen."
@@ -45,12 +45,12 @@ msgstr "`%s' ingurumenera gehitzean errorea gertatu da, jarraitzen."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:908
+#: src/pty.c:914
 #, c-format
 msgid "can not run %s"
 msgstr "%s ezin da exekutatu"
 
-#: src/reaper.c:110
+#: src/reaper.c:137
 msgid "Error creating signal pipe."
 msgstr "Pipe motako seinalea sortzean errore bat gertatu da."
 
@@ -59,44 +59,44 @@ msgstr "Pipe motako seinalea sortzean errore bat gertatu da."
 msgid "Duplicate (%s/%s)!"
 msgstr "Bikoiztua (%s/%s)!"
 
-#: src/vte.c:1482
+#: src/vte.c:1498
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "\"%s\" adierazpen erregularra konpilatzean errorea gertatu da"
 
-#: src/vte.c:5819
+#: src/vte.c:5850
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "`%s' ustekabeko (teklako?) sekuentzia lortu da."
 
-#: src/vte.c:6897
+#: src/vte.c:6951
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Ez dago `%s' kontrol sekuentziarako maneiatzailerik definituta"
 
-#: src/vte.c:7719
+#: src/vte.c:7793
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Umetik irakurtzen errorea gertatu da: %s. "
 
-#: src/vte.c:7875
+#: src/vte.c:7949
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Umerako datuak bihurtzen (%s) errorea gertatu da, saltatzen."
 
-#: src/vte.c:10625
+#: src/vte.c:10715
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "PTY-ren tamaina irakurtzen errorea gertatu da, lehenetsiak erabiltzen: %s."
 
-#: src/vte.c:10661
+#: src/vte.c:10751
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTY-ren tamaina ezartzen errorea gertatu da: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15125
+#: src/vte.c:15235
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() deiak hitzaren karaktereak ezarten huts egin du"
 

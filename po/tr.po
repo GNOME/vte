@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte.tr\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-20 02:16-0400\n"
+"POT-Creation-Date: 2004-04-29 22:25-0400\n"
 "PO-Revision-Date: 2004-02-26 13:54+0200\n"
 "Last-Translator: Baris Cicek <baris@teamforce.name.tr>\n"
 "Language-Team: Turkish <gnome-turk@gnome.org>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 1.0.2\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Karakterler %s'den %s'e dönüştürülemiyor."
@@ -40,7 +40,7 @@ msgstr "Anımsanmayan tanımlanmış kodlama sistemi."
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Geçersiz geniş NRC haritası '%c' ayarlanmaya çalışıldı."
 
-#: src/pty.c:323
+#: src/pty.c:329
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Ortama `%s' eklenirken bir hata oluştu, devam ediliyor."
@@ -48,12 +48,12 @@ msgstr "Ortama `%s' eklenirken bir hata oluştu, devam ediliyor."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:908
+#: src/pty.c:914
 #, c-format
 msgid "can not run %s"
 msgstr "%s çalıştırılamadı"
 
-#: src/reaper.c:110
+#: src/reaper.c:137
 msgid "Error creating signal pipe."
 msgstr "Sinyal borusu oluştururken hata."
 
@@ -62,43 +62,43 @@ msgstr "Sinyal borusu oluştururken hata."
 msgid "Duplicate (%s/%s)!"
 msgstr "Çift (%s/%s)!"
 
-#: src/vte.c:1482
+#: src/vte.c:1498
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Düzenli ifade derlenirken hata: \"%s\"."
 
-#: src/vte.c:5819
+#: src/vte.c:5850
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Beklenmeyen (tuş?) serisi `%s' alındı."
 
-#: src/vte.c:6897
+#: src/vte.c:6951
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "`%s' kontrol serisi için işlemci tanımlanmamış."
 
-#: src/vte.c:7719
+#: src/vte.c:7793
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Oğul süreçten okunurken hata: %s."
 
-#: src/vte.c:7875
+#: src/vte.c:7949
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Oğul süreç için veriyi çeviriken hata (%s), bırakılıyor."
 
-#: src/vte.c:10625
+#: src/vte.c:10715
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "PTY boyutu okunurken hata, öntanımlı değerler kullanılıyor: %s."
 
-#: src/vte.c:10661
+#: src/vte.c:10751
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTY boyutu ayarlanırken hata: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15125
+#: src/vte.c:15235
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_iconv_open() kelime karakterlerini ayarlarken başarısız oldu"
 

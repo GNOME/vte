@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte CVS\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-20 02:16-0400\n"
+"POT-Creation-Date: 2004-04-29 22:25-0400\n"
 "PO-Revision-Date: 2003-09-26 10:46+0200\n"
 "Last-Translator: Andras Timar <timar@gnome.hu>\n"
 "Language-Team: Hungarian <hu@gnome.hu>\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2074
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2090
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Nem sikerült a karakterek átalakítása %s és %s között."
@@ -35,7 +35,7 @@ msgstr "Ismeretlen azonosított kódolási rendszer."
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Kísérlet történt érvénytelen széles NRC map beállítására: '%c'."
 
-#: src/pty.c:323
+#: src/pty.c:329
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Hiba a(z) `%s'a környezethez hozzáadása közben, folytatás."
@@ -43,12 +43,12 @@ msgstr "Hiba a(z) `%s'a környezethez hozzáadása közben, folytatás."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:908
+#: src/pty.c:914
 #, c-format
 msgid "can not run %s"
 msgstr "%s nem futtatható"
 
-#: src/reaper.c:110
+#: src/reaper.c:137
 msgid "Error creating signal pipe."
 msgstr "Hiba a jelzéscső létrehozása közben."
 
@@ -57,44 +57,44 @@ msgstr "Hiba a jelzéscső létrehozása közben."
 msgid "Duplicate (%s/%s)!"
 msgstr "Dupla (%s/%s)!"
 
-#: src/vte.c:1482
+#: src/vte.c:1498
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Hiba a(z) \"%s\" reguláris kifejezés lefordítása közben."
 
-#: src/vte.c:5819
+#: src/vte.c:5850
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Váratlan (billentyű?) sorozat érkezett: `%s'."
 
-#: src/vte.c:6897
+#: src/vte.c:6951
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Nincs kezelő megadva a(z) `%s' vezérlőszekvenciához."
 
-#: src/vte.c:7719
+#: src/vte.c:7793
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Hiba a gyermekből olvasás közben: %s."
 
-#: src/vte.c:7875
+#: src/vte.c:7949
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Hiba (%s) történt az adatkonverzió közben a gyermek számára, eldobva."
 
-#: src/vte.c:10625
+#: src/vte.c:10715
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Hiba a PTY-méret beolvasása közben, az alapértelmezés lesz használva: %s."
 
-#: src/vte.c:10661
+#: src/vte.c:10751
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Hiba a PTY-méret beállítása közben: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15125
+#: src/vte.c:15235
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "A _vte_conv_open() nem tudta beállítani a szó karaktereit."
 
