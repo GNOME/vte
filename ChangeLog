@@ -1,3 +1,7 @@
+2003-03-31  Laurent Dhima  <laurenti@alblinux.net>
+
+	* configure.in: Added "sq" to ALL_LINGUAS.
+	 
 2003-03-26 nalin
 	* src/Makefile.am: specify AM_CFLAGS and AM_LDFLAGS instead of CFLAGS
 	and LDFLAGS so that automake 1.7 doesn't kick us to the curb
