@@ -175,12 +175,22 @@ struct _VteTerminalPrivate {
 	/* Options. */
 	gboolean scroll_on_output;
 	gboolean scroll_on_keystroke;
+
 	gboolean alt_sends_escape;
+
 	gboolean audible_bell;
+
 	gboolean cursor_blinks;
 	guint blink_period;
+
 	gboolean bg_transparent;
+	GdkAtom bg_transparent_atom;
+	GdkWindow *bg_transparent_window;
+	GdkPixbuf *bg_transparent_image;
+	GtkWidget *bg_toplevel;
+
 	GdkPixbuf *bg_image;
+
 	double bg_saturation;
 };
 
@@ -212,7 +222,11 @@ static gboolean vte_terminal_io_read(GIOChannel *channel,
 static gboolean vte_terminal_io_write(GIOChannel *channel,
 				      GdkInputCondition condition,
 				      gpointer data);
-static void vte_terminal_setup_background(VteTerminal *terminal);
+static void vte_terminal_setup_background(VteTerminal *terminal,
+					  gboolean fresh_transparent);
+static GdkFilterReturn vte_terminal_filter_property_changes(GdkXEvent *xevent,
+							    GdkEvent *event,
+							    gpointer data);
 
 /* Allocate a new line. */
 static GArray *
@@ -246,9 +260,13 @@ vte_invalidate_cells(VteTerminal *terminal,
 		     glong row_start, gint row_count)
 {
 	GdkRectangle rect;
-	GtkWidget *widget = GTK_WIDGET(terminal);
+	GtkWidget *widget;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	widget = GTK_WIDGET(terminal);
+	if (!GTK_WIDGET_REALIZED(widget)) {
+		return;
+	}
 
 	/* Subtract the scrolling offset from the row start so that the
 	 * resulting rectangle is relative to the visible portion of the
@@ -289,6 +307,11 @@ vte_invalidate_cursor(gpointer data)
 	g_timeout_add(terminal->pvt->blink_period / 2,
 		      vte_invalidate_cursor,
 		      terminal);
+#ifdef VTE_DEBUG
+#ifdef VTE_DEBUG_DRAW_CURSOR
+	fprintf(stderr, "Invalidating cursor.\n");
+#endif
+#endif
 	return FALSE;
 }
 
@@ -1035,7 +1058,8 @@ vte_sequence_handler_do(VteTerminal *terminal,
 			 * line at the bottom to scroll the top off. */
 			vte_remove_line_int(terminal, start);
 			vte_insert_line_int(terminal, end);
-			if (terminal->pvt->bg_image == NULL) {
+			if ((terminal->pvt->bg_image == NULL) &&
+			    (!terminal->pvt->bg_transparent)) {
 				/* Scroll the window. */
 				gdk_window_scroll(widget->window,
 						  0,
@@ -1434,7 +1458,8 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			 * line at the top to scroll the bottom off. */
 			vte_remove_line_int(terminal, end);
 			vte_insert_line_int(terminal, start);
-			if (terminal->pvt->bg_image == NULL) {
+			if ((terminal->pvt->bg_image == NULL) &&
+			    (!terminal->pvt->bg_transparent)) {
 				/* Scroll the window. */
 				gdk_window_scroll(widget->window,
 						  0,
@@ -1472,7 +1497,8 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			 * history. */
 			vte_remove_line_int(terminal, end);
 			vte_insert_line_int(terminal, start);
-			if (terminal->pvt->bg_image == NULL) {
+			if ((terminal->pvt->bg_image == NULL) &&
+			    (!terminal->pvt->bg_transparent)) {
 				/* Scroll the window. */
 				gdk_window_scroll(widget->window,
 						  0,
@@ -1553,7 +1579,7 @@ vte_sequence_handler_vs(VteTerminal *terminal,
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->screen->cursor_visible = TRUE; /* FIXME: should be
-							 more visible. */
+							 *more* visible. */
 }
 
 /* Handle ANSI color setting and related stuffs (SGR). */
@@ -2704,7 +2730,11 @@ vte_terminal_set_colors(VteTerminal *terminal,
 
 	/* This may have changed the default background color, so trigger
 	 * a repaint. */
-	vte_terminal_setup_background(terminal);
+	vte_invalidate_cells(terminal,
+			     0,
+			     terminal->column_count,
+			     terminal->pvt->screen->scroll_delta,
+			     terminal->row_count);
 }
 
 /* Reset palette defaults for character colors. */
@@ -3454,6 +3484,50 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	return;
 }
 
+/* Handle the toplevel being reconfigured. */
+static gboolean
+vte_terminal_configure_toplevel(GtkWidget *widget, GdkEventConfigure *event,
+				gpointer data)
+{
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Top level parent configured.\n");
+#endif
+	g_return_val_if_fail(GTK_IS_WIDGET(widget), FALSE);
+	g_return_val_if_fail(GTK_WIDGET_TOPLEVEL(widget), FALSE);
+	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
+	vte_terminal_setup_background(VTE_TERMINAL(data), FALSE);
+	return TRUE;
+}
+
+/* Handle a hierarchy-changed signal. */
+static void
+vte_terminal_hierarchy_changed(GtkWidget *widget, GtkWidget *old_toplevel,
+			       gpointer data)
+{
+	VteTerminal *terminal;
+	GtkWidget *toplevel;
+
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Hierarchy changed.\n");
+#endif
+
+	g_return_if_fail(VTE_IS_TERMINAL(widget));
+	terminal = VTE_TERMINAL(widget);
+
+	if (GTK_IS_WIDGET(old_toplevel)) {
+		g_signal_handlers_disconnect_by_func(G_OBJECT(old_toplevel),
+						     vte_terminal_configure_toplevel,
+						     NULL);
+	}
+
+	toplevel = gtk_widget_get_toplevel(widget);
+	if (GTK_IS_WIDGET(toplevel)) {
+		g_signal_connect(G_OBJECT(toplevel), "configure-event",
+				 G_CALLBACK(vte_terminal_configure_toplevel),
+				 terminal);
+	}
+}
+
 /* Read and handle a keypress event. */
 static gint
 vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
@@ -3898,14 +3972,14 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	return FALSE;
 }
 
-/* Place the selected text onto the clipboard. */
+/* Place the selected text onto the clipboard.  Do this synchronously so that
+ * we don't accidentally clear the clipboard on ourselves.  FIXME: needs to
+ * deselect the selected area when another app sets the clipboard contents. */
 static void
-vte_terminal_get_clipboard(GtkClipboard *clipboard,
-			   GtkSelectionData *selection_data,
-			   guint info,
-			   gpointer owner)
+vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 {
-	VteTerminal *terminal;
+	GtkClipboard *clipboard;
+	GtkWidget *widget;
 	long x, y;
 	struct _VteScreen *screen;
 	struct vte_charcell *pcell;
@@ -3915,8 +3989,9 @@ vte_terminal_get_clipboard(GtkClipboard *clipboard,
 	size_t icount, ocount;
 	iconv_t conv;
 
-	g_return_if_fail(VTE_IS_TERMINAL(owner));
-	terminal = VTE_TERMINAL(owner);
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	widget = GTK_WIDGET(terminal);
+	clipboard = gtk_clipboard_get(board);
 
 	/* Build a buffer with the selected wide chars. */
 	screen = terminal->pvt->screen;
@@ -3956,9 +4031,15 @@ vte_terminal_get_clipboard(GtkClipboard *clipboard,
 				fprintf(stderr, "Passing `%*s' to clipboard.\n",
 					obuf - obufptr, obufptr);
 #endif
-				gtk_selection_data_set_text(selection_data,
-							    obufptr,
-							    obuf - obufptr);
+				gtk_clipboard_set_text(clipboard,
+						       obufptr,
+						       obuf - obufptr);
+				/* Tell X that we want to know when something
+				 * changes in the clipboard. */
+				XSetSelectionOwner(GDK_WINDOW_XDISPLAY(widget->window),
+						   gdk_x11_atom_to_xatom(board),
+						   GDK_DRAWABLE_XID(widget->window),
+						   CurrentTime);
 			} else {
 				g_warning("Conversion error in copy (%s), "
 					  "dropping.", strerror(errno));
@@ -3970,45 +4051,6 @@ vte_terminal_get_clipboard(GtkClipboard *clipboard,
 		g_free(obufptr);
 	}
 	g_free(buffer);
-}
-
-/* The clipboard contents have been changed or cleared, so we'd better not
- * have the user thinking anything we selected is in there. */
-static void
-vte_terminal_clear_clipboard(GtkClipboard *clipboard,
-			     gpointer owner)
-{
-	g_return_if_fail(VTE_IS_TERMINAL(owner));
-#ifdef VTE_DEBUG
-	fprintf(stderr, "Clipboard has been modified.\n");
-#endif
-	if (gtk_clipboard_get_owner(clipboard) != G_OBJECT(owner)) {
-		vte_terminal_deselect_all(VTE_TERMINAL(owner));
-	}
-}
-
-/* Set us up as the provider of data for the clipboard. */
-static void
-vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
-{
-	GtkClipboard *clipboard;
-	GtkTargetEntry targets[] = {
-		{"UTF8_STRING", 0, 0,},
-		{"STRING", 0, 0,},
-		{"TEXT",  0, 0,},
-		{"COMPOUND_TEXT", 0, 0,},
-	};
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	clipboard = gtk_clipboard_get(board);
-
-	if (gtk_clipboard_get_owner(clipboard) != G_OBJECT(terminal)) {
-		gtk_clipboard_set_with_owner(clipboard,
-					     targets, G_N_ELEMENTS(targets),
-					     vte_terminal_get_clipboard,
-					     vte_terminal_clear_clipboard,
-					     G_OBJECT(terminal));
-	}
 }
 
 /* Paste from the given clipboard. */
@@ -4130,8 +4172,6 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 			event->button, event->x, event->y);
 #endif
 		if (event->button == 1) {
-			/* FIXME: if the cursor didn't move, don't replace
-			 * the selection. */
 			vte_terminal_copy(terminal, GDK_SELECTION_PRIMARY);
 		}
 	}
@@ -4316,7 +4356,8 @@ vte_handle_scroll(VteTerminal *terminal)
 	dy = screen->scroll_delta - adj;
 	screen->scroll_delta = adj;
 	if (dy != 0) {
-		if (terminal->pvt->bg_image == NULL) {
+		if ((terminal->pvt->bg_image == NULL) &&
+		    (!terminal->pvt->bg_transparent)) {
 			/* Scroll whatever's already in the window to avoid
 			 * redrawing as much as possible -- any exposed area
 			 * will be exposed for us by the windowing system
@@ -4498,9 +4539,13 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->scroll_on_keystroke = TRUE;
 	pvt->alt_sends_escape = TRUE;
 	pvt->audible_bell = TRUE;
-	pvt->bg_image = NULL;
-	pvt->bg_saturation = 0.4;
 	pvt->bg_transparent = FALSE;
+	pvt->bg_transparent_atom = 0;
+	pvt->bg_transparent_window = NULL;
+	pvt->bg_transparent_image = NULL;
+	pvt->bg_toplevel = NULL;
+	pvt->bg_saturation = 0.4;
+	pvt->bg_image = NULL;
 
 	pvt->cursor_blinks = FALSE;
 	pvt->blink_period = 1000;
@@ -4566,6 +4611,11 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Set up an adjustment to control scrolling. */
 	adjustment = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0, 0, 0, 0));
 	vte_terminal_set_scroll_adjustment(terminal, adjustment);
+
+	/* Set up hierarchy change notifications. */
+	g_signal_connect(G_OBJECT(terminal), "hierarchy-changed",
+			 G_CALLBACK(vte_terminal_hierarchy_changed),
+			 NULL);
 }
 
 /* Tell GTK+ how much space we need. */
@@ -4597,6 +4647,10 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
 
+#ifdef VTE_DEBUG
+	fprintf(stderr, "Sizing window.\n");
+#endif
+
 	/* Set our allocation to match the structure. */
 	widget->allocation = *allocation;
 
@@ -4612,6 +4666,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 				       allocation->y,
 				       allocation->width,
 				       allocation->height);
+		vte_terminal_setup_background(terminal, FALSE);
 	}
 
 	/* Adjust the adjustments. */
@@ -4655,6 +4710,17 @@ vte_terminal_unrealize(GtkWidget *widget)
 		terminal->pvt->ftfont = NULL;
 	}
 #endif
+
+	/* Disconnect any filters which might be watching for X window
+	 * pixmap changes. */
+	if (terminal->pvt->bg_transparent) {
+		gdk_window_remove_filter(terminal->pvt->bg_transparent_window,
+				         vte_terminal_filter_property_changes,
+				         terminal);
+	}
+	gdk_window_remove_filter(widget->window,
+			         vte_terminal_filter_property_changes,
+			         terminal);
 
 	/* Unmap the widget if it hasn't been already. */
 	if (GTK_WIDGET_MAPPED(widget)) {
@@ -4752,6 +4818,10 @@ vte_terminal_finalize(GObject *object)
 		g_object_unref(G_OBJECT(terminal->pvt->bg_image));
 		terminal->pvt->bg_image = NULL;
 	}
+	if (terminal->pvt->bg_transparent_image != NULL) {
+		g_object_unref(G_OBJECT(terminal->pvt->bg_transparent_image));
+		terminal->pvt->bg_transparent_image = NULL;
+	}
 
 	/* Call the inherited finalize() method. */
 	if (G_OBJECT_CLASS(widget_class)->finalize) {
@@ -4807,8 +4877,10 @@ vte_terminal_realize(GtkWidget *widget)
 	/* Set the realized flag. */
 	GTK_WIDGET_SET_FLAGS(widget, GTK_REALIZED);
 
-	/* Set up the background image. */
-	vte_terminal_setup_background(terminal);
+	/* Add a filter to watch for property changes. */
+	gdk_window_add_filter(widget->window,
+			      vte_terminal_filter_property_changes,
+			      terminal);
 
 	/* Grab input focus. */
 	gtk_widget_grab_focus(widget);
@@ -4874,9 +4946,7 @@ vte_terminal_draw_char(VteTerminal *terminal,
 	}
 
 	/* Paint the background for the cell. */
-	if ((terminal->pvt->bg_image == NULL) ||
-	    (back != VTE_DEF_BG) ||
-	    !GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
+	if ((back != VTE_DEF_BG) && GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
 		XSetForeground(display, gc, terminal->pvt->palette[back].pixel);
 		XFillRectangle(display, drawable, gc, x, y, width, height);
 	}
@@ -5341,6 +5411,12 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 	/* Draw the cursor if it's visible. */
 	if (terminal->pvt->screen->cursor_visible) {
+#ifdef VTE_DEBUG
+#ifdef VTE_DEBUG_DRAW
+		fprintf(stderr, "Drawing the cursor (%s).\n",
+			blink ? "on" : "off");
+#endif
+#endif
 		/* Get the character under the cursor. */
 		col = screen->cursor_current.col;
 		drow = screen->cursor_current.row;
@@ -5541,7 +5617,7 @@ vte_terminal_paste_clipboard(VteTerminal *terminal)
 
 /* Set up whatever background we want. */
 static void
-vte_terminal_setup_background(VteTerminal *terminal)
+vte_terminal_setup_background(VteTerminal *terminal, gboolean fresh_transparent)
 {
 	long i;
 	GtkWidget *widget;
@@ -5551,6 +5627,11 @@ vte_terminal_setup_background(VteTerminal *terminal)
 	GdkPixmap *pixmap = NULL;
 	GdkBitmap *bitmap = NULL;
 	GdkColor bgcolor;
+	GdkWindow *window = NULL;
+	GdkAtom atom, prop_type;
+	Pixmap *prop_data = NULL;
+	guint width, height;
+	gint x, y;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	widget = GTK_WIDGET(terminal);
@@ -5563,23 +5644,105 @@ vte_terminal_setup_background(VteTerminal *terminal)
 	bgcolor.green = terminal->pvt->palette[VTE_DEF_BG].green;
 	bgcolor.blue = terminal->pvt->palette[VTE_DEF_BG].blue;
 	gdk_window_set_background(widget->window, &bgcolor);
+	gdk_window_set_back_pixmap(widget->window, NULL, FALSE);
 
 	if (terminal->pvt->bg_transparent) {
-		/* Set the background to be relative to the window's parent. */
-		gdk_window_set_back_pixmap(widget->window, NULL, TRUE);
+		if (fresh_transparent ||
+		    (terminal->pvt->bg_transparent_image == NULL)) {
+			gdk_error_trap_push();
+
+			/* Retrieve the window and its property which
+			 * we're watching. */
+			window = terminal->pvt->bg_transparent_window;
+			atom = terminal->pvt->bg_transparent_atom;
+			prop_data = NULL;
+
+			/* Read the pixmap. */
+			gdk_property_get(window, atom, 0, 0, 10, FALSE,
+					 &prop_type, NULL, NULL,
+					 (guchar**)&prop_data);
+
+			/* If we got something, try to create a pixmap. */
+			if ((prop_type == GDK_TARGET_PIXMAP) &&
+			    (prop_data != NULL) &&
+			    (prop_data[0] != 0)) {
+				gdk_drawable_get_size(window, &width, &height);
+				pixmap = gdk_pixmap_foreign_new(prop_data[0]);
+				if (GDK_IS_PIXMAP(pixmap)) {
+					colormap = gdk_drawable_get_colormap(window);
+					pixbuf = gdk_pixbuf_get_from_drawable(NULL,
+									      pixmap,
+									      colormap,
+									      0, 0,
+									      0, 0,
+									      width,
+									      height);
+					g_object_unref(G_OBJECT(pixmap));
+					pixmap = NULL;
+				}
+			}
+			gdk_error_trap_pop();
+
+			/* Save the image. */
+			if (terminal->pvt->bg_transparent_image) {
+				g_object_unref(G_OBJECT(terminal->pvt->bg_transparent_image));
+			}
+			terminal->pvt->bg_transparent_image = pixbuf;
+		}
+
+		/* Get a copy of the root image. */
+		if (GDK_IS_PIXBUF(terminal->pvt->bg_transparent_image)) {
+			pixbuf = gdk_pixbuf_copy(terminal->pvt->bg_transparent_image);
+		}
+
+		/* Rotate the copy of the image left or up. */
+		if (GDK_IS_PIXBUF(pixbuf)) {
+			gdk_window_get_origin(widget->window, &x, &y);
+			width = gdk_pixbuf_get_width(pixbuf);
+			height = gdk_pixbuf_get_height(pixbuf);
+			while (x < 0) {
+				x += width;
+			}
+			while (y < 0) {
+				y += height;
+			}
+			x %= width;
+			y %= height;
+
+			/* Copy the picture data. */
+			oldpixels = gdk_pixbuf_get_pixels(pixbuf);
+			pixels = g_malloc(height *
+					  gdk_pixbuf_get_rowstride(pixbuf) *
+					  2);
+			memcpy(pixels,
+			       oldpixels,
+			       gdk_pixbuf_get_rowstride(pixbuf) * height);
+			memcpy(pixels +
+			       gdk_pixbuf_get_rowstride(pixbuf) * height,
+			       oldpixels,
+			       gdk_pixbuf_get_rowstride(pixbuf) * height);
+			memcpy(oldpixels,
+			       pixels + gdk_pixbuf_get_rowstride(pixbuf) * y +
+			       (gdk_pixbuf_get_bits_per_sample(pixbuf) *
+				gdk_pixbuf_get_n_channels(pixbuf) * x) / 8,
+			       gdk_pixbuf_get_rowstride(pixbuf) * height);
+			g_free(pixels);
+		}
 	} else
 	if (terminal->pvt->bg_image != NULL) {
 		/* Set up a possibly desaturated background.  Start by
 		 * creating a copy we can mess with. */
 		pixbuf = gdk_pixbuf_copy(terminal->pvt->bg_image);
+		width = gdk_pixbuf_get_width(pixbuf);
+		height = gdk_pixbuf_get_height(pixbuf);
+	}
 
-		/* Adjust the brightness of the copy. */
-		oldpixels = gdk_pixbuf_get_pixels(terminal->pvt->bg_image);
+	if (GDK_IS_PIXBUF(pixbuf)) {
+		/* Adjust the brightness of the pixbuf. */
 		pixels = gdk_pixbuf_get_pixels(pixbuf);
-		i = gdk_pixbuf_get_height(terminal->pvt->bg_image) *
-		    gdk_pixbuf_get_rowstride(terminal->pvt->bg_image);
+		i = height * gdk_pixbuf_get_rowstride(pixbuf);
 		while (i >= 0) {
-			pixels[i] = oldpixels[i] * terminal->pvt->bg_saturation;
+			pixels[i] = pixels[i] * terminal->pvt->bg_saturation;
 			i--;
 		}
 
@@ -5590,14 +5753,18 @@ vte_terminal_setup_background(VteTerminal *terminal)
 							       &pixmap,
 							       &bitmap,
 							       0);
-		/* Set the pixmap as the window background. */
-		gdk_window_set_back_pixmap((GTK_WIDGET(terminal))->window,
-					   pixmap,
-					   FALSE);
 
-		g_object_unref(G_OBJECT(pixmap));
-		g_object_unref(G_OBJECT(bitmap));
+		/* Set the pixmap as the window background. */
+		gdk_window_set_back_pixmap(widget->window, pixmap, FALSE);
+
+		/* Get rid of the pixbuf and bitmap, which are not useful. */
 		g_object_unref(G_OBJECT(pixbuf));
+		if (GDK_IS_PIXMAP(pixmap)) {
+			g_object_unref(G_OBJECT(pixmap));
+		}
+		if (bitmap != NULL) {
+			g_object_unref(G_OBJECT(bitmap));
+		}
 	}
 
 	/* Force a redraw for everything. */
@@ -5613,7 +5780,7 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->bg_saturation = saturation;
-	vte_terminal_setup_background(terminal);
+	vte_terminal_setup_background(terminal, FALSE);
 }
 
 void
@@ -5634,7 +5801,11 @@ vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
 
 	/* Set the new background. */
 	terminal->pvt->bg_image = image;
-	vte_terminal_setup_background(terminal);
+	if (terminal->pvt->bg_transparent) {
+		vte_terminal_set_background_transparent(terminal, FALSE);
+	} else {
+		vte_terminal_setup_background(terminal, FALSE);
+	}
 }
 
 void
@@ -5653,12 +5824,80 @@ vte_terminal_set_background_image_file(VteTerminal *terminal, const char *path)
 	}
 }
 
+static GdkFilterReturn
+vte_terminal_filter_property_changes(GdkXEvent *xevent, GdkEvent *event,
+				     gpointer data)
+{
+	VteTerminal *terminal;
+	GdkWindow *window;
+	XEvent *xev;
+	GdkAtom atom;
+
+	xev = (XEvent*) xevent;
+
+	if (VTE_IS_TERMINAL(data) &&
+	    GTK_WIDGET_REALIZED(GTK_WIDGET(data))) {
+		terminal = VTE_TERMINAL(data);
+	} else {
+		return GDK_FILTER_CONTINUE;
+	}
+
+	switch (xev->type) {
+	case SelectionClear:
+#ifdef VTE_DEBUG
+		fprintf(stderr, "Selection modified by another window.\n");
+#endif
+		vte_terminal_deselect_all(terminal);
+		break;
+	case PropertyNotify:
+#ifdef VTE_DEBUG
+		fprintf(stderr, "Property changed.\n");
+#endif
+		atom = terminal->pvt->bg_transparent_atom;
+		if (xev->xproperty.atom == gdk_x11_atom_to_xatom(atom)) {
+#ifdef VTE_DEBUG
+			fprintf(stderr, "Property atom matches.\n");
+#endif
+			window = terminal->pvt->bg_transparent_window;
+			if (xev->xproperty.window == GDK_DRAWABLE_XID(window)) {
+#ifdef VTE_DEBUG
+				fprintf(stderr, "Property window matches.\n");
+#endif
+				vte_terminal_setup_background(terminal, TRUE);
+			}
+		}
+	}
+	return GDK_FILTER_CONTINUE;
+}
+
 void
 vte_terminal_set_background_transparent(VteTerminal *terminal, gboolean setting)
 {
+	GdkWindow *window;
+	GdkAtom atom;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->bg_transparent = setting;
-	vte_terminal_setup_background(terminal);
+	if (setting) {
+		window = gdk_get_default_root_window();
+		atom = gdk_atom_intern("_XROOTPMAP_ID", TRUE);
+		terminal->pvt->bg_transparent_window = window;
+		terminal->pvt->bg_transparent_atom = atom;
+		gdk_window_add_filter(window,
+				      vte_terminal_filter_property_changes,
+				      terminal);
+		gdk_window_set_events(window,
+				      gdk_window_get_events(window) |
+				      GDK_PROPERTY_CHANGE_MASK);
+	} else {
+		gdk_window_remove_filter(window,
+				         vte_terminal_filter_property_changes,
+				         terminal);
+	}
+	if (terminal->pvt->bg_image != NULL) {
+		vte_terminal_set_background_image(terminal, FALSE);
+	} else {
+		vte_terminal_setup_background(terminal, TRUE);
+	}
 }
 
 gboolean
