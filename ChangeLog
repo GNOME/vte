@@ -1,4 +1,7 @@
 2003-06-16 nalin
+	* src/vteaccess.c(xy_from_offset): fix a compiler warning.
+
+2003-06-16 nalin
 	* src/vteint.h: add.  Move private VteTerminal stuff which needs to be
 	shared with other modules in the library here.
 	* src/vtedraw.c, src/vtedraw.h: add get_char_width(), for use in drawing

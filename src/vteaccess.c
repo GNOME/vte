@@ -132,7 +132,7 @@ xy_from_offset (VteTerminalAccessiblePrivate *priv,
 	gint i;
 	gint linebreak;
 	gint cur_x, cur_y;
-	gint cur_offset;
+	gint cur_offset = 0;
 
 	cur_x = -1;
 	cur_y = -1;
