@@ -11554,6 +11554,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 {
 	VteTerminal *terminal;
 	glong width, height;
+	gint x, y;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
@@ -11607,12 +11608,18 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 
 	/* Resize the GDK window. */
 	if (widget->window != NULL) {
+		gdk_window_get_geometry(widget->window,
+					&x, &y, NULL, NULL, NULL);
 		gdk_window_move_resize(widget->window,
 				       allocation->x,
 				       allocation->y,
 				       allocation->width,
 				       allocation->height);
-		vte_terminal_queue_background_update(terminal, TRUE);
+		if ((x != allocation->x) ||
+		    (y != allocation->y) ||
+		    (terminal->pvt->bg_image == NULL)) {
+			vte_terminal_queue_background_update(terminal, TRUE);
+		}
 	}
 
 	/* Adjust the adjustments. */
@@ -11670,7 +11677,7 @@ vte_terminal_unrealize(GtkWidget *widget)
 		g_object_remove_weak_pointer(G_OBJECT(terminal->pvt->accessible),
 					     &terminal->pvt->accessible);
 #ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_MISC)) {
+		if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
 			fprintf(stderr, "Accessible peer has refcount %d "
 				"before we unref it.\n",
 				(G_OBJECT(terminal->pvt->accessible))->ref_count);
