@@ -9,6 +9,7 @@ EXTRA_DIST = \
 	genkeysyms.py \
 	iso2022.txt \
 	marshal.list \
+	mkunitables.sh \
 	uniwidths \
 	unitable.CNS11643 \
 	unitable.GB12345 \

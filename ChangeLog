@@ -1,3 +1,7 @@
+2003-02-24 nalin
+	* src/vte.c(vte_sequence_handler_decset_internal): home the cursor when
+	we switch to the alternate screen (#105075).
+
 2003-02-23  Duarte Loreto <happyguy_pt@hotmail.com>
 
         * configure.in: Added "pt" to ALL_LINGUAS.

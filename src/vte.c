@@ -4544,12 +4544,16 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 	case 1047:
 	case 1049:
 		/* Clear the alternate screen if we're switching
-		 * to it. */
+		 * to it, and home the cursor. */
 		if (set) {
 			vte_sequence_handler_clear_screen(terminal,
 							  NULL,
 							  0,
 							  NULL);
+			vte_sequence_handler_ho(terminal,
+						NULL,
+						0,
+						NULL);
 		}
 		/* Reset scrollbars and repaint everything. */
 		vte_terminal_adjust_adjustments(terminal, TRUE);
