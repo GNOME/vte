@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.10.24
+Version: 0.10.25
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -96,6 +96,15 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Mon Feb 24 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.25-1
+- incorporate fix for issues noted by H D Moore (CAN-2003-0070)
+
+* Mon Feb 24 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.24-3
+- home the cursor when we switch to the alternate screen
+ 
+* Mon Feb 24 2003 Elliot Lee <sopwith@redhat.com> 0.10.24-2
+- rebuilt
+  
 * Fri Feb 21 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.24-1
 - be consistently wrong about the width of ACS characters (#84783)
 
