@@ -1071,8 +1071,8 @@ vte_terminal_match_add(VteTerminal *terminal, const char *match)
  * it does, return the string, and store the match tag in the optional tag
  * argument. */
 static char *
-vte_terminal_match_check_int(VteTerminal *terminal, long column,
-			     long row, int *tag, int *start, int *end)
+vte_terminal_match_check_internal(VteTerminal *terminal, long column,
+				  long row, int *tag, int *start, int *end)
 {
 	int i, j, ret, offset;
 	struct vte_match_regex *regex = NULL;
@@ -1205,8 +1205,8 @@ vte_terminal_match_check_int(VteTerminal *terminal, long column,
 char *
 vte_terminal_match_check(VteTerminal *terminal, long column, long row, int *tag)
 {
-	return vte_terminal_match_check_int(terminal, column, row, tag,
-					    NULL, NULL);
+	return vte_terminal_match_check_internal(terminal, column, row, tag,
+						 NULL, NULL);
 }
 
 /* Update the adjustment field of the widget.  This function should be called
@@ -1381,7 +1381,7 @@ vte_sequence_handler_multiple(VteTerminal *terminal,
 
 /* Insert a blank line at an arbitrary position. */
 static void
-vte_insert_line_int(VteTerminal *terminal, long position)
+vte_insert_line_internal(VteTerminal *terminal, long position)
 {
 	GArray *array;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -1401,7 +1401,7 @@ vte_insert_line_int(VteTerminal *terminal, long position)
 
 /* Remove a line at an arbitrary position. */
 static void
-vte_remove_line_int(VteTerminal *terminal, long position)
+vte_remove_line_internal(VteTerminal *terminal, long position)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (vte_ring_next(terminal->pvt->screen->row_data) > position) {
@@ -1600,8 +1600,8 @@ vte_sequence_handler_al(VteTerminal *terminal,
 	for (i = 0; i < param; i++) {
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
-		vte_remove_line_int(terminal, end);
-		vte_insert_line_int(terminal, start);
+		vte_remove_line_internal(terminal, end);
+		vte_insert_line_internal(terminal, start);
 		/* Get the data for the new row. */
 		rowdata = vte_ring_index(screen->row_data, GArray*, start);
 		/* Add enough cells to it so that it has the default colors. */
@@ -2122,8 +2122,8 @@ vte_sequence_handler_dl(VteTerminal *terminal,
 	for (i = 0; i < param; i++) {
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
-		vte_remove_line_int(terminal, start);
-		vte_insert_line_int(terminal, end);
+		vte_remove_line_internal(terminal, start);
+		vte_insert_line_internal(terminal, end);
 	}
 
 	/* Update the display. */
@@ -2248,8 +2248,8 @@ vte_sequence_handler_do(VteTerminal *terminal,
 		if (screen->scrolling_restricted) {
 			/* If we're at the end of the scrolling region, add a
 			 * line at the bottom to scroll the top off. */
-			vte_remove_line_int(terminal, start);
-			vte_insert_line_int(terminal, end);
+			vte_remove_line_internal(terminal, start);
+			vte_insert_line_internal(terminal, end);
 			/* Update the display. */
 			vte_terminal_scroll_region(terminal, start,
 						   end - start + 1, -1);
@@ -2997,11 +2997,10 @@ vte_sequence_handler_up(VteTerminal *terminal,
 	if (screen->cursor_current.row == start) {
 		/* If we're at the top of the scrolling region, add a
 		 * line at the top to scroll the bottom off. */
-		vte_remove_line_int(terminal, end);
-		vte_insert_line_int(terminal, start);
+		vte_remove_line_internal(terminal, end);
+		vte_insert_line_internal(terminal, start);
 		/* Update the display. */
-		vte_terminal_scroll_region(terminal, start,
-					   end - start + 1, 1);
+		vte_terminal_scroll_region(terminal, start, end - start + 1, 1);
 	} else {
 		/* Otherwise, just move the cursor up. */
 		screen->cursor_current.row--;
@@ -3317,11 +3316,11 @@ vte_sequence_handler_cursor_position(VteTerminal *terminal,
 
 /* Set icon/window titles. */
 static void
-vte_sequence_handler_set_title_int(VteTerminal *terminal,
-				   const char *match,
-				   GQuark match_quark,
-				   GValueArray *params,
-				   const char *signal)
+vte_sequence_handler_set_title_internal(VteTerminal *terminal,
+					const char *match,
+					GQuark match_quark,
+					GValueArray *params,
+					const char *signal)
 {
 	GValue *value;
 	GIConv conv;
@@ -3391,8 +3390,8 @@ vte_sequence_handler_set_icon_title(VteTerminal *terminal,
 				    GQuark match_quark,
 				    GValueArray *params)
 {
-	vte_sequence_handler_set_title_int(terminal, match, match_quark,
-					   params, "icon_title_changed");
+	vte_sequence_handler_set_title_internal(terminal, match, match_quark,
+						params, "icon_title_changed");
 }
 static void
 vte_sequence_handler_set_window_title(VteTerminal *terminal,
@@ -3400,8 +3399,8 @@ vte_sequence_handler_set_window_title(VteTerminal *terminal,
 				      GQuark match_quark,
 				      GValueArray *params)
 {
-	vte_sequence_handler_set_title_int(terminal, match, match_quark,
-					   params, "window_title_changed");
+	vte_sequence_handler_set_title_internal(terminal, match, match_quark,
+						params, "window_title_changed");
 }
 
 /* Set both the window and icon titles to the same string. */
@@ -3411,10 +3410,10 @@ vte_sequence_handler_set_icon_and_window_title(VteTerminal *terminal,
 						  GQuark match_quark,
 						  GValueArray *params)
 {
-	vte_sequence_handler_set_title_int(terminal, match, match_quark,
-					   params, "icon_title_changed");
-	vte_sequence_handler_set_title_int(terminal, match, match_quark,
-					   params, "window_title_changed");
+	vte_sequence_handler_set_title_internal(terminal, match, match_quark,
+						params, "icon_title_changed");
+	vte_sequence_handler_set_title_internal(terminal, match, match_quark,
+						params, "window_title_changed");
 }
 
 /* Restrict the scrolling region. */
@@ -3981,8 +3980,8 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 	for (i = 0; i < param; i++) {
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
-		vte_remove_line_int(terminal, end);
-		vte_insert_line_int(terminal, row);
+		vte_remove_line_internal(terminal, end);
+		vte_insert_line_internal(terminal, row);
 		/* Get the data for the new row. */
 		rowdata = vte_ring_index(screen->row_data, GArray*, row);
 		/* Add enough cells to it so that it has the default colors. */
@@ -3991,8 +3990,7 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 		}
 	}
 	/* Update the display. */
-	vte_terminal_scroll_region(terminal, row,
-				   end - row + 1, param);
+	vte_terminal_scroll_region(terminal, row, end - row + 1, param);
 }
 
 /* Delete certain lines from the scrolling region. */
@@ -4026,12 +4024,11 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 	for (i = 0; i < param; i++) {
 		/* Insert a line at the end of the region and remove one from
 		 * the top of the region. */
-		vte_remove_line_int(terminal, row);
-		vte_insert_line_int(terminal, end);
+		vte_remove_line_internal(terminal, row);
+		vte_insert_line_internal(terminal, end);
 	}
 	/* Update the display. */
-	vte_terminal_scroll_region(terminal, row,
-				   end - row + 1, -param);
+	vte_terminal_scroll_region(terminal, row, end - row + 1, -param);
 }
 
 /* Index.  Move the cursor down a row, and if it's in a scrolling region,
@@ -5093,12 +5090,6 @@ vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
 	terminal->pvt->palette[entry].blue = color.blue;
 	terminal->pvt->palette[entry].pixel = color.pixel;
 
-	/* If we're setting the background color, set the background color
-	 * on the widget as well. */
-	if ((entry == VTE_DEF_BG)) {
-		vte_terminal_setup_background(terminal, FALSE);
-	}
-
 #ifdef HAVE_XFT
 	/* If we're using Xft, we need to allocate a RenderColor, too. */
 	if (terminal->pvt->use_xft) {
@@ -5123,6 +5114,12 @@ vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
 		}
 	}
 #endif
+
+	/* If we're setting the background color, set the background color
+	 * on the widget as well. */
+	if ((entry == VTE_DEF_BG)) {
+		vte_terminal_setup_background(terminal, FALSE);
+	}
 }
 
 static void
@@ -7140,10 +7137,10 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 
 /* Send a button down or up notification. */
 static void
-vte_terminal_send_mouse_button_int(VteTerminal *terminal,
-				   int button,
-				   double x, double y,
-				   GdkModifierType modifiers)
+vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
+					int button,
+					double x, double y,
+					GdkModifierType modifiers)
 {
 	unsigned char cb = 0, cx = 0, cy = 0;
 	char buf[LINE_MAX];
@@ -7205,12 +7202,12 @@ vte_terminal_send_mouse_button(VteTerminal *terminal, GdkEventButton *event)
 	}
 
 	/* Encode the parameters and send them to the app. */
-	vte_terminal_send_mouse_button_int(terminal,
-					   (event->type == GDK_BUTTON_PRESS) ?
-					   event->button : 0,
-					   event->x,
-					   event->y,
-					   modifiers);
+	vte_terminal_send_mouse_button_internal(terminal,
+						(event->type == GDK_BUTTON_PRESS) ?
+					       	event->button : 0,
+						event->x,
+						event->y,
+						modifiers);
 }
 
 /* Send a mouse motion notification. */
@@ -7322,12 +7319,12 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 		return;
 	}
 	/* Check for matches. */
-	match = vte_terminal_match_check_int(terminal,
-					     floor(x) / terminal->char_width,
-					     floor(y) / terminal->char_height,
-					     NULL,
-					     &start,
-					     &end);
+	match = vte_terminal_match_check_internal(terminal,
+						  floor(x) / terminal->char_width,
+						  floor(y) / terminal->char_height,
+						  NULL,
+						  &start,
+						  &end);
 	/* If there are no matches, repaint what we had matched before. */
 	if (match == NULL) {
 #ifdef VTE_DEBUG
@@ -9923,6 +9920,7 @@ vte_terminal_xft_remap_char(Display *display, XftFont *font, XftChar32 orig)
 	XftChar32 new;
 
 	switch (orig) {
+		case 0:			/* NUL */
 		case 0x00A0:		/* NO-BREAK SPACE */
 			new = 0x0020;	/* SPACE */
 			break;
@@ -10762,8 +10760,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		/* Set up the draw request. */
 		ftcharspecs = g_malloc(sizeof(XftCharSpec) * n);
 		for (i = j = columns = 0; i < n; i++) {
-			if ((items[i].c != 0) &&
-			    !g_unichar_isspace(items[i].c)) {
+			if (!g_unichar_isspace(items[i].c)) {
 				ftcharspecs[j].ucs4 = vte_terminal_xft_remap_char(display,
 									      terminal->pvt->ftfont,
 									      items[i].c);
@@ -10816,8 +10813,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			g_free(ftchars);
 		} else {
 			for (i = columns = 0; i < n; i++) {
-				if ((items[i].c != 0) &&
-				    !g_unichar_isspace(items[i].c)) {
+				if (!g_unichar_isspace(items[i].c)) {
 					ftchar = vte_terminal_xft_remap_char(display,
 									     terminal->pvt->ftfont,
 									     items[i].c);
@@ -11279,7 +11275,6 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		row++;
 	}
 
-	/* Draw the cursor if it's visible. */
 	if (terminal->pvt->cursor_visible) {
 		/* Get the location of the cursor. */
 		col = screen->cursor_current.col;
@@ -11488,11 +11483,11 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 		}
 		if (button != 0) {
 			/* Encode the parameters and send them to the app. */
-			vte_terminal_send_mouse_button_int(terminal,
-							   button,
-							   event->x,
-							   event->y,
-							   modifiers);
+			vte_terminal_send_mouse_button_internal(terminal,
+								button,
+								event->x,
+								event->y,
+								modifiers);
 			return TRUE;
 		}
 	}
@@ -12502,11 +12497,14 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	}
 	/* Reset the color palette. */
 	/* vte_terminal_set_default_colors(terminal); */
-	/* Reset the default attributes. */
+	/* Reset the default attributes.  Reset the alternate attribute because
+	 * it's not a real attribute, but we need to treat it as one here. */
 	terminal->pvt->screen = &terminal->pvt->alternate_screen;
 	vte_terminal_set_default_attributes(terminal);
+	terminal->pvt->screen->defaults.alternate = FALSE;
 	terminal->pvt->screen = &terminal->pvt->normal_screen;
 	vte_terminal_set_default_attributes(terminal);
+	terminal->pvt->screen->defaults.alternate = FALSE;
 	/* Clear the scrollback buffers and reset the cursors. */
 	if (clear_history) {
 		vte_ring_free(terminal->pvt->normal_screen.row_data, TRUE);

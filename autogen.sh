@@ -72,6 +72,7 @@ esac
 
 libtoolize -f -c
 glib-gettextize -f -c
+touch config.h.in
 aclocal $ACLOCAL_FLAGS
 
 # optionally feature autoheader
