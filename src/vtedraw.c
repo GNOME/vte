@@ -76,7 +76,6 @@ _vte_draw_new(GtkWidget *widget)
 		fprintf(stderr, "Using %s.\n", draw->impl->name);
 	}
 #endif
-	g_print("Using %s.\n", draw->impl->name);
 
 	return draw;
 }

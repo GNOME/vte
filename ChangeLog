@@ -1,4 +1,8 @@
 2003-03-05 nalin	
+	* src/vtedraw.c: don't spit out which rendering method we're using
+	except in debug mode.
+
+2003-03-05 nalin	
 	* src/vtepango.c, src/vtexft.c: don't print "Bogus font." when we think
 	the font metrics are screwy.
 
