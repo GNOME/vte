@@ -684,7 +684,8 @@ _vte_iso2022_state_new(const char *native_codeset,
 	state->target_codeset = _vte_matcher_wide_encoding();
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-		fprintf(stderr, "%s\n", state->codeset);
+		fprintf(stderr, "Native codeset \"%s\", currently %s\n",
+			state->native_codeset, state->codeset);
 	}
 #endif
 	state->conv = g_iconv_open(state->target_codeset,
@@ -718,6 +719,7 @@ _vte_iso2022_state_set_codeset(struct _vte_iso2022_state *state,
 		return;
 	}
 	g_iconv_close(state->conv);
+	state->codeset = g_quark_to_string(g_quark_from_string(codeset));
 	state->conv = conv;
 }
 
@@ -1383,7 +1385,7 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 #endif
 							break;
 						case 'G':
-							if (strcmp(state->codeset, state->native_codeset) != 0) {
+							if (strcmp(state->codeset, state->utf8_codeset) != 0) {
 								notify = TRUE;
 							}
 							_vte_iso2022_state_set_codeset(state, state->utf8_codeset);

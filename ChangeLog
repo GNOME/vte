@@ -1,4 +1,10 @@
 2003-04-23 nalin
+	* src/iso2022.c(_vte_iso2022_state_set_codeset): save the new codeset.
+	* src/iso2022.c(process_cdata): compare the new codeset to the name of
+	the UTF-8 codeset instead of the local codeset to see if we need to
+	notify callers of a change.
+
+2003-04-23 nalin
 	* src/vte.c(vte_sequence_handler_sf): don't use the window freeze count
 	to check if it's safe to scroll using gdk_window_scroll(), require other
 	parts of this widget to declare it unsafe for those cases.
