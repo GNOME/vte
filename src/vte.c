@@ -295,6 +295,8 @@ typedef void (*VteTerminalSequenceHandler)(VteTerminal *terminal,
 					   const char *match,
 					   GQuark match_quark,
 					   GValueArray *params);
+static void vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
+				     gboolean reset);
 static void vte_terminal_ensure_cursor(VteTerminal *terminal);
 static void vte_terminal_insert_char(GtkWidget *widget, wchar_t c,
 				     gboolean force_insert);
@@ -7931,6 +7933,8 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 		fprintf(stderr, "Setting emulation to `%s'...", emulation);
 	}
 #endif
+	/* Find and read the right termcap file. */
+	vte_terminal_set_termcap(terminal, NULL, FALSE);
 
 	/* Create a trie to hold the control sequences. */
 	if (terminal->pvt->trie) {
@@ -8044,7 +8048,8 @@ vte_terminal_get_emulation(VteTerminal *terminal)
 
 /* Set the path to the termcap file we read, and read it in. */
 static void
-vte_terminal_set_termcap(VteTerminal *terminal, const char *path)
+vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
+			 gboolean reset)
 {
 	struct stat st;
 	char path_default[PATH_MAX];
@@ -8076,7 +8081,9 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path)
 		fprintf(stderr, "\n");
 	}
 #endif
-	vte_terminal_set_emulation(terminal, terminal->pvt->emulation);
+	if (reset) {
+		vte_terminal_set_emulation(terminal, terminal->pvt->emulation);
+	}
 }
 
 static void
@@ -8228,7 +8235,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* Load the termcap data and set up the emulation and default
 	 * terminal encoding. */
-	vte_terminal_set_termcap(terminal, NULL);
+	vte_terminal_set_termcap(terminal, NULL, FALSE);
 	vte_terminal_set_emulation(terminal, NULL);
 	vte_terminal_set_encoding(terminal, NULL);
 	for (i = 0; i < G_N_ELEMENTS(pvt->gxencoding); i++) {

@@ -18,13 +18,13 @@ _wrap_vte_terminal_fork_command(PyGObject *self, PyObject *args,
 				PyObject *kwargs)
 {
     gchar **argv = NULL;
-    gchar *command;
+    gchar *command = NULL;
     static char *kwlist[] = { "command", "argv", NULL };
     PyObject *py_argv = NULL;
     int i, n_args;
     pid_t pid;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O:fork_command",
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|sO:fork_command",
 				     kwlist, &command, &py_argv))
         return NULL;
 
