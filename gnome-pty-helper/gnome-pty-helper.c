@@ -182,6 +182,7 @@ pass_fd (int client_fd, int fd)
 
 #else
 #include <stropts.h>
+#ifdef I_SENDFD
 static int
 init_msg_pass ()
 {
@@ -197,6 +198,7 @@ pass_fd (int client_fd, int fd)
 	return 0;
 }
 #endif
+#endif
 
 static void
 pty_free (pty_info *pi)
@@ -211,8 +213,8 @@ pty_remove (pty_info *pi)
 
 	last = (void *) 0;
 	
-	for (l = pty_list; l; l = l->next){
-		if (l == pi){
+	for (l = pty_list; l; l = l->next) {
+		if (l == pi) {
 			if (last == (void *) 0)
 				pty_list = pi->next;
 			else
@@ -251,7 +253,7 @@ pty_add (int utmp, int wtmp, char *line)
 {
 	pty_info *pi = malloc (sizeof (pty_info));
 
-	if (pi == NULL){
+	if (pi == NULL) {
 		shutdown_helper ();
 		exit (1);
 	}
@@ -263,7 +265,7 @@ pty_add (int utmp, int wtmp, char *line)
 	else
 		pi->line = strdup (line+5);
 
-	if (pi->line == NULL){
+	if (pi->line == NULL) {
 		shutdown_helper ();
 		exit (1);
 	}
@@ -454,7 +456,7 @@ init_term_with_defaults(struct termios* term)
 #ifdef VEOL2	
 	term->c_cc[VEOL2]    = 255;
 #endif
-    return(term);
+    return term;
 }
 
 static int
@@ -471,13 +473,13 @@ open_ptys (int utmp, int wtmp, int lastlog)
 	
 	term_name = (char *) g_alloca (path_max () + 1);
 
-	if (term_name == NULL){
+	if (term_name == NULL) {
 		exit (1);
 	}
 	/* Initialize term */
 	init_term_with_defaults(&term);
 
-	/* root priveleges */
+	/* root privileges */
 	savedUid = geteuid();
 	savedGid = getegid();
 	
@@ -491,10 +493,10 @@ open_ptys (int utmp, int wtmp, int lastlog)
 #else
 #error "No means to drop privileges! Huge security risk! Won't compile."
 #endif
-	/* Open pty with priveleges of the user */
+	/* Open pty with privileges of the user */
 	status = openpty (&master_pty, &slave_pty, term_name, &term, NULL);
 
-	/* Restore saved priveleges to root */
+	/* Restore saved privileges to root */
 #ifdef HAVE_SETEUID
 	seteuid (savedUid);
 	setegid (savedGid);
@@ -505,14 +507,14 @@ open_ptys (int utmp, int wtmp, int lastlog)
 #error "No means to raise privileges! Huge security risk! Won't compile."
 #endif
 	/* openpty() failed, reject request */
-	if (status == -1){
+	if (status == -1) {
 		result = 0;
-		write (STDIN_FILENO, &result, sizeof (result));
+		n_write (STDIN_FILENO, &result, sizeof (result));
 		return 0;
 	}
 
 	/* a bit tricky, we re-do the part of the openpty()  */
-	/* that required root priveleges, and, hence, failed */
+	/* that required root privileges, and, hence, failed */
 	group_info = getgrnam ("tty");
 	fchown (slave_pty, getuid (), group_info ? group_info->gr_gid : -1);
 	fchmod (slave_pty, S_IRUSR | S_IWUSR | S_IWGRP);
@@ -523,15 +525,16 @@ open_ptys (int utmp, int wtmp, int lastlog)
 	p = pty_add (utmp, wtmp, term_name);
 	result = 1;
 
-	if (write (STDIN_FILENO, &result, sizeof (result)) == -1 ||
-	    write (STDIN_FILENO, &p, sizeof (p)) == -1 ||
+	if (n_write (STDIN_FILENO, &result, sizeof (result)) != sizeof (result) ||
+	    n_write (STDIN_FILENO, &p, sizeof (p)) != sizeof (p) ||
 	    pass_fd (STDOUT_FILENO, master_pty)  == -1 ||
-	    pass_fd (STDOUT_FILENO, slave_pty)   == -1){
+	    pass_fd (STDOUT_FILENO, slave_pty)   == -1) {
 		exit (0);
 	}
 
-	if (utmp || wtmp || lastlog){
-		p->data = write_login_record (login_name, display_name, term_name, utmp, wtmp, lastlog);
+	if (utmp || wtmp || lastlog) {
+		p->data = write_login_record (login_name, display_name,
+					      term_name, utmp, wtmp, lastlog);
 	}
 	
 	close (master_pty);
@@ -545,8 +548,8 @@ close_pty_pair (void *tag)
 {
 	pty_info *pi;
 
-	for (pi = pty_list; pi; pi = pi->next){
-		if (tag == pi){
+	for (pi = pty_list; pi; pi = pi->next) {
+		if (tag == pi) {
 			shutdown_pty (pi);
 			break;
 		}
@@ -585,7 +588,7 @@ sanity_checks (void)
 	 * for our program to work and closes potential security holes.
 	 */
 	if ((fcntl (0, F_GETFL, &flag) == -1 && errno == EBADF) ||
-	    (fcntl (1, F_GETFL, &flag) == -1 && errno == EBADF)){
+	    (fcntl (1, F_GETFL, &flag) == -1 && errno == EBADF)) {
 		exit (1);
 	}
 
@@ -596,9 +599,9 @@ sanity_checks (void)
 	 *
 	 * Make stderr point to a terminal.
 	 */
-	if (fcntl (2, F_GETFL, &flag) == -1 && errno == EBADF){
+	if (fcntl (2, F_GETFL, &flag) == -1 && errno == EBADF) {
 		stderr_fd = open ("/dev/tty", O_RDWR);
-		if (stderr_fd == -1){
+		if (stderr_fd == -1) {
 			stderr_fd = open ("/dev/null", O_RDWR);
 			if (stderr_fd == -1)
 				exit (1);
@@ -611,19 +614,19 @@ sanity_checks (void)
 
 	/* Close any file descriptor we do not use */
 	open_max = sysconf (_SC_OPEN_MAX);
-	for (i = 3; i < open_max; i++){
+	for (i = 3; i < open_max; i++) {
 		close (i);
 	}
 
 	/* Check sensible resource limits */
-	for (i = 0; sensible_limits [i].value != -1; i++){
+	for (i = 0; sensible_limits [i].value != -1; i++) {
 		struct rlimit rlim;
 		
 		if (getrlimit (sensible_limits [i].limit, &rlim) != 0)
 			continue;
 
 		if (rlim.rlim_cur != RLIM_INFINITY &&
-		    rlim.rlim_cur < sensible_limits [i].value){
+		    rlim.rlim_cur < sensible_limits [i].value) {
 			if (setrlimit (sensible_limits [i].limit, &rlim) != 0) {
 				fprintf (stderr, "Living environment not ok\n");
 				exit (1);
@@ -675,7 +678,7 @@ main (int argc, char *argv [])
 	if (init_msg_pass () == -1)
 		exit (1);
 
-	for (;;){
+	for (;;) {
 		res = n_read (STDIN_FILENO, &op, sizeof (op));
 
 		if (res != sizeof (op)) {
@@ -683,7 +686,7 @@ main (int argc, char *argv [])
 			return 1;
 		}
 
-		switch (op){
+		switch (op) {
 		case GNOME_PTY_OPEN_PTY_UTMP:
 			open_ptys (1, 0, 0);
 			break;
@@ -721,7 +724,7 @@ main (int argc, char *argv [])
 			
 		case GNOME_PTY_CLOSE_PTY:
 			n = n_read (STDIN_FILENO, &tag, sizeof (tag));
-			if (n != sizeof (tag)){
+			if (n != sizeof (tag)) {
 				shutdown_helper ();
 				return 1;
 			}

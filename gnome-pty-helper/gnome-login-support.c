@@ -91,12 +91,12 @@ pty_open_master_bsd (char *pty_name, int *used_bsd)
 			/* Try to open master */
 			if ((pty_master = open (pty_name, O_RDWR)) == -1) {
 				if (errno == ENOENT)  /* Different from EIO */
-					return -1;	      /* Out of pty devices */
+					return -1;    /* Out of pty devices */
 				else
-					continue;	      /* Try next pty device */
+					continue;      /* Try next pty device */
 			}
-			pty_name [5] = 't';	      /* Change "pty" to "tty" */
-			if (access (pty_name, 6)){
+			pty_name [5] = 't';	       /* Change "pty" to "tty" */
+			if (access (pty_name, (R_OK | W_OK))){
 				close (pty_master);
 				pty_name [5] = 'p';
 				continue;
@@ -196,13 +196,13 @@ pty_open_master (char *pty_name, int *used_bsd)
 	 * might have Unix98 devices but no kernel support
 	 * for those.
 	 */
-	if (pty_master == -1){
+	if (pty_master == -1) {
 		*used_bsd = 1;
 		return pty_open_master_bsd (pty_name, used_bsd);
 	}
 	*used_bsd = 0;
 
-	if (grantpt  (pty_master) == -1 || unlockpt (pty_master) == -1){
+	if (grantpt (pty_master) == -1 || unlockpt (pty_master) == -1) {
 		close (pty_master);
 		return -1;
 	}
@@ -219,7 +219,8 @@ pty_open_master (char *pty_name, int *used_bsd)
 #endif
 
 int
-openpty (int *master_fd, int *slave_fd, char *name, struct termios *termp, struct winsize *winp)
+openpty (int *master_fd, int *slave_fd, char *name,
+	 struct termios *termp, struct winsize *winp)
 {
 	int pty_master, pty_slave, used_bsd = 0;
 	struct group *group_info;
@@ -236,9 +237,7 @@ openpty (int *master_fd, int *slave_fd, char *name, struct termios *termp, struc
 	if (group_info != NULL){
 		chown (line, getuid (), group_info->gr_gid);
 		chmod (line, S_IRUSR | S_IWUSR | S_IWGRP);
-	}
-	else
-	{
+	} else {
 		chown (line, getuid (), -1);
 		chmod (line, S_IRUSR | S_IWUSR | S_IWGRP);
 	}
@@ -304,21 +303,20 @@ forkpty (int *master_fd, char *name, struct termios *termp, struct winsize *winp
 #endif /* HAVE_OPENPTY */
 
 int
-n_read (int fd, void *buf, int n)
+n_read (int fd, void *buf, int count)
 {
-	int left, nread;
-	char *ptr, *buffer;
+	int n = 0, i;
+	char *buffer;
 
 	buffer = (char*) buf;
-	ptr = buffer;
-	while (ptr < buffer + n) {
-		nread = read (fd, ptr, n - (ptr - buffer));
-		switch (nread) {
+	while (n < count) {
+		i = read (fd, buffer + n, count - n);
+		switch (i) {
 		case -1:
 			switch (errno) {
 			case EINTR:
 			case EAGAIN:
-				/* suppress the error */
+				/* suppress these errors */
 				break;
 			default:
 				return -1;
@@ -326,19 +324,46 @@ n_read (int fd, void *buf, int n)
 			}
 			break;
 		case 0:
-			/* EOF */
+			return n;
 			break;
 		default:
-			ptr += nread;
-			break;
-		}
-		/* If we hit EOF before we finished reading data, return
-		 * an error. */
-		if (nread == 0) {
+			n += i;
 			break;
 		}
 	}
 	
-	return (ptr - ((char*)buffer));
+	return n;
 }
 
+int
+n_write (int fd, const void *buf, int count)
+{
+	int n = 0, i;
+	const char *buffer;
+
+	buffer = (char*) buf;
+	while (n < count) {
+		i = write (fd, buffer + n, count - n);
+		switch (i) {
+		case -1:
+			switch (errno) {
+			case EINTR:
+			case EAGAIN:
+				/* suppress these errors */
+				break;
+			default:
+				return -1;
+				break;
+			}
+			break;
+		case 0:
+			return n;
+			break;
+		default:
+			n += i;
+			break;
+		}
+	}
+	
+	return n;
+}

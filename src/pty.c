@@ -777,7 +777,7 @@ _vte_pty_open_unix98(pid_t *child, char **env_add,
 	return fd;
 }
 
-#ifdef HAVE_SENDMSG
+#ifdef HAVE_RECVMSG
 static void
 _vte_pty_read_ptypair(int tunnel, int *parentfd, int *childfd)
 {
@@ -937,19 +937,39 @@ _vte_pty_open_with_helper(pid_t *child, char **env_add,
 			    &ops, sizeof(ops)) != sizeof(ops)) {
 			return -1;
 		}
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
+			fprintf(stderr, "Sent request to helper.\n");
+		}
+#endif
 		/* Read back the response. */
 		if (n_read(_vte_pty_helper_tunnel,
 			   &ret, sizeof(ret)) != sizeof(ret)) {
 			return -1;
 		}
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
+			fprintf(stderr, "Received response from helper.\n");
+		}
+#endif
 		if (ret == 0) {
 			return -1;
 		}
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
+			fprintf(stderr, "Helper returns success.\n");
+		}
+#endif
 		/* Read back a tag. */
 		if (n_read(_vte_pty_helper_tunnel,
 			   &tag, sizeof(tag)) != sizeof(tag)) {
 			return -1;
 		}
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
+			fprintf(stderr, "Tag = %p.\n", tag);
+		}
+#endif
 		/* Receive the master and slave ptys. */
 		_vte_pty_read_ptypair(_vte_pty_helper_tunnel,
 				      &parentfd, &childfd);
@@ -959,10 +979,8 @@ _vte_pty_open_with_helper(pid_t *child, char **env_add,
 			close(childfd);
 			return -1;
 		}
-
 #ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_MISC) ||
-		    _vte_debug_on(VTE_DEBUG_PTY)) {
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
 			fprintf(stderr, "Got master pty %d and slave pty %d.\n",
 				parentfd, childfd);
 		}
@@ -1115,7 +1133,7 @@ main(int argc, char **argv)
 			   (argc > 1) ? argv + 1 : NULL,
 			   NULL,
 			   0, 0,
-			   FALSE, FALSE, FALSE);
+			   TRUE, TRUE, TRUE);
 	g_print("Child pid is %d.\n", (int)child);
 	do {
 		ret = n_read(fd, &c, 1);

@@ -1,4 +1,16 @@
 2003-04-22 nalin
+	* configure.in: add missing check for recvmsg.
+	* gnome-pty-helper/gnome-login-support.c: formatting and spelling fixes.
+	* gnome-pty-helper/gnome-login-support.c(n_read): reorganize.
+	* gnome-pty-helper/gnome-login-support.c(n_write): add.
+	* gnome-pty-helper/gnome-login-support.h: add prototype for n_write.
+	* gnome-pty-helper/gnome-pty-helper.c: only define the I_SENDFD version
+	of pass_fd() if I_SENDFD is defined, to clarify compile errors when it
+	isn't defined.
+	* src/pty.c(main): exercise session logging.
+	* src/pty.c(_vte_pty_open_with_helper): add more debug messages.
+
+2003-04-22 nalin
 	* src/iso2022.c(_vte_iso2022_map_get): force visible widths to 2 columns
 	for CJK maps which use 2 bytes per character.
 	* src/iso2022.c(_vte_iso2022_fragment_input): recognize CSI/OSC/PM
