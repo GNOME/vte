@@ -197,6 +197,13 @@ vte_invalidate_cells(VteTerminal *terminal,
 	gdk_window_invalidate_rect(widget->window, &rect, TRUE);
 }
 
+/* Scroll certain rows up or down. */
+static void
+vte_scroll_rows(VteTerminal *terminal,
+		glong row_start, gint row_count, gint delta)
+{
+}
+
 /* Update the adjustment field of the widget.  This function should be called
  * whenever we add rows to the history or switch screens. */
 static void
@@ -536,19 +543,12 @@ vte_sequence_handler_ch(VteTerminal *terminal,
 	GValue *value;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
-	/* Repaint the current cursor position. */
-	vte_invalidate_cells(terminal,
-			     screen->cursor_current.col, 1,
-			     screen->cursor_current.row, 1);
 	/* We only care if there's a parameter in there. */
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
-			/* Move the cursor and repaint it. */
+			/* Move the cursor. */
 			screen->cursor_current.col = g_value_get_long(value);
-			vte_invalidate_cells(terminal,
-					     screen->cursor_current.col, 1,
-					     screen->cursor_current.row, 1);
 		}
 	}
 }
@@ -671,19 +671,12 @@ vte_sequence_handler_cv(VteTerminal *terminal,
 	GValue *value;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
-	/* Repaint the current cursor position. */
-	vte_invalidate_cells(terminal,
-			     screen->cursor_current.col, 1,
-			     screen->cursor_current.row, 1);
 	/* We only care if there's a parameter in there. */
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
-			/* Move the cursor and repaint it. */
+			/* Move the cursor. */
 			screen->cursor_current.row = g_value_get_long(value);
-			vte_invalidate_cells(terminal,
-					     screen->cursor_current.col, 1,
-					     screen->cursor_current.row, 1);
 		}
 	}
 }
@@ -706,7 +699,7 @@ vte_sequence_handler_dl(VteTerminal *terminal,
 	}
 	vte_remove_line_int(terminal, screen->cursor_current.row);
 	vte_insert_line_int(terminal, end);
-	/* Repaint the entire screen.  FIXME: optimize. */
+	/* Repaint the entire screen. */
 	vte_invalidate_cells(terminal,
 			     0,
 			     terminal->column_count,
@@ -759,10 +752,6 @@ vte_sequence_handler_do(VteTerminal *terminal,
 		} else {
 			/* Otherwise, just move the cursor down. */
 			screen->cursor_current.row++;
-			/* Invalidate the rows the cursor was on and is on. */
-			vte_invalidate_cells(terminal,
-					     col, 1,
-					     row, 2);
 		}
 	} else {
 		/* Move the cursor down. */
@@ -842,9 +831,6 @@ vte_sequence_handler_le(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	screen->cursor_current.col = MAX(0, screen->cursor_current.col - 1);
-	vte_invalidate_cells(terminal,
-			     screen->cursor_current.col, 2,
-			     screen->cursor_current.row, 1);
 }
 
 /* Move the cursor left N columns. */
@@ -1004,10 +990,6 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 {
 	long newcol;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	/* Invalidate the cell the cursor is in. */
-	vte_invalidate_cells(terminal,
-			     terminal->pvt->screen->cursor_current.col, 1,
-			     terminal->pvt->screen->cursor_current.row, 1);
 	/* Calculate which column is the next tab stop. */
 	newcol = terminal->pvt->screen->cursor_current.col;
 	do {
@@ -1021,10 +1003,6 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 	} else {
 		terminal->pvt->screen->cursor_current.col = newcol;
 	}
-	/* Invalidate the cell the cursor is in. */
-	vte_invalidate_cells(terminal,
-			     terminal->pvt->screen->cursor_current.col, 1,
-			     terminal->pvt->screen->cursor_current.row, 1);
 }
 
 /* Underline end. */
@@ -1072,10 +1050,6 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			/* Otherwise, just move the cursor up. */
 			screen->cursor_current.row--;
 			row = screen->cursor_current.row;
-			/* Invalidate the cells the cursor was in and is in. */
-			vte_invalidate_cells(terminal,
-					     col, 1,
-					     row, 2);
 		}
 	} else {
 		start = terminal->pvt->screen->insert_delta;
@@ -1094,10 +1068,6 @@ vte_sequence_handler_up(VteTerminal *terminal,
 			/* Move the cursor up. */
 			screen->cursor_current.row--;
 			row = screen->cursor_current.row;
-			/* Invalidate the places the cursor is and was. */
-			vte_invalidate_cells(terminal,
-					     col, 1,
-					     row, 2);
 		}
 	}
 }
