@@ -1,3 +1,12 @@
+2005-02-28  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* src/vte.c: (vte_terminal_adjust_adjustments),
+	(vte_terminal_maybe_scroll_to_bottom),
+	(vte_terminal_update_insert_delta), (vte_terminal_handle_scroll),
+	(vte_terminal_set_scroll_adjustment), (vte_terminal_size_allocate):
+	Apply patch from Fedora to fix some scrolling issues. Closes
+	bug #168210 and possibly others.
+
 2005-02-15  Kjartan Maraas  <kmaraas@gnome.org>
 
 	* src/vte.c: (vte_terminal_visibility_notify): Fix black

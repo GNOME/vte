@@ -1858,6 +1858,15 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 	}
 #endif
 	if (terminal->adjustment->lower != delta) {
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_IO)) {
+			fprintf(stderr, "Changing lower bound from %lf to %ld\n",
+				terminal->adjustment->lower,
+				delta);
+
+		}
+#endif 
+
 		terminal->adjustment->lower = delta;
 		changed = TRUE;
 	}
@@ -1874,12 +1883,30 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 	rows = MAX(_vte_ring_next(terminal->pvt->screen->row_data),
 		   terminal->pvt->screen->cursor_current.row + 1);
 	if (terminal->adjustment->upper != rows) {
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_IO)) {
+			fprintf(stderr, "Changing upper bound from %f to %ld\n",
+				terminal->adjustment->upper,
+				rows);
+
+		}
+#endif 
+
 		terminal->adjustment->upper = rows;
 		changed = TRUE;
 	}
 
 	/* The step increment should always be one. */
 	if (terminal->adjustment->step_increment != 1) {
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_IO)) {
+			fprintf(stderr, "Changing step increment from %ld to %ld\n",
+				terminal->adjustment->step_increment,
+				terminal->row_count);
+
+		}
+#endif 
+
 		terminal->adjustment->step_increment = 1;
 		changed = TRUE;
 	}
@@ -1887,6 +1914,15 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 	/* Set the number of rows the user sees to the number of rows the
 	 * user sees. */
 	if (terminal->adjustment->page_size != terminal->row_count) {
+#ifdef VTE_DEBUG
+	      if (_vte_debug_on(VTE_DEBUG_IO)) {
+		    fprintf(stderr, "Changing page size from %f to %ld\n",
+			    terminal->adjustment->page_size,
+			    terminal->row_count);
+
+	      }
+#endif 
+
 		terminal->adjustment->page_size = terminal->row_count;
 		changed = TRUE;
 	}
@@ -1894,17 +1930,41 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 	/* Clicking in the empty area should scroll one screen, so set the
 	 * page size to the number of visible rows. */
 	if (terminal->adjustment->page_increment != terminal->row_count) {
+#ifdef VTE_DEBUG
+	      if (_vte_debug_on(VTE_DEBUG_IO)) {
+		    fprintf(stderr, "Changing page increment from "
+			    "%f to %ld\n", 
+			    terminal->adjustment->page_increment,
+			    terminal->row_count);
+
+	      }
+#endif 
+
 		terminal->adjustment->page_increment = terminal->row_count;
 		changed = TRUE;
 	}
 
 	/* Set the scrollbar adjustment to where the screen wants it to be. */
 	if (floor(terminal->adjustment->value) !=
-	    terminal->pvt->screen->scroll_delta) {
+	    screen->scroll_delta) {
+#ifdef VTE_DEBUG
+	      if (_vte_debug_on(VTE_DEBUG_IO)) {
+		    fprintf(stderr, "Changing adjustment scroll position: "
+			    "%ld\n", screen->scroll_delta);
+	      }
+#endif 
 		/* This emits a "value-changed" signal, so no need to screw
 		 * with anything else for just this. */
 		gtk_adjustment_set_value(terminal->adjustment,
-					 terminal->pvt->screen->scroll_delta);
+				       screen->scroll_delta);
+
+#ifdef VTE_DEBUG
+	      if (_vte_debug_on(VTE_DEBUG_IO)) {
+		    fprintf(stderr, "Changed adjustment scroll position: "
+			    "%ld\n", screen->scroll_delta);
+	      }
+#endif 
+
 	}
 
 	/* If anything changed, signal that there was a change. */
@@ -1963,16 +2023,21 @@ vte_terminal_maybe_scroll_to_top(VteTerminal *terminal)
 	}
 }
 
-/* Scroll so that the scroll delta is the insertion delta. */
 static void
 vte_terminal_maybe_scroll_to_bottom(VteTerminal *terminal)
 {
 	glong delta;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	if (floor(gtk_adjustment_get_value(terminal->adjustment)) !=
-	    terminal->pvt->screen->insert_delta) {
+	if ((terminal->pvt->screen->scroll_delta !=
+	    terminal->pvt->screen->insert_delta)) {
 		delta = terminal->pvt->screen->insert_delta;
 		gtk_adjustment_set_value(terminal->adjustment, delta);
+
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_IO)) {
+		      fprintf (stderr, "Snapping to bottom of screen\n");
+		}
+#endif
 	}
 }
 
@@ -2924,23 +2989,30 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 static void
 vte_terminal_update_insert_delta(VteTerminal *terminal)
 {
-	long delta;
+	long delta, rows;
 	VteScreen *screen;
 
 	screen = terminal->pvt->screen;
 
+	/* The total number of lines.  Add one to the cursor offset
+	 * because it's zero-based. */
+	rows = MAX(_vte_ring_next(terminal->pvt->screen->row_data),
+		   terminal->pvt->screen->cursor_current.row + 1);
+
 	/* Make sure that the bottom row is visible, and that it's in
 	 * the buffer (even if it's empty).  This usually causes the
 	 * top row to become a history-only row. */
-	delta = MAX(screen->insert_delta,
+	delta = screen->insert_delta;
+	delta = MIN(delta, rows - terminal->row_count);
+	delta = MAX(delta,
 		    screen->cursor_current.row - (terminal->row_count - 1));
 	delta = MAX(delta, _vte_ring_delta(screen->row_data));
 
 	/* Adjust the insert delta and scroll if needed. */
 	if (delta != screen->insert_delta) {
 		vte_terminal_ensure_cursor(terminal, FALSE);
-		vte_terminal_adjust_adjustments(terminal, TRUE);
 		screen->insert_delta = delta;
+		vte_terminal_adjust_adjustments(terminal, TRUE);
 	}
 }
 
@@ -10929,12 +11001,22 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	dy = adj - screen->scroll_delta;
 	screen->scroll_delta = adj;
 	if (dy != 0) {
+#ifdef VTE_DEBUG
+	      if (_vte_debug_on(VTE_DEBUG_IO)) {
+		    fprintf(stderr, "Scrolling by %ld\n", dy);
+	      }
+#endif
 		vte_terminal_match_contents_clear(terminal);
 		vte_terminal_scroll_region(terminal, screen->scroll_delta,
 					   terminal->row_count, -dy);
 		vte_terminal_emit_text_scrolled(terminal, dy);
 		vte_terminal_emit_contents_changed(terminal);
 	}
+#ifdef VTE_DEBUG
+	else if (_vte_debug_on(VTE_DEBUG_IO)) {
+	      fprintf(stderr, "Not scrolling\n");
+	}
+#endif
 
 	/* Let the refreshing begin. */
 	gdk_window_thaw_updates(widget->window);
@@ -10959,6 +11041,7 @@ vte_terminal_set_scroll_adjustment(VteTerminal *terminal,
 		}
 		/* Set the new adjustment object. */
 		terminal->adjustment = adjustment;
+
 		/* We care about the offset, not the top or bottom. */
 		g_signal_connect_swapped(terminal->adjustment,
 					 "value_changed",
@@ -11644,6 +11727,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	VteTerminal *terminal;
 	glong width, height;
 	gint x, y, w, h;
+	gboolean snapped_to_bottom;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
@@ -11655,6 +11739,9 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 
 	terminal = VTE_TERMINAL(widget);
+
+	snapped_to_bottom = (terminal->pvt->screen->insert_delta ==
+			     terminal->pvt->screen->scroll_delta);
 
 	width = (allocation->width - (2 * VTE_PAD_WIDTH)) /
 		terminal->char_width;
@@ -11693,7 +11780,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	/* Adjust scrollback buffers to ensure that they're big enough. */
 	vte_terminal_set_scrollback_lines(terminal,
 					  MAX(terminal->pvt->scrollback_lines,
-					      height));
+					      terminal->row_count));
 
 	/* Resize the GDK window. */
 	if (widget->window != NULL) {
@@ -11715,6 +11802,12 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 
 	/* Adjust the adjustments. */
 	vte_terminal_adjust_adjustments(terminal, TRUE);
+
+	vte_terminal_update_insert_delta (terminal);
+
+	if (snapped_to_bottom) {
+		vte_terminal_maybe_scroll_to_bottom (terminal);
+	}
 }
 
 /* Show the window. */
