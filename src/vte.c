@@ -4258,6 +4258,17 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 
 	/* Do whatever's necessary when the setting changes. */
 	switch (setting) {
+	case 1:
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+			if (set) {
+				fprintf(stderr, "Entering application cursor mode.\n");
+			} else {
+				fprintf(stderr, "Leaving application cursor mode.\n");
+			}
+		}
+#endif
+		break;
 	case 3:
 		vte_terminal_emit_resize_window(terminal,
 						(set ? 132 : 80) *
@@ -4309,45 +4320,60 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		/* Make the pointer visible. */
 		vte_terminal_set_pointer_visible(terminal, TRUE);
 		break;
-	case 1051:
-		/* Sun mode? Make it mutually-exclusive. */
-		if (set) {
+	case 66:
 #ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-				fprintf(stderr, "Entering Sun fkey mode.\n");
+		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+			if (set) {
+				fprintf(stderr, "Entering application keypad mode.\n");
+			} else {
+				fprintf(stderr, "Leaving application keypad mode.\n");
 			}
-#endif
 		}
+#endif
+		break;
+	case 1051:
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+			if (set) {
+				fprintf(stderr, "Entering Sun fkey mode.\n");
+			} else {
+				fprintf(stderr, "Leaving Sun fkey mode.\n");
+			}
+		}
+#endif
 		break;
 	case 1052:
-		/* HP mode? Make it mutually-exclusive. */
-		if (set) {
 #ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+			if (set) {
 				fprintf(stderr, "Entering HP fkey mode.\n");
+			} else {
+				fprintf(stderr, "Leaving HP fkey mode.\n");
 			}
-#endif
 		}
+#endif
 		break;
 	case 1060:
-		/* Legacy mode? Make it mutually-exclusive. */
-		if (set) {
 #ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+			if (set) {
 				fprintf(stderr, "Entering Legacy fkey mode.\n");
+			} else {
+				fprintf(stderr, "Leaving Legacy fkey mode.\n");
 			}
-#endif
 		}
+#endif
 		break;
 	case 1061:
-		/* VT220 mode? Make it mutually-exclusive. */
-		if (set) {
 #ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+			if (set) {
 				fprintf(stderr, "Entering VT220 fkey mode.\n");
+			} else {
+				fprintf(stderr, "Leaving VT220 fkey mode.\n");
 			}
-#endif
 		}
+#endif
 		break;
 	default:
 		break;
@@ -4367,6 +4393,11 @@ vte_sequence_handler_application_keypad(VteTerminal *terminal,
 					GQuark match_quark,
 					GValueArray *params)
 {
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+		fprintf(stderr, "Entering application keypad mode.\n");
+	}
+#endif
 	terminal->pvt->keypad_mode = VTE_KEYMODE_APPLICATION;
 }
 
@@ -4376,6 +4407,11 @@ vte_sequence_handler_normal_keypad(VteTerminal *terminal,
 				   GQuark match_quark,
 				   GValueArray *params)
 {
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+		fprintf(stderr, "Leaving application keypad mode.\n");
+	}
+#endif
 	terminal->pvt->keypad_mode = VTE_KEYMODE_NORMAL;
 }
 

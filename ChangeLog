@@ -1,4 +1,8 @@
 2002-11-25  nalin
+	* src/vte.c: add keyboard debug messages when we change keyboard modes.
+	* termcaps/xterm: remove kh definition.
+
+2002-11-25  nalin
 	* src/keymap.c: make keypad arrow keys follow cursor mode (#98604).
 
 2002-11-25  nalin
