@@ -30,6 +30,13 @@
 #include "debug.h"
 #include "trie.h"
 
+#ifdef ENABLE_NLS
+#include <libintl.h>
+#define _(String) dgettext(PACKAGE, String)
+#else
+#define _(String) String
+#endif
+
 #ifndef TRIE_MAYBE_STATIC
 #define TRIE_MAYBE_STATIC
 #endif
@@ -376,7 +383,7 @@ vte_trie_addx(struct vte_trie *trie, wchar_t *pattern, size_t length,
 		} else {
 #ifdef VTE_DEBUG
 			if (vte_debug_on(VTE_DEBUG_PARSE)) {
-				g_warning("Duplicate (%s/%s)!",
+				g_warning(_("Duplicate (%s/%s)!"),
 					  result, trie->result);
 			}
 #endif

@@ -60,6 +60,19 @@
 #include <X11/Xft/Xft.h>
 #endif
 
+#ifdef HAVE_LOCALE_H
+#include <locale.h>
+#else
+#define bindtextdomain(package,dir)
+#endif
+
+#ifdef ENABLE_NLS
+#include <libintl.h>
+#define _(String) dgettext(PACKAGE, String)
+#else
+#define _(String) String
+#endif
+
 #define VTE_TAB_WIDTH			8
 #define VTE_LINE_WIDTH			1
 #define VTE_COLOR_SET_SIZE		8
@@ -764,7 +777,8 @@ vte_terminal_match_add(VteTerminal *terminal, const char *match)
 	memset(&regex, 0, sizeof(regex));
 	ret = regcomp(&regex.reg, match, REG_EXTENDED);
 	if (ret != 0) {
-		g_warning("Error compiling regular expression \"%s\".", match);
+		g_warning(_("Error compiling regular expression \"%s\"."),
+			  match);
 		return -1;
 	}
 	regex.tag = terminal->pvt->match_regexes->len;
@@ -4065,7 +4079,7 @@ vte_sequence_handler_complain_key(VteTerminal *terminal,
 				  GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_warning("Got unexpected (key?) sequence `%s'.\n",
+	g_warning(_("Got unexpected (key?) sequence `%s'."),
 		  match ? match : "???");
 }
 
@@ -4666,7 +4680,7 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c, gboolean force_insert)
 
 	/* FIXME: find why this can happen, and stop it. */
 	if (columns < 0) {
-		g_warning("Character %5ld is %d columns wide, guessing 1.\n",
+		g_warning(_("Character %5ld is %d columns wide, guessing 1."),
 			  c, columns);
 		columns = 1;
 	}
@@ -4859,7 +4873,7 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 		/* Let the handler handle it. */
 		handler(terminal, match_s, match, params);
 	} else {
-		g_warning("No handler for control sequence `%s' defined.\n",
+		g_warning(_("No handler for control sequence `%s' defined."),
 			  match_s);
 	}
 
@@ -5073,7 +5087,7 @@ vte_terminal_process_incoming(gpointer data)
 					}
 				}
 				/* Be conservative about discarding data. */
-				g_warning("Invalid multibyte sequence detected.  Munging up %d bytes of data.", end - start);
+				g_warning(_("Invalid multibyte sequence detected.  Munging up %d bytes of data."), end - start);
 				/* Remove the offending bytes. */
 				for (i = start; i < end; i++) {
 #ifdef VTE_DEBUG
@@ -5487,8 +5501,8 @@ vte_terminal_io_read(GIOChannel *channel,
 					leave_open = TRUE;
 					break;
 				default:
-					g_warning("Error reading from child: "
-						  "%s.\n", strerror(errno));
+					g_warning(_("Error reading from child: "
+						    "%s."), strerror(errno));
 					leave_open = TRUE;
 					break;
 			}
@@ -5655,7 +5669,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	obuf = obufptr = g_malloc0(ocount);
 
 	if (g_iconv(*conv, &ibuf, &icount, &obuf, &ocount) == -1) {
-		g_warning("Error (%s) converting data for child, dropping.\n",
+		g_warning(_("Error (%s) converting data for child, dropping."),
 			  strerror(errno));
 	} else {
 		n_outgoing = terminal->pvt->n_outgoing + (obuf - obufptr);
@@ -7141,8 +7155,8 @@ vte_terminal_font_complain(const char *font,
 			charsets = tmp;
 			tmp = NULL;
 		}
-		g_warning("Warning: using fontset \"%s\", which is missing "
-			  "these character sets: %s.\n", font, charsets);
+		g_warning(_("Warning: using fontset \"%s\", which is missing "
+			    "these character sets: %s."), font, charsets);
 		g_free(charsets);
 	}
 }
@@ -7506,8 +7520,8 @@ vte_terminal_set_font(VteTerminal *terminal,
 
 		if (new_font == NULL) {
 			name = vte_unparse_xft_pattern(matched_pattern);
-			g_warning("Failed to load Xft font pattern \"%s\", "
-				  "falling back to default font.", name);
+			g_warning(_("Failed to load Xft font pattern \"%s\", "
+				    "falling back to default font."), name);
 			free(name);
 
 			/* Try to use the default font. */
@@ -7519,7 +7533,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 					       0);
 		}
 		if (new_font == NULL) {
-			g_warning("Failed to load default Xft font.");
+			g_warning(_("Failed to load default Xft font."));
 		}
 
 		g_assert (pattern != new_font->pattern);
@@ -7558,7 +7572,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 					strlen(VTE_REPRESENTATIVE_CHARACTERS));
 			/* width = terminal->pvt->ftfont->max_advance_width; */
 		} else {
-			g_warning("Error allocating Xft font, disabling Xft.");
+			g_warning(_("Error allocating Xft font, disabling Xft."));
 			terminal->pvt->use_xft = FALSE;
 		}
 	}
@@ -7582,8 +7596,8 @@ vte_terminal_set_font(VteTerminal *terminal,
 			vte_terminal_font_complain(xlfds, missing_charset_list,
 						   missing_charset_count);
 		} else {
-			g_warning("Failed to load font set \"%s\", "
-				  "falling back to default font.", xlfds);
+			g_warning(_("Failed to load font set \"%s\", "
+				    "falling back to default font."), xlfds);
 			if (missing_charset_list != NULL) {
 				XFreeStringList(missing_charset_list);
 				missing_charset_list = NULL;
@@ -7594,8 +7608,8 @@ vte_terminal_set_font(VteTerminal *terminal,
 								&missing_charset_count,
 								&def_string);
 			if (terminal->pvt->fontset == NULL) {
-				g_warning("Failed to load default font, "
-					  "crashing or behaving abnormally.\n");
+				g_warning(_("Failed to load default font, "
+					    "crashing or behaving abnormally."));
 			} else {
 				vte_terminal_font_complain(xlfds,
 							   missing_charset_list,
@@ -7675,8 +7689,8 @@ vte_terminal_get_size(VteTerminal *terminal)
 	if (terminal->pvt->pty_master != -1) {
 		/* Use an ioctl to read the size of the terminal. */
 		if (ioctl(terminal->pvt->pty_master, TIOCGWINSZ, &size) != 0) {
-			g_warning("Error reading PTY size, using defaults: "
-				  "%s.", strerror(errno));
+			g_warning(_("Error reading PTY size, using defaults: "
+				    "%s."), strerror(errno));
 		} else {
 			terminal->row_count = size.ws_row;
 			terminal->column_count = size.ws_col;
@@ -7696,8 +7710,8 @@ vte_terminal_set_size(VteTerminal *terminal, long columns, long rows)
 		size.ws_col = columns;
 		/* Try to set the terminal size. */
 		if (ioctl(terminal->pvt->pty_master, TIOCSWINSZ, &size) != 0) {
-			g_warning("Error setting PTY size: %s.",
-				  strerror(errno));
+			g_warning(_("Error setting PTY size: %s."),
+				    strerror(errno));
 		}
 	} else {
 		terminal->row_count = rows;
@@ -9520,7 +9534,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		layout = terminal->pvt->layout;
 
 		if (layout == NULL) {
-			g_warning("Error allocating layout, disabling Pango.");
+			g_warning(_("Error allocating layout, disabling Pango."));
 			terminal->pvt->use_pango = FALSE;
 		}
 	}
@@ -9530,7 +9544,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	if (terminal->pvt->use_xft) {
 		ftdraw = XftDrawCreate(display, drawable, visual, colormap);
 		if (ftdraw == NULL) {
-			g_warning("Error allocating draw, disabling Xft.");
+			g_warning(_("Error allocating draw, disabling Xft."));
 			terminal->pvt->use_xft = FALSE;
 		}
 	}
@@ -9893,6 +9907,8 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 {
 	GObjectClass *gobject_class;
 	GtkWidgetClass *widget_class;
+
+	bindtextdomain(PACKAGE, LOCALEDIR);
 
 	gobject_class = G_OBJECT_CLASS(klass);
 	widget_class = GTK_WIDGET_CLASS(klass);
@@ -10710,7 +10726,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	conv = g_iconv_open("WCHAR_T", "UTF-8");
 	if (conv == NULL) {
 		/* Aaargh.  We're screwed. */
-		g_warning("g_iconv_open() failed setting word characters");
+		g_warning(_("g_iconv_open() failed setting word characters"));
 		return;
 	}
 	ilen = strlen(spec);

@@ -26,6 +26,12 @@
 #include "vte.h"
 #include "vteaccess.h"
 
+#ifdef HAVE_LOCALE_H
+#include <locale.h>
+#else
+#define bindtextdomain(package,dir)
+#endif
+
 #define VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA "VteTerminalAccessiblePrivateData"
 typedef struct _VteTerminalAccessiblePrivate {
 	gboolean snapshot_invalid;	/* This data needs to be refreshed. */
@@ -828,6 +834,8 @@ static void
 vte_terminal_accessible_class_init(gpointer *klass)
 {
         GObjectClass *gobject_class; 
+
+	bindtextdomain(PACKAGE, LOCALEDIR);
 
         gobject_class = G_OBJECT_CLASS(klass); 
 

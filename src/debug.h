@@ -18,8 +18,8 @@
 
 #ident "$Id$"
 
-#ifndef debug_h
-#define debug_h
+#ifndef vte_debug_h_included
+#define vte_debug_h_included
 
 typedef enum {
 	VTE_DEBUG_MISC    = 1 << 0,

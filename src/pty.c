@@ -31,6 +31,13 @@
 #include "debug.h"
 #include "pty.h"
 
+#ifdef ENABLE_NLS
+#include <libintl.h>
+#define _(String) dgettext(PACKAGE, String)
+#else
+#define _(String) String
+#endif
+
 /* Open the named PTY slave, fork off a child (storing its PID in child),
  * and exec the named command in its own session as a process group leader */
 static int
@@ -91,8 +98,8 @@ vte_pty_fork_on_fd(const char *path, const char **env_add,
 	/* Set any environment variables. */
 	for (i = 0; (env_add != NULL) && (env_add[i] != NULL); i++) {
 		if (putenv(g_strdup(env_add[i])) != 0) {
-			g_warning("Error adding `%s' to environment, "
-				  "continuing.", env_add[i]);
+			g_warning(_("Error adding `%s' to environment, "
+				    "continuing."), env_add[i]);
 		}
 #ifdef VTE_DEBUG
 		if (vte_debug_on(VTE_DEBUG_MISC)) {

@@ -28,6 +28,19 @@
 #include "marshal.h"
 #include "reaper.h"
 
+#ifdef HAVE_LOCALE_H
+#include <locale.h>
+#else
+#define bindtextdomain(package,dir)
+#endif
+
+#ifdef ENABLE_NLS
+#include <libintl.h>
+#define _(String) dgettext(PACKAGE, String)
+#else
+#define _(String) String
+#endif
+
 static VteReaper *singleton_reaper = NULL;
 struct reaper_info {
 	int signum;
@@ -90,7 +103,7 @@ vte_reaper_init(VteReaper *reaper, gpointer *klass)
 	int ret;
 	ret = pipe(reaper->iopipe);
 	if (ret == -1) {
-		g_error("Error creating signal pipe.");
+		g_error(_("Error creating signal pipe."));
 	}
 	action.sa_handler = vte_reaper_signal_handler;
 	sigemptyset(&action.sa_mask);
@@ -108,6 +121,7 @@ vte_reaper_init(VteReaper *reaper, gpointer *klass)
 static void
 vte_reaper_class_init(VteReaperClass *klass, gpointer data)
 {
+	bindtextdomain(PACKAGE, LOCALEDIR);
 	klass->child_exited_signal = g_signal_new("child-exited",
 						  G_OBJECT_CLASS_TYPE(klass),
 						  G_SIGNAL_RUN_LAST,

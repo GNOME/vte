@@ -16,8 +16,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef vteaccess_h_included
-#define vteaccess_h_included
+#ifndef vte_vteaccess_h_included
+#define vte_vteaccess_h_included
 
 #ident "$Id$"
 

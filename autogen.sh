@@ -71,6 +71,7 @@ case $CC in
 esac
 
 libtoolize -f -c
+glib-gettextize -f -c
 aclocal $ACLOCAL_FLAGS
 
 # optionally feature autoheader
