@@ -7,7 +7,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2002-06-10 15:34-0400\n"
+"POT-Creation-Date: 2002-06-10 19:06-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -103,15 +103,15 @@ msgstr ""
 msgid "Error setting PTY size: %s."
 msgstr ""
 
-#: src/vte.c:9537
+#: src/vte.c:9538
 msgid "Error allocating layout, disabling Pango."
 msgstr ""
 
-#: src/vte.c:9547
+#: src/vte.c:9548
 msgid "Error allocating draw, disabling Xft."
 msgstr ""
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:10729
+#: src/vte.c:10730
 msgid "g_iconv_open() failed setting word characters"
 msgstr ""
