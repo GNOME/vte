@@ -120,6 +120,7 @@ main(int argc, char **argv)
 	vte_terminal_set_cursor_blinks(VTE_TERMINAL(widget), TRUE);
 	vte_terminal_set_scroll_on_output(VTE_TERMINAL(widget), FALSE);
 	vte_terminal_set_scroll_on_keystroke(VTE_TERMINAL(widget), TRUE);
+	vte_terminal_set_scrollback_lines(VTE_TERMINAL(widget), 100);
 	if (stat("./background", &st) == 0) {
 		vte_terminal_set_background_image_file(VTE_TERMINAL(widget),
 						       "./background");

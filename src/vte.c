@@ -203,7 +203,7 @@ struct _VteTerminalPrivate {
 
 	GdkPixbuf *bg_image;
 
-	guint bg_saturation;	/* out of VTE_SATURATION_MAX */
+	long bg_saturation;	/* out of VTE_SATURATION_MAX */
 
 	GtkIMContext *im_context;
 	char *im_preedit;
@@ -636,11 +636,6 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 
 	if (codeset == NULL) {
 		codeset = nl_langinfo(CODESET);
-		if (g_ascii_strcasecmp(codeset, "UTF-8") == 0) {
-			codeset = "UTF-8";
-		} else {
-			codeset = "ISO-8859-1";
-		}
 	}
 
 	/* Set up the conversion for incoming-to-wchars. */
@@ -2414,20 +2409,24 @@ vte_sequence_handler_reverse_index(VteTerminal *terminal,
 
 /* Set the terminal encoding. */
 static void
-vte_sequence_handler_iso8859_1(VteTerminal *terminal,
-			       const char *match,
-			       GQuark match_quark,
-			       GValueArray *params)
+vte_sequence_handler_local_charset(VteTerminal *terminal,
+				   const char *match,
+				   GQuark match_quark,
+				   GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+#ifdef VTE_DEFAULT_ISO_8859_1
 	vte_terminal_set_encoding(terminal, "ISO-8859-1");
+#else
+	vte_terminal_set_encoding(terminal, nl_langinfo(CODESET));
+#endif
 }
 
 static void
-vte_sequence_handler_utf_8(VteTerminal *terminal,
-			   const char *match,
-			   GQuark match_quark,
-			   GValueArray *params)
+vte_sequence_handler_utf_8_charset(VteTerminal *terminal,
+				   const char *match,
+				   GQuark match_quark,
+				   GValueArray *params)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	vte_terminal_set_encoding(terminal, "UTF-8");
@@ -2779,8 +2778,8 @@ static struct {
 	{"delete-lines", vte_sequence_handler_delete_lines},
 	{"index", vte_sequence_handler_index},
 	{"reverse-index", vte_sequence_handler_reverse_index},
-	{"iso8859-1-character-set", vte_sequence_handler_iso8859_1},
-	{"utf-8-character-set", vte_sequence_handler_utf_8},
+	{"iso8859-1-character-set", vte_sequence_handler_local_charset},
+	{"utf-8-character-set", vte_sequence_handler_utf_8_charset},
 	{"character-position-absolute", vte_sequence_handler_character_position_absolute},
 	{"line-position-absolute", vte_sequence_handler_line_position_absolute},
 };
@@ -3079,6 +3078,7 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 #endif
 }
 
+#ifdef VTE_DEBUG
 static void
 display_control_sequence(const char *name, GValueArray *params)
 {
@@ -3113,6 +3113,7 @@ display_control_sequence(const char *name, GValueArray *params)
 	}
 	fprintf(stderr, ")\n");
 }
+#endif
 
 /* Handle a terminal control sequence and its parameters. */
 static void
@@ -5239,31 +5240,6 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path)
 	vte_terminal_set_emulation(terminal, terminal->pvt->terminal);
 }
 
-/* Set the length of a scrollback buffer.  This is a placeholder until the
- * ring-buffer code gets merged in. */
-#if 0
-static void
-vte_terminal_reset_rowdata(GArray **ring, long lines)
-{
-	GArray *row;
-	GArray *new_ring;
-	long i;
-	/* Create a new ring buffer for the normal screen. */
-	new_ring = g_array_new(FALSE, TRUE, sizeof(GArray*));
-	/* Prune the old array. */
-	if (*ring) {
-		while ((*ring)->len > lines) {
-			row = g_array_index(*ring, GArray *, 0);
-			if (row != NULL) {
-				g_array_free(row, FALSE);
-			}
-			g_array_remove_index(*ring, 0);
-		}
-	} else {
-		*ring = g_array_new(TRUE, FALSE, sizeof(GArray*));
-	}
-}
-#else
 static void
 vte_terminal_reset_rowdata(VteRing **ring, long lines)
 {
@@ -5275,19 +5251,12 @@ vte_terminal_reset_rowdata(VteRing **ring, long lines)
 		next = vte_ring_next(*ring);
 		for (i = vte_ring_delta(*ring); i < next; i++) {
 			row = vte_ring_index(*ring, GArray*, i);
-			if (row) {
-				if (i > next - lines) {
-					vte_ring_append(new_ring, row);
-				} else {
-					g_array_free(row, FALSE);
-				}
-			}
+			vte_ring_append(new_ring, row);
 		}
 		vte_ring_free(*ring, FALSE);
 	}
 	*ring = new_ring;
 }
-#endif
 
 /* Initialize the terminal widget after the base widget stuff is initialized.
  * We need to create a new psuedo-terminal pair, read in the termcap file, and
@@ -5570,8 +5539,6 @@ static void
 vte_terminal_finalize(GObject *object)
 {
 	VteTerminal *terminal;
-	GArray *array;
-	int i;
 	GObjectClass *object_class;
 	GtkWidgetClass *widget_class;
 
@@ -6916,7 +6883,7 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
 	terminal->pvt->bg_saturation = saturation * VTE_SATURATION_MAX;
 #ifdef VTE_DEBUG
 	fprintf(stderr, "Setting background saturation to %ld/%ld.\n",
-		terminal->pvt->bg_saturation, VTE_SATURATION_MAX);
+		terminal->pvt->bg_saturation, (long) VTE_SATURATION_MAX);
 #endif
 	vte_terminal_setup_background(terminal, FALSE);
 }
@@ -7089,10 +7056,30 @@ vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
 void
 vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 {
+	long old_delta = 0, new_delta = 0, delta;
+	struct _VteScreen *screens[2];
+	int i;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	vte_terminal_reset_rowdata(&terminal->pvt->normal_screen.row_data,
-				   lines);
-	vte_terminal_reset_rowdata(&terminal->pvt->alternate_screen.row_data,
-				   lines);
+
+	screens[0] = &terminal->pvt->normal_screen;
+	screens[1] = &terminal->pvt->alternate_screen;
+	for (i = 0; i < G_N_ELEMENTS(screens); i++) {
+		old_delta = 0;
+		if (screens[i]->row_data != NULL) {
+			old_delta = vte_ring_next(screens[i]->row_data);
+		}
+		vte_terminal_reset_rowdata(&screens[i]->row_data, lines);
+		new_delta = vte_ring_next(screens[i]->row_data);
+		delta = (new_delta - old_delta);
+		screens[i]->cursor_current.row += delta;
+		screens[i]->cursor_saved.row += delta;
+		screens[i]->scroll_delta += delta;
+		screens[i]->insert_delta += delta;
+	}
+
 	vte_terminal_adjust_adjustments(terminal);
+	vte_invalidate_cells(terminal,
+			     0, terminal->column_count,
+			     0, terminal->row_count);
 }
