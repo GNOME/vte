@@ -1,3 +1,8 @@
+2003-04-22 nalin
+	* src/vte.c(vte_terminal_read_io): don't queue up a call to
+	process_incoming() if we didn't read any fresh data, from HEAD.  Fix
+	signed/unsigned comparison, from HEAD.
+
 2003-04-21 nalin
 	* src/vte.c: don't snap the beginning of selection to the next line in
 	select-by-line mode, from HEAD.

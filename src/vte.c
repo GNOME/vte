@@ -7364,8 +7364,18 @@ vte_terminal_io_read(GIOChannel *channel,
 	/* Read some data in from this channel. */
 	bcount = 0;
 	if (condition & G_IO_IN) {
-		bcount = sizeof(buf) -
-			 _vte_buffer_length(terminal->pvt->incoming);
+		/* We try not to overfill the incoming buffer below by cutting
+		 * down the read size if we already have pending data. */
+		bcount = sizeof(buf);
+		if (_vte_buffer_length(terminal->pvt->incoming) < sizeof(buf)) {
+			/* Shoot for exactly one "chunk" for processing. */
+			bcount -= _vte_buffer_length(terminal->pvt->incoming);
+		} else {
+			/* Read half of the chunk size. */
+			bcount = sizeof(buf) / 2;
+		}
+		g_assert(bcount >= 0);
+		g_assert(bcount <= sizeof(buf));
 		bcount = read(fd, buf, MAX(bcount, sizeof(buf) / 2));
 	}
 	eof = FALSE;
@@ -7432,7 +7442,8 @@ vte_terminal_io_read(GIOChannel *channel,
 		 * touch the timeout if we're already slated to call it again
 		 * because if the output were carefully timed, we could
 		 * conceivably put it off forever. */
-		if (!terminal->pvt->processing) {
+		if (!terminal->pvt->processing &&
+		    (_vte_buffer_length(terminal->pvt->incoming) > 0)) {
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_IO)) {
 				fprintf(stderr, "Adding timed handler.\n");
