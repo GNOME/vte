@@ -280,6 +280,7 @@ struct _VteTerminalPrivate {
 
 	/* Scrolling options. */
 	gboolean scroll_background;
+	long scroll_lock_count;
 	gboolean scroll_on_output;
 	gboolean scroll_on_keystroke;
 	long scrollback_lines;
@@ -654,8 +655,6 @@ static void
 vte_terminal_scroll_region(VteTerminal *terminal,
 			   long row, glong count, glong delta)
 {
-	GtkWidget *widget;
-	GdkWindowObject *window;
 	gboolean repaint = TRUE;
 	glong height;
 
@@ -668,17 +667,12 @@ vte_terminal_scroll_region(VteTerminal *terminal,
 	if (!terminal->pvt->bg_transparent &&
 	    (terminal->pvt->bg_image == NULL) &&
 	    (row == terminal->pvt->screen->scroll_delta) &&
-	    (count == terminal->row_count)) {
-		widget = GTK_WIDGET(terminal);
-		if (GTK_WIDGET_REALIZED(widget)) {
-			window = GDK_WINDOW_OBJECT(widget->window);
-			if (window->update_freeze_count == 0) {
-				height = terminal->char_height;
-				gdk_window_scroll(widget->window,
-						  0, delta * height);
-				repaint = FALSE;
-			}
-		}
+	    (count == terminal->row_count) &&
+	    (terminal->pvt->scroll_lock_count == 0)) {
+		height = terminal->char_height;
+		gdk_window_scroll((GTK_WIDGET(terminal))->window,
+				  0, delta * height);
+		repaint = FALSE;
 	}
 
 	if (repaint) {
@@ -3327,8 +3321,8 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 							  screen->cursor_current.row,
 							  row);
 				/* This may generate multiple redraws, so
-				 * freeze it while we do them. */
-				gdk_window_freeze_updates(widget->window);
+				 * disable fast scrolling for now. */
+				terminal->pvt->scroll_lock_count++;
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
 				top = screen->cursor_current.row;
@@ -3340,7 +3334,7 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 				vte_terminal_ensure_cursor(terminal, FALSE);
 				vte_terminal_adjust_adjustments(terminal, TRUE);
 				/* Allow updates again. */
-				gdk_window_thaw_updates(widget->window);
+				terminal->pvt->scroll_lock_count--;
 			} else {
 				/* If we're at the bottom of the scrolling
 				 * region, add a line at the top to scroll the
@@ -10517,6 +10511,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* Scrolling options. */
 	pvt->scroll_background = FALSE;
+	pvt->scroll_lock_count = 0;
 	pvt->scroll_on_output = FALSE;
 	pvt->scroll_on_keystroke = TRUE;
 	pvt->scrollback_lines = VTE_SCROLLBACK_MIN;

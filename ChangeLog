@@ -1,4 +1,9 @@
 2003-04-23 nalin
+	* src/vte.c(vte_sequence_handler_sf): don't use the window freeze count
+	to check if it's safe to scroll using gdk_window_scroll(), require other
+	parts of this widget to declare it unsafe for those cases.
+
+2003-04-23 nalin
 	* src/vtexft.c(_vte_xft_char_width): take an explicit XftFont instead
 	of figuring out which one to use ourselves.
 	* src/vtexft.c(_vte_xft_draw_text): pass the XftFont which we're already
