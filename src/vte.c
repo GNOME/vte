@@ -455,10 +455,10 @@ static gboolean vte_sequence_handler_vb(VteTerminal *terminal,
 					GQuark match_quark,
 					GValueArray *params);
 static gboolean vte_terminal_io_read(GIOChannel *channel,
-				     GdkInputCondition condition,
+				     GIOCondition condition,
 				     gpointer data);
 static gboolean vte_terminal_io_write(GIOChannel *channel,
-				      GdkInputCondition condition,
+				      GIOCondition condition,
 				      gpointer data);
 static void vte_terminal_match_hilite_clear(VteTerminal *terminal);
 static gboolean vte_terminal_background_update(gpointer data);
@@ -7826,7 +7826,7 @@ vte_terminal_process_incoming(gpointer data)
 /* Read and handle data from the child. */
 static gboolean
 vte_terminal_io_read(GIOChannel *channel,
-		     GdkInputCondition condition,
+		     GIOCondition condition,
 		     gpointer data)
 {
 	VteTerminal *terminal;
@@ -7968,7 +7968,7 @@ vte_terminal_feed(VteTerminal *terminal, const char *data, glong length)
 /* Send locally-encoded characters to the child. */
 static gboolean
 vte_terminal_io_write(GIOChannel *channel,
-		      GdkInputCondition condition,
+		      GIOCondition condition,
 		      gpointer data)
 {
 	VteTerminal *terminal;

@@ -1,4 +1,9 @@
 2004-11-16 nalin
+	* src/vte.c(vte_terminal_io_read,vte_terminal_io_write): silence a
+	couple of warnings by expecting a GIOCondition instead of a
+	GtkInputCondition as a parameter.
+
+2004-11-16 nalin
 	* autogen.sh: accept more, newer versions of autoconf/automake.  Treat
 	autoconf >= 3 as acceptable instead of just > 3.
 
