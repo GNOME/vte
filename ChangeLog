@@ -1,4 +1,6 @@
 2002-08-08 nalin
+	* src/vte.c(vte_terminal_invalidate_all): rewrite.
+2002-08-08 nalin
 	* src/vte.c(vte_terminal_paint,vte_terminal_draw_cells): fill in the
 	background color when drawing the cursor, even if it's going to end up
 	as the default background color, spotted by Peter Jones.  Draw the

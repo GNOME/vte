@@ -541,7 +541,7 @@ vte_invalidate_cells(VteTerminal *terminal,
 static void
 vte_invalidate_all(VteTerminal *terminal)
 {
-	GdkRectangle *rect;
+	GdkRectangle rect;
 	GtkWidget *widget;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (!GTK_IS_WIDGET(terminal)) {
@@ -551,8 +551,13 @@ vte_invalidate_all(VteTerminal *terminal)
 	if (!GTK_WIDGET_REALIZED(widget)) {
 		return;
 	}
-	rect = &widget->allocation;
-	gdk_window_invalidate_rect((GTK_WIDGET(terminal))->window, rect, TRUE);
+	rect.x = 0;
+	rect.y = 0;
+	rect.width = terminal->column_count * terminal->char_width +
+		     2 * VTE_PAD_WIDTH;
+	rect.height = terminal->row_count * terminal->char_height +
+		      2 * VTE_PAD_WIDTH;
+	gdk_window_invalidate_rect((GTK_WIDGET(terminal))->window, &rect, TRUE);
 }
 
 /* Scroll a rectangular region up or down by a fixed number of lines. */
