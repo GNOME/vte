@@ -1,4 +1,4 @@
-# This is a cut-down version of the termcap file from my box, with @7,
+# This is a cut-down version of the termcap file from my box, with @7, k;,
 # F1-FA added.
 xterm-xfree86|xterm-new|xterm terminal emulator (XFree86):\
 	:am:km:mi:ms:xn:\

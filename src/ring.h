@@ -35,20 +35,21 @@ struct _VteRing {
 	long delta, length, max;
 };
 
-#define vte_ring_contains(ring, position) \
-	((position >= (ring)->delta) && \
-	 (position < (ring)->delta + (ring)->length))
-#define vte_ring_delta(ring) ((ring)->delta)
-#define vte_ring_length(ring) ((ring)->length)
-#define vte_ring_next(ring) ((ring)->delta + (ring)->length)
-#define vte_ring_max(ring) ((ring)->max)
-#define vte_ring_at(ring, position) \
-	((ring)->array[position % (ring)->max] ? \
-	 (ring)->array[position % (ring)->max] : \
+#define vte_ring_contains(__ring, __position) \
+	((__position >= (__ring)->delta) && \
+	 (__position < (__ring)->delta + (__ring)->length))
+#define vte_ring_delta(__ring) ((__ring)->delta)
+#define vte_ring_length(__ring) ((__ring)->length)
+#define vte_ring_next(__ring) ((__ring)->delta + (__ring)->length)
+#define vte_ring_max(__ring) ((__ring)->max)
+#define vte_ring_at(__ring, __position) \
+	((__ring)->array[__position % (__ring)->max] ? \
+	 (__ring)->array[__position % (__ring)->max] : \
 	 (g_error("NULL at %ld(%ld) delta %ld, length %ld at %d\n", \
-		  position, position % (ring)->max, \
-		  (ring)->delta, (ring)->length, __LINE__), NULL))
-#define vte_ring_index(ring, cast, position) (cast) vte_ring_at(ring, position)
+		  __position, __position % (__ring)->max, \
+		  (__ring)->delta, (__ring)->length, __LINE__), NULL))
+#define vte_ring_index(__ring, __cast, __position) \
+	(__cast) vte_ring_at(__ring, __position)
 
 VteRing *vte_ring_new(long max_elements, VteRingFreeFunc free, gpointer data);
 void vte_ring_insert(VteRing *ring, long position, gpointer data);

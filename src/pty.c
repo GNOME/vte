@@ -133,7 +133,7 @@ vte_pty_set_size(int master, int columns, int rows)
 	struct winsize size;
 	memset(&size, 0, sizeof(size));
 	size.ws_row = rows ? rows : 24;
-	size.ws_col = columns ? rows : 80;
+	size.ws_col = columns ? columns : 80;
 	if (ioctl(master, TIOCSWINSZ, &size) != 0) {
 		g_warning(_("Error setting PTY size: %s."),
 			    strerror(errno));

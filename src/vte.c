@@ -8965,6 +8965,9 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->default_row_count = 24;
 	vte_terminal_set_termcap(terminal, NULL, FALSE);
 	vte_terminal_set_emulation(terminal, NULL);
+	vte_terminal_set_size(terminal,
+			      pvt->default_column_count,
+			      pvt->default_row_count);
 
 	/* Determine what the user's shell is. */
 	if (pvt->shell == NULL) {
