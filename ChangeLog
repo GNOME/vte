@@ -1,4 +1,11 @@
 2003-05-20 nalin
+	* src/iso2022.c: clarify comments near one of the warning messages.
+	* src/vtefc.c(_vte_fc_transcribe_from_pango_font_description): unref
+	the Pango context, which was created for us.
+	* src/vtepango.c: keep track of the Pango context, and unref it when
+	it is no longer needed.
+
+2003-05-20 nalin
 	* src/Makefile.am: try juggling the CFLAGS and LIBS order to let the
 	xft CFLAGS/LIBS take precedence over everything else (#113335).
 

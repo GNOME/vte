@@ -37,6 +37,7 @@ struct _vte_pango_data
 	GdkPixmap *pixmap;
 	gint pixmapw, pixmaph;
 	gint scrollx, scrolly;
+	PangoContext *ctx;
 	PangoFontDescription *font;
 	PangoLayout *layout;
 	GdkGC *gc;
@@ -89,6 +90,10 @@ _vte_pango_destroy(struct _vte_draw *draw)
 		g_object_unref(G_OBJECT(data->layout));
 		data->layout = NULL;
 	}
+	if (PANGO_IS_CONTEXT(data->ctx)) {
+		g_object_unref(G_OBJECT(data->ctx));
+		data->ctx = NULL;
+	}
 	if (GDK_IS_GC(data->gc)) {
 		g_object_unref(G_OBJECT(data->gc));
 		data->gc = NULL;
@@ -127,11 +132,15 @@ _vte_pango_start(struct _vte_draw *draw)
 #else
 	ctx = gdk_pango_context_get();
 #endif
+	if (PANGO_IS_CONTEXT(data->ctx)) {
+		g_object_unref(G_OBJECT(data->ctx));
+	}
+	data->ctx = ctx;
 
 	if (PANGO_IS_LAYOUT(data->layout)) {
 		g_object_unref(G_OBJECT(data->layout));
 	}
-	data->layout = pango_layout_new(ctx);
+	data->layout = pango_layout_new(data->ctx);
 	if (data->font) {
 		pango_layout_set_font_description(data->layout, data->font);
 	}
@@ -151,15 +160,20 @@ _vte_pango_end(struct _vte_draw *draw)
 	struct _vte_pango_data *data;
 	data = (struct _vte_pango_data*) draw->impl_data;
 
+	if (GDK_IS_GC(data->gc)) {
+		g_object_unref(G_OBJECT(data->gc));
+	}
+	data->gc = NULL;
+
 	if (PANGO_IS_LAYOUT(data->layout)) {
 		g_object_unref(G_OBJECT(data->layout));
 	}
 	data->layout = NULL;
 
-	if (GDK_IS_GC(data->gc)) {
-		g_object_unref(G_OBJECT(data->gc));
+	if (PANGO_IS_CONTEXT(data->ctx)) {
+		g_object_unref(G_OBJECT(data->ctx));
 	}
-	data->gc = NULL;
+	data->ctx = NULL;
 }
 
 static void
@@ -325,6 +339,7 @@ _vte_pango_set_text_font(struct _vte_draw *draw,
 #endif
 
 	g_object_unref(G_OBJECT(layout));
+	g_object_unref(G_OBJECT(ctx));
 }
 
 static int

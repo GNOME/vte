@@ -117,6 +117,8 @@ _vte_fc_transcribe_from_pango_font_description(FcPattern *pattern,
 		FcPatternAddInteger(pattern, FC_SLANT,
 				    _vte_fc_slant_from_pango_style(style));
 	}
+
+	g_object_unref(G_OBJECT(context));
 }
 
 static void

@@ -1543,7 +1543,7 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 #endif
 							break;
 						default:
-							/* See ECMA-35. */
+							/* Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details. */
 							g_warning(_("Unrecognized identified coding system."));
 							break;
 						}
