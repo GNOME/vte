@@ -18,6 +18,7 @@
 
 #ident "$Id$"
 #include "../config.h"
+#include <stdio.h>
 #include <string.h>
 #include <gtk/gtk.h>
 #include "debug.h"
@@ -39,6 +40,8 @@ struct VteBgPrivate {
 static VteBg *singleton_bg = NULL;
 static void vte_bg_set_root_pixmap(VteBg *bg, GdkPixmap *pixmap);
 static void vte_bg_init(VteBg *bg, gpointer *klass);
+static GdkPixbuf *_vte_bg_resize_pixbuf(GdkPixbuf *pixbuf,
+					gint min_width, gint min_height);
 
 #if 0
 static const char *
@@ -136,6 +139,16 @@ vte_bg_root_pixmap(VteBg *bg)
 			pixmap = gdk_pixmap_foreign_new_for_display(gdk_drawable_get_display(bg->native->window), pixmaps[0]);
 #else
 			pixmap = gdk_pixmap_foreign_new(pixmaps[0]);
+#endif
+#ifdef VTE_DEBUG
+			if (_vte_debug_on(VTE_DEBUG_MISC) ||
+			    _vte_debug_on(VTE_DEBUG_EVENTS)) {
+				gint pwidth, pheight;
+				gdk_drawable_get_size(pixmap,
+						      &pwidth, &pheight);
+				fprintf(stderr, "New background image %dx%d\n",
+					pwidth, pheight);
+			}
 #endif
 		}
 		if (pixmaps != NULL) {
@@ -373,6 +386,62 @@ vte_bg_cache_prune(VteBg *bg)
 	vte_bg_cache_prune_int(bg, FALSE);
 }
 
+/**
+ * _vte_bg_resize_pixbuf:
+ * @pixmap: a #GdkPixbuf, or NULL
+ * @min_width: the requested minimum_width
+ * @min_height: the requested minimum_height
+ *
+ * The background pixbuf may be tiled, and if it is tiled, it may be very, very
+ * small.  This function creates a pixbuf consisting of the passed-in pixbuf
+ * tiled to a usable size.
+ *
+ * Returns: a new #GdkPixbuf, unrefs @pixbuf.
+ */
+static GdkPixbuf *
+_vte_bg_resize_pixbuf(GdkPixbuf *pixbuf, gint min_width, gint min_height)
+{
+	GdkPixbuf *tmp;
+	gint src_width, src_height;
+	gint dst_width, dst_height;
+	gint x, y;
+
+	if (!GDK_IS_PIXBUF(pixbuf)) {
+		return pixbuf;
+	}
+
+	src_width = gdk_pixbuf_get_width(pixbuf);
+	src_height = gdk_pixbuf_get_height(pixbuf);
+	dst_width = (((min_width - 1) / src_width) + 1) * src_width;
+	dst_height = (((min_height - 1) / src_height) + 1) * src_height;
+	if ((dst_width == src_width) && (dst_height == src_height)) {
+		return pixbuf;
+	}
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_MISC) || _vte_debug_on(VTE_DEBUG_EVENTS)) {
+		fprintf(stderr, "Resizing (root?) pixbuf from %dx%d to %dx%d\n",
+			src_width, src_height, dst_width, dst_height);
+	}
+#endif
+
+	tmp = gdk_pixbuf_new(gdk_pixbuf_get_colorspace(pixbuf),
+			     gdk_pixbuf_get_has_alpha(pixbuf),
+			     gdk_pixbuf_get_bits_per_sample(pixbuf),
+			     dst_width, dst_height);
+	for (y = 0; y < dst_height; y += src_height) {
+		for (x = 0; x < dst_width; x += src_width) {
+			gdk_pixbuf_copy_area(pixbuf,
+					     0, 0, src_width, src_height,
+					     tmp,
+					     x, y);
+		}
+	}
+
+	g_object_unref(G_OBJECT(pixbuf));
+	return tmp;
+}
+
 static void
 vte_bg_set_root_pixmap(VteBg *bg, GdkPixmap *pixmap)
 {
@@ -605,6 +674,11 @@ vte_bg_get_pixmap(VteBg *bg,
 	pixmap = NULL;
 	mask = NULL;
 	if (GDK_IS_PIXBUF(pixbuf)) {
+		/* If the image is smaller than 256x256 then tile it into a
+		 * pixbuf that is at least this large.  This is done because
+		 * tiling a 1x1 pixmap onto the screen using thousands of calls
+		 * to XCopyArea is very slow. */
+		pixbuf = _vte_bg_resize_pixbuf(pixbuf, 256, 256);
 		gdk_pixbuf_render_pixmap_and_mask_for_colormap(pixbuf,
 							       colormap,
 							       &pixmap, &mask,

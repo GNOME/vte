@@ -1,4 +1,21 @@
 2004-04-19 nalin
+	* src/pty.c(_vte_pty_set_utf8): toggle the IUTF8 flag, if
+	it was defined at compile-time (maybe for #129317).
+	* src/vte.c(vte_terminal_set_encoding): call _vte_pty_set_utf8.
+	* src/vte.h (vte_terminal_anti_alias_get_type): declare.
+	* src/vtebg.c(vte_bg_get_pixmap): Optimisation to fix the ridiculous
+	amount of time required to render solid colour or extremely small
+	image tiled backgrounds.  This fixes bug #123903.  (desrt)
+	* src/vtebg.c(vte_bg_root_pixmap): move resize code into a separate
+	function.
+	* src/vtebg.c(vte_bg_get_pixmap): Resize all image sources, in case
+	we're using a very small image file for the background.
+
+2004-04-19 nalin
+	* python/Makefile.am: move python module to site-packages/gtk-2.0,
+	which is added to the search path only by pygtk 2 (#92252).
+
+2004-04-19 nalin
 	* python/vte.override: define a modulename override so that the
 	Terminal class is registered in the proper namespace so that python's
 	help() builtin sees the Terminal class (#130267).

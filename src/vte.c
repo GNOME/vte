@@ -2083,6 +2083,8 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	/* Set the terminal's encoding to the new value. */
 	encoding_quark = g_quark_from_string(codeset);
 	terminal->pvt->encoding = g_quark_to_string(encoding_quark);
+	_vte_pty_set_utf8(terminal->pvt->pty_master,
+			  (strcmp(codeset, "UTF-8") == 0));
 
 	/* Convert any buffered output bytes. */
 	if ((_vte_buffer_length(terminal->pvt->outgoing) > 0) &&

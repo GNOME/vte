@@ -297,19 +297,22 @@ _vte_pty_run_on_pty(int fd, int ready_reader, int ready_writer,
 	}
 
 #ifdef HAVE_STROPTS_H
-	if (!ioctl (fd, I_FIND, "ptem") && ioctl (fd, I_PUSH, "ptem") == -1) {
+	if ((ioctl(fd, I_FIND, "ptem") == 0) &&
+	    (ioctl(fd, I_PUSH, "ptem") == -1)) {
 		close (fd);
 		_exit (0);
 		return -1;
 	}
 
-	if (!ioctl (fd, I_FIND, "ldterm") && ioctl (fd, I_PUSH, "ldterm") == -1) {
+	if ((ioctl(fd, I_FIND, "ldterm") == 0) &&
+	    (ioctl(fd, I_PUSH, "ldterm") == -1)) {
 		close (fd);
 		_exit (0);
 		return -1;
 	}
 
-	if (!ioctl (fd, I_FIND, "ttcompat") && ioctl (fd, I_PUSH, "ttcompat") == -1) {
+	if ((ioctl(fd, I_FIND, "ttcompat") == 0) &&
+	    (ioctl(fd, I_PUSH, "ttcompat") == -1)) {
 		perror ("ioctl (fd, I_PUSH, \"ttcompat\")");
 		close (fd);
 		_exit (0);
@@ -1109,6 +1112,36 @@ _vte_pty_open(pid_t *child, char **env_add,
 	}
 #endif
 	return ret;
+}
+
+/**
+ * _vte_pty_set_utf8:
+ * @pty: The pty master descriptor.
+ * @utf8: Whether or not the pty is in UTF-8 mode.
+ *
+ * Tells the kernel whether the terminal is UTF-8 or not, in case it can make
+ * use of the info.  Linux 2.6.5 or so defines IUTF8 to make the line
+ * discipline do multibyte backspace correctly.
+ */
+void
+_vte_pty_set_utf8(int pty, gboolean utf8)
+{
+#ifdef IUTF8
+	struct termios tio;
+	tcflag_t saved_cflag;
+	if (pty != -1) {
+		if (tcgetattr(pty, &tio) != -1) {
+			saved_cflag = tio.c_iflag;
+			tio.c_iflag &= ~IUTF8;
+			if (utf8) {
+				tio.c_iflag |= IUTF8;
+			}
+			if (saved_cflag != tio.c_iflag) {
+				tcsetattr(pty, TCSANOW, &tio);
+			}
+		}
+	}
+#endif
 }
 
 /**

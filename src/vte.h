@@ -179,6 +179,7 @@ struct vte_char_attributes {
 /* The widget's type. */
 GtkType vte_terminal_get_type(void);
 GtkType vte_terminal_erase_binding_get_type(void);
+GtkType vte_terminal_anti_alias_get_type(void);
 
 #define VTE_TYPE_TERMINAL		(vte_terminal_get_type())
 #define VTE_TERMINAL(obj)		(GTK_CHECK_CAST((obj),\

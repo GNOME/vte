@@ -39,6 +39,9 @@ int _vte_pty_open(pid_t *child, char **env_add,
 int _vte_pty_get_size(int master, int *columns, int *rows);
 int _vte_pty_set_size(int master, int columns, int rows);
 
+/* Try to let the kernel know that the terminal is or is not UTF-8. */
+void _vte_pty_set_utf8(int pty, gboolean utf8);
+
 /* Close a pty. */
 void _vte_pty_close(int pty);
 
