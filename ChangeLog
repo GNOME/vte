@@ -1,4 +1,8 @@
 2003-08-13 nalin
+	* src/vte.c(vte_terminal_fork_command,vte_terminal_forkpty): doc update
+	to note that directory and envv can be NULL for both.
+
+2003-08-13 nalin
 	* src/vteapp.c(main): if -S is passed, use forkpty to start a child that
 	just counts until killed with Ctrl-C.
 

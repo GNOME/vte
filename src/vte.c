@@ -7061,7 +7061,7 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
  * @command: the name of a binary to run
  * @argv: the argument list to be passed to @command
  * @envv: a list of environment variables to be added to the environment before
- * starting @command
+ * starting @command, or NULL
  * @directory: the name of a directory the command should start in, or NULL
  * @lastlog: TRUE if the session should be logged to the lastlog
  * @utmp: TRUE if the session should be logged to the utmp/utmpx log
@@ -7096,8 +7096,9 @@ vte_terminal_fork_command(VteTerminal *terminal,
  * vte_terminal_forkpty:
  * @terminal: a #VteTerminal
  * @envv: a list of environment variables to be added to the environment before
- * starting returning in the child process
- * @directory: the name of a directory the child process should change to, or NULL
+ * starting returning in the child process, or NULL
+ * @directory: the name of a directory the child process should change to, or
+ * NULL
  * @lastlog: TRUE if the session should be logged to the lastlog
  * @utmp: TRUE if the session should be logged to the utmp/utmpx log
  * @wtmp: TRUE if the session should be logged to the wtmp/wtmpx log
