@@ -1,3 +1,7 @@
+2002-06-12 nalin
+	* src/vte.c: Cache the result of vte_terminal_get_accessible() and
+	unref it at finalize-time.  Add debug messages to log signals emitted
+	by the widget.
 2002-06-12 msw
 	* src/vteaccess.c (vte_terminal_accessible_get_text): accept
 	end_offset of -1, which means "until the end".

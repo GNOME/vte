@@ -265,6 +265,9 @@ struct _VteTerminalPrivate {
 	char *im_preedit;
 	int im_preedit_cursor;
 
+	/* Our accessible peer. */
+	AtkObject *accessible;
+
 	/* Input device options. */
 	guint last_keypress_time;
 	gboolean mouse_send_xy_on_click;
@@ -526,6 +529,11 @@ vte_invalidate_cursor_periodic(gpointer data)
 static void
 vte_terminal_emit_selection_changed(VteTerminal *terminal)
 {
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `selection-changed'.\n");
+	}
+#endif
 	g_signal_emit_by_name(terminal, "selection-changed");
 }
 
@@ -533,6 +541,11 @@ vte_terminal_emit_selection_changed(VteTerminal *terminal)
 static void
 vte_terminal_emit_child_exited(VteTerminal *terminal)
 {
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `child-exited'.\n");
+	}
+#endif
 	g_signal_emit_by_name(terminal, "child-exited");
 }
 
@@ -540,6 +553,11 @@ vte_terminal_emit_child_exited(VteTerminal *terminal)
 static void
 vte_terminal_emit_contents_changed(VteTerminal *terminal)
 {
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `contents-changed'.\n");
+	}
+#endif
 	g_signal_emit_by_name(terminal, "contents-changed");
 }
 
@@ -547,6 +565,11 @@ vte_terminal_emit_contents_changed(VteTerminal *terminal)
 static void
 vte_terminal_emit_cursor_moved(VteTerminal *terminal)
 {
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `cursor-moved'.\n");
+	}
+#endif
 	g_signal_emit_by_name(terminal, "cursor-moved");
 }
 
@@ -554,6 +577,11 @@ vte_terminal_emit_cursor_moved(VteTerminal *terminal)
 static void
 vte_terminal_emit_icon_title_changed(VteTerminal *terminal)
 {
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `icon-title-changed'.\n");
+	}
+#endif
 	g_signal_emit_by_name(terminal, "icon-title-changed");
 }
 
@@ -561,6 +589,11 @@ vte_terminal_emit_icon_title_changed(VteTerminal *terminal)
 static void
 vte_terminal_emit_window_title_changed(VteTerminal *terminal)
 {
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `window-title-changed'.\n");
+	}
+#endif
 	g_signal_emit_by_name(terminal, "window-title-changed");
 }
 
@@ -568,6 +601,11 @@ vte_terminal_emit_window_title_changed(VteTerminal *terminal)
 static void
 vte_terminal_emit_deiconify_window(VteTerminal *terminal)
 {
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `deiconify-window'.\n");
+	}
+#endif
 	g_signal_emit_by_name(terminal, "deiconify-window");
 }
 
@@ -575,6 +613,11 @@ vte_terminal_emit_deiconify_window(VteTerminal *terminal)
 static void
 vte_terminal_emit_iconify_window(VteTerminal *terminal)
 {
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `iconify-window'.\n");
+	}
+#endif
 	g_signal_emit_by_name(terminal, "iconify-window");
 }
 
@@ -582,6 +625,11 @@ vte_terminal_emit_iconify_window(VteTerminal *terminal)
 static void
 vte_terminal_emit_raise_window(VteTerminal *terminal)
 {
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `raise-window'.\n");
+	}
+#endif
 	g_signal_emit_by_name(terminal, "raise-window");
 }
 
@@ -589,6 +637,11 @@ vte_terminal_emit_raise_window(VteTerminal *terminal)
 static void
 vte_terminal_emit_lower_window(VteTerminal *terminal)
 {
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `lower-window'.\n");
+	}
+#endif
 	g_signal_emit_by_name(terminal, "lower-window");
 }
 
@@ -596,6 +649,11 @@ vte_terminal_emit_lower_window(VteTerminal *terminal)
 static void
 vte_terminal_emit_maximize_window(VteTerminal *terminal)
 {
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `maximize-window'.\n");
+	}
+#endif
 	g_signal_emit_by_name(terminal, "maximize-window");
 }
 
@@ -603,6 +661,11 @@ vte_terminal_emit_maximize_window(VteTerminal *terminal)
 static void
 vte_terminal_emit_refresh_window(VteTerminal *terminal)
 {
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `refresh-window'.\n");
+	}
+#endif
 	g_signal_emit_by_name(terminal, "refresh-window");
 }
 
@@ -610,6 +673,11 @@ vte_terminal_emit_refresh_window(VteTerminal *terminal)
 static void
 vte_terminal_emit_restore_window(VteTerminal *terminal)
 {
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `restore-window'.\n");
+	}
+#endif
 	g_signal_emit_by_name(terminal, "restore-window");
 }
 
@@ -617,6 +685,11 @@ vte_terminal_emit_restore_window(VteTerminal *terminal)
 static void
 vte_terminal_emit_eof(VteTerminal *terminal)
 {
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `eof'.\n");
+	}
+#endif
 	g_signal_emit_by_name(terminal, "eof");
 }
 
@@ -625,6 +698,11 @@ static void
 vte_terminal_emit_char_size_changed(VteTerminal *terminal,
 				    guint width, guint height)
 {
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `char-size-changed'.\n");
+	}
+#endif
 	g_signal_emit_by_name(terminal, "char-size-changed",
 			      width, height);
 }
@@ -634,6 +712,11 @@ static void
 vte_terminal_emit_resize_window(VteTerminal *terminal,
 				guint width, guint height)
 {
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `resize-window'.\n");
+	}
+#endif
 	g_signal_emit_by_name(terminal, "resize-window", width, height);
 }
 
@@ -641,6 +724,11 @@ vte_terminal_emit_resize_window(VteTerminal *terminal,
 static void
 vte_terminal_emit_move_window(VteTerminal *terminal, guint x, guint y)
 {
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_SIGNALS)) {
+		fprintf(stderr, "Emitting `move-window'.\n");
+	}
+#endif
 	g_signal_emit_by_name(terminal, "move-window", x, y);
 }
 
@@ -8155,6 +8243,9 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	/* Set up input method support. */
 	pvt->im_context = NULL;
 
+	/* Initialize our accessible peer. */
+	pvt->accessible = NULL;
+
 	/* Set backspace/delete bindings. */
 	vte_terminal_set_backspace_binding(terminal, VTE_ERASE_AUTO);
 	vte_terminal_set_delete_binding(terminal, VTE_ERASE_AUTO);
@@ -8262,6 +8353,12 @@ vte_terminal_unrealize(GtkWidget *widget)
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
+
+	/* Shut down accessibility. */
+	if (terminal->pvt->accessible != NULL) {
+		g_object_unref(G_OBJECT(terminal->pvt->accessible));
+		terminal->pvt->accessible = NULL;
+	}
 
 	/* Shut down input methods. */
 	g_object_unref(G_OBJECT(terminal->pvt->im_context));
@@ -9897,8 +9994,15 @@ static AtkObject *
 vte_terminal_get_accessible(GtkWidget *widget)
 {
 	AtkObject *access;
+	VteTerminal *terminal;
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), NULL);
-	access = vte_terminal_accessible_new(VTE_TERMINAL(widget));
+	terminal = VTE_TERMINAL(widget);
+	if (terminal->pvt->accessible == NULL) {
+		access = terminal->pvt->accessible;
+	} else {
+		access = vte_terminal_accessible_new(terminal);
+		terminal->pvt->accessible = access;
+	}
 	return access;
 }
 
