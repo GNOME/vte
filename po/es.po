@@ -1,53 +1,54 @@
+# translation of vte.HEAD.po to Spanish
 # translation of vte.HEAD.es.po to Spanish
 # VTE Spanish translation file.
 # Copyright (C) 2002,2003 Free Software Foundation, Inc.
 # This file is distributed under the same license as the VTE package.
 # Pablo Gonzalo del Campo <pablodc@bigfoot.com>, 2002.
 # Germán Poo Caamaño <gpoo@ubiobio.cl>, 2002.
-# Francisco Javier F. Serrador <serrador@arrakis.es>, 2003
+# Francisco Javier F. Serrador <serrador@arrakis.es>, 2003.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: vte.HEAD.es\n"
+"Project-Id-Version: vte.HEAD\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2003-06-17 13:07+0200\n"
-"PO-Revision-Date: 2003-06-17 19:40+0000\n"
+"POT-Creation-Date: 2003-08-28 04:56+0200\n"
+"PO-Revision-Date: 2003-08-28 08:40+0200\n"
 "Last-Translator: Francisco Javier F. Serrador <serrador@arrakis.es>\n"
 "Language-Team: Spanish <traductores@es.gnome.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 1.0.1\n"
+"X-Generator: KBabel 1.0.2\n"
 
-#: src/iso2022.c:786 src/iso2022.c:797 src/iso2022.c:846 src/vte.c:2059
+#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2067
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "No se pueden convertir caracteres de %s a %s"
 
-#: src/iso2022.c:1559
+#: src/iso2022.c:1560
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Se ha intentado definir un mapa NRC inválido «%c»."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1600
+#: src/iso2022.c:1601
 msgid "Unrecognized identified coding system."
 msgstr "Sistema de codificación identificado no reconocido."
 
-#: src/iso2022.c:1649 src/iso2022.c:1675
+#: src/iso2022.c:1650 src/iso2022.c:1676
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Se ha intentado definir un ancho inválido en el mapa NRC «%c»."
 
-#: src/pty.c:319
+#: src/pty.c:323
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr "Ha ocurrido un error al agregar «%s» al entorno, continuando."
+msgstr "Ha ocurrido un error al añadir «%s» al entorno, continuando."
 
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:882
+#: src/pty.c:908
 #, c-format
 msgid "can not run %s"
 msgstr "No es posible ejecutar %s"
@@ -61,57 +62,57 @@ msgstr "Ha ocurrido un error al crear la señal pipe."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicado (%s/%s)"
 
-#: src/vte.c:1471
+#: src/vte.c:1475
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Ha ocurrido un error al compilar la expresión regular «%s»."
 
-#: src/vte.c:5669
+#: src/vte.c:5810
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Se obtuvo una secuencia inesperada (¿de teclas?) «%s»"
 
-#: src/vte.c:6684
+#: src/vte.c:6828
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "No existe un manejador para la secuencia de control «%s» definida."
 
-#: src/vte.c:7431
+#: src/vte.c:7645
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Ha ocurrido un error al leer desde el hijo: %s"
 
-#: src/vte.c:7587
+#: src/vte.c:7801
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Ha ocurrido un error (%s) al convertir datos desde el hijo, omitiendo."
 
-#: src/vte.c:10229
+#: src/vte.c:10463
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Ha ocurrido un error al leer el tamaño PTY, utilizando el predeterminado: %s."
 
-#: src/vte.c:10265
+#: src/vte.c:10499
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Ha ocurrido un error al establecer el tamaño del PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14387
+#: src/vte.c:14622
 msgid "_vte_conv_open() failed setting word characters"
 msgstr ""
 "Ha ocurrido un error en _vte_conv_open() al establecer los caracteres de la "
 "palabra"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:680
+#: src/vteapp.c:688
 msgid "Could not open console.\n"
 msgstr "No se ha podido abrir la consola.\n"
 
 #: src/vteglyph.c:576
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr "Modo de pixel %d desconocido.\n"
+msgstr "Modo de píxel %d desconocido.\n"
 
 #: src/vtexft.c:710
 #, c-format
