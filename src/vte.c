@@ -5514,14 +5514,15 @@ vte_terminal_insert_char(GtkWidget *widget, gunichar c,
 
 	/* If we're autowrapping here, do it. */
 	col = screen->cursor_current.col;
-	if (col >= terminal->column_count) {
+	if (col + columns > terminal->column_count) {
 		if (terminal->pvt->flags.am) {
 			/* Wrap. */
 			screen->cursor_current.col = 0;
 			screen->cursor_current.row++;
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
-			screen->cursor_current.col = terminal->column_count - 1;
+			screen->cursor_current.col = terminal->column_count -
+						     columns;
 		}
 	}
 
