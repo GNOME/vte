@@ -579,6 +579,50 @@ vte_terminal_deselect_all(VteTerminal *terminal)
 	}
 }
 
+/* Reset the set of tab stops to the default. */
+static void
+vte_terminal_set_tabstop(VteTerminal *terminal, int column)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	if (terminal->pvt->tabstops != NULL) {
+		/* Just set a non-NULL pointer for this column number. */
+		g_hash_table_insert(terminal->pvt->tabstops,
+				    GINT_TO_POINTER(2 * column + 1),
+				    terminal);
+	}
+}
+
+/* Check if we have a tabstop at a given position. */
+static gboolean
+vte_terminal_get_tabstop(VteTerminal *terminal, int column)
+{
+	gpointer hash;
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	if (terminal->pvt->tabstops != NULL) {
+		hash = g_hash_table_lookup(terminal->pvt->tabstops,
+					   GINT_TO_POINTER(2 * column + 1));
+		return (hash != NULL);
+	} else {
+		return FALSE;
+	}
+}
+
+/* Reset the set of tab stops to the default. */
+static void
+vte_terminal_set_default_tabstops(VteTerminal *terminal)
+{
+	int i;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	if (terminal->pvt->tabstops != NULL) {
+		g_hash_table_destroy(terminal->pvt->tabstops);
+	}
+	terminal->pvt->tabstops = g_hash_table_new(g_direct_hash,
+						   g_direct_equal);
+	for (i = 0; i <= VTE_TAB_MAX; i += VTE_TAB_WIDTH) {
+		vte_terminal_set_tabstop(terminal, i);
+	}
+}
+
 /* Update the adjustment field of the widget.  This function should be called
  * whenever we add rows to the history or switch screens. */
 static void
@@ -985,6 +1029,42 @@ vte_sequence_handler_bl(VteTerminal *terminal,
 	}
 }
 
+/* Backtab. */
+static void
+vte_sequence_handler_bt(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	long newcol;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	/* Calculate which column is the next tab stop. */
+	newcol = terminal->pvt->screen->cursor_current.col;
+
+	if (terminal->pvt->tabstops != NULL) {
+		/* Find the next tabstop. */
+		for (newcol--; newcol >= 0; newcol--) {
+			if (vte_terminal_get_tabstop(terminal, newcol)) {
+				break;
+			}
+		}
+	}
+
+	/* If we have no tab stops, stop right here. */
+	if (newcol <= 0) {
+		return;
+	}
+
+	/* Warp the cursor. */
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_PARSE)) {
+		fprintf(stderr, "Moving cursor to column %ld.\n", (long)newcol);
+	}
+#endif
+	terminal->pvt->screen->cursor_current.col = newcol;
+}
+
 /* Clear from the cursor position to the beginning of the line. */
 static void
 vte_sequence_handler_cb(VteTerminal *terminal,
@@ -1224,6 +1304,20 @@ vte_sequence_handler_cs(VteTerminal *terminal,
 	if ((terminal->pvt->screen->scrolling_region.start == 0) &&
 	    (terminal->pvt->screen->scrolling_region.end == rows - 1)) {
 		terminal->pvt->screen->scrolling_restricted = FALSE;
+	}
+}
+
+/* Clear all tab stops. */
+static void
+vte_sequence_handler_ct(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	if (terminal->pvt->tabstops != NULL) {
+		g_hash_table_destroy(terminal->pvt->tabstops);
+		terminal->pvt->tabstops = NULL;
 	}
 }
 
@@ -1903,7 +1997,23 @@ vte_sequence_handler_so(VteTerminal *terminal,
 	g_free(standout);
 }
 
-/* Tab.  FIXME: implement custom tabstop setting and the whole nine yards. */
+/* Set tab stop in the current column. */
+static void
+vte_sequence_handler_st(VteTerminal *terminal,
+			const char *match,
+			GQuark match_quark,
+			GValueArray *params)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	if (terminal->pvt->tabstops == NULL) {
+		terminal->pvt->tabstops = g_hash_table_new(g_direct_hash,
+							   g_direct_equal);
+	}
+	vte_terminal_set_tabstop(terminal,
+				 terminal->pvt->screen->cursor_current.col);
+}
+
+/* Tab. */
 static void
 vte_sequence_handler_ta(VteTerminal *terminal,
 			const char *match,
@@ -1912,11 +2022,24 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 {
 	long newcol;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
 	/* Calculate which column is the next tab stop. */
 	newcol = terminal->pvt->screen->cursor_current.col;
-	do {
-		newcol++;
-	} while ((newcol % VTE_TAB_WIDTH) != 0);
+
+	if (terminal->pvt->tabstops != NULL) {
+		/* Find the next tabstop. */
+		for (newcol++; newcol < VTE_TAB_MAX; newcol++) {
+			if (vte_terminal_get_tabstop(terminal, newcol)) {
+				break;
+			}
+		}
+	}
+
+	/* If we have no tab stops, stop right here. */
+	if (newcol >= VTE_TAB_MAX) {
+		return;
+	}
+
 	/* Wrap to the next line if need be.  FIXME: check if we're supposed
 	 * to wrap to the next line. */
 	if (newcol >= terminal->column_count) {
@@ -1925,6 +2048,11 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 	} else {
 		terminal->pvt->screen->cursor_current.col = newcol;
 	}
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_PARSE)) {
+		fprintf(stderr, "Moving cursor to column %ld.\n", (long)newcol);
+	}
+#endif
 }
 
 /* Terminal usage starts. */
@@ -3435,7 +3563,7 @@ static struct {
 
 	{"bc", NULL},
 	{"bl", vte_sequence_handler_bl},
-	{"bt", NULL},
+	{"bt", vte_sequence_handler_bt},
 
 	{"cb", vte_sequence_handler_cb},
 	{"cc", vte_sequence_handler_noop},
@@ -3446,7 +3574,7 @@ static struct {
 	{"cm", vte_sequence_handler_cm},
 	{"cr", vte_sequence_handler_cr},
 	{"cs", vte_sequence_handler_cs},
-	{"ct", NULL},
+	{"ct", vte_sequence_handler_ct},
 	{"cv", vte_sequence_handler_cv},
 
 	{"dc", vte_sequence_handler_dc},
@@ -3647,7 +3775,7 @@ static struct {
 	{"so", vte_sequence_handler_so},
 	{"sr", vte_sequence_handler_up},
 	{"SR", vte_sequence_handler_UP},
-	{"st", NULL},
+	{"st", vte_sequence_handler_st},
 	{"SX", NULL},
 
 	{"ta", vte_sequence_handler_ta},
@@ -4142,7 +4270,7 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 			  const char **argv)
 {
 	const char **env_add;
-	char *term, *colorterm;
+	char *term = NULL, *colorterm = NULL;
 	int i;
 	pid_t pid;
 
@@ -4151,7 +4279,9 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 	term = g_strdup_printf("TERM=%s", terminal->pvt->terminal);
 	colorterm = g_strdup("COLORTERM=" PACKAGE);
 	env_add[0] = term;
+#ifndef VTE_DEBUG
 	env_add[1] = colorterm;
+#endif
 	env_add[2] = NULL;
 	terminal->pvt->pty_master = vte_pty_open(&pid,
 						 env_add,
@@ -7091,7 +7221,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* Set various other settings. */
 	pvt->xterm_font_tweak = FALSE;
-	pvt->tabstops = NULL;
+	vte_terminal_set_default_tabstops(terminal);
 }
 
 /* Tell GTK+ how much space we need. */
@@ -9674,6 +9804,8 @@ vte_terminal_reset(VteTerminal *terminal, gboolean clear_history)
 	vte_terminal_set_default_colors(terminal);
 	/* Reset the default attributes. */
 	vte_terminal_set_default_attributes(terminal);
+	/* Reset the default tab stops. */
+	vte_terminal_set_default_tabstops(terminal);
 	/* Reset the encoding. */
 	vte_terminal_set_encoding(terminal, NULL);
 	/* Reset selection. */
