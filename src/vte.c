@@ -377,6 +377,7 @@ static void vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 				     gboolean force_insert_mode,
 				     gboolean invalidate_cells,
 				     gboolean paint_cells,
+				     gboolean ensure_after,
 				     gint forced_width);
 static void vte_sequence_handler_clear_screen(VteTerminal *terminal,
 					      const char *match,
@@ -672,6 +673,16 @@ vte_terminal_scroll_region(VteTerminal *terminal,
 		height = terminal->char_height;
 		gdk_window_scroll((GTK_WIDGET(terminal))->window,
 				  0, delta * height);
+		if (delta > 0) {
+			vte_invalidate_cells(terminal,
+					     0, terminal->column_count,
+					     0, delta);
+		} else {
+			vte_invalidate_cells(terminal,
+					     0, terminal->column_count,
+					     terminal->row_count + delta,
+					     -delta);
+		}
 		repaint = FALSE;
 	}
 
@@ -807,7 +818,7 @@ vte_invalidate_cursor_once(gpointer data)
 				     column, columns,
 				     row, 1);
 #ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_UPDATES)) {
+		if (_vte_debug_on(VTE_DEBUG_UPDATES) && 0) {
 			fprintf(stderr, "Invalidating cursor at (%ld,%d-%d)."
 				"\n", screen->cursor_current.row,
 				column,
@@ -2925,7 +2936,7 @@ vte_sequence_handler_ic(VteTerminal *terminal,
 
 	save = screen->cursor_current;
 
-	vte_terminal_insert_char(terminal, ' ', TRUE, TRUE, TRUE, 0);
+	vte_terminal_insert_char(terminal, ' ', TRUE, TRUE, TRUE, TRUE, 0);
 
 	screen->cursor_current = save;
 }
@@ -6231,7 +6242,8 @@ vte_terminal_set_default_colors(VteTerminal *terminal)
 static void
 vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			 gboolean force_insert_mode, gboolean invalidate_now,
-			 gboolean paint_cells, gint forced_width)
+			 gboolean paint_cells, gboolean ensure_after,
+			 gint forced_width)
 {
 	VteRowData *row;
 	struct vte_charcell cell, *pcell;
@@ -6257,7 +6269,7 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		cell.c = _vte_iso2022_process_single(terminal->pvt->iso2022,
 						     c, '0');
 		if (cell.c != c) {
-			forced_width = _vte_iso2022_get_encoded_width(c);
+			forced_width = _vte_iso2022_get_encoded_width(cell.c);
 			c = cell.c & ~(VTE_ISO2022_ENCODED_WIDTH_MASK);
 		}
 	}
@@ -6415,7 +6427,9 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 
 	/* Make sure the location the cursor is on exists. */
-	vte_terminal_ensure_cursor(terminal, FALSE);
+	if (ensure_after) {
+		vte_terminal_ensure_cursor(terminal, FALSE);
+	}
 
 	/* We added text, so make a note of it. */
 	terminal->pvt->text_inserted_count++;
@@ -6884,7 +6898,7 @@ vte_terminal_process_incoming(gpointer data)
 	const char *match;
 	GQuark quark;
 	const gunichar *next;
-	gboolean leftovers, modified, bottom;
+	gboolean leftovers, modified, bottom, inserted;
 	GArray *unichars;
 
 	g_return_val_if_fail(GTK_IS_WIDGET(data), FALSE);
@@ -6933,7 +6947,7 @@ vte_terminal_process_incoming(gpointer data)
 
 	/* Try initial substrings. */
 	start = 0;
-	modified = leftovers = FALSE;
+	modified = leftovers = inserted = FALSE;
 
 	while ((start < wcount) && !leftovers) {
 		/* Try to match any control sequences. */
@@ -6949,6 +6963,12 @@ vte_terminal_process_incoming(gpointer data)
 		 * points to the first character which isn't part of this
 		 * sequence. */
 		if ((match != NULL) && (match[0] != '\0')) {
+			/* If we inserted text without sanity-checking the
+			 * buffer, do so now. */
+			if (inserted) {
+				vte_terminal_ensure_cursor(terminal, FALSE);
+				inserted = FALSE;
+			}
 			/* Flush any pending "inserted" signals. */
 			vte_terminal_emit_pending_text_signals(terminal, quark);
 			/* Call the right sequence handler for the requested
@@ -6992,8 +7012,9 @@ vte_terminal_process_incoming(gpointer data)
 			if (c != 0) {
 				/* Insert the character. */
 				vte_terminal_insert_char(terminal, c,
-							 FALSE, FALSE, TRUE,
-							 0);
+							 FALSE, FALSE,
+							 TRUE, FALSE, 0);
+				inserted = TRUE;
 			}
 
 			/* We *don't* emit flush pending signals here. */
@@ -7047,6 +7068,12 @@ vte_terminal_process_incoming(gpointer data)
 		/* Free any parameters we don't care about any more. */
 		free_params_array(params);
 		params = NULL;
+	}
+
+	/* If we inserted text without sanity-checking the buffer, do so now. */
+	if (inserted) {
+		vte_terminal_ensure_cursor(terminal, FALSE);
+		inserted = FALSE;
 	}
 
 	/* Remove most of the processed characters. */
@@ -11322,12 +11349,12 @@ vte_unichar_is_local_graphic(gunichar c)
 }
 
 static void
-vte_terminal_fill_rectangle(VteTerminal *terminal,
-			    struct vte_palette_entry *entry,
-			    gint x,
-			    gint y,
-			    gint width,
-			    gint height)
+vte_terminal_fill_rectangle_int(VteTerminal *terminal,
+			        struct vte_palette_entry *entry,
+			        gint x,
+			        gint y,
+			        gint width,
+			        gint height)
 {
 	GdkColor color;
 	gboolean wasdrawing;
@@ -11346,6 +11373,17 @@ vte_terminal_fill_rectangle(VteTerminal *terminal,
 	if (!wasdrawing) {
 		_vte_draw_end(terminal->pvt->draw);
 	}
+}
+
+static void
+vte_terminal_fill_rectangle(VteTerminal *terminal,
+			    struct vte_palette_entry *entry,
+			    gint x,
+			    gint y,
+			    gint width,
+			    gint height)
+{
+	vte_terminal_fill_rectangle_int(terminal, entry, x, y, width, height);
 }
 
 static void
@@ -12231,7 +12269,8 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	if (hilite) {
 		vte_terminal_draw_line(terminal,
 				       &terminal->pvt->palette[fore],
-				       x, y + row_height - 1,
+				       x,
+				       y + row_height - 1,
 				       x + (columns * column_width) - 1,
 				       y + row_height - 1);
 	}
@@ -12496,11 +12535,11 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	row = (area->y - VTE_PAD_WIDTH) / height;
 	row_stop = MIN(howmany((area->y - VTE_PAD_WIDTH) + area->height,
 			       height),
-		       terminal->row_count);
+		       terminal->row_count - 1);
 	col = (area->x - VTE_PAD_WIDTH) / width;
 	col_stop = MIN(howmany((area->x - VTE_PAD_WIDTH) + area->width,
 			       width),
-		       terminal->column_count);
+		       terminal->column_count - 1);
 
 	/* Designate the start of the drawing operation and clear the area. */
 	_vte_draw_start(terminal->pvt->draw);
@@ -12521,12 +12560,12 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */
-	while (row < row_stop) {
+	while (row <= row_stop) {
 		vte_terminal_draw_row(terminal,
 				      screen,
 				      row + delta,
 				      col,
-				      col_stop - col,
+				      col_stop - col + 1,
 				      col * width,
 				      row * height,
 				      width,

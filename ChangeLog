@@ -1,4 +1,21 @@
 2003-04-28 nalin
+	* src/vte.c(vte_terminal_insert_char): add another flag to skip over
+	sanity-checking the buffer when adding characters.
+	* src/vte.c(vte_terminal_process_incoming): sanity-check the buffer
+	only when necessary to save time.
+	* src/vte.c(vte_terminal_scroll_region): invalidate the region which
+	is exposed when we scroll so that the entire cell gets redrawn, avoiding
+	clipping problems (#111683).
+	* src/vte.c(vte_terminal_paint): fix math for determining where to
+	stop drawing.
+	* src/vte.c(vte_terminal_fill_rectangle): rename to ..._int to reduce
+	confusion over which internal drawing commands are offset and which are
+	not.
+	* src/vte.c(vte_terminal_insert_char): if performing a single
+	substitution, check the encoded width of the output char, not the
+	input char, which doesn't have one.
+
+2003-04-28 nalin
 	* src/vterdb.c, src/vterdb.h: add routines for pulling Xft antialiasing
 	and hinting options from the resource database.
 	* src/vtefc.c(_vte_fc_patterns_from_pango_font_desc): apply settings
