@@ -165,7 +165,7 @@ struct _VteTerminalPrivate {
 #endif
 	} palette[VTE_BOLD_FG + 1];
 	XFontSet fontset;
-	GTree *fontspacing;
+	GTree *fontpadding;
 #ifdef HAVE_XFT
 	XftFont *ftfont;
 #endif
@@ -7379,10 +7379,10 @@ vte_terminal_set_font(VteTerminal *terminal,
 		}
 	}
 #endif
-	if (terminal->pvt->fontspacing != NULL) {
-		g_tree_destroy(terminal->pvt->fontspacing);
+	if (terminal->pvt->fontpadding != NULL) {
+		g_tree_destroy(terminal->pvt->fontpadding);
 	}
-	terminal->pvt->fontspacing = g_tree_new(vte_compare_direct);
+	terminal->pvt->fontpadding = g_tree_new(vte_compare_direct);
 	/* Set up the normal font description. */
 	if (font_desc != NULL) {
 		terminal->pvt->fontdesc =
@@ -8039,7 +8039,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	pvt->fontset = NULL;
 	pvt->fontdesc = NULL;
-	pvt->fontspacing = g_tree_new(vte_compare_direct);
+	pvt->fontpadding = g_tree_new(vte_compare_direct);
 	pvt->layout = NULL;
 
 	/* Decide how we're going to render text. */
@@ -8277,9 +8277,9 @@ vte_terminal_unrealize(GtkWidget *widget)
 		pango_font_description_free(terminal->pvt->fontdesc);
 		terminal->pvt->fontdesc = NULL;
 	}
-	if (terminal->pvt->fontspacing != NULL) {
-		g_tree_destroy(terminal->pvt->fontspacing);
-		terminal->pvt->fontspacing = NULL;
+	if (terminal->pvt->fontpadding != NULL) {
+		g_tree_destroy(terminal->pvt->fontpadding);
+		terminal->pvt->fontpadding = NULL;
 	}
 
 	/* Disconnect any filters which might be watching for X window
@@ -8649,7 +8649,7 @@ vte_terminal_draw_char(VteTerminal *terminal,
 #endif
 		       gboolean cursor)
 {
-	int fore, back, dcol, i, j, char_width;
+	int fore, back, dcol, i, j, padding;
 	long xcenter, ycenter, xright, ybottom;
 	char utf8_buf[7] = {0,};
 	gboolean drawn, reverse;
@@ -9318,23 +9318,24 @@ vte_terminal_draw_char(VteTerminal *terminal,
 		gpointer ptr;
 		font = terminal->pvt->ftfont;
 		ftc = vte_terminal_xft_remap_char(display, font, cell->c);
-		ptr = g_tree_lookup(terminal->pvt->fontspacing,
+		ptr = g_tree_lookup(terminal->pvt->fontpadding,
 				    GINT_TO_POINTER(ftc));
-		char_width = GPOINTER_TO_INT(ptr);
-		if (char_width < 0) {
-			char_width = 0;
-		} else if (char_width == 0) {
+		padding = GPOINTER_TO_INT(ptr);
+		if (padding < 0) {
+			padding = 0;
+		} else if (padding == 0) {
 			XftTextExtents32(GDK_DISPLAY(), font, &ftc, 1, &info);
-			char_width = info.width;
-			g_tree_insert(terminal->pvt->fontspacing,
+			padding = CLAMP((terminal->char_width *
+					 wcwidth(cell->c) -
+					 info.width) / 2,
+					0, 3 * terminal->char_width);
+			g_tree_insert(terminal->pvt->fontpadding,
 				      GINT_TO_POINTER(ftc),
-				      GINT_TO_POINTER(char_width));
+				      GINT_TO_POINTER(padding));
 		}
 		XftDrawString32(ftdraw,
 				&terminal->pvt->palette[fore].ftcolor,
-				font,
-				x + ((terminal->char_width - char_width) / 2),
-				y + ascent, &ftc, 1);
+				font, x + padding, y + ascent, &ftc, 1);
 		drawn = TRUE;
 	}
 #endif
@@ -9372,18 +9373,21 @@ vte_terminal_draw_char(VteTerminal *terminal,
 	if (!drawn) {
 		gpointer ptr;
 		XRectangle ink, logic;
-		ptr = g_tree_lookup(terminal->pvt->fontspacing,
+		ptr = g_tree_lookup(terminal->pvt->fontpadding,
 				    GINT_TO_POINTER(cell->c));
-		char_width = GPOINTER_TO_INT(ptr);
-		if (char_width < 0) {
-			char_width = 0;
-		} else if (char_width == 0) {
+		padding = GPOINTER_TO_INT(ptr);
+		if (padding < 0) {
+			padding = 0;
+		} else if (padding == 0) {
 			XwcTextExtents(terminal->pvt->fontset,
 				       &cell->c, 1, &ink, &logic);
-			char_width = logic.width;
-			g_tree_insert(terminal->pvt->fontspacing,
+			padding = CLAMP((terminal->char_width *
+					 wcwidth(cell->c) -
+					 logic.width) / 2,
+					0, 3 * terminal->char_width);
+			g_tree_insert(terminal->pvt->fontpadding,
 				      GINT_TO_POINTER(cell->c),
-				      GINT_TO_POINTER(char_width));
+				      GINT_TO_POINTER(padding));
 		}
 
 		/* Set the textitem's fields. */
@@ -9398,8 +9402,7 @@ vte_terminal_draw_char(VteTerminal *terminal,
 		 * blink, if we decide to be evil. */
 		XSetForeground(display, gc, terminal->pvt->palette[fore].pixel);
 		XwcDrawText(display, drawable, gc,
-			    x + ((terminal->char_width - char_width) / 2),
-			    y + ascent, &textitem, 1);
+			    x + padding, y + ascent, &textitem, 1);
 		drawn = TRUE;
 	}
 
