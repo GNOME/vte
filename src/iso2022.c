@@ -904,6 +904,7 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input, GArray *blocks)
 						sequence_length = 0;
 					}
 					break;
+#if 0
 				case ']':
 					/* ESC ], the OSC.  Search for a string
 					 * terminator or a BEL. */
@@ -935,6 +936,7 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input, GArray *blocks)
 						}
 					}
 					break;
+#endif
 				case 'N':
 				case 'O':
 				case 'n':

@@ -1,4 +1,8 @@
 2003-05-07 nalin
+	* src/iso2022.c: let OSC command sequences be subject to code
+	conversion again (#112485).
+
+2003-05-07 nalin
 	* src/vteconv.c, src/vteconv.h: add VteConv as a thin wrapper around
 	GIConv.
 	* src/iso2022.c: use VteConv.
