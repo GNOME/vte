@@ -1,4 +1,5 @@
 bin_PROGRAMS = vte
+pkginclude_HEADERS = caps.h pty.h termcap.h trie.h vte.h
 lib_LTLIBRARIES = libvte.la
 noinst_PROGRAMS = interpret utf8echo
 EXTRA_PROGRAMS = pty termcap trie
