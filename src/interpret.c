@@ -208,6 +208,9 @@ main(int argc, char **argv)
 					g_byte_array_remove_index(array, 0);
 				}
 				for (j = 0; j < substlen; j++) {
+					if (VTE_ISO2022_HAS_ENCODED_WIDTH(ubuf[j])) {
+						ubuf[j] &= ~VTE_ISO2022_ENCODED_WIDTH_MASK;
+					}
 					if (ubuf[j] < 32) {
 						printf("`^%c'\n", ubuf[j] + 64);
 					} else

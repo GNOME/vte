@@ -1,4 +1,8 @@
 2003-02-14 nalin
+	* src/interpret.c: handle width masks now that we're encoding widths for
+	all characters.
+
+2003-02-14 nalin
 	* src/vte.c: more comments to keep myself from getting confused later.
 
 2003-02-13 nalin
