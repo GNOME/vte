@@ -1528,9 +1528,16 @@ vte_sequence_handler_set_title_int(VteTerminal *terminal,
 			}
 		}
 		if (outbufptr != NULL) {
-			/* Emit the signal, passing the string. */
-			g_signal_emit_by_name(terminal, signal, outbufptr);
-			g_free(outbufptr);
+			/* Emit the signal */
+			if (strcmp(signal, "window_title_changed") == 0) {
+				g_free(terminal->window_title);
+				terminal->window_title = outbufptr;
+			}
+			else if (strcmp (signal, "icon_title_changed") == 0) {
+				g_free (terminal->icon_title);
+				terminal->icon_title = outbufptr;
+			}
+			g_signal_emit_by_name(terminal, signal);
 		}
 	}
 }
@@ -1543,7 +1550,7 @@ vte_sequence_handler_set_icon_title(VteTerminal *terminal,
 				    GValueArray *params)
 {
 	vte_sequence_handler_set_title_int(terminal, match, match_quark,
-					   params, "set_icon_title");
+					   params, "icon_title_changed");
 }
 static void
 vte_sequence_handler_set_window_title(VteTerminal *terminal,
@@ -1552,7 +1559,7 @@ vte_sequence_handler_set_window_title(VteTerminal *terminal,
 				      GValueArray *params)
 {
 	vte_sequence_handler_set_title_int(terminal, match, match_quark,
-					   params, "set_window_title");
+					   params, "window_title_changed");
 }
 
 /* Set both the window and icon titles to the same string. */
@@ -1563,9 +1570,9 @@ vte_sequence_handler_set_icon_and_window_title(VteTerminal *terminal,
 						  GValueArray *params)
 {
 	vte_sequence_handler_set_title_int(terminal, match, match_quark,
-					   params, "set_icon_title");
+					   params, "icon_title_changed");
 	vte_sequence_handler_set_title_int(terminal, match, match_quark,
-					   params, "set_window_title");
+					   params, "window_title_changed");
 }
 
 /* Restrict the scrolling region. */
@@ -3265,8 +3272,7 @@ vte_uniform_class(VteTerminal *terminal, long row, long scol, long ecol)
 static gboolean
 vte_cell_is_selected(VteTerminal *terminal, long row, long col)
 {
-	guint scol, ecol, cclass, ccol;
-	struct vte_charcell *pcell;
+	guint scol, ecol;
 
 	/* If there's nothing selected, it's an easy question to answer. */
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
@@ -4364,7 +4370,6 @@ vte_terminal_draw_char(VteTerminal *terminal,
 {
 	int fore, back, dcol;
 	long xcenter, ycenter, xright, ybottom;
-	long delta;
 	gboolean drawn, reverse;
 	XwcTextItem textitem;
 
@@ -4718,10 +4723,9 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	Visual *visual;
 	GC gc;
 	struct vte_charcell *cell;
-	int row, drow, col, dcol, row_stop, col_stop, x_offs = 0, y_offs = 0;
-	int fore, back, width, height, ascent, descent, tmp;
+	int row, drow, col, row_stop, col_stop, x_offs = 0, y_offs = 0;
+	int width, height, ascent, descent;
 	long delta;
-	XwcTextItem textitem;
 #ifdef HAVE_XFT
 	XftDraw *ftdraw = NULL;
 #endif
@@ -4895,24 +4899,24 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 			     NULL,
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
-	klass->set_window_title_signal =
-		g_signal_new("set_window_title",
+	klass->window_title_changed_signal =
+		g_signal_new("window_title_changed",
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     0,
 			     NULL,
 			     NULL,
-			     _vte_marshal_VOID__STRING,
-			     G_TYPE_NONE, 1, G_TYPE_STRING);
-	klass->set_icon_title_signal =
-		g_signal_new("set_icon_title",
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
+	klass->icon_title_changed_signal =
+		g_signal_new("icon_title_changed",
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     0,
 			     NULL,
 			     NULL,
-			     _vte_marshal_VOID__STRING,
-			     G_TYPE_NONE, 1, G_TYPE_STRING);
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
 	klass->char_size_changed_signal =
 		g_signal_new("char_size_changed",
 			     G_OBJECT_CLASS_TYPE(klass),

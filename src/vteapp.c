@@ -24,14 +24,16 @@
 #include "vte.h"
 
 static void
-set_window_title(GtkWidget *widget, const char *title, gpointer win)
+window_title_changed(GtkWidget *widget, gpointer win)
 {
 	GtkWindow *window;
+
 	g_return_if_fail(VTE_TERMINAL(widget));
 	g_return_if_fail(GTK_IS_WINDOW(win));
-	g_return_if_fail(title != NULL);
+	g_return_if_fail(VTE_TERMINAL (widget)->window_title != NULL);
 	window = GTK_WINDOW(win);
-	gtk_window_set_title(window, title);
+
+	gtk_window_set_title(window, VTE_TERMINAL (widget)->window_title);
 }
 
 static void
@@ -87,10 +89,10 @@ main(int argc, char **argv)
 	g_signal_connect_object(G_OBJECT(widget), "char_size_changed",
 				G_CALLBACK(char_size_changed), window, 0);
 
-	/* Connect to the "set_window_title" signal to set the main window's
-	 * title. */
-	g_signal_connect(G_OBJECT(widget), "set_window_title",
-			 G_CALLBACK(set_window_title), window);
+	/* Connect to the "window_title_changed" signal to set the main
+	 * window's title. */
+	g_signal_connect(G_OBJECT(widget), "window_title_changed",
+			 G_CALLBACK(window_title_changed), window);
 
 	/* Connect to the "eof" signal to quit when the session ends. */
 	g_signal_connect(G_OBJECT(widget), "eof",

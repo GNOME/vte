@@ -48,6 +48,9 @@ typedef struct _VteTerminal {
 	guint char_ascent, char_descent;/* important font metrics */
 	guint row_count, column_count;	/* dimensions of the window */
 
+	/* Titles. */
+	char *window_title, *icon_title;
+	
 	/*< private >*/
 	struct _VteTerminalPrivate *pvt;
 } VteTerminal;
@@ -62,8 +65,8 @@ typedef struct _VteTerminalClass {
 	/* Signals we might omit. */
 	guint eof_signal;
 	guint char_size_changed_signal;
-	guint set_window_title_signal;
-	guint set_icon_title_signal;
+	guint window_title_changed_signal;
+	guint icon_title_changed_signal;
 } VteTerminalClass;
 
 /* The widget's type. */

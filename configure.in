@@ -41,4 +41,4 @@ if test x$VTE_DEBUG = x1 ; then
 fi
 
 AM_CONFIG_HEADER(config.h)
-AC_OUTPUT([Makefile src/Makefile])
+AC_OUTPUT([Makefile src/Makefile vte.pc])
