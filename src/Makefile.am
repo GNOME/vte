@@ -12,6 +12,7 @@ EXTRA_DIST = \
 	mkunitables.sh \
 	uniwidths \
 	unitable.CNS11643 \
+	unitable.CP437 \
 	unitable.GB12345 \
 	unitable.GB2312 \
 	unitable.JIS0201 \

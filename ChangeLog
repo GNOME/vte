@@ -1,3 +1,13 @@
+2003-04-29 nalin
+	* src/iso2022.c(_vte_iso2022_map_U): add map for CP437.
+	* src/unitable.CP437: add.
+	* src/mkunitables.sh: add CP437.
+	* src/Makefile.am: add unitable.CP437 to the file list.
+
+2003-04-29 nalin
+	* src/iso2022.c(_vte_iso2022_process_control): accept and warn about
+	bogus map names (#110300).
+
 2003-04-28 nalin
 	* src/vte.c(vte_invalidate_cursor_once): rework to simplify the logic
 	of how many cells to invalidate when we have a preedit string.

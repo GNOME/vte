@@ -43,8 +43,10 @@
 #define bindtextdomain(package,dir)
 #endif
  
-/* Maps which jive with XTerm's ESC ()*+ ? sequences and RFC 1468. */
-#define NARROW_MAPS	"012AB4C5RQKYE6ZH7=" "J"
+/* Maps which jive with XTerm's ESC ()*+ ? sequences, RFC 1468.  Add the
+ * PC437 map because despite knowing that XTerm doesn't support it, certain
+ * applications try to use it anyway. */
+#define NARROW_MAPS	"012AB4C5RQKYE6ZH7=" "J" "U"
 /* Maps which jive with RFC 1468's ESC $ ? sequences. */
 #define WIDE_MAPS	"@B"
 /* Maps which jive with RFC 1557/1922/2237's ESC $ ()*+ ? sequences. */
@@ -246,6 +248,11 @@ static const struct _vte_iso2022_map _vte_iso2022_map_equal[] = {
 	{'}',  GDK_udiaeresis},
 	{'~',  GDK_ucircumflex},
 };
+/* Codepage 437. */
+static const struct _vte_iso2022_map _vte_iso2022_map_U[] = {
+#include "unitable.CP437"
+};
+
 /* Japanese.  JIS X 0201-1976 ("Roman" set), per RFC 1468/2237. */
 static const struct _vte_iso2022_map _vte_iso2022_map_J[] = {
 	{'\\', 0x203e},
@@ -495,6 +502,14 @@ _vte_iso2022_map_get(gunichar mapname,
 		if (map == NULL) {
 			map = _vte_iso2022_map_init(_vte_iso2022_map_equal,
 					    G_N_ELEMENTS(_vte_iso2022_map_equal));
+		}
+		width = 1;
+		bytes = 1;
+		break;
+	case 'U':
+		if (map == NULL) {
+			map = _vte_iso2022_map_init(_vte_iso2022_map_U,
+					    G_N_ELEMENTS(_vte_iso2022_map_U));
 		}
 		width = 1;
 		bytes = 1;
@@ -918,11 +933,8 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input, GArray *blocks)
 						/* ESC ( x */
 						/* ESC * x */
 						/* ESC + x */
-						valids = NARROW_MAPS;
-						if (strchr(valids,
-							   nextctl[2])) {
-							sequence_length = 3;
-						}
+						/* Just accept whatever. */
+						sequence_length = 3;
 					}
 					break;
 				case '%':
@@ -1290,7 +1302,11 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 							break;
 						}
 						c = ctl[2];
-						state->g[g] = c;
+						if (strchr(NARROW_MAPS, c) != NULL) {
+							state->g[g] = c;
+						} else {
+							g_warning(_("Attempt to set invalid NRC map '%c'."), c);
+						}
 #ifdef VTE_DEBUG
 						if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
 							fprintf(stderr,
@@ -1336,7 +1352,12 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 						if (c == 0) {
 							c = ctl[3];
 						}
-						state->g[g] = c + WIDE_FUDGE;
+						if ((strchr(WIDE_MAPS, c) != NULL) ||
+						    (strchr(WIDE_GMAPS, c) != NULL)) {
+							state->g[g] = c + WIDE_FUDGE;
+						} else {
+							g_warning(_("Attempt to set invalid wide NRC map '%c'."), c);
+						}
 #ifdef VTE_DEBUG
 						if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
 							fprintf(stderr,
@@ -1355,10 +1376,14 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 							c = 'B';
 							break;
 						default:
-							g_assert_not_reached();
+							c = ctl[2];
 							break;
 						}
-						state->g[0] = c + WIDE_FUDGE;
+						if (strchr(WIDE_MAPS, c) != NULL) {
+							state->g[0] = c + WIDE_FUDGE;
+						} else {
+							g_warning(_("Attempt to set invalid wide NRC map '%c'."), c);
+						}
 #ifdef VTE_DEBUG
 						if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
 							fprintf(stderr,
