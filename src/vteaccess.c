@@ -299,14 +299,14 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 			/* If this cell is "before" the cursor, move the
 			 * caret to be "here". */
 			if ((attrs.row < crow) ||
-			    ((attrs.row == crow) && (attrs.column <= ccol))) {
-				caret = i;
+			    ((attrs.row == crow) && (attrs.column < ccol))) {
+				caret = i + 1;
 			}
 		}
 		/* If no cells are before the caret, then the caret must be
 		 * at the end of the buffer. */
 		if (caret == -1) {
-			caret = priv->snapshot_attributes->len;
+			caret = priv->snapshot_characters->len;
 		}
 		/* The caret may have moved. */
 		if (caret != priv->snapshot_caret) {

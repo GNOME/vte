@@ -26,25 +26,40 @@
 
 static GArray *contents = NULL;
 
+/*
+ * Update the contents of the widget with the data from our contents array.
+ */
 static void
 update_contents(AtkObject *obj, GtkWidget *widget)
 {
 	int caret, i;
 	GString *s;
 	GtkTextBuffer *buffer;
+	caret = atk_text_get_caret_offset(ATK_TEXT(obj));
 	s = g_string_new("");
 	for (i = 0; i < contents->len; i++) {
+		if (i == caret) {
+			s = g_string_append(s, "[CARET]");
+		}
 		s = g_string_append_unichar(s,
 					    g_array_index(contents,
 						   	  gunichar,
 							  i));
 	}
-	caret = atk_text_get_caret_offset(ATK_TEXT(obj));
-	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(widget));
-	gtk_text_buffer_set_text(buffer, s->str, s->len);
+	if (i == caret) {
+		s = g_string_append(s, "[CARET]");
+	}
+	if (GTK_IS_TEXT_VIEW(widget)) {
+		buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(widget));
+		gtk_text_buffer_set_text(buffer, s->str, s->len);
+	}
+	if (GTK_IS_LABEL(widget)) {
+		gtk_label_set_text(GTK_LABEL(widget), s->str);
+	}
 	g_string_free(s, TRUE);
 }
 
+/* Handle inserted text by inserting the text into our gunichar array. */
 static void
 text_changed_insert(AtkObject *obj, gint offset, gint length, gpointer data)
 {
@@ -81,6 +96,7 @@ text_changed_insert(AtkObject *obj, gint offset, gint length, gpointer data)
 	update_contents(obj, GTK_WIDGET(data));
 }
 
+/* Handle deleted text by removing the text from our gunichar array. */
 static void
 text_changed_delete(AtkObject *obj, gint offset, gint length, gpointer data)
 {
@@ -88,6 +104,12 @@ text_changed_delete(AtkObject *obj, gint offset, gint length, gpointer data)
 	for (i = offset + length - 1; i >= offset; i--) {
 		contents = g_array_remove_index(contents, i);
 	}
+	update_contents(obj, GTK_WIDGET(data));
+}
+
+static void
+text_caret_moved(AtkObject *obj, gint offset, gpointer data)
+{
 	update_contents(obj, GTK_WIDGET(data));
 }
 
@@ -112,20 +134,34 @@ main(int argc, char **argv)
 	gtk_box_pack_start(GTK_BOX(termbox2), termbox, FALSE, FALSE, 0);
 	gtk_widget_show(termbox);
 
+#ifdef USE_GTK_TEXT_VIEW
 	text = gtk_text_view_new();
 	gtk_text_view_set_editable(GTK_TEXT_VIEW(text), FALSE);
 	texthscroll = gtk_hscrollbar_new((GTK_TEXT_VIEW(text))->hadjustment);
 	textvscroll = gtk_vscrollbar_new((GTK_TEXT_VIEW(text))->vadjustment);
-	texttable = gtk_table_new(2, 2, FALSE);
+#else
+	text = gtk_label_new("");
+	gtk_label_set_justify(GTK_LABEL(text), GTK_JUSTIFY_LEFT);
+	gtk_misc_set_alignment(GTK_MISC(text), 0, 0);
+	texthscroll = NULL;
+	textvscroll = NULL;
+#endif
+	texttable = gtk_table_new((texthscroll != NULL) ? 2 : 1,
+				  (textvscroll != NULL) ? 2 : 1,
+				  FALSE);
 	gtk_table_attach(GTK_TABLE(texttable), text, 0, 1, 0, 1,
 			 GTK_EXPAND | GTK_FILL, GTK_EXPAND | GTK_FILL, 0, 0);
-	gtk_table_attach(GTK_TABLE(texttable), textvscroll, 1, 2, 0, 1,
-			 GTK_SHRINK, GTK_EXPAND | GTK_FILL, 0, 0);
-	gtk_table_attach(GTK_TABLE(texttable), texthscroll, 0, 1, 1, 2,
-			 GTK_EXPAND | GTK_FILL, GTK_SHRINK, 0, 0);
 	gtk_widget_show(text);
-	gtk_widget_show(textvscroll);
-	gtk_widget_show(texthscroll);
+	if (textvscroll) {
+		gtk_table_attach(GTK_TABLE(texttable), textvscroll, 1, 2, 0, 1,
+				 GTK_SHRINK, GTK_EXPAND | GTK_FILL, 0, 0);
+		gtk_widget_show(textvscroll);
+	}
+	if (texthscroll) {
+		gtk_table_attach(GTK_TABLE(texttable), texthscroll, 0, 1, 1, 2,
+				 GTK_EXPAND | GTK_FILL, GTK_SHRINK, 0, 0);
+		gtk_widget_show(texthscroll);
+	}
 
 	pane = gtk_vpaned_new();
 	gtk_paned_add1(GTK_PANED(pane), termbox2);
@@ -153,10 +189,12 @@ main(int argc, char **argv)
 	g_signal_connect(G_OBJECT(terminal), "child-exited",
 			 G_CALLBACK(gtk_main_quit), NULL);
 	obj = gtk_widget_get_accessible(terminal);
-	g_signal_connect(G_OBJECT(obj), "text_changed::insert",
+	g_signal_connect(G_OBJECT(obj), "text-changed::insert",
 			 G_CALLBACK(text_changed_insert), text);
-	g_signal_connect(G_OBJECT(obj), "text_changed::delete",
+	g_signal_connect(G_OBJECT(obj), "text-changed::delete",
 			 G_CALLBACK(text_changed_delete), text);
+	g_signal_connect(G_OBJECT(obj), "text-caret-moved",
+			 G_CALLBACK(text_caret_moved), text);
 
 	gtk_window_present(GTK_WINDOW(window));
 

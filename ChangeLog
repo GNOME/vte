@@ -1,4 +1,10 @@
 2003-01-18 nalin
+	* src/vteaccess.c(update_private_data_if_needed): if the caret is past
+	the end of the text, count unichars properly.  Compute the caret
+	location correctly.
+	* src/reflect.c: handle text-caret-moved signals and display the caret.
+
+2003-01-18 nalin
 	* src/iso2022.c: update copyright dates.
 	* src/reflect.c: add.
 	* src/Makefile.am: add reflect (noinst).
