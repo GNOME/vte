@@ -6,8 +6,9 @@
 	EINTR and EAGAIN.
 	* src/vte.c(vte_terminal_scroll_region): don't use gdk_window_scroll if
 	the window is frozen for updates.
-	* src/vte.c(vte_terminal_sequence_handler_sf): when scrolling down with
-	a defined scrolling region, freeze the window to avoid flicker.
+	* src/vte.c(vte_terminal_sequence_handler_sf): when scrolling down while
+	we have a defined scrolling region, freeze the window to avoid flicker
+	when we update the scrolling offsets (#108058).
 
 2003-04-21 nalin
 	* gnome-pty-helper/gnome-login-support.c(n_read): don't bail out if
