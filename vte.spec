@@ -25,7 +25,7 @@ the files needed for building applications using the widget.
 %setup -q
 
 %build
-if [ -x %{_bindir}/python2.2 ] then
+if [ -x %{_bindir}/python2.2 ]; then
 	PYTHON=%{_bindir}/python2.2; export PYTHON
 fi
 %configure --enable-shared --enable-static
