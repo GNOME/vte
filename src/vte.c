@@ -4110,19 +4110,18 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 {
 	GValue *value;
 	GIConv conv;
-	char *inbuf = NULL, *outbuf = NULL, *outbufptr = NULL;
+	char *inbuf = NULL, *outbuf = NULL, *outbufptr = NULL, *title = NULL;
 	gsize inbuf_len, outbuf_len;
 	/* Get the string parameter's value. */
 	value = g_value_array_get_nth(params, 0);
 	if (value) {
 		if (G_VALUE_HOLDS_LONG(value)) {
 			/* Convert the long to a string. */
-			outbufptr = g_strdup_printf("%ld",
-						    g_value_get_long(value));
+			title = g_strdup_printf("%ld", g_value_get_long(value));
 		} else
 		if (G_VALUE_HOLDS_STRING(value)) {
 			/* Copy the string into the buffer. */
-			outbufptr = g_value_dup_string(value);
+			title = g_value_dup_string(value);
 		} else
 		if (G_VALUE_HOLDS_POINTER(value)) {
 			/* Convert the unicode-character string into a
@@ -4150,14 +4149,17 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 					}
 #endif
 					outbufptr = NULL;
+				} else {
+					title = g_strndup(outbufptr,
+							  outbuf - outbufptr);
 				}
 			}
 			g_iconv_close(conv);
 		}
-		if (outbufptr != NULL) {
+		if (title != NULL) {
 			char *p;
 			/* No control characters allowed. */
-			for (p = outbuf; p < outbufptr; p++) {
+			for (p = title; *p != '\0'; p++) {
 				if (((guint8)(*p)) < 0x20) {
 					*p = ' ';
 				}
@@ -4165,18 +4167,15 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 			/* Emit the signal */
 			if (strcmp(signal, "window_title_changed") == 0) {
 				g_free(terminal->window_title);
-				terminal->window_title = g_strndup(outbufptr,
-								   outbuf -
-								   outbufptr);
+				terminal->window_title = g_strdup(title);
 				vte_terminal_emit_window_title_changed(terminal);
 			} else
 			if (strcmp(signal, "icon_title_changed") == 0) {
 				g_free (terminal->icon_title);
-				terminal->icon_title = g_strndup(outbufptr,
-								 outbuf -
-								 outbufptr);
+				terminal->icon_title = g_strdup(title);
 				vte_terminal_emit_icon_title_changed(terminal);
 			}
+			g_free(title);
 		}
 	}
 }
@@ -4444,7 +4443,9 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 	if (settings[i].setting == setting) {
 		recognized = TRUE;
 		/* Handle settings we want to ignore. */
-		if (settings[i].fvalue == settings[i].tvalue) {
+		if ((settings[i].fvalue == settings[i].tvalue) &&
+		    (settings[i].set == NULL) &&
+		    (settings[i].reset == NULL)) {
 			continue;
 		}
 
