@@ -2857,7 +2857,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 					vte_terminal_send_utf8(terminal,
 							       cliptext,
 							       strlen(cliptext));
-					/* FIXME: free this? */
+					g_free(cliptext);
 				}
 			}
 			return TRUE;
