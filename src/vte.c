@@ -11892,6 +11892,9 @@ vte_terminal_unrealize(GtkWidget *widget)
 
 	/* Shut down input methods. */
 	if (terminal->pvt->im_context != NULL) {
+	        g_signal_handlers_disconnect_by_func (G_OBJECT(terminal->pvt->im_context), 
+						      vte_terminal_im_preedit_changed,
+						      terminal);
 		vte_terminal_im_reset(terminal);
 		gtk_im_context_set_client_window(terminal->pvt->im_context,
 						 NULL);

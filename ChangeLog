@@ -1,5 +1,11 @@
 2005-02-28  Kjartan Maraas  <kmaraas@gnome.org>
 
+	* src/vte.c: (vte_terminal_unrealize): Fix a crash
+	when trying to use input methods. From Fedora.
+	Closes bug #168213.
+
+2005-02-28  Kjartan Maraas  <kmaraas@gnome.org>
+
 	* src/vte.c: (vte_terminal_scroll_region),
 	(vte_sequence_handler_al), (vte_sequence_handler_dl),
 	(vte_sequence_handler_sr), (vte_sequence_handler_insert_lines),
@@ -7,7 +13,7 @@
 	Another patch from fedora. Make sure the screen is fully redrawn
 	before scrolling. Apparently this patch has some issues, but those
 	were found to be small enough to apply in Fedora, so I guess
-	the same holds true here.
+	the same holds true here. Closes bug #168212
 
 2005-02-28  Kjartan Maraas  <kmaraas@gnome.org>
 
