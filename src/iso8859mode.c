@@ -19,7 +19,7 @@
 #ident "$Id$"
 #include "../config.h"
 #include <stdio.h>
-#define ESC ""
+#define ESC "\033"
 
 int
 main(int argc, char **argv)

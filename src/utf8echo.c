@@ -26,7 +26,7 @@
 #include <unistd.h>
 #include "matcher.h"
 #include "vteconv.h"
-#define ESC ""
+#define ESC "\033"
 
 int
 main(int argc, char **argv)

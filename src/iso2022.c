@@ -365,6 +365,7 @@ _vte_iso2022_ambiguous_width(struct _vte_iso2022_state *state)
 {
 	const char *wide_codelist[] = {
 		"big5",
+		"big5hkscs",
 		"euccn",
 		"eucjp",
 		"euckr",

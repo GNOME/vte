@@ -24,7 +24,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "table.h"
-#define ESC ""
+#define ESC "\033"
 
 int
 main(int argc, char **argv)

@@ -33,7 +33,7 @@
 #include <unistd.h>
 #include <glib.h>
 
-#define ESC ""
+#define ESC "\033"
 #define MODE_APPLICATION_KEYPAD		ESC "="
 #define MODE_NORMAL_KEYPAD		ESC ">"
 #define MODE_APPLICATION_CURSOR_KEYS	1

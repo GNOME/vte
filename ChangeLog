@@ -1,3 +1,11 @@
+2003-06-27 nalin
+	* src/iso2022.c: treat the "big5hkscs" encoding as an East Asian
+	encoding, which uses ambiguous widths (#116078).  Report and patch
+	from Roger So.
+	* src/dumpkeys.c, src/iso2022.c, src/iso8859mode.c, src/nativeecho.c,
+	src/utf8echo.c, src/utf8mode.c, src/vte.c: don't use the literal escape
+	character, express it as an octal sequence.
+
 2003-06-16 nalin
 	* src/caps.c: add vertical-tab and form-feed to the list of control
 	sequences.

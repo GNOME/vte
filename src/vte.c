@@ -4180,7 +4180,7 @@ vte_sequence_handler_send_secondary_device_attributes(VteTerminal *terminal,
 		}
 		g_strfreev(version);
 	}
-	ret = g_strdup_printf("[>1;%ld;0c", ver);
+	ret = g_strdup_printf(_VTE_CAP_ESC "[>1;%ld;0c", ver);
 	vte_terminal_feed_child(terminal, ret, -1);
 	g_free(ret);
 }
@@ -8019,11 +8019,11 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		case GDK_Delete:
 			switch (terminal->pvt->delete_binding) {
 			case VTE_ERASE_ASCII_BACKSPACE:
-				normal = g_strdup("");
+				normal = g_strdup("\010");
 				normal_length = 1;
 				break;
 			case VTE_ERASE_ASCII_DELETE:
-				normal = g_strdup("");
+				normal = g_strdup("\177");
 				normal_length = 1;
 				break;
 			case VTE_ERASE_DELETE_SEQUENCE:
@@ -8167,7 +8167,9 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			    !suppress_meta_esc &&
 			    (normal_length > 0) &&
 			    (terminal->pvt->modifiers & VTE_META_MASK)) {
-				vte_terminal_feed_child(terminal, "", 1);
+				vte_terminal_feed_child(terminal,
+							_VTE_CAP_ESC,
+							1);
 			}
 			if (normal_length > 0) {
 				vte_terminal_feed_child_using_modes(terminal,
