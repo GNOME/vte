@@ -5,6 +5,7 @@ pkglib_PROGRAMS = interpret utf8echo utf8mode iso8859mode slowcat
 pkglib_SCRIPTS = decset osc window
 noinst_PROGRAMS = iso2022 pty reaper ring table termcap trie
 EXTRA_DIST = \
+	$(pkglib_SCRIPTS) \
 	marshal.list \
 	unitable.CNS11643 \
 	unitable.GB12345 \
