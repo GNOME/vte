@@ -1,4 +1,8 @@
 2003-02-12 nalin
+	* src/vte.c(vte_terminal_finalize): close fd leak.
+	* src/vte.c(vte_terminal_fork_command): close potential fd leak.
+
+2003-02-12 nalin
 	* src/reflect.c(main): connect to accessible signals before they can
 	be emitted so that we always have a clear picture of what's going on.
 
