@@ -1,3 +1,7 @@
+2003-02-26  Taneem Ahmed  <taneem@eyetap.org>
+
+	* configure.in:  Added "bn" to ALL_LINGUAS.
+
 2003-02-25 nalin
 	* src/vteapp.c(main): take a shot at implementing xconsole-like
 	functionality when started with the -C flag: we open /dev/console and
