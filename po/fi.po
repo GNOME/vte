@@ -1,0 +1,127 @@
+# vte Finnish translation.
+# Suomennos: http://gnome-fi.sourceforge.net/
+#
+# Copyright (C) 2003 Free Software Foundation, Inc.
+# Pauli Virtanen <pauli.virtanen@hut.fi>, 2003.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte\n"
+"POT-Creation-Date: 2002-12-17 06:02+0100\n"
+"PO-Revision-Date: 2003-01-02 18:30+0200\n"
+"Last-Translator: Pauli Virtanen <pauli.virtanen@hut.fi>\n"
+"Language-Team: Gnome Finnish Translation Team <gnome-fi-laatu@lists."
+"sourceforge.net>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/pty.c:253
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "Virhe muuttujan \"%s\" ympäristöön lisäämisessä. Jatkuu."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:800
+#, c-format
+msgid "can not run %s"
+msgstr "ei voi suorittaa: %s"
+
+#: src/reaper.c:107
+msgid "Error creating signal pipe."
+msgstr "Signaaliputken luontivirhe."
+
+#: src/trie.c:411
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "Monikertainen (%s%s)!"
+
+#: src/vte.c:1338
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Virhe säleen \"%s\" kääntämisessä."
+
+#: src/vte.c:1859 src/vte.c:1868 src/vte.c:1880 src/vte.c:1898 src/vte.c:1904
+#: src/vte.c:1909
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Merkkien muuntaminen merkistöstä %s merkistöön %s ei onnistu."
+
+#: src/vte.c:5321
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "Vastaanotti odottamattoman (näppäily?)sarjan \"%s\""
+
+#: src/vte.c:6408
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "Ohjaussarjalle \"%s\" ei ole määritelty käsittelintä."
+
+#: src/vte.c:7018
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Virhe lapselta lukemisessa: %s."
+
+#: src/vte.c:7184
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Virhe (%s) datan muuntamisessa lapselle, putoaa pois."
+
+#: src/vte.c:9471
+#, c-format
+msgid "Using fontset \"%s\", which is missing these character sets: %s."
+msgstr ""
+"Kirjasinlajijoukko \"%s\" käytössä. Siitä puuttuvat seuraavat merkistöt: %s."
+
+#: src/vte.c:10106
+#, c-format
+msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
+msgstr ""
+"Xft-kirjasinlajikuvion \"%s\" lataaminen epäonnistui: oletusarvoinen "
+"kirjasinlaji käytössä."
+
+#: src/vte.c:10118
+msgid "Failed to load default Xft font."
+msgstr "Oletus-Xft-kirjasimen lataaminen epäonnistui."
+
+#: src/vte.c:10211
+#, c-format
+msgid "Failed to load font set \"%s\", falling back to default font."
+msgstr ""
+"Kirjasinlajijoukon \"%s\" lataaminen epäonnistui: oletusarvoinen "
+"kirjasinlaji käytössä."
+
+#: src/vte.c:10223
+msgid "Failed to load default font, crashing or behaving abnormally."
+msgstr ""
+"Oletusarvoisen kirjasinlajin lataaminen epäonnistui. Kaatuu tai toimii "
+"epänormaalisti."
+
+#: src/vte.c:10486
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "Virhe PTY-koon lukemisessa: oletus käytössä: %s."
+
+#: src/vte.c:10522
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "Virhe PTY-koon asettamisessa: %s."
+
+#: src/vte.c:13387
+msgid "Error allocating draw, disabling Xft."
+msgstr "Virhe piirron varaamisessa, Xft poistuu käytöstä."
+
+#: src/vte.c:13395
+msgid "Error allocating context, disabling Pango."
+msgstr "Virhe kontekstin varaamisessa, Pango poistuu käytöstä."
+
+#: src/vte.c:13401
+msgid "Error allocating layout, disabling Pango."
+msgstr "Virhe asettelun varaamisessa, Pango poistuu käytöstä."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:14986
+msgid "g_iconv_open() failed setting word characters"
+msgstr "g_iconv_open() epäonnistui sanamerkkien asettamisessa"
