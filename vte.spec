@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.8.18
+Version: 0.8.19
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -62,6 +62,9 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Thu Sep  5 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.19-1
+- possible fix for focusing bugs
+
 * Thu Sep  5 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.18-1
 - fix for worst-case when stripping termcap entries from Brian Cameron
 - add docs
