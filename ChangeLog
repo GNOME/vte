@@ -1,4 +1,7 @@
 2002-08-26 nalin
+	* src/vte.c: Don't deadlock when substitution fails, spotted by msw.
+
+2002-08-26 nalin
 	* src/vte.c: If GDK_USE_XFT is set, check the value of GDK_USE_XFT, not
 	VTE_USE_XFT.  Spotted by hp.
 

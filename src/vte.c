@@ -5906,6 +5906,10 @@ vte_terminal_process_incoming(gpointer data)
 	wcount = (obuf - obufptr) / sizeof(gunichar);
 	wbuf = (gunichar*) obufptr;
 
+	/* Initialize some state info we'll use to decide what to do next. */
+	start = 0;
+	modified = leftovers = again = FALSE;
+
 	/* Perform ISO-2022 and XTerm national charset substitutions. */
 	substitutions = vte_iso2022_copy(terminal->pvt->substitutions);
 	substitution_count = vte_iso2022_substitute(substitutions,
@@ -5913,8 +5917,8 @@ vte_terminal_process_incoming(gpointer data)
 						    terminal->pvt->table);
 	if (substitution_count < 0) {
 		vte_iso2022_free(substitutions);
-		g_free(obufptr);
-		return terminal->pvt->processing;
+		leftovers = TRUE;
+		again = FALSE;
 	} else {
 		vte_iso2022_free(terminal->pvt->substitutions);
 		terminal->pvt->substitutions = substitutions;
@@ -5926,8 +5930,6 @@ vte_terminal_process_incoming(gpointer data)
 	cursor = screen->cursor_current;
 
 	/* Try initial substrings. */
-	start = 0;
-	modified = leftovers = again = FALSE;
 	while ((start < wcount) && !leftovers) {
 		/* Try to match any control sequences. */
 		vte_table_match(terminal->pvt->table,
@@ -6066,11 +6068,15 @@ vte_terminal_process_incoming(gpointer data)
 	} else {
 		/* No leftovers, clean out the data. */
 		terminal->pvt->n_incoming = 0;
-		g_free(terminal->pvt->incoming);
+		if (terminal->pvt->incoming != NULL) {
+			g_free(terminal->pvt->incoming);
+		}
 		terminal->pvt->incoming = NULL;
 		again = FALSE;
 	}
-	g_free(obufptr);
+	if (obufptr != NULL) {
+		g_free(obufptr);
+	}
 
 	if (modified) {
 		/* Keep the cursor on-screen if we scroll on output, or if
