@@ -1,3 +1,7 @@
+2004-04-20 nalin
+	* Makefile.am: add rule for generating vte-uninstall.pc (Gman, #136129)
+	* vte-uninstalled.pc.in: add (Gman, #136129)
+
 2004-04-19 nalin
 	* src/vte.c(vte_terminal_key_press): don't steal keys from the input
 	method.
