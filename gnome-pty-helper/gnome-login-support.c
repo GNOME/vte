@@ -304,26 +304,38 @@ forkpty (int *master_fd, char *name, struct termios *termp, struct winsize *winp
 #endif /* HAVE_OPENPTY */
 
 int
-n_read (int fd, void *buffer, int n)
+n_read (int fd, void *buf, int n)
 {
 	int left, nread;
-	char *ptr;
+	char *ptr, *buffer;
 
+	buffer = (char*) buf;
 	ptr = buffer;
-	left = n;
-	while (left > 0){
-		if ((nread = read (fd, ptr, left)) < 0){
-			if (errno == EINTR)
-				nread = 0;
-			else
+	while (ptr < buffer + n) {
+		nread = read (fd, ptr, n - (ptr - buffer));
+		switch (nread) {
+		case -1:
+			switch (errno) {
+			case EINTR:
+			case EAGAIN:
+				/* suppress the error */
+				break;
+			default:
 				return -1;
-		} else if (nread == 0)
-			break;	/* EOF */
-
-		left -= nread;
-		ptr += nread;
+				break;
+			}
+			break;
+		case 0:
+			/* EOF */
+			break;
+		}
+		if (nread > 0) {
+			ptr += nread;
+		} else {
+			break;
+		}
 	}
 	
-	return n - left;
+	return (ptr - ((char*)buffer));
 }
 

@@ -589,16 +589,29 @@ static char *
 _vte_pty_ptsname(int master)
 {
 #if defined(HAVE_PTSNAME_R)
-	char buf[PATH_MAX];
-	memset(buf, 0, sizeof(buf));
-	if (ptsname_r(master, buf, sizeof(buf) - 1) == 0) {
+	gsize len = 1024;
+	char *buf = NULL;
+	int i;
+	do {
+		buf = g_malloc0(len);
+		i = ptsname_r(master, buf, len - 1);
+		switch (i) {
+		case 0:
+			/* Return the allocated buffer with the name in it. */
 #ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			fprintf(stderr, "PTY slave is `%s'.\n", buf);
-		}
+			if (_vte_debug_on(VTE_DEBUG_PTY)) {
+				fprintf(stderr, "PTY slave is `%s'.\n", buf);
+			}
 #endif
-		return g_strdup(buf);
-	}
+			return buf;
+			break;
+		default:
+			g_free(buf);
+			buf = NULL;
+			break;
+		}
+		len *= 2;
+	} while ((i != 0) && (errno == ERANGE));
 #elif defined(HAVE_PTSNAME)
 	char *p;
 	if ((p = ptsname(master)) != NULL) {
@@ -1034,7 +1047,7 @@ sigchld_handler(int signum)
 int
 main(int argc, char **argv)
 {
-	pid_t child;
+	pid_t child = 0;
 	char c;
 	int ret;
 	signal(SIGCHLD, sigchld_handler);

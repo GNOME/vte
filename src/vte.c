@@ -7099,8 +7099,16 @@ vte_terminal_io_read(GIOChannel *channel,
 	/* Read some data in from this channel. */
 	bcount = 0;
 	if (condition & G_IO_IN) {
-		bcount = sizeof(buf) -
-			 _vte_buffer_length(terminal->pvt->incoming);
+		/* We try not to overfill the incoming buffer below by cutting
+		 * down the read size if we already have pending data. */
+		bcount = sizeof(buf);
+		if (_vte_buffer_length(terminal->pvt->incoming) < sizeof(buf)) {
+			/* Shoot for exactly one "chunk" for processing. */
+			bcount -= _vte_buffer_length(terminal->pvt->incoming);
+		} else {
+			/* Read half of the chunk size. */
+			bcount = sizeof(buf) / 2;
+		}
 		bcount = read(fd, buf, MAX(bcount, sizeof(buf) / 2));
 	}
 
@@ -10107,20 +10115,25 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 			 gboolean reset)
 {
 	struct stat st;
-	char path_default[PATH_MAX];
+	char *wpath;
+	GQuark q = 0;
 
 	if (path == NULL) {
-		snprintf(path_default, sizeof(path_default),
-			 DATADIR "/" PACKAGE "/termcap/%s",
-			 terminal->pvt->emulation ?
-			 terminal->pvt->emulation : VTE_DEFAULT_EMULATION);
-		if (stat(path_default, &st) == 0) {
-			path = path_default;
-		} else {
-			path = "/etc/termcap";
+		wpath = g_strdup_printf(DATADIR "/" PACKAGE "/termcap/%s",
+				        terminal->pvt->emulation ?
+				        terminal->pvt->emulation :
+				        VTE_DEFAULT_EMULATION);
+		if (stat(wpath, &st) != 0) {
+			g_free(wpath);
+			wpath = g_strdup("/etc/termcap");
 		}
+		q = g_quark_from_string(wpath);
+		g_free(wpath);
+	} else {
+		q = g_quark_from_string(path);
 	}
-	terminal->pvt->termcap_path = g_quark_to_string(g_quark_from_string(path));
+	terminal->pvt->termcap_path = g_quark_to_string(q);
+
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "Loading termcap `%s'...",
@@ -10130,7 +10143,7 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 	if (terminal->pvt->termcap) {
 		_vte_termcap_free(terminal->pvt->termcap);
 	}
-	terminal->pvt->termcap = _vte_termcap_new(path);
+	terminal->pvt->termcap = _vte_termcap_new(terminal->pvt->termcap_path);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "\n");
