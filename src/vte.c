@@ -3438,7 +3438,7 @@ vte_terminal_process_incoming(gpointer data)
 		 * clear that up if possible. */
 		if ((match != NULL) && (match[0] == '\0')) {
 #ifdef VTE_DEBUG
-			fprintf(stderr, "Ambiguous sequence (%d/%d).  "
+			fprintf(stderr, "Ambiguous sequence  at %d of %d.  "
 				"Resolving.\n", start, wcount);
 #endif
 			/* Try to match the *entire* string.  This will set
@@ -3457,7 +3457,8 @@ vte_terminal_process_incoming(gpointer data)
 			if (match == NULL) {
 #ifdef VTE_DEBUG
 				fprintf(stderr,
-					"Looks like a sequence (%d).\n",
+					"Looks like a sequence at %d, "
+					"length = %d.\n", start,
 					next - (wbuf + start));
 #endif
 				free_params_array(params);
@@ -3469,20 +3470,13 @@ vte_terminal_process_incoming(gpointer data)
 					       &next,
 					       &quark,
 					       &params);
-				if ((match != NULL) && (match[0] == '\0')) {
-					vte_trie_match(terminal->pvt->trie,
-						       &wbuf[start],
-						       next - (wbuf + start) + 1,
-						       &match,
-						       &next,
-						       &quark,
-						       &params);
-				}
 			}
 #ifdef VTE_DEBUG
 			if ((match != NULL) && (match[0] != '\0')) {
 				fprintf(stderr,
-					"Ambiguity resolved -- sequence ");
+					"Ambiguity resolved -- sequence at %d, "
+					"length = %d.\n", start,
+					next - (wbuf + start));
 			}
 			if ((match != NULL) && (match[0] == '\0')) {
 				int i;
@@ -3491,6 +3485,9 @@ vte_terminal_process_incoming(gpointer data)
 				for (i = 0; i < wcount; i++) {
 					if (i == start) {
 						fprintf(stderr, "=>");
+					} else
+					if (i == (next - wbuf)) {
+						fprintf(stderr, "<=");
 					}
 					if ((wbuf[i] < 32) || (wbuf[i] > 127)) {
 						fprintf(stderr, "{%ld}",
@@ -3499,20 +3496,16 @@ vte_terminal_process_incoming(gpointer data)
 						fprintf(stderr, "%lc",
 							(wint_t) wbuf[i]);
 					}
-					if (i == (next - wbuf)) {
-						fprintf(stderr, "<=");
-					}
 				}
 				if (i == (next - wbuf)) {
 					fprintf(stderr, "<=");
 				}
-				fprintf(stderr, "'.\n");
+				fprintf(stderr, "' at %d.\n", start);
 			}
 			if (match == NULL) {
-				fprintf(stderr,
-					"Ambiguity resolved -- plain data ");
+				fprintf(stderr, "Ambiguity resolved -- "
+					"plain data (%d).\n", start);
 			}
-			fprintf(stderr, "(%d).\n", next - wbuf);
 #endif
 		}
 
@@ -5532,6 +5525,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 		vte_trie_add(terminal->pvt->trie, code, strlen(code), value, 0);
 	}
 #ifdef VTE_DEBUG
+	/* vte_trie_print(terminal->pvt->trie); */
 	fprintf(stderr, "\n");
 #endif
 
@@ -5544,10 +5538,10 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	vte_terminal_set_size(terminal,
 			      vte_termcap_find_numeric(terminal->pvt->termcap,
 						       terminal->pvt->terminal,
-						       "co") ?: 60,
+						       "co") ?: 80,
 			      vte_termcap_find_numeric(terminal->pvt->termcap,
 						       terminal->pvt->terminal,
-						       "li") ?: 18);
+						       "li") ?: 24);
 }
 
 /* Set the path to the termcap file we read, and read it in. */
@@ -5615,15 +5609,22 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	/* Initialize data members with settings from the environment and
 	 * structures to use for these. */
 	pvt = terminal->pvt = g_malloc0(sizeof(*terminal->pvt));
-	pvt->shell = getenv("SHELL");
 	if (pvt->shell == NULL) {
 		pwd = getpwuid(getuid());
 		if (pwd != NULL) {
 			pvt->shell = pwd->pw_shell;
+#ifdef VTE_DEBUG
+			fprintf(stderr, "Using user's shell (%s).\n",
+				pvt->shell);
+#endif
 		}
 	}
 	if (pvt->shell == NULL) {
 		pvt->shell = "/bin/sh";
+#ifdef VTE_DEBUG
+		fprintf(stderr, "Using hard-coded default shell (%s).\n",
+			pvt->shell);
+#endif
 	}
 	pvt->shell = g_quark_to_string(g_quark_from_string(pvt->shell));
 	pvt->pty_master = -1;
@@ -5752,8 +5753,8 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->im_context = NULL;
 
 	/* Set backspace/delete bindings. */
-	pvt->backspace_binding = VTE_ERASE_AUTO;
-	pvt->delete_binding = VTE_ERASE_AUTO;
+	vte_terminal_set_backspace_binding(terminal, VTE_ERASE_AUTO);
+	vte_terminal_set_delete_binding(terminal, VTE_ERASE_AUTO);
 }
 
 /* Tell GTK+ how much space we need. */
@@ -7726,6 +7727,7 @@ vte_terminal_set_backspace_binding(VteTerminal *terminal,
 				   VteTerminalEraseBinding binding)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	/* FIXME: should we set the pty mode to match? */
 	terminal->pvt->backspace_binding = binding;
 }
 

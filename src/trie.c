@@ -490,26 +490,25 @@ vte_trie_matchx(struct vte_trie *trie, const wchar_t *pattern, size_t length,
 		res = &hres;
 	}
 
-	/* Trivial cases.  We've matched the entire pattern, or we're out of
+	/* Trivial cases.  We've matched an entire pattern, or we're out of
 	 * pattern to match. */
+	if (trie->result) {
+		*res = trie->result;
+		*quark = trie->quark;
+		*consumed = pattern;
+		return *res;
+	}
 	if (length <= 0) {
-		if (trie->result) {
-			*res = trie->result;
-			*quark = trie->quark;
+		if (trie->trie_path_count > 0) {
+			*res = "";
+			*quark = g_quark_from_static_string("");
 			*consumed = pattern;
 			return *res;
 		} else {
-			if (trie->trie_path_count > 0) {
-				*res = "";
-				*quark = g_quark_from_static_string("");
-				*consumed = pattern;
-				return *res;
-			} else {
-				*res = NULL;
-				*quark = 0;
-				*consumed = pattern;
-				return *res;
-			}
+			*res = NULL;
+			*quark = 0;
+			*consumed = pattern;
+			return *res;
 		}
 	}
 

@@ -29,14 +29,14 @@ G_BEGIN_DECLS
 
 /* The terminal accessibility object itself. */
 typedef struct _VteTerminalAccessible {
-	AtkObject object;
+	GtkAccessible parent;
 } VteTerminalAccessible;
 
 /* The object's class structure. */
 typedef struct _VteTerminalAccessibleClass {
 	/*< public > */
 	/* Inherited parent class. */
-	AtkObjectClass parent_class;
+	GtkAccessibleClass parent_class;
 } VteTerminalAccessibleClass;
 
 /* The object's type. */

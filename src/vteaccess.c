@@ -161,9 +161,11 @@ AtkObject *
 vte_terminal_accessible_new(VteTerminal *terminal)
 {
 	GtkAccessible *access;
+	GObject *object;
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	access = GTK_ACCESSIBLE(g_object_new(VTE_TYPE_TERMINAL_ACCESSIBLE,
-					     NULL));
+	object = g_object_new(VTE_TYPE_TERMINAL_ACCESSIBLE, NULL);
+	g_return_val_if_fail(GTK_IS_ACCESSIBLE(object), NULL);
+	access = GTK_ACCESSIBLE(object);
 	atk_object_initialize(ATK_OBJECT(access), G_OBJECT(terminal));
 	access->widget = GTK_WIDGET(terminal);
 
@@ -622,12 +624,10 @@ static void
 vte_terminal_accessible_class_init(gpointer *klass)
 {
         GObjectClass *gobject_class; 
-        AtkObjectClass *atk_object_class; 
         GtkAccessibleClass *gtk_accessible_class; 
 	GInterfaceInfo text;
 
         gobject_class = G_OBJECT_CLASS(klass); 
-        atk_object_class = ATK_OBJECT_CLASS(klass); 
         gtk_accessible_class = GTK_ACCESSIBLE_CLASS(klass); 
 				 
         /* Add a text interface to this object class. */
@@ -660,7 +660,7 @@ vte_terminal_accessible_get_type(void)
 		(GClassFinalizeFunc)NULL,
 		(gconstpointer)NULL,
 
-		sizeof(VteTerminal),
+		sizeof(VteTerminalAccessible),
 		0,
 		(GInstanceInitFunc)vte_terminal_accessible_init,
 

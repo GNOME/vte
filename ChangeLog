@@ -1,13 +1,21 @@
 2002-05-02 nalin
 	* src/trie.c: Rework trie matching to return the address of the
 	character which ended the match attempt, which should cut down on
-	useless initial-substring checks.  Remove several gdk_window_scroll()
-	calls which apparently aren't buffered.  Convert invalid multibyte
-	characters to '?' instead of just dropping them.  Provide a means of
-	setting the backspace/delete bindings.  Add a poor xlfd_from_pango
-	mapping function which would need serious work to be useful.  Get rid
-	of warnings when we're transparent and the root widnow pixmap isn't as
-	big as the root window because it's tiled.
+	useless initial-substring checks.  Fix a subtle bug which caused
+	intermittent off-by-somenumber errors in the return address.
+	* src/vte.c:  Remove several gdk_window_scroll() calls which apparently
+	aren't buffered.  Convert invalid multibyte characters to '?' instead of
+	just dropping them.  Provide a means of setting the backspace/delete
+	bindings.  Add a poor xlfd_from_pango mapping function which would need
+	serious work to be useful.  Get rid of warnings when we're transparent
+	and the root window pixmap isn't as big as the root window because it's
+	been tiled.  Setup bindings using the export functions.  Set the default
+	terminal size to 80x24 instead of 60x18, which was originally chosen for
+	debugging purposes.  Don't use $SHELL as the command to invoke when
+	starting up a default command (as in the test app) -- libtool wrappers
+	keep screwing this up.
+	* src/vteaccess.h: Fix a crashbug due to mismatch between parent field
+	in the object's structure and its inherited object's type.  More to go.
 2002-05-01 nalin
 	* src/vte.c: Try @pkgdatadir@/termcap/$TERM when reading termcap files.
 	This fixes the app on systems with no /etc/termcap, and also speeds up
