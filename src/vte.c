@@ -142,14 +142,14 @@ struct _VteTerminalPrivate {
 		GArray *row_data;	/* row data, arranged as a GArray of
 					   vte_charcell structures */
 		struct {
-			gint row, col;
+			long row, col;
 		} cursor_current, cursor_saved;
 					/* the current and saved positions of
 					   the [insertion] cursor */
 		gboolean cursor_visible;
 		gboolean insert;	/* insert mode */
 		struct {
-			gint start, end;
+			int start, end;
 		} scrolling_region;	/* the region we scroll in */
 		gboolean scrolling_restricted;
 		long scroll_delta;	/* scroll offset */
@@ -166,7 +166,7 @@ struct _VteTerminalPrivate {
 		selection_type_line,
 	} selection_type;
 	struct {
-		gdouble x, y;
+		double x, y;
 	} selection_origin, selection_last;
 	struct {
 		long x, y;
@@ -1032,6 +1032,20 @@ vte_sequence_handler_DL(VteTerminal *terminal,
 				      vte_sequence_handler_dl);
 }
 
+/* Make sure we have enough rows to hold data at the current cursor position. */
+static void
+vte_terminal_ensure_rows(VteTerminal *terminal)
+{
+	GArray *array;
+	struct _VteScreen *screen;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	screen = terminal->pvt->screen;
+	while (screen->cursor_current.row >= screen->row_data->len) {
+		array = vte_new_row_data();
+		g_array_append_val(screen->row_data, array);
+	}
+}
+
 /* Scroll forward. */
 static void
 vte_sequence_handler_do(VteTerminal *terminal,
@@ -1096,6 +1110,9 @@ vte_sequence_handler_do(VteTerminal *terminal,
 		rows = MAX(screen->row_data->len,
 			   screen->cursor_current.row + 1);
 		delta = MAX(0, rows - terminal->row_count);
+		if (delta != screen->insert_delta) {
+			vte_terminal_ensure_rows(terminal);
+		}
 		screen->insert_delta = delta;
 
 		/* Update scroll bar adjustments. */
@@ -2782,6 +2799,13 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 	terminal = VTE_TERMINAL(widget);
 	screen = terminal->pvt->screen;
 
+#ifdef VTE_DEBUG
+#ifdef VTE_DEBUG_INSERT
+	fprintf(stderr, "Inserting %ld, delta = %ld.\n", (long)c,
+		(long)screen->insert_delta);
+#endif
+#endif
+
 	/* Figure out how many columns this character should occupy. */
 	columns = wcwidth(c);
 
@@ -2800,10 +2824,7 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 	}
 
 	/* Make sure we have enough rows to hold this data. */
-	while (screen->cursor_current.row >= screen->row_data->len) {
-		array = vte_new_row_data();
-		g_array_append_val(screen->row_data, array);
-	}
+	vte_terminal_ensure_rows(terminal);
 
 	/* Get a handle on the array for the insertion row. */
 	array = g_array_index(screen->row_data,
@@ -2883,6 +2904,11 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 		 * part of the screen already, so no need to do it again. */
 		screen->cursor_current.col++;
 	}
+#ifdef VTE_DEBUG
+#ifdef VTE_DEBUG_INSERT
+	fprintf(stderr, "Insertion delta = %ld.\n", (long)screen->insert_delta);
+#endif
+#endif
 }
 
 static void
