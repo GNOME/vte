@@ -31,8 +31,12 @@
 
 G_BEGIN_DECLS
 
+/* Private implementation details. */
+typedef struct _VteTerminalPrivate VteTerminalPrivate;
+
 /* The terminal widget itself. */
-typedef struct _VteTerminal {
+typedef struct _VteTerminal VteTerminal;
+struct _VteTerminal {
 	/*< public >*/
 
 	/* Widget implementation stuffs. */
@@ -48,11 +52,12 @@ typedef struct _VteTerminal {
 	char *window_title, *icon_title;
 
 	/*< private >*/
-	struct _VteTerminalPrivate *pvt;
-} VteTerminal;
+	VteTerminalPrivate *pvt;
+};
 
 /* The widget's class structure. */
-typedef struct _VteTerminalClass {
+typedef struct _VteTerminalClass VteTerminalClass;
+struct _VteTerminalClass {
 	/*< public > */
 	/* Inherited parent class. */
 	GtkWidgetClass parent_class;
@@ -85,7 +90,7 @@ typedef struct _VteTerminalClass {
 	gpointer reserved2;
 	gpointer reserved3;
 	gpointer reserved4;
-} VteTerminalClass;
+};
 
 /* Values for "what should happen when the user hits backspace/delete".  Use
  * AUTO unless the user can cause them to be overridden. */

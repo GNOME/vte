@@ -5312,10 +5312,12 @@ vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
 		rcolor->blue = color.blue;
 		rcolor->alpha = 0xffff;
 
-		/* FIXME this should probably use a color from the
-		 * color cube. */
-		g_return_if_fail(XftColorAllocValue(display, visual, colormap,
-						    rcolor, ftcolor) != 0);
+		/* Try to allocate a color with Xft, otherwise fudge it. */
+		if (XftColorAllocValue(display, visual, colormap,
+				       rcolor, ftcolor) == 0) {
+			ftcolor->color = *rcolor;
+			ftcolor->pixel = color.pixel;
+		}
 	}
 #endif
 
@@ -9692,7 +9694,7 @@ vte_terminal_reset_rowdata(VteRing **ring, long lines)
 static void
 vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 {
-	struct _VteTerminalPrivate *pvt;
+	VteTerminalPrivate *pvt;
 	GtkWidget *widget;
 	struct passwd *pwd;
 	GtkAdjustment *adjustment;

@@ -1,4 +1,8 @@
 2002-09-03 nalin
+	* src/vte.c: Handle color allocation failures with Xft better.
+	* src/vte.h: Clean up typedef declarations.
+
+2002-09-03 nalin
 	* src/marshal.list, src/reaper.c, src/reaper.h, src/vte.c: Modify the
 	child-exited signal to pass a signed int and an unmodified exit status,
 	allowing the callback to check for normal/abnormal exit status.
@@ -132,7 +136,9 @@
 	assertion.
 	* src/vte.c: Implement send-primary/secondary-device-attributes.  Bind
 	shift+insert to "paste PRIMARY".  Guard against NULL window/icon title
-	when telling the child app what they are.
+	when telling the child app what they are.  Prevent DO(), up(), and UP()
+	from scrolling.
+
 2002-08-22 nalin
 	* src/vteapp.c: Set geometry hints using the initial font setup.
 2002-08-22 nalin
