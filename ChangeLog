@@ -1,4 +1,8 @@
 2003-08-12 nalin
+	* doc/reference/tmpl/vte.sgml: note that dimensions passed in with
+	the resize-window signal include padding (more of bug #119141).
+
+2003-08-12 nalin
 	* src/vte.c(vte_sequence_handler_character_attributes,
 	vte_sequence_handler_decset_internal): remove redundant type checks.
 	* src/vte.c(all signal handlers): return a boolean indicating whether

@@ -823,8 +823,8 @@ Emitted at the child application's request.
 </para>
 
 @vteterminal: the object which received the signal.
-@arg1: the desired width in pixels.
-@arg2: the desired height in pixels.
+@arg1: the desired width in pixels, including padding.
+@arg2: the desired height in pixels, including padding.
 
 <!-- ##### SIGNAL VteTerminal::restore-window ##### -->
 <para>
