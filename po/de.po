@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte HEAD\n"
-"POT-Creation-Date: 2003-01-20 22:57+0100\n"
+"POT-Creation-Date: 2003-05-19 14:33-0400\n"
 "PO-Revision-Date: 2003-01-20 22:57+0100\n"
 "Last-Translator: Christian Neumair <chris@gnome-de.org>\n"
 "Language-Team: German <gnome-de@gnome.org>\n"
@@ -14,7 +14,27 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:253
+#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Zeichen konnten nicht von %s nach %s konvertiert werden."
+
+#: src/iso2022.c:1505
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr ""
+
+#. See ECMA-35.
+#: src/iso2022.c:1546
+msgid "Unrecognized identified coding system."
+msgstr ""
+
+#: src/iso2022.c:1595 src/iso2022.c:1621
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr ""
+
+#: src/pty.c:317
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Fehler beim Hinzufügen von »%s« zur Umgebung, fortfahren."
@@ -22,42 +42,36 @@ msgstr "Fehler beim Hinzufügen von »%s« zur Umgebung, fortfahren."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:800
+#: src/pty.c:877
 #, c-format
 msgid "can not run %s"
 msgstr "%s konnte nicht ausgeführt werden"
 
-#: src/reaper.c:107
+#: src/reaper.c:110
 msgid "Error creating signal pipe."
 msgstr "Fehler beim Erstellen der Signalweiterleitung."
 
-#: src/trie.c:411
+#: src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikat (%s/%s)!"
 
-#: src/vte.c:1407
+#: src/vte.c:1430
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Fehler beim Kompilieren des regulären Ausdrucks »%s«."
 
-#: src/vte.c:1929 src/vte.c:1938 src/vte.c:1950 src/vte.c:1968 src/vte.c:1974
-#: src/vte.c:1979
-#, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Zeichen konnten nicht von %s nach %s konvertiert werden."
-
-#: src/vte.c:5459
+#: src/vte.c:5534
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Unerwartete (Schlüssel?)-Sequenz »%s« erhalten."
 
-#: src/vte.c:6549
+#: src/vte.c:6547
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Kein Handler für Kontrollsequenz »%s« definiert."
 
-#: src/vte.c:7288
+#: src/vte.c:7293
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Fehler beim Lesen von Kind: %s."
@@ -67,62 +81,68 @@ msgstr "Fehler beim Lesen von Kind: %s."
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Fehler (%s) beim Konvertieren der Daten für Kind, wird abgebrochen."
 
-#: src/vte.c:9740
-#, c-format
-msgid "Using fontset \"%s\", which is missing these character sets: %s."
-msgstr ""
-"Schriftsatz »%s« wird verwendet, welchem folgende Zeichensätze fehlen: %s."
-
-#: src/vte.c:10378
-#, c-format
-msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
-msgstr ""
-"Laden des Xft-Schriftmusters »%s« fehlgeschlagen, Rückfall zur vorgegebenen "
-"Schrift."
-
-#: src/vte.c:10390
-msgid "Failed to load default Xft font."
-msgstr "Laden der vorgegebenen Xft-Schrift fehlgeschlagen"
-
-#: src/vte.c:10483
-#, c-format
-msgid "Failed to load font set \"%s\", falling back to default font."
-msgstr ""
-"Laden des Schriftsatzes »%s« fehlgeschlagen, Rückfall zur vorgegebenen "
-"Schrift."
-
-#: src/vte.c:10495
-msgid "Failed to load default font, crashing or behaving abnormally."
-msgstr ""
-"Laden der vorgebenen Schrift fehlgeschlagen, Absturz oder abnormales "
-"Verhalten."
-
-#: src/vte.c:10757
+#: src/vte.c:10069
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Fehler beim Lesen der PTY-Größe, Vorgaben werden verwendet: %s."
 
-#: src/vte.c:10793
+#: src/vte.c:10105
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Fehler beim Festlegen der PTY-Größe: %s."
 
-#: src/vte.c:13679
-msgid "Error allocating draw, disabling Xft."
-msgstr "Fehler beim Zuweisen der Zeichnung, Xft wird deaktiviert."
-
-#: src/vte.c:13687
-msgid "Error allocating context, disabling Pango."
-msgstr "Fehler beim Zuweisen des Kontextes, Pango wird deaktiviert."
-
-#: src/vte.c:13693
-msgid "Error allocating layout, disabling Pango."
-msgstr "Fehler beim Zuweisen des Layouts, Pango wird deaktiviert."
-
 #. Aaargh.  We're screwed.
-#: src/vte.c:15326
-msgid "g_iconv_open() failed setting word characters"
+#: src/vte.c:14067
+#, fuzzy
+msgid "_vte_conv_open() failed setting word characters"
 msgstr "g_iconv_open() konnte die Zeichen des Wortes nicht festlegen"
+
+#. Bail back to normal mode.
+#: src/vteapp.c:642
+msgid "Could not open console.\n"
+msgstr ""
+
+#: src/vteglyph.c:575
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr ""
+
+#: src/vtexft.c:664
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr ""
+
+#~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
+#~ msgstr ""
+#~ "Schriftsatz »%s« wird verwendet, welchem folgende Zeichensätze fehlen: %s."
+
+#~ msgid ""
+#~ "Failed to load Xft font pattern \"%s\", falling back to default font."
+#~ msgstr ""
+#~ "Laden des Xft-Schriftmusters »%s« fehlgeschlagen, Rückfall zur "
+#~ "vorgegebenen Schrift."
+
+#~ msgid "Failed to load default Xft font."
+#~ msgstr "Laden der vorgegebenen Xft-Schrift fehlgeschlagen"
+
+#~ msgid "Failed to load font set \"%s\", falling back to default font."
+#~ msgstr ""
+#~ "Laden des Schriftsatzes »%s« fehlgeschlagen, Rückfall zur vorgegebenen "
+#~ "Schrift."
+
+#~ msgid "Failed to load default font, crashing or behaving abnormally."
+#~ msgstr ""
+#~ "Laden der vorgebenen Schrift fehlgeschlagen, Absturz oder abnormales "
+#~ "Verhalten."
+
+#~ msgid "Error allocating draw, disabling Xft."
+#~ msgstr "Fehler beim Zuweisen der Zeichnung, Xft wird deaktiviert."
+
+#~ msgid "Error allocating context, disabling Pango."
+#~ msgstr "Fehler beim Zuweisen des Kontextes, Pango wird deaktiviert."
+
+#~ msgid "Error allocating layout, disabling Pango."
+#~ msgstr "Fehler beim Zuweisen des Layouts, Pango wird deaktiviert."
 
 #~ msgid "Character 0x%x is undefined, allocating one column."
 #~ msgstr "Zeichen 0x%x ist undefiniert, eine Spalte wird zugewiesen."

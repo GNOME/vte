@@ -376,8 +376,9 @@ _vte_iso2022_map_get(gunichar mapname,
 		     GTree **tree, gint *bytes_per_char, gint *force_width,
 		     gulong *or_mask, gulong *and_mask)
 {
+	struct _vte_iso2022_map _vte_iso2022_map_NUL[256];
 	static GTree *maps = NULL;
-	gint bytes = 0, width = 0;
+	gint bytes = 0, width = 0, i;
 	GTree *map = NULL;
 
 	if (or_mask) {
@@ -652,7 +653,17 @@ _vte_iso2022_map_get(gunichar mapname,
 		bytes = 2;
 		break;
 	default:
-		g_assert_not_reached();
+		/* No such map.  Set up a ISO-8859-1 to UCS-4 map. */
+		if (map == NULL) {
+			for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_map_NUL); i++) {
+				_vte_iso2022_map_NUL[i].from = (i & 0xff);
+				_vte_iso2022_map_NUL[i].to = (i & 0xff);
+			}
+			map = _vte_iso2022_map_init(_vte_iso2022_map_NUL,
+					    G_N_ELEMENTS(_vte_iso2022_map_NUL));
+		}
+		width = 1;
+		bytes = 1;
 		break;
 	}
 	/* Save the new map. */
@@ -702,12 +713,13 @@ _vte_iso2022_state_new(const char *native_codeset,
 	state->g[1] = '0';
 	state->g[2] = 'J';
 	state->g[3] = WIDE_FUDGE + 'D';
-	state->native_codeset = native_codeset;
-	if (state->native_codeset == NULL) {
-		g_get_charset(&state->native_codeset);
+	state->codeset = native_codeset;
+	state->native_codeset = state->codeset;
+	if (native_codeset == NULL) {
+		g_get_charset(&state->codeset);
+		state->native_codeset = state->codeset;
 	}
 	state->utf8_codeset = "UTF-8";
-	state->codeset = state->native_codeset;
 	state->target_codeset = VTE_CONV_GUNICHAR_TYPE;
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
@@ -736,6 +748,31 @@ _vte_iso2022_state_new(const char *native_codeset,
 		}
 	}
 	return state;
+}
+
+void
+_vte_iso2022_state_free(struct _vte_iso2022_state *state)
+{
+	_vte_buffer_free(state->buffer);
+	state->buffer = NULL;
+	state->codeset_changed_data = NULL;
+	state->codeset_changed = NULL;
+	if (state->conv != ((VteConv) -1)) {
+		_vte_conv_close(state->conv);
+	}
+	state->conv = (VteConv) -1;
+	state->target_codeset = NULL;
+	state->utf8_codeset = NULL;
+	state->native_codeset = NULL;
+	state->codeset = NULL;
+	state->g[3] = WIDE_FUDGE + 'D';
+	state->g[2] = 'J';
+	state->g[1] = '0';
+	state->g[0] = 'B';
+	state->override = -1;
+	state->current = 0;
+	state->nrc_enabled = FALSE;
+	g_free(state);
 }
 
 void
@@ -772,24 +809,6 @@ _vte_iso2022_state_get_codeset(struct _vte_iso2022_state *state)
 	return state->codeset;
 }
 
-void
-_vte_iso2022_state_free(struct _vte_iso2022_state *state)
-{
-	if (state->conv != ((VteConv) -1)) {
-		_vte_conv_close(state->conv);
-	}
-	state->conv = (VteConv) -1;
-	state->native_codeset = state->utf8_codeset = state->codeset = NULL;
-	state->target_codeset = NULL;
-	state->g[3] = 'B';
-	state->g[2] = 'B';
-	state->g[1] = '0';
-	state->g[0] = 'B';
-	state->override = -1;
-	state->current = 0;
-	g_free(state);
-}
-
 static char *
 _vte_iso2022_better(char *p, char *q)
 {
@@ -822,12 +841,194 @@ _vte_iso2022_find_nextctl(const char *p, size_t length)
 	return ret;
 }
 
+static long
+_vte_iso2022_sequence_length(const unsigned char *nextctl, gsize length)
+{
+	const unsigned char *valids = NULL;
+	long sequence_length = -1, i;
+
+	switch (nextctl[0]) {
+	case '\n':
+	case '\r':
+	case '\016':
+	case '\017':
+		/* LF */
+		/* CR */
+		/* SO */
+		/* SI */
+		sequence_length = 1;
+		break;
+	case 0x8e:
+	case 0x8f:
+		/* SS2 - 8bit */
+		/* SS3 - 8bit */
+		sequence_length = 1;
+		break;
+	case '\033':
+		if (length < 2) {
+			/* Inconclusive. */
+			sequence_length = 0;
+		} else {
+			switch (nextctl[1]) {
+			case '[':
+				/* ESC [, the CSI.  The first letter
+				 * is the end of the sequence, */
+				for (i = 2; i < length; i++) {
+					if (g_unichar_isalpha(nextctl[i])) {
+						break;
+					}
+					if ((nextctl[i] == '@') ||
+					    (nextctl[i] == '`') ||
+					    (nextctl[i] == '{') ||
+					    (nextctl[i] == '|')) {
+						break;
+					}
+				}
+				if (i < length) {
+					/* Return the length of this
+					 * sequence. */
+					sequence_length = i + 1;
+				} else {
+					/* Inconclusive. */
+					sequence_length = 0;
+				}
+				break;
+#if 0
+			case ']':
+				/* ESC ], the OSC.  Search for a string
+				 * terminator or a BEL. */
+				for (i = 2; i < q - nextctl - 1; i++) {
+					if ((nextctl[i] == '\033') &&
+					    (nextctl[i + 1] == '\\')) {
+						break;
+					}
+				}
+				if (i < length - 1) {
+					/* Return the length of this
+					 * sequence. */
+					sequence_length = i + 1;
+				} else {
+					for (i = 2; i < length; i++) {
+						if (nextctl[i] == '\007') {
+							break;
+						}
+					}
+					if (i < length) {
+						/* Return the length of
+						 * this sequence. */
+						sequence_length = i + 1;
+					} else {
+						/* Inconclusive. */
+						sequence_length = 0;
+					}
+				}
+				break;
+#endif
+			case '^':
+			case 'P':
+				/* ESC ^, the PM, or ESC P, the DCS.
+				 * Search for a string terminator. */
+				for (i = 2; i < length - 1; i++) {
+					if ((nextctl[i] == '\033') &&
+					    (nextctl[i + 1] == '\\')) {
+						break;
+					}
+				}
+				if (i < length - 1) {
+					/* Return the length of this
+					 * sequence. */
+					sequence_length = i + 1;
+				} else {
+					/* Inconclusive. */
+					sequence_length = 0;
+				}
+				break;
+			case 'N':
+			case 'O':
+			case 'n':
+			case 'o':
+				/* ESC N */
+				/* ESC O */
+				/* ESC n */
+				/* ESC o */
+				sequence_length = 2;
+				break;
+			case '(':
+			case ')':
+			case '*':
+			case '+':
+				if (length < 3) {
+					/* Inconclusive. */
+					sequence_length = 0;
+				} else {
+					/* ESC ) x */
+					/* ESC ( x */
+					/* ESC * x */
+					/* ESC + x */
+					/* Just accept whatever. */
+					sequence_length = 3;
+				}
+				break;
+			case '%':
+				if (length < 3) {
+					/* Inconclusive. */
+					sequence_length = 0;
+				} else {
+					/* ESC % @ */
+					/* ESC % G */
+					valids = "@G";
+					if (strchr(valids, nextctl[2])) {
+						sequence_length = 3;
+					}
+				}
+				break;
+			case '$':
+				if (length < 3) {
+					/* Inconclusive. */
+					sequence_length = 0;
+				} else {
+					switch (nextctl[2]) {
+					case '@':
+					case 'B':
+						/* ESC $ @ */
+						/* ESC $ B */
+						sequence_length = 3;
+						break;
+					case '(':
+					case ')':
+					case '*':
+					case '+':
+						/* ESC $ ( x */
+						/* ESC $ ) x */
+						/* ESC $ * x */
+						/* ESC $ + x */
+						if (length < 4) {
+							/* Inconclusive. */
+							sequence_length = 0;
+						} else {
+							valids = WIDE_GMAPS;
+							if (strchr(valids, nextctl[3])) {
+								sequence_length = 4;
+							}
+						}
+						break;
+					}
+				}
+				break;
+			default:
+				break;
+			}
+		}
+		break;
+	}
+	return sequence_length;
+}
+
 static void
 _vte_iso2022_fragment_input(struct _vte_buffer *input, GArray *blocks)
 {
 	unsigned char *nextctl = NULL, *p, *q;
-	const unsigned char *valids = NULL;
-	glong sequence_length = 0, i;
+	glong sequence_length = 0;
 	struct _vte_iso2022_block block;
 	gboolean quit;
 
@@ -854,185 +1055,8 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input, GArray *blocks)
 		}
 		/* Move on to the control data. */
 		p = nextctl;
-		valids = NULL;
-		sequence_length = -1;
-		switch ((guint8)nextctl[0]) {
-		case '\n':
-		case '\r':
-		case '\016':
-		case '\017':
-			/* LF */
-			/* CR */
-			/* SO */
-			/* SI */
-			sequence_length = 1;
-			break;
-		case 0x8e:
-		case 0x8f:
-			/* SS2 - 8bit */
-			/* SS3 - 8bit */
-			sequence_length = 1;
-			break;
-		case '\033':
-			if (q - nextctl < 2) {
-				/* Inconclusive. */
-				sequence_length = 0;
-			} else {
-				switch (nextctl[1]) {
-				case '[':
-					/* ESC [, the CSI.  The first letter
-					 * is the end of the sequence, */
-					for (i = 2; i < q - nextctl; i++) {
-						if (g_unichar_isalpha(nextctl[i])) {
-							break;
-						}
-						if ((nextctl[i] == '@') ||
-						    (nextctl[i] == '`') ||
-						    (nextctl[i] == '{') ||
-						    (nextctl[i] == '|')) {
-							break;
-						}
-					}
-					if (i < q - nextctl) {
-						/* Return the length of this
-						 * sequence. */
-						sequence_length = i + 1;
-					} else {
-						/* Inconclusive. */
-						sequence_length = 0;
-					}
-					break;
-				case '^':
-				case 'P':
-					/* ESC ^, the PM, or ESC P, the DCS.
-					 * Search for a string terminator. */
-					for (i = 2; i < q - nextctl - 1; i++) {
-						if ((nextctl[i] == '\033') &&
-						    (nextctl[i + 1] == '\\')) {
-							break;
-						}
-					}
-					if (i < q - nextctl - 1) {
-						/* Return the length of this
-						 * sequence. */
-						sequence_length = i + 1;
-					} else {
-						/* Inconclusive. */
-						sequence_length = 0;
-					}
-					break;
-#if 0
-				case ']':
-					/* ESC ], the OSC.  Search for a string
-					 * terminator or a BEL. */
-					for (i = 2; i < q - nextctl - 1; i++) {
-						if ((nextctl[i] == '\033') &&
-						    (nextctl[i + 1] == '\\')) {
-							break;
-						}
-					}
-					if (i < q - nextctl - 1) {
-						/* Return the length of this
-						 * sequence. */
-						sequence_length = i + 1;
-					} else {
-						for (i = 2;
-						     i < q - nextctl;
-						     i++) {
-							if (nextctl[i] == '\007') {
-								break;
-							}
-						}
-						if (i < q - nextctl) {
-							/* Return the length of
-							 * this sequence. */
-							sequence_length = i + 1;
-						} else {
-							/* Inconclusive. */
-							sequence_length = 0;
-						}
-					}
-					break;
-#endif
-				case 'N':
-				case 'O':
-				case 'n':
-				case 'o':
-					/* ESC N */
-					/* ESC O */
-					/* ESC n */
-					/* ESC o */
-					sequence_length = 2;
-					break;
-				case '(':
-				case ')':
-				case '*':
-				case '+':
-					if (q - nextctl < 3) {
-						/* Inconclusive. */
-						sequence_length = 0;
-					} else {
-						/* ESC ) x */
-						/* ESC ( x */
-						/* ESC * x */
-						/* ESC + x */
-						/* Just accept whatever. */
-						sequence_length = 3;
-					}
-					break;
-				case '%':
-					if (q - nextctl < 3) {
-						/* Inconclusive. */
-						sequence_length = 0;
-					} else {
-						/* ESC % @ */
-						/* ESC % G */
-						valids = "@G";
-						if (strchr(valids,
-							   nextctl[2])) {
-							sequence_length = 3;
-						}
-					}
-					break;
-				case '$':
-					if (q - nextctl < 3) {
-						/* Inconclusive. */
-						sequence_length = 0;
-					} else {
-						switch (nextctl[2]) {
-						case '@':
-						case 'B':
-							/* ESC $ @ */
-							/* ESC $ B */
-							sequence_length = 3;
-							break;
-						case '(':
-						case ')':
-						case '*':
-						case '+':
-							/* ESC $ ( x */
-							/* ESC $ ) x */
-							/* ESC $ * x */
-							/* ESC $ + x */
-							if (q - nextctl < 4) {
-								/* Inconclusive. */
-								sequence_length = 0;
-							} else {
-								valids = WIDE_GMAPS;
-								if (strchr(valids, nextctl[3])) {
-									sequence_length = 4;
-								}
-							}
-							break;
-						}
-					}
-					break;
-				default:
-					break;
-				}
-			}
-			break;
-		}
+		sequence_length = _vte_iso2022_sequence_length(nextctl,
+							       q - nextctl);
 		switch (sequence_length) {
 		case -1:
 			/* It's just garden-variety data. */
@@ -1065,6 +1089,90 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input, GArray *blocks)
 	}
 }
 
+static int
+process_8_bit_sequence(struct _vte_iso2022_state *state,
+		       char **inbuf, gsize *inbytes,
+		       gunichar **outbuf, gsize *outbytes)
+{
+	int i, width;
+	gpointer p;
+	gunichar c, *outptr;
+	char *inptr;
+	gulong acc, or_mask, and_mask;
+	GTree *map;
+	gint bytes_per_char, force_width, current;
+
+	/* Check if it's an 8-bit escape.  If it is, take a note of which map
+	 * it's for, and if it isn't, fail. */
+	current = 0;
+	switch (**(guint8**)inbuf) {
+	case 0x8e:
+		current = 2;
+		break;
+	case 0x8f:
+		current = 3;
+		break;
+	default:
+		/* We processed 0 bytes, and we have no intention of looking
+		 * at this byte again. */
+		return 0;
+	}
+
+	inptr = *inbuf;
+	outptr = *outbuf;
+
+	/* Find the map, and ensure that in addition to the escape byte, we
+	 * have enough information to construct the character. */
+	_vte_iso2022_map_get(state->g[current],
+			     &map, &bytes_per_char, &force_width,
+			     &or_mask, &and_mask);
+	if (*inbytes < (bytes_per_char + 1)) {
+		/* We need more information to work with. */
+		return -1;
+	}
+
+	for (acc = 0, i = 0; i < bytes_per_char; i++) {
+		acc = (acc << 8) | ((guint8*)inptr)[i + 1];
+	}
+	*inbuf += (bytes_per_char + 1);
+	*inbytes -= (bytes_per_char + 1);
+
+	acc &= and_mask;
+	acc |= or_mask;
+	p = GINT_TO_POINTER(acc);
+	c = GPOINTER_TO_INT(g_tree_lookup(map, p));
+	if ((c == 0) && (acc != 0)) {
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+			fprintf(stderr, "%04lx -(%c)-> %04lx(?)\n",
+				acc, state->g[current] & 0xff, acc);
+		}
+#endif
+	} else {
+		width = 0;
+		if (force_width != 0) {
+			width = force_width;
+		} else {
+			if (_vte_iso2022_is_ambiguous(c)) {
+				width = _vte_iso2022_ambiguous_width();
+			}
+		}
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+			fprintf(stderr, "%05lx -> " "%04x\n", acc, c);
+		}
+#endif
+		c = _vte_iso2022_set_encoded_width(c, width);
+	}
+	/* Save the unichar. */
+	g_assert(*outbytes >= sizeof(c));
+	*outbytes -= sizeof(c);
+	*outptr++ = c;
+	*outbuf = outptr;
+	/* Return the number of input bytes consumed. */
+	return bytes_per_char + 1;
+}
+
 static glong
 process_cdata(struct _vte_iso2022_state *state, guchar *cdata, gsize length,
 	      GArray *gunichars)
@@ -1081,7 +1189,7 @@ process_cdata(struct _vte_iso2022_state *state, guchar *cdata, gsize length,
 	gulong acc, or_mask, and_mask;
 	gunichar c;
 	gpointer p;
-	gboolean single;
+	gboolean single, stop;
 
 	if (ambiguous_width == 0) {
 		ambiguous_width = _vte_iso2022_ambiguous_width();
@@ -1104,19 +1212,39 @@ process_cdata(struct _vte_iso2022_state *state, guchar *cdata, gsize length,
 			converted = _vte_conv(state->conv,
 					      &inbuf, &inbytes,
 					      (gchar**) &outbuf, &outbytes);
+			stop = FALSE;
 			switch (converted) {
 			case ((size_t)-1):
 				switch (errno) {
 				case EILSEQ:
-					/* Nonsense... munge the input. */
-					inbuf++;
-					inbytes--;
-					*outbuf = INVALID_CODEPOINT;
-					outbuf++;
+					/* Check if it's an 8-bit sequence. */
+					i = process_8_bit_sequence(state,
+								   &inbuf,
+								   &inbytes,
+								   &outbuf,
+								   &outbytes);
+					switch (i) {
+					case 0:
+						/* Nope, munge the input. */
+						inbuf++;
+						inbytes--;
+						*outbuf++ = INVALID_CODEPOINT;
+						outbytes -= sizeof(gunichar);
+						break;
+					case -1:
+						/* Looks good so far, try again
+						 * later. */
+						stop = TRUE;
+						break;
+					default:
+						/* Processed n bytes, just keep
+						 * going. */
+						break;
+					}
 					break;
 				case EINVAL:
-					/* Incomplete. Skip the rest. */
-					inbytes = 0;
+					/* Incomplete. Save for later. */
+					stop = TRUE;
 					break;
 				case E2BIG:
 					/* Should never happen. */
@@ -1130,9 +1258,9 @@ process_cdata(struct _vte_iso2022_state *state, guchar *cdata, gsize length,
 			default:
 				break;
 			}
-		} while (inbytes > 0);
+		} while ((inbytes > 0) && !stop);
 
-		/* Append the unichars to the array. */
+		/* Append the unichars to the GArray. */
 		for (i = 0; &buf[i] < (char*)outbuf; i += sizeof(gunichar)) {
 			c = *(gunichar*)(buf + i);
 			if (c == '\0') {
@@ -1146,7 +1274,7 @@ process_cdata(struct _vte_iso2022_state *state, guchar *cdata, gsize length,
 		}
 
 		/* Done. */
-		processed = length;
+		processed = length - inbytes;
 	} else {
 		_vte_iso2022_map_get(state->g[current],
 				     &map, &bytes_per_char, &force_width,
@@ -1176,11 +1304,12 @@ process_cdata(struct _vte_iso2022_state *state, guchar *cdata, gsize length,
 					g_array_append_val(gunichars, acc);
 				} else {
 					width = 0;
-					if (_vte_iso2022_is_ambiguous(c)) {
-						width = ambiguous_width;
-					}
 					if (force_width != 0) {
 						width = force_width;
+					} else {
+						if (_vte_iso2022_is_ambiguous(c)) {
+							width = ambiguous_width;
+						}
 					}
 #ifdef VTE_DEBUG
 					if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
@@ -1217,7 +1346,9 @@ _vte_iso2022_process_single(struct _vte_iso2022_state *state,
 			     &or_mask, &and_mask);
 
 	p = GINT_TO_POINTER((c & and_mask) | or_mask);
-	p = g_tree_lookup(tree, p);
+	if (tree != NULL) {
+		p = g_tree_lookup(tree, p);
+	}
 	if (p != NULL) {
 		ret = GPOINTER_TO_INT(p);
 	} else {
@@ -1295,12 +1426,14 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 			}
 #endif
 			break;
-		default:
-			if ((length >= 2) && (ctl[0] == '\033')) {
+		case '\033':
+			if (length >= 2) {
 				switch (ctl[1]) {
 				case '[': /* CSI */
 				case ']': /* OSC */
+				case '^': /* PM */
 				case 'P': /* DCS */
+					/* Pass it through. */
 					for (i = 0; i < length; i++) {
 						c = (guchar) ctl[i];
 						g_array_append_val(gunichars,
@@ -1380,6 +1513,45 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 #endif
 					}
 					break;
+				case '%':
+					if (length >= 3) {
+						gboolean notify = FALSE;
+						switch (ctl[2]) {
+						case '@':
+							if (strcmp(state->codeset, state->native_codeset) != 0) {
+								notify = TRUE;
+							}
+							_vte_iso2022_state_set_codeset(state, state->native_codeset);
+#ifdef VTE_DEBUG
+							if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+								fprintf(stderr,
+									"\tNative encoding.\n");
+							}
+#endif
+							break;
+						case 'G':
+							if (strcmp(state->codeset, state->utf8_codeset) != 0) {
+								notify = TRUE;
+							}
+							_vte_iso2022_state_set_codeset(state, state->utf8_codeset);
+#ifdef VTE_DEBUG
+							if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
+								fprintf(stderr,
+									"\tUTF-8 encoding.\n");
+							}
+#endif
+							break;
+						default:
+							/* See ECMA-35. */
+							g_warning(_("Unrecognized identified coding system."));
+							break;
+						}
+						if (notify &&
+						    state->codeset_changed) {
+							state->codeset_changed(state, state->codeset_changed_data);
+						}
+					}
+					break;
 				case '$':
 					if (length >= 4) {
 						int g = -1;
@@ -1457,50 +1629,15 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 #endif
 					}
 					break;
-				case '%':
-					if (length >= 3) {
-						gboolean notify = FALSE;
-						switch (ctl[2]) {
-						case '@':
-							if (strcmp(state->codeset, state->native_codeset) != 0) {
-								notify = TRUE;
-							}
-							_vte_iso2022_state_set_codeset(state, state->native_codeset);
-#ifdef VTE_DEBUG
-							if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-								fprintf(stderr,
-									"\tNative encoding.\n");
-							}
-#endif
-							break;
-						case 'G':
-							if (strcmp(state->codeset, state->utf8_codeset) != 0) {
-								notify = TRUE;
-							}
-							_vte_iso2022_state_set_codeset(state, state->utf8_codeset);
-#ifdef VTE_DEBUG
-							if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-								fprintf(stderr,
-									"\tUTF-8 encoding.\n");
-							}
-#endif
-							break;
-						default:
-							g_assert_not_reached();
-							break;
-						}
-						if (notify &&
-						    state->codeset_changed) {
-							state->codeset_changed(state, state->codeset_changed_data);
-						}
-					}
-					break;
 				default:
 					g_assert_not_reached();
 					break;
 				}
 				break;
 			}
+			break;
+		default:
+			g_assert_not_reached();
 			break;
 		}
 	}
@@ -1513,7 +1650,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 {
 	GArray *blocks;
 	struct _vte_iso2022_block block;
-	gboolean was_preserve = FALSE;
+	gboolean preserve_last = FALSE;
 	int i, initial;
 
 	blocks = g_array_new(TRUE, TRUE, sizeof(struct _vte_iso2022_block));
@@ -1544,16 +1681,27 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 #endif
 			initial = 0;
 			while (initial < block.end - block.start) {
-				initial += process_cdata(state,
-							 input->bytes +
-							 block.start +
-							 initial,
-							 block.end -
-							 block.start -
-							 initial,
-							 gunichars);
+				int j;
+				j = process_cdata(state,
+						  input->bytes +
+						  block.start +
+						  initial,
+						  block.end -
+						  block.start -
+						  initial,
+						  gunichars);
+				if (j == 0) {
+					break;
+				}
+				initial += j;
 			}
-			was_preserve = FALSE;
+			if ((initial < block.end - block.start) &&
+			    (i == blocks->len - 1)) {
+				preserve_last = TRUE;
+				block.start += initial;
+			} else {
+				preserve_last = FALSE;
+			}
 			break;
 		case _vte_iso2022_control:
 #ifdef VTE_DEBUG
@@ -1566,7 +1714,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 				        input->bytes + block.start,
 				        block.end - block.start,
 				        gunichars);
-			was_preserve = FALSE;
+			preserve_last = FALSE;
 			break;
 		case _vte_iso2022_preserve:
 #ifdef VTE_DEBUG
@@ -1575,14 +1723,15 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 					block.start, block.end);
 			}
 #endif
-			was_preserve = TRUE;
+			g_assert(i == blocks->len - 1);
+			preserve_last = TRUE;
 			break;
 		default:
 			g_assert_not_reached();
 			break;
 		}
 	}
-	if (was_preserve && (blocks->len > 0)) {
+	if (preserve_last && (blocks->len > 0)) {
 		block = g_array_index(blocks, struct _vte_iso2022_block, blocks->len - 1);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
@@ -1598,7 +1747,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 				(long) _vte_buffer_length(input));
 		}
 #endif
-		_vte_buffer_consume(input, _vte_buffer_length(input));
+		_vte_buffer_clear(input);
 	}
 }
 

@@ -7,7 +7,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte HEAD\n"
-"POT-Creation-Date: 2003-05-10 15:22+0900\n"
+"POT-Creation-Date: 2003-05-19 14:33-0400\n"
 "PO-Revision-Date: 2003-05-10 15:27+0900\n"
 "Last-Translator: KAMAGASAKO Masatoshi <emerald@gnome.gr.jp>\n"
 "Language-Team: Japanese <gnome-translation@gnome.gr.jp>\n"
@@ -15,17 +15,22 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:744 src/vte.c:1991
+#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "%s から %s への文字の変換に失敗しました。"
 
-#: src/iso2022.c:1355
+#: src/iso2022.c:1505
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "無効な NRC マップ '%c' を設定しようとしています"
 
-#: src/iso2022.c:1406 src/iso2022.c:1432
+#. See ECMA-35.
+#: src/iso2022.c:1546
+msgid "Unrecognized identified coding system."
+msgstr ""
+
+#: src/iso2022.c:1595 src/iso2022.c:1621
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "無効なワイド NRC マップ '%c' を設定しようとしています"
@@ -43,7 +48,7 @@ msgstr "環境に '%s' を追加するのに失敗しました。処理を継続
 msgid "can not run %s"
 msgstr "%s を実行できません。"
 
-#: src/reaper.c:108
+#: src/reaper.c:110
 msgid "Error creating signal pipe."
 msgstr "シグナルパイプの生成に失敗しました。"
 
@@ -52,49 +57,49 @@ msgstr "シグナルパイプの生成に失敗しました。"
 msgid "Duplicate (%s/%s)!"
 msgstr "重複しています! (%s/%s)"
 
-#: src/vte.c:1427
+#: src/vte.c:1430
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "正規表現 \"%s\" のコンパイルの失敗しました。"
 
-#: src/vte.c:5501
+#: src/vte.c:5534
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "予測しない (キー?) シーケンス '%s' が返されました。"
 
-#: src/vte.c:6514
+#: src/vte.c:6547
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "コントロール・シーケンス '%s' のハンドラは定義されていません。"
 
-#: src/vte.c:7230
+#: src/vte.c:7293
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "子プロセスの読み込み中にエラー: %s。"
 
-#: src/vte.c:7384
+#: src/vte.c:7449
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "子プロセスのデータ変換中にエラー (%s) が発生しました。取り消します。"
 
-#: src/vte.c:9934
+#: src/vte.c:10069
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "PTY サイズの読み込みに失敗しました。デフォルトのサイズ: %s を利用します。"
 
-#: src/vte.c:9970
+#: src/vte.c:10105
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTY サイズ: %s の設定に失敗しました。"
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:13912
+#: src/vte.c:14067
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() は文字の設定に失敗しました"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:640
+#: src/vteapp.c:642
 msgid "Could not open console.\n"
 msgstr "コンソールを開けませんでした。\n"
 

@@ -7,7 +7,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2003-01-10 10:45+0300\n"
+"POT-Creation-Date: 2003-05-19 14:33-0400\n"
 "PO-Revision-Date: 2003-01-10 12:27+0300\n"
 "Last-Translator: Dmitry G. Mastrukov <dmitry@taurussoft.org>\n"
 "Language-Team: Russian <gnome-cyr@gnome.org>\n"
@@ -15,109 +15,142 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:253
-#, c-format
-msgid "Error adding `%s' to environment, continuing."
-msgstr "Произошла ошибк при добавлении переменной \"%s\" к окружению, продолжается."
-
-#. Give the user some clue as to why session logging is not
-#. * going to work (assuming we can open a pty using some other
-#. * method).
-#: src/pty.c:800
-#, c-format
-msgid "can not run %s"
-msgstr "невозможно запустить \"%s\""
-
-#: src/reaper.c:107
-msgid "Error creating signal pipe."
-msgstr "Произошла ошибка при создании канала сообщений."
-
-#: src/trie.c:411
-#, c-format
-msgid "Duplicate (%s/%s)!"
-msgstr "Дублирование (%s/%s)!"
-
-#: src/vte.c:1403
-#, c-format
-msgid "Error compiling regular expression \"%s\"."
-msgstr "Произошла ошибка при компиляции регулярного выражения\"%s\". "
-
-#: src/vte.c:1925 src/vte.c:1934 src/vte.c:1946 src/vte.c:1964 src/vte.c:1970
-#: src/vte.c:1975
+#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Невозможно преобразовать символы из набора \"%s\" в набор \"%s\""
 
-#: src/vte.c:5437
+#: src/iso2022.c:1505
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr ""
+
+#. See ECMA-35.
+#: src/iso2022.c:1546
+msgid "Unrecognized identified coding system."
+msgstr ""
+
+#: src/iso2022.c:1595 src/iso2022.c:1621
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr ""
+
+#: src/pty.c:317
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr ""
+"Произошла ошибк при добавлении переменной \"%s\" к окружению, продолжается."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:877
+#, c-format
+msgid "can not run %s"
+msgstr "невозможно запустить \"%s\""
+
+#: src/reaper.c:110
+msgid "Error creating signal pipe."
+msgstr "Произошла ошибка при создании канала сообщений."
+
+#: src/trie.c:412
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "Дублирование (%s/%s)!"
+
+#: src/vte.c:1430
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Произошла ошибка при компиляции регулярного выражения\"%s\". "
+
+#: src/vte.c:5534
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Получена непредусмотренная (ключ?) последовательность \"%s\"."
 
-#: src/vte.c:6527
+#: src/vte.c:6547
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Отсутствует обработчик управляющей последовательности \"%s\"."
 
-#: src/vte.c:7273
+#: src/vte.c:7293
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Произошла ошибка при чтении из потомка: %s."
 
-#: src/vte.c:7434
+#: src/vte.c:7449
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "Произошла ошибка (%s) при преобразовании данных от потомка, отбрасывается."
-
-#: src/vte.c:9719
-#, c-format
-msgid "Using fontset \"%s\", which is missing these character sets: %s."
-msgstr "Используется семейство шрифтов \"%s\", в котором отсутствует необходимый "
-"набор символов: %s."
-
-#: src/vte.c:10357
-#, c-format
-msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
-msgstr "Произошёл сбой при загрузке шрифта через систему Xft, идёт откат на "
-"исходный шрифт."
-
-#: src/vte.c:10369
-msgid "Failed to load default Xft font."
-msgstr "Произошёл сбой при загрузке исходного шрифта через систему Xft."
-
-#: src/vte.c:10462
-#, c-format
-msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr ""
-"Произошёл сбой при загрузке семейства шрифтов, идёт откат на исходный шрифт."
+"Произошла ошибка (%s) при преобразовании данных от потомка, отбрасывается."
 
-#: src/vte.c:10474
-msgid "Failed to load default font, crashing or behaving abnormally."
-msgstr ""
-"Произошёл сбой при загрузке исходного шрифта, дальнейшее поведение ненормально."
-
-#: src/vte.c:10736
+#: src/vte.c:10069
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr "Произошла ошибка при чтении размера PTY, используются исходные значения: %s."
+msgstr ""
+"Произошла ошибка при чтении размера PTY, используются исходные значения: %s."
 
-#: src/vte.c:10772
+#: src/vte.c:10105
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Произошла ошибка при установке размера PTY: %s."
 
-#: src/vte.c:13647
-msgid "Error allocating draw, disabling Xft."
-msgstr "Произошла ошибка при распределении структуры рисования, запрещается система Xft."
-
-#: src/vte.c:13655
-msgid "Error allocating context, disabling Pango."
-msgstr "Произошла ошибка при распределении структуры контекста, запрещается система Pango."
-
-#: src/vte.c:13661
-msgid "Error allocating layout, disabling Pango."
-msgstr "Произошла ошибка при распределении структуры расположения, запрещается система Pango."
-
 #. Aaargh.  We're screwed.
-#: src/vte.c:15292
-msgid "g_iconv_open() failed setting word characters"
+#: src/vte.c:14067
+#, fuzzy
+msgid "_vte_conv_open() failed setting word characters"
 msgstr "Произошёл сбой в функции g_iconv_open() при установке символа в слове"
+
+#. Bail back to normal mode.
+#: src/vteapp.c:642
+msgid "Could not open console.\n"
+msgstr ""
+
+#: src/vteglyph.c:575
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr ""
+
+#: src/vtexft.c:664
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr ""
+
+#~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
+#~ msgstr ""
+#~ "Используется семейство шрифтов \"%s\", в котором отсутствует необходимый "
+#~ "набор символов: %s."
+
+#~ msgid ""
+#~ "Failed to load Xft font pattern \"%s\", falling back to default font."
+#~ msgstr ""
+#~ "Произошёл сбой при загрузке шрифта через систему Xft, идёт откат на "
+#~ "исходный шрифт."
+
+#~ msgid "Failed to load default Xft font."
+#~ msgstr "Произошёл сбой при загрузке исходного шрифта через систему Xft."
+
+#~ msgid "Failed to load font set \"%s\", falling back to default font."
+#~ msgstr ""
+#~ "Произошёл сбой при загрузке семейства шрифтов, идёт откат на исходный "
+#~ "шрифт."
+
+#~ msgid "Failed to load default font, crashing or behaving abnormally."
+#~ msgstr ""
+#~ "Произошёл сбой при загрузке исходного шрифта, дальнейшее поведение "
+#~ "ненормально."
+
+#~ msgid "Error allocating draw, disabling Xft."
+#~ msgstr ""
+#~ "Произошла ошибка при распределении структуры рисования, запрещается "
+#~ "система Xft."
+
+#~ msgid "Error allocating context, disabling Pango."
+#~ msgstr ""
+#~ "Произошла ошибка при распределении структуры контекста, запрещается "
+#~ "система Pango."
+
+#~ msgid "Error allocating layout, disabling Pango."
+#~ msgstr ""
+#~ "Произошла ошибка при распределении структуры расположения, запрещается "
+#~ "система Pango."

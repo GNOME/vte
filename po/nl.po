@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2003-01-09 06:11+0100\n"
+"POT-Creation-Date: 2003-05-19 14:33-0400\n"
 "PO-Revision-Date: 2002-12-09 23:49+0100\n"
 "Last-Translator: Reinout van Schouwen <reinout@cs.vu.nl>\n"
 "Language-Team: Dutch <vertaling@nl.linux.org>\n"
@@ -14,7 +14,27 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:253
+#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Kan tekens niet converteren van %s naar %s."
+
+#: src/iso2022.c:1505
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr ""
+
+#. See ECMA-35.
+#: src/iso2022.c:1546
+msgid "Unrecognized identified coding system."
+msgstr ""
+
+#: src/iso2022.c:1595 src/iso2022.c:1621
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr ""
+
+#: src/pty.c:317
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Er is een fout opgetreden bij toevoegen `%s' aan omgeving. Doorgaan."
@@ -22,108 +42,114 @@ msgstr "Er is een fout opgetreden bij toevoegen `%s' aan omgeving. Doorgaan."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:800
+#: src/pty.c:877
 #, c-format
 msgid "can not run %s"
 msgstr "Kan %s niet starten"
 
-#: src/reaper.c:107
+#: src/reaper.c:110
 msgid "Error creating signal pipe."
 msgstr "Er is een fout opgetreden bij maken van signaal-pipe."
 
-#: src/trie.c:411
+#: src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Dupliceren (%s/%s)!"
 
-#: src/vte.c:1339
+#: src/vte.c:1430
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Er is een fout opgetreden bij samenstellen reguliere expressie \"%s\"."
 
-#: src/vte.c:1860 src/vte.c:1869 src/vte.c:1881 src/vte.c:1899 src/vte.c:1905
-#: src/vte.c:1910
-#, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Kan tekens niet converteren van %s naar %s."
-
-#: src/vte.c:5368
+#: src/vte.c:5534
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Onverwachte (toetsenbord?)-combinatie `%s' ontvangen."
 
-#: src/vte.c:6455
+#: src/vte.c:6547
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Geen afhandelaar voor controlecombinatie `%s' gedefinieerd."
 
-#: src/vte.c:7073
+#: src/vte.c:7293
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Er is een fout opgetreden bij lezen van kind: %s."
 
-#: src/vte.c:7239
+#: src/vte.c:7449
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Fout (%s) bij converteren gegevens voor kind, laat het vallen."
 
-#: src/vte.c:9526
-#, c-format
-msgid "Using fontset \"%s\", which is missing these character sets: %s."
-msgstr "Lettertypenset \"%s\" wordt gebruikt, welke deze tekensets mist: %s."
-
-#: src/vte.c:10164
-#, c-format
-msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
-msgstr ""
-"Laden Xft lettertype patroon \"%s\" mislukt, val terug op standaard "
-"lettertype."
-
-#: src/vte.c:10176
-msgid "Failed to load default Xft font."
-msgstr "Laden standaard Xft lettertype mislukt."
-
-#: src/vte.c:10269
-#, c-format
-msgid "Failed to load font set \"%s\", falling back to default font."
-msgstr ""
-"Het laden van lettertypenset \"%s\" is mislukt, terugvallen op standaard "
-"lettertype."
-
-#: src/vte.c:10281
-msgid "Failed to load default font, crashing or behaving abnormally."
-msgstr ""
-"Het laden van het standaard lettertype is mislukt, het gedrag ervan is "
-"abnormaal."
-
-#: src/vte.c:10543
+#: src/vte.c:10069
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Er is een fout opgetreden bij lezen PTY grootte, standaardwaarden worden "
 "gebruikt: %s."
 
-#: src/vte.c:10579
+#: src/vte.c:10105
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Er is een fout opgetreden bij instellen PTY-grootte: %s."
 
-#: src/vte.c:13454
-msgid "Error allocating draw, disabling Xft."
-msgstr "Er is een fout opgetreden bij toewijzing tekenen, Xft wordt uitgeschakeld."
-
-#: src/vte.c:13462
-msgid "Error allocating context, disabling Pango."
-msgstr "Er is een fout opgetreden bij toewijzing context, Pango wordt uitgeschakeld."
-
-#: src/vte.c:13468
-msgid "Error allocating layout, disabling Pango."
-msgstr "Er is een fout opgetreden bij toewijzing lay-out, Pango wordt uitgeschakeld."
-
 #. Aaargh.  We're screwed.
-#: src/vte.c:15062
-msgid "g_iconv_open() failed setting word characters"
+#: src/vte.c:14067
+#, fuzzy
+msgid "_vte_conv_open() failed setting word characters"
 msgstr "g_iconv_open() niet geslaagd in instellen woordtekens"
+
+#. Bail back to normal mode.
+#: src/vteapp.c:642
+msgid "Could not open console.\n"
+msgstr ""
+
+#: src/vteglyph.c:575
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr ""
+
+#: src/vtexft.c:664
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr ""
+
+#~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
+#~ msgstr ""
+#~ "Lettertypenset \"%s\" wordt gebruikt, welke deze tekensets mist: %s."
+
+#~ msgid ""
+#~ "Failed to load Xft font pattern \"%s\", falling back to default font."
+#~ msgstr ""
+#~ "Laden Xft lettertype patroon \"%s\" mislukt, val terug op standaard "
+#~ "lettertype."
+
+#~ msgid "Failed to load default Xft font."
+#~ msgstr "Laden standaard Xft lettertype mislukt."
+
+#~ msgid "Failed to load font set \"%s\", falling back to default font."
+#~ msgstr ""
+#~ "Het laden van lettertypenset \"%s\" is mislukt, terugvallen op standaard "
+#~ "lettertype."
+
+#~ msgid "Failed to load default font, crashing or behaving abnormally."
+#~ msgstr ""
+#~ "Het laden van het standaard lettertype is mislukt, het gedrag ervan is "
+#~ "abnormaal."
+
+#~ msgid "Error allocating draw, disabling Xft."
+#~ msgstr ""
+#~ "Er is een fout opgetreden bij toewijzing tekenen, Xft wordt uitgeschakeld."
+
+#~ msgid "Error allocating context, disabling Pango."
+#~ msgstr ""
+#~ "Er is een fout opgetreden bij toewijzing context, Pango wordt "
+#~ "uitgeschakeld."
+
+#~ msgid "Error allocating layout, disabling Pango."
+#~ msgstr ""
+#~ "Er is een fout opgetreden bij toewijzing lay-out, Pango wordt "
+#~ "uitgeschakeld."
 
 #~ msgid "Character 0x%x is undefined, allocating one column."
 #~ msgstr "Teken 0x%x is ongedefinieerd, wijs één kolom toe."
@@ -131,5 +157,3 @@ msgstr "g_iconv_open() niet geslaagd in instellen woordtekens"
 #~ msgid "Error allocating Xft font, disabling Xft."
 #~ msgstr ""
 #~ "Er is een fout opgetreden bij toewijzen Xft lettertype, zet Xft uit."
-
-

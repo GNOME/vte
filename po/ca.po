@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte 0.11.6\n"
-"POT-Creation-Date: 2003-05-09 19:35+0200\n"
+"POT-Creation-Date: 2003-05-19 14:33-0400\n"
 "PO-Revision-Date: 2003-05-09 19:40+0200\n"
 "Last-Translator: Jordi Mallach <jordi@sindominio.net>\n"
 "Language-Team: Catalan <tradgnome@softcatala.org>\n"
@@ -14,17 +14,22 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:744 src/vte.c:1991
+#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "No es pot convertir el caràcter %s a %s."
 
-#: src/iso2022.c:1355
+#: src/iso2022.c:1505
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "S'ha intentat fixar el mapa NRC invàlid «%c»."
 
-#: src/iso2022.c:1406 src/iso2022.c:1432
+#. See ECMA-35.
+#: src/iso2022.c:1546
+msgid "Unrecognized identified coding system."
+msgstr ""
+
+#: src/iso2022.c:1595 src/iso2022.c:1621
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "S'ha intentat fixar el mapa ample NRC «%c»."
@@ -32,7 +37,8 @@ msgstr "S'ha intentat fixar el mapa ample NRC «%c»."
 #: src/pty.c:317
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr "S'ha produït un error en afegir «%s» a l'entorn. Es continua l'execució."
+msgstr ""
+"S'ha produït un error en afegir «%s» a l'entorn. Es continua l'execució."
 
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
@@ -42,7 +48,7 @@ msgstr "S'ha produït un error en afegir «%s» a l'entorn. Es continua l'execuc
 msgid "can not run %s"
 msgstr "no es pot executar %s"
 
-#: src/reaper.c:108
+#: src/reaper.c:110
 msgid "Error creating signal pipe."
 msgstr "S'ha produït un error en crear el senyal de conducte (SIGPIPE)."
 
@@ -51,52 +57,52 @@ msgstr "S'ha produït un error en crear el senyal de conducte (SIGPIPE)."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicat (%s/%s)!"
 
-#: src/vte.c:1427
+#: src/vte.c:1430
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "S'ha produït un error en compilar l'expressió regular «%s»."
 
-#: src/vte.c:5501
+#: src/vte.c:5534
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "S'ha produït una seqüència inesperada (de tecles?) «%s»."
 
-#: src/vte.c:6514
+#: src/vte.c:6547
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "No hi ha cap gestor definit per a la seqüència de control «%s»."
 
-#: src/vte.c:7230
+#: src/vte.c:7293
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "S'ha produït un error en llegir del fill: %s."
 
-#: src/vte.c:7384
+#: src/vte.c:7449
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "S'ha produït un error (%s) en convertir dades per al fill; s'ometrà la "
 "conversió."
 
-#: src/vte.c:9934
+#: src/vte.c:10069
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "S'ha produït un error en llegir la mida de PTY; s'usarà el valor per "
 "defecte: %s."
 
-#: src/vte.c:9970
+#: src/vte.c:10105
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "S'ha produït un error en establir la mida de PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:13912
+#: src/vte.c:14067
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() no ha pogut establir els caràcters de paraula"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:640
+#: src/vteapp.c:642
 msgid "Could not open console.\n"
 msgstr "No s'ha pogut obrir la consola.\n"
 
@@ -111,17 +117,22 @@ msgid "Can not draw character U+%04x.\n"
 msgstr "No es pot dibuixar el caràcter U+%04x.\n"
 
 #~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
-#~ msgstr "S'està utilitzant la font «%s», que no té els següents jocs de caràcters: %s."
+#~ msgstr ""
+#~ "S'està utilitzant la font «%s», que no té els següents jocs de caràcters: "
+#~ "%s."
 
 #~ msgid ""
 #~ "Failed to load Xft font pattern \"%s\", falling back to default font."
-#~ msgstr "No s'ha pogut carregar el patró de font Xft «%s»; es carregarà la font per defecte."
+#~ msgstr ""
+#~ "No s'ha pogut carregar el patró de font Xft «%s»; es carregarà la font "
+#~ "per defecte."
 
 #~ msgid "Failed to load default Xft font."
 #~ msgstr "No s'ha pogut carregar la font Xft per defecte."
 
 #~ msgid "Failed to load font set \"%s\", falling back to default font."
-#~ msgstr "No s'ha pogut carregar la font «%s»; es carregarà la font per defecte."
+#~ msgstr ""
+#~ "No s'ha pogut carregar la font «%s»; es carregarà la font per defecte."
 
 #~ msgid "Failed to load default font, crashing or behaving abnormally."
 #~ msgstr ""

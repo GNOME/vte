@@ -1,3 +1,23 @@
+2003-05-19 nalin
+	* src/keymap.c: fix KP_PageDown in application keypad mode (#113187).
+	* src/reaper.c: add a finalize method which properly cleans things up
+	so that the singleton can at least theoretically be destroyed (part of
+	a fix for #112172).
+	* src/vte.c: obtain a ref to a reaper object whenever we are waiting
+	for a child to exit.
+	* po/POTFILES.in: add more source files for scanning.
+	* src/iso2022.c: rework pieces to handle incomplete sequences at the
+	end of input.  Check for 8-bit SS2 and SS3 in case of EILSEQ.  Build
+	a fake ISO-8859-1 map for conversions using invalid maps.
+	* src/iso2022.c(_vte_iso2022_state_free): free the state's buffer.
+	* src/vteconv.c: internalize UTF-8 to UTF-8 conversions, fix handling
+	of incomplete sequences at the end of the available data.
+	* src/vte.c: implement send/receive and automatic linefeed modes.
+	* src/vte.c(vte_sequence_handler_sr): invalidate the row which contains
+	the cursor to ensure that it doesn't leave a trail.
+	* src/vte.c(vte_sequence_handler_return_terminal_id): add.
+	* src/vte.c(vte_terminal_feed_child_using_modes): add.
+
 2003-05-19 Telsa Gwynne  <hobbit@aloss.ukuu.org.uk>
 
 	* configure.in: Add cy (Welsh) to ALL_LINGUAS

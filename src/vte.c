@@ -193,6 +193,7 @@ struct _VteTerminalPrivate {
 	GIOChannel *pty_output;		/* master output watch */
 	guint pty_output_source;
 	pid_t pty_pid;			/* pid of child using pty slave */
+	VteReaper *pty_reaper;
 
 	/* Input data queues. */
 	const char *encoding;		/* the pty's encoding */
@@ -223,7 +224,9 @@ struct _VteTerminalPrivate {
 					   insertion delta */
 		gboolean reverse_mode;	/* reverse mode */
 		gboolean origin_mode;	/* origin mode */
+		gboolean sendrecv_mode;	/* sendrecv mode */
 		gboolean insert_mode;	/* insert mode */
+		gboolean linefeed_mode;	/* linefeed mode */
 		struct vte_scrolling_region {
 			int start, end;
 		} scrolling_region;	/* the region we scroll in */
@@ -3355,9 +3358,19 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 				 * bottom off. */
 				vte_remove_line_internal(terminal, start);
 				vte_insert_line_internal(terminal, end);
+				/* This may generate multiple redraws, so
+				 * disable fast scrolling for now. */
+				terminal->pvt->scroll_lock_count++;
+				gdk_window_freeze_updates(widget->window);
 				/* Update the display. */
 				vte_terminal_scroll_region(terminal, start,
 							   end - start + 1, -1);
+				vte_invalidate_cells(terminal,
+						     0, terminal->column_count,
+						     end - 2, 2);
+				/* Allow updates again. */
+				gdk_window_thaw_updates(widget->window);
+				terminal->pvt->scroll_lock_count--;
 			}
 		} else {
 			/* Scroll up with history. */
@@ -3483,12 +3496,17 @@ vte_sequence_handler_sr(VteTerminal *terminal,
 		vte_insert_line_internal(terminal, start);
 		/* Update the display. */
 		vte_terminal_scroll_region(terminal, start, end - start + 1, 1);
+		vte_invalidate_cells(terminal,
+				     0, terminal->column_count,
+				     start, 2);
 	} else {
 		/* Otherwise, just move the cursor up. */
 		screen->cursor_current.row--;
 	}
 	/* Adjust the scrollbars if necessary. */
 	vte_terminal_adjust_adjustments(terminal, FALSE);
+	/* We modified the display, so make a note of it. */
+	terminal->pvt->text_modified_flag = TRUE;
 }
 
 /* Cursor up, with scrolling. */
@@ -3998,7 +4016,20 @@ vte_sequence_handler_send_primary_device_attributes(VteTerminal *terminal,
 						    GValueArray *params)
 {
 	/* Claim to be a VT220 with only national character set support. */
-	vte_terminal_feed_child(terminal, "[?60;9c", -1);
+	vte_terminal_feed_child(terminal, "[?60;9;c", -1);
+}
+
+/* Send terminal ID. */
+static void
+vte_sequence_handler_return_terminal_id(VteTerminal *terminal,
+				        const char *match,
+				        GQuark match_quark,
+				        GValueArray *params)
+{
+	vte_sequence_handler_send_primary_device_attributes(terminal,
+							    match,
+							    match_quark,
+							    params);
 }
 
 /* Send secondary device attributes. */
@@ -4674,9 +4705,11 @@ vte_sequence_handler_set_mode_internal(VteTerminal *terminal,
 	case 4:		/* insert/overtype mode */
 		terminal->pvt->screen->insert_mode = value;
 		break;
-	case 12:	/* send/receive mode (local echo?) */
+	case 12:	/* send/receive mode (local echo) */
+		terminal->pvt->screen->sendrecv_mode = value;
 		break;
 	case 20:	/* automatic newline / normal linefeed mode */
+		terminal->pvt->screen->linefeed_mode = value;
 		break;
 	default:
 		break;
@@ -5885,7 +5918,7 @@ static struct {
 	{"restore-cursor", vte_sequence_handler_rc},
 	{"restore-mode", vte_sequence_handler_restore_mode},
 	{"return-terminal-status", vte_sequence_handler_return_terminal_status},
-	{"return-terminal-id", NULL},
+	{"return-terminal-id", vte_sequence_handler_return_terminal_id},
 	{"reverse-index", vte_sequence_handler_reverse_index},
 	{"save-cursor", vte_sequence_handler_sc},
 	{"save-mode", vte_sequence_handler_save_mode},
@@ -6531,6 +6564,16 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 	g_return_if_fail(VTE_IS_TERMINAL(data));
 	terminal = VTE_TERMINAL(data);
 	if (pid == terminal->pvt->pty_pid) {
+		/* Disconnect from the reaper. */
+		if (VTE_IS_REAPER(terminal->pvt->pty_reaper)) {
+			g_signal_handlers_disconnect_by_func(terminal->pvt->pty_reaper,
+							     (gpointer)vte_terminal_catch_child_exited,
+							     terminal);
+			g_object_unref(G_OBJECT(terminal->pvt->pty_reaper));
+		}
+		terminal->pvt->pty_reaper = NULL;
+		terminal->pvt->pty_pid = -1;
+
 		/* Close out the PTY. */
 		_vte_terminal_disconnect_pty_read(terminal);
 		_vte_terminal_disconnect_pty_write(terminal);
@@ -6664,6 +6707,7 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 	int i;
 	pid_t pid;
 	GtkWidget *widget;
+	VteReaper *reaper;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
 	widget = GTK_WIDGET(terminal);
@@ -6708,9 +6752,18 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 		terminal->pvt->pty_pid = pid;
 
 		/* Catch a child-exited signal from the child pid. */
-		g_signal_connect(G_OBJECT(vte_reaper_get()), "child-exited",
+		reaper = vte_reaper_get();
+		g_object_ref(G_OBJECT(reaper));
+		if (VTE_IS_REAPER(terminal->pvt->pty_reaper)) {
+			g_signal_handlers_disconnect_by_func(terminal->pvt->pty_reaper,
+							     (gpointer)vte_terminal_catch_child_exited,
+							     terminal);
+			g_object_unref(G_OBJECT(terminal->pvt->pty_reaper));
+		}
+		g_signal_connect(G_OBJECT(reaper), "child-exited",
 				 G_CALLBACK(vte_terminal_catch_child_exited),
 				 terminal);
+		terminal->pvt->pty_reaper = reaper;
 
 		/* Set the pty to be non-blocking. */
 		i = fcntl(terminal->pvt->pty_master, F_GETFL);
@@ -6740,6 +6793,16 @@ vte_terminal_eof(GIOChannel *channel, gpointer data)
 
 	g_return_if_fail(VTE_IS_TERMINAL(data));
 	terminal = VTE_TERMINAL(data);
+
+	/* Stop waiting for SIGCHLD notification for this child. */
+	if (VTE_IS_REAPER(terminal->pvt->pty_reaper)) {
+		g_signal_handlers_disconnect_by_func(terminal->pvt->pty_reaper,
+						     (gpointer)vte_terminal_catch_child_exited,
+						     terminal);
+		g_object_unref(G_OBJECT(terminal->pvt->pty_reaper));
+	}
+	terminal->pvt->pty_pid = -1;
+	terminal->pvt->pty_reaper = NULL;
 
 	/* Close the connections to the child -- note that the source channel
 	 * has already been dereferenced. */
@@ -7358,11 +7421,13 @@ vte_terminal_io_write(GIOChannel *channel,
 /* Convert some arbitrarily-encoded data to send to the child. */
 static void
 vte_terminal_send(VteTerminal *terminal, const char *encoding,
-		  const void *data, gssize length)
+		  const void *data, gssize length,
+		  gboolean local_echo, gboolean newline_stuff)
 {
 	gssize icount, ocount;
-	char *ibuf, *obuf, *obufptr;
+	char *ibuf, *obuf, *obufptr, *cooked;
 	VteConv *conv;
+	long crcount, cooked_length, i;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_assert(strcmp(encoding, "UTF-8") == 0);
@@ -7384,38 +7449,90 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		g_warning(_("Error (%s) converting data for child, dropping."),
 			  strerror(errno));
 	} else {
+		crcount = 0;
+		if (newline_stuff) {
+			for (i = 0; i < obuf - obufptr; i++) {
+				switch (obuf[i]) {
+				case '\r':
+					crcount++;
+					break;
+				default:
+					break;
+				}
+			}
+		}
+		if (crcount > 0) {
+			cooked = g_malloc(obuf - obufptr + crcount);
+			cooked_length = 0;
+			for (i = 0; i < obuf - obufptr; i++) {
+				switch (obuf[i]) {
+				case '\r':
+					cooked[cooked_length++] = '\r';
+					cooked[cooked_length++] = '\n';
+					break;
+				default:
+					cooked[cooked_length++] = obuf[i];
+					break;
+				}
+			}
+		} else {
+			cooked = obufptr;
+			cooked_length = obuf - obufptr;
+		}
 		/* Tell observers that we're sending this to the child. */
-		if (obuf - obufptr > 0) {
+		if (cooked_length > 0) {
 			vte_terminal_emit_commit(terminal,
-						 obufptr, obuf - obufptr);
+						 cooked, cooked_length);
+		}
+		/* Echo the text if we've been asked to do so. */
+		if ((cooked_length > 0) && local_echo) {
+			gunichar *ucs4;
+			int i, len;
+			len = g_utf8_strlen(cooked, cooked_length);
+			ucs4 = g_utf8_to_ucs4(cooked, cooked_length,
+					      NULL, NULL, NULL);
+			if (ucs4 != NULL) {
+				for (i = 0; i < len; i++) {
+					vte_terminal_insert_char(terminal,
+								 ucs4[i],
+								 FALSE,
+								 TRUE,
+								 TRUE,
+								 TRUE,
+								 0);
+				}
+				g_free(ucs4);
+			}
 		}
 		/* If there's a place for it to go, add the data to the
 		 * outgoing buffer. */
-		if (terminal->pvt->pty_master != -1) {
+		if ((cooked_length > 0) && (terminal->pvt->pty_master != -1)) {
 			_vte_buffer_append(terminal->pvt->outgoing,
-					   obufptr, obuf - obufptr);
+					   cooked, cooked_length);
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-				while (obufptr < obuf) {
-					if ((((guint8) obufptr[0]) < 32) ||
-					    (((guint8) obufptr[0]) > 127)) {
+				for (i = 0; i < cooked_length; i++) {
+					if ((((guint8) cooked[i]) < 32) ||
+					    (((guint8) cooked[i]) > 127)) {
 						fprintf(stderr,
 							"Sending <%02x> "
 							"to child.\n",
-							obufptr[0]);
+							cooked[i]);
 					} else {
 						fprintf(stderr,
 							"Sending '%c' "
 							"to child.\n",
-							obufptr[0]);
+							cooked[i]);
 					}
-					obufptr++;
 				}
 			}
 #endif
 			/* If we need to start waiting for the child pty to
 			 * become available for writing, set that up here. */
 			_vte_terminal_connect_pty_write(terminal);
+		}
+		if (crcount > 0) {
+			g_free(cooked);
 		}
 	}
 	return;
@@ -7439,7 +7556,23 @@ vte_terminal_feed_child(VteTerminal *terminal, const char *data, glong length)
 		length = strlen(data);
 	}
 	if (length > 0) {
-		vte_terminal_send(terminal, "UTF-8", data, length);
+		vte_terminal_send(terminal, "UTF-8", data, length,
+				  FALSE, FALSE);
+	}
+}
+
+static void
+vte_terminal_feed_child_using_modes(VteTerminal *terminal,
+				    const char *data, glong length)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	if (length == ((gssize)-1)) {
+		length = strlen(data);
+	}
+	if (length > 0) {
+		vte_terminal_send(terminal, "UTF-8", data, length,
+				  !terminal->pvt->screen->sendrecv_mode,
+				  terminal->pvt->screen->linefeed_mode);
 	}
 }
 
@@ -7457,7 +7590,7 @@ vte_terminal_im_commit(GtkIMContext *im_context, gchar *text, gpointer data)
 	}
 #endif
 	terminal = VTE_TERMINAL(data);
-	vte_terminal_feed_child(terminal, text, -1);
+	vte_terminal_feed_child_using_modes(terminal, text, -1);
 	/* Committed text was committed because the user pressed a key, so
 	 * we need to obey the scroll-on-keystroke setting. */
 	if (terminal->pvt->scroll_on_keystroke) {
@@ -7899,8 +8032,9 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				vte_terminal_feed_child(terminal, "", 1);
 			}
 			if (normal_length > 0) {
-				vte_terminal_feed_child(terminal,
-							normal, normal_length);
+				vte_terminal_feed_child_using_modes(terminal,
+								    normal,
+								    normal_length);
 			}
 			g_free(normal);
 		} else
@@ -7921,7 +8055,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 							  &normal,
 							  &normal_length);
 			output = g_strdup_printf(normal, 1);
-			vte_terminal_feed_child(terminal, output, -1);
+			vte_terminal_feed_child_using_modes(terminal,
+							    output, -1);
 			g_free(output);
 			g_free(normal);
 		}
@@ -8143,7 +8278,7 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 				p++;
 			}
 		}
-		vte_terminal_send(terminal, "UTF-8", paste, length);
+		vte_terminal_feed_child(terminal, paste, length);
 		g_free(paste);
 	}
 }
@@ -10458,6 +10593,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->pty_output = NULL;
 	pvt->pty_output_source = VTE_INVALID_SOURCE;
 	pvt->pty_pid = -1;
+	pvt->pty_reaper = NULL;
 
 	/* Set up I/O encodings. */
 	pvt->encoding = NULL;
@@ -10484,7 +10620,9 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->alternate_screen.cursor_saved.col = 0;
 	pvt->alternate_screen.insert_delta = 0;
 	pvt->alternate_screen.scroll_delta = 0;
+	pvt->alternate_screen.sendrecv_mode = TRUE;
 	pvt->alternate_screen.insert_mode = FALSE;
+	pvt->alternate_screen.linefeed_mode = FALSE;
 	pvt->alternate_screen.origin_mode = FALSE;
 	pvt->alternate_screen.reverse_mode = FALSE;
 	pvt->alternate_screen.status_line = FALSE;
@@ -10501,7 +10639,9 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->normal_screen.cursor_saved.col = 0;
 	pvt->normal_screen.insert_delta = 0;
 	pvt->normal_screen.scroll_delta = 0;
+	pvt->normal_screen.sendrecv_mode = TRUE;
 	pvt->normal_screen.insert_mode = FALSE;
+	pvt->normal_screen.linefeed_mode = FALSE;
 	pvt->normal_screen.origin_mode = FALSE;
 	pvt->normal_screen.reverse_mode = FALSE;
 	pvt->normal_screen.status_line = FALSE;
@@ -11031,9 +11171,14 @@ vte_terminal_finalize(GObject *object)
 	terminal->pvt->outgoing_conv = ((VteConv) -1);
 
 	/* Stop listening for child-exited signals. */
-	g_signal_handlers_disconnect_by_func(vte_reaper_get(),
-					     (gpointer)vte_terminal_catch_child_exited,
-					     terminal);
+	if (VTE_IS_REAPER(terminal->pvt->pty_reaper)) {
+		g_signal_handlers_disconnect_by_func(terminal->pvt->pty_reaper,
+						     (gpointer)vte_terminal_catch_child_exited,
+						     terminal);
+		g_object_unref(G_OBJECT(terminal->pvt->pty_reaper));
+	}
+	terminal->pvt->pty_pid = -1;
+	terminal->pvt->pty_reaper = NULL;
 
 	/* Stop processing input. */
 	if (terminal->pvt->processing_tag != VTE_INVALID_SOURCE) {
@@ -11060,17 +11205,17 @@ vte_terminal_finalize(GObject *object)
 	terminal->pvt->conv_buffer = NULL;
 
 	/* Stop the child and stop watching for input from the child. */
-	if (terminal->pvt->pty_pid > 0) {
+	if (terminal->pvt->pty_pid != -1) {
 		kill(-terminal->pvt->pty_pid, SIGHUP);
 	}
-	terminal->pvt->pty_pid = 0;
+	terminal->pvt->pty_pid = -1;
 	_vte_terminal_disconnect_pty_read(terminal);
 	_vte_terminal_disconnect_pty_write(terminal);
 	if (terminal->pvt->pty_master != -1) {
 		_vte_pty_close(terminal->pvt->pty_master);
 		close(terminal->pvt->pty_master);
-		terminal->pvt->pty_master = -1;
 	}
+	terminal->pvt->pty_master = -1;
 
 	/* Clear some of our strings. */
 	terminal->pvt->shell = NULL;
@@ -14168,11 +14313,15 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	/* Reset restricted scrolling regions, leave insert mode, make
 	 * the cursor visible again. */
 	terminal->pvt->normal_screen.scrolling_restricted = FALSE;
+	terminal->pvt->normal_screen.sendrecv_mode = TRUE;
 	terminal->pvt->normal_screen.insert_mode = FALSE;
+	terminal->pvt->normal_screen.linefeed_mode = FALSE;
 	terminal->pvt->normal_screen.origin_mode = FALSE;
 	terminal->pvt->normal_screen.reverse_mode = FALSE;
 	terminal->pvt->alternate_screen.scrolling_restricted = FALSE;
+	terminal->pvt->alternate_screen.sendrecv_mode = TRUE;
 	terminal->pvt->alternate_screen.insert_mode = FALSE;
+	terminal->pvt->alternate_screen.linefeed_mode = FALSE;
 	terminal->pvt->alternate_screen.origin_mode = FALSE;
 	terminal->pvt->alternate_screen.reverse_mode = FALSE;
 	terminal->pvt->cursor_visible = TRUE;

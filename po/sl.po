@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2002-06-16 15:37+0200\n"
+"POT-Creation-Date: 2003-05-19 14:33-0400\n"
 "PO-Revision-Date: 2001-07-29 12:32+0200\n"
 "Last-Translator: Andraz Tori <andraz.tori1@guest.arnes.si>\n"
 "Language-Team: Slovenian <sl@li.org>\n"
@@ -13,7 +13,27 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:253
+#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Nisem uspel pretvoriti znakov iz %s v %s."
+
+#: src/iso2022.c:1505
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr ""
+
+#. See ECMA-35.
+#: src/iso2022.c:1546
+msgid "Unrecognized identified coding system."
+msgstr ""
+
+#: src/iso2022.c:1595 src/iso2022.c:1621
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr ""
+
+#: src/pty.c:317
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Napaka dodajanja okoljske spremenljivke `%s', nadaljujem"
@@ -21,42 +41,36 @@ msgstr "Napaka dodajanja okoljske spremenljivke `%s', nadaljujem"
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:800
+#: src/pty.c:877
 #, c-format
 msgid "can not run %s"
 msgstr "ne morem pognati %s"
 
-#: src/reaper.c:107
+#: src/reaper.c:110
 msgid "Error creating signal pipe."
 msgstr "Napaka ob ustvarjanju cevi signala."
 
-#: src/trie.c:411
+#: src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Podvojitev (%s/%s)!"
 
-#: src/vte.c:1407
+#: src/vte.c:1430
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Napaka ob prevajanju regularnega izraza \"%s\"."
 
-#: src/vte.c:1929 src/vte.c:1938 src/vte.c:1950 src/vte.c:1968 src/vte.c:1974
-#: src/vte.c:1979
-#, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Nisem uspel pretvoriti znakov iz %s v %s."
-
-#: src/vte.c:5459
+#: src/vte.c:5534
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Dobil nepričakovano zaporedje (kjuča?) `%s'."
 
-#: src/vte.c:6549
+#: src/vte.c:6547
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Za kontrolno zaporedje `%s' obravnavalnik ni določen"
 
-#: src/vte.c:7288
+#: src/vte.c:7293
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Napaka ob branju iz otroka: %s"
@@ -66,62 +80,64 @@ msgstr "Napaka ob branju iz otroka: %s"
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Napaka (%s) ob pretvarjanju podatkov za otroka, spuščam."
 
-#: src/vte.c:9740
-#, c-format
-msgid "Using fontset \"%s\", which is missing these character sets: %s."
-msgstr "Uporabljam izbirnik pisav \"%s\", ki mu manjkajo znakovni nabori: %s."
-
-#: src/vte.c:10378
-#, c-format
-msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
-msgstr "Nisem uspel naložiti vzorca pisav Xft \"%s\", grem nazaj na privzeto pisavo."
-
-#: src/vte.c:10390
-msgid "Failed to load default Xft font."
-msgstr "Nisem uspel naložiti privzete pisave Xft."
-
-#: src/vte.c:10483
-#, c-format
-msgid "Failed to load font set \"%s\", falling back to default font."
-msgstr "Nisem uspel naložiti nabora pisav \"%s\", grem nazaj na privzeto pisavo."
-
-#: src/vte.c:10495
-msgid "Failed to load default font, crashing or behaving abnormally."
-msgstr "Nisem uspel naložiti privzete pisave, sesul se bom ali drugače obnašal nenormalno."
-
-#: src/vte.c:10757
+#: src/vte.c:10069
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Napaka ob branju velikosti PTY, uporabljam privzeto: %s"
 
-#: src/vte.c:10793
+#: src/vte.c:10105
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Napaka ob nastavljanju velikosti PTY: %s"
 
-#: src/vte.c:13679
-msgid "Error allocating draw, disabling Xft."
-msgstr "Napaka ob rezervaciji risanja, izklopil bom Xft."
-
-#: src/vte.c:13687
-msgid "Error allocating context, disabling Pango."
-msgstr "Napaka ob rezervaciji konteksta, izklopil bom Pango."
-
-#: src/vte.c:13693
-msgid "Error allocating layout, disabling Pango."
-msgstr "Napaka ob rezervaciji postavitve, izklopil bom Pango."
-
 #. Aaargh.  We're screwed.
-#: src/vte.c:15326
-msgid "g_iconv_open() failed setting word characters"
+#: src/vte.c:14067
+#, fuzzy
+msgid "_vte_conv_open() failed setting word characters"
 msgstr "g_iconv_open() ni uspel nastaviti znakov besed"
 
-# Smart report:
-# Total untranslated messages in file: 21 
-# Translations made:
-# full: 
-# smart: 
-# cond: 
-# total: 0 ; distinct: 0
+#. Bail back to normal mode.
+#: src/vteapp.c:642
+msgid "Could not open console.\n"
+msgstr ""
 
+#: src/vteglyph.c:575
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr ""
 
+#: src/vtexft.c:664
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr ""
+
+#~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
+#~ msgstr ""
+#~ "Uporabljam izbirnik pisav \"%s\", ki mu manjkajo znakovni nabori: %s."
+
+#~ msgid ""
+#~ "Failed to load Xft font pattern \"%s\", falling back to default font."
+#~ msgstr ""
+#~ "Nisem uspel naložiti vzorca pisav Xft \"%s\", grem nazaj na privzeto "
+#~ "pisavo."
+
+#~ msgid "Failed to load default Xft font."
+#~ msgstr "Nisem uspel naložiti privzete pisave Xft."
+
+#~ msgid "Failed to load font set \"%s\", falling back to default font."
+#~ msgstr ""
+#~ "Nisem uspel naložiti nabora pisav \"%s\", grem nazaj na privzeto pisavo."
+
+#~ msgid "Failed to load default font, crashing or behaving abnormally."
+#~ msgstr ""
+#~ "Nisem uspel naložiti privzete pisave, sesul se bom ali drugače obnašal "
+#~ "nenormalno."
+
+#~ msgid "Error allocating draw, disabling Xft."
+#~ msgstr "Napaka ob rezervaciji risanja, izklopil bom Xft."
+
+#~ msgid "Error allocating context, disabling Pango."
+#~ msgstr "Napaka ob rezervaciji konteksta, izklopil bom Pango."
+
+#~ msgid "Error allocating layout, disabling Pango."
+#~ msgstr "Napaka ob rezervaciji postavitve, izklopil bom Pango."

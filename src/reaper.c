@@ -95,35 +95,79 @@ vte_reaper_emit_signal(GIOChannel *channel, GIOCondition condition,
 static void
 vte_reaper_channel_destroyed(gpointer data)
 {
-	g_assert_not_reached();
+	/* no-op */
 }
 
 static void
 vte_reaper_init(VteReaper *reaper, gpointer *klass)
 {
-	struct sigaction action, old_action;
+	struct sigaction action;
 	int ret;
+
+	/* Open the signal pipe. */
 	ret = pipe(reaper->iopipe);
 	if (ret == -1) {
 		g_error(_("Error creating signal pipe."));
 	}
-	action.sa_handler = vte_reaper_signal_handler;
-	sigemptyset(&action.sa_mask);
-	action.sa_flags = SA_RESTART | SA_NOCLDSTOP;
-	sigaction(SIGCHLD, &action, &old_action);
+
+	/* Create the channel. */
 	reaper->channel = g_io_channel_unix_new(reaper->iopipe[0]);
+
+	/* Add the channel to the source list. */
 	g_io_add_watch_full(reaper->channel,
 			    G_PRIORITY_HIGH,
 			    G_IO_IN,
 			    vte_reaper_emit_signal,
 			    reaper,
 			    vte_reaper_channel_destroyed);
+
+	/* Set the signal handler. */
+	action.sa_handler = vte_reaper_signal_handler;
+	sigemptyset(&action.sa_mask);
+	action.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+	sigaction(SIGCHLD, &action, NULL);
+}
+
+static void
+vte_reaper_finalize(GObject *reaper)
+{
+	GObjectClass *object_class;
+	struct sigaction action, old_action;
+
+	/* Reset the signal handler if we still have it hooked. */
+	action.sa_handler = SIG_DFL;
+	sigemptyset(&action.sa_mask);
+	action.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+	sigaction(SIGCHLD, NULL, &old_action);
+	if (old_action.sa_handler == vte_reaper_signal_handler) {
+		sigaction(SIGCHLD, &action, NULL);
+	}
+
+	/* Remove the channel from the source list. */
+	g_source_remove_by_user_data(reaper);
+
+	/* Remove the channel. */
+	g_io_channel_unref((VTE_REAPER(reaper))->channel);
+
+	/* Close the pipes. */
+	close((VTE_REAPER(reaper))->iopipe[1]);
+	close((VTE_REAPER(reaper))->iopipe[0]);
+
+	/* Call the inherited destructor. */
+	object_class = g_type_class_peek(G_TYPE_OBJECT);
+	if (G_OBJECT_CLASS(object_class)->finalize) {
+		(G_OBJECT_CLASS(object_class))->finalize(reaper);
+	}
+	singleton_reaper = NULL;
 }
 
 static void
 vte_reaper_class_init(VteReaperClass *klass, gpointer data)
 {
+	GObjectClass *gobject_class;
+
 	bindtextdomain(PACKAGE, LOCALEDIR);
+
 	klass->child_exited_signal = g_signal_new("child-exited",
 						  G_OBJECT_CLASS_TYPE(klass),
 						  G_SIGNAL_RUN_LAST,
@@ -133,6 +177,9 @@ vte_reaper_class_init(VteReaperClass *klass, gpointer data)
 						  _vte_marshal_VOID__INT_INT,
 						  G_TYPE_NONE,
 						  2, G_TYPE_INT, G_TYPE_INT);
+
+	gobject_class = G_OBJECT_CLASS(klass);
+	gobject_class->finalize = vte_reaper_finalize;
 }
 
 GType
@@ -170,7 +217,7 @@ vte_reaper_get_type(void)
  * Finds the address of the global #VteReaper object, creating the object if
  * necessary.
  *
- * Returns: the global #VteReaper object
+ * Returns: the global #VteReaper object, which should not be unreffed.
  */
 VteReaper *
 vte_reaper_get(void)
@@ -252,6 +299,9 @@ main(int argc, char **argv)
 
 
 	g_main_loop_run(loop);
+
+	reaper = vte_reaper_get();
+	g_object_unref(VTE_REAPER(reaper));
 
 	return 0;
 }

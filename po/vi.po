@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: VTE for Gnome v.2.1.x\n"
-"POT-Creation-Date: 2002-12-26 06:08+0100\n"
+"POT-Creation-Date: 2003-05-19 14:33-0400\n"
 "PO-Revision-Date: 2002-12-26 20:26+0700\n"
 "Last-Translator: Trinh Minh Thanh <tmthanh@yahoo.com>\n"
 "Language-Team: Gnome-Vi <Gnomevi-list@lists.sourceforge.net>\n"
@@ -14,7 +14,27 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:253
+#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Không thể chuyển đổi các ký tự từ %s thành %s."
+
+#: src/iso2022.c:1505
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr ""
+
+#. See ECMA-35.
+#: src/iso2022.c:1546
+msgid "Unrecognized identified coding system."
+msgstr ""
+
+#: src/iso2022.c:1595 src/iso2022.c:1621
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr ""
+
+#: src/pty.c:317
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Lỗi khi thêm `%s' vào môi trường, tiếp tục."
@@ -22,101 +42,100 @@ msgstr "Lỗi khi thêm `%s' vào môi trường, tiếp tục."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:800
+#: src/pty.c:877
 #, c-format
 msgid "can not run %s"
 msgstr "không thể chạy %s"
 
-#: src/reaper.c:107
+#: src/reaper.c:110
 msgid "Error creating signal pipe."
 msgstr "Lỗi khi tạo signal pipe."
 
-#: src/trie.c:411
+#: src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Nhân đôi (%s/%s)!"
 
-#: src/vte.c:1338
+#: src/vte.c:1430
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Lỗi khi biên dịch biểu hiện quy tắc \"%s\"."
 
-#: src/vte.c:1859 src/vte.c:1868 src/vte.c:1880 src/vte.c:1898 src/vte.c:1904
-#: src/vte.c:1909
-#, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Không thể chuyển đổi các ký tự từ %s thành %s."
-
-#: src/vte.c:5321
+#: src/vte.c:5534
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Nhận sequence không mong muốn (key?) `%s'."
 
-#: src/vte.c:6408
+#: src/vte.c:6547
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Không có trình quản lý nào được chỉ định cho sequence `%s'."
 
-#: src/vte.c:7018
+#: src/vte.c:7293
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Lỗi khi đọc từ child: %s."
 
-#: src/vte.c:7184
+#: src/vte.c:7449
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Lỗi (%s) khi chuyển đổi dữ liệu cho child, bỏ."
 
-#: src/vte.c:9471
-#, c-format
-msgid "Using fontset \"%s\", which is missing these character sets: %s."
-msgstr "Dùng bộ phông \"%s\" thiếu các bảng mã này: %s."
-
-#: src/vte.c:10106
-#, c-format
-msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
-msgstr "Không nạp được mẫu phông Xft \"%s\", trở lại với phông mặc định."
-
-#: src/vte.c:10118
-msgid "Failed to load default Xft font."
-msgstr "Không nạp được phông Xft mặc định."
-
-#: src/vte.c:10211
-#, c-format
-msgid "Failed to load font set \"%s\", falling back to default font."
-msgstr "Không nạp được bộ phông \"%s\", trở lại với phông mặc định."
-
-#: src/vte.c:10223
-msgid "Failed to load default font, crashing or behaving abnormally."
-msgstr "Không nạp được phông mặc định, bị crash hay ứng xử bất thường."
-
-#: src/vte.c:10486
+#: src/vte.c:10069
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Lỗi khi đọc kích thước PTY, sử dụng mặc định: %s."
 
-#: src/vte.c:10522
+#: src/vte.c:10105
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Lỗi khi lập kích thước PTY: %s."
 
-#: src/vte.c:13387
-msgid "Error allocating draw, disabling Xft."
-msgstr "Lỗi khi cấp phát draw, tắt Xft."
-
-#: src/vte.c:13395
-msgid "Error allocating context, disabling Pango."
-msgstr "Lỗi khi cấp phát ngữ cảnh (context), tắt Pango."
-
-#: src/vte.c:13401
-msgid "Error allocating layout, disabling Pango."
-msgstr "Lỗi khi cấp phát layout, tắt Pango."
-
 #. Aaargh.  We're screwed.
-#: src/vte.c:14992
-msgid "g_iconv_open() failed setting word characters"
+#: src/vte.c:14067
+#, fuzzy
+msgid "_vte_conv_open() failed setting word characters"
 msgstr "g_iconv_open() không lập được các ký tự cho word"
+
+#. Bail back to normal mode.
+#: src/vteapp.c:642
+msgid "Could not open console.\n"
+msgstr ""
+
+#: src/vteglyph.c:575
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr ""
+
+#: src/vtexft.c:664
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr ""
+
+#~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
+#~ msgstr "Dùng bộ phông \"%s\" thiếu các bảng mã này: %s."
+
+#~ msgid ""
+#~ "Failed to load Xft font pattern \"%s\", falling back to default font."
+#~ msgstr "Không nạp được mẫu phông Xft \"%s\", trở lại với phông mặc định."
+
+#~ msgid "Failed to load default Xft font."
+#~ msgstr "Không nạp được phông Xft mặc định."
+
+#~ msgid "Failed to load font set \"%s\", falling back to default font."
+#~ msgstr "Không nạp được bộ phông \"%s\", trở lại với phông mặc định."
+
+#~ msgid "Failed to load default font, crashing or behaving abnormally."
+#~ msgstr "Không nạp được phông mặc định, bị crash hay ứng xử bất thường."
+
+#~ msgid "Error allocating draw, disabling Xft."
+#~ msgstr "Lỗi khi cấp phát draw, tắt Xft."
+
+#~ msgid "Error allocating context, disabling Pango."
+#~ msgstr "Lỗi khi cấp phát ngữ cảnh (context), tắt Pango."
+
+#~ msgid "Error allocating layout, disabling Pango."
+#~ msgstr "Lỗi khi cấp phát layout, tắt Pango."
 
 #~ msgid "Character 0x%x is undefined, allocating one column."
 #~ msgstr "Ký tự 0x%x không được định nghĩa, dùng một cột."
-

@@ -1,8 +1,13 @@
 src/iso2022.c
 src/pty.c
 src/reaper.c
+src/reflect.c
+src/slowcat.c
+src/table.c
 src/trie.c
 src/vte.c
+src/vteaccess.c
 src/vteapp.c
+src/vtegl.c
 src/vteglyph.c
 src/vtexft.c

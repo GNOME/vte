@@ -7,7 +7,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2003-05-09 12:09+0200\n"
+"POT-Creation-Date: 2003-05-19 14:33-0400\n"
 "PO-Revision-Date: 2003-05-09 12:09+0200\n"
 "Last-Translator: Christian Rose <menthos@menthos.com>\n"
 "Language-Team: Swedish <sv@li.org>\n"
@@ -15,17 +15,22 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:744 src/vte.c:1991
+#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Kan inte konvertera tecken från %s till %s."
 
-#: src/iso2022.c:1355
+#: src/iso2022.c:1505
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Försök att ställa in ogiltig NRC-mappning \"%c\"."
 
-#: src/iso2022.c:1406 src/iso2022.c:1432
+#. See ECMA-35.
+#: src/iso2022.c:1546
+msgid "Unrecognized identified coding system."
+msgstr ""
+
+#: src/iso2022.c:1595 src/iso2022.c:1621
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Försök att ställa in ogiltig bred NRC-mappning \"%c\"."
@@ -43,7 +48,7 @@ msgstr "Fel vid tillägg av \"%s\" till miljön, fortsätter."
 msgid "can not run %s"
 msgstr "kan inte köra %s"
 
-#: src/reaper.c:108
+#: src/reaper.c:110
 msgid "Error creating signal pipe."
 msgstr "Fel vid skapande av signalrör."
 
@@ -52,48 +57,48 @@ msgstr "Fel vid skapande av signalrör."
 msgid "Duplicate (%s/%s)!"
 msgstr "Dubbel (%s/%s)!"
 
-#: src/vte.c:1427
+#: src/vte.c:1430
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Fel vid kompilering av reguljärt uttryck \"%s\"."
 
-#: src/vte.c:5501
+#: src/vte.c:5534
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Fick oväntad (tangent?)sekvens \"%s\"."
 
-#: src/vte.c:6514
+#: src/vte.c:6547
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Ingen hanterare för kontrollsekvensen \"%s\" är angiven."
 
-#: src/vte.c:7230
+#: src/vte.c:7293
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Fel vid läsning från barn: %s."
 
-#: src/vte.c:7384
+#: src/vte.c:7449
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Fel (%s) vid konvertering av data för barn, kastar."
 
-#: src/vte.c:9934
+#: src/vte.c:10069
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Fel vid läsande av PTY-storlek, använder standardvärden: %s."
 
-#: src/vte.c:9970
+#: src/vte.c:10105
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Fel vid inställning av PTY-storlek: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:13912
+#: src/vte.c:14067
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() misslyckades med att ställa in ordtecken"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:640
+#: src/vteapp.c:642
 msgid "Could not open console.\n"
 msgstr "Kunde inte öppna konsollen.\n"
 

@@ -8,7 +8,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2003-05-06 04:15+0200\n"
+"POT-Creation-Date: 2003-05-19 14:33-0400\n"
 "PO-Revision-Date: 2003-05-01  12:05+0100\n"
 "Last-Translator: Veljko M. Stanojević <veljko@vms.homelinux.net>\n"
 "Language-Team: Serbian (sr) <serbiangnome-lista@nongnu.org>\n"
@@ -17,6 +17,26 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3;    plural=n%10==1 && n%100!=11 ? 0 :    n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+
+#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Ne mogu da preinačim znakove iz %s u %s."
+
+#: src/iso2022.c:1505
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr ""
+
+#. See ECMA-35.
+#: src/iso2022.c:1546
+msgid "Unrecognized identified coding system."
+msgstr ""
+
+#: src/iso2022.c:1595 src/iso2022.c:1621
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr ""
 
 #: src/pty.c:317
 #, c-format
@@ -31,63 +51,70 @@ msgstr "Greška pri dodavanju `%s´ u okruženje, nastavljam."
 msgid "can not run %s"
 msgstr "ne mogu da pokrenem %s"
 
-#: src/reaper.c:108
+#: src/reaper.c:110
 msgid "Error creating signal pipe."
 msgstr "Greška pri pravljenju signalne veze."
 
-#: src/trie.c:411
+#: src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikat (%s/%s)!"
 
-#: src/vte.c:1426
+#: src/vte.c:1430
 #, fuzzy, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Greška pri prevođenju pravilnih izraza `%s´."
 
-#: src/vte.c:1988
-#, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Ne mogu da preinačim znakove iz %s u %s."
-
-#: src/vte.c:5499
+#: src/vte.c:5534
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Neočekivani nastavak (tipka?) `%s´."
 
-#: src/vte.c:6512
+#: src/vte.c:6547
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Nedefinisan način uptrebe kontrolnog niza `%s´."
 
-#: src/vte.c:7228
+#: src/vte.c:7293
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Greška pri čitanju podprocesa: %s."
 
-#: src/vte.c:7382
+#: src/vte.c:7449
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Greška (%s) pri promeni podataka za podproces - obustavljam."
 
-#: src/vte.c:9932
+#: src/vte.c:10069
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Greška pri čitanju veličine PTY-a, koristim polazne vrednosti: %s."
 
-#: src/vte.c:9968
+#: src/vte.c:10105
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Greška pri postavljnju veličine PTY-a: %s."
 
-#: src/vte.c:13155
-msgid "Don't know how to convert to/from gunichar data!"
+#. Aaargh.  We're screwed.
+#: src/vte.c:14067
+#, fuzzy
+msgid "_vte_conv_open() failed setting word characters"
+msgstr "g_iconv_open() neuspešno postavljanje znakova reči"
+
+#. Bail back to normal mode.
+#: src/vteapp.c:642
+msgid "Could not open console.\n"
 msgstr ""
 
-#. Aaargh.  We're screwed.
-#: src/vte.c:13917
-msgid "g_iconv_open() failed setting word characters"
-msgstr "g_iconv_open() neuspešno postavljanje znakova reči"
+#: src/vteglyph.c:575
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr ""
+
+#: src/vtexft.c:664
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr ""
 
 #~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
 #~ msgstr ""

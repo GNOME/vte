@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2003-02-25 19:26+0100\n"
+"POT-Creation-Date: 2003-05-19 14:33-0400\n"
 "PO-Revision-Date: 2003-02-25 19:52--100\n"
 "Last-Translator: Samuel Jon Gunnarsson <sammi@techattack.nu>\n"
 "Language-Team: Icelandic <gnome@techattack.nu>\n"
@@ -14,7 +14,27 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:253
+#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Ekki tókst að umbreyta rittáknum frá %s yfir í %s."
+
+#: src/iso2022.c:1505
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr ""
+
+#. See ECMA-35.
+#: src/iso2022.c:1546
+msgid "Unrecognized identified coding system."
+msgstr ""
+
+#: src/iso2022.c:1595 src/iso2022.c:1621
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr ""
+
+#: src/pty.c:317
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Villa. Ekki tókst að bæta `%s' við í umhverfið, held áfram."
@@ -22,102 +42,102 @@ msgstr "Villa. Ekki tókst að bæta `%s' við í umhverfið, held áfram."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:800
+#: src/pty.c:877
 #, c-format
 msgid "can not run %s"
 msgstr "get ekki keyrt %s"
 
-#: src/reaper.c:107
+#: src/reaper.c:110
 msgid "Error creating signal pipe."
 msgstr "Villa. Ekki tókst að búa til merkja pípu."
 
-#: src/trie.c:411
+#: src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Tvöfalda (%s/%s)!"
 
-#: src/vte.c:1422
+#: src/vte.c:1430
 #, fuzzy, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Villa. Ekki tókst að vistþýða regular expression \"%s\"."
 
-#: src/vte.c:1980
-#: src/vte.c:1989
-#: src/vte.c:2001
-#: src/vte.c:2019
-#: src/vte.c:2025
-#: src/vte.c:2030
-#, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Ekki tókst að umbreyta rittáknum frá %s yfir í %s."
-
-#: src/vte.c:5557
+#: src/vte.c:5534
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Meðtók óvænta (flýtilykla?) runu `%s'."
 
-#: src/vte.c:6648
+#: src/vte.c:6547
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Engin aðgerð fyrir stjórnun á runu `%s' skilgreind."
 
-#: src/vte.c:7392
+#: src/vte.c:7293
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Villa. Ekki tókst að lesa frá barni: %s"
 
-#: src/vte.c:7575
+#: src/vte.c:7449
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Villa (%s) við umbreytingu á gögnum frá barni, hætti við."
 
-#: src/vte.c:9917
-#, c-format
-msgid "Using fontset \"%s\", which is missing these character sets: %s."
-msgstr "Nota letursett \"%s\", sem ekki inniheldur þessi prenttáknsett: %s."
-
-#: src/vte.c:10555
-#, c-format
-msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
-msgstr "Misstókst að hlaða Xft letur mynstri \"%s\", nota sjálfgefið letur í staðin."
-
-#: src/vte.c:10567
-msgid "Failed to load default Xft font."
-msgstr "Ekki tókst að hlaða sjálfgefið Xft letur."
-
-#: src/vte.c:10660
-#, c-format
-msgid "Failed to load font set \"%s\", falling back to default font."
-msgstr "Ekki tókst að hlaða letursetti \"%s\", nota sjálfgefið letur í staðin."
-
-#: src/vte.c:10672
-msgid "Failed to load default font, crashing or behaving abnormally."
-msgstr "Misstókst að hlaða sjálfgefnu letri, gæti ollið hruni eða óeðlilegri hegðun."
-
-#: src/vte.c:10934
+#: src/vte.c:10069
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Villa. Ekki tókst að lesa PTY stærð, nota sjálfgefið: %s"
 
-#: src/vte.c:10970
+#: src/vte.c:10105
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Villa. Ekki tókst að setja PTY stærð: %s"
 
-#: src/vte.c:13917
-msgid "Error allocating draw, disabling Xft."
-msgstr "Villa. Ekki tóskt að deila út draw, Xft er nú óvirkt."
-
-#: src/vte.c:13925
-msgid "Error allocating context, disabling Pango."
-msgstr "Villa. Ekki tókst að deila út context, Pango er nú óvirkt."
-
-#: src/vte.c:13931
-msgid "Error allocating layout, disabling Pango."
-msgstr "Villa. Ekki tókst að deila út layout. Pango er nú óvirkt."
-
 #. Aaargh.  We're screwed.
-#: src/vte.c:15646
-msgid "g_iconv_open() failed setting word characters"
+#: src/vte.c:14067
+#, fuzzy
+msgid "_vte_conv_open() failed setting word characters"
 msgstr "g_iconv_open() tókst ekki að setja orðarittákn"
 
+#. Bail back to normal mode.
+#: src/vteapp.c:642
+msgid "Could not open console.\n"
+msgstr ""
+
+#: src/vteglyph.c:575
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr ""
+
+#: src/vtexft.c:664
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr ""
+
+#~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
+#~ msgstr "Nota letursett \"%s\", sem ekki inniheldur þessi prenttáknsett: %s."
+
+#~ msgid ""
+#~ "Failed to load Xft font pattern \"%s\", falling back to default font."
+#~ msgstr ""
+#~ "Misstókst að hlaða Xft letur mynstri \"%s\", nota sjálfgefið letur í "
+#~ "staðin."
+
+#~ msgid "Failed to load default Xft font."
+#~ msgstr "Ekki tókst að hlaða sjálfgefið Xft letur."
+
+#~ msgid "Failed to load font set \"%s\", falling back to default font."
+#~ msgstr ""
+#~ "Ekki tókst að hlaða letursetti \"%s\", nota sjálfgefið letur í staðin."
+
+#~ msgid "Failed to load default font, crashing or behaving abnormally."
+#~ msgstr ""
+#~ "Misstókst að hlaða sjálfgefnu letri, gæti ollið hruni eða óeðlilegri "
+#~ "hegðun."
+
+#~ msgid "Error allocating draw, disabling Xft."
+#~ msgstr "Villa. Ekki tóskt að deila út draw, Xft er nú óvirkt."
+
+#~ msgid "Error allocating context, disabling Pango."
+#~ msgstr "Villa. Ekki tókst að deila út context, Pango er nú óvirkt."
+
+#~ msgid "Error allocating layout, disabling Pango."
+#~ msgstr "Villa. Ekki tókst að deila út layout. Pango er nú óvirkt."
