@@ -7641,6 +7641,7 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 	}
 	rowdata = _vte_ring_index(screen->row_data, GArray*, row);
 
+#if 0
 	/* Handle end-of-line selection wackiness. */
 	if ((row == ss.y) && (row == se.y)) {
 		/* It's not selected if the both the start and end are after
@@ -7699,9 +7700,16 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 			}
 		}
 	}
+#endif
 
 	switch (terminal->pvt->selection_type) {
 	case selection_type_char:
+		/* A cell is selected if it's on the line where the
+		 * selected area starts, or the line where it ends,
+		 * or any of the lines in between. */
+		if ((row > ss.y) && (row < se.y)) {
+			return TRUE;
+		} else
 		/* A cell is selected if it's between the start and
 		 * endpoints of the selection. */
 		if (vte_cell_is_between(col, row,

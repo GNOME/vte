@@ -19,11 +19,17 @@
   illustrates more or less what the widget sees after it filters incoming data.
 
 * What's missing?
-- Accessibility may not work yet.
+- Accessibility doesn't work right yet.
+- Selection doesn't work quite right yet, but is largely correct.
+- The keymapping doesn't mimic XTerm as well as it's meant to.
+- Chinese and Korean text isn't displayed correctly because we pass it through
+  iconv() before performing substitutions, and they both use GR characters.
+  Japanese works because it only uses GL characters, which iconv() essentially
+  casts to gunichars, where we perform substitutions.  Probably we need to break
+  the text into narrow and wide chunks by performing substitution first (to find
+  and break out the wide chunks) and then iconv the narrow sets (what's left)
+  one chunk at a time.
 - Mouse hilite tracking isn't implemented yet.
-- Extending the selection using shift+click pays attention to whether or not
-  the existing selection was done word-at-a-time or line-at-a-time, but
-  probably shouldn't.
 - Most control sequences are recognized, but many aren't implemented.  There
   are enough to run ls, vim, less, emacs and mutt, but more need to be
   implemented (ff, i1, i3, is, iP, LF, LO, MC, mh, ML, mm, mo, nw, pf,
@@ -33,7 +39,7 @@
   changes in going from GTK+ 1.2 to 2.0, and examples of the proper way to do
   things is currently scarce, so some of it's guesswork.
 - An actual property interface needs to be retrofitted over the various options
-  which are currently hard-coded at startup-time.
+  which are only presented as get/set accessors.
 
 * What's weird?
 - Relative cursor motion is weird.  When the character to the right of the

@@ -1,9 +1,22 @@
-0.10: selection rewrite
-0.9: gnome-pty-helper integration, with lastlog/utmp/wtmp logging
-0.8: iso-2022 substitutions
-0.7: faster rendering
-0.6: faster input parsing
-0.5: internal wchar_t -> gunichar migration
-0.4: (later than should have been) Xft2, python
-0.3: accessibility peer
+0.10: Rewrote selection to better integrate dingus and autoscroll support.  The
+      previous implementation was just a mess.  Changed the APIs so that callers
+      have to decide whether or not to log (NOTE: this breaks gnome-terminal
+      versions before 2.1.1 and 2.0.2).
+0.9: Added integration with gnome-pty-helper.  This makes the lastlog/utmp/wtmp
+     stuff work.
+0.8: Added iso-2022 and national replacement character substitutions.  Line
+     drawing characters are now represented as Unicode code points internally,
+     so if you select a graphical line, you'll get the right results when you
+     paste it.
+0.7: Broke rendering code up into a couple of pieces to take advantage of
+     Xft2 and Xlib APIs for drawing more than one character at a time.
+0.6: Replaced the trie parser with a table-driven parser which is faster but
+     only accurate enough for ANSI-compatible terminal types.  At some point
+     I'll add a redirection layer to use the older code for other terminals.
+0.5: Store characters as gunichars internally instead of wchar_t's.  Most of
+     the internal processing is performed on gunichars anyway.
+0.4: Support for Xft2 (which lets us do things faster than Xft1), and python
+     bindings.
+0.3: Initial accessibility peer implementation.
+
 prehistory

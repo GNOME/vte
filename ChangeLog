@@ -1,3 +1,8 @@
+2002-11-04  nalin
+	* NEWS: be more verbose.
+	* README: add more items to the TODO list so that I don't forget them.
+	* src/vte.c: ifdef out some of the selection code.
+
 2002-10-30  nalin
 	* src/buffer.c, src/iso2022.c, src/vteaccess.c: add ident tags.
 	* src/vte.c: don't scroll-to-bottom if we're selecting (#96913).
