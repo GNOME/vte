@@ -196,6 +196,7 @@ struct _VteTerminalPrivate {
 	guint last_keypress_time;
 
 	gboolean bg_transparent;
+	gboolean bg_transparent_update_pending;
 	GdkAtom bg_transparent_atom;
 	GdkWindow *bg_transparent_window;
 	GdkPixbuf *bg_transparent_image;
@@ -238,11 +239,10 @@ static gboolean vte_terminal_io_read(GIOChannel *channel,
 static gboolean vte_terminal_io_write(GIOChannel *channel,
 				      GdkInputCondition condition,
 				      gpointer data);
-static void vte_terminal_setup_background(VteTerminal *terminal,
-					  gboolean fresh_transparent);
 static GdkFilterReturn vte_terminal_filter_property_changes(GdkXEvent *xevent,
 							    GdkEvent *event,
 							    gpointer data);
+static void vte_terminal_queue_background_update(VteTerminal *terminal);
 
 /* Free a no-longer-used row data array. */
 static void
@@ -1183,15 +1183,6 @@ vte_terminal_ensure_cursor(VteTerminal *terminal)
 		/* Add one more cell to the end of the line to get
 		 * it into the column, and use it. */
 		array = g_array_append_val(array, cell);
-#if 0
-		/* Remove and reinsert this row. */
-		vte_ring_remove(screen->row_data,
-				screen->cursor_current.row,
-				FALSE);
-		vte_ring_insert(screen->row_data,
-				screen->cursor_current.row,
-				array);
-#endif
 	}
 }
 
@@ -3005,15 +2996,6 @@ vte_terminal_insert_char(GtkWidget *widget, wchar_t c)
 			pcell = &g_array_index(array,
 					       struct vte_charcell,
 					       col);
-#if 0
-			/* Remove and reinsert this row. */
-			vte_ring_remove(screen->row_data,
-					screen->cursor_current.row,
-					FALSE);
-			vte_ring_insert(screen->row_data,
-					screen->cursor_current.row,
-					array);
-#endif
 		} else {
 			/* If we're in insert mode, insert a new cell here
 			 * and use it. */
@@ -3849,7 +3831,7 @@ vte_terminal_configure_toplevel(GtkWidget *widget, GdkEventConfigure *event,
 	g_return_val_if_fail(GTK_IS_WIDGET(widget), FALSE);
 	g_return_val_if_fail(GTK_WIDGET_TOPLEVEL(widget), FALSE);
 	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
-	vte_terminal_setup_background(VTE_TERMINAL(data), FALSE);
+	vte_terminal_queue_background_update(VTE_TERMINAL(data));
 	return FALSE;
 }
 
@@ -4394,7 +4376,9 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 						buffer[length++] = pcell->c;
 					}
 				} else {
-					buffer[length++] = '\n';
+					if (x < terminal->column_count) {
+						buffer[length++] = '\n';
+					}
 				}
 			}
 			x++;
@@ -5299,6 +5283,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->alt_sends_escape = TRUE;
 	pvt->audible_bell = TRUE;
 	pvt->bg_transparent = FALSE;
+	pvt->bg_transparent_update_pending = FALSE;
 	pvt->bg_transparent_atom = 0;
 	pvt->bg_transparent_window = NULL;
 	pvt->bg_transparent_image = NULL;
@@ -5452,7 +5437,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 				       allocation->y,
 				       allocation->width,
 				       allocation->height);
-		vte_terminal_setup_background(terminal, FALSE);
+		vte_terminal_queue_background_update(terminal);
 	}
 
 	/* Adjust the adjustments. */
@@ -6885,7 +6870,29 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
 	fprintf(stderr, "Setting background saturation to %ld/%ld.\n",
 		terminal->pvt->bg_saturation, (long) VTE_SATURATION_MAX);
 #endif
-	vte_terminal_setup_background(terminal, FALSE);
+	vte_terminal_queue_background_update(terminal);
+}
+
+static gboolean
+vte_terminal_update_transparent(gpointer data)
+{
+	VteTerminal *terminal;
+	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
+	terminal = VTE_TERMINAL(data);
+	if (terminal->pvt->bg_transparent_update_pending == FALSE) {
+		return FALSE;
+	}
+	vte_terminal_setup_background(terminal, TRUE);
+	terminal->pvt->bg_transparent_update_pending = FALSE;
+	return FALSE;
+}
+
+static void
+vte_terminal_queue_background_update(VteTerminal *terminal)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	terminal->pvt->bg_transparent_update_pending = TRUE;
+	g_idle_add(vte_terminal_update_transparent, terminal);
 }
 
 static GdkFilterReturn
@@ -6920,7 +6927,7 @@ vte_terminal_filter_property_changes(GdkXEvent *xevent, GdkEvent *event,
 #ifdef VTE_DEBUG
 				fprintf(stderr, "Property window matches.\n");
 #endif
-				vte_terminal_setup_background(terminal, TRUE);
+				vte_terminal_queue_background_update(terminal);
 			}
 		}
 	}
@@ -6967,7 +6974,7 @@ vte_terminal_set_background_transparent(VteTerminal *terminal, gboolean setting)
 				         terminal);
 	}
 	/* Update the background now. */
-	vte_terminal_setup_background(terminal, TRUE);
+	vte_terminal_queue_background_update(terminal);
 }
 
 void
@@ -6997,9 +7004,8 @@ vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
 	/* Turn off transparency and finish setting things up. */
 	if (terminal->pvt->bg_transparent) {
 		vte_terminal_set_background_transparent(terminal, FALSE);
-	} else {
-		vte_terminal_setup_background(terminal, FALSE);
 	}
+	vte_terminal_queue_background_update(terminal);
 }
 
 /* Set the background image using just a file.  It's more efficient for a

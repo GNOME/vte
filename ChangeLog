@@ -1,3 +1,7 @@
+2002-04-26 19:14  nalin
+	* src/vte.c: Punt all changes to background images and transparency
+	to an idle task.  Only insert newlines into the copy buffer when the
+	last column in a given line doesn't have a character in it.
 2002-04-26 17:35  notting
 	* src/pty.c: use execlp/execvp
 
