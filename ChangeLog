@@ -1,4 +1,7 @@
 2002-08-19 nalin
+	* src/vte.c: Fixup some fontconfig/Xft mixups.  Set the hint style
+	instead of hinting when reading the GTK hint style setting.
+2002-08-19 nalin
 	* src/vte.h, src/vte.c: Use gssize instead of ssize_t.  Perform
 	substitutions while processing.  Use PangoX contexts when we're using
 	the PangoX fontmap and when doing PangoX rendering.

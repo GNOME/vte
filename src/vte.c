@@ -8247,7 +8247,7 @@ vte_xft_changed_cb(GtkSettings *settings, GParamSpec *spec,
 /* Add default specifiers to the pattern which incorporate the current Xft
  * settings. */
 static void
-vte_default_substitute(VteTerminal *terminal, XftPattern *pattern)
+vte_default_substitute(VteTerminal *terminal, FcPattern *pattern)
 {
 	GtkSettings *settings;
 	GObjectClass *klass;
@@ -8293,16 +8293,15 @@ vte_default_substitute(VteTerminal *terminal, XftPattern *pattern)
 
 	/* First get and set the settings Xft1 "knows" about. */
 	if (antialias >= 0) {
-		result = XftPatternGetBool(pattern, FC_ANTIALIAS, 0, &i);
-		if (result == XftResultNoMatch) {
-			XftPatternAddBool(pattern, FC_ANTIALIAS,
-					  antialias > 0);
+		result = FcPatternGetBool(pattern, FC_ANTIALIAS, 0, &i);
+		if (result == FcResultNoMatch) {
+			FcPatternAddBool(pattern, FC_ANTIALIAS, antialias > 0);
 		}
 	}
 
 	if (rgba != NULL) {
-		result = XftPatternGetInteger(pattern, FC_RGBA, 0, &i);
-		if (result == XftResultNoMatch) {
+		result = FcPatternGetInteger(pattern, FC_RGBA, 0, &i);
+		if (result == FcResultNoMatch) {
 			i = FC_RGBA_NONE;
 			found = TRUE;
 			if (strcmp(rgba, "none") == 0) {
@@ -8323,30 +8322,25 @@ vte_default_substitute(VteTerminal *terminal, XftPattern *pattern)
 				found = FALSE;
 			}
 			if (found) {
-				XftPatternAddInteger(pattern, FC_RGBA, i);
+				FcPatternAddInteger(pattern, FC_RGBA, i);
 			}
 		}
 	}
 
 	if (dpi >= 0) {
-		result = XftPatternGetDouble(pattern, FC_DPI, 0, &d);
-		if (result == XftResultNoMatch) {
-			XftPatternAddDouble(pattern, FC_DPI, dpi / 1024.0);
+		result = FcPatternGetDouble(pattern, FC_DPI, 0, &d);
+		if (result == FcResultNoMatch) {
+			FcPatternAddDouble(pattern, FC_DPI, dpi / 1024.0);
 		}
 	}
 
-	/* If we're using Xft2/fontconfig, then all of the Xft1 API calls are
-	 * being mapped to fontconfig by the preprocessor, but these settings
-	 * are fontconfig-only, so we use the native FontConfig API here. */
-#ifdef FC_HINTING
 	if (hinting >= 0) {
 		result = FcPatternGetBool(pattern, FC_HINTING, 0, &i);
 		if (result == FcResultNoMatch) {
 			FcPatternAddBool(pattern, FC_HINTING, hinting > 0);
 		}
 	}
-#endif
-#ifdef FC_HINT_STYLE
+
 	if (hintstyle != NULL) {
 		result = FcPatternGetInteger(pattern, FC_HINT_STYLE, 0, &i);
 		if (result == FcResultNoMatch) {
@@ -8367,7 +8361,7 @@ vte_default_substitute(VteTerminal *terminal, XftPattern *pattern)
 				found = FALSE;
 			}
 			if (found) {
-				FcPatternAddInteger(pattern, FC_HINTING, i);
+				FcPatternAddInteger(pattern, FC_HINT_STYLE, i);
 			}
 		}
 	}
@@ -8375,7 +8369,6 @@ vte_default_substitute(VteTerminal *terminal, XftPattern *pattern)
 	if (vte_debug_on(VTE_DEBUG_MISC)) {
 		FcPatternPrint(pattern);
 	}
-#endif
 #endif
 }
 
