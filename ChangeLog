@@ -1,3 +1,7 @@
+2003-08-11 nalin
+	* autogen.sh: export WANT_AUTOCONF_2_5 for the sake of Mandrake autoconf
+	wrapper (bug #119066).
+
 2003-08-05 nalin
 	* vte.c(vte_sequence_handler_decset_internal,
 	vte_sequence_handler_window_manipulation): include the widget's padding

@@ -29,6 +29,9 @@ if $have_libtool ; then : ; else
 	DIE=1
 fi
 
+# Tell the Mandrake autoconf wrapper to prefer autoconf 2.5.
+WANT_AUTOCONF_2_5=1
+export WANT_AUTOCONF_2_5
 for autoconf in autoconf autoconf-2.57 autoconf-2.56 autoconf-2.55 autoconf-2.54 autoconf-2.53 autoconf-2.52 autoconf-2.51 autoconf-2.50 autoconf-2.5 ; do
 	if "$autoconf" --version < /dev/null > /dev/null 2>&1 ; then
 		version=`"$autoconf" --version | head -1 | awk '{print $NF}'`
