@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "POT-Creation-Date: 2003-01-02 02:03+0100\n"
-"PO-Revision-Date: 2003-01-02 02:22+0100\n"
+"PO-Revision-Date: 2003-01-02 13:56+0100\n"
 "Last-Translator: GNOME PL Team <translators@gnome.pl>\n"
 "Language-Team: Polish <pl@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -28,16 +28,16 @@ msgstr "Przy dodawaniu \"%s\" do środowiska wystąpił błąd, kontynuacja."
 #: src/pty.c:1
 #, c-format
 msgid "can not run %s"
-msgstr ""
+msgstr "nie można uruchomić %s"
 
 #: src/reaper.c:1
 msgid "Error creating signal pipe."
-msgstr ""
+msgstr "Błąd przy tworzeniu potoku dla sygnałów."
 
 #: src/trie.c:1
 #, c-format
 msgid "Duplicate (%s/%s)!"
-msgstr ""
+msgstr "Duplikat (%s/%s)!"
 
 #: src/vte.c:1
 #, c-format
@@ -48,17 +48,17 @@ msgstr "Przy kompilacji wyrażenia regularnego \"%s\" wystąpił błąd."
 #: src/vte.c:1
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr ""
+msgstr "Nie można przekonwertować znaków z %s na %s."
 
 #: src/vte.c:1
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr ""
+msgstr "Otrzymano nieoczekiwaną sekwencję (klawisz?) \"%s\"."
 
 #: src/vte.c:1
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr ""
+msgstr "Nie zdefiniowano obsługi dla sekwencji sterującej \"%s\""
 
 #: src/vte.c:1
 #, c-format
@@ -68,57 +68,65 @@ msgstr "Błąd przy odczycie z procesu potomnego: %s."
 #: src/vte.c:1
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr ""
+msgstr "Błąd (%s) przy konwertowaniu danych dla potomka. Porzucono."
 
 #: src/vte.c:1
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
 msgstr ""
+"Użyto zestawu czcionek \"%s\" w którym brakuje następujących zestawów "
+"znaków: %s."
 
 #: src/vte.c:1
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr ""
+"Nie można odczytać czcionki o wzorcu \"%s\", przywrócono domyślną czcionkę."
 
 #: src/vte.c:1
 msgid "Failed to load default Xft font."
-msgstr ""
+msgstr "Nie można odczytać domyślnej czcionki Xft."
 
 #: src/vte.c:1
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr ""
+"Nie można odczytać zestawu czcionek \"%s\", przywrócono domyślną czcionkę."
 
 #: src/vte.c:1
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr ""
+"Nie można odczytać domyślnej czcionki. Spowoduje to niewłaściwe zachowanie "
+"lub przerwanie działania."
 
 #: src/vte.c:1
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr ""
+msgstr "Błąd przy odczytywaniu rozmiaru PTY, użyto domyślnego: %s."
 
 #: src/vte.c:1
 #, c-format
 msgid "Error setting PTY size: %s."
-msgstr ""
+msgstr "Błąd przy ustawianiu rozmiaru PTY: %s."
 
 #: src/vte.c:1
 msgid "Error allocating draw, disabling Xft."
-msgstr ""
+msgstr "Błąd przy przydzielaniu obszaru rysowania, rezygnacja z Xft."
 
 #: src/vte.c:1
 msgid "Error allocating context, disabling Pango."
-msgstr ""
+msgstr "Błąd przy alokowaniu kontekstu, rezygnacja z Pango."
 
 #: src/vte.c:1
 msgid "Error allocating layout, disabling Pango."
-msgstr ""
+msgstr "Błąd przy alokowaniu układu, rezygnacja z Pango."
 
 #. Aaargh.  We're screwed.
 #: src/vte.c:1
 msgid "g_iconv_open() failed setting word characters"
 msgstr ""
+"Funkcja g_iconv_open() zwróciła błąd przy ustawieniu znaków o szerokości "
+"słowa"
 
 #~ msgid "Character 0x%x is undefined, allocating one column."
 #~ msgstr "Znak 0x%x jest niezdefiniowany, alokowanie jednej kolumny."
