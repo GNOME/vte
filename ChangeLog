@@ -1,4 +1,8 @@
 2003-04-21 nalin
+	* src/vte.c: don't snap the beginning of selection to the next line in
+	select-by-line mode, from HEAD.
+
+2003-04-21 nalin
 	* src/keymap.c: make Alt+Return generate ESC newline (#108863).
 
 2003-04-21 nalin
