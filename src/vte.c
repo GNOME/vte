@@ -9631,14 +9631,6 @@ vte_terminal_draw_char(VteTerminal *terminal,
 		} else if (padding == 0) {
 			XftTextExtents32(GDK_DISPLAY(), font, &ftc, 1,
 					 &glyph_info);
-			if (ftc > 256) {
-				fprintf(stderr, "Glyph %d has "
-					"width %d, x %d, xOff %d, ",
-					ftc,
-					glyph_info.width,
-					glyph_info.x,
-					glyph_info.xOff);
-			}
 			padding = CLAMP((terminal->char_width *
 					 wcwidth(ch) - glyph_info.xOff) / 2,
 					0, 3 * terminal->char_width);
