@@ -1,0 +1,120 @@
+# Albanian translation for vte 
+# This file is distributed under the same license as the vte package.
+# Copyright (C) 2003 Free Software Foundation, Inc.
+# Damnus <damnus@libero.it>, 2003
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte.gnome-2-2\n"
+"POT-Creation-Date: 2003-03-16 12:23+0100\n"
+"PO-Revision-Date: 2003-03-27 01:16+0100\n"
+"Last-Translator: Damnus <damnus@libero.it>\n"
+"Language-Team: albanian <gnome-albanian-perkthyesit@lists.sourceforge.net>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.0\n"
+
+#: src/pty.c:253
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "Gabim duke shtuar `%s' tek ambienti, duke vazhduar."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: src/pty.c:800
+#, c-format
+msgid "can not run %s"
+msgstr "Nuk mund të egzekutojë %s"
+
+#: src/reaper.c:107
+msgid "Error creating signal pipe."
+msgstr "Gabim duke krijuar drejtimin e sinjalit."
+
+#: src/trie.c:411
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "Duplikim (%s/%s)!"
+
+#: src/vte.c:1411
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Gabim duke kompiluar shprehjen e rregullt \"%s\"."
+
+#: src/vte.c:1933 src/vte.c:1942 src/vte.c:1954 src/vte.c:1972 src/vte.c:1978
+#: src/vte.c:1983
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "E pamundur të konvertohen karakteret nga %s në %s."
+
+#: src/vte.c:5513
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "U morr sekuencë ( çelës?) `%s'."
+
+#: src/vte.c:6605
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "Asnjë suportues për sekuencën e kontrollit `%s' të përcaktuar."
+
+#: src/vte.c:7347
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Gabim në leximin nga procesi fëmijë: %s"
+
+#: src/vte.c:7530
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Gabim (%s) duke konvertuar të dhënat nga procesi fëmijë, duke u ndërprerë."
+
+#: src/vte.c:9872
+#, c-format
+msgid "Using fontset \"%s\", which is missing these character sets: %s."
+msgstr "Grupi i karakteeve në përdorim \"%s\", nuk ka këto karaktere: %s."
+
+#: src/vte.c:10513
+#, c-format
+msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
+msgstr "Dështoi karikimi i karaktereve Xft \"%s\", po karikoj karakteret default."
+
+#: src/vte.c:10525
+msgid "Failed to load default Xft font."
+msgstr "Dështoi në karikimin e karaktereve Xft."
+
+#: src/vte.c:10648
+#, c-format
+msgid "Failed to load font set \"%s\", falling back to default font."
+msgstr "Dështoi në karikimin e karaktereve\"%s\", duke u kthyer në karakteret default."
+
+#: src/vte.c:10660
+msgid "Failed to load default font, crashing or behaving abnormally."
+msgstr "Dështoi në karikimin e karaktereve default, duke shkuar në krash ose në funksionim të keq."
+
+#: src/vte.c:10948
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "Gabim duke lexuar përmasën PTY, duke përdorur atë default: %s"
+
+#: src/vte.c:10984
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "Gabim duke lexuar përmasën PTY: %s."
+
+#: src/vte.c:13889
+msgid "Error allocating draw, disabling Xft."
+msgstr "Gabim në vendosjen e vizatimit, duke disaktivizuar Xft."
+
+#: src/vte.c:13897
+msgid "Error allocating context, disabling Pango."
+msgstr "Gabim në vendosjen e kontekstit, duke disaktivizuar Pango."
+
+#: src/vte.c:13903
+msgid "Error allocating layout, disabling Pango."
+msgstr "Gabim në vendosjen e pamjes së jashtme, dukke disaktivizuar Pango."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:15553
+msgid "g_iconv_open() failed setting word characters"
+msgstr "g_iconv_open() dështoi në rregullimin e karaktereve te fjalës"
+
