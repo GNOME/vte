@@ -1,3 +1,7 @@
+2003-02-13 nalin
+	* src/vte.c(vte_terminal_io_read): don't free the buffer on the stack,
+	though it should never have happened, spotted by msw.
+
 2003-02-12 nalin
 	* src/vte.c(vte_terminal_finalize): close fd leak.
 	* src/vte.c(vte_terminal_fork_command): close potential fd leak.

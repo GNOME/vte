@@ -7338,8 +7338,6 @@ vte_terminal_io_read(GIOChannel *channel,
 	/* If we got data, modify the pending buffer. */
 	if (bcount >= 0) {
 		_vte_buffer_append(terminal->pvt->incoming, buf, bcount);
-	} else {
-		g_free(buf);
 	}
 
 	/* If we have data to process, schedule some time to process it. */
