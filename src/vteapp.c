@@ -115,6 +115,7 @@ main(int argc, char **argv)
 
 	/* Set some defaults. */
 	vte_terminal_set_audible_bell(VTE_TERMINAL(widget), TRUE);
+	vte_terminal_set_cursor_blinks(VTE_TERMINAL(widget), TRUE);
 	vte_terminal_set_scroll_on_output(VTE_TERMINAL(widget), TRUE);
 	vte_terminal_set_scroll_on_keystroke(VTE_TERMINAL(widget), TRUE);
 	vte_terminal_set_background_image_file(VTE_TERMINAL(widget),

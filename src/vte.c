@@ -21,6 +21,7 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/param.h>
+#include <sys/time.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <iconv.h>
@@ -177,9 +178,11 @@ struct _VteTerminalPrivate {
 	gboolean scroll_on_keystroke;
 	gboolean alt_sends_escape;
 	gboolean audible_bell;
+	gboolean cursor_blinks;
+	guint blink_period;
 	GdkPixbuf *bg_image_full;
 	GdkPixbuf *bg_image;
-	float bg_saturation;
+	double bg_saturation;
 };
 
 /* A function which can handle a terminal control sequence. */
@@ -267,6 +270,29 @@ vte_invalidate_cells(VteTerminal *terminal,
 	gdk_window_invalidate_rect(widget->window, &rect, TRUE);
 }
 
+/* Cause the cursor to be redrawn. */
+static gboolean
+vte_invalidate_cursor(gpointer data)
+{
+	VteTerminal *terminal;
+	if (!VTE_IS_TERMINAL(data)) {
+		return FALSE;
+	}
+	if (GTK_WIDGET_REALIZED(GTK_WIDGET(data))) {
+		terminal = VTE_TERMINAL(data);
+		vte_invalidate_cells(terminal,
+				     terminal->pvt->screen->cursor_current.col,
+				     1,
+				     terminal->pvt->screen->cursor_current.row,
+				     1);
+	}
+	g_timeout_add(terminal->pvt->blink_period / 2,
+		      vte_invalidate_cursor,
+		      terminal);
+	return FALSE;
+}
+
+/* Emit a "selection_changed" signal. */
 static void
 vte_terminal_emit_selection_changed(VteTerminal *terminal)
 {
@@ -4469,6 +4495,10 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->bg_image = NULL;
 	pvt->bg_saturation = 0.4;
 
+	pvt->cursor_blinks = FALSE;
+	pvt->blink_period = 1000;
+	g_timeout_add(pvt->blink_period / 2, vte_invalidate_cursor, terminal);
+
 	pvt->selection = FALSE;
 	pvt->selection_start.x = 0;
 	pvt->selection_start.y = 0;
@@ -5174,8 +5204,11 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	GC gc;
 	struct vte_charcell *cell;
 	int row, drow, col, row_stop, col_stop, x_offs = 0, y_offs = 0;
-	int width, height, ascent, descent;
-	long delta;
+	long width, height, ascent, descent, delta;
+	struct timezone tz;
+	struct timeval tv;
+	guint daytime;
+	gboolean blink;
 #ifdef HAVE_XFT
 	XftDraw *ftdraw = NULL;
 #endif
@@ -5189,6 +5222,19 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		return;
 	}
 	screen = terminal->pvt->screen;
+
+	/* Determine if blinking text should be shown. */
+	if (terminal->pvt->cursor_blinks) {
+		if (gettimeofday(&tv, &tz) == 0) {
+			daytime = (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
+			daytime = daytime % terminal->pvt->blink_period;
+			blink = daytime < (terminal->pvt->blink_period / 2);
+		} else {
+			blink = TRUE;
+		}
+	} else {
+		blink = TRUE;
+	}
 
 	/* Set up the default palette. */
 	vte_terminal_set_default_colors(terminal);
@@ -5217,48 +5263,36 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	}
 #endif
 
-	/* Keep local copies of rendering information. */
-	width = terminal->char_width;
-	height = terminal->char_height;
-	ascent = terminal->char_ascent;
-	descent = terminal->char_descent;
-	delta = screen->scroll_delta;
-
 	/* Paint the background for this area, using a filled rectangle.  We
 	 * have to do this even when the GDK background matches, otherwise
 	 * we may miss character removals before an area is re-exposed. */
 	if (terminal->pvt->bg_image != NULL) {
-#ifdef VTE_DEBUG
-#ifdef VTE_DEBUG_DRAW
-		fprintf(stderr, "Background dimensions are %dx%d.\n",
-			gdk_pixbuf_get_width(terminal->pvt->bg_image),
-			gdk_pixbuf_get_height(terminal->pvt->bg_image));
-#endif
-#endif
-		/* If the image isn't big enough, cause it to be resized. */
-		if ((gdk_pixbuf_get_width(terminal->pvt->bg_image) <
-		     area->x - x_offs + area->width) ||
-		    (gdk_pixbuf_get_height(terminal->pvt->bg_image) <
-		     area->y - y_offs + area->height)) {
-			vte_terminal_set_background_image(terminal,
-							  terminal->pvt->bg_image_full);
-#ifdef VTE_DEBUG
-#ifdef VTE_DEBUG_DRAW
-			fprintf(stderr, "Background resized to %dx%d.\n",
-				gdk_pixbuf_get_width(terminal->pvt->bg_image),
-				gdk_pixbuf_get_height(terminal->pvt->bg_image));
-#endif
-#endif
+		long x, y, w, h;
+		width = gdk_pixbuf_get_width(terminal->pvt->bg_image);
+		height = gdk_pixbuf_get_height(terminal->pvt->bg_image);
+
+		y = area->y;
+		while (y < area->y + area->height) {
+			h = MIN(area->y + area->height - y, height - (y % height));
+
+			x = area->x;
+			while (x < area->x + area->width) {
+				w = MIN(area->x + area->width - x, width - (x % width));
+
+				gdk_pixbuf_render_to_drawable(terminal->pvt->bg_image,
+							      gdrawable, ggc,
+							      x % width,
+							      y % height,
+							      x - x_offs,
+							      y - y_offs,
+							      w,
+							      h,
+							      GDK_RGB_DITHER_NONE,
+							      0, 0);
+				x += w;
+			}
+			y += h;
 		}
-		gdk_pixbuf_render_to_drawable(terminal->pvt->bg_image,
-					      gdrawable, ggc,
-					      (area->x) % gdk_pixbuf_get_width(terminal->pvt->bg_image),
-					      (area->y) % gdk_pixbuf_get_height(terminal->pvt->bg_image),
-					      area->x - x_offs,
-					      area->y - y_offs,
-					      area->width,
-					      area->height,
-					      GDK_RGB_DITHER_NONE, 0, 0);
 	} else {
 		XSetForeground(display, gc,
 			       terminal->pvt->palette[VTE_DEF_BG].pixel);
@@ -5268,6 +5302,13 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			       area->width,
 			       area->height);
 	}
+
+	/* Keep local copies of rendering information. */
+	width = terminal->char_width;
+	height = terminal->char_height;
+	ascent = terminal->char_ascent;
+	descent = terminal->char_descent;
+	delta = screen->scroll_delta;
 
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */
@@ -5349,7 +5390,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 #ifdef HAVE_XFT
 				       ftdraw,
 #endif
-				       TRUE);
+				       blink);
 	}
 
 	/* Done with various structures. */
@@ -5512,7 +5553,7 @@ vte_terminal_paste_clipboard(VteTerminal *terminal)
 }
 
 void
-vte_terminal_set_background_saturation(VteTerminal *terminal, float saturation)
+vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
 {
 	long i;
 	guchar *pixels, *oldpixels;
@@ -5528,6 +5569,7 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, float saturation)
 			pixels[i] = oldpixels[i] * terminal->pvt->bg_saturation;
 			i--;
 		}
+		/* Force a redraw for everything. */
 		if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
 			vte_invalidate_cells(terminal,
 					     0,
@@ -5541,90 +5583,32 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, float saturation)
 void
 vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
 {
-	long bits, width, oldwidth, height, oldheight, stride, oldstride, i, j;
-	GdkColorspace colorspace;
-	gboolean alpha;
-	guchar *pixels, *oldpixels;
-
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	/* Get a ref to the new image if there is one.  Do it here just in
-	 * case we're actually using the same one we're already using. */
+	 * case we're actually given the same one we're already using. */
 	if (image != NULL) {
 		g_object_ref(G_OBJECT(image));
 	}
 
 	/* Free the previous background images. */
-	if (terminal->pvt->bg_image != NULL) {
-		g_object_unref(G_OBJECT(terminal->pvt->bg_image));
-		terminal->pvt->bg_image = NULL;
-	}
 	if (terminal->pvt->bg_image_full != NULL) {
 		g_object_unref(G_OBJECT(terminal->pvt->bg_image_full));
 		terminal->pvt->bg_image_full = NULL;
 	}
-
-	if (image != NULL) {
-		/* Get information about the image. */
-		colorspace = gdk_pixbuf_get_colorspace(image);
-		alpha = gdk_pixbuf_get_has_alpha(image);
-		bits = gdk_pixbuf_get_bits_per_sample(image),
-		oldwidth = gdk_pixbuf_get_width(image),
-		oldheight = gdk_pixbuf_get_height(image);
-
-		/* Set our image fields. */
-		terminal->pvt->bg_image_full = image;
-		if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
-			/* Realized, so make sure the new image is big
-			 * enough to cover the entire widget. */
-			width = (GTK_WIDGET(terminal))->allocation.width;
-			height = (GTK_WIDGET(terminal))->allocation.height;
-			terminal->pvt->bg_image = gdk_pixbuf_new(colorspace,
-								 alpha,
-								 bits,
-								 width,
-								 height);
-		} else {
-			/* Not realized yet, just make a copy of the
-			 * background. */
-			width = oldwidth;
-			height = oldheight;
-			terminal->pvt->bg_image = gdk_pixbuf_copy(image);
-		}
-
-		/* Get image information. */
-		oldpixels = gdk_pixbuf_get_pixels(terminal->pvt->bg_image_full);
-		pixels = gdk_pixbuf_get_pixels(terminal->pvt->bg_image);
-		oldstride = gdk_pixbuf_get_rowstride(terminal->pvt->bg_image_full);
-		stride = gdk_pixbuf_get_rowstride(terminal->pvt->bg_image);
-		/* Tile the old image into the new one. */
-		j = 0;
-		while (j < height) {
-			i = 0;
-			while (i < width) {
-				gdk_pixbuf_copy_area(terminal->pvt->bg_image_full,
-						     0, 0,
-						     MIN(oldwidth, width - i),
-						     MIN(oldheight, height - j),
-						     terminal->pvt->bg_image,
-						     i, j);
-				i += oldwidth;
-			}
-			j += oldheight;
-		}
-		/* Desaturate the new image. */
-		for (i = 0; i < stride * height; i++) {
-			pixels[i] = pixels[i] * terminal->pvt->bg_saturation;
-		}
+	if (terminal->pvt->bg_image != NULL) {
+		g_object_unref(G_OBJECT(terminal->pvt->bg_image));
+		terminal->pvt->bg_image = NULL;
 	}
 
-	/* Repaint everyting. */
-	if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
-		vte_invalidate_cells(terminal,
-				     0,
-				     terminal->column_count,
-				     terminal->pvt->screen->scroll_delta,
-				     terminal->row_count);
+	if (image != NULL) {
+		/* Set our image fields. */
+		terminal->pvt->bg_image_full = image;
+		terminal->pvt->bg_image = gdk_pixbuf_copy(image);
+
+		/* Desaturate the copy. */
+		vte_terminal_set_background_saturation(terminal,
+						       terminal->pvt->bg_saturation);
 	}
 }
 
@@ -5666,4 +5650,16 @@ gboolean
 vte_terminal_get_has_selection(VteTerminal *terminal)
 {
 	return (terminal->pvt->selection != FALSE);
+}
+
+void
+vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
+{
+	terminal->pvt->cursor_blinks = blink;
+}
+
+void
+vte_terminal_set_blink_period(VteTerminal *terminal, guint period)
+{
+	terminal->pvt->blink_period = period;
 }
