@@ -5,30 +5,30 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte VERSION\n"
-"POT-Creation-Date: 2003-05-19 14:33-0400\n"
-"PO-Revision-Date: 2003-05-09 14:14+0200\n"
+"POT-Creation-Date: 2003-05-20 13:17+0200\n"
+"PO-Revision-Date: 2003-05-20 15:31+0200\n"
 "Last-Translator: Miloslav Trmac <mitr@volny.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#: src/iso2022.c:736 src/iso2022.c:747 src/iso2022.c:796 src/vte.c:1992
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Nemohu konvertovat znaky z %s do %s."
 
-#: src/iso2022.c:1505
+#: src/iso2022.c:1506
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Pokus nastavit neplatnou mapu NRC '%c'."
 
 #. See ECMA-35.
-#: src/iso2022.c:1546
+#: src/iso2022.c:1547
 msgid "Unrecognized identified coding system."
-msgstr ""
+msgstr "Neznámý identifikovaný systém kódování."
 
-#: src/iso2022.c:1595 src/iso2022.c:1621
+#: src/iso2022.c:1596 src/iso2022.c:1622
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Pokus nastavit neplatnou širokou mapu NRC '%c'."
@@ -41,7 +41,7 @@ msgstr "Chyba při přidávání `%s' do prostředí, pokračuji."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:877
+#: src/pty.c:880
 #, c-format
 msgid "can not run %s"
 msgstr "nemohu spustit %s"
@@ -55,48 +55,48 @@ msgstr "Chyba při vytváření signálové roury."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikát (%s/%s)!"
 
-#: src/vte.c:1430
+#: src/vte.c:1428
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Chyba při kompilaci regulárního výrazu \"%s\"."
 
-#: src/vte.c:5534
+#: src/vte.c:5533
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Dostal jsem neočekávanou sekvenci (kláves?) `%s'."
 
-#: src/vte.c:6547
+#: src/vte.c:6546
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Nedefinována žádná obsluha pro řídicí sekvenci `%s'."
 
-#: src/vte.c:7293
+#: src/vte.c:7282
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Chyba při čtení od potomka: %s."
 
-#: src/vte.c:7449
+#: src/vte.c:7438
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Chyba (%s) při konverzi dat pro potomka, zahazuji je."
 
-#: src/vte.c:10069
+#: src/vte.c:10058
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Chyba při čtení velikosti PTY, používám implicitní: %s."
 
-#: src/vte.c:10105
+#: src/vte.c:10094
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Chyba při nastavování velikosti PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14067
+#: src/vte.c:14075
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() selhal při nastavování znaků slova"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:642
+#: src/vteapp.c:648
 msgid "Could not open console.\n"
 msgstr "Nemohu otevřít konzoli.\n"
 
