@@ -2174,6 +2174,22 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 		if ((rowdata != NULL) && (rowdata->len > 0)) {
 			g_array_set_size(rowdata, 0);
 		}
+	}
+	/* Now fill the cleared areas. */
+	for (i = screen->cursor_current.row;
+	     i < screen->insert_delta + terminal->row_count;
+	     i++) {
+		/* Retrieve the row's data, creating it if necessary. */
+		if (_vte_ring_contains(screen->row_data, i)) {
+			rowdata = _vte_ring_index(screen->row_data, GArray*, i);
+		} else {
+			rowdata = vte_new_row_data(terminal);
+			_vte_ring_append(screen->row_data, rowdata);
+		}
+		/* Pad out the row. */
+		vte_g_array_fill(rowdata,
+				 &screen->color_defaults,
+				 terminal->column_count);
 		/* Repaint this row. */
 		vte_invalidate_cells(terminal,
 				     0, terminal->column_count,
