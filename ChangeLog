@@ -1,4 +1,8 @@
 2002-10-17 nalin
+	* src/vte.c (vte_terminal_insert_char): force invalidation mode if
+	we're in insert mode to get the entire line redrawn.  Spotted by msw.
+
+2002-10-17 nalin
 	* configure.in: clean up tests for wint_t.  Patch from Brian Cameron.
 
 2002-10-17 nalin

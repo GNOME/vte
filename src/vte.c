@@ -5749,6 +5749,7 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 	screen = terminal->pvt->screen;
 	insert = screen->insert_mode || force_insert_mode;
+	invalidate_cells = insert || invalidate_cells;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_IO) && _vte_debug_on(VTE_DEBUG_PARSE)) {
