@@ -8887,6 +8887,7 @@ vte_default_substitute(VteTerminal *terminal, FcPattern *pattern)
 		}
 	}
 
+#ifdef FC_HINT_STYLE
 	if (hintstyle != NULL) {
 		result = FcPatternGetInteger(pattern, FC_HINT_STYLE, 0, &i);
 		if (result == FcResultNoMatch) {
@@ -8911,6 +8912,7 @@ vte_default_substitute(VteTerminal *terminal, FcPattern *pattern)
 			}
 		}
 	}
+#endif
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_MISC)) {
 		FcPatternPrint(pattern);

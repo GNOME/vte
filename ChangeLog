@@ -1,3 +1,8 @@
+2002-09-04  jacob berkman  <jacob@ximian.com>
+
+	* src/vte.c (vte_default_substitute): only compile the FC_HINT_STYLE
+	part if FC_HINT_STYLE is defined
+
 2002-09-04 nalin
 	* src/vte.c: Add missing <fontconfig/fontconfig.h> include for Xft2,
 	spotted by Jacob Berkman.
