@@ -1,3 +1,8 @@
+2004-02-02 Alastair McKinstry <mckinstry@computer.org>
+
+	* configure.in: Added 'ga' to ALL_LINGUAS
+	* po/ga.po: Added Gaeilge (Irish) translation.
+
 2004-01-27  Åsmund Skjæveland  <aasmunds@fys.uio.no>
 
 	* configure.in: Added 'nn' to ALL_LINGUAS
