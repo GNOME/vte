@@ -30,7 +30,11 @@ G_BEGIN_DECLS
 /* The terminal accessibility object itself. */
 typedef struct _VteTerminalAccessible VteTerminalAccessible;
 struct _VteTerminalAccessible {
+	/*< public > */
 	GtkAccessible parent;
+	/*< private > */
+	/* Unknown GailWidget implementation stuffs, exact size of which is
+	 * worked out at run-time. */
 };
 
 /* The object's class structure. */
@@ -39,6 +43,9 @@ struct _VteTerminalAccessibleClass {
 	/*< public > */
 	/* Inherited parent class. */
 	GtkAccessibleClass parent_class;
+	/*< private > */
+	/* Unknown GailWidgetClass implementation stuffs, exact size of which
+	 * is worked out at run-time. */
 };
 
 /* The object's type. */
@@ -59,6 +66,40 @@ GtkType vte_terminal_accessible_get_type(void);
 
 
 AtkObject *vte_terminal_accessible_new(VteTerminal *terminal);
+
+/* The terminal accessibility object's factory. */
+typedef struct _VteTerminalAccessibleFactory VteTerminalAccessibleFactory;
+struct _VteTerminalAccessibleFactory {
+	/*< public > */
+	AtkObjectFactory parent;
+	/*< private > */
+};
+
+/* The object's class structure. */
+typedef struct _VteTerminalAccessibleFactoryClass VteTerminalAccessibleFactoryClass;
+struct _VteTerminalAccessibleFactoryClass {
+	/*< public > */
+	AtkObjectFactoryClass parent;
+	/*< private > */
+};
+
+/* The object's factory's type. */
+GtkType vte_terminal_accessible_factory_get_type(void);
+
+#define VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY	(vte_terminal_accessible_factory_get_type())
+#define VTE_TERMINAL_ACCESSIBLE_FACTORY(obj)	(GTK_CHECK_CAST((obj),\
+								VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY,\
+								VteTerminalAccessibleFactory))
+#define VTE_TERMINAL_ACCESSIBLE_FACTORY_CLASS(klass)	GTK_CHECK_CLASS_CAST((klass),\
+									     VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY,\
+									     VteTerminalAccessibleFactoryClass)
+#define VTE_IS_TERMINAL_ACCESSIBLE_FACTORY(obj)		GTK_CHECK_TYPE((obj),\
+								       VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY)
+#define VTE_IS_TERMINAL_ACCESSIBLE_FACTORY_CLASS(klass)	GTK_CHECK_CLASS_TYPE((klass),\
+									     VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY)
+#define VTE_TERMINAL_ACCESSIBLE_FACTORY_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS ((obj), VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY, VteTerminalAccessibleFactoryClass))
+
+AtkObjectFactory *vte_terminal_accessible_factory_new(void);
 
 G_END_DECLS
 

@@ -190,7 +190,7 @@ update_contents(AtkObject *obj, GtkWidget *widget)
 		}
 		s = g_string_append_unichar(s,
 					    g_array_index(contents,
-						   	  gunichar,
+							  gunichar,
 							  i));
 	}
 	if (i == caret) {

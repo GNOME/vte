@@ -649,7 +649,7 @@ _vte_trie_matchx(struct _vte_trie *trie, const gunichar *pattern, size_t length,
 		for (i = 0; i < bestarray->n_values; i++) {
 			g_value_array_append(array,
 					     g_value_array_get_nth(bestarray,
-						     		   i));
+								   i));
 		}
 		g_value_array_free(bestarray);
 	}

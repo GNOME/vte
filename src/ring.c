@@ -276,7 +276,7 @@ _vte_ring_remove(VteRing * ring, long position, gboolean free)
 	for (i = position; i < ring->delta + ring->length - 1; i++) {
 		ring->array[i % ring->max] = ring->array[(i + 1) % ring->max];
 	}
-	
+
 	/* Store a NULL in the position at the end of the buffer and decrement
 	 * its length (got room for one more now). */
 	ring->array[(ring->delta + ring->length - 1) % ring->max] = NULL;

@@ -347,21 +347,21 @@ static void doprotcommand(void) {
 
   switch (protcmd[0]) {
     case 'i' : dispmode=2;	/* set irc mode, ack */
-    	       bold=inv=under=0;
+	       bold=inv=under=0;
 	       write(writefd, "@ssfe@i\n", 8);
 	       break;
     case 'c' : dispmode=1;	/* set cooked mode, ack */
 	       write(writefd, "@ssfe@c\n", 8);
-    	       break;
+	       break;
     case 's' : setstatus(protcmd+1); /* set status */
-    	       displaystatus();
-    	       break;
+	       displaystatus();
+	       break;
     case 'T' : strncpy(ctrl_t, protcmd+1, 127); /* set ^t's text */
 	       ctrl_t[126] = '\0';
 	       strcat(ctrl_t, "\n");
 	       break;
     case 't' : addtab(protcmd+1); /* add tabkey entry */
-    	       break;
+	       break;
     case 'l' : fullscroll(); /* clear screen */
 	       normal();
 	       clearscreen();
@@ -397,7 +397,7 @@ static void doprotcommand(void) {
 	       }
 	       break;
     case 'o' : strcpy(o_buffer, protcmd+1);
-    	       break;
+	       break;
   }
 }
 

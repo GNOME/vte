@@ -455,7 +455,7 @@ static char *vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 						       glong end_col,
 						       gboolean wrap,
 						       gboolean(*is_selected)(VteTerminal *,
-						      			      glong,
+									      glong,
 									      glong,
 									      gpointer),
 						       gpointer data,
@@ -463,7 +463,7 @@ static char *vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 static char *vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 						 gboolean wrap,
 						 gboolean(*is_selected)(VteTerminal *,
-						      			glong,
+									glong,
 									glong,
 									gpointer),
 						 gpointer data,
@@ -8477,7 +8477,7 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 			    glong start_row, glong start_col,
 			    glong end_row, glong end_col,
 			    gboolean(*is_selected)(VteTerminal *,
-			 			   glong,
+						   glong,
 						   glong,
 						   gpointer),
 			    gpointer data,
@@ -8498,7 +8498,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 					  glong end_row, glong end_col,
 					  gboolean wrap,
 					  gboolean(*is_selected)(VteTerminal *,
-					 			 glong,
+								 glong,
 								 glong,
 								 gpointer),
 					  gpointer data,
@@ -8662,7 +8662,7 @@ static char *
 vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 				    gboolean wrap,
 				    gboolean(*is_selected)(VteTerminal *,
-				   			   glong,
+							   glong,
 							   glong,
 							   gpointer),
 				    gpointer data,
@@ -8702,7 +8702,7 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 char *
 vte_terminal_get_text(VteTerminal *terminal,
 		      gboolean(*is_selected)(VteTerminal *,
-		     			     glong,
+					     glong,
 					     glong,
 					     gpointer),
 		      gpointer data,
@@ -11373,7 +11373,6 @@ vte_terminal_draw_rectangle(VteTerminal *terminal,
 			    gint width,
 			    gint height)
 {
-	
 	vte_terminal_draw_line(terminal, entry,
 			       x, y, x, y + height);
 	vte_terminal_draw_line(terminal, entry,
@@ -12819,11 +12818,13 @@ vte_terminal_get_accessible(GtkWidget *widget)
 		access = terminal->pvt->accessible;
 	} else {
 		access = vte_terminal_accessible_new(terminal);
-		terminal->pvt->accessible = access;
-		g_object_add_weak_pointer(G_OBJECT(access),
-					  &terminal->pvt->accessible);
+		if (ATK_IS_OBJECT(access)) {
+			terminal->pvt->accessible = access;
+			g_object_add_weak_pointer(G_OBJECT(access),
+						  &terminal->pvt->accessible);
+			terminal->pvt->accessible_emit = TRUE;
+		}
 	}
-	terminal->pvt->accessible_emit = TRUE;
 	return access;
 }
 

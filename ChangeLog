@@ -1,4 +1,30 @@
 2003-04-23 nalin
+	* src/dumpkeys.c: formatting fixup.
+	* src/iso2022.c: formatting fixups.  Try using U+FFFF as the "invalid"
+	marker character instead of '?', because it's actually invalid.
+	* src/pty.c: formatting fixup.
+	* src/reflect.c: formatting fixup.
+	* src/ring.c: formatting fixup.
+	* src/ssfe.c: formatting fixups.
+	* src/trie.c: formatting fixup.
+	* src/vte.c: formatting fixups.
+	* src/vte.c(vte_terminal_get_accessible): don't add a weak pointer to
+	the AtkObject if it isn't a valid AtkObject.  Only emit text-changed
+	signals if we managed to create a valid accessible peer.
+	* src/vteaccess.c: formatting fixups.
+	* src/vteaccess.c(vte_terminal_accessible_init): unset the EXPANDABLE
+	Atk state.  Set the RESIZABLE state.
+	* src/vteaccess.c(vte_terminal_accessible_class_init): Remove
+	spurious(?) call to bind_textdomain.
+	* src/vteaccess.c(vte_terminal_accessible_get_type): check if the
+	accessible peer of our peer's ancestor is derived from GtkAccessible,
+	and if it isn't derive from GtkAccessible instead of that.
+	* src/vteaccess.c(vte_terminal_accessible_get_type): register our
+	factory type.
+	* src/vteaccess.c, src/vteaccess.c: add VteTerminalAccessibleFactory.
+	* src/vtedraw.c: formatting fixup.
+
+2003-04-23 nalin
 	* src/vte.c(vte_terminal_background_update): always refetch the
 	root pixmap if we don't currently have a background image (#111386).
 

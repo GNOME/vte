@@ -52,7 +52,7 @@
 /* Fudge factor we add to wide map identifiers to keep them distinct. */
 #define WIDE_FUDGE	0x100000
 /* An invalid codepoint. */
-#define INVALID_CODEPOINT 0x3F
+#define INVALID_CODEPOINT 0xFFFF
 
 struct _vte_iso2022_map {
 	gulong from;
@@ -379,7 +379,7 @@ _vte_iso2022_map_get(gunichar mapname,
 	if (and_mask) {
 		*and_mask = (~(0));
 	}
-	
+
 	/* Make sure we have a map, erm, map. */
 	if (maps == NULL) {
 		maps = g_tree_new(_vte_direct_compare);

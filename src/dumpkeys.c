@@ -61,7 +61,7 @@ decset(int mode, gboolean value)
 static void
 home(void)
 {
-       	g_print(ESC "[1;1H");
+	g_print(ESC "[1;1H");
 }
 
 /* Clear the screen. */

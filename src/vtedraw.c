@@ -113,7 +113,7 @@ _vte_draw_free(struct _vte_draw *draw)
 		draw->widget = NULL;
 	}
 	draw->started = FALSE;
-	
+
 	g_free(draw);
 }
 

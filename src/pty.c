@@ -869,7 +869,7 @@ _vte_pty_start_helper(void)
 		 * going to work (assuming we can open a pty using some other
 		 * method). */
 		g_warning(_("can not run %s"), LIBEXECDIR "/gnome-pty-helper");
-	 	return FALSE;
+		return FALSE;
 	}
 	/* Create a communication link for use with the helper. */
 	tmp[0] = open("/dev/null", O_RDONLY);
