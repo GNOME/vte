@@ -5181,6 +5181,7 @@ vte_terminal_process_incoming(gpointer data)
 			}
 #endif
 			/* Try again. */
+			g_free(obufptr);
 			return TRUE;
 		}
 #ifdef VTE_DEBUG
@@ -5193,6 +5194,7 @@ vte_terminal_process_incoming(gpointer data)
 #endif
 		terminal->pvt->processing = FALSE;
 		terminal->pvt->processing_tag = -1;
+		g_free(obufptr);
 		return terminal->pvt->processing;
 	}
 
@@ -11156,6 +11158,10 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	/* Reset the color palette. */
 	/* vte_terminal_set_default_colors(terminal); */
 	/* Reset the default attributes. */
+	memset(&terminal->pvt->normal_screen.defaults, 0,
+	       sizeof(terminal->pvt->normal_screen.defaults));
+	memset(&terminal->pvt->alternate_screen.defaults, 0,
+	       sizeof(terminal->pvt->alternate_screen.defaults));
 	vte_terminal_set_default_attributes(terminal);
 	/* Reset the encoding. */
 	vte_terminal_set_encoding(terminal, NULL);
