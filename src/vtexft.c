@@ -240,9 +240,8 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 }
 
 static int
-_vte_xft_char_width(struct _vte_xft_font *font, gunichar c)
+_vte_xft_char_width(struct _vte_xft_font *font, XftFont *ftfont, gunichar c)
 {
-	XftFont *ftfont;
 	XGlyphInfo extents;
 	gpointer p = GINT_TO_POINTER(c);
 	int i;
@@ -267,7 +266,6 @@ _vte_xft_char_width(struct _vte_xft_font *font, gunichar c)
 	}
 
 	/* Compute and store the width. */
-	ftfont = _vte_xft_font_for_char(font, c);
 	memset(&extents, 0, sizeof(extents));
 	if (ftfont != NULL) {
 		XftTextExtents32(GDK_DISPLAY(), ftfont, &c, 1, &extents);
@@ -655,7 +653,9 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 						       requests[i].c);
 		if (specs[j].font != NULL) {
 			specs[j].x = requests[i].x - data->x_offs;
-			width = _vte_xft_char_width(data->font, requests[i].c);
+			width = _vte_xft_char_width(data->font,
+						    specs[j].font,
+						    requests[i].c);
 			if (width != 0) {
 				pad = requests[i].columns * draw->width - width;
 				pad = CLAMP(pad / 2, 0, draw->width);

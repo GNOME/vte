@@ -1,4 +1,10 @@
 2003-04-23 nalin
+	* src/vtexft.c(_vte_xft_char_width): take an explicit XftFont instead
+	of figuring out which one to use ourselves.
+	* src/vtexft.c(_vte_xft_draw_text): pass the XftFont which we're already
+	using to _vte_xft_char_width to save a call to _vte_xft_font_for_char.
+
+2003-04-23 nalin
 	* autogen.sh: accept libtool 1.5 in addition to 1.4 (#15968).
 
 2003-04-23 nalin
