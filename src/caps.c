@@ -26,7 +26,7 @@
 #define CSI ESC "["
 #define ST  ESC "\\"
 #define OSC ESC "]"
-#define PM  ESC "T"
+#define PM  ESC "^"
 #define APC ESC "_"
 
 #define BEL ""
@@ -364,6 +364,11 @@ struct vte_capability_quark vte_terminal_capability_strings[] = {
 /* From some really old XTerm docs we had at the office, and an updated
  * version at Moy, Gildea, and Dickey. */
 struct vte_capability_string vte_xterm_capability_strings[] = {
+	{ESC " F", "7-bit-controls", 0},
+	{ESC " G", "8-bit-controls", 0},
+	{ESC " L", "ansi-conformance-level-1", 0},
+	{ESC " M", "ansi-conformance-level-2", 0},
+	{ESC " N", "ansi-conformance-level-3", 0},
 	{ESC "#3", "double-height-top-half", 0},
 	{ESC "#4", "double-height-bottom-half", 0},
 	{ESC "#5", "single-width", 0},
@@ -390,6 +395,9 @@ struct vte_capability_string vte_xterm_capability_strings[] = {
 	{ESC "N", "single-shift-g2", 0},
 	{ESC "O", "single-shift-g3", 0},
 	{ESC "P%s" ESC "\\", "device-control-string", 0},
+	{ESC "V", "start-of-guarded-area", 0},
+	{ESC "W", "end-of-guarded-area", 0},
+	{ESC "X", "start-of-string", 0},
 	{ESC "Z", "return-terminal-id", 0},
 	{ESC "c", "full-reset", 0},
 	{ESC "l", "memory-lock", 0},
@@ -399,6 +407,8 @@ struct vte_capability_string vte_xterm_capability_strings[] = {
 	{ESC "|", "invoke-g3-character-set-as-gr", 0},
 	{ESC "}", "invoke-g2-character-set-as-gr", 0},
 	{ESC "~", "invoke-g1-character-set-as-gr", 0},
+
+	/* APC stuff omitted. */
 
 	/* DCS stuff omitted. */
 
@@ -422,6 +432,7 @@ struct vte_capability_string vte_xterm_capability_strings[] = {
 	{CSI "%d;H", "cursor-position", 0},
 	{CSI ";%dH", "cursor-position", 0},
 	{CSI "%d;%dH", "cursor-position", 0},
+	{CSI "I", "cursor-forward-tabulation", 0},
 	{CSI "J", "erase-in-display", 0},
 	{CSI "%dJ", "erase-in-display", 0},
 	{CSI "?J", "selective-erase-in-display", 0},
@@ -484,6 +495,8 @@ struct vte_capability_string vte_xterm_capability_strings[] = {
 	{CSI "%dn", "device-status-report", 0},
 	{CSI "?%dn", "dec-device-status-report", 0},
 	{CSI "!p", "soft-reset", 0},
+	{CSI "%d;%d\"p", "set-conformance-level", 0},
+	{CSI "%d\"q", "select-character-protection", 0},
 	{CSI "%d;%dr", "set-scrolling-region", 0},
 	{CSI "?%dr", "restore-mode", 0},
 	{CSI "?%ds", "save-mode", 0},
@@ -497,7 +510,7 @@ struct vte_capability_string vte_xterm_capability_strings[] = {
 	{CSI "7t", "refresh-window", 0},
 	{CSI "8;%d;%dt", "resize-text-area", 0},
 	{CSI "9;0t", "restore-maximized-window", 0},
-	{CSI "9;1t", "restore-window", 0},
+	{CSI "9;1t", "maximize-window", 0},
 	{CSI "11t", "report-window-state", 0},
 	{CSI "13t", "report-window-position", 0},
 	{CSI "14t", "report-window-size", 0},
@@ -507,7 +520,11 @@ struct vte_capability_string vte_xterm_capability_strings[] = {
 	{CSI "21t", "report-window-title", 0},
 	{CSI "%dt", "resize-text-area-lines", 0},
 
+	{CSI "%d;%d;%d;%dw", "enable-filter-rectangle", 0},
 	{CSI "%dx", "request-terminal-parameters", 0},
+	{CSI "%d;%d'z", "enable-locator-reporting", 0},
+	{CSI "%m'{", "select-locator-events", 0},
+	{CSI "%d'|", "request-locator-position", 0},
 
 	{OSC "0;%s" BEL, "set-icon-and-window-title", 0},
 	{OSC "1;%s" BEL, "set-icon-title", 0},
