@@ -2787,8 +2787,8 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 
 	/* Find the row the cursor is in. */
 	array = _vte_ring_index(screen->row_data,
-			        GArray*,
-			        screen->cursor_current.row);
+				GArray*,
+				screen->cursor_current.row);
 	if ((array->len <= screen->cursor_current.col) &&
 	    (array->len < terminal->column_count)) {
 		/* Set up defaults we'll use when adding new cells. */
@@ -3301,24 +3301,24 @@ vte_sequence_handler_se(VteTerminal *terminal,
 	/* Standout may be mapped to another attribute, so attempt to do
 	 * the Right Thing here. */
 	standout = _vte_termcap_find_string(terminal->pvt->termcap,
-				            terminal->pvt->emulation,
-				            "so");
+					    terminal->pvt->emulation,
+					    "so");
 	g_assert(standout != NULL);
 	blink = _vte_termcap_find_string(terminal->pvt->termcap,
-				         terminal->pvt->emulation,
-				         "mb");
+					 terminal->pvt->emulation,
+					 "mb");
 	bold = _vte_termcap_find_string(terminal->pvt->termcap,
-				        terminal->pvt->emulation,
-				        "md");
+					terminal->pvt->emulation,
+					"md");
 	half = _vte_termcap_find_string(terminal->pvt->termcap,
-				        terminal->pvt->emulation,
-				        "mh");
+					terminal->pvt->emulation,
+					"mh");
 	reverse = _vte_termcap_find_string(terminal->pvt->termcap,
-				           terminal->pvt->emulation,
-				           "mr");
+					   terminal->pvt->emulation,
+					   "mr");
 	underline = _vte_termcap_find_string(terminal->pvt->termcap,
-				             terminal->pvt->emulation,
-				             "us");
+					     terminal->pvt->emulation,
+					     "us");
 
 	/* If the standout sequence is the same as another sequence, do what
 	 * we'd do for that other sequence instead. */
@@ -3452,24 +3452,24 @@ vte_sequence_handler_so(VteTerminal *terminal,
 	/* Standout may be mapped to another attribute, so attempt to do
 	 * the Right Thing here. */
 	standout = _vte_termcap_find_string(terminal->pvt->termcap,
-				            terminal->pvt->emulation,
-				            "so");
+				     terminal->pvt->emulation,
+				    "so");
 	g_assert(standout != NULL);
 	blink = _vte_termcap_find_string(terminal->pvt->termcap,
-				         terminal->pvt->emulation,
-				         "mb");
+					 terminal->pvt->emulation,
+					 "mb");
 	bold = _vte_termcap_find_string(terminal->pvt->termcap,
-				        terminal->pvt->emulation,
-				        "md");
+					terminal->pvt->emulation,
+					"md");
 	half = _vte_termcap_find_string(terminal->pvt->termcap,
-				        terminal->pvt->emulation,
-				        "mh");
+					terminal->pvt->emulation,
+					"mh");
 	reverse = _vte_termcap_find_string(terminal->pvt->termcap,
-				           terminal->pvt->emulation,
-				           "mr");
+					   terminal->pvt->emulation,
+					   "mr");
 	underline = _vte_termcap_find_string(terminal->pvt->termcap,
-				             terminal->pvt->emulation,
-				             "us");
+					     terminal->pvt->emulation,
+					     "us");
 
 	/* If the standout sequence is the same as another sequence, do what
 	 * we'd do for that other sequence instead. */
@@ -3893,7 +3893,7 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 			/* default foreground, no underscore */
 			terminal->pvt->screen->defaults.fore = VTE_DEF_FG;
 			/* By ECMA 48, this underline off has no business
-                           being here, but the Linux console specifies it. */
+			   being here, but the Linux console specifies it. */
 			terminal->pvt->screen->defaults.underline = 0;
 			break;
 		case 40:
@@ -4778,9 +4778,9 @@ vte_sequence_handler_set_mode(VteTerminal *terminal,
 /* Unset certain terminal attributes. */
 static void
 vte_sequence_handler_reset_mode(VteTerminal *terminal,
-			        const char *match,
-			        GQuark match_quark,
-			        GValueArray *params)
+				const char *match,
+				GQuark match_quark,
+				GValueArray *params)
 {
 	int i;
 	long setting;
@@ -6466,8 +6466,8 @@ vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 	/* Get a handle on the array for the insertion row. */
 	array = _vte_ring_index(screen->row_data,
-			        GArray*,
-			        screen->cursor_current.row);
+				GArray*,
+				screen->cursor_current.row);
 
 	/* Insert the right number of columns. */
 	for (i = 0; i < columns; i++) {
@@ -10615,6 +10615,7 @@ vte_terminal_open_font_xft(VteTerminal *terminal)
 		if (width == cjk_width) {
 			width /= 2;
 		}
+
 		height = MAX(terminal->pvt->ftfont->height, (ascent + descent));
 		if (height == 0) {
 			height = glyph_info.height;
@@ -13802,7 +13803,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 			}
 			nbold = (cell != NULL) ?
 				(cell->bold != 0) :
-			        FALSE;
+				FALSE;
 			if (nbold != bold) {
 				break;
 			}
