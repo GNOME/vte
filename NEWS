@@ -1,3 +1,5 @@
+0.11.2: Fix for wrapping when selecting by word or lines.  Fix to conform to
+        OpenI18N assertions.
 0.11.1: A native FT2 drawing backend which may be faster than Pango on systems
         without Xft2.  Support for scrolling backgrounds for everyone.
 0.11.0: Support for using font sets for better Unicode coverage when drawing
