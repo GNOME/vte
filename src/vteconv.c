@@ -40,6 +40,20 @@ struct _VteConv {
 	struct _vte_buffer *in_scratch, *out_scratch;
 };
 
+static glong
+_vte_conv_utf8_strlen(const gchar *p, gssize max)
+{
+	const gchar *q = p;
+	glong length = 0;
+	while (q < p + max) {
+		q = g_utf8_next_char(q);
+		if (q <= p + max) {
+			length++;
+		}
+	}
+	return length;
+}
+
 /* A bogus UTF-8 to UTF-8 conversion function which attempts to provide the
  * same semantics as g_iconv(). */
 static size_t
@@ -62,7 +76,7 @@ _vte_conv_utf8_utf8(GIConv converter,
 
 	/* Copy whatever data was validated. */
 	bytes = endptr - *inbuf;
-	length = g_utf8_strlen(*inbuf, bytes);
+	length = _vte_conv_utf8_strlen(*inbuf, bytes);
 	memcpy(*outbuf, *inbuf, bytes);
 	*inbuf += bytes;
 	*outbuf += bytes;
@@ -197,7 +211,7 @@ _vte_conv(VteConv converter,
 	  gchar **inbuf, gsize *inbytes_left,
 	  gchar **outbuf, gsize *outbytes_left)
 {
-	size_t ret;
+	size_t ret, tmp;
 	gchar *work_inbuf_start, *work_inbuf_working;
 	gchar *work_outbuf_start, *work_outbuf_working;
 	gsize work_inbytes, work_outbytes;
@@ -247,13 +261,44 @@ _vte_conv(VteConv converter,
 	}
 
 	/* Call the underlying conversion. */
-	ret = converter->convert(converter->conv,
-				 &work_inbuf_working, &work_inbytes,
-				 &work_outbuf_working, &work_outbytes);
+	ret = 0;
+	do {
+		tmp = converter->convert(converter->conv,
+					 &work_inbuf_working,
+					 &work_inbytes,
+					 &work_outbuf_working,
+					 &work_outbytes);
+		if (tmp == (size_t) -1) {
+			/* Check for zero bytes, which we pass right through. */
+			if (errno == EILSEQ) {
+				if ((work_inbytes > 0) &&
+				    (work_inbuf_working[0] == '\0') &&
+				    (work_outbytes > 0)) {
+					work_outbuf_working[0] = '\0';
+					work_outbuf_working++;
+					work_inbuf_working++;
+					work_outbytes--;
+					work_inbytes--;
+					ret++;
+				} else {
+					/* No go. */
+					ret = -1;
+					break;
+				}
+			} else {
+				ret = -1;
+				break;
+			}
+		} else {
+			ret += tmp;
+		}
+	} while ((work_inbytes > 0) &&
+		 (tmp == (size_t) -1) &&
+		 (errno == EILSEQ));
 
 	/* We can't handle this particular failure, and it should
 	 * never happen.  (If it does, our caller needs fixing.)  */
-	g_assert((ret != -1) || (errno != E2BIG));
+	g_assert((ret != (size_t)-1) || (errno != E2BIG));
 
 	/* Possibly convert the output from UTF-8 to gunichars. */
 	if (converter->out_unichar) {
@@ -261,8 +306,8 @@ _vte_conv(VteConv converter,
 		char *p;
 		gunichar *g;
 
-		chars = g_utf8_strlen(work_outbuf_start,
-				      work_outbuf_working - work_outbuf_start);
+		chars = _vte_conv_utf8_strlen(work_outbuf_start,
+					      work_outbuf_working - work_outbuf_start);
 		g_assert(*outbytes_left >= sizeof(gunichar) * chars);
 
 		p = work_outbuf_start;
@@ -287,8 +332,8 @@ _vte_conv(VteConv converter,
 		/* Get an idea of how many characters were converted, and
 		 * advance the pointer as required. */
 		int chars;
-		chars = g_utf8_strlen(work_inbuf_start,
-				      work_inbuf_working - work_inbuf_start);
+		chars = _vte_conv_utf8_strlen(work_inbuf_start,
+					      work_inbuf_working - work_inbuf_start);
 		*inbuf += (sizeof(gunichar) * chars);
 		*inbytes_left -= (sizeof(gunichar) * chars);
 	} else {
@@ -337,6 +382,18 @@ main(int argc, char **argv)
 	char mbyte_test_break[] = {0xe2, 0xe2, 0xe2};
 	int i;
 
+	i = _vte_conv_utf8_strlen("\0\0\0\0", 4);
+	g_assert(i == 4);
+	i = _vte_conv_utf8_strlen("\0A\0\0", 4);
+	g_assert(i == 4);
+	i = _vte_conv_utf8_strlen("\0A\0B", 4);
+	g_assert(i == 4);
+	i = _vte_conv_utf8_strlen("A\0B\0", 4);
+	g_assert(i == 4);
+	i = _vte_conv_utf8_strlen("ABCDE", 4);
+	g_assert(i == 4);
+
+	/* Test g_iconv, no gunichar stuff. */
 	clear(wide_test, narrow_test);
 	memset(buf, 0, sizeof(buf));
 	inbuf = narrow_test;
@@ -351,6 +408,7 @@ main(int argc, char **argv)
 	}
 	_vte_conv_close(conv);
 
+	/* Test g_iconv, no gunichar stuff. */
 	clear(wide_test, narrow_test);
 	memset(buf, 0, sizeof(buf));
 	inbuf = narrow_test;
@@ -365,6 +423,7 @@ main(int argc, char **argv)
 	}
 	_vte_conv_close(conv);
 
+	/* Test g_iconv + gunichar stuff. */
 	clear(wide_test, narrow_test);
 	memset(buf, 0, sizeof(buf));
 	inbuf = narrow_test;
@@ -379,6 +438,7 @@ main(int argc, char **argv)
 	}
 	_vte_conv_close(conv);
 
+	/* Test g_iconv + gunichar stuff. */
 	clear(wide_test, narrow_test);
 	memset(buf, 0, sizeof(buf));
 	inbuf = (gchar*) wide_test;
@@ -393,6 +453,7 @@ main(int argc, char **argv)
 	}
 	_vte_conv_close(conv);
 
+	/* Test UTF-8 to UTF-8 "conversion". */
 	clear(wide_test, narrow_test);
 	memset(buf, 0, sizeof(buf));
 	inbuf = (gchar*) narrow_test;
@@ -407,6 +468,60 @@ main(int argc, char **argv)
 	}
 	_vte_conv_close(conv);
 
+	/* Test zero-byte pass-through. */
+	clear(wide_test, narrow_test);
+	memset(wide_test, 0, sizeof(wide_test));
+	inbuf = (gchar*) wide_test;
+	inbytes = 3 * sizeof(gunichar);
+	outbuf = narrow_test;
+	outbytes = sizeof(narrow_test);
+	conv = _vte_conv_open("UTF-8", VTE_CONV_GUNICHAR_TYPE);
+	i = _vte_conv(conv, &inbuf, &inbytes, &outbuf, &outbytes);
+	g_assert(inbytes == 0);
+	if ((narrow_test[0] != 0) ||
+	    (narrow_test[1] != 0) ||
+	    (narrow_test[2] != 0)) {
+		g_error("Conversion 6 failed.\n");
+	}
+	_vte_conv_close(conv);
+
+	/* Test zero-byte pass-through. */
+	clear(wide_test, narrow_test);
+	memset(wide_test, 'A', sizeof(wide_test));
+	memset(narrow_test, 0, sizeof(narrow_test));
+	inbuf = narrow_test;
+	inbytes = 3;
+	outbuf = (char*)wide_test;
+	outbytes = sizeof(wide_test);
+	conv = _vte_conv_open(VTE_CONV_GUNICHAR_TYPE, "UTF-8");
+	i = _vte_conv(conv, &inbuf, &inbytes, &outbuf, &outbytes);
+	g_assert(inbytes == 0);
+	if ((wide_test[0] != 0) ||
+	    (wide_test[1] != 0) ||
+	    (wide_test[2] != 0)) {
+		g_error("Conversion 7 failed.\n");
+	}
+	_vte_conv_close(conv);
+
+	/* Test zero-byte pass-through. */
+	clear(wide_test, narrow_test);
+	memset(wide_test, 'A', sizeof(wide_test));
+	memset(narrow_test, 0, sizeof(narrow_test));
+	inbuf = narrow_test;
+	inbytes = 3;
+	outbuf = (char*)wide_test;
+	outbytes = sizeof(wide_test);
+	conv = _vte_conv_open(VTE_CONV_GUNICHAR_TYPE, "ISO-8859-1");
+	i = _vte_conv(conv, &inbuf, &inbytes, &outbuf, &outbytes);
+	g_assert(inbytes == 0);
+	if ((wide_test[0] != 0) ||
+	    (wide_test[1] != 0) ||
+	    (wide_test[2] != 0)) {
+		g_error("Conversion 8 failed.\n");
+	}
+	_vte_conv_close(conv);
+
+	/* Test UTF-8 to UTF-8 error reporting, valid multibyte. */
 	for (i = 0; i < sizeof(mbyte_test); i++) {
 		int ret;
 		inbuf = mbyte_test;
@@ -432,6 +547,7 @@ main(int argc, char **argv)
 		_vte_conv_close(conv);
 	}
 
+	/* Test UTF-8 to UTF-8 error reporting, invalid multibyte. */
 	for (i = 0; i < sizeof(mbyte_test_break); i++) {
 		int ret;
 		inbuf = mbyte_test_break;

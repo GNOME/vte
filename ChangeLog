@@ -1,4 +1,10 @@
 2003-05-21 nalin
+	* src/vteconv.c(_vte_conv): pass zero bytes which trigger EILSEQ
+	through and keep going.
+	* src/vteconv.c: replace use of g_utf8_strlen with an internal function
+	which doesn't stop counting at NUL characters.
+
+2003-05-21 nalin
 	* src/interpret.c: use _vte_matcher_free_params_array.
 	* src/vte.c(vte_invalidate_cursor_once): add a parameter for indicating
 	if this is a "cursor blink" (periodic) refresh, and if it is set and
