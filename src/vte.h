@@ -158,6 +158,13 @@ pid_t vte_terminal_fork_command(VteTerminal *terminal,
 				gboolean utmp,
 				gboolean wtmp);
 
+/* Users of libzvt may find this useful. */
+pid_t vte_terminal_forkpty(VteTerminal *terminal,
+			   char **envv, const char *directory,
+			   gboolean lastlog,
+			   gboolean utmp,
+			   gboolean wtmp);
+
 /* Send data to the terminal to display, or to the terminal's forked command
  * to handle in some way.  If it's 'cat', they should be the same. */
 void vte_terminal_feed(VteTerminal *terminal, const char *data, glong length);

@@ -22,6 +22,7 @@
 
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
@@ -390,7 +391,7 @@ main(int argc, char **argv)
 	gboolean transparent = FALSE, audible = TRUE, blink = TRUE,
 		 debug = FALSE, dingus = FALSE, geometry = TRUE, dbuffer = TRUE,
 		 console = FALSE, scroll = FALSE, keep = FALSE,
-		 icon_title = FALSE;
+		 icon_title = FALSE, shell = TRUE;
 	long lines = 100;
 	const char *message = "Launching interactive shell...\r\n";
 	const char *font = NULL;
@@ -449,7 +450,7 @@ main(int argc, char **argv)
 	g_assert(i < (g_list_length(args) + 2));
 
 	/* Parse some command-line options. */
-	while ((opt = getopt(argc, argv, "B:CDT2abc:df:ghkn:st:w:-")) != -1) {
+	while ((opt = getopt(argc, argv, "B:CDST2abc:df:ghkn:st:w:-")) != -1) {
 		gboolean bail = FALSE;
 		switch (opt) {
 			case 'B':
@@ -460,6 +461,9 @@ main(int argc, char **argv)
 				break;
 			case 'D':
 				dingus = TRUE;
+				break;
+			case 'S':
+				shell = !shell;
 				break;
 			case 'T':
 				transparent = TRUE;
@@ -686,21 +690,57 @@ main(int argc, char **argv)
 			console = FALSE;
 		}
 	}
+
 	if (!console) {
-		/* Launch a shell. */
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_MISC)) {
-			vte_terminal_feed(VTE_TERMINAL(widget), message,
-					  strlen(message));
-		}
-#endif
-		vte_terminal_fork_command(VTE_TERMINAL(widget),
-					  command, NULL, env_add,
-					  working_directory,
-					  TRUE, TRUE, TRUE);
-		if (command == NULL) {
-			vte_terminal_feed_child(VTE_TERMINAL(widget),
-						"pwd\n", -1);
+		if (shell) {
+			/* Launch a shell. */
+	#ifdef VTE_DEBUG
+			if (_vte_debug_on(VTE_DEBUG_MISC)) {
+				vte_terminal_feed(VTE_TERMINAL(widget), message,
+						  strlen(message));
+			}
+	#endif
+			vte_terminal_fork_command(VTE_TERMINAL(widget),
+						  command, NULL, env_add,
+						  working_directory,
+						  TRUE, TRUE, TRUE);
+			if (command == NULL) {
+				vte_terminal_feed_child(VTE_TERMINAL(widget),
+							"pwd\n", -1);
+			}
+		} else {
+			long i;
+			i = vte_terminal_forkpty(VTE_TERMINAL(widget),
+						 env_add, working_directory,
+						 TRUE, TRUE, TRUE);
+			switch (i) {
+			case -1:
+				/* abnormal */
+				g_warning("Error in vte_terminal_forkpty(): %s",
+					  strerror(errno));
+				break;
+			case 0:
+				/* child */
+				for (i = 0; ; i++) {
+					switch (i % 3) {
+					case 0:
+					case 1:
+						fprintf(stdout, "%ld\n", i);
+						break;
+					case 2:
+						fprintf(stderr, "%ld\n", i);
+						break;
+					}
+					sleep(1);
+				}
+				_exit(0);
+				break;
+			default:
+				g_print("Child PID is %ld (mine is %ld).\n",
+					(long) i, (long) getpid());
+				/* normal */
+				break;
+			}
 		}
 	}
 

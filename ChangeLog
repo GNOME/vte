@@ -1,3 +1,24 @@
+2003-08-13 nalin
+	* doc/reference/vte-sections.txt: add vte_terminal_forkpty.
+	* src/pty.c(_vte_pty_run_on_pty): exit on any error, to avoid leaving
+	random unreaped children running.  Accept NULL command indicating that
+	no exec() should occur, but still error out if command isn't NULL and
+	exec() fails.
+	* src/pty.c(_vte_pty_fork_on_pty_name,_vte_pty_fork_on_pty_fd): store
+	0 as the new child's PID if we're the child.
+	* src/pty.c(main): don't run "tty" by default, test the forkpty() case
+	instead.
+	* src/vte.c(vte_terminal_fork_command): rename to
+	_vte_terminal_fork_basic.  Remove code to replace NULL command with
+	the user's shell.
+	* src/vte.c(vte_terminal_fork_command): new! wrap
+	_vte_terminal_fork_basic, replacing a NULL command with the user's
+	shell.
+	* src/vte.c(vte_terminal_forkpty),src/vte.h: new! wrap
+	_vte_terminal_fork_basic, passing NULL for the command and argv
+	arguments (bug #116450).
+	* src/Makefile.am: update shared library version.
+
 2003-08-12 nalin
 	* configure.in: if <ft2build.h> isn't found, then we can't use any
 	freetype-specific bits, and that's not useful.  Error out, and say

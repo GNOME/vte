@@ -72,6 +72,20 @@ keys.
 @Returns: 
 
 
+<!-- ##### FUNCTION vte_terminal_forkpty ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@envv: 
+@directory: 
+@lastlog: 
+@utmp: 
+@wtmp: 
+@Returns: 
+
+
 <!-- ##### FUNCTION vte_terminal_feed ##### -->
 <para>
 

@@ -6962,29 +6962,12 @@ _vte_terminal_disconnect_pty_write(VteTerminal *terminal)
 	}
 }
 
-/**
- * vte_terminal_fork_command:
- * @terminal: a #VteTerminal
- * @command: the name of a binary to run
- * @argv: the argument list to be passed to @command
- * @envv: a list of environment variables to be added to the environment before
- * starting @command
- * @directory: the name of a directory the command should start in, or NULL
- * @lastlog: TRUE if the session should be logged to the lastlog
- * @utmp: TRUE if the session should be logged to the utmp/utmpx log
- * @wtmp: TRUE if the session should be logged to the wtmp/wtmpx log
- *
- * Starts the specified command under a newly-allocated controlling
- * pseudo-terminal.  TERM is automatically set to reflect the terminal widget's
- * emulation setting.  If @lastlog, @utmp, or @wtmp are TRUE, logs the session
- * to the specified system log files.
- *
- * Returns: the ID of the new process
- */
-pid_t
-vte_terminal_fork_command(VteTerminal *terminal, const char *command,
-			  char **argv, char **envv, const char *directory,
-			  gboolean lastlog, gboolean utmp, gboolean wtmp)
+/* Basic wrapper around _vte_pty_open, which handles the pipefitting. */
+static pid_t
+_vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
+			 char **argv, char **envv,
+			 const char *directory,
+			 gboolean lastlog, gboolean utmp, gboolean wtmp)
 {
 	char **env_add;
 	int i;
@@ -6992,45 +6975,43 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 	GtkWidget *widget;
 	VteReaper *reaper;
 
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
 	widget = GTK_WIDGET(terminal);
 
-	/* Start up the command and get the PTY of the master. */
-	for (i = 0; (envv != NULL) && (envv[i] != NULL); i++) ;
-
-	env_add = g_malloc0(sizeof(char*) * (i + 2));
-	if (command == NULL) {
-		command = terminal->pvt->shell;
+	/* Duplicate the environment, and add one more variable. */
+	for (i = 0; (envv != NULL) && (envv[i] != NULL); i++) {
+		/* nothing */ ;
 	}
-
+	env_add = g_malloc0(sizeof(char*) * (i + 2));
 	env_add[0] = g_strdup_printf("TERM=%s", terminal->pvt->emulation);
 	for (i = 0; (envv != NULL) && (envv[i] != NULL); i++) {
 		env_add[i + 1] = g_strdup(envv[i]);
 	}
 	env_add[i + 1] = NULL;
 
+	/* Close any existing ptys. */
 	if (terminal->pvt->pty_master != -1) {
 		_vte_pty_close(terminal->pvt->pty_master);
 		close(terminal->pvt->pty_master);
 	}
-	terminal->pvt->pty_master = _vte_pty_open(&pid,
-						  env_add,
-						  command,
-						  argv,
-						  directory,
-						  terminal->column_count,
-						  terminal->row_count,
-						  lastlog,
-						  utmp,
-						  wtmp);
 
-	for (i = 0; env_add[i] != NULL; i++) {
-		g_free(env_add[i]);
+	/* Open the new pty. */
+	pid = -1;
+	i = _vte_pty_open(&pid, env_add, command, argv, directory,
+			  terminal->column_count, terminal->row_count,
+			  lastlog, utmp, wtmp);
+	switch (i) {
+	case -1:
+		return -1;
+		break;
+	default:
+		if (pid != 0) {
+			terminal->pvt->pty_master = i;
+		}
 	}
-	g_free(env_add);
 
-	/* If we started the process, set up to listen for its output. */
-	if (pid != -1) {
+	/* If we successfully started the process, set up to listen for its
+	 * output. */
+	if ((pid != -1) && (pid != 0)) {
 		/* Set this as the child's pid. */
 		terminal->pvt->pty_pid = pid;
 
@@ -7064,8 +7045,86 @@ vte_terminal_fork_command(VteTerminal *terminal, const char *command,
 		_vte_terminal_connect_pty_read(terminal);
 	}
 
+	/* Clean up. */
+	for (i = 0; env_add[i] != NULL; i++) {
+		g_free(env_add[i]);
+	}
+	g_free(env_add);
+
 	/* Return the pid to the caller. */
 	return pid;
+}
+
+/**
+ * vte_terminal_fork_command:
+ * @terminal: a #VteTerminal
+ * @command: the name of a binary to run
+ * @argv: the argument list to be passed to @command
+ * @envv: a list of environment variables to be added to the environment before
+ * starting @command
+ * @directory: the name of a directory the command should start in, or NULL
+ * @lastlog: TRUE if the session should be logged to the lastlog
+ * @utmp: TRUE if the session should be logged to the utmp/utmpx log
+ * @wtmp: TRUE if the session should be logged to the wtmp/wtmpx log
+ *
+ * Starts the specified command under a newly-allocated controlling
+ * pseudo-terminal.  TERM is automatically set to reflect the terminal widget's
+ * emulation setting.  If @lastlog, @utmp, or @wtmp are TRUE, logs the session
+ * to the specified system log files.
+ *
+ * Returns: the ID of the new process
+ */
+pid_t
+vte_terminal_fork_command(VteTerminal *terminal,
+			  const char *command, char **argv, char **envv,
+			  const char *directory,
+			  gboolean lastlog, gboolean utmp, gboolean wtmp)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+
+	/* Make the user's shell the default command. */
+	if (command == NULL) {
+		command = terminal->pvt->shell;
+	}
+
+	/* Start up the command and get the PTY of the master. */
+	return _vte_terminal_fork_basic(terminal, command, argv, envv,
+				        directory, lastlog, utmp, wtmp);
+}
+
+/**
+ * vte_terminal_forkpty:
+ * @terminal: a #VteTerminal
+ * @envv: a list of environment variables to be added to the environment before
+ * starting returning in the child process
+ * @directory: the name of a directory the child process should change to, or NULL
+ * @lastlog: TRUE if the session should be logged to the lastlog
+ * @utmp: TRUE if the session should be logged to the utmp/utmpx log
+ * @wtmp: TRUE if the session should be logged to the wtmp/wtmpx log
+ *
+ * Starts a new child process under a newly-allocated controlling
+ * pseudo-terminal.  TERM is automatically set to reflect the terminal widget's
+ * emulation setting.  If @lastlog, @utmp, or @wtmp are TRUE, logs the session
+ * to the specified system log files.
+ *
+ * Returns: the ID of the new process in the parent, 0 in the child, and -1 if
+ * there was an error
+ *
+ * Since: 0.11.11
+ */
+pid_t
+vte_terminal_forkpty(VteTerminal *terminal,
+		     char **envv, const char *directory,
+		     gboolean lastlog, gboolean utmp, gboolean wtmp)
+{
+	pid_t ret;
+
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+
+	ret = _vte_terminal_fork_basic(terminal, NULL, NULL, envv,
+				       directory, lastlog, utmp, wtmp);
+
+	return ret;
 }
 
 /* Handle an EOF from the client. */

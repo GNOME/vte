@@ -6,6 +6,7 @@ VteTerminalEraseBinding
 vte_terminal_new
 vte_terminal_im_append_menuitems
 vte_terminal_fork_command
+vte_terminal_forkpty
 vte_terminal_feed
 vte_terminal_feed_child
 vte_terminal_copy_clipboard
