@@ -98,7 +98,7 @@ typedef long wint_t;
 					"0123456789./+@"
 #define VTE_REPRESENTATIVE_WIDER_CHARACTER	'M'
 #define VTE_REPRESENTATIVE_NARROWER_CHARACTER	'l'
-#define VTE_ADJUSTMENT_PRIORITY		G_PRIORITY_HIGH
+#define VTE_ADJUSTMENT_PRIORITY		G_PRIORITY_DEFAULT_IDLE
 #define VTE_INPUT_RETRY_PRIORITY	G_PRIORITY_HIGH
 #define VTE_INPUT_PRIORITY		G_PRIORITY_DEFAULT_IDLE
 #define VTE_CHILD_INPUT_PRIORITY	G_PRIORITY_DEFAULT_IDLE
@@ -1331,8 +1331,7 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 {
 	VteScreen *screen;
 	gboolean changed;
-	long delta, next;
-	long page_size;
+	long delta;
 	long rows;
 
 	g_return_if_fail(terminal->pvt->screen != NULL);
@@ -1356,14 +1355,17 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 		changed = TRUE;
 	}
 
-	/* Snap the scrolling and insert deltas to be in the visible area. */
-	screen->scroll_delta = MAX(screen->scroll_delta, delta);
+	/* Snap the insert delta and the cursor position to be in the visible
+	 * area.  Leave the scrolling delta alone because it will be updated
+	 * when the adjustment changes. */
 	screen->insert_delta = MAX(screen->insert_delta, delta);
+	screen->cursor_current.row = MAX(screen->cursor_current.row,
+					 screen->insert_delta);
 
 	/* The upper value is the number of rows which might be visible.  (Add
 	 * one to the cursor offset because it's zero-based.) */
-	next = vte_ring_next(terminal->pvt->screen->row_data);
-	rows = MAX(next, terminal->pvt->screen->cursor_current.row + 1);
+	rows = MAX(vte_ring_next(terminal->pvt->screen->row_data),
+		   terminal->pvt->screen->cursor_current.row + 1);
 	if (terminal->adjustment->upper != rows) {
 		terminal->adjustment->upper = rows;
 		changed = TRUE;
@@ -1377,25 +1379,25 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 
 	/* Set the number of rows the user sees to the number of rows the
 	 * user sees. */
-	page_size = terminal->row_count;
-	if (terminal->adjustment->page_size != page_size) {
-		terminal->adjustment->page_size = page_size;
+	if (terminal->adjustment->page_size != terminal->row_count) {
+		terminal->adjustment->page_size = terminal->row_count;
 		changed = TRUE;
 	}
 
 	/* Clicking in the empty area should scroll one screen, so set the
 	 * page size to the number of visible rows. */
-	if (terminal->adjustment->page_increment != page_size) {
-		terminal->adjustment->page_increment = page_size;
+	if (terminal->adjustment->page_increment != terminal->row_count) {
+		terminal->adjustment->page_increment = terminal->row_count;
 		changed = TRUE;
 	}
 
 	/* Set the scrollbar adjustment to where the screen wants it to be. */
-	if (floor(gtk_adjustment_get_value(terminal->adjustment)) !=
+	if (floor(terminal->adjustment->value) !=
 	    terminal->pvt->screen->scroll_delta) {
+		/* This emits a "value-changed" signal, so no need to screw
+		 * with anything else for just this. */
 		gtk_adjustment_set_value(terminal->adjustment,
 					 terminal->pvt->screen->scroll_delta);
-		changed = TRUE;
 	}
 
 	/* If anything changed, signal that there was a change. */
@@ -1407,8 +1409,6 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 				delta, terminal->pvt->screen->scroll_delta);
 		}
 #endif
-		vte_terminal_match_contents_clear(terminal);
-		vte_terminal_emit_contents_changed(terminal);
 		if (immediate) {
 			gtk_adjustment_changed(terminal->adjustment);
 		} else {
@@ -1437,7 +1437,6 @@ vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
 			    terminal->adjustment->upper - terminal->row_count);
 	/* Tell the scrollbar to adjust itself. */
 	gtk_adjustment_set_value(terminal->adjustment, destination);
-	vte_terminal_queue_adjustment_changed(terminal);
 	/* Clear dingus match set. */
 	vte_terminal_match_contents_clear(terminal);
 }
@@ -1451,7 +1450,6 @@ vte_terminal_scroll_to_bottom(VteTerminal *terminal)
 	    terminal->pvt->screen->insert_delta) {
 		gtk_adjustment_set_value(terminal->adjustment,
 					 terminal->pvt->screen->insert_delta);
-		vte_terminal_queue_adjustment_changed(terminal);
 	}
 }
 
@@ -3073,7 +3071,7 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 		if (terminal->pvt->flags.am) {
 			/* Move to the next line. */
 			terminal->pvt->screen->cursor_current.col = 0;
-			vte_sequence_handler_do(terminal, match,
+			vte_sequence_handler_sf(terminal, match,
 						match_quark, params);
 		} else {
 			/* Stay in the rightmost column. */
@@ -9241,7 +9239,7 @@ vte_terminal_set_size(VteTerminal *terminal, long columns, long rows)
 
 /* Redraw the widget. */
 static void
-vte_handle_scroll(VteTerminal *terminal)
+vte_terminal_handle_scroll(VteTerminal *terminal)
 {
 	long dy, adj;
 	GtkWidget *widget;
@@ -9261,8 +9259,10 @@ vte_handle_scroll(VteTerminal *terminal)
 	dy = screen->scroll_delta - adj;
 	screen->scroll_delta = adj;
 	if (dy != 0) {
+		vte_terminal_match_contents_clear(terminal);
 		vte_terminal_scroll_region(terminal, screen->scroll_delta,
 					   terminal->row_count, dy);
+		vte_terminal_emit_contents_changed(terminal);
 	}
 
 	/* Let the refreshing begin. */
@@ -9282,19 +9282,16 @@ vte_terminal_set_scroll_adjustment(VteTerminal *terminal,
 		if (terminal->adjustment != NULL) {
 			/* Disconnect our signal handlers from this object. */
 			g_signal_handlers_disconnect_by_func(terminal->adjustment,
-							     G_CALLBACK(vte_handle_scroll),
+							     G_CALLBACK(vte_terminal_handle_scroll),
 							     terminal);
 			g_object_unref(terminal->adjustment);
 		}
 		/* Set the new adjustment object. */
 		terminal->adjustment = adjustment;
+		/* We care about the offset, not the top or bottom. */
 		g_signal_connect_swapped(terminal->adjustment,
 					 "value_changed",
-					 G_CALLBACK(vte_handle_scroll),
-					 terminal);
-		g_signal_connect_swapped(terminal->adjustment,
-					 "changed",
-					 G_CALLBACK(vte_handle_scroll),
+					 G_CALLBACK(vte_terminal_handle_scroll),
 					 terminal);
 	}
 }

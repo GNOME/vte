@@ -1,4 +1,11 @@
 2002-08-27 nalin
+	* src/vte.c: Don't tamper with the scrolling offsets -- they're updated
+	when we handle adjustment_changed notifications.  Scroll instead of just
+	moving the cursor down when soft-wrapping to the next line.  Avoid
+	emitting adjustment_changed when only the value has changed, likewise
+	for the value and the other fields of the adjustment.
+
+2002-08-27 nalin
 	* src/vte.c: Keep cursor position and scrolling offsets from going
 	wonky when you resize, especially on the alternate screen.  Suppress
 	duplicate adjustment_changed notifications.
