@@ -4740,6 +4740,62 @@ vte_terminal_set_color_int(VteTerminal *terminal, int entry,
 #endif
 }
 
+static void
+vte_terminal_generate_bold(const struct vte_palette_entry *foreground,
+			   const struct vte_palette_entry *background,
+			   double factor,
+			   GdkColor *bold)
+{
+	double fy, fcb, fcr, by, bcb, bcr, r, g, b;
+	g_return_if_fail(foreground != NULL);
+	g_return_if_fail(background != NULL);
+	g_return_if_fail(bold != NULL);
+	fy =   0.2990 * foreground->red +
+	       0.5870 * foreground->green +
+	       0.1140 * foreground->blue;
+	fcb = -0.1687 * foreground->red +
+	      -0.3313 * foreground->green +
+	       0.5000 * foreground->blue;
+	fcr =  0.5000 * foreground->red +
+	      -0.4187 * foreground->green +
+	      -0.0813 * foreground->blue;
+	by =   0.2990 * background->red +
+	       0.5870 * background->green +
+	       0.1140 * background->blue;
+	bcb = -0.1687 * background->red +
+	      -0.3313 * background->green +
+	       0.5000 * background->blue;
+	bcr =  0.5000 * background->red +
+	      -0.4187 * background->green +
+	      -0.0813 * background->blue;
+	fy = factor * fy - by;
+	fcb = factor * fcb - bcb;
+	fcr = factor * fcr - bcr;
+	r = fy + 1.402 * fcr;
+	g = fy + 0.34414 * fcb - 0.71414 * fcr;
+	b = fy + 1.722 * fcb;
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "Calculated bold = (%lf,%lf,%lf)", r, g, b);
+	}
+#endif
+	bold->red = CLAMP(r, 0, 0xffff);
+	bold->green = CLAMP(g, 0, 0xffff);
+	bold->blue = CLAMP(b, 0, 0xffff);
+#ifdef VTE_DEBUG
+	if (vte_debug_on(VTE_DEBUG_MISC)) {
+		fprintf(stderr, "= (%04x,%04x,%04x).\n",
+			bold->red, bold->green, bold->blue);
+	}
+#endif
+}
+
+/* Set the bold foreground color. */
+void
+vte_terminal_set_color_bold(VteTerminal *terminal, const GdkColor *bold)
+{
+	vte_terminal_set_color_int(terminal, VTE_BOLD_FG, bold);
+}
 
 /* Set the foreground color. */
 void
@@ -4809,9 +4865,10 @@ vte_terminal_set_colors(VteTerminal *terminal,
 				}
 				break;
 			case VTE_BOLD_FG:
-				color.red = 0xffff;
-				color.blue = 0xffff;
-				color.green = 0xffff;
+				vte_terminal_generate_bold(&terminal->pvt->palette[VTE_DEF_FG],
+							   &terminal->pvt->palette[VTE_DEF_BG],
+							   1.8,
+							   &color);
 				break;
 			case 0 + 0:
 			case 0 + 1:

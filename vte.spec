@@ -59,6 +59,7 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %changelog
 * Tue Jul 16 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.9-1
 - check for iconv failures properly and report them more aggressively
+- guess at a proper default bold color (#68965)
 
 * Mon Jul 15 2002 Nalin Dahyabhai <nalin@redhat.com>
 - cosmetic fixes

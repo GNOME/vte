@@ -143,10 +143,12 @@ void vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 					  gboolean scroll);
 
 /* Set the color scheme. */
+void vte_terminal_set_color_bold(VteTerminal *terminal,
+				 const GdkColor *bold);
 void vte_terminal_set_color_foreground(VteTerminal *terminal,
 				       const GdkColor *fore);
 void vte_terminal_set_color_background(VteTerminal *terminal,
-				       const GdkColor *fore);
+				       const GdkColor *back);
 void vte_terminal_set_colors(VteTerminal *terminal,
 			     const GdkColor *foreground,
 			     const GdkColor *background,

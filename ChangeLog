@@ -1,4 +1,9 @@
 2002-07-16  nalin
+	* src/vte.c (vte_terminal_set_colors): Guess at an appropriate bold
+	version of the foreground color instead of hard-coding in a default.
+	* src/vte.c, src/vte.h (vte_terminal_set_color_bold): Add.
+
+2002-07-16  nalin
 	* src/trie.c: Correctly check for g_iconv_open() failure.
 	* src/vte.c (vte_terminal_set_encoding): Try to give a meaningful
 	error when g_iconv_open() fails, even though we're screwed.

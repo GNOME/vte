@@ -96,6 +96,7 @@ main(int argc, char **argv)
 	const char *terminal = NULL;
 	const char *command = NULL;
 	int opt;
+	GdkColor fore, back;
 	const char *usage = "Usage: %s "
 			    "[ [-B image] | [-T] ] "
 			    "[-a] "
@@ -103,6 +104,8 @@ main(int argc, char **argv)
 			    "[-c command] "
 			    "[-f font] "
 			    "[-t terminaltype]\n";
+	back.red = back.green = back.blue = 0xffff;
+	fore.red = fore.green = fore.blue = 0x7000;
 	/* Parse some command-line options. */
 	while ((opt = getopt(argc, argv, "B:Tabc:f:ht:")) != -1) {
 		switch (opt) {
@@ -190,6 +193,7 @@ main(int argc, char **argv)
 		vte_terminal_set_background_transparent(VTE_TERMINAL(widget),
 							TRUE);
 	}
+	vte_terminal_set_colors(VTE_TERMINAL(widget), &fore, &back, NULL, 0);
 	if (terminal != NULL) {
 		vte_terminal_set_emulation(VTE_TERMINAL(widget), terminal);
 	}
