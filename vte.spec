@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.9.1
+Version: 0.9.2
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -64,6 +64,14 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Thu Oct 17 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.2-1
+- fix the crash-on-resize bug (#75871)
+- add bold
+- implement sun/hp/legacy function key modes
+- recognize cs with no parameters
+- fix ring buffer manipulation bugs
+- cut down on overly-frequent invalidates
+
 * Wed Sep 11 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.1-1
 - refresh gnome-pty-helper from libzvt
 
