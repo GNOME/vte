@@ -221,7 +221,8 @@ _vte_ft2_set_text_font(struct _vte_draw *draw,
 		data->cache = NULL;
 	}
 	data->cache = _vte_glyph_cache_new();
-	_vte_glyph_cache_set_font_description(NULL, data->cache, fontdesc);
+	_vte_glyph_cache_set_font_description(NULL, data->cache, fontdesc,
+					      NULL, NULL);
 }
 
 static int
