@@ -5,36 +5,37 @@
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: vte 0.11.6\n"
-"POT-Creation-Date: 2003-05-19 14:33-0400\n"
-"PO-Revision-Date: 2003-05-18 21:48+0200\n"
+"Project-Id-Version: vte 0.11.9\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2003-06-08 21:36+0200\n"
+"PO-Revision-Date: 2003-06-08 21:35+0200\n"
 "Last-Translator: Christophe Merlet (RedFox) <redfox@redfoxcenter.org>\n"
 "Language-Team: GNOME French Team <gnomefr@traduc.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:735 src/iso2022.c:746 src/iso2022.c:795 src/vte.c:1994
+#: src/iso2022.c:786 src/iso2022.c:797 src/iso2022.c:846 src/vte.c:2048
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Impossible de convertir les caractères %s en %s."
 
-#: src/iso2022.c:1505
+#: src/iso2022.c:1559
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Tentative de définir une carte NRC « %c » non valide."
 
-#. See ECMA-35.
-#: src/iso2022.c:1546
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: src/iso2022.c:1600
 msgid "Unrecognized identified coding system."
-msgstr ""
+msgstr "Système de codage identifié non reconnu."
 
-#: src/iso2022.c:1595 src/iso2022.c:1621
+#: src/iso2022.c:1649 src/iso2022.c:1675
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Tentative de définir une carte NRC large « %c » non valide."
 
-#: src/pty.c:317
+#: src/pty.c:319
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Erreur lors de l'ajout de « %s » à l'environnement, ignore."
@@ -42,7 +43,7 @@ msgstr "Erreur lors de l'ajout de « %s » à l'environnement, ignore."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:877
+#: src/pty.c:882
 #, c-format
 msgid "can not run %s"
 msgstr "ne peut exécuter %s"
@@ -56,58 +57,58 @@ msgstr "Erreur lors de la création du signal de tube."
 msgid "Duplicate (%s/%s)!"
 msgstr "Dupliquer (%s/%s) ! "
 
-#: src/vte.c:1430
+#: src/vte.c:1460
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Erreur lors de la compilation de l'expression régulière « %s »."
 
-#: src/vte.c:5534
+#: src/vte.c:5634
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Séquence (clé ?) imprévue « %s »."
 
-#: src/vte.c:6547
+#: src/vte.c:6647
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Pas de manipulation définie pour la séquence de contrôle « %s »."
 
-#: src/vte.c:7293
+#: src/vte.c:7394
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Erreur lors de la lecture du fils : « %s »."
 
-#: src/vte.c:7449
+#: src/vte.c:7550
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Erreur (%s) lors de la conversion de données pour le fils, abandon."
 
-#: src/vte.c:10069
+#: src/vte.c:10182
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Erreur lors de la lecture de la taille PTY, utilisation par défaut : %s."
 
-#: src/vte.c:10105
+#: src/vte.c:10218
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Erreur lors du paramètrage de la taille PTY : « %s »."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14067
+#: src/vte.c:14310
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() a échoué lors de la définition des caractères du mot"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:642
+#: src/vteapp.c:680
 msgid "Could not open console.\n"
 msgstr "Ne peut ouvrir la console.\n"
 
-#: src/vteglyph.c:575
+#: src/vteglyph.c:576
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "Mode de pixels %d inconnu.\n"
 
-#: src/vtexft.c:664
+#: src/vtexft.c:696
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "Ne peut dessiner le caractère U+%04x.\n"
