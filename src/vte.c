@@ -6715,7 +6715,7 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 		vte_invalidate_cells(terminal,
 				     0,
 				     terminal->column_count,
-				     rows,
+				     screen->scroll_delta + rows,
 				     rowe - rows + 1);
 	}
 }

@@ -352,7 +352,8 @@ vte_terminal_accessible_get_text(AtkText *text,
 	VteTerminalAccessiblePrivate *priv;
 	int start, end;
 
-	g_return_val_if_fail(start_offset >= 0 && end_offset >= -1, g_strdup(""));
+	g_return_val_if_fail((start_offset >= 0) && (end_offset >= -1),
+			     g_strdup(""));
 
 	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text));
 
@@ -375,7 +376,7 @@ vte_terminal_accessible_get_text(AtkText *text,
 
 	/* Map the offsets to, er, offsets. */
 	start = g_array_index(priv->snapshot_characters, int, start_offset);
-	if (end_offset == -1 || end_offset >= priv->snapshot_attributes->len) {
+	if ((end_offset == -1) || (end_offset >= priv->snapshot_attributes->len) ) {
 		/* Get everything up to the end of the buffer. */
 		end = priv->snapshot_attributes->len;
 	} else {
