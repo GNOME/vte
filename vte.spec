@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.11.3
+Version: 0.11.4
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -93,6 +93,11 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Thu Apr 24 2003 Nalin Dahyabhai <nalin@redhat.com> 0.11.4-1
+- update transparent background faster when moving windows
+- fix bold
+- add an AtkComponent interface for accessibility
+
 * Thu Apr 17 2003 Nalin Dahyabhai <nalin@redhat.com> 0.11.3-1
 - rework support for national replacement charsets and iso2022
 
