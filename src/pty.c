@@ -201,6 +201,64 @@ _vte_pty_pipe_open_bi(int *a, int *b, int *c, int *d)
 	return ret;
 }
 
+/* Like read, but hide EINTR and EAGAIN. */
+static ssize_t
+n_read(int fd, void *buffer, size_t count)
+{
+	size_t n = 0;
+	char *buf = buffer;
+	int i;
+	while (n < count) {
+		i = read(fd, buf + n, count - n);
+		switch (i) {
+		case 0:
+			return n;
+			break;
+		case -1:
+			switch (errno) {
+			case EINTR:
+			case EAGAIN:
+				break;
+			default:
+				return -1;
+			}
+		default:
+			n += i;
+			break;
+		}
+	}
+	return n;
+}
+
+/* Like write, but hide EINTR and EAGAIN. */
+static ssize_t
+n_write(int fd, const void *buffer, size_t count)
+{
+	size_t n = 0;
+	const char *buf = buffer;
+	int i;
+	while (n < count) {
+		i = write(fd, buf + n, count - n);
+		switch (i) {
+		case 0:
+			return n;
+			break;
+		case -1:
+			switch (errno) {
+			case EINTR:
+			case EAGAIN:
+				break;
+			default:
+				return -1;
+			}
+		default:
+			n += i;
+			break;
+		}
+	}
+	return n;
+}
+
 /* Run the given command, using the given descriptor as the controlling
  * terminal. */
 static int
@@ -283,9 +341,9 @@ _vte_pty_run_on_pty(int fd, int ready_reader, int ready_writer,
 		fprintf(stderr, "Child sending child-ready.\n");
 	}
 #endif
-	write(ready_writer, &c, 1);
+	n_write(ready_writer, &c, 1);
 	fsync(ready_writer);
-	read(ready_reader, &c, 1);
+	n_read(ready_reader, &c, 1);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_PTY)) {
 		fprintf(stderr, "Child received parent-ready.\n");
@@ -358,7 +416,7 @@ _vte_pty_fork_on_pty_name(const char *path, int parent_fd, char **env_add,
 			fprintf(stderr, "Parent ready, waiting for child.\n");
 		}
 #endif
-		read(ready_a[0], &c, 1);
+		n_read(ready_a[0], &c, 1);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
 			fprintf(stderr, "Parent received child-ready.\n");
@@ -370,7 +428,7 @@ _vte_pty_fork_on_pty_name(const char *path, int parent_fd, char **env_add,
 			fprintf(stderr, "Parent sending parent-ready.\n");
 		}
 #endif
-		write(ready_b[1], &c, 1);
+		n_write(ready_b[1], &c, 1);
 		close(ready_a[0]);
 		close(ready_b[1]);
 
@@ -451,7 +509,7 @@ _vte_pty_fork_on_pty_fd(int fd, char **env_add,
 			fprintf(stderr, "Parent ready.\n");
 		}
 #endif
-		read(ready_a[0], &c, 1);
+		n_read(ready_a[0], &c, 1);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
 			fprintf(stderr, "Parent received child-ready.\n");
@@ -463,7 +521,7 @@ _vte_pty_fork_on_pty_fd(int fd, char **env_add,
 			fprintf(stderr, "Parent sending parent-ready.\n");
 		}
 #endif
-		write(ready_b[1], &c, 1);
+		n_write(ready_b[1], &c, 1);
 		close(ready_a[0]);
 		close(ready_b[1]);
 
@@ -589,16 +647,29 @@ static char *
 _vte_pty_ptsname(int master)
 {
 #if defined(HAVE_PTSNAME_R)
-	char buf[PATH_MAX];
-	memset(buf, 0, sizeof(buf));
-	if (ptsname_r(master, buf, sizeof(buf) - 1) == 0) {
+	gsize len = 1024;
+	char *buf = NULL;
+	int i;
+	do {
+		buf = g_malloc0(len);
+		i = ptsname_r(master, buf, len - 1);
+		switch (i) {
+		case 0:
+			/* Return the allocated buffer with the name in it. */
 #ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			fprintf(stderr, "PTY slave is `%s'.\n", buf);
-		}
+			if (_vte_debug_on(VTE_DEBUG_PTY)) {
+				fprintf(stderr, "PTY slave is `%s'.\n", buf);
+			}
 #endif
-		return g_strdup(buf);
-	}
+			return buf;
+			break;
+		default:
+			g_free(buf);
+			buf = NULL;
+			break;
+		}
+		len *= 2;
+	} while ((i != 0) && (errno == ERANGE));
 #elif defined(HAVE_PTSNAME)
 	char *p;
 	if ((p = ptsname(master)) != NULL) {
@@ -706,7 +777,7 @@ _vte_pty_open_unix98(pid_t *child, char **env_add,
 	return fd;
 }
 
-#ifdef HAVE_SENDMSG
+#ifdef HAVE_RECVMSG
 static void
 _vte_pty_read_ptypair(int tunnel, int *parentfd, int *childfd)
 {
@@ -798,7 +869,7 @@ _vte_pty_start_helper(void)
 		 * going to work (assuming we can open a pty using some other
 		 * method). */
 		g_warning(_("can not run %s"), LIBEXECDIR "/gnome-pty-helper");
-	 	return FALSE;
+		return FALSE;
 	}
 	/* Create a communication link for use with the helper. */
 	tmp[0] = open("/dev/null", O_RDONLY);
@@ -862,23 +933,43 @@ _vte_pty_open_with_helper(pid_t *child, char **env_add,
 	if (_vte_pty_helper_started) {
 		ops = op;
 		/* Send our request. */
-		if (write(_vte_pty_helper_tunnel,
-			  &ops, sizeof(ops)) != sizeof(ops)) {
+		if (n_write(_vte_pty_helper_tunnel,
+			    &ops, sizeof(ops)) != sizeof(ops)) {
 			return -1;
 		}
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
+			fprintf(stderr, "Sent request to helper.\n");
+		}
+#endif
 		/* Read back the response. */
-		if (read(_vte_pty_helper_tunnel,
-			 &ret, sizeof(ret)) != sizeof(ret)) {
+		if (n_read(_vte_pty_helper_tunnel,
+			   &ret, sizeof(ret)) != sizeof(ret)) {
 			return -1;
 		}
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
+			fprintf(stderr, "Received response from helper.\n");
+		}
+#endif
 		if (ret == 0) {
 			return -1;
 		}
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
+			fprintf(stderr, "Helper returns success.\n");
+		}
+#endif
 		/* Read back a tag. */
-		if (read(_vte_pty_helper_tunnel,
-			 &tag, sizeof(tag)) != sizeof(tag)) {
+		if (n_read(_vte_pty_helper_tunnel,
+			   &tag, sizeof(tag)) != sizeof(tag)) {
 			return -1;
 		}
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
+			fprintf(stderr, "Tag = %p.\n", tag);
+		}
+#endif
 		/* Receive the master and slave ptys. */
 		_vte_pty_read_ptypair(_vte_pty_helper_tunnel,
 				      &parentfd, &childfd);
@@ -888,10 +979,8 @@ _vte_pty_open_with_helper(pid_t *child, char **env_add,
 			close(childfd);
 			return -1;
 		}
-
 #ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_MISC) ||
-		    _vte_debug_on(VTE_DEBUG_PTY)) {
+		if (_vte_debug_on(VTE_DEBUG_PTY)) {
 			fprintf(stderr, "Got master pty %d and slave pty %d.\n",
 				parentfd, childfd);
 		}
@@ -1005,12 +1094,12 @@ _vte_pty_close(int pty)
 			ops = GNOME_PTY_CLOSE_PTY;
 			tag = g_tree_lookup(_vte_pty_helper_map,
 					    GINT_TO_POINTER(pty));
-			if (write(_vte_pty_helper_tunnel,
-				  &ops, sizeof(ops)) != sizeof(ops)) {
+			if (n_write(_vte_pty_helper_tunnel,
+				    &ops, sizeof(ops)) != sizeof(ops)) {
 				return;
 			}
-			if (write(_vte_pty_helper_tunnel,
-				  &tag, sizeof(tag)) != sizeof(tag)) {
+			if (n_write(_vte_pty_helper_tunnel,
+				    &tag, sizeof(tag)) != sizeof(tag)) {
 				return;
 			}
 			/* Remove the item from the map. */
@@ -1034,7 +1123,7 @@ sigchld_handler(int signum)
 int
 main(int argc, char **argv)
 {
-	pid_t child;
+	pid_t child = 0;
 	char c;
 	int ret;
 	signal(SIGCHLD, sigchld_handler);
@@ -1044,17 +1133,17 @@ main(int argc, char **argv)
 			   (argc > 1) ? argv + 1 : NULL,
 			   NULL,
 			   0, 0,
-			   FALSE, FALSE, FALSE);
+			   TRUE, TRUE, TRUE);
 	g_print("Child pid is %d.\n", (int)child);
 	do {
-		ret = read(fd, &c, 1);
+		ret = n_read(fd, &c, 1);
 		if (ret == 0) {
 			break;
 		}
 		if ((ret == -1) && (errno != EAGAIN) && (errno != EINTR)) {
 			break;
 		}
-		write(STDOUT_FILENO, &c, 1);
+		n_write(STDOUT_FILENO, &c, 1);
 	} while (TRUE);
 	return 0;
 }

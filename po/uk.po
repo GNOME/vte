@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2003-01-21 19:16+0200\n"
+"POT-Creation-Date: 2003-04-29 11:22-0400\n"
 "PO-Revision-Date: 2003-01-21 08:23--500\n"
 "Last-Translator: Yuriy Syrota <yuri@renome.rovno.ua>\n"
 "Language-Team: Ukrainian <linux@linux.org.ua>\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:253
+#: src/pty.c:311
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Помилка додавання \"%s\" до середовища, роботу продовжено."
@@ -22,7 +22,7 @@ msgstr "Помилка додавання \"%s\" до середовища, ро
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:800
+#: src/pty.c:871
 #, c-format
 msgid "can not run %s"
 msgstr "неможливо виконати %s"
@@ -36,88 +36,90 @@ msgstr "Помилка створення сигнального каналу."
 msgid "Duplicate (%s/%s)!"
 msgstr "Повторення (%s/%s)!"
 
-#: src/vte.c:1407
+#: src/vte.c:1450
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Помилка компіляції регулярного виразу \"%s\"."
 
-#: src/vte.c:1929
-#: src/vte.c:1938
-#: src/vte.c:1950
-#: src/vte.c:1968
-#: src/vte.c:1974
-#: src/vte.c:1979
+#: src/vte.c:1972 src/vte.c:1981 src/vte.c:1993 src/vte.c:2011 src/vte.c:2017
+#: src/vte.c:2022
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Неможливо перетворити символи з %s у %s."
 
-#: src/vte.c:5459
+#: src/vte.c:5556
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Отримано неочікувану послідовність \"%s\"."
 
-#: src/vte.c:6549
+#: src/vte.c:6655
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Не визначено обробника для керівної послідовності \"%s\"."
 
-#: src/vte.c:7288
+#: src/vte.c:7441
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Помилка зчитування з нащадка: %s."
 
-#: src/vte.c:7449
+#: src/vte.c:7625
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Помилка (%s) перетворення даних для нащадка, відкинуто."
 
-#: src/vte.c:9740
+#: src/vte.c:10022
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
-msgstr "Використовується набір шрифтів \"%s\", який не містить таких наборів символів: %s."
+msgstr ""
+"Використовується набір шрифтів \"%s\", який не містить таких наборів "
+"символів: %s."
 
-#: src/vte.c:10378
+#: src/vte.c:10663
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
-msgstr "Не вдалося завантажити шрифтовий шаблон Xft \"%s\", повернення до початкового шрифту."
+msgstr ""
+"Не вдалося завантажити шрифтовий шаблон Xft \"%s\", повернення до "
+"початкового шрифту."
 
-#: src/vte.c:10390
+#: src/vte.c:10675
 msgid "Failed to load default Xft font."
 msgstr "Не вдалося завантажити початковий шрифт Xft."
 
-#: src/vte.c:10483
+#: src/vte.c:10803
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
-msgstr "Не вдалося завантажити набір шрифтів \"%s\", повернення до початкового шрифту."
+msgstr ""
+"Не вдалося завантажити набір шрифтів \"%s\", повернення до початкового "
+"шрифту."
 
-#: src/vte.c:10495
+#: src/vte.c:10815
 msgid "Failed to load default font, crashing or behaving abnormally."
-msgstr "Не вдалося завантажити початковий шрифт, збій чи нестандартна поведінка."
+msgstr ""
+"Не вдалося завантажити початковий шрифт, збій чи нестандартна поведінка."
 
-#: src/vte.c:10757
+#: src/vte.c:11103
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Помилка зчитування розміру PTY, використання початкових: %s."
 
-#: src/vte.c:10793
+#: src/vte.c:11139
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Помилка встановлення розміру PTY: %s."
 
-#: src/vte.c:13679
+#: src/vte.c:14044
 msgid "Error allocating draw, disabling Xft."
 msgstr "Помилка виділення рисунка, вимкнення Xft."
 
-#: src/vte.c:13687
+#: src/vte.c:14052
 msgid "Error allocating context, disabling Pango."
 msgstr "Помилка виділення контексту, вимкнення Pango."
 
-#: src/vte.c:13693
+#: src/vte.c:14058
 msgid "Error allocating layout, disabling Pango."
 msgstr "Помилка виділення схеми розміщення, вимкнення Pango."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15326
+#: src/vte.c:15708
 msgid "g_iconv_open() failed setting word characters"
 msgstr "g_iconv_open() зазнала збою"
-

@@ -1,3 +1,14 @@
+2003-04-29 nalin
+	* src/iso2022.c: use 2 bytes per ISO-2022-CN character, and encode the
+	plane number correctly when performing the conversion.
+	* src/iso2022.c(_vte_iso2022_map_U): add CP437 map.  Will only
+	partially work because CP437 can use GR characters as input.
+	* src/iso2022.txt: pull up from HEAD.
+	* src/pty.c: pull up from HEAD.
+	* src/mkunitables.sh: pull up from HEAD to get CP437.
+	* src/unitable.CP437: pull up from HEAD.
+	* src/Makefile.am: include unitable.CP437.
+
 2003-04-28 nalin
 	* src/vte.c(vte_terminal_open_font_xft): use ascent + descent to get
 	the height of the line instead of the font height (#111752).

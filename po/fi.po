@@ -7,7 +7,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2002-12-17 06:02+0100\n"
+"POT-Creation-Date: 2003-04-29 11:22-0400\n"
 "PO-Revision-Date: 2003-01-02 18:30+0200\n"
 "Last-Translator: Pauli Virtanen <pauli.virtanen@hut.fi>\n"
 "Language-Team: Gnome Finnish Translation Team <gnome-fi-laatu@lists."
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:253
+#: src/pty.c:311
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Virhe muuttujan \"%s\" ympäristöön lisäämisessä. Jatkuu."
@@ -24,7 +24,7 @@ msgstr "Virhe muuttujan \"%s\" ympäristöön lisäämisessä. Jatkuu."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:800
+#: src/pty.c:871
 #, c-format
 msgid "can not run %s"
 msgstr "ei voi suorittaa: %s"
@@ -38,90 +38,90 @@ msgstr "Signaaliputken luontivirhe."
 msgid "Duplicate (%s/%s)!"
 msgstr "Monikertainen (%s%s)!"
 
-#: src/vte.c:1338
+#: src/vte.c:1450
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Virhe säleen \"%s\" kääntämisessä."
 
-#: src/vte.c:1859 src/vte.c:1868 src/vte.c:1880 src/vte.c:1898 src/vte.c:1904
-#: src/vte.c:1909
+#: src/vte.c:1972 src/vte.c:1981 src/vte.c:1993 src/vte.c:2011 src/vte.c:2017
+#: src/vte.c:2022
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Merkkien muuntaminen merkistöstä %s merkistöön %s ei onnistu."
 
-#: src/vte.c:5321
+#: src/vte.c:5556
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Vastaanotti odottamattoman (näppäily?)sarjan \"%s\""
 
-#: src/vte.c:6408
+#: src/vte.c:6655
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Ohjaussarjalle \"%s\" ei ole määritelty käsittelintä."
 
-#: src/vte.c:7018
+#: src/vte.c:7441
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Virhe lapselta lukemisessa: %s."
 
-#: src/vte.c:7184
+#: src/vte.c:7625
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Virhe (%s) datan muuntamisessa lapselle, putoaa pois."
 
-#: src/vte.c:9471
+#: src/vte.c:10022
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
 msgstr ""
 "Kirjasinlajijoukko \"%s\" käytössä. Siitä puuttuvat seuraavat merkistöt: %s."
 
-#: src/vte.c:10106
+#: src/vte.c:10663
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr ""
 "Xft-kirjasinlajikuvion \"%s\" lataaminen epäonnistui: oletusarvoinen "
 "kirjasinlaji käytössä."
 
-#: src/vte.c:10118
+#: src/vte.c:10675
 msgid "Failed to load default Xft font."
 msgstr "Oletus-Xft-kirjasimen lataaminen epäonnistui."
 
-#: src/vte.c:10211
+#: src/vte.c:10803
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr ""
 "Kirjasinlajijoukon \"%s\" lataaminen epäonnistui: oletusarvoinen "
 "kirjasinlaji käytössä."
 
-#: src/vte.c:10223
+#: src/vte.c:10815
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr ""
 "Oletusarvoisen kirjasinlajin lataaminen epäonnistui. Kaatuu tai toimii "
 "epänormaalisti."
 
-#: src/vte.c:10486
+#: src/vte.c:11103
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Virhe PTY-koon lukemisessa: oletus käytössä: %s."
 
-#: src/vte.c:10522
+#: src/vte.c:11139
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Virhe PTY-koon asettamisessa: %s."
 
-#: src/vte.c:13387
+#: src/vte.c:14044
 msgid "Error allocating draw, disabling Xft."
 msgstr "Virhe piirron varaamisessa, Xft poistuu käytöstä."
 
-#: src/vte.c:13395
+#: src/vte.c:14052
 msgid "Error allocating context, disabling Pango."
 msgstr "Virhe kontekstin varaamisessa, Pango poistuu käytöstä."
 
-#: src/vte.c:13401
+#: src/vte.c:14058
 msgid "Error allocating layout, disabling Pango."
 msgstr "Virhe asettelun varaamisessa, Pango poistuu käytöstä."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14986
+#: src/vte.c:15708
 msgid "g_iconv_open() failed setting word characters"
 msgstr "g_iconv_open() epäonnistui sanamerkkien asettamisessa"

@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte ??\n"
-"POT-Creation-Date: 2003-01-24 20:03+0100\n"
+"POT-Creation-Date: 2003-04-29 11:22-0400\n"
 "PO-Revision-Date: 2003-01-25 21:50+0100\n"
 "Last-Translator: Francesco Marletta <francesco.marletta@tiscali.it>\n"
 "Language-Team: Italian <tp@lists.linux.it>\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:253
+#: src/pty.c:311
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Errore nell'aggiungere \"%s\" all'ambiente, continuo."
@@ -22,7 +22,7 @@ msgstr "Errore nell'aggiungere \"%s\" all'ambiente, continuo."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:800
+#: src/pty.c:871
 #, c-format
 msgid "can not run %s"
 msgstr "impossibile eseguire %s"
@@ -36,90 +36,96 @@ msgstr "Errore nel creare la pipe dei segnali."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicato (%s/%s)!"
 
-#: src/vte.c:1408
+#: src/vte.c:1450
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Errore nel compilare l'espressione regolare \"%s\"."
 
-#: src/vte.c:1930 src/vte.c:1939 src/vte.c:1951 src/vte.c:1969 src/vte.c:1975
-#: src/vte.c:1980
+#: src/vte.c:1972 src/vte.c:1981 src/vte.c:1993 src/vte.c:2011 src/vte.c:2017
+#: src/vte.c:2022
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Impossibile convertire i caratteri da %s a %s."
 
-#: src/vte.c:5461
+#: src/vte.c:5556
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Ricevuta una sequenza (tasto?) inattesa \"%s\"."
 
-#: src/vte.c:6553
+#: src/vte.c:6655
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Nessun gestore definito per la sequenza di controllo \"%s\"."
 
-#: src/vte.c:7292
+#: src/vte.c:7441
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Errore nella lettura dal processo figlio: %s."
 
-#: src/vte.c:7453
+#: src/vte.c:7625
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
-"Errore (%s) nel convertire i dati per il processo figlio, rimarranno invariati."
+"Errore (%s) nel convertire i dati per il processo figlio, rimarranno "
+"invariati."
 
-#: src/vte.c:9774
+#: src/vte.c:10022
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
-msgstr "Il tipo di carattere in uso \"%s\", manca di questi insiemi di caratteri: %s."
+msgstr ""
+"Il tipo di carattere in uso \"%s\", manca di questi insiemi di caratteri: %s."
 
-#: src/vte.c:10412
+#: src/vte.c:10663
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr ""
-"Caricamento del modello di tipo di carattere per Xft \"%s\" fallito:"
-"sarà usato il tipo di carattere predefinito."
+"Caricamento del modello di tipo di carattere per Xft \"%s\" fallito:sarà "
+"usato il tipo di carattere predefinito."
 
-#: src/vte.c:10424
+#: src/vte.c:10675
 msgid "Failed to load default Xft font."
 msgstr "Caricamento del tipo di carattere predefinito per Xft fallito."
 
-#: src/vte.c:10517
+#: src/vte.c:10803
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
-msgstr "Caricamento del tipo di carattere \"%s\" fallito: sarà usato il"
-"tipo di carattere predefinito."
+msgstr ""
+"Caricamento del tipo di carattere \"%s\" fallito: sarà usato iltipo di "
+"carattere predefinito."
 
-#: src/vte.c:10529
+#: src/vte.c:10815
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr ""
-"Caricamento del tipo di carattere predefinito fallito, il programma potrà"
-"interrompersi o comportarsi in modo non normale."
+"Caricamento del tipo di carattere predefinito fallito, il programma "
+"potràinterrompersi o comportarsi in modo non normale."
 
-#: src/vte.c:10791
+#: src/vte.c:11103
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr "Errore nella lettura della dimensione PTY, sarà usato il valore predefinito: %s."
+msgstr ""
+"Errore nella lettura della dimensione PTY, sarà usato il valore predefinito: "
+"%s."
 
-#: src/vte.c:10827
+#: src/vte.c:11139
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Errore nell'impostazione del dimensione PTY: %s."
 
-#: src/vte.c:13714
+#: src/vte.c:14044
 msgid "Error allocating draw, disabling Xft."
 msgstr "Errore nell'allocazione dell disegno, disabilito Xft."
 
-#: src/vte.c:13722
+#: src/vte.c:14052
 msgid "Error allocating context, disabling Pango."
 msgstr "Errore nell'allocazione del contesto, disabilito Pango."
 
-#: src/vte.c:13728
+#: src/vte.c:14058
 msgid "Error allocating layout, disabling Pango."
 msgstr "Errore nell'allocazione del layout, disabilito Pango."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15374
+#: src/vte.c:15708
 msgid "g_iconv_open() failed setting word characters"
-msgstr "L'impostazione dei caratteri della parola da parte di g_iconv_open() è fallita"
-
+msgstr ""
+"L'impostazione dei caratteri della parola da parte di g_iconv_open() è "
+"fallita"

@@ -30,7 +30,7 @@
 #include "iso2022.h"
 
 /* Maps which jive with XTerm's ESC ()*+ ? sequences and RFC 1468. */
-#define NARROW_MAPS	"012AB4C5RQKYE6ZH7=" "J"
+#define NARROW_MAPS	"012AB4C5RQKYE6ZH7=" "J" "U"
 /* Maps which jive with RFC 1468's ESC $ ? sequences. */
 #define WIDE_MAPS	"@B"
 /* Maps which jive with RFC 1557/1922/2237's ESC $ ()*+ ? sequences. */
@@ -215,6 +215,10 @@ static const struct _vte_iso2022_map _vte_iso2022_map_equal[] = {
 	{'}',  GDK_udiaeresis},
 	{'~',  GDK_ucircumflex},
 };
+/* CP 437. */
+static const struct _vte_iso2022_map _vte_iso2022_map_U[] = {
+#include "unitable.CP437"
+};
 /* Japanese.  JIS X 0201-1976 ("Roman" set), per RFC 1468/2237. */
 static const struct _vte_iso2022_map _vte_iso2022_map_J[] = {
 	{'\\', 0x203e},
@@ -387,6 +391,10 @@ _vte_iso2022_map_get(gunichar mapname)
 			ret = _vte_iso2022_map_init(_vte_iso2022_map_equal,
 						    G_N_ELEMENTS(_vte_iso2022_map_equal));
 			break;
+		case 'U':
+			ret = _vte_iso2022_map_init(_vte_iso2022_map_U,
+						    G_N_ELEMENTS(_vte_iso2022_map_U));
+			break;
 		case 'J':
 			ret = _vte_iso2022_map_init(_vte_iso2022_map_J,
 						    G_N_ELEMENTS(_vte_iso2022_map_J));
@@ -524,7 +532,7 @@ _vte_iso2022_substitute(struct _vte_iso2022 *outside_state,
 	GTree *charmap = NULL;
 	gpointer ptr;
 	gunichar *buf, current_map = '\0', last_map = '\0', result;
-	unsigned int accumulator;
+	unsigned int accumulator, accumulator_or_mask;
 	const char *match;
 	const gunichar *used;
 	int chars_per_code = 1;
@@ -820,6 +828,7 @@ _vte_iso2022_substitute(struct _vte_iso2022 *outside_state,
 				current_map = state.g[state.current];
 			}
 			/* Build. */
+			accumulator_or_mask = 0;
 			if (current_map > WIDE_FUDGE) {
 				switch (current_map) {
 				case '@' + WIDE_FUDGE:
@@ -830,8 +839,12 @@ _vte_iso2022_substitute(struct _vte_iso2022 *outside_state,
 					chars_per_code = 2;
 					break;
 				case 'G' + WIDE_FUDGE:
+					chars_per_code = 2;
+					accumulator_or_mask = 0x10000;
+					break;
 				case 'H' + WIDE_FUDGE:
-					chars_per_code = 3;
+					chars_per_code = 2;
+					accumulator_or_mask = 0x20000;
 					break;
 				default:
 					chars_per_code = 1;
@@ -883,6 +896,7 @@ _vte_iso2022_substitute(struct _vte_iso2022 *outside_state,
 			if (charmap == NULL) {
 				result = accumulator;
 			} else {
+				accumulator |= accumulator_or_mask;
 				ptr = GINT_TO_POINTER(accumulator);
 				result = GPOINTER_TO_INT(g_tree_lookup(charmap, ptr));
 				if (result == 0) {

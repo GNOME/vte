@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte.gnome-2-2\n"
-"POT-Creation-Date: 2003-02-16 05:08+0100\n"
+"POT-Creation-Date: 2003-04-29 11:22-0400\n"
 "PO-Revision-Date: 2003-02-18 22:22GMT+2\n"
 "Last-Translator: Vital Khilko <dojlid@mova.org>\n"
 "Language-Team: belarusian <i18n@mova.org>\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 1.0\n"
 
-#: src/pty.c:253
+#: src/pty.c:311
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Памылка даданьня `%s' да асяродьдзя, працягваем."
@@ -23,7 +23,7 @@ msgstr "Памылка даданьня `%s' да асяродьдзя, прац
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:800
+#: src/pty.c:871
 #, c-format
 msgid "can not run %s"
 msgstr "немагчыма запусьціць %s"
@@ -37,84 +37,85 @@ msgstr "Памылка стварэньня сыгнальнага канала.
 msgid "Duplicate (%s/%s)!"
 msgstr "Двайнік (%s/%s)!"
 
-#: src/vte.c:1410
+#: src/vte.c:1450
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Памылка кампіляцыі сталага выразу \"%s\"."
 
-#: src/vte.c:1932 src/vte.c:1941 src/vte.c:1953 src/vte.c:1971 src/vte.c:1977
-#: src/vte.c:1982
+#: src/vte.c:1972 src/vte.c:1981 src/vte.c:1993 src/vte.c:2011 src/vte.c:2017
+#: src/vte.c:2022
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Немагчыма пераўтварыць сымбалі з %s у %s."
 
-#: src/vte.c:5496
+#: src/vte.c:5556
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Атрымана нечаканая (key?) пасьлядоўнасьць `%s'."
 
-#: src/vte.c:6588
+#: src/vte.c:6655
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Ня вызначаны апрацоўшчык для кіруючае пасьлядоўнасьці `%s'."
 
-#: src/vte.c:7330
+#: src/vte.c:7441
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Памылка чытаньня з нашчадка: %s."
 
-#: src/vte.c:7513
+#: src/vte.c:7625
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Памылка (%s) пераўтварэньня даньняў для нашчадка; скіданьне."
 
-#: src/vte.c:9840
+#: src/vte.c:10022
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
-msgstr "Выкарыстоўваецца набор шрыфтоў \"%s\", у якім прапушчаны гэты набор знакаў: %s."
+msgstr ""
+"Выкарыстоўваецца набор шрыфтоў \"%s\", у якім прапушчаны гэты набор знакаў: %"
+"s."
 
-#: src/vte.c:10478
+#: src/vte.c:10663
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr "Памылка загрузкі Xft шаблёну шрыфта \"%s\", адкат да дапомнага шрыфта."
 
-#: src/vte.c:10490
+#: src/vte.c:10675
 msgid "Failed to load default Xft font."
 msgstr "Памылка загрузкі дапомнага Xft шрыфта."
 
-#: src/vte.c:10583
+#: src/vte.c:10803
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr "Памылка загрузкі набору шрыфтоў \"%s\", адкат да дапомнага шрыфта."
 
-#: src/vte.c:10595
+#: src/vte.c:10815
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr "НЕмагчыма загрузіць дапомны шрыфт, збой ці не адпаведныя паводзіны."
 
-#: src/vte.c:10857
+#: src/vte.c:11103
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Памылка чытаньня PTY памера, выкарыстоўваецца дапомны: %s."
 
-#: src/vte.c:10893
+#: src/vte.c:11139
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Памылка ўсталяваньня памера PTY: %s."
 
-#: src/vte.c:13797
+#: src/vte.c:14044
 msgid "Error allocating draw, disabling Xft."
 msgstr "Памылка разьмяшчэньня адлюстраваньня, выключэньне Xft."
 
-#: src/vte.c:13805
+#: src/vte.c:14052
 msgid "Error allocating context, disabling Pango."
 msgstr "Памылка разьмяшчэньня зместа, выключэньне Pango."
 
-#: src/vte.c:13811
+#: src/vte.c:14058
 msgid "Error allocating layout, disabling Pango."
 msgstr "Памылка разьмяшчэньня разьметкі, выключэньне Pango."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15459
+#: src/vte.c:15708
 msgid "g_iconv_open() failed setting word characters"
 msgstr "g_iconv_open() памылка усталяваньня сымбаляў слова"
-

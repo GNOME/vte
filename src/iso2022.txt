@@ -7,7 +7,7 @@ General format: [ISO-2022] [UTF-8]
 #  Sample text from Ken Lunde's [4mCJKV Information Processing[m.
 #
 ISO-2022-JP/156:  [$B$+$J4A;z(B] [かな漢字]
-ISO-2022-KR/158:  [$)C1hD!)B] [ㅨ䐡]
+ISO-2022-KR/158:  [$)C1hD!)B] [김치]
 
 #
 #  Sample text based on XTerm's specs and random other docs.
@@ -29,3 +29,5 @@ Swiss:            [(=#$@[\]^_{|}~(B] [ù$àéçêîèäöüû]
 
 ISO-2022-JP:      [(J~\(B~\] [¥‾~\]
 ISO-2022-KR:      [$)C>o^-] [억嚬]
+ISO-2022-CN(1):   [$)G&*&4] [⑩⑽]
+ISO-2022-CN(2):   [$*HN$&N5~] [怀梩]

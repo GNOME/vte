@@ -15,9 +15,10 @@ generate() {
 	)
 }
 
-maphome=http://www.unicode.org/Public/MAPPINGS/OBSOLETE/EASTASIA/
+cjkmaphome=http://www.unicode.org/Public/MAPPINGS/OBSOLETE/EASTASIA/
+cpmaphome=http://www.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/PC/
 
-encodings="CNS11643 GB12345 GB2312 JIS0201 JIS0208 JIS0212 KSX1001"
+encodings="CNS11643 CP437 GB12345 GB2312 JIS0201 JIS0208 JIS0212 KSX1001"
 if test "$#" != 0 ; then
 	encodings="$*"
 fi
@@ -26,11 +27,12 @@ for encoding in $encodings ; do
 		if ! test -f $encoding.TXT ; then
 			echo -n "Retrieving "
 			case $encoding in
-				CNS*) wget -qc $maphome/OTHER/$encoding.TXT ;;
-				GB*) wget -qc $maphome/GB/$encoding.TXT ;;
-				JIS*) wget -qc $maphome/JIS/$encoding.TXT ;;
+				CP*) wget -qc $cpmaphome/$encoding.TXT;;
+				CNS*) wget -qc $cjkmaphome/OTHER/$encoding.TXT;;
+				GB*) wget -qc $cjkmaphome/GB/$encoding.TXT;;
+				JIS*) wget -qc $cjkmaphome/JIS/$encoding.TXT;;
 				KSX1001)
-					wget -qc $maphome/KSC/$encoding.TXT
+					wget -qc $cjkmaphome/KSC/$encoding.TXT
 					echo 0x2266 0x20AC >> $encoding.TXT
 					echo 0x2267 0x00AE >> $encoding.TXT
 					;;

@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2002-12-19 14:40+0200\n"
+"POT-Creation-Date: 2003-04-29 11:22-0400\n"
 "PO-Revision-Date: 2002-12-19 00:46+0200\n"
 "Last-Translator: Alexander Shopov <al_shopov@yahoo.com>\n"
 "Language-Team: Bulgarian <dict@linux.zonebg.com>\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 0.9.6\n"
 
-#: src/pty.c:253
+#: src/pty.c:311
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Грешка при добавянето на `%s' към средата, продължавам."
@@ -23,7 +23,7 @@ msgstr "Грешка при добавянето на `%s' към средата
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:800
+#: src/pty.c:871
 #, c-format
 msgid "can not run %s"
 msgstr "не мога да изпълня %s"
@@ -37,91 +37,91 @@ msgstr "Грешка при създаването на сигнален кан�
 msgid "Duplicate (%s/%s)!"
 msgstr "Повтаряне на (%s/%s)!"
 
-#: src/vte.c:1338
+#: src/vte.c:1450
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Грешка при изчисляването на регулярния израз \"%s\"."
 
-#: src/vte.c:1859 src/vte.c:1868 src/vte.c:1880 src/vte.c:1898 src/vte.c:1904
-#: src/vte.c:1909
+#: src/vte.c:1972 src/vte.c:1981 src/vte.c:1993 src/vte.c:2011 src/vte.c:2017
+#: src/vte.c:2022
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Не мога да превърна символите от %s към %s."
 
-#: src/vte.c:5321
+#: src/vte.c:5556
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Получих неочаквана последователност (от клавиши?) `%s'."
 
-#: src/vte.c:6408
+#: src/vte.c:6655
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Не е дефинирано, кой да обработи контролната последователност `%s'"
 
-#: src/vte.c:7018
+#: src/vte.c:7441
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Грешка при четене от дъщерния процес: %s."
 
-#: src/vte.c:7184
+#: src/vte.c:7625
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "Грешка (%s) при преобразуването на данните за дъщерния процес, пропускам ги."
 
-#: src/vte.c:9471
+#: src/vte.c:10022
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
 msgstr ""
 "Използвам шрифтовия комплект \"%s\", в който липсват символните набори: %s."
 
-#: src/vte.c:10106
+#: src/vte.c:10663
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr ""
 "Не успях да заредя Xft шрифтовия образец \"%s\", ще използвам шрифта по "
 "подразбиране."
 
-#: src/vte.c:10118
+#: src/vte.c:10675
 msgid "Failed to load default Xft font."
 msgstr "Не успях да заредя Xft шрифта по подразбиране."
 
-#: src/vte.c:10211
+#: src/vte.c:10803
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr ""
 "Не успях да заредя шрифтовия комплект \"%s\", ще използвам шрифта по "
 "подразбиране."
 
-#: src/vte.c:10223
+#: src/vte.c:10815
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr ""
 "Не успях да заредя шрифта по подразбиране, забиване или ненормално поведение."
 
-#: src/vte.c:10486
+#: src/vte.c:11103
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Грешка при прочитането на PTY размера, ще използвам %s по подразбиране."
 
-#: src/vte.c:10522
+#: src/vte.c:11139
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Грешка при задаването на PTY размера: %s."
 
-#: src/vte.c:13387
+#: src/vte.c:14044
 msgid "Error allocating draw, disabling Xft."
 msgstr "Грешка при заделянето на draw, деактивирам Xft."
 
-#: src/vte.c:13395
+#: src/vte.c:14052
 msgid "Error allocating context, disabling Pango."
 msgstr "Грешка при заделянето на контекст, деактивирам Pango."
 
-#: src/vte.c:13401
+#: src/vte.c:14058
 msgid "Error allocating layout, disabling Pango."
 msgstr "Грешка при заделянето на разположение, деактивирам Pango."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14992
+#: src/vte.c:15708
 msgid "g_iconv_open() failed setting word characters"
 msgstr "g_iconv_open() не успя да зададе символите на думите"
