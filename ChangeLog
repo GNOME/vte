@@ -1,3 +1,6 @@
+2002-05-28 nalin
+	* src/vte.c: Fix matching when scrolling delta isn't zero.
+
 2002-05-24 nalin
 	* autogen.sh: Call libtoolize. (#82836)
 	* src/vte.c: Fix stupid segfault in set_scrollback_lines.  (Patch

@@ -6731,7 +6731,7 @@ vte_terminal_get_text(VteTerminal *terminal,
 	     y++) {
 		x = 0;
 		spaces = 0;
-		attr.row = y;
+		attr.row = y - screen->scroll_delta;
 		do {
 			pcell = vte_terminal_find_charcell(terminal, x, y);
 			if (is_selected(terminal, x, y)) {
