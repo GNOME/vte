@@ -123,9 +123,14 @@ struct _VteTerminalPrivate {
 						   for insertion of any new
 						   characters */
 	} normal_screen, alternate_screen, *screen;
-	struct {			/* where selection started */
+
+	gboolean selection;
+	struct {
 		gdouble x, y;
-	} selection_start;
+	} selection_origin, selection_last;
+	struct {
+		long x, y;
+	} selection_start, selection_end;
 
 	/* Options. */
 	gboolean scroll_on_output;
@@ -2459,11 +2464,6 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 	vte_invalidate_cells(terminal,
 			     screen->cursor_current.col - 1, 3,
 			     screen->cursor_current.row, 1);
-
-	/* Keep the cursor on-screen. */
-	if (terminal->pvt->scroll_on_output) {
-		vte_terminal_scroll_on_something(terminal);
-	}
 }
 
 /* Handle an EOF from the client. */
@@ -2600,6 +2600,20 @@ vte_terminal_io_read(GIOChannel *channel,
 		} else {
 			/* It's a zero-length string, so we need to wait for
 			 * more data from the client. */
+		}
+		/* If we had output, scroll if need be. */
+		if (terminal->pvt->n_incoming == 0) {
+			/* Keep the cursor on-screen. */
+			if (terminal->pvt->scroll_on_output) {
+				vte_terminal_scroll_on_something(terminal);
+			}
+			/* Deselect. */
+			if (terminal->pvt->selection) {
+				terminal->pvt->selection = FALSE;
+				vte_invalidate_cells(terminal,
+						     0, terminal->column_count,
+						     0, terminal->row_count);
+			}
 		}
 	}
 
@@ -2892,6 +2906,58 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	return FALSE;
 }
 
+/* Check if a cell is selected or not. */
+static gboolean
+vte_cell_is_selected(VteTerminal *terminal, long drow, long col)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	if (!terminal->pvt->selection) {
+		return FALSE;
+	}
+	if ((drow > terminal->pvt->selection_start.y) &&
+	    (drow < terminal->pvt->selection_end.y)) {
+		return TRUE;
+	} else
+	if ((terminal->pvt->selection_start.y == drow) &&
+	    (terminal->pvt->selection_end.y == drow)) {
+		if ((col >= terminal->pvt->selection_start.x) &&
+		    (col < terminal->pvt->selection_end.x)) {
+			return TRUE;
+		} else
+		if ((col >= terminal->pvt->selection_end.x) &&
+		    (col < terminal->pvt->selection_start.x)) {
+			return TRUE;
+		}
+	} else
+	if ((drow == terminal->pvt->selection_start.y) &&
+	    (col >= terminal->pvt->selection_start.x)) {
+		return TRUE;
+	} else
+	if ((drow == terminal->pvt->selection_end.y) &&
+	    (col < terminal->pvt->selection_end.x)) {
+		return TRUE;
+	}
+	return FALSE;
+}
+
+/* Find the character in the given "virtual" position. */
+struct vte_charcell *
+vte_terminal_find_charcell(VteTerminal *terminal, long row, long col)
+{
+	GArray *rowdata;
+	struct vte_charcell *ret = NULL;
+	struct _VteScreen *screen;
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+	screen = terminal->pvt->screen;
+	if (screen->row_data->len > row) {
+		rowdata = g_array_index(screen->row_data, GArray*, row);
+		if (rowdata->len > col) {
+			ret = &g_array_index(rowdata, struct vte_charcell, col);
+		}
+	}
+	return ret;
+}
+
 /* Once we get text data, actually paste it in. */
 static void
 vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
@@ -2899,26 +2965,171 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 	VteTerminal *terminal;
 	g_return_if_fail(VTE_IS_TERMINAL(data));
 	terminal = VTE_TERMINAL(data);
-	vte_terminal_send(terminal, "UTF-8", text, strlen(text));
+	if (text != NULL) {
+		vte_terminal_send(terminal, "UTF-8", text, strlen(text));
+	}
 }
 
 /* Read and handle a motion event. */
 static gint
 vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 {
+	VteTerminal *terminal;
+	struct {
+		long x, y;
+	} o, p, q, origin, last;
+	long delta, top, height, w, h;
+
+	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
+	terminal = VTE_TERMINAL(widget);
+
+	terminal->pvt->selection = TRUE;
+
+	w = terminal->char_width;
+	h = terminal->char_height;
+	origin.x = (terminal->pvt->selection_origin.x + w / 2) / w;
+	origin.y = (terminal->pvt->selection_origin.y) / h;
+	last.x = (event->x + w / 2) / w;
+	last.y = (event->y) / h;
+	o.x = (terminal->pvt->selection_last.x + w / 2) / w;
+	o.y = (terminal->pvt->selection_last.y) / h;
+
+	terminal->pvt->selection_last.x = event->x;
+	terminal->pvt->selection_last.y = event->y;
+
+	if (last.y > origin.y) {
+		p.x = origin.x;
+		p.y = origin.y;
+		q.x = last.x;
+		q.y = last.y;
+	} else
+	if (last.y < origin.y) {
+		p.x = last.x;
+		p.y = last.y;
+		q.x = origin.x;
+		q.y = origin.y;
+	} else
+	if (last.x > origin.x) {
+		p.x = origin.x;
+		p.y = origin.y;
+		q.x = last.x;
+		q.y = last.y;
+	} else {
+		p.x = last.x;
+		p.y = last.y;
+		q.x = origin.x;
+		q.y = origin.y;
+	}
+
+	delta = terminal->pvt->screen->scroll_delta;
+
+	terminal->pvt->selection_start.x = p.x;
+	terminal->pvt->selection_start.y = p.y + delta;
+	terminal->pvt->selection_end.x = q.x;
+	terminal->pvt->selection_end.y = q.y + delta;
+
+	top = MIN(o.y, MIN(p.y, q.y));
+	height = MAX(o.y, MAX(p.y, q.y)) - top + 1;
+
 #ifdef VTE_DEBUG
-	g_print("pointer moved to (%lf,%lf)\n", event->x, event->y);
+	g_print("selection is (%ld,%ld) to (%ld,%ld)\n",
+		terminal->pvt->selection_start.x,
+		terminal->pvt->selection_start.y,
+		terminal->pvt->selection_end.x,
+		terminal->pvt->selection_end.y);
+	g_print("repainting rows %ld to %ld\n", top, top + height);
 #endif
+
+	vte_invalidate_cells(terminal, 0, terminal->column_count, top, height);
+
 	return FALSE;
+}
+
+/* Copy to the given clipboard. */
+static void
+vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
+{
+	GtkClipboard *clipboard;
+	long x, y;
+	struct _VteScreen *screen;
+	struct vte_charcell *pcell;
+	wchar_t *buffer;
+	size_t length;
+	char *ibuf, *obuf, *obufptr;
+	size_t icount, ocount;
+	iconv_t conv;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	screen = terminal->pvt->screen;
+	clipboard = gtk_clipboard_get(board);
+
+	if (clipboard != NULL) {
+		/* Build a buffer with the selected wide chars. */
+		buffer = g_malloc((terminal->column_count + 1) *
+				  terminal->row_count * sizeof(wchar_t));
+		length = 0;
+		for (y = screen->scroll_delta;
+		     y < terminal->row_count + screen->scroll_delta;
+		     y++)
+		for (x = 0; x < terminal->column_count; x++) {
+			pcell = vte_terminal_find_charcell(terminal, y, x);
+			if (vte_cell_is_selected(terminal, y, x)) {
+				if (pcell != NULL) {
+					buffer[length++] = pcell->c;
+				} else {
+					if (x == terminal->column_count - 1) {
+						buffer[length++] = '\n';
+					}
+				}
+			}
+		}
+		/* Now convert it all to UTF-8. */
+		if (length > 0) {
+			icount = sizeof(wchar_t) * length;
+			ibuf = (char*) buffer;
+			ocount = (terminal->column_count + 1) *
+				 terminal->row_count * sizeof(wchar_t);
+			obuf = obufptr = g_malloc0(ocount);
+			conv = iconv_open("UTF-8", "WCHAR_T");
+			if (conv) {
+				if (iconv(conv, &ibuf, &icount,
+					  &obuf, &ocount) != -1) {
+					printf("Selected `%*s'\n", obuf - obufptr, obufptr);
+					gtk_clipboard_set_text(clipboard,
+							       obufptr,
+							       obuf - obufptr);
+				} else {
+					g_warning("Conversion error in copy.");
+				}
+				iconv_close(conv);
+			} else {
+				g_warning("Error initializing for conversion.");
+			}
+			g_free(obufptr);
+		}
+		g_free(buffer);
+	}
+}
+
+/* Paste from the given clipboard. */
+static void
+vte_terminal_paste(VteTerminal *terminal, GdkAtom board)
+{
+	GtkClipboard *clipboard;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	clipboard = gtk_clipboard_get(board);
+	if (clipboard != NULL) {
+		gtk_clipboard_request_text(clipboard,
+					   vte_terminal_paste_cb,
+					   terminal);
+	}
 }
 
 /* Read and handle a pointing device buttonpress event. */
 static gint
 vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 {
-	GtkClipboard *clipboard;
 	VteTerminal *terminal;
-	GdkEventMask events;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
@@ -2932,22 +3143,16 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			if (!GTK_WIDGET_HAS_FOCUS(widget)) {
 				gtk_widget_grab_focus(widget);
 			}
-			terminal->pvt->selection_start.x = event->x;
-			terminal->pvt->selection_start.y = event->y;
-			/* start listening to motion events */
-			events = gdk_window_get_events(widget->window);
-			events |= GDK_BUTTON1_MOTION_MASK;
-			gdk_window_set_events(widget->window, events);
+			terminal->pvt->selection_origin.x = event->x;
+			terminal->pvt->selection_origin.y = event->y;
+			terminal->pvt->selection = FALSE;
+			vte_invalidate_cells(terminal,
+					     0, terminal->column_count,
+					     0, terminal->row_count);
 			return TRUE;
 		}
 		if (event->button == 2) {
-			/* paste from clipboard */
-			clipboard = gtk_clipboard_get(GDK_SELECTION_PRIMARY);
-			if (clipboard != NULL) {
-				gtk_clipboard_request_text(clipboard,
-							   vte_terminal_paste_cb,
-							   terminal);
-			}
+			vte_terminal_paste(terminal, GDK_SELECTION_PRIMARY);
 			return TRUE;
 		}
 	}
@@ -2958,9 +3163,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 static gint
 vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 {
-	GtkClipboard *clipboard;
 	VteTerminal *terminal;
-	GdkEventMask events;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
@@ -2971,10 +3174,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 			event->button, event->x, event->y);
 #endif
 		if (event->button == 1) {
-			/* stop listening to motion events */
-			events = gdk_window_get_events(widget->window);
-			events &= ~(GDK_BUTTON1_MOTION_MASK);
-			gdk_window_set_events(widget->window, events);
+			vte_terminal_copy(terminal, GDK_SELECTION_PRIMARY);
 		}
 	}
 
@@ -3308,6 +3508,11 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->scroll_on_output = TRUE;
 	pvt->scroll_on_keypress = TRUE;
 	pvt->alt_sends_escape = TRUE;
+	pvt->selection = FALSE;
+	pvt->selection_start.x = 0;
+	pvt->selection_start.y = 0;
+	pvt->selection_end.x = 0;
+	pvt->selection_end.y = 0;
 	adjustment = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0, 0, 0, 0));
 
 #ifdef HAVE_XFT
@@ -3575,6 +3780,7 @@ vte_terminal_realize(GtkWidget *widget)
 				GDK_EXPOSURE_MASK |
 				GDK_BUTTON_PRESS_MASK |
 				GDK_BUTTON_RELEASE_MASK |
+				GDK_BUTTON1_MOTION_MASK |
 				GDK_KEY_PRESS_MASK |
 				GDK_KEY_RELEASE_MASK;
 	attributes.cursor = gdk_cursor_new(GDK_XTERM);
@@ -3608,24 +3814,6 @@ vte_terminal_realize(GtkWidget *widget)
 	gtk_widget_grab_focus(widget);
 }
 
-/* Find the character in the given "virtual" position. */
-struct vte_charcell *
-vte_terminal_find_charcell(VteTerminal *terminal, long row, long col)
-{
-	GArray *rowdata;
-	struct vte_charcell *ret = NULL;
-	struct _VteScreen *screen;
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	screen = terminal->pvt->screen;
-	if (screen->row_data->len > row) {
-		rowdata = g_array_index(screen->row_data, GArray*, row);
-		if (rowdata->len > col) {
-			ret = &g_array_index(rowdata, struct vte_charcell, col);
-		}
-	}
-	return ret;
-}
-
 /* Draw the widget. */
 static void
 vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
@@ -3642,7 +3830,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	GC gc;
 	struct vte_charcell *cell;
 	int row, drow, col, dcol, row_stop, col_stop, x_offs = 0, y_offs = 0;
-	int fore, back, width, height, ascent, descent;
+	int fore, back, width, height, ascent, descent, tmp;
 	long delta;
 	XwcTextItem textitem;
 #ifdef HAVE_XFT
@@ -3744,6 +3932,12 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 					fore = cell->fore;
 					back = cell->back;
 				}
+				if (vte_cell_is_selected(terminal, drow, col)) {
+					tmp = fore;
+					fore = back;
+					back = tmp;
+				}
+				
 				if (cell->invisible) {
 					fore = back;
 				}
