@@ -96,7 +96,7 @@ AC_SUBST(NEEDEDPACKAGES)
 
 # Require Freetype2.  We use our local copy of the macro because packages of
 # freetype's development files don't always include the proper macro.
-VTE_CHECK_FT2
+VTE_CHECK_FT2(6.1.0,,[AC_MSG_ERROR([You must have freetype 2.0.2 or later to build vte.])])
 
 # Temporarily pull in the Freetype cflags and libs for checking what's
 # available in this version.
@@ -109,6 +109,9 @@ if test -d "$ac_x_includes" ; then
 	CPPFLAGS="$CPPFLAGS -I$ac_x_includes"
 fi
 AC_CHECK_HEADERS(ft2build.h)
+if test x$ac_cv_header_ft2build_h != xyes ; then
+	AC_MSG_ERROR([You must have freetype 2.0.2 or later to build vte.])
+fi
 
 AC_CHECK_DECL(ft_render_mode_mono,[AC_DEFINE(HAVE_DECL_ft_render_mode_mono,1,Define if your freetype2 installation defines ft_render_mode_mono.)],,[
 #ifdef HAVE_FT2BUILD_H

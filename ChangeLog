@@ -1,4 +1,10 @@
 2003-08-12 nalin
+	* configure.in: if <ft2build.h> isn't found, then we can't use any
+	freetype-specific bits, and that's not useful.  Error out, and say
+	that we need freetype 2.0.2 or newer, which introduced this header
+	into the procedure (bug #116341).
+
+2003-08-12 nalin
 	* src/vte.c: don't create an accessible peer at init() time in
 	debug mode.
 	* gnome-pty-helper/gnome-pty-helper.c(struct pty_info): add a field to
