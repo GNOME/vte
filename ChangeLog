@@ -1,4 +1,8 @@
 2003-04-29 nalin
+	* src/iso2022.txt: fix the UTF-8 sample text which corresponds to the
+	ISO-2022-KR sample text so that it actually matches the text.
+
+2003-04-29 nalin
 	* src/iso2022.c(_vte_iso2022_map_U): add map for CP437.
 	* src/unitable.CP437: add.
 	* src/mkunitables.sh: add CP437.
