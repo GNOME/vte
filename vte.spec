@@ -53,6 +53,9 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Mon Jun 10 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.28-1
+- finish merging otaylor's Xft2 patch
+
 * Mon Jun 10 2002 Nalin Dahyabhai <nalin@redhat.com> 0.3.27-1
 - rework accessibility
 

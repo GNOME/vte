@@ -27,4 +27,4 @@ archive:
 	rm -fr $$tmpdir
 
 srpm: $(top_srcdir)/$(PACKAGE)-$(VERSION).tar.gz
-	rpm -ts $(top_srcdir)/$(PACKAGE)-$(VERSION).tar.gz
+	rpmbuild -ts $(top_srcdir)/$(PACKAGE)-$(VERSION).tar.gz
