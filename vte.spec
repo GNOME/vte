@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.8.17
+Version: 0.8.18
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -54,6 +54,7 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 
 %files devel
 %defattr(-,root,root)
+%{_datadir}/gtk-doc/html/%{name}
 %{_includedir}/*
 %{_libdir}/%{name}
 %{_libdir}/*.a
@@ -61,6 +62,10 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Thu Sep  5 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.18-1
+- fix for worst-case when stripping termcap entries from Brian Cameron
+- add docs
+
 * Tue Sep  3 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.17-1
 - track Xft color deallocation to prevent freeing of colors we don't own
 

@@ -16,6 +16,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+/* The interfaces in this file are subject to change at any time. */
+
 #ifndef vte_iso2022_h_included
 #define vte_iso2022_h_included
 

@@ -16,6 +16,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+/* The interfaces in this file are subject to change at any time. */
+
 #ident "$Id$"
 
 #ifndef vte_debug_h_included

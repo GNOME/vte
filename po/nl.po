@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"POT-Creation-Date: 2002-08-20 00:28-0400\n"
+"POT-Creation-Date: 2002-09-05 01:51-0400\n"
 "PO-Revision-Date: 2002-08-08 20:09+0200\n"
 "Last-Translator: Taco Witte <T.C.Witte@phys.uu.nl>\n"
 "Language-Team: Dutch <vertaling@nl.linux.org>\n"
@@ -13,12 +13,12 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:105
+#: src/pty.c:126
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Fout bij toevoegen `%s' aan omgeving. Doorgaan.."
 
-#: src/reaper.c:114
+#: src/reaper.c:107
 msgid "Error creating signal pipe."
 msgstr "Fout bij maken signaal pijp."
 
@@ -27,100 +27,99 @@ msgstr "Fout bij maken signaal pijp."
 msgid "Duplicate (%s/%s)!"
 msgstr "Dupliceren (%s/%s)!"
 
-#: src/vte.c:1086
+#: src/vte.c:1167
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Fout bij samenstellen reguliere uitdrukking \"%s\"."
 
-#: src/vte.c:1456 src/vte.c:1465 src/vte.c:1477 src/vte.c:1495 src/vte.c:1500
-#: src/vte.c:1505
+#: src/vte.c:1637 src/vte.c:1646 src/vte.c:1658 src/vte.c:1676 src/vte.c:1681
+#: src/vte.c:1686
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Kan tekens niet converteren van %s naar %s."
 
-#: src/vte.c:4564
+#: src/vte.c:4886
 #, fuzzy, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Ontvangen: onverwachte (toetsenbord?) combinatie `%s'."
 
-#: src/vte.c:5293
+#: src/vte.c:5671
 #, c-format
 msgid "Character 0x%x is undefined, allocating one column."
 msgstr "Teken 0x%x is ongedefinieerd, wijs één kolom toe."
 
-#: src/vte.c:5486
+#: src/vte.c:5865
 #, fuzzy, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Geen afhandelaar voor controle combinatie `%s' gedefinieerd."
 
-#: src/vte.c:6039
+#: src/vte.c:6442
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Fout bij lezen van kind: %s."
 
-#: src/vte.c:6207
+#: src/vte.c:6628
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Fout (%s) bij converteren gegevens voor kind, laat het vallen."
 
-#: src/vte.c:8014
+#: src/vte.c:8698
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
 msgstr ""
 "Lettertype verzameling \"%s\" wordt gebruikt, maar die mist deze tekensets: %"
 "s."
 
-#: src/vte.c:8538
+#: src/vte.c:9238
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr ""
 "Laden Xft lettertype patroon \"%s\" mislukt, val terug op standaard "
 "lettertype."
 
-#: src/vte.c:8550
+#: src/vte.c:9250
 msgid "Failed to load default Xft font."
 msgstr "Laden standaard Xft lettertype mislukt."
 
-#: src/vte.c:8589
-msgid "Error allocating Xft font, disabling Xft."
-msgstr "Fout bij toewijzen Xft lettertype, zet Xft uit."
-
-#: src/vte.c:8646
+#: src/vte.c:9343
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr ""
 "Fout bij laden lettertype verzameling \"%s\", val terug op standaard "
 "lettertype."
 
-#: src/vte.c:8658
+#: src/vte.c:9355
 msgid "Failed to load default font, crashing or behaving abnormally."
 msgstr ""
 "Fout bij laden standaard lettertype, loop vast of gedraag mezelf abnormaal."
 
-#: src/vte.c:8871
+#: src/vte.c:9614
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Fout bij lezen PTY grootte, gebruik standaardwaarden: %s."
 
-#: src/vte.c:8897
+#: src/vte.c:9650
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Fout bij instellen PTY grootte: %s."
 
-#: src/vte.c:11294
+#: src/vte.c:12148
+msgid "Error allocating draw, disabling Xft."
+msgstr "Fout bij toewijzen tekenen, zet Xft uit."
+
+#: src/vte.c:12155
 msgid "Error allocating context, disabling Pango."
 msgstr "Fout bij toewijzen context, zet Pango uit."
 
-#: src/vte.c:11300
+#: src/vte.c:12161
 #, fuzzy
 msgid "Error allocating layout, disabling Pango."
 msgstr "Fout bij toewijzen layout, zet Pango uit."
 
-#: src/vte.c:11315
-msgid "Error allocating draw, disabling Xft."
-msgstr "Fout bij toewijzen tekenen, zet Xft uit."
-
 #. Aaargh.  We're screwed.
-#: src/vte.c:12499
+#: src/vte.c:13608
 msgid "g_iconv_open() failed setting word characters"
 msgstr "g_iconv_open() niet geslaagd in instellen woordtekens"
+
+#~ msgid "Error allocating Xft font, disabling Xft."
+#~ msgstr "Fout bij toewijzen Xft lettertype, zet Xft uit."

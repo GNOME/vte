@@ -1,4 +1,10 @@
 2002-09-05 nalin
+	* src/caps.h, src/debug.h, src/iso2022.h, src/marshal.h, src/ring.h,
+	src/table.h, src/termcap.h, src/trie.h: add giant warnings about how
+	these headers define library-internal interfaces.
+	* vte.spec: 0.8.18
+
+2002-09-05 nalin
 	* docs/reference: first pass at writing documentation
 	* src/termcap.c: fix how'd-that-ever-work in vte_termcap_strip(), patch
 	from Brian Cameron.  Take \\e as an alias for \\E, which is already

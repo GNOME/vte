@@ -76,14 +76,17 @@ ring
 @free_element: 
 
 
-<!-- ##### FUNCTION vte_ring_at ##### -->
+<!-- ##### MACRO vte_ring_at ##### -->
 <para>
 
 </para>
 
+@__ring: 
+@__position: 
+@Returns: 
+<!-- # Unused Parameters # -->
 @ring: 
 @Param2: 
-@Returns: 
 
 
 <!-- ##### FUNCTION vte_ring_append ##### -->
@@ -95,41 +98,50 @@ ring
 @data: 
 
 
-<!-- ##### FUNCTION vte_ring_delta ##### -->
+<!-- ##### MACRO vte_ring_delta ##### -->
 <para>
 
 </para>
 
-@ring: 
+@__ring: 
 @Returns: 
-
-
-<!-- ##### FUNCTION vte_ring_length ##### -->
-<para>
-
-</para>
-
+<!-- # Unused Parameters # -->
 @ring: 
-@Returns: 
 
 
-<!-- ##### FUNCTION vte_ring_next ##### -->
+<!-- ##### MACRO vte_ring_length ##### -->
 <para>
 
 </para>
 
+@__ring: 
+@Returns: 
+<!-- # Unused Parameters # -->
 @ring: 
-@Returns: 
 
 
-<!-- ##### FUNCTION vte_ring_contains ##### -->
+<!-- ##### MACRO vte_ring_next ##### -->
 <para>
 
 </para>
 
+@__ring: 
+@Returns: 
+<!-- # Unused Parameters # -->
+@ring: 
+
+
+<!-- ##### MACRO vte_ring_contains ##### -->
+<para>
+
+</para>
+
+@__ring: 
+@__position: 
+@Returns: 
+<!-- # Unused Parameters # -->
 @ring: 
 @Param2: 
-@Returns: 
 
 
 <!-- ##### FUNCTION vte_ring_free ##### -->
