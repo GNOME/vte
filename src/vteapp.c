@@ -19,8 +19,8 @@
 #ident "$Id$"
 #include "../config.h"
 #include <sys/stat.h>
-#include <getopt.h>
 #include <string.h>
+#include <unistd.h>
 #include <gtk/gtk.h>
 #include <glib-object.h>
 #include "debug.h"
