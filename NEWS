@@ -1,5 +1,7 @@
-0.11: Support for using font sets for better Unicode coverage when drawing.
-      Currently implemented only for Xft2, but more is planned.
+0.11.1: A native FT2 drawing backend which may be faster than Pango on systems
+        without Xft2.  Support for scrolling backgrounds for everyone.
+0.11.0: Support for using font sets for better Unicode coverage when drawing
+        using Xft2.  Support for scrolling backgrounds with Xft2.
 0.10: Rewrote selection to better integrate dingus and autoscroll support.  The
       previous implementation was just a mess.  Changed the APIs so that callers
       have to decide whether or not to log (NOTE: this breaks gnome-terminal
