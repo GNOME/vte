@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.8.7
+Version: 0.8.8
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -61,6 +61,12 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Tue Aug 27 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.8-1
+- fix crashes on resize
+
+* Mon Aug 26 2002 Nalin Dahyabhai <nalin@redhat.com>
+- fix missing spaces on full lines
+
 * Mon Aug 26 2002 Nalin Dahyabhai <nalin@redhat.com> 0.8.7-1
 - fix deadlock when substitutions fail
 

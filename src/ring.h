@@ -45,13 +45,19 @@ struct _VteRing {
 #define vte_ring_at(__ring, __position) \
 	((__ring)->array[__position % (__ring)->max] ? \
 	 (__ring)->array[__position % (__ring)->max] : \
-	 (g_error("NULL at %ld(%ld) delta %ld, length %ld at %d\n", \
+	 (g_error("NULL at %ld(->%ld) delta %ld, length %ld, max %ld next %ld "\
+		  "at %d\n", \
 		  __position, __position % (__ring)->max, \
-		  (__ring)->delta, (__ring)->length, __LINE__), NULL))
+		  (__ring)->delta, (__ring)->length, (__ring)->max, \
+		  (__ring)->delta + (__ring)->length, \
+		  (__ring)->length, (__ring)->max, \
+		  __LINE__), NULL))
 #define vte_ring_index(__ring, __cast, __position) \
 	(__cast) vte_ring_at(__ring, __position)
 
 VteRing *vte_ring_new(long max_elements, VteRingFreeFunc free, gpointer data);
+VteRing *vte_ring_new_with_delta(long max_elements, long delta,
+				 VteRingFreeFunc free, gpointer data);
 void vte_ring_insert(VteRing *ring, long position, gpointer data);
 void vte_ring_remove(VteRing *ring, long position, gboolean free_element);
 void vte_ring_append(VteRing *ring, gpointer data);

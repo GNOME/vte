@@ -98,6 +98,7 @@ typedef long wint_t;
 					"0123456789./+@"
 #define VTE_REPRESENTATIVE_WIDER_CHARACTER	'M'
 #define VTE_REPRESENTATIVE_NARROWER_CHARACTER	'l'
+#define VTE_ADJUSTMENT_PRIORITY		G_PRIORITY_HIGH
 #define VTE_INPUT_RETRY_PRIORITY	G_PRIORITY_HIGH
 #define VTE_INPUT_PRIORITY		G_PRIORITY_DEFAULT_IDLE
 #define VTE_CHILD_INPUT_PRIORITY	G_PRIORITY_DEFAULT_IDLE
@@ -216,6 +217,7 @@ struct _VteTerminalPrivate {
 					   absolute, saved is relative to the
 					   insertion delta */
 		gboolean reverse_mode;	/* reverse mode */
+		gboolean origin_mode;	/* origin mode */
 		gboolean insert_mode;	/* insert mode */
 		struct vte_scrolling_region {
 			int start, end;
@@ -329,6 +331,10 @@ struct _VteTerminalPrivate {
 	/* Our accessible peer. */
 	AtkObject *accessible;
 
+	/* Adjustment updates pending. */
+	gboolean adjustment_changed_pending;
+	gboolean adjustment_changed_tag;
+
 	/* Background images/"transparency". */
 	gboolean bg_transparent;
 	gboolean bg_transparent_update_pending;
@@ -420,6 +426,7 @@ static GdkFilterReturn vte_terminal_filter_property_changes(GdkXEvent *xevent,
 							    gpointer data);
 static void vte_terminal_match_hilite_clear(VteTerminal *terminal);
 static void vte_terminal_queue_background_update(VteTerminal *terminal);
+static void vte_terminal_queue_adjustment_changed(VteTerminal *terminal);
 
 /* Free a no-longer-used row data array. */
 static void
@@ -1277,17 +1284,57 @@ vte_terminal_match_check(VteTerminal *terminal, long column, long row, int *tag)
 						 tag, NULL, NULL);
 }
 
-/* Update the adjustment field of the widget.  This function should be called
- * whenever we add rows to the history or switch screens. */
-static void
-vte_terminal_adjust_adjustments(VteTerminal *terminal)
+/* Emit an adjustment changed signal on our adjustment object. */
+static gboolean
+vte_terminal_emit_adjustment_changed(gpointer data)
 {
+	VteTerminal *terminal;
+	terminal = VTE_TERMINAL(data);
+	if (terminal->pvt->adjustment_changed_pending) {
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
+			fprintf(stderr, "Emitting adjustment_changed.\n");
+		}
+#endif
+		terminal->pvt->adjustment_changed_pending = FALSE;
+		terminal->pvt->adjustment_changed_tag = -1;
+		gtk_adjustment_changed(terminal->adjustment);
+	}
+	return FALSE;
+}
+
+/* Queue an adjustment-changed signal to be delivered when convenient. */
+static void
+vte_terminal_queue_adjustment_changed(VteTerminal *terminal)
+{
+	if (!terminal->pvt->adjustment_changed_pending) {
+		terminal->pvt->adjustment_changed_pending = TRUE;
+		terminal->pvt->adjustment_changed_tag =
+				g_idle_add_full(VTE_ADJUSTMENT_PRIORITY,
+						vte_terminal_emit_adjustment_changed,
+						terminal,
+						NULL);
+	} else {
+#ifdef VTE_DEBUG
+		if (vte_debug_on(VTE_DEBUG_EVENTS)) {
+			fprintf(stderr, "Swallowing duplicate "
+				"adjustment-changed signal.\n");
+		}
+#endif
+	}
+}
+
+/* Update the adjustment field of the widget.  This function should be called
+ * whenever we add rows to or remove rows from the history or switch screens. */
+static void
+vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
+{
+	VteScreen *screen;
 	gboolean changed;
 	long delta, next;
 	long page_size;
 	long rows;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail(terminal->pvt->screen != NULL);
 	g_return_if_fail(terminal->pvt->screen->row_data != NULL);
 
@@ -1295,12 +1342,13 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal)
 	changed = FALSE;
 
 	/* The lower value should be the first row in the buffer. */
-	delta = vte_ring_delta(terminal->pvt->screen->row_data);
+	screen = terminal->pvt->screen;
+	delta = vte_ring_delta(screen->row_data);
 #ifdef VTE_DEBUG
 	if (vte_debug_on(VTE_DEBUG_IO)) {
 		fprintf(stderr, "Changing adjustment values "
 			"(delta = %ld, scroll = %ld).\n",
-			delta, terminal->pvt->screen->scroll_delta);
+			delta, screen->scroll_delta);
 	}
 #endif
 	if (terminal->adjustment->lower != delta) {
@@ -1308,10 +1356,13 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal)
 		changed = TRUE;
 	}
 
+	/* Snap the scrolling and insert deltas to be in the visible area. */
+	screen->scroll_delta = MAX(screen->scroll_delta, delta);
+	screen->insert_delta = MAX(screen->insert_delta, delta);
+
 	/* The upper value is the number of rows which might be visible.  (Add
 	 * one to the cursor offset because it's zero-based.) */
-	next = vte_ring_delta(terminal->pvt->screen->row_data) +
-	       vte_ring_length(terminal->pvt->screen->row_data);
+	next = vte_ring_next(terminal->pvt->screen->row_data);
 	rows = MAX(next, terminal->pvt->screen->cursor_current.row + 1);
 	if (terminal->adjustment->upper != rows) {
 		terminal->adjustment->upper = rows;
@@ -1358,7 +1409,11 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal)
 #endif
 		vte_terminal_match_contents_clear(terminal);
 		vte_terminal_emit_contents_changed(terminal);
-		gtk_adjustment_changed(terminal->adjustment);
+		if (immediate) {
+			gtk_adjustment_changed(terminal->adjustment);
+		} else {
+			vte_terminal_queue_adjustment_changed(terminal);
+		}
 	}
 }
 
@@ -1382,7 +1437,7 @@ vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
 			    terminal->adjustment->upper - terminal->row_count);
 	/* Tell the scrollbar to adjust itself. */
 	gtk_adjustment_set_value(terminal->adjustment, destination);
-	gtk_adjustment_changed(terminal->adjustment);
+	vte_terminal_queue_adjustment_changed(terminal);
 	/* Clear dingus match set. */
 	vte_terminal_match_contents_clear(terminal);
 }
@@ -1396,7 +1451,7 @@ vte_terminal_scroll_to_bottom(VteTerminal *terminal)
 	    terminal->pvt->screen->insert_delta) {
 		gtk_adjustment_set_value(terminal->adjustment,
 					 terminal->pvt->screen->insert_delta);
-		gtk_adjustment_changed(terminal->adjustment);
+		vte_terminal_queue_adjustment_changed(terminal);
 	}
 }
 
@@ -1461,10 +1516,12 @@ vte_insert_line_internal(VteTerminal *terminal, long position)
 	/* If we haven't inserted a line yet, insert a new one. */
 	array = vte_new_row_data();
 	if (vte_ring_next(terminal->pvt->screen->row_data) >= position) {
-		vte_ring_insert(terminal->pvt->screen->row_data, position, array);
+		vte_ring_insert(terminal->pvt->screen->row_data,
+				position, array);
 	} else {
 		vte_ring_append(terminal->pvt->screen->row_data, array);
 	}
+	vte_terminal_adjust_adjustments(terminal, FALSE);
 }
 
 /* Remove a line at an arbitrary position. */
@@ -2207,6 +2264,8 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 	struct vte_charcell cell, *cells;
 	long add, i;
 
+	/* Must make sure we're in a sane area. */
+	vte_terminal_adjust_adjustments(terminal, FALSE);
 	screen = terminal->pvt->screen;
 
 	/* Figure out how many rows we need to add. */
@@ -2215,6 +2274,7 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 		array = vte_new_row_data();
 		vte_ring_append(screen->row_data, array);
 	}
+	vte_terminal_adjust_adjustments(terminal, FALSE);
 
 	/* Find the row the cursor is in. */
 	array = vte_ring_index(screen->row_data,
@@ -2272,7 +2332,7 @@ vte_terminal_scroll_insertion(VteTerminal *terminal)
 		vte_terminal_ensure_cursor(terminal, FALSE);
 		screen->insert_delta = delta;
 		/* Update scroll bar adjustments. */
-		vte_terminal_adjust_adjustments(terminal);
+		vte_terminal_adjust_adjustments(terminal, FALSE);
 	}
 }
 
@@ -2552,8 +2612,9 @@ vte_sequence_handler_ll(VteTerminal *terminal,
 {
 	VteScreen *screen;
 	screen = terminal->pvt->screen;
-	screen->cursor_current.row = screen->insert_delta +
-				     terminal->row_count - 1;
+	screen->cursor_current.row = MAX(screen->insert_delta,
+					 screen->insert_delta +
+					 terminal->row_count - 1);
 	screen->cursor_current.col = 0;
 }
 
@@ -3382,15 +3443,13 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 	for (i = screen->insert_delta;
 	     i < screen->insert_delta + terminal->row_count;
 	     i++) {
-		if (vte_ring_contains(screen->row_data, i)) {
-			/* Get the data for the row we're removing. */
-			rowdata = vte_ring_index(screen->row_data, GArray*, i);
-		} else {
+		while (vte_ring_next(screen->row_data) <= i) {
 			/* Add a new row */
 			rowdata = vte_new_row_data();
-			vte_ring_append(terminal->pvt->screen->row_data,
-					rowdata);
+			vte_ring_append(screen->row_data, rowdata);
 		}
+		/* Get the data for the row we're removing. */
+		rowdata = vte_ring_index(screen->row_data, GArray*, i);
 		/* Remove the row's contents. */
 		while (rowdata->len > 0) {
 			g_array_remove_index(rowdata, rowdata->len - 1);
@@ -3400,6 +3459,7 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 			g_array_append_val(rowdata, screen->defaults);
 		}
 	}
+	vte_terminal_adjust_adjustments(terminal, FALSE);
 	/* Redraw everything. */
 	vte_invalidate_all(terminal);
 }
@@ -3665,6 +3725,13 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
+#if 0
+		/* Origin mode. */
+		{6, &terminal->pvt->screen->origin_mode, NULL, NULL,
+		 GINT_TO_POINTER(FALSE),
+		 GINT_TO_POINTER(TRUE),
+		 NULL, NULL,},
+#endif
 		/* Wraparound mode. */
 		{7, &terminal->pvt->flags.am, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
@@ -3806,6 +3873,12 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 			/* Repaint everything in reverse mode. */
 			vte_invalidate_all(terminal);
 			break;
+		case 6:
+			/* Reposition the cursor in its new home position. */
+			terminal->pvt->screen->cursor_current.col = 0;
+			terminal->pvt->screen->cursor_current.row =
+				terminal->pvt->screen->insert_delta;
+			break;
 		case 25:
 		case 1048:
 			/* Repaint the cell the cursor is in. */
@@ -3823,7 +3896,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 								  NULL);
 			}
 			/* Reset scrollbars and repaint everything. */
-			vte_terminal_adjust_adjustments(terminal);
+			vte_terminal_adjust_adjustments(terminal, TRUE);
 			vte_invalidate_all(terminal);
 			break;
 		case 9:
@@ -4403,6 +4476,7 @@ vte_sequence_handler_screen_alignment_test(VteTerminal *terminal,
 			rowdata = vte_new_row_data();
 			vte_ring_append(screen->row_data, rowdata);
 		}
+		vte_terminal_adjust_adjustments(terminal, FALSE);
 		rowdata = vte_ring_index(screen->row_data, GArray*, row);
 		/* Clear this row. */
 		while (rowdata->len > 0) {
@@ -5415,7 +5489,6 @@ vte_terminal_insert_char(GtkWidget *widget, gunichar c,
 	gboolean insert;
 
 	g_return_if_fail(widget != NULL);
-	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
 	screen = terminal->pvt->screen;
 	insert = screen->insert_mode || force_insert_mode;
@@ -7504,7 +7577,6 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 				terminal->pvt->match_start.column,
 				terminal->pvt->match_start.row,
 				terminal->pvt->match_end.column,
-				screen->scroll_delta +
 				terminal->pvt->match_end.row);
 		}
 #endif
@@ -9426,7 +9498,10 @@ vte_terminal_reset_rowdata(VteRing **ring, long lines)
 	if (*ring && (vte_ring_max(*ring) == lines)) {
 		return;
 	}
-	new_ring = vte_ring_new(lines, vte_free_row_data, NULL);
+	new_ring = vte_ring_new_with_delta(lines,
+					   *ring ? vte_ring_delta(*ring) : 0,
+					   vte_free_row_data,
+					   NULL);
 	if (*ring) {
 		next = vte_ring_next(*ring);
 		for (i = vte_ring_delta(*ring); i < next; i++) {
@@ -9544,6 +9619,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->alternate_screen.insert_delta = 0;
 	pvt->alternate_screen.scroll_delta = 0;
 	pvt->alternate_screen.insert_mode = FALSE;
+	pvt->alternate_screen.origin_mode = FALSE;
 	pvt->alternate_screen.reverse_mode = FALSE;
 	pvt->alternate_screen.status_line = FALSE;
 	pvt->alternate_screen.status_line_contents = g_string_new("");
@@ -9560,6 +9636,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->normal_screen.insert_delta = 0;
 	pvt->normal_screen.scroll_delta = 0;
 	pvt->normal_screen.insert_mode = FALSE;
+	pvt->normal_screen.origin_mode = FALSE;
 	pvt->normal_screen.reverse_mode = FALSE;
 	pvt->normal_screen.status_line = FALSE;
 	pvt->normal_screen.status_line_contents = g_string_new("");
@@ -9704,6 +9781,10 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	/* Settings we're monitoring. */
 	pvt->connected_settings = NULL;
 
+	/* Bookkeeping data for adjustment-changed signals. */
+	pvt->adjustment_changed_pending = FALSE;
+	pvt->adjustment_changed_tag = -1;
+
 	/* Set up background information. */
 	pvt->bg_transparent = FALSE;
 	pvt->bg_transparent_update_pending = FALSE;
@@ -9793,6 +9874,21 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	/* Set the size of the pseudo-terminal. */
 	vte_terminal_set_size(terminal, width, height);
 
+	/* Adjust scrolling area in case our boundaries have just been
+	 * redefined to be invalid. */
+	if (terminal->pvt->screen->scrolling_restricted) {
+		terminal->pvt->screen->scrolling_region.start =
+			CLAMP(terminal->pvt->screen->scrolling_region.start,
+			      terminal->pvt->screen->insert_delta,
+			      terminal->pvt->screen->insert_delta +
+			      terminal->row_count - 1);
+		terminal->pvt->screen->scrolling_region.end =
+			CLAMP(terminal->pvt->screen->scrolling_region.end,
+			      terminal->pvt->screen->insert_delta,
+			      terminal->pvt->screen->insert_delta +
+			      terminal->row_count - 1);
+	}
+
 	/* Adjust scrollback buffers to ensure that they're big enough. */
 	vte_terminal_set_scrollback_lines(terminal,
 					  MAX(terminal->pvt->scrollback_lines,
@@ -9809,7 +9905,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	}
 
 	/* Adjust the adjustments. */
-	vte_terminal_adjust_adjustments(terminal);
+	vte_terminal_adjust_adjustments(terminal, FALSE);
 	vte_invalidate_all(terminal);
 }
 
@@ -9947,6 +10043,10 @@ vte_terminal_finalize(GObject *object)
 	if (terminal->pvt->bg_transparent_image != NULL) {
 		g_object_unref(G_OBJECT(terminal->pvt->bg_transparent_image));
 		terminal->pvt->bg_transparent_image = NULL;
+	}
+	if (terminal->pvt->adjustment_changed_tag != -1) {
+		g_source_remove(terminal->pvt->adjustment_changed_tag);
+		terminal->pvt->adjustment_changed_tag = -1;
 	}
 	if (terminal->pvt->bg_transparent_update_tag != -1) {
 		g_source_remove(terminal->pvt->bg_transparent_update_tag);
@@ -12513,7 +12613,6 @@ static gboolean
 vte_terminal_update_transparent(gpointer data)
 {
 	VteTerminal *terminal;
-	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
 	terminal = VTE_TERMINAL(data);
 	if (terminal->pvt->bg_transparent_update_pending) {
 #ifdef VTE_DEBUG
@@ -12535,7 +12634,6 @@ vte_terminal_update_transparent(gpointer data)
 static void
 vte_terminal_queue_background_update(VteTerminal *terminal)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (!terminal->pvt->bg_transparent_update_pending) {
 		terminal->pvt->bg_transparent_update_pending = TRUE;
 		terminal->pvt->bg_transparent_update_tag =
@@ -12744,7 +12842,7 @@ vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
 void
 vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 {
-	long old_next = 0, new_next = 0, delta;
+	long highd, high, low, delta, max, next;
 	VteScreen *screens[2];
 	int i;
 
@@ -12762,16 +12860,11 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 	/* We want to do the same thing to both screens, so we use a loop
 	 * to avoid cut/paste madness. */
 	for (i = 0; i < G_N_ELEMENTS(screens); i++) {
-		/* Resize the buffers, but keep track of where the last data
-		 * in the buffer is so that we can compensate for it being
-		 * moved.  We track the end of the data instead of the start
-		 * so that the visible portion of the buffer doesn't change. */
-		old_next = 0;
-		if (screens[i]->row_data != NULL) {
-			old_next = vte_ring_next(screens[i]->row_data);
-		}
 		/* The main screen gets the full scrollback buffer, but the
 		 * alternate screen isn't allowed to scroll at all. */
+		delta = vte_ring_delta(screens[i]->row_data);
+		max = vte_ring_max(screens[i]->row_data);
+		next = vte_ring_next(screens[i]->row_data);
 		if (screens[i] == &terminal->pvt->alternate_screen) {
 			vte_terminal_reset_rowdata(&screens[i]->row_data,
 						   terminal->row_count);
@@ -12779,19 +12872,21 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, long lines)
 			vte_terminal_reset_rowdata(&screens[i]->row_data,
 						   lines);
 		}
-		new_next = vte_ring_next(screens[i]->row_data);
-		/* Adjust the scrolling delta by the difference of the two --
-		 * this should keep the same lines in the same places on the
-		 * screen. */
-		delta = MAX(0, new_next - old_next);
-		screens[i]->cursor_current.row += delta;
-		screens[i]->scroll_delta += delta;
-		screens[i]->insert_delta += delta;
+		/* Force the offsets to point to valid rows. */
+		low = vte_ring_delta(screens[i]->row_data);
+		high = low + MAX(vte_ring_max(screens[i]->row_data), 1);
+		highd = high - terminal->row_count + 1;
+		screens[i]->insert_delta = CLAMP(screens[i]->insert_delta,
+						 low, highd);
+		screens[i]->scroll_delta = CLAMP(screens[i]->scroll_delta,
+						 low, highd);
+		screens[i]->cursor_current.row = CLAMP(screens[i]->cursor_current.row,
+						       low, high);
 	}
 	terminal->pvt->scrollback_lines = lines;
 
 	/* Adjust the scrollbars to the new locations. */
-	vte_terminal_adjust_adjustments(terminal);
+	vte_terminal_adjust_adjustments(terminal, TRUE);
 	vte_invalidate_all(terminal);
 }
 
@@ -12988,9 +13083,11 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	 * the cursor visible again. */
 	terminal->pvt->normal_screen.scrolling_restricted = FALSE;
 	terminal->pvt->normal_screen.insert_mode = FALSE;
+	terminal->pvt->normal_screen.origin_mode = FALSE;
 	terminal->pvt->normal_screen.reverse_mode = FALSE;
 	terminal->pvt->alternate_screen.scrolling_restricted = FALSE;
 	terminal->pvt->alternate_screen.insert_mode = FALSE;
+	terminal->pvt->alternate_screen.origin_mode = FALSE;
 	terminal->pvt->alternate_screen.reverse_mode = FALSE;
 	terminal->pvt->cursor_visible = TRUE;
 	/* Reset the input and output buffers. */

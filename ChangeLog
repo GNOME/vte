@@ -1,3 +1,11 @@
+2002-08-27 nalin
+	* src/vte.c: Keep cursor position and scrolling offsets from going
+	wonky when you resize, especially on the alternate screen.  Suppress
+	duplicate adjustment_changed notifications.
+	* src/vteapp.c: Set the MIN_SIZE geometry hints so that we can resize
+	to unreasonably-small dimensions.
+	* src/ring.c, src/ring.h: Add vte_ring_new_with_delta().
+
 2002-08-26 nalin
 	* src/vte.c: Add padding spaces after full lines as well -- spotted by
 	both notting and pjones.

@@ -43,9 +43,19 @@ vte_ring_new(long max_elements, VteRingFreeFunc free, gpointer data)
 	VteRing *ret = g_malloc0(sizeof(VteRing));
 	ret->user_data = data;
 	ret->delta = ret->length = 0;
-	ret->max = max_elements;
+	ret->max = MAX(max_elements, 2);
 	ret->array = g_malloc0(sizeof(gpointer) * ret->max);
 	ret->free = free;
+	return ret;
+}
+
+VteRing *
+vte_ring_new_with_delta(long max_elements, long delta,
+			VteRingFreeFunc free, gpointer data)
+{
+	VteRing *ret;
+	ret = vte_ring_new(max_elements, free, data);
+	ret->delta = delta;
 	return ret;
 }
 
@@ -97,7 +107,7 @@ vte_ring_insert(VteRing *ring, long position, gpointer data)
 
 	/* All other cases. */
 	point = ring->delta + ring->length - 1;
-	while (point < 0) {
+	while (point <= 0) {
 		point += ring->max;
 	}
 
