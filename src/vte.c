@@ -14391,7 +14391,7 @@ vte_terminal_setup_background(VteTerminal *terminal,
 {
 	long i, pixel_count;
 	GtkWidget *widget;
-	guchar *pixels, *oldpixels;
+	guchar *pixels, *oldpixels, desat_lut[256];
 	GdkColormap *colormap = NULL;
 	GdkPixbuf *pixbuf = NULL;
 	GdkPixmap *pixmap = NULL;
@@ -14572,13 +14572,16 @@ vte_terminal_setup_background(VteTerminal *terminal,
 		}
 #endif
 		if (terminal->pvt->bg_saturation != VTE_SATURATION_MAX) {
+			for (i = 0; i < G_N_ELEMENTS(desat_lut); i++) {
+				desat_lut[i] = i *
+					       terminal->pvt->bg_saturation /
+					       VTE_SATURATION_MAX;
+			}
 			pixels = gdk_pixbuf_get_pixels(pixbuf);
 			pixel_count = gdk_pixbuf_get_height(pixbuf) *
 				      gdk_pixbuf_get_rowstride(pixbuf);
 			for (i = 0; i < pixel_count; i++) {
-				pixels[i] = pixels[i]
-					    * terminal->pvt->bg_saturation
-					    / VTE_SATURATION_MAX;
+				pixels[i] = desat_lut[pixels[i]];
 			}
 		}
 	}
@@ -14601,7 +14604,7 @@ vte_terminal_setup_background(VteTerminal *terminal,
 		g_object_unref(G_OBJECT(pixbuf));
 		pixbuf = NULL;
 
-		/* Set the pixmap as the window background, and then get unref
+		/* Set the pixmap as the window background, and then unref
 		 * it (the drawable should keep a ref). */
 		if (GDK_IS_PIXMAP(pixmap)) {
 			/* Set the pixmap as the window background. */

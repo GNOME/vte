@@ -1,3 +1,7 @@
+2003-01-07  nalin
+	* src/vte.c(vte_terminal_setup_background): Use a lookup table
+	instead of a mess of floating point math when desaturating images.
+
 2003-01-06  nalin
 	* src/vte.c(vte_terminal_init): Add the periodic blinking refresh
 	with the normal timeout instead of 0 to avoid wedging when we get
