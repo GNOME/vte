@@ -1,4 +1,7 @@
 2003-02-18 nalin
+	* src/vte.c, src/vte.h: add vte_terminal_match_set_cursor() (#105986).
+
+2003-02-18 nalin
 	* src/Makefile.am: add @LDFLAGS@ to all of the LDADD clauses, hopefully
 	fixing #105415.
 

@@ -148,6 +148,7 @@ struct vte_charcell {
 struct vte_match_regex {
 	regex_t reg;
 	gint tag;
+	GdkCursor *cursor;
 };
 
 /* A drawing request record, for simplicity. */
@@ -321,6 +322,7 @@ struct _VteTerminalPrivate {
 	char *match_contents;
 	GArray *match_attributes;
 	GArray *match_regexes;
+	int match_previous;
 	struct {
 		long row, column;
 	} match_start, match_end;
@@ -367,6 +369,7 @@ struct _VteTerminalPrivate {
 #endif
 
 	/* Mouse cursors. */
+	gboolean mouse_cursor_visible;
 	GdkCursor *mouse_default_cursor,
 		  *mouse_mousing_cursor,
 		  *mouse_inviso_cursor;
@@ -1346,6 +1349,10 @@ vte_terminal_match_clear_all(VteTerminal *terminal)
 				       i);
 		/* Unless this is a hole, clean it up. */
 		if (regex->tag >= 0) {
+			if (regex->cursor != NULL) {
+				gdk_cursor_unref(regex->cursor);
+				regex->cursor = NULL;
+			}
 			regfree(&regex->reg);
 			memset(&regex->reg, 0, sizeof(regex->reg));
 			regex->tag = -1;
@@ -1380,6 +1387,10 @@ vte_terminal_match_remove(VteTerminal *terminal, int tag)
 			return;
 		}
 		/* Remove this item and leave a hole in its place. */
+		if (regex->cursor != NULL) {
+			gdk_cursor_unref(regex->cursor);
+			regex->cursor = NULL;
+		}
 		regfree(&regex->reg);
 		memset(&regex->reg, 0, sizeof(regex->reg));
 		regex->tag = -1;
@@ -1424,6 +1435,7 @@ vte_terminal_match_add(VteTerminal *terminal, const char *match)
 	}
 	/* Set the tag to the insertion point. */
 	new_regex.tag = ret;
+	new_regex.cursor = gdk_cursor_new(VTE_MOUSING_CURSOR);
 	if (ret < terminal->pvt->match_regexes->len) {
 		/* Overwrite. */
 		g_array_index(terminal->pvt->match_regexes,
@@ -1434,6 +1446,33 @@ vte_terminal_match_add(VteTerminal *terminal, const char *match)
 		g_array_append_val(terminal->pvt->match_regexes, new_regex);
 	}
 	return new_regex.tag;
+}
+
+/**
+ * vte_terminal_match_set_cursor:
+ * @terminal: a #VteTerminal
+ * @tag: the tag of the regex which should use the specified cursor
+ * @cursor: the cursor which the terminal should use when the pattern is
+ * highlighted
+ *
+ * Sets which cursor the terminal will use if the pointer is over the pattern
+ * specified by @tag.  The terminal keeps a reference to @cursor.
+ *
+ */
+void
+vte_terminal_match_set_cursor(VteTerminal *terminal, int tag, GdkCursor *cursor)
+{
+	struct vte_match_regex *regex;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail(tag < terminal->pvt->match_regexes->len);
+	regex = &g_array_index(terminal->pvt->match_regexes,
+			       struct vte_match_regex,
+			       tag);
+	if (regex->cursor != NULL) {
+		gdk_cursor_unref(regex->cursor);
+	}
+	regex->cursor = gdk_cursor_ref(cursor);
+	vte_terminal_match_hilite_clear(terminal);
 }
 
 /* Check if a given cell on the screen contains part of a matched string.  If
@@ -1493,6 +1532,7 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 
 	/* If the pointer isn't on a matchable character, bug out. */
 	if (offset < 0) {
+		terminal->pvt->match_previous = -1;
 		return NULL;
 	}
 
@@ -1504,6 +1544,7 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 			fprintf(stderr, "Cursor is on whitespace.\n");
 		}
 #endif
+		terminal->pvt->match_previous = -1;
 		return NULL;
 	}
 
@@ -1580,6 +1621,11 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 						*end = coffset +
 						       matches[j].rm_eo - 1;
 					}
+					if (GTK_WIDGET_REALIZED(GTK_WIDGET(terminal))) {
+						gdk_window_set_cursor((GTK_WIDGET(terminal))->window,
+								      regex->cursor);
+					}
+					terminal->pvt->match_previous = regex->tag;
 					return g_strndup(terminal->pvt->match_contents + coffset + matches[j].rm_so,
 							 matches[j].rm_eo - matches[j].rm_so);
 				}
@@ -1594,6 +1640,7 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 				      VTE_REGEXEC_FLAGS);
 		}
 	}
+	terminal->pvt->match_previous = -1;
 	return NULL;
 }
 
@@ -4177,6 +4224,7 @@ static void
 vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 {
 	GdkCursor *cursor = NULL;
+	struct vte_match_regex *regex = NULL;
 	if (visible || !terminal->pvt->mouse_autohide) {
 		if (terminal->pvt->mouse_send_xy_on_click ||
 		    terminal->pvt->mouse_send_xy_on_button ||
@@ -4189,6 +4237,13 @@ vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 			}
 #endif
 			cursor = terminal->pvt->mouse_mousing_cursor;
+		} else
+		if ((terminal->pvt->match_previous > -1) &&
+		    (terminal->pvt->match_previous < terminal->pvt->match_regexes->len)) {
+			regex = &g_array_index(terminal->pvt->match_regexes,
+					       struct vte_match_regex,
+					       terminal->pvt->match_previous);
+			cursor = regex->cursor;
 		} else {
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_CURSOR)) {
@@ -4212,6 +4267,7 @@ vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 					      cursor);
 		}
 	}
+	terminal->pvt->mouse_cursor_visible = visible;
 }
 
 /* Manipulate certain terminal attributes. */
@@ -11414,6 +11470,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->match_attributes = NULL;
 	pvt->match_regexes = g_array_new(FALSE, TRUE,
 					 sizeof(struct vte_match_regex));
+	pvt->match_previous = -1;
 	vte_terminal_match_hilite_clear(terminal);
 
 	/* Server-side rendering data.  Try everything. */
@@ -11733,6 +11790,7 @@ vte_terminal_unrealize(GtkWidget *widget)
 	}
 
 	/* Deallocate the cursors. */
+	terminal->pvt->mouse_cursor_visible = FALSE;
 	gdk_cursor_unref(terminal->pvt->mouse_default_cursor);
 	terminal->pvt->mouse_default_cursor = NULL;
 	gdk_cursor_unref(terminal->pvt->mouse_mousing_cursor);
@@ -11917,11 +11975,16 @@ vte_terminal_finalize(GObject *object)
 			if (regex->tag < 0) {
 				continue;
 			}
+			if (regex->cursor != NULL) {
+				gdk_cursor_unref(regex->cursor);
+				regex->cursor = NULL;
+			}
 			regfree(&regex->reg);
 			regex->tag = 0;
 		}
 		g_array_free(terminal->pvt->match_regexes, TRUE);
 		terminal->pvt->match_regexes = NULL;
+		terminal->pvt->match_previous = -1;
 	}
 
 	/* Disconnect from toplevel window configure events. */
@@ -12102,6 +12165,13 @@ vte_terminal_realize(GtkWidget *widget)
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
 
+	/* Create the stock cursors. */
+	terminal->pvt->mouse_cursor_visible = TRUE;
+	terminal->pvt->mouse_default_cursor =
+		gdk_cursor_new(VTE_DEFAULT_CURSOR);
+	terminal->pvt->mouse_mousing_cursor =
+		gdk_cursor_new(VTE_MOUSING_CURSOR);
+
 	/* Create a GDK window for the widget. */
 	attributes.window_type = GDK_WINDOW_CHILD;
 	attributes.x = 0;
@@ -12194,12 +12264,6 @@ vte_terminal_realize(GtkWidget *widget)
 			 GTK_SIGNAL_FUNC(vte_terminal_im_preedit_end),
 			 terminal);
 	gtk_im_context_set_use_preedit(terminal->pvt->im_context, TRUE);
-
-	/* Create the stock cursors. */
-	terminal->pvt->mouse_default_cursor =
-		gdk_cursor_new(VTE_DEFAULT_CURSOR);
-	terminal->pvt->mouse_mousing_cursor =
-		gdk_cursor_new(VTE_MOUSING_CURSOR);
 
 	/* Clear modifiers. */
 	terminal->pvt->modifiers = 0;

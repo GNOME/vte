@@ -315,6 +315,7 @@ main(int argc, char **argv)
 	int i, j;
 	GList *args = NULL;
 	GdkColor fore, back, tint;
+	GdkCursor *gumby = NULL, *hand = NULL;
 	const char *usage = "Usage: %s "
 			    "[ [-B image] | [-T] ] "
 			    "[-D] "
@@ -517,8 +518,14 @@ main(int argc, char **argv)
 	/* Match "abcdefg". */
 	vte_terminal_match_add(VTE_TERMINAL(widget), "abcdefg");
 	if (dingus) {
-		vte_terminal_match_add(VTE_TERMINAL(widget), DINGUS1);
-		vte_terminal_match_add(VTE_TERMINAL(widget), DINGUS2);
+		i = vte_terminal_match_add(VTE_TERMINAL(widget), DINGUS1);
+		gumby = gdk_cursor_new(GDK_GUMBY);
+		vte_terminal_match_set_cursor(VTE_TERMINAL(widget), i, gumby);
+		gdk_cursor_unref(gumby);
+		hand = gdk_cursor_new(GDK_HAND1);
+		i = vte_terminal_match_add(VTE_TERMINAL(widget), DINGUS2);
+		vte_terminal_match_set_cursor(VTE_TERMINAL(widget), i, hand);
+		gdk_cursor_unref(hand);
 	}
 
 	/* Launch a shell. */
