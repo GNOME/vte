@@ -46,7 +46,7 @@ rm $RPM_BUILD_ROOT/%{_libdir}/lib%{name}.la
 
 # Work around AM_PATH_PYTHON from automake 1.6.3 not being multilib-aware.
 if test %{_libdir} != %{_prefix}/lib ; then
-	badpyexecdir=`ls -d $RPM_BUILD_ROOT/%{_prefix}/lib/python* 2> /dev/null`
+	badpyexecdir=`ls -d $RPM_BUILD_ROOT/%{_prefix}/lib/python* 2> /dev/null || true`
 	if test -n "$badpyexecdir" ; then
 		pyexecdirver=`basename $badpyexecdir`
 		install -d -m755 $RPM_BUILD_ROOT/%{_libdir}/${pyexecdirver}
@@ -59,6 +59,9 @@ fi
 rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.la
 rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 
+# Generate ldconfig symlinks.
+/sbin/ldconfig -n $RPM_BUILD_ROOT/%{_libdir}
+
 %find_lang %{name}
 
 %post -p /sbin/ldconfig
@@ -68,7 +71,7 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %files -f %{name}.lang
 %defattr(-,root,root)
 %doc ChangeLog COPYING HACKING NEWS README doc/utmpwtmp.txt doc/boxes.txt
-%{_libdir}/*.so.*.*
+%{_libdir}/*.so.*
 %dir %{_libdir}/%{name}
 %attr(2711,root,utmp) %{_libdir}/%{name}/gnome-pty-helper
 %{_datadir}/%{name}
@@ -97,6 +100,9 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 - fix for uncertain finalize order between the terminal and its accessible peer
 - always update the cursor position on accessibe-changed events so that the
   accessibility layer doesn't ask for text past the end of the buffer
+
+* Tue Feb 04 2003 Florian La Roche <Florian.LaRoche@redhat.de>
+- add symlink to shared lib
 
 * Mon Feb  3 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.17-1
 - draw 0x2592 natively
