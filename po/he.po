@@ -1,0 +1,117 @@
+# translation of vte.HEAD.po to Hebrew
+# This file is distributed under the same license as the PACKAGE package.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# Gil 'Dolfin' Osher <dolfin@rpg.org.il>, 2002
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte.HEAD\n"
+"POT-Creation-Date: 2002-11-27 05:59+0100\n"
+"PO-Revision-Date: 2002-11-27 23:19+0200\n"
+"Last-Translator: Gil 'Dolfin' Osher <dolfin@rpg.org.il>\n"
+"Language-Team: Hebrew <he@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.0beta2\n"
+
+#: src/pty.c:249
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "שגיאה בהוספת `%s' לסביבה, ממשיך."
+
+#: src/reaper.c:107
+msgid "Error creating signal pipe."
+msgstr "שגיאה ביצירת צינור יחיד."
+
+#: src/trie.c:405
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "כפול (%s/%s)!"
+
+#: src/vte.c:1333
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "שגיאה בהידור ביטוי רגיל \"%s\"."
+
+#: src/vte.c:1840 src/vte.c:1849 src/vte.c:1861 src/vte.c:1879 src/vte.c:1884
+#: src/vte.c:1889
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "לא ניתן להמיר תוים מ %s ל %s."
+
+#: src/vte.c:5299
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "קיבל רצף (מקשים?) לא צפוי `%s'."
+
+#: src/vte.c:6119
+#, c-format
+msgid "Character 0x%x is undefined, allocating one column."
+msgstr "התו 0x%x אינו מוגדר, מקצה עמודה אחת."
+
+#: src/vte.c:6325
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "לא הוגדר הליך טיפול לרצף הבקרה `%s'."
+
+#: src/vte.c:6932
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "שגיאה בקריה מהילד: %s."
+
+#: src/vte.c:7098
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "שגיאה (%s) בהמרת מידע לילד, זורק."
+
+#: src/vte.c:9363
+#, c-format
+msgid "Using fontset \"%s\", which is missing these character sets: %s."
+msgstr "משתמש בערכת הגופן \"%s\", אשר חסר בה ערכות התוים: %s."
+
+#: src/vte.c:9904
+#, c-format
+msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
+msgstr "נכשל בטעינת דפוס הגופנים של Xft \"%s\", חוזר לגופן ברירת המחדל."
+
+#: src/vte.c:9916
+msgid "Failed to load default Xft font."
+msgstr "נכשל בטעינת גופן Xft ברירת המחדל."
+
+#: src/vte.c:10009
+#, c-format
+msgid "Failed to load font set \"%s\", falling back to default font."
+msgstr "נכשל בטעינת ערכת הגופן של Xft \"%s\", חוזר לגופן ברירת המחדל."
+
+#: src/vte.c:10021
+msgid "Failed to load default font, crashing or behaving abnormally."
+msgstr "נכשל בטעינת גופן ברירת המחדל, מתרסק או מתנהג לא נורמלי."
+
+#: src/vte.c:10284
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "שגיאה בקריאת גודל PTY, משתמש בברירת המחדל: %s."
+
+#: src/vte.c:10320
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "שגיאה בקביעת גודל PTY: %s."
+
+#: src/vte.c:13060
+msgid "Error allocating draw, disabling Xft."
+msgstr "שגיאה בהקצאת משיכה, מכבה את Xft."
+
+#: src/vte.c:13068
+msgid "Error allocating context, disabling Pango."
+msgstr "שגיאה בהקצאת הקשר, מכבה את פנגו."
+
+#: src/vte.c:13074
+msgid "Error allocating layout, disabling Pango."
+msgstr "שגיאה בהקצאת משטח, מכבה את פנגו."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:14601
+msgid "g_iconv_open() failed setting word characters"
+msgstr "g_iconv_open() נכשל בקביעת תוי המילה"
+
