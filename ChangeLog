@@ -1,4 +1,8 @@
 2003-04-14 nalin
+	* src/vte.c: don't snap the beginning of selection to the next line in
+	select-by-line mode.
+
+2003-04-14 nalin
 	* configure.in, src/vteglyph.c: fix macro invocations so that when
 	LCD and GRAY2/GRAY4 pixel modes are supported by freetype, we don't
 	get confused by them.

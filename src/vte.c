@@ -8957,8 +8957,9 @@ vte_terminal_extend_selection(GtkWidget *widget, double x, double y,
 		/* If the start point is to its right, then move the
 		 * startpoint up to the beginning of the next line
 		 * unless that would move the startpoint after the end
-		 * point. */
-		if (sc->x > i) {
+		 * point, or we're in select-by-line mode. */
+		if ((sc->x > i) &&
+		    (terminal->pvt->selection_type != selection_type_line)) {
 			if (sc->y < ec->y) {
 				sc->x = 0;
 				sc->y++;
