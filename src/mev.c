@@ -203,7 +203,7 @@ parse(void)
 						fprintf(stdout, "%d %s%s%s(%s%s%s) at %d,%d\r\n",
 							button,
 							motion ? "motion " : "",
-							(!motion && button) ? "click" : "",
+							(!motion && button) ? "press" : "",
 							(!motion && !button) ? "release" : "",
 							meta, control, shift,
 							x, y);

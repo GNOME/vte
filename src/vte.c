@@ -3943,10 +3943,11 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 				  GValueArray *params)
 {
 	GArray *rowdata;
-	long i, initial;
+	long i, initial, row;
 	VteScreen *screen;
 	screen = terminal->pvt->screen;
 	initial = screen->insert_delta;
+	row = screen->cursor_current.row - screen->insert_delta;
 	/* Add a new screen's worth of rows. */
 	for (i = 0; i < terminal->row_count; i++) {
 		/* Add a new row */
@@ -3959,7 +3960,7 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 	/* Move the cursor and insertion delta to the first line in the
 	 * newly-cleared area and scroll if need be. */
 	screen->insert_delta = initial;
-	screen->cursor_current.row = initial;
+	screen->cursor_current.row = row + screen->insert_delta;
 	vte_terminal_adjust_adjustments(terminal, FALSE);
 	/* Redraw everything. */
 	vte_invalidate_all(terminal);
@@ -8265,8 +8266,10 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 	}
 
 	/* Encode the cursor coordinates. */
-	cx = 32 + 1 + (x / terminal->char_width);
-	cy = 32 + 1 + (y / terminal->char_height);
+	cx = 32 + CLAMP(1 + (x / terminal->char_width),
+			1, terminal->column_count);
+	cy = 32 + CLAMP(1 + (y / terminal->char_height),
+			1, terminal->row_count);;
 
 	/* Send the event to the child. */
 	snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, cx, cy);
@@ -8289,12 +8292,18 @@ vte_terminal_maybe_send_mouse_button(VteTerminal *terminal,
 	switch (event->type) {
 	case GDK_BUTTON_PRESS:
 		if (!terminal->pvt->mouse_send_xy_on_button &&
-		    !terminal->pvt->mouse_send_xy_on_click) {
+		    !terminal->pvt->mouse_send_xy_on_click &&
+		    !terminal->pvt->mouse_hilite_tracking &&
+		    !terminal->pvt->mouse_cell_motion_tracking &&
+		    !terminal->pvt->mouse_all_motion_tracking) {
 			return;
 		}
 		break;
 	case GDK_BUTTON_RELEASE:
-		if (!terminal->pvt->mouse_send_xy_on_button) {
+		if (!terminal->pvt->mouse_send_xy_on_button &&
+		    !terminal->pvt->mouse_hilite_tracking &&
+		    !terminal->pvt->mouse_cell_motion_tracking &&
+		    !terminal->pvt->mouse_all_motion_tracking) {
 			return;
 		}
 		break;
@@ -8327,15 +8336,18 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 		    !terminal->pvt->mouse_all_motion_tracking) {
 			return;
 		}
-		if (terminal->pvt->mouse_cell_motion_tracking) {
-			if (((event->x - VTE_PAD_WIDTH) /
-			     terminal->char_width ==
-			     terminal->pvt->mouse_last_x /
-			     terminal->char_width) &&
-			    ((event->y - VTE_PAD_WIDTH) /
-			     terminal->char_height ==
-			     terminal->pvt->mouse_last_y /
-			     terminal->char_height)) {
+		if (!terminal->pvt->mouse_all_motion_tracking) {
+			if (terminal->pvt->mouse_last_button == 0) {
+				return;
+			}
+			if ((floor((event->x - VTE_PAD_WIDTH) /
+				   terminal->char_width) ==
+			     floor(terminal->pvt->mouse_last_x /
+				   terminal->char_width)) &&
+			    (floor((event->y - VTE_PAD_WIDTH) /
+				   terminal->char_height) ==
+			     floor(terminal->pvt->mouse_last_y /
+				   terminal->char_height))) {
 				return;
 			}
 		}
@@ -8345,19 +8357,11 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 		break;
 	}
 
-	/* Encode the modifiers. */
-	if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
-		cb |= 4;
-	}
-	if (terminal->pvt->modifiers & VTE_META_MASK) {
-		cb |= 8;
-	}
-	if (terminal->pvt->modifiers & GDK_CONTROL_MASK) {
-		cb |= 16;
-	}
-
 	/* Encode which button we're being dragged with. */
 	switch (terminal->pvt->mouse_last_button) {
+	case 0:
+		cb = 3;
+		break;
 	case 1:
 		cb = 0;
 		break;
@@ -8376,10 +8380,22 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	}
 	cb += 64; /* 32 for normal, 32 for movement */
 
+	/* Encode the modifiers. */
+	if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
+		cb |= 4;
+	}
+	if (terminal->pvt->modifiers & VTE_META_MASK) {
+		cb |= 8;
+	}
+	if (terminal->pvt->modifiers & GDK_CONTROL_MASK) {
+		cb |= 16;
+	}
+
 	/* Encode the cursor coordinates. */
-	cx = 32 + 1 + ((event->x - VTE_PAD_WIDTH + terminal->char_width / 2) /
-	     terminal->char_width);
-	cy = 32 + 1 + ((event->y - VTE_PAD_WIDTH) / terminal->char_height);
+	cx = 32 + CLAMP(1 + ((event->x - VTE_PAD_WIDTH) / terminal->char_width),
+			1, terminal->column_count);
+	cy = 32 + CLAMP(1 + ((event->y - VTE_PAD_WIDTH) / terminal->char_height),
+			1, terminal->row_count);;
 
 	/* Send the event to the child. */
 	snprintf(buf, sizeof(buf), "%sM%c%c%c", _VTE_CAP_CSI, cb, cx, cy);
@@ -9340,9 +9356,16 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 {
 	VteTerminal *terminal;
 	GdkModifierType modifiers;
+	gboolean event_mode;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
+
+	event_mode = terminal->pvt->mouse_send_xy_on_click ||
+		     terminal->pvt->mouse_send_xy_on_button ||
+		     terminal->pvt->mouse_hilite_tracking ||
+		     terminal->pvt->mouse_cell_motion_tracking ||
+		     terminal->pvt->mouse_all_motion_tracking;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
@@ -9369,11 +9392,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 			}
 #endif
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    (!terminal->pvt->mouse_send_xy_on_click &&
-			     !terminal->pvt->mouse_send_xy_on_button &&
-			     !terminal->pvt->mouse_hilite_tracking &&
-			     !terminal->pvt->mouse_cell_motion_tracking &&
-			     !terminal->pvt->mouse_all_motion_tracking)) {
+			    !event_mode) {
 				vte_terminal_extend_selection(widget,
 							      event->x - VTE_PAD_WIDTH,
 							      event->y - VTE_PAD_WIDTH,
@@ -9383,9 +9402,8 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 								   event);
 			}
 			break;
-		case 2:
-		case 3:
 		default:
+			vte_terminal_maybe_send_mouse_drag(terminal, event);
 			break;
 		}
 		break;
@@ -9398,11 +9416,13 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	    (event->y > (widget->allocation.height - VTE_PAD_WIDTH))) {
 		switch (terminal->pvt->mouse_last_button) {
 		case 1:
-			/* Give mouse wigglers something. */
-			vte_terminal_autoscroll(terminal);
-			/* Start a timed autoscroll if we're not doing it
-			 * already. */
-			vte_terminal_start_autoscroll(terminal);
+			if (!event_mode) {
+				/* Give mouse wigglers something. */
+				vte_terminal_autoscroll(terminal);
+				/* Start a timed autoscroll if we're not doing it
+				 * already. */
+				vte_terminal_start_autoscroll(terminal);
+			}
 			break;
 		case 2:
 		case 3:
@@ -9430,7 +9450,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	VteTerminal *terminal;
 	long height, width, delta;
 	GdkModifierType modifiers;
-	gboolean handled = FALSE;
+	gboolean handled = FALSE, event_mode;
 	gboolean start_selecting = FALSE, extend_selecting = FALSE;
 	long cellx, celly;
 
@@ -9440,6 +9460,12 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	width = terminal->char_width;
 	delta = terminal->pvt->screen->scroll_delta;
 	vte_terminal_set_pointer_visible(terminal, TRUE);
+
+	event_mode = terminal->pvt->mouse_send_xy_on_click ||
+		     terminal->pvt->mouse_send_xy_on_button ||
+		     terminal->pvt->mouse_hilite_tracking ||
+		     terminal->pvt->mouse_cell_motion_tracking ||
+		     terminal->pvt->mouse_all_motion_tracking;
 
 	/* Read the modifiers. */
 	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
@@ -9469,32 +9495,22 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				fprintf(stderr, "Handling click ourselves.\n");
 			}
 #endif
-
 			/* If the user hit shift, override event mode. */
-			if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
-				if (terminal->pvt->mouse_send_xy_on_button ||
-				    terminal->pvt->mouse_send_xy_on_click) {
-					/* If shift is pressed in event mode,
-					 * start selecting. */
-					start_selecting = TRUE;
+			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
+			    !event_mode) {
+				/* If shift is pressed in non-event
+				 * mode, extend selection if the cell
+				 * isn't already selected, otherwise
+				 * start selection. */
+				if (terminal->pvt->has_selection &&
+				    !vte_cell_is_selected(terminal,
+							  cellx,
+							  celly,
+							  NULL)) {
+					extend_selecting = TRUE;
 				} else {
-					/* If shift is pressed in non-event
-					 * mode, extend selection if the cell
-					 * isn't already selected, otherwise
-					 * start selection. */
-					if (terminal->pvt->has_selection &&
-					    !vte_cell_is_selected(terminal,
-								  cellx,
-								  celly,
-								  NULL)) {
-						extend_selecting = TRUE;
-					} else {
-						start_selecting = TRUE;
-					}
+					start_selecting = TRUE;
 				}
-			} else {
-				/* If shift isn't set, start selecting. */
-				start_selecting = TRUE;
 			}
 			if (start_selecting) {
 				vte_terminal_deselect_all(terminal);
@@ -9515,8 +9531,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		 * to the app. */
 		case 2:
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    (!terminal->pvt->mouse_send_xy_on_button &&
-			     !terminal->pvt->mouse_send_xy_on_click)) {
+			    !event_mode) {
 				vte_terminal_paste_primary(terminal);
 				handled = TRUE;
 			}
@@ -9544,14 +9559,16 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 #endif
 		switch (event->button) {
 		case 1:
-			vte_terminal_start_selection(widget,
-						     event,
-						     selection_type_word);
-			vte_terminal_extend_selection(widget,
-						      event->x - VTE_PAD_WIDTH,
-						      event->y - VTE_PAD_WIDTH,
-						      FALSE);
-			handled = TRUE;
+			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
+			    !event_mode) {
+				vte_terminal_start_selection(widget,
+							     event,
+							     selection_type_word);
+				vte_terminal_extend_selection(widget,
+							      event->x - VTE_PAD_WIDTH,
+							      event->y - VTE_PAD_WIDTH,
+							      FALSE);
+			}
 			break;
 		case 2:
 		case 3:
@@ -9571,14 +9588,16 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 #endif
 		switch (event->button) {
 		case 1:
-			vte_terminal_start_selection(widget,
-						     event,
-						     selection_type_line);
-			vte_terminal_extend_selection(widget,
-						      event->x - VTE_PAD_WIDTH,
-						      event->y - VTE_PAD_WIDTH,
-						      FALSE);
-			handled = TRUE;
+			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
+			    !event_mode) {
+				vte_terminal_start_selection(widget,
+							     event,
+							     selection_type_line);
+				vte_terminal_extend_selection(widget,
+							      event->x - VTE_PAD_WIDTH,
+							      event->y - VTE_PAD_WIDTH,
+							      FALSE);
+			}
 			break;
 		case 2:
 		case 3:
@@ -9609,10 +9628,17 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 	VteTerminal *terminal;
 	GdkModifierType modifiers;
 	gboolean handled = FALSE;
+	gboolean event_mode;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
 	vte_terminal_set_pointer_visible(terminal, TRUE);
+
+	event_mode = terminal->pvt->mouse_send_xy_on_click ||
+		     terminal->pvt->mouse_send_xy_on_button ||
+		     terminal->pvt->mouse_hilite_tracking ||
+		     terminal->pvt->mouse_cell_motion_tracking ||
+		     terminal->pvt->mouse_all_motion_tracking;
 
 	/* Disconnect from autoscroll requests. */
 	vte_terminal_stop_autoscroll(terminal);
@@ -9637,7 +9663,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 			/* If Shift is held down, or we're not in events mode,
 			 * copy the selected text. */
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    (!terminal->pvt->mouse_send_xy_on_button)) {
+			    !event_mode) {
 				/* Copy only if something was selected. */
 				if (terminal->pvt->has_selection &&
 				    !terminal->pvt->selecting_restart &&
@@ -9652,6 +9678,11 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 			_vte_terminal_connect_pty_read(terminal);
 			break;
 		case 2:
+			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
+			    !event_mode) {
+				handled = TRUE;
+			}
+			break;
 		case 3:
 		default:
 			break;
@@ -14027,8 +14058,18 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 								button,
 								event->x - VTE_PAD_WIDTH,
 								event->y - VTE_PAD_WIDTH);
-			return TRUE;
 		}
+		if (terminal->pvt->mouse_send_xy_on_button ||
+		    terminal->pvt->mouse_hilite_tracking ||
+		    terminal->pvt->mouse_cell_motion_tracking ||
+		    terminal->pvt->mouse_all_motion_tracking) {
+			/* If the app cares, send a release event as well. */
+			vte_terminal_send_mouse_button_internal(terminal,
+								0,
+								event->x - VTE_PAD_WIDTH,
+								event->y - VTE_PAD_WIDTH);
+		}
+		return TRUE;
 	}
 
 	/* Perform a history scroll. */

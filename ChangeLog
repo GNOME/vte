@@ -1,4 +1,20 @@
 2003-01-22 nalin
+	* src/Makefile.am, src/mev.c: add mev.
+	* src/vte.c(vte_sequence_handler_clear_screen): don't home the cursor
+	automatically.
+	* src/vte.c(vte_terminal_button_pressed): fix sense of shift overriding
+	event mode.  Ignore double- and triple-click in event mode.
+	* src/vte.c(vte_terminal_scroll): in event mode, send button release
+	events to the terminal if it's expecting them.
+	* src/vte.c(vte_terminal_send_mouse_button_internal): clamp coordinates
+	to existing cells.
+	* src/vte.c(vte_terminal_maybe_send_mouse_drag): compare integral cell
+	locations, not floating point, when choosing whether or not to drop
+	events in cell tracking mode.  Don't lose the modifiers.
+	* src/vte.c(vte_terminal_motion_notify): don't autoscroll in events
+	mode.
+
+2003-01-22 nalin
 	* src/caps.c: accept OSC{number};{string}ST as set-text-parameters,
 	per XTerm docs (part of #104154).
 	* src/keymap.c: revert change to prepend "1;" to keys with
