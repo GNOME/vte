@@ -4169,6 +4169,371 @@ vte_terminal_realize(GtkWidget *widget)
 	gtk_widget_grab_focus(widget);
 }
 
+/* Draw a particular character on the screen. */
+static void
+vte_terminal_draw_char(VteTerminal *terminal,
+		       struct _VteScreen *screen,
+		       struct vte_charcell *cell,
+		       guint col,
+		       guint row,
+		       guint x,
+		       guint y,
+		       guint width,
+		       guint height,
+		       guint ascent,
+		       guint descent,
+		       Display *display,
+		       GdkDrawable *gdrawable,
+		       Drawable drawable,
+		       GdkColormap *gcolormap,
+		       Colormap colormap,
+		       GdkVisual *gvisual,
+		       Visual *visual,
+		       GC gc,
+#ifdef HAVE_XFT
+		       XftDraw *ftdraw,
+#endif
+		       gboolean reverse)
+{
+	int fore, back, dcol;
+	long xcenter, ycenter, xright, ybottom;
+	long delta;
+	gboolean drawn;
+	XwcTextItem textitem;
+
+	/* Determine what the foreground and background colors for rendering
+	 * text should be. */
+	if (((cell && cell->reverse) ^ reverse) ^
+	    vte_cell_is_selected(terminal, row, col)) {
+		fore = cell ? cell->back : 0;
+		back = cell ? cell->fore : 7;
+	} else {
+		fore = cell ? cell->fore : 7;
+		back = cell ? cell->back : 0;
+	}
+
+	/* Handle invisible, bold, and standout text by adjusting colors. */
+	if (cell && cell->invisible) {
+		fore = back;
+	}
+	if (cell && cell->bold) {
+		fore += 8;
+	}
+	if (cell && cell->standout) {
+		back += 8;
+	}
+
+	/* Paint the background for the cell. */
+	XSetForeground(display, gc, terminal->pvt->palette[back].pixel);
+	XFillRectangle(display, drawable, gc, x, y, width, height);
+
+	/* If there's no data, bug out here. */
+	if (cell == NULL) {
+		return;
+	}
+
+	/* If this column is zero-width, backtrack until we find the
+	 * multi-column character which renders into this column. */
+	dcol = col;
+	if (cell->columns == 0) {
+		/* Search for a suitable cell. */
+		for (dcol = col - 1; dcol >= 0; dcol--) {
+			cell = vte_terminal_find_charcell(terminal, row, dcol);
+			if (cell->columns > 0) {
+				break;
+			}
+		}
+		/* If we didn't find anything, bail. */
+		if (dcol < 0) {
+			return;
+		}
+	}
+	x -= (col - dcol) * width;
+	drawn = FALSE;
+
+	/* If the character is drawn in the alternate graphic font, do the
+	 * drawing ourselves. */
+	if (cell->alternate) {
+		xright = x + width;
+		ybottom = y + height;
+		xcenter = (x + xright) / 2;
+		ycenter = (y + ybottom) / 2;
+
+		/* Draw the alternate charset data. */
+		XSetForeground(display, gc, terminal->pvt->palette[fore].pixel);
+		switch (cell->c) {
+			case 95:
+				/* drawing a blank */
+				break;
+			case 96:  /* ` */
+			case 97:  /* a */
+			case 98:  /* b */
+			case 99:  /* c */
+			case 100: /* d */
+			case 101: /* e */
+			case 102: /* f */
+			case 103: /* g */
+			case 104: /* h */
+			case 105: /* i */
+				g_warning("Alternate character `%lc' not "
+					  "implemented, ignoring.\n",
+					  (wint_t) cell->c);
+				break;
+			case 106: /* j */
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       x,
+					       ycenter,
+					       xcenter - x + VTE_LINE_WIDTH,
+					       VTE_LINE_WIDTH);
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       xcenter,
+					       y,
+					       VTE_LINE_WIDTH,
+					       ycenter - y + VTE_LINE_WIDTH);
+				drawn = TRUE;
+				break;
+			case 107: /* k */
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       x,
+					       ycenter,
+					       xcenter - x + VTE_LINE_WIDTH,
+					       VTE_LINE_WIDTH);
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       xcenter,
+					       ycenter,
+					       VTE_LINE_WIDTH,
+					       ybottom - ycenter);
+				drawn = TRUE;
+				break;
+			case 108: /* l */
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       xcenter,
+					       ycenter,
+					       xright - xcenter,
+					       VTE_LINE_WIDTH);
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       xcenter,
+					       ycenter,
+					       VTE_LINE_WIDTH,
+					       ybottom - ycenter);
+				drawn = TRUE;
+				break;
+			case 109: /* m */
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       xcenter,
+					       ycenter,
+					       xright - xcenter,
+					       VTE_LINE_WIDTH);
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       xcenter,
+					       y,
+					       VTE_LINE_WIDTH,
+					       ycenter - y + VTE_LINE_WIDTH);
+				drawn = TRUE;
+				break;
+			case 110: /* n */
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       xcenter,
+					       y,
+					       VTE_LINE_WIDTH,
+					       height);
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       x,
+					       ycenter,
+					       width,
+					       VTE_LINE_WIDTH);
+				drawn = TRUE;
+				break;
+			case 111: /* o */
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       x,
+					       y,
+					       width,
+					       VTE_LINE_WIDTH);
+				drawn = TRUE;
+				break;
+			case 112: /* p */
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       x,
+					       (y + ycenter) / 2,
+					       width,
+					       VTE_LINE_WIDTH);
+				drawn = TRUE;
+				break;
+			case 113: /* q */
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       x,
+					       ycenter,
+					       width,
+					       VTE_LINE_WIDTH);
+				drawn = TRUE;
+				break;
+			case 114: /* r */
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       x,
+					       (ycenter + ybottom) / 2,
+					       width,
+					       VTE_LINE_WIDTH);
+				drawn = TRUE;
+				break;
+			case 115: /* s */
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       x,
+					       ybottom,
+					       width,
+					       VTE_LINE_WIDTH);
+				drawn = TRUE;
+				break;
+			case 116: /* t */
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       xcenter,
+					       y,
+					       VTE_LINE_WIDTH,
+					       height);
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       xcenter,
+					       ycenter,
+					       xright - xcenter,
+					       VTE_LINE_WIDTH);
+				drawn = TRUE;
+				break;
+			case 117: /* u */
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       xcenter,
+					       y,
+					       VTE_LINE_WIDTH,
+					       height);
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       x,
+					       ycenter,
+					       xcenter - x + VTE_LINE_WIDTH,
+					       VTE_LINE_WIDTH);
+				drawn = TRUE;
+				break;
+			case 118: /* v */
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       xcenter,
+					       y,
+					       VTE_LINE_WIDTH,
+					       ycenter - y + VTE_LINE_WIDTH);
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       x,
+					       ycenter,
+					       width,
+					       VTE_LINE_WIDTH);
+				drawn = TRUE;
+				break;
+			case 119: /* w */
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       xcenter,
+					       ycenter,
+					       VTE_LINE_WIDTH,
+					       ybottom - ycenter);
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       x,
+					       ycenter,
+					       width,
+					       VTE_LINE_WIDTH);
+				drawn = TRUE;
+				break;
+			case 120: /* x */
+				XFillRectangle(display,
+					       drawable,
+					       gc,
+					       xcenter,
+					       y,
+					       VTE_LINE_WIDTH,
+					       height);
+				drawn = TRUE;
+				break;
+			default:
+				break;
+		}
+	}
+
+#if HAVE_XFT
+	/* If we haven't drawn anything, try to draw the text using Xft. */
+	if (!drawn && terminal->pvt->use_xft) {
+		XftChar32 ftc;
+		ftc = cell->c;
+		XftDrawString32(ftdraw,
+				&terminal->pvt->palette[fore].ftcolor,
+				terminal->pvt->ftfont,
+				x, y + ascent, &ftc, 1);
+		drawn = TRUE;
+	}
+#endif
+
+	/* Draw the text using Xlib. */
+	if (!drawn) {
+		/* Set the textitem's fields. */
+		textitem.chars = &cell->c;
+		textitem.nchars = 1;
+		textitem.delta = 0;
+		textitem.font_set = terminal->pvt->fontset;
+
+		/* Draw the text.  We've handled bold,
+		 * standout and reverse already, but we
+		 * need to handle half, and maybe
+		 * blink, if we decide to be evil. */
+		XSetForeground(display, gc, terminal->pvt->palette[fore].pixel);
+		XwcDrawText(display, drawable, gc, x, y + ascent, &textitem, 1);
+		drawn = TRUE;
+	}
+
+	/* SFX */
+	if (cell->underline) {
+		XDrawLine(display, drawable, gc,
+			  x, y + height - 1, x + width, y + height - 1);
+	}
+}
+
 /* Draw the widget. */
 static void
 vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
@@ -4258,428 +4623,58 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		while (col < col_stop) {
 			/* Get the character cell's contents. */
 			cell = vte_terminal_find_charcell(terminal, drow, col);
-			if (cell != NULL) {
-				gboolean drawn = FALSE;
-				/* If this column is zero-width, backtrack
-				 * until we find the multi-column character
-				 * which renders into this column. */
-				if (cell->columns == 0) {
-					/* Search for a suitable cell. */
-					for (dcol = col - 1;
-					     dcol >= 0;
-					     dcol--) {
-						cell = vte_terminal_find_charcell(terminal, drow, dcol);
-						if (cell->columns > 0) {
-							break;
-						}
-					}
-					/* If we didn't find anything, bail. */
-					if (dcol < 0) {
-						continue;
-					}
-				}
-				/* Determine what the foreground and background
-				 * colors for rendering text should be. */
-				if (cell->reverse) {
-					fore = cell->back;
-					back = cell->fore;
-				} else {
-					fore = cell->fore;
-					back = cell->back;
-				}
-				if (vte_cell_is_selected(terminal, drow, col)) {
-					tmp = fore;
-					fore = back;
-					back = tmp;
-				}
-				
-				if (cell->invisible) {
-					fore = back;
-				}
-				if (cell->bold) {
-					fore += 8;
-				}
-				if (cell->standout) {
-					back += 8;
-				}
-
-				/* Paint the background for the cell. */
-				XSetForeground(display, gc,
-					       terminal->pvt->palette[back].pixel);
-				XFillRectangle(display, drawable, gc,
+			/* Draw the character. */
+			vte_terminal_draw_char(terminal, screen, cell,
+					       col,
+					       drow,
 					       col * width - x_offs,
 					       row * height - y_offs,
-					       cell->columns * width,
-					       height);
-				drawn = FALSE;
-				if (cell->alternate) {
-					long xleft, ytop, xcenter, ycenter,
-					     xright, ybottom;
-					xleft = col * width - x_offs;
-					ytop = row * height - y_offs;
-					xright = xleft + width;
-					ybottom = ytop + height;
-					xcenter = (xleft + xright) / 2;
-#if 0
-					ycenter = ytop + ascent / 2;
-#else
-					ycenter = (ytop + ybottom) / 2;
+					       width, height,
+					       ascent, descent,
+					       display,
+					       gdrawable, drawable,
+					       gcolormap, colormap,
+					       gvisual, visual,
+					       gc,
+#ifdef HAVE_XFT
+					       ftdraw,
 #endif
-					/* Draw the alternate charset data. */
-					XSetForeground(display, gc,
-						       terminal->pvt->palette[fore].pixel);
-					switch (cell->c) {
-						case 95:
-							/* drawing a blank */
-							break;
-						case 96:  /* ` */
-						case 97:  /* a */
-						case 98:  /* b */
-						case 99:  /* c */
-						case 100: /* d */
-						case 101: /* e */
-						case 102: /* f */
-						case 103: /* g */
-						case 104: /* h */
-						case 105: /* i */
-							g_warning("Alternate character `%lc' not implemented, ignoring.\n",
-								  (wint_t) cell->c);
-							break;
-						case 106: /* j */
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xleft,
-								       ycenter,
-								       xcenter - xleft + VTE_LINE_WIDTH,
-								       VTE_LINE_WIDTH);
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xcenter,
-								       ytop,
-								       VTE_LINE_WIDTH,
-								       ycenter - ytop + VTE_LINE_WIDTH);
-							drawn = TRUE;
-							break;
-						case 107: /* k */
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xleft,
-								       ycenter,
-								       xcenter - xleft + VTE_LINE_WIDTH,
-								       VTE_LINE_WIDTH);
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xcenter,
-								       ycenter,
-								       VTE_LINE_WIDTH,
-								       ybottom - ycenter);
-							drawn = TRUE;
-							break;
-						case 108: /* l */
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xcenter,
-								       ycenter,
-								       xright - xcenter,
-								       VTE_LINE_WIDTH);
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xcenter,
-								       ycenter,
-								       VTE_LINE_WIDTH,
-								       ybottom - ycenter);
-							drawn = TRUE;
-							break;
-						case 109: /* m */
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xcenter,
-								       ycenter,
-								       xright - xcenter,
-								       VTE_LINE_WIDTH);
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xcenter,
-								       ytop,
-								       VTE_LINE_WIDTH,
-								       ycenter - ytop + VTE_LINE_WIDTH);
-							drawn = TRUE;
-							break;
-						case 110: /* n */
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xcenter,
-								       ytop,
-								       VTE_LINE_WIDTH,
-								       ybottom - ytop);
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xleft,
-								       ycenter,
-								       xright - xleft,
-								       VTE_LINE_WIDTH);
-							drawn = TRUE;
-							break;
-						case 111: /* o */
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xleft,
-								       ytop,
-								       xright - xleft,
-								       VTE_LINE_WIDTH);
-							drawn = TRUE;
-							break;
-						case 112: /* p */
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xleft,
-								       (ytop + ycenter) / 2,
-								       xright - xleft,
-								       VTE_LINE_WIDTH);
-							drawn = TRUE;
-							break;
-						case 113: /* q */
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xleft,
-								       ycenter,
-								       xright - xleft,
-								       VTE_LINE_WIDTH);
-							drawn = TRUE;
-							break;
-						case 114: /* r */
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xleft,
-								       (ycenter + ybottom) / 2,
-								       xright - xleft,
-								       VTE_LINE_WIDTH);
-							drawn = TRUE;
-							break;
-						case 115: /* s */
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xleft,
-								       ybottom,
-								       xright - xleft,
-								       VTE_LINE_WIDTH);
-							drawn = TRUE;
-							break;
-						case 116: /* t */
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xcenter,
-								       ytop,
-								       VTE_LINE_WIDTH,
-								       ybottom - ytop);
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xcenter,
-								       ycenter,
-								       xright - xcenter,
-								       VTE_LINE_WIDTH);
-							drawn = TRUE;
-							break;
-						case 117: /* u */
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xcenter,
-								       ytop,
-								       VTE_LINE_WIDTH,
-								       ybottom - ytop);
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xleft,
-								       ycenter,
-								       xcenter - xleft + VTE_LINE_WIDTH,
-								       VTE_LINE_WIDTH);
-							drawn = TRUE;
-							break;
-						case 118: /* v */
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xcenter,
-								       ytop,
-								       VTE_LINE_WIDTH,
-								       ycenter - ytop + VTE_LINE_WIDTH);
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xleft,
-								       ycenter,
-								       xright - xleft,
-								       VTE_LINE_WIDTH);
-							drawn = TRUE;
-							break;
-						case 119: /* w */
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xcenter,
-								       ycenter,
-								       VTE_LINE_WIDTH,
-								       ybottom - ycenter);
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xleft,
-								       ycenter,
-								       xright - xleft,
-								       VTE_LINE_WIDTH);
-							drawn = TRUE;
-							break;
-						case 120: /* x */
-							XFillRectangle(display,
-								       drawable,
-								       gc,
-								       xcenter,
-								       ytop,
-								       VTE_LINE_WIDTH,
-								       ybottom - ytop);
-							drawn = TRUE;
-							break;
-						default:
-							break;
-					}
-				}
-#if HAVE_XFT
-				if (!drawn && terminal->pvt->use_xft) {
-					XftChar32 ftc;
-					ftc = cell->c;
-					XftDrawString32(ftdraw,
-							&terminal->pvt->palette[fore].ftcolor,
-							terminal->pvt->ftfont,
-							col * width - x_offs,
-							row * height - y_offs + ascent,
-							&ftc, 1);
-					drawn = TRUE;
-				}
-#endif
-				if (!drawn) {
-					/* Set the textitem's fields. */
-					textitem.chars = &cell->c;
-					textitem.nchars = 1;
-					textitem.delta = 0;
-					textitem.font_set = terminal->pvt->fontset;
-
-					/* Draw the text.  We've handled bold,
-					 * standout and reverse already, but we
-					 * need to handle half, and maybe
-					 * blink, if we decide to be evil. */
-					XSetForeground(display, gc,
-						       terminal->pvt->palette[fore].pixel);
-					XwcDrawText(display, drawable, gc,
-						    col * width - x_offs,
-						    row * height - y_offs + ascent,
-						    &textitem, 1);
-					drawn = TRUE;
-				}
-				/* FX */
-				if (cell->underline) {
-					XDrawLine(display, drawable, gc,
-						  col * width - x_offs,
-						  row * height - y_offs + height - 1,
-						  col * width - x_offs + width - 1,
-						  row * height - y_offs + height - 1);
-				}
-				col += cell->columns;
-			} else {
+					       FALSE);
+			if (cell == NULL) {
 				/* Skip to the next column. */
 				col++;
+			} else {
+				col += cell->columns;
 			}
 		}
 		row++;
 	}
 
+	/* Draw the cursor if it's visible. */
 	if (terminal->pvt->screen->cursor_visible) {
-		gboolean drawn = FALSE;
-		/* Draw the insertion cursor in the foreground color for this
-		 * cell. */
+		/* Get the character under the cursor. */
 		col = screen->cursor_current.col;
-		row = screen->cursor_current.row;
-		fore = screen->defaults.fore;
-		back = screen->defaults.back;
-		cell = vte_terminal_find_charcell(terminal, row - delta, col);
-		if (cell != NULL) {
-			/* Determine what the foreground and background
-			 * colors for rendering text should be. */
-			if (cell->reverse) {
-				fore = cell->back;
-				back = cell->fore;
-			} else {
-				fore = cell->fore;
-				back = cell->back;
-			}
-			if (cell->invisible) {
-				fore = back;
-			}
-			if (cell->bold) {
-				fore += 8;
-			}
-			if (cell->standout) {
-				back += 8;
-			}
-		}
-
-		/* Draw a rectangle in the foreground color for this cell. */
-		XSetForeground(display, gc, 
-			       terminal->pvt->palette[fore].pixel);
-		XFillRectangle(display, drawable, gc,
-			       col * width - x_offs,
-			       (row - delta) * height - y_offs,
-			       width,
-			       height);
-
-		/* If we have a character in this spot, draw it in the reverse
-		 * of the normal color. */
-		if (cell != NULL) {
-			/* Draw the text reversed. FIXME: handle half, blink. */
-			XSetForeground(display, gc,
-				       terminal->pvt->palette[back].pixel);
-#if HAVE_XFT
-			if (!drawn && terminal->pvt->use_xft) {
-				XftChar32 ftc;
-				ftc = cell->c;
-				XftDrawString32(ftdraw,
-						&terminal->pvt->palette[back].ftcolor,
-						terminal->pvt->ftfont,
-						col * width - x_offs,
-						row * height - y_offs + ascent,
-						&ftc, 1);
-				drawn = TRUE;
-			}
+		drow = screen->cursor_current.row;
+		row = drow - delta;
+		cell = vte_terminal_find_charcell(terminal, drow, col);
+		/* Draw the character. */
+		delta = screen->scroll_delta;
+		vte_terminal_draw_char(terminal, screen, cell,
+				       col,
+				       drow,
+				       col * width - x_offs,
+				       row * height - y_offs,
+				       width, height,
+				       ascent, descent,
+				       display,
+				       gdrawable, drawable,
+				       gcolormap, colormap,
+				       gvisual, visual,
+				       gc,
+#ifdef HAVE_XFT
+				       ftdraw,
 #endif
-			if (!drawn) {
-				textitem.chars = &cell->c;
-				textitem.nchars = 1;
-				textitem.delta = 0;
-				textitem.font_set = terminal->pvt->fontset;
-				XwcDrawText(display, drawable, gc,
-					    col * width - x_offs,
-					    row * height - y_offs + ascent,
-					    &textitem, 1);
-			}
-		}
+				       TRUE);
 	}
 
 	/* Done with various structures. */
@@ -4688,7 +4683,6 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		XftDrawDestroy(ftdraw);
 	}
 #endif
-
 	XFreeGC(display, gc);
 }
 
