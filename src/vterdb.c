@@ -35,8 +35,9 @@ static gchar **
 _vte_rdb_get(void)
 {
 	GdkWindow *root;
-	char *prop_data;
+	char *prop_data, *tmp;
 	gchar **ret;
+	int prop_length;
 	GdkAtom atom, prop_type;
 
 	/* Retrieve the window and the property which we're going to read. */
@@ -50,13 +51,15 @@ _vte_rdb_get(void)
 	prop_data = NULL;
 	gdk_error_trap_push();
 	gdk_property_get(root, atom, GDK_TARGET_STRING, 0, LONG_MAX, FALSE,
-			 &prop_type, NULL, NULL,
+			 &prop_type, NULL, &prop_length,
 			 (guchar**) &prop_data);
 	gdk_error_trap_pop();
 
 	/* Only parse the information if we got a string. */
 	if ((prop_type == GDK_TARGET_STRING) && (prop_data != NULL)) {
-		ret = g_strsplit(prop_data, "\n", -1);
+		tmp = g_strndup(prop_data, prop_length);
+		ret = g_strsplit(tmp, "\n", -1);
+		g_free(tmp);
 		g_free(prop_data);
 		return ret;
 	}

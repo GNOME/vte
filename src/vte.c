@@ -336,6 +336,7 @@ struct _VteTerminalPrivate {
 
 	/* Input method support. */
 	GtkIMContext *im_context;
+	gboolean im_preedit_active;
 	char *im_preedit;
 	int im_preedit_cursor;
 
@@ -808,21 +809,23 @@ vte_invalidate_cursor_once(gpointer data)
 		if (cell != NULL) {
 			columns = cell->columns;
 		}
-		if (preedit_width + 1 > columns) {
-			column = MAX(0,
-				     MIN(column,
-				         terminal->column_count - preedit_width));
-			columns = preedit_width + 1;
+		if (preedit_width > 0) {
+			columns += preedit_width;
+			columns++; /* one more for the preedit cursor */
 		}
+		if (column + columns > terminal->column_count) {
+			column = MAX(0, terminal->column_count - columns);
+		}
+
 		vte_invalidate_cells(terminal,
 				     column, columns,
 				     row, 1);
 #ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_UPDATES) && 0) {
+		if (_vte_debug_on(VTE_DEBUG_UPDATES)) {
 			fprintf(stderr, "Invalidating cursor at (%ld,%d-%d)."
 				"\n", screen->cursor_current.row,
 				column,
-				column + MAX(columns, preedit_width + 1));
+				column + columns);
 		}
 #endif
 	}
@@ -7454,6 +7457,7 @@ vte_terminal_im_commit(GtkIMContext *im_context, gchar *text, gpointer data)
 	VteTerminal *terminal;
 
 	g_return_if_fail(VTE_IS_TERMINAL(data));
+	g_return_if_fail(GTK_IS_IM_CONTEXT(im_context));
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
 		fprintf(stderr, "Input method committed `%s'.\n", text);
@@ -7483,6 +7487,7 @@ vte_terminal_im_preedit_start(GtkIMContext *im_context, gpointer data)
 		fprintf(stderr, "Input method pre-edit started.\n");
 	}
 #endif
+	terminal->pvt->im_preedit_active = TRUE;
 }
 
 /* We've stopped pre-editing. */
@@ -7500,6 +7505,7 @@ vte_terminal_im_preedit_end(GtkIMContext *im_context, gpointer data)
 		fprintf(stderr, "Input method pre-edit ended.\n");
 	}
 #endif
+	terminal->pvt->im_preedit_active = TRUE;
 }
 
 /* The pre-edit string changed. */
@@ -7523,6 +7529,8 @@ vte_terminal_im_preedit_changed(GtkIMContext *im_context, gpointer data)
 	}
 #endif
 
+	/* Queue the area where the current preedit string is being displayed
+	 * for repainting. */
 	vte_invalidate_cursor_once(terminal);
 
 	pango_attr_list_unref(attrs);
@@ -10593,6 +10601,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* Input method support. */
 	pvt->im_context = NULL;
+	pvt->im_preedit_active = FALSE;
 	pvt->im_preedit = NULL;
 	pvt->im_preedit_cursor = 0;
 
@@ -10826,8 +10835,17 @@ vte_terminal_unrealize(GtkWidget *widget)
 	terminal->pvt->mouse_inviso_cursor = NULL;
 
 	/* Shut down input methods. */
-	g_object_unref(G_OBJECT(terminal->pvt->im_context));
-	terminal->pvt->im_context = NULL;
+	if (terminal->pvt->im_context != NULL) {
+		vte_terminal_im_reset(terminal);
+#ifdef VTE_DEBUG
+		if (terminal->pvt->im_preedit_active) {
+			g_warning("Unrealizing while IM preedit not stopped.");
+		}
+#endif
+		g_object_unref(G_OBJECT(terminal->pvt->im_context));
+		terminal->pvt->im_context = NULL;
+	}
+	terminal->pvt->im_preedit_active = FALSE;
 	if (terminal->pvt->im_preedit != NULL) {
 		g_free(terminal->pvt->im_preedit);
 		terminal->pvt->im_preedit = NULL;
@@ -11223,9 +11241,11 @@ vte_terminal_realize(GtkWidget *widget)
 	/* Set up input method support.  FIXME: do we need to handle the
 	 * "retrieve-surrounding" and "delete-surrounding" events? */
 	if (terminal->pvt->im_context != NULL) {
+		vte_terminal_im_reset(terminal);
 		g_object_unref(G_OBJECT(terminal->pvt->im_context));
 		terminal->pvt->im_context = NULL;
 	}
+	terminal->pvt->im_preedit_active = FALSE;
 	terminal->pvt->im_context = gtk_im_multicontext_new();
 	gtk_im_context_set_client_window(terminal->pvt->im_context,
 					 widget->window);
@@ -12669,7 +12689,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		/* Draw the preedit string, boxed. */
 		if (len > 0) {
 			items = g_malloc(sizeof(struct _vte_draw_text_request) *
-					 len);
+					 (len + 1));
 			preedit = terminal->pvt->im_preedit;
 			for (i = columns = 0; i < len; i++) {
 				items[i].c = g_utf8_get_char(preedit);
@@ -12679,6 +12699,10 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 				columns += items[i].columns;
 				preedit = g_utf8_next_char(preedit);
 			}
+			items[len].c = ' ';
+			items[len].columns = 1;
+			items[len].x = (col + columns) * width;
+			items[len].y = row * height;
 			_vte_draw_clear(terminal->pvt->draw,
 					col * width + VTE_PAD_WIDTH,
 					row * height + VTE_PAD_WIDTH,
@@ -12687,7 +12711,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			fore = screen->defaults.fore;
 			back = screen->defaults.back;
 			vte_terminal_draw_cells(terminal,
-						items, len,
+						items, len + 1,
 						fore, back, TRUE,
 						FALSE,
 						FALSE,
@@ -12710,18 +12734,14 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			} else
 			if (terminal->pvt->im_preedit_cursor == len) {
 				/* Empty cursor at the end. */
-				items[0].c = ' ';
-				items[0].x = (col + columns) * width;
-				items[0].y = row * height;
-				items[0].columns = 1;
 				vte_terminal_draw_cells(terminal,
-							&items[0], 1,
+							&items[len], 1,
 							back, fore, TRUE,
 							FALSE,
 							FALSE,
 							FALSE,
 							FALSE,
-							TRUE,
+							FALSE,
 							width, height);
 			}
 			g_free(items);

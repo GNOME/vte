@@ -1,4 +1,13 @@
 2003-04-28 nalin
+	* src/vte.c(vte_invalidate_cursor_once): rework to simplify the logic
+	of how many cells to invalidate when we have a preedit string.
+	* src/vte.c(vte_terminal_paint): draw the preedit string correctly for
+	cases more complicated than the default IM (seems to fix #111767).
+	* src/vterdb.c(_vte_rdb_get): use g_strncpy() and the property length
+	to avoid going past the end of the possibly-not-nul-terminated string.
+	* src/Makefile.am: build a standalone vterdb binary.
+
+2003-04-28 nalin
 	* src/vte.c(vte_terminal_insert_char): add another flag to skip over
 	sanity-checking the buffer when adding characters.
 	* src/vte.c(vte_terminal_process_incoming): sanity-check the buffer

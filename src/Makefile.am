@@ -1,7 +1,7 @@
 bin_PROGRAMS = vte
 pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
-pkglib_PROGRAMS = interpret utf8echo nativeecho utf8mode iso8859mode slowcat
+pkglib_PROGRAMS = interpret utf8echo nativeecho utf8mode iso8859mode slowcat vterdb
 pkglib_SCRIPTS = decset osc window
 noinst_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-vte $(REFLECT_ZVT) ring mev ssfe table termcap trie xticker
 EXTRA_DIST = \
@@ -228,6 +228,10 @@ reaper_SOURCES = \
 	reaper.c \
 	reaper.h
 reaper_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
+
+vterdb_CFLAGS = @CFLAGS@ @GTK_CFLAGS@ -DVTERDB_MAIN
+vterdb_SOURCES = vterdb.c
+vterdb_LDADD = @LDFLAGS@ @LIBS@ @GTK_LIBS@
 
 buffer_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DBUFFER_MAIN
 buffer_SOURCES = buffer.c
