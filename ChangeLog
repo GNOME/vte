@@ -1,3 +1,9 @@
+2003-05-04 nalin
+	* gnome-pty-helper/gnome-login-support.c(n_read,n_write): if ERESTART
+	is defined, treat it like EINTR and EAGAIN.
+	* src/pty.c(n_read,n_write): if ERESTART is defined, treat it like
+	EINTR and EAGAIN.
+
 2003-05-02 nalin
 	* configure.in: define _XOPEN_SOURCE_EXTENDED, _XOPEN_SOURCE, and
 	__EXTENSIONS__ to get definitions for msg_control and msg_controllen

@@ -218,6 +218,9 @@ n_read(int fd, void *buffer, size_t count)
 			switch (errno) {
 			case EINTR:
 			case EAGAIN:
+#ifdef ERESTART
+			case ERESTART:
+#endif
 				break;
 			default:
 				return -1;
@@ -247,6 +250,9 @@ n_write(int fd, const void *buffer, size_t count)
 			switch (errno) {
 			case EINTR:
 			case EAGAIN:
+#ifdef ERESTART
+			case ERESTART:
+#endif
 				break;
 			default:
 				return -1;

@@ -316,6 +316,9 @@ n_read (int fd, void *buf, int count)
 			switch (errno) {
 			case EINTR:
 			case EAGAIN:
+#ifdef ERESTART
+			case ERESTART:
+#endif
 				/* suppress these errors */
 				break;
 			default:
@@ -349,6 +352,9 @@ n_write (int fd, const void *buf, int count)
 			switch (errno) {
 			case EINTR:
 			case EAGAIN:
+#ifdef ERESTART
+			case ERESTART:
+#endif
 				/* suppress these errors */
 				break;
 			default:
