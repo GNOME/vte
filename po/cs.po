@@ -5,15 +5,15 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte VERSION\n"
-"POT-Creation-Date: 2003-05-01 14:26+0200\n"
-"PO-Revision-Date: 2003-05-01 15:47+0200\n"
+"POT-Creation-Date: 2003-05-08 13:33+0200\n"
+"PO-Revision-Date: 2003-05-08 14:46+0200\n"
 "Last-Translator: Miloslav Trmac <mitr@volny.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/pty.c:311
+#: src/pty.c:317
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Chyba při přidávání `%s' do prostředí, pokračuji."
@@ -21,7 +21,7 @@ msgstr "Chyba při přidávání `%s' do prostředí, pokračuji."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:871
+#: src/pty.c:877
 #, c-format
 msgid "can not run %s"
 msgstr "nemohu spustit %s"
@@ -30,56 +30,52 @@ msgstr "nemohu spustit %s"
 msgid "Error creating signal pipe."
 msgstr "Chyba při vytváření signálové roury."
 
-#: src/trie.c:411
+#: src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikát (%s/%s)!"
 
-#: src/vte.c:1431
+#: src/vte.c:1427
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Chyba při kompilaci regulárního výrazu \"%s\"."
 
-#: src/vte.c:1993
+#: src/vte.c:1991
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Nemohu konvertovat znaky z %s do %s."
 
-#: src/vte.c:5504
+#: src/vte.c:5501
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Dostal jsem neočekávanou sekvenci (kláves?) `%s'."
 
-#: src/vte.c:6517
+#: src/vte.c:6514
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Nedefinována žádná obsluha pro řídicí sekvenci `%s'."
 
-#: src/vte.c:7233
+#: src/vte.c:7230
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Chyba při čtení od potomka: %s."
 
-#: src/vte.c:7387
+#: src/vte.c:7384
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Chyba (%s) při konverzi dat pro potomka, zahazuji je."
 
-#: src/vte.c:9937
+#: src/vte.c:9934
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Chyba při čtení velikosti PTY, používám implicitní: %s."
 
-#: src/vte.c:9973
+#: src/vte.c:9970
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Chyba při nastavování velikosti PTY: %s."
 
-#: src/vte.c:13162
-msgid "Don't know how to convert to/from gunichar data!"
-msgstr "Nevím, jak konvertovat do/z dat gunichar!"
-
 #. Aaargh.  We're screwed.
-#: src/vte.c:14076
-msgid "g_iconv_open() failed setting word characters"
-msgstr "g_iconv_open() selhal při nastavování znaků slova"
+#: src/vte.c:13914
+msgid "_vte_conv_open() failed setting word characters"
+msgstr "_vte_conv_open() selhal při nastavování znaků slova"
