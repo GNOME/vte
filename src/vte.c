@@ -27,6 +27,7 @@
 #include <iconv.h>
 #include <langinfo.h>
 #include <math.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5903,8 +5904,8 @@ vte_terminal_set_background_transparent(VteTerminal *terminal, gboolean setting)
 	GdkAtom atom;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->bg_transparent = setting;
+	window = gdk_get_default_root_window();
 	if (setting) {
-		window = gdk_get_default_root_window();
 		atom = gdk_atom_intern("_XROOTPMAP_ID", TRUE);
 		terminal->pvt->bg_transparent_window = window;
 		terminal->pvt->bg_transparent_atom = atom;

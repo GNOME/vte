@@ -8,15 +8,17 @@ BuildRoot: %{_tmppath}/%{name}-root
 Source: %{name}-%{version}.tar.gz
 
 %description
-Blah.
+VTE is an experimental terminal emulator widget.  This package contains
+a sample application which uses the widget in a terminal window.
 
 %package devel
-Summary: Development files for use with vte.
+Summary: Files needed for developing applications which use vte.
 Group: Development/Libraries
 Requires: %{name} = %{version}-%{release}
 
 %description devel
-Blah
+VTE is an experimental terminal emulator widget.  This package contains
+the files needed for building applications using the widget.
 
 %prep
 %setup -q
