@@ -1,5 +1,5 @@
 bin_PROGRAMS = vte
-pkginclude_HEADERS = caps.h pty.h ring.h termcap.h trie.h vte.h vteaccess.h
+pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
 pkglib_PROGRAMS = interpret utf8echo utf8mode iso8859mode slowcat
 noinst_PROGRAMS = iso2022 pty reaper ring table termcap trie
