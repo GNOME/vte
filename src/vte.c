@@ -197,13 +197,6 @@ vte_invalidate_cells(VteTerminal *terminal,
 	gdk_window_invalidate_rect(widget->window, &rect, TRUE);
 }
 
-/* Scroll certain rows up or down. */
-static void
-vte_scroll_rows(VteTerminal *terminal,
-		glong row_start, gint row_count, gint delta)
-{
-}
-
 /* Update the adjustment field of the widget.  This function should be called
  * whenever we add rows to the history or switch screens. */
 static void
@@ -762,6 +755,7 @@ vte_sequence_handler_do(VteTerminal *terminal,
 		rows = MAX(screen->row_data->len,
 			   screen->cursor_current.row + 1);
 		delta = MAX(0, rows - terminal->row_count);
+		screen->insert_delta = delta;
 
 		/* Update scroll bar adjustments. */
 		vte_terminal_adjust_adjustments(terminal);
@@ -3541,7 +3535,20 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 						case 95:
 							/* drawing a blank */
 							break;
-						case 106:
+						case 96:  /* ` */
+						case 97:  /* a */
+						case 98:  /* b */
+						case 99:  /* c */
+						case 100:  /* d */
+						case 101: /* e */
+						case 102: /* f */
+						case 103: /* g */
+						case 104: /* h */
+						case 105: /* i */
+							g_warning("Alternate character `%lc' not implemented, ignoring.\n",
+								  (wint_t) cell->c);
+							break;
+						case 106: /* j */
 							XDrawLine(display,
 								  drawable,
 								  gc,
@@ -3558,7 +3565,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								  ytop);
 							drawn = TRUE;
 							break;
-						case 107:
+						case 107: /* k */
 							XDrawLine(display,
 								  drawable,
 								  gc,
@@ -3575,7 +3582,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								  ybottom);
 							drawn = TRUE;
 							break;
-						case 108:
+						case 108: /* l */
 							XDrawLine(display,
 								  drawable,
 								  gc,
@@ -3592,7 +3599,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								  ybottom);
 							drawn = TRUE;
 							break;
-						case 109:
+						case 109: /* m */
 							XDrawLine(display,
 								  drawable,
 								  gc,
@@ -3609,7 +3616,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								  ytop);
 							drawn = TRUE;
 							break;
-						case 110:
+						case 110: /* n */
 							XDrawLine(display,
 								  drawable,
 								  gc,
@@ -3626,7 +3633,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								  ycenter);
 							drawn = TRUE;
 							break;
-						case 111:
+						case 111: /* o */
 							XDrawLine(display,
 								  drawable,
 								  gc,
@@ -3636,7 +3643,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								  ytop);
 							drawn = TRUE;
 							break;
-						case 112:
+						case 112: /* p */
 							XDrawLine(display,
 								  drawable,
 								  gc,
@@ -3646,7 +3653,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								  (ytop + ycenter) / 2);
 							drawn = TRUE;
 							break;
-						case 113:
+						case 113: /* q */
 							XDrawLine(display,
 								  drawable,
 								  gc,
@@ -3656,7 +3663,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								  ycenter);
 							drawn = TRUE;
 							break;
-						case 114:
+						case 114: /* r */
 							XDrawLine(display,
 								  drawable,
 								  gc,
@@ -3666,7 +3673,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								  (ycenter + ybottom) / 2);
 							drawn = TRUE;
 							break;
-						case 115:
+						case 115: /* s */
 							XDrawLine(display,
 								  drawable,
 								  gc,
@@ -3676,7 +3683,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								  ybottom);
 							drawn = TRUE;
 							break;
-						case 116:
+						case 116: /* t */
 							XDrawLine(display,
 								  drawable,
 								  gc,
@@ -3693,7 +3700,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								  ycenter);
 							drawn = TRUE;
 							break;
-						case 117:
+						case 117: /* u */
 							XDrawLine(display,
 								  drawable,
 								  gc,
@@ -3710,7 +3717,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								  ycenter);
 							drawn = TRUE;
 							break;
-						case 118:
+						case 118: /* v */
 							XDrawLine(display,
 								  drawable,
 								  gc,
@@ -3727,7 +3734,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								  ycenter);
 							drawn = TRUE;
 							break;
-						case 119:
+						case 119: /* w */
 							XDrawLine(display,
 								  drawable,
 								  gc,
@@ -3744,7 +3751,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 								  ycenter);
 							drawn = TRUE;
 							break;
-						case 120:
+						case 120: /* x */
 							XDrawLine(display,
 								  drawable,
 								  gc,
