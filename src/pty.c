@@ -28,6 +28,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#ifdef HAVE_TERMIOS_H
+#include <termios.h>
+#endif
 #include <glib.h>
 #include "debug.h"
 #include "pty.h"
