@@ -1,4 +1,7 @@
 2002-06-25 nalin
+	* src/vte.c: Bind F10 to "k;", not "k0".
+	* termcaps/xterm: Add "k;" defined as F10.
+2002-06-25 nalin
 	* src/vte.c (vte_terminal_reset_rowdata): Check for redundant resizes.
 	* src/vte.c (vte_terminal_set_scrollback_lines): Keep the alternate
 	screen buffer size the same as the window height, because xterm's

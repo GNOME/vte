@@ -10,7 +10,7 @@ xterm-xfree86|xterm-new|xterm terminal emulator (XFree86):\
 	:cs=\E[%i%d;%dr:ct=\E[3g:dc=\E[P:dl=\E[M:do=^J:ec=\E[%dX:\
 	:ei=\E[4l:ho=\E[H:im=\E[4h:is=\E[!p\E[?3;4l\E[4l\E>:\
 	:k1=\EOP:k2=\EOQ:k3=\EOR:k4=\EOS:k5=\E[15~:k6=\E[17~:\
-	:k7=\E[18~:k8=\E[19~:k9=\E[20~:kD=\177:kI=\E[2~:kN=\E[6~:\
+	:k7=\E[18~:k8=\E[19~:k9=\E[20~:k;=\E[21~:kD=\177:kI=\E[2~:kN=\E[6~:\
 	:kP=\E[5~:kb=^H:kd=\EOB:ke=\E[?1l\E>:kh=\E[1~:kl=\EOD:\
 	:kr=\EOC:ks=\E[?1h\E=:ku=\EOA:le=^H:mb=\E[5m:md=\E[1m:\
 	:me=\E[m\017:mr=\E[7m:nd=\E[C:rc=\E8:sc=\E7:se=\E[27m:\

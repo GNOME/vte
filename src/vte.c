@@ -6130,7 +6130,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				special = "k9";
 				break;
 			case GDK_F10:
-				special = "k0";
+				special = "k;";
 				break;
 			case GDK_F11:
 				special = "F1";

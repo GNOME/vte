@@ -61,6 +61,7 @@ make install DESTDIR=$RPM_BUILD_ROOT
   contents (part of #67379)
 - fix overexpose of neighboring cells (part of #67379)
 - prevent backscroll on the alternate screen for consistency with xterm
+- bind F10 to "k;", not "k0" (#67133)
 
 * Tue Jun 25 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.4-1
 - clear alternate buffer when switching screens (#67094)
