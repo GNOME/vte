@@ -1,3 +1,6 @@
+2003-02-14 nalin
+	* src/vte.c: more comments to keep myself from getting confused later.
+
 2003-02-13 nalin
 	* src/vte.c: change the coalescing timeout to 2ms.
 
