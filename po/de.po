@@ -6,8 +6,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte HEAD\n"
-"POT-Creation-Date: 2003-01-20 16:13+0100\n"
-"PO-Revision-Date: 2003-01-20 16:12+0100\n"
+"POT-Creation-Date: 2003-01-20 22:57+0100\n"
+"PO-Revision-Date: 2003-01-20 22:57+0100\n"
 "Last-Translator: Christian Neumair <chris@gnome-de.org>\n"
 "Language-Team: German <gnome-de@gnome.org>\n"
 "MIME-Version: 1.0\n"
@@ -17,7 +17,7 @@ msgstr ""
 #: src/pty.c:253
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr "Fehler beim Hinzufügen von „%s” zur Umgebung, fortfahren."
+msgstr "Fehler beim Hinzufügen von »%s« zur Umgebung, fortfahren."
 
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
@@ -39,7 +39,7 @@ msgstr "Duplikat (%s/%s)!"
 #: src/vte.c:1407
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "Fehler beim Kompilieren des regulären Ausdrucks „%s”."
+msgstr "Fehler beim Kompilieren des regulären Ausdrucks »%s«."
 
 #: src/vte.c:1929 src/vte.c:1938 src/vte.c:1950 src/vte.c:1968 src/vte.c:1974
 #: src/vte.c:1979
@@ -50,12 +50,12 @@ msgstr "Zeichen konnten nicht von %s nach %s konvertiert werden."
 #: src/vte.c:5459
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr "Unerwartete (Schlüssel?)-Sequenz „%s” erhalten."
+msgstr "Unerwartete (Schlüssel?)-Sequenz »%s« erhalten."
 
 #: src/vte.c:6549
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr "Kein Handler für Kontrollsequenz „%s” definiert."
+msgstr "Kein Handler für Kontrollsequenz »%s« definiert."
 
 #: src/vte.c:7288
 #, c-format
@@ -71,13 +71,13 @@ msgstr "Fehler (%s) beim Konvertieren der Daten für Kind, wird abgebrochen."
 #, c-format
 msgid "Using fontset \"%s\", which is missing these character sets: %s."
 msgstr ""
-"Schriftsatz „%s” wird verwendet, welchem folgende Zeichensätze fehlen: %s."
+"Schriftsatz »%s« wird verwendet, welchem folgende Zeichensätze fehlen: %s."
 
 #: src/vte.c:10378
 #, c-format
 msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 msgstr ""
-"Laden des Xft-Schriftmusters „%s” fehlgeschlagen, Rückfall zur vorgegebenen "
+"Laden des Xft-Schriftmusters »%s« fehlgeschlagen, Rückfall zur vorgegebenen "
 "Schrift."
 
 #: src/vte.c:10390
@@ -88,7 +88,7 @@ msgstr "Laden der vorgegebenen Xft-Schrift fehlgeschlagen"
 #, c-format
 msgid "Failed to load font set \"%s\", falling back to default font."
 msgstr ""
-"Laden des Schriftsatzes „%s” fehlgeschlagen, Rückfall zur vorgegebenen "
+"Laden des Schriftsatzes »%s« fehlgeschlagen, Rückfall zur vorgegebenen "
 "Schrift."
 
 #: src/vte.c:10495
