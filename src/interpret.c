@@ -68,7 +68,11 @@ main(int argc, char **argv)
 	g_type_init();
 	terminal = argv[1];
 	table = vte_table_new();
-	termcap = vte_termcap_new("/etc/termcap");
+	termcap = vte_termcap_new(g_strdup_printf(DATADIR "/" PACKAGE
+						  "/termcap/%s", terminal));
+	if (termcap == NULL) {
+		termcap = vte_termcap_new("/etc/termcap");
+	}
 	array = g_byte_array_new();
 
 	for (i = 0;

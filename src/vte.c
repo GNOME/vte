@@ -140,6 +140,12 @@ typedef enum _VteKeypad {
 	VTE_KEYPAD_APPLICATION,
 } VteKeypad;
 
+/* The terminal's function key setting. */
+typedef enum _VteFKey {
+	VTE_FKEY_VT220,
+	VTE_FKEY_SUNPC,
+} VteFKey;
+
 typedef struct _VteScreen VteScreen;
 
 typedef struct _VteWordCharRange {
@@ -161,6 +167,8 @@ struct _VteTerminalPrivate {
 		gboolean ul;
 	} flags;
 	int keypad;			/* this would be a VteKeypad, but we
+					   need to guarantee its type */
+	int fkey;			/* this would be a VteFKey, but we
 					   need to guarantee its type */
 	GHashTable *dec_saved;
 	int default_column_count, default_row_count;	/* default sizes */
@@ -6425,6 +6433,53 @@ vte_terminal_hierarchy_changed(GtkWidget *widget, GtkWidget *old_toplevel,
 	}
 }
 
+static struct {
+	gulong keyval;
+	const unsigned char *special;
+	const unsigned char *vt_ctrl_special;
+} vte_keysym_map[] = {
+	{GDK_F1,     "k1", "F3"},
+	{GDK_KP_F1,  "k1", "F3"},
+	{GDK_F2,     "k2", "F4"},
+	{GDK_KP_F2,  "k2", "F4"},
+	{GDK_F3,     "k3", "F5"},
+	{GDK_KP_F3,  "k3", "F5"},
+	{GDK_F4,     "k4", "F6"},
+	{GDK_KP_F4,  "k4", "F6"},
+	{GDK_F5,     "k5", "F7"},
+	{GDK_F6,     "k6", "F8"},
+	{GDK_F7,     "k7", "F9"},
+	{GDK_F8,     "k8", "FA"},
+	{GDK_F9,     "k9", "FB"},
+	{GDK_F10,    "k;", "FC"},
+	{GDK_F11,    "F1", NULL},
+	{GDK_F12,    "F2", NULL},
+
+	{GDK_F13,    "F3", NULL},
+	{GDK_F14,    "F4", NULL},
+	{GDK_F15,    "F5", NULL},
+	{GDK_F16,    "F6", NULL},
+	{GDK_F17,    "F7", NULL},
+	{GDK_F18,    "F8", NULL},
+	{GDK_F19,    "F9", NULL},
+	{GDK_F20,    "FA", NULL},
+	{GDK_F21,    "FB", NULL},
+	{GDK_F22,    "FC", NULL},
+	{GDK_F23,    "FD", NULL},
+	{GDK_F24,    "FE", NULL},
+	{GDK_F25,    "FF", NULL},
+	{GDK_F26,    "FG", NULL},
+	{GDK_F27,    "FH", NULL},
+	{GDK_F28,    "FI", NULL},
+	{GDK_F29,    "FJ", NULL},
+	{GDK_F30,    "FK", NULL},
+	{GDK_F31,    "FL", NULL},
+	{GDK_F32,    "FM", NULL},
+	{GDK_F33,    "FN", NULL},
+	{GDK_F34,    "FO", NULL},
+	{GDK_F35,    "FP", NULL},
+};
+
 /* Read and handle a keypress event. */
 static gint
 vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
@@ -6438,7 +6493,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	unsigned char *normal = NULL;
 	size_t normal_length = 0;
 	int i;
-	unsigned char *special = NULL;
+	unsigned char *special = NULL, *specialmods = NULL;
 	struct termios tio;
 	struct timeval tv;
 	struct timezone tz;
@@ -6588,157 +6643,70 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				special = "@7";
 				break;
 			case GDK_F1:
-				if (!(modifiers & GDK_CONTROL_MASK)) {
-					special = "k1";
-				} else {
-					special = "F3";
-				}
-				break;
 			case GDK_F2:
-				if (!(modifiers & GDK_CONTROL_MASK)) {
-					special = "k2";
-				} else {
-					special = "F4";
-				}
-				break;
 			case GDK_F3:
-				if (!(modifiers & GDK_CONTROL_MASK)) {
-					special = "k3";
-				} else {
-					special = "F5";
-				}
-				break;
 			case GDK_F4:
-				if (!(modifiers & GDK_CONTROL_MASK)) {
-					special = "k4";
-				} else {
-					special = "F6";
-				}
-				break;
 			case GDK_F5:
-				if (!(modifiers & GDK_CONTROL_MASK)) {
-					special = "k5";
-				} else {
-					special = "F7";
-				}
-				break;
 			case GDK_F6:
-				if (!(modifiers & GDK_CONTROL_MASK)) {
-					special = "k6";
-				} else {
-					special = "F8";
-				}
-				break;
 			case GDK_F7:
-				if (!(modifiers & GDK_CONTROL_MASK)) {
-					special = "k7";
-				} else {
-					special = "F9";
-				}
-				break;
 			case GDK_F8:
-				if (!(modifiers & GDK_CONTROL_MASK)) {
-					special = "k8";
-				} else {
-					special = "FA";
-				}
-				break;
 			case GDK_F9:
-				if (!(modifiers & GDK_CONTROL_MASK)) {
-					special = "k9";
-				} else {
-					special = "FB";
-				}
-				break;
 			case GDK_F10:
-				if (!(modifiers & GDK_CONTROL_MASK)) {
-					special = "k;";
-				} else {
-					special = "FC";
-				}
-				break;
 			case GDK_F11:
-				if (!(modifiers & GDK_CONTROL_MASK)) {
-					special = "F1";
-				} else {
-					special = "FD";
-				}
-				break;
 			case GDK_F12:
-				if (!(modifiers & GDK_CONTROL_MASK)) {
-					special = "F2";
-				} else {
-					special = "FE";
-				}
-				break;
 			case GDK_F13:
-				special = "F3";
-				break;
 			case GDK_F14:
-				special = "F4";
-				break;
 			case GDK_F15:
-				special = "F5";
-				break;
 			case GDK_F16:
-				special = "F6";
-				break;
 			case GDK_F17:
-				special = "F7";
-				break;
 			case GDK_F18:
-				special = "F8";
-				break;
 			case GDK_F19:
-				special = "F9";
-				break;
 			case GDK_F20:
-				special = "FA";
-				break;
 			case GDK_F21:
-				special = "FB";
-				break;
 			case GDK_F22:
-				special = "FC";
-				break;
 			case GDK_F23:
-				special = "FD";
-				break;
 			case GDK_F24:
-				special = "FE";
-				break;
 			case GDK_F25:
-				special = "FF";
-				break;
 			case GDK_F26:
-				special = "FG";
-				break;
 			case GDK_F27:
-				special = "FH";
-				break;
 			case GDK_F28:
-				special = "FI";
-				break;
 			case GDK_F29:
-				special = "FJ";
-				break;
 			case GDK_F30:
-				special = "FK";
-				break;
 			case GDK_F31:
-				special = "FL";
-				break;
 			case GDK_F32:
-				special = "FM";
-				break;
 			case GDK_F33:
-				special = "FN";
-				break;
 			case GDK_F34:
-				special = "FO";
-				break;
 			case GDK_F35:
-				special = "FP";
+				for (i = 0;
+				     i < G_N_ELEMENTS(vte_keysym_map);
+				     i++) {
+					if (vte_keysym_map[i].keyval == event->keyval) {
+						if (terminal->pvt->fkey == VTE_FKEY_VT220) {
+							if ((modifiers & GDK_CONTROL_MASK) && vte_keysym_map[i].vt_ctrl_special) {
+								special = vte_keysym_map[i].vt_ctrl_special;
+							} else {
+								special = vte_keysym_map[i].special;
+							}
+						}
+						if (terminal->pvt->fkey == VTE_FKEY_SUNPC) {
+							special = vte_keysym_map[i].special;
+							i = 0;
+							if (modifiers & GDK_CONTROL_MASK) {
+								i += 4;
+							}
+							if (modifiers & GDK_MOD1_MASK) {
+								i += 2;
+							}
+							if (modifiers & GDK_SHIFT_MASK) {
+								i += 1;
+							}
+							if (i > 0) {
+								specialmods = g_strdup_printf("%d", i + 1);
+							}
+						}
+						break;
+					}
+				}
 				break;
 			/* Cursor keys. */
 			case GDK_KP_Up:
@@ -6856,10 +6824,10 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			if (terminal->pvt->alt_sends_escape &&
 			    (normal_length > 0) &&
 			    (modifiers & GDK_MOD1_MASK)) {
-				vte_terminal_send(terminal, "UTF-8", "", 1);
+				vte_terminal_feed_child(terminal, "", 1);
 			}
-			vte_terminal_send(terminal, "UTF-8",
-					  normal, normal_length);
+			vte_terminal_feed_child(terminal,
+						normal, normal_length);
 			g_free(normal);
 		} else
 		/* If the key maps to characters, send them to the child. */
@@ -6871,8 +6839,21 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 								special,
 								&normal_length);
 			special = g_strdup_printf(normal, 1);
-			vte_terminal_send(terminal, "UTF-8",
-					  special, strlen(special));
+			if (specialmods) {
+				i = strlen(special);
+				if ((i > 0) && (special[i - 1] == '~')) {
+					/* Insert the modifier before the
+					 * last character, which is '~'. */
+					special = g_realloc(special,
+							    i + strlen(specialmods) + 2);
+					special[i - 1] = ';';
+					strcpy(special + i, specialmods);
+					strcat(special + i + strlen(specialmods), "~");
+				}
+				g_free(specialmods);
+			}
+			vte_terminal_feed_child(terminal,
+						special, strlen(special));
 			g_free(special);
 			g_free(normal);
 		}
@@ -9162,6 +9143,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->flags.bw = FALSE;
 	pvt->flags.ul = FALSE;
 	pvt->keypad = VTE_KEYPAD_NORMAL;
+	pvt->fkey = VTE_FKEY_VT220;
 	pvt->dec_saved = g_hash_table_new(g_direct_hash, g_direct_equal);
 	pvt->default_column_count = 80;
 	pvt->default_row_count = 24;
@@ -10749,7 +10731,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	XftCharSpec *ftcharspecs;
 #endif
 #ifdef HAVE_XFT
-	XftChar32 ftchar, *ftchars;
+	XftChar32 ftchar;
 #endif
 	char utf8_buf[VTE_UTF8_BPC];
 
@@ -12568,6 +12550,7 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	terminal->pvt->mouse_last_x = 0;
 	terminal->pvt->mouse_last_y = 0;
 	/* Cause everything to be redrawn (or cleared). */
+	vte_terminal_scroll_to_bottom(terminal);
 	vte_invalidate_all(terminal);
 }
 

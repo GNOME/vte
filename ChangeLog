@@ -1,4 +1,13 @@
 2002-08-07 nalin
+	* src/interpret.c: look for $pkgdatadir/termcap/$TERM first, as the
+	widget does, before consulting /etc/termcap.
+	* src/ring.c(vte_ring_free): check for a non-NULL removal function
+	before calling it.
+	* src/vte.c(vte_terminal_key_press): add an option for doing
+	VT220-style or Sun/PC-style modified function keys.  Default to VT220
+	for now, though, pending feedback.
+	* src/vte.c(vte_terminal_reset): scroll to the bottom when resetting.
+2002-08-07 nalin
 	* src/vte.c(vte_terminal_draw_cells): don't trust XftDrawString32() to
 	advance linearly for monospaced fonts (#90164).
 

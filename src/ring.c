@@ -67,7 +67,8 @@ vte_ring_insert(VteRing *ring, long position, gpointer data)
 	/* Initial insertion, or append. */
 	if (position == ring->length + ring->delta) {
 		/* If there was something there before, free it. */
-		if (ring->array[position % ring->max] && ring->free) {
+		if ((ring->free != NULL) &&
+		    (ring->array[position % ring->max] != NULL)) {
 			ring->free(ring->array[position % ring->max],
 				   ring->user_data);
 		}
@@ -170,7 +171,8 @@ vte_ring_free(VteRing *ring, gboolean free)
 	long i;
 	if (free) {
 		for (i = 0; i < ring->max; i++) {
-			if (ring->array[i]) {
+			/* Remove this item. */
+			if ((ring->free != NULL) && (ring->array[i] != NULL)) {
 				ring->free(ring->array[i], ring->user_data);
 				ring->array[i] = NULL;
 			}
