@@ -83,6 +83,8 @@ libvte_la_SOURCES = \
 	vteskel.h \
 	vtetc.c \
 	vtetc.h \
+	vtetree.c \
+	vtetree.h \
 	vtexft.c \
 	vtexft.h
 

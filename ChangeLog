@@ -1,3 +1,19 @@
+2005-03-02  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* src/Makefile.am: Add vtetree.[ch]
+	* src/vte.c: (vte_terminal_draw_row): Don't use a GArray
+	but use calloc'ed memory to speed up things further.
+	From bug #137864. Patch from Benjamin Otte.
+	* src/vtetree.c: (_vte_tree_new), (_vte_tree_destroy),
+	(_vte_tree_insert), (_vte_tree_lookup): New file
+	* src/vtetree.h: New file
+	* src/vtexft.c: (_vte_xft_font_open), (_vte_xft_font_close),
+	(_vte_xft_font_for_char), (_vte_xft_char_width): Use the new
+	functions to speed up things. From bug #137864. Patch from
+	Benjamin Otte. There are still two patches in there that don't
+	apply cleanly any more. Will look at those later.
+	* vte.spec: Bump version.
+
 2005-02-28  Kjartan Maraas  <kmaraas@gnome.org>
 
 	* src/vte.c: (vte_sequence_handler_send_primary_device_attributes):

@@ -35,6 +35,7 @@
 #include "vtedraw.h"
 #include "vtefc.h"
 #include "vtexft.h"
+#include "vtetree.h"
 
 #ifdef ENABLE_NLS
 #include <libintl.h>
@@ -53,8 +54,8 @@ struct _vte_xft_font {
 #endif
 	GArray *patterns;
 	GArray *fonts;
-	GTree *fontmap;
-	GTree *widths;
+	VteTree *fontmap;
+	VteTree *widths;
 };
 
 struct _vte_xft_data
@@ -124,8 +125,8 @@ _vte_xft_font_open(GtkWidget *widget, const PangoFontDescription *fontdesc,
 #endif
 	font->patterns = patterns;
 	font->fonts = g_array_new(TRUE, TRUE, sizeof(XftFont*));
-	font->fontmap = g_tree_new(_vte_xft_direct_compare);
-	font->widths = g_tree_new(_vte_xft_direct_compare);
+	font->fontmap = _vte_tree_new(_vte_xft_direct_compare);
+	font->widths = _vte_tree_new(_vte_xft_direct_compare);
 
 	return font;
 }
@@ -166,9 +167,9 @@ _vte_xft_font_close(struct _vte_xft_font *font)
 	g_array_free(font->fonts, TRUE);
 	font->fonts = NULL;
 
-	g_tree_destroy(font->fontmap);
+	_vte_tree_destroy(font->fontmap);
 	font->fontmap = NULL;
-	g_tree_destroy(font->widths);
+	_vte_tree_destroy(font->widths);
 	font->widths = NULL;
 
 	g_free(font);
@@ -191,7 +192,7 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 	g_return_val_if_fail(font->widths != NULL, NULL);
 
 	/* Check if we have a char-to-font entry for it. */
-	i = GPOINTER_TO_INT(g_tree_lookup(font->fontmap, p));
+	i = GPOINTER_TO_INT(_vte_tree_lookup(font->fontmap, p));
 	if (i != 0) {
 		switch (i) {
 		/* Checked before, no luck. */
@@ -225,7 +226,7 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 
 	/* Match? */
 	if (i < font->fonts->len) {
-		g_tree_insert(font->fontmap,
+		_vte_tree_insert(font->fontmap,
 			      p,
 			      GINT_TO_POINTER(i + FONT_INDEX_FUDGE));
 		ftfont = g_array_index(font->fonts, XftFont *, i);
@@ -253,7 +254,7 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 
 	/* No match? */
 	if (i >= font->patterns->len) {
-		g_tree_insert(font->fontmap,
+		_vte_tree_insert(font->fontmap,
 			      p,
 			      GINT_TO_POINTER(-FONT_INDEX_FUDGE));
 		if (font->fonts->len > 0) {
@@ -288,7 +289,7 @@ _vte_xft_char_width(struct _vte_xft_font *font, XftFont *ftfont, gunichar c)
 	g_return_val_if_fail(font->widths != NULL, 0);
 
 	/* Check if we have a char-to-width entry for it. */
-	i = GPOINTER_TO_INT(g_tree_lookup(font->widths, p));
+	i = GPOINTER_TO_INT(_vte_tree_lookup(font->widths, p));
 	if (i != 0) {
 		switch (i) {
 		case -CHAR_WIDTH_FUDGE:
@@ -306,7 +307,7 @@ _vte_xft_char_width(struct _vte_xft_font *font, XftFont *ftfont, gunichar c)
 		_vte_xft_text_extents(font, ftfont, c, &extents);
 	}
 	i = extents.xOff + CHAR_WIDTH_FUDGE;
-	g_tree_insert(font->widths, p, GINT_TO_POINTER(i));
+	_vte_tree_insert(font->widths, p, GINT_TO_POINTER(i));
 	return extents.xOff;
 }
 

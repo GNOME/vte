@@ -13732,16 +13732,16 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		      gint x, gint y,
 		      gint column_width, gint row_height)
 {
-	GArray *items;
 	int i, j, fore, nfore, back, nback;
 	gboolean underline, nunderline, bold, nbold, hilite, nhilite, reverse,
 		 selected, strikethrough, nstrikethrough, drawn;
-	struct _vte_draw_text_request item;
+	struct _vte_draw_text_request *items, item;
+	guint item_count = 0;
 	struct vte_charcell *cell;
 
 	/* Allocate an array to hold draw requests. */
-	items = g_array_new(FALSE, FALSE,
-			    sizeof(struct _vte_draw_text_request));
+	/* FIXME: can this get too big for alloca? */
+	items = g_newa (struct _vte_draw_text_request, column_count);
 
 	/* Back up in case this is a multicolumn character, making the drawing
 	 * area a little wider. */
@@ -13804,7 +13804,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 
 		/* If it's not a local graphic character, or if we couldn't
 		   draw it, add it to the draw list. */
-		g_array_append_val(items, item);
+		items[item_count++] = item;
 
 		/* Now find out how many cells have the same attributes. */
 		j = i + item.columns;
@@ -13876,27 +13876,22 @@ vte_terminal_draw_row(VteTerminal *terminal,
 			item.columns = cell ? cell->columns : 1;
 			item.x = x + ((j - column) * column_width);
 			item.y = y;
-			g_array_append_val(items, item);
+			items[item_count++] = item;
 			j += item.columns;
 		}
 		/* Draw the cells. */
 		vte_terminal_draw_cells(terminal,
-					&g_array_index(items,
-						       struct _vte_draw_text_request,
-						       0),
-					items->len,
+					items,
+					item_count,
 					fore, back, FALSE,
 					bold, underline,
 					strikethrough, hilite, FALSE,
 					column_width, row_height);
-		g_array_set_size(items, 0);
+		item_count = 0;
 		/* We'll need to continue at the first cell which didn't
 		 * match the first one in this set. */
 		i = j;
 	}
-
-	/* Clean up. */
-	g_array_free(items, TRUE);
 }
 
 /* Draw the widget. */
