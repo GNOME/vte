@@ -9,8 +9,7 @@ Source: %{name}-%{version}.tar.gz
 BuildPrereq: gtk2-devel, pygtk2-devel, python-devel
 
 %description
-VTE is an experimental terminal emulator widget.  This package contains
-a sample application which places the widget in a terminal window.
+VTE is an experimental terminal emulator widget for use with GTK+ 2.0.
 
 %package devel
 Summary: Files needed for developing applications which use vte.
@@ -18,8 +17,8 @@ Group: Development/Libraries
 Requires: %{name} = %{version}-%{release}, gtk2-devel
 
 %description devel
-VTE is an experimental terminal emulator widget.  This package contains
-the files needed for building applications using the widget.
+VTE is an experimental terminal emulator widget for use with GTK+ 2.0.  This
+package contains the files needed for building applications using VTE.
 
 %prep
 %setup -q
@@ -59,6 +58,8 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %changelog
 * Tue Jun 18 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.3-1
 - correct referencing/dereferencing of I/O channels
+- correct package description to not mention the sample app which is no longer
+  included
 
 * Tue Jun 18 2002 Nalin Dahyabhai <nalin@redhat.com> 0.4.2-1
 - fix "cursor mistakenly hidden when app exits" by making cursor visibility
