@@ -3764,12 +3764,16 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 			/* Emit the signal */
 			if (strcmp(signal, "window_title_changed") == 0) {
 				g_free(terminal->window_title);
-				terminal->window_title = g_strdup(outbufptr);
+				terminal->window_title = g_strndup(outbufptr,
+								   outbuf -
+								   outbufptr);
 				vte_terminal_emit_window_title_changed(terminal);
 			} else
 			if (strcmp(signal, "icon_title_changed") == 0) {
 				g_free (terminal->icon_title);
-				terminal->icon_title = g_strdup(outbufptr);
+				terminal->icon_title = g_strndup(outbufptr,
+								 outbuf -
+								 outbufptr);
 				vte_terminal_emit_icon_title_changed(terminal);
 			}
 		}

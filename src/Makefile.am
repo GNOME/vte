@@ -2,6 +2,7 @@ bin_PROGRAMS = vte
 pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
 pkglib_PROGRAMS = interpret utf8echo utf8mode iso8859mode slowcat
+pkglib_SCRIPTS = decset osc window
 noinst_PROGRAMS = iso2022 pty reaper ring table termcap trie
 EXTRA_DIST = \
 	marshal.list \

@@ -1,4 +1,11 @@
 2002-10-18 nalin
+	* src/iso2022.c: use character constants instead of hex constants.
+	* src/iso2022.txt: add more illustrations.
+	* src/decset: scriptlet to save some typing.
+	* src/vte.c: zero-terminate window and icon title strings again.
+	* src/decset, src/osc, src/window: add.
+
+2002-10-18 nalin
 	* src/keymap.c: add a mapping for the escape key.
 
 2002-10-18 nalin
