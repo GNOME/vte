@@ -66,9 +66,9 @@ struct _vte_glyph_cache {
 struct _vte_glyph_cache *_vte_glyph_cache_new(void);
 void _vte_glyph_cache_free(struct _vte_glyph_cache *cache);
 const FcPattern *_vte_glyph_cache_get_pattern(struct _vte_glyph_cache *cache);
-void _vte_glyph_cache_set_description(FcConfig *config,
-				      struct _vte_glyph_cache *cache,
-				      const PangoFontDescription *fontdesc);
+void _vte_glyph_cache_set_font_description(FcConfig *config,
+					   struct _vte_glyph_cache *cache,
+					   const PangoFontDescription *fontdesc);
 gboolean _vte_glyph_cache_has_char(struct _vte_glyph_cache *cache, gunichar c);
 const struct _vte_glyph *_vte_glyph_get(struct _vte_glyph_cache *cache,
 					gunichar c);

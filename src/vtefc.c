@@ -146,87 +146,84 @@ _vte_fc_defaults_from_gtk(FcPattern *pattern)
 
 	/* Pick up the antialiasing setting. */
 	if (antialias >= 0) {
-		result = FcPatternGetBool(pattern, FC_ANTIALIAS, 0, &i);
-		if (result == FcResultNoMatch) {
-			FcPatternAddBool(pattern, FC_ANTIALIAS, antialias > 0);
-		}
+		FcPatternDel(pattern, FC_ANTIALIAS);
+		FcPatternAddBool(pattern, FC_ANTIALIAS, antialias > 0);
 	}
 
 	/* Pick up the configured DPI setting. */
 	if (dpi >= 0) {
-		result = FcPatternGetDouble(pattern, FC_DPI, 0, &d);
-		if (result == FcResultNoMatch) {
-			FcPatternAddDouble(pattern, FC_DPI, dpi / 1024.0);
-		}
+		FcPatternDel(pattern, FC_DPI);
+		FcPatternAddDouble(pattern, FC_DPI, dpi / 1024.0);
 	}
 
 	/* Pick up the configured subpixel rendering setting. */
 	if (rgba != NULL) {
-		result = FcPatternGetInteger(pattern, FC_RGBA, 0, &i);
-		if (result == FcResultNoMatch) {
-			gboolean found;
+		gboolean found;
 
+		i = FC_RGBA_NONE;
+
+		if (strcmp(rgba, "none") == 0) {
 			i = FC_RGBA_NONE;
 			found = TRUE;
-
-			if (strcmp(rgba, "none") == 0) {
-				i = FC_RGBA_NONE;
-			} else
-			if (strcmp(rgba, "rgb") == 0) {
-				i = FC_RGBA_RGB;
-			} else
-			if (strcmp(rgba, "bgr") == 0) {
-				i = FC_RGBA_BGR;
-			} else
-			if (strcmp(rgba, "vrgb") == 0) {
-				i = FC_RGBA_VRGB;
-			} else
-			if (strcmp(rgba, "vbgr") == 0) {
-				i = FC_RGBA_VBGR;
-			} else {
-				found = FALSE;
-			}
-			if (found) {
-				FcPatternAddInteger(pattern, FC_RGBA, i);
-			}
+		} else
+		if (strcmp(rgba, "rgb") == 0) {
+			i = FC_RGBA_RGB;
+			found = TRUE;
+		} else
+		if (strcmp(rgba, "bgr") == 0) {
+			i = FC_RGBA_BGR;
+			found = TRUE;
+		} else
+		if (strcmp(rgba, "vrgb") == 0) {
+			i = FC_RGBA_VRGB;
+			found = TRUE;
+		} else
+		if (strcmp(rgba, "vbgr") == 0) {
+			i = FC_RGBA_VBGR;
+			found = TRUE;
+		} else {
+			found = FALSE;
+		}
+		if (found) {
+			FcPatternDel(pattern, FC_RGBA);
+			FcPatternAddInteger(pattern, FC_RGBA, i);
 		}
 	}
 
 	/* Pick up the configured hinting setting. */
 	if (hinting >= 0) {
-		result = FcPatternGetBool(pattern, FC_HINTING, 0, &i);
-		if (result == FcResultNoMatch) {
-			FcPatternAddBool(pattern, FC_HINTING, hinting > 0);
-		}
+		FcPatternDel(pattern, FC_HINTING);
+		FcPatternAddBool(pattern, FC_HINTING, hinting > 0);
 	}
 
 #ifdef FC_HINT_STYLE
 	/* Pick up the default hinting style. */
 	if (hintstyle != NULL) {
-		result = FcPatternGetInteger(pattern, FC_HINT_STYLE, 0, &i);
-		if (result == FcResultNoMatch) {
-			gboolean found;
+		gboolean found;
 
+		i = FC_HINT_NONE;
+
+		if (strcmp(hintstyle, "hintnone") == 0) {
 			i = FC_HINT_NONE;
 			found = TRUE;
-
-			if (strcmp(hintstyle, "hintnone") == 0) {
-				i = FC_HINT_NONE;
-			} else
-			if (strcmp(hintstyle, "hintslight") == 0) {
-				i = FC_HINT_SLIGHT;
-			} else
-			if (strcmp(hintstyle, "hintmedium") == 0) {
-				i = FC_HINT_MEDIUM;
-			} else
-			if (strcmp(hintstyle, "hintfull") == 0) {
-				i = FC_HINT_FULL;
-			} else {
-				found = FALSE;
-			}
-			if (found) {
-				FcPatternAddInteger(pattern, FC_HINT_STYLE, i);
-			}
+		} else
+		if (strcmp(hintstyle, "hintslight") == 0) {
+			i = FC_HINT_SLIGHT;
+			found = TRUE;
+		} else
+		if (strcmp(hintstyle, "hintmedium") == 0) {
+			i = FC_HINT_MEDIUM;
+			found = TRUE;
+		} else
+		if (strcmp(hintstyle, "hintfull") == 0) {
+			i = FC_HINT_FULL;
+			found = TRUE;
+		} else {
+			found = FALSE;
+		}
+		if (found) {
+			FcPatternDel(pattern, FC_HINT_STYLE);
+			FcPatternAddInteger(pattern, FC_HINT_STYLE, i);
 		}
 	}
 #endif
@@ -269,6 +266,7 @@ _vte_fc_patterns_from_pango_font_desc(const PangoFontDescription *font_desc,
 			tmp = FcFontRenderPrepare(NULL,
 						  pattern,
 						  fontset->fonts[i]);
+			_vte_fc_defaults_from_gtk(tmp);
 			g_array_append_val(pattern_array, tmp);
 		}
 		FcFontSetDestroy(fontset);
@@ -280,6 +278,7 @@ _vte_fc_patterns_from_pango_font_desc(const PangoFontDescription *font_desc,
 		match = FcFontMatch(NULL, pattern, &result);
 		if (result == FcResultMatch) {
 			tmp = FcPatternDuplicate(match);
+			_vte_fc_defaults_from_gtk(tmp);
 			g_array_append_val(pattern_array, tmp);
 			ret = TRUE;
 		} else {

@@ -37,16 +37,22 @@
 struct _vte_draw_impl
 *_vte_draw_impls[] = {
 	&_vte_draw_skel,
+#ifndef X_DISPLAY_MISSING
 #ifdef HAVE_GL
 	/* &_vte_draw_gl, */
 #endif
+#endif
+#ifndef X_DISPLAY_MISSING
 #ifdef HAVE_XFT2
 	&_vte_draw_xft,
 #endif
+#endif
 	&_vte_draw_ft2,
 	&_vte_draw_pango,
+#ifndef X_DISPLAY_MISSING
 #ifdef HAVE_PANGOX
 	&_vte_draw_pango_x,
+#endif
 #endif
 };
 
@@ -200,6 +206,14 @@ _vte_draw_get_text_ascent(struct _vte_draw *draw)
 	g_return_val_if_fail(draw->impl != NULL, 1);
 	g_return_val_if_fail(draw->impl->get_text_ascent != NULL, 1);
 	return draw->impl->get_text_ascent(draw);
+}
+
+gboolean
+_vte_draw_get_using_fontconfig(struct _vte_draw *draw)
+{
+	g_return_val_if_fail(draw->impl != NULL, 1);
+	g_return_val_if_fail(draw->impl->get_using_fontconfig != NULL, FALSE);
+	return draw->impl->get_using_fontconfig(draw);
 }
 
 void

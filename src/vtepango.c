@@ -19,6 +19,7 @@
 #include "../config.h"
 #include <sys/param.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <gtk/gtk.h>
 #include <pango/pango.h>
@@ -251,6 +252,7 @@ _vte_pango_set_text_font(struct _vte_draw *draw,
 	GdkScreen *screen;
 	PangoContext *ctx;
 	PangoLayout *layout;
+	PangoLayoutIter *iter;
 	PangoRectangle ink, logical;
 	gunichar full_codepoints[] = {VTE_DRAW_DOUBLE_WIDE_CHARACTERS};
 	GString *full_string;
@@ -277,6 +279,10 @@ _vte_pango_set_text_font(struct _vte_draw *draw,
 	draw->width = logical.width;
 	draw->width = howmany(draw->width,
 			      strlen(VTE_DRAW_SINGLE_WIDE_CHARACTERS));
+	iter = pango_layout_get_iter(layout);
+	draw->height = PANGO_PIXELS(logical.height);
+	draw->ascent = PANGO_PIXELS(pango_layout_iter_get_baseline(iter));
+	pango_layout_iter_free(iter);
 
 	/* Estimate for CJK characters. */
 	full_width = draw->width * 2;
@@ -294,11 +300,15 @@ _vte_pango_set_text_font(struct _vte_draw *draw,
 		draw->width /= 2;
 	}
 
-	g_object_unref(G_OBJECT(layout));
-
-	draw->width = howmany(draw->width, PANGO_SCALE);
-	draw->height = howmany(logical.height, PANGO_SCALE);
-	draw->ascent = draw->height;
+	draw->width = PANGO_PIXELS(draw->width);
+	iter = pango_layout_get_iter(layout);
+	if (draw->height == 0) {
+		draw->height = PANGO_PIXELS(logical.height);
+	}
+	if (draw->ascent == 0) {
+		draw->ascent = PANGO_PIXELS(pango_layout_iter_get_baseline(iter));
+	}
+	pango_layout_iter_free(iter);
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
@@ -306,6 +316,8 @@ _vte_pango_set_text_font(struct _vte_draw *draw,
 			draw->width, draw->height, draw->ascent);
 	}
 #endif
+
+	g_object_unref(G_OBJECT(layout));
 }
 
 static int
@@ -324,6 +336,15 @@ static int
 _vte_pango_get_text_ascent(struct _vte_draw *draw)
 {
 	return draw->ascent;
+}
+
+static gboolean
+_vte_pango_get_using_fontconfig(struct _vte_draw *draw)
+{
+	if (getenv("GDK_USE_XFT") != NULL) {
+		return atoi(getenv("GDK_USE_XFT")) != 0;
+	}
+	return TRUE;
 }
 
 static void
@@ -414,6 +435,7 @@ struct _vte_draw_impl _vte_draw_pango = {
 	_vte_pango_get_text_width,
 	_vte_pango_get_text_height,
 	_vte_pango_get_text_ascent,
+	_vte_pango_get_using_fontconfig,
 	_vte_pango_draw_text,
 	_vte_pango_draw_rectangle,
 	_vte_pango_fill_rectangle,

@@ -152,6 +152,12 @@ _vte_skel_get_text_ascent(struct _vte_draw *draw)
 	return draw->ascent;
 }
 
+static gboolean
+_vte_skel_get_using_fontconfig(struct _vte_draw *draw)
+{
+	return FALSE;
+}
+
 static void
 _vte_skel_draw_text(struct _vte_draw *draw,
 		     struct _vte_draw_text_request *requests, gsize n_requests,
@@ -204,6 +210,7 @@ struct _vte_draw_impl _vte_draw_skel = {
 	_vte_skel_get_text_width,
 	_vte_skel_get_text_height,
 	_vte_skel_get_text_ascent,
+	_vte_skel_get_using_fontconfig,
 	_vte_skel_draw_text,
 	_vte_skel_draw_rectangle,
 	_vte_skel_fill_rectangle,

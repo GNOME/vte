@@ -23,6 +23,7 @@
 #include <math.h>
 #include <gdk/gdk.h>
 #include <glib.h>
+#include "iso2022.h"
 #include "vtedraw.h"
 #include "vtefc.h"
 #include "vteglyph.h"
@@ -118,9 +119,9 @@ _vte_glyph_cache_free(struct _vte_glyph_cache *cache)
 }
 
 void
-_vte_glyph_cache_set_description(FcConfig *config,
-				 struct _vte_glyph_cache *cache,
-				 const PangoFontDescription *fontdesc)
+_vte_glyph_cache_set_font_description(FcConfig *config,
+				      struct _vte_glyph_cache *cache,
+				      const PangoFontDescription *fontdesc)
 {
 	FcChar8 *facefile;
 	int i, j, error, count, width, faceindex;
@@ -208,23 +209,32 @@ _vte_glyph_cache_set_description(FcConfig *config,
 	cache->ft_render_flags = 0;
 	i = 0;
 	pattern = g_array_index(cache->patterns, FcPattern*, 0);
+	/* Read and set the "use the autohinter", er, hint. */
+#if defined(FC_AUTOHINT) && defined(FT_LOAD_FORCE_AUTOHINT)
 	if (FcPatternGetBool(pattern, FC_AUTOHINT, 0, &i) == FcResultMatch) {
 		if (i != 0) {
 			cache->ft_load_flags |= FT_LOAD_FORCE_AUTOHINT;
 		}
 	}
+#endif
+	/* Read and set the "use antialiasing" hint. */
 	if (FcPatternGetBool(pattern, FC_ANTIALIAS, 0, &i) == FcResultMatch) {
 		if (i == 0) {
 			cache->ft_load_flags |= FT_LOAD_MONOCHROME;
 #if HAVE_DECL_FT_RENDER_MODE_MONO
 			cache->ft_render_flags = FT_RENDER_MODE_MONO;
 #endif
+#if HAVE_DECL_ft_render_mode_mono
+			cache->ft_render_flags = ft_render_mode_mono;
+#endif
 		}
 	}
+	/* Read and set the "hinting" hint. */
 	if (FcPatternGetBool(pattern, FC_HINTING, 0, &i) == FcResultMatch) {
 		if (i == 0) {
 			cache->ft_load_flags |= FT_LOAD_NO_HINTING;
 		} else {
+#if defined(FC_AUTOHINT) && defined(FT_LOAD_FORCE_AUTOHINT)
 			if (FcPatternGetBool(pattern, FC_AUTOHINT, 0,
 					     &i) == FcResultMatch) {
 				if (i != 0) {
@@ -232,6 +242,8 @@ _vte_glyph_cache_set_description(FcConfig *config,
 						FT_LOAD_FORCE_AUTOHINT;
 				}
 			}
+#endif
+#ifdef FC_HINT_STYLE
 			if (FcPatternGetInteger(pattern, FC_HINT_STYLE, 0,
 						&i) == FcResultMatch) {
 				switch (i) {
@@ -241,17 +253,20 @@ _vte_glyph_cache_set_description(FcConfig *config,
 						FT_LOAD_NO_HINTING;
 					break;
 #endif
+#if 0
+/* FT_RENDER_MODE_LIGHT doesn't appear to work reliably enough. */
 #if HAVE_DECL_FT_RENDER_MODE_LIGHT
 				case FC_HINT_SLIGHT:
 					cache->ft_render_flags |=
 						FT_RENDER_MODE_LIGHT;
 					break;
 #endif
-#if HAVE_DECL_FT_RENDER_MODE_NORMAL
+#if HAVE_DECL_FT_RENDER_MODE_LIGHT
 				case FC_HINT_MEDIUM:
 					cache->ft_render_flags |=
-						FT_RENDER_MODE_NORMAL;
+						FT_RENDER_MODE_LIGHT;
 					break;
+#endif
 #endif
 #if HAVE_DECL_FT_RENDER_MODE_NORMAL
 				case FC_HINT_FULL:
@@ -263,6 +278,7 @@ _vte_glyph_cache_set_description(FcConfig *config,
 					break;
 				}
 			}
+#endif
 		}
 	}
 
@@ -279,9 +295,13 @@ _vte_glyph_cache_set_description(FcConfig *config,
 		}
 		error = FT_Load_Char((FT_Face) face,
 				     VTE_DRAW_SINGLE_WIDE_CHARACTERS[i],
-				     FT_LOAD_RENDER | cache->ft_load_flags);
+				     cache->ft_load_flags);
 		if (error == 0) {
-			cache->width += face->glyph->bitmap.width;
+			error = FT_Render_Glyph(face->glyph,
+						cache->ft_render_flags);
+		}
+		if (error == 0) {
+			cache->width += face->glyph->metrics.horiAdvance;
 			if (face->size->metrics.ascender != 0) {
 				cache->height += face->size->metrics.ascender -
 						 face->size->metrics.descender;
@@ -298,7 +318,7 @@ _vte_glyph_cache_set_description(FcConfig *config,
 		}
 	}
 	if (count > 0) {
-		cache->width = howmany(cache->width, count);
+		cache->width = howmany(cache->width / 64, count);
 		cache->height = howmany((cache->height / 64), count);
 		cache->ascent = howmany((cache->ascent / 64), count);
 	} else {
@@ -315,14 +335,18 @@ _vte_glyph_cache_set_description(FcConfig *config,
 		}
 		error = FT_Load_Char((FT_Face) face,
 				     double_wide_characters[i],
-				     FT_LOAD_RENDER | cache->ft_load_flags);
+				     cache->ft_load_flags);
 		if (error == 0) {
-			width += face->glyph->bitmap.width;
+			error = FT_Render_Glyph(face->glyph,
+						cache->ft_render_flags);
+		}
+		if (error == 0) {
+			width += face->glyph->metrics.horiAdvance;
 			count++;
 		}
 	}
 	if (count > 0) {
-		if (cache->width == width / count) {
+		if (cache->width == width / 64 / count) {
 			cache->width /= 2;
 		}
 	}
@@ -717,7 +741,8 @@ _vte_glyph_draw_string(struct _vte_glyph_cache *cache,
 
 	while (*s != '\0') {
 		c = g_utf8_get_char(s);
-		width = 1; /* FIXME */
+		width = _vte_iso2022_unichar_width(c);
+		g_assert(width >= 0);
 		if (x + width * cache->width > buffer->width) {
 			break;
 		}

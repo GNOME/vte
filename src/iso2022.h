@@ -43,6 +43,7 @@ gssize _vte_iso2022_substitute(struct _vte_iso2022 *state,
 #define VTE_ISO2022_HAS_ENCODED_WIDTH(__c)	(((__c) & VTE_ISO2022_ENCODED_WIDTH_MASK) != 0)
 gssize _vte_iso2022_get_encoded_width(gunichar c);
 gboolean _vte_iso2022_is_ambiguous(gunichar c);
+gssize _vte_iso2022_unichar_width(gunichar c);
 
 G_END_DECLS
 

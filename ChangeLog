@@ -1,3 +1,26 @@
+2003-04-14 nalin
+	* configure.in: disable pangox, xft, glx drawing if run invoked with
+	the --without-x flag.
+	* vte.pc.in: include CFLAGS found by AC_PATH_XTRA when built with X.
+	* src/iso2022.c(_vte_iso2022_substitute_single): clean up and ensure
+	that ambiguous widths are respected.
+	* src/iso2022.c, src/iso2022.h: add _vte_iso2022_unichar_width().
+	* src/vte.c: remove old xft2/xft1/pango/pangox/core drawing code,
+	making draw the only supported method.  Remove most dependencies on
+	gdkx and Xlib, except for root pixmap ID watching.
+	* src/vtedraw.c: only use pangox, xft if X_DISPLAY_MISSING is not
+	defined.
+	* src/vtedraw.c, src/vtedraw.h: add get_using_fontconfig() method.
+	* src/vte.c(vte_terminal_get_using_xft): use
+	_vte_draw_get_using_fontconfig(), which is what apps really want to
+	know when they call this function.
+	* src/vtegl.c: wrap in #ifndef X_DISPLAY_MISSING.
+	* src/vtepangox.c: wrap in #ifndef X_DISPLAY_MISSING.
+	* src/vtexft.c: wrap in #ifndef X_DISPLAY_MISSING.
+	* src/vteglyph.c(_vte_glyph_cache_set_description): use horizontal
+	advance instead of bitmap width when calculating display widths.
+	Rename to _vte_glyph_cache_set_font_description.
+
 2003-04-09 nalin
 	* src/vte.c: add back some variables which are used after all.
 

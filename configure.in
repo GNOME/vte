@@ -17,57 +17,70 @@ AM_GLIB_GNU_GETTEXT
 # X_PRE_LIBS and X_EXTRA_LIBS to add even more libraries, and add -lX11 to
 # the list of libraries for grins.
 AC_PATH_XTRA
+X_CFLAGS=
 X_LIBS=
-if test $with_x = yes ; then
+if test "$have_x" = yes ; then
+	if test -d "$ac_x_includes" ; then
+		X_CFLAGS="-I$ac_x_includes $X_CFLAGS"
+	fi
 	X_LIBS="$X_PRE_LIBS $X_LIBS -lX11 $X_EXTRA_LIBS"
+	if test -d "$ac_x_libraries" ; then
+		X_LIBS="-L$ac_x_libraries $X_LIBS"
+	fi
 fi
-
-savelibs="$LIBS"
+CFLAGS="$X_CFLAGS $CFLAGS"
 LIBS="$X_LIBS $LIBS"
 
 PKG_CHECK_MODULES(GLIB,glib-2.0)
 PKG_CHECK_MODULES(GOBJECT,[glib-2.0 gobject-2.0])
 PKG_CHECK_MODULES(GTK,[glib-2.0 gobject-2.0 gtk+-2.0])
 
-# Require GTK+ 2.0 and fontconfig.
-wantedmodules="glib-2.0 gobject-2.0 gtk+-2.0 fontconfig"
+# Require GTK+ 2.2 (we use some of the GdkScreen APIs) and fontconfig.
+wantedmodules="glib-2.0 gobject-2.0 gtk+-2.0 >= 2.2.0 fontconfig"
 
 # Use Xft2 if Pango has Xft2 support and it isn't disabled.
-AC_ARG_WITH(xft2,[  --with-xft2             enable drawing using Xft2],with_xft2=$withval,with_xft2=yes)
-if test $with_xft2 = yes ; then
-	if pkg-config --exists pangoxft '>=' 1.1.0 ; then
-		AC_DEFINE(HAVE_XFT2,1,[Whether we have Xft2])
-		wantedmodules="$wantedmodules pangoxft >= 1.1.0 xft >= 2.0"
-	else
-		AC_MSG_WARN([Xft2 not detected])
+if test "$have_x" = yes ; then
+	AC_ARG_WITH(xft2,[  --with-xft2             enable drawing using Xft2],with_xft2=$withval,with_xft2=yes)
+	if test $with_xft2 = yes ; then
+		if pkg-config --exists pangoxft '>=' 1.1.0 ; then
+			AC_DEFINE(HAVE_XFT2,1,[Whether we have Xft2])
+			wantedmodules="$wantedmodules pangoxft >= 1.1.0"
+			wantedmodules="$wantedmodules xft >= 2.0"
+		else
+			AC_MSG_WARN([Xft2 not detected])
+		fi
 	fi
 fi
 
 # Use PangoX if we have it and it isn't disabled.
-AC_ARG_WITH(pangox,[  --with-pangox           enable drawing using PangoX],with_pangox=$withval,with_pangox=yes)
-if test $with_pangox = yes ; then
-	if pkg-config --exists pangox ; then
-		AC_DEFINE(HAVE_PANGOX,1,[Whether we have PangoX])
-		wantedmodules="$wantedmodules pangox"
-	else
-		AC_MSG_WARN([PangoX not detected])
+if test "$have_x" = yes ; then
+	AC_ARG_WITH(pangox,[  --with-pangox           enable drawing using PangoX],with_pangox=$withval,with_pangox=yes)
+	if test $with_pangox = yes ; then
+		if pkg-config --exists pangox ; then
+			AC_DEFINE(HAVE_PANGOX,1,[Whether we have PangoX])
+			wantedmodules="$wantedmodules pangox"
+		else
+			AC_MSG_WARN([PangoX not detected])
+		fi
 	fi
 fi
 
 # Use glX if we have it and it isn't disabled.
-AC_ARG_WITH(glX,[  --with-glX              enable drawing using glX],with_glx=$withval,with_glx=yes)
-if test $with_glx = yes ; then
-	have_gl=0
-	have_libgl=0
-	AC_CHECK_HEADERS(GL/glx.h)
-	if test $ac_cv_header_GL_glx_h = yes ; then
-		AC_CHECK_FUNC(glXQueryExtension,[have_gl=1],AC_CHECK_LIB(GL,glXQueryExtension,[have_gl=1;have_libgl=1]))
-	fi
-	if test $have_gl = 1 ; then
-		AC_DEFINE(HAVE_GL,1,[Whether we have GL and glX.])
-	fi
-	if test $have_libgl = 1 ; then
-		LIBS="-lGLU -lGL $LIBS"
+if test "$have_x" = yes ; then
+	AC_ARG_WITH(glX,[  --with-glX              enable drawing using glX],with_glx=$withval,with_glx=yes)
+	if test $with_glx = yes ; then
+		have_gl=0
+		have_libgl=0
+		AC_CHECK_HEADERS(GL/glx.h)
+		if test $ac_cv_header_GL_glx_h = yes ; then
+			AC_CHECK_FUNC(glXQueryExtension,[have_gl=1],AC_CHECK_LIB(GL,glXQueryExtension,[have_gl=1;have_libgl=1]))
+		fi
+		if test $have_gl = 1 ; then
+			AC_DEFINE(HAVE_GL,1,[Whether we have GL and glX.])
+		fi
+		if test $have_libgl = 1 ; then
+			LIBS="-lGLU -lGL $LIBS"
+		fi
 	fi
 fi
 
@@ -86,7 +99,18 @@ savecflags="$CFLAGS"
 CFLAGS="$CFLAGS $FT2_CFLAGS"
 savecppflags="$CPPFLAGS"
 CPPFLAGS="$CPPFLAGS $FT2_CFLAGS"
+if test -d "$ac_x_includes" ; then
+	CFLAGS="$CFLAGS -I$ac_x_includes"
+	CPPFLAGS="$CPPFLAGS -I$ac_x_includes"
+fi
 AC_CHECK_HEADERS(ft2build.h)
+
+AC_CHECK_DECLS(ft_render_mode_mono,,,[
+#ifdef HAVE_FT2BUILD_H
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#endif
+])
 
 AC_CHECK_DECLS(FT_RENDER_MODE_MONO,,,[
 #ifdef HAVE_FT2BUILD_H
@@ -168,6 +192,8 @@ if test x$ac_cv_lib_ncurses_tgetent != xyes ; then
 fi
 
 # Save the names of these other libraries.
+OTHERCFLAGS="$X_CFLAGS"
+AC_SUBST(OTHERCFLAGS)
 OTHERLIBS="$LIBS"
 AC_SUBST(OTHERLIBS)
 

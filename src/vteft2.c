@@ -215,7 +215,7 @@ _vte_ft2_set_text_font(struct _vte_draw *draw,
 		data->cache = NULL;
 	}
 	data->cache = _vte_glyph_cache_new();
-	_vte_glyph_cache_set_description(NULL, data->cache, fontdesc);
+	_vte_glyph_cache_set_font_description(NULL, data->cache, fontdesc);
 }
 
 static int
@@ -242,17 +242,21 @@ _vte_ft2_get_text_ascent(struct _vte_draw *draw)
 	return data->cache->ascent;
 }
 
+static gboolean
+_vte_ft2_get_using_fontconfig(struct _vte_draw *draw)
+{
+	return TRUE;
+}
+
 static void
 _vte_ft2_draw_text(struct _vte_draw *draw,
 		   struct _vte_draw_text_request *requests, gsize n_requests,
 		   GdkColor *color, guchar alpha)
 {
 	struct _vte_ft2_data *data;
-	struct _vte_glyph_cache *cache;
 	int i;
 
 	data = (struct _vte_ft2_data*) draw->impl_data;
-	cache = data->cache;
 
 	for (i = 0; i < n_requests; i++) {
 		_vte_glyph_draw(data->cache, requests[i].c, color,
@@ -261,7 +265,8 @@ _vte_ft2_draw_text(struct _vte_draw *draw,
 				0,
 				data->rgb);
 		update_bbox(data, requests[i].x, requests[i].y,
-			    cache->width * requests[i].columns, cache->height);
+			    data->cache->width * requests[i].columns,
+			    data->cache->height);
 	}
 }
 
@@ -331,6 +336,7 @@ struct _vte_draw_impl _vte_draw_ft2 = {
 	_vte_ft2_get_text_width,
 	_vte_ft2_get_text_height,
 	_vte_ft2_get_text_ascent,
+	_vte_ft2_get_using_fontconfig,
 	_vte_ft2_draw_text,
 	_vte_ft2_draw_rectangle,
 	_vte_ft2_fill_rectangle,

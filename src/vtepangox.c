@@ -18,6 +18,7 @@
 
 #include "../config.h"
 
+#ifndef X_DISPLAY_MISSING
 #ifdef HAVE_PANGOX
 
 #include <sys/param.h>
@@ -286,6 +287,7 @@ _vte_pango_x_set_text_font(struct _vte_draw *draw,
 	GdkScreen *screen;
 	PangoContext *ctx;
 	PangoLayout *layout;
+	PangoLayoutIter *iter;
 	PangoRectangle ink, logical;
 	gunichar full_codepoints[] = {VTE_DRAW_DOUBLE_WIDE_CHARACTERS};
 	GString *full_string;
@@ -312,9 +314,12 @@ _vte_pango_x_set_text_font(struct _vte_draw *draw,
 	draw->width = logical.width;
 	draw->width = howmany(draw->width,
 			      strlen(VTE_DRAW_SINGLE_WIDE_CHARACTERS));
+	iter = pango_layout_get_iter(layout);
+	draw->height = PANGO_PIXELS(logical.height);
+	draw->ascent = PANGO_PIXELS(pango_layout_iter_get_baseline(iter));
+	pango_layout_iter_free(iter);
 
 	/* Estimate for CJK characters. */
-	full_width = draw->width * 2;
 	full_string = g_string_new("");
 	for (i = 0; i < G_N_ELEMENTS(full_codepoints); i++) {
 		g_string_append_unichar(full_string, full_codepoints[i]);
@@ -329,18 +334,23 @@ _vte_pango_x_set_text_font(struct _vte_draw *draw,
 		draw->width /= 2;
 	}
 
-	g_object_unref(G_OBJECT(layout));
-
-	draw->width = howmany(draw->width, PANGO_SCALE);
-	draw->height = howmany(logical.height, PANGO_SCALE);
-	draw->ascent = draw->height;
+	draw->width = PANGO_PIXELS(draw->width);
+	iter = pango_layout_get_iter(layout);
+	if (draw->height == 0) {
+		draw->height = PANGO_PIXELS(logical.height);
+	}
+	if (draw->ascent == 0) {
+		draw->ascent = PANGO_PIXELS(pango_layout_iter_get_baseline(iter));
+	}
+	pango_layout_iter_free(iter);
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "VtePango font metrics = %dx%d (%d).\n",
+		fprintf(stderr, "VtePangoX font metrics = %dx%d (%d).\n",
 			draw->width, draw->height, draw->ascent);
 	}
 #endif
+	g_object_unref(G_OBJECT(layout));
 }
 
 static int
@@ -359,6 +369,12 @@ static int
 _vte_pango_x_get_text_ascent(struct _vte_draw *draw)
 {
 	return draw->ascent;
+}
+
+static gboolean
+_vte_pango_x_get_using_fontconfig(struct _vte_draw *draw)
+{
+	return FALSE;
 }
 
 static void
@@ -457,10 +473,12 @@ struct _vte_draw_impl _vte_draw_pango_x = {
 	_vte_pango_x_get_text_width,
 	_vte_pango_x_get_text_height,
 	_vte_pango_x_get_text_ascent,
+	_vte_pango_x_get_using_fontconfig,
 	_vte_pango_x_draw_text,
 	_vte_pango_x_draw_rectangle,
 	_vte_pango_x_fill_rectangle,
 	_vte_pango_x_set_scroll,
 };
 
+#endif
 #endif

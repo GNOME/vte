@@ -279,7 +279,7 @@ _vte_iso2022_is_ambiguous(gunichar c)
 		}
 	}
 	p = GINT_TO_POINTER(c);
-	return g_tree_lookup(ambiguous, p) != NULL;
+	return g_tree_lookup(ambiguous, p) == p;
 }
 
 struct _vte_iso2022 *
@@ -551,11 +551,12 @@ _vte_iso2022_substitute_single(gunichar mapname, gunichar c)
 				(long) c);
 		}
 #endif
-	} else
-	if (g_unichar_iswide(result)) {
-		width = 2;
 	} else {
-		width = 1;
+		if (g_unichar_iswide(result)) {
+			width = 2;
+		} else {
+			width = 1;
+		}
 	}
 	/* Encode the width. */
 	result = _vte_iso2022_set_encoded_width(result, width);
@@ -994,6 +995,19 @@ _vte_iso2022_substitute(struct _vte_iso2022 *outside_state,
 	*outside_state = state;
 	g_free(buf);
 	return j;
+}
+
+gssize
+_vte_iso2022_unichar_width(gunichar c)
+{
+	c = c & ~(VTE_ISO2022_ENCODED_WIDTH_MASK); /* just in case */
+	if (_vte_iso2022_is_ambiguous(c)) {
+		return _vte_iso2022_ambiguous_width();
+	}
+	if (g_unichar_iswide(c)) {
+		return 2;
+	}
+	return 1;
 }
 
 #ifdef ISO2022_MAIN
