@@ -376,6 +376,9 @@ struct _vte_capability_string _vte_xterm_capability_strings[] = {
 	{ESC "#6", "double-width", 0},
 	{ESC "#8", "screen-alignment-test", 0},
 
+	/* These are actually designate-other-coding-system from ECMA 35,
+	 * but we don't support the full repertoire.  Actually, we don't
+	 * know what the full repertoire looks like. */
 	{ESC "%%@", "iso8859-1-character-set", 0},
 	{ESC "%%G", "utf-8-character-set", 0},
 

@@ -20,8 +20,8 @@
 #include "../config.h"
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#include <sys/uio.h>
 #include <sys/socket.h>
+#include <sys/uio.h>
 #include <sys/wait.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -395,6 +395,10 @@ _vte_pty_fork_on_pty_name(const char *path, int parent_fd, char **env_add,
 	if (fd == -1) {
 		return -1;
 	}
+#ifdef TIOCSCTTY
+	/* TIOCSCTTY is defined?  Let's try that, too. */
+	ioctl(fd, TIOCSCTTY, fd);
+#endif
 	return _vte_pty_run_on_pty(fd, ready_b[0], ready_a[1],
 				   env_add, command, argv, directory);
 }
@@ -489,6 +493,10 @@ _vte_pty_fork_on_pty_fd(int fd, char **env_add,
 			close(fd);
 			fd = i;
 		}
+#ifdef TIOCSCTTY
+		/* TIOCSCTTY is defined?  Let's try that, too. */
+		ioctl(fd, TIOCSCTTY, fd);
+#endif
 	}
 
 	return _vte_pty_run_on_pty(fd, ready_b[0], ready_a[1],

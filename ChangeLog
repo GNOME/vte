@@ -1,3 +1,6 @@
+2002-12-03  nalin
+	* src/pty.c: if TIOCSCTTY is defined, use it, even if it's redundant.
+
 2002-12-02  nalin
 	* po: update-po
 	* src/utf8echo.c: change the default from resetting to the terminal's
