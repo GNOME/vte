@@ -27,18 +27,7 @@
 #include <fontconfig/fontconfig.h>
 #include <glib.h>
 #include "vtefc.h"
-
-#ifdef HAVE_LOCALE_H
-#include <locale.h>
-#endif
-
-#ifdef ENABLE_NLS
-#include <libintl.h>
-#define _(String) dgettext(PACKAGE, String)
-#else
-#define _(String) String
-#define bindtextdomain(package,dir)
-#endif
+#include "vterdb.h"
 
 static int
 _vte_fc_weight_from_pango_weight(int weight)
@@ -139,9 +128,7 @@ _vte_fc_defaults_from_gtk(FcPattern *pattern)
 #endif
 	GObjectClass *klass;
 	int i, antialias = -1, hinting = -1, dpi = -1;
-	double d;
 	char *rgba = NULL, *hintstyle = NULL;
-	FcResult result;
 
 	/* Add any defaults configured for GTK+. */
 #if GTK_CHECK_VERSION(2,2,0)
@@ -157,10 +144,6 @@ _vte_fc_defaults_from_gtk(FcPattern *pattern)
 	/* Check that the properties we're looking at are defined. */
 	klass = G_OBJECT_CLASS(GTK_SETTINGS_GET_CLASS(settings));
 	if (g_object_class_find_property(klass, "gtk-xft-antialias") == NULL) {
-		g_warning(_("The installed version of GTK+ does not support "
-			    "dynamic setting of antialiasing and hinting "
-			    "options.  Font selection will not work "
-			    "correctly."));
 		return;
 	}
 
@@ -191,23 +174,23 @@ _vte_fc_defaults_from_gtk(FcPattern *pattern)
 
 		i = FC_RGBA_NONE;
 
-		if (strcmp(rgba, "none") == 0) {
+		if (g_ascii_strcasecmp(rgba, "none") == 0) {
 			i = FC_RGBA_NONE;
 			found = TRUE;
 		} else
-		if (strcmp(rgba, "rgb") == 0) {
+		if (g_ascii_strcasecmp(rgba, "rgb") == 0) {
 			i = FC_RGBA_RGB;
 			found = TRUE;
 		} else
-		if (strcmp(rgba, "bgr") == 0) {
+		if (g_ascii_strcasecmp(rgba, "bgr") == 0) {
 			i = FC_RGBA_BGR;
 			found = TRUE;
 		} else
-		if (strcmp(rgba, "vrgb") == 0) {
+		if (g_ascii_strcasecmp(rgba, "vrgb") == 0) {
 			i = FC_RGBA_VRGB;
 			found = TRUE;
 		} else
-		if (strcmp(rgba, "vbgr") == 0) {
+		if (g_ascii_strcasecmp(rgba, "vbgr") == 0) {
 			i = FC_RGBA_VBGR;
 			found = TRUE;
 		} else {
@@ -232,19 +215,19 @@ _vte_fc_defaults_from_gtk(FcPattern *pattern)
 
 		i = FC_HINT_NONE;
 
-		if (strcmp(hintstyle, "hintnone") == 0) {
+		if (g_ascii_strcasecmp(hintstyle, "hintnone") == 0) {
 			i = FC_HINT_NONE;
 			found = TRUE;
 		} else
-		if (strcmp(hintstyle, "hintslight") == 0) {
+		if (g_ascii_strcasecmp(hintstyle, "hintslight") == 0) {
 			i = FC_HINT_SLIGHT;
 			found = TRUE;
 		} else
-		if (strcmp(hintstyle, "hintmedium") == 0) {
+		if (g_ascii_strcasecmp(hintstyle, "hintmedium") == 0) {
 			i = FC_HINT_MEDIUM;
 			found = TRUE;
 		} else
-		if (strcmp(hintstyle, "hintfull") == 0) {
+		if (g_ascii_strcasecmp(hintstyle, "hintfull") == 0) {
 			i = FC_HINT_FULL;
 			found = TRUE;
 		} else {
@@ -253,6 +236,86 @@ _vte_fc_defaults_from_gtk(FcPattern *pattern)
 		if (found) {
 			FcPatternDel(pattern, FC_HINT_STYLE);
 			FcPatternAddInteger(pattern, FC_HINT_STYLE, i);
+		}
+	}
+#endif
+}
+
+static void
+_vte_fc_defaults_from_rdb(FcPattern *pattern)
+{
+	FcBool fcb;
+	double fcd;
+	int antialias = -1, hinting = -1, fci;
+	double dpi;
+	const char *rgba = NULL, *hintstyle = NULL;
+
+	/* Read the settings. */
+	hintstyle = _vte_rdb_get_hintstyle();
+	rgba = _vte_rdb_get_rgba();
+
+	/* Pick up the antialiasing setting. */
+	if (FcPatternGetBool(pattern, FC_ANTIALIAS, 0,
+			     &fcb) == FcResultNoMatch) {
+		antialias = _vte_rdb_get_antialias();
+		FcPatternAddBool(pattern, FC_ANTIALIAS, antialias);
+	}
+
+	/* Pick up the hinting setting. */
+	if (FcPatternGetBool(pattern, FC_HINTING, 0,
+			     &fcb) == FcResultNoMatch) {
+		hinting = _vte_rdb_get_hinting();
+		FcPatternAddBool(pattern, FC_HINTING, hinting);
+	}
+
+	/* Pick up the configured DPI setting. */
+	if (FcPatternGetDouble(pattern, FC_DPI, 0,
+			       &fcd) == FcResultNoMatch) {
+		dpi = _vte_rdb_get_dpi();
+		FcPatternAddDouble(pattern, FC_DPI, dpi);
+	}
+
+	/* Pick up the configured subpixel rendering setting. */
+	if (FcPatternGetInteger(pattern, FC_RGBA, 0,
+				&fci) == FcResultNoMatch) {
+		rgba = _vte_rdb_get_rgba();
+		if (g_ascii_strcasecmp(rgba, "none") == 0) {
+			FcPatternAddInteger(pattern, FC_RGBA, FC_RGBA_NONE);
+		} else
+		if (g_ascii_strcasecmp(rgba, "rgb") == 0) {
+			FcPatternAddInteger(pattern, FC_RGBA, FC_RGBA_RGB);
+		} else
+		if (g_ascii_strcasecmp(rgba, "bgr") == 0) {
+			FcPatternAddInteger(pattern, FC_RGBA, FC_RGBA_BGR);
+		} else
+		if (g_ascii_strcasecmp(rgba, "vrgb") == 0) {
+			FcPatternAddInteger(pattern, FC_RGBA, FC_RGBA_VRGB);
+		} else
+		if (g_ascii_strcasecmp(rgba, "vbgr") == 0) {
+			FcPatternAddInteger(pattern, FC_RGBA, FC_RGBA_VBGR);
+		}
+	}
+
+#ifdef FC_HINT_STYLE
+	/* Pick up the default hinting style. */
+	if (FcPatternGetInteger(pattern, FC_HINT_STYLE, 0,
+				&fci) == FcResultNoMatch) {
+		hintstyle = _vte_rdb_get_hintstyle();
+		if (g_ascii_strcasecmp(hintstyle, "hintnone") == 0) {
+			FcPatternAddInteger(pattern, FC_HINT_STYLE,
+					    FC_HINT_NONE);
+		} else
+		if (g_ascii_strcasecmp(hintstyle, "hintslight") == 0) {
+			FcPatternAddInteger(pattern, FC_HINT_STYLE,
+					    FC_HINT_SLIGHT);
+		} else
+		if (g_ascii_strcasecmp(hintstyle, "hintmedium") == 0) {
+			FcPatternAddInteger(pattern, FC_HINT_STYLE,
+					    FC_HINT_MEDIUM);
+		} else
+		if (g_ascii_strcasecmp(hintstyle, "hintfull") == 0) {
+			FcPatternAddInteger(pattern, FC_HINT_STYLE,
+					    FC_HINT_FULL);
 		}
 	}
 #endif
@@ -283,6 +346,9 @@ _vte_fc_patterns_from_pango_font_desc(const PangoFontDescription *font_desc,
 
 	/* Add any defaults configured for GTK+. */
 	_vte_fc_defaults_from_gtk(pattern);
+
+	/* Add defaults configured via the resource database. */
+	_vte_fc_defaults_from_rdb(pattern);
 
 	/* Add any defaults which are hard-coded in fontconfig. */
 	FcDefaultSubstitute(pattern);

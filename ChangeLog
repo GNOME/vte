@@ -1,3 +1,11 @@
+2003-04-28 nalin
+	* src/vterdb.c, src/vterdb.h: add routines for pulling Xft antialiasing
+	and hinting options from the resource database.
+	* src/vtefc.c(_vte_fc_patterns_from_pango_font_desc): apply settings
+	from the resource database after applying settings from GTK+.
+	* src/vtefc.c(_vte_fc_defaults_from_rdb): added, for adding default
+	settings based on the resource database.
+
 2003-04-27 nalin
 	* src/vtefc.c(_vte_fc_defaults_from_gtk): complain when the installed
 	version of GTK+ doesn't support reporting Xft antialiasing and hinting
