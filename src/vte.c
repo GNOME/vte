@@ -32,6 +32,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <wchar.h>
+#include <wctype.h>
 #include <glib.h>
 #include <glib-object.h>
 #include <gdk/gdk.h>
@@ -3200,53 +3201,21 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	return FALSE;
 }
 
-/* Check if a cell is selected or not. */
-static gboolean
-vte_cell_is_selected(VteTerminal *terminal, long row, long col)
+/* Classify a wide character with some value, useful only for comparing
+ * for equality. */
+static guint
+vte_charclass(wchar_t c)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	if (!terminal->pvt->selection) {
-		return FALSE;
+	if (iswalnum(c)) {
+		return 1;
 	}
-	switch (terminal->pvt->selection_type) {
-		case selection_type_char:
-			if ((row > terminal->pvt->selection_start.y) &&
-			    (row < terminal->pvt->selection_end.y)) {
-				return TRUE;
-			} else
-			if ((terminal->pvt->selection_start.y == row) &&
-			    (terminal->pvt->selection_end.y == row)) {
-				if ((col >= terminal->pvt->selection_start.x) &&
-				    (col < terminal->pvt->selection_end.x)) {
-					return TRUE;
-				} else
-				if ((col >= terminal->pvt->selection_end.x) &&
-				    (col < terminal->pvt->selection_start.x)) {
-					return TRUE;
-				}
-			} else
-			if ((row == terminal->pvt->selection_start.y) &&
-			    (col >= terminal->pvt->selection_start.x)) {
-				return TRUE;
-			} else
-			if ((row == terminal->pvt->selection_end.y) &&
-			    (col < terminal->pvt->selection_end.x)) {
-				return TRUE;
-			}
-			break;
-		case selection_type_word:
-			/* FIXME */
-			break;
-		case selection_type_line:
-			if ((row >= terminal->pvt->selection_start.y) &&
-			    (row <= terminal->pvt->selection_end.y)) {
-				return TRUE;
-			}
-			break;
-		default:
-			break;
+	if (iswpunct(c)) {
+		return 2;
 	}
-	return FALSE;
+	if (iswblank(c)) {
+		return 3;
+	}
+	return 0;
 }
 
 /* Find the character in the given "virtual" position. */
@@ -3265,6 +3234,162 @@ vte_terminal_find_charcell(VteTerminal *terminal, long row, long col)
 		}
 	}
 	return ret;
+}
+
+/* Check if the characters in the given block are in the same class. */
+static gboolean
+vte_uniform_class(VteTerminal *terminal, long row, long scol, long ecol)
+{
+	struct vte_charcell *pcell = NULL;
+	long col;
+	guint cclass;
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	if ((pcell = vte_terminal_find_charcell(terminal, row, scol)) != NULL) {
+		cclass = vte_charclass(pcell->c);
+		for (col = scol; col <= ecol; col++) {
+			pcell = vte_terminal_find_charcell(terminal, row, col);
+			if (pcell == NULL) {
+				return FALSE;
+			}
+			if (cclass != vte_charclass(pcell->c)) {
+				return FALSE;
+			}
+		}
+		return TRUE;
+	}
+	return FALSE;
+}
+
+/* Check if a cell is selected or not. */
+static gboolean
+vte_cell_is_selected(VteTerminal *terminal, long row, long col)
+{
+	guint scol, ecol, cclass, ccol;
+	struct vte_charcell *pcell;
+
+	/* If there's nothing selected, it's an easy question to answer. */
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	if (!terminal->pvt->selection) {
+		return FALSE;
+	}
+
+	/* Sort the two columns, for the cases where the selection is
+	 * entirely within a single line. */
+	scol = MIN(terminal->pvt->selection_start.x,
+		   terminal->pvt->selection_end.x);
+	ecol = MAX(terminal->pvt->selection_start.x,
+		   terminal->pvt->selection_end.x);
+
+	switch (terminal->pvt->selection_type) {
+		case selection_type_char:
+			/* A cell is selected if it's on the line where the
+			 * selected area starts, or the line where it ends,
+			 * or any of the lines in between. */
+			if ((row > terminal->pvt->selection_start.y) &&
+			    (row < terminal->pvt->selection_end.y)) {
+				return TRUE;
+			} else
+			/* It's also selected if the selection is confined to
+			 * one line and the character lies between the start
+			 * and end columns (which may not be in the more obvious
+			 * of two possible orders). */
+			if ((terminal->pvt->selection_start.y == row) &&
+			    (terminal->pvt->selection_end.y == row)) {
+				if ((col >= scol) && (col < ecol)) {
+					return TRUE;
+				}
+			} else
+			/* It's also selected if it's on the line where the
+			 * selected area starts and it's after the start column,
+			 * or on the line where the selection ends, after the
+			 * last selected column. */
+			if ((row == terminal->pvt->selection_start.y) &&
+			    (col >= terminal->pvt->selection_start.x)) {
+				return TRUE;
+			} else
+			if ((row == terminal->pvt->selection_end.y) &&
+			    (col < terminal->pvt->selection_end.x)) {
+				return TRUE;
+			}
+			break;
+		case selection_type_word:
+			/* A cell is selected if it's on the line where the
+			 * selected area starts, or the line where it ends,
+			 * or any of the lines in between. */
+			if ((row > terminal->pvt->selection_start.y) &&
+			    (row < terminal->pvt->selection_end.y)) {
+				return TRUE;
+			} else
+			/* It's also selected if the selection is confined to
+			 * one line and the character lies between the start
+			 * and end columns (which may not be in the more obvious
+			 * of two possible orders). */
+			if ((terminal->pvt->selection_start.y == row) &&
+			    (terminal->pvt->selection_end.y == row)) {
+				if ((col >= scol) && (col <= ecol)) {
+					return TRUE;
+				} else
+				/* If the character is before the beginning of
+				 * the region, it's also selected if it and
+				 * everything else in between belongs to the
+				 * same character class. */
+				if (col < scol) {
+					if (vte_uniform_class(terminal,
+							      row,
+							      col,
+							      scol)) {
+						return TRUE;
+					}
+				} else
+				if (col > ecol) {
+					if (vte_uniform_class(terminal,
+							      row,
+							      ecol,
+							      col)) {
+						return TRUE;
+					}
+				}
+			} else
+			/* It's also selected if it's on the line where the
+			 * selected area starts and it's after the start column,
+			 * or on the line where the selection ends, after the
+			 * last selected column. */
+			if (row == terminal->pvt->selection_start.y) {
+				if (col >= terminal->pvt->selection_start.x) {
+					return TRUE;
+				} else
+				if (vte_uniform_class(terminal,
+						      row,
+						      col,
+						      terminal->pvt->selection_start.x)) {
+					return TRUE;
+				}
+			} else
+			if (row == terminal->pvt->selection_end.y) {
+				if (col < terminal->pvt->selection_end.x) {
+					return TRUE;
+				} else
+				if (vte_uniform_class(terminal,
+						      row,
+						      terminal->pvt->selection_end.x,
+						      col)) {
+					return TRUE;
+				}
+			}
+			break;
+		case selection_type_line:
+			/* A cell is selected if it's on the line where the
+			 * selected area starts, or the line where it ends,
+			 * or any of the lines in between. */
+			if ((row >= terminal->pvt->selection_start.y) &&
+			    (row <= terminal->pvt->selection_end.y)) {
+				return TRUE;
+			}
+			break;
+		default:
+			break;
+	}
+	return FALSE;
 }
 
 /* Once we get text data, actually paste it in. */
@@ -3392,9 +3517,7 @@ vte_terminal_get_clipboard(GtkClipboard *clipboard,
 						buffer[length++] = pcell->c;
 					}
 				} else {
-					if (x == terminal->column_count - 1) {
-						buffer[length++] = '\n';
-					}
+					buffer[length++] = '\n';
 				}
 			}
 			x++;
@@ -3488,9 +3611,13 @@ static gint
 vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 {
 	VteTerminal *terminal;
+	long height, width, delta;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), FALSE);
 	terminal = VTE_TERMINAL(widget);
+	height = terminal->char_height;
+	width = terminal->char_width;
+	delta = terminal->pvt->screen->scroll_delta;
 
 	if (event->type == GDK_BUTTON_PRESS) {
 #ifdef VTE_DEBUG
@@ -3522,9 +3649,20 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				gtk_widget_grab_focus(widget);
 			}
 			vte_terminal_deselect_all(terminal);
+			terminal->pvt->selection = TRUE;
 			terminal->pvt->selection_origin.x = event->x;
 			terminal->pvt->selection_origin.y = event->y;
+			terminal->pvt->selection_start.x = event->x / width;
+			terminal->pvt->selection_start.y = event->y / height +
+							   delta;
+			terminal->pvt->selection_end =
+			terminal->pvt->selection_start;
 			terminal->pvt->selection_type = selection_type_word;
+			vte_invalidate_cells(terminal,
+					     0,
+					     terminal->column_count,
+					     terminal->pvt->selection_start.y,
+					     1);
 			return TRUE;
 		}
 	}
@@ -3538,9 +3676,20 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				gtk_widget_grab_focus(widget);
 			}
 			vte_terminal_deselect_all(terminal);
+			terminal->pvt->selection = TRUE;
 			terminal->pvt->selection_origin.x = event->x;
 			terminal->pvt->selection_origin.y = event->y;
+			terminal->pvt->selection_start.x = event->x / width;
+			terminal->pvt->selection_start.y = event->y / height +
+							   delta;
+			terminal->pvt->selection_end =
+			terminal->pvt->selection_start;
 			terminal->pvt->selection_type = selection_type_line;
+			vte_invalidate_cells(terminal,
+					     0,
+					     terminal->column_count,
+					     terminal->pvt->selection_start.y,
+					     1);
 			return TRUE;
 		}
 	}
@@ -4210,18 +4359,20 @@ vte_terminal_draw_char(VteTerminal *terminal,
 #ifdef HAVE_XFT
 		       XftDraw *ftdraw,
 #endif
-		       gboolean reverse)
+		       gboolean cursor)
 {
 	int fore, back, dcol;
 	long xcenter, ycenter, xright, ybottom;
 	long delta;
-	gboolean drawn;
+	gboolean drawn, reverse;
 	XwcTextItem textitem;
 
 	/* Determine what the foreground and background colors for rendering
 	 * text should be. */
-	if (((cell && cell->reverse) ^ reverse) ^
-	    vte_cell_is_selected(terminal, row, col)) {
+	reverse = cell && cell->reverse;
+	reverse = reverse ^ vte_cell_is_selected(terminal, row, col);
+	reverse = reverse || cursor;
+	if (reverse) {
 		fore = cell ? cell->back : 0;
 		back = cell ? cell->fore : 7;
 	} else {

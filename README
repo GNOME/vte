@@ -34,7 +34,5 @@
   things is currently scarce, so some of it's guesswork.
 - An actual property interface needs to be retrofitted over the various options
   which are currently hard-coded at startup-time.
-- Selection and copying by word or line isn't available (by char works, but the
-  handling of end-of-line locations is not quite right).
 - Input method support isn't started yet.
 - Mouse tracking isn't started yet.
