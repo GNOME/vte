@@ -1,5 +1,5 @@
 Name: vte
-Version: 0.10.15
+Version: 0.10.16
 Release: 1
 Summary: An experimental terminal emulator.
 License: LGPL
@@ -93,6 +93,9 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/python*/site-packages/*.a
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Fri Jan 31 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.16-1
+- fix "selection always extends by default" bug
+
 * Wed Jan 22 2003 Nalin Dahyabhai <nalin@redhat.com> 0.10.15-1
 - make mouse modes mutually-exclusive
 - update background immediately on realize
