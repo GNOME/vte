@@ -124,6 +124,8 @@ static struct _vte_keymap_entry _vte_keymap_GDK_Tab[] = {
 };
 
 static struct _vte_keymap_entry _vte_keymap_GDK_Return[] = {
+	{cursor_all, keypad_all, fkey_all,
+	 VTE_META_MASK, _VTE_CAP_ESC "\n", 2, NULL},
 	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\n", 1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, "\r", 1, NULL},
 	{cursor_all, keypad_all, fkey_all, 0, NULL, 0, NULL},

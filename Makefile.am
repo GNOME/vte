@@ -1,5 +1,5 @@
 SUBDIRS = src gnome-pty-helper python termcaps po doc
-EXTRA_DIST = HACKING vte.spec vte.pc.in
+EXTRA_DIST = HACKING vte.spec vte.pc.in MESSAGE-OF-DOOM
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = vte.pc
