@@ -297,17 +297,6 @@ decrease_font_size(GtkWidget *widget, gpointer data)
 	adjust_font_size(widget, data, -1);
 }
 
-static void
-mess_with_fontconfig(void)
-{
-#ifdef HAVE_XFT2
-	/* Is this even a good idea?  Probably not, since this doesn't expose
-	 * these fonts to the gnome-font-properties capplet. */
-	FcInit();
-	FcConfigAppFontAddDir(NULL, DATADIR "/" PACKAGE "/fonts");
-#endif
-}
-
 static gboolean
 read_and_feed(GIOChannel *source, GIOCondition condition, gpointer data)
 {
@@ -594,9 +583,6 @@ main(int argc, char **argv)
 	if (terminal != NULL) {
 		vte_terminal_set_emulation(VTE_TERMINAL(widget), terminal);
 	}
-
-	/* Mess with our fontconfig setup. */
-	mess_with_fontconfig();
 
 	/* Set the default font. */
 	if (font != NULL) {

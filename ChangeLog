@@ -1,4 +1,8 @@
 2003-04-22 nalin
+	* src/vteapp.c(main): stop messing with fontconfig's list of font
+	directories.
+
+2003-04-22 nalin
 	* configure.in: rework link order so that xft2 is linked before anything
 	else.  You're still screwed if you link with both xft1 and xft2 libs,
 	but maybe this'll help (#107285).
