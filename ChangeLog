@@ -1,5 +1,12 @@
 2005-02-28  Kjartan Maraas  <kmaraas@gnome.org>
 
+	* src/iso2022.c: (_vte_iso2022_process): Apply another
+	patch from Fedora. This should fix some screen corruption
+	with multibyte charsets. Closes bug #168211 and possibly
+	others.
+
+2005-02-28  Kjartan Maraas  <kmaraas@gnome.org>
+
 	* src/vte.c: (vte_terminal_adjust_adjustments),
 	(vte_terminal_maybe_scroll_to_bottom),
 	(vte_terminal_update_insert_delta), (vte_terminal_handle_scroll),

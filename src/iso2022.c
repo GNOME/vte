@@ -1722,7 +1722,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 		     GArray *gunichars)
 {
 	GArray *blocks;
-	struct _vte_iso2022_block block;
+	struct _vte_iso2022_block *block = NULL;
 	gboolean preserve_last = FALSE;
 	int i, initial;
 
@@ -1731,19 +1731,19 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 	_vte_iso2022_fragment_input(input, blocks);
 
 	for (i = 0; i < blocks->len; i++) {
-		block = g_array_index(blocks, struct _vte_iso2022_block, i);
-		switch (block.type) {
+		block = &g_array_index(blocks, struct _vte_iso2022_block, i);
+		switch (block->type) {
 		case _vte_iso2022_cdata:
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
 				int j;
 				fprintf(stderr, "%3ld %3ld CDATA \"%.*s\"",
-					block.start, block.end,
-					(int) (block.end - block.start),
-					input->bytes + block.start);
+					block->start, block->end,
+					(int) (block->end - block->start),
+					input->bytes + block->start);
 				fprintf(stderr, " (");
-				for (j = block.start; j < block.end; j++) {
-					if (j > block.start) {
+				for (j = block->start; j < block->end; j++) {
+					if (j > block->start) {
 						fprintf(stderr, ", ");
 					}
 					fprintf(stderr, "0x%02x",
@@ -1753,14 +1753,14 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 			}
 #endif
 			initial = 0;
-			while (initial < block.end - block.start) {
+			while (initial < block->end - block->start) {
 				int j;
 				j = process_cdata(state,
 						  input->bytes +
-						  block.start +
+						  block->start +
 						  initial,
-						  block.end -
-						  block.start -
+						  block->end -
+						  block->start -
 						  initial,
 						  gunichars);
 				if (j == 0) {
@@ -1768,10 +1768,10 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 				}
 				initial += j;
 			}
-			if ((initial < block.end - block.start) &&
+			if ((initial < block->end - block->start) &&
 			    (i == blocks->len - 1)) {
 				preserve_last = TRUE;
-				block.start += initial;
+				block->start += initial;
 			} else {
 				preserve_last = FALSE;
 			}
@@ -1780,12 +1780,12 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
 				fprintf(stderr, "%3ld %3ld CONTROL ",
-					block.start, block.end);
+					block->start, block->end);
 			}
 #endif
 			process_control(state,
-					input->bytes + block.start,
-					block.end - block.start,
+					input->bytes + block->start,
+					block->end - block->start,
 					gunichars);
 			preserve_last = FALSE;
 			break;
@@ -1793,7 +1793,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
 				fprintf(stderr, "%3ld %3ld PRESERVE\n",
-					block.start, block.end);
+					block->start, block->end);
 			}
 #endif
 			g_assert(i == blocks->len - 1);
@@ -1805,14 +1805,14 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 		}
 	}
 	if (preserve_last && (blocks->len > 0)) {
-		block = g_array_index(blocks, struct _vte_iso2022_block, blocks->len - 1);
+		block = &g_array_index(blocks, struct _vte_iso2022_block, blocks->len - 1);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-			fprintf(stderr, "Consuming %ld bytes.\n", block.start);
+			fprintf(stderr, "Consuming %ld bytes.\n", block->start);
 		}
 #endif
-		_vte_buffer_consume(input, block.start);
-		g_assert(_vte_buffer_length(input) == block.end - block.start);
+		_vte_buffer_consume(input, block->start);
+		g_assert(_vte_buffer_length(input) == block->end - block->start);
 	} else {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
