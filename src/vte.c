@@ -9644,7 +9644,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	}
 	if ((render_max >= VteRenderXft1) &&
 	    (getenv("GDK_USE_XFT") != NULL)) {
-		if (atol(getenv("VTE_USE_XFT")) == 0) {
+		if (atol(getenv("GDK_USE_XFT")) == 0) {
 			render_max = VteRenderPango;
 		}
 	}
