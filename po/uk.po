@@ -1,0 +1,115 @@
+# Ukrainian translation of vte.
+# Copyright (C) 2002
+# This file is distributed under the same license as the vte package.
+# Yuriy Syrota <rastaman@renome.rovno.ua>, 2002.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte\n"
+"POT-Creation-Date: 2002-12-09 15:31+0200\n"
+"PO-Revision-Date: 2002-12-09 05:01--500\n"
+"Last-Translator: Yuriy Syrota <rastaman@renome.rovno.ua>\n"
+"Language-Team: Ukrainian <linux@linux.org.ua>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/pty.c:249
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "Помилка додавання \"%s\" до середовища, роботу продовжено."
+
+#: src/reaper.c:107
+msgid "Error creating signal pipe."
+msgstr "Помилка створення сигнального каналу."
+
+#: src/trie.c:406
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "Повторення (%s/%s)!"
+
+#: src/vte.c:1336
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Помилка компіляції регулярного виразу \"%s\"."
+
+#: src/vte.c:1844
+#: src/vte.c:1853
+#: src/vte.c:1865
+#: src/vte.c:1883
+#: src/vte.c:1888
+#: src/vte.c:1893
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Неможливо перетворити символи з %s у %s."
+
+#: src/vte.c:5303
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "Отримано неочікувану послідовність \"%s\"."
+
+#: src/vte.c:6324
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "Не визначено обробника для керівної послідовності \"%s\"."
+
+#: src/vte.c:6931
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Помилка зчитування з нащадка: %s."
+
+#: src/vte.c:7097
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Помилка (%s) перетворення даних для нащадка, відкинуто."
+
+#: src/vte.c:9384
+#, c-format
+msgid "Using fontset \"%s\", which is missing these character sets: %s."
+msgstr "Використовується набір шрифтів \"%s\", який не містить таких наборів символів: %s."
+
+#: src/vte.c:9925
+#, c-format
+msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
+msgstr "Не вдалося завантажити шрифтовий шаблон Xft \"%s\", повернення до початкового шрифту."
+
+#: src/vte.c:9937
+msgid "Failed to load default Xft font."
+msgstr "Не вдалося завантажити початковий шрифт Xft."
+
+#: src/vte.c:10030
+#, c-format
+msgid "Failed to load font set \"%s\", falling back to default font."
+msgstr "Не вдалося завантажити набір шрифтів \"%s\", повернення до початкового шрифту."
+
+#: src/vte.c:10042
+msgid "Failed to load default font, crashing or behaving abnormally."
+msgstr "Не вдалося завантажити початковий шрифт, збій чи нестандартна поведінка."
+
+#: src/vte.c:10305
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "Помилка зчитування розміру PTY, використання початкових: %s."
+
+#: src/vte.c:10341
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "Помилка встановлення розміру PTY: %s."
+
+#: src/vte.c:13080
+msgid "Error allocating draw, disabling Xft."
+msgstr "Помилка виділення рисунка, вимкнення Xft."
+
+#: src/vte.c:13088
+msgid "Error allocating context, disabling Pango."
+msgstr "Помилка виділення контексту, вимкнення Pango."
+
+#: src/vte.c:13094
+msgid "Error allocating layout, disabling Pango."
+msgstr "Помилка виділення схеми розміщення, вимкнення Pango."
+
+#. Aaargh.  We're screwed.
+#: src/vte.c:14621
+msgid "g_iconv_open() failed setting word characters"
+msgstr "g_iconv_open() зазнала збою"
+
