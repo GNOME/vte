@@ -1,3 +1,7 @@
+2003-04-20 nalin
+	* src/vtexft.c: work around for garbled glyphs when drawing runs of
+	text using multiple fonts while mixing bitmap and antialiased fonts
+
 2003-04-17 nalin
 	* src/vte.c: add missing prototype for vte_terminal_process_incoming().
 

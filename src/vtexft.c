@@ -592,6 +592,36 @@ _vte_xft_get_using_fontconfig(struct _vte_draw *draw)
 	return TRUE;
 }
 
+#if 0
+/* We're just a barely-there wrapper around XftDrawCharFontSpec(). */
+static void
+_vte_xft_drawcharfontspec(XftDraw *draw, XftColor *color,
+			  XftCharFontSpec *specs, int n)
+{
+	XftDrawCharFontSpec(draw, color, specs, n);
+}
+#else
+/* We need to break down the draw request into runs which use the same
+ * font, to work around a bug which appears to be in Xft and which I
+ * haven't pinned down yet. */
+static void
+_vte_xft_drawcharfontspec(XftDraw *draw, XftColor *color,
+			  XftCharFontSpec *specs, int n)
+{
+	int i, j;
+	i = j = 0;
+	while (i < n) {
+		for (j = i + 1; j < n; j++) {
+			if (specs[i].font != specs[j].font) {
+				break;
+			}
+		}
+		XftDrawCharFontSpec(draw, color, specs + i, j - i);
+		i = j;
+	}
+}
+#endif
+
 static void
 _vte_xft_draw_text(struct _vte_draw *draw,
 		   struct _vte_draw_text_request *requests, gsize n_requests,
@@ -637,7 +667,8 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 			       0xffff : (alpha << 8);
 		if (XftColorAllocValue(data->display, data->visual,
 				       data->colormap, &rcolor, &ftcolor)) {
-			XftDrawCharFontSpec(data->draw, &ftcolor, specs, j);
+			_vte_xft_drawcharfontspec(data->draw, &ftcolor,
+						  specs, j);
 			XftColorFree(data->display, data->visual,
 				     data->colormap, &ftcolor);
 		}
