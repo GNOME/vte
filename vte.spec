@@ -49,3 +49,4 @@ make install DESTDIR=$RPM_BUILD_ROOT
 %{_includedir}/*
 %{_libdir}/*.a
 %{_libdir}/*.so
+%{_libdir}/pkgconfig/*
