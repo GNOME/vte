@@ -1,7 +1,7 @@
-# SOME DESCRIPTIVE TITLE.
+# Uighur Translation for vte.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Abduxukur Abdurixit <abduxukur.abdurixit@t-systems.ch>, 2005
 #
 msgid ""
 msgstr ""
@@ -41,7 +41,7 @@ msgstr " شولىسى پەيدا قىلىشقا ئۇرۇنۇش  '%c' NRC  خات
 #: ../src/pty.c:329
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr ""
+msgstr "نى مۇھىتقا قوشۇشتا خاتالىق يۈز بەردى، داۋاملىشىدۇ %s"
 
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
@@ -49,66 +49,66 @@ msgstr ""
 #: ../src/pty.c:914
 #, c-format
 msgid "can not run %s"
-msgstr ""
+msgstr "نى يۈرگۈزەلمىدىم %s"
 
 #: ../src/reaper.c:156
 msgid "Error creating signal pipe."
-msgstr ""
+msgstr "سىگنال قانىلى ھاسىل قىلىشتا خاتالىق يۈز بەردى"
 
 #: ../src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
-msgstr ""
+msgstr "نى كۆپەيتىڭ (%s/%s)"
 
 #: ../src/vte.c:1506
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr ""
+msgstr "نى تەرجىمە قىلىشتا خاتالىق يۈز بەردى \"%s\" ئادەتتىكى ئىپادىلەش"
 
 #: ../src/vte.c:6023
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr ""
+msgstr "(  كۆرۈلدى (خاتا كۇنۇپكا بېسىلغان؟ %s  كۈتۈلمىگەن ھەرپلەر تىزمىسى "
 
 #: ../src/vte.c:7119
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr ""
+msgstr "نى بىر تەرەپ قىلىش پىروگراممىسى ئېنىق ئەمەس %s كونترول ھەرپلەر تىزمىسى"
 
 #: ../src/vte.c:7931
 #, c-format
 msgid "Error reading from child: %s."
-msgstr ""
+msgstr "ئوقۇش خاتالىغى كۆرۈلدى  %s بالا پىروگرامما "
 
 #: ../src/vte.c:8053 ../src/vte.c:8928
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr ""
+msgstr "سانلارنى ئۆزگەرتىش جەريانىدا خاتالىق كۆرۈلگەنىگى ئۈچۈن تاشلىۋېتىلدى %s بالا پىروگراممىدىكى"
 
 #: ../src/vte.c:10871
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr ""
+msgstr "ئشلىتىلدى %s نىڭ ئۆلچىمىنى ئوقۇشتا خاتالىق كۆرۈلدى، ئەسلى قىممىتى PTY  "
 
 #: ../src/vte.c:10907
 #, c-format
 msgid "Error setting PTY size: %s."
-msgstr ""
+msgstr "نى بەلگۈلەشتە خاتالىق كۆرۈلدى %s نىڭ ئۆلچىمى PTY "
 
 #. Aaargh.  We're screwed.
 #: ../src/vte.c:15339
 msgid "_vte_conv_open() failed setting word characters"
-msgstr ""
+msgstr "سۆزدىكى ھەرپلەر تىزمىسىنى بەلگۈلشتە خاتالاشتى  _vte_conv_open()"
 
 #. Bail back to normal mode.
 #: ../src/vteapp.c:728
 msgid "Could not open console.\n"
-msgstr ""
+msgstr "كونتىرول كۆزنىگىنى ئاچالمىدى\n"
 
 #: ../src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr ""
+msgstr "%d تونۇمايدىغان پىكسېل شەكلى \n"
 
 #: ../src/vtexft.c:714
 #, c-format
