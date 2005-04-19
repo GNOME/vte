@@ -1,3 +1,7 @@
+2005-04-19  Pablo Saratxaga <pablo@mandriva.com>
+
+	* wa.po: Updated Walloon file
+
 2005-04-07  Abduxukur Abdurixit  <abduxukur.abdurixit@t-systems.ch>
 
 	* ug.po: Updated Uighur translation.
@@ -12,7 +16,7 @@
 
 2005-03-31  Steve Murphy  <murf@e-tools.com>
 
-        * rw.po: Added Kinyarwanda translation.
+	* rw.po: Added Kinyarwanda translation.
 
 2005-03-17  Adam Weinberger  <adamw@gnome.org>
 
@@ -142,7 +146,7 @@
 	* kn.po: Fix encoding.
 
 2004-02-07  Robert Sedak  <robert.sedak@sk.htnet.hr>
- 
+
 	* hr.po: Updated Croatian translation.
 
 2004-02-02  Laurent Dhima  <laurenti@alblinux.net>
@@ -199,7 +203,7 @@
 
 2003-10-17  Yogeesh MB  <yogeeshappa.mathighatta@wipro.com>
 
-        * kn.po: Added Kannada translation 
+	* kn.po: Added Kannada translation 
 
 2003-10-14  Christian Rose  <menthos@menthos.com>
 
@@ -230,8 +234,8 @@
 
 2003-08-28  Pablo Gonzalo del Campo  <pablodc@bigfoot.com>
 
-        * es.po: Revision of Spanish translation by
-                 Francisco Javier F. Serrador <serrador@arrakis.es>.
+	* es.po: Revision of Spanish translation by
+	         Francisco Javier F. Serrador <serrador@arrakis.es>.
 
 2003-08-24  Sanlig Badral  <badral@openmn.org>
 
@@ -297,8 +301,8 @@
 
 2003-07-02  Pablo Gonzalo del Campo  <pablodc@bigfoot.com>
 
-        * es.po: Updated Spanish translation by
-                 Francisco Javier F. Serrador <serrador@arrakis.es>.
+	* es.po: Updated Spanish translation by
+	         Francisco Javier F. Serrador <serrador@arrakis.es>.
 
 2003-06-27  Artur Flinta  <aflinta@cvs.gnome.org>
 
@@ -610,7 +614,7 @@
 
 2002-12-25  Artis Trops  <hornet@navigator.lv>
 
-        * lv.po: Updated Latvian translation.
+	* lv.po: Updated Latvian translation.
 
 2002-12-22  Artis Trops  <hornet@navigator.lv>
 
@@ -635,7 +639,7 @@
 
 2002-12-16  Hasbullah Bin Pit <sebol@ikhlas.com>
 
-        * ms.po: Updated Malay Translation.
+	* ms.po: Updated Malay Translation.
 
 2002-12-15  Christophe Merlet  <redfox@redfoxcenter.org>
 
@@ -702,7 +706,7 @@
 2002-08-09  Vincent van Adrighem <V.vanAdrighem@dirck.mine.nu)
 
 	* nl.po: Dutch translation updated by Taco Witte.
-    
+
 2002-08-07  Christian Rose  <menthos@menthos.com>
 
 	* sv.po: Updated Swedish translation.
