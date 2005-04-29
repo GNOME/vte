@@ -1,3 +1,13 @@
+2005-04-29  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* src/table.c: (_vte_table_literal_new), (_vte_table_free),
+	(_vte_table_addi), (_vte_table_matchi), (_vte_table_match),
+	(_vte_table_printi): Final bits of the memory reduction patch
+	from Aivars Kalvans. bug #160993 comment #9
+	* src/vte.c: (vte_terminal_scroll_region): Patch from Egmont
+	Koblinger to fix some scrolling issues. bug #164153
+	* vte.spec: Bump version.
+
 2005-04-07  Abduxukur Abdurixit  <abduxukur.abdurixit@t-systems.ch>
 
 	* configure.in: Added "ug" to ALL_LINGUAS.

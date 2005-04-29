@@ -690,7 +690,6 @@ static void
 vte_terminal_scroll_region(VteTerminal *terminal,
 			   long row, glong count, glong delta)
 {
-	gboolean repaint = TRUE;
 	glong height;
 
 	if ((delta == 0) || (count == 0)) {
@@ -698,41 +697,15 @@ vte_terminal_scroll_region(VteTerminal *terminal,
 		return;
 	}
 
-	/* We only do this if we're scrolling the entire window. */
-	if (!terminal->pvt->screen->scrolling_restricted &&
-	    !terminal->pvt->bg_transparent &&
-	    (terminal->pvt->bg_pixbuf == NULL) &&
-	    (terminal->pvt->bg_file == NULL) &&
-	    (row == terminal->pvt->screen->scroll_delta) &&
-	    (count == terminal->row_count) &&
-	    (terminal->pvt->scroll_lock_count == 0)) {
-		height = terminal->char_height;
-		gdk_window_scroll((GTK_WIDGET(terminal))->window,
-				  0, delta * height);
-		if (delta > 0) {
-			vte_invalidate_cells(terminal,
-					     0, terminal->column_count,
-					     row, delta);
-		} else {
-			vte_invalidate_cells(terminal,
-					     0, terminal->column_count,
-					     row + terminal->row_count + delta,
-					     -delta);
-		}
-		repaint = FALSE;
-	}
-
-	if (repaint) {
-		if (terminal->pvt->scroll_background) {
-			/* We have to repaint the entire window. */
-			vte_invalidate_all(terminal);
-		} else {
-			/* We have to repaint the area which is to be
-			 * scrolled. */
-			vte_invalidate_cells(terminal,
-					     0, terminal->column_count,
-					     row, count);
-		}
+	if (terminal->pvt->scroll_background) {
+		/* We have to repaint the entire window. */
+		vte_invalidate_all(terminal);
+	} else {
+		/* We have to repaint the area which is to be
+		 * scrolled. */
+		vte_invalidate_cells(terminal,
+				     0, terminal->column_count,
+				     row, count);
 	}
 }
 

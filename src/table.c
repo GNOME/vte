@@ -41,18 +41,16 @@
 	(((__c) < (VTE_TABLE_MAX_LITERAL)) ? (__c) : 0)
 #define _vte_table_is_numeric(__c) \
 	(((__c) >= '0') && ((__c) <= '9'))
-enum _vte_table_specials {
-	_vte_table_string = VTE_TABLE_MAX_LITERAL,
-	_vte_table_number,
-	_vte_table_max
-};
+
 struct _vte_table {
 	GQuark resultq;
 	const char *result;
 	unsigned char *original;
 	gssize original_length;
 	int increment;
-	struct _vte_table *table[_vte_table_max];
+	struct _vte_table *table_string;
+	struct _vte_table *table_number;
+	struct _vte_table **table;
 };
 
 /* Argument info. */
@@ -74,16 +72,31 @@ _vte_table_new(void)
 	return g_malloc0(sizeof(struct _vte_table));
 }
 
+struct _vte_table **
+_vte_table_literal_new(void)
+{
+	return g_malloc0(sizeof(struct _vte_table *) * VTE_TABLE_MAX_LITERAL);
+}
+
 /* Free a table. */
 void
 _vte_table_free(struct _vte_table *table)
 {
 	unsigned int i;
-	for (i = 0; i < G_N_ELEMENTS(table->table); i++) {
-		if (table->table[i] != NULL) {
-			_vte_table_free(table->table[i]);
-			table->table[i] = NULL;
+	if (table->table != NULL) {
+		for (i = 0; i < VTE_TABLE_MAX_LITERAL; i++) {
+			if (table->table[i] != NULL) {
+				_vte_table_free(table->table[i]);
+				table->table[i] = NULL;
+			}
 		}
+		g_free(table->table);
+	}
+	if (table->table_string != NULL) {
+		_vte_table_free(table->table_string);
+	}
+	if (table->table_number != NULL) {
+		_vte_table_free(table->table_number);
 	}
 	if (table->original_length == 0) {
 		g_assert(table->original == NULL);
@@ -153,11 +166,11 @@ _vte_table_addi(struct _vte_table *table,
 		    (pattern[1] == '2') ||
 		    (pattern[1] == '3')) {
 			/* Create a new subtable. */
-			if (table->table[_vte_table_number] == NULL) {
+			if (table->table_number == NULL) {
 				subtable = _vte_table_new();
-				table->table[_vte_table_number] = subtable;
+				table->table_number = subtable;
 			} else {
-				subtable = table->table[_vte_table_number];
+				subtable = table->table_number;
 			}
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
@@ -213,11 +226,11 @@ _vte_table_addi(struct _vte_table *table,
 			/* It must have a terminator. */
 			g_assert(length >= 3);
 			/* Create a new subtable. */
-			if (table->table[_vte_table_string] == NULL) {
+			if (table->table_string == NULL) {
 				subtable = _vte_table_new();
-				table->table[_vte_table_string] = subtable;
+				table->table_string = subtable;
 			} else {
-				subtable = table->table[_vte_table_string];
+				subtable = table->table_string;
 			}
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
@@ -229,6 +242,11 @@ _vte_table_addi(struct _vte_table *table,
 		/* Handle an escaped '%'. */
 		if (pattern[1] == '%') {
 			/* Create a new subtable. */
+			if (table->table == NULL) {
+				table->table = _vte_table_literal_new();
+				subtable = _vte_table_new();
+				table->table['%'] = subtable;
+			} else
 			if (table->table['%'] == NULL) {
 				subtable = _vte_table_new();
 				table->table['%'] = subtable;
@@ -250,6 +268,11 @@ _vte_table_addi(struct _vte_table *table,
 			 * character value. */
 			for (i = pattern[2]; i < VTE_TABLE_MAX_LITERAL; i++) {
 				/* Create a new subtable. */
+				if (table->table == NULL) {
+					table->table = _vte_table_literal_new();
+					subtable = _vte_table_new();
+					table->table[i] = subtable;
+				} else
 				if (table->table[i] == NULL) {
 					subtable = _vte_table_new();
 					table->table[i] = subtable;
@@ -263,6 +286,11 @@ _vte_table_addi(struct _vte_table *table,
 						result, quark, inc);
 			}
 			/* Also add a subtable for higher characters. */
+			if (table->table == NULL) {
+				table->table = _vte_table_literal_new();
+				subtable = _vte_table_new();
+				table->table[0] = subtable;
+			} else
 			if (table->table[0] == NULL) {
 				subtable = _vte_table_new();
 				table->table[0] = subtable;
@@ -280,6 +308,11 @@ _vte_table_addi(struct _vte_table *table,
 	/* A literal (or an unescaped '%', which is also a literal). */
 	check = (guint8) pattern[0];
 	g_assert(check < VTE_TABLE_MAX_LITERAL);
+	if (table->table == NULL) {
+		table->table = _vte_table_literal_new();
+		subtable = _vte_table_new();
+		table->table[check] = subtable;
+	} else
 	if (table->table[check] == NULL) {
 		subtable = _vte_table_new();
 		table->table[check] = subtable;
@@ -334,11 +367,12 @@ _vte_table_matchi(struct _vte_table *table,
 	}
 
 	/* Check if this node has a string disposition. */
-	if (table->table[_vte_table_string] != NULL) {
+	if (table->table_string != NULL) {
 		/* Iterate over all non-terminator values. */
-		subtable = table->table[_vte_table_string];
+		subtable = table->table_string;
 		for (i = 0; i < length; i++) {
-			if (subtable->table[_vte_table_map_literal(candidate[i])] != NULL) {
+			if ((subtable->table != NULL) &&
+			    (subtable->table[_vte_table_map_literal(candidate[i])] != NULL)) {
 				break;
 			}
 		}
@@ -356,8 +390,8 @@ _vte_table_matchi(struct _vte_table *table,
 
 	/* Check if this could be a number. */
 	if ((_vte_table_is_numeric(candidate[0])) &&
-	    (table->table[_vte_table_number] != NULL)) {
-		subtable = table->table[_vte_table_number];
+	    (table->table_number != NULL)) {
+		subtable = table->table_number;
 		/* Iterate over all numeric characters. */
 		for (i = 0; i < length; i++) {
 			if (!_vte_table_is_numeric(candidate[i])) {
@@ -377,7 +411,8 @@ _vte_table_matchi(struct _vte_table *table,
 	}
 
 	/* Check for an exact match. */
-	if (table->table[_vte_table_map_literal(candidate[0])] != NULL) {
+	if ((table->table != NULL) &&
+	    (table->table[_vte_table_map_literal(candidate[0])] != NULL)) {
 		subtable = table->table[_vte_table_map_literal(candidate[0])];
 		/* Save the parameter info. */
 		arginfo = g_malloc(sizeof(struct _vte_table_arginfo));
@@ -526,10 +561,11 @@ _vte_table_match(struct _vte_table *table,
 
 	/* If there's no literal path, and no generic path, and the numeric
 	 * path isn't available, then it's not a sequence, either. */
-	if (table->table[_vte_table_map_literal(candidate[0])] == NULL) {
-		if (table->table[_vte_table_string] == NULL) {
+	if ((table->table == NULL) ||
+	    (table->table[_vte_table_map_literal(candidate[0])] == NULL)) {
+		if (table->table_string == NULL) {
 			if (!(_vte_table_is_numeric(candidate[0])) ||
-			    (table->table[_vte_table_number] == NULL)) {
+			    (table->table_number == NULL)) {
 				/* No match. */
 				return NULL;
 			}
@@ -538,7 +574,11 @@ _vte_table_match(struct _vte_table *table,
 
 	/* Check for a literal match. */
 	for (i = 0, head = table; (i < length) && (head != NULL); i++) {
-		head = head->table[_vte_table_map_literal(candidate[i])];
+		if (head->table == NULL) {
+			head = NULL;
+		} else {
+			head = head->table[_vte_table_map_literal(candidate[i])];
+		}
 	}
 	if ((head != NULL) && (head->result != NULL)) {
 		/* Got a literal match. */
@@ -645,7 +685,7 @@ _vte_table_printi(struct _vte_table *table, const char *lead, int *count)
 
 	/* Literal? */
 	for (i = 1; i < VTE_TABLE_MAX_LITERAL; i++) {
-		if (table->table[i] != NULL) {
+		if ((table->table != NULL) && (table->table[i] != NULL)) {
 			if (i < 32) {
 				newlead = g_strdup_printf("%s^%c", lead,
 							  i + 64);
@@ -658,17 +698,17 @@ _vte_table_printi(struct _vte_table *table, const char *lead, int *count)
 	}
 
 	/* String? */
-	if (table->table[_vte_table_string] != NULL) {
+	if (table->table_string != NULL) {
 		newlead = g_strdup_printf("%s{string}", lead);
-		_vte_table_printi(table->table[_vte_table_string],
+		_vte_table_printi(table->table_string,
 				  newlead, count);
 		g_free(newlead);
 	}
 
 	/* Number(+)? */
-	if (table->table[_vte_table_number] != NULL) {
+	if (table->table_number != NULL) {
 		newlead = g_strdup_printf("%s{number}", lead);
-		_vte_table_printi(table->table[_vte_table_number],
+		_vte_table_printi(table->table_number,
 				  newlead, count);
 		g_free(newlead);
 	}
