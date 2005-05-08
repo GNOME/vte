@@ -2,7 +2,7 @@
 	   issues (Reported by Warren Togami)
 	 - Reduce memory consumption with more that one tab a whole lot
 	   (Aivars Kalvans)
-	 - Make the python bindings work again (Manish Sing)
+	 - Make the python bindings work again (Manish Singh)
 	 - Build fix (Ali Akcaagac)
 	 - Updated translations ug (Abduxukur Abdurixit), rw (Steve Murphy),
 	   xh (Adi Attar))
