@@ -74,7 +74,7 @@ msgstr "Λήψη απρόσμενης σειράς (κλειδί;) `%s'."
 #: src/vte.c:7127
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr "Δεν υπάρχει χειριστής για την σειρά ελέγχου `%s' ορίσθηκε."
+msgstr "Δεν υπάρχει χειριστής για τη σειρά ελέγχου `%s' ορίσθηκε."
 
 #: src/vte.c:7939
 #, c-format
