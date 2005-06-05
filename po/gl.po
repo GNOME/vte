@@ -1,0 +1,116 @@
+# translation of vte.HEAD.po to Galego
+# This file is distributed under the same license as the PACKAGE package.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER.
+# Ignacio Casal Quinteiro <nacho.resa@gmail.com>, 2005.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte.HEAD\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2005-06-05 20:25+0200\n"
+"PO-Revision-Date: 2005-06-05 20:23+0200\n"
+"Last-Translator: Ignacio Casal Quinteiro <nacho.resa@gmail.com>\n"
+"Language-Team: Galego\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.9.1\n"
+
+#: ../src/iso2022.c:792 ../src/iso2022.c:803 ../src/iso2022.c:852
+#: ../src/vte.c:2136
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Non se poden convertir caracteres de %s a %s."
+
+#: ../src/iso2022.c:1582
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr "Intentouse definir un mapa NRC inválido '%c'."
+
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: ../src/iso2022.c:1623
+msgid "Unrecognized identified coding system."
+msgstr "Sistema de codificación identificado non recoñecido."
+
+#: ../src/iso2022.c:1672 ../src/iso2022.c:1698
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr "Intentouse definir un ancho inválido no mapa NRC '%c'."
+
+#: ../src/pty.c:329
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "Ocorreu un erro ao engadir '%s' ao enterno, continuando."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: ../src/pty.c:914
+#, c-format
+msgid "can not run %s"
+msgstr "non é posible executar %s"
+
+#: ../src/reaper.c:156
+msgid "Error creating signal pipe."
+msgstr "Ocorreu un erro ao crear o sinal pipe."
+
+#: ../src/trie.c:412
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "¡Duplicado (%s/%s)!"
+
+#: ../src/vte.c:1479
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Ocorreu un erro ao compilar a expresión regular \"%s\"."
+
+#: ../src/vte.c:5996
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "Obteuse unha secuencia inesperada (¿De teclas?) '%s'."
+
+#: ../src/vte.c:7092
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "Non existe un manexador para a secuencia de control '%s' definida."
+
+#: ../src/vte.c:7904
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Ocorreu un erro ao ler desde o fillo: %s."
+
+#: ../src/vte.c:8026 ../src/vte.c:8901
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Ocorreu un erro (%s) ao convertir datos desde o fillo, omitindo."
+
+#: ../src/vte.c:10844
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "Ocorreu un erro ao ler o tamaño PTY, utilizando o predeterminado: %s."
+
+#: ../src/vte.c:10880
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "Ocorreu un erro ao establecer o tamaño do PTY: %s."
+
+#. Aaargh.  We're screwed.
+#: ../src/vte.c:15312
+msgid "_vte_conv_open() failed setting word characters"
+msgstr ""
+"Ocorreu un erro en _vte_conv_open() ao establecer os caracteres da palabra"
+
+#. Bail back to normal mode.
+#: ../src/vteapp.c:728
+msgid "Could not open console.\n"
+msgstr "Non se pode abrir a consola.\n"
+
+#: ../src/vteglyph.c:579
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr "Modo de píxel %d descoñecido.\n"
+
+#: ../src/vtexft.c:714
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr "Non se pode representar o carácter U+%04x.\n"

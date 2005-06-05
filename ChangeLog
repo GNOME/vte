@@ -1,3 +1,7 @@
+2005-06-05  Ignacio Casal Quinteiro  <nacho.resa@gmail.com>
+
+	* configure.in: Added 'gl' to ALL_LINGUAS.
+
 2005-04-29  Kjartan Maraas  <kmaraas@gnome.org>
 
 	* src/table.c: (_vte_table_literal_new), (_vte_table_free),
