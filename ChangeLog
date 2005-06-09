@@ -1,3 +1,9 @@
+2005-06-09  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* src/vte.c: (vte_terminal_style_changed):
+	Fix a crash when reparenting. Closes bug #169326.
+	Patch from Michele Baldessari.
+
 2005-06-05  Ignacio Casal Quinteiro  <nacho.resa@gmail.com>
 
 	* configure.in: Added 'gl' to ALL_LINGUAS.

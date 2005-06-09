@@ -8315,7 +8315,17 @@ vte_terminal_style_changed(GtkWidget *widget, GtkStyle *style, gpointer data)
 {
 	VteTerminal *terminal;
 	g_return_if_fail(VTE_IS_TERMINAL(widget));
+	if (!GTK_WIDGET_REALIZED(widget)) {
+#ifdef VTE_DEBUG
+		if (_vte_debug_on(VTE_DEBUG_MISC)) {
+			fprintf(stderr, "Don't change style if we aren't realized.\n");
+		}
+#endif
+		return;
+	}
+
 	terminal = VTE_TERMINAL(widget);
+
 	/* If the font we're using is the same as the old default, then we
 	 * need to pick up the new default. */
 	if (pango_font_description_equal(style->font_desc,
