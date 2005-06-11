@@ -1,3 +1,15 @@
+2005-06-11  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* NEWS: Update some.
+	* doc/reference/tmpl/reaper.sgml:
+	* doc/reference/tmpl/vte-unused.sgml:
+	* doc/reference/tmpl/vte.sgml:
+	* doc/reference/tmpl/vteaccess.sgml: Docs updates.
+	* src/vte.c: (vte_terminal_init), (vte_terminal_finalize),
+	(vte_terminal_get_accessible), (vte_terminal_class_init):
+	Apply patch from Padraig O'Briain <padraig.obriain@sun.com>
+	to fix a crash. Closes bug #119913.
+
 2005-06-09  Kjartan Maraas  <kmaraas@gnome.org>
 
 	* src/vte.c: (vte_terminal_style_changed):

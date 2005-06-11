@@ -353,8 +353,6 @@ struct _VteTerminalPrivate {
 	PangoAttrList *im_preedit_attrs;
 	int im_preedit_cursor;
 
-	/* Our accessible peer. */
-	gpointer accessible;
 	gboolean accessible_emit;
 
 	/* Adjustment updates pending. */
@@ -495,6 +493,8 @@ static void _vte_terminal_disconnect_pty_write(VteTerminal *terminal);
 static void vte_terminal_stop_processing (VteTerminal *terminal);
 static void vte_terminal_start_processing (VteTerminal *terminal);
 static gboolean vte_terminal_is_processing (VteTerminal *terminal);
+
+static gpointer parent_class;
 
 /* Free a no-longer-used row data array. */
 static void
@@ -11525,8 +11525,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 			 G_CALLBACK(vte_terminal_style_changed),
 			 NULL);
 
-	/* Our accessible peer. */
-	pvt->accessible = NULL;
 	pvt->accessible_emit = FALSE;
 
 #ifdef VTE_DEBUG
@@ -12009,21 +12007,6 @@ vte_terminal_finalize(GObject *object)
 	}
 	_vte_termcap_free(terminal->pvt->termcap);
 	terminal->pvt->termcap = NULL;
-
-	/* Shut down accessibility. */
-	if (terminal->pvt->accessible != NULL) {
-		g_object_remove_weak_pointer(G_OBJECT(terminal->pvt->accessible),
-					     &terminal->pvt->accessible);
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-			fprintf(stderr, "Accessible peer has refcount %d "
-				"before we unref it.\n",
-				(G_OBJECT(terminal->pvt->accessible))->ref_count);
-		}
-#endif
-		g_object_unref(G_OBJECT(terminal->pvt->accessible));
-		terminal->pvt->accessible = NULL;
-	}
 
 	/* Done with our private data. */
 	g_free(terminal->pvt);
@@ -14193,21 +14176,39 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 static AtkObject *
 vte_terminal_get_accessible(GtkWidget *widget)
 {
-	AtkObject *access;
 	VteTerminal *terminal;
+	static gboolean first_time = TRUE;
+
 	g_return_val_if_fail(VTE_IS_TERMINAL(widget), NULL);
 	terminal = VTE_TERMINAL(widget);
-	if (terminal->pvt->accessible != NULL) {
-		access = terminal->pvt->accessible;
-	} else {
-		access = vte_terminal_accessible_new(terminal);
-		if (ATK_IS_OBJECT(access)) {
-			terminal->pvt->accessible = access;
-			g_object_add_weak_pointer(G_OBJECT(access),
-						  &terminal->pvt->accessible);
+
+	if (first_time) {
+		AtkObjectFactory *factory;
+		AtkRegistry *registry;
+		GType derived_type;
+		GType derived_atk_type;
+
+		/*
+		 * Figure out whether accessibility is enabled by looking at the
+		 * type of the accessible object which would be created for
+		 * the parent type of VteTerminal.
+		 */
+		derived_type = g_type_parent (VTE_TYPE_TERMINAL);
+
+		registry = atk_get_default_registry ();
+		factory = atk_registry_get_factory (registry,
+						    derived_type);
+
+		derived_atk_type = atk_object_factory_get_accessible_type (factory);
+		if (g_type_is_a (derived_atk_type, GTK_TYPE_ACCESSIBLE)) {
+			atk_registry_set_factory_type (registry,
+						       VTE_TYPE_TERMINAL,
+						       vte_terminal_accessible_factory_get_type ());
 		}
+		first_time = FALSE;
 	}
-	return access;
+
+	return GTK_WIDGET_CLASS (parent_class)->get_accessible (widget);
 }
 
 /* Initialize methods. */
@@ -14231,6 +14232,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 	gobject_class = G_OBJECT_CLASS(klass);
 	widget_class = GTK_WIDGET_CLASS(klass);
 
+	parent_class = g_type_class_peek_parent (klass);
 	/* Override some of the default handlers. */
 	gobject_class->finalize = vte_terminal_finalize;
 	widget_class->realize = vte_terminal_realize;

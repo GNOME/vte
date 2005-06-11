@@ -40,6 +40,10 @@ pty
 reaper.sgml
 
 
+<!-- ##### SECTION ./tmpl/vte-unused.sgml:Stability_Level ##### -->
+
+
+
 <!-- ##### SECTION ./tmpl/vtebg.sgml:Long_Description ##### -->
 <para>
 
@@ -58,10 +62,6 @@ reaper.sgml
 
 <!-- ##### SECTION ./tmpl/vtebg.sgml:Title ##### -->
 VteBg
-
-
-<!-- ##### SECTION Stability_Level ##### -->
-
 
 
 <!-- ##### MACRO VTE_BG ##### -->
