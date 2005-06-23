@@ -1,40 +1,41 @@
 # traditional Chinese translation of vte.
 # Copyright (C) 2003 Free Software Foundation, Inc.
-# Abel Cheung <maddog@linux.org.hk>, 2003.
+# Abel Cheung <abel@oaka.org>, 2003.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte 0.11.10\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-03 00:04+0100\n"
+"POT-Creation-Date: 2005-06-22 13:11+0000\n"
 "PO-Revision-Date: 2003-08-19 00:45+0800\n"
-"Last-Translator: Abel Cheung <maddog@linux.org.hk>\n"
-"Language-Team: Chinese (traditional) <zh-l10n@linux.org.tw>\n"
+"Last-Translator: Abel Cheung <abel@oaka.org>\n"
+"Language-Team: Chinese (traditional) <community@linuxhall.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2171
+#: ../src/iso2022.c:792 ../src/iso2022.c:803 ../src/iso2022.c:852
+#: ../src/vte.c:2136
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "無法將字元從 %s 轉換至 %s。"
 
-#: src/iso2022.c:1582
+#: ../src/iso2022.c:1582
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "嘗試設定無效的 NRC 字元映射‘%c’。"
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1623
+#: ../src/iso2022.c:1623
 msgid "Unrecognized identified coding system."
 msgstr "無法辨認編碼系統。"
 
-#: src/iso2022.c:1672 src/iso2022.c:1698
+#: ../src/iso2022.c:1672 ../src/iso2022.c:1698
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "嘗試設定無效的多位元組 NRC 字元映射‘%c’。"
 
-#: src/pty.c:329
+#: ../src/pty.c:329
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "加入‘%s’環境變數時出現錯誤，將會繼續。"
@@ -42,71 +43,71 @@ msgstr "加入‘%s’環境變數時出現錯誤，將會繼續。"
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:914
+#: ../src/pty.c:914
 #, c-format
 msgid "can not run %s"
 msgstr "無法執行 %s"
 
-#: src/reaper.c:156
+#: ../src/reaper.c:156
 msgid "Error creating signal pipe."
 msgstr "建立訊號管道出現錯誤。"
 
-#: src/trie.c:412
+#: ../src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "重複 (%s/%s)！"
 
-#: src/vte.c:1514
+#: ../src/vte.c:1479
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "計算正規表示式“%s”時出現錯誤。"
 
-#: src/vte.c:6031
+#: ../src/vte.c:5996
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "收到預料之外的跳出字元序列 (可能是按鍵?)‘%s’。"
 
-#: src/vte.c:7127
+#: ../src/vte.c:7092
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "未指定控制字元序列‘%s’的處理程序。"
 
-#: src/vte.c:7939
+#: ../src/vte.c:7904
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "從副程序讀取資料時出現錯誤：%s"
 
-#: src/vte.c:8061 src/vte.c:8936
+#: ../src/vte.c:8026 ../src/vte.c:8911
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "從副程序轉換資料時出現錯誤 (%s)，放棄。"
 
-#: src/vte.c:10879
+#: ../src/vte.c:10854
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "無法讀取 PTY 的大小，使用預設定值：%s。"
 
-#: src/vte.c:10915
+#: ../src/vte.c:10890
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "無法設定 PTY 的大小：%s。"
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15415
+#: ../src/vte.c:15324
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() 無法轉換字元"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:728
+#: ../src/vteapp.c:728
 msgid "Could not open console.\n"
 msgstr "無法開啟文字模式視窗。\n"
 
-#: src/vteglyph.c:579
+#: ../src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "不明的像素模式 %d。\n"
 
-#: src/vtexft.c:714
+#: ../src/vtexft.c:714
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "無法顯示字元 U+%04x。\n"
