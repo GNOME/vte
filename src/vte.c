@@ -11759,11 +11759,13 @@ vte_terminal_unrealize(GtkWidget *widget)
 
 	/* Unmap the widget if it hasn't been already. */
 	if (GTK_WIDGET_MAPPED(widget)) {
+	  
 		gtk_widget_unmap(widget);
 	}
 
 	/* Remove the GDK window. */
 	if (widget->window != NULL) {
+	        gdk_window_set_user_data(widget->window, NULL);
 		gdk_window_destroy(widget->window);
 		widget->window = NULL;
 	}
