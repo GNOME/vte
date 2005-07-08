@@ -1,3 +1,8 @@
+2005-07-07  Matthias Clasen  <mclasen@redhat.com>
+
+	* src/vte.c (vte_terminal_unrealize): Unset the user data
+	on the gdk window. 
+
 2005-06-15  Theppitak Karoonboonyanan  <thep@linux.thai.net>
 
 	* configure.in: Added 'th' (Thai) to ALL_LINGUAS.
