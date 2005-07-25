@@ -1,5 +1,8 @@
 0.11.14  - Fix a crasher on reparent (Michele Baldessari)
 	 - Fix a crash in a11y related code (Padraig O'Briain)
+	 - Fix a crash in the pango backend (Michele Baldessari)
+	 - Fix a crash from not unsetting the user data on the
+	   gdk window (Matthias Clasen)
 
 0.11.13  - Back out one of the previous patches from Fedora since it had
 	   issues (Reported by Warren Togami)

@@ -67,6 +67,7 @@ _vte_pango_create(struct _vte_draw *draw, GtkWidget *widget)
 	data->font = NULL;
 	data->layout = NULL;
 	data->gc = NULL;
+	data->ctx = NULL;
 }
 
 static void

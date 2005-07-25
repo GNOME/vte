@@ -1,3 +1,8 @@
+2005-07-25  Michele Baldessari  <michele@pupazzo.org>
+
+	* src/vtepango.c (_vte_pango_create): Initialize 
+	PangoContext * data->ctx with NULL. Closes bug #126262
+
 2005-07-21  Danilo Šegan  <danilo@gnome.org>
 
 	Fixes #149925.
