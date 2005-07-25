@@ -7901,6 +7901,7 @@ vte_terminal_io_read(GIOChannel *channel,
 			case EBUSY: /* do nothing */
 				break;
 			default:
+				/* Translators: %s is replaced with error message returned by strerror(). */
 				g_warning(_("Error reading from child: "
 					    "%s."), strerror(errno));
 				leave_open = TRUE;

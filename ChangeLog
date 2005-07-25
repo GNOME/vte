@@ -1,3 +1,10 @@
+2005-07-21  Danilo Šegan  <danilo@gnome.org>
+
+	Fixes #149925.
+	
+	* src/vte.c (vte_terminal_io_read): Added simple comment for 
+	translators.
+
 2005-07-07  Matthias Clasen  <mclasen@redhat.com>
 
 	* src/vte.c (vte_terminal_unrealize): Unset the user data
