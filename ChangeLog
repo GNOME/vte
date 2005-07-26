@@ -2,7 +2,7 @@
 
 	* python/vte.override (_wrap_vte_terminal_set_colors): 
 	pyg_boxed_get should be on item not py_palette. 
-	Reported with fix by Loïc Minier <lool+gnome@via.ecp.fr>
+	Reported with fix by Ethan Glasser-Camp <glasse@rpi.edu>
 	Closes bug #311570
 
 2005-07-25  Michele Baldessari  <michele@pupazzo.org>
