@@ -1,3 +1,10 @@
+2005-07-26  Michele Baldessari  <michele@pupazzo.org>
+
+	* python/vte.override (_wrap_vte_terminal_set_colors): 
+	pyg_boxed_get should be on item not py_palette. 
+	Reported with fix by Loïc Minier <lool+gnome@via.ecp.fr>
+	Closes bug #311570
+
 2005-07-25  Michele Baldessari  <michele@pupazzo.org>
 
 	* src/vtepango.c (_vte_pango_create): Initialize 
