@@ -1,3 +1,8 @@
+2005-07-28  Alexander Shopov  <ash@contact.bg>
+
+	* bg.po: Updated Bulgarian translation by
+	Yavor Doganov <yavor@doganov.org>
+
 2005-06-22  Abel Cheung  <maddog@linuxhall.org>
 
 	* zh_TW.po: Fix language team reference.
@@ -11,8 +16,8 @@
 	* gl.po: Updated Galician translation.
 
 2005-05-11 Kostas Papadimas <pkst@gnome.org>
-      
-          *el.po Updated Greek Translation
+
+	* el.po: Updated Greek Translation
 
 2005-04-19  Pablo Saratxaga <pablo@mandriva.com>
 
