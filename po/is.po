@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-03 00:04+0100\n"
+"POT-Creation-Date: 2005-08-03 09:55+0200\n"
 "PO-Revision-Date: 2003-06-07 09:07--100\n"
 "Last-Translator: Samuel Jon Gunnarsson <sammi@techattack.nu>\n"
 "Language-Team: Icelandic <gnome@techattack.nu>\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2171
+#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2136
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Ekki tókst að umbreyta rittáknum frá %s yfir í %s."
@@ -58,43 +58,44 @@ msgstr "Villa. Ekki tókst að búa til merkja pípu."
 msgid "Duplicate (%s/%s)!"
 msgstr "Tvöfalda (%s/%s)!"
 
-#: src/vte.c:1514
+#: src/vte.c:1479
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Villa. Ekki tókst að vistþýða venjulega segð \"%s\"."
 
-#: src/vte.c:6031
+#: src/vte.c:5996
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Meðtók óvænta (flýtilykla?) runu `%s'."
 
-#: src/vte.c:7127
+#: src/vte.c:7092
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Engin aðgerð fyrir stjórnun á runu `%s' skilgreind."
 
-#: src/vte.c:7939
+#. Translators: %s is replaced with error message returned by strerror().
+#: src/vte.c:7905
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Villa. Ekki tókst að lesa frá barni: %s"
 
-#: src/vte.c:8061 src/vte.c:8936
+#: src/vte.c:8027 src/vte.c:8912
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Villa (%s) við umbreytingu á gögnum frá barni, hætti við."
 
-#: src/vte.c:10879
+#: src/vte.c:10855
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Villa. Ekki tókst að lesa PTY stærð, nota sjálfgefið: %s"
 
-#: src/vte.c:10915
+#: src/vte.c:10891
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Villa. Ekki tókst að setja PTY stærð: %s"
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15415
+#: src/vte.c:15327
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "g_iconv_open() tókst ekki að setja orðrittákn"
 

@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-03 00:04+0100\n"
+"POT-Creation-Date: 2005-08-03 09:55+0200\n"
 "PO-Revision-Date: 2003-09-08 05:04+0200\n"
 "Last-Translator: Pawan Chitrakar <pawan@nplinux.org>\n"
 "Language-Team: Nepali <info@mpp.org.np>\n"
@@ -10,7 +10,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2171
+#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2136
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "अक्षर  %s देखि %s सम्म बदल्न सकिएन"
@@ -52,43 +52,44 @@ msgstr "सांकेतिक पाइप बनाउन सकिएन"
 msgid "Duplicate (%s/%s)!"
 msgstr "नक्कली(%s/%s)"
 
-#: src/vte.c:1514
+#: src/vte.c:1479
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "\"%s\" कम्पाइल गर्न सकिएन"
 
-#: src/vte.c:6031
+#: src/vte.c:5996
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "`%s सिक्वेन्स मिलेन'"
 
-#: src/vte.c:7127
+#: src/vte.c:7092
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "`%s' सिक्वेन्स को ह्यान्डल पाएन"
 
-#: src/vte.c:7939
+#. Translators: %s is replaced with error message returned by strerror().
+#: src/vte.c:7905
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "%s पढ्न सकिएन"
 
-#: src/vte.c:8061 src/vte.c:8936
+#: src/vte.c:8027 src/vte.c:8912
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "(%s) बदल्न सकिएन र छोडियो"
 
-#: src/vte.c:10879
+#: src/vte.c:10855
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "पि टि वाइ साइज पढ्न सकिएन, %s साविकको प्रयोग गरियो"
 
-#: src/vte.c:10915
+#: src/vte.c:10891
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "%s पि टि वाइ साइज राख्न सकिएन"
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15415
+#: src/vte.c:15327
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() शब्द राख्न सकिएन"
 

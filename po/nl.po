@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-03 00:04+0100\n"
+"POT-Creation-Date: 2005-08-03 09:55+0200\n"
 "PO-Revision-Date: 2003-07-20 01:00+0200\n"
 "Last-Translator: Tino Meinen <a.t.meinen@chello.nl>\n"
 "Language-Team: Dutch <vertaling@nl.linux.org>\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2171
+#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2136
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Kan tekens niet converteren van %s naar %s."
@@ -57,45 +57,46 @@ msgstr "Er is een fout opgetreden bij maken van signaal-pipe."
 msgid "Duplicate (%s/%s)!"
 msgstr "Dupliceren (%s/%s)!"
 
-#: src/vte.c:1514
+#: src/vte.c:1479
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Er is een fout opgetreden bij samenstellen reguliere expressie \"%s\"."
 
-#: src/vte.c:6031
+#: src/vte.c:5996
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Onverwachte (toetsenbord?)-combinatie `%s' ontvangen."
 
-#: src/vte.c:7127
+#: src/vte.c:7092
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Geen afhandelaar voor controlecombinatie `%s' gedefinieerd."
 
-#: src/vte.c:7939
+#. Translators: %s is replaced with error message returned by strerror().
+#: src/vte.c:7905
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Er is een fout opgetreden bij lezen van kind: %s."
 
-#: src/vte.c:8061 src/vte.c:8936
+#: src/vte.c:8027 src/vte.c:8912
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Fout (%s) bij converteren gegevens voor dochter, laat het vallen."
 
-#: src/vte.c:10879
+#: src/vte.c:10855
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Er is een fout opgetreden bij lezen PTY grootte, standaardwaarden worden "
 "gebruikt: %s."
 
-#: src/vte.c:10915
+#: src/vte.c:10891
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Er is een fout opgetreden bij instellen PTY-grootte: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15415
+#: src/vte.c:15327
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() niet geslaagd in instellen woordtekens"
 
