@@ -1,3 +1,9 @@
+2005-08-05  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* gnome-pty-helper/gnome-pty-helper.c: (exit_handler), (main):
+	Clean up utmp/wtmp under vncserver if things fall apart under
+	the terminal. (Dave Lehman). Closes bug #312373
+
 2005-07-26  Michele Baldessari  <michele@pupazzo.org>
 
 	* python/vte.override (_wrap_vte_terminal_set_colors): 

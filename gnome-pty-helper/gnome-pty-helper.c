@@ -654,6 +654,14 @@ sanity_checks (void)
 	}
 }
 
+static void
+exit_handler (int signum)
+{
+	shutdown_helper ();
+	_exit (1);
+}
+
+
 int
 main (int argc, char *argv [])
 {
@@ -675,6 +683,9 @@ main (int argc, char *argv [])
 	if (!display_name)
 		display_name = "localhost";
 
+	/* Make sure we clean up utmp/wtmp even under vncserver */
+	signal (SIGHUP, exit_handler);
+	signal (SIGTERM, exit_handler);
 
 	if (init_msg_pass () == -1)
 		exit (1);
