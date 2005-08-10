@@ -15809,6 +15809,78 @@ _vte_terminal_accessible_ref(VteTerminal *terminal)
 	terminal->pvt->accessible_emit = TRUE;
 }
 
+char *
+_vte_terminal_get_selection(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+
+	return g_strdup (terminal->pvt->selection);
+}
+
+void
+_vte_terminal_get_start_selection(VteTerminal *terminal, long *x, long *y)
+{
+	struct selection_cell_coords ss;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	ss = terminal->pvt->selection_start;
+
+	if (x) {
+		*x = ss.x;
+	}
+
+	if (y) {
+		*y = ss.y;
+	}
+}
+
+void
+_vte_terminal_get_end_selection(VteTerminal *terminal, long *x, long *y)
+{
+	struct selection_cell_coords se;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	se = terminal->pvt->selection_end;
+
+	if (x) {
+		*x = se.x;
+	}
+
+	if (y) {
+		*y = se.y;
+	}
+}
+
+void
+_vte_terminal_select_text(VteTerminal *terminal, long start_x, long start_y, long end_x, long end_y, int start_offset, int end_offset)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	terminal->pvt->selection_type = selection_type_char;
+	terminal->pvt->has_selection = TRUE;
+	terminal->pvt->selecting_had_delta = TRUE;
+	terminal->pvt->selection_start.x = start_x;
+	terminal->pvt->selection_start.y = start_y;
+	terminal->pvt->selection_end.x = end_x;
+	terminal->pvt->selection_end.y = end_y;
+	vte_terminal_copy(terminal,
+			  GDK_SELECTION_PRIMARY);
+	vte_invalidate_cells (terminal, 0,
+			      terminal->column_count,
+			      MIN (start_y, end_y),
+			      ABS (start_y - end_y) + 1);
+
+	vte_terminal_emit_selection_changed(terminal);
+}
+
+void
+_vte_terminal_remove_selection(VteTerminal *terminal)
+{
+	vte_terminal_deselect_all (terminal);
+}
+
 static gboolean display_timeout (gpointer data);
 static gboolean coalesce_timeout (gpointer data);
 

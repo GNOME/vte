@@ -1,3 +1,26 @@
+2004-08-10  Kjartan Maraas  <kmaraas@gnome.org>
+
+	Patch from: Padraig O'Briain  <padraig.obriain@sun.com>
+	Closes bug #113590.
+
+	* src/vte.c, src/vteint.h:
+	Add new functions to support accessible text selection:
+	_vte_terminal_get_selection, _vte_terminal_get_start_selection,
+	_vte_terminal_get_end_selection, _vte_terminal_select_text,
+	_vte_terminal_remove_selection
+	* src/vteaccess.c:
+	(xy_from_offset): Fix for offset being entire text.
+	(vte_terminal_accessibility_selection_changed): VteTerminal's
+	selection-changed signal handler which emits text-selection-changed
+	signal.
+	(vte_terminal_accessible_initialize): Connect to VteTerminal's
+	selection-changed signal.
+	(vte_terminal_accessible_get_n_selections) Add implementation.
+	(vte_terminal_accessible_get_selection) Add implementation.
+	(vte_terminal_accessible_add_selection) Add implementation.
+	(vte_terminal_accessible_remove_selection) Add implementation.
+	(vte_terminal_accessible_set_selection) Add implementation.
+
 2005-08-05  Kjartan Maraas  <kmaraas@gnome.org>
 
 	* gnome-pty-helper/gnome-pty-helper.c: (exit_handler), (main):
