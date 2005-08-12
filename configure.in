@@ -239,17 +239,21 @@ AC_CHECK_HEADERS(sys/select.h sys/termios.h sys/un.h stropts.h termios.h wchar.h
 AC_HEADER_TIOCGWINSZ
 
 # Check for PTY handling functions.
-AC_CHECK_FUNCS(cfmakeraw getpgid getpt grantpt unlockpt ptsname ptsname_r recvmsg)
+AC_CHECK_FUNCS(cfmakeraw getpgid getpt grantpt unlockpt ptsname ptsname_r)
 
 # Pull in the right libraries for various functions which might not be
 # bundled into an exploded libc.
 AC_CHECK_FUNC(socket,[have_socket=1],AC_CHECK_LIB(socket,socket,[have_socket=1; LIBS="$LIBS -lsocket"]))
 AC_CHECK_FUNC(socketpair,[have_socketpair=1],AC_CHECK_LIB(socket,socketpair,[have_socketpair=1; LIBS="$LIBS -lsocket"]))
+AC_CHECK_FUNC(recvmsg,[have_recvmsg=1],AC_CHECK_LIB(socket,recvmsg,[have_recvmsg=1; LIBS="$LIBS -lsocket -lnsl"]))
 if test x$have_socket = x1 ; then
 	AC_DEFINE(HAVE_SOCKET,1,[Define if you have the socket function.])
 fi
 if test x$have_socketpair = x1 ; then
 	AC_DEFINE(HAVE_SOCKETPAIR,1,[Define if you have the socketpair function.])
+fi
+if test x$have_recvmsg = x1 ; then
+	AC_DEFINE(HAVE_RECVMSG,1,[Define if you have the recvmsg function.])
 fi
 AC_CHECK_FUNC(floor,,AC_CHECK_LIB(m,floor,LIBS=["$LIBS -lm"]))
 

@@ -1,3 +1,8 @@
+2005-08-12  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* configure.in: Correct test for recvmsg(). Patch from
+	Robert Basch. Closes bug #304815 and possibly bug #122055.
+
 2004-08-10  Kjartan Maraas  <kmaraas@gnome.org>
 
 	Patch from: Padraig O'Briain  <padraig.obriain@sun.com>
