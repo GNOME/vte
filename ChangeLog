@@ -1,5 +1,11 @@
 2005-08-12  Kjartan Maraas  <kmaraas@gnome.org>
 
+	* src/vtetc.c: (_vte_termcap_destroy): Don't crash
+	if there's no termcap file. Michele Baldessari
+	Closes bug #312260.
+
+2005-08-12  Kjartan Maraas  <kmaraas@gnome.org>
+
 	* configure.in: Correct test for recvmsg(). Patch from
 	Robert Basch. Closes bug #304815 and possibly bug #122055.
 

@@ -411,6 +411,9 @@ _vte_termcap_destroy(gpointer key)
 	struct _vte_termcap_entry *entry, *nextentry;
 	struct _vte_termcap_alias *alias, *nextalias;
 
+	if (termcap == NULL)
+		return;
+
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
 		fprintf(stderr, "_vte_termcap_destroy()\n");
