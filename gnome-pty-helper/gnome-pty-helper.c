@@ -42,6 +42,7 @@ extern char *strdup(const char *);
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
+#include <sys/param.h>
 #include <fcntl.h>
 #include <termios.h>
 #include <errno.h>
@@ -93,13 +94,13 @@ static pty_info *pty_list;
 #endif
 #endif /* CMSG_DATA */
 
-#define CONTROLLEN (sizeof (struct cmsghdr)  + sizeof (int))
-
 static struct cmsghdr *cmptr;
+static int CONTROLLEN;
 
 static int
 init_msg_pass ()
 {
+	CONTROLLEN = (CMSG_DATA (cmptr) - (unsigned char *)cmptr) + sizeof(int);
 	cmptr = malloc (CONTROLLEN);
 
 	if (cmptr)

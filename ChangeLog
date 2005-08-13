@@ -1,3 +1,10 @@
+2005-08-13  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* gnome-pty-helper/gnome-pty-helper.c: (init_msg_pass):
+	Make VTE work on NetBSD, OpenBSD (sparc and macppc).
+	Reported by Adrian Bunk, patches by Dan Winship and
+	Rich Edelman. Closes bug #126554.
+
 2005-08-12  Kjartan Maraas  <kmaraas@gnome.org>
 
 	* src/vtetc.c: (_vte_termcap_destroy): Don't crash
