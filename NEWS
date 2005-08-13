@@ -1,6 +1,9 @@
 0.11.15  - Fix check for recvmsg () (Robert Basch)
 	 - Make it possible to implement atkText selection methods
 	   for VteAccessible. Bug #113590. (Padraig O'Briain)
+	 - Don't crash if there's no termcap file (Michele Baldessari)
+	 - Make VTE work on some Net/OpenBSD on sparc and macppc
+	   (Dan Winship, Rich Edelman, Adrian Bunk)
 
 0.11.14  - Fix a crasher on reparent (Michele Baldessari)
 	 - Fix a crash in a11y related code (Padraig O'Briain)
