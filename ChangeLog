@@ -1,3 +1,9 @@
+2005-09-16  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* src/vtexft.c: (_vte_xft_font_for_char): Optimize memory
+	usage by releasing fonts that aren't needed early. Patch
+	from Mike Hearn. Closes bug #309322.
+
 2005-08-13  Kjartan Maraas  <kmaraas@gnome.org>
 
 	* gnome-pty-helper/gnome-pty-helper.c: (init_msg_pass):

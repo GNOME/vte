@@ -241,15 +241,25 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 	for (i = font->fonts->len; i < font->patterns->len; i++) {
 		patternp = &g_array_index(font->patterns, FcPattern *, i);
 		ftfont = XftFontOpenPattern(display, *patternp);
+                
 		/* If the font was opened, it owns the pattern. */
 		if (ftfont != NULL) {
 			*patternp = NULL;
-		}
-		g_array_append_val(font->fonts, ftfont);
-		if ((ftfont != NULL) &&
-		    (_vte_xft_char_exists(font, ftfont, c))) {
-			break;
-		}
+                
+                        if (_vte_xft_char_exists(font, ftfont, c)) {
+                                g_array_append_val(font->fonts, ftfont);
+                                break;
+                        }
+
+                        /* To save memory, close fonts that don't match the pattern */
+                        XftFontClose(display, ftfont);
+                        ftfont = NULL;
+                }
+
+                /* The patterns array must match up with the fonts array, even if
+                 * that means appending a NULL to it.
+                 */
+                g_array_append_val(font->fonts, ftfont);
 	}
 
 	/* No match? */
