@@ -2,144 +2,117 @@
 # Copyright (C) 2002 Free Software Foundation
 # This file is distributed under the same license as the vte package.
 # Jamil Ahmed <jamil@bengalinux.org>, 2003.
+# Samia Niamatullah <mailsamia2001@yahoo.com>, 2005.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-08-03 09:55+0200\n"
-"PO-Revision-Date: 2003-02-24 18:40+0600\n"
-"Last-Translator: Jamil Ahmed <jamil@bengalinux.org>\n"
+"POT-Creation-Date: 2005-10-01 06:06+0200\n"
+"PO-Revision-Date: 2005-09-30 02:18+0600\n"
+"Last-Translator: Samia Niamatullah <mailsamia2001@yahoo.com>\n"
 "Language-Team: Bangla <gnome-translation@bengalinux.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2136
+#: ../src/iso2022.c:792 ../src/iso2022.c:803 ../src/iso2022.c:852
+#: ../src/vte.c:2136
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "%s অক্ষর গুলোকে %s তে রুপান্তর করতে পারছি না।"
+msgstr "%s অক্ষরগুলোকে %s তে রুপান্তর করতে ব্যার্থ।"
 
-#: src/iso2022.c:1582
+#: ../src/iso2022.c:1582
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr ""
+msgstr "অবৈধ NRC ম্যাপ '%c' সেট করার চেষ্টা করা হয়েছে।"
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1623
+#: ../src/iso2022.c:1623
 msgid "Unrecognized identified coding system."
-msgstr ""
+msgstr "শনাক্তকৃত অজানা কোডিং সিস্টেম।"
 
-#: src/iso2022.c:1672 src/iso2022.c:1698
+#: ../src/iso2022.c:1672 ../src/iso2022.c:1698
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr ""
+msgstr "অবৈধ প্রশস্ত NRC ম্যাপ '%c' সেট করার চেষ্টা করা হয়েছে।"
 
-#: src/pty.c:329
+#: ../src/pty.c:329
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr "পরিবেশ এর সাথে '%s' যোগ করতে সমস্যা হচ্ছে, এগিয়ে যাচ্ছি।"
+msgstr "পরিবেশ এর সাথে '%s' যোগ করতে ত্রুটি হচ্ছে, এগিয়ে যাচ্ছি।"
 
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:914
+#: ../src/pty.c:914
 #, c-format
 msgid "can not run %s"
 msgstr "%s চালাতে পারছি না"
 
-#: src/reaper.c:156
+#: ../src/reaper.c:156
 msgid "Error creating signal pipe."
 msgstr "সিগন্যাল পাইপ তৈরি করতে পারছি না।"
 
-#: src/trie.c:412
+#: ../src/trie.c:412
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "প্রতিরুপ (%s/%s)!"
 
-#: src/vte.c:1479
+#: ../src/vte.c:1479
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "রেগুলার এক্‌সপ্রেশন \"%s\" কমপাইল করতে পারছি না।"
 
-#: src/vte.c:5996
+#: ../src/vte.c:5996
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr "অপ্রত্যাশিত (অক্ষর ?) '%s' ধারাবাহিকতা পেয়েছি।"
+msgstr "অপ্রত্যাশিত (কী?) '%s' ধারাবাহিকতা পেয়েছি।"
 
-#: src/vte.c:7092
+# sam: Control sequence has been changed from কন্ট্রোল ধারাবাহিকতা to নিয়ন্ত্রন অনুক্রম। 
+# what about handler?
+#: ../src/vte.c:7092
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr "কন্ট্রোল ধারাবাহিকতা '%s' র কোন পরিচালক স্থির করা নেই।"
+msgstr "নিয়ন্ত্রন অনুক্রম '%s' র কোন পরিচালক স্থির করা নেই।"
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: src/vte.c:7905
+#: ../src/vte.c:7905
 #, c-format
 msgid "Error reading from child: %s."
-msgstr "চাইল্ড: %s থেকে পড়তে পারছি না।"
+msgstr "এই চাইল্ড থেকে পড়তে ত্রুটি হয়েছে: %s।"
 
-#: src/vte.c:8027 src/vte.c:8912
+#: ../src/vte.c:8027 ../src/vte.c:8912
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "ফেলে দিচ্ছি, কারন চাইল্ড এর জন্য উপাত্ত (%s) রুপান্তর করতে সমস্যা হয়েছে। "
+msgstr "চাইল্ড এর জন্য উপাত্ত (%s) রুপান্তর করতে ত্রুটি হয়েছে, বাতিল করছি। "
 
-# crashing ??
-#: src/vte.c:10855
+#: ../src/vte.c:10855
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr "PTY এর আকার এর মান পড়তে সমস্যা হয়েছে,সাধারন মান: %s ব্যবহার করা হয়েছে। "
+msgstr "ডিফল্ট মান: %s ব্যবহার করে, PTY এর আকারের মান পড়তে ত্রুটি হয়েছে।"
 
-#: src/vte.c:10891
+#: ../src/vte.c:10891
 #, c-format
 msgid "Error setting PTY size: %s."
-msgstr "PTY এর আকার: %s স্থাপন করতে সমস্যা হয়েছে।"
+msgstr "PTY এর আকার: %s স্থাপন করতে ত্রুটি হয়েছে।"
 
-# layout -> নকশা ?
 #. Aaargh.  We're screwed.
-#: src/vte.c:15327
-#, fuzzy
+#: ../src/vte.c:15327
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "g_iconv_open() শব্দের অক্ষর গুলো বসাতে ব্যর্থ হয়েছে"
+msgstr "_vte_conv_open() শব্দের অক্ষরগুলো বসাতে ব্যর্থ হয়েছে"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:728
+#: ../src/vteapp.c:728
 msgid "Could not open console.\n"
-msgstr ""
+msgstr "কনসোল খোলা সম্ভব হয়নি।\n"
 
-#: src/vteglyph.c:579
+#: ../src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr ""
+msgstr "অজানা পিক্সেল মোড %d.\n"
 
-#: src/vtexft.c:714
+#: ../src/vtexft.c:724
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr ""
-
-# dropping - ফেলে দিচ্ছি??
-#~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
-#~ msgstr "\"%s\" ফন্টসেট  ব্যবহার করছি, যেটাতে এই অক্ষরগুলো: %s নেই। "
-
-#~ msgid ""
-#~ "Failed to load Xft font pattern \"%s\", falling back to default font."
-#~ msgstr ""
-#~ "Xft ফন্ট নমুনা \"%s\" চালাতে সমস্যা হয়েছে, তাই আবার সাধারন ফন্ট এ ফেরত আসলাম।"
-
-#~ msgid "Failed to load default Xft font."
-#~ msgstr "সাধারন Xft ফন্ট চালাতে সমস্যা হয়েছে।"
-
-#~ msgid "Failed to load font set \"%s\", falling back to default font."
-#~ msgstr ""
-#~ "ফন্ট সেট \"%s\" চালাতে সমস্যা হয়েছে, তাই আবার সাধারন ফন্ট এ ফেরত আসলাম।"
-
-#~ msgid "Failed to load default font, crashing or behaving abnormally."
-#~ msgstr "সাধারন ফন্ট চালাতে সমস্যা হয়েছে, অথবা অস্বাভাবিক আচরণ করছে।"
-
-#~ msgid "Error allocating draw, disabling Xft."
-#~ msgstr "অংকণ বন্টন করতে সমস্যা হয়েছে, Xft কে নিষ্ক্রিও করা হলো।ন্ক"
-
-#~ msgid "Error allocating context, disabling Pango."
-#~ msgstr "প্রাসঙ্গিক বন্টন করতে সমস্যা হয়েছে, Pango কে নিষ্ক্রিও করা হলো।"
-
-#~ msgid "Error allocating layout, disabling Pango."
-#~ msgstr "নকশা বন্টন করতে সমস্যা হয়েছে, Pango কে নিষ্ক্রিও করা হলো।"
+msgstr "U+%04x অক্ষরটি আঁকা সম্ভব হয়নি।\n"
