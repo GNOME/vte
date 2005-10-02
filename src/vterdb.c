@@ -40,7 +40,7 @@ _vte_property_get_string(GdkWindow *window, GdkAtom atom,
 			 char **retval)
 {
 	return gdk_property_get(window, atom, GDK_TARGET_STRING,
-				0, INT_MAX,
+				0, INT_MAX - 3,
 				FALSE,
 				type, NULL, size,
 				(guchar**) retval);

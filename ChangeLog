@@ -1,3 +1,10 @@
+2005-10-02  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* src/vtebg.c: (_vte_property_get_pixmaps):
+	* src/vterdb.c: (_vte_property_get_string):
+	Fix gdk warnings. Patch from Michele Baldessari.
+	Closes bug #309025.
+
 2005-09-16  Kjartan Maraas  <kmaraas@gnome.org>
 
 	* src/vtexft.c: (_vte_xft_font_for_char): Optimize memory

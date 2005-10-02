@@ -112,7 +112,7 @@ _vte_property_get_pixmaps(GdkWindow *window, GdkAtom atom,
 			  XID **pixmaps)
 {
 	return gdk_property_get(window, atom, GDK_TARGET_PIXMAP,
-				0, INT_MAX,
+				0, INT_MAX - 3,
 				FALSE,
 				type, NULL, size,
 				(guchar**) pixmaps);
