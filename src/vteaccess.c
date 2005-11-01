@@ -922,6 +922,15 @@ vte_terminal_accessible_get_text(AtkText *text,
 	int start, end;
 	gchar *ret;
 
+        /* Swap around if start is greater than end */
+        if (start_offset > end_offset) {
+                gint tmp;
+
+                tmp = start_offset;
+                start_offset = end_offset;
+                end_offset = tmp;
+        }
+
 	g_return_val_if_fail((start_offset >= 0) && (end_offset >= -1),
 			     g_strdup(""));
 

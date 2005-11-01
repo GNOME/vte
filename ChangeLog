@@ -1,3 +1,11 @@
+2005-11-01  Bill Haneman <billh@gnome.org>
+
+	* src/vteaccess.c: 
+	(vte_terminal_accessible_get_text):
+	Swap offsets if start > end; fixes crasher
+	bug #153405.  Patch from padraig o'briain,
+	thanks to Kjartan for review.
+
 2005-10-02  Kjartan Maraas  <kmaraas@gnome.org>
 
 	* src/vtebg.c: (_vte_property_get_pixmaps):
