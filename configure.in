@@ -363,8 +363,16 @@ if $BUILD_PYTHON ; then
 	if pkg-config --exists pygtk-2.0 ; then
 		AC_MSG_RESULT([found])
 		PKG_CHECK_MODULES(PYGTK,[pygtk-2.0])
-		PYGTK_DATADIR=`pkg-config --variable=datadir pygtk-2.0`
-		AC_SUBST(PYGTK_DATADIR)
+
+		AC_PATH_PROG(PYGTK_CODEGEN, pygtk-codegen-2.0, no)
+		if test "x$PYGTK_CODEGEN" = xno; then
+		  AC_MSG_ERROR(could not find pygtk-codegen-2.0 script)
+		fi
+
+		AC_MSG_CHECKING(for pygtk defs)
+		PYGTK_DEFSDIR=`$PKG_CONFIG --variable=defsdir pygtk-2.0`
+		AC_SUBST(PYGTK_DEFSDIR)
+		AC_MSG_RESULT($PYGTK_DEFSDIR)
 	else
 		AC_MSG_RESULT([not found])
 		BUILD_PYTHON=false

@@ -1,3 +1,8 @@
+0.11.16  - Optimize memory used for fonts (Mike Hearn)
+	 - Fix crasher with accessibility (Padraig O'Briain)
+	 - Fix some warning from GDK (Michele Baldessari)
+	 - Fix python build problems (Manish Sing)
+
 0.11.15  - Fix check for recvmsg () (Robert Basch)
 	 - Make it possible to implement atkText selection methods
 	   for VteAccessible. Bug #113590. (Padraig O'Briain)

@@ -103,7 +103,6 @@ automake-$automakev -a -c $am_opt
 $autoconf
 
 cd gnome-pty-helper
-$autoheader
 aclocal-$automakev $ACLOCAL_FLAGS
 $autoheader
 automake-$automakev -a -c $am_opt

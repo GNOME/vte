@@ -1,3 +1,17 @@
+2005-11-08  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* NEWS: Update.
+	* Makefile.am:
+	* autogen.sh:
+	* configure.in:
+	* python/Makefile.am:
+	I'm attaching a patch that modernizes the python binding 
+	build stuff. Notably, it excludes python/vte.c from the dist.
+	Right now as it stands, the file is disted, which means people's 
+	builds will not work unless they build against pygtk 2.8, 
+	which makes this bug somewhat important. Patch from Manish Sing
+	Closes bug #320931.
+
 2005-11-01  Bill Haneman <billh@gnome.org>
 
 	* src/vteaccess.c: 
