@@ -1,3 +1,7 @@
+2005-11-16  Timur Jamakeev  <timurj@cvs.gnome.org>
+
+	* confgiure.in: Added 'ky' to ALL_LINGUAS
+
 2005-11-08  Kjartan Maraas  <kmaraas@gnome.org>
 
 	* NEWS: Update.
