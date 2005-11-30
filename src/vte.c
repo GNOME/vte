@@ -762,7 +762,6 @@ vte_terminal_preedit_width(VteTerminal *terminal, gboolean left_only)
 static gssize
 vte_terminal_preedit_length(VteTerminal *terminal, gboolean left_only)
 {
-	gunichar c;
 	int i = 0;
 	const char *preedit = NULL;
 
@@ -775,7 +774,6 @@ vte_terminal_preedit_length(VteTerminal *terminal, gboolean left_only)
 		     (preedit[0] != '\0') &&
 		     (!left_only || (i < terminal->pvt->im_preedit_cursor));
 		     i++) {
-			c = g_utf8_get_char(preedit);
 			preedit = g_utf8_next_char(preedit);
 		}
 	}
@@ -7599,8 +7597,6 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 				vte_terminal_ensure_cursor(terminal, FALSE);
 				inserted = FALSE;
 			}
-			/* Flush any pending "inserted" signals. */
-			vte_terminal_emit_pending_text_signals(terminal, quark);
 			/* Call the right sequence handler for the requested
 			 * behavior. */
 			again = vte_terminal_handle_sequence(GTK_WIDGET(terminal),
@@ -7609,8 +7605,6 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 							     params);
 			/* Skip over the proper number of unicode chars. */
 			start = (next - wbuf);
-			/* Flush any pending signals. */
-			vte_terminal_emit_pending_text_signals(terminal, quark);
 			modified = TRUE;
 		} else
 		/* Second, we have a NULL match, and next points to the very

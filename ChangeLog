@@ -1,3 +1,11 @@
+2005-11-30  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* src/vte.c: (vte_terminal_preedit_length): Remove some
+	unused code.
+	(vte_terminal_process_incoming): Don't emit signals for every
+	character that's output. Patch from Padraig O'Briain. Huge
+	performance gain when a11y is activated.
+
 2005-11-16  Timur Jamakeev  <timurj@cvs.gnome.org>
 
 	* confgiure.in: Added 'ky' to ALL_LINGUAS
