@@ -1,5 +1,10 @@
 2005-12-12  Kjartan Maraas  <kmaraas@gnome.org>
 
+	* vte.pc.in: Cleanups for the pkg-config file.
+	Patch from Steve Langasek. Closes bug #322240.
+
+2005-12-12  Kjartan Maraas  <kmaraas@gnome.org>
+
 	* python/vte.override: python-vte seems to have a small bug in
 	the override file that prevents the forkpty() method to be generated.
 	The attached patch fixes this problem. Patch from Michael Vogt.
