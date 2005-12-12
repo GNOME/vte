@@ -2,6 +2,11 @@
 	 - Fix crasher with accessibility (Padraig O'Briain)
 	 - Fix some warning from GDK (Michele Baldessari)
 	 - Fix python build problems (Manish Sing)
+	 - Fix generation of the forkpty() method for python.
+	   (Michael Vogt)
+	 - Cleanups for the .pc file (Steve Langasek)
+	 - Don't emit signals for every character of output. Huge performance
+	   improvement with a11y enabled. Patch from Padraig O'Briain.
 
 0.11.15  - Fix check for recvmsg () (Robert Basch)
 	 - Make it possible to implement atkText selection methods
