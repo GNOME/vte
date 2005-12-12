@@ -1,3 +1,10 @@
+2005-12-12  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* python/vte.override: python-vte seems to have a small bug in
+	the override file that prevents the forkpty() method to be generated.
+	The attached patch fixes this problem. Patch from Michael Vogt.
+	Closes bug #169201.
+
 2005-11-30  Kjartan Maraas  <kmaraas@gnome.org>
 
 	* src/vte.c: (vte_terminal_preedit_length): Remove some

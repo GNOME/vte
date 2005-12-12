@@ -149,6 +149,8 @@ _wrap_vte_terminal_fork_command(PyGObject * self, PyObject * args,
 	return PyInt_FromLong(pid);
 }
 %%
+override vte_terminal_forkpty kwargs
+
 static PyObject *
 _wrap_vte_terminal_forkpty(PyGObject * self, PyObject * args, PyObject * kwargs)
 {
