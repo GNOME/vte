@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte 2.12\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-08-03 09:55+0200\n"
+"POT-Creation-Date: 2005-12-12 19:52+0100\n"
 "PO-Revision-Date: 2005-03-28 19:36-0700\n"
 "Last-Translator: Steve Murphy <murf@e-tools.com>\n"
 "Language-Team: Kinyarwanda <translation-team-rw@lists.sourceforge.net>\n"
@@ -23,7 +23,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2136
+#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2134
 #, fuzzy, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Kuri GUHINDURA Inyuguti Bivuye Kuri"
@@ -66,44 +66,44 @@ msgstr ""
 msgid "Duplicate (%s/%s)!"
 msgstr "Gusubiramo"
 
-#: src/vte.c:1479
+#: src/vte.c:1477
 #, fuzzy, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Ibisanzwe imvugo"
 
-#: src/vte.c:5996
+#: src/vte.c:5994
 #, fuzzy, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Urufunguzo"
 
-#: src/vte.c:7092
+#: src/vte.c:7090
 #, fuzzy, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "kugirango Igenzura"
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: src/vte.c:7905
+#: src/vte.c:7899
 #, fuzzy, c-format
 msgid "Error reading from child: %s."
 msgstr "Bivuye"
 
-#: src/vte.c:8027 src/vte.c:8912
+#: src/vte.c:8021 src/vte.c:8906
 #, fuzzy, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Guhindura.... Ibyatanzwe kugirango"
 
-#: src/vte.c:10855
+#: src/vte.c:10849
 #, fuzzy, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Ingano ikoresha"
 
-#: src/vte.c:10891
+#: src/vte.c:10885
 #, fuzzy, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Igenamiterere Ingano"
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15327
+#: src/vte.c:15321
 #, fuzzy
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "Byanze Igenamiterere ijambo Inyuguti"
@@ -119,7 +119,7 @@ msgstr "OYA Gufungura"
 msgid "Unknown pixel mode %d.\n"
 msgstr "Ubwoko"
 
-#: src/vtexft.c:714
+#: src/vtexft.c:724
 #, fuzzy, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "OYA Gushushanya Inyuguti U"
