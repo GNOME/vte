@@ -1,3 +1,8 @@
+2005-12-31  Olav Vitters  <olav@bkor.dhs.org>
+
+	* vte.pc.in: Backup patch from Steve Langasek. It needs pkg-config
+	changes.
+
 2005-12-12  Kjartan Maraas  <kmaraas@gnome.org>
 
 	* vte.pc.in: Cleanups for the pkg-config file.
