@@ -1,3 +1,8 @@
+2006-01-14  Olav Vitters  <olav@bkor.dhs.org>
+
+	* src/caps.c: Support save and restore cursor position using \033[s
+	and \033[u. Reported by Dag Wieers. Fixes bug 170032.
+
 2005-12-31  Olav Vitters  <olav@bkor.dhs.org>
 
 	* vte.pc.in: Backup patch from Steve Langasek. It needs pkg-config

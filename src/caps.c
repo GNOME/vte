@@ -498,7 +498,9 @@ struct _vte_capability_string _vte_xterm_capability_strings[] = {
 	{CSI "r", "set-scrolling-region", 0},
 	{CSI "%d;%dr", "set-scrolling-region", 0},
 	{CSI "?%mr", "restore-mode", 0},
+	{CSI "s", "save-cursor", 0},
 	{CSI "?%ms", "save-mode", 0},
+	{CSI "u", "restore-cursor", 0},
 
 	{CSI "%mt", "window-manipulation", 0},
 
