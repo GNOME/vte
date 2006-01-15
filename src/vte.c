@@ -1294,7 +1294,7 @@ static gboolean
 vte_terminal_get_tabstop(VteTerminal *terminal, int column)
 {
 	gpointer hash;
-	g_assert(VTE_IS_TERMINAL(terminal), FALSE);
+	g_assert(VTE_IS_TERMINAL(terminal));
 	if (terminal->pvt->tabstops != NULL) {
 		hash = g_hash_table_lookup(terminal->pvt->tabstops,
 					   GINT_TO_POINTER(2 * column + 1));
