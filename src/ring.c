@@ -29,7 +29,7 @@ static void
 _vte_ring_validate(VteRing * ring)
 {
 	long i, max;
-	g_return_if_fail(ring != NULL);
+	g_assert(ring != NULL);
 	g_assert(ring->length <= ring->max);
 	max = ring->delta + ring->length;
 	for (i = ring->delta; i < max; i++) {

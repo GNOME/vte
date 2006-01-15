@@ -1,3 +1,8 @@
+2006-01-15  Guilherme de S. Pastore  <gpastore@gnome.org>
+
+	* src/: applied patch from Kjartan Maraas that replaces g_return
+	  functions with g_assert. Should give an 8% speed boost.
+
 2006-01-14  Guilherme de S. Pastore  <gpastore@gnome.org>
 
 	* doc/reference/Makefile.am: install more than *.html, based on the

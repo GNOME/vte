@@ -50,9 +50,9 @@ window_title_changed(GtkWidget *widget, gpointer win)
 {
 	GtkWindow *window;
 
-	g_return_if_fail(VTE_TERMINAL(widget));
-	g_return_if_fail(GTK_IS_WINDOW(win));
-	g_return_if_fail(VTE_TERMINAL(widget)->window_title != NULL);
+	g_assert(VTE_TERMINAL(widget));
+	g_assert(GTK_IS_WINDOW(win));
+	g_assert(VTE_TERMINAL(widget)->window_title != NULL);
 	window = GTK_WINDOW(win);
 
 	gtk_window_set_title(window, VTE_TERMINAL(widget)->window_title);
@@ -63,9 +63,9 @@ icon_title_changed(GtkWidget *widget, gpointer win)
 {
 	GtkWindow *window;
 
-	g_return_if_fail(VTE_TERMINAL(widget));
-	g_return_if_fail(GTK_IS_WINDOW(win));
-	g_return_if_fail(VTE_TERMINAL(widget)->icon_title != NULL);
+	g_assert(VTE_TERMINAL(widget));
+	g_assert(GTK_IS_WINDOW(win));
+	g_assert(VTE_TERMINAL(widget)->icon_title != NULL);
 	window = GTK_WINDOW(win);
 
 	g_message("Icon title changed to \"%s\".\n",
@@ -80,8 +80,8 @@ char_size_changed(GtkWidget *widget, guint width, guint height, gpointer data)
 	GdkGeometry geometry;
 	int xpad, ypad;
 
-	g_return_if_fail(GTK_IS_WINDOW(data));
-	g_return_if_fail(VTE_IS_TERMINAL(widget));
+	g_assert(GTK_IS_WINDOW(data));
+	g_assert(VTE_IS_TERMINAL(widget));
 
 	terminal = VTE_TERMINAL(widget);
 	window = GTK_WINDOW(data);
@@ -324,7 +324,7 @@ read_and_feed(GIOChannel *source, GIOCondition condition, gpointer data)
 	char buf[2048];
 	gsize size;
 	GIOStatus status;
-	g_return_val_if_fail(VTE_IS_TERMINAL(data), FALSE);
+	g_assert(VTE_IS_TERMINAL(data));
 	status = g_io_channel_read_chars(source, buf, sizeof(buf),
 					 &size, NULL);
 	if ((status == G_IO_STATUS_NORMAL) && (size > 0)) {
