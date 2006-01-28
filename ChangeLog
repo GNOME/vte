@@ -1,3 +1,17 @@
+2006-01-28  Guilherme de S. Pastore  <gpastore@gnome.org>
+
+	* src/Makefile.am: add -DG_DISABLE_ASSERT to CFLAGS.
+
+	* NEWS: updated.
+
+	* vte.spec: bumped version to 0.11.17.
+
+2006-01-28  Guilherme de S. Pastore  <gpastore@gnome.org>
+
+	* src/vte.c: only try to guess the user's shell when actually
+	  forking, so we avoid unnecessary work if the application
+	  already has to do that itself.
+	
 2006-01-15  Guilherme de S. Pastore  <gpastore@gnome.org>
 
 	* src/: applied patch from Kjartan Maraas that replaces g_return

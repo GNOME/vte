@@ -1,5 +1,14 @@
-0.11.17  - Revert .pc changes from previous release. They
-	   apparently need pkg-config changes to work.
+0.11.17  - Revert .pc changes from previous release (Olav Vitters)
+	 - Fix bug #170032 - gnome-terminal has problems with ANSI
+	   (save and restore cursor position) (Olav Vitters)
+	 - Fix bug #321909 – vte does not install devhelp file
+	   (Guilherme de S. Pastore)
+	 - Apply patch from Kjartan Maraas to replace g_return* with
+	   g_assert in static functions (Guilherme de S. Pastore)
+	 - Avoid guessing the user's shell until we make sure it is
+	   really necessary (Guilherme de S. Pastore)
+	 - Disable asserts by default (Guilherme de S. Pastore)
+
 0.11.16  - Optimize memory used for fonts (Mike Hearn)
 	 - Fix crasher with accessibility (Padraig O'Briain)
 	 - Fix some warning from GDK (Michele Baldessari)

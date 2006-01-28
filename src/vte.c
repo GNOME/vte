@@ -7315,6 +7315,12 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 	return pid;
 }
 
+static char *
+get_user_shell (VteTerminal *terminal)
+{
+
+}
+
 /**
  * vte_terminal_fork_command:
  * @terminal: a #VteTerminal
@@ -7346,7 +7352,31 @@ vte_terminal_fork_command(VteTerminal *terminal,
 
 	/* Make the user's shell the default command. */
 	if (command == NULL) {
-		command = terminal->pvt->shell;
+		if (terminal->pvt->shell == NULL) {
+			struct passwd *pwd;
+
+			pwd = getpwuid(getuid());
+			if (pwd != NULL) {
+				terminal->pvt->shell = pwd->pw_shell;
+#ifdef VTE_DEBUG
+				if (_vte_debug_on(VTE_DEBUG_MISC)) {
+					fprintf(stderr,
+						"Using user's shell (%s).\n",
+						terminal->pvt->shell);
+				}
+#endif
+			}
+		}
+		if (terminal->pvt->shell == NULL) {
+			terminal->pvt->shell = "/bin/sh";
+#ifdef VTE_DEBUG
+			if (_vte_debug_on(VTE_DEBUG_MISC)) {
+				fprintf(stderr, "Using default shell (%s).\n",
+					terminal->pvt->shell);
+			}
+#endif
+		}
+		command = terminal->pvt->shell;return terminal->pvt->shell;
 	}
 
 	/* Start up the command and get the PTY of the master. */
@@ -11253,7 +11283,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 {
 	VteTerminalPrivate *pvt;
 	GtkWidget *widget;
-	struct passwd *pwd;
 	GtkAdjustment *adjustment;
 	struct timezone tz;
 	struct timeval tv;
@@ -11312,30 +11341,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	vte_terminal_set_size(terminal,
 			      pvt->default_column_count,
 			      pvt->default_row_count);
-
-	/* Determine what the user's shell is. */
-	if (pvt->shell == NULL) {
-		pwd = getpwuid(getuid());
-		if (pwd != NULL) {
-			pvt->shell = pwd->pw_shell;
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_MISC)) {
-				fprintf(stderr, "Using user's shell (%s).\n",
-					pvt->shell);
-			}
-#endif
-		}
-	}
-	if (pvt->shell == NULL) {
-		pvt->shell = "/bin/sh";
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_MISC)) {
-			fprintf(stderr, "Using default shell (%s).\n",
-				pvt->shell);
-		}
-#endif
-	}
-	pvt->shell = g_quark_to_string(g_quark_from_string(pvt->shell));
+	pvt->shell = NULL;
 	pvt->pty_master = -1;
 	pvt->pty_input = NULL;
 	pvt->pty_input_source = VTE_INVALID_SOURCE;
