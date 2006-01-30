@@ -648,9 +648,12 @@ _vte_trie_matchx(struct _vte_trie *trie, const gunichar *pattern, size_t length,
 	/* We're done searching.  Copy out any parameters we picked up. */
 	if (bestarray != NULL) {
 		for (i = 0; i < bestarray->n_values; i++) {
-			g_value_array_append(array,
-					     g_value_array_get_nth(bestarray,
-								   i));
+			GValue *value = g_value_array_get_nth(bestarray, i);
+			g_value_array_append(array, value);
+			
+			if (G_VALUE_HOLDS_POINTER(value)) {
+				g_value_set_pointer(value, NULL);
+			}
 		}
 		_vte_matcher_free_params_array(bestarray);
 	}
@@ -704,6 +707,7 @@ _vte_trie_match(struct _vte_trie *trie, const gunichar *pattern, size_t length,
 					if (ptr != NULL) {
 						g_free(ptr);
 					}
+					g_value_set_pointer(value, NULL);
 				}
 			}
 			_vte_matcher_free_params_array(valuearray);
