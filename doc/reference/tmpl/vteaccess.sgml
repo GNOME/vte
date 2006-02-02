@@ -14,9 +14,6 @@ Accessibility peer of #VteTerminal.
 
 </para>
 
-<!-- ##### SECTION Stability_Level ##### -->
-
-
 <!-- ##### STRUCT VteTerminalAccessible ##### -->
 <para>
 This should not be accessed directly.  Use the #AtkText interface instead.

@@ -14,9 +14,6 @@ A VteTerminal is a terminal emulator implemented as a GTK2 widget.
 
 </para>
 
-<!-- ##### SECTION Stability_Level ##### -->
-
-
 <!-- ##### STRUCT VteTerminal ##### -->
 <para>
 All of these fields should be considered read-only.

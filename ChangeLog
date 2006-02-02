@@ -1,3 +1,10 @@
+2006-02-01  Behdad Esfahbod  <behdad@gnome.org>
+
+	* doc/reference/tmpl/internals.sgml: Added to CVS.
+
+	* vte/src/vte.c: Fix selection vs. primary that have been
+	borked forever. Closes bug #123844.
+
 2006-01-30  Guilherme de S. Pastore  <gpastore@gnome.org>
 
 	* src/trie.c: applied patch from Tomas Mraz to fix a double

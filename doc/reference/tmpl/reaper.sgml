@@ -20,9 +20,6 @@ a proxy for glib's own functionality.
 
 </para>
 
-<!-- ##### SECTION Stability_Level ##### -->
-
-
 <!-- ##### STRUCT VteReaper ##### -->
 <para>
 This should not be accessed directly.

@@ -8564,8 +8564,11 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		case GDK_KP_Insert:
 		case GDK_Insert:
 			if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
-				vte_terminal_paste(terminal,
-						   GDK_SELECTION_PRIMARY);
+				vte_terminal_paste_clipboard(terminal);
+				handled = TRUE;
+				suppress_meta_esc = TRUE;
+			} else if (terminal->pvt->modifiers & GDK_CONTROL_MASK) {
+				vte_terminal_copy_clipboard(terminal);
 				handled = TRUE;
 				suppress_meta_esc = TRUE;
 			}
@@ -9640,12 +9643,8 @@ static void
 vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 {
 	GtkClipboard *clipboard;
-	GtkTargetEntry targets[] = {
-		{"UTF8_STRING", 0, 0},
-		{"COMPOUND_TEXT", 0, 0},
-		{"TEXT", 0, 0},
-		{"STRING", 0, 0},
-	};
+	static GtkTargetEntry *targets = NULL;
+	static gint n_targets = 0;
 
 	g_assert(VTE_IS_TERMINAL(terminal));
 	clipboard = vte_terminal_clipboard_get(terminal, board);
@@ -9671,12 +9670,30 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 			fprintf(stderr, "Assuming ownership of selection.\n");
 		}
 #endif
+		if (!targets) {
+			GtkTargetList *list;
+			GList *l;
+			int i;
+
+			list = gtk_target_list_new (NULL, 0);
+			gtk_target_list_add_text_targets (list, 0);
+			
+			n_targets = g_list_length (list->list);
+			targets = g_new0 (GtkTargetEntry, n_targets);
+			for (l = list->list, i = 0; l; l = l->next, i++) {
+				GtkTargetPair *pair = (GtkTargetPair *)l->data;
+				targets[i].target = gdk_atom_name (pair->target);
+			}
+			gtk_target_list_unref (list);
+		}
+
 		gtk_clipboard_set_with_owner(clipboard,
 					     targets,
-					     G_N_ELEMENTS(targets),
+					     n_targets,
 					     vte_terminal_copy_cb,
 					     vte_terminal_clear_cb,
 					     G_OBJECT(terminal));
+		gtk_clipboard_set_can_store(clipboard, NULL, 0);
 	}
 }
 
@@ -10552,8 +10569,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 				if (terminal->pvt->has_selection &&
 				    !terminal->pvt->selecting_restart &&
 				    terminal->pvt->selecting_had_delta) {
-					vte_terminal_copy(terminal,
-							  GDK_SELECTION_PRIMARY);
+					vte_terminal_copy_primary(terminal);
 				}
 				terminal->pvt->selecting = FALSE;
 				handled = TRUE;
@@ -14780,7 +14796,12 @@ vte_terminal_copy_clipboard(VteTerminal *terminal)
 		fprintf(stderr, "Copying to CLIPBOARD.\n");
 	}
 #endif
-	vte_terminal_copy(terminal, GDK_SELECTION_CLIPBOARD);
+	if (terminal->pvt->selection != NULL) {
+		GtkClipboard *clipboard;
+		clipboard = vte_terminal_clipboard_get(terminal,
+						       GDK_SELECTION_CLIPBOARD);
+		gtk_clipboard_set_text(clipboard, terminal->pvt->selection, -1);
+	}
 }
 
 /**
@@ -14789,8 +14810,8 @@ vte_terminal_copy_clipboard(VteTerminal *terminal)
  *
  * Sends the contents of the #GDK_SELECTION_CLIPBOARD selection to the
  * terminal's child.  If necessary, the data is converted from UTF-8 to the
- * terminal's current encoding.
- *
+ * terminal's current encoding. It's called on paste menu item, or when
+ * user presses Shift+Insert.
  */
 void
 vte_terminal_paste_clipboard(VteTerminal *terminal)
@@ -14832,7 +14853,7 @@ vte_terminal_copy_primary(VteTerminal *terminal)
  * child.  If necessary, the data is converted from UTF-8 to the terminal's
  * current encoding.  The terminal will call also paste the
  * #GDK_SELECTION_PRIMARY selection when the user clicks with the the second
- * mouse button or presses Shift+Insert.
+ * mouse button.
  *
  */
 void
@@ -15865,8 +15886,7 @@ _vte_terminal_select_text(VteTerminal *terminal, long start_x, long start_y, lon
 	terminal->pvt->selection_start.y = start_y;
 	terminal->pvt->selection_end.x = end_x;
 	terminal->pvt->selection_end.y = end_y;
-	vte_terminal_copy(terminal,
-			  GDK_SELECTION_PRIMARY);
+	vte_terminal_copy_primary(terminal);
 	vte_invalidate_cells (terminal, 0,
 			      terminal->column_count,
 			      MIN (start_y, end_y),

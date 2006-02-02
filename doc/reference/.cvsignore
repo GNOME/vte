@@ -10,6 +10,7 @@ tmpl-build.stamp
 tmpl.stamp
 vte-decl-list.txt
 vte-decl.txt
+vte-overrides.txt
 vte-undocumented.txt
 vte-unused.txt
 vte.args

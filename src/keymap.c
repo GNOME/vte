@@ -1253,7 +1253,7 @@ static gboolean
 _vte_keymap_key_gets_modifiers(guint keyval)
 {
 	gboolean fkey = FALSE;
-	/* Determine if this is just a modifier key. */
+	/* Determine if this key gets modifiers. */
 	switch (keyval) {
 	case GDK_Up:
 	case GDK_Down:
