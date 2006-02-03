@@ -1,5 +1,12 @@
 2006-02-03  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c: Warning cleanup.  A couple were actually bugs.
+
+	* src/vteapp.c: No need to run $SHELL by default.  Handled
+	by vte.c now.  A bug was causing nothing to be run...
+
+2006-02-03  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/debug.c, src/debug.h, src/matcher.c: Add the debug
 	flag TRIE for printing out the trie (previous was using
 	MISC.)

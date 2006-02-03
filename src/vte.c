@@ -696,8 +696,6 @@ static void
 vte_terminal_scroll_region(VteTerminal *terminal,
 			   long row, glong count, glong delta)
 {
-	glong height;
-
 	if ((delta == 0) || (count == 0)) {
 		/* Shenanigans! */
 		return;
@@ -1881,7 +1879,7 @@ vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 	if (terminal->adjustment->step_increment != 1) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_IO)) {
-			fprintf(stderr, "Changing step increment from %ld to %ld\n",
+			fprintf(stderr, "Changing step increment from %lf to %ld\n",
 				terminal->adjustment->step_increment,
 				terminal->row_count);
 
@@ -7368,15 +7366,25 @@ vte_terminal_fork_command(VteTerminal *terminal,
 			}
 		}
 		if (terminal->pvt->shell == NULL) {
-			terminal->pvt->shell = "/bin/sh";
+			if (getenv ("SHELL")) {
+				terminal->pvt->shell = getenv ("SHELL");
 #ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_MISC)) {
-				fprintf(stderr, "Using default shell (%s).\n",
-					terminal->pvt->shell);
-			}
+				if (_vte_debug_on(VTE_DEBUG_MISC)) {
+					fprintf(stderr, "Using $SHELL shell (%s).\n",
+						terminal->pvt->shell);
+				}
 #endif
+			} else {
+				terminal->pvt->shell = "/bin/sh";
+#ifdef VTE_DEBUG
+				if (_vte_debug_on(VTE_DEBUG_MISC)) {
+					fprintf(stderr, "Using default shell (%s).\n",
+						terminal->pvt->shell);
+				}
+#endif
+			}
 		}
-		command = terminal->pvt->shell;return terminal->pvt->shell;
+		command = terminal->pvt->shell;
 	}
 
 	/* Start up the command and get the PTY of the master. */
@@ -15977,7 +15985,6 @@ need_processing (VteTerminal *terminal)
 static gboolean
 display_timeout (gpointer data)
 {
-	gboolean cont;
 	VteTerminal *terminal = data;
 
 	if (need_processing (terminal) && 
@@ -15999,7 +16006,6 @@ display_timeout (gpointer data)
 static gboolean
 coalesce_timeout (gpointer data)
 {
-	gboolean cont;
 	VteTerminal *terminal = data;
 
 	if (need_processing (terminal) &&
