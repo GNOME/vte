@@ -404,7 +404,7 @@ main(int argc, char **argv)
 	const char *message = "Launching interactive shell...\r\n";
 	const char *font = NULL;
 	const char *terminal = NULL;
-	const char *command = NULL;
+	const char *command = getenv ("SHELL");
 	const char *working_directory = NULL;
 	char **argv2;
 	int opt;

@@ -1,3 +1,17 @@
+2006-02-03  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/debug.c, src/debug.h, src/matcher.c: Add the debug
+	flag TRIE for printing out the trie (previous was using
+	MISC.)
+
+	* src/vte.c (vte_invalidate_cells): Update row_count and
+	column_count when clamping their respective _start values.
+
+	* src/vte.c (vte_terminal_extend_selection, _vte_terminal_select_text): 
+	Pass row_count to vte_invalidate_cells(), instead of row_stop.
+
+	* src/vteapp.c: Run $SHELL by default.
+
 2006-02-01  Behdad Esfahbod  <behdad@gnome.org>
 
 	* doc/reference/tmpl/internals.sgml: Added to CVS.

@@ -41,22 +41,22 @@ struct _vte_draw_impl
 #ifndef X_DISPLAY_MISSING
 #ifdef HAVE_XFT2
 	&_vte_draw_xft,
-#endif
-#endif
+#endif /* HAVE_XFT2 */
+#endif /* !X_DISPLAY_MISSING */
 	&_vte_draw_ft2,
 #if GTK_CHECK_VERSION(2,2,0)
 #ifndef X_DISPLAY_MISSING
 #ifdef HAVE_GL
 	&_vte_draw_gl,
-#endif
-#endif
-#endif
+#endif /* HAVE_GL */
+#endif /* !X_DISPLAY_MISSING */
+#endif /* GTK_CHECK_VERSION(2,2,0) */
 	&_vte_draw_pango,
 #ifndef X_DISPLAY_MISSING
 #ifdef HAVE_PANGOX
 	&_vte_draw_pango_x,
-#endif
-#endif
+#endif /* HAVE_PANGOX */
+#endif /* !X_DISPLAY_MISSING */
 };
 
 struct _vte_draw *

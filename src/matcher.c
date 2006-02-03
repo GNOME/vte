@@ -128,7 +128,7 @@ _vte_matcher_init(struct _vte_matcher *matcher, char *emulation,
 	}
 
 #ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
+	if (_vte_debug_on(VTE_DEBUG_TRIE)) {
 		fprintf(stderr, "Trie contents:\n");
 		_vte_matcher_print(matcher);
 		fprintf(stderr, "\n");

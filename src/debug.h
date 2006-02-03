@@ -40,7 +40,8 @@ typedef enum {
 	VTE_DEBUG_PTY		= 1 << 9,
 	VTE_DEBUG_CURSOR	= 1 << 10,
 	VTE_DEBUG_KEYBOARD	= 1 << 11,
-	VTE_DEBUG_LIFECYCLE	= 1 << 12
+	VTE_DEBUG_LIFECYCLE	= 1 << 12,
+	VTE_DEBUG_TRIE		= 1 << 13
 } VteDebugFlags;
 
 void _vte_debug_parse_string(const char *string);

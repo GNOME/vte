@@ -605,6 +605,7 @@ vte_invalidate_cells(VteTerminal *terminal,
 {
 	GdkRectangle rect;
 	GtkWidget *widget;
+	gint i;
 
 	g_assert(VTE_IS_TERMINAL(terminal));
 	widget = GTK_WIDGET(terminal);
@@ -621,8 +622,13 @@ vte_invalidate_cells(VteTerminal *terminal,
 	row_start -= terminal->pvt->screen->scroll_delta;
 
 	/* Clamp the start values to reasonable numbers. */
-	column_start = (column_start > 0) ? column_start : 0;
+	i = row_start;
 	row_start = (row_start > 0) ? row_start : 0;
+	row_count = (i + row_count) - row_start;
+
+	i = column_start;
+	column_start = (column_start > 0) ? column_start : 0;
+	column_count = (i + column_count) - column_start;
 
 	/* Convert the column and row start and end to pixel values
 	 * by multiplying by the size of a character cell. */
@@ -2254,7 +2260,7 @@ vte_sequence_handler_al(VteTerminal *terminal,
 		rowdata = _vte_ring_index(screen->row_data,
 					  VteRowData *, start);
 		g_assert(rowdata != NULL);
-		/* Add enough cells to it so that it has the default colors. */
+		/* Add enough cells to it so that it has the default columns. */
 		vte_g_array_fill(rowdata->cells, &screen->fill_defaults,
 				 terminal->column_count);
 		/* Adjust the scrollbars if necessary. */
@@ -7315,12 +7321,6 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 	return pid;
 }
 
-static char *
-get_user_shell (VteTerminal *terminal)
-{
-
-}
-
 /**
  * vte_terminal_fork_command:
  * @terminal: a #VteTerminal
@@ -10094,7 +10094,9 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 				     terminal->column_count,
 				     MIN(old_start.y,
 					 terminal->pvt->selection_start.y),
-				     ABS(old_start.y -
+				     MAX(old_start.y,
+					 terminal->pvt->selection_start.y) -
+				     MIN(old_start.y,
 					 terminal->pvt->selection_start.y) + 1);
 	}
 	if ((old_end.x != terminal->pvt->selection_end.x) ||
@@ -10111,7 +10113,9 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 				     terminal->column_count,
 				     MIN(old_end.y,
 					 terminal->pvt->selection_end.y),
-				     ABS(old_end.y -
+				     MAX(old_end.y,
+					 terminal->pvt->selection_end.y) -
+				     MIN(old_end.y,
 					 terminal->pvt->selection_end.y) + 1);
 	}
 	if (invalidate_selected) {
@@ -15890,7 +15894,8 @@ _vte_terminal_select_text(VteTerminal *terminal, long start_x, long start_y, lon
 	vte_invalidate_cells (terminal, 0,
 			      terminal->column_count,
 			      MIN (start_y, end_y),
-			      ABS (start_y - end_y) + 1);
+			      MAX (start_y, end_y) -
+			      MIN (start_y, end_y) + 1);
 
 	vte_terminal_emit_selection_changed(terminal);
 }
