@@ -117,12 +117,20 @@ destroy_and_quit(GtkWidget *widget, gpointer data)
 static void
 destroy_and_quit_eof(GtkWidget *widget, gpointer data)
 {
-	g_print("Detected EOF.\n");
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_MISC)) {
+		g_print("Detected EOF.\n");
+	}
+#endif
 }
 static void
 destroy_and_quit_exited(GtkWidget *widget, gpointer data)
 {
-	g_print("Detected child exit.\n");
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_MISC)) {
+		g_print("Detected child exit.\n");
+	}
+#endif
 	destroy_and_quit(widget, data);
 }
 

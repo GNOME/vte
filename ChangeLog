@@ -1,3 +1,8 @@
+2006-02-09  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vteapp.c: Make a couple debug messages conditional on
+	DEBUG_MISC.
+
 2006-02-03  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte.c: Warning cleanup.  A couple were actually bugs.
