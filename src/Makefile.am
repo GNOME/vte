@@ -83,6 +83,7 @@ libvte_la_SOURCES = \
 	vteseq.c \
 	vteseq.h \
 	vteseq-list.h \
+	vteseq-table.h \
 	vteskel.c \
 	vteskel.h \
 	vtetc.c \
@@ -311,3 +312,7 @@ ssfe_LDADD = @LDFLAGS@ @OTHERLIBS@
 xticker_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@
 xticker_SOURCES = xticker.c
 xticker_LDADD = @LIBS@ @GLIB_LIBS@
+
+vteseq-table.h: vteseq-gen.c vteseq-list.h
+	$(MAKE) vteseq-gen
+	./vteseq-gen > $@

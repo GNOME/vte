@@ -678,7 +678,7 @@ main(int argc, char **argv)
 
 	/* Set the default font. */
 	if (font == NULL) {
-		font = "Sans 12";
+		font = "Monospace 12";
 	}
 	vte_terminal_set_font_from_string_full(VTE_TERMINAL(widget),
 					       font, antialias);
