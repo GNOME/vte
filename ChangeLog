@@ -1,5 +1,9 @@
 2006-02-10  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c: Allocate terminal->pvt using GObject private data.
+
+2006-02-10  Behdad Esfahbod  <behdad@gnome.org>
+
 	Moved all sequence handler codes into a separate file.
 
 	* src/vte.c: Stuff moved to other files.

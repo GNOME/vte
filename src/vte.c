@@ -6605,6 +6605,9 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	widget = GTK_WIDGET(terminal);
 	GTK_WIDGET_SET_FLAGS(widget, GTK_CAN_FOCUS);
 
+	/* We do our own redrawing. */
+	gtk_widget_set_redraw_on_allocate (widget, FALSE);
+
 	/* Set an adjustment for the application to use to control scrolling. */
 	adjustment = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0, 0, 0, 0));
 	vte_terminal_set_scroll_adjustment(terminal, adjustment);
@@ -6620,24 +6623,14 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	terminal->char_descent = 0;
 
 	/* Initialize private data. */
-	pvt = terminal->pvt = g_malloc0(sizeof(*terminal->pvt));
+	pvt = terminal->pvt = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalPrivate);
+
+	/* We allocated zeroed memory, just fill in non-zero stuff. */
 
 	/* Load the termcap data and set up the emulation. */
-	pvt->termcap = NULL;
-	pvt->matcher = NULL;
-	pvt->termcap_path = NULL;
 	memset(&pvt->flags, 0, sizeof(pvt->flags));
-	pvt->flags.am = FALSE;
-	pvt->flags.bw = FALSE;
-	pvt->flags.LP = FALSE;
-	pvt->flags.ul = FALSE;
-	pvt->flags.xn = FALSE;
 	pvt->keypad_mode = VTE_KEYMODE_NORMAL;
 	pvt->cursor_mode = VTE_KEYMODE_NORMAL;
-	pvt->sun_fkey_mode = FALSE;
-	pvt->hp_fkey_mode = FALSE;
-	pvt->legacy_fkey_mode = FALSE;
-	pvt->vt220_fkey_mode = FALSE;
 	pvt->dec_saved = g_hash_table_new(g_direct_hash, g_direct_equal);
 	pvt->default_column_count = 80;
 	pvt->default_row_count = 24;
@@ -6649,17 +6642,12 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	vte_terminal_set_size(terminal,
 			      pvt->default_column_count,
 			      pvt->default_row_count);
-	pvt->shell = NULL;
 	pvt->pty_master = -1;
-	pvt->pty_input = NULL;
 	pvt->pty_input_source = VTE_INVALID_SOURCE;
-	pvt->pty_output = NULL;
 	pvt->pty_output_source = VTE_INVALID_SOURCE;
 	pvt->pty_pid = -1;
-	pvt->pty_reaper = NULL;
 
 	/* Set up I/O encodings. */
-	pvt->encoding = NULL;
 	pvt->iso2022 = _vte_iso2022_state_new(pvt->encoding,
 					      &_vte_terminal_codeset_changed_cb,
 					      (gpointer)terminal);
@@ -6674,55 +6662,21 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	g_assert(terminal->pvt->encoding != NULL);
 
 	/* Initialize the screens and histories. */
-	pvt->alternate_screen.row_data = NULL;
 	vte_terminal_reset_rowdata(&pvt->alternate_screen.row_data,
 				   pvt->scrollback_lines);
-	pvt->alternate_screen.cursor_current.row = 0;
-	pvt->alternate_screen.cursor_current.col = 0;
-	pvt->alternate_screen.cursor_saved.row = 0;
-	pvt->alternate_screen.cursor_saved.col = 0;
-	pvt->alternate_screen.insert_delta = 0;
-	pvt->alternate_screen.scroll_delta = 0;
 	pvt->alternate_screen.sendrecv_mode = TRUE;
-	pvt->alternate_screen.insert_mode = FALSE;
-	pvt->alternate_screen.linefeed_mode = FALSE;
-	pvt->alternate_screen.origin_mode = FALSE;
-	pvt->alternate_screen.reverse_mode = FALSE;
-	pvt->alternate_screen.status_line = FALSE;
-	pvt->alternate_screen.status_line_contents = g_string_new("");
+	pvt->alternate_screen.status_line_contents = g_string_new(NULL);
 	pvt->screen = &terminal->pvt->alternate_screen;
 	_vte_terminal_set_default_attributes(terminal);
 
-	pvt->normal_screen.row_data = NULL;
 	vte_terminal_reset_rowdata(&pvt->normal_screen.row_data,
 				   pvt->scrollback_lines);
-	pvt->normal_screen.cursor_current.row = 0;
-	pvt->normal_screen.cursor_current.col = 0;
-	pvt->normal_screen.cursor_saved.row = 0;
-	pvt->normal_screen.cursor_saved.col = 0;
-	pvt->normal_screen.insert_delta = 0;
-	pvt->normal_screen.scroll_delta = 0;
 	pvt->normal_screen.sendrecv_mode = TRUE;
-	pvt->normal_screen.insert_mode = FALSE;
-	pvt->normal_screen.linefeed_mode = FALSE;
-	pvt->normal_screen.origin_mode = FALSE;
-	pvt->normal_screen.reverse_mode = FALSE;
-	pvt->normal_screen.status_line = FALSE;
-	pvt->normal_screen.status_line_contents = g_string_new("");
+	pvt->normal_screen.status_line_contents = g_string_new(NULL);
 	pvt->screen = &terminal->pvt->normal_screen;
 	_vte_terminal_set_default_attributes(terminal);
 
 	/* Selection info. */
-	pvt->word_chars = NULL;
-	pvt->has_selection = FALSE;
-	pvt->selecting = FALSE;
-	pvt->selecting_restart = FALSE;
-	pvt->selecting_had_delta = FALSE;
-	pvt->selection = NULL;
-	pvt->selection_start.x = 0;
-	pvt->selection_start.y = 0;
-	pvt->selection_end.x = 0;
-	pvt->selection_end.y = 0;
 	vte_terminal_set_word_chars(terminal, NULL);
 
 	/* Miscellaneous options. */
@@ -6730,31 +6684,18 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	vte_terminal_set_delete_binding(terminal, VTE_ERASE_AUTO);
 	pvt->meta_sends_escape = TRUE;
 	pvt->audible_bell = TRUE;
-	pvt->visible_bell = FALSE;
-	pvt->margin_bell = FALSE;
 	pvt->bell_margin = 10;
 	pvt->allow_bold = TRUE;
 	pvt->nrc_mode = TRUE;
-	pvt->smooth_scroll = FALSE;
-	pvt->tabstops = NULL;
-	pvt->text_modified_flag = FALSE;
-	pvt->text_inserted_count = 0;
-	pvt->text_deleted_count = 0;
 	vte_terminal_set_default_tabstops(terminal);
 
 	/* Scrolling options. */
-	pvt->scroll_background = FALSE;
-	pvt->scroll_lock_count = 0;
-	pvt->scroll_on_output = FALSE;
 	pvt->scroll_on_keystroke = TRUE;
 	pvt->scrollback_lines = VTE_SCROLLBACK_MIN;
 	vte_terminal_set_scrollback_lines(terminal,
 					  terminal->pvt->scrollback_lines);
 
 	/* Cursor blinking. */
-	pvt->cursor_force_fg = 0;
-	pvt->cursor_blinks = FALSE;
-	pvt->cursor_blink_tag = 0;
 	pvt->cursor_visible = TRUE;
 	pvt->cursor_blink_timeout = 1000;
 
@@ -6764,62 +6705,28 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	} else {
 		pvt->last_keypress_time = 0;
 	}
-	pvt->mouse_send_xy_on_click = FALSE;
-	pvt->mouse_send_xy_on_button = FALSE;
-	pvt->mouse_hilite_tracking = FALSE;
-	pvt->mouse_cell_motion_tracking = FALSE;
-	pvt->mouse_all_motion_tracking = FALSE;
-	pvt->mouse_last_button = 0;
-	pvt->mouse_last_x = 0;
-	pvt->mouse_last_y = 0;
-	pvt->mouse_autohide = FALSE;
-	pvt->mouse_autoscroll_tag = 0;
 
 	/* Matching data. */
-	pvt->match_contents = NULL;
-	pvt->match_attributes = NULL;
 	pvt->match_regexes = g_array_new(FALSE, TRUE,
 					 sizeof(struct vte_match_regex));
 	pvt->match_previous = -1;
 	vte_terminal_match_hilite_clear(terminal);
 
 	/* Rendering data.  Try everything. */
-	pvt->palette_initialized = FALSE;
-	pvt->highlight_color_set = FALSE;
-	memset(&pvt->palette, 0, sizeof(pvt->palette));
 	pvt->draw = _vte_draw_new(GTK_WIDGET(terminal));
 
 	/* The font description. */
-	pvt->fontdesc = NULL;
 	pvt->fontantialias = VTE_ANTI_ALIAS_USE_DEFAULT;
-	pvt->connected_settings = NULL;
 	gtk_widget_ensure_style(widget);
 	vte_terminal_connect_xft_settings(terminal);
 	vte_terminal_set_font_full(terminal, NULL, VTE_ANTI_ALIAS_USE_DEFAULT);
 
-	/* Input method support. */
-	pvt->im_context = NULL;
-	pvt->im_preedit_active = FALSE;
-	pvt->im_preedit = NULL;
-	pvt->im_preedit_attrs = NULL;
-	pvt->im_preedit_cursor = 0;
-
-	/* Bookkeeping data for adjustment-changed signals. */
-	pvt->adjustment_changed_tag = 0;
-
 	/* Set up background information. */
-	pvt->bg_update_pending = FALSE;
-	pvt->bg_transparent = FALSE;
-	pvt->bg_pixbuf = NULL;
-	pvt->bg_file = NULL;
 	pvt->bg_update_tag = VTE_INVALID_SOURCE;
 	pvt->bg_tint_color.red = 0;
 	pvt->bg_tint_color.green = 0;
 	pvt->bg_tint_color.blue = 0;
 	pvt->bg_saturation = 0.4 * VTE_SATURATION_MAX;
-
-	/* Clear modifiers. */
-	pvt->modifiers = 0;
 
 	/* Assume we're visible unless we're told otherwise. */
 	pvt->visibility_state = GDK_VISIBILITY_UNOBSCURED;
@@ -6833,8 +6740,6 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	g_signal_connect(G_OBJECT(terminal), "style-set",
 			 G_CALLBACK(vte_terminal_style_changed),
 			 NULL);
-
-	pvt->accessible_emit = FALSE;
 
 #ifdef VTE_DEBUG
 	/* In debuggable mode, we always do this. */
@@ -7318,7 +7223,6 @@ vte_terminal_finalize(GObject *object)
 	terminal->pvt->termcap = NULL;
 
 	/* Done with our private data. */
-	g_free(terminal->pvt);
 	terminal->pvt = NULL;
 
 	/* Free public-facing data. */
@@ -9537,6 +9441,8 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 #ifdef HAVE_DECL_BIND_TEXTDOMAIN_CODESET
 	bind_textdomain_codeset(PACKAGE, "UTF-8");
 #endif
+
+	g_type_class_add_private(klass, sizeof (VteTerminalPrivate));
 
 	gobject_class = G_OBJECT_CLASS(klass);
 	widget_class = GTK_WIDGET_CLASS(klass);
