@@ -1,3 +1,14 @@
+2006-02-10  Behdad Esfahbod  <behdad@gnome.org>
+
+	Moved all sequence handler codes into a separate file.
+
+	* src/vte.c: Stuff moved to other files.
+
+	* src/vte-private.h: Includes all struct definitions from vte.c.
+
+	* src/vteseq.c, src/vteseq.h, src/vteseq-list.h: The sequence
+	handlers are all here now.
+
 2006-02-09  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vteapp.c: Make a couple debug messages conditional on

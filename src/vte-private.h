@@ -1,0 +1,385 @@
+/*
+ * Copyright (C) 2001-2004 Red Hat, Inc.
+ *
+ * This is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Library General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public
+ * License along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+#ifndef vte_vte_private_h_included
+#define vte_vte_private_h_included
+
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/stat.h>
+#ifdef HAVE_SYS_TERMIOS_H
+#include <sys/termios.h>
+#endif
+#include <sys/time.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <math.h>
+#include <pwd.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#ifdef HAVE_TERMIOS_H
+#include <termios.h>
+#endif
+#include <unistd.h>
+
+#include "vte.h"
+#include "buffer.h"
+#include "debug.h"
+#include "vteconv.h"
+#include "vtedraw.h"
+#include "reaper.h"
+#include "ring.h"
+#include "caps.h"
+
+G_BEGIN_DECLS
+
+#ident "$Id$"
+
+#define VTE_PAD_WIDTH			1
+#define VTE_TAB_WIDTH			8
+#define VTE_LINE_WIDTH			1
+#define VTE_COLOR_SET_SIZE		8
+#define VTE_COLOR_PLAIN_OFFSET		0
+#define VTE_COLOR_BRIGHT_OFFSET		8
+#define VTE_COLOR_DIM_OFFSET		16
+#define VTE_DEF_FG			24
+#define VTE_DEF_BG			25
+#define VTE_BOLD_FG			26
+#define VTE_DIM_FG			27
+#define VTE_DEF_HL			28
+#define VTE_CUR_BG			29
+#define VTE_SATURATION_MAX		10000
+#define VTE_SCROLLBACK_MIN		100
+#define VTE_DEFAULT_CURSOR		GDK_XTERM
+#define VTE_MOUSING_CURSOR		GDK_LEFT_PTR
+#define VTE_TAB_MAX			999
+#define VTE_ADJUSTMENT_PRIORITY		G_PRIORITY_DEFAULT_IDLE
+#define VTE_INPUT_RETRY_PRIORITY	G_PRIORITY_HIGH
+#define VTE_INPUT_PRIORITY		G_PRIORITY_DEFAULT_IDLE
+#define VTE_CHILD_INPUT_PRIORITY	G_PRIORITY_DEFAULT_IDLE
+#define VTE_CHILD_OUTPUT_PRIORITY	G_PRIORITY_HIGH
+#define VTE_FX_PRIORITY			G_PRIORITY_DEFAULT_IDLE
+#define VTE_REGCOMP_FLAGS		REG_EXTENDED
+#define VTE_REGEXEC_FLAGS		0
+#define VTE_INPUT_CHUNK_SIZE		0x1000
+#define VTE_INVALID_BYTE		'?'
+#define VTE_COALESCE_TIMEOUT		2
+#define VTE_DISPLAY_TIMEOUT		2
+
+/* The structure we use to hold characters we're supposed to display -- this
+ * includes any supported visible attributes. */
+struct vte_charcell {
+	gunichar c;		/* The Unicode character. */
+	guint32 columns: 11;	/* Number of visible columns (as determined
+				   by g_unicode_iswide(c)).  Use as many bits
+				   as possible without making this structure
+				   grow any larger. */
+	guint32 fragment: 1;	/* The nth fragment of a wide character. */
+	guint32 fore: 5;	/* Indices in the color palette for the */
+	guint32 back: 5;	/* foreground and background of the cell. */
+	guint32 standout: 1;	/* Single-bit attributes. */
+	guint32 underline: 1;
+	guint32 strikethrough: 1;
+	guint32 reverse: 1;
+	guint32 blink: 1;
+	guint32 half: 1;
+	guint32 bold: 1;
+	guint32 invisible: 1;
+	guint32 protect: 1;
+	guint32 alternate: 1;
+};
+
+/* A match regex, with a tag. */
+struct vte_match_regex {
+	struct _vte_regex *reg;
+	gint tag;
+	GdkCursor *cursor;
+};
+
+/* The terminal's keypad/cursor state.  A terminal can either be using the
+ * normal keypad, or the "application" keypad. */
+typedef enum _VteKeymode {
+	VTE_KEYMODE_NORMAL,
+	VTE_KEYMODE_APPLICATION
+} VteKeymode;
+
+typedef struct _VteScreen VteScreen;
+
+typedef struct _VteWordCharRange {
+	gunichar start, end;
+} VteWordCharRange;
+
+typedef struct _VteRowData {
+	GArray *cells;
+	guchar soft_wrapped: 1;
+} VteRowData;
+
+/* Terminal private data. */
+struct _VteTerminalPrivate {
+	/* Emulation setup data. */
+	struct _vte_termcap *termcap;	/* termcap storage */
+	struct _vte_matcher *matcher;	/* control sequence matcher */
+	const char *termcap_path;	/* path to termcap file */
+	const char *emulation;		/* terminal type to emulate */
+	struct vte_terminal_flags {	/* boolean termcap flags */
+		gboolean am;
+		gboolean bw;
+		gboolean LP;
+		gboolean ul;
+		gboolean xn;
+	} flags;
+	int keypad_mode, cursor_mode;	/* these would be VteKeymodes, but we
+					   need to guarantee its type */
+	gboolean sun_fkey_mode;
+	gboolean hp_fkey_mode;
+	gboolean legacy_fkey_mode;
+	gboolean vt220_fkey_mode;
+	int fkey;			/* this would be a VteFKey, but we
+					   need to guarantee its type */
+	GHashTable *dec_saved;
+	int default_column_count, default_row_count;	/* default sizes */
+
+	/* PTY handling data. */
+	const char *shell;		/* shell we started */
+	int pty_master;			/* pty master descriptor */
+	GIOChannel *pty_input;		/* master input watch */
+	guint pty_input_source;
+	GIOChannel *pty_output;		/* master output watch */
+	guint pty_output_source;
+	pid_t pty_pid;			/* pid of child using pty slave */
+	VteReaper *pty_reaper;
+
+	/* Input data queues. */
+	const char *encoding;		/* the pty's encoding */
+	struct _vte_iso2022_state *iso2022;
+	struct _vte_buffer *incoming;	/* pending bytestream */
+	GArray *pending;		/* pending characters */
+	gint coalesce_timeout;
+	gint display_timeout;
+
+	/* Output data queue. */
+	struct _vte_buffer *outgoing;	/* pending input characters */
+	VteConv outgoing_conv;
+
+	/* IConv buffer. */
+	struct _vte_buffer *conv_buffer;
+
+	/* Screen data.  We support the normal screen, and an alternate
+	 * screen, which seems to be a DEC-specific feature. */
+	struct _VteScreen {
+		VteRing *row_data;	/* row data, arranged as a GArray of
+					   vte_charcell structures */
+		struct vte_cursor_position {
+			long row, col;
+		} cursor_current, cursor_saved;
+					/* the current and saved positions of
+					   the [insertion] cursor -- current is
+					   absolute, saved is relative to the
+					   insertion delta */
+		gboolean reverse_mode;	/* reverse mode */
+		gboolean origin_mode;	/* origin mode */
+		gboolean sendrecv_mode;	/* sendrecv mode */
+		gboolean insert_mode;	/* insert mode */
+		gboolean linefeed_mode;	/* linefeed mode */
+		struct vte_scrolling_region {
+			int start, end;
+		} scrolling_region;	/* the region we scroll in */
+		gboolean scrolling_restricted;
+		long scroll_delta;	/* scroll offset */
+		long insert_delta;	/* insertion offset */
+		struct vte_charcell defaults;	/* default characteristics
+						   for insertion of any new
+						   characters */
+		struct vte_charcell color_defaults;	/* original defaults
+							   plus the current
+							   fore/back */
+		struct vte_charcell fill_defaults;	/* original defaults
+							   plus the current
+							   fore/back with no
+							   character data */
+		struct vte_charcell basic_defaults;	/* original defaults */
+		gboolean status_line;
+		GString *status_line_contents;
+	} normal_screen, alternate_screen, *screen;
+
+	/* Selection information. */
+	GArray *word_chars;
+	gboolean has_selection;
+	gboolean selecting;
+	gboolean selecting_restart;
+	gboolean selecting_had_delta;
+	char *selection;
+	enum vte_selection_type {
+		selection_type_char,
+		selection_type_word,
+		selection_type_line
+	} selection_type;
+	struct selection_event_coords {
+		double x, y;
+	} selection_origin, selection_last, selection_restart_origin;
+	struct selection_cell_coords {
+		long x, y;
+	} selection_start, selection_end;
+
+	/* Miscellaneous options. */
+	VteTerminalEraseBinding backspace_binding, delete_binding;
+	gboolean meta_sends_escape;
+	gboolean audible_bell;
+	gboolean visible_bell;
+	gboolean margin_bell;
+	guint bell_margin;
+	gboolean allow_bold;
+	gboolean nrc_mode;
+	gboolean smooth_scroll;
+	GHashTable *tabstops;
+	gboolean text_modified_flag;
+	glong text_inserted_count;
+	glong text_deleted_count;
+
+	/* Scrolling options. */
+	gboolean scroll_background;
+	long scroll_lock_count;
+	gboolean scroll_on_output;
+	gboolean scroll_on_keystroke;
+	long scrollback_lines;
+
+	/* Cursor blinking. */
+	int cursor_force_fg;
+	gboolean cursor_blinks;
+	gint cursor_blink_tag;
+	gint cursor_blink_timeout;
+	gboolean cursor_visible;
+
+	/* Input device options. */
+	time_t last_keypress_time;
+	gboolean mouse_send_xy_on_click;
+	gboolean mouse_send_xy_on_button;
+	gboolean mouse_hilite_tracking;
+	gboolean mouse_cell_motion_tracking;
+	gboolean mouse_all_motion_tracking;
+	guint mouse_last_button;
+	gdouble mouse_last_x, mouse_last_y;
+	gboolean mouse_autohide;
+	guint mouse_autoscroll_tag;
+
+	/* State variables for handling match checks. */
+	char *match_contents;
+	GArray *match_attributes;
+	GArray *match_regexes;
+	int match_previous;
+	struct {
+		long row, column;
+	} match_start, match_end;
+
+	/* Data used when rendering the text which does not require server
+	 * resources and which can be kept after unrealizing. */
+	PangoFontDescription *fontdesc;
+	VteTerminalAntiAlias fontantialias;
+	GtkSettings *connected_settings;
+
+	/* Data used when rendering the text which reflects server resources
+	 * and data, which should be dropped when unrealizing and (re)created
+	 * when realizing. */
+	struct _vte_draw *draw;
+
+	gboolean palette_initialized;
+	gboolean highlight_color_set;
+	gboolean cursor_color_set;
+	struct vte_palette_entry {
+		guint16 red, green, blue;
+	} palette[VTE_CUR_BG + 1];
+
+	/* Mouse cursors. */
+	gboolean mouse_cursor_visible;
+	GdkCursor *mouse_default_cursor,
+		  *mouse_mousing_cursor,
+		  *mouse_inviso_cursor;
+
+	/* Input method support. */
+	GtkIMContext *im_context;
+	gboolean im_preedit_active;
+	char *im_preedit;
+	PangoAttrList *im_preedit_attrs;
+	int im_preedit_cursor;
+
+	gboolean accessible_emit;
+
+	/* Adjustment updates pending. */
+	gboolean adjustment_changed_tag;
+
+	/* Background images/"transparency". */
+	gboolean bg_update_pending;
+	gboolean bg_transparent;
+	GdkPixbuf *bg_pixbuf;
+	char *bg_file;
+	guint bg_update_tag;
+	GdkColor bg_tint_color;
+	long bg_saturation;	/* out of VTE_SATURATION_MAX */
+
+	/* Key modifiers. */
+	GdkModifierType modifiers;
+
+	/* Obscured? state. */
+	GdkVisibilityState visibility_state;
+};
+
+
+void _vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current);
+void _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible);
+void _vte_invalidate_all(VteTerminal *terminal);
+void _vte_invalidate_cells(VteTerminal *terminal,
+			   glong column_start, gint column_count,
+			   glong row_start, gint row_count);
+void _vte_invalidate_cursor_once(gpointer data, gboolean periodic);
+VteRowData * _vte_new_row_data(VteTerminal *terminal);
+VteRowData * _vte_new_row_data_sized(VteTerminal *terminal, gboolean fill);
+void _vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate);
+void _vte_terminal_emit_contents_changed(VteTerminal *terminal);
+void _vte_terminal_emit_status_line_changed(VteTerminal *terminal);
+void _vte_terminal_emit_text_deleted(VteTerminal *terminal);
+void _vte_terminal_emit_text_inserted(VteTerminal *terminal);
+void _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
+			       gboolean force_insert_mode,
+			       gboolean invalidate_cells,
+			       gboolean paint_cells,
+			       gboolean ensure_after,
+			       gint forced_width);
+void _vte_terminal_match_contents_clear(VteTerminal *terminal);
+void _vte_terminal_scroll_region(VteTerminal *terminal,
+				 long row, glong count, glong delta);
+void _vte_terminal_set_default_attributes(VteTerminal *terminal);
+void _vte_terminal_clear_tabstop(VteTerminal *terminal, int column);
+gboolean _vte_terminal_get_tabstop(VteTerminal *terminal, int column);
+void _vte_terminal_set_tabstop(VteTerminal *terminal, int column);
+void _vte_terminal_update_insert_delta(VteTerminal *terminal);
+
+
+#ifdef ENABLE_NLS
+#include <libintl.h>
+#define _(String) dgettext(PACKAGE, String)
+#else
+#define _(String) String
+#define bindtextdomain(package,dir)
+#endif
+
+G_END_DECLS
+
+#endif

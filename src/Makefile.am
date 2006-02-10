@@ -52,6 +52,7 @@ libvte_la_SOURCES = \
 	trie.h \
 	vte.c \
 	vte.h \
+	vte-private.h \
 	vteaccess.c \
 	vteaccess.h \
 	vtebg.c \
@@ -79,6 +80,9 @@ libvte_la_SOURCES = \
 	vteregex.h \
 	vtergb.c \
 	vtergb.h \
+	vteseq.c \
+	vteseq.h \
+	vteseq-list.h \
 	vteskel.c \
 	vteskel.h \
 	vtetc.c \
