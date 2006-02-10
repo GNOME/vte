@@ -220,6 +220,9 @@ struct _VteTerminalPrivate {
 		GString *status_line_contents;
 	} normal_screen, alternate_screen, *screen;
 
+	GdkRegion *update_region;
+	gint update_timer;
+
 	/* Selection information. */
 	GArray *word_chars;
 	gboolean has_selection;

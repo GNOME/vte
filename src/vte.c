@@ -190,6 +190,34 @@ _vte_terminal_set_default_attributes(VteTerminal *terminal)
 	terminal->pvt->screen->fill_defaults = terminal->pvt->screen->defaults;
 }
 
+static gboolean
+vte_update_timeout(VteTerminal *terminal)
+{
+	terminal->pvt->update_timer = 0;
+	if (terminal->pvt->update_region) {
+		gdk_window_invalidate_region(GTK_WIDGET(terminal)->window,
+					     terminal->pvt->update_region, FALSE);
+		gdk_region_destroy (terminal->pvt->update_region);
+		terminal->pvt->update_region = NULL;
+	}
+
+	return FALSE;
+}
+
+static void
+vte_free_update_timer (VteTerminal *terminal)
+{
+	if (terminal->pvt->update_timer) {
+		g_source_remove (terminal->pvt->update_timer);
+		terminal->pvt->update_timer = 0;
+	}
+
+	if (terminal->pvt->update_region) {
+		gdk_region_destroy (terminal->pvt->update_region);
+		terminal->pvt->update_region = NULL;
+	}
+}
+
 /* Cause certain cells to be repainted. */
 void
 _vte_invalidate_cells(VteTerminal *terminal,
@@ -249,8 +277,20 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		rect.height += VTE_PAD_WIDTH;
 	}
 
-	/* Invalidate the rectangle. */
-	gdk_window_invalidate_rect(widget->window, &rect, FALSE);
+	if (terminal->pvt->update_timer) {
+		if (!terminal->pvt->update_region)
+			terminal->pvt->update_region = gdk_region_rectangle (&rect);
+		else
+			gdk_region_union_with_rect (terminal->pvt->update_region, &rect);
+	} else {
+		/* Invalidate the rectangle. */
+		gdk_window_invalidate_rect(widget->window, &rect, FALSE);
+
+		/* Set a timer such that we do not invalidate for a while. */
+		/* This limits the number of times we draw to 40fps. */
+		terminal->pvt->update_timer = g_timeout_add (25, vte_update_timeout, terminal);
+	}
+
 }
 
 /* Redraw the entire visible portion of the window. */
@@ -271,6 +311,10 @@ _vte_invalidate_all(VteTerminal *terminal)
 	}
 	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
 		return;
+	}
+
+	if (terminal->pvt->update_timer) {
+		vte_free_update_timer (terminal);
 	}
 
 	/* Expose the entire widget area. */
@@ -7221,6 +7265,10 @@ vte_terminal_finalize(GObject *object)
 	}
 	_vte_termcap_free(terminal->pvt->termcap);
 	terminal->pvt->termcap = NULL;
+
+	if (terminal->pvt->update_timer) {
+		vte_free_update_timer (terminal);
+	}
 
 	/* Done with our private data. */
 	terminal->pvt = NULL;

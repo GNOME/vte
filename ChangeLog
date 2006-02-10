@@ -1,5 +1,10 @@
 2006-02-10  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c (_vte_invalidate_cells): Throttle invalidating to at most
+	40 times per second, using a timeout.
+
+2006-02-10  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vteseq.c: Removed the huge sequence handler table.  Changed to
 	use the compact tables in vteseq-table.h.
 
