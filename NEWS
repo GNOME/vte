@@ -1,3 +1,17 @@
+0.11.18	 - Fix bug #317235 - Use U+FFFD instead of U-FFFF for invalid
+	   codepoints. (Egmont Koblinger)
+	 - Modernized the build system.  Depending on gnome-common  for
+	   autogen.sh now and make distcheck works.
+	 - Limit redrawings to a maximum of 40fps.  Makes vte run about
+	   three times faster.
+	 - Use GObject private data internally. (Behdad)
+	 - Optimize the sequence handler code and split it into a
+	   separate file. (Behdad)
+	 - Fix bug #123844 - primary and clipboard selections are broken.
+	   (Behdad)
+	 - Fix bug #161337 - double free. (Guilherme de S. Pastore)
+	 - Code cleanup and misc fixes. (Behdad)
+
 0.11.17  - Revert .pc changes from previous release (Olav Vitters)
 	 - Fix bug #170032 - gnome-terminal has problems with ANSI
 	   (save and restore cursor position) (Olav Vitters)

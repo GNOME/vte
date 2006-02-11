@@ -1,5 +1,13 @@
 2006-02-11  Behdad Esfahbod  <behdad@gnome.org>
 
+	Released vte-0.11.18.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.11.18.
+
+2006-02-11  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/iso2022.c: Change INVALID_CODEPOINT from 0xFFFF to 0xFFFD.
 	(bug #317235, Egmont Koblinger)
 
