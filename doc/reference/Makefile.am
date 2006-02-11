@@ -58,4 +58,6 @@ MKDB_OPTIONS=--sgml-mode --output-format=xml
 # Extra options to supply to gtkdoc-fixref
 FIXXREF_OPTIONS=
 
+MAINTAINERCLEANFILES = vte-overrides.txt vte-undocumented.txt
+
 include $(top_srcdir)/gtk-doc.make
