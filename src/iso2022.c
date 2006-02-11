@@ -55,7 +55,7 @@
 /* Fudge factor we add to wide map identifiers to keep them distinct. */
 #define WIDE_FUDGE	0x100000
 /* An invalid codepoint. */
-#define INVALID_CODEPOINT 0xFFFF
+#define INVALID_CODEPOINT 0xFFFD
 
 struct _vte_iso2022_map {
 	gulong from;
