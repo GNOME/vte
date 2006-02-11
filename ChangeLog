@@ -1,3 +1,7 @@
+2006-02-11  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vte.c (_vte_invalidate_cells): Guard more against off values.
+
 2006-02-10  Behdad Esfahbod  <behdad@gnome.org>
 
 	Update the build infrastructure.  make distcheck works now!

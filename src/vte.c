@@ -243,13 +243,13 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	row_start -= terminal->pvt->screen->scroll_delta;
 
 	/* Clamp the start values to reasonable numbers. */
-	i = row_start;
-	row_start = (row_start > 0) ? row_start : 0;
-	row_count = (i + row_count) - row_start;
+	i = MIN (row_start + row_count, terminal->row_count);
+	row_start = MAX (0, row_start);
+	row_count = MAX (0, i - row_start);
 
-	i = column_start;
-	column_start = (column_start > 0) ? column_start : 0;
-	column_count = (i + column_count) - column_start;
+	i = MIN (column_start + column_count, terminal->column_count);
+	column_start = MAX (0, column_start);
+	column_count = MAX (0, i - column_start);
 
 	/* Convert the column and row start and end to pixel values
 	 * by multiplying by the size of a character cell. */
@@ -267,7 +267,7 @@ _vte_invalidate_cells(VteTerminal *terminal,
 
 	rect.y = row_start * terminal->char_height + VTE_PAD_WIDTH;
 	rect.height = row_count * terminal->char_height;
-	if (rect.y == 0) {
+	if (row_start == 0) {
 		/* Include the top border. */
 		rect.y -= VTE_PAD_WIDTH;
 		rect.height += VTE_PAD_WIDTH;
