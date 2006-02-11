@@ -40,3 +40,23 @@ srpm: $(top_srcdir)/$(PACKAGE)-$(VERSION).tar.gz
 	rpmbuild -ts $(top_srcdir)/$(PACKAGE)-$(VERSION).tar.gz
 
 DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc
+
+MAINTAINERCLEANFILES = \
+		$(srcdir)/INSTALL \
+		$(srcdir)/aclocal.m4 \
+		$(srcdir)/autoscan.log \
+		$(srcdir)/compile \
+		$(srcdir)/config.guess \
+		$(srcdir)/config.h.in \
+		$(srcdir)/config.sub \
+		$(srcdir)/configure \
+		$(srcdir)/configure.scan \
+		$(srcdir)/depcomp \
+		$(srcdir)/install-sh \
+		$(srcdir)/ltmain.sh \
+		$(srcdir)/missing \
+		$(srcdir)/mkinstalldirs \
+		$(srcdir)/omf.make \
+		$(srcdir)/xmldocs.make \
+		$(srcdir)/gtk-doc.make \
+		`find "$(srcdir)" -type f -name Makefile.in -print`

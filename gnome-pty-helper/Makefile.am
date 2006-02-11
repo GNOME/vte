@@ -13,3 +13,12 @@ gnome_pty_helper_SOURCES = \
 install-exec-hook:
 	chown root.utmp $(DESTDIR)$(libexecdir)/gnome-pty-helper || true
 	chmod g+s       $(DESTDIR)$(libexecdir)/gnome-pty-helper || true
+
+MAINTAINERCLEANFILES = \
+		$(srcdir)/INSTALL \
+		$(srcdir)/aclocal.m4 \
+		$(srcdir)/config.h.in \
+		$(srcdir)/configure \
+		$(srcdir)/omf.make \
+		$(srcdir)/xmldocs.make \
+		`find "$(srcdir)" -type f -name Makefile.in -print`
