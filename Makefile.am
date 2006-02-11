@@ -38,3 +38,5 @@ archive:
 
 srpm: $(top_srcdir)/$(PACKAGE)-$(VERSION).tar.gz
 	rpmbuild -ts $(top_srcdir)/$(PACKAGE)-$(VERSION).tar.gz
+
+DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc

@@ -6,6 +6,7 @@ pkglib_SCRIPTS = decset osc window
 noinst_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-vte $(REFLECT_ZVT) ring mev ssfe table trie xticker vteconv vtetc
 EXTRA_DIST = \
 	$(pkglib_SCRIPTS) \
+	vteseq-gen.c \
 	genkeysyms.py \
 	iso2022.txt \
 	marshal.list \

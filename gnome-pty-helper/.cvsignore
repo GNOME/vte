@@ -10,3 +10,5 @@ config.status
 configure
 gnome-pty-helper
 stamp-h1
+omf.make
+xmldocs.make

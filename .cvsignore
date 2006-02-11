@@ -22,3 +22,8 @@ install-sh
 ltmain.sh
 missing
 mkinstalldirs
+gtk-doc.make
+omf.make
+vte.spec
+xmldocs.make
+
