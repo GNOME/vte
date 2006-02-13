@@ -3919,9 +3919,15 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		case GDK_KP_Insert:
 		case GDK_Insert:
 			if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
-				vte_terminal_paste_clipboard(terminal);
-				handled = TRUE;
-				suppress_meta_esc = TRUE;
+				if (terminal->pvt->modifiers & GDK_CONTROL_MASK) {
+					vte_terminal_paste_primary(terminal);
+					handled = TRUE;
+					suppress_meta_esc = TRUE;
+				} else {
+					vte_terminal_paste_clipboard(terminal);
+					handled = TRUE;
+					suppress_meta_esc = TRUE;
+				}
 			} else if (terminal->pvt->modifiers & GDK_CONTROL_MASK) {
 				vte_terminal_copy_clipboard(terminal);
 				handled = TRUE;
