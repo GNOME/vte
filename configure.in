@@ -35,8 +35,8 @@ if test "$have_x" = yes ; then
 		X_LIBS="-L$ac_x_libraries $X_LIBS"
 	fi
 fi
-CFLAGS="$X_CFLAGS $CFLAGS"
-LIBS="$X_LIBS $LIBS"
+AC_SUBST(X_CFLAGS)
+AC_SUBST(X_LIBS)
 
 if pkg-config --exists "gtk+-2.0 >= 2.2" ; then
 	MODULEGTK="gtk+-2.0 >= 2.2"
