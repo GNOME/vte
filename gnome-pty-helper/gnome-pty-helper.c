@@ -98,7 +98,7 @@ static struct cmsghdr *cmptr;
 static int CONTROLLEN;
 
 static int
-init_msg_pass ()
+init_msg_pass (void)
 {
 	CONTROLLEN = (CMSG_DATA (cmptr) - (unsigned char *)cmptr) + sizeof(int);
 	cmptr = malloc (CONTROLLEN);
@@ -655,11 +655,12 @@ sanity_checks (void)
 	}
 }
 
+static gboolean done;
+
 static void
 exit_handler (int signum)
 {
-	shutdown_helper ();
-	_exit (1);
+	done = TRUE;
 }
 
 
@@ -684,6 +685,8 @@ main (int argc, char *argv [])
 	if (!display_name)
 		display_name = "localhost";
 
+	done = FALSE;
+
 	/* Make sure we clean up utmp/wtmp even under vncserver */
 	signal (SIGHUP, exit_handler);
 	signal (SIGTERM, exit_handler);
@@ -691,12 +694,12 @@ main (int argc, char *argv [])
 	if (init_msg_pass () == -1)
 		exit (1);
 
-	for (;;) {
+	while (!done) {
 		res = n_read (STDIN_FILENO, &op, sizeof (op));
 
 		if (res != sizeof (op)) {
-			shutdown_helper ();
-			return 1;
+			done = TRUE;
+			continue;
 		}
 
 		switch (op) {
@@ -739,7 +742,7 @@ main (int argc, char *argv [])
 			n = n_read (STDIN_FILENO, &tag, sizeof (tag));
 			if (n != sizeof (tag)) {
 				shutdown_helper ();
-				return 1;
+				exit (1);
 			}
 			close_pty_pair (tag);
 			break;
@@ -747,6 +750,7 @@ main (int argc, char *argv [])
 
 	}
 
+	shutdown_helper ();
 	return 0;
 }
 

@@ -1,5 +1,11 @@
 2006-02-13  Behdad Esfahbod  <behdad@gnome.org>
 
+	* gnome-pty-helper/gnome-pty-helper.c: Fix race condition when
+	shutdown_helper may be called again from the signal handler when
+	it's already running. (bug #331056)
+
+2006-02-13  Behdad Esfahbod  <behdad@gnome.org>
+
 	* configure.in: Do not prepend X_LIBS and X_CFLAGS to LIBS and
 	CFLAGS. (bug #331021, Sylvain BERTRAND)
 
