@@ -1,5 +1,10 @@
 2006-02-13  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c (update_timeout): Only discontinue timer if nothing
+	was updated in the last cycle.
+
+2006-02-13  Behdad Esfahbod  <behdad@gnome.org>
+
 	* gnome-pty-helper/gnome-pty-helper.c: Fix race condition when
 	shutdown_helper may be called again from the signal handler when
 	it's already running. (bug #331056)

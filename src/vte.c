@@ -193,15 +193,19 @@ _vte_terminal_set_default_attributes(VteTerminal *terminal)
 static gboolean
 vte_update_timeout(VteTerminal *terminal)
 {
-	terminal->pvt->update_timer = 0;
+	/* We only stop the timer if no update request was received in this
+	 * past cycle.
+	 */
 	if (terminal->pvt->update_region) {
 		gdk_window_invalidate_region(GTK_WIDGET(terminal)->window,
 					     terminal->pvt->update_region, FALSE);
 		gdk_region_destroy (terminal->pvt->update_region);
 		terminal->pvt->update_region = NULL;
+	} else {
+		terminal->pvt->update_timer = 0;
 	}
 
-	return FALSE;
+	return terminal->pvt->update_timer ? TRUE : FALSE;
 }
 
 static void
