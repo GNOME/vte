@@ -502,4 +502,6 @@ main (void)
 	    handler_index_names[vte_sequence_handlers[i].handler],
 	    vte_sequence_handlers[i].code);
   printf ("};\n\n");
+
+  return 0;
 }

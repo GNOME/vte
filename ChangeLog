@@ -1,5 +1,9 @@
 2006-02-14  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vteseq-gen.c (main): Return 0.  (bug #331178)
+
+2006-02-14  Behdad Esfahbod  <behdad@gnome.org>
+
 	* gnome-pty-helper/gnome-pty-helper.c (main): Use getpwnam to
 	correctly log multiple users with the same UID. (bug #319564,
 	patch from Laszlo (Laca) Peter.
