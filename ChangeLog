@@ -1,3 +1,9 @@
+2006-02-14  Behdad Esfahbod  <behdad@gnome.org>
+
+	* gnome-pty-helper/gnome-pty-helper.c (main): Use getpwnam to
+	correctly log multiple users with the same UID. (bug #319564,
+	patch from Laszlo (Laca) Peter.
+
 2006-02-13  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte.c (update_timeout): Only discontinue timer if nothing

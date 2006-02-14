@@ -670,10 +670,24 @@ main (int argc, char *argv [])
 	int res, n;
 	void *tag;
 	GnomePtyOps op;
+	const char *logname;
 
 	sanity_checks ();
 
-	pwent = getpwuid (getuid ());
+	pwent = NULL;
+
+	logname = getenv ("LOGNAME");
+	if (logname != NULL) {
+		pwent = getpwnam (logname);
+		if (pwent != NULL && pwent->pw_uid != getuid ()) {
+			/* LOGNAME is lying, fall back to looking up the uid */
+			pwent = NULL;
+		}
+	}
+
+	if (pwent == NULL)
+		pwent = getpwuid (getuid ());
+
 	if (pwent)
 		login_name = pwent->pw_name;
 	else {
