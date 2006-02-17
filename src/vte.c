@@ -3951,11 +3951,11 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		case GDK_Insert:
 			if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
 				if (terminal->pvt->modifiers & GDK_CONTROL_MASK) {
-					vte_terminal_paste_primary(terminal);
+					vte_terminal_paste_clipboard(terminal);
 					handled = TRUE;
 					suppress_meta_esc = TRUE;
 				} else {
-					vte_terminal_paste_clipboard(terminal);
+					vte_terminal_paste_primary(terminal);
 					handled = TRUE;
 					suppress_meta_esc = TRUE;
 				}

@@ -1,5 +1,10 @@
 2006-02-17  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c: Make shift+insert paste PRIMARY and ctrl+shift+insert
+	paste CLIPBOARD (switched them. bug #123844)
+
+2006-02-17  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte.c: Better update-timeout handling.  Always delay updates
 	a bit.  Schedule updates as G_PRIORITY_DEFAULT_IDLE.  And, set delay
 	as the number of lines, in milliseconds.
