@@ -1,3 +1,11 @@
+2006-02-25  Behdad Esfahbod  <behdad@gnome.org>
+
+	Released vte-0.11.19.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.11.19.
+
 2006-02-17  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte.c: Make shift+insert paste PRIMARY and ctrl+shift+insert
