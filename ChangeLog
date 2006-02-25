@@ -1,5 +1,12 @@
 2006-02-25  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vtexft.c: (_vte_xft_font_for_char): Rever the patch to
+	optimize memory usage by releasing fonts that aren't needed early.
+	Because that was inserting destroyed fonts into cache. Closes bug
+	#332580 and reverts bug #309322.
+
+2006-02-25  Behdad Esfahbod  <behdad@gnome.org>
+
 	Released vte-0.11.19.
 
 	* NEWS: Updated.
