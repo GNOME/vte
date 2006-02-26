@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-02-25 04:07-0500\n"
+"POT-Creation-Date: 2006-02-25 18:36-0500\n"
 "PO-Revision-Date: 2004-01-03 20:07+0330\n"
 "Last-Translator: Roozbeh Pournader <roozbeh@sharif.edu>\n"
 "Language-Team: Persian <farsi@lists.sharif.edu>\n"
@@ -102,7 +102,7 @@ msgstr "نمی‌توان پیشانه را باز کرد.\n"
 msgid "Unknown pixel mode %d.\n"
 msgstr "حالت نقطه‌ای %d ناشناخته است.\n"
 
-#: src/vtexft.c:724
+#: src/vtexft.c:714
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "نمی‌توان نویسه‌ی U+%04X‎ را رسم کرد.\n"

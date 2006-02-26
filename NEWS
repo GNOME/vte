@@ -1,3 +1,6 @@
+0.11.20	 - Revert patch introduced in 0.11.16 that was corrupting the Xft
+	   font cache. (bug #309322)
+
 0.11.19	 - Revert Shift+Insert to paste PRIMARY.  Use Ctrl+Shirt+Insert to
 	   paste CLIPBOARD (bug #123844)
 	 - Improvements to the update throttling handler.
