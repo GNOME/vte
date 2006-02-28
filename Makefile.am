@@ -1,5 +1,5 @@
 SUBDIRS = src python termcaps po doc
-EXTRA_DIST = HACKING vte.spec vte.pc.in vte-uninstalled.pc.in
+EXTRA_DIST = MAINTAINERS HACKING vte.spec vte.pc.in vte-uninstalled.pc.in
 if BUILD_GNOME_PTY_HELPER
 SUBDIRS += gnome-pty-helper
 endif

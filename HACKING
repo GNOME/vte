@@ -1,7 +1,4 @@
 This entire tree is "some highly unsupported crackrock", yet it seems to have
-reached some degree of stability.  Please contact me directly if you intend to
-hack on it, especially if you want to make changes in the development tree.
-
-Thanks,
-
-Nalin (nalin@redhat.com)
+reached some degree of stability.  Please contact people listed in filed
+MAINTAINERS if you intend to hack on it, especially if you want to commit
+stuff.
