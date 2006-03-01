@@ -319,7 +319,7 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
 		terminal->pvt->update_timer = g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE,
-								  terminal->row_count/5,
+								  VTE_UPDATE_TIMEOUT,
 								  vte_update_timeout,
 								  terminal,
 								  NULL);

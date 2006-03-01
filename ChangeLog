@@ -1,3 +1,9 @@
+2006-02-28  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vte-private.h: Step up COALESCE_TIMEOUT and DISPLAY_TIMEOUT
+	from 2ms to 10ms.  This is more compatible with the updated timeout
+	that we are doing at around 25ms.
+
 2006-02-27  Behdad Esfahbod  <behdad@gnome.org>
 
 	* MAINTAINERS: Added.
