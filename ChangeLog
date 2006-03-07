@@ -1,3 +1,7 @@
+2006-03-07  Abel Cheung  <maddog@linuxhall.org>
+
+	* configure.in: Added "kn" "zh_HK" to ALL_LINGUAS.
+
 2006-02-28  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte-private.h: Step up COALESCE_TIMEOUT and DISPLAY_TIMEOUT
