@@ -1,6 +1,6 @@
-# Chinese (Taiwan) translation of vte.
-# Copyright (C) 2003, 06 Free Software Foundation, Inc.
-# Abel Cheung <abel@oaka.org>, 2003, 06.
+# Chinese (Hong Kong) translation of vte.
+# Copyright (C) 2006 Free Software Foundation, Inc.
+# Abel Cheung <abel@oaka.org>, 2006.
 #
 msgid ""
 msgstr ""
@@ -9,7 +9,7 @@ msgstr ""
 "POT-Creation-Date: 2006-03-08 05:06+0800\n"
 "PO-Revision-Date: 2006-03-08 05:10+0800\n"
 "Last-Translator: Abel Cheung <abel@oaka.org>\n"
-"Language-Team: Chinese (Taiwan) <community@linuxhall.org>\n"
+"Language-Team: Chinese (Hong Kong) <community@linuxhall.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
