@@ -6,6 +6,9 @@
 
 	* configure.in: Bumped version to 0.11.21.
 
+	* configure.in: Removed kn from ALL_LINGUAS, as it was breaking
+	the build.
+
 2006-03-08  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte.c, src/vte-private.h: Fix vte_update_timeout repeat to
