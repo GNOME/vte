@@ -84,6 +84,7 @@ G_BEGIN_DECLS
 #define VTE_COALESCE_TIMEOUT		10
 #define VTE_DISPLAY_TIMEOUT		10
 #define VTE_UPDATE_TIMEOUT		10
+#define VTE_UPDATE_REPEAT_TIMEOUT	25
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */

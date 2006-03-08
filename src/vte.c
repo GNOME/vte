@@ -228,7 +228,7 @@ vte_update_timeout(VteTerminal *terminal)
 	/* Set a timer such that we do not invalidate for a while. */
 	/* This limits the number of times we draw to ~40fps. */
 	terminal->pvt->update_timer = g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE,
-							  terminal->row_count,
+							  VTE_UPDATE_REPEAT_TIMEOUT,
 							  vte_update_delay_timeout,
 							  terminal,
 							  NULL);
