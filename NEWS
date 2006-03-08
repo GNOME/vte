@@ -1,3 +1,9 @@
+0.11.21	 - Revert change introduced in 0.11.19 that made vte very unresponsive
+	   with tall terminal windows. (bug #333776)
+	 - Step up COALESCE_TIMEOUT and DISPLAY_TIMEOUT from 2ms to 10ms.
+	   This is more compatible with the update timeout that we are doing
+	   at 25ms, but needs testing.
+
 0.11.20	 - Revert patch introduced in 0.11.16 that was corrupting the Xft
 	   font cache. (bug #309322)
 

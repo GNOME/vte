@@ -1,5 +1,13 @@
 2006-03-08  Behdad Esfahbod  <behdad@gnome.org>
 
+	Released vte-0.11.21.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.11.21.
+
+2006-03-08  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte.c, src/vte-private.h: Fix vte_update_timeout repeat to
 	25ms. (bug #333776, Egmont Koblinger)
 
