@@ -1,14 +1,14 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# Kannada translation of vte.
+# Copyright (C) 2003 THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Yogeesh MB <yogeeshappa.mathighatta@wipro.com>, 2003
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2003-10-17 02:58+0200\n"
-"PO-Revision-Date: 2006-03-09 09:09+0800\n"
+"PO-Revision-Date: 2006-03-09 09:33+0800\n"
 "Last-Translator: Yogeesh MB <yogeeshappa.mathighatta@wipro.com>\n"
 "Language-Team: Kannada <LL@li.org>\n"
 "MIME-Version: 1.0\n"
