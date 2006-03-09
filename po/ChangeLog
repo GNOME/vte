@@ -1,3 +1,7 @@
+2006-03-09  Abel Cheung  <maddog@linuxhall.org>
+
+	* kn.po: Fix msgfmt errors
+
 2006-03-07  Abel Cheung  <maddog@linuxhall.org>
 
 	* zh_TW.po: Updated Chinese (Taiwan) translation.

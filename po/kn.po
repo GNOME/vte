@@ -3,13 +3,12 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2003-10-17 02:58+0200\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2006-03-09 09:09+0800\n"
 "Last-Translator: Yogeesh MB <yogeeshappa.mathighatta@wipro.com>\n"
 "Language-Team: Kannada <LL@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -59,7 +58,7 @@ msgid "Duplicate (%s/%s)!"
 msgstr "ದ್ವಿಪ್ರತಿ (%s/%s)"
 
 #: src/vte.c:1480
-#, c-format
+#, fuzzy, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "ನಿಯಮಿತ ವಾಕ್ಸರಣಿ ಸಂಕಲನದಲ್ಲಿ ದೋಷ"
 

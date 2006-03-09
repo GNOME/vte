@@ -1,3 +1,8 @@
+2006-03-09  Abel Cheung  <maddog@linuxhall.org>
+
+	* configure.in: Readd kn to ALL_LINGUAS and make sure everything
+	builds fine.
+
 2006-03-08  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.11.21.
