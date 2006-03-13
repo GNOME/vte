@@ -1,5 +1,13 @@
 2006-03-08  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 104841 – scrolling doesn't work inside "screen" windows
+
+	* src/vte.c (vte_terminal_size_allocate): Fix restricted scrolling
+	region readjustment.  Moreover, do not do unnecessary updates when
+	number of rows & columns has not changed.
+
+2006-03-08  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 333768 – vteapp debug stuff should be conditional
 	Patch from Egmont Koblinger.
 

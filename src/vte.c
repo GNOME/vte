@@ -6907,28 +6907,35 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	/* Set our allocation to match the structure. */
 	widget->allocation = *allocation;
 
-	/* Set the size of the pseudo-terminal. */
-	vte_terminal_set_size(terminal, width, height);
+	if (terminal->column_count != width || terminal->row_count != height) {
+		/* Set the size of the pseudo-terminal. */
+		vte_terminal_set_size(terminal, width, height);
 
-	/* Adjust scrolling area in case our boundaries have just been
-	 * redefined to be invalid. */
-	if (terminal->pvt->screen->scrolling_restricted) {
-		terminal->pvt->screen->scrolling_region.start =
-			CLAMP(terminal->pvt->screen->scrolling_region.start,
-			      terminal->pvt->screen->insert_delta,
-			      terminal->pvt->screen->insert_delta +
-			      terminal->row_count - 1);
-		terminal->pvt->screen->scrolling_region.end =
-			CLAMP(terminal->pvt->screen->scrolling_region.end,
-			      terminal->pvt->screen->insert_delta,
-			      terminal->pvt->screen->insert_delta +
-			      terminal->row_count - 1);
+		/* Adjust scrolling area in case our boundaries have just been
+		 * redefined to be invalid. */
+		if (terminal->pvt->screen->scrolling_restricted) {
+			terminal->pvt->screen->scrolling_region.start =
+				MIN(terminal->pvt->screen->scrolling_region.start,
+				    terminal->row_count - 1);
+			terminal->pvt->screen->scrolling_region.end =
+				MIN(terminal->pvt->screen->scrolling_region.end,
+				    terminal->row_count - 1);
+		}
+
+		/* Adjust scrollback buffers to ensure that they're big enough. */
+		vte_terminal_set_scrollback_lines(terminal,
+						  MAX(terminal->pvt->scrollback_lines,
+						      terminal->row_count));
+
+		/* Adjust the adjustments. */
+		_vte_terminal_adjust_adjustments(terminal, TRUE);
+
+		_vte_terminal_update_insert_delta (terminal);
+
+		if (snapped_to_bottom) {
+			vte_terminal_maybe_scroll_to_bottom (terminal);
+		}
 	}
-
-	/* Adjust scrollback buffers to ensure that they're big enough. */
-	vte_terminal_set_scrollback_lines(terminal,
-					  MAX(terminal->pvt->scrollback_lines,
-					      terminal->row_count));
 
 	/* Resize the GDK window. */
 	if (widget->window != NULL) {
@@ -6946,15 +6953,6 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 		    (h != allocation->height)) {
 			_vte_invalidate_all(terminal);
 		}
-	}
-
-	/* Adjust the adjustments. */
-	_vte_terminal_adjust_adjustments(terminal, TRUE);
-
-	_vte_terminal_update_insert_delta (terminal);
-
-	if (snapped_to_bottom) {
-		vte_terminal_maybe_scroll_to_bottom (terminal);
 	}
 }
 
