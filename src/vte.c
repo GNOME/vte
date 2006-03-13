@@ -6876,6 +6876,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	glong width, height;
 	gint x, y, w, h;
 	gboolean snapped_to_bottom;
+	gboolean grid_changed;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
@@ -6896,6 +6897,9 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	height = (allocation->height - (2 * VTE_PAD_WIDTH)) /
 		 terminal->char_height;
 
+	grid_changed = terminal->column_count != width ||
+		       terminal->row_count != height;
+
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
 		fprintf(stderr, "Sizing window to %dx%d (%ldx%ld).\n",
@@ -6907,7 +6911,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	/* Set our allocation to match the structure. */
 	widget->allocation = *allocation;
 
-	if (terminal->column_count != width || terminal->row_count != height) {
+	if (grid_changed) {
 		/* Set the size of the pseudo-terminal. */
 		vte_terminal_set_size(terminal, width, height);
 
@@ -6926,15 +6930,6 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 		vte_terminal_set_scrollback_lines(terminal,
 						  MAX(terminal->pvt->scrollback_lines,
 						      terminal->row_count));
-
-		/* Adjust the adjustments. */
-		_vte_terminal_adjust_adjustments(terminal, TRUE);
-
-		_vte_terminal_update_insert_delta (terminal);
-
-		if (snapped_to_bottom) {
-			vte_terminal_maybe_scroll_to_bottom (terminal);
-		}
 	}
 
 	/* Resize the GDK window. */
@@ -6952,6 +6947,17 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 		    (w != allocation->width) ||
 		    (h != allocation->height)) {
 			_vte_invalidate_all(terminal);
+		}
+	}
+
+	if (grid_changed) {
+		/* Adjust the adjustments. */
+		_vte_terminal_adjust_adjustments(terminal, TRUE);
+
+		_vte_terminal_update_insert_delta (terminal);
+
+		if (snapped_to_bottom) {
+			vte_terminal_maybe_scroll_to_bottom (terminal);
 		}
 	}
 }
