@@ -1,5 +1,12 @@
 2006-03-08  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 333768 – vteapp debug stuff should be conditional
+	Patch from Egmont Koblinger.
+
+	* src/vteapp.c: Make pwd and setting env vars conditional on debug.
+
+2006-03-08  Behdad Esfahbod  <behdad@gnome.org>
+
 	Released vte-0.12.0.
 
 	* NEWS: Updated.

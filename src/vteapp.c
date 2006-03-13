@@ -400,7 +400,11 @@ int
 main(int argc, char **argv)
 {
 	GtkWidget *window, *hbox, *scrollbar, *widget;
-	char *env_add[] = {"FOO=BAR", "BOO=BIZ", NULL};
+	char *env_add[] = {
+#ifdef VTE_DEBUG
+		"FOO=BAR", "BOO=BIZ",
+#endif
+		NULL};
 	const char *background = NULL;
 	gboolean transparent = FALSE, audible = TRUE, blink = TRUE,
 		 debug = FALSE, dingus = FALSE, geometry = TRUE, dbuffer = TRUE,
@@ -752,10 +756,12 @@ main(int argc, char **argv)
 						  command, NULL, env_add,
 						  working_directory,
 						  TRUE, TRUE, TRUE);
+	#ifdef VTE_DEBUG
 			if (command == NULL) {
 				vte_terminal_feed_child(VTE_TERMINAL(widget),
 							"pwd\n", -1);
 			}
+	#endif
 		} else {
 			long i;
 			i = vte_terminal_forkpty(VTE_TERMINAL(widget),
