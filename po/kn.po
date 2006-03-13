@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2003-10-17 02:58+0200\n"
+"POT-Creation-Date: 2006-03-13 00:22-0500\n"
 "PO-Revision-Date: 2006-03-09 09:33+0800\n"
 "Last-Translator: Yogeesh MB <yogeeshappa.mathighatta@wipro.com>\n"
 "Language-Team: Kannada <LL@li.org>\n"
@@ -15,27 +15,27 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:787 src/iso2022.c:798 src/iso2022.c:847 src/vte.c:2072
+#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:1590
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "ಅಕ್ಷರಗಳನ್ನು %s ಯಿಂದ %s ಗೆ ಪರಿವರ್ತಿಸಲಾಗದು"
 
-#: src/iso2022.c:1578
+#: src/iso2022.c:1582
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr ""
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1619
+#: src/iso2022.c:1623
 msgid "Unrecognized identified coding system."
 msgstr ""
 
-#: src/iso2022.c:1668 src/iso2022.c:1694
+#: src/iso2022.c:1672 src/iso2022.c:1698
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr ""
 
-#: src/pty.c:323
+#: src/pty.c:329
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr ""
@@ -43,12 +43,12 @@ msgstr ""
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:908
+#: src/pty.c:914
 #, c-format
 msgid "can not run %s"
 msgstr "%s ನಡೆಸಲಾಗದು"
 
-#: src/reaper.c:110
+#: src/reaper.c:156
 msgid "Error creating signal pipe."
 msgstr "ಸೂಚನಾ ಕೊಳವೆ ರಚನೆಯಲ್ಲಿ ದೋಷ"
 
@@ -57,57 +57,56 @@ msgstr "ಸೂಚನಾ ಕೊಳವೆ ರಚನೆಯಲ್ಲಿ ದೋಷ"
 msgid "Duplicate (%s/%s)!"
 msgstr "ದ್ವಿಪ್ರತಿ (%s/%s)"
 
-#: src/vte.c:1480
+#: src/vte.c:1016
 #, fuzzy, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "ನಿಯಮಿತ ವಾಕ್ಸರಣಿ ಸಂಕಲನದಲ್ಲಿ ದೋಷ"
 
-#: src/vte.c:5815
-#, c-format
-msgid "Got unexpected (key?) sequence `%s'."
-msgstr "ಅನಿರೀಕ್ಷಿತವಾದ (ಕೀ?) ಅನುಕ್ರಮ`%s' ಸಿಕ್ಕಿದೆ"
-
-#: src/vte.c:6893
+#: src/vte.c:2472
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "`%s' ಅನುಕ್ರಮದ ನಿಯಂತ್ರಣ ಹಿಡಿಕೆಯನ್ನು ನಿರ್ಧಿಷ್ಟಪಡಿಸಿಲ್ಲ"
 
-#: src/vte.c:7714
+#. Translators: %s is replaced with error message returned by strerror().
+#: src/vte.c:3315
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "child %s: ನಿಂದ ಓದುವಾಗ ದೋಷ"
 
-#: src/vte.c:7870
+#: src/vte.c:3437 src/vte.c:4331
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 
-#: src/vte.c:10537
+#: src/vte.c:6284
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 
-#: src/vte.c:10573
+#: src/vte.c:6320
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "%s: PTY ಅಳತೆ ತಿಳಿಯಪಡಿಸುವಾಗ ದೋಷ"
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:14977
+#: src/vte.c:10629
 msgid "_vte_conv_open() failed setting word characters"
 msgstr ""
 
 #. Bail back to normal mode.
-#: src/vteapp.c:713
+#: src/vteapp.c:736
 msgid "Could not open console.\n"
 msgstr "ತೋರುಪರದೆಯನ್ನು ತೆಗೆಯಲಾಗುತ್ತಿಲ್ಲ \n"
 
-#: src/vteglyph.c:576
+#: src/vteglyph.c:579
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr ""
 
-#: src/vtexft.c:710
+#: src/vtexft.c:714
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "ಅಕ್ಷರಗಳನ್ನು ಬರೆಯಲಾಗದುU+%04x.\n"
+
+#~ msgid "Got unexpected (key?) sequence `%s'."
+#~ msgstr "ಅನಿರೀಕ್ಷಿತವಾದ (ಕೀ?) ಅನುಕ್ರಮ`%s' ಸಿಕ್ಕಿದೆ"

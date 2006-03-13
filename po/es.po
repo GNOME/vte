@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: es\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-12-12 19:52+0100\n"
+"POT-Creation-Date: 2006-03-13 00:22-0500\n"
 "PO-Revision-Date: 2004-08-28 17:57+0200\n"
 "Last-Translator: Francisco Javier F. Serrador <serrador@cvs.gnome.org>\n"
 "Language-Team: Spanish <traductores@es.gnome.org>\n"
@@ -23,7 +23,7 @@ msgstr ""
 "X-Generator: KBabel 1.3.1\n"
 "Plural-Forms:  nplurals=2; plural=(n != 1);\n"
 
-#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2134
+#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:1590
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "No se pueden convertir caracteres de %s a %s."
@@ -65,52 +65,47 @@ msgstr "Ha ocurrido un error al crear la señal pipe."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicado (%s/%s)"
 
-#: src/vte.c:1477
+#: src/vte.c:1016
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Ha ocurrido un error al compilar la expresión regular «%s»."
 
-#: src/vte.c:5994
-#, c-format
-msgid "Got unexpected (key?) sequence `%s'."
-msgstr "Se obtuvo una secuencia inesperada (¿de teclas?) «%s»."
-
-#: src/vte.c:7090
+#: src/vte.c:2472
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "No existe un manejador para la secuencia de control «%s» definida."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: src/vte.c:7899
+#: src/vte.c:3315
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Ha ocurrido un error al leer desde el hijo: %s."
 
-#: src/vte.c:8021 src/vte.c:8906
+#: src/vte.c:3437 src/vte.c:4331
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Ha ocurrido un error (%s) al convertir datos desde el hijo, omitiendo."
 
-#: src/vte.c:10849
+#: src/vte.c:6284
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Ha ocurrido un error al leer el tamaño PTY, utilizando el predeterminado: %s."
 
-#: src/vte.c:10885
+#: src/vte.c:6320
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Ha ocurrido un error al establecer el tamaño del PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15321
+#: src/vte.c:10629
 msgid "_vte_conv_open() failed setting word characters"
 msgstr ""
 "Ha ocurrido un error en _vte_conv_open() al establecer los caracteres de la "
 "palabra"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:728
+#: src/vteapp.c:736
 msgid "Could not open console.\n"
 msgstr "No se ha podido abrir la consola.\n"
 
@@ -119,10 +114,13 @@ msgstr "No se ha podido abrir la consola.\n"
 msgid "Unknown pixel mode %d.\n"
 msgstr "Modo de píxel %d desconocido.\n"
 
-#: src/vtexft.c:724
+#: src/vtexft.c:714
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "No se puede representar el carácter U+%04x.\n"
+
+#~ msgid "Got unexpected (key?) sequence `%s'."
+#~ msgstr "Se obtuvo una secuencia inesperada (¿de teclas?) «%s»."
 
 #~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
 #~ msgstr ""

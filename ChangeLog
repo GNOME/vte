@@ -1,3 +1,11 @@
+2006-03-08  Behdad Esfahbod  <behdad@gnome.org>
+
+	Released vte-0.12.0.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.12.0.
+
 2006-03-09  Abel Cheung  <maddog@linuxhall.org>
 
 	* configure.in: Readd kn to ALL_LINGUAS and make sure everything

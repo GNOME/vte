@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-12-12 19:52+0100\n"
+"POT-Creation-Date: 2006-03-13 00:22-0500\n"
 "PO-Revision-Date: 2004-06-26 19:15+1200\n"
 "Last-Translator: John C Barstow <jbowtie@amathaine.com>\n"
 "Language-Team: Maori <maori@nzlinux.org.nz>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 1.3.1\n"
 
-#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2134
+#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:1590
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr ""
@@ -59,50 +59,45 @@ msgstr "He."
 msgid "Duplicate (%s/%s)!"
 msgstr ""
 
-#: src/vte.c:1477
+#: src/vte.c:1016
 #, fuzzy, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "He."
 
-#: src/vte.c:5994
-#, c-format
-msgid "Got unexpected (key?) sequence `%s'."
-msgstr ""
-
-#: src/vte.c:7090
+#: src/vte.c:2472
 #, fuzzy, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Kāo."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: src/vte.c:7899
+#: src/vte.c:3315
 #, fuzzy, c-format
 msgid "Error reading from child: %s."
 msgstr "He."
 
-#: src/vte.c:8021 src/vte.c:8906
+#: src/vte.c:3437 src/vte.c:4331
 #, fuzzy, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "He."
 
-#: src/vte.c:10849
+#: src/vte.c:6284
 #, fuzzy, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "He."
 
-#: src/vte.c:10885
+#: src/vte.c:6320
 #, fuzzy, c-format
 msgid "Error setting PTY size: %s."
 msgstr "He."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15321
+#: src/vte.c:10629
 #, fuzzy
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "huaki"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:728
+#: src/vteapp.c:736
 #, fuzzy
 msgid "Could not open console.\n"
 msgstr "huaki"
@@ -112,7 +107,7 @@ msgstr "huaki"
 msgid "Unknown pixel mode %d.\n"
 msgstr "Kaore e mōhio"
 
-#: src/vtexft.c:724
+#: src/vtexft.c:714
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr ""

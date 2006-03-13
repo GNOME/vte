@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-12-12 19:52+0100\n"
+"POT-Creation-Date: 2006-03-13 00:22-0500\n"
 "PO-Revision-Date: 2004-02-23 10:30+0100\n"
 "Last-Translator: Laurent Dhima <laurenti@alblinux.net>\n"
 "Language-Team: Albanian <gnome-albanian-perkthyesit@lists.sourceforge.net>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:2134
+#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:1590
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "I pamundur konvertimi i simboleve nga %s në %s."
@@ -59,51 +59,46 @@ msgstr "Gabim gjatë krijimit të pipe të sinjalit."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikim (%s/%s)!"
 
-#: src/vte.c:1477
+#: src/vte.c:1016
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Gabim gjatë kompilimit të shprehjes së rregullt \"%s\"."
 
-#: src/vte.c:5994
-#, c-format
-msgid "Got unexpected (key?) sequence `%s'."
-msgstr "U mor një sekuencë ( kyç?) i papritur `%s'."
-
-#: src/vte.c:7090
+#: src/vte.c:2472
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Asnjë trajtues i prezgjedhur për sekuencën e kontrollit `%s'."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: src/vte.c:7899
+#: src/vte.c:3315
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Gabim gjatë leximit nga proçesi bir: %s"
 
-#: src/vte.c:8021 src/vte.c:8906
+#: src/vte.c:3437 src/vte.c:4331
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "Gabim (%s) duke konvertuar të dhënat për proçesin bir, do të lihen si ishin."
 
-#: src/vte.c:10849
+#: src/vte.c:6284
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Gabim gjatë leximit të madhësisë PTY, do të përdoret vlera e prezgjedhur: %s."
 
-#: src/vte.c:10885
+#: src/vte.c:6320
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Gabim gjatë vendosjes së madhësisë PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:15321
+#: src/vte.c:10629
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() dështoi në vendosjen e gërmave të fjalës"
 
 #. Bail back to normal mode.
-#: src/vteapp.c:728
+#: src/vteapp.c:736
 msgid "Could not open console.\n"
 msgstr "E pamundur hapja e konsolës.\n"
 
@@ -112,7 +107,10 @@ msgstr "E pamundur hapja e konsolës.\n"
 msgid "Unknown pixel mode %d.\n"
 msgstr "Metodë pixel %d e panjohur.\n"
 
-#: src/vtexft.c:724
+#: src/vtexft.c:714
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "I pamundur vizatimi i simbolit U+%04x.\n"
+
+#~ msgid "Got unexpected (key?) sequence `%s'."
+#~ msgstr "U mor një sekuencë ( kyç?) i papritur `%s'."
