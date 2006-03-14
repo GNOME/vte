@@ -1,8 +1,13 @@
+2006-03-14  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vte.c (vte_terminal_size_allocate): More tweaks to the
+	previous changes.  Reported by dholbach again.
+
 2006-03-13  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte.c (vte_terminal_size_allocate): Put the stuff changed in
 	previous commit in their original order.  Problem reported by
-	dholback.
+	dholbach.
 
 2006-03-13  Behdad Esfahbod  <behdad@gnome.org>
 
