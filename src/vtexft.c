@@ -37,13 +37,7 @@
 #include "vtexft.h"
 #include "vtetree.h"
 
-#ifdef ENABLE_NLS
-#include <libintl.h>
-#define _(String) dgettext(PACKAGE, String)
-#else
-#define _(String) String
-#define bindtextdomain(package,dir)
-#endif
+#include <glib/gi18n-lib.h>
 
 #define FONT_INDEX_FUDGE 10
 #define CHAR_WIDTH_FUDGE 10

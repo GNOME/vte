@@ -1,3 +1,16 @@
+2006-03-15  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 334385 – Use intltool
+
+	* Makefile.am, configure.in: Add intltool support.
+
+	* src/iso2022.c, src/reaper.c, src/vteaccess.c, src/vteapp.c,
+	src/vtebg.c, src/vtexft.c, src/vte.c: Include glib/gi18n-lib.h
+	instead of #ifdefing gettext stuff.
+
+	* src/vte.c (vte_terminal_class_init): Use GETTEXT_PACKAGE instead
+	of PACKAGE in bindgettextdomain.
+
 2006-03-14  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte.c (vte_terminal_size_allocate): More tweaks to the

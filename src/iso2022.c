@@ -35,14 +35,7 @@
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
 #endif
-
-#ifdef ENABLE_NLS
-#include <libintl.h>
-#define _(String) dgettext(PACKAGE, String)
-#else
-#define _(String) String
-#define bindtextdomain(package,dir)
-#endif
+#include <glib/gi18n-lib.h>
 
 /* Maps which jive with XTerm's ESC ()*+ ? sequences, RFC 1468.  Add the
  * PC437 map because despite knowing that XTerm doesn't support it, certain

@@ -25,13 +25,7 @@
 #include "marshal.h"
 #include "vtebg.h"
 
-#ifdef ENABLE_NLS
-#include <libintl.h>
-#define _(String) dgettext(PACKAGE, String)
-#else
-#define _(String) String
-#define bindtextdomain(package,dir)
-#endif
+#include <glib/gi18n-lib.h>
 
 struct VteBgPrivate {
 	GList *cache;

@@ -34,13 +34,7 @@
 #include "debug.h"
 #include "vte.h"
 
-#ifdef ENABLE_NLS
-#include <libintl.h>
-#define _(String) dgettext(PACKAGE, String)
-#else
-#define _(String) String
-#define bindtextdomain(package,dir)
-#endif
+#include <glib/gi18n-lib.h>
 
 #define DINGUS1 "(((news|telnet|nttp|file|http|ftp|https)://)|(www|ftp)[-A-Za-z0-9]*\\.)[-A-Za-z0-9\\.]+(:[0-9]*)?"
 #define DINGUS2 "(((news|telnet|nttp|file|http|ftp|https)://)|(www|ftp)[-A-Za-z0-9]*\\.)[-A-Za-z0-9\\.]+(:[0-9]*)?/[-A-Za-z0-9_\\$\\.\\+\\!\\*\\(\\),;:@&=\\?/~\\#\\%]*[^]'\\.}>\\) ,\\\"]"

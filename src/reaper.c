@@ -33,16 +33,8 @@
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
-#else
-#define bindtextdomain(package,dir)
 #endif
-
-#ifdef ENABLE_NLS
-#include <libintl.h>
-#define _(String) dgettext(PACKAGE, String)
-#else
-#define _(String) String
-#endif
+#include <glib/gi18n-lib.h>
 
 static VteReaper *singleton_reaper = NULL;
 struct reaper_info {

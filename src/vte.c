@@ -47,6 +47,7 @@
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
 #endif
+#include <glib/gi18n-lib.h>
 
 #ifndef HAVE_WINT_T
 typedef gunichar wint_t;
@@ -9518,7 +9519,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 	}
 #endif
 
-	bindtextdomain(PACKAGE, LOCALEDIR);
+	bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
 #ifdef HAVE_DECL_BIND_TEXTDOMAIN_CODESET
 	bind_textdomain_codeset(PACKAGE, "UTF-8");
 #endif

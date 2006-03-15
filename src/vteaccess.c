@@ -34,12 +34,7 @@
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
 #endif
-
-#ifdef ENABLE_NLS
-#include <libintl.h>
-#else
-#define bindtextdomain(package,dir)
-#endif
+#include <glib/gi18n-lib.h>
 
 #define VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA "VteTerminalAccessiblePrivateData"
 
