@@ -8,12 +8,12 @@ msgstr ""
 "Project-Id-Version: 0.1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2006-03-13 00:22-0500\n"
-"PO-Revision-Date: 2004-05-15 12:51+0400\n"
+"PO-Revision-Date: 2006-03-18 03:09+0100\n"
 "Last-Translator: Aiet Kolkhi <aiet@qartuli.net>\n"
 "Language-Team: Georgian <aiet@qartuli.net>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
-"Content-Transfer-Encoding: 8bit\n"
+"Content-Transfer-Encoding: 8bit"
 
 #: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:1590
 #, c-format
@@ -23,7 +23,7 @@ msgstr "ვერ დავაკონვერტირე სიტყვე�
 #: src/iso2022.c:1582
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr "თქვენ ცადეთ არასწორი NRC map-ის, «%c»-ის დაყენება."
+msgstr "თქვენ ცადეთ არასწორი NRC map '%c'-ის დაყენება."
 
 #  Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
@@ -39,7 +39,7 @@ msgstr "თქვენ ცადეთ არაწორი ფართო wi
 #: src/pty.c:329
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr "შეცდომა „%s“-ის environment-ში ჩამატებისას. ვაგრძელებ."
+msgstr "შეცდომა '%s'-ის environment-ში ჩამატებისას. ვაგრძელებ."
 
 #  Give the user some clue as to why session logging is not
 #  * going to work (assuming we can open a pty using some other
@@ -102,7 +102,7 @@ msgstr "_vte_conv_open() ჩაიშალა. ვაწესებ word chara
 #. Bail back to normal mode.
 #: src/vteapp.c:736
 msgid "Could not open console.\n"
-msgstr "კონსოლს ვერ ვხსნი.\n"
+msgstr "კონსოლი ვერ იხსნება.\n"
 
 #: src/vteglyph.c:579
 #, c-format
