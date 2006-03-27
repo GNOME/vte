@@ -1,3 +1,10 @@
+2006-03-26  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 336128 – vim scrolling issues - emulation errors
+
+	* src/vteseq.c (vte_sequence_handler_sf): Update start and end
+	when updating insert_delta.
+
 2006-03-15  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 334385 – Use intltool
