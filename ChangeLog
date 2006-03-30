@@ -1,3 +1,7 @@
+2006-03-30  Guntupalli Karunakar  <karunakar@indlinux.org>
+
+        * configure.in: Added "dz" (Dzongkha) to ALL_LINGUAS.
+
 2006-03-26  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 336128 – vim scrolling issues - emulation errors
