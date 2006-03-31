@@ -755,7 +755,7 @@ _vte_iso2022_state_new(const char *native_codeset,
 		       gpointer data)
 {
 	struct _vte_iso2022_state *state;
-	state = g_malloc0(sizeof(struct _vte_iso2022_state));
+	state = g_slice_new0(struct _vte_iso2022_state);
 	state->nrc_enabled = TRUE;
 	state->current = 0;
 	state->override = -1;
@@ -822,7 +822,7 @@ _vte_iso2022_state_free(struct _vte_iso2022_state *state)
 	state->override = -1;
 	state->current = 0;
 	state->nrc_enabled = FALSE;
-	g_free(state);
+	g_slice_free(struct _vte_iso2022_state, state);
 }
 
 void
@@ -1870,7 +1870,7 @@ main(int argc, char **argv)
 	buffer = _vte_buffer_new();
 	gunichars = g_array_new(TRUE, TRUE, sizeof(gunichar));
 	if (argc > 1) {
-		string = g_string_new("");
+		string = g_string_new(NULL);
 		for (i = 1; i < argc; i++) {
 			if (strcmp(argv[i], "-") == 0) {
 				fp = stdin;
@@ -1900,7 +1900,7 @@ main(int argc, char **argv)
 	_vte_buffer_free(buffer);
 	_vte_iso2022_state_free(state);
 
-	string = g_string_new("");
+	string = g_string_new(NULL);
 	for (i = 0; i < gunichars->len; i++) {
 		g_string_append_unichar(string,
 					g_array_index(gunichars, gunichar, i));

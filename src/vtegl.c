@@ -123,7 +123,7 @@ _vte_gl_create(struct _vte_draw *draw, GtkWidget *widget)
 	int screen;
 	gboolean direct;
 
-	draw->impl_data = g_malloc(sizeof(struct _vte_gl_data));
+	draw->impl_data = g_slice_new(struct _vte_gl_data);
 	data = (struct _vte_gl_data*) draw->impl_data;
 
 	gdisplay = gdk_display_get_default();
@@ -194,7 +194,7 @@ _vte_gl_destroy(struct _vte_draw *draw)
 
 	memset(&data->color, 0, sizeof(data->color));
 
-	g_free(draw->impl_data);
+	g_slice_free(struct _vte_gl_data, draw->impl_data);
 }
 
 static GdkVisual *

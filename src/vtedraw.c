@@ -67,7 +67,7 @@ _vte_draw_new(GtkWidget *widget)
 	char *var;
 
 	/* Create the structure. */
-	draw = g_malloc0(sizeof(struct _vte_draw));
+	draw = g_slice_new0(struct _vte_draw);
 	g_object_ref(G_OBJECT(widget));
 	draw->widget = widget;
 	draw->started = FALSE;
@@ -114,7 +114,7 @@ _vte_draw_free(struct _vte_draw *draw)
 	}
 	draw->started = FALSE;
 
-	g_free(draw);
+	g_slice_free(struct _vte_draw, draw);
 }
 
 GdkVisual *

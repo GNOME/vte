@@ -55,7 +55,7 @@ _vte_pango_create(struct _vte_draw *draw, GtkWidget *widget)
 {
 	struct _vte_pango_data *data;
 
-	draw->impl_data = g_malloc(sizeof(struct _vte_pango_data));
+	draw->impl_data = g_slice_new(struct _vte_pango_data);
 	data = (struct _vte_pango_data*) draw->impl_data;
 
 	data->color.red = 0;
@@ -102,7 +102,7 @@ _vte_pango_destroy(struct _vte_draw *draw)
 
 	memset(&data->color, 0, sizeof(data->color));
 
-	g_free(draw->impl_data);
+	g_slice_free(struct _vte_pango_data, draw->impl_data);
 }
 
 static GdkVisual *
@@ -309,7 +309,7 @@ _vte_pango_set_text_font(struct _vte_draw *draw,
 
 	/* Estimate for CJK characters. */
 	full_width = draw->width * 2;
-	full_string = g_string_new("");
+	full_string = g_string_new(NULL);
 	for (i = 0; i < G_N_ELEMENTS(full_codepoints); i++) {
 		g_string_append_unichar(full_string, full_codepoints[i]);
 	}

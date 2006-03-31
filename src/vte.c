@@ -106,7 +106,7 @@ vte_free_row_data(gpointer freeing, gpointer data)
 	if (freeing) {
 		VteRowData *row = (VteRowData*) freeing;
 		g_array_free(row->cells, TRUE);
-		g_free(row);
+		g_slice_free(VteRowData, row);
 	}
 }
 
@@ -131,7 +131,7 @@ VteRowData *
 _vte_new_row_data(VteTerminal *terminal)
 {
 	VteRowData *row = NULL;
-	row = g_malloc0(sizeof(VteRowData));
+	row = g_slice_new0(VteRowData);
 #ifdef VTE_DEBUG
 	row->cells = g_array_new(FALSE, TRUE, sizeof(struct vte_charcell));
 #else
@@ -146,7 +146,7 @@ VteRowData *
 _vte_new_row_data_sized(VteTerminal *terminal, gboolean fill)
 {
 	VteRowData *row = NULL;
-	row = g_malloc0(sizeof(VteRowData));
+	row = g_slice_new0(VteRowData);
 #ifdef VTE_DEBUG
 	row->cells = g_array_sized_new(FALSE, TRUE,
 				       sizeof(struct vte_charcell),
@@ -4745,7 +4745,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 	g_assert(is_selected != NULL);
 	screen = terminal->pvt->screen;
 
-	string = g_string_new("");
+	string = g_string_new(NULL);
 	memset(&attr, 0, sizeof(attr));
 
 	palette = terminal->pvt->palette;
@@ -10855,13 +10855,13 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 		g_string_free(terminal->pvt->normal_screen.status_line_contents,
 			      TRUE);
 	}
-	terminal->pvt->normal_screen.status_line_contents = g_string_new("");
+	terminal->pvt->normal_screen.status_line_contents = g_string_new(NULL);
 	terminal->pvt->alternate_screen.status_line = FALSE;
 	if (terminal->pvt->alternate_screen.status_line_contents != NULL) {
 		g_string_free(terminal->pvt->alternate_screen.status_line_contents,
 			      TRUE);
 	}
-	terminal->pvt->alternate_screen.status_line_contents = g_string_new("");
+	terminal->pvt->alternate_screen.status_line_contents = g_string_new(NULL);
 	/* Do more stuff we refer to as a "full" reset. */
 	if (full) {
 		vte_terminal_set_default_tabstops(terminal);

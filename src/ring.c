@@ -54,7 +54,7 @@ _vte_ring_validate(VteRing * ring)
 VteRing *
 _vte_ring_new(glong max_elements, VteRingFreeFunc free, gpointer data)
 {
-	VteRing *ret = g_malloc0(sizeof(VteRing));
+	VteRing *ret = g_slice_new0(VteRing);
 	ret->user_data = data;
 	ret->delta = ret->length = 0;
 	ret->max = MAX(max_elements, 2);
@@ -334,7 +334,7 @@ _vte_ring_free(VteRing * ring, gboolean free_elements)
 	ring->user_data = NULL;
 	ring->array = NULL;
 	ring->delta = ring->length = ring->max = 0;
-	g_free(ring);
+	g_slice_free(VteRing, ring);
 }
 
 #ifdef RING_MAIN

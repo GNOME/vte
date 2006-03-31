@@ -183,7 +183,7 @@ update_contents(AtkObject *obj, GtkWidget *widget)
 	GString *s;
 
 	caret = atk_text_get_caret_offset(ATK_TEXT(obj));
-	s = g_string_new("");
+	s = g_string_new(NULL);
 	for (i = 0; i < contents->len; i++) {
 		if (i == caret) {
 			s = g_string_append(s, "[CARET]");

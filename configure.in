@@ -47,7 +47,7 @@ if pkg-config --exists "gtk+-2.0 >= 2.2" ; then
 else
 	MODULEGTK="gtk+-2.0"
 fi
-PKG_CHECK_MODULES(GLIB,glib-2.0)
+PKG_CHECK_MODULES(GLIB,glib-2.0 > 2.9.0)
 PKG_CHECK_MODULES(GOBJECT,[glib-2.0 gobject-2.0])
 PKG_CHECK_MODULES(GTK,[glib-2.0 gobject-2.0 $MODULEGTK])
 

@@ -148,7 +148,7 @@ _vte_matcher_create(gpointer key)
 		fprintf(stderr, "_vte_matcher_create()\n");
 	}
 #endif
-	ret = g_malloc(sizeof(struct _vte_matcher));
+	ret = g_slice_new(struct _vte_matcher);
 	ret->initialized = FALSE;
 	ret->type = _vte_matcher_trie;
 	ret->table = NULL;
@@ -190,7 +190,7 @@ _vte_matcher_destroy(gpointer value)
 	if (matcher->trie != NULL) {
 		_vte_trie_free(matcher->trie);
 	}
-	g_free(matcher);
+	g_slice_free(struct _vte_matcher, matcher);
 }
 
 /* Create and init matcher. */

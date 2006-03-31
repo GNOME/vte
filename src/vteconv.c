@@ -152,7 +152,7 @@ _vte_conv_open(const char *target, const char *source)
 	}
 
 	/* Set up the descriptor. */
-	ret = g_malloc0(sizeof(struct _VteConv));
+	ret = g_slice_new0(struct _VteConv);
 	if (utf8) {
 		ret->conv = NULL;
 		ret->convert = _vte_conv_utf8_utf8;
@@ -201,7 +201,7 @@ _vte_conv_close(VteConv converter)
 	converter->out_scratch = NULL;
 
 	/* Free the structure itself. */
-	g_free(converter);
+	g_slice_free(struct _VteConv, converter);
 
 	return 0;
 }

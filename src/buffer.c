@@ -55,7 +55,7 @@ struct _vte_buffer*
 _vte_buffer_new(void)
 {
 	struct _vte_real_buffer *buf;
-	buf = g_malloc(sizeof(struct _vte_real_buffer));
+	buf = g_slice_new(struct _vte_real_buffer);
 	buf->buf_used = buf->buf_length = 0;
 	buf->bytes = NULL;
 	return (struct _vte_buffer*) buf;
@@ -178,7 +178,7 @@ _vte_buffer_free(struct _vte_buffer *buffer)
 	struct _vte_real_buffer *buf = (struct _vte_real_buffer*) buffer;
 	_vte_buffer_check(buffer, 0);
 	g_free(buf->bytes);
-	g_free(buf);
+	g_slice_free(struct _vte_real_buffer, buf);
 }
 
 size_t

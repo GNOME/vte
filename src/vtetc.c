@@ -144,22 +144,19 @@ _vte_termcap_add_aliases(struct _vte_termcap *termcap,
 		if ((aliases[l] == '|') ||
 		   (aliases[l] == ':') ||
 		   (aliases[l] == '\0')) {
-			alias = g_malloc(sizeof(struct _vte_termcap_alias));
-			if (alias) {
-				memset(alias, 0, sizeof(*alias));
-				alias->name = g_strndup(p, &aliases[l] - p);
-				alias->entry = entry;
-				alias->next = termcap->names;
-				termcap->names = alias;
-				if (aliases[l] == '\0') {
-					p = NULL;
-				} else {
-					p = &aliases[l + 1];
-				}
-				g_tree_insert(termcap->nametree,
-					      GINT_TO_POINTER(g_quark_from_string(alias->name)),
-					      alias);
+			alias = g_slice_new0(struct _vte_termcap_alias);
+			alias->name = g_strndup(p, &aliases[l] - p);
+			alias->entry = entry;
+			alias->next = termcap->names;
+			termcap->names = alias;
+			if (aliases[l] == '\0') {
+				p = NULL;
+			} else {
+				p = &aliases[l + 1];
 			}
+			g_tree_insert(termcap->nametree,
+				      GINT_TO_POINTER(g_quark_from_string(alias->name)),
+				      alias);
 			l++;
 		}
 	}
@@ -173,36 +170,31 @@ _vte_termcap_add_entry(struct _vte_termcap *termcap,
 	char *p = NULL;
 	gssize l;
 
-	entry = g_malloc(sizeof(struct _vte_termcap_entry));
-	if (entry != NULL) {
-		memset(entry, 0, sizeof(struct _vte_termcap_entry));
-		entry->string = g_malloc(length + 1);
-		if (length > 0) {
-			memcpy(entry->string, s, length);
+	entry = g_slice_new0(struct _vte_termcap_entry);
+	entry->string = g_malloc(length + 1);
+	if (length > 0) {
+		memcpy(entry->string, s, length);
+	}
+	entry->string[length] = '\0';
+	entry->length = length;
+	entry->comment = comment;
+	entry->next = termcap->entries;
+	termcap->entries = entry;
+	for (l = 0; l < length; l++) {
+		if (s[l] == '\\') {
+			l++;
+			continue;
 		}
-		entry->string[length] = '\0';
-		entry->length = length;
-		entry->comment = comment;
-		entry->next = termcap->entries;
-		termcap->entries = entry;
-		for (l = 0; l < length; l++) {
-			if (s[l] == '\\') {
-				l++;
-				continue;
-			}
-			if (s[l] == ':') {
-				break;
-			}
+		if (s[l] == ':') {
+			break;
 		}
-		if (l <= length) {
-			p = g_malloc(l + 1);
-			if (p) {
-				strncpy(p, s, l);
-				p[l] = '\0';
-				_vte_termcap_add_aliases(termcap, entry, p);
-				g_free(p);
-			}
-		}
+	}
+	if (l <= length) {
+		p = g_malloc(l + 1);
+		strncpy(p, s, l);
+		p[l] = '\0';
+		_vte_termcap_add_aliases(termcap, entry, p);
+		g_free(p);
 	}
 }
 
@@ -357,11 +349,7 @@ _vte_termcap_create(gpointer key)
 			gssize slen;
 			if ((s[0] != '#') && (isprint(s[0]))) {
 				if (ret == NULL) {
-					ret = g_malloc(sizeof(struct _vte_termcap));
-					if (ret == NULL) {
-						return NULL;
-					}
-					memset(ret, 0, sizeof(struct _vte_termcap));
+					ret = g_slice_new0(struct _vte_termcap);
 					ret->nametree = g_tree_new(_vte_direct_compare);
 				}
 				stripped = NULL;
@@ -425,19 +413,19 @@ _vte_termcap_destroy(gpointer key)
 		entry->comment = NULL;
 		g_free(entry->string);
 		entry->string = NULL;
-		g_free(entry);
+		g_slice_free(struct _vte_termcap_entry, entry);
 	}
 	for (alias = termcap->names; alias != NULL; alias = nextalias) {
 		nextalias = alias->next;
 		g_free(alias->name);
 		alias->name = NULL;
-		g_free(alias);
+		g_slice_free(struct _vte_termcap_alias, alias);
 	}
 	g_tree_destroy(termcap->nametree);
 	termcap->nametree = NULL;
 	g_free(termcap->comment);
 	termcap->comment = NULL;
-	g_free(termcap);
+	g_slice_free(struct _vte_termcap, termcap);
 }
 
 TERMCAP_MAYBE_STATIC struct _vte_termcap *

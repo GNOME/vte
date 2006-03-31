@@ -64,7 +64,7 @@ static VteTerminalAccessiblePrivate *
 vte_terminal_accessible_new_private_data(void)
 {
 	VteTerminalAccessiblePrivate *priv;
-	priv = g_malloc0(sizeof(*priv));
+	priv = g_slice_new0(VteTerminalAccessiblePrivate);
 	priv->snapshot_text = NULL;
 	priv->snapshot_characters = NULL;
 	priv->snapshot_attributes = NULL;
@@ -96,7 +96,7 @@ vte_terminal_accessible_free_private_data(VteTerminalAccessiblePrivate *priv)
 		g_array_free(priv->snapshot_linebreaks, TRUE);
 		priv->snapshot_linebreaks = NULL;
 	}
-	g_free(priv);
+	g_slice_free(VteTerminalAccessiblePrivate, priv);
 }
 
 static gint

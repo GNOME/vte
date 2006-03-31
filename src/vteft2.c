@@ -56,7 +56,7 @@ static void
 _vte_ft2_create(struct _vte_draw *draw, GtkWidget *widget)
 {
 	struct _vte_ft2_data *data;
-	data = (struct _vte_ft2_data*) g_malloc0(sizeof(struct _vte_ft2_data));
+	data = g_slice_new0(struct _vte_ft2_data);
 	draw->impl_data = data;
 	data->rgb = NULL;
 	memset(&data->color, 0, sizeof(data->color));
@@ -82,7 +82,7 @@ _vte_ft2_destroy(struct _vte_draw *draw)
 		data->pixbuf = NULL;
 	}
 	data->scrollx = data->scrolly = 0;
-	g_free(data);
+	g_slice_free(struct _vte_ft2_data, data);
 }
 
 static GdkVisual *

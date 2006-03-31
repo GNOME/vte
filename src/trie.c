@@ -372,7 +372,7 @@ static struct char_class char_classes[] = {
 TRIE_MAYBE_STATIC struct _vte_trie *
 _vte_trie_new(void)
 {
-	return g_malloc0(sizeof(struct _vte_trie));
+	return g_slice_new0(struct _vte_trie);
 }
 
 TRIE_MAYBE_STATIC void
@@ -385,7 +385,7 @@ _vte_trie_free(struct _vte_trie *trie)
 	if (trie->trie_path_count > 0) {
 		g_free(trie->trie_paths);
 	}
-	g_free(trie);
+	g_slice_free(struct _vte_trie, trie);
 }
 
 /* Add the given pattern, with its own result string, to the trie, with the

@@ -1,5 +1,13 @@
 2006-03-30  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 336117 – [patch] Use g_slice API
+	Patch from Aivars Kalvans.
+
+	* src/*.c: Use g_slice instead of g_malloc for structs.
+	Also, replace g_string_new("") with g_string_new(NULL).
+
+2006-03-30  Behdad Esfahbod  <behdad@gnome.org>
+
 	Branchpoint for vte-0-12.
 
 2006-03-30  Guntupalli Karunakar  <karunakar@indlinux.org>

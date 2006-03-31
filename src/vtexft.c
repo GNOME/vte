@@ -113,7 +113,7 @@ _vte_xft_font_open(GtkWidget *widget, const PangoFontDescription *fontdesc,
 		return NULL;
 	}
 
-	font = g_malloc0(sizeof(struct _vte_xft_font));
+	font = g_slice_new0(struct _vte_xft_font);
 #if GTK_CHECK_VERSION(2,2,0)
 	font->display = gtk_widget_get_display(widget);
 #endif
@@ -166,7 +166,7 @@ _vte_xft_font_close(struct _vte_xft_font *font)
 	_vte_tree_destroy(font->widths);
 	font->widths = NULL;
 
-	g_free(font);
+	g_slice_free(struct _vte_xft_font, font);
 }
 
 static XftFont *
@@ -316,7 +316,7 @@ static void
 _vte_xft_create(struct _vte_draw *draw, GtkWidget *widget)
 {
 	struct _vte_xft_data *data;
-	data = (struct _vte_xft_data*) g_malloc0(sizeof(struct _vte_xft_data));
+	data = g_slice_new0(struct _vte_xft_data);
 	draw->impl_data = data;
 	data->font = NULL;
 	data->display = NULL;
@@ -363,7 +363,7 @@ _vte_xft_destroy(struct _vte_draw *draw)
 	data->xpixmap = -1;
 	data->pixmapw = data->pixmaph = -1;
 	data->scrollx = data->scrolly = 0;
-	g_free(data);
+	g_slice_free(struct _vte_xft_data, data);
 }
 
 static GdkVisual *
@@ -529,7 +529,6 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 		       const PangoFontDescription *fontdesc,
 		       VteTerminalAntiAlias antialias)
 {
-	GString *string;
 	XftFont *font;
 	XGlyphInfo extents;
 	struct _vte_xft_data *data;
@@ -549,7 +548,6 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 	draw->height = 1;
 	draw->ascent = 1;
 
-	string = g_string_new("");
 	n = width = height = 0;
 	/* Estimate a typical cell width by looking at single-width
 	 * characters. */
@@ -591,7 +589,6 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 			draw->width /= 2;
 		}
 	}
-	g_string_free(string, TRUE);
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
