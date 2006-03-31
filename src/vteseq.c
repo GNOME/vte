@@ -2809,10 +2809,23 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 			terminal->pvt->screen->defaults.fore = param - 30;
 			break;
 		case 38:
-			/* default foreground, underscore */
-			terminal->pvt->screen->defaults.fore = VTE_DEF_FG;
-			terminal->pvt->screen->defaults.underline = 1;
-			break;
+ 		{
+ 			GValue *value1;
+ 			long param1;
+ 			/* The format looks like: ^[[38;5;COLORNUMBERm,
+ 			   so look for COLORNUMBER here. */
+ 			if ((i + 2) < params->n_values){
+ 				value1 = g_value_array_get_nth(params, i + 2);
+ 				if (!G_VALUE_HOLDS_LONG(value1)) {
+ 					break;
+ 				}
+ 				param1 = g_value_get_long(value1);
+ 				terminal->pvt->screen->defaults.fore = param1;
+ 				i += 2;
+ 			}
+ 			
+ 			break;
+ 		}
 		case 39:
 			/* default foreground, no underscore */
 			terminal->pvt->screen->defaults.fore = VTE_DEF_FG;
@@ -2830,6 +2843,24 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 		case 47:
 			terminal->pvt->screen->defaults.back = param - 40;
 			break;
+  		case 48:
+  		{
+  			GValue *value1;
+  			long param1;
+  			/* The format looks like: ^[[48;5;COLORNUMBERm,
+  			   so look for COLORNUMBER here. */
+  			if ((i + 2) < params->n_values){
+  				value1 = g_value_array_get_nth(params, i + 2);
+  				if (!G_VALUE_HOLDS_LONG(value1)) {
+  					break;
+  				}
+  				param1 = g_value_get_long(value1);
+  				terminal->pvt->screen->defaults.back = param1;
+  				i += 2;
+  			}
+  			break;
+  			
+  		}
 		case 49:
 			/* default background */
 			terminal->pvt->screen->defaults.back = VTE_DEF_BG;

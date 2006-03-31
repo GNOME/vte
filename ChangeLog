@@ -1,5 +1,13 @@
 2006-03-30  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 168251 – add support for 256 colors terminals
+	Patch from dann@godzilla.ics.uci.edu.
+
+	* src/vte-private.h, src/vte.c, src/vteseq.c: Implement support
+	for 256 colors.
+
+2006-03-30  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 120276 – Wishlist: Support Rectangular Selection
 	Patch from Pedro de Medeiros.
 

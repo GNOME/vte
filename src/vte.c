@@ -99,6 +99,10 @@ static gboolean vte_terminal_is_processing (VteTerminal *terminal);
 
 static gpointer parent_class;
 
+/* Indexes in the "palette" color array for the dim colors.
+ * Only the first VTE_LEGACY_COLOR_SET_SIZE colors have dim versions.  */
+static const guchar corresponding_dim_index[] = {16,88,28,100,18,90,30,102};
+
 /* Free a no-longer-used row data array. */
 static void
 vte_free_row_data(gpointer freeing, gpointer data)
@@ -2037,7 +2041,8 @@ vte_terminal_set_colors(VteTerminal *terminal,
 {
 	int i;
 	GdkColor color;
-
+	int r, g, b;
+	
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	g_return_if_fail(palette_size >= 0);
@@ -2059,64 +2064,8 @@ vte_terminal_set_colors(VteTerminal *terminal,
 
 	/* Initialize each item in the palette if we got any entries to work
 	 * with. */
-	for (i = 0; (i < G_N_ELEMENTS(terminal->pvt->palette)); i++) {
-		switch (i) {
-		case VTE_DEF_FG:
-			if (foreground != NULL) {
-				color = *foreground;
-			} else {
-				color.red = 0xc000;
-				color.blue = 0xc000;
-				color.green = 0xc000;
-			}
-			break;
-		case VTE_DEF_BG:
-			if (background != NULL) {
-				color = *background;
-			} else {
-				color.red = 0;
-				color.blue = 0;
-				color.green = 0;
-			}
-			break;
-		case VTE_BOLD_FG:
-			vte_terminal_generate_bold(&terminal->pvt->palette[VTE_DEF_FG],
-						   &terminal->pvt->palette[VTE_DEF_BG],
-						   1.8,
-						   &color);
-			break;
-		case VTE_DIM_FG:
-			vte_terminal_generate_bold(&terminal->pvt->palette[VTE_DEF_FG],
-						   &terminal->pvt->palette[VTE_DEF_BG],
-						   0.5,
-						   &color);
-			break;
-		case VTE_DEF_HL:
-			color.red = 0xc000;
-			color.blue = 0xc000;
-			color.green = 0xc000;
-			break;
-		case VTE_CUR_BG:
-			color.red = 0x0000;
-			color.blue = 0x0000;
-			color.green = 0x0000;
-			break;
-		case 0 + 0:
-		case 0 + 1:
-		case 0 + 2:
-		case 0 + 3:
-		case 0 + 4:
-		case 0 + 5:
-		case 0 + 6:
-		case 0 + 7:
-		case 8 + 0:
-		case 8 + 1:
-		case 8 + 2:
-		case 8 + 3:
-		case 8 + 4:
-		case 8 + 5:
-		case 8 + 6:
-		case 8 + 7:
+	for (i=r=g=b=0; (i < G_N_ELEMENTS(terminal->pvt->palette)); i++) {
+		if (i < 16) {
 			color.blue = (i & 4) ? 0xc000 : 0;
 			color.green = (i & 2) ? 0xc000 : 0;
 			color.red = (i & 1) ? 0xc000 : 0;
@@ -2125,24 +2074,63 @@ vte_terminal_set_colors(VteTerminal *terminal,
 				color.green += 0x3fff;
 				color.red += 0x3fff;
 			}
-			break;
-		case 16 + 0:
-		case 16 + 1:
-		case 16 + 2:
-		case 16 + 3:
-		case 16 + 4:
-		case 16 + 5:
-		case 16 + 6:
-		case 16 + 7:
-			color.blue = (i & 4) ? 0x8000 : 0;
-			color.green = (i & 2) ? 0x8000 : 0;
-			color.red = (i & 1) ? 0x8000 : 0;
-			break;
-		default:
-			g_assert_not_reached();
-			break;
 		}
-
+		else if (i < 232) {
+			int j = i - 16;
+			int r = j / 36, g = (j / 6) % 6, b = j % 6;
+			int red =   (r == 0) ? 0 : r * 40 + 55;
+			int green = (g == 0) ? 0 : g * 40 + 55;
+			int blue =  (b == 0) ? 0 : b * 40 + 55;
+			color.red   = red | red << 8  ;
+			color.green = green | green << 8;
+			color.blue  = blue | blue << 8;
+		} else if (i < 256) {
+			int shade = 8 + (i - 232) * 10;
+			color.red = color.green = color.blue = shade | shade << 8;
+		}
+		else switch (i) {
+			case VTE_DEF_BG:
+				if (background != NULL) {
+					color = *background;
+				} else {
+					color.red = 0;
+					color.blue = 0;
+					color.green = 0;
+				}
+				break;
+			case VTE_DEF_FG:
+				if (foreground != NULL) {
+					color = *foreground;
+				} else {
+					color.red = 0xc000;
+					color.blue = 0xc000;
+					color.green = 0xc000;
+				}
+				break;
+			case VTE_BOLD_FG:
+				vte_terminal_generate_bold(&terminal->pvt->palette[VTE_DEF_FG],
+							   &terminal->pvt->palette[VTE_DEF_BG],
+							   1.8,
+							   &color);
+				break;
+			case VTE_DIM_FG:
+				vte_terminal_generate_bold(&terminal->pvt->palette[VTE_DEF_FG],
+							   &terminal->pvt->palette[VTE_DEF_BG],
+							   0.5,
+							   &color);
+				break;
+			case VTE_DEF_HL:
+				color.red = 0xc000;
+				color.blue = 0xc000;
+				color.green = 0xc000;
+				break;
+			case VTE_CUR_BG:
+				color.red = 0x0000;
+				color.blue = 0x0000;
+				color.green = 0x0000;
+				break;
+			}
+		
 		/* Override from the supplied palette if there is one. */
 		if (i < palette_size) {
 			color = palette[i];
@@ -7582,7 +7570,7 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 		if (*fore == VTE_DEF_FG) {
 			*fore = VTE_BOLD_FG;
 		} else
-		if ((*fore != VTE_DEF_BG) && (*fore < VTE_COLOR_SET_SIZE)) {
+		if ((*fore != VTE_DEF_BG) && (*fore < VTE_LEGACY_COLOR_SET_SIZE)) {
 			*fore += VTE_COLOR_BRIGHT_OFFSET;
 		}
 	}
@@ -7590,12 +7578,12 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 		if (*fore == VTE_DEF_FG) {
 			*fore = VTE_DIM_FG;
 		} else
-		if ((*fore < VTE_COLOR_SET_SIZE)) {
-			*fore += VTE_COLOR_DIM_OFFSET;
+		if ((*fore < VTE_LEGACY_COLOR_SET_SIZE)) {
+			*fore = corresponding_dim_index[*fore];;
 		}
 	}
 	if (cell && cell->standout) {
-		if (*back < VTE_COLOR_SET_SIZE) {
+		if (*back < VTE_LEGACY_COLOR_SET_SIZE) {
 			*back += VTE_COLOR_BRIGHT_OFFSET;
 		}
 	}
