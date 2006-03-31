@@ -4294,6 +4294,7 @@ static gboolean
 vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 {
 	struct selection_cell_coords ss, se;
+	gboolean ret;
 
 	/* If there's nothing selected, it's an easy question to answer. */
 	if (!terminal->pvt->has_selection) {
@@ -4309,7 +4310,15 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 
 	/* Now it boils down to whether or not the point is between the
 	 * begin and endpoint of the selection. */
-	return vte_cell_is_between(col, row, ss.x, ss.y, se.x, se.y, TRUE);
+	ret = vte_cell_is_between(col, row, ss.x, ss.y, se.x, se.y, TRUE);
+	/* Limit selection to block mode. */
+	if (ret && terminal->pvt->block_mode) {
+		if (col < ss.x || col > se.x) {
+			return FALSE;
+		}
+	}
+	
+	return ret;
 }
 
 /* Once we get text data, actually paste it in. */
@@ -4847,6 +4856,10 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 		if (last_nonspacecol == -1) {
 			g_string_truncate(string, line_start);
 		}
+		/* Add a newline in block mode. */
+		if (terminal->pvt->block_mode) {
+			string = g_string_append_unichar(string, '\n');
+		}
 		/* Make sure that the attributes array is as long as the
 		 * string. */
 		if (attributes) {
@@ -4854,7 +4867,8 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 		}
 		/* If the last visible column on this line was selected and
 		 * it contained whitespace, append a newline. */
-		if (is_selected(terminal, terminal->column_count - 1,
+		if (!terminal->pvt->block_mode &&
+				is_selected(terminal, terminal->column_count - 1,
 				row, data)) {
 			pcell = vte_terminal_find_charcell(terminal,
 							   terminal->column_count - 1,
@@ -5284,13 +5298,13 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 	 * than recalculating for each cell as we render it. */
 
 	/* Handle end-of-line at the start-cell. */
-	if (_vte_ring_contains(screen->row_data, sc->y)) {
+	if (!terminal->pvt->block_mode && _vte_ring_contains(screen->row_data, sc->y)) {
 		rowdata = _vte_ring_index(screen->row_data,
 					  VteRowData *, sc->y);
-	} else {
+	} else if (!terminal->pvt->block_mode) {
 		rowdata = NULL;
 	}
-	if (rowdata != NULL) {
+	if (!terminal->pvt->block_mode && rowdata != NULL) {
 		/* Find the last non-space character on the first line. */
 		last_nonspace = -1;
 		for (i = 0; i < rowdata->cells->len; i++) {
@@ -5315,19 +5329,19 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 				sc->x = i;
 			}
 		}
-	} else {
+	} else if (!terminal->pvt->block_mode) {
 		/* Snap to the leftmost column. */
 		sc->x = 0;
 	}
 
 	/* Handle end-of-line at the end-cell. */
-	if (_vte_ring_contains(screen->row_data, ec->y)) {
+	if (!terminal->pvt->block_mode && _vte_ring_contains(screen->row_data, ec->y)) {
 		rowdata = _vte_ring_index(screen->row_data,
 					  VteRowData *, ec->y);
-	} else {
+	} else if (!terminal->pvt->block_mode) {
 		rowdata = NULL;
 	}
-	if (rowdata != NULL) {
+	if (!terminal->pvt->block_mode && rowdata != NULL) {
 		/* Find the last non-space character on the last line. */
 		last_nonspace = -1;
 		for (i = 0; i < rowdata->cells->len; i++) {
@@ -5346,7 +5360,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 				    MAX(terminal->column_count - 1,
 					rowdata->cells->len));
 		}
-	} else {
+	} else if (!terminal->pvt->block_mode) {
 		/* Snap to the rightmost column. */
 		ec->x = MAX(ec->x, terminal->column_count - 1);
 	}
@@ -5468,11 +5482,30 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 		}
 		break;
 	}
+	
+	/* Update the selection area in block mode. */
+  	if (terminal->pvt->block_mode || terminal->pvt->had_block_mode) {
+		/* Fix coordinates for block mode operation. */
+		if (sc->x > ec->x) {
+			tc.x = ec->x;
+			ec->x = sc->x;
+			sc->x = tc.x;
+		}
+		_vte_invalidate_cells(terminal,
+				      0, terminal->column_count,
+				      /* MIN(terminal->pvt->selection_start.x, old_start.x),
+				       * MAX(terminal->pvt->selection_end.x, old_end.x), */
+				      MIN(old_start.y, terminal->pvt->selection_start.y),
+				      MAX(old_end.y, terminal->pvt->selection_end.y) -
+				      MIN(old_start.y, terminal->pvt->selection_start.y) + 1);
+		terminal->pvt->had_block_mode = FALSE;
+	}
 
 	/* Redraw the rows which contain cells which have changed their
 	 * is-selected status. */
-	if ((old_start.x != terminal->pvt->selection_start.x) ||
-	    (old_start.y != terminal->pvt->selection_start.y)) {
+	if (!terminal->pvt->block_mode && 
+	    ((old_start.x != terminal->pvt->selection_start.x) ||
+	    (old_start.y != terminal->pvt->selection_start.y))) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
 			fprintf(stderr, "Refreshing lines %ld to %ld.\n",
@@ -5492,8 +5525,9 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 				     MIN(old_start.y,
 					 terminal->pvt->selection_start.y) + 1);
 	}
-	if ((old_end.x != terminal->pvt->selection_end.x) ||
-	    (old_end.y != terminal->pvt->selection_end.y)) {
+	if (!terminal->pvt->block_mode &&
+	    ((old_end.x != terminal->pvt->selection_end.x) ||
+	    (old_end.y != terminal->pvt->selection_end.y))) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
 			fprintf(stderr, "Refreshing lines %ld to %ld.\n",
@@ -5601,10 +5635,10 @@ vte_terminal_autoscroll(gpointer data)
 		y = CLAMP(terminal->pvt->mouse_last_y, 0, ymax);
 		/* If we clamped the Y, mess with the X to get the entire
 		 * lines. */
-		if (terminal->pvt->mouse_last_y < 0) {
+		if (terminal->pvt->mouse_last_y < 0 && !terminal->pvt->block_mode) {
 			x = 0;
 		}
-		if (terminal->pvt->mouse_last_y > ymax) {
+		if (terminal->pvt->mouse_last_y > ymax && !terminal->pvt->block_mode) {
 			x = terminal->column_count * terminal->char_width;
 		}
 		/* Extend selection to cover the newly-scrolled area. */
@@ -5681,6 +5715,16 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 				fprintf(stderr, "Mousing drag 1.\n");
 			}
 #endif
+			/* If user hit ctrl, change selection mode. */
+			if ((terminal->pvt->modifiers & GDK_CONTROL_MASK) &&
+			    !terminal->pvt->block_mode) {
+				terminal->pvt->block_mode = TRUE;
+			} else if (!(terminal->pvt->modifiers & GDK_CONTROL_MASK) &&
+				   terminal->pvt->block_mode) {
+				terminal->pvt->block_mode = FALSE;
+				terminal->pvt->had_block_mode = TRUE;
+			}
+
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
 			    !event_mode) {
 				vte_terminal_extend_selection(terminal,
@@ -5809,6 +5853,14 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 					extend_selecting = TRUE;
 				} else {
 					start_selecting = TRUE;
+				}
+
+				/* If user hit ctrl, change selection type. */
+				if ((terminal->pvt->modifiers & GDK_CONTROL_MASK) &&
+				    !terminal->pvt->block_mode) {
+					terminal->pvt->block_mode = TRUE;
+				} else if (terminal->pvt->block_mode) {
+					terminal->pvt->block_mode = FALSE;
 				}
 			}
 			if (start_selecting) {
@@ -6809,6 +6861,8 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->bg_tint_color.green = 0;
 	pvt->bg_tint_color.blue = 0;
 	pvt->bg_saturation = 0.4 * VTE_SATURATION_MAX;
+	pvt->block_mode = FALSE;
+	pvt->had_block_mode = FALSE;
 
 	/* Assume we're visible unless we're told otherwise. */
 	pvt->visibility_state = GDK_VISIBILITY_UNOBSCURED;
@@ -9081,7 +9135,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	int preedit_cursor;
 	long width, height, ascent, descent, delta, cursor_width;
 	int i, len, fore, back, x, y;
-	GdkRectangle all_area;
+	GdkRectangle all_area, selected_area;
 	gboolean blink, selected;
 
 #ifdef VTE_DEBUG
@@ -9095,6 +9149,21 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	g_assert(VTE_IS_TERMINAL(widget));
 	g_assert(area != NULL);
 	terminal = VTE_TERMINAL(widget);
+	
+	/* Update whole selection if terminal is in block mode. */
+	if (terminal->pvt->has_selection && terminal->pvt->block_mode) {
+		selected_area.x = terminal->pvt->selection_start.x *
+				  terminal->char_width;
+		selected_area.y = terminal->pvt->selection_start.y *
+				  terminal->char_height;
+		selected_area.width = terminal->pvt->selection_end.x *
+				      terminal->char_width;
+		selected_area.height = terminal->pvt->selection_end.y *
+				       terminal->char_height;
+		selected_area.width -= selected_area.x;
+		selected_area.height -= selected_area.y;
+		gdk_rectangle_union(area, &selected_area, area);
+	}
 
 	/* Get going. */
 	screen = terminal->pvt->screen;

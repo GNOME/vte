@@ -1,5 +1,13 @@
 2006-03-30  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 120276 – Wishlist: Support Rectangular Selection
+	Patch from Pedro de Medeiros.
+
+	* src/vte.c, src/vte-private.h: Implement block (rectangular)
+	selection using ctrl+mouse.
+
+2006-03-30  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 336117 – [patch] Use g_slice API
 	Patch from Aivars Kalvans.
 
