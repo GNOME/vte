@@ -26,4 +26,9 @@ gtk-doc.make
 omf.make
 vte.spec
 xmldocs.make
-
+intltool-extract
+intltool-extract.in
+intltool-merge
+intltool-merge.in
+intltool-update
+intltool-update.in
