@@ -1,3 +1,9 @@
+2006-04-06  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 337552 – Insufficient version requirement for gtk+
+
+	* configure.in: Depend on Gtk+ 2.6.
+
 2006-03-30  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 168251 – add support for 256 colors terminals

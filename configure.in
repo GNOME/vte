@@ -41,17 +41,12 @@ fi
 AC_SUBST(X_CFLAGS)
 AC_SUBST(X_LIBS)
 
-if pkg-config --exists "gtk+-2.0 >= 2.2" ; then
-	MODULEGTK="gtk+-2.0 >= 2.2"
-	AC_DEFINE(GDK_MULTIHEAD_SAFE,1,[Force use of GDK's multihead-safe APIs.])
-else
-	MODULEGTK="gtk+-2.0"
-fi
+AC_DEFINE(GDK_MULTIHEAD_SAFE,1,[Force use of GDK's multihead-safe APIs.])
 PKG_CHECK_MODULES(GLIB,glib-2.0 > 2.9.0)
 PKG_CHECK_MODULES(GOBJECT,[glib-2.0 gobject-2.0])
-PKG_CHECK_MODULES(GTK,[glib-2.0 gobject-2.0 $MODULEGTK])
+PKG_CHECK_MODULES(GTK,[glib-2.0 gobject-2.0 gtk+-2.0 >= 2.6.0])
 
-wantedmodules="glib-2.0 gobject-2.0 $MODULEGTK fontconfig"
+wantedmodules="glib-2.0 gobject-2.0 gtk+-2.0 fontconfig"
 
 # Let the user specify the default terminal emulation.
 AC_ARG_WITH(default-emulation,
