@@ -1,3 +1,10 @@
+2006-04-10  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 337877 – Patch to use po/LINGUAS
+	Patch from Michiel Sikkes.
+
+	* configure.in, po/LINGUAS: Move list of translations to po/LINGUAS.
+
 2006-04-06  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 337552 – Insufficient version requirement for gtk+
