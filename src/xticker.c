@@ -127,12 +127,13 @@ main(int argc, char **argv)
 				close(fd);
 			}
 		} else {
-			outbuf = g_strdup_printf("\033]0;Error opening %s: %s."
+			char *errbuf;
+			errbuf = g_strdup_printf("\033]0;Error opening %s: %s."
 						 "\007",
 						 argv[i],
 						 strerror(errno));
-			write(STDERR_FILENO, outbuf, strlen(outbuf));
-			g_free(outbuf);
+			write(STDERR_FILENO, errbuf, strlen(errbuf));
+			g_free(errbuf);
 			my_usleep(1000000);
 		}
 	}

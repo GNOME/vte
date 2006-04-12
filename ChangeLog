@@ -1,3 +1,9 @@
+2006-04-12  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 307403 – xticker doublefree
+
+	* src/xticker.c: Avoid double free.
+
 2006-04-10  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 337877 – Patch to use po/LINGUAS
