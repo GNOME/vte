@@ -278,7 +278,7 @@ _vte_pty_run_on_pty(int fd, int ready_reader, int ready_writer,
 		    const char *directory)
 {
 	int i;
-	char c;
+	char c = 0;
 	char **args, *arg;
 
 	if (fd != STDIN_FILENO) {

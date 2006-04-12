@@ -1,5 +1,12 @@
 2006-04-12  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 142247 – use of uninitialized value
+
+	* src/pty.c: Initialize the arbitrary byte that we send on the pipe
+	to zero.
+
+2006-04-12  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 149633 – gnome-terminal messes up boxdrawing chars aligment
 
 	* src/vte.c: Try to use the font first for all graphic characters.
