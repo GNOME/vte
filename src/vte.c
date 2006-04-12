@@ -3405,7 +3405,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	long crcount, cooked_length, i;
 
 	g_assert(VTE_IS_TERMINAL(terminal));
-	g_assert(strcmp(encoding, "UTF-8") == 0);
+	g_assert(encoding && strcmp(encoding, "UTF-8") == 0);
 
 	conv = NULL;
 	if (strcmp(encoding, "UTF-8") == 0) {
