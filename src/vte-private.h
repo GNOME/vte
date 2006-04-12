@@ -51,8 +51,6 @@
 
 G_BEGIN_DECLS
 
-#ident "$Id$"
-
 #define VTE_PAD_WIDTH			1
 #define VTE_TAB_WIDTH			8
 #define VTE_LINE_WIDTH			1

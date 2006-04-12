@@ -1,5 +1,10 @@
 2006-04-12  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c: Try to use the font first for all graphic characters.
+	This results in better looking graphics with modern fonts.
+
+2006-04-12  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 144456 – UK pound currency symbol rendered incorrectly
 
 	* src/vte.c: Offset characters drawn in draw_graphic for padding.

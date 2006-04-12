@@ -16,8 +16,6 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ident "$Id$"
-
 #include "../config.h"
 
 #include "vte.h"
@@ -7742,15 +7740,16 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 					    column_width * columns, row_height);
 	}
 
+	if (_vte_draw_char(terminal->pvt->draw, &request,
+			   &color, VTE_DRAW_OPAQUE)) {
+		/* We were able to draw with actual fonts. */
+		return TRUE;
+	}
+
 	ret = TRUE;
 
 	switch (c) {
 	case 124:
-		if (_vte_draw_char(terminal->pvt->draw, &request,
-				   &color, VTE_DRAW_OPAQUE)) {
-			/* We were able to draw with actual fonts. */
-			return TRUE;
-		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -7772,11 +7771,6 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       x + 1, ybottom - 1);
 		break;
 	case 127:
-		if (_vte_draw_char(terminal->pvt->draw, &request,
-				   &color, VTE_DRAW_OPAQUE)) {
-			/* We were able to draw with actual fonts. */
-			return TRUE;
-		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -7804,11 +7798,6 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       x, ycenter);
 		break;
 	case 0x00a3:
-		if (_vte_draw_char(terminal->pvt->draw, &request,
-				   &color, VTE_DRAW_OPAQUE)) {
-			/* We were able to draw with actual fonts. */
-			return TRUE;
-		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -7832,11 +7821,6 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       xcenter + 1, ycenter);
 		break;
 	case 0x00b0: /* f */
-		if (_vte_draw_char(terminal->pvt->draw, &request,
-				   &color, VTE_DRAW_OPAQUE)) {
-			/* We were able to draw with actual fonts. */
-			return TRUE;
-		}
 		/* litle circle */
 		vte_terminal_draw_point(terminal,
 					&terminal->pvt->palette[fore],
@@ -7852,11 +7836,6 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 					xcenter, ycenter + 1);
 		break;
 	case 0x00b1: /* g */
-		if (_vte_draw_char(terminal->pvt->draw, &request,
-				   &color, VTE_DRAW_OPAQUE)) {
-			/* We were able to draw with actual fonts. */
-			return TRUE;
-		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -7882,11 +7861,6 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       (ycenter + ybottom) / 2);
 		break;
 	case 0x00b7:
-		if (_vte_draw_char(terminal->pvt->draw, &request,
-				   &color, VTE_DRAW_OPAQUE)) {
-			/* We were able to draw with actual fonts. */
-			return TRUE;
-		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -7898,11 +7872,6 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       xcenter + 1, ycenter);
 		break;
 	case 0x3c0: /* pi */
-		if (_vte_draw_char(terminal->pvt->draw, &request,
-				   &color, VTE_DRAW_OPAQUE)) {
-			/* We were able to draw with actual fonts. */
-			return TRUE;
-		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -7932,11 +7901,6 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 	/* case 0x2193: FIXME */
 	/* case 0x2260: FIXME */
 	case 0x2264: /* y */
-		if (_vte_draw_char(terminal->pvt->draw, &request,
-				   &color, VTE_DRAW_OPAQUE)) {
-			/* We were able to draw with actual fonts. */
-			return TRUE;
-		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -7956,11 +7920,6 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       xright - 1, (ycenter + ybottom) / 2);
 		break;
 	case 0x2265: /* z */
-		if (_vte_draw_char(terminal->pvt->draw, &request,
-				   &color, VTE_DRAW_OPAQUE)) {
-			/* We were able to draw with actual fonts. */
-			return TRUE;
-		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -8010,11 +7969,6 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 					    VTE_LINE_WIDTH);
 		break;
 	case 0x2409:  /* b */
-		if (_vte_draw_char(terminal->pvt->draw, &request,
-				   &color, VTE_DRAW_OPAQUE)) {
-			/* We were able to draw with actual fonts. */
-			return TRUE;
-		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -8043,11 +7997,6 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       (xcenter + xright) / 2, ybottom - 1);
 		break;
 	case 0x240a: /* e */
-		if (_vte_draw_char(terminal->pvt->draw, &request,
-				   &color, VTE_DRAW_OPAQUE)) {
-			/* We were able to draw with actual fonts. */
-			return TRUE;
-		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -8076,11 +8025,6 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       xright - 1, (ycenter + ybottom) / 2);
 		break;
 	case 0x240b: /* i */
-		if (_vte_draw_char(terminal->pvt->draw, &request,
-				   &color, VTE_DRAW_OPAQUE)) {
-			/* We were able to draw with actual fonts. */
-			return TRUE;
-		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -8105,11 +8049,6 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       (xcenter + xright) / 2, ybottom - 1);
 		break;
 	case 0x240c:  /* c */
-		if (_vte_draw_char(terminal->pvt->draw, &request,
-				   &color, VTE_DRAW_OPAQUE)) {
-			/* We were able to draw with actual fonts. */
-			return TRUE;
-		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -8142,11 +8081,6 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       xright - 1, (ycenter + ybottom) / 2);
 		break;
 	case 0x240d: /* d */
-		if (_vte_draw_char(terminal->pvt->draw, &request,
-				   &color, VTE_DRAW_OPAQUE)) {
-			/* We were able to draw with actual fonts. */
-			return TRUE;
-		}
 		xcenter--;
 		ycenter--;
 		xright--;
@@ -8187,11 +8121,6 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 				       xright - 1, ybottom - 1);
 		break;
 	case 0x2424: /* h */
-		if (_vte_draw_char(terminal->pvt->draw, &request,
-				   &color, VTE_DRAW_OPAQUE)) {
-			/* We were able to draw with actual fonts. */
-			return TRUE;
-		}
 		xcenter--;
 		ycenter--;
 		xright--;
