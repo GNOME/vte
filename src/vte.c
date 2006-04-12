@@ -7723,8 +7723,8 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 	GdkColor color;
 
 	request.c = c;
-	request.x = x;
-	request.y = y;
+	request.x = x + VTE_PAD_WIDTH;
+	request.y = y + VTE_PAD_WIDTH;
 	request.columns = columns;
 
 	color.red = terminal->pvt->palette[fore].red;

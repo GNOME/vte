@@ -1,5 +1,11 @@
 2006-04-12  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 144456 – UK pound currency symbol rendered incorrectly
+
+	* src/vte.c: Offset characters drawn in draw_graphic for padding.
+
+2006-04-12  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 307403 – xticker doublefree
 
 	* src/xticker.c: Avoid double free.
