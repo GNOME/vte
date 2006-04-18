@@ -45,7 +45,6 @@
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
 #endif
-#include <glib/gi18n-lib.h>
 
 #ifndef HAVE_WINT_T
 typedef gunichar wint_t;
@@ -208,8 +207,9 @@ vte_invalidate_region(VteTerminal *terminal)
 }
 
 static gboolean
-vte_update_delay_timeout(VteTerminal *terminal)
+vte_update_delay_timeout(gpointer data)
 {
+	VteTerminal *terminal = (VteTerminal *) data;
 	gboolean updated = vte_invalidate_region (terminal);
 
 	/* We only stop the timer if no update request was received in this
@@ -224,8 +224,9 @@ vte_update_delay_timeout(VteTerminal *terminal)
 }
 
 static gboolean
-vte_update_timeout(VteTerminal *terminal)
+vte_update_timeout(gpointer data)
 {
+	VteTerminal *terminal = (VteTerminal *) data;
 	vte_invalidate_region(terminal);
 
 	/* Set a timer such that we do not invalidate for a while. */
@@ -5287,7 +5288,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 	if (!terminal->pvt->block_mode && _vte_ring_contains(screen->row_data, sc->y)) {
 		rowdata = _vte_ring_index(screen->row_data,
 					  VteRowData *, sc->y);
-	} else if (!terminal->pvt->block_mode) {
+	} else {
 		rowdata = NULL;
 	}
 	if (!terminal->pvt->block_mode && rowdata != NULL) {
@@ -5324,7 +5325,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 	if (!terminal->pvt->block_mode && _vte_ring_contains(screen->row_data, ec->y)) {
 		rowdata = _vte_ring_index(screen->row_data,
 					  VteRowData *, ec->y);
-	} else if (!terminal->pvt->block_mode) {
+	} else {
 		rowdata = NULL;
 	}
 	if (!terminal->pvt->block_mode && rowdata != NULL) {
@@ -8639,7 +8640,8 @@ _vte_terminal_fudge_pango_colors(VteTerminal *terminal, GSList *attributes,
 	gboolean saw_fg, saw_bg;
 	PangoAttribute *attr;
 	PangoAttrColor *color;
-	PangoColor fg, bg;
+	PangoColor fg = {0, 0, 0};
+	PangoColor bg = {0, 0, 0};
 	int i;
 
 	saw_fg = saw_bg = FALSE;

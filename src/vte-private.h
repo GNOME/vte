@@ -39,6 +39,7 @@
 #include <termios.h>
 #endif
 #include <unistd.h>
+#include <glib/gi18n-lib.h>
 
 #include "vte.h"
 #include "buffer.h"
@@ -375,15 +376,6 @@ void _vte_terminal_clear_tabstop(VteTerminal *terminal, int column);
 gboolean _vte_terminal_get_tabstop(VteTerminal *terminal, int column);
 void _vte_terminal_set_tabstop(VteTerminal *terminal, int column);
 void _vte_terminal_update_insert_delta(VteTerminal *terminal);
-
-
-#ifdef ENABLE_NLS
-#include <libintl.h>
-#define _(String) dgettext(PACKAGE, String)
-#else
-#define _(String) String
-#define bindtextdomain(package,dir)
-#endif
 
 G_END_DECLS
 

@@ -21,8 +21,6 @@
 #ifndef vte_keymap_h_included
 #define vte_keymap_h_included
 
-#ident "$Id$"
-
 #include <glib.h>
 #include <gdk/gdk.h>
 #include "vtetc.h"
@@ -45,7 +43,7 @@ void _vte_keymap_map(guint keyval,
 		     struct _vte_termcap *termcap,
 		     const char *term,
 		     char **normal,
-		     size_t *normal_length,
+		     gssize *normal_length,
 		     const char **special);
 
 /* Return TRUE if a keyval is just a modifier key. */

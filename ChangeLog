@@ -1,5 +1,15 @@
 2006-04-18  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/caps.c (_vte_capability_init), src/caps.h:
+	* src/keymap.c (_vte_keymap_map), src/keymap.h: Make some data
+	structures const by changing char * to char [].
+
+	* src/vte.c (vte_update_delay_timeout), (vte_update_timeout),
+	(vte_terminal_extend_selection), (_vte_terminal_fudge_pango_colors):
+	Fix warnings and adapt to above changes.
+
+2006-04-18  Behdad Esfahbod  <behdad@gnome.org>
+
 	* configure.in, po/LINGUAS: Use intltool 0.34.90 format.
 
 2006-04-12  Behdad Esfahbod  <behdad@gnome.org>

@@ -39,12 +39,13 @@ G_BEGIN_DECLS
 /* A NULL-terminated list of capability strings which have string values,
  * which means they're either key sequences or commands. */
 struct _vte_capability_quark {
-	const char *capability;
+	const char capability[4];
 	gboolean key;
 	GQuark quark;
 };
 struct _vte_capability_string {
-	const char *code, *value;
+	const char *code;
+	const char *value;
 	GQuark quark;
 };
 
