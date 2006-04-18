@@ -732,6 +732,18 @@ keys.
 @Returns: 
 
 
+<!-- ##### FUNCTION vte_terminal_get_text_include_trailing_spaces ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@is_selected: 
+@data: 
+@attributes: 
+@Returns: 
+
+
 <!-- ##### FUNCTION vte_terminal_get_text_range ##### -->
 <para>
 
