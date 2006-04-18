@@ -19,7 +19,6 @@
 /* VTE accessibility object.  Based heavily on inspection of libzvt's
  * accessibility code. */
 
-#ident "$Id$"
 
 #include "../config.h"
 

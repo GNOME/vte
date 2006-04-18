@@ -16,7 +16,6 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ident "$Id$"
 #include "../config.h"
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>

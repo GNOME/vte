@@ -19,7 +19,6 @@
 #ifndef vte_pty_h_included
 #define vte_pty_h_included
 
-#ident "$Id$"
 
 #include <sys/types.h>
 

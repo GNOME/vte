@@ -21,7 +21,6 @@
 #ifndef vte_iso2022_h_included
 #define vte_iso2022_h_included
 
-#ident "$Id$"
 
 #include <glib.h>
 #include <glib-object.h>

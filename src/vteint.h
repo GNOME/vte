@@ -19,7 +19,6 @@
 #ifndef vte_vteint_h_included
 #define vte_vteint_h_included
 
-#ident "$Id$"
 
 #include "vte.h"
 

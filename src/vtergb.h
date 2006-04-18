@@ -19,7 +19,6 @@
 #ifndef vte_vte_rgbh_included
 #define vte_vte_rgbh_included
 
-#ident "$Id$"
 
 #include <gdk/gdk.h>
 #include <glib.h>

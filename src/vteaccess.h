@@ -19,7 +19,6 @@
 #ifndef vte_vteaccess_h_included
 #define vte_vteaccess_h_included
 
-#ident "$Id$"
 
 #include <glib.h>
 #include <gtk/gtk.h>

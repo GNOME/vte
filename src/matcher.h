@@ -21,7 +21,6 @@
 #ifndef vte_matcher_h_included
 #define vte_matcher_h_included
 
-#ident "$Id$"
 
 #include <glib-object.h>
 #include "vtetc.h"

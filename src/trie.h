@@ -21,7 +21,6 @@
 #ifndef vte_trie_h_included
 #define vte_trie_h_included
 
-#ident "$Id$"
 
 #include <glib.h>
 #include <glib-object.h>

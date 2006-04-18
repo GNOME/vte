@@ -21,7 +21,6 @@
 #ifndef vte_vteconv_h_included
 #define vte_vteconv_h_included
 
-#ident "$Id$"
 
 #include <glib.h>
 

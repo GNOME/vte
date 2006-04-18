@@ -21,7 +21,6 @@
 #ifndef vte_vtefc_h_included
 #define vte_vtefc_h_included
 
-#ident "$Id$"
 
 #include <fontconfig/fontconfig.h>
 #include <pango/pango.h>

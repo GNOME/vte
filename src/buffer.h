@@ -23,7 +23,6 @@
 #ifndef vte_buffer_h_included
 #define vte_buffer_h_included
 
-#ident "$Id$"
 
 #include <sys/types.h>
 

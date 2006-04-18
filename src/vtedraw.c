@@ -18,7 +18,6 @@
 
 /* The interfaces in this file are subject to change at any time. */
 
-#ident "$Id$"
 
 #include "../config.h"
 

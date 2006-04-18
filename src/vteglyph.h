@@ -19,7 +19,6 @@
 #ifndef vte_vteglyph_h_included
 #define vte_vteglyph_h_included
 
-#ident "$Id$"
 
 #include <gtk/gtk.h>
 #include "vtefc.h"

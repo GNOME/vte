@@ -19,7 +19,6 @@
 #ifndef vte_vteregex_h_included
 #define vte_vteregex_h_included
 
-#ident "$Id$"
 
 #include <glib.h>
 

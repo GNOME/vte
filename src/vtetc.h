@@ -21,7 +21,6 @@
 #ifndef vte_termcap_h_included
 #define vte_termcap_h_included
 
-#ident "$Id$"
 
 #include <glib.h>
 

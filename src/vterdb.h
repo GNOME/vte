@@ -16,7 +16,6 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ident "$Id$"
 
 #ifndef vte_rdbh_included
 #define vte_rdbh_included

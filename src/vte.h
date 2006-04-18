@@ -19,7 +19,6 @@
 #ifndef vte_vte_h_included
 #define vte_vte_h_included
 
-#ident "$Id$"
 
 #include <sys/types.h>
 #include <stdio.h>

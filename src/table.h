@@ -21,7 +21,6 @@
 #ifndef vte_table_h_included
 #define vte_table_h_included
 
-#ident "$Id$"
 
 #include <glib-object.h>
 
