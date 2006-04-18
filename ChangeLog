@@ -1,5 +1,11 @@
 2006-04-18  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 337442 – [patch] Reduce .plt section
+
+	* src/Makefile.am: Pass export-symbols-regex to libtool.
+
+2006-04-18  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/caps.c (_vte_capability_init), src/caps.h:
 	* src/keymap.c (_vte_keymap_map), src/keymap.h: Make some data
 	structures const by changing char * to char [].
