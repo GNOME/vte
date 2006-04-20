@@ -6,6 +6,8 @@ Accessibility peer of #VteTerminal.
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
+The accessibility peer of a #VteTerminal, implementing GNOME's accessibility
+framework.
 
 </para>
 
@@ -14,12 +16,15 @@ Accessibility peer of #VteTerminal.
 
 </para>
 
+<!-- ##### SECTION Stability_Level ##### -->
+
+
 <!-- ##### STRUCT VteTerminalAccessible ##### -->
 <para>
 This should not be accessed directly.  Use the #AtkText interface instead.
 </para>
 
-@parent: 
+@parent: The parent #GtkAccessible object.
 
 <!-- ##### FUNCTION vte_terminal_accessible_new ##### -->
 <para>

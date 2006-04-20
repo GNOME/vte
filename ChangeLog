@@ -1,3 +1,25 @@
+2006-04-20  Behdad Esfahbod  <behdad@gnome.org>
+
+	* doc/reference/tmpl/internals.sgml:
+	* doc/reference/tmpl/reaper.sgml:
+	* doc/reference/tmpl/vte-unused.sgml:
+	* doc/reference/tmpl/vte.sgml:
+	* doc/reference/tmpl/vteaccess.sgml:
+	* doc/reference/vte-sections.txt: Misc fixes and updates.
+
+	* python/vte.defs:
+	* python/vte.override: Updates.
+
+	Bug 160134 – mouse events occurring past column 95 are not passed
+	through to terminal application
+	Based on patch from Sean Estabrooks.
+
+	* src/vte.h:
+	* src/vte.c (vte_terminal_feed_child_binary): New public function.
+
+	* src/vte.c (vte_terminal_send_mouse_button_internal),
+	(vte_terminal_maybe_send_mouse_drag): Use feed_child_binary.
+
 2006-04-19  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 135230 – Feature request to attach VTE to existing pty

@@ -14,12 +14,15 @@ A VteTerminal is a terminal emulator implemented as a GTK2 widget.
 
 </para>
 
+<!-- ##### SECTION Stability_Level ##### -->
+
+
 <!-- ##### STRUCT VteTerminal ##### -->
 <para>
 All of these fields should be considered read-only.
 </para>
 
-@widget: 
+@widget: Base #GtkWidget of the terminal widget.
 @adjustment: Scroll bar adjustments.
 @char_width: Width of a narrow character cell.
 @char_height: Height of a character cell.
@@ -234,7 +237,7 @@ accessibility peer.  May not be emitted under certain circumstances.
 </para>
 
 @vteterminal: the object which received the signal.
-@arg1: 
+@arg1: the number of lines scrolled.
 
 <!-- ##### SIGNAL VteTerminal::window-title-changed ##### -->
 <para>
@@ -306,8 +309,6 @@ keys.
 
 @terminal: 
 @pty_master: 
-<!-- # Unused Parameters # -->
-@Returns: 
 
 
 <!-- ##### FUNCTION vte_terminal_feed ##### -->
@@ -321,6 +322,16 @@ keys.
 
 
 <!-- ##### FUNCTION vte_terminal_feed_child ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@text: 
+@length: 
+
+
+<!-- ##### FUNCTION vte_terminal_feed_child_binary ##### -->
 <para>
 
 </para>
@@ -370,9 +381,6 @@ keys.
 @terminal: 
 @columns: 
 @rows: 
-<!-- # Unused Parameters # -->
-@Param2: 
-@Param3: 
 
 
 <!-- ##### FUNCTION vte_terminal_set_audible_bell ##### -->
@@ -481,8 +489,6 @@ keys.
 
 @terminal: 
 @dim: 
-<!-- # Unused Parameters # -->
-@bold: 
 
 
 <!-- ##### FUNCTION vte_terminal_set_color_cursor ##### -->
@@ -593,8 +599,6 @@ keys.
 
 @terminal: 
 @lines: 
-<!-- # Unused Parameters # -->
-@Param2: 
 
 
 <!-- ##### FUNCTION vte_terminal_set_font ##### -->
@@ -623,8 +627,6 @@ keys.
 @terminal: 
 @name: 
 @antialias: 
-<!-- # Unused Parameters # -->
-@anti_alias: 
 
 
 <!-- ##### FUNCTION vte_terminal_set_font_full ##### -->
@@ -635,8 +637,6 @@ keys.
 @terminal: 
 @font_desc: 
 @antialias: 
-<!-- # Unused Parameters # -->
-@anti_alias: 
 
 
 <!-- ##### FUNCTION vte_terminal_get_font ##### -->
@@ -818,9 +818,6 @@ keys.
 @row: 
 @tag: 
 @Returns: 
-<!-- # Unused Parameters # -->
-@Param2: 
-@Param3: 
 
 
 <!-- ##### FUNCTION vte_terminal_match_set_cursor ##### -->

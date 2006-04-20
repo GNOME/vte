@@ -219,8 +219,8 @@ pid_t vte_terminal_forkpty(VteTerminal *terminal,
 /* Send data to the terminal to display, or to the terminal's forked command
  * to handle in some way.  If it's 'cat', they should be the same. */
 void vte_terminal_feed(VteTerminal *terminal, const char *data, glong length);
-void vte_terminal_feed_child(VteTerminal *terminal,
-			     const char *data, glong length);
+void vte_terminal_feed_child(VteTerminal *terminal, const char *text, glong length);
+void vte_terminal_feed_child_binary(VteTerminal *terminal, const char *data, glong length);
 
 /* Copy currently-selected text to the clipboard, or from the clipboard to
  * the terminal. */

@@ -71,6 +71,35 @@ _wrap_vte_terminal_feed_child(PyGObject *self, PyObject *args, PyObject *kwargs)
 	return Py_None;
 }
 %%
+override vte_terminal_feed_child_binary kwargs
+static PyObject *
+_wrap_vte_terminal_feed_child_binary(PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+	static char *kwlist[] = { "data", "length", NULL };
+	char *data;
+	int length;
+	PyObject *length_obj = NULL;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs,
+					 "s#|O:VteTerminal.feed_child_binary",
+					 kwlist, &data, &length, &length_obj)) {
+		return NULL;
+	}
+	if ((length_obj != NULL) && PyNumber_Check(length_obj)) {
+		PyObject *intobj;
+		intobj = PyNumber_Int(length_obj);
+		if (intobj) {
+			if (PyInt_AsLong(intobj) != -1) {
+				length = PyInt_AsLong(intobj);
+			}
+			Py_DECREF(intobj);
+		}
+	}
+	vte_terminal_feed_child_binary(VTE_TERMINAL(self->obj), data, length);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+%%
 override vte_terminal_fork_command kwargs
 
 static PyObject *
@@ -501,6 +530,27 @@ _wrap_vte_terminal_set_colors(PyGObject *self, PyObject *args, PyObject *kwargs)
     }
     vte_terminal_set_colors(VTE_TERMINAL(self->obj), foreground, background, palette, palette_size);
     g_free(palette);
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+%%
+override vte_terminal_match_check kwargs
+static PyObject *
+_wrap_vte_terminal_match_check(PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "column", "row", NULL };
+    gchar *ret;
+    glong column, row;
+    int *tag;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ll:VteTerminal.match_check", kwlist, &column, &row))
+        return NULL;
+    ret = vte_terminal_match_check(VTE_TERMINAL(self->obj), column, row, &tag);
+    if (ret) {
+        PyObject *py_ret = Py_BuildValue("si", ret, tag);
+        g_free(ret);
+        return py_ret;
+    }
     Py_INCREF(Py_None);
     return Py_None;
 }

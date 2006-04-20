@@ -20,6 +20,9 @@ a proxy for glib's own functionality.
 
 </para>
 
+<!-- ##### SECTION Stability_Level ##### -->
+
+
 <!-- ##### STRUCT VteReaper ##### -->
 <para>
 This should not be accessed directly.
@@ -50,7 +53,5 @@ Emitted when the #VteReaper object detects that a child of the current process h
 
 @pid: 
 @Returns: 
-<!-- # Unused Parameters # -->
-@data: 
 
 

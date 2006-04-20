@@ -74,23 +74,22 @@
 (define-method forkpty
   (of-object "VteTerminal")
   (c-name "vte_terminal_forkpty")
+  (return-type "pid_t")
   (parameters
-    '("pid_t" "pty_master")
+    '("char**" "envv")
+    '("const-char*" "directory")
+    '("gboolean" "lastlog")
+    '("gboolean" "utmp")
+    '("gboolean" "wtmp")
   )
 )
 
 (define-method set_pty
   (of-object "VteTerminal")
   (c-name "vte_terminal_set_pty")
-  (return-type "pid_t")
+  (return-type "none")
   (parameters
-    '("const-char*" "command")
-    '("char**" "argv")
-    '("char**" "envv")
-    '("const-char*" "directory")
-    '("gboolean" "lastlog")
-    '("gboolean" "utmp")
-    '("gboolean" "wtmp")
+    '("int" "pty_master")
   )
 )
 
@@ -107,6 +106,16 @@
 (define-method feed_child
   (of-object "VteTerminal")
   (c-name "vte_terminal_feed_child")
+  (return-type "none")
+  (parameters
+    '("const-char*" "text")
+    '("glong" "length" (default "-1"))
+  )
+)
+
+(define-method feed_child_binary
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_feed_child_binary")
   (return-type "none")
   (parameters
     '("const-char*" "data")

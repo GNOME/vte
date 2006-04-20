@@ -3517,23 +3517,54 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 /**
  * vte_terminal_feed_child:
  * @terminal: a #VteTerminal
- * @data: data to send to the child
- * @length: length of @text
+ * @text: data to send to the child
+ * @length: length of @text in bytes, or -1 if @text is NUL-terminated
  *
  * Sends a block of UTF-8 text to the child as if it were entered by the user
  * at the keyboard.
- *
  */
 void
-vte_terminal_feed_child(VteTerminal *terminal, const char *data, glong length)
+vte_terminal_feed_child(VteTerminal *terminal, const char *text, glong length)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	if (length == ((gssize)-1)) {
-		length = strlen(data);
+		length = strlen(text);
 	}
 	if (length > 0) {
-		vte_terminal_send(terminal, "UTF-8", data, length,
+		vte_terminal_send(terminal, "UTF-8", text, length,
 				  FALSE, FALSE);
+	}
+}
+
+/**
+ * vte_terminal_feed_child_binary:
+ * @terminal: a #VteTerminal
+ * @data: data to send to the child
+ * @length: length of @data
+ *
+ * Sends a block of binary data to the child.
+ *
+ * Since: 0.12.1
+ */
+void
+vte_terminal_feed_child_binary(VteTerminal *terminal, const char *data, glong length)
+{
+	g_assert(VTE_IS_TERMINAL(terminal));
+
+	/* Tell observers that we're sending this to the child. */
+	if (length > 0) {
+		vte_terminal_emit_commit(terminal,
+					 data, length);
+	}
+
+	/* If there's a place for it to go, add the data to the
+	 * outgoing buffer. */
+	if ((length > 0) && (terminal->pvt->pty_master != -1)) {
+		_vte_buffer_append(terminal->pvt->outgoing,
+				   data, length);
+		/* If we need to start waiting for the child pty to
+		 * become available for writing, set that up here. */
+		_vte_terminal_connect_pty_write(terminal);
 	}
 }
 
@@ -4397,9 +4428,9 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 	cy = 32 + CLAMP(1 + (y / terminal->char_height),
 			1, terminal->row_count);;
 
-	/* Send the event to the child. */
+	/* Send event direct to the child, this is binary not text data */
 	snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, cx, cy);
-	vte_terminal_feed_child(terminal, buf, strlen(buf));
+	vte_terminal_feed_child_binary(terminal, buf, strlen(buf));
 }
 
 /* Send a mouse button click/release notification. */
@@ -4523,9 +4554,9 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	cy = 32 + CLAMP(1 + ((event->y - VTE_PAD_WIDTH) / terminal->char_height),
 			1, terminal->row_count);;
 
-	/* Send the event to the child. */
+	/* Send event direct to the child, this is binary not text data */
 	snprintf(buf, sizeof(buf), "%sM%c%c%c", _VTE_CAP_CSI, cb, cx, cy);
-	vte_terminal_feed_child(terminal, buf, strlen(buf));
+	vte_terminal_feed_child_binary(terminal, buf, strlen(buf));
 }
 
 /* Clear all match hilites. */
@@ -11094,6 +11125,8 @@ vte_terminal_get_icon_title(VteTerminal *terminal)
  *
  * Attach an existing PTY master side to the terminal widget.  Use
  * instead of vte_terminal_fork_command() or vte_terminal_forkpty().
+ *
+ * Since: 0.12.1
  */
 void
 vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
