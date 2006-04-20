@@ -390,6 +390,10 @@ const char *vte_terminal_get_status_line(VteTerminal *terminal);
 /* Get the padding the widget is using. */
 void vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad);
 
+/* Attach an existing PTY master side to the terminal widget.  Use
+ * instead of vte_terminal_fork_command(). */
+void vte_terminal_set_pty(VteTerminal *terminal, int pty_master);
+
 /* Accessors for bindings. */
 GtkAdjustment *vte_terminal_get_adjustment(VteTerminal *terminal);
 glong vte_terminal_get_char_width(VteTerminal *terminal);

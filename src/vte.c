@@ -11087,6 +11087,45 @@ vte_terminal_get_icon_title(VteTerminal *terminal)
 	return terminal->icon_title;
 }
 
+/**
+ * vte_terminal_set_pty:
+ * @terminal: a #VteTerminal
+ * @pty_master: a file descriptor of the master end of a PTY
+ *
+ * Attach an existing PTY master side to the terminal widget.  Use
+ * instead of vte_terminal_fork_command() or vte_terminal_forkpty().
+ */
+void
+vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
+{
+       GtkWidget *widget;
+       int i;
+
+       g_return_if_fail(VTE_IS_TERMINAL(terminal));
+       widget = GTK_WIDGET(terminal);
+
+       if (terminal->pvt->pty_master != -1) {
+               _vte_pty_close(terminal->pvt->pty_master);
+               close(terminal->pvt->pty_master);
+       }
+       terminal->pvt->pty_master = pty_master;
+
+
+       /* Set the pty to be non-blocking. */
+       i = fcntl(terminal->pvt->pty_master, F_GETFL);
+       fcntl(terminal->pvt->pty_master, F_SETFL, i | O_NONBLOCK);
+
+       vte_terminal_set_size(terminal,
+                             terminal->column_count,
+                             terminal->row_count);
+
+       /* Open channels to listen for input on. */
+       _vte_terminal_connect_pty_read(terminal);
+
+       /* Open channels to write output to. */
+       _vte_terminal_connect_pty_write(terminal);
+}
+
 /* We need this bit of glue to ensure that accessible objects will always
  * get signals. */
 void

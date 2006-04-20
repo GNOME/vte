@@ -1,3 +1,14 @@
+2006-04-19  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 135230 – Feature request to attach VTE to existing pty
+	Based on patch from eric@brouhaha.com, John Swensen, and
+	Chris Moller  <cmoller@redhat.com>
+
+	* src/vte.c:
+	* src/vte.h:
+	* python/vte.defs:
+	* doc/reference/vte-sections.txt: Added vte_terminal_set_pty().
+
 2006-04-18  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 337442 – [patch] Reduce .plt section
