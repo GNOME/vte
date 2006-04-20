@@ -74,8 +74,18 @@
 (define-method forkpty
   (of-object "VteTerminal")
   (c-name "vte_terminal_forkpty")
+  (parameters
+    '("pid_t" "pty_master")
+  )
+)
+
+(define-method set_pty
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_pty")
   (return-type "pid_t")
   (parameters
+    '("const-char*" "command")
+    '("char**" "argv")
     '("char**" "envv")
     '("const-char*" "directory")
     '("gboolean" "lastlog")

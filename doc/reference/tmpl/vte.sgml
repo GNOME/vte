@@ -299,6 +299,17 @@ keys.
 @Returns: 
 
 
+<!-- ##### FUNCTION vte_terminal_set_pty ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@pty_master: 
+<!-- # Unused Parameters # -->
+@Returns: 
+
+
 <!-- ##### FUNCTION vte_terminal_feed ##### -->
 <para>
 
