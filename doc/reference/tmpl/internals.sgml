@@ -2,10 +2,11 @@
 Internals
 
 <!-- ##### SECTION Short_Description ##### -->
-
+Internal stuff.
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
+You really shouldn't see this.
 
 </para>
 
@@ -13,4 +14,7 @@ Internals
 <para>
 
 </para>
+
+<!-- ##### SECTION Stability_Level ##### -->
+
 
