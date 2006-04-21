@@ -1,3 +1,9 @@
+2006-04-21  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 328850 – Crash when pasting selection
+
+	* src/vte.c: Protect against passing NULL selection to strcmp.
+
 2006-04-20  Behdad Esfahbod  <behdad@gnome.org>
 
 	* doc/reference/tmpl/internals.sgml:

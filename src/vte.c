@@ -3197,7 +3197,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 						    vte_cell_is_selected,
 						    NULL,
 						    NULL);
-			if ((selection == NULL) ||
+			if ((selection == NULL) || (terminal->pvt->selection == NULL) ||
 			    (strcmp(selection, terminal->pvt->selection) != 0)) {
 				vte_terminal_deselect_all(terminal);
 			}
@@ -5087,6 +5087,7 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 					    vte_cell_is_selected,
 					    NULL,
 					    NULL);
+	terminal->pvt->has_selection = TRUE;
 
 	/* Place the text on the clipboard. */
 	if (terminal->pvt->selection != NULL) {
@@ -11218,7 +11219,6 @@ _vte_terminal_select_text(VteTerminal *terminal, long start_x, long start_y, lon
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	terminal->pvt->selection_type = selection_type_char;
-	terminal->pvt->has_selection = TRUE;
 	terminal->pvt->selecting_had_delta = TRUE;
 	terminal->pvt->selection_start.x = start_x;
 	terminal->pvt->selection_start.y = start_y;
