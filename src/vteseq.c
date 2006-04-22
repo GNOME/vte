@@ -1024,15 +1024,11 @@ vte_sequence_handler_as(VteTerminal *terminal,
 static void
 vte_terminal_beep(VteTerminal *terminal)
 {
-#if GTK_CHECK_VERSION(2,2,0)
 	GdkDisplay *display;
 
 	g_assert(VTE_IS_TERMINAL(terminal));
 	display = gtk_widget_get_display(GTK_WIDGET(terminal));
 	gdk_display_beep(display);
-#else
-	gdk_beep();
-#endif
 }
 
 /* Beep. */
@@ -3753,9 +3749,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 					 GQuark match_quark,
 					 GValueArray *params)
 {
-#if GTK_CHECK_VERSION(2,2,0)
 	GdkScreen *gscreen;
-#endif
 	VteScreen *screen;
 	GValue *value;
 	GtkWidget *widget;
@@ -3964,7 +3958,6 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 				fprintf(stderr, "Reporting screen size.\n");
 			}
 #endif
-#if GTK_CHECK_VERSION(2,2,0)
 			if (gtk_widget_has_screen(widget)) {
 				gscreen = gtk_widget_get_screen(widget);
 			} else {
@@ -3972,10 +3965,6 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			}
 			height = gdk_screen_get_height(gscreen);
 			width = gdk_screen_get_width(gscreen);
-#else
-			height = gdk_screen_height();
-			width = gdk_screen_width();
-#endif
 			snprintf(buf, sizeof(buf),
 				 "%s%ld;%ldt", _VTE_CAP_CSI,
 				 height / terminal->char_height,

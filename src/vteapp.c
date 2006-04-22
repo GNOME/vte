@@ -367,12 +367,8 @@ take_xconsole_ownership(GtkWidget *widget, gpointer data)
 
 	name = g_strdup_printf("MIT_CONSOLE_%s", hostname);
 	atom = gdk_atom_intern(name, FALSE);
-#if GTK_CHECK_VERSION(2,2,0)
 	clipboard = gtk_clipboard_get_for_display(gtk_widget_get_display(widget),
 						  atom);
-#else
-	clipboard = gtk_clipboard_get(atom);
-#endif
 	g_free(name);
 
 	gtk_clipboard_set_with_owner(clipboard,

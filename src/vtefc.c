@@ -101,9 +101,7 @@ _vte_fc_transcribe_from_pango_font_description(GtkWidget *widget,
 					       FcPattern *pattern,
 				       const PangoFontDescription *font_desc)
 {
-#if GTK_CHECK_VERSION(2,2,0)
 	GdkScreen *screen;
-#endif
 	const char *family = "monospace";
 	PangoLanguage *language;
 	double size = 10.0;
@@ -133,16 +131,12 @@ _vte_fc_transcribe_from_pango_font_description(GtkWidget *widget,
 	FcPatternAddDouble(pattern, FC_SIZE, size);
 
 	/* Set the language for the pattern. */
-#if GTK_CHECK_VERSION(2,2,0)
 	if (gtk_widget_has_screen(widget)) {
 		screen = gtk_widget_get_screen(widget);
 	} else {
 		screen = gdk_display_get_default_screen(gtk_widget_get_display(widget));
 	}
 	context = gdk_pango_context_get_for_screen(screen);
-#else
-	context = gdk_pango_context_get();
-#endif
 	language = pango_context_get_language(context);
 	if (pango_language_to_string(language) != NULL) {
 		FcPatternAddString(pattern, FC_LANG,
@@ -192,24 +186,18 @@ _vte_fc_defaults_from_gtk(GtkWidget *widget, FcPattern *pattern,
 			  VteTerminalAntiAlias explicit_antialias)
 {
 	GtkSettings *settings;
-#if GTK_CHECK_VERSION(2,2,0)
 	GdkScreen *screen;
-#endif
 	GObjectClass *klass;
 	int i, antialias = -1, hinting = -1, dpi = -1;
 	char *rgba = NULL, *hintstyle = NULL;
 
 	/* Add any defaults configured for GTK+. */
-#if GTK_CHECK_VERSION(2,2,0)
 	if (gtk_widget_has_screen(widget)) {
 		screen = gtk_widget_get_screen(widget);
 	} else {
 		screen = gdk_display_get_default_screen(gtk_widget_get_display(widget));
 	}
 	settings = gtk_settings_get_for_screen(screen);
-#else
-	settings = gtk_settings_get_default();
-#endif
 	if (settings == NULL) {
 		return;
 	}

@@ -42,9 +42,7 @@
 #define CHAR_WIDTH_FUDGE 10
 
 struct _vte_xft_font {
-#if GTK_CHECK_VERSION(2,2,0)
 	GdkDisplay *display;
-#endif
 	GArray *patterns;
 	GArray *fonts;
 	VteTree *fontmap;
@@ -77,25 +75,17 @@ _vte_xft_direct_compare(gconstpointer a, gconstpointer b)
 static gboolean
 _vte_xft_char_exists(struct _vte_xft_font *font, XftFont *ftfont, FcChar32 c)
 {
-#if GTK_CHECK_VERSION(2,2,0)
 	return XftCharExists(GDK_DISPLAY_XDISPLAY(font->display),
 			     ftfont,
 			     c) == FcTrue;
-#else
-	return XftCharExists(GDK_DISPLAY(), ftfont, c) == FcTrue;
-#endif
 }
 
 static void
 _vte_xft_text_extents(struct _vte_xft_font *font, XftFont *ftfont, FcChar32 c,
 		      XGlyphInfo *extents)
 {
-#if GTK_CHECK_VERSION(2,2,0)
 	XftTextExtents32(GDK_DISPLAY_XDISPLAY(font->display),
 				ftfont, &c, 1, extents);
-#else
-	XftTextExtents32(GDK_DISPLAY(), ftfont, &c, 1, extents);
-#endif
 }
 
 static struct _vte_xft_font *
@@ -113,9 +103,7 @@ _vte_xft_font_open(GtkWidget *widget, const PangoFontDescription *fontdesc,
 	}
 
 	font = g_slice_new0(struct _vte_xft_font);
-#if GTK_CHECK_VERSION(2,2,0)
 	font->display = gtk_widget_get_display(widget);
-#endif
 	font->patterns = patterns;
 	font->fonts = g_array_new(TRUE, TRUE, sizeof(XftFont*));
 	font->fontmap = _vte_tree_new(_vte_xft_direct_compare);

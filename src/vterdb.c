@@ -48,14 +48,13 @@ _vte_property_get_string(GdkWindow *window, GdkAtom atom,
 static gchar **
 _vte_rdb_get(GtkWidget *widget, gboolean screen_setting)
 {
-	GdkWindow *root = NULL;
+	GdkWindow *root;
 	char *prop_data, *tmp;
 	gchar **ret;
 	int prop_length;
 	GdkAtom atom, prop_type;
 
 	/* Retrieve the window and the property which we're going to read. */
-#if GTK_CHECK_VERSION(2,2,0)
 	GdkDisplay *display;
 	GdkScreen *screen;
 
@@ -74,7 +73,6 @@ _vte_rdb_get(GtkWidget *widget, gboolean screen_setting)
 	}
 
 	root = gdk_screen_get_root_window(screen);
-#endif
 	if (root == NULL) {
 		root = gdk_get_default_root_window();
 	}
@@ -90,13 +88,7 @@ _vte_rdb_get(GtkWidget *widget, gboolean screen_setting)
 	_vte_property_get_string(root, atom,
 				 &prop_type, &prop_length,
 				 &prop_data);
-#if GTK_CHECK_VERSION(2,2,0)
 	gdk_display_sync(display);
-#else
-#ifndef X_DISPLAY_MISSING
-	XSync(GDK_DISPLAY(), FALSE);
-#endif
-#endif
 	gdk_error_trap_pop();
 
 	/* Only parse the information if we got a string. */

@@ -1,5 +1,23 @@
 2006-04-22  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c (vte_terminal_cursor_new), (vte_terminal_clipboard_get):
+	* src/vteapp.c (take_xconsole_ownership):
+	* src/vtebg.c (vte_bg_native_new), (_vte_bg_display_sync),
+	(vte_bg_root_pixmap):
+	* src/vtedraw.c (_vte_draw_get_colormap):
+	* src/vtefc.c (_vte_fc_transcribe_from_pango_font_description),
+	(_vte_fc_defaults_from_gtk):
+	* src/vtepango.c (_vte_pango_start), (_vte_pango_set_text_font):
+	* src/vtepangox.c (_vte_pango_x_set_text_font):
+	* src/vterdb.c (_vte_rdb_get):
+	* src/vteseq.c (vte_terminal_beep),
+	(vte_sequence_handler_window_manipulation):
+	* src/vtexft.c (_vte_xft_char_exists), (_vte_xft_text_extents),
+	(_vte_xft_font_open):
+	* src/vtegl.c: Remove obsolete #ifde GTK_CHECK_VERSION(2,2,0) checks.
+
+2006-04-22  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 330441 – Remove libzvt support
 	Patch from Guilherme de S. Pastore  <gpastore@gnome.org>
 

@@ -21,7 +21,6 @@
 
 #include <gtk/gtk.h>
 
-#if GTK_CHECK_VERSION(2,2,0)
 #ifndef X_DISPLAY_MISSING
 #ifdef HAVE_GL
 
@@ -629,6 +628,5 @@ struct _vte_draw_impl _vte_draw_gl = {
 	_vte_gl_set_scroll,
 };
 
-#endif
 #endif
 #endif

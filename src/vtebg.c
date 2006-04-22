@@ -79,12 +79,8 @@ vte_bg_native_new(GdkWindow *window)
 	pvt->window = window;
 	pvt->native_window = gdk_x11_drawable_get_xid(window);
 	pvt->atom = gdk_atom_intern("_XROOTPMAP_ID", FALSE);
-#if GTK_CHECK_VERSION(2,2,0)
 	atom = gdk_x11_atom_to_xatom_for_display(gdk_drawable_get_display(window),
 						 pvt->atom);
-#else
-	atom = gdk_x11_atom_to_xatom(pvt->atom);
-#endif
 	pvt->native_atom = atom;
 	return pvt;
 }
@@ -92,11 +88,7 @@ vte_bg_native_new(GdkWindow *window)
 static void
 _vte_bg_display_sync(VteBg *bg)
 {
-#if GTK_CHECK_VERSION(2,2,0)
 	gdk_display_sync(gdk_drawable_get_display(bg->native->window));
-#else
-	XSync(GDK_DISPLAY(), FALSE);
-#endif
 }
 
 static gboolean
@@ -128,11 +120,7 @@ vte_bg_root_pixmap(VteBg *bg)
 		if ((prop_type == GDK_TARGET_PIXMAP) &&
 		    (prop_size >= sizeof(XID) &&
 		    (pixmaps != NULL))) {
-#if GTK_CHECK_VERSION(2,2,0)
 			pixmap = gdk_pixmap_foreign_new_for_display(gdk_drawable_get_display(bg->native->window), pixmaps[0]);
-#else
-			pixmap = gdk_pixmap_foreign_new(pixmaps[0]);
-#endif
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_MISC) ||
 			    _vte_debug_on(VTE_DEBUG_EVENTS)) {

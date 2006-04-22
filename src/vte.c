@@ -977,7 +977,6 @@ vte_terminal_match_remove(VteTerminal *terminal, int tag)
 static GdkCursor *
 vte_terminal_cursor_new(VteTerminal *terminal, GdkCursorType cursor_type)
 {
-#if GTK_CHECK_VERSION(2,2,0)
 	GdkDisplay *display;
 	GdkCursor *cursor;
 
@@ -985,13 +984,6 @@ vte_terminal_cursor_new(VteTerminal *terminal, GdkCursorType cursor_type)
 
 	display = gtk_widget_get_display(GTK_WIDGET(terminal));
 	cursor = gdk_cursor_new_for_display(display, cursor_type);
-#else
-	GdkCursor *cursor;
-
-	g_assert(VTE_IS_TERMINAL(terminal));
-
-	cursor = gdk_cursor_new(cursor_type);
-#endif
 	return cursor;
 }
 
@@ -5053,13 +5045,9 @@ vte_terminal_get_cursor_position(VteTerminal *terminal,
 static GtkClipboard *
 vte_terminal_clipboard_get(VteTerminal *terminal, GdkAtom board)
 {
-#if GTK_CHECK_VERSION(2,2,0)
 	GdkDisplay *display;
 	display = gtk_widget_get_display(GTK_WIDGET(terminal));
 	return gtk_clipboard_get_for_display(display, board);
-#else
-	return gtk_clipboard_get(board);
-#endif
 }
 
 /* Place the selected text onto the clipboard.  Do this asynchronously so that
