@@ -1,3 +1,11 @@
+2006-04-22  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 330441 – Remove libzvt support
+	Patch from Guilherme de S. Pastore  <gpastore@gnome.org>
+
+	* configure.in, src/Makefile.am, src/reflect.c: remove remnants
+	from the old, broken, and unmaintained libzvt.
+
 2006-04-21  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 328850 – Crash when pasting selection

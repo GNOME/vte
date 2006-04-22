@@ -3,7 +3,7 @@ pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h
 lib_LTLIBRARIES = libvte.la
 pkglib_PROGRAMS = interpret utf8echo nativeecho utf8mode iso8859mode slowcat vterdb
 pkglib_SCRIPTS = decset osc window
-noinst_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-vte $(REFLECT_ZVT) ring mev ssfe table trie xticker vteconv vtetc
+noinst_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-vte ring mev ssfe table trie xticker vteconv vtetc
 EXTRA_DIST = \
 	$(pkglib_SCRIPTS) \
 	vteseq-gen.c \
@@ -126,15 +126,6 @@ reflect_text_view_LDADD = @LDFLAGS@ @LIBS@ @VTE_LIBS@ @X_LIBS@
 reflect_vte_CFLAGS = @CFLAGS@ -DUSE_VTE @VTE_CFLAGS@ @X_CFLAGS@
 reflect_vte_SOURCES = reflect.c
 reflect_vte_LDADD = libvte.la @LDFLAGS@ @LIBS@ @VTE_LIBS@ @X_LIBS@
-
-if REFLECT_USE_ZVT
-REFLECT_ZVT = reflect-zvt
-reflect_zvt_CFLAGS = @CFLAGS@ -DUSE_ZVT @ZVT_DEFS@ @ZVT_CFLAGS@ @X_CFLAGS@
-reflect_zvt_SOURCES = reflect.c
-reflect_zvt_LDADD = @LDFLAGS@ @LIBS@ @ZVT_LIBS@ @X_LIBS@
-else
-REFLECT_ZVT = 
-endif
 
 interpret_CFLAGS = @CFLAGS@ @GTK_CFLAGS@ -DINTERPRET_MAIN
 interpret_SOURCES = \
