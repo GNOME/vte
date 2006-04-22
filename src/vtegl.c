@@ -277,9 +277,13 @@ _vte_gl_set_background_image(struct _vte_draw *draw,
 {
 	struct _vte_gl_data *data;
 	GdkPixbuf *bgpixbuf;
+	GdkScreen *screen;
+
+	screen = gtk_widget_get_screen(draw->widget);
 
 	data = (struct _vte_gl_data*) draw->impl_data;
-	bgpixbuf = vte_bg_get_pixbuf(vte_bg_get(), type, pixbuf, file,
+	bgpixbuf = vte_bg_get_pixbuf(vte_bg_get_for_screen(screen),
+			 	     type, pixbuf, file,
 				     tint, saturation);
 	if (GDK_IS_PIXBUF(data->bgpixbuf)) {
 		g_object_unref(G_OBJECT(data->bgpixbuf));

@@ -433,12 +433,15 @@ _vte_xft_set_background_image(struct _vte_draw *draw,
 {
 	struct _vte_xft_data *data;
 	GdkPixmap *pixmap;
+	GdkScreen *screen;
 
 	data = (struct _vte_xft_data*) draw->impl_data;
 
+	screen = gtk_widget_get_screen (draw->widget);
+
 	data->xpixmap = -1;
 	data->pixmapw = data->pixmaph = 0;
-	pixmap = vte_bg_get_pixmap(vte_bg_get(), type,
+	pixmap = vte_bg_get_pixmap(vte_bg_get_for_screen(screen), type,
 				   pixbuf, file, color, saturation,
 				   _vte_draw_get_colormap(draw, TRUE));
 	if (GDK_IS_PIXMAP(data->pixmap)) {

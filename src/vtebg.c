@@ -30,7 +30,6 @@ struct VteBgPrivate {
 	GList *cache;
 };
 
-static VteBg *singleton_bg = NULL;
 static void vte_bg_set_root_pixmap(VteBg *bg, GdkPixmap *pixmap);
 static void vte_bg_init(VteBg *bg, gpointer *klass);
 static GdkPixbuf *_vte_bg_resize_pixbuf(GdkPixbuf *pixbuf,
@@ -74,21 +73,19 @@ static struct VteBgNative *
 vte_bg_native_new(GdkWindow *window)
 {
 	struct VteBgNative *pvt;
-	Atom atom;
 	pvt = g_malloc0(sizeof(struct VteBgNative));
 	pvt->window = window;
 	pvt->native_window = gdk_x11_drawable_get_xid(window);
-	pvt->atom = gdk_atom_intern("_XROOTPMAP_ID", FALSE);
-	atom = gdk_x11_atom_to_xatom_for_display(gdk_drawable_get_display(window),
-						 pvt->atom);
-	pvt->native_atom = atom;
+	pvt->display = gdk_drawable_get_display(GDK_DRAWABLE(window));
+	pvt->native_atom = gdk_x11_get_xatom_by_name_for_display(pvt->display, "_XROOTPMAP_ID");
+	pvt->atom = gdk_x11_xatom_to_atom_for_display(pvt->display, pvt->native_atom);
 	return pvt;
 }
 
 static void
 _vte_bg_display_sync(VteBg *bg)
 {
-	gdk_display_sync(gdk_drawable_get_display(bg->native->window));
+	gdk_display_sync(bg->native->display);
 }
 
 static gboolean
@@ -120,7 +117,7 @@ vte_bg_root_pixmap(VteBg *bg)
 		if ((prop_type == GDK_TARGET_PIXMAP) &&
 		    (prop_size >= sizeof(XID) &&
 		    (pixmaps != NULL))) {
-			pixmap = gdk_pixmap_foreign_new_for_display(gdk_drawable_get_display(bg->native->window), pixmaps[0]);
+			pixmap = gdk_pixmap_foreign_new_for_display(bg->native->display, pixmaps[0]);
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_MISC) ||
 			    _vte_debug_on(VTE_DEBUG_EVENTS)) {
@@ -225,6 +222,7 @@ vte_bg_get_type(void)
 
 /**
  * vte_bg_get:
+ * @screen : A #GdkScreen.
  *
  * Finds the address of the global #VteBg object, creating the object if
  * necessary.
@@ -232,12 +230,31 @@ vte_bg_get_type(void)
  * Returns: the global #VteBg object
  */
 VteBg *
-vte_bg_get(void)
+vte_bg_get_for_screen(GdkScreen *screen)
 {
-	if (!VTE_IS_BG(singleton_bg)) {
-		singleton_bg = g_object_new(VTE_TYPE_BG, NULL);
+	GdkEventMask events;
+	GdkWindow   *window;
+	VteBg       *bg;
+
+	bg = g_object_get_data(G_OBJECT(screen), "vte-bg");
+	if (G_UNLIKELY(bg == NULL)) {
+		bg = g_object_new(VTE_TYPE_BG, NULL);
+		g_object_set_data(G_OBJECT(screen), "vte-bg", bg);
+
+		/* connect bg to screen */
+		bg->screen = screen;
+		window = gdk_screen_get_root_window(screen);
+		bg->native = vte_bg_native_new(window);
+		bg->root_pixmap = vte_bg_root_pixmap(bg);
+		bg->pvt = g_malloc0(sizeof(struct VteBgPrivate));
+		bg->pvt->cache = NULL;
+		events = gdk_window_get_events(window);
+		events |= GDK_PROPERTY_CHANGE_MASK;
+		gdk_window_set_events(window, events);
+		gdk_window_add_filter(window, vte_bg_root_filter, bg);
 	}
-	return singleton_bg;
+
+	return bg;
 }
 
 struct VteBgCacheItem {
@@ -255,17 +272,6 @@ struct VteBgCacheItem {
 static void
 vte_bg_init(VteBg *bg, gpointer *klass)
 {
-	GdkWindow *window;
-	GdkEventMask events;
-	window = gdk_get_default_root_window();
-	bg->native = vte_bg_native_new(window);
-	bg->root_pixmap = vte_bg_root_pixmap(bg);
-	bg->pvt = g_malloc0(sizeof(struct VteBgPrivate));
-	bg->pvt->cache = NULL;
-	events = gdk_window_get_events(window);
-	events |= GDK_PROPERTY_CHANGE_MASK;
-	gdk_window_set_events(window, events);
-	gdk_window_add_filter(window, vte_bg_root_filter, bg);
 }
 
 /* Generate lookup tables for desaturating an image toward a given color.  The
@@ -562,10 +568,6 @@ vte_bg_get_pixmap(VteBg *bg,
 	GdkPixbuf *pixbuf;
 	char *file;
 
-	if (bg == NULL) {
-		bg = vte_bg_get();
-	}
-
 	if (source_type == VTE_BG_SOURCE_NONE) {
 		return NULL;
 	}
@@ -595,7 +597,7 @@ vte_bg_get_pixmap(VteBg *bg,
 			int width, height;
 			/* Tell GTK+ that this foreign pixmap shares the
 			 * root window's colormap. */
-			rcolormap = gdk_drawable_get_colormap(gdk_get_default_root_window());
+			rcolormap = gdk_drawable_get_colormap(gdk_screen_get_root_window(bg->screen));
 			if (gdk_drawable_get_colormap(bg->root_pixmap) == NULL) {
 				gdk_drawable_set_colormap(bg->root_pixmap,
 							  rcolormap);
@@ -691,10 +693,6 @@ vte_bg_get_pixbuf(VteBg *bg,
 	GdkColormap *rcolormap;
 	char *file;
 
-	if (bg == NULL) {
-		bg = vte_bg_get();
-	}
-
 	if (source_type == VTE_BG_SOURCE_NONE) {
 		return NULL;
 	}
@@ -724,7 +722,7 @@ vte_bg_get_pixbuf(VteBg *bg,
 
 			/* If the pixmap doesn't have a colormap, tell GTK+ that
 			 * it shares the root window's colormap. */
-			rcolormap = gdk_drawable_get_colormap(gdk_get_default_root_window());
+			rcolormap = gdk_drawable_get_colormap(gdk_screen_get_root_window(bg->screen));
 			if (gdk_drawable_get_colormap(bg->root_pixmap) == NULL) {
 				gdk_drawable_set_colormap(bg->root_pixmap, rcolormap);
 			}

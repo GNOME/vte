@@ -29,6 +29,7 @@ struct VteBgPrivate;
 typedef struct _VteBg VteBg;
 struct _VteBg {
 	GObject parent;
+	GdkScreen *screen;
 	GdkPixmap *root_pixmap;
 	struct VteBgNative *native;
 	struct VteBgPrivate *pvt;
@@ -49,7 +50,7 @@ struct _VteBgClass {
 
 GType vte_bg_get_type(void);
 
-VteBg *vte_bg_get(void);
+VteBg *vte_bg_get_for_screen(GdkScreen *screen);
 
 enum VteBgSourceType {
 	VTE_BG_SOURCE_NONE,

@@ -7057,6 +7057,7 @@ static void
 vte_terminal_unrealize(GtkWidget *widget)
 {
 	VteTerminal *terminal;
+  VteBg       *bg;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
@@ -7075,7 +7076,8 @@ vte_terminal_unrealize(GtkWidget *widget)
 	terminal->pvt->draw = NULL;
 
 	/* Disconnect from background-change events. */
-	g_signal_handlers_disconnect_by_func(G_OBJECT(vte_bg_get()),
+	bg = vte_bg_get_for_screen(gtk_widget_get_screen(widget));
+	g_signal_handlers_disconnect_by_func(G_OBJECT(bg),
 					     root_pixmap_changed_cb,
 					     widget);
 
@@ -7399,6 +7401,7 @@ vte_terminal_realize(GtkWidget *widget)
 	GtkSettings *settings;
 	int attributes_mask = 0, i;
 	gint blink_cycle = 1000;
+	VteBg *bg;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
@@ -7537,7 +7540,8 @@ vte_terminal_realize(GtkWidget *widget)
 									0, 0);
 
 	/* Connect to background-change events. */
-	g_signal_connect(G_OBJECT(vte_bg_get()),
+	bg = vte_bg_get_for_screen(gtk_widget_get_screen(widget));
+	g_signal_connect(G_OBJECT(bg),
 			 "root-pixmap-changed",
 			 G_CALLBACK(root_pixmap_changed_cb),
 			 terminal);

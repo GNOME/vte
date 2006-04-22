@@ -1,5 +1,22 @@
 2006-04-22  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 160782 – Vte isn't multi-screen safe
+	Patch from Benedikt Meurer.
+
+	* src/vte.c (vte_terminal_unrealize), (vte_terminal_realize):
+	* src/vtebg.c (vte_bg_native_new), (_vte_bg_display_sync),
+	(vte_bg_root_pixmap), (vte_bg_get_for_screen), (vte_bg_init),
+	(vte_bg_get_pixmap), (vte_bg_get_pixbuf):
+	* src/vtebg.h:
+	* src/vteft2.c (_vte_ft2_set_background_image):
+	* src/vtegl.c (_vte_gl_set_background_image):
+	* src/vtepango.c (_vte_pango_set_background_image):
+	* src/vtepangox.c (_vte_pango_x_set_background_image):
+	* src/vtexft.c (_vte_xft_set_background_image): Handle per-screen
+	backgrounds.
+
+2006-04-22  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte.c (vte_terminal_cursor_new), (vte_terminal_clipboard_get):
 	* src/vteapp.c (take_xconsole_ownership):
 	* src/vtebg.c (vte_bg_native_new), (_vte_bg_display_sync),

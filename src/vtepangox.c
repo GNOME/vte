@@ -206,9 +206,13 @@ _vte_pango_x_set_background_image(struct _vte_draw *draw,
 {
 	GdkPixmap *pixmap;
 	struct _vte_pango_x_data *data;
+	GdkScreen *screen;
+
+	screen = gtk_widget_get_screen (draw->widget);
 
 	data = (struct _vte_pango_x_data*) draw->impl_data;
-	pixmap = vte_bg_get_pixmap(vte_bg_get(), type, pixbuf, file,
+	pixmap = vte_bg_get_pixmap(vte_bg_get_for_screen(screen),
+				   type, pixbuf, file,
 				   color, saturation,
 				   _vte_draw_get_colormap(draw, TRUE));
 	if (data->pixmap) {
