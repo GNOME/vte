@@ -4316,15 +4316,16 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 		return FALSE;
 	}
 
-	/* Now it boils down to whether or not the point is between the
-	 * begin and endpoint of the selection. */
-	ret = vte_cell_is_between(col, row, ss.x, ss.y, se.x, se.y, TRUE);
-	/* Limit selection to block mode. */
+	/* Limit selection in block mode. */
 	if (ret && terminal->pvt->block_mode) {
 		if (col < ss.x || col > se.x) {
 			return FALSE;
 		}
 	}
+
+	/* Now it boils down to whether or not the point is between the
+	 * begin and endpoint of the selection. */
+	ret = vte_cell_is_between(col, row, ss.x, ss.y, se.x, se.y, TRUE);
 	
 	return ret;
 }
