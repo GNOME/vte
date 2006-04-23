@@ -100,10 +100,10 @@ libvte_la_SOURCES = \
 VERSION_REVISION=0
 # CURRENT must be incremented when an API or ABI change (addition or removal)
 # is made, and REVISION must be reset to 0 when this happens.
-VERSION_CURRENT=8
+VERSION_CURRENT=9
 # AGE must be incremented when an API or ABI addition is made, and REVISION
 # must be reset to 0 when this happens.
-VERSION_AGE=4
+VERSION_AGE=0
 libvte_la_LDFLAGS = @LDFLAGS@ \
 	-version-info $(VERSION_CURRENT):$(VERSION_REVISION):$(VERSION_AGE) \
 	-export-symbols-regex "^vte_terminal_.*|^_vte_pty_.*|^vte_reaper_.*"

@@ -1,5 +1,15 @@
 2006-04-23  Behdad Esfahbod  <behdad@gnome.org>
 
+	Released vte-0.13.0.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.13.0.
+
+	* src/Makefile.am: Bumped libtool version to 9:0:0.
+
+2006-04-23  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 339448 – selection doesn't respect hard newlines
 
 	* src/vte.c (vte_terminal_get_text_range_maybe_wrapped): Add newline
