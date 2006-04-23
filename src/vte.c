@@ -4195,26 +4195,24 @@ vte_terminal_is_word_char(VteTerminal *terminal, gunichar c)
 	return FALSE;
 }
 
-/* Check if the characters in the given block are in the same class (word vs.
- * non-word characters). */
+/* Check if the characters in the two given locations are in the same class
+ * (word vs. non-word characters). */
 static gboolean
-vte_uniform_class(VteTerminal *terminal, glong row, glong scol, glong ecol)
+vte_same_class(VteTerminal *terminal, glong acol, glong arow,
+	       glong bcol, glong brow)
 {
 	struct vte_charcell *pcell = NULL;
-	long col;
 	gboolean word_char;
 	g_assert(VTE_IS_TERMINAL(terminal));
-	if ((pcell = vte_terminal_find_charcell(terminal, scol, row)) != NULL) {
+	if ((pcell = vte_terminal_find_charcell(terminal, acol, arow)) != NULL) {
 		word_char = vte_terminal_is_word_char(terminal, pcell->c);
-		for (col = scol + 1; col <= ecol; col++) {
-			pcell = vte_terminal_find_charcell(terminal, col, row);
-			if (pcell == NULL) {
-				return FALSE;
-			}
-			if (word_char != vte_terminal_is_word_char(terminal,
-								   pcell->c)) {
-				return FALSE;
-			}
+		pcell = vte_terminal_find_charcell(terminal, bcol, brow);
+		if (pcell == NULL) {
+			return FALSE;
+		}
+		if (word_char != vte_terminal_is_word_char(terminal,
+							   pcell->c)) {
+			return FALSE;
 		}
 		return TRUE;
 	}
@@ -5395,10 +5393,11 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 				 terminal->column_count - 1;
 			     i > 0;
 			     i--) {
-				if (vte_uniform_class(terminal,
-						      j,
-						      i - 1,
-						      i)) {
+				if (vte_same_class(terminal,
+						   i - 1,
+						   j,
+						   i,
+						   j)) {
 					sc->x = i - 1;
 					sc->y = j;
 				} else {
@@ -5409,7 +5408,12 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 				/* We hit a stopping point, so stop. */
 				break;
 			} else {
-				if (vte_line_is_wrappable(terminal, j - 1)) {
+				if (vte_line_is_wrappable(terminal, j - 1) &&
+				    vte_same_class(terminal,
+						   terminal->column_count - 1,
+						   j - 1,
+						   0,
+						   j)) {
 					/* Move on to the previous line. */
 					j--;
 					sc->x = terminal->column_count - 1;
@@ -5436,10 +5440,11 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 				 0;
 			     i < terminal->column_count - 1;
 			     i++) {
-				if (vte_uniform_class(terminal,
-						      j,
-						      i,
-						      i + 1)) {
+				if (vte_same_class(terminal,
+						   i,
+						   j,
+						   i + 1,
+						   j)) {
 					ec->x = i + 1;
 					ec->y = j;
 				} else {
@@ -5450,7 +5455,12 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 				/* We hit a stopping point, so stop. */
 				break;
 			} else {
-				if (vte_line_is_wrappable(terminal, j)) {
+				if (vte_line_is_wrappable(terminal, j) &&
+				    vte_same_class(terminal,
+						   terminal->column_count - 1,
+						   j,
+						   0,
+						   j + 1)) {
 					/* Move on to the next line. */
 					j++;
 					ec->x = 0;

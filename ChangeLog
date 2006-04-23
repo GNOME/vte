@@ -1,3 +1,11 @@
+2006-04-23  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 97719 – Selection: double/triple click doesn't cross line boundaries
+	Patch from Chris Heath.
+
+	* src/vte.c (vte_same_class): Fix problem with selecting whitespace
+	from adjacent lines, on word selection.
+
 2006-04-22  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 160782 – Vte isn't multi-screen safe
