@@ -1,5 +1,12 @@
 2006-04-23  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 339448 – selection doesn't respect hard newlines
+
+	* src/vte.c (vte_terminal_get_text_range_maybe_wrapped): Add newline
+	to the end of each line that is not soft-wrapped.
+
+2006-04-23  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 148720 – Word selection erroneously captures text from next line
 	Patch from Chris Heath.
 

@@ -4881,21 +4881,17 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 			pcell = vte_terminal_find_charcell(terminal,
 							   terminal->column_count - 1,
 							   row);
+			/* If we didn't softwrap, add a newline. */
+			if (!vte_line_is_wrappable(terminal, row)) {
+				string = g_string_append_c(string, '\n');
+			}
 			/* If it's whitespace, we snipped it off, so add a
 			 * newline, unless we soft-wrapped. */
-			if ((pcell == NULL) ||
-			    (pcell->c == '\0') ||
-			    (pcell->c == ' ')) {
-				if (vte_line_is_wrappable(terminal, row) &&
-				    wrap) {
-					string = g_string_append_c(string,
-								   pcell ?
-								   pcell->c :
-								   ' ');
-				} else {
-					string = g_string_append_c(string,
-								   '\n');
-				}
+			else if ((pcell == NULL) || (pcell->c == '\0') || (pcell->c == ' ')) {
+				string = g_string_append_c(string,
+							   pcell ?
+							   pcell->c :
+							   ' ');
 			}
 			/* Move this last character to the end of the line. */
 			attr.column = MAX(terminal->column_count,
