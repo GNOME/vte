@@ -1,5 +1,14 @@
 2006-04-23  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 148720 – Word selection erroneously captures text from next line
+	Patch from Chris Heath.
+
+	* src/vteseq.c (vte_sequence_handler_cd), (vte_sequence_handler_ce),
+	(vte_sequence_handler_clear_current_line),
+	(vte_sequence_handler_clear_above_current): Reset soft_wrapped flag.
+
+2006-04-23  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 126376 – Uncoinditional definition of _XOPEN_SOURCE breaks build
 	on NetBSD
 	Patch from Dan Winship.

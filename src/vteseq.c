@@ -1184,6 +1184,7 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 		vte_g_array_fill(rowdata->cells,
 				 &screen->fill_defaults,
 				 terminal->column_count);
+		rowdata->soft_wrapped = 0;
 		/* Repaint this row. */
 		_vte_invalidate_cells(terminal,
 				      0, terminal->column_count,
@@ -1220,6 +1221,7 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 	vte_g_array_fill(rowdata->cells,
 			 &screen->fill_defaults,
 			 terminal->column_count);
+	rowdata->soft_wrapped = 0;
 	/* Repaint this row. */
 	_vte_invalidate_cells(terminal,
 			      0, terminal->column_count,
@@ -1336,6 +1338,7 @@ vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 		vte_g_array_fill(rowdata->cells,
 				 &screen->fill_defaults,
 				 terminal->column_count);
+		rowdata->soft_wrapped = 0;
 		/* Repaint this row. */
 		_vte_invalidate_cells(terminal,
 				      0, terminal->column_count,
@@ -2925,6 +2928,7 @@ vte_sequence_handler_clear_above_current(VteTerminal *terminal,
 			vte_g_array_fill(rowdata->cells,
 					 &screen->fill_defaults,
 					 terminal->column_count);
+			rowdata->soft_wrapped = 0;
 			/* Repaint the row. */
 			_vte_invalidate_cells(terminal,
 					      0, terminal->column_count,
