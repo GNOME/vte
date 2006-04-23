@@ -30,9 +30,15 @@ AC_EGREP_CPP(glibc,
 		 #endif
 		],
 		AC_DEFINE(_GNU_SOURCE,1,[Use all glibc features.]))
-AC_DEFINE(_XOPEN_SOURCE_EXTENDED,1,[Needed to get declarations for msg_control and msg_controllen on Solaris])
-AC_DEFINE(_XOPEN_SOURCE,1,[Needed to get declarations for msg_control and msg_controllen on Solaris])
-AC_DEFINE(__EXTENSIONS__,1,[Needed to get declarations for msg_control and msg_controllen on Solaris])
+
+AC_CANONICAL_HOST
+case $host in
+*-*-solaris*)
+	AC_DEFINE(_XOPEN_SOURCE_EXTENDED,1,[Needed to get declarations for msg_control and msg_controllen on Solaris])
+	AC_DEFINE(_XOPEN_SOURCE,1,[Needed to get declarations for msg_control and msg_controllen on Solaris])
+	AC_DEFINE(__EXTENSIONS__,1,[Needed to get declarations for msg_control and msg_controllen on Solaris])
+	;;
+esac
 
 AM_CONFIG_HEADER(config.h)
 

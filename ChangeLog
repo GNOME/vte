@@ -1,5 +1,14 @@
 2006-04-23  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 126376 – Uncoinditional definition of _XOPEN_SOURCE breaks build
+	on NetBSD
+	Patch from Dan Winship.
+
+	* configure.in:
+	* gnome-pty-helper/configure.in: Define XOPEN_SOURCE on solaris only.
+
+2006-04-23  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 97719 – Selection: double/triple click doesn't cross line boundaries
 	Patch from Chris Heath.
 
