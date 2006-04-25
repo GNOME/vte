@@ -1,3 +1,7 @@
+2006-04-25  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/Makefile.am: Pass -no-undefined linker flag.
+
 2006-04-23  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.13.0.

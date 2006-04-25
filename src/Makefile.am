@@ -106,7 +106,8 @@ VERSION_CURRENT=9
 VERSION_AGE=0
 libvte_la_LDFLAGS = @LDFLAGS@ \
 	-version-info $(VERSION_CURRENT):$(VERSION_REVISION):$(VERSION_AGE) \
-	-export-symbols-regex "^vte_terminal_.*|^_vte_pty_.*|^vte_reaper_.*"
+	-export-symbols-regex "^vte_terminal_.*|^_vte_pty_.*|^vte_reaper_.*" \
+	-no-undefined
 libvte_la_LIBADD = @LIBS@ @VTE_LIBS@ @X_LIBS@
 
 CLEANFILES = marshal.c marshal.h
