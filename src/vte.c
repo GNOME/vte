@@ -7127,6 +7127,9 @@ vte_terminal_unrealize(GtkWidget *widget)
 
 	/* Remove the GDK window. */
 	if (widget->window != NULL) {
+		/* detach style */
+		gtk_style_detach(widget->style);
+
 	        gdk_window_set_user_data(widget->window, NULL);
 		gdk_window_destroy(widget->window);
 		widget->window = NULL;
@@ -7555,6 +7558,8 @@ vte_terminal_realize(GtkWidget *widget)
 
 	/* Set up the background, *now*. */
 	vte_terminal_background_update(terminal);
+	
+	gtk_style_attach(widget->style, widget->window);
 
 	g_object_unref(G_OBJECT(bitmap));
 }

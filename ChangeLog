@@ -1,3 +1,12 @@
+2006-04-26  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 331803 – style needs to be attached/detached to the window on
+	realize/unrealize
+	Patch from Benjamin Berg  <benjamin@sipsolutions.net>.
+
+	* src/vte.c: (vte_terminal_unrealize), (vte_terminal_realize):
+	attach and detach the style of the terminal widget.
+
 2006-04-25  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/Makefile.am: Pass -no-undefined linker flag.
