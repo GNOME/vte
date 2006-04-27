@@ -1,3 +1,17 @@
+0.12.1
+	Bug 328850 – Crash when pasting selection
+	Bug 160134 – mouse events occurring past column 95 are not passed
+	             through to terminal application
+		     New public function vte_terminal_feed_child_binary
+	Bug 135230 – Feature request to attach VTE to existing pty
+	             New public function vte_terminal_set_pty
+	Bug 144456 – UK pound currency symbol rendered incorrectly
+	Bug 337552 – Insufficient version requirement for gtk+
+	Bug 336128 – vim scrolling issues - emulation errors
+	Bug 334385 – Use intltool
+	Bug 104841 – scrolling doesn't work inside "screen" windows
+	Bug 333768 – vteapp debug stuff should be conditional
+
 0.12.0   - Released with no code changes.
 
 0.11.21	 - Revert change introduced in 0.11.19 that made vte very unresponsive

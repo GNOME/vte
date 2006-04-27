@@ -1,3 +1,12 @@
+2006-04-26  Behdad Esfahbod  <behdad@gnome.org>
+
+	Released vte-0.12.1.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.12.1.
+	* src/Makefile.am: Bumped libtool version to 9:0:5.
+
 2006-04-21  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 328850 – Crash when pasting selection
