@@ -1,3 +1,10 @@
+2006-04-27  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 339980 – nativeecho needs glib in LDADD to build on Solaris
+	Patch from Brian Cameron.
+
+	* src/Makefile.am: Fix it.
+
 2006-04-26  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 331803 – style needs to be attached/detached to the window on
