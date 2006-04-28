@@ -197,7 +197,7 @@ utf8echo_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
 nativeecho_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DNATIVEECHO_MAIN
 nativeecho_SOURCES = \
 	nativeecho.c
-nativeecho_LDADD = @LDFLAGS@ @LIBS@
+nativeecho_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
 
 ring_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DRING_MAIN
 ring_SOURCES = \
@@ -306,7 +306,7 @@ ssfe_LDADD = @LDFLAGS@ @OTHERLIBS@
 
 xticker_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@
 xticker_SOURCES = xticker.c
-xticker_LDADD = @LIBS@ @GLIB_LIBS@
+xticker_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
 
 vteseq-table.h: vteseq-gen.c vteseq-list.h
 	$(MAKE) vteseq-gen
