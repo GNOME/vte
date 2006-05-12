@@ -1,13 +1,17 @@
+2006-05-12  Stepan Kasal  <kasal@ucw.cz>
+
+	* NEWS, ChangeLog: Changed the UTF-8 dashes to plain ascii "-".
+
 2006-04-27  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 339980 – nativeecho needs glib in LDADD to build on Solaris
+	Bug 339980 - nativeecho needs glib in LDADD to build on Solaris
 	Patch from Brian Cameron.
 
 	* src/Makefile.am: Fix it.
 
 2006-04-26  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 331803 – style needs to be attached/detached to the window on
+	Bug 331803 - style needs to be attached/detached to the window on
 	realize/unrealize
 	Patch from Benjamin Berg  <benjamin@sipsolutions.net>.
 
@@ -30,14 +34,14 @@
 
 2006-04-23  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 339448 – selection doesn't respect hard newlines
+	Bug 339448 - selection doesn't respect hard newlines
 
 	* src/vte.c (vte_terminal_get_text_range_maybe_wrapped): Add newline
 	to the end of each line that is not soft-wrapped.
 
 2006-04-23  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 148720 – Word selection erroneously captures text from next line
+	Bug 148720 - Word selection erroneously captures text from next line
 	Patch from Chris Heath.
 
 	* src/vteseq.c (vte_sequence_handler_cd), (vte_sequence_handler_ce),
@@ -46,7 +50,7 @@
 
 2006-04-23  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 126376 – Uncoinditional definition of _XOPEN_SOURCE breaks build
+	Bug 126376 - Uncoinditional definition of _XOPEN_SOURCE breaks build
 	on NetBSD
 	Patch from Dan Winship.
 
@@ -55,7 +59,7 @@
 
 2006-04-23  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 97719 – Selection: double/triple click doesn't cross line boundaries
+	Bug 97719 - Selection: double/triple click doesn't cross line boundaries
 	Patch from Chris Heath.
 
 	* src/vte.c (vte_same_class): Fix problem with selecting whitespace
@@ -63,7 +67,7 @@
 
 2006-04-22  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 160782 – Vte isn't multi-screen safe
+	Bug 160782 - Vte isn't multi-screen safe
 	Patch from Benedikt Meurer.
 
 	* src/vte.c (vte_terminal_unrealize), (vte_terminal_realize):
@@ -98,7 +102,7 @@
 
 2006-04-22  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 330441 – Remove libzvt support
+	Bug 330441 - Remove libzvt support
 	Patch from Guilherme de S. Pastore  <gpastore@gnome.org>
 
 	* configure.in, src/Makefile.am, src/reflect.c: remove remnants
@@ -106,7 +110,7 @@
 
 2006-04-21  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 328850 – Crash when pasting selection
+	Bug 328850 - Crash when pasting selection
 
 	* src/vte.c: Protect against passing NULL selection to strcmp.
 
@@ -122,7 +126,7 @@
 	* python/vte.defs:
 	* python/vte.override: Updates.
 
-	Bug 160134 – mouse events occurring past column 95 are not passed
+	Bug 160134 - mouse events occurring past column 95 are not passed
 	through to terminal application
 	Based on patch from Sean Estabrooks.
 
@@ -134,7 +138,7 @@
 
 2006-04-19  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 135230 – Feature request to attach VTE to existing pty
+	Bug 135230 - Feature request to attach VTE to existing pty
 	Based on patch from eric@brouhaha.com, John Swensen, and
 	Chris Moller  <cmoller@redhat.com>
 
@@ -145,7 +149,7 @@
 
 2006-04-18  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 337442 – [patch] Reduce .plt section
+	Bug 337442 - [patch] Reduce .plt section
 
 	* src/Makefile.am: Pass export-symbols-regex to libtool.
 
@@ -165,46 +169,46 @@
 
 2006-04-12  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 142247 – use of uninitialized value
+	Bug 142247 - use of uninitialized value
 
 	* src/pty.c: Initialize the arbitrary byte that we send on the pipe
 	to zero.
 
 2006-04-12  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 149633 – gnome-terminal messes up boxdrawing chars aligment
+	Bug 149633 - gnome-terminal messes up boxdrawing chars aligment
 
 	* src/vte.c: Try to use the font first for all graphic characters.
 	This results in better looking graphics with modern fonts.
 
 2006-04-12  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 144456 – UK pound currency symbol rendered incorrectly
+	Bug 144456 - UK pound currency symbol rendered incorrectly
 
 	* src/vte.c: Offset characters drawn in draw_graphic for padding.
 
 2006-04-12  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 307403 – xticker doublefree
+	Bug 307403 - xticker doublefree
 
 	* src/xticker.c: Avoid double free.
 
 2006-04-10  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 337877 – Patch to use po/LINGUAS
+	Bug 337877 - Patch to use po/LINGUAS
 	Patch from Michiel Sikkes.
 
 	* configure.in, po/LINGUAS: Move list of translations to po/LINGUAS.
 
 2006-04-06  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 337552 – Insufficient version requirement for gtk+
+	Bug 337552 - Insufficient version requirement for gtk+
 
 	* configure.in: Depend on Gtk+ 2.6.
 
 2006-03-30  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 168251 – add support for 256 colors terminals
+	Bug 168251 - add support for 256 colors terminals
 	Patch from dann@godzilla.ics.uci.edu.
 
 	* src/vte-private.h, src/vte.c, src/vteseq.c: Implement support
@@ -212,7 +216,7 @@
 
 2006-03-30  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 120276 – Wishlist: Support Rectangular Selection
+	Bug 120276 - Wishlist: Support Rectangular Selection
 	Patch from Pedro de Medeiros.
 
 	* src/vte.c, src/vte-private.h: Implement block (rectangular)
@@ -220,7 +224,7 @@
 
 2006-03-30  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 336117 – [patch] Use g_slice API
+	Bug 336117 - [patch] Use g_slice API
 	Patch from Aivars Kalvans.
 
 	* src/*.c: Use g_slice instead of g_malloc for structs.
@@ -236,14 +240,14 @@
 
 2006-03-26  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 336128 – vim scrolling issues - emulation errors
+	Bug 336128 - vim scrolling issues - emulation errors
 
 	* src/vteseq.c (vte_sequence_handler_sf): Update start and end
 	when updating insert_delta.
 
 2006-03-15  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 334385 – Use intltool
+	Bug 334385 - Use intltool
 
 	* Makefile.am, configure.in: Add intltool support.
 
@@ -267,7 +271,7 @@
 
 2006-03-13  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 104841 – scrolling doesn't work inside "screen" windows
+	Bug 104841 - scrolling doesn't work inside "screen" windows
 
 	* src/vte.c (vte_terminal_size_allocate): Fix restricted scrolling
 	region readjustment.  Moreover, do not do unnecessary updates when
@@ -275,7 +279,7 @@
 
 2006-03-13  Behdad Esfahbod  <behdad@gnome.org>
 
-	Bug 333768 – vteapp debug stuff should be conditional
+	Bug 333768 - vteapp debug stuff should be conditional
 	Patch from Egmont Koblinger.
 
 	* src/vteapp.c: Make pwd and setting env vars conditional on debug.
