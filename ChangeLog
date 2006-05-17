@@ -1,3 +1,8 @@
+2006-05-17  Wouter Bolsterlee  <uws+gnome@xs4all.nl>
+
+	* configure.in: Require intltool 0.35.0 to have
+	translations in the dist tarballs.
+
 2006-05-17  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.13.1.
