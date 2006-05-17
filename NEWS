@@ -1,3 +1,12 @@
+0.13.1
+	Use intltool 0.34.90 to make sure tarball includes po files.
+	Bug 339980 – nativeecho needs glib in LDADD to build on Solaris
+	             Patch from Brian Cameron.
+	Bug 331803 – style needs to be attached/detached to the window on
+	             realize/unrealize
+	             Patch from Benjamin Berg  <benjamin@sipsolutions.net>.
+	Pass -no-undefined linker flag.
+
 0.13.0
 	Removed obsolete #ifde GTK_CHECK_VERSION(2,2,0) checks.
 	Bug 339448 – selection doesn't respect hard newlines
