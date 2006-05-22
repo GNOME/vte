@@ -1,3 +1,10 @@
+2006-05-22  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 341793 – vte.h doesn't need to include X11/Xlib.h
+	Patch from Kouhei Sutou
+
+	* src/vte.h: Don't #include <X11/Xlib.h>
+
 2006-05-17  Wouter Bolsterlee  <uws+gnome@xs4all.nl>
 
 	* configure.in: Require intltool 0.35.0 to have
