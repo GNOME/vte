@@ -27,12 +27,18 @@
 #include <term.h>
 #define HAVE_CURSES
 #else
+#ifdef HAVE_NCURSES_CURSES
+#include <ncurses/curses.h>
+#include <ncurses/term.h>
+#define HAVE_CURSES
+#else
 #ifdef HAVE_CURSES
 #include <curses.h>
 #include <term.h>
 #else
 #ifdef HAVE_TERMCAP
 #include <termcap.h>
+#endif
 #endif
 #endif
 #endif

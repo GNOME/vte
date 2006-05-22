@@ -24,6 +24,9 @@
 #ifdef HAVE_WCHAR_H
 #include <wchar.h>
 #endif
+#ifdef HAVE_SYS_SYSLIMITS_H
+#include <sys/syslimits.h>
+#endif
 #include <glib.h>
 #include <glib-object.h>
 #include <gdk/gdk.h>

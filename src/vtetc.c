@@ -20,6 +20,9 @@
 #include <sys/types.h>
 #include <ctype.h>
 #include <limits.h>
+#ifdef HAVE_SYS_SYSLIMITS_H
+#include <sys/syslimits.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

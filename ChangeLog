@@ -1,5 +1,14 @@
 2006-05-22  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 340363 – vte Cygwin build fixes
+	Patch from Cygwin Ports maintainer
+
+	* configure.in, src/keymap.c, src/pty.c, src/ssfe.c, src/trie.c,
+	src/utf8echo.c, src/vte.c, src/vteseq.c, src/vtetc.c: Check and
+	include syslimits.h and ncurses/curses.h
+
+2006-05-22  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 341793 – vte.h doesn't need to include X11/Xlib.h
 	Patch from Kouhei Sutou
 
