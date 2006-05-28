@@ -4308,7 +4308,6 @@ static gboolean
 vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 {
 	struct selection_cell_coords ss, se;
-	gboolean ret;
 
 	/* If there's nothing selected, it's an easy question to answer. */
 	if (!terminal->pvt->has_selection) {
@@ -4323,7 +4322,7 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 	}
 
 	/* Limit selection in block mode. */
-	if (ret && terminal->pvt->block_mode) {
+	if (terminal->pvt->block_mode) {
 		if (col < ss.x || col > se.x) {
 			return FALSE;
 		}
@@ -4331,9 +4330,7 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 
 	/* Now it boils down to whether or not the point is between the
 	 * begin and endpoint of the selection. */
-	ret = vte_cell_is_between(col, row, ss.x, ss.y, se.x, se.y, TRUE);
-	
-	return ret;
+	return vte_cell_is_between(col, row, ss.x, ss.y, se.x, se.y, TRUE);
 }
 
 /* Once we get text data, actually paste it in. */

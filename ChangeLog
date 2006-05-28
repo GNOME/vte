@@ -1,7 +1,15 @@
 2006-05-27  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 342549 – uninitialized var (coverity)
+	Patch from Paolo Borelli.
+
+	* src/vte.c (vte_cell_is_selected): Remove uninitialized var ret.
+
+2006-05-27  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 342082 – vte_invalidate_region() may check whether terminal is
 	realiazed or not
+	Patch from Kouhei Sutou.
 
 	* src/vte.c (vte_invalidate_region): Return if not realized.
 
