@@ -1,3 +1,11 @@
+2006-05-27  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 342082 – vte_invalidate_region() may check whether terminal is
+	realiazed or not
+	Patch from Kouhei Sutou.
+
+	* src/vte.c (vte_invalidate_region): Return if not realized.
+
 2006-05-26  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.12.2.
