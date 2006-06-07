@@ -19,6 +19,9 @@
 #ident "$Id$"
 #include "../config.h"
 #include <sys/types.h>
+#ifdef HAVE_SYS_SYSLIMITS_H
+#include <sys/syslimits.h>
+#endif
 #include <assert.h>
 #include <ctype.h>
 #include <stdio.h>
