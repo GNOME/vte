@@ -198,7 +198,10 @@ _vte_terminal_set_default_attributes(VteTerminal *terminal)
 static gboolean
 vte_invalidate_region(VteTerminal *terminal)
 {
-	if (!GTK_WIDGET_REALIZED(terminal))
+	if (G_UNLIKELY (!GTK_WIDGET_REALIZED(terminal)))
+		return FALSE;
+
+	if (G_UNLIKELY (GTK_WIDGET(terminal)->window == NULL))
 		return FALSE;
 
 	if (!terminal->pvt->update_region)

@@ -1,3 +1,11 @@
+2006-06-07  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 339529 – gnome-terminal (vte) crashes when detatched window is
+	closed
+
+	* src/vte.c (vte_invalidate_region): Bail out if terminal->window is
+	NULL.
+
 2006-05-27  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 342549 – uninitialized var (coverity)
