@@ -175,7 +175,7 @@ struct _VteTerminalPrivate {
 	GArray *pending;		/* pending characters */
 	gint coalesce_timeout;
 	gint display_timeout;
-	gint update_timer;
+	gint update_timeout;
 	GdkRegion *update_region;
 
 

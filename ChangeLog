@@ -1,3 +1,10 @@
+2006-06-08  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vte.c (remove_display_timeout): Fix typo which may have been
+	causing things like crashes.  Reported by muntyan.  Also reordered
+	some code around update_timeout for better matching the current
+	timeouts in style.
+
 2006-06-07  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 339529 – gnome-terminal (vte) crashes when detatched window is

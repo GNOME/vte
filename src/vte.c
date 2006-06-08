@@ -215,53 +215,8 @@ vte_invalidate_region(VteTerminal *terminal)
 	return TRUE;
 }
 
-static gboolean
-vte_update_delay_timeout(gpointer data)
-{
-	VteTerminal *terminal = (VteTerminal *) data;
-	gboolean updated = vte_invalidate_region (terminal);
-
-	/* We only stop the timer if no update request was received in this
-	 * past cycle.
-	 */
-	if (!updated) {
-		terminal->pvt->update_timer = 0;
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
-static gboolean
-vte_update_timeout(gpointer data)
-{
-	VteTerminal *terminal = (VteTerminal *) data;
-	vte_invalidate_region(terminal);
-
-	/* Set a timer such that we do not invalidate for a while. */
-	/* This limits the number of times we draw to ~40fps. */
-	terminal->pvt->update_timer = g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE,
-							  VTE_UPDATE_REPEAT_TIMEOUT,
-							  vte_update_delay_timeout,
-							  terminal,
-							  NULL);
-
-	return FALSE;
-}
-
-static void
-vte_free_update_timer (VteTerminal *terminal)
-{
-	if (terminal->pvt->update_timer) {
-		g_source_remove (terminal->pvt->update_timer);
-		terminal->pvt->update_timer = 0;
-	}
-
-	if (terminal->pvt->update_region) {
-		gdk_region_destroy (terminal->pvt->update_region);
-		terminal->pvt->update_region = NULL;
-	}
-}
+static void add_update_timeout (VteTerminal *terminal);
+static void remove_update_timeout (VteTerminal *terminal);
 
 /* Cause certain cells to be repainted. */
 void
@@ -322,7 +277,7 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		rect.height += VTE_PAD_WIDTH;
 	}
 
-	if (terminal->pvt->update_timer) {
+	if (terminal->pvt->update_timeout != VTE_INVALID_SOURCE) {
 		if (!terminal->pvt->update_region)
 			terminal->pvt->update_region = gdk_region_rectangle (&rect);
 		else
@@ -331,11 +286,7 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		terminal->pvt->update_region = gdk_region_rectangle (&rect);
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
-		terminal->pvt->update_timer = g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE,
-								  VTE_UPDATE_TIMEOUT,
-								  vte_update_timeout,
-								  terminal,
-								  NULL);
+		add_update_timeout (terminal);
 	}
 
 }
@@ -360,9 +311,7 @@ _vte_invalidate_all(VteTerminal *terminal)
 		return;
 	}
 
-	if (terminal->pvt->update_timer) {
-		vte_free_update_timer (terminal);
-	}
+	remove_update_timeout (terminal);
 
 	/* Expose the entire widget area. */
 	width = height = 0;
@@ -6809,6 +6758,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->pending = g_array_new(TRUE, TRUE, sizeof(gunichar));
 	pvt->coalesce_timeout = VTE_INVALID_SOURCE;
 	pvt->display_timeout = VTE_INVALID_SOURCE;
+	pvt->update_timeout = VTE_INVALID_SOURCE;
 	pvt->outgoing = _vte_buffer_new();
 	pvt->outgoing_conv = (VteConv) -1;
 	pvt->conv_buffer = _vte_buffer_new();
@@ -7379,9 +7329,7 @@ vte_terminal_finalize(GObject *object)
 	_vte_termcap_free(terminal->pvt->termcap);
 	terminal->pvt->termcap = NULL;
 
-	if (terminal->pvt->update_timer) {
-		vte_free_update_timer (terminal);
-	}
+	remove_update_timeout (terminal);
 
 	/* Done with our private data. */
 	terminal->pvt = NULL;
@@ -11252,6 +11200,7 @@ _vte_terminal_remove_selection(VteTerminal *terminal)
 
 static gboolean display_timeout (gpointer data);
 static gboolean coalesce_timeout (gpointer data);
+static gboolean update_timeout (gpointer data);
 
 static void
 add_display_timeout (VteTerminal *terminal)
@@ -11268,10 +11217,21 @@ add_coalesce_timeout (VteTerminal *terminal)
 }
 
 static void
+add_update_timeout (VteTerminal *terminal)
+{
+	if (terminal->pvt->update_timeout == VTE_INVALID_SOURCE) {
+		terminal->pvt->update_timeout =
+			g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE,
+					    VTE_UPDATE_TIMEOUT, update_timeout, terminal,
+					    NULL);
+	}
+}
+
+static void
 remove_display_timeout (VteTerminal *terminal)
 {
 	g_source_remove (terminal->pvt->display_timeout);
-	terminal->pvt->display_timeout = VTE_DISPLAY_TIMEOUT;
+	terminal->pvt->display_timeout = VTE_INVALID_SOURCE;
 }
 
 static void
@@ -11279,6 +11239,20 @@ remove_coalesce_timeout (VteTerminal *terminal)
 {
 	g_source_remove (terminal->pvt->coalesce_timeout);
 	terminal->pvt->coalesce_timeout = VTE_INVALID_SOURCE;
+}
+
+static void
+remove_update_timeout (VteTerminal *terminal)
+{
+	if (terminal->pvt->update_timeout != VTE_INVALID_SOURCE) {
+		g_source_remove (terminal->pvt->update_timeout);
+		terminal->pvt->update_timeout = VTE_INVALID_SOURCE;
+	}
+
+	if (terminal->pvt->update_region != NULL) {
+		gdk_region_destroy (terminal->pvt->update_region);
+		terminal->pvt->update_region = NULL;
+	}
 }
 
 static void
@@ -11356,3 +11330,37 @@ coalesce_timeout (gpointer data)
 
 	return FALSE;
  }
+
+static gboolean
+update_repeat_timeout (gpointer data)
+{
+	VteTerminal *terminal = data;
+	gboolean updated = vte_invalidate_region (terminal);
+
+	/* We only stop the timer if no update request was received in this
+	 * past cycle.
+	 */
+	if (!updated) {
+		terminal->pvt->update_timeout = VTE_INVALID_SOURCE;
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static gboolean
+update_timeout (gpointer data)
+{
+	VteTerminal *terminal = data;
+
+	vte_invalidate_region(terminal);
+
+	/* Set a timer such that we do not invalidate for a while. */
+	/* This limits the number of times we draw to ~40fps. */
+	terminal->pvt->update_timeout =
+		g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE,
+				    VTE_UPDATE_REPEAT_TIMEOUT, update_repeat_timeout, terminal,
+				    NULL);
+
+	return FALSE;
+}
