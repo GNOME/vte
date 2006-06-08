@@ -11287,7 +11287,7 @@ static void
 remove_display_timeout (VteTerminal *terminal)
 {
 	g_source_remove (terminal->pvt->display_timeout);
-	terminal->pvt->display_timeout = VTE_DISPLAY_TIMEOUT;
+	terminal->pvt->display_timeout = VTE_INVALID_SOURCE;
 }
 
 static void
