@@ -1,3 +1,20 @@
+0.13.2
+	Bug 344666 – Problems with *_CFLAGS and *_LDFLAGS in makefiles
+	             Patch from Stepan Kasal <kasal@ucw.cz>.
+	Bug 339529 – gnome-terminal (vte) crashes when detatched window is
+	             closed
+	Bug 342549 – uninitialized var (coverity)
+	             Patch from Paolo Borelli.
+	Bug 342082 – vte_invalidate_region() may check whether terminal is
+	             realiazed or not
+	             Patch from Kouhei Sutou.
+	Bug 340363 – vte Cygwin build fixes
+	             Patch from Cygwin Ports maintainer
+	Bug 341793 – vte.h doesn't need to include X11/Xlib.h
+	             Patch from Kouhei Sutou
+	Require intltool 0.35.0 to have translations in the dist tarballs.
+	Fix typo which may have been causing things like crashes.
+
 0.13.1
 	Use intltool 0.34.90 to make sure tarball includes po files.
 	Bug 339980 – nativeecho needs glib in LDADD to build on Solaris

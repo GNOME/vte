@@ -1,5 +1,15 @@
 2006-06-12  Behdad Esfahbod  <behdad@gnome.org>
 
+	Released vte-0.13.2.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.13.2.
+
+	* src/Makefile.am: Bumped libtool version to 9:2:0.
+
+2006-06-12  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 344666 – Problems with *_CFLAGS and *_LDFLAGS in makefiles
 	Patch from Stepan Kasal <kasal@ucw.cz>.
 
