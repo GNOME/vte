@@ -1,3 +1,15 @@
+2006-06-12  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 344666 – Problems with *_CFLAGS and *_LDFLAGS in makefiles
+	Patch from Stepan Kasal <kasal@ucw.cz>.
+
+	* src/Makefile.am (AM_CFLAGS, AM_LDFLAGS, *_CFLAGS, *_LDADD):
+	Replace @FOO@ references by $(FOO), remove redundant (or buggy)
+	occurences of `@CFLAGS@'.
+	* gnome-pty-helper/Makefile.am (AM_CFLAGS, AM_LDFLAGS): Likewise.
+	* python/Makefile.am (vtemodule_la_CFLAGS): Likewise.
+	* src/Makefile.am (AM_CFLAGS): Add $(FT2_CFLAGS).
+
 2006-06-08  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte.c (remove_display_timeout): Fix typo which may have been

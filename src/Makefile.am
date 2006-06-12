@@ -21,8 +21,8 @@ EXTRA_DIST = \
 	unitable.JIS0212 \
 	unitable.KSX1001
 
-AM_CFLAGS = @VTE_CFLAGS@ @CFLAGS@ @X_CFLAGS@ -DG_DISABLE_ASSERT
-AM_LDFLAGS = @LDFLAGS@
+AM_CFLAGS = $(VTE_CFLAGS) $(FT2_CFLAGS) $(X_CFLAGS) -DG_DISABLE_ASSERT
+AM_LDFLAGS = $(LDFLAGS)
 
 EXTRA_libvte_la_SOURCES = keysyms.c
 
@@ -104,11 +104,11 @@ VERSION_CURRENT=9
 # AGE must be incremented when an API or ABI addition is made, and REVISION
 # must be reset to 0 when this happens.
 VERSION_AGE=0
-libvte_la_LDFLAGS = @LDFLAGS@ \
+libvte_la_LDFLAGS = $(LDFLAGS) \
 	-version-info $(VERSION_CURRENT):$(VERSION_REVISION):$(VERSION_AGE) \
 	-export-symbols-regex "^vte_terminal_.*|^_vte_pty_.*|^vte_reaper_.*" \
 	-no-undefined
-libvte_la_LIBADD = @LIBS@ @VTE_LIBS@ @X_LIBS@
+libvte_la_LIBADD = $(LIBS) $(VTE_LIBS) $(X_LIBS)
 
 CLEANFILES = marshal.c marshal.h
 
@@ -118,17 +118,17 @@ marshal.c marshal.h: marshal.list
 
 vte_SOURCES = \
 	vteapp.c
-vte_LDADD = libvte.la @LDFLAGS@ @LIBS@ @VTE_LIBS@ @X_LIBS@
+vte_LDADD = libvte.la $(LDFLAGS) $(LIBS) $(VTE_LIBS) $(X_LIBS)
 
-reflect_text_view_CFLAGS = @CFLAGS@ -DUSE_TEXT_VIEW @VTE_CFLAGS@ @X_CFLAGS@
+reflect_text_view_CFLAGS = -DUSE_TEXT_VIEW $(VTE_CFLAGS) $(X_CFLAGS)
 reflect_text_view_SOURCES = reflect.c
-reflect_text_view_LDADD = @LDFLAGS@ @LIBS@ @VTE_LIBS@ @X_LIBS@
+reflect_text_view_LDADD = $(LDFLAGS) $(LIBS) $(VTE_LIBS) $(X_LIBS)
 
-reflect_vte_CFLAGS = @CFLAGS@ -DUSE_VTE @VTE_CFLAGS@ @X_CFLAGS@
+reflect_vte_CFLAGS = -DUSE_VTE $(VTE_CFLAGS) $(X_CFLAGS)
 reflect_vte_SOURCES = reflect.c
-reflect_vte_LDADD = libvte.la @LDFLAGS@ @LIBS@ @VTE_LIBS@ @X_LIBS@
+reflect_vte_LDADD = libvte.la $(LDFLAGS) $(LIBS) $(VTE_LIBS) $(X_LIBS)
 
-interpret_CFLAGS = @CFLAGS@ @GTK_CFLAGS@ -DINTERPRET_MAIN
+interpret_CFLAGS = $(GTK_CFLAGS) -DINTERPRET_MAIN
 interpret_SOURCES = \
 	buffer.c \
 	buffer.h \
@@ -149,9 +149,9 @@ interpret_SOURCES = \
 	vtetc.c \
 	vtetc.h \
 	interpret.c
-interpret_LDADD = @LDFLAGS@ @GOBJECT_LIBS@
+interpret_LDADD = $(LDFLAGS) $(GOBJECT_LIBS)
 
-iso2022_CFLAGS = @CFLAGS@ @GTK_CFLAGS@ -DISO2022_MAIN
+iso2022_CFLAGS = $(GTK_CFLAGS) -DISO2022_MAIN
 iso2022_SOURCES = \
 	buffer.c \
 	buffer.h \
@@ -171,9 +171,9 @@ iso2022_SOURCES = \
 	vteconv.h \
 	vtetc.c \
 	vtetc.h
-iso2022_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
+iso2022_LDADD = $(LDFLAGS) $(LIBS) $(GOBJECT_LIBS)
 
-utf8echo_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DUTF8ECHO_MAIN
+utf8echo_CFLAGS = $(GOBJECT_CFLAGS) -DUTF8ECHO_MAIN
 utf8echo_SOURCES = \
 	buffer.c \
 	buffer.h \
@@ -192,26 +192,26 @@ utf8echo_SOURCES = \
 	vteconv.h \
 	vtetc.c \
 	vtetc.h
-utf8echo_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
+utf8echo_LDADD = $(LDFLAGS) $(LIBS) $(GOBJECT_LIBS)
 
-nativeecho_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DNATIVEECHO_MAIN
+nativeecho_CFLAGS = $(GLIB_CFLAGS) -DNATIVEECHO_MAIN
 nativeecho_SOURCES = \
 	nativeecho.c
-nativeecho_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
+nativeecho_LDADD = $(LDFLAGS) $(LIBS) $(GLIB_LIBS)
 
-ring_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DRING_MAIN
+ring_CFLAGS = $(GLIB_CFLAGS) -DRING_MAIN
 ring_SOURCES = \
 	debug.c \
 	debug.h \
 	ring.c \
 	ring.h
-ring_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
+ring_LDADD = $(LDFLAGS) $(LIBS) $(GLIB_LIBS)
 
 slowcat_SOURCES = \
 	slowcat.c
-slowcat_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
+slowcat_LDADD = $(LDFLAGS) $(LIBS) $(GLIB_LIBS)
 
-table_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DTABLE_MAIN
+table_CFLAGS = $(GOBJECT_CFLAGS) -DTABLE_MAIN
 table_SOURCES = \
 	buffer.c \
 	buffer.h \
@@ -229,9 +229,9 @@ table_SOURCES = \
 	vteconv.h \
 	vtetc.c \
 	vtetc.h
-table_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
+table_LDADD = $(LDFLAGS) $(LIBS) $(GOBJECT_LIBS)
 
-trie_CFLAGS = @CFLAGS@ @GOBJECT_CFLAGS@ -DTRIE_MAIN
+trie_CFLAGS = $(GOBJECT_CFLAGS) -DTRIE_MAIN
 trie_SOURCES = \
 	buffer.c \
 	buffer.h \
@@ -249,25 +249,25 @@ trie_SOURCES = \
 	vteconv.h \
 	vtetc.c \
 	vtetc.h 
-trie_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
+trie_LDADD = $(LDFLAGS) $(LIBS) $(GOBJECT_LIBS)
 
-vtetc_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DTERMCAP_MAIN
+vtetc_CFLAGS = $(GLIB_CFLAGS) -DTERMCAP_MAIN
 vtetc_SOURCES = \
 	debug.c \
 	debug.h \
 	vtetc.c \
 	vtetc.h
-vtetc_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
+vtetc_LDADD = $(LDFLAGS) $(LIBS) $(GLIB_LIBS)
 
-pty_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DPTY_MAIN
+pty_CFLAGS = $(GLIB_CFLAGS) -DPTY_MAIN
 pty_SOURCES = \
 	debug.c \
 	debug.h \
 	pty.c \
 	pty.h
-pty_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
+pty_LDADD = $(LDFLAGS) $(LIBS) $(GLIB_LIBS)
 
-reaper_CFLAGS = @CFLAGS@ @GTK_CFLAGS@ -DREAPER_MAIN
+reaper_CFLAGS = $(GTK_CFLAGS) -DREAPER_MAIN
 reaper_SOURCES = \
 	debug.c \
 	debug.h \
@@ -275,13 +275,13 @@ reaper_SOURCES = \
 	marshal.h \
 	reaper.c \
 	reaper.h
-reaper_LDADD = @LDFLAGS@ @LIBS@ @GOBJECT_LIBS@
+reaper_LDADD = $(LDFLAGS) $(LIBS) $(GOBJECT_LIBS)
 
-vterdb_CFLAGS = @CFLAGS@ @GTK_CFLAGS@ -DVTERDB_MAIN
+vterdb_CFLAGS = $(GTK_CFLAGS) -DVTERDB_MAIN
 vterdb_SOURCES = vterdb.c
-vterdb_LDADD = @LDFLAGS@ @LIBS@ @GTK_LIBS@
+vterdb_LDADD = $(LDFLAGS) $(LIBS) $(GTK_LIBS)
 
-vteconv_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DVTECONV_MAIN
+vteconv_CFLAGS = $(GLIB_CFLAGS) -DVTECONV_MAIN
 vteconv_SOURCES = \
 	buffer.c \
 	buffer.h \
@@ -289,24 +289,24 @@ vteconv_SOURCES = \
 	debug.h \
 	vteconv.c \
 	vteconv.h
-vteconv_LDADD = @LDFLAGS@ @GLIB_LIBS@
+vteconv_LDADD = $(LDFLAGS) $(GLIB_LIBS)
 
-buffer_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@ -DBUFFER_MAIN
+buffer_CFLAGS = $(GLIB_CFLAGS) -DBUFFER_MAIN
 buffer_SOURCES = buffer.c
-buffer_LDADD = @LDFLAGS@ @GLIB_LIBS@
+buffer_LDADD = $(LDFLAGS) $(GLIB_LIBS)
 
 dumpkeys_SOURCES = dumpkeys.c
-dumpkeys_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
+dumpkeys_LDADD = $(LDFLAGS) $(LIBS) $(GLIB_LIBS)
 
 mev_SOURCES = mev.c
-mev_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
+mev_LDADD = $(LDFLAGS) $(LIBS) $(GLIB_LIBS)
 
 ssfe_SOURCES = ssfe.c
-ssfe_LDADD = @LDFLAGS@ @OTHERLIBS@
+ssfe_LDADD = $(LDFLAGS) $(OTHERLIBS)
 
-xticker_CFLAGS = @CFLAGS@ @GLIB_CFLAGS@
+xticker_CFLAGS = $(GLIB_CFLAGS)
 xticker_SOURCES = xticker.c
-xticker_LDADD = @LDFLAGS@ @LIBS@ @GLIB_LIBS@
+xticker_LDADD = $(LDFLAGS) $(LIBS) $(GLIB_LIBS)
 
 vteseq-table.h: vteseq-gen.c vteseq-list.h
 	$(MAKE) vteseq-gen
