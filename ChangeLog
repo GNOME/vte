@@ -1,3 +1,9 @@
+2006-06-21  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 345514 – -no-undefined doesn't work with latest libtool
+
+	* src/Makefile.am: Remove -no-undefined.
+
 2006-06-12  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.13.2.
