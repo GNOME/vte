@@ -12,3 +12,8 @@ gnome-pty-helper
 stamp-h1
 omf.make
 xmldocs.make
+config.guess
+config.sub
+depcomp
+install-sh
+missing
