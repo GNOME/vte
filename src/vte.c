@@ -2098,6 +2098,21 @@ vte_terminal_set_colors(VteTerminal *terminal,
 }
 
 /**
+ * vte_terminal_set_opacity
+ * @terminal: a #VteTerminal
+ * @opacity: the new opacity
+ *
+ * Sets the opacity of the terminal background, were 0 means completely
+ * transparent and 65535 means completely opaque.
+ *
+ */
+void
+vte_terminal_set_opacity(VteTerminal *terminal, guint16 opacity)
+{
+	terminal->pvt->bg_opacity = opacity;
+}
+
+/**
  * vte_terminal_set_default_colors:
  * @terminal: a #VteTerminal
  *
@@ -6831,6 +6846,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->bg_tint_color.green = 0;
 	pvt->bg_tint_color.blue = 0;
 	pvt->bg_saturation = 0.4 * VTE_SATURATION_MAX;
+	pvt->bg_opacity = 0xffff;
 	pvt->block_mode = FALSE;
 	pvt->had_block_mode = FALSE;
 
@@ -10187,7 +10203,8 @@ vte_terminal_background_update(gpointer data)
 		gdk_rgb_find_color(colormap, &bgcolor);
 	}
 	gdk_window_set_background(widget->window, &bgcolor);
-	_vte_draw_set_background_color(terminal->pvt->draw, &bgcolor);
+	_vte_draw_set_background_color(terminal->pvt->draw, &bgcolor,
+				       terminal->pvt->bg_opacity);
 
 	/* If we're transparent, and either have no root image or are being
 	 * told to update it, get a new copy of the root window. */

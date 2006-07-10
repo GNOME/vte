@@ -57,7 +57,7 @@ struct _vte_draw_impl {
 	GdkColormap* (*get_colormap)(struct _vte_draw *draw);
 	void (*start)(struct _vte_draw *draw);
 	void (*end)(struct _vte_draw *draw);
-	void (*set_background_color)(struct _vte_draw *, GdkColor *);
+	void (*set_background_color)(struct _vte_draw *, GdkColor *, guint16);
 	void (*set_background_image)(struct _vte_draw *,
 				     enum VteBgSourceType type,
 				     GdkPixbuf *pixbuf,
@@ -115,7 +115,9 @@ void _vte_draw_end(struct _vte_draw *draw);
 
 /* Set the background color, a background pixbuf (if you want transparency,
    you'll have to do that yourself), and clear an area to the default. */
-void _vte_draw_set_background_color(struct _vte_draw *draw, GdkColor *color);
+void _vte_draw_set_background_color(struct _vte_draw *draw,
+				    GdkColor *color,
+				    guint16 opacity);
 void _vte_draw_set_background_image(struct _vte_draw *draw,
 				    enum VteBgSourceType type,
 				    GdkPixbuf *pixbuf,

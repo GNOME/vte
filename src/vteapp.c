@@ -388,6 +388,8 @@ add_weak_pointer(GObject *object, GtkWidget **target)
 int
 main(int argc, char **argv)
 {
+	GdkScreen *screen;
+	GdkColormap *colormap;
 	GtkWidget *window, *hbox, *scrollbar, *widget;
 	char *env_add[] = {
 #ifdef VTE_DEBUG
@@ -567,6 +569,12 @@ main(int argc, char **argv)
 	g_signal_connect(G_OBJECT(window), "delete_event",
 			 GTK_SIGNAL_FUNC(deleted_and_quit), window);
 
+	/* Set ARGB colormap */
+	screen = gtk_widget_get_screen (window);
+	colormap = gdk_screen_get_rgba_colormap (screen);
+	if (colormap)
+	    gtk_widget_set_colormap(GTK_WIDGET (window), colormap);
+
 	/* Create a box to hold everything. */
 	hbox = gtk_hbox_new(0, FALSE);
 	gtk_container_add(GTK_CONTAINER(window), hbox);
@@ -658,6 +666,7 @@ main(int argc, char **argv)
 	}
 	vte_terminal_set_background_tint_color(VTE_TERMINAL(widget), &tint);
 	vte_terminal_set_colors(VTE_TERMINAL(widget), &fore, &back, NULL, 0);
+	vte_terminal_set_opacity(VTE_TERMINAL(widget), 0xcccc);
 	if (highlight_set) {
 		vte_terminal_set_color_highlight(VTE_TERMINAL(widget),
 						 &highlight);

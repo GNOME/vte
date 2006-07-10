@@ -148,7 +148,7 @@ _vte_ft2_end(struct _vte_draw *draw)
 }
 
 static void
-_vte_ft2_set_background_color(struct _vte_draw *draw, GdkColor *color)
+_vte_ft2_set_background_color(struct _vte_draw *draw, GdkColor *color, guint16 opacity)
 {
 	struct _vte_ft2_data *data;
 	data = (struct _vte_ft2_data*) draw->impl_data;

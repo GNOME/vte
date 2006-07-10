@@ -6,7 +6,7 @@ import vte
 
 # FIXME: figure out why we don't get a PID here.
 def exited_cb(terminal):
-	gtk.mainquit()
+	gtk.main_quit()
 
 def nuke(button, (box, terminal)):
 	box.remove(terminal)

@@ -286,6 +286,15 @@
   (return-type "none")
 )
 
+(define-method set_opacity
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_opacity")
+  (return-type "none")
+  (parameters
+    '("guint16" "opacity")
+  )
+)
+
 (define-method set_background_image
   (of-object "VteTerminal")
   (c-name "vte_terminal_set_background_image")

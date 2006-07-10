@@ -33,6 +33,7 @@ struct _vte_skel_data
 	GdkPixmap *pixmap;
 	gint pixmapw, pixmaph;
 	gint scrollx, scrolly;
+	guint16 opacity;
 };
 
 static gboolean
@@ -106,11 +107,12 @@ _vte_skel_end(struct _vte_draw *draw)
 }
 
 static void
-_vte_skel_set_background_color(struct _vte_draw *draw, GdkColor *color)
+_vte_skel_set_background_color(struct _vte_draw *draw, GdkColor *color, guint16 opacity)
 {
 	struct _vte_skel_data *data;
 	data = (struct _vte_skel_data*) draw->impl_data;
 	data->color = *color;
+	data->opacity = opacity;
 }
 
 static void

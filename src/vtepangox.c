@@ -189,7 +189,7 @@ _vte_pango_x_end(struct _vte_draw *draw)
 }
 
 static void
-_vte_pango_x_set_background_color(struct _vte_draw *draw, GdkColor *color)
+_vte_pango_x_set_background_color(struct _vte_draw *draw, GdkColor *color, guint16 opacity)
 {
 	struct _vte_pango_x_data *data;
 	data = (struct _vte_pango_x_data*) draw->impl_data;

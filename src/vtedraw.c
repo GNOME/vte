@@ -168,11 +168,13 @@ _vte_draw_end(struct _vte_draw *draw)
 }
 
 void
-_vte_draw_set_background_color(struct _vte_draw *draw, GdkColor *color)
+_vte_draw_set_background_color(struct _vte_draw *draw,
+			       GdkColor *color,
+			       guint16 opacity)
 {
 	g_return_if_fail(draw->impl != NULL);
 	g_return_if_fail(draw->impl->set_background_color != NULL);
-	draw->impl->set_background_color(draw, color);
+	draw->impl->set_background_color(draw, color, opacity);
 }
 
 void

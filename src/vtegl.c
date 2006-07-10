@@ -259,7 +259,7 @@ _vte_gl_end(struct _vte_draw *draw)
 }
 
 static void
-_vte_gl_set_background_color(struct _vte_draw *draw, GdkColor *color)
+_vte_gl_set_background_color(struct _vte_draw *draw, GdkColor *color, guint16 opacity)
 {
 	struct _vte_gl_data *data;
 

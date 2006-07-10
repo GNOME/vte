@@ -17,7 +17,7 @@ def restore_cb(terminal):
 	print text
 
 def child_exited_cb(terminal):
-	gtk.mainquit()
+	gtk.main_quit()
 
 if __name__ == '__main__':
 	child_pid = -1;

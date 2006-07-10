@@ -60,6 +60,7 @@ struct _vte_xft_data
 	XftDraw *draw;
 	GC gc;
 	GdkColor color;
+	guint16 opacity;
 	GdkPixmap *pixmap;
 	Pixmap xpixmap;
 	gint pixmapw, pixmaph;
@@ -313,6 +314,7 @@ _vte_xft_create(struct _vte_draw *draw, GtkWidget *widget)
 	data->draw = NULL;
 	data->gc = NULL;
 	memset(&data->color, 0, sizeof(data->color));
+	data->opacity = 0xffff;
 	data->pixmap = NULL;
 	data->xpixmap = -1;
 	data->pixmapw = data->pixmaph = -1;
@@ -416,11 +418,13 @@ _vte_xft_end(struct _vte_draw *draw)
 }
 
 static void
-_vte_xft_set_background_color(struct _vte_draw *draw, GdkColor *color)
+_vte_xft_set_background_color(struct _vte_draw *draw, GdkColor *color,
+			      guint16 opacity)
 {
 	struct _vte_xft_data *data;
 	data = (struct _vte_xft_data*) draw->impl_data;
 	data->color = *color;
+	data->opacity = opacity;
 }
 
 static void
@@ -469,10 +473,10 @@ _vte_xft_clear(struct _vte_draw *draw,
 	if (!GDK_IS_PIXMAP(data->pixmap) ||
 	    (data->pixmapw <= 0) ||
 	    (data->pixmaph <= 0)) {
-		rcolor.red = data->color.red;
-		rcolor.green = data->color.green;
-		rcolor.blue = data->color.blue;
-		rcolor.alpha = 0xffff;
+		rcolor.red = data->color.red * data->opacity / 0xffff;
+		rcolor.green = data->color.green * data->opacity / 0xffff;
+		rcolor.blue = data->color.blue * data->opacity / 0xffff;
+		rcolor.alpha = data->opacity;
 		if (XftColorAllocValue(data->display, data->visual,
 				       data->colormap, &rcolor, &ftcolor)) {
 			XftDrawRect(data->draw, &ftcolor,

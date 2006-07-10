@@ -529,6 +529,15 @@ keys.
 @terminal: 
 
 
+<!-- ##### FUNCTION vte_terminal_set_opacity ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@opacity: 
+
+
 <!-- ##### FUNCTION vte_terminal_set_background_image ##### -->
 <para>
 
