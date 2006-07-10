@@ -1,5 +1,12 @@
 2006-07-10  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 342396 – Ctrl-space sends " ", not NUL.
+
+	* src/keymap.c (_vte_keymap_map): Fix keymap lookup bug that I
+	introduced during the char*->char[] work on 2006-04-18.
+
+2006-07-10  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 345377 – real transparency
 	Patch from Kristian Høgsberg <krh redhat.com>
 

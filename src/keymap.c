@@ -1014,7 +1014,7 @@ _vte_keymap_map(guint keyval,
 		/* Check for NULL strings with non-zero length, and
 		 * vice-versa. */
 		entries = _vte_keymap[i].entries;
-		for (j = 0; entries[j].normal[0] || entries[j].special[0]; j++) {
+		for (j = 0; entries[j].normal_length || entries[j].special[0]; j++) {
 			if (entries[j].normal_length) {
 				g_assert(!entries[j].special[0]);
 			} else {
@@ -1024,7 +1024,7 @@ _vte_keymap_map(guint keyval,
 		/* Check for coverage. This check is not exhaustive. */
 		fkey_mode = 0;
 		mods = GDK_SHIFT_MASK | GDK_CONTROL_MASK | VTE_META_MASK | VTE_NUMLOCK_MASK;
-		for (j = 0; entries[j].normal[0] || entries[j].special[0]; j++) {
+		for (j = 0; entries[j].normal_length || entries[j].special[0]; j++) {
 			if (entries[j].fkey_mode != fkey_all) {
 				fkey_mode |= entries[j].fkey_mode;
 			}
@@ -1083,7 +1083,7 @@ _vte_keymap_map(guint keyval,
 	modifiers &= (GDK_SHIFT_MASK | GDK_CONTROL_MASK | VTE_META_MASK | VTE_NUMLOCK_MASK);
 
 	/* Search for the conditions. */
-	for (i = 0; entries[i].normal[0] || entries[i].special[0]; i++)
+	for (i = 0; entries[i].normal_length || entries[i].special[0]; i++)
 	if ((entries[i].cursor_mode & cursor_mode) &&
 	    (entries[i].keypad_mode & keypad_mode) &&
 	    (entries[i].fkey_mode & fkey_mode))
