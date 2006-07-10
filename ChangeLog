@@ -1,5 +1,13 @@
 2006-07-10  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 339986 – Patch to select localized strings exactly
+	Patch from Takao Fujiwara
+
+	* src/vte.c (vte_terminal_is_word_char): Fall back on Unicode
+	properties for non-ASCII characters or when no array is set.
+
+2006-07-10  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 342396 – Ctrl-space sends " ", not NUL.
 
 	* src/keymap.c (_vte_keymap_map): Fix keymap lookup bug that I

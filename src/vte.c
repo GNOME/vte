@@ -4147,25 +4147,33 @@ vte_terminal_is_word_char(VteTerminal *terminal, gunichar c)
 	int i;
 	VteWordCharRange *range;
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+
+	if (terminal->pvt->word_chars != NULL) {
+		/* Go through each range and check if c is included. */
+		for (i = 0; i < terminal->pvt->word_chars->len; i++) {
+			range = &g_array_index(terminal->pvt->word_chars,
+					       VteWordCharRange,
+					       i);
+			if ((c >= range->start) && (c <= range->end))
+				return TRUE;
+		}
+	}
+
 	/* If we have no array, or it's empty, assume the defaults. */
 	if ((terminal->pvt->word_chars == NULL) ||
 	    (terminal->pvt->word_chars->len == 0)) {
-		return g_unichar_isgraph(c) &&
-		       !g_unichar_ispunct(c) &&
-		       !g_unichar_isspace(c) &&
-		       (c != '\0');
+
 	}
-	/* Go through each range and check if the character is included. */
-	for (i = 0; i < terminal->pvt->word_chars->len; i++) {
-		range = &g_array_index(terminal->pvt->word_chars,
-				       VteWordCharRange,
-				       i);
-		if ((c >= range->start) && (c <= range->end)) {
-			return TRUE;
-		}
-	}
-	/* Default. */
-	return FALSE;
+
+	/* If not ASCII, or ASCII and no array set (or empty array),
+	 * fall back on Unicode properties. */
+	return (c >= 0x80 ||
+	        (terminal->pvt->word_chars == NULL) ||
+	        (terminal->pvt->word_chars->len == 0)) ||
+		g_unichar_isgraph(c) &&
+	       !g_unichar_ispunct(c) &&
+	       !g_unichar_isspace(c) &&
+	       (c != '\0');
 }
 
 /* Check if the characters in the two given locations are in the same class
