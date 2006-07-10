@@ -2513,6 +2513,7 @@ _vte_terminal_connect_pty_write(VteTerminal *terminal)
 		terminal->pvt->pty_output =
 			g_io_channel_unix_new(terminal->pvt->pty_master);
 	}
+	g_static_mutex_lock (&(terminal->pvt->pty_output_source_mutex));
 	if (terminal->pvt->pty_output_source == VTE_INVALID_SOURCE) {
 		terminal->pvt->pty_output_source =
 			g_io_add_watch_full(terminal->pvt->pty_output,
@@ -2522,6 +2523,7 @@ _vte_terminal_connect_pty_write(VteTerminal *terminal)
 					    terminal,
 					    NULL);
 	}
+	g_static_mutex_unlock (&(terminal->pvt->pty_output_source_mutex));
 }
 
 static void
@@ -2550,10 +2552,12 @@ _vte_terminal_disconnect_pty_write(VteTerminal *terminal)
 		g_io_channel_unref(terminal->pvt->pty_output);
 		terminal->pvt->pty_output = NULL;
 	}
+	g_static_mutex_lock (&(terminal->pvt->pty_output_source_mutex));
 	if (terminal->pvt->pty_output_source != VTE_INVALID_SOURCE) {
 		g_source_remove(terminal->pvt->pty_output_source);
 		terminal->pvt->pty_output_source = VTE_INVALID_SOURCE;
 	}
+	g_static_mutex_unlock (&(terminal->pvt->pty_output_source_mutex));
 }
 
 /* Basic wrapper around _vte_pty_open, which handles the pipefitting. */
@@ -6771,6 +6775,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 	pvt->pty_master = -1;
 	pvt->pty_input_source = VTE_INVALID_SOURCE;
 	pvt->pty_output_source = VTE_INVALID_SOURCE;
+	g_static_mutex_init( &(pvt->pty_output_source_mutex) );
 	pvt->pty_pid = -1;
 
 	/* Set up I/O encodings. */

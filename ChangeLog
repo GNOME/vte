@@ -1,5 +1,15 @@
 2006-07-10  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 311855 – Race in vte leads to blocking of input.
+	Patch from Kalle Raiskila
+
+	* src/vte-private.h:
+	* src/vte.c (_vte_terminal_connect_pty_write),
+	(_vte_terminal_disconnect_pty_write), (vte_terminal_init):
+	Use a mutex for pty_output_source.
+
+2006-07-10  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 339986 – Patch to select localized strings exactly
 	Patch from Takao Fujiwara
 

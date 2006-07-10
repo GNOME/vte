@@ -165,6 +165,7 @@ struct _VteTerminalPrivate {
 	guint pty_input_source;
 	GIOChannel *pty_output;		/* master output watch */
 	guint pty_output_source;
+ 	GStaticMutex pty_output_source_mutex;	/* pty_output_source mutex */
 	pid_t pty_pid;			/* pid of child using pty slave */
 	VteReaper *pty_reaper;
 
