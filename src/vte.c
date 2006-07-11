@@ -7432,6 +7432,10 @@ vte_terminal_realize(GtkWidget *widget)
 	/* Set the realized flag. */
 	GTK_WIDGET_SET_FLAGS(widget, GTK_REALIZED);
 
+        /* Set window/icon titles */
+        gdk_window_set_title (widget->window, "");
+        gdk_window_set_icon_name (widget->window, "");
+
 	/* Actually load the font. */
 	vte_terminal_set_font_full(terminal, terminal->pvt->fontdesc,
 				   terminal->pvt->fontantialias);
