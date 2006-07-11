@@ -1,3 +1,19 @@
+0.13.3
+	Bug 121904 – copy-paste of empty line
+	Bug 25290 – Small UI tweak to select-by-word (only select only letter
+	            at a time for non-word characters)
+	Bug 339986 – Patch to select localized strings exactly
+		     Patch from Takao Fujiwara
+	Bug 311855 – Race in vte leads to blocking of input.
+		     Patch from Kalle Raiskila
+	Bug 342396 – Ctrl-space sends " ", not NUL.
+	Bug 345377 – real transparency
+		     Patch from Kristian Høgsberg <krh redhat.com>
+	Bug 345514 – -no-undefined doesn't work with latest libtool
+	Bug 141985 – vte does not respond to 'CSI 2 1 t' or 'CSI 2 0 t' with
+		     the correct window/icon title
+		     Patch from Mariano Suárez-Alvarez
+
 0.13.2
 	Bug 344666 – Problems with *_CFLAGS and *_LDFLAGS in makefiles
 	             Patch from Stepan Kasal <kasal@ucw.cz>.

@@ -1,5 +1,15 @@
 2006-07-10  Behdad Esfahbod  <behdad@gnome.org>
 
+	Released vte-0.13.3.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.13.3.
+
+	* src/Makefile.am: Bumped libtool version to 10:0:1.
+
+2006-07-10  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 141985 – vte does not respond to 'CSI 2 1 t' or 'CSI 2 0 t' with
 	the correct window/icon title
 	Patch from Mariano Suárez-Alvarez
