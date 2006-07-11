@@ -1,3 +1,14 @@
+2006-07-11  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 339983 – gnome-pty-helper should log username
+	Patch from Brian Cameron
+
+	* gnome-pty-helper/gnome-pty-helper.c (pty_remove), (shutdown_pty),
+	(pty_add), (open_ptys):
+	* gnome-pty-helper/gnome-pty.h:
+	* gnome-pty-helper/gnome-utmp.c (write_logout_record):
+	Log username if system supports it.
+
 2006-07-10  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.13.3.

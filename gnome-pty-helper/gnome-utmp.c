@@ -230,7 +230,7 @@ update_lastlog(char* login_name, UTMP *ut)
 #endif /* HAVE_LASTLOG */
 
 void
-write_logout_record (void *data, int utmp, int wtmp)
+write_logout_record (char *login_name, void *data, int utmp, int wtmp)
 {
 	UTMP put, *ut = data;
 
@@ -249,6 +249,12 @@ write_logout_record (void *data, int utmp, int wtmp)
 	gettimeofday ((struct timeval*) &put.ut_tv, NULL);
 #elif defined(HAVE_UT_UT_TIME)
 	time (&put.ut_time);
+#endif
+
+#if defined(HAVE_UT_UT_NAME)
+	strncpy (put.ut_name, login_name, sizeof (put.ut_name));
+#elif defined(HAVE_UT_UT_USER)
+	strncpy (put.ut_user, login_name, sizeof (put.ut_user));
 #endif
 
 	if (utmp)

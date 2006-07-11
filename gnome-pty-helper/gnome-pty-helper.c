@@ -67,6 +67,7 @@ static char login_name_buffer [48];
 static char *login_name, *display_name;
 
 struct pty_info {
+	char   *login_name;
 	struct pty_info *next;
 	char   *line;
 	void   *data;
@@ -221,6 +222,7 @@ pty_remove (pty_info *pi)
 			else
 				last->next = pi->next;
 			free (pi->line);
+			free (pi->login_name);
 			pty_free (pi);
 			return;
 		}
@@ -235,7 +237,7 @@ shutdown_pty (pty_info *pi)
 {
 	if (pi->utmp || pi->wtmp || pi->lastlog)
 		if (pi->data)
-			write_logout_record (pi->data, pi->utmp, pi->wtmp);
+			write_logout_record (pi->login_name, pi->data, pi->utmp, pi->wtmp);
 
 	pty_remove (pi);
 }
@@ -250,7 +252,7 @@ shutdown_helper (void)
 }
 
 static pty_info *
-pty_add (int utmp, int wtmp, int lastlog, char *line)
+pty_add (int utmp, int wtmp, int lastlog, char *line, char *login_name)
 {
 	pty_info *pi = malloc (sizeof (pty_info));
 
@@ -275,6 +277,7 @@ pty_add (int utmp, int wtmp, int lastlog, char *line)
 	pi->utmp = utmp;
 	pi->wtmp = wtmp;
 	pi->lastlog = lastlog;
+	pi->login_name = strdup (login_name);
 
 	pty_list = pi;
 
@@ -524,7 +527,7 @@ open_ptys (int utmp, int wtmp, int lastlog)
 	/* revoke(term_name); */
 
 	/* add pty to the list of allocated by us */
-	p = pty_add (utmp, wtmp, lastlog, term_name);
+	p = pty_add (utmp, wtmp, lastlog, term_name, login_name);
 	result = 1;
 
 	if (n_write (STDIN_FILENO, &result, sizeof (result)) != sizeof (result) ||
