@@ -1,5 +1,23 @@
 2006-07-10  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 121904 – copy-paste of empty line
+	Bug 25290 – Small UI tweak to select-by-word (only select only letter
+	at a time for non-word characters)
+	Bug 339986 – Patch to select localized strings exactly
+
+	* src/vte-private.h:
+	* src/vte.c (_vte_terminal_set_default_attributes),
+	(_vte_terminal_insert_char), (vte_terminal_is_word_char),
+	(vte_same_class), (vte_terminal_get_text_range_maybe_wrapped),
+	(vte_terminal_extend_selection):
+	* src/vteseq.c (vte_sequence_handler_screen_alignment_test):
+	Fix a bunch of selection-related issues.  We now recognize explicitly
+	put space at the end of lines, and copy/paste it.  The other change is
+	that non-wordchar characters are not grouped together.  Also fixes the
+	fallback on Unicode properties that I added two commits ago.
+
+2006-07-10  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 311855 – Race in vte leads to blocking of input.
 	Patch from Kalle Raiskila
 

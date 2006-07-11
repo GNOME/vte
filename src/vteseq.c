@@ -3727,6 +3727,7 @@ vte_sequence_handler_screen_alignment_test(VteTerminal *terminal,
 		cell = screen->basic_defaults;
 		cell.c = 'E';
 		cell.columns = 1;
+		cell.empty = 0;
 		vte_g_array_fill(rowdata->cells, &cell, terminal->column_count);
 		_vte_terminal_emit_text_inserted(terminal);
 	}

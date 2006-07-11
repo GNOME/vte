@@ -90,22 +90,28 @@ G_BEGIN_DECLS
  * includes any supported visible attributes. */
 struct vte_charcell {
 	gunichar c;		/* The Unicode character. */
+
 	guint32 columns: 2;	/* Number of visible columns (as determined
 				   by g_unicode_iswide(c)). */
-	guint32 fragment: 1;	/* The nth fragment of a wide character. */
 	guint32 fore: 9;	/* Indices in the color palette for the */
 	guint32 back: 9;	/* foreground and background of the cell. */
+
+	guint32 fragment: 1;	/* The nth fragment of a wide character. */
 	guint32 standout: 1;	/* Single-bit attributes. */
 	guint32 underline: 1;
 	guint32 strikethrough: 1;
+
 	guint32 reverse: 1;
 	guint32 blink: 1;
 	guint32 half: 1;
 	guint32 bold: 1;
+
 	guint32 invisible: 1;
 	guint32 protect: 1;
 	guint32 alternate: 1;
-	/* we've got one more bit here before expanding the structure. */
+	guint32 empty : 1;
+
+	/* no more bits left.  any addition will enlarge the struct */
 };
 
 /* A match regex, with a tag. */

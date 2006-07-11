@@ -177,6 +177,7 @@ _vte_terminal_set_default_attributes(VteTerminal *terminal)
 	terminal->pvt->screen->defaults.c = ' ';
 	terminal->pvt->screen->defaults.columns = 1;
 	terminal->pvt->screen->defaults.fragment = 0;
+	terminal->pvt->screen->defaults.empty = 1;
 	terminal->pvt->screen->defaults.fore = VTE_DEF_FG;
 	terminal->pvt->screen->defaults.back = VTE_DEF_BG;
 	terminal->pvt->screen->defaults.reverse = 0;
@@ -2265,6 +2266,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		pcell->c = cell.c;
 		pcell->columns = cell.columns;
 		pcell->fragment = cell.fragment;
+		pcell->empty = cell.empty;
 		pcell->alternate = 0;
 
 		/* Now set the character and column count. */
@@ -2281,12 +2283,14 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 				pcell->c = c;
 				pcell->columns = columns;
 				pcell->fragment = 0;
+				pcell->empty = 0;
 			}
 		} else {
 			/* This is a continuation cell. */
 			pcell->c = c;
 			pcell->columns = columns;
 			pcell->fragment = 1;
+			pcell->empty = 0;
 		}
 
 		/* And take a step to the to the right. */
@@ -4163,17 +4167,11 @@ vte_terminal_is_word_char(VteTerminal *terminal, gunichar c)
 		}
 	}
 
-	/* If we have no array, or it's empty, assume the defaults. */
-	if ((terminal->pvt->word_chars == NULL) ||
-	    (terminal->pvt->word_chars->len == 0)) {
-
-	}
-
 	/* If not ASCII, or ASCII and no array set (or empty array),
 	 * fall back on Unicode properties. */
 	return (c >= 0x80 ||
 	        (terminal->pvt->word_chars == NULL) ||
-	        (terminal->pvt->word_chars->len == 0)) ||
+	        (terminal->pvt->word_chars->len == 0)) &&
 		g_unichar_isgraph(c) &&
 	       !g_unichar_ispunct(c) &&
 	       !g_unichar_isspace(c) &&
@@ -4189,10 +4187,15 @@ vte_same_class(VteTerminal *terminal, glong acol, glong arow,
 	struct vte_charcell *pcell = NULL;
 	gboolean word_char;
 	g_assert(VTE_IS_TERMINAL(terminal));
-	if ((pcell = vte_terminal_find_charcell(terminal, acol, arow)) != NULL) {
+	if ((pcell = vte_terminal_find_charcell(terminal, acol, arow)) != NULL && !pcell->empty) {
 		word_char = vte_terminal_is_word_char(terminal, pcell->c);
+
+		/* Lets not group non-wordchars together (bug #25290) */
+		if (!word_char)
+			return FALSE;
+
 		pcell = vte_terminal_find_charcell(terminal, bcol, brow);
-		if (pcell == NULL) {
+		if (pcell == NULL || pcell->empty) {
 			return FALSE;
 		}
 		if (word_char != vte_terminal_is_word_char(terminal,
@@ -4733,8 +4736,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 					  GArray *attributes,
 					  gboolean include_trailing_spaces)
 {
-	long col, row, last_space, last_spacecol,
-	     last_nonspace, last_nonspacecol, line_start;
+	long col, row, last_empty, last_emptycol, last_nonempty, last_nonemptycol;
 	VteScreen *screen;
 	struct vte_charcell *pcell = NULL;
 	GString *string;
@@ -4749,23 +4751,20 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 	memset(&attr, 0, sizeof(attr));
 
 	palette = terminal->pvt->palette;
-	for (row = start_row; row <= end_row; row++) {
-		col = (row == start_row) ? start_col : 0;
-		last_space = last_nonspace = -1;
-		last_spacecol = last_nonspacecol = -1;
+	col = start_col;
+	for (row = start_row; row <= end_row; row++, col = 0) {
+		last_empty = last_nonempty = string->len - 1;
+		last_emptycol = last_nonemptycol = -1;
+
 		attr.row = row;
-		line_start = string->len;
 		pcell = NULL;
-		do {
+		while ((pcell = vte_terminal_find_charcell(terminal, col, row))) {
+
+			attr.column = col;
+
 			/* If it's not part of a multi-column character,
 			 * and passes the selection criterion, add it to
 			 * the selection. */
-			attr.column = col;
-			pcell = vte_terminal_find_charcell(terminal, col, row);
-			if (pcell == NULL) {
-				/* No more characters on this line. */
-				break;
-			}
 			if (!pcell->fragment &&
 			    is_selected(terminal, col, row, data)) {
 				/* Store the attributes of this character. */
@@ -4779,20 +4778,20 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 				attr.back.blue = back.blue;
 				attr.underline = pcell->underline;
 				attr.strikethrough = pcell->strikethrough;
+
+				if (pcell->empty) {
+					last_empty = string->len;
+					last_emptycol = col;
+				} else {
+					last_nonempty = string->len;
+					last_nonemptycol = col;
+				}
+
 				/* Store the character. */
 				string = g_string_append_unichar(string,
 								 pcell->c ?
 								 pcell->c :
 								 ' ');
-				/* Record whether or not this was a
-				 * whitespace cell. */
-				if ((pcell->c == ' ') || (pcell->c == '\0')) {
-					last_space = string->len - 1;
-					last_spacecol = col;
-				} else {
-					last_nonspace = string->len - 1;
-					last_nonspacecol = col;
-				}
 			}
 			/* If we added a character to the string, record its
 			 * attributes, one per byte. */
@@ -4805,86 +4804,52 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 			if ((row == end_row) && (col == end_col)) {
 				break;
 			}
+
 			col++;
-		} while (pcell != NULL);
-		/* If the last thing we saw was a space, and we stopped at the
-		 * right edge of the selected area, trim the trailing spaces
-		 * off of the line. */
-		if ((last_space != -1) &&
-		    (last_nonspace != -1) &&
-		    (last_space > last_nonspace)) {
-			/* Check for non-space after this point on the line. */
-			col = MAX(0, last_spacecol);
-			do {
-				/* Check that we have data here. */
-				pcell = vte_terminal_find_charcell(terminal,
-								   col, row);
-				/* Stop if we ran out of data. */
-				if (pcell == NULL) {
-					break;
-				}
-				/* Skip over fragments. */
-				if (pcell->fragment) {
-					col++;
-					continue;
-				}
-				/* Check whether or not it holds whitespace. */
-				if ((pcell->c != ' ') && (pcell->c != '\0')) {
-					/* It holds non-whitespace, stop. */
-					break;
-				}
+		}
+
+	       /* If the last thing we saw was a empty, and we stopped at the
+		* right edge of the selected area, trim the trailing spaces
+		* off of the line. */
+		if (!include_trailing_spaces && last_empty > last_nonempty) {
+
+			col = last_emptycol + 1;
+
+			while ((pcell = vte_terminal_find_charcell(terminal, col, row))) {
 				col++;
-			} while (pcell != NULL);
-			/* If pcell is NULL, then there was no printing
-			 * character to the right of the endpoint, so truncate
-			 * the string at the end of the printing chars. */
-			if ((pcell == NULL) && !include_trailing_spaces) {
-				g_string_truncate(string, last_nonspace + 1);
+
+				if (pcell->fragment)
+					continue;
+
+				if (!pcell->empty)
+					break;
+			}
+			if (pcell == NULL) {
+				g_string_truncate(string, last_nonempty + 1);
+				attr.column = last_nonemptycol;
 			}
 		}
-		/* If we found no non-whitespace characters on this line, trim
-		 * it, as xterm does. */
-		if (last_nonspacecol == -1) {
-			g_string_truncate(string, line_start);
-		}
+
+		/* Adjust column, in case we want to append a newline */
+		attr.column = MAX(terminal->column_count, attr.column + 1);
+
 		/* Add a newline in block mode. */
 		if (terminal->pvt->block_mode) {
 			string = g_string_append_unichar(string, '\n');
 		}
-		/* Make sure that the attributes array is as long as the
-		 * string. */
-		if (attributes) {
-			g_array_set_size(attributes, string->len);
-		}
-		/* If the last visible column on this line was selected and
-		 * it contained whitespace, append a newline. */
-		if (!terminal->pvt->block_mode &&
-				is_selected(terminal, terminal->column_count - 1,
-				row, data)) {
-			pcell = vte_terminal_find_charcell(terminal,
-							   terminal->column_count - 1,
-							   row);
+		/* Else, if the last visible column on this line was selected and
+		 * not soft-wrapped, append a newline. */
+		else if (is_selected(terminal, terminal->column_count - 1, row, data)) {
 			/* If we didn't softwrap, add a newline. */
 			if (!vte_line_is_wrappable(terminal, row)) {
 				string = g_string_append_c(string, '\n');
 			}
-			/* If it's whitespace, we snipped it off, so add a
-			 * newline, unless we soft-wrapped. */
-			else if ((pcell == NULL) || (pcell->c == '\0') || (pcell->c == ' ')) {
-				string = g_string_append_c(string,
-							   pcell ?
-							   pcell->c :
-							   ' ');
-			}
-			/* Move this last character to the end of the line. */
-			attr.column = MAX(terminal->column_count,
-					  attr.column + 1);
-			/* If we broke out of the loop, there's at least one
-			 * character with missing attributes. */
-			if (attributes) {
-				vte_g_array_fill(attributes, &attr,
-						 string->len);
-			}
+		}
+
+		/* Make sure that the attributes array is as long as the string. */
+		if (attributes) {
+			g_array_set_size(attributes, string->len);
+			vte_g_array_fill(attributes, &attr, string->len);
 		}
 	}
 	/* Sanity check. */
@@ -5179,7 +5144,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 {
 	VteScreen *screen;
 	VteRowData *rowdata;
-	long delta, height, width, last_nonspace, i, j;
+	long delta, height, width, i, j, last_nonempty;
 	struct vte_charcell *cell;
 	struct selection_event_coords *origin, *last, *start, *end;
 	struct selection_cell_coords old_start, old_end, *sc, *ec, tc;
@@ -5262,10 +5227,10 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 #endif
 
 	/* Recalculate the selection area in terms of cell positions. */
-	terminal->pvt->selection_start.x = MAX(0, start->x / width);
-	terminal->pvt->selection_start.y = MAX(0, start->y / height);
-	terminal->pvt->selection_end.x = MAX(0, end->x / width);
-	terminal->pvt->selection_end.y = MAX(0, end->y / height);
+	terminal->pvt->selection_start.x = CLAMP(start->x / width,  0, terminal->column_count - 1);
+	terminal->pvt->selection_start.y = CLAMP(start->y / height, delta, delta + terminal->row_count - 1);
+	terminal->pvt->selection_end.x = CLAMP(end->x / width,  0, terminal->column_count - 1);
+	terminal->pvt->selection_end.y = CLAMP(end->y / height, delta, delta + terminal->row_count - 1);
 
 	/* Re-sort using cell coordinates to catch round-offs that make two
 	 * coordinates "the same". */
@@ -5289,17 +5254,16 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 		rowdata = NULL;
 	}
 	if (!terminal->pvt->block_mode && rowdata != NULL) {
-		/* Find the last non-space character on the first line. */
-		last_nonspace = -1;
+		/* Find the last non-empty character on the first line. */
+		last_nonempty = -1;
 		for (i = 0; i < rowdata->cells->len; i++) {
 			cell = &g_array_index(rowdata->cells,
 					      struct vte_charcell, i);
-			if (!g_unichar_isspace(cell->c) && (cell->c != '\0')) {
-				last_nonspace = i;
-			}
+			if (!cell->empty)
+				last_nonempty = i;
 		}
-		/* Now find the first space after it. */
-		i = last_nonspace + 1;
+		/* Now find the first empty after it. */
+		i = last_nonempty + 1;
 		/* If the start point is to its right, then move the
 		 * startpoint up to the beginning of the next line
 		 * unless that would move the startpoint after the end
@@ -5326,17 +5290,16 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 		rowdata = NULL;
 	}
 	if (!terminal->pvt->block_mode && rowdata != NULL) {
-		/* Find the last non-space character on the last line. */
-		last_nonspace = -1;
+		/* Find the last non-empty character on the last line. */
+		last_nonempty = -1;
 		for (i = 0; i < rowdata->cells->len; i++) {
 			cell = &g_array_index(rowdata->cells,
 					      struct vte_charcell, i);
-			if (!g_unichar_isspace(cell->c) && (cell->c != '\0')) {
-				last_nonspace = i;
-			}
+			if (!cell->empty)
+				last_nonempty = i;
 		}
-		/* Now find the first space after it. */
-		i = last_nonspace + 1;
+		/* Now find the first empty after it. */
+		i = last_nonempty + 1;
 		/* If the end point is to its right, then extend the
 		 * endpoint as far right as we can expect. */
 		if (ec->x >= i) {
