@@ -7024,12 +7024,6 @@ vte_terminal_unrealize(GtkWidget *widget)
 	g_assert(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
 
-	/* Clean up our draw structure. */
-	if (terminal->pvt->draw != NULL) {
-		_vte_draw_free(terminal->pvt->draw);
-	}
-	terminal->pvt->draw = NULL;
-
 	/* Disconnect from background-change events. */
 	bg = vte_bg_get_for_screen(gtk_widget_get_screen(widget));
 	g_signal_handlers_disconnect_by_func(G_OBJECT(bg),
@@ -7066,6 +7060,12 @@ vte_terminal_unrealize(GtkWidget *widget)
 		terminal->pvt->im_preedit_attrs = NULL;
 	}
 	terminal->pvt->im_preedit_cursor = 0;
+
+	/* Clean up our draw structure. */
+	if (terminal->pvt->draw != NULL) {
+		_vte_draw_free(terminal->pvt->draw);
+	}
+	terminal->pvt->draw = NULL;
 
 	/* Unmap the widget if it hasn't been already. */
 	if (GTK_WIDGET_MAPPED(widget)) {
