@@ -5227,10 +5227,10 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 #endif
 
 	/* Recalculate the selection area in terms of cell positions. */
-	terminal->pvt->selection_start.x = CLAMP(start->x / width,  0, terminal->column_count - 1);
-	terminal->pvt->selection_start.y = CLAMP(start->y / height, delta, delta + terminal->row_count - 1);
-	terminal->pvt->selection_end.x = CLAMP(end->x / width,  0, terminal->column_count - 1);
-	terminal->pvt->selection_end.y = CLAMP(end->y / height, delta, delta + terminal->row_count - 1);
+	terminal->pvt->selection_start.x = MAX(0, start->x / width);
+	terminal->pvt->selection_start.y = MAX(0, start->y / height);
+	terminal->pvt->selection_end.x = MAX(0, end->x / width);
+	terminal->pvt->selection_end.y = MAX(0, end->y / height);
 
 	/* Re-sort using cell coordinates to catch round-offs that make two
 	 * coordinates "the same". */
