@@ -232,7 +232,7 @@ void vte_terminal_paste_primary(VteTerminal *terminal);
 void vte_terminal_set_size(VteTerminal *terminal,
 			   glong columns, glong rows);
 
-/* Set various one-off settings. */
+/* Set various on-off settings. */
 void vte_terminal_set_audible_bell(VteTerminal *terminal, gboolean is_audible);
 gboolean vte_terminal_get_audible_bell(VteTerminal *terminal);
 void vte_terminal_set_visible_bell(VteTerminal *terminal, gboolean is_visible);
