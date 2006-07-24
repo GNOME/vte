@@ -353,6 +353,8 @@ struct _VteTerminalPrivate {
 
 	/* Obscured? state. */
 	GdkVisibilityState visibility_state;
+
+	gboolean has_fonts;
 };
 
 

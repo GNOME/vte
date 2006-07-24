@@ -1,3 +1,13 @@
+2006-07-24  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 336947 – [patch] Redundant vte_terminal_set_font_full() calls
+	Patch from Aivars Kalvans
+
+	* src/vte-private.h:
+	* src/vte.c (vte_terminal_set_font_full), (vte_terminal_init),
+	(vte_terminal_realize):
+	AVoid redundant set_font_full and invalidate_all calls.
+
 2006-07-19  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 134800 – gnome-termnal hung up when input by ATOK
