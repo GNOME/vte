@@ -1,5 +1,15 @@
 2006-07-24  Behdad Esfahbod  <behdad@gnome.org>
 
+	Released vte-0.13.4.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.13.4.
+
+	* src/Makefile.am: Bumped libtool version to 10:1:1.
+
+2006-07-24  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 336947 – [patch] Redundant vte_terminal_set_font_full() calls
 	Patch from Aivars Kalvans
 

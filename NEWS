@@ -1,3 +1,12 @@
+0.13.4
+	Fix selection that I broke in last release.
+	Bug 336947 – [patch] Redundant vte_terminal_set_font_full() calls
+	             Patch from Aivars Kalvans
+	Bug 134800 – gnome-termnal hung up when input by ATOK
+	             Patch from Yukihiro Nakai  <nakai@gnome.gr.jp>
+	Bug 339983 – gnome-pty-helper should log username
+	             Patch from Brian Cameron
+
 0.13.3
 	Bug 121904 – copy-paste of empty line
 	Bug 25290 – Small UI tweak to select-by-word (only select only letter
