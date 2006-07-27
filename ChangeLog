@@ -1,3 +1,11 @@
+2006-07-27  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 348814 – crash on Terminal
+	Patch from Aivars Kalvans
+
+	* src/vte.c (vte_terminal_unrealize): Do not dispose draw in
+	unrealize.
+
 2006-07-24  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.13.4.
