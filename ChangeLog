@@ -1,3 +1,13 @@
+2006-07-30  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 158200 – terminal backspace behavior not set to UTF-8 mode
+	Based on patch from Egmont Koblinger
+
+	* src/vte.c (_vte_terminal_setup_utf8),
+	(vte_terminal_set_encoding), (_vte_terminal_fork_basic),
+	(vte_terminal_set_pty): Make sure UTF-8 state is correctly set
+	when pty changes.
+
 2006-07-27  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 348814 – crash on Terminal

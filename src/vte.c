@@ -1510,6 +1510,13 @@ vte_terminal_maybe_scroll_to_bottom(VteTerminal *terminal)
 	}
 }
 
+static void
+_vte_terminal_setup_utf8 (VteTerminal *terminal)
+{
+  _vte_pty_set_utf8(terminal->pvt->pty_master,
+		    (strcmp(terminal->pvt->encoding, "UTF-8") == 0));
+}
+
 /**
  * vte_terminal_set_encoding:
  * @terminal: a #VteTerminal
@@ -1554,8 +1561,6 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	/* Set the terminal's encoding to the new value. */
 	encoding_quark = g_quark_from_string(codeset);
 	terminal->pvt->encoding = g_quark_to_string(encoding_quark);
-	_vte_pty_set_utf8(terminal->pvt->pty_master,
-			  (strcmp(codeset, "UTF-8") == 0));
 
 	/* Convert any buffered output bytes. */
 	if ((_vte_buffer_length(terminal->pvt->outgoing) > 0) &&
@@ -2608,6 +2613,7 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 	default:
 		if (pid != 0) {
 			terminal->pvt->pty_master = i;
+		       _vte_terminal_setup_utf8(terminal);
 		}
 	}
 
@@ -11104,6 +11110,8 @@ vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
        vte_terminal_set_size(terminal,
                              terminal->column_count,
                              terminal->row_count);
+
+       _vte_terminal_setup_utf8(terminal);
 
        /* Open channels to listen for input on. */
        _vte_terminal_connect_pty_read(terminal);
