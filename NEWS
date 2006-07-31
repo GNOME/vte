@@ -1,3 +1,9 @@
+0.13.5
+	Bug 158200 – terminal backspace behavior not set to UTF-8 mode
+	             Based on patch from Egmont Koblinger
+	Bug 348814 – crash on Terminal
+	             Patch from Aivars Kalvans
+
 0.13.4
 	Fix selection that I broke in last release.
 	Bug 336947 – [patch] Redundant vte_terminal_set_font_full() calls

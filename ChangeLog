@@ -1,3 +1,13 @@
+2006-07-31  Behdad Esfahbod  <behdad@gnome.org>
+
+	Released vte-0.13.5.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.13.5.
+
+	* src/Makefile.am: Bumped libtool version to 10:2:1.
+
 2006-07-30  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 158200 – terminal backspace behavior not set to UTF-8 mode
