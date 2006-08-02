@@ -1,4 +1,4 @@
-# vte এর বাংলা অনুবাদ.
+# Bengali India Translation of vte.
 # Copyright (C) 2002 Free Software Foundation
 # This file is distributed under the same license as the vte package.
 # Jamil Ahmed <jamil@bengalinux.org>, 2003.
@@ -8,39 +8,41 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-07-03 07:59+0200\n"
-"PO-Revision-Date: 2005-09-30 02:18+0600\n"
-"Last-Translator: Samia Niamatullah <mailsamia2001@yahoo.com>\n"
-"Language-Team: Bangla <gnome-translation@bengalinux.org>\n"
+"POT-Creation-Date: 2006-08-02 08:17+0200\n"
+"PO-Revision-Date: 2006-08-02 17:58+0530\n"
+"Last-Translator: Runa Bhattacharjee <runabh@gmail.com>\n"
+"Language-Team: Bengali India\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.9.1\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n\n"
 
 #: ../src/iso2022.c:784 ../src/iso2022.c:795 ../src/iso2022.c:844
-#: ../src/vte.c:1544
+#: ../src/vte.c:1552
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "%s অক্ষরগুলোকে %s তে রুপান্তর করতে ব্যার্থ।"
+msgstr "%s থেকে %s'এ অক্ষর রূপান্তর করতে ব্যর্থ।"
 
 #: ../src/iso2022.c:1574
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr "অবৈধ NRC ম্যাপ '%c' সেট করার চেষ্টা করা হয়েছে।"
+msgstr "অবৈধ NRC ম্যাপ '%c' নির্ধারণের প্রচেষ্টা করা হয়েছে।"
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #: ../src/iso2022.c:1615
 msgid "Unrecognized identified coding system."
-msgstr "শনাক্তকৃত অজানা কোডিং সিস্টেম।"
+msgstr "সনাক্ত করা কোডিং সিস্টেম অজ্ঞাত।"
 
 #: ../src/iso2022.c:1664 ../src/iso2022.c:1690
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "অবৈধ প্রশস্ত NRC ম্যাপ '%c' সেট করার চেষ্টা করা হয়েছে।"
+msgstr "অবৈধ প্রশস্ত NRC ম্যাপ '%c' নির্ধারণের প্রচেষ্টা করা হয়েছে।"
 
 #: ../src/pty.c:331
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
-msgstr "পরিবেশ এর সাথে '%s' যোগ করতে ত্রুটি হচ্ছে, এগিয়ে যাচ্ছি।"
+msgstr "পরিবেশে `%s' যোগ করতে সমস্যা, এগিয়ে যাওয়া হবে।"
 
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
@@ -48,69 +50,67 @@ msgstr "পরিবেশ এর সাথে '%s' যোগ করতে ত�
 #: ../src/pty.c:916
 #, c-format
 msgid "can not run %s"
-msgstr "%s চালাতে পারছি না"
+msgstr "%s চালাতে ব্যর্থ"
 
 #: ../src/reaper.c:147
 msgid "Error creating signal pipe."
-msgstr "সিগন্যাল পাইপ তৈরি করতে পারছি না।"
+msgstr "সিগন্যাল-পাইপ নির্মাণ করতে ব্যর্থ।"
 
 #: ../src/trie.c:414
 #, c-format
 msgid "Duplicate (%s/%s)!"
-msgstr "প্রতিরুপ (%s/%s)!"
+msgstr "প্রতিলিপি (%s/%s)!"
 
-#: ../src/vte.c:970
+#: ../src/vte.c:971
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "রেগুলার এক্‌সপ্রেশন \"%s\" কমপাইল করতে পারছি না।"
+msgstr "রেগুলার এক্সপ্রেশন \"%s\" কম্পাইল করতে সমস্যা।"
 
-# sam: Control sequence has been changed from কন্ট্রোল ধারাবাহিকতা to নিয়ন্ত্রন অনুক্রম। 
+# sam: Control sequence has been changed from কন্ট্রোল ধারাবাহিকতা to নিয়ন্ত্রন অনুক্রম।
 # what about handler?
-#: ../src/vte.c:2410
+#: ../src/vte.c:2434
 #, c-format
 msgid "No handler for control sequence `%s' defined."
-msgstr "নিয়ন্ত্রন অনুক্রম '%s' র কোন পরিচালক স্থির করা নেই।"
+msgstr "কন্ট্রোল সিকোয়েন্স `%s'-র জন্য হ্যান্ডলার নির্ধারিত হয়নি।"
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:3253
+#: ../src/vte.c:3282
 #, c-format
 msgid "Error reading from child: %s."
-msgstr "এই চাইল্ড থেকে পড়তে ত্রুটি হয়েছে: %s।"
+msgstr "চাইল্ড থেকে পড়তে সমস্যা: %s।"
 
-#: ../src/vte.c:3375 ../src/vte.c:4305
+#: ../src/vte.c:3404 ../src/vte.c:4341
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "চাইল্ড এর জন্য উপাত্ত (%s) রুপান্তর করতে ত্রুটি হয়েছে, বাতিল করছি। "
+msgstr "চাইল্ডের জন্য তথ্য রূপান্তর করতে সমস্যা (%s), বর্জন করা হচ্ছে।"
 
-#: ../src/vte.c:6306
+#: ../src/vte.c:6304
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr "ডিফল্ট মান: %s ব্যবহার করে, PTY এর আকারের মান পড়তে ত্রুটি হয়েছে।"
+msgstr "PTY'র মাপ পড়তে সমস্যা, ডিফল্ট মান ব্যবহার করা হবে: %s।"
 
-#: ../src/vte.c:6342
+#: ../src/vte.c:6340
 #, c-format
 msgid "Error setting PTY size: %s."
-msgstr "PTY এর আকার: %s স্থাপন করতে ত্রুটি হয়েছে।"
+msgstr "PTY'র মাপ নির্ধারণে সমস্যা: %s।"
 
 #. Aaargh.  We're screwed.
 #: ../src/vte.c:10604
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "_vte_conv_open() শব্দের অক্ষরগুলো বসাতে ব্যর্থ হয়েছে"
+msgstr "_vte_conv_open() দ্বারা শব্দের অক্ষর নির্ধারণ করতে ব্যর্থ"
 
 #. Bail back to normal mode.
-#: ../src/vteapp.c:729
+#: ../src/vteapp.c:738
 msgid "Could not open console.\n"
-msgstr "কনসোল খোলা সম্ভব হয়নি।\n"
+msgstr "কনসোল খুলতে ব্যর্থ।\n"
 
 #: ../src/vteglyph.c:578
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr "অজানা পিক্সেল মোড %d.\n"
+msgstr "অজানা পিক্সেল মোড %d।\n"
 
-#: ../src/vtexft.c:695
+#: ../src/vtexft.c:699
 #, c-format
 msgid "Can not draw character U+%04x.\n"
-msgstr "U+%04x অক্ষরটি আঁকা সম্ভব হয়নি।\n"
+msgstr "U+%04x অক্ষরটি আঁকতে ব্যর্থ।\n"
 
-#~ msgid "Got unexpected (key?) sequence `%s'."
-#~ msgstr "অপ্রত্যাশিত (কী?) '%s' ধারাবাহিকতা পেয়েছি।"
