@@ -1,3 +1,11 @@
+2006-08-16  Willie Walker <william.walker@sun.com>
+
+	Bug 350623 – Accessible text getTextAtOffset is broken
+
+	* src/vte.c (vte_terminal_get_text_range_maybe_wrapped): Do not
+	resize array before calling vte_g_array_fill since it
+	nullifies any effect vte_g_array_fill will have.
+
 2006-08-16  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte.c (vte_terminal_get_text_range_maybe_wrapped): Make sure

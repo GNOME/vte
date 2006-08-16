@@ -4855,7 +4855,6 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 
 		/* Make sure that the attributes array is as long as the string. */
 		if (attributes) {
-			g_array_set_size(attributes, string->len);
 			vte_g_array_fill(attributes, &attr, string->len);
 		}
 	}
