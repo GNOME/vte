@@ -4763,6 +4763,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 		last_emptycol = last_nonemptycol = -1;
 
 		attr.row = row;
+		attr.column = col;
 		pcell = NULL;
 		while ((pcell = vte_terminal_find_charcell(terminal, col, row))) {
 
