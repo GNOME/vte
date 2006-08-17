@@ -458,13 +458,15 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 			if (strcmp(signal, "window") == 0) {
 				g_free(terminal->window_title);
 				terminal->window_title = g_strdup(validated);
-				gdk_window_set_title (GTK_WIDGET (terminal)->window, validated);
+				if (GTK_WIDGET (terminal)->window)
+					gdk_window_set_title (GTK_WIDGET (terminal)->window, validated);
 				vte_terminal_emit_window_title_changed(terminal);
 			} else
 			if (strcmp(signal, "icon") == 0) {
 				g_free (terminal->icon_title);
 				terminal->icon_title = g_strdup(validated);
-				gdk_window_set_icon_name (GTK_WIDGET (terminal)->window, validated);
+				if (GTK_WIDGET (terminal)->window)
+					gdk_window_set_icon_name (GTK_WIDGET (terminal)->window, validated);
 				vte_terminal_emit_icon_title_changed(terminal);
 			}
 			g_free(validated);

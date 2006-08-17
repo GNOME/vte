@@ -1,3 +1,10 @@
+2006-08-17  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 351696 – crash on Terminal
+
+	* src/vteseq.c (vte_sequence_handler_set_title_internal): Check
+	->window is not NULL before setting icon/window title.
+
 2006-08-16  Willie Walker <william.walker@sun.com>
 
 	Bug 350623 – Accessible text getTextAtOffset is broken
