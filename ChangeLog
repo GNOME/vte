@@ -1,3 +1,13 @@
+2006-08-20  Behdad Esfahbod  <behdad@gnome.org>
+
+	Released vte-0.13.6.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.13.6.
+
+	* src/Makefile.am: Bumped libtool version to 10:3:1.
+
 2006-08-17  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 351696 – crash on Terminal
