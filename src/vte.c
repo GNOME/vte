@@ -7069,6 +7069,13 @@ vte_terminal_unrealize(GtkWidget *widget)
 	}
 	terminal->pvt->im_preedit_cursor = 0;
 
+	/* Clean up our draw structure. */
+	if (terminal->pvt->draw != NULL) {
+		_vte_draw_free(terminal->pvt->draw);
+	}
+	terminal->pvt->draw = NULL;
+	terminal->pvt->has_fonts = FALSE;
+
 	/* Unmap the widget if it hasn't been already. */
 	if (GTK_WIDGET_MAPPED(widget)) {
 	  

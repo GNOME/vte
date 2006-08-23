@@ -1,3 +1,11 @@
+2006-08-22  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 351494 – Gnome-terminal doesn't kills bash on tab close
+	Patch from Aivars Kalvans
+
+	* src/vte.c (vte_terminal_unrealize): Undo the change from bug 348814.
+	Dispose draw in unrealize again, but also set has_fonts to FALSE.
+
 2006-08-20  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.13.6.
