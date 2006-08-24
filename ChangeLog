@@ -10,6 +10,18 @@
 
 2006-08-24  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 352365 – font caching problem for not-found glyphs
+
+	* src/vtexft.c (_vte_xft_font_for_char): Add caching on a missing
+	path.  This only affects the second time a character is looked up.
+
+	* src/vtexft.c (_vte_xft_font_close), (_vte_xft_font_for_char),
+	(_vte_xft_char_width): Remove g_assert()'s that are not needed, as
+	we will definitely crash pretty soon if the assertion is not true
+	anyway.
+
+2006-08-24  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 350236 – Cannot copy text containing invalid character sequences
 
 	* src/vte.c (vte_terminal_get_text_range_maybe_wrapped): Fix another

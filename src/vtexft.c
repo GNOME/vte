@@ -122,12 +122,6 @@ _vte_xft_font_close(struct _vte_xft_font *font)
 	FcPattern *pattern;
 	int i;
 
-	g_assert(font != NULL);
-	g_assert(font->patterns != NULL);
-	g_assert(font->fonts != NULL);
-	g_assert(font->fontmap != NULL);
-	g_assert(font->widths != NULL);
-
 	for (i = 0; i < font->patterns->len; i++) {
 		pattern = g_array_index(font->patterns, FcPattern*, i);
 		if (pattern == NULL) {
@@ -166,12 +160,6 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 	GdkDisplay *gdisplay;
 	Display *display;
 	gpointer p = GINT_TO_POINTER(c);
-
-	g_assert(font != NULL);
-	g_assert(font->patterns != NULL);
-	g_assert(font->fonts != NULL);
-	g_assert(font->fontmap != NULL);
-	g_assert(font->widths != NULL);
 
 	/* Check if we have a char-to-font entry for it. */
 	i = GPOINTER_TO_INT(_vte_tree_lookup(font->fontmap, p));
@@ -247,6 +235,10 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 			/* What to do? */
 			g_assert_not_reached();
 		}
+	} else {
+		_vte_tree_insert(font->fontmap,
+			      p,
+			      GINT_TO_POINTER(i + FONT_INDEX_FUDGE));
 	}
 
 	/* Return the match. */
@@ -263,12 +255,6 @@ _vte_xft_char_width(struct _vte_xft_font *font, XftFont *ftfont, gunichar c)
 	XGlyphInfo extents;
 	gpointer p = GINT_TO_POINTER(c);
 	int i;
-
-	g_assert(font != NULL);
-	g_assert(font->patterns != NULL);
-	g_assert(font->fonts != NULL);
-	g_assert(font->fontmap != NULL);
-	g_assert(font->widths != NULL);
 
 	/* Check if we have a char-to-width entry for it. */
 	i = GPOINTER_TO_INT(_vte_tree_lookup(font->widths, p));
