@@ -4753,6 +4753,9 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 	g_assert(is_selected != NULL);
 	screen = terminal->pvt->screen;
 
+	if (attributes)
+		g_array_set_size (attributes, 0);
+
 	string = g_string_new(NULL);
 	memset(&attr, 0, sizeof(attr));
 
@@ -4799,12 +4802,12 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 								 pcell->c ?
 								 pcell->c :
 								 ' ');
-			}
-			/* If we added a character to the string, record its
-			 * attributes, one per byte. */
-			if (attributes) {
-				vte_g_array_fill(attributes,
-						 &attr, string->len);
+				/* If we added a character to the string, record its
+				 * attributes, one per byte. */
+				if (attributes) {
+					vte_g_array_fill(attributes,
+							 &attr, string->len);
+				}
 			}
 			/* If we're on the last line, and have just looked in
 			 * the last column, stop. */
@@ -4833,6 +4836,8 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 			}
 			if (pcell == NULL) {
 				g_string_truncate(string, last_nonempty + 1);
+				if (attributes)
+					g_array_set_size(attributes, string->len);
 				attr.column = last_nonemptycol;
 			}
 		}

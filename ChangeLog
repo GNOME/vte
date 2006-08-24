@@ -1,3 +1,11 @@
+2006-08-24  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 352439 – URL highlighting seriously broken
+
+	* src/vte.c (vte_terminal_get_text_range_maybe_wrapped): Followup to
+	changes made for bug 350623.  Put back the g_array_set_size(), in the
+	correct place this time.
+
 2006-08-22  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 351494 – Gnome-terminal doesn't kills bash on tab close
