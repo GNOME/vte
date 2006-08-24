@@ -4789,6 +4789,11 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 				attr.underline = pcell->underline;
 				attr.strikethrough = pcell->strikethrough;
 
+				/* Store the character. */
+				string = g_string_append_unichar(string,
+								 pcell->c ?
+								 pcell->c :
+								 ' ');
 				if (pcell->empty) {
 					last_empty = string->len;
 					last_emptycol = col;
@@ -4797,11 +4802,6 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 					last_nonemptycol = col;
 				}
 
-				/* Store the character. */
-				string = g_string_append_unichar(string,
-								 pcell->c ?
-								 pcell->c :
-								 ' ');
 				/* If we added a character to the string, record its
 				 * attributes, one per byte. */
 				if (attributes) {
@@ -4835,7 +4835,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 					break;
 			}
 			if (pcell == NULL) {
-				g_string_truncate(string, last_nonempty + 1);
+				g_string_truncate(string, last_nonempty);
 				if (attributes)
 					g_array_set_size(attributes, string->len);
 				attr.column = last_nonemptycol;

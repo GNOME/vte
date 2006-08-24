@@ -1,5 +1,13 @@
 2006-08-24  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 350236 – Cannot copy text containing invalid character sequences
+
+	* src/vte.c (vte_terminal_get_text_range_maybe_wrapped): Fix another
+	bug in my rewritten selection code, that was assuming that
+	last_nonempty character is one byte long.
+
+2006-08-24  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 352439 – URL highlighting seriously broken
 
 	* src/vte.c (vte_terminal_get_text_range_maybe_wrapped): Followup to
