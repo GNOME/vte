@@ -1,3 +1,9 @@
+0.13.7
+	Bug 350236 – Cannot copy text; invalid character sequence errors
+	Bug 352439 – URL highlighting seriously broken
+	Bug 351494 – Gnome-terminal doesn't kills bash on tab close
+	             Patch from Aivars Kalvans
+
 0.13.6
 	Bug 351696 – crash on Terminal, check ->window before setting
 	             icon/window title

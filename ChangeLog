@@ -1,5 +1,15 @@
 2006-08-24  Behdad Esfahbod  <behdad@gnome.org>
 
+	Released vte-0.13.7.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.13.7.
+
+	* src/Makefile.am: Bumped libtool version to 10:4:1.
+
+2006-08-24  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 350236 – Cannot copy text containing invalid character sequences
 
 	* src/vte.c (vte_terminal_get_text_range_maybe_wrapped): Fix another
