@@ -3,6 +3,7 @@
 	Bug 352439 – URL highlighting seriously broken
 	Bug 351494 – Gnome-terminal doesn't kills bash on tab close
 	             Patch from Aivars Kalvans
+	Bug 352365 – font caching problem for not-found glyphs
 
 0.13.6
 	Bug 351696 – crash on Terminal, check ->window before setting
