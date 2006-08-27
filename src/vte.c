@@ -4762,7 +4762,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 	palette = terminal->pvt->palette;
 	col = start_col;
 	for (row = start_row; row <= end_row; row++, col = 0) {
-		last_empty = last_nonempty = string->len - 1;
+		last_empty = last_nonempty = string->len;
 		last_emptycol = last_nonemptycol = -1;
 
 		attr.row = row;
@@ -4847,7 +4847,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 
 		/* Add a newline in block mode. */
 		if (terminal->pvt->block_mode) {
-			string = g_string_append_unichar(string, '\n');
+			string = g_string_append_c(string, '\n');
 		}
 		/* Else, if the last visible column on this line was selected and
 		 * not soft-wrapped, append a newline. */
@@ -4855,6 +4855,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 			/* If we didn't softwrap, add a newline. */
 			if (!vte_line_is_wrappable(terminal, row)) {
 				string = g_string_append_c(string, '\n');
+				g_message ("wrappable: X%sY", string->str);
 			}
 		}
 

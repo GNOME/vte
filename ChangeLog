@@ -1,3 +1,8 @@
+2006-08-26  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vte.c (vte_terminal_get_text_range_maybe_wrapped): Followup on
+	the fix for bug 350236.  It was causing empty lines not to be copied.
+
 2006-08-24  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.13.7.
