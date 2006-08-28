@@ -4855,7 +4855,6 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 			/* If we didn't softwrap, add a newline. */
 			if (!vte_line_is_wrappable(terminal, row)) {
 				string = g_string_append_c(string, '\n');
-				g_message ("wrappable: X%sY", string->str);
 			}
 		}
 
