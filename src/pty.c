@@ -1056,12 +1056,12 @@ _vte_pty_open_with_helper(pid_t *child, char **env_add,
  * @env_add: a list of environment variables to add to the child's environment
  * @command: name of the binary to run
  * @argv: arguments to pass to @command
- * @directory: directory to start the new command in, or NULL
+ * @directory: directory to start the new command in, or %NULL
  * @columns: desired window columns
  * @rows: desired window rows
- * @lastlog: TRUE if the lastlog should be updated
- * @utmp: TRUE if the utmp or utmpx log should be updated
- * @wtmp: TRUE if the wtmp or wtmpx log should be updated
+ * @lastlog: %TRUE if the lastlog should be updated
+ * @utmp: %TRUE if the utmp or utmpx log should be updated
+ * @wtmp: %TRUE if the wtmp or wtmpx log should be updated
  *
  * Starts a new copy of @command running under a psuedo-terminal, optionally in
  * the supplied @directory, with window size set to @rows x @columns

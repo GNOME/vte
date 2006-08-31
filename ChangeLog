@@ -1,3 +1,14 @@
+2006-08-31  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/pty.c:
+	* src/ring.c:
+	* src/trie.c:
+	* src/vte.c:
+	* src/vtebg.c:
+	* src/vteseq.c (vte_sequence_handler_ta):
+	* src/vtetc.c:
+	Minor doc syntax update.
+
 2006-08-26  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte.c (vte_terminal_get_text_range_maybe_wrapped): Followup on

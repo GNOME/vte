@@ -577,7 +577,7 @@ _vte_termcap_find(struct _vte_termcap *termcap,
  *
  * Checks if the given boolean capability is defined.
  *
- * Returns: TRUE if the terminal type is known and the capability is defined
+ * Returns: %TRUE if the terminal type is known and the capability is defined
  * for it
  */
 TERMCAP_MAYBE_STATIC gboolean

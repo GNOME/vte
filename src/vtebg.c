@@ -375,7 +375,7 @@ vte_bg_cache_prune(VteBg *bg)
 
 /**
  * _vte_bg_resize_pixbuf:
- * @pixmap: a #GdkPixbuf, or NULL
+ * @pixmap: a #GdkPixbuf, or %NULL
  * @min_width: the requested minimum_width
  * @min_height: the requested minimum_height
  *

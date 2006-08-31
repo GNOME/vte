@@ -1227,7 +1227,7 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
  *
  * Checks if the text in and around the specified position matches any of the
  * regular expressions previously set using vte_terminal_match_add().  If a
- * match exists, the text string is returned and if @tag is not NULL, the number
+ * match exists, the text string is returned and if @tag is not %NULL, the number
  * associated with the matched regular expression will be stored in @tag.
  *
  * If more than one regular expression has been set with
@@ -1920,7 +1920,7 @@ vte_terminal_set_color_background(VteTerminal *terminal,
  * @terminal: a #VteTerminal
  * @cursor_background: the new color to use for the text cursor
  *
- * Sets the background color for text which is under the cursor.  If NULL, text
+ * Sets the background color for text which is under the cursor.  If %NULL, text
  * under the cursor will be drawn with foreground and background colors
  * reversed.
  *
@@ -1945,7 +1945,7 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
  * @terminal: a #VteTerminal
  * @highlight_background: the new color to use for highlighted text
  *
- * Sets the background color for text which is highlighted.  If NULL,
+ * Sets the background color for text which is highlighted.  If %NULL,
  * highlighted text (which is usually highlighted because it is selected) will
  * be drawn with foreground and background colors reversed.
  *
@@ -1968,8 +1968,8 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
 /**
  * vte_terminal_set_colors
  * @terminal: a #VteTerminal
- * @foreground: the new foreground color, or #NULL
- * @background: the new background color, or #NULL
+ * @foreground: the new foreground color, or %NULL
+ * @background: the new background color, or %NULL
  * @palette: the color palette
  * @palette_size: the number of entries in @palette
  *
@@ -1978,9 +1978,9 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
  * color, an eight color palette, bold versions of the eight color palette,
  * and a dim version of the the eight color palette.
  *
- * @palette_size must be either 0, 8, 16, or 24.  If @foreground is NULL and
+ * @palette_size must be either 0, 8, 16, or 24.  If @foreground is %NULL and
  * @palette_size is greater than 0, the new foreground color is taken from
- * @palette[7].  If @background is NULL and @palette_size is greater than 0,
+ * @palette[7].  If @background is %NULL and @palette_size is greater than 0,
  * the new background color is taken from @palette[0].  If
  * @palette_size is 8 or 16, the third (dim) and possibly the second (bold)
  * 8-color palettes are extrapolated from the new background color and the items
@@ -2667,20 +2667,20 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 /**
  * vte_terminal_fork_command:
  * @terminal: a #VteTerminal
- * @command: the name of a binary to run
- * @argv: the argument list to be passed to @command
+ * @command: the name of a binary to run, or %NULL to get user's shell
+ * @argv: the argument list to be passed to @command, or %NULL
  * @envv: a list of environment variables to be added to the environment before
- * starting @command, or NULL
- * @directory: the name of a directory the command should start in, or NULL
- * @lastlog: TRUE if the session should be logged to the lastlog
- * @utmp: TRUE if the session should be logged to the utmp/utmpx log
- * @wtmp: TRUE if the session should be logged to the wtmp/wtmpx log
+ * starting @command, or %NULL
+ * @directory: the name of a directory the command should start in, or %NULL
+ * @lastlog: %TRUE if the session should be logged to the lastlog
+ * @utmp: %TRUE if the session should be logged to the utmp/utmpx log
+ * @wtmp: %TRUE if the session should be logged to the wtmp/wtmpx log
  *
  * Starts the specified command under a newly-allocated controlling
- * pseudo-terminal.  The @argv and @envv lists should be NULL-terminated, and
+ * pseudo-terminal.  The @argv and @envv lists should be %NULL-terminated, and
  * argv[0] is expected to be the name of the file being run, as it would be if
  * execve() were being called.  TERM is automatically set to reflect the
- * terminal widget's emulation setting.  If @lastlog, @utmp, or @wtmp are TRUE,
+ * terminal widget's emulation setting.  If @lastlog, @utmp, or @wtmp are %TRUE,
  * logs the session to the specified system log files.
  *
  * Returns: the ID of the new process
@@ -2741,16 +2741,16 @@ vte_terminal_fork_command(VteTerminal *terminal,
  * vte_terminal_forkpty:
  * @terminal: a #VteTerminal
  * @envv: a list of environment variables to be added to the environment before
- * starting returning in the child process, or NULL
+ * starting returning in the child process, or %NULL
  * @directory: the name of a directory the child process should change to, or
- * NULL
- * @lastlog: TRUE if the session should be logged to the lastlog
- * @utmp: TRUE if the session should be logged to the utmp/utmpx log
- * @wtmp: TRUE if the session should be logged to the wtmp/wtmpx log
+ * %NULL
+ * @lastlog: %TRUE if the session should be logged to the lastlog
+ * @utmp: %TRUE if the session should be logged to the utmp/utmpx log
+ * @wtmp: %TRUE if the session should be logged to the wtmp/wtmpx log
  *
  * Starts a new child process under a newly-allocated controlling
  * pseudo-terminal.  TERM is automatically set to reflect the terminal widget's
- * emulation setting.  If @lastlog, @utmp, or @wtmp are TRUE, logs the session
+ * emulation setting.  If @lastlog, @utmp, or @wtmp are %TRUE, logs the session
  * to the specified system log files.
  *
  * Returns: the ID of the new process in the parent, 0 in the child, and -1 if
@@ -4153,7 +4153,7 @@ vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
  * Checks if a particular character is considered to be part of a word or not,
  * based on the values last passed to vte_terminal_set_word_chars().
  *
- * Returns: TRUE if the character is considered to be part of a word
+ * Returns: %TRUE if the character is considered to be part of a word
  */
 gboolean
 vte_terminal_is_word_char(VteTerminal *terminal, gunichar c)
@@ -4698,14 +4698,14 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
  * @attributes: location for storing text attributes
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
- * NULL, characters will only be read if @is_selected returns TRUE after being
+ * %NULL, characters will only be read if @is_selected returns %TRUE after being
  * passed the column and row, respectively.  A #VteCharAttributes structure
  * is added to @attributes for each byte added to the returned string detailing
  * the character's position, colors, and other characteristics.  The
  * entire scrollback buffer is scanned, so it is possible to read the entire
  * contents of the buffer using this function.
  *
- * Returns: a text string which must be freed by the caller, or NULL.
+ * Returns: a text string which must be freed by the caller, or %NULL.
  */
 char *
 vte_terminal_get_text_range(VteTerminal *terminal,
@@ -4906,12 +4906,12 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
  * @attributes: location for storing text attributes
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
- * NULL, characters will only be read if @is_selected returns TRUE after being
+ * %NULL, characters will only be read if @is_selected returns %TRUE after being
  * passed the column and row, respectively.  A #VteCharAttributes structure
  * is added to @attributes for each byte added to the returned string detailing
  * the character's position, colors, and other characteristics.
  *
- * Returns: a text string which must be freed by the caller, or NULL.
+ * Returns: a text string which must be freed by the caller, or %NULL.
  */
 char *
 vte_terminal_get_text(VteTerminal *terminal,
@@ -4941,14 +4941,14 @@ vte_terminal_get_text(VteTerminal *terminal,
  * @attributes: location for storing text attributes
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
- * NULL, characters will only be read if @is_selected returns TRUE after being
+ * %NULL, characters will only be read if @is_selected returns %TRUE after being
  * passed the column and row, respectively.  A #VteCharAttributes structure
  * is added to @attributes for each byte added to the returned string detailing
  * the character's position, colors, and other characteristics. This function
  * differs from vte_terminal_get_text in that trailing spaces at the end of
  * lines are included.
  *
- * Returns: a text string which must be freed by the caller, or NULL.
+ * Returns: a text string which must be freed by the caller, or %NULL.
  *
  * Since 0.11.11
  */
@@ -6500,7 +6500,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
  * @terminal: a #VteTerminal
  *
  * Queries the terminal for its default emulation, which is attempted if the
- * terminal type passed to vte_terminal_set_emulation() is NULL.
+ * terminal type passed to vte_terminal_set_emulation() is %NULL.
  *
  * Returns: the name of the default terminal type the widget attempts to emulate
  *
@@ -9899,7 +9899,7 @@ vte_terminal_get_type(void)
 /**
  * vte_terminal_set_audible_bell:
  * @terminal: a #VteTerminal
- * @is_audible: TRUE if the terminal should beep
+ * @is_audible: %TRUE if the terminal should beep
  *
  * Controls whether or not the terminal will beep when the child outputs the
  * "bl" sequence.
@@ -9919,7 +9919,7 @@ vte_terminal_set_audible_bell(VteTerminal *terminal, gboolean is_audible)
  * Checks whether or not the terminal will beep when the child outputs the
  * "bl" sequence.
  *
- * Returns: TRUE if audible bell is enabled, FALSE if not
+ * Returns: %TRUE if audible bell is enabled, %FALSE if not
  */
 gboolean
 vte_terminal_get_audible_bell(VteTerminal *terminal)
@@ -9931,7 +9931,7 @@ vte_terminal_get_audible_bell(VteTerminal *terminal)
 /**
  * vte_terminal_set_visible_bell:
  * @terminal: a #VteTerminal
- * @is_visible: TRUE if the terminal should flash
+ * @is_visible: %TRUE if the terminal should flash
  *
  * Controls whether or not the terminal will present a visible bell to the
  * user when the child outputs the "bl" sequence.  The terminal
@@ -9953,7 +9953,7 @@ vte_terminal_set_visible_bell(VteTerminal *terminal, gboolean is_visible)
  * user when the child outputs the "bl" sequence.  The terminal
  * will clear itself to the default foreground color and then repaint itself.
  *
- * Returns: TRUE if visible bell is enabled, FALSE if not
+ * Returns: %TRUE if visible bell is enabled, %FALSE if not
  */
 gboolean
 vte_terminal_get_visible_bell(VteTerminal *terminal)
@@ -9965,7 +9965,7 @@ vte_terminal_get_visible_bell(VteTerminal *terminal)
 /**
  * vte_terminal_set_allow_bold:
  * @terminal: a #VteTerminal
- * @allow_bold: TRUE if the terminal should attempt to draw bold text
+ * @allow_bold: %TRUE if the terminal should attempt to draw bold text
  *
  * Controls whether or not the terminal will attempt to draw bold text by
  * repainting text with a different offset.
@@ -9985,7 +9985,7 @@ vte_terminal_set_allow_bold(VteTerminal *terminal, gboolean allow_bold)
  * Checks whether or not the terminal will attempt to draw bold text by
  * repainting text with a one-pixel offset.
  *
- * Returns: TRUE if bolding is enabled, FALSE if not
+ * Returns: %TRUE if bolding is enabled, %FALSE if not
  */
 gboolean
 vte_terminal_get_allow_bold(VteTerminal *terminal)
@@ -9997,7 +9997,7 @@ vte_terminal_get_allow_bold(VteTerminal *terminal)
 /**
  * vte_terminal_set_scroll_background:
  * @terminal: a #VteTerminal
- * @scroll: TRUE if the terminal should scroll the background image along with
+ * @scroll: %TRUE if the terminal should scroll the background image along with
  * text.
  *
  * Controls whether or not the terminal will scroll the background image (if
@@ -10016,7 +10016,7 @@ vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll)
 /**
  * vte_terminal_set_scroll_on_output:
  * @terminal: a #VteTerminal
- * @scroll: TRUE if the terminal should scroll on output
+ * @scroll: %TRUE if the terminal should scroll on output
  *
  * Controls whether or not the terminal will forcibly scroll to the bottom of
  * the viewable history when the new data is received from the child.
@@ -10032,7 +10032,7 @@ vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll)
 /**
  * vte_terminal_set_scroll_on_keystroke:
  * @terminal: a #VteTerminal
- * @scroll: TRUE if the terminal should scroll on keystrokes
+ * @scroll: %TRUE if the terminal should scroll on keystrokes
  *
  * Controls whether or not the terminal will forcibly scroll to the bottom of
  * the viewable history when the user presses a key.  Modifier keys do not
@@ -10348,7 +10348,7 @@ vte_terminal_set_background_tint_color(VteTerminal *terminal,
 /**
  * vte_terminal_set_background_transparent:
  * @terminal: a #VteTerminal
- * @transparent: TRUE if the terminal should fake transparency
+ * @transparent: %TRUE if the terminal should fake transparency
  *
  * Sets the terminal's background image to the pixmap stored in the root
  * window, adjusted so that if there are no windows below your application,
@@ -10376,7 +10376,7 @@ vte_terminal_set_background_transparent(VteTerminal *terminal,
 /**
  * vte_terminal_set_background_image:
  * @terminal: a #VteTerminal
- * @image: a #GdkPixbuf to use, or #NULL to cancel
+ * @image: a #GdkPixbuf to use, or %NULL to cancel
  *
  * Sets a background image for the widget.  Text which would otherwise be
  * drawn using the default background color will instead be drawn over the
@@ -10463,7 +10463,7 @@ vte_terminal_set_background_image_file(VteTerminal *terminal, const char *path)
  * is different from determining if the terminal is the owner of any
  * #GtkClipboard items.
  *
- * Returns: TRUE if part of the text in the terminal is selected.
+ * Returns: %TRUE if part of the text in the terminal is selected.
  */
 gboolean
 vte_terminal_get_has_selection(VteTerminal *terminal)
@@ -10481,7 +10481,7 @@ vte_terminal_get_has_selection(VteTerminal *terminal)
  * fontconfig to find fonts.  This setting cannot be changed by the caller,
  * but in practice usually matches the behavior of GTK+ itself.
  *
- * Returns: TRUE if the terminal is using fontconfig to find fonts, FALSE if
+ * Returns: %TRUE if the terminal is using fontconfig to find fonts, %FALSE if
  * the terminal is using PangoX.
  */
 gboolean
@@ -10494,7 +10494,7 @@ vte_terminal_get_using_xft(VteTerminal *terminal)
 /**
  * vte_terminal_set_cursor_blinks:
  * @terminal: a #VteTerminal
- * @blink: TRUE if the cursor should blink
+ * @blink: %TRUE if the cursor should blink
  *
  * Sets whether or not the cursor will blink.  The length of the blinking cycle
  * is controlled by the "gtk-cursor-blink-time" GTK+ setting.
@@ -10585,7 +10585,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
  * as parts of words, and all other characters as word separators.  Ranges of
  * characters can be specified by separating them with a hyphen.
  *
- * As a special case, if @spec is NULL or the empty string, the terminal will
+ * As a special case, if @spec is %NULL or the empty string, the terminal will
  * treat all graphic non-punctuation non-space characters as word characters.
  */
 void
@@ -10713,7 +10713,7 @@ vte_terminal_set_delete_binding(VteTerminal *terminal,
 /**
  * vte_terminal_set_mouse_autohide:
  * @terminal: a #VteTerminal
- * @setting: TRUE if the autohide should be enabled
+ * @setting: %TRUE if the autohide should be enabled
  *
  * Changes the value of the terminal's mouse autohide setting.  When autohiding
  * is enabled, the mouse cursor will be hidden when the user presses a key and
@@ -10737,7 +10737,7 @@ vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting)
  * a key and shown when the user moves the mouse.  This setting can be changed
  * using vte_terminal_set_mouse_autohide().
  *
- * Returns: TRUE if autohiding is enabled, FALSE if not.
+ * Returns: %TRUE if autohiding is enabled, %FALSE if not.
  */
 gboolean
 vte_terminal_get_mouse_autohide(VteTerminal *terminal)
@@ -10749,8 +10749,8 @@ vte_terminal_get_mouse_autohide(VteTerminal *terminal)
 /**
  * vte_terminal_reset:
  * @terminal: a #VteTerminal
- * @full: TRUE to reset tabstops
- * @clear_history: TRUE to empty the terminal's scrollback buffer
+ * @full: %TRUE to reset tabstops
+ * @clear_history: %TRUE to empty the terminal's scrollback buffer
  *
  * Resets as much of the terminal's internal state as possible, discarding any
  * unprocessed input data, resetting character attributes, cursor state,

@@ -240,10 +240,10 @@ _vte_ring_insert_preserve(VteRing * ring, long position, gpointer data)
  * _vte_ring_remove:
  * @ring: a #VteRing
  * @position: an index
- * @free_element: TRUE if the item should be freed
+ * @free_element: %TRUE if the item should be freed
  *
  * Removes the @position'th item from @ring, freeing it only if @free_element is
- * TRUE.
+ * %TRUE.
  *
  */
 void
@@ -310,7 +310,7 @@ _vte_ring_append(VteRing * ring, gpointer data)
 /**
  * _vte_ring_free:
  * @ring: a #VteRing
- * @free_elements: TRUE if items in the ring should be freed
+ * @free_elements: %TRUE if items in the ring should be freed
  *
  * Frees the ring and, optionally, each of the items it contains.
  *

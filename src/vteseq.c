@@ -2522,7 +2522,10 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 		newcol = terminal->column_count - 1;
 	}
 
-	terminal->pvt->screen->cursor_current.col = newcol;
+	/* but make sure we don't move cursor back (bug #340631) */
+	if (terminal->pvt->screen->cursor_current.col < newcol)
+		terminal->pvt->screen->cursor_current.col = newcol;
+
 	return FALSE;
 }
 

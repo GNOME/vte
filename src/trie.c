@@ -519,7 +519,7 @@ _vte_trie_add(struct _vte_trie *trie, const char *pattern, size_t length,
 }
 
 /* Check if the given pattern matches part of the given trie, returning an
- * empty string on a partial initial match, a NULL if there's no match in the
+ * empty string on a partial initial match, a %NULL if there's no match in the
  * works, and the result string if we have an exact match. */
 static const char *
 _vte_trie_matchx(struct _vte_trie *trie, const gunichar *pattern, size_t length,
@@ -670,7 +670,7 @@ _vte_trie_matchx(struct _vte_trie *trie, const gunichar *pattern, size_t length,
 }
 
 /* Check if the given pattern matches part of the given trie, returning an
- * empty string on a partial initial match, a NULL if there's no match in the
+ * empty string on a partial initial match, a %NULL if there's no match in the
  * works, and the result string if we have an exact match. */
 TRIE_MAYBE_STATIC const char *
 _vte_trie_match(struct _vte_trie *trie, const gunichar *pattern, size_t length,
