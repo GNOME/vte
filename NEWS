@@ -1,3 +1,7 @@
+0.14.0
+	Minor doc syntax update.
+	Fix bug causing empty lines to not being copied.
+
 0.13.7
 	Bug 350236 – Cannot copy text; invalid character sequence errors
 	Bug 352439 – URL highlighting seriously broken
