@@ -1,3 +1,7 @@
+2006-09-08  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/Makefile.am: Define G_LOG_DOMAIN=Vte.
+
 2006-09-04  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.14.0.
