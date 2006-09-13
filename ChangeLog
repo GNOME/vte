@@ -1,3 +1,11 @@
+2006-09-13  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 354620 – vte-0.14.0: undefined C code
+	Patch from Ales Nosek
+
+	* src/ssfe.c (inschar), (dokbdchar): Replace "*(tmp+1)=(*tmp--);"
+	with something well-defined.
+
 2006-09-08  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/Makefile.am: Define G_LOG_DOMAIN=Vte.

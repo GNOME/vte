@@ -764,7 +764,8 @@ static void inschar(unsigned char t) {
     } else {
       tmp=input+inputlast;
       while (tmp>=input+inputofs+inputcursor) {
-	*(tmp+1)=(*tmp--);
+	*(tmp+1)=(*tmp);	
+	tmp--;	
       }
       input[inputofs+(inputcursor++)]=t;
       inputlast++;
@@ -860,7 +861,8 @@ static void dokbdchar(unsigned char t) {
       modify();
       tmp=input+inputcursor+inputofs;
       while (tmp<input+inputlast) {
-	*(tmp-1)=(*tmp++);
+	*(tmp-1)=(*tmp);
+	tmp++;
       }
       input[--inputlast]='\0';
       gotoxy(--inputcursor, yinput);
@@ -872,7 +874,8 @@ static void dokbdchar(unsigned char t) {
       modify();
       tmp=input+inputcursor+inputofs+1;
       while (tmp<input+inputlast) {
-	*(tmp-1)=(*tmp++);
+	*(tmp-1)=(*tmp);
+	tmp++;
       }
       input[--inputlast]='\0';
       gotoxy(inputcursor, yinput);
