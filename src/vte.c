@@ -2431,8 +2431,18 @@ vte_terminal_handle_sequence(GtkWidget *widget,
 		/* Let the handler handle it. */
 		ret = handler(terminal, match_s, match, params);
 	} else {
+#ifdef VTE_DEBUG
 		g_warning(_("No handler for control sequence `%s' defined."),
-			  match_s);
+				match_s);
+#else
+		/* suppress multiple warnings for each widget */
+		if (!g_object_get_qdata(G_OBJECT (widget), match)) {
+			g_warning(_("No handler for control sequence `%s' defined."),
+					match_s);
+			g_object_set_qdata(G_OBJECT (widget),
+					match, (gpointer)0x1);
+		}
+#endif
 		ret = FALSE;
 	}
 

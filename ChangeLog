@@ -1,5 +1,14 @@
 2006-09-13  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 354024 – Suppress multiple warnings for missing control sequence
+	handlers
+	Patch from Chris Wilson
+
+	* src/vte.c (vte_terminal_handle_sequence): Suppress multiple warnings
+	for missing control sequence handlers in non-debugging builds.
+
+2006-09-13  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 354620 – vte-0.14.0: undefined C code
 	Patch from Ales Nosek
 
