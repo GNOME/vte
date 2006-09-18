@@ -21,7 +21,11 @@ EXTRA_DIST = \
 	unitable.JIS0212 \
 	unitable.KSX1001
 
-AM_CFLAGS = $(VTE_CFLAGS) $(FT2_CFLAGS) $(X_CFLAGS) -DG_DISABLE_ASSERT -DG_LOG_DOMAIN=\"Vte\"
+AM_CFLAGS = $(VTE_CFLAGS) $(FT2_CFLAGS) $(X_CFLAGS) \
+	    -DG_DISABLE_ASSERT -DG_LOG_DOMAIN=\"Vte\"
+AM_CPPFLAGS = -DDATADIR='"$(datadir)"' \
+	      -DLIBEXECDIR='"$(libexecdir)"' \
+	      -DLOCALEDIR='"$(localedir)"'
 AM_LDFLAGS = $(LDFLAGS)
 
 EXTRA_libvte_la_SOURCES = keysyms.c

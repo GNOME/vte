@@ -398,30 +398,6 @@ AC_SUBST(PYTHONREV)
 AC_SUBST(PYTHONMODULES)
 AM_CONDITIONAL(BUILD_PYTHON_MODULES, $BUILD_PYTHON)
 
-mylibdir=`eval echo $libdir`
-mylibexecdir=`eval echo $libexecdir`
-mydatadir=`eval echo $datadir`
-if test x$exec_prefix = xNONE ; then
-	if test x$prefix = xNONE ; then
-		mylibdir=` echo $mylibdir  | sed s,NONE,$ac_default_prefix,g`
-		mylibexecdir=` echo $mylibexecdir  | sed s,NONE,$ac_default_prefix,g`
-	else
-		mylibdir=` echo $mylibdir  | sed s,NONE,$prefix,g`
-		mylibexecdir=` echo $mylibexecdir  | sed s,NONE,$prefix,g`
-	fi
-fi
-if test x$prefix = xNONE ; then
-	mydatadir=`echo $mydatadir | sed s,NONE,$ac_default_prefix,g`
-fi
-AC_DEFINE_UNQUOTED(PKGLIBDIR,"$mylibdir/$PACKAGE",
-                   [The location where package-specific helpers can be found.])
-AC_DEFINE_UNQUOTED(LIBEXECDIR,"$mylibexecdir",
-                   [The location where package-specific helpers can be found.])
-AC_DEFINE_UNQUOTED(DATADIR,"$mydatadir",
-                   [The location where arch-independent package-specific data can be found.])
-AC_DEFINE_UNQUOTED(LOCALEDIR,"$mydatadir/locale",
-                   [The location where locale data can be found.])
-
 AC_ARG_ENABLE(gnome-pty-helper, [AS_HELP_STRING(--enable-gnome-pty-helper,Build a setuid helper for opening ptys [default=yes])], enable_gnome_pty_helper="$enableval", enable_gnome_pty_helper=yes)
 if test "$enable_gnome_pty_helper" != no; then
 	AC_DEFINE(VTE_USE_GNOME_PTY_HELPER,1,[Define if you intend to use gnome-pty-helper.])

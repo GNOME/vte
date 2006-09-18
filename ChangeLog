@@ -1,3 +1,11 @@
+2006-09-18  Ryan Lortie  <desrt@desrt.ca>
+
+	Bug 356616 – libvte broken with new autotools
+
+	* configure.in:
+	* src/Makefile.am: Fix broken variable substitution for newer
+	versions of automake.
+
 2006-09-13  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 354024 – Suppress multiple warnings for missing control sequence
