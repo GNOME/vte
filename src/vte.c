@@ -6200,9 +6200,11 @@ vte_terminal_set_font_full(VteTerminal *terminal,
 	} else {
 		gtk_widget_ensure_style(widget);
 		desc = pango_font_description_copy(widget->style->font_desc);
+		pango_font_description_set_family_static (desc, "monospace");
+
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_MISC)) {
-			fprintf(stderr, "Using default pango font.\n");
+			fprintf(stderr, "Using default monospace font.\n");
 		}
 #endif
 	}
@@ -6267,7 +6269,6 @@ vte_terminal_set_font_from_string_full(VteTerminal *terminal, const char *name,
 	PangoFontDescription *font_desc;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail(name != NULL);
-	g_return_if_fail(strlen(name) > 0);
 
 	font_desc = pango_font_description_from_string(name);
 	vte_terminal_set_font_full(terminal, font_desc, antialias);
@@ -7007,9 +7008,14 @@ vte_terminal_show(GtkWidget *widget)
 	}
 #endif
 
-	g_assert(widget != NULL);
 	g_assert(VTE_IS_TERMINAL(widget));
 	terminal = VTE_TERMINAL(widget);
+
+	/* Load default fonts, if no fonts have been loaded. */
+	if (!terminal->pvt->has_fonts) {
+		vte_terminal_set_font_full(terminal, terminal->pvt->fontdesc,
+					   terminal->pvt->fontantialias);
+   	}
 
 	widget_class = g_type_class_peek(GTK_TYPE_WIDGET);
 	if (GTK_WIDGET_CLASS(widget_class)->show) {

@@ -1,3 +1,19 @@
+2006-09-20  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 353756 – font setting cleanup
+
+	* src/vte.c (vte_terminal_set_font_full): Use 'monospace' family if no
+	font is set on a terminal widget
+
+	* src/vte.c (vte_terminal_set_font_from_string_full): Don't
+	g_return_if_fail(strlen(name) > 0).  An empty string is a perfectly
+	valid pango font description string.
+
+	* src/vte.c (vte_terminal_show): Make sure we have a font loaded.
+
+	* src/vteapp.c (main): Don't fallback on "Monospace 12".  Let the
+	widget decide what font to use if no font is set.
+
 2006-09-18  Ryan Lortie  <desrt@desrt.ca>
 
 	Bug 356616 – libvte broken with new autotools
