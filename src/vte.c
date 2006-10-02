@@ -5589,7 +5589,7 @@ vte_terminal_autoscroll(gpointer data)
 		}
 #endif
 	}
-	if (terminal->pvt->mouse_last_y >
+	if (terminal->pvt->mouse_last_y >=
 	    terminal->row_count * terminal->char_height) {
 		if (terminal->adjustment) {
 			/* Try to scroll up by one line. */
@@ -5618,7 +5618,7 @@ vte_terminal_autoscroll(gpointer data)
 		if (terminal->pvt->mouse_last_y < 0 && !terminal->pvt->block_mode) {
 			x = 0;
 		}
-		if (terminal->pvt->mouse_last_y > ymax && !terminal->pvt->block_mode) {
+		if (terminal->pvt->mouse_last_y >= ymax && !terminal->pvt->block_mode) {
 			x = terminal->column_count * terminal->char_width;
 		}
 		/* Extend selection to cover the newly-scrolled area. */
@@ -5727,7 +5727,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 
 	/* Start scrolling if we need to. */
 	if ((event->y < VTE_PAD_WIDTH) ||
-	    (event->y > (widget->allocation.height - VTE_PAD_WIDTH))) {
+	    (event->y >= (terminal->row_count * terminal->char_height + VTE_PAD_WIDTH))) {
 		switch (terminal->pvt->mouse_last_button) {
 		case 1:
 			if (!event_mode) {
