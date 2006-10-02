@@ -1,3 +1,15 @@
+0.14.1
+	Bug 358344 – autoscroll only works one way in fullscreen [PATCH]
+	             Patch by Egmont Koblinger
+	Bug 353756 – font setting cleanup
+	Bug 356616 – libvte broken with new autotools
+	Bug 354024 – Suppress multiple warnings for missing control sequence
+	             handlers
+	             Patch from Chris Wilson
+	Bug 354620 – vte-0.14.0: undefined C code
+	             Patch from Ales Nosek
+	Define G_LOG_DOMAIN=Vte.
+
 0.14.0
 	Minor doc syntax update.
 	Fix bug causing empty lines to not being copied.
