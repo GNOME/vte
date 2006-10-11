@@ -1392,7 +1392,7 @@ _vte_keymap_key_add_key_modifiers(guint keyval,
 			nnormal[offset + 0] = ';';
 			*normal_length += 2;
 		} else {
-#if 0
+#if 1
 			/* Stuff a "1", a semicolon and the modifier in right
 			 * before that last character, matching Xterm. */
 			nnormal[offset + 3] = nnormal[offset];
