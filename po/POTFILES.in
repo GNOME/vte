@@ -6,6 +6,7 @@ src/slowcat.c
 src/table.c
 src/trie.c
 src/vte.c
+src/vteseq.c
 src/vteaccess.c
 src/vteapp.c
 src/vtegl.c

@@ -1,3 +1,7 @@
+2006-10-13  Behdad Esfahbod  <behdad@gnome.org>
+
+	* po/POTFILES.in: Include vteseq.c
+
 2006-10-11  Mariano Suárez-Alvarez  <msuarezalvarez@arnet.com.ar>
 
 	Bug 337252 – ALT + Arrow keys don't work in irssi through gnome-terminal
