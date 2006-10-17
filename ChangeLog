@@ -85,12 +85,17 @@
 
 2006-08-31  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 340631 – Printed lines containing tab characters are not wrapped 
+	correctly
+
+	* src/vteseq.c (vte_sequence_handler_ta): make sure we don't move the 
+	cursor back when tabbing past the end of the line.
+
 	* src/pty.c:
 	* src/ring.c:
 	* src/trie.c:
 	* src/vte.c:
 	* src/vtebg.c:
-	* src/vteseq.c (vte_sequence_handler_ta):
 	* src/vtetc.c:
 	Minor doc syntax update.
 
