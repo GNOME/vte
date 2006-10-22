@@ -2,14 +2,14 @@
 # Copyright (C) 2002-2006 Free Software Foundation, Inc.
 #
 # Laurent RICHARD <kouran@iespana.es>, 2002.
-# Christophe Merlet (RedFox) <redfox@redfoxcenter.org>, 2002-2003.
+# Christophe Merlet (RedFox) <redfox@redfoxcenter.org>, 2002-2006.
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: vte 0.13.2\n"
+"Project-Id-Version: vte 0.14.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-07-01 12:15+0200\n"
-"PO-Revision-Date: 2003-06-08 21:35+0200\n"
+"POT-Creation-Date: 2006-10-22 11:18+0200\n"
+"PO-Revision-Date: 2006-10-22 11:16+0200\n"
 "Last-Translator: Christophe Merlet (RedFox) <redfox@redfoxcenter.org>\n"
 "Language-Team: GNOME French Team <gnomefr@traduc.org>\n"
 "MIME-Version: 1.0\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #: ../src/iso2022.c:784 ../src/iso2022.c:795 ../src/iso2022.c:844
-#: ../src/vte.c:1544
+#: ../src/vte.c:1552
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Impossible de convertir les caractères %s en %s."
@@ -59,46 +59,51 @@ msgstr "Erreur lors de la création du tube de signaux."
 msgid "Duplicate (%s/%s)!"
 msgstr "Doublon (%s/%s) ! "
 
-#: ../src/vte.c:970
+#: ../src/vte.c:971
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Erreur lors de la compilation de l'expression régulière « %s »."
 
-#: ../src/vte.c:2410
+#: ../src/vte.c:2435 ../src/vte.c:2440
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Aucune manipulation définie pour la séquence de contrôle « %s »."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:3253
+#: ../src/vte.c:3292
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Erreur lors de la lecture du fils : « %s »."
 
-#: ../src/vte.c:3375 ../src/vte.c:4305
+#: ../src/vte.c:3414 ../src/vte.c:4351
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Erreur (%s) lors de la conversion de données pour le fils, abandon."
 
-#: ../src/vte.c:6306
+#: ../src/vte.c:6320
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Erreur lors de la lecture de la taille PTY, utilisation de la valeur par "
 "défaut : %s."
 
-#: ../src/vte.c:6342
+#: ../src/vte.c:6356
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Erreur lors du paramètrage de la taille PTY : « %s »."
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:10604
+#: ../src/vte.c:10632
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() a échoué lors de la définition des caractères du mot"
 
+#: ../src/vteseq.c:4047
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "A obtenu une séquence (touche ?) inattendue « %s »."
+
 #. Bail back to normal mode.
-#: ../src/vteapp.c:729
+#: ../src/vteapp.c:737
 msgid "Could not open console.\n"
 msgstr "Impossible d'ouvrir la console.\n"
 
@@ -107,7 +112,7 @@ msgstr "Impossible d'ouvrir la console.\n"
 msgid "Unknown pixel mode %d.\n"
 msgstr "Mode de pixels %d inconnu.\n"
 
-#: ../src/vtexft.c:695
+#: ../src/vtexft.c:685
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "Impossible de dessiner le caractère U+%04x.\n"
