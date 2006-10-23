@@ -10,4 +10,5 @@ src/vteaccess.c
 src/vteapp.c
 src/vtegl.c
 src/vteglyph.c
+src/vteseq.c
 src/vtexft.c
