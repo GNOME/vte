@@ -1,3 +1,9 @@
+2006-11-01 Rich Burridge <rich.burridge@sun.com>
+
+	* src/vteaccess.c:
+          Fixed bug #150858 - In gnome-terminal, the deleted character 
+          is reported as "space".
+
 2006-10-13  Behdad Esfahbod  <behdad@gnome.org>
 
 	* po/POTFILES.in: Include vteseq.c
