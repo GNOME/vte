@@ -1,14 +1,16 @@
 # French translation of vte.
-# Copyright (C) 2002-2003 Free Software Foundation, Inc.
+# Copyright (C) 2002-2006 Free Software Foundation, Inc.
+# This file is released under the same liccense as the vte package.
+#
 # Laurent RICHARD <kouran@iespana.es>, 2002.
-# Christophe Merlet (RedFox) <redfox@redfoxcenter.org>, 2002-2003.
+# Christophe Merlet (RedFox) <redfox@redfoxcenter.org>, 2002-2006.
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: vte 0.12.1\n"
+"Project-Id-Version: vte 0.12.2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-05-18 21:41+0200\n"
-"PO-Revision-Date: 2003-06-08 21:35+0200\n"
+"POT-Creation-Date: 2006-11-02 09:48+0100\n"
+"PO-Revision-Date: 2006-11-02 09:45+0100\n"
 "Last-Translator: Christophe Merlet (RedFox) <redfox@redfoxcenter.org>\n"
 "Language-Team: GNOME French Team <gnomefr@traduc.org>\n"
 "MIME-Version: 1.0\n"
@@ -16,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #: ../src/iso2022.c:785 ../src/iso2022.c:796 ../src/iso2022.c:845
-#: ../src/vte.c:1591
+#: ../src/vte.c:1600
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Impossible de convertir les caractères %s en %s."
@@ -36,7 +38,7 @@ msgstr "Système de codage identifié non reconnu."
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Tentative de définir une carte NRC large « %c » non valide."
 
-#: ../src/pty.c:329
+#: ../src/pty.c:332
 #, c-format
 msgid "Error adding `%s' to environment, continuing."
 msgstr "Erreur lors de l'ajout de « %s » à l'environnement, ignoré."
@@ -44,7 +46,7 @@ msgstr "Erreur lors de l'ajout de « %s » à l'environnement, ignoré."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: ../src/pty.c:914
+#: ../src/pty.c:917
 #, c-format
 msgid "can not run %s"
 msgstr "Impossible d'exécuter %s"
@@ -53,46 +55,46 @@ msgstr "Impossible d'exécuter %s"
 msgid "Error creating signal pipe."
 msgstr "Erreur lors de la création du tube de signaux."
 
-#: ../src/trie.c:412
+#: ../src/trie.c:415
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Doublon (%s/%s) ! "
 
-#: ../src/vte.c:1017
+#: ../src/vte.c:1026
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Erreur lors de la compilation de l'expression régulière « %s »."
 
-#: ../src/vte.c:2473
+#: ../src/vte.c:2482
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Aucune manipulation définie pour la séquence de contrôle « %s »."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:3316
+#: ../src/vte.c:3325
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Erreur lors de la lecture du fils : « %s »."
 
-#: ../src/vte.c:3438 ../src/vte.c:4363
+#: ../src/vte.c:3447 ../src/vte.c:4372
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Erreur (%s) lors de la conversion de données pour le fils, abandon."
 
-#: ../src/vte.c:6317
+#: ../src/vte.c:6326
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Erreur lors de la lecture de la taille PTY, utilisation de la valeur par "
 "défaut : %s."
 
-#: ../src/vte.c:6353
+#: ../src/vte.c:6362
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Erreur lors du paramètrage de la taille PTY : « %s »."
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:10663
+#: ../src/vte.c:10672
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() a échoué lors de la définition des caractères du mot"
 
@@ -105,6 +107,11 @@ msgstr "Impossible d'ouvrir la console.\n"
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "Mode de pixels %d inconnu.\n"
+
+#: ../src/vteseq.c:4016
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "A obtenu la séquence (de touches ?) inattendue « %s »."
 
 #: ../src/vtexft.c:708
 #, c-format
