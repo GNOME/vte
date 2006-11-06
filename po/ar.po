@@ -1,27 +1,29 @@
+# translation of vte.HEAD.ar.po to Arabic
 # Arabic translation of PACKAGE.
 # Copyright (C) 2003 THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
+#
 # Arafat Medini <lumina@silverpen.de>, 2003.
-# , fuzzy
-#
-#
+# Khaled Hosny <khaledhosny@eglug.org>, 2006.
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE 0.11\n"
+"Project-Id-Version: vte.HEAD.ar\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2006-10-30 00:54+0000\n"
-"PO-Revision-Date: 2006-10-05 21:07-0000\n"
-"Last-Translator: Djihed Afifi <djihed@gmail.com>\n"
-"Language-Team: Arabic <doc@arabeyes.org>\n"
+"PO-Revision-Date: 2006-11-03 01:30+0200\n"
+"Last-Translator: Khaled Hosny <khaledhosny@eglug.org>\n"
+"Language-Team: Arabic <support@arabeyes.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.11.2\n"
+"Plural-Forms: Plural-Forms: nplurals=4; plural=n==1 ? 0 : n==2 ? 1 : n>=3 && n<=10 ? 2 : 3\n"
 
 #: ../src/iso2022.c:784 ../src/iso2022.c:795 ../src/iso2022.c:844
 #: ../src/vte.c:1552
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "لا يمكن تحويل الرموز من %s إلى %s."
+msgstr "لا يمكن تحويل المحارف من %s إلى %s."
 
 #: ../src/iso2022.c:1574
 #, c-format
@@ -31,12 +33,12 @@ msgstr "محاولة ضبط خارطة NRC غير سليمة '%c'."
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #: ../src/iso2022.c:1615
 msgid "Unrecognized identified coding system."
-msgstr "ميز نظام تشفير غير معروف."
+msgstr "مُيّز نظام ترميز غير معروف."
 
 #: ../src/iso2022.c:1664 ../src/iso2022.c:1690
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "محاولة لضبط خارطة NRC عامة غير سليمة '%c'."
+msgstr "محاولة لضبط خارطة NRC واسعة غير سليمة '%c'."
 
 #: ../src/pty.c:331
 #, c-format
@@ -58,7 +60,7 @@ msgstr "خطأ انشاء أنبوب الإشارات."
 #: ../src/trie.c:414
 #, c-format
 msgid "Duplicate (%s/%s)!"
-msgstr "نسخة (%s/%s)!"
+msgstr "مكرر (%s/%s)!"
 
 #: ../src/vte.c:971
 #, c-format
@@ -99,12 +101,12 @@ msgstr "فشل _vte_conv_open() في ضبط رموز الكلمة"
 #: ../src/vteseq.c:4047
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr "تلقيت سلسلة(مفتاح؟) غير مرتقبة `%s'."
+msgstr "تلقيت تتابع (مفتاح؟) غير متوقع `%s'."
 
 #. Bail back to normal mode.
 #: ../src/vteapp.c:737
 msgid "Could not open console.\n"
-msgstr "لا يمكن فتح الهيكل.\n"
+msgstr "لا يمكن فتح الكونسول.\n"
 
 #: ../src/vteglyph.c:578
 #, c-format
@@ -115,3 +117,4 @@ msgstr "نمط بكسلي %d مجهول.\n"
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "لا يمكن كتابة الرمز U+%04x.\n"
+
