@@ -59,7 +59,7 @@ _vte_matcher_add(struct _vte_matcher *matcher,
 
 /* Loads all sequences into matcher */
 static void
-_vte_matcher_init(struct _vte_matcher *matcher, char *emulation,
+_vte_matcher_init(struct _vte_matcher *matcher, const char *emulation,
 		  struct _vte_termcap *termcap)
 {
 	const char *code, *value;
@@ -194,7 +194,7 @@ _vte_matcher_destroy(gpointer value)
 
 /* Create and init matcher. */
 struct _vte_matcher *
-_vte_matcher_new(char *emulation, struct _vte_termcap *termcap)
+_vte_matcher_new(const char *emulation, struct _vte_termcap *termcap)
 {
 	struct _vte_matcher *ret = NULL;
 	g_static_mutex_lock(&_vte_matcher_mutex);
@@ -205,11 +205,12 @@ _vte_matcher_new(char *emulation, struct _vte_termcap *termcap)
 
 	if (_vte_matcher_cache == NULL) {
 		_vte_matcher_cache = g_cache_new(_vte_matcher_create,
-				_vte_matcher_destroy, g_strdup, g_free,
+				_vte_matcher_destroy,
+			       	(GCacheDupFunc) g_strdup, g_free,
 				g_str_hash, g_direct_hash, g_str_equal);
 	}
 
-	ret = g_cache_insert(_vte_matcher_cache, emulation);
+	ret = g_cache_insert(_vte_matcher_cache, (gpointer) emulation);
 
 	if (!ret->initialized) {
 		_vte_matcher_init(ret, emulation, termcap);

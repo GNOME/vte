@@ -431,17 +431,18 @@ _vte_termcap_destroy(gpointer key)
 }
 
 TERMCAP_MAYBE_STATIC struct _vte_termcap *
-_vte_termcap_new(char *filename)
+_vte_termcap_new(const char *filename)
 {
 	struct _vte_termcap *ret = NULL;
 	g_static_mutex_lock(&_vte_termcap_mutex);
 
 	if (_vte_termcap_cache == NULL) {
 		_vte_termcap_cache = g_cache_new(_vte_termcap_create,
-				_vte_termcap_destroy, g_strdup, g_free,
+				_vte_termcap_destroy,
+				(GCacheDupFunc) g_strdup, g_free,
 				g_str_hash, g_direct_hash, g_str_equal);
 	}
-	ret = g_cache_insert(_vte_termcap_cache, filename);
+	ret = g_cache_insert(_vte_termcap_cache, (gpointer) filename);
 
 	g_static_mutex_unlock(&_vte_termcap_mutex);
 	return ret;

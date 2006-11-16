@@ -29,7 +29,7 @@ G_BEGIN_DECLS
 struct _vte_termcap;
 
 /* Create a new termcap structure. */
-struct _vte_termcap *_vte_termcap_new(char *filename);
+struct _vte_termcap *_vte_termcap_new(const char *filename);
 
 /* Free a termcap structure. */
 void _vte_termcap_free(struct _vte_termcap *termcap);

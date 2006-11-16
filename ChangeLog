@@ -1,8 +1,21 @@
+2006-11-16 Mariano Suárez-Alvarez <mariano@gnome.org>
+
+	Bug 356602 – const cast warning fixes for libvte
+	Patch by Ryan Lortie (desrt)
+
+	* src/matcher.h: Use const char * where appropriate.
+	* src/matcher.c: Use const char * where appropriate.  Cast g_strdup
+	to (GCacheDupFunc) to avoid a warning.
+	* src/vtetc.h: Use const char * where appropriate.
+	* src/vtetc.c: Use const char * where appropriate.  Cast g_strdup
+	to (GCacheDupFunc) to avoid a warning.
+	* src/vte.c: Use const char * where appropriate.
+
 2006-11-01 Rich Burridge <rich.burridge@sun.com>
 
 	* src/vteaccess.c:
-          Fixed bug #150858 - In gnome-terminal, the deleted character 
-          is reported as "space".
+	Fixed bug #150858 - In gnome-terminal, the deleted character 
+	is reported as "space".
 
 2006-10-13  Behdad Esfahbod  <behdad@gnome.org>
 

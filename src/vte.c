@@ -546,8 +546,9 @@ vte_terminal_emit_selection_changed(VteTerminal *terminal)
 
 /* Emit a "commit" signal. */
 static void
-vte_terminal_emit_commit(VteTerminal *terminal, gchar *text, guint length)
+vte_terminal_emit_commit(VteTerminal *terminal, const gchar *text, guint length)
 {
+	const char *result = NULL;
 	char *wrapped = NULL;
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
@@ -556,15 +557,15 @@ vte_terminal_emit_commit(VteTerminal *terminal, gchar *text, guint length)
 #endif
 	if (length == -1) {
 		length = strlen(text);
-		wrapped = text;
+		result = text;
 	} else {
-		wrapped = g_malloc0(length + 1);
+		result = wrapped = g_malloc0(length + 1);
 		memcpy(wrapped, text, length);
 	}
-	g_signal_emit_by_name(terminal, "commit", wrapped, length);
-	if (wrapped != text) {
-		g_free(wrapped);
-	}
+
+	g_signal_emit_by_name(terminal, "commit", result, length);
+
+        g_free(wrapped);
 }
 
 /* Emit an "emulation-changed" signal. */
