@@ -9457,10 +9457,10 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 
 	switch (event->direction) {
 	case GDK_SCROLL_UP:
-		new_value = adj->value - adj->page_increment / 2;
+		new_value = adj->value - MAX(1, adj->page_increment / 10);
 		break;
 	case GDK_SCROLL_DOWN:
-		new_value = adj->value + adj->page_increment / 2;
+		new_value = adj->value + MAX(1, adj->page_increment / 10);
 		break;
 	default:
 		return FALSE;

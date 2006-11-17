@@ -1,5 +1,12 @@
 2006-11-16 Mariano Suárez-Alvarez <mariano@gnome.org>
 
+	Bug 307396 – Mouse scroll mode not controllable
+
+	* src/vte.c(vte_terminal_scroll): make the scrollwheel scroll by tenths of
+	a screen (or 1 line, whichever is bigger) instead of half screens.
+
+2006-11-16 Mariano Suárez-Alvarez <mariano@gnome.org>
+
 	Bug 356602 – const cast warning fixes for libvte
 	Patch by Ryan Lortie (desrt)
 
