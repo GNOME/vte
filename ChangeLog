@@ -1,3 +1,12 @@
+2006-12-05  Ryan Lortie  <desrt@desrt.ca>
+
+	Bug 356552 – cursor timeout runs all the time
+
+	* src/vte-private.h: Rework how cursor blinking works.
+	* src/vte.c: Rework how cursor blinking works.  Only register the
+	cursor blink callback when cursor blink is enabled and the window
+	is focused.
+
 2006-11-16 Mariano Suárez-Alvarez <mariano@gnome.org>
 
 	Bug 307396 – Mouse scroll mode not controllable

@@ -275,10 +275,11 @@ struct _VteTerminalPrivate {
 	long scrollback_lines;
 
 	/* Cursor blinking. */
-	int cursor_force_fg;
+	gboolean cursor_blink_state;
 	gboolean cursor_blinks;
 	gint cursor_blink_tag;
 	gint cursor_blink_timeout;
+	gint64 cursor_blink_time;
 	gboolean cursor_visible;
 
 	/* Input device options. */

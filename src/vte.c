@@ -495,41 +495,48 @@ static gboolean
 vte_invalidate_cursor_periodic(gpointer data)
 {
 	VteTerminal *terminal;
-	GtkWidget *widget;
 	GtkSettings *settings;
-	gint blink_cycle = 1000;
+	int blink_cycle = 1000;
+	int timeout = INT_MAX;
 
 	g_assert(VTE_IS_TERMINAL(data));
-	widget = GTK_WIDGET(data);
-	if (!GTK_WIDGET_REALIZED(widget)) {
+
+	terminal = VTE_TERMINAL (data);
+
+	settings = gtk_widget_get_settings (GTK_WIDGET (data));
+
+	terminal->pvt->cursor_blink_state = !terminal->pvt->cursor_blink_state;
+	terminal->pvt->cursor_blink_time += terminal->pvt->cursor_blink_timeout;
+
+	_vte_invalidate_cursor_once(terminal, TRUE);
+
+	if (!GTK_IS_SETTINGS (settings))
 		return TRUE;
-	}
-	if (!GTK_WIDGET_HAS_FOCUS(widget)) {
-		return TRUE;
-	}
 
-	terminal = VTE_TERMINAL(widget);
-	if (terminal->pvt->cursor_blinks) {
-		_vte_invalidate_cursor_once(terminal, TRUE);
-	}
+	g_object_get (G_OBJECT (settings), "gtk-cursor-blink-timeout",
+		      &timeout, NULL);
 
-	settings = gtk_widget_get_settings(GTK_WIDGET(data));
-	if (G_IS_OBJECT(settings)) {
-		g_object_get(G_OBJECT(settings), "gtk-cursor-blink-time",
-			     &blink_cycle, NULL);
-	}
-
-	if (terminal->pvt->cursor_blink_timeout != blink_cycle) {
-		terminal->pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
-								     blink_cycle / 2,
-								     vte_invalidate_cursor_periodic,
-								     terminal,
-								     NULL);
-		terminal->pvt->cursor_blink_timeout = blink_cycle;
+	/* only disable the blink if the cursor is currently shown.
+	 * else, wait until next time.
+	 */
+	if (terminal->pvt->cursor_blink_time / 1000 >= timeout &&
+	    terminal->pvt->cursor_blink_state)
 		return FALSE;
-	} else {
+
+	g_object_get (G_OBJECT (settings), "gtk-cursor-blink-time",
+		      &blink_cycle, NULL);
+	blink_cycle /= 2;
+
+	if (terminal->pvt->cursor_blink_timeout == blink_cycle)
 		return TRUE;
-	}
+
+	terminal->pvt->cursor_blink_timeout = blink_cycle;
+	terminal->pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
+							     terminal->pvt->cursor_blink_timeout,
+							     vte_invalidate_cursor_periodic,
+							     terminal,
+							     NULL);
+	return FALSE;
 }
 
 /* Emit a "selection_changed" signal. */
@@ -3756,6 +3763,36 @@ vte_terminal_style_changed(GtkWidget *widget, GtkStyle *style, gpointer data)
 	}
 }
 
+static void
+add_cursor_timeout (VteTerminal *terminal)
+{
+	GtkSettings *settings;
+
+	/* Setup cursor blink */
+	settings = gtk_widget_get_settings(GTK_WIDGET(terminal));
+	if (G_IS_OBJECT(settings)) {
+		gint blink_cycle = 1000;
+		g_object_get(G_OBJECT(settings), "gtk-cursor-blink-time",
+			     &blink_cycle, NULL);
+		terminal->pvt->cursor_blink_timeout = blink_cycle / 2;
+	}
+
+	terminal->pvt->cursor_blink_time = 0;
+	terminal->pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
+							     terminal->pvt->cursor_blink_timeout,
+							     vte_invalidate_cursor_periodic,
+							     terminal,
+							     NULL);
+}
+
+static void
+remove_cursor_timeout (VteTerminal *terminal)
+{
+	g_source_remove (terminal->pvt->cursor_blink_tag);
+	terminal->pvt->cursor_blink_tag = VTE_INVALID_SOURCE;
+}
+
+
 /* Read and handle a keypress event. */
 static gint
 vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
@@ -3816,10 +3853,11 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			}
 		}
 
-		/* Log the time of the last keypress. */
-		if (gettimeofday(&tv, &tz) == 0) {
-			terminal->pvt->last_keypress_time =
-				(tv.tv_sec * 1000) + (tv.tv_usec / 1000);
+		if (terminal->pvt->cursor_blink_tag != VTE_INVALID_SOURCE)
+		{
+			remove_cursor_timeout (terminal);
+			terminal->pvt->cursor_blink_state = TRUE;
+			add_cursor_timeout (terminal);
 		}
 
 		/* Determine if this is just a modifier key. */
@@ -6058,16 +6096,20 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
 		terminal->pvt->modifiers = modifiers;
 	}
+
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting the cursor if we don't have a window. */
 	if (GTK_WIDGET_REALIZED(widget)) {
+		terminal->pvt->cursor_blink_state = TRUE;
+
+		if (terminal->pvt->cursor_blinks &&
+		    terminal->pvt->cursor_blink_tag == VTE_INVALID_SOURCE)
+			add_cursor_timeout (terminal);
+
 		gtk_im_context_focus_in(terminal->pvt->im_context);
-		/* Force the cursor to be the foreground color twice, in case
-		   we're in blinking mode and the next scheduled redraw occurs
-		   just after the one we're about to perform. */
-		terminal->pvt->cursor_force_fg = 2;
 		_vte_invalidate_cursor_once(terminal, FALSE);
 	}
+
 	return FALSE;
 }
 
@@ -6095,6 +6137,10 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 		gtk_im_context_focus_out(terminal->pvt->im_context);
 		_vte_invalidate_cursor_once(terminal, FALSE);
 	}
+
+	if (terminal->pvt->cursor_blink_tag != VTE_INVALID_SOURCE)
+		remove_cursor_timeout (terminal);
+
 	return FALSE;
 }
 
@@ -6772,6 +6818,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 					      (gpointer)terminal);
 	pvt->incoming = _vte_buffer_new();
 	pvt->pending = g_array_new(TRUE, TRUE, sizeof(gunichar));
+	pvt->cursor_blink_tag = VTE_INVALID_SOURCE;
 	pvt->coalesce_timeout = VTE_INVALID_SOURCE;
 	pvt->display_timeout = VTE_INVALID_SOURCE;
 	pvt->update_timeout = VTE_INVALID_SOURCE;
@@ -6817,14 +6864,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 	/* Cursor blinking. */
 	pvt->cursor_visible = TRUE;
-	pvt->cursor_blink_timeout = 1000;
-
-	/* Input options. */
-	if (gettimeofday(&tv, &tz) == 0) {
-		pvt->last_keypress_time = (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
-	} else {
-		pvt->last_keypress_time = 0;
-	}
+	pvt->cursor_blink_timeout = 500;
 
 	/* Matching data. */
 	pvt->match_regexes = g_array_new(FALSE, TRUE,
@@ -7115,11 +7155,11 @@ vte_terminal_unrealize(GtkWidget *widget)
 	}
 
 	/* Remove the blink timeout function. */
-	if (terminal->pvt->cursor_blink_tag != 0) {
+	if (terminal->pvt->cursor_blink_tag != VTE_INVALID_SOURCE) {
 		g_source_remove(terminal->pvt->cursor_blink_tag);
-		terminal->pvt->cursor_blink_tag = 0;
+		terminal->pvt->cursor_blink_tag = VTE_INVALID_SOURCE;
 	}
-	terminal->pvt->cursor_force_fg = 0;
+	terminal->pvt->cursor_blink_state = FALSE;
 
 	/* Cancel any pending background updates. */
 	if (terminal->pvt->bg_update_tag != VTE_INVALID_SOURCE) {
@@ -7385,9 +7425,7 @@ vte_terminal_realize(GtkWidget *widget)
 	GdkWindowAttr attributes;
 	GdkPixmap *bitmap;
 	GdkColor black = {0,0,0}, color;
-	GtkSettings *settings;
 	int attributes_mask = 0, i;
-	gint blink_cycle = 1000;
 	VteBg *bg;
 
 #ifdef VTE_DEBUG
@@ -7480,18 +7518,6 @@ vte_terminal_realize(GtkWidget *widget)
 		color.pixel = 0;
 		vte_terminal_set_color_internal(terminal, i, &color);
 	}
-
-	/* Setup cursor blink */
-	settings = gtk_widget_get_settings(GTK_WIDGET(terminal));
-	if (G_IS_OBJECT(settings)) {
-		g_object_get(G_OBJECT(settings), "gtk-cursor-blink-time",
-			     &blink_cycle, NULL);
-	}
-	terminal->pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
-							     blink_cycle / 2,
-							     vte_invalidate_cursor_periodic,
-							     terminal,
-							     NULL);
 
 	/* Set up input method support.  FIXME: do we need to handle the
 	 * "retrieve-surrounding" and "delete-surrounding" events? */
@@ -8846,46 +8872,6 @@ vte_terminal_draw_cells_with_attributes(VteTerminal *terminal,
 	g_free(cells);
 }
 
-static gboolean
-vte_terminal_get_blink_state(VteTerminal *terminal)
-{
-	struct timezone tz;
-	struct timeval tv;
-	gint blink_cycle = 1000;
-	GtkSettings *settings;
-	time_t daytime;
-	gboolean blink;
-	GtkWidget *widget;
-
-	/* Determine if blinking text should be shown. */
-	if (terminal->pvt->cursor_blinks) {
-		if (gettimeofday(&tv, &tz) == 0) {
-			widget = GTK_WIDGET(terminal);
-			settings = gtk_widget_get_settings(widget);
-			if (G_IS_OBJECT(settings)) {
-				g_object_get(G_OBJECT(settings),
-					     "gtk-cursor-blink-time",
-					     &blink_cycle, NULL);
-			}
-			daytime = (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
-			if (daytime >= terminal->pvt->last_keypress_time) {
-				daytime -= terminal->pvt->last_keypress_time;
-			}
-			daytime = daytime % blink_cycle;
-			blink = daytime < (blink_cycle / 2);
-		} else {
-			blink = TRUE;
-		}
-	} else {
-		blink = TRUE;
-	}
-	if (terminal->pvt->cursor_force_fg > 0) {
-		terminal->pvt->cursor_force_fg--;
-		blink = TRUE;
-	}
-	return blink;
-}
-
 /* Paint the contents of a given row at the given location.  Take advantage
  * of multiple-draw APIs by finding runs of characters with identical
  * attributes and bundling them together. */
@@ -9197,7 +9183,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 		if (GTK_WIDGET_HAS_FOCUS(GTK_WIDGET(terminal))) {
 			selected = vte_cell_is_selected(terminal, col, drow,
 							NULL);
-			blink = vte_terminal_get_blink_state(terminal) ^
+			blink = terminal->pvt->cursor_blink_state ^
 				terminal->pvt->screen->reverse_mode;
 			vte_terminal_determine_colors(terminal, cell,
 						      blink,
@@ -10521,7 +10507,20 @@ void
 vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	if (terminal->pvt->cursor_blinks == blink)
+		return;
+
 	terminal->pvt->cursor_blinks = blink;
+
+	if (!GTK_WIDGET_REALIZED (terminal) ||
+	    !GTK_WIDGET_HAS_FOCUS (GTK_WIDGET (terminal)))
+		return;
+
+	if (blink)
+		add_cursor_timeout (terminal);
+	else
+		remove_cursor_timeout (terminal);
 }
 
 /**
