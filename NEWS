@@ -1,3 +1,10 @@
+0.15.0
+	Bug 356552 – cursor timeout runs all the time [Ryan Lortie]
+	Bug 307396 – Mouse scroll mode not controllable [Mariano Suárez-Alvarez]
+	Bug 356602 – const cast warning fixes for libvte [Ryan]
+	Bug 150858 – In gnome-terminal, the deleted character reported as "space" [Rich Burridge]
+	Bug 337252 – ALT + Arrow keys don't work in irssi through gnome-terminal [Mariano]
+
 0.14.1
 	Bug 358344 – autoscroll only works one way in fullscreen [PATCH]
 	             Patch by Egmont Koblinger
