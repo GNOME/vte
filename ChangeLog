@@ -1,3 +1,11 @@
+2006-12-08  Behdad Esfahbod  <behdad@gnome.org>
+
+	Red Hat Bug 218626: "last -ad" print junk in last column
+
+	* gnome-pty-helper/gnome-utmp.c (write_logout_record),
+	(write_login_record): Don't gettimeofday directly into ut.ut_tv.
+	That overruns on x86_64.
+
 2006-12-05  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.15.0.

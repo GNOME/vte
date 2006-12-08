@@ -233,6 +233,7 @@ void
 write_logout_record (char *login_name, void *data, int utmp, int wtmp)
 {
 	UTMP put, *ut = data;
+	struct timeval tv;
 
 	memset (&put, 0, sizeof(UTMP));
 
@@ -246,7 +247,9 @@ write_logout_record (char *login_name, void *data, int utmp, int wtmp)
 	strncpy (put.ut_line, ut->ut_line, sizeof (put.ut_line));
 
 #if defined(HAVE_UT_UT_TV)
-	gettimeofday ((struct timeval*) &put.ut_tv, NULL);
+	gettimeofday(&tv, NULL);
+	put.ut_tv.tv_sec = tv.tv_sec;
+	put.ut_tv.tv_usec = tv.tv_usec;
 #elif defined(HAVE_UT_UT_TIME)
 	time (&put.ut_time);
 #endif
@@ -272,6 +275,7 @@ write_login_record (char *login_name, char *display_name,
 {
 	UTMP *ut;
 	char *pty = term_name;
+	struct timeval tv;
 
 	if ((ut=(UTMP *) malloc (sizeof (UTMP))) == NULL)
 		return NULL;
@@ -333,7 +337,9 @@ write_login_record (char *login_name, char *display_name,
 #endif
 	/* If structure has ut_tv it doesn't need ut_time */
 #if defined(HAVE_UT_UT_TV)
-	gettimeofday ((struct timeval*) &(ut->ut_tv), NULL);
+	gettimeofday(&tv, NULL);
+	ut->ut_tv.tv_sec = tv.tv_sec;
+	ut->ut_tv.tv_usec = tv.tv_usec;
 #elif defined(HAVE_UT_UT_TIME)
 	time (&ut->ut_time);
 #endif
