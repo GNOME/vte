@@ -658,7 +658,7 @@ sanity_checks (void)
 	}
 }
 
-static gboolean done;
+static volatile gboolean done;
 
 static void
 exit_handler (int signum)
