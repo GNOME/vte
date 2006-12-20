@@ -449,6 +449,7 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 	VteTerminalAccessiblePrivate *priv;
 	char *old, *current;
 	glong offset, olen, clen;
+	gint old_snapshot_caret;
 
 	g_assert(VTE_IS_TERMINAL_ACCESSIBLE(data));
 
@@ -456,6 +457,7 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
 	g_assert(priv != NULL);
 
+	old_snapshot_caret = priv->snapshot_caret;
 	priv->snapshot_contents_invalid = TRUE;
 	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(data),
 							      &old, &olen);
@@ -472,6 +474,23 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 		}
 		offset++;
 	}
+
+        /* Check if we just backspaced over a space. */
+	if ((olen == offset) && (old[priv->snapshot_caret] == ' ') &&
+	    (old_snapshot_caret == (priv->snapshot_caret + 1))) {
+		glong bsp_olen = priv->snapshot_caret+1;
+                glong bsp_offset = priv->snapshot_caret;
+
+                priv->snapshot_text->str = old;
+		priv->snapshot_text->len = bsp_olen;
+		emit_text_changed_delete(G_OBJECT(data),
+					 old,
+					 bsp_offset,
+					 bsp_olen - bsp_offset);
+		priv->snapshot_text->str = current;
+		priv->snapshot_text->len = clen;
+	}
+
 
 	/* At least one of them had better have more data, right? */
 	if ((offset < olen) || (offset < clen)) {
@@ -491,10 +510,14 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 		/* Now emit a deleted signal for text that was in the old
 		 * string but isn't in the new one... */
 		if (olen > offset) {
+			priv->snapshot_text->str = old;
+			priv->snapshot_text->len = olen;
 			emit_text_changed_delete(G_OBJECT(data),
 						 old,
 						 offset,
 						 olen - offset);
+			priv->snapshot_text->str = current;
+			priv->snapshot_text->len = clen;
 		}
 		/* .. and an inserted signal for text that wasn't in the old
 		 * string but is in the new one. */
