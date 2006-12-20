@@ -1,3 +1,10 @@
+2006-12-20  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 387482 – Variable modified in signal handler should be volatile
+	Patch from Bastien Nocera
+
+	* gnome-pty-helper/gnome-pty-helper.c: Make variable "done" volatile.
+
 2006-12-08  Behdad Esfahbod  <behdad@gnome.org>
 
 	Red Hat Bug 218626: "last -ad" print junk in last column
