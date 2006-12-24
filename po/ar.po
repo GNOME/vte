@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD.ar\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-11-17 08:32+0000\n"
+"POT-Creation-Date: 2006-12-24 21:01+0000\n"
 "PO-Revision-Date: 2006-11-03 01:30+0200\n"
 "Last-Translator: Khaled Hosny <khaledhosny@eglug.org>\n"
 "Language-Team: Arabic <support@arabeyes.org>\n"
@@ -21,7 +21,7 @@ msgstr ""
 "n<=10 ? 2 : 3\n"
 
 #: ../src/iso2022.c:784 ../src/iso2022.c:795 ../src/iso2022.c:844
-#: ../src/vte.c:1553
+#: ../src/vte.c:1560
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "لا يمكن تحويل المحارف من %s إلى %s."
@@ -63,39 +63,39 @@ msgstr "خطأ انشاء أنبوب الإشارات."
 msgid "Duplicate (%s/%s)!"
 msgstr "مكرر (%s/%s)!"
 
-#: ../src/vte.c:972
+#: ../src/vte.c:979
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "خطأ عند تجميع التعبير النظامي \"%s\"."
 
-#: ../src/vte.c:2436 ../src/vte.c:2441
+#: ../src/vte.c:2443 ../src/vte.c:2448
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "لم يخصص معالج لسلسلة التحكم `%s'."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:3293
+#: ../src/vte.c:3300
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "خطأ عند القراءة من الابن: %s."
 
-#: ../src/vte.c:3415 ../src/vte.c:4352
+#: ../src/vte.c:3422 ../src/vte.c:4390
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "خطأ (%s) عند تحويل البيانات من الابن، تخلي."
 
-#: ../src/vte.c:6321
+#: ../src/vte.c:6367
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "خطأ عند قراءة حجم PTY، استعمال الافتراض: %s."
 
-#: ../src/vte.c:6357
+#: ../src/vte.c:6403
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "خطأ·عند ضبط·حجم·PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:10633
+#: ../src/vte.c:10632
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "فشل _vte_conv_open() في ضبط رموز الكلمة"
 
