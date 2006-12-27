@@ -66,7 +66,6 @@ _vte_matcher_init(struct _vte_matcher *matcher, const char *emulation,
 	gboolean found_cr = FALSE, found_lf = FALSE;
 	gssize stripped_length;
 	char *stripped;
-	char *tmp;
 	int i;
 
 #ifdef VTE_DEBUG
@@ -84,9 +83,11 @@ _vte_matcher_init(struct _vte_matcher *matcher, const char *emulation,
 			continue;
 		}
 		code = _vte_terminal_capability_strings[i].capability;
-		tmp = _vte_termcap_find_string(termcap, emulation, code);
-		if ((tmp != NULL) && (tmp[0] != '\0')) {
-			_vte_termcap_strip(tmp, &stripped, &stripped_length);
+		stripped = _vte_termcap_find_string_length(termcap,
+                                                           emulation,
+                                                           code,
+                                                           &stripped_length);
+		if (stripped[0] != '\0') {
 			_vte_matcher_add(matcher, stripped, stripped_length,
 					 code, 0);
 			if (stripped[0] == '\r') {
@@ -98,9 +99,8 @@ _vte_matcher_init(struct _vte_matcher *matcher, const char *emulation,
 					found_lf = TRUE;
 				}
 			}
-			g_free(stripped);
 		}
-		g_free(tmp);
+		g_free(stripped);
 	}
 
 	/* Add emulator-specific sequences. */
@@ -111,10 +111,8 @@ _vte_matcher_init(struct _vte_matcher *matcher, const char *emulation,
 		     i++) {
 			code = _vte_xterm_capability_strings[i].code;
 			value = _vte_xterm_capability_strings[i].value;
-			_vte_termcap_strip(code, &stripped, &stripped_length);
-			_vte_matcher_add(matcher, stripped, stripped_length,
+			_vte_matcher_add(matcher, code, strlen (code),
 					 value, 0);
-			g_free(stripped);
 		}
 	}
 
