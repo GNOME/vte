@@ -492,12 +492,14 @@ _vte_invalidate_cursor_once(gpointer data, gboolean periodic)
 
 /* Invalidate the cursor repeatedly. */
 static gboolean
-vte_invalidate_cursor_periodic(gpointer data)
+vte_invalidate_cursor_periodic (gpointer data)
 {
 	VteTerminal *terminal;
 	GtkSettings *settings;
 	int blink_cycle = 1000;
 	int timeout = INT_MAX;
+	static gboolean have_timeout;
+	static gboolean have_queried_timeout;
 
 	g_assert(VTE_IS_TERMINAL(data));
 
@@ -513,8 +515,27 @@ vte_invalidate_cursor_periodic(gpointer data)
 	if (!GTK_IS_SETTINGS (settings))
 		return TRUE;
 
-	g_object_get (G_OBJECT (settings), "gtk-cursor-blink-timeout",
-		      &timeout, NULL);
+	/* Temporary hack to prevent GObject complaining about missing
+	 * properties on the GtkSettings object.  This hack should be
+	 * removed once VTE depends on a version of GTK which includes
+	 * gtk-cursor-blink-timeout.
+	 */
+	if (!have_queried_timeout)
+	{
+		GObjectClass *oclass;
+		GParamSpec *param;
+
+		oclass = G_OBJECT_GET_CLASS (settings);
+		param = g_object_class_find_property (oclass,
+					      "gtk-cursor-blink-timeout");
+
+		have_timeout = (param != NULL);
+		have_queried_timeout = TRUE;
+	}
+
+	if (have_timeout)
+		g_object_get (G_OBJECT (settings), "gtk-cursor-blink-timeout",
+			      &timeout, NULL);
 
 	/* only disable the blink if the cursor is currently shown.
 	 * else, wait until next time.
