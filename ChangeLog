@@ -1,3 +1,10 @@
+2006-12-29  Ryan Lortie  <desrt@desrt.ca>
+
+	Small fix to the previous patch.
+
+	* src/vtetc.c (_vte_termcap_find_string_length): 'int' is not the same
+	as 'gssize' on 64bit platforms, causing compile errors.
+
 2006-12-27  Ryan Lortie  <desrt@desrt.ca>
 
 	Bug 354061 – Excessive use of strlen by _vte_termcap_create

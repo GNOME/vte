@@ -262,7 +262,7 @@ char *
 _vte_termcap_find_string_length (VteTermcap *termcap,
                                  const char *tname,
                                  const char *cap,
-                                 int *length)
+                                 gssize *length)
 {
   const char *result = _vte_termcap_find_start (termcap, tname, cap);
   char *string;
