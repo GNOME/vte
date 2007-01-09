@@ -1,3 +1,13 @@
+2007-01-08  Behdad Esfahbod  <behdad@gnome.org>
+
+	Released vte-0.15.1.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.15.1.
+
+	* src/Makefile.am: Bumped libtool version to 10:8:1.
+
 2006-12-29  Ryan Lortie  <desrt@desrt.ca>
 
 	Small fix to the previous patch.

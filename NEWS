@@ -1,3 +1,12 @@
+0.15.1
+	Bug 354061 – Excessive use of strlen by _vte_termcap_create
+		     Patch from Ryan Lortie
+	Bug 387475 – Gtk-Warning spew in gnome-terminal
+		     Patch from Ryan Lortie
+	Bug 387482 – Variable modified in signal handler should be volatile
+		     Patch from Bastien Nocera
+	Red Hat Bug 218626: "last -ad" print junk in last column
+
 0.15.0
 	Bug 356552 – cursor timeout runs all the time [Ryan Lortie]
 	Bug 307396 – Mouse scroll mode not controllable [Mariano Suárez-Alvarez]
