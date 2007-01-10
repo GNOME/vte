@@ -289,7 +289,7 @@ _vte_termcap_find_string (VteTermcap *termcap,
                           const char *tname,
                           const char *cap)
 {
-  int length;
+  gssize length;
 
   return _vte_termcap_find_string_length (termcap, tname, cap, &length);
 }

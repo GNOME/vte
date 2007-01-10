@@ -1,3 +1,10 @@
+2007-01-09  Ryan Lortie  <desrt@desrt.ca>
+
+	Bug 394890 – Segfault when running vte or gnome-terminal
+
+	* src/vtetc.c (_vte_termcap_find_string): change 'int' to 'gssize' to
+	match previous fixup.  Hopefully that does it. :)
+
 2007-01-08  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.15.1.
