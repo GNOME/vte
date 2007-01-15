@@ -1,3 +1,10 @@
+2007-01-15  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 396831 – Unable to compile without X
+	Patch from Chris Wilson
+
+	* src/vtebg.c (_vte_bg_display_sync), (vte_bg_root_pixmap): Add stubs.
+
 2007-01-09  Ryan Lortie  <desrt@desrt.ca>
 
 	Bug 394890 – Segfault when running vte or gnome-terminal

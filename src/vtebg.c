@@ -175,6 +175,16 @@ vte_bg_root_filter(GdkXEvent *xevent, GdkEvent *event, gpointer data)
 {
 	return GDK_FILTER_CONTINUE;
 }
+static void
+_vte_bg_display_sync(VteBg *bg)
+{
+}
+
+static GdkPixmap *
+vte_bg_root_pixmap(VteBg *bg)
+{
+	return NULL;
+}
 #endif
 
 static void
