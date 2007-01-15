@@ -1,5 +1,12 @@
 2007-01-15  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 387171 – vte fails to install on FreeBSD due to missing header
+	Patch from Roy Marples
+
+	* src/vteseq.c: #include <limits.h>
+
+2007-01-15  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 396831 – Unable to compile without X
 	Patch from Chris Wilson
 
