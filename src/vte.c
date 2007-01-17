@@ -67,7 +67,7 @@ static gboolean vte_terminal_background_update(VteTerminal *data);
 static void vte_terminal_queue_background_update(VteTerminal *terminal);
 static void vte_terminal_queue_adjustment_changed(VteTerminal *terminal);
 static gboolean vte_terminal_process_incoming(VteTerminal *terminal);
-static gboolean vte_cell_is_selected(VteTerminal *terminal,
+static inline gboolean vte_cell_is_selected(VteTerminal *terminal,
 				     glong col, glong row, gpointer data);
 static char *vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 						       glong start_row,
@@ -145,7 +145,7 @@ VteRowData *
 _vte_new_row_data(VteTerminal *terminal)
 {
 	VteRowData *row = NULL;
-	row = g_slice_new0(VteRowData);
+	row = g_slice_new(VteRowData);
 #ifdef VTE_DEBUG
 	row->cells = g_array_new(FALSE, TRUE, sizeof(struct vte_charcell));
 #else
@@ -160,7 +160,7 @@ VteRowData *
 _vte_new_row_data_sized(VteTerminal *terminal, gboolean fill)
 {
 	VteRowData *row = NULL;
-	row = g_slice_new0(VteRowData);
+	row = g_slice_new(VteRowData);
 #ifdef VTE_DEBUG
 	row->cells = g_array_sized_new(FALSE, TRUE,
 				       sizeof(struct vte_charcell),
@@ -358,6 +358,17 @@ _vte_terminal_scroll_region(VteTerminal *terminal,
 	}
 }
 
+/* Find the row in the given position in the backscroll buffer. */
+static inline VteRowData *
+_vte_terminal_find_row_data(VteTerminal *terminal, glong row)
+{
+	VteRowData *rowdata = NULL;
+	VteScreen *screen = terminal->pvt->screen;
+	if (_vte_ring_contains(screen->row_data, row)) {
+		rowdata = _vte_ring_index(screen->row_data, VteRowData *, row);
+	}
+	return rowdata;
+}
 /* Find the character an the given position in the backscroll buffer. */
 static struct vte_charcell *
 vte_terminal_find_charcell(VteTerminal *terminal, glong col, glong row)
@@ -373,6 +384,19 @@ vte_terminal_find_charcell(VteTerminal *terminal, glong col, glong row)
 					     struct vte_charcell,
 					     col);
 		}
+	}
+	return ret;
+}
+
+/* Find the character in the given position in the given row. */
+static inline struct vte_charcell *
+_vte_row_data_find_charcell(VteRowData *rowdata, glong col)
+{
+	struct vte_charcell *ret = NULL;
+	if (rowdata && rowdata->cells->len > col) {
+		ret = &g_array_index(rowdata->cells,
+				struct vte_charcell,
+				col);
 	}
 	return ret;
 }
@@ -4224,15 +4248,8 @@ static gboolean
 vte_line_is_wrappable(VteTerminal *terminal, glong row)
 {
 	VteRowData *rowdata;
-	VteScreen *screen;
-	screen = terminal->pvt->screen;
-	if (_vte_ring_contains(screen->row_data, row)) {
-		rowdata = _vte_ring_index(screen->row_data, VteRowData *, row);
-		if (rowdata->soft_wrapped) {
-			return TRUE;
-		}
-	}
-	return FALSE;
+	rowdata = _vte_terminal_find_row_data(terminal, row);
+	return rowdata && rowdata->soft_wrapped;
 }
 
 /* Check if the given point is in the region between the two points,
@@ -4297,7 +4314,7 @@ vte_cell_is_between(glong col, glong row,
 }
 
 /* Check if a cell is selected or not. */
-static gboolean
+static inline gboolean
 vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 {
 	struct selection_cell_coords ss, se;
@@ -5248,69 +5265,63 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 	 * than recalculating for each cell as we render it. */
 
 	/* Handle end-of-line at the start-cell. */
-	if (!terminal->pvt->block_mode && _vte_ring_contains(screen->row_data, sc->y)) {
-		rowdata = _vte_ring_index(screen->row_data,
-					  VteRowData *, sc->y);
-	} else {
-		rowdata = NULL;
-	}
-	if (!terminal->pvt->block_mode && rowdata != NULL) {
-		/* Find the last non-empty character on the first line. */
-		last_nonempty = -1;
-		for (i = 0; i < rowdata->cells->len; i++) {
-			cell = &g_array_index(rowdata->cells,
-					      struct vte_charcell, i);
-			if (!cell->empty)
-				last_nonempty = i;
-		}
-		/* Now find the first empty after it. */
-		i = last_nonempty + 1;
-		/* If the start point is to its right, then move the
-		 * startpoint up to the beginning of the next line
-		 * unless that would move the startpoint after the end
-		 * point, or we're in select-by-line mode. */
-		if ((sc->x > i) &&
-		    (terminal->pvt->selection_type != selection_type_line)) {
-			if (sc->y < ec->y) {
-				sc->x = 0;
-				sc->y++;
-			} else {
-				sc->x = i;
+	if (!terminal->pvt->block_mode) {
+		rowdata = _vte_terminal_find_row_data(terminal, sc->y);
+		if (rowdata != NULL) {
+			/* Find the last non-empty character on the first line. */
+			last_nonempty = -1;
+			for (i = 0; i < rowdata->cells->len; i++) {
+				cell = &g_array_index(rowdata->cells,
+						struct vte_charcell, i);
+				if (!cell->empty)
+					last_nonempty = i;
 			}
+			/* Now find the first empty after it. */
+			i = last_nonempty + 1;
+			/* If the start point is to its right, then move the
+			 * startpoint up to the beginning of the next line
+			 * unless that would move the startpoint after the end
+			 * point, or we're in select-by-line mode. */
+			if ((sc->x > i) &&
+					(terminal->pvt->selection_type != selection_type_line)) {
+				if (sc->y < ec->y) {
+					sc->x = 0;
+					sc->y++;
+				} else {
+					sc->x = i;
+				}
+			}
+		} else {
+			/* Snap to the leftmost column. */
+			sc->x = 0;
 		}
-	} else if (!terminal->pvt->block_mode) {
-		/* Snap to the leftmost column. */
-		sc->x = 0;
 	}
 
 	/* Handle end-of-line at the end-cell. */
-	if (!terminal->pvt->block_mode && _vte_ring_contains(screen->row_data, ec->y)) {
-		rowdata = _vte_ring_index(screen->row_data,
-					  VteRowData *, ec->y);
-	} else {
-		rowdata = NULL;
-	}
-	if (!terminal->pvt->block_mode && rowdata != NULL) {
-		/* Find the last non-empty character on the last line. */
-		last_nonempty = -1;
-		for (i = 0; i < rowdata->cells->len; i++) {
-			cell = &g_array_index(rowdata->cells,
-					      struct vte_charcell, i);
-			if (!cell->empty)
-				last_nonempty = i;
+	if (!terminal->pvt->block_mode) {
+		rowdata = _vte_terminal_find_row_data(terminal, ec->y);
+		if (rowdata != NULL) {
+			/* Find the last non-empty character on the last line. */
+			last_nonempty = -1;
+			for (i = 0; i < rowdata->cells->len; i++) {
+				cell = &g_array_index(rowdata->cells,
+						struct vte_charcell, i);
+				if (!cell->empty)
+					last_nonempty = i;
+			}
+			/* Now find the first empty after it. */
+			i = last_nonempty + 1;
+			/* If the end point is to its right, then extend the
+			 * endpoint as far right as we can expect. */
+			if (ec->x >= i) {
+				ec->x = MAX(ec->x,
+						MAX(terminal->column_count - 1,
+							rowdata->cells->len));
+			}
+		} else {
+			/* Snap to the rightmost column. */
+			ec->x = MAX(ec->x, terminal->column_count - 1);
 		}
-		/* Now find the first empty after it. */
-		i = last_nonempty + 1;
-		/* If the end point is to its right, then extend the
-		 * endpoint as far right as we can expect. */
-		if (ec->x >= i) {
-			ec->x = MAX(ec->x,
-				    MAX(terminal->column_count - 1,
-					rowdata->cells->len));
-		}
-	} else if (!terminal->pvt->block_mode) {
-		/* Snap to the rightmost column. */
-		ec->x = MAX(ec->x, terminal->column_count - 1);
 	}
 
 	/* Now extend again based on selection type. */
@@ -7452,7 +7463,7 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 
 /* Check if a unicode character is actually a graphic character we draw
  * ourselves to handle cases where fonts don't have glyphs for them. */
-static gboolean
+static inline gboolean
 vte_unichar_is_local_graphic(gunichar c)
 {
 	if ((c >= 0x2500) && (c <= 0x257f)) {
@@ -8707,37 +8718,41 @@ vte_terminal_draw_row(VteTerminal *terminal,
 	struct _vte_draw_text_request *items, item;
 	guint item_count = 0;
 	struct vte_charcell *cell;
+	VteRowData *row_data;
+
+	reverse = terminal->pvt->screen->reverse_mode;
 
 	/* Allocate an array to hold draw requests. */
 	/* FIXME: can this get too big for alloca? */
 	items = g_newa (struct _vte_draw_text_request, column_count);
 
+	row_data = _vte_terminal_find_row_data(terminal, row);
+
 	/* Back up in case this is a multicolumn character, making the drawing
 	 * area a little wider. */
-	cell = vte_terminal_find_charcell(terminal, column, row);
+	cell = _vte_row_data_find_charcell(row_data, column);
 	while ((cell != NULL) && (cell->fragment) && (column > 0)) {
 		column--;
 		column_count++;
 		x -= column_width;
-		cell = vte_terminal_find_charcell(terminal, column, row);
+		cell = _vte_row_data_find_charcell(row_data, column);
 	}
 
 	/* Walk the line. */
 	i = column;
 	while (i < column + column_count) {
 		/* Get the character cell's contents. */
-		cell = vte_terminal_find_charcell(terminal, i, row);
+		cell = _vte_row_data_find_charcell(row_data, i);
 		/* Find the colors for this cell. */
-		reverse = terminal->pvt->screen->reverse_mode;
 		selected = vte_cell_is_selected(terminal, i, row, NULL);
 		vte_terminal_determine_colors(terminal, cell,
-					      reverse || selected,
+					      reverse|selected,
 					      selected,
 					      FALSE,
 					      &fore, &back);
-		underline = (cell != NULL) ? (cell->underline != 0) : FALSE;
-		strikethrough = (cell != NULL) ? (cell->strikethrough != 0) : FALSE;
-		bold = (cell != NULL) ? (cell->bold != 0) : FALSE;
+		underline = cell && cell->underline;
+		strikethrough = cell && cell->strikethrough;
+		bold = cell && cell->bold;
 		if ((cell != NULL) && (terminal->pvt->match_contents != NULL)) {
 			hilite = vte_cell_is_between(i, row,
 						     terminal->pvt->match_start.column,
@@ -8780,23 +8795,20 @@ vte_terminal_draw_row(VteTerminal *terminal,
 		while ((j < column + column_count) &&
 		       (j - i < VTE_DRAW_MAX_LENGTH)) {
 			/* Retrieve the cell. */
-			cell = vte_terminal_find_charcell(terminal, j, row);
+			cell = _vte_row_data_find_charcell(row_data, j);
 			/* Resolve attributes to colors where possible and
 			 * compare visual attributes to the first character
 			 * in this chunk. */
-			reverse = terminal->pvt->screen->reverse_mode;
 			selected = vte_cell_is_selected(terminal, j, row, NULL);
 			vte_terminal_determine_colors(terminal, cell,
-						      reverse || selected,
+						      reverse|selected,
 						      selected,
 						      FALSE,
 						      &nfore, &nback);
 			if ((nfore != fore) || (nback != back)) {
 				break;
 			}
-			nbold = (cell != NULL) ?
-				(cell->bold != 0) :
-				FALSE;
+			nbold = cell && cell->bold != 0;
 			if (nbold != bold) {
 				break;
 			}
@@ -8813,15 +8825,11 @@ vte_terminal_draw_row(VteTerminal *terminal,
 				continue;
 			}
 			/* Break up underlined/not-underlined text. */
-			nunderline = (cell != NULL) ?
-				     (cell->underline != 0) :
-				     FALSE;
+			nunderline = cell && cell->underline != 0;
 			if (nunderline != underline) {
 				break;
 			}
-			nstrikethrough = (cell != NULL) ?
-					 (cell->strikethrough != 0) :
-					 FALSE;
+			nstrikethrough = cell && cell->strikethrough != 0;
 			if (nstrikethrough != strikethrough) {
 				break;
 			}
@@ -8841,7 +8849,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 				break;
 			}
 			/* Add this cell to the draw list. */
-			item.c = cell ? (cell->c ? cell->c : ' ') : ' ';
+			item.c = (cell && cell->c) ? cell->c : ' ';
 			item.columns = cell ? cell->columns : 1;
 			item.x = x + ((j - column) * column_width);
 			item.y = y;

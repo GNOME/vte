@@ -2,6 +2,17 @@
 
 	As part of Bug 397439.
 
+	* src/vte.c: (_vte_new_row_data), (_vte_new_row_data_sized),
+	(_vte_terminal_find_row_data), (_vte_row_data_find_charcell),
+	(vte_line_is_wrappable), (vte_terminal_extend_selection),
+	(vte_terminal_draw_row):
+		Refactor vte_find_row_data to simplify and improve
+		some logic.
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	As part of Bug 397439.
+
 	* src/vte.c: (vte_g_array_fill), (vte_terminal_emit_commit),
 	(_vte_terminal_ensure_cursor), (_vte_terminal_insert_char),
 	(_vte_terminal_fork_basic), (vte_terminal_process_incoming),
