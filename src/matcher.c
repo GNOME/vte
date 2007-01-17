@@ -28,32 +28,26 @@
 #include "trie.h"
 
 struct _vte_matcher {
-	gboolean initialized;
-	enum {
-		_vte_matcher_table,
-		_vte_matcher_trie
-	} type;
-	struct _vte_table *table;
-	struct _vte_trie *trie;
+	_vte_matcher_match_func match; /* shortcut to the most common op */
+	struct _vte_matcher_impl *impl;
 };
 
 static GStaticMutex _vte_matcher_mutex = G_STATIC_MUTEX_INIT;
 static GCache *_vte_matcher_cache = NULL;
+static struct _vte_matcher_impl dummy_vte_matcher_trie = {
+	&_vte_matcher_trie
+};
+static struct _vte_matcher_impl dummy_vte_matcher_table = {
+	&_vte_matcher_table
+};
 
 /* Add a string to the matcher. */
 static void
-_vte_matcher_add(struct _vte_matcher *matcher,
+_vte_matcher_add(const struct _vte_matcher *matcher,
 		 const char *pattern, gssize length,
 		 const char *result, GQuark quark)
 {
-	switch (matcher->type) {
-	case _vte_matcher_table:
-		_vte_table_add(matcher->table, pattern, length, result, quark);
-		break;
-	case _vte_matcher_trie:
-		_vte_trie_add(matcher->trie, pattern, length, result, quark);
-		break;
-	}
+	matcher->impl->klass->add(matcher->impl, pattern, length, result, quark);
 }
 
 /* Loads all sequences into matcher */
@@ -145,25 +139,14 @@ _vte_matcher_create(gpointer key)
 	}
 #endif
 	ret = g_slice_new(struct _vte_matcher);
-	ret->initialized = FALSE;
-	ret->type = _vte_matcher_trie;
-	ret->table = NULL;
-	ret->trie = NULL;
+	ret->impl = &dummy_vte_matcher_trie;
+	ret->match = NULL;
 
 	if (strcmp(emulation, "xterm") == 0) {
-		ret->type = _vte_matcher_table;
+		ret->impl = &dummy_vte_matcher_table;
 	} else
 	if (strcmp(emulation, "dtterm") == 0) {
-		ret->type = _vte_matcher_table;
-	}
-
-	switch (ret->type) {
-	case _vte_matcher_table:
-		ret->table = _vte_table_new();
-		break;
-	case _vte_matcher_trie:
-		ret->trie = _vte_trie_new();
-		break;
+		ret->impl = &dummy_vte_matcher_table;
 	}
 
 	return ret;
@@ -180,12 +163,8 @@ _vte_matcher_destroy(gpointer value)
 		g_printerr("_vte_matcher_destroy()\n");
 	}
 #endif
-	if (matcher->table != NULL) {
-		_vte_table_free(matcher->table);
-	}
-	if (matcher->trie != NULL) {
-		_vte_trie_free(matcher->trie);
-	}
+	if (matcher->match != NULL) /* do not call destroy on dummy values */
+		matcher->impl->klass->destroy(matcher->impl);
 	g_slice_free(struct _vte_matcher, matcher);
 }
 
@@ -209,9 +188,10 @@ _vte_matcher_new(const char *emulation, struct _vte_termcap *termcap)
 
 	ret = g_cache_insert(_vte_matcher_cache, (gpointer) emulation);
 
-	if (!ret->initialized) {
+	if (ret->match == NULL) {
+		ret->impl = ret->impl->klass->create();
+		ret->match = ret->impl->klass->match;
 		_vte_matcher_init(ret, emulation, termcap);
-		ret->initialized = TRUE;
 	}
 
 	g_static_mutex_unlock(&_vte_matcher_mutex);
@@ -235,31 +215,15 @@ _vte_matcher_match(struct _vte_matcher *matcher,
 		   const char **res, const gunichar **consumed,
 		   GQuark *quark, GValueArray **array)
 {
-	switch (matcher->type) {
-	case _vte_matcher_table:
-		return _vte_table_match(matcher->table, pattern, length,
+	return matcher->match(matcher->impl, pattern, length,
 					res, consumed, quark, array);
-		break;
-	case _vte_matcher_trie:
-		return _vte_trie_match(matcher->trie, pattern, length,
-				       res, consumed, quark, array);
-		break;
-	}
-	return NULL;
 }
 
 /* Dump out the contents of a matcher, mainly for debugging. */
 void
 _vte_matcher_print(struct _vte_matcher *matcher)
 {
-	switch (matcher->type) {
-	case _vte_matcher_table:
-		_vte_table_print(matcher->table);
-		break;
-	case _vte_matcher_trie:
-		_vte_trie_print(matcher->trie);
-		break;
-	}
+	matcher->impl->klass->print(matcher->impl);
 }
 
 /* Free a parameter array.  Most of the GValue elements can clean up after

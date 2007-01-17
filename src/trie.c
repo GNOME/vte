@@ -92,6 +92,7 @@ struct char_class {
 
 /* A trie to hold control sequences. */
 struct _vte_trie {
+	struct _vte_matcher_impl impl;
 	const char *result;		/* If this is a terminal node, then this
 					   field contains its "value". */
 	GQuark quark;			/* The quark for the value of the
@@ -374,7 +375,10 @@ static struct char_class char_classes[] = {
 TRIE_MAYBE_STATIC struct _vte_trie *
 _vte_trie_new(void)
 {
-	return g_slice_new0(struct _vte_trie);
+	struct _vte_trie *ret;
+	ret = g_slice_new0(struct _vte_trie);
+	ret->impl.klass = &_vte_matcher_trie;
+	return ret;
 }
 
 TRIE_MAYBE_STATIC void
@@ -1104,3 +1108,11 @@ main(int argc, char **argv)
 	return 0;
 }
 #endif
+
+const struct _vte_matcher_class _vte_matcher_trie = {
+	(_vte_matcher_create_func)_vte_trie_new,
+	(_vte_matcher_add_func)_vte_trie_add,
+	(_vte_matcher_print_func)_vte_trie_print,
+	(_vte_matcher_match_func)_vte_trie_match,
+	(_vte_matcher_destroy_func)_vte_trie_free
+};

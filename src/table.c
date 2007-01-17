@@ -42,6 +42,7 @@
 	(((__c) >= '0') && ((__c) <= '9'))
 
 struct _vte_table {
+	struct _vte_matcher_impl impl;
 	GQuark resultq;
 	const char *result;
 	unsigned char *original;
@@ -68,7 +69,10 @@ struct _vte_table_arginfo {
 struct _vte_table *
 _vte_table_new(void)
 {
-	return g_slice_new0(struct _vte_table);
+	struct _vte_table * ret;
+	ret = g_slice_new0(struct _vte_table);
+	ret->impl.klass = &_vte_matcher_table;
+	return ret;
 }
 
 struct _vte_table **
@@ -854,3 +858,11 @@ main(int argc, char **argv)
 	return 0;
 }
 #endif
+
+const struct _vte_matcher_class _vte_matcher_table = {
+	(_vte_matcher_create_func)_vte_table_new,
+	(_vte_matcher_add_func)_vte_table_add,
+	(_vte_matcher_print_func)_vte_table_print,
+	(_vte_matcher_match_func)_vte_table_match,
+	(_vte_matcher_destroy_func)_vte_table_free
+};

@@ -29,6 +29,29 @@ G_BEGIN_DECLS
 
 struct _vte_matcher;
 
+struct _vte_matcher_impl {
+	const struct _vte_matcher_class *klass;
+	/* private */
+};
+
+typedef struct _vte_matcher_impl *(*_vte_matcher_create_func)(void);
+typedef const char *(*_vte_matcher_match_func)(struct _vte_matcher_impl *impl,
+		const gunichar *pattern, gssize length,
+		const char **res, const gunichar **consumed,
+		GQuark *quark, GValueArray **array);
+typedef void (*_vte_matcher_add_func)(struct _vte_matcher_impl *impl,
+		const char *pattern, gssize length,
+		const char *result, GQuark quark);
+typedef void (*_vte_matcher_print_func)(struct _vte_matcher_impl *impl);
+typedef void (*_vte_matcher_destroy_func)(struct _vte_matcher_impl *impl);
+struct _vte_matcher_class{
+	_vte_matcher_create_func create;
+	_vte_matcher_add_func add;
+	_vte_matcher_print_func print;
+	_vte_matcher_match_func match;
+	_vte_matcher_destroy_func destroy;
+};
+
 /* Create and init matcher. */
 struct _vte_matcher *_vte_matcher_new(const char *emulation,
 				      struct _vte_termcap *termcap);

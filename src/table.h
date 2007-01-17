@@ -47,6 +47,8 @@ const char *_vte_table_match(struct _vte_table *table,
 /* Dump out the contents of a tree. */
 void _vte_table_print(struct _vte_table *table);
 
+extern const struct _vte_matcher_class _vte_matcher_table;
+
 G_END_DECLS
 
 #endif

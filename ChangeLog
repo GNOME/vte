@@ -2,6 +2,23 @@
 
 	As part of Bug 397439.
 
+	* src/matcher.c: (_vte_matcher_add), (_vte_matcher_create),
+	(_vte_matcher_destroy), (_vte_matcher_new), (_vte_matcher_match),
+	(_vte_matcher_print):
+	* src/matcher.h:
+	* src/table.c: (_vte_table_new):
+	* src/table.h:
+	* src/trie.c: (_vte_trie_new):
+	* src/trie.h:
+		_vte_match_match() is called extremely frequently, and the
+		switch shows up on the profiles. Replace the switch with a
+		function pointer obtained by introducing function tables for
+		the matcher implementations.
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	As part of Bug 397439.
+
 	* src/vte-private.h:
 	* src/vte.c: (vte_terminal_set_font_full), (vte_terminal_realize):
 		Don't load a font until the terminal is realized.
