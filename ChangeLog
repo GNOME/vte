@@ -2,6 +2,13 @@
 
 	As part of Bug 397439.
 
+	* src/vteconv.c: (_vte_conv_utf8_strlen), (_vte_conv):
+		Micro-optimise the loops.
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	As part of Bug 397439.
+
 	* src/vteglyph.c: (_vte_glyph_free), (_vte_cached_glyph_free),
 	(_vte_glyph_cache_new), (_vte_glyph_cache_free),
 	(_vte_glyph_cache_set_font_description),
