@@ -7330,6 +7330,9 @@ vte_terminal_realize(GtkWidget *widget)
 	gdk_window_set_user_data(widget->window, widget);
 	gdk_window_show(widget->window);
 
+	/* Set the realized flag. */
+	GTK_WIDGET_SET_FLAGS(widget, GTK_REALIZED);
+
 	/* Set up the desired palette. */
 	if (!terminal->pvt->palette_initialized) {
 		vte_terminal_set_default_colors(terminal);
@@ -7408,14 +7411,10 @@ vte_terminal_realize(GtkWidget *widget)
 			 G_CALLBACK(root_pixmap_changed_cb),
 			 terminal);
 
-	/* Set up the background, *now*. */
-	vte_terminal_background_update(terminal);
-	
 	widget->style = gtk_style_attach(widget->style, widget->window);
 
-	/* Set the realized flag. */
-	GTK_WIDGET_SET_FLAGS(widget, GTK_REALIZED);
-
+	/* Set up the background, *now*. */
+	vte_terminal_background_update(terminal);
 }
 
 static void

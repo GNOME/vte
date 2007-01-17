@@ -1,5 +1,14 @@
 2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	First breakage spotted: the realized flag is set too late in
+	the realize handler. Note to self: not everybody uses a black
+	background.
+
+	* src/vte.c: (vte_terminal_realize):
+		Restore GTK_WIDGET_SET_FLAGS(REALIZED)
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 395373 - Allow the user to specify backend priorities.
 
 	* src/vtedraw.c: (_vte_draw_init_user), (_vte_draw_init_default),
