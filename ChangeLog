@@ -2,6 +2,19 @@
 
 	As part of Bug 397439.
 
+	* src/vteglyph.c: (_vte_glyph_free), (_vte_cached_glyph_free),
+	(_vte_glyph_cache_new), (_vte_glyph_cache_free),
+	(_vte_glyph_cache_set_font_description),
+	(_vte_glyph_cache_has_char), (_vte_glyph_remap_char),
+	(_vte_glyph_get_uncached), (_vte_glyph_get), (_vte_glyph_draw):
+	* src/vteglyph.h:
+		Avoid the double glyph lookup in _vte_glyph_get and
+		replace the tree with a hash.
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	As part of Bug 397439.
+
 	* src/iso2022.c: (_vte_iso2022_state_new),
 	(_vte_iso2022_state_free), (_vte_iso2022_state_set_codeset):
 	* src/trie.c: (_vte_trie_add), (convert_mbstowcs):

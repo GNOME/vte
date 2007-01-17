@@ -38,15 +38,22 @@
 
 #define FONT_INDEX_FUDGE 10
 #define CHAR_WIDTH_FUDGE 10
-#define INVALID_GLYPH    -1
+#define INVALID_GLYPH    GINT_TO_POINTER(-1)
 
 static FT_Face _vte_glyph_cache_face_for_char(struct _vte_glyph_cache *cache,
 					      gunichar c);
 
-static int
-_vte_direct_compare(gconstpointer a, gconstpointer b)
+void
+_vte_glyph_free(struct _vte_glyph *glyph)
 {
-	return GPOINTER_TO_INT(a) - GPOINTER_TO_INT(b);
+	g_free(glyph);
+}
+
+static void
+_vte_cached_glyph_free(gpointer glyph)
+{
+	if (glyph != INVALID_GLYPH)
+		_vte_glyph_free(glyph);
 }
 
 struct _vte_glyph_cache *
@@ -59,7 +66,7 @@ _vte_glyph_cache_new(void)
 
 	ret->patterns = g_ptr_array_new();
 	ret->faces = NULL;
-	ret->cache = g_tree_new(_vte_direct_compare);
+	ret->cache = g_hash_table_new_full(NULL, NULL, NULL, _vte_cached_glyph_free);
 	ret->ft_load_flags = 0;
 	ret->ft_render_flags = 0;
 	ret->width = 0;
@@ -72,20 +79,6 @@ _vte_glyph_cache_new(void)
 	return ret;
 }
 
-void
-_vte_glyph_free(struct _vte_glyph *glyph)
-{
-	g_free(glyph);
-}
-
-static gboolean
-free_tree_value(gpointer key, gpointer value, gpointer data)
-{
-	if (GPOINTER_TO_INT(value) != INVALID_GLYPH) {
-		_vte_glyph_free(value);
-	}
-	return FALSE;
-}
 
 void
 _vte_glyph_cache_free(struct _vte_glyph_cache *cache)
@@ -108,7 +101,7 @@ _vte_glyph_cache_free(struct _vte_glyph_cache *cache)
 	g_list_free(cache->faces);
 
 	/* Free the glyph tree. */
-	g_tree_foreach(cache->cache, free_tree_value, NULL);
+	g_hash_table_destroy(cache->cache);
 
 	/* Close the FT library. */
 	if (cache->ft_library) {
@@ -166,9 +159,8 @@ _vte_glyph_cache_set_font_description(GtkWidget *widget,
 	cache->faces = NULL;
 
 	/* Clear the glyph tree. */
-	g_tree_foreach(cache->cache, free_tree_value, NULL);
-	g_tree_destroy(cache->cache);
-	cache->cache = g_tree_new(_vte_direct_compare);
+	g_hash_table_destroy(cache->cache);
+	cache->cache = g_hash_table_new_full(NULL, NULL, NULL, _vte_cached_glyph_free);
 
 	/* Clear the load and render flags. */
 	cache->ft_load_flags = 0;
@@ -379,8 +371,8 @@ _vte_glyph_cache_has_char(struct _vte_glyph_cache *cache, gunichar c)
 	GList *iter;
 	gpointer p;
 
-	if ((p = g_tree_lookup(cache->cache, GINT_TO_POINTER(c))) != NULL) {
-		if (GPOINTER_TO_INT(p) == INVALID_GLYPH) {
+	if ((p = g_hash_table_lookup(cache->cache, GINT_TO_POINTER(c))) != NULL) {
+		if (p == INVALID_GLYPH) {
 			return FALSE;
 		}
 	}
@@ -395,13 +387,9 @@ _vte_glyph_cache_has_char(struct _vte_glyph_cache *cache, gunichar c)
 }
 
 static gunichar
-_vte_glyph_remap_char(struct _vte_glyph_cache *cache, gunichar origc)
+_vte_glyph_remap_char(gunichar origc)
 {
 	gunichar newc;
-
-	if (_vte_glyph_cache_has_char(cache, origc)) {
-		return origc;
-	}
 
 	switch (origc) {
 	case 0:			/* NUL */
@@ -421,11 +409,7 @@ _vte_glyph_remap_char(struct _vte_glyph_cache *cache, gunichar origc)
 		break;
 	}
 
-	if (_vte_glyph_cache_has_char(cache, newc)) {
-		return newc;
-	} else {
-		return origc;
-	}
+	return newc;
 }
 
 #define DEFAULT_BYTES_PER_PIXEL 3
@@ -483,8 +467,8 @@ _vte_glyph_get_uncached(struct _vte_glyph_cache *cache, gunichar c)
 
 	/* Bail if we weren't able to load the glyph. */
 	if (face == NULL) {
-		g_tree_insert(cache->cache, GINT_TO_POINTER(c),
-			      GINT_TO_POINTER(INVALID_GLYPH));
+		g_hash_table_insert(cache->cache, GINT_TO_POINTER(c),
+			      INVALID_GLYPH);
 		return NULL;
 	}
 
@@ -498,9 +482,6 @@ _vte_glyph_get_uncached(struct _vte_glyph_cache *cache, gunichar c)
 	glyph->skip = MAX((face->size->metrics.ascender >> 6) -
 			  face->glyph->bitmap_top, 0);
 	glyph->bytes_per_pixel = DEFAULT_BYTES_PER_PIXEL;
-
-	memset(glyph->bytes, 0,
-	       glyph->width * glyph->height * DEFAULT_BYTES_PER_PIXEL);
 
 	for (y = 0; y < face->glyph->bitmap.rows; y++)
 	for (x = 0; x < face->glyph->bitmap.width; x++) {
@@ -594,8 +575,8 @@ _vte_glyph_get(struct _vte_glyph_cache *cache, gunichar c)
 	g_return_val_if_fail(cache != NULL, NULL);
 
 	/* See if we already have a glyph for this character. */
-	if ((p = g_tree_lookup(cache->cache, GINT_TO_POINTER(c))) != NULL) {
-		if (GPOINTER_TO_INT(p) == INVALID_GLYPH) {
+	if ((p = g_hash_table_lookup(cache->cache, GINT_TO_POINTER(c))) != NULL) {
+		if (p == INVALID_GLYPH) {
 			return NULL;
 		} else {
 			return p;
@@ -607,13 +588,13 @@ _vte_glyph_get(struct _vte_glyph_cache *cache, gunichar c)
 
 	/* Bail if we weren't able to load the glyph. */
 	if (glyph == NULL) {
-		g_tree_insert(cache->cache, GINT_TO_POINTER(c),
-			      GINT_TO_POINTER(INVALID_GLYPH));
+		g_hash_table_insert(cache->cache, GINT_TO_POINTER(c),
+			      INVALID_GLYPH);
 		return NULL;
 	}
 
 	/* Cache it. */
-	g_tree_insert(cache->cache, GINT_TO_POINTER(c), glyph);
+	g_hash_table_insert(cache->cache, GINT_TO_POINTER(c), glyph);
 
 	return glyph;
 }
@@ -626,7 +607,7 @@ _vte_glyph_draw(struct _vte_glyph_cache *cache,
 		struct _vte_rgb_buffer *buffer)
 {
 	const struct _vte_glyph *glyph;
-	gint col, row, ioffset, ooffset, icol, ocol, ecol;
+	gint col, row, erow, ioffset, ooffset, icol, ocol, ecol;
 	gint strikethrough, underline, underline2;
 	gint32 r, g, b, ar, ag, ab;
 	guchar *pixels;
@@ -634,9 +615,14 @@ _vte_glyph_draw(struct _vte_glyph_cache *cache,
 	if (cache == NULL) {
 		return;
 	}
-	glyph = _vte_glyph_get(cache, _vte_glyph_remap_char(cache, c));
+	glyph = _vte_glyph_get(cache, c);
 	if (glyph == NULL) {
-		return;
+		gunichar cc = _vte_glyph_remap_char(c);
+		if(cc != c)
+			glyph = _vte_glyph_get(cache, cc);
+		if (glyph == NULL) {
+			return;
+		}
 	}
 
 	if (x > buffer->width) {
@@ -666,21 +652,18 @@ _vte_glyph_draw(struct _vte_glyph_cache *cache,
 
 _vte_glyph_draw_loop:
 
+	erow = MIN(cache->height, glyph->skip + glyph->height);
+	erow = MIN(erow, buffer->height - y);
 	for (row = glyph->skip;
-	     row < MIN(cache->height, glyph->skip + glyph->height);
+	     row < erow;
 	     row++) {
-		if (row + y >= buffer->height) {
-			break;
-		}
 		ooffset = (y + row) * buffer->stride +
 			  ((x + ocol) * 3);
 		ioffset = (((row - glyph->skip) * glyph->width) + icol) *
 			  DEFAULT_BYTES_PER_PIXEL;
 		ecol = MIN(cache->width * columns, glyph->width);
+		ecol = MIN(ecol, buffer->width - x);
 		for (col = 0; col < ecol; col++) {
-			if (col + x >= buffer->width) {
-				break;
-			}
 			ar = glyph->bytes[ioffset + 0];
 			ag = glyph->bytes[ioffset + 1];
 			ab = glyph->bytes[ioffset + 2];
