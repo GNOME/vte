@@ -43,6 +43,7 @@ struct _VteRing {
 #define _vte_ring_length(__ring) ((__ring)->length)
 #define _vte_ring_next(__ring) ((__ring)->delta + (__ring)->length)
 #define _vte_ring_max(__ring) ((__ring)->max)
+#ifdef VTE_DEBUG
 #define _vte_ring_at(__ring, __position) \
 	((__ring)->array[__position % (__ring)->max] ? \
 	 (__ring)->array[__position % (__ring)->max] : \
@@ -52,6 +53,10 @@ struct _VteRing {
 		  (__ring)->delta, (__ring)->length, (__ring)->max, \
 		  (__ring)->delta + (__ring)->length, \
 		  __LINE__), (gpointer) NULL))
+#else
+#define _vte_ring_at(__ring, __position) \
+	((__ring)->array[__position % (__ring)->max])
+#endif
 #define _vte_ring_index(__ring, __cast, __position) \
 	(__cast) _vte_ring_at(__ring, __position)
 

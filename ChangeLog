@@ -2,6 +2,13 @@
 
 	As part of Bug 397439.
 
+	* src/ring.h:
+		Make the debug checks conditional on VTE_DEBUG.
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	As part of Bug 397439.
+
 	* src/matcher.c: (_vte_matcher_add), (_vte_matcher_create),
 	(_vte_matcher_destroy), (_vte_matcher_new), (_vte_matcher_match),
 	(_vte_matcher_print):
