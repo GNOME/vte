@@ -6167,7 +6167,6 @@ vte_terminal_set_font_full(VteTerminal *terminal,
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-	terminal->pvt->has_fonts = TRUE;
 
 	/* Create an owned font description. */
 	if (font_desc != NULL) {
@@ -6193,7 +6192,14 @@ vte_terminal_set_font_full(VteTerminal *terminal,
 		}
 #endif
 	}
-	terminal->pvt->fontantialias = antialias;
+
+	/* check for any change */
+	if (antialias == terminal->pvt->fontantialias &&
+			terminal->pvt->fontdesc &&
+			pango_font_description_equal(desc, terminal->pvt->fontdesc)) {
+		pango_font_description_free(desc);
+		return;
+	}
 
 	/* Free the old font description and save the new one. */
 	if (terminal->pvt->fontdesc != NULL) {
@@ -6201,19 +6207,21 @@ vte_terminal_set_font_full(VteTerminal *terminal,
 	}
 	terminal->pvt->fontdesc = desc;
 	terminal->pvt->fontantialias = antialias;
+	terminal->pvt->fontdirty = TRUE;
+	terminal->pvt->has_fonts = TRUE;
 
-	/* Set the drawing font. */
-	_vte_draw_set_text_font(terminal->pvt->draw,
-				terminal->pvt->fontdesc,
-				antialias);
-	vte_terminal_apply_metrics(terminal,
-				   _vte_draw_get_text_width(terminal->pvt->draw),
-				   _vte_draw_get_text_height(terminal->pvt->draw),
-				   _vte_draw_get_text_ascent(terminal->pvt->draw),
-				   _vte_draw_get_text_height(terminal->pvt->draw) -
-				   _vte_draw_get_text_ascent(terminal->pvt->draw));
-	/* vte_terminal_apply_metrics already called _vte_invalidate_all so
-	 * we don't. */
+	if(GTK_WIDGET_REALIZED(terminal)){
+		terminal->pvt->fontdirty = FALSE;
+		/* Set the drawing font. */
+		_vte_draw_set_text_font(terminal->pvt->draw,
+				desc, antialias);
+		vte_terminal_apply_metrics(terminal,
+				_vte_draw_get_text_width(terminal->pvt->draw),
+				_vte_draw_get_text_height(terminal->pvt->draw),
+				_vte_draw_get_text_ascent(terminal->pvt->draw),
+				_vte_draw_get_text_height(terminal->pvt->draw) -
+				_vte_draw_get_text_ascent(terminal->pvt->draw));
+	}
 }
 
 /**
@@ -7331,18 +7339,24 @@ vte_terminal_realize(GtkWidget *widget)
 		vte_terminal_set_default_colors(terminal);
 	}
 
-	/* Set the realized flag. */
-	GTK_WIDGET_SET_FLAGS(widget, GTK_REALIZED);
-
-        /* Set window/icon titles */
-        gdk_window_set_title (widget->window, "");
-        gdk_window_set_icon_name (widget->window, "");
-
 	/* Load default fonts, if no fonts have been loaded. */
 	if (!terminal->pvt->has_fonts) {
 		vte_terminal_set_font_full(terminal, terminal->pvt->fontdesc,
 					   terminal->pvt->fontantialias);
    	}
+	/* load the initial font cache */
+	if(terminal->pvt->fontdirty){
+		terminal->pvt->fontdirty = FALSE;
+		_vte_draw_set_text_font(terminal->pvt->draw,
+				terminal->pvt->fontdesc,
+				terminal->pvt->fontantialias);
+		vte_terminal_apply_metrics(terminal,
+				_vte_draw_get_text_width(terminal->pvt->draw),
+				_vte_draw_get_text_height(terminal->pvt->draw),
+				_vte_draw_get_text_ascent(terminal->pvt->draw),
+				_vte_draw_get_text_height(terminal->pvt->draw) -
+				_vte_draw_get_text_ascent(terminal->pvt->draw));
+	}
 
 	/* Allocate colors. */
 	for (i = 0; i < G_N_ELEMENTS(terminal->pvt->palette); i++) {
@@ -7401,7 +7415,11 @@ vte_terminal_realize(GtkWidget *widget)
 	/* Set up the background, *now*. */
 	vte_terminal_background_update(terminal);
 	
-	gtk_style_attach(widget->style, widget->window);
+	widget->style = gtk_style_attach(widget->style, widget->window);
+
+	/* Set the realized flag. */
+	GTK_WIDGET_SET_FLAGS(widget, GTK_REALIZED);
+
 }
 
 static void

@@ -304,6 +304,7 @@ struct _VteTerminalPrivate {
 	 * resources and which can be kept after unrealizing. */
 	PangoFontDescription *fontdesc;
 	VteTerminalAntiAlias fontantialias;
+	gboolean fontdirty;
 	GtkSettings *connected_settings;
 
 	/* Data used when rendering the text which reflects server resources

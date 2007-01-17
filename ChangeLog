@@ -2,6 +2,15 @@
 
 	As part of Bug 397439.
 
+	* src/vte-private.h:
+	* src/vte.c: (vte_terminal_set_font_full), (vte_terminal_realize):
+		Don't load a font until the terminal is realized.
+		Saves decoding 2 or 3 fonts before g-t is mapped.
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	As part of Bug 397439.
+
 	* src/vteseq.c: (vte_g_array_fill):
 		Micro-optimise the loop.
 
