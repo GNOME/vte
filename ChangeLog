@@ -2,6 +2,18 @@
 
 	As part of Bug 397439.
 
+	* src/vteft2.c: (_vte_ft2_create), (_vte_ft2_start),
+	(_vte_ft2_end), (update_bbox), (_vte_ft2_set_text_font),
+	(_vte_ft2_draw_text):
+	* src/vtergb.c: (_vte_rgb_buffer_new), (_vte_rgb_buffer_resize),
+	(_vte_rgb_draw_color_rgb), (_vte_rgb_copy):
+	* src/vtergb.h:
+		Reuse converted glyphs within a run.
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	As part of Bug 397439.
+
 	* src/vteconv.c: (_vte_conv_utf8_strlen), (_vte_conv):
 		Micro-optimise the loops.
 

@@ -54,13 +54,7 @@ _vte_ft2_check(struct _vte_draw *draw, GtkWidget *widget)
 static void
 _vte_ft2_create(struct _vte_draw *draw, GtkWidget *widget)
 {
-	struct _vte_ft2_data *data;
-	data = g_slice_new0(struct _vte_ft2_data);
-	draw->impl_data = data;
-	data->rgb = NULL;
-	memset(&data->color, 0, sizeof(data->color));
-	data->pixbuf = NULL;
-	data->scrollx = data->scrolly = 0;
+	draw->impl_data = g_slice_new0(struct _vte_ft2_data);
 }
 
 static void
@@ -99,37 +93,32 @@ _vte_ft2_start(struct _vte_draw *draw)
 	guint width, height;
 	data = (struct _vte_ft2_data*) draw->impl_data;
 
-	gdk_window_get_geometry(draw->widget->window,
-				NULL, NULL, &width, &height, NULL);
+	width = draw->widget->allocation.width;
+	height = draw->widget->allocation.height;
 	if (data->rgb == NULL) {
 		data->rgb = _vte_rgb_buffer_new(width, height);
 	} else {
 		_vte_rgb_buffer_resize(data->rgb, width, height);
 	}
-	data->left = data->right = data->top = data->bottom = -1;
+	data->left = data->top = G_MAXINT;
+	data->right = data->bottom = -G_MAXINT;
 }
 
 static void
 _vte_ft2_end(struct _vte_draw *draw)
 {
 	struct _vte_ft2_data *data;
-	guint width, height;
 	GtkWidget *widget;
 	GtkStateType state;
 	data = (struct _vte_ft2_data*) draw->impl_data;
 	widget = draw->widget;
-	gdk_window_get_geometry(widget->window,
-				NULL, NULL, &width, &height, NULL);
-	gtk_widget_ensure_style(widget);
 	state = GTK_WIDGET_STATE(widget);
-	if ((data->left == -1) &&
-	    (data->right == -1) &&
-	    (data->top == -1) &&
-	    (data->bottom == -1)) {
+	if (data->right < data->left) {
 		_vte_rgb_draw_on_drawable(widget->window,
 					  widget->style->fg_gc[state],
 					  0, 0,
-					  width, height,
+						widget->allocation.width,
+						widget->allocation.height,
 					  data->rgb,
 					  0, 0);
 	} else {
@@ -176,17 +165,16 @@ _vte_ft2_set_background_image(struct _vte_draw *draw,
 	data->pixbuf = bgpixbuf;
 }
 
-static void
+static inline void
 update_bbox(struct _vte_ft2_data *data, gint x, gint y, gint width, gint height)
 {
-	data->left = (data->left == -1) ?
-		     x : MIN(data->left, x);
-	data->right = (data->right == -1) ?
-		      x + width - 1 : MAX(data->right, x + width - 1);
-	data->top = (data->top == -1) ?
-		    y : MIN(data->top, y);
-	data->bottom = (data->bottom == -1) ?
-		       y + height - 1 : MAX(data->bottom, y + height - 1);
+	if (x < data->left) data->left = x;
+	x += width - 1;
+	if (x > data->right) data->right = x;
+
+	if (y < data->top) data->top = y;
+	y += height - 1;
+	if (y > data->bottom) data->bottom = y;
 }
 
 static void
@@ -220,7 +208,6 @@ _vte_ft2_set_text_font(struct _vte_draw *draw,
 
 	if (data->cache != NULL) {
 		_vte_glyph_cache_free(data->cache);
-		data->cache = NULL;
 	}
 	data->cache = _vte_glyph_cache_new();
 	_vte_glyph_cache_set_font_description(draw->widget, NULL,
@@ -280,11 +267,13 @@ _vte_ft2_draw_text(struct _vte_draw *draw,
 		   GdkColor *color, guchar alpha)
 {
 	struct _vte_ft2_data *data;
-	int i;
+	int i, j;
 
 	data = (struct _vte_ft2_data*) draw->impl_data;
 
 	for (i = 0; i < n_requests; i++) {
+		if (requests[i].c == -1 || requests[i].c == 32 /* space */)
+			continue;
 		_vte_glyph_draw(data->cache, requests[i].c, color,
 				requests[i].x, requests[i].y,
 				requests[i].columns,
@@ -293,6 +282,18 @@ _vte_ft2_draw_text(struct _vte_draw *draw,
 		update_bbox(data, requests[i].x, requests[i].y,
 			    data->cache->width * requests[i].columns,
 			    data->cache->height);
+		for (j = i + 1; j < n_requests; j++) {
+			if (requests[j].c == requests[i].c) {
+				_vte_rgb_copy(data->rgb,
+						requests[i].x, requests[i].y,
+						requests[i].columns * data->cache->width, data->cache->height,
+						requests[j].x, requests[j].y);
+				update_bbox(data, requests[j].x, requests[j].y,
+						data->cache->width * requests[j].columns,
+						data->cache->height);
+				requests[j].c = -1;
+			}
+		}
 	}
 }
 
