@@ -97,7 +97,7 @@ main(int argc, char **argv)
 			}
 			break;
 		default:
-			fprintf(stderr, "Usage: slowcat [-t delay] [-c chunksize] [file ...]\n");
+			g_printerr("Usage: slowcat [-t delay] [-c chunksize] [file ...]\n");
 			exit(1);
 			break;
 		}

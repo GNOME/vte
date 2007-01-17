@@ -318,7 +318,7 @@ char_class_string_extract(const gunichar *s, size_t length,
 	}
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-		fprintf(stderr, "Extracting string `%ls'.\n", (wchar_t*) ret);
+		g_printerr("Extracting string `%ls'.\n", (wchar_t*) ret);
 	}
 #endif
 	memset(&value, 0, sizeof(value));

@@ -776,10 +776,10 @@ main(int argc, char **argv)
 					switch (i % 3) {
 					case 0:
 					case 1:
-						fprintf(stdout, "%ld\n", i);
+						g_print("%ld\n", i);
 						break;
 					case 2:
-						fprintf(stderr, "%ld\n", i);
+						g_printerr("%ld\n", i);
 						break;
 					}
 					sleep(1);

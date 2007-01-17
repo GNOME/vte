@@ -334,7 +334,7 @@ _vte_pty_run_on_pty(int fd, int ready_reader, int ready_writer,
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_MISC) ||
 		    _vte_debug_on(VTE_DEBUG_PTY)) {
-			fprintf(stderr, "%ld: Set `%s'.\n", (long) getpid(),
+			g_printerr("%ld: Set `%s'.\n", (long) getpid(),
 				env_add[i]);
 		}
 #endif
@@ -358,7 +358,7 @@ _vte_pty_run_on_pty(int fd, int ready_reader, int ready_writer,
 	 * on Solaris. */
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_PTY)) {
-		fprintf(stderr, "Child sending child-ready.\n");
+		g_printerr("Child sending child-ready.\n");
 	}
 #endif
 	n_write(ready_writer, &c, 1);
@@ -366,7 +366,7 @@ _vte_pty_run_on_pty(int fd, int ready_reader, int ready_writer,
 	n_read(ready_reader, &c, 1);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_PTY)) {
-		fprintf(stderr, "Child received parent-ready.\n");
+		g_printerr("Child received parent-ready.\n");
 	}
 #endif
 	close(ready_writer);
@@ -470,19 +470,19 @@ _vte_pty_fork_on_pty_name(const char *path, int parent_fd, char **env_add,
 		 * of the terminal than just opening it. */
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			fprintf(stderr, "Parent ready, waiting for child.\n");
+			g_printerr("Parent ready, waiting for child.\n");
 		}
 #endif
 		n_read(ready_a[0], &c, 1);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			fprintf(stderr, "Parent received child-ready.\n");
+			g_printerr("Parent received child-ready.\n");
 		}
 #endif
 		_vte_pty_set_size(parent_fd, columns, rows);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			fprintf(stderr, "Parent sending parent-ready.\n");
+			g_printerr("Parent sending parent-ready.\n");
 		}
 #endif
 		n_write(ready_b[1], &c, 1);
@@ -581,19 +581,19 @@ _vte_pty_fork_on_pty_fd(int fd, char **env_add,
 		 * of the terminal than just opening it. */
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			fprintf(stderr, "Parent ready.\n");
+			g_printerr("Parent ready.\n");
 		}
 #endif
 		n_read(ready_a[0], &c, 1);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			fprintf(stderr, "Parent received child-ready.\n");
+			g_printerr("Parent received child-ready.\n");
 		}
 #endif
 		_vte_pty_set_size(fd, columns, rows);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			fprintf(stderr, "Parent sending parent-ready.\n");
+			g_printerr("Parent sending parent-ready.\n");
 		}
 #endif
 		n_write(ready_b[1], &c, 1);
@@ -628,7 +628,7 @@ _vte_pty_set_size(int master, int columns, int rows)
 	size.ws_col = columns ? columns : 80;
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_PTY)) {
-		fprintf(stderr, "Setting size on fd %d to (%d,%d).\n",
+		g_printerr("Setting size on fd %d to (%d,%d).\n",
 			master, columns, rows);
 	}
 #endif
@@ -636,7 +636,7 @@ _vte_pty_set_size(int master, int columns, int rows)
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_PTY)) {
 		if (ret != 0) {
-			fprintf(stderr, "Failed to set size on %d: %s.\n",
+			g_printerr("Failed to set size on %d: %s.\n",
 				master, strerror(errno));
 		}
 	}
@@ -670,14 +670,14 @@ _vte_pty_get_size(int master, int *columns, int *rows)
 		}
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			fprintf(stderr, "Size on fd %d is (%d,%d).\n",
+			g_printerr("Size on fd %d is (%d,%d).\n",
 				master, size.ws_col, size.ws_row);
 		}
 #endif
 	} else {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			fprintf(stderr, "Failed to read size from fd %d.\n",
+			g_printerr("Failed to read size from fd %d.\n",
 				master);
 		}
 #endif
@@ -700,7 +700,7 @@ _vte_pty_ptsname(int master)
 			/* Return the allocated buffer with the name in it. */
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PTY)) {
-				fprintf(stderr, "PTY slave is `%s'.\n", buf);
+				g_printerr("PTY slave is `%s'.\n", buf);
 			}
 #endif
 			return buf;
@@ -717,7 +717,7 @@ _vte_pty_ptsname(int master)
 	if ((p = ptsname(master)) != NULL) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			fprintf(stderr, "PTY slave is `%s'.\n", p);
+			g_printerr("PTY slave is `%s'.\n", p);
 		}
 #endif
 		return g_strdup(p);
@@ -727,7 +727,7 @@ _vte_pty_ptsname(int master)
 	if (ioctl(master, TIOCGPTN, &pty) == 0) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			fprintf(stderr, "PTY slave is `/dev/pts/%d'.\n", pty);
+			g_printerr("PTY slave is `/dev/pts/%d'.\n", pty);
 		}
 #endif
 		return g_strdup_printf("/dev/pts/%d", pty);
@@ -792,7 +792,7 @@ _vte_pty_open_unix98(pid_t *child, char **env_add,
 	fd = _vte_pty_getpt();
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_PTY)) {
-		fprintf(stderr, "Allocated pty on fd %d.\n", fd);
+		g_printerr("Allocated pty on fd %d.\n", fd);
 	}
 #endif
 	if (fd != -1) {
@@ -802,7 +802,7 @@ _vte_pty_open_unix98(pid_t *child, char **env_add,
 		    (_vte_pty_unlockpt(fd) != 0)) {
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PTY)) {
-				fprintf(stderr, "PTY setup failed, bailing.\n");
+				g_printerr("PTY setup failed, bailing.\n");
 			}
 #endif
 			close(fd);
@@ -984,7 +984,7 @@ _vte_pty_open_with_helper(pid_t *child, char **env_add,
 		}
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			fprintf(stderr, "Sent request to helper.\n");
+			g_printerr("Sent request to helper.\n");
 		}
 #endif
 		/* Read back the response. */
@@ -994,7 +994,7 @@ _vte_pty_open_with_helper(pid_t *child, char **env_add,
 		}
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			fprintf(stderr, "Received response from helper.\n");
+			g_printerr("Received response from helper.\n");
 		}
 #endif
 		if (ret == 0) {
@@ -1002,7 +1002,7 @@ _vte_pty_open_with_helper(pid_t *child, char **env_add,
 		}
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			fprintf(stderr, "Helper returns success.\n");
+			g_printerr("Helper returns success.\n");
 		}
 #endif
 		/* Read back a tag. */
@@ -1012,7 +1012,7 @@ _vte_pty_open_with_helper(pid_t *child, char **env_add,
 		}
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			fprintf(stderr, "Tag = %p.\n", tag);
+			g_printerr("Tag = %p.\n", tag);
 		}
 #endif
 		/* Receive the master and slave ptys. */
@@ -1026,7 +1026,7 @@ _vte_pty_open_with_helper(pid_t *child, char **env_add,
 		}
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			fprintf(stderr, "Got master pty %d and slave pty %d.\n",
+			g_printerr("Got master pty %d and slave pty %d.\n",
 				parentfd, childfd);
 		}
 #endif
@@ -1113,7 +1113,7 @@ _vte_pty_open(pid_t *child, char **env_add,
 	}
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_PTY)) {
-		fprintf(stderr, "Returning ptyfd = %d.\n", ret);
+		g_printerr("Returning ptyfd = %d.\n", ret);
 	}
 #endif
 	return ret;
@@ -1215,10 +1215,10 @@ main(int argc, char **argv)
 			switch (i % 3) {
 			case 0:
 			case 1:
-				fprintf(stdout, "%d\n", i);
+				g_print("%d\n", i);
 				break;
 			case 2:
-				fprintf(stderr, "%d\n", i);
+				g_printerr("%d\n", i);
 				break;
 			default:
 				g_assert_not_reached();

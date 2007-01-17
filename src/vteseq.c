@@ -113,7 +113,7 @@ vte_terminal_emit_deiconify_window(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `deiconify-window'.\n");
+		g_printerr("Emitting `deiconify-window'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "deiconify-window");
@@ -125,7 +125,7 @@ vte_terminal_emit_iconify_window(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `iconify-window'.\n");
+		g_printerr("Emitting `iconify-window'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "iconify-window");
@@ -137,7 +137,7 @@ vte_terminal_emit_icon_title_changed(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `icon-title-changed'.\n");
+		g_printerr("Emitting `icon-title-changed'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "icon-title-changed");
@@ -149,7 +149,7 @@ vte_terminal_emit_window_title_changed(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `window-title-changed'.\n");
+		g_printerr("Emitting `window-title-changed'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "window-title-changed");
@@ -161,7 +161,7 @@ vte_terminal_emit_raise_window(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `raise-window'.\n");
+		g_printerr("Emitting `raise-window'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "raise-window");
@@ -173,7 +173,7 @@ vte_terminal_emit_lower_window(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `lower-window'.\n");
+		g_printerr("Emitting `lower-window'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "lower-window");
@@ -185,7 +185,7 @@ vte_terminal_emit_maximize_window(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `maximize-window'.\n");
+		g_printerr("Emitting `maximize-window'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "maximize-window");
@@ -197,7 +197,7 @@ vte_terminal_emit_refresh_window(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `refresh-window'.\n");
+		g_printerr("Emitting `refresh-window'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "refresh-window");
@@ -209,7 +209,7 @@ vte_terminal_emit_restore_window(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `restore-window'.\n");
+		g_printerr("Emitting `restore-window'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "restore-window");
@@ -221,7 +221,7 @@ vte_terminal_emit_move_window(VteTerminal *terminal, guint x, guint y)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `move-window'.\n");
+		g_printerr("Emitting `move-window'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "move-window", x, y);
@@ -234,7 +234,7 @@ vte_terminal_emit_resize_window(VteTerminal *terminal,
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `resize-window'.\n");
+		g_printerr("Emitting `resize-window'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "resize-window", width, height);
@@ -424,7 +424,7 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 					      &outbuf, &outbuf_len) == -1) {
 #ifdef VTE_DEBUG
 					if (_vte_debug_on(VTE_DEBUG_IO)) {
-						fprintf(stderr, "Error "
+						g_printerr("Error "
 							"converting %ld title "
 							"bytes (%s), "
 							"skipping.\n",
@@ -664,7 +664,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 			set = (p != NULL);
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				fprintf(stderr, "Setting %d was %s.\n",
+				g_printerr("Setting %d was %s.\n",
 					setting, set ? "set" : "unset");
 			}
 #endif
@@ -684,7 +684,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 			}
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				fprintf(stderr, "Setting %d is %s, saving.\n",
+				g_printerr("Setting %d is %s, saving.\n",
 					setting, set ? "set" : "unset");
 			}
 #endif
@@ -696,7 +696,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		if (!save) {
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				fprintf(stderr, "Setting %d to %s.\n",
+				g_printerr("Setting %d to %s.\n",
 					setting, set ? "set" : "unset");
 			}
 #endif
@@ -728,9 +728,9 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
 			if (set) {
-				fprintf(stderr, "Entering application cursor mode.\n");
+				g_printerr("Entering application cursor mode.\n");
 			} else {
-				fprintf(stderr, "Leaving application cursor mode.\n");
+				g_printerr("Leaving application cursor mode.\n");
 			}
 		}
 #endif
@@ -831,9 +831,9 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
 			if (set) {
-				fprintf(stderr, "Entering application keypad mode.\n");
+				g_printerr("Entering application keypad mode.\n");
 			} else {
-				fprintf(stderr, "Leaving application keypad mode.\n");
+				g_printerr("Leaving application keypad mode.\n");
 			}
 		}
 #endif
@@ -842,9 +842,9 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
 			if (set) {
-				fprintf(stderr, "Entering Sun fkey mode.\n");
+				g_printerr("Entering Sun fkey mode.\n");
 			} else {
-				fprintf(stderr, "Leaving Sun fkey mode.\n");
+				g_printerr("Leaving Sun fkey mode.\n");
 			}
 		}
 #endif
@@ -853,9 +853,9 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
 			if (set) {
-				fprintf(stderr, "Entering HP fkey mode.\n");
+				g_printerr("Entering HP fkey mode.\n");
 			} else {
-				fprintf(stderr, "Leaving HP fkey mode.\n");
+				g_printerr("Leaving HP fkey mode.\n");
 			}
 		}
 #endif
@@ -864,9 +864,9 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
 			if (set) {
-				fprintf(stderr, "Entering Legacy fkey mode.\n");
+				g_printerr("Entering Legacy fkey mode.\n");
 			} else {
-				fprintf(stderr, "Leaving Legacy fkey mode.\n");
+				g_printerr("Leaving Legacy fkey mode.\n");
 			}
 		}
 #endif
@@ -875,9 +875,9 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
 			if (set) {
-				fprintf(stderr, "Entering VT220 fkey mode.\n");
+				g_printerr("Entering VT220 fkey mode.\n");
 			} else {
-				fprintf(stderr, "Leaving VT220 fkey mode.\n");
+				g_printerr("Leaving VT220 fkey mode.\n");
 			}
 		}
 #endif
@@ -1089,7 +1089,7 @@ vte_sequence_handler_bt(VteTerminal *terminal,
 	/* Warp the cursor. */
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-		fprintf(stderr, "Moving cursor to column %ld.\n", (long)newcol);
+		g_printerr("Moving cursor to column %ld.\n", (long)newcol);
 	}
 #endif
 	terminal->pvt->screen->cursor_current.col = newcol;
@@ -3144,7 +3144,7 @@ vte_sequence_handler_application_keypad(VteTerminal *terminal,
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-		fprintf(stderr, "Entering application keypad mode.\n");
+		g_printerr("Entering application keypad mode.\n");
 	}
 #endif
 	terminal->pvt->keypad_mode = VTE_KEYMODE_APPLICATION;
@@ -3159,7 +3159,7 @@ vte_sequence_handler_normal_keypad(VteTerminal *terminal,
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-		fprintf(stderr, "Leaving application keypad mode.\n");
+		g_printerr("Leaving application keypad mode.\n");
 	}
 #endif
 	terminal->pvt->keypad_mode = VTE_KEYMODE_NORMAL;
@@ -3800,7 +3800,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 		case 1:
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				fprintf(stderr, "Deiconifying window.\n");
+				g_printerr("Deiconifying window.\n");
 			}
 #endif
 			vte_terminal_emit_deiconify_window(terminal);
@@ -3808,7 +3808,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 		case 2:
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				fprintf(stderr, "Iconifying window.\n");
+				g_printerr("Iconifying window.\n");
 			}
 #endif
 			vte_terminal_emit_iconify_window(terminal);
@@ -3817,7 +3817,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			if ((arg1 != -1) && (arg2 != -2)) {
 #ifdef VTE_DEBUG
 				if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Moving window to "
+					g_printerr("Moving window to "
 						"%ld,%ld.\n", arg1, arg2);
 				}
 #endif
@@ -3830,7 +3830,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			if ((arg1 != -1) && (arg2 != -1)) {
 #ifdef VTE_DEBUG
 				if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Resizing window "
+					g_printerr("Resizing window "
 						"(to %ldx%ld pixels).\n",
 						arg2, arg1);
 				}
@@ -3846,7 +3846,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 		case 5:
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				fprintf(stderr, "Raising window.\n");
+				g_printerr("Raising window.\n");
 			}
 #endif
 			vte_terminal_emit_raise_window(terminal);
@@ -3854,7 +3854,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 		case 6:
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				fprintf(stderr, "Lowering window.\n");
+				g_printerr("Lowering window.\n");
 			}
 #endif
 			vte_terminal_emit_lower_window(terminal);
@@ -3862,7 +3862,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 		case 7:
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				fprintf(stderr, "Refreshing window.\n");
+				g_printerr("Refreshing window.\n");
 			}
 #endif
 			_vte_invalidate_all(terminal);
@@ -3872,7 +3872,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			if ((arg1 != -1) && (arg2 != -1)) {
 #ifdef VTE_DEBUG
 				if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Resizing window "
+					g_printerr("Resizing window "
 						"(to %ld columns, %ld rows).\n",
 						arg2, arg1);
 				}
@@ -3890,7 +3890,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			case 0:
 #ifdef VTE_DEBUG
 				if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Restoring window.\n");
+					g_printerr("Restoring window.\n");
 				}
 #endif
 				vte_terminal_emit_restore_window(terminal);
@@ -3898,7 +3898,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			case 1:
 #ifdef VTE_DEBUG
 				if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Maximizing window.\n");
+					g_printerr("Maximizing window.\n");
 				}
 #endif
 				vte_terminal_emit_maximize_window(terminal);
@@ -3915,7 +3915,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 				 1 + !GTK_WIDGET_MAPPED(widget));
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				fprintf(stderr, "Reporting window state %s.\n",
+				g_printerr("Reporting window state %s.\n",
 					GTK_WIDGET_MAPPED(widget) ?
 					"non-iconified" : "iconified");
 			}
@@ -3931,7 +3931,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 				 width + VTE_PAD_WIDTH, height + VTE_PAD_WIDTH);
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				fprintf(stderr, "Reporting window location"
+				g_printerr("Reporting window location"
 					"(%d++,%d++).\n",
 					width, height);
 			}
@@ -3948,7 +3948,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 				 width - 2 * VTE_PAD_WIDTH);
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				fprintf(stderr, "Reporting window size "
+				g_printerr("Reporting window size "
 					"(%dx%dn",
 					width - 2 * VTE_PAD_WIDTH,
 					height - 2 * VTE_PAD_WIDTH);
@@ -3960,7 +3960,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			/* Send widget size, in cells. */
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				fprintf(stderr, "Reporting widget size.\n");
+				g_printerr("Reporting widget size.\n");
 			}
 #endif
 			snprintf(buf, sizeof(buf),
@@ -3972,7 +3972,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 		case 19:
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				fprintf(stderr, "Reporting screen size.\n");
+				g_printerr("Reporting screen size.\n");
 			}
 #endif
 			if (gtk_widget_has_screen(widget)) {
@@ -3992,7 +3992,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			/* Report the icon title. */
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				fprintf(stderr, "Reporting icon title.\n");
+				g_printerr("Reporting icon title.\n");
 			}
 #endif
 			snprintf(buf, sizeof(buf),
@@ -4006,7 +4006,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			/* Report the window title. */
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				fprintf(stderr, "Reporting window title.\n");
+				g_printerr("Reporting window title.\n");
 			}
 #endif
 			snprintf(buf, sizeof(buf),
@@ -4020,7 +4020,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			if (param >= 24) {
 #ifdef VTE_DEBUG
 				if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Resizing to %ld rows.\n",
+					g_printerr("Resizing to %ld rows.\n",
 						param);
 				}
 #endif

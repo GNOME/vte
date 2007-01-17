@@ -91,7 +91,7 @@ _vte_draw_new(GtkWidget *widget)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Using %s.\n", draw->impl->name);
+		g_printerr("Using %s.\n", draw->impl->name);
 	}
 #endif
 

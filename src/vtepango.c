@@ -326,7 +326,7 @@ _vte_pango_set_text_font(struct _vte_draw *draw,
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "VtePango font metrics = %dx%d (%d).\n",
+		g_printerr("VtePango font metrics = %dx%d (%d).\n",
 			draw->width, draw->height, draw->ascent);
 	}
 #endif

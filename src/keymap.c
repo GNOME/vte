@@ -19,7 +19,6 @@
 #include "../config.h"
 #include <stdlib.h>
 #include <stdarg.h>
-#include <stdio.h>
 #include <string.h>
 #include <glib.h>
 #include <gdk/gdk.h>
@@ -950,52 +949,52 @@ _vte_keymap_map(guint keyval,
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-		fprintf(stderr, "Mapping ");
+		g_printerr("Mapping ");
 		if (modifiers & GDK_CONTROL_MASK) {
-			fprintf(stderr, "Control+");
+			g_printerr("Control+");
 		}
 		if (modifiers & VTE_META_MASK) {
-			fprintf(stderr, "Meta+");
+			g_printerr("Meta+");
 		}
 		if (modifiers & VTE_NUMLOCK_MASK) {
-			fprintf(stderr, "NumLock+");
+			g_printerr("NumLock+");
 		}
 		if (modifiers & GDK_SHIFT_MASK) {
-			fprintf(stderr, "Shift+");
+			g_printerr("Shift+");
 		}
-		fprintf(stderr, "%s" , _vte_keysym_name(keyval));
+		g_printerr("%s" , _vte_keysym_name(keyval));
 		if (sun_mode || hp_mode || legacy_mode || vt220_mode) {
 			i = 0;
-			fprintf(stderr, "(");
+			g_printerr("(");
 			if (sun_mode) {
 				if (i > 0) {
-					fprintf(stderr, ",");
+					g_printerr(",");
 				}
 				i++;
-				fprintf(stderr, "Sun");
+				g_printerr("Sun");
 			}
 			if (hp_mode) {
 				if (i > 0) {
-					fprintf(stderr, ",");
+					g_printerr(",");
 				}
 				i++;
-				fprintf(stderr, "HP");
+				g_printerr("HP");
 			}
 			if (legacy_mode) {
 				if (i > 0) {
-					fprintf(stderr, ",");
+					g_printerr(",");
 				}
 				i++;
-				fprintf(stderr, "Legacy");
+				g_printerr("Legacy");
 			}
 			if (vt220_mode) {
 				if (i > 0) {
-					fprintf(stderr, ",");
+					g_printerr(",");
 				}
 				i++;
-				fprintf(stderr, "VT220");
+				g_printerr("VT220");
 			}
-			fprintf(stderr, ")");
+			g_printerr(")");
 		}
 	}
 #endif
@@ -1057,7 +1056,7 @@ _vte_keymap_map(guint keyval,
 	if (entries == NULL) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-			fprintf(stderr, " (ignoring, no map for key).\n");
+			g_printerr(" (ignoring, no map for key).\n");
 		}
 #endif
 		return;
@@ -1108,18 +1107,18 @@ _vte_keymap_map(guint keyval,
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
 				int j;
-				fprintf(stderr, " to '");
+				g_printerr(" to '");
 				for (j = 0; j < *normal_length; j++) {
 					if (((*normal)[j] < 32) ||
 					    ((*normal)[j] >= 127)) {
-						fprintf(stderr, "<0x%02x>",
+						g_printerr("<0x%02x>",
 							(*normal)[j]);
 					} else {
-						fprintf(stderr, "%c",
+						g_printerr("%c",
 							(*normal)[j]);
 					}
 				}
-				fprintf(stderr, "'.\n");
+				g_printerr("'.\n");
 			}
 #endif
 			return;
@@ -1135,7 +1134,7 @@ _vte_keymap_map(guint keyval,
 					*special = entries[i].special;
 #ifdef VTE_DEBUG
 					if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-						fprintf(stderr, " to \"%s\"",
+						g_printerr(" to \"%s\"",
 							*special);
 					}
 #endif
@@ -1145,8 +1144,7 @@ _vte_keymap_map(guint keyval,
 					/* Return the special string. */
 #ifdef VTE_DEBUG
 					if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-						fprintf(stderr,
-							", returning.\n");
+						g_printerr(", returning.\n");
 					}
 #endif
 					return;
@@ -1179,23 +1177,23 @@ _vte_keymap_map(guint keyval,
 			if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
 				int j;
 #ifdef HAVE_CURSES
-				fprintf(stderr, " via ncurses to '");
+				g_printerr(" via ncurses to '");
 #else
 #ifdef HAVE_TERMCAP
-				fprintf(stderr, " via termcap to '");
+				g_printerr(" via termcap to '");
 #endif
 #endif
 				for (j = 0; j < *normal_length; j++) {
 					if (((*normal)[j] < 32) ||
 					    ((*normal)[j] >= 127)) {
-						fprintf(stderr, "<0x%02x>",
+						g_printerr("<0x%02x>",
 							(*normal)[j]);
 					} else {
-						fprintf(stderr, "%c",
+						g_printerr("%c",
 							(*normal)[j]);
 					}
 				}
-				fprintf(stderr, "', returning.\n");
+				g_printerr("', returning.\n");
 			}
 #endif
 			return;
@@ -1205,7 +1203,7 @@ _vte_keymap_map(guint keyval,
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-		fprintf(stderr, " (ignoring, no match for modifier state).\n");
+		g_printerr(" (ignoring, no match for modifier state).\n");
 	}
 #endif
 }

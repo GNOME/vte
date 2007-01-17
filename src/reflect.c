@@ -154,9 +154,9 @@ text_changed_insert(AtkObject *obj, gint offset, gint length, gpointer data)
 #ifdef VTE_DEBUG
 	if ((getenv("REFLECT_VERBOSE") != NULL) &&
 	    (atol(getenv("REFLECT_VERBOSE")) != 0)) {
-		fprintf(stderr, "Inserted %d chars ('%.*s') at %d,",
+		g_printerr("Inserted %d chars ('%.*s') at %d,",
 			length, (int)(p - inserted), inserted, offset);
-		fprintf(stderr, " buffer contains %d characters.\n",
+		g_printerr(" buffer contains %d characters.\n",
 			contents->len);
 	}
 #endif
@@ -180,7 +180,7 @@ text_changed_delete(AtkObject *obj, gint offset, gint length, gpointer data)
 #ifdef VTE_DEBUG
 	if ((getenv("REFLECT_VERBOSE") != NULL) &&
 	    (atol(getenv("REFLECT_VERBOSE")) != 0)) {
-		fprintf(stderr, "Deleted %d chars at %d.\n", length, offset);
+		g_printerr("Deleted %d chars at %d.\n", length, offset);
 	}
 #endif
 	update_contents(obj, GTK_WIDGET(data));

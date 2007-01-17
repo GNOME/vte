@@ -165,7 +165,7 @@ emit_text_caret_moved(GObject *object, glong caret)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Accessibility peer emitting "
+		g_printerr("Accessibility peer emitting "
 			"`text-caret-moved'.\n");
 	}
 #endif
@@ -196,10 +196,10 @@ emit_text_changed_insert(GObject *object,
 	}
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Accessibility peer emitting "
+		g_printerr("Accessibility peer emitting "
 			"`text-changed::insert' (%ld, %ld) (%ld, %ld).\n",
 			offset, len, start, count);
-		fprintf(stderr, "Inserted text was `%.*s'.\n",
+		g_printerr("Inserted text was `%.*s'.\n",
 			(int) len, text + offset);
 	}
 #endif
@@ -230,10 +230,10 @@ emit_text_changed_delete(GObject *object,
 	}
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Accessibility peer emitting "
+		g_printerr("Accessibility peer emitting "
 			"`text-changed::delete' (%ld, %ld) (%ld, %ld).\n",
 			offset, len, start, count);
-		fprintf(stderr, "Deleted text was `%.*s'.\n",
+		g_printerr("Deleted text was `%.*s'.\n",
 			(int) len, text + offset);
 	}
 #endif
@@ -378,7 +378,7 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 			if ((i == 0) || (attrs.row != row)) {
 #ifdef VTE_DEBUG
 				if (_vte_debug_on(VTE_DEBUG_MISC)) {
-					fprintf(stderr, "Row %d/%ld begins at "
+					g_printerr("Row %d/%ld begins at "
 						"%ld.\n",
 						priv->snapshot_linebreaks->len,
 						attrs.row, i);
@@ -398,7 +398,7 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 	vte_terminal_get_cursor_position(terminal, &ccol, &crow);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Cursor at (%ld, " "%ld).\n", ccol, crow);
+		g_printerr("Cursor at (%ld, " "%ld).\n", ccol, crow);
 	}
 #endif
 
@@ -436,7 +436,7 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Refreshed accessibility snapshot, "
+		g_printerr("Refreshed accessibility snapshot, "
 			"%ld cells.\n", (long)priv->snapshot_attributes->len);
 	}
 #endif
@@ -677,7 +677,7 @@ vte_terminal_accessible_invalidate_cursor(VteTerminal *terminal, gpointer data)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Invalidating accessibility cursor.\n");
+		g_printerr("Invalidating accessibility cursor.\n");
 	}
 #endif
 	priv->snapshot_caret_invalid = TRUE;
@@ -862,7 +862,7 @@ vte_terminal_accessible_finalize(GObject *object)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Finalizing accessible peer.\n");
+		g_printerr("Finalizing accessible peer.\n");
 	}
 #endif
 
@@ -957,7 +957,7 @@ vte_terminal_accessible_get_text(AtkText *text,
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Getting text from %d to %d of %d.\n",
+		g_printerr("Getting text from %d to %d of %d.\n",
 			start_offset, end_offset,
 			priv->snapshot_characters->len);
 	}
@@ -1011,7 +1011,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Getting %s %s at %d of %d.\n",
+		g_printerr("Getting %s %s at %d of %d.\n",
 			(direction == direction_current) ? "this" :
 			((direction == direction_next) ? "next" : "previous"),
 			(boundary_type == ATK_TEXT_BOUNDARY_CHAR) ? "char" :
@@ -1128,7 +1128,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			}
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_MISC)) {
-				fprintf(stderr, "Character %d is on line %d.\n",
+				g_printerr("Character %d is on line %d.\n",
 					offset, line);
 			}
 #endif
@@ -1146,7 +1146,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 						    int, line);
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_MISC)) {
-				fprintf(stderr, "Line runs from %d to %d.\n",
+				g_printerr("Line runs from %d to %d.\n",
 					*start_offset, *end_offset);
 			}
 #endif
@@ -1569,7 +1569,7 @@ vte_terminal_accessible_text_init(gpointer iface, gpointer data)
 	text = iface;
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Initializing accessible peer's "
+		g_printerr("Initializing accessible peer's "
 			"AtkText interface.\n");
 	}
 #endif
@@ -1787,7 +1787,7 @@ vte_terminal_accessible_component_init(gpointer iface, gpointer data)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Initializing accessible peer's "
+		g_printerr("Initializing accessible peer's "
 			"AtkComponent interface.\n");
 	}
 #endif
@@ -1936,7 +1936,7 @@ vte_terminal_accessible_factory_new(void)
 	GObject *factory;
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Creating a new "
+		g_printerr("Creating a new "
 			"VteTerminalAccessibleFactory.\n");
 	}
 #endif

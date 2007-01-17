@@ -678,7 +678,7 @@ _vte_table_printi(struct _vte_table *table, const char *lead, int *count)
 
 	/* Result? */
 	if (table->result != NULL) {
-		fprintf(stderr, "%s = `%s'(%d)\n", lead,
+		g_printerr("%s = `%s'(%d)\n", lead,
 			table->result, table->increment);
 	}
 
@@ -719,7 +719,7 @@ _vte_table_print(struct _vte_table *table)
 {
 	int count = 0;
 	_vte_table_printi(table, "", &count);
-	fprintf(stderr, "%d nodes = %ld bytes.\n",
+	g_printerr("%d nodes = %ld bytes.\n",
 		count, (long) count * sizeof(struct _vte_table));
 }
 

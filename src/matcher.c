@@ -19,7 +19,6 @@
 
 #include "../config.h"
 #include <sys/types.h>
-#include <stdio.h>
 #include <string.h>
 #include <glib-object.h>
 #include "debug.h"
@@ -70,7 +69,7 @@ _vte_matcher_init(struct _vte_matcher *matcher, const char *emulation,
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-		fprintf(stderr, "_vte_matcher_init()\n");
+		g_printerr("_vte_matcher_init()\n");
 	}
 #endif
 
@@ -126,9 +125,9 @@ _vte_matcher_init(struct _vte_matcher *matcher, const char *emulation,
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_TRIE)) {
-		fprintf(stderr, "Trie contents:\n");
+		g_printerr("Trie contents:\n");
 		_vte_matcher_print(matcher);
-		fprintf(stderr, "\n");
+		g_printerr("\n");
 	}
 #endif
 }
@@ -142,7 +141,7 @@ _vte_matcher_create(gpointer key)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-		fprintf(stderr, "_vte_matcher_create()\n");
+		g_printerr("_vte_matcher_create()\n");
 	}
 #endif
 	ret = g_slice_new(struct _vte_matcher);
@@ -178,7 +177,7 @@ _vte_matcher_destroy(gpointer value)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-		fprintf(stderr, "_vte_matcher_destroy()\n");
+		g_printerr("_vte_matcher_destroy()\n");
 	}
 #endif
 	if (matcher->table != NULL) {

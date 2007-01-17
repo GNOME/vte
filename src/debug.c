@@ -18,7 +18,6 @@
 
 #include "../config.h"
 #include <glib.h>
-#include <stdio.h>
 #include "debug.h"
 
 static VteDebugFlags _vte_debug_flags = 0;

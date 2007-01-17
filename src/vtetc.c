@@ -549,7 +549,7 @@ main (int argc, char **argv)
 
   if (argc < 4)
   {
-    fprintf (stderr, "vtetc /path/to/termcap termname attrs...\n"
+    g_printerr("vtetc /path/to/termcap termname attrs...\n"
                      "  where attrs are\n"
                      "    :xx for boolean\n"
                      "    =xx for string\n"
@@ -599,7 +599,7 @@ main (int argc, char **argv)
         break;
 
       default:
-        fprintf (stderr, "unrecognised type '%c'\n", argv[i][0]);
+        g_printerr("unrecognised type '%c'\n", argv[i][0]);
     }
   }
 

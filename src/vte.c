@@ -487,7 +487,7 @@ _vte_invalidate_cursor_once(gpointer data, gboolean periodic)
 				     row, 1);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_UPDATES)) {
-			fprintf(stderr, "Invalidating cursor at (%ld,%d-%d)."
+			g_printerr("Invalidating cursor at (%ld,%d-%d)."
 				"\n", screen->cursor_current.row,
 				column,
 				column + columns);
@@ -572,7 +572,7 @@ vte_terminal_emit_selection_changed(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `selection-changed'.\n");
+		g_printerr("Emitting `selection-changed'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "selection-changed");
@@ -586,7 +586,7 @@ vte_terminal_emit_commit(VteTerminal *terminal, const gchar *text, guint length)
 	char *wrapped = NULL;
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `commit' of %d bytes.\n", length);
+		g_printerr("Emitting `commit' of %d bytes.\n", length);
 	}
 #endif
 	if (length == -1) {
@@ -608,7 +608,7 @@ vte_terminal_emit_emulation_changed(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `emulation-changed'.\n");
+		g_printerr("Emitting `emulation-changed'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "emulation-changed");
@@ -620,7 +620,7 @@ vte_terminal_emit_encoding_changed(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `encoding-changed'.\n");
+		g_printerr("Emitting `encoding-changed'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "encoding-changed");
@@ -632,7 +632,7 @@ vte_terminal_emit_child_exited(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `child-exited'.\n");
+		g_printerr("Emitting `child-exited'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "child-exited");
@@ -644,7 +644,7 @@ _vte_terminal_emit_contents_changed(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `contents-changed'.\n");
+		g_printerr("Emitting `contents-changed'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "contents-changed");
@@ -656,7 +656,7 @@ vte_terminal_emit_cursor_moved(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `cursor-moved'.\n");
+		g_printerr("Emitting `cursor-moved'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "cursor-moved");
@@ -668,7 +668,7 @@ vte_terminal_emit_eof(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `eof'.\n");
+		g_printerr("Emitting `eof'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "eof");
@@ -681,7 +681,7 @@ vte_terminal_emit_char_size_changed(VteTerminal *terminal,
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `char-size-changed'.\n");
+		g_printerr("Emitting `char-size-changed'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "char-size-changed",
@@ -694,7 +694,7 @@ _vte_terminal_emit_status_line_changed(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `status-line-changed'.\n");
+		g_printerr("Emitting `status-line-changed'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "status-line-changed");
@@ -706,7 +706,7 @@ vte_terminal_emit_increase_font_size(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `increase-font-size'.\n");
+		g_printerr("Emitting `increase-font-size'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "increase-font-size");
@@ -718,7 +718,7 @@ vte_terminal_emit_decrease_font_size(VteTerminal *terminal)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `decrease-font-size'.\n");
+		g_printerr("Emitting `decrease-font-size'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "decrease-font-size");
@@ -733,7 +733,7 @@ _vte_terminal_emit_text_inserted(VteTerminal *terminal)
 	}
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `text-inserted'.\n");
+		g_printerr("Emitting `text-inserted'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "text-inserted");
@@ -748,7 +748,7 @@ _vte_terminal_emit_text_deleted(VteTerminal *terminal)
 	}
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `text-deleted'.\n");
+		g_printerr("Emitting `text-deleted'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "text-deleted");
@@ -763,7 +763,7 @@ vte_terminal_emit_text_modified(VteTerminal *terminal)
 	}
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `text-modified'.\n");
+		g_printerr("Emitting `text-modified'.\n");
 	}
 #endif
 	g_signal_emit_by_name(terminal, "text-modified");
@@ -778,7 +778,7 @@ vte_terminal_emit_text_scrolled(VteTerminal *terminal, gint delta)
 	}
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		fprintf(stderr, "Emitting `text-scrolled'(%d).\n", delta);
+		g_printerr("Emitting `text-scrolled'(%d).\n", delta);
 	}
 #endif
 	g_signal_emit_by_name(terminal, "text-scrolled", delta);
@@ -793,7 +793,7 @@ vte_terminal_deselect_all(VteTerminal *terminal)
 		terminal->pvt->has_selection = FALSE;
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
-			fprintf(stderr, "Deselecting all text.\n");
+			g_printerr("Deselecting all text.\n");
 		}
 #endif
 		vte_terminal_emit_selection_changed(terminal);
@@ -1100,7 +1100,7 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 	struct _vte_regex_match matches[256];
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-		fprintf(stderr, "Checking for match at (%ld,%ld).\n",
+		g_printerr("Checking for match at (%ld,%ld).\n",
 			row, column);
 	}
 #endif
@@ -1133,9 +1133,9 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
 		if (offset < 0) {
-			fprintf(stderr, "Cursor is not on a character.\n");
+			g_printerr("Cursor is not on a character.\n");
 		} else {
-			fprintf(stderr, "Cursor is on character %d.\n", offset);
+			g_printerr("Cursor is on character %d.\n", offset);
 		}
 	}
 #endif
@@ -1151,7 +1151,7 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 	    (terminal->pvt->match_contents[offset] == '\0')) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Cursor is on whitespace.\n");
+			g_printerr("Cursor is on whitespace.\n");
 		}
 #endif
 		terminal->pvt->match_previous = -1;
@@ -1197,7 +1197,7 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 					eattr = &g_array_index(terminal->pvt->match_attributes,
 							       struct _VteCharAttributes,
 							       matches[j].rm_eo + coffset - 1);
-					fprintf(stderr, "Match %d `%s' from %d(%ld,%ld) to %d(%ld,%ld) (%d).\n",
+					g_printerr("Match %d `%s' from %d(%ld,%ld) to %d(%ld,%ld) (%d).\n",
 						j, match,
 						matches[j].rm_so + coffset,
 						sattr->column,
@@ -1282,7 +1282,7 @@ vte_terminal_match_check(VteTerminal *terminal, glong column, glong row,
 	delta = terminal->pvt->screen->scroll_delta;
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-		fprintf(stderr, "Checking for match at (%ld,%ld).\n",
+		g_printerr("Checking for match at (%ld,%ld).\n",
 			row, column);
 	}
 #endif
@@ -1291,7 +1291,7 @@ vte_terminal_match_check(VteTerminal *terminal, glong column, glong row,
 						tag, NULL, NULL);
 #ifdef VTE_DEBUG
 	if ((ret != NULL) && _vte_debug_on(VTE_DEBUG_EVENTS)) {
-		fprintf(stderr, "Matched `%s'.\n", ret);
+		g_printerr("Matched `%s'.\n", ret);
 	}
 #endif
 	return ret;
@@ -1306,7 +1306,7 @@ vte_terminal_emit_adjustment_changed(gpointer data)
 	if (terminal->pvt->adjustment_changed_tag) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-			fprintf(stderr, "Emitting adjustment_changed.\n");
+			g_printerr("Emitting adjustment_changed.\n");
 		}
 #endif
 		terminal->pvt->adjustment_changed_tag = 0;
@@ -1328,7 +1328,7 @@ vte_terminal_queue_adjustment_changed(VteTerminal *terminal)
 	} else {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Swallowing duplicate "
+			g_printerr("Swallowing duplicate "
 				"adjustment-changed signal.\n");
 		}
 #endif
@@ -1356,7 +1356,7 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 	delta = _vte_ring_delta(screen->row_data);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_IO)) {
-		fprintf(stderr, "Changing adjustment values "
+		g_printerr("Changing adjustment values "
 			"(delta = %ld, scroll = %ld).\n",
 			delta, screen->scroll_delta);
 	}
@@ -1364,7 +1364,7 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 	if (terminal->adjustment->lower != delta) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_IO)) {
-			fprintf(stderr, "Changing lower bound from %lf to %ld\n",
+			g_printerr("Changing lower bound from %lf to %ld\n",
 				terminal->adjustment->lower,
 				delta);
 
@@ -1389,7 +1389,7 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 	if (terminal->adjustment->upper != rows) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_IO)) {
-			fprintf(stderr, "Changing upper bound from %f to %ld\n",
+			g_printerr("Changing upper bound from %f to %ld\n",
 				terminal->adjustment->upper,
 				rows);
 
@@ -1404,7 +1404,7 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 	if (terminal->adjustment->step_increment != 1) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_IO)) {
-			fprintf(stderr, "Changing step increment from %lf to %ld\n",
+			g_printerr("Changing step increment from %lf to %ld\n",
 				terminal->adjustment->step_increment,
 				terminal->row_count);
 
@@ -1420,7 +1420,7 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 	if (terminal->adjustment->page_size != terminal->row_count) {
 #ifdef VTE_DEBUG
 	      if (_vte_debug_on(VTE_DEBUG_IO)) {
-		    fprintf(stderr, "Changing page size from %f to %ld\n",
+		    g_printerr("Changing page size from %f to %ld\n",
 			    terminal->adjustment->page_size,
 			    terminal->row_count);
 
@@ -1436,7 +1436,7 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 	if (terminal->adjustment->page_increment != terminal->row_count) {
 #ifdef VTE_DEBUG
 	      if (_vte_debug_on(VTE_DEBUG_IO)) {
-		    fprintf(stderr, "Changing page increment from "
+		    g_printerr("Changing page increment from "
 			    "%f to %ld\n", 
 			    terminal->adjustment->page_increment,
 			    terminal->row_count);
@@ -1453,7 +1453,7 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 	    screen->scroll_delta) {
 #ifdef VTE_DEBUG
 	      if (_vte_debug_on(VTE_DEBUG_IO)) {
-		    fprintf(stderr, "Changing adjustment scroll position: "
+		    g_printerr("Changing adjustment scroll position: "
 			    "%ld\n", screen->scroll_delta);
 	      }
 #endif 
@@ -1464,7 +1464,7 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 
 #ifdef VTE_DEBUG
 	      if (_vte_debug_on(VTE_DEBUG_IO)) {
-		    fprintf(stderr, "Changed adjustment scroll position: "
+		    g_printerr("Changed adjustment scroll position: "
 			    "%ld\n", screen->scroll_delta);
 	      }
 #endif 
@@ -1475,7 +1475,7 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 	if (changed == TRUE) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_IO)) {
-			fprintf(stderr, "Changed adjustment values "
+			g_printerr("Changed adjustment values "
 				"(delta = %ld, scroll = %ld).\n",
 				delta, terminal->pvt->screen->scroll_delta);
 		}
@@ -1496,7 +1496,7 @@ vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
 	g_assert(VTE_IS_TERMINAL(terminal));
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_IO)) {
-		fprintf(stderr, "Scrolling %d pages.\n", pages);
+		g_printerr("Scrolling %d pages.\n", pages);
 	}
 #endif
 	/* Calculate the ideal position where we want to be before clamping. */
@@ -1539,7 +1539,7 @@ vte_terminal_maybe_scroll_to_bottom(VteTerminal *terminal)
 
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_IO)) {
-		      fprintf (stderr, "Snapping to bottom of screen\n");
+		      g_printerr("Snapping to bottom of screen\n");
 		}
 #endif
 	}
@@ -1633,7 +1633,7 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_IO)) {
-		fprintf(stderr, "Set terminal encoding to `%s'.\n",
+		g_printerr("Set terminal encoding to `%s'.\n",
 			terminal->pvt->encoding);
 	}
 #endif
@@ -1753,7 +1753,7 @@ _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 		    terminal->pvt->mouse_all_motion_tracking) {
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_CURSOR)) {
-				fprintf(stderr, "Setting mousing cursor.\n");
+				g_printerr("Setting mousing cursor.\n");
 			}
 #endif
 			cursor = terminal->pvt->mouse_mousing_cursor;
@@ -1767,7 +1767,7 @@ _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 		} else {
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_CURSOR)) {
-				fprintf(stderr, "Setting default mouse "
+				g_printerr("Setting default mouse "
 					"cursor.\n");
 			}
 #endif
@@ -1776,7 +1776,7 @@ _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 	} else {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_CURSOR)) {
-			fprintf(stderr, "Setting to invisible cursor.\n");
+			g_printerr("Setting to invisible cursor.\n");
 		}
 #endif
 		cursor = terminal->pvt->mouse_inviso_cursor;
@@ -1802,7 +1802,7 @@ vte_terminal_new(void)
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-		fprintf(stderr, "vte_terminal_new()\n");
+		g_printerr("vte_terminal_new()\n");
 	}
 #endif
 
@@ -1874,7 +1874,7 @@ vte_terminal_generate_bold(const struct vte_palette_entry *foreground,
 	b = fy + 1.722 * fcb;
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Calculated bold (%d, %d, %d) = (%lf,%lf,%lf)",
+		g_printerr("Calculated bold (%d, %d, %d) = (%lf,%lf,%lf)",
 			foreground->red, foreground->green, foreground->blue,
 			r, g, b);
 	}
@@ -1884,7 +1884,7 @@ vte_terminal_generate_bold(const struct vte_palette_entry *foreground,
 	bold->blue = CLAMP(b, 0, 0xffff);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "= (%04x,%04x,%04x).\n",
+		g_printerr("= (%04x,%04x,%04x).\n",
 			bold->red, bold->green, bold->blue);
 	}
 #endif
@@ -2189,7 +2189,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	if (screen->defaults.alternate) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SUBSTITUTION)) {
-			fprintf(stderr, "Attempting charset substitution"
+			g_printerr("Attempting charset substitution"
 				"for 0x%04x.\n", c);
 		}
 #endif
@@ -2224,7 +2224,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_IO) && _vte_debug_on(VTE_DEBUG_PARSE)) {
-		fprintf(stderr, "Inserting %ld %c (%d/%d)(%d), delta = %ld, ",
+		g_printerr("Inserting %ld %c (%d/%d)(%d), delta = %ld, ",
 			(long)c,
 			c < 256 ? c : ' ',
 			screen->defaults.fore, screen->defaults.back,
@@ -2385,7 +2385,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_IO) && _vte_debug_on(VTE_DEBUG_PARSE)) {
-		fprintf(stderr, "insertion delta => %ld.\n",
+		g_printerr("insertion delta => %ld.\n",
 			(long)screen->insert_delta);
 	}
 #endif
@@ -2403,28 +2403,28 @@ display_control_sequence(const char *name, GValueArray *params)
 	const char *s;
 	const gunichar *w;
 	GValue *value;
-	fprintf(stderr, "%s(", name);
+	g_printerr("%s(", name);
 	if (params != NULL) {
 		for (i = 0; i < params->n_values; i++) {
 			value = g_value_array_get_nth(params, i);
 			if (i > 0) {
-				fprintf(stderr, ", ");
+				g_printerr(", ");
 			}
 			if (G_VALUE_HOLDS_LONG(value)) {
 				l = g_value_get_long(value);
-				fprintf(stderr, "%ld", l);
+				g_printerr("%ld", l);
 			} else
 			if (G_VALUE_HOLDS_STRING(value)) {
 				s = g_value_get_string(value);
-				fprintf(stderr, "\"%s\"", s);
+				g_printerr("\"%s\"", s);
 			} else
 			if (G_VALUE_HOLDS_POINTER(value)) {
 				w = g_value_get_pointer(value);
-				fprintf(stderr, "\"%ls\"", (const wchar_t*) w);
+				g_printerr("\"%ls\"", (const wchar_t*) w);
 			}
 		}
 	}
-	fprintf(stderr, ")\n");
+	g_printerr(")\n");
 }
 #endif
 
@@ -2748,8 +2748,7 @@ vte_terminal_fork_command(VteTerminal *terminal,
 				terminal->pvt->shell = pwd->pw_shell;
 #ifdef VTE_DEBUG
 				if (_vte_debug_on(VTE_DEBUG_MISC)) {
-					fprintf(stderr,
-						"Using user's shell (%s).\n",
+					g_printerr("Using user's shell (%s).\n",
 						terminal->pvt->shell);
 				}
 #endif
@@ -2760,7 +2759,7 @@ vte_terminal_fork_command(VteTerminal *terminal,
 				terminal->pvt->shell = getenv ("SHELL");
 #ifdef VTE_DEBUG
 				if (_vte_debug_on(VTE_DEBUG_MISC)) {
-					fprintf(stderr, "Using $SHELL shell (%s).\n",
+					g_printerr("Using $SHELL shell (%s).\n",
 						terminal->pvt->shell);
 				}
 #endif
@@ -2768,7 +2767,7 @@ vte_terminal_fork_command(VteTerminal *terminal,
 				terminal->pvt->shell = "/bin/sh";
 #ifdef VTE_DEBUG
 				if (_vte_debug_on(VTE_DEBUG_MISC)) {
-					fprintf(stderr, "Using default shell (%s).\n",
+					g_printerr("Using default shell (%s).\n",
 						terminal->pvt->shell);
 				}
 #endif
@@ -2911,7 +2910,7 @@ vte_terminal_emit_pending_text_signals(VteTerminal *terminal, GQuark quark)
 	if (terminal->pvt->text_modified_flag) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-			fprintf(stderr, "Emitting buffered `text-modified'.\n");
+			g_printerr("Emitting buffered `text-modified'.\n");
 		}
 #endif
 		vte_terminal_emit_text_modified(terminal);
@@ -2920,7 +2919,7 @@ vte_terminal_emit_pending_text_signals(VteTerminal *terminal, GQuark quark)
 	if (terminal->pvt->text_inserted_count) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-			fprintf(stderr, "Emitting buffered `text-inserted' "
+			g_printerr("Emitting buffered `text-inserted' "
 				"(%ld).\n", terminal->pvt->text_inserted_count);
 		}
 #endif
@@ -2930,7 +2929,7 @@ vte_terminal_emit_pending_text_signals(VteTerminal *terminal, GQuark quark)
 	if (terminal->pvt->text_deleted_count) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-			fprintf(stderr, "Emitting buffered `text-deleted' "
+			g_printerr("Emitting buffered `text-deleted' "
 				"(%ld).\n", terminal->pvt->text_deleted_count);
 		}
 #endif
@@ -2968,7 +2967,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_IO)) {
-		fprintf(stderr, "Handler processing %d bytes.\n",
+		g_printerr("Handler processing %d bytes.\n",
 			_vte_buffer_length(terminal->pvt->incoming));
 	}
 #endif
@@ -3112,17 +3111,17 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 			c = c & ~VTE_ISO2022_ENCODED_WIDTH_MASK;
 			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
 				if (c > 255) {
-					fprintf(stderr, "U+%04lx\n", (long) c);
+					g_printerr("U+%04lx\n", (long) c);
 				} else {
 					if (c > 127) {
-						fprintf(stderr, "%ld = ",
+						g_printerr("%ld = ",
 							(long) c);
 					}
 					if (c < 32) {
-						fprintf(stderr, "^%lc\n",
+						g_printerr("^%lc\n",
 							(wint_t)c + 64);
 					} else {
-						fprintf(stderr, "`%lc'\n",
+						g_printerr("`%lc'\n",
 							(wint_t)c);
 					}
 				}
@@ -3161,7 +3160,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 			if (wbuf + wcount > next) {
 #ifdef VTE_DEBUG
 				if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-					fprintf(stderr, "Invalid control "
+					g_printerr("Invalid control "
 						"sequence, discarding %d "
 						"characters.\n",
 						next - (wbuf + start));
@@ -3291,7 +3290,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_IO)) {
-		fprintf(stderr, "%ld chars and %ld bytes left to process.\n",
+		g_printerr("%ld chars and %ld bytes left to process.\n",
 			(long) unichars->len,
 			(long) _vte_buffer_length(terminal->pvt->incoming));
 	}
@@ -3431,7 +3430,7 @@ vte_terminal_io_write(GIOChannel *channel,
 		if (_vte_debug_on(VTE_DEBUG_IO)) {
 			int i;
 			for (i = 0; i < count; i++) {
-				fprintf(stderr, "Wrote %c%c\n",
+				g_printerr("Wrote %c%c\n",
 					((guint8)terminal->pvt->outgoing->bytes[i]) >= 32 ?
 					' ' : '^',
 					((guint8)terminal->pvt->outgoing->bytes[i]) >= 32 ?
@@ -3549,12 +3548,12 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 				for (i = 0; i < cooked_length; i++) {
 					if ((((guint8) cooked[i]) < 32) ||
 					    (((guint8) cooked[i]) > 127)) {
-						fprintf(stderr,
+						g_printerr(
 							"Sending <%02x> "
 							"to child.\n",
 							cooked[i]);
 					} else {
-						fprintf(stderr,
+						g_printerr(
 							"Sending '%c' "
 							"to child.\n",
 							cooked[i]);
@@ -3652,7 +3651,7 @@ vte_terminal_im_commit(GtkIMContext *im_context, gchar *text, gpointer data)
 	g_assert(GTK_IS_IM_CONTEXT(im_context));
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-		fprintf(stderr, "Input method committed `%s'.\n", text);
+		g_printerr("Input method committed `%s'.\n", text);
 	}
 #endif
 	terminal = VTE_TERMINAL(data);
@@ -3676,7 +3675,7 @@ vte_terminal_im_preedit_start(GtkIMContext *im_context, gpointer data)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-		fprintf(stderr, "Input method pre-edit started.\n");
+		g_printerr("Input method pre-edit started.\n");
 	}
 #endif
 	terminal->pvt->im_preedit_active = TRUE;
@@ -3694,7 +3693,7 @@ vte_terminal_im_preedit_end(GtkIMContext *im_context, gpointer data)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-		fprintf(stderr, "Input method pre-edit ended.\n");
+		g_printerr("Input method pre-edit ended.\n");
 	}
 #endif
 	terminal->pvt->im_preedit_active = FALSE;
@@ -3716,7 +3715,7 @@ vte_terminal_im_preedit_changed(GtkIMContext *im_context, gpointer data)
 	gtk_im_context_get_preedit_string(im_context, &str, &attrs, &cursor);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-		fprintf(stderr, "Input method pre-edit changed (%s,%d).\n",
+		g_printerr("Input method pre-edit changed (%s,%d).\n",
 			str, cursor);
 	}
 #endif
@@ -3749,7 +3748,7 @@ vte_terminal_configure_toplevel(GtkWidget *widget, GdkEventConfigure *event,
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-		fprintf(stderr, "Top level parent configured.\n");
+		g_printerr("Top level parent configured.\n");
 	}
 #endif
 	g_assert(GTK_IS_WIDGET(widget));
@@ -3777,7 +3776,7 @@ vte_terminal_hierarchy_changed(GtkWidget *widget, GtkWidget *old_toplevel,
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-		fprintf(stderr, "Hierarchy changed.\n");
+		g_printerr("Hierarchy changed.\n");
 	}
 #endif
 
@@ -3807,7 +3806,7 @@ vte_terminal_style_changed(GtkWidget *widget, GtkStyle *style, gpointer data)
 	if (!GTK_WIDGET_REALIZED(widget)) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_MISC)) {
-			fprintf(stderr, "Don't change style if we aren't realized.\n");
+			g_printerr("Don't change style if we aren't realized.\n");
 		}
 #endif
 		return;
@@ -3932,7 +3931,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Keypress, modifiers=0x%x, "
+			g_printerr("Keypress, modifiers=0x%x, "
 				"keyval=0x%x, raw string=`%s'.\n",
 				terminal->pvt->modifiers,
 				keyval, event->string);
@@ -3992,7 +3991,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 						   event)) {
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-				fprintf(stderr, "Keypress taken by IM.\n");
+				g_printerr("Keypress taken by IM.\n");
 			}
 #endif
 			return TRUE;
@@ -4184,7 +4183,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			}
 #ifdef VTE_DEBUG
 			if (normal && _vte_debug_on(VTE_DEBUG_EVENTS)) {
-				fprintf(stderr, "Keypress, modifiers=0x%x, "
+				g_printerr("Keypress, modifiers=0x%x, "
 					"keyval=0x%x, cooked string=`%s'.\n",
 					terminal->pvt->modifiers,
 					keyval, normal);
@@ -4444,7 +4443,7 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 	if (text != NULL) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
-			fprintf(stderr, "Pasting %d UTF-8 bytes.\n",
+			g_printerr("Pasting %d UTF-8 bytes.\n",
 				strlen(text));
 		}
 #endif
@@ -4668,7 +4667,7 @@ vte_terminal_match_hilite_clear(VteTerminal *terminal)
 	if ((srow < erow) || ((srow == erow) && (scolumn < ecolumn))) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Repainting (%ld,%ld) to (%ld,%ld).\n",
+			g_printerr("Repainting (%ld,%ld) to (%ld,%ld).\n",
 				srow, scolumn, erow, ecolumn);
 		}
 #endif
@@ -4713,7 +4712,7 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 	if (match == NULL) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "No matches.\n");
+			g_printerr("No matches.\n");
 		}
 #endif
 		vte_terminal_match_hilite_clear(terminal);
@@ -4741,7 +4740,7 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 				     terminal->pvt->match_start.row + 1);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Matched (%ld,%ld) to (%ld,%ld).\n",
+			g_printerr("Matched (%ld,%ld) to (%ld,%ld).\n",
 				terminal->pvt->match_start.column,
 				terminal->pvt->match_start.row,
 				terminal->pvt->match_end.column,
@@ -4766,7 +4765,7 @@ vte_terminal_clear_cb(GtkClipboard *clipboard, gpointer owner)
 	if (terminal->pvt->has_selection) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
-			fprintf(stderr, "Lost selection.\n");
+			g_printerr("Lost selection.\n");
 		}
 #endif
 		vte_terminal_deselect_all(terminal);
@@ -4785,10 +4784,10 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
 			int i;
-			fprintf(stderr, "Setting selection (%d UTF-8 bytes.)\n",
+			g_printerr("Setting selection (%d UTF-8 bytes.)\n",
 				strlen(terminal->pvt->selection));
 			for (i = 0; terminal->pvt->selection[i] != '\0'; i++) {
-				fprintf(stderr, "0x%04x\n",
+				g_printerr("0x%04x\n",
 					terminal->pvt->selection[i]);
 			}
 		}
@@ -5145,7 +5144,7 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 	if (terminal->pvt->selection != NULL) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
-			fprintf(stderr, "Assuming ownership of selection.\n");
+			g_printerr("Assuming ownership of selection.\n");
 		}
 #endif
 		if (!targets) {
@@ -5185,7 +5184,7 @@ vte_terminal_paste(VteTerminal *terminal, GdkAtom board)
 	if (clipboard != NULL) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
-			fprintf(stderr, "Requesting clipboard contents.\n");
+			g_printerr("Requesting clipboard contents.\n");
 		}
 #endif
 		gtk_clipboard_request_text(clipboard,
@@ -5248,7 +5247,7 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 			     terminal->pvt->selection_start.y, 1);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
-		fprintf(stderr, "Selection started at (%ld,%ld).\n",
+		g_printerr("Selection started at (%ld,%ld).\n",
 			terminal->pvt->selection_start.x,
 			terminal->pvt->selection_start.y);
 	}
@@ -5291,7 +5290,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 			terminal->pvt->selection_restart_origin;
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
-			fprintf(stderr, "Selection delayed start at (%lf,%lf).\n",
+			g_printerr("Selection delayed start at (%lf,%lf).\n",
 				terminal->pvt->selection_origin.x / width,
 				terminal->pvt->selection_origin.y / height);
 		}
@@ -5343,7 +5342,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
-		fprintf(stderr, "Selection is (%lf,%lf) to (%lf,%lf).\n",
+		g_printerr("Selection is (%lf,%lf) to (%lf,%lf).\n",
 			start->x, start->y, end->x, end->y);
 	}
 #endif
@@ -5589,7 +5588,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 	    (old_start.y != terminal->pvt->selection_start.y))) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
-			fprintf(stderr, "Refreshing lines %ld to %ld.\n",
+			g_printerr("Refreshing lines %ld to %ld.\n",
 				MIN(old_start.y,
 				    terminal->pvt->selection_start.y),
 				MAX(old_start.y,
@@ -5611,7 +5610,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 	    (old_end.y != terminal->pvt->selection_end.y))) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
-			fprintf(stderr, "Refreshing lines %ld to %ld.\n",
+			g_printerr("Refreshing lines %ld to %ld.\n",
 				MIN(old_end.y, terminal->pvt->selection_end.y),
 				MAX(old_end.y, terminal->pvt->selection_end.y));
 		}
@@ -5629,7 +5628,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 	if (invalidate_selected) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
-			fprintf(stderr, "Refreshing lines %ld to %ld.\n",
+			g_printerr("Refreshing lines %ld to %ld.\n",
 				MIN(terminal->pvt->selection_start.y,
 				    terminal->pvt->selection_end.y),
 				MAX(terminal->pvt->selection_start.y,
@@ -5649,7 +5648,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
-		fprintf(stderr, "Selection changed to "
+		g_printerr("Selection changed to "
 			"(%ld,%ld) to (%ld,%ld).\n",
 			terminal->pvt->selection_start.x,
 			terminal->pvt->selection_start.y,
@@ -5686,7 +5685,7 @@ vte_terminal_autoscroll(gpointer data)
 		}
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Autoscrolling down.\n");
+			g_printerr("Autoscrolling down.\n");
 		}
 #endif
 	}
@@ -5703,7 +5702,7 @@ vte_terminal_autoscroll(gpointer data)
 		}
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Autoscrolling up.\n");
+			g_printerr("Autoscrolling up.\n");
 		}
 #endif
 	}
@@ -5774,7 +5773,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-		fprintf(stderr, "Motion notify (%lf,%lf).\n",
+		g_printerr("Motion notify (%lf,%lf).\n",
 			event->x, event->y);
 	}
 #endif
@@ -5793,7 +5792,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 		case 1:
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-				fprintf(stderr, "Mousing drag 1.\n");
+				g_printerr("Mousing drag 1.\n");
 			}
 #endif
 			/* If user hit ctrl, change selection mode. */
@@ -5895,7 +5894,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	case GDK_BUTTON_PRESS:
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Button %d single-click at (%lf,%lf)\n",
+			g_printerr("Button %d single-click at (%lf,%lf)\n",
 				event->button,
 				event->x - VTE_PAD_WIDTH,
 				event->y - VTE_PAD_WIDTH +
@@ -5907,7 +5906,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		case 1:
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-				fprintf(stderr, "Handling click ourselves.\n");
+				g_printerr("Handling click ourselves.\n");
 			}
 #endif
 			/* Grab focus. */
@@ -5982,7 +5981,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	case GDK_2BUTTON_PRESS:
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Button %d double-click at (%lf,%lf)\n",
+			g_printerr("Button %d double-click at (%lf,%lf)\n",
 				event->button,
 				event->x - VTE_PAD_WIDTH,
 				event->y - VTE_PAD_WIDTH +
@@ -6011,7 +6010,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	case GDK_3BUTTON_PRESS:
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Button %d triple-click at (%lf,%lf).\n",
+			g_printerr("Button %d triple-click at (%lf,%lf).\n",
 				event->button,
 				event->x - VTE_PAD_WIDTH,
 				event->y - VTE_PAD_WIDTH +
@@ -6084,7 +6083,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 	case GDK_BUTTON_RELEASE:
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Button %d released at (%lf,%lf).\n",
+			g_printerr("Button %d released at (%lf,%lf).\n",
 				event->button,
 				event->x - VTE_PAD_WIDTH,
 				event->y - VTE_PAD_WIDTH);
@@ -6149,7 +6148,7 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 	g_assert(VTE_IS_TERMINAL(widget));
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-		fprintf(stderr, "Focus in.\n");
+		g_printerr("Focus in.\n");
 	}
 #endif
 	terminal = VTE_TERMINAL(widget);
@@ -6184,7 +6183,7 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 	g_assert(VTE_IS_TERMINAL(widget));
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-		fprintf(stderr, "Focus out.\n");
+		g_printerr("Focus out.\n");
 	}
 #endif
 	terminal = VTE_TERMINAL(widget);
@@ -6301,7 +6300,7 @@ vte_terminal_set_font_full(VteTerminal *terminal,
 			if (desc) {
 				char *tmp;
 				tmp = pango_font_description_to_string(desc);
-				fprintf(stderr, "Using pango font \"%s\".\n", tmp);
+				g_printerr("Using pango font \"%s\".\n", tmp);
 				g_free (tmp);
 			}
 		}
@@ -6313,7 +6312,7 @@ vte_terminal_set_font_full(VteTerminal *terminal,
 
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_MISC)) {
-			fprintf(stderr, "Using default monospace font.\n");
+			g_printerr("Using default monospace font.\n");
 		}
 #endif
 	}
@@ -6452,7 +6451,7 @@ vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Setting PTY size to %ldx%ld.\n",
+		g_printerr("Setting PTY size to %ldx%ld.\n",
 			columns, rows);
 	}
 #endif
@@ -6501,7 +6500,7 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	if (dy != 0) {
 #ifdef VTE_DEBUG
 	      if (_vte_debug_on(VTE_DEBUG_IO)) {
-		    fprintf(stderr, "Scrolling by %ld\n", dy);
+		    g_printerr("Scrolling by %ld\n", dy);
 	      }
 #endif
 		_vte_terminal_match_contents_clear(terminal);
@@ -6512,7 +6511,7 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	}
 #ifdef VTE_DEBUG
 	else if (_vte_debug_on(VTE_DEBUG_IO)) {
-	      fprintf(stderr, "Not scrolling\n");
+	      g_printerr("Not scrolling\n");
 	}
 #endif
 
@@ -6572,7 +6571,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	terminal->pvt->emulation = g_quark_to_string(quark);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Setting emulation to `%s'...", emulation);
+		g_printerr("Setting emulation to `%s'...", emulation);
 	}
 #endif
 	/* Find and read the right termcap file. */
@@ -6675,7 +6674,7 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Loading termcap `%s'...",
+		g_printerr("Loading termcap `%s'...",
 			terminal->pvt->termcap_path);
 	}
 #endif
@@ -6685,7 +6684,7 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 	terminal->pvt->termcap = _vte_termcap_new(terminal->pvt->termcap_path);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "\n");
+		g_printerr("\n");
 	}
 #endif
 	if (reset) {
@@ -6702,7 +6701,7 @@ vte_terminal_reset_rowdata(VteRing **ring, glong lines)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Sizing scrollback buffer to %ld lines.\n",
+		g_printerr("Sizing scrollback buffer to %ld lines.\n",
 			lines);
 	}
 #endif
@@ -6731,7 +6730,7 @@ vte_terminal_fc_settings_changed(GtkSettings *settings, GParamSpec *spec,
 {
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Fontconfig setting \"%s\" changed.\n",
+		g_printerr("Fontconfig setting \"%s\" changed.\n",
 			spec->name);
 	}
 #endif
@@ -6823,7 +6822,7 @@ vte_terminal_init(VteTerminal *terminal, gpointer *klass)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-		fprintf(stderr, "vte_terminal_init()\n");
+		g_printerr("vte_terminal_init()\n");
 	}
 #endif
 
@@ -6980,7 +6979,7 @@ vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-		fprintf(stderr, "vte_terminal_size_request()\n");
+		g_printerr("vte_terminal_size_request()\n");
 	}
 #endif
 
@@ -7006,7 +7005,7 @@ vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Size request is %dx%d.\n",
+		g_printerr("Size request is %dx%d.\n",
 			requisition->width, requisition->height);
 	}
 #endif
@@ -7023,7 +7022,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-		fprintf(stderr, "vte_terminal_size_allocate()\n");
+		g_printerr("vte_terminal_size_allocate()\n");
 	}
 #endif
 
@@ -7042,7 +7041,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Sizing window to %dx%d (%ldx%ld).\n",
+		g_printerr("Sizing window to %dx%d (%ldx%ld).\n",
 			allocation->width, allocation->height,
 			width, height);
 	}
@@ -7107,7 +7106,7 @@ vte_terminal_show(GtkWidget *widget)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-		fprintf(stderr, "vte_terminal_show()\n");
+		g_printerr("vte_terminal_show()\n");
 	}
 #endif
 
@@ -7148,7 +7147,7 @@ vte_terminal_unrealize(GtkWidget *widget)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-		fprintf(stderr, "vte_terminal_unrealize()\n");
+		g_printerr("vte_terminal_unrealize()\n");
 	}
 #endif
 
@@ -7251,7 +7250,7 @@ vte_terminal_finalize(GObject *object)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-		fprintf(stderr, "vte_terminal_finalize()\n");
+		g_printerr("vte_terminal_finalize()\n");
 	}
 #endif
 
@@ -7492,7 +7491,7 @@ vte_terminal_realize(GtkWidget *widget)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-		fprintf(stderr, "vte_terminal_realize()\n");
+		g_printerr("vte_terminal_realize()\n");
 	}
 #endif
 
@@ -8604,14 +8603,14 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC) && 0) {
-		fprintf(stderr, "Rendering");
+		g_printerr("Rendering");
 		for (i = 0; i < n; i++) {
-			fprintf(stderr, " (%ld,%ld)",
+			g_printerr(" (%ld,%ld)",
 				(long) items[i].c,
 				(long) items[i].columns);
 			g_assert(items[i].columns > 0);
 		}
-		fprintf(stderr, ".\n");
+		g_printerr(".\n");
 	}
 #endif
 
@@ -8722,7 +8721,7 @@ _vte_terminal_map_pango_color(VteTerminal *terminal, PangoColor *color)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_UPDATES)) {
-		fprintf(stderr, "mapped PangoColor(%04x,%04x,%04x) to "
+		g_printerr("mapped PangoColor(%04x,%04x,%04x) to "
 			"palette entry (%04x,%04x,%04x)\n",
 			color->red, color->green, color->blue,
 			terminal->pvt->palette[ret].red,
@@ -9125,7 +9124,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-		fprintf(stderr, "vte_terminal_paint()\n");
+		g_printerr("vte_terminal_paint()\n");
 	}
 #endif
 
@@ -9451,10 +9450,10 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 	if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
 		switch (event->direction) {
 		case GDK_SCROLL_UP:
-			fprintf(stderr, "Scroll up.\n");
+			g_printerr("Scroll up.\n");
 			break;
 		case GDK_SCROLL_DOWN:
-			fprintf(stderr, "Scroll down.\n");
+			g_printerr("Scroll down.\n");
 			break;
 		default:
 			break;
@@ -9569,7 +9568,7 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-		fprintf(stderr, "vte_terminal_class_init()\n");
+		g_printerr("vte_terminal_class_init()\n");
 	}
 #endif
 
@@ -9949,7 +9948,7 @@ vte_terminal_get_type(void)
 	if (terminal_type == 0) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-			fprintf(stderr, "vte_terminal_get_type()\n");
+			g_printerr("vte_terminal_get_type()\n");
 		}
 #endif
 		terminal_type = g_type_register_static(GTK_TYPE_WIDGET,
@@ -10125,7 +10124,7 @@ vte_terminal_copy_clipboard(VteTerminal *terminal)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
-		fprintf(stderr, "Copying to CLIPBOARD.\n");
+		g_printerr("Copying to CLIPBOARD.\n");
 	}
 #endif
 	if (terminal->pvt->selection != NULL) {
@@ -10151,7 +10150,7 @@ vte_terminal_paste_clipboard(VteTerminal *terminal)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
-		fprintf(stderr, "Pasting CLIPBOARD.\n");
+		g_printerr("Pasting CLIPBOARD.\n");
 	}
 #endif
 	vte_terminal_paste(terminal, GDK_SELECTION_CLIPBOARD);
@@ -10171,7 +10170,7 @@ vte_terminal_copy_primary(VteTerminal *terminal)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
-		fprintf(stderr, "Copying to PRIMARY.\n");
+		g_printerr("Copying to PRIMARY.\n");
 	}
 #endif
 	vte_terminal_copy(terminal, GDK_SELECTION_PRIMARY);
@@ -10194,7 +10193,7 @@ vte_terminal_paste_primary(VteTerminal *terminal)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
-		fprintf(stderr, "Pasting PRIMARY.\n");
+		g_printerr("Pasting PRIMARY.\n");
 	}
 #endif
 	vte_terminal_paste(terminal, GDK_SELECTION_PRIMARY);
@@ -10239,7 +10238,7 @@ vte_terminal_background_update(gpointer data)
 	if (!GTK_WIDGET_REALIZED(widget)) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_MISC)) {
-			fprintf(stderr, "Can not set background image without "
+			g_printerr("Can not set background image without "
 				"window.\n");
 		}
 #endif
@@ -10248,7 +10247,7 @@ vte_terminal_background_update(gpointer data)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC) || _vte_debug_on(VTE_DEBUG_EVENTS)) {
-		fprintf(stderr, "Updating background image.\n");
+		g_printerr("Updating background image.\n");
 	}
 #endif
 
@@ -10331,13 +10330,13 @@ vte_terminal_queue_background_update(VteTerminal *terminal)
 						NULL);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Queued background update.\n");
+			g_printerr("Queued background update.\n");
 		}
 #endif
 	} else {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_EVENTS)) {
-			fprintf(stderr, "Skipping background update.\n");
+			g_printerr("Skipping background update.\n");
 		}
 #endif
 	}
@@ -10365,7 +10364,7 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
 					     0, VTE_SATURATION_MAX);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Setting background saturation to %ld/%ld.\n",
+		g_printerr("Setting background saturation to %ld/%ld.\n",
 			terminal->pvt->bg_saturation,
 			(long) VTE_SATURATION_MAX);
 	}
@@ -10401,7 +10400,7 @@ vte_terminal_set_background_tint_color(VteTerminal *terminal,
 	terminal->pvt->bg_tint_color = *color;
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Setting background tint to %d,%d,%d.\n",
+		g_printerr("Setting background tint to %d,%d,%d.\n",
 			terminal->pvt->bg_tint_color.red >> 8,
 			terminal->pvt->bg_tint_color.green >> 8,
 			terminal->pvt->bg_tint_color.blue >> 8);
@@ -10427,7 +10426,7 @@ vte_terminal_set_background_transparent(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Turning background transparency %s.\n",
+		g_printerr("Turning background transparency %s.\n",
 			transparent ? "on" : "off");
 	}
 #endif
@@ -10458,7 +10457,7 @@ vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "%s background image.\n",
+		g_printerr("%s background image.\n",
 			GDK_IS_PIXBUF(image) ? "Setting" : "Clearing");
 	}
 #endif
@@ -10502,7 +10501,7 @@ vte_terminal_set_background_image_file(VteTerminal *terminal, const char *path)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		fprintf(stderr, "Loading background image from `%s'.\n", path);
+		g_printerr("Loading background image from `%s'.\n", path);
 	}
 #endif
 	/* Save this background type. */
@@ -10711,7 +10710,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 			g_array_append_val(terminal->pvt->word_chars, range);
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_MISC)) {
-				fprintf(stderr, "Word charset includes hyphen.\n");
+				g_printerr("Word charset includes hyphen.\n");
 			}
 #endif
 			continue;
@@ -10723,7 +10722,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 			g_array_append_val(terminal->pvt->word_chars, range);
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_MISC)) {
-				fprintf(stderr, "Word charset includes `%lc'.\n",
+				g_printerr("Word charset includes `%lc'.\n",
 					(wint_t) wbuf[i]);
 			}
 #endif
@@ -10739,7 +10738,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 			g_array_append_val(terminal->pvt->word_chars, range);
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_MISC)) {
-				fprintf(stderr, "Word charset includes range from "
+				g_printerr("Word charset includes range from "
 					"`%lc' to `%lc'.\n", (wint_t) wbuf[i],
 					(wint_t) wbuf[i + 2]);
 			}

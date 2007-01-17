@@ -124,7 +124,7 @@ vte_bg_root_pixmap(VteBg *bg)
 				gint pwidth, pheight;
 				gdk_drawable_get_size(pixmap,
 						      &pwidth, &pheight);
-				fprintf(stderr, "New background image %dx%d\n",
+				g_printerr("New background image %dx%d\n",
 					pwidth, pheight);
 			}
 #endif
@@ -417,7 +417,7 @@ _vte_bg_resize_pixbuf(GdkPixbuf *pixbuf, gint min_width, gint min_height)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC) || _vte_debug_on(VTE_DEBUG_EVENTS)) {
-		fprintf(stderr, "Resizing (root?) pixbuf from %dx%d to %dx%d\n",
+		g_printerr("Resizing (root?) pixbuf from %dx%d to %dx%d\n",
 			src_width, src_height, dst_width, dst_height);
 	}
 #endif
