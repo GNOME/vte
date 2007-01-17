@@ -67,8 +67,8 @@ _vte_skel_destroy(struct _vte_draw *draw)
 
 	data->scrollx = data->scrolly = 0;
 
-	if (GDK_IS_PIXMAP(data->pixmap)) {
-		g_object_unref(G_OBJECT(data->pixmap));
+	if (data->pixmap != NULL) {
+		g_object_unref(data->pixmap);
 		data->pixmap = NULL;
 		data->pixmapw = data->pixmaph = 0;
 	}

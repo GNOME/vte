@@ -163,7 +163,7 @@ _vte_fc_transcribe_from_pango_font_description(GtkWidget *widget,
 				    _vte_fc_slant_from_pango_style(style));
 	}
 
-	g_object_unref(G_OBJECT(context));
+	g_object_unref(context);
 }
 
 static void
@@ -203,7 +203,7 @@ _vte_fc_defaults_from_gtk(GtkWidget *widget, FcPattern *pattern,
 	}
 
 	/* Check that the properties we're looking at are defined. */
-	klass = G_OBJECT_CLASS(GTK_SETTINGS_GET_CLASS(settings));
+	klass = G_OBJECT_GET_CLASS(settings);
 	if (g_object_class_find_property(klass, "gtk-xft-antialias") == NULL) {
 		return;
 	}
@@ -496,25 +496,25 @@ _vte_fc_connect_settings_changes(GtkWidget *widget, GCallback *changed_cb)
 	}
 
 	/* Check that the properties we're looking at are defined. */
-	klass = G_OBJECT_CLASS(GTK_SETTINGS_GET_CLASS(settings));
+	klass = G_OBJECT_GET_CLASS(settings);
 	if (g_object_class_find_property(klass, "gtk-xft-antialias") == NULL) {
 		return;
 	}
 
 	/* Start listening for changes to the fontconfig settings. */
-	g_signal_connect(G_OBJECT(settings),
+	g_signal_connect(settings,
 			 "notify::gtk-xft-antialias",
 			 G_CALLBACK(changed_cb), widget);
-	g_signal_connect(G_OBJECT(settings),
+	g_signal_connect(settings,
 			 "notify::gtk-xft-hinting",
 			 G_CALLBACK(changed_cb), widget);
-	g_signal_connect(G_OBJECT(settings),
+	g_signal_connect(settings,
 			 "notify::gtk-xft-hintstyle",
 			 G_CALLBACK(changed_cb), widget);
-	g_signal_connect(G_OBJECT(settings),
+	g_signal_connect(settings,
 			 "notify::gtk-xft-rgba",
 			 G_CALLBACK(changed_cb), widget);
-	g_signal_connect(G_OBJECT(settings),
+	g_signal_connect(settings,
 			 "notify::gtk-xft-dpi",
 			 G_CALLBACK(changed_cb), widget);
 }
@@ -531,7 +531,7 @@ _vte_fc_disconnect_settings_changes(GtkWidget *widget, GCallback *changed_cb)
 	}
 
 	/* Stop listening for changes to the fontconfig settings. */
-	g_signal_handlers_disconnect_matched(G_OBJECT(settings),
+	g_signal_handlers_disconnect_matched(settings,
 					     G_SIGNAL_MATCH_FUNC |
 					     G_SIGNAL_MATCH_DATA,
 					     0, 0, NULL,

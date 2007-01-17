@@ -76,8 +76,8 @@ _vte_ft2_destroy(struct _vte_draw *draw)
 		_vte_rgb_buffer_free(data->rgb);
 	}
 	memset(&data->color, 0, sizeof(data->color));
-	if (GDK_IS_PIXBUF(data->pixbuf)) {
-		g_object_unref(G_OBJECT(data->pixbuf));
+	if (data->pixbuf != NULL) {
+		g_object_unref(data->pixbuf);
 		data->pixbuf = NULL;
 	}
 	data->scrollx = data->scrolly = 0;
@@ -174,8 +174,8 @@ _vte_ft2_set_background_image(struct _vte_draw *draw,
 	bgpixbuf = vte_bg_get_pixbuf(vte_bg_get_for_screen(screen),
 				     type, pixbuf, file,
 				     color, saturation);
-	if (GDK_IS_PIXBUF(data->pixbuf)) {
-		g_object_unref(G_OBJECT(data->pixbuf));
+	if (data->pixbuf != NULL) {
+		g_object_unref(data->pixbuf);
 	}
 	data->pixbuf = bgpixbuf;
 }
@@ -200,7 +200,7 @@ _vte_ft2_clear(struct _vte_draw *draw,
 	struct _vte_ft2_data *data;
 	data = (struct _vte_ft2_data*) draw->impl_data;
 
-	if (GDK_IS_PIXBUF(data->pixbuf)) {
+	if (data->pixbuf != NULL) {
 		/* Tile a pixbuf in. */
 		_vte_rgb_draw_pixbuf(data->rgb, x, y, width, height,
 				     data->pixbuf,

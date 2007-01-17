@@ -2,6 +2,95 @@
 
 	As part of Bug 397439.
 
+	* src/vte-private.h:
+	* src/vte.c: (vte_free_row_data), (vte_g_array_fill),
+	(vte_terminal_find_charcell), (vte_terminal_preedit_width),
+	(vte_terminal_preedit_length), (_vte_invalidate_cursor_once),
+	(vte_invalidate_cursor_periodic), (vte_terminal_deselect_all),
+	(vte_terminal_set_default_tabstops),
+	(vte_terminal_match_contents_refresh), (vte_terminal_cursor_new),
+	(vte_terminal_match_check_internal),
+	(vte_terminal_emit_adjustment_changed),
+	(vte_terminal_queue_adjustment_changed),
+	(vte_terminal_scroll_pages), (vte_terminal_maybe_scroll_to_top),
+	(vte_terminal_maybe_scroll_to_bottom),
+	(_vte_terminal_set_pointer_visible), (vte_terminal_new),
+	(vte_terminal_set_color_internal), (vte_terminal_set_color_bold),
+	(vte_terminal_set_color_dim), (vte_terminal_set_color_foreground),
+	(vte_terminal_set_color_background),
+	(vte_terminal_set_color_cursor),
+	(vte_terminal_set_color_highlight), (vte_terminal_handle_sequence),
+	(vte_terminal_catch_child_exited),
+	(_vte_terminal_connect_pty_read),
+	(_vte_terminal_connect_pty_write), (_vte_terminal_fork_basic),
+	(vte_terminal_eof), (vte_terminal_im_reset),
+	(vte_terminal_process_incoming), (vte_terminal_io_read),
+	(vte_terminal_io_write), (vte_terminal_send),
+	(vte_terminal_im_commit), (vte_terminal_im_preedit_start),
+	(vte_terminal_im_preedit_end), (vte_terminal_im_preedit_changed),
+	(vte_terminal_configure_toplevel),
+	(vte_terminal_hierarchy_changed), (vte_terminal_style_changed),
+	(add_cursor_timeout), (vte_terminal_key_press), (vte_same_class),
+	(vte_line_is_wrappable), (vte_terminal_paste_cb),
+	(vte_terminal_send_mouse_button_internal),
+	(vte_terminal_maybe_send_mouse_drag), (vte_terminal_clear_cb),
+	(vte_terminal_copy_cb),
+	(vte_terminal_get_text_range_maybe_wrapped),
+	(vte_terminal_clipboard_get), (vte_terminal_copy),
+	(vte_terminal_paste), (vte_terminal_autoscroll),
+	(vte_terminal_start_autoscroll), (vte_terminal_motion_notify),
+	(vte_terminal_button_press), (vte_terminal_button_release),
+	(vte_terminal_focus_in), (vte_terminal_focus_out),
+	(vte_terminal_visibility_notify), (vte_terminal_apply_metrics),
+	(vte_terminal_set_font_full), (vte_terminal_refresh_size),
+	(vte_terminal_handle_scroll), (vte_terminal_set_scroll_adjustment),
+	(vte_terminal_connect_xft_settings),
+	(vte_terminal_disconnect_xft_settings),
+	(_vte_terminal_codeset_changed_cb), (vte_terminal_init),
+	(vte_terminal_size_request), (vte_terminal_size_allocate),
+	(vte_terminal_show), (root_pixmap_changed_cb),
+	(vte_terminal_unrealize), (vte_terminal_finalize),
+	(vte_terminal_realize), (vte_terminal_determine_colors),
+	(vte_terminal_paint), (vte_terminal_expose), (vte_terminal_scroll),
+	(vte_terminal_get_accessible), (vte_terminal_im_append_menuitems),
+	(vte_terminal_background_update),
+	(vte_terminal_queue_background_update),
+	(vte_terminal_set_background_image),
+	(vte_terminal_set_background_image_file),
+	(vte_terminal_set_cursor_blinks), (vte_terminal_reset),
+	(vte_terminal_set_pty):
+	* src/vteaccess.c: (vte_terminal_initialize),
+	(vte_terminal_accessible_finalize):
+	* src/vtedraw.c: (_vte_draw_new), (_vte_draw_free),
+	(_vte_draw_start), (_vte_draw_end):
+	* src/vtefc.c: (_vte_fc_transcribe_from_pango_font_description),
+	(_vte_fc_defaults_from_gtk), (_vte_fc_connect_settings_changes),
+	(_vte_fc_disconnect_settings_changes):
+	* src/vteft2.c: (_vte_ft2_destroy),
+	(_vte_ft2_set_background_image), (_vte_ft2_clear):
+	* src/vtegl.c: (_vte_gl_destroy), (_vte_gl_set_background_image),
+	(_vte_gl_clear):
+	* src/vtepango.c: (_vte_pango_destroy), (_vte_pango_start),
+	(_vte_pango_end), (_vte_pango_set_background_image),
+	(_vte_pango_set_text_font):
+	* src/vtepangox.c: (_vte_pango_x_destroy), (_vte_pango_x_start),
+	(_vte_pango_x_end), (_vte_pango_x_set_background_image),
+	(_vte_pango_x_set_text_font):
+	* src/vterdb.c: (_vte_rdb_get):
+	* src/vteseq.c: (vte_sequence_handler_scroll_up_or_down),
+	(vte_sequence_handler_set_title_internal), (vte_terminal_beep),
+	(vte_sequence_handler_do), (vte_sequence_handler_sf),
+	(vte_sequence_handler_sr), (vte_sequence_handler_vb),
+	(vte_sequence_handler_window_manipulation):
+	* src/vteskel.c: (_vte_skel_destroy):
+	* src/vtetree.c: (_vte_tree_new), (_vte_tree_destroy):
+	* src/vtexft.c: (_vte_xft_set_background_image), (_vte_xft_clear):
+		Remove superfluous checks and run-time checked type casts.
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	As part of Bug 397439.
+
 	* src/debug.c:
 	* src/iso2022.c: (_vte_iso2022_ambiguous_width_guess),
 	(_vte_iso2022_state_new), (_vte_iso2022_state_set_codeset),

@@ -777,35 +777,35 @@ vte_terminal_initialize (AtkObject *obj, gpointer data)
 			  VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA,
 			  vte_terminal_accessible_new_private_data());
 
-	g_signal_connect(G_OBJECT(terminal), "text-inserted",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_text_modified),
+	g_signal_connect(terminal, "text-inserted",
+			 G_CALLBACK(vte_terminal_accessible_text_modified),
 			 obj);
-	g_signal_connect(G_OBJECT(terminal), "text-deleted",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_text_modified),
+	g_signal_connect(terminal, "text-deleted",
+			 G_CALLBACK(vte_terminal_accessible_text_modified),
 			 obj);
-	g_signal_connect(G_OBJECT(terminal), "text-modified",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_text_modified),
+	g_signal_connect(terminal, "text-modified",
+			 G_CALLBACK(vte_terminal_accessible_text_modified),
 			 obj);
-	g_signal_connect(G_OBJECT(terminal), "text-scrolled",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_text_scrolled),
+	g_signal_connect(terminal, "text-scrolled",
+			 G_CALLBACK(vte_terminal_accessible_text_scrolled),
 			 obj);
-	g_signal_connect(G_OBJECT(terminal), "cursor-moved",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_invalidate_cursor),
+	g_signal_connect(terminal, "cursor-moved",
+			 G_CALLBACK(vte_terminal_accessible_invalidate_cursor),
 			 obj);
-	g_signal_connect(G_OBJECT(terminal), "window-title-changed",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_title_changed),
+	g_signal_connect(terminal, "window-title-changed",
+			 G_CALLBACK(vte_terminal_accessible_title_changed),
 			 obj);
-	g_signal_connect(G_OBJECT(terminal), "focus-in-event",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_focus_in),
+	g_signal_connect(terminal, "focus-in-event",
+			 G_CALLBACK(vte_terminal_accessible_focus_in),
 			 obj);
-	g_signal_connect(G_OBJECT(terminal), "focus-out-event",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_focus_out),
+	g_signal_connect(terminal, "focus-out-event",
+			 G_CALLBACK(vte_terminal_accessible_focus_out),
 			 obj);
-	g_signal_connect(G_OBJECT(terminal), "visibility-notify-event",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_visibility_notify),
+	g_signal_connect(terminal, "visibility-notify-event",
+			 G_CALLBACK(vte_terminal_accessible_visibility_notify),
 			 obj);
-	g_signal_connect(G_OBJECT(terminal), "selection-changed",
-			 GTK_SIGNAL_FUNC(vte_terminal_accessible_selection_changed),
+	g_signal_connect(terminal, "selection-changed",
+			 G_CALLBACK(vte_terminal_accessible_selection_changed),
 			 obj);
 
 	if (GTK_IS_WIDGET((GTK_WIDGET(terminal))->parent)) {
@@ -875,47 +875,47 @@ vte_terminal_accessible_finalize(GObject *object)
 					     (gpointer*) &accessible->widget);
 	}
 	if (G_IS_OBJECT(accessible->widget)) {
-		g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+		g_signal_handlers_disconnect_matched(accessible->widget,
 						     G_SIGNAL_MATCH_FUNC |
 						     G_SIGNAL_MATCH_DATA,
 						     0, 0, NULL,
-						     (gpointer)vte_terminal_accessible_text_modified,
+						     vte_terminal_accessible_text_modified,
 						     object);
-		g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+		g_signal_handlers_disconnect_matched(accessible->widget,
 						     G_SIGNAL_MATCH_FUNC |
 						     G_SIGNAL_MATCH_DATA,
 						     0, 0, NULL,
-						     (gpointer)vte_terminal_accessible_text_scrolled,
+						     vte_terminal_accessible_text_scrolled,
 						     object);
-		g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+		g_signal_handlers_disconnect_matched(accessible->widget,
 						     G_SIGNAL_MATCH_FUNC |
 						     G_SIGNAL_MATCH_DATA,
 						     0, 0, NULL,
-						     (gpointer)vte_terminal_accessible_invalidate_cursor,
+						     vte_terminal_accessible_invalidate_cursor,
 						     object);
-		g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+		g_signal_handlers_disconnect_matched(accessible->widget,
 						     G_SIGNAL_MATCH_FUNC |
 						     G_SIGNAL_MATCH_DATA,
 						     0, 0, NULL,
-						     (gpointer)vte_terminal_accessible_title_changed,
+						     vte_terminal_accessible_title_changed,
 						     object);
-		g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+		g_signal_handlers_disconnect_matched(accessible->widget,
 						     G_SIGNAL_MATCH_FUNC |
 						     G_SIGNAL_MATCH_DATA,
 						     0, 0, NULL,
-						     (gpointer)vte_terminal_accessible_focus_in,
+						     vte_terminal_accessible_focus_in,
 						     object);
-		g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+		g_signal_handlers_disconnect_matched(accessible->widget,
 						     G_SIGNAL_MATCH_FUNC |
 						     G_SIGNAL_MATCH_DATA,
 						     0, 0, NULL,
-						     (gpointer)vte_terminal_accessible_focus_out,
+						     vte_terminal_accessible_focus_out,
 						     object);
-		g_signal_handlers_disconnect_matched(G_OBJECT(accessible->widget),
+		g_signal_handlers_disconnect_matched(accessible->widget,
 						     G_SIGNAL_MATCH_FUNC |
 						     G_SIGNAL_MATCH_DATA,
 						     0, 0, NULL,
-						     (gpointer)vte_terminal_accessible_visibility_notify,
+						     vte_terminal_accessible_visibility_notify,
 						     object);
 	}
 	priv = g_object_get_data(object,

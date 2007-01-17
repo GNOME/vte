@@ -23,7 +23,7 @@
 VteTree *
 _vte_tree_new(GCompareFunc key_compare_func)
 {
-  VteTree *tree = g_new0 (VteTree, 1);
+  VteTree *tree = g_slice_new0 (VteTree);
   tree->tree = g_tree_new (key_compare_func);
   return tree;
 }
@@ -32,7 +32,7 @@ void
 _vte_tree_destroy(VteTree *tree)
 {
   g_tree_destroy (tree->tree);
-  g_free (tree);
+  g_slice_free (VteTree, tree);
 }
 
 void 

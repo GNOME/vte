@@ -434,11 +434,11 @@ _vte_xft_set_background_image(struct _vte_draw *draw,
 	pixmap = vte_bg_get_pixmap(vte_bg_get_for_screen(screen), type,
 				   pixbuf, file, color, saturation,
 				   _vte_draw_get_colormap(draw, TRUE));
-	if (GDK_IS_PIXMAP(data->pixmap)) {
-		g_object_unref(G_OBJECT(data->pixmap));
+	if (data->pixmap != NULL) {
+		g_object_unref(data->pixmap);
 	}
 	data->pixmap = NULL;
-	if (GDK_IS_PIXMAP(pixmap)) {
+	if (pixmap != NULL) {
 		data->pixmap = pixmap;
 		data->xpixmap = gdk_x11_drawable_get_xid(pixmap);
 		gdk_drawable_get_size(pixmap, &data->pixmapw, &data->pixmaph);
@@ -456,7 +456,7 @@ _vte_xft_clear(struct _vte_draw *draw,
 
 	data = (struct _vte_xft_data*) draw->impl_data;
 
-	if (!GDK_IS_PIXMAP(data->pixmap) ||
+	if (data->pixmap == NULL ||
 	    (data->pixmapw <= 0) ||
 	    (data->pixmaph <= 0)) {
 		rcolor.red = data->color.red * data->opacity / 0xffff;

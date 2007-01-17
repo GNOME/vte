@@ -65,7 +65,7 @@ _vte_draw_new(GtkWidget *widget)
 
 	/* Create the structure. */
 	draw = g_slice_new0(struct _vte_draw);
-	g_object_ref(G_OBJECT(widget));
+	g_object_ref(widget);
 	draw->widget = widget;
 	draw->started = FALSE;
 
@@ -105,8 +105,8 @@ _vte_draw_free(struct _vte_draw *draw)
 	draw->impl = NULL;
 	draw->impl_data = NULL;
 
-	if (GTK_IS_WIDGET(draw->widget)) {
-		g_object_unref(G_OBJECT(draw->widget));
+	if (draw->widget != NULL) {
+		g_object_unref(draw->widget);
 		draw->widget = NULL;
 	}
 	draw->started = FALSE;
@@ -151,7 +151,7 @@ _vte_draw_start(struct _vte_draw *draw)
 	g_return_if_fail(GTK_WIDGET_REALIZED(draw->widget));
 	g_return_if_fail(draw->impl != NULL);
 	g_return_if_fail(draw->impl->start != NULL);
-	g_object_ref(G_OBJECT(draw->widget->window));
+	g_object_ref(draw->widget->window);
 	draw->impl->start(draw);
 	draw->started = TRUE;
 }
@@ -163,7 +163,7 @@ _vte_draw_end(struct _vte_draw *draw)
 	g_return_if_fail(draw->impl != NULL);
 	g_return_if_fail(draw->impl->end != NULL);
 	draw->impl->end(draw);
-	g_object_unref(G_OBJECT(draw->widget->window));
+	g_object_unref(draw->widget->window);
 	draw->started = FALSE;
 }
 

@@ -337,12 +337,10 @@ vte_sequence_handler_multiple(VteTerminal *terminal,
 static gboolean
 vte_sequence_handler_scroll_up_or_down(VteTerminal *terminal, int scroll_amount)
 {
-	GtkWidget *widget;
 	VteRowData *row;
 	long start, end, i;
 	VteScreen *screen;
 
-	widget = GTK_WIDGET(terminal);
 	screen = terminal->pvt->screen;
 
 	if (screen->scrolling_restricted) {
@@ -459,15 +457,15 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 			if (strcmp(signal, "window") == 0) {
 				g_free(terminal->window_title);
 				terminal->window_title = g_strdup(validated);
-				if (GTK_WIDGET (terminal)->window)
-					gdk_window_set_title (GTK_WIDGET (terminal)->window, validated);
+				if (terminal->widget.window)
+					gdk_window_set_title (terminal->widget.window, validated);
 				vte_terminal_emit_window_title_changed(terminal);
 			} else
 			if (strcmp(signal, "icon") == 0) {
 				g_free (terminal->icon_title);
 				terminal->icon_title = g_strdup(validated);
-				if (GTK_WIDGET (terminal)->window)
-					gdk_window_set_icon_name (GTK_WIDGET (terminal)->window, validated);
+				if (terminal->widget.window)
+					gdk_window_set_icon_name (terminal->widget.window, validated);
 				vte_terminal_emit_icon_title_changed(terminal);
 			}
 			g_free(validated);
@@ -1036,7 +1034,7 @@ vte_terminal_beep(VteTerminal *terminal)
 	GdkDisplay *display;
 
 	g_assert(VTE_IS_TERMINAL(terminal));
-	display = gtk_widget_get_display(GTK_WIDGET(terminal));
+	display = gtk_widget_get_display(&terminal->widget);
 	gdk_display_beep(display);
 }
 
@@ -1654,11 +1652,9 @@ vte_sequence_handler_do(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	GtkWidget *widget;
 	long start, end;
 	VteScreen *screen;
 
-	widget = GTK_WIDGET(terminal);
 	screen = terminal->pvt->screen;
 
 	if (screen->scrolling_restricted) {
@@ -2262,12 +2258,10 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	GtkWidget *widget;
 	VteRowData *row;
 	long start, end;
 	VteScreen *screen;
 
-	widget = GTK_WIDGET(terminal);
 	screen = terminal->pvt->screen;
 
 	if (screen->scrolling_restricted) {
@@ -2298,7 +2292,6 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 				/* This may generate multiple redraws, so
 				 * disable fast scrolling for now. */
 				terminal->pvt->scroll_lock_count++;
-				gdk_window_freeze_updates(widget->window);
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
 				_vte_terminal_scroll_region(terminal, start,
@@ -2307,7 +2300,6 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 				_vte_terminal_ensure_cursor(terminal, FALSE);
 				_vte_terminal_adjust_adjustments(terminal, TRUE);
 				/* Allow updates again. */
-				gdk_window_thaw_updates(widget->window);
 				terminal->pvt->scroll_lock_count--;
 			} else {
 				/* If we're at the bottom of the scrolling
@@ -2318,7 +2310,6 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 				/* This may generate multiple redraws, so
 				 * disable fast scrolling for now. */
 				terminal->pvt->scroll_lock_count++;
-				gdk_window_freeze_updates(widget->window);
 				/* Update the display. */
 				_vte_terminal_scroll_region(terminal, start,
 							   end - start + 1, -1);
@@ -2326,7 +2317,6 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 						      0, terminal->column_count,
 						      end - 2, 2);
 				/* Allow updates again. */
-				gdk_window_thaw_updates(widget->window);
 				terminal->pvt->scroll_lock_count--;
 			}
 		} else {
@@ -2433,11 +2423,9 @@ vte_sequence_handler_sr(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	GtkWidget *widget;
 	long start, end;
 	VteScreen *screen;
 
-	widget = GTK_WIDGET(terminal);
 	screen = terminal->pvt->screen;
 
 	if (screen->scrolling_restricted) {
@@ -2678,7 +2666,7 @@ vte_sequence_handler_vb(VteTerminal *terminal,
 	GtkWidget *widget;
 	gint width, height, state;
 
-	widget = GTK_WIDGET(terminal);
+	widget = &terminal->widget;
 	if (GTK_WIDGET_REALIZED(widget)) {
 		gdk_drawable_get_size(widget->window, &width, &height);
 		state = GTK_WIDGET_STATE(widget);
@@ -3774,7 +3762,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 	long param, arg1, arg2;
 	guint width, height, i;
 
-	widget = GTK_WIDGET(terminal);
+	widget = &terminal->widget;
 	screen = terminal->pvt->screen;
 
 	for (i = 0; ((params != NULL) && (i < params->n_values)); i++) {

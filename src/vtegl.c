@@ -178,8 +178,8 @@ _vte_gl_destroy(struct _vte_draw *draw)
 	_vte_glyph_cache_free(data->cache);
 	data->cache = NULL;
 
-	if (GDK_IS_PIXBUF(data->bgpixbuf)) {
-		g_object_unref(G_OBJECT(data->bgpixbuf));
+	if (data->bgpixbuf != NULL) {
+		g_object_unref(data->bgpixbuf);
 	}
 	data->bgpixbuf = NULL;
 
@@ -285,8 +285,8 @@ _vte_gl_set_background_image(struct _vte_draw *draw,
 	bgpixbuf = vte_bg_get_pixbuf(vte_bg_get_for_screen(screen),
 			 	     type, pixbuf, file,
 				     tint, saturation);
-	if (GDK_IS_PIXBUF(data->bgpixbuf)) {
-		g_object_unref(G_OBJECT(data->bgpixbuf));
+	if (data->bgpixbuf != NULL) {
+		g_object_unref(data->bgpixbuf);
 	}
 	data->bgpixbuf = bgpixbuf;
 }
@@ -308,7 +308,7 @@ _vte_gl_clear(struct _vte_draw *draw, gint x, gint y, gint width, gint height)
 
 	glXMakeCurrent(display, data->glwindow, data->context);
 
-	if (GDK_IS_PIXBUF(data->bgpixbuf)) {
+	if (data->bgpixbuf != NULL) {
 		pixbufw = gdk_pixbuf_get_width(data->bgpixbuf);
 		pixbufh = gdk_pixbuf_get_height(data->bgpixbuf);
 	} else {

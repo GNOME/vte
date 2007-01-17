@@ -365,7 +365,7 @@ void _vte_invalidate_all(VteTerminal *terminal);
 void _vte_invalidate_cells(VteTerminal *terminal,
 			   glong column_start, gint column_count,
 			   glong row_start, gint row_count);
-void _vte_invalidate_cursor_once(gpointer data, gboolean periodic);
+void _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic);
 VteRowData * _vte_new_row_data(VteTerminal *terminal);
 VteRowData * _vte_new_row_data_sized(VteTerminal *terminal, gboolean fill);
 void _vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate);

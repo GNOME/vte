@@ -58,13 +58,13 @@ _vte_rdb_get(GtkWidget *widget, gboolean screen_setting)
 	GdkDisplay *display;
 	GdkScreen *screen;
 
-	if (GTK_IS_WIDGET(widget)) {
+	if (widget != NULL) {
 		display = gtk_widget_get_display(widget);
 	} else {
 		display = gdk_display_get_default();
 	}
 
-	if (GTK_IS_WIDGET(widget) &&
+	if (widget != NULL &&
 	    gtk_widget_has_screen(widget) &&
 	    screen_setting) {
 		screen = gtk_widget_get_screen(widget);
