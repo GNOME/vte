@@ -460,8 +460,8 @@ _vte_pango_x_set_scroll(struct _vte_draw *draw, gint x, gint y)
 	data->scrolly = y;
 }
 
-struct _vte_draw_impl _vte_draw_pango_x = {
-	"VtePangoX", "VTE_USE_PANGOX",
+const struct _vte_draw_impl _vte_draw_pango_x = {
+	"PangoX",
 	_vte_pango_x_check,
 	_vte_pango_x_create,
 	_vte_pango_x_destroy,

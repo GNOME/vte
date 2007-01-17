@@ -1,5 +1,32 @@
 2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 395373 - Allow the user to specify backend priorities.
+
+	* src/vtedraw.c: (_vte_draw_init_user), (_vte_draw_init_default),
+	(_vte_draw_new):
+		Scan $ENV{VTE_BACKEND} for the user's preferred backend
+		and failover to the first working backend.
+		Discard checking VTE_USE_*
+
+	* src/vtedraw.h:
+	* src/vteft2.c:
+	* src/vteft2.h:
+	* src/vtegl.c:
+	* src/vtegl.h:
+	* src/vtepango.c:
+	* src/vtepango.h:
+	* src/vtepangox.c:
+	* src/vtepangox.h:
+	* src/vteskel.c: (_vte_skel_check), (_vte_skel_create),
+	(_vte_skel_destroy), (_vte_skel_start):
+	* src/vteskel.h:
+	* src/vtexft.c:
+	* src/vtexft.h:
+		Remove the environment variable field, drop the "Vte" prefix
+		from the backend names and make the exported structure const.
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	As part of Bug 397439.
 
 	* src/iso2022.c: (_vte_iso2022_is_ambiguous):

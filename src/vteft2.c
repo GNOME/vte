@@ -365,8 +365,8 @@ _vte_ft2_set_scroll(struct _vte_draw *draw, gint x, gint y)
 	data->scrolly = y;
 }
 
-struct _vte_draw_impl _vte_draw_ft2 = {
-	"VteFT2", "VTE_USE_FT2",
+const struct _vte_draw_impl _vte_draw_ft2 = {
+	"FT2",
 	_vte_ft2_check,
 	_vte_ft2_create,
 	_vte_ft2_destroy,

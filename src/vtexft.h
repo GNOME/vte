@@ -28,7 +28,7 @@ G_BEGIN_DECLS
 
 #ifdef HAVE_XFT2
 
-extern struct _vte_draw_impl _vte_draw_xft;
+extern const struct _vte_draw_impl _vte_draw_xft;
 
 #endif
 

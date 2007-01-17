@@ -49,7 +49,7 @@ struct _vte_draw_text_request {
 };
 
 struct _vte_draw_impl {
-	const char *name, *environment;
+	const char *name;
 	gboolean (*check)(struct _vte_draw *draw, GtkWidget *widget);
 	void (*create)(struct _vte_draw *draw, GtkWidget *widget);
 	void (*destroy)(struct _vte_draw *draw);
@@ -93,7 +93,7 @@ struct _vte_draw {
 	GtkWidget *widget;
 	gboolean started;
 	gint width, height, ascent;
-	struct _vte_draw_impl *impl;
+	const struct _vte_draw_impl *impl;
 	gpointer impl_data;
 };
 

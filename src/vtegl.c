@@ -594,8 +594,8 @@ _vte_gl_set_scroll(struct _vte_draw *draw, gint x, gint y)
 	data->scrolly = y;
 }
 
-struct _vte_draw_impl _vte_draw_gl = {
-	"VteGL", "VTE_USE_GL",
+const struct _vte_draw_impl _vte_draw_gl = {
+	"GL",
 	_vte_gl_check,
 	_vte_gl_create,
 	_vte_gl_destroy,

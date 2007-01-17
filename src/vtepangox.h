@@ -26,7 +26,7 @@
 
 G_BEGIN_DECLS
 
-extern struct _vte_draw_impl _vte_draw_pango_x;
+extern const struct _vte_draw_impl _vte_draw_pango_x;
 
 G_END_DECLS
 

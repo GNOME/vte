@@ -763,8 +763,8 @@ _vte_xft_set_scroll(struct _vte_draw *draw, gint x, gint y)
 	data->scrolly = y;
 }
 
-struct _vte_draw_impl _vte_draw_xft = {
-	"VteXft", "VTE_USE_XFT",
+const struct _vte_draw_impl _vte_draw_xft = {
+	"Xft",
 	_vte_xft_check,
 	_vte_xft_create,
 	_vte_xft_destroy,

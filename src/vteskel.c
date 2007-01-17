@@ -30,33 +30,20 @@
 struct _vte_skel_data
 {
 	GdkColor color;
-	GdkPixmap *pixmap;
-	gint pixmapw, pixmaph;
-	gint scrollx, scrolly;
 	guint16 opacity;
+	gint scrollx, scrolly;
 };
 
 static gboolean
 _vte_skel_check(struct _vte_draw *draw, GtkWidget *widget)
 {
-	/* Implement me first. */
-	return FALSE;
+	return TRUE; /* null output; useful for testing */
 }
 
 static void
 _vte_skel_create(struct _vte_draw *draw, GtkWidget *widget)
 {
-	struct _vte_skel_data *data;
-
-	draw->impl_data = g_slice_new(struct _vte_skel_data);
-	data = (struct _vte_skel_data*) draw->impl_data;
-
-	data->color.red = 0;
-	data->color.green = 0;
-	data->color.blue = 0;
-	data->pixmap = NULL;
-	data->pixmapw = data->pixmaph = 0;
-	data->scrollx = data->scrolly = 0;
+	draw->impl_data = g_slice_new0(struct _vte_skel_data);
 }
 
 static void
@@ -64,10 +51,6 @@ _vte_skel_destroy(struct _vte_draw *draw)
 {
 	struct _vte_skel_data *data;
 	data = (struct _vte_skel_data*) draw->impl_data;
-
-	if (data->pixmap != NULL) {
-		g_object_unref(data->pixmap);
-	}
 
 	g_slice_free(struct _vte_skel_data, draw->impl_data);
 }
@@ -89,8 +72,6 @@ _vte_skel_start(struct _vte_draw *draw)
 {
 	struct _vte_skel_data *data;
 	data = (struct _vte_skel_data*) draw->impl_data;
-	gdk_rgb_find_color(gdk_drawable_get_colormap(draw->widget->window),
-			   &data->color);
 }
 
 static void
@@ -215,8 +196,8 @@ _vte_skel_set_scroll(struct _vte_draw *draw, gint x, gint y)
 	data->scrolly = y;
 }
 
-struct _vte_draw_impl _vte_draw_skel = {
-	"VteSkel", "VTE_USE_SKEL",
+const struct _vte_draw_impl _vte_draw_skel = {
+	"null",
 	_vte_skel_check,
 	_vte_skel_create,
 	_vte_skel_destroy,
