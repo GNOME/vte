@@ -48,7 +48,7 @@ main(int argc, char **argv)
 	}
 
 	conv = _vte_conv_open("UTF-8", VTE_CONV_GUNICHAR_TYPE);
-	if (conv == ((VteConv) -1)) {
+	if (conv == VTE_INVALID_CONV) {
 		return 1;
 	}
 

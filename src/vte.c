@@ -1586,12 +1586,12 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 
 	/* Open new conversions. */
 	conv = _vte_conv_open(codeset, "UTF-8");
-	if (conv == ((VteConv) -1)) {
+	if (conv == VTE_INVALID_CONV) {
 		g_warning(_("Unable to convert characters from %s to %s."),
 			  "UTF-8", codeset);
 		return;
 	}
-	if (terminal->pvt->outgoing_conv != (VteConv) -1) {
+	if (terminal->pvt->outgoing_conv != VTE_INVALID_CONV) {
 		_vte_conv_close(terminal->pvt->outgoing_conv);
 	}
 	terminal->pvt->outgoing_conv = conv;
@@ -3427,7 +3427,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		conv = terminal->pvt->outgoing_conv;
 	}
 	g_assert(conv != NULL);
-	g_assert(conv != ((VteConv) -1));
+	g_assert(conv != VTE_INVALID_CONV);
 
 	icount = length;
 	ibuf = (char *) data;
@@ -6727,7 +6727,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->process_timeout = VTE_INVALID_SOURCE;
 	pvt->update_timeout = VTE_INVALID_SOURCE;
 	pvt->outgoing = _vte_buffer_new();
-	pvt->outgoing_conv = (VteConv) -1;
+	pvt->outgoing_conv = VTE_INVALID_CONV;
 	pvt->conv_buffer = _vte_buffer_new();
 	vte_terminal_set_encoding(terminal, NULL);
 	g_assert(terminal->pvt->encoding != NULL);
@@ -7181,10 +7181,10 @@ vte_terminal_finalize(GObject *object)
 		      TRUE);
 
 	/* Free conversion descriptors. */
-	if (terminal->pvt->outgoing_conv != ((VteConv) -1)) {
+	if (terminal->pvt->outgoing_conv != VTE_INVALID_CONV) {
 		_vte_conv_close(terminal->pvt->outgoing_conv);
+		terminal->pvt->outgoing_conv = VTE_INVALID_CONV;
 	}
-	terminal->pvt->outgoing_conv = ((VteConv) -1);
 
 	/* Stop listening for child-exited signals. */
 	if (terminal->pvt->pty_reaper != NULL) {
@@ -10400,7 +10400,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	}
 	/* Convert the spec from UTF-8 to a string of gunichars . */
 	conv = _vte_conv_open(VTE_CONV_GUNICHAR_TYPE, "UTF-8");
-	if (conv == ((VteConv) -1)) {
+	if (conv == VTE_INVALID_CONV) {
 		/* Aaargh.  We're screwed. */
 		g_warning(_("_vte_conv_open() failed setting word characters"));
 		return;

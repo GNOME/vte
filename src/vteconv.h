@@ -27,6 +27,7 @@
 G_BEGIN_DECLS
 
 #define VTE_CONV_GUNICHAR_TYPE "X-VTE-GUNICHAR"
+#define VTE_INVALID_CONV ((VteConv)-1)
 
 struct _VteConv;
 typedef struct _VteConv *VteConv;

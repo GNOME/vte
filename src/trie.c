@@ -504,7 +504,7 @@ _vte_trie_add(struct _vte_trie *trie, const char *pattern, size_t length,
 	wpattern = wpattern_end = g_malloc0(wlength + 1);
 
 	conv = _vte_conv_open(VTE_CONV_GUNICHAR_TYPE, "UTF-8");
-	g_assert(conv != ((VteConv) -1));
+	g_assert(conv != VTE_INVALID_CONV);
 
 	tpattern = (char*)pattern;
 	_vte_conv(conv, &tpattern, &length, &wpattern_end, &wlength);
@@ -845,7 +845,7 @@ convert_mbstowcs(const char *i, size_t ilen,
 	VteConv conv;
 	size_t outlen;
 	conv = _vte_conv_open(VTE_CONV_GUNICHAR_TYPE, "UTF-8");
-	g_assert(conv != ((VteConv) -1));
+	g_assert(conv != VTE_INVALID_CONV);
 
 	memset(o, 0, max_olen);
 	outlen = max_olen;

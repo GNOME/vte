@@ -779,7 +779,7 @@ _vte_iso2022_state_new(const char *native_codeset,
 	state->codeset_changed = fn;
 	state->codeset_changed_data = data;
 	state->buffer = _vte_buffer_new();
-	if (state->conv == (VteConv) -1) {
+	if (state->conv == VTE_INVALID_CONV) {
 		g_warning(_("Unable to convert characters from %s to %s."),
 			  state->codeset, state->target_codeset);
 #ifdef VTE_DEBUG
@@ -790,7 +790,7 @@ _vte_iso2022_state_new(const char *native_codeset,
 		state->codeset = state->utf8_codeset;
 		state->conv = _vte_conv_open(state->target_codeset,
 					     state->codeset);
-		if (state->conv == (VteConv) -1) {
+		if (state->conv == VTE_INVALID_CONV) {
 			g_error(_("Unable to convert characters from %s to %s."),
 				state->codeset, state->target_codeset);
 		}
@@ -802,7 +802,7 @@ void
 _vte_iso2022_state_free(struct _vte_iso2022_state *state)
 {
 	_vte_buffer_free(state->buffer);
-	if (state->conv != ((VteConv) -1)) {
+	if (state->conv != VTE_INVALID_CONV) {
 		_vte_conv_close(state->conv);
 	}
 	g_slice_free(struct _vte_iso2022_state, state);
@@ -824,12 +824,12 @@ _vte_iso2022_state_set_codeset(struct _vte_iso2022_state *state,
 	}
 #endif
 	conv = _vte_conv_open(state->target_codeset, codeset);
-	if (conv == (VteConv) -1) {
+	if (conv == VTE_INVALID_CONV) {
 		g_warning(_("Unable to convert characters from %s to %s."),
 			  codeset, state->target_codeset);
 		return;
 	}
-	if (state->conv != (VteConv) -1) {
+	if (state->conv != VTE_INVALID_CONV) {
 		_vte_conv_close(state->conv);
 	}
 	state->codeset = g_quark_to_string(g_quark_from_string(codeset));

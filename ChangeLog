@@ -2,6 +2,22 @@
 
 	As part of Bug 397439.
 
+	* src/iso2022.c: (_vte_iso2022_state_new),
+	(_vte_iso2022_state_free), (_vte_iso2022_state_set_codeset):
+	* src/trie.c: (_vte_trie_add), (convert_mbstowcs):
+	* src/utf8echo.c: (main):
+	* src/vte.c: (vte_terminal_set_encoding), (vte_terminal_send),
+	(vte_terminal_init), (vte_terminal_finalize),
+	(vte_terminal_set_word_chars):
+	* src/vteconv.c: (_vte_conv_open), (_vte_conv_close), (_vte_conv):
+	* src/vteconv.h:
+	* src/vteseq.c: (vte_sequence_handler_set_title_internal):
+		s/(VteConv)-1/VTE_INVALID_CONV/
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	As part of Bug 397439.
+
 	* src/vte.c: (_vte_new_row_data), (_vte_new_row_data_sized),
 	(_vte_terminal_find_row_data), (_vte_row_data_find_charcell),
 	(vte_line_is_wrappable), (vte_terminal_extend_selection),

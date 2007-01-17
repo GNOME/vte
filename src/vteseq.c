@@ -417,7 +417,7 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 			_vte_buffer_set_minimum_size(terminal->pvt->conv_buffer,
 						     outbuf_len);
 			outbuf = outbufptr = terminal->pvt->conv_buffer->bytes;
-			if (conv != ((VteConv) -1)) {
+			if (conv != VTE_INVALID_CONV) {
 				if (_vte_conv(conv, &inbuf, &inbuf_len,
 					      &outbuf, &outbuf_len) == -1) {
 #ifdef VTE_DEBUG

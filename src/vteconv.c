@@ -146,7 +146,7 @@ _vte_conv_open(const char *target, const char *source)
 	if (!utf8) {
 		conv = g_iconv_open(real_target, real_source);
 		if (conv == ((GIConv) -1)) {
-			return (VteConv) -1;
+			return VTE_INVALID_CONV;
 		}
 	}
 
@@ -178,7 +178,7 @@ gint
 _vte_conv_close(VteConv converter)
 {
 	g_assert(converter != NULL);
-	g_assert(converter != ((VteConv) -1));
+	g_assert(converter != VTE_INVALID_CONV);
 
 	/* Close the underlying descriptor, if there is one. */
 	if (converter->conv != NULL) {
@@ -208,7 +208,7 @@ _vte_conv(VteConv converter,
 	gsize in_converted, out_converted;
 
 	g_assert(converter != NULL);
-	g_assert(converter != ((VteConv) -1));
+	g_assert(converter != VTE_INVALID_CONV);
 
 	work_inbuf_start = work_inbuf_working = *inbuf;
 	work_outbuf_start = work_outbuf_working = *outbuf;
