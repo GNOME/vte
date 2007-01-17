@@ -2,6 +2,36 @@
 
 	As part of Bug 397439.
 
+	* src/iso2022.c: (_vte_iso2022_state_free):
+	* src/matcher.c: (_vte_matcher_free_params_array):
+	* src/ring.c: (_vte_ring_free):
+	* src/table.c: (_vte_table_free):
+	* src/trie.c: (_vte_trie_match):
+	* src/vte.c: (_vte_terminal_match_contents_clear),
+	(_vte_terminal_fork_basic),
+	(vte_terminal_get_text_range_maybe_wrapped), (vte_terminal_copy),
+	(vte_terminal_finalize), (vte_terminal_draw_cells_with_attributes):
+	* src/vteaccess.c: (vte_terminal_accessible_free_private_data):
+	* src/vtebg.c: (vte_bg_root_pixmap), (vte_bg_cache_item_free):
+	* src/vteconv.c: (_vte_conv_close):
+	* src/vtedraw.c: (_vte_draw_free):
+	* src/vteft2.c: (_vte_ft2_destroy):
+	* src/vtegl.c: (_vte_gl_destroy):
+	* src/vteglyph.c: (_vte_glyph_cache_free):
+	* src/vtepango.c: (_vte_pango_destroy):
+	* src/vtepangox.c: (_vte_pango_x_destroy):
+	* src/vtergb.c: (_vte_rgb_buffer_new), (_vte_rgb_buffer_free):
+	* src/vteseq.c: (vte_sequence_handler_se),
+	(vte_sequence_handler_so):
+	* src/vteskel.c: (_vte_skel_destroy):
+	* src/vtexft.c: (_vte_xft_font_close), (_vte_xft_destroy):
+		Do not zero memory in destructors, as glib will zero all
+		freed memory if G_DEBUG=gc-friendly.
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	As part of Bug 397439.
+
 	* src/reaper.c: (vte_reaper_add_child), (vte_reaper_init),
 	(vte_reaper_constructor), (vte_reaper_finalize),
 	(vte_reaper_class_init), (vte_reaper_get), (main):

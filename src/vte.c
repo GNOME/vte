@@ -857,7 +857,7 @@ _vte_terminal_match_contents_clear(VteTerminal *terminal)
 	g_assert(VTE_IS_TERMINAL(terminal));
 	if (terminal->pvt->match_contents != NULL) {
 		g_free(terminal->pvt->match_contents);
-		terminal->pvt->match_contents = NULL;;
+		terminal->pvt->match_contents = NULL;
 	}
 	if (terminal->pvt->match_attributes != NULL) {
 		g_array_free(terminal->pvt->match_attributes, TRUE);
@@ -2664,10 +2664,7 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 	}
 
 	/* Clean up. */
-	for (i = 0; env_add[i] != NULL; i++) {
-		g_free(env_add[i]);
-	}
-	g_free(env_add);
+	g_strfreev(env_add);
 
 	/* Return the pid to the caller. */
 	return pid;
@@ -4870,9 +4867,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 		}
 	}
 	/* Sanity check. */
-	if (attributes) {
-		g_assert(string->len == attributes->len);
-	}
+	g_assert(attributes == NULL || string->len == attributes->len);
 	return g_string_free(string, FALSE);
 }
 
@@ -5021,9 +5016,7 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 	clipboard = vte_terminal_clipboard_get(terminal, board);
 
 	/* Chuck old selected text and retrieve the newly-selected text. */
-	if (terminal->pvt->selection != NULL) {
-		g_free(terminal->pvt->selection);
-	}
+	g_free(terminal->pvt->selection);
 	terminal->pvt->selection =
 		vte_terminal_get_text_range(terminal,
 					    terminal->pvt->selection_start.y,
@@ -7088,26 +7081,21 @@ vte_terminal_finalize(GObject *object)
 	if (terminal->pvt->draw != NULL) {
 		_vte_draw_free(terminal->pvt->draw);
 	}
-	terminal->pvt->draw = NULL;
 
 	/* The NLS maps. */
 	if (terminal->pvt->iso2022 != NULL) {
 		_vte_iso2022_state_free(terminal->pvt->iso2022);
-		terminal->pvt->iso2022 = NULL;
 	}
 
 	/* Free background info. */
 	if (terminal->pvt->bg_update_tag != VTE_INVALID_SOURCE) {
 		g_source_remove(terminal->pvt->bg_update_tag);
-		terminal->pvt->bg_update_tag = VTE_INVALID_SOURCE;
-		terminal->pvt->bg_update_pending = FALSE;
 		g_free(terminal->pvt->bg_file);
 	}
 
 	/* Free the font description. */
 	if (terminal->pvt->fontdesc != NULL) {
 		pango_font_description_free(terminal->pvt->fontdesc);
-		terminal->pvt->fontdesc = NULL;
 	}
 	terminal->pvt->fontantialias = VTE_ANTI_ALIAS_USE_DEFAULT;
 	vte_terminal_disconnect_xft_settings(terminal);
@@ -7115,11 +7103,9 @@ vte_terminal_finalize(GObject *object)
 	/* Free matching data. */
 	if (terminal->pvt->match_attributes != NULL) {
 		g_array_free(terminal->pvt->match_attributes, TRUE);
-		terminal->pvt->match_attributes = NULL;
 	}
 	if (terminal->pvt->match_contents != NULL) {
 		g_free(terminal->pvt->match_contents);
-		terminal->pvt->match_contents = NULL;
 	}
 	if (terminal->pvt->match_regexes != NULL) {
 		for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
@@ -7132,15 +7118,10 @@ vte_terminal_finalize(GObject *object)
 			}
 			if (regex->cursor != NULL) {
 				gdk_cursor_unref(regex->cursor);
-				regex->cursor = NULL;
 			}
 			_vte_regex_free(regex->reg);
-			regex->reg = NULL;
-			regex->tag = 0;
 		}
 		g_array_free(terminal->pvt->match_regexes, TRUE);
-		terminal->pvt->match_regexes = NULL;
-		terminal->pvt->match_previous = -1;
 	}
 
 	/* Disconnect from toplevel window configure events. */
@@ -7157,17 +7138,12 @@ vte_terminal_finalize(GObject *object)
 	/* Cancel pending adjustment change notifications. */
 	if (terminal->pvt->adjustment_changed_tag) {
 		g_source_remove(terminal->pvt->adjustment_changed_tag);
-		terminal->pvt->adjustment_changed_tag = 0;
 	}
 
 	/* Tabstop information. */
 	if (terminal->pvt->tabstops != NULL) {
 		g_hash_table_destroy(terminal->pvt->tabstops);
-		terminal->pvt->tabstops = NULL;
 	}
-	terminal->pvt->text_modified_flag = FALSE;
-	terminal->pvt->text_inserted_count = 0;
-	terminal->pvt->text_deleted_count = 0;
 
 	/* Free any selected text, but if we currently own the selection,
 	 * throw the text onto the clipboard without an owner so that it
@@ -7181,24 +7157,18 @@ vte_terminal_finalize(GObject *object)
 					       -1);
 		}
 		g_free(terminal->pvt->selection);
-		terminal->pvt->selection = NULL;
 	}
 	if (terminal->pvt->word_chars != NULL) {
 		g_array_free(terminal->pvt->word_chars, TRUE);
-		terminal->pvt->word_chars = NULL;
 	}
 
 	/* Clear the output histories. */
 	_vte_ring_free(terminal->pvt->normal_screen.row_data, TRUE);
-	terminal->pvt->normal_screen.row_data = NULL;
 	_vte_ring_free(terminal->pvt->alternate_screen.row_data, TRUE);
-	terminal->pvt->alternate_screen.row_data = NULL;
 
 	/* Clear the status lines. */
-	terminal->pvt->normal_screen.status_line = FALSE;
 	g_string_free(terminal->pvt->normal_screen.status_line_contents,
 		      TRUE);
-	terminal->pvt->alternate_screen.status_line = FALSE;
 	g_string_free(terminal->pvt->alternate_screen.status_line_contents,
 		      TRUE);
 
@@ -7214,7 +7184,6 @@ vte_terminal_finalize(GObject *object)
 						     vte_terminal_catch_child_exited,
 						     terminal);
 		g_object_unref(terminal->pvt->pty_reaper);
-		terminal->pvt->pty_reaper = NULL;
 	}
 
 	/* Stop processing input. */
@@ -7224,19 +7193,15 @@ vte_terminal_finalize(GObject *object)
 	if (terminal->pvt->incoming != NULL) {
 		_vte_buffer_free(terminal->pvt->incoming);
 	}
-	terminal->pvt->incoming = NULL;
 	if (terminal->pvt->outgoing != NULL) {
 		_vte_buffer_free(terminal->pvt->outgoing);
 	}
-	terminal->pvt->outgoing = NULL;
 	if (terminal->pvt->pending != NULL) {
 		g_array_free(terminal->pvt->pending, TRUE);
 	}
-	terminal->pvt->pending = NULL;
 	if (terminal->pvt->conv_buffer != NULL) {
 		_vte_buffer_free(terminal->pvt->conv_buffer);
 	}
-	terminal->pvt->conv_buffer = NULL;
 
 	/* Stop the child and stop watching for input from the child. */
 	if (terminal->pvt->pty_pid != -1) {
@@ -7249,52 +7214,31 @@ vte_terminal_finalize(GObject *object)
 #endif
 		kill(terminal->pvt->pty_pid, SIGHUP);
 	}
-	terminal->pvt->pty_pid = -1;
 	_vte_terminal_disconnect_pty_read(terminal);
 	_vte_terminal_disconnect_pty_write(terminal);
 	if (terminal->pvt->pty_master != -1) {
 		_vte_pty_close(terminal->pvt->pty_master);
 		close(terminal->pvt->pty_master);
 	}
-	terminal->pvt->pty_master = -1;
-
-	/* Clear some of our strings. */
-	terminal->pvt->shell = NULL;
 
 	/* Remove hash tables. */
 	if (terminal->pvt->dec_saved != NULL) {
 		g_hash_table_destroy(terminal->pvt->dec_saved);
-		terminal->pvt->dec_saved = NULL;
 	}
 
 	/* Clean up emulation structures. */
-	memset(&terminal->pvt->flags, 0, sizeof(terminal->pvt->flags));
-	terminal->pvt->emulation = NULL;
-	terminal->pvt->termcap_path = NULL;
 	if (terminal->pvt->matcher != NULL) {
 		_vte_matcher_free(terminal->pvt->matcher);
-		terminal->pvt->matcher = NULL;
 	}
 	_vte_termcap_free(terminal->pvt->termcap);
-	terminal->pvt->termcap = NULL;
 
 	remove_update_timeout (terminal);
 
-	/* Done with our private data. */
-	terminal->pvt = NULL;
-
 	/* Free public-facing data. */
-	if (terminal->window_title != NULL) {
-		g_free(terminal->window_title);
-		terminal->window_title = NULL;
-	}
-	if (terminal->icon_title != NULL) {
-		g_free(terminal->icon_title);
-		terminal->icon_title = NULL;
-	}
+	g_free(terminal->window_title);
+	g_free(terminal->icon_title);
 	if (terminal->adjustment != NULL) {
 		g_object_unref(terminal->adjustment);
-		terminal->adjustment = NULL;
 	}
 
 	/* Call the inherited finalize() method. */
@@ -8728,7 +8672,7 @@ vte_terminal_draw_cells_with_attributes(VteTerminal *terminal,
 	for (i = 0, cell_count = 0; i < n; i++) {
 		cell_count += g_unichar_to_utf8(items[i].c, scratch_buf);
 	}
-	cells = g_malloc(cell_count * sizeof(struct vte_charcell));
+	cells = g_new(struct vte_charcell, cell_count);
 	_vte_terminal_translate_pango_cells(terminal, attrs, cells, cell_count);
 	for (i = 0, j = 0; i < n; i++) {
 		vte_terminal_determine_colors(terminal, &cells[j],

@@ -163,34 +163,22 @@ _vte_gl_destroy(struct _vte_draw *draw)
 	struct _vte_gl_data *data;
 	GdkDisplay *gdisplay;
 	Display *display;
-	GdkScreen *gscreen;
-	int screen;
 
 	data = (struct _vte_gl_data*) draw->impl_data;
 	gdisplay = gdk_display_get_default();
 	display = gdk_x11_display_get_xdisplay(gdisplay);
-	gscreen = gdk_screen_get_default();
-	screen = gdk_x11_screen_get_screen_number(gscreen);
 
 	_vte_buffer_free(data->buffer);
-	data->buffer = NULL;
 
 	_vte_glyph_cache_free(data->cache);
-	data->cache = NULL;
 
 	if (data->bgpixbuf != NULL) {
 		g_object_unref(data->bgpixbuf);
 	}
-	data->bgpixbuf = NULL;
 
 	glXMakeCurrent(display, None, data->context);
 
 	glXDestroyContext(display, data->context);
-	data->context = NULL;
-
-	data->scrollx = data->scrolly = 0;
-
-	memset(&data->color, 0, sizeof(data->color));
 
 	g_slice_free(struct _vte_gl_data, draw->impl_data);
 }

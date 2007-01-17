@@ -86,7 +86,6 @@ _vte_table_free(struct _vte_table *table)
 		for (i = 0; i < VTE_TABLE_MAX_LITERAL; i++) {
 			if (table->table[i] != NULL) {
 				_vte_table_free(table->table[i]);
-				table->table[i] = NULL;
 			}
 		}
 		g_free(table->table);
@@ -103,9 +102,7 @@ _vte_table_free(struct _vte_table *table)
 		g_assert(table->original != NULL);
 	}
 	if (table->original != NULL) {
-		table->original_length = 0;
 		g_free(table->original);
-		table->original = NULL;
 	}
 	g_slice_free(struct _vte_table, table);
 }

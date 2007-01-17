@@ -130,7 +130,6 @@ _vte_xft_font_close(struct _vte_xft_font *font)
 		FcPatternDestroy(pattern);
 	}
 	g_array_free(font->patterns, TRUE);
-	font->patterns = NULL;
 
 	gdisplay = gdk_display_get_default();
 	display = gdk_x11_display_get_xdisplay(gdisplay);
@@ -141,12 +140,9 @@ _vte_xft_font_close(struct _vte_xft_font *font)
 		}
 	}
 	g_array_free(font->fonts, TRUE);
-	font->fonts = NULL;
 
 	_vte_tree_destroy(font->fontmap);
-	font->fontmap = NULL;
 	_vte_tree_destroy(font->widths);
-	font->widths = NULL;
 
 	g_slice_free(struct _vte_xft_font, font);
 }
@@ -314,30 +310,14 @@ _vte_xft_destroy(struct _vte_draw *draw)
 	data = (struct _vte_xft_data*) draw->impl_data;
 	if (data->font != NULL) {
 		_vte_xft_font_close(data->font);
-		data->font = NULL;
 	}
-	data->display = NULL;
-	data->drawable = -1;
-	data->x_offs = data->y_offs = 0;
-	data->visual = NULL;
 	data->colormap = -1;
 	if (data->draw != NULL) {
 		XftDrawDestroy(data->draw);
-		data->draw = NULL;
-		data->display = NULL;
-		data->drawable = -1;
-		data->visual = NULL;
-		data->colormap = -1;
 	}
 	if (data->gc != NULL) {
 		XFreeGC(data->display, data->gc);
-		data->gc = NULL;
 	}
-	memset(&data->color, 0, sizeof(data->color));
-	data->pixmap = NULL;
-	data->xpixmap = -1;
-	data->pixmapw = data->pixmaph = -1;
-	data->scrollx = data->scrolly = 0;
 	g_slice_free(struct _vte_xft_data, data);
 }
 

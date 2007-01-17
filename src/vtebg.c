@@ -144,9 +144,7 @@ vte_bg_root_pixmap(VteBg *bg)
 			}
 #endif
 		}
-		if (pixmaps != NULL) {
-			g_free(pixmaps);
-		}
+		g_free(pixmaps);
 	}
 	_vte_bg_display_sync(bg);
 	gdk_error_trap_pop();
@@ -334,21 +332,15 @@ vte_bg_cache_item_free(struct VteBgCacheItem *item)
 	if (item->source_pixbuf != NULL) {
 		g_object_remove_weak_pointer(G_OBJECT(item->source_pixbuf),
 				(gpointer*)&item->source_pixbuf);
-		item->source_pixbuf = NULL;
 	}
-	if (item->source_file != NULL) {
-		g_free(item->source_file);
-		item->source_file = NULL;
-	}
+	g_free(item->source_file);
 	if (item->pixmap != NULL) {
 		g_object_remove_weak_pointer(G_OBJECT(item->pixmap),
 				(gpointer*)&item->pixmap);
-		item->pixmap = NULL;
 	}
 	if (item->pixbuf != NULL) {
 		g_object_remove_weak_pointer(G_OBJECT(item->pixbuf),
 				(gpointer*)&item->pixbuf);
-		item->pixbuf = NULL;
 	}
 
 	g_slice_free(struct VteBgCacheItem, item);

@@ -65,15 +65,9 @@ _vte_skel_destroy(struct _vte_draw *draw)
 	struct _vte_skel_data *data;
 	data = (struct _vte_skel_data*) draw->impl_data;
 
-	data->scrollx = data->scrolly = 0;
-
 	if (data->pixmap != NULL) {
 		g_object_unref(data->pixmap);
-		data->pixmap = NULL;
-		data->pixmapw = data->pixmaph = 0;
 	}
-
-	memset(&data->color, 0, sizeof(data->color));
 
 	g_slice_free(struct _vte_skel_data, draw->impl_data);
 }

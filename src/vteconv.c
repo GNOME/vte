@@ -185,19 +185,10 @@ _vte_conv_close(VteConv converter)
 		g_assert(converter->close != NULL);
 		converter->close(converter->conv);
 	}
-	converter->conv = NULL;
-	converter->convert = NULL;
-	converter->close = NULL;
-
-	/* Clear the rest of the structure. */
-	converter->in_unichar = FALSE;
-	converter->out_unichar = FALSE;
 
 	/* Free the scratch buffers. */
 	_vte_buffer_free(converter->in_scratch);
 	_vte_buffer_free(converter->out_scratch);
-	converter->in_scratch = NULL;
-	converter->out_scratch = NULL;
 
 	/* Free the structure itself. */
 	g_slice_free(struct _VteConv, converter);

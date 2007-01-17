@@ -103,32 +103,21 @@ _vte_glyph_cache_free(struct _vte_glyph_cache *cache)
 						       i));
 		}
 		g_array_free(cache->patterns, TRUE);
-		cache->patterns = NULL;
 	}
 
 	/* Close all faces. */
-	for (iter = cache->faces; iter != NULL; iter = g_list_next(iter)) {
-		FT_Done_Face((FT_Face) iter->data);
-		iter->data = NULL;
-	}
-	cache->faces = NULL;
+	g_list_foreach(cache->faces, (GFunc)FT_Done_Face, NULL);
+	g_list_free(cache->faces);
 
 	/* Free the glyph tree. */
 	g_tree_foreach(cache->cache, free_tree_value, NULL);
-	cache->cache = NULL;
 
 	/* Close the FT library. */
 	if (cache->ft_library) {
 		FT_Done_FreeType(cache->ft_library);
-		cache->ft_library = NULL;
 	}
 
 	/* Free the cache. */
-	cache->ft_load_flags = 0;
-	cache->ft_render_flags = 0;
-	cache->width = 0;
-	cache->height = 0;
-	cache->ascent = 0;
 	g_slice_free(struct _vte_glyph_cache, cache);
 }
 

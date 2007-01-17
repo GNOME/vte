@@ -802,24 +802,9 @@ void
 _vte_iso2022_state_free(struct _vte_iso2022_state *state)
 {
 	_vte_buffer_free(state->buffer);
-	state->buffer = NULL;
-	state->codeset_changed_data = NULL;
-	state->codeset_changed = NULL;
 	if (state->conv != ((VteConv) -1)) {
 		_vte_conv_close(state->conv);
 	}
-	state->conv = (VteConv) -1;
-	state->target_codeset = NULL;
-	state->utf8_codeset = NULL;
-	state->native_codeset = NULL;
-	state->codeset = NULL;
-	state->g[3] = WIDE_FUDGE + 'D';
-	state->g[2] = 'J';
-	state->g[1] = '0';
-	state->g[0] = 'B';
-	state->override = -1;
-	state->current = 0;
-	state->nrc_enabled = FALSE;
 	g_slice_free(struct _vte_iso2022_state, state);
 }
 

@@ -102,14 +102,10 @@ void
 _vte_draw_free(struct _vte_draw *draw)
 {
 	draw->impl->destroy(draw);
-	draw->impl = NULL;
-	draw->impl_data = NULL;
 
 	if (draw->widget != NULL) {
 		g_object_unref(draw->widget);
-		draw->widget = NULL;
 	}
-	draw->started = FALSE;
 
 	g_slice_free(struct _vte_draw, draw);
 }

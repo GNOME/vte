@@ -324,15 +324,10 @@ _vte_ring_free(VteRing * ring, gboolean free_elements)
 			/* Remove this item. */
 			if (ring->array[i] != NULL) {
 				ring->free(ring->array[i], ring->user_data);
-				ring->array[i] = NULL;
 			}
 		}
 	}
 	g_free(ring->array);
-	ring->free = NULL;
-	ring->user_data = NULL;
-	ring->array = NULL;
-	ring->delta = ring->length = ring->max = 0;
 	g_slice_free(VteRing, ring);
 }
 

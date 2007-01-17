@@ -2232,21 +2232,11 @@ vte_sequence_handler_se(VteTerminal *terminal,
 		terminal->pvt->screen->defaults.standout = 0;
 	}
 
-	if (blink) {
-		g_free(blink);
-	}
-	if (bold) {
-		g_free(bold);
-	}
-	if (half) {
-		g_free(half);
-	}
-	if (reverse) {
-		g_free(reverse);
-	}
-	if (underline) {
-		g_free(underline);
-	}
+	g_free(blink);
+	g_free(bold);
+	g_free(half);
+	g_free(reverse);
+	g_free(underline);
 	g_free(standout);
 	return FALSE;
 }
@@ -2397,21 +2387,11 @@ vte_sequence_handler_so(VteTerminal *terminal,
 		terminal->pvt->screen->defaults.standout = 1;
 	}
 
-	if (blink) {
-		g_free(blink);
-	}
-	if (bold) {
-		g_free(bold);
-	}
-	if (half) {
-		g_free(half);
-	}
-	if (reverse) {
-		g_free(reverse);
-	}
-	if (underline) {
-		g_free(underline);
-	}
+	g_free(blink);
+	g_free(bold);
+	g_free(half);
+	g_free(reverse);
+	g_free(underline);
 	g_free(standout);
 	return FALSE;
 }

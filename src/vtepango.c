@@ -75,31 +75,21 @@ _vte_pango_destroy(struct _vte_draw *draw)
 	struct _vte_pango_data *data;
 	data = (struct _vte_pango_data*) draw->impl_data;
 
-	data->scrollx = data->scrolly = 0;
-
 	if (data->pixmap != NULL) {
 		g_object_unref(data->pixmap);
-		data->pixmap = NULL;
-		data->pixmapw = data->pixmaph = 0;
 	}
 	if (data->font != NULL) {
 		pango_font_description_free(data->font);
-		data->font = NULL;
 	}
 	if (data->layout != NULL) {
 		g_object_unref(data->layout);
-		data->layout = NULL;
 	}
 	if (data->ctx != NULL) {
 		g_object_unref(data->ctx);
-		data->ctx = NULL;
 	}
 	if (data->gc != NULL) {
 		g_object_unref(data->gc);
-		data->gc = NULL;
 	}
-
-	memset(&data->color, 0, sizeof(data->color));
 
 	g_slice_free(struct _vte_pango_data, draw->impl_data);
 }

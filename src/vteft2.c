@@ -70,17 +70,13 @@ _vte_ft2_destroy(struct _vte_draw *draw)
 	data = (struct _vte_ft2_data*) draw->impl_data;
 	if (data->cache != NULL) {
 		_vte_glyph_cache_free(data->cache);
-		data->cache = NULL;
 	}
 	if (data->rgb != NULL) {
 		_vte_rgb_buffer_free(data->rgb);
 	}
-	memset(&data->color, 0, sizeof(data->color));
 	if (data->pixbuf != NULL) {
 		g_object_unref(data->pixbuf);
-		data->pixbuf = NULL;
 	}
-	data->scrollx = data->scrolly = 0;
 	g_slice_free(struct _vte_ft2_data, data);
 }
 

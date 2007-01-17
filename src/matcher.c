@@ -270,15 +270,11 @@ _vte_matcher_free_params_array(GValueArray *params)
 {
 	guint i;
 	GValue *value;
-	gpointer ptr;
 	if (params != NULL) {
 		for (i = 0; i < params->n_values; i++) {
 			value = g_value_array_get_nth(params, i);
 			if (G_VALUE_HOLDS_POINTER(value)) {
-				ptr = g_value_get_pointer(value);
-				if (ptr != NULL) {
-					g_free(ptr);
-				}
+				g_free(g_value_get_pointer(value));
 				g_value_set_pointer(value, NULL);
 			}
 		}

@@ -37,7 +37,7 @@ _vte_rgb_buffer_new(gint width, gint height)
 {
 	struct _vte_rgb_buffer_p *ret;
 
-	ret = g_malloc0(sizeof(*ret));
+	ret = g_slice_new(struct _vte_rgb_buffer_p);
 
 	width = MAX(width, 1);
 	height = MAX(height, 1);
@@ -57,14 +57,7 @@ _vte_rgb_buffer_free(struct _vte_rgb_buffer *buffer)
 	struct _vte_rgb_buffer_p *buf = (struct _vte_rgb_buffer_p *) buffer;
 
 	g_free(buf->pixels);
-
-	buf->length = 0;
-	buf->stride = 0;
-	buf->height = 0;
-	buf->width = 0;
-	buf->pixels = NULL;
-
-	g_free(buf);
+	g_slice_free(struct _vte_rgb_buffer_p, buf);
 }
 
 void

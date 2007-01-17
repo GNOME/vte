@@ -682,7 +682,6 @@ _vte_trie_match(struct _vte_trie *trie, const gunichar *pattern, size_t length,
 	GValueArray *valuearray;
 	GValue *value;
 	const gunichar *dummyconsumed;
-	gpointer ptr;
 	gboolean greedy = FALSE;
 	int i;
 
@@ -705,10 +704,7 @@ _vte_trie_match(struct _vte_trie *trie, const gunichar *pattern, size_t length,
 			for (i = 0; i < valuearray->n_values; i++) {
 				value = g_value_array_get_nth(valuearray, i);
 				if (G_VALUE_HOLDS_POINTER(value)) {
-					ptr = g_value_get_pointer(value);
-					if (ptr != NULL) {
-						g_free(ptr);
-					}
+					g_free(g_value_get_pointer(value));
 					g_value_set_pointer(value, NULL);
 				}
 			}

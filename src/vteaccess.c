@@ -82,19 +82,15 @@ vte_terminal_accessible_free_private_data(VteTerminalAccessiblePrivate *priv)
 	g_assert(priv != NULL);
 	if (priv->snapshot_text != NULL) {
 		g_string_free(priv->snapshot_text, TRUE);
-		priv->snapshot_text = NULL;
 	}
 	if (priv->snapshot_characters != NULL) {
 		g_array_free(priv->snapshot_characters, TRUE);
-		priv->snapshot_characters = NULL;
 	}
 	if (priv->snapshot_attributes != NULL) {
 		g_array_free(priv->snapshot_attributes, TRUE);
-		priv->snapshot_attributes = NULL;
 	}
 	if (priv->snapshot_linebreaks != NULL) {
 		g_array_free(priv->snapshot_linebreaks, TRUE);
-		priv->snapshot_linebreaks = NULL;
 	}
 	g_slice_free(VteTerminalAccessiblePrivate, priv);
 }
