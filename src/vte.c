@@ -28,6 +28,7 @@
 #include <sys/syslimits.h>
 #endif
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <glib-object.h>
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
@@ -183,27 +184,32 @@ _vte_new_row_data_sized(VteTerminal *terminal, gboolean fill)
 void
 _vte_terminal_set_default_attributes(VteTerminal *terminal)
 {
+	VteScreen *screen;
+
 	g_assert(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->screen->defaults.c = ' ';
-	terminal->pvt->screen->defaults.columns = 1;
-	terminal->pvt->screen->defaults.fragment = 0;
-	terminal->pvt->screen->defaults.empty = 1;
-	terminal->pvt->screen->defaults.fore = VTE_DEF_FG;
-	terminal->pvt->screen->defaults.back = VTE_DEF_BG;
-	terminal->pvt->screen->defaults.reverse = 0;
-	terminal->pvt->screen->defaults.bold = 0;
-	terminal->pvt->screen->defaults.invisible = 0;
-	terminal->pvt->screen->defaults.protect = 0;
-	terminal->pvt->screen->defaults.standout = 0;
-	terminal->pvt->screen->defaults.underline = 0;
-	terminal->pvt->screen->defaults.strikethrough = 0;
-	terminal->pvt->screen->defaults.half = 0;
-	terminal->pvt->screen->defaults.blink = 0;
+
+	screen = terminal->pvt->screen;
+
+	screen->defaults.c = ' ';
+	screen->defaults.columns = 1;
+	screen->defaults.fragment = 0;
+	screen->defaults.empty = 1;
+	screen->defaults.fore = VTE_DEF_FG;
+	screen->defaults.back = VTE_DEF_BG;
+	screen->defaults.reverse = 0;
+	screen->defaults.bold = 0;
+	screen->defaults.invisible = 0;
+	screen->defaults.protect = 0;
+	screen->defaults.standout = 0;
+	screen->defaults.underline = 0;
+	screen->defaults.strikethrough = 0;
+	screen->defaults.half = 0;
+	screen->defaults.blink = 0;
 	/* Alternate charset isn't an attribute, though we treat it as one.
-	 * terminal->pvt->screen->defaults.alternate = 0; */
-	terminal->pvt->screen->basic_defaults = terminal->pvt->screen->defaults;
-	terminal->pvt->screen->color_defaults = terminal->pvt->screen->defaults;
-	terminal->pvt->screen->fill_defaults = terminal->pvt->screen->defaults;
+	 * screen->defaults.alternate = 0; */
+	screen->basic_defaults = screen->defaults;
+	screen->color_defaults = screen->defaults;
+	screen->fill_defaults = screen->defaults;
 }
 
 static gboolean
@@ -862,8 +868,7 @@ vte_terminal_set_default_tabstops(VteTerminal *terminal)
 	if (terminal->pvt->tabstops != NULL) {
 		g_hash_table_destroy(terminal->pvt->tabstops);
 	}
-	terminal->pvt->tabstops = g_hash_table_new(g_direct_hash,
-						   g_direct_equal);
+	terminal->pvt->tabstops = g_hash_table_new(NULL, NULL);
 	width = _vte_termcap_find_numeric(terminal->pvt->termcap,
 					  terminal->pvt->emulation,
 					  "it");
@@ -1570,10 +1575,11 @@ void
 vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 {
 	const char *old_codeset;
-	GQuark encoding_quark;
 	VteConv conv;
 	char *obuf1, *obuf2;
 	gsize bytes_written;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	old_codeset = terminal->pvt->encoding;
 	if (codeset == NULL) {
@@ -1597,8 +1603,7 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	terminal->pvt->outgoing_conv = conv;
 
 	/* Set the terminal's encoding to the new value. */
-	encoding_quark = g_quark_from_string(codeset);
-	terminal->pvt->encoding = g_quark_to_string(encoding_quark);
+	terminal->pvt->encoding = g_intern_string(codeset);
 
 	/* Convert any buffered output bytes. */
 	if ((_vte_buffer_length(terminal->pvt->outgoing) > 0) &&
@@ -2165,6 +2170,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 void
 vte_terminal_set_opacity(VteTerminal *terminal, guint16 opacity)
 {
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	terminal->pvt->bg_opacity = opacity;
 }
 
@@ -2178,6 +2184,7 @@ vte_terminal_set_opacity(VteTerminal *terminal, guint16 opacity)
 void
 vte_terminal_set_default_colors(VteTerminal *terminal)
 {
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	vte_terminal_set_colors(terminal, NULL, NULL, NULL, 0);
 }
 
@@ -2878,7 +2885,7 @@ vte_terminal_emit_pending_text_signals(VteTerminal *terminal, GQuark quark)
 	if (quark != 0) {
 		for (i = 0; i < G_N_ELEMENTS(non_visual_quarks); i++) {
 			if (non_visual_quarks[i].quark == 0) {
-				tmp = g_quark_from_string(non_visual_quarks[i].name);
+				tmp = g_quark_from_static_string(non_visual_quarks[i].name);
 				non_visual_quarks[i].quark = tmp;
 			}
 			if (quark == non_visual_quarks[i].quark) {
@@ -3586,7 +3593,6 @@ static void
 vte_terminal_feed_child_using_modes(VteTerminal *terminal,
 				    const char *data, glong length)
 {
-	g_assert(VTE_IS_TERMINAL(terminal));
 	if (length == ((gssize)-1)) {
 		length = strlen(data);
 	}
@@ -3697,7 +3703,6 @@ static void
 vte_terminal_hierarchy_changed(GtkWidget *widget, GtkWidget *old_toplevel,
 			       gpointer data)
 {
-	VteTerminal *terminal;
 	GtkWidget *toplevel;
 
 #ifdef VTE_DEBUG
@@ -3706,19 +3711,17 @@ vte_terminal_hierarchy_changed(GtkWidget *widget, GtkWidget *old_toplevel,
 	}
 #endif
 
-	terminal = VTE_TERMINAL(widget);
-
 	if (old_toplevel != NULL) {
 		g_signal_handlers_disconnect_by_func(old_toplevel,
 						     vte_terminal_configure_toplevel,
-						     terminal);
+						     widget);
 	}
 
 	toplevel = gtk_widget_get_toplevel(widget);
 	if (toplevel != NULL) {
 		g_signal_connect(toplevel, "configure-event",
 				 G_CALLBACK(vte_terminal_configure_toplevel),
-				 terminal);
+				 widget);
 	}
 }
 
@@ -4388,6 +4391,7 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 {
 	unsigned char cb = 0, cx = 0, cy = 0;
 	char buf[LINE_MAX];
+	gint len;
 
 	/* Encode the button information in cb. */
 	switch (button) {
@@ -4430,8 +4434,8 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 			1, terminal->row_count);;
 
 	/* Send event direct to the child, this is binary not text data */
-	snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, cx, cy);
-	vte_terminal_feed_child_binary(terminal, buf, strlen(buf));
+	len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, cx, cy);
+	vte_terminal_feed_child_binary(terminal, buf, len);
 }
 
 /* Send a mouse button click/release notification. */
@@ -4484,6 +4488,7 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 {
 	unsigned char cb = 0, cx = 0, cy = 0;
 	char buf[LINE_MAX];
+	gint len;
 
 	/* First determine if we even want to send notification. */
 	switch (event->type) {
@@ -4554,8 +4559,8 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 			1, terminal->row_count);;
 
 	/* Send event direct to the child, this is binary not text data */
-	snprintf(buf, sizeof(buf), "%sM%c%c%c", _VTE_CAP_CSI, cb, cx, cy);
-	vte_terminal_feed_child_binary(terminal, buf, strlen(buf));
+	len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, cx, cy);
+	vte_terminal_feed_child_binary(terminal, buf, len);
 }
 
 /* Clear all match hilites. */
@@ -6084,7 +6089,7 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 	return FALSE;
 }
 
-static gint
+static gboolean
 vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
 {
 	VteTerminal *terminal;
@@ -6240,6 +6245,7 @@ void
 vte_terminal_set_font(VteTerminal *terminal,
 		      const PangoFontDescription *font_desc)
 {
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	vte_terminal_set_font_full(terminal, font_desc,
 				   VTE_ANTI_ALIAS_USE_DEFAULT);
 }
@@ -6280,6 +6286,8 @@ vte_terminal_set_font_from_string_full(VteTerminal *terminal, const char *name,
 void
 vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name)
 {
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail(name != NULL);
 	vte_terminal_set_font_from_string_full(terminal, name,
 					       VTE_ANTI_ALIAS_USE_DEFAULT);
 }
@@ -6331,7 +6339,6 @@ vte_terminal_refresh_size(VteTerminal *terminal)
 void
 vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 {
-	struct winsize size;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
@@ -6340,20 +6347,17 @@ vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 	}
 #endif
 	if (terminal->pvt->pty_master != -1) {
-		memset(&size, 0, sizeof(size));
-		size.ws_row = rows;
-		size.ws_col = columns;
 		/* Try to set the terminal size. */
 		if (_vte_pty_set_size(terminal->pvt->pty_master, columns, rows) != 0) {
 			g_warning(_("Error setting PTY size: %s."),
 				    strerror(errno));
 		}
+		/* Read the terminal size, in case something went awry. */
+		vte_terminal_refresh_size(terminal);
 	} else {
 		terminal->row_count = rows;
 		terminal->column_count = columns;
 	}
-	/* Read the terminal size, in case something went awry. */
-	vte_terminal_refresh_size(terminal);
 	/* Our visible text changed. */
 	vte_terminal_emit_text_modified(terminal);
 }
@@ -6366,7 +6370,8 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	VteScreen *screen;
 
 	/* Sanity checks. */
-	if (GTK_WIDGET_REALIZED(terminal) == FALSE) {
+	if (GTK_WIDGET_DRAWABLE(terminal) == FALSE ||
+			terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
 		return;
 	}
 
@@ -6407,7 +6412,7 @@ vte_terminal_set_scroll_adjustment(VteTerminal *terminal,
 		if (terminal->adjustment != NULL) {
 			/* Disconnect our signal handlers from this object. */
 			g_signal_handlers_disconnect_by_func(terminal->adjustment,
-							     (gpointer)vte_terminal_handle_scroll,
+							     vte_terminal_handle_scroll,
 							     terminal);
 			g_object_unref(terminal->adjustment);
 		}
@@ -6416,7 +6421,7 @@ vte_terminal_set_scroll_adjustment(VteTerminal *terminal,
 
 		/* We care about the offset, not the top or bottom. */
 		g_signal_connect_swapped(terminal->adjustment,
-					 "value_changed",
+					 "value-changed",
 					 G_CALLBACK(vte_terminal_handle_scroll),
 					 terminal);
 	}
@@ -6436,14 +6441,14 @@ void
 vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 {
 	int columns, rows;
-	GQuark quark;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	/* Set the emulation type, for reference. */
 	if (emulation == NULL) {
 		emulation = vte_terminal_get_default_emulation(terminal);
 	}
-	quark = g_quark_from_string(emulation);
-	terminal->pvt->emulation = g_quark_to_string(quark);
+	terminal->pvt->emulation = g_intern_string(emulation);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
 		g_printerr("Setting emulation to `%s'...", emulation);
@@ -6529,23 +6534,22 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 {
 	struct stat st;
 	char *wpath;
-	GQuark q = 0;
 
 	if (path == NULL) {
 		wpath = g_strdup_printf(DATADIR "/" PACKAGE "/termcap/%s",
 					terminal->pvt->emulation ?
 					terminal->pvt->emulation :
 					vte_terminal_get_default_emulation(terminal));
-		if (stat(wpath, &st) != 0) {
+		if (g_stat(wpath, &st) != 0) {
 			g_free(wpath);
 			wpath = g_strdup("/etc/termcap");
 		}
-		q = g_quark_from_string(wpath);
+		path = g_intern_string (wpath);
 		g_free(wpath);
 	} else {
-		q = g_quark_from_string(path);
+		path = g_intern_string (path);
 	}
-	terminal->pvt->termcap_path = g_quark_to_string(q);
+	terminal->pvt->termcap_path = path;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
@@ -6709,7 +6713,7 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Load the termcap data and set up the emulation. */
 	pvt->keypad_mode = VTE_KEYMODE_NORMAL;
 	pvt->cursor_mode = VTE_KEYMODE_NORMAL;
-	pvt->dec_saved = g_hash_table_new(g_direct_hash, g_direct_equal);
+	pvt->dec_saved = g_hash_table_new(NULL, NULL);
 	pvt->default_column_count = 80;
 	pvt->default_row_count = 24;
 
@@ -6720,7 +6724,7 @@ vte_terminal_init(VteTerminal *terminal)
 	vte_terminal_set_size(terminal,
 			      pvt->default_column_count,
 			      pvt->default_row_count);
-	pvt->pty_master = -1;
+	g_assert (pvt->pty_master == -1);
 	pvt->pty_input_source = VTE_INVALID_SOURCE;
 	pvt->pty_output_source = VTE_INVALID_SOURCE;
 	pvt->pty_pid = -1;
@@ -6728,7 +6732,7 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Set up I/O encodings. */
 	pvt->iso2022 = _vte_iso2022_state_new(pvt->encoding,
 					      &_vte_terminal_codeset_changed_cb,
-					      (gpointer)terminal);
+					      terminal);
 	pvt->incoming = _vte_buffer_new();
 	pvt->pending = g_array_new(FALSE, FALSE, sizeof(gunichar));
 	pvt->cursor_blink_tag = VTE_INVALID_SOURCE;
@@ -6793,7 +6797,7 @@ vte_terminal_init(VteTerminal *terminal)
 	vte_terminal_connect_xft_settings(terminal);
 
 	/* Set up background information. */
-	pvt->bg_update_tag = VTE_INVALID_SOURCE;
+	pvt->bg_update_pending = VTE_INVALID_SOURCE;
 	pvt->bg_tint_color.red = 0;
 	pvt->bg_tint_color.green = 0;
 	pvt->bg_tint_color.blue = 0;
@@ -6867,7 +6871,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	VteTerminal *terminal;
 	glong width, height;
 	gint x, y, w, h;
-	gboolean snapped_to_bottom;
+	gboolean snapped_to_bottom, repaint;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
@@ -6892,6 +6896,8 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 			width, height);
 	}
 #endif
+	repaint = widget->allocation.width != allocation->width ||
+		widget->allocation.height != allocation->height;
 
 	/* Set our allocation to match the structure. */
 	widget->allocation = *allocation;
@@ -6917,18 +6923,13 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 
 	/* Resize the GDK window. */
 	if (widget->window != NULL) {
-		gdk_window_get_geometry(widget->window,
-					&x, &y, &w, &h, NULL);
 		gdk_window_move_resize(widget->window,
 				       allocation->x,
 				       allocation->y,
 				       allocation->width,
 				       allocation->height);
-		/* Repaint if we were resized or moved. */
-		if ((x != allocation->x) ||
-		    (y != allocation->y) ||
-		    (w != allocation->width) ||
-		    (h != allocation->height)) {
+		/* Repaint if we were resized. */
+		if (repaint) {
 			_vte_invalidate_all(terminal);
 		}
 	}
@@ -7059,10 +7060,9 @@ vte_terminal_unrealize(GtkWidget *widget)
 	terminal->pvt->cursor_blink_state = FALSE;
 
 	/* Cancel any pending background updates. */
-	if (terminal->pvt->bg_update_tag != VTE_INVALID_SOURCE) {
-		g_source_remove(terminal->pvt->bg_update_tag);
-		terminal->pvt->bg_update_tag = VTE_INVALID_SOURCE;
-		terminal->pvt->bg_update_pending = FALSE;
+	if (terminal->pvt->bg_update_pending != VTE_INVALID_SOURCE) {
+		g_source_remove(terminal->pvt->bg_update_pending);
+		terminal->pvt->bg_update_pending = VTE_INVALID_SOURCE;
 	}
 
 	/* Cancel any pending redraws. */
@@ -7104,8 +7104,9 @@ vte_terminal_finalize(GObject *object)
 	}
 
 	/* Free background info. */
-	if (terminal->pvt->bg_update_tag != VTE_INVALID_SOURCE) {
-		g_source_remove(terminal->pvt->bg_update_tag);
+	if (terminal->pvt->bg_update_pending != VTE_INVALID_SOURCE) {
+		g_source_remove(terminal->pvt->bg_update_pending);
+		terminal->pvt->bg_update_pending = VTE_INVALID_SOURCE;
 		g_free(terminal->pvt->bg_file);
 	}
 
@@ -7326,11 +7327,6 @@ vte_terminal_realize(GtkWidget *widget)
 		gdk_window_set_debug_updates(TRUE);
 	}
 #endif
-	gdk_window_move_resize(widget->window,
-			       widget->allocation.x,
-			       widget->allocation.y,
-			       widget->allocation.width,
-			       widget->allocation.height);
 	gdk_window_set_user_data(widget->window, widget);
 	gdk_window_show(widget->window);
 
@@ -7453,28 +7449,30 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 	}
 
 	/* Handle invisible, bold, and standout text by adjusting colors. */
-	if (cell && cell->invisible) {
-		*fore = *back;
-	}
-	if (cell && cell->bold) {
-		if (*fore == VTE_DEF_FG) {
-			*fore = VTE_BOLD_FG;
-		} else
-		if ((*fore != VTE_DEF_BG) && (*fore < VTE_LEGACY_COLOR_SET_SIZE)) {
-			*fore += VTE_COLOR_BRIGHT_OFFSET;
+	if (cell) {
+		if (cell->invisible) {
+			*fore = *back;
 		}
-	}
-	if (cell && cell->half) {
-		if (*fore == VTE_DEF_FG) {
-			*fore = VTE_DIM_FG;
-		} else
-		if ((*fore < VTE_LEGACY_COLOR_SET_SIZE)) {
-			*fore = corresponding_dim_index[*fore];;
+		if (cell->bold) {
+			if (*fore == VTE_DEF_FG) {
+				*fore = VTE_BOLD_FG;
+			} else
+			if ((*fore != VTE_DEF_BG) && (*fore < VTE_LEGACY_COLOR_SET_SIZE)) {
+				*fore += VTE_COLOR_BRIGHT_OFFSET;
+			}
 		}
-	}
-	if (cell && cell->standout) {
-		if (*back < VTE_LEGACY_COLOR_SET_SIZE) {
-			*back += VTE_COLOR_BRIGHT_OFFSET;
+		if (cell->half) {
+			if (*fore == VTE_DEF_FG) {
+				*fore = VTE_DIM_FG;
+			} else
+			if ((*fore < VTE_LEGACY_COLOR_SET_SIZE)) {
+				*fore = corresponding_dim_index[*fore];;
+			}
+		}
+		if (cell->standout) {
+			if (*back < VTE_LEGACY_COLOR_SET_SIZE) {
+				*back += VTE_COLOR_BRIGHT_OFFSET;
+			}
 		}
 	}
 }
@@ -10034,9 +10032,8 @@ vte_terminal_background_update(VteTerminal *terminal)
 
 	/* Note that the update has finished. */
 	if (terminal->pvt->bg_update_pending) {
-		terminal->pvt->bg_update_pending = FALSE;
-		g_source_remove(terminal->pvt->bg_update_tag);
-		terminal->pvt->bg_update_tag = VTE_INVALID_SOURCE;
+		g_source_remove(terminal->pvt->bg_update_pending);
+		terminal->pvt->bg_update_pending = VTE_INVALID_SOURCE;
 	}
 
 	/* Force a redraw for everything. */
@@ -10053,8 +10050,7 @@ static void
 vte_terminal_queue_background_update(VteTerminal *terminal)
 {
 	if (!terminal->pvt->bg_update_pending) {
-		terminal->pvt->bg_update_pending = TRUE;
-		terminal->pvt->bg_update_tag =
+		terminal->pvt->bg_update_pending =
 				g_idle_add_full(VTE_FX_PRIORITY,
 						(GSourceFunc)vte_terminal_background_update,
 						terminal,
@@ -10161,11 +10157,14 @@ vte_terminal_set_background_transparent(VteTerminal *terminal,
 			transparent ? "on" : "off");
 	}
 #endif
-	/* Save this background type. */
-	terminal->pvt->bg_transparent = transparent;
+	transparent = !!transparent;
+	if(transparent != terminal->pvt->bg_transparent) {
+		/* Save this background type. */
+		terminal->pvt->bg_transparent = transparent;
 
-	/* Update the background. */
-	vte_terminal_queue_background_update(terminal);
+		/* Update the background. */
+		vte_terminal_queue_background_update(terminal);
+	}
 }
 
 /**
@@ -10299,6 +10298,7 @@ vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
+	blink = !!blink;
 	if (terminal->pvt->cursor_blinks == blink)
 		return;
 
@@ -10339,6 +10339,9 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 	/* We require a minimum buffer size. */
 	lines = MAX(lines, VTE_SCROLLBACK_MIN);
 	lines = MAX(lines, terminal->row_count);
+
+	if (terminal->pvt->scrollback_lines == lines)
+		return;
 
 	/* We need to resize both scrollback buffers, and this beats copying
 	 * and pasting the same code twice. */
@@ -10609,8 +10612,7 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	/* Reset saved settings. */
 	if (terminal->pvt->dec_saved != NULL) {
 		g_hash_table_destroy(terminal->pvt->dec_saved);
-		terminal->pvt->dec_saved = g_hash_table_new(g_direct_hash,
-							    g_direct_equal);
+		terminal->pvt->dec_saved = g_hash_table_new(NULL, NULL);
 	}
 	/* Reset the color palette. */
 	/* vte_terminal_set_default_colors(terminal); */
@@ -10913,6 +10915,10 @@ vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
 
        g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
+       if (pty_master == terminal->pvt->pty_master) {
+	       return;
+       }
+
        if (terminal->pvt->pty_master != -1) {
                _vte_pty_close(terminal->pvt->pty_master);
                close(terminal->pvt->pty_master);
@@ -10922,9 +10928,9 @@ vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
 
        /* Set the pty to be non-blocking. */
        i = fcntl(terminal->pvt->pty_master, F_GETFL);
-	   if ((i & O_NONBLOCK) == 0) {
-		   fcntl(terminal->pvt->pty_master, F_SETFL, i | O_NONBLOCK);
-	   }
+       if ((i & O_NONBLOCK) == 0) {
+	       fcntl(terminal->pvt->pty_master, F_SETFL, i | O_NONBLOCK);
+       }
 
        vte_terminal_set_size(terminal,
                              terminal->column_count,

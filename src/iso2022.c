@@ -303,7 +303,7 @@ _vte_iso2022_is_ambiguous(gunichar c)
 		}
 	}
 	if (!ambiguous) {
-		ambiguous = g_hash_table_new (g_direct_hash, g_direct_equal);
+		ambiguous = g_hash_table_new (NULL, NULL);
 
 		for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_ambiguous_chars); i++) {
 			p = GINT_TO_POINTER(_vte_iso2022_ambiguous_chars[i]);

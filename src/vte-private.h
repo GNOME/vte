@@ -338,11 +338,10 @@ struct _VteTerminalPrivate {
 	gboolean adjustment_changed_tag;
 
 	/* Background images/"transparency". */
-	gboolean bg_update_pending;
+	guint bg_update_pending;
 	gboolean bg_transparent;
 	GdkPixbuf *bg_pixbuf;
 	char *bg_file;
-	guint bg_update_tag;
 	GdkColor bg_tint_color;
 	long bg_saturation;	/* out of VTE_SATURATION_MAX */
 	guint16 bg_opacity;

@@ -2,6 +2,42 @@
 
 	As part of Bug 397439.
 
+	* src/iso2022.c: (_vte_iso2022_is_ambiguous):
+	* src/vte-private.h:
+	* src/vte.c: (_vte_terminal_set_default_attributes),
+	(vte_terminal_set_default_tabstops), (vte_terminal_set_encoding),
+	(vte_terminal_set_opacity), (vte_terminal_set_default_colors),
+	(vte_terminal_emit_pending_text_signals),
+	(vte_terminal_feed_child_using_modes),
+	(vte_terminal_hierarchy_changed),
+	(vte_terminal_send_mouse_button_internal),
+	(vte_terminal_maybe_send_mouse_drag), (vte_terminal_set_font),
+	(vte_terminal_set_font_from_string), (vte_terminal_set_size),
+	(vte_terminal_handle_scroll), (vte_terminal_set_scroll_adjustment),
+	(vte_terminal_set_emulation), (vte_terminal_set_termcap),
+	(vte_terminal_init), (vte_terminal_size_allocate),
+	(vte_terminal_unrealize), (vte_terminal_finalize),
+	(vte_terminal_realize), (vte_terminal_determine_colors),
+	(vte_terminal_background_update),
+	(vte_terminal_queue_background_update),
+	(vte_terminal_set_background_transparent),
+	(vte_terminal_set_cursor_blinks),
+	(vte_terminal_set_scrollback_lines), (vte_terminal_reset),
+	(vte_terminal_set_pty):
+	* src/vteseq.c: (vte_sequence_handler_st),
+	(vte_sequence_handler_vb),
+	(vte_sequence_handler_device_status_report),
+	(vte_sequence_handler_dec_device_status_report),
+	(vte_sequence_handler_window_manipulation):
+		Janitorial work to improve code readability and small
+		micro-optimisations, such as use the length returned by
+		g_snprintf rather then calling strlen on the result or just
+		using a constant string.
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	As part of Bug 397439.
+
 	* src/ring.h:
 		Make the debug checks conditional on VTE_DEBUG.
 
