@@ -1,3 +1,15 @@
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Only invalidate groups of inserted chars and not the whole bbox.
+	This speeds up applications like vim which maintain a status line
+	at the bottom of the screen. Fixes bug 161342.
+
+	* src/vte-private.h:
+	* src/vte.c: (update_regions), (_vte_invalidate_cells),
+	(_vte_invalidate_all), (_vte_terminal_scroll_region),
+	(vte_terminal_process_incoming), (reset_update_regions),
+	(remove_update_timeout), (update_repeat_timeout), (update_timeout):
+
 2007-01-15  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 387171 – vte fails to install on FreeBSD due to missing header

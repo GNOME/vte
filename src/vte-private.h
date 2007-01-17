@@ -183,7 +183,7 @@ struct _VteTerminalPrivate {
 	gint coalesce_timeout;
 	gint display_timeout;
 	gint update_timeout;
-	GdkRegion *update_region;
+	GSList *update_regions;
 
 
 	/* Output data queue. */

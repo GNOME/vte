@@ -97,6 +97,8 @@ static void vte_terminal_stop_processing (VteTerminal *terminal);
 static void vte_terminal_start_processing (VteTerminal *terminal);
 static gboolean vte_terminal_is_processing (VteTerminal *terminal);
 
+static void reset_update_regions (VteTerminal *terminal);
+
 static gpointer parent_class;
 
 /* Indexes in the "palette" color array for the dim colors.
@@ -197,21 +199,30 @@ _vte_terminal_set_default_attributes(VteTerminal *terminal)
 }
 
 static gboolean
-vte_invalidate_region(VteTerminal *terminal)
+update_regions (VteTerminal *terminal)
 {
-	if (G_UNLIKELY (!GTK_WIDGET_REALIZED(terminal)))
+	GdkWindow *window;
+	GSList *l;
+
+	if (G_UNLIKELY (!GTK_WIDGET_DRAWABLE(terminal) ||
+				terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED)) {
+		reset_update_regions (terminal);
+		return FALSE;
+	}
+
+	if (G_UNLIKELY (!terminal->pvt->update_regions))
 		return FALSE;
 
-	if (G_UNLIKELY (GTK_WIDGET(terminal)->window == NULL))
-		return FALSE;
+	window = terminal->widget.window;
+	for (l = terminal->pvt->update_regions; l; l = g_slist_next(l)) {
+		GdkRegion *region = l->data;
+		gdk_window_invalidate_region (window, region, FALSE);
+		gdk_region_destroy (region);
+	}
+	g_slist_free (terminal->pvt->update_regions);
+	terminal->pvt->update_regions = NULL;
 
-	if (!terminal->pvt->update_region)
-		return FALSE;
-
-	gdk_window_invalidate_region(GTK_WIDGET(terminal)->window,
-				     terminal->pvt->update_region, FALSE);
-	gdk_region_destroy (terminal->pvt->update_region);
-	terminal->pvt->update_region = NULL;
+	gdk_window_process_all_updates ();
 
 	return TRUE;
 }
@@ -226,12 +237,14 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		      glong row_start, gint row_count)
 {
 	GdkRectangle rect;
-	GtkWidget *widget;
 	gint i;
 
+	if (!column_count || !row_count) {
+		return;
+	}
+
 	g_assert(VTE_IS_TERMINAL(terminal));
-	widget = GTK_WIDGET(terminal);
-	if (!GTK_WIDGET_REALIZED(widget)) {
+	if (!GTK_WIDGET_DRAWABLE(terminal)) {
 		return;
 	}
 	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
@@ -251,6 +264,10 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	i = column_start + column_count;
 	column_start = MAX (0, column_start);
 	column_count = CLAMP (i - column_start, 0 , terminal->column_count);
+
+	if (!column_count || !row_count) {
+		return;
+	}
 
 	/* Convert the column and row start and end to pixel values
 	 * by multiplying by the size of a character cell. */
@@ -278,50 +295,38 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		rect.height += VTE_PAD_WIDTH;
 	}
 
-	if (terminal->pvt->update_timeout != VTE_INVALID_SOURCE) {
-		if (!terminal->pvt->update_region)
-			terminal->pvt->update_region = gdk_region_rectangle (&rect);
-		else
-			gdk_region_union_with_rect (terminal->pvt->update_region, &rect);
-	} else {
-		terminal->pvt->update_region = gdk_region_rectangle (&rect);
+	terminal->pvt->update_regions = g_slist_prepend (
+			terminal->pvt->update_regions, gdk_region_rectangle (&rect));
+	if (terminal->pvt->update_timeout == VTE_INVALID_SOURCE) {
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
 		add_update_timeout (terminal);
 	}
-
 }
 
 /* Redraw the entire visible portion of the window. */
 void
 _vte_invalidate_all(VteTerminal *terminal)
 {
-	GdkRectangle rect;
-	GtkWidget *widget;
-	int width, height;
-
 	g_assert(VTE_IS_TERMINAL(terminal));
-	if (!GTK_IS_WIDGET(terminal)) {
-	       return;
-	}
-	widget = GTK_WIDGET(terminal);
-	if (!GTK_WIDGET_REALIZED(widget)) {
+
+	if (!GTK_WIDGET_DRAWABLE(terminal)) {
 		return;
 	}
 	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
 		return;
 	}
 
-	remove_update_timeout (terminal);
+	/* replace invalid regions with one covering the whole terminal */
+	reset_update_regions (terminal);
+	terminal->pvt->update_regions = g_slist_prepend (NULL,
+			gdk_region_rectangle (&terminal->widget.allocation));
 
-	/* Expose the entire widget area. */
-	width = height = 0;
-	gdk_drawable_get_size(widget->window, &width, &height);
-	rect.x = 0;
-	rect.y = 0;
-	rect.width = width;
-	rect.height = height;
-	gdk_window_invalidate_rect(widget->window, &rect, FALSE);
+	if (terminal->pvt->update_timeout == VTE_INVALID_SOURCE) {
+		/* Wait a bit before doing any invalidation, just in
+		 * case updates are coming in really soon. */
+		add_update_timeout (terminal);
+	}
 }
 
 /* Scroll a rectangular region up or down by a fixed number of lines,
@@ -341,6 +346,7 @@ _vte_terminal_scroll_region(VteTerminal *terminal,
 	} else {
 		/* We have to repaint the area which is to be
 		 * scrolled. */
+		reset_update_regions (terminal);
 		_vte_invalidate_cells(terminal,
 				     0, terminal->column_count,
 				     row, count);
@@ -2950,6 +2956,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	GQuark quark;
 	const gunichar *next;
 	gboolean leftovers, modified, bottom, inserted, again;
+	gboolean invalidated_text;
 	GArray *unichars;
 
 	g_assert(GTK_IS_WIDGET(terminal));
@@ -2969,11 +2976,8 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	screen = terminal->pvt->screen;
 	cursor = screen->cursor_current;
 
-	/* Estimate how much of the screen we'll need to update. */
-	bbox_topleft.x = cursor.col;
-	bbox_topleft.y = cursor.row;
-	bbox_bottomright.x = cursor.col + 1; /* Assume it's on a wide char. */
-	bbox_bottomright.y = cursor.row;
+	/* invalidate the current cursor position */
+	_vte_invalidate_cursor_once(terminal, FALSE);
 
 	/* We're going to check if the text was modified once we're done here,
 	 * so keep a flag. */
@@ -2998,6 +3002,10 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	/* Try initial substrings. */
 	start = 0;
 	modified = leftovers = inserted = again = FALSE;
+	invalidated_text = FALSE;
+
+	bbox_bottomright.x = bbox_topleft.x = screen->cursor_current.col;
+	bbox_bottomright.y = bbox_topleft.y = screen->cursor_current.row;
 
 	while ((start < wcount) && !leftovers && !again) {
 		/* Try to match any control sequences. */
@@ -3013,6 +3021,11 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 		 * points to the first character which isn't part of this
 		 * sequence. */
 		if ((match != NULL) && (match[0] != '\0')) {
+			gint col, row;
+			if (invalidated_text) {
+				col = screen->cursor_current.col;
+				row = screen->cursor_current.row;
+			}
 			/* If we inserted text without sanity-checking the
 			 * buffer, do so now. */
 			if (inserted) {
@@ -3028,6 +3041,32 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 			/* Skip over the proper number of unicode chars. */
 			start = (next - wbuf);
 			modified = TRUE;
+
+			/* if we have moved during the sequence handler, restart the bbox */
+			if (invalidated_text && 
+					(col < bbox_bottomright.x ||
+					 col > bbox_topleft.x     ||
+					 row < bbox_bottomright.y ||
+					 row > bbox_topleft.y)) {
+				/* Clip off any part of the box which isn't already on-screen. */
+				bbox_topleft.x = MAX(bbox_topleft.x, 1) - 1;
+				bbox_topleft.y = MAX(bbox_topleft.y, screen->scroll_delta);
+				bbox_bottomright.x = MIN(bbox_bottomright.x,
+						terminal->column_count - 1);
+				bbox_bottomright.y = MIN(bbox_bottomright.y,
+						screen->scroll_delta +
+						terminal->row_count);
+
+				_vte_invalidate_cells(terminal,
+						bbox_topleft.x,
+						bbox_bottomright.x - bbox_topleft.x + 1,
+						bbox_topleft.y,
+						bbox_bottomright.y - bbox_topleft.y + 1);
+
+				invalidated_text = FALSE;
+				bbox_bottomright.x = bbox_topleft.x = screen->cursor_current.col;
+				bbox_bottomright.y = bbox_topleft.y = screen->cursor_current.row;
+			}
 		} else
 		/* Second, we have a NULL match, and next points to the very
 		 * next character in the buffer.  Insert the character which
@@ -3096,6 +3135,18 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 							 FALSE, FALSE,
 							 TRUE, FALSE, 0);
 				inserted = TRUE;
+
+				/* Add the cells over which we have moved to the region which we
+				 * need to refresh for the user. */
+				bbox_topleft.x = MIN(bbox_topleft.x,
+						screen->cursor_current.col);
+				bbox_topleft.y = MIN(bbox_topleft.y,
+						screen->cursor_current.row);
+				bbox_bottomright.x = MAX(bbox_bottomright.x,
+						screen->cursor_current.col + 1);
+				bbox_bottomright.y = MAX(bbox_bottomright.y,
+						screen->cursor_current.row);
+				invalidated_text = TRUE;
 			}
 
 			/* We *don't* emit flush pending signals here. */
@@ -3125,17 +3176,6 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 			}
 		}
 
-		/* Add the cell into which we just moved to the region which we
-		 * need to refresh for the user. */
-		bbox_topleft.x = MIN(bbox_topleft.x,
-				     screen->cursor_current.col);
-		bbox_topleft.y = MIN(bbox_topleft.y,
-				     screen->cursor_current.row);
-		bbox_bottomright.x = MAX(bbox_bottomright.x,
-					 screen->cursor_current.col + 1);
-		bbox_bottomright.y = MAX(bbox_bottomright.y,
-					 screen->cursor_current.row);
-
 #ifdef VTE_DEBUG
 		/* Some safety checks: ensure the visible parts of the buffer
 		 * are all in the buffer. */
@@ -3149,6 +3189,23 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 		/* Free any parameters we don't care about any more. */
 		_vte_matcher_free_params_array(params);
 		params = NULL;
+	}
+
+	if (invalidated_text) {
+		/* Clip off any part of the box which isn't already on-screen. */
+		bbox_topleft.x = MAX(bbox_topleft.x, 1) - 1;
+		bbox_topleft.y = MAX(bbox_topleft.y, screen->scroll_delta);
+		bbox_bottomright.x = MIN(bbox_bottomright.x,
+				terminal->column_count - 1);
+		bbox_bottomright.y = MIN(bbox_bottomright.y,
+				screen->scroll_delta +
+				terminal->row_count);
+
+		_vte_invalidate_cells(terminal,
+				bbox_topleft.x,
+				bbox_bottomright.x - bbox_topleft.x + 1,
+				bbox_topleft.y,
+				bbox_bottomright.y - bbox_topleft.y + 1);
 	}
 
 	/* If we inserted text without sanity-checking the buffer, do so now. */
@@ -3177,23 +3234,6 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 
 	/* Flush any pending "inserted" signals. */
 	vte_terminal_emit_pending_text_signals(terminal, 0);
-
-	/* Clip off any part of the box which isn't already on-screen. */
-	bbox_topleft.x = MAX(bbox_topleft.x, 0);
-	bbox_topleft.y = MAX(bbox_topleft.y, screen->scroll_delta);
-	bbox_bottomright.x = MIN(bbox_bottomright.x,
-				 terminal->column_count - 1);
-	bbox_bottomright.y = MIN(bbox_bottomright.y,
-				 screen->scroll_delta +
-				 terminal->row_count);
-
-	/* Update the screen to draw any modified areas.  This includes
-	 * the current location of the cursor. */
-	_vte_invalidate_cells(terminal,
-			     bbox_topleft.x - 1,
-			     bbox_bottomright.x - (bbox_topleft.x - 1) + 1,
-			     bbox_topleft.y,
-			     bbox_bottomright.y - bbox_topleft.y + 1);
 
 	if (modified) {
 		/* Keep the cursor on-screen if we scroll on output, or if
@@ -3231,6 +3271,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 
 	if ((cursor.col != terminal->pvt->screen->cursor_current.col) ||
 	    (cursor.row != terminal->pvt->screen->cursor_current.row)) {
+		_vte_invalidate_cursor_once(terminal, FALSE);
 		/* Signal that the cursor moved. */
 		vte_terminal_emit_cursor_moved(terminal);
 	}
@@ -11293,6 +11334,17 @@ remove_coalesce_timeout (VteTerminal *terminal)
 }
 
 static void
+reset_update_regions (VteTerminal *terminal)
+{
+	if (terminal->pvt->update_regions != NULL) {
+		g_slist_foreach (terminal->pvt->update_regions,
+			 	(GFunc)gdk_region_destroy, NULL);
+		g_slist_free (terminal->pvt->update_regions);
+		terminal->pvt->update_regions = NULL;
+	}
+}
+
+static void
 remove_update_timeout (VteTerminal *terminal)
 {
 	if (terminal->pvt->update_timeout != VTE_INVALID_SOURCE) {
@@ -11300,10 +11352,7 @@ remove_update_timeout (VteTerminal *terminal)
 		terminal->pvt->update_timeout = VTE_INVALID_SOURCE;
 	}
 
-	if (terminal->pvt->update_region != NULL) {
-		gdk_region_destroy (terminal->pvt->update_region);
-		terminal->pvt->update_region = NULL;
-	}
+	reset_update_regions (terminal);
 }
 
 static void
@@ -11386,7 +11435,7 @@ static gboolean
 update_repeat_timeout (gpointer data)
 {
 	VteTerminal *terminal = data;
-	gboolean updated = vte_invalidate_region (terminal);
+	gboolean updated = update_regions (terminal);
 
 	/* We only stop the timer if no update request was received in this
 	 * past cycle.
@@ -11404,7 +11453,7 @@ update_timeout (gpointer data)
 {
 	VteTerminal *terminal = data;
 
-	vte_invalidate_region(terminal);
+	update_regions (terminal);
 
 	/* Set a timer such that we do not invalidate for a while. */
 	/* This limits the number of times we draw to ~40fps. */
