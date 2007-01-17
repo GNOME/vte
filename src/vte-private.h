@@ -81,7 +81,6 @@ G_BEGIN_DECLS
 #define VTE_REGEXEC_FLAGS		0
 #define VTE_INPUT_CHUNK_SIZE		0x1000
 #define VTE_INVALID_BYTE		'?'
-#define VTE_COALESCE_TIMEOUT		10
 #define VTE_DISPLAY_TIMEOUT		10
 #define VTE_UPDATE_TIMEOUT		10
 #define VTE_UPDATE_REPEAT_TIMEOUT	25
@@ -171,7 +170,6 @@ struct _VteTerminalPrivate {
 	guint pty_input_source;
 	GIOChannel *pty_output;		/* master output watch */
 	guint pty_output_source;
- 	GStaticMutex pty_output_source_mutex;	/* pty_output_source mutex */
 	pid_t pty_pid;			/* pid of child using pty slave */
 	VteReaper *pty_reaper;
 
@@ -180,8 +178,7 @@ struct _VteTerminalPrivate {
 	struct _vte_iso2022_state *iso2022;
 	struct _vte_buffer *incoming;	/* pending bytestream */
 	GArray *pending;		/* pending characters */
-	gint coalesce_timeout;
-	gint display_timeout;
+	gint process_timeout;
 	gint update_timeout;
 	GSList *update_regions;
 

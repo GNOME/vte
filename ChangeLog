@@ -2,6 +2,25 @@
 
 	As part of Bug 397439.
 
+	* src/vte-private.h:
+	* src/vte.c: (_vte_terminal_connect_pty_write),
+	(_vte_terminal_disconnect_pty_write), (vte_terminal_io_read),
+	(vte_terminal_feed), (vte_terminal_feed_child_binary),
+	(vte_terminal_init), (vte_terminal_unrealize),
+	(add_process_timeout), (add_update_timeout),
+	(remove_process_timeout), (vte_terminal_stop_processing),
+	(vte_terminal_is_processing), (vte_terminal_start_processing),
+	(process_timeout), (update_repeat_timeout), (update_timeout):
+		The rate-limiting step is the display update - we do not need
+		to process input faster than we are displaying it. So use the
+		update display timeout to process new input (and dirty some
+		more pixels).
+
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	As part of Bug 397439.
+
 	* src/interpret.c: (main):
 	* src/iso2022.c: (_vte_iso2022_fragment_input),
 	(_vte_iso2022_process), (main):

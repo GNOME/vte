@@ -95,8 +95,9 @@ static void _vte_terminal_disconnect_pty_read(VteTerminal *terminal);
 static void _vte_terminal_disconnect_pty_write(VteTerminal *terminal);
 static void vte_terminal_stop_processing (VteTerminal *terminal);
 static void vte_terminal_start_processing (VteTerminal *terminal);
-static gboolean vte_terminal_is_processing (VteTerminal *terminal);
 
+static void add_update_timeout (VteTerminal *terminal);
+static void remove_update_timeout (VteTerminal *terminal);
 static void reset_update_regions (VteTerminal *terminal);
 
 #ifdef VTE_DEBUG
@@ -232,9 +233,6 @@ update_regions (VteTerminal *terminal)
 
 	return TRUE;
 }
-
-static void add_update_timeout (VteTerminal *terminal);
-static void remove_update_timeout (VteTerminal *terminal);
 
 /* Cause certain cells to be repainted. */
 void
@@ -2530,7 +2528,6 @@ _vte_terminal_connect_pty_write(VteTerminal *terminal)
 		terminal->pvt->pty_output =
 			g_io_channel_unix_new(terminal->pvt->pty_master);
 	}
-	g_static_mutex_lock (&(terminal->pvt->pty_output_source_mutex));
 	if (terminal->pvt->pty_output_source == VTE_INVALID_SOURCE) {
 		terminal->pvt->pty_output_source =
 			g_io_add_watch_full(terminal->pvt->pty_output,
@@ -2540,7 +2537,6 @@ _vte_terminal_connect_pty_write(VteTerminal *terminal)
 					    terminal,
 					    NULL);
 	}
-	g_static_mutex_unlock (&(terminal->pvt->pty_output_source_mutex));
 }
 
 static void
@@ -2569,12 +2565,10 @@ _vte_terminal_disconnect_pty_write(VteTerminal *terminal)
 		g_io_channel_unref(terminal->pvt->pty_output);
 		terminal->pvt->pty_output = NULL;
 	}
-	g_static_mutex_lock (&(terminal->pvt->pty_output_source_mutex));
 	if (terminal->pvt->pty_output_source != VTE_INVALID_SOURCE) {
 		g_source_remove(terminal->pvt->pty_output_source);
 		terminal->pvt->pty_output_source = VTE_INVALID_SOURCE;
 	}
-	g_static_mutex_unlock (&(terminal->pvt->pty_output_source_mutex));
 }
 
 /* Basic wrapper around _vte_pty_open, which handles the pipefitting. */
@@ -3254,30 +3248,9 @@ vte_terminal_io_read(GIOChannel *channel,
 		     GIOCondition condition,
 		     VteTerminal *terminal)
 {
-	char buf[VTE_INPUT_CHUNK_SIZE];
-	int bcount, fd;
+	char buf[VTE_INPUT_CHUNK_SIZE], *bp = buf;
+	int err = 0;
 	gboolean eof, leave_open = TRUE;
-
-	/* Check that the channel is still open. */
-	fd = g_io_channel_unix_get_fd(channel);
-
-	/* Read some data in from this channel. */
-	bcount = 0;
-	if (condition & G_IO_IN) {
-		/* We try not to overfill the incoming buffer below by cutting
-		 * down the read size if we already have pending data. */
-		bcount = sizeof(buf);
-		if (_vte_buffer_length(terminal->pvt->incoming) < sizeof(buf)) {
-			/* Shoot for exactly one "chunk" for processing. */
-			bcount -= _vte_buffer_length(terminal->pvt->incoming);
-		} else {
-			/* Read half of the chunk size. */
-			bcount = sizeof(buf) / 2;
-		}
-		g_assert(bcount >= 0);
-		g_assert(bcount <= sizeof(buf));
-		bcount = read(fd, buf, MAX(bcount, sizeof(buf) / 2));
-	}
 
 	/* Check for end-of-file. */
 	eof = FALSE;
@@ -3285,33 +3258,44 @@ vte_terminal_io_read(GIOChannel *channel,
 		eof = TRUE;
 	}
 
-	/* Catch errors. */
-	switch (bcount) {
-	case 0:
-		/* EOF */
-		eof = TRUE;
-		break;
-	case -1:
-		/* Error! */
-		switch (errno) {
-			case EIO: /* Fake an EOF. */
-				eof = TRUE;
+	/* Read some data in from this channel. */
+	if (condition & G_IO_IN) {
+		const int fd = g_io_channel_unix_get_fd(channel);
+		int rem = sizeof(buf);
+		while (rem){
+			int ret = read(fd, bp, rem);
+			if(ret <= 0){
+				if(ret == 0)
+					eof = TRUE;
+				else
+					err = errno;
 				break;
-			case EAGAIN:
-			case EBUSY: /* do nothing */
-				break;
-			default:
-				/* Translators: %s is replaced with error message returned by strerror(). */
-				g_warning(_("Error reading from child: "
-					    "%s."), strerror(errno));
-				leave_open = TRUE;
-				break;
+			}
+			rem -= ret;
+			bp += ret;
 		}
-		break;
-	default:
+	}
+
+	if (bp != buf) {
 		/* Queue up the data for processing. */
-		vte_terminal_feed(terminal, buf, bcount);
-		break;
+		vte_terminal_feed(terminal, buf, bp - buf);
+	}
+
+	/* Error? */
+	switch (err) {
+		case 0: /* no error */
+			break;
+		case EIO: /* Fake an EOF. */
+			eof = TRUE;
+			break;
+		case EAGAIN:
+		case EBUSY: /* do nothing */
+			break;
+		default:
+			/* Translators: %s is replaced with error message returned by strerror(). */
+			g_warning(_("Error reading from child: " "%s."), strerror(err));
+			leave_open = TRUE;
+			break;
 	}
 
 	/* If we detected an eof condition, signal one. */
@@ -3346,9 +3330,8 @@ vte_terminal_feed(VteTerminal *terminal, const char *data, glong length)
 	/* If we got data, modify the pending buffer. */
 	if (length > 0) {
 		_vte_buffer_append(terminal->pvt->incoming, data, length);
+		vte_terminal_start_processing (terminal);
 	}
-
-	vte_terminal_start_processing (terminal);
 }
 
 /* Send locally-encoded characters to the child. */
@@ -3553,16 +3536,16 @@ vte_terminal_feed_child_binary(VteTerminal *terminal, const char *data, glong le
 	if (length > 0) {
 		vte_terminal_emit_commit(terminal,
 					 data, length);
-	}
 
-	/* If there's a place for it to go, add the data to the
-	 * outgoing buffer. */
-	if ((length > 0) && (terminal->pvt->pty_master != -1)) {
-		_vte_buffer_append(terminal->pvt->outgoing,
-				   data, length);
-		/* If we need to start waiting for the child pty to
-		 * become available for writing, set that up here. */
-		_vte_terminal_connect_pty_write(terminal);
+		/* If there's a place for it to go, add the data to the
+		 * outgoing buffer. */
+		if (terminal->pvt->pty_master != -1) {
+			_vte_buffer_append(terminal->pvt->outgoing,
+					   data, length);
+			/* If we need to start waiting for the child pty to
+			 * become available for writing, set that up here. */
+			_vte_terminal_connect_pty_write(terminal);
+		}
 	}
 }
 
@@ -6708,7 +6691,6 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->pty_master = -1;
 	pvt->pty_input_source = VTE_INVALID_SOURCE;
 	pvt->pty_output_source = VTE_INVALID_SOURCE;
-	g_static_mutex_init( &(pvt->pty_output_source_mutex) );
 	pvt->pty_pid = -1;
 
 	/* Set up I/O encodings. */
@@ -6718,8 +6700,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->incoming = _vte_buffer_new();
 	pvt->pending = g_array_new(FALSE, FALSE, sizeof(gunichar));
 	pvt->cursor_blink_tag = VTE_INVALID_SOURCE;
-	pvt->coalesce_timeout = VTE_INVALID_SOURCE;
-	pvt->display_timeout = VTE_INVALID_SOURCE;
+	pvt->process_timeout = VTE_INVALID_SOURCE;
 	pvt->update_timeout = VTE_INVALID_SOURCE;
 	pvt->outgoing = _vte_buffer_new();
 	pvt->outgoing_conv = (VteConv) -1;
@@ -7051,6 +7032,9 @@ vte_terminal_unrealize(GtkWidget *widget)
 		terminal->pvt->bg_update_tag = VTE_INVALID_SOURCE;
 		terminal->pvt->bg_update_pending = FALSE;
 	}
+
+	/* Cancel any pending redraws. */
+	remove_update_timeout (terminal);
 
 	/* Clear modifiers. */
 	terminal->pvt->modifiers = 0;
@@ -10999,47 +10983,30 @@ _vte_terminal_remove_selection(VteTerminal *terminal)
 	vte_terminal_deselect_all (terminal);
 }
 
-static gboolean display_timeout (gpointer data);
-static gboolean coalesce_timeout (gpointer data);
+static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
 
 static void
-add_display_timeout (VteTerminal *terminal)
+add_process_timeout (VteTerminal *terminal)
 {
-	terminal->pvt->display_timeout =
-		g_timeout_add (VTE_DISPLAY_TIMEOUT, display_timeout, terminal);
-}
-
-static void
-add_coalesce_timeout (VteTerminal *terminal)
-{
-	terminal->pvt->coalesce_timeout =
-		g_timeout_add (VTE_COALESCE_TIMEOUT, coalesce_timeout, terminal);
+	terminal->pvt->process_timeout =
+		g_timeout_add (VTE_DISPLAY_TIMEOUT, process_timeout, terminal);
 }
 
 static void
 add_update_timeout (VteTerminal *terminal)
 {
-	if (terminal->pvt->update_timeout == VTE_INVALID_SOURCE) {
-		terminal->pvt->update_timeout =
-			g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE,
-					    VTE_UPDATE_TIMEOUT, update_timeout, terminal,
-					    NULL);
-	}
+	terminal->pvt->update_timeout =
+		g_timeout_add_full (GDK_PRIORITY_REDRAW,
+				VTE_UPDATE_TIMEOUT, update_timeout, terminal,
+				NULL);
 }
 
 static void
-remove_display_timeout (VteTerminal *terminal)
+remove_process_timeout (VteTerminal *terminal)
 {
-	g_source_remove (terminal->pvt->display_timeout);
-	terminal->pvt->display_timeout = VTE_INVALID_SOURCE;
-}
-
-static void
-remove_coalesce_timeout (VteTerminal *terminal)
-{
-	g_source_remove (terminal->pvt->coalesce_timeout);
-	terminal->pvt->coalesce_timeout = VTE_INVALID_SOURCE;
+	g_source_remove (terminal->pvt->process_timeout);
+	terminal->pvt->process_timeout = VTE_INVALID_SOURCE;
 }
 
 static void
@@ -11067,84 +11034,59 @@ remove_update_timeout (VteTerminal *terminal)
 static void
 vte_terminal_stop_processing (VteTerminal *terminal)
 {
-	remove_display_timeout (terminal);
-	remove_coalesce_timeout (terminal);
-}
-
-static void
-vte_terminal_start_processing (VteTerminal *terminal)
-{
-	if (vte_terminal_is_processing (terminal)) {
-		remove_coalesce_timeout (terminal);
-		add_coalesce_timeout (terminal);
-	}
-	else {
-		add_coalesce_timeout (terminal);
-		add_display_timeout (terminal);
-	}
+	remove_process_timeout (terminal);
 }
 
 static gboolean
 vte_terminal_is_processing (VteTerminal *terminal)
 {
-	return terminal->pvt->coalesce_timeout != VTE_INVALID_SOURCE;
+	return terminal->pvt->process_timeout != VTE_INVALID_SOURCE
+		|| terminal->pvt->update_timeout != VTE_INVALID_SOURCE;
+}
+
+static void
+vte_terminal_start_processing (VteTerminal *terminal)
+{
+	if (!vte_terminal_is_processing (terminal)) {
+		add_process_timeout (terminal);
+	}
 }
 
 
-/* This function is called every DISPLAY_TIMEOUT ms.
- * It makes sure output is never delayed by more than DISPLAY_TIMEOUT
- */
-static gboolean
+static inline gboolean
 need_processing (VteTerminal *terminal)
 {
 	return _vte_buffer_length(terminal->pvt->incoming) > 0 ||
 		(terminal->pvt->pending->len > 0);
 }
 	
-static gboolean
-display_timeout (gpointer data)
-{
-	VteTerminal *terminal = data;
-
-	if (need_processing (terminal) && 
-	    vte_terminal_process_incoming(terminal)) {
-		remove_coalesce_timeout (terminal);
-		add_coalesce_timeout (terminal);
-		return TRUE;
-	}
-
-	remove_coalesce_timeout (terminal);
-	terminal->pvt->display_timeout = VTE_INVALID_SOURCE;
-	
-	return FALSE;
-}
-
-/* This function is called whenever data haven't arrived for
- * COALESCE_TIMEOUT ms
+/* This function is called after DISPLAY_TIMEOUT ms.
+ * It makes sure initial output is never delayed by more than DISPLAY_TIMEOUT
  */
 static gboolean
-coalesce_timeout (gpointer data)
+process_timeout (gpointer data)
 {
 	VteTerminal *terminal = data;
 
-	if (need_processing (terminal) &&
-	    vte_terminal_process_incoming(terminal)) {
-		remove_display_timeout (terminal);
-		add_display_timeout (terminal);
-		return TRUE;
+	if (need_processing (terminal)) {
+	    vte_terminal_process_incoming(terminal);
 	}
 
-	remove_display_timeout (terminal);
-	terminal->pvt->coalesce_timeout = VTE_INVALID_SOURCE;
-
+	terminal->pvt->process_timeout = VTE_INVALID_SOURCE;
 	return FALSE;
- }
+}
 
 static gboolean
 update_repeat_timeout (gpointer data)
 {
 	VteTerminal *terminal = data;
-	gboolean updated = update_regions (terminal);
+	gboolean updated;
+
+	if (need_processing (terminal)) {
+		vte_terminal_process_incoming(terminal);
+	}
+
+	updated = update_regions (terminal);
 
 	/* We only stop the timer if no update request was received in this
 	 * past cycle.
@@ -11161,6 +11103,12 @@ static gboolean
 update_timeout (gpointer data)
 {
 	VteTerminal *terminal = data;
+
+	remove_process_timeout (terminal);
+
+	if (need_processing (terminal)) {
+		vte_terminal_process_incoming(terminal);
+	}
 
 	update_regions (terminal);
 
