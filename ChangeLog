@@ -1,5 +1,17 @@
 2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Second breakage: VTE_INVALID_SOURCE !=0 and calling
+	vte_terminal_set_scrollback_lines with lines == ->scrollback_lines
+	is not a nop.
+
+	* src/vte.c: (vte_terminal_background_update),
+	(vte_terminal_queue_background_update):
+		VTE_INVALID_SOURCE != 0
+	(vte_terminal_set_scrollback_lines):
+		reset the rowdata everytime.
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 397414 - port vteapp to GOption
 
 	* src/vteapp.c: (main):

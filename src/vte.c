@@ -10030,7 +10030,7 @@ vte_terminal_background_update(VteTerminal *terminal)
 	}
 
 	/* Note that the update has finished. */
-	if (terminal->pvt->bg_update_pending) {
+	if (terminal->pvt->bg_update_pending != VTE_INVALID_SOURCE) {
 		g_source_remove(terminal->pvt->bg_update_pending);
 		terminal->pvt->bg_update_pending = VTE_INVALID_SOURCE;
 	}
@@ -10048,7 +10048,7 @@ vte_terminal_background_update(VteTerminal *terminal)
 static void
 vte_terminal_queue_background_update(VteTerminal *terminal)
 {
-	if (!terminal->pvt->bg_update_pending) {
+	if (terminal->pvt->bg_update_pending == VTE_INVALID_SOURCE) {
 		terminal->pvt->bg_update_pending =
 				g_idle_add_full(VTE_FX_PRIORITY,
 						(GSourceFunc)vte_terminal_background_update,
@@ -10338,9 +10338,6 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 	/* We require a minimum buffer size. */
 	lines = MAX(lines, VTE_SCROLLBACK_MIN);
 	lines = MAX(lines, terminal->row_count);
-
-	if (terminal->pvt->scrollback_lines == lines)
-		return;
 
 	/* We need to resize both scrollback buffers, and this beats copying
 	 * and pasting the same code twice. */
