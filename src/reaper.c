@@ -35,12 +35,15 @@
 #endif
 #include <glib/gi18n-lib.h>
 
+
 static VteReaper *singleton_reaper = NULL;
 struct reaper_info {
 	int signum;
 	pid_t pid;
 	int status;
 };
+
+G_DEFINE_TYPE(VteReaper, vte_reaper, G_TYPE_OBJECT)
 
 static void
 vte_reaper_signal_handler(int signum)
@@ -99,12 +102,6 @@ vte_reaper_child_watch_cb(GPid pid, gint status, gpointer data)
 }
 #endif
 
-static void
-vte_reaper_child_watch_destroyed(gpointer data)
-{
-	/* no-op */
-}
-
 /**
  * vte_reaper_add_child:
  * @pid: the ID of a child process which will be monitored
@@ -124,19 +121,13 @@ vte_reaper_add_child(GPid pid)
 				      pid,
 				      vte_reaper_child_watch_cb,
 				      vte_reaper_get(),
-				      vte_reaper_child_watch_destroyed);
+				      (GDestroyNotify)g_object_unref);
 #endif
 	return VTE_INVALID_SOURCE;
 }
 
 static void
-vte_reaper_channel_destroyed(gpointer data)
-{
-	/* no-op */
-}
-
-static void
-vte_reaper_init(VteReaper *reaper, gpointer *klass)
+vte_reaper_init(VteReaper *reaper)
 {
 	struct sigaction action;
 	int ret;
@@ -163,7 +154,7 @@ vte_reaper_init(VteReaper *reaper, gpointer *klass)
 			    G_IO_IN,
 			    vte_reaper_emit_signal,
 			    reaper,
-			    vte_reaper_channel_destroyed);
+			    NULL);
 
 	/* Set the signal handler. */
 	action.sa_handler = vte_reaper_signal_handler;
@@ -174,6 +165,22 @@ vte_reaper_init(VteReaper *reaper, gpointer *klass)
 		g_printerr("Hooked SIGCHLD signal in reaper.\n");
 	}
 }
+
+static GObject*
+vte_reaper_constructor (GType                  type,
+                        guint                  n_construct_properties,
+                        GObjectConstructParam *construct_properties)
+{
+  if (singleton_reaper) {
+	  return g_object_ref (singleton_reaper);
+  } else {
+	  GObject *obj;
+	  obj = G_OBJECT_CLASS (vte_reaper_parent_class)->constructor (type, n_construct_properties, construct_properties);
+	  singleton_reaper = VTE_REAPER (obj);
+	  return obj;
+  }
+}
+
 
 static void
 vte_reaper_finalize(GObject *reaper)
@@ -197,22 +204,18 @@ vte_reaper_finalize(GObject *reaper)
 	g_source_remove_by_user_data(reaper);
 
 	/* Remove the channel. */
-	g_io_channel_unref((VTE_REAPER(reaper))->channel);
+	g_io_channel_unref(VTE_REAPER(reaper)->channel);
 
 	/* Close the pipes. */
-	close((VTE_REAPER(reaper))->iopipe[1]);
-	close((VTE_REAPER(reaper))->iopipe[0]);
+	close(VTE_REAPER(reaper)->iopipe[1]);
+	close(VTE_REAPER(reaper)->iopipe[0]);
 
-	/* Call the inherited destructor. */
-	object_class = g_type_class_peek(G_TYPE_OBJECT);
-	if (G_OBJECT_CLASS(object_class)->finalize) {
-		(G_OBJECT_CLASS(object_class))->finalize(reaper);
-	}
+	G_OBJECT_CLASS(vte_reaper_parent_class)->finalize(reaper);
 	singleton_reaper = NULL;
 }
 
 static void
-vte_reaper_class_init(VteReaperClass *klass, gpointer data)
+vte_reaper_class_init(VteReaperClass *klass)
 {
 	GObjectClass *gobject_class;
 
@@ -229,36 +232,8 @@ vte_reaper_class_init(VteReaperClass *klass, gpointer data)
 						  2, G_TYPE_INT, G_TYPE_INT);
 
 	gobject_class = G_OBJECT_CLASS(klass);
+	gobject_class->constructor = vte_reaper_constructor;
 	gobject_class->finalize = vte_reaper_finalize;
-}
-
-GType
-vte_reaper_get_type(void)
-{
-	static GType reaper_type = 0;
-	static GTypeInfo reaper_type_info = {
-		sizeof(VteReaperClass),
-
-		(GBaseInitFunc)NULL,
-		(GBaseFinalizeFunc)NULL,
-
-		(GClassInitFunc)vte_reaper_class_init,
-		(GClassFinalizeFunc)NULL,
-		NULL,
-
-		sizeof(VteReaper),
-		0,
-		(GInstanceInitFunc) vte_reaper_init,
-
-		(const GTypeValueTable *) NULL,
-	};
-	if (reaper_type == 0) {
-		reaper_type = g_type_register_static(G_TYPE_OBJECT,
-						     "VteReaper",
-						     &reaper_type_info,
-						     0);
-	}
-	return reaper_type;
 }
 
 /**
@@ -272,10 +247,7 @@ vte_reaper_get_type(void)
 VteReaper *
 vte_reaper_get(void)
 {
-	if (!VTE_IS_REAPER(singleton_reaper)) {
-		singleton_reaper = g_object_new(VTE_TYPE_REAPER, NULL);
-	}
-	return singleton_reaper;
+	return g_object_new(VTE_TYPE_REAPER, NULL);
 }
 
 #ifdef REAPER_MAIN
@@ -323,7 +295,7 @@ main(int argc, char **argv)
 		default:
 			g_print("[parent] Starting to wait for %d.\n", p);
 			child = p;
-			g_signal_connect(G_OBJECT(reaper),
+			g_signal_connect(reaper,
 					 "child-exited",
 					 G_CALLBACK(child_exited),
 					 GINT_TO_POINTER(child));
@@ -350,8 +322,7 @@ main(int argc, char **argv)
 
 	g_main_loop_run(loop);
 
-	reaper = vte_reaper_get();
-	g_object_unref(VTE_REAPER(reaper));
+	g_object_unref(reaper);
 
 	return 0;
 }

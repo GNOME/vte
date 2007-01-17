@@ -2,6 +2,32 @@
 
 	As part of Bug 397439.
 
+	* src/reaper.c: (vte_reaper_add_child), (vte_reaper_init),
+	(vte_reaper_constructor), (vte_reaper_finalize),
+	(vte_reaper_class_init), (vte_reaper_get), (main):
+	* src/vte.c: (G_DEFINE_TYPE_WITH_CODE), (_vte_terminal_fork_basic),
+	(vte_terminal_key_press), (vte_terminal_init), (vte_terminal_show),
+	(vte_terminal_finalize), (vte_terminal_get_accessible),
+	(vte_terminal_class_init):
+	* src/vteaccess.c: (vte_terminal_initialize),
+	(vte_terminal_accessible_finalize),
+	(vte_terminal_accessible_class_init),
+	(vte_terminal_accessible_get_type),
+	(vte_terminal_accessible_factory_init),
+	(vte_terminal_accessible_factory_new):
+	* src/vtebg.c: (vte_bg_native_new), (vte_bg_finalize),
+	(vte_bg_class_init), (vte_bg_init), (vte_bg_get_for_screen),
+	(vte_bg_cache_item_free), (vte_bg_cache_prune_int),
+	(_vte_bg_resize_pixbuf), (vte_bg_set_root_pixmap),
+	(vte_bg_cache_add), (vte_bg_cache_search), (vte_bg_get_pixmap),
+	(vte_bg_get_pixbuf):
+		Use GObject boiler-plate code (G_DEFINE_TYPE),
+		as opposed to open coding.
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	As part of Bug 397439.
+
 	* src/vte-private.h:
 	* src/vte.c: (vte_free_row_data), (vte_g_array_fill),
 	(vte_terminal_find_charcell), (vte_terminal_preedit_width),

@@ -99,7 +99,15 @@ static gboolean vte_terminal_is_processing (VteTerminal *terminal);
 
 static void reset_update_regions (VteTerminal *terminal);
 
-static gpointer parent_class;
+#ifdef VTE_DEBUG
+G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
+		if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
+			g_printerr("vte_terminal_get_type()\n");
+		})
+#else
+G_DEFINE_TYPE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET)
+#endif
+
 
 /* Indexes in the "palette" color array for the dim colors.
  * Only the first VTE_LEGACY_COLOR_SET_SIZE colors have dim versions.  */
@@ -2623,17 +2631,19 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 		/* Catch a child-exited signal from the child pid. */
 		reaper = vte_reaper_get();
 		vte_reaper_add_child((GPid) pid);
-		g_object_ref(reaper);
-		if (terminal->pvt->pty_reaper != NULL) {
-			g_signal_handlers_disconnect_by_func(terminal->pvt->pty_reaper,
-							     vte_terminal_catch_child_exited,
-							     terminal);
-			g_object_unref(terminal->pvt->pty_reaper);
-		}
-		g_signal_connect(reaper, "child-exited",
-				 G_CALLBACK(vte_terminal_catch_child_exited),
-				 terminal);
-		terminal->pvt->pty_reaper = reaper;
+		if (reaper != terminal->pvt->pty_reaper) {
+			if (terminal->pvt->pty_reaper != NULL) {
+				g_signal_handlers_disconnect_by_func(terminal->pvt->pty_reaper,
+						vte_terminal_catch_child_exited,
+						terminal);
+				g_object_unref(terminal->pvt->pty_reaper);
+			}
+			g_signal_connect(reaper, "child-exited",
+					G_CALLBACK(vte_terminal_catch_child_exited),
+					terminal);
+			terminal->pvt->pty_reaper = reaper;
+		} else
+			g_object_unref(reaper);
 
 		/* Set the pty to be non-blocking. */
 		i = fcntl(terminal->pvt->pty_master, F_GETFL);
@@ -3775,15 +3785,13 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	gunichar keychar = 0;
 	char keybuf[VTE_UTF8_BPC];
 	GdkModifierType modifiers;
-	GtkWidgetClass *widget_class;
 
 	terminal = VTE_TERMINAL(widget);
 
 	/* First, check if GtkWidget's behavior already does something with
 	 * this key. */
-	widget_class = g_type_class_peek(GTK_TYPE_WIDGET);
-	if (GTK_WIDGET_CLASS(widget_class)->key_press_event) {
-		if ((GTK_WIDGET_CLASS(widget_class))->key_press_event(widget,
+	if (GTK_WIDGET_CLASS(vte_terminal_parent_class)->key_press_event) {
+		if ((GTK_WIDGET_CLASS(vte_terminal_parent_class))->key_press_event(widget,
 								      event)) {
 			return TRUE;
 		}
@@ -6656,7 +6664,7 @@ _vte_terminal_codeset_changed_cb(struct _vte_iso2022_state *state, gpointer p)
  * We need to create a new psuedo-terminal pair, read in the termcap file, and
  * set ourselves up to do the interpretation of sequences. */
 static void
-vte_terminal_init(VteTerminal *terminal, gpointer *klass)
+vte_terminal_init(VteTerminal *terminal)
 {
 	VteTerminalPrivate *pvt;
 	GtkWidget *widget;
@@ -6933,7 +6941,6 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 static void
 vte_terminal_show(GtkWidget *widget)
 {
-	GtkWidgetClass *widget_class;
 	VteTerminal *terminal;
 
 #ifdef VTE_DEBUG
@@ -6950,9 +6957,8 @@ vte_terminal_show(GtkWidget *widget)
 					   terminal->pvt->fontantialias);
    	}
 
-	widget_class = g_type_class_peek(GTK_TYPE_WIDGET);
-	if (GTK_WIDGET_CLASS(widget_class)->show) {
-		(GTK_WIDGET_CLASS(widget_class))->show(widget);
+	if (GTK_WIDGET_CLASS(vte_terminal_parent_class)->show) {
+		(GTK_WIDGET_CLASS(vte_terminal_parent_class))->show(widget);
 	}
 }
 
@@ -7066,8 +7072,6 @@ vte_terminal_finalize(GObject *object)
 {
 	VteTerminal *terminal;
 	GtkWidget *toplevel;
-	GObjectClass *object_class;
-	GtkWidgetClass *widget_class;
 	GtkClipboard *clipboard;
 	struct vte_match_regex *regex;
 	int i;
@@ -7079,8 +7083,6 @@ vte_terminal_finalize(GObject *object)
 #endif
 
 	terminal = VTE_TERMINAL(object);
-	object_class = G_OBJECT_GET_CLASS(G_OBJECT(object));
-	widget_class = g_type_class_peek(GTK_TYPE_WIDGET);
 
 	/* Free the draw structure. */
 	if (terminal->pvt->draw != NULL) {
@@ -7296,9 +7298,7 @@ vte_terminal_finalize(GObject *object)
 	}
 
 	/* Call the inherited finalize() method. */
-	if (G_OBJECT_CLASS(widget_class)->finalize) {
-		(G_OBJECT_CLASS(widget_class))->finalize(object);
-	}
+	G_OBJECT_CLASS(vte_terminal_parent_class)->finalize(object);
 }
 
 /* Handle realizing the widget.  Most of this is copy-paste from GGAD. */
@@ -9365,12 +9365,12 @@ vte_terminal_get_accessible(GtkWidget *widget)
 		first_time = FALSE;
 	}
 
-	return GTK_WIDGET_CLASS (parent_class)->get_accessible (widget);
+	return GTK_WIDGET_CLASS (vte_terminal_parent_class)->get_accessible (widget);
 }
 
 /* Initialize methods. */
 static void
-vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
+vte_terminal_class_init(VteTerminalClass *klass)
 {
 	GObjectClass *gobject_class;
 	GtkWidgetClass *widget_class;
@@ -9391,7 +9391,6 @@ vte_terminal_class_init(VteTerminalClass *klass, gconstpointer data)
 	gobject_class = G_OBJECT_CLASS(klass);
 	widget_class = GTK_WIDGET_CLASS(klass);
 
-	parent_class = g_type_class_peek_parent (klass);
 	/* Override some of the default handlers. */
 	gobject_class->finalize = vte_terminal_finalize;
 	widget_class->realize = vte_terminal_realize;
@@ -9732,41 +9731,6 @@ vte_terminal_anti_alias_get_type(void)
 					       values);
 	}
 	return terminal_anti_alias_type;
-}
-
-GtkType
-vte_terminal_get_type(void)
-{
-	static GtkType terminal_type = 0;
-	static const GTypeInfo terminal_info = {
-		sizeof(VteTerminalClass),
-		(GBaseInitFunc)NULL,
-		(GBaseFinalizeFunc)NULL,
-
-		(GClassInitFunc)vte_terminal_class_init,
-		(GClassFinalizeFunc)NULL,
-		(gconstpointer)NULL,
-
-		sizeof(VteTerminal),
-		0,
-		(GInstanceInitFunc)vte_terminal_init,
-
-		(GTypeValueTable*)NULL,
-	};
-
-	if (terminal_type == 0) {
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-			g_printerr("vte_terminal_get_type()\n");
-		}
-#endif
-		terminal_type = g_type_register_static(GTK_TYPE_WIDGET,
-						       "VteTerminal",
-						       &terminal_info,
-						       0);
-	}
-
-	return terminal_type;
 }
 
 /**

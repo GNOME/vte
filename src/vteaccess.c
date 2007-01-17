@@ -55,8 +55,9 @@ enum direction {
 
 static gunichar vte_terminal_accessible_get_character_at_offset(AtkText *text,
 								gint offset);
+static gpointer vte_terminal_accessible_parent_class;
 
-static gpointer parent_class = NULL;
+G_DEFINE_TYPE(VteTerminalAccessibleFactory, vte_terminal_accessible_factory, ATK_TYPE_OBJECT_FACTORY)
 
 /* Create snapshot private data. */
 static VteTerminalAccessiblePrivate *
@@ -767,7 +768,7 @@ vte_terminal_initialize (AtkObject *obj, gpointer data)
 	VteTerminal *terminal;
 	AtkObject *parent;
 
-	ATK_OBJECT_CLASS (parent_class)->initialize (obj, data);
+	ATK_OBJECT_CLASS (vte_terminal_accessible_parent_class)->initialize (obj, data);
 
 	terminal = VTE_TERMINAL (data);
 
@@ -858,7 +859,6 @@ vte_terminal_accessible_finalize(GObject *object)
 {
 	VteTerminalAccessiblePrivate *priv;
 	GtkAccessible *accessible = NULL;
-	GObjectClass *gobject_class;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
@@ -868,13 +868,10 @@ vte_terminal_accessible_finalize(GObject *object)
 
 	g_assert(VTE_IS_TERMINAL_ACCESSIBLE(object));
 	accessible = GTK_ACCESSIBLE(object);
-	gobject_class = g_type_class_peek_parent(VTE_TERMINAL_ACCESSIBLE_GET_CLASS(object));
 
 	if (accessible->widget != NULL) {
 		g_object_remove_weak_pointer(G_OBJECT(accessible->widget),
 					     (gpointer*) &accessible->widget);
-	}
-	if (G_IS_OBJECT(accessible->widget)) {
 		g_signal_handlers_disconnect_matched(accessible->widget,
 						     G_SIGNAL_MATCH_FUNC |
 						     G_SIGNAL_MATCH_DATA,
@@ -926,9 +923,7 @@ vte_terminal_accessible_finalize(GObject *object)
 				  VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA,
 				  NULL);
 	}
-	if (gobject_class->finalize != NULL) {
-		gobject_class->finalize(object);
-	}
+	G_OBJECT_CLASS(vte_terminal_accessible_parent_class)->finalize(object);
 }
 
 static gchar *
@@ -1813,9 +1808,9 @@ vte_terminal_accessible_class_init(gpointer *klass)
 	GObjectClass *gobject_class;
 	AtkObjectClass *class = ATK_OBJECT_CLASS (klass);
 
-	gobject_class = G_OBJECT_CLASS(klass);
+	vte_terminal_accessible_parent_class = g_type_class_peek_parent (klass);
 
-	parent_class = g_type_class_peek_parent (klass);
+	gobject_class = G_OBJECT_CLASS(klass);
 
 	class->initialize = vte_terminal_initialize;
 	/* Override the finalize method. */
@@ -1825,52 +1820,53 @@ vte_terminal_accessible_class_init(gpointer *klass)
 GType
 vte_terminal_accessible_get_type(void)
 {
-	AtkRegistry *registry;
-	AtkObjectFactory *factory;
-	GType parent_type, parent_accessible_type;
-	GTypeQuery type_info;
-
 	static GType terminal_accessible_type = 0;
-	static GInterfaceInfo text = {
-		vte_terminal_accessible_text_init,
-		NULL,
-		NULL,
-	};
-	static GInterfaceInfo component = {
-		vte_terminal_accessible_component_init,
-		NULL,
-		NULL,
-	};
-	static GTypeInfo terminal_accessible_info = {
-		0,
-		(GBaseInitFunc)NULL,
-		(GBaseFinalizeFunc)NULL,
 
-		(GClassInitFunc)vte_terminal_accessible_class_init,
-		(GClassFinalizeFunc)NULL,
-		(gconstpointer)NULL,
+	if (G_UNLIKELY (terminal_accessible_type == 0)) {
+		AtkRegistry *registry;
+		AtkObjectFactory *factory;
+		GType parent_type, parent_accessible_type;
+		GTypeQuery type_info;
 
-		0,
-		0,
-		(GInstanceInitFunc) NULL,
+		GInterfaceInfo text = {
+			vte_terminal_accessible_text_init,
+			NULL,
+			NULL,
+		};
+		GInterfaceInfo component = {
+			vte_terminal_accessible_component_init,
+			NULL,
+			NULL,
+		};
+		GTypeInfo terminal_accessible_info = {
+			0,
+			(GBaseInitFunc)NULL,
+			(GBaseFinalizeFunc)NULL,
 
-		(GTypeValueTable*)NULL,
-	};
+			(GClassInitFunc)vte_terminal_accessible_class_init,
+			(GClassFinalizeFunc)NULL,
+			(gconstpointer)NULL,
 
-	if (terminal_accessible_type == 0) {
+			0,
+			0,
+			(GInstanceInitFunc) NULL,
+
+			(GTypeValueTable*)NULL,
+		};
+
 		/* Find the Atk object used for the parent (GtkWidget) type. */
 		parent_type = g_type_parent(VTE_TYPE_TERMINAL);
 		factory = atk_registry_get_factory(atk_get_default_registry(),
-						   parent_type);
+				parent_type);
 		parent_accessible_type = atk_object_factory_get_accessible_type(factory);
 		if (!g_type_is_a(parent_accessible_type, GTK_TYPE_ACCESSIBLE)) {
 #ifdef VTE_DEBUG
 			g_warning("Accessibility (%s) is not derived from "
-				  "%s (GTK_MODULES=gail not set?), "
-				  "deriving from %s instead.\n",
-				  g_type_name(parent_accessible_type),
-				  g_type_name(GTK_TYPE_ACCESSIBLE),
-				  g_type_name(GTK_TYPE_ACCESSIBLE));
+					"%s (GTK_MODULES=gail not set?), "
+					"deriving from %s instead.\n",
+					g_type_name(parent_accessible_type),
+					g_type_name(GTK_TYPE_ACCESSIBLE),
+					g_type_name(GTK_TYPE_ACCESSIBLE));
 #endif
 			/* Fudge it. */
 			parent_accessible_type = GTK_TYPE_ACCESSIBLE;
@@ -1882,25 +1878,25 @@ vte_terminal_accessible_get_type(void)
 		terminal_accessible_info.instance_size = type_info.instance_size;
 		/* Register the class with the GObject type system. */
 		terminal_accessible_type = g_type_register_static(parent_accessible_type,
-								  "VteTerminalAccessible",
-								  &terminal_accessible_info,
-								  0);
+				"VteTerminalAccessible",
+				&terminal_accessible_info,
+				0);
 
 		/* Add a text interface to this object class. */
 		g_type_add_interface_static(terminal_accessible_type,
-					    ATK_TYPE_TEXT,
-					    &text);
+				ATK_TYPE_TEXT,
+				&text);
 		/* Add a component interface to this object class. */
 		g_type_add_interface_static(terminal_accessible_type,
-					    ATK_TYPE_COMPONENT,
-					    &component);
+				ATK_TYPE_COMPONENT,
+				&component);
 
 		/* Associate the terminal and its peer factory in the
 		 * Atk type registry. */
 		registry = atk_get_default_registry();
 		atk_registry_set_factory_type(registry,
-					      VTE_TYPE_TERMINAL,
-					      VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY);
+				VTE_TYPE_TERMINAL,
+				VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY);
 	}
 
 	return terminal_accessible_type;
@@ -1929,46 +1925,21 @@ vte_terminal_accessible_factory_class_init(VteTerminalAccessibleFactoryClass *kl
 	/* Override the one method we care about. */
 	class->create_accessible = vte_terminal_accessible_factory_create_accessible;
 }
+static void
+vte_terminal_accessible_factory_init(VteTerminalAccessibleFactory *self)
+{
+	/* nothing to initialise */
+}
 
 AtkObjectFactory *
 vte_terminal_accessible_factory_new(void)
 {
-	GObject *factory;
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
 		g_printerr("Creating a new "
 			"VteTerminalAccessibleFactory.\n");
 	}
 #endif
-	factory = g_object_new(VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY, NULL);
-	g_return_val_if_fail(factory != NULL, NULL);
-	return ATK_OBJECT_FACTORY(factory);
+	return g_object_new(VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY, NULL);
 }
 
-GType
-vte_terminal_accessible_factory_get_type(void)
-{
-	static GType terminal_accessible_factory_type = 0;
-	static GTypeInfo terminal_accessible_factory_type_info = {
-		sizeof(VteTerminalAccessibleFactoryClass),
-		(GBaseInitFunc)NULL,
-		(GBaseFinalizeFunc)NULL,
-
-		(GClassInitFunc)vte_terminal_accessible_factory_class_init,
-		(GClassFinalizeFunc)NULL,
-		(gconstpointer)NULL,
-
-		sizeof(VteTerminalAccessibleFactory),
-		0,
-		(GInstanceInitFunc)NULL,
-
-		(GTypeValueTable*)NULL,
-	};
-	if (terminal_accessible_factory_type == 0) {
-		terminal_accessible_factory_type = g_type_register_static(ATK_TYPE_OBJECT_FACTORY,
-									  "VteTerminalAccessibleFactory",
-									  &terminal_accessible_factory_type_info,
-									  0);
-	}
-	return terminal_accessible_factory_type;
-}
