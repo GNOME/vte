@@ -877,7 +877,7 @@ vte_terminal_match_contents_refresh(VteTerminal *terminal)
 {
 	GArray *array;
 	_vte_terminal_match_contents_clear(terminal);
-	array = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
+	array = g_array_new(FALSE, FALSE, sizeof(struct _VteCharAttributes));
 	terminal->pvt->match_contents = vte_terminal_get_text(terminal,
 							      always_selected,
 							      NULL,
@@ -3165,7 +3165,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 
 	/* Remove most of the processed characters. */
 	if (start < wcount) {
-		unichars = g_array_new(TRUE, TRUE, sizeof(gunichar));
+		unichars = g_array_new(FALSE, FALSE, sizeof(gunichar));
 		g_array_append_vals(unichars,
 				    &g_array_index(terminal->pvt->pending,
 						   gunichar,
@@ -6716,7 +6716,7 @@ vte_terminal_init(VteTerminal *terminal)
 					      &_vte_terminal_codeset_changed_cb,
 					      (gpointer)terminal);
 	pvt->incoming = _vte_buffer_new();
-	pvt->pending = g_array_new(TRUE, TRUE, sizeof(gunichar));
+	pvt->pending = g_array_new(FALSE, FALSE, sizeof(gunichar));
 	pvt->cursor_blink_tag = VTE_INVALID_SOURCE;
 	pvt->coalesce_timeout = VTE_INVALID_SOURCE;
 	pvt->display_timeout = VTE_INVALID_SOURCE;
@@ -6766,7 +6766,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->cursor_blink_timeout = 500;
 
 	/* Matching data. */
-	pvt->match_regexes = g_array_new(FALSE, TRUE,
+	pvt->match_regexes = g_array_new(FALSE, FALSE,
 					 sizeof(struct vte_match_regex));
 	pvt->match_previous = -1;
 	vte_terminal_match_hilite_clear(terminal);
@@ -10390,7 +10390,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	if (terminal->pvt->word_chars != NULL) {
 		g_array_free(terminal->pvt->word_chars, TRUE);
 	}
-	terminal->pvt->word_chars = g_array_new(FALSE, TRUE,
+	terminal->pvt->word_chars = g_array_new(FALSE, FALSE,
 						sizeof(VteWordCharRange));
 	/* Special case: if spec is NULL, try to do the right thing. */
 	if ((spec == NULL) || (strlen(spec) == 0)) {

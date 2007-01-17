@@ -56,7 +56,7 @@ _vte_regex_sort_matches(struct _vte_regex_match *matches, gsize n_matches)
 	if (n_matches <= 1) {
 		return;
 	}
-	array = g_array_new(0, 0, sizeof(struct _vte_regex_match));
+	array = g_array_new(FALSE, FALSE, sizeof(struct _vte_regex_match));
 	g_array_append_vals(array, matches, n_matches);
 	g_array_sort(array, compare_matches);
 	memmove(matches, array->data,

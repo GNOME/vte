@@ -35,7 +35,7 @@ gboolean
 _vte_fc_patterns_from_pango_font_desc(GtkWidget *widget,
 				      const PangoFontDescription *font_desc,
 				      VteTerminalAntiAlias antialias,
-				      GArray *pattern_array,
+				      GPtrArray *pattern_array,
 				      _vte_fc_defaults_cb defaults_cb,
 				      gpointer defaults_data);
 

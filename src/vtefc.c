@@ -404,7 +404,7 @@ gboolean
 _vte_fc_patterns_from_pango_font_desc(GtkWidget *widget,
 				      const PangoFontDescription *font_desc,
 				      VteTerminalAntiAlias antialias,
-				      GArray *pattern_array,
+				      GPtrArray *pattern_array,
 				      _vte_fc_defaults_cb defaults_cb,
 				      gpointer defaults_data)
 
@@ -456,7 +456,7 @@ _vte_fc_patterns_from_pango_font_desc(GtkWidget *widget,
 			_vte_fc_set_antialias(tmp, antialias);
 			save = FcPatternDuplicate(tmp);
 			FcPatternDestroy(tmp);
-			g_array_append_val(pattern_array, save);
+			g_ptr_array_add(pattern_array, save);
 		}
 		FcFontSetDestroy(fontset);
 		ret = TRUE;
@@ -471,7 +471,7 @@ _vte_fc_patterns_from_pango_font_desc(GtkWidget *widget,
 			_vte_fc_set_antialias(tmp, antialias);
 			save = FcPatternDuplicate(tmp);
 			FcPatternDestroy(tmp);
-			g_array_append_val(pattern_array, save);
+			g_ptr_array_add(pattern_array, save);
 			ret = TRUE;
 		} else {
 			ret = FALSE;

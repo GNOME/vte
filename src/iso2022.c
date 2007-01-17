@@ -1060,13 +1060,16 @@ _vte_iso2022_sequence_length(const unsigned char *nextctl, gsize length)
 	return sequence_length;
 }
 
-static void
-_vte_iso2022_fragment_input(struct _vte_buffer *input, GArray *blocks)
+static GArray *
+_vte_iso2022_fragment_input(struct _vte_buffer *input)
 {
 	unsigned char *nextctl = NULL, *p, *q;
 	glong sequence_length = 0;
 	struct _vte_iso2022_block block;
 	gboolean quit;
+	GArray *blocks;
+
+	blocks = g_array_new(FALSE, FALSE, sizeof(struct _vte_iso2022_block));
 
 	p = input->bytes;
 	q = input->bytes + _vte_buffer_length(input);
@@ -1123,6 +1126,8 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input, GArray *blocks)
 			break;
 		}
 	}
+
+	return blocks;
 }
 
 static int
@@ -1706,9 +1711,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 	gboolean preserve_last = FALSE;
 	int i, initial;
 
-	blocks = g_array_new(TRUE, TRUE, sizeof(struct _vte_iso2022_block));
-
-	_vte_iso2022_fragment_input(input, blocks);
+	blocks = _vte_iso2022_fragment_input(input);
 
 	for (i = 0; i < blocks->len; i++) {
 		block = &g_array_index(blocks, struct _vte_iso2022_block, i);
@@ -1852,7 +1855,7 @@ main(int argc, char **argv)
 
 	state = _vte_iso2022_state_new(NULL, NULL, NULL);
 	buffer = _vte_buffer_new();
-	gunichars = g_array_new(TRUE, TRUE, sizeof(gunichar));
+	gunichars = g_array_new(FALSE, FALSE, sizeof(gunichar));
 	if (argc > 1) {
 		string = g_string_new(NULL);
 		for (i = 1; i < argc; i++) {

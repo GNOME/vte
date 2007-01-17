@@ -43,8 +43,8 @@
 
 struct _vte_xft_font {
 	GdkDisplay *display;
-	GArray *patterns;
-	GArray *fonts;
+	GPtrArray *patterns;
+	GPtrArray *fonts;
 	VteTree *fontmap;
 	VteTree *widths;
 };
@@ -94,19 +94,19 @@ _vte_xft_font_open(GtkWidget *widget, const PangoFontDescription *fontdesc,
 		   VteTerminalAntiAlias antialias)
 {
 	struct _vte_xft_font *font;
-	GArray *patterns;
+	GPtrArray *patterns;
 
-	patterns = g_array_new(TRUE, TRUE, sizeof(FcPattern*));
+	patterns = g_ptr_array_new();
 	if (!_vte_fc_patterns_from_pango_font_desc(widget, fontdesc, antialias,
 						   patterns, NULL, NULL)) {
-		g_array_free(patterns, TRUE);
+		g_ptr_array_free(patterns, TRUE);
 		return NULL;
 	}
 
-	font = g_slice_new0(struct _vte_xft_font);
+	font = g_slice_new(struct _vte_xft_font);
 	font->display = gtk_widget_get_display(widget);
 	font->patterns = patterns;
-	font->fonts = g_array_new(TRUE, TRUE, sizeof(XftFont*));
+	font->fonts = g_ptr_array_new();
 	font->fontmap = _vte_tree_new(_vte_xft_direct_compare);
 	font->widths = _vte_tree_new(_vte_xft_direct_compare);
 
@@ -123,23 +123,23 @@ _vte_xft_font_close(struct _vte_xft_font *font)
 	int i;
 
 	for (i = 0; i < font->patterns->len; i++) {
-		pattern = g_array_index(font->patterns, FcPattern*, i);
+		pattern = g_ptr_array_index(font->patterns, i);
 		if (pattern == NULL) {
 			continue;
 		}
 		FcPatternDestroy(pattern);
 	}
-	g_array_free(font->patterns, TRUE);
+	g_ptr_array_free(font->patterns, TRUE);
 
 	gdisplay = gdk_display_get_default();
 	display = gdk_x11_display_get_xdisplay(gdisplay);
 	for (i = 0; i < font->fonts->len; i++) {
-		ftfont = g_array_index(font->fonts, XftFont*, i);
+		ftfont = g_ptr_array_index(font->fonts, i);
 		if (ftfont != NULL) {
 			XftFontClose(display, ftfont);
 		}
 	}
-	g_array_free(font->fonts, TRUE);
+	g_ptr_array_free(font->fonts, TRUE);
 
 	_vte_tree_destroy(font->fontmap);
 	_vte_tree_destroy(font->widths);
@@ -152,7 +152,7 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 {
 	int i;
 	XftFont *ftfont;
-	FcPattern **patternp;
+	FcPattern *pattern;
 	GdkDisplay *gdisplay;
 	Display *display;
 	gpointer p = GINT_TO_POINTER(c);
@@ -164,17 +164,14 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 		/* Checked before, no luck. */
 		case -FONT_INDEX_FUDGE:
 			if (font->fonts->len > 0) {
-				return g_array_index(font->fonts,
-						     XftFont *,
-						     0);
+				return g_ptr_array_index(font->fonts, 0);
 			} else {
 				/* What to do? */
 				g_assert_not_reached();
 			}
 		/* Matched before. */
 		default:
-			return g_array_index(font->fonts,
-					     XftFont *,
+			return g_ptr_array_index(font->fonts,
 					     i - FONT_INDEX_FUDGE);
 		}
 	}
@@ -183,7 +180,7 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 	gdisplay = gdk_display_get_default();
 	display = gdk_x11_display_get_xdisplay(gdisplay);
 	for (i = 0; i < font->fonts->len; i++) {
-		ftfont = g_array_index(font->fonts, XftFont *, i);
+		ftfont = g_ptr_array_index(font->fonts, i);
 		if ((ftfont != NULL) &&
 		    (_vte_xft_char_exists(font, ftfont, c))) {
 			break;
@@ -195,7 +192,7 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 		_vte_tree_insert(font->fontmap,
 			      p,
 			      GINT_TO_POINTER(i + FONT_INDEX_FUDGE));
-		ftfont = g_array_index(font->fonts, XftFont *, i);
+		ftfont = g_ptr_array_index(font->fonts, i);
 		if (ftfont != NULL) {
 			return ftfont;
 		} else {
@@ -205,13 +202,13 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 
 	/* Look the character up in other fonts. */
 	for (i = font->fonts->len; i < font->patterns->len; i++) {
-		patternp = &g_array_index(font->patterns, FcPattern *, i);
-		ftfont = XftFontOpenPattern(display, *patternp);
+		ftfont = XftFontOpenPattern(display,
+			       	g_ptr_array_index(font->patterns, i));
 		/* If the font was opened, it owns the pattern. */
 		if (ftfont != NULL) {
-			*patternp = NULL;
+			g_ptr_array_index(font->patterns, i) = NULL;
 		}
-		g_array_append_val(font->fonts, ftfont);
+		g_ptr_array_add(font->fonts, ftfont);
 		if ((ftfont != NULL) &&
 		    (_vte_xft_char_exists(font, ftfont, c))) {
 			break;
@@ -224,9 +221,7 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 			      p,
 			      GINT_TO_POINTER(-FONT_INDEX_FUDGE));
 		if (font->fonts->len > 0) {
-			return g_array_index(font->fonts,
-					     XftFont *,
-					     0);
+			return g_ptr_array_index(font->fonts, 0);
 		} else {
 			/* What to do? */
 			g_assert_not_reached();
@@ -239,7 +234,7 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 
 	/* Return the match. */
 	if (i < font->fonts->len) {
-		return g_array_index(font->fonts, XftFont *, i);
+		return g_ptr_array_index(font->fonts, i);
 	} else {
 		return NULL;
 	}

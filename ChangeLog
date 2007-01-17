@@ -2,6 +2,30 @@
 
 	As part of Bug 397439.
 
+	* src/interpret.c: (main):
+	* src/iso2022.c: (_vte_iso2022_fragment_input),
+	(_vte_iso2022_process), (main):
+	* src/vte.c: (vte_terminal_match_contents_refresh),
+	(vte_terminal_process_incoming), (vte_terminal_init),
+	(vte_terminal_set_word_chars):
+	* src/vteaccess.c:
+	(vte_terminal_accessible_update_private_data_if_needed):
+	* src/vtefc.c: (_vte_fc_patterns_from_pango_font_desc):
+	* src/vtefc.h:
+	* src/vteglyph.c: (_vte_glyph_cache_new), (_vte_glyph_cache_free),
+	(_vte_glyph_cache_set_font_description):
+	* src/vteglyph.h:
+	* src/vteregex.c: (_vte_regex_sort_matches):
+	* src/vtexft.c: (_vte_xft_font_open), (_vte_xft_font_close),
+	(_vte_xft_font_for_char):
+		s/g_array_new(TRUE, TRUE/g_array_new(FALSE, FALSE/
+		All uses of GArray respect their lengths and do not
+		zero-termination or untouched members to be cleared.
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	As part of Bug 397439.
+
 	* src/iso2022.c: (_vte_iso2022_state_free):
 	* src/matcher.c: (_vte_matcher_free_params_array):
 	* src/ring.c: (_vte_ring_free):

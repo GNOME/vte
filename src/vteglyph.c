@@ -57,7 +57,7 @@ _vte_glyph_cache_new(void)
 
 	ret = g_slice_new(struct _vte_glyph_cache);
 
-	ret->patterns = g_array_new(TRUE, TRUE, sizeof(FcPattern*));
+	ret->patterns = g_ptr_array_new();
 	ret->faces = NULL;
 	ret->cache = g_tree_new(_vte_direct_compare);
 	ret->ft_load_flags = 0;
@@ -98,11 +98,9 @@ _vte_glyph_cache_free(struct _vte_glyph_cache *cache)
 	/* Destroy the patterns. */
 	if (cache->patterns != NULL) {
 		for (i = 0; i < cache->patterns->len; i++) {
-			FcPatternDestroy(g_array_index(cache->patterns,
-						       FcPattern*,
-						       i));
+			FcPatternDestroy(g_ptr_array_index(cache->patterns, i));
 		}
-		g_array_free(cache->patterns, TRUE);
+		g_ptr_array_free(cache->patterns, TRUE);
 	}
 
 	/* Close all faces. */
@@ -135,7 +133,7 @@ _vte_glyph_cache_set_font_description(GtkWidget *widget,
 	double dpi, size;
 	GList *iter;
 	FcPattern *pattern;
-	GArray *patterns;
+	GPtrArray *patterns;
 	FT_Face face;
 	gunichar double_wide_characters[] = {VTE_DRAW_DOUBLE_WIDE_CHARACTERS};
 
@@ -143,19 +141,19 @@ _vte_glyph_cache_set_font_description(GtkWidget *widget,
 	g_return_if_fail(fontdesc != NULL);
 
 	/* Convert the font description to a sorted set of patterns. */
-	patterns = g_array_new(TRUE, TRUE, sizeof(FcPattern*));
+	patterns = g_ptr_array_new();
 	if (!_vte_fc_patterns_from_pango_font_desc(widget, fontdesc,
 						   antialias,
 						   patterns,
 						   defaults_cb,
 						   defaults_data)) {
-		g_array_free(patterns, TRUE);
+		g_ptr_array_free(patterns, TRUE);
 		g_assert_not_reached();
 	}
 
 	/* Set the pattern list. */
 	if (cache->patterns != NULL) {
-		g_array_free(cache->patterns, TRUE);
+		g_ptr_array_free(cache->patterns, TRUE);
 	}
 	cache->patterns = patterns;
 
@@ -178,7 +176,7 @@ _vte_glyph_cache_set_font_description(GtkWidget *widget,
 
 	/* Open the all of the faces to which the patterns resolve. */
 	for (i = 0; i < cache->patterns->len; i++) {
-		pattern = g_array_index(cache->patterns, FcPattern*, i);
+		pattern = g_ptr_array_index(cache->patterns, i);
 		j = 0;
 		while (FcPatternGetString(pattern, FC_FILE, j,
 					  &facefile) == FcResultMatch) {
@@ -219,7 +217,7 @@ _vte_glyph_cache_set_font_description(GtkWidget *widget,
 	cache->ft_load_flags = 0;
 	cache->ft_render_flags = 0;
 	i = 0;
-	pattern = g_array_index(cache->patterns, FcPattern*, 0);
+	pattern = g_ptr_array_index(cache->patterns, 0);
 	/* Read and set the "use the autohinter", er, hint. */
 #if defined(FC_AUTOHINT) && defined(FT_LOAD_FORCE_AUTOHINT)
 	if (FcPatternGetBool(pattern, FC_AUTOHINT, 0, &i) == FcResultMatch) {

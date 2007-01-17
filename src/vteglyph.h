@@ -54,7 +54,7 @@ struct _vte_glyph {
 };
 
 struct _vte_glyph_cache {
-	GArray *patterns;
+	GPtrArray *patterns;
 	GList *faces;
 	GTree *cache;
 	gint ft_load_flags;

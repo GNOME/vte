@@ -77,7 +77,7 @@ main(int argc, char **argv)
 		termcap = _vte_termcap_new("/etc/termcap");
 	}
 	buffer = _vte_buffer_new();
-	array = g_array_new(TRUE, TRUE, sizeof(gunichar));
+	array = g_array_new(FALSE, FALSE, sizeof(gunichar));
 
 	matcher = _vte_matcher_new(terminal, termcap);
 

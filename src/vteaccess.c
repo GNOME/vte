@@ -314,26 +314,23 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 		 * them. */
 		if (priv->snapshot_characters != NULL) {
 			g_array_free(priv->snapshot_characters, TRUE);
-			priv->snapshot_characters = NULL;
 		}
-		priv->snapshot_characters = g_array_new(FALSE, TRUE, sizeof(int));
+		priv->snapshot_characters = g_array_new(FALSE, FALSE, sizeof(int));
 
 		/* Free the attribute lists and allocate a new array to hold
 		 * them. */
 		if (priv->snapshot_attributes != NULL) {
 			g_array_free(priv->snapshot_attributes, TRUE);
-			priv->snapshot_attributes = NULL;
 		}
-		priv->snapshot_attributes = g_array_new(FALSE, TRUE,
+		priv->snapshot_attributes = g_array_new(FALSE, FALSE,
 							sizeof(struct _VteCharAttributes));
 
 		/* Free the linebreak offsets and allocate a new array to hold
 		 * them. */
 		if (priv->snapshot_linebreaks != NULL) {
 			g_array_free(priv->snapshot_linebreaks, TRUE);
-			priv->snapshot_linebreaks = NULL;
 		}
-		priv->snapshot_linebreaks = g_array_new(FALSE, TRUE, sizeof(int));
+		priv->snapshot_linebreaks = g_array_new(FALSE, FALSE, sizeof(int));
 
 		/* Get a new view of the uber-label. */
 		tmp = vte_terminal_get_text_include_trailing_spaces(terminal,
