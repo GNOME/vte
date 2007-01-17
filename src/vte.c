@@ -134,9 +134,10 @@ vte_g_array_fill(GArray *array, gpointer item, guint final_size)
 		return;
 	}
 
-	while (array->len < final_size) {
+	final_size -= array->len;
+	do {
 		g_array_append_vals(array, item, 1);
-	}
+	} while (--final_size);
 }
 
 /* Allocate a new line. */
@@ -580,13 +581,15 @@ vte_terminal_emit_commit(VteTerminal *terminal, const gchar *text, guint length)
 		length = strlen(text);
 		result = text;
 	} else {
-		result = wrapped = g_malloc0(length + 1);
+		result = wrapped = g_slice_alloc(length + 1);
 		memcpy(wrapped, text, length);
+		wrapped[length] = '\0';
 	}
 
 	g_signal_emit_by_name(terminal, "commit", result, length);
 
-        g_free(wrapped);
+	if(wrapped)
+		g_slice_free1(length+1, wrapped);
 }
 
 /* Emit an "emulation-changed" signal. */
@@ -1639,24 +1642,28 @@ _vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 {
 	VteRowData *row;
 	VteScreen *screen;
-	gboolean readjust = FALSE, fill = FALSE;
+	gint delta;
+
+	g_assert(VTE_IS_TERMINAL(terminal));
 
 	/* Must make sure we're in a sane area. */
 	screen = terminal->pvt->screen;
 
 	/* Figure out how many rows we need to add. */
-	fill = (terminal->pvt->screen->defaults.back != VTE_DEF_BG);
-	while (screen->cursor_current.row >= _vte_ring_next(screen->row_data)) {
-		/* Create a new row. */
-		if (fill) {
-			row = _vte_new_row_data_sized(terminal, TRUE);
-		} else {
-			row = _vte_new_row_data(terminal);
-		}
-		_vte_ring_append(screen->row_data, row);
-		readjust = TRUE;
-	}
-	if (readjust) {
+	delta = screen->cursor_current.row - _vte_ring_next(screen->row_data) + 1;
+	if (delta > 0) {
+		gboolean fill;
+
+		fill = screen->defaults.back != VTE_DEF_BG;
+		do {
+			/* Create a new row. */
+			if (fill) {
+				row = _vte_new_row_data_sized(terminal, TRUE);
+			} else {
+				row = _vte_new_row_data(terminal);
+			}
+			_vte_ring_append(screen->row_data, row);
+		} while(--delta);
 		_vte_terminal_adjust_adjustments(terminal, FALSE);
 	}
 
@@ -2158,15 +2165,15 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			 gint forced_width)
 {
 	VteRowData *row;
-	struct vte_charcell cell, *pcell;
+	struct vte_charcell cell;
 	int columns, i;
 	long col;
 	VteScreen *screen;
 	gboolean insert, clean;
 
 	screen = terminal->pvt->screen;
-	insert = screen->insert_mode || force_insert_mode;
-	invalidate_now = insert || invalidate_now;
+	insert = screen->insert_mode | force_insert_mode;
+	invalidate_now |= insert;
 
 	/* If we've enabled the special drawing set, map the characters to
 	 * Unicode. */
@@ -2187,9 +2194,8 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 
 	/* If this character is destined for the status line, save it. */
-	if (terminal->pvt->screen->status_line) {
-		g_string_append_unichar(terminal->pvt->screen->status_line_contents,
-					c);
+	if (screen->status_line) {
+		g_string_append_unichar(screen->status_line_contents, c);
 		_vte_terminal_emit_status_line_changed(terminal);
 		return;
 	}
@@ -2247,85 +2253,86 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	g_assert(row != NULL);
 
 	/* Insert the right number of columns. */
-	for (i = 0; i < columns; i++) {
-		col = screen->cursor_current.col;
 
+	/* Make sure we're not getting random stuff past the right
+	 * edge of the screen at this point, because the user can't
+	 * see it. */
+	if (screen->cursor_current.col < terminal->column_count) {
 		/* Make sure we have enough columns in this row. */
-		if (row->cells->len <= col) {
+		if (row->cells->len < screen->cursor_current.col + columns) {
 			/* Add enough cells to fill out the row to at least out
 			 * to (and including) the insertion point. */
 			if (paint_cells) {
 				vte_g_array_fill(row->cells,
-						 &screen->color_defaults,
-						 col + 1);
+						&screen->color_defaults,
+						screen->cursor_current.col + columns);
 			} else {
 				vte_g_array_fill(row->cells,
-						 &screen->basic_defaults,
-						 col + 1);
+						&screen->basic_defaults,
+						screen->cursor_current.col + columns);
 			}
-			clean = FALSE;
-		} else {
+		}
+		col = screen->cursor_current.col;
+		for (i = 0; i < columns; i++) {
 			/* If we're in insert mode, insert a new cell here
 			 * and use it. */
 			if (insert) {
 				cell = screen->color_defaults;
 				g_array_insert_val(row->cells, col, cell);
-				clean = FALSE;
 			} else {
-				/* We're in overtype mode, so we can use the
-				 * existing character. */
-				clean = TRUE;
+				cell = g_array_index(row->cells, struct vte_charcell, col);
 			}
-		}
+			/* Set the character cell's attributes to match the current
+			 * defaults, preserving any previous contents. */
+			if (paint_cells) {
+				cell.fore = screen->defaults.fore;
+				cell.back = screen->defaults.back;
+			}
+			cell.standout = screen->defaults.standout;
+			cell.underline = screen->defaults.underline;
+			cell.strikethrough = screen->defaults.strikethrough;
+			cell.reverse = screen->defaults.reverse;
+			cell.blink = screen->defaults.blink;
+			cell.half = screen->defaults.half;
+			cell.bold = screen->defaults.bold;
+			cell.invisible = screen->defaults.invisible;
+			cell.protect = screen->defaults.protect;
+			cell.alternate = 0;
 
-		/* Set the character cell's attributes to match the current
-		 * defaults, preserving any previous contents. */
-		cell = g_array_index(row->cells, struct vte_charcell, col);
-		pcell = &g_array_index(row->cells, struct vte_charcell, col);
-		*pcell = screen->defaults;
-		if (!paint_cells) {
-			pcell->fore = cell.fore;
-			pcell->back = cell.back;
-		}
-		pcell->c = cell.c;
-		pcell->columns = cell.columns;
-		pcell->fragment = cell.fragment;
-		pcell->empty = cell.empty;
-		pcell->alternate = 0;
-
-		/* Now set the character and column count. */
-		if (i == 0) {
-			/* This is an entire character or the first column of
-			 * a multi-column character. */
-			if ((pcell->c != 0) &&
-			    (c == '_') &&
-			    (terminal->pvt->flags.ul)) {
-				/* Handle overstrike-style underlining. */
-				pcell->underline = 1;
+			/* Now set the character and column count. */
+			if (i == 0) {
+				/* This is an entire character or the first column of
+				 * a multi-column character. */
+				if ((cell.c != 0) &&
+						(c == '_') &&
+						(terminal->pvt->flags.ul)) {
+					/* Handle overstrike-style underlining. */
+					cell.underline = 1;
+				} else {
+					/* Insert the character. */
+					cell.c = c;
+					cell.columns = columns;
+					cell.fragment = 0;
+					cell.empty = 0;
+				}
 			} else {
-				/* Insert the character. */
-				pcell->c = c;
-				pcell->columns = columns;
-				pcell->fragment = 0;
-				pcell->empty = 0;
+				/* This is a continuation cell. */
+				cell.c = c;
+				cell.columns = columns;
+				cell.fragment = 1;
+				cell.empty = 0;
 			}
-		} else {
-			/* This is a continuation cell. */
-			pcell->c = c;
-			pcell->columns = columns;
-			pcell->fragment = 1;
-			pcell->empty = 0;
+			g_array_index(row->cells, struct vte_charcell, col) = cell;
+
+			/* And take a step to the to the right. */
+			col++;
 		}
-
-		/* And take a step to the to the right. */
-		screen->cursor_current.col++;
-
-		/* Make sure we're not getting random stuff past the right
-		 * edge of the screen at this point, because the user can't
-		 * see it. */
-		if (row->cells->len > terminal->column_count) {
+		screen->cursor_current.col = col;
+		if (G_UNLIKELY (row->cells->len > terminal->column_count)) {
 			g_array_set_size(row->cells, terminal->column_count);
 		}
+	}else{
+		screen->cursor_current.col += columns;
 	}
 
 	/* If we're autowrapping *here*, do it. */
@@ -2587,7 +2594,7 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 	for (i = 0; (envv != NULL) && (envv[i] != NULL); i++) {
 		/* nothing */ ;
 	}
-	env_add = g_malloc0(sizeof(char*) * (i + 2));
+	env_add = g_new(char *, i + 2);
 	env_add[0] = g_strdup_printf("TERM=%s", terminal->pvt->emulation);
 	for (i = 0; (envv != NULL) && (envv[i] != NULL); i++) {
 		env_add[i + 1] = g_strdup(envv[i]);
@@ -3129,9 +3136,11 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 		g_assert(screen->cursor_current.row >= screen->insert_delta);
 #endif
 
-		/* Free any parameters we don't care about any more. */
-		_vte_matcher_free_params_array(params);
-		params = NULL;
+		if (G_UNLIKELY(params != NULL)) {
+			/* Free any parameters we don't care about any more. */
+			_vte_matcher_free_params_array(params);
+			params = NULL;
+		}
 	}
 
 	if (invalidated_text) {
@@ -4051,8 +4060,9 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				normal_length = g_unichar_to_utf8(keychar,
 								  keybuf);
 				if (normal_length != 0) {
-					normal = g_malloc0(normal_length + 1);
+					normal = g_malloc(normal_length + 1);
 					memcpy(normal, keybuf, normal_length);
+					normal[normal_length] = '\0';
 				} else {
 					normal = NULL;
 				}
@@ -6071,6 +6081,9 @@ vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
 	terminal->pvt->visibility_state = event->state;
 	if (terminal->pvt->visibility_state == GDK_VISIBILITY_UNOBSCURED)
 		_vte_invalidate_all(terminal);
+	else if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED)
+		remove_update_timeout (terminal);
+
 	return FALSE;
 }
 
@@ -6107,7 +6120,7 @@ vte_terminal_apply_metrics(VteTerminal *terminal,
 	/* Queue a resize if anything's changed. */
 	if (resize) {
 		if (GTK_WIDGET_REALIZED(terminal)) {
-			gtk_widget_queue_resize(&terminal->widget);
+			gtk_widget_queue_resize_no_redraw(&terminal->widget);
 		}
 	}
 	/* Emit a signal that the font changed. */
@@ -8854,7 +8867,7 @@ vte_terminal_draw_row(VteTerminal *terminal,
 static void
 vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 {
-	VteTerminal *terminal = NULL;
+	VteTerminal *terminal;
 	VteScreen *screen;
 	struct vte_charcell *cell;
 	struct _vte_draw_text_request item, *items;
@@ -9156,12 +9169,9 @@ static gint
 vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 {
 	if (event->window == widget->window) {
-		if (GTK_WIDGET_DRAWABLE(widget)) {
-			VteTerminal *terminal;
-			terminal = VTE_TERMINAL(widget);
-			if (terminal->pvt->visibility_state != GDK_VISIBILITY_FULLY_OBSCURED) {
-				vte_terminal_paint(widget, &event->area);
-			}
+		if (GTK_WIDGET_DRAWABLE(widget) ||
+				VTE_TERMINAL(widget)->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
+			vte_terminal_paint(widget, &event->area);
 		}
 	}
 	return FALSE;

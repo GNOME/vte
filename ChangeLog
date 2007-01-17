@@ -2,6 +2,18 @@
 
 	As part of Bug 397439.
 
+	* src/vte.c: (vte_g_array_fill), (vte_terminal_emit_commit),
+	(_vte_terminal_ensure_cursor), (_vte_terminal_insert_char),
+	(_vte_terminal_fork_basic), (vte_terminal_process_incoming),
+	(vte_terminal_key_press), (vte_terminal_visibility_notify),
+	(vte_terminal_apply_metrics), (vte_terminal_paint),
+	(vte_terminal_expose):
+		Callgrind driven rewrite of critical loops.
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	As part of Bug 397439.
+
 	* src/vte-private.h:
 	* src/vte.c: (_vte_terminal_connect_pty_write),
 	(_vte_terminal_disconnect_pty_write), (vte_terminal_io_read),
