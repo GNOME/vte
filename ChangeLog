@@ -2,6 +2,13 @@
 
 	As part of Bug 397439.
 
+	* src/vteseq.c: (vte_g_array_fill):
+		Micro-optimise the loop.
+
+2007-01-17  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	As part of Bug 397439.
+
 	* src/vteft2.c: (_vte_ft2_create), (_vte_ft2_start),
 	(_vte_ft2_end), (update_bbox), (_vte_ft2_set_text_font),
 	(_vte_ft2_draw_text):
