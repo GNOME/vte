@@ -84,8 +84,5 @@ _vte_debug_parse_string(const char *string)
 gboolean
 _vte_debug_on(VteDebugFlags flags)
 {
-#ifdef VTE_DEBUG
-	fflush(NULL);
-#endif
 	return (_vte_debug_flags & flags) == flags;
 }

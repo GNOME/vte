@@ -1,3 +1,15 @@
+2007-01-18  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Copy Behdad's MAYBE_WARN comprehensive set of warnings from Cairo,
+	and fixup the immediate compilation failures.
+
+	* configure.in:
+		Iterate over a list of warnings and check that they are valid
+		for the compiler.
+		
+	* src/debug.c: (_vte_debug_on):
+		Kill fflush() [redundant with g_printerr].
+
 2007-01-18  Behdad Esfahbod  <behdad@gnome.org>
 
 	* configure.in: Don't call AC_CANONICAL_HOST.  Libtool calls it
