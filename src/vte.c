@@ -9181,8 +9181,8 @@ static gint
 vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 {
 	if (event->window == widget->window) {
-		if (GTK_WIDGET_DRAWABLE(widget) ||
-				VTE_TERMINAL(widget)->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
+		if (GTK_WIDGET_DRAWABLE(widget) &&
+				VTE_TERMINAL(widget)->pvt->visibility_state != GDK_VISIBILITY_FULLY_OBSCURED) {
 			vte_terminal_paint(widget, &event->area);
 		}
 	}

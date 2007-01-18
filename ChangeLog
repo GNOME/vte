@@ -1,4 +1,10 @@
 2007-01-18  Chris Wilson <chris@chris-wilson.co.uk>
+
+	* src/vte.c: (vte_terminal_expose):
+		Small bit of logic inversion that would have tried to paint
+		on unmapped and invisible widgets.
+
+2007-01-18  Chris Wilson <chris@chris-wilson.co.uk>
 	And the corresponding overrides. [The downsides of losing track of
 	which machine you are working on.]
 
