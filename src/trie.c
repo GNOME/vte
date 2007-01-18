@@ -400,7 +400,7 @@ static void
 _vte_trie_addx(struct _vte_trie *trie, gunichar *pattern, size_t length,
 	       const char *result, GQuark quark, int inc)
 {
-	unsigned long i;
+	long i;
 	struct char_class *cclass = NULL;
 	struct char_class_data data;
 	gunichar *code;
@@ -907,7 +907,7 @@ main(int argc, char **argv)
 	printf("`%s' = `%s'\n", "abc",
 	       _vte_trie_match(trie, buf, buflen,
 			       NULL, &consumed, &quark, &array));
-	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	printf("=> `%s' (%d)\n", g_quark_to_string(quark), (int)(consumed - buf));
 	if (array != NULL) {
 		dump_array(array);
 		_vte_matcher_free_params_array(array);
@@ -919,7 +919,7 @@ main(int argc, char **argv)
 	printf("`%s' = `%s'\n", "abcdef",
 	       _vte_trie_match(trie, buf, buflen,
 			       NULL, &consumed, &quark, &array));
-	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	printf("=> `%s' (%d)\n", g_quark_to_string(quark), (int)(consumed - buf));
 	if (array != NULL) {
 		dump_array(array);
 		_vte_matcher_free_params_array(array);
@@ -931,7 +931,7 @@ main(int argc, char **argv)
 	printf("`%s' = `%s'\n", "abcde",
 	       _vte_trie_match(trie, buf, buflen,
 			       NULL, &consumed, &quark, &array));
-	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	printf("=> `%s' (%d)\n", g_quark_to_string(quark), (int)(consumed - buf));
 	if (array != NULL) {
 		dump_array(array);
 		_vte_matcher_free_params_array(array);
@@ -943,7 +943,7 @@ main(int argc, char **argv)
 	printf("`%s' = `%s'\n", "abcdeg",
 	       _vte_trie_match(trie, buf, buflen,
 			       NULL, &consumed, &quark, &array));
-	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	printf("=> `%s' (%d)\n", g_quark_to_string(quark), (int)(consumed - buf));
 	if (array != NULL) {
 		dump_array(array);
 		_vte_matcher_free_params_array(array);
@@ -955,7 +955,7 @@ main(int argc, char **argv)
 	printf("`%s' = `%s'\n", "abc%deg",
 	       _vte_trie_match(trie, buf, buflen,
 			       NULL, &consumed, &quark, &array));
-	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	printf("=> `%s' (%d)\n", g_quark_to_string(quark), (int)(consumed - buf));
 	if (array != NULL) {
 		dump_array(array);
 		_vte_matcher_free_params_array(array);
@@ -967,7 +967,7 @@ main(int argc, char **argv)
 	printf("`%s' = `%s'\n", "abc10eg",
 	       _vte_trie_match(trie, buf, buflen,
 			       NULL, &consumed, &quark, &array));
-	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	printf("=> `%s' (%d)\n", g_quark_to_string(quark), (int)(consumed - buf));
 	if (array != NULL) {
 		dump_array(array);
 		_vte_matcher_free_params_array(array);
@@ -979,7 +979,7 @@ main(int argc, char **argv)
 	printf("`%s' = `%s'\n", "abc%eg",
 	       _vte_trie_match(trie, buf, buflen,
 			       NULL, &consumed, &quark, &array));
-	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	printf("=> `%s' (%d)\n", g_quark_to_string(quark), (int)(consumed - buf));
 	if (array != NULL) {
 		dump_array(array);
 		_vte_matcher_free_params_array(array);
@@ -991,7 +991,7 @@ main(int argc, char **argv)
 	printf("`%s' = `%s'\n", "abc%10eg",
 	       _vte_trie_match(trie, buf, buflen,
 			       NULL, &consumed, &quark, &array));
-	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	printf("=> `%s' (%d)\n", g_quark_to_string(quark), (int)(consumed - buf));
 	if (array != NULL) {
 		dump_array(array);
 		_vte_matcher_free_params_array(array);
@@ -1003,7 +1003,7 @@ main(int argc, char **argv)
 	printf("`%s' = `%s'\n", "abcBeg",
 	       _vte_trie_match(trie, buf, buflen,
 			       NULL, &consumed, &quark, &array));
-	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	printf("=> `%s' (%d)\n", g_quark_to_string(quark), (int)(consumed - buf));
 	if (array != NULL) {
 		dump_array(array);
 		_vte_matcher_free_params_array(array);
@@ -1015,7 +1015,7 @@ main(int argc, char **argv)
 	printf("`%s' = `%s'\n", "<esc>[25;26H",
 	       _vte_trie_match(trie, buf, buflen,
 			       NULL, &consumed, &quark, &array));
-	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	printf("=> `%s' (%d)\n", g_quark_to_string(quark), (int)(consumed - buf));
 	if (array != NULL) {
 		dump_array(array);
 		_vte_matcher_free_params_array(array);
@@ -1027,7 +1027,7 @@ main(int argc, char **argv)
 	printf("`%s' = `%s'\n", "<esc>[25;2",
 	       _vte_trie_match(trie, buf, buflen,
 			       NULL, &consumed, &quark, &array));
-	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	printf("=> `%s' (%d)\n", g_quark_to_string(quark), (int)(consumed - buf));
 	if (array != NULL) {
 		dump_array(array);
 		_vte_matcher_free_params_array(array);
@@ -1038,7 +1038,7 @@ main(int argc, char **argv)
 	printf("`%s' = `%s'\n", "<esc>[25L",
 	       _vte_trie_match(trie, buf, buflen,
 			       NULL, &consumed, &quark, &array));
-	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	printf("=> `%s' (%d)\n", g_quark_to_string(quark), (int)(consumed - buf));
 	if (array != NULL) {
 		dump_array(array);
 		_vte_matcher_free_params_array(array);
@@ -1049,7 +1049,7 @@ main(int argc, char **argv)
 	printf("`%s' = `%s'\n", "<esc>[25L<esc>[24L",
 	       _vte_trie_match(trie, buf, buflen,
 			       NULL, &consumed, &quark, &array));
-	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	printf("=> `%s' (%d)\n", g_quark_to_string(quark), (int)(consumed - buf));
 	if (array != NULL) {
 		dump_array(array);
 		_vte_matcher_free_params_array(array);
@@ -1060,7 +1060,7 @@ main(int argc, char **argv)
 	printf("`%s' = `%s'\n", "<esc>[25;26L",
 	       _vte_trie_match(trie, buf, buflen,
 			       NULL, &consumed, &quark, &array));
-	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	printf("=> `%s' (%d)\n", g_quark_to_string(quark), (int)(consumed - buf));
 	if (array != NULL) {
 		dump_array(array);
 		_vte_matcher_free_params_array(array);
@@ -1071,7 +1071,7 @@ main(int argc, char **argv)
 	printf("`%s' = `%s'\n", "<esc>]2;WoofWoofh",
 	       _vte_trie_match(trie, buf, buflen,
 			       NULL, &consumed, &quark, &array));
-	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	printf("=> `%s' (%d)\n", g_quark_to_string(quark), (int)(consumed - buf));
 	if (array != NULL) {
 		dump_array(array);
 		_vte_matcher_free_params_array(array);
@@ -1084,7 +1084,7 @@ main(int argc, char **argv)
 	printf("`%s' = `%s'\n", "<esc>]2;WoofWoofh<esc>]2;WoofWoofh",
 	       _vte_trie_match(trie, buf, buflen,
 			       NULL, &consumed, &quark, &array));
-	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	printf("=> `%s' (%d)\n", g_quark_to_string(quark), (int)(consumed - buf));
 	if (array != NULL) {
 		dump_array(array);
 		_vte_matcher_free_params_array(array);
@@ -1096,7 +1096,7 @@ main(int argc, char **argv)
 	printf("`%s' = `%s'\n", "<esc>]2;WoofWoofhfoo",
 	       _vte_trie_match(trie, buf, buflen,
 			       NULL, &consumed, &quark, &array));
-	printf("=> `%s' (%d)\n", g_quark_to_string(quark), consumed - buf);
+	printf("=> `%s' (%d)\n", g_quark_to_string(quark), (int)(consumed - buf));
 	if (array != NULL) {
 		dump_array(array);
 		_vte_matcher_free_params_array(array);

@@ -851,7 +851,7 @@ main(int argc, char **argv)
 		printf("`%s' => `%s'", tmp, (result ? result : "(NULL)"));
 		g_free(tmp);
 		print_array(array);
-		printf(" (%d chars)\n", consumed ? consumed - candidate: 0);
+		printf(" (%d chars)\n", (int) (consumed ? consumed - candidate: 0));
 		g_free(candidate);
 	}
 	_vte_table_free(table);

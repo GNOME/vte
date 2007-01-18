@@ -1,5 +1,12 @@
 2007-01-18  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/table.c (main):
+	* src/trie.c (_vte_trie_addx), (main):
+	* src/utf8echo.c (main):
+	Fix int vs long int mismatches in printf args.
+
+2007-01-18  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/iso2022.c (_vte_iso2022_find_nextctl):
 	* src/reaper.c (vte_reaper_finalize):
 	* src/vte.c (_vte_terminal_insert_char), (vte_terminal_key_press),

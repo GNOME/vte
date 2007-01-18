@@ -60,7 +60,7 @@ main(int argc, char **argv)
 		outbuf = buf;
 		outsize = sizeof(buf);
 		if (_vte_conv(conv, &inbuf, &insize, &outbuf, &outsize) != -1) {
-			printf("%.*s", outbuf - buf, buf);
+			printf("%.*s", (int)(outbuf - buf), buf);
 		}
 	}
 
