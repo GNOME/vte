@@ -319,6 +319,8 @@ _vte_invalidate_cells(VteTerminal *terminal,
 void
 _vte_invalidate_all(VteTerminal *terminal)
 {
+	GdkRectangle rect;
+
 	g_assert(VTE_IS_TERMINAL(terminal));
 
 	if (!GTK_WIDGET_DRAWABLE(terminal)) {
@@ -330,8 +332,11 @@ _vte_invalidate_all(VteTerminal *terminal)
 
 	/* replace invalid regions with one covering the whole terminal */
 	reset_update_regions (terminal);
+	rect.x = rect.y = 0;
+	rect.width = terminal->widget.allocation.width;
+	rect.height = terminal->widget.allocation.height;
 	terminal->pvt->update_regions = g_slist_prepend (NULL,
-			gdk_region_rectangle (&terminal->widget.allocation));
+			gdk_region_rectangle (&rect));
 
 	if (terminal->pvt->update_timeout == VTE_INVALID_SOURCE) {
 		/* Wait a bit before doing any invalidation, just in
