@@ -1,3 +1,8 @@
+2007-01-18  Chris Wilson <chris@chris-wilson.co.uk>
+
+	* configure.in:
+		Restore --enable-debugging. 
+
 2007-01-18  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Copy Behdad's MAYBE_WARN comprehensive set of warnings from Cairo,

@@ -353,6 +353,11 @@ AC_SUBST(WARN_CFLAGS)
 CFLAGS="$CFLAGS $WARN_CFLAGS"
 
 # Enable debugging messages and additional run-time checks.
+AC_ARG_ENABLE(debugging,
+	      [AS_HELP_STRING([--enable-debugging],
+			      [enable extra debugging checks and logging messages]
+			      )],
+	      DEBUG=$enableval, DEBUG=no)
 if test "x$DEBUG" != xno ; then
 	AC_MSG_RESULT([enabling debug checks and messages])
 	AC_DEFINE(VTE_DEBUG,1,[Enable debugging messages.])
