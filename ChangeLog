@@ -1,5 +1,13 @@
 2007-01-18  Behdad Esfahbod  <behdad@gnome.org>
 
+	* configure.in: Don't call AC_CANONICAL_HOST.  Libtool calls it
+	already.
+
+	* src/Makefile.am: Don't build extra, test, programs by default.
+	Speeds build up.
+
+2007-01-18  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/ring.c (_vte_ring_insert_preserve):
 	* src/vte.c (vte_terminal_paint):
 	Fix loop-optimization warnings.

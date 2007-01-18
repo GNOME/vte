@@ -219,7 +219,6 @@ AC_EGREP_CPP(glibc,
 		],
 		AC_DEFINE(_GNU_SOURCE,1,[Use all glibc features.]))
 
-AC_CANONICAL_HOST
 case $host in
 *-*-solaris*)
 	AC_DEFINE(_XOPEN_SOURCE_EXTENDED,1,[Needed to get declarations for msg_control and msg_controllen on Solaris])
