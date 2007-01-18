@@ -508,6 +508,15 @@
   )
 )
 
+(define-method get_text_include_trailing_spaces
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_text_include_trailing_spaces")
+  (return-type "char*")
+  (parameters
+    '("gboolean(*" "is_selected")
+  )
+)
+
 (define-method get_text_range
   (of-object "VteTerminal")
   (c-name "vte_terminal_get_text_range")

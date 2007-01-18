@@ -1,5 +1,14 @@
 2007-01-18  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Add missing export of vte_terminal_get_text_include_trailing_spaces,
+	needed for building a simple testcase for Bug 397724.
+	vte.defs needs a bit of love...
+
+	* python/vte.defs:
+		Add (get_text_include_trailing_spaces)
+
+2007-01-18  Chris Wilson <chris@chris-wilson.co.uk>
+
 	* src/vterdb.c: (_vte_rdb_search), (_vte_rdb_boolean):
 		Fix a couple of compiler warnings.
 
