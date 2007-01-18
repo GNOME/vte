@@ -3002,11 +3002,6 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 		 * points to the first character which isn't part of this
 		 * sequence. */
 		if ((match != NULL) && (match[0] != '\0')) {
-			gint col, row;
-			if (invalidated_text) {
-				col = screen->cursor_current.col;
-				row = screen->cursor_current.row;
-			}
 			/* If we inserted text without sanity-checking the
 			 * buffer, do so now. */
 			if (inserted) {
