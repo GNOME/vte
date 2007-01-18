@@ -405,7 +405,9 @@ main(int argc, char **argv)
 		 cursor_set = FALSE, reverse = FALSE;
 	VteTerminalAntiAlias antialias = VTE_ANTI_ALIAS_USE_DEFAULT;
 	gint lines = 100;
+#ifdef VTE_DEBUG
 	const char *message = "Launching interactive shell...\r\n";
+#endif
 	const char *font = NULL;
 	const char *termcap = NULL;
 	const char *command = NULL;

@@ -2200,7 +2200,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	int columns, i;
 	long col;
 	VteScreen *screen;
-	gboolean insert, clean;
+	gboolean insert;
 
 	screen = terminal->pvt->screen;
 	insert = screen->insert_mode | force_insert_mode;
@@ -3793,8 +3793,6 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	int i;
 	const char *special = NULL;
 	struct termios tio;
-	struct timeval tv;
-	struct timezone tz;
 	gboolean scrolled = FALSE, steal = FALSE, modifier = FALSE, handled,
 		 suppress_meta_esc = FALSE;
 	guint keyval = 0;
@@ -6679,10 +6677,7 @@ static void
 vte_terminal_init(VteTerminal *terminal)
 {
 	VteTerminalPrivate *pvt;
-	GtkWidget *widget;
 	GtkAdjustment *adjustment;
-	struct timezone tz;
-	struct timeval tv;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
@@ -6870,7 +6865,6 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 {
 	VteTerminal *terminal;
 	glong width, height;
-	gint x, y, w, h;
 	gboolean snapped_to_bottom, repaint;
 
 #ifdef VTE_DEBUG

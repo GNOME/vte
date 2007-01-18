@@ -152,7 +152,6 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 {
 	int i;
 	XftFont *ftfont;
-	FcPattern *pattern;
 	GdkDisplay *gdisplay;
 	Display *display;
 	gpointer p = GINT_TO_POINTER(c);

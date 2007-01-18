@@ -845,7 +845,6 @@ _vte_iso2022_state_get_codeset(struct _vte_iso2022_state *state)
 static char *
 _vte_iso2022_find_nextctl(const char *p, size_t length)
 {
-	char *ret;
 	int i;
 
 	if (length == 0) {

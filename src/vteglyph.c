@@ -83,7 +83,6 @@ _vte_glyph_cache_new(void)
 void
 _vte_glyph_cache_free(struct _vte_glyph_cache *cache)
 {
-	GList *iter;
 	int i;
 
 	g_return_if_fail(cache != NULL);

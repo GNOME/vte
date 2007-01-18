@@ -185,7 +185,6 @@ vte_reaper_constructor (GType                  type,
 static void
 vte_reaper_finalize(GObject *reaper)
 {
-	GObjectClass *object_class;
 	struct sigaction action, old_action;
 
 	/* Reset the signal handler if we still have it hooked. */

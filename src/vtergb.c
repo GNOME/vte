@@ -257,7 +257,6 @@ void
 _vte_rgb_copy(struct _vte_rgb_buffer *buffer,
 		int src_x, int src_y, int width, int height, int dst_x, int dst_y)
 {
-	struct _vte_rgb_buffer_p *buf = (struct _vte_rgb_buffer_p *) buffer;
 	guchar *src, *dst;
 	gint stride;
 

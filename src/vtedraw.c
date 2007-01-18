@@ -94,7 +94,6 @@ out:
 static gboolean
 _vte_draw_init_default (struct _vte_draw *draw)
 {
-	const gchar *env;
 	guint i;
 
 	for (i = 0; i < G_N_ELEMENTS(_vte_draw_impls); i++) {
