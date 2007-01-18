@@ -1,4 +1,11 @@
 2007-01-18  Chris Wilson <chris@chris-wilson.co.uk>
+	And the corresponding overrides. [The downsides of losing track of
+	which machine you are working on.]
+
+	* python/vte.override:
+		Add (get_text_include_trailing_spaces)
+
+2007-01-18  Chris Wilson <chris@chris-wilson.co.uk>
 
 	Add missing export of vte_terminal_get_text_include_trailing_spaces,
 	needed for building a simple testcase for Bug 397724.

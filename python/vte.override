@@ -391,6 +391,95 @@ _wrap_vte_terminal_get_text(PyGObject *self, PyObject *args, PyObject *kwargs)
     }
 }
 %%
+override vte_terminal_get_text_include_trailing_spaces kwargs
+
+static PyObject *
+_wrap_vte_terminal_get_text_include_trailing_spaces(PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "callback", "get_attributes", "data", NULL };
+    PyObject *callback = NULL, *do_attr = NULL, *data = NULL;
+    PyObject *callback_and_args = NULL;
+    GArray *attrs = NULL;
+    char *text;
+    PyObject *py_attrs;
+    int count;
+    long length;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OO:terminal_get_text_include_trailing_spaces",
+				     kwlist, &callback, &do_attr, &data)) {
+        return NULL;
+    }
+
+    if ((do_attr != NULL) && (PyObject_IsTrue(do_attr))) {
+	attrs = g_array_new(FALSE, TRUE, sizeof(VteCharAttributes));
+    } else {
+    	attrs = NULL;
+    }
+
+    if (callback != NULL) {
+	if (!PyCallable_Check(callback)) {
+	    PyErr_SetString(PyExc_TypeError, "1st argument not callable.");
+            if (attrs) {
+                g_array_free(attrs, TRUE);
+            }
+	    return NULL;
+	}
+
+        callback_and_args = PyTuple_New(3);
+        Py_INCREF(callback); /* PyTuple_SetItem will assume ownership. */
+        PyTuple_SetItem(callback_and_args, 0, callback);
+        Py_INCREF(self); /* PyTuple_SetItem will assume ownership. */
+        PyTuple_SetItem(callback_and_args, 1, (PyObject*) self);
+	if (data != NULL) {
+	    Py_INCREF(data); /* PyTuple_SetItem will assume ownership. */
+            PyTuple_SetItem(callback_and_args, 2, data);
+	} else {
+            PyTuple_SetItem(callback_and_args, 2, PyTuple_New(0));
+	}
+        text = vte_terminal_get_text_include_trailing_spaces(VTE_TERMINAL(self->obj),
+				     call_callback,
+				     callback_and_args,
+				     attrs);
+        Py_DECREF(callback_and_args);
+    } else {
+        text = vte_terminal_get_text_include_trailing_spaces(VTE_TERMINAL(self->obj),
+				     always_true,
+				     NULL,
+				     attrs);
+    }
+
+    if (attrs) {
+	py_attrs = PyTuple_New(attrs->len);
+	for (count = 0; count < attrs->len; count++) {
+	    VteCharAttributes *cht;
+	    PyObject *py_char_attr;
+	    PyObject *py_gdkcolor;
+
+	    cht = &g_array_index(attrs, VteCharAttributes, count);
+	    py_char_attr = PyDict_New();
+	    PyDict_SetItemString(py_char_attr, "row", PyInt_FromLong(cht->row));
+	    PyDict_SetItemString(py_char_attr, "column", PyInt_FromLong(cht->column));
+	    
+	    py_gdkcolor = pyg_boxed_new(GDK_TYPE_COLOR, &cht->fore, TRUE, TRUE);
+	    PyDict_SetItemString(py_char_attr, "fore", py_gdkcolor);
+	    py_gdkcolor = pyg_boxed_new(GDK_TYPE_COLOR, &cht->back, TRUE, TRUE);
+	    PyDict_SetItemString(py_char_attr, "back", py_gdkcolor);
+	    
+	    PyDict_SetItemString(py_char_attr, "underline", 
+		    PyInt_FromLong(cht->underline));
+	    PyDict_SetItemString(py_char_attr, "strikethrough", 
+		    PyInt_FromLong(cht->strikethrough));
+
+	    PyTuple_SetItem(py_attrs, count, py_char_attr);
+	}
+	length = attrs->len;
+	g_array_free(attrs, TRUE);
+	return Py_BuildValue("(s#O)", text, length, py_attrs);
+    } else {
+    	return Py_BuildValue("s", text);
+    }
+}
+%%
 override vte_terminal_get_text_range kwargs
 static PyObject *
 _wrap_vte_terminal_get_text_range(PyGObject *self, PyObject *args, PyObject *kwargs)
