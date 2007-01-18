@@ -267,6 +267,12 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	 * buffer. */
 	row_start -= terminal->pvt->screen->scroll_delta;
 
+	/* Ensure the start of region is on screen */
+	if (column_start > terminal->column_count ||
+			row_start > terminal->row_count) {
+		return;
+	}
+
 	/* Clamp the start values to reasonable numbers. */
 	i = row_start + row_count;
 	row_start = MAX (0, row_start);
