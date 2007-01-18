@@ -544,7 +544,7 @@ main (int argc, char **argv)
 {
   VteTermcap *tc;
   char *str;
-  int len;
+  gssize len;
   int i;
 
   if (argc < 4)
@@ -582,14 +582,14 @@ main (int argc, char **argv)
         str = _vte_termcap_find_string_length (tc, argv[2], argv[i] + 1, &len);
 
         if (argv[i][0] == '=')
-          printf ("'%s' (%d)\n", str, len);
+          printf ("'%s' (%d)\n", str, (int)len);
         else
         {
           int i;
 
           for (i = 0; str[i]; i++)
             printf ("%02x", str[i]);
-          printf (" (%d) \n", len);
+          printf (" (%d) \n", (int)len);
         }
         g_free (str);
         break;

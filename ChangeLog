@@ -1,5 +1,12 @@
 2007-01-18  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/ssfe.c (cleanupexit), (barf):
+	* src/vtebg.c (vte_bg_cache_prune_int):
+	* src/vtetc.c (main):
+	Fix more warnings.
+
+2007-01-18  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/table.c (main):
 	* src/trie.c (_vte_trie_addx), (main):
 	* src/utf8echo.c (main):

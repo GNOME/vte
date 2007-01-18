@@ -181,7 +181,7 @@ static void inschar(unsigned char t);
 static void dokbdchar(unsigned char t);
 static void displaystatus(void);
 
-static void cleanupexit(int n, unsigned char *error) {
+static void cleanupexit(int n, const char *error) {
   normal();
   fullscroll();
   gotoxy(0, nlines-1);
@@ -985,7 +985,7 @@ static void dokbdchar(unsigned char t) {
   quote=0;
 }
 
-static void barf(unsigned char *m) {
+static void barf(const char *m) {
   fprintf(stderr, "%s\n", m);
   exit(1);
 }
