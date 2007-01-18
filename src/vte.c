@@ -2985,8 +2985,8 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	modified = leftovers = inserted = again = FALSE;
 	invalidated_text = FALSE;
 
-	bbox_bottomright.x = bbox_topleft.x = screen->cursor_current.col;
-	bbox_bottomright.y = bbox_topleft.y = screen->cursor_current.row;
+	bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
+	bbox_topleft.x = bbox_topleft.y = G_MAXINT;
 
 	while ((start < wcount) && !leftovers && !again) {
 		/* Try to match any control sequences. */
@@ -3025,10 +3025,10 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 
 			/* if we have moved during the sequence handler, restart the bbox */
 			if (invalidated_text && 
-					(col < bbox_bottomright.x ||
-					 col > bbox_topleft.x     ||
-					 row < bbox_bottomright.y ||
-					 row > bbox_topleft.y)) {
+					(screen->cursor_current.col < bbox_bottomright.x ||
+					 screen->cursor_current.col > bbox_topleft.x     ||
+					 screen->cursor_current.row > bbox_bottomright.y ||
+					 screen->cursor_current.row < bbox_topleft.y)) {
 				/* Clip off any part of the box which isn't already on-screen. */
 				bbox_topleft.x = MAX(bbox_topleft.x, 1) - 1;
 				bbox_topleft.y = MAX(bbox_topleft.y, screen->scroll_delta);
@@ -3045,8 +3045,8 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 						bbox_bottomright.y - bbox_topleft.y + 1);
 
 				invalidated_text = FALSE;
-				bbox_bottomright.x = bbox_topleft.x = screen->cursor_current.col;
-				bbox_bottomright.y = bbox_topleft.y = screen->cursor_current.row;
+				bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
+				bbox_topleft.x = bbox_topleft.y = G_MAXINT;
 			}
 		} else
 		/* Second, we have a NULL match, and next points to the very
