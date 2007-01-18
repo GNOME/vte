@@ -1,5 +1,16 @@
 2007-01-18  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Bug 398116 – lags behind when widget not visible
+
+	* src/vte.c: (vte_terminal_handle_scroll):
+		During the spring clean, I converted a few GTK_WIDGET_REALIZED()
+		checks to GTK_WIDGET_DRAWABLE()+visibility check.
+		Unfortunately, it broke keeping the scroll delta in sync with
+		the insert delta. Sync the pair, then perform the check before
+		making updates on the visible area.
+
+2007-01-18  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 398083 – background not painted correctly when starting up
 
 	* src/vte.c: (_vte_invalidate_all):

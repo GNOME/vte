@@ -6367,18 +6367,19 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	long dy, adj;
 	VteScreen *screen;
 
-	/* Sanity checks. */
-	if (GTK_WIDGET_DRAWABLE(terminal) == FALSE ||
-			terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
-		return;
-	}
-
 	screen = terminal->pvt->screen;
 
 	/* Read the new adjustment value and save the difference. */
 	adj = floor(gtk_adjustment_get_value(terminal->adjustment));
 	dy = adj - screen->scroll_delta;
 	screen->scroll_delta = adj;
+
+	/* Sanity checks. */
+	if (GTK_WIDGET_DRAWABLE(terminal) == FALSE ||
+			terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
+		return;
+	}
+
 	if (dy != 0) {
 #ifdef VTE_DEBUG
 	      if (_vte_debug_on(VTE_DEBUG_IO)) {
