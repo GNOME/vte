@@ -220,8 +220,8 @@ _vte_ring_insert_preserve(VteRing * ring, long position, gpointer data)
 	}
 
 	/* Remove the existing elements. */
-	for (i = point - 1; i >= position; i--) {
-		_vte_ring_remove(ring, i, FALSE);
+	for (i = point; i > position; i--) {
+		_vte_ring_remove(ring, i - 1, FALSE);
 	}
 
 	/* Append the new item. */

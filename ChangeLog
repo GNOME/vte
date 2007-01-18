@@ -1,5 +1,11 @@
 2007-01-18  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/ring.c (_vte_ring_insert_preserve):
+	* src/vte.c (vte_terminal_paint):
+	Fix loop-optimization warnings.
+
+2007-01-18  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/ssfe.c (cleanupexit), (barf):
 	* src/vtebg.c (vte_bg_cache_prune_int):
 	* src/vtetc.c (main):

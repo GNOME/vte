@@ -8967,7 +8967,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */
-	while (row <= row_stop) {
+	while (row < row_stop + 1) {
 		vte_terminal_draw_row(terminal,
 				      screen,
 				      row + delta,
