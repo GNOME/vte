@@ -236,6 +236,12 @@ update_regions (VteTerminal *terminal)
 	g_slist_free (terminal->pvt->update_regions);
 	terminal->pvt->update_regions = NULL;
 
+#ifdef VTE_DEBUG
+	if (_vte_debug_on (VTE_DEBUG_WORK)) {
+		g_printerr ("-");
+	}
+#endif
+
 	gdk_window_process_all_updates ();
 
 	return TRUE;
@@ -262,6 +268,11 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		return;
 	}
 
+#ifdef VTE_DEBUG
+	if (_vte_debug_on (VTE_DEBUG_WORK)) {
+		g_printerr ("?");
+	}
+#endif
 	/* Subtract the scrolling offset from the row start so that the
 	 * resulting rectangle is relative to the visible portion of the
 	 * buffer. */
@@ -319,6 +330,11 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		 * case updates are coming in really soon. */
 		add_update_timeout (terminal);
 	}
+#ifdef VTE_DEBUG
+	if (_vte_debug_on (VTE_DEBUG_WORK)) {
+		g_printerr ("!");
+	}
+#endif
 }
 
 /* Redraw the entire visible portion of the window. */
@@ -349,6 +365,12 @@ _vte_invalidate_all(VteTerminal *terminal)
 		 * case updates are coming in really soon. */
 		add_update_timeout (terminal);
 	}
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on (VTE_DEBUG_WORK)) {
+		g_printerr ("*");
+	}
+#endif
 }
 
 /* Scroll a rectangular region up or down by a fixed number of lines,
@@ -3006,6 +3028,9 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 		g_printerr("Handler processing %d bytes.\n",
 			_vte_buffer_length(terminal->pvt->incoming));
 	}
+	if (_vte_debug_on (VTE_DEBUG_WORK)) {
+		g_printerr ("(");
+	}
 #endif
 	/* Save the current cursor position. */
 	screen = terminal->pvt->screen;
@@ -3330,6 +3355,9 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 			(long) unichars->len,
 			(long) _vte_buffer_length(terminal->pvt->incoming));
 	}
+	if (_vte_debug_on (VTE_DEBUG_WORK)) {
+		g_printerr (")");
+	}
 #endif
 	return again;
 }
@@ -3343,6 +3371,12 @@ vte_terminal_io_read(GIOChannel *channel,
 	char buf[VTE_INPUT_CHUNK_SIZE], *bp = buf;
 	int err = 0;
 	gboolean eof, leave_open = TRUE;
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on (VTE_DEBUG_WORK)) {
+		g_printerr (".");
+	}
+#endif
 
 	/* Check for end-of-file. */
 	eof = FALSE;
@@ -8953,6 +8987,9 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
 		g_printerr("vte_terminal_paint()\n");
 	}
+	if (_vte_debug_on (VTE_DEBUG_WORK)) {
+		g_printerr ("=");
+	}
 #endif
 
 	terminal = VTE_TERMINAL(widget);
@@ -9238,6 +9275,11 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 static gint
 vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 {
+#ifdef VTE_DEBUG
+	if (_vte_debug_on (VTE_DEBUG_WORK)) {
+		g_printerr ("+");
+	}
+#endif
 	if (event->window == widget->window) {
 		if (GTK_WIDGET_DRAWABLE(widget) &&
 				VTE_TERMINAL(widget)->pvt->visibility_state != GDK_VISIBILITY_FULLY_OBSCURED) {
@@ -9384,8 +9426,28 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	GtkWidgetClass *widget_class;
 
 #ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-		g_printerr("vte_terminal_class_init()\n");
+	{
+		const gchar *env = g_getenv("VTE_DEBUG_FLAGS");
+		/* Turn on debugging if we were asked to. */
+		if (env != NULL) {
+			_vte_debug_parse_string(env);
+		}
+		if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
+			g_printerr("vte_terminal_class_init()\n");
+		}
+		if (_vte_debug_on (VTE_DEBUG_WORK)) {
+			/* print out the legend */
+			g_printerr ("Debugging work flow (top input to bottom output):\n"
+					"  .  _vte_terminal_process_incoming\n"
+					"  (  start _vte_terminal_process_incoming\n"
+					"  ?  _vte_invalidate_cells (call)\n"
+					"  !  _vte_invalidate_cells (dirty)\n"
+					"  *  _vte_invalidate_all\n"
+					"  )  end _vte_terminal_process_incoming\n"
+					"  -  gdk_window_process_all_updates\n"
+					"  +  vte_terminal_expose\n"
+					"  =  vte_terminal_paint\n");
+		}
 	}
 #endif
 
@@ -9694,13 +9756,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
 			     _vte_marshal_VOID__INT,
 			     G_TYPE_NONE, 1, G_TYPE_INT);
-
-#ifdef VTE_DEBUG
-	/* Turn on debugging if we were asked to. */
-	if (getenv("VTE_DEBUG_FLAGS") != NULL) {
-		_vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
-	}
-#endif
 }
 
 GtkType

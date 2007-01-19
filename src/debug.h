@@ -40,11 +40,12 @@ typedef enum {
 	VTE_DEBUG_CURSOR	= 1 << 10,
 	VTE_DEBUG_KEYBOARD	= 1 << 11,
 	VTE_DEBUG_LIFECYCLE	= 1 << 12,
-	VTE_DEBUG_TRIE		= 1 << 13
+	VTE_DEBUG_TRIE		= 1 << 13,
+	VTE_DEBUG_WORK	= 1 << 14
 } VteDebugFlags;
 
 void _vte_debug_parse_string(const char *string);
-gboolean _vte_debug_on(VteDebugFlags flags);
+gboolean _vte_debug_on(VteDebugFlags flags) G_GNUC_CONST;
 
 G_END_DECLS
 
