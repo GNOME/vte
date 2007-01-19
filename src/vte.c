@@ -9459,7 +9459,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 					"  -  gdk_window_process_all_updates\n"
 					"  +  vte_terminal_expose\n"
 					"  =  vte_terminal_paint\n"
-					"  ]} start update_display  [ => rate limited\n");
+					"  ]} start update_display\n");
 		}
 	}
 #endif
