@@ -1,5 +1,10 @@
 2007-01-19  Chris Wilson <chris@chris-wilson.co.uk>
 
+	* src/Makefile.am:
+		Missing $(X_CFLAGS)
+
+2007-01-19  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 398243 – Crash
 
 	* src/vtebg.c: (vte_bg_cache_prune_int):

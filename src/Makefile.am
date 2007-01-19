@@ -280,7 +280,7 @@ reaper_SOURCES = \
 	reaper.h
 reaper_LDADD = $(LDFLAGS) $(LIBS) $(GOBJECT_LIBS)
 
-vterdb_CFLAGS = $(GTK_CFLAGS) -DVTERDB_MAIN
+vterdb_CFLAGS = $(GTK_CFLAGS) $(X_CFLAGS) -DVTERDB_MAIN
 vterdb_SOURCES = vterdb.c
 vterdb_LDADD = $(LDFLAGS) $(LIBS) $(GTK_LIBS)
 
