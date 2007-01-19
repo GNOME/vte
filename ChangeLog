@@ -1,5 +1,11 @@
 2007-01-19  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Add <> to mark boundaries of process_timeout().
+
+	* src/vte.c: (vte_terminal_class_init), (process_timeout):
+
+2007-01-19  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Add {},[] to mark boundaries of update_timeout() and notice that
 	the display limited update_timeout was not dying.
 

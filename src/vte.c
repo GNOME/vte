@@ -9450,7 +9450,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			/* print out the legend */
 			g_printerr ("Debugging work flow (top input to bottom output):\n"
 					"  .  _vte_terminal_process_incoming\n"
-					"  {[ start update_display  [ => rate limited\n"
+					"  <  start process_timeout\n"
+					"  {[ start update_timeout  [ => rate limited\n"
 					"  (  start _vte_terminal_process_incoming\n"
 					"  ?  _vte_invalidate_cells (call)\n"
 					"  !  _vte_invalidate_cells (dirty)\n"
@@ -9459,7 +9460,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
 					"  -  gdk_window_process_all_updates\n"
 					"  +  vte_terminal_expose\n"
 					"  =  vte_terminal_paint\n"
-					"  ]} start update_display\n");
+					"  ]} start update_timeout\n"
+					"  >  end process_timeout\n");
 		}
 	}
 #endif
@@ -11221,6 +11223,12 @@ process_timeout (gpointer data)
 	VteTerminal *terminal = data;
 	gboolean again = TRUE;
 
+#ifdef VTE_DEBUG
+	if (_vte_debug_on (VTE_DEBUG_WORK)) {
+		g_printerr ("<");
+	}
+#endif
+
 	while (again && need_processing (terminal)) {
 	    again = vte_terminal_process_incoming(terminal);
 	}
@@ -11231,6 +11239,12 @@ process_timeout (gpointer data)
 			again = FALSE;
 		}
 	}
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on (VTE_DEBUG_WORK)) {
+		g_printerr (">");
+	}
+#endif
 
 	return again;
 }
