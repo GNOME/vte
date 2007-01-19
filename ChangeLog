@@ -1,3 +1,9 @@
+2007-01-19  Chris Wilson <chris@chris-wilson.co.uk>
+
+	* src/vte.c: (process_timeout):
+		Make sure ->process_timeout is set to VTE_INVALID_SOURCE on
+		all paths that remove the timeout.
+
 2007-01-19  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Add <> to mark boundaries of process_timeout().

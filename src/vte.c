@@ -11233,11 +11233,11 @@ process_timeout (gpointer data)
 	    again = vte_terminal_process_incoming(terminal);
 	}
 
-	if (again) {
-		if (terminal->pvt->update_timeout != VTE_INVALID_SOURCE){
-			terminal->pvt->process_timeout = VTE_INVALID_SOURCE;
-			again = FALSE;
-		}
+	if (again && terminal->pvt->update_timeout != VTE_INVALID_SOURCE){
+		again = FALSE;
+	}
+	if (!again) {
+		terminal->pvt->process_timeout = VTE_INVALID_SOURCE;
 	}
 
 #ifdef VTE_DEBUG
