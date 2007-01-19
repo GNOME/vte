@@ -360,7 +360,7 @@ vte_bg_cache_prune_int(VteBg *bg, gboolean root)
 		if ((root && (item->source_type == VTE_BG_SOURCE_ROOT)) ||
 		    ((item->pixmap == NULL) && (item->pixbuf == NULL))) {
 			vte_bg_cache_item_free (item);
-			i = g_list_delete_link(i, i);
+			bg->pvt->cache = g_list_delete_link(bg->pvt->cache, i);
 		}
 	}
 }
