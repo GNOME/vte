@@ -11215,31 +11215,38 @@ static gboolean
 process_timeout (gpointer data)
 {
 	VteTerminal *terminal = data;
+	gboolean again = TRUE;
 
-	if (need_processing (terminal)) {
-	    vte_terminal_process_incoming(terminal);
+	while (again && need_processing (terminal)) {
+	    again = vte_terminal_process_incoming(terminal);
 	}
 
-	terminal->pvt->process_timeout = VTE_INVALID_SOURCE;
-	return FALSE;
+	if (again) {
+		if (terminal->pvt->update_timeout != VTE_INVALID_SOURCE){
+			terminal->pvt->process_timeout = VTE_INVALID_SOURCE;
+			again = FALSE;
+		}
+	}
+
+	return again;
 }
 
 static gboolean
 update_repeat_timeout (gpointer data)
 {
 	VteTerminal *terminal = data;
-	gboolean updated;
+	gboolean again = TRUE;
 
-	if (need_processing (terminal)) {
-		vte_terminal_process_incoming(terminal);
+	while (again && need_processing (terminal)) {
+		again = vte_terminal_process_incoming(terminal);
 	}
 
-	updated = update_regions (terminal);
+	again |= update_regions (terminal);
 
 	/* We only stop the timer if no update request was received in this
 	 * past cycle.
 	 */
-	if (!updated) {
+	if (!again) {
 		terminal->pvt->update_timeout = VTE_INVALID_SOURCE;
 		return FALSE;
 	}
@@ -11251,11 +11258,12 @@ static gboolean
 update_timeout (gpointer data)
 {
 	VteTerminal *terminal = data;
+	gboolean again = TRUE;
 
 	remove_process_timeout (terminal);
 
-	if (need_processing (terminal)) {
-		vte_terminal_process_incoming(terminal);
+	while (again && need_processing (terminal)) {
+		again = vte_terminal_process_incoming(terminal);
 	}
 
 	update_regions (terminal);
