@@ -9450,6 +9450,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			/* print out the legend */
 			g_printerr ("Debugging work flow (top input to bottom output):\n"
 					"  .  _vte_terminal_process_incoming\n"
+					"  {[ start update_display  [ => rate limited\n"
 					"  (  start _vte_terminal_process_incoming\n"
 					"  ?  _vte_invalidate_cells (call)\n"
 					"  !  _vte_invalidate_cells (dirty)\n"
@@ -9457,7 +9458,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
 					"  )  end _vte_terminal_process_incoming\n"
 					"  -  gdk_window_process_all_updates\n"
 					"  +  vte_terminal_expose\n"
-					"  =  vte_terminal_paint\n");
+					"  =  vte_terminal_paint\n"
+					"  ]} start update_display  [ => rate limited\n");
 		}
 	}
 #endif
@@ -11239,11 +11241,23 @@ update_repeat_timeout (gpointer data)
 	VteTerminal *terminal = data;
 	gboolean again = TRUE;
 
+#ifdef VTE_DEBUG
+	if (_vte_debug_on (VTE_DEBUG_WORK)) {
+		g_printerr ("[");
+	}
+#endif
+
 	while (again && need_processing (terminal)) {
 		again = vte_terminal_process_incoming(terminal);
 	}
 
-	again |= update_regions (terminal);
+	again = update_regions (terminal);
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on (VTE_DEBUG_WORK)) {
+		g_printerr ("]");
+	}
+#endif
 
 	/* We only stop the timer if no update request was received in this
 	 * past cycle.
@@ -11262,6 +11276,12 @@ update_timeout (gpointer data)
 	VteTerminal *terminal = data;
 	gboolean again = TRUE;
 
+#ifdef VTE_DEBUG
+	if (_vte_debug_on (VTE_DEBUG_WORK)) {
+		g_printerr ("{");
+	}
+#endif
+
 	remove_process_timeout (terminal);
 
 	while (again && need_processing (terminal)) {
@@ -11269,6 +11289,13 @@ update_timeout (gpointer data)
 	}
 
 	update_regions (terminal);
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on (VTE_DEBUG_WORK)) {
+		g_printerr ("}");
+	}
+#endif
+
 
 	/* Set a timer such that we do not invalidate for a while. */
 	/* This limits the number of times we draw to ~40fps. */

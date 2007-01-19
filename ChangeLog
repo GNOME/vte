@@ -1,3 +1,11 @@
+2007-01-19  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Add {},[] to mark boundaries of update_timeout() and notice that
+	the display limited update_timeout was not dying.
+
+	* src/vte.c: (vte_terminal_class_init), (update_repeat_timeout),
+	(update_timeout):
+
 2007-01-19  Chris Wilson <chris@chris-wilson.co.uk>
 
 	* src/vte.c: (vte_terminal_realize), (remove_process_timeout):
