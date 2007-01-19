@@ -587,10 +587,8 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 				     row, 1);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_UPDATES)) {
-			g_printerr("Invalidating cursor at (%ld,%d-%d)."
-				"\n", screen->cursor_current.row,
-				column,
-				column + columns);
+			g_printerr("Invalidating cursor at (%ld,%ld-%ld).\n",
+				       	row, column, column + columns);
 		}
 #endif
 	}
