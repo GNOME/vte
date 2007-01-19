@@ -3330,7 +3330,8 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	if ((cursor.col != terminal->pvt->screen->cursor_current.col) ||
 	    (cursor.row != terminal->pvt->screen->cursor_current.row)) {
 		/* invalidate the old and new cursor positions */
-		_vte_invalidate_cell(terminal, cursor.col, cursor.row);
+		if (cursor_visible)
+			_vte_invalidate_cell(terminal, cursor.col, cursor.row);
 		_vte_invalidate_cursor_once(terminal, FALSE);
 		/* Signal that the cursor moved. */
 		vte_terminal_emit_cursor_moved(terminal);
