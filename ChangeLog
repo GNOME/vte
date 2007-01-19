@@ -1,5 +1,14 @@
 2007-01-19  Chris Wilson <chris@chris-wilson.co.uk>
 
+	* src/vte-private.h:
+	* src/vte.c: (_vte_invalidate_cell):
+		Cursor indices are long.
+	* src/vte.c: (_vte_terminal_expose):
+		Prepend the GTK+ generated expose if we already have an
+		display update pending.
+
+2007-01-19  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Add a new debug flag to visualize the work flow.
 	VTE_DEBUG_FLAGS=work generates output like:
 	Debugging work flow (top input to bottom output):

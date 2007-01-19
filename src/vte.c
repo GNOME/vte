@@ -490,7 +490,7 @@ vte_terminal_preedit_length(VteTerminal *terminal, gboolean left_only)
 
 /* Cause the cell to be redrawn. */
 void
-_vte_invalidate_cell(VteTerminal *terminal, gint col, gint row)
+_vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
 {
 	VteScreen *screen;
 	VteRowData *row_data;
@@ -525,8 +525,8 @@ _vte_invalidate_cell(VteTerminal *terminal, gint col, gint row)
 			row, 1);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_UPDATES)) {
-		g_printerr("Invalidating cell at (%ld,%d-%d)."
-				"\n", row, col, col + columns);
+		g_printerr("Invalidating cell at (%ld,%ld-%ld).\n",
+			       	row, col, col + columns);
 	}
 #endif
 }
@@ -9281,9 +9281,18 @@ vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 	}
 #endif
 	if (event->window == widget->window) {
+		VteTerminal *terminal = VTE_TERMINAL (widget);
 		if (GTK_WIDGET_DRAWABLE(widget) &&
-				VTE_TERMINAL(widget)->pvt->visibility_state != GDK_VISIBILITY_FULLY_OBSCURED) {
-			vte_terminal_paint(widget, &event->area);
+				terminal->pvt->visibility_state != GDK_VISIBILITY_FULLY_OBSCURED) {
+			/* if we expect to redraw the widget soon,
+			 * just add this event to the list */
+			if (terminal->pvt->update_regions != NULL) {
+				terminal->pvt->update_regions =
+					g_slist_prepend (terminal->pvt->update_regions,
+							gdk_region_copy (event->region));
+			} else {
+				vte_terminal_paint(widget, &event->area);
+			}
 		}
 	}
 	return FALSE;
