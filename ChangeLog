@@ -1,5 +1,11 @@
 2007-01-19  Chris Wilson <chris@chris-wilson.co.uk>
 
+	* src/vte.c: (_vte_invalidate_cells),
+	(_vte_invalidate_cursor_once):
+		Cursor indices are long.
+
+2007-01-19  Chris Wilson <chris@chris-wilson.co.uk>
+
 	* src/vte-private.h:
 	* src/vte.c: (_vte_invalidate_cell):
 		Cursor indices are long.

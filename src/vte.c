@@ -254,7 +254,7 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		      glong row_start, gint row_count)
 {
 	GdkRectangle rect;
-	gint i;
+	glong i;
 
 	if (!column_count || !row_count) {
 		return;
@@ -538,7 +538,8 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 	VteScreen *screen;
 	struct vte_charcell *cell;
 	gssize preedit_width;
-	int column, columns, row;
+	glong column, row;
+	gint columns;
 
 	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
 		return;
