@@ -101,6 +101,10 @@ static void add_update_timeout (VteTerminal *terminal);
 static void remove_update_timeout (VteTerminal *terminal);
 static void reset_update_regions (VteTerminal *terminal);
 
+static gboolean process_timeout (gpointer data);
+static gboolean update_timeout (gpointer data);
+
+
 #ifdef VTE_DEBUG
 G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
 		if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
@@ -7408,7 +7412,6 @@ vte_terminal_realize(GtkWidget *widget)
 	}
 #endif
 	gdk_window_set_user_data(widget->window, widget);
-	gdk_window_show(widget->window);
 
 	/* Set the realized flag. */
 	GTK_WIDGET_SET_FLAGS(widget, GTK_REALIZED);
@@ -11131,9 +11134,6 @@ _vte_terminal_remove_selection(VteTerminal *terminal)
 	vte_terminal_deselect_all (terminal);
 }
 
-static gboolean process_timeout (gpointer data);
-static gboolean update_timeout (gpointer data);
-
 static void
 add_process_timeout (VteTerminal *terminal)
 {
@@ -11153,8 +11153,10 @@ add_update_timeout (VteTerminal *terminal)
 static void
 remove_process_timeout (VteTerminal *terminal)
 {
-	g_source_remove (terminal->pvt->process_timeout);
-	terminal->pvt->process_timeout = VTE_INVALID_SOURCE;
+	if (terminal->pvt->process_timeout != VTE_INVALID_SOURCE) {
+		g_source_remove (terminal->pvt->process_timeout);
+		terminal->pvt->process_timeout = VTE_INVALID_SOURCE;
+	}
 }
 
 static void
