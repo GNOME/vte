@@ -1,3 +1,11 @@
+2007-01-19  Chris Wilson <chris@chris-wilson.co.uk>
+
+	Bug 398243 – Crash
+
+	* src/vtebg.c: (vte_bg_cache_prune_int):
+		Use the return from g_list_delete_link to maintain the list
+		head.
+
 2007-01-18  Chris Wilson <chris@chris-wilson.co.uk>
 
 	* src/vte.c: (_vte_invalidate_cells):
