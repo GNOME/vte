@@ -3096,10 +3096,10 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 
 			/* if we have moved during the sequence handler, restart the bbox */
 			if (invalidated_text && 
-					(screen->cursor_current.col < bbox_bottomright.x ||
-					 screen->cursor_current.col > bbox_topleft.x     ||
-					 screen->cursor_current.row > bbox_bottomright.y ||
-					 screen->cursor_current.row < bbox_topleft.y)) {
+					(screen->cursor_current.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK ||
+					 screen->cursor_current.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK     ||
+					 screen->cursor_current.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK ||
+					 screen->cursor_current.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK)) {
 				/* Clip off any part of the box which isn't already on-screen. */
 				bbox_topleft.x = MAX(bbox_topleft.x, 1) - 1;
 				bbox_topleft.y = MAX(bbox_topleft.y, screen->scroll_delta);

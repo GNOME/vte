@@ -1,5 +1,18 @@
 2007-01-19  Chris Wilson <chris@chris-wilson.co.uk>
 
+	* src/vte-private.h:
+	* src/vte.c: (vte_terminal_process_incoming):
+		Introduce a bit of slack in the bbox check to allow
+		for a small of amount of cursor motion e.g. due to line
+		scrolling. This turns the long sequence of
+		'(?!?!??? ... ????!)'
+		during a hexdump into the better behaved 
+		'.(?!?!?!??!)-+=.(?!?!??!)-+=........'. Although it is
+		puzzling why we now how have a block of IO and then two quick
+		display upates...
+
+2007-01-19  Chris Wilson <chris@chris-wilson.co.uk>
+
 	* src/vte.c: (process_timeout), (update_repeat_timeout),
 	(update_timeout):
 		Repeat _vte_terminal_process_incoming until we have drained
