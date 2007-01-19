@@ -466,6 +466,49 @@ vte_terminal_preedit_length(VteTerminal *terminal, gboolean left_only)
 	return i;
 }
 
+/* Cause the cell to be redrawn. */
+void
+_vte_invalidate_cell(VteTerminal *terminal, gint col, gint row)
+{
+	VteScreen *screen;
+	VteRowData *row_data;
+	struct vte_charcell *cell;
+	int columns;
+
+	if ( GTK_WIDGET_DRAWABLE(terminal) == FALSE ||
+			terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
+		return;
+	}
+
+	screen = terminal->pvt->screen;
+	columns = 1;
+	row_data = _vte_terminal_find_row_data(terminal, row);
+	cell = _vte_row_data_find_charcell(row_data, col);
+	while ((cell != NULL) && (cell->fragment) && (col> 0)) {
+		col--;
+		cell = _vte_row_data_find_charcell(row_data, col);
+	}
+	if (cell != NULL) {
+		columns = cell->columns;
+		if (_vte_draw_get_char_width(terminal->pvt->draw,
+					cell->c,
+					cell->columns) >
+				terminal->char_width * columns) {
+			columns++;
+		}
+	}
+
+	_vte_invalidate_cells(terminal,
+			col, columns,
+			row, 1);
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_UPDATES)) {
+		g_printerr("Invalidating cell at (%ld,%d-%d)."
+				"\n", row, col, col + columns);
+	}
+#endif
+}
+
 /* Cause the cursor to be redrawn. */
 void
 _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
@@ -2944,7 +2987,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	GValueArray *params = NULL;
 	VteScreen *screen;
 	struct vte_cursor_position cursor;
-	GdkRectangle rect;
+	gboolean cursor_visible;
 	GdkPoint bbox_topleft, bbox_bottomright;
 	gunichar *wbuf, c;
 	long wcount, start;
@@ -2967,9 +3010,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	/* Save the current cursor position. */
 	screen = terminal->pvt->screen;
 	cursor = screen->cursor_current;
-
-	/* invalidate the current cursor position */
-	_vte_invalidate_cursor_once(terminal, FALSE);
+	cursor_visible = terminal->pvt->cursor_visible;
 
 	/* We're going to check if the text was modified once we're done here,
 	 * so keep a flag. */
@@ -3260,13 +3301,18 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 
 	if ((cursor.col != terminal->pvt->screen->cursor_current.col) ||
 	    (cursor.row != terminal->pvt->screen->cursor_current.row)) {
+		/* invalidate the old and new cursor positions */
+		_vte_invalidate_cell(terminal, cursor.col, cursor.row);
 		_vte_invalidate_cursor_once(terminal, FALSE);
 		/* Signal that the cursor moved. */
 		vte_terminal_emit_cursor_moved(terminal);
+	} else if (cursor_visible != terminal->pvt->cursor_visible) {
+		_vte_invalidate_cell(terminal, cursor.col, cursor.row);
 	}
 
 	/* Tell the input method where the cursor is. */
 	if (GTK_WIDGET_REALIZED(terminal)) {
+		GdkRectangle rect;
 		rect.x = terminal->pvt->screen->cursor_current.col *
 			 terminal->char_width + VTE_PAD_WIDTH;
 		rect.width = terminal->char_width;

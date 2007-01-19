@@ -756,11 +756,6 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		terminal->pvt->screen->cursor_current.row =
 			terminal->pvt->screen->insert_delta;
 		break;
-	case 25:
-	case 1048:
-		/* Repaint the cell the cursor is in. */
-		_vte_invalidate_cursor_once(terminal, FALSE);
-		break;
 	case 47:
 	case 1047:
 	case 1049:

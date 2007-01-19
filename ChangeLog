@@ -1,5 +1,16 @@
 2007-01-19  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Bug 398150 – cursor leaves trail behind in vim
+
+	* src/vte-private.h:
+	* src/vte.c: (_vte_invalidate_cell),
+	(vte_terminal_process_incoming):
+	* src/vteseq.c: (vte_sequence_handler_decset_internal):
+		Invalidate the old cursor position if we detect the cursor
+		moved during the sequence or if the cursor changed state.
+
+2007-01-19  Chris Wilson <chris@chris-wilson.co.uk>
+
 	* src/Makefile.am:
 		Missing $(X_CFLAGS)
 
