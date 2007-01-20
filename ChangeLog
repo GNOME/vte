@@ -1,5 +1,15 @@
 2007-01-20  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Track when we have invalidated the entire terminal and skip adding
+	new regions when possible.
+
+	* src/vte-private.h:
+	* src/vte.c: (update_regions), (_vte_invalidate_cells),
+	(_vte_invalidate_all), (vte_terminal_size_allocate),
+	(reset_update_regions):
+
+2007-01-20  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 398244 – Gnome-terminal opens a huge sized window
 
 	* src/vte.c: (vte_terminal_ensure_font),

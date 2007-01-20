@@ -182,7 +182,7 @@ struct _VteTerminalPrivate {
 	gint process_timeout;
 	gint update_timeout;
 	GSList *update_regions;
-
+	gboolean invalidated_all;	/* pending refresh of entire terminal */
 
 	/* Output data queue. */
 	struct _vte_buffer *outgoing;	/* pending input characters */

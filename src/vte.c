@@ -239,6 +239,7 @@ update_regions (VteTerminal *terminal)
 	}
 	g_slist_free (terminal->pvt->update_regions);
 	terminal->pvt->update_regions = NULL;
+	terminal->pvt->invalidated_all = FALSE;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on (VTE_DEBUG_WORK)) {
@@ -273,10 +274,20 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	}
 
 #ifdef VTE_DEBUG
+	if (_vte_debug_on (VTE_DEBUG_UPDATES)) {
+		g_printerr ("Invalidating cells at (%ld,%ld)x(%d,%d).\n",
+			   column_start, row_start,
+			   column_count, row_count);
+	}
 	if (_vte_debug_on (VTE_DEBUG_WORK)) {
 		g_printerr ("?");
 	}
 #endif
+
+	if (terminal->pvt->invalidated_all) {
+		return;
+	}
+
 	/* Subtract the scrolling offset from the row start so that the
 	 * resulting rectangle is relative to the visible portion of the
 	 * buffer. */
@@ -298,6 +309,11 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	column_count = CLAMP (i - column_start, 0 , terminal->column_count);
 
 	if (!column_count || !row_count) {
+		return;
+	}
+	if (column_count ==terminal->column_count &&
+			row_count == terminal->row_count) {
+		_vte_invalidate_all (terminal);
 		return;
 	}
 
@@ -328,7 +344,8 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	}
 
 	terminal->pvt->update_regions = g_slist_prepend (
-			terminal->pvt->update_regions, gdk_region_rectangle (&rect));
+			terminal->pvt->update_regions,
+		       	gdk_region_rectangle (&rect));
 	if (terminal->pvt->update_timeout == VTE_INVALID_SOURCE) {
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
@@ -356,6 +373,16 @@ _vte_invalidate_all(VteTerminal *terminal)
 		return;
 	}
 
+#ifdef VTE_DEBUG
+	if (_vte_debug_on (VTE_DEBUG_WORK)) {
+		g_printerr ("*");
+	}
+#endif
+
+	if (terminal->pvt->invalidated_all) {
+		return;
+	}
+
 	/* replace invalid regions with one covering the whole terminal */
 	reset_update_regions (terminal);
 	rect.x = rect.y = 0;
@@ -363,18 +390,13 @@ _vte_invalidate_all(VteTerminal *terminal)
 	rect.height = terminal->widget.allocation.height;
 	terminal->pvt->update_regions = g_slist_prepend (NULL,
 			gdk_region_rectangle (&rect));
+	terminal->pvt->invalidated_all = TRUE;
 
 	if (terminal->pvt->update_timeout == VTE_INVALID_SOURCE) {
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
 		add_update_timeout (terminal);
 	}
-
-#ifdef VTE_DEBUG
-	if (_vte_debug_on (VTE_DEBUG_WORK)) {
-		g_printerr ("*");
-	}
-#endif
 }
 
 /* Scroll a rectangular region up or down by a fixed number of lines,
@@ -7032,8 +7054,9 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 				       allocation->y,
 				       allocation->width,
 				       allocation->height);
-		/* Repaint if we were resized. */
+		/* Force a repaint if we were resized. */
 		if (repaint) {
+			reset_update_regions (terminal);
 			_vte_invalidate_all(terminal);
 		}
 	}
@@ -11184,6 +11207,7 @@ reset_update_regions (VteTerminal *terminal)
 		g_slist_free (terminal->pvt->update_regions);
 		terminal->pvt->update_regions = NULL;
 	}
+	terminal->pvt->invalidated_all = FALSE;
 }
 
 static void
