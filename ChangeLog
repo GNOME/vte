@@ -1,3 +1,10 @@
+2007-01-20  Chris Wilson <chris@chris-wilson.co.uk>
+
+	Bug 398602 – Build Failure
+
+	* src/vte.c: (vte_terminal_expose):
+		Fixup typo. [Grrr. Must get git-svn back into sync]
+
 2006-11-19 Rich Burridge <rich.burridge@sun.com>
 
         * src/vteaccess.c:

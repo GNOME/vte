@@ -9320,7 +9320,7 @@ vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 			/* if we expect to redraw the widget soon,
 			 * just add this event to the list */
 			if (terminal->pvt->update_regions != NULL) {
-				if (!terminal->pvt->invalidate_all) {
+				if (!terminal->pvt->invalidated_all) {
 					terminal->pvt->update_regions =
 						g_slist_prepend (terminal->pvt->update_regions,
 								gdk_region_copy (event->region));
