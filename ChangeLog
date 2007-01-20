@@ -1,5 +1,20 @@
 2007-01-20  Chris Wilson <chris@chris-wilson.co.uk>
 
+	<kmaraas> ickle: sparse complains about dubious 1 bit bitfields
+		if you use gboolean instead of guint
+	<kmaraas> so s/gboolean/guint at line 166 and 174
+	<mariano> unless that changes the API, of course...
+	<kmaraas> it doesn't
+	<mariano> gboolean a:1 is not very correct anyways
+	<kmaraas> ickle: we've done the same change in other modules
+	<ickle> if I do it quick, behdad might not even notice ;)
+
+	* src/vte.h:
+		Convert signed single bit field to unsigned. The code
+		was setting it to 1 anyhow (and not -1 as the type indicated).
+
+2007-01-20  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 398602 – Build Failure
 
 	* src/vte.c: (vte_terminal_expose):

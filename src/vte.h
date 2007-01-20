@@ -163,7 +163,7 @@ typedef enum {
 struct _VteCharAttributes {
 	long row, column;
 	GdkColor fore, back;
-	gboolean underline:1, strikethrough:1;
+	guint underline:1, strikethrough:1;
 };
 typedef struct _VteCharAttributes VteCharAttributes;
 
@@ -171,7 +171,7 @@ typedef struct _VteCharAttributes VteCharAttributes;
 struct vte_char_attributes {
 	long row, column;
 	GdkColor fore, back;
-	gboolean underline:1, strikethrough:1;
+	guint underline:1, strikethrough:1;
 };
 
 /* The widget's type. */
