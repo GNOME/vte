@@ -1,4 +1,10 @@
 2007-01-20  Chris Wilson <chris@chris-wilson.co.uk>
+	
+	* src/vte.c: (vte_terminal_expose):
+		Also if the entire terminal is invalidated,
+		do not add more GTK+ exposes to it.
+
+2007-01-20  Chris Wilson <chris@chris-wilson.co.uk>
 
 	Track when we have invalidated the entire terminal and skip adding
 	new regions when possible.
