@@ -504,14 +504,17 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 		/* Now emit a deleted signal for text that was in the old
 		 * string but isn't in the new one... */
 		if (olen > offset) {
+			gchar *saved_str = priv->snapshot_text->str;
+			gsize saved_len = priv->snapshot_text->len;
+
 			priv->snapshot_text->str = old;
 			priv->snapshot_text->len = olen;
 			emit_text_changed_delete(G_OBJECT(data),
 						 old,
 						 offset,
 						 olen - offset);
-			priv->snapshot_text->str = current;
-			priv->snapshot_text->len = clen;
+			priv->snapshot_text->str = saved_str;
+			priv->snapshot_text->len = saved_len;
 		}
 		/* .. and an inserted signal for text that wasn't in the old
 		 * string but is in the new one. */
