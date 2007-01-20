@@ -1,3 +1,14 @@
+2007-01-20  Chris Wilson <chris@chris-wilson.co.uk>
+
+	Bug 398244 – Gnome-terminal opens a huge sized window
+
+	* src/vte.c: (vte_terminal_ensure_font),
+	(vte_terminal_set_font_full), (vte_terminal_size_request),
+	(vte_terminal_realize), (vte_terminal_get_char_width),
+	(vte_terminal_get_char_height), (vte_terminal_get_char_descent),
+	(vte_terminal_get_char_ascent):
+		Ensure the font metrics are calculated before use.
+
 2007-01-19  Chris Wilson <chris@chris-wilson.co.uk>
 
 	* src/vte.c: (vte_terminal_process_incoming):

@@ -6237,6 +6237,25 @@ vte_terminal_apply_metrics(VteTerminal *terminal,
 	_vte_invalidate_all(terminal);
 }
 
+
+static void
+vte_terminal_ensure_font (VteTerminal *terminal)
+{
+	if (terminal->pvt->fontdirty) {
+		terminal->pvt->fontdirty = FALSE;
+		_vte_draw_set_text_font(terminal->pvt->draw, 
+				terminal->pvt->fontdesc,
+				terminal->pvt->fontantialias);
+		vte_terminal_apply_metrics(terminal,
+				_vte_draw_get_text_width(terminal->pvt->draw),
+				_vte_draw_get_text_height(terminal->pvt->draw),
+				_vte_draw_get_text_ascent(terminal->pvt->draw),
+				_vte_draw_get_text_height(terminal->pvt->draw) -
+				_vte_draw_get_text_ascent(terminal->pvt->draw));
+	}
+}
+
+
 /**
  * vte_terminal_set_font_full:
  * @terminal: a #VteTerminal
@@ -6303,17 +6322,9 @@ vte_terminal_set_font_full(VteTerminal *terminal,
 	terminal->pvt->fontdirty = TRUE;
 	terminal->pvt->has_fonts = TRUE;
 
-	if(GTK_WIDGET_REALIZED(terminal)){
-		terminal->pvt->fontdirty = FALSE;
-		/* Set the drawing font. */
-		_vte_draw_set_text_font(terminal->pvt->draw,
-				desc, antialias);
-		vte_terminal_apply_metrics(terminal,
-				_vte_draw_get_text_width(terminal->pvt->draw),
-				_vte_draw_get_text_height(terminal->pvt->draw),
-				_vte_draw_get_text_ascent(terminal->pvt->draw),
-				_vte_draw_get_text_height(terminal->pvt->draw) -
-				_vte_draw_get_text_ascent(terminal->pvt->draw));
+	/* Set the drawing font. */
+	if (GTK_WIDGET_REALIZED(terminal)) {
+		vte_terminal_ensure_font (terminal);
 	}
 }
 
@@ -6926,6 +6937,8 @@ vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
 
 	terminal = VTE_TERMINAL(widget);
 
+	vte_terminal_ensure_font (terminal);
+
 	if (terminal->pvt->pty_master != -1) {
 		vte_terminal_refresh_size(terminal);
 		requisition->width = terminal->char_width *
@@ -6944,8 +6957,14 @@ vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		g_printerr("Size request is %dx%d.\n",
-			requisition->width, requisition->height);
+		g_printerr("Size request is %dx%d for %ldx%ld cells.\n",
+			requisition->width, requisition->height,
+			(terminal->pvt->pty_master != -1) ?
+			terminal->column_count :
+			terminal->pvt->default_column_count,
+			(terminal->pvt->pty_master != -1) ?
+			terminal->row_count :
+			terminal->pvt->default_row_count);
 	}
 #endif
 }
@@ -7422,25 +7441,6 @@ vte_terminal_realize(GtkWidget *widget)
 		vte_terminal_set_default_colors(terminal);
 	}
 
-	/* Load default fonts, if no fonts have been loaded. */
-	if (!terminal->pvt->has_fonts) {
-		vte_terminal_set_font_full(terminal, terminal->pvt->fontdesc,
-					   terminal->pvt->fontantialias);
-   	}
-	/* load the initial font cache */
-	if(terminal->pvt->fontdirty){
-		terminal->pvt->fontdirty = FALSE;
-		_vte_draw_set_text_font(terminal->pvt->draw,
-				terminal->pvt->fontdesc,
-				terminal->pvt->fontantialias);
-		vte_terminal_apply_metrics(terminal,
-				_vte_draw_get_text_width(terminal->pvt->draw),
-				_vte_draw_get_text_height(terminal->pvt->draw),
-				_vte_draw_get_text_ascent(terminal->pvt->draw),
-				_vte_draw_get_text_height(terminal->pvt->draw) -
-				_vte_draw_get_text_ascent(terminal->pvt->draw));
-	}
-
 	/* Allocate colors. */
 	for (i = 0; i < G_N_ELEMENTS(terminal->pvt->palette); i++) {
 		color.red = terminal->pvt->palette[i].red;
@@ -7449,6 +7449,13 @@ vte_terminal_realize(GtkWidget *widget)
 		color.pixel = 0;
 		vte_terminal_set_color_internal(terminal, i, &color);
 	}
+
+	/* Load default fonts, if no fonts have been loaded. */
+	if (!terminal->pvt->has_fonts) {
+		vte_terminal_set_font_full(terminal, terminal->pvt->fontdesc,
+					   terminal->pvt->fontantialias);
+   	}
+	vte_terminal_ensure_font (terminal);
 
 	/* Set up input method support.  FIXME: do we need to handle the
 	 * "retrieve-surrounding" and "delete-surrounding" events? */
@@ -10904,6 +10911,7 @@ glong
 vte_terminal_get_char_width(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+	vte_terminal_ensure_font (terminal);
 	return terminal->char_width;
 }
 
@@ -10919,6 +10927,7 @@ glong
 vte_terminal_get_char_height(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+	vte_terminal_ensure_font (terminal);
 	return terminal->char_height;
 }
 
@@ -10934,6 +10943,7 @@ glong
 vte_terminal_get_char_descent(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+	vte_terminal_ensure_font (terminal);
 	return terminal->char_descent;
 }
 
@@ -10949,6 +10959,7 @@ glong
 vte_terminal_get_char_ascent(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+	vte_terminal_ensure_font (terminal);
 	return terminal->char_ascent;
 }
 
