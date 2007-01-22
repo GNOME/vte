@@ -465,8 +465,13 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 	current = priv->snapshot_text->str;
 	clen = priv->snapshot_text->len;
 
-	caret_offset = g_array_index(priv->snapshot_characters,
-			int, priv->snapshot_caret);
+	if (priv->snapshot_caret < priv->snapshot_characters->len) {
+		caret_offset = g_array_index(priv->snapshot_characters,
+				int, priv->snapshot_caret);
+	} else {
+		/* caret was not in the line */
+		caret_offset = clen;
+	}
 
 	/* Find the offset where they don't match. */
 	offset = 0;

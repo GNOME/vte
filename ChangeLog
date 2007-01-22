@@ -1,5 +1,14 @@
 2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
 
+	If the caret is at the end of the buffer, then it set past the
+	end of the offset array - do not use this as a lookup!
+
+	* src/vteaccess.c: (vte_terminal_accessible_text_modified):
+		If the caret points to past the last character, set the
+		offset to the string's NUL terminator.
+
+2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
+
 	* configure.in:
 		Earlier configure.in update introduced a trailing ']', pair
 		it with its '['
