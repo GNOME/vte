@@ -77,8 +77,6 @@ libvte_la_SOURCES = \
 	vteint.h \
 	vtepango.c \
 	vtepango.h \
-	vtepangox.c \
-	vtepangox.h \
 	vterdb.c \
 	vterdb.h \
 	vteregex.c \
@@ -94,9 +92,17 @@ libvte_la_SOURCES = \
 	vtetc.c \
 	vtetc.h \
 	vtetree.c \
-	vtetree.h \
+	vtetree.h
+if BUILD_XFT
+libvte_la_SOURCES += \
 	vtexft.c \
 	vtexft.h
+endif
+if BUILD_PANGOX
+libvte_la_SOURCES += \
+	vtepangox.c \
+	vtepangox.h
+endif
 
 # Libtool shared library versioning stuffs.
 # REVISION gets incremented whenever the source code changes without adding
@@ -110,7 +116,8 @@ VERSION_CURRENT=10
 VERSION_AGE=1
 libvte_la_LDFLAGS = $(LDFLAGS) \
 	-version-info $(VERSION_CURRENT):$(VERSION_REVISION):$(VERSION_AGE) \
-	-export-symbols-regex "^vte_terminal_.*|^_vte_pty_.*|^vte_reaper_.*|_vte_debug_.*"
+	-export-symbols-regex "^vte_terminal_.*|^_vte_pty_.*|^vte_reaper_.*|_vte_debug_.*" \
+	@LIBTOOL_EXPORT_OPTIONS@ @LIBTOOL_FLAGS@
 libvte_la_LIBADD = $(LIBS) $(VTE_LIBS) $(X_LIBS)
 
 CLEANFILES = marshal.c marshal.h

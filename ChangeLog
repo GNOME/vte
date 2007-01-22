@@ -1,5 +1,23 @@
 2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Hack'n'slash my way through doing a bit of weeding.
+
+	Fixed:
+	- Bug 345514 – -no-undefined doesn't work with latest libtool
+	- Bug 162003 – vte configure.in X checking can fail
+	             – though this may cause other regressions!
+	- Bug 314669 – Please specialize AC_PATH_XTRA
+
+	* configure.in:
+		Export LIBTOOL_EXPORT_OPTIONS for -no-undefined on windos.
+		Add to rather than override X_CFLAGS, X_LIBS
+		AC_PATH_XTRA - Find X11 using XFlush() rather than XtMalloc().
+		Print configuration details.
+	* src/Makefile.am:
+		Conditional compilation of backends.
+
+2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 389538 – crash in Terminal: nothing
 
 	* src/vteaccess.c: (vte_terminal_accessible_get_text):
