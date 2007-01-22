@@ -5,6 +5,8 @@
 	 vte sends release events on scroll but xterm doesn't which breaks
 	 mc among others.
 
+	 Patch by Benedikt Meurer.
+
 	* src/vte.c: (vte_terminal_scroll):
 		Remove the offending release event.
 
