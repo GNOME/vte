@@ -182,7 +182,7 @@ if test "x$have_x" = "xyes" ; then
 				    [enable drawing using Xft2])
 		    ], with_xft2=$withval, with_xft2=yes)
 	if test "x$with_xft2" = "xyes" ; then
-		PKG_CHECK_EXISTS([pangoxft >= 1.1.0],
+		PKG_CHECK_EXISTS([pangoxft >= 1.1.0], [
 			AC_DEFINE(HAVE_XFT2,1,[Whether we have Xft2])
 			wantedmodules="xft >= 2.0 $wantedmodules pangoxft >= 1.1.0"
 			],[

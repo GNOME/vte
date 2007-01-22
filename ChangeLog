@@ -1,5 +1,12 @@
 2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
 
+	* configure.in:
+		Earlier configure.in update introduced a trailing ']', pair
+		it with its '['
+		
+
+2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 132316 – terminal widget's context menu posting isn't exposed as an AtkAction
 
 	Original patch by <padraig.obriain@sun.com>
