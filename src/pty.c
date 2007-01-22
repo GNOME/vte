@@ -279,7 +279,7 @@ _vte_pty_run_on_pty (struct vte_pty_child_setup_data *data,
 		gint i, argc;
 
 		/* push the command into argv[0] */
-		argc = g_strv_length (argv);
+		argc = argv ? g_strv_length (argv) : 0;
 		arg2 = g_new (char *, argc+2);
 		arg2[0] = g_strdup (command);
 		for (i=0; i<argc; i++) {

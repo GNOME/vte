@@ -1,5 +1,10 @@
 2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
 
+	* src/pty.c: (_vte_pty_run_on_pty):
+		Protect against g_strv_length(NULL)
+
+2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 399137 - continuation.
 
 	* src/vteaccess.c: (vte_terminal_accessible_text_modified):
