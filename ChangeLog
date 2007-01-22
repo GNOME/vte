@@ -1,6 +1,11 @@
 2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
 
 	* src/pty.c: (_vte_pty_run_on_pty):
+		Print out the argument vector for VTE_DEBUG_MISC.
+
+2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
+
+	* src/pty.c: (_vte_pty_run_on_pty):
 		Protect against g_strv_length(NULL)
 
 2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>

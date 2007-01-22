@@ -282,8 +282,19 @@ _vte_pty_run_on_pty (struct vte_pty_child_setup_data *data,
 		argc = argv ? g_strv_length (argv) : 0;
 		arg2 = g_new (char *, argc+2);
 		arg2[0] = g_strdup (command);
+#ifdef VTE_DEBUG
+		if (_vte_debug_on (VTE_DEBUG_MISC)) {
+			g_printerr("Spawing command...\nargv[0] = %s\n",
+				       	arg2[0]);
+		}
+#endif
 		for (i=0; i<argc; i++) {
 			arg2[i+1] = g_strdup (argv[i]);
+#ifdef VTE_DEBUG
+			if (_vte_debug_on (VTE_DEBUG_MISC)) {
+				g_printerr("argv[%d] = %s\n", i+1, arg2[i+1]);
+			}
+#endif
 		}
 		arg2[i+1] = NULL;
 
