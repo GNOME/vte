@@ -511,6 +511,9 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 				break;
 			}
 		} while (g_utf8_get_char (op) == g_utf8_get_char (cp));
+		/* recompute the respective lengths */
+		olen = op - old;
+		clen = cp - old;
 		/* At least one of them has to have text the other
 		 * doesn't. */
 		g_assert((clen > offset) || (olen > offset));
