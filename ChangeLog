@@ -1,5 +1,12 @@
 2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Bug 389538 – crash in Terminal: nothing
+
+	* src/vteaccess.c: (vte_terminal_accessible_get_text):
+		Guard against negative length strings.
+
+2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 161479 – Scroll wheel generates Release events
 
 	 vte sends release events on scroll but xterm doesn't which breaks

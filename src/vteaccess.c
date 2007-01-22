@@ -970,9 +970,13 @@ vte_terminal_accessible_get_text(AtkText *text,
 		/* Map the stopping point. */
 		end = g_array_index(priv->snapshot_characters, int, end_offset);
 	}
-	ret = g_malloc(end - start + 1);
-	memcpy(ret, priv->snapshot_text->str + start, end - start);
-	ret[end - start] = '\0';
+	if (end <= start) {
+		ret = g_strdup ("");
+	} else {
+		ret = g_malloc(end - start + 1);
+		memcpy(ret, priv->snapshot_text->str + start, end - start);
+		ret[end - start] = '\0';
+	}
 	return ret;
 }
 
