@@ -1,5 +1,18 @@
 2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Bug 156161 – AccessibleText_getTextAtOffset returns wrong values in gnome-terminal
+
+	The code for ATK_TEXT_BOUNDARY_WORD_START and
+	ATK_TEXT_BOUNDARY_WORD_END is the same.
+
+	Patch by <padraig.obriain@sun.com>
+
+	* src/vteaccess.c: (vte_terminal_accessible_get_text_somewhere):
+		Actually provide an implementation for
+		ATK_TEXT_BOUNDARY_WORD_END.
+
+2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 399137 – UTF-8 problem in VteAccess
 
 	* src/vteaccess.c: (emit_text_changed_insert),

@@ -1024,7 +1024,6 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 					  priv->snapshot_attributes->len);
 			break;
 		case ATK_TEXT_BOUNDARY_WORD_START:
-		case ATK_TEXT_BOUNDARY_WORD_END:
 			/* Back up to the previous non-word-word transition. */
 			while (offset > 0) {
 				prev = vte_terminal_accessible_get_character_at_offset(text, offset - 1);
@@ -1090,6 +1089,97 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 					break;
 				}
 
+			}
+			/* Now find the next non-word-word transition */
+			while (offset < priv->snapshot_characters->len) {
+				next = vte_terminal_accessible_get_character_at_offset(text, offset);
+				if (!vte_terminal_is_word_char(terminal, next)) {
+					offset++;
+				} else {
+					break;
+				}
+			}
+			*end_offset = offset;
+			break;
+		case ATK_TEXT_BOUNDARY_WORD_END:
+			/* Back up to the previous word-non-word transition. */
+			current = vte_terminal_accessible_get_character_at_offset(text, offset);
+			while (offset > 0) {
+				prev = vte_terminal_accessible_get_character_at_offset(text, offset - 1);
+				if (vte_terminal_is_word_char(terminal, prev) &&
+				    !vte_terminal_is_word_char(terminal, current)) {
+					break;
+				} else {
+					offset--;
+					current = prev;
+				}
+			}
+			*start_offset = offset;
+			/* If we're looking for the word end before this one, 
+			 * keep searching by backing up to the previous word 
+			 * character and then searching for the word-end 
+			 * before that. */
+			if (direction == direction_previous) {
+				while (offset > 0) {
+					prev = vte_terminal_accessible_get_character_at_offset(text, offset - 1);
+					if (vte_terminal_is_word_char(terminal, prev)) {
+						offset--;
+					} else {
+						break;
+					}
+				}
+				current = vte_terminal_accessible_get_character_at_offset(text, offset);
+				while (offset > 0) {
+					prev = vte_terminal_accessible_get_character_at_offset(text, offset - 1);
+					if (vte_terminal_is_word_char(terminal, prev) &&
+					    !vte_terminal_is_word_char(terminal, current)) {
+						break;
+					} else {
+						offset--;
+						current = prev;
+					}
+				}
+				*start_offset = offset;
+			}
+			/* If we're looking for the word end after this one,
+			 * search forward by scanning forward for the next
+			 * word character, then the next non-word character
+			 * after that. */
+			if (direction == direction_next) {
+				while (offset < priv->snapshot_characters->len) {
+					current = vte_terminal_accessible_get_character_at_offset(text, offset);
+					if (!vte_terminal_is_word_char(terminal, current)) {
+						offset++;
+					} else {
+						break;
+					}
+				}
+				while (offset < priv->snapshot_characters->len) {
+					current = vte_terminal_accessible_get_character_at_offset(text, offset);
+					if (vte_terminal_is_word_char(terminal, current)) {
+						offset++;
+					} else {
+						break;
+					}
+				}
+				*start_offset = offset;
+			}
+			/* Now find the next word end. */
+			while (offset < priv->snapshot_characters->len) {
+				current = vte_terminal_accessible_get_character_at_offset(text, offset);
+				if (!vte_terminal_is_word_char(terminal, current)) {
+					offset++;
+				} else {
+					break;
+				}
+			}
+			while (offset < priv->snapshot_characters->len) {
+				current = vte_terminal_accessible_get_character_at_offset(text, offset);
+				if (vte_terminal_is_word_char(terminal, current)) {
+					offset++;
+				} else {
+					break;
+				}
 			}
 			*end_offset = offset;
 			break;
