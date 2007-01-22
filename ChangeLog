@@ -1,5 +1,15 @@
 2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Bug 399137 - continuation.
+
+	* src/vteaccess.c: (vte_terminal_accessible_text_modified):
+		Classic bug:
+			clen = cp - old
+		rather than the more correct
+			clen = cp - current
+
+2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
+
 	* src/vteapp.c: (char_size_changed), (char_size_realized), (main):
 		Don't try to perform gdk operations on unrealized windows.
 
