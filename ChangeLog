@@ -1,5 +1,10 @@
 2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
 
+	* src/vteapp.c: (char_size_changed), (char_size_realized), (main):
+		Don't try to perform gdk operations on unrealized windows.
+
+2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
+
 	* src/pty.c: (_vte_pty_run_on_pty):
 		Print out the argument vector for VTE_DEBUG_MISC.
 

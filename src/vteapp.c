@@ -79,15 +79,51 @@ char_size_changed(GtkWidget *widget, guint width, guint height, gpointer data)
 
 	terminal = VTE_TERMINAL(widget);
 	window = GTK_WINDOW(data);
+	if (!GTK_WIDGET_REALIZED (window))
+		return;
 
 	vte_terminal_get_padding(terminal, &xpad, &ypad);
 
-	geometry.width_inc = terminal->char_width;
-	geometry.height_inc = terminal->char_height;
+	geometry.width_inc = width;
+	geometry.height_inc = height;
 	geometry.base_width = xpad;
 	geometry.base_height = ypad;
-	geometry.min_width = xpad + terminal->char_width * 2;
-	geometry.min_height = ypad + terminal->char_height * 2;
+	geometry.min_width = xpad + width * 2;
+	geometry.min_height = ypad + height * 2;
+
+	gtk_window_set_geometry_hints(window, widget, &geometry,
+				      GDK_HINT_RESIZE_INC |
+				      GDK_HINT_BASE_SIZE |
+				      GDK_HINT_MIN_SIZE);
+}
+
+static void
+char_size_realized(GtkWidget *widget, gpointer data)
+{
+	VteTerminal *terminal;
+	GtkWindow *window;
+	GdkGeometry geometry;
+	guint width, height;
+	int xpad, ypad;
+
+	g_assert(GTK_IS_WINDOW(data));
+	g_assert(VTE_IS_TERMINAL(widget));
+
+	terminal = VTE_TERMINAL(widget);
+	window = GTK_WINDOW(data);
+	if (!GTK_WIDGET_REALIZED (window))
+		return;
+
+	vte_terminal_get_padding(terminal, &xpad, &ypad);
+
+	width = vte_terminal_get_char_width (terminal);
+	height = vte_terminal_get_char_height (terminal);
+	geometry.width_inc = width;
+	geometry.height_inc = height;
+	geometry.base_width = xpad;
+	geometry.base_height = ypad;
+	geometry.min_width = xpad + width * 2;
+	geometry.min_height = ypad + height * 2;
 
 	gtk_window_set_geometry_hints(window, widget, &geometry,
 				      GDK_HINT_RESIZE_INC |
@@ -600,6 +636,8 @@ main(int argc, char **argv)
 		char_size_changed(widget, 0, 0, window);
 		g_signal_connect(widget, "char-size-changed",
 				 G_CALLBACK(char_size_changed), window);
+		g_signal_connect(widget, "realize",
+				 G_CALLBACK(char_size_realized), window);
 	}
 
 	/* Connect to the "window_title_changed" signal to set the main
