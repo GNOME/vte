@@ -4,7 +4,7 @@
 
 	* src/vteaccess.c: (vte_terminal_accessible_text_modified):
 		After walking back along the UTF-8 string, remember to update
-		string lengths that are use to detect insertions and
+		the string lengths that are used to detect insertions and
 		deletions!
 
 2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
