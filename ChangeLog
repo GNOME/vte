@@ -1,5 +1,19 @@
 2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Bug 399137 – UTF-8 problem in VteAccess
+
+	* src/vteaccess.c: (emit_text_changed_insert),
+	(emit_text_changed_delete):
+		use g_utf8_pointer_to_offset() instead of open coding
+	(vte_terminal_accessible_update_private_data_if_needed):
+		add the number of UTF-8 characters to the debug output.
+	(vte_terminal_accessible_text_modified):
+		iterate backwards over the UTF-8 string using
+		g_utf8_prev_char() and convert the caret into a byte offset
+		before it as such.
+
+2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 123591 – vte_terminal_fork_command succeeds even when it does not
 
 	* python/vte.defs:
