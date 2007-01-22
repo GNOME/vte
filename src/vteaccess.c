@@ -35,6 +35,11 @@
 #endif
 #include <glib/gi18n-lib.h>
 
+enum {
+        ACTION_MENU,
+        LAST_ACTION
+};
+
 #define VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA "VteTerminalAccessiblePrivateData"
 
 typedef struct _VteTerminalAccessiblePrivate {
@@ -45,6 +50,8 @@ typedef struct _VteTerminalAccessiblePrivate {
 	GArray *snapshot_attributes;	/* Attributes, per byte. */
 	GArray *snapshot_linebreaks;	/* Offsets to line breaks. */
 	gint snapshot_caret;       /* Location of the cursor (in characters). */
+
+	char *action_descriptions[LAST_ACTION];
 } VteTerminalAccessiblePrivate;
 
 enum direction {
@@ -58,6 +65,16 @@ static gunichar vte_terminal_accessible_get_character_at_offset(AtkText *text,
 static gpointer vte_terminal_accessible_parent_class;
 
 G_DEFINE_TYPE(VteTerminalAccessibleFactory, vte_terminal_accessible_factory, ATK_TYPE_OBJECT_FACTORY)
+
+static const char *vte_terminal_accessible_action_names[] = {
+        "menu",
+        NULL
+};
+
+static const char *vte_terminal_accessible_action_descriptions[] = {
+        "Popup context menu",
+        NULL
+};
 
 /* Create snapshot private data. */
 static VteTerminalAccessiblePrivate *
@@ -79,6 +96,8 @@ vte_terminal_accessible_new_private_data(void)
 static void
 vte_terminal_accessible_free_private_data(VteTerminalAccessiblePrivate *priv)
 {
+	gint i;
+
 	g_assert(priv != NULL);
 	if (priv->snapshot_text != NULL) {
 		g_string_free(priv->snapshot_text, TRUE);
@@ -91,6 +110,9 @@ vte_terminal_accessible_free_private_data(VteTerminalAccessiblePrivate *priv)
 	}
 	if (priv->snapshot_linebreaks != NULL) {
 		g_array_free(priv->snapshot_linebreaks, TRUE);
+	}
+	for (i = 0; i < LAST_ACTION; i++) {
+		g_free (priv->action_descriptions[i]);
 	}
 	g_slice_free(VteTerminalAccessiblePrivate, priv);
 }
@@ -1795,23 +1817,6 @@ vte_terminal_accessible_set_size(AtkComponent *component,
 	       (terminal->column_count == columns);
 }
 
-static gboolean
-vte_terminal_accessible_grab_focus(AtkComponent *component)
-{
-	GtkWidget *widget;
-	widget = (GTK_ACCESSIBLE(component))->widget;
-	if (widget == NULL) {
-		return FALSE;
-	}
-	if (GTK_WIDGET_HAS_FOCUS(widget)) {
-		return TRUE;
-	}
-	gtk_widget_grab_focus(widget);
-	if (GTK_WIDGET_HAS_FOCUS(widget)) {
-		return TRUE;
-	}
-	return FALSE;
-}
 
 static AtkObject *
 vte_terminal_accessible_ref_accessible_at_point(AtkComponent *component,
@@ -1870,7 +1875,6 @@ vte_terminal_accessible_component_init(gpointer iface, gpointer data)
 	component->get_extents = vte_terminal_accessible_get_extents;
 	component->get_position = vte_terminal_accessible_get_position;
 	component->get_size = vte_terminal_accessible_get_size;
-	component->grab_focus = vte_terminal_accessible_grab_focus;
 	component->remove_focus_handler = vte_terminal_accessible_remove_focus_handler;
 	component->set_extents = vte_terminal_accessible_set_extents;
 	component->set_position = vte_terminal_accessible_set_position;
@@ -1879,6 +1883,120 @@ vte_terminal_accessible_component_init(gpointer iface, gpointer data)
 	component->get_mdi_zorder = vte_terminal_accessible_get_mdi_zorder;
 }
 
+/* AtkAction interface */
+
+static gboolean
+vte_terminal_accessible_do_action (AtkAction *accessible, int i)
+{
+	GtkWidget *widget;
+	gboolean retval = FALSE;
+
+	g_return_val_if_fail (i < LAST_ACTION, FALSE);
+
+	widget = GTK_ACCESSIBLE (accessible)->widget;
+	if (!widget) {
+		return FALSE;
+	}
+
+        switch (i) {
+        case ACTION_MENU :
+		g_signal_emit_by_name (widget, "popup_menu", &retval);
+                break;
+        default :
+                g_warning ("Invalid action passed to VteTerminalAccessible::do_action");
+                return FALSE;
+        }
+        return retval;
+}
+
+static int
+vte_terminal_accessible_get_n_actions (AtkAction *accessible)
+{
+	return LAST_ACTION;
+}
+
+static const char *
+vte_terminal_accessible_action_get_description (AtkAction *accessible, int i)
+{
+        VteTerminalAccessiblePrivate *priv;
+
+        g_return_val_if_fail (i < LAST_ACTION, NULL);
+
+	g_return_val_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(accessible), NULL);
+
+	/* Retrieve the private data structure.  It must already exist. */
+	priv = g_object_get_data(G_OBJECT(accessible),
+				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
+	g_return_val_if_fail(priv != NULL, NULL);
+
+        if (priv->action_descriptions[i]) {
+                return priv->action_descriptions[i];
+        } else {
+                return vte_terminal_accessible_action_descriptions[i];
+        }
+}
+
+static const char *
+vte_terminal_accessible_action_get_name (AtkAction *accessible, int i)
+{
+        g_return_val_if_fail (i < LAST_ACTION, NULL);
+
+        return vte_terminal_accessible_action_names[i];
+}
+
+static const char *
+vte_terminal_accessible_action_get_keybinding (AtkAction *accessible, int i)
+{
+        g_return_val_if_fail (i < LAST_ACTION, NULL);
+
+        return NULL;
+}
+
+static gboolean
+vte_terminal_accessible_action_set_description (AtkAction *accessible,
+                                                int i,
+                                                const char *description)
+{
+        VteTerminalAccessiblePrivate *priv;
+
+        g_return_val_if_fail (i < LAST_ACTION, FALSE);
+
+	g_return_val_if_fail(VTE_IS_TERMINAL_ACCESSIBLE(accessible), FALSE);
+
+	/* Retrieve the private data structure.  It must already exist. */
+	priv = g_object_get_data(G_OBJECT(accessible),
+				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
+	g_return_val_if_fail(priv != NULL, FALSE);
+
+        if (priv->action_descriptions[i]) {
+                g_free (priv->action_descriptions[i]);
+        }
+        priv->action_descriptions[i] = g_strdup (description);
+
+        return TRUE;
+}
+
+static void
+vte_terminal_accessible_action_init(gpointer iface, gpointer data)
+{
+	AtkActionIface *action;
+	g_return_if_fail(G_TYPE_FROM_INTERFACE(iface) == ATK_TYPE_ACTION);
+	action = iface;
+
+#ifdef VTE_DEBUG
+	if (_vte_debug_on(VTE_DEBUG_MISC)) {
+		g_printerr("Initializing accessible peer's "
+			"AtkAction interface.\n");
+	}
+#endif
+	/* Set our virtual functions. */
+	action->do_action = vte_terminal_accessible_do_action;
+	action->get_n_actions = vte_terminal_accessible_get_n_actions;
+	action->get_description = vte_terminal_accessible_action_get_description;
+	action->get_name = vte_terminal_accessible_action_get_name;
+	action->get_keybinding = vte_terminal_accessible_action_get_keybinding;
+	action->set_description = vte_terminal_accessible_action_set_description;
+}
 static void
 vte_terminal_accessible_class_init(gpointer *klass)
 {
@@ -1912,6 +2030,11 @@ vte_terminal_accessible_get_type(void)
 		};
 		GInterfaceInfo component = {
 			vte_terminal_accessible_component_init,
+			NULL,
+			NULL,
+		};
+		GInterfaceInfo action = {
+			vte_terminal_accessible_action_init,
 			NULL,
 			NULL,
 		};
@@ -1967,6 +2090,10 @@ vte_terminal_accessible_get_type(void)
 		g_type_add_interface_static(terminal_accessible_type,
 				ATK_TYPE_COMPONENT,
 				&component);
+		/* Add an action interface to this object class. */
+		g_type_add_interface_static(terminal_accessible_type,
+				ATK_TYPE_ACTION,
+				&action);
 
 		/* Associate the terminal and its peer factory in the
 		 * Atk type registry. */

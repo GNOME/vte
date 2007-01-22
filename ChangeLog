@@ -1,5 +1,24 @@
 2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Bug 132316 – terminal widget's context menu posting isn't exposed as an AtkAction
+
+	Original patch by <padraig.obriain@sun.com>
+
+	* src/vteaccess.c: (vte_terminal_accessible_free_private_data),
+	(vte_terminal_accessible_component_init),
+	(vte_terminal_accessible_do_action),
+	(vte_terminal_accessible_get_n_actions),
+	(vte_terminal_accessible_action_get_description),
+	(vte_terminal_accessible_action_get_name),
+	(vte_terminal_accessible_action_get_keybinding),
+	(vte_terminal_accessible_action_set_description),
+	(vte_terminal_accessible_action_init),
+	(vte_terminal_accessible_get_type):
+		Remove grab_focus and defer to the parent's implementation.
+		Add an AtkAction iface.
+
+2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 156161 – AccessibleText_getTextAtOffset returns wrong values in gnome-terminal
 
 	The code for ATK_TEXT_BOUNDARY_WORD_START and
