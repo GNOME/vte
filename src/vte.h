@@ -19,13 +19,9 @@
 #ifndef vte_vte_h_included
 #define vte_vte_h_included
 
-
-#include <sys/types.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <glib.h>
-#include <pango/pango.h>
 #include <gtk/gtk.h>
+#include <pango/pango.h>
 
 G_BEGIN_DECLS
 
@@ -201,7 +197,7 @@ GtkType vte_terminal_anti_alias_get_type(void);
 
 /* You can get by with just these two functions. */
 GtkWidget *vte_terminal_new(void);
-pid_t vte_terminal_fork_command(VteTerminal *terminal,
+GPid vte_terminal_fork_command(VteTerminal *terminal,
 				const char *command, char **argv,
 				char **envv, const char *directory,
 				gboolean lastlog,
@@ -209,7 +205,7 @@ pid_t vte_terminal_fork_command(VteTerminal *terminal,
 				gboolean wtmp);
 
 /* Users of libzvt may find this useful. */
-pid_t vte_terminal_forkpty(VteTerminal *terminal,
+GPid vte_terminal_forkpty(VteTerminal *terminal,
 			   char **envv, const char *directory,
 			   gboolean lastlog,
 			   gboolean utmp,

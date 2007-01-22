@@ -99,6 +99,7 @@ vte_reaper_child_watch_cb(GPid pid, gint status, gpointer data)
 		g_printerr("Reaper emitting child-exited signal.\n");
 	}
 	g_signal_emit_by_name(data, "child-exited", pid, status);
+	g_spawn_close_pid (pid);
 }
 #endif
 

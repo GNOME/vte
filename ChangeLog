@@ -1,5 +1,28 @@
 2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Bug 123591 – vte_terminal_fork_command succeeds even when it does not
+
+	* python/vte.defs:
+	* python/vte.override:
+	* src/reaper.c: (vte_reaper_child_watch_cb):
+	* src/vte-private.h:
+	* src/vte.c: (vte_terminal_catch_child_exited),
+	(_vte_terminal_fork_basic), (vte_terminal_forkpty):
+	* src/vte.h:
+	* src/vteapp.c:
+		s/pid_t/GPid/ portable variant, no API/ABI implications
+	* src/pty.c: (vte_pty_child_setup), (_vte_pty_run_on_pty),
+	(_vte_pty_fork_on_pty_name), (_vte_pty_fork_on_pty_fd),
+	(_vte_pty_open_unix98), (_vte_pty_pipe_open), (n_read), (n_write),
+	(_vte_pty_start_helper), (_vte_pty_open_with_helper),
+	(_vte_pty_open), (main):
+		Replace custom fork() and pipe based syncrohonisation scheme
+		with g_spawn_async_with_pipes() as it actually handles all
+		failure modes correctly, and gives us overtures of portability.
+		
+
+2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Hack'n'slash my way through doing a bit of weeding.
 
 	Fixed:

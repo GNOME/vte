@@ -27,6 +27,9 @@
 #ifdef HAVE_SYS_SYSLIMITS_H
 #include <sys/syslimits.h>
 #endif
+#ifdef HAVE_SYS_WAIT_H
+#include <sys/wait.h>
+#endif
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <glib-object.h>
@@ -2599,6 +2602,21 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 				VteTerminal *terminal)
 {
 	if (pid == terminal->pvt->pty_pid) {
+#ifdef VTE_DEBUG
+		if (_vte_debug_on (VTE_DEBUG_LIFECYCLE)) {
+			g_printerr ("Child[%d] exited with status %d\n",
+					pid, status);
+#ifdef HAVE_SYS_WAIT_H
+			if (WIFEXITED (status)) {
+				g_printerr ("Child[%d] exit code %d.\n",
+						pid, WEXITSTATUS (status));
+			}else if (WIFSIGNALED (status)) {
+				g_printerr ("Child[%d] dies with signal %d.\n",
+						pid, WTERMSIG (status));
+			}
+#endif
+		}
+#endif
 		/* Disconnect from the reaper. */
 		if (terminal->pvt->pty_reaper != NULL) {
 			g_signal_handlers_disconnect_by_func(terminal->pvt->pty_reaper,
@@ -2711,7 +2729,7 @@ _vte_terminal_disconnect_pty_write(VteTerminal *terminal)
 }
 
 /* Basic wrapper around _vte_pty_open, which handles the pipefitting. */
-static pid_t
+static GPid
 _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 			 char **argv, char **envv,
 			 const char *directory,
@@ -2719,7 +2737,7 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 {
 	char **env_add;
 	int i;
-	pid_t pid;
+	GPid pid;
 	VteReaper *reaper;
 
 	/* Duplicate the environment, and add one more variable. */
@@ -2763,7 +2781,7 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 
 		/* Catch a child-exited signal from the child pid. */
 		reaper = vte_reaper_get();
-		vte_reaper_add_child((GPid) pid);
+		vte_reaper_add_child(pid);
 		if (reaper != terminal->pvt->pty_reaper) {
 			if (terminal->pvt->pty_reaper != NULL) {
 				g_signal_handlers_disconnect_by_func(terminal->pvt->pty_reaper,
@@ -2824,7 +2842,7 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
  *
  * Returns: the ID of the new process
  */
-pid_t
+GPid
 vte_terminal_fork_command(VteTerminal *terminal,
 			  const char *command, char **argv, char **envv,
 			  const char *directory,
@@ -2896,12 +2914,12 @@ vte_terminal_fork_command(VteTerminal *terminal,
  *
  * Since: 0.11.11
  */
-pid_t
+GPid
 vte_terminal_forkpty(VteTerminal *terminal,
 		     char **envv, const char *directory,
 		     gboolean lastlog, gboolean utmp, gboolean wtmp)
 {
-	pid_t ret;
+	GPid ret;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
 
