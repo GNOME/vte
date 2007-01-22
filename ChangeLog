@@ -1,3 +1,13 @@
+2007-01-22  Chris Wilson <chris@chris-wilson.co.uk>
+
+	Bug 161479 – Scroll wheel generates Release events
+
+	 vte sends release events on scroll but xterm doesn't which breaks
+	 mc among others.
+
+	* src/vte.c: (vte_terminal_scroll):
+		Remove the offending release event.
+
 2007-01-20  Chris Wilson <chris@chris-wilson.co.uk>
 
 	<kmaraas> ickle: sparse complains about dubious 1 bit bitfields

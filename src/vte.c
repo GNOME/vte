@@ -9390,16 +9390,6 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 								event->x - VTE_PAD_WIDTH,
 								event->y - VTE_PAD_WIDTH);
 		}
-		if (terminal->pvt->mouse_send_xy_on_button ||
-		    terminal->pvt->mouse_hilite_tracking ||
-		    terminal->pvt->mouse_cell_motion_tracking ||
-		    terminal->pvt->mouse_all_motion_tracking) {
-			/* If the app cares, send a release event as well. */
-			vte_terminal_send_mouse_button_internal(terminal,
-								0,
-								event->x - VTE_PAD_WIDTH,
-								event->y - VTE_PAD_WIDTH);
-		}
 		return TRUE;
 	}
 
