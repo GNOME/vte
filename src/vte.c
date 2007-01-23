@@ -7540,7 +7540,7 @@ vte_terminal_realize(GtkWidget *widget)
 	/* Set up the background, *now*. */
 	vte_terminal_background_update(terminal);
 	
-	gtk_style_attach(widget->style, widget->window);
+	widget->style = gtk_style_attach(widget->style, widget->window);
 
 	g_object_unref(G_OBJECT(bitmap));
 }

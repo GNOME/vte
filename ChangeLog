@@ -1,3 +1,11 @@
+2007-01-22  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 399282 – Fix the gtk_style_attach call on vte_terminal_realize in
+	the gnome 2.16 branch, too
+	Bug 353498 – crash in Terminal: changing icon theme
+
+	* src/vte.c (vte_terminal_realize): Fix the long time crasher.
+
 2006-12-20 Rich Burridge <rich.burridge@sun.com>
 
 	* src/vteaccess.c:
