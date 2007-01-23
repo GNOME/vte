@@ -273,6 +273,7 @@ _vte_pty_run_on_pty (struct vte_pty_child_setup_data *data,
 		     GPid *pid, GError **error)
 {
 	gboolean ret = TRUE;
+	GError *local_error = NULL;
 
 	if (command != NULL) {
 		gchar **arg2;
@@ -282,33 +283,49 @@ _vte_pty_run_on_pty (struct vte_pty_child_setup_data *data,
 		argc = argv ? g_strv_length (argv) : 0;
 		arg2 = g_new (char *, argc+2);
 		arg2[0] = g_strdup (command);
-#ifdef VTE_DEBUG
-		if (_vte_debug_on (VTE_DEBUG_MISC)) {
-			g_printerr("Spawing command...\nargv[0] = %s\n",
-				       	arg2[0]);
-		}
-#endif
 		for (i=0; i<argc; i++) {
 			arg2[i+1] = g_strdup (argv[i]);
-#ifdef VTE_DEBUG
-			if (_vte_debug_on (VTE_DEBUG_MISC)) {
-				g_printerr("argv[%d] = %s\n", i+1, arg2[i+1]);
-			}
-#endif
 		}
 		arg2[i+1] = NULL;
+
+#ifdef VTE_DEBUG
+		if (_vte_debug_on (VTE_DEBUG_MISC)) {
+			g_printerr("Spawing command '%s'\n", command);
+			for (i = 0; arg2[i] != NULL; i++) {
+				g_printerr("    argv[%d] = %s\n", i, arg2[i]);
+			}
+			if (envp) {
+				for (i = 0; envp[i] != NULL; i++) {
+					g_printerr ("    envp[%d] = %s\n",
+							i, envp[i]);
+				}
+			}
+			g_printerr ("    directory: %s\n",
+				       	directory ? directory : "(none)");
+		}
+#endif
 
 		ret = g_spawn_async_with_pipes (directory,
 				arg2, envp,
 				G_SPAWN_CHILD_INHERITS_STDIN |
-				G_SPAWN_FILE_AND_ARGV_ZERO |
 				G_SPAWN_SEARCH_PATH |
-				G_SPAWN_DO_NOT_REAP_CHILD,
+				G_SPAWN_DO_NOT_REAP_CHILD |
+				(argv ? G_SPAWN_FILE_AND_ARGV_ZERO : 0),
 				vte_pty_child_setup, data,
 				pid,
 				NULL, NULL, NULL,
-				error);
+				&local_error);
 		g_strfreev (arg2);
+
+#ifdef VTE_DEBUG
+		if (_vte_debug_on (VTE_DEBUG_MISC)) {
+			g_printerr ("Spawn result: %s%s\n",
+					ret?"Success":"Failure - ",
+					ret?"":local_error->message);
+		}
+#endif
+		if (local_error)
+			g_propagate_error (error, local_error);
 	}
 #ifdef HAVE_FORK
 	else {
