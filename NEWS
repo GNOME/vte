@@ -1,4 +1,59 @@
 0.15.1
+======
+This is a very exciting release.  Most of the changes are made by Chris Wilson
+who just got access to the vte repository.  On his first day he committed more
+than 20 large patches, cleaning various parts of the code base and optimizing
+too!  As a result of huge changes in this release, some regressions, specially
+on less common systems/architectures is expected.  Please file bugs.
+
+Highlights of improvements in this release:
+- Moving around in vim and mc is a lot faster now, thanks to much
+  smaller areas that will be redrawn with this release.
+- Mouse wheel is usable in mc now, since we don't generate release
+  events for scroll wheel events anymore.
+- Faster.  One of the internal timers was completely removed, and
+  lots of unnecessary work is not done anymore.  Particularly when
+  the widget is not visible.
+- Switched to using g_spawn_async to fork the child process, so we
+  can now enjoy the error checking implemented in that functions.
+  Failed forks now return an error message.
+- Accessibility improvements.
+- New environment variable VTE_BACKEND, to choose which rendering
+  backend to use.  The old VTE_USE_* env vars are deprecated and
+  not functional anymore.
+- Bugs fixed in this release:
+	Bug 399137 - continuation.
+	Bug 132316 – terminal widget's context menu posting isn't exposed as an AtkAction
+		     Original patch by <padraig.obriain@sun.com>
+	Bug 156161 – AccessibleText_getTextAtOffset returns wrong values in gnome-terminal
+		     Patch by <padraig.obriain@sun.com>
+	Bug 399137 – UTF-8 problem in VteAccess
+	Bug 123591 – vte_terminal_fork_command succeeds even when it does not
+	Bug 345514 – -no-undefined doesn't work with latest libtool
+	Bug 162003 – vte configure.in X checking can fail
+	           – though this may cause other regressions!
+	Bug 314669 – Please specialize AC_PATH_XTRA
+	Bug 389538 – crash in Terminal: nothing
+	Bug 161479 – Scroll wheel generates Release events
+	Bug 398602 – Build Failure
+	Bug 397724 – Orca incorrect echo's certain input in gnome-terminal
+		     when key echo is set to off (on Ubuntu Feisty).
+	Bug 398244 – Gnome-terminal opens a huge sized window
+	Bug 398243 – Crash
+	Bug 398116 – lags behind when widget not visible
+	Bug 398083 – background not painted correctly when starting up
+	Bug 397414 - port vteapp to GOption
+	Bug 395373 - Allow the user to specify backend priorities.
+	Bug 346554 – Fancy prompt triggers update problem
+	Bug 397439 – Performance enhancement patch series
+	Bug 161342 – Vte slow with mc and vim
+	Bug 387171 – vte fails to install on FreeBSD due to missing header
+		     Patch from Roy Marples
+	Bug 396831 – Unable to compile without X
+		     Patch from Chris Wilson
+	Bug 394890 – Segfault when running vte or gnome-terminal
+
+0.15.1
 	Bug 354061 – Excessive use of strlen by _vte_termcap_create
 		     Patch from Ryan Lortie
 	Bug 387475 – Gtk-Warning spew in gnome-terminal
