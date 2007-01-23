@@ -1,5 +1,17 @@
 2007-01-23  Chris Wilson <chris@chris-wilson.co.uk>
 
+	A couple of minor buggets.
+
+	* src/iso2022.c: (_vte_iso2022_state_set_codeset):
+		Use g_intern_string() instead of from_quark(to_quark(str))
+	* src/vtepango.c: (_vte_pango_create), (_vte_pango_destroy),
+	(_vte_pango_start), (_vte_pango_end), (_vte_pango_set_text_font):
+		Use the widget pango context (we're guarranteed to have a
+		screen by this point) and don't unref it!
+		Inspired by Pedro de Medeiros in Bug 335269.
+
+2007-01-23  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Regression on Bug 123591:
 		mkdir /tmp/aa; cd /tmp/aa; bash; cd ..; rmdir aa
 		Open a new tab in g-t -> Failure.	

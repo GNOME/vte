@@ -832,7 +832,7 @@ _vte_iso2022_state_set_codeset(struct _vte_iso2022_state *state,
 	if (state->conv != VTE_INVALID_CONV) {
 		_vte_conv_close(state->conv);
 	}
-	state->codeset = g_quark_to_string(g_quark_from_string(codeset));
+	state->codeset = g_intern_string (codeset);
 	state->conv = conv;
 }
 
