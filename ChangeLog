@@ -1,5 +1,15 @@
 2007-01-23  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Regression on Bug 123591:
+		mkdir /tmp/aa; cd /tmp/aa; bash; cd ..; rmdir aa
+		Open a new tab in g-t -> Failure.	
+
+	* src/pty.c: (_vte_pty_run_on_pty):
+		Check the error return from g_spawn and try again with the
+		pwd if it reports that the child could not change directory.
+
+2007-01-23  Chris Wilson <chris@chris-wilson.co.uk>
+
 	* src/pty.c: (_vte_pty_run_on_pty):
 		Add all g_spawn parameters to VTE_DEBUG_MISC output.
 

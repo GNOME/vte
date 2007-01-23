@@ -315,6 +315,24 @@ _vte_pty_run_on_pty (struct vte_pty_child_setup_data *data,
 				pid,
 				NULL, NULL, NULL,
 				&local_error);
+		if (ret == FALSE) {
+			if (g_error_matches (local_error,
+						G_SPAWN_ERROR,
+						G_SPAWN_ERROR_CHDIR)) {
+				/* try spawning in our working directory */
+				g_clear_error (&local_error);
+				ret = g_spawn_async_with_pipes (NULL,
+						arg2, envp,
+						G_SPAWN_CHILD_INHERITS_STDIN |
+						G_SPAWN_SEARCH_PATH |
+						G_SPAWN_DO_NOT_REAP_CHILD |
+						(argv ? G_SPAWN_FILE_AND_ARGV_ZERO : 0),
+						vte_pty_child_setup, data,
+						pid,
+						NULL, NULL, NULL,
+						&local_error);
+			}
+		}
 		g_strfreev (arg2);
 
 #ifdef VTE_DEBUG
