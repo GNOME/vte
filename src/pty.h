@@ -28,7 +28,7 @@ G_BEGIN_DECLS
  * pseudo-terminal of its own, returning the descriptor for the master
  * side of the PTY pair, logging the session to the specified files, and
  * storing the child's PID in the given argument. */
-int _vte_pty_open(pid_t *child, char **env_add,
+int _vte_pty_open(GPid *child, char **env_add,
 		  const char *command, char **argv, const char *directory,
 		  int columns, int rows,
 		  gboolean lastlog, gboolean utmp, gboolean wtmp);

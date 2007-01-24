@@ -1,5 +1,14 @@
 2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Bug 400184 – _vte_pty_open declaration mismatch - breaks on Solaris
+
+	Patch by Damien Carbery.
+
+	* src/pty.h:
+		Update prototype to match new definition.
+
+2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
+
 	<mariano> hm, vte is not matching «ESC [ ; 7 m» :/
 
 	* src/table.c: (_vte_table_addi), (_vte_table_matchi),
