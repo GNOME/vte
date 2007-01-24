@@ -1,3 +1,14 @@
+2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
+
+	<mariano> hm, vte is not matching «ESC [ ; 7 m» :/
+
+	* src/table.c: (_vte_table_addi), (_vte_table_matchi),
+	(_vte_table_match):
+		s/GList/GSList/
+		g_slist_append -> g_slist_reverse(g_slist_prepend)
+		And finally add the subtable to handle the leading ';'
+		in the variable length parameters.
+
 2007-01-23  Chris Wilson <chris@chris-wilson.co.uk>
 
 	A couple of minor buggets.
