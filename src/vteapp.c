@@ -287,6 +287,7 @@ resize_window(GtkWidget *widget, guint width, guint height, gpointer data)
 	if ((GTK_IS_WINDOW(data)) && (width >= 2) && (height >= 2)) {
 		terminal = VTE_TERMINAL(widget);
 		/* Take into account border overhead. */
+#if 0
 		gtk_window_get_size(GTK_WINDOW(data), &owidth, &oheight);
 		owidth -= terminal->char_width * terminal->column_count;
 		oheight -= terminal->char_height * terminal->row_count;
@@ -296,6 +297,9 @@ resize_window(GtkWidget *widget, guint width, guint height, gpointer data)
 		oheight -= ypad;
 		gtk_window_resize(GTK_WINDOW(data),
 				  width + owidth, height + oheight);
+#else
+		vte_terminal_set_size (terminal, width, height);
+#endif
 	}
 }
 

@@ -34,7 +34,7 @@ G_BEGIN_DECLS
 					"0123456789./+@"
 #define VTE_DRAW_DOUBLE_WIDE_CHARACTERS	0x4e00, 0x4e8c, 0x4e09, 0x56db, 0x4e94
 #define VTE_DRAW_OPAQUE 0xff
-#define VTE_DRAW_MAX_LENGTH 88
+#define VTE_DRAW_MAX_LENGTH 540
 
 /* The _vte_draw structure. */
 struct _vte_draw;
@@ -45,7 +45,7 @@ struct _vte_draw;
    left end of the baseline. */
 struct _vte_draw_text_request {
 	gunichar c;
-	gint x, y, columns;
+	gshort x, y, columns;
 };
 
 struct _vte_draw_impl {
