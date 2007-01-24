@@ -1,5 +1,15 @@
 2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
 
+	cf Bug 400072 – Handling of ; in control sequences
+
+	Morale of the story: wait until the morning.
+	Revert r1512, the mistaken attempt at parsing '\e[;30m'.
+
+	* src/table.c: (_vte_table_addi), (_vte_table_matchi),
+	(_vte_table_match):
+
+2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
+
 	cf Bug 399617 – Avoid memory allocations during an expose event.
 
 	Currently we cannot generate long glyph runs due to the text
