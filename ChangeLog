@@ -1,5 +1,24 @@
 2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Bug 334755 – Incomplete information from vte_terminal_get_font
+
+	In many situations the font_desc stored in the terminal is incomplete.
+	_vte_fc_transcribe_from_pango_font_description() automagically fills
+	in default values for the backends but this is hidden from the
+	application. By filling in default values up front from the widget
+	font description control is returned to the application and theme
+	designers.
+
+	Patch by Pedro de Medeiros.
+	Also cf bug 335269.
+
+	* src/vte.c: (vte_terminal_set_font_full):
+		Pull default font description from widget.
+	* src/vtefc.c: (_vte_fc_transcribe_from_pango_font_description):
+		Remove default values.
+
+2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 400184 – _vte_pty_open declaration mismatch - breaks on Solaris
 	actually revealed a faux-pas in the conversion of the public
 	interfaces to GPid - that it broke the ABI.

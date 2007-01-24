@@ -6317,8 +6317,11 @@ vte_terminal_set_font_full(VteTerminal *terminal,
 
 
 	/* Create an owned font description. */
+	gtk_widget_ensure_style (&terminal->widget);
+	desc = pango_font_description_copy (terminal->widget.style->font_desc);
+	pango_font_description_set_family_static (desc, "monospace");
 	if (font_desc != NULL) {
-		desc = pango_font_description_copy(font_desc);
+		pango_font_description_merge (desc, font_desc, TRUE);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_MISC)) {
 			if (desc) {
@@ -6329,17 +6332,14 @@ vte_terminal_set_font_full(VteTerminal *terminal,
 			}
 		}
 #endif
-	} else {
-		gtk_widget_ensure_style(&terminal->widget);
-		desc = pango_font_description_copy(terminal->widget.style->font_desc);
-		pango_font_description_set_family_static (desc, "monospace");
-
+	}
 #ifdef VTE_DEBUG
+       	else {
 		if (_vte_debug_on(VTE_DEBUG_MISC)) {
 			g_printerr("Using default monospace font.\n");
 		}
-#endif
 	}
+#endif
 
 	/* check for any change */
 	if (antialias == terminal->pvt->fontantialias &&
