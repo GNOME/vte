@@ -1,11 +1,5 @@
 2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
 
-	* src/vteaccess.c: (vte_terminal_accessible_text_modified):
-		Valgrind pointed out a couple of places where we tried to
-		access before the start of the string.
-
-2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
-
 	Bug 400184 – _vte_pty_open declaration mismatch - breaks on Solaris
 
 	Patch by Damien Carbery.

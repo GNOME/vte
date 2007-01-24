@@ -590,104 +590,94 @@ _vte_xft_get_using_fontconfig(struct _vte_draw *draw)
 	return TRUE;
 }
 
+#if 0
+/* We're just a barely-there wrapper around XftDrawCharFontSpec(). */
+static void
+_vte_xft_drawcharfontspec(XftDraw *draw, XftColor *color,
+			  XftCharFontSpec *specs, int n)
+{
+	XftDrawCharFontSpec(draw, color, specs, n);
+}
+#else
+/* We need to break down the draw request into runs which use the same
+ * font, to work around a bug which appears to be in Xft and which I
+ * haven't pinned down yet. */
+static void
+_vte_xft_drawcharfontspec(XftDraw *draw, XftColor *color,
+			  XftCharFontSpec *specs, int n)
+{
+	int i, j;
+
+	i = j = 0;
+	while (i < n) {
+		for (j = i + 1; j < n; j++) {
+			if (specs[i].font != specs[j].font) {
+				break;
+			}
+		}
+		XftDrawCharFontSpec(draw, color, specs + i, j - i);
+		i = j;
+	}
+}
+#endif
+
 static void
 _vte_xft_draw_text(struct _vte_draw *draw,
 		   struct _vte_draw_text_request *requests, gsize n_requests,
 		   GdkColor *color, guchar alpha)
 {
-	XftGlyphSpec glyphs[VTE_DRAW_MAX_LENGTH];
+	XftCharFontSpec local_specs[VTE_DRAW_MAX_LENGTH], *specs;
 	XRenderColor rcolor;
 	XftColor ftcolor;
 	struct _vte_xft_data *data;
-	gsize i, j;
-	gint width, pad;
-	XftFont *font, *ft;
+	int i, j, width, pad;
 
 	data = (struct _vte_xft_data*) draw->impl_data;
+	if (n_requests > G_N_ELEMENTS(local_specs)) {
+		specs = g_malloc(n_requests * sizeof(XftCharFontSpec));
+	} else {
+		specs = local_specs;
+	}
 
-	/* find the first displayable character ... */
-	font = NULL;
-	for (i = 0; i < n_requests; i++) {
-		if (requests[i].c == ' ' && 
-				(i == n_requests - 1 ||
-				  requests[i+1].c == ' ')) {
-			continue;
-		}
-		font = _vte_xft_font_for_char(data->font,
-				requests[i].c);
-		if (G_UNLIKELY(font == NULL)) {
+	for (i = j = 0; i < n_requests; i++) {
+		specs[j].font = _vte_xft_font_for_char(data->font,
+						       requests[i].c);
+		if (specs[j].font != NULL && requests[i].c != 32) {
+			specs[j].x = requests[i].x - data->x_offs;
+			width = _vte_xft_char_width(data->font,
+						    specs[j].font,
+						    requests[i].c);
+			if (width != 0) {
+				pad = requests[i].columns * draw->width - width;
+				pad = CLAMP(pad / 2, 0, draw->width);
+				specs[j].x += pad;
+			}
+			specs[j].y = requests[i].y - data->y_offs + draw->ascent;
+			specs[j].ucs4 = requests[i].c;
+			j++;
+		} else if (requests[i].c != 32) {
 			g_warning(_("Can not draw character U+%04x.\n"),
-					requests[i].c);
-			continue;
+				  requests[i].c);
 		}
-		break;
 	}
-	if (G_UNLIKELY(i == n_requests)) {
-		return; /* nothing to see here, please move along */
-	}
-
-	rcolor.red = color->red;
-	rcolor.green = color->green;
-	rcolor.blue = color->blue;
-	rcolor.alpha = (alpha == VTE_DRAW_OPAQUE) ?
-		0xffff : (alpha << 8);
-	if (!XftColorAllocValue(data->display, data->visual,
-				data->colormap, &rcolor, &ftcolor)) {
-		return;
-	}
-
-	/* split the text into runs of the same font, because
-	 * "We need to break down the draw request into runs which use the same
-	 * font, to work around a bug which appears to be in Xft and which I
-	 * haven't pinned down yet." */
-	do {
-		j = 0;
-		do {
-			glyphs[j].glyph = XftCharIndex(data->display,
-				       	font, requests[i].c);
-			if (G_LIKELY(glyphs[j].glyph != 0)) {
-				glyphs[j].x = requests[i].x - data->x_offs;
-				width = _vte_xft_char_width(data->font,
-						font, requests[i].c);
-				if (width != 0) {
-					pad = requests[i].columns * draw->width - width;
-					pad = CLAMP(pad / 2, 0, draw->width);
-					glyphs[j].x += pad;
-				}
-				glyphs[j].y = requests[i].y - data->y_offs + draw->ascent;
-				j++;
-			}
-			i++;
-			if (j == VTE_DRAW_MAX_LENGTH) {
-				break;
-			}
-
-			/* find the next displayable character ... */
-			ft = NULL;
-			for (; i < n_requests; i++) {
-				if (requests[i].c == ' ' && 
-						(i == n_requests - 1 ||
-						  requests[i+1].c == ' ')) {
-					continue;
-				}
-				ft = _vte_xft_font_for_char(data->font,
-						requests[i].c);
-				if (G_UNLIKELY(ft == NULL)) {
-					g_warning(_("Can not draw character U+%04x.\n"),
-							requests[i].c);
-					continue;
-				}
-				break;
-			}
-		} while (ft == font);
-		if (j > 0) {
-			XftDrawGlyphSpec (data->draw,
-				       	&ftcolor, font, glyphs, j);
+	if (j > 0) {
+		rcolor.red = color->red;
+		rcolor.green = color->green;
+		rcolor.blue = color->blue;
+		rcolor.alpha = (alpha == VTE_DRAW_OPAQUE) ?
+			       0xffff : (alpha << 8);
+		if (XftColorAllocValue(data->display, data->visual,
+				       data->colormap, &rcolor, &ftcolor)) {
+			_vte_xft_drawcharfontspec(data->draw, &ftcolor,
+						  specs, j);
+			XftColorFree(data->display, data->visual,
+				     data->colormap, &ftcolor);
 		}
-		font = ft;
-	} while (i < n_requests);
-	XftColorFree(data->display, data->visual,
-			data->colormap, &ftcolor);
+	}
+
+	if (specs != local_specs) {
+		g_free(specs);
+	}
 }
 
 static gboolean

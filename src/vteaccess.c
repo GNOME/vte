@@ -483,9 +483,8 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 	}
 
         /* Check if we just backspaced over a space. */
-	if ((olen == offset) && 
-			(caret_offset < olen && old[caret_offset] == ' ') &&
-			(old_snapshot_caret == (priv->snapshot_caret + 1))) {
+	if ((olen == offset) && (old[caret_offset] == ' ') &&
+	    (old_snapshot_caret == (priv->snapshot_caret + 1))) {
 		glong bsp_olen = caret_offset + 1;
 
                 priv->snapshot_text->str = old;
@@ -499,25 +498,22 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 
 	/* At least one of them had better have more data, right? */
 	if ((offset < olen) || (offset < clen)) {
+		gchar *op, *cp;
 		/* Back up from both end points until we find the *last* point
 		 * where they differed.
-		 */
-		if (olen > offset && clen > offset) {
-			/* Start by looking at the terminating NUL byte */
-			gchar *op = old + olen;
-			gchar *cp = current + clen;
-			do {
-				op = g_utf8_prev_char (op);
-				cp = g_utf8_prev_char (cp);
-				if ((op <= old + offset) ||
-					       	(cp <= current + offset)) {
-					break;
-				}
-			} while (g_utf8_get_char (op) == g_utf8_get_char (cp));
-			/* recompute the respective lengths */
-			olen = op - old;
-			clen = cp - current;
-		}
+		 * Start by looking at the terminating NUL byte */
+		op = old + olen;
+		cp = current + clen;
+		do {
+			op = g_utf8_prev_char (op);
+			cp = g_utf8_prev_char (cp);
+			if ((op <= old + offset) || (cp <= current + offset)) {
+				break;
+			}
+		} while (g_utf8_get_char (op) == g_utf8_get_char (cp));
+		/* recompute the respective lengths */
+		olen = op - old;
+		clen = cp - current;
 		/* At least one of them has to have text the other
 		 * doesn't. */
 		g_assert((clen > offset) || (olen > offset));

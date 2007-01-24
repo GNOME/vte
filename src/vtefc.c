@@ -101,29 +101,42 @@ _vte_fc_transcribe_from_pango_font_description(GtkWidget *widget,
 					       FcPattern *pattern,
 				       const PangoFontDescription *font_desc)
 {
-	const char *family;
-	gdouble size;
+	GdkScreen *screen;
+	const char *family = "monospace";
 	PangoLanguage *language;
+	double size = 10.0;
+	int pango_mask;
 	PangoContext *context;
 	PangoWeight weight;
 	PangoStyle style;
 	PangoStretch stretch;
-	guint pango_mask;
 
-	/* Assuming font desc at least contains family and size */
+	if (font_desc == NULL) {
+		return;
+	}
+
 	pango_mask = pango_font_description_get_set_fields(font_desc);
-	g_assert ((pango_mask & (PANGO_FONT_MASK_FAMILY | PANGO_FONT_MASK_SIZE))
-			== (PANGO_FONT_MASK_FAMILY | PANGO_FONT_MASK_SIZE));
 
-	/* Set the family for the pattern. */
-	family = pango_font_description_get_family(font_desc);
+	/* Set the family for the pattern, or use a sensible default. */
+	if (pango_mask & PANGO_FONT_MASK_FAMILY) {
+		family = pango_font_description_get_family(font_desc);
+	}
 	FcPatternAddString(pattern, FC_FAMILY, family);
 
-	/* Set the font size for the pattern. */
-	size = pango_font_description_get_size(font_desc);
-	FcPatternAddDouble(pattern, FC_SIZE, size / PANGO_SCALE);
+	/* Set the font size for the pattern, or use a sensible default. */
+	if (pango_mask & PANGO_FONT_MASK_SIZE) {
+		size = pango_font_description_get_size(font_desc);
+		size /= PANGO_SCALE;
+	}
+	FcPatternAddDouble(pattern, FC_SIZE, size);
 
-	context = gtk_widget_get_pango_context (widget);
+	/* Set the language for the pattern. */
+	if (gtk_widget_has_screen(widget)) {
+		screen = gtk_widget_get_screen(widget);
+	} else {
+		screen = gdk_display_get_default_screen(gtk_widget_get_display(widget));
+	}
+	context = gdk_pango_context_get_for_screen(screen);
 	language = pango_context_get_language(context);
 	if (pango_language_to_string(language) != NULL) {
 		FcPatternAddString(pattern, FC_LANG,
@@ -137,16 +150,20 @@ _vte_fc_transcribe_from_pango_font_description(GtkWidget *widget,
 		FcPatternAddInteger(pattern, FC_WEIGHT,
 				    _vte_fc_weight_from_pango_weight(weight));
 	}
+
 	if (pango_mask & PANGO_FONT_MASK_STRETCH) {
 		stretch = pango_font_description_get_stretch(font_desc);
 		FcPatternAddInteger(pattern, FC_WIDTH,
 				    _vte_fc_width_from_pango_stretch(stretch));
 	}
+
 	if (pango_mask & PANGO_FONT_MASK_STYLE) {
 		style = pango_font_description_get_style(font_desc);
 		FcPatternAddInteger(pattern, FC_SLANT,
 				    _vte_fc_slant_from_pango_style(style));
 	}
+
+	g_object_unref(context);
 }
 
 static void
