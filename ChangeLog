@@ -2,7 +2,7 @@
 
 	cf Bug 400072 – Handling of ; in control sequences
 
-	Morale of the story: wait until the morning.
+	Moral of the story: wait until the morning.
 	Revert r1512, the mistaken attempt at parsing '\e[;30m'.
 
 	* src/table.c: (_vte_table_addi), (_vte_table_matchi),
