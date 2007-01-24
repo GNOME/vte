@@ -1,5 +1,14 @@
 2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
 
+	* src/vte.c: (vte_terminal_set_emulation):
+		Add a missing '\n' to the debug printerr.
+	* src/vte.c: (vte_terminal_init):
+		Initialize the row count to VTE_MIN_SCROLLBACK (was to 0
+		first and then later within the same function to
+		VTE_MIN_SCROLLBACK).
+
+2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 334755 – Incomplete information from vte_terminal_get_font
 
 	In many situations the font_desc stored in the terminal is incomplete.

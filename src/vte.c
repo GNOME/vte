@@ -6587,7 +6587,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	terminal->pvt->emulation = g_intern_string(emulation);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		g_printerr("Setting emulation to `%s'...", emulation);
+		g_printerr("Setting emulation to `%s'...\n", emulation);
 	}
 #endif
 	/* Find and read the right termcap file. */
@@ -6879,18 +6879,22 @@ vte_terminal_init(VteTerminal *terminal)
 
 	/* Initialize the screens and histories. */
 	vte_terminal_reset_rowdata(&pvt->alternate_screen.row_data,
-				   pvt->scrollback_lines);
+				   VTE_SCROLLBACK_MIN);
 	pvt->alternate_screen.sendrecv_mode = TRUE;
 	pvt->alternate_screen.status_line_contents = g_string_new(NULL);
 	pvt->screen = &terminal->pvt->alternate_screen;
 	_vte_terminal_set_default_attributes(terminal);
 
 	vte_terminal_reset_rowdata(&pvt->normal_screen.row_data,
-				   pvt->scrollback_lines);
+				   VTE_SCROLLBACK_MIN);
 	pvt->normal_screen.sendrecv_mode = TRUE;
 	pvt->normal_screen.status_line_contents = g_string_new(NULL);
 	pvt->screen = &terminal->pvt->normal_screen;
 	_vte_terminal_set_default_attributes(terminal);
+
+	/* Scrolling options. */
+	pvt->scroll_on_keystroke = TRUE;
+	vte_terminal_set_scrollback_lines(terminal, VTE_SCROLLBACK_MIN);
 
 	/* Selection info. */
 	vte_terminal_set_word_chars(terminal, NULL);
@@ -6904,12 +6908,6 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->allow_bold = TRUE;
 	pvt->nrc_mode = TRUE;
 	vte_terminal_set_default_tabstops(terminal);
-
-	/* Scrolling options. */
-	pvt->scroll_on_keystroke = TRUE;
-	pvt->scrollback_lines = VTE_SCROLLBACK_MIN;
-	vte_terminal_set_scrollback_lines(terminal,
-					  terminal->pvt->scrollback_lines);
 
 	/* Cursor blinking. */
 	pvt->cursor_visible = TRUE;
