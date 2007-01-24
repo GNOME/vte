@@ -413,13 +413,12 @@ _vte_terminal_scroll_region(VteTerminal *terminal,
 		return;
 	}
 
-	if (terminal->pvt->scroll_background) {
+	if (terminal->pvt->scroll_background || count >= terminal->row_count) {
 		/* We have to repaint the entire window. */
 		_vte_invalidate_all(terminal);
 	} else {
 		/* We have to repaint the area which is to be
 		 * scrolled. */
-		reset_update_regions (terminal);
 		_vte_invalidate_cells(terminal,
 				     0, terminal->column_count,
 				     row, count);
@@ -2807,7 +2806,7 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 				      terminal->column_count,
 				      terminal->row_count);
 		if (GTK_WIDGET_REALIZED(terminal)) {
-			gtk_widget_queue_resize(&terminal->widget);
+			gtk_widget_queue_resize_no_redraw(&terminal->widget);
 		}
 
 		/* Open a channel to listen for input on. */
