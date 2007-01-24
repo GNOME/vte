@@ -1,5 +1,22 @@
 2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
 
+	==25123== Invalid read of size 1
+	==25123==    at 0x4055992: vte_terminal_accessible_text_modified (vteaccess.c:497)
+	==25123==    by 0x46A1248: g_cclosure_marshal_VOID__VOID (gmarshal.c:77)
+	==25123==    by 0x4693EAA: g_closure_invoke (gclosure.c:490)
+	==25123==    by 0x46A4972: signal_emit_unlocked_R (gsignal.c:2440)
+	==25123==    by 0x46A5E96: g_signal_emit_valist (gsignal.c:2199)
+	==25123==    by 0x46A85ED: g_signal_emit_by_name (gsignal.c:2267)
+	==25123==    by 0x403E9E2: _vte_terminal_emit_text_inserted (vte.c:863)
+	==25123==    by 0x40517EF: vte_terminal_process_incoming (vte.c:3032)
+	==25123==    by 0x40522B5: update_repeat_timeout (vte.c:11332)
+
+	* src/vteaccess.c: (vte_terminal_accessible_text_modified):
+		Check that the caret is inside the old string before
+		accessing.
+
+2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Revert changes in conjunction with bug 399137 back to r1487,
 	which contains Rich Burridge's fix for bug 397724.
 

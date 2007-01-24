@@ -467,7 +467,7 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 	VteTerminalAccessiblePrivate *priv;
 	char *old, *current;
 	glong offset, olen, clen;
-	gint old_snapshot_caret;
+	gint old_snapshot_caret, caret;
 
 	g_assert(VTE_IS_TERMINAL_ACCESSIBLE(data));
 
@@ -483,6 +483,7 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 
 	current = priv->snapshot_text->str;
 	clen = priv->snapshot_text->len;
+	caret = priv->snapshot_caret;
 
 	/* Find the offset where they don't match. */
 	offset = 0;
@@ -494,10 +495,11 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 	}
 
         /* Check if we just backspaced over a space. */
-	if ((olen == offset) && (old[priv->snapshot_caret] == ' ') &&
-	    (old_snapshot_caret == (priv->snapshot_caret + 1))) {
-		glong bsp_olen = priv->snapshot_caret+1;
-                glong bsp_offset = priv->snapshot_caret;
+	if ((olen == offset) &&
+		       	(caret < olen && old[caret] == ' ') &&
+	    (old_snapshot_caret == (caret + 1))) {
+		glong bsp_olen = caret + 1;
+                glong bsp_offset = caret;
 
                 priv->snapshot_text->str = old;
 		priv->snapshot_text->len = bsp_olen;
