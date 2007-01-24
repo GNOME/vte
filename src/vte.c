@@ -8845,170 +8845,196 @@ vte_terminal_draw_cells_with_attributes(VteTerminal *terminal,
  * of multiple-draw APIs by finding runs of characters with identical
  * attributes and bundling them together. */
 static void
-vte_terminal_draw_row(VteTerminal *terminal,
+vte_terminal_draw_rows(VteTerminal *terminal,
 		      VteScreen *screen,
-		      gint row,
-		      gint column, gint column_count,
-		      gint x, gint y,
+		      gint row, gint row_count,
+		      gint start_column, gint column_count,
+		      gint start_x, gint y,
 		      gint column_width, gint row_height)
 {
-	int i, j, fore, nfore, back, nback;
+	int i, j, column, x, fore, nfore, back, nback;
 	gboolean underline, nunderline, bold, nbold, hilite, nhilite, reverse,
 		 selected, strikethrough, nstrikethrough, drawn;
-	struct _vte_draw_text_request *items, item;
-	guint item_count = 0;
+	struct _vte_draw_text_request items[4*VTE_DRAW_MAX_LENGTH];
+	guint item_count;
 	struct vte_charcell *cell;
 	VteRowData *row_data;
 
 	reverse = terminal->pvt->screen->reverse_mode;
 
-	/* Allocate an array to hold draw requests. */
-	/* FIXME: can this get too big for alloca? */
-	items = g_newa (struct _vte_draw_text_request, column_count);
+	item_count = 1; /* we will always submit at least one item */
+	do{
+		row_data = _vte_terminal_find_row_data(terminal, row);
 
-	row_data = _vte_terminal_find_row_data(terminal, row);
-
-	/* Back up in case this is a multicolumn character, making the drawing
-	 * area a little wider. */
-	cell = _vte_row_data_find_charcell(row_data, column);
-	while ((cell != NULL) && (cell->fragment) && (column > 0)) {
-		column--;
-		column_count++;
-		x -= column_width;
+		/* Back up in case this is a multicolumn character, making the drawing
+		 * area a little wider. */
+		column = start_column;
+		x = start_x - column * column_width;
 		cell = _vte_row_data_find_charcell(row_data, column);
-	}
-
-	/* Walk the line. */
-	i = column;
-	while (i < column + column_count) {
-		/* Get the character cell's contents. */
-		cell = _vte_row_data_find_charcell(row_data, i);
-		/* Find the colors for this cell. */
-		selected = vte_cell_is_selected(terminal, i, row, NULL);
-		vte_terminal_determine_colors(terminal, cell,
-					      reverse|selected,
-					      selected,
-					      FALSE,
-					      &fore, &back);
-		underline = cell && cell->underline;
-		strikethrough = cell && cell->strikethrough;
-		bold = cell && cell->bold;
-		if ((cell != NULL) && (terminal->pvt->match_contents != NULL)) {
-			hilite = vte_cell_is_between(i, row,
-						     terminal->pvt->match_start.column,
-						     terminal->pvt->match_start.row,
-						     terminal->pvt->match_end.column,
-						     terminal->pvt->match_end.row,
-						     TRUE);
-		} else {
-			hilite = FALSE;
+		while ((cell != NULL) && (cell->fragment) && (column > 0)) {
+			column--;
+			cell = _vte_row_data_find_charcell(row_data, column);
 		}
 
-		item.c = cell ? (cell->c ? cell->c : ' ') : ' ';
-		item.columns = cell ? cell->columns : 1;
-		item.x = x + ((i - column) * column_width);
-		item.y = y;
-
-		/* If this is a graphics character, draw it locally. */
-		if ((cell != NULL) && vte_unichar_is_local_graphic(cell->c)) {
-			drawn = vte_terminal_draw_graphic(terminal,
-							  item.c,
-							  fore, back,
-							  FALSE,
-							  item.x,
-							  item.y,
-							  column_width,
-							  item.columns,
-							  row_height);
-			if (drawn) {
-				i += item.columns;
-				continue;
-			}
-		}
-
-		/* If it's not a local graphic character, or if we couldn't
-		   draw it, add it to the draw list. */
-		items[item_count++] = item;
-
-		/* Now find out how many cells have the same attributes. */
-		j = i + item.columns;
-		while ((j < column + column_count) &&
-		       (j - i < VTE_DRAW_MAX_LENGTH)) {
-			/* Retrieve the cell. */
-			cell = _vte_row_data_find_charcell(row_data, j);
-			/* Resolve attributes to colors where possible and
-			 * compare visual attributes to the first character
-			 * in this chunk. */
-			selected = vte_cell_is_selected(terminal, j, row, NULL);
+		/* Walk the line. */
+		i = column;
+		while (i < start_column + column_count) {
+			/* Get the character cell's contents. */
+			cell = _vte_row_data_find_charcell(row_data, i);
+			/* Find the colors for this cell. */
+			selected = vte_cell_is_selected(terminal, i, row, NULL);
 			vte_terminal_determine_colors(terminal, cell,
-						      reverse|selected,
-						      selected,
-						      FALSE,
-						      &nfore, &nback);
-			if ((nfore != fore) || (nback != back)) {
-				break;
-			}
-			nbold = cell && cell->bold != 0;
-			if (nbold != bold) {
-				break;
-			}
-			/* Graphic characters must be drawn individually. */
-			if ((cell != NULL) &&
-			    vte_unichar_is_local_graphic(cell->c)) {
-				break;
-			}
-			/* Don't render fragments of multicolumn characters
-			 * which have the same attributes as the initial
-			 * portions. */
-			if ((cell != NULL) && (cell->fragment)) {
-				j++;
-				continue;
-			}
-			/* Break up underlined/not-underlined text. */
-			nunderline = cell && cell->underline != 0;
-			if (nunderline != underline) {
-				break;
-			}
-			nstrikethrough = cell && cell->strikethrough != 0;
-			if (nstrikethrough != strikethrough) {
-				break;
-			}
-			/* Break up matched/not-matched text. */
-			if ((cell != NULL) &&
-			    (terminal->pvt->match_contents != NULL)) {
-				nhilite = vte_cell_is_between(j, row,
-							      terminal->pvt->match_start.column,
-							      terminal->pvt->match_start.row,
-							      terminal->pvt->match_end.column,
-							      terminal->pvt->match_end.row,
-							      TRUE);
+					reverse|selected,
+					selected,
+					FALSE,
+					&fore, &back);
+			underline = cell && cell->underline;
+			strikethrough = cell && cell->strikethrough;
+			bold = cell && cell->bold;
+			if ((cell != NULL) && (terminal->pvt->match_contents != NULL)) {
+				hilite = vte_cell_is_between(i, row,
+						terminal->pvt->match_start.column,
+						terminal->pvt->match_start.row,
+						terminal->pvt->match_end.column,
+						terminal->pvt->match_end.row,
+						TRUE);
 			} else {
-				nhilite = FALSE;
+				hilite = FALSE;
 			}
-			if (nhilite != hilite) {
-				break;
+
+			items[0].c = (cell && cell->c) ? cell->c : ' ';
+			items[0].columns = cell ? cell->columns : 1;
+			items[0].x = x + i * column_width;
+			items[0].y = y;
+			j = i + items[0].columns;
+
+			/* If this is a graphics character, draw it locally. */
+			if ((cell != NULL) && vte_unichar_is_local_graphic(cell->c)) {
+				drawn = vte_terminal_draw_graphic(terminal,
+						items[0].c,
+						fore, back,
+						FALSE,
+						items[0].x,
+						items[0].y,
+						column_width,
+						items[0].columns,
+						row_height);
+				if (drawn) {
+					i = j;
+					continue;
+				}
 			}
-			/* Add this cell to the draw list. */
-			item.c = (cell && cell->c) ? cell->c : ' ';
-			item.columns = cell ? cell->columns : 1;
-			item.x = x + ((j - column) * column_width);
-			item.y = y;
-			items[item_count++] = item;
-			j += item.columns;
-		}
-		/* Draw the cells. */
-		vte_terminal_draw_cells(terminal,
+
+			/* Now find out how many cells have the same attributes. */
+			do {
+				while ((j < start_column + column_count) &&
+						(item_count < VTE_DRAW_MAX_LENGTH)) {
+					/* Retrieve the cell. */
+					cell = _vte_row_data_find_charcell(row_data, j);
+					/* Resolve attributes to colors where possible and
+					 * compare visual attributes to the first character
+					 * in this chunk. */
+					selected = vte_cell_is_selected(terminal, j, row, NULL);
+					vte_terminal_determine_colors(terminal, cell,
+							reverse|selected,
+							selected,
+							FALSE,
+							&nfore, &nback);
+					if ((nfore != fore) || (nback != back)) {
+						break;
+					}
+					nhilite = FALSE;
+					nunderline = FALSE;
+					nstrikethrough = FALSE;
+					if (cell) {
+						nbold = cell->bold != 0;
+						if (nbold != bold) {
+							break;
+						}
+						/* Graphic characters must be drawn individually. */
+						if (vte_unichar_is_local_graphic(cell->c)) {
+							break;
+						}
+						/* Don't render fragments of multicolumn characters
+						 * which have the same attributes as the initial
+						 * portions. */
+						if (cell->fragment) {
+							j++;
+							continue;
+						}
+						/* Break up underlined/not-underlined text. */
+						nunderline = cell->underline != 0;
+						nstrikethrough = cell->strikethrough != 0;
+						/* Break up matched/not-matched text. */
+						if (terminal->pvt->match_contents != NULL) {
+							nhilite = vte_cell_is_between(j, row,
+									terminal->pvt->match_start.column,
+									terminal->pvt->match_start.row,
+									terminal->pvt->match_end.column,
+									terminal->pvt->match_end.row,
+									TRUE);
+						}
+					}
+					if (nunderline != underline) {
+						break;
+					}
+					if (nstrikethrough != strikethrough) {
+						break;
+					}
+					if (nhilite != hilite) {
+						break;
+					}
+					/* Add this cell to the draw list. */
+					items[item_count].c = (cell && cell->c) ? cell->c : ' ';
+					items[item_count].columns = cell ? cell->columns : 1;
+					items[item_count].x = x + j * column_width;
+					items[item_count].y = y;
+					j +=  items[item_count].columns;
+					item_count++;
+				}
+				if (j < start_column + column_count) {
+					break;
+				}
+
+				if (!--row_count) {
+					break;
+				}
+				row++;
+				y += row_height;
+				row_data = _vte_terminal_find_row_data(terminal, row);
+
+				/* Back up in case this is a multicolumn character, making the drawing
+				 * area a little wider. */
+				column = start_column;
+				x = start_x - column * column_width;
+				cell = _vte_row_data_find_charcell(row_data, column);
+				while ((cell != NULL) && (cell->fragment) && (column > 0)) {
+					column--;
+					cell = _vte_row_data_find_charcell(row_data, column);
+				}
+				j = column;
+			} while (TRUE);
+			/* Draw the cells. */
+			vte_terminal_draw_cells(terminal,
 					items,
 					item_count,
 					fore, back, FALSE,
 					bold, underline,
 					strikethrough, hilite, FALSE,
 					column_width, row_height);
-		item_count = 0;
-		/* We'll need to continue at the first cell which didn't
-		 * match the first one in this set. */
-		i = j;
-	}
+			item_count = 1;
+			/* We'll need to continue at the first cell which didn't
+			 * match the first one in this set. */
+			i = j;
+			if(!row_count) {
+				return;
+			}
+		}
+
+		row_count--;
+		row++;
+		y += row_height;
+	} while (row_count);
 }
 
 /* Draw the widget. */
@@ -9101,19 +9127,14 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */
-	while (row < row_stop + 1) {
-		vte_terminal_draw_row(terminal,
-				      screen,
-				      row + delta,
-				      col,
-				      col_stop - col + 1,
-				      col * width,
-				      row * height,
-				      width,
-				      height);
-		row++;
-	}
-
+	vte_terminal_draw_rows(terminal,
+			      screen,
+			      row + delta, row_stop - row + 1,
+			      col, col_stop - col + 1,
+			      col * width,
+			      row * height,
+			      width,
+			      height);
 	/* Draw the cursor. */
 	if (terminal->pvt->cursor_visible &&
 	    (CLAMP(screen->cursor_current.col, 0, terminal->column_count - 1) ==

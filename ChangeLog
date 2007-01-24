@@ -1,5 +1,27 @@
 2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
 
+	cf Bug 399617 – Avoid memory allocations during an expose event.
+
+	Currently we cannot generate long glyph runs due to the text
+	painting being broken up into single rows and setting a low
+	max run cap. The benefit of longer runs is the backends can
+	do more caching within a run and potentially generate fewer
+	render calls and/or less network traffic.
+
+	In the simple test case, this increased the performance of a
+	remote hexdump by 10%.
+
+	* src/vte.c: (vte_terminal_draw_rows), (vte_terminal_paint):
+		Scan entired exposed area for glyph runs.
+	* src/vtedraw.h:
+		Increase VTE_DRAW_MAX_LENGTH
+	* src/vtexft.c: (_vte_xft_draw_text):
+		Create GlyphSpecs rather than CharFontSpecs, saves a 
+		conversion and potential malloc inside libXft, and our
+		own malloc.
+
+2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 147495 – screen flicker when opening new terminal windows
 
 	Last in a series of work to reduce extraneous redraws. I no longer
