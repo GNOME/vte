@@ -64,7 +64,7 @@
 #endif
 #include "../gnome-pty-helper/gnome-pty.h"
 static gboolean _vte_pty_helper_started = FALSE;
-static GPid _vte_pty_helper_pid = -1;
+static pid_t _vte_pty_helper_pid = -1;
 static int _vte_pty_helper_tunnel = -1;
 static GTree *_vte_pty_helper_map = NULL;
 #endif
@@ -983,11 +983,12 @@ _vte_pty_open_with_helper(GPid *child, char **env_add,
  * Returns: an open file descriptor for the pty master, -1 on failure
  */
 int
-_vte_pty_open(GPid *child, char **env_add,
+_vte_pty_open(pid_t *child_pid, char **env_add,
 	      const char *command, char **argv, const char *directory,
 	      int columns, int rows,
 	      gboolean lastlog, gboolean utmp, gboolean wtmp)
 {
+	GPid child;
 	int ret = -1;
 #ifdef VTE_USE_GNOME_PTY_HELPER
 	int op = 0;
@@ -1013,18 +1014,22 @@ _vte_pty_open(GPid *child, char **env_add,
 	g_assert(op >= 0);
 	g_assert(op < G_N_ELEMENTS(opmap));
 	if (ret == -1) {
-		ret = _vte_pty_open_with_helper(child, env_add, command, argv,
+		ret = _vte_pty_open_with_helper(&child, env_add, command, argv,
 						directory,
 						columns, rows, opmap[op]);
 	}
 #endif
 	if (ret == -1) {
-		ret = _vte_pty_open_unix98(child, env_add, command, argv,
+		ret = _vte_pty_open_unix98(&child, env_add, command, argv,
 					   directory, columns, rows);
+	}
+	if (ret != -1) {
+		*child_pid = (pid_t) child;
 	}
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_PTY)) {
-		g_printerr("Returning ptyfd = %d.\n", ret);
+		g_printerr("Returning ptyfd = %d, child = %ld.\n",
+			       	ret, (long) child);
 	}
 #endif
 	return ret;

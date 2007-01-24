@@ -1,5 +1,21 @@
 2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Bug 400184 – _vte_pty_open declaration mismatch - breaks on Solaris
+	actually revealed a faux-pas in the conversion of the public
+	interfaces to GPid - that it broke the ABI.
+
+	However, the intention is to remove the exposed pid_t, cf bug 400333.
+
+	* python/vte.defs:
+	* python/vte.override:
+	* src/pty.c: (_vte_pty_open):
+	* src/pty.h:
+	* src/vte.c: (_vte_terminal_fork_basic), (vte_terminal_forkpty):
+	* src/vte.h:
+		Revert the exposed GPids back to pid_t.
+
+2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
+
 	==25123== Invalid read of size 1
 	==25123==    at 0x4055992: vte_terminal_accessible_text_modified (vteaccess.c:497)
 	==25123==    by 0x46A1248: g_cclosure_marshal_VOID__VOID (gmarshal.c:77)

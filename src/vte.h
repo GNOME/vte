@@ -23,6 +23,8 @@
 #include <gtk/gtk.h>
 #include <pango/pango.h>
 
+#include <sys/types.h> /* for pid_t */
+
 G_BEGIN_DECLS
 
 /* Private implementation details. */
@@ -197,7 +199,7 @@ GtkType vte_terminal_anti_alias_get_type(void);
 
 /* You can get by with just these two functions. */
 GtkWidget *vte_terminal_new(void);
-GPid vte_terminal_fork_command(VteTerminal *terminal,
+pid_t vte_terminal_fork_command(VteTerminal *terminal,
 				const char *command, char **argv,
 				char **envv, const char *directory,
 				gboolean lastlog,
@@ -205,7 +207,7 @@ GPid vte_terminal_fork_command(VteTerminal *terminal,
 				gboolean wtmp);
 
 /* Users of libzvt may find this useful. */
-GPid vte_terminal_forkpty(VteTerminal *terminal,
+pid_t vte_terminal_forkpty(VteTerminal *terminal,
 			   char **envv, const char *directory,
 			   gboolean lastlog,
 			   gboolean utmp,

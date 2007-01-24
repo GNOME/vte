@@ -2729,7 +2729,7 @@ _vte_terminal_disconnect_pty_write(VteTerminal *terminal)
 }
 
 /* Basic wrapper around _vte_pty_open, which handles the pipefitting. */
-static GPid
+static pid_t
 _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 			 char **argv, char **envv,
 			 const char *directory,
@@ -2737,7 +2737,7 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 {
 	char **env_add;
 	int i;
-	GPid pid;
+	pid_t pid;
 	VteReaper *reaper;
 
 	/* Duplicate the environment, and add one more variable. */
@@ -2842,7 +2842,7 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
  *
  * Returns: the ID of the new process
  */
-GPid
+pid_t
 vte_terminal_fork_command(VteTerminal *terminal,
 			  const char *command, char **argv, char **envv,
 			  const char *directory,
@@ -2914,19 +2914,15 @@ vte_terminal_fork_command(VteTerminal *terminal,
  *
  * Since: 0.11.11
  */
-GPid
+pid_t
 vte_terminal_forkpty(VteTerminal *terminal,
 		     char **envv, const char *directory,
 		     gboolean lastlog, gboolean utmp, gboolean wtmp)
 {
-	GPid ret;
-
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
 
-	ret = _vte_terminal_fork_basic(terminal, NULL, NULL, envv,
+	return _vte_terminal_fork_basic(terminal, NULL, NULL, envv,
 				       directory, lastlog, utmp, wtmp);
-
-	return ret;
 }
 
 /* Handle an EOF from the client. */

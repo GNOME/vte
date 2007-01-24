@@ -59,7 +59,7 @@
 (define-method fork_command
   (of-object "VteTerminal")
   (c-name "vte_terminal_fork_command")
-  (return-type "GPid")
+  (return-type "pid_t")
   (parameters
     '("const-char*" "command")
     '("char**" "argv")
@@ -74,7 +74,7 @@
 (define-method forkpty
   (of-object "VteTerminal")
   (c-name "vte_terminal_forkpty")
-  (return-type "GPid")
+  (return-type "pid_t")
   (parameters
     '("char**" "envv")
     '("const-char*" "directory")
