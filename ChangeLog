@@ -1,5 +1,14 @@
 2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Revert changes in conjunction with bug 399137 back to r1487,
+	which contains Rich Burridge's fix for bug 397724.
+
+	* src/vteaccess.c: (emit_text_changed_insert),
+	(emit_text_changed_delete),
+	(vte_terminal_accessible_text_modified):
+
+2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
+
 	* src/vteaccess.c: (vte_terminal_accessible_text_modified):
 		Valgrind pointed out a couple of places where we tried to
 		access before the start of the string.
