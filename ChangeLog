@@ -1,15 +1,26 @@
 2007-01-25  Chris Wilson <chris@chris-wilson.co.uk>
 
-	Notice how effective GDK's expose event coalescing is...
+	GDK tries to coalesce multiple expose events into a single event.
+	This is passed to the application as a large region containing
+	multiple rectangles. The unfortunate effect of this is having
+	broken the invalidated region into 2 small components for vim,
+	the expose event was still operating on a single region covering
+	both. The reason the effect was invisible to the eye is due to the
+	double buffer - GDK generated a backing pixmap for the exposed event
+	and only copied from the pixmap to the window exactly the pixels
+	exposed. So we regenerated draw commands for the entire area, and
+	only saved on the later blit.
+
+	The improvement to this is only issue draw commands for the individual
+	rectangles rather than the region as a whole.
 
 	* src/vte.c: (vte_terminal_draw_area), (vte_terminal_paint),
 	(vte_terminal_expose):
-		Paint the exposed rects not the clipbox!
+		Paint the exposed rectangles not the event clipbox!
 
 2007-01-25  Chris Wilson <chris@chris-wilson.co.uk>
 
-	Print out the painted area for VTE_DEBUG_UPDATES and realise the battle
-	is only half won.
+	Print out the painted area for VTE_DEBUG_UPDATES.
 
 	* src/vte.c: (vte_terminal_paint):
 
