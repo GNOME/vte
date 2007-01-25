@@ -57,6 +57,10 @@
 typedef gunichar wint_t;
 #endif
 
+#ifndef howmany
+#define howmany(x, y) (((x) + ((y) - 1)) / (y))
+#endif
+
 static void vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 				     gboolean reset);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
@@ -9058,7 +9062,7 @@ vte_terminal_draw_area (VteTerminal *terminal, GdkRectangle *area)
 {
 	VteScreen *screen;
 	int width, height, delta;
-	int row, col, row_count, col_count;
+	int row, col, row_stop, col_stop;
 
 	screen = terminal->pvt->screen;
 
@@ -9067,18 +9071,18 @@ vte_terminal_draw_area (VteTerminal *terminal, GdkRectangle *area)
 	delta = screen->scroll_delta;
 
 	row = MAX(0, (area->y - VTE_PAD_WIDTH) / height);
-	row_count = MIN(howmany(area->height, height),
-		       terminal->row_count);
+	row_stop = MIN(howmany(area->height + area->y - VTE_PAD_WIDTH, height),
+		       terminal->row_count-1);
 	col = MAX(0, (area->x - VTE_PAD_WIDTH) / width);
-	col_count = MIN(howmany(area->width, width),
-		       terminal->column_count);
+	col_stop = MIN(howmany(area->width + area->x - VTE_PAD_WIDTH, width),
+		       terminal->column_count-1);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on (VTE_DEBUG_UPDATES)) {
 		g_printerr ("vte_terminal_draw_area"
 				"	(%d,%d)x(%d,%d) pixels,"
 				" (%d,%d)x(%d,%d) cells\n",
 				area->x, area->y, area->width, area->height,
-				col, row, col_count, row_count);
+				col, row, col_stop - col + 1, row_stop - row + 1);
 	}
 #endif
 	_vte_draw_clear(terminal->pvt->draw,
@@ -9088,8 +9092,8 @@ vte_terminal_draw_area (VteTerminal *terminal, GdkRectangle *area)
 	 * need to draw. */
 	vte_terminal_draw_rows(terminal,
 			      screen,
-			      row + delta, row_count,
-			      col, col_count,
+			      row + delta, row_stop - row +1,
+			      col, col_stop - col + 1,
 			      col * width,
 			      row * height,
 			      width,

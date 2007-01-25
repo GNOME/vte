@@ -1,5 +1,24 @@
 2007-01-25  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Bug 400759 – update problem with vte trunk
+
+	Otherwise known as the I can't count bug.
+
+	The number of rows and columns to paint were not properly taking
+	account of the discrete nature of the cells ie although the floor(x)
+	moved the start to the left by one, the extra cell was not being added
+	to the width.
+
+	Also since the howmany() macro is pulled from <sys/param.h>, it can
+	not be guarranteed to exist on all platforms. So in that case, provide
+	a local copy.
+
+	* src/vte.c: (vte_terminal_draw_area):
+		Calculate the width as the distance between the explicity
+		calculated start and end cells.
+
+2007-01-25  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 400671 – crash in Terminal: detaching of tabs
 
 	The fontdirty flag needed to be set on unrealize to ensure the fonts
