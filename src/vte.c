@@ -610,15 +610,15 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 			columns++; /* one more for the preedit cursor */
 		}
 
-		_vte_invalidate_cells(terminal,
-				     column, columns,
-				     row, 1);
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_UPDATES)) {
 			g_printerr("Invalidating cursor at (%ld,%ld-%ld).\n",
 				       	row, column, column + columns);
 		}
 #endif
+		_vte_invalidate_cells(terminal,
+				     column, columns,
+				     row, 1);
 	}
 }
 
@@ -5629,7 +5629,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 	    (old_end.y != terminal->pvt->selection_end.y))) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
-			g_printerr("Refreshing lines %ld to %ld.\n",
+			g_printerr("Refreshing selection, lines %ld to %ld.\n",
 				MIN(old_end.y, terminal->pvt->selection_end.y),
 				MAX(old_end.y, terminal->pvt->selection_end.y));
 		}
@@ -5647,7 +5647,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 	if (invalidate_selected) {
 #ifdef VTE_DEBUG
 		if (_vte_debug_on(VTE_DEBUG_SELECTION)) {
-			g_printerr("Refreshing lines %ld to %ld.\n",
+			g_printerr("Invalidating selection, lines %ld to %ld.\n",
 				MIN(terminal->pvt->selection_start.y,
 				    terminal->pvt->selection_end.y),
 				MAX(terminal->pvt->selection_start.y,
@@ -8506,8 +8506,6 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	struct vte_palette_entry *fg, *bg, *defbg;
 
 	g_assert(n > 0);
-	x = items[0].x;
-	y = items[0].y;
 
 	bold = bold && terminal->pvt->allow_bold;
 	fg = &terminal->pvt->palette[fore];
@@ -8520,45 +8518,50 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		g_printerr("Rendering");
 		for (i = 0; i < n; i++) {
 			g_printerr(" (%ld,%ld)",
-				(long) items[i].c,
-				(long) items[i].columns);
+					(long) items[i].c,
+					(long) items[i].columns);
 			g_assert(items[i].columns > 0);
 		}
 		g_printerr(".\n");
 	}
 #endif
 
-	columns = 0;
-	for (i = 0; i < n; i++) {
-		/* Adjust for the border. */
-		items[i].x += VTE_PAD_WIDTH;
-		items[i].y += VTE_PAD_WIDTH;
-		columns += items[i].columns;
-	}
-	if (bg != defbg) {
-		color.red = bg->red;
-		color.blue = bg->blue;
-		color.green = bg->green;
-		_vte_draw_fill_rectangle(terminal->pvt->draw,
-					 x + VTE_PAD_WIDTH, y + VTE_PAD_WIDTH,
-					 columns * column_width,
-					 row_height,
-					 &color, VTE_DRAW_OPAQUE);
-	}
+	color.red = bg->red;
+	color.blue = bg->blue;
+	color.green = bg->green;
+	i = 0;
+	do {
+		columns = 0;
+		x = items[i].x;
+		y = items[i].y;
+		for (; i < n && items[i].y == y; i++) {
+			/* Adjust for the border. */
+			items[i].x += VTE_PAD_WIDTH;
+			items[i].y += VTE_PAD_WIDTH;
+			columns += items[i].columns;
+		}
+		if (bg != defbg) {
+			_vte_draw_fill_rectangle(terminal->pvt->draw,
+					x + VTE_PAD_WIDTH, y + VTE_PAD_WIDTH,
+					columns * column_width,
+					row_height,
+					&color, VTE_DRAW_OPAQUE);
+		}
+	} while (i < n);
 	color.red = fg->red;
 	color.blue = fg->blue;
 	color.green = fg->green;
 	_vte_draw_text(terminal->pvt->draw,
-		       items, n,
-		       &color, VTE_DRAW_OPAQUE);
+			items, n,
+			&color, VTE_DRAW_OPAQUE);
 	if (bold) {
 		/* Take a step to the right. */
 		for (i = 0; i < n; i++) {
 			items[i].x++;
 		}
 		_vte_draw_text(terminal->pvt->draw,
-			       items, n,
-			       &color, VTE_DRAW_OPAQUE);
+				items, n,
+				&color, VTE_DRAW_OPAQUE);
 		/* Now take a step back. */
 		for (i = 0; i < n; i++) {
 			items[i].x--;
@@ -8571,37 +8574,45 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	}
 
 	/* Draw whatever SFX are required. */
-	if (underline) {
-		vte_terminal_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x,
-				       y + MIN(ascent + 2, row_height - 1),
-				       x + (columns * column_width) - 1,
-				       y + ascent + 2);
-	}
-	if (strikethrough) {
-		vte_terminal_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, y + ascent / 2,
-				       x + (columns * column_width) - 1,
-				       y + (ascent + row_height)/4);
-	}
-	if (hilite) {
-		vte_terminal_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x,
-				       y + row_height - 1,
-				       x + (columns * column_width) - 1,
-				       y + row_height - 1);
-	}
-	if (boxed) {
-		vte_terminal_draw_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x, y,
-					    MAX(0,
-						(columns * column_width) - 1),
-					    MAX(0,
-						row_height - 1));
+	if (underline | strikethrough | hilite | boxed) {
+		i = 0;
+		do {
+			x = items[i].x;
+			y = items[i].y;
+			for (columns = 0; i < n && items[i].y == y; i++) {
+				columns += items[i].columns;
+			}
+			if (underline) {
+				vte_terminal_draw_line(terminal,
+						&terminal->pvt->palette[fore],
+						x,
+						y + MIN(ascent + 2, row_height - 1),
+						x + (columns * column_width) - 1,
+						y + ascent + 2);
+			}
+			if (strikethrough) {
+				vte_terminal_draw_line(terminal,
+						&terminal->pvt->palette[fore],
+						x, y + ascent / 2,
+						x + (columns * column_width) - 1,
+						y + (ascent + row_height)/4);
+			}
+			if (hilite) {
+				vte_terminal_draw_line(terminal,
+						&terminal->pvt->palette[fore],
+						x,
+						y + row_height - 1,
+						x + (columns * column_width) - 1,
+						y + row_height - 1);
+			}
+			if (boxed) {
+				vte_terminal_draw_rectangle(terminal,
+						&terminal->pvt->palette[fore],
+						x, y,
+						MAX(0, (columns * column_width) - 1),
+						MAX(0, row_height - 1));
+			}
+		}while (i < n);
 	}
 }
 
@@ -8858,9 +8869,9 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 		      gint start_x, gint y,
 		      gint column_width, gint row_height)
 {
-	int i, j, column, x, fore, nfore, back, nback;
+	int i, j, fore, nfore, back, nback;
 	gboolean underline, nunderline, bold, nbold, hilite, nhilite, reverse,
-		 selected, strikethrough, nstrikethrough, drawn;
+		 selected, strikethrough, nstrikethrough;
 	struct _vte_draw_text_request items[4*VTE_DRAW_MAX_LENGTH];
 	guint item_count;
 	struct vte_charcell *cell;
@@ -8868,22 +8879,23 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 
 	reverse = terminal->pvt->screen->reverse_mode;
 
+       	/* adjust for the absolute start of row */
+	start_x -= start_column * column_width;
+
 	item_count = 1; /* we will always submit at least one item */
 	do{
 		row_data = _vte_terminal_find_row_data(terminal, row);
 
-		/* Back up in case this is a multicolumn character, making the drawing
-		 * area a little wider. */
-		column = start_column;
-		x = start_x - column * column_width;
-		cell = _vte_row_data_find_charcell(row_data, column);
-		while ((cell != NULL) && (cell->fragment) && (column > 0)) {
-			column--;
-			cell = _vte_row_data_find_charcell(row_data, column);
+		/* Back up in case this is a multicolumn character,
+		 * making the drawing area a little wider. */
+		i = start_column;
+		cell = _vte_row_data_find_charcell(row_data, i);
+		while ((cell != NULL) && (cell->fragment) && (i > 0)) {
+			i--;
+			cell = _vte_row_data_find_charcell(row_data, i);
 		}
 
 		/* Walk the line. */
-		i = column;
 		while (i < start_column + column_count) {
 			/* Get the character cell's contents. */
 			cell = _vte_row_data_find_charcell(row_data, i);
@@ -8910,13 +8922,13 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 
 			items[0].c = (cell && cell->c) ? cell->c : ' ';
 			items[0].columns = cell ? cell->columns : 1;
-			items[0].x = x + i * column_width;
+			items[0].x = start_x + i * column_width;
 			items[0].y = y;
 			j = i + items[0].columns;
 
 			/* If this is a graphics character, draw it locally. */
 			if ((cell != NULL) && vte_unichar_is_local_graphic(cell->c)) {
-				drawn = vte_terminal_draw_graphic(terminal,
+				if (vte_terminal_draw_graphic(terminal,
 						items[0].c,
 						fore, back,
 						FALSE,
@@ -8924,8 +8936,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 						items[0].y,
 						column_width,
 						items[0].columns,
-						row_height);
-				if (drawn) {
+						row_height)) {
 					i = j;
 					continue;
 				}
@@ -8934,7 +8945,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			/* Now find out how many cells have the same attributes. */
 			do {
 				while ((j < start_column + column_count) &&
-						(item_count < VTE_DRAW_MAX_LENGTH)) {
+						(item_count < G_N_ELEMENTS(items))) {
 					/* Retrieve the cell. */
 					cell = _vte_row_data_find_charcell(row_data, j);
 					/* Resolve attributes to colors where possible and
@@ -8949,43 +8960,41 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					if ((nfore != fore) || (nback != back)) {
 						break;
 					}
-					nhilite = FALSE;
-					nunderline = FALSE;
-					nstrikethrough = FALSE;
-					if (cell) {
-						nbold = cell->bold != 0;
-						if (nbold != bold) {
-							break;
-						}
-						/* Graphic characters must be drawn individually. */
-						if (vte_unichar_is_local_graphic(cell->c)) {
-							break;
-						}
-						/* Don't render fragments of multicolumn characters
-						 * which have the same attributes as the initial
-						 * portions. */
-						if (cell->fragment) {
-							j++;
-							continue;
-						}
-						/* Break up underlined/not-underlined text. */
-						nunderline = cell->underline != 0;
-						nstrikethrough = cell->strikethrough != 0;
-						/* Break up matched/not-matched text. */
-						if (terminal->pvt->match_contents != NULL) {
-							nhilite = vte_cell_is_between(j, row,
-									terminal->pvt->match_start.column,
-									terminal->pvt->match_start.row,
-									terminal->pvt->match_end.column,
-									terminal->pvt->match_end.row,
-									TRUE);
-						}
+					nbold = cell && cell->bold;
+					if (nbold != bold) {
+						break;
 					}
+					/* Graphic characters must be drawn individually. */
+					if ((cell != NULL) &&
+							vte_unichar_is_local_graphic(cell->c)) {
+						break;
+					}
+					/* Don't render fragments of multicolumn characters
+					 * which have the same attributes as the initial
+					 * portions. */
+					if ((cell != NULL) && (cell->fragment)) {
+						j++;
+						continue;
+					}
+					/* Break up underlined/not-underlined text. */
+					nunderline = cell && cell->underline;
 					if (nunderline != underline) {
 						break;
 					}
+					nstrikethrough = cell && cell->strikethrough;
 					if (nstrikethrough != strikethrough) {
 						break;
+					}
+					/* Break up matched/not-matched text. */
+					nhilite = FALSE;
+					if ((cell != NULL) &&
+							(terminal->pvt->match_contents != NULL)) {
+						nhilite = vte_cell_is_between(j, row,
+								terminal->pvt->match_start.column,
+								terminal->pvt->match_start.row,
+								terminal->pvt->match_end.column,
+								terminal->pvt->match_end.row,
+								TRUE);
 					}
 					if (nhilite != hilite) {
 						break;
@@ -8993,32 +9002,34 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					/* Add this cell to the draw list. */
 					items[item_count].c = (cell && cell->c) ? cell->c : ' ';
 					items[item_count].columns = cell ? cell->columns : 1;
-					items[item_count].x = x + j * column_width;
+					items[item_count].x = start_x + j * column_width;
 					items[item_count].y = y;
 					j +=  items[item_count].columns;
 					item_count++;
 				}
+				/* have we encountered a state change? */
 				if (j < start_column + column_count) {
 					break;
 				}
-
+				/* is this the last column, on the last row? */
 				if (!--row_count) {
 					break;
 				}
+
+				/* restart on the next row */
 				row++;
 				y += row_height;
 				row_data = _vte_terminal_find_row_data(terminal, row);
 
-				/* Back up in case this is a multicolumn character, making the drawing
+				/* Back up in case this is a
+				 * multicolumn character, making the drawing
 				 * area a little wider. */
-				column = start_column;
-				x = start_x - column * column_width;
-				cell = _vte_row_data_find_charcell(row_data, column);
-				while ((cell != NULL) && (cell->fragment) && (column > 0)) {
-					column--;
-					cell = _vte_row_data_find_charcell(row_data, column);
+				j = start_column;
+				cell = _vte_row_data_find_charcell(row_data, j);
+				while ((cell != NULL) && (cell->fragment) && (j > 0)) {
+					j--;
+					cell = _vte_row_data_find_charcell(row_data, j);
 				}
-				j = column;
 			} while (TRUE);
 			/* Draw the cells. */
 			vte_terminal_draw_cells(terminal,
@@ -9037,10 +9048,9 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			}
 		}
 
-		row_count--;
 		row++;
 		y += row_height;
-	} while (row_count);
+	} while (--row_count);
 }
 
 static void
@@ -9048,7 +9058,7 @@ vte_terminal_draw_area (VteTerminal *terminal, GdkRectangle *area)
 {
 	VteScreen *screen;
 	int width, height, delta;
-	int row, col, row_stop, col_stop;
+	int row, col, row_count, col_count;
 
 	screen = terminal->pvt->screen;
 
@@ -9057,20 +9067,18 @@ vte_terminal_draw_area (VteTerminal *terminal, GdkRectangle *area)
 	delta = screen->scroll_delta;
 
 	row = MAX(0, (area->y - VTE_PAD_WIDTH) / height);
-	row_stop = MIN(howmany((area->y - VTE_PAD_WIDTH) + area->height,
-			       height),
-		       terminal->row_count - 1);
+	row_count = MIN(howmany(area->height, height),
+		       terminal->row_count);
 	col = MAX(0, (area->x - VTE_PAD_WIDTH) / width);
-	col_stop = MIN(howmany((area->x - VTE_PAD_WIDTH) + area->width,
-			       width),
-		       terminal->column_count - 1);
+	col_count = MIN(howmany(area->width, width),
+		       terminal->column_count);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on (VTE_DEBUG_UPDATES)) {
 		g_printerr ("vte_terminal_draw_area"
 				"	(%d,%d)x(%d,%d) pixels,"
 				" (%d,%d)x(%d,%d) cells\n",
 				area->x, area->y, area->width, area->height,
-				col, row, col_stop-col+1, row_stop-row+1);
+				col, row, col_count, row_count);
 	}
 #endif
 	_vte_draw_clear(terminal->pvt->draw,
@@ -9080,8 +9088,8 @@ vte_terminal_draw_area (VteTerminal *terminal, GdkRectangle *area)
 	 * need to draw. */
 	vte_terminal_draw_rows(terminal,
 			      screen,
-			      row + delta, row_stop - row + 1,
-			      col, col_stop - col + 1,
+			      row + delta, row_count,
+			      col, col_count,
 			      col * width,
 			      row * height,
 			      width,
@@ -9181,6 +9189,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 		for (n = 0; n < n_rectangles; n++) {
 			vte_terminal_draw_area (terminal, rectangles + n);
 		}
+		g_free (rectangles);
 	}
 
 

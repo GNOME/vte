@@ -1,5 +1,23 @@
 2007-01-25  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Bug 400493 – Mouse selection seriously broken
+
+	The rendering of non-text attributes, e.g highlight, backgrounds,
+	underlines, was broken by the change to multi-row run of glyphs. This
+	was most apparent when selecting regions with a mouse.
+
+	* src/vte.c: (_vte_invalidate_cursor_once),
+	(vte_terminal_extend_selection),
+	(vte_terminal_draw_rows), (vte_terminal_draw_area),
+	(vte_terminal_paint):
+		Some janitorial work (a memleak, whitespace, improving debug
+		messages, comments).
+	* src/vte.c: (vte_terminal_draw_cells):
+		Loop over cells and draw attributes for groups of cells on
+		each row.
+
+2007-01-25  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 400438 – _vte_invalidate_all triggered on GDK_VISIBILITY_UNOBSCURED
 
 	* src/vte.c: (vte_terminal_visibility_notify):
