@@ -1,3 +1,13 @@
+2007-01-25  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vte.c (_vte_terminal_set_default_attributes),
+	(_vte_invalidate_cells), (_vte_invalidate_all),
+	(_vte_invalidate_cell), (_vte_invalidate_cursor_once),
+	(vte_terminal_visibility_notify), (vte_terminal_handle_scroll):
+	Replace most of checks for terminal->pvt->visibility_state ==
+	GDK_VISIBILITY_FULLY_OBSCURED by terminal->pvt->invalidated_all, and
+	adapt.
+
 2007-01-25  Chris Wilson <chris@chris-wilson.co.uk>
 
 	Bug 400759 – update problem with vte trunk

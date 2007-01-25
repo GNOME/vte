@@ -197,8 +197,6 @@ _vte_terminal_set_default_attributes(VteTerminal *terminal)
 {
 	VteScreen *screen;
 
-	g_assert(VTE_IS_TERMINAL(terminal));
-
 	screen = terminal->pvt->screen;
 
 	screen->defaults.c = ' ';
@@ -272,11 +270,7 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		return;
 	}
 
-	g_assert(VTE_IS_TERMINAL(terminal));
-	if (!GTK_WIDGET_DRAWABLE(terminal)) {
-		return;
-	}
-	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
+	if (G_UNLIKELY (!GTK_WIDGET_DRAWABLE(terminal) || terminal->pvt->invalidated_all)) {
 		return;
 	}
 
@@ -290,10 +284,6 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		g_printerr ("?");
 	}
 #endif
-
-	if (terminal->pvt->invalidated_all) {
-		return;
-	}
 
 	/* Subtract the scrolling offset from the row start so that the
 	 * resulting rectangle is relative to the visible portion of the
@@ -376,7 +366,7 @@ _vte_invalidate_all(VteTerminal *terminal)
 	if (!GTK_WIDGET_DRAWABLE(terminal)) {
 		return;
 	}
-	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
+	if (terminal->pvt->invalidated_all) {
 		return;
 	}
 
@@ -385,10 +375,6 @@ _vte_invalidate_all(VteTerminal *terminal)
 		g_printerr ("*");
 	}
 #endif
-
-	if (terminal->pvt->invalidated_all) {
-		return;
-	}
 
 	/* replace invalid regions with one covering the whole terminal */
 	reset_update_regions (terminal);
@@ -529,8 +515,7 @@ _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
 	struct vte_charcell *cell;
 	int columns;
 
-	if ( GTK_WIDGET_DRAWABLE(terminal) == FALSE ||
-			terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
+	if ( !GTK_WIDGET_DRAWABLE(terminal) || terminal->pvt->invalidated_all) {
 		return;
 	}
 
@@ -573,7 +558,7 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 	glong column, row;
 	gint columns;
 
-	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
+	if (terminal->pvt->invalidated_all) {
 		return;
 	}
 
@@ -583,8 +568,7 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 		}
 	}
 
-	if (terminal->pvt->cursor_visible &&
-	    GTK_WIDGET_DRAWABLE(terminal)) {
+	if (terminal->pvt->cursor_visible && GTK_WIDGET_DRAWABLE(terminal)) {
 		preedit_width = vte_terminal_preedit_width(terminal, FALSE);
 
 		screen = terminal->pvt->screen;
@@ -6230,8 +6214,12 @@ vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
 	terminal->pvt->visibility_state = event->state;
 
 	/* no longer visible, stop processing display updates */
-	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED)
+	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
 		remove_update_timeout (terminal);
+		/* if fully obscured, just act like we have invalidated all,
+		 * since we will do, when becoming unobscured */
+		terminal->pvt->invalidated_all = TRUE;
+	}
 
 	return FALSE;
 }
@@ -6521,7 +6509,7 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	screen->scroll_delta = adj;
 
 	/* Sanity checks. */
-	if (GTK_WIDGET_DRAWABLE(terminal) == FALSE ||
+	if (!GTK_WIDGET_DRAWABLE(terminal) ||
 			terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
 		return;
 	}
