@@ -1,5 +1,20 @@
 2007-01-25  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Bug 400438 – _vte_invalidate_all triggered on GDK_VISIBILITY_UNOBSCURED
+
+	* src/vte.c: (vte_terminal_visibility_notify):
+		Only force an _vte_invalidate_all if we can trivially detect
+		that we have switch from fully obscured to fully unobscured.
+		Otherwise, we will just handle the GDK expose in the normal
+		manner.
+	* src/vte.c: (vte_terminal_expose):
+		Check the event area to see if we can use _vte_invalidate_all,
+		has a slight benefit of discarding further exposed area
+		processing.
+		
+
+2007-01-25  Chris Wilson <chris@chris-wilson.co.uk>
+
 	GDK tries to coalesce multiple expose events into a single event.
 	This is passed to the application as a large region containing
 	multiple rectangles. The unfortunate effect of this is having

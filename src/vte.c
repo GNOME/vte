@@ -6217,10 +6217,16 @@ vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
 {
 	VteTerminal *terminal;
 	terminal = VTE_TERMINAL(widget);
-	terminal->pvt->visibility_state = event->state;
-	if (terminal->pvt->visibility_state == GDK_VISIBILITY_UNOBSCURED)
+
+	/* fully obscured to visible switch, force the fast path */
+	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED &&
+			event->state == GDK_VISIBILITY_UNOBSCURED)
 		_vte_invalidate_all(terminal);
-	else if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED)
+
+	terminal->pvt->visibility_state = event->state;
+
+	/* no longer visible, stop processing display updates */
+	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED)
 		remove_update_timeout (terminal);
 
 	return FALSE;
@@ -9396,9 +9402,14 @@ vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 			 * just add this event to the list */
 			if (terminal->pvt->update_regions != NULL) {
 				if (!terminal->pvt->invalidated_all) {
-					terminal->pvt->update_regions =
-						g_slist_prepend (terminal->pvt->update_regions,
-								gdk_region_copy (event->region));
+					if (event->area.width >= widget->allocation.width && 
+							event->area.height >= widget->allocation.height) {
+						_vte_invalidate_all (terminal);
+					} else {
+						terminal->pvt->update_regions =
+							g_slist_prepend (terminal->pvt->update_regions,
+									gdk_region_copy (event->region));
+					}
 				}
 			} else {
 				vte_terminal_paint(widget, event->region);
