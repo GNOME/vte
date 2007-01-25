@@ -9037,15 +9037,60 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 	} while (row_count);
 }
 
+static void
+vte_terminal_draw_area (VteTerminal *terminal, GdkRectangle *area)
+{
+	VteScreen *screen;
+	int width, height, delta;
+	int row, col, row_stop, col_stop;
+
+	screen = terminal->pvt->screen;
+
+	width = terminal->char_width;
+	height = terminal->char_height;
+	delta = screen->scroll_delta;
+
+	row = MAX(0, (area->y - VTE_PAD_WIDTH) / height);
+	row_stop = MIN(howmany((area->y - VTE_PAD_WIDTH) + area->height,
+			       height),
+		       terminal->row_count - 1);
+	col = MAX(0, (area->x - VTE_PAD_WIDTH) / width);
+	col_stop = MIN(howmany((area->x - VTE_PAD_WIDTH) + area->width,
+			       width),
+		       terminal->column_count - 1);
+#ifdef VTE_DEBUG
+	if (_vte_debug_on (VTE_DEBUG_UPDATES)) {
+		g_printerr ("vte_terminal_draw_area"
+				"	(%d,%d)x(%d,%d) pixels,"
+				" (%d,%d)x(%d,%d) cells\n",
+				area->x, area->y, area->width, area->height,
+				col, row, col_stop-col+1, row_stop-row+1);
+	}
+#endif
+	_vte_draw_clear(terminal->pvt->draw,
+			area->x, area->y, area->width, area->height);
+
+	/* Now we're ready to draw the text.  Iterate over the rows we
+	 * need to draw. */
+	vte_terminal_draw_rows(terminal,
+			      screen,
+			      row + delta, row_stop - row + 1,
+			      col, col_stop - col + 1,
+			      col * width,
+			      row * height,
+			      width,
+			      height);
+}
+
 /* Draw the widget. */
 static void
-vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
+vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 {
 	VteTerminal *terminal;
 	VteScreen *screen;
 	struct vte_charcell *cell;
 	struct _vte_draw_text_request item, *items;
-	int row, drow, col, row_stop, col_stop, columns;
+	int row, drow, col, columns;
 	char *preedit;
 	int preedit_cursor;
 	long width, height, ascent, descent, delta, cursor_width;
@@ -9076,7 +9121,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 				       terminal->char_height;
 		selected_area.width -= selected_area.x;
 		selected_area.height -= selected_area.y;
-		gdk_rectangle_union(area, &selected_area, area);
+		gdk_region_union_with_rect(region, &selected_area);
 	}
 
 	/* Get going. */
@@ -9088,25 +9133,6 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 	ascent = terminal->char_ascent;
 	descent = terminal->char_descent;
 	delta = screen->scroll_delta;
-
-	/* Calculate the bounding rectangle. */
-	if (_vte_draw_requires_repaint(terminal->pvt->draw)) {
-		all_area.x = 0;
-		all_area.y = 0;
-		all_area.width = terminal->char_width * terminal->column_count;
-		all_area.width += 2 * VTE_PAD_WIDTH;
-		all_area.height = terminal->char_height * terminal->row_count;
-		all_area.height += 2 * VTE_PAD_WIDTH;
-		area = &all_area;
-	}
-	row = MAX(0, (area->y - VTE_PAD_WIDTH) / height);
-	row_stop = MIN(howmany((area->y - VTE_PAD_WIDTH) + area->height,
-			       height),
-		       terminal->row_count - 1);
-	col = MAX(0, (area->x - VTE_PAD_WIDTH) / width);
-	col_stop = MIN(howmany((area->x - VTE_PAD_WIDTH) + area->width,
-			       width),
-		       terminal->column_count - 1);
 
 	/* Designate the start of the drawing operation and clear the area. */
 	_vte_draw_start(terminal->pvt->draw);
@@ -9122,19 +9148,36 @@ vte_terminal_paint(GtkWidget *widget, GdkRectangle *area)
 			_vte_draw_set_scroll(terminal->pvt->draw, 0, 0);
 		}
 	}
-	_vte_draw_clear(terminal->pvt->draw,
-			area->x, area->y, area->width, area->height);
 
-	/* Now we're ready to draw the text.  Iterate over the rows we
-	 * need to draw. */
-	vte_terminal_draw_rows(terminal,
-			      screen,
-			      row + delta, row_stop - row + 1,
-			      col, col_stop - col + 1,
-			      col * width,
-			      row * height,
-			      width,
-			      height);
+#ifdef VTE_DEBUG
+	if (_vte_debug_on (VTE_DEBUG_UPDATES)) {
+		GdkRectangle clip;
+		gdk_region_get_clipbox (region, &clip);
+		g_printerr ("vte_terminal_paint"
+				"	(%d,%d)x(%d,%d) pixels\n",
+				clip.x, clip.y, clip.width, clip.height);
+	}
+#endif
+
+	/* Calculate the bounding rectangle. */
+	if (_vte_draw_requires_repaint(terminal->pvt->draw)) {
+		all_area.x = 0;
+		all_area.y = 0;
+		all_area.width = terminal->char_width * terminal->column_count;
+		all_area.width += 2 * VTE_PAD_WIDTH;
+		all_area.height = terminal->char_height * terminal->row_count;
+		all_area.height += 2 * VTE_PAD_WIDTH;
+		vte_terminal_draw_area (terminal, &all_area);
+	} else {
+		GdkRectangle *rectangles;
+		gint n, n_rectangles;
+	 	gdk_region_get_rectangles (region, &rectangles, &n_rectangles);
+		for (n = 0; n < n_rectangles; n++) {
+			vte_terminal_draw_area (terminal, rectangles + n);
+		}
+	}
+
+
 	/* Draw the cursor. */
 	if (terminal->pvt->cursor_visible &&
 	    (CLAMP(screen->cursor_current.col, 0, terminal->column_count - 1) ==
@@ -9358,7 +9401,7 @@ vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 								gdk_region_copy (event->region));
 				}
 			} else {
-				vte_terminal_paint(widget, &event->area);
+				vte_terminal_paint(widget, event->region);
 			}
 		}
 	}

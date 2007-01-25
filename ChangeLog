@@ -1,3 +1,18 @@
+2007-01-25  Chris Wilson <chris@chris-wilson.co.uk>
+
+	Notice how effective GDK's expose event coalescing is...
+
+	* src/vte.c: (vte_terminal_draw_area), (vte_terminal_paint),
+	(vte_terminal_expose):
+		Paint the exposed rects not the clipbox!
+
+2007-01-25  Chris Wilson <chris@chris-wilson.co.uk>
+
+	Print out the painted area for VTE_DEBUG_UPDATES and realise the battle
+	is only half won.
+
+	* src/vte.c: (vte_terminal_paint):
+
 2007-01-24  Chris Wilson <chris@chris-wilson.co.uk>
 
 	cf Bug 400072 – Handling of ; in control sequences
