@@ -12,7 +12,7 @@
 		Use g_utf8_pointer_to_offset() rather than open coding.
 	* src/vteaccess.c: (vte_terminal_accessible_text_modified):
 		Convert the caret into a byte offset before performing the
-		string lookup.
+		ASCII character lookup.
 		Iterate backwards over the string using a g_utf8_prev_char,
 		and g_utf8_get_char.
 
