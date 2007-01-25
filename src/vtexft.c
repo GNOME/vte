@@ -492,11 +492,16 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 
 	data = (struct _vte_xft_data*) draw->impl_data;
 
-	if (data->font != NULL) {
-		_vte_xft_font_close(data->font);
-		data->font = NULL;
+	font = _vte_xft_font_open(draw->widget, fontdesc, antialias);
+	if (font != NULL) {
+		if (data->font != NULL) {
+			_vte_xft_font_close(data->font);
+		}
+		data->font = font;
 	}
-	data->font = _vte_xft_font_open(draw->widget, fontdesc, antialias);
+	if (data->font == NULL) {
+		return;
+	}
 
 	draw->width = 1;
 	draw->height = 1;
@@ -577,6 +582,9 @@ _vte_xft_get_char_width(struct _vte_draw *draw, gunichar c, int columns)
 	XftFont *ftfont;
 
 	data = (struct _vte_xft_data*) draw->impl_data;
+	if (data->font == NULL) {
+		return _vte_xft_get_text_width(draw) * columns;
+	}
 	ftfont = _vte_xft_font_for_char(data->font, c);
 	if (ftfont == NULL) {
 		return _vte_xft_get_text_width(draw) * columns;
@@ -604,6 +612,9 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 	XftFont *font, *ft;
 
 	data = (struct _vte_xft_data*) draw->impl_data;
+	if (G_UNLIKELY (data->font == NULL)){
+		return; /* cannot draw anything */
+	}
 
 	/* find the first displayable character ... */
 	font = NULL;
@@ -698,7 +709,8 @@ _vte_xft_draw_char(struct _vte_draw *draw,
 	struct _vte_xft_data *data;
 
 	data = (struct _vte_xft_data*) draw->impl_data;
-	if (_vte_xft_font_for_char(data->font, request->c) != NULL) {
+	if (data->font != NULL &&
+			_vte_xft_font_for_char(data->font, request->c) != NULL) {
 		_vte_xft_draw_text(draw, request, 1, color, alpha);
 		return TRUE;
 	}

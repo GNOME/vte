@@ -1,5 +1,21 @@
 2007-01-25  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Bug 400671 – crash in Terminal: detaching of tabs
+
+	The fontdirty flag needed to be set on unrealize to ensure the fonts
+	get set on the VteDraw should the terminal be realized again (e.g
+	drag'n'dropping).
+
+	* src/vte.c: (vte_terminal_unrealize):
+		Set the fontdirty flag to TRUE.
+	* src/vtexft.c: (_vte_xft_set_text_font),
+	(_vte_xft_get_char_width), (_vte_xft_draw_text),
+	(_vte_xft_draw_char):
+		Add safe guards to avoid dereferencing a NULL font as it
+		is possible for _vte_xft_font_open() to fail.
+
+2007-01-25  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 399137 – UTF-8 problem in VteAccess
 
 	Improve the UTF-8 string handling within vteaccess.c

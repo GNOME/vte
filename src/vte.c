@@ -7179,7 +7179,7 @@ vte_terminal_unrealize(GtkWidget *widget)
 		_vte_draw_free(terminal->pvt->draw);
 		terminal->pvt->draw = NULL;
 	}
-	terminal->pvt->has_fonts = FALSE;
+	terminal->pvt->fontdirty = TRUE;
 
 	/* Unmap the widget if it hasn't been already. */
 	if (GTK_WIDGET_MAPPED(widget)) {
