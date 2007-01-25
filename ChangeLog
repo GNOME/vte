@@ -1,5 +1,23 @@
 2007-01-25  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Bug 399137 – UTF-8 problem in VteAccess
+
+	Improve the UTF-8 string handling within vteaccess.c
+	A long and fraught history to this apparently simple change.
+	Many thanks to Joanmarie Diggs and Rich Burridge for testing the
+	patches and ensuring they caused no regressions in the ally interface.
+
+	* src/vteaccess.c: (emit_text_changed_insert),
+	(emit_text_changed_delete):
+		Use g_utf8_pointer_to_offset() rather than open coding.
+	* src/vteaccess.c: (vte_terminal_accessible_text_modified):
+		Convert the caret into a byte offset before performing the
+		string lookup.
+		Iterate backwards over the string using a g_utf8_prev_char,
+		and g_utf8_get_char.
+
+2007-01-25  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 400493 – Mouse selection seriously broken
 
 	The rendering of non-text attributes, e.g highlight, backgrounds,

@@ -201,18 +201,8 @@ emit_text_changed_insert(GObject *object,
 		return;
 	}
 	/* Convert the byte offsets to character offsets. */
-	start = 0;
-	p = text;
-	while (p < text + offset) {
-		start++;
-		p = g_utf8_next_char(p);
-	}
-	count = 0;
-	p = text + offset;
-	while (p < text + offset + len) {
-		count++;
-		p = g_utf8_next_char(p);
-	}
+	start = g_utf8_pointer_to_offset (text, text + offset);
+	count = g_utf8_pointer_to_offset (text + offset, text + offset + len);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
 		g_printerr("Accessibility peer emitting "
@@ -235,18 +225,8 @@ emit_text_changed_delete(GObject *object,
 		return;
 	}
 	/* Convert the byte offsets to characters. */
-	start = 0;
-	p = text;
-	while (p < text + offset) {
-		start++;
-		p = g_utf8_next_char(p);
-	}
-	count = 0;
-	p = text + offset;
-	while (p < text + offset + len) {
-		count++;
-		p = g_utf8_next_char(p);
-	}
+	start = g_utf8_pointer_to_offset (text, text + offset);
+	count = g_utf8_pointer_to_offset (text + offset, text + offset + len);
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
 		g_printerr("Accessibility peer emitting "
@@ -466,8 +446,8 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 {
 	VteTerminalAccessiblePrivate *priv;
 	char *old, *current;
-	glong offset, olen, clen;
-	gint old_snapshot_caret, caret;
+	glong offset, caret_offset, olen, clen;
+	gint old_snapshot_caret;
 
 	g_assert(VTE_IS_TERMINAL_ACCESSIBLE(data));
 
@@ -483,7 +463,15 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 
 	current = priv->snapshot_text->str;
 	clen = priv->snapshot_text->len;
-	caret = priv->snapshot_caret;
+
+	if (priv->snapshot_caret < 0 ||
+			priv->snapshot_caret >= priv->snapshot_characters->len) {
+		/* caret was not in the line */
+		caret_offset = clen;
+	} else {
+		caret_offset = g_array_index(priv->snapshot_characters,
+				int, priv->snapshot_caret);
+	}
 
 	/* Find the offset where they don't match. */
 	offset = 0;
@@ -496,17 +484,12 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 
         /* Check if we just backspaced over a space. */
 	if ((olen == offset) &&
-		       	(caret < olen && old[caret] == ' ') &&
-	    (old_snapshot_caret == (caret + 1))) {
-		glong bsp_olen = caret + 1;
-                glong bsp_offset = caret;
-
+		       	(caret_offset < olen && old[caret_offset] == ' ') &&
+			(old_snapshot_caret == priv->snapshot_caret + 1)) {
                 priv->snapshot_text->str = old;
-		priv->snapshot_text->len = bsp_olen;
+		priv->snapshot_text->len = caret_offset + 1;
 		emit_text_changed_delete(G_OBJECT(data),
-					 old,
-					 bsp_offset,
-					 bsp_olen - bsp_offset);
+					 old, caret_offset, 1);
 		priv->snapshot_text->str = current;
 		priv->snapshot_text->len = clen;
 	}
@@ -516,13 +499,20 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 	if ((offset < olen) || (offset < clen)) {
 		/* Back up from both end points until we find the *last* point
 		 * where they differed. */
-		while ((olen > offset) && (clen > offset)) {
-			if (old[olen - 1] != current[clen - 1]) {
+		gchar *op = old + olen;
+		gchar *cp = current + clen;
+		while (op > old + offset && cp > current + offset) {
+			gchar *opp = g_utf8_prev_char (op);
+			gchar *cpp = g_utf8_prev_char (cp);
+			if (g_utf8_get_char (opp) != g_utf8_get_char (cpp)) {
 				break;
 			}
-			olen--;
-			clen--;
+			op = opp;
+			cp = cpp;
 		}
+		/* recompute the respective lengths */
+		olen = op - old;
+		clen = cp - current;
 		/* At least one of them has to have text the other
 		 * doesn't. */
 		g_assert((clen > offset) || (olen > offset));
