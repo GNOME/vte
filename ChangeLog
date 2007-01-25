@@ -1,3 +1,16 @@
+2007-01-25  Chris Wilson <chris@chris-wilson.co.uk>
+
+	* src/vte.c: (mark_input_source_invalid),
+	(_vte_terminal_connect_pty_read), (mark_output_source_invalid),
+	(_vte_terminal_connect_pty_write):
+		Use the GDestroyNotify to mark the source as invalid.
+	* src/vte.c: (vte_terminal_ensure_font):
+		Protect ensure fonts against the VteDraw being destroyed.
+	* src/vte.c: (vte_terminal_realize):
+	 	Reorder code to setup the style before the fonts.
+	* src/vte.c: (vte_terminal_class_init):
+		The ->show() handler was redundant.
+
 2007-01-25  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte.c (_vte_terminal_set_default_attributes),

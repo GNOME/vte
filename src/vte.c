@@ -2641,6 +2641,10 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 	}
 }
 
+static void mark_input_source_invalid(VteTerminal *terminal)
+{
+	terminal->pvt->pty_input_source = VTE_INVALID_SOURCE;
+}
 static void
 _vte_terminal_connect_pty_read(VteTerminal *terminal)
 {
@@ -2656,12 +2660,16 @@ _vte_terminal_connect_pty_read(VteTerminal *terminal)
 			g_io_add_watch_full(terminal->pvt->pty_input,
 					    VTE_CHILD_INPUT_PRIORITY,
 					    G_IO_IN | G_IO_HUP,
-					    (GIOFunc)vte_terminal_io_read,
+					    (GIOFunc) vte_terminal_io_read,
 					    terminal,
-					    NULL);
+					    (GDestroyNotify) mark_input_source_invalid);
 	}
 }
 
+static void mark_output_source_invalid(VteTerminal *terminal)
+{
+	terminal->pvt->pty_output_source = VTE_INVALID_SOURCE;
+}
 static void
 _vte_terminal_connect_pty_write(VteTerminal *terminal)
 {
@@ -2677,9 +2685,9 @@ _vte_terminal_connect_pty_write(VteTerminal *terminal)
 			g_io_add_watch_full(terminal->pvt->pty_output,
 					    VTE_CHILD_OUTPUT_PRIORITY,
 					    G_IO_OUT,
-					    (GIOFunc)vte_terminal_io_write,
+					    (GIOFunc) vte_terminal_io_write,
 					    terminal,
-					    NULL);
+					    (GDestroyNotify) mark_output_source_invalid);
 	}
 }
 
@@ -6274,7 +6282,8 @@ vte_terminal_apply_metrics(VteTerminal *terminal,
 static void
 vte_terminal_ensure_font (VteTerminal *terminal)
 {
-	if (terminal->pvt->fontdirty) {
+	if (terminal->pvt->draw != NULL &&
+		       	terminal->pvt->fontdirty) {
 		terminal->pvt->fontdirty = FALSE;
 		_vte_draw_set_text_font(terminal->pvt->draw, 
 				terminal->pvt->fontdesc,
@@ -7080,31 +7089,6 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	}
 }
 
-/* Show the window. */
-static void
-vte_terminal_show(GtkWidget *widget)
-{
-	VteTerminal *terminal;
-
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-		g_printerr("vte_terminal_show()\n");
-	}
-#endif
-
-	terminal = VTE_TERMINAL(widget);
-
-	/* Load default fonts, if no fonts have been loaded. */
-	if (!terminal->pvt->has_fonts) {
-		vte_terminal_set_font_full(terminal, terminal->pvt->fontdesc,
-					   terminal->pvt->fontantialias);
-   	}
-
-	if (GTK_WIDGET_CLASS(vte_terminal_parent_class)->show) {
-		(GTK_WIDGET_CLASS(vte_terminal_parent_class))->show(widget);
-	}
-}
-
 /* Queue a background update. */
 static void
 root_pixmap_changed_cb(VteBg *bg, VteTerminal *terminal)
@@ -7482,13 +7466,6 @@ vte_terminal_realize(GtkWidget *widget)
 		vte_terminal_set_color_internal(terminal, i, &color);
 	}
 
-	/* Load default fonts, if no fonts have been loaded. */
-	if (!terminal->pvt->has_fonts) {
-		vte_terminal_set_font_full(terminal, terminal->pvt->fontdesc,
-					   terminal->pvt->fontantialias);
-   	}
-	vte_terminal_ensure_font (terminal);
-
 	/* Set up input method support.  FIXME: do we need to handle the
 	 * "retrieve-surrounding" and "delete-surrounding" events? */
 	if (terminal->pvt->im_context != NULL) {
@@ -7535,6 +7512,13 @@ vte_terminal_realize(GtkWidget *widget)
 			 terminal);
 
 	widget->style = gtk_style_attach(widget->style, widget->window);
+
+	/* Load default fonts, if no fonts have been loaded. */
+	if (!terminal->pvt->has_fonts) {
+		vte_terminal_set_font_full(terminal, terminal->pvt->fontdesc,
+					   terminal->pvt->fontantialias);
+   	}
+	vte_terminal_ensure_font (terminal);
 
 	/* Set up the background, *now*. */
 	vte_terminal_background_update(terminal);
@@ -9603,7 +9587,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	widget_class->size_request = vte_terminal_size_request;
 	widget_class->size_allocate = vte_terminal_size_allocate;
 	widget_class->get_accessible = vte_terminal_get_accessible;
-	widget_class->show = vte_terminal_show;
 
 	/* Initialize default handlers. */
 	klass->eof = NULL;
