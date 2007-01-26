@@ -4489,12 +4489,23 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 		terminal->pvt->match_end.row = attr->row;
 		terminal->pvt->match_end.column = attr->column;
 		/* Repaint the newly-hilited area. */
-		_vte_invalidate_cells(terminal,
-				     0,
-				     terminal->column_count,
-				     terminal->pvt->match_start.row,
-				     terminal->pvt->match_end.row -
-				     terminal->pvt->match_start.row + 1);
+		if (terminal->pvt->match_start.row == terminal->pvt->match_end.row) {
+			_vte_invalidate_cells(terminal,
+					     terminal->pvt->match_start.column,
+					     terminal->pvt->match_end.column -
+					     terminal->pvt->match_start.column +
+					     1,
+					     terminal->pvt->match_start.row,
+					     terminal->pvt->match_end.row -
+					     terminal->pvt->match_start.row + 1);
+		} else {
+			_vte_invalidate_cells(terminal,
+					     0,
+					     terminal->column_count,
+					     terminal->pvt->match_start.row,
+					     terminal->pvt->match_end.row -
+					     terminal->pvt->match_start.row + 1);
+		}
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Matched (%ld,%ld) to (%ld,%ld).\n",
 				terminal->pvt->match_start.column,

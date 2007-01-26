@@ -1145,7 +1145,9 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 	rowdata->soft_wrapped = 0;
 	/* Repaint this row. */
 	_vte_invalidate_cells(terminal,
-			      0, terminal->column_count,
+			      screen->cursor_current.col,
+			      terminal->column_count -
+			      screen->cursor_current.col,
 			      screen->cursor_current.row, 1);
 
 	/* We've modified the display.  Make a note of it. */
@@ -1484,7 +1486,9 @@ vte_sequence_handler_dc(VteTerminal *terminal,
 				 terminal->column_count);
 		/* Repaint this row. */
 		_vte_invalidate_cells(terminal,
-				      0, terminal->column_count,
+				      screen->cursor_current.col,
+				      terminal->column_count -
+				      screen->cursor_current.col,
 				      screen->cursor_current.row, 1);
 	}
 
@@ -1660,7 +1664,7 @@ vte_sequence_handler_ec(VteTerminal *terminal,
 		}
 		/* Repaint this row. */
 		_vte_invalidate_cells(terminal,
-				      0, terminal->column_count,
+				      screen->cursor_current.col, count,
 				      screen->cursor_current.row, 1);
 	}
 

@@ -1,5 +1,13 @@
 2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c: (vte_terminal_match_hilite):
+	* src/vteseq.c: (vte_sequence_handler_ce),
+	(vte_sequence_handler_dc), (vte_sequence_handler_ec):
+		Tighten the _vte_invalidate_cells() to only those that
+		we potentially modify.
+
+2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vtexft.c: (_vte_xft_set_text_font):
 		Remove the additional pixel inter-character spacing.
 		Compactness over clarity ;)
