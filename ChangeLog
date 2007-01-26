@@ -1,5 +1,11 @@
 2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vteseq.c: (vte_sequence_handler_vb):
+		Iterating over all queued exposures and drawing on top of the
+		flash does not sense. Simply flush the draw.
+
+2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	s/_VTE_DEBUG_ON/_VTE_DEBUG_IF/ and don't include
 	the code block inside the macro.
 

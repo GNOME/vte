@@ -2571,7 +2571,7 @@ vte_sequence_handler_vb(VteTerminal *terminal,
 				   TRUE,
 				   0, 0,
 				   widget->allocation.width, widget->allocation.height);
-		gdk_window_process_updates(widget->window, TRUE);
+		gdk_flush();
 		/* Force the repaint. */
 		_vte_invalidate_all(terminal); /* max delay of UPDATE_REPEAT_TIMEOUT */
 	}
