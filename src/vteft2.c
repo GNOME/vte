@@ -267,12 +267,13 @@ _vte_ft2_draw_text(struct _vte_draw *draw,
 		   GdkColor *color, guchar alpha)
 {
 	struct _vte_ft2_data *data;
-	int i, j;
+	gsize i, j;
 
 	data = (struct _vte_ft2_data*) draw->impl_data;
 
 	for (i = 0; i < n_requests; i++) {
-		if (requests[i].c == -1 || requests[i].c == 32 /* space */)
+		if (requests[i].c == (gunichar)-1 ||
+			       	requests[i].c == 32 /* space */)
 			continue;
 		_vte_glyph_draw(data->cache, requests[i].c, color,
 				requests[i].x, requests[i].y,

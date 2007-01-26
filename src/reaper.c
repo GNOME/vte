@@ -81,10 +81,8 @@ vte_reaper_emit_signal(GIOChannel *channel, GIOCondition condition,
 	g_assert(data == singleton_reaper);
 	read(singleton_reaper->iopipe[0], &info, sizeof(info));
 	if (info.signum == SIGCHLD) {
-		if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-			g_printerr("Reaper emitting child-exited "
-				"signal.\n");
-		}
+		_vte_debug_print(VTE_DEBUG_SIGNALS,
+				"Reaper emitting child-exited signal.\n");
 		g_signal_emit_by_name(data, "child-exited",
 				      info.pid, info.status);
 	}
@@ -95,9 +93,8 @@ vte_reaper_emit_signal(GIOChannel *channel, GIOCondition condition,
 static void
 vte_reaper_child_watch_cb(GPid pid, gint status, gpointer data)
 {
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		g_printerr("Reaper emitting child-exited signal.\n");
-	}
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Reaper emitting child-exited signal.\n");
 	g_signal_emit_by_name(data, "child-exited", pid, status);
 	g_spawn_close_pid (pid);
 }
@@ -162,9 +159,8 @@ vte_reaper_init(VteReaper *reaper)
 	sigemptyset(&action.sa_mask);
 	action.sa_flags = SA_RESTART | SA_NOCLDSTOP;
 	sigaction(SIGCHLD, &action, NULL);
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		g_printerr("Hooked SIGCHLD signal in reaper.\n");
-	}
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Hooked SIGCHLD signal in reaper.\n");
 }
 
 static GObject*
@@ -196,9 +192,8 @@ vte_reaper_finalize(GObject *reaper)
 	if (old_action.sa_handler == vte_reaper_signal_handler) {
 		sigaction(SIGCHLD, &action, NULL);
 	}
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		g_printerr("Unhooked SIGCHLD signal in reaper.\n");
-	}
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Unhooked SIGCHLD signal in reaper.\n");
 
 	/* Remove the channel from the source list. */
 	g_source_remove_by_user_data(reaper);

@@ -117,7 +117,7 @@ _vte_fc_transcribe_from_pango_font_description(GtkWidget *widget,
 
 	/* Set the family for the pattern. */
 	family = pango_font_description_get_family(font_desc);
-	FcPatternAddString(pattern, FC_FAMILY, family);
+	FcPatternAddString(pattern, FC_FAMILY, (guchar *) family);
 
 	/* Set the font size for the pattern. */
 	size = pango_font_description_get_size(font_desc);
@@ -127,7 +127,7 @@ _vte_fc_transcribe_from_pango_font_description(GtkWidget *widget,
 	language = pango_context_get_language(context);
 	if (pango_language_to_string(language) != NULL) {
 		FcPatternAddString(pattern, FC_LANG,
-				   pango_language_to_string(language));
+				   (guchar *) pango_language_to_string(language));
 	}
 
 	/* There aren't any fallbacks for these, so just omit them from the

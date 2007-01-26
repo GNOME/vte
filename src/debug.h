@@ -47,6 +47,17 @@ typedef enum {
 void _vte_debug_parse_string(const char *string);
 gboolean _vte_debug_on(VteDebugFlags flags) G_GNUC_CONST;
 
+#ifdef VTE_DEBUG
+#define __VTE_DEBUG_START(flags) G_STMT_START{ if (_vte_debug_on (flags)) {
+#define __VTE_DEBUG_END } }G_STMT_END
+#define _VTE_DEBUG_ON(flags, code) __VTE_DEBUG_START(flags) code; __VTE_DEBUG_END
+#else
+#define _VTE_DEBUG_ON(flags, code)
+#endif
+
+#define _vte_debug_print(flags, fmt, ...) \
+	_VTE_DEBUG_ON(flags, g_printerr(fmt, ##__VA_ARGS__))
+
 G_END_DECLS
 
 #endif

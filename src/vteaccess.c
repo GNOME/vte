@@ -142,10 +142,9 @@ offset_from_xy (VteTerminalAccessiblePrivate *priv,
 
 static void
 xy_from_offset (VteTerminalAccessiblePrivate *priv,
-		gint offset, gint *x, gint *y)
+		guint offset, gint *x, gint *y)
 {
-	gint i;
-	gint linebreak;
+	guint i, linebreak;
 	gint cur_x, cur_y;
 	gint cur_offset = 0;
 
@@ -182,12 +181,9 @@ all_selected(VteTerminal *terminal, glong column, glong row, gpointer data)
 static void
 emit_text_caret_moved(GObject *object, glong caret)
 {
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		g_printerr("Accessibility peer emitting "
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Accessibility peer emitting "
 			"`text-caret-moved'.\n");
-	}
-#endif
 	g_signal_emit_by_name(object, "text-caret-moved", caret);
 }
 
@@ -195,7 +191,6 @@ static void
 emit_text_changed_insert(GObject *object,
 			 const char *text, glong offset, glong len)
 {
-	const char *p;
 	glong start, count;
 	if (len == 0) {
 		return;
@@ -203,15 +198,12 @@ emit_text_changed_insert(GObject *object,
 	/* Convert the byte offsets to character offsets. */
 	start = g_utf8_pointer_to_offset (text, text + offset);
 	count = g_utf8_pointer_to_offset (text + offset, text + offset + len);
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		g_printerr("Accessibility peer emitting "
-			"`text-changed::insert' (%ld, %ld) (%ld, %ld).\n",
-			offset, len, start, count);
-		g_printerr("Inserted text was `%.*s'.\n",
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Accessibility peer emitting "
+			"`text-changed::insert' (%ld, %ld) (%ld, %ld).\n"
+			"Inserted text was `%.*s'.\n",
+			offset, len, start, count,
 			(int) len, text + offset);
-	}
-#endif
 	g_signal_emit_by_name(object, "text-changed::insert", start, count);
 }
 
@@ -219,7 +211,6 @@ static void
 emit_text_changed_delete(GObject *object,
 			 const char *text, glong offset, glong len)
 {
-	const char *p;
 	glong start, count;
 	if (len == 0) {
 		return;
@@ -227,15 +218,12 @@ emit_text_changed_delete(GObject *object,
 	/* Convert the byte offsets to characters. */
 	start = g_utf8_pointer_to_offset (text, text + offset);
 	count = g_utf8_pointer_to_offset (text + offset, text + offset + len);
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		g_printerr("Accessibility peer emitting "
-			"`text-changed::delete' (%ld, %ld) (%ld, %ld).\n",
-			offset, len, start, count);
-		g_printerr("Deleted text was `%.*s'.\n",
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Accessibility peer emitting "
+			"`text-changed::delete' (%ld, %ld) (%ld, %ld).\n"
+			"Deleted text was `%.*s'.\n",
+			offset, len, start, count,
 			(int) len, text + offset);
-	}
-#endif
 	g_signal_emit_by_name(object, "text-changed::delete", start, count);
 }
 
@@ -247,8 +235,9 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 	VteTerminalAccessiblePrivate *priv;
 	struct _VteCharAttributes attrs;
 	char *next, *tmp;
-	long row, i, offset, caret;
+	long row, offset, caret;
 	long ccol, crow;
+	guint i;
 
 	g_assert(VTE_IS_TERMINAL_ACCESSIBLE(text));
 
@@ -372,14 +361,10 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 			 * it's a new line and we need to keep track of where
 			 * it is. */
 			if ((i == 0) || (attrs.row != row)) {
-#ifdef VTE_DEBUG
-				if (_vte_debug_on(VTE_DEBUG_MISC)) {
-					g_printerr("Row %d/%ld begins at "
-						"%ld.\n",
+				_vte_debug_print(VTE_DEBUG_MISC,
+						"Row %d/%ld begins at %u.\n",
 						priv->snapshot_linebreaks->len,
 						attrs.row, i);
-				}
-#endif
 				g_array_append_val(priv->snapshot_linebreaks, i);
 			}
 			row = attrs.row;
@@ -392,11 +377,8 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 
 	/* Update the caret position. */
 	vte_terminal_get_cursor_position(terminal, &ccol, &crow);
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		g_printerr("Cursor at (%ld, " "%ld).\n", ccol, crow);
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_MISC,
+		       	"Cursor at (%ld, " "%ld).\n", ccol, crow);
 
 	/* Get the offsets to the beginnings of each line. */
 	caret = -1;
@@ -430,14 +412,11 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 	/* Done updating the caret position, whether we needed to or not. */
 	priv->snapshot_caret_invalid = FALSE;
 
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		g_printerr("Refreshed accessibility snapshot, "
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"Refreshed accessibility snapshot, "
 			"%ld cells, %ld characters.\n",
 		       	(long)priv->snapshot_attributes->len,
 		       	(long)priv->snapshot_characters->len);
-	}
-#endif
 }
 
 /* A signal handler to catch "text-inserted/deleted/modified" signals. */
@@ -464,13 +443,12 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 	current = priv->snapshot_text->str;
 	clen = priv->snapshot_text->len;
 
-	if (priv->snapshot_caret < 0 ||
-			priv->snapshot_caret >= priv->snapshot_characters->len) {
-		/* caret was not in the line */
-		caret_offset = clen;
-	} else {
+	if ((guint) priv->snapshot_caret < priv->snapshot_characters->len) {
 		caret_offset = g_array_index(priv->snapshot_characters,
 				int, priv->snapshot_caret);
+	} else {
+		/* caret was not in the line */
+		caret_offset = clen;
 	}
 
 	/* Find the offset where they don't match. */
@@ -553,7 +531,8 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 {
 	VteTerminalAccessiblePrivate *priv;
 	struct _VteCharAttributes attr;
-	long i, len, delta;
+	long delta;
+	guint i, len;
 
 	g_assert(VTE_IS_TERMINAL_ACCESSIBLE(data));
 	g_assert(howmuch != 0);
@@ -688,11 +667,8 @@ vte_terminal_accessible_invalidate_cursor(VteTerminal *terminal, gpointer data)
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
 	g_assert(priv != NULL);
 
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		g_printerr("Invalidating accessibility cursor.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_MISC,
+		       	"Invalidating accessibility cursor.\n");
 	priv->snapshot_caret_invalid = TRUE;
 	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(data),
 							      NULL, NULL);
@@ -872,11 +848,7 @@ vte_terminal_accessible_finalize(GObject *object)
 	VteTerminalAccessiblePrivate *priv;
 	GtkAccessible *accessible = NULL;
 
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		g_printerr("Finalizing accessible peer.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_MISC, "Finalizing accessible peer.\n");
 
 	g_assert(VTE_IS_TERMINAL_ACCESSIBLE(object));
 	accessible = GTK_ACCESSIBLE(object);
@@ -962,13 +934,10 @@ vte_terminal_accessible_get_text(AtkText *text,
 
 	priv = g_object_get_data(G_OBJECT(text),
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		g_printerr("Getting text from %d to %d of %d.\n",
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"Getting text from %d to %d of %d.\n",
 			start_offset, end_offset,
 			priv->snapshot_characters->len);
-	}
-#endif
 	g_assert(ATK_IS_TEXT(text));
 
 	/* If the requested area is after all of the text, just return an
@@ -1011,7 +980,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 	VteTerminalAccessiblePrivate *priv;
 	VteTerminal *terminal;
 	gunichar current, prev, next;
-	int line;
+	guint start, end, line;
 
 	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
 							      NULL, NULL);
@@ -1020,9 +989,8 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
 	terminal = VTE_TERMINAL((GTK_ACCESSIBLE(text))->widget);
 
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		g_printerr("Getting %s %s at %d of %d.\n",
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"Getting %s %s at %d of %d.\n",
 			(direction == direction_current) ? "this" :
 			((direction == direction_next) ? "next" : "previous"),
 			(boundary_type == ATK_TEXT_BOUNDARY_CHAR) ? "char" :
@@ -1033,8 +1001,6 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			((boundary_type == ATK_TEXT_BOUNDARY_SENTENCE_START) ? "sentence (start)" :
 			((boundary_type == ATK_TEXT_BOUNDARY_SENTENCE_END) ? "sentence (end)" : "unknown")))))),
 			offset, priv->snapshot_attributes->len);
-	}
-#endif
 	g_assert(priv->snapshot_text != NULL);
 	g_assert(priv->snapshot_characters != NULL);
 	if (offset == priv->snapshot_characters->len) {
@@ -1048,9 +1014,8 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			/* We're either looking at the character at this
 			 * position, the one before it, or the one after it. */
 			offset += direction;
-			*start_offset = MAX(offset, 0);
-			*end_offset = MIN(offset + 1,
-					  priv->snapshot_attributes->len);
+			start = MAX(offset, 0);
+			end = MIN(offset + 1, priv->snapshot_attributes->len);
 			break;
 		case ATK_TEXT_BOUNDARY_WORD_START:
 			/* Back up to the previous non-word-word transition. */
@@ -1062,7 +1027,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 					break;
 				}
 			}
-			*start_offset = offset;
+			start = offset;
 			/* If we started in a word and we're looking for the
 			 * word before this one, keep searching by backing up
 			 * to the previous non-word character and then searching
@@ -1084,7 +1049,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 						break;
 					}
 				}
-				*start_offset = offset;
+				start = offset;
 			}
 			/* If we're looking for the word after this one,
 			 * search forward by scanning forward for the next
@@ -1107,7 +1072,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 						break;
 					}
 				}
-				*start_offset = offset;
+				start = offset;
 			}
 			/* Now find the end of this word. */
 			while (offset < priv->snapshot_characters->len) {
@@ -1128,7 +1093,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 					break;
 				}
 			}
-			*end_offset = offset;
+			end = offset;
 			break;
 		case ATK_TEXT_BOUNDARY_WORD_END:
 			/* Back up to the previous word-non-word transition. */
@@ -1143,7 +1108,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 					current = prev;
 				}
 			}
-			*start_offset = offset;
+			start = offset;
 			/* If we're looking for the word end before this one, 
 			 * keep searching by backing up to the previous word 
 			 * character and then searching for the word-end 
@@ -1168,7 +1133,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 						current = prev;
 					}
 				}
-				*start_offset = offset;
+				start = offset;
 			}
 			/* If we're looking for the word end after this one,
 			 * search forward by scanning forward for the next
@@ -1191,7 +1156,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 						break;
 					}
 				}
-				*start_offset = offset;
+				start = offset;
 			}
 			/* Now find the next word end. */
 			while (offset < priv->snapshot_characters->len) {
@@ -1210,7 +1175,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 					break;
 				}
 			}
-			*end_offset = offset;
+			end = offset;
 			break;
 		case ATK_TEXT_BOUNDARY_LINE_START:
 		case ATK_TEXT_BOUNDARY_LINE_END:
@@ -1227,44 +1192,33 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 					break;
 				}
 			}
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_MISC)) {
-				g_printerr("Character %d is on line %d.\n",
+			_vte_debug_print(VTE_DEBUG_MISC,
+					"Character %d is on line %d.\n",
 					offset, line);
-			}
-#endif
 			/* Perturb the line number to handle before/at/after. */
 			line += direction;
-			line = CLAMP(line,
-				     0, priv->snapshot_linebreaks->len - 1);
+			line = MIN(line, priv->snapshot_linebreaks->len - 1);
 			/* Read the offsets for this line. */
-			*start_offset = g_array_index(priv->snapshot_linebreaks,
+			start = g_array_index(priv->snapshot_linebreaks,
 						      int, line);
 			line++;
-			line = CLAMP(line,
-				     0, priv->snapshot_linebreaks->len - 1);
-			*end_offset = g_array_index(priv->snapshot_linebreaks,
+			line = MIN(line, priv->snapshot_linebreaks->len - 1);
+			end = g_array_index(priv->snapshot_linebreaks,
 						    int, line);
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_MISC)) {
-				g_printerr("Line runs from %d to %d.\n",
-					*start_offset, *end_offset);
-			}
-#endif
+			_vte_debug_print(VTE_DEBUG_MISC,
+					"Line runs from %d to %d.\n",
+					start, end);
 			break;
 		case ATK_TEXT_BOUNDARY_SENTENCE_START:
 		case ATK_TEXT_BOUNDARY_SENTENCE_END:
 			/* This doesn't make sense.  Fall through. */
 		default:
-			*start_offset = *end_offset = 0;
+			start = end = 0;
 			break;
 	}
-	*start_offset = MIN(*start_offset, priv->snapshot_characters->len - 1);
-	*end_offset = CLAMP(*end_offset, *start_offset,
-			    priv->snapshot_characters->len);
-	return vte_terminal_accessible_get_text(text,
-						*start_offset,
-						*end_offset);
+	*start_offset = start = MIN(start, priv->snapshot_characters->len - 1);
+	*end_offset = end = CLAMP(end, start, priv->snapshot_characters->len);
+	return vte_terminal_accessible_get_text(text, start, end);
 }
 
 static gchar *
@@ -1395,7 +1349,7 @@ vte_terminal_accessible_get_run_attributes(AtkText *text, gint offset,
 					   gint *start_offset, gint *end_offset)
 {
 	VteTerminalAccessiblePrivate *priv;
-	gint i;
+	guint i;
 	struct _VteCharAttributes cur_attr;
 	struct _VteCharAttributes attr;
 
@@ -1409,7 +1363,7 @@ vte_terminal_accessible_get_run_attributes(AtkText *text, gint offset,
 			      struct _VteCharAttributes,
 			      offset);
 	*start_offset = 0;
-	for (i = offset - 1; i >= 0; i--) {
+	for (i = offset; i--;) {
 		cur_attr = g_array_index (priv->snapshot_attributes,
 				      struct _VteCharAttributes,
 				      i);
@@ -1668,12 +1622,8 @@ vte_terminal_accessible_text_init(gpointer iface, gpointer data)
 	AtkTextIface *text;
 	g_assert(G_TYPE_FROM_INTERFACE(iface) == ATK_TYPE_TEXT);
 	text = iface;
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		g_printerr("Initializing accessible peer's "
-			"AtkText interface.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"Initializing accessible peer's AtkText interface.\n");
 	text->get_text = vte_terminal_accessible_get_text;
 	text->get_text_after_offset = vte_terminal_accessible_get_text_after_offset;
 	text->get_text_at_offset = vte_terminal_accessible_get_text_at_offset;
@@ -1869,12 +1819,9 @@ vte_terminal_accessible_component_init(gpointer iface, gpointer data)
 	g_assert(G_TYPE_FROM_INTERFACE(iface) == ATK_TYPE_COMPONENT);
 	component = iface;
 
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		g_printerr("Initializing accessible peer's "
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"Initializing accessible peer's "
 			"AtkComponent interface.\n");
-	}
-#endif
 	/* Set our virtual functions. */
 	component->add_focus_handler = vte_terminal_accessible_add_focus_handler;
 	component->contains = vte_terminal_accessible_contains;
@@ -1990,12 +1937,9 @@ vte_terminal_accessible_action_init(gpointer iface, gpointer data)
 	g_return_if_fail(G_TYPE_FROM_INTERFACE(iface) == ATK_TYPE_ACTION);
 	action = iface;
 
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		g_printerr("Initializing accessible peer's "
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"Initializing accessible peer's "
 			"AtkAction interface.\n");
-	}
-#endif
 	/* Set our virtual functions. */
 	action->do_action = vte_terminal_accessible_do_action;
 	action->get_n_actions = vte_terminal_accessible_get_n_actions;
@@ -2145,12 +2089,8 @@ vte_terminal_accessible_factory_init(VteTerminalAccessibleFactory *self)
 AtkObjectFactory *
 vte_terminal_accessible_factory_new(void)
 {
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		g_printerr("Creating a new "
-			"VteTerminalAccessibleFactory.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"Creating a new VteTerminalAccessibleFactory.\n");
 	return g_object_new(VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY, NULL);
 }
 

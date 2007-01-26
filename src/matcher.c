@@ -61,11 +61,7 @@ _vte_matcher_init(struct _vte_matcher *matcher, const char *emulation,
 	char *stripped;
 	int i;
 
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-		g_printerr("_vte_matcher_init()\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "_vte_matcher_init()\n");
 
 	/* Load the known capability strings from the termcap structure into
 	 * the table for recognition. */
@@ -117,13 +113,11 @@ _vte_matcher_init(struct _vte_matcher *matcher, const char *emulation,
 		_vte_matcher_add(matcher, "\n", 1, "sf", 0);
 	}
 
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_TRIE)) {
+	_VTE_DEBUG_ON(VTE_DEBUG_TRIE, ({
 		g_printerr("Trie contents:\n");
 		_vte_matcher_print(matcher);
 		g_printerr("\n");
-	}
-#endif
+	}));
 }
 
 /* Allocates new matcher structure. */
@@ -133,11 +127,7 @@ _vte_matcher_create(gpointer key)
 	char *emulation = key;
 	struct _vte_matcher *ret = NULL;
 
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-		g_printerr("_vte_matcher_create()\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "_vte_matcher_create()\n");
 	ret = g_slice_new(struct _vte_matcher);
 	ret->impl = &dummy_vte_matcher_trie;
 	ret->match = NULL;
@@ -158,11 +148,7 @@ _vte_matcher_destroy(gpointer value)
 {
 	struct _vte_matcher *matcher = value;
 
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-		g_printerr("_vte_matcher_destroy()\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "_vte_matcher_destroy()\n");
 	if (matcher->match != NULL) /* do not call destroy on dummy values */
 		matcher->impl->klass->destroy(matcher->impl);
 	g_slice_free(struct _vte_matcher, matcher);

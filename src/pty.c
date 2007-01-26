@@ -179,21 +179,14 @@ vte_pty_child_setup (gpointer arg)
 			break;
 	}
 
-#ifdef VTE_DEBUG
-	if (_vte_debug_on (VTE_DEBUG_PTY)) {
-		g_printerr ("Setting up child pty: name = %s, fd = %d\n",
+	_vte_debug_print (VTE_DEBUG_PTY, 
+			"Setting up child pty: name = %s, fd = %d\n",
 				tty ? tty : "(none)", fd);
-	}
-#endif
 
 
 	/* Start a new session and become process-group leader. */
 #if defined(HAVE_SETSID) && defined(HAVE_SETPGID)
-#ifdef VTE_DEBUG
-	if (_vte_debug_on (VTE_DEBUG_PTY)) {
-		g_printerr ("Starting new session\n");
-	}
-#endif
+	_vte_debug_print (VTE_DEBUG_PTY, "Starting new session\n");
 	setsid();
 	setpgid(0, 0);
 #endif
@@ -288,8 +281,7 @@ _vte_pty_run_on_pty (struct vte_pty_child_setup_data *data,
 		}
 		arg2[i+1] = NULL;
 
-#ifdef VTE_DEBUG
-		if (_vte_debug_on (VTE_DEBUG_MISC)) {
+		_VTE_DEBUG_ON (VTE_DEBUG_MISC, ({
 			g_printerr("Spawing command '%s'\n", command);
 			for (i = 0; arg2[i] != NULL; i++) {
 				g_printerr("    argv[%d] = %s\n", i, arg2[i]);
@@ -302,8 +294,7 @@ _vte_pty_run_on_pty (struct vte_pty_child_setup_data *data,
 			}
 			g_printerr ("    directory: %s\n",
 				       	directory ? directory : "(none)");
-		}
-#endif
+		}));
 
 		ret = g_spawn_async_with_pipes (directory,
 				arg2, envp,
@@ -335,13 +326,10 @@ _vte_pty_run_on_pty (struct vte_pty_child_setup_data *data,
 		}
 		g_strfreev (arg2);
 
-#ifdef VTE_DEBUG
-		if (_vte_debug_on (VTE_DEBUG_MISC)) {
-			g_printerr ("Spawn result: %s%s\n",
-					ret?"Success":"Failure - ",
-					ret?"":local_error->message);
-		}
-#endif
+		_vte_debug_print (VTE_DEBUG_MISC,
+				"Spawn result: %s%s\n",
+				ret?"Success":"Failure - ",
+				ret?"":local_error->message);
 		if (local_error)
 			g_propagate_error (error, local_error);
 	}
@@ -435,21 +423,15 @@ _vte_pty_set_size(int master, int columns, int rows)
 	memset(&size, 0, sizeof(size));
 	size.ws_row = rows ? rows : 24;
 	size.ws_col = columns ? columns : 80;
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_PTY)) {
-		g_printerr("Setting size on fd %d to (%d,%d).\n",
+	_vte_debug_print(VTE_DEBUG_PTY,
+			"Setting size on fd %d to (%d,%d).\n",
 			master, columns, rows);
-	}
-#endif
 	ret = ioctl(master, TIOCSWINSZ, &size);
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_PTY)) {
-		if (ret != 0) {
-			g_printerr("Failed to set size on %d: %s.\n",
+	if (ret != 0) {
+		_vte_debug_print(VTE_DEBUG_PTY,
+				"Failed to set size on %d: %s.\n",
 				master, strerror(errno));
-		}
 	}
-#endif
 	return ret;
 }
 
@@ -477,19 +459,13 @@ _vte_pty_get_size(int master, int *columns, int *rows)
 		if (rows != NULL) {
 			*rows = size.ws_row;
 		}
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			g_printerr("Size on fd %d is (%d,%d).\n",
+		_vte_debug_print(VTE_DEBUG_PTY,
+				"Size on fd %d is (%d,%d).\n",
 				master, size.ws_col, size.ws_row);
-		}
-#endif
 	} else {
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			g_printerr("Failed to read size from fd %d.\n",
+		_vte_debug_print(VTE_DEBUG_PTY,
+				"Failed to read size from fd %d.\n",
 				master);
-		}
-#endif
 	}
 	return ret;
 }
@@ -507,11 +483,8 @@ _vte_pty_ptsname(int master)
 		switch (i) {
 		case 0:
 			/* Return the allocated buffer with the name in it. */
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_PTY)) {
-				g_printerr("PTY slave is `%s'.\n", buf);
-			}
-#endif
+			_vte_debug_print(VTE_DEBUG_PTY,
+					"PTY slave is `%s'.\n", buf);
 			return buf;
 			break;
 		default:
@@ -524,21 +497,14 @@ _vte_pty_ptsname(int master)
 #elif defined(HAVE_PTSNAME)
 	char *p;
 	if ((p = ptsname(master)) != NULL) {
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			g_printerr("PTY slave is `%s'.\n", p);
-		}
-#endif
+		_vte_debug_print(VTE_DEBUG_PTY, "PTY slave is `%s'.\n", p);
 		return g_strdup(p);
 	}
 #elif defined(TIOCGPTN)
 	int pty = 0;
 	if (ioctl(master, TIOCGPTN, &pty) == 0) {
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			g_printerr("PTY slave is `/dev/pts/%d'.\n", pty);
-		}
-#endif
+		_vte_debug_print(VTE_DEBUG_PTY,
+				"PTY slave is `/dev/pts/%d'.\n", pty);
 		return g_strdup_printf("/dev/pts/%d", pty);
 	}
 #endif
@@ -599,21 +565,14 @@ _vte_pty_open_unix98(GPid *child, char **env_add,
 
 	/* Attempt to open the master. */
 	fd = _vte_pty_getpt();
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_PTY)) {
-		g_printerr("Allocated pty on fd %d.\n", fd);
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_PTY, "Allocated pty on fd %d.\n", fd);
 	if (fd != -1) {
 		/* Read the slave number and unlock it. */
 		if (((buf = _vte_pty_ptsname(fd)) == NULL) ||
 		    (_vte_pty_grantpt(fd) != 0) ||
 		    (_vte_pty_unlockpt(fd) != 0)) {
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_PTY)) {
-				g_printerr("PTY setup failed, bailing.\n");
-			}
-#endif
+			_vte_debug_print(VTE_DEBUG_PTY,
+					"PTY setup failed, bailing.\n");
 			close(fd);
 			fd = -1;
 		} else {
@@ -893,39 +852,24 @@ _vte_pty_open_with_helper(GPid *child, char **env_add,
 			    &ops, sizeof(ops)) != sizeof(ops)) {
 			return -1;
 		}
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			g_printerr("Sent request to helper.\n");
-		}
-#endif
+		_vte_debug_print(VTE_DEBUG_PTY, "Sent request to helper.\n");
 		/* Read back the response. */
 		if (n_read(_vte_pty_helper_tunnel,
 			   &ret, sizeof(ret)) != sizeof(ret)) {
 			return -1;
 		}
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			g_printerr("Received response from helper.\n");
-		}
-#endif
+		_vte_debug_print(VTE_DEBUG_PTY, 
+				"Received response from helper.\n");
 		if (ret == 0) {
 			return -1;
 		}
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			g_printerr("Helper returns success.\n");
-		}
-#endif
+		_vte_debug_print(VTE_DEBUG_PTY, "Helper returns success.\n");
 		/* Read back a tag. */
 		if (n_read(_vte_pty_helper_tunnel,
 			   &tag, sizeof(tag)) != sizeof(tag)) {
 			return -1;
 		}
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			g_printerr("Tag = %p.\n", tag);
-		}
-#endif
+		_vte_debug_print(VTE_DEBUG_PTY, "Tag = %p.\n", tag);
 		/* Receive the master and slave ptys. */
 		_vte_pty_read_ptypair(_vte_pty_helper_tunnel,
 				      &parentfd, &childfd);
@@ -935,12 +879,9 @@ _vte_pty_open_with_helper(GPid *child, char **env_add,
 			close(childfd);
 			return -1;
 		}
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_PTY)) {
-			g_printerr("Got master pty %d and slave pty %d.\n",
+		_vte_debug_print(VTE_DEBUG_PTY,
+				"Got master pty %d and slave pty %d.\n",
 				parentfd, childfd);
-		}
-#endif
 
 		/* Add the parent and the tag to our map. */
 		g_tree_insert(_vte_pty_helper_map,
@@ -1026,12 +967,9 @@ _vte_pty_open(pid_t *child_pid, char **env_add,
 	if (ret != -1) {
 		*child_pid = (pid_t) child;
 	}
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_PTY)) {
-		g_printerr("Returning ptyfd = %d, child = %ld.\n",
-			       	ret, (long) child);
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_PTY,
+			"Returning ptyfd = %d, child = %ld.\n",
+			ret, (long) child);
 	return ret;
 }
 

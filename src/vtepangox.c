@@ -331,12 +331,9 @@ _vte_pango_x_set_text_font(struct _vte_draw *draw,
 	}
 	pango_layout_iter_free(iter);
 
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		g_printerr("VtePangoX font metrics = %dx%d (%d).\n",
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"VtePangoX font metrics = %dx%d (%d).\n",
 			draw->width, draw->height, draw->ascent);
-	}
-#endif
 	g_object_unref(layout);
 	g_object_unref(ctx);
 }

@@ -147,20 +147,12 @@ destroy_and_quit(GtkWidget *widget, gpointer data)
 static void
 destroy_and_quit_eof(GtkWidget *widget, gpointer data)
 {
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		g_print("Detected EOF.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_MISC, "Detected EOF.\n");
 }
 static void
 destroy_and_quit_exited(GtkWidget *widget, gpointer data)
 {
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		g_print("Detected child exit.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_MISC, "Detected child exit.\n");
 	destroy_and_quit(widget, data);
 }
 
@@ -392,7 +384,7 @@ take_xconsole_ownership(GtkWidget *widget, gpointer data)
 	char *name, hostname[255];
 	GdkAtom atom;
 	GtkClipboard *clipboard;
-	GtkTargetEntry targets[] = {
+	const GtkTargetEntry targets[] = {
 		{"UTF8_STRING", 0, 0},
 		{"COMPOUND_TEXT", 0, 0},
 		{"TEXT", 0, 0},
@@ -790,11 +782,8 @@ main(int argc, char **argv)
 	if (!console) {
 		if (shell) {
 			/* Launch a shell. */
-	#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_MISC)) {
-				vte_terminal_feed(terminal, message, -1);
-			}
-	#endif
+			_VTE_DEBUG_ON(VTE_DEBUG_MISC,
+				vte_terminal_feed(terminal, message, -1));
 			vte_terminal_fork_command(terminal,
 						  command, NULL, env_add,
 						  working_directory,

@@ -245,7 +245,7 @@ _vte_regex_exec(struct _vte_regex *regex, const char *string,
 		gsize nmatch, struct _vte_regex_match *matches)
 {
 	regmatch_t *posix_matches;
-	int i, ret;
+	guint i, ret;
 
 	posix_matches = g_malloc(nmatch * sizeof(regmatch_t));
 	ret = regexec(&regex->posix_regex, string, nmatch, posix_matches, 0);

@@ -947,8 +947,7 @@ _vte_keymap_map(guint keyval,
 	g_return_if_fail(normal_length != NULL);
 	g_return_if_fail(special != NULL);
 
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+	_VTE_DEBUG_ON(VTE_DEBUG_KEYBOARD, ({
 		g_printerr("Mapping ");
 		if (modifiers & GDK_CONTROL_MASK) {
 			g_printerr("Control+");
@@ -996,8 +995,7 @@ _vte_keymap_map(guint keyval,
 			}
 			g_printerr(")");
 		}
-	}
-#endif
+	}));
 
 	/* Start from scratch. */
 	*normal = NULL;
@@ -1054,11 +1052,8 @@ _vte_keymap_map(guint keyval,
 		}
 	}
 	if (entries == NULL) {
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-			g_printerr(" (ignoring, no map for key).\n");
-		}
-#endif
+		_vte_debug_print(VTE_DEBUG_KEYBOARD,
+				" (ignoring, no map for key).\n");
 		return;
 	}
 
@@ -1104,8 +1099,7 @@ _vte_keymap_map(guint keyval,
 							  vt220_mode,
 							  normal,
 							  normal_length);
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
+			_VTE_DEBUG_ON(VTE_DEBUG_KEYBOARD, ({
 				int j;
 				g_printerr(" to '");
 				for (j = 0; j < *normal_length; j++) {
@@ -1119,8 +1113,7 @@ _vte_keymap_map(guint keyval,
 					}
 				}
 				g_printerr("'.\n");
-			}
-#endif
+			}));
 			return;
 		} else {
 			termcap_special = entries[i].special;
@@ -1132,21 +1125,14 @@ _vte_keymap_map(guint keyval,
 				if (strlen(cap) > 0) {
 					/* Save the special string. */
 					*special = entries[i].special;
-#ifdef VTE_DEBUG
-					if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-						g_printerr(" to \"%s\"",
-							*special);
-					}
-#endif
+					_vte_debug_print(VTE_DEBUG_KEYBOARD,
+							" to \"%s\"", *special);
 				}
 				g_free(cap);
 				if (*special != NULL) {
 					/* Return the special string. */
-#ifdef VTE_DEBUG
-					if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-						g_printerr(", returning.\n");
-					}
-#endif
+					_vte_debug_print(VTE_DEBUG_KEYBOARD,
+							", returning.\n");
 					return;
 				}
 			}
@@ -1201,11 +1187,8 @@ _vte_keymap_map(guint keyval,
 	}
 #endif
 
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-		g_printerr(" (ignoring, no match for modifier state).\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_KEYBOARD,
+			" (ignoring, no match for modifier state).\n");
 }
 
 gboolean

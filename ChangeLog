@@ -1,5 +1,173 @@
 2007-01-26  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Janitorial work - near elimination of #ifdef VTE_DEBUG from within
+	functions, trimming a thousand lines of code.
+
+	We introduce a _vte_debug_print macro to cover the more common
+	occurrence of printing a message at a certain debug level.
+	And a _VTE_DEBUG_ON for a conditional code block.
+
+	src/debug.h     |   11 
+	src/iso2022.c   |  201 ++-------
+	src/keymap.c    |   41 -
+	src/matcher.c   |   24 -
+	src/pty.c       |  134 +-----
+	src/reaper.c    |   21 
+	src/ring.c      |   78 +--
+	src/table.c     |   11 
+	src/trie.c      |   19 
+	src/vte.c       | 1187 ++++++++++---------------------------------------
+	src/vteaccess.c |  198 +++------
+	src/vteapp.c    |   21 
+	src/vtebg.c     |   43 --
+	src/vteconv.c   |   60 +-
+	src/vteconv.h   |   12 
+	src/vtedraw.c   |    6 
+	src/vtefc.c     |    4 
+	src/vteft2.c    |    5 
+	src/vteglyph.c  |   27 -
+	src/vtepango.c  |   11 
+	src/vtepangox.c |    7 
+	src/vteregex.c  |    2 
+	src/vteseq.c    |  385 +++++-------------
+	src/vtexft.c    |   26 -
+	24 files changed, 789 insertions(+), 1745 deletions(-)
+
+	* src/debug.h:
+	* src/iso2022.c: (_vte_iso2022_ambiguous_width_guess),
+	(_vte_iso2022_state_new), (_vte_iso2022_state_set_codeset),
+	(process_8_bit_sequence), (process_cdata), (process_control),
+	(_vte_iso2022_process):
+	* src/keymap.c: (_vte_keymap_map):
+	* src/matcher.c: (_vte_matcher_init), (_vte_matcher_create),
+	(_vte_matcher_destroy):
+	* src/pty.c: (vte_pty_child_setup), (_vte_pty_run_on_pty),
+	(_vte_pty_set_size), (_vte_pty_get_size), (_vte_pty_ptsname),
+	(_vte_pty_open_unix98), (_vte_pty_open_with_helper),
+	(_vte_pty_open):
+	* src/reaper.c: (vte_reaper_emit_signal),
+	(vte_reaper_child_watch_cb), (vte_reaper_init),
+	(vte_reaper_finalize):
+	* src/ring.c: (_vte_ring_insert), (_vte_ring_insert_preserve),
+	(_vte_ring_remove):
+	* src/table.c: (_vte_table_addi):
+	* src/trie.c: (char_class_string_extract), (_vte_trie_addx),
+	(_vte_trie_add):
+	* src/vte.c: (update_regions), (_vte_invalidate_cells),
+	(_vte_invalidate_all), (_vte_invalidate_cell),
+	(_vte_invalidate_cursor_once),
+	(vte_terminal_emit_selection_changed), (vte_terminal_emit_commit),
+	(vte_terminal_emit_emulation_changed),
+	(vte_terminal_emit_encoding_changed),
+	(vte_terminal_emit_child_exited),
+	(_vte_terminal_emit_contents_changed),
+	(vte_terminal_emit_cursor_moved), (vte_terminal_emit_eof),
+	(vte_terminal_emit_char_size_changed),
+	(_vte_terminal_emit_status_line_changed),
+	(vte_terminal_emit_increase_font_size),
+	(vte_terminal_emit_decrease_font_size),
+	(_vte_terminal_emit_text_inserted),
+	(_vte_terminal_emit_text_deleted),
+	(vte_terminal_emit_text_modified),
+	(vte_terminal_emit_text_scrolled), (vte_terminal_deselect_all),
+	(vte_terminal_match_check_internal), (vte_terminal_match_check),
+	(vte_terminal_emit_adjustment_changed),
+	(vte_terminal_queue_adjustment_changed),
+	(_vte_terminal_adjust_adjustments), (vte_terminal_scroll_pages),
+	(vte_terminal_maybe_scroll_to_bottom), (vte_terminal_set_encoding),
+	(_vte_terminal_set_pointer_visible), (vte_terminal_new),
+	(vte_terminal_generate_bold), (_vte_terminal_insert_char),
+	(vte_terminal_handle_sequence), (vte_terminal_catch_child_exited),
+	(vte_terminal_fork_command),
+	(vte_terminal_emit_pending_text_signals),
+	(vte_terminal_process_incoming), (vte_terminal_io_read),
+	(vte_terminal_io_write), (vte_terminal_send),
+	(vte_terminal_im_commit), (vte_terminal_im_preedit_start),
+	(vte_terminal_im_preedit_end), (vte_terminal_im_preedit_changed),
+	(vte_terminal_configure_toplevel),
+	(vte_terminal_hierarchy_changed), (vte_terminal_style_changed),
+	(vte_terminal_key_press), (vte_terminal_paste_cb),
+	(vte_terminal_match_hilite_clear), (vte_terminal_match_hilite),
+	(vte_terminal_clear_cb), (vte_terminal_copy_cb),
+	(vte_terminal_copy), (vte_terminal_paste),
+	(vte_terminal_start_selection), (vte_terminal_extend_selection),
+	(vte_terminal_autoscroll), (vte_terminal_motion_notify),
+	(vte_terminal_button_press), (vte_terminal_button_release),
+	(vte_terminal_focus_in), (vte_terminal_focus_out),
+	(vte_terminal_set_font_full), (vte_terminal_set_size),
+	(vte_terminal_handle_scroll), (vte_terminal_set_emulation),
+	(vte_terminal_set_termcap), (vte_terminal_reset_rowdata),
+	(vte_terminal_fc_settings_changed), (vte_terminal_init),
+	(vte_terminal_size_request), (vte_terminal_size_allocate),
+	(vte_terminal_unrealize), (vte_terminal_finalize),
+	(vte_terminal_realize), (vte_terminal_draw_cells),
+	(_vte_terminal_map_pango_color), (vte_terminal_draw_area),
+	(vte_terminal_paint), (vte_terminal_expose), (vte_terminal_scroll),
+	(vte_terminal_class_init), (vte_terminal_copy_clipboard),
+	(vte_terminal_paste_clipboard), (vte_terminal_copy_primary),
+	(vte_terminal_paste_primary), (vte_terminal_background_update),
+	(vte_terminal_queue_background_update),
+	(vte_terminal_set_background_saturation),
+	(vte_terminal_set_background_tint_color),
+	(vte_terminal_set_background_transparent),
+	(vte_terminal_set_background_image),
+	(vte_terminal_set_background_image_file),
+	(vte_terminal_set_word_chars), (process_timeout),
+	(update_repeat_timeout), (update_timeout):
+	* src/vteaccess.c: (xy_from_offset), (emit_text_caret_moved),
+	(emit_text_changed_insert), (emit_text_changed_delete),
+	(vte_terminal_accessible_update_private_data_if_needed),
+	(vte_terminal_accessible_text_modified),
+	(vte_terminal_accessible_text_scrolled),
+	(vte_terminal_accessible_invalidate_cursor),
+	(vte_terminal_accessible_finalize),
+	(vte_terminal_accessible_get_text),
+	(vte_terminal_accessible_get_text_somewhere),
+	(vte_terminal_accessible_get_run_attributes),
+	(vte_terminal_accessible_text_init),
+	(vte_terminal_accessible_component_init),
+	(vte_terminal_accessible_action_init),
+	(vte_terminal_accessible_factory_new):
+	* src/vteapp.c: (destroy_and_quit_eof), (destroy_and_quit_exited),
+	(take_xconsole_ownership), (main):
+	* src/vtebg.c: (vte_bg_root_pixmap), (vte_bg_set_root_pixmap),
+	(_vte_bg_resize_pixbuf):
+	* src/vteconv.c: (_vte_conv_utf8_utf8), (_vte_conv_open),
+	(_vte_conv), (_vte_conv_cu), (_vte_conv_uu), (_vte_conv_uc):
+	* src/vteconv.h:
+	* src/vtedraw.c: (_vte_draw_new):
+	* src/vtefc.c: (_vte_fc_transcribe_from_pango_font_description):
+	* src/vteft2.c: (_vte_ft2_draw_text):
+	* src/vteglyph.c: (_vte_glyph_cache_free),
+	(_vte_glyph_cache_set_font_description):
+	* src/vtepango.c: (_vte_pango_set_text_font),
+	(_vte_pango_draw_text):
+	* src/vtepangox.c: (_vte_pango_x_set_text_font):
+	* src/vteregex.c: (_vte_regex_exec):
+	* src/vteseq.c: (vte_terminal_emit_deiconify_window),
+	(vte_terminal_emit_iconify_window),
+	(vte_terminal_emit_icon_title_changed),
+	(vte_terminal_emit_window_title_changed),
+	(vte_terminal_emit_raise_window), (vte_terminal_emit_lower_window),
+	(vte_terminal_emit_maximize_window),
+	(vte_terminal_emit_refresh_window),
+	(vte_terminal_emit_restore_window),
+	(vte_terminal_emit_move_window), (vte_terminal_emit_resize_window),
+	(vte_sequence_handler_set_title_internal),
+	(vte_sequence_handler_decset_internal), (vte_sequence_handler_bt),
+	(vte_sequence_handler_application_keypad),
+	(vte_sequence_handler_normal_keypad),
+	(vte_sequence_handler_reset_mode), (vte_sequence_handler_decset),
+	(vte_sequence_handler_decreset),
+	(vte_sequence_handler_erase_in_display),
+	(vte_sequence_handler_erase_in_line),
+	(vte_sequence_handler_restore_mode),
+	(vte_sequence_handler_save_mode),
+	(vte_sequence_handler_window_manipulation):
+	* src/vtexft.c: (_vte_xft_set_text_font):
+
+2007-01-26  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Bug 317449 – The cursor disappears when clicking on windows above gnome-terminal
 
 	Enter a command that causes partial obscuration of the terminal,

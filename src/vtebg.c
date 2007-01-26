@@ -45,10 +45,10 @@ struct VteBgCacheItem {
 };
 
 
-static void vte_bg_set_root_pixmap(VteBg *bg, GdkPixmap *pixmap);
 static GdkPixbuf *_vte_bg_resize_pixbuf(GdkPixbuf *pixbuf,
 					gint min_width, gint min_height);
 static void vte_bg_cache_item_free(struct VteBgCacheItem *item);
+static void vte_bg_cache_prune_int(VteBg *bg, gboolean root);
 
 #if 0
 static const char *
@@ -130,19 +130,16 @@ vte_bg_root_pixmap(VteBg *bg)
 				      &prop_type, &prop_size,
 				      &pixmaps)) {
 		if ((prop_type == GDK_TARGET_PIXMAP) &&
-		    (prop_size >= sizeof(XID) &&
+		    (prop_size >= (int)sizeof(XID) &&
 		    (pixmaps != NULL))) {
 			pixmap = gdk_pixmap_foreign_new_for_display(bg->native->display, pixmaps[0]);
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_MISC) ||
-			    _vte_debug_on(VTE_DEBUG_EVENTS)) {
+			_VTE_DEBUG_ON(VTE_DEBUG_MISC|VTE_DEBUG_EVENTS, ({
 				gint pwidth, pheight;
 				gdk_drawable_get_size(pixmap,
-						      &pwidth, &pheight);
+					&pwidth, &pheight);
 				g_printerr("New background image %dx%d\n",
 					pwidth, pheight);
-			}
-#endif
+				}));
 		}
 		g_free(pixmaps);
 	}
@@ -150,6 +147,18 @@ vte_bg_root_pixmap(VteBg *bg)
 	gdk_error_trap_pop();
 	return pixmap;
 }
+
+static void
+vte_bg_set_root_pixmap(VteBg *bg, GdkPixmap *pixmap)
+{
+	if (bg->root_pixmap != NULL) {
+		g_object_unref(bg->root_pixmap);
+	}
+	bg->root_pixmap = pixmap;
+	vte_bg_cache_prune_int(bg, TRUE);
+	g_signal_emit_by_name(bg, "root-pixmap-changed");
+}
+
 
 static GdkFilterReturn
 vte_bg_root_filter(GdkXEvent *native, GdkEvent *event, gpointer data)
@@ -399,12 +408,9 @@ _vte_bg_resize_pixbuf(GdkPixbuf *pixbuf, gint min_width, gint min_height)
 		return pixbuf;
 	}
 
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC) || _vte_debug_on(VTE_DEBUG_EVENTS)) {
-		g_printerr("Resizing (root?) pixbuf from %dx%d to %dx%d\n",
+	_vte_debug_print(VTE_DEBUG_MISC|VTE_DEBUG_EVENTS,
+		"Resizing (root?) pixbuf from %dx%d to %dx%d\n",
 			src_width, src_height, dst_width, dst_height);
-	}
-#endif
 
 	tmp = gdk_pixbuf_new(gdk_pixbuf_get_colorspace(pixbuf),
 			     gdk_pixbuf_get_has_alpha(pixbuf),
@@ -421,17 +427,6 @@ _vte_bg_resize_pixbuf(GdkPixbuf *pixbuf, gint min_width, gint min_height)
 
 	g_object_unref(pixbuf);
 	return tmp;
-}
-
-static void
-vte_bg_set_root_pixmap(VteBg *bg, GdkPixmap *pixmap)
-{
-	if (bg->root_pixmap != NULL) {
-		g_object_unref(bg->root_pixmap);
-	}
-	bg->root_pixmap = pixmap;
-	vte_bg_cache_prune_int(bg, TRUE);
-	g_signal_emit_by_name(bg, "root-pixmap-changed");
 }
 
 /* Add an item to the cache, instructing all of the objects therein to clear

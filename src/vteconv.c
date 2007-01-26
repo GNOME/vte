@@ -27,13 +27,14 @@
 #include "buffer.h"
 #include "vteconv.h"
 
+typedef size_t (*convert_func)(GIConv converter,
+			  const guchar **inbuf,
+			  gsize *inbytes_left,
+			  guchar **outbuf,
+			  gsize *outbytes_left);
 struct _VteConv {
 	GIConv conv;
-	size_t (*convert)(GIConv converter,
-			  gchar **inbuf,
-			  gsize *inbytes_left,
-			  gchar **outbuf,
-			  gsize *outbytes_left);
+	convert_func convert;
 	gint (*close)(GIConv converter);
 	gboolean in_unichar, out_unichar;
 	struct _vte_buffer *in_scratch, *out_scratch;
@@ -55,7 +56,7 @@ _vte_conv_utf8_strlen(const gchar *p, gssize max)
  * same semantics as g_iconv(). */
 static size_t
 _vte_conv_utf8_utf8(GIConv converter,
-		    gchar **inbuf,
+		    const gchar **inbuf,
 		    gsize *inbytes_left,
 		    gchar **outbuf,
 		    gsize *outbytes_left)
@@ -63,7 +64,7 @@ _vte_conv_utf8_utf8(GIConv converter,
 	gboolean validated;
 	const gchar *endptr;
 	size_t length, bytes;
-	int skip;
+	guint skip;
 
 	/* We don't tolerate shenanigans! */
 	g_assert(*outbytes_left >= *inbytes_left);
@@ -152,12 +153,12 @@ _vte_conv_open(const char *target, const char *source)
 	ret = g_slice_new0(struct _VteConv);
 	if (utf8) {
 		ret->conv = NULL;
-		ret->convert = _vte_conv_utf8_utf8;
+		ret->convert = (convert_func) _vte_conv_utf8_utf8;
 		ret->close = NULL;
 	} else {
 		g_assert((conv != NULL) && (conv != ((GIConv) -1)));
 		ret->conv = conv;
-		ret->convert = g_iconv;
+		ret->convert = (convert_func) g_iconv;
 		ret->close = g_iconv_close;
 	}
 
@@ -196,12 +197,12 @@ _vte_conv_close(VteConv converter)
 
 size_t
 _vte_conv(VteConv converter,
-	  gchar **inbuf, gsize *inbytes_left,
-	  gchar **outbuf, gsize *outbytes_left)
+	  const guchar **inbuf, gsize *inbytes_left,
+	  guchar **outbuf, gsize *outbytes_left)
 {
 	size_t ret, tmp;
-	gchar *work_inbuf_start, *work_inbuf_working;
-	gchar *work_outbuf_start, *work_outbuf_working;
+	const guchar *work_inbuf_start, *work_inbuf_working;
+	guchar *work_outbuf_start, *work_outbuf_working;
 	gsize work_inbytes, work_outbytes;
 	gsize in_converted, out_converted;
 
@@ -217,8 +218,8 @@ _vte_conv(VteConv converter,
 
 	/* Possibly convert the input data from gunichars to UTF-8. */
 	if (converter->in_unichar) {
-		int i, char_count, skip;
-		char *p, *end;
+		int i, char_count;
+		guchar *p, *end;
 		gunichar *g;
 		/* Make sure the scratch buffer has enough space. */
 		char_count = *inbytes_left / sizeof(gunichar);
@@ -229,8 +230,7 @@ _vte_conv(VteConv converter,
 		p = converter->in_scratch->bytes;
 		end = p + (char_count + 1) * VTE_UTF8_BPC;
 		for (i = 0; i < char_count; i++) {
-			skip = g_unichar_to_utf8(g[i], p);
-			p += skip;
+			p += g_unichar_to_utf8(g[i], (gchar *)p);
 			g_assert(p <= end);
 		}
 		/* Update our working pointers. */
@@ -291,19 +291,19 @@ _vte_conv(VteConv converter,
 	/* Possibly convert the output from UTF-8 to gunichars. */
 	if (converter->out_unichar) {
 		int  left = *outbytes_left;
-		char *p;
 		gunichar *g;
+		gchar *p;
 
 		g = (gunichar*) *outbuf;
-		for(p = work_outbuf_start;
-			       	p < work_outbuf_working;
+		for(p = (gchar *)work_outbuf_start;
+			       	p < (gchar *)work_outbuf_working;
 			       	p = g_utf8_next_char(p)) {
 		       g_assert(left>=0);
 		       *g++ = g_utf8_get_char(p);
 					 left -= sizeof(gunichar);
 		}
 		*outbytes_left = left;
-		*outbuf = (gchar*) g;
+		*outbuf = (guchar*) g;
 	} else {
 		/* Pass on the output results. */
 		*outbuf = work_outbuf_working;
@@ -315,7 +315,7 @@ _vte_conv(VteConv converter,
 		/* Get an idea of how many characters were converted, and
 		 * advance the pointer as required. */
 		int chars;
-		chars = _vte_conv_utf8_strlen(work_inbuf_start,
+		chars = _vte_conv_utf8_strlen((const gchar *)work_inbuf_start,
 					      work_inbuf_working - work_inbuf_start);
 		*inbuf += (sizeof(gunichar) * chars);
 		*inbytes_left -= (sizeof(gunichar) * chars);
@@ -330,31 +330,31 @@ _vte_conv(VteConv converter,
 
 size_t
 _vte_conv_cu(VteConv converter,
-	     char **inbuf, gsize *inbytes_left,
+	     const guchar **inbuf, gsize *inbytes_left,
 	     gunichar **outbuf, gsize *outbytes_left)
 {
 	return _vte_conv(converter,
 			 inbuf, inbytes_left,
-			 (char**)outbuf, outbytes_left);
+			 (guchar**)outbuf, outbytes_left);
 }
 
 size_t
 _vte_conv_uu(VteConv converter,
-	     gunichar **inbuf, gsize *inbytes_left,
+	     const gunichar **inbuf, gsize *inbytes_left,
 	     gunichar **outbuf, gsize *outbytes_left)
 {
 	return _vte_conv(converter,
-			 (char**)inbuf, inbytes_left,
-			 (char**)outbuf, outbytes_left);
+			 (const guchar**)inbuf, inbytes_left,
+			 (guchar**)outbuf, outbytes_left);
 }
 
 size_t
 _vte_conv_uc(VteConv converter,
-	     gunichar **inbuf, gsize *inbytes_left,
-	     char **outbuf, gsize *outbytes_left)
+	     const gunichar **inbuf, gsize *inbytes_left,
+	     guchar **outbuf, gsize *outbytes_left)
 {
 	return _vte_conv(converter,
-			 (char**)inbuf, inbytes_left,
+			 (const guchar**)inbuf, inbytes_left,
 			 outbuf, outbytes_left);
 }
 

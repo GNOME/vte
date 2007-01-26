@@ -317,11 +317,8 @@ char_class_string_extract(const gunichar *s, gsize length,
 	for (i = 0; i < len; i++) {
 		ret[i] &= ~(VTE_ISO2022_ENCODED_WIDTH_MASK);
 	}
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-		g_printerr("Extracting string `%ls'.\n", (wchar_t*) ret);
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_PARSE,
+			"Extracting string `%ls'.\n", (wchar_t*) ret);
 	memset(&value, 0, sizeof(value));
 
 	g_value_init(&value, G_TYPE_POINTER);
@@ -413,12 +410,9 @@ _vte_trie_addx(struct _vte_trie *trie, gunichar *pattern, gsize length,
 			trie->quark = g_quark_from_string(result);
 			trie->result = g_quark_to_string(trie->quark);
 		} else {
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
+			_VTE_DEBUG_ON(VTE_DEBUG_PARSE,
 				g_warning(_("Duplicate (%s/%s)!"),
-					  result, trie->result);
-			}
-#endif
+					  result, trie->result));
 		}
 		return;
 	}
@@ -491,7 +485,8 @@ TRIE_MAYBE_STATIC void
 _vte_trie_add(struct _vte_trie *trie, const char *pattern, gsize length,
 	      const char *result, GQuark quark)
 {
-	char *wpattern, *wpattern_end, *tpattern;
+	const guchar *tpattern;
+	guchar *wpattern, *wpattern_end;
 	VteConv conv;
 	gsize wlength;
 
@@ -509,7 +504,7 @@ _vte_trie_add(struct _vte_trie *trie, const char *pattern, gsize length,
 	conv = _vte_conv_open(VTE_CONV_GUNICHAR_TYPE, "UTF-8");
 	g_assert(conv != VTE_INVALID_CONV);
 
-	tpattern = (char*)pattern;
+	tpattern = (const guchar *)pattern;
 	_vte_conv(conv, &tpattern, &length, &wpattern_end, &wlength);
 	if (length == 0) {
 		wlength = (wpattern_end - wpattern) / sizeof(gunichar);

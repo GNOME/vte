@@ -112,11 +112,8 @@ vte_g_array_fill(GArray *array, gpointer item, guint final_size)
 static void
 vte_terminal_emit_deiconify_window(VteTerminal *terminal)
 {
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		g_printerr("Emitting `deiconify-window'.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Emitting `deiconify-window'.\n");
 	g_signal_emit_by_name(terminal, "deiconify-window");
 }
 
@@ -124,11 +121,8 @@ vte_terminal_emit_deiconify_window(VteTerminal *terminal)
 static void
 vte_terminal_emit_iconify_window(VteTerminal *terminal)
 {
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		g_printerr("Emitting `iconify-window'.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Emitting `iconify-window'.\n");
 	g_signal_emit_by_name(terminal, "iconify-window");
 }
 
@@ -136,11 +130,8 @@ vte_terminal_emit_iconify_window(VteTerminal *terminal)
 static void
 vte_terminal_emit_icon_title_changed(VteTerminal *terminal)
 {
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		g_printerr("Emitting `icon-title-changed'.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Emitting `icon-title-changed'.\n");
 	g_signal_emit_by_name(terminal, "icon-title-changed");
 }
 
@@ -148,11 +139,8 @@ vte_terminal_emit_icon_title_changed(VteTerminal *terminal)
 static void
 vte_terminal_emit_window_title_changed(VteTerminal *terminal)
 {
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		g_printerr("Emitting `window-title-changed'.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Emitting `window-title-changed'.\n");
 	g_signal_emit_by_name(terminal, "window-title-changed");
 }
 
@@ -160,11 +148,8 @@ vte_terminal_emit_window_title_changed(VteTerminal *terminal)
 static void
 vte_terminal_emit_raise_window(VteTerminal *terminal)
 {
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		g_printerr("Emitting `raise-window'.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Emitting `raise-window'.\n");
 	g_signal_emit_by_name(terminal, "raise-window");
 }
 
@@ -172,11 +157,8 @@ vte_terminal_emit_raise_window(VteTerminal *terminal)
 static void
 vte_terminal_emit_lower_window(VteTerminal *terminal)
 {
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		g_printerr("Emitting `lower-window'.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Emitting `lower-window'.\n");
 	g_signal_emit_by_name(terminal, "lower-window");
 }
 
@@ -184,11 +166,8 @@ vte_terminal_emit_lower_window(VteTerminal *terminal)
 static void
 vte_terminal_emit_maximize_window(VteTerminal *terminal)
 {
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		g_printerr("Emitting `maximize-window'.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Emitting `maximize-window'.\n");
 	g_signal_emit_by_name(terminal, "maximize-window");
 }
 
@@ -196,11 +175,8 @@ vte_terminal_emit_maximize_window(VteTerminal *terminal)
 static void
 vte_terminal_emit_refresh_window(VteTerminal *terminal)
 {
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		g_printerr("Emitting `refresh-window'.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Emitting `refresh-window'.\n");
 	g_signal_emit_by_name(terminal, "refresh-window");
 }
 
@@ -208,11 +184,8 @@ vte_terminal_emit_refresh_window(VteTerminal *terminal)
 static void
 vte_terminal_emit_restore_window(VteTerminal *terminal)
 {
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		g_printerr("Emitting `restore-window'.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Emitting `restore-window'.\n");
 	g_signal_emit_by_name(terminal, "restore-window");
 }
 
@@ -220,11 +193,8 @@ vte_terminal_emit_restore_window(VteTerminal *terminal)
 static void
 vte_terminal_emit_move_window(VteTerminal *terminal, guint x, guint y)
 {
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		g_printerr("Emitting `move-window'.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Emitting `move-window'.\n");
 	g_signal_emit_by_name(terminal, "move-window", x, y);
 }
 
@@ -233,11 +203,8 @@ static void
 vte_terminal_emit_resize_window(VteTerminal *terminal,
 				guint width, guint height)
 {
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_SIGNALS)) {
-		g_printerr("Emitting `resize-window'.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Emitting `resize-window'.\n");
 	g_signal_emit_by_name(terminal, "resize-window", width, height);
 }
 
@@ -392,7 +359,9 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 {
 	GValue *value;
 	VteConv conv;
-	char *inbuf = NULL, *outbuf = NULL, *outbufptr = NULL, *title = NULL;
+	const guchar *inbuf = NULL;
+	guchar *outbuf = NULL, *outbufptr = NULL;
+	char *title = NULL;
 	gsize inbuf_len, outbuf_len;
 	gboolean ret = FALSE;
 
@@ -421,19 +390,16 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 			if (conv != VTE_INVALID_CONV) {
 				if (_vte_conv(conv, &inbuf, &inbuf_len,
 					      &outbuf, &outbuf_len) == -1) {
-#ifdef VTE_DEBUG
-					if (_vte_debug_on(VTE_DEBUG_IO)) {
-						g_printerr("Error "
+					_vte_debug_print(VTE_DEBUG_IO,
+							"Error "
 							"converting %ld title "
 							"bytes (%s), "
 							"skipping.\n",
 							(long) _vte_buffer_length(terminal->pvt->outgoing),
-							strerror(errno));
-					}
-#endif
+							g_strerror(errno));
 					outbufptr = NULL;
 				} else {
-					title = g_strndup(outbufptr,
+					title = g_strndup((gchar *)outbufptr,
 							  outbuf - outbufptr);
 				}
 				_vte_conv_close(conv);
@@ -661,12 +627,9 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 			p = g_hash_table_lookup(terminal->pvt->dec_saved,
 						GINT_TO_POINTER(setting));
 			set = (p != NULL);
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				g_printerr("Setting %d was %s.\n",
+			_vte_debug_print(VTE_DEBUG_PARSE,
+					"Setting %d was %s.\n",
 					setting, set ? "set" : "unset");
-			}
-#endif
 		}
 		/* Save the current setting. */
 		if (save) {
@@ -681,24 +644,18 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 				set = *(settings[i].pvalue) ==
 				      settings[i].tvalue;
 			}
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				g_printerr("Setting %d is %s, saving.\n",
+			_vte_debug_print(VTE_DEBUG_PARSE,
+					"Setting %d is %s, saving.\n",
 					setting, set ? "set" : "unset");
-			}
-#endif
 			g_hash_table_insert(terminal->pvt->dec_saved,
 					    GINT_TO_POINTER(setting),
 					    GINT_TO_POINTER(set));
 		}
 		/* Change the current setting to match the new/saved value. */
 		if (!save) {
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				g_printerr("Setting %d to %s.\n",
+			_vte_debug_print(VTE_DEBUG_PARSE,
+					"Setting %d to %s.\n",
 					setting, set ? "set" : "unset");
-			}
-#endif
 			if (settings[i].set && set) {
 				settings[i].set(terminal, NULL, 0, NULL);
 			}
@@ -724,15 +681,9 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 	/* Do whatever's necessary when the setting changes. */
 	switch (setting) {
 	case 1:
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-			if (set) {
-				g_printerr("Entering application cursor mode.\n");
-			} else {
-				g_printerr("Leaving application cursor mode.\n");
-			}
-		}
-#endif
+		_vte_debug_print(VTE_DEBUG_KEYBOARD, set ?
+				"Entering application cursor mode.\n" :
+				"Leaving application cursor mode.\n");
 		break;
 	case 3:
 		vte_terminal_emit_resize_window(terminal,
@@ -822,59 +773,29 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		_vte_terminal_set_pointer_visible(terminal, TRUE);
 		break;
 	case 66:
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-			if (set) {
-				g_printerr("Entering application keypad mode.\n");
-			} else {
-				g_printerr("Leaving application keypad mode.\n");
-			}
-		}
-#endif
+		_vte_debug_print(VTE_DEBUG_KEYBOARD, set ?
+				"Entering application keypad mode.\n" :
+				"Leaving application keypad mode.\n");
 		break;
 	case 1051:
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-			if (set) {
-				g_printerr("Entering Sun fkey mode.\n");
-			} else {
-				g_printerr("Leaving Sun fkey mode.\n");
-			}
-		}
-#endif
+		_vte_debug_print(VTE_DEBUG_KEYBOARD, set ?
+				"Entering Sun fkey mode.\n" :
+				"Leaving Sun fkey mode.\n");
 		break;
 	case 1052:
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-			if (set) {
-				g_printerr("Entering HP fkey mode.\n");
-			} else {
-				g_printerr("Leaving HP fkey mode.\n");
-			}
-		}
-#endif
+		_vte_debug_print(VTE_DEBUG_KEYBOARD, set ?
+				"Entering HP fkey mode.\n" :
+				"Leaving HP fkey mode.\n");
 		break;
 	case 1060:
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-			if (set) {
-				g_printerr("Entering Legacy fkey mode.\n");
-			} else {
-				g_printerr("Leaving Legacy fkey mode.\n");
-			}
-		}
-#endif
+		_vte_debug_print(VTE_DEBUG_KEYBOARD, set ?
+				"Entering Legacy fkey mode.\n" :
+				"Leaving Legacy fkey mode.\n");
 		break;
 	case 1061:
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-			if (set) {
-				g_printerr("Entering VT220 fkey mode.\n");
-			} else {
-				g_printerr("Leaving VT220 fkey mode.\n");
-			}
-		}
-#endif
+		_vte_debug_print(VTE_DEBUG_KEYBOARD, set ?
+				"Entering VT220 fkey mode.\n" :
+				"Leaving VT220 fkey mode.\n");
 		break;
 	default:
 		break;
@@ -1081,11 +1002,8 @@ vte_sequence_handler_bt(VteTerminal *terminal,
 	}
 
 	/* Warp the cursor. */
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-		g_printerr("Moving cursor to column %ld.\n", (long)newcol);
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_PARSE,
+			"Moving cursor to column %ld.\n", (long)newcol);
 	terminal->pvt->screen->cursor_current.col = newcol;
 	return FALSE;
 }
@@ -3101,11 +3019,8 @@ vte_sequence_handler_application_keypad(VteTerminal *terminal,
 					GQuark match_quark,
 					GValueArray *params)
 {
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-		g_printerr("Entering application keypad mode.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_KEYBOARD,
+			"Entering application keypad mode.\n");
 	terminal->pvt->keypad_mode = VTE_KEYMODE_APPLICATION;
 	return FALSE;
 }
@@ -3116,11 +3031,8 @@ vte_sequence_handler_normal_keypad(VteTerminal *terminal,
 				   GQuark match_quark,
 				   GValueArray *params)
 {
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
-		g_printerr("Leaving application keypad mode.\n");
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_KEYBOARD,
+			"Leaving application keypad mode.\n");
 	terminal->pvt->keypad_mode = VTE_KEYMODE_NORMAL;
 	return FALSE;
 }
@@ -3180,13 +3092,14 @@ vte_sequence_handler_reset_mode(VteTerminal *terminal,
 				GQuark match_quark,
 				GValueArray *params)
 {
-	int i, again;
+	guint i;
 	long setting;
 	GValue *value;
+	gboolean again;
 	if ((params == NULL) || (params->n_values == 0)) {
 		return FALSE;
 	}
-	again = 0;
+	again = FALSE;
 	for (i = 0; i < params->n_values; i++) {
 		value = g_value_array_get_nth(params, i);
 		if (!G_VALUE_HOLDS_LONG(value)) {
@@ -3195,10 +3108,10 @@ vte_sequence_handler_reset_mode(VteTerminal *terminal,
 		setting = g_value_get_long(value);
 		if (vte_sequence_handler_set_mode_internal(terminal, setting,
 							   FALSE)) {
-			again++;
+			again = TRUE;
 		}
 	}
-	return (again > 0);
+	return again;
 }
 
 /* Set certain terminal attributes. */
@@ -3210,11 +3123,12 @@ vte_sequence_handler_decset(VteTerminal *terminal,
 {
 	GValue *value;
 	long setting;
-	int i, again;
+	guint i;
+	gboolean again;
 	if ((params == NULL) || (params->n_values == 0)) {
 		return FALSE;
 	}
-	again = 0;
+	again = FALSE;
 	for (i = 0; i < params->n_values; i++) {
 		value = g_value_array_get_nth(params, i);
 		if (!G_VALUE_HOLDS_LONG(value)) {
@@ -3223,10 +3137,10 @@ vte_sequence_handler_decset(VteTerminal *terminal,
 		setting = g_value_get_long(value);
 		if (vte_sequence_handler_decset_internal(terminal, setting,
 							 FALSE, FALSE, TRUE)) {
-			again++;
+			 again = TRUE;
 		}
 	}
-	return (again > 0);
+	return again;
 }
 
 /* Unset certain terminal attributes. */
@@ -3238,11 +3152,12 @@ vte_sequence_handler_decreset(VteTerminal *terminal,
 {
 	GValue *value;
 	long setting;
-	int i, again;
+	guint i;
+	gboolean again;
 	if ((params == NULL) || (params->n_values == 0)) {
 		return FALSE;
 	}
-	again = 0;
+	again = FALSE;
 	for (i = 0; i < params->n_values; i++) {
 		value = g_value_array_get_nth(params, i);
 		if (!G_VALUE_HOLDS_LONG(value)) {
@@ -3251,10 +3166,10 @@ vte_sequence_handler_decreset(VteTerminal *terminal,
 		setting = g_value_get_long(value);
 		if (vte_sequence_handler_decset_internal(terminal, setting,
 							 FALSE, FALSE, FALSE)) {
-			again++;
+			again = TRUE;
 		}
 	}
-	return (again > 0);
+	return again;
 }
 
 /* Erase a specified number of characters. */
@@ -3276,7 +3191,7 @@ vte_sequence_handler_erase_in_display(VteTerminal *terminal,
 {
 	GValue *value;
 	long param;
-	int i;
+	guint i;
 	gboolean again;
 	/* The default parameter is 0. */
 	param = 0;
@@ -3330,7 +3245,7 @@ vte_sequence_handler_erase_in_line(VteTerminal *terminal,
 {
 	GValue *value;
 	long param;
-	int i;
+	guint i;
 	gboolean again;
 	/* The default parameter is 0. */
 	param = 0;
@@ -3618,11 +3533,12 @@ vte_sequence_handler_restore_mode(VteTerminal *terminal,
 {
 	GValue *value;
 	long setting;
-	int i, again;
+	guint i;
+	gboolean again;
 	if ((params == NULL) || (params->n_values == 0)) {
 		return FALSE;
 	}
-	again = 0;
+	again = FALSE;
 	for (i = 0; i < params->n_values; i++) {
 		value = g_value_array_get_nth(params, i);
 		if (!G_VALUE_HOLDS_LONG(value)) {
@@ -3631,10 +3547,10 @@ vte_sequence_handler_restore_mode(VteTerminal *terminal,
 		setting = g_value_get_long(value);
 		if (vte_sequence_handler_decset_internal(terminal, setting,
 						         TRUE, FALSE, FALSE)) {
-			again++;
+			again = TRUE;
 		}
 	}
-	return (again > 0);
+	return again;
 }
 
 /* Save a certain terminal attribute. */
@@ -3646,11 +3562,12 @@ vte_sequence_handler_save_mode(VteTerminal *terminal,
 {
 	GValue *value;
 	long setting;
-	int i, again;
+	guint i;
+	gboolean again;
 	if ((params == NULL) || (params->n_values == 0)) {
 		return FALSE;
 	}
-	again = 0;
+	again = FALSE;
 	for (i = 0; i < params->n_values; i++) {
 		value = g_value_array_get_nth(params, i);
 		if (!G_VALUE_HOLDS_LONG(value)) {
@@ -3659,10 +3576,10 @@ vte_sequence_handler_save_mode(VteTerminal *terminal,
 		setting = g_value_get_long(value);
 		if (vte_sequence_handler_decset_internal(terminal, setting,
 						         FALSE, TRUE, FALSE)) {
-			again++;
+			again = TRUE;
 		}
 	}
-	return (again > 0);
+	return again;
 }
 
 /* Perform a screen alignment test -- fill all visible cells with the
@@ -3764,29 +3681,20 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 		param = g_value_get_long(value);
 		switch (param) {
 		case 1:
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				g_printerr("Deiconifying window.\n");
-			}
-#endif
+			_vte_debug_print(VTE_DEBUG_PARSE,
+				       	"Deiconifying window.\n");
 			vte_terminal_emit_deiconify_window(terminal);
 			break;
 		case 2:
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				g_printerr("Iconifying window.\n");
-			}
-#endif
+			_vte_debug_print(VTE_DEBUG_PARSE,
+					"Iconifying window.\n");
 			vte_terminal_emit_iconify_window(terminal);
 			break;
 		case 3:
 			if ((arg1 != -1) && (arg2 != -2)) {
-#ifdef VTE_DEBUG
-				if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-					g_printerr("Moving window to "
+				_vte_debug_print(VTE_DEBUG_PARSE,
+						"Moving window to "
 						"%ld,%ld.\n", arg1, arg2);
-				}
-#endif
 				vte_terminal_emit_move_window(terminal,
 							      arg1, arg2);
 				i += 2;
@@ -3794,13 +3702,10 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			break;
 		case 4:
 			if ((arg1 != -1) && (arg2 != -1)) {
-#ifdef VTE_DEBUG
-				if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-					g_printerr("Resizing window "
+				_vte_debug_print(VTE_DEBUG_PARSE,
+						"Resizing window "
 						"(to %ldx%ld pixels).\n",
 						arg2, arg1);
-				}
-#endif
 				vte_terminal_emit_resize_window(terminal,
 								arg2 +
 								VTE_PAD_WIDTH * 2,
@@ -3810,39 +3715,25 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			}
 			break;
 		case 5:
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				g_printerr("Raising window.\n");
-			}
-#endif
+			_vte_debug_print(VTE_DEBUG_PARSE, "Raising window.\n");
 			vte_terminal_emit_raise_window(terminal);
 			break;
 		case 6:
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				g_printerr("Lowering window.\n");
-			}
-#endif
+			_vte_debug_print(VTE_DEBUG_PARSE, "Lowering window.\n");
 			vte_terminal_emit_lower_window(terminal);
 			break;
 		case 7:
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				g_printerr("Refreshing window.\n");
-			}
-#endif
+			_vte_debug_print(VTE_DEBUG_PARSE, 
+					"Refreshing window.\n");
 			_vte_invalidate_all(terminal);
 			vte_terminal_emit_refresh_window(terminal);
 			break;
 		case 8:
 			if ((arg1 != -1) && (arg2 != -1)) {
-#ifdef VTE_DEBUG
-				if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-					g_printerr("Resizing window "
+				_vte_debug_print(VTE_DEBUG_PARSE,
+						"Resizing window "
 						"(to %ld columns, %ld rows).\n",
 						arg2, arg1);
-				}
-#endif
 				vte_terminal_emit_resize_window(terminal,
 								arg2 * terminal->char_width +
 								VTE_PAD_WIDTH * 2,
@@ -3854,19 +3745,13 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 		case 9:
 			switch (arg1) {
 			case 0:
-#ifdef VTE_DEBUG
-				if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-					g_printerr("Restoring window.\n");
-				}
-#endif
+				_vte_debug_print(VTE_DEBUG_PARSE,
+						"Restoring window.\n");
 				vte_terminal_emit_restore_window(terminal);
 				break;
 			case 1:
-#ifdef VTE_DEBUG
-				if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-					g_printerr("Maximizing window.\n");
-				}
-#endif
+				_vte_debug_print(VTE_DEBUG_PARSE,
+						"Maximizing window.\n");
 				vte_terminal_emit_maximize_window(terminal);
 				break;
 			default:
@@ -3879,13 +3764,10 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			len = g_snprintf(buf, sizeof(buf),
 				 _VTE_CAP_CSI "%dt",
 				 1 + !GTK_WIDGET_MAPPED(widget));
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				g_printerr("Reporting window state %s.\n",
+			_vte_debug_print(VTE_DEBUG_PARSE,
+					"Reporting window state %s.\n",
 					GTK_WIDGET_MAPPED(widget) ?
 					"non-iconified" : "iconified");
-			}
-#endif
 			vte_terminal_feed_child(terminal, buf, len);
 			break;
 		case 13:
@@ -3895,13 +3777,10 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			len = g_snprintf(buf, sizeof(buf),
 				 _VTE_CAP_CSI "%d;%dt",
 				 width + VTE_PAD_WIDTH, height + VTE_PAD_WIDTH);
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				g_printerr("Reporting window location"
+			_vte_debug_print(VTE_DEBUG_PARSE,
+					"Reporting window location"
 					"(%d++,%d++).\n",
 					width, height);
-			}
-#endif
 			vte_terminal_feed_child(terminal, buf, len);
 			break;
 		case 14:
@@ -3910,23 +3789,17 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 				 _VTE_CAP_CSI "%d;%dt",
 				 widget->allocation.height - 2 * VTE_PAD_WIDTH,
 				 widget->allocation.width - 2 * VTE_PAD_WIDTH);
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				g_printerr("Reporting window size "
+			_vte_debug_print(VTE_DEBUG_PARSE,
+					"Reporting window size "
 					"(%dx%dn",
 					width - 2 * VTE_PAD_WIDTH,
 					height - 2 * VTE_PAD_WIDTH);
-			}
-#endif
 			vte_terminal_feed_child(terminal, buf, len);
 			break;
 		case 18:
 			/* Send widget size, in cells. */
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				g_printerr("Reporting widget size.\n");
-			}
-#endif
+			_vte_debug_print(VTE_DEBUG_PARSE,
+					"Reporting widget size.\n");
 			len = g_snprintf(buf, sizeof(buf),
 				 _VTE_CAP_CSI "%ld;%ldt",
 				 terminal->row_count,
@@ -3934,11 +3807,8 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			vte_terminal_feed_child(terminal, buf, len);
 			break;
 		case 19:
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				g_printerr("Reporting screen size.\n");
-			}
-#endif
+			_vte_debug_print(VTE_DEBUG_PARSE,
+					"Reporting screen size.\n");
 			if (gtk_widget_has_screen(widget)) {
 				gscreen = gtk_widget_get_screen(widget);
 			} else {
@@ -3954,34 +3824,25 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			break;
 		case 20:
 			/* Report the icon title. */
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				g_printerr("Reporting icon title.\n");
-			}
-#endif
+			_vte_debug_print(VTE_DEBUG_PARSE,
+				"Reporting icon title.\n");
 			vte_terminal_feed_child(terminal,
 				 _VTE_CAP_OSC "LTerminal" _VTE_CAP_ST,
-				 sizeof(_VTE_CAP_OSC "LTerminal" _VTE_CAP_ST));
+				 sizeof(_VTE_CAP_OSC "LTerminal" _VTE_CAP_ST) - 1);
 			break;
 		case 21:
 			/* Report the window title. */
-#ifdef VTE_DEBUG
-			if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-				g_printerr("Reporting window title.\n");
-			}
-#endif
+			_vte_debug_print(VTE_DEBUG_PARSE,
+					"Reporting window title.\n");
 			vte_terminal_feed_child(terminal,
 				 _VTE_CAP_OSC "Terminal" _VTE_CAP_ST,
-				 sizeof(_VTE_CAP_OSC "Terminal" _VTE_CAP_ST));
+				 sizeof(_VTE_CAP_OSC "Terminal" _VTE_CAP_ST) - 1);
 			break;
 		default:
 			if (param >= 24) {
-#ifdef VTE_DEBUG
-				if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-					g_printerr("Resizing to %ld rows.\n",
-						param);
-				}
-#endif
+				_vte_debug_print(VTE_DEBUG_PARSE,
+						"Resizing to %ld rows.\n",
+					       	param);
 				/* Resize to the specified number of
 				 * rows. */
 				vte_terminal_emit_resize_window(terminal,

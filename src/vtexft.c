@@ -120,7 +120,7 @@ _vte_xft_font_close(struct _vte_xft_font *font)
 	Display *display;
 	XftFont *ftfont;
 	FcPattern *pattern;
-	int i;
+	guint i;
 
 	for (i = 0; i < font->patterns->len; i++) {
 		pattern = g_ptr_array_index(font->patterns, i);
@@ -150,7 +150,7 @@ _vte_xft_font_close(struct _vte_xft_font *font)
 static XftFont *
 _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 {
-	int i;
+	guint i;
 	XftFont *ftfont;
 	GdkDisplay *gdisplay;
 	Display *display;
@@ -483,21 +483,23 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 		       const PangoFontDescription *fontdesc,
 		       VteTerminalAntiAlias antialias)
 {
+	struct _vte_xft_font *ft;
 	XftFont *font;
 	XGlyphInfo extents;
 	struct _vte_xft_data *data;
 	gunichar wide_chars[] = {VTE_DRAW_DOUBLE_WIDE_CHARACTERS};
-	int i, n, width, height;
+	guint i;
+	gint n, width, height;
 	FcChar32 c;
 
 	data = (struct _vte_xft_data*) draw->impl_data;
 
-	font = _vte_xft_font_open(draw->widget, fontdesc, antialias);
-	if (font != NULL) {
+	ft = _vte_xft_font_open(draw->widget, fontdesc, antialias);
+	if (ft != NULL) {
 		if (data->font != NULL) {
 			_vte_xft_font_close(data->font);
 		}
-		data->font = font;
+		data->font = ft;
 	}
 	if (data->font == NULL) {
 		return;
@@ -549,12 +551,9 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 		}
 	}
 
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		g_printerr("VteXft font metrics = %dx%d (%d).\n",
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"VteXft font metrics = %dx%d (%d).\n",
 			draw->width, draw->height, draw->ascent);
-	}
-#endif
 }
 
 static int
@@ -669,9 +668,6 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 				j++;
 			}
 			i++;
-			if (j == VTE_DRAW_MAX_LENGTH) {
-				break;
-			}
 
 			/* find the next displayable character ... */
 			ft = NULL;
@@ -690,7 +686,7 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 				}
 				break;
 			}
-		} while (ft == font);
+		} while (j < VTE_DRAW_MAX_LENGTH && ft == font);
 		if (j > 0) {
 			XftDrawGlyphSpec (data->draw,
 				       	&ftcolor, font, glyphs, j);

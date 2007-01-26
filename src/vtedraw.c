@@ -126,11 +126,7 @@ _vte_draw_new(GtkWidget *widget)
 		draw->impl = &_vte_draw_skel;
 	}
 
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		g_printerr("Using %s.\n", draw->impl->name);
-	}
-#endif
+	_vte_debug_print(VTE_DEBUG_MISC, "Using %s.\n", draw->impl->name);
 
 	draw->impl->create(draw, draw->widget);
 

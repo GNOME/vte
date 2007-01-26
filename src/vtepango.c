@@ -241,7 +241,7 @@ _vte_pango_set_text_font(struct _vte_draw *draw,
 	gunichar full_codepoints[] = {VTE_DRAW_DOUBLE_WIDE_CHARACTERS};
 	GString *full_string;
 	gint full_width;
-	int i;
+	guint i;
 	struct _vte_pango_data *data;
 
 	data = (struct _vte_pango_data*) draw->impl_data;
@@ -293,12 +293,9 @@ _vte_pango_set_text_font(struct _vte_draw *draw,
 	}
 	pango_layout_iter_free(iter);
 
-#ifdef VTE_DEBUG
-	if (_vte_debug_on(VTE_DEBUG_MISC)) {
-		g_printerr("VtePango font metrics = %dx%d (%d).\n",
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"VtePango font metrics = %dx%d (%d).\n",
 			draw->width, draw->height, draw->ascent);
-	}
-#endif
 
 	g_object_unref(layout);
 }
@@ -343,7 +340,7 @@ _vte_pango_draw_text(struct _vte_draw *draw,
 {
 	struct _vte_pango_data *data;
 	char buf[VTE_UTF8_BPC];
-	int i;
+	guint i;
 	gsize length;
 	GdkColor wcolor;
 

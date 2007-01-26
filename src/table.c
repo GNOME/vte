@@ -131,14 +131,11 @@ _vte_table_addi(struct _vte_table *table,
 
 	/* If this is the terminal node, set the result. */
 	if (length == 0) {
-#ifdef VTE_DEBUG
-		if (_vte_debug_on(VTE_DEBUG_PARSE)) {
-			if (table->result != NULL) {
+		_VTE_DEBUG_ON(VTE_DEBUG_PARSE,
+				if (table->result != NULL)
 				g_warning("`%s' and `%s' are indistinguishable",
-					  table->result, result);
-			}
-		}
-#endif
+					table->result, result)
+		);
 		table->resultq = g_quark_from_string(result);
 		table->result = g_quark_to_string(table->resultq);
 		if (table->original != NULL) {
