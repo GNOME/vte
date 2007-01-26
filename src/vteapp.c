@@ -782,8 +782,8 @@ main(int argc, char **argv)
 	if (!console) {
 		if (shell) {
 			/* Launch a shell. */
-			_VTE_DEBUG_ON(VTE_DEBUG_MISC,
-				vte_terminal_feed(terminal, message, -1));
+			_VTE_DEBUG_IF(VTE_DEBUG_MISC)
+				vte_terminal_feed(terminal, message, -1);
 			vte_terminal_fork_command(terminal,
 						  command, NULL, env_add,
 						  working_directory,

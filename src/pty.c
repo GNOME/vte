@@ -281,7 +281,7 @@ _vte_pty_run_on_pty (struct vte_pty_child_setup_data *data,
 		}
 		arg2[i+1] = NULL;
 
-		_VTE_DEBUG_ON (VTE_DEBUG_MISC, ({
+		_VTE_DEBUG_IF (VTE_DEBUG_MISC) {
 			g_printerr("Spawing command '%s'\n", command);
 			for (i = 0; arg2[i] != NULL; i++) {
 				g_printerr("    argv[%d] = %s\n", i, arg2[i]);
@@ -294,7 +294,7 @@ _vte_pty_run_on_pty (struct vte_pty_child_setup_data *data,
 			}
 			g_printerr ("    directory: %s\n",
 				       	directory ? directory : "(none)");
-		}));
+		}
 
 		ret = g_spawn_async_with_pipes (directory,
 				arg2, envp,

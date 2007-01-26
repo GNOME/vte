@@ -30,16 +30,13 @@
 #include "table.h"
 
 /* Table info. */
-#ifdef TABLE_MAIN
-#define VTE_TABLE_MAX_NUMERIC_DEPTH 5
-#else
-#define VTE_TABLE_MAX_NUMERIC_DEPTH 16
-#endif
 #define VTE_TABLE_MAX_LITERAL (128 + 32)
 #define _vte_table_map_literal(__c) \
 	(((__c) < (VTE_TABLE_MAX_LITERAL)) ? (__c) : 0)
 #define _vte_table_is_numeric(__c) \
 	(((__c) >= '0') && ((__c) <= '9'))
+#define _vte_table_is_numeric_list(__c) \
+	((((__c) >= '0') && ((__c) <= '9')) || (__c) == ';')
 
 struct _vte_table {
 	struct _vte_matcher_impl impl;
@@ -50,6 +47,7 @@ struct _vte_table {
 	int increment;
 	struct _vte_table *table_string;
 	struct _vte_table *table_number;
+	struct _vte_table *table_number_list;
 	struct _vte_table **table;
 };
 
@@ -131,11 +129,11 @@ _vte_table_addi(struct _vte_table *table,
 
 	/* If this is the terminal node, set the result. */
 	if (length == 0) {
-		_VTE_DEBUG_ON(VTE_DEBUG_PARSE,
-				if (table->result != NULL)
+		_VTE_DEBUG_IF(VTE_DEBUG_PARSE) {
+			if (table->result != NULL)
 				g_warning("`%s' and `%s' are indistinguishable",
-					table->result, result)
-		);
+						table->result, result);
+		}
 		table->resultq = g_quark_from_string(result);
 		table->result = g_quark_to_string(table->resultq);
 		if (table->original != NULL) {
@@ -179,16 +177,17 @@ _vte_table_addi(struct _vte_table *table,
 		/* Handle variable-length parameters. */
 		if ((pattern[1] == 'm') ||
 		    (pattern[1] == 'M')) {
-			int i, j, initial;
-			GByteArray *b;
 			/* Build the "new" original using the initial portion
 			 * of the original string and what's left after this
 			 * specifier. */
-			initial = original_length - length;
-			b = g_byte_array_new();
 			if (pattern[1] == 'm') {
+				int initial;
+				GByteArray *b;
+
+				initial = original_length - length;
 				/* 0 args; we use 'M' to signal that zero is
 				 * not allowed.  */
+				b = g_byte_array_new();
 				g_byte_array_set_size(b, 0);
 				g_byte_array_append(b, original, initial);
 				g_byte_array_append(b, pattern + 2, length - 2);
@@ -196,25 +195,19 @@ _vte_table_addi(struct _vte_table *table,
 						b->data + initial,
 						b->len - initial,
 						result, quark, inc);
+				g_byte_array_free(b, TRUE);
 			}
-			for (i = 1;
-			     i <= VTE_TABLE_MAX_NUMERIC_DEPTH;
-			     i++) {
-				g_byte_array_set_size(b, 0);
-				g_byte_array_append(b, original, initial);
-				for (j = 1; j <= i; j++) {
-					if (j > 1) {
-						g_byte_array_append(b, ";", 1);
-					}
-					g_byte_array_append(b, "%d", 2);
-				}
-				g_byte_array_append(b, pattern + 2, length - 2);
-				_vte_table_addi(table,
-						b->data, b->len,
-						b->data + initial, b->len - initial,
-						result, quark, inc);
+			/* Create a new subtable. */
+			if (table->table_number_list == NULL) {
+				subtable = _vte_table_new();
+				table->table_number_list = subtable;
+			} else {
+				subtable = table->table_number_list;
 			}
-			g_byte_array_free(b, TRUE);
+			/* Add the rest of the string to the subtable. */
+			_vte_table_addi(subtable, original, original_length,
+					pattern + 2, length - 2,
+					result, quark, inc);
 			return;
 		}
 
@@ -340,7 +333,7 @@ _vte_table_matchi(struct _vte_table *table,
 		  const gunichar *candidate, gssize length,
 		  const char **res, const gunichar **consumed, GQuark *quark,
 		  unsigned char **original, gssize *original_length,
-		  GList **params)
+		  GSList **params)
 {
 	int i = 0;
 	struct _vte_table *subtable = NULL;
@@ -358,7 +351,7 @@ _vte_table_matchi(struct _vte_table *table,
 
 	/* If we're out of data, but we still have children, return the empty
 	 * string. */
-	if ((length == 0) && (table != NULL)) {
+	if (length == 0) {
 		*consumed = candidate;
 		return "";
 	}
@@ -378,11 +371,49 @@ _vte_table_matchi(struct _vte_table *table,
 		arginfo->type = _vte_table_arg_string;
 		arginfo->start = candidate;
 		arginfo->length = i;
-		*params = g_list_append(*params, arginfo);
+		*params = g_slist_prepend (*params, arginfo);
 		/* Continue. */
 		return _vte_table_matchi(subtable, candidate + i, length - i,
 					 res, consumed, quark,
 					 original, original_length, params);
+	}
+
+	/* Check if this could be a list. */
+	if ((_vte_table_is_numeric_list(candidate[0])) &&
+	    (table->table_number_list != NULL)) {
+		GSList *l, *local_params;
+		const char *res;
+
+		subtable = table->table_number_list;
+		/* Iterate over all numeric characters and ';'. */
+		for (i = 0; i < length; i++) {
+			if (!_vte_table_is_numeric_list(candidate[i])) {
+				break;
+			}
+		}
+		/* Save the parameter info. */
+		arginfo = g_slice_new(struct _vte_table_arginfo);
+		arginfo->type = _vte_table_arg_number;
+		arginfo->start = candidate;
+		arginfo->length = i;
+		l = local_params = g_slist_prepend (NULL, arginfo);
+
+		/* Try and continue. */
+		res = _vte_table_matchi(subtable, candidate + i, length - i,
+					 res, consumed, quark,
+					 original, original_length,
+					 &local_params);
+		if (res != NULL) {
+			l->next = *params;
+			*params = local_params;
+			return res;
+		}
+		for (l = local_params; l != NULL; l = g_slist_next (l)) {
+			g_slice_free (struct _vte_table_arginfo, l->data);
+		}
+		g_slist_free (local_params);
+
+		/* try again */
 	}
 
 	/* Check if this could be a number. */
@@ -400,7 +431,7 @@ _vte_table_matchi(struct _vte_table *table,
 		arginfo->type = _vte_table_arg_number;
 		arginfo->start = candidate;
 		arginfo->length = i;
-		*params = g_list_append(*params, arginfo);
+		*params = g_slist_prepend (*params, arginfo);
 		/* Continue. */
 		return _vte_table_matchi(subtable, candidate + i, length - i,
 					 res, consumed, quark,
@@ -416,7 +447,7 @@ _vte_table_matchi(struct _vte_table *table,
 		arginfo->type = _vte_table_arg_char;
 		arginfo->start = candidate;
 		arginfo->length = 1;
-		*params = g_list_append(*params, arginfo);
+		*params = g_slist_prepend (*params, arginfo);
 		/* Continue. */
 		return _vte_table_matchi(subtable, candidate + 1, length - 1,
 					 res, consumed, quark,
@@ -435,39 +466,32 @@ _vte_table_extract_numbers(GValueArray **array,
 {
 	GValue value = {0,};
 	GString *tmp;
-	char **vals;
-	int i, j;
+	char *str;
+	int i;
 	long total;
 
 	tmp = g_string_new(NULL);
 	for (i = 0; i < arginfo->length; i++) {
 		tmp = g_string_append_unichar(tmp, arginfo->start[i]);
 	}
+	str = g_string_free(tmp, FALSE);
 
-	vals = g_strsplit(tmp->str, ";", -1);
-
-	if (vals != NULL) {
-		g_value_init(&value, G_TYPE_LONG);
-
-		for (i = 0; vals[i] != NULL; i++) {
-			if (*array == NULL) {
-				*array = g_value_array_new(1);
-			}
-			for (total = 0, j = 0; vals[i][j] != '\0'; j++) {
-				total *= 10;
-				total += g_unichar_digit_value(vals[i][j]) == -1 ?
-					 0 : g_unichar_digit_value(vals[i][j]);
-			}
-			g_value_set_long(&value, total);
-			g_value_array_append(*array, &value);
+	g_value_init(&value, G_TYPE_LONG);
+	i = 0;
+	do {
+		for (total = 0; !(str[i] == '\0' || str[i] == ';'); i++) {
+			total *= 10;
+			total += g_unichar_digit_value(str[i]) == -1 ?
+				0 : g_unichar_digit_value(str[i]);
 		}
-
-		g_strfreev(vals);
-
-		g_value_unset(&value);
-	}
-
-	g_string_free(tmp, TRUE);
+		if (*array == NULL) {
+			*array = g_value_array_new(1);
+		}
+		g_value_set_long(&value, total);
+		g_value_array_append(*array, &value);
+	} while (str[i++] != '\0');
+	g_value_unset(&value);
+	g_free (str);
 }
 
 static void
@@ -525,7 +549,7 @@ _vte_table_match(struct _vte_table *table,
 	const char *ret = NULL;
 	unsigned char *original = NULL, *p = NULL;
 	gssize original_length;
-	GList *params = NULL, *tmp;
+	GSList *params = NULL, *tmp;
 	long increment = 0;
 	int i;
 	struct _vte_table_arginfo *arginfo;
@@ -549,10 +573,7 @@ _vte_table_match(struct _vte_table *table,
 	*array = NULL;
 
 	/* Provide a fast path for the usual "not a sequence" cases. */
-	if (length == 0) {
-		return NULL;
-	}
-	if (candidate == NULL) {
+	if (G_LIKELY (length == 0 || candidate == NULL)) {
 		return NULL;
 	}
 
@@ -594,7 +615,7 @@ _vte_table_match(struct _vte_table *table,
 
 	/* If we got a match, extract the parameters. */
 	if ((ret != NULL) && (strlen(ret) > 0) && (array != &dummy_array)) {
-		tmp = params;
+		tmp = params = g_slist_reverse (params);
 		g_assert(original != NULL);
 		p = original;
 		while (p < original + original_length) {
@@ -608,7 +629,7 @@ _vte_table_match(struct _vte_table *table,
 				}
 				/* Handle an escaped '%'. */
 				if (p[1] == '%') {
-					tmp = g_list_next(tmp);
+					tmp = g_slist_next (tmp);
 					p += 2;
 					continue;
 				}
@@ -622,7 +643,7 @@ _vte_table_match(struct _vte_table *table,
 					_vte_table_extract_numbers(array,
 								   arginfo,
 								   increment);
-					tmp = g_list_next(tmp);
+					tmp = g_slist_next (tmp);
 					p += 2;
 					continue;
 				}
@@ -631,7 +652,7 @@ _vte_table_match(struct _vte_table *table,
 					arginfo = tmp->data;
 					_vte_table_extract_string(array,
 								  arginfo);
-					tmp = g_list_next(tmp);
+					tmp = g_slist_next (tmp);
 					p += 2;
 					continue;
 				}
@@ -641,14 +662,14 @@ _vte_table_match(struct _vte_table *table,
 					_vte_table_extract_char(array,
 								arginfo,
 								p[2]);
-					tmp = g_list_next(tmp);
+					tmp = g_slist_next (tmp);
 					p += 3;
 					continue;
 				}
 				g_assert_not_reached();
 			} else {
 				/* Literal. */
-				tmp = g_list_next(tmp);
+				tmp = g_slist_next (tmp);
 				p++;
 				continue;
 			}
@@ -657,10 +678,10 @@ _vte_table_match(struct _vte_table *table,
 
 	/* Clean up extracted parameters. */
 	if (params != NULL) {
-		for (tmp = params; tmp != NULL; tmp = g_list_next(tmp)) {
+		for (tmp = params; tmp != NULL; tmp = g_slist_next (tmp)) {
 			g_slice_free(struct _vte_table_arginfo, tmp->data);
 		}
-		g_list_free(params);
+		g_slist_free (params);
 	}
 
 	return ret;

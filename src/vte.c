@@ -1147,12 +1147,12 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 		}
 	}
 
-	_VTE_DEBUG_ON(VTE_DEBUG_EVENTS,
-			if (offset < 0)
+	_VTE_DEBUG_IF(VTE_DEBUG_EVENTS) {
+		if (offset < 0)
 			g_printerr("Cursor is not on a character.\n");
-			else
+		else
 			g_printerr("Cursor is on character %d.\n", offset);
-		     );
+	}
 
 	/* If the pointer isn't on a matchable character, bug out. */
 	if (offset < 0) {
@@ -1196,29 +1196,29 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 					 terminal->pvt->match_attributes->len);
 				g_assert(matches[j].rm_eo + coffset <=
 					 terminal->pvt->match_attributes->len);
-				_VTE_DEBUG_ON(VTE_DEBUG_MISC, ({
+				_VTE_DEBUG_IF(VTE_DEBUG_MISC) {
 					char *match;
 					struct _VteCharAttributes *sattr, *eattr;
 					match = g_strndup(terminal->pvt->match_contents + matches[j].rm_so + coffset,
-							  matches[j].rm_eo - matches[j].rm_so);
+							matches[j].rm_eo - matches[j].rm_so);
 					sattr = &g_array_index(terminal->pvt->match_attributes,
-							       struct _VteCharAttributes,
-							       matches[j].rm_so + coffset);
+							struct _VteCharAttributes,
+							matches[j].rm_so + coffset);
 					eattr = &g_array_index(terminal->pvt->match_attributes,
-							       struct _VteCharAttributes,
-							       matches[j].rm_eo + coffset - 1);
+							struct _VteCharAttributes,
+							matches[j].rm_eo + coffset - 1);
 					g_printerr("Match %d `%s' from %d(%ld,%ld) to %d(%ld,%ld) (%d).\n",
-						j, match,
-						matches[j].rm_so + coffset,
-						sattr->column,
-						sattr->row,
-						matches[j].rm_eo + coffset - 1,
-						eattr->column,
-						eattr->row,
-						offset);
+							j, match,
+							matches[j].rm_so + coffset,
+							sattr->column,
+							sattr->row,
+							matches[j].rm_eo + coffset - 1,
+							eattr->column,
+							eattr->row,
+							offset);
 					g_free(match);
 
-				}));
+				}
 				/* Snip off any final newlines. */
 				while ((matches[j].rm_eo > matches[j].rm_so) &&
 				       (terminal->pvt->match_contents[coffset + matches[j].rm_eo - 1] == '\n')) {
@@ -1295,8 +1295,9 @@ vte_terminal_match_check(VteTerminal *terminal, glong column, glong row,
 	ret = vte_terminal_match_check_internal(terminal,
 						column, row + delta,
 						tag, NULL, NULL);
-	_VTE_DEBUG_ON(VTE_DEBUG_EVENTS,
-			if (ret != NULL) g_printerr("Matched `%s'.\n", ret));
+	_VTE_DEBUG_IF(VTE_DEBUG_EVENTS) {
+		if (ret != NULL) g_printerr("Matched `%s'.\n", ret);
+	}
 	return ret;
 }
 
@@ -2365,8 +2366,8 @@ vte_terminal_handle_sequence(VteTerminal *terminal,
 	VteTerminalSequenceHandler handler;
 	gboolean ret;
 
-	_VTE_DEBUG_ON(VTE_DEBUG_PARSE,
-			display_control_sequence(match_s, params));
+	_VTE_DEBUG_IF(VTE_DEBUG_PARSE)
+		display_control_sequence(match_s, params);
 
 	/* Find the handler for this control sequence. */
 	handler = _vte_sequence_get_handler (match_s, match);
@@ -2400,7 +2401,7 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 				VteTerminal *terminal)
 {
 	if (pid == terminal->pvt->pty_pid) {
-		_VTE_DEBUG_ON (VTE_DEBUG_LIFECYCLE, ({
+		_VTE_DEBUG_IF (VTE_DEBUG_LIFECYCLE) {
 			g_printerr ("Child[%d] exited with status %d\n",
 					pid, status);
 #ifdef HAVE_SYS_WAIT_H
@@ -2412,7 +2413,7 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 						pid, WTERMSIG (status));
 			}
 #endif
-			}));
+		}
 		/* Disconnect from the reaper. */
 		if (terminal->pvt->pty_reaper != NULL) {
 			g_signal_handlers_disconnect_by_func(terminal->pvt->pty_reaper,
@@ -2981,24 +2982,24 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 					continue;
 				}
 			}
-			_VTE_DEBUG_ON(VTE_DEBUG_PARSE, ({
-			gunichar cc = c & ~VTE_ISO2022_ENCODED_WIDTH_MASK;
+			_VTE_DEBUG_IF(VTE_DEBUG_PARSE) {
+				gunichar cc = c & ~VTE_ISO2022_ENCODED_WIDTH_MASK;
 				if (cc > 255) {
 					g_printerr("U+%04lx\n", (long) cc);
 				} else {
 					if (cc > 127) {
 						g_printerr("%ld = ",
-							(long) cc);
+								(long) cc);
 					}
 					if (cc < 32) {
 						g_printerr("^%lc\n",
-							(wint_t)cc + 64);
+								(wint_t)cc + 64);
 					} else {
 						g_printerr("`%lc'\n",
-							(wint_t)cc);
+								(wint_t)cc);
 					}
 				}
-			}));
+			}
 			if (c != 0) {
 				/* Insert the character. */
 				_vte_terminal_insert_char(terminal, c,
@@ -3281,7 +3282,7 @@ vte_terminal_io_write(GIOChannel *channel,
 	count = write(fd, terminal->pvt->outgoing->bytes,
 		      _vte_buffer_length(terminal->pvt->outgoing));
 	if (count != -1) {
-		_VTE_DEBUG_ON(VTE_DEBUG_IO, ({
+		_VTE_DEBUG_IF (VTE_DEBUG_IO) {
 			gssize i;
 			for (i = 0; i < count; i++) {
 				g_printerr("Wrote %c%c\n",
@@ -3291,7 +3292,7 @@ vte_terminal_io_write(GIOChannel *channel,
 					terminal->pvt->outgoing->bytes[i] :
 					((guint8)terminal->pvt->outgoing->bytes[i])  + 64);
 			}
-		}));
+		}
 		_vte_buffer_consume(terminal->pvt->outgoing, count);
 	}
 
@@ -3398,7 +3399,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		if ((cooked_length > 0) && (terminal->pvt->pty_master != -1)) {
 			_vte_buffer_append(terminal->pvt->outgoing,
 					   cooked, cooked_length);
-			_VTE_DEBUG_ON(VTE_DEBUG_KEYBOARD, ({
+			_VTE_DEBUG_IF(VTE_DEBUG_KEYBOARD) {
 				for (i = 0; i < cooked_length; i++) {
 					if ((((guint8) cooked[i]) < 32) ||
 					    (((guint8) cooked[i]) > 127)) {
@@ -3413,7 +3414,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 							cooked[i]);
 					}
 				}
-			}));
+			}
 			/* If we need to start waiting for the child pty to
 			 * become available for writing, set that up here. */
 			_vte_terminal_connect_pty_write(terminal);
@@ -3963,12 +3964,13 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 					}
 				}
 			}
-			_VTE_DEBUG_ON(VTE_DEBUG_EVENTS,
-					if (normal) g_printerr(
+			_VTE_DEBUG_IF (VTE_DEBUG_EVENTS) {
+				if (normal) g_printerr(
 						"Keypress, modifiers=0x%x, "
 						"keyval=0x%x, cooked string=`%s'.\n",
 						terminal->pvt->modifiers,
-						keyval, normal));
+						keyval, normal);
+			}
 		}
 		/* If we got normal characters, send them to the child. */
 		if (normal != NULL) {
@@ -4540,7 +4542,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 	VteTerminal *terminal;
 	terminal = owner;
 	if (terminal->pvt->selection != NULL) {
-		_VTE_DEBUG_ON(VTE_DEBUG_SELECTION, ({
+		_VTE_DEBUG_IF(VTE_DEBUG_SELECTION) {
 			int i;
 			g_printerr("Setting selection (%d UTF-8 bytes.)\n",
 				strlen(terminal->pvt->selection));
@@ -4548,7 +4550,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 				g_printerr("0x%04x\n",
 					terminal->pvt->selection[i]);
 			}
-		}));
+		}
 		gtk_selection_data_set_text(data, terminal->pvt->selection, -1);
 	}
 }
@@ -6001,14 +6003,14 @@ vte_terminal_set_font_full(VteTerminal *terminal,
 	pango_font_description_set_family_static (desc, "monospace");
 	if (font_desc != NULL) {
 		pango_font_description_merge (desc, font_desc, TRUE);
-		_VTE_DEBUG_ON(VTE_DEBUG_MISC, ({
+		_VTE_DEBUG_IF(VTE_DEBUG_MISC) {
 			if (desc) {
 				char *tmp;
 				tmp = pango_font_description_to_string(desc);
 				g_printerr("Using pango font \"%s\".\n", tmp);
 				g_free (tmp);
 			}
-		}));
+		}
 	} else {
 		_vte_debug_print(VTE_DEBUG_MISC,
 				"Using default monospace font.\n");
@@ -7052,7 +7054,7 @@ vte_terminal_realize(GtkWidget *widget)
 	widget->window = gdk_window_new(gtk_widget_get_parent_window(widget),
 					&attributes,
 					attributes_mask);
-	_VTE_DEBUG_ON(VTE_DEBUG_UPDATES, gdk_window_set_debug_updates(TRUE));
+	_VTE_DEBUG_IF(VTE_DEBUG_UPDATES) gdk_window_set_debug_updates(TRUE);
 	gdk_window_set_user_data(widget->window, widget);
 
 	/* Set the realized flag. */
@@ -8735,13 +8737,13 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 		}
 	}
 
-	_VTE_DEBUG_ON (VTE_DEBUG_UPDATES, ({
+	_VTE_DEBUG_IF (VTE_DEBUG_UPDATES) {
 		GdkRectangle clip;
 		gdk_region_get_clipbox (region, &clip);
 		g_printerr ("vte_terminal_paint"
 				"	(%d,%d)x(%d,%d) pixels\n",
 				clip.x, clip.y, clip.width, clip.height);
-	}));
+	}
 
 	/* Calculate the bounding rectangle. */
 	if (!_vte_draw_clip(terminal->pvt->draw, region)) {
@@ -9012,7 +9014,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 		terminal->pvt->modifiers = modifiers;
 	}
 
-	_VTE_DEBUG_ON(VTE_DEBUG_EVENTS, ({
+	_VTE_DEBUG_IF(VTE_DEBUG_EVENTS)
 		switch (event->direction) {
 		case GDK_SCROLL_UP:
 			g_printerr("Scroll up.\n");
@@ -9022,7 +9024,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 			break;
 		default:
 			break;
-		}}));
+		}
 
 	/* If we're running a mouse-aware application, map the scroll event
 	 * to a button press on buttons four and five. */

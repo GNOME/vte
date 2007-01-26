@@ -1,5 +1,28 @@
 2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	s/_VTE_DEBUG_ON/_VTE_DEBUG_IF/ and don't include
+	the code block inside the macro.
+
+	* src/debug.h:
+	* src/iso2022.c: (process_control), (_vte_iso2022_process):
+	* src/keymap.c: (_vte_keymap_map):
+	* src/matcher.c: (_vte_matcher_init):
+	* src/pty.c: (_vte_pty_run_on_pty):
+	* src/table.c: (_vte_table_addi), (_vte_table_matchi),
+	(_vte_table_extract_numbers), (_vte_table_match):
+	* src/trie.c: (_vte_trie_addx):
+	* src/vte.c: (vte_terminal_match_check_internal),
+	(vte_terminal_match_check), (vte_terminal_handle_sequence),
+	(vte_terminal_catch_child_exited), (vte_terminal_process_incoming),
+	(vte_terminal_io_write), (vte_terminal_send),
+	(vte_terminal_key_press), (vte_terminal_copy_cb),
+	(vte_terminal_set_font_full), (vte_terminal_realize),
+	(vte_terminal_paint), (vte_terminal_scroll):
+	* src/vteapp.c: (main):
+	* src/vtebg.c: (vte_bg_root_pixmap):
+
+2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 400834 – Use a global display/process timeout
 
 	Currently each terminal uses it own display timeout. Given that

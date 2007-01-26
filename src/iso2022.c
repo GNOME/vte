@@ -1429,7 +1429,7 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 						g_array_append_val(gunichars,
 								   c);
 					}
-					_VTE_DEBUG_ON(VTE_DEBUG_SUBSTITUTION, ({
+					_VTE_DEBUG_IF(VTE_DEBUG_SUBSTITUTION) {
 						g_printerr("\t");
 						for (i = 0; i < length; i++) {
 							c = (guchar) ctl[i];
@@ -1441,7 +1441,7 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 								c : c + 64);
 						}
 						g_printerr("\n");
-					}));
+					}
 					break;
 				case 'N': /* SS2 */
 					state->override = 2;
@@ -1630,7 +1630,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 		block = &g_array_index(blocks, struct _vte_iso2022_block, i);
 		switch (block->type) {
 		case _vte_iso2022_cdata:
-			_VTE_DEBUG_ON(VTE_DEBUG_SUBSTITUTION, ({
+			_VTE_DEBUG_IF(VTE_DEBUG_SUBSTITUTION) {
 				int j;
 				g_printerr("%3ld %3ld CDATA \"%.*s\"",
 					block->start, block->end,
@@ -1645,7 +1645,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 						input->bytes[j]);
 				}
 				g_printerr(")\n");
-			}));
+			}
 			initial = 0;
 			while (initial < block->end - block->start) {
 				int j;

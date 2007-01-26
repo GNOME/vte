@@ -410,9 +410,9 @@ _vte_trie_addx(struct _vte_trie *trie, gunichar *pattern, gsize length,
 			trie->quark = g_quark_from_string(result);
 			trie->result = g_quark_to_string(trie->quark);
 		} else {
-			_VTE_DEBUG_ON(VTE_DEBUG_PARSE,
+			_VTE_DEBUG_IF(VTE_DEBUG_PARSE)
 				g_warning(_("Duplicate (%s/%s)!"),
-					  result, trie->result));
+					  result, trie->result);
 		}
 		return;
 	}

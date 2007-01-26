@@ -947,7 +947,7 @@ _vte_keymap_map(guint keyval,
 	g_return_if_fail(normal_length != NULL);
 	g_return_if_fail(special != NULL);
 
-	_VTE_DEBUG_ON(VTE_DEBUG_KEYBOARD, ({
+	_VTE_DEBUG_IF(VTE_DEBUG_KEYBOARD) {
 		g_printerr("Mapping ");
 		if (modifiers & GDK_CONTROL_MASK) {
 			g_printerr("Control+");
@@ -995,7 +995,7 @@ _vte_keymap_map(guint keyval,
 			}
 			g_printerr(")");
 		}
-	}));
+	}
 
 	/* Start from scratch. */
 	*normal = NULL;
@@ -1099,7 +1099,7 @@ _vte_keymap_map(guint keyval,
 							  vt220_mode,
 							  normal,
 							  normal_length);
-			_VTE_DEBUG_ON(VTE_DEBUG_KEYBOARD, ({
+			_VTE_DEBUG_IF(VTE_DEBUG_KEYBOARD) {
 				int j;
 				g_printerr(" to '");
 				for (j = 0; j < *normal_length; j++) {
@@ -1113,7 +1113,7 @@ _vte_keymap_map(guint keyval,
 					}
 				}
 				g_printerr("'.\n");
-			}));
+			}
 			return;
 		} else {
 			termcap_special = entries[i].special;

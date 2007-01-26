@@ -113,11 +113,11 @@ _vte_matcher_init(struct _vte_matcher *matcher, const char *emulation,
 		_vte_matcher_add(matcher, "\n", 1, "sf", 0);
 	}
 
-	_VTE_DEBUG_ON(VTE_DEBUG_TRIE, ({
+	_VTE_DEBUG_IF(VTE_DEBUG_TRIE) {
 		g_printerr("Trie contents:\n");
 		_vte_matcher_print(matcher);
 		g_printerr("\n");
-	}));
+	}
 }
 
 /* Allocates new matcher structure. */

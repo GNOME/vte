@@ -133,13 +133,13 @@ vte_bg_root_pixmap(VteBg *bg)
 		    (prop_size >= (int)sizeof(XID) &&
 		    (pixmaps != NULL))) {
 			pixmap = gdk_pixmap_foreign_new_for_display(bg->native->display, pixmaps[0]);
-			_VTE_DEBUG_ON(VTE_DEBUG_MISC|VTE_DEBUG_EVENTS, ({
+			_VTE_DEBUG_IF(VTE_DEBUG_MISC|VTE_DEBUG_EVENTS) {
 				gint pwidth, pheight;
 				gdk_drawable_get_size(pixmap,
-					&pwidth, &pheight);
+						&pwidth, &pheight);
 				g_printerr("New background image %dx%d\n",
-					pwidth, pheight);
-				}));
+						pwidth, pheight);
+			}
 		}
 		g_free(pixmaps);
 	}
