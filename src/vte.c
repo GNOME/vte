@@ -5886,8 +5886,12 @@ vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
 
 	/* fully obscured to visible switch, force the fast path */
 	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED &&
-			event->state == GDK_VISIBILITY_UNOBSCURED)
+			event->state == GDK_VISIBILITY_UNOBSCURED) {
+		/* set invalidated_all false, since we set it to true when
+		 * becoming obscured */
+		terminal->pvt->invalidated_all = FALSE;
 		_vte_invalidate_all(terminal);
+	}
 
 	terminal->pvt->visibility_state = event->state;
 
