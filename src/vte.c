@@ -8235,27 +8235,50 @@ static void
 _vte_terminal_fudge_pango_colors(VteTerminal *terminal, GSList *attributes,
 				 struct vte_charcell *cells, gssize n)
 {
-	gboolean saw_fg, saw_bg;
-	PangoAttribute *attr;
-	PangoAttrColor *color;
-	PangoColor fg = {0, 0, 0};
-	PangoColor bg = {0, 0, 0};
-	int i;
+	int i, sumlen = 0;
+	struct _fudge_cell_props{
+		gboolean saw_fg, saw_bg;
+		PangoColor fg, bg;
+		int index;
+	}*props = g_newa (struct _fudge_cell_props, n);
 
-	saw_fg = saw_bg = FALSE;
+	for (i = 0; i < n; i++) {
+		gchar ubuf[7];
+		gint len = g_unichar_to_utf8 (cells[i].c, ubuf);
+		props[i].index = sumlen;
+		props[i].saw_fg = props[i].saw_bg = FALSE;
+		sumlen += len;
+	}
 
 	while (attributes != NULL) {
-		attr = attributes->data;
+		PangoAttribute *attr = attributes->data;
+		PangoAttrColor *color;
 		switch (attr->klass->type) {
 		case PANGO_ATTR_FOREGROUND:
-			saw_fg = TRUE;
-			color = (PangoAttrColor*) attr;
-			fg = color->color;
+			for (i = 0; i < n; i++) {
+				if (props[i].index < attr->start_index) {
+					continue;
+				}
+				if (props[i].index >= attr->end_index) {
+					break;
+				}
+				props[i].saw_fg = TRUE;
+				color = (PangoAttrColor*) attr;
+				props[i].fg = color->color;
+			}
 			break;
 		case PANGO_ATTR_BACKGROUND:
-			saw_bg = TRUE;
-			color = (PangoAttrColor*) attr;
-			bg = color->color;
+			for (i = 0; i < n; i++) {
+				if (props[i].index < attr->start_index) {
+					continue;
+				}
+				if (props[i].index >= attr->end_index) {
+					break;
+				}
+				props[i].saw_bg = TRUE;
+				color = (PangoAttrColor*) attr;
+				props[i].bg = color->color;
+			}
 			break;
 		default:
 			break;
@@ -8263,10 +8286,14 @@ _vte_terminal_fudge_pango_colors(VteTerminal *terminal, GSList *attributes,
 		attributes = g_slist_next(attributes);
 	}
 
-	if (saw_fg && saw_bg &&
-	    (fg.red == 0xffff) && (fg.green == 0xffff) && (fg.blue == 0xffff) &&
-	    (bg.red == 0) && (bg.green == 0) && (bg.blue == 0)) {
-		for (i = 0; i < n; i++) {
+	for (i = 0; i < n; i++) {
+		if (props[i].saw_fg && props[i].saw_bg &&
+				(props[i].fg.red == 0xffff) &&
+			       	(props[i].fg.green == 0xffff) &&
+			       	(props[i].fg.blue == 0xffff) &&
+				(props[i].bg.red == 0) &&
+			       	(props[i].bg.green == 0) &&
+			       	(props[i].bg.blue == 0)) {
 			cells[i].fore = terminal->pvt->screen->color_defaults.fore;
 			cells[i].back = terminal->pvt->screen->color_defaults.back;
 			cells[i].reverse = TRUE;

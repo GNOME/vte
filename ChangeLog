@@ -1,5 +1,14 @@
 2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 157267 – _vte_terminal_fudge_pango_colors() breaks Japanese input style
+
+	* src/vte.c: (_vte_terminal_fudge_pango_colors):
+		Check the attributes for each cell rather than assuming the
+		pango attributes (and cell attributes) are the same for the
+		whole string.
+
+2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vteseq.c: (vte_sequence_handler_vb):
 		Iterating over all queued exposures and drawing on top of the
 		flash does not sense. Simply flush the draw.
