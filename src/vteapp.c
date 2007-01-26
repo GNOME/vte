@@ -537,7 +537,7 @@ main(int argc, char **argv)
 		},
 		{
 			"scroll-background", 's', 0,
-			G_OPTION_ARG_NONE, &cursor_set,
+			G_OPTION_ARG_NONE, &scroll,
 			"Enable a scrolling background", NULL
 		},
 		{

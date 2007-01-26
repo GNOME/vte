@@ -1,5 +1,13 @@
 2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Unable to set background scrolling mode from cmdline due to variable
+	name confusion.
+
+	* src/vteapp.c: (main):
+		--scroll should set scroll=TRUE rather than cursor=TRUE!
+
+2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 401082 – double-draw issue
 
 	The main cause of this bug was not expanding the cleared area to cover
