@@ -1,5 +1,11 @@
 2007-01-26  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c (vte_terminal_visibility_notify): Correctly handle
+	visibility events: set invalidated_all to FALSE, and invalidate_all
+	if fully unobscured.
+
+2007-01-26  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte.c (vte_terminal_visibility_notify): Make sure we redraw
 	after becoming unobscured.  There still is a bug that I've not found,
 	but after obscuring the widget and coming back, a first redraw
