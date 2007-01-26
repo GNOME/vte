@@ -6175,6 +6175,7 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 
 		gtk_im_context_focus_in(terminal->pvt->im_context);
 		_vte_invalidate_cursor_once(terminal, FALSE);
+		_vte_terminal_set_pointer_visible(terminal, TRUE);
 	}
 
 	return FALSE;

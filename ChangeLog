@@ -1,5 +1,21 @@
 2007-01-26  Chris Wilson <chris@chris-wilson.co.uk>
 
+	Bug 317449 – The cursor disappears when clicking on windows above gnome-terminal
+
+	Enter a command that causes partial obscuration of the terminal,
+	though it must cover the cursor. Close the new window, observe the
+	pointer disappears.
+
+	The issue is that we hide the pointer whilst typing and show it after
+	receiving a mouse movement. However in this case we steal the pointer
+	away from the terminal with any mouse events and the cursor remains
+	invisible.
+
+	* src/vte.c: (vte_terminal_focus_in):
+		Ensure the mouse pointer is visible on focus-in.
+
+2007-01-26  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Spend half an hour a day killing warnings...
 
 	* configure.in:
