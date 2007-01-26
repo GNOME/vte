@@ -8796,9 +8796,10 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 				color.green = terminal->pvt->palette[back].green;
 				color.blue = terminal->pvt->palette[back].blue;
 				_vte_draw_fill_rectangle(terminal->pvt->draw,
-							 item.x + VTE_PAD_WIDTH,
-							 item.y + VTE_PAD_WIDTH,
-							 cursor_width, height,
+							 item.x,
+							 item.y,
+							 cursor_width + VTE_PAD_WIDTH,
+							 height + VTE_PAD_WIDTH,
 							 &color,
 							 VTE_DRAW_OPAQUE);
 			}
@@ -8850,10 +8851,10 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 			color.green = terminal->pvt->palette[back].green;
 			color.blue = terminal->pvt->palette[back].blue;
 			_vte_draw_draw_rectangle(terminal->pvt->draw,
-						 item.x + VTE_PAD_WIDTH,
-						 item.y + VTE_PAD_WIDTH,
-						 cursor_width + VTE_PAD_WIDTH,
-						 height + VTE_PAD_WIDTH,
+						 item.x,
+						 item.y,
+						 cursor_width + 2*VTE_PAD_WIDTH,
+						 height + 2*VTE_PAD_WIDTH,
 						 &color,
 						 VTE_DRAW_OPAQUE);
 		}

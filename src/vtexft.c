@@ -41,6 +41,8 @@
 #define FONT_INDEX_FUDGE 10
 #define CHAR_WIDTH_FUDGE 10
 
+#define DPY_FUDGE 1
+
 struct _vte_xft_font {
 	GdkDisplay *display;
 	GPtrArray *patterns;
@@ -524,7 +526,7 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 		}
 	}
 	if (n > 0) {
-		draw->width = howmany(width, n);
+		draw->width = howmany(width, n) + DPY_FUDGE;
 		draw->height = (font != NULL) ?
 			       font->ascent + font->descent : height;
 		draw->ascent = (font != NULL) ?
@@ -656,7 +658,7 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 			glyphs[j].glyph = XftCharIndex(data->display,
 				       	font, requests[i].c);
 			if (G_LIKELY(glyphs[j].glyph != 0)) {
-				glyphs[j].x = requests[i].x - data->x_offs;
+				glyphs[j].x = requests[i].x - data->x_offs - DPY_FUDGE;
 				width = _vte_xft_char_width(data->font,
 						font, requests[i].c);
 				if (width != 0) {
