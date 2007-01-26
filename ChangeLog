@@ -1,3 +1,16 @@
+2007-01-26  Chris Wilson <chris@chris-wilson.co.uk>
+
+	Bug 318307 – Cursor colour changes to foreground when unfocused
+
+	Whilst setting the colour, tweak the position of the rectangle, and
+	extended the invalidate region to account for the OBO nature of bold
+	font.
+
+	* src/vte.c: (_vte_invalidate_cells):
+		Include the padding to accomodate cell effects.
+	* src/vte.c: (vte_terminal_paint):
+		Use the cursor color for the rectangle when unfocused.
+
 2007-01-26  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte.c (vte_terminal_visibility_notify): Correctly handle

@@ -306,30 +306,14 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	}
 
 	/* Convert the column and row start and end to pixel values
-	 * by multiplying by the size of a character cell. */
-	rect.x = column_start * terminal->char_width + VTE_PAD_WIDTH;
-	rect.width = column_count * terminal->char_width;
-	if (column_start == 0) {
-		/* Include the left border. */
-		rect.x -= VTE_PAD_WIDTH;
-		rect.width += VTE_PAD_WIDTH;
-	}
-	if (column_start + column_count == terminal->column_count) {
-		/* Include the right border. */
-		rect.width += VTE_PAD_WIDTH;
-	}
+	 * by multiplying by the size of a character cell.
+	 * Always include the extra pixel border.
+	 */
+	rect.x = column_start * terminal->char_width;
+	rect.width = column_count * terminal->char_width + 2*VTE_PAD_WIDTH;
 
-	rect.y = row_start * terminal->char_height + VTE_PAD_WIDTH;
-	rect.height = row_count * terminal->char_height;
-	if (row_start == 0) {
-		/* Include the top border. */
-		rect.y -= VTE_PAD_WIDTH;
-		rect.height += VTE_PAD_WIDTH;
-	}
-	if (row_start + row_count == terminal->row_count) {
-		/* Include the bottom border. */
-		rect.height += VTE_PAD_WIDTH;
-	}
+	rect.y = row_start * terminal->char_height;
+	rect.height = row_count * terminal->char_height + 2*VTE_PAD_WIDTH;
 
 	terminal->pvt->update_regions = g_slist_prepend (
 			terminal->pvt->update_regions,
@@ -8792,9 +8776,13 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 								    cell->c,
 								    cell->columns));
 		}
+		_vte_draw_clear(terminal->pvt->draw,
+				col * width + VTE_PAD_WIDTH,
+				row * height + VTE_PAD_WIDTH,
+				cursor_width,
+				height);
+		selected = vte_cell_is_selected(terminal, col, drow, NULL);
 		if (GTK_WIDGET_HAS_FOCUS(terminal)) {
-			selected = vte_cell_is_selected(terminal, col, drow,
-							NULL);
 			blink = terminal->pvt->cursor_blink_state ^
 				terminal->pvt->screen->reverse_mode;
 			vte_terminal_determine_colors(terminal, cell,
@@ -8802,11 +8790,6 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 						      selected,
 						      blink,
 						      &fore, &back);
-			_vte_draw_clear(terminal->pvt->draw,
-					col * width + VTE_PAD_WIDTH,
-					row * height + VTE_PAD_WIDTH,
-					cursor_width,
-					height);
 			if (blink) {
 				GdkColor color;
 				color.red = terminal->pvt->palette[back].red;
@@ -8831,8 +8814,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 						       height)) {
 				vte_terminal_draw_cells(terminal,
 							&item, 1,
-							fore, back,
-							TRUE,
+							fore, back, TRUE,
 							cell && cell->bold,
 							cell && cell->underline,
 							cell && cell->strikethrough,
@@ -8843,16 +8825,12 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 			}
 		} else {
 			GdkColor color;
-			/* Draw it as a hollow rectangle. */
+			/* Draw it as a hollow rectangle overtop character. */
 			vte_terminal_determine_colors(terminal, cell,
-						      FALSE,
-						      FALSE,
-						      FALSE,
-						      &fore, &back);
-			_vte_draw_clear(terminal->pvt->draw,
-					col * width + VTE_PAD_WIDTH,
-					row * height + VTE_PAD_WIDTH,
-					cursor_width, height);
+					terminal->pvt->screen->reverse_mode,
+					selected,
+					terminal->pvt->screen->reverse_mode,
+					&fore, &back);
 			vte_terminal_draw_cells(terminal,
 						&item, 1,
 						fore, back, TRUE,
@@ -8863,13 +8841,19 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 						FALSE,
 						width,
 						height);
-			color.red = terminal->pvt->palette[fore].red;
-			color.green = terminal->pvt->palette[fore].green;
-			color.blue = terminal->pvt->palette[fore].blue;
+			vte_terminal_determine_colors(terminal, cell,
+					!terminal->pvt->screen->reverse_mode,
+					selected,
+					!terminal->pvt->screen->reverse_mode,
+					&fore, &back);
+			color.red = terminal->pvt->palette[back].red;
+			color.green = terminal->pvt->palette[back].green;
+			color.blue = terminal->pvt->palette[back].blue;
 			_vte_draw_draw_rectangle(terminal->pvt->draw,
 						 item.x + VTE_PAD_WIDTH,
 						 item.y + VTE_PAD_WIDTH,
-						 cursor_width, height,
+						 cursor_width + VTE_PAD_WIDTH,
+						 height + VTE_PAD_WIDTH,
 						 &color,
 						 VTE_DRAW_OPAQUE);
 		}
