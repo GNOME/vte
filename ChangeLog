@@ -2,6 +2,8 @@
 
 	Bug 157267 – _vte_terminal_fudge_pango_colors() breaks Japanese input style
 
+	Patch by ynakai@redhat.com.
+
 	* src/vte.c: (_vte_terminal_fudge_pango_colors):
 		Check the attributes for each cell rather than assuming the
 		pango attributes (and cell attributes) are the same for the
