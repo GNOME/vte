@@ -8634,9 +8634,15 @@ vte_terminal_draw_area (VteTerminal *terminal, GdkRectangle *area)
 	row = MAX(0, (area->y - VTE_PAD_WIDTH) / height);
 	row_stop = MIN(howmany(area->height + area->y - VTE_PAD_WIDTH, height),
 		       terminal->row_count-1);
+	if (row_stop < row) {
+		return;
+	}
 	col = MAX(0, (area->x - VTE_PAD_WIDTH) / width);
 	col_stop = MIN(howmany(area->width + area->x - VTE_PAD_WIDTH, width),
 		       terminal->column_count-1);
+	if (col_stop < col) {
+		return;
+	}
 	_vte_debug_print (VTE_DEBUG_UPDATES,
 			"vte_terminal_draw_area"
 			"	(%d,%d)x(%d,%d) pixels,"

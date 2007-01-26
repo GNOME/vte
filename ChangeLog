@@ -1,5 +1,12 @@
 2007-01-26  Chris Wilson <chris@chris-wilson.co.uk>
 
+	* src/vte.c: (vte_terminal_draw_area):
+		Occasionally we generate an exposed area which is computed
+		as 0x0 cells. Discard early, before we spend an infinity
+		drawing nothing.
+
+2007-01-26  Chris Wilson <chris@chris-wilson.co.uk>
+
 	Janitorial work - near elimination of #ifdef VTE_DEBUG from within
 	functions, trimming a thousand lines of code.
 
