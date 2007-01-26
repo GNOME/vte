@@ -1,5 +1,12 @@
 2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vtexft.c: (_vte_xft_set_text_font):
+		Remove the additional pixel inter-character spacing.
+		Compactness over clarity ;)
+
+
+2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Apply a one pixel fudge to the Xft character position and width.
 	This greatly improves text appearance and hides the misrendering of
 	pseudo-bold characters.

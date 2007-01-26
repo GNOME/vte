@@ -526,7 +526,7 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 		}
 	}
 	if (n > 0) {
-		draw->width = howmany(width, n) + DPY_FUDGE;
+		draw->width = howmany(width, n);
 		draw->height = (font != NULL) ?
 			       font->ascent + font->descent : height;
 		draw->ascent = (font != NULL) ?
