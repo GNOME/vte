@@ -130,6 +130,7 @@ _vte_ft2_end(struct _vte_draw *draw)
 					  data->rgb,
 					  data->left, data->top);
 	}
+	gdk_gc_set_clip_region(widget->style->fg_gc[state], NULL);
 }
 
 static void
@@ -163,6 +164,14 @@ _vte_ft2_set_background_image(struct _vte_draw *draw,
 		g_object_unref(data->pixbuf);
 	}
 	data->pixbuf = bgpixbuf;
+}
+
+static void
+_vte_ft2_clip(struct _vte_draw *draw, GdkRegion *region)
+{
+	gdk_gc_set_clip_region(
+			draw->widget->style->fg_gc[GTK_WIDGET_STATE(draw->widget)],
+		       	region);
 }
 
 static inline void
@@ -378,6 +387,7 @@ const struct _vte_draw_impl _vte_draw_ft2 = {
 	_vte_ft2_set_background_color,
 	_vte_ft2_set_background_image,
 	FALSE,
+	_vte_ft2_clip,
 	_vte_ft2_clear,
 	_vte_ft2_set_text_font,
 	_vte_ft2_get_text_width,

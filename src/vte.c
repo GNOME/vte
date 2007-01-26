@@ -299,7 +299,7 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	if (!column_count || !row_count) {
 		return;
 	}
-	if (column_count ==terminal->column_count &&
+	if (column_count == terminal->column_count &&
 			row_count == terminal->row_count) {
 		_vte_invalidate_all (terminal);
 		return;
@@ -8622,7 +8622,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 }
 
 static void
-vte_terminal_draw_area (VteTerminal *terminal, GdkRectangle *area)
+vte_terminal_paint_area (VteTerminal *terminal, GdkRectangle *area)
 {
 	VteScreen *screen;
 	int width, height, delta;
@@ -8634,33 +8634,42 @@ vte_terminal_draw_area (VteTerminal *terminal, GdkRectangle *area)
 	height = terminal->char_height;
 	delta = screen->scroll_delta;
 
-	row = MAX(0, (area->y - VTE_PAD_WIDTH) / height);
-	row_stop = MIN(howmany(area->height + area->y - VTE_PAD_WIDTH, height),
-		       terminal->row_count-1);
-	if (row_stop < row) {
+	/* increase the paint by one pixel on all sides to force the
+	 * inclusion of neighbouring cells */
+	row = MAX(0, (area->y - VTE_PAD_WIDTH - 1) / height);
+	row_stop = MIN(howmany(area->height + area->y - VTE_PAD_WIDTH + 1, height),
+		       terminal->row_count);
+	if (row_stop <= row) {
 		return;
 	}
-	col = MAX(0, (area->x - VTE_PAD_WIDTH) / width);
-	col_stop = MIN(howmany(area->width + area->x - VTE_PAD_WIDTH, width),
-		       terminal->column_count-1);
-	if (col_stop < col) {
+	col = MAX(0, (area->x - VTE_PAD_WIDTH - 1) / width);
+	col_stop = MIN(howmany(area->width + area->x - VTE_PAD_WIDTH + 1, width),
+		       terminal->column_count);
+	if (col_stop <= col) {
 		return;
 	}
 	_vte_debug_print (VTE_DEBUG_UPDATES,
-			"vte_terminal_draw_area"
+			"vte_terminal_paint_area"
 			"	(%d,%d)x(%d,%d) pixels,"
-			" (%d,%d)x(%d,%d) cells\n",
+			" (%d,%d)x(%d,%d) cells"
+			" [(%d,%d)x(%d,%d) pixels]\n",
 			area->x, area->y, area->width, area->height,
-			col, row, col_stop - col + 1, row_stop - row + 1);
+			col, row, col_stop - col, row_stop - row,
+			col * width, row * height,
+			(col_stop - col) * width,
+			(row_stop - row) * height);
 	_vte_draw_clear(terminal->pvt->draw,
-			area->x, area->y, area->width, area->height);
+			col * width + VTE_PAD_WIDTH,
+		       	row * height + VTE_PAD_WIDTH,
+			(col_stop - col) * width,
+			(row_stop - row) * height);
 
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */
 	vte_terminal_draw_rows(terminal,
 			      screen,
-			      row + delta, row_stop - row +1,
-			      col, col_stop - col + 1,
+			      row + delta, row_stop - row,
+			      col, col_stop - col,
 			      col * width,
 			      row * height,
 			      width,
@@ -8687,7 +8696,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 	_vte_debug_print(VTE_DEBUG_WORK, "=");
 
 	terminal = VTE_TERMINAL(widget);
-	
+
 	/* Update whole selection if terminal is in block mode. */
 	if (terminal->pvt->has_selection && terminal->pvt->block_mode) {
 		selected_area.x = terminal->pvt->selection_start.x *
@@ -8737,20 +8746,20 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 	}));
 
 	/* Calculate the bounding rectangle. */
-	if (_vte_draw_requires_repaint(terminal->pvt->draw)) {
+	if (!_vte_draw_clip(terminal->pvt->draw, region)) {
 		all_area.x = 0;
 		all_area.y = 0;
 		all_area.width = terminal->char_width * terminal->column_count;
 		all_area.width += 2 * VTE_PAD_WIDTH;
 		all_area.height = terminal->char_height * terminal->row_count;
 		all_area.height += 2 * VTE_PAD_WIDTH;
-		vte_terminal_draw_area (terminal, &all_area);
+		vte_terminal_paint_area (terminal, &all_area);
 	} else {
 		GdkRectangle *rectangles;
 		gint n, n_rectangles;
 	 	gdk_region_get_rectangles (region, &rectangles, &n_rectangles);
 		for (n = 0; n < n_rectangles; n++) {
-			vte_terminal_draw_area (terminal, rectangles + n);
+			vte_terminal_paint_area (terminal, rectangles + n);
 		}
 		g_free (rectangles);
 	}
@@ -8807,10 +8816,10 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 				color.green = terminal->pvt->palette[back].green;
 				color.blue = terminal->pvt->palette[back].blue;
 				_vte_draw_fill_rectangle(terminal->pvt->draw,
-							 item.x,
-							 item.y,
-							 cursor_width + VTE_PAD_WIDTH,
-							 height + VTE_PAD_WIDTH,
+							 item.x + VTE_PAD_WIDTH,
+							 item.y + VTE_PAD_WIDTH,
+							 cursor_width,
+							 height,
 							 &color,
 							 VTE_DRAW_OPAQUE);
 			}

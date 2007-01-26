@@ -606,6 +606,7 @@ const struct _vte_draw_impl _vte_draw_gl = {
 	_vte_gl_set_background_color,
 	_vte_gl_set_background_image,
 	TRUE,
+	NULL,
 	_vte_gl_clear,
 	_vte_gl_set_text_font,
 	_vte_gl_get_text_width,

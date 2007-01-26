@@ -229,6 +229,17 @@ _vte_draw_requires_repaint(struct _vte_draw *draw)
 	return draw->impl->requires_repaint;
 }
 
+gboolean
+_vte_draw_clip(struct _vte_draw *draw, GdkRegion *region)
+{
+	g_return_if_fail(draw->impl != NULL);
+	if (draw->impl->clip == NULL) {
+		return FALSE;
+	}
+	draw->impl->clip(draw, region);
+	return TRUE;
+}
+
 void
 _vte_draw_clear(struct _vte_draw *draw, gint x, gint y, gint width, gint height)
 {

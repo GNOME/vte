@@ -184,6 +184,13 @@ _vte_pango_set_background_image(struct _vte_draw *draw,
 }
 
 static void
+_vte_pango_clip(struct _vte_draw *draw, GdkRegion *region)
+{
+	struct _vte_pango_data *data = draw->impl_data;
+	gdk_gc_set_clip_region(data->gc, region);
+}
+
+static void
 _vte_pango_clear(struct _vte_draw *draw,
 		 gint x, gint y, gint width, gint height)
 {
@@ -426,6 +433,7 @@ const struct _vte_draw_impl _vte_draw_pango = {
 	_vte_pango_set_background_color,
 	_vte_pango_set_background_image,
 	FALSE,
+	_vte_pango_clip,
 	_vte_pango_clear,
 	_vte_pango_set_text_font,
 	_vte_pango_get_text_width,

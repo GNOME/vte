@@ -35,6 +35,7 @@
 #include "vtefc.h"
 #include "vtexft.h"
 #include "vtetree.h"
+#include "vte-private.h"
 
 #include <glib/gi18n-lib.h>
 
@@ -422,6 +423,30 @@ _vte_xft_set_background_image(struct _vte_draw *draw,
 }
 
 static void
+_vte_xft_clip(struct _vte_draw *draw,
+		GdkRegion *region)
+{
+	struct _vte_xft_data *data = draw->impl_data;
+	GdkRectangle *rect;
+	gint i, n;
+
+	gdk_region_get_rectangles(region, &rect, &n);
+	if (n>0) {
+		XRectangle *xrect = g_new (XRectangle, n);
+		for (i=0; i<n; i++) {
+			xrect[i].x = rect[i].x;
+			xrect[i].y = rect[i].y;
+			xrect[i].width = rect[i].width;
+			xrect[i].height = rect[i].height;
+		}
+		XftDrawSetClipRectangles(data->draw,
+			       	-data->x_offs, -data->y_offs, xrect, n);
+		g_free (xrect);
+	}
+	g_free(rect);
+}
+
+static void
 _vte_xft_clear(struct _vte_draw *draw,
 	       gint x, gint y, gint width, gint height)
 {
@@ -658,7 +683,7 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 			glyphs[j].glyph = XftCharIndex(data->display,
 				       	font, requests[i].c);
 			if (G_LIKELY(glyphs[j].glyph != 0)) {
-				glyphs[j].x = requests[i].x - data->x_offs - DPY_FUDGE;
+				glyphs[j].x = requests[i].x - data->x_offs;
 				width = _vte_xft_char_width(data->font,
 						font, requests[i].c);
 				if (width != 0) {
@@ -794,6 +819,7 @@ const struct _vte_draw_impl _vte_draw_xft = {
 	_vte_xft_set_background_color,
 	_vte_xft_set_background_image,
 	FALSE,
+	_vte_xft_clip,
 	_vte_xft_clear,
 	_vte_xft_set_text_font,
 	_vte_xft_get_text_width,

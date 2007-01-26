@@ -1,5 +1,29 @@
 2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 401082 – double-draw issue
+
+	The main cause of this bug was not expanding the cleared area to cover
+	all the cells affected by the draw and forgetting to offset the clear
+	by VTE_PAD_WIDTH.
+
+	To counter the performance hit due to the expanded repaint area, each
+	backend is presented with the opportunity to apply a clip to the
+	exposed region before painting.
+
+	This also fixes bug 333157,
+
+	* src/vte.c: (_vte_invalidate_cells), (vte_terminal_paint_area),
+	(vte_terminal_paint):
+	* src/vtedraw.c: (_vte_draw_clip):
+	* src/vtedraw.h:
+	* src/vteft2.c: (_vte_ft2_end), (_vte_ft2_clip):
+	* src/vtegl.c:
+	* src/vtepango.c: (_vte_pango_clip):
+	* src/vtepangox.c: (_vte_pango_x_clip):
+	* src/vtexft.c: (_vte_xft_clip), (_vte_xft_draw_text):
+
+2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c: (vte_terminal_match_hilite):
 	* src/vteseq.c: (vte_sequence_handler_ce),
 	(vte_sequence_handler_dc), (vte_sequence_handler_ec):
