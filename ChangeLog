@@ -1,5 +1,11 @@
 2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/debug.h:
+		Provide a safe fallback for non-C99 compilers (well actually
+		anything that isn't a recent gcc at the moment).
+
+2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 157267 – _vte_terminal_fudge_pango_colors() breaks Japanese input style
 
 	Patch by ynakai@redhat.com.
