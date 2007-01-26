@@ -1,5 +1,28 @@
 2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 400834 – Use a global display/process timeout
+
+	Currently each terminal uses it own display timeout. Given that
+	typical usage is several active terminals, there is an immediate
+	advantage (context switches, fairness, smoothness) to using a single
+	common timeout.
+
+	* src/debug.c: (_vte_debug_parse_string):
+	* src/debug.h:
+		Add VTE_DEBUG_TIMEOUT
+	* src/vte-private.h:
+	* src/vte.c: (update_regions), (_vte_invalidate_cells),
+	(_vte_invalidate_all), (vte_terminal_init),
+	(vte_terminal_class_init), (add_update_timeout),
+	(remove_from_active_list), (remove_update_timeout),
+	(add_process_timeout), (vte_terminal_stop_processing),
+	(vte_terminal_is_processing), (process_timeout),
+	(update_repeat_timeout), (update_timeout):
+		Modify to use a global timeout rather than individual
+		private timeouts.
+
+2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Unable to set background scrolling mode from cmdline due to variable
 	name confusion.
 

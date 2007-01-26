@@ -111,6 +111,11 @@ static void reset_update_regions (VteTerminal *terminal);
 static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
 
+/* these static variables are guarded by the GDK mutex */
+static guint process_timeout_tag = VTE_INVALID_SOURCE;
+static guint update_timeout_tag = VTE_INVALID_SOURCE;
+static GList *active_terminals;
+
 
 #ifdef VTE_DEBUG
 G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
@@ -248,8 +253,6 @@ update_regions (VteTerminal *terminal)
 
 	_vte_debug_print (VTE_DEBUG_WORK, "-");
 
-	gdk_window_process_all_updates ();
-
 	return TRUE;
 }
 
@@ -318,11 +321,10 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	terminal->pvt->update_regions = g_slist_prepend (
 			terminal->pvt->update_regions,
 		       	gdk_region_rectangle (&rect));
-	if (terminal->pvt->update_timeout == VTE_INVALID_SOURCE) {
-		/* Wait a bit before doing any invalidation, just in
-		 * case updates are coming in really soon. */
-		add_update_timeout (terminal);
-	}
+	/* Wait a bit before doing any invalidation, just in
+	 * case updates are coming in really soon. */
+	add_update_timeout (terminal);
+
 
 	_vte_debug_print (VTE_DEBUG_WORK, "!");
 }
@@ -353,11 +355,9 @@ _vte_invalidate_all(VteTerminal *terminal)
 			gdk_region_rectangle (&rect));
 	terminal->pvt->invalidated_all = TRUE;
 
-	if (terminal->pvt->update_timeout == VTE_INVALID_SOURCE) {
-		/* Wait a bit before doing any invalidation, just in
-		 * case updates are coming in really soon. */
-		add_update_timeout (terminal);
-	}
+	/* Wait a bit before doing any invalidation, just in
+	 * case updates are coming in really soon. */
+	add_update_timeout (terminal);
 }
 
 /* Scroll a rectangular region up or down by a fixed number of lines,
@@ -6512,8 +6512,6 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->incoming = _vte_buffer_new();
 	pvt->pending = g_array_new(FALSE, FALSE, sizeof(gunichar));
 	pvt->cursor_blink_tag = VTE_INVALID_SOURCE;
-	pvt->process_timeout = VTE_INVALID_SOURCE;
-	pvt->update_timeout = VTE_INVALID_SOURCE;
 	pvt->outgoing = _vte_buffer_new();
 	pvt->outgoing_conv = VTE_INVALID_CONV;
 	pvt->conv_buffer = _vte_buffer_new();
@@ -9135,6 +9133,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 					"  .  _vte_terminal_process_incoming\n"
 					"  <  start process_timeout\n"
 					"  {[ start update_timeout  [ => rate limited\n"
+					"  T  start of terminal in update_timeout\n"
 					"  (  start _vte_terminal_process_incoming\n"
 					"  ?  _vte_invalidate_cells (call)\n"
 					"  !  _vte_invalidate_cells (dirty)\n"
@@ -10772,30 +10771,31 @@ _vte_terminal_remove_selection(VteTerminal *terminal)
 }
 
 static void
-add_process_timeout (VteTerminal *terminal)
-{
-	terminal->pvt->process_timeout =
-		g_timeout_add (VTE_DISPLAY_TIMEOUT, process_timeout, terminal);
-}
-
-static void
 add_update_timeout (VteTerminal *terminal)
 {
-	terminal->pvt->update_timeout =
-		g_timeout_add_full (GDK_PRIORITY_REDRAW,
-				VTE_UPDATE_TIMEOUT, update_timeout, terminal,
-				NULL);
-}
-
-static void
-remove_process_timeout (VteTerminal *terminal)
-{
-	if (terminal->pvt->process_timeout != VTE_INVALID_SOURCE) {
-		g_source_remove (terminal->pvt->process_timeout);
-		terminal->pvt->process_timeout = VTE_INVALID_SOURCE;
+	if (terminal->pvt->active == NULL) {
+		_vte_debug_print(VTE_DEBUG_TIMEOUT,
+				"Adding terminal to active list\n");
+		terminal->pvt->active = active_terminals =
+			g_list_prepend (active_terminals, terminal);
 	}
-}
+	if (update_timeout_tag == VTE_INVALID_SOURCE) {
+		_vte_debug_print(VTE_DEBUG_TIMEOUT,
+			       	"Adding update timeout\n");
+		update_timeout_tag =
+			g_timeout_add_full (GDK_PRIORITY_REDRAW,
+					VTE_UPDATE_TIMEOUT,
+					update_timeout, NULL,
+					NULL);
+	}
+	if (process_timeout_tag != VTE_INVALID_SOURCE) {
+		_vte_debug_print(VTE_DEBUG_TIMEOUT,
+			       	"Removing process timeout\n");
+		g_source_remove (process_timeout_tag);
+		process_timeout_tag = VTE_INVALID_SOURCE;
+	}
 
+}
 static void
 reset_update_regions (VteTerminal *terminal)
 {
@@ -10809,27 +10809,67 @@ reset_update_regions (VteTerminal *terminal)
 }
 
 static void
+remove_from_active_list (VteTerminal *terminal)
+{
+	if (terminal->pvt->active != NULL) {
+		_vte_debug_print(VTE_DEBUG_TIMEOUT,
+			"Removing terminal from active list\n");
+		active_terminals = g_list_remove_link (active_terminals,
+				terminal->pvt->active);
+		terminal->pvt->active = NULL;
+
+		if (active_terminals == NULL) {
+			if (process_timeout_tag != VTE_INVALID_SOURCE) {
+				_vte_debug_print(VTE_DEBUG_TIMEOUT,
+						"Removing process timeout\n");
+				g_source_remove (process_timeout_tag);
+				process_timeout_tag = VTE_INVALID_SOURCE;
+			}
+			if (update_timeout_tag != VTE_INVALID_SOURCE) {
+				_vte_debug_print(VTE_DEBUG_TIMEOUT,
+						"Removing update timeout\n");
+				g_source_remove (update_timeout_tag);
+				update_timeout_tag = VTE_INVALID_SOURCE;
+			}
+		}
+	}
+}
+static void
 remove_update_timeout (VteTerminal *terminal)
 {
-	if (terminal->pvt->update_timeout != VTE_INVALID_SOURCE) {
-		g_source_remove (terminal->pvt->update_timeout);
-		terminal->pvt->update_timeout = VTE_INVALID_SOURCE;
-	}
-
 	reset_update_regions (terminal);
+	remove_from_active_list (terminal);
+}
+
+static void
+add_process_timeout (VteTerminal *terminal)
+{
+	if (terminal->pvt->active == NULL) {
+		_vte_debug_print(VTE_DEBUG_TIMEOUT,
+				"Adding to terminal to active list\n");
+		terminal->pvt->active = active_terminals =
+			g_list_prepend (active_terminals, terminal);
+		if (update_timeout_tag == VTE_INVALID_SOURCE &&
+				process_timeout_tag == VTE_INVALID_SOURCE) {
+			_vte_debug_print(VTE_DEBUG_TIMEOUT,
+				"Starting process timeout\n");
+			process_timeout_tag =
+				g_timeout_add (VTE_DISPLAY_TIMEOUT,
+						process_timeout, NULL);
+		}
+	}
 }
 
 static void
 vte_terminal_stop_processing (VteTerminal *terminal)
 {
-	remove_process_timeout (terminal);
+	remove_from_active_list (terminal);
 }
 
 static gboolean
 vte_terminal_is_processing (VteTerminal *terminal)
 {
-	return terminal->pvt->process_timeout != VTE_INVALID_SOURCE
-		|| terminal->pvt->update_timeout != VTE_INVALID_SOURCE;
+	return terminal->pvt->active != NULL;
 }
 
 static void
@@ -10854,23 +10894,45 @@ need_processing (VteTerminal *terminal)
 static gboolean
 process_timeout (gpointer data)
 {
-	VteTerminal *terminal = data;
-	gboolean again = TRUE;
+	GList *l, *next;
+	gboolean again;
+
+	GDK_THREADS_ENTER();
 
 	_vte_debug_print (VTE_DEBUG_WORK, "<");
+	_vte_debug_print (VTE_DEBUG_TIMEOUT,
+			"Process timeout:  %d active\n",
+			       	g_list_length (active_terminals));
 
-	while (again && need_processing (terminal)) {
-	    again = vte_terminal_process_incoming(terminal);
-	}
+	for (l = active_terminals; l != NULL; l = next) {
+		VteTerminal *terminal = l->data;
+		next = g_list_next (l);
+		if (l != active_terminals) {
+			_vte_debug_print (VTE_DEBUG_WORK, "T");
+		}
+		again = TRUE;
+		while (again && need_processing (terminal)) {
+			again = vte_terminal_process_incoming(terminal);
+		}
 
-	if (again && terminal->pvt->update_timeout != VTE_INVALID_SOURCE){
-		again = FALSE;
-	}
-	if (!again) {
-		terminal->pvt->process_timeout = VTE_INVALID_SOURCE;
+		if (!again && terminal->pvt->update_regions == NULL) {
+			active_terminals = g_list_remove_link (active_terminals,
+				       	l);
+			terminal->pvt->active = NULL;
+		}
+		_vte_terminal_connect_pty_read(terminal);
 	}
 
 	_vte_debug_print (VTE_DEBUG_WORK, ">");
+
+	if (active_terminals && update_timeout_tag == VTE_INVALID_SOURCE) {
+		again = TRUE;
+	} else {
+		process_timeout_tag = VTE_INVALID_SOURCE;
+		again = FALSE;
+	}
+
+	GDK_THREADS_LEAVE();
 
 	return again;
 }
@@ -10878,55 +10940,105 @@ process_timeout (gpointer data)
 static gboolean
 update_repeat_timeout (gpointer data)
 {
-	VteTerminal *terminal = data;
-	gboolean again = TRUE;
+	GList *l, *next;
+	gboolean again;
+
+	GDK_THREADS_ENTER();
 
 	_vte_debug_print (VTE_DEBUG_WORK, "[");
+	_vte_debug_print (VTE_DEBUG_TIMEOUT,
+			"Repeat timeout:  %d active\n",
+			g_list_length (active_terminals));
 
-	while (again && need_processing (terminal)) {
-		again = vte_terminal_process_incoming(terminal);
+	for (l = active_terminals; l != NULL; l = next) {
+		VteTerminal *terminal = l->data;
+		next = g_list_next (l);
+
+		if (l != active_terminals) {
+			_vte_debug_print (VTE_DEBUG_WORK, "T");
+		}
+
+		again = TRUE;
+		while (again && need_processing (terminal)) {
+			again = vte_terminal_process_incoming(terminal);
+		}
+		again = update_regions (terminal);
+		if (!again) {
+			active_terminals = g_list_remove_link (active_terminals,
+				       	l);
+			terminal->pvt->active = NULL;
+		}
+		_vte_terminal_connect_pty_read(terminal);
+
 	}
 
-	again = update_regions (terminal);
+	if (active_terminals != NULL) {
+		gdk_window_process_all_updates ();
+	}
 
 	_vte_debug_print (VTE_DEBUG_WORK, "]");
 
 	/* We only stop the timer if no update request was received in this
 	 * past cycle.
 	 */
-	if (!again) {
-		terminal->pvt->update_timeout = VTE_INVALID_SOURCE;
-		return FALSE;
+	again = TRUE;
+	if (active_terminals == NULL) {
+		update_timeout_tag = VTE_INVALID_SOURCE;
+		again = FALSE;
 	}
 
-	return TRUE;
+	GDK_THREADS_LEAVE();
+
+	return again;
 }
 
 static gboolean
 update_timeout (gpointer data)
 {
-	VteTerminal *terminal = data;
-	gboolean again = TRUE;
+	GList *l;
+	gboolean redraw = FALSE;
+
+	GDK_THREADS_ENTER();
 
 	_vte_debug_print (VTE_DEBUG_WORK, "{");
+	_vte_debug_print (VTE_DEBUG_TIMEOUT,
+			"Update timeout:  %d active\n",
+			g_list_length (active_terminals));
 
-	remove_process_timeout (terminal);
-
-	while (again && need_processing (terminal)) {
-		again = vte_terminal_process_incoming(terminal);
+	if (process_timeout_tag != VTE_INVALID_SOURCE) {
+		g_source_remove (process_timeout_tag);
+		process_timeout_tag = VTE_INVALID_SOURCE;
 	}
 
-	update_regions (terminal);
+	for (l = active_terminals; l != NULL; l = g_list_next (l)) {
+		VteTerminal *terminal = l->data;
+		gboolean again = TRUE;
+
+		if (l != active_terminals) {
+			_vte_debug_print (VTE_DEBUG_WORK, "T");
+		}
+		while (again && need_processing (terminal)) {
+			again = vte_terminal_process_incoming(terminal);
+		}
+
+		redraw |= update_regions (terminal);
+		_vte_terminal_connect_pty_read(terminal);
+	}
+
+	if (redraw) {
+		gdk_window_process_all_updates ();
+	}
 
 	_vte_debug_print (VTE_DEBUG_WORK, "}");
 
-
 	/* Set a timer such that we do not invalidate for a while. */
 	/* This limits the number of times we draw to ~40fps. */
-	terminal->pvt->update_timeout =
+	update_timeout_tag =
 		g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE,
-				    VTE_UPDATE_REPEAT_TIMEOUT, update_repeat_timeout, terminal,
+				    VTE_UPDATE_REPEAT_TIMEOUT,
+				    update_repeat_timeout, NULL,
 				    NULL);
+	GDK_THREADS_LEAVE();
 
 	return FALSE;
 }

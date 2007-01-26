@@ -79,7 +79,7 @@ G_BEGIN_DECLS
 #define VTE_FX_PRIORITY			G_PRIORITY_DEFAULT_IDLE
 #define VTE_REGCOMP_FLAGS		REG_EXTENDED
 #define VTE_REGEXEC_FLAGS		0
-#define VTE_INPUT_CHUNK_SIZE		0x1000
+#define VTE_INPUT_CHUNK_SIZE		0x2000
 #define VTE_INVALID_BYTE		'?'
 #define VTE_DISPLAY_TIMEOUT		10
 #define VTE_UPDATE_TIMEOUT		10
@@ -179,10 +179,9 @@ struct _VteTerminalPrivate {
 	struct _vte_iso2022_state *iso2022;
 	struct _vte_buffer *incoming;	/* pending bytestream */
 	GArray *pending;		/* pending characters */
-	guint process_timeout;
-	guint update_timeout;
 	GSList *update_regions;
 	gboolean invalidated_all;	/* pending refresh of entire terminal */
+	GList *active;                  /* is the terminal processing data */
 
 	/* Output data queue. */
 	struct _vte_buffer *outgoing;	/* pending input characters */
