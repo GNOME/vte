@@ -931,7 +931,7 @@ _vte_keymap_map(guint keyval,
 		gssize *normal_length,
 		const char **special)
 {
-	int i;
+	gsize i;
 	const struct _vte_keymap_entry *entries;
 	enum _vte_cursor_mode cursor_mode;
 	enum _vte_keypad_mode keypad_mode;

@@ -75,7 +75,7 @@ _vte_table_new(void)
 	return ret;
 }
 
-struct _vte_table **
+static struct _vte_table **
 _vte_table_literal_new(void)
 {
 	return g_new0(struct _vte_table *, VTE_TABLE_MAX_LITERAL);

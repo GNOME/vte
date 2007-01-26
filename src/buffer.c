@@ -33,6 +33,7 @@ struct _vte_real_buffer {
 	size_t buf_used, buf_length;
 };
 
+#ifndef G_DISABLE_ASSERT
 static void
 _vte_buffer_check(struct _vte_buffer *buffer, size_t length)
 {
@@ -43,6 +44,9 @@ _vte_buffer_check(struct _vte_buffer *buffer, size_t length)
 	g_assert(buf->buf_length >= length);
 	g_assert(buf->buf_length >= buf->buf_used);
 }
+#else
+#define _vte_buffer_check(b, len)
+#endif
 
 static size_t
 _vte_buffer_calc_new_size(size_t minimum_length)

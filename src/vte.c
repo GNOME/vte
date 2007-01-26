@@ -428,7 +428,7 @@ _vte_terminal_find_row_data(VteTerminal *terminal, glong row)
 }
 /* Find the character an the given position in the backscroll buffer. */
 static struct vte_charcell *
-vte_terminal_find_charcell(VteTerminal *terminal, glong col, glong row)
+vte_terminal_find_charcell(VteTerminal *terminal, gulong col, glong row)
 {
 	VteRowData *rowdata;
 	struct vte_charcell *ret = NULL;
@@ -447,7 +447,7 @@ vte_terminal_find_charcell(VteTerminal *terminal, glong col, glong row)
 
 /* Find the character in the given position in the given row. */
 static inline struct vte_charcell *
-_vte_row_data_find_charcell(VteRowData *rowdata, glong col)
+_vte_row_data_find_charcell(VteRowData *rowdata, gulong col)
 {
 	struct vte_charcell *ret = NULL;
 	if (rowdata && rowdata->cells->len > col) {
@@ -698,7 +698,7 @@ vte_terminal_emit_commit(VteTerminal *terminal, const gchar *text, guint length)
 		g_printerr("Emitting `commit' of %d bytes.\n", length);
 	}
 #endif
-	if (length == -1) {
+	if (length == (guint)-1) {
 		length = strlen(text);
 		result = text;
 	} else {
@@ -1018,7 +1018,7 @@ void
 vte_terminal_match_clear_all(VteTerminal *terminal)
 {
 	struct vte_match_regex *regex;
-	int i;
+	guint i;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
 		regex = &g_array_index(terminal->pvt->match_regexes,
@@ -1054,7 +1054,7 @@ vte_terminal_match_remove(VteTerminal *terminal, int tag)
 {
 	struct vte_match_regex *regex;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	if (terminal->pvt->match_regexes->len > tag) {
+	if (terminal->pvt->match_regexes->len > (guint)tag) {
 		/* The tag is an index, so find the corresponding struct. */
 		regex = &g_array_index(terminal->pvt->match_regexes,
 				       struct vte_match_regex,
@@ -1101,7 +1101,7 @@ int
 vte_terminal_match_add(VteTerminal *terminal, const char *match)
 {
 	struct vte_match_regex new_regex, *regex;
-	int ret;
+	guint ret;
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
 	g_return_val_if_fail(match != NULL, -1);
 	g_return_val_if_fail(strlen(match) > 0, -1);
@@ -1156,7 +1156,7 @@ vte_terminal_match_set_cursor(VteTerminal *terminal, int tag, GdkCursor *cursor)
 {
 	struct vte_match_regex *regex;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(tag < terminal->pvt->match_regexes->len);
+	g_return_if_fail((guint) tag < terminal->pvt->match_regexes->len);
 	regex = &g_array_index(terminal->pvt->match_regexes,
 			       struct vte_match_regex,
 			       tag);
@@ -1198,7 +1198,8 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 				  long column, glong row,
 				  int *tag, int *start, int *end)
 {
-	int i, j, ret, offset;
+	guint i, j;
+	int ret, offset;
 	struct vte_match_regex *regex = NULL;
 	struct _VteCharAttributes *attr = NULL;
 	gssize coffset;
@@ -2140,9 +2141,9 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			const GdkColor *palette,
 			glong palette_size)
 {
-	int i;
+	guint i;
 	GdkColor color;
-	int r, g, b;
+	guint r, g, b;
 	
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
@@ -2165,7 +2166,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 
 	/* Initialize each item in the palette if we got any entries to work
 	 * with. */
-	for (i=r=g=b=0; (i < G_N_ELEMENTS(terminal->pvt->palette)); i++) {
+	for (i=r=g=b=0; i < G_N_ELEMENTS(terminal->pvt->palette); i++) {
 		if (i < 16) {
 			color.blue = (i & 4) ? 0xc000 : 0;
 			color.green = (i & 2) ? 0xc000 : 0;
@@ -2990,7 +2991,7 @@ vte_terminal_emit_pending_text_signals(VteTerminal *terminal, GQuark quark)
 		{"character-attributes", 0},
 	};
 	GQuark tmp;
-	int i;
+	guint i;
 
 	if (quark != 0) {
 		for (i = 0; i < G_N_ELEMENTS(non_visual_quarks); i++) {
@@ -4311,7 +4312,7 @@ vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
 gboolean
 vte_terminal_is_word_char(VteTerminal *terminal, gunichar c)
 {
-	int i;
+	guint i;
 	VteWordCharRange *range;
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 
@@ -7203,7 +7204,7 @@ vte_terminal_finalize(GObject *object)
 	GtkWidget *toplevel;
 	GtkClipboard *clipboard;
 	struct vte_match_regex *regex;
-	int i;
+	guint i;
 
 #ifdef VTE_DEBUG
 	if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
@@ -7390,7 +7391,7 @@ vte_terminal_realize(GtkWidget *widget)
 	GdkWindowAttr attributes;
 	GdkPixmap *bitmap;
 	GdkColor black = {0,0,0}, color;
-	int attributes_mask = 0, i;
+	guint attributes_mask = 0, i;
 	VteBg *bg;
 
 #ifdef VTE_DEBUG
@@ -8593,12 +8594,12 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 }
 
 /* Try to map a PangoColor to a palette entry and return its index. */
-static int
+static guint
 _vte_terminal_map_pango_color(VteTerminal *terminal, PangoColor *color)
 {
 	long distance[G_N_ELEMENTS(terminal->pvt->palette)];
 	struct vte_palette_entry *entry;
-	int i, ret;
+	guint i, ret;
 
 	/* Calculate a "distance" value.  Could stand to be improved a bit. */
 	for (i = 0; i < G_N_ELEMENTS(distance); i++) {
@@ -8685,9 +8686,9 @@ _vte_terminal_fudge_pango_colors(VteTerminal *terminal, GSList *attributes,
 /* Apply the attribute given in the PangoAttribute to the list of cells. */
 static void
 _vte_terminal_apply_pango_attr(VteTerminal *terminal, PangoAttribute *attr,
-			       struct vte_charcell *cells, gsize n_cells)
+			       struct vte_charcell *cells, guint n_cells)
 {
-	int i, ival;
+	guint i, ival;
 	PangoAttrInt *attrint;
 	PangoAttrColor *attrcolor;
 
@@ -8698,7 +8699,7 @@ _vte_terminal_apply_pango_attr(VteTerminal *terminal, PangoAttribute *attr,
 		ival = _vte_terminal_map_pango_color(terminal,
 						     &attrcolor->color);
 		for (i = attr->start_index;
-		     (ival >= 0) && (i < attr->end_index) && (i < n_cells);
+		     i < attr->end_index && i < n_cells;
 		     i++) {
 			if (attr->klass->type == PANGO_ATTR_FOREGROUND) {
 				cells[i].fore = ival;
@@ -8752,12 +8753,12 @@ _vte_terminal_pango_attribute_destroy(gpointer attr, gpointer data)
 }
 static void
 _vte_terminal_translate_pango_cells(VteTerminal *terminal, PangoAttrList *attrs,
-				    struct vte_charcell *cells, gsize n_cells)
+				    struct vte_charcell *cells, guint n_cells)
 {
 	PangoAttribute *attr;
 	PangoAttrIterator *attriter;
 	GSList *list, *listiter;
-	int i;
+	guint i;
 
 	for (i = 0; i < n_cells; i++) {
 		cells[i] = terminal->pvt->screen->fill_defaults;
@@ -10541,7 +10542,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 {
 	long highd, high, low, delta, max, next;
 	VteScreen *screens[2];
-	int i;
+	guint i;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 

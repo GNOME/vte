@@ -1,3 +1,40 @@
+2007-01-26  Chris Wilson <chris@chris-wilson.co.uk>
+
+	Spend half an hour a day killing warnings...
+
+	* configure.in:
+		Remove -Wswitch-enum from MAYBE_WARN. I am that lazy.
+	* src/buffer.c:
+	* src/iso2022.c: (_vte_iso2022_is_ambiguous),
+	(_vte_iso2022_ambiguous_width), (_vte_iso2022_map_get),
+	(_vte_iso2022_find_nextctl), (_vte_iso2022_sequence_length),
+	(_vte_iso2022_fragment_input), (process_8_bit_sequence),
+	(process_cdata), (_vte_iso2022_process_single), (process_control),
+	(_vte_iso2022_process):
+	* src/keymap.c: (_vte_keymap_map):
+	* src/table.c:
+	* src/trie.c: (char_class_none_extract),
+	(char_class_digit_extract), (char_class_multi_extract),
+	(char_class_any_extract), (unichar_snlen), (unichar_sncmp),
+	(char_class_string_extract), (_vte_trie_addx), (_vte_trie_add),
+	(_vte_trie_matchx), (_vte_trie_match), (_vte_trie_printx),
+	(_vte_trie_print), (convert_mbstowcs), (main):
+	* src/vte-private.h:
+	* src/vte.c: (vte_terminal_find_charcell),
+	(_vte_row_data_find_charcell), (vte_terminal_emit_commit),
+	(vte_terminal_match_clear_all), (vte_terminal_match_remove),
+	(vte_terminal_match_add), (vte_terminal_match_set_cursor),
+	(vte_terminal_match_check_internal), (vte_terminal_set_colors),
+	(vte_terminal_emit_pending_text_signals),
+	(vte_terminal_is_word_char), (vte_terminal_finalize),
+	(vte_terminal_realize), (_vte_terminal_map_pango_color),
+	(_vte_terminal_apply_pango_attr),
+	(_vte_terminal_translate_pango_cells),
+	(vte_terminal_set_scrollback_lines):
+	* src/vteseq.c: (vte_sequence_handler_decset_internal):
+		Fixup compiler warnings, mostly of the type mixing signed and
+		unsigned compares and pointers.
+
 2007-01-25  Chris Wilson <chris@chris-wilson.co.uk>
 
 	* src/vte.c: (mark_input_source_invalid),

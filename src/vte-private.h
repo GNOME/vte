@@ -179,8 +179,8 @@ struct _VteTerminalPrivate {
 	struct _vte_iso2022_state *iso2022;
 	struct _vte_buffer *incoming;	/* pending bytestream */
 	GArray *pending;		/* pending characters */
-	gint process_timeout;
-	gint update_timeout;
+	guint process_timeout;
+	guint update_timeout;
 	GSList *update_regions;
 	gboolean invalidated_all;	/* pending refresh of entire terminal */
 
@@ -275,7 +275,7 @@ struct _VteTerminalPrivate {
 	/* Cursor blinking. */
 	gboolean cursor_blink_state;
 	gboolean cursor_blinks;
-	gint cursor_blink_tag;
+	guint cursor_blink_tag;
 	gint cursor_blink_timeout;
 	gint64 cursor_blink_time;
 	gboolean cursor_visible;

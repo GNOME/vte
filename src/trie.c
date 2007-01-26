@@ -74,8 +74,8 @@ struct char_class {
 					   counted together. */
 	gunichar *code;			/* A magic string that indicates this
 					   class should be found here. */
-	size_t code_length;
-	size_t ccount;			/* The maximum number of characters
+	gsize code_length;
+	gsize ccount;			/* The maximum number of characters
 					   after the format specifier to
 					   consume. */
 	gboolean (*check)(const gunichar c, struct char_class_data *data);
@@ -84,7 +84,7 @@ struct char_class {
 	void (*setup)(const gunichar *s, struct char_class_data *data, int inc);
 					/* Setup the data struct for use in the
 					 * above check function. */
-	gboolean (*extract)(const gunichar *s, size_t length,
+	gboolean (*extract)(const gunichar *s, gsize length,
 			    struct char_class_data *data,
 			    GValueArray *array);
 					/* Extract a parameter. */
@@ -97,7 +97,7 @@ struct _vte_trie {
 					   field contains its "value". */
 	GQuark quark;			/* The quark for the value of the
 					   result. */
-	size_t trie_path_count;		/* Number of children of this node. */
+	gsize trie_path_count;		/* Number of children of this node. */
 	struct trie_path {
 		struct char_class *cclass;
 		struct char_class_data data;
@@ -127,7 +127,7 @@ char_class_percent_setup(const gunichar *s, struct char_class_data *data,
 	return;
 }
 static gboolean
-char_class_none_extract(const gunichar *s, size_t length,
+char_class_none_extract(const gunichar *s, gsize length,
 			struct char_class_data *data, GValueArray *array)
 {
 	return FALSE;
@@ -159,11 +159,11 @@ char_class_digit_setup(const gunichar *s, struct char_class_data *data, int inc)
 	return;
 }
 static gboolean
-char_class_digit_extract(const gunichar *s, size_t length,
+char_class_digit_extract(const gunichar *s, gsize length,
 			 struct char_class_data *data, GValueArray *array)
 {
 	long ret = 0;
-	size_t i;
+	gsize i;
 	GValue value;
 	for (i = 0; i < length; i++) {
 		ret *= 10;
@@ -205,11 +205,11 @@ char_class_multi_setup(const gunichar *s, struct char_class_data *data, int inc)
 	return;
 }
 static gboolean
-char_class_multi_extract(const gunichar *s, size_t length,
+char_class_multi_extract(const gunichar *s, gsize length,
 			 struct char_class_data *data, GValueArray *array)
 {
 	long ret = 0;
-	size_t i;
+	gsize i;
 	GValue value;
 	memset(&value, 0, sizeof(value));
 	g_value_init(&value, G_TYPE_LONG);
@@ -241,7 +241,7 @@ char_class_any_setup(const gunichar *s, struct char_class_data *data, int inc)
 	return;
 }
 static gboolean
-char_class_any_extract(const gunichar *s, size_t length,
+char_class_any_extract(const gunichar *s, gsize length,
 		       struct char_class_data *data, GValueArray *array)
 {
 	long ret = 0;
@@ -266,10 +266,10 @@ char_class_string_setup(const gunichar *s, struct char_class_data *data, int inc
 	data->c = s[0];
 	return;
 }
-static size_t
-unichar_snlen(const gunichar *s, size_t length)
+static gsize
+unichar_snlen(const gunichar *s, gsize length)
 {
-	size_t i;
+	gsize i;
 	for (i = 0; i < length; i++) {
 		if (s[i] == '\0') {
 			return i;
@@ -289,9 +289,9 @@ unichar_sncpy(gunichar *d, const gunichar *s, gsize length)
 	}
 }
 static int
-unichar_sncmp(const gunichar *a, const gunichar *b, size_t length)
+unichar_sncmp(const gunichar *a, const gunichar *b, gsize length)
 {
-	int i;
+	gsize i;
 	for (i = 0; i < length; i++) {
 		if (a[i] != b[i]) {
 			return a[i] - b[i];
@@ -303,12 +303,12 @@ unichar_sncmp(const gunichar *a, const gunichar *b, size_t length)
 	return 0;
 }
 static gboolean
-char_class_string_extract(const gunichar *s, size_t length,
+char_class_string_extract(const gunichar *s, gsize length,
 			  struct char_class_data *data, GValueArray *array)
 {
 	gunichar *ret = NULL;
-	size_t len;
-	int i;
+	gsize len;
+	gsize i;
 	GValue value;
 
 	len = unichar_snlen(s, length);
@@ -397,14 +397,14 @@ _vte_trie_free(struct _vte_trie *trie)
 /* Add the given pattern, with its own result string, to the trie, with the
  * given initial increment value. */
 static void
-_vte_trie_addx(struct _vte_trie *trie, gunichar *pattern, size_t length,
+_vte_trie_addx(struct _vte_trie *trie, gunichar *pattern, gsize length,
 	       const char *result, GQuark quark, int inc)
 {
-	long i;
+	gsize i;
 	struct char_class *cclass = NULL;
 	struct char_class_data data;
 	gunichar *code;
-	size_t len = 0, ccount = 0;
+	gsize len = 0, ccount = 0;
 	gunichar inc_wstring[] = {'%', 'i', '\0'};
 
 	/* The trivial case -- we'll just set the result at this node. */
@@ -434,7 +434,7 @@ _vte_trie_addx(struct _vte_trie *trie, gunichar *pattern, size_t length,
 
 	/* Now check for examples of character class specifiers, and use that
 	 * to put this part of the pattern in a character class. */
-	for (i = G_N_ELEMENTS(char_classes) - 1; i >= 0; i--) {
+	for (i = G_N_ELEMENTS(char_classes); i--; ) {
 		len = char_classes[i].code_length;
 		code = char_classes[i].code;
 		ccount = char_classes[i].ccount;
@@ -443,7 +443,6 @@ _vte_trie_addx(struct _vte_trie *trie, gunichar *pattern, size_t length,
 			break;
 		}
 	}
-	g_assert(i >= 0);
 
 	/* Initialize the data item using the data we have here. */
 	memset(&data, 0, sizeof(data));
@@ -489,12 +488,12 @@ _vte_trie_addx(struct _vte_trie *trie, gunichar *pattern, size_t length,
 
 /* Add the given pattern, with its own result string, to the trie. */
 TRIE_MAYBE_STATIC void
-_vte_trie_add(struct _vte_trie *trie, const char *pattern, size_t length,
+_vte_trie_add(struct _vte_trie *trie, const char *pattern, gsize length,
 	      const char *result, GQuark quark)
 {
 	char *wpattern, *wpattern_end, *tpattern;
 	VteConv conv;
-	size_t wlength;
+	gsize wlength;
 
 	g_return_if_fail(trie != NULL);
 	g_return_if_fail(pattern != NULL);
@@ -526,7 +525,7 @@ _vte_trie_add(struct _vte_trie *trie, const char *pattern, size_t length,
  * empty string on a partial initial match, a %NULL if there's no match in the
  * works, and the result string if we have an exact match. */
 static const char *
-_vte_trie_matchx(struct _vte_trie *trie, const gunichar *pattern, size_t length,
+_vte_trie_matchx(struct _vte_trie *trie, const gunichar *pattern, gsize length,
 		 gboolean greedy,
 		 const char **res, const gunichar **consumed,
 		 GQuark *quark, GValueArray *array)
@@ -677,7 +676,7 @@ _vte_trie_matchx(struct _vte_trie *trie, const gunichar *pattern, size_t length,
  * empty string on a partial initial match, a %NULL if there's no match in the
  * works, and the result string if we have an exact match. */
 TRIE_MAYBE_STATIC const char *
-_vte_trie_match(struct _vte_trie *trie, const gunichar *pattern, size_t length,
+_vte_trie_match(struct _vte_trie *trie, const gunichar *pattern, gsize length,
 		const char **res, const gunichar **consumed,
 		GQuark *quark, GValueArray **array)
 {
@@ -687,7 +686,7 @@ _vte_trie_match(struct _vte_trie *trie, const gunichar *pattern, size_t length,
 	GValue *value;
 	const gunichar *dummyconsumed;
 	gboolean greedy = FALSE;
-	int i;
+	guint i;
 
 	valuearray = g_value_array_new(0);
 	if (quark == NULL) {
@@ -731,7 +730,7 @@ _vte_trie_match(struct _vte_trie *trie, const gunichar *pattern, size_t length,
 /* Print the next layer of the trie, indented by length spaces. */
 static void
 _vte_trie_printx(struct _vte_trie *trie, const char *previous,
-		 size_t *nodecount)
+		 gsize *nodecount)
 {
 	unsigned int i;
 	char buf[LINE_MAX];
@@ -809,7 +808,7 @@ _vte_trie_printx(struct _vte_trie *trie, const char *previous,
 TRIE_MAYBE_STATIC void
 _vte_trie_print(struct _vte_trie *trie)
 {
-	size_t nodecount = 0;
+	gsize nodecount = 0;
 	_vte_trie_printx(trie, "", &nodecount);
 	printf("Trie has %ld nodes.\n", (long) nodecount);
 }
@@ -843,11 +842,11 @@ dump_array(GValueArray *array)
 }
 
 static void
-convert_mbstowcs(const char *i, size_t ilen,
-		 gunichar *o, size_t *olen, size_t max_olen)
+convert_mbstowcs(const char *i, gsize ilen,
+		 gunichar *o, gsize *olen, gsize max_olen)
 {
 	VteConv conv;
-	size_t outlen;
+	gsize outlen;
 	conv = _vte_conv_open(VTE_CONV_GUNICHAR_TYPE, "UTF-8");
 	g_assert(conv != VTE_INVALID_CONV);
 
@@ -867,7 +866,7 @@ main(int argc, char **argv)
 	GQuark quark;
 	gunichar buf[LINE_MAX];
 	const gunichar *consumed;
-	size_t buflen;
+	gsize buflen;
 
 	_vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
 

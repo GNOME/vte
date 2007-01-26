@@ -287,7 +287,7 @@ _vte_direct_compare(gconstpointer a, gconstpointer b)
 static gboolean
 _vte_iso2022_is_ambiguous(gunichar c)
 {
-	int i;
+	gsize i;
 	gpointer p;
 	static GHashTable *ambiguous = NULL;
 	for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_ambiguous_ranges); i++) {
@@ -371,7 +371,7 @@ _vte_iso2022_ambiguous_width(struct _vte_iso2022_state *state)
 		"gbk",
 		"tcvn",
 	};
-	int i, j;
+	gsize i, j;
 	char codeset[16];
 
 	/* Catch weirdo cases. */
@@ -421,13 +421,14 @@ _vte_iso2022_map_init(const struct _vte_iso2022_map *map, gssize length)
 
 static void
 _vte_iso2022_map_get(gunichar mapname,
-		     GTree **tree, gint *bytes_per_char, gint *force_width,
+		     GTree **tree, guint *bytes_per_char, guint *force_width,
 		     gulong *or_mask, gulong *and_mask)
 {
 	struct _vte_iso2022_map _vte_iso2022_map_NUL[256];
 	static GTree *maps = NULL;
-	gint bytes = 0, width = 0, i;
+	gint bytes = 0, width = 0;
 	GTree *map = NULL;
+	gsize i;
 
 	if (or_mask) {
 		*or_mask = 0;
@@ -842,10 +843,10 @@ _vte_iso2022_state_get_codeset(struct _vte_iso2022_state *state)
 	return state->codeset;
 }
 
-static char *
-_vte_iso2022_find_nextctl(const char *p, size_t length)
+static const guchar *
+_vte_iso2022_find_nextctl(const guchar *p, gsize length)
 {
-	int i;
+	gsize i;
 
 	if (length == 0) {
 		return NULL;
@@ -866,7 +867,7 @@ _vte_iso2022_find_nextctl(const char *p, size_t length)
 		    p[i] == 0x8f
 #endif
 			) {
-			return (char *)p + i;
+			return p + i;
 		}
 	}
 	return NULL;
@@ -875,8 +876,8 @@ _vte_iso2022_find_nextctl(const char *p, size_t length)
 static long
 _vte_iso2022_sequence_length(const unsigned char *nextctl, gsize length)
 {
-	const unsigned char *valids = NULL;
-	long sequence_length = -1, i;
+	long sequence_length = -1;
+	gsize i;
 
 	switch (nextctl[0]) {
 	case '\n':
@@ -1011,8 +1012,7 @@ _vte_iso2022_sequence_length(const unsigned char *nextctl, gsize length)
 				} else {
 					/* ESC % @ */
 					/* ESC % G */
-					valids = "@G";
-					if (strchr(valids, nextctl[2])) {
+					if (strchr("@G", nextctl[2])) {
 						sequence_length = 3;
 					}
 				}
@@ -1041,8 +1041,7 @@ _vte_iso2022_sequence_length(const unsigned char *nextctl, gsize length)
 							/* Inconclusive. */
 							sequence_length = 0;
 						} else {
-							valids = WIDE_GMAPS;
-							if (strchr(valids, nextctl[3])) {
+							if (strchr(WIDE_GMAPS, nextctl[3])) {
 								sequence_length = 4;
 							}
 						}
@@ -1062,7 +1061,7 @@ _vte_iso2022_sequence_length(const unsigned char *nextctl, gsize length)
 static GArray *
 _vte_iso2022_fragment_input(struct _vte_buffer *input)
 {
-	unsigned char *nextctl = NULL, *p, *q;
+	const guchar *nextctl, *p, *q;
 	glong sequence_length = 0;
 	struct _vte_iso2022_block block;
 	gboolean quit;
@@ -1131,21 +1130,21 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input)
 
 static int
 process_8_bit_sequence(struct _vte_iso2022_state *state,
-		       char **inbuf, gsize *inbytes,
+		       const guchar **inbuf, gsize *inbytes,
 		       gunichar **outbuf, gsize *outbytes)
 {
-	int i, width;
+	guint i, width;
 	gpointer p;
 	gunichar c, *outptr;
-	char *inptr;
+	const guchar *inptr;
 	gulong acc, or_mask, and_mask;
 	GTree *map;
-	gint bytes_per_char, force_width, current;
+	guint bytes_per_char, force_width, current;
 
 	/* Check if it's an 8-bit escape.  If it is, take a note of which map
 	 * it's for, and if it isn't, fail. */
 	current = 0;
-	switch (**(guint8**)inbuf) {
+	switch (**inbuf) {
 	case 0x8e:
 		current = 2;
 		break;
@@ -1214,18 +1213,18 @@ process_8_bit_sequence(struct _vte_iso2022_state *state,
 }
 
 static glong
-process_cdata(struct _vte_iso2022_state *state, guchar *cdata, gsize length,
+process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize length,
 	      GArray *gunichars)
 {
 	int ambiguous_width = 0;
 	glong processed = 0;
 	GTree *map;
-	gint bytes_per_char, force_width, current;
-	size_t converted;
-	gchar *inbuf, *buf;
-	gunichar *outbuf;
+	guint bytes_per_char, force_width, current;
+	gsize converted;
+	const guchar *inbuf;
+	gunichar *outbuf, *buf;
 	gsize inbytes, outbytes;
-	int i, width;
+	guint i, width;
 	gulong acc, or_mask, and_mask;
 	gunichar c;
 	gpointer p;
@@ -1250,8 +1249,8 @@ process_cdata(struct _vte_iso2022_state *state, guchar *cdata, gsize length,
 		inbytes = length;
 		_vte_buffer_set_minimum_size(state->buffer,
 					     sizeof(gunichar) * length * 2);
-		buf = state->buffer->bytes;
-		outbuf = (gunichar*)buf;
+		buf = (gunichar *)state->buffer->bytes;
+		outbuf = buf;
 		outbytes = sizeof(gunichar) * length * 2;
 		do {
 			converted = _vte_conv_cu(state->conv,
@@ -1259,7 +1258,7 @@ process_cdata(struct _vte_iso2022_state *state, guchar *cdata, gsize length,
 					         &outbuf, &outbytes);
 			stop = FALSE;
 			switch (converted) {
-			case ((size_t)-1):
+			case ((gsize)-1):
 				switch (errno) {
 				case EILSEQ:
 					/* Check if it's an 8-bit sequence. */
@@ -1306,8 +1305,8 @@ process_cdata(struct _vte_iso2022_state *state, guchar *cdata, gsize length,
 		} while ((inbytes > 0) && !stop);
 
 		/* Append the unichars to the GArray. */
-		for (i = 0; &buf[i] < (char*)outbuf; i += sizeof(gunichar)) {
-			c = *(gunichar*)(buf + i);
+		for (i = 0; buf + i < outbuf; i ++) {
+			c = buf[i];
 			if (c == '\0') {
 				/* Skip the padding character. */
 				continue;
@@ -1384,8 +1383,8 @@ _vte_iso2022_process_single(struct _vte_iso2022_state *state,
 	GTree *tree;
 	gunichar ret = c;
 	gpointer p;
-	gint bytes_per_char, force_width;
-	glong or_mask, and_mask;
+	guint bytes_per_char, force_width;
+	gulong or_mask, and_mask;
 
 	_vte_iso2022_map_get(map,
 			     &tree, &bytes_per_char, &force_width,
@@ -1411,7 +1410,7 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 		GArray *gunichars)
 {
 	gunichar c;
-	int i;
+	gsize i;
 	if (length >= 1) {
 		switch (ctl[0]) {
 		case '\r':  /* CR */
@@ -1708,7 +1707,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 	GArray *blocks;
 	struct _vte_iso2022_block *block = NULL;
 	gboolean preserve_last = FALSE;
-	int i, initial;
+	guint i, initial;
 
 	blocks = _vte_iso2022_fragment_input(input);
 

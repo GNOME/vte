@@ -488,7 +488,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 {
 	gboolean recognized = FALSE, again = FALSE;
 	gpointer p;
-	int i;
+	guint i;
 	struct {
 		int setting;
 		gboolean *bvalue;
