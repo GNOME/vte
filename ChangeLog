@@ -1,5 +1,12 @@
 2007-01-27  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Fix compilation *with* debugging enable.
+	Grrr.
+
+	* src/keymap.c: (_vte_keysym_print):
+
+2007-01-27  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Fix compilation without debugging enable.
 
 	* src/keymap.c: (_vte_keysym_print), (_vte_keymap_map):

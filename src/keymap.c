@@ -82,34 +82,34 @@ _vte_keysym_print(guint keyval,
 	}
 	g_printerr("%s" , _vte_keysym_name(keyval));
 	if (sun_mode|hp_mode|legacy_mode|vt220_mode) {
-		i = 0;
+		gboolean first = TRUE;
 		g_printerr("(");
 		if (sun_mode) {
-			if (i > 0) {
+			if (!first) {
 				g_printerr(",");
 			}
-			i++;
+			first = FALSE;
 			g_printerr("Sun");
 		}
 		if (hp_mode) {
-			if (i > 0) {
+			if (!first) {
 				g_printerr(",");
 			}
-			i++;
+			first = FALSE;
 			g_printerr("HP");
 		}
 		if (legacy_mode) {
-			if (i > 0) {
+			if (!first) {
 				g_printerr(",");
 			}
-			i++;
+			first = FALSE;
 			g_printerr("Legacy");
 		}
 		if (vt220_mode) {
-			if (i > 0) {
+			if (!first) {
 				g_printerr(",");
 			}
-			i++;
+			first = FALSE;
 			g_printerr("VT220");
 		}
 		g_printerr(")");
