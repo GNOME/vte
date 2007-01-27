@@ -1,3 +1,11 @@
+2007-01-27  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Fix compilation without debugging enable.
+
+	* src/keymap.c: (_vte_keysym_print), (_vte_keymap_map):
+	* src/vte.c: (display_control_sequence):
+	* src/vteapp.c: (main):
+
 2007-01-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	* src/debug.h:

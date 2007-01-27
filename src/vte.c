@@ -2319,10 +2319,10 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			(long)screen->insert_delta);
 }
 
-#ifdef VTE_DEBUG
 static void
 display_control_sequence(const char *name, GValueArray *params)
 {
+#ifdef VTE_DEBUG
 	/* Display the control sequence with its parameters, to
 	 * help me debug this thing.  I don't have all of the
 	 * sequences implemented yet. */
@@ -2353,8 +2353,8 @@ display_control_sequence(const char *name, GValueArray *params)
 		}
 	}
 	g_printerr(")\n");
-}
 #endif
+}
 
 /* Handle a terminal control sequence and its parameters. */
 static gboolean

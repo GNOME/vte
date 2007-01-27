@@ -59,6 +59,72 @@ _vte_keysym_name(guint keyval)
 	}
 	return "(unknown)";
 }
+static void
+_vte_keysym_print(guint keyval,
+		GdkModifierType modifiers,
+		gboolean sun_mode,
+		gboolean hp_mode,
+		gboolean legacy_mode,
+		gboolean vt220_mode)
+{
+	g_printerr("Mapping ");
+	if (modifiers & GDK_CONTROL_MASK) {
+		g_printerr("Control+");
+	}
+	if (modifiers & VTE_META_MASK) {
+		g_printerr("Meta+");
+	}
+	if (modifiers & VTE_NUMLOCK_MASK) {
+		g_printerr("NumLock+");
+	}
+	if (modifiers & GDK_SHIFT_MASK) {
+		g_printerr("Shift+");
+	}
+	g_printerr("%s" , _vte_keysym_name(keyval));
+	if (sun_mode|hp_mode|legacy_mode|vt220_mode) {
+		i = 0;
+		g_printerr("(");
+		if (sun_mode) {
+			if (i > 0) {
+				g_printerr(",");
+			}
+			i++;
+			g_printerr("Sun");
+		}
+		if (hp_mode) {
+			if (i > 0) {
+				g_printerr(",");
+			}
+			i++;
+			g_printerr("HP");
+		}
+		if (legacy_mode) {
+			if (i > 0) {
+				g_printerr(",");
+			}
+			i++;
+			g_printerr("Legacy");
+		}
+		if (vt220_mode) {
+			if (i > 0) {
+				g_printerr(",");
+			}
+			i++;
+			g_printerr("VT220");
+		}
+		g_printerr(")");
+	}
+}
+#else
+static void
+_vte_keysym_print(guint keyval,
+		GdkModifierType modifiers,
+		gboolean sun_mode,
+		gboolean hp_mode,
+		gboolean legacy_mode,
+		gboolean vt220_mode)
+{
+}
 #endif
 
 enum _vte_cursor_mode {
@@ -947,55 +1013,12 @@ _vte_keymap_map(guint keyval,
 	g_return_if_fail(normal_length != NULL);
 	g_return_if_fail(special != NULL);
 
-	_VTE_DEBUG_IF(VTE_DEBUG_KEYBOARD) {
-		g_printerr("Mapping ");
-		if (modifiers & GDK_CONTROL_MASK) {
-			g_printerr("Control+");
-		}
-		if (modifiers & VTE_META_MASK) {
-			g_printerr("Meta+");
-		}
-		if (modifiers & VTE_NUMLOCK_MASK) {
-			g_printerr("NumLock+");
-		}
-		if (modifiers & GDK_SHIFT_MASK) {
-			g_printerr("Shift+");
-		}
-		g_printerr("%s" , _vte_keysym_name(keyval));
-		if (sun_mode || hp_mode || legacy_mode || vt220_mode) {
-			i = 0;
-			g_printerr("(");
-			if (sun_mode) {
-				if (i > 0) {
-					g_printerr(",");
-				}
-				i++;
-				g_printerr("Sun");
-			}
-			if (hp_mode) {
-				if (i > 0) {
-					g_printerr(",");
-				}
-				i++;
-				g_printerr("HP");
-			}
-			if (legacy_mode) {
-				if (i > 0) {
-					g_printerr(",");
-				}
-				i++;
-				g_printerr("Legacy");
-			}
-			if (vt220_mode) {
-				if (i > 0) {
-					g_printerr(",");
-				}
-				i++;
-				g_printerr("VT220");
-			}
-			g_printerr(")");
-		}
-	}
+	_VTE_DEBUG_IF(VTE_DEBUG_KEYBOARD) 
+		_vte_keysym_print(keyval, modifiers,
+				sun_mode,
+				hp_mode,
+				legacy_mode,
+				vt220_mode);
 
 	/* Start from scratch. */
 	*normal = NULL;
