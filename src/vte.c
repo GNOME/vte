@@ -8079,7 +8079,8 @@ vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
 static void
 vte_terminal_draw_cells(VteTerminal *terminal,
 			struct _vte_draw_text_request *items, gssize n,
-			gint fore, gint back, gboolean draw_default_bg,
+			gint fore, gint back, gboolean clear,
+			gboolean draw_default_bg,
 			gboolean bold, gboolean underline,
 			gboolean strikethrough, gboolean hilite, gboolean boxed,
 			gint column_width, gint row_height)
@@ -8111,7 +8112,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			items[i].y += VTE_PAD_WIDTH;
 			columns += items[i].columns;
 		}
-		if (bg != defbg) {
+		if (clear && (draw_default_bg || bg != defbg)) {
 			_vte_draw_fill_rectangle(terminal->pvt->draw,
 					x + VTE_PAD_WIDTH, y + VTE_PAD_WIDTH,
 					columns * column_width,
@@ -8185,6 +8186,43 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			}
 		}while (i < n);
 	}
+}
+/* Draw a string of characters with similar attributes. */
+static void
+vte_terminal_clear_cells(VteTerminal *terminal,
+			struct _vte_draw_text_request *items, gssize n,
+			gint back,
+			gint column_width, gint row_height)
+{
+	int i, x, y;
+	gint columns;
+	GdkColor color = {0,};
+	struct vte_palette_entry *bg, *defbg;
+
+	g_assert(n > 0);
+
+	bg = &terminal->pvt->palette[back];
+	defbg = &terminal->pvt->palette[VTE_DEF_BG];
+
+	color.red = bg->red;
+	color.blue = bg->blue;
+	color.green = bg->green;
+	i = 0;
+	do {
+		columns = 0;
+		x = items[i].x;
+		y = items[i].y;
+		for (; i < n && items[i].y == y; i++) {
+			columns += items[i].columns;
+		}
+		if (bg != defbg) {
+			_vte_draw_fill_rectangle(terminal->pvt->draw,
+					x + VTE_PAD_WIDTH, y + VTE_PAD_WIDTH,
+					columns * column_width,
+					row_height,
+					&color, VTE_DRAW_OPAQUE);
+		}
+	} while (i < n);
 }
 
 /* Try to map a PangoColor to a palette entry and return its index. */
@@ -8443,7 +8481,7 @@ vte_terminal_draw_cells_with_attributes(VteTerminal *terminal,
 		vte_terminal_draw_cells(terminal, items + i, 1,
 					fore,
 					back,
-					draw_default_bg,
+					TRUE, draw_default_bg,
 					cells[j].bold,
 					cells[j].underline,
 					cells[j].strikethrough,
@@ -8453,18 +8491,19 @@ vte_terminal_draw_cells_with_attributes(VteTerminal *terminal,
 	g_free(cells);
 }
 
+
 /* Paint the contents of a given row at the given location.  Take advantage
  * of multiple-draw APIs by finding runs of characters with identical
  * attributes and bundling them together. */
 static void
 vte_terminal_draw_rows(VteTerminal *terminal,
 		      VteScreen *screen,
-		      gint row, gint row_count,
+		      gint start_row, gint row_count,
 		      gint start_column, gint column_count,
-		      gint start_x, gint y,
+		      gint start_x, gint start_y,
 		      gint column_width, gint row_height)
 {
-	int i, j, fore, nfore, back, nback;
+	gint i, j, row, rows, y, fore, nfore, back, nback;
 	gboolean underline, nunderline, bold, nbold, hilite, nhilite, reverse,
 		 selected, strikethrough, nstrikethrough;
 	struct _vte_draw_text_request items[4*VTE_DRAW_MAX_LENGTH];
@@ -8477,6 +8516,121 @@ vte_terminal_draw_rows(VteTerminal *terminal,
        	/* adjust for the absolute start of row */
 	start_x -= start_column * column_width;
 
+	/* clear the background */
+	y = start_y;
+	row = start_row;
+	rows = row_count;
+	item_count = 1; /* we will always submit at least one item */
+	do{
+		row_data = _vte_terminal_find_row_data(terminal, row);
+
+		/* Back up in case this is a multicolumn character,
+		 * making the drawing area a little wider. */
+		i = start_column;
+		cell = _vte_row_data_find_charcell(row_data, i);
+		while ((cell != NULL) && (cell->fragment) && (i > 0)) {
+			i--;
+			cell = _vte_row_data_find_charcell(row_data, i);
+		}
+		/* Walk the line. */
+		while (i < start_column + column_count) {
+			/* Get the character cell's contents. */
+			cell = _vte_row_data_find_charcell(row_data, i);
+			/* Find the colors for this cell. */
+			selected = vte_cell_is_selected(terminal, i, row, NULL);
+			vte_terminal_determine_colors(terminal, cell,
+					reverse|selected,
+					selected,
+					FALSE,
+					&fore, &back);
+
+			items[0].c = (cell && cell->c) ? cell->c : ' ';
+			items[0].columns = cell ? cell->columns : 1;
+			items[0].x = start_x + i * column_width;
+			items[0].y = y;
+			j = i + items[0].columns;
+
+			/* Now find out how many cells have the same bg. */
+			do {
+				while ((j < start_column + column_count) &&
+						(item_count < G_N_ELEMENTS(items))) {
+					/* Retrieve the cell. */
+					cell = _vte_row_data_find_charcell(row_data, j);
+					/* Resolve attributes to colors where possible and
+					 * compare visual attributes to the first character
+					 * in this chunk. */
+					selected = vte_cell_is_selected(terminal, j, row, NULL);
+					vte_terminal_determine_colors(terminal, cell,
+							reverse|selected,
+							selected,
+							FALSE,
+							&nfore, &nback);
+					if (nback != back) {
+						break;
+					}
+					/* Don't render fragments of multicolumn characters
+					 * which have the same attributes as the initial
+					 * portions. */
+					if ((cell != NULL) && (cell->fragment)) {
+						j++;
+						continue;
+					}
+					/* Add this cell to the draw list. */
+					items[item_count].c = (cell && cell->c) ? cell->c : ' ';
+					items[item_count].columns = cell ? cell->columns : 1;
+					items[item_count].x = start_x + j * column_width;
+					items[item_count].y = y;
+					j +=  items[item_count].columns;
+					item_count++;
+				}
+				/* have we encountered a state change? */
+				if (j < start_column + column_count) {
+					break;
+				}
+				/* is this the last column, on the last row? */
+				if (!--rows) {
+					break;
+				}
+
+				/* restart on the next row */
+				row++;
+				y += row_height;
+				row_data = _vte_terminal_find_row_data(terminal, row);
+
+				/* Back up in case this is a
+				 * multicolumn character, making the drawing
+				 * area a little wider. */
+				j = start_column;
+				cell = _vte_row_data_find_charcell(row_data, j);
+				while ((cell != NULL) && (cell->fragment) && (j > 0)) {
+					j--;
+					cell = _vte_row_data_find_charcell(row_data, j);
+				}
+			} while (TRUE);
+			vte_terminal_clear_cells(terminal,
+					items,
+					item_count,
+					back,
+					column_width, row_height);
+			item_count = 1;
+			/* We'll need to continue at the first cell which didn't
+			 * match the first one in this set. */
+			i = j;
+			if(!rows) {
+				goto out;
+			}
+		}
+
+		row++;
+		y += row_height;
+	} while (--rows);
+out:
+
+
+	/* render the text */
+	y = start_y;
+	row = start_row;
+	rows = row_count;
 	item_count = 1; /* we will always submit at least one item */
 	do{
 		row_data = _vte_terminal_find_row_data(terminal, row);
@@ -8552,7 +8706,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 							selected,
 							FALSE,
 							&nfore, &nback);
-					if ((nfore != fore) || (nback != back)) {
+					if (nfore != fore) {
 						break;
 					}
 					nbold = cell && cell->bold;
@@ -8607,7 +8761,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					break;
 				}
 				/* is this the last column, on the last row? */
-				if (!--row_count) {
+				if (!--rows) {
 					break;
 				}
 
@@ -8630,7 +8784,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			vte_terminal_draw_cells(terminal,
 					items,
 					item_count,
-					fore, back, FALSE,
+					fore, back, FALSE, FALSE,
 					bold, underline,
 					strikethrough, hilite, FALSE,
 					column_width, row_height);
@@ -8638,14 +8792,14 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			/* We'll need to continue at the first cell which didn't
 			 * match the first one in this set. */
 			i = j;
-			if(!row_count) {
+			if(!rows) {
 				return;
 			}
 		}
 
 		row++;
 		y += row_height;
-	} while (--row_count);
+	} while (--rows);
 }
 
 static void
@@ -8862,7 +9016,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 						       height)) {
 				vte_terminal_draw_cells(terminal,
 							&item, 1,
-							fore, back, TRUE,
+							fore, back, TRUE, TRUE,
 							cell && cell->bold,
 							cell && cell->underline,
 							cell && cell->strikethrough,
@@ -8881,7 +9035,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 					&fore, &back);
 			vte_terminal_draw_cells(terminal,
 						&item, 1,
-						fore, back, TRUE,
+						fore, back, TRUE, TRUE,
 						cell && cell->bold,
 						cell && cell->underline,
 						cell && cell->strikethrough,
@@ -8966,7 +9120,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 				/* Cursored letter in reverse. */
 				vte_terminal_draw_cells(terminal,
 							&items[terminal->pvt->im_preedit_cursor], 1,
-							back, fore, TRUE,
+							back, fore, TRUE, TRUE,
 							FALSE,
 							FALSE,
 							FALSE,
@@ -8978,7 +9132,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 				/* Empty cursor at the end. */
 				vte_terminal_draw_cells(terminal,
 							&items[len], 1,
-							back, fore, TRUE,
+							back, fore, TRUE, TRUE,
 							FALSE,
 							FALSE,
 							FALSE,

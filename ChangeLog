@@ -1,3 +1,17 @@
+2007-01-28  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 401215 – Multi-pass renderering
+
+	* src/vte.c: (vte_terminal_draw_cells), (vte_terminal_clear_cells),
+	(vte_terminal_draw_cells_with_attributes),
+	(vte_terminal_draw_rows), (vte_terminal_paint):
+		Break the draw_rows() loop into two passes - first clear the
+		background and second render the text.
+		Add another function based on draw_cells() that just clears the
+		background and make clearing the background optional in
+		draw_cells() - updating callers accordingly.
+		Adventurous souls are required to clean up draw_rows().
+
 2007-01-27  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Fix compilation *with* debugging enable.
