@@ -1,6 +1,8 @@
 2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
-	reviewed by: <delete if not using a buddy>
+	Only update the matched region if we move the pointer outside of the
+	currently matched region.
+	And only invalidate the cells underneath the matched region.
 
 	* src/vte.c: (_vte_invalidate_region),
 	(vte_terminal_match_hilite_clear), (cursor_inside_match),
