@@ -1,5 +1,12 @@
 2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Detect availability of PCRE.
+
+	* configure.in:
+	* src/Makefile.am:
+
+2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Improve handling of multi-row clears.
 
 	* src/vte.c: (vte_terminal_draw_cells), (vte_terminal_draw_rows),

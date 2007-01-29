@@ -21,7 +21,7 @@ EXTRA_DIST = \
 	unitable.JIS0212 \
 	unitable.KSX1001
 
-AM_CFLAGS = $(VTE_CFLAGS) $(FT2_CFLAGS) $(X_CFLAGS) \
+AM_CFLAGS = $(VTE_CFLAGS) $(FT2_CFLAGS) $(X_CFLAGS) $(PCRE_CFLAGS) \
 	    -DG_DISABLE_ASSERT -DG_LOG_DOMAIN=\"Vte\"
 AM_CPPFLAGS = -DDATADIR='"$(datadir)"' \
 	      -DLIBEXECDIR='"$(libexecdir)"' \
@@ -118,7 +118,7 @@ libvte_la_LDFLAGS = $(LDFLAGS) \
 	-version-info $(VERSION_CURRENT):$(VERSION_REVISION):$(VERSION_AGE) \
 	-export-symbols-regex "^vte_terminal_.*|^_vte_pty_.*|^vte_reaper_.*|_vte_debug_.*" \
 	@LIBTOOL_EXPORT_OPTIONS@ @LIBTOOL_FLAGS@
-libvte_la_LIBADD = $(LIBS) $(VTE_LIBS) $(X_LIBS)
+libvte_la_LIBADD = $(LIBS) $(VTE_LIBS) $(X_LIBS) $(PCRE_LIBS)
 
 CLEANFILES = marshal.c marshal.h
 

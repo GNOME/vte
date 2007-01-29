@@ -106,6 +106,21 @@ PKG_CHECK_MODULES(GTK,[glib-2.0 gobject-2.0 gtk+-2.0 >= 2.6.0])
 
 wantedmodules="glib-2.0 gobject-2.0 gtk+-2.0 fontconfig"
 
+AC_ARG_WITH(pcre,
+	AS_HELP_STRING([--with-pcre], 
+		       [enable use of Perl Compatible Regular Expressions]),
+	use_pcre=$withval, use_pcre=auto)
+if test "x$use_pcre" != "xno"; then
+	PKG_CHECK_MODULES(PCRE, [libpcre],
+			  AC_DEFINE(USE_PCRE, 1, [Enable use of PCRE]), [ 
+			if test "x$use_pcre" = "xyes"; then
+				AC_MSG_ERROR([PCRE not found])
+			else
+				use_pcre="no - not found"
+			fi
+			])
+fi
+
 AC_ARG_ENABLE(deprecation,
 	      [AS_HELP_STRING([--enable-deprecation],
 			      [prohibit VTE from using deprecated GLib/Pango/GDK/GTK+ features])
@@ -564,6 +579,7 @@ echo "
 Configuration for libvte $VERSION
 	With XFT: $with_xft2
 	With PangoX: $with_pangox
+	With PCRE: $use_pcre
 	Debugging: $DEBUG
 	Disable deprecated features: $usedeprecation
 "
