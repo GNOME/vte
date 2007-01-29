@@ -8187,43 +8187,6 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		}while (i < n);
 	}
 }
-/* Draw a string of characters with similar attributes. */
-static void
-vte_terminal_clear_cells(VteTerminal *terminal,
-			struct _vte_draw_text_request *items, gssize n,
-			gint back,
-			gint column_width, gint row_height)
-{
-	int i, x, y;
-	gint columns;
-	GdkColor color = {0,};
-	struct vte_palette_entry *bg, *defbg;
-
-	g_assert(n > 0);
-
-	bg = &terminal->pvt->palette[back];
-	defbg = &terminal->pvt->palette[VTE_DEF_BG];
-
-	color.red = bg->red;
-	color.blue = bg->blue;
-	color.green = bg->green;
-	i = 0;
-	do {
-		columns = 0;
-		x = items[i].x;
-		y = items[i].y;
-		for (; i < n && items[i].y == y; i++) {
-			columns += items[i].columns;
-		}
-		if (bg != defbg) {
-			_vte_draw_fill_rectangle(terminal->pvt->draw,
-					x + VTE_PAD_WIDTH, y + VTE_PAD_WIDTH,
-					columns * column_width,
-					row_height,
-					&color, VTE_DRAW_OPAQUE);
-		}
-	} while (i < n);
-}
 
 /* Try to map a PangoColor to a palette entry and return its index. */
 static guint
@@ -8503,7 +8466,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 		      gint start_x, gint start_y,
 		      gint column_width, gint row_height)
 {
-	gint i, j, row, rows, y, fore, nfore, back, nback;
+	gint i, j, row, rows, columns, y, fore, nfore, back, nback;
 	gboolean underline, nunderline, bold, nbold, hilite, nhilite, reverse,
 		 selected, strikethrough, nstrikethrough;
 	struct _vte_draw_text_request items[4*VTE_DRAW_MAX_LENGTH];
@@ -8544,16 +8507,11 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					FALSE,
 					&fore, &back);
 
-			items[0].c = (cell && cell->c) ? cell->c : ' ';
-			items[0].columns = cell ? cell->columns : 1;
-			items[0].x = start_x + i * column_width;
-			items[0].y = y;
-			j = i + items[0].columns;
+			j = i + (cell ? cell->columns : 1);
 
 			/* Now find out how many cells have the same bg. */
 			do {
-				while ((j < start_column + column_count) &&
-						(item_count < G_N_ELEMENTS(items))) {
+				while (j < start_column + column_count){
 					/* Retrieve the cell. */
 					cell = _vte_row_data_find_charcell(row_data, j);
 					/* Resolve attributes to colors where possible and
@@ -8575,13 +8533,20 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 						j++;
 						continue;
 					}
-					/* Add this cell to the draw list. */
-					items[item_count].c = (cell && cell->c) ? cell->c : ' ';
-					items[item_count].columns = cell ? cell->columns : 1;
-					items[item_count].x = start_x + j * column_width;
-					items[item_count].y = y;
-					j +=  items[item_count].columns;
-					item_count++;
+					j += cell ? cell->columns : 1;
+				}
+				if (back != VTE_DEF_BG) {
+					GdkColor color;
+					const struct vte_palette_entry *bg = &terminal->pvt->palette[back];
+					color.red = bg->red;
+					color.blue = bg->blue;
+					color.green = bg->green;
+					_vte_draw_fill_rectangle(terminal->pvt->draw,
+							start_x + i * column_width + VTE_PAD_WIDTH,
+						       	y + VTE_PAD_WIDTH,
+							(j - i) * column_width,
+							row_height,
+							&color, VTE_DRAW_OPAQUE);
 				}
 				/* have we encountered a state change? */
 				if (j < start_column + column_count) {
@@ -8589,7 +8554,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				}
 				/* is this the last column, on the last row? */
 				if (!--rows) {
-					break;
+					goto bg_out;
 				}
 
 				/* restart on the next row */
@@ -8607,24 +8572,15 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					cell = _vte_row_data_find_charcell(row_data, j);
 				}
 			} while (TRUE);
-			vte_terminal_clear_cells(terminal,
-					items,
-					item_count,
-					back,
-					column_width, row_height);
-			item_count = 1;
 			/* We'll need to continue at the first cell which didn't
 			 * match the first one in this set. */
 			i = j;
-			if(!rows) {
-				goto out;
-			}
 		}
 
 		row++;
 		y += row_height;
 	} while (--rows);
-out:
+bg_out:
 
 
 	/* render the text */
@@ -8762,7 +8718,7 @@ out:
 				}
 				/* is this the last column, on the last row? */
 				if (!--rows) {
-					break;
+					goto fg_out;
 				}
 
 				/* restart on the next row */
@@ -8792,14 +8748,13 @@ out:
 			/* We'll need to continue at the first cell which didn't
 			 * match the first one in this set. */
 			i = j;
-			if(!rows) {
-				return;
-			}
 		}
 
 		row++;
 		y += row_height;
 	} while (--rows);
+fg_out:
+	return;
 }
 
 static void

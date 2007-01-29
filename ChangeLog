@@ -1,3 +1,10 @@
+2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	* src/vte.c: (vte_terminal_draw_cells), (vte_terminal_draw_rows):
+		Merge draw_cells() with the background clear, as generating
+		items for many rows and then splitting again in draw cells is
+		simply inefficient.
+
 2007-01-28  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 401215 – Multi-pass renderering
@@ -14,14 +21,14 @@
 
 2007-01-27  Chris Wilson  <chris@chris-wilson.co.uk>
 
-	Fix compilation *with* debugging enable.
+	Fix compilation *with* debugging enabled.
 	Grrr.
 
 	* src/keymap.c: (_vte_keysym_print):
 
 2007-01-27  Chris Wilson  <chris@chris-wilson.co.uk>
 
-	Fix compilation without debugging enable.
+	Fix compilation without debugging enabled.
 
 	* src/keymap.c: (_vte_keysym_print), (_vte_keymap_map):
 	* src/vte.c: (display_control_sequence):
