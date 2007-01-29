@@ -1,3 +1,9 @@
+2007-01-22 Rich Burridge <rich.burridge@sun.com>
+
+        * src/vteaccess.c:
+        Fixed bug #397724 - Orca incorrect echo's certain input in 
+        gnome-terminal when key echo is set to off (on Ubuntu Feisty).
+
 2007-01-22  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 399282 – Fix the gtk_style_attach call on vte_terminal_realize in
