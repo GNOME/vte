@@ -8644,6 +8644,12 @@ bg_out:
 		while (i < start_column + column_count) {
 			/* Get the character cell's contents. */
 			cell = _vte_row_data_find_charcell(row_data, i);
+			while (cell == NULL || cell->c == ' ') {
+				if (++i >= start_column + column_count) {
+					goto next_row;
+				}
+				cell = _vte_row_data_find_charcell(row_data, i);
+			}
 			/* Find the colors for this cell. */
 			selected = vte_cell_is_selected(terminal, i, row, NULL);
 			vte_terminal_determine_colors(terminal, cell,
@@ -8651,10 +8657,10 @@ bg_out:
 					selected,
 					FALSE,
 					&fore, &back);
-			underline = cell && cell->underline;
-			strikethrough = cell && cell->strikethrough;
-			bold = cell && cell->bold;
-			if ((cell != NULL) && (terminal->pvt->match_contents != NULL)) {
+			underline = cell->underline;
+			strikethrough = cell->strikethrough;
+			bold = cell->bold;
+			if (terminal->pvt->match_contents != NULL) {
 				hilite = vte_cell_is_between(i, row,
 						terminal->pvt->match_start.column,
 						terminal->pvt->match_start.row,
@@ -8665,14 +8671,14 @@ bg_out:
 				hilite = FALSE;
 			}
 
-			items[0].c = (cell && cell->c) ? cell->c : ' ';
-			items[0].columns = cell ? cell->columns : 1;
+			items[0].c = cell->c;
+			items[0].columns = cell->columns;
 			items[0].x = start_x + i * column_width;
 			items[0].y = y;
 			j = i + items[0].columns;
 
 			/* If this is a graphics character, draw it locally. */
-			if ((cell != NULL) && vte_unichar_is_local_graphic(cell->c)) {
+			if (vte_unichar_is_local_graphic(cell->c)) {
 				if (vte_terminal_draw_graphic(terminal,
 						items[0].c,
 						fore, back,
@@ -8693,6 +8699,16 @@ bg_out:
 						(item_count < G_N_ELEMENTS(items))) {
 					/* Retrieve the cell. */
 					cell = _vte_row_data_find_charcell(row_data, j);
+					/* Don't render blank cells or fragments of multicolumn characters
+					 * which have the same attributes as the initial
+					 * portions. */
+					if (cell == NULL || 
+							cell->c == 0 ||
+						       	cell->c == ' ' ||
+						       	cell->fragment) {
+						j++;
+						continue;
+					}
 					/* Resolve attributes to colors where possible and
 					 * compare visual attributes to the first character
 					 * in this chunk. */
@@ -8705,35 +8721,26 @@ bg_out:
 					if (nfore != fore) {
 						break;
 					}
-					nbold = cell && cell->bold;
+					nbold = cell->bold;
 					if (nbold != bold) {
 						break;
 					}
 					/* Graphic characters must be drawn individually. */
-					if ((cell != NULL) &&
-							vte_unichar_is_local_graphic(cell->c)) {
+					if (vte_unichar_is_local_graphic(cell->c)) {
 						break;
 					}
-					/* Don't render fragments of multicolumn characters
-					 * which have the same attributes as the initial
-					 * portions. */
-					if ((cell != NULL) && (cell->fragment)) {
-						j++;
-						continue;
-					}
 					/* Break up underlined/not-underlined text. */
-					nunderline = cell && cell->underline;
+					nunderline = cell->underline;
 					if (nunderline != underline) {
 						break;
 					}
-					nstrikethrough = cell && cell->strikethrough;
+					nstrikethrough = cell->strikethrough;
 					if (nstrikethrough != strikethrough) {
 						break;
 					}
 					/* Break up matched/not-matched text. */
 					nhilite = FALSE;
-					if ((cell != NULL) &&
-							(terminal->pvt->match_contents != NULL)) {
+					if (terminal->pvt->match_contents != NULL) {
 						nhilite = vte_cell_is_between(j, row,
 								terminal->pvt->match_start.column,
 								terminal->pvt->match_start.row,
@@ -8745,8 +8752,8 @@ bg_out:
 						break;
 					}
 					/* Add this cell to the draw list. */
-					items[item_count].c = (cell && cell->c) ? cell->c : ' ';
-					items[item_count].columns = cell ? cell->columns : 1;
+					items[item_count].c = cell->c;
+					items[item_count].columns = cell->columns;
 					items[item_count].x = start_x + j * column_width;
 					items[item_count].y = y;
 					j +=  items[item_count].columns;
@@ -8793,6 +8800,7 @@ bg_out:
 			}
 		}
 
+next_row:
 		row++;
 		y += row_height;
 	} while (--rows);

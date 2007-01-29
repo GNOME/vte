@@ -1,5 +1,10 @@
 2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c: (vte_terminal_draw_rows):
+		Don't issue glyph items for blank cells.
+
+2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* configure.in:
 		Add -Wshadow to MAYBE_WARN
 	* src/ring.c: (_vte_ring_remove):
