@@ -1,5 +1,11 @@
 2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c: (_vte_terminal_set_pointer_visible),
+	(_vte_terminal_fudge_pango_colors):
+		Kill a couple more compiler warnings.
+
+2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 336105 – gnome-terminal crashes when termcap not found
 
 	* src/matcher.c: (_vte_matcher_init):

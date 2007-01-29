@@ -1704,8 +1704,7 @@ _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 					"Setting mousing cursor.\n");
 			cursor = terminal->pvt->mouse_mousing_cursor;
 		} else
-		if ((terminal->pvt->match_previous > -1) &&
-		    (terminal->pvt->match_previous < terminal->pvt->match_regexes->len)) {
+		if ( (guint)terminal->pvt->match_previous < terminal->pvt->match_regexes->len) {
 			regex = &g_array_index(terminal->pvt->match_regexes,
 					       struct vte_match_regex,
 					       terminal->pvt->match_previous);
@@ -8323,7 +8322,7 @@ _vte_terminal_fudge_pango_colors(VteTerminal *terminal, GSList *attributes,
 	struct _fudge_cell_props{
 		gboolean saw_fg, saw_bg;
 		PangoColor fg, bg;
-		int index;
+		guint index;
 	}*props = g_newa (struct _fudge_cell_props, n);
 
 	for (i = 0; i < n; i++) {
