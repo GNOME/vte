@@ -1,5 +1,12 @@
 2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	NULL return from pcre_study() does not necessarily mean an error
+	occurred.
+
+	* src/vteregex.c: (_vte_regex_compile), (_vte_regex_exec):
+
+2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c: (_vte_terminal_set_pointer_visible),
 	(_vte_terminal_fudge_pango_colors):
 		Kill a couple more compiler warnings.

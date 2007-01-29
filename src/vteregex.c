@@ -149,14 +149,15 @@ _vte_regex_compile(const char *pattern)
 
 	ret = g_slice_new(struct _vte_regex);
 
-	ret->pcre = pcre_compile(pattern, PCRE_UTF8, &err, &err_offset, NULL);
+	ret->pcre = pcre_compile(pattern, PCRE_UTF8|PCRE_NO_UTF8_CHECK,
+			&err, &err_offset, NULL);
 	if (ret->pcre == NULL) {
 		g_slice_free(struct _vte_regex, ret);
 		return NULL;
 	}
 
 	ret->extra = pcre_study(ret->pcre, 0, &err);
-	if (ret->extra == NULL) {
+	if (err != NULL) {
 		pcre_free(ret->pcre);
 		g_slice_free(struct _vte_regex, ret);
 		return NULL;
@@ -191,7 +192,6 @@ _vte_regex_exec(struct _vte_regex *regex, const char *string,
 
 	ret = pcre_exec(regex->pcre, regex->extra, string, length,
 		      0, 0, ovector, ovector_length);
-
 	if (ret < 0) {
 		g_free(ovector);
 		return -1;
