@@ -1,3 +1,16 @@
+0.14.2
+
+	Bug 399282 – Fix the gtk_style_attach call on vte_terminal_realize in
+		the gnome 2.16 branch, too
+	Bug 353498 – crash in Terminal: changing icon theme
+	Bug 387482 – Variable modified in signal handler should be volatile
+		Patch from Bastien Nocera
+	Red Hat Bug 218626: "last -ad" print junk in last column
+	Bug 150858 – In gnome-terminal, the deleted character reported as
+		"space"
+	Bug 397724 – Orca incorrect echo's certain input in gnome-terminal
+		when key echo is set to off (on Ubuntu Feisty).
+
 0.14.1
 	Bug 358344 – autoscroll only works one way in fullscreen [PATCH]
 	             Patch by Egmont Koblinger

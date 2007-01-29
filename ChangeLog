@@ -1,3 +1,13 @@
+2007-01-29  Behdad Esfahbod  <behdad@gnome.org>
+
+	Released vte-0.14.2.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.14.2.
+
+	* src/Makefile.am: Bumped libtool version to 10:7:1.
+
 2007-01-22 Rich Burridge <rich.burridge@sun.com>
 
         * src/vteaccess.c:
