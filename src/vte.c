@@ -8644,7 +8644,10 @@ bg_out:
 		while (i < start_column + column_count) {
 			/* Get the character cell's contents. */
 			cell = _vte_row_data_find_charcell(row_data, i);
-			while (cell == NULL || cell->c == 0 || cell->c == ' ') {
+			while (cell == NULL || 
+					cell->c == 0 || 
+					cell->c == ' ' ||
+					cell->fragment) {
 				if (++i >= start_column + column_count) {
 					goto next_row;
 				}
