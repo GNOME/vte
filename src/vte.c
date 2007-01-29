@@ -8131,6 +8131,17 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	struct vte_palette_entry *fg, *bg, *defbg;
 
 	g_assert(n > 0);
+	_VTE_DEBUG_IF(VTE_DEBUG_CELLS) {
+		GString *str = g_string_new(NULL);
+		gchar *tmp;
+		for (i = 0; i < n; i++) {
+			g_string_append_unichar (str, items[i].c);
+		}
+		tmp=g_string_free(str, FALSE);
+		g_printerr ("draw_cells('%s', fore=%d, back=%d, bold=%d, ul=%d, strike=%d, hilite=%d, boxed=%d)\n",
+				tmp, fore, back, bold);
+		g_free(tmp);
+	}
 
 	bold = bold && terminal->pvt->allow_bold;
 	fg = &terminal->pvt->palette[fore];

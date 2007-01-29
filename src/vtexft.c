@@ -440,7 +440,7 @@ _vte_xft_clip(struct _vte_draw *draw,
 			xrect[i].height = rect[i].height;
 		}
 		XftDrawSetClipRectangles(data->draw,
-			       	-data->x_offs, -data->y_offs, xrect, n);
+				-data->x_offs, -data->y_offs, xrect, n);
 		g_free (xrect);
 	}
 	g_free(rect);

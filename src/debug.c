@@ -79,6 +79,9 @@ _vte_debug_parse_string(const char *string)
 			if (g_ascii_strcasecmp(flags[i], "WORK") == 0) {
 				_vte_debug_flags |= VTE_DEBUG_WORK;
 			} else
+			if (g_ascii_strcasecmp(flags[i], "CELLS") == 0) {
+				_vte_debug_flags |= VTE_DEBUG_CELLS;
+			} else
 			if (g_ascii_strcasecmp(flags[i], "TIMEOUT") == 0) {
 				_vte_debug_flags |= VTE_DEBUG_TIMEOUT;
 			}

@@ -171,7 +171,7 @@ _vte_ft2_clip(struct _vte_draw *draw, GdkRegion *region)
 {
 	gdk_gc_set_clip_region(
 			draw->widget->style->fg_gc[GTK_WIDGET_STATE(draw->widget)],
-		       	region);
+			region);
 }
 
 static inline void
