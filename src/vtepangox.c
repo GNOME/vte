@@ -282,7 +282,7 @@ _vte_pango_x_set_text_font(struct _vte_draw *draw,
 	gunichar full_codepoints[] = {VTE_DRAW_DOUBLE_WIDE_CHARACTERS};
 	GString *full_string;
 	gint full_width;
-	int i;
+	guint i;
 	struct _vte_pango_x_data *data;
 
 	data = (struct _vte_pango_x_data*) draw->impl_data;
@@ -385,8 +385,7 @@ _vte_pango_x_draw_text(struct _vte_draw *draw,
 	GC gc;
 	struct _vte_pango_x_data *data;
 	char buf[VTE_UTF8_BPC];
-	int i;
-	gsize length;
+	gsize i, length;
 	GdkColor wcolor;
 
 	data = (struct _vte_pango_x_data*) draw->impl_data;
