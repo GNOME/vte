@@ -1,5 +1,15 @@
 2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* configure.in:
+		Add -Wshadow to MAYBE_WARN
+	* src/ring.c: (_vte_ring_remove):
+	* src/table.c: (_vte_table_matchi):
+	* src/vtedraw.c: (_vte_draw_clip):
+	* src/vteskel.c:
+		Clean up some compiler warnings.
+
+2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vteskel.c:
 		Add the NULL clip func to the skeleton function table.
 

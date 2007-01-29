@@ -385,7 +385,7 @@ _vte_table_matchi(struct _vte_table *table,
 	if ((_vte_table_is_numeric_list(candidate[0])) &&
 	    (table->table_number_list != NULL)) {
 		GSList *l, *local_params;
-		const char *res;
+		const char *local_result;
 
 		subtable = table->table_number_list;
 		/* Iterate over all numeric characters and ';'. */
@@ -402,14 +402,15 @@ _vte_table_matchi(struct _vte_table *table,
 		l = local_params = g_slist_prepend (NULL, arginfo);
 
 		/* Try and continue. */
-		res = _vte_table_matchi(subtable, candidate + i, length - i,
+		local_result = _vte_table_matchi(subtable,
+			       	         candidate + i, length - i,
 					 res, consumed, quark,
 					 original, original_length,
 					 &local_params);
-		if (res != NULL) {
+		if (local_result != NULL) {
 			l->next = *params;
 			*params = local_params;
-			return res;
+			return local_result;
 		}
 		for (l = local_params; l != NULL; l = g_slist_next (l)) {
 			g_slice_free (struct _vte_table_arginfo, l->data);

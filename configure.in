@@ -388,7 +388,7 @@ MAYBE_WARN="-Wall -Wextra \
 -Wpointer-arith -Wwrite-strings -Wstrict-prototypes \
 -Waggregate-return -Wcast-align -Wimplicit -Wuninitialised \
 -Wmissing-prototypes -Wmissing-declarations -Wnested-externs \
--Wpacked -Wmissing-format-attribute \
+-Wpacked -Wmissing-format-attribute -Wshadow\
 -Wstrict-aliasing=2 -Winit-self -Wunsafe-loop-optimizations \
 -Wdeclaration-after-statement -Wold-style-definition \
 -Wno-missing-field-initializers -Wno-unused-parameter"

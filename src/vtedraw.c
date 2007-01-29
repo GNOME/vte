@@ -232,7 +232,7 @@ _vte_draw_requires_repaint(struct _vte_draw *draw)
 gboolean
 _vte_draw_clip(struct _vte_draw *draw, GdkRegion *region)
 {
-	g_return_if_fail(draw->impl != NULL);
+	g_return_val_if_fail(draw->impl != NULL, FALSE);
 	if (draw->impl->clip == NULL) {
 		return FALSE;
 	}

@@ -235,7 +235,7 @@ _vte_ring_remove(VteRing * ring, long position, gboolean free)
 {
 	long i;
 	_vte_debug_print(VTE_DEBUG_RING,
-			"Removing item at position %ld.\n",
+			"Removing item at position %ld.\n"
 			" Delta = %ld, Length = %ld, Max = %ld.\n",
 			position, ring->delta, ring->length, ring->max);
 	_vte_ring_validate(ring);
