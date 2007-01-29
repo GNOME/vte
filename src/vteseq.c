@@ -1044,7 +1044,7 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 	}
 	/* Repaint this row. */
 	_vte_invalidate_cells(terminal,
-			      0, terminal->column_count,
+			      0, screen->cursor_current.col+1,
 			      screen->cursor_current.row, 1);
 
 	/* We've modified the display.  Make a note of it. */

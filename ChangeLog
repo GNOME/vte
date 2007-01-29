@@ -1,5 +1,12 @@
 2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Tighten the invalidated cells.
+
+	* src/vte.c: (_vte_terminal_select_text):
+	* src/vteseq.c: (vte_sequence_handler_cb):
+
+2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	More compiler warnings.
 
 	* src/vtepangox.c: (_vte_pango_x_set_text_font),
