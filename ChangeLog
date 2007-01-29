@@ -1,5 +1,26 @@
 2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	==26147== Conditional jump or move depends on uninitialised value(s)
+	==26147==    at 0x42AB9F7: _vte_rdb_search (vterdb.c:95)
+	==26147==    by 0x42ABB40: _vte_rdb_quark (vterdb.c:201)
+	==26147==    by 0x42ABB9F: _vte_rdb_get_hintstyle (vterdb.c:241)
+	==26147==    by 0x42A7952: _vte_fc_patterns_from_pango_font_desc (vtefc.c:302)
+	==26147==    by 0x42B4E9B: _vte_xft_set_text_font (vtexft.c:103)
+	==26147==    by 0x42A6BE5: _vte_draw_set_text_font (vtedraw.c:258)
+	==26147==    by 0x428C62B: vte_terminal_ensure_font (vte.c:5963)
+	==26147==    by 0x4290295: vte_terminal_size_request (vte.c:6613)
+	==26147==    by 0x4E25228: g_cclosure_marshal_VOID__BOXED (gmarshal.c:566)
+	==26147==    by 0x4E17038: g_type_class_meta_marshal (gclosure.c:567)
+	==26147==    by 0x4E188FC: g_closure_invoke (gclosure.c:490)
+	==26147==    by 0x4E29779: signal_emit_unlocked_R (gsignal.c:2370)
+	==26147== 
+
+	* src/vterdb.c: (_vte_rdb_get):
+		Check the result of the get_property_string before using the
+		returned values.
+
+2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c: (vte_terminal_draw_cells), (vte_terminal_draw_rows):
 		Merge draw_cells() with the background clear, as generating
 		items for many rows and then splitting again in draw cells is

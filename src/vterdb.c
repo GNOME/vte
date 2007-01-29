@@ -49,10 +49,10 @@ static gchar **
 _vte_rdb_get(GtkWidget *widget, gboolean screen_setting)
 {
 	GdkWindow *root;
-	char *prop_data, *tmp;
-	gchar **ret;
+	char *prop_data;
 	int prop_length;
 	GdkAtom atom, prop_type;
+	gboolean result;
 
 	/* Retrieve the window and the property which we're going to read. */
 	GdkDisplay *display;
@@ -85,16 +85,16 @@ _vte_rdb_get(GtkWidget *widget, gboolean screen_setting)
 	/* Read the string property off of the window. */
 	prop_data = NULL;
 	gdk_error_trap_push();
-	_vte_property_get_string(root, atom,
+	result = _vte_property_get_string(root, atom,
 				 &prop_type, &prop_length,
 				 &prop_data);
 	gdk_display_sync(display);
 	gdk_error_trap_pop();
 
 	/* Only parse the information if we got a string. */
-	if ((prop_type == GDK_TARGET_STRING) && (prop_data != NULL)) {
-		tmp = g_strndup(prop_data, prop_length);
-		ret = g_strsplit(tmp, "\n", -1);
+	if (result && prop_type == GDK_TARGET_STRING && prop_data != NULL) {
+		gchar *tmp = g_strndup(prop_data, prop_length);
+		gchar **ret = g_strsplit(tmp, "\n", -1);
 		g_free(tmp);
 		g_free(prop_data);
 		return ret;
