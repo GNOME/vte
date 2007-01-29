@@ -1,5 +1,10 @@
 2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vteskel.c:
+		Add the NULL clip func to the skeleton function table.
+
+2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Update match hilite before showing the pointer as the choice of
 	cursor depends on whether the pointer is above a matched region.
 

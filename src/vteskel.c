@@ -207,6 +207,7 @@ const struct _vte_draw_impl _vte_draw_skel = {
 	_vte_skel_end,
 	_vte_skel_set_background_color,
 	_vte_skel_set_background_image,
+	NULL,
 	TRUE,
 	_vte_skel_clear,
 	_vte_skel_set_text_font,
