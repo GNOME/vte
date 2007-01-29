@@ -8718,7 +8718,7 @@ bg_out:
 				}
 				/* is this the last column, on the last row? */
 				if (!--rows) {
-					goto fg_out;
+					break;
 				}
 
 				/* restart on the next row */
@@ -8748,6 +8748,9 @@ bg_out:
 			/* We'll need to continue at the first cell which didn't
 			 * match the first one in this set. */
 			i = j;
+			if (!rows) {
+				goto fg_out;
+			}
 		}
 
 		row++;
