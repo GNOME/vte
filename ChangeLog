@@ -1,5 +1,13 @@
 2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	reviewed by: <delete if not using a buddy>
+
+	* src/vte.c: (_vte_invalidate_region),
+	(vte_terminal_match_hilite_clear), (cursor_inside_match),
+	(vte_terminal_match_hilite), (vte_terminal_draw_rows):
+
+2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/table.c: (_vte_table_free):
 		Fix a memleak.
 
