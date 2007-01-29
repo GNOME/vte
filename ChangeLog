@@ -1,5 +1,26 @@
 2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	==26147== 2,895 (352 direct, 2,543 indirect) bytes in 22 blocks are definitely lost in loss record 107 of 170
+	==26147==    at 0x4021380: malloc (vg_replace_malloc.c:149)
+	==26147==    by 0x4E85965: g_malloc (gmem.c:131)
+	==26147==    by 0x4E95537: g_slice_alloc (gslice.c:777)
+	==26147==    by 0x4E7C255: g_list_prepend (glist.c:95)
+	==26147==    by 0x428B887: vte_terminal_feed (vte.c:10991)
+	==26147==    by 0x429DD20: vte_terminal_io_read (vte.c:3214)
+	==26147==    by 0x4EA7A8C: g_io_unix_dispatch (giounix.c:162)
+	==26147==    by 0x4E7E481: g_main_context_dispatch (gmain.c:2045)
+	==26147==    by 0x4E8145E: g_main_context_iterate (gmain.c:2677)
+	==26147==    by 0x4E81808: g_main_loop_run (gmain.c:2881)
+	==26147==    by 0x45BA503: gtk_main (gtkmain.c:1148)
+	==26147==    by 0x805F7A3: main (terminal.c:1773)
+
+	* src/vte.c: (remove_from_active_list), (process_timeout),
+	(update_repeat_timeout):
+		g_list_delete_link() is the one that actually frees the link.
+		s/g_list_remove_link/g_list_delete_link/.
+
+2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	==26147== Conditional jump or move depends on uninitialised value(s)
 	==26147==    at 0x42AB9F7: _vte_rdb_search (vterdb.c:95)
 	==26147==    by 0x42ABB40: _vte_rdb_quark (vterdb.c:201)
