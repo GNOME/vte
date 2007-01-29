@@ -63,33 +63,36 @@ _vte_matcher_init(struct _vte_matcher *matcher, const char *emulation,
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "_vte_matcher_init()\n");
 
-	/* Load the known capability strings from the termcap structure into
-	 * the table for recognition. */
-	for (i = 0;
-	     _vte_terminal_capability_strings[i].capability[0];
-	     i++) {
-		if (_vte_terminal_capability_strings[i].key) {
-			continue;
-		}
-		code = _vte_terminal_capability_strings[i].capability;
-		stripped = _vte_termcap_find_string_length(termcap,
-                                                           emulation,
-                                                           code,
-                                                           &stripped_length);
-		if (stripped[0] != '\0') {
-			_vte_matcher_add(matcher, stripped, stripped_length,
-					 code, 0);
-			if (stripped[0] == '\r') {
-				found_cr = TRUE;
-			} else
-			if (stripped[0] == '\n') {
-				if ((strcmp(code, "sf") == 0) ||
-				    (strcmp(code, "do") == 0)) {
-					found_lf = TRUE;
-				}
+	if (termcap != NULL) {
+		/* Load the known capability strings from the termcap
+		 * structure into the table for recognition. */
+		for (i = 0;
+				_vte_terminal_capability_strings[i].capability[0];
+				i++) {
+			if (_vte_terminal_capability_strings[i].key) {
+				continue;
 			}
+			code = _vte_terminal_capability_strings[i].capability;
+			stripped = _vte_termcap_find_string_length(termcap,
+					emulation,
+					code,
+					&stripped_length);
+			if (stripped[0] != '\0') {
+				_vte_matcher_add(matcher,
+						stripped, stripped_length,
+						code, 0);
+				if (stripped[0] == '\r') {
+					found_cr = TRUE;
+				} else
+					if (stripped[0] == '\n') {
+						if (strcmp(code, "sf") == 0 ||
+								strcmp(code, "do") == 0) {
+							found_lf = TRUE;
+						}
+					}
+			}
+			g_free(stripped);
 		}
-		g_free(stripped);
 	}
 
 	/* Add emulator-specific sequences. */

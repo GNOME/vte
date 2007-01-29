@@ -1,5 +1,19 @@
 2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 336105 – gnome-terminal crashes when termcap not found
+
+	* src/matcher.c: (_vte_matcher_init):
+	* src/vte-private.h:
+	* src/vte.c: (vte_terminal_set_default_tabstops),
+	(vte_terminal_key_press), (vte_terminal_set_emulation),
+	(_vte_terminal_inline_error_message), (vte_terminal_set_termcap),
+	(vte_terminal_init), (vte_terminal_finalize),
+	(vte_terminal_draw_cells):
+		Detect and issue an inline warning when we fail
+		to load a termcap.
+
+2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Tighten the invalidated cells.
 
 	* src/vte.c: (_vte_terminal_select_text):

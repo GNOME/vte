@@ -869,14 +869,16 @@ _vte_terminal_set_tabstop(VteTerminal *terminal, int column)
 static void
 vte_terminal_set_default_tabstops(VteTerminal *terminal)
 {
-	int i, width;
+	int i, width = 0;
 	if (terminal->pvt->tabstops != NULL) {
 		g_hash_table_destroy(terminal->pvt->tabstops);
 	}
 	terminal->pvt->tabstops = g_hash_table_new(NULL, NULL);
-	width = _vte_termcap_find_numeric(terminal->pvt->termcap,
-					  terminal->pvt->emulation,
-					  "it");
+	if (terminal->pvt->termcap != NULL) {
+		width = _vte_termcap_find_numeric(terminal->pvt->termcap,
+						  terminal->pvt->emulation,
+						  "it");
+	}
 	if (width == 0) {
 		width = VTE_TAB_WIDTH;
 	}
@@ -3914,7 +3916,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		}
 		/* If the above switch statement didn't do the job, try mapping
 		 * it to a literal or capability name. */
-		if (handled == FALSE) {
+		if (handled == FALSE && terminal->pvt->termcap != NULL) {
 			_vte_keymap_map(keyval, terminal->pvt->modifiers,
 					terminal->pvt->sun_fkey_mode,
 					terminal->pvt->hp_fkey_mode,
@@ -3937,7 +3939,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		}
 		/* If we didn't manage to do anything, try to salvage a
 		 * printable string. */
-		if (!handled && (normal == NULL) && (special == NULL)) {
+		if (handled == FALSE && normal == NULL && special == NULL) {
 			/* Convert the keyval to a gunichar. */
 			keychar = gdk_keyval_to_unicode(keyval);
 			normal_length = 0;
@@ -3990,7 +3992,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			g_free(normal);
 		} else
 		/* If the key maps to characters, send them to the child. */
-		if (special != NULL) {
+		if (special != NULL && terminal->pvt->termcap != NULL) {
 			termcap = terminal->pvt->termcap;
 			tterm = terminal->pvt->emulation;
 			normal = _vte_termcap_find_string_length(termcap,
@@ -6302,32 +6304,34 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	}
 	terminal->pvt->matcher = _vte_matcher_new(emulation, terminal->pvt->termcap);
 
-	/* Read emulation flags. */
-	terminal->pvt->flags.am = _vte_termcap_find_boolean(terminal->pvt->termcap,
-							    terminal->pvt->emulation,
-							    "am");
-	terminal->pvt->flags.bw = _vte_termcap_find_boolean(terminal->pvt->termcap,
-							    terminal->pvt->emulation,
-							    "bw");
-	terminal->pvt->flags.LP = _vte_termcap_find_boolean(terminal->pvt->termcap,
-							    terminal->pvt->emulation,
-							    "LP");
-	terminal->pvt->flags.ul = _vte_termcap_find_boolean(terminal->pvt->termcap,
-							    terminal->pvt->emulation,
-							    "ul");
-	terminal->pvt->flags.xn = _vte_termcap_find_boolean(terminal->pvt->termcap,
-							    terminal->pvt->emulation,
-							    "xn");
+	if (terminal->pvt->termcap != NULL) {
+		/* Read emulation flags. */
+		terminal->pvt->flags.am = _vte_termcap_find_boolean(terminal->pvt->termcap,
+								    terminal->pvt->emulation,
+								    "am");
+		terminal->pvt->flags.bw = _vte_termcap_find_boolean(terminal->pvt->termcap,
+								    terminal->pvt->emulation,
+								    "bw");
+		terminal->pvt->flags.LP = _vte_termcap_find_boolean(terminal->pvt->termcap,
+								    terminal->pvt->emulation,
+								    "LP");
+		terminal->pvt->flags.ul = _vte_termcap_find_boolean(terminal->pvt->termcap,
+								    terminal->pvt->emulation,
+								    "ul");
+		terminal->pvt->flags.xn = _vte_termcap_find_boolean(terminal->pvt->termcap,
+								    terminal->pvt->emulation,
+								    "xn");
 
-	/* Resize to the given default. */
-	columns = _vte_termcap_find_numeric(terminal->pvt->termcap,
-					    terminal->pvt->emulation,
-					    "co");
-	rows = _vte_termcap_find_numeric(terminal->pvt->termcap,
-					 terminal->pvt->emulation,
-					 "li");
-	terminal->pvt->default_column_count = columns;
-	terminal->pvt->default_row_count = rows;
+		/* Resize to the given default. */
+		columns = _vte_termcap_find_numeric(terminal->pvt->termcap,
+						    terminal->pvt->emulation,
+						    "co");
+		rows = _vte_termcap_find_numeric(terminal->pvt->termcap,
+						 terminal->pvt->emulation,
+						 "li");
+		terminal->pvt->default_column_count = columns;
+		terminal->pvt->default_row_count = rows;
+	}
 
 	/* Notify observers that we changed our emulation. */
 	vte_terminal_emit_emulation_changed(terminal);
@@ -6366,6 +6370,22 @@ vte_terminal_get_emulation(VteTerminal *terminal)
 	return terminal->pvt->emulation;
 }
 
+void
+_vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ...)
+{
+	va_list ap;
+	char *str;
+
+	va_start (ap, format);
+	str = g_strdup_vprintf (format, ap);
+	va_end (ap);
+
+	vte_terminal_feed (terminal, "*** VTE ***: ", 13);
+	vte_terminal_feed (terminal, str, -1);
+	vte_terminal_feed (terminal, "\r\n", 2);
+	g_free (str);
+}
+
 /* Set the path to the termcap file we read, and read it in. */
 static void
 vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
@@ -6388,15 +6408,23 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 	} else {
 		path = g_intern_string (path);
 	}
+	if (path == terminal->pvt->termcap_path) {
+		return;
+	}
 	terminal->pvt->termcap_path = path;
 
 	_vte_debug_print(VTE_DEBUG_MISC, "Loading termcap `%s'...",
 			terminal->pvt->termcap_path);
-	if (terminal->pvt->termcap) {
+	if (terminal->pvt->termcap != NULL) {
 		_vte_termcap_free(terminal->pvt->termcap);
 	}
 	terminal->pvt->termcap = _vte_termcap_new(terminal->pvt->termcap_path);
 	_vte_debug_print(VTE_DEBUG_MISC, "\n");
+	if (terminal->pvt->termcap == NULL) {
+		_vte_terminal_inline_error_message(terminal,
+				"Failed to load terminal capabilities from '%s'",
+				terminal->pvt->termcap_path);
+	}
 	if (reset) {
 		vte_terminal_set_emulation(terminal, terminal->pvt->emulation);
 	}
@@ -6528,6 +6556,19 @@ vte_terminal_init(VteTerminal *terminal)
 
 	/* We allocated zeroed memory, just fill in non-zero stuff. */
 
+	/* Set up I/O encodings. */
+	pvt->iso2022 = _vte_iso2022_state_new(pvt->encoding,
+					      &_vte_terminal_codeset_changed_cb,
+					      terminal);
+	pvt->incoming = _vte_buffer_new();
+	pvt->pending = g_array_new(FALSE, FALSE, sizeof(gunichar));
+	pvt->cursor_blink_tag = VTE_INVALID_SOURCE;
+	pvt->outgoing = _vte_buffer_new();
+	pvt->outgoing_conv = VTE_INVALID_CONV;
+	pvt->conv_buffer = _vte_buffer_new();
+	vte_terminal_set_encoding(terminal, NULL);
+	g_assert(terminal->pvt->encoding != NULL);
+
 	/* Load the termcap data and set up the emulation. */
 	pvt->keypad_mode = VTE_KEYMODE_NORMAL;
 	pvt->cursor_mode = VTE_KEYMODE_NORMAL;
@@ -6546,19 +6587,6 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->pty_input_source = VTE_INVALID_SOURCE;
 	pvt->pty_output_source = VTE_INVALID_SOURCE;
 	pvt->pty_pid = -1;
-
-	/* Set up I/O encodings. */
-	pvt->iso2022 = _vte_iso2022_state_new(pvt->encoding,
-					      &_vte_terminal_codeset_changed_cb,
-					      terminal);
-	pvt->incoming = _vte_buffer_new();
-	pvt->pending = g_array_new(FALSE, FALSE, sizeof(gunichar));
-	pvt->cursor_blink_tag = VTE_INVALID_SOURCE;
-	pvt->outgoing = _vte_buffer_new();
-	pvt->outgoing_conv = VTE_INVALID_CONV;
-	pvt->conv_buffer = _vte_buffer_new();
-	vte_terminal_set_encoding(terminal, NULL);
-	g_assert(terminal->pvt->encoding != NULL);
 
 	/* Initialize the screens and histories. */
 	vte_terminal_reset_rowdata(&pvt->alternate_screen.row_data,
@@ -7023,7 +7051,9 @@ vte_terminal_finalize(GObject *object)
 	if (terminal->pvt->matcher != NULL) {
 		_vte_matcher_free(terminal->pvt->matcher);
 	}
-	_vte_termcap_free(terminal->pvt->termcap);
+	if (terminal->pvt->termcap != NULL) {
+		_vte_termcap_free(terminal->pvt->termcap);
+	}
 
 	remove_update_timeout (terminal);
 
@@ -8140,7 +8170,8 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		tmp = g_string_free (str, FALSE);
 		g_printerr ("draw_cells('%s', fore=%d, back=%d, bold=%d,"
 				" ul=%d, strike=%d, hilite=%d, boxed=%d)\n",
-				tmp, fore, back, bold);
+				tmp, fore, back, bold,
+				underline, strikethrough, hilite, boxed);
 		g_free (tmp);
 	}
 
