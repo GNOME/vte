@@ -1,5 +1,10 @@
 2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/table.c: (_vte_table_free):
+		Fix a memleak.
+
+2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	==26147== 2,895 (352 direct, 2,543 indirect) bytes in 22 blocks are definitely lost in loss record 107 of 170
 	==26147==    at 0x4021380: malloc (vg_replace_malloc.c:149)
 	==26147==    by 0x4E85965: g_malloc (gmem.c:131)

@@ -98,6 +98,9 @@ _vte_table_free(struct _vte_table *table)
 	if (table->table_number != NULL) {
 		_vte_table_free(table->table_number);
 	}
+	if (table->table_number_list != NULL) {
+		_vte_table_free(table->table_number_list);
+	}
 	if (table->original_length == 0) {
 		g_assert(table->original == NULL);
 	} else {
