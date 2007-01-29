@@ -5516,6 +5516,11 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Motion notify (%lf,%lf).\n",
 			event->x, event->y);
 
+	/* Hilite any matches. */
+	vte_terminal_match_hilite(terminal,
+				  event->x - VTE_PAD_WIDTH,
+				  event->y - VTE_PAD_WIDTH);
+
 	/* Show the cursor. */
 	_vte_terminal_set_pointer_visible(terminal, TRUE);
 
@@ -5579,11 +5584,6 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 		}
 	}
 
-	/* Hilite any matches. */
-	vte_terminal_match_hilite(terminal,
-				  event->x - VTE_PAD_WIDTH,
-				  event->y - VTE_PAD_WIDTH);
-
 	/* Save the pointer coordinates for later use. */
 	terminal->pvt->mouse_last_x = event->x - VTE_PAD_WIDTH;
 	terminal->pvt->mouse_last_y = event->y - VTE_PAD_WIDTH;
@@ -5606,6 +5606,12 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	height = terminal->char_height;
 	width = terminal->char_width;
 	delta = terminal->pvt->screen->scroll_delta;
+
+	/* Hilite any matches. */
+	vte_terminal_match_hilite(terminal,
+				  event->x - VTE_PAD_WIDTH,
+				  event->y - VTE_PAD_WIDTH);
+
 	_vte_terminal_set_pointer_visible(terminal, TRUE);
 
 	event_mode = terminal->pvt->mouse_send_xy_on_click ||
@@ -5760,11 +5766,6 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		break;
 	}
 
-	/* Hilite any matches. */
-	vte_terminal_match_hilite(terminal,
-				  event->x - VTE_PAD_WIDTH,
-				  event->y - VTE_PAD_WIDTH);
-
 	/* Save the pointer state for later use. */
 	terminal->pvt->mouse_last_button = event->button;
 	terminal->pvt->mouse_last_x = event->x - VTE_PAD_WIDTH;
@@ -5783,6 +5784,12 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 	gboolean event_mode;
 
 	terminal = VTE_TERMINAL(widget);
+
+	/* Hilite any matches. */
+	vte_terminal_match_hilite(terminal,
+				  event->x - VTE_PAD_WIDTH,
+				  event->y - VTE_PAD_WIDTH);
+
 	_vte_terminal_set_pointer_visible(terminal, TRUE);
 
 	event_mode = terminal->pvt->mouse_send_xy_on_click ||
@@ -5841,11 +5848,6 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 	default:
 		break;
 	}
-
-	/* Hilite any matches. */
-	vte_terminal_match_hilite(terminal,
-				  event->x - VTE_PAD_WIDTH,
-				  event->y - VTE_PAD_WIDTH);
 
 	/* Save the pointer state for later use. */
 	terminal->pvt->mouse_last_button = 0;

@@ -1,5 +1,13 @@
 2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Update match hilite before showing the pointer as the choice of
+	cursor depends on whether the pointer is above a matched region.
+
+	* src/vte.c: (vte_terminal_motion_notify),
+	(vte_terminal_button_press), (vte_terminal_button_release):
+
+2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Only update the matched region if we move the pointer outside of the
 	currently matched region.
 	And only invalidate the cells underneath the matched region.
