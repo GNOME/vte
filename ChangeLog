@@ -1,3 +1,10 @@
+2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Improve handling of multi-row clears.
+
+	* src/vte.c: (vte_terminal_draw_cells), (vte_terminal_draw_rows),
+	(vte_terminal_paint):
+
 2007-01-29  Chris Wilson <chris@chris-wilson.co.uk>
 
 	Add debugging flags for printing out cells contents and attributes as
