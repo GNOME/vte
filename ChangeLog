@@ -1,3 +1,10 @@
+2007-01-30  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 402329 – Rendering problem with underlines and cursor
+
+	* src/vte.c: (vte_terminal_paint):
+		Check hilite state when redrawing character under cursor.
+
 2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	* src/vte-private.h:

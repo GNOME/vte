@@ -9033,19 +9033,37 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 						       width,
 						       item.columns,
 						       height)) {
+				gboolean hilite = FALSE;
+				if (cell && terminal->pvt->match_contents != NULL) {
+					hilite = vte_cell_is_between(col, row,
+							terminal->pvt->match_start.column,
+							terminal->pvt->match_start.row,
+							terminal->pvt->match_end.column,
+							terminal->pvt->match_end.row,
+							TRUE);
+				}
 				vte_terminal_draw_cells(terminal,
 							&item, 1,
 							fore, back, TRUE, FALSE,
 							cell && cell->bold,
 							cell && cell->underline,
 							cell && cell->strikethrough,
-							FALSE,
+							hilite,
 							FALSE,
 							width,
 							height);
 			}
 		} else {
 			GdkColor color;
+			gboolean hilite = FALSE;
+			if (cell && terminal->pvt->match_contents != NULL) {
+				hilite = vte_cell_is_between(col, row,
+						terminal->pvt->match_start.column,
+						terminal->pvt->match_start.row,
+						terminal->pvt->match_end.column,
+						terminal->pvt->match_end.row,
+						TRUE);
+			}
 			/* Draw it as a hollow rectangle overtop character. */
 			vte_terminal_determine_colors(terminal, cell,
 					terminal->pvt->screen->reverse_mode,
@@ -9058,7 +9076,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 						cell && cell->bold,
 						cell && cell->underline,
 						cell && cell->strikethrough,
-						FALSE,
+						hilite,
 						FALSE,
 						width,
 						height);
