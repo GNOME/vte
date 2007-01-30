@@ -3196,7 +3196,7 @@ vte_terminal_io_read(GIOChannel *channel,
 	if (condition & G_IO_IN) {
 		const int fd = g_io_channel_unix_get_fd(channel);
 		do {
-			int ret = read(fd, bp, sizeof (buf));
+			int ret = read(fd, buf, sizeof (buf));
 			switch (ret){
 				case -1:
 					err = errno;
