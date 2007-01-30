@@ -1,5 +1,11 @@
 2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte-private.h:
+	* src/vte.c: (vte_terminal_io_read):
+		Clean up the read IO loop.
+
+2007-01-29  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	NULL return from pcre_study() does not necessarily mean an error
 	occurred.
 

@@ -3180,7 +3180,7 @@ vte_terminal_io_read(GIOChannel *channel,
 		     GIOCondition condition,
 		     VteTerminal *terminal)
 {
-	char buf[VTE_INPUT_CHUNK_SIZE], *bp = buf;
+	char buf[VTE_INPUT_CHUNK_SIZE];
 	int err = 0;
 	gboolean eof, leave_open = TRUE;
 
@@ -3195,25 +3195,22 @@ vte_terminal_io_read(GIOChannel *channel,
 	/* Read some data in from this channel. */
 	if (condition & G_IO_IN) {
 		const int fd = g_io_channel_unix_get_fd(channel);
-		int rem = sizeof(buf);
-		while (rem){
-			int ret = read(fd, bp, rem);
-			if(ret <= 0){
-				if(ret == 0)
-					eof = TRUE;
-				else
+		do {
+			int ret = read(fd, bp, sizeof (buf));
+			switch (ret){
+				case -1:
 					err = errno;
-				break;
+					goto out;
+				case 0:
+					eof = TRUE;
+					goto out;
+				default:
+					vte_terminal_feed(terminal, buf, ret);
+					break;
 			}
-			rem -= ret;
-			bp += ret;
-		}
+		} while (TRUE);
 	}
-
-	if (bp != buf) {
-		/* Queue up the data for processing. */
-		vte_terminal_feed(terminal, buf, bp - buf);
-	}
+out:
 
 	/* Error? */
 	switch (err) {
@@ -3227,14 +3224,14 @@ vte_terminal_io_read(GIOChannel *channel,
 			break;
 		default:
 			/* Translators: %s is replaced with error message returned by strerror(). */
-			g_warning(_("Error reading from child: " "%s."), strerror(err));
-			leave_open = TRUE;
+			g_warning(_("Error reading from child: " "%s."),
+					g_strerror (err));
 			break;
 	}
 
 	/* If we detected an eof condition, signal one. */
 	if (eof) {
-		vte_terminal_eof(channel, terminal);
+		vte_terminal_eof (channel, terminal);
 		leave_open = FALSE;
 	}
 
@@ -11222,7 +11219,7 @@ update_timeout (gpointer data)
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
 		while (again && need_processing (terminal)) {
-			again = vte_terminal_process_incoming(terminal);
+			again = vte_terminal_process_incoming (terminal);
 		}
 
 		redraw |= update_regions (terminal);
