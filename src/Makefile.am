@@ -7,6 +7,10 @@ EXTRA_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-vt
 EXTRA_DIST = \
 	$(pkglib_SCRIPTS) \
 	vteseq-gen.c \
+	vteseq-2.gperf \
+	vteseq-n.gperf \
+	vteseq-2.c \
+	vteseq-n.c \
 	genkeysyms.py \
 	iso2022.txt \
 	marshal.list \
@@ -20,6 +24,13 @@ EXTRA_DIST = \
 	unitable.JIS0208 \
 	unitable.JIS0212 \
 	unitable.KSX1001
+
+# gperf - files need to be modified afterwards
+#vteseq-2.c: vteseq-2.gperf
+#	gperf vteseq-2.gperf -g -a -S 4 -t -m 100 -C -H vteseq_2_hash -N vteseq_2_lookup > $@
+#vteseq-n.c: vteseq-n.gperf
+#	gperf vteseq-n.gperf -g -a -S 4 -t -m 100 -C -P -l -H vteseq_n_hash -N vteseq_n_lookup -Q vteseq_n_stringpool > $@
+
 
 AM_CFLAGS = $(VTE_CFLAGS) $(FT2_CFLAGS) $(X_CFLAGS) $(PCRE_CFLAGS) \
 	    -DG_DISABLE_ASSERT -DG_LOG_DOMAIN=\"Vte\"

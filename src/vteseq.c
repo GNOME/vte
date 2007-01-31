@@ -3877,64 +3877,15 @@ vte_sequence_handler_complain_key(VteTerminal *terminal,
 
 
 /* LOOKUP */
-
-static const VteTerminalSequenceHandler vte_sequence_handlers[] = {
-  NULL,
-#define VTE_SEQUENCE_HANDLER(name) name,
-#include "vteseq-list.h"
-#undef VTE_SEQUENCE_HANDLER
-  NULL
-};
-
-enum {
-  NULL_handler,
-#define VTE_SEQUENCE_HANDLER(name) name##_index,
-#include "vteseq-list.h"
-#undef VTE_SEQUENCE_HANDLER
-  _dummy_handler
-};
-
-#include "vteseq-table.h"
-
+#include"vteseq-2.c"
+#include"vteseq-n.c"
 VteTerminalSequenceHandler
 _vte_sequence_get_handler (const char *code,
 			   GQuark quark)
 {
 	int len = strlen (code);
-
-	/* bsearch in the right table */
-	if (len == 2) {
-		int min = 0, max = G_N_ELEMENTS (vte_sequence_handlers_two) - 1;
-		do {
-			int i = (min + max) / 2;
-			int res = memcmp (vte_sequence_handlers_two[i].code, code, 2);
-			if (res < 0)
-				min = i + 1;
-			else
-				max = i;
-		} while (min < max);
-
-		if (!memcmp (vte_sequence_handlers_two[min].code, code, 2))
-			return vte_sequence_handlers[vte_sequence_handlers_two[min].handler];
-		else
-			return NULL;
-	} else {
-		int min = 0, max = G_N_ELEMENTS (vte_sequence_handlers_others) - 1;
-		do {
-			int i = (min + max) / 2;
-			int res = (int)vte_sequence_handlers_others[i].len - len;
-			if (!res)
-				res = strcmp (vte_sequence_handlers_others[i].code, code);
-			if (res < 0)
-				min = i + 1;
-			else
-				max = i;
-		} while (min < max);
-
-		if (vte_sequence_handlers_others[min].len == len &&
-		    !strcmp (vte_sequence_handlers_others[min].code, code))
-			return vte_sequence_handlers[vte_sequence_handlers_others[min].handler];
-		else
-			return NULL;
-	}
+	if (len == 2)
+		return vteseq_2_lookup ((const guchar *)code);
+	else
+		return vteseq_n_lookup ((const guchar *)code, len);
 }

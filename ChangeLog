@@ -1,5 +1,18 @@
 2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Use gperf to calculate a more optimal vte_sequence_get_handler().
+	This reduces vte_sequence_get_handler() from ~13% of the runtime
+	during 'seq 1 1e6' to ~.5% (cumulative).
+
+	* src/Makefile.am:
+	* src/vteseq-2.c: (vteseq_2_hash), (vteseq_2_lookup):
+	* src/vteseq-2.gperf:
+	* src/vteseq-n.c: (vteseq_n_hash), (vteseq_n_lookup):
+	* src/vteseq-n.gperf:
+	* src/vteseq.c: (_vte_sequence_get_handler):
+
+2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Rudimentary vim scrolling benchmark.
 
 	* perf/Makefile.am:
