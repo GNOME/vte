@@ -1,3 +1,12 @@
+2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Rudimentary vim scrolling benchmark.
+
+	* perf/Makefile.am:
+	* perf/UTF-8-demo.txt:
+	* perf/scroll.vim:
+	* perf/vim.sh:
+
 2007-01-30  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 402329 – Rendering problem with underlines and cursor
