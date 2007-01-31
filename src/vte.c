@@ -9082,7 +9082,7 @@ draw_cursor_outline:
 				vte_terminal_determine_colors(terminal, cell,
 						terminal->pvt->screen->reverse_mode,
 						selected,
-						terminal->pvt->screen->reverse_mode,
+						TRUE,
 						&fore, &back);
 				vte_terminal_draw_cells(terminal,
 						&item, 1,
@@ -9096,7 +9096,7 @@ draw_cursor_outline:
 						height);
 			}
 			vte_terminal_determine_colors(terminal, cell,
-					terminal->pvt->screen->reverse_mode,
+					!terminal->pvt->screen->reverse_mode,
 					selected,
 					TRUE,
 					&fore, &back);
