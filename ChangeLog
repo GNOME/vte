@@ -1,5 +1,12 @@
 2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Use gdk_error_trap_{push,pop} around raw Xft calls - about a
+	path outside of vte_draw_{begin,end}.
+
+	* src/vtexft.c: (_vte_xft_set_text_font):
+
+2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Use gdk_error_trap_{push,pop} around raw X11 and Xft calls.
 	cf Bug 368894.
 

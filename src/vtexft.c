@@ -532,6 +532,8 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 		return;
 	}
 
+	gdk_error_trap_push ();
+
 	draw->width = 1;
 	draw->height = 1;
 	draw->ascent = 1;
@@ -577,6 +579,8 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 			draw->width /= 2;
 		}
 	}
+
+	gdk_error_trap_pop ();
 
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"VteXft font metrics = %dx%d (%d).\n",
