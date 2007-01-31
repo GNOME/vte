@@ -42,7 +42,7 @@
 #define DPY_FUDGE 1
 
 struct _vte_xft_font {
-	GdkDisplay *display;
+	Display *display;
 	GPtrArray *patterns;
 	GPtrArray *fonts;
 	VteTree *fontmap;
@@ -76,17 +76,14 @@ _vte_xft_direct_compare(gconstpointer a, gconstpointer b)
 static gboolean
 _vte_xft_char_exists(struct _vte_xft_font *font, XftFont *ftfont, FcChar32 c)
 {
-	return XftCharExists(GDK_DISPLAY_XDISPLAY(font->display),
-			     ftfont,
-			     c) == FcTrue;
+	return XftCharExists(font->display, ftfont, c) == FcTrue;
 }
 
 static void
 _vte_xft_text_extents(struct _vte_xft_font *font, XftFont *ftfont, FcChar32 c,
 		      XGlyphInfo *extents)
 {
-	XftTextExtents32(GDK_DISPLAY_XDISPLAY(font->display),
-				ftfont, &c, 1, extents);
+	XftTextExtents32(font->display, ftfont, &c, 1, extents);
 }
 
 static struct _vte_xft_font *
@@ -104,7 +101,7 @@ _vte_xft_font_open(GtkWidget *widget, const PangoFontDescription *fontdesc,
 	}
 
 	font = g_slice_new(struct _vte_xft_font);
-	font->display = gtk_widget_get_display(widget);
+	font->display = GDK_DISPLAY_XDISPLAY (gtk_widget_get_display (widget));
 	font->patterns = patterns;
 	font->fonts = g_ptr_array_new();
 	font->fontmap = _vte_tree_new(_vte_xft_direct_compare);
@@ -116,27 +113,22 @@ _vte_xft_font_open(GtkWidget *widget, const PangoFontDescription *fontdesc,
 static void
 _vte_xft_font_close(struct _vte_xft_font *font)
 {
-	GdkDisplay *gdisplay;
-	Display *display;
 	XftFont *ftfont;
 	FcPattern *pattern;
 	guint i;
 
 	for (i = 0; i < font->patterns->len; i++) {
 		pattern = g_ptr_array_index(font->patterns, i);
-		if (pattern == NULL) {
-			continue;
+		if (pattern != NULL) {
+			FcPatternDestroy(pattern);
 		}
-		FcPatternDestroy(pattern);
 	}
 	g_ptr_array_free(font->patterns, TRUE);
 
-	gdisplay = gdk_display_get_default();
-	display = gdk_x11_display_get_xdisplay(gdisplay);
 	for (i = 0; i < font->fonts->len; i++) {
 		ftfont = g_ptr_array_index(font->fonts, i);
 		if (ftfont != NULL) {
-			XftFontClose(display, ftfont);
+			XftFontClose(font->display, ftfont);
 		}
 	}
 	g_ptr_array_free(font->fonts, TRUE);
@@ -152,8 +144,6 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 {
 	guint i;
 	XftFont *ftfont;
-	GdkDisplay *gdisplay;
-	Display *display;
 	gpointer p = GINT_TO_POINTER(c);
 
 	/* Check if we have a char-to-font entry for it. */
@@ -176,8 +166,6 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 	}
 
 	/* Look the character up in the fonts we have. */
-	gdisplay = gdk_display_get_default();
-	display = gdk_x11_display_get_xdisplay(gdisplay);
 	for (i = 0; i < font->fonts->len; i++) {
 		ftfont = g_ptr_array_index(font->fonts, i);
 		if ((ftfont != NULL) &&
@@ -200,7 +188,7 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 
 	/* Look the character up in other fonts. */
 	for (i = font->fonts->len; i < font->patterns->len; i++) {
-		ftfont = XftFontOpenPattern(display,
+		ftfont = XftFontOpenPattern(font->display,
 				g_ptr_array_index(font->patterns, i));
 		/* If the font was opened, it owns the pattern. */
 		if (ftfont != NULL) {
@@ -649,9 +637,7 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 	/* find the first displayable character ... */
 	font = NULL;
 	for (i = 0; i < n_requests; i++) {
-		if (requests[i].c == ' ' &&
-				(i == n_requests - 1 ||
-				  requests[i+1].c == ' ')) {
+		if (requests[i].c == ' ') {
 			continue;
 		}
 		font = _vte_xft_font_for_char(data->font,
@@ -703,9 +689,7 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 			/* find the next displayable character ... */
 			ft = NULL;
 			for (; i < n_requests; i++) {
-				if (requests[i].c == ' ' &&
-						(i == n_requests - 1 ||
-						  requests[i+1].c == ' ')) {
+				if (requests[i].c == ' ') {
 					continue;
 				}
 				ft = _vte_xft_font_for_char(data->font,

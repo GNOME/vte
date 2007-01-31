@@ -1,5 +1,13 @@
 2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Use the display stashed inside the font and not the default display!
+
+	* src/vtexft.c: (_vte_xft_char_exists), (_vte_xft_text_extents),
+	(_vte_xft_font_open), (_vte_xft_font_close),
+	(_vte_xft_font_for_char), (_vte_xft_draw_text):
+
+2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	A mixed bag of cleanups.
 
 	* configure.in:
