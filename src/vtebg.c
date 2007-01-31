@@ -271,7 +271,7 @@ vte_bg_get_for_screen(GdkScreen *screen)
 	if (G_UNLIKELY(bg == NULL)) {
 		bg = g_object_new(VTE_TYPE_BG, NULL);
 		g_object_set_data_full(G_OBJECT(screen),
-			 	"vte-bg", bg, (GDestroyNotify)g_object_unref);
+				"vte-bg", bg, (GDestroyNotify)g_object_unref);
 
 		/* connect bg to screen */
 		bg->screen = screen;
@@ -496,6 +496,7 @@ vte_bg_cache_search(VteBg *bg,
 		    const char *source_file,
 		    const GdkColor *tint,
 		    double saturation,
+		    GdkVisual *visual,
 		    gboolean pixbuf,
 		    gboolean pixmap)
 {
@@ -529,7 +530,8 @@ vte_bg_cache_search(VteBg *bg,
 			if (pixbuf && item->pixbuf != NULL) {
 				return g_object_ref(item->pixbuf);
 			}
-			if (pixmap && item->pixmap != NULL) {
+			if (pixmap && item->pixmap != NULL &&
+					gdk_drawable_get_visual (item->pixmap) == visual) {
 				return g_object_ref(item->pixmap);
 			}
 		}
@@ -560,7 +562,9 @@ vte_bg_get_pixmap(VteBg *bg,
 
 	cached = vte_bg_cache_search(bg, source_type,
 				     source_pixbuf, source_file,
-				     tint, saturation, FALSE, TRUE);
+				     tint, saturation,
+				     gdk_colormap_get_visual (colormap),
+				     FALSE, TRUE);
 	if (cached != NULL) {
 		return cached;
 	}
@@ -685,7 +689,7 @@ vte_bg_get_pixbuf(VteBg *bg,
 
 	cached = vte_bg_cache_search(bg, source_type,
 				     source_pixbuf, source_file,
-				     tint, saturation, TRUE, FALSE);
+				     tint, saturation, NULL, TRUE, FALSE);
 	if (cached != NULL) {
 		return cached;
 	}

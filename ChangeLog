@@ -1,5 +1,14 @@
 2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 368894 – crash in Terminal: I started gnome-terminal...
+
+	* src/vtebg.c: (vte_bg_cache_search), (vte_bg_get_pixmap),
+	(vte_bg_get_pixbuf):
+		When retrieving a cached pixmap check that the visual
+		matches the current request.
+
+2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Use gdk_error_trap_{push,pop} around raw Xft calls - about a
 	path outside of vte_draw_{begin,end}.
 
