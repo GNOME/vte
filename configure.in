@@ -154,7 +154,7 @@ AC_CHECK_HEADERS(sys/select.h sys/syslimits.h sys/termios.h sys/un.h sys/wait.h 
 AC_HEADER_TIOCGWINSZ
 
 # Check for PTY handling functions.
-AC_CHECK_FUNCS([cfmakeraw fork setsid setpgid getpgid getpt grantpt unlockpt ptsname ptsname_r])
+AC_CHECK_FUNCS([cfmakeraw fork setsid setpgid getpgid getpt grantpt unlockpt ptsname ptsname_r tcgetattr tcsetattr])
 
 # Pull in the right libraries for various functions which might not be
 # bundled into an exploded libc.

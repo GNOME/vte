@@ -3880,8 +3880,7 @@ vte_sequence_handler_complain_key(VteTerminal *terminal,
 #include"vteseq-2.c"
 #include"vteseq-n.c"
 VteTerminalSequenceHandler
-_vte_sequence_get_handler (const char *code,
-			   GQuark quark)
+_vte_sequence_get_handler (const char *code)
 {
 	int len = strlen (code);
 	if (len == 2)

@@ -1,5 +1,31 @@
 2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	A mixed bag of cleanups.
+
+	* configure.in:
+	* src/pty.c: (_vte_pty_set_utf8):
+		Test for existence of tc[sg]etattr.
+	* src/vte-private.h:
+	* src/vte.c: (vte_terminal_emit_adjustment_changed),
+	(vte_terminal_queue_adjustment_changed),
+	(vte_terminal_set_color_internal), (vte_terminal_handle_sequence),
+	(_vte_terminal_enable_input_source), (vte_terminal_io_read),
+	(vte_terminal_init), (vte_terminal_unrealize),
+	(vte_terminal_finalize), (vte_terminal_background_update),
+	(vte_terminal_queue_background_update),
+	(vte_terminal_emit_pending_signals), (process_timeout),
+	(update_repeat_timeout), (update_timeout):
+		Move idle signal emission to display handlers.
+	* src/vtedraw.h:
+		Add '&' to the single width characters.
+	* src/vteseq.c: (_vte_sequence_get_handler):
+	* src/vteseq.h:
+		Drop the extraneous GQuark parameter.
+	* src/vtexft.c: (_vte_xft_set_text_font):
+		Avoid use of strlen for a compile-time fixed length string.
+
+2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 147784 – cursor unvisible under mouse highlight
 
 	Original patch by Chris Health

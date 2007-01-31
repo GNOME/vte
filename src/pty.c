@@ -159,7 +159,7 @@ struct vte_pty_child_setup_data {
 		int fd;
 	} tty;
 };
-static void 
+static void
 vte_pty_child_setup (gpointer arg)
 {
 	struct vte_pty_child_setup_data *data = arg;
@@ -179,7 +179,7 @@ vte_pty_child_setup (gpointer arg)
 			break;
 	}
 
-	_vte_debug_print (VTE_DEBUG_PTY, 
+	_vte_debug_print (VTE_DEBUG_PTY,
 			"Setting up child pty: name = %s, fd = %d\n",
 				tty ? tty : "(none)", fd);
 
@@ -214,11 +214,11 @@ vte_pty_child_setup (gpointer arg)
 	if ((ioctl(fd, I_FIND, "ptem") == 0) &&
 			(ioctl(fd, I_PUSH, "ptem") == -1)) {
 		_exit (127);
-	} 
+	}
 	if ((ioctl(fd, I_FIND, "ldterm") == 0) &&
 			(ioctl(fd, I_PUSH, "ldterm") == -1)) {
 		_exit (127);
-	} 
+	}
 	if ((ioctl(fd, I_FIND, "ttcompat") == 0) &&
 			(ioctl(fd, I_PUSH, "ttcompat") == -1)) {
 		perror ("ioctl (fd, I_PUSH, \"ttcompat\")");
@@ -578,7 +578,7 @@ _vte_pty_open_unix98(GPid *child, char **env_add,
 		} else {
 			/* Start up a child process with the given command. */
 			if (!_vte_pty_fork_on_pty_name(buf, fd,
-					       	      env_add, command,
+						      env_add, command,
 						      argv, directory,
 						      columns, rows,
 						      child)) {
@@ -858,7 +858,7 @@ _vte_pty_open_with_helper(GPid *child, char **env_add,
 			   &ret, sizeof(ret)) != sizeof(ret)) {
 			return -1;
 		}
-		_vte_debug_print(VTE_DEBUG_PTY, 
+		_vte_debug_print(VTE_DEBUG_PTY,
 				"Received response from helper.\n");
 		if (ret == 0) {
 			return -1;
@@ -985,7 +985,7 @@ _vte_pty_open(pid_t *child_pid, char **env_add,
 void
 _vte_pty_set_utf8(int pty, gboolean utf8)
 {
-#ifdef IUTF8
+#if defined(HAVE_TCSETATTR) && defined(IUTF8)
 	struct termios tio;
 	tcflag_t saved_cflag;
 	if (pty != -1) {

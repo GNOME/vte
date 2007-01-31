@@ -1304,33 +1304,22 @@ vte_terminal_match_check(VteTerminal *terminal, glong column, glong row,
 }
 
 /* Emit an adjustment changed signal on our adjustment object. */
-static gboolean
+static void
 vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 {
-	if (terminal->pvt->adjustment_changed_tag) {
+	if (terminal->pvt->adjustment_changed_pending) {
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting adjustment_changed.\n");
-		terminal->pvt->adjustment_changed_tag = 0;
+		terminal->pvt->adjustment_changed_pending = FALSE;
 		gtk_adjustment_changed(terminal->adjustment);
 	}
-	return FALSE;
 }
 
 /* Queue an adjustment-changed signal to be delivered when convenient. */
 static void
 vte_terminal_queue_adjustment_changed(VteTerminal *terminal)
 {
-	if (terminal->pvt->adjustment_changed_tag == 0) {
-		terminal->pvt->adjustment_changed_tag =
-				g_idle_add_full(VTE_ADJUSTMENT_PRIORITY,
-						(GSourceFunc)vte_terminal_emit_adjustment_changed,
-						terminal,
-						NULL);
-	} else {
-		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Swallowing duplicate"
-				" adjustment-changed signal.\n");
-	}
+	terminal->pvt->adjustment_changed_pending = TRUE;
 }
 
 /* Update the adjustment field of the widget.  This function should be called
@@ -1760,7 +1749,7 @@ vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
 
 	/* If we're setting the background color, set the background color
 	 * on the widget as well. */
-	if ((entry == VTE_DEF_BG)) {
+	if (entry == VTE_DEF_BG) {
 		vte_terminal_queue_background_update(terminal);
 	}
 }
@@ -2371,7 +2360,7 @@ vte_terminal_handle_sequence(VteTerminal *terminal,
 		display_control_sequence(match_s, params);
 
 	/* Find the handler for this control sequence. */
-	handler = _vte_sequence_get_handler (match_s, match);
+	handler = _vte_sequence_get_handler (match_s);
 
 	if (handler != NULL) {
 		/* Let the handler handle it. */
@@ -3174,6 +3163,20 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	return again;
 }
 
+static gboolean
+_vte_terminal_enable_input_source (VteTerminal *terminal)
+{
+	if (terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
+		terminal->pvt->pty_input_source =
+			g_io_add_watch_full(terminal->pvt->pty_input,
+					    VTE_CHILD_INPUT_PRIORITY,
+					    G_IO_IN | G_IO_HUP,
+					    (GIOFunc) vte_terminal_io_read,
+					    terminal,
+					    (GDestroyNotify) mark_input_source_invalid);
+	}
+	return FALSE;
+}
 /* Read and handle data from the child. */
 static gboolean
 vte_terminal_io_read(GIOChannel *channel,
@@ -3182,21 +3185,18 @@ vte_terminal_io_read(GIOChannel *channel,
 {
 	char buf[VTE_INPUT_CHUNK_SIZE];
 	int err = 0;
-	gboolean eof, leave_open = TRUE;
+	gboolean eof;
 
 	_vte_debug_print (VTE_DEBUG_WORK, ".");
 
 	/* Check for end-of-file. */
-	eof = FALSE;
-	if (condition & G_IO_HUP) {
-		eof = TRUE;
-	}
+	eof = condition & G_IO_HUP;
 
 	/* Read some data in from this channel. */
 	if (condition & G_IO_IN) {
-		const int fd = g_io_channel_unix_get_fd(channel);
+		const int fd = g_io_channel_unix_get_fd (channel);
 		do {
-			int ret = read(fd, buf, sizeof (buf));
+			int ret = read (fd, buf, sizeof (buf));
 			switch (ret){
 				case -1:
 					err = errno;
@@ -3205,7 +3205,9 @@ vte_terminal_io_read(GIOChannel *channel,
 					eof = TRUE;
 					goto out;
 				default:
-					vte_terminal_feed(terminal, buf, ret);
+					GDK_THREADS_ENTER ();
+					vte_terminal_feed (terminal, buf, ret);
+					GDK_THREADS_LEAVE ();
 					break;
 			}
 		} while (TRUE);
@@ -3224,19 +3226,19 @@ out:
 			break;
 		default:
 			/* Translators: %s is replaced with error message returned by strerror(). */
-			g_warning(_("Error reading from child: " "%s."),
+			g_warning (_("Error reading from child: " "%s."),
 					g_strerror (err));
 			break;
 	}
 
 	/* If we detected an eof condition, signal one. */
 	if (eof) {
+		GDK_THREADS_ENTER ();
 		vte_terminal_eof (channel, terminal);
-		leave_open = FALSE;
+		GDK_THREADS_LEAVE ();
 	}
 
-	/* If there's more data coming, return TRUE, otherwise return FALSE. */
-	return leave_open;
+	return !eof;
 }
 
 /**
@@ -6635,7 +6637,6 @@ vte_terminal_init(VteTerminal *terminal)
 	vte_terminal_connect_xft_settings(terminal);
 
 	/* Set up background information. */
-	pvt->bg_update_pending = VTE_INVALID_SOURCE;
 	pvt->bg_tint_color.red = 0;
 	pvt->bg_tint_color.green = 0;
 	pvt->bg_tint_color.blue = 0;
@@ -6863,12 +6864,6 @@ vte_terminal_unrealize(GtkWidget *widget)
 	}
 	terminal->pvt->cursor_blink_state = FALSE;
 
-	/* Cancel any pending background updates. */
-	if (terminal->pvt->bg_update_pending != VTE_INVALID_SOURCE) {
-		g_source_remove(terminal->pvt->bg_update_pending);
-		terminal->pvt->bg_update_pending = VTE_INVALID_SOURCE;
-	}
-
 	/* Cancel any pending redraws. */
 	remove_update_timeout (terminal);
 
@@ -6904,11 +6899,7 @@ vte_terminal_finalize(GObject *object)
 	}
 
 	/* Free background info. */
-	if (terminal->pvt->bg_update_pending != VTE_INVALID_SOURCE) {
-		g_source_remove(terminal->pvt->bg_update_pending);
-		terminal->pvt->bg_update_pending = VTE_INVALID_SOURCE;
-		g_free(terminal->pvt->bg_file);
-	}
+	g_free(terminal->pvt->bg_file);
 
 	/* Free the font description. */
 	if (terminal->pvt->fontdesc != NULL) {
@@ -6953,9 +6944,7 @@ vte_terminal_finalize(GObject *object)
 	vte_terminal_stop_autoscroll(terminal);
 
 	/* Cancel pending adjustment change notifications. */
-	if (terminal->pvt->adjustment_changed_tag) {
-		g_source_remove(terminal->pvt->adjustment_changed_tag);
-	}
+	terminal->pvt->adjustment_changed_pending = FALSE;
 
 	/* Tabstop information. */
 	if (terminal->pvt->tabstops != NULL) {
@@ -10040,10 +10029,7 @@ vte_terminal_background_update(VteTerminal *terminal)
 	}
 
 	/* Note that the update has finished. */
-	if (terminal->pvt->bg_update_pending != VTE_INVALID_SOURCE) {
-		g_source_remove(terminal->pvt->bg_update_pending);
-		terminal->pvt->bg_update_pending = VTE_INVALID_SOURCE;
-	}
+	terminal->pvt->bg_update_pending = FALSE;
 
 	/* Force a redraw for everything. */
 	_vte_invalidate_all(terminal);
@@ -10058,18 +10044,9 @@ vte_terminal_background_update(VteTerminal *terminal)
 static void
 vte_terminal_queue_background_update(VteTerminal *terminal)
 {
-	if (terminal->pvt->bg_update_pending == VTE_INVALID_SOURCE) {
-		terminal->pvt->bg_update_pending =
-				g_idle_add_full(VTE_FX_PRIORITY,
-						(GSourceFunc)vte_terminal_background_update,
-						terminal,
-						NULL);
-		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Queued background update.\n");
-	} else {
-		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Skipping background update.\n");
-	}
+	_vte_debug_print(VTE_DEBUG_EVENTS,
+			"Queued background update.\n");
+	terminal->pvt->bg_update_pending = TRUE;
 }
 
 /**
@@ -11122,6 +11099,12 @@ need_processing (VteTerminal *terminal)
 		(terminal->pvt->pending->len > 0);
 }
 
+static void
+vte_terminal_emit_pending_signals(VteTerminal *terminal)
+{
+	vte_terminal_emit_adjustment_changed (terminal);
+}
+
 /* This function is called after DISPLAY_TIMEOUT ms.
  * It makes sure initial output is never delayed by more than DISPLAY_TIMEOUT
  */
@@ -11144,17 +11127,23 @@ process_timeout (gpointer data)
 		if (l != active_terminals) {
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
+		if (terminal->pvt->pty_input) {
+			vte_terminal_io_read(terminal->pvt->pty_input,
+					G_IO_IN, terminal);
+		}
 		again = TRUE;
 		while (again && need_processing (terminal)) {
 			again = vte_terminal_process_incoming(terminal);
 		}
-
 		if (!again && terminal->pvt->update_regions == NULL) {
 			active_terminals = g_list_delete_link (active_terminals,
 					l);
 			terminal->pvt->active = NULL;
+			if (terminal->pvt->pty_input) {
+				_vte_terminal_enable_input_source(terminal);
+			}
 		}
-		_vte_terminal_connect_pty_read(terminal);
+		vte_terminal_emit_pending_signals (terminal);
 	}
 
 	_vte_debug_print (VTE_DEBUG_WORK, ">");
@@ -11192,18 +11181,27 @@ update_repeat_timeout (gpointer data)
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
 
+		if (terminal->pvt->pty_input) {
+			vte_terminal_io_read (terminal->pvt->pty_input,
+					G_IO_IN, terminal);
+		}
 		again = TRUE;
 		while (again && need_processing (terminal)) {
-			again = vte_terminal_process_incoming(terminal);
+			again = vte_terminal_process_incoming (terminal);
+		}
+		if (terminal->pvt->bg_update_pending) {
+			vte_terminal_background_update (terminal);
 		}
 		again = update_regions (terminal);
 		if (!again) {
 			active_terminals = g_list_delete_link (active_terminals,
 					l);
 			terminal->pvt->active = NULL;
+			if (terminal->pvt->pty_input) {
+				_vte_terminal_enable_input_source (terminal);
+			}
 		}
-		_vte_terminal_connect_pty_read(terminal);
-
+		vte_terminal_emit_pending_signals (terminal);
 	}
 
 	if (active_terminals != NULL) {
@@ -11251,12 +11249,19 @@ update_timeout (gpointer data)
 		if (l != active_terminals) {
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
+		if (terminal->pvt->pty_input) {
+			vte_terminal_io_read(terminal->pvt->pty_input,
+					G_IO_IN, terminal);
+		}
 		while (again && need_processing (terminal)) {
 			again = vte_terminal_process_incoming (terminal);
 		}
+		if (terminal->pvt->bg_update_pending) {
+			vte_terminal_background_update (terminal);
+		}
 
 		redraw |= update_regions (terminal);
-		_vte_terminal_connect_pty_read(terminal);
+		vte_terminal_emit_pending_signals (terminal);
 	}
 
 	if (redraw) {

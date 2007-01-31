@@ -335,10 +335,10 @@ struct _VteTerminalPrivate {
 	gboolean accessible_emit;
 
 	/* Adjustment updates pending. */
-	gboolean adjustment_changed_tag;
+	gboolean adjustment_changed_pending;
 
 	/* Background images/"transparency". */
-	guint bg_update_pending;
+	gboolean bg_update_pending;
 	gboolean bg_transparent;
 	GdkPixbuf *bg_pixbuf;
 	char *bg_file;

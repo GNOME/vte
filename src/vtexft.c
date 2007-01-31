@@ -541,7 +541,7 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 	n = width = height = 0;
 	/* Estimate a typical cell width by looking at single-width
 	 * characters. */
-	for (i = 0; i < strlen(VTE_DRAW_SINGLE_WIDE_CHARACTERS); i++) {
+	for (i = 0; i < sizeof(VTE_DRAW_SINGLE_WIDE_CHARACTERS) - 1; i++) {
 		c = VTE_DRAW_SINGLE_WIDE_CHARACTERS[i];
 		font = _vte_xft_font_for_char(data->font, c);
 		if ((font != NULL) &&
