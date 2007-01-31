@@ -19,9 +19,6 @@
 
 #include "../config.h"
 
-#ifndef X_DISPLAY_MISSING
-#ifdef HAVE_XFT2
-
 #include <sys/param.h>
 #include <string.h>
 #include <gtk/gtk.h>
@@ -192,8 +189,7 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 	/* Match? */
 	if (i < font->fonts->len) {
 		_vte_tree_insert(font->fontmap,
-			      p,
-			      GINT_TO_POINTER(i + FONT_INDEX_FUDGE));
+			      p, GINT_TO_POINTER(i + FONT_INDEX_FUDGE));
 		ftfont = g_ptr_array_index(font->fonts, i);
 		if (ftfont != NULL) {
 			return ftfont;
@@ -205,7 +201,7 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 	/* Look the character up in other fonts. */
 	for (i = font->fonts->len; i < font->patterns->len; i++) {
 		ftfont = XftFontOpenPattern(display,
-			       	g_ptr_array_index(font->patterns, i));
+				g_ptr_array_index(font->patterns, i));
 		/* If the font was opened, it owns the pattern. */
 		if (ftfont != NULL) {
 			g_ptr_array_index(font->patterns, i) = NULL;
@@ -352,6 +348,8 @@ _vte_xft_start(struct _vte_draw *draw)
 	gcolormap = gdk_drawable_get_colormap(drawable);
 	data->colormap = gdk_x11_colormap_get_xcolormap(gcolormap);
 
+	gdk_error_trap_push ();
+
 	if (data->draw != NULL) {
 		XftDrawDestroy(data->draw);
 	}
@@ -378,6 +376,8 @@ _vte_xft_end(struct _vte_draw *draw)
 	}
 	data->drawable = -1;
 	data->x_offs = data->y_offs = 0;
+
+	gdk_error_trap_pop ();
 }
 
 static void
@@ -645,7 +645,7 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 	/* find the first displayable character ... */
 	font = NULL;
 	for (i = 0; i < n_requests; i++) {
-		if (requests[i].c == ' ' && 
+		if (requests[i].c == ' ' &&
 				(i == n_requests - 1 ||
 				  requests[i+1].c == ' ')) {
 			continue;
@@ -681,7 +681,7 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 		j = 0;
 		do {
 			glyphs[j].glyph = XftCharIndex(data->display,
-				       	font, requests[i].c);
+					font, requests[i].c);
 			if (G_LIKELY(glyphs[j].glyph != 0)) {
 				glyphs[j].x = requests[i].x - data->x_offs;
 				width = _vte_xft_char_width(data->font,
@@ -699,7 +699,7 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 			/* find the next displayable character ... */
 			ft = NULL;
 			for (; i < n_requests; i++) {
-				if (requests[i].c == ' ' && 
+				if (requests[i].c == ' ' &&
 						(i == n_requests - 1 ||
 						  requests[i+1].c == ' ')) {
 					continue;
@@ -716,7 +716,7 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 		} while (j < VTE_DRAW_MAX_LENGTH && ft == font);
 		if (j > 0) {
 			XftDrawGlyphSpec (data->draw,
-				       	&ftcolor, font, glyphs, j);
+					&ftcolor, font, glyphs, j);
 		}
 		font = ft;
 	} while (i < n_requests);
@@ -833,5 +833,3 @@ const struct _vte_draw_impl _vte_draw_xft = {
 	_vte_xft_fill_rectangle,
 	_vte_xft_set_scroll,
 };
-#endif
-#endif

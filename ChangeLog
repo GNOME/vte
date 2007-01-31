@@ -1,5 +1,13 @@
 2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Use gdk_error_trap_{push,pop} around raw X11 and Xft calls.
+	cf Bug 368894.
+
+	* src/vtexft.c: (_vte_xft_font_for_char), (_vte_xft_start),
+	(_vte_xft_end):
+
+2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Use gperf to calculate a more optimal vte_sequence_get_handler().
 	This reduces vte_sequence_get_handler() from ~13% of the runtime
 	during 'seq 1 1e6' to ~.5% (cumulative).
