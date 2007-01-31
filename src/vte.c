@@ -3183,7 +3183,7 @@ vte_terminal_io_read(GIOChannel *channel,
 		     GIOCondition condition,
 		     VteTerminal *terminal)
 {
-	char buf[VTE_INPUT_CHUNK_SIZE];
+	char buf[VTE_INPUT_CHUNK_SIZE], *bp = buf;
 	int err = 0;
 	gboolean eof;
 
@@ -3195,8 +3195,9 @@ vte_terminal_io_read(GIOChannel *channel,
 	/* Read some data in from this channel. */
 	if (condition & G_IO_IN) {
 		const int fd = g_io_channel_unix_get_fd (channel);
+		int rem = sizeof (buf);
 		do {
-			int ret = read (fd, buf, sizeof (buf));
+			int ret = read (fd, bp, rem);
 			switch (ret){
 				case -1:
 					err = errno;
@@ -3205,14 +3206,18 @@ vte_terminal_io_read(GIOChannel *channel,
 					eof = TRUE;
 					goto out;
 				default:
-					GDK_THREADS_ENTER ();
-					vte_terminal_feed (terminal, buf, ret);
-					GDK_THREADS_LEAVE ();
 					break;
 			}
-		} while (TRUE);
+			bp += ret;
+			rem -= ret;
+		} while (rem);
 	}
 out:
+	if (bp != buf) {
+		GDK_THREADS_ENTER ();
+		vte_terminal_feed (terminal, buf, bp-buf);
+		GDK_THREADS_LEAVE ();
+	}
 
 	/* Error? */
 	switch (err) {

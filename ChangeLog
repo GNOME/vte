@@ -1,3 +1,12 @@
+2007-01-31  Chris Wilson <chris@chris-wilson.co.uk>
+
+	Back to the old-style io loop as _vte_buffer_append() is too slow - on
+	a slow system the read can fill before the data is copied (even more
+	apparent under valgrind).
+
+	* src/vte-private.h:
+	* src/vte.c: (vte_terminal_io_read):
+
 2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Use the display stashed inside the font and not the default display!
