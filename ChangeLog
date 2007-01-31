@@ -1,3 +1,21 @@
+2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	In a few places the contents of a GValue were being used without
+	checking that they were of the expected type.
+
+	cf Bug 117945 which mentions stack corruption inside
+	vte_sequence_handler_delete_lines() - one of the corrected instances.
+
+	* src/vteseq.c: (vte_sequence_handler_al),
+	(vte_sequence_handler_cs), (vte_sequence_handler_cS),
+	(vte_sequence_handler_dl),
+	(vte_sequence_handler_character_attributes),
+	(vte_sequence_handler_insert_lines),
+	(vte_sequence_handler_delete_lines),
+	(vte_sequence_handler_device_status_report),
+	(vte_sequence_handler_dec_device_status_report):
+		Check that the GValue holds a long before dereference.
+
 2007-01-31  Chris Wilson <chris@chris-wilson.co.uk>
 
 	Back to the old-style io loop as _vte_buffer_append() is too slow - on

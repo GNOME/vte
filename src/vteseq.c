@@ -896,7 +896,9 @@ vte_sequence_handler_al(VteTerminal *terminal,
 	param = 1;
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
-		param = g_value_get_long(value);
+		if (G_VALUE_HOLDS_LONG(value)) {
+			param = g_value_get_long(value);
+		}
 	}
 
 	/* Insert the right number of lines. */
@@ -1291,7 +1293,7 @@ vte_sequence_handler_cs(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	long start, end, rows;
+	long start=-1, end=-1, rows;
 	GValue *value;
 	VteScreen *screen;
 
@@ -1303,9 +1305,13 @@ vte_sequence_handler_cs(VteTerminal *terminal,
 	}
 	/* Extract the two values. */
 	value = g_value_array_get_nth(params, 0);
-	start = g_value_get_long(value);
+	if (G_VALUE_HOLDS_LONG(value)) {
+		start = g_value_get_long(value);
+	}
 	value = g_value_array_get_nth(params, 1);
-	end = g_value_get_long(value);
+	if (G_VALUE_HOLDS_LONG(value)) {
+		end = g_value_get_long(value);
+	}
 	/* Catch garbage. */
 	rows = terminal->row_count;
 	if ((start <= 0) || (start >= rows)) {
@@ -1339,7 +1345,7 @@ vte_sequence_handler_cS(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	long start, end, rows;
+	long start=0, end=terminal->row_count-1, rows;
 	GValue *value;
 	VteScreen *screen;
 
@@ -1352,9 +1358,13 @@ vte_sequence_handler_cS(VteTerminal *terminal,
 	/* Extract the two parameters we care about, encoded as the number
 	 * of lines above and below the scrolling region, respectively. */
 	value = g_value_array_get_nth(params, 1);
-	start = g_value_get_long(value);
+	if (G_VALUE_HOLDS_LONG(value)) {
+		start = g_value_get_long(value);
+	}
 	value = g_value_array_get_nth(params, 2);
-	end = (terminal->row_count - 1) - g_value_get_long(value);
+	if (G_VALUE_HOLDS_LONG(value)) {
+		end -= g_value_get_long(value);
+	}
 	/* Set the right values. */
 	screen->scrolling_region.start = start;
 	screen->scrolling_region.end = end;
@@ -1532,7 +1542,9 @@ vte_sequence_handler_dl(VteTerminal *terminal,
 	param = 1;
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
-		param = g_value_get_long(value);
+		if (G_VALUE_HOLDS_LONG(value)) {
+			param = g_value_get_long(value);
+		}
 	}
 
 	/* Delete the right number of lines. */
@@ -2700,23 +2712,22 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 			terminal->pvt->screen->defaults.fore = param - 30;
 			break;
 		case 38:
- 		{
- 			GValue *value1;
- 			long param1;
- 			/* The format looks like: ^[[38;5;COLORNUMBERm,
- 			   so look for COLORNUMBER here. */
- 			if ((i + 2) < params->n_values){
- 				value1 = g_value_array_get_nth(params, i + 2);
- 				if (!G_VALUE_HOLDS_LONG(value1)) {
- 					break;
- 				}
- 				param1 = g_value_get_long(value1);
- 				terminal->pvt->screen->defaults.fore = param1;
- 				i += 2;
- 			}
- 			
- 			break;
- 		}
+		{
+			GValue *value1;
+			long param1;
+			/* The format looks like: ^[[38;5;COLORNUMBERm,
+			   so look for COLORNUMBER here. */
+			if ((i + 2) < params->n_values){
+				value1 = g_value_array_get_nth(params, i + 2);
+				if (!G_VALUE_HOLDS_LONG(value1)) {
+					break;
+				}
+				param1 = g_value_get_long(value1);
+				terminal->pvt->screen->defaults.fore = param1;
+				i += 2;
+			}
+			break;
+		}
 		case 39:
 			/* default foreground, no underscore */
 			terminal->pvt->screen->defaults.fore = VTE_DEF_FG;
@@ -2734,24 +2745,23 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 		case 47:
 			terminal->pvt->screen->defaults.back = param - 40;
 			break;
-  		case 48:
-  		{
-  			GValue *value1;
-  			long param1;
-  			/* The format looks like: ^[[48;5;COLORNUMBERm,
-  			   so look for COLORNUMBER here. */
-  			if ((i + 2) < params->n_values){
-  				value1 = g_value_array_get_nth(params, i + 2);
-  				if (!G_VALUE_HOLDS_LONG(value1)) {
-  					break;
-  				}
-  				param1 = g_value_get_long(value1);
-  				terminal->pvt->screen->defaults.back = param1;
-  				i += 2;
-  			}
-  			break;
-  			
-  		}
+		case 48:
+		{
+			GValue *value1;
+			long param1;
+			/* The format looks like: ^[[48;5;COLORNUMBERm,
+			   so look for COLORNUMBER here. */
+			if ((i + 2) < params->n_values){
+				value1 = g_value_array_get_nth(params, i + 2);
+				if (!G_VALUE_HOLDS_LONG(value1)) {
+					break;
+				}
+				param1 = g_value_get_long(value1);
+				terminal->pvt->screen->defaults.back = param1;
+				i += 2;
+			}
+			break;
+		}
 		case 49:
 			/* default background */
 			terminal->pvt->screen->defaults.back = VTE_DEF_BG;
@@ -3324,7 +3334,9 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 	/* Extract any parameters. */
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
-		param = g_value_get_long(value);
+		if (G_VALUE_HOLDS_LONG(value)) {
+			param = g_value_get_long(value);
+		}
 	}
 	/* Find the region we're messing with. */
 	row = screen->cursor_current.row;
@@ -3375,7 +3387,9 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 	/* Extract any parameters. */
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
-		param = g_value_get_long(value);
+		if (G_VALUE_HOLDS_LONG(value)) {
+			param = g_value_get_long(value);
+		}
 	}
 	/* Find the region we're messing with. */
 	row = screen->cursor_current.row;
@@ -3448,25 +3462,27 @@ vte_sequence_handler_device_status_report(VteTerminal *terminal,
 
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
-		param = g_value_get_long(value);
-		switch (param) {
-		case 5:
-			/* Send a thumbs-up sequence. */
-			vte_terminal_feed_child(terminal,
-				       	_VTE_CAP_CSI "0n",
-				       	sizeof(_VTE_CAP_CSI "0n")-1);
-			break;
-		case 6:
-			/* Send the cursor position. */
-			len = g_snprintf(buf, sizeof(buf),
-				 _VTE_CAP_CSI "%ld;%ldR",
-				 screen->cursor_current.row + 1 -
-				 screen->insert_delta,
-				 screen->cursor_current.col + 1);
-			vte_terminal_feed_child(terminal, buf, len);
-			break;
-		default:
-			break;
+		if (G_VALUE_HOLDS_LONG(value)) {
+			param = g_value_get_long(value);
+			switch (param) {
+			case 5:
+				/* Send a thumbs-up sequence. */
+				vte_terminal_feed_child(terminal,
+						_VTE_CAP_CSI "0n",
+						sizeof(_VTE_CAP_CSI "0n")-1);
+				break;
+			case 6:
+				/* Send the cursor position. */
+				len = g_snprintf(buf, sizeof(buf),
+					 _VTE_CAP_CSI "%ld;%ldR",
+					 screen->cursor_current.row + 1 -
+					 screen->insert_delta,
+					 screen->cursor_current.col + 1);
+				vte_terminal_feed_child(terminal, buf, len);
+				break;
+			default:
+				break;
+			}
 		}
 	}
 	return FALSE;
@@ -3489,40 +3505,42 @@ vte_sequence_handler_dec_device_status_report(VteTerminal *terminal,
 
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
-		param = g_value_get_long(value);
-		switch (param) {
-		case 6:
-			/* Send the cursor position. */
-			len = g_snprintf(buf, sizeof(buf),
-				 _VTE_CAP_CSI "?%ld;%ldR",
-				 screen->cursor_current.row + 1 -
-				 screen->insert_delta,
-				 screen->cursor_current.col + 1);
-			vte_terminal_feed_child(terminal, buf, len);
-			break;
-		case 15:
-			/* Send printer status -- 10 = ready,
-			 * 11 = not ready.  We don't print. */
-			vte_terminal_feed_child(terminal, 
-					_VTE_CAP_CSI "?11n",
-					sizeof(_VTE_CAP_CSI "?11n")-1);
-			break;
-		case 25:
-			/* Send UDK status -- 20 = locked,
-			 * 21 = not locked.  I don't even know what
-			 * that means, but punt anyway. */
-			vte_terminal_feed_child(terminal, 
-					_VTE_CAP_CSI "?20n",
-					sizeof(_VTE_CAP_CSI "?20n")-1);
-			break;
-		case 26:
-			/* Send keyboard status.  50 = no locator. */
-			vte_terminal_feed_child(terminal, 
-					_VTE_CAP_CSI "?50n",
-					sizeof(_VTE_CAP_CSI "?50n")-1);
-			break;
-		default:
-			break;
+		if (G_VALUE_HOLDS_LONG(value)) {
+			param = g_value_get_long(value);
+			switch (param) {
+			case 6:
+				/* Send the cursor position. */
+				len = g_snprintf(buf, sizeof(buf),
+					 _VTE_CAP_CSI "?%ld;%ldR",
+					 screen->cursor_current.row + 1 -
+					 screen->insert_delta,
+					 screen->cursor_current.col + 1);
+				vte_terminal_feed_child(terminal, buf, len);
+				break;
+			case 15:
+				/* Send printer status -- 10 = ready,
+				 * 11 = not ready.  We don't print. */
+				vte_terminal_feed_child(terminal,
+						_VTE_CAP_CSI "?11n",
+						sizeof(_VTE_CAP_CSI "?11n")-1);
+				break;
+			case 25:
+				/* Send UDK status -- 20 = locked,
+				 * 21 = not locked.  I don't even know what
+				 * that means, but punt anyway. */
+				vte_terminal_feed_child(terminal,
+						_VTE_CAP_CSI "?20n",
+						sizeof(_VTE_CAP_CSI "?20n")-1);
+				break;
+			case 26:
+				/* Send keyboard status.  50 = no locator. */
+				vte_terminal_feed_child(terminal,
+						_VTE_CAP_CSI "?50n",
+						sizeof(_VTE_CAP_CSI "?50n")-1);
+				break;
+			default:
+				break;
+			}
 		}
 	}
 	return FALSE;
@@ -3686,7 +3704,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 		switch (param) {
 		case 1:
 			_vte_debug_print(VTE_DEBUG_PARSE,
-				       	"Deiconifying window.\n");
+					"Deiconifying window.\n");
 			vte_terminal_emit_deiconify_window(terminal);
 			break;
 		case 2:
