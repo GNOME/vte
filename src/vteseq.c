@@ -1329,10 +1329,8 @@ vte_sequence_handler_cs(VteTerminal *terminal,
 	    (screen->scrolling_region.end == rows - 1)) {
 		screen->scrolling_restricted = FALSE;
 	}
-	/* Clamp the cursor to the scrolling region. */
-	screen->cursor_current.row = CLAMP(screen->cursor_current.row,
-					   screen->insert_delta + start,
-					   screen->insert_delta + end);
+	screen->cursor_current.row = screen->insert_delta + start;
+	screen->cursor_current.col = 0;
 	_vte_terminal_ensure_cursor(terminal, TRUE);
 	return FALSE;
 }

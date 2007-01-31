@@ -1,5 +1,15 @@
 2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 155687 – Scroll region \E[NN;MMr should set cursor to home
+
+	Patch originally by Michele Baldessari.
+
+	* src/vteseq.c: (vte_sequence_handler_cs):
+		Move the cursor to (0,0) rather than clamping the cursor to 
+		be inside the scroll region.
+
+2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	In a few places the contents of a GValue were being used without
 	checking that they were of the expected type.
 
