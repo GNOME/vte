@@ -1,5 +1,15 @@
 2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 147784 – cursor unvisible under mouse highlight
+
+	Original patch by Chris Health
+
+	* src/vte.c: (vte_terminal_paint):
+		Reverse cursor color if it is in the selected region and draw
+		it as an outline.
+
+2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 368894 – crash in Terminal: I started gnome-terminal...
 
 	* src/vtebg.c: (vte_bg_cache_search), (vte_bg_get_pixmap),

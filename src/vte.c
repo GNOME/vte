@@ -9006,12 +9006,15 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 			blink = terminal->pvt->cursor_blink_state ^
 				terminal->pvt->screen->reverse_mode;
 			vte_terminal_determine_colors(terminal, cell,
-						      blink,
+						      blink | selected,
 						      selected,
 						      blink,
 						      &fore, &back);
 			if (blink) {
 				GdkColor color;
+				if (selected) {
+					goto draw_cursor_outline;
+				}
 				color.red = terminal->pvt->palette[back].red;
 				color.green = terminal->pvt->palette[back].green;
 				color.blue = terminal->pvt->palette[back].blue;
@@ -9055,22 +9058,33 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 			}
 		} else {
 			GdkColor color;
-			gboolean hilite = FALSE;
-			if (cell && terminal->pvt->match_contents != NULL) {
-				hilite = vte_cell_is_between(col, row,
-						terminal->pvt->match_start.column,
-						terminal->pvt->match_start.row,
-						terminal->pvt->match_end.column,
-						terminal->pvt->match_end.row,
-						TRUE);
-			}
-			/* Draw it as a hollow rectangle overtop character. */
-			vte_terminal_determine_colors(terminal, cell,
-					terminal->pvt->screen->reverse_mode,
-					selected,
-					terminal->pvt->screen->reverse_mode,
-					&fore, &back);
-			vte_terminal_draw_cells(terminal,
+draw_cursor_outline:
+			if (!vte_unichar_is_local_graphic(item.c) ||
+			    !vte_terminal_draw_graphic(terminal,
+						       item.c,
+						       fore, back,
+						       TRUE,
+						       item.x,
+						       item.y,
+						       width,
+						       item.columns,
+						       height)) {
+				gboolean hilite = FALSE;
+				if (cell && terminal->pvt->match_contents != NULL) {
+					hilite = vte_cell_is_between(col, row,
+							terminal->pvt->match_start.column,
+							terminal->pvt->match_start.row,
+							terminal->pvt->match_end.column,
+							terminal->pvt->match_end.row,
+							TRUE);
+				}
+				/* Draw it as a hollow rectangle overtop character. */
+				vte_terminal_determine_colors(terminal, cell,
+						terminal->pvt->screen->reverse_mode,
+						selected,
+						terminal->pvt->screen->reverse_mode,
+						&fore, &back);
+				vte_terminal_draw_cells(terminal,
 						&item, 1,
 						fore, back, TRUE, FALSE,
 						cell && cell->bold,
@@ -9080,10 +9094,11 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 						FALSE,
 						width,
 						height);
+			}
 			vte_terminal_determine_colors(terminal, cell,
-					!terminal->pvt->screen->reverse_mode,
+					terminal->pvt->screen->reverse_mode,
 					selected,
-					!terminal->pvt->screen->reverse_mode,
+					TRUE,
 					&fore, &back);
 			color.red = terminal->pvt->palette[back].red;
 			color.green = terminal->pvt->palette[back].green;
