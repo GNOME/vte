@@ -422,13 +422,16 @@ _vte_xft_clip(struct _vte_draw *draw,
 	if (n>0) {
 		XRectangle *xrect = g_new (XRectangle, n);
 		for (i=0; i<n; i++) {
-			xrect[i].x = rect[i].x;
-			xrect[i].y = rect[i].y;
+			/* we include the offset here as XftDrawSetClipRectangles() has a
+			 * byte-sex bug in its offset parameters. Bug 403159.
+			 */
+			xrect[i].x = rect[i].x - data->x_offs;
+			xrect[i].y = rect[i].y - data->y_offs;
 			xrect[i].width = rect[i].width;
 			xrect[i].height = rect[i].height;
 		}
 		XftDrawSetClipRectangles(data->draw,
-				-data->x_offs, -data->y_offs, xrect, n);
+				0, 0, xrect, n);
 		g_free (xrect);
 	}
 	g_free(rect);
