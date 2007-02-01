@@ -1,3 +1,13 @@
+2007-02-01  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 382245 – __PyGtk_API multiply defined in python module
+
+	* configure.in:
+		Add -fno-common to MAYBE_WARN in order to catch future
+		errors of this type.
+	* python/vte.override:
+		Define PYGTK_NO_IMPORT.
+
 2007-01-31  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 155687 – Scroll region \E[NN;MMr should set cursor to home

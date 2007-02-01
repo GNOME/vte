@@ -2,6 +2,7 @@
 %%
 headers
 #include <Python.h>
+#define NO_IMPORT_PYGTK
 #include <pygtk/pygtk.h>
 #include <pygobject.h>
 #include <gtk/gtk.h>

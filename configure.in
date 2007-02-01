@@ -408,7 +408,8 @@ MAYBE_WARN="-Wall -Wextra \
 -Wpacked -Wmissing-format-attribute -Wshadow\
 -Wstrict-aliasing=2 -Winit-self -Wunsafe-loop-optimizations \
 -Wdeclaration-after-statement -Wold-style-definition \
--Wno-missing-field-initializers -Wno-unused-parameter"
+-Wno-missing-field-initializers -Wno-unused-parameter \
+-fno-common"
 
 dnl Other flags you may wish to try: -Wswitch-enum 
 
