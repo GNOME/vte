@@ -1,4 +1,13 @@
-runtime! debian.vim
+set nocompatible	" Use Vim defaults instead of 100% vi compatibility
+set backspace=indent,eol,start	" more powerful backspacing
+set textwidth=0		" Don't wrap lines by default
+set nobackup
+set history=50		" keep 50 lines of command line history
+set ruler		" show the cursor position all the time
+
+set t_Co=256
+set t_Sf=[3%dm
+set t_Sb=[4%dm
 
 function Scroll(dir, windiv)
 	let wh = winheight(0)
