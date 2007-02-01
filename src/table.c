@@ -469,33 +469,24 @@ _vte_table_extract_numbers(GValueArray **array,
 			   struct _vte_table_arginfo *arginfo, long increment)
 {
 	GValue value = {0,};
-	GString *tmp;
-	char *str;
-	int i;
-	long total;
-
-	tmp = g_string_new(NULL);
-	for (i = 0; i < arginfo->length; i++) {
-		tmp = g_string_append_unichar(tmp, arginfo->start[i]);
-	}
-	str = g_string_free(tmp, FALSE);
+	gssize i;
 
 	g_value_init(&value, G_TYPE_LONG);
 	i = 0;
 	do {
-		for (total = 0; !(str[i] == '\0' || str[i] == ';'); i++) {
+		long total = 0;
+		for (; i < arginfo->length && arginfo->start[i] != ';'; i++) {
+			gint v = g_unichar_digit_value (arginfo->start[i]);
 			total *= 10;
-			total += g_unichar_digit_value(str[i]) == -1 ?
-				0 : g_unichar_digit_value(str[i]);
+			total += v == -1 ?  0 : v;
 		}
 		if (*array == NULL) {
 			*array = g_value_array_new(1);
 		}
 		g_value_set_long(&value, total);
 		g_value_array_append(*array, &value);
-	} while (str[i++] != '\0');
+	} while (i++ < arginfo->length);
 	g_value_unset(&value);
-	g_free (str);
 }
 
 static void
