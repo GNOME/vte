@@ -11027,7 +11027,8 @@ reset_update_regions (VteTerminal *terminal)
 static void
 remove_from_active_list (VteTerminal *terminal)
 {
-	if (terminal->pvt->active != NULL) {
+	if (terminal->pvt->active != NULL
+			&& terminal->pvt->update_regions == NULL) {
 		_vte_debug_print(VTE_DEBUG_TIMEOUT,
 			"Removing terminal from active list\n");
 		active_terminals = g_list_delete_link (active_terminals,
@@ -11136,10 +11137,10 @@ process_timeout (gpointer data)
 			vte_terminal_io_read(terminal->pvt->pty_input,
 					G_IO_IN, terminal);
 		}
-		again = TRUE;
-		while (again && need_processing (terminal)) {
+		again = FALSE;
+		if (need_processing (terminal)) do {
 			again = vte_terminal_process_incoming(terminal);
-		}
+		} while (again && need_processing (terminal));
 		if (!again && terminal->pvt->update_regions == NULL) {
 			active_terminals = g_list_delete_link (active_terminals,
 					l);
@@ -11249,7 +11250,7 @@ update_timeout (gpointer data)
 
 	for (l = active_terminals; l != NULL; l = g_list_next (l)) {
 		VteTerminal *terminal = l->data;
-		gboolean again = TRUE;
+		gboolean again;
 
 		if (l != active_terminals) {
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
@@ -11258,6 +11259,7 @@ update_timeout (gpointer data)
 			vte_terminal_io_read(terminal->pvt->pty_input,
 					G_IO_IN, terminal);
 		}
+		again = TRUE;
 		while (again && need_processing (terminal)) {
 			again = vte_terminal_process_incoming (terminal);
 		}

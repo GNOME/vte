@@ -1,5 +1,20 @@
 2007-02-01  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	cf Bug 403275 – crash in Terminal: I was typing reset on th...
+
+	Not the crash, just a freeze found whilst trying to reproduce the
+	bug on trunk.
+
+	* src/vte.c: (remove_from_active_list):
+		Don't remove the terminal from the active list if it still
+		has pending redraws.
+	
+	* src/vte.c: (process_timeout), (update_timeout):
+		Reorder the loop to remove the terminal from the active list
+		if it no longer needs processing.
+
+2007-02-01  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* perf/scroll.vim:
 		Extract the bits the test needs out of debian.vim.
 
