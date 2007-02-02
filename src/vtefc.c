@@ -27,6 +27,7 @@
 #include <glib.h>
 #include "vtefc.h"
 #include "vterdb.h"
+#include "debug.h"
 
 static int
 _vte_fc_weight_from_pango_weight(int weight)
@@ -440,6 +441,11 @@ _vte_fc_patterns_from_pango_font_desc(GtkWidget *widget,
 			save = FcPatternDuplicate(tmp);
 			FcPatternDestroy(tmp);
 			g_ptr_array_add(pattern_array, save);
+			_VTE_DEBUG_IF(VTE_DEBUG_MISC) {
+				FcChar8 *name = FcNameUnparse (save);
+				g_printerr("Added '%s' to fontset\n", name);
+				FcStrFree (name);
+			}
 		}
 		FcFontSetDestroy(fontset);
 		ret = TRUE;
@@ -455,6 +461,11 @@ _vte_fc_patterns_from_pango_font_desc(GtkWidget *widget,
 			save = FcPatternDuplicate(tmp);
 			FcPatternDestroy(tmp);
 			g_ptr_array_add(pattern_array, save);
+			_VTE_DEBUG_IF(VTE_DEBUG_MISC) {
+				FcChar8 *name = FcNameUnparse (save);
+				g_printerr("Added '%s' to fontset\n", name);
+				FcStrFree (name);
+			}
 			ret = TRUE;
 		} else {
 			ret = FALSE;

@@ -1,5 +1,12 @@
 2007-02-02  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vtefc.c: (_vte_fc_patterns_from_pango_font_desc):
+		Dump the chosen fonts to VTE_DEBUG_MISC.
+	* src/vteft2.c: (_vte_ft2_set_text_font):
+		Print out the font metrics ala vtexft.c
+
+2007-02-02  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 322241 – Please switch to pkg-config to check for freetype
 
 	* configure.in:

@@ -222,6 +222,11 @@ _vte_ft2_set_text_font(struct _vte_draw *draw,
 	_vte_glyph_cache_set_font_description(draw->widget, NULL,
 					      data->cache, fontdesc, anti_alias,
 					      NULL, NULL);
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"VteFT2 font metrics = %dx%d (%d).\n",
+			data->cache->width,
+			data->cache->height,
+			data->cache->ascent);
 }
 
 static int
