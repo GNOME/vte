@@ -1,3 +1,10 @@
+2007-02-02  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 322240 – Usage of pkg-config privates header
+
+	* vte.pc.in:
+		Move @FT2_LIBS@ to Libs.private.
+
 2007-02-01  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	cf Bug 403275 – crash in Terminal: I was typing reset on th...
