@@ -1,5 +1,12 @@
 2007-02-02  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 322241 – Please switch to pkg-config to check for freetype
+
+	* configure.in:
+		Prefer to use the freetype2.pc if available.
+
+2007-02-02  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 322240 – Usage of pkg-config privates header
 
 	* vte.pc.in:

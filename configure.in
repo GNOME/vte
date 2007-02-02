@@ -261,9 +261,13 @@ PKG_CHECK_MODULES(VTE,[$wantedmodules])
 NEEDEDPACKAGES="$wantedmodules"
 AC_SUBST(NEEDEDPACKAGES)
 
-# Require Freetype2.  We use our local copy of the macro because packages of
-# freetype's development files don't always include the proper macro.
-VTE_CHECK_FT2(6.1.0,,[AC_MSG_ERROR([You must have freetype 2.0.2 or later to build vte.])])
+# Require Freetype2. First see if there is suitable pkgconfig file...
+PKG_CHECK_EXISTS(freetype2 >= 6.1.0,
+		 [PKG_CHECK_MODULES(FT2, freetype2)], [
+	# We use our local copy of the macro because packages of
+	# freetype's development files don't always include the proper macro.
+	VTE_CHECK_FT2(6.1.0,,
+		      [AC_MSG_ERROR([You must have freetype 2.0.2 or later to build vte.])])])
 
 # Temporarily pull in the Freetype cflags and libs for checking what's
 # available in this version.
