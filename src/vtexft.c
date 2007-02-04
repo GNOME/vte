@@ -269,19 +269,11 @@ _vte_xft_create(struct _vte_draw *draw, GtkWidget *widget)
 	struct _vte_xft_data *data;
 	data = g_slice_new0(struct _vte_xft_data);
 	draw->impl_data = data;
-	data->font = NULL;
-	data->display = NULL;
 	data->drawable = -1;
-	data->visual = NULL;
 	data->colormap = -1;
-	data->draw = NULL;
-	data->gc = NULL;
-	memset(&data->color, 0, sizeof(data->color));
 	data->opacity = 0xffff;
-	data->pixmap = NULL;
 	data->xpixmap = -1;
 	data->pixmapw = data->pixmaph = -1;
-	data->scrollx = data->scrolly = 0;
 }
 
 static void
@@ -292,7 +284,6 @@ _vte_xft_destroy(struct _vte_draw *draw)
 	if (data->font != NULL) {
 		_vte_xft_font_close(data->font);
 	}
-	data->colormap = -1;
 	if (data->draw != NULL) {
 		XftDrawDestroy(data->draw);
 	}
@@ -507,7 +498,7 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 	struct _vte_xft_data *data;
 	gunichar wide_chars[] = {VTE_DRAW_DOUBLE_WIDE_CHARACTERS};
 	guint i;
-	gint n, width, height;
+	gint n, width, height, min = G_MAXINT, max = G_MININT;
 	FcChar32 c;
 
 	data = (struct _vte_xft_data*) draw->impl_data;
@@ -541,6 +532,12 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 			_vte_xft_text_extents(data->font, font, c, &extents);
 			n++;
 			width += extents.xOff;
+			if (extents.xOff < min) {
+				min = extents.xOff;
+			}
+			if (extents.xOff > max) {
+				max = extents.xOff;
+			}
 		}
 	}
 	if (n > 0) {
@@ -574,8 +571,10 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 	gdk_error_trap_pop ();
 
 	_vte_debug_print(VTE_DEBUG_MISC,
-			"VteXft font metrics = %dx%d (%d).\n",
-			draw->width, draw->height, draw->ascent);
+			"VteXft font metrics = %dx%d (%d),"
+			" width range [%d, %d].\n",
+			draw->width, draw->height, draw->ascent,
+			min, max);
 }
 
 static int
