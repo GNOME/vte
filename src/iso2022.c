@@ -67,6 +67,7 @@ struct _vte_iso2022_state {
 	int current, override;
 	gunichar g[4];
 	const gchar *codeset, *native_codeset, *utf8_codeset, *target_codeset;
+	gint ambiguous_width;
 	VteConv conv;
 	_vte_iso2022_codeset_changed_cb_fn codeset_changed;
 	gpointer codeset_changed_data;
@@ -290,16 +291,16 @@ _vte_iso2022_is_ambiguous(gunichar c)
 	gsize i;
 	gpointer p;
 	static GHashTable *ambiguous = NULL;
-	for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_ambiguous_ranges); i++) {
-		if ((c >= _vte_iso2022_ambiguous_ranges[i].start) &&
-		    (c <= _vte_iso2022_ambiguous_ranges[i].end)) {
-			return TRUE;
-		}
-	}
 	for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_unambiguous_ranges); i++) {
 		if ((c >= _vte_iso2022_unambiguous_ranges[i].start) &&
 		    (c <= _vte_iso2022_unambiguous_ranges[i].end)) {
 			return FALSE;
+		}
+	}
+	for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_ambiguous_ranges); i++) {
+		if ((c >= _vte_iso2022_ambiguous_ranges[i].start) &&
+		    (c <= _vte_iso2022_ambiguous_ranges[i].end)) {
+			return TRUE;
 		}
 	}
 	if (!ambiguous) {
@@ -786,6 +787,7 @@ _vte_iso2022_state_new(const char *native_codeset,
 				state->codeset, state->target_codeset);
 		}
 	}
+	state->ambiguous_width = _vte_iso2022_ambiguous_width(state);
 	return state;
 }
 
@@ -833,10 +835,6 @@ static const guchar *
 _vte_iso2022_find_nextctl(const guchar *p, gsize length)
 {
 	gsize i;
-
-	if (length == 0) {
-		return NULL;
-	}
 
 	for (i = 0; i < length; ++i) {
 		if (p[i] == '\033' ||

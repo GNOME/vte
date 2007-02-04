@@ -1,5 +1,13 @@
 2007-02-04  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Store whether the codeset is ambiguous in a state variable,
+	rather than every processing loop.
+
+	* src/iso2022.c: (_vte_iso2022_is_ambiguous),
+	(_vte_iso2022_state_new), (_vte_iso2022_find_nextctl):
+
+2007-02-04  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vtexft.c: (_vte_xft_create), (_vte_xft_destroy):
 		Remove zero-initialisers after g_slice_new0().
 	* src/vtexft.c :(_vte_xft_set_text_font):
