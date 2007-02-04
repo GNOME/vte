@@ -1230,19 +1230,6 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 		return NULL;
 	}
 
-	if (row == 0) {
-		coffset = 0;
-	} else {
-		for (coffset = offset; coffset > 0; coffset--) {
-			attr = &g_array_index(terminal->pvt->match_attributes,
-					      struct _VteCharAttributes,
-					      coffset);
-			if (row > attr->row) {
-				break;
-			}
-		}
-	}
-
 	/* Now iterate over each regex we need to match against. */
 	for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
 		regex = &g_array_index(terminal->pvt->match_regexes,
@@ -1255,6 +1242,7 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 		/* We'll only match the first item in the buffer which
 		 * matches, so we'll have to skip each match until we
 		 * stop getting matches. */
+		coffset = 0;
 		ret = _vte_regex_exec(regex->reg,
 				      terminal->pvt->match_contents + coffset,
 				      G_N_ELEMENTS(matches),
