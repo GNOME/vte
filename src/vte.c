@@ -116,6 +116,95 @@ static guint process_timeout_tag = VTE_INVALID_SOURCE;
 static guint update_timeout_tag = VTE_INVALID_SOURCE;
 static GList *active_terminals;
 
+/* process incoming data without copying */
+static struct _vte_incoming_chunk *free_chunks;
+G_LOCK_DEFINE_STATIC(free_chunks);
+static struct _vte_incoming_chunk *
+get_chunk (void)
+{
+	struct _vte_incoming_chunk *chunk = NULL;
+	G_LOCK (free_chunks);
+	if (free_chunks) {
+		chunk = free_chunks;
+		free_chunks = free_chunks->next;
+	}
+	G_UNLOCK (free_chunks);
+	if (chunk == NULL) {
+		chunk = g_new (struct _vte_incoming_chunk, 1);
+	}
+	chunk->next = NULL;
+	chunk->len = 0;
+	return chunk;
+}
+static void
+release_chunk (struct _vte_incoming_chunk *chunk)
+{
+	G_LOCK (free_chunks);
+	if (free_chunks == NULL || free_chunks->len < 5) {
+		chunk->next = free_chunks;
+		chunk->len = free_chunks ? free_chunks->len + 1 : 0;
+		free_chunks = chunk;
+		chunk = NULL;
+	}
+	G_UNLOCK (free_chunks);
+	g_free (chunk);
+}
+static void
+prune_chunks (void)
+{
+	struct _vte_incoming_chunk *chunk;
+	G_LOCK (free_chunks);
+	chunk = free_chunks;
+	free_chunks = NULL;
+	G_UNLOCK (free_chunks);
+	while (chunk) {
+		struct _vte_incoming_chunk *next = chunk->next;
+		g_free(chunk);
+		chunk = next;
+	}
+}
+static void
+_vte_incoming_chunks_release (struct _vte_incoming_chunk *chunk)
+{
+	while (chunk) {
+		struct _vte_incoming_chunk *next = chunk->next;
+		release_chunk (chunk);
+		chunk = next;
+	}
+}
+static gsize
+_vte_incoming_chunks_length (struct _vte_incoming_chunk *chunk)
+{
+	gsize len = 0;
+	while (chunk) {
+		len += chunk->len;
+		chunk = chunk->next;
+	}
+	return len;
+}
+static gsize
+_vte_incoming_chunks_count (struct _vte_incoming_chunk *chunk)
+{
+	gsize cnt = 0;
+	while (chunk) {
+		cnt ++;
+		chunk = chunk->next;
+	}
+	return cnt;
+}
+static struct _vte_incoming_chunk *
+_vte_incoming_chunks_reverse(struct _vte_incoming_chunk *chunk)
+{
+	struct _vte_incoming_chunk *prev = NULL;
+	while (chunk) {
+		struct _vte_incoming_chunk *next = chunk->next;
+		chunk->next = prev;
+		prev = chunk;
+		chunk = next;
+	}
+	return prev;
+}
+
 
 #ifdef VTE_DEBUG
 G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
@@ -224,36 +313,6 @@ _vte_terminal_set_default_attributes(VteTerminal *terminal)
 	screen->basic_defaults = screen->defaults;
 	screen->color_defaults = screen->defaults;
 	screen->fill_defaults = screen->defaults;
-}
-
-static gboolean
-update_regions (VteTerminal *terminal)
-{
-	GdkWindow *window;
-	GSList *l;
-
-	if (G_UNLIKELY (!GTK_WIDGET_DRAWABLE(terminal) ||
-				terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED)) {
-		reset_update_regions (terminal);
-		return FALSE;
-	}
-
-	if (G_UNLIKELY (!terminal->pvt->update_regions))
-		return FALSE;
-
-	window = terminal->widget.window;
-	for (l = terminal->pvt->update_regions; l; l = g_slist_next(l)) {
-		GdkRegion *region = l->data;
-		gdk_window_invalidate_region (window, region, FALSE);
-		gdk_region_destroy (region);
-	}
-	g_slist_free (terminal->pvt->update_regions);
-	terminal->pvt->update_regions = NULL;
-	terminal->pvt->invalidated_all = FALSE;
-
-	_vte_debug_print (VTE_DEBUG_WORK, "-");
-
-	return TRUE;
 }
 
 /* Cause certain cells to be repainted. */
@@ -1171,6 +1230,19 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 		return NULL;
 	}
 
+	if (row == 0) {
+		coffset = 0;
+	} else {
+		for (coffset = offset; coffset > 0; coffset--) {
+			attr = &g_array_index(terminal->pvt->match_attributes,
+					      struct _VteCharAttributes,
+					      coffset);
+			if (row > attr->row) {
+				break;
+			}
+		}
+	}
+
 	/* Now iterate over each regex we need to match against. */
 	for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
 		regex = &g_array_index(terminal->pvt->match_regexes,
@@ -1183,7 +1255,6 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 		/* We'll only match the first item in the buffer which
 		 * matches, so we'll have to skip each match until we
 		 * stop getting matches. */
-		coffset = 0;
 		ret = _vte_regex_exec(regex->reg,
 				      terminal->pvt->match_contents + coffset,
 				      G_N_ELEMENTS(matches),
@@ -1592,7 +1663,7 @@ vte_terminal_get_encoding(VteTerminal *terminal)
 
 /* Make sure we have enough rows and columns to hold data at the current
  * cursor position. */
-void
+VteRowData *
 _vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 {
 	VteRowData *row;
@@ -1643,6 +1714,8 @@ _vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 					 screen->cursor_current.col + 1);
 		}
 	}
+
+	return row;
 }
 
 /* Update the insert delta so that the screen which includes it also
@@ -1957,7 +2030,6 @@ vte_terminal_set_colors(VteTerminal *terminal,
 {
 	guint i;
 	GdkColor color;
-	guint r, g, b;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
@@ -1980,7 +2052,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 
 	/* Initialize each item in the palette if we got any entries to work
 	 * with. */
-	for (i=r=g=b=0; i < G_N_ELEMENTS(terminal->pvt->palette); i++) {
+	for (i=0; i < G_N_ELEMENTS(terminal->pvt->palette); i++) {
 		if (i < 16) {
 			color.blue = (i & 4) ? 0xc000 : 0;
 			color.green = (i & 2) ? 0xc000 : 0;
@@ -2128,7 +2200,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 
 	/* If this character is destined for the status line, save it. */
-	if (screen->status_line) {
+	if (G_UNLIKELY (screen->status_line)) {
 		g_string_append_unichar(screen->status_line_contents, c);
 		_vte_terminal_emit_status_line_changed(terminal);
 		return;
@@ -2174,12 +2246,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 
 	/* Make sure we have enough rows to hold this data. */
-	_vte_terminal_ensure_cursor(terminal, FALSE);
-
-	/* Get a handle on the array for the insertion row. */
-	row = _vte_ring_index(screen->row_data,
-			      VteRowData *,
-			      screen->cursor_current.row);
+	row = _vte_terminal_ensure_cursor(terminal, FALSE);
 	g_assert(row != NULL);
 
 	/* Insert the right number of columns. */
@@ -2187,9 +2254,9 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	/* Make sure we're not getting random stuff past the right
 	 * edge of the screen at this point, because the user can't
 	 * see it. */
-	if (screen->cursor_current.col < terminal->column_count) {
+	if (G_LIKELY (screen->cursor_current.col < terminal->column_count)) {
 		/* Make sure we have enough columns in this row. */
-		if (row->cells->len < screen->cursor_current.col + columns) {
+		if (G_UNLIKELY (row->cells->len < screen->cursor_current.col + columns)) {
 			/* Add enough cells to fill out the row to at least out
 			 * to (and including) the insertion point. */
 			if (paint_cells) {
@@ -2203,7 +2270,8 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			}
 		}
 		col = screen->cursor_current.col;
-		for (i = 0; i < columns; i++) {
+		i = 0;
+		do {
 			/* If we're in insert mode, insert a new cell here
 			 * and use it. */
 			if (insert) {
@@ -2256,7 +2324,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 			/* And take a step to the to the right. */
 			col++;
-		}
+		} while (++i < columns);
 		screen->cursor_current.col = col;
 		if (G_UNLIKELY (row->cells->len > terminal->column_count)) {
 			g_array_set_size(row->cells, terminal->column_count);
@@ -2426,12 +2494,13 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 		/* Take one last shot at processing whatever data is pending,
 		 * then flush the buffers in case we're about to run a new
 		 * command, disconnecting the timeout. */
-		vte_terminal_stop_processing (terminal);
-		if (_vte_buffer_length(terminal->pvt->incoming) > 0) {
+		if (terminal->pvt->incoming != NULL) {
 			vte_terminal_process_incoming(terminal);
+			_vte_incoming_chunks_release (terminal->pvt->incoming);
+			terminal->pvt->incoming = NULL;
 		}
-		_vte_buffer_clear(terminal->pvt->incoming);
 		g_array_set_size(terminal->pvt->pending, 0);
+		vte_terminal_stop_processing (terminal);
 
 		/* Clear the outgoing buffer as well. */
 		_vte_buffer_clear(terminal->pvt->outgoing);
@@ -2733,10 +2802,9 @@ vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
 	 * flush the buffers in case we're about to run a new command,
 	 * disconnecting the timeout. */
 	vte_terminal_stop_processing (terminal);
-	if (_vte_buffer_length(terminal->pvt->incoming) > 0) {
+	if (terminal->pvt->incoming) {
 		vte_terminal_process_incoming(terminal);
 	}
-	_vte_buffer_clear(terminal->pvt->incoming);
 	g_array_set_size(terminal->pvt->pending, 0);
 
 	/* Clear the outgoing buffer as well. */
@@ -2834,10 +2902,12 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	gboolean leftovers, modified, bottom, inserted, again;
 	gboolean invalidated_text;
 	GArray *unichars;
+	struct _vte_incoming_chunk *chunk, *next_chunk, *achunk = NULL;
 
 	_vte_debug_print(VTE_DEBUG_IO,
-			"Handler processing %d bytes.\n",
-			_vte_buffer_length(terminal->pvt->incoming));
+			"Handler processing %d bytes over %d chunks.\n",
+			_vte_incoming_chunks_length(terminal->pvt->incoming),
+			_vte_incoming_chunks_count(terminal->pvt->incoming));
 	_vte_debug_print (VTE_DEBUG_WORK, "(");
 
 	bottom = (terminal->pvt->screen->insert_delta ==
@@ -2855,14 +2925,68 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	terminal->pvt->text_deleted_count = 0;
 
 	/* We should only be called when there's data to process. */
-	g_assert((_vte_buffer_length(terminal->pvt->incoming) > 0) ||
+	g_assert(terminal->pvt->incoming ||
 		 (terminal->pvt->pending->len > 0));
 
 	/* Convert the data into unicode characters. */
 	unichars = terminal->pvt->pending;
-	_vte_iso2022_process(terminal->pvt->iso2022,
-			     terminal->pvt->incoming,
-			     unichars);
+	for (chunk = _vte_incoming_chunks_reverse (terminal->pvt->incoming);
+			chunk != NULL;
+			chunk = next_chunk) {
+		gsize processed;
+		next_chunk = chunk->next;
+		processed = _vte_iso2022_process(terminal->pvt->iso2022,
+				chunk->data, chunk->len,
+				unichars);
+		if (G_UNLIKELY (processed != chunk->len)) {
+			/* shuffle the data about */
+			g_memmove (chunk->data, chunk->data + processed,
+					chunk->len - processed);
+			chunk->len = chunk->len - processed;
+			processed = sizeof (chunk->data) - chunk->len;
+			if (processed != 0 && next_chunk !=  NULL) {
+				if (next_chunk->len <= processed) {
+					/* consume it entirely */
+					memcpy (chunk->data + chunk->len,
+							next_chunk->data,
+							next_chunk->len);
+					chunk->len += next_chunk->len;
+					chunk->next = next_chunk->next;
+					release_chunk (next_chunk);
+				} else {
+					/* next few bytes */
+					memcpy (chunk->data + chunk->len,
+							next_chunk->data,
+							processed);
+					chunk->len += processed;
+					g_memmove (next_chunk->data,
+							next_chunk->data + processed,
+							next_chunk->len - processed);
+					next_chunk->len -= processed;
+				}
+				next_chunk = chunk; /* repeat */
+			} else {
+				break;
+			}
+		} else {
+			/* cache the last chunk */
+			if (achunk) {
+				release_chunk (achunk);
+			}
+			achunk = chunk;
+		}
+	}
+	if (achunk) {
+		if (chunk != NULL) {
+			release_chunk (achunk);
+		} else {
+			chunk = achunk;
+			chunk->next = NULL;
+			chunk->len = 0;
+		}
+	}
+	terminal->pvt->incoming = chunk;
+	g_assert (chunk == NULL || chunk->next == NULL);
 
 	/* Compute the number of unicode characters we got. */
 	wbuf = &g_array_index(unichars, gunichar, 0);
@@ -2913,19 +3037,20 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 					 screen->cursor_current.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK ||
 					 screen->cursor_current.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK)) {
 				/* Clip off any part of the box which isn't already on-screen. */
-				bbox_topleft.x = MAX(bbox_topleft.x, 1) - 1;
+				bbox_topleft.x = MAX(bbox_topleft.x, 0);
 				bbox_topleft.y = MAX(bbox_topleft.y, screen->scroll_delta);
 				bbox_bottomright.x = MIN(bbox_bottomright.x,
-						terminal->column_count - 1);
-				bbox_bottomright.y = MIN(bbox_bottomright.y,
+						terminal->column_count);
+				/* lazily apply the +1 to the cursor_row */
+				bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
 						screen->scroll_delta +
 						terminal->row_count);
 
 				_vte_invalidate_cells(terminal,
 						bbox_topleft.x,
-						bbox_bottomright.x - bbox_topleft.x + 1,
+						bbox_bottomright.x - bbox_topleft.x,
 						bbox_topleft.y,
-						bbox_bottomright.y - bbox_topleft.y + 1);
+						bbox_bottomright.y - bbox_topleft.y);
 
 				invalidated_text = FALSE;
 				bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
@@ -2991,6 +3116,11 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 				}
 			}
 			if (c != 0) {
+				bbox_topleft.x = MIN(bbox_topleft.x,
+						screen->cursor_current.col);
+				bbox_topleft.y = MIN(bbox_topleft.y,
+						screen->cursor_current.row);
+
 				/* Insert the character. */
 				_vte_terminal_insert_char(terminal, c,
 							 FALSE, FALSE,
@@ -2999,12 +3129,9 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 
 				/* Add the cells over which we have moved to the region which we
 				 * need to refresh for the user. */
-				bbox_topleft.x = MIN(bbox_topleft.x,
-						screen->cursor_current.col);
-				bbox_topleft.y = MIN(bbox_topleft.y,
-						screen->cursor_current.row);
 				bbox_bottomright.x = MAX(bbox_bottomright.x,
-						screen->cursor_current.col + 1);
+						screen->cursor_current.col);
+				/* cursor_current.row + 1 (defer until inv.) */
 				bbox_bottomright.y = MAX(bbox_bottomright.y,
 						screen->cursor_current.row);
 				invalidated_text = TRUE;
@@ -3053,19 +3180,20 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 
 	if (invalidated_text) {
 		/* Clip off any part of the box which isn't already on-screen. */
-		bbox_topleft.x = MAX(bbox_topleft.x, 1) - 1;
+		bbox_topleft.x = MAX(bbox_topleft.x, 0);
 		bbox_topleft.y = MAX(bbox_topleft.y, screen->scroll_delta);
 		bbox_bottomright.x = MIN(bbox_bottomright.x,
-				terminal->column_count - 1);
-		bbox_bottomright.y = MIN(bbox_bottomright.y,
+				terminal->column_count);
+		/* lazily apply the +1 to the cursor_row */
+		bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
 				screen->scroll_delta +
 				terminal->row_count);
 
 		_vte_invalidate_cells(terminal,
 				bbox_topleft.x,
-				bbox_bottomright.x - bbox_topleft.x + 1,
+				bbox_bottomright.x - bbox_topleft.x,
 				bbox_topleft.y,
-				bbox_bottomright.y - bbox_topleft.y + 1);
+				bbox_bottomright.y - bbox_topleft.y);
 	}
 
 	/* If we inserted text without sanity-checking the buffer, do so now. */
@@ -3155,11 +3283,12 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 						   &rect);
 	}
 
-	_vte_debug_print(VTE_DEBUG_IO,
-			"%ld chars and %ld bytes left to process.\n",
-			(long) unichars->len,
-			(long) _vte_buffer_length(terminal->pvt->incoming));
 	_vte_debug_print (VTE_DEBUG_WORK, ")");
+	_vte_debug_print (VTE_DEBUG_IO,
+			"%ld chars and %ld bytes in %d chunks left to process.\n",
+			(long) unichars->len,
+			(long) _vte_incoming_chunks_length(terminal->pvt->incoming),
+			_vte_incoming_chunks_count(terminal->pvt->incoming));
 	return again;
 }
 
@@ -3177,13 +3306,25 @@ _vte_terminal_enable_input_source (VteTerminal *terminal)
 	}
 	return FALSE;
 }
+static void
+_vte_terminal_feed_chunks (VteTerminal *terminal, struct _vte_incoming_chunk *chunks)
+{
+	struct _vte_incoming_chunk *last;
+
+	_vte_debug_print(VTE_DEBUG_IO, "Feed %d bytes, in %d chunks.\n",
+			_vte_incoming_chunks_length(chunks),
+			_vte_incoming_chunks_count(chunks));
+
+	for (last = chunks; last->next != NULL; last = last->next) ;
+	last->next = terminal->pvt->incoming;
+	terminal->pvt->incoming = chunks;
+}
 /* Read and handle data from the child. */
 static gboolean
 vte_terminal_io_read(GIOChannel *channel,
 		     GIOCondition condition,
 		     VteTerminal *terminal)
 {
-	char buf[VTE_INPUT_CHUNK_SIZE], *bp = buf;
 	int err = 0;
 	gboolean eof;
 
@@ -3194,28 +3335,60 @@ vte_terminal_io_read(GIOChannel *channel,
 
 	/* Read some data in from this channel. */
 	if (condition & G_IO_IN) {
+		struct _vte_incoming_chunk *chunk, *chunks = NULL;
 		const int fd = g_io_channel_unix_get_fd (channel);
-		int rem = sizeof (buf);
-		do {
-			int ret = read (fd, bp, rem);
-			switch (ret){
-				case -1:
-					err = errno;
-					goto out;
-				case 0:
-					eof = TRUE;
-					goto out;
-				default:
-					break;
-			}
-			bp += ret;
-			rem -= ret;
-		} while (rem);
-	}
-out:
-	if (bp != buf) {
+		guchar *bp;
+		int rem, loops = 5;
 		GDK_THREADS_ENTER ();
-		vte_terminal_feed (terminal, buf, bp-buf);
+		chunk = terminal->pvt->incoming;
+		GDK_THREADS_LEAVE ();
+		if (!chunk || chunk->len == sizeof (chunk->data)) {
+			chunk = get_chunk ();
+			chunk->next = chunks;
+			chunks = chunk;
+		}
+		rem = sizeof (chunk->data) - chunk->len;
+		bp = chunk->data + chunk->len;
+		do {
+			do {
+				int ret = read (fd, bp, rem);
+				switch (ret){
+					case -1:
+						err = errno;
+						goto out;
+					case 0:
+						eof = TRUE;
+						goto out;
+					default:
+						break;
+				}
+				bp += ret;
+				rem -= ret;
+			} while (rem);
+			if (loops-- == 0) {
+				break;
+			}
+
+			chunk->len = sizeof (chunk->data) - rem;
+
+			chunk = get_chunk ();
+			chunk->next = chunks;
+			chunks = chunk;
+			rem = sizeof (chunk->data);
+			bp = chunk->data;
+		} while (TRUE);
+out:
+		chunk->len = sizeof (chunk->data) - rem;
+		if (chunk->len == 0 && chunk == chunks) {
+			chunks = chunks->next;
+			release_chunk (chunk);
+		}
+
+		GDK_THREADS_ENTER ();
+		if (chunks != NULL) {
+			_vte_terminal_feed_chunks (terminal, chunks);
+		}
+		vte_terminal_start_processing (terminal);
 		GDK_THREADS_LEAVE ();
 	}
 
@@ -3265,9 +3438,18 @@ vte_terminal_feed(VteTerminal *terminal, const char *data, glong length)
 		length = strlen(data);
 	}
 
-	/* If we got data, modify the pending buffer. */
+	/* If we have data, modify the incoming buffer. */
 	if (length > 0) {
-		_vte_buffer_append(terminal->pvt->incoming, data, length);
+		struct _vte_incoming_chunk *chunk;
+		if (terminal->pvt->incoming &&
+				(gsize)length < sizeof (terminal->pvt->incoming->data) - terminal->pvt->incoming->len) {
+			chunk = terminal->pvt->incoming;
+		} else {
+			chunk = get_chunk ();
+			_vte_terminal_feed_chunks (terminal, chunk);
+		}
+		memcpy (chunk->data + chunk->len, data, length);
+		chunk->len += length;
 		vte_terminal_start_processing (terminal);
 	}
 }
@@ -3382,11 +3564,11 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		/* Echo the text if we've been asked to do so. */
 		if ((cooked_length > 0) && local_echo) {
 			gunichar *ucs4;
-			int i, len;
-			len = g_utf8_strlen(cooked, cooked_length);
 			ucs4 = g_utf8_to_ucs4(cooked, cooked_length,
 					      NULL, NULL, NULL);
 			if (ucs4 != NULL) {
+				int len;
+				len = g_utf8_strlen(cooked, cooked_length);
 				for (i = 0; i < len; i++) {
 					_vte_terminal_insert_char(terminal,
 								 ucs4[i],
@@ -6563,7 +6745,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->iso2022 = _vte_iso2022_state_new(pvt->encoding,
 					      &_vte_terminal_codeset_changed_cb,
 					      terminal);
-	pvt->incoming = _vte_buffer_new();
+	pvt->incoming = NULL;
 	pvt->pending = g_array_new(FALSE, FALSE, sizeof(gunichar));
 	pvt->cursor_blink_tag = VTE_INVALID_SOURCE;
 	pvt->outgoing = _vte_buffer_new();
@@ -6899,9 +7081,7 @@ vte_terminal_finalize(GObject *object)
 	}
 
 	/* The NLS maps. */
-	if (terminal->pvt->iso2022 != NULL) {
-		_vte_iso2022_state_free(terminal->pvt->iso2022);
-	}
+	_vte_iso2022_state_free(terminal->pvt->iso2022);
 
 	/* Free background info. */
 	g_free(terminal->pvt->bg_file);
@@ -7001,18 +7181,10 @@ vte_terminal_finalize(GObject *object)
 	vte_terminal_stop_processing (terminal);
 
 	/* Discard any pending data. */
-	if (terminal->pvt->incoming != NULL) {
-		_vte_buffer_free(terminal->pvt->incoming);
-	}
-	if (terminal->pvt->outgoing != NULL) {
-		_vte_buffer_free(terminal->pvt->outgoing);
-	}
-	if (terminal->pvt->pending != NULL) {
-		g_array_free(terminal->pvt->pending, TRUE);
-	}
-	if (terminal->pvt->conv_buffer != NULL) {
-		_vte_buffer_free(terminal->pvt->conv_buffer);
-	}
+	_vte_incoming_chunks_release (terminal->pvt->incoming);
+	_vte_buffer_free(terminal->pvt->outgoing);
+	g_array_free(terminal->pvt->pending, TRUE);
+	_vte_buffer_free(terminal->pvt->conv_buffer);
 
 	/* Stop the child and stop watching for input from the child. */
 	if (terminal->pvt->pty_pid != -1) {
@@ -10534,19 +10706,12 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	vte_terminal_stop_processing (terminal);
 
 	/* Clear the input and output buffers. */
-	if (terminal->pvt->incoming != NULL) {
-		_vte_buffer_clear(terminal->pvt->incoming);
-	}
-	if (terminal->pvt->pending != NULL) {
-		g_array_set_size(terminal->pvt->pending, 0);
-	}
-	if (terminal->pvt->outgoing != NULL) {
-		_vte_buffer_clear(terminal->pvt->outgoing);
-	}
+	_vte_incoming_chunks_release (terminal->pvt->incoming);
+	terminal->pvt->incoming = NULL;
+	g_array_set_size(terminal->pvt->pending, 0);
+	_vte_buffer_clear(terminal->pvt->outgoing);
 	/* Reset charset substitution state. */
-	if (terminal->pvt->iso2022 != NULL) {
-		_vte_iso2022_state_free(terminal->pvt->iso2022);
-	}
+	_vte_iso2022_state_free(terminal->pvt->iso2022);
 	terminal->pvt->iso2022 = _vte_iso2022_state_new(NULL,
 							&_vte_terminal_codeset_changed_cb,
 							terminal);
@@ -11048,6 +11213,7 @@ remove_from_active_list (VteTerminal *terminal)
 				g_source_remove (update_timeout_tag);
 				update_timeout_tag = VTE_INVALID_SOURCE;
 			}
+			prune_chunks ();
 		}
 	}
 }
@@ -11083,7 +11249,7 @@ vte_terminal_stop_processing (VteTerminal *terminal)
 	remove_from_active_list (terminal);
 }
 
-static gboolean
+static inline gboolean
 vte_terminal_is_processing (VteTerminal *terminal)
 {
 	return terminal->pvt->active != NULL;
@@ -11101,8 +11267,8 @@ vte_terminal_start_processing (VteTerminal *terminal)
 static inline gboolean
 need_processing (VteTerminal *terminal)
 {
-	return _vte_buffer_length(terminal->pvt->incoming) > 0 ||
-		(terminal->pvt->pending->len > 0);
+	return terminal->pvt->incoming != NULL ||
+		terminal->pvt->pending->len > 0;
 }
 
 static void
@@ -11166,6 +11332,47 @@ process_timeout (gpointer data)
 	return again;
 }
 
+
+static gboolean
+update_regions (VteTerminal *terminal)
+{
+	GSList *l;
+	GdkRegion *region;
+
+	if (G_UNLIKELY (!GTK_WIDGET_DRAWABLE(terminal) ||
+				terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED)) {
+		reset_update_regions (terminal);
+		return FALSE;
+	}
+
+	if (G_UNLIKELY (!terminal->pvt->update_regions))
+		return FALSE;
+
+
+	l = terminal->pvt->update_regions;
+	if (g_slist_next (l) != NULL) {
+		/* amalgamate into one super-region */
+		region = gdk_region_new ();
+		do {
+			gdk_region_union (region, l->data);
+			gdk_region_destroy (l->data);
+		} while ((l = g_slist_next (l)) != NULL);
+	} else {
+		region = l->data;
+	}
+	g_slist_free (terminal->pvt->update_regions);
+	terminal->pvt->update_regions = NULL;
+	terminal->pvt->invalidated_all = FALSE;
+
+	/* and perform the merge with the window visible area */
+	gdk_window_invalidate_region (terminal->widget.window, region, FALSE);
+	gdk_region_destroy (region);
+
+	_vte_debug_print (VTE_DEBUG_WORK, "-");
+
+	return TRUE;
+}
+
 static gboolean
 update_repeat_timeout (gpointer data)
 {
@@ -11226,6 +11433,13 @@ update_repeat_timeout (gpointer data)
 	}
 
 	GDK_THREADS_LEAVE();
+
+	if (again) {
+		/* Force us to relinquish the CPU as the child is running
+		 * at full tilt and making us run to keep up...
+		 */
+		g_usleep (0);
+	}
 
 	return again;
 }

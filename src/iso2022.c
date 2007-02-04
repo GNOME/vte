@@ -1043,7 +1043,7 @@ _vte_iso2022_sequence_length(const unsigned char *nextctl, gsize length)
 }
 
 static GArray *
-_vte_iso2022_fragment_input(struct _vte_buffer *input)
+_vte_iso2022_fragment_input(guchar *input, gsize length)
 {
 	const guchar *nextctl, *p, *q;
 	glong sequence_length = 0;
@@ -1053,16 +1053,16 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input)
 
 	blocks = g_array_new(FALSE, FALSE, sizeof(struct _vte_iso2022_block));
 
-	p = input->bytes;
-	q = input->bytes + _vte_buffer_length(input);
+	p = input;
+	q = input + length;
 	quit = FALSE;
-	while ((p < q) && !quit) {
+	while (p < q && !quit) {
 		nextctl = _vte_iso2022_find_nextctl(p, q - p);
 		if (nextctl == NULL) {
 			/* It's all garden-variety data. */
 			block.type = _vte_iso2022_cdata;
-			block.start = p - input->bytes;
-			block.end = q - input->bytes;
+			block.start = p - input;
+			block.end = q - input;
 			g_array_append_val(blocks, block);
 			/* Break out of the loop. */
 			break;
@@ -1070,8 +1070,8 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input)
 		/* We got some garden-variety data. */
 		if (nextctl != p) {
 			block.type = _vte_iso2022_cdata;
-			block.start = p - input->bytes;
-			block.end = nextctl - input->bytes;
+			block.start = p - input;
+			block.end = nextctl - input;
 			g_array_append_val(blocks, block);
 		}
 		/* Move on to the control data. */
@@ -1082,8 +1082,8 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input)
 		case -1:
 			/* It's just garden-variety data. */
 			block.type = _vte_iso2022_cdata;
-			block.start = p - input->bytes;
-			block.end = nextctl + 1 - input->bytes;
+			block.start = p - input;
+			block.end = nextctl + 1 - input;
 			g_array_append_val(blocks, block);
 			/* Continue at the next byte. */
 			p = nextctl + 1;
@@ -1091,8 +1091,8 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input)
 		case 0:
 			/* Inconclusive.  Save this data and try again later. */
 			block.type = _vte_iso2022_preserve;
-			block.start = nextctl - input->bytes;
-			block.end = q - input->bytes;
+			block.start = nextctl - input;
+			block.end = q - input;
 			g_array_append_val(blocks, block);
 			/* Trigger an end-of-loop. */
 			quit = TRUE;
@@ -1100,8 +1100,8 @@ _vte_iso2022_fragment_input(struct _vte_buffer *input)
 		default:
 			/* It's a control sequence. */
 			block.type = _vte_iso2022_control;
-			block.start = nextctl - input->bytes;
-			block.end = nextctl + sequence_length - input->bytes;
+			block.start = nextctl - input;
+			block.end = nextctl + sequence_length - input;
 			g_array_append_val(blocks, block);
 			/* Continue after the sequence. */
 			p = nextctl + sequence_length;
@@ -1174,7 +1174,7 @@ process_8_bit_sequence(struct _vte_iso2022_state *state,
 			width = force_width;
 		} else {
 			if (_vte_iso2022_is_ambiguous(c)) {
-				width = _vte_iso2022_ambiguous_width(state);
+				width = state->ambiguous_width;
 			}
 		}
 		_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
@@ -1194,7 +1194,7 @@ static glong
 process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize length,
 	      GArray *gunichars)
 {
-	int ambiguous_width = 0;
+	int ambiguous_width;
 	glong processed = 0;
 	GTree *map;
 	guint bytes_per_char, force_width, current;
@@ -1208,7 +1208,7 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 	gpointer p;
 	gboolean single, stop;
 
-	ambiguous_width = _vte_iso2022_ambiguous_width(state);
+	ambiguous_width = state->ambiguous_width;
 
 	single = (state->override != -1);
 	current = (state->override != -1) ? state->override : state->current;
@@ -1612,9 +1612,9 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 	}
 }
 
-void
+gsize
 _vte_iso2022_process(struct _vte_iso2022_state *state,
-		     struct _vte_buffer *input,
+		     guchar *input, gsize length,
 		     GArray *gunichars)
 {
 	GArray *blocks;
@@ -1622,7 +1622,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 	gboolean preserve_last = FALSE;
 	guint i, initial;
 
-	blocks = _vte_iso2022_fragment_input(input);
+	blocks = _vte_iso2022_fragment_input(input, length);
 
 	for (i = 0; i < blocks->len; i++) {
 		block = &g_array_index(blocks, struct _vte_iso2022_block, i);
@@ -1633,14 +1633,14 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 				g_printerr("%3ld %3ld CDATA \"%.*s\"",
 					block->start, block->end,
 					(int) (block->end - block->start),
-					input->bytes + block->start);
+					input + block->start);
 				g_printerr(" (");
 				for (j = block->start; j < block->end; j++) {
 					if (j > block->start) {
 						g_printerr(", ");
 					}
 					g_printerr("0x%02x",
-						input->bytes[j]);
+						input[j]);
 				}
 				g_printerr(")\n");
 			}
@@ -1648,7 +1648,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 			while (initial < block->end - block->start) {
 				int j;
 				j = process_cdata(state,
-						  input->bytes +
+						  input +
 						  block->start +
 						  initial,
 						  block->end -
@@ -1673,7 +1673,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 					"%3ld %3ld CONTROL ",
 					block->start, block->end);
 			process_control(state,
-					input->bytes + block->start,
+					input + block->start,
 					block->end - block->start,
 					gunichars);
 			preserve_last = FALSE;
@@ -1692,17 +1692,12 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 	}
 	if (preserve_last && (blocks->len > 0)) {
 		block = &g_array_index(blocks, struct _vte_iso2022_block, blocks->len - 1);
-		_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
-				"Consuming %ld bytes.\n", block->start);
-		_vte_buffer_consume(input, block->start);
-		g_assert(_vte_buffer_length(input) == block->end - block->start);
-	} else {
-		_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
-				"Consuming %ld bytes.\n",
-				(long) _vte_buffer_length(input));
-		_vte_buffer_clear(input);
+		length = block->start;
 	}
 	g_array_free(blocks, TRUE);
+	_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
+			"Consuming %ld bytes.\n", (long) length);
+	return length;
 }
 
 gssize

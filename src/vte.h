@@ -351,7 +351,6 @@ char *vte_terminal_get_text_range(VteTerminal *terminal,
 				  GArray *attributes);
 void vte_terminal_get_cursor_position(VteTerminal *terminal,
 				      glong *column, glong *row);
-
 /* Display string matching:  clear all matching expressions. */
 void vte_terminal_match_clear_all(VteTerminal *terminal);
 

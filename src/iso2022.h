@@ -38,8 +38,9 @@ struct _vte_iso2022_state *_vte_iso2022_state_new(const char *native_codeset,
 void _vte_iso2022_state_set_codeset(struct _vte_iso2022_state *state,
 				    const char *codeset);
 const char *_vte_iso2022_state_get_codeset(struct _vte_iso2022_state *state);
-void _vte_iso2022_process(struct _vte_iso2022_state *state,
-			  struct _vte_buffer *input, GArray *gunichars);
+gsize _vte_iso2022_process(struct _vte_iso2022_state *state,
+			  guchar *input, gsize length,
+			  GArray *gunichars);
 gunichar _vte_iso2022_process_single(struct _vte_iso2022_state *state,
 				     gunichar c, gunichar map);
 void _vte_iso2022_state_free(struct _vte_iso2022_state *);

@@ -1024,10 +1024,7 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 	screen = terminal->pvt->screen;
 
 	/* Get the data for the row which the cursor points to. */
-	_vte_terminal_ensure_cursor(terminal, FALSE);
-	rowdata = _vte_ring_index(screen->row_data,
-				  VteRowData *,
-				  screen->cursor_current.row);
+	rowdata = _vte_terminal_ensure_cursor(terminal, FALSE);
 	/* Clear the data up to the current column with the default
 	 * attributes.  If there is no such character cell, we need
 	 * to add one. */
@@ -1131,9 +1128,7 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 
 	screen = terminal->pvt->screen;
 	/* Get the data for the row which the cursor points to. */
-	_vte_terminal_ensure_cursor(terminal, FALSE);
-	rowdata = _vte_ring_index(screen->row_data, VteRowData *,
-				  screen->cursor_current.row);
+	rowdata = _vte_terminal_ensure_cursor(terminal, FALSE);
 	g_assert(rowdata != NULL);
 	/* Remove the data at the end of the array until the current column
 	 * is the end of the array. */
@@ -1143,7 +1138,7 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 	/* Add enough cells to the end of the line to fill out the row. */
 	vte_g_array_fill(rowdata->cells,
 			 &screen->fill_defaults,
-			 terminal->column_count);
+			 terminal->column_count - screen->cursor_current.col);
 	rowdata->soft_wrapped = 0;
 	/* Repaint this row. */
 	_vte_invalidate_cells(terminal,
@@ -1645,12 +1640,8 @@ vte_sequence_handler_ec(VteTerminal *terminal,
 	}
 
 	/* Clear out the given number of characters. */
-	_vte_terminal_ensure_cursor(terminal, TRUE);
+	rowdata = _vte_terminal_ensure_cursor(terminal, TRUE);
 	if (_vte_ring_next(screen->row_data) > screen->cursor_current.row) {
-		/* Get the data for the row which the cursor points to. */
-		rowdata = _vte_ring_index(screen->row_data,
-					  VteRowData *,
-					  screen->cursor_current.row);
 		g_assert(rowdata != NULL);
 		/* Write over the characters.  (If there aren't enough, we'll
 		 * need to create them.) */

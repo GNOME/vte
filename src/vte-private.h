@@ -177,7 +177,12 @@ struct _VteTerminalPrivate {
 	/* Input data queues. */
 	const char *encoding;		/* the pty's encoding */
 	struct _vte_iso2022_state *iso2022;
-	struct _vte_buffer *incoming;	/* pending bytestream */
+	struct _vte_incoming_chunk{
+		struct _vte_incoming_chunk *next;
+		gint len;
+		guchar data[VTE_INPUT_CHUNK_SIZE
+			- sizeof(struct _vte_incoming_chunk *) - sizeof(gint)];
+	} *incoming;			/* pending bytestream */
 	GArray *pending;		/* pending characters */
 	GSList *update_regions;
 	gboolean invalidated_all;	/* pending refresh of entire terminal */
@@ -356,7 +361,7 @@ struct _VteTerminalPrivate {
 };
 
 
-void _vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current);
+VteRowData *_vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current);
 void _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible);
 void _vte_invalidate_all(VteTerminal *terminal);
 void _vte_invalidate_cells(VteTerminal *terminal,

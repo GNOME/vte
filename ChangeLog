@@ -1,5 +1,41 @@
 2007-02-04  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	cf Bug 83285 – Treacle-slow scrolling in gnome-terminal on unaccelerated X server
+
+	Another chunk of performance improvements - the majority focussing on
+	reducing the amount of work down per interrupt (input data from
+	child).
+
+	To handle reads without addition copies VTE_INPUT_CHUNK_SIZE chunks
+	are allocated on demand and filled from read with no further copy -
+	previously the read was into a local buffer and then immediately
+	copied into a _vte_buffer.
+	_vte_iso2022_process() is then adjusted to use a ptr+length, rather
+	than a _vte_buffer and is called for every input chunk (taking special
+	care over the boundary cases).
+
+	* src/interpret.c: (main):
+	* src/iso2022.c: (_vte_iso2022_fragment_input),
+	(process_8_bit_sequence), (process_cdata), (_vte_iso2022_process):
+	* src/iso2022.h:
+	* src/vte-private.h:
+	* src/vte.c: (get_chunk), (release_chunk), (prune_chunks),
+	(_vte_incoming_chunks_release), (_vte_incoming_chunks_length),
+	(_vte_incoming_chunks_count), (_vte_incoming_chunks_reverse),
+	(vte_terminal_match_check_internal), (_vte_terminal_ensure_cursor),
+	(vte_terminal_set_colors), (_vte_terminal_insert_char),
+	(vte_terminal_catch_child_exited), (vte_terminal_eof),
+	(vte_terminal_process_incoming), (_vte_terminal_feed_chunks),
+	(vte_terminal_io_read), (vte_terminal_feed), (vte_terminal_send),
+	(vte_terminal_init), (vte_terminal_finalize), (vte_terminal_reset),
+	(remove_from_active_list), (need_processing), (update_regions),
+	(update_repeat_timeout):
+	* src/vte.h:
+	* src/vteseq.c: (vte_sequence_handler_cb),
+	(vte_sequence_handler_ce), (vte_sequence_handler_ec):
+
+2007-02-04  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Store whether the codeset is ambiguous in a state variable,
 	rather than every processing loop.
 
