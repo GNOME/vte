@@ -1,5 +1,17 @@
 2007-02-04  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Move window/icon title changed to the post-processing emission - helps
+	with the artificial benchmark of replaying a recorded jhbuild script.
+
+	* src/vte-private.h:
+	* src/vte.c: (vte_terminal_finalize),
+	(vte_terminal_emit_icon_title_changed),
+	(vte_terminal_emit_window_title_changed),
+	(vte_terminal_emit_pending_signals):
+	* src/vteseq.c: (vte_sequence_handler_set_title_internal):
+
+2007-02-04  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Broke clear-to-end-of-line by lowering the number of cells appended,
 	instead of the number of cells invalidated.
 

@@ -126,24 +126,6 @@ vte_terminal_emit_iconify_window(VteTerminal *terminal)
 	g_signal_emit_by_name(terminal, "iconify-window");
 }
 
-/* Emit an "icon-title-changed" signal. */
-static void
-vte_terminal_emit_icon_title_changed(VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `icon-title-changed'.\n");
-	g_signal_emit_by_name(terminal, "icon-title-changed");
-}
-
-/* Emit a "window-title-changed" signal. */
-static void
-vte_terminal_emit_window_title_changed(VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `window-title-changed'.\n");
-	g_signal_emit_by_name(terminal, "window-title-changed");
-}
-
 /* Emit a "raise-window" signal. */
 static void
 vte_terminal_emit_raise_window(VteTerminal *terminal)
@@ -422,20 +404,14 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 
 			/* Emit the signal */
 			if (strcmp(signal, "window") == 0) {
-				g_free(terminal->window_title);
-				terminal->window_title = g_strdup(validated);
-				if (terminal->widget.window)
-					gdk_window_set_title (terminal->widget.window, validated);
-				vte_terminal_emit_window_title_changed(terminal);
+				g_free (terminal->pvt->window_title_changed);
+				terminal->pvt->window_title_changed = validated;
 			} else
 			if (strcmp(signal, "icon") == 0) {
-				g_free (terminal->icon_title);
-				terminal->icon_title = g_strdup(validated);
-				if (terminal->widget.window)
-					gdk_window_set_icon_name (terminal->widget.window, validated);
-				vte_terminal_emit_icon_title_changed(terminal);
-			}
-			g_free(validated);
+				g_free (terminal->pvt->icon_title_changed);
+				terminal->pvt->icon_title_changed = validated;
+			} else
+				g_free(validated);
 			g_free(title);
 
 			ret = TRUE;

@@ -7097,9 +7097,7 @@ vte_terminal_finalize(GObject *object)
 	if (terminal->pvt->match_attributes != NULL) {
 		g_array_free(terminal->pvt->match_attributes, TRUE);
 	}
-	if (terminal->pvt->match_contents != NULL) {
-		g_free(terminal->pvt->match_contents);
-	}
+	g_free(terminal->pvt->match_contents);
 	if (terminal->pvt->match_regexes != NULL) {
 		for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
 			regex = &g_array_index(terminal->pvt->match_regexes,
@@ -7218,6 +7216,10 @@ vte_terminal_finalize(GObject *object)
 	}
 
 	remove_update_timeout (terminal);
+
+	/* discard title updates */
+	g_free(terminal->pvt->window_title_changed);
+	g_free(terminal->pvt->icon_title_changed);
 
 	/* Free public-facing data. */
 	g_free(terminal->window_title);
@@ -11270,10 +11272,50 @@ need_processing (VteTerminal *terminal)
 		terminal->pvt->pending->len > 0;
 }
 
+/* Emit an "icon-title-changed" signal. */
+static void
+vte_terminal_emit_icon_title_changed(VteTerminal *terminal)
+{
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Emitting `icon-title-changed'.\n");
+	g_signal_emit_by_name(terminal, "icon-title-changed");
+}
+
+/* Emit a "window-title-changed" signal. */
+static void
+vte_terminal_emit_window_title_changed(VteTerminal *terminal)
+{
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Emitting `window-title-changed'.\n");
+	g_signal_emit_by_name(terminal, "window-title-changed");
+}
+
 static void
 vte_terminal_emit_pending_signals(VteTerminal *terminal)
 {
 	vte_terminal_emit_adjustment_changed (terminal);
+
+	if (terminal->pvt->window_title_changed) {
+		g_free (terminal->window_title);
+		terminal->window_title = terminal->pvt->window_title_changed;
+		terminal->pvt->window_title_changed = NULL;
+
+		if (terminal->widget.window)
+			gdk_window_set_title (terminal->widget.window,
+					terminal->window_title);
+		vte_terminal_emit_window_title_changed(terminal);
+	}
+
+	if (terminal->pvt->icon_title_changed) {
+		g_free (terminal->icon_title);
+		terminal->icon_title = terminal->pvt->icon_title_changed;
+		terminal->pvt->icon_title_changed = NULL;
+
+		if (terminal->widget.window)
+			gdk_window_set_icon_name (terminal->widget.window,
+					terminal->icon_title);
+		vte_terminal_emit_icon_title_changed(terminal);
+	}
 }
 
 /* This function is called after DISPLAY_TIMEOUT ms.

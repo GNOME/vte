@@ -342,6 +342,10 @@ struct _VteTerminalPrivate {
 	/* Adjustment updates pending. */
 	gboolean adjustment_changed_pending;
 
+	/* window name changes */
+	gchar *window_title_changed;
+	gchar *icon_title_changed;
+
 	/* Background images/"transparency". */
 	gboolean bg_update_pending;
 	gboolean bg_transparent;
