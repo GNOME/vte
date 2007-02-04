@@ -1,5 +1,10 @@
 2007-02-04  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* configure.in:
+		Missing space between -Wflags.
+
+2007-02-04  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Eliminate the temporary g_sliced parameter list,
 	in favour of on-stack list.
 
