@@ -1138,7 +1138,7 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 	/* Add enough cells to the end of the line to fill out the row. */
 	vte_g_array_fill(rowdata->cells,
 			 &screen->fill_defaults,
-			 terminal->column_count - screen->cursor_current.col);
+			 terminal->column_count);
 	rowdata->soft_wrapped = 0;
 	/* Repaint this row. */
 	_vte_invalidate_cells(terminal,

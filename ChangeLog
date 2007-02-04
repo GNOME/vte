@@ -1,5 +1,13 @@
 2007-02-04  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Broke clear-to-end-of-line by lowering the number of cells appended,
+	instead of the number of cells invalidated.
+
+	* src/vte.c: (vte_terminal_draw_rows):
+	* src/vteseq.c: (vte_sequence_handler_ce):
+
+2007-02-04  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	cf Bug 83285 – Treacle-slow scrolling in gnome-terminal on unaccelerated X server
 
 	Another chunk of performance improvements - the majority focusing on

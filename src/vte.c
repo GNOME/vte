@@ -8711,7 +8711,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 		      gint start_x, gint start_y,
 		      gint column_width, gint row_height)
 {
-	gint i, j, row, rows, y, fore, nfore, back, nback;
+	gint i, j, row, rows, x, y, fore, nfore, back, nback;
 	gboolean underline, nunderline, bold, nbold, hilite, nhilite, reverse,
 		 selected, strikethrough, nstrikethrough;
 	struct _vte_draw_text_request items[4*VTE_DRAW_MAX_LENGTH];
@@ -8725,7 +8725,8 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 	start_x -= start_column * column_width;
 
 	/* clear the background */
-	y = start_y;
+	x = start_x + VTE_PAD_WIDTH;
+	y = start_y + VTE_PAD_WIDTH;
 	row = start_row;
 	rows = row_count;
 	do{
@@ -8740,7 +8741,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			cell = _vte_row_data_find_charcell(row_data, i);
 		}
 		/* Walk the line. */
-		while (i < start_column + column_count) {
+		do {
 			/* Get the character cell's contents. */
 			cell = _vte_row_data_find_charcell(row_data, i);
 			/* Find the colors for this cell. */
@@ -8784,8 +8785,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				color.blue = bg->blue;
 				color.green = bg->green;
 				_vte_draw_fill_rectangle(terminal->pvt->draw,
-						start_x + i * column_width + VTE_PAD_WIDTH,
-						y + VTE_PAD_WIDTH,
+						x + i * column_width, y,
 						(j - i) * column_width,
 						row_height,
 						&color, VTE_DRAW_OPAQUE);
@@ -8793,8 +8793,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			/* We'll need to continue at the first cell which didn't
 			 * match the first one in this set. */
 			i = j;
-		}
-
+		} while (i < start_column + column_count);
 		row++;
 		y += row_height;
 	} while (--rows);
