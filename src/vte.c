@@ -1691,12 +1691,12 @@ _vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 			_vte_ring_append(screen->row_data, row);
 		} while(--delta);
 		_vte_terminal_adjust_adjustments(terminal, FALSE);
+	} else {
+		/* Find the row the cursor is in. */
+		row = _vte_ring_index(screen->row_data,
+				VteRowData *,
+				screen->cursor_current.row);
 	}
-
-	/* Find the row the cursor is in. */
-	row = _vte_ring_index(screen->row_data,
-			      VteRowData *,
-			      screen->cursor_current.row);
 	g_assert(row != NULL);
 	if ((row->cells->len <= screen->cursor_current.col) &&
 	    (row->cells->len < terminal->column_count)) {

@@ -1,5 +1,14 @@
 2007-02-04  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Micro-opts.
+
+	* src/table.c: (_vte_table_match):
+		No need set to NULL.
+	* src/vte.c: (_vte_terminal_ensure_cursor):
+		If we have added some rows, the last is the current.
+
+2007-02-04  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Move window/icon title changed to the post-processing emission - helps
 	with the artificial benchmark of replaying a recorded jhbuild script.
 

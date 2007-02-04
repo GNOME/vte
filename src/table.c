@@ -608,7 +608,7 @@ _vte_table_match(struct _vte_table *table,
 	GQuark dummy_quark;
 	GValueArray *dummy_array;
 	const char *ret;
-	unsigned char *original = NULL, *p;
+	unsigned char *original, *p;
 	gssize original_length;
 	long increment = 0;
 	int i;
