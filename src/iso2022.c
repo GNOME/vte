@@ -1469,7 +1469,6 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 				case '+':
 					if (length >= 3) {
 						int g = -1;
-						gunichar c;
 						switch (ctl[1]) {
 						case '(':
 							g = 0;
@@ -1532,7 +1531,7 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 				case '$':
 					if (length >= 4) {
 						int g = -1;
-						gunichar c = 0;
+						c = 0;
 						switch (ctl[2]) {
 						case '@':
 							g = 0;
@@ -1544,19 +1543,15 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 							break;
 						case '(':
 							g = 0;
-							c = 0;
 							break;
 						case ')':
 							g = 1;
-							c = 0;
 							break;
 						case '*':
 							g = 2;
-							c = 0;
 							break;
 						case '+':
 							g = 3;
-							c = 0;
 							break;
 						default:
 							g_assert_not_reached();
@@ -1576,7 +1571,6 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 								g, c);
 					} else
 					if (length >= 3) {
-						gunichar c = 0;
 						switch (ctl[2]) {
 						case '@':
 							c = '@';

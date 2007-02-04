@@ -439,7 +439,7 @@ _vte_termcap_parse_file (const char *contents, int length)
    * us to notice the end of strings passed to us by vte.
    */
   termcap = g_tree_new_full ((GCompareDataFunc) _vte_termcap_strcmp,
-                             ":|\n", NULL, NULL);
+                             (gpointer)":|\n", NULL, NULL);
 
   while (contents != end)
   {

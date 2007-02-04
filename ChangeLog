@@ -1,5 +1,15 @@
 2007-02-04  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	A few more compiler warnings.
+
+	* src/buffer.c: (_vte_buffer_peek_gstring):
+	* src/iso2022.c: (process_control):
+	* src/vteft2.c: (_vte_ft2_set_text_font):
+	* src/vteseq.c: (vte_sequence_handler_set_title_internal):
+	* src/vtetc.c: (_vte_termcap_parse_file):
+
+2007-02-04  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 106618 – CJK 'fixed width' font and 's p a c e d o u t' issue
 
 	* src/vtedraw.h:

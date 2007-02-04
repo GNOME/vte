@@ -223,7 +223,7 @@ _vte_ft2_set_text_font(struct _vte_draw *draw,
 					      data->cache, fontdesc, anti_alias,
 					      NULL, NULL);
 	_vte_debug_print(VTE_DEBUG_MISC,
-			"VteFT2 font metrics = %dx%d (%d).\n",
+			"VteFT2 font metrics = %ldx%ld (%ld).\n",
 			data->cache->width,
 			data->cache->height,
 			data->cache->ascent);

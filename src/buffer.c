@@ -258,7 +258,7 @@ _vte_buffer_peek_gstring(struct _vte_buffer *buffer)
 	guint32 i;
 	i = _vte_buffer_peek_guint32(buffer);
 	_vte_buffer_check(buffer, sizeof(i) + i);
-	ret = g_string_new_len(buffer->bytes + sizeof(i), i);
+	ret = g_string_new_len((gchar *)buffer->bytes + sizeof(i), i);
 	return ret;
 }
 

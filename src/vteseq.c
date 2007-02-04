@@ -337,7 +337,7 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 					const char *match,
 					GQuark match_quark,
 					GValueArray *params,
-					const char *signal)
+					const char *mode)
 {
 	GValue *value;
 	VteConv conv;
@@ -403,11 +403,11 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 			}
 
 			/* Emit the signal */
-			if (strcmp(signal, "window") == 0) {
+			if (strcmp(mode, "window") == 0) {
 				g_free (terminal->pvt->window_title_changed);
 				terminal->pvt->window_title_changed = validated;
 			} else
-			if (strcmp(signal, "icon") == 0) {
+			if (strcmp(mode, "icon") == 0) {
 				g_free (terminal->pvt->icon_title_changed);
 				terminal->pvt->icon_title_changed = validated;
 			} else
