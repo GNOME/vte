@@ -127,7 +127,7 @@ _vte_glyph_cache_set_font_description(GtkWidget *widget,
 	GList *iter;
 	FcPattern *pattern;
 	GPtrArray *patterns;
-	FT_Face face;
+	FT_Face face, prev_face;
 	gunichar double_wide_characters[] = {VTE_DRAW_DOUBLE_WIDE_CHARACTERS};
 
 	g_return_if_fail(cache != NULL);
@@ -327,7 +327,9 @@ _vte_glyph_cache_set_font_description(GtkWidget *widget,
 		cache->height = 1;
 		cache->ascent = 1;
 	}
-	width = 0;
+	/* detect if font measured above has the fixed-width property */
+	width = count = 0;
+	prev_face = NULL;
 	for (i = 0; i < G_N_ELEMENTS(double_wide_characters); i++) {
 		face = _vte_glyph_cache_face_for_char(cache,
 						      double_wide_characters[i]);
@@ -342,13 +344,27 @@ _vte_glyph_cache_set_font_description(GtkWidget *widget,
 						cache->ft_render_flags);
 		}
 		if (error == 0) {
+			if (count && prev_face != face) {
+				width /= 64 * count;
+				if (cache->width >= width - 1 &&
+						cache->width <= width + 1) {
+					/* add 1 to round up when dividing by 2 */
+					cache->width = (cache->width + 1) / 2;
+					break;
+				}
+				count = width =0;
+			}
 			width += face->glyph->metrics.horiAdvance;
 			count++;
+			prev_face = face;
 		}
 	}
 	if (count > 0) {
-		if (cache->width == width / 64 / count) {
-			cache->width /= 2;
+		width /= 64 * count;
+		if (cache->width >= width - 1 &&
+				cache->width <= width + 1) {
+			/* add 1 to round up when dividing by 2 */
+			cache->width = (cache->width + 1) / 2;
 		}
 	}
 }

@@ -1,5 +1,17 @@
 2007-02-04  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 106618 – CJK 'fixed width' font and 's p a c e d o u t' issue
+
+	* src/vtedraw.h:
+	* src/vteglyph.c: (_vte_glyph_cache_set_font_description):
+	* src/vtepango.c: (_vte_pango_set_text_font):
+	* src/vtepangox.c: (_vte_pango_x_set_text_font):
+	* src/vtexft.c: (_vte_xft_set_text_font):
+		Detect a change in font between wide-chars and recheck for a
+		fixed-width estimate.
+
+2007-02-04  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Micro-opts.
 
 	* src/table.c: (_vte_table_match):

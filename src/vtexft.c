@@ -493,7 +493,7 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 		       VteTerminalAntiAlias antialias)
 {
 	struct _vte_xft_font *ft;
-	XftFont *font;
+	XftFont *font, *prev_font;
 	XGlyphInfo extents;
 	struct _vte_xft_data *data;
 	gunichar wide_chars[] = {VTE_DRAW_DOUBLE_WIDE_CHARACTERS};
@@ -550,21 +550,36 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 	/* Estimate a typical cell width by looking at double-width
 	 * characters, and if it's the same as the single width, assume the
 	 * single-width stuff is broken. */
-	n = 0;
+	n = width = 0;
+	prev_font = NULL;
 	for (i = 0; i < G_N_ELEMENTS(wide_chars); i++) {
 		c = wide_chars[i];
 		font = _vte_xft_font_for_char(data->font, c);
 		if ((font != NULL) &&
 		    (_vte_xft_char_exists(data->font, font, c))) {
+			if (n && prev_font != font) {/* font change */
+				width = howmany(width, n);
+				if (width >= draw->width -1 &&
+						width <= draw->width + 1){
+					/* add 1 to round up when dividing by 2 */
+					draw->width = (draw->width + 1) / 2;
+					break;
+				}
+				n = width =0;
+			}
 			memset(&extents, 0, sizeof(extents));
 			_vte_xft_text_extents(data->font, font, c, &extents);
 			n++;
 			width += extents.xOff;
+			prev_font = font;
 		}
 	}
 	if (n > 0) {
-		if (howmany(width, n) == draw->width) {
-			draw->width /= 2;
+		width = howmany(width, n);
+		if (width >= draw->width -1 &&
+				width <= draw->width + 1){
+			/* add 1 to round up when dividing by 2 */
+			draw->width = (draw->width + 1) / 2;
 		}
 	}
 

@@ -245,7 +245,7 @@ _vte_pango_set_text_font(struct _vte_draw *draw,
 	PangoLayout *layout;
 	PangoLayoutIter *iter;
 	PangoRectangle ink, logical;
-	gunichar full_codepoints[] = {VTE_DRAW_DOUBLE_WIDE_CHARACTERS};
+	gunichar full_codepoints[] = {VTE_DRAW_DOUBLE_WIDE_IDEOGRAPHS};
 	GString *full_string;
 	gint full_width;
 	guint i;
@@ -287,7 +287,8 @@ _vte_pango_set_text_font(struct _vte_draw *draw,
 
 	/* If they're the same, then we have a screwy font. */
 	if (full_width == draw->width) {
-		draw->width /= 2;
+		/* add 1 to round up when dividing by 2 */
+		draw->width = (draw->width + 1) / 2;
 	}
 
 	draw->width = PANGO_PIXELS(draw->width);
