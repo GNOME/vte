@@ -3181,7 +3181,8 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 
 		if (G_UNLIKELY(params != NULL)) {
 			/* Free any parameters we don't care about any more. */
-			_vte_matcher_free_params_array(params);
+			_vte_matcher_free_params_array(terminal->pvt->matcher,
+					params);
 			params = NULL;
 		}
 	}

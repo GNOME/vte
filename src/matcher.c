@@ -30,6 +30,7 @@
 struct _vte_matcher {
 	_vte_matcher_match_func match; /* shortcut to the most common op */
 	struct _vte_matcher_impl *impl;
+	GValueArray *free_params;
 };
 
 static GStaticMutex _vte_matcher_mutex = G_STATIC_MUTEX_INIT;
@@ -134,6 +135,7 @@ _vte_matcher_create(gpointer key)
 	ret = g_slice_new(struct _vte_matcher);
 	ret->impl = &dummy_vte_matcher_trie;
 	ret->match = NULL;
+	ret->free_params = NULL;
 
 	if (strcmp(emulation, "xterm") == 0) {
 		ret->impl = &dummy_vte_matcher_table;
@@ -152,6 +154,9 @@ _vte_matcher_destroy(gpointer value)
 	struct _vte_matcher *matcher = value;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "_vte_matcher_destroy()\n");
+	if (matcher->free_params != NULL) {
+		g_value_array_free (matcher->free_params);
+	}
 	if (matcher->match != NULL) /* do not call destroy on dummy values */
 		matcher->impl->klass->destroy(matcher->impl);
 	g_slice_free(struct _vte_matcher, matcher);
@@ -171,7 +176,7 @@ _vte_matcher_new(const char *emulation, struct _vte_termcap *termcap)
 	if (_vte_matcher_cache == NULL) {
 		_vte_matcher_cache = g_cache_new(_vte_matcher_create,
 				_vte_matcher_destroy,
-			       	(GCacheDupFunc) g_strdup, g_free,
+				(GCacheDupFunc) g_strdup, g_free,
 				g_str_hash, g_direct_hash, g_str_equal);
 	}
 
@@ -204,6 +209,10 @@ _vte_matcher_match(struct _vte_matcher *matcher,
 		   const char **res, const gunichar **consumed,
 		   GQuark *quark, GValueArray **array)
 {
+	if (matcher->free_params != NULL) {
+		*array = matcher->free_params;
+		matcher->free_params = NULL;
+	}
 	return matcher->match(matcher->impl, pattern, length,
 					res, consumed, quark, array);
 }
@@ -219,19 +228,22 @@ _vte_matcher_print(struct _vte_matcher *matcher)
  * themselves, but we're using gpointers to hold unicode character strings, and
  * we need to free those ourselves. */
 void
-_vte_matcher_free_params_array(GValueArray *params)
+_vte_matcher_free_params_array(struct _vte_matcher *matcher,
+		               GValueArray *params)
 {
 	guint i;
-	GValue *value;
-	if (params != NULL) {
-		for (i = 0; i < params->n_values; i++) {
-			value = g_value_array_get_nth(params, i);
-			if (G_VALUE_HOLDS_POINTER(value)) {
-				g_free(g_value_get_pointer(value));
-				g_value_set_pointer(value, NULL);
-			}
+	for (i = 0; i < params->n_values; i++) {
+		GValue *value = g_value_array_get_nth(params, i);
+		if (G_VALUE_HOLDS_POINTER(value)) {
+			g_free(g_value_get_pointer(value));
+			g_value_set_pointer(value, NULL);
 		}
+	}
+	if (G_UNLIKELY (matcher == NULL || matcher->free_params != NULL)) {
 		g_value_array_free(params);
+	} else {
+		matcher->free_params = params;
+		params->n_values = 0;
 	}
 }
 

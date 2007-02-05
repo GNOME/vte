@@ -1,5 +1,18 @@
 2007-02-05  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	The continual reallocation of GValueArray is the last trivially
+	avoidable g_realloc.
+
+	* src/interpret.c: (main):
+	* src/matcher.c: (_vte_matcher_create), (_vte_matcher_destroy),
+	(_vte_matcher_match), (_vte_matcher_free_params_array):
+	* src/matcher.h:
+	* src/table.c: (_vte_table_extract_string):
+	* src/trie.c: (_vte_trie_matchx), (_vte_trie_match), (main):
+	* src/vte.c: (vte_terminal_process_incoming):
+
+2007-02-05  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/ring.c: (_vte_ring_insert):
 		Missed an important compiler warning.
 

@@ -546,7 +546,7 @@ _vte_table_extract_numbers(GValueArray **array,
 			total *= 10;
 			total += v == -1 ?  0 : v;
 		}
-		if (*array == NULL) {
+		if (G_UNLIKELY (*array == NULL)) {
 			*array = g_value_array_new(1);
 		}
 		g_value_set_long(&value, total);
@@ -561,18 +561,17 @@ _vte_table_extract_string(GValueArray **array,
 {
 	GValue value = {0,};
 	gunichar *ptr;
-	int i;
+	guint i;
 
 	ptr = g_new(gunichar, arginfo->length + 1);
-	memcpy(ptr, arginfo->start, arginfo->length * sizeof(gunichar));
 	for (i = 0; i < arginfo->length; i++) {
-		ptr[i] &= ~(VTE_ISO2022_ENCODED_WIDTH_MASK);
+		ptr[i] = arginfo->start[i] & ~VTE_ISO2022_ENCODED_WIDTH_MASK;
 	}
-	ptr[arginfo->length] = '\0';
+	ptr[i] = '\0';
 	g_value_init(&value, G_TYPE_POINTER);
 	g_value_set_pointer(&value, ptr);
 
-	if (*array == NULL) {
+	if (G_UNLIKELY (*array == NULL)) {
 		*array = g_value_array_new(1);
 	}
 	g_value_array_append(*array, &value);
@@ -588,7 +587,7 @@ _vte_table_extract_char(GValueArray **array,
 	g_value_init(&value, G_TYPE_LONG);
 	g_value_set_long(&value, *(arginfo->start) - increment);
 
-	if (*array == NULL) {
+	if (G_UNLIKELY (*array == NULL)) {
 		*array = g_value_array_new(1);
 	}
 	g_value_array_append(*array, &value);

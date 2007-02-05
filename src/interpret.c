@@ -148,7 +148,7 @@ main(int argc, char **argv)
 			}
 		}
 		if (values != NULL) {
-			_vte_matcher_free_params_array(values);
+			_vte_matcher_free_params_array(matcher, values);
 		}
 		g_print(")\n");
 		i += l;
