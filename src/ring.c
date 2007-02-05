@@ -88,7 +88,7 @@ _vte_ring_new_with_delta(glong max_elements, glong delta,
 gpointer
 _vte_ring_insert(VteRing * ring, long position, gpointer data)
 {
-	gpointer old_data;
+	gpointer old_data = NULL;
 	long point, i;
 	_vte_debug_print(VTE_DEBUG_RING,
 			"Inserting at position %ld.\n"

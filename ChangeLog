@@ -1,5 +1,10 @@
 2007-02-05  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/ring.c: (_vte_ring_insert):
+		Missed an important compiler warning.
+
+2007-02-05  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	cf Bug 342338 – suffers from memory fragmentation
 
 	Reuse the last VteRowData instead of immediately freeing it. Avoids
