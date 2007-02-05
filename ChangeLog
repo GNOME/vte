@@ -1,5 +1,12 @@
 2007-02-05  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 404757 – URL matching doesn't work with PCRE
+
+	* configure.in:
+		mention the inconsistency in the help string and default to no.
+
+2007-02-05  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c: (vte_terminal_draw_rows):
 		Don't draw cell attributes across spaces.
 
