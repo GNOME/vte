@@ -8896,13 +8896,15 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 						(item_count < G_N_ELEMENTS(items))) {
 					/* Retrieve the cell. */
 					cell = _vte_row_data_find_charcell(row_data, j);
+					if (cell == NULL ||
+							cell->c == 0 ||
+							cell->c == ' ') {
+						break;
+					}
 					/* Don't render blank cells or fragments of multicolumn characters
 					 * which have the same attributes as the initial
 					 * portions. */
-					if (cell == NULL ||
-							cell->c == 0 ||
-							cell->c == ' ' ||
-							cell->fragment) {
+					if (cell->fragment) {
 						j++;
 						continue;
 					}
