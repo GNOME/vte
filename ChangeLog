@@ -1,5 +1,11 @@
 2007-02-05  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/table.c: (_vte_table_match):
+		And kill the leak as vte_table_match erroneously cleared
+		its output arguments.
+
+2007-02-05  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	The continual reallocation of GValueArray is the last trivially
 	avoidable g_realloc.
 
