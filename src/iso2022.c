@@ -286,11 +286,25 @@ _vte_direct_compare(gconstpointer a, gconstpointer b)
 }
 
 static gboolean
+_vte_iso2022_is_ambiguous_ht(gunichar c)
+{
+	static GHashTable *ambiguous;
+	if (!ambiguous) {
+		gpointer p;
+		gsize i;
+		ambiguous = g_hash_table_new (NULL, NULL);
+		for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_ambiguous_chars); i++) {
+			p = GINT_TO_POINTER(_vte_iso2022_ambiguous_chars[i]);
+			g_hash_table_insert(ambiguous, p, p);
+		}
+	}
+
+	return g_hash_table_lookup(ambiguous, GINT_TO_POINTER(c)) != NULL;
+}
+static inline gboolean
 _vte_iso2022_is_ambiguous(gunichar c)
 {
 	gsize i;
-	gpointer p;
-	static GHashTable *ambiguous = NULL;
 	for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_unambiguous_ranges); i++) {
 		if ((c >= _vte_iso2022_unambiguous_ranges[i].start) &&
 		    (c <= _vte_iso2022_unambiguous_ranges[i].end)) {
@@ -303,16 +317,7 @@ _vte_iso2022_is_ambiguous(gunichar c)
 			return TRUE;
 		}
 	}
-	if (!ambiguous) {
-		ambiguous = g_hash_table_new (NULL, NULL);
-
-		for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_ambiguous_chars); i++) {
-			p = GINT_TO_POINTER(_vte_iso2022_ambiguous_chars[i]);
-			g_hash_table_insert(ambiguous, p, p);
-		}
-	}
-
-	return g_hash_table_lookup(ambiguous, GINT_TO_POINTER(c)) != NULL;
+	return _vte_iso2022_is_ambiguous_ht (c);
 }
 
 /* If we only have a codepoint, guess what the ambiguous width should be based
@@ -1173,7 +1178,7 @@ process_8_bit_sequence(struct _vte_iso2022_state *state,
 		if (force_width != 0) {
 			width = force_width;
 		} else {
-			if (_vte_iso2022_is_ambiguous(c)) {
+			if (G_UNLIKELY (_vte_iso2022_is_ambiguous(c))) {
 				width = state->ambiguous_width;
 			}
 		}
@@ -1286,7 +1291,7 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 				/* Skip the padding character. */
 				continue;
 			}
-			if (_vte_iso2022_is_ambiguous(c)) {
+			if (G_UNLIKELY (_vte_iso2022_is_ambiguous(c))) {
 				width = ambiguous_width;
 				c = _vte_iso2022_set_encoded_width(c, width);
 			}
@@ -1324,7 +1329,7 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 					if (force_width != 0) {
 						width = force_width;
 					} else {
-						if (_vte_iso2022_is_ambiguous(c)) {
+						if (G_UNLIKELY (_vte_iso2022_is_ambiguous(c))) {
 							width = ambiguous_width;
 						}
 					}
@@ -1698,7 +1703,7 @@ gssize
 _vte_iso2022_unichar_width(gunichar c)
 {
 	c = c & ~(VTE_ISO2022_ENCODED_WIDTH_MASK); /* just in case */
-	if (_vte_iso2022_is_ambiguous(c)) {
+	if (G_UNLIKELY (_vte_iso2022_is_ambiguous(c))) {
 		return _vte_iso2022_ambiguous_width_guess();
 	}
 	if (g_unichar_iswide(c)) {

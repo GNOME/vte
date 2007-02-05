@@ -234,9 +234,8 @@ _vte_matcher_free_params_array(struct _vte_matcher *matcher,
 	guint i;
 	for (i = 0; i < params->n_values; i++) {
 		GValue *value = g_value_array_get_nth(params, i);
-		if (G_VALUE_HOLDS_POINTER(value)) {
+		if (G_UNLIKELY (G_VALUE_HOLDS_POINTER(value))) {
 			g_free(g_value_get_pointer(value));
-			g_value_set_pointer(value, NULL);
 		}
 	}
 	if (G_UNLIKELY (matcher == NULL || matcher->free_params != NULL)) {

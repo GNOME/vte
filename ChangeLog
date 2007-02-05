@@ -1,5 +1,16 @@
 2007-02-05  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Some more small callgrind tweaks - well into the law of diminishing
+	returns.
+
+	* src/iso2022.c: (_vte_iso2022_is_ambiguous_ht),
+	(_vte_iso2022_is_ambiguous), (process_8_bit_sequence),
+	(process_cdata), (_vte_iso2022_unichar_width):
+	* src/matcher.c: (_vte_matcher_free_params_array):
+	* src/vte.c: (vte_terminal_process_incoming):
+
+2007-02-05  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Beware the trivial change. Handle reuse of GValueArray correctly.
 
 	* src/matcher.c: (_vte_matcher_match):
