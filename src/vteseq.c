@@ -195,20 +195,30 @@ vte_terminal_emit_resize_window(VteTerminal *terminal,
 static void
 vte_insert_line_internal(VteTerminal *terminal, glong position)
 {
-	VteRowData *row;
+	VteRowData *row, *old_row;
+	old_row = terminal->pvt->free_row;
 	/* Pad out the line data to the insertion point. */
 	while (_vte_ring_next(terminal->pvt->screen->row_data) < position) {
-		row = _vte_new_row_data_sized(terminal, TRUE);
-		_vte_ring_append(terminal->pvt->screen->row_data, row);
+		if (old_row) {
+			row = _vte_reset_row_data (terminal, old_row, TRUE);
+		} else {
+			row = _vte_new_row_data_sized(terminal, TRUE);
+		}
+		old_row = _vte_ring_append(terminal->pvt->screen->row_data, row);
 	}
 	/* If we haven't inserted a line yet, insert a new one. */
-	row = _vte_new_row_data_sized(terminal, TRUE);
+	if (old_row) {
+		row = _vte_reset_row_data (terminal, old_row, TRUE);
+	} else {
+		row = _vte_new_row_data_sized(terminal, TRUE);
+	}
 	if (_vte_ring_next(terminal->pvt->screen->row_data) >= position) {
-		_vte_ring_insert(terminal->pvt->screen->row_data,
+		old_row = _vte_ring_insert(terminal->pvt->screen->row_data,
 				 position, row);
 	} else {
-		_vte_ring_append(terminal->pvt->screen->row_data, row);
+		old_row =_vte_ring_append(terminal->pvt->screen->row_data, row);
 	}
+	terminal->pvt->free_row = old_row;
 }
 
 /* Remove a line at an arbitrary position. */
@@ -287,7 +297,7 @@ vte_sequence_handler_multiple(VteTerminal *terminal,
 static gboolean
 vte_sequence_handler_scroll_up_or_down(VteTerminal *terminal, int scroll_amount)
 {
-	VteRowData *row;
+	VteRowData *row, *old_row;
 	long start, end, i;
 	VteScreen *screen;
 
@@ -301,10 +311,16 @@ vte_sequence_handler_scroll_up_or_down(VteTerminal *terminal, int scroll_amount)
 		end = start + terminal->row_count - 1;
 	}
 
+	old_row = terminal->pvt->free_row;
 	while (_vte_ring_next(screen->row_data) <= end) {
-		row = _vte_new_row_data_sized(terminal, FALSE);
-		_vte_ring_append(terminal->pvt->screen->row_data, row);
+		if (old_row) {
+			row = _vte_reset_row_data (terminal, old_row, FALSE);
+		} else {
+			row = _vte_new_row_data_sized(terminal, FALSE);
+		}
+		old_row = _vte_ring_append(terminal->pvt->screen->row_data, row);
 	}
+	terminal->pvt->free_row = old_row;
 	if (scroll_amount > 0) {
 		for (i = 0; i < scroll_amount; i++) {
 			vte_remove_line_internal(terminal, end);
@@ -1073,8 +1089,15 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 						  VteRowData *, i);
 			g_assert(rowdata != NULL);
 		} else {
-			rowdata = _vte_new_row_data(terminal);
-			_vte_ring_append(screen->row_data, rowdata);
+			if (terminal->pvt->free_row) {
+				rowdata = _vte_reset_row_data (terminal,
+						terminal->pvt->free_row,
+						FALSE);
+			} else {
+				rowdata = _vte_new_row_data(terminal);
+			}
+			terminal->pvt->free_row =
+				_vte_ring_append(screen->row_data, rowdata);
 		}
 		/* Pad out the row. */
 		vte_g_array_fill(rowdata->cells,
@@ -2163,7 +2186,6 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 				/* Scroll this line into the scrollback
 				 * buffer by inserting a line at the next
 				 * line and scrolling the area up. */
-				row = _vte_new_row_data_sized(terminal, TRUE);
 				screen->insert_delta++;
 				screen->scroll_delta++;
 				screen->cursor_current.row++;
@@ -2171,7 +2193,14 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 				 * to insert_delta. */
 				start++;
 				end++;
-				_vte_ring_insert_preserve(terminal->pvt->screen->row_data,
+				if (terminal->pvt->free_row) {
+					row = _vte_reset_row_data (terminal,
+							terminal->pvt->free_row,
+							TRUE);
+				} else {
+					row = _vte_new_row_data_sized(terminal, TRUE);
+				}
+				terminal->pvt->free_row = _vte_ring_insert_preserve(terminal->pvt->screen->row_data,
 							  screen->cursor_current.row,
 							  row);
 				/* This may generate multiple redraws, so
@@ -2815,21 +2844,27 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 				  GQuark match_quark,
 				  GValueArray *params)
 {
-	VteRowData *rowdata;
+	VteRowData *rowdata, *old_row;
 	long i, initial, row;
 	VteScreen *screen;
 	screen = terminal->pvt->screen;
 	initial = screen->insert_delta;
 	row = screen->cursor_current.row - screen->insert_delta;
 	/* Add a new screen's worth of rows. */
+	old_row = terminal->pvt->free_row;
 	for (i = 0; i < terminal->row_count; i++) {
 		/* Add a new row */
 		if (i == 0) {
 			initial = _vte_ring_next(screen->row_data);
 		}
-		rowdata = _vte_new_row_data_sized(terminal, TRUE);
-		_vte_ring_append(screen->row_data, rowdata);
+		if (old_row) {
+			rowdata = _vte_reset_row_data (terminal, old_row, TRUE);
+		} else {
+			rowdata = _vte_new_row_data_sized(terminal, TRUE);
+		}
+		old_row = _vte_ring_append(screen->row_data, rowdata);
 	}
+	terminal->pvt->free_row = old_row;
 	/* Move the cursor and insertion delta to the first line in the
 	 * newly-cleared area and scroll if need be. */
 	screen->insert_delta = initial;
@@ -3578,7 +3613,7 @@ vte_sequence_handler_screen_alignment_test(VteTerminal *terminal,
 					   GValueArray *params)
 {
 	long row;
-	VteRowData *rowdata;
+	VteRowData *rowdata, *old_row;
 	VteScreen *screen;
 	struct vte_charcell cell;
 
@@ -3588,10 +3623,16 @@ vte_sequence_handler_screen_alignment_test(VteTerminal *terminal,
 	     row < terminal->pvt->screen->insert_delta + terminal->row_count;
 	     row++) {
 		/* Find this row. */
+		old_row = terminal->pvt->free_row;
 		while (_vte_ring_next(screen->row_data) <= row) {
-			rowdata = _vte_new_row_data(terminal);
-			_vte_ring_append(screen->row_data, rowdata);
+			if (old_row) {
+				rowdata = _vte_reset_row_data (terminal, old_row, FALSE);
+			} else {
+				rowdata = _vte_new_row_data(terminal);
+			}
+			old_row = _vte_ring_append(screen->row_data, rowdata);
 		}
+		terminal->pvt->free_row = old_row;
 		_vte_terminal_adjust_adjustments(terminal, TRUE);
 		rowdata = _vte_ring_index(screen->row_data, VteRowData *, row);
 		g_assert(rowdata != NULL);

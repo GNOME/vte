@@ -1,3 +1,25 @@
+2007-02-05  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	cf Bug 342338 – suffers from memory fragmentation
+
+	Reuse the last VteRowData instead of immediately freeing it. Avoids
+	recreating and *regrowing* a new GArray on the heap.
+
+	In the simple scrolling benchmarks this can boost performance by as
+	much as 10%!
+
+	* src/ring.c: (_vte_ring_insert), (_vte_ring_insert_preserve),
+	(_vte_ring_remove), (_vte_ring_append):
+	* src/ring.h:
+	* src/vte-private.h:
+	* src/vte.c: (_vte_reset_row_data), (_vte_terminal_ensure_cursor),
+	(_vte_terminal_insert_char), (vte_terminal_reset_rowdata):
+	* src/vteseq.c: (vte_insert_line_internal),
+	(vte_sequence_handler_scroll_up_or_down),
+	(vte_sequence_handler_cd), (vte_sequence_handler_sf),
+	(vte_sequence_handler_clear_screen),
+	(vte_sequence_handler_screen_alignment_test):
+
 2007-02-04  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	A few more compiler warnings.

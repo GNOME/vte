@@ -65,10 +65,10 @@ VteRing *_vte_ring_new(glong max_elements,
 		      gpointer data);
 VteRing *_vte_ring_new_with_delta(glong max_elements, glong delta,
 				  VteRingFreeFunc free, gpointer data);
-void _vte_ring_insert(VteRing *ring, glong position, gpointer data);
-void _vte_ring_insert_preserve(VteRing *ring, glong position, gpointer data);
-void _vte_ring_remove(VteRing *ring, glong position, gboolean free_element);
-void _vte_ring_append(VteRing *ring, gpointer data);
+gpointer _vte_ring_insert(VteRing *ring, glong position, gpointer data);
+gpointer _vte_ring_insert_preserve(VteRing *ring, glong position, gpointer data);
+gpointer _vte_ring_remove(VteRing *ring, glong position, gboolean free_element);
+gpointer _vte_ring_append(VteRing *ring, gpointer data);
 void _vte_ring_free(VteRing *ring, gboolean free_elements);
 
 G_END_DECLS

@@ -285,6 +285,19 @@ _vte_new_row_data_sized(VteTerminal *terminal, gboolean fill)
 	return row;
 }
 
+VteRowData *
+_vte_reset_row_data (VteTerminal *terminal, VteRowData *row, gboolean fill)
+{
+	g_array_set_size (row->cells, 0);
+	row->soft_wrapped = 0;
+	if (fill) {
+		vte_g_array_fill(row->cells,
+				&terminal->pvt->screen->fill_defaults,
+				terminal->column_count);
+	}
+	return row;
+}
+
 /* Reset defaults for character insertion. */
 void
 _vte_terminal_set_default_attributes(VteTerminal *terminal)
@@ -1667,17 +1680,24 @@ _vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 	delta = screen->cursor_current.row - _vte_ring_next(screen->row_data) + 1;
 	if (delta > 0) {
 		gboolean fill;
+		VteRowData *old_row;
 
 		fill = screen->defaults.back != VTE_DEF_BG;
+		old_row = terminal->pvt->free_row;
 		do {
-			/* Create a new row. */
-			if (fill) {
-				row = _vte_new_row_data_sized(terminal, TRUE);
+			if (old_row) {
+				row = _vte_reset_row_data (terminal, old_row, fill);
 			} else {
-				row = _vte_new_row_data(terminal);
+				/* Create a new row. */
+				if (fill) {
+					row = _vte_new_row_data_sized(terminal, TRUE);
+				} else {
+					row = _vte_new_row_data(terminal);
+				}
 			}
-			_vte_ring_append(screen->row_data, row);
+			old_row = _vte_ring_append(screen->row_data, row);
 		} while(--delta);
+		terminal->pvt->free_row = old_row;
 		_vte_terminal_adjust_adjustments(terminal, FALSE);
 	} else {
 		/* Find the row the cursor is in. */
@@ -2289,9 +2309,9 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			if (i == 0) {
 				/* This is an entire character or the first column of
 				 * a multi-column character. */
-				if ((cell.c != 0) &&
-						(c == '_') &&
-						(terminal->pvt->flags.ul)) {
+				if (G_UNLIKELY (cell.c != 0 &&
+						c == '_' &&
+						terminal->pvt->flags.ul)) {
 					/* Handle overstrike-style underlining. */
 					cell.underline = 1;
 				} else {
@@ -6624,7 +6644,10 @@ vte_terminal_reset_rowdata(VteRing **ring, glong lines)
 		next = _vte_ring_next(*ring);
 		for (i = _vte_ring_delta(*ring); i < next; i++) {
 			row = _vte_ring_index(*ring, VteRowData *, i);
-			_vte_ring_append(new_ring, row);
+			row = _vte_ring_append(new_ring, row);
+			if (row) {
+				vte_free_row_data (row, NULL);
+			}
 		}
 		_vte_ring_free(*ring, FALSE);
 	}
@@ -7142,6 +7165,9 @@ vte_terminal_finalize(GObject *object)
 	/* Clear the output histories. */
 	_vte_ring_free(terminal->pvt->normal_screen.row_data, TRUE);
 	_vte_ring_free(terminal->pvt->alternate_screen.row_data, TRUE);
+	if (terminal->pvt->free_row) {
+		vte_free_row_data (terminal->pvt->free_row, NULL);
+	}
 
 	/* Clear the status lines. */
 	g_string_free(terminal->pvt->normal_screen.status_line_contents,
