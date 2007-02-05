@@ -209,7 +209,7 @@ _vte_matcher_match(struct _vte_matcher *matcher,
 		   const char **res, const gunichar **consumed,
 		   GQuark *quark, GValueArray **array)
 {
-	if (matcher->free_params != NULL) {
+	if (G_UNLIKELY (array != NULL && matcher->free_params != NULL)) {
 		*array = matcher->free_params;
 		matcher->free_params = NULL;
 	}

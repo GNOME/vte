@@ -2897,16 +2897,12 @@ vte_terminal_emit_pending_text_signals(VteTerminal *terminal, GQuark quark)
 static gboolean
 vte_terminal_process_incoming(VteTerminal *terminal)
 {
-	GValueArray *params = NULL;
 	VteScreen *screen;
 	struct vte_cursor_position cursor;
 	gboolean cursor_visible;
 	GdkPoint bbox_topleft, bbox_bottomright;
 	gunichar *wbuf, c;
 	long wcount, start;
-	const char *match;
-	GQuark quark;
-	const gunichar *next;
 	gboolean leftovers, modified, bottom, inserted, again;
 	gboolean invalidated_text;
 	GArray *unichars;
@@ -3008,7 +3004,12 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
 	bbox_topleft.x = bbox_topleft.y = G_MAXINT;
 
-	while ((start < wcount) && !leftovers && !again) {
+	while (start < wcount && !leftovers && !again) {
+		const char *match;
+		GQuark quark;
+		const gunichar *next;
+		GValueArray *params = NULL;
+
 		/* Try to match any control sequences. */
 		_vte_matcher_match(terminal->pvt->matcher,
 				   &wbuf[start],
@@ -3102,7 +3103,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 					/* Move the control character to the
 					 * front. */
 					wbuf[i] = ctrl;
-					continue;
+					goto next_match;
 				}
 			}
 			_VTE_DEBUG_IF(VTE_DEBUG_PARSE) {
@@ -3179,6 +3180,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 		g_assert(screen->cursor_current.row >= screen->insert_delta);
 #endif
 
+next_match:
 		if (G_UNLIKELY(params != NULL)) {
 			/* Free any parameters we don't care about any more. */
 			_vte_matcher_free_params_array(terminal->pvt->matcher,

@@ -1,5 +1,14 @@
 2007-02-05  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Beware the trivial change. Handle reuse of GValueArray correctly.
+
+	* src/matcher.c: (_vte_matcher_match):
+	* src/table.c: (_vte_table_match):
+	* src/trie.c: (_vte_trie_match):
+	* src/vte.c: (vte_terminal_process_incoming):
+
+2007-02-05  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/table.c: (_vte_table_match):
 		And kill the leak as vte_table_match erroneously cleared
 		its output arguments.

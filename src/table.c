@@ -617,16 +617,16 @@ _vte_table_match(struct _vte_table *table,
 	/* Clean up extracted parameters. */
 	if (G_UNLIKELY (res == NULL)) {
 		res = &dummy_res;
-		dummy_res = NULL;
 	}
+	*res = NULL;
 	if (G_UNLIKELY (consumed == NULL)) {
 		consumed = &dummy_consumed;
 	}
 	*consumed = candidate;
 	if (G_UNLIKELY (quark == NULL)) {
 		quark = &dummy_quark;
-		dummy_quark = 0;
 	}
+	*quark = 0;
 	if (G_UNLIKELY (array == NULL)) {
 		dummy_array = NULL;
 		array = &dummy_array;

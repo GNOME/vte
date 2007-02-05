@@ -685,7 +685,11 @@ _vte_trie_match(struct _vte_trie *trie, const gunichar *pattern, gsize length,
 	gboolean greedy = FALSE;
 	guint i;
 
-	valuearray = g_value_array_new(0);
+	if (array != NULL && *array != NULL) {
+		valuearray = *array;
+	} else {
+		valuearray = g_value_array_new(0);
+	}
 	if (quark == NULL) {
 		quark = &tmpquark;
 	}
@@ -708,15 +712,12 @@ _vte_trie_match(struct _vte_trie *trie, const gunichar *pattern, gsize length,
 					g_value_set_pointer(value, NULL);
 				}
 			}
-			_vte_matcher_free_params_array(NULL, valuearray);
-		}
-		if (array != NULL) {
-			*array = NULL;
+			if (array == NULL || valuearray != *array) {
+				_vte_matcher_free_params_array(NULL, valuearray);
+			}
 		}
 	} else {
-		if (array != NULL) {
-			*array = valuearray;
-		} else {
+		if (array == NULL) {
 			_vte_matcher_free_params_array(NULL, valuearray);
 		}
 	}
