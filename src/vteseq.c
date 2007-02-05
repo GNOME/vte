@@ -493,6 +493,8 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
+		/* 12: disallowed, cursor blinks is set by user. */
+		{12, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 18: print form feed. */
 		/* 19: set print extent to full screen. */
 		/* 25: Cursor visible. */
