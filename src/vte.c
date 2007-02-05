@@ -2194,7 +2194,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 	/* If we've enabled the special drawing set, map the characters to
 	 * Unicode. */
-	if (screen->defaults.alternate) {
+	if (G_UNLIKELY (screen->defaults.alternate)) {
 		_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
 				"Attempting charset substitution"
 				"for 0x%04x.\n", c);
@@ -2215,7 +2215,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 
 	/* Figure out how many columns this character should occupy. */
-	if (forced_width == 0) {
+	if (G_LIKELY (forced_width == 0)) {
 		if (VTE_ISO2022_HAS_ENCODED_WIDTH(c)) {
 			columns = _vte_iso2022_get_encoded_width(c);
 		} else {
