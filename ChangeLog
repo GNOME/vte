@@ -1,5 +1,12 @@
 2007-02-06  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	As noted on bug 324246#c8, hide the hilite when the focus disappears.
+	Depend upon motion-notify events to show the hilite.
+
+	* src/vte.c: (vte_terminal_focus_out):
+
+2007-02-06  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Convert the exposed rectangles to cells and remerge them.
 
 	* src/vte.c: (vte_terminal_expand_region),
