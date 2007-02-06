@@ -1,5 +1,11 @@
 2007-02-06  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c: (vte_terminal_draw_rows):
+		Don't needlessly break the text run on a space if we are
+		not drawing cell attributes.
+
+2007-02-06  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/iso2022.c: (_vte_iso2022_is_ambiguous_ht):
 		One more G_UNLIKELY
 	* src/vte.c: (vte_terminal_match_hilite),

@@ -8917,7 +8917,17 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					if (cell == NULL ||
 							cell->c == 0 ||
 							cell->c == ' ') {
-						break;
+						/* only break the run if we
+						 * are drawing attributes
+						 */
+						if (underline ||
+								strikethrough ||
+								hilite) {
+							break;
+						} else {
+							j++;
+							continue;
+						}
 					}
 					/* Don't render blank cells or fragments of multicolumn characters
 					 * which have the same attributes as the initial
