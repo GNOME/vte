@@ -9040,11 +9040,12 @@ fg_out:
 }
 
 static void
-vte_terminal_paint_area (VteTerminal *terminal, GdkRectangle *area)
+vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, GdkRectangle *area)
 {
 	VteScreen *screen;
 	int width, height, delta;
 	int row, col, row_stop, col_stop;
+	GdkRectangle rect;
 
 	screen = terminal->pvt->screen;
 
@@ -9062,6 +9063,52 @@ vte_terminal_paint_area (VteTerminal *terminal, GdkRectangle *area)
 	}
 	col = MAX(0, (area->x - VTE_PAD_WIDTH - 1) / width);
 	col_stop = MIN(howmany(area->width + area->x - VTE_PAD_WIDTH + 1, width),
+		       terminal->column_count);
+	if (col_stop <= col) {
+		return;
+	}
+
+	_vte_debug_print (VTE_DEBUG_UPDATES,
+			"vte_terminal_expand_region"
+			"	(%d,%d)x(%d,%d) pixels,"
+			" (%d,%d)x(%d,%d) cells"
+			" [(%d,%d)x(%d,%d) pixels]\n",
+			area->x, area->y, area->width, area->height,
+			col, row, col_stop - col, row_stop - row,
+			col * width, row * height,
+			(col_stop - col) * width,
+			(row_stop - row) * height);
+
+	rect.x = col*width + VTE_PAD_WIDTH;
+	rect.width = (col_stop - col + 1)*width;
+	rect.y = row*height + VTE_PAD_WIDTH;
+	rect.height = (row_stop - row + 1)*height;
+	gdk_region_union_with_rect(region, &rect);
+}
+
+static void
+vte_terminal_paint_area (VteTerminal *terminal, GdkRectangle *area)
+{
+	VteScreen *screen;
+	int width, height, delta;
+	int row, col, row_stop, col_stop;
+
+	screen = terminal->pvt->screen;
+
+	width = terminal->char_width;
+	height = terminal->char_height;
+	delta = screen->scroll_delta;
+
+	/* increase the paint by one pixel on all sides to force the
+	 * inclusion of neighbouring cells */
+	row = MAX(0, (area->y - VTE_PAD_WIDTH) / height);
+	row_stop = MIN(howmany(area->height + area->y - VTE_PAD_WIDTH, height),
+		       terminal->row_count);
+	if (row_stop <= row) {
+		return;
+	}
+	col = MAX(0, (area->x - VTE_PAD_WIDTH) / width);
+	col_stop = MIN(howmany(area->width + area->x - VTE_PAD_WIDTH, width),
 		       terminal->column_count);
 	if (col_stop <= col) {
 		return;
@@ -9107,7 +9154,6 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 	int preedit_cursor;
 	long width, height, ascent, descent, delta, cursor_width;
 	int i, len, fore, back, x, y;
-	GdkRectangle all_area, selected_area;
 	gboolean blink, selected;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_paint()\n");
@@ -9117,6 +9163,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 
 	/* Update whole selection if terminal is in block mode. */
 	if (terminal->pvt->has_selection && terminal->pvt->block_mode) {
+		GdkRectangle selected_area;
 		selected_area.x = terminal->pvt->selection_start.x *
 				  terminal->char_width;
 		selected_area.y = terminal->pvt->selection_start.y *
@@ -9165,17 +9212,27 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 
 	/* Calculate the bounding rectangle. */
 	if (!_vte_draw_clip(terminal->pvt->draw, region)) {
-		all_area.x = 0;
-		all_area.y = 0;
-		all_area.width = terminal->char_width * terminal->column_count;
-		all_area.width += 2 * VTE_PAD_WIDTH;
-		all_area.height = terminal->char_height * terminal->row_count;
-		all_area.height += 2 * VTE_PAD_WIDTH;
-		vte_terminal_paint_area (terminal, &all_area);
+		vte_terminal_paint_area (terminal,
+				&terminal->widget.allocation);
 	} else {
 		GdkRectangle *rectangles;
 		gint n, n_rectangles;
 		gdk_region_get_rectangles (region, &rectangles, &n_rectangles);
+		/* don't bother to enlarge an invalidate all */
+		if (!(n_rectangles == 1
+				&& rectangles[0].width == terminal->widget.allocation.width
+				&& rectangles[0].height == terminal->widget.allocation.height)) {
+			GdkRegion *rr = gdk_region_new ();
+			/* convert pixels into cells */
+			for (n = 0; n < n_rectangles; n++) {
+				vte_terminal_expand_region (
+						terminal, rr, rectangles + n);
+			}
+			g_free (rectangles);
+			gdk_region_get_rectangles (rr, &rectangles, &n_rectangles);
+			gdk_region_destroy (rr);
+		}
+		/* and now paint them */
 		for (n = 0; n < n_rectangles; n++) {
 			vte_terminal_paint_area (terminal, rectangles + n);
 		}

@@ -1,5 +1,12 @@
 2007-02-06  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Convert the exposed rectangles to cells and remerge them.
+
+	* src/vte.c: (vte_terminal_expand_region),
+	(vte_terminal_paint_area), (vte_terminal_paint):
+
+2007-02-06  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	As noted on Bug 401052#c13, vte fails to completely clear the cell's
 	previous contents.
 
