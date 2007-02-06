@@ -832,7 +832,7 @@ vte_terminal_emit_char_size_changed(VteTerminal *terminal,
 }
 
 /* Emit a "status-line-changed" signal. */
-void
+static void
 _vte_terminal_emit_status_line_changed(VteTerminal *terminal)
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
@@ -2240,7 +2240,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	/* If this character is destined for the status line, save it. */
 	if (G_UNLIKELY (screen->status_line)) {
 		g_string_append_unichar(screen->status_line_contents, c);
-		_vte_terminal_emit_status_line_changed(terminal);
+		screen->status_line_changed = TRUE;
 		return;
 	}
 
@@ -10824,12 +10824,14 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	}
 	/* Clear the status lines. */
 	terminal->pvt->normal_screen.status_line = FALSE;
+	terminal->pvt->normal_screen.status_line_changed = FALSE;
 	if (terminal->pvt->normal_screen.status_line_contents != NULL) {
 		g_string_free(terminal->pvt->normal_screen.status_line_contents,
 			      TRUE);
 	}
 	terminal->pvt->normal_screen.status_line_contents = g_string_new(NULL);
 	terminal->pvt->alternate_screen.status_line = FALSE;
+	terminal->pvt->alternate_screen.status_line_changed = FALSE;
 	if (terminal->pvt->alternate_screen.status_line_contents != NULL) {
 		g_string_free(terminal->pvt->alternate_screen.status_line_contents,
 			      TRUE);
@@ -11344,6 +11346,11 @@ static void
 vte_terminal_emit_pending_signals(VteTerminal *terminal)
 {
 	vte_terminal_emit_adjustment_changed (terminal);
+
+	if (terminal->pvt->screen->status_line_changed) {
+		_vte_terminal_emit_status_line_changed (terminal);
+		terminal->pvt->screen->status_line_changed = FALSE;
+	}
 
 	if (terminal->pvt->window_title_changed) {
 		g_free (terminal->window_title);

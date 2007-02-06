@@ -1,5 +1,14 @@
 2007-02-06  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Move status_line_changed to post-processing emission.
+
+	* src/vte-private.h:
+	* src/vte.c: (_vte_terminal_insert_char), (vte_terminal_reset),
+	(vte_terminal_emit_pending_signals):
+	* src/vteseq.c: (vte_sequence_handler_ts):
+
+2007-02-06  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Clamp down on needless invalidates during selection.
 
 	As commented on in Bug 401052#c10

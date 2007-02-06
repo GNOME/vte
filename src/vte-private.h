@@ -231,6 +231,7 @@ struct _VteTerminalPrivate {
 		struct vte_charcell basic_defaults;	/* original defaults */
 		gboolean status_line;
 		GString *status_line_contents;
+		gboolean status_line_changed;
 	} normal_screen, alternate_screen, *screen;
 	VteRowData *free_row;
 
@@ -379,7 +380,6 @@ VteRowData * _vte_new_row_data_sized(VteTerminal *terminal, gboolean fill);
 VteRowData * _vte_reset_row_data (VteTerminal *terminal, VteRowData *row, gboolean fill);
 void _vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate);
 void _vte_terminal_emit_contents_changed(VteTerminal *terminal);
-void _vte_terminal_emit_status_line_changed(VteTerminal *terminal);
 void _vte_terminal_emit_text_deleted(VteTerminal *terminal);
 void _vte_terminal_emit_text_inserted(VteTerminal *terminal);
 void _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
