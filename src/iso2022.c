@@ -289,7 +289,7 @@ static gboolean
 _vte_iso2022_is_ambiguous_ht(gunichar c)
 {
 	static GHashTable *ambiguous;
-	if (!ambiguous) {
+	if (G_UNLIKELY (ambiguous == NULL)) {
 		gpointer p;
 		gsize i;
 		ambiguous = g_hash_table_new (NULL, NULL);

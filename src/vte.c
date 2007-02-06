@@ -4696,6 +4696,12 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 	width = terminal->char_width;
 	height = terminal->char_height;
 
+	/* if the cursor is not above a cell, skip */
+	if (x < 0 || x > terminal->widget.allocation.width
+			|| y < 0 || y > terminal->widget.allocation.height) {
+		return;
+	}
+
 	/* If the pointer hasn't moved to another character cell, then we
 	 * need do nothing. */
 	if ((x / width == terminal->pvt->mouse_last_x / width) &&
@@ -5695,12 +5701,24 @@ vte_terminal_stop_autoscroll(VteTerminal *terminal)
 }
 
 /* Read and handle a motion event. */
-static gint
+static gboolean
 vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 {
 	VteTerminal *terminal;
 	GdkModifierType modifiers;
 	gboolean event_mode;
+
+	/* check to see if we care */
+	if (event->window != widget->window ||
+			event->x < 0 || event->x >= widget->allocation.width ||
+			event->y < 0 || event->y >= widget->allocation.height) {
+		return FALSE;
+	}
+
+	/* check to see if it matters */
+	if (!GTK_WIDGET_DRAWABLE(widget)) {
+		return TRUE;
+	}
 
 	terminal = VTE_TERMINAL(widget);
 
