@@ -1,5 +1,14 @@
 2007-02-06  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	And finally as noted on bug 324246#c8 hide the hilite when the mouse
+	leaves the terminal (show again when it enters and let motion-notify
+	correct it later).
+
+	* src/vte.c: (vte_terminal_enter), (vte_terminal_leave),
+	(vte_terminal_realize), (vte_terminal_class_init):
+
+2007-02-06  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	As noted on bug 324246#c8, hide the hilite when the focus disappears.
 	On focus restore the match for the last mouse coordinates and let
 	motion-notify take care of the rest.

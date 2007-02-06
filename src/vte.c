@@ -6090,7 +6090,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 }
 
 /* Handle receiving or losing focus. */
-static gint
+static gboolean
 vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 {
 	VteTerminal *terminal;
@@ -6126,7 +6126,7 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 	return FALSE;
 }
 
-static gint
+static gboolean
 vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 {
 	VteTerminal *terminal;
@@ -6150,6 +6150,37 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 		remove_cursor_timeout (terminal);
 
 	return FALSE;
+}
+
+static gboolean
+vte_terminal_enter(GtkWidget *widget, GdkEventCrossing *event)
+{
+	gboolean ret = FALSE;
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Enter.\n");
+	if (GTK_WIDGET_CLASS (vte_terminal_parent_class)->enter_notify_event) {
+		ret = GTK_WIDGET_CLASS (vte_terminal_parent_class)->enter_notify_event (widget, event);
+	}
+	if (GTK_WIDGET_REALIZED (widget)) {
+		VteTerminal *terminal = VTE_TERMINAL (widget);
+		vte_terminal_match_hilite_update (terminal,
+				terminal->pvt->mouse_last_x,
+				terminal->pvt->mouse_last_y);
+	}
+	return ret;
+}
+static gboolean
+vte_terminal_leave(GtkWidget *widget, GdkEventCrossing *event)
+{
+	gboolean ret = FALSE;
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Leave.\n");
+	if (GTK_WIDGET_CLASS (vte_terminal_parent_class)->leave_notify_event) {
+		ret = GTK_WIDGET_CLASS (vte_terminal_parent_class)->leave_notify_event (widget, event);
+	}
+	if (GTK_WIDGET_REALIZED (widget)) {
+		VteTerminal *terminal = VTE_TERMINAL (widget);
+		vte_terminal_match_hilite_clear (terminal);
+	}
+	return ret;
 }
 
 static gboolean
@@ -7333,6 +7364,8 @@ vte_terminal_realize(GtkWidget *widget)
 				GDK_BUTTON_RELEASE_MASK |
 				GDK_POINTER_MOTION_MASK |
 				GDK_BUTTON1_MOTION_MASK |
+				GDK_ENTER_NOTIFY_MASK |
+				GDK_LEAVE_NOTIFY_MASK |
 				GDK_KEY_PRESS_MASK |
 				GDK_KEY_RELEASE_MASK;
 	attributes.cursor = terminal->pvt->mouse_default_cursor;
@@ -9694,6 +9727,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	widget_class->button_press_event = vte_terminal_button_press;
 	widget_class->button_release_event = vte_terminal_button_release;
 	widget_class->motion_notify_event = vte_terminal_motion_notify;
+	widget_class->enter_notify_event = vte_terminal_enter;
+	widget_class->leave_notify_event = vte_terminal_leave;
 	widget_class->focus_in_event = vte_terminal_focus_in;
 	widget_class->focus_out_event = vte_terminal_focus_out;
 	widget_class->visibility_notify_event = vte_terminal_visibility_notify;
