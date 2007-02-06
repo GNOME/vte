@@ -384,11 +384,11 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	 * by multiplying by the size of a character cell.
 	 * Always include the extra pixel border.
 	 */
-	rect.x = column_start * terminal->char_width;
-	rect.width = column_count * terminal->char_width + 2*VTE_PAD_WIDTH;
+	rect.x = column_start * terminal->char_width - VTE_PAD_WIDTH;
+	rect.width = column_count * terminal->char_width + 4*VTE_PAD_WIDTH;
 
-	rect.y = row_start * terminal->char_height;
-	rect.height = row_count * terminal->char_height + 2*VTE_PAD_WIDTH;
+	rect.y = row_start * terminal->char_height - VTE_PAD_WIDTH;
+	rect.height = row_count * terminal->char_height + 4*VTE_PAD_WIDTH;
 
 	terminal->pvt->update_regions = g_slist_prepend (
 			terminal->pvt->update_regions,

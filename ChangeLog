@@ -1,5 +1,14 @@
 2007-02-06  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	As noted on Bug 401052#c13, vte fails to completely clear the cell's
+	previous contents.
+
+	* src/vte.c: (_vte_invalidate_cells):
+		Grow the invalidate region by a single pixel to accomodate
+		antialiased pseudo-bold characters.
+
+2007-02-06  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Move status_line_changed to post-processing emission.
 
 	* src/vte-private.h:
