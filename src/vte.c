@@ -401,6 +401,28 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	_vte_debug_print (VTE_DEBUG_WORK, "!");
 }
 
+static void
+_vte_invalidate_region (VteTerminal *terminal, glong scolumn, glong ecolumn, glong srow, glong erow, gboolean block)
+{
+	if (block || srow == erow) {
+		_vte_invalidate_cells(terminal,
+				scolumn, ecolumn - scolumn + 1,
+				srow, erow - srow + 1);
+	} else {
+		_vte_invalidate_cells(terminal,
+				scolumn,
+				terminal->column_count - scolumn,
+				srow, 1);
+		_vte_invalidate_cells(terminal,
+				0, terminal->column_count,
+				srow + 1, erow - srow - 1);
+		_vte_invalidate_cells(terminal,
+				0, ecolumn + 1,
+				erow, 1);
+	}
+}
+
+
 /* Redraw the entire visible portion of the window. */
 void
 _vte_invalidate_all(VteTerminal *terminal)
@@ -889,11 +911,19 @@ static void
 vte_terminal_deselect_all(VteTerminal *terminal)
 {
 	if (terminal->pvt->has_selection) {
+		gint sx, sy, ex, ey;
 		terminal->pvt->has_selection = FALSE;
 		_vte_debug_print(VTE_DEBUG_SELECTION,
 				"Deselecting all text.\n");
 		vte_terminal_emit_selection_changed(terminal);
-		_vte_invalidate_all(terminal);
+		sx = terminal->pvt->selection_start.x;
+		sy = terminal->pvt->selection_start.y;
+		ex = terminal->pvt->selection_end.x;
+		ey = terminal->pvt->selection_end.y;
+		_vte_invalidate_region(terminal,
+				MIN (sx, ex), MAX (sx, ex),
+				MIN (sy, ey),   MAX (sy, ey),
+				FALSE);
 	}
 }
 
@@ -4614,27 +4644,6 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	vte_terminal_feed_child_binary(terminal, buf, len);
 }
 
-static void
-_vte_invalidate_region (VteTerminal *terminal, glong scolumn, glong ecolumn, glong srow, glong erow, gboolean block)
-{
-	if (block || srow == erow) {
-		_vte_invalidate_cells(terminal,
-				scolumn, ecolumn - scolumn + 1,
-				srow, erow - srow + 1);
-	} else {
-		_vte_invalidate_cells(terminal,
-				scolumn,
-				terminal->column_count - scolumn,
-				srow, 1);
-		_vte_invalidate_cells(terminal,
-				0, terminal->column_count,
-				srow + 1, erow - srow - 1);
-		_vte_invalidate_cells(terminal,
-				0, ecolumn + 1,
-				erow, 1);
-	}
-}
-
 /* Clear all match hilites. */
 static void
 vte_terminal_match_hilite_clear(VteTerminal *terminal)
@@ -4650,7 +4659,7 @@ vte_terminal_match_hilite_clear(VteTerminal *terminal)
 	terminal->pvt->match_end.column = -2;
 	if ((srow < erow) || ((srow == erow) && (scolumn < ecolumn))) {
 		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Repainting (%ld,%ld) to (%ld,%ld).\n",
+				"Clearing hilite (%ld,%ld) to (%ld,%ld).\n",
 				srow, scolumn, erow, ecolumn);
 		_vte_invalidate_region (terminal,
 				scolumn, ecolumn, srow, erow, FALSE);
@@ -5227,10 +5236,6 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 	terminal->pvt->selection_type = selection_type;
 	terminal->pvt->selecting = TRUE;
 
-	/* Draw the row the selection started on. */
-	_vte_invalidate_cells(terminal,
-			     0, terminal->column_count,
-			     terminal->pvt->selection_start.y, 1);
 	_vte_debug_print(VTE_DEBUG_SELECTION,
 			"Selection started at (%ld,%ld).\n",
 			terminal->pvt->selection_start.x,
@@ -5253,12 +5258,13 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 	struct selection_event_coords *origin, *last, *start, *end;
 	struct selection_cell_coords old_start, old_end, *sc, *ec, tc;
 	gboolean invalidate_selected = FALSE;
+	gboolean had_selection;
 
 	screen = terminal->pvt->screen;
-	old_start = terminal->pvt->selection_start;
-	old_end = terminal->pvt->selection_end;
 	height = terminal->char_height;
 	width = terminal->char_width;
+	old_start = terminal->pvt->selection_start;
+	old_end = terminal->pvt->selection_end;
 
 	/* Convert the event coordinates to cell coordinates. */
 	delta = screen->scroll_delta;
@@ -5278,6 +5284,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 	}
 
 	/* Recognize that we've got a selected block. */
+	had_selection = terminal->pvt->has_selection;
 	terminal->pvt->has_selection = TRUE;
 	terminal->pvt->selecting_had_delta = TRUE;
 	terminal->pvt->selecting_restart = FALSE;
@@ -5542,19 +5549,21 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 			ec->x = sc->x;
 			sc->x = tc.x;
 		}
-		_vte_invalidate_cells(terminal,
-				      0, terminal->column_count,
-				      /* MIN(terminal->pvt->selection_start.x, old_start.x),
-				       * MAX(terminal->pvt->selection_end.x, old_end.x), */
-				      MIN(old_start.y, terminal->pvt->selection_start.y),
-				      MAX(old_end.y, terminal->pvt->selection_end.y) -
-				      MIN(old_start.y, terminal->pvt->selection_start.y) + 1);
+		if (had_selection) {
+			_vte_invalidate_region(terminal,
+					MIN(terminal->pvt->selection_start.x, old_start.x),
+					MAX(terminal->pvt->selection_end.x, old_end.x),
+					MIN(old_start.y, terminal->pvt->selection_start.y),
+					MAX(old_end.y, terminal->pvt->selection_end.y),
+					TRUE);
+		}
+
 		terminal->pvt->had_block_mode = FALSE;
 	}
 
 	/* Redraw the rows which contain cells which have changed their
 	 * is-selected status. */
-	if (!terminal->pvt->block_mode &&
+	if (!terminal->pvt->block_mode && had_selection &&
 	    ((old_start.x != terminal->pvt->selection_start.x) ||
 	    (old_start.y != terminal->pvt->selection_start.y))) {
 		_vte_debug_print(VTE_DEBUG_SELECTION,
@@ -5563,32 +5572,26 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 				    terminal->pvt->selection_start.y),
 				MAX(old_start.y,
 				    terminal->pvt->selection_start.y));
-		_vte_invalidate_cells(terminal,
-				     0,
-				     terminal->column_count,
-				     MIN(old_start.y,
-					 terminal->pvt->selection_start.y),
-				     MAX(old_start.y,
-					 terminal->pvt->selection_start.y) -
-				     MIN(old_start.y,
-					 terminal->pvt->selection_start.y) + 1);
+		_vte_invalidate_region(terminal,
+				MIN (old_start.x, terminal->pvt->selection_start.x),
+				MAX (old_start.x, terminal->pvt->selection_start.x),
+				MIN (old_start.y, terminal->pvt->selection_start.y),
+				MAX (old_start.y, terminal->pvt->selection_start.y),
+				FALSE);
 	}
-	if (!terminal->pvt->block_mode &&
+	if (!terminal->pvt->block_mode && had_selection &&
 	    ((old_end.x != terminal->pvt->selection_end.x) ||
 	    (old_end.y != terminal->pvt->selection_end.y))) {
 		_vte_debug_print(VTE_DEBUG_SELECTION,
 			"Refreshing selection, lines %ld to %ld.\n",
 				MIN(old_end.y, terminal->pvt->selection_end.y),
 				MAX(old_end.y, terminal->pvt->selection_end.y));
-		_vte_invalidate_cells(terminal,
-				     0,
-				     terminal->column_count,
-				     MIN(old_end.y,
-					 terminal->pvt->selection_end.y),
-				     MAX(old_end.y,
-					 terminal->pvt->selection_end.y) -
-				     MIN(old_end.y,
-					 terminal->pvt->selection_end.y) + 1);
+		_vte_invalidate_region(terminal,
+				MIN (old_end.x, terminal->pvt->selection_end.x),
+				MAX (old_end.x, terminal->pvt->selection_end.x),
+				MIN (old_end.y, terminal->pvt->selection_end.y),
+				MAX (old_end.y, terminal->pvt->selection_end.y),
+				FALSE);
 	}
 	if (invalidate_selected) {
 		_vte_debug_print(VTE_DEBUG_SELECTION,
@@ -5597,15 +5600,16 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 				    terminal->pvt->selection_end.y),
 				MAX(terminal->pvt->selection_start.y,
 				    terminal->pvt->selection_end.y));
-		_vte_invalidate_cells(terminal,
-				     0,
-				     terminal->column_count,
+		_vte_invalidate_region(terminal,
+				     MIN(terminal->pvt->selection_start.x,
+				         terminal->pvt->selection_end.x),
+				     MAX(terminal->pvt->selection_start.x,
+					 terminal->pvt->selection_end.x),
 				     MIN(terminal->pvt->selection_start.y,
 				         terminal->pvt->selection_end.y),
 				     MAX(terminal->pvt->selection_start.y,
-					 terminal->pvt->selection_end.y) -
-				     MIN(terminal->pvt->selection_start.y,
-				         terminal->pvt->selection_end.y) + 1);
+					 terminal->pvt->selection_end.y),
+				     terminal->pvt->block_mode);
 	}
 
 	_vte_debug_print(VTE_DEBUG_SELECTION,

@@ -1,5 +1,15 @@
 2007-02-06  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Clamp down on needless invalidates during selection.
+
+	As commented on in Bug 401052#c10
+
+	* src/vte.c: (_vte_invalidate_region), (vte_terminal_deselect_all),
+	(vte_terminal_match_hilite_clear), (vte_terminal_start_selection),
+	(vte_terminal_extend_selection):
+
+2007-02-06  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c: (vte_terminal_draw_rows):
 		Don't needlessly break the text run on a space if we are
 		not drawing cell attributes.
