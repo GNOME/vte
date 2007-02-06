@@ -71,6 +71,7 @@ static gboolean vte_terminal_io_write(GIOChannel *channel,
 				      GIOCondition condition,
 				      VteTerminal *terminal);
 static void vte_terminal_match_hilite_clear(VteTerminal *terminal);
+static void vte_terminal_match_hilite_update(VteTerminal *terminal, double x, double y);
 static gboolean vte_terminal_background_update(VteTerminal *data);
 static void vte_terminal_queue_background_update(VteTerminal *terminal);
 static void vte_terminal_queue_adjustment_changed(VteTerminal *terminal);
@@ -4692,9 +4693,9 @@ cursor_inside_match (VteTerminal *terminal, gdouble x, gdouble y)
 	}
 }
 
-/* Update the hilited text if the pointer has moved to a new character cell. */
+
 static void
-vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
+vte_terminal_match_hilite_update(VteTerminal *terminal, double x, double y)
 {
 	int start, end, width, height;
 	char *match;
@@ -4705,22 +4706,6 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 	width = terminal->char_width;
 	height = terminal->char_height;
 
-	/* if the cursor is not above a cell, skip */
-	if (x < 0 || x > terminal->widget.allocation.width
-			|| y < 0 || y > terminal->widget.allocation.height) {
-		return;
-	}
-
-	/* If the pointer hasn't moved to another character cell, then we
-	 * need do nothing. */
-	if ((x / width == terminal->pvt->mouse_last_x / width) &&
-	    (y / height == terminal->pvt->mouse_last_y / height)) {
-		return;
-	}
-
-	if (cursor_inside_match (terminal, x, y)) {
-		return;
-	}
 
 	/* Check for matches. */
 	screen = terminal->pvt->screen;
@@ -4769,6 +4754,34 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 				terminal->pvt->match_end.column,
 				terminal->pvt->match_end.row);
 	}
+}
+/* Update the hilited text if the pointer has moved to a new character cell. */
+static void
+vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
+{
+	int width, height;
+
+	width = terminal->char_width;
+	height = terminal->char_height;
+
+	/* if the cursor is not above a cell, skip */
+	if (x < 0 || x > terminal->widget.allocation.width
+			|| y < 0 || y > terminal->widget.allocation.height) {
+		return;
+	}
+
+	/* If the pointer hasn't moved to another character cell, then we
+	 * need do nothing. */
+	if ((x / width == terminal->pvt->mouse_last_x / width) &&
+	    (y / height == terminal->pvt->mouse_last_y / height)) {
+		return;
+	}
+
+	if (cursor_inside_match (terminal, x, y)) {
+		return;
+	}
+
+	vte_terminal_match_hilite_update(terminal, x, y);
 }
 
 
@@ -6104,6 +6117,10 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 		gtk_im_context_focus_in(terminal->pvt->im_context);
 		_vte_invalidate_cursor_once(terminal, FALSE);
 		_vte_terminal_set_pointer_visible(terminal, TRUE);
+
+		vte_terminal_match_hilite_update(terminal,
+				terminal->pvt->mouse_last_x,
+				terminal->pvt->mouse_last_y);
 	}
 
 	return FALSE;

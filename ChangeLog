@@ -1,9 +1,11 @@
 2007-02-06  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	As noted on bug 324246#c8, hide the hilite when the focus disappears.
-	Depend upon motion-notify events to show the hilite.
+	On focus restore the match for the last mouse coordinates and let
+	motion-notify take care of the rest.
 
-	* src/vte.c: (vte_terminal_focus_out):
+	* src/vte.c: (vte_terminal_match_hilite_update),
+	(vte_terminal_match_hilite), (vte_terminal_focus_in):
 
 2007-02-06  Chris Wilson  <chris@chris-wilson.co.uk>
 
