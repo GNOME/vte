@@ -2897,8 +2897,8 @@ vte_sequence_handler_cursor_character_absolute(VteTerminal *terminal,
 		value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
 			val = CLAMP(g_value_get_long(value),
-				    0,
-				    terminal->column_count - 1);
+				    1,
+				    terminal->column_count) - 1;
 		}
 	}
 

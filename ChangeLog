@@ -1,3 +1,11 @@
+2007-02-06  Chris Wilson <chris@chris-wilson.co.uk>
+
+	Bug 342059 – ASCII escape sequences don't work as expected
+	Correction by Mariano Suárez-Alvarez.
+
+	* src/vteseq.c: (vte_sequence_handler_cursor_character_absolute):
+		OBO on the parameter.
+
 2007-02-06  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 342059 – ASCII escape sequences don't work as expected
