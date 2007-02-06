@@ -5635,6 +5635,67 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 	vte_terminal_emit_selection_changed(terminal);
 }
 
+/**
+ * vte_terminal_select_all:
+ * @terminal: a #VteTerminal
+ *
+ * Selects all text within the terminal (including the scrollback buffer).
+ *
+ * Since: 0.16
+ */
+void
+vte_terminal_select_all (VteTerminal *terminal)
+{
+	long low, high, delta;
+
+	g_return_if_fail (VTE_IS_TERMINAL (terminal));
+
+	vte_terminal_deselect_all (terminal);
+
+	delta = terminal->pvt->screen->scroll_delta;
+
+	terminal->pvt->has_selection = TRUE;
+	terminal->pvt->selecting_had_delta = TRUE;
+	terminal->pvt->selecting_restart = FALSE;
+
+	terminal->pvt->selection_start.x = 0;
+	terminal->pvt->selection_start.y = 0;
+	terminal->pvt->selection_end.x = terminal->column_count;
+	terminal->pvt->selection_end.y = delta + terminal->row_count;
+
+	_vte_debug_print(VTE_DEBUG_SELECTION, "Selecting *all* text.\n");
+
+	g_free (terminal->pvt->selection);
+	terminal->pvt->selection =
+		vte_terminal_get_text_range (terminal,
+				0, 0,
+				delta + terminal->row_count,
+				terminal->column_count,
+				vte_cell_is_selected,
+				NULL, NULL);
+
+	vte_terminal_emit_selection_changed (terminal);
+	_vte_invalidate_all (terminal);
+}
+
+/**
+ * vte_terminal_select_none:
+ * @terminal: a #VteTerminal
+ *
+ * Clears the current selection.
+ *
+ * Since: 0.16
+ */
+void
+vte_terminal_select_none (VteTerminal *terminal)
+{
+	g_return_if_fail (VTE_IS_TERMINAL (terminal));
+
+	vte_terminal_deselect_all (terminal);
+}
+
+
+
 /* Autoscroll a bit. */
 static gboolean
 vte_terminal_autoscroll(VteTerminal *terminal)
