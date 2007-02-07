@@ -3925,9 +3925,9 @@ vte_sequence_handler_complain_key(VteTerminal *terminal,
 VteTerminalSequenceHandler
 _vte_sequence_get_handler (const char *code)
 {
-	int len = strlen (code);
-	if (len == 2)
+	/* all codes at least two characters... */
+	if (code[2] == '\0')
 		return vteseq_2_lookup ((const guchar *)code);
 	else
-		return vteseq_n_lookup ((const guchar *)code, len);
+		return vteseq_n_lookup ((const guchar *)code, strlen (code));
 }
