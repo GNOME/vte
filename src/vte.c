@@ -1282,7 +1282,11 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 			terminal->pvt->match_contents[eattr] == '\0') {
 		eattr--;
 	}
-	eattr++;
+	/* and scan forwards to find the end of this line */
+	while (!(terminal->pvt->match_contents[eattr] == '\n' ||
+			terminal->pvt->match_contents[eattr] == '\0')) {
+		eattr++;
+	}
 
 	/* find the start of row */
 	if (row == 0) {
@@ -1297,7 +1301,11 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 			}
 		}
 	}
-	/* Skip any initial newlines. */
+	/* Scan backwards to find the start of this line */
+	while (sattr > 0 && terminal->pvt->match_contents[sattr] != '\n') {
+		sattr--;
+	}
+	/* and skip any initial newlines. */
 	while (terminal->pvt->match_contents[sattr] == '\n') {
 		sattr++;
 	}

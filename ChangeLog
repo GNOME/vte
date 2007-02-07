@@ -1,5 +1,11 @@
 2007-02-07  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c: (vte_terminal_match_check_internal):
+		Scan for newlines before and after the current row
+		to find the entire line in case of soft-wrapping.
+
+2007-02-07  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 345344 – Pattern matching is inefficient
 	Bug 324246 – Performance degredation with large numbers of highlighted addresses/URLs
 
