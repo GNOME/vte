@@ -2970,6 +2970,9 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 			chunk = next_chunk) {
 		gsize processed;
 		next_chunk = chunk->next;
+		if (chunk->len == 0) {
+			goto skip_chunk;
+		}
 		processed = _vte_iso2022_process(terminal->pvt->iso2022,
 				chunk->data, chunk->len,
 				unichars);
@@ -3004,6 +3007,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 				break;
 			}
 		} else {
+skip_chunk:
 			/* cache the last chunk */
 			if (achunk) {
 				release_chunk (achunk);
@@ -4772,8 +4776,8 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 
 	/* If the pointer hasn't moved to another character cell, then we
 	 * need do nothing. */
-	if ((x / width == terminal->pvt->mouse_last_x / width) &&
-	    (y / height == terminal->pvt->mouse_last_y / height)) {
+	if (floor (x / width) == floor (terminal->pvt->mouse_last_x / width) &&
+	    floor (y / height) == floor (terminal->pvt->mouse_last_y / height)) {
 		return;
 	}
 
@@ -5646,7 +5650,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 void
 vte_terminal_select_all (VteTerminal *terminal)
 {
-	long low, high, delta;
+	long delta;
 
 	g_return_if_fail (VTE_IS_TERMINAL (terminal));
 
@@ -5690,6 +5694,8 @@ void
 vte_terminal_select_none (VteTerminal *terminal)
 {
 	g_return_if_fail (VTE_IS_TERMINAL (terminal));
+
+	_vte_debug_print(VTE_DEBUG_SELECTION, "Clearing selection.\n");
 
 	vte_terminal_deselect_all (terminal);
 }
@@ -5785,6 +5791,8 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	VteTerminal *terminal;
 	GdkModifierType modifiers;
 	gboolean event_mode;
+	int width, height;
+	gdouble x, y;
 
 	/* check to see if we care */
 	if (event->window != widget->window ||
@@ -5800,6 +5808,13 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 
 	terminal = VTE_TERMINAL(widget);
 
+	/* If the pointer hasn't moved to another character cell, then we
+	 * need do nothing. */
+	width = terminal->char_width;
+	height = terminal->char_height;
+	x = event->x - VTE_PAD_WIDTH;
+	y = event->y - VTE_PAD_WIDTH;
+
 	event_mode = terminal->pvt->mouse_send_xy_on_click ||
 		     terminal->pvt->mouse_send_xy_on_button ||
 		     terminal->pvt->mouse_hilite_tracking ||
@@ -5810,9 +5825,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 			event->x, event->y);
 
 	/* Hilite any matches. */
-	vte_terminal_match_hilite(terminal,
-				  event->x - VTE_PAD_WIDTH,
-				  event->y - VTE_PAD_WIDTH);
+	vte_terminal_match_hilite(terminal, x, y);
 
 	/* Show the cursor. */
 	_vte_terminal_set_pointer_visible(terminal, TRUE);
@@ -5840,9 +5853,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
 			    !event_mode) {
 				vte_terminal_extend_selection(terminal,
-							      event->x - VTE_PAD_WIDTH,
-							      event->y - VTE_PAD_WIDTH,
-							      FALSE);
+							      x, y, FALSE);
 			} else {
 				vte_terminal_maybe_send_mouse_drag(terminal,
 								   event);
@@ -5878,8 +5889,8 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	}
 
 	/* Save the pointer coordinates for later use. */
-	terminal->pvt->mouse_last_x = event->x - VTE_PAD_WIDTH;
-	terminal->pvt->mouse_last_y = event->y - VTE_PAD_WIDTH;
+	terminal->pvt->mouse_last_x = x;
+	terminal->pvt->mouse_last_y = y;
 
 	return TRUE;
 }
@@ -5894,6 +5905,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	gboolean handled = FALSE, event_mode;
 	gboolean start_selecting = FALSE, extend_selecting = FALSE;
 	long cellx, celly;
+	gdouble x,y;
 
 	terminal = VTE_TERMINAL(widget);
 	height = terminal->char_height;
@@ -5919,17 +5931,17 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	}
 
 	/* Convert the event coordinates to cell coordinates. */
-	cellx = (event->x - VTE_PAD_WIDTH) / width;
-	celly = (event->y - VTE_PAD_WIDTH) / height + delta;
+	x = event->x - VTE_PAD_WIDTH;
+	y = event->y - VTE_PAD_WIDTH;
+	cellx = x / width;
+	celly = y / height + delta;
 
 	switch (event->type) {
 	case GDK_BUTTON_PRESS:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Button %d single-click at (%lf,%lf)\n",
 				event->button,
-				event->x - VTE_PAD_WIDTH,
-				event->y - VTE_PAD_WIDTH +
-				(terminal->char_height * delta));
+				x, y+ (terminal->char_height * delta));
 		/* Handle this event ourselves. */
 		switch (event->button) {
 		case 1:
@@ -5978,8 +5990,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			}
 			if (extend_selecting) {
 				vte_terminal_extend_selection(terminal,
-							      event->x - VTE_PAD_WIDTH,
-							      event->y - VTE_PAD_WIDTH,
+							      x, y,
 							      !terminal->pvt->selecting_restart);
 				handled = TRUE;
 			}
@@ -6008,9 +6019,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Button %d double-click at (%lf,%lf)\n",
 				event->button,
-				event->x - VTE_PAD_WIDTH,
-				event->y - VTE_PAD_WIDTH +
-				(terminal->char_height * delta));
+				x, y + (terminal->char_height * delta));
 		switch (event->button) {
 		case 1:
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
@@ -6019,9 +6028,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 							     event,
 							     selection_type_word);
 				vte_terminal_extend_selection(terminal,
-							      event->x - VTE_PAD_WIDTH,
-							      event->y - VTE_PAD_WIDTH,
-							      FALSE);
+							      x, y, FALSE);
 			}
 			break;
 		case 2:
@@ -6034,9 +6041,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Button %d triple-click at (%lf,%lf).\n",
 				event->button,
-				event->x - VTE_PAD_WIDTH,
-				event->y - VTE_PAD_WIDTH +
-				(terminal->char_height * delta));
+				x, y + (terminal->char_height * delta));
 		switch (event->button) {
 		case 1:
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
@@ -6045,9 +6050,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 							     event,
 							     selection_type_line);
 				vte_terminal_extend_selection(terminal,
-							      event->x - VTE_PAD_WIDTH,
-							      event->y - VTE_PAD_WIDTH,
-							      FALSE);
+							      x, y, FALSE);
 			}
 			break;
 		case 2:
@@ -6061,8 +6064,8 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 
 	/* Save the pointer state for later use. */
 	terminal->pvt->mouse_last_button = event->button;
-	terminal->pvt->mouse_last_x = event->x - VTE_PAD_WIDTH;
-	terminal->pvt->mouse_last_y = event->y - VTE_PAD_WIDTH;
+	terminal->pvt->mouse_last_x = x;
+	terminal->pvt->mouse_last_y = y;
 
 	return TRUE;
 }

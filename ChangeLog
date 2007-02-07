@@ -1,3 +1,15 @@
+2007-02-07  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Some cleanups and a bug...
+
+	vte_terminal_match_hilite() compared the current cell to the last
+	mouse position without a floor().
+
+	* src/vte.c: (vte_terminal_process_incoming),
+	(vte_terminal_match_hilite), (vte_terminal_select_all),
+	(vte_terminal_select_none), (vte_terminal_motion_notify),
+	(vte_terminal_button_press):
+
 2007-02-06  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 86119 – "select all" feature
