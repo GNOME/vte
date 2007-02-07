@@ -1,5 +1,13 @@
 2007-02-07  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	As spotted perusing roxterm, we fail to redraw after changing the text
+	colour.
+
+	* src/vte.c: (vte_terminal_set_color_internal):
+		Remember to invalidate all!
+
+2007-02-07  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c: (vte_terminal_match_check_internal):
 		Scan for newlines before and after the current row
 		to find the entire line in case of soft-wrapping.

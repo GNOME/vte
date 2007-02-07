@@ -1909,6 +1909,9 @@ vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
 	if (entry == VTE_DEF_BG) {
 		vte_terminal_queue_background_update(terminal);
 	}
+
+	/* and redraw */
+	_vte_invalidate_all (terminal);
 }
 
 static void
