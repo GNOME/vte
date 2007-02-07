@@ -152,12 +152,7 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 		switch (i) {
 		/* Checked before, no luck. */
 		case -FONT_INDEX_FUDGE:
-			if (font->fonts->len > 0) {
-				return g_ptr_array_index(font->fonts, 0);
-			} else {
-				/* What to do? */
-				g_assert_not_reached();
-			}
+			return NULL;
 		/* Matched before. */
 		default:
 			return g_ptr_array_index(font->fonts,
@@ -168,62 +163,41 @@ _vte_xft_font_for_char(struct _vte_xft_font *font, gunichar c)
 	/* Look the character up in the fonts we have. */
 	for (i = 0; i < font->fonts->len; i++) {
 		ftfont = g_ptr_array_index(font->fonts, i);
-		if ((ftfont != NULL) &&
-		    (_vte_xft_char_exists(font, ftfont, c))) {
-			break;
-		}
-	}
-
-	/* Match? */
-	if (i < font->fonts->len) {
-		_vte_tree_insert(font->fontmap,
-			      p, GINT_TO_POINTER(i + FONT_INDEX_FUDGE));
-		ftfont = g_ptr_array_index(font->fonts, i);
-		if (ftfont != NULL) {
+		if (_vte_xft_char_exists(font, ftfont, c)) {
+			_vte_tree_insert(font->fontmap,
+					p,
+					GINT_TO_POINTER(i + FONT_INDEX_FUDGE));
 			return ftfont;
-		} else {
-			g_assert_not_reached();
 		}
 	}
 
 	/* Look the character up in other fonts. */
-	for (i = font->fonts->len; i < font->patterns->len; i++) {
+	for (; i < font->patterns->len; i++) {
+		if (g_ptr_array_index(font->patterns, i) == NULL) {
+			continue;
+		}
 		ftfont = XftFontOpenPattern(font->display,
 				g_ptr_array_index(font->patterns, i));
+		g_ptr_array_index(font->patterns, i) = NULL;
 		/* If the font was opened, it owns the pattern. */
 		if (ftfont != NULL) {
-			g_ptr_array_index(font->patterns, i) = NULL;
-		}
-		g_ptr_array_add(font->fonts, ftfont);
-		if ((ftfont != NULL) &&
-		    (_vte_xft_char_exists(font, ftfont, c))) {
-			break;
+			g_ptr_array_add(font->fonts, ftfont);
+			if (_vte_xft_char_exists(font, ftfont, c)) {
+				_vte_tree_insert(font->fontmap,
+						p,
+						GINT_TO_POINTER(i + FONT_INDEX_FUDGE));
+				g_assert (i < fonts->fonts->len);
+				return ftfont;
+			}
 		}
 	}
 
 	/* No match? */
-	if (i >= font->patterns->len) {
-		_vte_tree_insert(font->fontmap,
-			      p,
-			      GINT_TO_POINTER(-FONT_INDEX_FUDGE));
-		if (font->fonts->len > 0) {
-			return g_ptr_array_index(font->fonts, 0);
-		} else {
-			/* What to do? */
-			g_assert_not_reached();
-		}
-	} else {
-		_vte_tree_insert(font->fontmap,
-			      p,
-			      GINT_TO_POINTER(i + FONT_INDEX_FUDGE));
-	}
-
-	/* Return the match. */
-	if (i < font->fonts->len) {
-		return g_ptr_array_index(font->fonts, i);
-	} else {
-		return NULL;
-	}
+	_vte_tree_insert(font->fontmap,
+			p,
+			GINT_TO_POINTER(-FONT_INDEX_FUDGE));
+	g_warning(_("Can not find appropiate font for character U+%04x.\n"), c);
+	return NULL;
 }
 
 static int
@@ -526,8 +500,7 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 	for (i = 0; i < sizeof(VTE_DRAW_SINGLE_WIDE_CHARACTERS) - 1; i++) {
 		c = VTE_DRAW_SINGLE_WIDE_CHARACTERS[i];
 		font = _vte_xft_font_for_char(data->font, c);
-		if ((font != NULL) &&
-		    (_vte_xft_char_exists(data->font, font, c))) {
+		if (font != NULL) {
 			memset(&extents, 0, sizeof(extents));
 			_vte_xft_text_extents(data->font, font, c, &extents);
 			n++;
@@ -555,8 +528,7 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 	for (i = 0; i < G_N_ELEMENTS(wide_chars); i++) {
 		c = wide_chars[i];
 		font = _vte_xft_font_for_char(data->font, c);
-		if ((font != NULL) &&
-		    (_vte_xft_char_exists(data->font, font, c))) {
+		if (font != NULL) {
 			if (n && prev_font != font) {/* font change */
 				width = howmany(width, n);
 				if (width >= draw->width -1 &&
@@ -565,7 +537,7 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 					draw->width = (draw->width + 1) / 2;
 					break;
 				}
-				n = width =0;
+				n = width = 0;
 			}
 			memset(&extents, 0, sizeof(extents));
 			_vte_xft_text_extents(data->font, font, c, &extents);
@@ -657,16 +629,13 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 		if (requests[i].c == ' ') {
 			continue;
 		}
-		font = _vte_xft_font_for_char(data->font,
-				requests[i].c);
-		if (G_UNLIKELY(font == NULL)) {
-			g_warning(_("Can not draw character U+%04x.\n"),
-					requests[i].c);
+		font = _vte_xft_font_for_char(data->font, requests[i].c);
+		if (G_UNLIKELY (font == NULL)) {
 			continue;
 		}
 		break;
 	}
-	if (G_UNLIKELY(i == n_requests)) {
+	if (G_UNLIKELY (i == n_requests)) {
 		return; /* nothing to see here, please move along */
 	}
 
@@ -689,7 +658,7 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 		do {
 			glyphs[j].glyph = XftCharIndex(data->display,
 					font, requests[i].c);
-			if (G_LIKELY(glyphs[j].glyph != 0)) {
+			if (G_LIKELY (glyphs[j].glyph != 0)) {
 				glyphs[j].x = requests[i].x - data->x_offs;
 				width = _vte_xft_char_width(data->font,
 						font, requests[i].c);
@@ -706,14 +675,12 @@ _vte_xft_draw_text(struct _vte_draw *draw,
 			/* find the next displayable character ... */
 			ft = NULL;
 			for (; i < n_requests; i++) {
-				if (requests[i].c == ' ') {
+				if (G_UNLIKELY (requests[i].c == ' ')) {
 					continue;
 				}
 				ft = _vte_xft_font_for_char(data->font,
 						requests[i].c);
-				if (G_UNLIKELY(ft == NULL)) {
-					g_warning(_("Can not draw character U+%04x.\n"),
-							requests[i].c);
+				if (G_UNLIKELY (ft == NULL)) {
 					continue;
 				}
 				break;

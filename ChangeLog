@@ -1,5 +1,13 @@
 2007-02-07  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Actually return whether or not we found the char in
+	_vte_xft_font_for_char - saves having to double check afterwards!
+
+	* src/vtexft.c: (_vte_xft_font_for_char), (_vte_xft_set_text_font),
+	(_vte_xft_draw_text):
+
+2007-02-07  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	As spotted perusing roxterm, we fail to redraw after changing the text
 	colour.
 
