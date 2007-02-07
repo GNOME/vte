@@ -1,5 +1,16 @@
 2007-02-07  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 345344 – Pattern matching is inefficient
+	Bug 324246 – Performance degredation with large numbers of highlighted addresses/URLs
+
+	* src/vte.c: (vte_terminal_match_check_internal):
+		Trim the searched string down to the row containing the
+		pointer. During a mutt session this drops the time consumed by
+		regexec from ~30% to ~2%.
+		Note: multi-line regexes are now unsupported!
+
+2007-02-07  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vteseq.c: (_vte_sequence_get_handler):
 		Avoid the strlen when possible.
 

@@ -1217,12 +1217,13 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 				  long column, glong row,
 				  int *tag, int *start, int *end)
 {
-	guint i, j;
+	guint i, j, k;
 	int ret, offset;
 	struct vte_match_regex *regex = NULL;
 	struct _VteCharAttributes *attr = NULL;
-	gssize coffset;
+	gssize sattr, eattr;
 	struct _vte_regex_match matches[256];
+	gchar *line, eol;
 
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Checking for match at (%ld,%ld).\n", row, column);
@@ -1239,15 +1240,17 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 		vte_terminal_match_contents_refresh(terminal);
 	}
 	/* Map the pointer position to a portion of the string. */
-	for (offset = terminal->pvt->match_attributes->len - 1;
-	     offset >= 0;
-	     offset--) {
+	eattr = terminal->pvt->match_attributes->len;
+	for (offset = eattr; offset--; ) {
 		attr = &g_array_index(terminal->pvt->match_attributes,
 				      struct _VteCharAttributes,
 				      offset);
-		if ((row == attr->row) &&
-		    (column == attr->column) &&
-		    (terminal->pvt->match_contents[offset] != ' ')) {
+		if (row < attr->row) {
+			eattr = offset;
+		}
+		if (row == attr->row &&
+		    column == attr->column &&
+		    terminal->pvt->match_contents[offset] != ' ') {
 			break;
 		}
 	}
@@ -1274,6 +1277,45 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 		return NULL;
 	}
 
+	/* Snip off any final newlines. */
+	while (terminal->pvt->match_contents[eattr] == '\n' ||
+			terminal->pvt->match_contents[eattr] == '\0') {
+		eattr--;
+	}
+	eattr++;
+
+	/* find the start of row */
+	if (row == 0) {
+		sattr = 0;
+	} else {
+		for (sattr = offset; sattr > 0; sattr--) {
+			attr = &g_array_index(terminal->pvt->match_attributes,
+					      struct _VteCharAttributes,
+					      sattr);
+			if (row > attr->row) {
+				break;
+			}
+		}
+	}
+	/* Skip any initial newlines. */
+	while (terminal->pvt->match_contents[sattr] == '\n') {
+		sattr++;
+	}
+	if (eattr <= sattr) { /* blank line */
+		return NULL;
+	}
+	if (eattr <= offset || sattr > offset) {
+		/* nothing to match on this line */
+		return NULL;
+	}
+	offset -= sattr;
+	eattr -= sattr;
+
+	/* temporarily shorten the contents to this row */
+	line = terminal->pvt->match_contents + sattr;
+	eol = line[eattr];
+	line[eattr] = '\0';
+
 	/* Now iterate over each regex we need to match against. */
 	for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
 		regex = &g_array_index(terminal->pvt->match_regexes,
@@ -1286,83 +1328,78 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 		/* We'll only match the first item in the buffer which
 		 * matches, so we'll have to skip each match until we
 		 * stop getting matches. */
-		coffset = 0;
+		k = 0;
 		ret = _vte_regex_exec(regex->reg,
-				      terminal->pvt->match_contents + coffset,
+				      line + k,
 				      G_N_ELEMENTS(matches),
 				      matches);
 		while (ret == 0) {
+			gint ko = offset - k;
 			for (j = 0;
-			     (j < G_N_ELEMENTS(matches)) &&
-			     (matches[j].rm_so != -1);
+			     j < G_N_ELEMENTS(matches) &&
+			     matches[j].rm_so != -1;
 			     j++) {
 				/* The offsets should be "sane". */
-				g_assert(matches[j].rm_so + coffset <
-					 terminal->pvt->match_attributes->len);
-				g_assert(matches[j].rm_eo + coffset <=
-					 terminal->pvt->match_attributes->len);
+				g_assert(matches[j].rm_so + k < eattr);
+				g_assert(matches[j].rm_eo + k <= eattr);
 				_VTE_DEBUG_IF(VTE_DEBUG_MISC) {
-					char *match;
-					struct _VteCharAttributes *sattr, *eattr;
-					match = g_strndup(terminal->pvt->match_contents + matches[j].rm_so + coffset,
+					gchar *match;
+					struct _VteCharAttributes *_sattr, *_eattr;
+					match = g_strndup(line + matches[j].rm_so + k,
 							matches[j].rm_eo - matches[j].rm_so);
-					sattr = &g_array_index(terminal->pvt->match_attributes,
+					_sattr = &g_array_index(terminal->pvt->match_attributes,
 							struct _VteCharAttributes,
-							matches[j].rm_so + coffset);
-					eattr = &g_array_index(terminal->pvt->match_attributes,
+							matches[j].rm_so + k);
+					_eattr = &g_array_index(terminal->pvt->match_attributes,
 							struct _VteCharAttributes,
-							matches[j].rm_eo + coffset - 1);
+							matches[j].rm_eo + k - 1);
 					g_printerr("Match %d `%s' from %d(%ld,%ld) to %d(%ld,%ld) (%d).\n",
 							j, match,
-							matches[j].rm_so + coffset,
-							sattr->column,
-							sattr->row,
-							matches[j].rm_eo + coffset - 1,
-							eattr->column,
-							eattr->row,
+							matches[j].rm_so + k,
+							_sattr->column,
+							_sattr->row,
+							matches[j].rm_eo + k - 1,
+							_eattr->column,
+							_eattr->row,
 							offset);
 					g_free(match);
 
 				}
-				/* Snip off any final newlines. */
-				while ((matches[j].rm_eo > matches[j].rm_so) &&
-				       (terminal->pvt->match_contents[coffset + matches[j].rm_eo - 1] == '\n')) {
-					matches[j].rm_eo--;
-				}
 				/* If the pointer is in this substring,
 				 * then we're done. */
-				if ((offset >= (matches[j].rm_so + coffset)) &&
-				    (offset < (matches[j].rm_eo + coffset))) {
+				if (ko >= matches[j].rm_so &&
+				    ko < matches[j].rm_eo) {
+					gchar *result;
 					if (tag != NULL) {
 						*tag = regex->tag;
 					}
 					if (start != NULL) {
-						*start = coffset +
-							 matches[j].rm_so;
+						*start = sattr + k + matches[j].rm_so;
 					}
 					if (end != NULL) {
-						*end = coffset +
-						       matches[j].rm_eo - 1;
+						*end = sattr + k + matches[j].rm_eo - 1;
 					}
 					if (GTK_WIDGET_REALIZED(terminal)) {
 						gdk_window_set_cursor(terminal->widget.window,
 								      regex->cursor);
 					}
 					terminal->pvt->match_previous = regex->tag;
-					return g_strndup(terminal->pvt->match_contents + coffset + matches[j].rm_so,
+					result = g_strndup(line + k + matches[j].rm_so,
 							 matches[j].rm_eo - matches[j].rm_so);
+					line[eattr] = eol;
+					return result;
 				}
 			}
 			/* Skip past the beginning of this match to
 			 * look for more. */
-			coffset += (matches[0].rm_so + 1);
+			k += matches[0].rm_so + 1;
 			ret = _vte_regex_exec(regex->reg,
-					      terminal->pvt->match_contents +
-					      coffset,
+					      line + k,
 					      G_N_ELEMENTS(matches),
 					      matches);
 		}
 	}
+	line[eattr] = eol;
 	terminal->pvt->match_previous = -1;
 	return NULL;
 }
