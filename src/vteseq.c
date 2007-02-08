@@ -3856,11 +3856,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 		case 19:
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Reporting screen size.\n");
-			if (gtk_widget_has_screen(widget)) {
-				gscreen = gtk_widget_get_screen(widget);
-			} else {
-				gscreen = gdk_display_get_default_screen(gtk_widget_get_display(widget));
-			}
+			gscreen = gtk_widget_get_screen(widget);
 			height = gdk_screen_get_height(gscreen);
 			width = gdk_screen_get_width(gscreen);
 			len = g_snprintf(buf, sizeof(buf),

@@ -64,12 +64,10 @@ _vte_rdb_get(GtkWidget *widget, gboolean screen_setting)
 		display = gdk_display_get_default();
 	}
 
-	if (widget != NULL &&
-	    gtk_widget_has_screen(widget) &&
-	    screen_setting) {
+	if (widget != NULL) {
 		screen = gtk_widget_get_screen(widget);
 	} else {
-		screen = gdk_display_get_screen(display, 0);
+		screen = gdk_display_get_default_screen(display);
 	}
 
 	root = gdk_screen_get_root_window(screen);

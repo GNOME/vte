@@ -167,11 +167,7 @@ _vte_draw_get_colormap(struct _vte_draw *draw, gboolean maybe_use_default)
 	if (!maybe_use_default) {
 		return NULL;
 	}
-	if (gtk_widget_has_screen(draw->widget)) {
-		screen = gtk_widget_get_screen(draw->widget);
-	} else {
-		screen = gdk_display_get_default_screen(gtk_widget_get_display(draw->widget));
-	}
+	screen = gtk_widget_get_screen(draw->widget);
 	colormap = gdk_screen_get_default_colormap(screen);
 	return colormap;
 }

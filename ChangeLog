@@ -1,5 +1,18 @@
 2007-02-08  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Use gtk_widget_get_(screen|display) which will itself return a default
+	if not currently attached.
+
+	* src/vtedraw.c: (_vte_draw_get_colormap):
+	* src/vtefc.c: (_vte_fc_defaults_from_gtk):
+	* src/vtegl.c: (_vte_gl_check), (_vte_gl_create),
+	(_vte_gl_destroy), (_vte_gl_start), (_vte_gl_end), (_vte_gl_clear),
+	(_vte_gl_draw_text), (_vte_gl_rectangle):
+	* src/vterdb.c: (_vte_rdb_get):
+	* src/vteseq.c: (vte_sequence_handler_window_manipulation):
+
+2007-02-08  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Some more callgrinding - kill a little bit of overhead.
 
 	* src/iso2022.c: (_vte_iso2022_sequence_length),

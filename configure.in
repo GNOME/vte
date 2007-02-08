@@ -251,7 +251,7 @@ if test "$have_x" = yes ; then
 			AC_DEFINE(HAVE_GL,1,[Whether we have GL and glX.])
 		fi
 		if test $have_libgl = 1 ; then
-			LIBS="-lGLU -lGL $LIBS"
+			LIBS="-lGL $LIBS"
 		fi
 	fi
 fi

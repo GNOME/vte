@@ -170,30 +170,23 @@ _vte_fc_defaults_from_gtk(GtkWidget *widget, FcPattern *pattern,
 			  VteTerminalAntiAlias explicit_antialias)
 {
 	GtkSettings *settings;
-	GdkScreen *screen;
-	GObjectClass *klass;
 	int i, antialias = -1, hinting = -1, dpi = -1;
 	char *rgba = NULL, *hintstyle = NULL;
 
 	/* Add any defaults configured for GTK+. */
-	if (gtk_widget_has_screen(widget)) {
-		screen = gtk_widget_get_screen(widget);
-	} else {
-		screen = gdk_display_get_default_screen(gtk_widget_get_display(widget));
-	}
-	settings = gtk_settings_get_for_screen(screen);
+	settings = gtk_widget_get_settings (widget);
 	if (settings == NULL) {
 		return;
 	}
 
 	/* Check that the properties we're looking at are defined. */
-	klass = G_OBJECT_GET_CLASS(settings);
-	if (g_object_class_find_property(klass, "gtk-xft-antialias") == NULL) {
+	if (g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
+				"gtk-xft-antialias") == NULL) {
 		return;
 	}
 
 	/* Read the settings. */
-	g_object_get(G_OBJECT(settings),
+	g_object_get (G_OBJECT (settings),
 		     "gtk-xft-antialias", &antialias,
 		     "gtk-xft-dpi", &dpi,
 		     "gtk-xft-rgba", &rgba,

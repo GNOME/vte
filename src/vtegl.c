@@ -30,7 +30,6 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <GL/gl.h>
-#include <GL/glu.h>
 #include <GL/glx.h>
 #include <X11/Xutil.h>
 #include "buffer.h"
@@ -43,6 +42,7 @@
 struct _vte_gl_data
 {
 	XVisualInfo *visual_info;
+	Display *display;
 	GLXContext context;
 	GdkColor color;
 	GdkPixbuf *bgpixbuf;
@@ -67,10 +67,10 @@ _vte_gl_check(struct _vte_draw *draw, GtkWidget *widget)
 	int error, event;
 	gboolean direct;
 
-	gdisplay = gdk_display_get_default();
-	display = gdk_x11_display_get_xdisplay(gdisplay);
-	gscreen = gdk_screen_get_default();
-	screen = gdk_x11_screen_get_screen_number(gscreen);
+	gdisplay = gtk_widget_get_display (widget);
+	display = gdk_x11_display_get_xdisplay (gdisplay);
+	gscreen = gtk_widget_get_screen (widget);
+	screen = gdk_x11_screen_get_screen_number (gscreen);
 
 	/* Check for GLX. */
 	if (!glXQueryExtension(display, &error, &event)) {
@@ -124,10 +124,12 @@ _vte_gl_create(struct _vte_draw *draw, GtkWidget *widget)
 	draw->impl_data = g_slice_new(struct _vte_gl_data);
 	data = (struct _vte_gl_data*) draw->impl_data;
 
-	gdisplay = gdk_display_get_default();
-	display = gdk_x11_display_get_xdisplay(gdisplay);
-	gscreen = gdk_screen_get_default();
-	screen = gdk_x11_screen_get_screen_number(gscreen);
+	gdisplay = gtk_widget_get_display (widget);
+	display = gdk_x11_display_get_xdisplay (gdisplay);
+	gscreen = gtk_widget_get_screen (widget);
+	screen = gdk_x11_screen_get_screen_number (gscreen);
+
+	data->display = display;
 
 	data->visual_info = glXChooseVisual(display, screen, attributes);
 	if (data->visual_info == NULL) {
@@ -138,11 +140,6 @@ _vte_gl_create(struct _vte_draw *draw, GtkWidget *widget)
 					 NULL, GL_TRUE);
 	if (data->context == NULL) {
 		g_error("Unable to create a GLX context.\n");
-	}
-
-	direct = glXIsDirect(display, data->context);
-	if (!direct) {
-		g_error("Unable to create a direct GLX context.\n");
 	}
 
 	data->color.red = 0;
@@ -161,12 +158,8 @@ static void
 _vte_gl_destroy(struct _vte_draw *draw)
 {
 	struct _vte_gl_data *data;
-	GdkDisplay *gdisplay;
-	Display *display;
 
 	data = (struct _vte_gl_data*) draw->impl_data;
-	gdisplay = gdk_display_get_default();
-	display = gdk_x11_display_get_xdisplay(gdisplay);
 
 	_vte_buffer_free(data->buffer);
 
@@ -176,9 +169,9 @@ _vte_gl_destroy(struct _vte_draw *draw)
 		g_object_unref(data->bgpixbuf);
 	}
 
-	glXMakeCurrent(display, None, data->context);
+	glXMakeCurrent(data->display, None, data->context);
 
-	glXDestroyContext(display, data->context);
+	glXDestroyContext(data->display, data->context);
 
 	g_slice_free(struct _vte_gl_data, draw->impl_data);
 }
@@ -209,22 +202,19 @@ static void
 _vte_gl_start(struct _vte_draw *draw)
 {
 	struct _vte_gl_data *data;
-	GdkDisplay *gdisplay;
-	Display *display;
 	gint width, height;
 
 	data = (struct _vte_gl_data*) draw->impl_data;
-	gdisplay = gdk_display_get_default();
-	display = gdk_x11_display_get_xdisplay(gdisplay);
 
 	data->glwindow = gdk_x11_drawable_get_xid(draw->widget->window);
-	gdk_drawable_get_size(draw->widget->window, &width, &height);
+	width = draw->widget->allocation.width;
+	height = draw->widget->allocation.height;
 
-	glXMakeCurrent(display, data->glwindow, data->context);
+	glXMakeCurrent(data->display, data->glwindow, data->context);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluOrtho2D(0, width - 1, height - 1, 0);
-	glViewport(0, height - 1, width, -height);
+	glOrtho(0, width, height, 0, -1, 1);
+	glViewport(0, height, width, -height);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
@@ -233,15 +223,11 @@ static void
 _vte_gl_end(struct _vte_draw *draw)
 {
 	struct _vte_gl_data *data;
-	GdkDisplay *gdisplay;
-	Display *display;
 
 	data = (struct _vte_gl_data*) draw->impl_data;
-	gdisplay = gdk_display_get_default();
-	display = gdk_x11_display_get_xdisplay(gdisplay);
 
-	glXMakeCurrent(display, data->glwindow, data->context);
-	glXSwapBuffers(display, data->glwindow);
+	glXMakeCurrent(data->display, data->glwindow, data->context);
+	glXSwapBuffers(data->display, data->glwindow);
 
 	data->glwindow = -1;
 }
@@ -271,7 +257,7 @@ _vte_gl_set_background_image(struct _vte_draw *draw,
 
 	data = (struct _vte_gl_data*) draw->impl_data;
 	bgpixbuf = vte_bg_get_pixbuf(vte_bg_get_for_screen(screen),
-			 	     type, pixbuf, file,
+				     type, pixbuf, file,
 				     tint, saturation);
 	if (data->bgpixbuf != NULL) {
 		g_object_unref(data->bgpixbuf);
@@ -282,8 +268,6 @@ _vte_gl_set_background_image(struct _vte_draw *draw,
 static void
 _vte_gl_clear(struct _vte_draw *draw, gint x, gint y, gint width, gint height)
 {
-	GdkDisplay *gdisplay;
-	Display *display;
 	struct _vte_gl_data *data;
 	long xstop, ystop, i, j;
 	int pixbufw, pixbufh, w, h, channels, stride;
@@ -291,10 +275,8 @@ _vte_gl_clear(struct _vte_draw *draw, gint x, gint y, gint width, gint height)
 	guchar *pixels;
 
 	data = (struct _vte_gl_data*) draw->impl_data;
-	gdisplay = gdk_display_get_default();
-	display = gdk_x11_display_get_xdisplay(gdisplay);
 
-	glXMakeCurrent(display, data->glwindow, data->context);
+	glXMakeCurrent(data->display, data->glwindow, data->context);
 
 	if (data->bgpixbuf != NULL) {
 		pixbufw = gdk_pixbuf_get_width(data->bgpixbuf);
@@ -447,8 +429,6 @@ _vte_gl_draw_text(struct _vte_draw *draw,
 		  struct _vte_draw_text_request *requests, gsize n_requests,
 		  GdkColor *color, guchar alpha)
 {
-	GdkDisplay *gdisplay;
-	Display *display;
 	struct _vte_gl_data *data;
 	const struct _vte_glyph *glyph;
 	guint16 a, r, g, b;
@@ -456,10 +436,8 @@ _vte_gl_draw_text(struct _vte_draw *draw,
 	guchar *pixels;
 
 	data = (struct _vte_gl_data*) draw->impl_data;
-	gdisplay = gdk_display_get_default();
-	display = gdk_x11_display_get_xdisplay(gdisplay);
 
-	glXMakeCurrent(display, data->glwindow, data->context);
+	glXMakeCurrent(data->display, data->glwindow, data->context);
 
 	r = color->red >> 8;
 	g = color->green >> 8;
@@ -546,15 +524,11 @@ _vte_gl_rectangle(struct _vte_draw *draw,
 		  gint x, gint y, gint width, gint height,
 		  GdkColor *color, guchar alpha)
 {
-	GdkDisplay *gdisplay;
-	Display *display;
 	struct _vte_gl_data *data;
 
 	data = (struct _vte_gl_data*) draw->impl_data;
-	gdisplay = gdk_display_get_default();
-	display = gdk_x11_display_get_xdisplay(gdisplay);
 
-	glXMakeCurrent(display, data->glwindow, data->context);
+	glXMakeCurrent(data->display, data->glwindow, data->context);
 
 	glColor4us(color->red, color->green, color->blue,
 		   (alpha == VTE_DRAW_OPAQUE) ? 0xffff : (alpha << 8));
