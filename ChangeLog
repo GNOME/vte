@@ -1,5 +1,9 @@
 2007-02-08  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vteapp.c: (main): whitespace
+
+2007-02-08  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 363597 – Scrollback in profile dialog doesn't work
 
 	* src/vte-private.h:

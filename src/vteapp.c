@@ -443,33 +443,33 @@ main(int argc, char **argv)
 	GdkColor fore, back, tint, highlight, cursor;
 	const GOptionEntry options[]={
 		{
-		       	"antialias", 'A', 0,
-		       	G_OPTION_ARG_NONE, &antialias,
+			"antialias", 'A', 0,
+			G_OPTION_ARG_NONE, &antialias,
 			"Disable the use of anti-aliasing", NULL
 		},
 		{
-		       	"background", 'B', 0,
-		       	G_OPTION_ARG_FILENAME, &background,
+			"background", 'B', 0,
+			G_OPTION_ARG_FILENAME, &background,
 			"Specify a background image", NULL
 		},
 		{
-		       	"console", 'C', 0,
-		       	G_OPTION_ARG_NONE, &console,
+			"console", 'C', 0,
+			G_OPTION_ARG_NONE, &console,
 			"Watch /dev/console", NULL
 		},
 		{
-		       	"dingus", 'D', 0,
-		       	G_OPTION_ARG_NONE, &dingus,
+			"dingus", 'D', 0,
+			G_OPTION_ARG_NONE, &dingus,
 			"Highlight URLs inside the terminal", NULL
 		},
 		{
-		       	"shell", 'S', G_OPTION_FLAG_REVERSE,
-		       	G_OPTION_ARG_NONE, &shell,
+			"shell", 'S', G_OPTION_FLAG_REVERSE,
+			G_OPTION_ARG_NONE, &shell,
 			"Disable spawning a shell inside the terminal", NULL
 		},
 		{
-		       	"transparent", 'T', 0,
-		       	G_OPTION_ARG_NONE, &transparent,
+			"transparent", 'T', 0,
+			G_OPTION_ARG_NONE, &transparent,
 			"Enable the use of a transparent background", NULL
 		},
 		{
@@ -481,7 +481,7 @@ main(int argc, char **argv)
 			"audible", 'a', G_OPTION_FLAG_REVERSE,
 			G_OPTION_ARG_NONE, &audible,
 			"Switch between the audible and visible terminal bell",
-		       	NULL
+			NULL
 		},
 		{
 			"blink", 'b', G_OPTION_FLAG_REVERSE,
@@ -506,7 +506,7 @@ main(int argc, char **argv)
 		{
 			"geometry", 'g', 0,
 			G_OPTION_ARG_STRING, &geometry,
-			"Set the size (in characters) and position", "GEOMETRY" 
+			"Set the size (in characters) and position", "GEOMETRY"
 		},
 		{
 			"highlight", 'h', 0,
@@ -521,8 +521,7 @@ main(int argc, char **argv)
 		{
 			"keep", 'k', 0,
 			G_OPTION_ARG_NONE, &keep,
-			"Live on after the window closes",
-		       	NULL
+			"Live on after the window closes", NULL
 		},
 		{
 			"scrollback-lines", 'n', 0,
