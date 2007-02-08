@@ -851,7 +851,7 @@ _vte_iso2022_find_nextctl(const guchar *p, gsize length)
 		    /* This breaks UTF-8 and other encodings which
 		     * use the high bits.
 		     */
-  		                 ||
+		                 ||
 		    p[i] == 0x8e ||
 		    p[i] == 0x8f
 #endif
@@ -1001,8 +1001,13 @@ _vte_iso2022_sequence_length(const unsigned char *nextctl, gsize length)
 				} else {
 					/* ESC % @ */
 					/* ESC % G */
-					if (strchr("@G", nextctl[2])) {
+					switch (nextctl[2]) {
+					case '@':
+					case 'G':
 						sequence_length = 3;
+						break;
+					default:
+						break;
 					}
 				}
 				break;
@@ -1030,8 +1035,22 @@ _vte_iso2022_sequence_length(const unsigned char *nextctl, gsize length)
 							/* Inconclusive. */
 							sequence_length = 0;
 						} else {
-							if (strchr(WIDE_GMAPS, nextctl[3])) {
+							/* strchr(WIDE_GMAPS, nextctl[3]) */
+							switch (nextctl[3]) {
+							case 'C':
+							case 'A':
+							case 'G':
+							case 'H':
+							case 'I':
+							case 'J':
+							case 'K':
+							case 'L':
+							case 'M':
+							case 'D':
 								sequence_length = 4;
+								break;
+							default:
+								break;
 							}
 						}
 						break;
@@ -1053,15 +1072,13 @@ _vte_iso2022_fragment_input(guchar *input, gsize length)
 	const guchar *nextctl, *p, *q;
 	glong sequence_length = 0;
 	struct _vte_iso2022_block block;
-	gboolean quit;
 	GArray *blocks;
 
 	blocks = g_array_new(FALSE, FALSE, sizeof(struct _vte_iso2022_block));
 
 	p = input;
 	q = input + length;
-	quit = FALSE;
-	while (p < q && !quit) {
+	do {
 		nextctl = _vte_iso2022_find_nextctl(p, q - p);
 		if (nextctl == NULL) {
 			/* It's all garden-variety data. */
@@ -1089,7 +1106,6 @@ _vte_iso2022_fragment_input(guchar *input, gsize length)
 			block.type = _vte_iso2022_cdata;
 			block.start = p - input;
 			block.end = nextctl + 1 - input;
-			g_array_append_val(blocks, block);
 			/* Continue at the next byte. */
 			p = nextctl + 1;
 			break;
@@ -1098,21 +1114,20 @@ _vte_iso2022_fragment_input(guchar *input, gsize length)
 			block.type = _vte_iso2022_preserve;
 			block.start = nextctl - input;
 			block.end = q - input;
-			g_array_append_val(blocks, block);
 			/* Trigger an end-of-loop. */
-			quit = TRUE;
+			p = q;
 			break;
 		default:
 			/* It's a control sequence. */
 			block.type = _vte_iso2022_control;
 			block.start = nextctl - input;
 			block.end = nextctl + sequence_length - input;
-			g_array_append_val(blocks, block);
 			/* Continue after the sequence. */
 			p = nextctl + sequence_length;
 			break;
 		}
-	}
+		g_array_append_val(blocks, block);
+	} while (p < q);
 
 	return blocks;
 }
@@ -1411,7 +1426,7 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 			/* SS2 - 8bit */
 			state->override = 2;
 			_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
-				       	"\tSS2 (8-bit)\n");
+					"\tSS2 (8-bit)\n");
 			break;
 		case 0x8f:
 			/* SS3 - 8bit */
@@ -1491,11 +1506,34 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 							g_assert_not_reached();
 							break;
 						}
-						c = ctl[2];
-						if (strchr(NARROW_MAPS, c) != NULL) {
-							state->g[g] = c;
-						} else {
-							g_warning(_("Attempt to set invalid NRC map '%c'."), c);
+						/* strchr(NARROW_MAPS, c) */
+						switch (ctl[2]) {
+						case '0':
+						case '1':
+						case '2':
+						case 'A':
+						case 'B':
+						case '4':
+						case 'C':
+						case '5':
+						case 'R':
+						case 'Q':
+						case 'K':
+						case 'Y':
+						case 'E':
+						case '6':
+						case 'Z':
+						case 'H':
+						case '7':
+						case '=':
+						case 'J':
+						case 'U':
+							state->g[g] = ctl[2];
+							break;
+
+						default:
+							g_warning(_("Attempt to set invalid NRC map '%c'."), ctl[2]);
+							break;
 						}
 						_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
 								"\tG[%d] = %c.\n",
@@ -1565,11 +1603,26 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 						if (c == 0) {
 							c = ctl[3];
 						}
-						if ((strchr(WIDE_MAPS, c) != NULL) ||
-						    (strchr(WIDE_GMAPS, c) != NULL)) {
+						/* strchr(WIDE_MAPS WIDE_GMAPS, c) */
+						switch (c) {
+						case '@':
+						case 'B':
+						case 'C':
+						case 'A':
+						case 'G':
+						case 'H':
+						case 'I':
+						case 'J':
+						case 'K':
+						case 'L':
+						case 'M':
+						case 'D':
 							state->g[g] = c + WIDE_FUDGE;
-						} else {
+							break;
+
+						default:
 							g_warning(_("Attempt to set invalid wide NRC map '%c'."), c);
+							break;
 						}
 						_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
 								"\tG[%d] = wide %c.\n",
@@ -1587,9 +1640,14 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 							c = ctl[2];
 							break;
 						}
-						if (strchr(WIDE_MAPS, c) != NULL) {
+						/* strchr(WIDE_MAPS, c) */
+						switch (c){
+						case '@':
+						case 'B':
 							state->g[0] = c + WIDE_FUDGE;
-						} else {
+							break;
+
+						default:
 							g_warning(_("Attempt to set invalid wide NRC map '%c'."), c);
 						}
 						_vte_debug_print(VTE_DEBUG_SUBSTITUTION,

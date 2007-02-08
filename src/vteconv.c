@@ -279,10 +279,9 @@ _vte_conv(VteConv converter,
 			}
 		} else {
 			ret += tmp;
+			break;
 		}
-	} while ((work_inbytes > 0) &&
-		 (tmp == (size_t) -1) &&
-		 (errno == EILSEQ));
+	} while (work_inbytes > 0);
 
 	/* We can't handle this particular failure, and it should
 	 * never happen.  (If it does, our caller needs fixing.)  */
@@ -296,11 +295,11 @@ _vte_conv(VteConv converter,
 
 		g = (gunichar*) *outbuf;
 		for(p = (gchar *)work_outbuf_start;
-			       	p < (gchar *)work_outbuf_working;
-			       	p = g_utf8_next_char(p)) {
+				p < (gchar *)work_outbuf_working;
+				p = g_utf8_next_char(p)) {
 		       g_assert(left>=0);
 		       *g++ = g_utf8_get_char(p);
-					 left -= sizeof(gunichar);
+		       left -= sizeof(gunichar);
 		}
 		*outbytes_left = left;
 		*outbuf = (guchar*) g;

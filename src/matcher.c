@@ -233,13 +233,13 @@ _vte_matcher_free_params_array(struct _vte_matcher *matcher,
 {
 	guint i;
 	for (i = 0; i < params->n_values; i++) {
-		GValue *value = g_value_array_get_nth(params, i);
-		if (G_UNLIKELY (G_VALUE_HOLDS_POINTER(value))) {
-			g_free(g_value_get_pointer(value));
+		GValue *value = &params->values[i];
+		if (G_UNLIKELY (g_type_is_a (value->g_type, G_TYPE_POINTER))) {
+			g_free (g_value_get_pointer (value));
 		}
 	}
 	if (G_UNLIKELY (matcher == NULL || matcher->free_params != NULL)) {
-		g_value_array_free(params);
+		g_value_array_free (params);
 	} else {
 		matcher->free_params = params;
 		params->n_values = 0;

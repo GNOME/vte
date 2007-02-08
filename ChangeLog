@@ -1,3 +1,12 @@
+2007-02-08  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Some more callgrinding - kill a little bit of overhead.
+
+	* src/iso2022.c: (_vte_iso2022_sequence_length),
+	(_vte_iso2022_fragment_input), (process_control):
+	* src/matcher.c: (_vte_matcher_free_params_array):
+	* src/vteconv.c: (_vte_conv):
+
 2007-02-07  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Actually return whether or not we found the char in
