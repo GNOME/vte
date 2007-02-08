@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD.ar\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-12-27 16:33+0000\n"
+"POT-Creation-Date: 2007-02-07 03:15+0000\n"
 "PO-Revision-Date: 2006-11-03 01:30+0200\n"
 "Last-Translator: Khaled Hosny <khaledhosny@eglug.org>\n"
 "Language-Team: Arabic <support@arabeyes.org>\n"
@@ -20,41 +20,36 @@ msgstr ""
 "Plural-Forms: Plural-Forms: nplurals=4; plural=n==1 ? 0 : n==2 ? 1 : n>=3 && "
 "n<=10 ? 2 : 3\n"
 
-#: ../src/iso2022.c:784 ../src/iso2022.c:795 ../src/iso2022.c:844
-#: ../src/vte.c:1560
+#: ../src/iso2022.c:783 ../src/iso2022.c:791 ../src/iso2022.c:822
+#: ../src/vte.c:1628
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "لا يمكن تحويل المحارف من %s إلى %s."
 
-#: ../src/iso2022.c:1574
+#: ../src/iso2022.c:1498
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "محاولة ضبط خارطة NRC غير سليمة '%c'."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1615
+#: ../src/iso2022.c:1527
 msgid "Unrecognized identified coding system."
 msgstr "مُيّز نظام ترميز غير معروف."
 
-#: ../src/iso2022.c:1664 ../src/iso2022.c:1690
+#: ../src/iso2022.c:1572 ../src/iso2022.c:1593
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "محاولة لضبط خارطة NRC واسعة غير سليمة '%c'."
 
-#: ../src/pty.c:331
-#, c-format
-msgid "Error adding `%s' to environment, continuing."
-msgstr "خطأ عند إضافة `%s' للبيئة، مواصلة."
-
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: ../src/pty.c:916
+#: ../src/pty.c:786
 #, c-format
 msgid "can not run %s"
 msgstr "لا يمكن تشغيل %s"
 
-#: ../src/reaper.c:147
+#: ../src/reaper.c:136
 msgid "Error creating signal pipe."
 msgstr "خطأ انشاء أنبوب الإشارات."
 
@@ -63,58 +58,61 @@ msgstr "خطأ انشاء أنبوب الإشارات."
 msgid "Duplicate (%s/%s)!"
 msgstr "مكرر (%s/%s)!"
 
-#: ../src/vte.c:979
+#: ../src/vte.c:1130
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "خطأ عند تجميع التعبير النظامي \"%s\"."
 
-#: ../src/vte.c:2443 ../src/vte.c:2448
+#: ../src/vte.c:2477 ../src/vte.c:2482
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "لم يخصص معالج لسلسلة التحكم `%s'."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:3300
+#: ../src/vte.c:3452
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "خطأ عند القراءة من الابن: %s."
 
-#: ../src/vte.c:3422 ../src/vte.c:4390
+#: ../src/vte.c:3571 ../src/vte.c:4451
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "خطأ (%s) عند تحويل البيانات من الابن، تخلي."
 
-#: ../src/vte.c:6367
+#: ../src/vte.c:6502
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "خطأ عند قراءة حجم PTY، استعمال الافتراض: %s."
 
-#: ../src/vte.c:6403
+#: ../src/vte.c:6531
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "خطأ·عند ضبط·حجم·PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:10632
+#: ../src/vte.c:10790
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "فشل _vte_conv_open() في ضبط رموز الكلمة"
 
-#: ../src/vteseq.c:4047
+#: ../src/vteseq.c:3914
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "تلقيت تتابع (مفتاح؟) غير متوقع `%s'."
 
 #. Bail back to normal mode.
-#: ../src/vteapp.c:737
+#: ../src/vteapp.c:774
 msgid "Could not open console.\n"
 msgstr "لا يمكن فتح الكونسول.\n"
 
-#: ../src/vteglyph.c:578
+#: ../src/vteglyph.c:562
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "نمط بكسلي %d مجهول.\n"
 
-#: ../src/vtexft.c:685
+#: ../src/vtexft.c:663 ../src/vtexft.c:715
 #, c-format
 msgid "Can not draw character U+%04x.\n"
 msgstr "لا يمكن كتابة الرمز U+%04x.\n"
+
+#~ msgid "Error adding `%s' to environment, continuing."
+#~ msgstr "خطأ عند إضافة `%s' للبيئة، مواصلة."
