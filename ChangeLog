@@ -1,3 +1,15 @@
+2007-02-08  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 363597 – Scrollback in profile dialog doesn't work
+
+	* src/vte-private.h:
+	* src/vte.c: (vte_terminal_init),
+		Only use SCROLLBACK_MIN during initialisation, so rename it
+		to SCROLLBACK_INIT.
+	(vte_terminal_set_scrollback_lines):
+		Remove MAX(lines, SCROLLBACK_MIN) and update code comments
+		to reduce confusion.
+
 2007-02-08  Mariano Suárez-Alvarez  <mariano@gnome.org>
 
 	* src/vteapp.c(main): do something useful with --geometry.

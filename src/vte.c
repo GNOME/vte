@@ -6971,14 +6971,14 @@ vte_terminal_init(VteTerminal *terminal)
 
 	/* Initialize the screens and histories. */
 	vte_terminal_reset_rowdata(&pvt->alternate_screen.row_data,
-				   VTE_SCROLLBACK_MIN);
+				   VTE_SCROLLBACK_INIT);
 	pvt->alternate_screen.sendrecv_mode = TRUE;
 	pvt->alternate_screen.status_line_contents = g_string_new(NULL);
 	pvt->screen = &terminal->pvt->alternate_screen;
 	_vte_terminal_set_default_attributes(terminal);
 
 	vte_terminal_reset_rowdata(&pvt->normal_screen.row_data,
-				   VTE_SCROLLBACK_MIN);
+				   VTE_SCROLLBACK_INIT);
 	pvt->normal_screen.sendrecv_mode = TRUE;
 	pvt->normal_screen.status_line_contents = g_string_new(NULL);
 	pvt->screen = &terminal->pvt->normal_screen;
@@ -6986,7 +6986,7 @@ vte_terminal_init(VteTerminal *terminal)
 
 	/* Scrolling options. */
 	pvt->scroll_on_keystroke = TRUE;
-	vte_terminal_set_scrollback_lines(terminal, VTE_SCROLLBACK_MIN);
+	vte_terminal_set_scrollback_lines(terminal, VTE_SCROLLBACK_INIT);
 
 	/* Selection info. */
 	vte_terminal_set_word_chars(terminal, NULL);
@@ -10751,8 +10751,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-	/* We require a minimum buffer size. */
-	lines = MAX(lines, VTE_SCROLLBACK_MIN);
+	/* We need at least as many lines as are visible */
 	lines = MAX(lines, terminal->row_count);
 
 	/* We need to resize both scrollback buffers, and this beats copying
