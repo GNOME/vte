@@ -1,3 +1,7 @@
+2007-02-08  Mariano Suárez-Alvarez  <mariano@gnome.org>
+
+	* src/vteapp.c(main): do something useful with --geometry.
+
 2007-02-08  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Use gtk_widget_get_(screen|display) which will itself return a default

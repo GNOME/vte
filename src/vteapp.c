@@ -428,11 +428,12 @@ main(int argc, char **argv)
 		NULL};
 	const char *background = NULL;
 	gboolean transparent = FALSE, audible = TRUE, blink = TRUE,
-		 debug = FALSE, dingus = FALSE, geometry = TRUE, dbuffer = TRUE,
+		 debug = FALSE, dingus = FALSE, dbuffer = TRUE,
 		 console = FALSE, scroll = FALSE, keep = FALSE,
 		 icon_title = FALSE, shell = TRUE, highlight_set = FALSE,
 		 cursor_set = FALSE, reverse = FALSE;
 	VteTerminalAntiAlias antialias = VTE_ANTI_ALIAS_USE_DEFAULT;
+        char *geometry = NULL;
 	gint lines = 100;
 	const char *message = "Launching interactive shell...\r\n";
 	const char *font = NULL;
@@ -503,9 +504,9 @@ main(int argc, char **argv)
 			"Specify a font to use", NULL
 		},
 		{
-			"geometry", 'g', G_OPTION_FLAG_REVERSE,
-			G_OPTION_ARG_NONE, &geometry,
-			"???", NULL
+			"geometry", 'g', 0,
+			G_OPTION_ARG_STRING, &geometry,
+			"Set the size (in characters) and position", "GEOMETRY" 
 		},
 		{
 			"highlight", 'h', 0,
@@ -831,7 +832,16 @@ main(int argc, char **argv)
 	/* Go for it! */
 	add_weak_pointer(G_OBJECT(widget), &widget);
 	add_weak_pointer(G_OBJECT(window), &window);
+
+        gtk_widget_realize(widget);
+        if (geometry) {
+                if (!gtk_window_parse_geometry (GTK_WINDOW(window), geometry)) {
+                        g_warning (_("Could not parse the geometry spec passed to --geometry"));
+                }
+        }
+
 	gtk_widget_show_all(window);
+
 
 	gtk_main();
 
