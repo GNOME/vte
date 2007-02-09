@@ -103,9 +103,10 @@ static char *vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 static void _vte_terminal_disconnect_pty_read(VteTerminal *terminal);
 static void _vte_terminal_disconnect_pty_write(VteTerminal *terminal);
 static void vte_terminal_stop_processing (VteTerminal *terminal);
-static void vte_terminal_start_processing (VteTerminal *terminal);
 
-static inline void vte_terminal_add_process_timeout (VteTerminal *terminal);
+static inline gboolean vte_terminal_is_processing (VteTerminal *terminal);
+static inline void vte_terminal_start_processing (VteTerminal *terminal);
+static void vte_terminal_add_process_timeout (VteTerminal *terminal);
 static void add_update_timeout (VteTerminal *terminal);
 static void remove_update_timeout (VteTerminal *terminal);
 static void reset_update_regions (VteTerminal *terminal);
@@ -1475,7 +1476,7 @@ static void
 vte_terminal_queue_adjustment_changed(VteTerminal *terminal)
 {
 	terminal->pvt->adjustment_changed_pending = TRUE;
-	vte_terminal_add_process_timeout (terminal);
+	vte_terminal_start_processing (terminal);
 }
 static void
 vte_terminal_queue_adjustment_value_changed(VteTerminal *terminal, glong v)
@@ -1483,7 +1484,7 @@ vte_terminal_queue_adjustment_value_changed(VteTerminal *terminal, glong v)
 	if (v != floor (terminal->adjustment->value)) {
 		terminal->adjustment->value = v;
 		terminal->pvt->adjustment_value_changed_pending = TRUE;
-		vte_terminal_add_process_timeout (terminal);
+		vte_terminal_start_processing (terminal);
 	}
 }
 
@@ -3437,9 +3438,7 @@ vte_terminal_io_read(GIOChannel *channel,
 		const int fd = g_io_channel_unix_get_fd (channel);
 		guchar *bp;
 		int rem, loops = 5;
-		GDK_THREADS_ENTER ();
 		chunk = terminal->pvt->incoming;
-		GDK_THREADS_LEAVE ();
 		if (!chunk || chunk->len == sizeof (chunk->data)) {
 			chunk = get_chunk ();
 			chunk->next = chunks;
@@ -3482,12 +3481,14 @@ out:
 			release_chunk (chunk);
 		}
 
-		GDK_THREADS_ENTER ();
 		if (chunks != NULL) {
 			_vte_terminal_feed_chunks (terminal, chunks);
 		}
-		vte_terminal_start_processing (terminal);
-		GDK_THREADS_LEAVE ();
+		if (!vte_terminal_is_processing (terminal)) {
+			GDK_THREADS_ENTER ();
+			vte_terminal_add_process_timeout (terminal);
+			GDK_THREADS_LEAVE ();
+		}
 	}
 
 	/* Error? */
@@ -9569,8 +9570,7 @@ draw_cursor_outline:
 
 		/* Draw the preedit string, boxed. */
 		if (len > 0) {
-			items = g_malloc(sizeof(struct _vte_draw_text_request) *
-					 (len + 1));
+			items = g_new(struct _vte_draw_text_request, len + 1);
 			preedit = terminal->pvt->im_preedit;
 			for (i = columns = 0; i < len; i++) {
 				if ((preedit - terminal->pvt->im_preedit) ==
@@ -11484,7 +11484,7 @@ remove_update_timeout (VteTerminal *terminal)
 }
 
 static void
-add_process_timeout (VteTerminal *terminal)
+vte_terminal_add_process_timeout (VteTerminal *terminal)
 {
 	_vte_debug_print(VTE_DEBUG_TIMEOUT,
 			"Adding to terminal to active list\n");
@@ -11499,11 +11499,16 @@ add_process_timeout (VteTerminal *terminal)
 					process_timeout, NULL);
 	}
 }
-static inline void
-vte_terminal_add_process_timeout (VteTerminal *terminal)
+static inline gboolean
+vte_terminal_is_processing (VteTerminal *terminal)
 {
-	if (terminal->pvt->active == NULL) {
-		add_process_timeout(terminal);
+	return terminal->pvt->active != NULL;
+}
+static inline void
+vte_terminal_start_processing (VteTerminal *terminal)
+{
+	if (vte_terminal_is_processing (terminal)) {
+		vte_terminal_add_process_timeout (terminal);
 	}
 }
 
@@ -11512,13 +11517,6 @@ vte_terminal_stop_processing (VteTerminal *terminal)
 {
 	remove_from_active_list (terminal);
 }
-
-static void
-vte_terminal_start_processing (VteTerminal *terminal)
-{
-	vte_terminal_add_process_timeout (terminal);
-}
-
 
 static inline gboolean
 need_processing (VteTerminal *terminal)
