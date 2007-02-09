@@ -511,6 +511,9 @@ _vte_xft_set_text_font(struct _vte_draw *draw,
 			if (extents.xOff > max) {
 				max = extents.xOff;
 			}
+			if (extents.height > height) {
+				height = extents.height;
+			}
 		}
 	}
 	if (n > 0) {

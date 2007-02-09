@@ -1530,8 +1530,7 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal)
 
 	/* The upper value is the number of rows which might be visible.  (Add
 	 * one to the cursor offset because it's zero-based.) */
-	rows = MAX(_vte_ring_next(terminal->pvt->screen->row_data),
-		   terminal->pvt->screen->cursor_current.row + 1);
+	rows = terminal->adjustment->value + terminal->row_count + 1;
 	if (terminal->adjustment->upper != rows) {
 		_vte_debug_print(VTE_DEBUG_IO,
 				"Changing upper bound from %f to %ld\n",
@@ -1575,7 +1574,8 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal)
 	}
 
 	/* Set the scrollbar adjustment to where the screen wants it to be. */
-	if (floor(terminal->adjustment->value) != screen->scroll_delta) {
+	if (!terminal->pvt->adjustment_value_changed_pending &&
+			floor(terminal->adjustment->value) != screen->scroll_delta) {
 		_vte_debug_print(VTE_DEBUG_IO,
 				"Changing adjustment scroll position: "
 				"%ld\n", screen->scroll_delta);
@@ -1588,7 +1588,7 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal)
 		_vte_debug_print(VTE_DEBUG_IO,
 				"Changed adjustment values "
 				"(delta = %ld, scroll = %ld).\n",
-				delta, terminal->pvt->screen->scroll_delta);
+				delta, screen->scroll_delta);
 		vte_terminal_queue_adjustment_changed(terminal);
 	}
 }

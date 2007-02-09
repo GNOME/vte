@@ -1,5 +1,13 @@
 2007-02-09  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c: (_vte_terminal_adjust_adjustments):
+		Do not allow to scroll past the last line after reducing
+		scrollback lines.
+	* src/vtexft.c: (_vte_xft_set_text_font):
+		Ensure a fallback height is set.
+
+2007-02-09  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c: (vte_terminal_get_text_range_maybe_wrapped):
 		Reuse VteRowData whilst in the row.
 
