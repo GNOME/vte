@@ -10,16 +10,6 @@
 
 2007-02-09  Chris Wilson  <chris@chris-wilson.co.uk>
 
-	reviewed by: <delete if not using a buddy>
-
-	* src/vte.c: (vte_terminal_queue_adjustment_changed),
-	(vte_terminal_queue_adjustment_value_changed),
-	(vte_terminal_io_read), (vte_terminal_paint),
-	(vte_terminal_add_process_timeout), (vte_terminal_is_processing),
-	(vte_terminal_start_processing):
-
-2007-02-09  Chris Wilson  <chris@chris-wilson.co.uk>
-
 	A number of small bug fixes...
 	- do not override the user setting of scrollback lines with the
 	terminal size.
