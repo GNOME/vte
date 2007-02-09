@@ -4950,13 +4950,14 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 	palette = terminal->pvt->palette;
 	col = start_col;
 	for (row = start_row; row <= end_row; row++, col = 0) {
+		VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
 		last_empty = last_nonempty = string->len;
 		last_emptycol = last_nonemptycol = -1;
 
 		attr.row = row;
 		attr.column = col;
 		pcell = NULL;
-		while ((pcell = vte_terminal_find_charcell(terminal, col, row))) {
+		while ((pcell = _vte_row_data_find_charcell(row_data, col))) {
 
 			attr.column = col;
 
@@ -5013,7 +5014,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 
 			col = last_emptycol + 1;
 
-			while ((pcell = vte_terminal_find_charcell(terminal, col, row))) {
+			while ((pcell = _vte_row_data_find_charcell(row_data, col))) {
 				col++;
 
 				if (pcell->fragment)
@@ -11507,7 +11508,7 @@ vte_terminal_is_processing (VteTerminal *terminal)
 static inline void
 vte_terminal_start_processing (VteTerminal *terminal)
 {
-	if (vte_terminal_is_processing (terminal)) {
+	if (!vte_terminal_is_processing (terminal)) {
 		vte_terminal_add_process_timeout (terminal);
 	}
 }

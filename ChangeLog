@@ -1,5 +1,10 @@
 2007-02-09  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c: (vte_terminal_get_text_range_maybe_wrapped):
+		Reuse VteRowData whilst in the row.
+
+2007-02-09  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Rework to reduce number of times mutex is taken and shorten the hold.
 
 	* src/vte.c: (vte_terminal_queue_adjustment_changed),
