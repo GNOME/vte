@@ -105,6 +105,7 @@ static void _vte_terminal_disconnect_pty_write(VteTerminal *terminal);
 static void vte_terminal_stop_processing (VteTerminal *terminal);
 static void vte_terminal_start_processing (VteTerminal *terminal);
 
+static inline void vte_terminal_add_process_timeout (VteTerminal *terminal);
 static void add_update_timeout (VteTerminal *terminal);
 static void remove_update_timeout (VteTerminal *terminal);
 static void reset_update_regions (VteTerminal *terminal);
@@ -1461,6 +1462,12 @@ vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 		terminal->pvt->adjustment_changed_pending = FALSE;
 		gtk_adjustment_changed(terminal->adjustment);
 	}
+	if (terminal->pvt->adjustment_value_changed_pending) {
+		_vte_debug_print(VTE_DEBUG_SIGNALS,
+				"Emitting adjustment_value_changed.\n");
+		terminal->pvt->adjustment_value_changed_pending = FALSE;
+		gtk_adjustment_value_changed(terminal->adjustment);
+	}
 }
 
 /* Queue an adjustment-changed signal to be delivered when convenient. */
@@ -1468,12 +1475,23 @@ static void
 vte_terminal_queue_adjustment_changed(VteTerminal *terminal)
 {
 	terminal->pvt->adjustment_changed_pending = TRUE;
+	vte_terminal_add_process_timeout (terminal);
 }
+static void
+vte_terminal_queue_adjustment_value_changed(VteTerminal *terminal, glong v)
+{
+	if (v != floor (terminal->adjustment->value)) {
+		terminal->adjustment->value = v;
+		terminal->pvt->adjustment_value_changed_pending = TRUE;
+		vte_terminal_add_process_timeout (terminal);
+	}
+}
+
 
 /* Update the adjustment field of the widget.  This function should be called
  * whenever we add rows to or remove rows from the history or switch screens. */
 void
-_vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
+_vte_terminal_adjust_adjustments(VteTerminal *terminal)
 {
 	VteScreen *screen;
 	gboolean changed;
@@ -1556,18 +1574,12 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 	}
 
 	/* Set the scrollbar adjustment to where the screen wants it to be. */
-	if (floor(terminal->adjustment->value) !=
-	    screen->scroll_delta) {
+	if (floor(terminal->adjustment->value) != screen->scroll_delta) {
 		_vte_debug_print(VTE_DEBUG_IO,
 				"Changing adjustment scroll position: "
 				"%ld\n", screen->scroll_delta);
-		/* This emits a "value-changed" signal, so no need to screw
-		 * with anything else for just this. */
-		gtk_adjustment_set_value(terminal->adjustment,
-				       screen->scroll_delta);
-		_vte_debug_print(VTE_DEBUG_IO,
-				"Changed adjustment scroll position: "
-				"%ld\n", screen->scroll_delta);
+		vte_terminal_queue_adjustment_value_changed(terminal,
+				screen->scroll_delta);
 	}
 
 	/* If anything changed, signal that there was a change. */
@@ -1576,11 +1588,7 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate)
 				"Changed adjustment values "
 				"(delta = %ld, scroll = %ld).\n",
 				delta, terminal->pvt->screen->scroll_delta);
-		if (immediate) {
-			gtk_adjustment_changed(terminal->adjustment);
-		} else {
-			vte_terminal_queue_adjustment_changed(terminal);
-		}
+		vte_terminal_queue_adjustment_changed(terminal);
 	}
 }
 
@@ -1591,14 +1599,15 @@ vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
 	glong destination;
 	_vte_debug_print(VTE_DEBUG_IO, "Scrolling %d pages.\n", pages);
 	/* Calculate the ideal position where we want to be before clamping. */
-	destination = floor(gtk_adjustment_get_value(terminal->adjustment));
+	destination = floor(terminal->adjustment->value);
 	destination += (pages * terminal->row_count);
 	/* Can't scroll past data we have. */
 	destination = CLAMP(destination,
 			    terminal->adjustment->lower,
 			    terminal->adjustment->upper - terminal->row_count);
 	/* Tell the scrollbar to adjust itself. */
-	gtk_adjustment_set_value(terminal->adjustment, destination);
+	vte_terminal_queue_adjustment_value_changed (terminal,
+			destination);
 	/* Clear dingus match set. */
 	_vte_terminal_match_contents_clear(terminal);
 	/* Notify viewers that the contents have changed. */
@@ -1610,21 +1619,17 @@ static void
 vte_terminal_maybe_scroll_to_top(VteTerminal *terminal)
 {
 	long delta;
-	if (floor(gtk_adjustment_get_value(terminal->adjustment)) !=
-	    _vte_ring_delta(terminal->pvt->screen->row_data)) {
-		delta = _vte_ring_delta(terminal->pvt->screen->row_data);
-		gtk_adjustment_set_value(terminal->adjustment, delta);
-	}
+	delta = _vte_ring_delta(terminal->pvt->screen->row_data);
+	vte_terminal_queue_adjustment_value_changed (terminal, delta);
 }
 
 static void
 vte_terminal_maybe_scroll_to_bottom(VteTerminal *terminal)
 {
 	glong delta;
-	if ((terminal->pvt->screen->scroll_delta !=
-	    terminal->pvt->screen->insert_delta)) {
-		delta = terminal->pvt->screen->insert_delta;
-		gtk_adjustment_set_value(terminal->adjustment, delta);
+	delta = terminal->pvt->screen->insert_delta;
+	if (terminal->pvt->screen->scroll_delta != delta) {
+		vte_terminal_queue_adjustment_value_changed (terminal, delta);
 		_vte_debug_print(VTE_DEBUG_IO,
 				"Snapping to bottom of screen\n");
 	}
@@ -1774,7 +1779,7 @@ _vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 			old_row = _vte_ring_append(screen->row_data, row);
 		} while(--delta);
 		terminal->pvt->free_row = old_row;
-		_vte_terminal_adjust_adjustments(terminal, FALSE);
+		_vte_terminal_adjust_adjustments(terminal);
 	} else {
 		/* Find the row the cursor is in. */
 		row = _vte_ring_index(screen->row_data,
@@ -1830,7 +1835,7 @@ _vte_terminal_update_insert_delta(VteTerminal *terminal)
 	if (delta != screen->insert_delta) {
 		_vte_terminal_ensure_cursor(terminal, FALSE);
 		screen->insert_delta = delta;
-		_vte_terminal_adjust_adjustments(terminal, TRUE);
+		_vte_terminal_adjust_adjustments(terminal);
 	}
 }
 
@@ -2994,7 +2999,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	_vte_debug_print (VTE_DEBUG_WORK, "(");
 
 	bottom = (terminal->pvt->screen->insert_delta ==
-		  terminal->pvt->screen->scroll_delta);
+		  floor (terminal->adjustment->value));
 
 	/* Save the current cursor position. */
 	screen = terminal->pvt->screen;
@@ -5620,7 +5625,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 					MAX(terminal->pvt->selection_end.x, old_end.x),
 					MIN(old_start.y, terminal->pvt->selection_start.y),
 					MAX(old_end.y, terminal->pvt->selection_end.y),
-					TRUE);
+					terminal->pvt->had_block_mode);
 		}
 
 		terminal->pvt->had_block_mode = FALSE;
@@ -5766,7 +5771,7 @@ vte_terminal_autoscroll(VteTerminal *terminal)
 				    terminal->adjustment->lower,
 				    terminal->adjustment->upper -
 				    terminal->row_count);
-			gtk_adjustment_set_value(terminal->adjustment, adj);
+			vte_terminal_queue_adjustment_value_changed (terminal, adj);
 			extend = TRUE;
 		}
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Autoscrolling down.\n");
@@ -5779,7 +5784,7 @@ vte_terminal_autoscroll(VteTerminal *terminal)
 				    terminal->adjustment->lower,
 				    terminal->adjustment->upper -
 				    terminal->row_count);
-			gtk_adjustment_set_value(terminal->adjustment, adj);
+			vte_terminal_queue_adjustment_value_changed (terminal, adj);
 			extend = TRUE;
 		}
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Autoscrolling up.\n");
@@ -6599,7 +6604,7 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	screen = terminal->pvt->screen;
 
 	/* Read the new adjustment value and save the difference. */
-	adj = floor(gtk_adjustment_get_value(terminal->adjustment));
+	adj = floor(terminal->adjustment->value);
 	dy = adj - screen->scroll_delta;
 	screen->scroll_delta = adj;
 
@@ -7093,15 +7098,12 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 {
 	VteTerminal *terminal;
 	glong width, height;
-	gboolean snapped_to_bottom, repaint;
+	gboolean repaint;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE,
 			"vte_terminal_size_allocate()\n");
 
 	terminal = VTE_TERMINAL(widget);
-
-	snapped_to_bottom = (terminal->pvt->screen->insert_delta ==
-			     terminal->pvt->screen->scroll_delta);
 
 	width = (allocation->width - (2 * VTE_PAD_WIDTH)) /
 		terminal->char_width;
@@ -7118,24 +7120,30 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	/* Set our allocation to match the structure. */
 	widget->allocation = *allocation;
 
-	/* Set the size of the pseudo-terminal. */
-	vte_terminal_set_size(terminal, width, height);
+	if (width != terminal->column_count
+			|| height != terminal->row_count) {
+		/* Set the size of the pseudo-terminal. */
+		vte_terminal_set_size(terminal, width, height);
 
-	/* Adjust scrolling area in case our boundaries have just been
-	 * redefined to be invalid. */
-	if (terminal->pvt->screen->scrolling_restricted) {
-		terminal->pvt->screen->scrolling_region.start =
-			MIN(terminal->pvt->screen->scrolling_region.start,
-			    terminal->row_count - 1);
-		terminal->pvt->screen->scrolling_region.end =
-			MIN(terminal->pvt->screen->scrolling_region.end,
-			    terminal->row_count - 1);
+		/* Adjust scrolling area in case our boundaries have just been
+		 * redefined to be invalid. */
+		if (terminal->pvt->screen->scrolling_restricted) {
+			terminal->pvt->screen->scrolling_region.start =
+				MIN(terminal->pvt->screen->scrolling_region.start,
+						terminal->row_count - 1);
+			terminal->pvt->screen->scrolling_region.end =
+				MIN(terminal->pvt->screen->scrolling_region.end,
+						terminal->row_count - 1);
+		}
+
+		/* Adjust scrollback buffers to ensure that they're big enough. */
+		vte_terminal_set_scrollback_lines(terminal,
+				terminal->pvt->scrollback_lines);
+
+		/* Notify viewers that the contents have changed. */
+		_vte_terminal_match_contents_clear(terminal);
+		_vte_terminal_emit_contents_changed(terminal);
 	}
-
-	/* Adjust scrollback buffers to ensure that they're big enough. */
-	vte_terminal_set_scrollback_lines(terminal,
-					  MAX(terminal->pvt->scrollback_lines,
-					      terminal->row_count));
 
 	/* Resize the GDK window. */
 	if (widget->window != NULL) {
@@ -7149,15 +7157,6 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 			reset_update_regions (terminal);
 			_vte_invalidate_all(terminal);
 		}
-	}
-
-	/* Adjust the adjustments. */
-	_vte_terminal_adjust_adjustments(terminal, TRUE);
-
-	_vte_terminal_update_insert_delta (terminal);
-
-	if (snapped_to_bottom) {
-		vte_terminal_maybe_scroll_to_bottom (terminal);
 	}
 }
 
@@ -9739,7 +9738,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 	}
 
 	new_value = CLAMP(new_value, adj->lower, adj->upper - adj->page_size);
-	gtk_adjustment_set_value(adj, new_value);
+	vte_terminal_queue_adjustment_value_changed (terminal, new_value);
 
 	return TRUE;
 }
@@ -10482,7 +10481,7 @@ vte_terminal_background_update(VteTerminal *terminal)
 	terminal->pvt->bg_update_pending = FALSE;
 
 	/* Force a redraw for everything. */
-	_vte_invalidate_all(terminal);
+	_vte_invalidate_all (terminal);
 
 	return FALSE;
 }
@@ -10497,6 +10496,8 @@ vte_terminal_queue_background_update(VteTerminal *terminal)
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Queued background update.\n");
 	terminal->pvt->bg_update_pending = TRUE;
+	/* force a redraw when convenient */
+	add_update_timeout (terminal);
 }
 
 /**
@@ -10745,55 +10746,39 @@ vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
 void
 vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 {
-	long highd, high, low, delta, max, next;
-	VteScreen *screens[2];
-	guint i;
+	long row, low, high;
+	VteScreen *screen;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-	/* We need at least as many lines as are visible */
-	lines = MAX(lines, terminal->row_count);
-
-	/* We need to resize both scrollback buffers, and this beats copying
-	 * and pasting the same code twice. */
-	screens[0] = &terminal->pvt->normal_screen;
-	screens[1] = &terminal->pvt->alternate_screen;
-
-	/* We want to do the same thing to both screens, so we use a loop
-	 * to avoid cut/paste madness. */
-	for (i = 0; i < G_N_ELEMENTS(screens); i++) {
-		/* The main screen gets the full scrollback buffer, but the
-		 * alternate screen isn't allowed to scroll at all. */
-		delta = _vte_ring_delta(screens[i]->row_data);
-		max = _vte_ring_max(screens[i]->row_data);
-		next = _vte_ring_next(screens[i]->row_data);
-		if (screens[i] == &terminal->pvt->alternate_screen) {
-			vte_terminal_reset_rowdata(&screens[i]->row_data,
-						   terminal->row_count);
-		} else {
-			vte_terminal_reset_rowdata(&screens[i]->row_data,
-						   lines);
-		}
-		/* Force the offsets to point to valid rows. */
-		low = _vte_ring_delta(screens[i]->row_data);
-		high = low + MAX(_vte_ring_max(screens[i]->row_data), 1);
-		highd = high - terminal->row_count + 1;
-		screens[i]->insert_delta = CLAMP(screens[i]->insert_delta,
-						 low, highd);
-		screens[i]->scroll_delta = CLAMP(screens[i]->scroll_delta,
-						 low, highd);
-		screens[i]->cursor_current.row = CLAMP(screens[i]->cursor_current.row,
-						       low, high);
-		/* Clear the matching view. */
-		_vte_terminal_match_contents_clear(terminal);
-		/* Notify viewers that the contents have changed. */
-		_vte_terminal_emit_contents_changed(terminal);
-	}
+	screen = terminal->pvt->screen;
 	terminal->pvt->scrollback_lines = lines;
 
+	/* The main screen gets the full scrollback buffer, but the
+	 * alternate screen isn't allowed to scroll at all. */
+	row = screen->cursor_current.row - screen->scroll_delta;
+	if (screen == &terminal->pvt->normal_screen) {
+		/* We need at least as many lines as are visible */
+		lines = MAX (lines, terminal->row_count);
+		vte_terminal_reset_rowdata (&screen->row_data, lines);
+		if (row >= terminal->row_count) {
+			screen->scroll_delta += row - terminal->row_count + 1;
+			screen->insert_delta += row - terminal->row_count + 1;
+		}
+		low = _vte_ring_delta (screen->row_data);
+		high = _vte_ring_max (screen->row_data) - terminal->row_count + 1;
+		screen->scroll_delta = CLAMP (screen->scroll_delta, low, high);
+		screen->insert_delta = CLAMP (screen->insert_delta, low, high);
+	} else {
+		vte_terminal_reset_rowdata (&screen->row_data,
+				terminal->row_count);
+		screen->scroll_delta = _vte_ring_delta (screen->row_data);
+		screen->insert_delta = _vte_ring_delta (screen->row_data);
+	}
+	screen->cursor_current.row = screen->scroll_delta +
+		MIN (row, terminal->row_count - 1);
+
 	/* Adjust the scrollbars to the new locations. */
-	_vte_terminal_adjust_adjustments(terminal, TRUE);
-	_vte_invalidate_all(terminal);
+	_vte_terminal_adjust_adjustments(terminal);
 }
 
 /**
@@ -11041,7 +11026,7 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 		terminal->pvt->alternate_screen.cursor_current.col = 0;
 		terminal->pvt->alternate_screen.scroll_delta = 0;
 		terminal->pvt->alternate_screen.insert_delta = 0;
-		_vte_terminal_adjust_adjustments(terminal, TRUE);
+		_vte_terminal_adjust_adjustments(terminal);
 	}
 	/* Clear the status lines. */
 	terminal->pvt->normal_screen.status_line = FALSE;
@@ -11501,19 +11486,24 @@ remove_update_timeout (VteTerminal *terminal)
 static void
 add_process_timeout (VteTerminal *terminal)
 {
-	if (terminal->pvt->active == NULL) {
+	_vte_debug_print(VTE_DEBUG_TIMEOUT,
+			"Adding to terminal to active list\n");
+	terminal->pvt->active = active_terminals =
+		g_list_prepend (active_terminals, terminal);
+	if (update_timeout_tag == VTE_INVALID_SOURCE &&
+			process_timeout_tag == VTE_INVALID_SOURCE) {
 		_vte_debug_print(VTE_DEBUG_TIMEOUT,
-				"Adding to terminal to active list\n");
-		terminal->pvt->active = active_terminals =
-			g_list_prepend (active_terminals, terminal);
-		if (update_timeout_tag == VTE_INVALID_SOURCE &&
-				process_timeout_tag == VTE_INVALID_SOURCE) {
-			_vte_debug_print(VTE_DEBUG_TIMEOUT,
 				"Starting process timeout\n");
-			process_timeout_tag =
-				g_timeout_add (VTE_DISPLAY_TIMEOUT,
-						process_timeout, NULL);
-		}
+		process_timeout_tag =
+			g_timeout_add (VTE_DISPLAY_TIMEOUT,
+					process_timeout, NULL);
+	}
+}
+static inline void
+vte_terminal_add_process_timeout (VteTerminal *terminal)
+{
+	if (terminal->pvt->active == NULL) {
+		add_process_timeout(terminal);
 	}
 }
 
@@ -11523,18 +11513,10 @@ vte_terminal_stop_processing (VteTerminal *terminal)
 	remove_from_active_list (terminal);
 }
 
-static inline gboolean
-vte_terminal_is_processing (VteTerminal *terminal)
-{
-	return terminal->pvt->active != NULL;
-}
-
 static void
 vte_terminal_start_processing (VteTerminal *terminal)
 {
-	if (!vte_terminal_is_processing (terminal)) {
-		add_process_timeout (terminal);
-	}
+	vte_terminal_add_process_timeout (terminal);
 }
 
 
@@ -11724,6 +11706,8 @@ update_repeat_timeout (gpointer data)
 		if (terminal->pvt->bg_update_pending) {
 			vte_terminal_background_update (terminal);
 		}
+		vte_terminal_emit_pending_signals (terminal);
+
 		again = update_regions (terminal);
 		if (!again) {
 			active_terminals = g_list_delete_link (active_terminals,
@@ -11733,7 +11717,6 @@ update_repeat_timeout (gpointer data)
 				_vte_terminal_enable_input_source (terminal);
 			}
 		}
-		vte_terminal_emit_pending_signals (terminal);
 	}
 
 	if (active_terminals != NULL) {
@@ -11799,9 +11782,9 @@ update_timeout (gpointer data)
 		if (terminal->pvt->bg_update_pending) {
 			vte_terminal_background_update (terminal);
 		}
+		vte_terminal_emit_pending_signals (terminal);
 
 		redraw |= update_regions (terminal);
-		vte_terminal_emit_pending_signals (terminal);
 	}
 
 	if (redraw) {

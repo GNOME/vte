@@ -338,7 +338,7 @@ vte_sequence_handler_scroll_up_or_down(VteTerminal *terminal, int scroll_amount)
 				   scroll_amount);
 
 	/* Adjust the scrollbars if necessary. */
-	_vte_terminal_adjust_adjustments(terminal, FALSE);
+	_vte_terminal_adjust_adjustments(terminal);
 
 	/* We've modified the display.  Make a note of it. */
 	terminal->pvt->text_inserted_count++;
@@ -717,12 +717,11 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 						NULL);
 		}
 		/* Reset scrollbars and repaint everything. */
-		_vte_terminal_adjust_adjustments(terminal, TRUE);
-		_vte_invalidate_all(terminal);
-		/* Clear the matching view. */
+		vte_terminal_set_scrollback_lines(terminal,
+				terminal->pvt->scrollback_lines);
 		_vte_terminal_match_contents_clear(terminal);
-		/* Notify viewers that the contents have changed. */
 		_vte_terminal_emit_contents_changed(terminal);
+		_vte_invalidate_all (terminal);
 		break;
 	case 9:
 	case 1000:
@@ -909,7 +908,7 @@ vte_sequence_handler_al(VteTerminal *terminal,
 		vte_g_array_fill(rowdata->cells, &screen->fill_defaults,
 				 terminal->column_count);
 		/* Adjust the scrollbars if necessary. */
-		_vte_terminal_adjust_adjustments(terminal, FALSE);
+		_vte_terminal_adjust_adjustments(terminal);
 	}
 
 	/* Update the display. */
@@ -1548,7 +1547,7 @@ vte_sequence_handler_dl(VteTerminal *terminal,
 		vte_remove_line_internal(terminal, start);
 		vte_insert_line_internal(terminal, end);
 		/* Adjust the scrollbars if necessary. */
-		_vte_terminal_adjust_adjustments(terminal, FALSE);
+		_vte_terminal_adjust_adjustments(terminal);
 	}
 
 	/* Update the display. */
@@ -2214,7 +2213,7 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 							    end - start + 1, 1);
 				/* Force scroll. */
 				_vte_terminal_ensure_cursor(terminal, FALSE);
-				_vte_terminal_adjust_adjustments(terminal, TRUE);
+				_vte_terminal_adjust_adjustments(terminal);
 				/* Allow updates again. */
 				terminal->pvt->scroll_lock_count--;
 			} else {
@@ -2246,7 +2245,7 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 		_vte_terminal_ensure_cursor(terminal, TRUE);
 	}
 	/* Adjust the scrollbars if necessary. */
-	_vte_terminal_adjust_adjustments(terminal, FALSE);
+	_vte_terminal_adjust_adjustments(terminal);
 	return FALSE;
 }
 
@@ -2357,7 +2356,7 @@ vte_sequence_handler_sr(VteTerminal *terminal,
 		screen->cursor_current.row--;
 	}
 	/* Adjust the scrollbars if necessary. */
-	_vte_terminal_adjust_adjustments(terminal, FALSE);
+	_vte_terminal_adjust_adjustments(terminal);
 	/* We modified the display, so make a note of it. */
 	terminal->pvt->text_modified_flag = TRUE;
 	return FALSE;
@@ -2871,7 +2870,7 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 	 * newly-cleared area and scroll if need be. */
 	screen->insert_delta = initial;
 	screen->cursor_current.row = row + screen->insert_delta;
-	_vte_terminal_adjust_adjustments(terminal, FALSE);
+	_vte_terminal_adjust_adjustments(terminal);
 	/* Redraw everything. */
 	_vte_invalidate_all(terminal);
 	/* We've modified the display.  Make a note of it. */
@@ -2891,14 +2890,13 @@ vte_sequence_handler_cursor_character_absolute(VteTerminal *terminal,
 	long val;
 
 	screen = terminal->pvt->screen;
-	
+
         val = 0;
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
 			val = CLAMP(g_value_get_long(value),
-				    1,
-				    terminal->column_count) - 1;
+				    1, terminal->column_count) - 1;
 		}
 	}
 
@@ -3381,7 +3379,7 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 	/* Update the display. */
 	_vte_terminal_scroll_region(terminal, row, end - row + 1, param);
 	/* Adjust the scrollbars if necessary. */
-	_vte_terminal_adjust_adjustments(terminal, FALSE);
+	_vte_terminal_adjust_adjustments(terminal);
 	/* We've modified the display.  Make a note of it. */
 	terminal->pvt->text_inserted_count++;
 	return FALSE;
@@ -3434,7 +3432,7 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 	/* Update the display. */
 	_vte_terminal_scroll_region(terminal, row, end - row + 1, -param);
 	/* Adjust the scrollbars if necessary. */
-	_vte_terminal_adjust_adjustments(terminal, FALSE);
+	_vte_terminal_adjust_adjustments(terminal);
 	/* We've modified the display.  Make a note of it. */
 	terminal->pvt->text_deleted_count++;
 	return FALSE;
@@ -3652,7 +3650,7 @@ vte_sequence_handler_screen_alignment_test(VteTerminal *terminal,
 			old_row = _vte_ring_append(screen->row_data, rowdata);
 		}
 		terminal->pvt->free_row = old_row;
-		_vte_terminal_adjust_adjustments(terminal, TRUE);
+		_vte_terminal_adjust_adjustments(terminal);
 		rowdata = _vte_ring_index(screen->row_data, VteRowData *, row);
 		g_assert(rowdata != NULL);
 		/* Clear this row. */
@@ -3770,7 +3768,7 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			vte_terminal_emit_lower_window(terminal);
 			break;
 		case 7:
-			_vte_debug_print(VTE_DEBUG_PARSE, 
+			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Refreshing window.\n");
 			_vte_invalidate_all(terminal);
 			vte_terminal_emit_refresh_window(terminal);

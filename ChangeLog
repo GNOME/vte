@@ -1,3 +1,46 @@
+2007-02-09  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	A number of small bug fixes...
+	- do not override the user setting of scrollback lines with the
+	terminal size.
+	- only set the current screen rather than both and so reset the
+	scrollback lines when we switch between normal and alternate.
+	- do not invalidate inside set_scrollback lines as setting does not
+	actually modify the on-screen contents.
+	- push the scroll-adjustment to the post-processing emission.
+	- queue timeouts on value change (should be a no-op)
+	- reorder emission so that scrolling occurs before invalidating the
+	window (ie so that the scroll happens this cycle, not next).
+
+	Still unsolved: the clamping of the cursor when switching between
+	alternate screens.
+
+	* src/vte-private.h:
+	* src/vte.c: (vte_terminal_emit_adjustment_changed),
+	(vte_terminal_queue_adjustment_changed),
+	(vte_terminal_queue_adjustment_value_changed),
+	(_vte_terminal_adjust_adjustments), (vte_terminal_scroll_pages),
+	(vte_terminal_maybe_scroll_to_top),
+	(vte_terminal_maybe_scroll_to_bottom),
+	(_vte_terminal_ensure_cursor), (_vte_terminal_update_insert_delta),
+	(vte_terminal_process_incoming), (vte_terminal_extend_selection),
+	(vte_terminal_autoscroll), (vte_terminal_handle_scroll),
+	(vte_terminal_size_allocate), (vte_terminal_scroll),
+	(vte_terminal_background_update),
+	(vte_terminal_queue_background_update),
+	(vte_terminal_set_scrollback_lines), (vte_terminal_reset),
+	(add_process_timeout), (vte_terminal_add_process_timeout),
+	(vte_terminal_start_processing), (update_repeat_timeout),
+	(update_timeout):
+	* src/vteseq.c: (vte_sequence_handler_scroll_up_or_down),
+	(vte_sequence_handler_decset_internal), (vte_sequence_handler_al),
+	(vte_sequence_handler_dl), (vte_sequence_handler_sf),
+	(vte_sequence_handler_sr), (vte_sequence_handler_clear_screen),
+	(vte_sequence_handler_cursor_character_absolute),
+	(vte_sequence_handler_insert_lines),
+	(vte_sequence_handler_delete_lines),
+	(vte_sequence_handler_screen_alignment_test):
+
 2007-02-08  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	* src/vteapp.c: (main): whitespace

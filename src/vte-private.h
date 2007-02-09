@@ -343,6 +343,7 @@ struct _VteTerminalPrivate {
 
 	/* Adjustment updates pending. */
 	gboolean adjustment_changed_pending;
+	gboolean adjustment_value_changed_pending;
 
 	/* window name changes */
 	gchar *window_title_changed;
@@ -378,7 +379,7 @@ void _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic);
 VteRowData * _vte_new_row_data(VteTerminal *terminal);
 VteRowData * _vte_new_row_data_sized(VteTerminal *terminal, gboolean fill);
 VteRowData * _vte_reset_row_data (VteTerminal *terminal, VteRowData *row, gboolean fill);
-void _vte_terminal_adjust_adjustments(VteTerminal *terminal, gboolean immediate);
+void _vte_terminal_adjust_adjustments(VteTerminal *terminal);
 void _vte_terminal_emit_contents_changed(VteTerminal *terminal);
 void _vte_terminal_emit_text_deleted(VteTerminal *terminal);
 void _vte_terminal_emit_text_inserted(VteTerminal *terminal);
