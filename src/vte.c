@@ -1530,7 +1530,9 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal)
 
 	/* The upper value is the number of rows which might be visible.  (Add
 	 * one to the cursor offset because it's zero-based.) */
-	rows = terminal->adjustment->value + terminal->row_count + 1;
+	rows = MAX (screen->insert_delta, terminal->adjustment->value)
+		+ terminal->row_count;
+	rows = MAX(_vte_ring_next(terminal->pvt->screen->row_data), rows);
 	if (terminal->adjustment->upper != rows) {
 		_vte_debug_print(VTE_DEBUG_IO,
 				"Changing upper bound from %f to %ld\n",
@@ -7141,7 +7143,6 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 		/* Adjust scrollback buffers to ensure that they're big enough. */
 		vte_terminal_set_scrollback_lines(terminal,
 				terminal->pvt->scrollback_lines);
-
 		/* Notify viewers that the contents have changed. */
 		_vte_terminal_match_contents_clear(terminal);
 		_vte_terminal_emit_contents_changed(terminal);
@@ -10747,7 +10748,7 @@ vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
 void
 vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 {
-	long row, low, high;
+	glong row;
 	VteScreen *screen;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -10758,26 +10759,37 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 	 * alternate screen isn't allowed to scroll at all. */
 	row = screen->cursor_current.row - screen->scroll_delta;
 	if (screen == &terminal->pvt->normal_screen) {
+		glong low, high;
 		/* We need at least as many lines as are visible */
 		lines = MAX (lines, terminal->row_count);
 		vte_terminal_reset_rowdata (&screen->row_data, lines);
 		if (row >= terminal->row_count) {
-			screen->scroll_delta += row - terminal->row_count + 1;
-			screen->insert_delta += row - terminal->row_count + 1;
+			glong delta = row - terminal->row_count + 1;
+			screen->scroll_delta += delta;
+			screen->insert_delta += delta;
+			screen->cursor_current.row += delta;
 		}
 		low = _vte_ring_delta (screen->row_data);
-		high = _vte_ring_max (screen->row_data) - terminal->row_count + 1;
+		high = low + lines - terminal->row_count + 1;
 		screen->scroll_delta = CLAMP (screen->scroll_delta, low, high);
 		screen->insert_delta = CLAMP (screen->insert_delta, low, high);
+		if (_vte_ring_next (screen->row_data) > screen->insert_delta + terminal->row_count - 1){
+			_vte_ring_length (screen->row_data) =
+				screen->insert_delta + terminal->row_count - 1 - low;
+		}
 	} else {
 		vte_terminal_reset_rowdata (&screen->row_data,
 				terminal->row_count);
 		screen->scroll_delta = _vte_ring_delta (screen->row_data);
 		screen->insert_delta = _vte_ring_delta (screen->row_data);
 	}
-	screen->cursor_current.row = screen->scroll_delta +
-		MIN (row, terminal->row_count - 1);
+	screen->cursor_current.row = CLAMP (screen->cursor_current.row,
+			screen->scroll_delta,
+			screen->scroll_delta + terminal->row_count - 1);
 
+	/* reset any pending updates to scroll_delta */
+	vte_terminal_queue_adjustment_value_changed (terminal,
+			screen->scroll_delta);
 	/* Adjust the scrollbars to the new locations. */
 	_vte_terminal_adjust_adjustments(terminal);
 }
