@@ -1489,10 +1489,80 @@ vte_terminal_queue_adjustment_value_changed(VteTerminal *terminal, glong v)
 }
 
 
-/* Update the adjustment field of the widget.  This function should be called
- * whenever we add rows to or remove rows from the history or switch screens. */
 void
 _vte_terminal_adjust_adjustments(VteTerminal *terminal)
+{
+	VteScreen *screen;
+	gboolean changed;
+	long delta;
+	long rows;
+
+	g_assert(terminal->pvt->screen != NULL);
+	g_assert(terminal->pvt->screen->row_data != NULL);
+
+	/* Adjust the vertical, uh, adjustment. */
+	changed = FALSE;
+
+	/* The lower value should be the first row in the buffer. */
+	screen = terminal->pvt->screen;
+	delta = _vte_ring_delta(screen->row_data);
+	_vte_debug_print(VTE_DEBUG_IO,
+			"Changing adjustment values "
+			"(delta = %ld, scroll = %ld).\n",
+			delta, screen->scroll_delta);
+	if (terminal->adjustment->lower != delta) {
+		_vte_debug_print(VTE_DEBUG_IO,
+				"Changing lower bound from %lf to %ld\n",
+				terminal->adjustment->lower,
+				delta);
+		terminal->adjustment->lower = delta;
+		changed = TRUE;
+	}
+
+	/* Snap the insert delta and the cursor position to be in the visible
+	 * area.  Leave the scrolling delta alone because it will be updated
+	 * when the adjustment changes. */
+	screen->insert_delta = MAX(screen->insert_delta, delta);
+	screen->cursor_current.row = MAX(screen->cursor_current.row,
+					 screen->insert_delta);
+
+	/* The upper value is the number of rows which might be visible.  (Add
+	 * one to the cursor offset because it's zero-based.) */
+	rows = MAX (screen->insert_delta, terminal->adjustment->value)
+		+ terminal->row_count;
+	rows = MAX(_vte_ring_next(terminal->pvt->screen->row_data), rows);
+	if (terminal->adjustment->upper != rows) {
+		_vte_debug_print(VTE_DEBUG_IO,
+				"Changing upper bound from %f to %ld\n",
+				terminal->adjustment->upper,
+				rows);
+		terminal->adjustment->upper = rows;
+		changed = TRUE;
+	}
+
+	/* Set the scrollbar adjustment to where the screen wants it to be. */
+	if (!terminal->pvt->adjustment_value_changed_pending &&
+			floor(terminal->adjustment->value) != screen->scroll_delta) {
+		_vte_debug_print(VTE_DEBUG_IO,
+				"Changing adjustment scroll position: "
+				"%ld\n", screen->scroll_delta);
+		vte_terminal_queue_adjustment_value_changed(terminal,
+				screen->scroll_delta);
+	}
+
+	/* If anything changed, signal that there was a change. */
+	if (changed == TRUE) {
+		_vte_debug_print(VTE_DEBUG_IO,
+				"Changed adjustment values "
+				"(delta = %ld, scroll = %ld).\n",
+				delta, screen->scroll_delta);
+		vte_terminal_queue_adjustment_changed(terminal);
+	}
+}
+/* Update the adjustment field of the widget.  This function should be called
+ * whenever we add rows to or remove rows from the history or switch screens. */
+static void
+_vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 {
 	VteScreen *screen;
 	gboolean changed;
@@ -10791,7 +10861,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 	vte_terminal_queue_adjustment_value_changed (terminal,
 			screen->scroll_delta);
 	/* Adjust the scrollbars to the new locations. */
-	_vte_terminal_adjust_adjustments(terminal);
+	_vte_terminal_adjust_adjustments_full (terminal);
 }
 
 /**
@@ -11039,7 +11109,7 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 		terminal->pvt->alternate_screen.cursor_current.col = 0;
 		terminal->pvt->alternate_screen.scroll_delta = 0;
 		terminal->pvt->alternate_screen.insert_delta = 0;
-		_vte_terminal_adjust_adjustments(terminal);
+		_vte_terminal_adjust_adjustments_full (terminal);
 	}
 	/* Clear the status lines. */
 	terminal->pvt->normal_screen.status_line = FALSE;

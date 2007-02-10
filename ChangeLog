@@ -1,5 +1,14 @@
 2007-02-10  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Have a separate adjust_adjustments for when we know that the page
+	size and step lengths may have changed.
+
+	* src/vte.c: (_vte_terminal_adjust_adjustments),
+	(_vte_terminal_adjust_adjustments_full),
+	(vte_terminal_set_scrollback_lines), (vte_terminal_reset):
+
+2007-02-10  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c: (_vte_terminal_adjust_adjustments),
 	(vte_terminal_size_allocate), (vte_terminal_set_scrollback_lines):
 		Prevent the display of garbage after resizing and switching
