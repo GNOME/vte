@@ -1,3 +1,13 @@
+2007-02-11  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 406763 – Selecting double-wide characters
+
+	* src/vte.c: (start_column), (end_column),
+	(vte_terminal_start_selection), (vte_terminal_extend_selection),
+	(vte_terminal_draw_rows):
+		Extend selection to include fragment cells i.e. double-wide
+		characters.
+
 2007-02-10  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Have a separate adjust_adjustments for when we know that the page

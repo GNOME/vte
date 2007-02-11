@@ -5332,6 +5332,38 @@ vte_terminal_paste(VteTerminal *terminal, GdkAtom board)
 	}
 }
 
+static glong
+start_column (VteTerminal *terminal, glong col, glong row)
+{
+	VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
+	struct vte_charcell *cell = _vte_row_data_find_charcell(row_data, col);
+	while (cell != NULL && cell->fragment && col > 0) {
+		cell = _vte_row_data_find_charcell(row_data, --col);
+	}
+	return MAX(col, 0);
+}
+static glong
+end_column (VteTerminal *terminal, glong col, glong row)
+{
+	VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
+	struct vte_charcell *cell = _vte_row_data_find_charcell(row_data, col);
+	gint columns = 1;
+	while (cell != NULL && cell->fragment && col > 0) {
+		cell = _vte_row_data_find_charcell(row_data, --col);
+	}
+	if (cell) {
+		columns = cell->columns;
+		if (0&&_vte_draw_get_char_width(terminal->pvt->draw,
+					cell->c,
+					cell->columns) >
+				terminal->char_width * columns) {
+			columns++;
+		}
+	}
+	return MIN(col + columns - 1, terminal->column_count);
+}
+
+
 /* Start selection at the location of the event. */
 static void
 vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
@@ -5341,8 +5373,10 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 
 	/* Convert the event coordinates to cell coordinates. */
 	delta = terminal->pvt->screen->scroll_delta;
-	cellx = (event->x - VTE_PAD_WIDTH) / terminal->char_width;
 	celly = (event->y - VTE_PAD_WIDTH) / terminal->char_height + delta;
+	cellx = start_column (terminal,
+			(event->x - VTE_PAD_WIDTH) / terminal->char_width,
+			celly);
 
 	/* Record that we have the selection, and where it started. */
 	terminal->pvt->has_selection = TRUE;
@@ -5370,7 +5404,9 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 
 		terminal->pvt->selection_start.x = cellx;
 		terminal->pvt->selection_start.y = celly;
-		terminal->pvt->selection_end = terminal->pvt->selection_start;
+		terminal->pvt->selection_end.x = end_column (terminal,
+				cellx, celly);
+		terminal->pvt->selection_end.y = celly;
 		terminal->pvt->selection_origin =
 			terminal->pvt->selection_last;
 		break;
@@ -5476,10 +5512,10 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 			start->x, start->y, end->x, end->y);
 
 	/* Recalculate the selection area in terms of cell positions. */
-	terminal->pvt->selection_start.x = MAX(0, start->x / width);
-	terminal->pvt->selection_start.y = MAX(0, start->y / height);
-	terminal->pvt->selection_end.x = MAX(0, end->x / width);
-	terminal->pvt->selection_end.y = MAX(0, end->y / height);
+	terminal->pvt->selection_start.x = MAX (0, start->x / width);
+	terminal->pvt->selection_start.y = MAX (0, start->y / height);
+	terminal->pvt->selection_end.x = MAX (0, end->x / width);
+	terminal->pvt->selection_end.y = MAX (0, end->y / height);
 
 	/* Re-sort using cell coordinates to catch round-offs that make two
 	 * coordinates "the same". */
@@ -5490,6 +5526,8 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 		*sc = *ec;
 		*ec = tc;
 	}
+	sc->x = start_column (terminal, sc->x, sc->y);
+	ec->x = end_column (terminal, ec->x, ec->y);
 
 	/* Extend the selection to handle end-of-line cases, word, and line
 	 * selection.  We do this here because calculating it once is cheaper
@@ -5527,6 +5565,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 			sc->x = 0;
 		}
 	}
+	sc->x = start_column (terminal, sc->x, sc->y);
 
 	/* Handle end-of-line at the end-cell. */
 	if (!terminal->pvt->block_mode) {
@@ -5554,6 +5593,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 			ec->x = MAX(ec->x, terminal->column_count - 1);
 		}
 	}
+	ec->x = end_column (terminal, ec->x, ec->y);
 
 	/* Now extend again based on selection type. */
 	switch (terminal->pvt->selection_type) {
@@ -9011,9 +9051,8 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 		 * making the drawing area a little wider. */
 		i = start_column;
 		cell = _vte_row_data_find_charcell(row_data, i);
-		while ((cell != NULL) && (cell->fragment) && (i > 0)) {
-			i--;
-			cell = _vte_row_data_find_charcell(row_data, i);
+		while (cell != NULL && cell->fragment && i > 0) {
+			cell = _vte_row_data_find_charcell(row_data, --i);
 		}
 		/* Walk the line. */
 		do {
@@ -9030,6 +9069,13 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			j = i + (cell ? cell->columns : 1);
 
 			while (j < start_column + column_count){
+				/* Don't render fragments of multicolumn characters
+				 * which have the same attributes as the initial
+				 * portions. */
+				if (cell != NULL && cell->fragment) {
+					j++;
+					continue;
+				}
 				/* Retrieve the cell. */
 				cell = _vte_row_data_find_charcell(row_data, j);
 				/* Resolve attributes to colors where possible and
@@ -9043,13 +9089,6 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 						&nfore, &nback);
 				if (nback != back) {
 					break;
-				}
-				/* Don't render fragments of multicolumn characters
-				 * which have the same attributes as the initial
-				 * portions. */
-				if ((cell != NULL) && (cell->fragment)) {
-					j++;
-					continue;
 				}
 				j += cell ? cell->columns : 1;
 			}
