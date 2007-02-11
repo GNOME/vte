@@ -5434,9 +5434,19 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 	gboolean invalidate_selected = FALSE;
 	gboolean had_selection;
 
-	screen = terminal->pvt->screen;
+
 	height = terminal->char_height;
 	width = terminal->char_width;
+
+	/* If the pointer hasn't moved to another character cell, then we
+	 * need do nothing. */
+	if (floor (x / width) == floor (terminal->pvt->mouse_last_x / width) &&
+	    floor (y / height) == floor (terminal->pvt->mouse_last_y / height)) {
+		return;
+	}
+
+
+	screen = terminal->pvt->screen;
 	old_start = terminal->pvt->selection_start;
 	old_end = terminal->pvt->selection_end;
 
