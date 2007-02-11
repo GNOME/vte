@@ -5347,20 +5347,14 @@ end_column (VteTerminal *terminal, glong col, glong row)
 {
 	VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
 	struct vte_charcell *cell = _vte_row_data_find_charcell(row_data, col);
-	gint columns = 1;
+	gint columns = 0;
 	while (cell != NULL && cell->fragment && col > 0) {
 		cell = _vte_row_data_find_charcell(row_data, --col);
 	}
 	if (cell) {
-		columns = cell->columns;
-		if (0&&_vte_draw_get_char_width(terminal->pvt->draw,
-					cell->c,
-					cell->columns) >
-				terminal->char_width * columns) {
-			columns++;
-		}
+		columns = cell->columns - 1;
 	}
-	return MIN(col + columns - 1, terminal->column_count);
+	return MIN(col + columns, terminal->column_count);
 }
 
 
