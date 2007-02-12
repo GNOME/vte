@@ -5403,6 +5403,16 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 		terminal->pvt->selection_end.y = celly;
 		terminal->pvt->selection_origin =
 			terminal->pvt->selection_last;
+		_vte_invalidate_region(terminal,
+				     MIN(terminal->pvt->selection_start.x,
+				         terminal->pvt->selection_end.x),
+				     MAX(terminal->pvt->selection_start.x,
+					 terminal->pvt->selection_end.x),
+				     MIN(terminal->pvt->selection_start.y,
+				         terminal->pvt->selection_end.y),
+				     MAX(terminal->pvt->selection_start.y,
+					 terminal->pvt->selection_end.y),
+				     FALSE);
 		break;
 	}
 

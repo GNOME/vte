@@ -1,5 +1,11 @@
 2007-02-12  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c: (vte_terminal_start_selection):
+		Invalidate the selected region when starting in
+		select-word or select-line mode.
+
+2007-02-12  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Restore double-click to select word behaviour, broken by r1671 as
 	the second click occurs in the same place as the first (obviously!).
 
