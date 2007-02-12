@@ -5462,7 +5462,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 	old_end = terminal->pvt->selection_end;
 
 	/* Convert the event coordinates to cell coordinates. */
-	delta = screen->scroll_delta;
+	delta = terminal->adjustment->value;
 
 	/* If we're restarting on a drag, then mark this as the start of
 	 * the selected block. */
@@ -5976,26 +5976,31 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	int width, height;
 	gdouble x, y;
 
-	/* check to see if we care */
-	if (event->window != widget->window ||
-			event->x < 0 || event->x >= widget->allocation.width ||
-			event->y < 0 || event->y >= widget->allocation.height) {
-		return FALSE;
-	}
-
 	/* check to see if it matters */
 	if (!GTK_WIDGET_DRAWABLE(widget)) {
 		return TRUE;
 	}
 
 	terminal = VTE_TERMINAL(widget);
+	x = event->x - VTE_PAD_WIDTH;
+	y = event->y - VTE_PAD_WIDTH;
+	width = terminal->char_width;
+	height = terminal->char_height;
 
 	/* If the pointer hasn't moved to another character cell, then we
 	 * need do nothing. */
-	width = terminal->char_width;
-	height = terminal->char_height;
-	x = event->x - VTE_PAD_WIDTH;
-	y = event->y - VTE_PAD_WIDTH;
+	if (floor (x / width) == floor (terminal->pvt->mouse_last_x / width) &&
+			floor (y / height) == floor (terminal->pvt->mouse_last_y / height)) {
+		return TRUE;
+	}
+
+
+	/* check to see if we care */
+	if (event->window != widget->window ||
+			event->x < 0 || event->x >= widget->allocation.width ||
+			event->y < 0 || event->y >= widget->allocation.height) {
+		goto skip_hilite;
+	}
 
 	event_mode = terminal->pvt->mouse_send_xy_on_click ||
 		     terminal->pvt->mouse_send_xy_on_button ||
@@ -6050,9 +6055,10 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 		break;
 	}
 
+skip_hilite:
 	/* Start scrolling if we need to. */
-	if ((event->y < VTE_PAD_WIDTH) ||
-	    (event->y >= (terminal->row_count * terminal->char_height + VTE_PAD_WIDTH))) {
+	if (event->y < VTE_PAD_WIDTH ||
+	    event->y >= terminal->row_count * height + VTE_PAD_WIDTH) {
 		switch (terminal->pvt->mouse_last_button) {
 		case 1:
 			if (!event_mode) {
