@@ -5423,7 +5423,7 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 /* Extend selection to include the given event coordinates. */
 static void
 vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
-			      gboolean always_grow)
+			      gboolean always_grow, gboolean force)
 {
 	VteScreen *screen;
 	VteRowData *rowdata;
@@ -5440,8 +5440,9 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 
 	/* If the pointer hasn't moved to another character cell, then we
 	 * need do nothing. */
-	if (floor (x / width) == floor (terminal->pvt->mouse_last_x / width) &&
-	    floor (y / height) == floor (terminal->pvt->mouse_last_y / height)) {
+	if (force == FALSE &&
+			floor (x / width) == floor (terminal->pvt->mouse_last_x / width) &&
+			floor (y / height) == floor (terminal->pvt->mouse_last_y / height)) {
 		return;
 	}
 
@@ -5923,7 +5924,7 @@ vte_terminal_autoscroll(VteTerminal *terminal)
 			x = terminal->column_count * terminal->char_width;
 		}
 		/* Extend selection to cover the newly-scrolled area. */
-		vte_terminal_extend_selection(terminal, x, y, FALSE);
+		vte_terminal_extend_selection(terminal, x, y, FALSE, TRUE);
 	} else {
 		/* Stop autoscrolling. */
 		terminal->pvt->mouse_autoscroll_tag = 0;
@@ -6024,7 +6025,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
 			    !event_mode) {
 				vte_terminal_extend_selection(terminal,
-							      x, y, FALSE);
+							      x, y, FALSE, FALSE);
 			} else {
 				vte_terminal_maybe_send_mouse_drag(terminal,
 								   event);
@@ -6162,7 +6163,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			if (extend_selecting) {
 				vte_terminal_extend_selection(terminal,
 							      x, y,
-							      !terminal->pvt->selecting_restart);
+							      !terminal->pvt->selecting_restart, TRUE);
 				handled = TRUE;
 			}
 			break;
@@ -6199,7 +6200,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 							     event,
 							     selection_type_word);
 				vte_terminal_extend_selection(terminal,
-							      x, y, FALSE);
+							      x, y, FALSE, TRUE);
 			}
 			break;
 		case 2:
@@ -6221,7 +6222,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 							     event,
 							     selection_type_line);
 				vte_terminal_extend_selection(terminal,
-							      x, y, FALSE);
+							      x, y, FALSE, TRUE);
 			}
 			break;
 		case 2:
