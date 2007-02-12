@@ -257,6 +257,11 @@ vte_pty_child_setup (gpointer arg)
 	_vte_pty_reset_signal_handlers();
 }
 
+/* TODO: clean up the spawning
+ * - replace current env rather than adding!
+ * - allow user control over flags (eg DO_NOT_CLOSE)
+ * - additional user callback for child setup
+ */
 
 /* Run the given command (if specified) */
 static gboolean
@@ -269,35 +274,45 @@ _vte_pty_run_on_pty (struct vte_pty_child_setup_data *data,
 	GError *local_error = NULL;
 
 	if (command != NULL) {
-		gchar **arg2;
-		gint i, argc;
+		gchar **arg2, **envp2;
+		gint i, k, argc;
 
 		/* push the command into argv[0] */
 		argc = argv ? g_strv_length (argv) : 0;
-		arg2 = g_new (char *, argc+2);
+		arg2 = g_new (char *, argc + 2);
 		arg2[0] = g_strdup (command);
-		for (i=0; i<argc; i++) {
+		for (i = 0; i < argc; i++) {
 			arg2[i+1] = g_strdup (argv[i]);
 		}
 		arg2[i+1] = NULL;
 
-		_VTE_DEBUG_IF (VTE_DEBUG_MISC) {
-			g_printerr("Spawing command '%s'\n", command);
-			for (i = 0; arg2[i] != NULL; i++) {
-				g_printerr("    argv[%d] = %s\n", i, arg2[i]);
+		/* add the given environment to the childs */
+		i = g_strv_length (environ) + (envp ? g_strv_length (envp) : 0);
+		envp2 = g_new (char *, i + 1);
+		for (i = 0; environ[i] != NULL; i++) {
+			envp2[i] = g_strdup (environ[i]);
+		}
+		if (envp != NULL) {
+			for (k = 0; envp[k] != NULL; k++) {
+				envp2[i++] = g_strdup (envp[k]);
 			}
-			if (envp) {
-				for (i = 0; envp[i] != NULL; i++) {
-					g_printerr ("    envp[%d] = %s\n",
-							i, envp[i]);
-				}
+		}
+		envp2[i] = NULL;
+
+		_VTE_DEBUG_IF (VTE_DEBUG_MISC) {
+			g_printerr ("Spawing command '%s'\n", command);
+			for (i = 0; arg2[i] != NULL; i++) {
+				g_printerr ("    argv[%d] = %s\n", i, arg2[i]);
+			}
+			for (i = 0; envp2[i] != NULL; i++) {
+				g_printerr ("    env[%d] = %s\n", i, envp2[i]);
 			}
 			g_printerr ("    directory: %s\n",
-				       	directory ? directory : "(none)");
+					directory ? directory : "(none)");
 		}
 
 		ret = g_spawn_async_with_pipes (directory,
-				arg2, envp,
+				arg2, envp2,
 				G_SPAWN_CHILD_INHERITS_STDIN |
 				G_SPAWN_SEARCH_PATH |
 				G_SPAWN_DO_NOT_REAP_CHILD |
@@ -313,7 +328,7 @@ _vte_pty_run_on_pty (struct vte_pty_child_setup_data *data,
 				/* try spawning in our working directory */
 				g_clear_error (&local_error);
 				ret = g_spawn_async_with_pipes (NULL,
-						arg2, envp,
+						arg2, envp2,
 						G_SPAWN_CHILD_INHERITS_STDIN |
 						G_SPAWN_SEARCH_PATH |
 						G_SPAWN_DO_NOT_REAP_CHILD |
@@ -325,6 +340,7 @@ _vte_pty_run_on_pty (struct vte_pty_child_setup_data *data,
 			}
 		}
 		g_strfreev (arg2);
+		g_strfreev (envp2);
 
 		_vte_debug_print (VTE_DEBUG_MISC,
 				"Spawn result: %s%s\n",

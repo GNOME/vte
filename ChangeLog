@@ -1,3 +1,11 @@
+2007-02-12  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 407091 – vte_terminal_fork_command() env argument changed semantic in 0.15.2
+	Original patch by Michael Vogt.
+
+	* src/pty.c: (_vte_pty_run_on_pty):
+		Copy the current environment into the child's.
+
 2007-02-11  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 323393 – Hyper-sensitive selection
