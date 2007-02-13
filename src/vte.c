@@ -349,8 +349,9 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	}
 
 	_vte_debug_print (VTE_DEBUG_UPDATES,
-			"Invalidating cells at (%ld,%ld)x(%d,%d).\n",
+			"Invalidating cells at (%ld,%ld+%ld)x(%d,%d).\n",
 			column_start, row_start,
+			(long)terminal->pvt->screen->scroll_delta,
 			column_count, row_count);
 	_vte_debug_print (VTE_DEBUG_WORK, "?");
 
@@ -1464,10 +1465,21 @@ vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 		gtk_adjustment_changed(terminal->adjustment);
 	}
 	if (terminal->pvt->adjustment_value_changed_pending) {
+		glong v;
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting adjustment_value_changed.\n");
 		terminal->pvt->adjustment_value_changed_pending = FALSE;
-		gtk_adjustment_value_changed(terminal->adjustment);
+		v = floor (terminal->adjustment->value);
+		if (v != terminal->pvt->screen->scroll_delta) {
+			/* this little dance is so that the scroll_delta is
+			 * updated immediately, but we still handled scrolling
+			 * via the adjustment - e.g. user interaction with the
+			 * scrollbar
+			 */
+			terminal->adjustment->value = terminal->pvt->screen->scroll_delta;
+			terminal->pvt->screen->scroll_delta = v;
+			gtk_adjustment_value_changed(terminal->adjustment);
+		}
 	}
 }
 
@@ -1481,8 +1493,8 @@ vte_terminal_queue_adjustment_changed(VteTerminal *terminal)
 static void
 vte_terminal_queue_adjustment_value_changed(VteTerminal *terminal, glong v)
 {
-	if (v != floor (terminal->adjustment->value)) {
-		terminal->adjustment->value = v;
+	if (v != terminal->pvt->screen->scroll_delta) {
+		terminal->pvt->screen->scroll_delta = v;
 		terminal->pvt->adjustment_value_changed_pending = TRUE;
 		vte_terminal_start_processing (terminal);
 	}
@@ -1528,7 +1540,7 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal)
 
 	/* The upper value is the number of rows which might be visible.  (Add
 	 * one to the cursor offset because it's zero-based.) */
-	rows = MAX (screen->insert_delta, terminal->adjustment->value)
+	rows = MAX (screen->insert_delta, screen->scroll_delta)
 		+ terminal->row_count;
 	rows = MAX(_vte_ring_next(terminal->pvt->screen->row_data), rows);
 	if (terminal->adjustment->upper != rows) {
@@ -1541,8 +1553,7 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal)
 	}
 
 	/* Set the scrollbar adjustment to where the screen wants it to be. */
-	if (!terminal->pvt->adjustment_value_changed_pending &&
-			floor(terminal->adjustment->value) != screen->scroll_delta) {
+	if (floor(terminal->adjustment->value) != screen->scroll_delta) {
 		_vte_debug_print(VTE_DEBUG_IO,
 				"Changing adjustment scroll position: "
 				"%ld\n", screen->scroll_delta);
@@ -1600,7 +1611,7 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 
 	/* The upper value is the number of rows which might be visible.  (Add
 	 * one to the cursor offset because it's zero-based.) */
-	rows = MAX (screen->insert_delta, terminal->adjustment->value)
+	rows = MAX (screen->insert_delta, screen->scroll_delta)
 		+ terminal->row_count;
 	rows = MAX(_vte_ring_next(terminal->pvt->screen->row_data), rows);
 	if (terminal->adjustment->upper != rows) {
@@ -1646,8 +1657,7 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 	}
 
 	/* Set the scrollbar adjustment to where the screen wants it to be. */
-	if (!terminal->pvt->adjustment_value_changed_pending &&
-			floor(terminal->adjustment->value) != screen->scroll_delta) {
+	if (floor(terminal->adjustment->value) != screen->scroll_delta) {
 		_vte_debug_print(VTE_DEBUG_IO,
 				"Changing adjustment scroll position: "
 				"%ld\n", screen->scroll_delta);
@@ -1701,11 +1711,9 @@ vte_terminal_maybe_scroll_to_bottom(VteTerminal *terminal)
 {
 	glong delta;
 	delta = terminal->pvt->screen->insert_delta;
-	if (terminal->pvt->screen->scroll_delta != delta) {
-		vte_terminal_queue_adjustment_value_changed (terminal, delta);
-		_vte_debug_print(VTE_DEBUG_IO,
-				"Snapping to bottom of screen\n");
-	}
+	vte_terminal_queue_adjustment_value_changed (terminal, delta);
+	_vte_debug_print(VTE_DEBUG_IO,
+			"Snapping to bottom of screen\n");
 }
 
 static void
@@ -3059,7 +3067,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	gboolean cursor_visible;
 	GdkPoint bbox_topleft, bbox_bottomright;
 	gunichar *wbuf, c;
-	long wcount, start;
+	long wcount, start, delta;
 	gboolean leftovers, modified, bottom, inserted, again;
 	gboolean invalidated_text;
 	GArray *unichars;
@@ -3071,11 +3079,12 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 			_vte_incoming_chunks_count(terminal->pvt->incoming));
 	_vte_debug_print (VTE_DEBUG_WORK, "(");
 
-	bottom = (terminal->pvt->screen->insert_delta ==
-		  floor (terminal->adjustment->value));
+	screen = terminal->pvt->screen;
+
+	delta = screen->scroll_delta;
+	bottom = screen->insert_delta == delta;
 
 	/* Save the current cursor position. */
-	screen = terminal->pvt->screen;
 	cursor = screen->cursor_current;
 	cursor_visible = terminal->pvt->cursor_visible;
 
@@ -3208,13 +3217,12 @@ skip_chunk:
 					 screen->cursor_current.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK)) {
 				/* Clip off any part of the box which isn't already on-screen. */
 				bbox_topleft.x = MAX(bbox_topleft.x, 0);
-				bbox_topleft.y = MAX(bbox_topleft.y, screen->scroll_delta);
+				bbox_topleft.y = MAX(bbox_topleft.y, delta);
 				bbox_bottomright.x = MIN(bbox_bottomright.x,
 						terminal->column_count);
 				/* lazily apply the +1 to the cursor_row */
 				bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
-						screen->scroll_delta +
-						terminal->row_count);
+						delta + terminal->row_count);
 
 				_vte_invalidate_cells(terminal,
 						bbox_topleft.x,
@@ -3352,13 +3360,12 @@ next_match:
 	if (invalidated_text) {
 		/* Clip off any part of the box which isn't already on-screen. */
 		bbox_topleft.x = MAX(bbox_topleft.x, 0);
-		bbox_topleft.y = MAX(bbox_topleft.y, screen->scroll_delta);
+		bbox_topleft.y = MAX(bbox_topleft.y, delta);
 		bbox_bottomright.x = MIN(bbox_bottomright.x,
 				terminal->column_count);
 		/* lazily apply the +1 to the cursor_row */
 		bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
-				screen->scroll_delta +
-				terminal->row_count);
+				delta + terminal->row_count);
 
 		_vte_invalidate_cells(terminal,
 				bbox_topleft.x,
@@ -3446,8 +3453,7 @@ next_match:
 		rect.x = terminal->pvt->screen->cursor_current.col *
 			 terminal->char_width + VTE_PAD_WIDTH;
 		rect.width = terminal->char_width;
-		rect.y = (terminal->pvt->screen->cursor_current.row -
-			  terminal->pvt->screen->scroll_delta) *
+		rect.y = (terminal->pvt->screen->cursor_current.row - delta) *
 			 terminal->char_height + VTE_PAD_WIDTH;
 		rect.height = terminal->char_height;
 		gtk_im_context_set_cursor_location(terminal->pvt->im_context,
@@ -5462,7 +5468,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 	old_end = terminal->pvt->selection_end;
 
 	/* Convert the event coordinates to cell coordinates. */
-	delta = terminal->adjustment->value;
+	delta = screen->scroll_delta;
 
 	/* If we're restarting on a drag, then mark this as the start of
 	 * the selected block. */
@@ -6740,7 +6746,7 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	screen = terminal->pvt->screen;
 
 	/* Read the new adjustment value and save the difference. */
-	adj = floor(terminal->adjustment->value);
+	adj = floor (terminal->adjustment->value);
 	dy = adj - screen->scroll_delta;
 	screen->scroll_delta = adj;
 
@@ -10883,6 +10889,9 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 	VteScreen *screen;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	_vte_debug_print (VTE_DEBUG_MISC,
+			"Setting scrollback lines to %ld\n", lines);
+
 	screen = terminal->pvt->screen;
 	terminal->pvt->scrollback_lines = lines;
 

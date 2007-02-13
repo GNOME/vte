@@ -273,7 +273,6 @@ struct _VteTerminalPrivate {
 
 	/* Scrolling options. */
 	gboolean scroll_background;
-	long scroll_lock_count;
 	gboolean scroll_on_output;
 	gboolean scroll_on_keystroke;
 	long scrollback_lines;

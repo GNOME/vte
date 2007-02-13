@@ -1,5 +1,27 @@
 2007-02-13  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	uws reported that scrolling inside screen with a status line was
+	broken. Indeed any scrolling inside an alternative screen was broken,
+	e.g. plain vim would not always update the topmost line. The issue was
+	the interaction with the deferred value-changed signal emission and
+	failing to correctly maintain the current scroll_delta. The fix is
+	that we always now apply changes to the scroll_delta and swap
+	scroll_delta with adjustment->value before the deferred signal
+	emission to correctly trigger the handle_scroll().
+
+	* src/vte-private.h:
+	* src/vte.c: (_vte_invalidate_cells),
+	(vte_terminal_emit_adjustment_changed),
+	(vte_terminal_queue_adjustment_value_changed),
+	(_vte_terminal_adjust_adjustments),
+	(_vte_terminal_adjust_adjustments_full),
+	(vte_terminal_maybe_scroll_to_bottom),
+	(vte_terminal_process_incoming), (vte_terminal_extend_selection),
+	(vte_terminal_handle_scroll), (vte_terminal_set_scrollback_lines):
+	* src/vteseq.c: (vte_sequence_handler_sf):
+
+2007-02-13  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 407358 – regression in mouse selection
 
 	* src/vte.c: (vte_terminal_motion_notify):

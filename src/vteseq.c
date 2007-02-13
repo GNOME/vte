@@ -2204,9 +2204,6 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 				terminal->pvt->free_row = _vte_ring_insert_preserve(terminal->pvt->screen->row_data,
 							  screen->cursor_current.row,
 							  row);
-				/* This may generate multiple redraws, so
-				 * disable fast scrolling for now. */
-				terminal->pvt->scroll_lock_count++;
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
 				_vte_terminal_scroll_region(terminal, start,
@@ -2214,25 +2211,18 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 				/* Force scroll. */
 				_vte_terminal_ensure_cursor(terminal, FALSE);
 				_vte_terminal_adjust_adjustments(terminal);
-				/* Allow updates again. */
-				terminal->pvt->scroll_lock_count--;
 			} else {
 				/* If we're at the bottom of the scrolling
 				 * region, add a line at the top to scroll the
 				 * bottom off. */
 				vte_remove_line_internal(terminal, start);
 				vte_insert_line_internal(terminal, end);
-				/* This may generate multiple redraws, so
-				 * disable fast scrolling for now. */
-				terminal->pvt->scroll_lock_count++;
 				/* Update the display. */
 				_vte_terminal_scroll_region(terminal, start,
 							   end - start + 1, -1);
 				_vte_invalidate_cells(terminal,
 						      0, terminal->column_count,
 						      end - 2, 2);
-				/* Allow updates again. */
-				terminal->pvt->scroll_lock_count--;
 			}
 		} else {
 			/* Scroll up with history. */
