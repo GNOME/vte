@@ -5995,13 +5995,6 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	}
 
 
-	/* check to see if we care */
-	if (event->window != widget->window ||
-			event->x < 0 || event->x >= widget->allocation.width ||
-			event->y < 0 || event->y >= widget->allocation.height) {
-		goto skip_hilite;
-	}
-
 	event_mode = terminal->pvt->mouse_send_xy_on_click ||
 		     terminal->pvt->mouse_send_xy_on_button ||
 		     terminal->pvt->mouse_hilite_tracking ||
@@ -6010,6 +6003,14 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Motion notify (%lf,%lf).\n",
 			event->x, event->y);
+
+	/* check to see if we care */
+	if (event->window != widget->window ||
+			event->x < 0 || event->x >= widget->allocation.width ||
+			event->y < 0 || event->y >= widget->allocation.height) {
+		goto skip_hilite;
+	}
+
 
 	/* Hilite any matches. */
 	vte_terminal_match_hilite(terminal, x, y);
