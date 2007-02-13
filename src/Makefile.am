@@ -118,13 +118,13 @@ endif
 # Libtool shared library versioning stuffs.
 # REVISION gets incremented whenever the source code changes without adding
 # an API or ABI change.
-VERSION_REVISION=9
+VERSION_REVISION=0
 # CURRENT must be incremented when an API or ABI change (addition or removal)
 # is made, and REVISION must be reset to 0 when this happens.
-VERSION_CURRENT=10
+VERSION_CURRENT=11
 # AGE must be incremented when an API or ABI addition is made, and REVISION
 # must be reset to 0 when this happens.
-VERSION_AGE=1
+VERSION_AGE=2
 libvte_la_LDFLAGS = $(LDFLAGS) \
 	-version-info $(VERSION_CURRENT):$(VERSION_REVISION):$(VERSION_AGE) \
 	-export-symbols-regex "^vte_terminal_.*|^_vte_pty_.*|^vte_reaper_.*|_vte_debug_.*" \

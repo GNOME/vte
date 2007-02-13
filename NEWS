@@ -1,3 +1,68 @@
+0.15.3
+======
+This is another release including awesome work of one Chris Wilson.  Lots of
+bugs with the previous release are fixed in this one and some new ones are
+introduced.  Doh!
+
+- Faster control sequence matching, using gperf-generated tables now
+- Faster regex matching
+- Improved expose handling
+- Improved control sequence matching
+- Various optimizations
+- Various cleanups
+- Bugs fixed in this release:
+	Bug 407091 – vte_terminal_fork_command() env argument changed semantic
+		in 0.15.2
+		Original patch by Michael Vogt.
+	Bug 323393 – Hyper-sensitive selection
+	Bug 406763 – Selecting double-wide characters
+	Bug 363597 – Scrollback in profile dialog doesn't work
+	Bug 345344 – Pattern matching is inefficient
+	Bug 324246 – Performance degredation with large numbers of highlighted
+		addresses/URLs
+	Bug 86119 – "select all" feature
+		Original patch by Simone Gotti.
+	Bug 342059 – ASCII escape sequences don't work as expected
+		Patch by Mariano Suárez-Alvarez.
+	Bug 404757 – URL matching doesn't work with PCRE
+	Bug 403028 – decset mode 12 = blinking cursor
+	cf Bug 342338 – suffers from memory fragmentation
+	Bug 106618 – CJK 'fixed width' font and 's p a c e d o u t' issue
+	cf Bug 83285 – Treacle-slow scrolling in gnome-terminal on
+		unaccelerated X server
+	Bug 322241 – Please switch to pkg-config to check for freetype
+	Bug 322240 – Usage of pkg-config privates header
+	cf Bug 403275 – crash in Terminal: I was typing reset on th...
+	Bug 403159 – XftDrawSetClipRectangles() silently fails on ppc->i386
+	Bug 382245 – __PyGtk_API multiply defined in python module
+	Bug 155687 – Scroll region \E[NN;MMr should set cursor to home
+	Bug 147784 – cursor unvisible under mouse highlight
+	Bug 368894 – crash in Terminal: I started gnome-terminal...
+	Bug 402329 – Rendering problem with underlines and cursor
+	Bug 336105 – gnome-terminal crashes when termcap not found
+	Bug 401215 – Multi-pass renderering
+	Bug 157267 – _vte_terminal_fudge_pango_colors() breaks Japanese input
+		style
+		Patch by ynakai@redhat.com.
+	Bug 400834 – Use a global display/process timeout
+	Bug 401082 – double-draw issue
+	Bug 318307 – Cursor colour changes to foreground when unfocused
+	Bug 317449 – The cursor disappears when clicking on windows above
+		gnome-terminal
+	Bug 400759 – update problem with vte trunk
+	Bug 400671 – crash in Terminal: detaching of tabs
+	Bug 399137 – UTF-8 problem in VteAccess
+	Bug 400493 – Mouse selection seriously broken
+	Bug 400438 – _vte_invalidate_all triggered on GDK_VISIBILITY_UNOBSCURED
+	cf Bug 400072 – Handling of ; in control sequences
+	cf Bug 399617 – Avoid memory allocations during an expose event.
+	Bug 147495 – screen flicker when opening new terminal windows
+	Bug 334755 – Incomplete information from vte_terminal_get_font
+	Bug 400184 – _vte_pty_open declaration mismatch - breaks on Solaris
+	Bug 335269 – Change the way vte handles PangoFontDescription behind
+		vte_terminal_set_font
+	Bug 123591 – vte_terminal_fork_command succeeds even when it does not
+
 0.15.2
 ======
 This is a very exciting release.  Most of the changes are made by Chris Wilson
