@@ -1,6 +1,7 @@
 2007-02-14  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 407839 – Use of environ breaks build on Solaris
+	Original patch by Damien Carbery.
 
 	* src/pty.c:
 		extern char **environ - glibc was 'conveniently' declaring
