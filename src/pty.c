@@ -69,6 +69,8 @@ static int _vte_pty_helper_tunnel = -1;
 static GTree *_vte_pty_helper_map = NULL;
 #endif
 
+extern char **environ;
+
 /* Reset the handlers for all known signals to their defaults.  The parent
  * (or one of the libraries it links to) may have changed one to be ignored. */
 static void
@@ -355,8 +357,8 @@ _vte_pty_run_on_pty (struct vte_pty_child_setup_data *data,
 		switch (*pid) {
 			case -1:
 				g_set_error (error,
-					       	G_SPAWN_ERROR,
-					       	G_SPAWN_ERROR_FAILED,
+						G_SPAWN_ERROR,
+						G_SPAWN_ERROR_FAILED,
 						"Unable to fork: %s",
 						g_strerror (errno));
 				ret = FALSE;

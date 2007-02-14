@@ -1,3 +1,11 @@
+2007-02-14  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 407839 – Use of environ breaks build on Solaris
+
+	* src/pty.c:
+		extern char **environ - glibc was 'conveniently' declaring
+		it for us...
+
 2007-02-13  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	uws reported that scrolling inside screen with a status line was
