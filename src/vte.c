@@ -6851,10 +6851,17 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 		columns = _vte_termcap_find_numeric(terminal->pvt->termcap,
 						    terminal->pvt->emulation,
 						    "co");
+		if (columns <= 0) {
+			columns = VTE_COLUMNS;
+		}
+		terminal->pvt->default_column_count = columns;
+
 		rows = _vte_termcap_find_numeric(terminal->pvt->termcap,
 						 terminal->pvt->emulation,
 						 "li");
-		terminal->pvt->default_column_count = columns;
+		if (rows <= 0 ) {
+			rows = VTE_ROWS;
+		}
 		terminal->pvt->default_row_count = rows;
 	}
 
@@ -7101,8 +7108,8 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->keypad_mode = VTE_KEYMODE_NORMAL;
 	pvt->cursor_mode = VTE_KEYMODE_NORMAL;
 	pvt->dec_saved = g_hash_table_new(NULL, NULL);
-	pvt->default_column_count = 80;
-	pvt->default_row_count = 24;
+	pvt->default_column_count = VTE_COLUMNS;
+	pvt->default_row_count = VTE_ROWS;
 
 	/* Setting the terminal type and size requires the PTY master to
 	 * be set up properly first. */
