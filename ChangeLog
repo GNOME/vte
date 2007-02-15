@@ -1,3 +1,11 @@
+2007-02-15  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 408040 – vte automagic hyperlinks
+	Patch by Gilles Dartiguelongue.
+
+	* src/vteapp.c:
+		Correct the typo in the nntp protocol matcher.
+
 2007-02-14  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 407839 – Use of environ breaks build on Solaris
