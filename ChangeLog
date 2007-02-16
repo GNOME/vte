@@ -1,7 +1,12 @@
 2007-02-16  Chris Wilson  <chris@chris-wilson.co.uk>
 
-	reviewed by: <delete if not using a buddy>
+	Bug 407945 – "GNOME" Terminal" regression after "vte" update when using "csh"
 
+	When passing multiple versions of the same environment
+	variable to execve (i.e g_spawn) the result is undefined.
+	So we solve the ambiguity by using the application passed env to
+	override values from the current environment.
+	
 	* src/pty.c: (collect_variables), (merge_environ),
 	(_vte_pty_run_on_pty):
 
