@@ -265,6 +265,49 @@ vte_pty_child_setup (gpointer arg)
  * - additional user callback for child setup
  */
 
+static void
+collect_variables (char *name, char *value, GPtrArray *array)
+{
+	g_ptr_array_add (array,
+			g_strconcat (name, "=", value, NULL));
+}
+
+static gchar **
+merge_environ (char **envp)
+{
+	GHashTable *table;
+	GPtrArray *array;
+	gint i;
+
+	table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+	for (i = 0; environ[i] != NULL; i++) {
+		gchar *name = g_strdup (environ[i]);
+		gchar *value = strchr (name, '=');
+		if (value) {
+			*value = '\0';
+			value = g_strdup (value + 1);
+		}
+		g_hash_table_replace (table, name, value);
+	}
+	if (envp != NULL) {
+		for (i = 0; envp[i] != NULL; i++) {
+			gchar *name = g_strdup (envp[i]);
+			gchar *value = strchr (name, '=');
+			if (value) {
+				*value = '\0';
+				value = g_strdup (value + 1);
+			}
+			g_hash_table_replace (table, name, value);
+		}
+	}
+
+	array = g_ptr_array_sized_new (g_hash_table_size (table) + 1);
+	g_hash_table_foreach (table, (GHFunc) collect_variables, array);
+	g_hash_table_destroy (table);
+	g_ptr_array_add (array, NULL);
+	return (gchar **) g_ptr_array_free (array, FALSE);
+}
+
 /* Run the given command (if specified) */
 static gboolean
 _vte_pty_run_on_pty (struct vte_pty_child_setup_data *data,
@@ -277,7 +320,7 @@ _vte_pty_run_on_pty (struct vte_pty_child_setup_data *data,
 
 	if (command != NULL) {
 		gchar **arg2, **envp2;
-		gint i, k, argc;
+		gint i, argc;
 
 		/* push the command into argv[0] */
 		argc = argv ? g_strv_length (argv) : 0;
@@ -289,17 +332,7 @@ _vte_pty_run_on_pty (struct vte_pty_child_setup_data *data,
 		arg2[i+1] = NULL;
 
 		/* add the given environment to the childs */
-		i = g_strv_length (environ) + (envp ? g_strv_length (envp) : 0);
-		envp2 = g_new (char *, i + 1);
-		for (i = 0; environ[i] != NULL; i++) {
-			envp2[i] = g_strdup (environ[i]);
-		}
-		if (envp != NULL) {
-			for (k = 0; envp[k] != NULL; k++) {
-				envp2[i++] = g_strdup (envp[k]);
-			}
-		}
-		envp2[i] = NULL;
+		envp2 = merge_environ (envp);
 
 		_VTE_DEBUG_IF (VTE_DEBUG_MISC) {
 			g_printerr ("Spawing command '%s'\n", command);
