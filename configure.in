@@ -261,6 +261,15 @@ PKG_CHECK_MODULES(VTE,[$wantedmodules])
 NEEDEDPACKAGES="$wantedmodules"
 AC_SUBST(NEEDEDPACKAGES)
 
+# Check for various optional functions within those modules
+save_CFLAGS="$CFLAGS"
+save_LIBS="$LIBS"
+CFLAGS="$CFLAGS $VTE_CFLAGS"
+LIBS="$VTE_LIBS $LIBS"
+AC_CHECK_FUNCS([FcNameUnparse FcStrFree])
+LIBS="$save_LIBS"
+CFLAGS="$save_CFLAGS"
+
 # Require Freetype2. First see if there is suitable pkgconfig file...
 PKG_CHECK_EXISTS(freetype2 >= 6.1.0,
 		 [PKG_CHECK_MODULES(FT2, freetype2)], [

@@ -434,11 +434,13 @@ _vte_fc_patterns_from_pango_font_desc(GtkWidget *widget,
 			save = FcPatternDuplicate(tmp);
 			FcPatternDestroy(tmp);
 			g_ptr_array_add(pattern_array, save);
+#if defined(HAVE_FCSTRFREE) && defined(HAVE_FCNAMEUNPARSE)
 			_VTE_DEBUG_IF(VTE_DEBUG_MISC) {
 				FcChar8 *name = FcNameUnparse (save);
 				g_printerr("Added '%s' to fontset\n", name);
 				FcStrFree (name);
 			}
+#endif
 		}
 		FcFontSetDestroy(fontset);
 		ret = TRUE;
@@ -454,11 +456,13 @@ _vte_fc_patterns_from_pango_font_desc(GtkWidget *widget,
 			save = FcPatternDuplicate(tmp);
 			FcPatternDestroy(tmp);
 			g_ptr_array_add(pattern_array, save);
+#if defined(HAVE_FCSTRFREE) && defined(HAVE_FCNAMEUNPARSE)
 			_VTE_DEBUG_IF(VTE_DEBUG_MISC) {
 				FcChar8 *name = FcNameUnparse (save);
 				g_printerr("Added '%s' to fontset\n", name);
 				FcStrFree (name);
 			}
+#endif
 			ret = TRUE;
 		} else {
 			ret = FALSE;

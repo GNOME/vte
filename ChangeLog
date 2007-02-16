@@ -1,3 +1,12 @@
+2007-02-16  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 408536 – trouble compiling vte 0.15.3
+
+	* configure.in:
+	* src/vtefc.c: (_vte_fc_patterns_from_pango_font_desc):
+		Check for availability of FcStrFree() - only used for
+		debugging purposes so we can live without it.
+
 2007-02-15  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Guard against a missing default number of rows or columns
