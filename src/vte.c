@@ -11957,7 +11957,7 @@ update_repeat_timeout (gpointer data)
 static gboolean
 update_timeout (gpointer data)
 {
-	GList *l;
+	GList *l, *next;
 	gboolean redraw = FALSE;
 
 	GDK_THREADS_ENTER();
@@ -11972,9 +11972,11 @@ update_timeout (gpointer data)
 		process_timeout_tag = VTE_INVALID_SOURCE;
 	}
 
-	for (l = active_terminals; l != NULL; l = g_list_next (l)) {
+	for (l = active_terminals; l != NULL; l = next) {
 		VteTerminal *terminal = l->data;
 		gboolean again;
+
+		next = g_list_next (l);
 
 		if (l != active_terminals) {
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
