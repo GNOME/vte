@@ -6442,13 +6442,31 @@ vte_terminal_leave(GtkWidget *widget, GdkEventCrossing *event)
 	return ret;
 }
 
+static G_GNUC_UNUSED inline const char *
+visibility_state_str(GdkVisibilityState state)
+{
+	switch(state){
+		case GDK_VISIBILITY_FULLY_OBSCURED:
+			return "fully-obscured";
+		case GDK_VISIBILITY_UNOBSCURED:
+			return "unobscured";
+		default:
+			return "partial";
+	}
+}
+
 static gboolean
 vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
 {
 	VteTerminal *terminal;
 	terminal = VTE_TERMINAL(widget);
 
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Visibility.\n");
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Visibility (%s -> %s).\n",
+			visibility_state_str(terminal->pvt->visibility_state),
+			visibility_state_str(event->state));
+	if (event->state == terminal->pvt->visibility_state) {
+		return FALSE;
+	}
 
 	/* fully obscured to visible switch, force the fast path */
 	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
@@ -6460,8 +6478,6 @@ vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
 		 * for the expose event */
 		if (event->state == GDK_VISIBILITY_UNOBSCURED) {
 			_vte_invalidate_all(terminal);
-			_vte_debug_print(VTE_DEBUG_EVENTS,
-					"Fully obscured -> unobscured.\n");
 		}
 	}
 
@@ -6473,8 +6489,6 @@ vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
 		/* if fully obscured, just act like we have invalidated all,
 		 * so no updates are accumulated. */
 		terminal->pvt->invalidated_all = TRUE;
-		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Now fully obscured.\n");
 	}
 
 	return FALSE;
@@ -7189,8 +7203,8 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->had_block_mode = FALSE;
 	pvt->has_fonts = FALSE;
 
-	/* Assume we're visible unless we're told otherwise. */
-	pvt->visibility_state = GDK_VISIBILITY_UNOBSCURED;
+	/* window is obscured until mapped */
+	pvt->visibility_state = GDK_VISIBILITY_FULLY_OBSCURED;
 
 	/* Listen for hierarchy change notifications. */
 	g_signal_connect(terminal, "hierarchy-changed",
@@ -7689,8 +7703,8 @@ vte_terminal_realize(GtkWidget *widget)
 	/* Clear modifiers. */
 	terminal->pvt->modifiers = 0;
 
-	/* Assume we're visible unless we're told otherwise. */
-	terminal->pvt->visibility_state = GDK_VISIBILITY_UNOBSCURED;
+	/* window is obscured until mapped */
+	terminal->pvt->visibility_state = GDK_VISIBILITY_FULLY_OBSCURED;
 
 	/* Create our invisible cursor. */
 	bitmap = gdk_bitmap_create_from_data(widget->window, "\0", 1, 1);
