@@ -1,5 +1,18 @@
 2007-02-19  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Improve handling of parallel 'cat /dev/urandom' - notably a crasher
+	in the table matcher, repeated g_getenv processing and wasted time
+	in g_tree_lookup.
+
+	* src/iso2022.c: (_vte_iso2022_ambiguous_width_guess),
+	(_vte_iso2022_map_init), (_vte_iso2022_map_get),
+	(process_8_bit_sequence), (process_cdata),
+	(_vte_iso2022_process_single), (_vte_iso2022_process):
+	* src/table.c: (_vte_table_match):
+	* src/vte-private.h:
+
+2007-02-19  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c: (update_timeout):
 		In conjunction with the previous fix, since the terminal
 		can be removed from the active list by

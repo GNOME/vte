@@ -325,34 +325,32 @@ _vte_iso2022_is_ambiguous(gunichar c)
 static int
 _vte_iso2022_ambiguous_width_guess(void)
 {
-	const char *lang = NULL;
-	int ret = 1;
-	if ((lang == NULL) && (g_getenv("LC_ALL") != NULL)) {
-		lang = g_getenv("LC_ALL");
-	}
-	if ((lang == NULL) && (g_getenv("LC_CTYPE") != NULL)) {
-		lang = g_getenv("LC_CTYPE");
-	}
-	if ((lang == NULL) && (g_getenv("LANG") != NULL)) {
-		lang = g_getenv("LANG");
-	}
-	if (lang != NULL) {
-		if (g_ascii_strncasecmp(lang, "ja", 2) == 0) {
-			ret = 2;
-		} else
-		if (g_ascii_strncasecmp(lang, "ko", 2) == 0) {
-			ret = 2;
-		} else
-		if (g_ascii_strncasecmp(lang, "vi", 2) == 0) {
-			ret = 2;
-		} else
-		if (g_ascii_strncasecmp(lang, "zh", 2) == 0) {
-			ret = 2;
+	static int guess;
+	if (guess == 0) {
+		const char *lang = NULL;
+		guess = 1;
+		if ((lang == NULL) && (g_getenv("LC_ALL") != NULL)) {
+			lang = g_getenv("LC_ALL");
 		}
+		if ((lang == NULL) && (g_getenv("LC_CTYPE") != NULL)) {
+			lang = g_getenv("LC_CTYPE");
+		}
+		if ((lang == NULL) && (g_getenv("LANG") != NULL)) {
+			lang = g_getenv("LANG");
+		}
+		if (lang != NULL) {
+			if (g_ascii_strncasecmp(lang, "ja", 2) == 0 ||
+					g_ascii_strncasecmp(lang, "ko", 2) == 0 ||
+					g_ascii_strncasecmp(lang, "vi", 2) == 0 ||
+					g_ascii_strncasecmp(lang, "zh", 2) == 0) {
+				guess = 2;
+			}
+		}
+		_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
+				"Ambiguous characters will have width = %d.\n",
+				guess);
 	}
-	_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
-			"Ambiguous characters will have width = %d.\n", ret);
-	return ret;
+	return guess;
 }
 
 /* If we have the encoding, decide how wide an ambiguously-wide character is
@@ -404,17 +402,17 @@ _vte_iso2022_ambiguous_width(struct _vte_iso2022_state *state)
 	return 1;
 }
 
-static GTree *
+static GHashTable *
 _vte_iso2022_map_init(const struct _vte_iso2022_map *map, gssize length)
 {
-	GTree *ret;
+	GHashTable *ret;
 	int i;
 	if (length == 0) {
 		return NULL;
 	}
-	ret = g_tree_new(_vte_direct_compare);
+	ret = g_hash_table_new(NULL, NULL);
 	for (i = 0; i < length; i++) {
-		g_tree_insert(ret,
+		g_hash_table_insert(ret,
 			      GINT_TO_POINTER(map[i].from),
 			      GINT_TO_POINTER(map[i].to));
 	}
@@ -423,13 +421,13 @@ _vte_iso2022_map_init(const struct _vte_iso2022_map *map, gssize length)
 
 static void
 _vte_iso2022_map_get(gunichar mapname,
-		     GTree **tree, guint *bytes_per_char, guint *force_width,
+		     GHashTable **_map, guint *bytes_per_char, guint *force_width,
 		     gulong *or_mask, gulong *and_mask)
 {
-	struct _vte_iso2022_map _vte_iso2022_map_NUL[256];
 	static GTree *maps = NULL;
+	struct _vte_iso2022_map _vte_iso2022_map_NUL[256];
 	gint bytes = 0, width = 0;
-	GTree *map = NULL;
+	GHashTable *map = NULL;
 	gsize i;
 
 	if (or_mask) {
@@ -722,8 +720,8 @@ _vte_iso2022_map_get(gunichar mapname,
 		g_tree_insert(maps, GINT_TO_POINTER(mapname), map);
 	}
 	/* Return. */
-	if (tree) {
-		*tree = map;
+	if (_map) {
+		*_map = map;
 	}
 	if (bytes_per_char) {
 		*bytes_per_char = bytes;
@@ -1142,7 +1140,7 @@ process_8_bit_sequence(struct _vte_iso2022_state *state,
 	gunichar c, *outptr;
 	const guchar *inptr;
 	gulong acc, or_mask, and_mask;
-	GTree *map;
+	GHashTable *map;
 	guint bytes_per_char, force_width, current;
 
 	/* Check if it's an 8-bit escape.  If it is, take a note of which map
@@ -1183,7 +1181,7 @@ process_8_bit_sequence(struct _vte_iso2022_state *state,
 	acc &= and_mask;
 	acc |= or_mask;
 	p = GINT_TO_POINTER(acc);
-	c = GPOINTER_TO_INT(g_tree_lookup(map, p));
+	c = GPOINTER_TO_INT(g_hash_table_lookup(map, p));
 	if ((c == 0) && (acc != 0)) {
 		_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
 				"%04lx -(%c)-> %04lx(?)\n",
@@ -1216,7 +1214,7 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 {
 	int ambiguous_width;
 	glong processed = 0;
-	GTree *map;
+	GHashTable *map;
 	guint bytes_per_char, force_width, current;
 	gsize converted;
 	const guchar *inbuf;
@@ -1330,7 +1328,7 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 				acc &= and_mask;
 				acc |= or_mask;
 				p = GINT_TO_POINTER(acc);
-				c = GPOINTER_TO_INT(g_tree_lookup(map, p));
+				c = GPOINTER_TO_INT(g_hash_table_lookup(map, p));
 				if ((c == 0) && (acc != 0)) {
 					_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
 							"%04lx -(%c)-> "
@@ -1369,24 +1367,22 @@ gunichar
 _vte_iso2022_process_single(struct _vte_iso2022_state *state,
 			    gunichar c, gunichar map)
 {
-	GTree *tree;
+	GHashTable *hash;
 	gunichar ret = c;
 	gpointer p;
 	guint bytes_per_char, force_width;
 	gulong or_mask, and_mask;
 
 	_vte_iso2022_map_get(map,
-			     &tree, &bytes_per_char, &force_width,
+			     &hash, &bytes_per_char, &force_width,
 			     &or_mask, &and_mask);
 
 	p = GINT_TO_POINTER((c & and_mask) | or_mask);
-	if (tree != NULL) {
-		p = g_tree_lookup(tree, p);
+	if (hash != NULL) {
+		p = g_hash_table_lookup(hash, p);
 	}
 	if (p != NULL) {
 		ret = GPOINTER_TO_INT(p);
-	} else {
-		ret = GPOINTER_TO_INT(c);
 	}
 	if (force_width) {
 		ret = _vte_iso2022_set_encoded_width(ret, force_width);
@@ -1686,7 +1682,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 		switch (block->type) {
 		case _vte_iso2022_cdata:
 			_VTE_DEBUG_IF(VTE_DEBUG_SUBSTITUTION) {
-				int j;
+				guint j;
 				g_printerr("%3ld %3ld CDATA \"%.*s\"",
 					block->start, block->end,
 					(int) (block->end - block->start),

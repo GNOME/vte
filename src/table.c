@@ -683,7 +683,7 @@ _vte_table_match(struct _vte_table *table,
 		g_assert(original != NULL);
 		p = original;
 		arginfo = _vte_table_arginfo_head_reverse (&params);
-		while (p < original + original_length) {
+		do {
 			/* All of the interesting arguments begin with '%'. */
 			if (p[0] == '%') {
 				/* Handle an increment. */
@@ -718,12 +718,12 @@ _vte_table_match(struct _vte_table *table,
 								arginfo,
 								p[2]);
 					p += 2;
+				} else {
+					g_assert_not_reached();
 				}
-				g_assert_not_reached();
 			} /* else Literal. */
 			arginfo = arginfo->next;
-			p++;
-		}
+		} while (++p < original + original_length && arginfo);
 	}
 
 	/* Clean up extracted parameters. */
