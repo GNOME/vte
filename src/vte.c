@@ -9648,6 +9648,11 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 		} else {
 			GdkColor color;
 draw_cursor_outline:
+			vte_terminal_determine_colors(terminal, cell,
+					terminal->pvt->screen->reverse_mode,
+					selected,
+					TRUE,
+					&fore, &back);
 			if (!vte_unichar_is_local_graphic(item.c) ||
 			    !vte_terminal_draw_graphic(terminal,
 						       item.c,
@@ -9668,11 +9673,6 @@ draw_cursor_outline:
 							TRUE);
 				}
 				/* Draw it as a hollow rectangle overtop character. */
-				vte_terminal_determine_colors(terminal, cell,
-						terminal->pvt->screen->reverse_mode,
-						selected,
-						TRUE,
-						&fore, &back);
 				vte_terminal_draw_cells(terminal,
 						&item, 1,
 						fore, back, TRUE, FALSE,
