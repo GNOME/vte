@@ -1553,15 +1553,6 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal)
 		changed = TRUE;
 	}
 
-	/* Set the scrollbar adjustment to where the screen wants it to be. */
-	if (floor(terminal->adjustment->value) != screen->scroll_delta) {
-		_vte_debug_print(VTE_DEBUG_IO,
-				"Changing adjustment scroll position: "
-				"%ld\n", screen->scroll_delta);
-		vte_terminal_queue_adjustment_value_changed(terminal,
-				screen->scroll_delta);
-	}
-
 	/* If anything changed, signal that there was a change. */
 	if (changed == TRUE) {
 		_vte_debug_print(VTE_DEBUG_IO,
@@ -1655,15 +1646,6 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 				terminal->row_count);
 		terminal->adjustment->page_increment = terminal->row_count;
 		changed = TRUE;
-	}
-
-	/* Set the scrollbar adjustment to where the screen wants it to be. */
-	if (floor(terminal->adjustment->value) != screen->scroll_delta) {
-		_vte_debug_print(VTE_DEBUG_IO,
-				"Changing adjustment scroll position: "
-				"%ld\n", screen->scroll_delta);
-		vte_terminal_queue_adjustment_value_changed(terminal,
-				screen->scroll_delta);
 	}
 
 	/* If anything changed, signal that there was a change. */

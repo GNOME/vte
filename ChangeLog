@@ -1,5 +1,11 @@
 2007-02-19  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c: (_vte_terminal_adjust_adjustments),
+	(_vte_terminal_adjust_adjustments_full):
+		Dead code elimination.
+
+2007-02-19  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* perf/random.sh:
 		A simple script to dump a fixed amount of random data to the
 		terminal.
