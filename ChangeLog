@@ -1,5 +1,20 @@
 2007-02-19  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	A few more trivial incremental improvements.
+
+	* src/Makefile.am:
+	* src/iso2022.c: (_vte_iso2022_map_get):
+		Switch to a VteTree.
+	* src/vte.c: (_vte_terminal_update_insert_delta),
+	(_vte_terminal_insert_char):
+		No need to ensure the cursor when scrolling, only before
+		insertions.
+	* src/vtexft.c: (_vte_xft_font_open), (_vte_xft_font_close),
+	(_vte_xft_font_for_char), (_vte_xft_end):
+		Lock the face over the entire expose.
+
+2007-02-19  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Improve handling of parallel 'cat /dev/urandom' - notably a crasher
 	in the table matcher, repeated g_getenv processing and wasted time
 	in g_tree_lookup.

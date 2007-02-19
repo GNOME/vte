@@ -1915,7 +1915,6 @@ _vte_terminal_update_insert_delta(VteTerminal *terminal)
 
 	/* Adjust the insert delta and scroll if needed. */
 	if (delta != screen->insert_delta) {
-		_vte_terminal_ensure_cursor(terminal, FALSE);
 		screen->insert_delta = delta;
 		_vte_terminal_adjust_adjustments(terminal);
 	}
@@ -2402,16 +2401,14 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	col = screen->cursor_current.col;
 	if (col + columns > terminal->column_count) {
 		if (terminal->pvt->flags.am) {
+			/* Wrap. */
+			screen->cursor_current.col = 0;
 			/* Mark this line as soft-wrapped. */
-			row = _vte_ring_index(screen->row_data,
-					      VteRowData *,
-					      screen->cursor_current.row);
+			row = _vte_terminal_ensure_cursor(terminal, FALSE);
 			if (row != NULL) {
 				row->soft_wrapped = 1;
 			}
-			/* Wrap. */
 			_vte_sequence_handler_sf(terminal, NULL, 0, NULL);
-			screen->cursor_current.col = 0;
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
 			screen->cursor_current.col = terminal->column_count -
@@ -2511,16 +2508,11 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	col = screen->cursor_current.col;
 	if (col >= terminal->column_count) {
 		if (terminal->pvt->flags.am && !terminal->pvt->flags.xn) {
-			/* Mark this line as soft-wrapped. */
-			row = _vte_ring_index(screen->row_data,
-					      VteRowData *,
-					      screen->cursor_current.row);
-			if (row != NULL) {
-				row->soft_wrapped = 1;
-			}
 			/* Wrap. */
-			_vte_sequence_handler_sf(terminal, NULL, 0, NULL);
 			screen->cursor_current.col = 0;
+			/* Mark this line as soft-wrapped. */
+			row->soft_wrapped = 1;
+			_vte_sequence_handler_sf(terminal, NULL, 0, NULL);
 		}
 	}
 

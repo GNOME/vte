@@ -169,6 +169,8 @@ interpret_SOURCES = \
 	vteconv.h \
 	vtetc.c \
 	vtetc.h \
+	vtetree.c \
+	vtetree.h \
 	interpret.c
 interpret_LDADD = $(LDFLAGS) $(GOBJECT_LIBS)
 
@@ -191,7 +193,9 @@ iso2022_SOURCES = \
 	vteconv.c \
 	vteconv.h \
 	vtetc.c \
-	vtetc.h
+	vtetc.h \
+	vtetree.c \
+	vtetree.h
 iso2022_LDADD = $(LDFLAGS) $(LIBS) $(GOBJECT_LIBS)
 
 utf8echo_CFLAGS = $(GOBJECT_CFLAGS) -DUTF8ECHO_MAIN
