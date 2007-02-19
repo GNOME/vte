@@ -1,5 +1,16 @@
 2007-02-19  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	As noticed on bug 409055, we do not receive a visibility-notify
+	event when we switch workspaces (or even when the window is iconified).
+	The workaround for this is to watch for our toplevel being unmapped
+	and set the fully-obscured flag.
+
+	* src/vte.c: (vte_terminal_configure_toplevel),
+	(vte_terminal_unmap_toplevel), (vte_terminal_hierarchy_changed),
+	(vte_terminal_set_visibility), (vte_terminal_visibility_notify):
+
+2007-02-19  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c: (visibility_state_str),
 	(vte_terminal_visibility_notify), (vte_terminal_init),
 	(vte_terminal_realize):

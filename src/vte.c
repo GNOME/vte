@@ -61,6 +61,7 @@ typedef gunichar wint_t;
 #define howmany(x, y) (((x) + ((y) - 1)) / (y))
 #endif
 
+static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
 static void vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 				     gboolean reset);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
@@ -3922,8 +3923,7 @@ vte_terminal_im_preedit_changed(GtkIMContext *im_context, VteTerminal *terminal)
 
 /* Handle the toplevel being reconfigured. */
 static gboolean
-vte_terminal_configure_toplevel(GtkWidget *widget, GdkEventConfigure *event,
-				VteTerminal *terminal)
+vte_terminal_configure_toplevel(VteTerminal *terminal)
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Top level parent configured.\n");
 
@@ -3937,6 +3937,17 @@ vte_terminal_configure_toplevel(GtkWidget *widget, GdkEventConfigure *event,
 	return FALSE;
 }
 
+static gboolean
+vte_terminal_unmap_toplevel (VteTerminal *terminal)
+{
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Top level parent unmapped.\n");
+
+	vte_terminal_set_visibility (terminal, GDK_VISIBILITY_FULLY_OBSCURED);
+
+	return FALSE;
+}
+
+
 /* Handle a hierarchy-changed signal. */
 static void
 vte_terminal_hierarchy_changed(GtkWidget *widget, GtkWidget *old_toplevel,
@@ -3949,12 +3960,18 @@ vte_terminal_hierarchy_changed(GtkWidget *widget, GtkWidget *old_toplevel,
 		g_signal_handlers_disconnect_by_func(old_toplevel,
 						     vte_terminal_configure_toplevel,
 						     widget);
+		g_signal_handlers_disconnect_by_func(old_toplevel,
+						     vte_terminal_unmap_toplevel,
+						     widget);
 	}
 
 	toplevel = gtk_widget_get_toplevel(widget);
 	if (toplevel != NULL) {
-		g_signal_connect(toplevel, "configure-event",
-				 G_CALLBACK(vte_terminal_configure_toplevel),
+		g_signal_connect_swapped (toplevel, "configure-event",
+				 G_CALLBACK (vte_terminal_configure_toplevel),
+				 widget);
+		g_signal_connect_swapped (toplevel, "unmap-event",
+				 G_CALLBACK (vte_terminal_unmap_toplevel),
 				 widget);
 	}
 }
@@ -6455,17 +6472,11 @@ visibility_state_str(GdkVisibilityState state)
 	}
 }
 
-static gboolean
-vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
+static void
+vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state)
 {
-	VteTerminal *terminal;
-	terminal = VTE_TERMINAL(widget);
-
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Visibility (%s -> %s).\n",
-			visibility_state_str(terminal->pvt->visibility_state),
-			visibility_state_str(event->state));
-	if (event->state == terminal->pvt->visibility_state) {
-		return FALSE;
+	if (state == terminal->pvt->visibility_state) {
+		return;
 	}
 
 	/* fully obscured to visible switch, force the fast path */
@@ -6476,12 +6487,12 @@ vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
 
 		/* if all unobscured now, invalidate all, otherwise, wait
 		 * for the expose event */
-		if (event->state == GDK_VISIBILITY_UNOBSCURED) {
+		if (state == GDK_VISIBILITY_UNOBSCURED) {
 			_vte_invalidate_all(terminal);
 		}
 	}
 
-	terminal->pvt->visibility_state = event->state;
+	terminal->pvt->visibility_state = state;
 
 	/* no longer visible, stop processing display updates */
 	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
@@ -6490,6 +6501,19 @@ vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
 		 * so no updates are accumulated. */
 		terminal->pvt->invalidated_all = TRUE;
 	}
+
+}
+
+static gboolean
+vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
+{
+	VteTerminal *terminal;
+	terminal = VTE_TERMINAL(widget);
+
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Visibility (%s -> %s).\n",
+			visibility_state_str(terminal->pvt->visibility_state),
+			visibility_state_str(event->state));
+	vte_terminal_set_visibility(terminal, event->state);
 
 	return FALSE;
 }
