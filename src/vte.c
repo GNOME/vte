@@ -11811,9 +11811,12 @@ process_timeout (gpointer data)
 			again = vte_terminal_process_incoming(terminal);
 		} while (again && need_processing (terminal));
 		if (!again && terminal->pvt->update_regions == NULL) {
-			active_terminals = g_list_delete_link (active_terminals,
-					l);
-			terminal->pvt->active = NULL;
+			if (terminal->pvt->active != NULL) {
+				active_terminals = g_list_delete_link (
+						active_terminals,
+						terminal->pvt->active);
+				terminal->pvt->active = NULL;
+			}
 			if (terminal->pvt->pty_input) {
 				_vte_terminal_enable_input_source(terminal);
 			}
@@ -11912,9 +11915,12 @@ update_repeat_timeout (gpointer data)
 
 		again = update_regions (terminal);
 		if (!again) {
-			active_terminals = g_list_delete_link (active_terminals,
-					l);
-			terminal->pvt->active = NULL;
+			if (terminal->pvt->active != NULL) {
+				active_terminals = g_list_delete_link (
+						active_terminals,
+						terminal->pvt->active);
+				terminal->pvt->active = NULL;
+			}
 			if (terminal->pvt->pty_input) {
 				_vte_terminal_enable_input_source (terminal);
 			}

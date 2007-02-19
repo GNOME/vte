@@ -1,5 +1,23 @@
 2007-02-19  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	<fcrozat> ickle: hi.. our kernel hacker just found a nice reproducible
+		crash in vte :)
+	<ickle> oh, joy
+	<fcrozat> very easy to reproduce
+		cat /dev/urandom
+	 	wait 2 or 3S
+	 	then press Ctrl-Shift-T to open a new tab
+	 	=> crash
+
+	* src/vte.c: (process_timeout), (update_repeat_timeout):
+		vte_terminal_process_incoming() can trigger a terminal reset
+		which will remove the terminal from the active list, and then
+		we attempt to remove it again after handling the incoming
+		data. The fix is simple - don't delete the link if the the
+		terminal is no longer active.
+
+2007-02-19  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	As noticed on bug 409055, we do not receive a visibility-notify
 	event when we switch workspaces (or even when the window is iconified).
 	The workaround for this is to watch for our toplevel being unmapped
