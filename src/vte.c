@@ -6448,6 +6448,8 @@ vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
 	VteTerminal *terminal;
 	terminal = VTE_TERMINAL(widget);
 
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Visibility.\n");
+
 	/* fully obscured to visible switch, force the fast path */
 	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
 		/* set invalidated_all false, since we didn't really mean it
@@ -6458,6 +6460,8 @@ vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
 		 * for the expose event */
 		if (event->state == GDK_VISIBILITY_UNOBSCURED) {
 			_vte_invalidate_all(terminal);
+			_vte_debug_print(VTE_DEBUG_EVENTS,
+					"Fully obscured -> unobscured.\n");
 		}
 	}
 
@@ -6469,6 +6473,8 @@ vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
 		/* if fully obscured, just act like we have invalidated all,
 		 * so no updates are accumulated. */
 		terminal->pvt->invalidated_all = TRUE;
+		_vte_debug_print(VTE_DEBUG_EVENTS,
+				"Now fully obscured.\n");
 	}
 
 	return FALSE;
