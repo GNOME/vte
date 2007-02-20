@@ -1206,12 +1206,11 @@ vte_sequence_handler_cm(VteTerminal *terminal,
 
 	screen = terminal->pvt->screen;
 	/* We need at least two parameters. */
-	if ((params != NULL) && (params->n_values >= 2)) {
+	rowval = colval = 0;
+	if (params != NULL && params->n_values >= 1) {
 		/* The first is the row, the second is the column. */
 		row = g_value_array_get_nth(params, 0);
-		col = g_value_array_get_nth(params, 1);
-		if (G_VALUE_HOLDS_LONG(row) &&
-		    G_VALUE_HOLDS_LONG(col)) {
+		if (G_VALUE_HOLDS_LONG(row)) {
 			if (screen->origin_mode &&
 			    screen->scrolling_restricted) {
 				origin = screen->scrolling_region.start;
@@ -1219,14 +1218,18 @@ vte_sequence_handler_cm(VteTerminal *terminal,
 				origin = 0;
 			}
 			rowval = g_value_get_long(row) + origin;
-			colval = g_value_get_long(col);
 			rowval = CLAMP(rowval, 0, terminal->row_count - 1);
-			colval = CLAMP(colval, 0, terminal->column_count - 1);
-			screen->cursor_current.row = rowval +
-						     screen->insert_delta;
-			screen->cursor_current.col = colval;
+		}
+		if (params->n_values >= 2) {
+			col = g_value_array_get_nth(params, 1);
+			if (G_VALUE_HOLDS_LONG(col)) {
+				colval = g_value_get_long(col);
+				colval = CLAMP(colval, 0, terminal->column_count - 1);
+			}
 		}
 	}
+	screen->cursor_current.row = rowval + screen->insert_delta;
+	screen->cursor_current.col = colval;
 	return FALSE;
 }
 

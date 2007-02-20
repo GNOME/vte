@@ -1,3 +1,12 @@
+2007-02-20  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	 RedHat Bug 123845: gnome-terminal not parsing cursor position escape sequence properly
+
+	* src/caps.c:
+	* src/vteseq.c: (vte_sequence_handler_cm):
+		Add 'ESC [ Pn H' to cursor-position and provide default
+		values.
+
 2007-02-19  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 409055 – Terminal stays blank
