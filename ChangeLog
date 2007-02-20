@@ -1,5 +1,22 @@
 2007-02-19  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 409055 – Terminal stays blank
+
+	Due to GTK+ coallescing of XExposeEvents it was possible for our
+	GdkExposeEvent to arrive before the GdkVisibilityEvent associated with
+	the mapping of our toplevel and so we discarded the event as we
+	believed we were still unviewable.
+
+	* src/vte.c: (_vte_invalidate_cells), (vte_terminal_expose),
+	(reset_update_regions):
+		Assume that all GdkExposeEvents have been checked for
+		suitability before delivery. We know this true for locally
+		generated expose events which are extensively checked during
+		invalidation, and we presume that X will not generate expose
+		events on unmapped or otherwise unviewable windows.
+
+2007-02-19  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c: (_vte_terminal_adjust_adjustments),
 	(_vte_terminal_adjust_adjustments_full):
 		Dead code elimination.

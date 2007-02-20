@@ -402,7 +402,6 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	 * case updates are coming in really soon. */
 	add_update_timeout (terminal);
 
-
 	_vte_debug_print (VTE_DEBUG_WORK, "!");
 }
 
@@ -3920,7 +3919,6 @@ vte_terminal_unmap_toplevel (VteTerminal *terminal)
 
 	return FALSE;
 }
-
 
 /* Handle a hierarchy-changed signal. */
 static void
@@ -9804,28 +9802,26 @@ draw_cursor_outline:
 static gint
 vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 {
+	VteTerminal *terminal = VTE_TERMINAL (widget);
 	_vte_debug_print (VTE_DEBUG_WORK, "+");
-	if (event->window == widget->window) {
-		VteTerminal *terminal = VTE_TERMINAL (widget);
-		if (GTK_WIDGET_DRAWABLE(widget) &&
-				terminal->pvt->visibility_state != GDK_VISIBILITY_FULLY_OBSCURED) {
-			/* if we expect to redraw the widget soon,
-			 * just add this event to the list */
-			if (terminal->pvt->update_regions != NULL) {
-				if (!terminal->pvt->invalidated_all) {
-					if (event->area.width >= widget->allocation.width &&
-							event->area.height >= widget->allocation.height) {
-						_vte_invalidate_all (terminal);
-					} else {
-						terminal->pvt->update_regions =
-							g_slist_prepend (terminal->pvt->update_regions,
-									gdk_region_copy (event->region));
-					}
-				}
+	_vte_debug_print (VTE_DEBUG_EVENTS, "Expose (%d,%d)x(%d,%d)\n",
+			event->area.x, event->area.y,
+			event->area.width, event->area.height);
+	/* if we expect to redraw the widget soon,
+	 * just add this event to the list */
+	if (terminal->pvt->update_regions != NULL) {
+		if (!terminal->pvt->invalidated_all) {
+			if (event->area.width >= widget->allocation.width &&
+					event->area.height >= widget->allocation.height) {
+				_vte_invalidate_all (terminal);
 			} else {
-				vte_terminal_paint(widget, event->region);
+				terminal->pvt->update_regions =
+					g_slist_prepend (terminal->pvt->update_regions,
+							gdk_region_copy (event->region));
 			}
 		}
+	} else {
+		vte_terminal_paint(widget, event->region);
 	}
 	return FALSE;
 }
@@ -11623,7 +11619,10 @@ reset_update_regions (VteTerminal *terminal)
 		g_slist_free (terminal->pvt->update_regions);
 		terminal->pvt->update_regions = NULL;
 	}
-	terminal->pvt->invalidated_all = FALSE;
+	/* the invalidated_all flag also marks whether to skip processing
+	 * due to the widget being invisible */
+	terminal->pvt->invalidated_all =
+		terminal->pvt->visibility_state==GDK_VISIBILITY_FULLY_OBSCURED;
 }
 
 static void
