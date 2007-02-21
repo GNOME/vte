@@ -1664,8 +1664,8 @@ vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
 	glong destination;
 	_vte_debug_print(VTE_DEBUG_IO, "Scrolling %d pages.\n", pages);
 	/* Calculate the ideal position where we want to be before clamping. */
-	destination = floor(terminal->adjustment->value);
-	destination += (pages * terminal->row_count);
+	destination = terminal->pvt->screen->scroll_delta;
+	destination += pages * terminal->row_count;
 	/* Can't scroll past data we have. */
 	destination = CLAMP(destination,
 			    terminal->adjustment->lower,
@@ -5836,7 +5836,7 @@ vte_terminal_autoscroll(VteTerminal *terminal)
 	if (terminal->pvt->mouse_last_y < 0) {
 		if (terminal->adjustment) {
 			/* Try to scroll up by one line. */
-			adj = CLAMP(terminal->adjustment->value - 1,
+			adj = CLAMP(terminal->pvt->screen->scroll_delta - 1,
 				    terminal->adjustment->lower,
 				    terminal->adjustment->upper -
 				    terminal->row_count);
@@ -5849,7 +5849,7 @@ vte_terminal_autoscroll(VteTerminal *terminal)
 	    terminal->row_count * terminal->char_height) {
 		if (terminal->adjustment) {
 			/* Try to scroll up by one line. */
-			adj = CLAMP(terminal->adjustment->value + 1,
+			adj = CLAMP(terminal->pvt->screen->scroll_delta + 1,
 				    terminal->adjustment->lower,
 				    terminal->adjustment->upper -
 				    terminal->row_count);
@@ -5889,7 +5889,7 @@ vte_terminal_start_autoscroll(VteTerminal *terminal)
 	if (terminal->pvt->mouse_autoscroll_tag == 0) {
 		terminal->pvt->mouse_autoscroll_tag =
 			g_timeout_add_full(G_PRIORITY_LOW,
-					   1000 / terminal->row_count,
+					   666 / terminal->row_count,
 					   (GSourceFunc)vte_terminal_autoscroll,
 					   terminal,
 					   NULL);
@@ -9777,7 +9777,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 {
 	GtkAdjustment *adj;
 	VteTerminal *terminal;
-	gdouble new_value;
+	glong new_value;
 	GdkModifierType modifiers;
 	int button;
 
@@ -9830,13 +9830,14 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 
 	/* Perform a history scroll. */
 	adj = terminal->adjustment;
+	new_value = terminal->pvt->screen->scroll_delta;
 
 	switch (event->direction) {
 	case GDK_SCROLL_UP:
-		new_value = adj->value - MAX(1, adj->page_increment / 10);
+		new_value -= MAX(1, adj->page_increment / 10);
 		break;
 	case GDK_SCROLL_DOWN:
-		new_value = adj->value + MAX(1, adj->page_increment / 10);
+		new_value += MAX(1, adj->page_increment / 10);
 		break;
 	default:
 		return FALSE;
@@ -10893,9 +10894,6 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 			screen->scroll_delta,
 			screen->scroll_delta + terminal->row_count - 1);
 
-	/* reset any pending updates to scroll_delta */
-	vte_terminal_queue_adjustment_value_changed (terminal,
-			screen->scroll_delta);
 	/* Adjust the scrollbars to the new locations. */
 	_vte_terminal_adjust_adjustments_full (terminal);
 }
@@ -11728,6 +11726,7 @@ process_timeout (gpointer data)
 		if (need_processing (terminal)) do {
 			again = vte_terminal_process_incoming(terminal);
 		} while (again && need_processing (terminal));
+		vte_terminal_emit_pending_signals (terminal);
 		if (!again && terminal->pvt->update_regions == NULL) {
 			if (terminal->pvt->active != NULL) {
 				active_terminals = g_list_delete_link (
@@ -11739,7 +11738,6 @@ process_timeout (gpointer data)
 				_vte_terminal_enable_input_source(terminal);
 			}
 		}
-		vte_terminal_emit_pending_signals (terminal);
 	}
 
 	_vte_debug_print (VTE_DEBUG_WORK, ">");
