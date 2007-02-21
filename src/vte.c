@@ -3513,7 +3513,7 @@ out:
 		GDK_THREADS_LEAVE ();
 	}
 
-	return !eof;
+	return !eof && (!active_terminals || !active_terminals->next);
 }
 
 /**
@@ -11746,12 +11746,25 @@ process_timeout (gpointer data)
 
 	if (active_terminals && update_timeout_tag == VTE_INVALID_SOURCE) {
 		again = TRUE;
+		if (active_terminals->next == NULL) {
+			VteTerminal *terminal = active_terminals->data;
+			if (terminal->pvt->pty_input) {
+				_vte_terminal_enable_input_source (terminal);
+			}
+		}
 	} else {
 		process_timeout_tag = VTE_INVALID_SOURCE;
 		again = FALSE;
 	}
 
 	GDK_THREADS_LEAVE();
+
+	if (again) {
+		/* Force us to relinquish the CPU as the child is running
+		 * at full tilt and making us run to keep up...
+		 */
+		g_usleep (0);
+	}
 
 	return again;
 }
@@ -11858,6 +11871,11 @@ update_repeat_timeout (gpointer data)
 	if (active_terminals == NULL) {
 		update_timeout_tag = VTE_INVALID_SOURCE;
 		again = FALSE;
+	} else if (active_terminals->next == NULL) {
+		VteTerminal *terminal = active_terminals->data;
+		if (terminal->pvt->pty_input) {
+			_vte_terminal_enable_input_source (terminal);
+		}
 	}
 
 	GDK_THREADS_LEAVE();

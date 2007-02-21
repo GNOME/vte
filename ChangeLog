@@ -1,5 +1,17 @@
 2007-02-21  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 410463 – Poor interactive performance with multiple terminals
+
+	* src/vte.c: (vte_terminal_io_read), (process_timeout),
+	(update_repeat_timeout):
+		When multiple terminals are active, poll the IO sources
+		from within the process/display timeout (akin to 
+		interrupt mitigation).
+		Return to normal interrupts when we only have a single active
+		terminal - so we don't sacrifice high performance.
+
+2007-02-21  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	A small bit of callgrinding, avoid the modulus inside
 	vte_terminal_ensure_cursor() by caching the last row_data.
 
