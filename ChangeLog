@@ -1,3 +1,24 @@
+2007-02-21  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	RedHat Bug 113195: First line displayed incorrectly if prompt changes background color
+
+	e.g. PS1='\e[46m[\u@\h:\w]\e[m \e[45m'
+	The issue is when we insert a char on a new row and the background is
+	not the default, we fill the entire row with the *current* colour.
+	This behaviour is incorrect, and the fix is to fill to the end of the
+	line on a carriage return.
+
+	* src/vte-private.h:
+	* src/vte.c: (_vte_terminal_ensure_cursor),
+	(_vte_terminal_insert_char), (vte_terminal_process_incoming),
+	(vte_terminal_send):
+	* src/vteseq.c: (vte_sequence_handler_ce),
+	(vte_sequence_handler_cr), (vte_sequence_handler_cs),
+	(vte_sequence_handler_cS),
+	(vte_sequence_handler_cursor_lower_left),
+	(vte_sequence_handler_dc), (vte_sequence_handler_ic),
+	(vte_sequence_handler_sf):
+
 2007-02-20  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	 RedHat Bug 123845: gnome-terminal not parsing cursor position escape sequence properly

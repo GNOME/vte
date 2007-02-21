@@ -1823,21 +1823,14 @@ _vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 	/* Figure out how many rows we need to add. */
 	delta = screen->cursor_current.row - _vte_ring_next(screen->row_data) + 1;
 	if (delta > 0) {
-		gboolean fill;
 		VteRowData *old_row;
 
-		fill = screen->defaults.back != VTE_DEF_BG;
 		old_row = terminal->pvt->free_row;
 		do {
 			if (old_row) {
-				row = _vte_reset_row_data (terminal, old_row, fill);
+				row = _vte_reset_row_data (terminal, old_row, FALSE);
 			} else {
-				/* Create a new row. */
-				if (fill) {
-					row = _vte_new_row_data_sized(terminal, TRUE);
-				} else {
-					row = _vte_new_row_data(terminal);
-				}
+				row = _vte_new_row_data_sized (terminal, FALSE);
 			}
 			old_row = _vte_ring_append(screen->row_data, row);
 		} while(--delta);
@@ -1851,20 +1844,13 @@ _vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 	}
 	g_assert(row != NULL);
 	if ((row->cells->len <= screen->cursor_current.col) &&
-	    (row->cells->len < terminal->column_count)) {
+			(row->cells->len < terminal->column_count)) {
 		/* Set up defaults we'll use when adding new cells. */
-		if (current) {
-			/* Add new cells until we have one here. */
-			vte_g_array_fill(row->cells,
-					 &screen->color_defaults,
-					 screen->cursor_current.col + 1);
-		} else {
-			/* Add enough cells at the end to make sure we have
-			 * enough for all visible columns. */
-			vte_g_array_fill(row->cells,
-					 &screen->basic_defaults,
-					 screen->cursor_current.col + 1);
-		}
+		vte_g_array_fill(row->cells,
+				current ?
+				&screen->color_defaults :
+				&screen->basic_defaults,
+				screen->cursor_current.col + 1);
 	}
 
 	return row;
@@ -2324,8 +2310,7 @@ vte_terminal_set_default_colors(VteTerminal *terminal)
 void
 _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			 gboolean force_insert_mode, gboolean invalidate_now,
-			 gboolean paint_cells, gboolean ensure_after,
-			 gint forced_width)
+			 gboolean paint_cells, gint forced_width)
 {
 	VteRowData *row;
 	struct vte_charcell cell;
@@ -2386,9 +2371,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			screen->cursor_current.col = 0;
 			/* Mark this line as soft-wrapped. */
 			row = _vte_terminal_ensure_cursor(terminal, FALSE);
-			if (row != NULL) {
-				row->soft_wrapped = 1;
-			}
+			row->soft_wrapped = 1;
 			_vte_sequence_handler_sf(terminal, NULL, 0, NULL);
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
@@ -2406,22 +2389,22 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	/* Make sure we're not getting random stuff past the right
 	 * edge of the screen at this point, because the user can't
 	 * see it. */
-	if (G_LIKELY (screen->cursor_current.col < terminal->column_count)) {
+	col = screen->cursor_current.col;
+	if (G_LIKELY (col < terminal->column_count)) {
 		/* Make sure we have enough columns in this row. */
-		if (G_UNLIKELY (row->cells->len < screen->cursor_current.col + columns)) {
+		if (G_UNLIKELY (row->cells->len < col + columns)) {
 			/* Add enough cells to fill out the row to at least out
 			 * to (and including) the insertion point. */
 			if (paint_cells) {
 				vte_g_array_fill(row->cells,
 						&screen->color_defaults,
-						screen->cursor_current.col + columns);
+						col + columns);
 			} else {
 				vte_g_array_fill(row->cells,
 						&screen->basic_defaults,
-						screen->cursor_current.col + columns);
+						col + columns);
 			}
 		}
-		col = screen->cursor_current.col;
 		i = 0;
 		do {
 			/* If we're in insert mode, insert a new cell here
@@ -2482,11 +2465,24 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			g_array_set_size(row->cells, terminal->column_count);
 		}
 	}else{
-		screen->cursor_current.col += columns;
+		col = screen->cursor_current.col += columns;
 	}
 
+	/* Signal that this part of the window needs drawing. */
+	if (invalidate_now) {
+		if (insert) {
+			_vte_invalidate_cells(terminal,
+					     col - columns, terminal->column_count,
+					     screen->cursor_current.row, 1);
+		} else {
+			_vte_invalidate_cells(terminal,
+					     col - columns, columns,
+					     screen->cursor_current.row, 1);
+		}
+	}
+
+
 	/* If we're autowrapping *here*, do it. */
-	col = screen->cursor_current.col;
 	if (col >= terminal->column_count) {
 		if (terminal->pvt->flags.am && !terminal->pvt->flags.xn) {
 			/* Wrap. */
@@ -2495,25 +2491,6 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			row->soft_wrapped = 1;
 			_vte_sequence_handler_sf(terminal, NULL, 0, NULL);
 		}
-	}
-
-	/* Signal that this part of the window needs drawing. */
-	if (invalidate_now) {
-		col = screen->cursor_current.col - columns;
-		if (insert) {
-			_vte_invalidate_cells(terminal,
-					     col, terminal->column_count,
-					     screen->cursor_current.row, 1);
-		} else {
-			_vte_invalidate_cells(terminal,
-					     col, columns,
-					     screen->cursor_current.row, 1);
-		}
-	}
-
-	/* Make sure the location the cursor is on exists. */
-	if (ensure_after) {
-		_vte_terminal_ensure_cursor(terminal, FALSE);
 	}
 
 	/* We added text, so make a note of it. */
@@ -3042,7 +3019,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	GdkPoint bbox_topleft, bbox_bottomright;
 	gunichar *wbuf, c;
 	long wcount, start, delta;
-	gboolean leftovers, modified, bottom, inserted, again;
+	gboolean leftovers, modified, bottom, again;
 	gboolean invalidated_text;
 	GArray *unichars;
 	struct _vte_incoming_chunk *chunk, *next_chunk, *achunk = NULL;
@@ -3142,7 +3119,7 @@ skip_chunk:
 
 	/* Try initial substrings. */
 	start = 0;
-	modified = leftovers = inserted = again = FALSE;
+	modified = leftovers = again = FALSE;
 	invalidated_text = FALSE;
 
 	bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
@@ -3167,12 +3144,6 @@ skip_chunk:
 		 * points to the first character which isn't part of this
 		 * sequence. */
 		if ((match != NULL) && (match[0] != '\0')) {
-			/* If we inserted text without sanity-checking the
-			 * buffer, do so now. */
-			if (inserted) {
-				_vte_terminal_ensure_cursor(terminal, FALSE);
-				inserted = FALSE;
-			}
 			/* Call the right sequence handler for the requested
 			 * behavior. */
 			again = vte_terminal_handle_sequence(terminal,
@@ -3276,9 +3247,7 @@ skip_chunk:
 				/* Insert the character. */
 				_vte_terminal_insert_char(terminal, c,
 							 FALSE, FALSE,
-							 TRUE, FALSE, 0);
-				inserted = TRUE;
-
+							 TRUE, 0);
 				/* Add the cells over which we have moved to the region which we
 				 * need to refresh for the user. */
 				bbox_bottomright.x = MAX(bbox_bottomright.x,
@@ -3346,12 +3315,6 @@ next_match:
 				bbox_bottomright.x - bbox_topleft.x,
 				bbox_topleft.y,
 				bbox_bottomright.y - bbox_topleft.y);
-	}
-
-	/* If we inserted text without sanity-checking the buffer, do so now. */
-	if (inserted) {
-		_vte_terminal_ensure_cursor(terminal, FALSE);
-		inserted = FALSE;
 	}
 
 	/* Remove most of the processed characters. */
@@ -3724,7 +3687,6 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 					_vte_terminal_insert_char(terminal,
 								 ucs4[i],
 								 FALSE,
-								 TRUE,
 								 TRUE,
 								 TRUE,
 								 0);

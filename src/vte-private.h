@@ -388,7 +388,6 @@ void _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			       gboolean force_insert_mode,
 			       gboolean invalidate_cells,
 			       gboolean paint_cells,
-			       gboolean ensure_after,
 			       gint forced_width);
 void _vte_terminal_match_contents_clear(VteTerminal *terminal);
 void _vte_terminal_scroll_region(VteTerminal *terminal,
