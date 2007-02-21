@@ -838,28 +838,25 @@ _vte_iso2022_state_get_codeset(struct _vte_iso2022_state *state)
 }
 
 static const guchar *
-_vte_iso2022_find_nextctl(const guchar *p, gsize length)
+_vte_iso2022_find_nextctl(const guchar *p, const guchar * const q)
 {
-	gsize i;
-
-	for (i = 0; i < length; ++i) {
-		if (p[i] == '\033' ||
-		    p[i] == '\n' ||
-		    p[i] == '\r' ||
-		    p[i] == '\016' ||
-		    p[i] == '\017'
+	do {
+		switch (*p) {
+			case '\033':
+			case '\n':
+			case '\r':
+			case '\016':
+			case '\017':
 #ifdef VTE_ISO2022_8_BIT_CONTROLS
 		    /* This breaks UTF-8 and other encodings which
 		     * use the high bits.
 		     */
-		                 ||
-		    p[i] == 0x8e ||
-		    p[i] == 0x8f
+			case '0x8e':
+			case '0x8f':
 #endif
-			) {
-			return p + i;
+				return p;
 		}
-	}
+	} while (++p < q);
 	return NULL;
 }
 
@@ -1080,7 +1077,7 @@ _vte_iso2022_fragment_input(guchar *input, gsize length)
 	p = input;
 	q = input + length;
 	do {
-		nextctl = _vte_iso2022_find_nextctl(p, q - p);
+		nextctl = _vte_iso2022_find_nextctl(p, q);
 		if (nextctl == NULL) {
 			/* It's all garden-variety data. */
 			block.type = _vte_iso2022_cdata;
@@ -1223,7 +1220,7 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 	const guchar *inbuf;
 	gunichar *outbuf, *buf;
 	gsize inbytes, outbytes;
-	guint i, width;
+	guint i, j, width;
 	gulong acc, or_mask, and_mask;
 	gunichar c;
 	gpointer p;
@@ -1300,10 +1297,10 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 			}
 		} while ((inbytes > 0) && !stop);
 
-		/* Append the unichars to the GArray. */
-		for (i = 0; buf + i < outbuf; i ++) {
+		/* encode any ambiguous widths and skip blanks */
+		for (i = j = 0; buf + i < outbuf; i++) {
 			c = buf[i];
-			if (c == '\0') {
+			if (G_UNLIKELY (c == '\0')) {
 				/* Skip the padding character. */
 				continue;
 			}
@@ -1311,8 +1308,10 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 				width = ambiguous_width;
 				c = _vte_iso2022_set_encoded_width(c, width);
 			}
-			g_array_append_val(gunichars, c);
+			buf[j++] = c;
 		}
+		/* And append the unichars to the GArray. */
+		g_array_append_vals(gunichars, buf, j);
 
 		/* Done. */
 		processed = length - inbytes;

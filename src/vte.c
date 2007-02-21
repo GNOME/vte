@@ -2381,30 +2381,16 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 
 	/* Make sure we have enough rows to hold this data. */
+	col = screen->cursor_current.col;
+	screen->cursor_current.col += columns;
 	row = _vte_terminal_ensure_cursor(terminal, FALSE);
 	g_assert(row != NULL);
-
-	/* Insert the right number of columns. */
 
 	/* Make sure we're not getting random stuff past the right
 	 * edge of the screen at this point, because the user can't
 	 * see it. */
-	col = screen->cursor_current.col;
 	if (G_LIKELY (col < terminal->column_count)) {
-		/* Make sure we have enough columns in this row. */
-		if (G_UNLIKELY (row->cells->len < col + columns)) {
-			/* Add enough cells to fill out the row to at least out
-			 * to (and including) the insertion point. */
-			if (paint_cells) {
-				vte_g_array_fill(row->cells,
-						&screen->color_defaults,
-						col + columns);
-			} else {
-				vte_g_array_fill(row->cells,
-						&screen->basic_defaults,
-						col + columns);
-			}
-		}
+		/* Insert the right number of columns. */
 		i = 0;
 		do {
 			/* If we're in insert mode, insert a new cell here
@@ -2412,11 +2398,9 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			if (insert) {
 				cell = screen->color_defaults;
 				g_array_insert_val(row->cells, col, cell);
-			} else {
-				cell = g_array_index(row->cells, struct vte_charcell, col);
 			}
-			/* Set the character cell's attributes to match the current
-			 * defaults, preserving any previous contents. */
+			cell.c = c;
+			cell.columns = columns;
 			if (paint_cells) {
 				cell.fore = screen->defaults.fore;
 				cell.back = screen->defaults.back;
@@ -2431,41 +2415,35 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			cell.invisible = screen->defaults.invisible;
 			cell.protect = screen->defaults.protect;
 			cell.alternate = 0;
+			cell.empty = 0;
+			cell.fragment = i != 0;
 
-			/* Now set the character and column count. */
-			if (i == 0) {
-				/* This is an entire character or the first column of
-				 * a multi-column character. */
-				if (G_UNLIKELY (cell.c != 0 &&
-						c == '_' &&
-						terminal->pvt->flags.ul)) {
-					/* Handle overstrike-style underlining. */
+			if (G_UNLIKELY (i == 0 &&
+					c == '_' &&
+					terminal->pvt->flags.ul)) {
+				struct vte_charcell *pcell =
+					&g_array_index (row->cells, struct vte_charcell, col);
+				/* Handle overstrike-style underlining. */
+				if (pcell->c != 0) {
+					/* restore previous contents */
+					cell.c = pcell->c;
+					cell.columns = pcell->columns;
+					cell.fragment = pcell->fragment;
+					cell.empty = pcell->empty;
+
 					cell.underline = 1;
-				} else {
-					/* Insert the character. */
-					cell.c = c;
-					cell.columns = columns;
-					cell.fragment = 0;
-					cell.empty = 0;
 				}
-			} else {
-				/* This is a continuation cell. */
-				cell.c = c;
-				cell.columns = columns;
-				cell.fragment = 1;
-				cell.empty = 0;
 			}
 			g_array_index(row->cells, struct vte_charcell, col) = cell;
 
 			/* And take a step to the to the right. */
 			col++;
 		} while (++i < columns);
-		screen->cursor_current.col = col;
 		if (G_UNLIKELY (row->cells->len > terminal->column_count)) {
 			g_array_set_size(row->cells, terminal->column_count);
 		}
-	}else{
-		col = screen->cursor_current.col += columns;
+	} else {
+		col += columns;
 	}
 
 	/* Signal that this part of the window needs drawing. */

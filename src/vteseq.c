@@ -2239,8 +2239,6 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 		/* Otherwise, just move the cursor down. */
 		screen->cursor_current.row++;
 	}
-	/* Adjust the scrollbars if necessary. */
-	_vte_terminal_adjust_adjustments(terminal);
 	return FALSE;
 }
 

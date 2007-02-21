@@ -1,5 +1,17 @@
 2007-02-21  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Callgrind strikes again...
+	Inserting a char is a rare operation (especially in the scrolling
+	benchmark!) so only read the old cell during an insert. This wins
+	about 5% during a hexdump.
+
+	* src/iso2022.c: (_vte_iso2022_find_nextctl),
+	(_vte_iso2022_fragment_input), (process_cdata):
+	* src/vte.c: (_vte_terminal_insert_char):
+	* src/vteseq.c: (vte_sequence_handler_sf):
+
+2007-02-21  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	RedHat Bug 113195: First line displayed incorrectly if prompt changes background color
 
 	e.g. PS1='\e[46m[\u@\h:\w]\e[m \e[45m'
