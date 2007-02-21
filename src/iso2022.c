@@ -1223,13 +1223,12 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 	guint i, j, width;
 	gulong acc, or_mask, and_mask;
 	gunichar c;
-	gpointer p;
 	gboolean single, stop;
 
 	ambiguous_width = state->ambiguous_width;
 
 	single = (state->override != -1);
-	current = (state->override != -1) ? state->override : state->current;
+	current = single ? state->override : state->current;
 	state->override = -1;
 	g_assert(current < G_N_ELEMENTS(state->g));
 
@@ -1329,8 +1328,8 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 			if ((i % bytes_per_char) == 0) {
 				acc &= and_mask;
 				acc |= or_mask;
-				p = GINT_TO_POINTER(acc);
-				c = GPOINTER_TO_INT(g_hash_table_lookup(map, p));
+				c = GPOINTER_TO_INT(g_hash_table_lookup(map,
+							GINT_TO_POINTER(acc)));
 				if ((c == 0) && (acc != 0)) {
 					_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
 							"%04lx -(%c)-> "
@@ -1338,7 +1337,7 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 							acc,
 							state->g[current] & 0xff,
 							acc);
-					g_array_append_val(gunichars, acc);
+					c = acc;
 				} else {
 					width = 0;
 					if (force_width != 0) {
@@ -1352,8 +1351,8 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 							"%05lx -> "
 							"%04x\n", acc, c);
 					c = _vte_iso2022_set_encoded_width(c, width);
-					g_array_append_val(gunichars, c);
 				}
+				g_array_append_val(gunichars, c);
 				if (single) {
 					break;
 				}

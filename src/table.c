@@ -639,13 +639,13 @@ _vte_table_match(struct _vte_table *table,
 
 	/* If there's no literal path, and no generic path, and the numeric
 	 * path isn't available, then it's not a sequence, either. */
-	if ((table->table == NULL) ||
-	    (table->table[_vte_table_map_literal(candidate[0])] == NULL)) {
+	if (table->table == NULL ||
+	    table->table[_vte_table_map_literal(candidate[0])] == NULL) {
 		if (table->table_string == NULL) {
-			if (!(_vte_table_is_numeric(candidate[0])) ||
-			    (table->table_number == NULL)) {
-				if (!(_vte_table_is_numeric_list(candidate[0])) ||
-						(table->table_number_list == NULL)) {
+			if (table->table_number == NULL ||
+					!_vte_table_is_numeric(candidate[0])){
+				if (table->table_number_list == NULL ||
+					!_vte_table_is_numeric_list(candidate[0])){
 					/* No match. */
 					return NULL;
 				}
