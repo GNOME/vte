@@ -7,7 +7,7 @@
 	(vte_terminal_maybe_scroll_to_top), (vte_terminal_size_allocate),
 	(vte_terminal_set_scrollback_lines):
 	* src/vteseq.c: (vte_sequence_handler_decset_internal):
-		Fixup a lost of issues with changing the number of scroll back
+		Fixup a lot of issues with changing the number of scrollback
 		lines, such as missing value_changed signals for the
 		scrollbar and a couple of missing CLAMPs.
 
