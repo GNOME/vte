@@ -10880,9 +10880,9 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 		high = low + lines - terminal->row_count + 1;
 		screen->scroll_delta = CLAMP (screen->scroll_delta, low, high);
 		screen->insert_delta = CLAMP (screen->insert_delta, low, high);
-		if (_vte_ring_next (screen->row_data) > screen->insert_delta + terminal->row_count - 1){
+		if (_vte_ring_next (screen->row_data) > screen->insert_delta + terminal->row_count){
 			_vte_ring_length (screen->row_data) =
-				screen->insert_delta + terminal->row_count - 1 - low;
+				screen->insert_delta + terminal->row_count - low;
 		}
 	} else {
 		vte_terminal_reset_rowdata (&screen->row_data,
@@ -10895,6 +10895,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 			screen->scroll_delta + terminal->row_count - 1);
 
 	/* Adjust the scrollbars to the new locations. */
+	terminal->adjustment->value = screen->scroll_delta;
 	_vte_terminal_adjust_adjustments_full (terminal);
 }
 
