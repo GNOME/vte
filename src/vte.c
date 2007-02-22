@@ -1540,9 +1540,8 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal)
 
 	/* The upper value is the number of rows which might be visible.  (Add
 	 * one to the cursor offset because it's zero-based.) */
-	rows = MAX (screen->insert_delta, screen->scroll_delta)
-		+ terminal->row_count;
-	rows = MAX(_vte_ring_next(terminal->pvt->screen->row_data), rows);
+	rows = MAX(_vte_ring_next(screen->row_data),
+			screen->cursor_current.row + 1);
 	if (terminal->adjustment->upper != rows) {
 		_vte_debug_print(VTE_DEBUG_IO,
 				"Changing upper bound from %f to %ld\n",
@@ -1560,7 +1559,13 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal)
 				delta, screen->scroll_delta);
 		vte_terminal_queue_adjustment_changed(terminal);
 	}
+
+	if (screen->scroll_delta > screen->insert_delta) {
+		vte_terminal_queue_adjustment_value_changed(terminal,
+				screen->insert_delta);
+	}
 }
+
 /* Update the adjustment field of the widget.  This function should be called
  * whenever we add rows to or remove rows from the history or switch screens. */
 static void
@@ -1602,9 +1607,8 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 
 	/* The upper value is the number of rows which might be visible.  (Add
 	 * one to the cursor offset because it's zero-based.) */
-	rows = MAX (screen->insert_delta, screen->scroll_delta)
-		+ terminal->row_count;
-	rows = MAX(_vte_ring_next(terminal->pvt->screen->row_data), rows);
+	rows = MAX(_vte_ring_next(screen->row_data),
+			screen->cursor_current.row + 1);
 	if (terminal->adjustment->upper != rows) {
 		_vte_debug_print(VTE_DEBUG_IO,
 				"Changing upper bound from %f to %ld\n",
@@ -1655,6 +1659,11 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 				delta, screen->scroll_delta);
 		vte_terminal_queue_adjustment_changed(terminal);
 	}
+
+	if (screen->scroll_delta > screen->insert_delta) {
+		vte_terminal_queue_adjustment_value_changed(terminal,
+				screen->insert_delta);
+	}
 }
 
 /* Scroll up or down in the current screen. */
@@ -1683,9 +1692,8 @@ vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
 static void
 vte_terminal_maybe_scroll_to_top(VteTerminal *terminal)
 {
-	long delta;
-	delta = _vte_ring_delta(terminal->pvt->screen->row_data);
-	vte_terminal_queue_adjustment_value_changed (terminal, delta);
+	vte_terminal_queue_adjustment_value_changed (terminal,
+			_vte_ring_delta(terminal->pvt->screen->row_data));
 }
 
 static void
@@ -7232,6 +7240,13 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 
 	if (width != terminal->column_count
 			|| height != terminal->row_count) {
+		VteScreen *screen = terminal->pvt->screen;
+		if (height < terminal->row_count) {
+			glong delta = terminal->row_count - height;
+			vte_terminal_queue_adjustment_value_changed (terminal,
+					screen->scroll_delta + delta);
+			screen->insert_delta += delta;
+		}
 		/* Set the size of the pseudo-terminal. */
 		vte_terminal_set_size(terminal, width, height);
 
@@ -7246,9 +7261,13 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 						terminal->row_count - 1);
 		}
 
-		/* Adjust scrollback buffers to ensure that they're big enough. */
+		/* Ensure scrollback buffers cover the screen. */
 		vte_terminal_set_scrollback_lines(terminal,
 				terminal->pvt->scrollback_lines);
+		/* Ensure the cursor is valid */
+		screen->cursor_current.row = CLAMP (screen->cursor_current.row,
+				_vte_ring_delta (screen->row_data),
+				_vte_ring_next (screen->row_data)- 1);
 		/* Notify viewers that the contents have changed. */
 		_vte_terminal_match_contents_clear(terminal);
 		_vte_terminal_emit_contents_changed(terminal);
@@ -10852,51 +10871,48 @@ vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
 void
 vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 {
-	glong row;
+	glong scroll_delta;
 	VteScreen *screen;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	_vte_debug_print (VTE_DEBUG_MISC,
 			"Setting scrollback lines to %ld\n", lines);
 
-	screen = terminal->pvt->screen;
 	terminal->pvt->scrollback_lines = lines;
+	screen = terminal->pvt->screen;
+	scroll_delta = screen->scroll_delta;
 
 	/* The main screen gets the full scrollback buffer, but the
 	 * alternate screen isn't allowed to scroll at all. */
-	row = screen->cursor_current.row - screen->scroll_delta;
 	if (screen == &terminal->pvt->normal_screen) {
-		glong low, high;
+		glong low, high, next;
 		/* We need at least as many lines as are visible */
 		lines = MAX (lines, terminal->row_count);
+		next = MAX (screen->cursor_current.row + 1,
+				_vte_ring_next (screen->row_data));
 		vte_terminal_reset_rowdata (&screen->row_data, lines);
-		if (row >= terminal->row_count) {
-			glong delta = row - terminal->row_count + 1;
-			screen->scroll_delta += delta;
-			screen->insert_delta += delta;
-			screen->cursor_current.row += delta;
-		}
 		low = _vte_ring_delta (screen->row_data);
 		high = low + lines - terminal->row_count + 1;
-		screen->scroll_delta = CLAMP (screen->scroll_delta, low, high);
 		screen->insert_delta = CLAMP (screen->insert_delta, low, high);
-		if (_vte_ring_next (screen->row_data) > screen->insert_delta + terminal->row_count){
-			_vte_ring_length (screen->row_data) =
-				screen->insert_delta + terminal->row_count - low;
+		scroll_delta = CLAMP (scroll_delta, low, screen->insert_delta);
+		next = MIN (next, screen->insert_delta + terminal->row_count);
+		if (_vte_ring_next (screen->row_data) > next){
+			_vte_ring_length (screen->row_data) = next - low;
 		}
 	} else {
 		vte_terminal_reset_rowdata (&screen->row_data,
 				terminal->row_count);
-		screen->scroll_delta = _vte_ring_delta (screen->row_data);
+		scroll_delta = _vte_ring_delta (screen->row_data);
 		screen->insert_delta = _vte_ring_delta (screen->row_data);
+		if (_vte_ring_next (screen->row_data) > screen->insert_delta + terminal->row_count){
+			_vte_ring_length (screen->row_data) = terminal->row_count;
+		}
 	}
-	screen->cursor_current.row = CLAMP (screen->cursor_current.row,
-			screen->scroll_delta,
-			screen->scroll_delta + terminal->row_count - 1);
 
 	/* Adjust the scrollbars to the new locations. */
-	terminal->adjustment->value = screen->scroll_delta;
+	vte_terminal_queue_adjustment_value_changed (terminal, scroll_delta);
 	_vte_terminal_adjust_adjustments_full (terminal);
+
 }
 
 /**

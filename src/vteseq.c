@@ -717,6 +717,9 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 						NULL);
 		}
 		/* Reset scrollbars and repaint everything. */
+		terminal->adjustment->value =
+			terminal->pvt->screen->scroll_delta;
+		terminal->pvt->adjustment_value_changed_pending = TRUE;
 		vte_terminal_set_scrollback_lines(terminal,
 				terminal->pvt->scrollback_lines);
 		_vte_terminal_match_contents_clear(terminal);

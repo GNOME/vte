@@ -1,5 +1,18 @@
 2007-02-22  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 410819 – slider not correctly positioned after calling less
+
+	* src/vte.c: (_vte_terminal_adjust_adjustments),
+	(_vte_terminal_adjust_adjustments_full),
+	(vte_terminal_maybe_scroll_to_top), (vte_terminal_size_allocate),
+	(vte_terminal_set_scrollback_lines):
+	* src/vteseq.c: (vte_sequence_handler_decset_internal):
+		Fixup a lost of issues with changing the number of scroll back
+		lines, such as missing value_changed signals for the
+		scrollbar and a couple of missing CLAMPs.
+
+2007-02-22  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	After adjusting the current profile, the last line gets chomped.
 
 	* src/vte.c: (vte_terminal_set_scrollback_lines):
