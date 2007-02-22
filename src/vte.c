@@ -3614,12 +3614,14 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	g_assert(VTE_IS_TERMINAL(terminal));
 	g_assert(encoding && strcmp(encoding, "UTF-8") == 0);
 
-	conv = NULL;
+	conv = VTE_INVALID_CONV;
 	if (strcmp(encoding, "UTF-8") == 0) {
 		conv = terminal->pvt->outgoing_conv;
 	}
-	g_assert(conv != NULL);
-	g_assert(conv != VTE_INVALID_CONV);
+	if (conv == VTE_INVALID_CONV) {
+		g_warning (_("Unable to send data to child, invalid charset convertor"));
+		return;
+	}
 
 	icount = length;
 	ibuf =  data;
@@ -3629,7 +3631,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 
 	if (_vte_conv(conv, &ibuf, &icount, &obuf, &ocount) == (gsize)-1) {
 		g_warning(_("Error (%s) converting data for child, dropping."),
-			  strerror(errno));
+			  g_strerror(errno));
 	} else {
 		crcount = 0;
 		if (newline_stuff) {

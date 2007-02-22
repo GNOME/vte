@@ -1,5 +1,11 @@
 2007-02-22  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c: (vte_terminal_send):
+		Return in the face of error as we appear to hit this in the
+		wild.
+
+2007-02-22  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 410819 – slider not correctly positioned after calling less
 
 	* src/vte.c: (_vte_terminal_adjust_adjustments),
