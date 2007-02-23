@@ -9240,15 +9240,27 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 							selected,
 							FALSE,
 							&nfore, &nback);
+					/* Graphic characters must be drawn individually. */
+					if (vte_unichar_is_local_graphic(cell->c)) {
+						if (vte_terminal_draw_graphic(terminal,
+									cell->c,
+									nfore, nback,
+									FALSE,
+									start_x + j * column_width,
+									y,
+									column_width,
+									cell->columns,
+									row_height)) {
+
+							j += cell->columns;
+							continue;
+						}
+					}
 					if (nfore != fore) {
 						break;
 					}
 					nbold = cell->bold;
 					if (nbold != bold) {
-						break;
-					}
-					/* Graphic characters must be drawn individually. */
-					if (vte_unichar_is_local_graphic(cell->c)) {
 						break;
 					}
 					/* Break up underlined/not-underlined text. */

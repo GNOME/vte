@@ -1,5 +1,11 @@
 2007-02-23  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c: (vte_terminal_draw_rows):
+		Don't break a glyph run for a graphic, issue the draw
+		and continue.
+
+2007-02-23  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Cache the font metrics on the vte_xft_font, avoids having to remeasure
 	when opening a new terminal.
 
