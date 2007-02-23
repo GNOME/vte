@@ -330,6 +330,21 @@ _vte_ft2_draw_char(struct _vte_draw *draw,
 	return FALSE;
 }
 
+static gboolean
+_vte_ft2_draw_has_char(struct _vte_draw *draw, gunichar c)
+{
+	struct _vte_ft2_data *data;
+
+	data = (struct _vte_ft2_data*) draw->impl_data;
+
+	if (data->cache != NULL) {
+		if (_vte_glyph_get(data->cache, c) != NULL) {
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
 static void
 _vte_ft2_draw_rectangle(struct _vte_draw *draw,
 			gint x, gint y, gint width, gint height,
@@ -402,6 +417,7 @@ const struct _vte_draw_impl _vte_draw_ft2 = {
 	_vte_ft2_get_using_fontconfig,
 	_vte_ft2_draw_text,
 	_vte_ft2_draw_char,
+	_vte_ft2_draw_has_char,
 	_vte_ft2_draw_rectangle,
 	_vte_ft2_fill_rectangle,
 	_vte_ft2_set_scroll,

@@ -377,6 +377,12 @@ _vte_pango_draw_char(struct _vte_draw *draw,
 	return TRUE;
 }
 
+static gboolean
+_vte_pango_draw_has_char(struct _vte_draw *draw, gunichar c)
+{
+	return FALSE;
+}
+
 static void
 _vte_pango_draw_rectangle(struct _vte_draw *draw,
 			  gint x, gint y, gint width, gint height,
@@ -444,6 +450,7 @@ const struct _vte_draw_impl _vte_draw_pango = {
 	_vte_pango_get_using_fontconfig,
 	_vte_pango_draw_text,
 	_vte_pango_draw_char,
+	_vte_pango_draw_has_char,
 	_vte_pango_draw_rectangle,
 	_vte_pango_fill_rectangle,
 	_vte_pango_set_scroll,

@@ -1,5 +1,34 @@
 2007-02-23  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Add a new debug flag to monitor draw operations.
+	Don't issue individual glyphs for is_local_graphic() in the middle of
+	a run.
+
+	* src/debug.c: (_vte_debug_parse_string):
+	* src/debug.h:
+	* src/vte.c: (vte_terminal_unichar_is_local_graphic),
+	(vte_terminal_draw_rows), (vte_terminal_paint):
+	* src/vtedraw.c: (_vte_draw_init_user), (_vte_draw_init_default),
+	(_vte_draw_new), (_vte_draw_free), (_vte_draw_get_visual),
+	(_vte_draw_get_colormap), (_vte_draw_start), (_vte_draw_end),
+	(_vte_draw_set_background_color), (_vte_draw_set_background_image),
+	(_vte_draw_requires_repaint), (_vte_draw_clip), (_vte_draw_clear),
+	(_vte_draw_set_text_font), (_vte_draw_get_text_width),
+	(_vte_draw_get_text_height), (_vte_draw_get_text_ascent),
+	(_vte_draw_get_char_width), (_vte_draw_get_using_fontconfig),
+	(_vte_draw_text), (_vte_draw_char), (_vte_draw_has_char),
+	(_vte_draw_fill_rectangle), (_vte_draw_draw_rectangle),
+	(_vte_draw_set_scroll):
+	* src/vtedraw.h:
+	* src/vteft2.c: (_vte_ft2_draw_has_char):
+	* src/vtegl.c: (_vte_gl_draw_has_char):
+	* src/vtepango.c: (_vte_pango_draw_has_char):
+	* src/vtepangox.c: (_vte_pango_x_draw_has_char):
+	* src/vteskel.c: (_vte_skel_draw_has_char):
+	* src/vtexft.c: (_vte_xft_draw_has_char):
+
+2007-02-23  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c: (vte_terminal_draw_rows):
 		Don't break a glyph run for a graphic, issue the draw
 		and continue.

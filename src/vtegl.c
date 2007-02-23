@@ -518,6 +518,21 @@ _vte_gl_draw_char(struct _vte_draw *draw,
 	return FALSE;
 }
 
+static gboolean
+_vte_gl_draw_has_char(struct _vte_draw *draw, gunichar c)
+{
+	struct _vte_gl_data *data;
+
+	data = (struct _vte_gl_data*) draw->impl_data;
+
+	if (data->cache != NULL) {
+		if (_vte_glyph_get(data->cache, c) != NULL) {
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
 static void
 _vte_gl_rectangle(struct _vte_draw *draw,
 		  GLenum type,
@@ -590,6 +605,7 @@ const struct _vte_draw_impl _vte_draw_gl = {
 	_vte_gl_get_using_fontconfig,
 	_vte_gl_draw_text,
 	_vte_gl_draw_char,
+	_vte_gl_draw_has_char,
 	_vte_gl_draw_rectangle,
 	_vte_gl_fill_rectangle,
 	_vte_gl_set_scroll,

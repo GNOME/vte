@@ -84,6 +84,9 @@ _vte_debug_parse_string(const char *string)
 			} else
 			if (g_ascii_strcasecmp(flags[i], "TIMEOUT") == 0) {
 				_vte_debug_flags |= VTE_DEBUG_TIMEOUT;
+			} else
+			if (g_ascii_strcasecmp(flags[i], "DRAW") == 0) {
+				_vte_debug_flags |= VTE_DEBUG_DRAW;
 			}
 		}
 		g_strfreev(flags);

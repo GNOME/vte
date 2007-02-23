@@ -86,6 +86,7 @@ struct _vte_draw_impl {
 	gboolean (*draw_char)(struct _vte_draw *,
 			      struct _vte_draw_text_request *,
 			      GdkColor *, guchar);
+	gboolean (*has_char)(struct _vte_draw *, gunichar);
 	void (*draw_rectangle)(struct _vte_draw *,
 			       gint, gint, gint, gint,
 			       GdkColor *, guchar);
@@ -153,6 +154,7 @@ void _vte_draw_text(struct _vte_draw *draw,
 gboolean _vte_draw_char(struct _vte_draw *draw,
 			struct _vte_draw_text_request *request,
 			GdkColor *color, guchar alpha);
+gboolean _vte_draw_has_char(struct _vte_draw *draw, gunichar c);
 void _vte_draw_fill_rectangle(struct _vte_draw *draw,
 			      gint x, gint y, gint width, gint height,
 			      GdkColor *color, guchar alpha);

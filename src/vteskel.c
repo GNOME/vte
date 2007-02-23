@@ -169,6 +169,12 @@ _vte_skel_draw_char(struct _vte_draw *draw,
 	return FALSE;
 }
 
+static gboolean
+_vte_skel_draw_has_char(struct _vte_draw *draw, gunichar c)
+{
+	return FALSE;
+}
+
 static void
 _vte_skel_draw_rectangle(struct _vte_draw *draw,
 			 gint x, gint y, gint width, gint height,
@@ -218,6 +224,7 @@ const struct _vte_draw_impl _vte_draw_skel = {
 	_vte_skel_get_using_fontconfig,
 	_vte_skel_draw_text,
 	_vte_skel_draw_char,
+	_vte_skel_draw_has_char,
 	_vte_skel_draw_rectangle,
 	_vte_skel_fill_rectangle,
 	_vte_skel_set_scroll,

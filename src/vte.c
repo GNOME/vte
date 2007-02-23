@@ -7796,6 +7796,12 @@ vte_unichar_is_local_graphic(gunichar c)
 	}
 	return FALSE;
 }
+static inline gboolean
+vte_terminal_unichar_is_local_graphic(VteTerminal *terminal, gunichar c)
+{
+	return vte_unichar_is_local_graphic (c) &&
+		!_vte_draw_has_char (terminal->pvt->draw, c);
+}
 
 static void
 vte_terminal_fill_rectangle_int(VteTerminal *terminal,
@@ -9188,7 +9194,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			j = i + items[0].columns;
 
 			/* If this is a graphics character, draw it locally. */
-			if (vte_unichar_is_local_graphic(cell->c)) {
+			if (vte_terminal_unichar_is_local_graphic(terminal, cell->c)) {
 				if (vte_terminal_draw_graphic(terminal,
 						items[0].c,
 						fore, back,
@@ -9241,7 +9247,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 							FALSE,
 							&nfore, &nback);
 					/* Graphic characters must be drawn individually. */
-					if (vte_unichar_is_local_graphic(cell->c)) {
+					if (vte_terminal_unichar_is_local_graphic(terminal, cell->c)) {
 						if (vte_terminal_draw_graphic(terminal,
 									cell->c,
 									nfore, nback,
@@ -9603,7 +9609,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 							 &color,
 							 VTE_DRAW_OPAQUE);
 			}
-			if (!vte_unichar_is_local_graphic(item.c) ||
+			if (!vte_terminal_unichar_is_local_graphic(terminal, item.c) ||
 			    !vte_terminal_draw_graphic(terminal,
 						       item.c,
 						       fore, back,
@@ -9622,16 +9628,18 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 							terminal->pvt->match_end.row,
 							TRUE);
 				}
-				vte_terminal_draw_cells(terminal,
+				if (cell && cell->c != ' ') {
+					vte_terminal_draw_cells(terminal,
 							&item, 1,
 							fore, back, TRUE, FALSE,
-							cell && cell->bold,
-							cell && cell->underline,
-							cell && cell->strikethrough,
+							cell->bold,
+							cell->underline,
+							cell->strikethrough,
 							hilite,
 							FALSE,
 							width,
 							height);
+				}
 			}
 		} else {
 			GdkColor color;
@@ -9641,7 +9649,7 @@ draw_cursor_outline:
 					selected,
 					TRUE,
 					&fore, &back);
-			if (!vte_unichar_is_local_graphic(item.c) ||
+			if (!vte_terminal_unichar_is_local_graphic(terminal, item.c) ||
 			    !vte_terminal_draw_graphic(terminal,
 						       item.c,
 						       fore, back,
@@ -9661,16 +9669,18 @@ draw_cursor_outline:
 							TRUE);
 				}
 				/* Draw it as a hollow rectangle overtop character. */
-				vte_terminal_draw_cells(terminal,
-						&item, 1,
-						fore, back, TRUE, FALSE,
-						cell && cell->bold,
-						cell && cell->underline,
-						cell && cell->strikethrough,
-						hilite,
-						FALSE,
-						width,
-						height);
+				if (cell && cell->c != ' ') {
+					vte_terminal_draw_cells(terminal,
+							&item, 1,
+							fore, back, TRUE, FALSE,
+							cell->bold,
+							cell->underline,
+							cell->strikethrough,
+							hilite,
+							FALSE,
+							width,
+							height);
+				}
 			}
 			vte_terminal_determine_colors(terminal, cell,
 					!terminal->pvt->screen->reverse_mode,

@@ -43,7 +43,8 @@ typedef enum {
 	VTE_DEBUG_TRIE		= 1 << 13,
 	VTE_DEBUG_WORK		= 1 << 14,
 	VTE_DEBUG_CELLS		= 1 << 15,
-	VTE_DEBUG_TIMEOUT	= 1 << 16
+	VTE_DEBUG_TIMEOUT	= 1 << 16,
+	VTE_DEBUG_DRAW		= 1 << 17
 } VteDebugFlags;
 
 void _vte_debug_parse_string(const char *string);
