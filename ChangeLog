@@ -1,5 +1,12 @@
 2007-02-23  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Cache the font metrics on the vte_xft_font, avoids having to remeasure
+	when opening a new terminal.
+
+	* src/vtexft.c: (_vte_xft_font_open), (_vte_xft_set_text_font):
+
+2007-02-23  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Share XftFonts between terminal backends and preserve faces from the
 	previous draw - helps prevents font cache thrashing inside libXft.
 

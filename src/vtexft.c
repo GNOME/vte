@@ -49,6 +49,9 @@ struct _vte_xft_font {
 	VteTree *fontmap;
 	VteTree *widths;
 	guint last_pattern;
+
+	gint width, height, ascent;
+	gboolean have_metrics;
 };
 
 struct _vte_xft_data {
@@ -143,6 +146,7 @@ _vte_xft_font_open (GtkWidget *widget, const PangoFontDescription *fontdesc,
 	font->display = GDK_DISPLAY_XDISPLAY (gtk_widget_get_display (widget));
 	font->patterns = patterns;
 	font->last_pattern = 0;
+	font->have_metrics = FALSE;
 
 	if (font_cache == NULL) {
 		font_cache = g_hash_table_new (
@@ -586,15 +590,8 @@ _vte_xft_set_text_font (struct _vte_draw *draw,
 		       const PangoFontDescription *fontdesc,
 		       VteTerminalAntiAlias antialias)
 {
-	struct _vte_xft_font *ft;
-	XftFont *font, *prev_font;
-	XGlyphInfo extents;
 	struct _vte_xft_data *data;
-	gunichar wide_chars[] = {VTE_DRAW_DOUBLE_WIDE_CHARACTERS};
-	guint i;
-	gint n, width, height, min = G_MAXINT, max = G_MININT;
-	FcChar32 c;
-	GPtrArray *locked_fonts;
+	struct _vte_xft_font *ft;
 
 	data = (struct _vte_xft_data*) draw->impl_data;
 
@@ -610,86 +607,106 @@ _vte_xft_set_text_font (struct _vte_draw *draw,
 		return;
 	}
 
-	gdk_error_trap_push ();
 	data->locked_fonts[0] = ptr_array_zeroed_new (data->font->patterns->len);
 	data->locked_fonts[1] = ptr_array_zeroed_new (data->font->patterns->len);
-	locked_fonts = data->locked_fonts [data->cur_locked_fonts&1];
 
-	draw->width = 1;
-	draw->height = 1;
-	draw->ascent = 1;
+	if (data->font->have_metrics) {
+		draw->width = data->font->width;
+		draw->height = data->font->height;
+		draw->ascent = data->font->ascent;
+	} else {
+		XftFont *font, *prev_font;
+		XGlyphInfo extents;
+		gunichar wide_chars[] = {VTE_DRAW_DOUBLE_WIDE_CHARACTERS};
+		guint i;
+		gint n, width, height, min = G_MAXINT, max = G_MININT;
+		FcChar32 c;
+		GPtrArray *locked_fonts;
 
-	n = width = height = 0;
-	/* Estimate a typical cell width by looking at single-width
-	 * characters. */
-	for (i = 0; i < sizeof (VTE_DRAW_SINGLE_WIDE_CHARACTERS) - 1; i++) {
-		c = VTE_DRAW_SINGLE_WIDE_CHARACTERS[i];
-		font = _vte_xft_font_for_char (data->font, c, locked_fonts);
-		if (font != NULL) {
-			memset (&extents, 0, sizeof (extents));
-			_vte_xft_text_extents (data->font, font, c, &extents);
-			n++;
-			width += extents.xOff;
-			if (extents.xOff < min) {
-				min = extents.xOff;
-			}
-			if (extents.xOff > max) {
-				max = extents.xOff;
-			}
-			if (extents.height > height) {
-				height = extents.height;
-			}
-		}
-	}
-	if (n > 0) {
-		draw->width = howmany (width, n);
-		draw->height = (font != NULL) ?
-			       font->ascent + font->descent : height;
-		draw->ascent = (font != NULL) ?
-			       font->ascent : height;
-	}
-	/* Estimate a typical cell width by looking at double-width
-	 * characters, and if it's the same as the single width, assume the
-	 * single-width stuff is broken. */
-	n = width = 0;
-	prev_font = NULL;
-	for (i = 0; i < G_N_ELEMENTS (wide_chars); i++) {
-		c = wide_chars[i];
-		font = _vte_xft_font_for_char (data->font, c, locked_fonts);
-		if (font != NULL) {
-			if (n && prev_font != font) {/* font change */
-				width = howmany (width, n);
-				if (width >= draw->width -1 &&
-						width <= draw->width + 1){
-					/* add 1 to round up when dividing by 2 */
-					draw->width = (draw->width + 1) / 2;
-					break;
+		draw->width = 1;
+		draw->height = 1;
+		draw->ascent = 1;
+
+		locked_fonts = data->locked_fonts [data->cur_locked_fonts&1];
+
+		gdk_error_trap_push ();
+		n = width = height = 0;
+		/* Estimate a typical cell width by looking at single-width
+		 * characters. */
+		for (i = 0; i < sizeof (VTE_DRAW_SINGLE_WIDE_CHARACTERS) - 1; i++) {
+			c = VTE_DRAW_SINGLE_WIDE_CHARACTERS[i];
+			font = _vte_xft_font_for_char (data->font, c, locked_fonts);
+			if (font != NULL) {
+				memset (&extents, 0, sizeof (extents));
+				_vte_xft_text_extents (data->font, font, c, &extents);
+				n++;
+				width += extents.xOff;
+				if (extents.xOff < min) {
+					min = extents.xOff;
 				}
-				n = width = 0;
+				if (extents.xOff > max) {
+					max = extents.xOff;
+				}
+				if (extents.height > height) {
+					height = extents.height;
+				}
 			}
-			memset (&extents, 0, sizeof (extents));
-			_vte_xft_text_extents (data->font, font, c, &extents);
-			n++;
-			width += extents.xOff;
-			prev_font = font;
 		}
-	}
-	if (n > 0) {
-		width = howmany (width, n);
-		if (width >= draw->width -1 &&
-				width <= draw->width + 1){
-			/* add 1 to round up when dividing by 2 */
-			draw->width = (draw->width + 1) / 2;
+		if (n > 0) {
+			draw->width = howmany (width, n);
+			draw->height = (font != NULL) ?
+				font->ascent + font->descent : height;
+			draw->ascent = (font != NULL) ?
+				font->ascent : height;
 		}
+		/* Estimate a typical cell width by looking at double-width
+		 * characters, and if it's the same as the single width, assume the
+		 * single-width stuff is broken. */
+		n = width = 0;
+		prev_font = NULL;
+		for (i = 0; i < G_N_ELEMENTS (wide_chars); i++) {
+			c = wide_chars[i];
+			font = _vte_xft_font_for_char (data->font, c, locked_fonts);
+			if (font != NULL) {
+				if (n && prev_font != font) {/* font change */
+					width = howmany (width, n);
+					if (width >= draw->width -1 &&
+							width <= draw->width + 1){
+						/* add 1 to round up when dividing by 2 */
+						draw->width = (draw->width + 1) / 2;
+						break;
+					}
+					n = width = 0;
+				}
+				memset (&extents, 0, sizeof (extents));
+				_vte_xft_text_extents (data->font, font, c, &extents);
+				n++;
+				width += extents.xOff;
+				prev_font = font;
+			}
+		}
+		if (n > 0) {
+			width = howmany (width, n);
+			if (width >= draw->width -1 &&
+					width <= draw->width + 1){
+				/* add 1 to round up when dividing by 2 */
+				draw->width = (draw->width + 1) / 2;
+			}
+		}
+
+		gdk_error_trap_pop ();
+
+		data->font->width = draw->width;
+		data->font->height = draw->height;
+		data->font->ascent = draw->ascent;
+		data->font->have_metrics = TRUE;
+
+		_vte_debug_print (VTE_DEBUG_MISC,
+				"VteXft font metrics = %dx%d (%d),"
+				" width range [%d, %d].\n",
+				draw->width, draw->height, draw->ascent,
+				min, max);
 	}
-
-	gdk_error_trap_pop ();
-
-	_vte_debug_print (VTE_DEBUG_MISC,
-			"VteXft font metrics = %dx%d (%d),"
-			" width range [%d, %d].\n",
-			draw->width, draw->height, draw->ascent,
-			min, max);
 }
 
 static int
