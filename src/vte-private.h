@@ -171,6 +171,7 @@ struct _VteTerminalPrivate {
 	int pty_master;			/* pty master descriptor */
 	GIOChannel *pty_input;		/* master input watch */
 	guint pty_input_source;
+	gboolean pty_input_active;
 	GIOChannel *pty_output;		/* master output watch */
 	guint pty_output_source;
 	GPid pty_pid;			/* pid of child using pty slave */

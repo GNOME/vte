@@ -3495,6 +3495,7 @@ out:
 			vte_terminal_add_process_timeout (terminal);
 			GDK_THREADS_LEAVE ();
 		}
+		terminal->pvt->pty_input_active = TRUE;
 	}
 
 	/* Error? */
@@ -11760,8 +11761,12 @@ process_timeout (gpointer data)
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
 		if (terminal->pvt->pty_input) {
-			vte_terminal_io_read(terminal->pvt->pty_input,
-					G_IO_IN, terminal);
+			if (terminal->pvt->pty_input_active ||
+					terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
+				vte_terminal_io_read(terminal->pvt->pty_input,
+						G_IO_IN, terminal);
+				terminal->pvt->pty_input_active = FALSE;
+			}
 		}
 		again = FALSE;
 		if (need_processing (terminal)) do {
@@ -11871,8 +11876,11 @@ update_repeat_timeout (gpointer data)
 		}
 
 		if (terminal->pvt->pty_input) {
-			vte_terminal_io_read (terminal->pvt->pty_input,
-					G_IO_IN, terminal);
+			if (terminal->pvt->pty_input_active ||
+					terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
+				vte_terminal_io_read (terminal->pvt->pty_input,
+						G_IO_IN, terminal);
+			}
 		}
 		again = TRUE;
 		while (again && need_processing (terminal)) {
@@ -11957,8 +11965,11 @@ update_timeout (gpointer data)
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
 		if (terminal->pvt->pty_input) {
-			vte_terminal_io_read(terminal->pvt->pty_input,
-					G_IO_IN, terminal);
+			if (terminal->pvt->pty_input_active ||
+					terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
+				vte_terminal_io_read(terminal->pvt->pty_input,
+						G_IO_IN, terminal);
+			}
 		}
 		again = TRUE;
 		while (again && need_processing (terminal)) {

@@ -1,5 +1,13 @@
 2007-02-23  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Heuristic to avoid a read when it's likely to just return EAGAIN.
+
+	* src/vte-private.h:
+	* src/vte.c: (vte_terminal_io_read), (process_timeout),
+	(update_repeat_timeout), (update_timeout):
+
+2007-02-23  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Add a new debug flag to monitor draw operations.
 	Don't issue individual glyphs for is_local_graphic() in the middle of
 	a run.
