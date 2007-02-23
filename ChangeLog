@@ -1,5 +1,17 @@
 2007-02-23  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	A couple of compiler warnings and avoid unnecessary arithmetic.
+
+	* src/vte.c: (_vte_terminal_set_default_attributes),
+	(find_start_column), (find_end_column),
+	(vte_terminal_start_selection), (vte_terminal_extend_selection),
+	(vte_terminal_draw_rows), (vte_terminal_paint):
+	* src/vtexft.c: (_vte_xft_font_open), (_vte_xft_font_for_char),
+	(_vte_xft_char_width), (_vte_xft_unlock_fonts), (_vte_xft_start),
+	(_vte_xft_clip), (_vte_xft_set_text_font), (_vte_xft_draw_text):
+
+2007-02-23  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 411276 – SVN trunk compilation error
 	Part 2.
 

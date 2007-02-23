@@ -310,7 +310,7 @@ _vte_terminal_set_default_attributes(VteTerminal *terminal)
 
 	screen = terminal->pvt->screen;
 
-	screen->defaults.c = ' ';
+	screen->defaults.c = 0;
 	screen->defaults.columns = 1;
 	screen->defaults.fragment = 0;
 	screen->defaults.empty = 1;
@@ -5291,7 +5291,7 @@ vte_terminal_paste(VteTerminal *terminal, GdkAtom board)
 }
 
 static glong
-start_column (VteTerminal *terminal, glong col, glong row)
+find_start_column (VteTerminal *terminal, glong col, glong row)
 {
 	VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
 	struct vte_charcell *cell = _vte_row_data_find_charcell(row_data, col);
@@ -5301,7 +5301,7 @@ start_column (VteTerminal *terminal, glong col, glong row)
 	return MAX(col, 0);
 }
 static glong
-end_column (VteTerminal *terminal, glong col, glong row)
+find_end_column (VteTerminal *terminal, glong col, glong row)
 {
 	VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
 	struct vte_charcell *cell = _vte_row_data_find_charcell(row_data, col);
@@ -5326,7 +5326,7 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 	/* Convert the event coordinates to cell coordinates. */
 	delta = terminal->pvt->screen->scroll_delta;
 	celly = (event->y - VTE_PAD_WIDTH) / terminal->char_height + delta;
-	cellx = start_column (terminal,
+	cellx = find_start_column (terminal,
 			(event->x - VTE_PAD_WIDTH) / terminal->char_width,
 			celly);
 
@@ -5356,7 +5356,7 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 
 		terminal->pvt->selection_start.x = cellx;
 		terminal->pvt->selection_start.y = celly;
-		terminal->pvt->selection_end.x = end_column (terminal,
+		terminal->pvt->selection_end.x = find_end_column (terminal,
 				cellx, celly);
 		terminal->pvt->selection_end.y = celly;
 		terminal->pvt->selection_origin =
@@ -5499,8 +5499,8 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 		*sc = *ec;
 		*ec = tc;
 	}
-	sc->x = start_column (terminal, sc->x, sc->y);
-	ec->x = end_column (terminal, ec->x, ec->y);
+	sc->x = find_start_column (terminal, sc->x, sc->y);
+	ec->x = find_end_column (terminal, ec->x, ec->y);
 
 	/* Extend the selection to handle end-of-line cases, word, and line
 	 * selection.  We do this here because calculating it once is cheaper
@@ -5538,7 +5538,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 			sc->x = 0;
 		}
 	}
-	sc->x = start_column (terminal, sc->x, sc->y);
+	sc->x = find_start_column (terminal, sc->x, sc->y);
 
 	/* Handle end-of-line at the end-cell. */
 	if (!terminal->pvt->block_mode) {
@@ -5566,7 +5566,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 			ec->x = MAX(ec->x, terminal->column_count - 1);
 		}
 	}
-	ec->x = end_column (terminal, ec->x, ec->y);
+	ec->x = find_end_column (terminal, ec->x, ec->y);
 
 	/* Now extend again based on selection type. */
 	switch (terminal->pvt->selection_type) {
@@ -9057,10 +9057,11 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 		      gint start_x, gint start_y,
 		      gint column_width, gint row_height)
 {
-	gint i, j, row, rows, x, y, fore, nfore, back, nback;
+	struct _vte_draw_text_request items[4*VTE_DRAW_MAX_LENGTH];
+	gint i, j, row, rows, x, y, end_column;
+	gint fore, nfore, back, nback;
 	gboolean underline, nunderline, bold, nbold, hilite, nhilite, reverse,
 		 selected, strikethrough, nstrikethrough;
-	struct _vte_draw_text_request items[4*VTE_DRAW_MAX_LENGTH];
 	guint item_count;
 	struct vte_charcell *cell;
 	VteRowData *row_data;
@@ -9069,6 +9070,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 
 	/* adjust for the absolute start of row */
 	start_x -= start_column * column_width;
+	end_column = start_column + column_count;
 
 	/* clear the background */
 	x = start_x + VTE_PAD_WIDTH;
@@ -9099,7 +9101,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 
 			j = i + (cell ? cell->columns : 1);
 
-			while (j < start_column + column_count){
+			while (j < end_column){
 				/* Don't render fragments of multicolumn characters
 				 * which have the same attributes as the initial
 				 * portions. */
@@ -9138,7 +9140,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			/* We'll need to continue at the first cell which didn't
 			 * match the first one in this set. */
 			i = j;
-		} while (i < start_column + column_count);
+		} while (i < end_column);
 		row++;
 		y += row_height;
 	} while (--rows);
@@ -9162,14 +9164,14 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 		}
 
 		/* Walk the line. */
-		while (i < start_column + column_count) {
+		while (i < end_column) {
 			/* Get the character cell's contents. */
 			cell = _vte_row_data_find_charcell(row_data, i);
 			while (cell == NULL ||
 					cell->c == 0 ||
 					cell->c == ' ' ||
 					cell->fragment) {
-				if (++i >= start_column + column_count) {
+				if (++i >= end_column) {
 					goto next_row;
 				}
 				cell = _vte_row_data_find_charcell(row_data, i);
@@ -9219,13 +9221,13 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 
 			/* Now find out how many cells have the same attributes. */
 			do {
-				while ((j < start_column + column_count) &&
-						(item_count < G_N_ELEMENTS(items))) {
+				while (j < end_column &&
+						item_count < G_N_ELEMENTS(items)) {
 					/* Retrieve the cell. */
 					cell = _vte_row_data_find_charcell(row_data, j);
 					if (cell == NULL ||
 							cell->c == 0 ||
-							cell->c == ' ') {
+							cell->c == ' '){
 						/* only break the run if we
 						 * are drawing attributes
 						 */
@@ -9308,7 +9310,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					item_count++;
 				}
 				/* have we encountered a state change? */
-				if (j < start_column + column_count) {
+				if (j < end_column) {
 					break;
 				}
 				/* is this the last column, on the last row? */
@@ -9636,7 +9638,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 							terminal->pvt->match_end.row,
 							TRUE);
 				}
-				if (cell && cell->c != ' ') {
+				if (cell && cell->c != 0 && cell->c != ' ') {
 					vte_terminal_draw_cells(terminal,
 							&item, 1,
 							fore, back, TRUE, FALSE,
@@ -9677,7 +9679,7 @@ draw_cursor_outline:
 							TRUE);
 				}
 				/* Draw it as a hollow rectangle overtop character. */
-				if (cell && cell->c != ' ') {
+				if (cell && cell->c != 0 && cell->c != ' ') {
 					vte_terminal_draw_cells(terminal,
 							&item, 1,
 							fore, back, TRUE, FALSE,
@@ -9728,7 +9730,7 @@ draw_cursor_outline:
 
 		/* Draw the preedit string, boxed. */
 		if (len > 0) {
-			items = g_new(struct _vte_draw_text_request, len + 1);
+			items = g_new(struct _vte_draw_text_request, len);
 			preedit = terminal->pvt->im_preedit;
 			for (i = columns = 0; i < len; i++) {
 				if ((preedit - terminal->pvt->im_preedit) ==
@@ -9746,10 +9748,6 @@ draw_cursor_outline:
 			    terminal->pvt->im_preedit_cursor) {
 				preedit_cursor = i;
 			}
-			items[len].c = ' ';
-			items[len].columns = 1;
-			items[len].x = (col + columns) * width;
-			items[len].y = row * height;
 			_vte_draw_clear(terminal->pvt->draw,
 					col * width + VTE_PAD_WIDTH,
 					row * height + VTE_PAD_WIDTH,
@@ -9758,7 +9756,7 @@ draw_cursor_outline:
 			fore = screen->defaults.fore;
 			back = screen->defaults.back;
 			vte_terminal_draw_cells_with_attributes(terminal,
-								items, len + 1,
+								items, len,
 								terminal->pvt->im_preedit_attrs,
 								TRUE,
 								width, height);

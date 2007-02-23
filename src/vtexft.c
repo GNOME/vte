@@ -36,8 +36,8 @@
 
 #include <glib/gi18n-lib.h>
 
-#define FONT_INDEX_FUDGE 10
-#define CHAR_WIDTH_FUDGE 10
+#define FONT_INDEX_FUDGE 1
+#define CHAR_WIDTH_FUDGE 1
 
 #define DPY_FUDGE 1
 
@@ -166,6 +166,7 @@ _vte_xft_font_open (GtkWidget *widget, const PangoFontDescription *fontdesc,
 	} else {
 		g_hash_table_insert (font_cache, font, font);
 		font->fonts = g_ptr_array_new ();
+		g_ptr_array_add (font->fonts, NULL); /* 1 indexed array */
 		font->fontmap = _vte_tree_new (_vte_xft_direct_compare);
 		font->widths = _vte_tree_new (_vte_xft_direct_compare);
 	}
@@ -224,7 +225,6 @@ _vte_xft_font_for_char (struct _vte_xft_font *font, gunichar c, GPtrArray *locke
 			return NULL;
 		/* Matched before. */
 		default:
-			i -= FONT_INDEX_FUDGE;
 			ftfont = g_ptr_array_index (font->fonts, i);
 			if (g_ptr_array_index (locked_fonts, i) == NULL) {
 				XftLockFace (ftfont);
@@ -235,7 +235,7 @@ _vte_xft_font_for_char (struct _vte_xft_font *font, gunichar c, GPtrArray *locke
 	}
 
 	/* Look the character up in the fonts we have. */
-	for (i = 0; i < font->fonts->len; i++) {
+	for (i = 1; i < font->fonts->len; i++) {
 		ftfont = g_ptr_array_index (font->fonts, i);
 		if (_vte_xft_char_exists (font, ftfont, c)) {
 			if (g_ptr_array_index (locked_fonts, i) == NULL) {
@@ -243,8 +243,7 @@ _vte_xft_font_for_char (struct _vte_xft_font *font, gunichar c, GPtrArray *locke
 				g_ptr_array_index (locked_fonts, i) = ftfont;
 			}
 			_vte_tree_insert (font->fontmap,
-					p,
-					GINT_TO_POINTER (i + FONT_INDEX_FUDGE));
+					p, GINT_TO_POINTER (i));
 			return ftfont;
 		}
 	}
@@ -261,8 +260,7 @@ _vte_xft_font_for_char (struct _vte_xft_font *font, gunichar c, GPtrArray *locke
 				XftLockFace (ftfont);
 				g_ptr_array_index (locked_fonts, i) = ftfont;
 				_vte_tree_insert (font->fontmap,
-						p,
-						GINT_TO_POINTER (i + FONT_INDEX_FUDGE));
+						p, GINT_TO_POINTER (i));
 				font->last_pattern = j;
 				return ftfont;
 			}
@@ -275,8 +273,7 @@ _vte_xft_font_for_char (struct _vte_xft_font *font, gunichar c, GPtrArray *locke
 
 	/* No match? */
 	_vte_tree_insert (font->fontmap,
-			p,
-			GINT_TO_POINTER (-FONT_INDEX_FUDGE));
+			p, GINT_TO_POINTER (-FONT_INDEX_FUDGE));
 	g_warning (_ ("Can not find appropiate font for character U+%04x.\n"), c);
 	return NULL;
 }
@@ -294,10 +291,8 @@ _vte_xft_char_width (struct _vte_xft_font *font, XftFont *ftfont, gunichar c)
 		switch (i) {
 		case -CHAR_WIDTH_FUDGE:
 			return 0;
-			break;
 		default:
-			return i - CHAR_WIDTH_FUDGE;
-			break;
+			return i;
 		}
 	}
 
@@ -306,8 +301,11 @@ _vte_xft_char_width (struct _vte_xft_font *font, XftFont *ftfont, gunichar c)
 	if (ftfont != NULL) {
 		_vte_xft_text_extents (font, ftfont, c, &extents);
 	}
-	i = extents.xOff + CHAR_WIDTH_FUDGE;
-	_vte_tree_insert (font->widths, p, GINT_TO_POINTER (i));
+	if (extents.xOff == 0) {
+		_vte_tree_insert (font->widths, p, -CHAR_WIDTH_FUDGE);
+	} else {
+		_vte_tree_insert (font->widths, p, GINT_TO_POINTER (extents.xOff));
+	}
 	return extents.xOff;
 }
 
@@ -336,7 +334,7 @@ _vte_xft_unlock_fonts (struct _vte_xft_data *data)
 {
 	guint i, j;
 	for (i = 0; i < G_N_ELEMENTS (data->locked_fonts); i++) {
-		for (j = 0; j < data->locked_fonts[i]->len; j++) {
+		for (j = 1; j < data->locked_fonts[i]->len; j++) {
 			XftFont *ftfont = g_ptr_array_index (
 					data->locked_fonts[i], j);
 			if (ftfont != NULL) {
@@ -413,10 +411,10 @@ _vte_xft_start (struct _vte_draw *draw)
 	}
 	data->gc = XCreateGC (data->display, data->drawable, 0, NULL);
 
-	locked_fonts = data->locked_fonts [ (++data->cur_locked_fonts)&1];
+	locked_fonts = data->locked_fonts [(++data->cur_locked_fonts)&1];
 	if (locked_fonts != NULL) {
 		guint cnt=0;
-		for (i = 0; i < locked_fonts->len; i++) {
+		for (i = 1; i < locked_fonts->len; i++) {
 			XftFont *ftfont = g_ptr_array_index (locked_fonts, i);
 			if (ftfont != NULL) {
 				XftUnlockFace (ftfont);
@@ -500,7 +498,7 @@ _vte_xft_clip (struct _vte_draw *draw,
 	gdk_region_get_rectangles (region, &rect, &n);
 	if (n>0) {
 		XRectangle *xrect = g_new (XRectangle, n);
-		for (i=0; i<n; i++) {
+		for (i = 0; i < n; i++) {
 			/* we include the offset here as XftDrawSetClipRectangles () has a
 			 * byte-sex bug in its offset parameters. Bug 403159.
 			 */
@@ -607,8 +605,8 @@ _vte_xft_set_text_font (struct _vte_draw *draw,
 		return;
 	}
 
-	data->locked_fonts[0] = ptr_array_zeroed_new (data->font->patterns->len);
-	data->locked_fonts[1] = ptr_array_zeroed_new (data->font->patterns->len);
+	data->locked_fonts[0] = ptr_array_zeroed_new (1 + data->font->patterns->len);
+	data->locked_fonts[1] = ptr_array_zeroed_new (1 + data->font->patterns->len);
 
 	if (data->font->have_metrics) {
 		draw->width = data->font->width;
@@ -774,9 +772,6 @@ _vte_xft_draw_text (struct _vte_draw *draw,
 	/* find the first displayable character ... */
 	font = NULL;
 	for (i = 0; i < n_requests; i++) {
-		if (requests[i].c == ' ') {
-			continue;
-		}
 		font = _vte_xft_font_for_char (data->font,
 				requests[i].c, locked_fonts);
 		if (G_UNLIKELY (font == NULL)) {
@@ -824,9 +819,6 @@ _vte_xft_draw_text (struct _vte_draw *draw,
 			/* find the next displayable character ... */
 			ft = NULL;
 			for (; i < n_requests; i++) {
-				if (G_UNLIKELY (requests[i].c == ' ')) {
-					continue;
-				}
 				ft = _vte_xft_font_for_char (data->font,
 						requests[i].c, locked_fonts);
 				if (G_UNLIKELY (ft == NULL)) {
