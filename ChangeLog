@@ -1,5 +1,10 @@
 2007-02-23  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c: (vte_terminal_io_read):
+		Prevent a deadlock on recursively grabbing the gdk_mutex.
+
+2007-02-23  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Heuristic to avoid a read when it's likely to just return EAGAIN.
 
 	* src/vte-private.h:

@@ -3519,9 +3519,14 @@ out:
 
 	/* If we detected an eof condition, signal one. */
 	if (eof) {
-		GDK_THREADS_ENTER ();
-		vte_terminal_eof (channel, terminal);
-		GDK_THREADS_LEAVE ();
+		/* potential deadlock ... */
+		if (!vte_terminal_is_processing (terminal)) {
+			GDK_THREADS_ENTER ();
+			vte_terminal_eof (channel, terminal);
+			GDK_THREADS_LEAVE ();
+		} else {
+			vte_terminal_eof (channel, terminal);
+		}
 	}
 
 	return !eof && (!active_terminals || !active_terminals->next);
