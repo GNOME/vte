@@ -3463,10 +3463,10 @@ vte_terminal_io_read(GIOChannel *channel,
 						eof = TRUE;
 						goto out;
 					default:
+						bp += ret;
+						rem -= ret;
 						break;
 				}
-				bp += ret;
-				rem -= ret;
 			} while (rem);
 			if (loops-- == 0) {
 				break;

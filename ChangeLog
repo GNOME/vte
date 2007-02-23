@@ -1,3 +1,16 @@
+2007-02-23  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Share XftFonts between terminal backends and preserve faces from the
+	previous draw - helps prevents font cache thrashing inside libXft.
+
+	* src/vtexft.c: (_vte_xft_font_hash), (_vte_xft_font_equal),
+	(_vte_xft_font_open), (_vte_xft_font_close),
+	(_vte_xft_font_for_char), (_vte_xft_unlock_fonts),
+	(_vte_xft_destroy), (_vte_xft_start), (_vte_xft_end),
+	(ptr_array_zeroed_new), (_vte_xft_set_text_font),
+	(_vte_xft_get_char_width), (_vte_xft_draw_text),
+	(_vte_xft_draw_char):
+
 2007-02-22  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 410986 – Fails to build with -z defs
