@@ -1,5 +1,17 @@
 2007-02-23  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 411276 – SVN trunk compilation error
+
+	* configure.in:
+		Ubuntu Edgy appears to have a broken fontconfig-dev package
+		where the function is exported from the library but is missing
+		the corresponding prototypes.
+		So we reorder the determination of the compilation flags
+		before checking for available functions in the hope that the
+		tests will then match the results at compile time.
+
+2007-02-23  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c: (vte_terminal_io_read):
 		Prevent a deadlock on recursively grabbing the gdk_mutex.
 
