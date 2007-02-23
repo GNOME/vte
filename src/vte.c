@@ -11763,9 +11763,9 @@ process_timeout (gpointer data)
 		if (terminal->pvt->pty_input) {
 			if (terminal->pvt->pty_input_active ||
 					terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
+				terminal->pvt->pty_input_active = FALSE;
 				vte_terminal_io_read(terminal->pvt->pty_input,
 						G_IO_IN, terminal);
-				terminal->pvt->pty_input_active = FALSE;
 			}
 		}
 		again = FALSE;
@@ -11878,6 +11878,7 @@ update_repeat_timeout (gpointer data)
 		if (terminal->pvt->pty_input) {
 			if (terminal->pvt->pty_input_active ||
 					terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
+				terminal->pvt->pty_input_active = FALSE;
 				vte_terminal_io_read (terminal->pvt->pty_input,
 						G_IO_IN, terminal);
 			}
@@ -11967,6 +11968,7 @@ update_timeout (gpointer data)
 		if (terminal->pvt->pty_input) {
 			if (terminal->pvt->pty_input_active ||
 					terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
+				terminal->pvt->pty_input_active = FALSE;
 				vte_terminal_io_read(terminal->pvt->pty_input,
 						G_IO_IN, terminal);
 			}
