@@ -361,7 +361,15 @@ save_CFLAGS="$CFLAGS"
 save_LIBS="$LIBS"
 CFLAGS="$CFLAGS $VTE_CFLAGS"
 LIBS="$VTE_LIBS $LIBS"
-AC_CHECK_FUNCS([FcNameUnparse FcStrFree])
+# Workaround a broken fontconfig-dev on Edgy
+AC_COMPILE_IFELSE([
+#include <fontconfig/fontconfig.h>
+int main(void)
+{
+	FcStrFree (FcNameUnparse (0));
+	return 0;
+}
+], [AC_CHECK_FUNCS([FcNameUnparse FcStrFree])],)
 LIBS="$save_LIBS"
 CFLAGS="$save_CFLAGS"
 
