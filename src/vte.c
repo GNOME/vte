@@ -3444,6 +3444,7 @@ vte_terminal_io_read(GIOChannel *channel,
 		const int fd = g_io_channel_unix_get_fd (channel);
 		guchar *bp;
 		int rem, loops = 5;
+		gboolean active = FALSE;
 		chunk = terminal->pvt->incoming;
 		if (!chunk || chunk->len == sizeof (chunk->data)) {
 			chunk = get_chunk ();
@@ -3465,6 +3466,7 @@ vte_terminal_io_read(GIOChannel *channel,
 					default:
 						bp += ret;
 						rem -= ret;
+						active = TRUE;
 						break;
 				}
 			} while (rem);
@@ -3495,7 +3497,7 @@ out:
 			vte_terminal_add_process_timeout (terminal);
 			GDK_THREADS_LEAVE ();
 		}
-		terminal->pvt->pty_input_active = TRUE;
+		terminal->pvt->pty_input_active = active;
 	}
 
 	/* Error? */
