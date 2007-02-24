@@ -1495,7 +1495,7 @@ vte_terminal_match_check(VteTerminal *terminal, glong column, glong row,
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Checking for match at (%ld,%ld).\n",
 			row, column);
-	if (rowcol_inside_match (terminal, row, column)) {
+	if (rowcol_inside_match (terminal, row + delta, column)) {
 		if (tag) {
 			*tag = terminal->pvt->match_tag;
 		}
