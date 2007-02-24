@@ -7805,7 +7805,7 @@ vte_terminal_realize(GtkWidget *widget)
 	vte_terminal_background_update(terminal);
 }
 
-static void
+static inline void
 vte_terminal_determine_colors(VteTerminal *terminal,
 			      const struct vte_charcell *cell,
 			      gboolean reverse,

@@ -1,5 +1,11 @@
 2007-02-24  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c:
+		Hint that the compiler should inline
+		vte_terminal_determine_colors().
+
+2007-02-24  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	cf Bug 410534 – Slow content scrolling, takes 100% of CPU.
 	cf Bug 410463 – Poor interactive performance with multiple terminals
 
