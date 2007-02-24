@@ -9300,7 +9300,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			underline = cell->underline;
 			strikethrough = cell->strikethrough;
 			bold = cell->bold;
-			if (terminal->pvt->match != NULL) {
+			if (terminal->pvt->show_match) {
 				hilite = vte_cell_is_between(i, row,
 						terminal->pvt->match_start.column,
 						terminal->pvt->match_start.row,
@@ -9404,7 +9404,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					}
 					/* Break up matched/not-matched text. */
 					nhilite = FALSE;
-					if (terminal->pvt->match != NULL) {
+					if (terminal->pvt->show_match) {
 						nhilite = vte_cell_is_between(j, row,
 								terminal->pvt->match_start.column,
 								terminal->pvt->match_start.row,
@@ -9744,7 +9744,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 						       item.columns,
 						       height)) {
 				gboolean hilite = FALSE;
-				if (cell && terminal->pvt->match != NULL) {
+				if (cell && terminal->pvt->show_match) {
 					hilite = vte_cell_is_between(col, row,
 							terminal->pvt->match_start.column,
 							terminal->pvt->match_start.row,
@@ -9784,7 +9784,7 @@ draw_cursor_outline:
 						       item.columns,
 						       height)) {
 				gboolean hilite = FALSE;
-				if (cell && terminal->pvt->match != NULL) {
+				if (cell && terminal->pvt->show_match) {
 					hilite = vte_cell_is_between(col, row,
 							terminal->pvt->match_start.column,
 							terminal->pvt->match_start.row,
