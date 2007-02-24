@@ -1,3 +1,24 @@
+2007-02-24  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 159078 – slow highlight
+
+	Do not update the match hilite during a selection-drag.
+	Record unsuccesful regex matches, so we can quickly determine whether
+	the cursor is still inside the blank region.
+
+	* src/vte-private.h:
+	* src/vte.c: (vte_terminal_match_check_internal),
+	(rowcol_inside_match), (vte_terminal_match_check),
+	(_vte_terminal_set_pointer_visible),
+	(vte_terminal_match_hilite_clear),
+	(vte_terminal_match_hilite_show), (vte_terminal_match_hilite_hide),
+	(vte_terminal_match_hilite_update), (vte_terminal_match_hilite),
+	(vte_terminal_motion_notify), (vte_terminal_button_press),
+	(vte_terminal_focus_in), (vte_terminal_focus_out),
+	(vte_terminal_enter), (vte_terminal_leave), (vte_terminal_init),
+	(vte_terminal_unrealize), (vte_terminal_draw_rows),
+	(vte_terminal_paint):
+
 2007-02-23  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	A couple of compiler warnings and avoid unnecessary arithmetic.

@@ -304,10 +304,12 @@ struct _VteTerminalPrivate {
 	char *match_contents;
 	GArray *match_attributes;
 	GArray *match_regexes;
-	int match_previous;
+	char *match;
+	int match_tag;
 	struct {
 		long row, column;
 	} match_start, match_end;
+	gboolean show_match;
 
 	/* Data used when rendering the text which does not require server
 	 * resources and which can be kept after unrealizing. */

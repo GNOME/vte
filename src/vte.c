@@ -72,6 +72,8 @@ static gboolean vte_terminal_io_write(GIOChannel *channel,
 				      GIOCondition condition,
 				      VteTerminal *terminal);
 static void vte_terminal_match_hilite_clear(VteTerminal *terminal);
+static void vte_terminal_match_hilite_hide(VteTerminal *terminal);
+static void vte_terminal_match_hilite_show(VteTerminal *terminal, double x, double y);
 static void vte_terminal_match_hilite_update(VteTerminal *terminal, double x, double y);
 static gboolean vte_terminal_background_update(VteTerminal *data);
 static void vte_terminal_queue_background_update(VteTerminal *terminal);
@@ -1225,6 +1227,7 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 	struct vte_match_regex *regex = NULL;
 	struct _VteCharAttributes *attr = NULL;
 	gssize sattr, eattr;
+	gssize start_blank, end_blank;
 	struct _vte_regex_match matches[256];
 	gchar *line, eol;
 
@@ -1262,12 +1265,13 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 		if (offset < 0)
 			g_printerr("Cursor is not on a character.\n");
 		else
-			g_printerr("Cursor is on character %d.\n", offset);
+			g_printerr("Cursor is on character '%c' at %d.\n",
+					g_utf8_get_char (terminal->pvt->match_contents + offset),
+					offset);
 	}
 
 	/* If the pointer isn't on a matchable character, bug out. */
 	if (offset < 0) {
-		terminal->pvt->match_previous = -1;
 		return NULL;
 	}
 
@@ -1276,7 +1280,6 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 	    (terminal->pvt->match_contents[offset] == '\0')) {
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Cursor is on whitespace.\n");
-		terminal->pvt->match_previous = -1;
 		return NULL;
 	}
 
@@ -1327,6 +1330,9 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 	eol = line[eattr];
 	line[eattr] = '\0';
 
+	start_blank = 0;
+	end_blank = eattr;
+
 	/* Now iterate over each regex we need to match against. */
 	for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
 		regex = &g_array_index(terminal->pvt->match_regexes,
@@ -1346,6 +1352,7 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 				      matches);
 		while (ret == 0) {
 			gint ko = offset - k;
+			gint sblank=G_MININT, eblank=G_MAXINT;
 			for (j = 0;
 			     j < G_N_ELEMENTS(matches) &&
 			     matches[j].rm_so != -1;
@@ -1394,16 +1401,32 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 						gdk_window_set_cursor(terminal->widget.window,
 								      regex->cursor);
 					}
-					terminal->pvt->match_previous = regex->tag;
 					result = g_strndup(line + k + matches[j].rm_so,
 							 matches[j].rm_eo - matches[j].rm_so);
 					line[eattr] = eol;
 					return result;
 				}
+				if (ko > matches[j].rm_eo &&
+						matches[j].rm_eo > sblank) {
+					sblank = matches[j].rm_eo;
+				}
+				if (ko < matches[j].rm_so &&
+						matches[j].rm_so < eblank) {
+					eblank = matches[j].rm_so;
+				}
+			}
+			if (k + sblank > start_blank) {
+				start_blank = k + sblank;
+			}
+			if (k + eblank < end_blank) {
+				end_blank = k + eblank;
 			}
 			/* Skip past the beginning of this match to
 			 * look for more. */
 			k += matches[0].rm_so + 1;
+			if (k > offset) {
+				break;
+			}
 			ret = _vte_regex_exec(regex->reg,
 					      line + k,
 					      G_N_ELEMENTS(matches),
@@ -1411,8 +1434,35 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 		}
 	}
 	line[eattr] = eol;
-	terminal->pvt->match_previous = -1;
+	if (start != NULL) {
+		*start = sattr + start_blank;
+	}
+	if (end != NULL) {
+		*end = sattr + end_blank;
+	}
 	return NULL;
+}
+
+static gboolean
+rowcol_inside_match (VteTerminal *terminal, glong row, glong col)
+{
+	if (terminal->pvt->match_start.row == terminal->pvt->match_end.row) {
+		return row == terminal->pvt->match_start.row &&
+			col >= terminal->pvt->match_start.column &&
+			col <= terminal->pvt->match_end.column;
+	} else {
+		if (row < terminal->pvt->match_start.row ||
+				row > terminal->pvt->match_end.row) {
+			return FALSE;
+		}
+		if (row == terminal->pvt->match_start.row) {
+			return col >= terminal->pvt->match_start.column;
+		}
+		if (row == terminal->pvt->match_end.row) {
+			return col <= terminal->pvt->match_end.column;
+		}
+		return TRUE;
+	}
 }
 
 /**
@@ -1445,9 +1495,18 @@ vte_terminal_match_check(VteTerminal *terminal, glong column, glong row,
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Checking for match at (%ld,%ld).\n",
 			row, column);
-	ret = vte_terminal_match_check_internal(terminal,
-						column, row + delta,
-						tag, NULL, NULL);
+	if (rowcol_inside_match (terminal, row, column)) {
+		if (tag) {
+			*tag = terminal->pvt->match_tag;
+		}
+		ret = terminal->pvt->match != NULL ?
+			g_strdup (terminal->pvt->match) :
+			NULL;
+	} else {
+		ret = vte_terminal_match_check_internal(terminal,
+				column, row + delta,
+				tag, NULL, NULL);
+	}
 	_VTE_DEBUG_IF(VTE_DEBUG_EVENTS) {
 		if (ret != NULL) g_printerr("Matched `%s'.\n", ret);
 	}
@@ -1918,10 +1977,10 @@ _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 					"Setting mousing cursor.\n");
 			cursor = terminal->pvt->mouse_mousing_cursor;
 		} else
-		if ( (guint)terminal->pvt->match_previous < terminal->pvt->match_regexes->len) {
+		if ( (guint)terminal->pvt->match_tag < terminal->pvt->match_regexes->len) {
 			regex = &g_array_index(terminal->pvt->match_regexes,
 					       struct vte_match_regex,
-					       terminal->pvt->match_previous);
+					       terminal->pvt->match_tag);
 			cursor = regex->cursor;
 		} else {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
@@ -4746,12 +4805,18 @@ vte_terminal_match_hilite_clear(VteTerminal *terminal)
 	terminal->pvt->match_start.column = -1;
 	terminal->pvt->match_end.row = -2;
 	terminal->pvt->match_end.column = -2;
-	if ((srow < erow) || ((srow == erow) && (scolumn < ecolumn))) {
+	if (terminal->pvt->match_tag != -1) {
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Clearing hilite (%ld,%ld) to (%ld,%ld).\n",
 				srow, scolumn, erow, ecolumn);
 		_vte_invalidate_region (terminal,
 				scolumn, ecolumn, srow, erow, FALSE);
+		terminal->pvt->match_tag = -1;
+	}
+	terminal->pvt->show_match = FALSE;
+	if (terminal->pvt->match) {
+		g_free (terminal->pvt->match);
+		terminal->pvt->match = NULL;
 	}
 }
 
@@ -4781,6 +4846,35 @@ cursor_inside_match (VteTerminal *terminal, gdouble x, gdouble y)
 	}
 }
 
+static void
+vte_terminal_match_hilite_show(VteTerminal *terminal, double x, double y)
+{
+	if(terminal->pvt->match != NULL && !terminal->pvt->show_match){
+		if (cursor_inside_match (terminal, x, y)) {
+			_vte_invalidate_region (terminal,
+					terminal->pvt->match_start.column,
+					terminal->pvt->match_end.column,
+					terminal->pvt->match_start.row,
+					terminal->pvt->match_end.row,
+					FALSE);
+			terminal->pvt->show_match = TRUE;
+		}
+	}
+}
+static void
+vte_terminal_match_hilite_hide(VteTerminal *terminal)
+{
+	if(terminal->pvt->match != NULL && terminal->pvt->show_match){
+		_vte_invalidate_region (terminal,
+				terminal->pvt->match_start.column,
+				terminal->pvt->match_end.column,
+				terminal->pvt->match_start.row,
+				terminal->pvt->match_end.row,
+				FALSE);
+		terminal->pvt->show_match = FALSE;
+	}
+}
+
 
 static void
 vte_terminal_match_hilite_update(VteTerminal *terminal, double x, double y)
@@ -4801,15 +4895,10 @@ vte_terminal_match_hilite_update(VteTerminal *terminal, double x, double y)
 	match = vte_terminal_match_check_internal(terminal,
 						  floor(x) / width,
 						  floor(y) / height + delta,
-						  NULL,
+						  &terminal->pvt->match_tag,
 						  &start,
 						  &end);
-
-	/* If there are no matches, repaint what we had matched before. */
-	if (match == NULL) {
-		_vte_debug_print(VTE_DEBUG_EVENTS, "No matches.\n");
-		vte_terminal_match_hilite_clear(terminal);
-	} else {
+	if (terminal->pvt->show_match) {
 		/* Repaint what used to be hilited, if anything. */
 		_vte_invalidate_region(terminal,
 				terminal->pvt->match_start.column,
@@ -4817,17 +4906,34 @@ vte_terminal_match_hilite_update(VteTerminal *terminal, double x, double y)
 				terminal->pvt->match_start.row,
 				terminal->pvt->match_end.row,
 				FALSE);
-		/* Read the new locations. */
-		attr = &g_array_index(terminal->pvt->match_attributes,
-				      struct _VteCharAttributes,
-				      start);
-		terminal->pvt->match_start.row = attr->row;
-		terminal->pvt->match_start.column = attr->column;
-		attr = &g_array_index(terminal->pvt->match_attributes,
-				      struct _VteCharAttributes,
-				      end);
-		terminal->pvt->match_end.row = attr->row;
-		terminal->pvt->match_end.column = attr->column;
+	}
+
+	/* Read the new locations. */
+	attr = &g_array_index(terminal->pvt->match_attributes,
+			struct _VteCharAttributes,
+			start);
+	terminal->pvt->match_start.row = attr->row;
+	terminal->pvt->match_start.column = attr->column;
+	attr = &g_array_index(terminal->pvt->match_attributes,
+			struct _VteCharAttributes,
+			end);
+	terminal->pvt->match_end.row = attr->row;
+	terminal->pvt->match_end.column = attr->column;
+
+	g_free (terminal->pvt->match);
+	terminal->pvt->match = match;
+
+	/* If there are no matches, repaint what we had matched before. */
+	if (match == NULL) {
+		_vte_debug_print(VTE_DEBUG_EVENTS,
+				"No matches. [(%ld,%ld) to (%ld,%ld)]\n",
+				terminal->pvt->match_start.column,
+				terminal->pvt->match_start.row,
+				terminal->pvt->match_end.column,
+				terminal->pvt->match_end.row);
+		terminal->pvt->show_match = FALSE;
+	} else {
+		terminal->pvt->show_match = TRUE;
 		/* Repaint the newly-hilited area. */
 		_vte_invalidate_region(terminal,
 				terminal->pvt->match_start.column,
@@ -4862,10 +4968,12 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 	 * need do nothing. */
 	if (floor (x / width) == floor (terminal->pvt->mouse_last_x / width) &&
 	    floor (y / height) == floor (terminal->pvt->mouse_last_y / height)) {
+		terminal->pvt->show_match = terminal->pvt->match != NULL;
 		return;
 	}
 
 	if (cursor_inside_match (terminal, x, y)) {
+		terminal->pvt->show_match = terminal->pvt->match != NULL;
 		return;
 	}
 
@@ -5959,8 +6067,10 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 		     terminal->pvt->mouse_cell_motion_tracking ||
 		     terminal->pvt->mouse_all_motion_tracking;
 
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Motion notify (%lf,%lf).\n",
-			event->x, event->y);
+	_vte_debug_print(VTE_DEBUG_EVENTS,
+			"Motion notify (%lf,%lf) [%.0f, %.0f].\n",
+			event->x, event->y,
+			floor (x / width), floor (y / height) + terminal->pvt->screen->scroll_delta);
 
 	/* check to see if we care */
 	if (event->window != widget->window ||
@@ -5970,15 +6080,18 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	}
 
 
-	/* Hilite any matches. */
-	vte_terminal_match_hilite(terminal, x, y);
-
-	/* Show the cursor. */
-	_vte_terminal_set_pointer_visible(terminal, TRUE);
-
 	/* Read the modifiers. */
 	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
 		terminal->pvt->modifiers = modifiers;
+	}
+
+	if (terminal->pvt->mouse_last_button) {
+		vte_terminal_match_hilite_hide (terminal);
+	} else {
+		/* Hilite any matches. */
+		vte_terminal_match_hilite(terminal, x, y);
+		/* Show the cursor. */
+		_vte_terminal_set_pointer_visible(terminal, TRUE);
 	}
 
 	switch (event->type) {
@@ -6088,7 +6201,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Button %d single-click at (%lf,%lf)\n",
 				event->button,
-				x, y+ (terminal->char_height * delta));
+				x, y + terminal->char_height * delta);
 		/* Handle this event ourselves. */
 		switch (event->button) {
 		case 1:
@@ -6329,7 +6442,7 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 		_vte_invalidate_cursor_once(terminal, FALSE);
 		_vte_terminal_set_pointer_visible(terminal, TRUE);
 
-		vte_terminal_match_hilite_update(terminal,
+		vte_terminal_match_hilite_show(terminal,
 				terminal->pvt->mouse_last_x,
 				terminal->pvt->mouse_last_y);
 	}
@@ -6354,7 +6467,7 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 	if (GTK_WIDGET_REALIZED(widget)) {
 		gtk_im_context_focus_out(terminal->pvt->im_context);
 		_vte_invalidate_cursor_once(terminal, FALSE);
-		vte_terminal_match_hilite_clear (terminal);
+		vte_terminal_match_hilite_hide (terminal);
 	}
 
 	if (terminal->pvt->cursor_blink_tag != VTE_INVALID_SOURCE)
@@ -6373,7 +6486,7 @@ vte_terminal_enter(GtkWidget *widget, GdkEventCrossing *event)
 	}
 	if (GTK_WIDGET_REALIZED (widget)) {
 		VteTerminal *terminal = VTE_TERMINAL (widget);
-		vte_terminal_match_hilite_update (terminal,
+		vte_terminal_match_hilite_show (terminal,
 				terminal->pvt->mouse_last_x,
 				terminal->pvt->mouse_last_y);
 	}
@@ -6389,7 +6502,7 @@ vte_terminal_leave(GtkWidget *widget, GdkEventCrossing *event)
 	}
 	if (GTK_WIDGET_REALIZED (widget)) {
 		VteTerminal *terminal = VTE_TERMINAL (widget);
-		vte_terminal_match_hilite_clear (terminal);
+		vte_terminal_match_hilite_hide (terminal);
 	}
 	return ret;
 }
@@ -7141,7 +7254,6 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Matching data. */
 	pvt->match_regexes = g_array_new(FALSE, FALSE,
 					 sizeof(struct vte_match_regex));
-	pvt->match_previous = -1;
 	vte_terminal_match_hilite_clear(terminal);
 
 	/* Rendering data.  Try everything. */
@@ -7332,6 +7444,8 @@ vte_terminal_unrealize(GtkWidget *widget)
 	terminal->pvt->mouse_mousing_cursor = NULL;
 	gdk_cursor_unref(terminal->pvt->mouse_inviso_cursor);
 	terminal->pvt->mouse_inviso_cursor = NULL;
+
+	vte_terminal_match_hilite_clear(terminal);
 
 	/* Shut down input methods. */
 	if (terminal->pvt->im_context != NULL) {
@@ -9186,7 +9300,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			underline = cell->underline;
 			strikethrough = cell->strikethrough;
 			bold = cell->bold;
-			if (terminal->pvt->match_contents != NULL) {
+			if (terminal->pvt->match != NULL) {
 				hilite = vte_cell_is_between(i, row,
 						terminal->pvt->match_start.column,
 						terminal->pvt->match_start.row,
@@ -9290,7 +9404,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					}
 					/* Break up matched/not-matched text. */
 					nhilite = FALSE;
-					if (terminal->pvt->match_contents != NULL) {
+					if (terminal->pvt->match != NULL) {
 						nhilite = vte_cell_is_between(j, row,
 								terminal->pvt->match_start.column,
 								terminal->pvt->match_start.row,
@@ -9630,7 +9744,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 						       item.columns,
 						       height)) {
 				gboolean hilite = FALSE;
-				if (cell && terminal->pvt->match_contents != NULL) {
+				if (cell && terminal->pvt->match != NULL) {
 					hilite = vte_cell_is_between(col, row,
 							terminal->pvt->match_start.column,
 							terminal->pvt->match_start.row,
@@ -9670,7 +9784,7 @@ draw_cursor_outline:
 						       item.columns,
 						       height)) {
 				gboolean hilite = FALSE;
-				if (cell && terminal->pvt->match_contents != NULL) {
+				if (cell && terminal->pvt->match != NULL) {
 					hilite = vte_cell_is_between(col, row,
 							terminal->pvt->match_start.column,
 							terminal->pvt->match_start.row,

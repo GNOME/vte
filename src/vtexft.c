@@ -283,7 +283,7 @@ _vte_xft_char_width (struct _vte_xft_font *font, XftFont *ftfont, gunichar c)
 {
 	XGlyphInfo extents;
 	gpointer p = GINT_TO_POINTER (c);
-	int i;
+	gint i;
 
 	/* Check if we have a char-to-width entry for it. */
 	i = GPOINTER_TO_INT (_vte_tree_lookup (font->widths, p));
@@ -302,10 +302,11 @@ _vte_xft_char_width (struct _vte_xft_font *font, XftFont *ftfont, gunichar c)
 		_vte_xft_text_extents (font, ftfont, c, &extents);
 	}
 	if (extents.xOff == 0) {
-		_vte_tree_insert (font->widths, p, -CHAR_WIDTH_FUDGE);
+		i = -CHAR_WIDTH_FUDGE;
 	} else {
-		_vte_tree_insert (font->widths, p, GINT_TO_POINTER (extents.xOff));
+		i = extents.xOff;
 	}
+	_vte_tree_insert (font->widths, p, GINT_TO_POINTER (i));
 	return extents.xOff;
 }
 
