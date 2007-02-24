@@ -3502,7 +3502,7 @@ vte_terminal_io_read(GIOChannel *channel,
 		struct _vte_incoming_chunk *chunk, *chunks = NULL;
 		const int fd = g_io_channel_unix_get_fd (channel);
 		guchar *bp;
-		int rem, loops = 5;
+		int rem;
 		gboolean active = FALSE;
 		chunk = terminal->pvt->incoming;
 		if (!chunk || chunk->len == sizeof (chunk->data)) {
@@ -3513,34 +3513,21 @@ vte_terminal_io_read(GIOChannel *channel,
 		rem = sizeof (chunk->data) - chunk->len;
 		bp = chunk->data + chunk->len;
 		do {
-			do {
-				int ret = read (fd, bp, rem);
-				switch (ret){
-					case -1:
-						err = errno;
-						goto out;
-					case 0:
-						eof = TRUE;
-						goto out;
-					default:
-						bp += ret;
-						rem -= ret;
-						active = TRUE;
-						break;
-				}
-			} while (rem);
-			if (loops-- == 0) {
-				break;
+			int ret = read (fd, bp, rem);
+			switch (ret){
+				case -1:
+					err = errno;
+					goto out;
+				case 0:
+					eof = TRUE;
+					goto out;
+				default:
+					bp += ret;
+					rem -= ret;
+					active = TRUE;
+					break;
 			}
-
-			chunk->len = sizeof (chunk->data) - rem;
-
-			chunk = get_chunk ();
-			chunk->next = chunks;
-			chunks = chunk;
-			rem = sizeof (chunk->data);
-			bp = chunk->data;
-		} while (TRUE);
+		} while (rem);
 out:
 		chunk->len = sizeof (chunk->data) - rem;
 		if (chunk->len == 0 && chunk == chunks) {
