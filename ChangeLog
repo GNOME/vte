@@ -1,5 +1,12 @@
 2007-02-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c: (vte_terminal_class_init), (time_process_incoming),
+	(process_timeout), (update_repeat_timeout), (update_timeout):
+		Update max number of processable bytes each time we call
+		vte_terminal_process_incoming().
+
+2007-02-26  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c: (vte_terminal_emit_adjustment_changed),
 	(_vte_terminal_adjust_adjustments_full),
 		Refactor the common code.

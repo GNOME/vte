@@ -123,6 +123,7 @@ static gboolean update_timeout (gpointer data);
 static guint process_timeout_tag = VTE_INVALID_SOURCE;
 static guint update_timeout_tag = VTE_INVALID_SOURCE;
 static GList *active_terminals;
+static GTimer *process_timer;
 
 /* process incoming data without copying */
 static struct _vte_incoming_chunk *free_chunks;
@@ -10394,6 +10395,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
 			     _vte_marshal_VOID__INT,
 			     G_TYPE_NONE, 1, G_TYPE_INT);
+
+	process_timer = g_timer_new ();
 }
 
 GtkType
@@ -11862,6 +11865,22 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 	vte_terminal_emit_contents_changed (terminal);
 }
 
+static void time_process_incoming (VteTerminal *terminal)
+{
+	gdouble elapsed;
+	glong target;
+	gboolean again;
+	g_timer_reset (process_timer);
+	do {
+		again = vte_terminal_process_incoming (terminal);
+	} while (again);
+	elapsed = g_timer_elapsed (process_timer, NULL) * 1000;
+	target = VTE_MAX_PROCESS_TIME / elapsed * terminal->pvt->input_bytes;
+	terminal->pvt->max_input_bytes =
+		(terminal->pvt->max_input_bytes + target) / 2;
+}
+
+
 /* This function is called after DISPLAY_TIMEOUT ms.
  * It makes sure initial output is never delayed by more than DISPLAY_TIMEOUT
  */
@@ -11870,6 +11889,7 @@ process_timeout (gpointer data)
 {
 	GList *l, *next;
 	gboolean again;
+	gboolean multiple_active;
 
 	GDK_THREADS_ENTER();
 
@@ -11878,6 +11898,7 @@ process_timeout (gpointer data)
 			"Process timeout:  %d active\n",
 			g_list_length (active_terminals));
 
+	multiple_active = active_terminals->next != NULL;
 	for (l = active_terminals; l != NULL; l = next) {
 		VteTerminal *terminal = l->data;
 		next = g_list_next (l);
@@ -11895,7 +11916,9 @@ process_timeout (gpointer data)
 		}
 		again = FALSE;
 		if (need_processing (terminal)) {
-			do {
+			if (VTE_MAX_PROCESS_TIME && !multiple_active) {
+				time_process_incoming (terminal);
+			} else do {
 				again = vte_terminal_process_incoming(terminal);
 			} while (again);
 			terminal->pvt->input_bytes = 0;
@@ -11978,6 +12001,7 @@ update_repeat_timeout (gpointer data)
 {
 	GList *l, *next;
 	gboolean again;
+	gboolean multiple_active;
 
 	GDK_THREADS_ENTER();
 
@@ -11986,6 +12010,7 @@ update_repeat_timeout (gpointer data)
 			"Repeat timeout:  %d active\n",
 			g_list_length (active_terminals));
 
+	multiple_active = active_terminals->next != NULL;
 	for (l = active_terminals; l != NULL; l = next) {
 		VteTerminal *terminal = l->data;
 		next = g_list_next (l);
@@ -12004,17 +12029,12 @@ update_repeat_timeout (gpointer data)
 			_vte_terminal_enable_input_source (terminal);
 		}
 		if (need_processing (terminal)) {
-			GTimer *process = g_timer_new ();
-			gdouble elapsed;
-			glong target;
-			do {
+			if (VTE_MAX_PROCESS_TIME && !multiple_active) {
+				time_process_incoming (terminal);
+			} else do {
 				again = vte_terminal_process_incoming (terminal);
 			} while (again);
-			elapsed = g_timer_elapsed (process, NULL) * 1000;
-			target = VTE_MAX_PROCESS_TIME / elapsed * terminal->pvt->input_bytes;
-			terminal->pvt->max_input_bytes = (terminal->pvt->max_input_bytes  + target) / 2;
 			terminal->pvt->input_bytes = 0;
-			g_timer_destroy (process);
 		}
 		if (terminal->pvt->bg_update_pending) {
 			vte_terminal_background_update (terminal);
@@ -12065,6 +12085,7 @@ update_timeout (gpointer data)
 {
 	GList *l, *next;
 	gboolean redraw = FALSE;
+	gboolean multiple_active;
 
 	GDK_THREADS_ENTER();
 
@@ -12078,6 +12099,7 @@ update_timeout (gpointer data)
 		process_timeout_tag = VTE_INVALID_SOURCE;
 	}
 
+	multiple_active = active_terminals->next != NULL;
 	for (l = active_terminals; l != NULL; l = next) {
 		VteTerminal *terminal = l->data;
 		gboolean again;
@@ -12097,7 +12119,9 @@ update_timeout (gpointer data)
 			_vte_terminal_enable_input_source (terminal);
 		}
 		if (need_processing (terminal)) {
-			do {
+			if (VTE_MAX_PROCESS_TIME && !multiple_active) {
+				time_process_incoming (terminal);
+			} else do {
 				again = vte_terminal_process_incoming (terminal);
 			} while (again);
 			terminal->pvt->input_bytes = 0;
