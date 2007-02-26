@@ -1613,6 +1613,7 @@ static void
 vte_terminal_queue_adjustment_value_changed(VteTerminal *terminal, glong v)
 {
 	if (v != terminal->pvt->screen->scroll_delta) {
+		g_print("scrolling %d -> %d\n", terminal->pvt->screen->scroll_delta, v);
 		terminal->pvt->screen->scroll_delta = v;
 		terminal->pvt->adjustment_value_changed_pending = TRUE;
 		vte_terminal_start_processing (terminal);
@@ -1663,7 +1664,7 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 	/* The step increment should always be one. */
 	if (terminal->adjustment->step_increment != 1) {
 		_vte_debug_print(VTE_DEBUG_IO,
-				"Changing step increment from %lf to %ld\n",
+				"Changing step increment from %.0lf to %ld\n",
 				terminal->adjustment->step_increment,
 				terminal->row_count);
 		terminal->adjustment->step_increment = 1;
@@ -1674,7 +1675,7 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 	 * user sees. */
 	if (terminal->adjustment->page_size != terminal->row_count) {
 		_vte_debug_print(VTE_DEBUG_IO,
-				"Changing page size from %f to %ld\n",
+				"Changing page size from %.0f to %ld\n",
 				terminal->adjustment->page_size,
 				terminal->row_count);
 		terminal->adjustment->page_size = terminal->row_count;
@@ -1686,7 +1687,7 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 	if (terminal->adjustment->page_increment != terminal->row_count) {
 		_vte_debug_print(VTE_DEBUG_IO,
 				"Changing page increment from "
-				"%f to %ld\n",
+				"%.0f to %ld\n",
 				terminal->adjustment->page_increment,
 				terminal->row_count);
 		terminal->adjustment->page_increment = terminal->row_count;
@@ -1712,7 +1713,7 @@ vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
 	/* Can't scroll past data we have. */
 	destination = CLAMP(destination,
 			    terminal->adjustment->lower,
-			    terminal->adjustment->upper - terminal->row_count);
+			    MAX (terminal->adjustment->lower, terminal->adjustment->upper - terminal->row_count));
 	/* Tell the scrollbar to adjust itself. */
 	vte_terminal_queue_adjustment_value_changed (terminal,
 			destination);
@@ -5941,8 +5942,9 @@ vte_terminal_autoscroll(VteTerminal *terminal)
 			/* Try to scroll up by one line. */
 			adj = CLAMP(terminal->pvt->screen->scroll_delta - 1,
 				    terminal->adjustment->lower,
-				    terminal->adjustment->upper -
-				    terminal->row_count);
+				    MAX (terminal->adjustment->lower,
+					    terminal->adjustment->upper -
+					    terminal->row_count));
 			vte_terminal_queue_adjustment_value_changed (terminal, adj);
 			extend = TRUE;
 		}
@@ -5954,8 +5956,9 @@ vte_terminal_autoscroll(VteTerminal *terminal)
 			/* Try to scroll up by one line. */
 			adj = CLAMP(terminal->pvt->screen->scroll_delta + 1,
 				    terminal->adjustment->lower,
-				    terminal->adjustment->upper -
-				    terminal->row_count);
+				    MAX (terminal->adjustment->lower,
+					    terminal->adjustment->upper -
+					    terminal->row_count));
 			vte_terminal_queue_adjustment_value_changed (terminal, adj);
 			extend = TRUE;
 		}
@@ -7366,7 +7369,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 		/* Ensure the cursor is valid */
 		screen->cursor_current.row = CLAMP (screen->cursor_current.row,
 				_vte_ring_delta (screen->row_data),
-				_vte_ring_next (screen->row_data)- 1);
+				_vte_ring_next (screen->row_data) - 1);
 		/* Notify viewers that the contents have changed. */
 		_vte_terminal_queue_contents_changed(terminal);
 	}
@@ -10036,7 +10039,8 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 		return FALSE;
 	}
 
-	new_value = CLAMP(new_value, adj->lower, adj->upper - adj->page_size);
+	new_value = CLAMP(new_value, adj->lower,
+			MAX (adj->lower, adj->upper - adj->page_size));
 	vte_terminal_queue_adjustment_value_changed (terminal, new_value);
 
 	return TRUE;

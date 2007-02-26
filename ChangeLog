@@ -1,6 +1,19 @@
 2007-02-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 412361 – Yet another mouse selection regression...
+	Part 2.
+
+	* src/vte.c: (vte_terminal_queue_adjustment_value_changed),
+	(_vte_terminal_adjust_adjustments_full),
+	(vte_terminal_scroll_pages), (vte_terminal_autoscroll),
+	(vte_terminal_size_allocate), (vte_terminal_scroll):
+		We implicitly used a bit of sanity checking when setting the
+		adjustment value. Ensure the value really is within the
+		adjustment range before updating scroll_delta.
+
+2007-02-26  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 412361 – Yet another mouse selection regression...
 	Part 1.
 
 	* src/vte.c: (vte_terminal_draw_rows):
