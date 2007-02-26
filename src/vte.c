@@ -3511,6 +3511,7 @@ vte_terminal_io_read(GIOChannel *channel,
 			chunks = chunk;
 		}
 		rem = sizeof (chunk->data) - chunk->len;
+		rem = MIN (rem, VTE_MAX_INPUT_READ);
 		bp = chunk->data + chunk->len;
 		do {
 			int ret = read (fd, bp, rem);
