@@ -1613,7 +1613,6 @@ static void
 vte_terminal_queue_adjustment_value_changed(VteTerminal *terminal, glong v)
 {
 	if (v != terminal->pvt->screen->scroll_delta) {
-		g_print("scrolling %d -> %d\n", terminal->pvt->screen->scroll_delta, v);
 		terminal->pvt->screen->scroll_delta = v;
 		terminal->pvt->adjustment_value_changed_pending = TRUE;
 		vte_terminal_start_processing (terminal);
