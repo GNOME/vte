@@ -1,3 +1,31 @@
+0.15.4
+======
+This is yet another release including awesome work of Chris Wilson.
+Hopefully mostly bugs fixed with this release and not many introduced.
+- Bugs fixed in this release:
+	Bug 412361 – Yet another mouse selection regression...
+	Bug 411000 – Orca repeats old text in gnome-terminal
+	Bug 410534 – Slow content scrolling, takes 100% of CPU.
+	Bug 410463 – Poor interactive performance with multiple terminals
+	Bug 159078 – slow highlight
+	Bug 411276 – SVN trunk compilation error
+	Bug 410986 – Fails to build with -z defs
+		Patch by Loïc Minier.
+	Bug 410819 – slider not correctly positioned after calling less
+	Bug 410534 – Slow content scrolling, takes 100% of CPU.
+	Bug 410463 – Poor interactive performance with multiple terminals
+	RedHat Bug 113195: First line displayed incorrectly if prompt changes background color
+	RedHat Bug 123845: gnome-terminal not parsing cursor position escape sequence properly
+	Bug 409055 – Terminal stays blank
+	Bug 409241 – gnome-terminal crashed with SIGSEGV in vte_terminal_draw_graphic()
+	Bug 407945 – "GNOME" Terminal" regression after "vte" update when using "csh"
+	Bug 408536 – trouble compiling vte 0.15.3
+	Bug 408040 – vte automagic hyperlinks
+		Patch by Gilles Dartiguelongue.
+	Bug 407839 – Use of environ breaks build on Solaris
+		Original patch by Damien Carbery.
+	Bug 407358 – regression in mouse selection
+
 0.15.3
 ======
 This is another release including awesome work of one Chris Wilson.  Lots of
