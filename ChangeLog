@@ -1,5 +1,16 @@
 2007-02-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 410986 – Fails to build with -z defs
+
+	The forgotten half - the python module also fails to link.
+
+	* acinclude.m4:
+	* python/Makefile.am:
+		Add PYTHON_LIBS pointing to the customary location and
+		remember to include them when compiling vtemodule.so.
+
+2007-02-26  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 412361 – Yet another mouse selection regression...
 	Part 2.
 
