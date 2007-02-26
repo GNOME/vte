@@ -1,5 +1,11 @@
 2007-02-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c: (vte_terminal_io_read):
+		Eeek, correctly compute the buffer length when we no longer
+		aim to fill it.
+
+2007-02-26  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Use a separate debug flag for the ally interface.
 
 	* src/debug.c: (_vte_debug_parse_string):

@@ -3530,7 +3530,7 @@ vte_terminal_io_read(GIOChannel *channel,
 			}
 		} while (rem);
 out:
-		chunk->len = sizeof (chunk->data) - rem;
+		chunk->len = bp - chunk->data;
 		if (chunk->len == 0 && chunk == chunks) {
 			chunks = chunks->next;
 			release_chunk (chunk);
