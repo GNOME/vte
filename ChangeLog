@@ -1,5 +1,22 @@
 2007-02-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Use a separate debug flag for the ally interface.
+
+	* src/debug.c: (_vte_debug_parse_string):
+	* src/debug.h:
+	* src/vteaccess.c:
+	(vte_terminal_accessible_update_private_data_if_needed),
+	(vte_terminal_accessible_invalidate_cursor),
+	(vte_terminal_accessible_finalize),
+	(vte_terminal_accessible_get_text),
+	(vte_terminal_accessible_get_text_somewhere),
+	(vte_terminal_accessible_text_init),
+	(vte_terminal_accessible_component_init),
+	(vte_terminal_accessible_action_init),
+	(vte_terminal_accessible_factory_new):
+
+2007-02-26  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte-private.h:
 	* src/vte.c: (vte_terminal_io_read):
 		And finally clamp the maximum number of bytes transferred in

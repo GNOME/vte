@@ -361,7 +361,7 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 			 * it's a new line and we need to keep track of where
 			 * it is. */
 			if ((i == 0) || (attrs.row != row)) {
-				_vte_debug_print(VTE_DEBUG_MISC,
+				_vte_debug_print(VTE_DEBUG_ALLY,
 						"Row %d/%ld begins at %u.\n",
 						priv->snapshot_linebreaks->len,
 						attrs.row, i);
@@ -377,8 +377,8 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 
 	/* Update the caret position. */
 	vte_terminal_get_cursor_position(terminal, &ccol, &crow);
-	_vte_debug_print(VTE_DEBUG_MISC,
-		       	"Cursor at (%ld, " "%ld).\n", ccol, crow);
+	_vte_debug_print(VTE_DEBUG_ALLY,
+			"Cursor at (%ld, " "%ld).\n", ccol, crow);
 
 	/* Get the offsets to the beginnings of each line. */
 	caret = -1;
@@ -412,11 +412,11 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 	/* Done updating the caret position, whether we needed to or not. */
 	priv->snapshot_caret_invalid = FALSE;
 
-	_vte_debug_print(VTE_DEBUG_MISC,
+	_vte_debug_print(VTE_DEBUG_ALLY,
 			"Refreshed accessibility snapshot, "
 			"%ld cells, %ld characters.\n",
-		       	(long)priv->snapshot_attributes->len,
-		       	(long)priv->snapshot_characters->len);
+			(long)priv->snapshot_attributes->len,
+			(long)priv->snapshot_characters->len);
 }
 
 /* A signal handler to catch "text-inserted/deleted/modified" signals. */
@@ -667,8 +667,8 @@ vte_terminal_accessible_invalidate_cursor(VteTerminal *terminal, gpointer data)
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
 	g_assert(priv != NULL);
 
-	_vte_debug_print(VTE_DEBUG_MISC,
-		       	"Invalidating accessibility cursor.\n");
+	_vte_debug_print(VTE_DEBUG_ALLY,
+			"Invalidating accessibility cursor.\n");
 	priv->snapshot_caret_invalid = TRUE;
 	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(data),
 							      NULL, NULL);
@@ -848,7 +848,7 @@ vte_terminal_accessible_finalize(GObject *object)
 	VteTerminalAccessiblePrivate *priv;
 	GtkAccessible *accessible = NULL;
 
-	_vte_debug_print(VTE_DEBUG_MISC, "Finalizing accessible peer.\n");
+	_vte_debug_print(VTE_DEBUG_ALLY, "Finalizing accessible peer.\n");
 
 	g_assert(VTE_IS_TERMINAL_ACCESSIBLE(object));
 	accessible = GTK_ACCESSIBLE(object);
@@ -934,7 +934,7 @@ vte_terminal_accessible_get_text(AtkText *text,
 
 	priv = g_object_get_data(G_OBJECT(text),
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
-	_vte_debug_print(VTE_DEBUG_MISC,
+	_vte_debug_print(VTE_DEBUG_ALLY,
 			"Getting text from %d to %d of %d.\n",
 			start_offset, end_offset,
 			priv->snapshot_characters->len);
@@ -989,7 +989,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
 	terminal = VTE_TERMINAL((GTK_ACCESSIBLE(text))->widget);
 
-	_vte_debug_print(VTE_DEBUG_MISC,
+	_vte_debug_print(VTE_DEBUG_ALLY,
 			"Getting %s %s at %d of %d.\n",
 			(direction == direction_current) ? "this" :
 			((direction == direction_next) ? "next" : "previous"),
@@ -1192,7 +1192,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 					break;
 				}
 			}
-			_vte_debug_print(VTE_DEBUG_MISC,
+			_vte_debug_print(VTE_DEBUG_ALLY,
 					"Character %d is on line %d.\n",
 					offset, line);
 			/* Perturb the line number to handle before/at/after. */
@@ -1205,7 +1205,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			line = MIN(line, priv->snapshot_linebreaks->len - 1);
 			end = g_array_index(priv->snapshot_linebreaks,
 						    int, line);
-			_vte_debug_print(VTE_DEBUG_MISC,
+			_vte_debug_print(VTE_DEBUG_ALLY,
 					"Line runs from %d to %d.\n",
 					start, end);
 			break;
@@ -1622,7 +1622,7 @@ vte_terminal_accessible_text_init(gpointer iface, gpointer data)
 	AtkTextIface *text;
 	g_assert(G_TYPE_FROM_INTERFACE(iface) == ATK_TYPE_TEXT);
 	text = iface;
-	_vte_debug_print(VTE_DEBUG_MISC,
+	_vte_debug_print(VTE_DEBUG_ALLY,
 			"Initializing accessible peer's AtkText interface.\n");
 	text->get_text = vte_terminal_accessible_get_text;
 	text->get_text_after_offset = vte_terminal_accessible_get_text_after_offset;
@@ -1819,7 +1819,7 @@ vte_terminal_accessible_component_init(gpointer iface, gpointer data)
 	g_assert(G_TYPE_FROM_INTERFACE(iface) == ATK_TYPE_COMPONENT);
 	component = iface;
 
-	_vte_debug_print(VTE_DEBUG_MISC,
+	_vte_debug_print(VTE_DEBUG_ALLY,
 			"Initializing accessible peer's "
 			"AtkComponent interface.\n");
 	/* Set our virtual functions. */
@@ -1937,7 +1937,7 @@ vte_terminal_accessible_action_init(gpointer iface, gpointer data)
 	g_return_if_fail(G_TYPE_FROM_INTERFACE(iface) == ATK_TYPE_ACTION);
 	action = iface;
 
-	_vte_debug_print(VTE_DEBUG_MISC,
+	_vte_debug_print(VTE_DEBUG_ALLY,
 			"Initializing accessible peer's "
 			"AtkAction interface.\n");
 	/* Set our virtual functions. */
@@ -2089,7 +2089,7 @@ vte_terminal_accessible_factory_init(VteTerminalAccessibleFactory *self)
 AtkObjectFactory *
 vte_terminal_accessible_factory_new(void)
 {
-	_vte_debug_print(VTE_DEBUG_MISC,
+	_vte_debug_print(VTE_DEBUG_ALLY,
 			"Creating a new VteTerminalAccessibleFactory.\n");
 	return g_object_new(VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY, NULL);
 }
