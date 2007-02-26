@@ -1578,9 +1578,9 @@ vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 		if (changed) {
 			_vte_debug_print(VTE_DEBUG_SIGNALS,
 					"Emitting adjustment_changed.\n");
-			terminal->pvt->adjustment_changed_pending = FALSE;
 			gtk_adjustment_changed(terminal->adjustment);
 		}
+		terminal->pvt->adjustment_changed_pending = FALSE;
 	}
 	if (terminal->pvt->adjustment_value_changed_pending) {
 		glong v;
@@ -1652,51 +1652,12 @@ static void
 _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 {
 	VteScreen *screen;
-	gboolean changed;
-	long delta;
-	long rows;
+	gboolean changed = FALSE;
 
 	g_assert(terminal->pvt->screen != NULL);
 	g_assert(terminal->pvt->screen->row_data != NULL);
 
-	/* Adjust the vertical, uh, adjustment. */
-	changed = FALSE;
-
-	/* The lower value should be the first row in the buffer. */
-	screen = terminal->pvt->screen;
-	delta = _vte_ring_delta(screen->row_data);
-	_vte_debug_print(VTE_DEBUG_IO,
-			"Changing adjustment values "
-			"(delta = %ld, scroll = %ld).\n",
-			delta, screen->scroll_delta);
-	if (terminal->adjustment->lower != delta) {
-		_vte_debug_print(VTE_DEBUG_IO,
-				"Changing lower bound from %lf to %ld\n",
-				terminal->adjustment->lower,
-				delta);
-		terminal->adjustment->lower = delta;
-		changed = TRUE;
-	}
-
-	/* Snap the insert delta and the cursor position to be in the visible
-	 * area.  Leave the scrolling delta alone because it will be updated
-	 * when the adjustment changes. */
-	screen->insert_delta = MAX(screen->insert_delta, delta);
-	screen->cursor_current.row = MAX(screen->cursor_current.row,
-					 screen->insert_delta);
-
-	/* The upper value is the number of rows which might be visible.  (Add
-	 * one to the cursor offset because it's zero-based.) */
-	rows = MAX(_vte_ring_next(screen->row_data),
-			screen->cursor_current.row + 1);
-	if (terminal->adjustment->upper != rows) {
-		_vte_debug_print(VTE_DEBUG_IO,
-				"Changing upper bound from %f to %ld\n",
-				terminal->adjustment->upper,
-				rows);
-		terminal->adjustment->upper = rows;
-		changed = TRUE;
-	}
+	_vte_terminal_adjust_adjustments(terminal);
 
 	/* The step increment should always be one. */
 	if (terminal->adjustment->step_increment != 1) {
@@ -1731,18 +1692,10 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 		changed = TRUE;
 	}
 
-	/* If anything changed, signal that there was a change. */
-	if (changed == TRUE) {
-		_vte_debug_print(VTE_DEBUG_IO,
-				"Changed adjustment values "
-				"(delta = %ld, scroll = %ld).\n",
-				delta, screen->scroll_delta);
-		vte_terminal_queue_adjustment_changed(terminal);
-	}
-
-	if (screen->scroll_delta > screen->insert_delta) {
-		vte_terminal_queue_adjustment_value_changed(terminal,
-				screen->insert_delta);
+	if (changed) {
+		_vte_debug_print(VTE_DEBUG_SIGNALS,
+				"Emitting adjustment_changed.\n");
+		gtk_adjustment_changed(terminal->adjustment);
 	}
 }
 
@@ -1937,7 +1890,7 @@ _vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 	g_assert(row != NULL);
 
 	v = screen->cursor_current.col + 1;
-	if (row->cells->len < v){
+	if (G_LIKELY (row->cells->len < v)) {
 		/* Set up defaults we'll use when adding new cells. */
 		vte_g_array_fill(row->cells,
 				current ?
