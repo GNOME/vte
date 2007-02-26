@@ -1,5 +1,15 @@
 2007-02-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Push a couple of NULL checks to the callers so to be able to move them
+	outside of the inner-most loops.
+
+	* src/vte.c: (_vte_row_data_find_charcell), (_vte_invalidate_cell),
+	(_vte_terminal_adjust_adjustments),
+	(vte_terminal_get_text_range_maybe_wrapped), (find_start_column),
+	(find_end_column), (vte_terminal_draw_rows):
+
+2007-02-26  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Some applications, such as cat, dump as much data to the terminal as
 	possible. In these scenarios it is likely that we will read data from
 	the child much faster than we can process it and the refresh will
