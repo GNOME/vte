@@ -1,5 +1,30 @@
 2007-02-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 411000 – Orca repeats old text in gnome-terminal
+
+	The deferred handling of the window scrolling had the unfortunate
+	side-effect of postponing the accessibility 'text-scrolled' signal
+	until after the 'text-inserted' signal. This caused vteaccess to
+	determine that the whole window had been modified and cause orca to
+	reread the entire screen.
+
+	* src/vte-private.h:
+	* src/vte.c: (vte_terminal_emit_contents_changed),
+	(_vte_terminal_queue_contents_changed),
+	(vte_terminal_emit_cursor_moved),
+	(vte_terminal_queue_cursor_moved), (vte_terminal_scroll_pages),
+	(vte_terminal_eof), (vte_terminal_emit_pending_text_signals),
+	(vte_terminal_process_incoming), (vte_terminal_handle_scroll),
+	(vte_terminal_size_allocate), (vte_terminal_unrealize),
+	(vte_terminal_emit_pending_signals):
+	* src/vteaccess.c: (emit_text_caret_moved),
+	(emit_text_changed_insert), (emit_text_changed_delete):
+	* src/vteseq.c: (vte_sequence_handler_decset_internal):
+		Restore the order of the ally signals. However, Bug 372777
+		remains unresolved.
+
+2007-02-26  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c: (vte_terminal_io_read):
 		Eeek, correctly compute the buffer length when we no longer
 		aim to fill it.

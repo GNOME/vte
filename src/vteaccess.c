@@ -181,7 +181,7 @@ all_selected(VteTerminal *terminal, glong column, glong row, gpointer data)
 static void
 emit_text_caret_moved(GObject *object, glong caret)
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
+	_vte_debug_print(VTE_DEBUG_SIGNALS|VTE_DEBUG_ALLY,
 			"Accessibility peer emitting "
 			"`text-caret-moved'.\n");
 	g_signal_emit_by_name(object, "text-caret-moved", caret);
@@ -198,7 +198,7 @@ emit_text_changed_insert(GObject *object,
 	/* Convert the byte offsets to character offsets. */
 	start = g_utf8_pointer_to_offset (text, text + offset);
 	count = g_utf8_pointer_to_offset (text + offset, text + offset + len);
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
+	_vte_debug_print(VTE_DEBUG_SIGNALS|VTE_DEBUG_ALLY,
 			"Accessibility peer emitting "
 			"`text-changed::insert' (%ld, %ld) (%ld, %ld).\n"
 			"Inserted text was `%.*s'.\n",
@@ -218,7 +218,7 @@ emit_text_changed_delete(GObject *object,
 	/* Convert the byte offsets to characters. */
 	start = g_utf8_pointer_to_offset (text, text + offset);
 	count = g_utf8_pointer_to_offset (text + offset, text + offset + len);
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
+	_vte_debug_print(VTE_DEBUG_SIGNALS|VTE_DEBUG_ALLY,
 			"Accessibility peer emitting "
 			"`text-changed::delete' (%ld, %ld) (%ld, %ld).\n"
 			"Deleted text was `%.*s'.\n",

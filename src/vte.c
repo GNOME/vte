@@ -79,6 +79,7 @@ static gboolean vte_terminal_background_update(VteTerminal *data);
 static void vte_terminal_queue_background_update(VteTerminal *terminal);
 static void vte_terminal_queue_adjustment_changed(VteTerminal *terminal);
 static gboolean vte_terminal_process_incoming(VteTerminal *terminal);
+static void vte_terminal_emit_pending_signals(VteTerminal *terminal);
 static inline gboolean vte_cell_is_selected(VteTerminal *terminal,
 				     glong col, glong row, gpointer data);
 static char *vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
@@ -800,21 +801,41 @@ vte_terminal_emit_child_exited(VteTerminal *terminal)
 }
 
 /* Emit a "contents_changed" signal. */
+static void
+vte_terminal_emit_contents_changed(VteTerminal *terminal)
+{
+	if (terminal->pvt->contents_changed_pending) {
+		_vte_debug_print(VTE_DEBUG_SIGNALS,
+				"Emitting `contents-changed'.\n");
+		g_signal_emit_by_name(terminal, "contents-changed");
+		terminal->pvt->contents_changed_pending = FALSE;
+	}
+}
 void
-_vte_terminal_emit_contents_changed(VteTerminal *terminal)
+_vte_terminal_queue_contents_changed(VteTerminal *terminal)
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `contents-changed'.\n");
-	g_signal_emit_by_name(terminal, "contents-changed");
+			"Queueing `contents-changed'.\n");
+	terminal->pvt->contents_changed_pending = TRUE;
 }
 
 /* Emit a "cursor_moved" signal. */
 static void
 vte_terminal_emit_cursor_moved(VteTerminal *terminal)
 {
+	if (terminal->pvt->cursor_moved_pending) {
+		_vte_debug_print(VTE_DEBUG_SIGNALS,
+				"Emitting `cursor-moved'.\n");
+		g_signal_emit_by_name(terminal, "cursor-moved");
+		terminal->pvt->cursor_moved_pending = FALSE;
+	}
+}
+static void
+vte_terminal_queue_cursor_moved(VteTerminal *terminal)
+{
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `cursor-moved'.\n");
-	g_signal_emit_by_name(terminal, "cursor-moved");
+			"Queueing `cursor-moved'.\n");
+	terminal->pvt->cursor_moved_pending = TRUE;
 }
 
 /* Emit a "eof" signal. */
@@ -1744,7 +1765,7 @@ vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
 	/* Clear dingus match set. */
 	_vte_terminal_match_contents_clear(terminal);
 	/* Notify viewers that the contents have changed. */
-	_vte_terminal_emit_contents_changed(terminal);
+	_vte_terminal_queue_contents_changed(terminal);
 }
 
 /* Scroll so that the scroll delta is the minimum value. */
@@ -2979,6 +3000,7 @@ vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
 	vte_terminal_stop_processing (terminal);
 	if (terminal->pvt->incoming) {
 		vte_terminal_process_incoming(terminal);
+		vte_terminal_emit_pending_signals (terminal);
 	}
 	g_array_set_size(terminal->pvt->pending, 0);
 
@@ -3057,6 +3079,10 @@ vte_terminal_emit_pending_text_signals(VteTerminal *terminal, GQuark quark)
 		_vte_terminal_emit_text_deleted(terminal);
 		terminal->pvt->text_deleted_count = 0;
 	}
+
+	terminal->pvt->text_modified_flag = FALSE;
+	terminal->pvt->text_inserted_count = 0;
+	terminal->pvt->text_deleted_count = 0;
 }
 
 /* Process incoming data, first converting it to unicode characters, and then
@@ -3089,12 +3115,6 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	/* Save the current cursor position. */
 	cursor = screen->cursor_current;
 	cursor_visible = terminal->pvt->cursor_visible;
-
-	/* We're going to check if the text was modified once we're done here,
-	 * so keep a flag. */
-	terminal->pvt->text_modified_flag = FALSE;
-	terminal->pvt->text_inserted_count = 0;
-	terminal->pvt->text_deleted_count = 0;
 
 	/* We should only be called when there's data to process. */
 	g_assert(terminal->pvt->incoming ||
@@ -3385,9 +3405,6 @@ next_match:
 		again = FALSE;
 	}
 
-	/* Flush any pending "inserted" signals. */
-	vte_terminal_emit_pending_text_signals(terminal, 0);
-
 	if (modified) {
 		/* Keep the cursor on-screen if we scroll on output, or if
 		 * we're currently at the bottom of the buffer. */
@@ -3419,7 +3436,7 @@ next_match:
 	if (modified || (screen != terminal->pvt->screen)) {
 		/* Signal that the visible contents changed. */
 		_vte_terminal_match_contents_clear(terminal);
-		_vte_terminal_emit_contents_changed(terminal);
+		_vte_terminal_queue_contents_changed(terminal);
 	}
 
 	if ((cursor.col != terminal->pvt->screen->cursor_current.col) ||
@@ -3429,7 +3446,7 @@ next_match:
 			_vte_invalidate_cell(terminal, cursor.col, cursor.row);
 		_vte_invalidate_cursor_once(terminal, FALSE);
 		/* Signal that the cursor moved. */
-		vte_terminal_emit_cursor_moved(terminal);
+		vte_terminal_queue_cursor_moved(terminal);
 	} else if (cursor_visible != terminal->pvt->cursor_visible) {
 		_vte_invalidate_cell(terminal, cursor.col, cursor.row);
 	}
@@ -6843,7 +6860,7 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 		_vte_terminal_scroll_region(terminal, screen->scroll_delta,
 					   terminal->row_count, -dy);
 		vte_terminal_emit_text_scrolled(terminal, dy);
-		_vte_terminal_emit_contents_changed(terminal);
+		_vte_terminal_queue_contents_changed(terminal);
 	} else {
 		_vte_debug_print(VTE_DEBUG_IO, "Not scrolling\n");
 	}
@@ -7380,7 +7397,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 				_vte_ring_next (screen->row_data)- 1);
 		/* Notify viewers that the contents have changed. */
 		_vte_terminal_match_contents_clear(terminal);
-		_vte_terminal_emit_contents_changed(terminal);
+		_vte_terminal_queue_contents_changed(terminal);
 	}
 
 	/* Resize the GDK window. */
@@ -7488,6 +7505,13 @@ vte_terminal_unrealize(GtkWidget *widget)
 
 	/* Cancel any pending redraws. */
 	remove_update_timeout (terminal);
+
+	/* Cancel any pending signals */
+	terminal->pvt->contents_changed_pending = FALSE;
+	terminal->pvt->cursor_moved_pending = FALSE;
+	terminal->pvt->text_modified_flag = FALSE;
+	terminal->pvt->text_inserted_count = 0;
+	terminal->pvt->text_deleted_count = 0;
 
 	/* Clear modifiers. */
 	terminal->pvt->modifiers = 0;
@@ -11843,6 +11867,11 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 					terminal->icon_title);
 		vte_terminal_emit_icon_title_changed(terminal);
 	}
+
+	/* Flush any pending "inserted" signals. */
+	vte_terminal_emit_cursor_moved(terminal);
+	vte_terminal_emit_pending_text_signals(terminal, 0);
+	vte_terminal_emit_contents_changed (terminal);
 }
 
 /* This function is called after DISPLAY_TIMEOUT ms.
