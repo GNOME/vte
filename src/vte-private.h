@@ -87,6 +87,7 @@ G_BEGIN_DECLS
 #define VTE_DISPLAY_TIMEOUT		10
 #define VTE_UPDATE_TIMEOUT		15
 #define VTE_UPDATE_REPEAT_TIMEOUT	30
+#define VTE_MAX_PROCESS_TIME		100
 #define VTE_CELL_BBOX_SLACK		1
 
 /* The structure we use to hold characters we're supposed to display -- this
@@ -191,6 +192,8 @@ struct _VteTerminalPrivate {
 	GSList *update_regions;
 	gboolean invalidated_all;	/* pending refresh of entire terminal */
 	GList *active;                  /* is the terminal processing data */
+	glong input_bytes;
+	glong max_input_bytes;
 
 	/* Output data queue. */
 	struct _vte_buffer *outgoing;	/* pending input characters */
@@ -396,7 +399,6 @@ void _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			       gboolean invalidate_cells,
 			       gboolean paint_cells,
 			       gint forced_width);
-void _vte_terminal_match_contents_clear(VteTerminal *terminal);
 void _vte_terminal_scroll_region(VteTerminal *terminal,
 				 long row, glong count, glong delta);
 void _vte_terminal_set_default_attributes(VteTerminal *terminal);

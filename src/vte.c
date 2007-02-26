@@ -75,6 +75,7 @@ static void vte_terminal_match_hilite_clear(VteTerminal *terminal);
 static void vte_terminal_match_hilite_hide(VteTerminal *terminal);
 static void vte_terminal_match_hilite_show(VteTerminal *terminal, double x, double y);
 static void vte_terminal_match_hilite_update(VteTerminal *terminal, double x, double y);
+static void vte_terminal_match_contents_clear(VteTerminal *terminal);
 static gboolean vte_terminal_background_update(VteTerminal *data);
 static void vte_terminal_queue_background_update(VteTerminal *terminal);
 static void vte_terminal_queue_adjustment_changed(VteTerminal *terminal);
@@ -446,6 +447,7 @@ _vte_invalidate_all(VteTerminal *terminal)
 	}
 
 	_vte_debug_print (VTE_DEBUG_WORK, "*");
+	_vte_debug_print (VTE_DEBUG_UPDATES, "Invalidating all.\n");
 
 	/* replace invalid regions with one covering the whole terminal */
 	reset_update_regions (terminal);
@@ -805,6 +807,9 @@ static void
 vte_terminal_emit_contents_changed(VteTerminal *terminal)
 {
 	if (terminal->pvt->contents_changed_pending) {
+		/* Clear dingus match set. */
+		vte_terminal_match_contents_clear(terminal);
+
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting `contents-changed'.\n");
 		g_signal_emit_by_name(terminal, "contents-changed");
@@ -1017,8 +1022,8 @@ vte_terminal_set_default_tabstops(VteTerminal *terminal)
 }
 
 /* Clear the cache of the screen contents we keep. */
-void
-_vte_terminal_match_contents_clear(VteTerminal *terminal)
+static void
+vte_terminal_match_contents_clear(VteTerminal *terminal)
 {
 	g_assert(VTE_IS_TERMINAL(terminal));
 	if (terminal->pvt->match_contents != NULL) {
@@ -1042,7 +1047,7 @@ static void
 vte_terminal_match_contents_refresh(VteTerminal *terminal)
 {
 	GArray *array;
-	_vte_terminal_match_contents_clear(terminal);
+	vte_terminal_match_contents_clear(terminal);
 	array = g_array_new(FALSE, FALSE, sizeof(struct _VteCharAttributes));
 	terminal->pvt->match_contents = vte_terminal_get_text(terminal,
 							      always_selected,
@@ -1539,10 +1544,39 @@ static void
 vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 {
 	if (terminal->pvt->adjustment_changed_pending) {
-		_vte_debug_print(VTE_DEBUG_SIGNALS,
-				"Emitting adjustment_changed.\n");
-		terminal->pvt->adjustment_changed_pending = FALSE;
-		gtk_adjustment_changed(terminal->adjustment);
+		VteScreen *screen = terminal->pvt->screen;
+		gboolean changed = FALSE;
+		glong v;
+
+		v = _vte_ring_delta (screen->row_data);
+		if (terminal->adjustment->lower != v) {
+			_vte_debug_print(VTE_DEBUG_IO,
+					"Changing lower bound from %.0f to %ld\n",
+					terminal->adjustment->lower,
+					v);
+			terminal->adjustment->lower = v;
+			changed = TRUE;
+		}
+
+		/* The upper value is the number of rows which might be visible.  (Add
+		 * one to the cursor offset because it's zero-based.) */
+		v = MAX(_vte_ring_next(screen->row_data),
+				screen->cursor_current.row + 1);
+		if (terminal->adjustment->upper != v) {
+			_vte_debug_print(VTE_DEBUG_IO,
+					"Changing upper bound from %.0f to %ld\n",
+					terminal->adjustment->upper,
+					v);
+			terminal->adjustment->upper = v;
+			changed = TRUE;
+		}
+
+		if (changed) {
+			_vte_debug_print(VTE_DEBUG_SIGNALS,
+					"Emitting adjustment_changed.\n");
+			terminal->pvt->adjustment_changed_pending = FALSE;
+			gtk_adjustment_changed(terminal->adjustment);
+		}
 	}
 	if (terminal->pvt->adjustment_value_changed_pending) {
 		glong v;
@@ -1585,60 +1619,23 @@ void
 _vte_terminal_adjust_adjustments(VteTerminal *terminal)
 {
 	VteScreen *screen;
-	gboolean changed;
 	long delta;
 	long rows;
 
 	g_assert(terminal->pvt->screen != NULL);
 	g_assert(terminal->pvt->screen->row_data != NULL);
 
-	/* Adjust the vertical, uh, adjustment. */
-	changed = FALSE;
+	vte_terminal_queue_adjustment_changed(terminal);
 
 	/* The lower value should be the first row in the buffer. */
 	screen = terminal->pvt->screen;
 	delta = _vte_ring_delta(screen->row_data);
-	_vte_debug_print(VTE_DEBUG_IO,
-			"Changing adjustment values "
-			"(delta = %ld, scroll = %ld).\n",
-			delta, screen->scroll_delta);
-	if (terminal->adjustment->lower != delta) {
-		_vte_debug_print(VTE_DEBUG_IO,
-				"Changing lower bound from %lf to %ld\n",
-				terminal->adjustment->lower,
-				delta);
-		terminal->adjustment->lower = delta;
-		changed = TRUE;
-	}
-
 	/* Snap the insert delta and the cursor position to be in the visible
 	 * area.  Leave the scrolling delta alone because it will be updated
 	 * when the adjustment changes. */
 	screen->insert_delta = MAX(screen->insert_delta, delta);
 	screen->cursor_current.row = MAX(screen->cursor_current.row,
 					 screen->insert_delta);
-
-	/* The upper value is the number of rows which might be visible.  (Add
-	 * one to the cursor offset because it's zero-based.) */
-	rows = MAX(_vte_ring_next(screen->row_data),
-			screen->cursor_current.row + 1);
-	if (terminal->adjustment->upper != rows) {
-		_vte_debug_print(VTE_DEBUG_IO,
-				"Changing upper bound from %f to %ld\n",
-				terminal->adjustment->upper,
-				rows);
-		terminal->adjustment->upper = rows;
-		changed = TRUE;
-	}
-
-	/* If anything changed, signal that there was a change. */
-	if (changed == TRUE) {
-		_vte_debug_print(VTE_DEBUG_IO,
-				"Changed adjustment values "
-				"(delta = %ld, scroll = %ld).\n",
-				delta, screen->scroll_delta);
-		vte_terminal_queue_adjustment_changed(terminal);
-	}
 
 	if (screen->scroll_delta > screen->insert_delta) {
 		vte_terminal_queue_adjustment_value_changed(terminal,
@@ -1762,8 +1759,6 @@ vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
 	/* Tell the scrollbar to adjust itself. */
 	vte_terminal_queue_adjustment_value_changed (terminal,
 			destination);
-	/* Clear dingus match set. */
-	_vte_terminal_match_contents_clear(terminal);
 	/* Notify viewers that the contents have changed. */
 	_vte_terminal_queue_contents_changed(terminal);
 }
@@ -2691,9 +2686,13 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 		 * then flush the buffers in case we're about to run a new
 		 * command, disconnecting the timeout. */
 		if (terminal->pvt->incoming != NULL) {
-			vte_terminal_process_incoming(terminal);
+			gboolean again;
+			do {
+				again = vte_terminal_process_incoming(terminal);
+			} while (again);
 			_vte_incoming_chunks_release (terminal->pvt->incoming);
 			terminal->pvt->incoming = NULL;
+			terminal->pvt->input_bytes = 0;
 		}
 		g_array_set_size(terminal->pvt->pending, 0);
 		vte_terminal_stop_processing (terminal);
@@ -2999,7 +2998,11 @@ vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
 	 * disconnecting the timeout. */
 	vte_terminal_stop_processing (terminal);
 	if (terminal->pvt->incoming) {
-		vte_terminal_process_incoming(terminal);
+		gboolean again;
+		do {
+			again = vte_terminal_process_incoming(terminal);
+		} while (again);
+		terminal->pvt->input_bytes = 0;
 		vte_terminal_emit_pending_signals (terminal);
 	}
 	g_array_set_size(terminal->pvt->pending, 0);
@@ -3102,9 +3105,10 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	struct _vte_incoming_chunk *chunk, *next_chunk, *achunk = NULL;
 
 	_vte_debug_print(VTE_DEBUG_IO,
-			"Handler processing %d bytes over %d chunks.\n",
+			"Handler processing %d bytes over %d chunks + %d bytes pendnig.\n",
 			_vte_incoming_chunks_length(terminal->pvt->incoming),
-			_vte_incoming_chunks_count(terminal->pvt->incoming));
+			_vte_incoming_chunks_count(terminal->pvt->incoming),
+			terminal->pvt->pending->len);
 	_vte_debug_print (VTE_DEBUG_WORK, "(");
 
 	screen = terminal->pvt->screen;
@@ -3435,7 +3439,6 @@ next_match:
 
 	if (modified || (screen != terminal->pvt->screen)) {
 		/* Signal that the visible contents changed. */
-		_vte_terminal_match_contents_clear(terminal);
 		_vte_terminal_queue_contents_changed(terminal);
 	}
 
@@ -3473,7 +3476,7 @@ next_match:
 	return again;
 }
 
-static gboolean
+static inline void
 _vte_terminal_enable_input_source (VteTerminal *terminal)
 {
 	if (terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
@@ -3485,7 +3488,6 @@ _vte_terminal_enable_input_source (VteTerminal *terminal)
 					    terminal,
 					    (GDestroyNotify) mark_input_source_invalid);
 	}
-	return FALSE;
 }
 static void
 _vte_terminal_feed_chunks (VteTerminal *terminal, struct _vte_incoming_chunk *chunks)
@@ -3519,10 +3521,10 @@ vte_terminal_io_read(GIOChannel *channel,
 		struct _vte_incoming_chunk *chunk, *chunks = NULL;
 		const int fd = g_io_channel_unix_get_fd (channel);
 		guchar *bp;
-		int rem;
+		int rem, len;
 		gboolean active = FALSE;
 		chunk = terminal->pvt->incoming;
-		if (!chunk || chunk->len == sizeof (chunk->data)) {
+		if (!chunk || chunk->len >= sizeof (chunk->data) - VTE_MAX_INPUT_READ / 4) {
 			chunk = get_chunk ();
 			chunk->next = chunks;
 			chunks = chunk;
@@ -3530,6 +3532,7 @@ vte_terminal_io_read(GIOChannel *channel,
 		rem = sizeof (chunk->data) - chunk->len;
 		rem = MIN (rem, VTE_MAX_INPUT_READ);
 		bp = chunk->data + chunk->len;
+		len = 0;
 		do {
 			int ret = read (fd, bp, rem);
 			switch (ret){
@@ -3542,12 +3545,14 @@ vte_terminal_io_read(GIOChannel *channel,
 				default:
 					bp += ret;
 					rem -= ret;
+					len += ret;
 					active = TRUE;
 					break;
 			}
 		} while (rem);
 out:
-		chunk->len = bp - chunk->data;
+		terminal->pvt->input_bytes += len;
+		chunk->len += len;
 		if (chunk->len == 0 && chunk == chunks) {
 			chunks = chunks->next;
 			release_chunk (chunk);
@@ -3561,7 +3566,7 @@ out:
 			vte_terminal_add_process_timeout (terminal);
 			GDK_THREADS_LEAVE ();
 		}
-		terminal->pvt->pty_input_active = active;
+		terminal->pvt->pty_input_active = len != 0;
 	}
 
 	/* Error? */
@@ -3593,7 +3598,9 @@ out:
 		}
 	}
 
-	return !eof && (!active_terminals || !active_terminals->next);
+	return !eof &&
+		terminal->pvt->input_bytes < terminal->pvt->max_input_bytes &&
+		(!active_terminals || !active_terminals->next);
 }
 
 /**
@@ -6856,7 +6863,6 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	if (dy != 0) {
 		_vte_debug_print(VTE_DEBUG_IO,
 			    "Scrolling by %ld\n", dy);
-		_vte_terminal_match_contents_clear(terminal);
 		_vte_terminal_scroll_region(terminal, screen->scroll_delta,
 					   terminal->row_count, -dy);
 		vte_terminal_emit_text_scrolled(terminal, dy);
@@ -7194,6 +7200,7 @@ vte_terminal_init(VteTerminal *terminal)
 					      terminal);
 	pvt->incoming = NULL;
 	pvt->pending = g_array_new(FALSE, FALSE, sizeof(gunichar));
+	pvt->max_input_bytes = G_MAXLONG;
 	pvt->cursor_blink_tag = VTE_INVALID_SOURCE;
 	pvt->outgoing = _vte_buffer_new();
 	pvt->outgoing_conv = VTE_INVALID_CONV;
@@ -7396,7 +7403,6 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 				_vte_ring_delta (screen->row_data),
 				_vte_ring_next (screen->row_data)- 1);
 		/* Notify viewers that the contents have changed. */
-		_vte_terminal_match_contents_clear(terminal);
 		_vte_terminal_queue_contents_changed(terminal);
 	}
 
@@ -11814,8 +11820,7 @@ vte_terminal_stop_processing (VteTerminal *terminal)
 static inline gboolean
 need_processing (VteTerminal *terminal)
 {
-	return terminal->pvt->incoming != NULL ||
-		terminal->pvt->pending->len > 0;
+	return terminal->pvt->incoming != NULL;
 }
 
 /* Emit an "icon-title-changed" signal. */
@@ -11903,11 +11908,15 @@ process_timeout (gpointer data)
 				vte_terminal_io_read(terminal->pvt->pty_input,
 						G_IO_IN, terminal);
 			}
+			_vte_terminal_enable_input_source(terminal);
 		}
 		again = FALSE;
-		if (need_processing (terminal)) do {
-			again = vte_terminal_process_incoming(terminal);
-		} while (again && need_processing (terminal));
+		if (need_processing (terminal)) {
+			do {
+				again = vte_terminal_process_incoming(terminal);
+			} while (again);
+			terminal->pvt->input_bytes = 0;
+		}
 		vte_terminal_emit_pending_signals (terminal);
 		if (!again && terminal->pvt->update_regions == NULL) {
 			if (terminal->pvt->active != NULL) {
@@ -11916,9 +11925,6 @@ process_timeout (gpointer data)
 						terminal->pvt->active);
 				terminal->pvt->active = NULL;
 			}
-			if (terminal->pvt->pty_input) {
-				_vte_terminal_enable_input_source(terminal);
-			}
 		}
 	}
 
@@ -11926,12 +11932,6 @@ process_timeout (gpointer data)
 
 	if (active_terminals && update_timeout_tag == VTE_INVALID_SOURCE) {
 		again = TRUE;
-		if (active_terminals->next == NULL) {
-			VteTerminal *terminal = active_terminals->data;
-			if (terminal->pvt->pty_input) {
-				_vte_terminal_enable_input_source (terminal);
-			}
-		}
 	} else {
 		process_timeout_tag = VTE_INVALID_SOURCE;
 		again = FALSE;
@@ -12018,10 +12018,20 @@ update_repeat_timeout (gpointer data)
 				vte_terminal_io_read (terminal->pvt->pty_input,
 						G_IO_IN, terminal);
 			}
+			_vte_terminal_enable_input_source (terminal);
 		}
-		again = TRUE;
-		while (again && need_processing (terminal)) {
-			again = vte_terminal_process_incoming (terminal);
+		if (need_processing (terminal)) {
+			GTimer *process = g_timer_new ();
+			gdouble elapsed;
+			glong target;
+			do {
+				again = vte_terminal_process_incoming (terminal);
+			} while (again);
+			elapsed = g_timer_elapsed (process, NULL) * 1000;
+			target = VTE_MAX_PROCESS_TIME / elapsed * terminal->pvt->input_bytes;
+			terminal->pvt->max_input_bytes = (terminal->pvt->max_input_bytes  + target) / 2;
+			terminal->pvt->input_bytes = 0;
+			g_timer_destroy (process);
 		}
 		if (terminal->pvt->bg_update_pending) {
 			vte_terminal_background_update (terminal);
@@ -12036,11 +12046,9 @@ update_repeat_timeout (gpointer data)
 						terminal->pvt->active);
 				terminal->pvt->active = NULL;
 			}
-			if (terminal->pvt->pty_input) {
-				_vte_terminal_enable_input_source (terminal);
-			}
 		}
 	}
+
 
 	if (active_terminals != NULL) {
 		gdk_window_process_all_updates ();
@@ -12055,11 +12063,6 @@ update_repeat_timeout (gpointer data)
 	if (active_terminals == NULL) {
 		update_timeout_tag = VTE_INVALID_SOURCE;
 		again = FALSE;
-	} else if (active_terminals->next == NULL) {
-		VteTerminal *terminal = active_terminals->data;
-		if (terminal->pvt->pty_input) {
-			_vte_terminal_enable_input_source (terminal);
-		}
 	}
 
 	GDK_THREADS_LEAVE();
@@ -12108,10 +12111,13 @@ update_timeout (gpointer data)
 				vte_terminal_io_read(terminal->pvt->pty_input,
 						G_IO_IN, terminal);
 			}
+			_vte_terminal_enable_input_source (terminal);
 		}
-		again = TRUE;
-		while (again && need_processing (terminal)) {
-			again = vte_terminal_process_incoming (terminal);
+		if (need_processing (terminal)) {
+			do {
+				again = vte_terminal_process_incoming (terminal);
+			} while (again);
+			terminal->pvt->input_bytes = 0;
 		}
 		if (terminal->pvt->bg_update_pending) {
 			vte_terminal_background_update (terminal);

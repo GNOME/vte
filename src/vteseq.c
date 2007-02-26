@@ -722,7 +722,6 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		terminal->pvt->adjustment_value_changed_pending = TRUE;
 		vte_terminal_set_scrollback_lines(terminal,
 				terminal->pvt->scrollback_lines);
-		_vte_terminal_match_contents_clear(terminal);
 		_vte_terminal_queue_contents_changed(terminal);
 		_vte_invalidate_all (terminal);
 		break;
