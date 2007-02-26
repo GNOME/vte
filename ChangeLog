@@ -29,7 +29,7 @@
 2007-02-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	* src/vte.c: (vte_terminal_emit_adjustment_changed),
-	(_vte_terminal_adjust_adjustments_full),
+	(_vte_terminal_adjust_adjustments_full):
 		Refactor the common code.
 
 2007-02-26  Chris Wilson  <chris@chris-wilson.co.uk>
