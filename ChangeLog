@@ -1,3 +1,8 @@
+2007-02-27  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	* src/vteaccess.c  (vte_terminal_accessible_text_scrolled):
+		Consistently guard against the snapshot being NULL.
+
 2007-02-27  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.15.5.

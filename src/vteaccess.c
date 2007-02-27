@@ -580,22 +580,27 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 	/* We scrolled up, so text was added at the top and removed
 	 * from the bottom. */
 	if ((howmuch < 0) && (howmuch > -terminal->row_count)) {
+		gboolean inserted = FALSE;
 		howmuch = -howmuch;
-		/* Find the first byte that scrolled off. */
-		for (i = 0; i < priv->snapshot_attributes->len; i++) {
-			attr = g_array_index(priv->snapshot_attributes,
-					     struct _VteCharAttributes,
-					     i);
-			if (attr.row >= delta + terminal->row_count - howmuch) {
-				break;
+		if (priv->snapshot_attributes != NULL &&
+				priv->snapshot_text != NULL) {
+			/* Find the first byte that scrolled off. */
+			for (i = 0; i < priv->snapshot_attributes->len; i++) {
+				attr = g_array_index(priv->snapshot_attributes,
+						struct _VteCharAttributes,
+						i);
+				if (attr.row >= delta + terminal->row_count - howmuch) {
+					break;
+				}
 			}
-		}
-		if (i < priv->snapshot_attributes->len) {
-			/* The rest of the string was deleted -- make a note. */
-			emit_text_changed_delete(G_OBJECT(data),
-						 priv->snapshot_text->str,
-						 i,
-						 priv->snapshot_attributes->len - i);
+			if (i < priv->snapshot_attributes->len) {
+				/* The rest of the string was deleted -- make a note. */
+				emit_text_changed_delete(G_OBJECT(data),
+						priv->snapshot_text->str,
+						i,
+						priv->snapshot_attributes->len - i);
+			}
+			inserted = TRUE;
 		}
 		/* Refresh.  Note that i is now the length of the data which
 		 * we expect to have left over. */
@@ -605,7 +610,7 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 								      NULL);
 		/* If we now have more text than before, the initial portion
 		 * was added. */
-		if (priv->snapshot_text != NULL) {
+		if (inserted) {
 			len = priv->snapshot_text->len;
 			if (len > i) {
 				emit_text_changed_insert(G_OBJECT(data),
@@ -619,29 +624,34 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 	/* We scrolled down, so text was added at the bottom and removed
 	 * from the top. */
 	if ((howmuch > 0) && (howmuch < terminal->row_count)) {
-		/* Find the first byte that wasn't scrolled off the top. */
-		for (i = 0; i < priv->snapshot_attributes->len; i++) {
-			attr = g_array_index(priv->snapshot_attributes,
-					     struct _VteCharAttributes,
-					     i);
-			if (attr.row >= delta + howmuch) {
-				break;
+		gboolean inserted = FALSE;
+		if (priv->snapshot_attributes != NULL &&
+				priv->snapshot_text != NULL) {
+			/* Find the first byte that wasn't scrolled off the top. */
+			for (i = 0; i < priv->snapshot_attributes->len; i++) {
+				attr = g_array_index(priv->snapshot_attributes,
+						struct _VteCharAttributes,
+						i);
+				if (attr.row >= delta + howmuch) {
+					break;
+				}
 			}
+			/* That many bytes disappeared -- make a note. */
+			emit_text_changed_delete(G_OBJECT(data),
+					priv->snapshot_text->str,
+					0,
+					i);
+			/* Figure out how much text was left, and refresh. */
+			i = strlen(priv->snapshot_text->str + i);
+			inserted = TRUE;
 		}
-		/* That many bytes disappeared -- make a note. */
-		emit_text_changed_delete(G_OBJECT(data),
-					 priv->snapshot_text->str,
-					 0,
-					 i);
-		/* Figure out how much text was left, and refresh. */
-		i = strlen(priv->snapshot_text->str + i);
 		priv->snapshot_contents_invalid = TRUE;
 		vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(data),
 								      NULL,
 								      NULL);
 		/* Any newly-added string data is new, so note that it was
 		 * inserted. */
-		if (priv->snapshot_text != NULL) {
+		if (inserted) {
 			len = priv->snapshot_text->len;
 			if (len > i) {
 				emit_text_changed_insert(G_OBJECT(data),
