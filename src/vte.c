@@ -1253,20 +1253,18 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 				  long column, glong row,
 				  int *tag, int *start, int *end)
 {
-	guint i, j, k;
+	struct _vte_regex_match matches[256];
+	gint i, j, k;
+	gint start_blank, end_blank;
 	int ret, offset;
 	struct vte_match_regex *regex = NULL;
 	struct _VteCharAttributes *attr = NULL;
 	gssize sattr, eattr;
-	gssize start_blank, end_blank;
-	struct _vte_regex_match matches[256];
 	gchar *line, eol;
 
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Checking for match at (%ld,%ld).\n", row, column);
-	if (tag != NULL) {
-		*tag = -1;
-	}
+	*tag = -1;
 	if (start != NULL) {
 		*start = 0;
 	}
@@ -3062,7 +3060,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	struct _vte_incoming_chunk *chunk, *next_chunk, *achunk = NULL;
 
 	_vte_debug_print(VTE_DEBUG_IO,
-			"Handler processing %d bytes over %d chunks + %d bytes pendnig.\n",
+			"Handler processing %"G_GSIZE_FORMAT" bytes over %"G_GSIZE_FORMAT" chunks + %d bytes pendnig.\n",
 			_vte_incoming_chunks_length(terminal->pvt->incoming),
 			_vte_incoming_chunks_count(terminal->pvt->incoming),
 			terminal->pvt->pending->len);
@@ -3301,9 +3299,9 @@ skip_chunk:
 			if (wbuf + wcount > next) {
 				_vte_debug_print(VTE_DEBUG_PARSE,
 						"Invalid control "
-						"sequence, discarding %d "
+						"sequence, discarding %ld "
 						"characters.\n",
-						next - (wbuf + start));
+						(long)(next - (wbuf + start)));
 				/* Discard. */
 				start = next - wbuf + 1;
 			} else {
@@ -3426,7 +3424,7 @@ next_match:
 
 	_vte_debug_print (VTE_DEBUG_WORK, ")");
 	_vte_debug_print (VTE_DEBUG_IO,
-			"%ld chars and %ld bytes in %d chunks left to process.\n",
+			"%ld chars and %ld bytes in %"G_GSIZE_FORMAT" chunks left to process.\n",
 			(long) unichars->len,
 			(long) _vte_incoming_chunks_length(terminal->pvt->incoming),
 			_vte_incoming_chunks_count(terminal->pvt->incoming));
@@ -3451,7 +3449,7 @@ _vte_terminal_feed_chunks (VteTerminal *terminal, struct _vte_incoming_chunk *ch
 {
 	struct _vte_incoming_chunk *last;
 
-	_vte_debug_print(VTE_DEBUG_IO, "Feed %d bytes, in %d chunks.\n",
+	_vte_debug_print(VTE_DEBUG_IO, "Feed %"G_GSIZE_FORMAT" bytes, in %"G_GSIZE_FORMAT"d chunks.\n",
 			_vte_incoming_chunks_length(chunks),
 			_vte_incoming_chunks_count(chunks));
 
@@ -4558,7 +4556,8 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 	terminal = data;
 	if (text != NULL) {
 		_vte_debug_print(VTE_DEBUG_SELECTION,
-				"Pasting %d UTF-8 bytes.\n", strlen(text));
+				"Pasting %"G_GSIZE_FORMAT" UTF-8 bytes.\n",
+				strlen(text));
 		if (!g_utf8_validate(text, -1, NULL)) {
 			g_warning(_("Error (%s) converting data for child, dropping."), g_strerror(EINVAL));
 			return;
@@ -4878,16 +4877,30 @@ vte_terminal_match_hilite_update(VteTerminal *terminal, double x, double y)
 	}
 
 	/* Read the new locations. */
-	attr = &g_array_index(terminal->pvt->match_attributes,
-			struct _VteCharAttributes,
-			start);
-	terminal->pvt->match_start.row = attr->row;
-	terminal->pvt->match_start.column = attr->column;
-	attr = &g_array_index(terminal->pvt->match_attributes,
-			struct _VteCharAttributes,
-			end);
-	terminal->pvt->match_end.row = attr->row;
-	terminal->pvt->match_end.column = attr->column;
+	attr = NULL;
+	if (start < terminal->pvt->match_attributes->len) {
+		attr = &g_array_index(terminal->pvt->match_attributes,
+				struct _VteCharAttributes,
+				start);
+		terminal->pvt->match_start.row = attr->row;
+		terminal->pvt->match_start.column = attr->column;
+
+		attr = NULL;
+		if (end < terminal->pvt->match_attributes->len) {
+			attr = &g_array_index(terminal->pvt->match_attributes,
+					struct _VteCharAttributes,
+					end);
+			terminal->pvt->match_end.row = attr->row;
+			terminal->pvt->match_end.column = attr->column;
+		}
+	}
+	if (attr == NULL) { /* i.e. if either endpoint is not found */
+		terminal->pvt->match_start.row = -1;
+		terminal->pvt->match_start.column = -1;
+		terminal->pvt->match_end.row = -2;
+		terminal->pvt->match_end.column = -2;
+		g_assert (match == NULL);
+	}
 
 	g_free (terminal->pvt->match);
 	terminal->pvt->match = match;
@@ -4972,7 +4985,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 	if (terminal->pvt->selection != NULL) {
 		_VTE_DEBUG_IF(VTE_DEBUG_SELECTION) {
 			int i;
-			g_printerr("Setting selection (%d UTF-8 bytes.)\n",
+			g_printerr("Setting selection (%"G_GSIZE_FORMAT" UTF-8 bytes.)\n",
 				strlen(terminal->pvt->selection));
 			for (i = 0; terminal->pvt->selection[i] != '\0'; i++) {
 				g_printerr("0x%04x\n",
