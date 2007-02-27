@@ -210,29 +210,11 @@ _vte_xft_font_close (struct _vte_xft_font *font)
 }
 
 static XftFont *
-_vte_xft_font_for_char (struct _vte_xft_font *font, gunichar c, GPtrArray *locked_fonts)
+_vte_xft_open_font_for_char (struct _vte_xft_font *font, gunichar c, GPtrArray *locked_fonts)
 {
+	gpointer p = GINT_TO_POINTER (c);
 	guint i, j;
 	XftFont *ftfont;
-	gpointer p = GINT_TO_POINTER (c);
-
-	/* Check if we have a char-to-font entry for it. */
-	i = GPOINTER_TO_INT (_vte_tree_lookup (font->fontmap, p));
-	if (i != 0) {
-		switch (i) {
-		/* Checked before, no luck. */
-		case -FONT_INDEX_FUDGE:
-			return NULL;
-		/* Matched before. */
-		default:
-			ftfont = g_ptr_array_index (font->fonts, i);
-			if (g_ptr_array_index (locked_fonts, i) == NULL) {
-				XftLockFace (ftfont);
-				g_ptr_array_index (locked_fonts, i) = ftfont;
-			}
-			return ftfont;
-		}
-	}
 
 	/* Look the character up in the fonts we have. */
 	for (i = 1; i < font->fonts->len; i++) {
@@ -277,37 +259,70 @@ _vte_xft_font_for_char (struct _vte_xft_font *font, gunichar c, GPtrArray *locke
 	g_warning (_ ("Can not find appropiate font for character U+%04x.\n"), c);
 	return NULL;
 }
+static inline XftFont *
+_vte_xft_font_for_char (struct _vte_xft_font *font, gunichar c, GPtrArray *locked_fonts)
+{
+	guint i;
+	XftFont *ftfont;
 
-static int
-_vte_xft_char_width (struct _vte_xft_font *font, XftFont *ftfont, gunichar c)
+	/* Check if we have a char-to-font entry for it. */
+	i = GPOINTER_TO_INT (_vte_tree_lookup (
+				font->fontmap, GINT_TO_POINTER (c)));
+	if (G_LIKELY (i != 0)) {
+		switch (i) {
+		/* Checked before, no luck. */
+		case -FONT_INDEX_FUDGE:
+			return NULL;
+		/* Matched before. */
+		default:
+			ftfont = g_ptr_array_index (font->fonts, i);
+			if (g_ptr_array_index (locked_fonts, i) == NULL) {
+				XftLockFace (ftfont);
+				g_ptr_array_index (locked_fonts, i) = ftfont;
+			}
+			return ftfont;
+		}
+	} else
+		return _vte_xft_open_font_for_char (font, c, locked_fonts);
+}
+
+static gint _vte_xft_compute_char_width (struct _vte_xft_font *font, XftFont *ftfont, gunichar c, int columns)
 {
 	XGlyphInfo extents;
-	gpointer p = GINT_TO_POINTER (c);
-	gint i;
-
-	/* Check if we have a char-to-width entry for it. */
-	i = GPOINTER_TO_INT (_vte_tree_lookup (font->widths, p));
-	if (i != 0) {
-		switch (i) {
-		case -CHAR_WIDTH_FUDGE:
-			return 0;
-		default:
-			return i;
-		}
-	}
+	gint width;
 
 	/* Compute and store the width. */
 	memset (&extents, 0, sizeof (extents));
 	if (ftfont != NULL) {
 		_vte_xft_text_extents (font, ftfont, c, &extents);
 	}
-	if (extents.xOff == 0) {
-		i = -CHAR_WIDTH_FUDGE;
+	if (extents.xOff == 0 || extents.xOff == font->width * columns) {
+		width = -CHAR_WIDTH_FUDGE;
 	} else {
-		i = extents.xOff;
+		width = extents.xOff;
 	}
-	_vte_tree_insert (font->widths, p, GINT_TO_POINTER (i));
+	_vte_tree_insert (font->widths,
+			GINT_TO_POINTER (c), GINT_TO_POINTER (width));
 	return extents.xOff;
+}
+static inline gint
+_vte_xft_char_width (struct _vte_xft_font *font, XftFont *ftfont, gunichar c, int columns)
+{
+	gint width;
+
+	/* Check if we have a char-to-width entry for it. */
+	width = GPOINTER_TO_INT (_vte_tree_lookup (
+				font->widths, GINT_TO_POINTER (c)));
+	if (G_LIKELY (width != 0)) {
+		switch (width) {
+		case -CHAR_WIDTH_FUDGE:
+			return 0;
+		default:
+			return width;
+		}
+	} else
+		return _vte_xft_compute_char_width (font, ftfont, c, columns);
+
 }
 
 static gboolean
@@ -399,6 +414,8 @@ _vte_xft_start (struct _vte_draw *draw)
 	data->visual = gdk_x11_visual_get_xvisual (gvisual);
 	gcolormap = gdk_drawable_get_colormap (drawable);
 	data->colormap = gdk_x11_colormap_get_xcolormap (gcolormap);
+
+	g_assert (data->display == data->font->display);
 
 	gdk_error_trap_push ();
 
@@ -708,19 +725,19 @@ _vte_xft_set_text_font (struct _vte_draw *draw,
 	}
 }
 
-static int
+static inline int
 _vte_xft_get_text_width (struct _vte_draw *draw)
 {
 	return draw->width;
 }
 
-static int
+static inline int
 _vte_xft_get_text_height (struct _vte_draw *draw)
 {
 	return draw->height;
 }
 
-static int
+static inline int
 _vte_xft_get_text_ascent (struct _vte_draw *draw)
 {
 	return draw->ascent;
@@ -731,17 +748,20 @@ _vte_xft_get_char_width (struct _vte_draw *draw, gunichar c, int columns)
 {
 	struct _vte_xft_data *data;
 	XftFont *ftfont;
+	int width;
 
 	data = (struct _vte_xft_data*) draw->impl_data;
-	if (data->font == NULL) {
-		return _vte_xft_get_text_width (draw) * columns;
+	if (data->font != NULL) {
+		ftfont = _vte_xft_font_for_char (data->font, c,
+				data->locked_fonts[data->cur_locked_fonts&1]);
+		if (ftfont != NULL) {
+			width = _vte_xft_char_width (data->font, ftfont, c, columns);
+			if (width != 0) {
+				return width;
+			}
+		}
 	}
-	ftfont = _vte_xft_font_for_char (data->font, c,
-			data->locked_fonts[data->cur_locked_fonts&1]);
-	if (ftfont == NULL) {
-		return _vte_xft_get_text_width (draw) * columns;
-	}
-	return _vte_xft_char_width (data->font, ftfont, c);
+	return _vte_xft_get_text_width (draw) * columns;
 }
 
 static gboolean
@@ -760,7 +780,7 @@ _vte_xft_draw_text (struct _vte_draw *draw,
 	XftColor ftcolor;
 	struct _vte_xft_data *data;
 	gsize i, j;
-	gint width, pad;
+	gint width, y_off, x_off;
 	XftFont *font, *ft;
 	GPtrArray *locked_fonts;
 
@@ -798,28 +818,27 @@ _vte_xft_draw_text (struct _vte_draw *draw,
 	 * "We need to break down the draw request into runs which use the same
 	 * font, to work around a bug which appears to be in Xft and which I
 	 * haven't pinned down yet." */
+	x_off = -data->x_offs;
+	y_off = draw->ascent - data->y_offs;
 	do {
 		j = 0;
 		do {
 			glyphs[j].glyph = XftCharIndex (data->display,
 					font, requests[i].c);
-			if (G_LIKELY (glyphs[j].glyph != 0)) {
-				glyphs[j].x = requests[i].x - data->x_offs;
-				width = _vte_xft_char_width (data->font,
-						font, requests[i].c);
-				if (width != 0) {
-					pad = requests[i].columns * draw->width - width;
-					pad = CLAMP (pad / 2, 0, draw->width);
-					glyphs[j].x += pad;
-				}
-				glyphs[j].y = requests[i].y - data->y_offs + draw->ascent;
-				j++;
+			glyphs[j].x = requests[i].x + x_off;
+			width = _vte_xft_char_width (data->font,
+					font, requests[i].c, requests[i].columns);
+			if (G_UNLIKELY (width != 0)) {
+				width = requests[i].columns * draw->width - width;
+				width = CLAMP (width / 2, 0, draw->width);
+				glyphs[j].x += width;
 			}
-			i++;
+			glyphs[j].y = requests[i].y + y_off;
+			j++;
 
 			/* find the next displayable character ... */
 			ft = NULL;
-			for (; i < n_requests; i++) {
+			while (++i < n_requests) {
 				ft = _vte_xft_font_for_char (data->font,
 						requests[i].c, locked_fonts);
 				if (G_UNLIKELY (ft == NULL)) {
@@ -828,10 +847,7 @@ _vte_xft_draw_text (struct _vte_draw *draw,
 				break;
 			}
 		} while (j < VTE_DRAW_MAX_LENGTH && ft == font);
-		if (j > 0) {
-			XftDrawGlyphSpec (data->draw,
-					&ftcolor, font, glyphs, j);
-		}
+		XftDrawGlyphSpec (data->draw, &ftcolor, font, glyphs, j);
 		font = ft;
 	} while (i < n_requests);
 	XftColorFree (data->display, data->visual,
