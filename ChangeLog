@@ -1,5 +1,22 @@
 2007-02-27  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 410986 – Fails to build with -z defs
+
+	If you link the vtemodule.so to libpython, then programs importing
+	vte will have the symbols twice in memory: one set from python and
+	the other from libpython.
+
+	* configure.in:
+	* python/Makefile.am:
+		Remove PYTHON_LIBS from linking vtemodule.so.
+		Convert unresolved symbol errors into warnings so that
+		building with -Wl,-z,defs continues to work. This is a 
+		*hack* as it hides real errors if you are updating
+		vte.{def,override}.
+		
+
+2007-02-27  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vtexft.c	(_vte_xft_open_font_for_char),
 	(_vte_xft_font_for_char), (_vte_xft_compute_char_width),
 	(_vte_xft_char_width), (_vte_xft_start), (_vte_xft_get_char_width),

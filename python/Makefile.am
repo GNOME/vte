@@ -8,9 +8,13 @@ pythonsiteexec_LTLIBRARIES = $(PYTHON_MODULES)
 
 CLEANFILES = vte.c
 
+# we do this to suport building with -Wl,-z,defs which errors on 
+# vtemodule.so as we cannot include $(PYTHON_LIBS) due to bug 410986.
+LDFLAGS += $(PYTHON_LDFLAGS)
+
 vtemodule_la_CFLAGS = $(VTE_CFLAGS) $(X_CFLAGS) $(PYTHON_INCLUDES) $(PYGTK_CFLAGS)
 vtemodule_la_SOURCES = vtemodule.c
-vtemodule_la_LIBADD = $(top_builddir)/src/libvte.la $(LIBS) $(PYGTK_LIBS) $(PYTHON_LIBS) $(VTE_LIBS) $(X_LIBS)
+vtemodule_la_LIBADD = $(top_builddir)/src/libvte.la $(LIBS) $(PYGTK_LIBS) $(VTE_LIBS) $(X_LIBS)
 vtemodule_la_LDFLAGS = -module -avoid-version -export-symbols-regex initvte
 nodist_vtemodule_la_SOURCES = vte.c
 
