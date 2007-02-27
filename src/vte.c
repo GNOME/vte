@@ -11945,18 +11945,20 @@ process_timeout (gpointer data)
 	multiple_active = active_terminals->next != NULL;
 	for (l = active_terminals; l != NULL; l = next) {
 		VteTerminal *terminal = l->data;
+
 		next = g_list_next (l);
+
 		if (l != active_terminals) {
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
-		if (terminal->pvt->pty_input) {
+		if (terminal->pvt->pty_input != NULL) {
 			if (terminal->pvt->pty_input_active ||
 					terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
 				terminal->pvt->pty_input_active = FALSE;
-				vte_terminal_io_read(terminal->pvt->pty_input,
+				vte_terminal_io_read (terminal->pvt->pty_input,
 						G_IO_IN, terminal);
 			}
-			_vte_terminal_enable_input_source(terminal);
+			_vte_terminal_enable_input_source (terminal);
 		}
 		again = FALSE;
 		if (need_processing (terminal)) {
@@ -12057,13 +12059,13 @@ update_repeat_timeout (gpointer data)
 	multiple_active = active_terminals->next != NULL;
 	for (l = active_terminals; l != NULL; l = next) {
 		VteTerminal *terminal = l->data;
+
 		next = g_list_next (l);
 
 		if (l != active_terminals) {
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
-
-		if (terminal->pvt->pty_input) {
+		if (terminal->pvt->pty_input != NULL) {
 			if (terminal->pvt->pty_input_active ||
 					terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
 				terminal->pvt->pty_input_active = FALSE;
@@ -12153,11 +12155,11 @@ update_timeout (gpointer data)
 		if (l != active_terminals) {
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
-		if (terminal->pvt->pty_input) {
+		if (terminal->pvt->pty_input != NULL) {
 			if (terminal->pvt->pty_input_active ||
 					terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
 				terminal->pvt->pty_input_active = FALSE;
-				vte_terminal_io_read(terminal->pvt->pty_input,
+				vte_terminal_io_read (terminal->pvt->pty_input,
 						G_IO_IN, terminal);
 			}
 			_vte_terminal_enable_input_source (terminal);
