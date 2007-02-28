@@ -41,6 +41,14 @@
 
 #define DPY_FUDGE 1
 
+/* libXft will accept runs up to 1024 glyphs before allocating a temporary
+ * array. However, setting this to a large value can cause dramatic slow-downs
+ * for some xservers (notably fglrx), see bug 410534.
+ * Also setting it larger than VTE_DRAW_MAX_LENGTH is nonsensical, as the
+ * higher layers will not submit runs longer than that value.
+ */
+#define MAX_RUN_LENGTH 300
+
 struct _vte_xft_font {
 	guint ref;
 	Display *display;
@@ -775,7 +783,7 @@ _vte_xft_draw_text (struct _vte_draw *draw,
 		   struct _vte_draw_text_request *requests, gsize n_requests,
 		   GdkColor *color, guchar alpha)
 {
-	XftGlyphSpec glyphs[VTE_DRAW_MAX_LENGTH];
+	XftGlyphSpec glyphs[MAX_RUN_LENGTH];
 	XRenderColor rcolor;
 	XftColor ftcolor;
 	struct _vte_xft_data *data;
@@ -846,7 +854,7 @@ _vte_xft_draw_text (struct _vte_draw *draw,
 				}
 				break;
 			}
-		} while (j < VTE_DRAW_MAX_LENGTH && ft == font);
+		} while (j < MAX_RUN_LENGTH && ft == font);
 		XftDrawGlyphSpec (data->draw, &ftcolor, font, glyphs, j);
 		font = ft;
 	} while (i < n_requests);

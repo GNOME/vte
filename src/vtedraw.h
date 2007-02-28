@@ -39,7 +39,7 @@ G_BEGIN_DECLS
    fonts without Hangul */
 #define VTE_DRAW_DOUBLE_WIDE_IDEOGRAPHS 0x4e00, 0x4e8c, 0x4e09, 0x56db, 0x4e94
 #define VTE_DRAW_OPAQUE 0xff
-#define VTE_DRAW_MAX_LENGTH 540
+#define VTE_DRAW_MAX_LENGTH 1024
 
 /* The _vte_draw structure. */
 struct _vte_draw;

@@ -1,5 +1,16 @@
 2007-02-28  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 410534 – Slow content scrolling, takes 100% of CPU.
+
+	Submitting long glyph runs was causing a dramatic (10x) slow down
+	in the fglrx xserver.
+
+	* src/vtedraw.h 
+	* src/vtexft.c	(_vte_xft_draw_text):
+		Cap the max glyph run length to 300.
+
+2007-02-28  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 412717 – Crash when opening a new tab with window maximized
 
 	* src/vte.c  (vte_terminal_size_allocate):
