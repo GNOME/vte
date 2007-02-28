@@ -380,6 +380,7 @@ struct _VteTerminalPrivate {
 
 
 VteRowData *_vte_terminal_ensure_row(VteTerminal *terminal);
+VteRowData *_vte_terminal_ensure_cursor(VteTerminal *terminal);
 void _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible);
 void _vte_invalidate_all(VteTerminal *terminal);
 void _vte_invalidate_cells(VteTerminal *terminal,

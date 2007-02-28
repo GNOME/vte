@@ -2386,10 +2386,12 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
+	VteScreen *screen;
 	long newcol;
 
 	/* Calculate which column is the next tab stop. */
-	newcol = terminal->pvt->screen->cursor_current.col;
+	screen = terminal->pvt->screen;
+	newcol = screen->cursor_current.col;
 
 	if (terminal->pvt->tabstops != NULL) {
 		/* Find the next tabstop. */
@@ -2407,8 +2409,14 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 	}
 
 	/* but make sure we don't move cursor back (bug #340631) */
-	if (terminal->pvt->screen->cursor_current.col < newcol)
-		terminal->pvt->screen->cursor_current.col = newcol;
+	if (screen->cursor_current.col < newcol) {
+		_vte_invalidate_cells (terminal,
+				      screen->cursor_current.col,
+				      newcol - screen->cursor_current.col,
+				      screen->cursor_current.row, 1);
+		screen->cursor_current.col = newcol;
+		_vte_terminal_ensure_cursor (terminal);
+	}
 
 	return FALSE;
 }
@@ -2914,7 +2922,7 @@ vte_sequence_handler_request_terminal_parameters(VteTerminal *terminal,
 						 GQuark match_quark,
 						 GValueArray *params)
 {
-	vte_terminal_feed_child(terminal, "[?x", -1);
+	vte_terminal_feed_child(terminal, "\e[?x", strlen("\e[?x"));
 	return FALSE;
 }
 
@@ -2925,7 +2933,7 @@ vte_sequence_handler_return_terminal_status(VteTerminal *terminal,
 					    GQuark match_quark,
 					    GValueArray *params)
 {
-	vte_terminal_feed_child(terminal, "", -1);
+	vte_terminal_feed_child(terminal, "", 0);
 	return FALSE;
 }
 
@@ -2937,7 +2945,7 @@ vte_sequence_handler_send_primary_device_attributes(VteTerminal *terminal,
 						    GValueArray *params)
 {
 	/* Claim to be a VT220 with only national character set support. */
-	vte_terminal_feed_child(terminal, "[?62;9;c", -1);
+	vte_terminal_feed_child(terminal, "\e[?62;9;c", strlen("\e[?62;9;c"));
 	return FALSE;
 }
 

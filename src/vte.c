@@ -1889,7 +1889,7 @@ _vte_terminal_ensure_row(VteTerminal *terminal)
 }
 
 static VteRowData *
-_vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
+vte_terminal_ensure_cursor(VteTerminal *terminal)
 {
 	VteRowData *row;
 	VteScreen *screen;
@@ -1930,17 +1930,18 @@ _vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 	}
 	g_assert(row != NULL);
 
-	v = screen->cursor_current.col + 1;
+	v = screen->cursor_current.col;
 	if (G_LIKELY (row->cells->len < v)) {
 		/* Set up defaults we'll use when adding new cells. */
-		vte_g_array_fill(row->cells,
-				current ?
-				&screen->color_defaults :
-				&screen->basic_defaults,
-				v);
+		vte_g_array_fill(row->cells, &screen->color_defaults, v);
 	}
 
 	return row;
+}
+VteRowData *
+_vte_terminal_ensure_cursor(VteTerminal *terminal)
+{
+	return vte_terminal_ensure_cursor (terminal);
 }
 
 /* Update the insert delta so that the screen which includes it also
@@ -2457,7 +2458,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			/* Wrap. */
 			col = screen->cursor_current.col = 0;
 			/* Mark this line as soft-wrapped. */
-			row = _vte_terminal_ensure_cursor(terminal, TRUE);
+			row = vte_terminal_ensure_cursor(terminal);
 			row->soft_wrapped = 1;
 			_vte_sequence_handler_sf(terminal, NULL, 0, NULL);
 		} else {
@@ -2468,9 +2469,8 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 
 	/* Make sure we have enough rows to hold this data. */
-	screen->cursor_current.col += columns - 1;
-	row = _vte_terminal_ensure_cursor(terminal, TRUE);
-	screen->cursor_current.col++;
+	screen->cursor_current.col += columns;
+	row = vte_terminal_ensure_cursor(terminal);
 	g_assert(row != NULL);
 
 	/* Make sure we're not getting random stuff past the right
@@ -3492,7 +3492,7 @@ _vte_terminal_feed_chunks (VteTerminal *terminal, struct _vte_incoming_chunk *ch
 {
 	struct _vte_incoming_chunk *last;
 
-	_vte_debug_print(VTE_DEBUG_IO, "Feed %"G_GSIZE_FORMAT" bytes, in %"G_GSIZE_FORMAT"d chunks.\n",
+	_vte_debug_print(VTE_DEBUG_IO, "Feed %"G_GSIZE_FORMAT" bytes, in %"G_GSIZE_FORMAT" chunks.\n",
 			_vte_incoming_chunks_length(chunks),
 			_vte_incoming_chunks_count(chunks));
 
@@ -11148,7 +11148,6 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 	/* Adjust the scrollbars to the new locations. */
 	vte_terminal_queue_adjustment_value_changed (terminal, scroll_delta);
 	_vte_terminal_adjust_adjustments_full (terminal);
-
 }
 
 /**

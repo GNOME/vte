@@ -1,5 +1,20 @@
 2007-02-28  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 413262 – Incorrectly coloured tabs
+
+	* src/vte-private.h:
+	* src/vte.c (vte_terminal_ensure_cursor),
+	(_vte_terminal_ensure_cursor), (_vte_terminal_insert_char),
+	(_vte_terminal_feed_chunks), (vte_terminal_set_scrollback_lines):
+	* src/vteseq.c (vte_sequence_handler_ta),
+	(vte_sequence_handler_request_terminal_parameters),
+	(vte_sequence_handler_return_terminal_status),
+	(vte_sequence_handler_send_primary_device_attributes):
+		Fill the tab in the current color, else it will be filled at
+		the time of writing the next character.
+
+2007-02-28  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 413102 – Incorrect highlighting in vim
 
 	* src/vte-private.h:
