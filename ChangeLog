@@ -1,5 +1,10 @@
 2007-02-28  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c  (_vte_terminal_insert_char):
+		Correct the OBO in the number of columns ensured.
+
+2007-02-28  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 413078 – Crash during opening a new tab whilst scrolling
 	
 	During input processing it was possible to both remove the timeout and

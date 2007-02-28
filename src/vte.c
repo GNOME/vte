@@ -2428,8 +2428,9 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 
 	/* Make sure we have enough rows to hold this data. */
-	screen->cursor_current.col += columns;
+	screen->cursor_current.col += columns - 1;
 	row = _vte_terminal_ensure_cursor(terminal, FALSE);
+	screen->cursor_current.col++;
 	g_assert(row != NULL);
 
 	/* Make sure we're not getting random stuff past the right
