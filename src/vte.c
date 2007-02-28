@@ -6651,18 +6651,25 @@ vte_terminal_apply_metrics(VteTerminal *terminal,
 static void
 vte_terminal_ensure_font (VteTerminal *terminal)
 {
-	if (terminal->pvt->draw != NULL &&
-			terminal->pvt->fontdirty) {
-		terminal->pvt->fontdirty = FALSE;
-		_vte_draw_set_text_font(terminal->pvt->draw,
-				terminal->pvt->fontdesc,
-				terminal->pvt->fontantialias);
-		vte_terminal_apply_metrics(terminal,
-				_vte_draw_get_text_width(terminal->pvt->draw),
-				_vte_draw_get_text_height(terminal->pvt->draw),
-				_vte_draw_get_text_ascent(terminal->pvt->draw),
-				_vte_draw_get_text_height(terminal->pvt->draw) -
-				_vte_draw_get_text_ascent(terminal->pvt->draw));
+	if (terminal->pvt->draw != NULL) {
+		/* Load default fonts, if no fonts have been loaded. */
+		if (!terminal->pvt->has_fonts) {
+			vte_terminal_set_font_full (terminal,
+					terminal->pvt->fontdesc,
+					terminal->pvt->fontantialias);
+		}
+		if (terminal->pvt->fontdirty) {
+			terminal->pvt->fontdirty = FALSE;
+			_vte_draw_set_text_font (terminal->pvt->draw,
+					terminal->pvt->fontdesc,
+					terminal->pvt->fontantialias);
+			vte_terminal_apply_metrics(terminal,
+					_vte_draw_get_text_width (terminal->pvt->draw),
+					_vte_draw_get_text_height (terminal->pvt->draw),
+					_vte_draw_get_text_ascent (terminal->pvt->draw),
+					_vte_draw_get_text_height (terminal->pvt->draw) -
+					_vte_draw_get_text_ascent (terminal->pvt->draw));
+		}
 	}
 }
 
@@ -7849,11 +7856,6 @@ vte_terminal_realize(GtkWidget *widget)
 
 	widget->style = gtk_style_attach(widget->style, widget->window);
 
-	/* Load default fonts, if no fonts have been loaded. */
-	if (!terminal->pvt->has_fonts) {
-		vte_terminal_set_font_full(terminal, terminal->pvt->fontdesc,
-					   terminal->pvt->fontantialias);
-	}
 	vte_terminal_ensure_font (terminal);
 
 	/* Set up the background, *now*. */

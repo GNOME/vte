@@ -1,5 +1,13 @@
 2007-02-28  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 413068 – new line added to tab when opened
+
+	* src/vte.c (vte_terminal_ensure_font), (vte_terminal_realize):
+		Beware when no font is set before the first request...
+		Make sure that at least the default font is set.
+
+2007-02-28  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 413262 – Incorrectly coloured tabs
 
 	* src/vte-private.h:
