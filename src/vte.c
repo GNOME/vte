@@ -584,35 +584,30 @@ vte_terminal_preedit_length(VteTerminal *terminal, gboolean left_only)
 void
 _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
 {
-	VteScreen *screen;
 	VteRowData *row_data;
-	struct vte_charcell *cell;
 	int columns;
 
 	if (!GTK_WIDGET_DRAWABLE(terminal) || terminal->pvt->invalidated_all) {
 		return;
 	}
 
-	screen = terminal->pvt->screen;
 	columns = 1;
 	row_data = _vte_terminal_find_row_data(terminal, row);
-	if (row_data == NULL) { /* blank cell, nothing to update */
-		return;
-	}
-
-	cell = _vte_row_data_find_charcell(row_data, col);
-	if (cell == NULL) { /* beyond the end of the row */
-		return;
-	}
-	while (cell->fragment && col> 0) {
-		cell = _vte_row_data_find_charcell(row_data, --col);
-	}
-	columns = cell->columns;
-	if (_vte_draw_get_char_width(terminal->pvt->draw,
-				cell->c,
-				cell->columns) >
-			terminal->char_width * columns) {
-		columns++;
+	if (row_data != NULL) {
+		struct vte_charcell *cell;
+		cell = _vte_row_data_find_charcell(row_data, col);
+		if (cell != NULL) {
+			while (cell->fragment && col> 0) {
+				cell = _vte_row_data_find_charcell(row_data, --col);
+			}
+			columns = cell->columns;
+			if (_vte_draw_get_char_width(terminal->pvt->draw,
+						cell->c,
+						cell->columns) >
+					terminal->char_width * columns) {
+				columns++;
+			}
+		}
 	}
 
 	_vte_invalidate_cells(terminal,

@@ -1,5 +1,13 @@
 2007-02-28  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 413158 – Cursor trails
+
+	* src/vte.c  (_vte_invalidate_cell):
+		_vte_invalidate_cell() can be called to invalidate any visible
+		cell so issue the invalidate even for blank cells.
+
+2007-02-28  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c  (_vte_terminal_insert_char):
 		Correct the OBO in the number of columns ensured.
 
