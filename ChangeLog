@@ -1,5 +1,21 @@
 2007-02-28  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 413078 – Crash during opening a new tab whilst scrolling
+	
+	During input processing it was possible to both remove the timeout and
+	then add a new one. The currently running timeout would believe that
+	it was to continue since the terminal was still active, and so *two*
+	timeouts would be scheduled. Occasionally the second timeout would be
+	called after the first had finished all the work, resulting in the
+	second timeout trying to access a NULL active_terminal list.
+
+	* src/vte.c  (add_update_timeout), (remove_from_active_list),
+	(vte_terminal_add_process_timeout), (need_processing),
+	(process_timeout), (update_repeat_timeout), (update_timeout):
+		Watch for recursive g_source_remove() from within timeouts.
+
+2007-02-28  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 410534 – Slow content scrolling, takes 100% of CPU.
 
 	Submitting long glyph runs was causing a dramatic (10x) slow down
