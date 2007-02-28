@@ -2,10 +2,10 @@
 
 	Bug 413102 – Incorrect highlighting in vim
 
-	* src/vte-private.h 
-	* src/vte.c  (_vte_terminal_ensure_row),
+	* src/vte-private.h:
+	* src/vte.c (_vte_terminal_ensure_row),
 	(_vte_terminal_insert_char):
-	* src/vteseq.c	(vte_sequence_handler_cb),
+	* src/vteseq.c(vte_sequence_handler_cb),
 	(vte_sequence_handler_ce), (vte_sequence_handler_cr),
 	(vte_sequence_handler_ec), (vte_sequence_handler_sf):
 		Paint the row background when scrolling, this more closely
@@ -15,13 +15,13 @@
 
 	Bug 413158 – Cursor trails
 
-	* src/vte.c  (_vte_invalidate_cell):
+	* src/vte.c (_vte_invalidate_cell):
 		_vte_invalidate_cell() can be called to invalidate any visible
 		cell so issue the invalidate even for blank cells.
 
 2007-02-28  Chris Wilson  <chris@chris-wilson.co.uk>
 
-	* src/vte.c  (_vte_terminal_insert_char):
+	* src/vte.c (_vte_terminal_insert_char):
 		Correct the OBO in the number of columns ensured.
 
 2007-02-28  Chris Wilson  <chris@chris-wilson.co.uk>
@@ -35,7 +35,7 @@
 	called after the first had finished all the work, resulting in the
 	second timeout trying to access a NULL active_terminal list.
 
-	* src/vte.c  (add_update_timeout), (remove_from_active_list),
+	* src/vte.c (add_update_timeout), (remove_from_active_list),
 	(vte_terminal_add_process_timeout), (need_processing),
 	(process_timeout), (update_repeat_timeout), (update_timeout):
 		Watch for recursive g_source_remove() from within timeouts.
@@ -47,21 +47,21 @@
 	Submitting long glyph runs was causing a dramatic (10x) slow down
 	in the fglrx xserver.
 
-	* src/vtedraw.h 
-	* src/vtexft.c	(_vte_xft_draw_text):
+	* src/vtedraw.h:
+	* src/vtexft.c(_vte_xft_draw_text):
 		Cap the max glyph run length to 300.
 
 2007-02-28  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 412717 – Crash when opening a new tab with window maximized
 
-	* src/vte.c  (vte_terminal_size_allocate):
+	* src/vte.c (vte_terminal_size_allocate):
 		We didn't carefully check the values we were clamping the
 		cursor to and ended up setting it to -1...  Don't do that!
 
 2007-02-27  Chris Wilson  <chris@chris-wilson.co.uk>
 
-	* src/vteaccess.c  (vte_terminal_accessible_text_scrolled):
+	* src/vteaccess.c (vte_terminal_accessible_text_scrolled):
 		Consistently guard against the snapshot being NULL.
 
 2007-02-27  Behdad Esfahbod  <behdad@gnome.org>
@@ -78,7 +78,7 @@
 
 	Bug 412562 – Crash in vte_terminal_match_hilite_update
 
-	* src/vte.c  (vte_terminal_match_check_internal),
+	* src/vte.c (vte_terminal_match_check_internal),
 	(vte_terminal_process_incoming), (_vte_terminal_feed_chunks),
 	(vte_terminal_paste_cb), (vte_terminal_match_hilite_update),
 	(vte_terminal_copy_cb):
