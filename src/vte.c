@@ -1844,6 +1844,51 @@ vte_terminal_get_encoding(VteTerminal *terminal)
 /* Make sure we have enough rows and columns to hold data at the current
  * cursor position. */
 VteRowData *
+_vte_terminal_ensure_row(VteTerminal *terminal)
+{
+	VteRowData *row;
+	VteScreen *screen;
+	gint delta;
+	glong v;
+
+	g_assert(VTE_IS_TERMINAL(terminal));
+
+	/* Must make sure we're in a sane area. */
+	screen = terminal->pvt->screen;
+	v = screen->cursor_current.row;
+
+	if (!_vte_ring_is_cached (screen->row_data, v)) {
+		/* Figure out how many rows we need to add. */
+		delta = v - _vte_ring_next(screen->row_data) + 1;
+		if (delta > 0) {
+			VteRowData *old_row;
+
+			old_row = terminal->pvt->free_row;
+			do {
+				if (old_row) {
+					row = _vte_reset_row_data (terminal, old_row, FALSE);
+				} else {
+					row = _vte_new_row_data_sized (terminal, FALSE);
+				}
+				old_row = _vte_ring_append(screen->row_data, row);
+			} while(--delta);
+			terminal->pvt->free_row = old_row;
+			_vte_terminal_adjust_adjustments(terminal);
+		} else {
+			/* Find the row the cursor is in. */
+			row = _vte_ring_index(screen->row_data,
+					VteRowData *, v);
+		}
+		_vte_ring_set_cache (screen->row_data, v, row);
+	} else {
+		row = _vte_ring_get_cached_data (screen->row_data);
+	}
+	g_assert(row != NULL);
+
+	return row;
+}
+
+static VteRowData *
 _vte_terminal_ensure_cursor(VteTerminal *terminal, gboolean current)
 {
 	VteRowData *row;
@@ -2412,7 +2457,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			/* Wrap. */
 			col = screen->cursor_current.col = 0;
 			/* Mark this line as soft-wrapped. */
-			row = _vte_terminal_ensure_cursor(terminal, FALSE);
+			row = _vte_terminal_ensure_cursor(terminal, TRUE);
 			row->soft_wrapped = 1;
 			_vte_sequence_handler_sf(terminal, NULL, 0, NULL);
 		} else {
@@ -2424,7 +2469,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 	/* Make sure we have enough rows to hold this data. */
 	screen->cursor_current.col += columns - 1;
-	row = _vte_terminal_ensure_cursor(terminal, FALSE);
+	row = _vte_terminal_ensure_cursor(terminal, TRUE);
 	screen->cursor_current.col++;
 	g_assert(row != NULL);
 

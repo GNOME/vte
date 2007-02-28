@@ -1,5 +1,18 @@
 2007-02-28  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 413102 – Incorrect highlighting in vim
+
+	* src/vte-private.h 
+	* src/vte.c  (_vte_terminal_ensure_row),
+	(_vte_terminal_insert_char):
+	* src/vteseq.c	(vte_sequence_handler_cb),
+	(vte_sequence_handler_ce), (vte_sequence_handler_cr),
+	(vte_sequence_handler_ec), (vte_sequence_handler_sf):
+		Paint the row background when scrolling, this more closely
+		matches xterm's behaviour.
+
+2007-02-28  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 413158 – Cursor trails
 
 	* src/vte.c  (_vte_invalidate_cell):

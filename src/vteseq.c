@@ -1019,7 +1019,7 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 	screen = terminal->pvt->screen;
 
 	/* Get the data for the row which the cursor points to. */
-	rowdata = _vte_terminal_ensure_cursor(terminal, FALSE);
+	rowdata = _vte_terminal_ensure_row(terminal);
 	/* Clear the data up to the current column with the default
 	 * attributes.  If there is no such character cell, we need
 	 * to add one. */
@@ -1130,7 +1130,7 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 
 	screen = terminal->pvt->screen;
 	/* Get the data for the row which the cursor points to. */
-	rowdata = _vte_terminal_ensure_cursor(terminal, FALSE);
+	rowdata = _vte_terminal_ensure_row(terminal);
 	g_assert(rowdata != NULL);
 	/* Remove the data at the end of the array until the current column
 	 * is the end of the array. */
@@ -1281,19 +1281,7 @@ vte_sequence_handler_cr(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	VteScreen *screen = terminal->pvt->screen;
-	glong col = screen->cursor_current.col;
-	screen->cursor_current.col = 0;
-	if (screen->fill_defaults.back != VTE_DEF_BG) {
-		VteRowData *rowdata;
-		rowdata = _vte_terminal_ensure_cursor (terminal, FALSE);
-		vte_g_array_fill (rowdata->cells,
-				&screen->fill_defaults,
-				terminal->column_count);
-		_vte_invalidate_cells (terminal,
-				      col, terminal->column_count - col,
-				      screen->cursor_current.row, 1);
-	}
+	terminal->pvt->screen->cursor_current.col = 0;
 	return FALSE;
 }
 
@@ -1649,7 +1637,7 @@ vte_sequence_handler_ec(VteTerminal *terminal,
 	}
 
 	/* Clear out the given number of characters. */
-	rowdata = _vte_terminal_ensure_cursor(terminal, TRUE);
+	rowdata = _vte_terminal_ensure_row(terminal);
 	if (_vte_ring_next(screen->row_data) > screen->cursor_current.row) {
 		g_assert(rowdata != NULL);
 		/* Write over the characters.  (If there aren't enough, we'll
@@ -2236,6 +2224,14 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 			/* Scroll up with history. */
 			screen->cursor_current.row++;
 			_vte_terminal_update_insert_delta(terminal);
+		}
+		/* Match xterm and fill to the end of row when scrolling. */
+		if (screen->fill_defaults.back != VTE_DEF_BG) {
+			VteRowData *rowdata;
+			rowdata = _vte_terminal_ensure_row (terminal);
+			vte_g_array_fill (rowdata->cells,
+					&screen->fill_defaults,
+					terminal->column_count);
 		}
 	} else {
 		/* Otherwise, just move the cursor down. */
