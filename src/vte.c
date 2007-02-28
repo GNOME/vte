@@ -7381,7 +7381,8 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 		/* Ensure the cursor is valid */
 		screen->cursor_current.row = CLAMP (screen->cursor_current.row,
 				_vte_ring_delta (screen->row_data),
-				_vte_ring_next (screen->row_data) - 1);
+				MAX (_vte_ring_delta (screen->row_data),
+					_vte_ring_next (screen->row_data) - 1));
 		/* Notify viewers that the contents have changed. */
 		_vte_terminal_queue_contents_changed(terminal);
 	}
