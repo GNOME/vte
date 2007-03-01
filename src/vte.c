@@ -1844,14 +1844,14 @@ vte_terminal_get_encoding(VteTerminal *terminal)
 /* Make sure we have enough rows and columns to hold data at the current
  * cursor position. */
 VteRowData *
-_vte_terminal_ensure_row(VteTerminal *terminal)
+_vte_terminal_ensure_row (VteTerminal *terminal)
 {
 	VteRowData *row;
 	VteScreen *screen;
 	gint delta;
 	glong v;
 
-	g_assert(VTE_IS_TERMINAL(terminal));
+	g_assert (VTE_IS_TERMINAL (terminal));
 
 	/* Must make sure we're in a sane area. */
 	screen = terminal->pvt->screen;
@@ -1889,14 +1889,14 @@ _vte_terminal_ensure_row(VteTerminal *terminal)
 }
 
 static VteRowData *
-vte_terminal_ensure_cursor(VteTerminal *terminal)
+vte_terminal_ensure_cursor(VteTerminal *terminal, gint columns)
 {
 	VteRowData *row;
 	VteScreen *screen;
 	gint delta;
 	glong v;
 
-	g_assert(VTE_IS_TERMINAL(terminal));
+	g_assert (VTE_IS_TERMINAL (terminal));
 
 	/* Must make sure we're in a sane area. */
 	screen = terminal->pvt->screen;
@@ -1931,17 +1931,15 @@ vte_terminal_ensure_cursor(VteTerminal *terminal)
 	g_assert(row != NULL);
 
 	v = screen->cursor_current.col;
-	if (G_LIKELY (row->cells->len < v)) {
-		/* Set up defaults we'll use when adding new cells. */
-		vte_g_array_fill(row->cells, &screen->color_defaults, v);
+	if (G_UNLIKELY (row->cells->len < v)) { /* pad */
+		vte_g_array_fill (row->cells, &screen->basic_defaults, v);
+	}
+	v = screen->cursor_current.col += columns;
+	if (G_LIKELY (row->cells->len < v)) { /* expand for character */
+		vte_g_array_fill (row->cells, &screen->color_defaults, v);
 	}
 
 	return row;
-}
-VteRowData *
-_vte_terminal_ensure_cursor(VteTerminal *terminal)
-{
-	return vte_terminal_ensure_cursor (terminal);
 }
 
 /* Update the insert delta so that the screen which includes it also
@@ -2458,7 +2456,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			/* Wrap. */
 			col = screen->cursor_current.col = 0;
 			/* Mark this line as soft-wrapped. */
-			row = vte_terminal_ensure_cursor(terminal);
+			row = _vte_terminal_ensure_row(terminal);
 			row->soft_wrapped = 1;
 			_vte_sequence_handler_sf(terminal, NULL, 0, NULL);
 		} else {
@@ -2469,68 +2467,62 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 
 	/* Make sure we have enough rows to hold this data. */
-	screen->cursor_current.col += columns;
-	row = vte_terminal_ensure_cursor(terminal);
+	row = vte_terminal_ensure_cursor(terminal, columns);
 	g_assert(row != NULL);
 
 	/* Make sure we're not getting random stuff past the right
 	 * edge of the screen at this point, because the user can't
 	 * see it. */
-	if (G_LIKELY (col < terminal->column_count)) {
-		/* Insert the right number of columns. */
-		i = 0;
-		do {
-			/* If we're in insert mode, insert a new cell here
-			 * and use it. */
-			if (insert) {
-				cell = screen->color_defaults;
-				g_array_insert_val(row->cells, col, cell);
-			}
-			cell.c = c;
-			cell.columns = columns;
-			if (paint_cells) {
-				cell.fore = screen->defaults.fore;
-				cell.back = screen->defaults.back;
-			}
-			cell.standout = screen->defaults.standout;
-			cell.underline = screen->defaults.underline;
-			cell.strikethrough = screen->defaults.strikethrough;
-			cell.reverse = screen->defaults.reverse;
-			cell.blink = screen->defaults.blink;
-			cell.half = screen->defaults.half;
-			cell.bold = screen->defaults.bold;
-			cell.invisible = screen->defaults.invisible;
-			cell.protect = screen->defaults.protect;
-			cell.alternate = 0;
-			cell.empty = 0;
-			cell.fragment = i != 0;
+	i = 0;
+	do {
+		/* If we're in insert mode, insert a new cell here
+		 * and use it. */
+		if (insert) {
+			cell = screen->color_defaults;
+			g_array_insert_val(row->cells, col, cell);
+		}
+		cell.c = c;
+		cell.columns = columns;
+		if (paint_cells) {
+			cell.fore = screen->defaults.fore;
+			cell.back = screen->defaults.back;
+		}
+		cell.standout = screen->defaults.standout;
+		cell.underline = screen->defaults.underline;
+		cell.strikethrough = screen->defaults.strikethrough;
+		cell.reverse = screen->defaults.reverse;
+		cell.blink = screen->defaults.blink;
+		cell.half = screen->defaults.half;
+		cell.bold = screen->defaults.bold;
+		cell.invisible = screen->defaults.invisible;
+		cell.protect = screen->defaults.protect;
+		cell.alternate = 0;
+		cell.empty = 0;
+		cell.fragment = i != 0;
 
-			if (G_UNLIKELY (i == 0 &&
+		if (G_UNLIKELY (i == 0 &&
 					c == '_' &&
 					terminal->pvt->flags.ul)) {
-				struct vte_charcell *pcell =
-					&g_array_index (row->cells, struct vte_charcell, col);
-				/* Handle overstrike-style underlining. */
-				if (pcell->c != 0) {
-					/* restore previous contents */
-					cell.c = pcell->c;
-					cell.columns = pcell->columns;
-					cell.fragment = pcell->fragment;
-					cell.empty = pcell->empty;
+			struct vte_charcell *pcell =
+				&g_array_index (row->cells, struct vte_charcell, col);
+			/* Handle overstrike-style underlining. */
+			if (pcell->c != 0) {
+				/* restore previous contents */
+				cell.c = pcell->c;
+				cell.columns = pcell->columns;
+				cell.fragment = pcell->fragment;
+				cell.empty = pcell->empty;
 
-					cell.underline = 1;
-				}
+				cell.underline = 1;
 			}
-			g_array_index(row->cells, struct vte_charcell, col) = cell;
-
-			/* And take a step to the to the right. */
-			col++;
-		} while (++i < columns);
-		if (G_UNLIKELY (row->cells->len > terminal->column_count)) {
-			g_array_set_size(row->cells, terminal->column_count);
 		}
-	} else {
-		col += columns;
+		g_array_index(row->cells, struct vte_charcell, col) = cell;
+
+		/* And take a step to the to the right. */
+		col++;
+	} while (++i < columns);
+	if (G_UNLIKELY (row->cells->len > terminal->column_count)) {
+		g_array_set_size(row->cells, terminal->column_count);
 	}
 
 	/* Signal that this part of the window needs drawing. */

@@ -1,5 +1,13 @@
 2007-03-01  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte-private.h:
+	* src/vte.c (_vte_terminal_ensure_row),
+	(vte_terminal_ensure_cursor), (_vte_terminal_insert_char):
+	* src/vteseq.c (vte_sequence_handler_ta):
+		Be more careful when filling in gaps.
+
+2007-03-01  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Fix X11 headers / libraries detection on bi-arch systems.
 	Patch by Frederic Crozat.
 

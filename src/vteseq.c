@@ -2410,12 +2410,15 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 
 	/* but make sure we don't move cursor back (bug #340631) */
 	if (screen->cursor_current.col < newcol) {
+		VteRowData *rowdata = _vte_terminal_ensure_row (terminal);
+		vte_g_array_fill (rowdata->cells,
+				&screen->fill_defaults,
+				newcol);
 		_vte_invalidate_cells (terminal,
-				      screen->cursor_current.col,
-				      newcol - screen->cursor_current.col,
-				      screen->cursor_current.row, 1);
+				screen->cursor_current.col,
+				newcol - screen->cursor_current.col,
+				screen->cursor_current.row, 1);
 		screen->cursor_current.col = newcol;
-		_vte_terminal_ensure_cursor (terminal);
 	}
 
 	return FALSE;
