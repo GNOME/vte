@@ -1,3 +1,15 @@
+0.15.6
+======
+- Fix various bugs introduced in last couple of releases.
+- Bugs fixed in this release:
+	Bug 410534 – Slow content scrolling, takes 100% of CPU.
+	Bug 413068 – new line added to tab when opened
+	Bug 413262 – Incorrectly coloured tabs
+	Bug 413102 – Incorrect highlighting in vim
+	Bug 413158 – Cursor trails
+	Bug 413078 – Crash during opening a new tab whilst scrolling
+	Bug 412717 – Crash when opening a new tab with window maximized
+
 0.15.5
 ======
 This is a quick followup release to 0.15.4 to fix a crasher recently
