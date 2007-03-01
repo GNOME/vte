@@ -1,5 +1,14 @@
 2007-03-01  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Fix X11 headers / libraries detection on bi-arch systems.
+	Patch by Frederic Crozat.
+
+	* configure.in:
+		Check for x_includes before ac_x_includes, and similary for
+		ac_x_libraries.
+
+2007-03-01  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 410534 – Slow content scrolling, takes 100% of CPU.
 
 	* src/vtexft.c:

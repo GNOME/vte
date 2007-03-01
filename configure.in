@@ -185,11 +185,15 @@ fi
 # the list of libraries for grins.
 AC_PATH_XTRA([X11], [X11/Xlib.h], [XFlush(NULL)])
 if test "$have_x" = yes ; then
-	if test -d "$ac_x_includes" ; then
+	if test -d "$x_includes" ; then
+		X_CFLAGS="-I$x_includes $X_CFLAGS"
+	elif test -d "$ac_x_includes" ; then
 		X_CFLAGS="-I$ac_x_includes $X_CFLAGS"
 	fi
 	X_LIBS="$X_PRE_LIBS $X_LIBS -lX11 $X_EXTRA_LIBS"
 	if test -d "$ac_x_libraries" ; then
+		X_LIBS="-L$x_libraries $X_LIBS"
+	elif test -d "$ac_x_libraries" ; then
 		X_LIBS="-L$ac_x_libraries $X_LIBS"
 	fi
 fi
