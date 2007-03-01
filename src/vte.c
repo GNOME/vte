@@ -1934,10 +1934,11 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gint columns)
 	if (G_UNLIKELY (row->cells->len < v)) { /* pad */
 		vte_g_array_fill (row->cells, &screen->basic_defaults, v);
 	}
-	v = screen->cursor_current.col += columns;
+	v += columns;
 	if (G_LIKELY (row->cells->len < v)) { /* expand for character */
 		vte_g_array_fill (row->cells, &screen->color_defaults, v);
 	}
+	screen->cursor_current.col = v;
 
 	return row;
 }
