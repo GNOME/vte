@@ -47,7 +47,7 @@
  * Also setting it larger than VTE_DRAW_MAX_LENGTH is nonsensical, as the
  * higher layers will not submit runs longer than that value.
  */
-#define MAX_RUN_LENGTH 300
+#define MAX_RUN_LENGTH 80
 
 struct _vte_xft_font {
 	guint ref;
