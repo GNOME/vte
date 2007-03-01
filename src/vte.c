@@ -8857,7 +8857,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		if (clear && (draw_default_bg || bg != defbg)) {
 			_vte_draw_fill_rectangle(terminal->pvt->draw,
 					x + VTE_PAD_WIDTH, y + VTE_PAD_WIDTH,
-					columns * column_width,
+					columns * column_width + bold,
 					row_height,
 					&color, VTE_DRAW_OPAQUE);
 		}
@@ -9252,6 +9252,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 						FALSE,
 						&fore, &back);
 
+				bold = cell && cell->bold;
 				j = i + (cell ? cell->columns : 1);
 
 				while (j < end_column){
@@ -9276,6 +9277,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					if (nback != back) {
 						break;
 					}
+					bold = cell && cell->bold;
 					j += cell ? cell->columns : 1;
 				}
 				if (back != VTE_DEF_BG) {
@@ -9286,7 +9288,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					color.green = bg->green;
 					_vte_draw_fill_rectangle(terminal->pvt->draw,
 							x + i * column_width, y,
-							(j - i) * column_width,
+							(j - i) * column_width + bold,
 							row_height,
 							&color, VTE_DRAW_OPAQUE);
 				}
@@ -9787,6 +9789,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 					   _vte_draw_get_char_width(terminal->pvt->draw,
 								    cell->c,
 								    cell->columns));
+			cursor_width += cell->bold; /* pseudo-bolding */
 		}
 		_vte_draw_clear(terminal->pvt->draw,
 				col * width + VTE_PAD_WIDTH,
