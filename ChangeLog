@@ -2,6 +2,16 @@
 
 	Bug 413068 – new line added to tab when opened
 
+	* src/vte.c (vte_terminal_size_allocate):
+		Replace the ill-conceived attempt (delta could not be
+		negative, so insert_delta or scroll_delta would not become
+		negative either) by only considering changes wrt to the number
+		of visible lines.
+
+2007-03-02  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 413068 – new line added to tab when opened
+
 	* src/vte.c (_vte_terminal_insert_char):
 		Improve debug output.
 	* src/vte.c (vte_terminal_size_allocate):

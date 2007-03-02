@@ -7401,20 +7401,14 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	if (width != terminal->column_count
 			|| height != terminal->row_count) {
 		VteScreen *screen = terminal->pvt->screen;
-		if (height < terminal->row_count) {
-			glong delta = terminal->row_count - height;
-			if (screen->insert_delta + delta < 0) {
-				delta = -screen->insert_delta;
-			}
-			if (screen->scroll_delta + delta < 0) {
-				vte_terminal_queue_adjustment_value_changed (
-						terminal, 0);
-			} else {
-				vte_terminal_queue_adjustment_value_changed (
-						terminal,
-						screen->scroll_delta + delta);
-			}
+		glong visible_rows = MIN (terminal->row_count,
+				_vte_ring_length (screen->row_data));
+		if (height < visible_rows) {
+			glong delta = visible_rows - height;
 			screen->insert_delta += delta;
+			vte_terminal_queue_adjustment_value_changed (
+					terminal,
+					screen->scroll_delta + delta);
 		}
 		/* Set the size of the pseudo-terminal. */
 		vte_terminal_set_size(terminal, width, height);
