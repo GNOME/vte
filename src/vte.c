@@ -2444,16 +2444,12 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 	c &= ~(VTE_ISO2022_ENCODED_WIDTH_MASK);
 
-	_vte_debug_print(VTE_DEBUG_IO|VTE_DEBUG_PARSE,
-			"Inserting %ld %c (%d/%d)(%d), delta = %ld, ",
-			(long)c, c < 256 ? c : ' ',
-			screen->defaults.fore, screen->defaults.back,
-			columns, (long)screen->insert_delta);
-
 	/* If we're autowrapping here, do it. */
 	col = screen->cursor_current.col;
 	if (G_UNLIKELY (col + columns > terminal->column_count)) {
 		if (terminal->pvt->flags.am) {
+			_vte_debug_print(VTE_DEBUG_IO,
+					"Autowrapping before character\n");
 			/* Wrap. */
 			col = screen->cursor_current.col = 0;
 			/* Mark this line as soft-wrapped. */
@@ -2470,6 +2466,13 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	/* Make sure we have enough rows to hold this data. */
 	row = vte_terminal_ensure_cursor(terminal, columns);
 	g_assert(row != NULL);
+
+	_vte_debug_print(VTE_DEBUG_IO|VTE_DEBUG_PARSE,
+			"Inserting %ld '%c' (%d/%d) (%ld+%d, %ld), delta = %ld",
+			(long)c, c < 256 ? c : ' ',
+			screen->defaults.fore, screen->defaults.back,
+			col, columns, (long)screen->cursor_current.row,
+			(long)screen->insert_delta);
 
 	/* Make sure we're not getting random stuff past the right
 	 * edge of the screen at this point, because the user can't
@@ -7400,8 +7403,17 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 		VteScreen *screen = terminal->pvt->screen;
 		if (height < terminal->row_count) {
 			glong delta = terminal->row_count - height;
-			vte_terminal_queue_adjustment_value_changed (terminal,
-					screen->scroll_delta + delta);
+			if (screen->insert_delta + delta < 0) {
+				delta = -screen->insert_delta;
+			}
+			if (screen->scroll_delta + delta < 0) {
+				vte_terminal_queue_adjustment_value_changed (
+						terminal, 0);
+			} else {
+				vte_terminal_queue_adjustment_value_changed (
+						terminal,
+						screen->scroll_delta + delta);
+			}
 			screen->insert_delta += delta;
 		}
 		/* Set the size of the pseudo-terminal. */

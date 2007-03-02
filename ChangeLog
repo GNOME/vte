@@ -1,3 +1,13 @@
+2007-03-02  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 413068 – new line added to tab when opened
+
+	* src/vte.c (_vte_terminal_insert_char):
+		Improve debug output.
+	* src/vte.c (vte_terminal_size_allocate):
+		Be careful that we don't force insert_delta or scroll_delta
+		to become negative.
+
 2007-03-01  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.15.6.
