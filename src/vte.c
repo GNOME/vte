@@ -2034,10 +2034,24 @@ static void
 vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
 				const GdkColor *proposed)
 {
+	struct vte_palette_entry *color;
+
+	color = &terminal->pvt->palette[entry];
+
+	if (color->red == proposed->red &&
+			color->green == proposed->green &&
+			color->blue == proposed->blue) {
+		return;
+	}
+
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"Set color[%d] to (%04x,%04x,%04x).\n", entry,
+			proposed->red, proposed->green, proposed->blue);
+
 	/* Save the requested color. */
-	terminal->pvt->palette[entry].red = proposed->red;
-	terminal->pvt->palette[entry].green = proposed->green;
-	terminal->pvt->palette[entry].blue = proposed->blue;
+	color->red = proposed->red;
+	color->green = proposed->green;
+	color->blue = proposed->blue;
 
 	/* If we're not realized yet, there's nothing else to do. */
 	if (!GTK_WIDGET_REALIZED(terminal)) {
@@ -2114,6 +2128,9 @@ vte_terminal_set_color_bold(VteTerminal *terminal, const GdkColor *bold)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail(bold != NULL);
 
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"Set bold color to (%04x,%04x,%04x).\n",
+			bold->red, bold->green, bold->blue);
 	vte_terminal_set_color_internal(terminal, VTE_BOLD_FG, bold);
 }
 
@@ -2131,6 +2148,9 @@ vte_terminal_set_color_dim(VteTerminal *terminal, const GdkColor *dim)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail(dim != NULL);
 
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"Set dim color to (%04x,%04x,%04x).\n",
+			dim->red, dim->green, dim->blue);
 	vte_terminal_set_color_internal(terminal, VTE_DIM_FG, dim);
 }
 
@@ -2149,6 +2169,9 @@ vte_terminal_set_color_foreground(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail(foreground != NULL);
 
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"Set foreground color to (%04x,%04x,%04x).\n",
+			foreground->red, foreground->green, foreground->blue);
 	vte_terminal_set_color_internal(terminal, VTE_DEF_FG, foreground);
 }
 
@@ -2169,6 +2192,9 @@ vte_terminal_set_color_background(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail(background != NULL);
 
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"Set background color to (%04x,%04x,%04x).\n",
+			background->red, background->green, background->blue);
 	vte_terminal_set_color_internal(terminal, VTE_DEF_BG, background);
 }
 
@@ -2190,6 +2216,11 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"Set cursor color to (%04x,%04x,%04x).\n",
+			cursor_background->red,
+			cursor_background->green,
+			cursor_background->blue);
 	if (cursor_background != NULL) {
 		vte_terminal_set_color_internal(terminal, VTE_CUR_BG,
 						cursor_background);
@@ -2217,6 +2248,11 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"Set highlight color to (%04x,%04x,%04x).\n",
+			highlight_background->red,
+			highlight_background->green,
+			highlight_background->blue);
 	if (highlight_background != NULL) {
 		vte_terminal_set_color_internal(terminal, VTE_DEF_HL,
 						highlight_background);
@@ -2265,6 +2301,10 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			 (palette_size == 8) ||
 			 (palette_size == 16) ||
 			 (palette_size == G_N_ELEMENTS(terminal->pvt->palette)));
+
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"Set color palette [%d elements].\n",
+			palette_size);
 
 	/* Accept NULL as the default foreground and background colors if we
 	 * got a palette. */
@@ -2354,10 +2394,6 @@ vte_terminal_set_colors(VteTerminal *terminal,
 		/* Set up the color entry. */
 		vte_terminal_set_color_internal(terminal, i, &color);
 	}
-
-	/* We may just have changed the default background color, so queue
-	 * a repaint of the entire viewable area. */
-	_vte_invalidate_all(terminal);
 
 	/* Track that we had a color palette set. */
 	terminal->pvt->palette_initialized = TRUE;
@@ -7455,6 +7491,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 static void
 root_pixmap_changed_cb(VteBg *bg, VteTerminal *terminal)
 {
+	_vte_debug_print (VTE_DEBUG_EVENTS, "Root pixmap changed.\n");
 	if (terminal->pvt->bg_transparent) {
 		vte_terminal_queue_background_update(terminal);
 	}
@@ -10882,14 +10919,19 @@ vte_terminal_queue_background_update(VteTerminal *terminal)
 void
 vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
 {
+	guint v;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->bg_saturation = CLAMP(saturation * VTE_SATURATION_MAX,
-					     0, VTE_SATURATION_MAX);
+
+	v = CLAMP(saturation * VTE_SATURATION_MAX,
+				0, VTE_SATURATION_MAX);
 	_vte_debug_print(VTE_DEBUG_MISC,
-			"Setting background saturation to %ld/%ld.\n",
-			terminal->pvt->bg_saturation,
-			(long) VTE_SATURATION_MAX);
-	vte_terminal_queue_background_update(terminal);
+			"Setting background saturation to %d/%d.\n",
+			v, VTE_SATURATION_MAX);
+	if (v != terminal->pvt->bg_saturation) {
+		terminal->pvt->bg_saturation = v;
+		vte_terminal_queue_background_update(terminal);
+	}
 }
 
 /**
@@ -10917,13 +10959,18 @@ vte_terminal_set_background_tint_color(VteTerminal *terminal,
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail(color != NULL);
-	terminal->pvt->bg_tint_color = *color;
+
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Setting background tint to %d,%d,%d.\n",
 			terminal->pvt->bg_tint_color.red >> 8,
 			terminal->pvt->bg_tint_color.green >> 8,
 			terminal->pvt->bg_tint_color.blue >> 8);
-	vte_terminal_queue_background_update(terminal);
+	if (color->red != terminal->pvt->bg_tint_color.red ||
+			color->green != terminal->pvt->bg_tint_color.green ||
+			color->blue != terminal->pvt->bg_tint_color.blue) {
+		terminal->pvt->bg_tint_color = *color;
+		vte_terminal_queue_background_update(terminal);
+	}
 }
 
 /**
@@ -11786,27 +11833,37 @@ _vte_terminal_remove_selection(VteTerminal *terminal)
 static void
 add_update_timeout (VteTerminal *terminal)
 {
-	if (terminal->pvt->active == NULL) {
-		_vte_debug_print(VTE_DEBUG_TIMEOUT,
-				"Adding terminal to active list\n");
-		terminal->pvt->active = active_terminals =
-			g_list_prepend (active_terminals, terminal);
-	}
 	if (update_timeout_tag == VTE_INVALID_SOURCE) {
-		_vte_debug_print(VTE_DEBUG_TIMEOUT,
-				"Starting update timeout\n");
-		update_timeout_tag =
-			g_timeout_add_full (GDK_PRIORITY_REDRAW,
-					VTE_UPDATE_TIMEOUT,
-					update_timeout, NULL,
-					NULL);
+		if (terminal->pvt->active != NULL) {
+			_vte_debug_print (VTE_DEBUG_TIMEOUT,
+					"Starting update timeout [delayed]\n");
+			update_timeout_tag =
+				g_timeout_add_full (GDK_PRIORITY_REDRAW,
+						VTE_UPDATE_TIMEOUT,
+						update_timeout, NULL,
+						NULL);
+		} else {
+			/* external event, do not delay */
+			_vte_debug_print (VTE_DEBUG_TIMEOUT,
+					"Starting update timeout [immediate]\n");
+			update_timeout_tag =
+				g_idle_add_full (GDK_PRIORITY_REDRAW,
+						update_timeout, NULL,
+						NULL);
+		}
 	}
 	if (in_process_timeout == FALSE &&
 			process_timeout_tag != VTE_INVALID_SOURCE) {
-		_vte_debug_print(VTE_DEBUG_TIMEOUT,
+		_vte_debug_print (VTE_DEBUG_TIMEOUT,
 				"Removing process timeout\n");
 		g_source_remove (process_timeout_tag);
 		process_timeout_tag = VTE_INVALID_SOURCE;
+	}
+	if (terminal->pvt->active == NULL) {
+		_vte_debug_print (VTE_DEBUG_TIMEOUT,
+				"Adding terminal to active list\n");
+		terminal->pvt->active = active_terminals =
+			g_list_prepend (active_terminals, terminal);
 	}
 
 }

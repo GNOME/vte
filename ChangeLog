@@ -1,3 +1,27 @@
+2007-03-04  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	cf Bug 414586 – Terminal screen blinks when menu is opened for the first time
+
+	Distinguish between internal update requests and external. If we
+	need to update due to a user action (such as adjusting the background
+	or color palette) do not impose a futher delay.
+
+	Tidy the color palette modification code to not trigger invalidates if
+	we do not actually modify the palette.
+
+	* src/vte-private.h:
+	* src/vte.c (vte_terminal_set_color_internal),
+	(vte_terminal_set_color_bold), (vte_terminal_set_color_dim),
+	(vte_terminal_set_color_foreground),
+	(vte_terminal_set_color_background),
+	(vte_terminal_set_color_cursor),
+	(vte_terminal_set_color_highlight), (vte_terminal_set_colors),
+	(root_pixmap_changed_cb), (vte_terminal_set_background_saturation),
+	(vte_terminal_set_background_tint_color), (add_update_timeout):
+	* src/vteseq.c (vte_sequence_handler_ce),
+	(vte_sequence_handler_clear_current_line),
+	(vte_sequence_handler_clear_above_current):
+
 2007-03-02  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 413068 – new line added to tab when opened
