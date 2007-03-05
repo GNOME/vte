@@ -1206,6 +1206,16 @@ vte_sequence_handler_cm(VteTerminal *terminal,
 	VteScreen *screen;
 
 	screen = terminal->pvt->screen;
+
+	/* Match xterm and fill to the end of row when moving. */
+	if (screen->fill_defaults.back != VTE_DEF_BG) {
+		VteRowData *rowdata;
+		rowdata = _vte_terminal_ensure_row (terminal);
+		vte_g_array_fill (rowdata->cells,
+				&screen->fill_defaults,
+				terminal->column_count);
+	}
+
 	/* We need at least two parameters. */
 	rowval = colval = 0;
 	if (params != NULL && params->n_values >= 1) {
@@ -1485,6 +1495,14 @@ vte_sequence_handler_dc(VteTerminal *terminal,
 		/* Remove the column. */
 		if (col < len) {
 			g_array_remove_index(rowdata->cells, col);
+			if (screen->fill_defaults.back != VTE_DEF_BG) {
+				VteRowData *rowdata;
+				rowdata = _vte_terminal_ensure_row (terminal);
+				vte_g_array_fill (rowdata->cells,
+						&screen->fill_defaults,
+						terminal->column_count);
+				len = terminal->column_count;
+			}
 			/* Repaint this row. */
 			_vte_invalidate_cells(terminal,
 					col, len - col,
@@ -2170,6 +2188,15 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 
 	screen = terminal->pvt->screen;
 
+	/* Match xterm and fill to the end of row when scrolling. */
+	if (screen->fill_defaults.back != VTE_DEF_BG) {
+		VteRowData *rowdata;
+		rowdata = _vte_terminal_ensure_row (terminal);
+		vte_g_array_fill (rowdata->cells,
+				&screen->fill_defaults,
+				terminal->column_count);
+	}
+
 	if (screen->scrolling_restricted) {
 		start = screen->insert_delta + screen->scrolling_region.start;
 		end = screen->insert_delta + screen->scrolling_region.end;
@@ -2225,7 +2252,8 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 			screen->cursor_current.row++;
 			_vte_terminal_update_insert_delta(terminal);
 		}
-		/* Match xterm and fill to the end of row when scrolling. */
+
+		/* Match xterm and fill the new row when scrolling. */
 		if (screen->fill_defaults.back != VTE_DEF_BG) {
 			VteRowData *rowdata;
 			rowdata = _vte_terminal_ensure_row (terminal);
@@ -2893,6 +2921,15 @@ vte_sequence_handler_cursor_character_absolute(VteTerminal *terminal,
 	long val;
 
 	screen = terminal->pvt->screen;
+
+	/* Match xterm and fill to the end of row when moving. */
+	if (screen->fill_defaults.back != VTE_DEF_BG) {
+		VteRowData *rowdata;
+		rowdata = _vte_terminal_ensure_row (terminal);
+		vte_g_array_fill (rowdata->cells,
+				&screen->fill_defaults,
+				terminal->column_count);
+	}
 
         val = 0;
 	if ((params != NULL) && (params->n_values > 0)) {

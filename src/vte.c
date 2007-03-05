@@ -9391,7 +9391,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					if (j == terminal->column_count) {
 						w = terminal->widget.allocation.width;
 					} else {
-						w = j * column_width + bold;
+						w = 1 + j * column_width + bold;
 					}
 					w -= x0;
 					_vte_draw_fill_rectangle (
@@ -9434,7 +9434,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					if (j == terminal->column_count) {
 						w = terminal->widget.allocation.width;
 					} else {
-						w = j * column_width;
+						w = 1 + j * column_width;
 					}
 					w -= x0;
 					_vte_draw_fill_rectangle (
