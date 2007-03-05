@@ -396,11 +396,15 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	 * by multiplying by the size of a character cell.
 	 * Always include the extra pixel border.
 	 */
-	rect.x = column_start * terminal->char_width - VTE_PAD_WIDTH;
-	rect.width = column_count * terminal->char_width + 4*VTE_PAD_WIDTH;
+	rect.x = column_start * terminal->char_width - 2*VTE_PAD_WIDTH;
+	rect.width = column_count * terminal->char_width + 5*VTE_PAD_WIDTH;
 
-	rect.y = row_start * terminal->char_height - VTE_PAD_WIDTH;
+	rect.y = row_start * terminal->char_height - 2*VTE_PAD_WIDTH;
 	rect.height = row_count * terminal->char_height + 4*VTE_PAD_WIDTH;
+
+	_vte_debug_print (VTE_DEBUG_UPDATES,
+			"Invalidating pixels at (%d,%d)x(%d,%d).\n",
+			rect.x, rect.y, rect.width, rect.height);
 
 	terminal->pvt->update_regions = g_slist_prepend (
 			terminal->pvt->update_regions,
@@ -1647,7 +1651,6 @@ _vte_terminal_adjust_adjustments(VteTerminal *terminal)
 static void
 _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 {
-	VteScreen *screen;
 	gboolean changed = FALSE;
 
 	g_assert(terminal->pvt->screen != NULL);
@@ -2303,7 +2306,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			 (palette_size == G_N_ELEMENTS(terminal->pvt->palette)));
 
 	_vte_debug_print(VTE_DEBUG_MISC,
-			"Set color palette [%d elements].\n",
+			"Set color palette [%ld elements].\n",
 			palette_size);
 
 	/* Accept NULL as the default foreground and background colors if we
@@ -7237,6 +7240,7 @@ vte_terminal_init(VteTerminal *terminal)
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_init()\n");
 
 	GTK_WIDGET_SET_FLAGS(terminal, GTK_CAN_FOCUS);
+	//gtk_widget_set_double_buffered (&terminal->widget, FALSE);
 
 	/* We do our own redrawing. */
 	gtk_widget_set_redraw_on_allocate (&terminal->widget, FALSE);
@@ -9619,16 +9623,34 @@ vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, GdkRectang
 	 * inclusion of neighbouring cells */
 	row = MAX(0, (area->y - VTE_PAD_WIDTH - 1) / height);
 	row_stop = MIN(howmany(area->height + area->y - VTE_PAD_WIDTH + 1, height),
-		       terminal->row_count);
+		       terminal->row_count - 1);
 	if (row_stop <= row) {
 		return;
 	}
 	col = MAX(0, (area->x - VTE_PAD_WIDTH - 1) / width);
 	col_stop = MIN(howmany(area->width + area->x - VTE_PAD_WIDTH + 1, width),
-		       terminal->column_count);
+		       terminal->column_count - 1);
 	if (col_stop <= col) {
 		return;
 	}
+
+	if (col == 0)
+		rect.x = 0;
+	else
+		rect.x = col*width + VTE_PAD_WIDTH;
+	if (col_stop == terminal->column_count - 1)
+		rect.width = terminal->widget.allocation.width - rect.x;
+	else
+		rect.width = (col_stop - col + 1)*width;
+	if (row == 0)
+		rect.y = 0;
+	else
+		rect.y = row*height + VTE_PAD_WIDTH;
+	if (row_stop == terminal->row_count - 1)
+		rect.height = terminal->widget.allocation.height - rect.y;
+	else
+		rect.height = (row_stop - row + 1)*height;
+	gdk_region_union_with_rect(region, &rect);
 
 	_vte_debug_print (VTE_DEBUG_UPDATES,
 			"vte_terminal_expand_region"
@@ -9636,16 +9658,8 @@ vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, GdkRectang
 			" (%d,%d)x(%d,%d) cells"
 			" [(%d,%d)x(%d,%d) pixels]\n",
 			area->x, area->y, area->width, area->height,
-			col, row, col_stop - col, row_stop - row,
-			col * width, row * height,
-			(col_stop - col) * width,
-			(row_stop - row) * height);
-
-	rect.x = col*width + VTE_PAD_WIDTH;
-	rect.width = (col_stop - col + 1)*width;
-	rect.y = row*height + VTE_PAD_WIDTH;
-	rect.height = (row_stop - row + 1)*height;
-	gdk_region_union_with_rect(region, &rect);
+			col, row, col_stop - col + 1, row_stop - row + 1,
+			rect.x, rect.y, rect.width, rect.height);
 }
 
 static void
@@ -9685,11 +9699,11 @@ vte_terminal_paint_area (VteTerminal *terminal, GdkRectangle *area)
 			col * width, row * height,
 			(col_stop - col) * width,
 			(row_stop - row) * height);
-	_vte_draw_clear(terminal->pvt->draw,
-			col * width + VTE_PAD_WIDTH,
-			row * height + VTE_PAD_WIDTH,
-			(col_stop - col) * width,
-			(row_stop - row) * height);
+	if (!GTK_WIDGET_DOUBLE_BUFFERED (terminal)) {
+		_vte_draw_clear(terminal->pvt->draw,
+				area->x, area->y,
+				area->width, area->height);
+	}
 
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */

@@ -1,3 +1,12 @@
+2007-03-05  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	cf Bug 414586 – Terminal screen blinks when menu is opened for the first time
+
+	* src/vte.c (_vte_invalidate_cells), (vte_terminal_init),
+	(vte_terminal_expand_region), (vte_terminal_paint_area):
+		After enlarging the expand region make sure the dirty area
+		includes the border for edge cells.
+
 2007-03-04  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	cf Bug 414586 – Terminal screen blinks when menu is opened for the first time
