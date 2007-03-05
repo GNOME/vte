@@ -8,31 +8,31 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-02-12 19:00+0300\n"
-"PO-Revision-Date: 2007-02-12 19:27+0300\n"
+"POT-Creation-Date: 2007-03-05 18:04+0300\n"
+"PO-Revision-Date: 2007-03-05 18:05+0300\n"
 "Last-Translator: Pauli Virtanen <pauli.virtanen@hut.fi>\n"
 "Language-Team: Finnish <gnome-fi-laatu@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: ../src/iso2022.c:783 ../src/iso2022.c:791 ../src/iso2022.c:822
-#: ../src/vte.c:1751
+#: ../src/iso2022.c:784 ../src/iso2022.c:792 ../src/iso2022.c:823
+#: ../src/vte.c:1776
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Merkkien muuntaminen merkistöstä %s merkistöön %s ei onnistu."
 
-#: ../src/iso2022.c:1535
+#: ../src/iso2022.c:1532
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Yritys asettaa virheellinen NRC-kartta \"%c\"."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1565
+#: ../src/iso2022.c:1562
 msgid "Unrecognized identified coding system."
 msgstr "Sovelluksen tunnetuksi ilmoittama merkistö on tuntematon."
 
-#: ../src/iso2022.c:1624 ../src/iso2022.c:1651
+#: ../src/iso2022.c:1621 ../src/iso2022.c:1648
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Yritys asettaa virheellinen laaja NRC-kartta \"%c\"."
@@ -40,7 +40,7 @@ msgstr "Yritys asettaa virheellinen laaja NRC-kartta \"%c\"."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: ../src/pty.c:786
+#: ../src/pty.c:837
 #, c-format
 msgid "can not run %s"
 msgstr "ei voi suorittaa: %s"
@@ -54,12 +54,12 @@ msgstr "Signaaliputken luontivirhe."
 msgid "Duplicate (%s/%s)!"
 msgstr "Monikertainen (%s%s)!"
 
-#: ../src/vte.c:1132
+#: ../src/vte.c:1163
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Virhe säleen \"%s\" kääntämisessä."
 
-#: ../src/vte.c:2603 ../src/vte.c:2608
+#: ../src/vte.c:2623 ../src/vte.c:2628
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Ohjaussarjalle \"%s\" ei ole määritelty käsittelintä."
@@ -70,27 +70,31 @@ msgstr "Ohjaussarjalle \"%s\" ei ole määritelty käsittelintä."
 msgid "Error reading from child: %s."
 msgstr "Virhe lapselta lukemisessa: %s."
 
-#: ../src/vte.c:3697 ../src/vte.c:4577
+#: ../src/vte.c:3695
+msgid "Unable to send data to child, invalid charset convertor"
+msgstr "Tietoja ei voitu lähettää lapselle, virheellinen merkistömuunnin"
+
+#: ../src/vte.c:3706 ../src/vte.c:4601
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Virhe (%s) datan muuntamisessa lapselle, putoaa pois."
 
-#: ../src/vte.c:6673
+#: ../src/vte.c:6827
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Virhe PTY-koon lukemisessa: oletus käytössä: %s."
 
-#: ../src/vte.c:6702
+#: ../src/vte.c:6856
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Virhe PTY-koon asettamisessa: %s."
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:10948
+#: ../src/vte.c:11195
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() ei onnistunut asettamaan sanamerkkejä"
 
-#: ../src/vteseq.c:3908
+#: ../src/vteseq.c:3910
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Vastaanotti odottamattoman (näppäily?)sarjan \"%s\""
@@ -109,7 +113,7 @@ msgstr "Geometriamäärittelyä parametrissa --geometry ei voitu tulkita oikein"
 msgid "Unknown pixel mode %d.\n"
 msgstr "Tuntematon pikselitila %d.\n"
 
-#: ../src/vtexft.c:199
+#: ../src/vtexft.c:267
 #, c-format
 msgid "Can not find appropiate font for character U+%04x.\n"
 msgstr "Sopivaa kirjasinta merkille U+%04x ei löytynyt.\n"
