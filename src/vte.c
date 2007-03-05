@@ -9271,6 +9271,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 	struct _vte_draw_text_request items[4*VTE_DRAW_MAX_LENGTH];
 	gint i, j, row, rows, x, y, end_column;
 	gint fore, nfore, back, nback;
+	glong delta;
 	gboolean underline, nunderline, bold, nbold, hilite, nhilite, reverse,
 		 selected, nselected, strikethrough, nstrikethrough;
 	guint item_count;
@@ -9284,11 +9285,26 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 	end_column = start_column + column_count;
 
 	/* clear the background */
+	delta = screen->scroll_delta;
 	x = start_x + VTE_PAD_WIDTH;
 	y = start_y + VTE_PAD_WIDTH;
 	row = start_row;
 	rows = row_count;
 	do {
+		gint y0, h;
+
+		if (row == delta) {
+			y0 = 0;
+		} else {
+			y0 = y;
+		}
+		if (row == delta + terminal->row_count - 1) {
+			h = terminal->widget.allocation.height;
+		} else {
+			h = y + row_height;
+		}
+		h -= y0;
+
 		row_data = _vte_terminal_find_row_data(terminal, row);
 		/* Back up in case this is a multicolumn character,
 		 * making the drawing area a little wider. */
@@ -9343,13 +9359,24 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				if (back != VTE_DEF_BG) {
 					GdkColor color;
 					const struct vte_palette_entry *bg = &terminal->pvt->palette[back];
+					gint x0, w;
 					color.red = bg->red;
 					color.blue = bg->blue;
 					color.green = bg->green;
-					_vte_draw_fill_rectangle(terminal->pvt->draw,
-							x + i * column_width, y,
-							(j - i) * column_width + bold,
-							row_height,
+					if (i == 0) {
+						x0 = 0;
+					} else {
+						x0 = x + i * column_width;
+					}
+					if (j == terminal->column_count) {
+						w = terminal->widget.allocation.width;
+					} else {
+						w = j * column_width + bold;
+					}
+					w -= x0;
+					_vte_draw_fill_rectangle (
+							terminal->pvt->draw,
+							x0, y0, w, h,
 							&color, VTE_DRAW_OPAQUE);
 				}
 				/* We'll need to continue at the first cell which didn't
@@ -9375,13 +9402,24 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				if (back != VTE_DEF_BG) {
 					GdkColor color;
 					const struct vte_palette_entry *bg = &terminal->pvt->palette[back];
+					gint x0, w;
 					color.red = bg->red;
 					color.blue = bg->blue;
 					color.green = bg->green;
-					_vte_draw_fill_rectangle(terminal->pvt->draw,
-							x + i * column_width, y,
-							(j - i) * column_width,
-							row_height,
+					if (i == 0) {
+						x0 = 0;
+					} else {
+						x0 = x + i * column_width;
+					}
+					if (j == terminal->column_count) {
+						w = terminal->widget.allocation.width;
+					} else {
+						w = j * column_width;
+					}
+					w -= x0;
+					_vte_draw_fill_rectangle (
+							terminal->pvt->draw,
+							x0, y0, w, h,
 							&color, VTE_DRAW_OPAQUE);
 				}
 				i = j;
@@ -9636,13 +9674,13 @@ vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, GdkRectang
 	 * inclusion of neighbouring cells */
 	row = MAX(0, (area->y - VTE_PAD_WIDTH - 1) / height);
 	row_stop = MIN(howmany(area->height + area->y - VTE_PAD_WIDTH + 1, height),
-		       terminal->row_count - 1);
+		       terminal->row_count);
 	if (row_stop <= row) {
 		return;
 	}
 	col = MAX(0, (area->x - VTE_PAD_WIDTH - 1) / width);
 	col_stop = MIN(howmany(area->width + area->x - VTE_PAD_WIDTH + 1, width),
-		       terminal->column_count - 1);
+		       terminal->column_count);
 	if (col_stop <= col) {
 		return;
 	}
@@ -9651,18 +9689,20 @@ vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, GdkRectang
 		rect.x = 0;
 	else
 		rect.x = col*width + VTE_PAD_WIDTH;
-	if (col_stop == terminal->column_count - 1)
-		rect.width = terminal->widget.allocation.width - rect.x;
+	if (col_stop == terminal->column_count)
+		rect.width = terminal->widget.allocation.width;
 	else
-		rect.width = (col_stop - col + 1)*width;
+		rect.width = col_stop*width;
+	rect.width -= rect.x;
 	if (row == 0)
 		rect.y = 0;
 	else
 		rect.y = row*height + VTE_PAD_WIDTH;
-	if (row_stop == terminal->row_count - 1)
-		rect.height = terminal->widget.allocation.height - rect.y;
+	if (row_stop == terminal->row_count)
+		rect.height = terminal->widget.allocation.height;
 	else
-		rect.height = (row_stop - row + 1)*height;
+		rect.height = row_stop*height;
+	rect.height -= rect.y;
 	gdk_region_union_with_rect(region, &rect);
 
 	_vte_debug_print (VTE_DEBUG_UPDATES,
@@ -9671,7 +9711,7 @@ vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, GdkRectang
 			" (%d,%d)x(%d,%d) cells"
 			" [(%d,%d)x(%d,%d) pixels]\n",
 			area->x, area->y, area->width, area->height,
-			col, row, col_stop - col + 1, row_stop - row + 1,
+			col, row, col_stop - col, row_stop - row,
 			rect.x, rect.y, rect.width, rect.height);
 }
 

@@ -1,5 +1,12 @@
 2007-03-05  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	cf Bug 414586 – Terminal screen blinks when menu is opened for the first time
+
+	* src/vte.c (vte_terminal_draw_rows), (vte_terminal_expand_region):
+		Include the window padding when painting the cell backgrounds.
+
+2007-03-05  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 414586 – Terminal screen blinks when menu is opened for the first time
 
 	Avoid resetting the window background colour when the style is reset.
