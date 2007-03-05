@@ -7361,6 +7361,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->block_mode = FALSE;
 	pvt->had_block_mode = FALSE;
 	pvt->has_fonts = FALSE;
+	pvt->root_pixmap_changed_tag = VTE_INVALID_SOURCE;
 
 	/* window is obscured until mapped */
 	pvt->visibility_state = GDK_VISIBILITY_FULLY_OBSCURED;
@@ -7430,6 +7431,13 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE,
 			"vte_terminal_size_allocate()\n");
+
+	if (allocation->width == widget->allocation.width &&
+			allocation->height == widget->allocation.height &&
+			allocation->x == widget->allocation.x &&
+			allocation->y == widget->allocation.y) {
+		return;
+	}
 
 	terminal = VTE_TERMINAL(widget);
 
@@ -7516,17 +7524,19 @@ static void
 vte_terminal_unrealize(GtkWidget *widget)
 {
 	VteTerminal *terminal;
-	VteBg       *bg;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unrealize()\n");
 
 	terminal = VTE_TERMINAL(widget);
 
 	/* Disconnect from background-change events. */
-	bg = vte_bg_get_for_screen(gtk_widget_get_screen(widget));
-	g_signal_handlers_disconnect_by_func(bg,
-					     root_pixmap_changed_cb,
-					     widget);
+	if (terminal->pvt->root_pixmap_changed_tag != VTE_INVALID_SOURCE) {
+		VteBg       *bg;
+		bg = vte_bg_get_for_screen(gtk_widget_get_screen(widget));
+		g_signal_handler_disconnect (bg,
+				terminal->pvt->root_pixmap_changed_tag);
+		terminal->pvt->root_pixmap_changed_tag = VTE_INVALID_SOURCE;
+	}
 
 	/* Deallocate the cursors. */
 	terminal->pvt->mouse_cursor_visible = FALSE;
@@ -7790,7 +7800,6 @@ vte_terminal_realize(GtkWidget *widget)
 	GdkPixmap *bitmap;
 	GdkColor black = {0,0,0}, color;
 	guint attributes_mask = 0, i;
-	VteBg *bg;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_realize()\n");
 
@@ -7897,12 +7906,6 @@ vte_terminal_realize(GtkWidget *widget)
 									&black,
 									0, 0);
 	g_object_unref(bitmap);
-
-	/* Connect to background-change events. */
-	bg = vte_bg_get_for_screen(gtk_widget_get_screen(widget));
-	g_signal_connect(bg, "root-pixmap-changed",
-			 G_CALLBACK(root_pixmap_changed_cb),
-			 terminal);
 
 	widget->style = gtk_style_attach(widget->style, widget->window);
 
@@ -9709,8 +9712,9 @@ vte_terminal_paint_area (VteTerminal *terminal, GdkRectangle *area)
 			col * width, row * height,
 			(col_stop - col) * width,
 			(row_stop - row) * height);
-	if (!GTK_WIDGET_DOUBLE_BUFFERED (terminal)) {
-		_vte_draw_clear(terminal->pvt->draw,
+	if (!GTK_WIDGET_DOUBLE_BUFFERED (terminal) ||
+			_vte_draw_has_background_image (terminal->pvt->draw)) {
+		_vte_draw_clear (terminal->pvt->draw,
 				area->x, area->y,
 				area->width, area->height);
 	}
@@ -10066,6 +10070,9 @@ vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL (widget);
 	_vte_debug_print (VTE_DEBUG_WORK, "+");
+	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
+		return FALSE;
+	}
 	_vte_debug_print (VTE_DEBUG_EVENTS, "Expose (%d,%d)x(%d,%d)\n",
 			event->area.x, event->area.y,
 			event->area.width, event->area.height);
@@ -10268,6 +10275,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	widget_class->focus_out_event = vte_terminal_focus_out;
 	widget_class->visibility_notify_event = vte_terminal_visibility_notify;
 	widget_class->unrealize = vte_terminal_unrealize;
+	widget_class->style_set = NULL;
 	widget_class->size_request = vte_terminal_size_request;
 	widget_class->size_allocate = vte_terminal_size_allocate;
 	widget_class->get_accessible = vte_terminal_get_accessible;
@@ -10859,10 +10867,15 @@ vte_terminal_background_update(VteTerminal *terminal)
 	bgcolor.blue = terminal->pvt->palette[VTE_DEF_BG].blue;
 	bgcolor.pixel = 0;
 	gtk_widget_ensure_style(&terminal->widget);
-	colormap = gdk_gc_get_colormap(terminal->widget.style->fg_gc[GTK_WIDGET_STATE(terminal)]);
+	//colormap = gdk_gc_get_colormap(terminal->widget.style->fg_gc[GTK_WIDGET_STATE(terminal)]);
+	colormap = gtk_widget_get_colormap (&terminal->widget);
 	if (colormap) {
 		gdk_rgb_find_color(colormap, &bgcolor);
 	}
+	_vte_debug_print(VTE_DEBUG_MISC,
+			"Setting background color to (%d, %d, %d) cmap index=%d.\n",
+			bgcolor.red, bgcolor.green, bgcolor.blue,
+			bgcolor.pixel);
 	gdk_window_set_background(terminal->widget.window, &bgcolor);
 	_vte_draw_set_background_color(terminal->pvt->draw, &bgcolor,
 				       terminal->pvt->bg_opacity);
@@ -10872,6 +10885,17 @@ vte_terminal_background_update(VteTerminal *terminal)
 	saturation = terminal->pvt->bg_saturation * 1.0;
 	saturation /= VTE_SATURATION_MAX;
 	if (terminal->pvt->bg_transparent) {
+		if (terminal->pvt->root_pixmap_changed_tag == VTE_INVALID_SOURCE) {
+			VteBg *bg;
+
+			/* Connect to background-change events. */
+			bg = vte_bg_get_for_screen (gtk_widget_get_screen (&terminal->widget));
+			terminal->pvt->root_pixmap_changed_tag =
+				g_signal_connect(bg, "root-pixmap-changed",
+					G_CALLBACK(root_pixmap_changed_cb),
+					terminal);
+		}
+
 		_vte_draw_set_background_image(terminal->pvt->draw,
 					       VTE_BG_SOURCE_ROOT,
 					       NULL,

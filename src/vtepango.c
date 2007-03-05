@@ -175,11 +175,14 @@ _vte_pango_set_background_image(struct _vte_draw *draw,
 	if (data->pixmap != NULL) {
 		g_object_unref(data->pixmap);
 	}
+	draw->has_background_image = FALSE;
 	data->pixmap = NULL;
 	data->pixmapw = data->pixmaph = 0;
 	if (pixmap) {
 		data->pixmap = pixmap;
 		gdk_drawable_get_size(pixmap, &data->pixmapw, &data->pixmaph);
+		draw->has_background_image =
+			data->pixmapw > 0 && data->pixmaph > 0;
 	}
 }
 

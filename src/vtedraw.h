@@ -100,6 +100,7 @@ struct _vte_draw {
 	GtkWidget *widget;
 	gboolean started;
 	gint width, height, ascent;
+	gboolean has_background_image;
 	const struct _vte_draw_impl *impl;
 	gpointer impl_data;
 };
@@ -131,6 +132,7 @@ void _vte_draw_set_background_image(struct _vte_draw *draw,
 				    const char *file,
 				    const GdkColor *color,
 				    double saturation);
+gboolean _vte_draw_has_background_image (struct _vte_draw *draw);
 gboolean _vte_draw_requires_repaint(struct _vte_draw *draw);
 gboolean _vte_draw_clip(struct _vte_draw *draw, GdkRegion *region);
 void _vte_draw_clear(struct _vte_draw *draw,

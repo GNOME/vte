@@ -361,6 +361,7 @@ struct _VteTerminalPrivate {
 	gchar *icon_title_changed;
 
 	/* Background images/"transparency". */
+	guint root_pixmap_changed_tag;
 	gboolean bg_update_pending;
 	gboolean bg_transparent;
 	GdkPixbuf *bg_pixbuf;

@@ -263,6 +263,7 @@ _vte_gl_set_background_image(struct _vte_draw *draw,
 		g_object_unref(data->bgpixbuf);
 	}
 	data->bgpixbuf = bgpixbuf;
+	draw->has_background_image = bgpixbuf != NULL;
 }
 
 static void

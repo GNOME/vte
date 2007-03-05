@@ -2,6 +2,27 @@
 
 	Bug 414586 – Terminal screen blinks when menu is opened for the first time
 
+	Avoid resetting the window background colour when the style is reset.
+	Avoid clearing the window if we are using a simple color and double
+	bufferring (i.e when we know we are using a pre-cleared pixmap).
+
+	* src/vte-private.h:
+	* src/vte.c (vte_terminal_init), (vte_terminal_size_allocate),
+	(vte_terminal_unrealize), (vte_terminal_realize),
+	(vte_terminal_paint_area), (vte_terminal_expose),
+	(vte_terminal_class_init), (vte_terminal_background_update):
+	* src/vtedraw.c (_vte_draw_has_background_image):
+	* src/vtedraw.h:
+	* src/vteft2.c (_vte_ft2_set_background_image):
+	* src/vtegl.c (_vte_gl_set_background_image):
+	* src/vtepango.c (_vte_pango_set_background_image):
+	* src/vtepangox.c (_vte_pango_x_set_background_image):
+	* src/vtexft.c (_vte_xft_set_background_image):
+
+2007-03-05  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 414586 – Terminal screen blinks when menu is opened for the first time
+
 	* src/vte.c (_vte_invalidate_cells), (_vte_invalidate_all),
 	(vte_terminal_expose), (add_update_timeout):
 		Juggle the handling of external exposes/invalidates to avoid
