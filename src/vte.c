@@ -406,12 +406,17 @@ _vte_invalidate_cells(VteTerminal *terminal,
 			"Invalidating pixels at (%d,%d)x(%d,%d).\n",
 			rect.x, rect.y, rect.width, rect.height);
 
-	terminal->pvt->update_regions = g_slist_prepend (
-			terminal->pvt->update_regions,
-			gdk_region_rectangle (&rect));
-	/* Wait a bit before doing any invalidation, just in
-	 * case updates are coming in really soon. */
-	add_update_timeout (terminal);
+	if (terminal->pvt->active != NULL) {
+		terminal->pvt->update_regions = g_slist_prepend (
+				terminal->pvt->update_regions,
+				gdk_region_rectangle (&rect));
+		/* Wait a bit before doing any invalidation, just in
+		 * case updates are coming in really soon. */
+		add_update_timeout (terminal);
+	} else {
+		gdk_window_invalidate_rect (terminal->widget.window,
+				&rect, FALSE);
+	}
 
 	_vte_debug_print (VTE_DEBUG_WORK, "!");
 }
@@ -461,13 +466,18 @@ _vte_invalidate_all(VteTerminal *terminal)
 	rect.x = rect.y = 0;
 	rect.width = terminal->widget.allocation.width;
 	rect.height = terminal->widget.allocation.height;
-	terminal->pvt->update_regions = g_slist_prepend (NULL,
-			gdk_region_rectangle (&rect));
 	terminal->pvt->invalidated_all = TRUE;
 
-	/* Wait a bit before doing any invalidation, just in
-	 * case updates are coming in really soon. */
-	add_update_timeout (terminal);
+	if (terminal->pvt->active != NULL) {
+		terminal->pvt->update_regions = g_slist_prepend (NULL,
+				gdk_region_rectangle (&rect));
+		/* Wait a bit before doing any invalidation, just in
+		 * case updates are coming in really soon. */
+		add_update_timeout (terminal);
+	} else {
+		gdk_window_invalidate_rect (terminal->widget.window,
+				&rect, FALSE);
+	}
 }
 
 /* Scroll a rectangular region up or down by a fixed number of lines,
@@ -10059,9 +10069,9 @@ vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 	_vte_debug_print (VTE_DEBUG_EVENTS, "Expose (%d,%d)x(%d,%d)\n",
 			event->area.x, event->area.y,
 			event->area.width, event->area.height);
-	/* if we expect to redraw the widget soon,
-	 * just add this event to the list */
-	if (terminal->pvt->update_regions != NULL) {
+	if (terminal->pvt->active != NULL && !in_update_timeout) {
+		/* if we expect to redraw the widget soon,
+		 * just add this event to the list */
 		if (!terminal->pvt->invalidated_all) {
 			if (event->area.width >= widget->allocation.width &&
 					event->area.height >= widget->allocation.height) {
@@ -11848,23 +11858,13 @@ static void
 add_update_timeout (VteTerminal *terminal)
 {
 	if (update_timeout_tag == VTE_INVALID_SOURCE) {
-		if (terminal->pvt->active != NULL) {
-			_vte_debug_print (VTE_DEBUG_TIMEOUT,
-					"Starting update timeout [delayed]\n");
-			update_timeout_tag =
-				g_timeout_add_full (GDK_PRIORITY_REDRAW,
-						VTE_UPDATE_TIMEOUT,
-						update_timeout, NULL,
-						NULL);
-		} else {
-			/* external event, do not delay */
-			_vte_debug_print (VTE_DEBUG_TIMEOUT,
-					"Starting update timeout [immediate]\n");
-			update_timeout_tag =
-				g_idle_add_full (GDK_PRIORITY_REDRAW,
-						update_timeout, NULL,
-						NULL);
-		}
+		_vte_debug_print (VTE_DEBUG_TIMEOUT,
+				"Starting update timeout\n");
+		update_timeout_tag =
+			g_timeout_add_full (GDK_PRIORITY_REDRAW,
+					VTE_UPDATE_TIMEOUT,
+					update_timeout, NULL,
+					NULL);
 	}
 	if (in_process_timeout == FALSE &&
 			process_timeout_tag != VTE_INVALID_SOURCE) {
