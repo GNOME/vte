@@ -7436,13 +7436,6 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE,
 			"vte_terminal_size_allocate()\n");
 
-	if (allocation->width == widget->allocation.width &&
-			allocation->height == widget->allocation.height &&
-			allocation->x == widget->allocation.x &&
-			allocation->y == widget->allocation.y) {
-		return;
-	}
-
 	terminal = VTE_TERMINAL(widget);
 
 	width = (allocation->width - (2 * VTE_PAD_WIDTH)) /

@@ -1,5 +1,10 @@
 2007-03-05  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c (vte_terminal_size_allocate):
+		Note to self: Never try to optimize away the redraw.
+
+2007-03-05  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c (_vte_terminal_insert_char):
 	* src/vtedraw.c (_vte_draw_text), (_vte_draw_char),
 	(_vte_draw_fill_rectangle), (_vte_draw_draw_rectangle):
