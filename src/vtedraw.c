@@ -228,7 +228,6 @@ _vte_draw_set_background_image (struct _vte_draw *draw,
 gboolean
 _vte_draw_has_background_image (struct _vte_draw *draw)
 {
-	g_return_if_fail (draw->impl != NULL);
 	return draw->has_background_image;
 }
 
