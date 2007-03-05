@@ -1,5 +1,12 @@
 2007-03-05  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c (_vte_invalidate_cells), (vte_terminal_set_visibility),
+	(vte_terminal_paint_area), (vte_terminal_expose):
+		Make sure the invalidated_all flag is cleared in the expose
+		event if we handle it immediately.
+
+2007-03-05  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vteseq.c (vte_sequence_handler_ce),
 	(vte_sequence_handler_clear_current_line):
 		Fixup invalidation to end-of-line.

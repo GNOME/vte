@@ -352,7 +352,8 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		return;
 	}
 
-	if (G_UNLIKELY (!GTK_WIDGET_DRAWABLE(terminal) || terminal->pvt->invalidated_all)) {
+	if (G_UNLIKELY (!GTK_WIDGET_DRAWABLE(terminal) ||
+				terminal->pvt->invalidated_all)) {
 		return;
 	}
 
@@ -6603,6 +6604,10 @@ visibility_state_str(GdkVisibilityState state)
 static void
 vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state)
 {
+	_vte_debug_print(VTE_DEBUG_MISC, "change visibility: %s -> %s.\n",
+			visibility_state_str(terminal->pvt->visibility_state),
+			visibility_state_str(state));
+
 	if (state == terminal->pvt->visibility_state) {
 		return;
 	}
@@ -6616,7 +6621,7 @@ vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state)
 		/* if all unobscured now, invalidate all, otherwise, wait
 		 * for the expose event */
 		if (state == GDK_VISIBILITY_UNOBSCURED) {
-			_vte_invalidate_all(terminal);
+			_vte_invalidate_all (terminal);
 		}
 	}
 
@@ -6629,7 +6634,6 @@ vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state)
 		 * so no updates are accumulated. */
 		terminal->pvt->invalidated_all = TRUE;
 	}
-
 }
 
 static gboolean
@@ -9749,7 +9753,8 @@ vte_terminal_paint_area (VteTerminal *terminal, GdkRectangle *area)
 			" [(%d,%d)x(%d,%d) pixels]\n",
 			area->x, area->y, area->width, area->height,
 			col, row, col_stop - col, row_stop - row,
-			col * width, row * height,
+			col * width + VTE_PAD_WIDTH,
+			row * height + VTE_PAD_WIDTH,
 			(col_stop - col) * width,
 			(row_stop - row) * height);
 	if (!GTK_WIDGET_DOUBLE_BUFFERED (terminal) ||
@@ -10131,6 +10136,7 @@ vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 		}
 	} else {
 		vte_terminal_paint(widget, event->region);
+		terminal->pvt->invalidated_all = FALSE;
 	}
 	return FALSE;
 }
