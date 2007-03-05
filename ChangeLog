@@ -1,5 +1,11 @@
 2007-03-05  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c (vte_terminal_io_read):
+		Use the process estimate to load balance between multiple
+		active terminals.
+
+2007-03-05  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vteseq.c (vte_sequence_handler_cm),
 	(vte_sequence_handler_dc), (vte_sequence_handler_sf),
 	(vte_sequence_handler_cursor_character_absolute):

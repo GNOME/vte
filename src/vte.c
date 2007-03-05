@@ -3643,8 +3643,8 @@ out:
 	}
 
 	return !eof &&
-		terminal->pvt->input_bytes < terminal->pvt->max_input_bytes &&
-		(!active_terminals || !active_terminals->next);
+		(active_terminals ? g_list_length (active_terminals) : 1) *
+		terminal->pvt->input_bytes < terminal->pvt->max_input_bytes;
 }
 
 /**
