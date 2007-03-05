@@ -2518,7 +2518,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	g_assert(row != NULL);
 
 	_vte_debug_print(VTE_DEBUG_IO|VTE_DEBUG_PARSE,
-			"Inserting %ld '%c' (%d/%d) (%ld+%d, %ld), delta = %ld",
+			"Inserting %ld '%c' (%d/%d) (%ld+%d, %ld), delta = %ld; ",
 			(long)c, c < 256 ? c : ' ',
 			screen->defaults.fore, screen->defaults.back,
 			col, columns, (long)screen->cursor_current.row,

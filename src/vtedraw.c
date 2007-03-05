@@ -323,7 +323,7 @@ _vte_draw_text (struct _vte_draw *draw,
 	g_return_if_fail (draw->impl != NULL);
 	g_return_if_fail (draw->impl->draw_text != NULL);
 	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_text (len=%u, color= (%d,%d,%d,%d))\n",
+			"draw_text (len=%u, color=(%d,%d,%d,%d))\n",
 			n_requests, color->red, color->green, color->blue,
 			alpha);
 	draw->impl->draw_text (draw, requests, n_requests, color, alpha);
@@ -337,7 +337,7 @@ _vte_draw_char (struct _vte_draw *draw,
 	g_return_val_if_fail (draw->started == TRUE, FALSE);
 	g_return_val_if_fail (draw->impl != NULL, FALSE);
 	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_char ('%c', color= (%d,%d,%d,%d))\n",
+			"draw_char ('%c', color=(%d,%d,%d,%d))\n",
 			request->c,
 			color->red, color->green, color->blue,
 			alpha);
@@ -363,7 +363,7 @@ _vte_draw_fill_rectangle (struct _vte_draw *draw,
 	g_return_if_fail (draw->impl != NULL);
 	g_return_if_fail (draw->impl->fill_rectangle != NULL);
 	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_fill_rectangle (%d, %d, %d, %d, color= (%d,%d,%d,%d))\n",
+			"draw_fill_rectangle (%d, %d, %d, %d, color=(%d,%d,%d,%d))\n",
 			x,y,width,height,
 			color->red, color->green, color->blue,
 			alpha);
@@ -379,7 +379,7 @@ _vte_draw_draw_rectangle (struct _vte_draw *draw,
 	g_return_if_fail (draw->impl != NULL);
 	g_return_if_fail (draw->impl->draw_rectangle != NULL);
 	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_rectangle (%d, %d, %d, %d, color= (%d,%d,%d,%d))\n",
+			"draw_rectangle (%d, %d, %d, %d, color=(%d,%d,%d,%d))\n",
 			x,y,width,height,
 			color->red, color->green, color->blue,
 			alpha);
