@@ -1,5 +1,11 @@
 2007-03-05  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vteseq.c (vte_sequence_handler_ce),
+	(vte_sequence_handler_clear_current_line):
+		Fixup invalidation to end-of-line.
+
+2007-03-05  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	cf Bug 414586 – Terminal screen blinks when menu is opened for the first time
 
 	* src/vte.c (vte_terminal_draw_rows), (vte_terminal_expand_region):

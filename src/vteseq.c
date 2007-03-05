@@ -1127,7 +1127,6 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 {
 	VteRowData *rowdata;
 	VteScreen *screen;
-	guint len;
 
 	screen = terminal->pvt->screen;
 	/* Get the data for the row which the cursor points to. */
@@ -1135,8 +1134,7 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 	g_assert(rowdata != NULL);
 	/* Remove the data at the end of the array until the current column
 	 * is the end of the array. */
-	len = rowdata->cells->len;
-	if (len > screen->cursor_current.col) {
+	if (rowdata->cells->len > screen->cursor_current.col) {
 		g_array_set_size(rowdata->cells, screen->cursor_current.col);
 	}
 	/* Add enough cells to the end of the line to fill out the row. */
@@ -1146,7 +1144,8 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 	/* Repaint this row. */
 	_vte_invalidate_cells(terminal,
 			      screen->cursor_current.col,
-			      len - screen->cursor_current.col,
+			      terminal->column_count -
+			      screen->cursor_current.col,
 			      screen->cursor_current.row, 1);
 
 	/* We've modified the display.  Make a note of it. */
@@ -1250,14 +1249,12 @@ vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
 	if (_vte_ring_next(screen->row_data) > screen->cursor_current.row) {
-		guint len;
 		/* Get the data for the row which the cursor points to. */
 		rowdata = _vte_ring_index(screen->row_data, VteRowData *,
 					  screen->cursor_current.row);
 		g_assert(rowdata != NULL);
 		/* Remove it. */
-		len = rowdata->cells->len;
-		if (len > 0) {
+		if (rowdata->cells->len > 0) {
 			g_array_set_size(rowdata->cells, 0);
 		}
 		/* Add enough cells to the end of the line to fill out the
@@ -1268,7 +1265,7 @@ vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 		rowdata->soft_wrapped = 0;
 		/* Repaint this row. */
 		_vte_invalidate_cells(terminal,
-				      0, len,
+				      0, terminal->column_count,
 				      screen->cursor_current.row, 1);
 	}
 
