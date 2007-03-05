@@ -1,5 +1,14 @@
 2007-03-05  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 414716 – gnome-terminal-2.17.92: terminal window dies...
+
+	* src/vte.c (vte_terminal_map_toplevel),
+	(vte_terminal_hierarchy_changed):
+		Force the visibility state to unobscured after the toplevel is
+		remapped.
+
+2007-03-05  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c (vte_terminal_size_allocate):
 		Note to self: Never try to optimize away the redraw.
 

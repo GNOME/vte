@@ -2832,7 +2832,8 @@ vte_sequence_handler_clear_above_current(VteTerminal *terminal,
 					 terminal->column_count);
 			rowdata->soft_wrapped = 0;
 			/* Repaint the row. */
-			_vte_invalidate_cells(terminal, 0, len, i, 1);
+			_vte_invalidate_cells(terminal,
+					0, terminal->column_count, i, 1);
 		}
 	}
 	/* We've modified the display.  Make a note of it. */
