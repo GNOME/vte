@@ -7,34 +7,34 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-02-09 12:28+0000\n"
-"PO-Revision-Date: 2007-02-09 12:28-0000\n"
+"POT-Creation-Date: 2007-03-06 12:49+0000\n"
+"PO-Revision-Date: 2007-03-06 12:49-0000\n"
 "Last-Translator: David Lodge <dave@cirt.net>\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: ../src/iso2022.c:783
-#: ../src/iso2022.c:791
-#: ../src/iso2022.c:822
-#: ../src/vte.c:1673
+#: ../src/iso2022.c:784
+#: ../src/iso2022.c:792
+#: ../src/iso2022.c:823
+#: ../src/vte.c:1790
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Unable to convert characters from %s to %s."
 
-#: ../src/iso2022.c:1535
+#: ../src/iso2022.c:1532
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Attempt to set invalid NRC map '%c'."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1565
+#: ../src/iso2022.c:1562
 msgid "Unrecognized identified coding system."
 msgstr "Unrecognised identified coding system."
 
-#: ../src/iso2022.c:1624
-#: ../src/iso2022.c:1651
+#: ../src/iso2022.c:1621
+#: ../src/iso2022.c:1648
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Attempt to set invalid wide NRC map '%c'."
@@ -42,7 +42,7 @@ msgstr "Attempt to set invalid wide NRC map '%c'."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: ../src/pty.c:786
+#: ../src/pty.c:837
 #, c-format
 msgid "can not run %s"
 msgstr "can not run %s"
@@ -56,45 +56,49 @@ msgstr "Error creating signal pipe."
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicate (%s/%s)!"
 
-#: ../src/vte.c:1130
+#: ../src/vte.c:1178
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Error compiling regular expression \"%s\"."
 
-#: ../src/vte.c:2525
-#: ../src/vte.c:2530
+#: ../src/vte.c:2673
+#: ../src/vte.c:2678
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "No handler for control sequence `%s' defined."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:3500
+#: ../src/vte.c:3628
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Error reading from child: %s."
 
-#: ../src/vte.c:3619
-#: ../src/vte.c:4499
+#: ../src/vte.c:3745
+msgid "Unable to send data to child, invalid charset convertor"
+msgstr "Unable to send data to child, invalid charset convertor"
+
+#: ../src/vte.c:3756
+#: ../src/vte.c:4674
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Error (%s) converting data for child, dropping."
 
-#: ../src/vte.c:6550
+#: ../src/vte.c:6903
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Error reading PTY size, using defaults: %s."
 
-#: ../src/vte.c:6579
+#: ../src/vte.c:6932
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Error setting PTY size: %s."
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:10837
+#: ../src/vte.c:11352
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() failed setting word characters"
 
-#: ../src/vteseq.c:3910
+#: ../src/vteseq.c:3937
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "Got unexpected (key?) sequence `%s'."
@@ -113,7 +117,7 @@ msgstr "Could not parse the geometry spec passed to --geometry"
 msgid "Unknown pixel mode %d.\n"
 msgstr "Unknown pixel mode %d.\n"
 
-#: ../src/vtexft.c:199
+#: ../src/vtexft.c:267
 #, c-format
 msgid "Can not find appropiate font for character U+%04x.\n"
 msgstr "Can not find appropiate font for character U+%04x.\n"
