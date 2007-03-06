@@ -323,7 +323,7 @@ _vte_draw_text (struct _vte_draw *draw,
 	g_return_if_fail (draw->impl != NULL);
 	g_return_if_fail (draw->impl->draw_text != NULL);
 	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_text (len=%u, color=(%d,%d,%d,%d))\n",
+			"draw_text (len=%"G_GSIZE_FORMAT", color=(%d,%d,%d,%d))\n",
 			n_requests, color->red, color->green, color->blue,
 			alpha);
 	draw->impl->draw_text (draw, requests, n_requests, color, alpha);

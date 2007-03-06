@@ -1207,15 +1207,6 @@ vte_sequence_handler_cm(VteTerminal *terminal,
 
 	screen = terminal->pvt->screen;
 
-	/* Match xterm and fill to the end of row when moving. */
-	if (screen->fill_defaults.back != VTE_DEF_BG) {
-		VteRowData *rowdata;
-		rowdata = _vte_terminal_ensure_row (terminal);
-		vte_g_array_fill (rowdata->cells,
-				&screen->fill_defaults,
-				terminal->column_count);
-	}
-
 	/* We need at least two parameters. */
 	rowval = colval = 0;
 	if (params != NULL && params->n_values >= 1) {
@@ -1496,8 +1487,6 @@ vte_sequence_handler_dc(VteTerminal *terminal,
 		if (col < len) {
 			g_array_remove_index(rowdata->cells, col);
 			if (screen->fill_defaults.back != VTE_DEF_BG) {
-				VteRowData *rowdata;
-				rowdata = _vte_terminal_ensure_row (terminal);
 				vte_g_array_fill (rowdata->cells,
 						&screen->fill_defaults,
 						terminal->column_count);
@@ -2188,15 +2177,6 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 
 	screen = terminal->pvt->screen;
 
-	/* Match xterm and fill to the end of row when scrolling. */
-	if (screen->fill_defaults.back != VTE_DEF_BG) {
-		VteRowData *rowdata;
-		rowdata = _vte_terminal_ensure_row (terminal);
-		vte_g_array_fill (rowdata->cells,
-				&screen->fill_defaults,
-				terminal->column_count);
-	}
-
 	if (screen->scrolling_restricted) {
 		start = screen->insert_delta + screen->scrolling_region.start;
 		end = screen->insert_delta + screen->scrolling_region.end;
@@ -2206,6 +2186,15 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 	}
 
 	if (screen->cursor_current.row == end) {
+		/* Match xterm and fill to the end of row when scrolling. */
+		if (screen->fill_defaults.back != VTE_DEF_BG) {
+			VteRowData *rowdata;
+			rowdata = _vte_terminal_ensure_row (terminal);
+			vte_g_array_fill (rowdata->cells,
+					&screen->fill_defaults,
+					terminal->column_count);
+		}
+
 		if (screen->scrolling_restricted) {
 			if (start == screen->insert_delta) {
 				/* Scroll this line into the scrollback
