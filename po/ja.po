@@ -8,31 +8,31 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte trunk\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-02-17 08:44+0900\n"
-"PO-Revision-Date: 2007-02-17 08:41+0900\n"
+"POT-Creation-Date: 2007-03-07 23:54+0900\n"
+"PO-Revision-Date: 2007-03-07 23:54+0900\n"
 "Last-Translator: Takeshi AIHANA <takeshi.aihana@gmail.com>\n"
 "Language-Team: Japanese <gnome-translation@gnome.gr.jp>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: ../src/iso2022.c:783 ../src/iso2022.c:791 ../src/iso2022.c:822
-#: ../src/vte.c:1759
+#: ../src/iso2022.c:784 ../src/iso2022.c:792 ../src/iso2022.c:823
+#: ../src/vte.c:1790
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "%s から %s への文字の変換に失敗しました。"
+msgstr "%s から %s への文字変換に失敗しました。"
 
-#: ../src/iso2022.c:1535
+#: ../src/iso2022.c:1532
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "無効な NRC マップ '%c' を設定しようとしています"
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1565
+#: ../src/iso2022.c:1562
 msgid "Unrecognized identified coding system."
 msgstr "認識されていないコーディング識別システムです。"
 
-#: ../src/iso2022.c:1624 ../src/iso2022.c:1651
+#: ../src/iso2022.c:1621 ../src/iso2022.c:1648
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "無効なワイド NRC マップ '%c' を設定しようとしています"
@@ -54,47 +54,52 @@ msgstr "シグナルパイプの生成に失敗しました。"
 msgid "Duplicate (%s/%s)!"
 msgstr "重複しています！ (%s/%s)"
 
-#: ../src/vte.c:1133
+#: ../src/vte.c:1178
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "正規表現 \"%s\" のコンパイルの失敗しました。"
+msgstr "正規表現 \"%s\" のコンパイルに失敗しました。"
 
-#: ../src/vte.c:2611 ../src/vte.c:2616
+#: ../src/vte.c:2673 ../src/vte.c:2678
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "コントロール・シーケンス '%s' のハンドラは定義されていません。"
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:3584
+#: ../src/vte.c:3628
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "子プロセスの読み込み中にエラー: %s。"
 
-#: ../src/vte.c:3703 ../src/vte.c:4583
+#: ../src/vte.c:3745
+msgid "Unable to send data to child, invalid charset convertor"
+msgstr ""
+"データを子プロセスへ送信できません (文字集合の変換処理が間違っています)"
+
+#: ../src/vte.c:3756 ../src/vte.c:4674
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "子プロセスのデータ変換中にエラー (%s) が発生しました。取り消します。"
 
-#: ../src/vte.c:6697
+#: ../src/vte.c:6903
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "PTY サイズの読み込みに失敗しました。デフォルトのサイズ: %s を利用します。"
 
-#: ../src/vte.c:6726
+#: ../src/vte.c:6932
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "PTY サイズ: %s の設定に失敗しました。"
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:10982
+#: ../src/vte.c:11352
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() は文字の設定に失敗しました"
 
-#: ../src/vteseq.c:3898
+#: ../src/vteseq.c:3937
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
-msgstr "予測しない (キー?) シーケンス '%s' が返されました。"
+msgstr "想定外のシーケンス '%s' が返されました (キー？)。"
 
 #. Bail back to normal mode.
 #: ../src/vteapp.c:774
@@ -108,9 +113,9 @@ msgstr "--geometry オプションの引数を解析できませんでした"
 #: ../src/vteglyph.c:562
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr "不明なピクセル・モード %d です。\n"
+msgstr "不明なピクセル・モード (%d) です。\n"
 
-#: ../src/vtexft.c:199
+#: ../src/vtexft.c:267
 #, c-format
 msgid "Can not find appropiate font for character U+%04x.\n"
-msgstr "U+%04x という文字に相当するフォントが見つかりませんでした\n"
+msgstr "U+%04x という文字に相当するフォントが見つかりませんでした。\n"
