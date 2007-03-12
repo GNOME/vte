@@ -1,5 +1,5 @@
 AC_PREREQ(2.56)
-AC_INIT(vte, [0.15.6],
+AC_INIT(vte, [0.16.0],
         [http://bugzilla.gnome.org/enter_bug.cgi?product=vte])
 AC_CONFIG_SRCDIR([src/vte.c])
 AM_INIT_AUTOMAKE(1.6)

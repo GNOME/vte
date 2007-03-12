@@ -1,3 +1,11 @@
+0.16.0
+======
+- Fix some minor bugs.  More regressions to be fixed later.
+- Bugs fixed in this release:
+	Bug 414716 – gnome-terminal-2.17.92: terminal window dies...
+	Bug 414586 – Terminal screen blinks when menu is opened for the first time
+	Bug 413068 – new line added to tab when opened
+
 0.15.6
 ======
 - Fix various bugs introduced in last couple of releases.
