@@ -2446,7 +2446,7 @@ vte_terminal_set_default_colors(VteTerminal *terminal)
 }
 
 /* Insert a single character into the stored data array. */
-void
+gboolean
 _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			 gboolean force_insert_mode, gboolean invalidate_now,
 			 gboolean paint_cells, gint forced_width)
@@ -3364,7 +3364,7 @@ skip_chunk:
 			/* Insert the character. */
 			if (G_UNLIKELY (_vte_terminal_insert_char(terminal, c,
 						 FALSE, FALSE,
-						 TRUE, 0);
+						 TRUE, 0)){
 				/* line wrapped, correct bbox */
 				if (invalidated_text &&
 						(screen->cursor_current.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK	||
@@ -9950,11 +9950,10 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 		item.y = row * height;
 		cursor_width = item.columns * width;
 		if (cell) {
-			cursor_width = MAX(cursor_width,
-					   _vte_draw_get_char_width(terminal->pvt->draw,
-								    cell->c,
-								    cell->columns));
-			cursor_width += cell->bold; /* pseudo-bolding */
+			gint cw = _vte_draw_get_char_width (terminal->pvt->draw,
+					cell->c, cell->attr.columns);
+			cursor_width = MAX(cursor_width, cw);
+			cursor_width += cell->attr.bold; /* pseudo-bolding */
 		}
 		_vte_draw_clear(terminal->pvt->draw,
 				col * width + VTE_PAD_WIDTH,

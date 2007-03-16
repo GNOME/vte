@@ -395,7 +395,7 @@ void _vte_terminal_adjust_adjustments(VteTerminal *terminal);
 void _vte_terminal_queue_contents_changed(VteTerminal *terminal);
 void _vte_terminal_emit_text_deleted(VteTerminal *terminal);
 void _vte_terminal_emit_text_inserted(VteTerminal *terminal);
-void _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
+gboolean _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			       gboolean force_insert_mode,
 			       gboolean invalidate_cells,
 			       gboolean paint_cells,
