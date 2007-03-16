@@ -2607,7 +2607,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 
 	/* We added text, so make a note of it. */
-	terminal->pvt->text_inserted_count++;
+	terminal->pvt->text_inserted_flag = TRUE;
 
 	_vte_debug_print(VTE_DEBUG_IO|VTE_DEBUG_PARSE,
 			"insertion delta => %ld.\n",
@@ -3108,24 +3108,18 @@ vte_terminal_emit_pending_text_signals(VteTerminal *terminal, GQuark quark)
 		vte_terminal_emit_text_modified(terminal);
 		terminal->pvt->text_modified_flag = FALSE;
 	}
-	if (terminal->pvt->text_inserted_count) {
+	if (terminal->pvt->text_inserted_flag) {
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
-				"Emitting buffered `text-inserted' "
-				"(%ld).\n", terminal->pvt->text_inserted_count);
+				"Emitting buffered `text-inserted'\n");
 		_vte_terminal_emit_text_inserted(terminal);
-		terminal->pvt->text_inserted_count = 0;
+		terminal->pvt->text_inserted_flag = FALSE;
 	}
-	if (terminal->pvt->text_deleted_count) {
+	if (terminal->pvt->text_deleted_flag) {
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
-				"Emitting buffered `text-deleted' "
-				"(%ld).\n", terminal->pvt->text_deleted_count);
+				"Emitting buffered `text-deleted'\n");
 		_vte_terminal_emit_text_deleted(terminal);
-		terminal->pvt->text_deleted_count = 0;
+		terminal->pvt->text_deleted_flag = FALSE;
 	}
-
-	terminal->pvt->text_modified_flag = FALSE;
-	terminal->pvt->text_inserted_count = 0;
-	terminal->pvt->text_deleted_count = 0;
 }
 
 /* Process incoming data, first converting it to unicode characters, and then
@@ -7660,8 +7654,8 @@ vte_terminal_unrealize(GtkWidget *widget)
 	terminal->pvt->contents_changed_pending = FALSE;
 	terminal->pvt->cursor_moved_pending = FALSE;
 	terminal->pvt->text_modified_flag = FALSE;
-	terminal->pvt->text_inserted_count = 0;
-	terminal->pvt->text_deleted_count = 0;
+	terminal->pvt->text_inserted_flag = FALSE;
+	terminal->pvt->text_deleted_flag = FALSE;
 
 	/* Clear modifiers. */
 	terminal->pvt->modifiers = 0;

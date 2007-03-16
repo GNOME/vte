@@ -277,8 +277,8 @@ struct _VteTerminalPrivate {
 	gboolean smooth_scroll;
 	GHashTable *tabstops;
 	gboolean text_modified_flag;
-	glong text_inserted_count;
-	glong text_deleted_count;
+	gboolean text_inserted_flag;
+	gboolean text_deleted_flag;
 
 	/* Scrolling options. */
 	gboolean scroll_background;

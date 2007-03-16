@@ -341,8 +341,8 @@ vte_sequence_handler_scroll_up_or_down(VteTerminal *terminal, int scroll_amount)
 	_vte_terminal_adjust_adjustments(terminal);
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_inserted_count++;
-	terminal->pvt->text_deleted_count++;
+	terminal->pvt->text_inserted_flag = TRUE;
+	terminal->pvt->text_deleted_flag = TRUE;
 
 	return FALSE;
 }
@@ -719,7 +719,6 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		/* Reset scrollbars and repaint everything. */
 		terminal->adjustment->value =
 			terminal->pvt->screen->scroll_delta;
-		terminal->pvt->adjustment_value_changed_pending = TRUE;
 		vte_terminal_set_scrollback_lines(terminal,
 				terminal->pvt->scrollback_lines);
 		_vte_terminal_queue_contents_changed(terminal);
@@ -917,7 +916,7 @@ vte_sequence_handler_al(VteTerminal *terminal,
 	_vte_terminal_scroll_region(terminal, start, end - start + 1, param);
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_count++;
+	terminal->pvt->text_deleted_flag = TRUE;
 	return FALSE;
 }
 
@@ -1042,7 +1041,7 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 			      screen->cursor_current.row, 1);
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_count++;
+	terminal->pvt->text_deleted_flag = TRUE;
 	return FALSE;
 }
 
@@ -1114,7 +1113,7 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 	}
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_count++;
+	terminal->pvt->text_deleted_flag = TRUE;
 	return FALSE;
 }
 
@@ -1149,7 +1148,7 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 			      screen->cursor_current.row, 1);
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_count++;
+	terminal->pvt->text_deleted_flag = TRUE;
 	return FALSE;
 }
 
@@ -1190,7 +1189,7 @@ vte_sequence_handler_cl(VteTerminal *terminal,
 	vte_sequence_handler_ho(terminal, NULL, 0, NULL);
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_count++;
+	terminal->pvt->text_deleted_flag = TRUE;
 	return FALSE;
 }
 
@@ -1271,7 +1270,7 @@ vte_sequence_handler_clear_current_line(VteTerminal *terminal,
 	}
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_count++;
+	terminal->pvt->text_deleted_flag = TRUE;
 	return FALSE;
 }
 
@@ -1314,10 +1313,10 @@ vte_sequence_handler_cs(VteTerminal *terminal,
 	}
 	/* Catch garbage. */
 	rows = terminal->row_count;
-	if ((start <= 0) || (start >= rows)) {
+	if (start <= 0 || start >= rows) {
 		start = 0;
 	}
-	if ((end <= 0) || (end >= rows)) {
+	if (end <= 0 || end >= rows) {
 		end = rows - 1;
 	}
 	/* Set the right values. */
@@ -1325,12 +1324,13 @@ vte_sequence_handler_cs(VteTerminal *terminal,
 	screen->scrolling_region.end = end;
 	screen->scrolling_restricted = TRUE;
 	/* Special case -- run wild, run free. */
-	if ((screen->scrolling_region.start == 0) &&
-	    (screen->scrolling_region.end == rows - 1)) {
+	if (screen->scrolling_region.start == 0 &&
+	    screen->scrolling_region.end == rows - 1) {
 		screen->scrolling_restricted = FALSE;
 	}
 	screen->cursor_current.row = screen->insert_delta + start;
 	screen->cursor_current.col = 0;
+
 	return FALSE;
 }
 
@@ -1500,7 +1500,7 @@ vte_sequence_handler_dc(VteTerminal *terminal,
 	}
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_count++;
+	terminal->pvt->text_deleted_flag = TRUE;
 	return FALSE;
 }
 
@@ -1558,7 +1558,7 @@ vte_sequence_handler_dl(VteTerminal *terminal,
 	_vte_terminal_scroll_region(terminal, start, end - start + 1, -param);
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_count++;
+	terminal->pvt->text_deleted_flag = TRUE;
 	return FALSE;
 }
 
@@ -1674,7 +1674,7 @@ vte_sequence_handler_ec(VteTerminal *terminal,
 	}
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_count++;
+	terminal->pvt->text_deleted_flag = TRUE;
 	return FALSE;
 }
 
@@ -2853,7 +2853,7 @@ vte_sequence_handler_clear_above_current(VteTerminal *terminal,
 		}
 	}
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_count++;
+	terminal->pvt->text_deleted_flag = TRUE;
 	return FALSE;
 }
 
@@ -2893,7 +2893,7 @@ vte_sequence_handler_clear_screen(VteTerminal *terminal,
 	/* Redraw everything. */
 	_vte_invalidate_all(terminal);
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_count++;
+	terminal->pvt->text_deleted_flag = TRUE;
 	return FALSE;
 }
 
@@ -3291,7 +3291,7 @@ vte_sequence_handler_erase_in_display(VteTerminal *terminal,
 		break;
 	}
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_count++;
+	terminal->pvt->text_deleted_flag = TRUE;
 	return again;
 }
 
@@ -3336,7 +3336,7 @@ vte_sequence_handler_erase_in_line(VteTerminal *terminal,
 		break;
 	}
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_count++;
+	terminal->pvt->text_deleted_flag = TRUE;
 	return again;
 }
 
@@ -3409,7 +3409,7 @@ vte_sequence_handler_insert_lines(VteTerminal *terminal,
 	/* Adjust the scrollbars if necessary. */
 	_vte_terminal_adjust_adjustments(terminal);
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_inserted_count++;
+	terminal->pvt->text_inserted_flag = TRUE;
 	return FALSE;
 }
 
@@ -3462,7 +3462,7 @@ vte_sequence_handler_delete_lines(VteTerminal *terminal,
 	/* Adjust the scrollbars if necessary. */
 	_vte_terminal_adjust_adjustments(terminal);
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_count++;
+	terminal->pvt->text_deleted_flag = TRUE;
 	return FALSE;
 }
 
