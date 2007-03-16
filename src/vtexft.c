@@ -39,8 +39,6 @@
 #define FONT_INDEX_FUDGE 1
 #define CHAR_WIDTH_FUDGE 1
 
-#define DPY_FUDGE 1
-
 /* libXft will accept runs up to 1024 glyphs before allocating a temporary
  * array. However, setting this to a large value can cause dramatic slow-downs
  * for some xservers (notably fglrx), see bug 410534.
@@ -515,7 +513,7 @@ _vte_xft_clip (struct _vte_draw *draw,
 	gint i, n;
 
 	gdk_region_get_rectangles (region, &rect, &n);
-	xrect = n > G_N_ELEMENTS (stack_rect) ?
+	xrect = n > (gint) G_N_ELEMENTS (stack_rect) ?
 		g_new (XRectangle, n) :
 		stack_rect;
 	for (i = 0; i < n; i++) {

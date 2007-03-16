@@ -3364,7 +3364,7 @@ skip_chunk:
 			/* Insert the character. */
 			if (G_UNLIKELY (_vte_terminal_insert_char(terminal, c,
 						 FALSE, FALSE,
-						 TRUE, 0)){
+						 TRUE, 0))){
 				/* line wrapped, correct bbox */
 				if (invalidated_text &&
 						(screen->cursor_current.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK	||
@@ -9807,7 +9807,7 @@ vte_terminal_paint_area (VteTerminal *terminal, GdkRectangle *area)
 			(col_stop - col) * width,
 			(row_stop - row) * height);
 	if (!GTK_WIDGET_DOUBLE_BUFFERED (terminal) ||
-			_vte_draw_requires_redraw (terminal->pvt->draw)) {
+			_vte_draw_requires_clear (terminal->pvt->draw)) {
 		_vte_draw_clear (terminal->pvt->draw,
 				area->x, area->y,
 				area->width, area->height);
@@ -9951,9 +9951,9 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 		cursor_width = item.columns * width;
 		if (cell) {
 			gint cw = _vte_draw_get_char_width (terminal->pvt->draw,
-					cell->c, cell->attr.columns);
+					cell->c, cell->columns);
 			cursor_width = MAX(cursor_width, cw);
-			cursor_width += cell->attr.bold; /* pseudo-bolding */
+			cursor_width += cell->bold; /* pseudo-bolding */
 		}
 		_vte_draw_clear(terminal->pvt->draw,
 				col * width + VTE_PAD_WIDTH,
