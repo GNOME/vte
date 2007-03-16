@@ -1,5 +1,10 @@
 2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c (vte_terminal_catch_child_exited), (vte_terminal_eof),
+	(vte_terminal_process_incoming): Refactor some common code.
+
+2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 416634 – Rendering glitch as autowrapped chars are outside invalidated bbox
 
 	* src/vte.c (_vte_terminal_insert_char),

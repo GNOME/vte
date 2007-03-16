@@ -78,8 +78,7 @@ static void vte_terminal_match_hilite_update(VteTerminal *terminal, double x, do
 static void vte_terminal_match_contents_clear(VteTerminal *terminal);
 static gboolean vte_terminal_background_update(VteTerminal *data);
 static void vte_terminal_queue_background_update(VteTerminal *terminal);
-static void vte_terminal_queue_adjustment_changed(VteTerminal *terminal);
-static gboolean vte_terminal_process_incoming(VteTerminal *terminal);
+static void vte_terminal_process_incoming(VteTerminal *terminal);
 static void vte_terminal_emit_pending_signals(VteTerminal *terminal);
 static inline gboolean vte_cell_is_selected(VteTerminal *terminal,
 				     glong col, glong row, gpointer data);
@@ -2734,10 +2733,7 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 		 * then flush the buffers in case we're about to run a new
 		 * command, disconnecting the timeout. */
 		if (terminal->pvt->incoming != NULL) {
-			gboolean again;
-			do {
-				again = vte_terminal_process_incoming(terminal);
-			} while (again);
+			vte_terminal_process_incoming(terminal);
 			_vte_incoming_chunks_release (terminal->pvt->incoming);
 			terminal->pvt->incoming = NULL;
 			terminal->pvt->input_bytes = 0;
@@ -3046,12 +3042,8 @@ vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
 	 * disconnecting the timeout. */
 	vte_terminal_stop_processing (terminal);
 	if (terminal->pvt->incoming) {
-		gboolean again;
-		do {
-			again = vte_terminal_process_incoming(terminal);
-		} while (again);
+		vte_terminal_process_incoming(terminal);
 		terminal->pvt->input_bytes = 0;
-		vte_terminal_emit_pending_signals (terminal);
 	}
 	g_array_set_size(terminal->pvt->pending, 0);
 
@@ -3138,7 +3130,7 @@ vte_terminal_emit_pending_text_signals(VteTerminal *terminal, GQuark quark)
 
 /* Process incoming data, first converting it to unicode characters, and then
  * processing control sequences. */
-static gboolean
+static void
 vte_terminal_process_incoming(VteTerminal *terminal)
 {
 	VteScreen *screen;
@@ -3248,7 +3240,7 @@ skip_chunk:
 	bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
 	bbox_topleft.x = bbox_topleft.y = G_MAXINT;
 
-	while (start < wcount && !leftovers && !again) {
+	while (start < wcount && !leftovers) {
 		const char *match;
 		GQuark quark;
 		const gunichar *next;
@@ -3269,10 +3261,10 @@ skip_chunk:
 		if ((match != NULL) && (match[0] != '\0')) {
 			/* Call the right sequence handler for the requested
 			 * behavior. */
-			again = vte_terminal_handle_sequence(terminal,
-							     match,
-							     quark,
-							     params);
+			vte_terminal_handle_sequence(terminal,
+						     match,
+						     quark,
+						     params);
 			/* Skip over the proper number of unicode chars. */
 			start = (next - wbuf);
 			modified = TRUE;
@@ -3450,23 +3442,6 @@ next_match:
 		}
 	}
 
-	if (invalidated_text) {
-		/* Clip off any part of the box which isn't already on-screen. */
-		bbox_topleft.x = MAX(bbox_topleft.x, 0);
-		bbox_topleft.y = MAX(bbox_topleft.y, delta);
-		bbox_bottomright.x = MIN(bbox_bottomright.x,
-				terminal->column_count);
-		/* lazily apply the +1 to the cursor_row */
-		bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
-				delta + terminal->row_count);
-
-		_vte_invalidate_cells(terminal,
-				bbox_topleft.x,
-				bbox_bottomright.x - bbox_topleft.x,
-				bbox_topleft.y,
-				bbox_bottomright.y - bbox_topleft.y);
-	}
-
 	/* Remove most of the processed characters. */
 	if (start < wcount) {
 		unichars = g_array_new(FALSE, FALSE, sizeof(gunichar));
@@ -3482,7 +3457,6 @@ next_match:
 		/* If we're out of data, we needn't pause to let the
 		 * controlling application respond to incoming data, because
 		 * the main loop is already going to do that. */
-		again = FALSE;
 	}
 
 	if (modified) {
@@ -3518,6 +3492,26 @@ next_match:
 		_vte_terminal_queue_contents_changed(terminal);
 	}
 
+	vte_terminal_emit_pending_signals (terminal);
+
+	if (invalidated_text) {
+		/* Clip off any part of the box which isn't already on-screen. */
+		bbox_topleft.x = MAX(bbox_topleft.x, 0);
+		bbox_topleft.y = MAX(bbox_topleft.y, delta);
+		bbox_bottomright.x = MIN(bbox_bottomright.x,
+				terminal->column_count);
+		/* lazily apply the +1 to the cursor_row */
+		bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
+				delta + terminal->row_count);
+
+		_vte_invalidate_cells(terminal,
+				bbox_topleft.x,
+				bbox_bottomright.x - bbox_topleft.x,
+				bbox_topleft.y,
+				bbox_bottomright.y - bbox_topleft.y);
+	}
+
+
 	if ((cursor.col != terminal->pvt->screen->cursor_current.col) ||
 	    (cursor.row != terminal->pvt->screen->cursor_current.row)) {
 		/* invalidate the old and new cursor positions */
@@ -3549,7 +3543,6 @@ next_match:
 			(long) unichars->len,
 			(long) _vte_incoming_chunks_length(terminal->pvt->incoming),
 			_vte_incoming_chunks_count(terminal->pvt->incoming));
-	return again;
 }
 
 static inline void
@@ -12147,11 +12140,8 @@ static void time_process_incoming (VteTerminal *terminal)
 {
 	gdouble elapsed;
 	glong target;
-	gboolean again;
 	g_timer_reset (process_timer);
-	do {
-		again = vte_terminal_process_incoming (terminal);
-	} while (again);
+	vte_terminal_process_incoming (terminal);
 	elapsed = g_timer_elapsed (process_timer, NULL) * 1000;
 	target = VTE_MAX_PROCESS_TIME / elapsed * terminal->pvt->input_bytes;
 	terminal->pvt->max_input_bytes =
@@ -12201,12 +12191,11 @@ process_timeout (gpointer data)
 			active = TRUE;
 			if (VTE_MAX_PROCESS_TIME && !multiple_active) {
 				time_process_incoming (terminal);
-			} else do {
-				again = vte_terminal_process_incoming(terminal);
-			} while (again);
+			} else {
+				vte_terminal_process_incoming(terminal);
+			}
 			terminal->pvt->input_bytes = 0;
 		}
-		vte_terminal_emit_pending_signals (terminal);
 		if (!active && terminal->pvt->update_regions == NULL) {
 			if (terminal->pvt->active != NULL) {
 				_vte_debug_print(VTE_DEBUG_TIMEOUT,
@@ -12319,18 +12308,18 @@ update_repeat_timeout (gpointer data)
 			}
 			_vte_terminal_enable_input_source (terminal);
 		}
-		if (need_processing (terminal)) {
-			if (VTE_MAX_PROCESS_TIME && !multiple_active) {
-				time_process_incoming (terminal);
-			} else do {
-				again = vte_terminal_process_incoming (terminal);
-			} while (again);
-			terminal->pvt->input_bytes = 0;
-		}
 		if (terminal->pvt->bg_update_pending) {
 			vte_terminal_background_update (terminal);
 		}
-		vte_terminal_emit_pending_signals (terminal);
+		vte_terminal_emit_adjustment_changed (terminal);
+		if (need_processing (terminal)) {
+			if (VTE_MAX_PROCESS_TIME && !multiple_active) {
+				time_process_incoming (terminal);
+			} else {
+				vte_terminal_process_incoming (terminal);
+			}
+			terminal->pvt->input_bytes = 0;
+		}
 
 		again = update_regions (terminal);
 		if (!again) {
@@ -12403,7 +12392,6 @@ update_timeout (gpointer data)
 	multiple_active = active_terminals->next != NULL;
 	for (l = active_terminals; l != NULL; l = next) {
 		VteTerminal *terminal = l->data;
-		gboolean again;
 
 		next = g_list_next (l);
 
@@ -12419,18 +12407,18 @@ update_timeout (gpointer data)
 			}
 			_vte_terminal_enable_input_source (terminal);
 		}
-		if (need_processing (terminal)) {
-			if (VTE_MAX_PROCESS_TIME && !multiple_active) {
-				time_process_incoming (terminal);
-			} else do {
-				again = vte_terminal_process_incoming (terminal);
-			} while (again);
-			terminal->pvt->input_bytes = 0;
-		}
 		if (terminal->pvt->bg_update_pending) {
 			vte_terminal_background_update (terminal);
 		}
-		vte_terminal_emit_pending_signals (terminal);
+		vte_terminal_emit_adjustment_changed (terminal);
+		if (need_processing (terminal)) {
+			if (VTE_MAX_PROCESS_TIME && !multiple_active) {
+				time_process_incoming (terminal);
+			} else {
+				vte_terminal_process_incoming (terminal);
+			}
+			terminal->pvt->input_bytes = 0;
+		}
 
 		redraw |= update_regions (terminal);
 	}
