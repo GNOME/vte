@@ -1,5 +1,12 @@
 2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 416635 – Rendering glitch: double draw of line below exposed region
+
+	* src/vte.c (vte_terminal_expand_region),
+	(vte_terminal_paint_area): Kill a couple of off-by-ones.
+
+2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 418588 – Invalid read when drawing preedit cursor
 
 	* src/vte.c (vte_terminal_paint):

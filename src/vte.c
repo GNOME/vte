@@ -9722,7 +9722,7 @@ vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, GdkRectang
 	if (col_stop == terminal->column_count)
 		rect.width = terminal->widget.allocation.width;
 	else
-		rect.width = col_stop*width;
+		rect.width = (col_stop + 1)*width;
 	rect.width -= rect.x;
 	if (row == 0)
 		rect.y = 0;
@@ -9731,7 +9731,7 @@ vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, GdkRectang
 	if (row_stop == terminal->row_count)
 		rect.height = terminal->widget.allocation.height;
 	else
-		rect.height = row_stop*height;
+		rect.height = (row_stop + 1)*height;
 	rect.height -= rect.y;
 	gdk_region_union_with_rect(region, &rect);
 
@@ -9758,16 +9758,14 @@ vte_terminal_paint_area (VteTerminal *terminal, GdkRectangle *area)
 	height = terminal->char_height;
 	delta = screen->scroll_delta;
 
-	/* increase the paint by one pixel on all sides to force the
-	 * inclusion of neighbouring cells */
 	row = MAX(0, (area->y - VTE_PAD_WIDTH) / height);
-	row_stop = MIN(howmany(area->height + area->y - VTE_PAD_WIDTH, height),
+	row_stop = MIN((area->height + area->y - VTE_PAD_WIDTH) / height,
 		       terminal->row_count);
 	if (row_stop <= row) {
 		return;
 	}
 	col = MAX(0, (area->x - VTE_PAD_WIDTH) / width);
-	col_stop = MIN(howmany(area->width + area->x - VTE_PAD_WIDTH, width),
+	col_stop = MIN((area->width + area->x - VTE_PAD_WIDTH) / width,
 		       terminal->column_count);
 	if (col_stop <= col) {
 		return;
