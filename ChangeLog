@@ -1,5 +1,13 @@
 2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	cf Bug 415381 – Improve performance of vte_terminal_insert_char()
+
+	* src/vte-private.h: Embed bitfield into struct
+	* src/vte.c:  And update users.
+	* src/vteseq.c:
+
+2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Need to trigger update timeout rather than process timeout
 	otherwise the background is not updated.
 

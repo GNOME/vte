@@ -862,7 +862,7 @@ vte_sequence_handler_ae(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	terminal->pvt->screen->defaults.alternate = 0;
+	terminal->pvt->screen->defaults.attr.alternate = 0;
 	return FALSE;
 }
 
@@ -938,7 +938,7 @@ vte_sequence_handler_as(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	terminal->pvt->screen->defaults.alternate = 1;
+	terminal->pvt->screen->defaults.attr.alternate = 1;
 	return FALSE;
 }
 
@@ -1486,7 +1486,7 @@ vte_sequence_handler_dc(VteTerminal *terminal,
 		/* Remove the column. */
 		if (col < len) {
 			g_array_remove_index(rowdata->cells, col);
-			if (screen->fill_defaults.back != VTE_DEF_BG) {
+			if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
 				vte_g_array_fill (rowdata->cells,
 						&screen->fill_defaults,
 						terminal->column_count);
@@ -1887,7 +1887,7 @@ vte_sequence_handler_mb(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	terminal->pvt->screen->defaults.blink = 1;
+	terminal->pvt->screen->defaults.attr.blink = 1;
 	return FALSE;
 }
 
@@ -1898,8 +1898,8 @@ vte_sequence_handler_md(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	terminal->pvt->screen->defaults.bold = 1;
-	terminal->pvt->screen->defaults.half = 0;
+	terminal->pvt->screen->defaults.attr.bold = 1;
+	terminal->pvt->screen->defaults.attr.half = 0;
 	return FALSE;
 }
 
@@ -1921,8 +1921,8 @@ vte_sequence_handler_mh(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	terminal->pvt->screen->defaults.half = 1;
-	terminal->pvt->screen->defaults.bold = 0;
+	terminal->pvt->screen->defaults.attr.half = 1;
+	terminal->pvt->screen->defaults.attr.bold = 0;
 	return FALSE;
 }
 
@@ -1933,7 +1933,7 @@ vte_sequence_handler_mk(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	terminal->pvt->screen->defaults.invisible = 1;
+	terminal->pvt->screen->defaults.attr.invisible = 1;
 	return FALSE;
 }
 
@@ -1944,7 +1944,7 @@ vte_sequence_handler_mp(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	terminal->pvt->screen->defaults.protect = 1;
+	terminal->pvt->screen->defaults.attr.protect = 1;
 	return FALSE;
 }
 
@@ -1955,7 +1955,7 @@ vte_sequence_handler_mr(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	terminal->pvt->screen->defaults.reverse = 1;
+	terminal->pvt->screen->defaults.attr.reverse = 1;
 	return FALSE;
 }
 
@@ -2152,7 +2152,7 @@ vte_sequence_handler_se(VteTerminal *terminal,
 		vte_sequence_handler_ue(terminal, match, match_quark, params);
 	} else {
 		/* Otherwise just set standout mode. */
-		terminal->pvt->screen->defaults.standout = 0;
+		terminal->pvt->screen->defaults.attr.standout = 0;
 	}
 
 	g_free(blink);
@@ -2184,10 +2184,9 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 		start = screen->insert_delta;
 		end = start + terminal->row_count - 1;
 	}
-
 	if (screen->cursor_current.row == end) {
 		/* Match xterm and fill to the end of row when scrolling. */
-		if (screen->fill_defaults.back != VTE_DEF_BG) {
+		if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
 			VteRowData *rowdata;
 			rowdata = _vte_terminal_ensure_row (terminal);
 			vte_g_array_fill (rowdata->cells,
@@ -2243,7 +2242,7 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 		}
 
 		/* Match xterm and fill the new row when scrolling. */
-		if (screen->fill_defaults.back != VTE_DEF_BG) {
+		if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
 			VteRowData *rowdata;
 			rowdata = _vte_terminal_ensure_row (terminal);
 			vte_g_array_fill (rowdata->cells,
@@ -2317,7 +2316,7 @@ vte_sequence_handler_so(VteTerminal *terminal,
 		vte_sequence_handler_us(terminal, match, match_quark, params);
 	} else {
 		/* Otherwise just set standout mode. */
-		terminal->pvt->screen->defaults.standout = 1;
+		terminal->pvt->screen->defaults.attr.standout = 1;
 	}
 
 	g_free(blink);
@@ -2499,7 +2498,7 @@ vte_sequence_handler_uc(VteTerminal *terminal,
 	cell = vte_terminal_find_charcell(terminal,
 					  column,
 					  screen->cursor_current.row);
-	while ((cell != NULL) && (cell->fragment) && (column > 0)) {
+	while ((cell != NULL) && (cell->attr.fragment) && (column > 0)) {
 		column--;
 		cell = vte_terminal_find_charcell(terminal,
 						  column,
@@ -2507,10 +2506,10 @@ vte_sequence_handler_uc(VteTerminal *terminal,
 	}
 	if (cell != NULL) {
 		/* Set this character to be underlined. */
-		cell->underline = 1;
+		cell->attr.underline = 1;
 		/* Cause the character to be repainted. */
 		_vte_invalidate_cells(terminal,
-				      column, cell->columns,
+				      column, cell->attr.columns,
 				      screen->cursor_current.row, 1);
 		/* Move the cursor right. */
 		vte_sequence_handler_nd(terminal, match, match_quark, params);
@@ -2529,7 +2528,7 @@ vte_sequence_handler_ue(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	terminal->pvt->screen->defaults.underline = 0;
+	terminal->pvt->screen->defaults.attr.underline = 0;
 	return FALSE;
 }
 
@@ -2575,7 +2574,7 @@ vte_sequence_handler_us(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	terminal->pvt->screen->defaults.underline = 1;
+	terminal->pvt->screen->defaults.attr.underline = 1;
 	return FALSE;
 }
 
@@ -2673,47 +2672,47 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 			_vte_terminal_set_default_attributes(terminal);
 			break;
 		case 1:
-			terminal->pvt->screen->defaults.bold = 1;
-			terminal->pvt->screen->defaults.half = 0;
+			terminal->pvt->screen->defaults.attr.bold = 1;
+			terminal->pvt->screen->defaults.attr.half = 0;
 			break;
 		case 2:
-			terminal->pvt->screen->defaults.half = 1;
-			terminal->pvt->screen->defaults.bold = 0;
+			terminal->pvt->screen->defaults.attr.half = 1;
+			terminal->pvt->screen->defaults.attr.bold = 0;
 			break;
 		case 4:
-			terminal->pvt->screen->defaults.underline = 1;
+			terminal->pvt->screen->defaults.attr.underline = 1;
 			break;
 		case 5:
-			terminal->pvt->screen->defaults.blink = 1;
+			terminal->pvt->screen->defaults.attr.blink = 1;
 			break;
 		case 7:
-			terminal->pvt->screen->defaults.reverse = 1;
+			terminal->pvt->screen->defaults.attr.reverse = 1;
 			break;
 		case 8:
-			terminal->pvt->screen->defaults.invisible = 1;
+			terminal->pvt->screen->defaults.attr.invisible = 1;
 			break;
 		case 9:
-			terminal->pvt->screen->defaults.strikethrough = 1;
+			terminal->pvt->screen->defaults.attr.strikethrough = 1;
 			break;
 		case 21: /* Error in old versions of linux console. */
 		case 22: /* ECMA 48. */
-			terminal->pvt->screen->defaults.bold = 0;
-			terminal->pvt->screen->defaults.half = 0;
+			terminal->pvt->screen->defaults.attr.bold = 0;
+			terminal->pvt->screen->defaults.attr.half = 0;
 			break;
 		case 24:
-			terminal->pvt->screen->defaults.underline = 0;
+			terminal->pvt->screen->defaults.attr.underline = 0;
 			break;
 		case 25:
-			terminal->pvt->screen->defaults.blink = 0;
+			terminal->pvt->screen->defaults.attr.blink = 0;
 			break;
 		case 27:
-			terminal->pvt->screen->defaults.reverse = 0;
+			terminal->pvt->screen->defaults.attr.reverse = 0;
 			break;
 		case 28:
-			terminal->pvt->screen->defaults.invisible = 0;
+			terminal->pvt->screen->defaults.attr.invisible = 0;
 			break;
 		case 29:
-			terminal->pvt->screen->defaults.strikethrough = 0;
+			terminal->pvt->screen->defaults.attr.strikethrough = 0;
 			break;
 		case 30:
 		case 31:
@@ -2723,7 +2722,7 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 		case 35:
 		case 36:
 		case 37:
-			terminal->pvt->screen->defaults.fore = param - 30;
+			terminal->pvt->screen->defaults.attr.fore = param - 30;
 			break;
 		case 38:
 		{
@@ -2737,17 +2736,17 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 					break;
 				}
 				param1 = g_value_get_long(value1);
-				terminal->pvt->screen->defaults.fore = param1;
+				terminal->pvt->screen->defaults.attr.fore = param1;
 				i += 2;
 			}
 			break;
 		}
 		case 39:
 			/* default foreground, no underscore */
-			terminal->pvt->screen->defaults.fore = VTE_DEF_FG;
+			terminal->pvt->screen->defaults.attr.fore = VTE_DEF_FG;
 			/* By ECMA 48, this underline off has no business
 			   being here, but the Linux console specifies it. */
-			terminal->pvt->screen->defaults.underline = 0;
+			terminal->pvt->screen->defaults.attr.underline = 0;
 			break;
 		case 40:
 		case 41:
@@ -2757,7 +2756,7 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 		case 45:
 		case 46:
 		case 47:
-			terminal->pvt->screen->defaults.back = param - 40;
+			terminal->pvt->screen->defaults.attr.back = param - 40;
 			break;
 		case 48:
 		{
@@ -2771,14 +2770,14 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 					break;
 				}
 				param1 = g_value_get_long(value1);
-				terminal->pvt->screen->defaults.back = param1;
+				terminal->pvt->screen->defaults.attr.back = param1;
 				i += 2;
 			}
 			break;
 		}
 		case 49:
 			/* default background */
-			terminal->pvt->screen->defaults.back = VTE_DEF_BG;
+			terminal->pvt->screen->defaults.attr.back = VTE_DEF_BG;
 			break;
 		case 90:
 		case 91:
@@ -2788,7 +2787,7 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 		case 95:
 		case 96:
 		case 97:
-			terminal->pvt->screen->defaults.fore = param - 90 + VTE_COLOR_BRIGHT_OFFSET;
+			terminal->pvt->screen->defaults.attr.fore = param - 90 + VTE_COLOR_BRIGHT_OFFSET;
 			break;
 		case 100:
 		case 101:
@@ -2798,7 +2797,7 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 		case 105:
 		case 106:
 		case 107:
-			terminal->pvt->screen->defaults.back = param - 100 + VTE_COLOR_BRIGHT_OFFSET;
+			terminal->pvt->screen->defaults.attr.back = param - 100 + VTE_COLOR_BRIGHT_OFFSET;
 			break;
 		}
 	}
@@ -2807,14 +2806,14 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 		_vte_terminal_set_default_attributes(terminal);
 	}
 	/* Save the new colors. */
-	terminal->pvt->screen->color_defaults.fore =
-		terminal->pvt->screen->defaults.fore;
-	terminal->pvt->screen->color_defaults.back =
-		terminal->pvt->screen->defaults.back;
-	terminal->pvt->screen->fill_defaults.fore =
-		terminal->pvt->screen->defaults.fore;
-	terminal->pvt->screen->fill_defaults.back =
-		terminal->pvt->screen->defaults.back;
+	terminal->pvt->screen->color_defaults.attr.fore =
+		terminal->pvt->screen->defaults.attr.fore;
+	terminal->pvt->screen->color_defaults.attr.back =
+		terminal->pvt->screen->defaults.attr.back;
+	terminal->pvt->screen->fill_defaults.attr.fore =
+		terminal->pvt->screen->defaults.attr.fore;
+	terminal->pvt->screen->fill_defaults.attr.back =
+		terminal->pvt->screen->defaults.attr.back;
 	return FALSE;
 }
 
@@ -2912,7 +2911,7 @@ vte_sequence_handler_cursor_character_absolute(VteTerminal *terminal,
 	screen = terminal->pvt->screen;
 
 	/* Match xterm and fill to the end of row when moving. */
-	if (screen->fill_defaults.back != VTE_DEF_BG) {
+	if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
 		VteRowData *rowdata;
 		rowdata = _vte_terminal_ensure_row (terminal);
 		vte_g_array_fill (rowdata->cells,
@@ -3688,10 +3687,9 @@ vte_sequence_handler_screen_alignment_test(VteTerminal *terminal,
 		}
 		_vte_terminal_emit_text_deleted(terminal);
 		/* Fill this row. */
-		cell = screen->basic_defaults;
 		cell.c = 'E';
-		cell.columns = 1;
-		cell.empty = 0;
+		memcpy (&cell.attr, &screen->basic_defaults.attr, sizeof (cell.attr));
+		cell.attr.columns = 1;
 		vte_g_array_fill(rowdata->cells, &cell, terminal->column_count);
 		_vte_terminal_emit_text_inserted(terminal);
 	}
