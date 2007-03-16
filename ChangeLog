@@ -1,5 +1,11 @@
 2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vtexft.c (_vte_xft_create), (_vte_xft_destroy),
+	(_vte_xft_start), (_vte_xft_end), (_vte_xft_clip),
+	(_vte_xft_clear): Avoid some allocations.
+
+2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 418073 – Opacity ignored for vtexft
 
 	* src/vte.c:

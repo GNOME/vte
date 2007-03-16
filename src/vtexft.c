@@ -70,7 +70,6 @@ struct _vte_xft_data {
 	Visual *visual;
 	Colormap colormap;
 	XftDraw *draw;
-	GC gc;
 	GdkColor color;
 	guint16 opacity;
 	GdkPixmap *pixmap;
@@ -344,13 +343,16 @@ static void
 _vte_xft_create (struct _vte_draw *draw, GtkWidget *widget)
 {
 	struct _vte_xft_data *data;
+
 	data = g_slice_new0 (struct _vte_xft_data);
 	draw->impl_data = data;
-	data->drawable = -1;
-	data->colormap = -1;
+
 	data->opacity = 0xffff;
+
 	data->xpixmap = -1;
 	data->pixmapw = data->pixmaph = -1;
+
+	data->drawable = -1;
 }
 
 static void
@@ -381,9 +383,6 @@ _vte_xft_destroy (struct _vte_draw *draw)
 	if (data->draw != NULL) {
 		XftDrawDestroy (data->draw);
 	}
-	if (data->gc != NULL) {
-		XFreeGC (data->display, data->gc);
-	}
 	g_slice_free (struct _vte_xft_data, data);
 }
 
@@ -402,8 +401,6 @@ _vte_xft_get_colormap (struct _vte_draw *draw)
 static void
 _vte_xft_start (struct _vte_draw *draw)
 {
-	GdkVisual *gvisual;
-	GdkColormap *gcolormap;
 	GdkDrawable *drawable;
 	GPtrArray *locked_fonts;
 	guint i;
@@ -411,33 +408,31 @@ _vte_xft_start (struct _vte_draw *draw)
 	struct _vte_xft_data *data;
 	data = (struct _vte_xft_data*) draw->impl_data;
 
+	gdk_error_trap_push ();
+
 	gdk_window_get_internal_paint_info (draw->widget->window,
 					   &drawable,
 					   &data->x_offs,
 					   &data->y_offs);
+	if (data->drawable != gdk_x11_drawable_get_xid (drawable)) {
+		GdkVisual *gvisual;
+		GdkColormap *gcolormap;
 
-	data->display = gdk_x11_drawable_get_xdisplay (drawable);
-	data->drawable = gdk_x11_drawable_get_xid (drawable);
-	gvisual = gdk_drawable_get_visual (drawable);
-	data->visual = gdk_x11_visual_get_xvisual (gvisual);
-	gcolormap = gdk_drawable_get_colormap (drawable);
-	data->colormap = gdk_x11_colormap_get_xcolormap (gcolormap);
-
+		if (data->draw != NULL) {
+			XftDrawDestroy (data->draw);
+		}
+		data->display = gdk_x11_drawable_get_xdisplay (drawable);
+		data->drawable = gdk_x11_drawable_get_xid (drawable);
+		gvisual = gdk_drawable_get_visual (drawable);
+		data->visual = gdk_x11_visual_get_xvisual (gvisual);
+		gcolormap = gdk_drawable_get_colormap (drawable);
+		data->colormap = gdk_x11_colormap_get_xcolormap (gcolormap);
+		data->draw = XftDrawCreate (data->display, data->drawable,
+				data->visual, data->colormap);
+	}
 	g_assert (data->display == data->font->display);
 
-	gdk_error_trap_push ();
-
-	if (data->draw != NULL) {
-		XftDrawDestroy (data->draw);
-	}
-	data->draw = XftDrawCreate (data->display, data->drawable,
-				   data->visual, data->colormap);
-	if (data->gc != NULL) {
-		XFreeGC (data->display, data->gc);
-	}
-	data->gc = XCreateGC (data->display, data->drawable, 0, NULL);
-
-	locked_fonts = data->locked_fonts [(++data->cur_locked_fonts)&1];
+	locked_fonts = data->locked_fonts [++data->cur_locked_fonts&1];
 	if (locked_fonts != NULL) {
 		guint cnt=0;
 		for (i = 1; i < locked_fonts->len; i++) {
@@ -457,16 +452,6 @@ _vte_xft_end (struct _vte_draw *draw)
 	struct _vte_xft_data *data;
 
 	data = (struct _vte_xft_data*) draw->impl_data;
-	if (data->draw != NULL) {
-		XftDrawDestroy (data->draw);
-		data->draw = NULL;
-	}
-	if (data->gc != NULL) {
-		XFreeGC (data->display, data->gc);
-		data->gc = NULL;
-	}
-	data->drawable = -1;
-	data->x_offs = data->y_offs = 0;
 
 	gdk_error_trap_pop ();
 }
@@ -524,25 +509,24 @@ _vte_xft_clip (struct _vte_draw *draw,
 		GdkRegion *region)
 {
 	struct _vte_xft_data *data = draw->impl_data;
+	XRectangle stack_rect[16];
+	XRectangle *xrect;
 	GdkRectangle *rect;
 	gint i, n;
 
 	gdk_region_get_rectangles (region, &rect, &n);
-	if (n>0) {
-		XRectangle *xrect = g_new (XRectangle, n);
-		for (i = 0; i < n; i++) {
-			/* we include the offset here as XftDrawSetClipRectangles () has a
-			 * byte-sex bug in its offset parameters. Bug 403159.
-			 */
-			xrect[i].x = rect[i].x - data->x_offs;
-			xrect[i].y = rect[i].y - data->y_offs;
-			xrect[i].width = rect[i].width;
-			xrect[i].height = rect[i].height;
-		}
-		XftDrawSetClipRectangles (data->draw,
-				0, 0, xrect, n);
-		g_free (xrect);
+	xrect = n > G_N_ELEMENTS (stack_rect) ?
+		g_new (XRectangle, n) :
+		stack_rect;
+	for (i = 0; i < n; i++) {
+		xrect[i].x = rect[i].x - data->x_offs;
+		xrect[i].y = rect[i].y - data->y_offs;
+		xrect[i].width = rect[i].width;
+		xrect[i].height = rect[i].height;
 	}
+	XftDrawSetClipRectangles (data->draw, 0, 0, xrect, n);
+	if (xrect != stack_rect)
+		g_free (xrect);
 	g_free (rect);
 }
 
@@ -554,6 +538,7 @@ _vte_xft_clear (struct _vte_draw *draw,
 	XRenderColor rcolor;
 	XftColor ftcolor;
 	gint h, w, txstop, tystop, sx, sy, tx, ty;
+	GC gc;
 
 	data = (struct _vte_xft_data*) draw->impl_data;
 
@@ -583,6 +568,7 @@ _vte_xft_clear (struct _vte_draw *draw,
 	tystop = y + height;
 
 	/* Flood fill. */
+	gc = XCreateGC (data->display, data->drawable, 0, NULL);
 	sy = (data->scrolly + y) % data->pixmaph;
 	while (ty < tystop) {
 		h = MIN (data->pixmaph - sy, tystop - ty);
@@ -593,7 +579,7 @@ _vte_xft_clear (struct _vte_draw *draw,
 			XCopyArea (data->display,
 				  data->xpixmap,
 				  data->drawable,
-				  data->gc,
+				  gc,
 				  sx, sy,
 				  w, h,
 				  tx - data->x_offs, ty - data->y_offs);
@@ -603,6 +589,7 @@ _vte_xft_clear (struct _vte_draw *draw,
 		ty += h;
 		sy = 0;
 	}
+	XFreeGC (data->display, gc);
 }
 
 static GPtrArray *
