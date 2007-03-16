@@ -479,6 +479,9 @@ _vte_xft_set_background_color (struct _vte_draw *draw, GdkColor *color,
 	data = (struct _vte_xft_data*) draw->impl_data;
 	data->color = *color;
 	data->opacity = opacity;
+
+	draw->requires_clear = opacity != 0xffff
+		|| (data->pixmapw > 0 && data->pixmaph > 0);
 }
 
 static void
@@ -505,13 +508,13 @@ _vte_xft_set_background_image (struct _vte_draw *draw,
 	if (data->pixmap != NULL) {
 		g_object_unref (data->pixmap);
 	}
-	draw->has_background_image = FALSE;
+	draw->requires_clear = data->opacity != 0xffff;
 	data->pixmap = NULL;
 	if (pixmap != NULL) {
 		data->pixmap = pixmap;
 		data->xpixmap = gdk_x11_drawable_get_xid (pixmap);
 		gdk_drawable_get_size (pixmap, &data->pixmapw, &data->pixmaph);
-		draw->has_background_image =
+		draw->requires_clear |=
 			data->pixmapw > 0 && data->pixmaph > 0;
 	}
 }

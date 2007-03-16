@@ -9808,7 +9808,7 @@ vte_terminal_paint_area (VteTerminal *terminal, GdkRectangle *area)
 			(col_stop - col) * width,
 			(row_stop - row) * height);
 	if (!GTK_WIDGET_DOUBLE_BUFFERED (terminal) ||
-			_vte_draw_has_background_image (terminal->pvt->draw)) {
+			_vte_draw_requires_redraw (terminal->pvt->draw)) {
 		_vte_draw_clear (terminal->pvt->draw,
 				area->x, area->y,
 				area->width, area->height);

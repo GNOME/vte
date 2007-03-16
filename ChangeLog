@@ -1,5 +1,23 @@
 2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 418073 – Opacity ignored for vtexft
+
+	* src/vte.c:
+	* src/vtedraw.c (_vte_draw_requires_clear):
+	* src/vtedraw.h:
+	* src/vteft2.c (_vte_ft2_set_background_image):
+	* src/vtegl.c (_vte_gl_create), (_vte_gl_set_background_image):
+	* src/vtepango.c (_vte_pango_set_background_image):
+	* src/vtepangox.c (_vte_pango_x_set_background_image):
+	* src/vtexft.c (_vte_xft_set_background_color),
+	(_vte_xft_set_background_image):
+		Flood fill the backing pixmap if we need to change it's
+		opacity as well.
+
+2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 418910 – Asymmetric scrolling with mouse wheel
+
 	* configure.in:
 	* src/vte.c: Round-up the delta before applying to ensure consistency
 	between up and down.

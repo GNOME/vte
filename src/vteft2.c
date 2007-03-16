@@ -164,7 +164,7 @@ _vte_ft2_set_background_image(struct _vte_draw *draw,
 		g_object_unref(data->pixbuf);
 	}
 	data->pixbuf = bgpixbuf;
-	draw->has_background_image = bgpixbuf != NULL;
+	draw->requires_clear = bgpixbuf != NULL;
 }
 
 static void
