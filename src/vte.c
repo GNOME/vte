@@ -2455,6 +2455,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	int columns, i;
 	long col;
 	VteScreen *screen;
+	gboolean line_wrapped = FALSE; /* cursor moved before char inserted */
 	gboolean insert;
 
 	screen = terminal->pvt->screen;
@@ -2480,7 +2481,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	if (G_UNLIKELY (screen->status_line)) {
 		g_string_append_unichar(screen->status_line_contents, c);
 		screen->status_line_changed = TRUE;
-		return;
+		return FALSE;
 	}
 
 	/* Figure out how many columns this character should occupy. */
@@ -2512,6 +2513,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			col = screen->cursor_current.col =
 				terminal->column_count - columns;
 		}
+		line_wrapped = TRUE;
 	}
 
 	/* Make sure we have enough rows to hold this data. */
@@ -2611,6 +2613,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	_vte_debug_print(VTE_DEBUG_IO|VTE_DEBUG_PARSE,
 			"insertion delta => %ld.\n",
 			(long)screen->insert_delta);
+	return line_wrapped;
 }
 
 static void
@@ -3365,9 +3368,37 @@ skip_chunk:
 					screen->cursor_current.row);
 
 			/* Insert the character. */
-			_vte_terminal_insert_char(terminal, c,
+			if (G_UNLIKELY (_vte_terminal_insert_char(terminal, c,
 						 FALSE, FALSE,
 						 TRUE, 0);
+				/* line wrapped, correct bbox */
+				if (invalidated_text &&
+						(screen->cursor_current.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK	||
+						 screen->cursor_current.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK	||
+						 screen->cursor_current.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK	||
+						 screen->cursor_current.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK)) {
+					/* Clip off any part of the box which isn't already on-screen. */
+					bbox_topleft.x = MAX(bbox_topleft.x, 0);
+					bbox_topleft.y = MAX(bbox_topleft.y, delta);
+					bbox_bottomright.x = MIN(bbox_bottomright.x,
+							terminal->column_count);
+					/* lazily apply the +1 to the cursor_row */
+					bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
+							delta + terminal->row_count);
+
+					_vte_invalidate_cells(terminal,
+							bbox_topleft.x,
+							bbox_bottomright.x - bbox_topleft.x,
+							bbox_topleft.y,
+							bbox_bottomright.y - bbox_topleft.y);
+					bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
+					bbox_topleft.x = bbox_topleft.y = G_MAXINT;
+
+				}
+				bbox_topleft.x = MIN(bbox_topleft.x, 0);
+				bbox_topleft.y = MIN(bbox_topleft.y,
+						screen->cursor_current.row);
+			}
 			/* Add the cells over which we have moved to the region
 			 * which we need to refresh for the user. */
 			bbox_bottomright.x = MAX(bbox_bottomright.x,

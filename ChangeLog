@@ -1,5 +1,13 @@
 2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 416634 – Rendering glitch as autowrapped chars are outside invalidated bbox
+
+	* src/vte.c (_vte_terminal_insert_char),
+	(vte_terminal_process_incoming): Correctly update bbox after
+	autowrapping.
+
+2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 416635 – Rendering glitch: double draw of line below exposed region
 
 	* src/vte.c (vte_terminal_expand_region),
