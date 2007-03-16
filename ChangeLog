@@ -1,5 +1,11 @@
 2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vteseq.c (vte_sequence_handler_cursor_character_absolute):
+		Remove a chunk of code that was tried as a mutt band-aid
+		long ago and was completely wrong.
+
+2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 415381 – Improve performance of vte_terminal_insert_char()
 
 	The bulk of the work to remove redundant reads and conditionals

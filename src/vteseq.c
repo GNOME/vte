@@ -2910,15 +2910,6 @@ vte_sequence_handler_cursor_character_absolute(VteTerminal *terminal,
 
 	screen = terminal->pvt->screen;
 
-	/* Match xterm and fill to the end of row when moving. */
-	if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
-		VteRowData *rowdata;
-		rowdata = _vte_terminal_ensure_row (terminal);
-		vte_g_array_fill (rowdata->cells,
-				&screen->fill_defaults,
-				terminal->column_count);
-	}
-
         val = 0;
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
