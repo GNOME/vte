@@ -1,5 +1,14 @@
 2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 417652 – Scrolling bug exposed by nvi
+
+	* src/vte.c (vte_terminal_insert_rows), (_vte_terminal_ensure_row),
+	(vte_terminal_ensure_cursor), (_vte_terminal_update_insert_delta):
+		Ensure the rows before updating the insert delta and refactor
+		the common code.
+
+2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 417301 – Terminal widgets don't respond to DPI changes
 
 	* src/vte.c (vte_terminal_fc_settings_changed): Force a font reload

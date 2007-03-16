@@ -1855,13 +1855,32 @@ vte_terminal_get_encoding(VteTerminal *terminal)
 	return terminal->pvt->encoding;
 }
 
+static inline VteRowData*
+vte_terminal_insert_rows (VteTerminal *terminal, guint cnt)
+{
+	const VteScreen *screen = terminal->pvt->screen;
+	VteRowData *old_row, *row;
+	old_row = terminal->pvt->free_row;
+	do {
+		if (old_row) {
+			row = _vte_reset_row_data (terminal, old_row, FALSE);
+		} else {
+			row = _vte_new_row_data_sized (terminal, FALSE);
+		}
+		old_row = _vte_ring_append(screen->row_data, row);
+	} while(--cnt);
+	terminal->pvt->free_row = old_row;
+	return row;
+}
+
+
 /* Make sure we have enough rows and columns to hold data at the current
  * cursor position. */
 VteRowData *
 _vte_terminal_ensure_row (VteTerminal *terminal)
 {
 	VteRowData *row;
-	VteScreen *screen;
+	const VteScreen *screen;
 	gint delta;
 	glong v;
 
@@ -1875,18 +1894,7 @@ _vte_terminal_ensure_row (VteTerminal *terminal)
 		/* Figure out how many rows we need to add. */
 		delta = v - _vte_ring_next(screen->row_data) + 1;
 		if (delta > 0) {
-			VteRowData *old_row;
-
-			old_row = terminal->pvt->free_row;
-			do {
-				if (old_row) {
-					row = _vte_reset_row_data (terminal, old_row, FALSE);
-				} else {
-					row = _vte_new_row_data_sized (terminal, FALSE);
-				}
-				old_row = _vte_ring_append(screen->row_data, row);
-			} while(--delta);
-			terminal->pvt->free_row = old_row;
+			row = vte_terminal_insert_rows (terminal, delta);
 			_vte_terminal_adjust_adjustments(terminal);
 		} else {
 			/* Find the row the cursor is in. */
@@ -1920,18 +1928,7 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gint columns)
 		/* Figure out how many rows we need to add. */
 		delta = v - _vte_ring_next(screen->row_data) + 1;
 		if (delta > 0) {
-			VteRowData *old_row;
-
-			old_row = terminal->pvt->free_row;
-			do {
-				if (old_row) {
-					row = _vte_reset_row_data (terminal, old_row, FALSE);
-				} else {
-					row = _vte_new_row_data_sized (terminal, FALSE);
-				}
-				old_row = _vte_ring_append(screen->row_data, row);
-			} while(--delta);
-			terminal->pvt->free_row = old_row;
+			row = vte_terminal_insert_rows (terminal, delta);
 			_vte_terminal_adjust_adjustments(terminal);
 		} else {
 			/* Find the row the cursor is in. */
@@ -1969,8 +1966,12 @@ _vte_terminal_update_insert_delta(VteTerminal *terminal)
 
 	/* The total number of lines.  Add one to the cursor offset
 	 * because it's zero-based. */
-	rows = MAX(_vte_ring_next(terminal->pvt->screen->row_data),
-		   terminal->pvt->screen->cursor_current.row + 1);
+	rows = _vte_ring_next (screen->row_data);
+	delta = screen->cursor_current.row - rows + 1;
+	if (G_UNLIKELY (delta > 0)) {
+		vte_terminal_insert_rows (terminal, delta);
+		rows = _vte_ring_next (screen->row_data);
+	}
 
 	/* Make sure that the bottom row is visible, and that it's in
 	 * the buffer (even if it's empty).  This usually causes the
