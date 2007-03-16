@@ -10114,18 +10114,6 @@ draw_cursor_outline:
 							FALSE,
 							TRUE,
 							width, height);
-			} else
-			if (preedit_cursor == len) {
-				/* Empty cursor at the end. */
-				vte_terminal_draw_cells(terminal,
-							&items[len], 1,
-							back, fore, TRUE, TRUE,
-							FALSE,
-							FALSE,
-							FALSE,
-							FALSE,
-							FALSE,
-							width, height);
 			}
 			g_free(items);
 		}

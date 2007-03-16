@@ -1,5 +1,12 @@
 2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 418588 – Invalid read when drawing preedit cursor
+
+	* src/vte.c (vte_terminal_paint):
+		No need to read what is drawn and furthermore isn't allocated.
+
+2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 417652 – Scrolling bug exposed by nvi
 
 	* src/vte.c (vte_terminal_insert_rows), (_vte_terminal_ensure_row),
