@@ -7203,11 +7203,20 @@ static void
 vte_terminal_fc_settings_changed(GtkSettings *settings, GParamSpec *spec,
 				 VteTerminal *terminal)
 {
+	PangoFontDescription *fontdesc;
+
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Fontconfig setting \"%s\" changed.\n",
 			spec->name);
-	vte_terminal_set_font_full(terminal, terminal->pvt->fontdesc,
+
+	/* force an update... */
+	fontdesc = terminal->pvt->fontdesc;
+	terminal->pvt->fontdesc = NULL;
+
+	vte_terminal_set_font_full(terminal, fontdesc,
 				   terminal->pvt->fontantialias);
+
+	pango_font_description_free(fontdesc);
 }
 
 /* Connect to notifications from our settings object that font hints have

@@ -1,3 +1,10 @@
+2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 417301 – Terminal widgets don't respond to DPI changes
+
+	* src/vte.c (vte_terminal_fc_settings_changed): Force a font reload
+	after XFT settings have changed.
+
 2007-03-12  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.16.0.
