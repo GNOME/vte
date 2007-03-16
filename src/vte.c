@@ -246,7 +246,7 @@ vte_free_row_data(gpointer freeing, gpointer data)
 /* Append a single item to a GArray a given number of times. Centralizing all
  * of the places we do this may let me do something more clever later. */
 static void
-vte_g_array_fill(GArray *array, gpointer item, guint final_size)
+vte_g_array_fill(GArray *array, gconstpointer item, guint final_size)
 {
 	if (array->len >= final_size) {
 		return;
@@ -1947,7 +1947,7 @@ vte_terminal_ensure_cursor(VteTerminal *terminal, gint columns)
 	}
 	v += columns;
 	if (G_LIKELY (row->cells->len < v)) { /* expand for character */
-		vte_g_array_fill (row->cells, &screen->color_defaults, v);
+		g_array_set_size (row->cells, v);
 	}
 	screen->cursor_current.col = v;
 
@@ -2447,19 +2447,17 @@ vte_terminal_set_default_colors(VteTerminal *terminal)
 /* Insert a single character into the stored data array. */
 gboolean
 _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
-			 gboolean force_insert_mode, gboolean invalidate_now,
-			 gboolean paint_cells, gint forced_width)
+			 gboolean insert, gboolean invalidate_now)
 {
+	struct vte_charcell_attr attr;
 	VteRowData *row;
-	struct vte_charcell cell;
-	int columns, i;
 	long col;
+	int columns, i;
 	VteScreen *screen;
 	gboolean line_wrapped = FALSE; /* cursor moved before char inserted */
-	gboolean insert;
 
 	screen = terminal->pvt->screen;
-	insert = screen->insert_mode | force_insert_mode;
+	insert |= screen->insert_mode;
 	invalidate_now |= insert;
 
 	/* If we've enabled the special drawing set, map the characters to
@@ -2469,12 +2467,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 				"Attempting charset substitution"
 				"for 0x%04x.\n", c);
 		/* See if there's a mapping for it. */
-		cell.c = _vte_iso2022_process_single(terminal->pvt->iso2022,
-						     c, '0');
-		if (cell.c != c) {
-			forced_width = _vte_iso2022_get_encoded_width(cell.c);
-			c = cell.c & ~(VTE_ISO2022_ENCODED_WIDTH_MASK);
-		}
+		c = _vte_iso2022_process_single(terminal->pvt->iso2022, c, '0');
 	}
 
 	/* If this character is destined for the status line, save it. */
@@ -2485,16 +2478,12 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 
 	/* Figure out how many columns this character should occupy. */
-	if (G_LIKELY (forced_width == 0)) {
-		if (VTE_ISO2022_HAS_ENCODED_WIDTH(c)) {
-			columns = _vte_iso2022_get_encoded_width(c);
-		} else {
-			columns = _vte_iso2022_unichar_width(c);
-		}
+	if (G_UNLIKELY (VTE_ISO2022_HAS_ENCODED_WIDTH(c))) {
+		columns = _vte_iso2022_get_encoded_width(c);
+		c &= ~VTE_ISO2022_ENCODED_WIDTH_MASK;
 	} else {
-		columns = MIN(forced_width, 1);
+		columns = _vte_iso2022_unichar_width(c);
 	}
-	c &= ~(VTE_ISO2022_ENCODED_WIDTH_MASK);
 
 	/* If we're autowrapping here, do it. */
 	col = screen->cursor_current.col;
@@ -2528,70 +2517,51 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			col, columns, (long)screen->cursor_current.row,
 			(long)screen->insert_delta);
 
-	/* Make sure we're not getting random stuff past the right
-	 * edge of the screen at this point, because the user can't
-	 * see it. */
-	i = 0;
-	do {
-		/* If we're in insert mode, insert a new cell here
-		 * and use it. */
+	if (insert) {
+		g_array_insert_val(row->cells, col,
+				screen->color_defaults);
+	}
+	memcpy (&attr, &screen->defaults.attr, sizeof (attr));
+	attr.columns = columns;
+
+	if (G_UNLIKELY (c == '_' && terminal->pvt->flags.ul)) {
+		struct vte_charcell *pcell =
+			&g_array_index (row->cells, struct vte_charcell, col);
+		/* Handle overstrike-style underlining. */
+		if (pcell->c != 0) {
+			/* restore previous contents */
+			c = pcell->c;
+			attr.columns = pcell->attr.columns;
+			attr.fragment = pcell->attr.fragment;
+
+			attr.underline = 1;
+		}
+	}
+	g_array_index(row->cells, struct vte_charcell, col).c = c;
+	g_array_index(row->cells, struct vte_charcell, col).attr = attr;
+	col++;
+
+	/* insert wide-char fragments */
+	for (i = 1; i < columns; i++) {
+		attr.fragment = 1;
 		if (insert) {
-			cell = screen->color_defaults;
-			g_array_insert_val(row->cells, col, cell);
+			g_array_insert_val(row->cells, col,
+				screen->color_defaults);
 		}
-		cell.c = c;
-		cell.attr.columns = columns;
-		if (paint_cells) {
-			cell.attr.fore = screen->defaults.attr.fore;
-			cell.attr.back = screen->defaults.attr.back;
-		}
-		cell.attr.standout = screen->defaults.attr.standout;
-		cell.attr.underline = screen->defaults.attr.underline;
-		cell.attr.strikethrough = screen->defaults.attr.strikethrough;
-		cell.attr.reverse = screen->defaults.attr.reverse;
-		cell.attr.blink = screen->defaults.attr.blink;
-		cell.attr.half = screen->defaults.attr.half;
-		cell.attr.bold = screen->defaults.attr.bold;
-		cell.attr.invisible = screen->defaults.attr.invisible;
-		cell.attr.protect = screen->defaults.attr.protect;
-		cell.attr.alternate = 0;
-		cell.attr.fragment = i != 0;
-
-		if (G_UNLIKELY (i == 0 &&
-					c == '_' &&
-					terminal->pvt->flags.ul)) {
-			struct vte_charcell *pcell =
-				&g_array_index (row->cells, struct vte_charcell, col);
-			/* Handle overstrike-style underlining. */
-			if (pcell->c != 0) {
-				/* restore previous contents */
-				cell.c = pcell->c;
-				cell.attr.columns = pcell->attr.columns;
-				cell.attr.fragment = pcell->attr.fragment;
-
-				cell.attr.underline = 1;
-			}
-		}
-		g_array_index(row->cells, struct vte_charcell, col) = cell;
-
-		/* And take a step to the to the right. */
+		g_array_index(row->cells, struct vte_charcell, col).c = c;
+		g_array_index(row->cells, struct vte_charcell, col).attr = attr;
 		col++;
-	} while (++i < columns);
+	}
 	if (G_UNLIKELY (row->cells->len > terminal->column_count)) {
 		g_array_set_size(row->cells, terminal->column_count);
 	}
 
 	/* Signal that this part of the window needs drawing. */
-	if (invalidate_now) {
-		if (insert) {
-			_vte_invalidate_cells(terminal,
-					     col - columns, terminal->column_count,
-					     screen->cursor_current.row, 1);
-		} else {
-			_vte_invalidate_cells(terminal,
-					     col - columns, columns,
-					     screen->cursor_current.row, 1);
-		}
+	if (G_UNLIKELY (invalidate_now)) {
+		_vte_invalidate_cells(terminal,
+				col - columns,
+				insert ? terminal->column_count : columns,
+				screen->cursor_current.row, 1);
 	}
 
 
@@ -3355,8 +3325,7 @@ skip_chunk:
 
 			/* Insert the character. */
 			if (G_UNLIKELY (_vte_terminal_insert_char(terminal, c,
-						 FALSE, FALSE,
-						 TRUE, 0))){
+						 FALSE, FALSE))) {
 				/* line wrapped, correct bbox */
 				if (invalidated_text &&
 						(screen->cursor_current.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK	||
@@ -3821,9 +3790,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 					_vte_terminal_insert_char(terminal,
 								 ucs4[i],
 								 FALSE,
-								 TRUE,
-								 TRUE,
-								 0);
+								 TRUE);
 				}
 				g_free(ucs4);
 			}

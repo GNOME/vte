@@ -399,9 +399,7 @@ void _vte_terminal_emit_text_deleted(VteTerminal *terminal);
 void _vte_terminal_emit_text_inserted(VteTerminal *terminal);
 gboolean _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			       gboolean force_insert_mode,
-			       gboolean invalidate_cells,
-			       gboolean paint_cells,
-			       gint forced_width);
+			       gboolean invalidate_cells);
 void _vte_terminal_scroll_region(VteTerminal *terminal,
 				 long row, glong count, glong delta);
 void _vte_terminal_set_default_attributes(VteTerminal *terminal);

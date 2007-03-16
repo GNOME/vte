@@ -1,5 +1,21 @@
 2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 415381 – Improve performance of vte_terminal_insert_char()
+
+	The bulk of the work to remove redundant reads and conditionals
+	from the code. In particular, gcc was emitting bit-by-bit copies
+	for transferring the bitfield since we modified a member immediately
+	afterwards - overcome this by using an explicit memcpy of the
+	bitfields.
+
+	* src/vte-private.h:
+	* src/vte.c (vte_g_array_fill), (vte_terminal_ensure_cursor),
+	(_vte_terminal_insert_char), (vte_terminal_process_incoming),
+	(vte_terminal_send):
+	* src/vteseq.c (vte_sequence_handler_ic):
+
+2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	cf Bug 415381 – Improve performance of vte_terminal_insert_char()
 
 	* src/vte-private.h: Use a simple boolean rather than counter for
