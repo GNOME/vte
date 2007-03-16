@@ -1614,19 +1614,19 @@ vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 }
 
 /* Queue an adjustment-changed signal to be delivered when convenient. */
-static void
+static inline void
 vte_terminal_queue_adjustment_changed(VteTerminal *terminal)
 {
 	terminal->pvt->adjustment_changed_pending = TRUE;
-	vte_terminal_start_processing (terminal);
+	add_update_timeout (terminal);
 }
-static void
+static inline void
 vte_terminal_queue_adjustment_value_changed(VteTerminal *terminal, glong v)
 {
 	if (v != terminal->pvt->screen->scroll_delta) {
 		terminal->pvt->screen->scroll_delta = v;
 		terminal->pvt->adjustment_value_changed_pending = TRUE;
-		vte_terminal_start_processing (terminal);
+		add_update_timeout (terminal);
 	}
 }
 
@@ -3670,7 +3670,7 @@ out:
 	}
 
 	return !eof &&
-		(active_terminals ? g_list_length (active_terminals) : 1) *
+		g_list_length (active_terminals) *
 		terminal->pvt->input_bytes < terminal->pvt->max_input_bytes;
 }
 
@@ -3739,7 +3739,6 @@ vte_terminal_io_write(GIOChannel *channel,
 	}
 
 	if (_vte_buffer_length(terminal->pvt->outgoing) == 0) {
-		_vte_terminal_disconnect_pty_write(terminal);
 		leave_open = FALSE;
 	} else {
 		leave_open = TRUE;
@@ -10152,14 +10151,19 @@ static gint
 vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL (widget);
+	/* Beware the out of order events -
+	 *   do not even think about skipping exposes! */
 	_vte_debug_print (VTE_DEBUG_WORK, "+");
-	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
-		return FALSE;
-	}
 	_vte_debug_print (VTE_DEBUG_EVENTS, "Expose (%d,%d)x(%d,%d)\n",
 			event->area.x, event->area.y,
 			event->area.width, event->area.height);
 	if (terminal->pvt->active != NULL && !in_update_timeout) {
+		/* fix up a race condition where we schedule a delayed update
+		 * after an 'immediate' invalidate all */
+		if (terminal->pvt->invalidated_all &&
+				terminal->pvt->update_regions == NULL) {
+			terminal->pvt->invalidated_all = FALSE;
+		}
 		/* if we expect to redraw the widget soon,
 		 * just add this event to the list */
 		if (!terminal->pvt->invalidated_all) {
