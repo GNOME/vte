@@ -1,5 +1,11 @@
 2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* configure.in:
+	* src/vte.c: Round-up the delta before applying to ensure consistency
+	between up and down.
+
+2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c (vte_terminal_catch_child_exited), (vte_terminal_eof),
 	(vte_terminal_process_incoming): Refactor some common code.
 

@@ -293,6 +293,7 @@ if test x$have_recvmsg = x1 ; then
 	AC_DEFINE(HAVE_RECVMSG,1,[Define if you have the recvmsg function.])
 fi
 AC_CHECK_FUNC(floor,,AC_CHECK_LIB(m,floor,LIBS=["$LIBS -lm"]))
+AC_CHECK_FUNCS([ceil floor])
 
 # Look for ncurses or curses or termcap.
 AC_CHECK_HEADER(ncurses.h,[AC_CHECK_HEADER(term.h,[AC_CHECK_LIB(ncurses,tgetent,[LIBS="-lncurses $LIBS";AC_DEFINE(HAVE_NCURSES,1,[Define if you have ncurses.h and libncurses])])])])

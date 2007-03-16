@@ -18,6 +18,8 @@
 
 #include "../config.h"
 
+#include <math.h>
+
 #include "vte.h"
 #include "vte-private.h"
 
@@ -10183,6 +10185,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 {
 	GtkAdjustment *adj;
 	VteTerminal *terminal;
+	gdouble v;
 	glong new_value;
 	GdkModifierType modifiers;
 	int button;
@@ -10236,21 +10239,19 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 
 	/* Perform a history scroll. */
 	adj = terminal->adjustment;
-	new_value = terminal->pvt->screen->scroll_delta;
-
+	v = MAX (1., ceil (adj->page_increment / 10.));
 	switch (event->direction) {
 	case GDK_SCROLL_UP:
-		new_value -= MAX(1, adj->page_increment / 10);
+		v = -v;
 		break;
 	case GDK_SCROLL_DOWN:
-		new_value += MAX(1, adj->page_increment / 10);
 		break;
 	default:
 		return FALSE;
 	}
-
-	new_value = CLAMP(new_value, adj->lower,
-			MAX (adj->lower, adj->upper - adj->page_size));
+	v += terminal->pvt->screen->scroll_delta;
+	new_value = floor (CLAMP (v, adj->lower,
+				MAX (adj->lower, adj->upper - adj->page_size)));
 	vte_terminal_queue_adjustment_value_changed (terminal, new_value);
 
 	return TRUE;
