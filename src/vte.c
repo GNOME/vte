@@ -10115,7 +10115,9 @@ vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 	_vte_debug_print (VTE_DEBUG_EVENTS, "Expose (%d,%d)x(%d,%d)\n",
 			event->area.x, event->area.y,
 			event->area.width, event->area.height);
-	if (terminal->pvt->active != NULL && !in_update_timeout) {
+	if (terminal->pvt->active != NULL &&
+			update_timeout_tag != VTE_INVALID_SOURCE &&
+			!in_update_timeout) {
 		/* fix up a race condition where we schedule a delayed update
 		 * after an 'immediate' invalidate all */
 		if (terminal->pvt->invalidated_all &&

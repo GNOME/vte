@@ -1,3 +1,12 @@
+2007-03-19  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 420067 – Does not handle expose events whilst processing
+	unseen incoming data
+
+	* src/vte.c (vte_terminal_expose):
+		Handle the expose immediately if we are only processing
+		incoming data (ie no redraws pending).
+
 2007-03-16  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	* src/vteseq.c (vte_sequence_handler_cursor_character_absolute):
