@@ -5710,7 +5710,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 			for (i = 0; i < rowdata->cells->len; i++) {
 				cell = &g_array_index(rowdata->cells,
 						struct vte_charcell, i);
-				if (cell->c == 0)
+				if (cell->c != 0)
 					last_nonempty = i;
 			}
 			/* Now find the first empty after it. */
@@ -9535,8 +9535,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					if (cell == NULL) {
 						break;
 					}
-					if (cell->c == 0 ||
-							cell->c == ' '){
+					if (cell->c == 0 || cell->c == ' '){
 						/* only break the run if we
 						 * are drawing attributes
 						 */

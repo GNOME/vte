@@ -1,5 +1,12 @@
 2007-03-19  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c (vte_terminal_extend_selection),
+	(vte_terminal_draw_rows):
+		Accidentally inverted an is-empty? check during the 
+		elimination of the empty bitfield.
+
+2007-03-19  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 420067 – Does not handle expose events whilst processing
 	unseen incoming data
 
