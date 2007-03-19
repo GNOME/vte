@@ -1725,8 +1725,6 @@ vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
 	/* Tell the scrollbar to adjust itself. */
 	vte_terminal_queue_adjustment_value_changed (terminal,
 			destination);
-	/* Notify viewers that the contents have changed. */
-	_vte_terminal_queue_contents_changed(terminal);
 }
 
 /* Scroll so that the scroll delta is the minimum value. */
