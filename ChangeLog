@@ -1,3 +1,11 @@
+2007-03-21  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 420935 – glyph can be cropped with not fitting in a cell
+
+	* src/vte.c (vte_terminal_paint):
+		Don't redraw the invisible cursor 
+		- avoids nasty artifacts like clipping extra wide glyphs.
+
 2007-03-19  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	* src/vte.c (vte_terminal_scroll_pages):

@@ -9911,10 +9911,6 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 			cursor_width = MAX(cursor_width, cw);
 			cursor_width += cell->attr.bold; /* pseudo-bolding */
 		}
-		_vte_draw_clear(terminal->pvt->draw,
-				col * width + VTE_PAD_WIDTH,
-				row * height + VTE_PAD_WIDTH,
-				cursor_width, height);
 		selected = vte_cell_is_selected(terminal, col, drow, NULL);
 		if (GTK_WIDGET_HAS_FOCUS(terminal)) {
 			blink = terminal->pvt->cursor_blink_state ^
@@ -9939,42 +9935,46 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 							 height,
 							 &color,
 							 VTE_DRAW_OPAQUE);
-			}
-			if (!vte_terminal_unichar_is_local_graphic(terminal, item.c) ||
-			    !vte_terminal_draw_graphic(terminal,
-						       item.c,
-						       fore, back,
-						       TRUE,
-						       item.x,
-						       item.y,
-						       width,
-						       item.columns,
-						       height)) {
-				gboolean hilite = FALSE;
-				if (cell && terminal->pvt->show_match) {
-					hilite = vte_cell_is_between(col, row,
-							terminal->pvt->match_start.column,
-							terminal->pvt->match_start.row,
-							terminal->pvt->match_end.column,
-							terminal->pvt->match_end.row,
-							TRUE);
-				}
-				if (cell && cell->c != 0 && cell->c != ' ') {
-					vte_terminal_draw_cells(terminal,
-							&item, 1,
-							fore, back, TRUE, FALSE,
-							cell->attr.bold,
-							cell->attr.underline,
-							cell->attr.strikethrough,
-							hilite,
-							FALSE,
-							width,
-							height);
+				if (!vte_terminal_unichar_is_local_graphic(terminal, item.c) ||
+				    !vte_terminal_draw_graphic(terminal,
+							       item.c,
+							       fore, back,
+							       TRUE,
+							       item.x,
+							       item.y,
+							       width,
+							       item.columns,
+							       height)) {
+					gboolean hilite = FALSE;
+					if (cell && terminal->pvt->show_match) {
+						hilite = vte_cell_is_between(col, row,
+								terminal->pvt->match_start.column,
+								terminal->pvt->match_start.row,
+								terminal->pvt->match_end.column,
+								terminal->pvt->match_end.row,
+								TRUE);
+					}
+					if (cell && cell->c != 0 && cell->c != ' ') {
+						vte_terminal_draw_cells(terminal,
+								&item, 1,
+								fore, back, TRUE, FALSE,
+								cell->attr.bold,
+								cell->attr.underline,
+								cell->attr.strikethrough,
+								hilite,
+								FALSE,
+								width,
+								height);
+					}
 				}
 			}
 		} else {
 			GdkColor color;
 draw_cursor_outline:
+			_vte_draw_clear(terminal->pvt->draw,
+					col * width + VTE_PAD_WIDTH,
+					row * height + VTE_PAD_WIDTH,
+					cursor_width, height);
 			vte_terminal_determine_colors(terminal, cell,
 					terminal->pvt->screen->reverse_mode,
 					selected,
