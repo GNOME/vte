@@ -779,7 +779,7 @@ _vte_xft_draw_text (struct _vte_draw *draw,
 	XftColor ftcolor;
 	struct _vte_xft_data *data;
 	gsize i, j;
-	gint width, y_off, x_off;
+	gint width, y_off, x_off, char_width;
 	XftFont *font, *ft;
 	GPtrArray *locked_fonts;
 
@@ -819,17 +819,21 @@ _vte_xft_draw_text (struct _vte_draw *draw,
 	 * haven't pinned down yet." */
 	x_off = -data->x_offs;
 	y_off = draw->ascent - data->y_offs;
+	char_width = draw->width;
 	do {
 		j = 0;
 		do {
+			gint next_x;
+
 			glyphs[j].glyph = XftCharIndex (data->display,
 					font, requests[i].c);
 			glyphs[j].x = requests[i].x + x_off;
+			next_x = requests[i].x + requests[i].columns*char_width;
 			width = _vte_xft_char_width (data->font,
 					font, requests[i].c, requests[i].columns);
 			if (G_UNLIKELY (width != 0)) {
-				width = requests[i].columns * draw->width - width;
-				width = CLAMP (width / 2, 0, draw->width);
+				width = requests[i].columns*char_width - width;
+				width = CLAMP (width / 2, 0, char_width);
 				glyphs[j].x += width;
 			}
 			glyphs[j].y = requests[i].y + y_off;
@@ -845,7 +849,31 @@ _vte_xft_draw_text (struct _vte_draw *draw,
 				}
 				break;
 			}
-		} while (j < MAX_RUN_LENGTH && ft == font);
+			if (j == MAX_RUN_LENGTH || ft != font) {
+				break;
+			}
+
+			/* check to see if we've skipped over any spaces...
+			 * and reinsert them so as not to break the stream
+			 * unnecessarily - the blank space is less overhead
+			 * than starting a new sequence.
+			 */
+			if (requests[i].y + y_off == glyphs[j-1].y) {
+				while (next_x < requests[i].x) {
+					glyphs[j].glyph = XftCharIndex (
+							data->display,
+							font,
+							' ');
+					glyphs[j].x = next_x + x_off;
+					glyphs[j].y = glyphs[j-1].y;
+					if (++j == MAX_RUN_LENGTH) {
+						goto draw;
+					}
+					next_x += char_width;
+				}
+			}
+		} while (TRUE);
+draw:
 		XftDrawGlyphSpec (data->draw, &ftcolor, font, glyphs, j);
 		font = ft;
 	} while (i < n_requests);
