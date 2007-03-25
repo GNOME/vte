@@ -1,3 +1,13 @@
+2007-03-25  Chris Wilson <chris@chris-wilson.co.uk>
+
+	Bug 422385 – vte appears at the top of the root window even when
+	packed at the bottom of it
+
+	Patch by Dodji Seketeli.
+
+	* src/vte.c (vte_terminal_size_allocate), (vte_terminal_realize):
+		Honour the allocated position when realizing the widget.
+
 2007-03-22  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	* src/vtexft.c (_vte_xft_draw_text):

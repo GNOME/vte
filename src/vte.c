@@ -7507,7 +7507,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	}
 
 	/* Resize the GDK window. */
-	if (widget->window != NULL) {
+	if (GTK_WIDGET_REALIZED (widget)) {
 		gdk_window_move_resize(widget->window,
 				       allocation->x,
 				       allocation->y,
@@ -7831,8 +7831,8 @@ vte_terminal_realize(GtkWidget *widget)
 
 	/* Create a GDK window for the widget. */
 	attributes.window_type = GDK_WINDOW_CHILD;
-	attributes.x = 0;
-	attributes.y = 0;
+	attributes.x = widget->allocation.x;
+	attributes.y = widget->allocation.y;
 	attributes.width = widget->allocation.width;
 	attributes.height = widget->allocation.height;
 	attributes.wclass = GDK_INPUT_OUTPUT;
