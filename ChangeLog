@@ -1,3 +1,12 @@
+2007-04-03  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 425767 – vte_terminal_set_color_highlight should test for
+	NULL before _vte_debug_print
+
+	* src/vte.c (vte_terminal_set_color_cursor),
+	(vte_terminal_set_color_highlight):
+		Differentiate between set/unset paths.
+
 2007-03-25  Chris Wilson <chris@chris-wilson.co.uk>
 
 	Bug 422385 – vte appears at the top of the root window even when

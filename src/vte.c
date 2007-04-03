@@ -2229,16 +2229,18 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Set cursor color to (%04x,%04x,%04x).\n",
-			cursor_background->red,
-			cursor_background->green,
-			cursor_background->blue);
 	if (cursor_background != NULL) {
+		_vte_debug_print(VTE_DEBUG_MISC,
+				"Set cursor color to (%04x,%04x,%04x).\n",
+				cursor_background->red,
+				cursor_background->green,
+				cursor_background->blue);
 		vte_terminal_set_color_internal(terminal, VTE_CUR_BG,
 						cursor_background);
 		terminal->pvt->cursor_color_set = TRUE;
 	} else {
+		_vte_debug_print(VTE_DEBUG_MISC,
+				"Cleared cursor color.\n");
 		terminal->pvt->cursor_color_set = FALSE;
 	}
 }
@@ -2261,16 +2263,18 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Set highlight color to (%04x,%04x,%04x).\n",
-			highlight_background->red,
-			highlight_background->green,
-			highlight_background->blue);
 	if (highlight_background != NULL) {
+		_vte_debug_print(VTE_DEBUG_MISC,
+				"Set highlight color to (%04x,%04x,%04x).\n",
+				highlight_background->red,
+				highlight_background->green,
+				highlight_background->blue);
 		vte_terminal_set_color_internal(terminal, VTE_DEF_HL,
 						highlight_background);
 		terminal->pvt->highlight_color_set = TRUE;
 	} else {
+		_vte_debug_print(VTE_DEBUG_MISC,
+				"Cleared highlight color.\n");
 		terminal->pvt->highlight_color_set = FALSE;
 	}
 }
