@@ -10202,7 +10202,6 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 		return TRUE;
 	}
 
-	/* Perform a history scroll. */
 	adj = terminal->adjustment;
 	v = MAX (1., ceil (adj->page_increment / 10.));
 	switch (event->direction) {
@@ -10214,10 +10213,45 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 	default:
 		return FALSE;
 	}
-	v += terminal->pvt->screen->scroll_delta;
-	new_value = floor (CLAMP (v, adj->lower,
-				MAX (adj->lower, adj->upper - adj->page_size)));
-	vte_terminal_queue_adjustment_value_changed (terminal, new_value);
+
+	if (terminal->pvt->screen == &terminal->pvt->alternate_screen) {
+		char *normal;
+		gssize normal_length;
+		const gchar *special;
+		gint i, cnt = v;
+
+		/* In the alternate screen there is no scrolling,
+		 * so fake a few cursor keystrokes. */
+
+		_vte_keymap_map (
+				cnt > 0 ? GDK_Down : GDK_Up,
+				terminal->pvt->modifiers,
+				terminal->pvt->sun_fkey_mode,
+				terminal->pvt->hp_fkey_mode,
+				terminal->pvt->legacy_fkey_mode,
+				terminal->pvt->vt220_fkey_mode,
+				terminal->pvt->cursor_mode == VTE_KEYMODE_APPLICATION,
+				terminal->pvt->keypad_mode == VTE_KEYMODE_APPLICATION,
+				terminal->pvt->termcap,
+				terminal->pvt->emulation ?
+				terminal->pvt->emulation : vte_terminal_get_default_emulation(terminal),
+				&normal,
+				&normal_length,
+				&special);
+		if (cnt < 0)
+			cnt = -cnt;
+		for (i = 0; i < cnt; i++) {
+			vte_terminal_feed_child_using_modes (terminal,
+					normal, normal_length);
+		}
+		g_free (normal);
+	} else {
+		/* Perform a history scroll. */
+		v += terminal->pvt->screen->scroll_delta;
+		new_value = floor (CLAMP (v, adj->lower,
+					MAX (adj->lower, adj->upper - adj->page_size)));
+		vte_terminal_queue_adjustment_value_changed (terminal, new_value);
+	}
 
 	return TRUE;
 }

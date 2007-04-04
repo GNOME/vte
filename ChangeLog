@@ -1,3 +1,13 @@
+2007-04-04  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 424184 – Make scroll wheel send Page Up/Down when it makes sense
+
+	Original patch by Shaun McCance and refined by Baris Cicek.
+
+	* src/vte.c (vte_terminal_scroll):
+	    Send cursor keypress instead of trying to scroll the
+	    alternate screen in vain.
+
 2007-04-03  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 425767 – vte_terminal_set_color_highlight should test for
