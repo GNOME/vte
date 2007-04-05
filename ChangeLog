@@ -1,3 +1,16 @@
+2007-04-05  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 426541 – crash on IRM escape code
+
+	* src/vte.c (vte_terminal_ensure_cursor),
+	(_vte_terminal_insert_char):
+		Mishandled insertion - we always extended the row for
+		inserts even though the row would automagically extend
+		for the inserted cells. This lead to referencing
+		uninitialised cells at the end of the row during painting.
+	* src/vte.c (vte_terminal_draw_rows):
+		Retrieve the cell before inspecting it.
+
 2007-04-04  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 424184 – Make scroll wheel send Page Up/Down when it makes sense
@@ -5,8 +18,8 @@
 	Original patch by Shaun McCance and refined by Baris Cicek.
 
 	* src/vte.c (vte_terminal_scroll):
-	    Send cursor keypress instead of trying to scroll the
-	    alternate screen in vain.
+		Send cursor keypress instead of trying to scroll the
+		alternate screen in vain.
 
 2007-04-03  Chris Wilson  <chris@chris-wilson.co.uk>
 
