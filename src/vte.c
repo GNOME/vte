@@ -616,7 +616,9 @@ _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
 				cell = _vte_row_data_find_charcell(row_data, --col);
 			}
 			columns = cell->attr.columns;
-			if (_vte_draw_get_char_width(terminal->pvt->draw,
+			if (cell->c != 0 &&
+					_vte_draw_get_char_width (
+						terminal->pvt->draw,
 						cell->c,
 						cell->attr.columns) >
 					terminal->char_width * columns) {
@@ -672,9 +674,11 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 		}
 		if (cell != NULL) {
 			columns = cell->attr.columns;
-			if (_vte_draw_get_char_width(terminal->pvt->draw,
-						     cell->c,
-						     cell->attr.columns) >
+			if (cell->c != 0 &&
+					_vte_draw_get_char_width (
+						terminal->pvt->draw,
+						cell->c,
+						cell->attr.columns) >
 			    terminal->char_width * columns) {
 				columns++;
 			}
@@ -9904,12 +9908,12 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 		}
 
 		/* Draw the cursor. */
-		item.c = cell ? (cell->c ? cell->c : ' ') : ' ';
+		item.c = (cell && cell->c) ? cell->c : ' ';
 		item.columns = cell ? cell->attr.columns : 1;
 		item.x = col * width;
 		item.y = row * height;
 		cursor_width = item.columns * width;
-		if (cell) {
+		if (cell && cell->c != 0) {
 			gint cw = _vte_draw_get_char_width (terminal->pvt->draw,
 					cell->c, cell->attr.columns);
 			cursor_width = MAX(cursor_width, cw);
