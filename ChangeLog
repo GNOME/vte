@@ -1,3 +1,12 @@
+2007-04-06  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 419644 – Links do not get highlighted anymore
+	Also see Bug 404757 – URL matching doesn't work with PCRE
+
+	* configure.in:
+		Kill --with-pcre as it changes the semantics of the API
+		and only causes confusion.
+
 2007-04-05  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 426541 – crash on IRM escape code
