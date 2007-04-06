@@ -4,7 +4,7 @@
 
 	* src/vte.c (_vte_invalidate_cell), (_vte_invalidate_cursor_once),
 	(vte_terminal_paint):
-		Consistently guard for cell->c == '\0' before calling
+		Consistently guard against cell->c == '\0' before calling
 		_vte_draw_get_char_width.
 
 2007-04-06  Chris Wilson  <chris@chris-wilson.co.uk>
