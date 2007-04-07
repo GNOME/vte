@@ -1,0 +1,126 @@
+# Biełaruski pierakład vte.
+# Copyright (C) 2007 Free Software Foundation.
+# This file is distributed under the same license as the vte package.
+# Ihar Hračyška <ihar.hrachyshka@gmail.com>, 2007.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-04-07 22:43+0300\n"
+"PO-Revision-Date: 2007-04-07 22:45+0300\n"
+"Last-Translator: Ihar Hrachyshka <ihar.hrachyshka@gmail.com>\n"
+"Language-Team: Belarusian Latin <i18n@mova.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#: ../src/iso2022.c:784
+#: ../src/iso2022.c:795
+#: ../src/iso2022.c:844
+#: ../src/vte.c:1552
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Niemahčyma kanvertavać znaki z %s u %s."
+
+#: ../src/iso2022.c:1574
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr "Sproba akreśleńnia niapravilnaj mapy NRC '%c'."
+
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: ../src/iso2022.c:1615
+msgid "Unrecognized identified coding system."
+msgstr "Nieraspaznanaja systema kadavańnia."
+
+#: ../src/iso2022.c:1664
+#: ../src/iso2022.c:1690
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr "Sproba akreśleńnia niapravilnaj šyrokaj mapy NRC '%c'."
+
+#: ../src/pty.c:331
+#, c-format
+msgid "Error adding `%s' to environment, continuing."
+msgstr "Pamyłka padčas dadańnia `%s' da asiarodździa, praciah."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: ../src/pty.c:916
+#, c-format
+msgid "can not run %s"
+msgstr "niemahčyma vykanać %s"
+
+#: ../src/reaper.c:147
+msgid "Error creating signal pipe."
+msgstr "Pamyłka stvareńnia płyni syhnałaŭ."
+
+#: ../src/trie.c:414
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "Duplikat (%s/%s)!"
+
+#: ../src/vte.c:971
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Pamyłka kampilacyi rehularnaha vyrazu \"%s\"."
+
+#: ../src/vte.c:2435
+#: ../src/vte.c:2440
+#, c-format
+msgid "No handler for control sequence `%s' defined."
+msgstr "Absłuha dla kiroŭnaj paśladoŭnaści `%s' nia vyznačanaja."
+
+#. Translators: %s is replaced with error message returned by strerror().
+#: ../src/vte.c:3292
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Pamyłka čytańnia źviestak ad naščadka: %s."
+
+#: ../src/vte.c:3414
+#: ../src/vte.c:4351
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Pamyłka (%s) kanvertavańnia źviestak dla naščadka, ihnarujecca."
+
+#: ../src/vte.c:6320
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "Pamyłka čytańnia pamieraŭ PTY, vykarystanyja zmoŭčanyja: %s."
+
+#: ../src/vte.c:6356
+#, c-format
+msgid "Error setting PTY size: %s."
+msgstr "pamyłka akreśleńnia pamieraŭ PTY: %s."
+
+#. Aaargh.  We're screwed.
+#: ../src/vte.c:10632
+msgid "_vte_conv_open() failed setting word characters"
+msgstr "Funkcyja _vte_conv_open() viarnuła pamyłku akreśleńnia znakaŭ šyryni słova"
+
+#. Bail back to normal mode.
+#: ../src/vteapp.c:737
+msgid "Could not open console.\n"
+msgstr "Niemahčyma adčynić kansol.\n"
+
+#: ../src/vteglyph.c:578
+#, c-format
+msgid "Unknown pixel mode %d.\n"
+msgstr "Nieviadomy režym pikselaŭ %d.\n"
+
+#: ../src/vtexft.c:685
+#, c-format
+msgid "Can not draw character U+%04x.\n"
+msgstr "Niemahčyma namalavać znak U+%04x.\n"
+
+#~ msgid "Unable to send data to child, invalid charset convertor"
+#~ msgstr ""
+#~ "Niemahčyma dasłać źviestki naščadku, niapravilny kanvertar kadavańniaŭ"
+#~ msgid "Got unexpected (key?) sequence `%s'."
+#~ msgstr "Atrymanaja niečakanaja paśladoŭnaść (klavišaŭ?) `%s'."
+#~ msgid "Could not parse the geometry spec passed to --geometry"
+#~ msgstr ""
+#~ "Niemahčyma razabrać źviestki hieametryi, akreślenyja opcyjaj --geometry"
+
