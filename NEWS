@@ -1,3 +1,35 @@
+0.16.1
+======
+- Lots of bug fixes by Chris Wilson
+- New feature: mouse scroll-wheel now feeds three arrow-up/down keys to the
+  terminal if in the "alternate" mode.  The alternate mode is used by apps
+  like vim, less, emacs, screen, etc.  This makes the scroll-wheel usable
+  in a state that it was of no use before.
+- Bugs fixed in this release:
+	Bug 426870 – vte often passes NUL to functions requiring valid unichar
+	Bug 419644 – Links do not get highlighted anymore
+	Bug 404757 – URL matching doesn't work with PCRE
+	Bug 426541 – crash on IRM escape code
+	Bug 424184 – Make scroll wheel send Page Up/Down when it makes sense
+		Original patch by Shaun McCance and refined by Baris Cicek.
+	Bug 425767 – vte_terminal_set_color_highlight should test for
+		NULL before _vte_debug_print
+	Bug 422385 – vte appears at the top of the root window even when
+		packed at the bottom of it
+		Patch by Dodji Seketeli.
+	Bug 420935 – glyph can be cropped with not fitting in a cell
+	Bug 420067 – Does not handle expose events whilst processing
+		unseen incoming data
+	Bug 415381 – Improve performance of vte_terminal_insert_char()
+	Bug 418073 – Opacity ignored for vtexft
+	Bug 418910 – Asymmetric scrolling with mouse wheel
+	Bug 416634 – Rendering glitch as autowrapped chars are outside
+		invalidated bbox
+	Bug 416635 – Rendering glitch: double draw of line below exposed region
+	Bug 418588 – Invalid read when drawing preedit cursor
+	Bug 417652 – Scrolling bug exposed by nvi
+	Bug 417301 – Terminal widgets don't respond to DPI changes
+
 0.16.0
 ======
 - Fix some minor bugs.  More regressions to be fixed later.

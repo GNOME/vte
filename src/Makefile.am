@@ -118,7 +118,7 @@ endif
 # Libtool shared library versioning stuffs.
 # REVISION gets incremented whenever the source code changes without adding
 # an API or ABI change.
-VERSION_REVISION=4
+VERSION_REVISION=5
 # CURRENT must be incremented when an API or ABI change (addition or removal)
 # is made, and REVISION must be reset to 0 when this happens.
 VERSION_CURRENT=11
