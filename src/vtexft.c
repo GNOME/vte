@@ -76,6 +76,7 @@ struct _vte_xft_data {
 	gint scrollx, scrolly;
 	GPtrArray *locked_fonts[2];
 	guint cur_locked_fonts;
+	gboolean has_clip_mask;
 };
 
 /* protected by gdk_mutex */
@@ -427,6 +428,7 @@ _vte_xft_start (struct _vte_draw *draw)
 		data->colormap = gdk_x11_colormap_get_xcolormap (gcolormap);
 		data->draw = XftDrawCreate (data->display, data->drawable,
 				data->visual, data->colormap);
+		data->has_clip_mask = FALSE;
 	}
 	g_assert (data->display == data->font->display);
 
@@ -513,18 +515,30 @@ _vte_xft_clip (struct _vte_draw *draw,
 	gint i, n;
 
 	gdk_region_get_rectangles (region, &rect, &n);
-	xrect = n > (gint) G_N_ELEMENTS (stack_rect) ?
-		g_new (XRectangle, n) :
-		stack_rect;
-	for (i = 0; i < n; i++) {
-		xrect[i].x = rect[i].x - data->x_offs;
-		xrect[i].y = rect[i].y - data->y_offs;
-		xrect[i].width = rect[i].width;
-		xrect[i].height = rect[i].height;
+	/* only enable clipping if we have to */
+	if (n > 1 ||
+			rect[0].width < draw->widget->allocation.width ||
+			rect[0].height < draw->widget->allocation.height) {
+		xrect = n > (gint) G_N_ELEMENTS (stack_rect) ?
+			g_new (XRectangle, n) :
+			stack_rect;
+		for (i = 0; i < n; i++) {
+			xrect[i].x = rect[i].x - data->x_offs;
+			xrect[i].y = rect[i].y - data->y_offs;
+			xrect[i].width = rect[i].width;
+			xrect[i].height = rect[i].height;
+		}
+		XftDrawSetClipRectangles (data->draw, 0, 0, xrect, n);
+		data->has_clip_mask = TRUE;
+		if (xrect != stack_rect)
+			g_free (xrect);
+	} else {
+		if (data->has_clip_mask) {
+			XftDrawSetClipRectangles (data->draw, 0, 0, NULL, 0);
+			data->has_clip_mask = FALSE;
+		}
 	}
-	XftDrawSetClipRectangles (data->draw, 0, 0, xrect, n);
-	if (xrect != stack_rect)
-		g_free (xrect);
+
 	g_free (rect);
 }
 
