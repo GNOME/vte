@@ -1,3 +1,14 @@
+2007-04-23  Chris Wilson <chris@chris-wilson.co.uk>
+
+	Bug 431799 – Regex highlighting is broken
+
+	* src/vte.c (vte_terminal_emit_contents_changed),
+	(vte_terminal_match_hilite_update), (process_timeout),
+	(update_repeat_timeout), (update_timeout):
+		Always emit any pending updates before redrawing. This
+		ensures for example that the match contents are updated
+		after a simple scroll event.
+
 2007-04-20  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	* src/vtexft.c (_vte_xft_start), (_vte_xft_clip):

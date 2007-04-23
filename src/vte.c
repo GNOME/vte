@@ -828,8 +828,13 @@ static void
 vte_terminal_emit_contents_changed(VteTerminal *terminal)
 {
 	if (terminal->pvt->contents_changed_pending) {
-		/* Clear dingus match set. */
+		/* Update dingus match set. */
 		vte_terminal_match_contents_clear(terminal);
+		if (terminal->pvt->mouse_cursor_visible) {
+			vte_terminal_match_hilite_update(terminal,
+					terminal->pvt->mouse_last_x,
+					terminal->pvt->mouse_last_y);
+		}
 
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting `contents-changed'.\n");
@@ -4959,10 +4964,16 @@ vte_terminal_match_hilite_update(VteTerminal *terminal, double x, double y)
 	width = terminal->char_width;
 	height = terminal->char_height;
 
-
 	/* Check for matches. */
 	screen = terminal->pvt->screen;
 	delta = screen->scroll_delta;
+
+	_vte_debug_print(VTE_DEBUG_EVENTS,
+			"Match hilite update (%.0f, %.0f) -> %.0f, %.0f\n",
+			x, y,
+			floor(x) / width,
+			floor(y) / height + delta);
+
 	match = vte_terminal_match_check_internal(terminal,
 						  floor(x) / width,
 						  floor(y) / height + delta,
@@ -12199,7 +12210,8 @@ process_timeout (gpointer data)
 				vte_terminal_process_incoming(terminal);
 			}
 			terminal->pvt->input_bytes = 0;
-		}
+		} else
+			vte_terminal_emit_pending_signals (terminal);
 		if (!active && terminal->pvt->update_regions == NULL) {
 			if (terminal->pvt->active != NULL) {
 				_vte_debug_print(VTE_DEBUG_TIMEOUT,
@@ -12323,7 +12335,8 @@ update_repeat_timeout (gpointer data)
 				vte_terminal_process_incoming (terminal);
 			}
 			terminal->pvt->input_bytes = 0;
-		}
+		} else
+			vte_terminal_emit_pending_signals (terminal);
 
 		again = update_regions (terminal);
 		if (!again) {
@@ -12422,7 +12435,8 @@ update_timeout (gpointer data)
 				vte_terminal_process_incoming (terminal);
 			}
 			terminal->pvt->input_bytes = 0;
-		}
+		} else
+			vte_terminal_emit_pending_signals (terminal);
 
 		redraw |= update_regions (terminal);
 	}
