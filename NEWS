@@ -1,3 +1,11 @@
+0.16.2
+======
+- Consider ambiguous-width chars if VTE_CJK_WIDTH env var is set and we
+  are under a CJK locale.
+- Minor optimization
+- Bugs fixed in this release:
+	Bug 431799 – Regex highlighting is broken
+
 0.16.1
 ======
 - Lots of bug fixes by Chris Wilson
