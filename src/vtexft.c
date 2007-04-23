@@ -534,7 +534,7 @@ _vte_xft_clip (struct _vte_draw *draw,
 			g_free (xrect);
 	} else {
 		if (data->has_clip_mask) {
-			XftDrawSetClipRectangles (data->draw, 0, 0, NULL, 0);
+			XftDrawSetClip (data->draw, NULL);
 			data->has_clip_mask = FALSE;
 		}
 	}
