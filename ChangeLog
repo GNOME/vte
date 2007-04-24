@@ -1,5 +1,13 @@
 2007-04-24  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	As noted on Bug 414716, the convention is to use --enable-debug
+	to enable extra debugging code.
+
+	* configure.in:
+		s/debugging/debug/
+
+2007-04-24  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 414716 – Refresh issue after changing workspaces
 
 	* src/vte.c (vte_terminal_hierarchy_changed):

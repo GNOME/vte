@@ -163,8 +163,8 @@ done
 AC_SUBST(PYTHON_LDFLAGS)
 
 # Enable debugging messages and additional run-time checks.
-AC_ARG_ENABLE(debugging,
-	      [AS_HELP_STRING([--enable-debugging],
+AC_ARG_ENABLE(debug,
+	      [AS_HELP_STRING([--enable-debug],
 			      [enable extra debugging checks and logging messages]
 			      )],
 	      DEBUG=$enableval, DEBUG=no)
