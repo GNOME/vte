@@ -7,6 +7,8 @@
 
 2007-04-24  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 415044 – Use --enable-debug rather than --enable-debugging
+
 	As noted on Bug 414716, the convention is to use --enable-debug
 	to enable extra debugging code.
 
