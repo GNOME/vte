@@ -1,3 +1,10 @@
+2007-04-24  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 414716 – Refresh issue after changing workspaces
+
+	* src/vte.c (vte_terminal_hierarchy_changed):
+		Do not respond to toplevel mapping events.
+
 2007-04-23  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.16.2.

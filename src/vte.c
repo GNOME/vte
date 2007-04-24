@@ -3984,32 +3984,6 @@ vte_terminal_configure_toplevel(VteTerminal *terminal)
 	return FALSE;
 }
 
-static gboolean
-vte_terminal_unmap_toplevel (VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Top level parent unmapped.\n");
-
-	vte_terminal_set_visibility (terminal, GDK_VISIBILITY_FULLY_OBSCURED);
-
-	return FALSE;
-}
-static gboolean
-vte_terminal_map_toplevel (VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Top level parent mapped.\n");
-
-	/* See bug 414716, we don't always receive a visibility notify after
-	 * the remap when switching desktops
-	 */
-	if (terminal->widget.window != NULL &&
-			gdk_window_is_viewable (terminal->widget.window)) {
-		vte_terminal_set_visibility (terminal,
-				GDK_VISIBILITY_UNOBSCURED);
-	}
-
-	return FALSE;
-}
-
 /* Handle a hierarchy-changed signal. */
 static void
 vte_terminal_hierarchy_changed(GtkWidget *widget, GtkWidget *old_toplevel,
@@ -4022,12 +3996,6 @@ vte_terminal_hierarchy_changed(GtkWidget *widget, GtkWidget *old_toplevel,
 		g_signal_handlers_disconnect_by_func(old_toplevel,
 						     vte_terminal_configure_toplevel,
 						     widget);
-		g_signal_handlers_disconnect_by_func(old_toplevel,
-						     vte_terminal_unmap_toplevel,
-						     widget);
-		g_signal_handlers_disconnect_by_func(old_toplevel,
-						     vte_terminal_map_toplevel,
-						     widget);
 	}
 
 	toplevel = gtk_widget_get_toplevel(widget);
@@ -4035,13 +4003,6 @@ vte_terminal_hierarchy_changed(GtkWidget *widget, GtkWidget *old_toplevel,
 		g_signal_connect_swapped (toplevel, "configure-event",
 				 G_CALLBACK (vte_terminal_configure_toplevel),
 				 widget);
-		g_signal_connect_swapped (toplevel, "unmap-event",
-				 G_CALLBACK (vte_terminal_unmap_toplevel),
-				 widget);
-		g_signal_connect_data (toplevel, "map-event",
-				 G_CALLBACK (vte_terminal_map_toplevel),
-				 widget, NULL,
-				 G_CONNECT_AFTER | G_CONNECT_SWAPPED);
 	}
 }
 
