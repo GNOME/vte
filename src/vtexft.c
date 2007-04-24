@@ -262,7 +262,9 @@ _vte_xft_open_font_for_char (struct _vte_xft_font *font, gunichar c, GPtrArray *
 	/* No match? */
 	_vte_tree_insert (font->fontmap,
 			p, GINT_TO_POINTER (-FONT_INDEX_FUDGE));
-	g_warning (_ ("Can not find appropiate font for character U+%04x.\n"), c);
+	_vte_debug_print (VTE_DEBUG_MISC,
+			"Can not find appropiate font for character U+%04x.\n",
+			c);
 	return NULL;
 }
 static inline XftFont *

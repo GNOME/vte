@@ -1,5 +1,12 @@
 2007-04-24  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 429189 – Vte-WARNING's
+
+	* src/vtexft.c (_vte_xft_open_font_for_char):
+		Convert the warning into a DEBUG.
+
+2007-04-24  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	As noted on Bug 414716, the convention is to use --enable-debug
 	to enable extra debugging code.
 
