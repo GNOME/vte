@@ -9768,10 +9768,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 	VteTerminal *terminal;
 	VteScreen *screen;
 	struct vte_charcell *cell;
-	struct _vte_draw_text_request item, *items;
+	struct _vte_draw_text_request item;
 	int row, drow, col, columns;
-	char *preedit;
-	int preedit_cursor;
 	long width, height, ascent, descent, delta, cursor_width;
 	int i, len, fore, back, x, y;
 	gboolean blink, selected;
@@ -10017,8 +10015,6 @@ draw_cursor_outline:
 		row = screen->cursor_current.row - delta;
 
 		/* Find out how many columns the pre-edit string takes up. */
-		preedit = terminal->pvt->im_preedit;
-		preedit_cursor = -1;
 		columns = vte_terminal_preedit_width(terminal, FALSE);
 		len = vte_terminal_preedit_length(terminal, FALSE);
 
@@ -10031,8 +10027,11 @@ draw_cursor_outline:
 
 		/* Draw the preedit string, boxed. */
 		if (len > 0) {
+			int preedit_cursor = -1;
+			struct _vte_draw_text_request *items;
+			const char *preedit = terminal->pvt->im_preedit;
+
 			items = g_new(struct _vte_draw_text_request, len);
-			preedit = terminal->pvt->im_preedit;
 			for (i = columns = 0; i < len; i++) {
 				if ((preedit - terminal->pvt->im_preedit) ==
 				    terminal->pvt->im_preedit_cursor) {
@@ -10044,10 +10043,6 @@ draw_cursor_outline:
 				items[i].y = row * height;
 				columns += items[i].columns;
 				preedit = g_utf8_next_char(preedit);
-			}
-			if ((preedit - terminal->pvt->im_preedit) ==
-			    terminal->pvt->im_preedit_cursor) {
-				preedit_cursor = i;
 			}
 			_vte_draw_clear(terminal->pvt->draw,
 					col * width + VTE_PAD_WIDTH,
@@ -10061,10 +10056,10 @@ draw_cursor_outline:
 								terminal->pvt->im_preedit_attrs,
 								TRUE,
 								width, height);
-			if ((preedit_cursor >= 0) && (preedit_cursor < len)) {
+			if (preedit_cursor != -1) {
 				/* Cursored letter in reverse. */
 				vte_terminal_draw_cells(terminal,
-							&items[terminal->pvt->im_preedit_cursor], 1,
+							&items[preedit_cursor], 1,
 							back, fore, TRUE, TRUE,
 							FALSE,
 							FALSE,
