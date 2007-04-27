@@ -1,6 +1,15 @@
 2007-04-27  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 433776 – gnome-terminal crashes when open preedit area
+	Take 2.
+
+	* src/vte.c (vte_terminal_paint): The preedit_cursor is returned by
+	the input modules in characters not in bytes as assumed by the
+	validation.
+
+2007-04-27  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 433776 – gnome-terminal crashes when open preedit area
 
 	* src/vte.c (vte_terminal_paint): Use the validated cursor index.
 

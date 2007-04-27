@@ -10027,16 +10027,12 @@ draw_cursor_outline:
 
 		/* Draw the preedit string, boxed. */
 		if (len > 0) {
-			int preedit_cursor = -1;
 			struct _vte_draw_text_request *items;
 			const char *preedit = terminal->pvt->im_preedit;
+			int preedit_cursor;
 
 			items = g_new(struct _vte_draw_text_request, len);
 			for (i = columns = 0; i < len; i++) {
-				if ((preedit - terminal->pvt->im_preedit) ==
-				    terminal->pvt->im_preedit_cursor) {
-					preedit_cursor = i;
-				}
 				items[i].c = g_utf8_get_char(preedit);
 				items[i].columns = _vte_iso2022_unichar_width(items[i].c);
 				items[i].x = (col + columns) * width;
@@ -10056,7 +10052,8 @@ draw_cursor_outline:
 								terminal->pvt->im_preedit_attrs,
 								TRUE,
 								width, height);
-			if (preedit_cursor != -1) {
+			preedit_cursor = terminal->pvt->im_preedit_cursor;
+			if (preedit_cursor >= 0 && preedit_cursor < len) {
 				/* Cursored letter in reverse. */
 				vte_terminal_draw_cells(terminal,
 							&items[preedit_cursor], 1,
