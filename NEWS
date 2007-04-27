@@ -1,3 +1,15 @@
+0.16.3
+======
+- Remove false warnings about missing glyphs in the Xft backend.
+- Rename --enable-debugging configure option to --enable-debug to
+  match other modules.
+- Fix some of refresh issue where terminals stopped updating after
+  changing workspaces.
+- Bugs fixed in this release:
+	Bug 429189 – Vte-WARNING's
+	Bug 415044 – Use --enable-debug rather than --enable-debugging
+	Bug 414716 – Refresh issue after changing workspaces
+
 0.16.2
 ======
 - Consider ambiguous-width chars if VTE_CJK_WIDTH env var is set and we
