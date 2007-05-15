@@ -7426,7 +7426,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 {
 	VteTerminal *terminal;
 	glong width, height;
-	gboolean repaint;
+	gboolean repaint, update_scrollback;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE,
 			"vte_terminal_size_allocate()\n");
@@ -7444,12 +7444,14 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 			width, height);
 	repaint = widget->allocation.width != allocation->width ||
 		widget->allocation.height != allocation->height;
+	update_scrollback = widget->allocation.height != allocation->height;
 
 	/* Set our allocation to match the structure. */
 	widget->allocation = *allocation;
 
 	if (width != terminal->column_count
-			|| height != terminal->row_count) {
+			|| height != terminal->row_count
+			|| update_scrollback) {
 		VteScreen *screen = terminal->pvt->screen;
 		glong visible_rows = MIN (terminal->row_count,
 				_vte_ring_length (screen->row_data));

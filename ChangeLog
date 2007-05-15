@@ -1,3 +1,12 @@
+2007-05-15  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	kmaraas reported an issue on IRC where the scrollback was not being
+	updated correctly in the first tab when the terminal was resized via
+	a second tab.
+
+	* src/vte.c (vte_terminal_size_allocate): Check whether we need to
+	recompute the visible lines due to a change in layout geometry.
+
 2007-04-27  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 433776 – gnome-terminal crashes when open preedit area
