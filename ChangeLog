@@ -1,5 +1,15 @@
 2007-05-22  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 375112 – ctrl-key combinations yielding just key
+	Original patch by <samo@altern.org> and refactored by Loïc Minier.
+
+	* src/vte.c (vte_translate_national_ctrlkeys),
+	(vte_terminal_key_press), (vte_terminal_scroll):
+	    When cooking a string to pass through to the client obtain a
+	    "raw" keyval.
+
+2007-05-22  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 440377 – gnome-terminal cannot refresh terminal when accessibility enabled
 	Original patch by Li Yuan.
 

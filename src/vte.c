@@ -63,6 +63,10 @@ typedef gunichar wint_t;
 #define howmany(x, y) (((x) + ((y) - 1)) / (y))
 #endif
 
+#if !GTK_CHECK_VERSION(2,2,0)
+#define gdk_keymap_get_for_display(dpy) gdk_keymap_get_default()
+#endif
+
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
 static void vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 				     gboolean reset);
@@ -4058,6 +4062,31 @@ remove_cursor_timeout (VteTerminal *terminal)
 	terminal->pvt->cursor_blink_tag = VTE_INVALID_SOURCE;
 }
 
+/*
+ * Translate national keys with Crtl|Alt modifier
+ * Refactored from http://bugzilla.gnome.org/show_bug.cgi?id=375112
+ */
+static guint
+vte_translate_national_ctrlkeys (GdkEventKey *event)
+{
+	guint keyval;
+	GdkModifierType consumed_modifiers;
+	GdkKeymap *keymap;
+
+	keymap = gdk_keymap_get_for_display (
+			gdk_drawable_get_display (event->window));
+
+	gdk_keymap_translate_keyboard_state (keymap,
+			event->hardware_keycode, event->state,
+			0, /* Force 0 group (English) */
+			&keyval, NULL, NULL, &consumed_modifiers);
+
+	_vte_debug_print (VTE_DEBUG_EVENTS,
+			"ctrl+Key, group=%d de-grouped into keyval=0x%x\n",
+			event->group, keyval);
+
+	return keyval;
+}
 
 /* Read and handle a keypress event. */
 static gint
@@ -4349,6 +4378,10 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		/* If we didn't manage to do anything, try to salvage a
 		 * printable string. */
 		if (handled == FALSE && normal == NULL && special == NULL) {
+			if (event->group &&
+					(terminal->pvt->modifiers & GDK_CONTROL_MASK))
+				keyval = vte_translate_national_ctrlkeys(event);
+
 			/* Convert the keyval to a gunichar. */
 			keychar = gdk_keyval_to_unicode(keyval);
 			normal_length = 0;
@@ -10184,7 +10217,8 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 		return FALSE;
 	}
 
-	if (terminal->pvt->screen == &terminal->pvt->alternate_screen) {
+	if (terminal->pvt->screen == &terminal->pvt->alternate_screen ||
+		terminal->pvt->normal_screen.scrolling_restricted) {
 		char *normal;
 		gssize normal_length;
 		const gchar *special;
