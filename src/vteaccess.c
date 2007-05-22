@@ -694,7 +694,7 @@ vte_terminal_accessible_title_changed(VteTerminal *terminal, gpointer data)
 }
 
 /* Reflect focus-in events. */
-static void
+static gboolean
 vte_terminal_accessible_focus_in(VteTerminal *terminal, GdkEventFocus *event,
 				 gpointer data)
 {
@@ -703,10 +703,12 @@ vte_terminal_accessible_focus_in(VteTerminal *terminal, GdkEventFocus *event,
 	g_signal_emit_by_name(data, "focus-event", TRUE);
 	atk_object_notify_state_change(ATK_OBJECT(data),
 				       ATK_STATE_FOCUSED, TRUE);
+
+	return FALSE;
 }
 
 /* Reflect focus-out events. */
-static void
+static gboolean
 vte_terminal_accessible_focus_out(VteTerminal *terminal, GdkEventFocus *event,
 				  gpointer data)
 {
@@ -715,10 +717,12 @@ vte_terminal_accessible_focus_out(VteTerminal *terminal, GdkEventFocus *event,
 	g_signal_emit_by_name(data, "focus-event", FALSE);
 	atk_object_notify_state_change(ATK_OBJECT(data),
 				       ATK_STATE_FOCUSED, FALSE);
+
+	return FALSE;
 }
 
 /* Reflect visibility-notify events. */
-static void
+static gboolean
 vte_terminal_accessible_visibility_notify(VteTerminal *terminal,
 					  GdkEventVisibility *event,
 					  gpointer data)
@@ -748,6 +752,8 @@ vte_terminal_accessible_visibility_notify(VteTerminal *terminal,
 	atk_object_notify_state_change(ATK_OBJECT(data),
 				       ATK_STATE_SHOWING,
 				       visible);
+
+	return FALSE;
 }
 
 static void

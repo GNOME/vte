@@ -1,3 +1,13 @@
+2007-05-22  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 440377 – gnome-terminal cannot refresh terminal when accessibility enabled
+	Original patch by Li Yuan.
+
+	* src/vteaccess.c (vte_terminal_accessible_focus_in),
+	(vte_terminal_accessible_focus_out),
+	(vte_terminal_accessible_visibility_notify):
+	    Return FALSE rather than void...
+
 2007-05-17  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	* perf/scroll.vim:
