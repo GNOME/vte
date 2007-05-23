@@ -9692,7 +9692,7 @@ fg_out:
 }
 
 static void
-vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, GdkRectangle *area)
+vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, const GdkRectangle *area)
 {
 	VteScreen *screen;
 	int width, height;
@@ -9726,7 +9726,7 @@ vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, GdkRectang
 	if (col_stop == terminal->column_count)
 		rect.width = terminal->widget.allocation.width;
 	else
-		rect.width = (col_stop + 1)*width;
+		rect.width = col_stop*width + VTE_PAD_WIDTH;
 	rect.width -= rect.x;
 	if (row == 0)
 		rect.y = 0;
@@ -9735,7 +9735,7 @@ vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, GdkRectang
 	if (row_stop == terminal->row_count)
 		rect.height = terminal->widget.allocation.height;
 	else
-		rect.height = (row_stop + 1)*height;
+		rect.height = row_stop*height + VTE_PAD_WIDTH;
 	rect.height -= rect.y;
 	gdk_region_union_with_rect(region, &rect);
 
@@ -9750,7 +9750,7 @@ vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, GdkRectang
 }
 
 static void
-vte_terminal_paint_area (VteTerminal *terminal, GdkRectangle *area)
+vte_terminal_paint_area (VteTerminal *terminal, const GdkRectangle *area)
 {
 	VteScreen *screen;
 	int width, height, delta;
@@ -9787,10 +9787,7 @@ vte_terminal_paint_area (VteTerminal *terminal, GdkRectangle *area)
 	if (!GTK_WIDGET_DOUBLE_BUFFERED (terminal) ||
 			_vte_draw_requires_clear (terminal->pvt->draw)) {
 		_vte_draw_clear (terminal->pvt->draw,
-				col * width + VTE_PAD_WIDTH,
-				row * height + VTE_PAD_WIDTH,
-				(col_stop - col) * width,
-				(row_stop - row) * height);
+				area->x, area->y, area->width, area->height);
 	}
 
 	/* Now we're ready to draw the text.  Iterate over the rows we

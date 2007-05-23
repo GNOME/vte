@@ -1,5 +1,13 @@
 2007-05-23  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 429278 – Cursor drawn strangely in joe
+
+	* src/vte.c (vte_terminal_expand_region),
+	(vte_terminal_paint_area):
+		Ensure the expanded regions are cell aligned.
+
+2007-05-23  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	cf Bug 439247 – scrolling vim in full screen is painfully slow and takes up 100% of the cpu
 
 	* src/vte.c (vte_terminal_draw_rows):
