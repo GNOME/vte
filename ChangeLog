@@ -2,7 +2,7 @@
 
 	cf Bug 439247 – scrolling vim in full screen is painfully slow and takes up 100% of the cpu
 
-	* src/vte.c (_vte_invalidate_cell), (vte_terminal_draw_rows):
+	* src/vte.c (vte_terminal_draw_rows):
 	    Fix up the unwanted break of Glyph runs at the end-of-lines.
 
 2007-05-23  Chris Wilson  <chris@chris-wilson.co.uk>
