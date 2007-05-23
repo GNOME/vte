@@ -631,13 +631,12 @@ _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
 		}
 	}
 
-	_vte_invalidate_cells(terminal,
-			col, columns,
-			row, 1);
-
 	_vte_debug_print(VTE_DEBUG_UPDATES,
 			"Invalidating cell at (%ld,%ld-%ld).\n",
 			row, col, col + columns);
+	_vte_invalidate_cells(terminal,
+			col, columns,
+			row, 1);
 }
 
 /* Cause the cursor to be redrawn. */
@@ -9461,7 +9460,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 	y = start_y;
 	row = start_row;
 	rows = row_count;
-	item_count = 1; /* we will always submit at least one item */
+	item_count = 0;
 	do {
 		row_data = _vte_terminal_find_row_data(terminal, row);
 		if (row_data == NULL) {
@@ -9517,27 +9516,28 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				hilite = FALSE;
 			}
 
-			items[0].c = cell->c;
-			items[0].columns = cell->attr.columns;
-			items[0].x = start_x + i * column_width;
-			items[0].y = y;
-			j = i + items[0].columns;
+			items[item_count].c = cell->c;
+			items[item_count].columns = cell->attr.columns;
+			items[item_count].x = start_x + i * column_width;
+			items[item_count].y = y;
+			j = i + items[item_count].columns;
 
 			/* If this is a graphics character, draw it locally. */
 			if (vte_terminal_unichar_is_local_graphic(terminal, cell->c)) {
 				if (vte_terminal_draw_graphic(terminal,
-							items[0].c,
+							items[item_count].c,
 							fore, back,
 							FALSE,
-							items[0].x,
-							items[0].y,
+							items[item_count].x,
+							items[item_count].y,
 							column_width,
-							items[0].columns,
+							items[item_count].columns,
 							row_height)) {
 					i = j;
 					continue;
 				}
 			}
+			item_count++;
 
 			/* Now find out how many cells have the same attributes. */
 			do {
@@ -9546,7 +9546,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					/* Retrieve the cell. */
 					cell = _vte_row_data_find_charcell(row_data, j);
 					if (cell == NULL) {
-						break;
+						goto fg_next_row;
 					}
 					if (cell->c == 0 || cell->c == ' '){
 						/* only break the run if we
@@ -9666,7 +9666,7 @@ fg_draw:
 					bold, underline,
 					strikethrough, hilite, FALSE,
 					column_width, row_height);
-			item_count = 1;
+			item_count = 0;
 			/* We'll need to continue at the first cell which didn't
 			 * match the first one in this set. */
 			i = j;
@@ -9678,6 +9678,15 @@ fg_next_row:
 		row++;
 		y += row_height;
 	} while (--rows);
+	if (item_count) {
+		vte_terminal_draw_cells(terminal,
+				items,
+				item_count,
+				fore, back, FALSE, FALSE,
+				bold, underline,
+				strikethrough, hilite, FALSE,
+				column_width, row_height);
+	}
 fg_out:
 	return;
 }
