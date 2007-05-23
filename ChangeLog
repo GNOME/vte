@@ -1,3 +1,12 @@
+2007-05-23  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 440475 – Display glitch with transparent backgroud
+
+	* src/vte.c (vte_terminal_paint_area):
+	    Apply the band-aid fix to clear the area that's about to be
+	    repainted. The full solution will to be ensure that the regions
+	    after expansion are cell-aligned.
+
 2007-05-22  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 375112 – ctrl-key combinations yielding just key

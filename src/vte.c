@@ -9686,7 +9686,7 @@ static void
 vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, GdkRectangle *area)
 {
 	VteScreen *screen;
-	int width, height, delta;
+	int width, height;
 	int row, col, row_stop, col_stop;
 	GdkRectangle rect;
 
@@ -9694,7 +9694,6 @@ vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, GdkRectang
 
 	width = terminal->char_width;
 	height = terminal->char_height;
-	delta = screen->scroll_delta;
 
 	/* increase the paint by one pixel on all sides to force the
 	 * inclusion of neighbouring cells */
@@ -9752,7 +9751,6 @@ vte_terminal_paint_area (VteTerminal *terminal, GdkRectangle *area)
 
 	width = terminal->char_width;
 	height = terminal->char_height;
-	delta = screen->scroll_delta;
 
 	row = MAX(0, (area->y - VTE_PAD_WIDTH) / height);
 	row_stop = MIN((area->height + area->y - VTE_PAD_WIDTH) / height,
@@ -9780,12 +9778,15 @@ vte_terminal_paint_area (VteTerminal *terminal, GdkRectangle *area)
 	if (!GTK_WIDGET_DOUBLE_BUFFERED (terminal) ||
 			_vte_draw_requires_clear (terminal->pvt->draw)) {
 		_vte_draw_clear (terminal->pvt->draw,
-				area->x, area->y,
-				area->width, area->height);
+				col * width + VTE_PAD_WIDTH,
+				row * height + VTE_PAD_WIDTH,
+				(col_stop - col) * width,
+				(row_stop - row) * height);
 	}
 
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */
+	delta = screen->scroll_delta;
 	vte_terminal_draw_rows(terminal,
 			      screen,
 			      row + delta, row_stop - row,
