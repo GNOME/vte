@@ -9719,24 +9719,13 @@ vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, const GdkR
 		return;
 	}
 
-	if (col == 0)
-		rect.x = 0;
-	else
-		rect.x = col*width + VTE_PAD_WIDTH;
-	if (col_stop == terminal->column_count)
-		rect.width = terminal->widget.allocation.width;
-	else
-		rect.width = col_stop*width + VTE_PAD_WIDTH;
-	rect.width -= rect.x;
-	if (row == 0)
-		rect.y = 0;
-	else
-		rect.y = row*height + VTE_PAD_WIDTH;
-	if (row_stop == terminal->row_count)
-		rect.height = terminal->widget.allocation.height;
-	else
-		rect.height = row_stop*height + VTE_PAD_WIDTH;
-	rect.height -= rect.y;
+	rect.x = col*width + VTE_PAD_WIDTH;
+	rect.width = (col_stop - col) * width;
+
+	rect.y = row*height + VTE_PAD_WIDTH;
+	rect.height = (row_stop - row)*height;
+
+	/* the rect must be cell aligned to avoid overlapping XY bands */
 	gdk_region_union_with_rect(region, &rect);
 
 	_vte_debug_print (VTE_DEBUG_UPDATES,
@@ -9786,8 +9775,30 @@ vte_terminal_paint_area (VteTerminal *terminal, const GdkRectangle *area)
 			(row_stop - row) * height);
 	if (!GTK_WIDGET_DOUBLE_BUFFERED (terminal) ||
 			_vte_draw_requires_clear (terminal->pvt->draw)) {
+		GdkRectangle rect;
+
+		/* expand clear area to cover borders */
+		if (col == 0)
+			rect.x = 0;
+		else
+			rect.x = area->x;
+		if (col_stop == terminal->column_count)
+			rect.width = terminal->widget.allocation.width;
+		else
+			rect.width = area->x + area->width;
+		rect.width -= rect.x;
+		if (row == 0)
+			rect.y = 0;
+		else
+			rect.y = area->y;
+		if (row_stop == terminal->row_count)
+			rect.height = terminal->widget.allocation.height;
+		else
+			rect.height = area->y + area->height;
+		rect.height -= rect.y;
+
 		_vte_draw_clear (terminal->pvt->draw,
-				area->x, area->y, area->width, area->height);
+				rect.x, rect.y, rect.width, rect.height);
 	}
 
 	/* Now we're ready to draw the text.  Iterate over the rows we
