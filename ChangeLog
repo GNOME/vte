@@ -1,3 +1,13 @@
+2007-05-28  Behdad Esfahbod  <behdad@gnome.org>
+
+	Released vte-0.16.4.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.16.4.
+
+	* src/Makefile.am: Bumped libtool version to 11:8:2.
+
 2007-05-28  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	uws noted on IRC that 'vte trunk does strange thingies with colors'

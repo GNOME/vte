@@ -1,3 +1,16 @@
+0.16.4
+======
+- Misc bug fixes.
+- Bugs fixed in this release:
+	Bug 429278 – Cursor drawn strangely in joe
+	cf Bug 439247 – scrolling vim in full screen is painfully slow and takes up 100% of the cpu
+	Bug 440475 – Display glitch with transparent backgroud
+	Bug 375112 – ctrl-key combinations yielding just key
+		Original patch by <samo@altern.org> and refactored by Loïc Minier.
+	Bug 440377 – gnome-terminal cannot refresh terminal when accessibility enabled
+		Original patch by Li Yuan.
+	Bug 433776 – gnome-terminal crashes when open preedit area
+
 0.16.3
 ======
 - Remove false warnings about missing glyphs in the Xft backend.
