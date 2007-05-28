@@ -1,3 +1,11 @@
+2007-05-28  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	uws noted on IRC that 'vte trunk does strange thingies with colors'
+
+	* src/vte.c (vte_terminal_draw_rows):
+	    When reaching the end-of-row be careful not to reset the
+	    current text attributes (color, underlining, etc).
+
 2007-05-25  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	* src/vte.c (vte_terminal_expand_region),

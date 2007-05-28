@@ -9460,7 +9460,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 	y = start_y;
 	row = start_row;
 	rows = row_count;
-	item_count = 0;
+	item_count = 1;
 	do {
 		row_data = _vte_terminal_find_row_data(terminal, row);
 		if (row_data == NULL) {
@@ -9488,11 +9488,11 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					cell->c == ' ' ||
 					cell->attr.fragment) {
 				if (++i >= end_column) {
-					goto fg_next_row;
+					goto fg_skip_row;
 				}
 				cell = _vte_row_data_find_charcell(row_data, i);
 				if (cell == NULL) {
-					goto fg_next_row;
+					goto fg_skip_row;
 				}
 			}
 			/* Find the colors for this cell. */
@@ -9516,28 +9516,27 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				hilite = FALSE;
 			}
 
-			items[item_count].c = cell->c;
-			items[item_count].columns = cell->attr.columns;
-			items[item_count].x = start_x + i * column_width;
-			items[item_count].y = y;
-			j = i + items[item_count].columns;
+			items[0].c = cell->c;
+			items[0].columns = cell->attr.columns;
+			items[0].x = start_x + i * column_width;
+			items[0].y = y;
+			j = i + items[0].columns;
 
 			/* If this is a graphics character, draw it locally. */
 			if (vte_terminal_unichar_is_local_graphic(terminal, cell->c)) {
 				if (vte_terminal_draw_graphic(terminal,
-							items[item_count].c,
+							items[0].c,
 							fore, back,
 							FALSE,
-							items[item_count].x,
-							items[item_count].y,
+							items[0].x,
+							items[0].y,
 							column_width,
-							items[item_count].columns,
+							items[0].columns,
 							row_height)) {
 					i = j;
 					continue;
 				}
 			}
-			item_count++;
 
 			/* Now find out how many cells have the same attributes. */
 			do {
@@ -9547,6 +9546,13 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					cell = _vte_row_data_find_charcell(row_data, j);
 					if (cell == NULL) {
 						goto fg_next_row;
+					}
+					/* Don't render blank cells or fragments of multicolumn characters
+					 * which have the same attributes as the initial
+					 * portions. */
+					if (cell->attr.fragment) {
+						j++;
+						continue;
 					}
 					if (cell->c == 0 || cell->c == ' '){
 						/* only break the run if we
@@ -9560,13 +9566,6 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 							j++;
 							continue;
 						}
-					}
-					/* Don't render blank cells or fragments of multicolumn characters
-					 * which have the same attributes as the initial
-					 * portions. */
-					if (cell->attr.fragment) {
-						j++;
-						continue;
 					}
 					/* Resolve attributes to colors where possible and
 					 * compare visual attributes to the first character
@@ -9634,6 +9633,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				if (j < end_column) {
 					break;
 				}
+fg_next_row:
 				/* is this the last column, on the last row? */
 				do {
 					do {
@@ -9666,7 +9666,7 @@ fg_draw:
 					bold, underline,
 					strikethrough, hilite, FALSE,
 					column_width, row_height);
-			item_count = 0;
+			item_count = 1;
 			/* We'll need to continue at the first cell which didn't
 			 * match the first one in this set. */
 			i = j;
@@ -9674,19 +9674,10 @@ fg_draw:
 				goto fg_out;
 			}
 		} while (i < end_column);
-fg_next_row:
+fg_skip_row:
 		row++;
 		y += row_height;
 	} while (--rows);
-	if (item_count) {
-		vte_terminal_draw_cells(terminal,
-				items,
-				item_count,
-				fore, back, FALSE, FALSE,
-				bold, underline,
-				strikethrough, hilite, FALSE,
-				column_width, row_height);
-	}
 fg_out:
 	return;
 }
