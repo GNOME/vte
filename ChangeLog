@@ -1,3 +1,13 @@
+2007-06-04  Behdad Esfahbod  <behdad@gnome.org>
+
+	Released vte-0.16.5.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.16.5.
+
+	* src/Makefile.am: Bumped libtool version to 11:9:2.
+
 2007-05-30  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	fcrozat pointed out 'some strange "underline" line where cursor is

@@ -1,3 +1,8 @@
+0.16.5
+======
+- Fix issue with 'some strange "underline" line where cursor is
+  located and blinking'.
+
 0.16.4
 ======
 - Misc bug fixes.
