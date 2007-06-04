@@ -13,6 +13,8 @@
 	fcrozat pointed out 'some strange "underline" line where cursor is
 	located and blinking'.
 
+	Also reported in bug 442688.
+
 	* src/vte.c (vte_terminal_draw_rows):
 	    Continuation of the previous commit: catch a couple more locations
 	    where we need to skip past the end of the line. The problem in
