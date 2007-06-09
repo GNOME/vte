@@ -836,6 +836,7 @@ _vte_iso2022_state_set_codeset(struct _vte_iso2022_state *state,
 	}
 	state->codeset = g_intern_string (codeset);
 	state->conv = conv;
+	state->ambiguous_width = _vte_iso2022_ambiguous_width(state);
 }
 
 const char *
