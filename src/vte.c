@@ -2324,6 +2324,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 	g_return_if_fail((palette_size == 0) ||
 			 (palette_size == 8) ||
 			 (palette_size == 16) ||
+			 (palette_size == 24) ||
 			 (palette_size == G_N_ELEMENTS(terminal->pvt->palette)));
 
 	_vte_debug_print(VTE_DEBUG_MISC,
