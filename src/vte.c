@@ -6918,10 +6918,17 @@ vte_terminal_refresh_size(VteTerminal *terminal)
 void
 vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 {
+	glong old_columns, old_rows;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Setting PTY size to %ldx%ld.\n",
 			columns, rows);
+
+	old_rows = terminal->row_count;
+	old_columns = terminal->column_count;
+
 	if (terminal->pvt->pty_master != -1) {
 		/* Try to set the terminal size. */
 		if (_vte_pty_set_size(terminal->pvt->pty_master, columns, rows) != 0) {
@@ -6934,8 +6941,12 @@ vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 		terminal->row_count = rows;
 		terminal->column_count = columns;
 	}
-	/* Our visible text changed. */
-	vte_terminal_emit_text_modified(terminal);
+	if (old_rows != terminal->row_count ||
+			old_columns != terminal->column_count) {
+		gtk_widget_queue_resize (&terminal->widget);
+		/* Our visible text changed. */
+		vte_terminal_emit_text_modified(terminal);
+	}
 }
 
 /* Redraw the widget. */

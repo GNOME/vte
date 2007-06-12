@@ -1,3 +1,8 @@
+2007-06-12  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	* src/vte.c (vte_terminal_set_size): Call gtk_widget_queue_resize()
+	after updating row/column count.
+
 2007-06-11  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 372743 – vte_terminal_set_colors doesn't work as advertised
