@@ -10,7 +10,7 @@ CLEANFILES = vte.c
 
 # we do this to suport building with -Wl,-z,defs which errors on 
 # vtemodule.so as we cannot include $(PYTHON_LIBS) due to bug 410986.
-LDFLAGS += $(PYTHON_LDFLAGS)
+AM_LDFLAGS = $(PYTHON_LDFLAGS)
 
 vtemodule_la_CFLAGS = $(VTE_CFLAGS) $(X_CFLAGS) $(PYTHON_INCLUDES) $(PYGTK_CFLAGS)
 vtemodule_la_SOURCES = vtemodule.c
