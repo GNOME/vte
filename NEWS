@@ -1,3 +1,11 @@
+0.16.6
+======
+- Misc bug fixes.
+- Bugs fixed in this release:
+	Bug 445620 – Some characters shows different in different locales.
+		Patch from Zealot
+	Bug 372743 – vte_terminal_set_colors doesn't work as advertised
+
 0.16.5
 ======
 - Fix issue with 'some strange "underline" line where cursor is
