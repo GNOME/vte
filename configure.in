@@ -5,6 +5,23 @@ AC_CONFIG_SRCDIR([src/vte.c])
 AM_INIT_AUTOMAKE(1.6)
 AM_CONFIG_HEADER([config.h])
 
+################################################################################
+# Libtool shared library versioning stuffs.
+# REVISION gets incremented whenever the source code changes without adding
+# an API or ABI change.
+LTVERSION_REVISION=10
+# CURRENT must be incremented when an API or ABI change (addition or removal)
+# is made, and REVISION must be reset to 0 when this happens.
+LTVERSION_CURRENT=11
+# AGE must be incremented when an API or ABI addition is made, and REVISION
+# must be reset to 0 when this happens.
+LTVERSION_AGE=2
+
+LIBVTE_LTVERSION=${LTVERSION_CURRENT}:${LTVERSION_REVISION}:${LTVERSION_AGE}
+AC_SUBST([LIBVTE_LTVERSION])
+
+################################################################################
+
 AC_ISC_POSIX
 AC_PROG_CC
 AC_STDC_HEADERS

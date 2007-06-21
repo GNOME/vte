@@ -1,3 +1,9 @@
+2007-06-21  Christian Persch  <chpe@gnome.org>
+
+	* configure.in:
+	* src/Makefile.am: Move libtool versioning to configure so you just
+	have to update one file for releasing. See bug #396265 comment 17.
+
 2007-06-18  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.16.6.
