@@ -1,3 +1,8 @@
+2007-06-22  I. Felix <ifelix@svn.gnome.org>
+
+	* si.po:  Sinhala Translation updated by Danishka Navin
+	* LINGUAS: Added Sinhala (si) to The List of Languages.
+
 2007-04-19  Funda Wang  <fundawang@gmail.com>
 
 	* zh_CN.po: Updated Simplified Chinese translation from Yang Zhang.
