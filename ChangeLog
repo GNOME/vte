@@ -1,3 +1,11 @@
+2007-06-25  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 450745 – VTE's response to CSI 2 1 t incorrectly formatted
+	Patch by Dale Sedivec.
+
+	* src/vteseq.c (vte_sequence_handler_window_manipulation): Restore
+	the missing 'L'.
+
 2007-06-21  Christian Persch  <chpe@gnome.org>
 
 	* configure.in:

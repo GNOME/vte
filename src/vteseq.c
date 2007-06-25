@@ -3894,8 +3894,8 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Reporting window title.\n");
 			vte_terminal_feed_child(terminal,
-				 _VTE_CAP_OSC "Terminal" _VTE_CAP_ST,
-				 sizeof(_VTE_CAP_OSC "Terminal" _VTE_CAP_ST) - 1);
+				 _VTE_CAP_OSC "LTerminal" _VTE_CAP_ST,
+				 sizeof(_VTE_CAP_OSC "LTerminal" _VTE_CAP_ST) - 1);
 			break;
 		default:
 			if (param >= 24) {
