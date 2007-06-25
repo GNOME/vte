@@ -1,5 +1,12 @@
 2007-06-25  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 448259 – Mapping for Ctrl-_
+	Patch by Andrey Melnikov.
+
+	* src/keymap.c: Add mapping for Ctrl-Minus.
+
+2007-06-25  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 449809 – use python-config to get python includes
 	Patch by Sebastien Bacher.
 

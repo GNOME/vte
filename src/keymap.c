@@ -269,6 +269,10 @@ static const struct _vte_keymap_entry _vte_keymap_GDK_8[] = {
 	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\177", 1, X_NULL},
 	{cursor_all, keypad_all, fkey_all, 0, X_NULL, 0, X_NULL},
 };
+static const struct _vte_keymap_entry _vte_keymap_GDK_Minus[] = {
+	{cursor_all, keypad_all, fkey_all, GDK_CONTROL_MASK, "\037", 1, X_NULL},
+	{cursor_all, keypad_all, fkey_all, 0, X_NULL, 0, X_NULL},
+};
 
 /* Home and End are strange cases because their sequences vary wildly from
  * system to system, or mine's just broken.  But anyway. */
@@ -902,6 +906,7 @@ static const struct _vte_keymap_group {
 	{GDK_6,			_vte_keymap_GDK_6},
 	{GDK_7,			_vte_keymap_GDK_7},
 	{GDK_8,			_vte_keymap_GDK_8},
+	{GDK_minus,		_vte_keymap_GDK_Minus},
 
 	{GDK_Up,		_vte_keymap_GDK_Up},
 	{GDK_Down,		_vte_keymap_GDK_Down},
