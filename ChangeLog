@@ -1,5 +1,12 @@
 2007-06-25  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 449809 – use python-config to get python includes
+	Patch by Sebastien Bacher.
+
+	* acinclude.m4: prefer python-config where available.
+
+2007-06-25  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 450745 – VTE's response to CSI 2 1 t incorrectly formatted
 	Patch by Dale Sedivec.
 
