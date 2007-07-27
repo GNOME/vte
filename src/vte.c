@@ -4447,6 +4447,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 							  terminal->pvt->hp_fkey_mode,
 							  terminal->pvt->legacy_fkey_mode,
 							  terminal->pvt->vt220_fkey_mode,
+							  terminal->pvt->cursor_mode == VTE_KEYMODE_APPLICATION,
 							  &normal,
 							  &normal_length);
 			output = g_strdup_printf(normal, 1);

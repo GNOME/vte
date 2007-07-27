@@ -1125,6 +1125,7 @@ _vte_keymap_map(guint keyval,
 							  hp_mode,
 							  legacy_mode,
 							  vt220_mode,
+							  cursor_mode & cursor_app,
 							  normal,
 							  normal_length);
 			_VTE_DEBUG_IF(VTE_DEBUG_KEYBOARD) {
@@ -1328,6 +1329,31 @@ _vte_keymap_key_gets_modifiers(guint keyval)
 	return fkey;
 }
 
+/* Prior and Next are ommitted for the SS3 to CSI switch below */
+gboolean
+is_cursor_key(guint keyval)
+{
+	switch (keyval) {
+	case GDK_Home:
+	case GDK_Left:
+	case GDK_Up:
+	case GDK_Right:
+	case GDK_Down:
+	case GDK_End:
+
+	case GDK_KP_Home:
+	case GDK_KP_Left:
+	case GDK_KP_Up:
+	case GDK_KP_Right:
+	case GDK_KP_Down:
+	case GDK_KP_End:
+		return TRUE;
+	default:
+		return FALSE;
+	}
+}
+
+
 void
 _vte_keymap_key_add_key_modifiers(guint keyval,
 				  GdkModifierType modifiers,
@@ -1335,6 +1361,7 @@ _vte_keymap_key_add_key_modifiers(guint keyval,
 				  gboolean hp_mode,
 				  gboolean legacy_mode,
 				  gboolean vt220_mode,
+				  gboolean cursor_app_mode,
 				  char **normal,
 				  gssize *normal_length)
 {
@@ -1391,6 +1418,15 @@ _vte_keymap_key_add_key_modifiers(guint keyval,
 	nnormal = g_malloc0(*normal_length + 4);
 	memcpy(nnormal, *normal, *normal_length);
 	if (strlen(nnormal) > 1) {
+		/* SS3 should have no modifiers so make it CSI instead. See
+		 * http://cvsweb.xfree86.org/cvsweb/xc/programs/xterm/input.c.diff?r1=3.57&r2=3.58
+		 */
+		if (cursor_app_mode &&
+			g_str_has_prefix(nnormal, _VTE_CAP_SS3)
+			&& is_cursor_key(keyval)) {
+			nnormal[1] = '[';
+		}
+
 		/* Get the offset of the last character. */
 		offset = strlen(nnormal) - 1;
 		if (g_ascii_isdigit(nnormal[offset - 1])) {

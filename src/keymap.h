@@ -56,6 +56,7 @@ void _vte_keymap_key_add_key_modifiers(guint keyval,
 				       gboolean hp_mode,
 				       gboolean legacy_mode,
 				       gboolean vt220_mode,
+				       gboolean app_cursor_keys,
 				       char **normal,
 				       gssize *normal_length);
 

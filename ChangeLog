@@ -1,3 +1,14 @@
+2007-07-27  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 337252 – ALT + Arrow keys don't work in irssi through gnome-terminal
+	Patch by James Bowes
+
+	* src/keymap.c (_vte_keymap_map), (is_cursor_key),
+	(_vte_keymap_key_add_key_modifiers):
+	* src/keymap.h:
+	* src/vte.c (vte_terminal_key_press):
+	Only switch to CSI for some cursor keys when in cursor app mode.
+
 2007-06-25  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 448259 – Mapping for Ctrl-_
