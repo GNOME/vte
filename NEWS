@@ -1,3 +1,16 @@
+0.16.7
+======
+- Misc bug fixes.
+- Bugs fixed in this release:
+	Bug 337252 – ALT + Arrow keys don't work in irssi through gnome-terminal
+		Patch by James Bowes
+	Bug 448259 – Mapping for Ctrl-_
+		Patch by Andrey Melnikov.
+	Bug 449809 – use python-config to get python includes
+		Patch by Sebastien Bacher.
+	Bug 450745 – VTE's response to CSI 2 1 t incorrectly formatted
+		Patch by Dale Sedivec.
+
 0.16.6
 ======
 - Misc bug fixes.

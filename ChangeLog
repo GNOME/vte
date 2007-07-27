@@ -1,5 +1,14 @@
 2007-07-27  Behdad Esfahbod  <behdad@gnome.org>
 
+	Released vte-0.16.7.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.16.7.
+	Bumped libtool version to 11:11:2.
+
+2007-07-27  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 337252 – ALT + Arrow keys don't work in irssi through gnome-terminal
 	Patch by James Bowes
 
