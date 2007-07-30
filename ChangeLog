@@ -1,3 +1,15 @@
+2007-07-30  Behdad Esfahbod  <behdad@gnome.org>
+
+	Released vte-0.16.8.
+
+	Quick followup release with no code changes, to fix missing
+	documentation index in the tarball.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.16.8.
+	Bumped libtool version to 11:12:2.
+
 2007-07-27  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.16.7.
