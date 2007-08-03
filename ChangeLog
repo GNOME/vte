@@ -1,5 +1,13 @@
 2007-08-03  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 434230 – Spaces are not underlined
+	Original patch by Santtu Lakkala.
+
+	* src/vte.c (vte_terminal_draw_rows): Only skip cells if we do not
+	need to draw on top.
+
+2007-08-03  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 450069 – vte crash on removing a terminal tab
 
 	* src/vte.c (vte_terminal_emit_eof), (vte_terminal_queue_eof),

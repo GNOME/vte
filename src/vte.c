@@ -9513,6 +9513,9 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			}
 			while (cell->c == 0 ||
 					cell->c == ' ' ||
+					(cell->c == ' ' &&
+					 !cell->attr.underline &&
+					 !cell->attr.strikethrough) ||
 					cell->attr.fragment) {
 				if (++i >= end_column) {
 					goto fg_skip_row;
