@@ -1,3 +1,11 @@
+2007-08-03  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 450069 – vte crash on removing a terminal tab
+
+	* src/vte.c (vte_terminal_emit_eof), (vte_terminal_queue_eof),
+	(vte_terminal_eof): Move the EOF emission to an idle handler so that
+	the source is inactive whilst the VteTerminal is finalized.
+
 2007-07-30  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.16.8.

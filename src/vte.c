@@ -872,13 +872,27 @@ vte_terminal_queue_cursor_moved(VteTerminal *terminal)
 	terminal->pvt->cursor_moved_pending = TRUE;
 }
 
-/* Emit a "eof" signal. */
-static void
+static gboolean
 vte_terminal_emit_eof(VteTerminal *terminal)
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `eof'.\n");
+	GDK_THREADS_ENTER ();
 	g_signal_emit_by_name(terminal, "eof");
+	GDK_THREADS_LEAVE ();
+
+	return FALSE;
+}
+/* Emit a "eof" signal. */
+static void
+vte_terminal_queue_eof(VteTerminal *terminal)
+{
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Queueing `eof'.\n");
+	g_idle_add_full (G_PRIORITY_HIGH,
+		(GSourceFunc) vte_terminal_emit_eof,
+		g_object_ref (terminal),
+		g_object_unref);
 }
 
 /* Emit a "char-size-changed" signal. */
@@ -3036,7 +3050,7 @@ vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
 	_vte_buffer_clear(terminal->pvt->outgoing);
 
 	/* Emit a signal that we read an EOF. */
-	vte_terminal_emit_eof(terminal);
+	vte_terminal_queue_eof(terminal);
 }
 
 /* Reset the input method context. */
