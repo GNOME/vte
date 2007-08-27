@@ -1,3 +1,9 @@
+2007-08-27  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 470690 – Typo at src/vtexft.c "appropiate" should be "appropriate"
+
+	* src/vtexft.c (_vte_xft_open_font_for_char): Fix typo.
+
 2007-08-07  Behdad Esfahbod  <behdad@gnome.org>
 
 	* MAINTAINERS: Add Userid field, remove Guilherme.
