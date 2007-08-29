@@ -1,3 +1,11 @@
+2007-08-29  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 471484 – vteapp resize weirdness
+
+	* src/vteapp.c (main): Distinguish between setting the geometry and
+	disabling the use geometry hints. A regression when converting to
+	GOption based arguments.
+
 2007-08-27  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 470690 – Typo at src/vtexft.c "appropiate" should be "appropriate"

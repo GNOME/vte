@@ -431,7 +431,7 @@ main(int argc, char **argv)
 		 debug = FALSE, dingus = FALSE, dbuffer = TRUE,
 		 console = FALSE, scroll = FALSE, keep = FALSE,
 		 icon_title = FALSE, shell = TRUE, highlight_set = FALSE,
-		 cursor_set = FALSE, reverse = FALSE;
+		 cursor_set = FALSE, reverse = FALSE, use_geometry_hints = TRUE;
 	VteTerminalAntiAlias antialias = VTE_ANTI_ALIAS_USE_DEFAULT;
         char *geometry = NULL;
 	gint lines = 100;
@@ -554,6 +554,12 @@ main(int argc, char **argv)
 			G_OPTION_ARG_NONE, &reverse,
 			"Reverse foreground/background colors", NULL
 		},
+		{
+			"no-geometry-hints", 'G', G_OPTION_FLAG_REVERSE,
+			G_OPTION_ARG_NONE, &use_geometry_hints,
+			"Allow the terminal to be resized to any dimension, not constrained to fit to an integer multiple of characters",
+			NULL
+		},
 		{ NULL }
 	};
 	GOptionContext *context;
@@ -622,7 +628,7 @@ main(int argc, char **argv)
 
 	/* Connect to the "char_size_changed" signal to set geometry hints
 	 * whenever the font used by the terminal is changed. */
-	if (geometry) {
+	if (use_geometry_hints) {
 		char_size_changed(widget, 0, 0, window);
 		g_signal_connect(widget, "char-size-changed",
 				 G_CALLBACK(char_size_changed), window);
