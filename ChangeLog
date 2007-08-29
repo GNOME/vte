@@ -3,7 +3,7 @@
 	Bug 471484 – vteapp resize weirdness
 
 	* src/vteapp.c (main): Distinguish between setting the geometry and
-	disabling the use geometry hints. A regression when converting to
+	disabling the use of geometry hints. A regression when converting to
 	GOption based arguments.
 
 2007-08-27  Behdad Esfahbod  <behdad@gnome.org>
