@@ -1,5 +1,10 @@
 2007-08-30  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* MAINTAINERS: Add myself to the list, as Behdad had suggested some
+	time ago.
+
+2007-08-30  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 153265 – Handle Sun Cut, Copy, Paste keys
 	Patch by Brian Cameron.
 
