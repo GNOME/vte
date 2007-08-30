@@ -71,6 +71,8 @@ static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilitySta
 static void vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 				     gboolean reset);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
+static void vte_terminal_real_copy_clipboard(VteTerminal *terminal);
+static void vte_terminal_real_paste_clipboard(VteTerminal *terminal);
 static gboolean vte_terminal_io_read(GIOChannel *channel,
 				     GIOCondition condition,
 				     VteTerminal *terminal);
@@ -123,6 +125,13 @@ static void reset_update_regions (VteTerminal *terminal);
 
 static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
+
+enum {
+    COPY_CLIPBOARD,
+    PASTE_CLIPBOARD,
+    LAST_SIGNAL
+};
+static guint signals[LAST_SIGNAL];
 
 /* these static variables are guarded by the GDK mutex */
 static guint process_timeout_tag = VTE_INVALID_SOURCE;
@@ -10343,6 +10352,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 {
 	GObjectClass *gobject_class;
 	GtkWidgetClass *widget_class;
+	GtkBindingSet  *binding_set;
 
 #ifdef VTE_DEBUG
 	{
@@ -10435,6 +10445,10 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->text_inserted = NULL;
 	klass->text_deleted = NULL;
 	klass->text_scrolled = NULL;
+
+	klass->copy_clipboard = vte_terminal_real_copy_clipboard;
+	klass->paste_clipboard = vte_terminal_real_paste_clipboard;
+
 
 	/* Register some signals of our own. */
 	klass->eof_signal =
@@ -10680,6 +10694,31 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
 			     _vte_marshal_VOID__INT,
 			     G_TYPE_NONE, 1, G_TYPE_INT);
+	signals[COPY_CLIPBOARD] =
+		g_signal_new("copy-clipboard",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
+			     G_STRUCT_OFFSET(VteTerminalClass, copy_clipboard),
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
+
+	signals[PASTE_CLIPBOARD] =
+		g_signal_new("paste-clipboard",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
+			     G_STRUCT_OFFSET(VteTerminalClass, paste_clipboard),
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
+
+	/* Bind Copy, Paste, Cut keys */
+	binding_set = gtk_binding_set_by_class(klass);
+	gtk_binding_entry_add_signal(binding_set, GDK_F16, 0, "copy-clipboard",0);
+	gtk_binding_entry_add_signal(binding_set, GDK_F18, 0, "paste-clipboard", 0);
+	gtk_binding_entry_add_signal(binding_set, GDK_F20, 0, "copy-clipboard",0);
 
 	process_timer = g_timer_new ();
 }
@@ -10872,6 +10911,18 @@ vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal, gboolean scroll)
 	terminal->pvt->scroll_on_keystroke = scroll;
 }
 
+static void
+vte_terminal_real_copy_clipboard(VteTerminal *terminal)
+{
+	_vte_debug_print(VTE_DEBUG_SELECTION, "Copying to CLIPBOARD.\n");
+	if (terminal->pvt->selection != NULL) {
+		GtkClipboard *clipboard;
+		clipboard = vte_terminal_clipboard_get(terminal,
+						       GDK_SELECTION_CLIPBOARD);
+		gtk_clipboard_set_text(clipboard, terminal->pvt->selection, -1);
+	}
+}
+
 /**
  * vte_terminal_copy_clipboard:
  * @terminal: a #VteTerminal
@@ -10884,13 +10935,14 @@ void
 vte_terminal_copy_clipboard(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	_vte_debug_print(VTE_DEBUG_SELECTION, "Copying to CLIPBOARD.\n");
-	if (terminal->pvt->selection != NULL) {
-		GtkClipboard *clipboard;
-		clipboard = vte_terminal_clipboard_get(terminal,
-						       GDK_SELECTION_CLIPBOARD);
-		gtk_clipboard_set_text(clipboard, terminal->pvt->selection, -1);
-	}
+	g_signal_emit (terminal, signals[COPY_CLIPBOARD], 0);
+}
+
+static void
+vte_terminal_real_paste_clipboard(VteTerminal *terminal)
+{
+	_vte_debug_print(VTE_DEBUG_SELECTION, "Pasting CLIPBOARD.\n");
+	vte_terminal_paste(terminal, GDK_SELECTION_CLIPBOARD);
 }
 
 /**
@@ -10906,8 +10958,7 @@ void
 vte_terminal_paste_clipboard(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	_vte_debug_print(VTE_DEBUG_SELECTION, "Pasting CLIPBOARD.\n");
-	vte_terminal_paste(terminal, GDK_SELECTION_CLIPBOARD);
+	g_signal_emit (terminal, signals[PASTE_CLIPBOARD], 0);
 }
 
 /**

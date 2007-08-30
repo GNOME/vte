@@ -91,14 +91,14 @@ struct _VteTerminalClass {
 	void (*text_inserted)(VteTerminal* terminal);
 	void (*text_deleted)(VteTerminal* terminal);
 	void (*text_scrolled)(VteTerminal* terminal, gint delta);
+	void (*copy_clipboard)(VteTerminal* terminal);
+	void (*paste_clipboard)(VteTerminal* terminal);
 
 	/* Padding for future expansion. */
 	void (*vte_reserved1)(void);
 	void (*vte_reserved2)(void);
 	void (*vte_reserved3)(void);
 	void (*vte_reserved4)(void);
-	void (*vte_reserved5)(void);
-	void (*vte_reserved6)(void);
 
 	/*< private > */
 	/* Signals we might emit. */

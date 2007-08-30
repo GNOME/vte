@@ -1,5 +1,18 @@
 2007-08-30  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 153265 – Handle Sun Cut, Copy, Paste keys
+	Patch by Brian Cameron.
+
+	* doc/reference/tmpl/vte.sgml:
+	* src/vte.c (vte_terminal_class_init),
+	(vte_terminal_real_copy_clipboard), (vte_terminal_copy_clipboard),
+	(vte_terminal_real_paste_clipboard),
+	(vte_terminal_paste_clipboard):
+	* src/vte.h:
+	    Add key bindings for the special function keys.
+
+2007-08-30  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c (vte_terminal_draw_rows): Bad manipulation of patches
 	whilst attempting to apply the fix for Bug 434230 - net result was
 	that the correct code was being circumvented.

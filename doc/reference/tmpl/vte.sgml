@@ -70,6 +70,13 @@ primarily by #VteTerminalAccessible.
 
 @vteterminal: the object which received the signal.
 
+<!-- ##### SIGNAL VteTerminal::copy-clipboard ##### -->
+<para>
+
+</para>
+
+@vteterminal: the object which received the signal.
+
 <!-- ##### SIGNAL VteTerminal::cursor-moved ##### -->
 <para>
 Emitted whenever the cursor moves to a new character cell.  Used primarily
@@ -161,6 +168,13 @@ Emitted at the child application's request.
 @vteterminal: the object which received the signal.
 @arg1: the terminal's desired location, X coordinate.
 @arg2: the terminal's desired location, Y coordinate.
+
+<!-- ##### SIGNAL VteTerminal::paste-clipboard ##### -->
+<para>
+
+</para>
+
+@vteterminal: the object which received the signal.
 
 <!-- ##### SIGNAL VteTerminal::raise-window ##### -->
 <para>
