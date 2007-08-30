@@ -408,13 +408,27 @@ _vte_invalidate_cells(VteTerminal *terminal,
 
 	/* Convert the column and row start and end to pixel values
 	 * by multiplying by the size of a character cell.
-	 * Always include the extra pixel border.
+	 * Always include the extra pixel border and overlap pixel.
 	 */
-	rect.x = column_start * terminal->char_width - 2*VTE_PAD_WIDTH;
-	rect.width = column_count * terminal->char_width + 5*VTE_PAD_WIDTH;
+	rect.x = column_start * terminal->char_width - 1;
+	if (column_start != 0) {
+		rect.x += VTE_PAD_WIDTH;
+	}
+	rect.width = (column_start + column_count) * terminal->char_width + 3 + VTE_PAD_WIDTH;
+	if (column_start + column_count == terminal->column_count) {
+		rect.width += VTE_PAD_WIDTH;
+	}
+	rect.width -= rect.x;
 
-	rect.y = row_start * terminal->char_height - 2*VTE_PAD_WIDTH;
-	rect.height = row_count * terminal->char_height + 4*VTE_PAD_WIDTH;
+	rect.y = row_start * terminal->char_height - 1;
+	if (row_start != 0) {
+		rect.y += VTE_PAD_WIDTH;
+	}
+	rect.height = (row_start + row_count) * terminal->char_height + 2 + VTE_PAD_WIDTH;
+	if (row_start + row_count == terminal->row_count) {
+		rect.height += VTE_PAD_WIDTH;
+	}
+	rect.height -= rect.y;
 
 	_vte_debug_print (VTE_DEBUG_UPDATES,
 			"Invalidating pixels at (%d,%d)x(%d,%d).\n",
@@ -9358,20 +9372,6 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 	row = start_row;
 	rows = row_count;
 	do {
-		gint y0, h;
-
-		if (row == delta) {
-			y0 = 0;
-		} else {
-			y0 = y;
-		}
-		if (row == delta + terminal->row_count - 1) {
-			h = terminal->widget.allocation.height;
-		} else {
-			h = y + row_height;
-		}
-		h -= y0;
-
 		row_data = _vte_terminal_find_row_data(terminal, row);
 		/* Back up in case this is a multicolumn character,
 		 * making the drawing area a little wider. */
@@ -9426,24 +9426,15 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				if (back != VTE_DEF_BG) {
 					GdkColor color;
 					const struct vte_palette_entry *bg = &terminal->pvt->palette[back];
-					gint x0, w;
 					color.red = bg->red;
 					color.blue = bg->blue;
 					color.green = bg->green;
-					if (i == 0) {
-						x0 = 0;
-					} else {
-						x0 = x + i * column_width;
-					}
-					if (j == terminal->column_count) {
-						w = terminal->widget.allocation.width;
-					} else {
-						w = 1 + j * column_width + bold;
-					}
-					w -= x0;
 					_vte_draw_fill_rectangle (
 							terminal->pvt->draw,
-							x0, y0, w, h,
+							x + i * column_width,
+							y,
+							(j - i) * column_width + bold,
+							row_height,
 							&color, VTE_DRAW_OPAQUE);
 				}
 				/* We'll need to continue at the first cell which didn't
@@ -9469,24 +9460,15 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				if (back != VTE_DEF_BG) {
 					GdkColor color;
 					const struct vte_palette_entry *bg = &terminal->pvt->palette[back];
-					gint x0, w;
 					color.red = bg->red;
 					color.blue = bg->blue;
 					color.green = bg->green;
-					if (i == 0) {
-						x0 = 0;
-					} else {
-						x0 = x + i * column_width;
-					}
-					if (j == terminal->column_count) {
-						w = terminal->widget.allocation.width;
-					} else {
-						w = 1 + j * column_width;
-					}
-					w -= x0;
 					_vte_draw_fill_rectangle (
 							terminal->pvt->draw,
-							x0, y0, w, h,
+							x + i *column_width,
+							y,
+							(j - i)  * column_width,
+							row_height,
 							&color, VTE_DRAW_OPAQUE);
 				}
 				i = j;
@@ -10087,10 +10069,10 @@ draw_cursor_outline:
 			color.green = terminal->pvt->palette[back].green;
 			color.blue = terminal->pvt->palette[back].blue;
 			_vte_draw_draw_rectangle(terminal->pvt->draw,
-						 item.x,
-						 item.y,
-						 cursor_width + 2*VTE_PAD_WIDTH,
-						 height + 2*VTE_PAD_WIDTH,
+						 item.x + VTE_PAD_WIDTH - VTE_CURSOR_OUTLINE,
+						 item.y + VTE_PAD_WIDTH - VTE_CURSOR_OUTLINE,
+						 cursor_width + 2*VTE_CURSOR_OUTLINE,
+						 height + 2*VTE_CURSOR_OUTLINE,
 						 &color,
 						 VTE_DRAW_OPAQUE);
 		}

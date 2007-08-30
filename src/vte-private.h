@@ -52,6 +52,7 @@
 
 G_BEGIN_DECLS
 
+#define VTE_CURSOR_OUTLINE		1
 #define VTE_PAD_WIDTH			1
 #define VTE_TAB_WIDTH			8
 #define VTE_LINE_WIDTH			1

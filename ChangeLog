@@ -1,5 +1,13 @@
 2007-08-30  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 471901 – troubles with pad
+
+	* src/vte-private.h:
+	* src/vte.c (_vte_invalidate_cells), (vte_terminal_draw_rows),
+	(vte_terminal_paint): Don't abuse VTE_PAD_WIDTH.
+
+2007-08-30  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Bug 469862 – Handling of wrapped links in gnome-terminal is broken
 
 	* src/vte.c (vte_terminal_get_text_range_maybe_wrapped):
