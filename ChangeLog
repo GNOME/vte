@@ -1,3 +1,9 @@
+2007-08-30  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	* src/vte.c (vte_terminal_draw_rows): Bad manipulation of patches
+	whilst attempting to apply the fix for Bug 434230 - net result was
+	that the correct code was being circumvented.
+
 2007-08-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 471484 – vteapp resize weirdness

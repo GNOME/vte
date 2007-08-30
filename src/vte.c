@@ -9512,7 +9512,6 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				goto fg_skip_row;
 			}
 			while (cell->c == 0 ||
-					cell->c == ' ' ||
 					(cell->c == ' ' &&
 					 !cell->attr.underline &&
 					 !cell->attr.strikethrough) ||
