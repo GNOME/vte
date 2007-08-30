@@ -1384,11 +1384,14 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 		}
 	}
 	/* Scan backwards to find the start of this line */
-	while (sattr > 0 && terminal->pvt->match_contents[sattr] != '\n') {
+	while (sattr > 0 &&
+		! (terminal->pvt->match_contents[sattr] == '\n' ||
+		    terminal->pvt->match_contents[sattr] == '\0')) {
 		sattr--;
 	}
 	/* and skip any initial newlines. */
-	while (terminal->pvt->match_contents[sattr] == '\n') {
+	while (terminal->pvt->match_contents[sattr] == '\n' ||
+		terminal->pvt->match_contents[sattr] == '\0') {
 		sattr++;
 	}
 	if (eattr <= sattr) { /* blank line */
@@ -5298,7 +5301,8 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 		 * not soft-wrapped, append a newline. */
 		else if (is_selected(terminal, terminal->column_count - 1, row, data)) {
 			/* If we didn't softwrap, add a newline. */
-			if (!vte_line_is_wrappable(terminal, row)) {
+			if (!(last_nonemptycol == terminal->column_count - 1 &&
+				vte_line_is_wrappable(terminal, row))) {
 				string = g_string_append_c(string, '\n');
 			}
 		}

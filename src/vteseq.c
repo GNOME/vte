@@ -1135,11 +1135,15 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 	 * is the end of the array. */
 	if (rowdata->cells->len > screen->cursor_current.col) {
 		g_array_set_size(rowdata->cells, screen->cursor_current.col);
+		/* We've modified the display.  Make a note of it. */
+		terminal->pvt->text_deleted_flag = TRUE;
 	}
-	/* Add enough cells to the end of the line to fill out the row. */
-	vte_g_array_fill(rowdata->cells,
-			 &screen->fill_defaults,
-			 terminal->column_count);
+	if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
+		/* Add enough cells to fill out the row. */
+		vte_g_array_fill(rowdata->cells,
+				 &screen->fill_defaults,
+				 terminal->column_count);
+	}
 	/* Repaint this row. */
 	_vte_invalidate_cells(terminal,
 			      screen->cursor_current.col,
@@ -1147,8 +1151,6 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 			      screen->cursor_current.col,
 			      screen->cursor_current.row, 1);
 
-	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
 	return FALSE;
 }
 

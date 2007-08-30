@@ -1,5 +1,13 @@
 2007-08-30  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 469862 – Handling of wrapped links in gnome-terminal is broken
+
+	* src/vte.c (vte_terminal_get_text_range_maybe_wrapped):
+	    Check that the last character is in the last column before
+	    adding a newline for autowrapped lines.
+
+2007-08-30  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* MAINTAINERS: Add myself to the list, as Behdad had suggested some
 	time ago.
 
