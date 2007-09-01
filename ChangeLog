@@ -1,3 +1,12 @@
+2007-09-01  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	cf Bug 469862 – Handling of wrapped links in gnome-terminal is broken
+
+	* src/vte.c (vte_terminal_get_text_range_maybe_wrapped):
+	    Revert the last character is in last column check as that
+	    behaviour is required to handle terminal resizing where the
+	    screen contents are not reconstructed (e.g. bash).
+
 2007-08-30  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 471901 – troubles with pad
