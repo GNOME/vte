@@ -1,3 +1,9 @@
+2007-09-02  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 469862 – Handling of wrapped links in gnome-terminal is broken
+
+	* src/vteseq.c (vte_sequence_handler_ce): Reset soft_wrapped.
+
 2007-09-01  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	cf Bug 469862 – Handling of wrapped links in gnome-terminal is broken

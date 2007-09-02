@@ -1144,6 +1144,7 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 				 &screen->fill_defaults,
 				 terminal->column_count);
 	}
+	rowdata->soft_wrapped = 0;
 	/* Repaint this row. */
 	_vte_invalidate_cells(terminal,
 			      screen->cursor_current.col,
