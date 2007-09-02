@@ -52,7 +52,7 @@ void _vte_debug_parse_string(const char *string);
 gboolean _vte_debug_on(VteDebugFlags flags) G_GNUC_CONST;
 
 #ifdef VTE_DEBUG
-#define _VTE_DEBUG_IF(flags) if (_vte_debug_on (flags))
+#define _VTE_DEBUG_IF(flags) if (G_UNLIKELY (_vte_debug_on (flags)))
 #else
 #define _VTE_DEBUG_IF(flags) if (0)
 #endif
