@@ -1,3 +1,18 @@
+2007-09-05  Behdad Esfahbod  <behdad@gnome.org>
+
+	* perf/vim.sh: Wait for keypress when done, so one can do
+	"vte -c ./vim.sh" and not lose the final numbers.
+
+	* src/vtepango.c (_vte_pango_destroy), (_vte_pango_start),
+	(_vte_pango_end), (_vte_pango_set_background_color),
+	(_vte_pango_set_background_image), (_vte_pango_clear),
+	(_vte_pango_set_text_font), (_vte_pango_get_using_fontconfig),
+	(_vte_pango_draw_text), (_vte_pango_draw_has_char),
+	(_vte_pango_draw_rectangle), (_vte_pango_fill_rectangle),
+	(_vte_pango_set_scroll):  General cleanup.  Also implement
+	_vte_pango_draw_has_char() using
+	pango_layout_get_unknown_glyphs_count() when available.
+
 2007-09-02  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 469862 – Handling of wrapped links in gnome-terminal is broken
