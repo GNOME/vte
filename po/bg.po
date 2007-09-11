@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte trunk\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-09-11 11:57+0300\n"
-"PO-Revision-Date: 2007-09-11 11:56+0300\n"
+"POT-Creation-Date: 2007-09-11 12:00+0300\n"
+"PO-Revision-Date: 2007-09-11 12:00+0300\n"
 "Last-Translator: Alexander Shopov <ash@contact.bg>\n"
 "Language-Team: Bulgarian <dict@fsa-bg.org>\n"
 "MIME-Version: 1.0\n"
@@ -22,7 +22,7 @@ msgstr ""
 #: ../src/vte.c:1840
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "Неуспех при преобразването на знаците от %s към %s."
+msgstr "Неуспех при преобразуването на знаците от %s към %s."
 
 #: ../src/iso2022.c:1540
 #, c-format
@@ -32,7 +32,7 @@ msgstr "Опит за поставяне на невалидна карта за
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #: ../src/iso2022.c:1570
 msgid "Unrecognized identified coding system."
-msgstr "Неразпозната идентификациона кодираща система."
+msgstr "Неразпозната идентификационна кодираща система."
 
 #: ../src/iso2022.c:1629 ../src/iso2022.c:1656
 #, c-format
@@ -118,4 +118,4 @@ msgstr "Геометрията подадена чрез „--geometry“ не �
 #: ../src/vteglyph.c:562
 #, c-format
 msgid "Unknown pixel mode %d.\n"
-msgstr "Непознат режим на писели %d.\n"
+msgstr "Непознат режим на пиксели %d.\n"
