@@ -1,5 +1,5 @@
 AC_PREREQ(2.56)
-AC_INIT(vte, [0.16.8],
+AC_INIT(vte, [0.16.9],
         [http://bugzilla.gnome.org/enter_bug.cgi?product=vte])
 AC_CONFIG_SRCDIR([src/vte.c])
 AM_INIT_AUTOMAKE(1.6)
@@ -9,7 +9,7 @@ AM_CONFIG_HEADER([config.h])
 # Libtool shared library versioning stuffs.
 # REVISION gets incremented whenever the source code changes without adding
 # an API or ABI change.
-LTVERSION_REVISION=12
+LTVERSION_REVISION=13
 # CURRENT must be incremented when an API or ABI change (addition or removal)
 # is made, and REVISION must be reset to 0 when this happens.
 LTVERSION_CURRENT=11
