@@ -1,10 +1,14 @@
 2007-09-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 480735 – Underlining whitespace not reliable
+
+	Original patch by Steven Skovran.
+
 	I really must remember to run vttest more often. (And to work within
 	git-svn.)
 
 	* src/vte.c (vte_terminal_draw_rows):
-	    Correct underlining for vttest.
+	    Do not skip spaces.
 
 2007-09-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
