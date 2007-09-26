@@ -1,3 +1,16 @@
+2007-09-26  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 480735 – Underlining whitespace not reliable
+
+	Original one-liner by Steven Skovran.
+
+	* src/vte.c (vte_terminal_draw_rows):
+	    Do not try to over zealously skip whitespace. The goal is
+	    to maintain the current run whilst avoiding adding spaces to
+	    the glyph sequence - so check the cell fully for attribute
+	    breaks and simply do not add it to the glyphs if it contains a
+	    space.
+
 2007-09-17  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.16.9.
