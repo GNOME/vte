@@ -9645,16 +9645,13 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					if (nhilite != hilite) {
 						break;
 					}
-					if (cell->c != ' ') {
-						/* Add this cell to the draw list. */
-						items[item_count].c = cell->c;
-						items[item_count].columns = cell->attr.columns;
-						items[item_count].x = start_x + j * column_width;
-						items[item_count].y = y;
-						j +=  items[item_count].columns;
-						item_count++;
-					} else
-						j++;
+					/* Add this cell to the draw list. */
+					items[item_count].c = cell->c;
+					items[item_count].columns = cell->attr.columns;
+					items[item_count].x = start_x + j * column_width;
+					items[item_count].y = y;
+					j +=  items[item_count].columns;
+					item_count++;
 				}
 				/* have we encountered a state change? */
 				if (j < end_column) {
