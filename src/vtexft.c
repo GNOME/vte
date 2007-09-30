@@ -381,6 +381,9 @@ _vte_xft_destroy (struct _vte_draw *draw)
 		_vte_xft_unlock_fonts (data);
 		_vte_xft_font_close (data->font);
 	}
+	if (data->pixmap != NULL) {
+		g_object_unref (data->pixmap);
+	}
 	if (data->draw != NULL) {
 		XftDrawDestroy (data->draw);
 	}
