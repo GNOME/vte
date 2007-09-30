@@ -483,25 +483,30 @@ _vte_xft_set_background_image (struct _vte_draw *draw,
 			      double saturation)
 {
 	struct _vte_xft_data *data;
-	GdkPixmap *pixmap;
-	GdkScreen *screen;
+	GdkPixmap *pixmap = NULL;
 
 	data = (struct _vte_xft_data*) draw->impl_data;
 
-	screen = gtk_widget_get_screen (draw->widget);
-
+	draw->requires_clear = data->opacity != 0xffff;
 	data->xpixmap = -1;
 	data->pixmapw = data->pixmaph = 0;
-	pixmap = vte_bg_get_pixmap (vte_bg_get_for_screen (screen), type,
-				   pixbuf, file, color, saturation,
-				   _vte_draw_get_colormap (draw, TRUE));
+
 	if (data->pixmap != NULL) {
 		g_object_unref (data->pixmap);
 	}
-	draw->requires_clear = data->opacity != 0xffff;
-	data->pixmap = NULL;
+
+	if (type != VTE_BG_SOURCE_NONE) {
+		GdkScreen *screen;
+
+		screen = gtk_widget_get_screen (draw->widget);
+		pixmap = vte_bg_get_pixmap (vte_bg_get_for_screen (screen),
+				           type, pixbuf, file,
+					   color, saturation,
+					   _vte_draw_get_colormap (draw, TRUE));
+	}
+
+	data->pixmap = pixmap;
 	if (pixmap != NULL) {
-		data->pixmap = pixmap;
 		data->xpixmap = gdk_x11_drawable_get_xid (pixmap);
 		gdk_drawable_get_size (pixmap, &data->pixmapw, &data->pixmaph);
 		draw->requires_clear |=

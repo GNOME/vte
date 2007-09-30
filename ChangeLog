@@ -1,5 +1,12 @@
 2007-09-30  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vtexft.c (_vte_xft_set_background_image):
+		Skip retrieving the VteBg if the source is VTE_BG_SOURCE_NONE
+		as we neither need it to listen for changes to the background
+		nor require it to load the pixmap (which is a no-op).
+
+2007-09-30  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vtexft.c (_vte_xft_destroy):
 		Ensure the GdkPixmap is destroyed along with the VteXft
 		context.
