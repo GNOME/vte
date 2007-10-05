@@ -1,3 +1,10 @@
+2007-10-05  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 483642 – vte_terminal_feed crash when 8190 characters passed
+
+	* src/vte.c (vte_terminal_feed):
+	    Break the feed data into chunks.
+
 2007-09-30  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	* src/vtexft.c (_vte_xft_set_background_image):

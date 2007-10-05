@@ -3719,8 +3719,20 @@ vte_terminal_feed(VteTerminal *terminal, const char *data, glong length)
 			chunk = get_chunk ();
 			_vte_terminal_feed_chunks (terminal, chunk);
 		}
-		memcpy (chunk->data + chunk->len, data, length);
-		chunk->len += length;
+		do { /* break the incoming data into chunks */
+			gsize rem = sizeof (chunk->data) - chunk->len;
+			gsize len = length < rem ? length : rem;
+			memcpy (chunk->data + chunk->len, data, len);
+			chunk->len += len;
+			length -= len;
+			if (length == 0) {
+				break;
+			}
+			data += len;
+
+			chunk = get_chunk ();
+			_vte_terminal_feed_chunks (terminal, chunk);
+		} while (1);
 		vte_terminal_start_processing (terminal);
 	}
 }
