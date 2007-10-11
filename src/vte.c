@@ -1839,7 +1839,8 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	if (conv == VTE_INVALID_CONV) {
 		g_warning(_("Unable to convert characters from %s to %s."),
 			  "UTF-8", codeset);
-		return;
+		/* fallback to no conversion */
+		conv = _vte_conv_open(codeset = "UTF-8", "UTF-8");
 	}
 	if (terminal->pvt->outgoing_conv != VTE_INVALID_CONV) {
 		_vte_conv_close(terminal->pvt->outgoing_conv);
