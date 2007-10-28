@@ -2,119 +2,127 @@
 # Copyright (C) 2005 THE vte's COPYRIGHT HOLDER
 # This file is distributed under the same license as the vte package.
 # Mohammad DAMT <mdamt@bisnisweb.com>, 2005.
-# 
-# 
+#
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: vte HEAD\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-03-13 00:22-0500\n"
-"PO-Revision-Date: 2005-03-08 19:22+0700\n"
-"Last-Translator: Mohammad DAMT <mdamt@bisnisweb.com>\n"
+"POT-Creation-Date: 2007-10-28 19:46+0200\n"
+"PO-Revision-Date: 2007-10-21 19:42+0700\n"
+"Last-Translator: Huda Toriq <hudatoriq@gmail.com>\n"
 "Language-Team: Indonesia <sukarelawan@gnome.linux.or.id>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:1590
+#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
+#: ../src/vte.c:1840
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Tidak dapat mengkonversi karakter dari %s ke %s."
 
-#: src/iso2022.c:1582
+#: ../src/iso2022.c:1540
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Mencoba untuk menetapkan peta NRC yang salah '%c'."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1623
+#: ../src/iso2022.c:1570
 msgid "Unrecognized identified coding system."
 msgstr "Tidak mengenali system coding yang telah diidentifikasi."
 
-#: src/iso2022.c:1672 src/iso2022.c:1698
+#: ../src/iso2022.c:1629 ../src/iso2022.c:1656
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Mencoba untuk menetapkan peta luas NRC yang salah '%c'."
 
-#: src/pty.c:329
-#, c-format
-msgid "Error adding `%s' to environment, continuing."
-msgstr ""
-"Ada error saat menambahkan `%s` pada environment, tapi akan tetap "
-"dilanjutkan."
-
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:914
+#: ../src/pty.c:837
 #, c-format
 msgid "can not run %s"
 msgstr "tidak bisa menjalankan %s"
 
-#: src/reaper.c:156
+#: ../src/reaper.c:136
 msgid "Error creating signal pipe."
 msgstr "Error saat membuat pipe signal"
 
-#: src/trie.c:412
+#: ../src/trie.c:414
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Dobel (%s/%s)!"
 
-#: src/vte.c:1016
+#: ../src/vte.c:1227
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Error saat membuat regular expression \"%s\"."
 
-#: src/vte.c:2472
+#: ../src/vte.c:2702 ../src/vte.c:2707
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Bagian yang menangani rangkaian kontrol `%s' belum didefinisikan."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: src/vte.c:3315
+#: ../src/vte.c:3672
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Ada error saat membaca dari child: %s."
 
-#: src/vte.c:3437 src/vte.c:4331
+#: ../src/vte.c:3800
+msgid "Unable to send data to child, invalid charset convertor"
+msgstr ""
+"Tidak dapat mengirim data ke anak, pengonversi set karakter tidak benar"
+
+#: ../src/vte.c:3811 ../src/vte.c:4718
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "Ada error (%s) saat mengkonversi data untuk child, saya tidak lanjutkan "
 "prosesnya."
 
-#: src/vte.c:6284
+#: ../src/vte.c:6954
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Error saat membaca ukuran PTY, saya akan gunakan defaultnya: %s"
 
-#: src/vte.c:6320
+#: ../src/vte.c:6990
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Error saat merubah ukuran PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:10629
+#: ../src/vte.c:11464
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() gagal menetapkan karakter kata"
 
+#: ../src/vteseq.c:3929
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "Ada rangkaian (key?) yang tidak diharapkan `%s'."
+
 #. Bail back to normal mode.
-#: src/vteapp.c:736
+#: ../src/vteapp.c:780
 msgid "Could not open console.\n"
 msgstr "Tidak dapat membuka console.\n"
 
-#: src/vteglyph.c:579
+#: ../src/vteapp.c:844
+msgid "Could not parse the geometry spec passed to --geometry"
+msgstr "Tidak dapat memilah spec geometri yang dilewatkan ke --geometry"
+
+#: ../src/vteglyph.c:562
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "Mode piksel tidak diketahui %d.\n"
 
-#: src/vtexft.c:714
-#, c-format
-msgid "Can not draw character U+%04x.\n"
-msgstr "Tidak dapat membuka karakter U+%04x.\n"
+#~ msgid "Error adding `%s' to environment, continuing."
+#~ msgstr ""
+#~ "Ada error saat menambahkan `%s` pada environment, tapi akan tetap "
+#~ "dilanjutkan."
 
-#~ msgid "Got unexpected (key?) sequence `%s'."
-#~ msgstr "Ada rangkaian (key?) yang tidak diharapkan `%s'."
+#~ msgid "Can not draw character U+%04x.\n"
+#~ msgstr "Tidak dapat membuka karakter U+%04x.\n"
 
 #~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
 #~ msgstr ""
