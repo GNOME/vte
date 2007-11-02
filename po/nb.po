@@ -1,15 +1,15 @@
 # Norwegian (bokmål) translation of vte.
-# Copyright (C) Kjartan Maraas, 2002.
+# Copyright (C) Kjartan Maraas, 2002-2007.
 # Free Software Foundation, 2002.
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: vte 0.5\n"
+"Project-Id-Version: vte 0.16.x\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2007-02-23 22:07+0100\n"
 "PO-Revision-Date: 2007-02-23 22:08+0100\n"
 "Last-Translator: Kjartan Maraas <kmaraas@gnome.org>\n"
-"Language-Team: Norwegian <no@li.org>\n"
+"Language-Team: Norwegian Bokmål <i18n-nb@lister.ping.uio.no>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
