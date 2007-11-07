@@ -1,3 +1,14 @@
+2007-11-06  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 142640 – FcConfigSubstitute in place of _vte_fc_defaults_from_gtk
+	to get antialias and hinting value
+
+	* src/vtefc.c (_vte_fc_defaults_from_gtk),
+	(_vte_fc_defaults_from_rdb): Replace _vte_fc_defaults_from_gtk() with
+	gtk_default_substitute() from Gtk+-2.6.  It's essentially the same
+	thing, but not overriding elements of the pattern already present.
+	Also remove a couple redundant calls.
+
 2007-10-11  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 439384 – gnome-terminal on feisty crashes when giving wrong locale environment

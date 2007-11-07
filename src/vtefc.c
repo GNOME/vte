@@ -170,10 +170,13 @@ _vte_fc_defaults_from_gtk(GtkWidget *widget, FcPattern *pattern,
 			  VteTerminalAntiAlias explicit_antialias)
 {
 	GtkSettings *settings;
-	int i, antialias = -1, hinting = -1, dpi = -1;
-	char *rgba = NULL, *hintstyle = NULL;
+	gint antialias;
+	gint hinting;
+	char *rgba;
+	char *hintstyle;
+	gint dpi;
+	FcValue v;
 
-	/* Add any defaults configured for GTK+. */
 	settings = gtk_widget_get_settings (widget);
 	if (settings == NULL) {
 		return;
@@ -185,101 +188,71 @@ _vte_fc_defaults_from_gtk(GtkWidget *widget, FcPattern *pattern,
 		return;
 	}
 
-	/* Read the settings. */
-	g_object_get (G_OBJECT (settings),
-		     "gtk-xft-antialias", &antialias,
-		     "gtk-xft-dpi", &dpi,
-		     "gtk-xft-rgba", &rgba,
-		     "gtk-xft-hinting", &hinting,
-		     "gtk-xft-hintstyle", &hintstyle,
-		     NULL);
+	g_object_get (settings,
+		      "gtk-xft-antialias", &antialias,
+		      "gtk-xft-hinting", &hinting,
+		      "gtk-xft-hintstyle", &hintstyle,
+		      "gtk-xft-rgba", &rgba,
+		      "gtk-xft-dpi", &dpi,
+		      NULL);
+	
+	if (antialias >= 0 &&
+	    FcPatternGet (pattern, FC_ANTIALIAS, 0, &v) == FcResultNoMatch)
+	  FcPatternAddBool (pattern, FC_ANTIALIAS, antialias != 0);
+	
+	if (hinting >= 0 &&
+	    FcPatternGet (pattern, FC_HINTING, 0, &v) == FcResultNoMatch)
+	  FcPatternAddBool (pattern, FC_HINTING, hinting != 0);
+       
+#ifdef FC_HINT_STYLE 
+	if (hintstyle && FcPatternGet (pattern, FC_HINT_STYLE, 0, &v) == FcResultNoMatch)
+	  {
+	    int val = FC_HINT_FULL;	/* Quiet GCC */
+	    gboolean found = TRUE;
 
-	/* Pick up the antialiasing setting. */
-	if (antialias >= 0) {
-		FcPatternDel(pattern, FC_ANTIALIAS);
-		FcPatternAddBool(pattern, FC_ANTIALIAS, antialias > 0);
-	}
-	_vte_fc_set_antialias(pattern, explicit_antialias);
+	    if (strcmp (hintstyle, "hintnone") == 0)
+	      val = FC_HINT_NONE;
+	    else if (strcmp (hintstyle, "hintslight") == 0)
+	      val = FC_HINT_SLIGHT;
+	    else if (strcmp (hintstyle, "hintmedium") == 0)
+	      val = FC_HINT_MEDIUM;
+	    else if (strcmp (hintstyle, "hintfull") == 0)
+	      val = FC_HINT_FULL;
+	    else
+	      found = FALSE;
 
-	/* Pick up the configured DPI setting. */
-	if (dpi >= 0) {
-		FcPatternDel(pattern, FC_DPI);
-		FcPatternAddDouble(pattern, FC_DPI, dpi / 1024.0);
-	}
+	    if (found)
+	      FcPatternAddInteger (pattern, FC_HINT_STYLE, val);
+	  }
+#endif /* FC_HINT_STYLE */
 
-	/* Pick up the configured subpixel rendering setting. */
-	if (rgba != NULL) {
-		gboolean found;
+	if (rgba && FcPatternGet (pattern, FC_RGBA, 0, &v) == FcResultNoMatch)
+	  {
+	    int val = FC_RGBA_NONE;	/* Quiet GCC */
+	    gboolean found = TRUE;
 
-		i = FC_RGBA_NONE;
+	    if (strcmp (rgba, "none") == 0)
+	      val = FC_RGBA_NONE;
+	    else if (strcmp (rgba, "rgb") == 0)
+	      val = FC_RGBA_RGB;
+	    else if (strcmp (rgba, "bgr") == 0)
+	      val = FC_RGBA_BGR;
+	    else if (strcmp (rgba, "vrgb") == 0)
+	      val = FC_RGBA_VRGB;
+	    else if (strcmp (rgba, "vbgr") == 0)
+	      val = FC_RGBA_VBGR;
+	    else
+	      found = FALSE;
 
-		if (g_ascii_strcasecmp(rgba, "none") == 0) {
-			i = FC_RGBA_NONE;
-			found = TRUE;
-		} else
-		if (g_ascii_strcasecmp(rgba, "rgb") == 0) {
-			i = FC_RGBA_RGB;
-			found = TRUE;
-		} else
-		if (g_ascii_strcasecmp(rgba, "bgr") == 0) {
-			i = FC_RGBA_BGR;
-			found = TRUE;
-		} else
-		if (g_ascii_strcasecmp(rgba, "vrgb") == 0) {
-			i = FC_RGBA_VRGB;
-			found = TRUE;
-		} else
-		if (g_ascii_strcasecmp(rgba, "vbgr") == 0) {
-			i = FC_RGBA_VBGR;
-			found = TRUE;
-		} else {
-			found = FALSE;
-		}
-		if (found) {
-			FcPatternDel(pattern, FC_RGBA);
-			FcPatternAddInteger(pattern, FC_RGBA, i);
-		}
-		g_free(rgba);
-	}
+	    if (found)
+	      FcPatternAddInteger (pattern, FC_RGBA, val);
+	  }
 
-	/* Pick up the configured hinting setting. */
-	if (hinting >= 0) {
-		FcPatternDel(pattern, FC_HINTING);
-		FcPatternAddBool(pattern, FC_HINTING, hinting > 0);
-	}
+	if (dpi >= 0 && FcPatternGet (pattern, FC_DPI, 0, &v) == FcResultNoMatch)
+	  FcPatternAddDouble (pattern, FC_DPI, dpi / 1024.);
 
-#ifdef FC_HINT_STYLE
-	/* Pick up the default hinting style. */
-	if (hintstyle != NULL) {
-		gboolean found;
-
-		i = FC_HINT_NONE;
-
-		if (g_ascii_strcasecmp(hintstyle, "hintnone") == 0) {
-			i = FC_HINT_NONE;
-			found = TRUE;
-		} else
-		if (g_ascii_strcasecmp(hintstyle, "hintslight") == 0) {
-			i = FC_HINT_SLIGHT;
-			found = TRUE;
-		} else
-		if (g_ascii_strcasecmp(hintstyle, "hintmedium") == 0) {
-			i = FC_HINT_MEDIUM;
-			found = TRUE;
-		} else
-		if (g_ascii_strcasecmp(hintstyle, "hintfull") == 0) {
-			i = FC_HINT_FULL;
-			found = TRUE;
-		} else {
-			found = FALSE;
-		}
-		if (found) {
-			FcPatternDel(pattern, FC_HINT_STYLE);
-			FcPatternAddInteger(pattern, FC_HINT_STYLE, i);
-		}
-		g_free(hintstyle);
-	}
-#endif
+	g_free (hintstyle);
+	g_free (rgba);
 }
 
 static void
@@ -301,16 +274,6 @@ _vte_fc_defaults_from_rdb(GtkWidget *widget, FcPattern *pattern,
 			     &fcb) == FcResultNoMatch) {
 		antialias = _vte_rdb_get_antialias(widget);
 		FcPatternAddBool(pattern, FC_ANTIALIAS, antialias);
-	}
-	if (explicit_antialias != VTE_ANTI_ALIAS_USE_DEFAULT) {
-		FcBool aa;
-		if (FcPatternGetBool(pattern, FC_ANTIALIAS, 0,
-				     &aa) != FcResultNoMatch) {
-			FcPatternDel(pattern, FC_ANTIALIAS);
-		}
-		aa = (explicit_antialias == VTE_ANTI_ALIAS_FORCE_ENABLE) ?
-		     FcTrue : FcFalse;
-		FcPatternAddBool(pattern, FC_ANTIALIAS, aa);
 	}
 
 	/* Pick up the hinting setting. */
