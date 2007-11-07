@@ -1,5 +1,13 @@
 2007-11-06  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c (vte_terminal_set_font_from_string_full): Allow NULL
+	font argument.  Can be used to set antialias without setting font.
+
+	* src/vteapp.c (main): Fix antialias handling which was borked when
+	moving to GOption.
+
+2007-11-06  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 142640 – FcConfigSubstitute in place of _vte_fc_defaults_from_gtk
 	to get antialias and hinting value
 

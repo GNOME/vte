@@ -6899,11 +6899,11 @@ void
 vte_terminal_set_font_from_string_full(VteTerminal *terminal, const char *name,
 				       VteTerminalAntiAlias antialias)
 {
-	PangoFontDescription *font_desc;
+	PangoFontDescription *font_desc = NULL;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(name != NULL);
 
-	font_desc = pango_font_description_from_string(name);
+	if (name)
+	  font_desc = pango_font_description_from_string(name);
 	vte_terminal_set_font_full(terminal, font_desc, antialias);
 	pango_font_description_free(font_desc);
 }

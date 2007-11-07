@@ -431,8 +431,8 @@ main(int argc, char **argv)
 		 debug = FALSE, dingus = FALSE, dbuffer = TRUE,
 		 console = FALSE, scroll = FALSE, keep = FALSE,
 		 icon_title = FALSE, shell = TRUE, highlight_set = FALSE,
-		 cursor_set = FALSE, reverse = FALSE, use_geometry_hints = TRUE;
-	VteTerminalAntiAlias antialias = VTE_ANTI_ALIAS_USE_DEFAULT;
+		 cursor_set = FALSE, reverse = FALSE, use_geometry_hints = TRUE,
+		 antialias = TRUE;
         char *geometry = NULL;
 	gint lines = 100;
 	const char *message = "Launching interactive shell...\r\n";
@@ -443,7 +443,7 @@ main(int argc, char **argv)
 	GdkColor fore, back, tint, highlight, cursor;
 	const GOptionEntry options[]={
 		{
-			"antialias", 'A', 0,
+			"antialias", 'A', G_OPTION_FLAG_REVERSE,
 			G_OPTION_ARG_NONE, &antialias,
 			"Disable the use of anti-aliasing", NULL
 		},
@@ -480,7 +480,7 @@ main(int argc, char **argv)
 		{
 			"audible", 'a', G_OPTION_FLAG_REVERSE,
 			G_OPTION_ARG_NONE, &audible,
-			"Switch between the audible and visible terminal bell",
+			"Use visible, instead of audible, terminal bell",
 			NULL
 		},
 		{
@@ -721,10 +721,8 @@ main(int argc, char **argv)
 	}
 
 	/* Set the default font. */
-	if (font) {
-		vte_terminal_set_font_from_string_full(terminal,
-						       font, antialias);
-	}
+	vte_terminal_set_font_from_string_full(terminal, font,
+					       antialias ? VTE_ANTI_ALIAS_USE_DEFAULT : VTE_ANTI_ALIAS_FORCE_DISABLE);
 
 	/* Match "abcdefg". */
 	vte_terminal_match_add(terminal, "abcdefg");
