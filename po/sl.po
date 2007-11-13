@@ -1,4 +1,4 @@
-# Slovenian translation of vte.
+﻿# Slovenian translation of vte.
 # Copyright (C) 2005-2007 Free Software Foundation, Inc.
 # This file is distributed under the same license as the program package.
 #
@@ -12,21 +12,19 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-04-25 03:21+0100\n"
+"POT-Creation-Date: 2007-10-15 19:08+0100\n"
 "PO-Revision-Date: 2007-10-15 20:08+0100\n"
 "Last-Translator: Matej Urbančič <matej.urban@gmail.com>\n"
 "Language-Team: Slovenian GNOME Translation Team <gnome-si@googlegroups.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : n%100==3 || n%100==4 ? 2 : 3);\n"
+"Plural-Forms: nplurals=4; plural=(n%100==1 ? 1 : n%100==2 ? 2 : n%100==3 || n%100==4 ? 3 : 0);\n"
 "X-Poedit-Language: Slovenian\n"
 "X-Poedit-Country: SLOVENIA\n"
 "X-Poedit-SourceCharset: utf-8\n"
 
-#: ../src/iso2022.c:791
-#: ../src/iso2022.c:799
-#: ../src/iso2022.c:830
+#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
 #: ../src/vte.c:1840
 #, c-format
 msgid "Unable to convert characters from %s to %s."
@@ -42,8 +40,7 @@ msgstr "Poskus nastavljanja neveljavne preslikave NCR '%c'."
 msgid "Unrecognized identified coding system."
 msgstr "Neprepoznaven znakovni nabor."
 
-#: ../src/iso2022.c:1629
-#: ../src/iso2022.c:1656
+#: ../src/iso2022.c:1629 ../src/iso2022.c:1656
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Poskus nastavitve neveljavne široke preslikave NCR '%c'."
@@ -70,8 +67,7 @@ msgstr "Podvojitev (%s/%s)!"
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Napaka ob prevajanju logičnega izraza \"%s\"."
 
-#: ../src/vte.c:2702
-#: ../src/vte.c:2707
+#: ../src/vte.c:2702 ../src/vte.c:2707
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Za nadzorno zaporedje `%s' obravnalnik ni določen."
@@ -84,13 +80,14 @@ msgstr "Napaka ob branju podrejenega programa: %s."
 
 #: ../src/vte.c:3800
 msgid "Unable to send data to child, invalid charset convertor"
-msgstr "Ni mogoče poslati podatkov podrejenemu procesu, neveljaven pretvornik znakovnega nabora"
+msgstr ""
+"Ni mogoče poslati podatkov podrejenemu procesu, neveljaven pretvornik "
+"znakovnega nabora"
 
-#: ../src/vte.c:3811
-#: ../src/vte.c:4718
+#: ../src/vte.c:3811 ../src/vte.c:4718
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "Napaka (%s) ob pretvarjanju podatkov za otroka, izpuščam."
+msgstr "Napaka (%s) ob pretvarjanju podatkov za podpodrejeni predmet, izpuščam."
 
 #: ../src/vte.c:6954
 #, c-format
@@ -125,4 +122,3 @@ msgstr "Ni mogoče razčleniti geometrije določene z oznako --geometry"
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "Neznan način točk %d.\n"
-
