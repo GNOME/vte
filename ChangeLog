@@ -1,5 +1,13 @@
 2007-11-15  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c (vte_terminal_enter):
+	    Don't automatically reshow the hilight on receiving an enter
+	    event, but wait for the motion notify to update the cursor
+	    co-ordinates, otherwise we may hilight something quite distant
+	    from the cursor.
+
+2007-11-15  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c (vte_terminal_leave):
 	    Mark the cursor as invisible on leaving the terminal as this
 	    stops the hilight matcher running whilst the cursor is absent.

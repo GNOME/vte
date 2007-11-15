@@ -6639,12 +6639,6 @@ vte_terminal_enter(GtkWidget *widget, GdkEventCrossing *event)
 	if (GTK_WIDGET_CLASS (vte_terminal_parent_class)->enter_notify_event) {
 		ret = GTK_WIDGET_CLASS (vte_terminal_parent_class)->enter_notify_event (widget, event);
 	}
-	if (GTK_WIDGET_REALIZED (widget)) {
-		VteTerminal *terminal = VTE_TERMINAL (widget);
-		vte_terminal_match_hilite_show (terminal,
-				terminal->pvt->mouse_last_x,
-				terminal->pvt->mouse_last_y);
-	}
 	return ret;
 }
 static gboolean
