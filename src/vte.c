@@ -6622,7 +6622,13 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 	if (GTK_WIDGET_REALIZED(widget)) {
 		gtk_im_context_focus_out(terminal->pvt->im_context);
 		_vte_invalidate_cursor_once(terminal, FALSE);
+
+		/* XXX Do we want to hide the match just because the terminal
+		 * lost keyboard focus, but the pointer *is* still within our
+		 * area top? */
 		vte_terminal_match_hilite_hide (terminal);
+		/* Mark the cursor as invisible to disable hilite updating */
+		terminal->pvt->mouse_cursor_visible = FALSE;
 	}
 
 	if (terminal->pvt->cursor_blink_tag != VTE_INVALID_SOURCE)
