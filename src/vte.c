@@ -6658,6 +6658,11 @@ vte_terminal_leave(GtkWidget *widget, GdkEventCrossing *event)
 	if (GTK_WIDGET_REALIZED (widget)) {
 		VteTerminal *terminal = VTE_TERMINAL (widget);
 		vte_terminal_match_hilite_hide (terminal);
+		/* Mark the cursor as invisible to disable hilite updating,
+		 * whilst the cursor is absent (otherwise we copy the entire
+		 * buffer after each update for nothing...)
+		 */
+		terminal->pvt->mouse_cursor_visible = FALSE;
 	}
 	return ret;
 }
