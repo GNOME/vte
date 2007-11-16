@@ -3602,7 +3602,7 @@ vte_terminal_io_read(GIOChannel *channel,
 		     VteTerminal *terminal)
 {
 	int err = 0;
-	gboolean eof;
+	gboolean eof, again = TRUE;
 
 	_vte_debug_print (VTE_DEBUG_WORK, ".");
 
@@ -3615,37 +3615,56 @@ vte_terminal_io_read(GIOChannel *channel,
 		const int fd = g_io_channel_unix_get_fd (channel);
 		guchar *bp;
 		int rem, len;
-		gboolean active = FALSE;
-		chunk = terminal->pvt->incoming;
-		if (!chunk || chunk->len >= sizeof (chunk->data) - VTE_MAX_INPUT_READ / 4) {
-			chunk = get_chunk ();
-			chunk->next = chunks;
-			chunks = chunk;
+		guint bytes, max_bytes;
+
+		/* Limit the amount read between updates, so as to
+		 * 1. maintain fairness between multiple terminals;
+		 * 2. prevent reading the entire output of a command in one
+		 *    pass, i.e. we always try to refresh the terminal ~40Hz.
+		 *    See time_process_incoming() where we estimate the
+		 *    maximum number of bytes we can read/process in between
+		 *    updates.
+		 */
+		max_bytes = terminal->pvt->active ?
+		            g_list_length (active_terminals) - 1 : 0;
+		if (max_bytes) {
+			max_bytes = terminal->pvt->max_input_bytes / max_bytes;
+		} else {
+			max_bytes = VTE_MAX_INPUT_READ;
 		}
-		rem = sizeof (chunk->data) - chunk->len;
-		rem = MIN (rem, VTE_MAX_INPUT_READ);
-		bp = chunk->data + chunk->len;
-		len = 0;
+		bytes = terminal->pvt->input_bytes;
+
+		chunk = terminal->pvt->incoming;
 		do {
-			int ret = read (fd, bp, rem);
-			switch (ret){
-				case -1:
-					err = errno;
-					goto out;
-				case 0:
-					eof = TRUE;
-					goto out;
-				default:
-					bp += ret;
-					rem -= ret;
-					len += ret;
-					active = TRUE;
-					break;
+			if (!chunk || chunk->len >= 3*sizeof (chunk->data)/4) {
+				chunk = get_chunk ();
+				chunk->next = chunks;
+				chunks = chunk;
 			}
-		} while (rem);
+			rem = sizeof (chunk->data) - chunk->len;
+			bp = chunk->data + chunk->len;
+			len = 0;
+			do {
+				int ret = read (fd, bp, rem);
+				switch (ret){
+					case -1:
+						err = errno;
+						goto out;
+					case 0:
+						eof = TRUE;
+						goto out;
+					default:
+						bp += ret;
+						rem -= ret;
+						len += ret;
+						break;
+				}
+			} while (rem);
 out:
-		terminal->pvt->input_bytes += len;
-		chunk->len += len;
+			chunk->len += len;
+			bytes += len;
+		} while (bytes < max_bytes &&
+		         chunk->len == sizeof (chunk->data));
 		if (chunk->len == 0 && chunk == chunks) {
 			chunks = chunks->next;
 			release_chunk (chunk);
@@ -3660,6 +3679,8 @@ out:
 			GDK_THREADS_LEAVE ();
 		}
 		terminal->pvt->pty_input_active = len != 0;
+		terminal->pvt->input_bytes = bytes;
+		again = bytes < max_bytes;
 	}
 
 	/* Error? */
@@ -3689,11 +3710,11 @@ out:
 		} else {
 			vte_terminal_eof (channel, terminal);
 		}
+
+		again = FALSE;
 	}
 
-	return !eof &&
-		g_list_length (active_terminals) *
-		terminal->pvt->input_bytes < terminal->pvt->max_input_bytes;
+	return again;
 }
 
 /**
@@ -7384,7 +7405,7 @@ vte_terminal_init(VteTerminal *terminal)
 					      terminal);
 	pvt->incoming = NULL;
 	pvt->pending = g_array_new(FALSE, FALSE, sizeof(gunichar));
-	pvt->max_input_bytes = G_MAXLONG;
+	pvt->max_input_bytes = VTE_MAX_INPUT_READ;
 	pvt->cursor_blink_tag = VTE_INVALID_SOURCE;
 	pvt->outgoing = _vte_buffer_new();
 	pvt->outgoing_conv = VTE_INVALID_CONV;
@@ -12258,7 +12279,6 @@ process_timeout (gpointer data)
 {
 	GList *l, *next;
 	gboolean again;
-	gboolean multiple_active;
 
 	GDK_THREADS_ENTER();
 
@@ -12269,7 +12289,6 @@ process_timeout (gpointer data)
 			"Process timeout:  %d active\n",
 			g_list_length (active_terminals));
 
-	multiple_active = active_terminals->next != NULL;
 	for (l = active_terminals; l != NULL; l = next) {
 		VteTerminal *terminal = l->data;
 		gboolean active = FALSE;
@@ -12290,7 +12309,7 @@ process_timeout (gpointer data)
 		}
 		if (need_processing (terminal)) {
 			active = TRUE;
-			if (VTE_MAX_PROCESS_TIME && !multiple_active) {
+			if (VTE_MAX_PROCESS_TIME) {
 				time_process_incoming (terminal);
 			} else {
 				vte_terminal_process_incoming(terminal);
@@ -12384,7 +12403,6 @@ update_repeat_timeout (gpointer data)
 {
 	GList *l, *next;
 	gboolean again;
-	gboolean multiple_active;
 
 	GDK_THREADS_ENTER();
 
@@ -12395,7 +12413,6 @@ update_repeat_timeout (gpointer data)
 			"Repeat timeout:  %d active\n",
 			g_list_length (active_terminals));
 
-	multiple_active = active_terminals->next != NULL;
 	for (l = active_terminals; l != NULL; l = next) {
 		VteTerminal *terminal = l->data;
 
@@ -12418,7 +12435,7 @@ update_repeat_timeout (gpointer data)
 		}
 		vte_terminal_emit_adjustment_changed (terminal);
 		if (need_processing (terminal)) {
-			if (VTE_MAX_PROCESS_TIME && !multiple_active) {
+			if (VTE_MAX_PROCESS_TIME) {
 				time_process_incoming (terminal);
 			} else {
 				vte_terminal_process_incoming (terminal);
@@ -12480,7 +12497,6 @@ update_timeout (gpointer data)
 {
 	GList *l, *next;
 	gboolean redraw = FALSE;
-	gboolean multiple_active;
 
 	GDK_THREADS_ENTER();
 
@@ -12498,7 +12514,6 @@ update_timeout (gpointer data)
 		process_timeout_tag = VTE_INVALID_SOURCE;
 	}
 
-	multiple_active = active_terminals->next != NULL;
 	for (l = active_terminals; l != NULL; l = next) {
 		VteTerminal *terminal = l->data;
 
@@ -12521,7 +12536,7 @@ update_timeout (gpointer data)
 		}
 		vte_terminal_emit_adjustment_changed (terminal);
 		if (need_processing (terminal)) {
-			if (VTE_MAX_PROCESS_TIME && !multiple_active) {
+			if (VTE_MAX_PROCESS_TIME) {
 				time_process_incoming (terminal);
 			} else {
 				vte_terminal_process_incoming (terminal);

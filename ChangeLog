@@ -1,5 +1,12 @@
 2007-11-16  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c (vte_terminal_io_read), (vte_terminal_init),
+	(process_timeout), (update_repeat_timeout), (update_timeout):
+	    Tweak to read across chunk boundaries whilst still maintaining
+	    fairness between multiple terminals and refresh rate targets.
+
+2007-11-16  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/ring.c (_vte_ring_insert_preserve):
 	    Use stack allocation to hold small numbers of temporary
 	    gpointers.
