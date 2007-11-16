@@ -1,3 +1,15 @@
+2007-11-16  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	* src/vterdb.h:
+	* src/vterdb.c (_vte_rdb_get), (_vte_rdb_search), (_vte_rdb_quark),
+	(_vte_rdb_get_rgba), (_vte_rdb_get_hintstyle), (_vte_rdb_release):
+	    Remove redundant queries and cache the XRequest on the root
+	    window (saves a few round-trips during terminal construction).
+	    Add a new function to free the cache.
+
+	* src/vtefc.c (_vte_fc_defaults_from_rdb):
+	    Release the cache after retrieving settings.
+
 2007-11-15  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	* src/vte.c (vte_terminal_focus_out):

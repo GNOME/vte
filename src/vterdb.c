@@ -46,34 +46,32 @@ _vte_property_get_string(GdkWindow *window, GdkAtom atom,
 }
 
 static gchar **
-_vte_rdb_get(GtkWidget *widget, gboolean screen_setting)
+_vte_rdb_get(GtkWidget *widget)
 {
 	GdkWindow *root;
 	char *prop_data;
 	int prop_length;
 	GdkAtom atom, prop_type;
 	gboolean result;
+	gchar **ret;
 
 	/* Retrieve the window and the property which we're going to read. */
 	GdkDisplay *display;
 	GdkScreen *screen;
 
-	if (widget != NULL) {
-		display = gtk_widget_get_display(widget);
-	} else {
-		display = gdk_display_get_default();
-	}
-
-	if (widget != NULL) {
-		screen = gtk_widget_get_screen(widget);
-	} else {
-		screen = gdk_display_get_default_screen(display);
-	}
+	display = gtk_widget_get_display(widget);
+	screen = gtk_widget_get_screen(widget);
 
 	root = gdk_screen_get_root_window(screen);
 	if (root == NULL) {
 		root = gdk_get_default_root_window();
 	}
+
+	ret = g_object_get_data (G_OBJECT (root), "_vte_rdb_get");
+	if (ret) {
+		return ret == (gchar **) 0x1 ? NULL : ret;
+	}
+
 
 	atom = gdk_atom_intern("RESOURCE_MANAGER", TRUE);
 	if (atom == 0) {
@@ -92,11 +90,16 @@ _vte_rdb_get(GtkWidget *widget, gboolean screen_setting)
 	/* Only parse the information if we got a string. */
 	if (result && prop_type == GDK_TARGET_STRING && prop_data != NULL) {
 		gchar *tmp = g_strndup(prop_data, prop_length);
-		gchar **ret = g_strsplit(tmp, "\n", -1);
+		ret = g_strsplit(tmp, "\n", -1);
 		g_free(tmp);
 		g_free(prop_data);
+		g_object_set_data_full (G_OBJECT (root),
+				        "_vte_rdb_get", ret,
+					(GDestroyNotify) g_strfreev);
 		return ret;
 	}
+
+	g_object_set_data (G_OBJECT (root), "_vte_rdb_get", NULL);
 
 	return NULL;
 }
@@ -105,28 +108,21 @@ static gchar *
 _vte_rdb_search(GtkWidget *widget, const char *setting)
 {
 	gchar *ret = NULL;
-	guint i, j, l;
 	gchar **rdb;
-	gboolean per_screen[] = {TRUE, FALSE};
 
-	for (i = 0; i < G_N_ELEMENTS(per_screen); i++) {
-		rdb = _vte_rdb_get(widget, per_screen[i]);
-		if (rdb != NULL) {
-			l = strlen(setting);
-			for (j = 0; rdb[j] != NULL; j++) {
-				if ((strncmp(rdb[j], setting, l) == 0) &&
-				    (rdb[j][l] == ':') &&
-				    (rdb[j][l + 1] == '\t')) {
-					ret = g_strdup(rdb[j] + l + 2);
-					break;
-				}
+	rdb = _vte_rdb_get(widget);
+	if (rdb != NULL) {
+		guint i, len = strlen(setting);
+		for (i = 0; rdb[i] != NULL; i++) {
+			if ((strncmp(rdb[i], setting, len) == 0) &&
+			    (rdb[i][len] == ':') &&
+			    (rdb[i][len + 1] == '\t')) {
+				ret = g_strdup(rdb[i] + len + 2);
+				break;
 			}
-			g_strfreev(rdb);
-		}
-		if (ret != NULL) {
-			break;
 		}
 	}
+
 	return ret;
 }
 
@@ -195,7 +191,7 @@ static GQuark
 _vte_rdb_quark(GtkWidget *widget, const char *setting, GQuark default_value)
 {
 	char *start;
-	GQuark q = 0;
+	GQuark q;
 	start = _vte_rdb_search(widget, setting);
 	if (start == NULL) {
 		return default_value;
@@ -226,17 +222,33 @@ _vte_rdb_get_hinting(GtkWidget *widget)
 const char *
 _vte_rdb_get_rgba(GtkWidget *widget)
 {
-	GQuark q;
-	q = g_quark_from_string(DEFAULT_RGBA);
+	GQuark q = g_quark_from_string(DEFAULT_RGBA);
 	return g_quark_to_string(_vte_rdb_quark(widget, "Xft.rgba", q));
 }
 
 const char *
 _vte_rdb_get_hintstyle(GtkWidget *widget)
 {
-	GQuark q;
-	q = g_quark_from_string(DEFAULT_HINTSTYLE);
+	GQuark q = g_quark_from_string(DEFAULT_HINTSTYLE);
 	return g_quark_to_string(_vte_rdb_quark(widget, "Xft.hintstyle", q));
+}
+
+void
+_vte_rdb_release (GtkWidget *widget)
+{
+	GdkDisplay *display;
+	GdkScreen *screen;
+	GdkWindow *root;
+
+	display = gtk_widget_get_display(widget);
+	screen = gtk_widget_get_screen(widget);
+
+	root = gdk_screen_get_root_window(screen);
+	if (root == NULL) {
+		root = gdk_get_default_root_window();
+	}
+
+	g_object_set_data (G_OBJECT (root), "_vte_rdb_get", NULL);
 }
 
 #ifdef VTERDB_MAIN

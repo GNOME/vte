@@ -336,6 +336,8 @@ _vte_fc_defaults_from_rdb(GtkWidget *widget, FcPattern *pattern,
 		}
 	}
 #endif
+
+	_vte_rdb_release (widget);
 }
 
 /* Create a sorted set of fontconfig patterns from a Pango font description
