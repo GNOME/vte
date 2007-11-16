@@ -1,5 +1,11 @@
 2007-11-16  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/ring.c (_vte_ring_insert_preserve):
+	    Use stack allocation to hold small numbers of temporary
+	    gpointers.
+
+2007-11-16  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte-private.h:
 	* src/vte.c (_vte_free_row_data), (vte_terminal_reset_rowdata),
 	(vte_terminal_finalize), (vte_terminal_reset):

@@ -184,6 +184,7 @@ _vte_ring_insert_preserve(VteRing * ring, long position, gpointer data)
 {
 	long point, i;
 	gpointer **tmp, old_data = NULL;
+	gpointer *stack_tmp[128];
 
 	g_return_val_if_fail(position <= _vte_ring_next(ring), NULL);
 
@@ -202,7 +203,9 @@ _vte_ring_insert_preserve(VteRing * ring, long position, gpointer data)
 	i = MAX(1, point - position);
 
 	/* Save existing elements. */
-	tmp = g_new0(gpointer *, i);
+	tmp = stack_tmp;
+	if ((guint) i > G_N_ELEMENTS (stack_tmp))
+		tmp = g_new0(gpointer *, i);
 	for (i = position; i < point; i++) {
 		tmp[i - position] = _vte_ring_index(ring, gpointer, i);
 	}
@@ -224,7 +227,8 @@ _vte_ring_insert_preserve(VteRing * ring, long position, gpointer data)
 	}
 
 	/* Clean up. */
-	g_free(tmp);
+	if (tmp != stack_tmp)
+		g_free(tmp);
 
 	return old_data;
 }
