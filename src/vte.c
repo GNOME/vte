@@ -165,26 +165,34 @@ static void
 release_chunk (struct _vte_incoming_chunk *chunk)
 {
 	G_LOCK (free_chunks);
-	if (free_chunks == NULL || free_chunks->len < 5) {
-		chunk->next = free_chunks;
-		chunk->len = free_chunks ? free_chunks->len + 1 : 0;
-		free_chunks = chunk;
-		chunk = NULL;
-	}
+	chunk->next = free_chunks;
+	chunk->len = free_chunks ? free_chunks->len + 1 : 0;
+	free_chunks = chunk;
 	G_UNLOCK (free_chunks);
-	g_free (chunk);
 }
 static void
-prune_chunks (void)
+prune_chunks (guint len)
 {
-	struct _vte_incoming_chunk *chunk;
+	struct _vte_incoming_chunk *chunk = NULL;
 	G_LOCK (free_chunks);
-	chunk = free_chunks;
-	free_chunks = NULL;
+	if (len && free_chunks != NULL) {
+	    if (free_chunks->len > len) {
+		struct _vte_incoming_chunk *last;
+		chunk = free_chunks;
+		while (free_chunks->len > len) {
+		    last = free_chunks;
+		    free_chunks = free_chunks->next;
+		}
+		last->next = NULL;
+	    }
+	} else {
+	    chunk = free_chunks;
+	    free_chunks = NULL;
+	}
 	G_UNLOCK (free_chunks);
-	while (chunk) {
+	while (chunk != NULL) {
 		struct _vte_incoming_chunk *next = chunk->next;
-		g_free(chunk);
+		g_free (chunk);
 		chunk = next;
 	}
 }
@@ -12125,7 +12133,6 @@ remove_from_active_list (VteTerminal *terminal)
 				g_source_remove (update_timeout_tag);
 				update_timeout_tag = VTE_INVALID_SOURCE;
 			}
-			prune_chunks ();
 		}
 	}
 }
@@ -12326,6 +12333,9 @@ process_timeout (gpointer data)
 		 * at full tilt and making us run to keep up...
 		 */
 		g_usleep (0);
+	} else if (update_timeout_tag == VTE_INVALID_SOURCE) {
+		/* otherwise free up memory used to capture incoming data */
+		prune_chunks (10);
 	}
 
 	return again;
@@ -12460,6 +12470,9 @@ update_repeat_timeout (gpointer data)
 		 * at full tilt and making us run to keep up...
 		 */
 		g_usleep (0);
+	} else {
+		/* otherwise free up memory used to capture incoming data */
+		prune_chunks (10);
 	}
 
 	return again;

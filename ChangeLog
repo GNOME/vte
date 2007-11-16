@@ -1,5 +1,14 @@
 2007-11-16  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte.c (release_chunk), (prune_chunks),
+	(remove_from_active_list), (process_timeout),
+	(update_repeat_timeout):
+	    Delay pruning the chunks freelist until we finished processing
+	    all the incoming data. We were discarding the freelist far too
+	    early and reduced the efficacy of the cache.
+
+2007-11-16  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vterdb.h:
 	* src/vterdb.c (_vte_rdb_get), (_vte_rdb_search), (_vte_rdb_quark),
 	(_vte_rdb_get_rgba), (_vte_rdb_get_hintstyle), (_vte_rdb_release):
