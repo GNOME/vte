@@ -254,14 +254,11 @@ G_DEFINE_TYPE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET)
 static const guchar corresponding_dim_index[] = {16,88,28,100,18,90,30,102};
 
 /* Free a no-longer-used row data array. */
-static void
-vte_free_row_data(gpointer freeing, gpointer data)
+void
+_vte_free_row_data(VteRowData *row)
 {
-	if (freeing) {
-		VteRowData *row = freeing;
-		g_array_free(row->cells, TRUE);
-		g_slice_free(VteRowData, row);
-	}
+	g_array_free(row->cells, TRUE);
+	g_slice_free(VteRowData, row);
 }
 
 /* Append a single item to a GArray a given number of times. Centralizing all
@@ -7257,7 +7254,7 @@ vte_terminal_reset_rowdata(VteRing **ring, glong lines)
 	}
 	new_ring = _vte_ring_new_with_delta(lines,
 					    *ring ? _vte_ring_delta(*ring) : 0,
-					    vte_free_row_data,
+					    (GFunc) _vte_free_row_data,
 					    NULL);
 	if (*ring) {
 		next = _vte_ring_next(*ring);
@@ -7265,7 +7262,7 @@ vte_terminal_reset_rowdata(VteRing **ring, glong lines)
 			row = _vte_ring_index(*ring, VteRowData *, i);
 			row = _vte_ring_append(new_ring, row);
 			if (row) {
-				vte_free_row_data (row, NULL);
+				_vte_free_row_data (row);
 			}
 		}
 		_vte_ring_free(*ring, FALSE);
@@ -7817,7 +7814,7 @@ vte_terminal_finalize(GObject *object)
 	_vte_ring_free(terminal->pvt->normal_screen.row_data, TRUE);
 	_vte_ring_free(terminal->pvt->alternate_screen.row_data, TRUE);
 	if (terminal->pvt->free_row) {
-		vte_free_row_data (terminal->pvt->free_row, NULL);
+		_vte_free_row_data (terminal->pvt->free_row);
 	}
 
 	/* Clear the status lines. */
@@ -11664,11 +11661,11 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 		_vte_ring_free(terminal->pvt->normal_screen.row_data, TRUE);
 		terminal->pvt->normal_screen.row_data =
 			_vte_ring_new(terminal->pvt->scrollback_lines,
-				      vte_free_row_data, NULL);
+				      (GFunc) _vte_free_row_data, NULL);
 		_vte_ring_free(terminal->pvt->alternate_screen.row_data, TRUE);
 		terminal->pvt->alternate_screen.row_data =
 			_vte_ring_new(terminal->pvt->scrollback_lines,
-				      vte_free_row_data, NULL);
+				      (GFunc) _vte_free_row_data, NULL);
 		terminal->pvt->normal_screen.cursor_saved.row = 0;
 		terminal->pvt->normal_screen.cursor_saved.col = 0;
 		terminal->pvt->normal_screen.cursor_current.row = 0;

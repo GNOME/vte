@@ -1,5 +1,16 @@
 2007-11-16  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vte-private.h:
+	* src/vte.c (_vte_free_row_data), (vte_terminal_reset_rowdata),
+	(vte_terminal_finalize), (vte_terminal_reset):
+	    Export _vte_row_data_free.
+
+	* src/vteseq.c (vte_remove_line_internal):
+	    Cache the removed VteRowData - fixes the continual reallocation
+	    of row data during the vim scrolling benchmark.
+
+2007-11-16  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/vte.c (release_chunk), (prune_chunks),
 	(remove_from_active_list), (process_timeout),
 	(update_repeat_timeout):
