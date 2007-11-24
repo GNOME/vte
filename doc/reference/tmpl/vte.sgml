@@ -72,7 +72,7 @@ primarily by #VteTerminalAccessible.
 
 <!-- ##### SIGNAL VteTerminal::copy-clipboard ##### -->
 <para>
-
+Emitted whenever vte_terminal_copy_clipboard() is called.
 </para>
 
 @vteterminal: the object which received the signal.
@@ -171,7 +171,7 @@ Emitted at the child application's request.
 
 <!-- ##### SIGNAL VteTerminal::paste-clipboard ##### -->
 <para>
-
+Emitted whenever vte_terminal_paste_clipboard() is called.
 </para>
 
 @vteterminal: the object which received the signal.
@@ -353,6 +353,22 @@ keys.
 @terminal: 
 @data: 
 @length: 
+
+
+<!-- ##### FUNCTION vte_terminal_select_all ##### -->
+<para>
+
+</para>
+
+@terminal: 
+
+
+<!-- ##### FUNCTION vte_terminal_select_none ##### -->
+<para>
+
+</para>
+
+@terminal: 
 
 
 <!-- ##### FUNCTION vte_terminal_copy_clipboard ##### -->

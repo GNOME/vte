@@ -1,3 +1,11 @@
+2007-11-23  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 499287 – Fix doc coverage regression
+
+	* doc/reference/tmpl/vte.sgml:
+	* doc/reference/vte-sections.txt:
+	Document undocumented symbols.
+
 2007-11-16  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	* src/vte.c (vte_terminal_io_read), (vte_terminal_init),
