@@ -60,4 +60,8 @@ FIXXREF_OPTIONS=
 
 MAINTAINERCLEANFILES = vte-undocumented.txt
 
+EXTRA_DIST = check.docs
+
+TESTS = check.docs
+
 include $(top_srcdir)/gtk-doc.make
