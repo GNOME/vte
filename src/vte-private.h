@@ -97,9 +97,11 @@ struct vte_charcell {
 	gunichar c;		/* The Unicode character. */
 
 	struct vte_charcell_attr {
-		guint32 columns: 2;	/* Number of visible columns
-					   (as determined
-					   by g_unicode_iswide(c)). */
+		guint32 columns: 4;	/* Number of visible columns
+					   (as determined by g_unicode_iswide(c)).
+					   Also abused for tabs; bug 353610
+					   Keep at least 4 for tabs to work
+					   */
 		guint32 fore: 9;	/* Index into color palette */
 		guint32 back: 9;	/* Index into color palette. */
 
@@ -118,7 +120,7 @@ struct vte_charcell {
 		guint32 protect: 1;
 		 */
 
-		/* 29 bits */
+		/* 31 bits */
 	} attr;
 };
 

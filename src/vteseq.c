@@ -2413,11 +2413,11 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 			GValueArray *params)
 {
 	VteScreen *screen;
-	long newcol;
+	long newcol, col;
 
 	/* Calculate which column is the next tab stop. */
 	screen = terminal->pvt->screen;
-	newcol = screen->cursor_current.col;
+	newcol = col = screen->cursor_current.col;
 
 	if (terminal->pvt->tabstops != NULL) {
 		/* Find the next tabstop. */
@@ -2435,11 +2435,54 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 	}
 
 	/* but make sure we don't move cursor back (bug #340631) */
-	if (screen->cursor_current.col < newcol) {
+	if (col < newcol) {
 		VteRowData *rowdata = _vte_terminal_ensure_row (terminal);
-		vte_g_array_fill (rowdata->cells,
-				&screen->fill_defaults,
+
+		/* Smart tab handling: bug 353610
+		 *
+		 * If we currently don't have any cells in the space this
+		 * tab creates, we try to make the tab character copyable,
+		 * by appending a single tab char with lots of fragment
+		 * cells following it.
+		 *
+		 * Otherwise, just append empty cells that will show up
+		 * as a space each.
+		 */
+		if (rowdata->cells->len <= col)
+		  {
+		    struct vte_charcell cell;
+
+		    vte_g_array_fill (rowdata->cells,
+				      &screen->fill_defaults,
+				      col);
+
+		    cell.attr = screen->fill_defaults.attr;
+		    cell.attr.invisible = 1; /* FIXME: bug 499944 */
+		    cell.attr.columns = newcol - col;
+		    if (cell.attr.columns != newcol - col)
+		      {
+		        /* number of columns doesn't fit one cell. skip
+			 * fancy tabs
+			 */
+		       goto fallback_tab;
+		      }
+		    cell.c = '\t';
+		    g_array_append_vals(rowdata->cells, &cell, 1);
+
+		    cell = screen->fill_defaults;
+		    cell.attr.fragment = 1;
+		    vte_g_array_fill (rowdata->cells,
+				      &cell,
 				newcol);
+		  }
+		else
+		  {
+		  fallback_tab:
+		    vte_g_array_fill (rowdata->cells,
+				      &screen->fill_defaults,
+				      newcol);
+		  }
+
 		_vte_invalidate_cells (terminal,
 				screen->cursor_current.col,
 				newcol - screen->cursor_current.col,

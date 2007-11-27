@@ -1,5 +1,14 @@
 2007-11-27  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 353610 – Don't convert tab characters upon copying
+
+	* src/vte-private.h:
+	* src/vteseq.c (vte_sequence_handler_ta):
+	Smart tab handling to try to preserve tab character upong copying.
+	Also makes such smart tabs all-or-none selectable.
+
+2007-11-27  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 499892 – strikethrough line is too high
 
 	* src/vte-private.h:
