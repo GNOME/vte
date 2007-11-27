@@ -1,5 +1,9 @@
 2007-11-26  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c: Fix doc syntax.
+
+2007-11-26  Behdad Esfahbod  <behdad@gnome.org>
+
 	Revert previous change.  For reason, see bug.
 	Bug 491832 – vte_terminal_get_text_range_maybe_wrapped always includes
 	trailing spaces

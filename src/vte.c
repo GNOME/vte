@@ -5450,7 +5450,7 @@ vte_terminal_get_text(VteTerminal *terminal,
  *
  * Returns: a text string which must be freed by the caller, or %NULL.
  *
- * Since 0.11.11
+ * Since: 0.11.11
  */
 char *
 vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
@@ -7176,7 +7176,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
  *
  * Returns: the name of the default terminal type the widget attempts to emulate
  *
- * Since 0.11.11
+ * Since: 0.11.11
  */
 const char *
 vte_terminal_get_default_emulation(VteTerminal *terminal)
