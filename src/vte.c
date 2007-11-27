@@ -1766,15 +1766,15 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 	}
 }
 
-/* Scroll up or down in the current screen. */
+/* Scroll a fixed number of lines up or down in the current screen. */
 static void
-vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
+vte_terminal_scroll_lines(VteTerminal *terminal, gint lines)
 {
 	glong destination;
-	_vte_debug_print(VTE_DEBUG_IO, "Scrolling %d pages.\n", pages);
+	_vte_debug_print(VTE_DEBUG_IO, "Scrolling %d lines.\n", lines);
 	/* Calculate the ideal position where we want to be before clamping. */
 	destination = terminal->pvt->screen->scroll_delta;
-	destination += pages * terminal->row_count;
+	destination += lines;
 	/* Can't scroll past data we have. */
 	destination = CLAMP(destination,
 			    terminal->adjustment->lower,
@@ -1782,6 +1782,13 @@ vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
 	/* Tell the scrollbar to adjust itself. */
 	vte_terminal_queue_adjustment_value_changed (terminal,
 			destination);
+}
+
+/* Scroll a fixed number of pages up or down, in the current screen. */
+static void
+vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
+{
+	vte_terminal_scroll_lines(terminal, pages * terminal->row_count);
 }
 
 /* Scroll so that the scroll delta is the minimum value. */
@@ -4375,6 +4382,26 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			}
 			break;
 		/* Keypad/motion keys. */
+		case GDK_KP_Up:
+		case GDK_Up:
+			if (terminal->pvt->modifiers & GDK_CONTROL_MASK 
+                            && terminal->pvt->modifiers & GDK_SHIFT_MASK) {
+				vte_terminal_scroll_lines(terminal, -1);
+				scrolled = TRUE;
+				handled = TRUE;
+				suppress_meta_esc = TRUE;
+			}
+			break;
+		case GDK_KP_Down:
+		case GDK_Down:
+			if (terminal->pvt->modifiers & GDK_CONTROL_MASK
+                            && terminal->pvt->modifiers & GDK_SHIFT_MASK) {
+				vte_terminal_scroll_lines(terminal, 1);
+				scrolled = TRUE;
+				handled = TRUE;
+				suppress_meta_esc = TRUE;
+			}
+			break;
 		case GDK_KP_Page_Up:
 		case GDK_Page_Up:
 			if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {

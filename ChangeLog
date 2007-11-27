@@ -1,5 +1,14 @@
 2007-11-27  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 118967 – single line scrolling with "Ctrl+Shift+ArrowUp/ArrowDown"
+	Patch from Mauricio and Mariano Suárez-Alvarez
+
+	* src/vte.c (vte_terminal_scroll_lines),
+	(vte_terminal_scroll_pages), (vte_terminal_key_press):
+	Implement single-line scroll.
+
+2007-11-27  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 353610 – Don't convert tab characters upon copying
 
 	* src/vte-private.h:
