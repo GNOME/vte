@@ -1005,7 +1005,7 @@ _vte_xft_set_scroll (struct _vte_draw *draw, gint x, gint y)
 }
 
 const struct _vte_draw_impl _vte_draw_xft = {
-	"Xft",
+	"xft",
 	_vte_xft_check,
 	_vte_xft_create,
 	_vte_xft_destroy,

@@ -397,7 +397,7 @@ _vte_ft2_set_scroll(struct _vte_draw *draw, gint x, gint y)
 }
 
 const struct _vte_draw_impl _vte_draw_ft2 = {
-	"FT2",
+	"ft2",
 	_vte_ft2_check,
 	_vte_ft2_create,
 	_vte_ft2_destroy,

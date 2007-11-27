@@ -426,7 +426,7 @@ _vte_pango_set_scroll(struct _vte_draw *draw, gint x, gint y)
 }
 
 const struct _vte_draw_impl _vte_draw_pango = {
-	"Pango",
+	"pango",
 	_vte_pango_check,
 	_vte_pango_create,
 	_vte_pango_destroy,

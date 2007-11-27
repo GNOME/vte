@@ -584,7 +584,7 @@ _vte_gl_set_scroll(struct _vte_draw *draw, gint x, gint y)
 }
 
 const struct _vte_draw_impl _vte_draw_gl = {
-	"GL",
+	"gl",
 	_vte_gl_check,
 	_vte_gl_create,
 	_vte_gl_destroy,
