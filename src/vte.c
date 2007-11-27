@@ -5301,7 +5301,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 					}
 
 					/* If we added a character to the string, record its
-					 * attributes, one per byte. */
+					 * attributes, one per char. */
 					if (attributes) {
 						vte_g_array_fill(attributes,
 								&attr, string->len);
