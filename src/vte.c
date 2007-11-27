@@ -352,8 +352,6 @@ _vte_terminal_set_default_attributes(VteTerminal *terminal)
 	screen->defaults.attr.strikethrough = 0;
 	screen->defaults.attr.half = 0;
 	screen->defaults.attr.blink = 0;
-	/* Alternate charset isn't an attribute, though we treat it as one.
-	 * screen->defaults.attr.alternate = 0; */
 	screen->basic_defaults = screen->defaults;
 	screen->color_defaults = screen->defaults;
 	screen->fill_defaults = screen->defaults;
@@ -2520,7 +2518,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 	/* If we've enabled the special drawing set, map the characters to
 	 * Unicode. */
-	if (G_UNLIKELY (screen->defaults.attr.alternate)) {
+	if (G_UNLIKELY (screen->alternate_charset)) {
 		_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
 				"Attempting charset substitution"
 				"for 0x%04x.\n", c);
@@ -11675,10 +11673,11 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	 * it's not a real attribute, but we need to treat it as one here. */
 	terminal->pvt->screen = &terminal->pvt->alternate_screen;
 	_vte_terminal_set_default_attributes(terminal);
-	terminal->pvt->screen->defaults.attr.alternate = FALSE;
 	terminal->pvt->screen = &terminal->pvt->normal_screen;
 	_vte_terminal_set_default_attributes(terminal);
-	terminal->pvt->screen->defaults.attr.alternate = FALSE;
+	/* Reset alternate charset mode. */
+	terminal->pvt->normal_screen.alternate_charset = FALSE;
+	terminal->pvt->alternate_screen.alternate_charset = FALSE;
 	/* Clear the scrollback buffers and reset the cursors. */
 	if (clear_history) {
 		_vte_ring_free(terminal->pvt->normal_screen.row_data, TRUE);

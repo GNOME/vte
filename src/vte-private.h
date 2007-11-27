@@ -117,9 +117,8 @@ struct vte_charcell {
 		/* unused; bug 499893
 		guint32 protect: 1;
 		 */
-		guint32 alternate: 1;
 
-		/* 30 bits */
+		/* 29 bits */
 	} attr;
 };
 
@@ -241,6 +240,7 @@ struct _VteTerminalPrivate {
 							   fore/back with no
 							   character data */
 		struct vte_charcell basic_defaults;	/* original defaults */
+		gboolean alternate_charset;
 		gboolean status_line;
 		GString *status_line_contents;
 		gboolean status_line_changed;

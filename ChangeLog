@@ -1,5 +1,17 @@
 2007-11-27  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 499896 – Alternate charset isn't an attribute, though we treat it
+	as one.
+
+	* src/vte-private.h:
+	* src/vte.c (_vte_terminal_set_default_attributes),
+	(_vte_terminal_insert_char), (vte_terminal_reset):
+	* src/vteseq.c (vte_sequence_handler_ae),
+	(vte_sequence_handler_as):
+	Move cell.attr.alternate to screen->alternate_charset.
+
+2007-11-27  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 499893 – cell.attr.protect is unused
 
 	* src/vte-private.h:

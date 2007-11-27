@@ -866,7 +866,7 @@ vte_sequence_handler_ae(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	terminal->pvt->screen->defaults.attr.alternate = 0;
+	terminal->pvt->screen->alternate_charset = FALSE;
 	return FALSE;
 }
 
@@ -942,7 +942,7 @@ vte_sequence_handler_as(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	terminal->pvt->screen->defaults.attr.alternate = 1;
+	terminal->pvt->screen->alternate_charset = TRUE;
 	return FALSE;
 }
 
