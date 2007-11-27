@@ -1,5 +1,14 @@
 2007-11-27  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 499892 – strikethrough line is too high
+
+	* src/vte-private.h:
+	* src/vte.c (vte_terminal_apply_metrics), (vte_terminal_init),
+	(vte_terminal_draw_cells): Adjust underline/strikethrough thickness
+	and position based on pangofc's heuristics.
+
+2007-11-27  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vtedraw.c (_vte_draw_init_user): Make VTE_BACKEND=list list
 	available backends to stderr.
 

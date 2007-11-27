@@ -381,7 +381,11 @@ struct _VteTerminalPrivate {
 	/* Obscured? state. */
 	GdkVisibilityState visibility_state;
 
+	/* Font stuff. */
 	gboolean has_fonts;
+	glong line_thickness;
+	glong underline_position;
+	glong strikethrough_position;
 };
 
 

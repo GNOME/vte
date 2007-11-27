@@ -6761,6 +6761,7 @@ vte_terminal_apply_metrics(VteTerminal *terminal,
 			   gint width, gint height, gint ascent, gint descent)
 {
 	gboolean resize = FALSE, cresize = FALSE;
+	gint line_thickness;
 
 	/* Sanity check for broken font changes. */
 	width = MAX(width, 1);
@@ -6785,6 +6786,10 @@ vte_terminal_apply_metrics(VteTerminal *terminal,
 		resize = TRUE;
 		terminal->char_descent = descent;
 	}
+	terminal->pvt->line_thickness = line_thickness = MAX (MIN ((height - ascent) / 2, height / 14), 1);
+	terminal->pvt->underline_position = MIN (ascent + line_thickness, height - line_thickness);
+	terminal->pvt->strikethrough_position =  ascent - height / 4;
+
 	/* Queue a resize if anything's changed. */
 	if (resize) {
 		if (GTK_WIDGET_REALIZED(terminal)) {
@@ -7378,6 +7383,9 @@ vte_terminal_init(VteTerminal *terminal)
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_init()\n");
 
+	/* Initialize private data. */
+	pvt = terminal->pvt = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalPrivate);
+
 	GTK_WIDGET_SET_FLAGS(terminal, GTK_CAN_FOCUS);
 	//gtk_widget_set_double_buffered (&terminal->widget, FALSE);
 
@@ -7393,9 +7401,9 @@ vte_terminal_init(VteTerminal *terminal)
 	terminal->char_height = 1;
 	terminal->char_ascent = 1;
 	terminal->char_descent = 1;
-
-	/* Initialize private data. */
-	pvt = terminal->pvt = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalPrivate);
+	terminal->pvt->line_thickness = 1;
+	terminal->pvt->underline_position = 1;
+	terminal->pvt->strikethrough_position = 1;
 
 	/* We allocated zeroed memory, just fill in non-zero stuff. */
 
@@ -9084,16 +9092,17 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 				vte_terminal_draw_line(terminal,
 						&terminal->pvt->palette[fore],
 						x,
-						y + MIN(ascent + 2, row_height - 1),
+						y + terminal->pvt->underline_position,
 						x + (columns * column_width) - 1,
-						y + ascent + 2);
+						y + terminal->pvt->underline_position + terminal->pvt->line_thickness - 1);
 			}
 			if (strikethrough) {
 				vte_terminal_draw_line(terminal,
 						&terminal->pvt->palette[fore],
-						x, y + ascent / 2,
+						x,
+						y + terminal->pvt->strikethrough_position,
 						x + (columns * column_width) - 1,
-						y + (ascent + row_height)/4);
+						y + terminal->pvt->strikethrough_position + terminal->pvt->line_thickness - 1);
 			}
 			if (hilite) {
 				vte_terminal_draw_line(terminal,
