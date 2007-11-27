@@ -23,6 +23,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <glib.h>
 #include <gtk/gtk.h>
 #include "debug.h"
@@ -70,12 +71,29 @@ _vte_draw_init_user (struct _vte_draw *draw)
 
 	strv = g_strsplit (env, ":;, \t", -1);
 	for (s = strv; *s; s++) {
-		if (g_ascii_strcasecmp (*s, _vte_draw_skel.name) == 0) {
+		char *p;
+
+		/* lower it */
+		for (p = *s; *p; p++)
+			*p = g_ascii_tolower (*p);
+
+		/* match null draw */
+		if (strcmp (*s, _vte_draw_skel.name) == 0) {
 			draw->impl = &_vte_draw_skel;
 			goto out;
 		}
+
+		/* list available draws */
+		if (strcmp (*s, "list") == 0) {
+			for (i = 0; i < G_N_ELEMENTS (_vte_draw_impls); i++) {
+				g_printerr ("vte backend: %s\n", _vte_draw_impls[i]->name);
+			}
+			continue;
+		}
+
+		/* find among available draws */
 		for (i = 0; i < G_N_ELEMENTS (_vte_draw_impls); i++) {
-			if (g_ascii_strcasecmp (*s, _vte_draw_impls[i]->name) == 0) {
+			if (strcmp (*s, _vte_draw_impls[i]->name) == 0) {
 				if (_vte_draw_impls[i]->check (draw, draw->widget)) {
 					draw->impl = _vte_draw_impls[i];
 					goto out;

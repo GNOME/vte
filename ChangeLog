@@ -1,5 +1,10 @@
 2007-11-27  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vtedraw.c (_vte_draw_init_user): Make VTE_BACKEND=list list
+	available backends to stderr.
+
+2007-11-27  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 499891 – vte with opacity set, shows invisible chars
 
 	* src/vte.c (vte_terminal_draw_rows): Don't draw invisible chars.
