@@ -9550,7 +9550,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			if (cell == NULL) {
 				goto fg_skip_row;
 			}
-			while (cell->c == 0 ||
+			while (cell->c == 0 || cell->attr.invisible ||
 					(cell->c == ' ' &&
 					 !cell->attr.underline &&
 					 !cell->attr.strikethrough) ||
@@ -9617,8 +9617,8 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					}
 					/* Don't render blank cells or fragments of multicolumn characters
 					 * which have the same attributes as the initial
-					 * portions. */
-					if (cell->attr.fragment) {
+					 * portions.  Don't render invisible cells */
+					if (cell->attr.fragment || cell->attr.invisible) {
 						j++;
 						continue;
 					}
@@ -9626,9 +9626,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 						/* only break the run if we
 						 * are drawing attributes
 						 */
-						if (underline ||
-								strikethrough ||
-								hilite) {
+						if (underline || strikethrough || hilite) {
 							break;
 						} else {
 							j++;

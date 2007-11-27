@@ -1,5 +1,11 @@
 2007-11-27  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 499891 – vte with opacity set, shows invisible chars
+
+	* src/vte.c (vte_terminal_draw_rows): Don't draw invisible chars.
+
+2007-11-27  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 499896 – Alternate charset isn't an attribute, though we treat it
 	as one.
 
