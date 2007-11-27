@@ -708,7 +708,7 @@ main(int argc, char **argv)
 	}
 	vte_terminal_set_background_tint_color(terminal, &tint);
 	vte_terminal_set_colors(terminal, &fore, &back, NULL, 0);
-	vte_terminal_set_opacity(terminal, 0xcccc);
+	vte_terminal_set_opacity(terminal, 0xdddd);
 	if (highlight_set) {
 		vte_terminal_set_color_highlight(terminal,
 						 &highlight);
