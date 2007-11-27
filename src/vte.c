@@ -5292,7 +5292,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 							pcell->c ?
 							pcell->c :
 							' ');
-					if (pcell->c == 0 || pcell->c == ' ') {
+					if (pcell->c == 0) {
 						last_empty = string->len;
 						last_emptycol = col;
 					} else {

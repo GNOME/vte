@@ -1,10 +1,20 @@
 2007-11-26  Behdad Esfahbod  <behdad@gnome.org>
 
+	Revert previous change.  For reason, see bug.
 	Bug 491832 – vte_terminal_get_text_range_maybe_wrapped always includes
 	trailing spaces
 
 	* src/vte.c (vte_terminal_get_text_range_maybe_wrapped):
-	Trip trailing space characters if asked to.
+	Don't trim space characters, just the empty space after lines,
+	like we used to.
+
+2007-11-26  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 491832 – vte_terminal_get_text_range_maybe_wrapped always includes
+	trailing spaces
+
+	* src/vte.c (vte_terminal_get_text_range_maybe_wrapped):
+	Trim trailing space characters if asked to.
 
 2007-11-23  Behdad Esfahbod  <behdad@gnome.org>
 
