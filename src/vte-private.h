@@ -114,10 +114,12 @@ struct vte_charcell {
 		guint32 bold: 1;
 
 		guint32 invisible: 1;
+		/* unused; bug 499893
 		guint32 protect: 1;
+		 */
 		guint32 alternate: 1;
 
-		/* 31 bits */
+		/* 30 bits */
 	} attr;
 };
 

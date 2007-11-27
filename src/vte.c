@@ -344,7 +344,9 @@ _vte_terminal_set_default_attributes(VteTerminal *terminal)
 	screen->defaults.attr.reverse = 0;
 	screen->defaults.attr.bold = 0;
 	screen->defaults.attr.invisible = 0;
+	/* unused; bug 499893
 	screen->defaults.attr.protect = 0;
+	 */
 	screen->defaults.attr.standout = 0;
 	screen->defaults.attr.underline = 0;
 	screen->defaults.attr.strikethrough = 0;

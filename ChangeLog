@@ -1,5 +1,14 @@
 2007-11-27  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 499893 – cell.attr.protect is unused
+
+	* src/vte-private.h:
+	* src/vte.c (_vte_terminal_set_default_attributes):
+	* src/vteseq.c (vte_sequence_handler_mp):
+	Comment out cell.attr.protect which is unused.
+
+2007-11-27  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte.c (_vte_invalidate_cell), (_vte_invalidate_cursor_once):
 	Minor optimization, if one can call it that.
 
