@@ -1,3 +1,8 @@
+2007-11-27  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vte.c (_vte_invalidate_cell), (_vte_invalidate_cursor_once):
+	Minor optimization, if one can call it that.
+
 2007-11-26  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte.c: Fix doc syntax.

@@ -652,7 +652,7 @@ _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
 					_vte_draw_get_char_width (
 						terminal->pvt->draw,
 						cell->c,
-						cell->attr.columns) >
+						columns) >
 					terminal->char_width * columns) {
 				columns++;
 			}
@@ -709,7 +709,7 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 					_vte_draw_get_char_width (
 						terminal->pvt->draw,
 						cell->c,
-						cell->attr.columns) >
+						columns) >
 			    terminal->char_width * columns) {
 				columns++;
 			}
