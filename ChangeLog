@@ -1,5 +1,11 @@
 2007-11-28  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 416558 – Rendering errors in VteFT2
+
+	* src/vteft2.c (_vte_ft2_create): Disable Gtk+ double-buffering.
+
+2007-11-28  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 403217 – Outdated README
 
 	* README: Rewrite.
