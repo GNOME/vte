@@ -1,5 +1,14 @@
 2007-11-28  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 416561 – Rendering issue in VtePango
+
+	* src/vtepango.c (_vte_pango_draw_rectangle):
+	* src/vtepangox.c (_vte_pango_x_draw_rectangle):
+	gdk_draw_rectangle has slightly different semantics when
+	filling vs outlining.  Fix for that.
+
+2007-11-28  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 416558 – Rendering errors in VteFT2
 
 	* src/vteft2.c (_vte_ft2_create): Disable Gtk+ double-buffering.

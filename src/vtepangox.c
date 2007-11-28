@@ -445,7 +445,7 @@ _vte_pango_x_draw_rectangle(struct _vte_draw *draw,
 	gdk_gc_set_foreground(data->gc, &wcolor);
 
 	gdk_draw_rectangle(draw->widget->window, data->gc, FALSE,
-			   x, y, width, height);
+			   x, y, width-1, height-1);
 }
 
 static void
