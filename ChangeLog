@@ -1,5 +1,14 @@
 2007-11-28  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 412435 – Invalid variable name in Makefile.am
+
+	* Makefile.am:
+	* configure.in:
+	* vte.spec.in:
+	Remove spec file and old convenience cvs make targets.
+
+2007-11-28  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 416561 – Rendering issue in VtePango
 
 	* src/vtepango.c (_vte_pango_draw_rectangle):

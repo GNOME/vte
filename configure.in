@@ -623,7 +623,6 @@ doc/openi18n/Makefile
 doc/reference/Makefile
 vte.pc
 vte-uninstalled.pc
-vte.spec
 ])
 AC_OUTPUT
 
