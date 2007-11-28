@@ -7,3 +7,7 @@ editors, IDEs, etc.
 
 VTE supports Unicode and character set conversion, as well as emulating any
 terminal known to the system's terminfo database.
+
+VTE doesn't have a homepage.  Report any issues at:
+
+  http://bugzilla.gnome.org/enter_bug.cgi?product=vte
