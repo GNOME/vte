@@ -1,3 +1,9 @@
+2007-11-28  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 403217 – Outdated README
+
+	* README: Rewrite.
+
 2007-11-27  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 118967 – single line scrolling with "Ctrl+Shift+ArrowUp/ArrowDown"
