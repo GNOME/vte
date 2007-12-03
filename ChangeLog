@@ -1,3 +1,7 @@
+2007-12-03  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	* src/keymap.c: Make is_cursor_key static.
+
 2007-11-28  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 412435 – Invalid variable name in Makefile.am

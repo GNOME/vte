@@ -1330,7 +1330,7 @@ _vte_keymap_key_gets_modifiers(guint keyval)
 }
 
 /* Prior and Next are ommitted for the SS3 to CSI switch below */
-gboolean
+static gboolean
 is_cursor_key(guint keyval)
 {
 	switch (keyval) {
