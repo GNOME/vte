@@ -1072,72 +1072,6 @@ _vte_iso2022_sequence_length(const unsigned char *nextctl, gsize length)
 	return sequence_length;
 }
 
-static GArray *
-_vte_iso2022_fragment_input(guchar *input, gsize length)
-{
-	const guchar *nextctl, *p, *q;
-	glong sequence_length = 0;
-	struct _vte_iso2022_block block;
-	GArray *blocks;
-
-	blocks = g_array_new(FALSE, FALSE, sizeof(struct _vte_iso2022_block));
-
-	p = input;
-	q = input + length;
-	do {
-		nextctl = _vte_iso2022_find_nextctl(p, q);
-		if (nextctl == NULL) {
-			/* It's all garden-variety data. */
-			block.type = _vte_iso2022_cdata;
-			block.start = p - input;
-			block.end = q - input;
-			g_array_append_val(blocks, block);
-			/* Break out of the loop. */
-			break;
-		}
-		/* We got some garden-variety data. */
-		if (nextctl != p) {
-			block.type = _vte_iso2022_cdata;
-			block.start = p - input;
-			block.end = nextctl - input;
-			g_array_append_val(blocks, block);
-		}
-		/* Move on to the control data. */
-		p = nextctl;
-		sequence_length = _vte_iso2022_sequence_length(nextctl,
-							       q - nextctl);
-		switch (sequence_length) {
-		case -1:
-			/* It's just garden-variety data. */
-			block.type = _vte_iso2022_cdata;
-			block.start = p - input;
-			block.end = nextctl + 1 - input;
-			/* Continue at the next byte. */
-			p = nextctl + 1;
-			break;
-		case 0:
-			/* Inconclusive.  Save this data and try again later. */
-			block.type = _vte_iso2022_preserve;
-			block.start = nextctl - input;
-			block.end = q - input;
-			/* Trigger an end-of-loop. */
-			p = q;
-			break;
-		default:
-			/* It's a control sequence. */
-			block.type = _vte_iso2022_control;
-			block.start = nextctl - input;
-			block.end = nextctl + sequence_length - input;
-			/* Continue after the sequence. */
-			p = nextctl + sequence_length;
-			break;
-		}
-		g_array_append_val(blocks, block);
-	} while (p < q);
-
-	return blocks;
-}
-
 static int
 process_8_bit_sequence(struct _vte_iso2022_state *state,
 		       const guchar **inbuf, gsize *inbytes,
@@ -1674,89 +1608,147 @@ process_control(struct _vte_iso2022_state *state, guchar *ctl, gsize length,
 	}
 }
 
+static guint
+process_block (struct _vte_iso2022_state *state,
+	       guchar *input,
+	       struct _vte_iso2022_block *block,
+	       gboolean last,
+	       GArray *gunichars)
+{
+	guint preserve_last = -1;
+	guint initial;
+
+	switch (block->type) {
+	case _vte_iso2022_cdata:
+		_VTE_DEBUG_IF(VTE_DEBUG_SUBSTITUTION) {
+			guint j;
+			g_printerr("%3ld %3ld CDATA \"%.*s\"",
+				block->start, block->end,
+				(int) (block->end - block->start),
+				input + block->start);
+			g_printerr(" (");
+			for (j = block->start; j < block->end; j++) {
+				if (j > block->start) {
+					g_printerr(", ");
+				}
+				g_printerr("0x%02x",
+					input[j]);
+			}
+			g_printerr(")\n");
+		}
+		initial = 0;
+		while (initial < block->end - block->start) {
+			int j;
+			j = process_cdata(state,
+					  input +
+					  block->start +
+					  initial,
+					  block->end -
+					  block->start -
+					  initial,
+					  gunichars);
+			if (j == 0) {
+				break;
+			}
+			initial += j;
+		}
+		if (initial < block->end - block->start && last) {
+			preserve_last = block->start + initial;
+		}
+		break;
+	case _vte_iso2022_control:
+		_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
+				"%3ld %3ld CONTROL ",
+				block->start, block->end);
+		process_control(state,
+				input + block->start,
+				block->end - block->start,
+				gunichars);
+		break;
+	case _vte_iso2022_preserve:
+		_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
+				"%3ld %3ld PRESERVE\n",
+				block->start, block->end);
+		preserve_last = block->start;
+		break;
+	default:
+		g_assert_not_reached();
+		break;
+	}
+
+	return preserve_last;
+}
+
 gsize
 _vte_iso2022_process(struct _vte_iso2022_state *state,
 		     guchar *input, gsize length,
 		     GArray *gunichars)
 {
-	GArray *blocks;
-	struct _vte_iso2022_block *block = NULL;
-	gboolean preserve_last = FALSE;
-	guint i, initial;
+	struct _vte_iso2022_block block;
+	guint preserve_last = -1;
+	const guchar *nextctl, *p, *q;
+	glong sequence_length = 0;
 
-	blocks = _vte_iso2022_fragment_input(input, length);
-
-	for (i = 0; i < blocks->len; i++) {
-		block = &g_array_index(blocks, struct _vte_iso2022_block, i);
-		switch (block->type) {
-		case _vte_iso2022_cdata:
-			_VTE_DEBUG_IF(VTE_DEBUG_SUBSTITUTION) {
-				guint j;
-				g_printerr("%3ld %3ld CDATA \"%.*s\"",
-					block->start, block->end,
-					(int) (block->end - block->start),
-					input + block->start);
-				g_printerr(" (");
-				for (j = block->start; j < block->end; j++) {
-					if (j > block->start) {
-						g_printerr(", ");
-					}
-					g_printerr("0x%02x",
-						input[j]);
-				}
-				g_printerr(")\n");
-			}
-			initial = 0;
-			while (initial < block->end - block->start) {
-				int j;
-				j = process_cdata(state,
-						  input +
-						  block->start +
-						  initial,
-						  block->end -
-						  block->start -
-						  initial,
-						  gunichars);
-				if (j == 0) {
-					break;
-				}
-				initial += j;
-			}
-			if ((initial < block->end - block->start) &&
-			    (i == blocks->len - 1)) {
-				preserve_last = TRUE;
-				block->start += initial;
-			} else {
-				preserve_last = FALSE;
-			}
-			break;
-		case _vte_iso2022_control:
-			_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
-					"%3ld %3ld CONTROL ",
-					block->start, block->end);
-			process_control(state,
-					input + block->start,
-					block->end - block->start,
-					gunichars);
-			preserve_last = FALSE;
-			break;
-		case _vte_iso2022_preserve:
-			_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
-					"%3ld %3ld PRESERVE\n",
-					block->start, block->end);
-			g_assert(i == blocks->len - 1);
-			preserve_last = TRUE;
-			break;
-		default:
-			g_assert_not_reached();
+	p = input;
+	q = input + length;
+	do {
+		nextctl = _vte_iso2022_find_nextctl(p, q);
+		if (nextctl == NULL) {
+			/* It's all garden-variety data. */
+			block.type = _vte_iso2022_cdata;
+			block.start = p - input;
+			block.end = q - input;
+			preserve_last = process_block (state,
+					               input, &block,
+						       TRUE,
+					               gunichars);
 			break;
 		}
+		/* We got some garden-variety data. */
+		if (nextctl != p) {
+			block.type = _vte_iso2022_cdata;
+			block.start = p - input;
+			block.end = nextctl - input;
+			process_block (state, input, &block, FALSE, gunichars);
+		}
+		/* Move on to the control data. */
+		p = nextctl;
+		sequence_length = _vte_iso2022_sequence_length(nextctl,
+							       q - nextctl);
+		switch (sequence_length) {
+		case -1:
+			/* It's just garden-variety data. */
+			block.type = _vte_iso2022_cdata;
+			block.start = p - input;
+			block.end = nextctl + 1 - input;
+			/* Continue at the next byte. */
+			p = nextctl + 1;
+			break;
+		case 0:
+			/* Inconclusive.  Save this data and try again later. */
+			block.type = _vte_iso2022_preserve;
+			block.start = nextctl - input;
+			block.end = q - input;
+			/* Trigger an end-of-loop. */
+			p = q;
+			break;
+		default:
+			/* It's a control sequence. */
+			block.type = _vte_iso2022_control;
+			block.start = nextctl - input;
+			block.end = nextctl + sequence_length - input;
+			/* Continue after the sequence. */
+			p = nextctl + sequence_length;
+			break;
+		}
+		preserve_last = process_block (state,
+				               input, &block,
+					       FALSE,
+					       gunichars);
+	} while (p < q);
+	if (preserve_last != (guint) -1) {
+		length = preserve_last;
 	}
-	if (preserve_last && (blocks->len > 0)) {
-		block = &g_array_index(blocks, struct _vte_iso2022_block, blocks->len - 1);
-		length = block->start;
-	}
-	g_array_free(blocks, TRUE);
 	_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
 			"Consuming %ld bytes.\n", (long) length);
 	return length;

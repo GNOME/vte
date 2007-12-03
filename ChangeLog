@@ -1,5 +1,15 @@
 2007-12-03  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 497246 – Kill vte_iso2022_fragment_input
+
+	* src/iso2022.c (process_block), (_vte_iso2022_process):
+	Avoid the temporary allocation of the GArray holding the fragments
+	by processing each fragment as it is decyphered. This array is
+	allocated and grown for every single input chunk and is currently the
+	most frequent allocation made by vte.
+
+2007-12-03  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/keymap.c: Make is_cursor_key static.
 
 2007-11-28  Behdad Esfahbod  <behdad@gnome.org>
