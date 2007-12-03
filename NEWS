@@ -1,3 +1,36 @@
+0.16.10
+=======
+- Smart tab character: you can now copy/paste tab characters printed by cat,
+  diff, and other line-oriented tools and get the tab character in the
+  clipboard, instead of multiple spaces.  The selection indicates that by
+  being all or none.
+- Misc bug fixes and optimizations.
+- Bugs fixed in this release:
+	* src/vtedraw.c (_vte_draw_init_user): Make VTE_BACKEND=list list
+	available backends to stderr.
+
+	Bug 497246 – Kill vte_iso2022_fragment_input
+	Bug 412435 – Invalid variable name in Makefile.am
+	Bug 416561 – Rendering issue in VtePango
+	Bug 416558 – Rendering errors in VteFT2
+	Bug 403217 – Outdated README
+	Bug 118967 – single line scrolling with "Ctrl+Shift+ArrowUp/ArrowDown"
+		Patch from Mauricio and Mariano Suárez-Alvarez
+	Bug 353610 – Don't convert tab characters upon copying
+	Bug 499892 – strikethrough line is too high
+	Bug 499891 – vte with opacity set, shows invisible chars
+	Bug 499896 – Alternate charset isn't an attribute, though we treat it
+		as one.
+	Bug 499893 – cell.attr.protect is unused
+	Bug 499287 – Fix doc coverage regression
+	Bug 142640 – FcConfigSubstitute in place of _vte_fc_defaults_from_gtk
+		to get antialias and hinting value
+	Bug 439384 – gnome-terminal on feisty crashes when giving wrong locale
+		environment
+	Bug 483642 – vte_terminal_feed crash when 8190 characters passed
+	Bug 480735 – Underlining whitespace not reliable
+		Original patch by Steven Skovran.
+
 0.16.9
 ======
 - Slightly improved pango backend
