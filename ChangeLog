@@ -1,3 +1,11 @@
+2007-12-10  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 319687 – Pasting of text containing characters not in the
+	terminal's encoding silently fails
+
+	* src/vteconv.c (_vte_conv_open): Try to open converter with
+	transliteration.  Supported by GNU iconv and GLibc.
+
 2007-09-17  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.16.10.
