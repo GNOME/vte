@@ -6,7 +6,7 @@
 	* src/vteconv.c (_vte_conv_open): Try to open converter with
 	transliteration.  Supported by GNU iconv and GLibc.
 
-2007-09-17  Behdad Esfahbod  <behdad@gnome.org>
+2007-12-03  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.16.10.
 
