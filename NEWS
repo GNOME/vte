@@ -1,3 +1,12 @@
+0.16.11
+=======
+- Work around Gdk backends that don't issue GdkVisibilityNotify.
+- Try transliteration when pasting text into a non-UTF-8 locale.
+- Bugs fixed in this release:
+	Bug 503164 – Drawing problems for VTE with gtk+-quartz
+	Bug 319687 – Pasting of text containing characters not in the
+		terminal's encoding silently fails
+
 0.16.10
 =======
 - Smart tab character: you can now copy/paste tab characters printed by cat,
