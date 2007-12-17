@@ -7527,8 +7527,9 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->has_fonts = FALSE;
 	pvt->root_pixmap_changed_tag = VTE_INVALID_SOURCE;
 
-	/* window is obscured until mapped */
-	pvt->visibility_state = GDK_VISIBILITY_FULLY_OBSCURED;
+	/* Not all backends generate GdkVisibilityNotify, so mark the
+	 * window as unobscured initially. */
+	pvt->visibility_state = GDK_VISIBILITY_UNOBSCURED;
 
 	/* Listen for hierarchy change notifications. */
 	g_signal_connect(terminal, "hierarchy-changed",
