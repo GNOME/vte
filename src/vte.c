@@ -10450,7 +10450,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
 	bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
 #ifdef HAVE_DECL_BIND_TEXTDOMAIN_CODESET
-	bind_textdomain_codeset(PACKAGE, "UTF-8");
+	bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
 #endif
 
 	g_type_class_add_private(klass, sizeof (VteTerminalPrivate));
