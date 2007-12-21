@@ -1,6 +1,10 @@
 2007-12-21  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	Bug 503164 – Drawing problems for VTE with gtk+-quartz
+
 	* src/vte.c (vte_terminal_realize):
+	Continuing the saga, remove the fiddling with visibility state
+	during realize.
 
 2007-12-18  Behdad Esfahbod  <behdad@gnome.org>
 
