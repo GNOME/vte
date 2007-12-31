@@ -1,42 +1,39 @@
-# translation of oc.po to Occitan
+# Translation of oc.po to Occitan
 # Occitan translation of vte.
 # Copyright (C) 2002-2007 Free Software Foundation, Inc.
 # This file is under the same license as the vte package.
 #
-# Yannig MARCHEGAY (yannig@marchegay.org) - 2006-2007
-#
-# Yannig Marchegay (Kokoyaya) <yannig@marchegay.org>, 2007.
+# Yannig Marchegay (Kokoyaya) <yannig@marchegay.org>, 2006-2008
 msgid ""
 msgstr ""
 "Project-Id-Version: oc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-08-21 12:19+0100\n"
-"PO-Revision-Date: 2007-11-20 14:32+0100\n"
+"POT-Creation-Date: 2007-12-27 13:21+0100\n"
+"PO-Revision-Date: 2007-12-28 11:58+0100\n"
 "Last-Translator: Yannig Marchegay (Kokoyaya) <yannig@marchegay.org>\n"
 "Language-Team: Occitan <ubuntu-l10n-oci@lists.ubuntu.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"X-Generator: KBabel 1.11.4\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);"
 
 #: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
-#: ../src/vte.c:1814
+#: ../src/vte.c:1852
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr ""
 
-#: ../src/iso2022.c:1540
+#: ../src/iso2022.c:1474
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr ""
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1570
+#: ../src/iso2022.c:1504
 msgid "Unrecognized identified coding system."
 msgstr ""
 
-#: ../src/iso2022.c:1629 ../src/iso2022.c:1656
+#: ../src/iso2022.c:1563 ../src/iso2022.c:1590
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr ""
@@ -58,57 +55,57 @@ msgstr ""
 msgid "Duplicate (%s/%s)!"
 msgstr ""
 
-#: ../src/vte.c:1204
+#: ../src/vte.c:1232
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr ""
 
-#: ../src/vte.c:2675 ../src/vte.c:2680
+#: ../src/vte.c:2714 ../src/vte.c:2719
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr ""
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:3645
+#: ../src/vte.c:3705
 #, c-format
 msgid "Error reading from child: %s."
 msgstr ""
 
-#: ../src/vte.c:3761
+#: ../src/vte.c:3833
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
 
-#: ../src/vte.c:3772 ../src/vte.c:4679
+#: ../src/vte.c:3844 ../src/vte.c:4771
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 
-#: ../src/vte.c:6914
+#: ../src/vte.c:7017
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 
-#: ../src/vte.c:6950
+#: ../src/vte.c:7053
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr ""
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:11415
+#: ../src/vte.c:11527
 msgid "_vte_conv_open() failed setting word characters"
 msgstr ""
 
-#: ../src/vteseq.c:3926
+#: ../src/vteseq.c:3979
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr ""
 
 #. Bail back to normal mode.
-#: ../src/vteapp.c:774
+#: ../src/vteapp.c:778
 msgid "Could not open console.\n"
-msgstr ""
+msgstr "Impossible de dobrir la consòla.\n"
 
-#: ../src/vteapp.c:838
+#: ../src/vteapp.c:842
 msgid "Could not parse the geometry spec passed to --geometry"
 msgstr ""
 
