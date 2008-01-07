@@ -1,3 +1,12 @@
+2008-01-07  Behdad Esfahbod  <behdad@gnome.org>
+
+	Released vte-0.16.12.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.16.12.
+	Bumped libtool version to 11:16:2.
+.
 2007-12-21  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 503164 – Drawing problems for VTE with gtk+-quartz

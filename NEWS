@@ -1,3 +1,10 @@
+0.16.12
+=======
+- More work around Gdk backends that don't issue GdkVisibilityNotify.
+- Bugs fixed in this release:
+	Bug 503164 – Drawing problems for VTE with gtk+-quartz
+	Bug 449131 – Wrong gettext domain
+
 0.16.11
 =======
 - Work around Gdk backends that don't issue GdkVisibilityNotify.
