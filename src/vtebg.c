@@ -230,7 +230,10 @@ vte_bg_class_init(VteBgClass *klass)
 {
 	GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
 
-	bindtextdomain(PACKAGE, LOCALEDIR);
+	bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
+#ifdef HAVE_DECL_BIND_TEXTDOMAIN_CODESET
+	bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
+#endif
 
 	gobject_class->finalize = vte_bg_finalize;
 

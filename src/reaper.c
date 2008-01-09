@@ -214,7 +214,10 @@ vte_reaper_class_init(VteReaperClass *klass)
 {
 	GObjectClass *gobject_class;
 
-	bindtextdomain(PACKAGE, LOCALEDIR);
+	bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
+#ifdef HAVE_DECL_BIND_TEXTDOMAIN_CODESET
+	bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
+#endif
 
 	klass->child_exited_signal = g_signal_new("child-exited",
 						  G_OBJECT_CLASS_TYPE(klass),

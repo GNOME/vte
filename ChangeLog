@@ -1,3 +1,14 @@
+2008-01-09  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 449131 – Wrong gettext domain
+
+	* src/pty.c:
+	* src/reaper.c (vte_reaper_class_init):
+	* src/trie.c:
+	* src/vtebg.c (vte_bg_class_init):
+	* src/vteglyph.c:
+	Oops.  Fix all remaining ones too.
+
 2008-01-07  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.16.12.

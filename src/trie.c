@@ -41,12 +41,7 @@
 typedef gunichar wint_t;
 #endif
 
-#ifdef ENABLE_NLS
-#include <libintl.h>
-#define _(String) dgettext(PACKAGE, String)
-#else
-#define _(String) String
-#endif
+#include <glib/gi18n-lib.h>
 
 #ifndef TRIE_MAYBE_STATIC
 #define TRIE_MAYBE_STATIC
