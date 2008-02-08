@@ -49,7 +49,6 @@
 #include "vteregex.h"
 #include "vtetc.h"
 #include "vteseq.h"
-#include <fontconfig/fontconfig.h>
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>

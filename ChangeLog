@@ -1,3 +1,10 @@
+2008-02-08  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vte.c:
+	* src/vteapp.c:
+	* src/vtergb.c:
+	Remove unneeded #include <fontconfig/fontconfig.h>
+
 2008-01-09  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 449131 – Wrong gettext domain

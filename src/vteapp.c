@@ -28,9 +28,6 @@
 #include <unistd.h>
 #include <gtk/gtk.h>
 #include <glib-object.h>
-#ifdef HAVE_XFT2
-#include <fontconfig/fontconfig.h>
-#endif
 #include "debug.h"
 #include "vte.h"
 

@@ -21,7 +21,6 @@
 
 #include <gdk/gdk.h>
 #include <glib.h>
-#include <fontconfig/fontconfig.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include "vtergb.h"
