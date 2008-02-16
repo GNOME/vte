@@ -1,112 +1,122 @@
-# Czech translation of vte
+# Czech translation of vte.
+# Copyright (C) 2002, 2008 Free Software Foundation.
+# Copyright (C) 2002, 2003, 2004 Miloslav Trmac <mitr@volny.cz>.
 # This file is distributed under the same license as the vte package.
-# Copyright (C) 2004 Miloslav Trmac <mitr@volny.cz>
 # Miloslav Trmac <mitr@volny.cz>, 2002, 2003, 2004.
+# Pavel Šefránek <ps@pjoul.cz>, 2008.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: vte VERSION\n"
+"Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-03-13 00:22-0500\n"
-"PO-Revision-Date: 2004-01-27 18:06+0100\n"
-"Last-Translator: Miloslav Trmac <mitr@volny.cz>\n"
-"Language-Team: Czech <cs@li.org>\n"
+"POT-Creation-Date: 2008-02-16 16:25+0100\n"
+"PO-Revision-Date: 2008-02-14 16:32+0100\n"
+"Last-Translator: Pavel Šefránek <ps@pjoul.cz>\n"
+"Language-Team: Czech <gnome-cs-list@gnome.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:1590
+#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
+#: ../src/vte.c:1851
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Nemohu konvertovat znaky z %s do %s."
 
-#: src/iso2022.c:1582
+#: ../src/iso2022.c:1474
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Pokus nastavit neplatnou mapu NRC '%c'."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1623
+#: ../src/iso2022.c:1504
 msgid "Unrecognized identified coding system."
 msgstr "Neznámý identifikovaný systém kódování."
 
-#: src/iso2022.c:1672 src/iso2022.c:1698
+#: ../src/iso2022.c:1563 ../src/iso2022.c:1590
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Pokus nastavit neplatnou širokou mapu NRC '%c'."
 
-#: src/pty.c:329
-#, c-format
-msgid "Error adding `%s' to environment, continuing."
-msgstr "Chyba při přidávání `%s' do prostředí, pokračuji."
-
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:914
+#: ../src/pty.c:832
 #, c-format
 msgid "can not run %s"
 msgstr "nemohu spustit %s"
 
-#: src/reaper.c:156
+#: ../src/reaper.c:136
 msgid "Error creating signal pipe."
 msgstr "Chyba při vytváření signálové roury."
 
-#: src/trie.c:412
+#: ../src/trie.c:409
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikát (%s/%s)!"
 
-#: src/vte.c:1016
+#: ../src/vte.c:1231
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Chyba při kompilaci regulárního výrazu \"%s\"."
 
-#: src/vte.c:2472
+#: ../src/vte.c:2713 ../src/vte.c:2718
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "Nedefinována žádná obsluha pro řídicí sekvenci `%s'."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: src/vte.c:3315
+#: ../src/vte.c:3704
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Chyba při čtení od potomka: %s."
 
-#: src/vte.c:3437 src/vte.c:4331
+#: ../src/vte.c:3832
+msgid "Unable to send data to child, invalid charset convertor"
+msgstr ""
+"Nemohu poslat zprávu potomkovi, z důvodu neplatného převodníku znakové sady"
+
+#: ../src/vte.c:3843 ../src/vte.c:4770
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Chyba (%s) při konverzi dat pro potomka, zahazuji je."
 
-#: src/vte.c:6284
+#: ../src/vte.c:7016
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Chyba při čtení velikosti PTY, používám implicitní: %s."
 
-#: src/vte.c:6320
+#: ../src/vte.c:7052
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Chyba při nastavování velikosti PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: src/vte.c:10629
+#: ../src/vte.c:11526
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() selhal při nastavování znaků slova"
 
+#: ../src/vteseq.c:3979
+#, c-format
+msgid "Got unexpected (key?) sequence `%s'."
+msgstr "Dostal jsem neočekávanou sekvenci (kláves?) `%s'."
+
 #. Bail back to normal mode.
-#: src/vteapp.c:736
+#: ../src/vteapp.c:775
 msgid "Could not open console.\n"
 msgstr "Nemohu otevřít konzolu.\n"
 
-#: src/vteglyph.c:579
+#: ../src/vteapp.c:839
+msgid "Could not parse the geometry spec passed to --geometry"
+msgstr "Nemohu zpracovat hodnotu geometrie zadanou volbou --geometry"
+
+#: ../src/vteglyph.c:556
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "Neznámý režim pixelu %d.\n"
 
-#: src/vtexft.c:714
-#, c-format
-msgid "Can not draw character U+%04x.\n"
-msgstr "Nemohu vykreslit znak U+%04x.\n"
+#~ msgid "Error adding `%s' to environment, continuing."
+#~ msgstr "Chyba při přidávání `%s' do prostředí, pokračuji."
 
-#~ msgid "Got unexpected (key?) sequence `%s'."
-#~ msgstr "Dostal jsem neočekávanou sekvenci (kláves?) `%s'."
+#~ msgid "Can not draw character U+%04x.\n"
+#~ msgstr "Nemohu vykreslit znak U+%04x.\n"
