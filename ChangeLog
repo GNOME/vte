@@ -1,3 +1,11 @@
+2008-02-20  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 517709 – VTE's pty.c makes 4096 getrlimit calls when it only needs
+	one
+
+	* src/pty.c (_vte_pty_start_helper): Only close fds 0, 1, and 2.
+	gnome-pty-helper closes all fds anyway.
+
 2008-02-08  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte.c:

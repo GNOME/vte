@@ -853,11 +853,10 @@ _vte_pty_start_helper(void)
 		return FALSE;
 	}
 	if (_vte_pty_helper_pid == 0) {
-		/* Child.  Close all descriptors. */
-		for (i = 0; i < sysconf(_SC_OPEN_MAX); i++) {
-			if (i != tunnel) {
-				close(i);
-			}
+		/* Child.  Close descriptors.  No need to close all,
+		 * gnome-pty-helper does that anyway. */
+		for (i = 0; i < 3; i++) {
+			close(i);
 		}
 		/* Reassign the socket pair to stdio. */
 		dup2(tunnel, STDIN_FILENO);
