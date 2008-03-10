@@ -1,3 +1,11 @@
+0.16.13
+=======
+- Minor optimization.
+- Bugs fixed in this release:
+	Bug 517709 – VTE's pty.c makes 4096 getrlimit calls when it only needs
+	one
+	Bug 449131 – Wrong gettext domain
+
 0.16.12
 =======
 - More work around Gdk backends that don't issue GdkVisibilityNotify.

@@ -1,3 +1,12 @@
+2008-03-10  Behdad Esfahbod  <behdad@gnome.org>
+
+	Released vte-0.16.13.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.16.13.
+	Bumped libtool version to 11:17:2.
+
 2008-02-20  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 517709 – VTE's pty.c makes 4096 getrlimit calls when it only needs
