@@ -10436,7 +10436,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 					"  !  _vte_invalidate_cells (dirty)\n"
 					"  *  _vte_invalidate_all\n"
 					"  )  end _vte_terminal_process_incoming\n"
-					"  -  gdk_window_process_all_updates\n"
+					"  -  gdk_window_process_updates\n"
 					"  +  vte_terminal_expose\n"
 					"  =  vte_terminal_paint\n"
 					"  ]} start update_timeout\n"
@@ -12423,6 +12423,7 @@ update_regions (VteTerminal *terminal)
 
 	/* and perform the merge with the window visible area */
 	gdk_window_invalidate_region (terminal->widget.window, region, FALSE);
+	gdk_window_process_updates (terminal->widget.window, FALSE);
 	gdk_region_destroy (region);
 
 	_vte_debug_print (VTE_DEBUG_WORK, "-");
@@ -12491,6 +12492,9 @@ update_repeat_timeout (gpointer data)
 
 
 	if (active_terminals != NULL) {
+		/* remove the idle source, and draw non-Terminals
+		 * (except for gdk/{directfb,quartz}!)
+		 */
 		gdk_window_process_all_updates ();
 	}
 
@@ -12581,6 +12585,9 @@ update_timeout (gpointer data)
 	}
 
 	if (redraw) {
+		/* remove the idle source, and draw non-Terminals
+		 * (except for gdk/{directfb,quartz}!)
+		 */
 		gdk_window_process_all_updates ();
 	}
 

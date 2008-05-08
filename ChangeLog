@@ -1,3 +1,16 @@
+2008-05-08  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 516869 – vte displays nothing on GTK+/DirectFB
+
+	Original patch by Jérémy Bobbio.
+
+	* src/vte.c (vte_terminal_class_init), (update_regions),
+	(update_repeat_timeout), (update_timeout):
+	gdk_window_process_all_updates() is ineffective on the gtk+-directfb
+	and gtk+-quartz backends, so in order to process updates immediately
+	one must call gdk_window_process_updates() on the desired GdkWindows
+	instead.
+
 2008-03-10  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.16.13.
