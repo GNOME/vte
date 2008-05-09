@@ -340,10 +340,19 @@ _vte_draw_text (struct _vte_draw *draw,
 	g_return_if_fail (draw->started == TRUE);
 	g_return_if_fail (draw->impl != NULL);
 	g_return_if_fail (draw->impl->draw_text != NULL);
-	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_text (len=%"G_GSIZE_FORMAT", color=(%d,%d,%d,%d))\n",
-			n_requests, color->red, color->green, color->blue,
-			alpha);
+	if (_vte_debug_on (VTE_DEBUG_DRAW)) {
+		GString *string = g_string_new ("");
+		gchar *str;
+		gsize n;
+		for (n = 0; n < n_requests; n++) {
+			g_string_append_unichar (string, requests[n].c);
+		}
+		str = g_string_free (string, FALSE);
+		g_printerr ("draw_text (\"%s\", len=%"G_GSIZE_FORMAT", color=(%d,%d,%d,%d))\n",
+				str, n_requests, color->red, color->green, color->blue,
+				alpha);
+		g_free (str);
+	}
 	draw->impl->draw_text (draw, requests, n_requests, color, alpha);
 }
 

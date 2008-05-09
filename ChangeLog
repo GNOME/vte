@@ -1,5 +1,10 @@
 2008-05-09  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/vtedraw.c (_vte_draw_text):
+	    Add the text to draw to the debug output.
+
+2008-05-09  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	Fix "GLib-CRITICAL **: g_io_add_watch_full: assertion
 	                       `channel != NULL' failed"
 
