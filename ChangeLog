@@ -1,3 +1,31 @@
+2008-05-09  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Fix "GLib-CRITICAL **: g_io_add_watch_full: assertion
+	                       `channel != NULL' failed"
+
+	* src/debug.c (_vte_debug_parse_string):
+	* src/debug.h:
+	* src/vte-private.h:
+	* src/vte.c (vte_terminal_emit_adjustment_changed),
+	(_vte_terminal_adjust_adjustments_full),
+	(vte_terminal_scroll_lines), (vte_terminal_maybe_scroll_to_bottom),
+	(_vte_terminal_insert_char), (vte_terminal_catch_child_exited),
+	(mark_input_source_invalid), (_vte_terminal_connect_pty_read),
+	(mark_output_source_invalid), (_vte_terminal_connect_pty_write),
+	(_vte_terminal_disconnect_pty_read),
+	(_vte_terminal_disconnect_pty_write), (_vte_terminal_fork_basic),
+	(vte_terminal_eof), (_vte_terminal_enable_input_source),
+	(vte_terminal_io_read), (vte_terminal_handle_scroll),
+	(vte_terminal_finalize), (vte_terminal_class_init),
+	(vte_terminal_set_pty), (process_timeout), (update_repeat_timeout),
+	(update_timeout):
+	It was possible for _vte_terminal_enable_input_source() to be called
+	after the input closed with G_IO_HUP. The minimal change would just
+	have been to add a guard to check the pty_master was still valid
+	before reattaching the source. Instead I removed the redundant
+	duplication of the input and output channels and added lots of
+	debugging.
+
 2008-05-08  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 516869 – vte displays nothing on GTK+/DirectFB

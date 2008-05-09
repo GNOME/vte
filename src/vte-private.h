@@ -177,11 +177,10 @@ struct _VteTerminalPrivate {
 	/* PTY handling data. */
 	const char *shell;		/* shell we started */
 	int pty_master;			/* pty master descriptor */
-	GIOChannel *pty_input;		/* master input watch */
+	GIOChannel *pty_channel;	/* master channel */
 	guint pty_input_source;
-	gboolean pty_input_active;
-	GIOChannel *pty_output;		/* master output watch */
 	guint pty_output_source;
+	gboolean pty_input_active;
 	GPid pty_pid;			/* pid of child using pty slave */
 	VteReaper *pty_reaper;
 

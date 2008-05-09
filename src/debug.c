@@ -40,6 +40,9 @@ _vte_debug_parse_string(const char *string)
 			if (g_ascii_strcasecmp(flags[i], "IO") == 0) {
 				_vte_debug_flags |= VTE_DEBUG_IO;
 			} else
+			if (g_ascii_strcasecmp(flags[i], "ADJ") == 0) {
+				_vte_debug_flags |= VTE_DEBUG_ADJ;
+			} else
 			if (g_ascii_strcasecmp(flags[i], "UPDATES") == 0) {
 				_vte_debug_flags |= VTE_DEBUG_UPDATES;
 			} else

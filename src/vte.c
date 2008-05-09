@@ -1621,7 +1621,7 @@ vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 
 		v = _vte_ring_delta (screen->row_data);
 		if (terminal->adjustment->lower != v) {
-			_vte_debug_print(VTE_DEBUG_IO,
+			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Changing lower bound from %.0f to %ld\n",
 					terminal->adjustment->lower,
 					v);
@@ -1634,7 +1634,7 @@ vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 		v = MAX(_vte_ring_next(screen->row_data),
 				screen->cursor_current.row + 1);
 		if (terminal->adjustment->upper != v) {
-			_vte_debug_print(VTE_DEBUG_IO,
+			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Changing upper bound from %.0f to %ld\n",
 					terminal->adjustment->upper,
 					v);
@@ -1727,7 +1727,7 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 
 	/* The step increment should always be one. */
 	if (terminal->adjustment->step_increment != 1) {
-		_vte_debug_print(VTE_DEBUG_IO,
+		_vte_debug_print(VTE_DEBUG_ADJ,
 				"Changing step increment from %.0lf to %ld\n",
 				terminal->adjustment->step_increment,
 				terminal->row_count);
@@ -1738,7 +1738,7 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 	/* Set the number of rows the user sees to the number of rows the
 	 * user sees. */
 	if (terminal->adjustment->page_size != terminal->row_count) {
-		_vte_debug_print(VTE_DEBUG_IO,
+		_vte_debug_print(VTE_DEBUG_ADJ,
 				"Changing page size from %.0f to %ld\n",
 				terminal->adjustment->page_size,
 				terminal->row_count);
@@ -1749,7 +1749,7 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 	/* Clicking in the empty area should scroll one screen, so set the
 	 * page size to the number of visible rows. */
 	if (terminal->adjustment->page_increment != terminal->row_count) {
-		_vte_debug_print(VTE_DEBUG_IO,
+		_vte_debug_print(VTE_DEBUG_ADJ,
 				"Changing page increment from "
 				"%.0f to %ld\n",
 				terminal->adjustment->page_increment,
@@ -1770,7 +1770,7 @@ static void
 vte_terminal_scroll_lines(VteTerminal *terminal, gint lines)
 {
 	glong destination;
-	_vte_debug_print(VTE_DEBUG_IO, "Scrolling %d lines.\n", lines);
+	_vte_debug_print(VTE_DEBUG_ADJ, "Scrolling %d lines.\n", lines);
 	/* Calculate the ideal position where we want to be before clamping. */
 	destination = terminal->pvt->screen->scroll_delta;
 	destination += lines;
@@ -1804,7 +1804,7 @@ vte_terminal_maybe_scroll_to_bottom(VteTerminal *terminal)
 	glong delta;
 	delta = terminal->pvt->screen->insert_delta;
 	vte_terminal_queue_adjustment_value_changed (terminal, delta);
-	_vte_debug_print(VTE_DEBUG_IO,
+	_vte_debug_print(VTE_DEBUG_ADJ,
 			"Snapping to bottom of screen\n");
 }
 
@@ -2551,7 +2551,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	col = screen->cursor_current.col;
 	if (G_UNLIKELY (col + columns > terminal->column_count)) {
 		if (terminal->pvt->flags.am) {
-			_vte_debug_print(VTE_DEBUG_IO,
+			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Autowrapping before character\n");
 			/* Wrap. */
 			col = screen->cursor_current.col = 0;
@@ -2567,7 +2567,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		line_wrapped = TRUE;
 	}
 
-	_vte_debug_print(VTE_DEBUG_IO|VTE_DEBUG_PARSE,
+	_vte_debug_print(VTE_DEBUG_PARSE,
 			"Inserting %ld '%c' (%d/%d) (%ld+%d, %ld), delta = %ld; ",
 			(long)c, c < 256 ? c : ' ',
 			screen->defaults.attr.fore,
@@ -2646,7 +2646,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	/* We added text, so make a note of it. */
 	terminal->pvt->text_inserted_flag = TRUE;
 
-	_vte_debug_print(VTE_DEBUG_IO|VTE_DEBUG_PARSE,
+	_vte_debug_print(VTE_DEBUG_ADJ|VTE_DEBUG_PARSE,
 			"insertion delta => %ld.\n",
 			(long)screen->insert_delta);
 	return line_wrapped;
@@ -2760,6 +2760,10 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 		/* Close out the PTY. */
 		_vte_terminal_disconnect_pty_read(terminal);
 		_vte_terminal_disconnect_pty_write(terminal);
+		if (terminal->pvt->pty_channel != NULL) {
+			g_io_channel_unref (terminal->pvt->pty_channel);
+			terminal->pvt->pty_channel = NULL;
+		}
 		if (terminal->pvt->pty_master != -1) {
 			_vte_pty_close(terminal->pvt->pty_master);
 			close(terminal->pvt->pty_master);
@@ -2788,21 +2792,20 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 
 static void mark_input_source_invalid(VteTerminal *terminal)
 {
+	_vte_debug_print (VTE_DEBUG_IO, "removed poll of vte_terminal_io_read\n");
 	terminal->pvt->pty_input_source = VTE_INVALID_SOURCE;
 }
 static void
 _vte_terminal_connect_pty_read(VteTerminal *terminal)
 {
-	if (terminal->pvt->pty_master == -1) {
+	if (terminal->pvt->pty_channel == NULL) {
 		return;
 	}
-	if (terminal->pvt->pty_input == NULL) {
-		terminal->pvt->pty_input =
-			g_io_channel_unix_new(terminal->pvt->pty_master);
-	}
+
 	if (terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
+		_vte_debug_print (VTE_DEBUG_IO, "polling vte_terminal_io_read\n");
 		terminal->pvt->pty_input_source =
-			g_io_add_watch_full(terminal->pvt->pty_input,
+			g_io_add_watch_full(terminal->pvt->pty_channel,
 					    VTE_CHILD_INPUT_PRIORITY,
 					    G_IO_IN | G_IO_HUP,
 					    (GIOFunc) vte_terminal_io_read,
@@ -2813,40 +2816,38 @@ _vte_terminal_connect_pty_read(VteTerminal *terminal)
 
 static void mark_output_source_invalid(VteTerminal *terminal)
 {
+	_vte_debug_print (VTE_DEBUG_IO, "removed poll of vte_terminal_io_write\n");
 	terminal->pvt->pty_output_source = VTE_INVALID_SOURCE;
 }
 static void
 _vte_terminal_connect_pty_write(VteTerminal *terminal)
 {
-	if (terminal->pvt->pty_master == -1) {
+	if (terminal->pvt->pty_channel == NULL) {
 		return;
 	}
-	if (terminal->pvt->pty_output == NULL) {
-		terminal->pvt->pty_output =
-			g_io_channel_unix_new(terminal->pvt->pty_master);
-	}
+
 	if (terminal->pvt->pty_output_source == VTE_INVALID_SOURCE) {
-		terminal->pvt->pty_output_source =
-			g_io_add_watch_full(terminal->pvt->pty_output,
-					    VTE_CHILD_OUTPUT_PRIORITY,
-					    G_IO_OUT,
-					    (GIOFunc) vte_terminal_io_write,
-					    terminal,
-					    (GDestroyNotify) mark_output_source_invalid);
+		if (vte_terminal_io_write (terminal->pvt->pty_channel,
+					     G_IO_OUT,
+					     terminal))
+		{
+			_vte_debug_print (VTE_DEBUG_IO, "polling vte_terminal_io_write\n");
+			terminal->pvt->pty_output_source =
+				g_io_add_watch_full(terminal->pvt->pty_channel,
+						    VTE_CHILD_OUTPUT_PRIORITY,
+						    G_IO_OUT,
+						    (GIOFunc) vte_terminal_io_write,
+						    terminal,
+						    (GDestroyNotify) mark_output_source_invalid);
+		}
 	}
 }
 
 static void
 _vte_terminal_disconnect_pty_read(VteTerminal *terminal)
 {
-	if (terminal->pvt->pty_master == -1) {
-		return;
-	}
-	if (terminal->pvt->pty_input != NULL) {
-		g_io_channel_unref(terminal->pvt->pty_input);
-		terminal->pvt->pty_input = NULL;
-	}
 	if (terminal->pvt->pty_input_source != VTE_INVALID_SOURCE) {
+		_vte_debug_print (VTE_DEBUG_IO, "disconnecting poll of vte_terminal_io_read\n");
 		g_source_remove(terminal->pvt->pty_input_source);
 		terminal->pvt->pty_input_source = VTE_INVALID_SOURCE;
 	}
@@ -2855,14 +2856,9 @@ _vte_terminal_disconnect_pty_read(VteTerminal *terminal)
 static void
 _vte_terminal_disconnect_pty_write(VteTerminal *terminal)
 {
-	if (terminal->pvt->pty_master == -1) {
-		return;
-	}
-	if (terminal->pvt->pty_output != NULL) {
-		g_io_channel_unref(terminal->pvt->pty_output);
-		terminal->pvt->pty_output = NULL;
-	}
 	if (terminal->pvt->pty_output_source != VTE_INVALID_SOURCE) {
+		_vte_debug_print (VTE_DEBUG_IO, "disconnecting poll of vte_terminal_io_write\n");
+
 		g_source_remove(terminal->pvt->pty_output_source);
 		terminal->pvt->pty_output_source = VTE_INVALID_SOURCE;
 	}
@@ -2876,7 +2872,7 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 			 gboolean lastlog, gboolean utmp, gboolean wtmp)
 {
 	char **env_add;
-	int i;
+	int i, fd;
 	pid_t pid;
 	VteReaper *reaper;
 
@@ -2892,6 +2888,9 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 	env_add[i + 1] = NULL;
 
 	/* Close any existing ptys. */
+	if (terminal->pvt->pty_channel != NULL) {
+		g_io_channel_unref (terminal->pvt->pty_channel);
+	}
 	if (terminal->pvt->pty_master != -1) {
 		_vte_pty_close(terminal->pvt->pty_master);
 		close(terminal->pvt->pty_master);
@@ -2899,25 +2898,21 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 
 	/* Open the new pty. */
 	pid = -1;
-	i = _vte_pty_open(&pid, env_add, command, argv, directory,
+	fd = _vte_pty_open(&pid, env_add, command, argv, directory,
 			  terminal->column_count, terminal->row_count,
 			  lastlog, utmp, wtmp);
-	switch (i) {
-	case -1:
+	if (pid == -1 || fd == -1) {
+		g_strfreev(env_add);
 		return -1;
-		break;
-	default:
-		if (pid != 0) {
-			terminal->pvt->pty_master = i;
-		       _vte_terminal_setup_utf8(terminal);
-		}
 	}
 
 	/* If we successfully started the process, set up to listen for its
 	 * output. */
-	if ((pid != -1) && (pid != 0)) {
+	if (pid != 0) {
 		/* Set this as the child's pid. */
 		terminal->pvt->pty_pid = pid;
+
+		vte_terminal_set_pty (terminal, fd);
 
 		/* Catch a child-exited signal from the child pid. */
 		reaper = vte_reaper_get();
@@ -2935,23 +2930,6 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 			terminal->pvt->pty_reaper = reaper;
 		} else
 			g_object_unref(reaper);
-
-		/* Set the pty to be non-blocking. */
-		i = fcntl(terminal->pvt->pty_master, F_GETFL);
-		if ((i & O_NONBLOCK) == 0) {
-			fcntl(terminal->pvt->pty_master, F_SETFL, i | O_NONBLOCK);
-		}
-
-		/* Set the PTY size. */
-		vte_terminal_set_size(terminal,
-				      terminal->column_count,
-				      terminal->row_count);
-		if (GTK_WIDGET_REALIZED(terminal)) {
-			gtk_widget_queue_resize_no_redraw(&terminal->widget);
-		}
-
-		/* Open a channel to listen for input on. */
-		_vte_terminal_connect_pty_read(terminal);
 	}
 
 	/* Clean up. */
@@ -3062,12 +3040,13 @@ vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
 {
 	/* Close the connections to the child -- note that the source channel
 	 * has already been dereferenced. */
-	if (channel == terminal->pvt->pty_input) {
-		_vte_terminal_disconnect_pty_read(terminal);
-	}
 
-	/* Close out the PTY. */
+	_vte_terminal_disconnect_pty_read(terminal);
 	_vte_terminal_disconnect_pty_write(terminal);
+	if (terminal->pvt->pty_channel != NULL) {
+		g_io_channel_unref (terminal->pvt->pty_channel);
+		terminal->pvt->pty_channel = NULL;
+	}
 	if (terminal->pvt->pty_master != -1) {
 		_vte_pty_close(terminal->pvt->pty_master);
 		close(terminal->pvt->pty_master);
@@ -3578,9 +3557,14 @@ next_match:
 static inline void
 _vte_terminal_enable_input_source (VteTerminal *terminal)
 {
+	if (terminal->pvt->pty_channel == NULL) {
+		return;
+	}
+
 	if (terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
+		_vte_debug_print (VTE_DEBUG_IO, "polling vte_terminal_io_read\n");
 		terminal->pvt->pty_input_source =
-			g_io_add_watch_full(terminal->pvt->pty_input,
+			g_io_add_watch_full(terminal->pvt->pty_channel,
 					    VTE_CHILD_INPUT_PRIORITY,
 					    G_IO_IN | G_IO_HUP,
 					    (GIOFunc) vte_terminal_io_read,
@@ -3687,6 +3671,11 @@ out:
 		terminal->pvt->pty_input_active = len != 0;
 		terminal->pvt->input_bytes = bytes;
 		again = bytes < max_bytes;
+
+		_vte_debug_print (VTE_DEBUG_IO, "read %d/%d bytes, again? %s, active? %s\n",
+				bytes, max_bytes,
+				again ? "yes" : "no",
+				terminal->pvt->pty_input_active ? "yes" : "no");
 	}
 
 	/* Error? */
@@ -7087,14 +7076,14 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	}
 
 	if (dy != 0) {
-		_vte_debug_print(VTE_DEBUG_IO,
+		_vte_debug_print(VTE_DEBUG_ADJ,
 			    "Scrolling by %ld\n", dy);
 		_vte_terminal_scroll_region(terminal, screen->scroll_delta,
 					   terminal->row_count, -dy);
 		vte_terminal_emit_text_scrolled(terminal, dy);
 		_vte_terminal_queue_contents_changed(terminal);
 	} else {
-		_vte_debug_print(VTE_DEBUG_IO, "Not scrolling\n");
+		_vte_debug_print(VTE_DEBUG_ADJ, "Not scrolling\n");
 	}
 }
 
@@ -7915,6 +7904,9 @@ vte_terminal_finalize(GObject *object)
 	}
 	_vte_terminal_disconnect_pty_read(terminal);
 	_vte_terminal_disconnect_pty_write(terminal);
+	if (terminal->pvt->pty_channel != NULL) {
+		g_io_channel_unref (terminal->pvt->pty_channel);
+	}
 	if (terminal->pvt->pty_master != -1) {
 		_vte_pty_close(terminal->pvt->pty_master);
 		close(terminal->pvt->pty_master);
@@ -10439,7 +10431,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 					"  -  gdk_window_process_updates\n"
 					"  +  vte_terminal_expose\n"
 					"  =  vte_terminal_paint\n"
-					"  ]} start update_timeout\n"
+					"  ]} end update_timeout\n"
 					"  >  end process_timeout\n");
 	}
 #endif
@@ -12010,11 +12002,16 @@ vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
 	       return;
        }
 
+       if (terminal->pvt->pty_channel != NULL) {
+	       g_io_channel_unref (terminal->pvt->pty_channel);
+       }
        if (terminal->pvt->pty_master != -1) {
                _vte_pty_close(terminal->pvt->pty_master);
                close(terminal->pvt->pty_master);
        }
        terminal->pvt->pty_master = pty_master;
+       terminal->pvt->pty_channel = g_io_channel_unix_new (pty_master);
+       g_io_channel_set_close_on_unref (terminal->pvt->pty_channel, FALSE);
 
 
        /* Set the pty to be non-blocking. */
@@ -12031,9 +12028,6 @@ vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
 
        /* Open channels to listen for input on. */
        _vte_terminal_connect_pty_read(terminal);
-
-       /* Open channels to write output to. */
-       _vte_terminal_connect_pty_write(terminal);
 }
 
 /* We need this bit of glue to ensure that accessible objects will always
@@ -12330,11 +12324,11 @@ process_timeout (gpointer data)
 		if (l != active_terminals) {
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
-		if (terminal->pvt->pty_input != NULL) {
+		if (terminal->pvt->pty_channel != NULL) {
 			if (terminal->pvt->pty_input_active ||
 					terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
 				terminal->pvt->pty_input_active = FALSE;
-				vte_terminal_io_read (terminal->pvt->pty_input,
+				vte_terminal_io_read (terminal->pvt->pty_channel,
 						G_IO_IN, terminal);
 			}
 			_vte_terminal_enable_input_source (terminal);
@@ -12454,11 +12448,11 @@ update_repeat_timeout (gpointer data)
 		if (l != active_terminals) {
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
-		if (terminal->pvt->pty_input != NULL) {
+		if (terminal->pvt->pty_channel != NULL) {
 			if (terminal->pvt->pty_input_active ||
 					terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
 				terminal->pvt->pty_input_active = FALSE;
-				vte_terminal_io_read (terminal->pvt->pty_input,
+				vte_terminal_io_read (terminal->pvt->pty_channel,
 						G_IO_IN, terminal);
 			}
 			_vte_terminal_enable_input_source (terminal);
@@ -12558,11 +12552,11 @@ update_timeout (gpointer data)
 		if (l != active_terminals) {
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
-		if (terminal->pvt->pty_input != NULL) {
+		if (terminal->pvt->pty_channel != NULL) {
 			if (terminal->pvt->pty_input_active ||
 					terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
 				terminal->pvt->pty_input_active = FALSE;
-				vte_terminal_io_read (terminal->pvt->pty_input,
+				vte_terminal_io_read (terminal->pvt->pty_channel,
 						G_IO_IN, terminal);
 			}
 			_vte_terminal_enable_input_source (terminal);
