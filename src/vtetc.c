@@ -323,7 +323,7 @@ _vte_termcap_find_boolean (VteTermcap *termcap,
   const char *result = _vte_termcap_find_start (termcap, tname, cap);
 
   if (result == NULL)
-    return 0;
+    return FALSE;
 
   result += 2;
 

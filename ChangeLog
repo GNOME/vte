@@ -1,3 +1,11 @@
+2008-05-19  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* configure.in: automake doesn't like to substitute more
+	than one variable at a time.
+	* src/vtedraw.c: (_vte_draw_get_using_fontconfig):
+	* src/vtetc.c: (_vte_termcap_find_boolean):
+	Fix two compiler warnings.
+
 2008-05-09  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	* src/vtedraw.c (_vte_draw_text):

@@ -214,7 +214,8 @@ if test "$have_x" = yes ; then
 		X_LIBS="-L$ac_x_libraries $X_LIBS"
 	fi
 fi
-AC_SUBST([X_CFLAGS X_LIBS])
+AC_SUBST([X_CFLAGS])
+AC_SUBST([X_LIBS])
 
 
 
