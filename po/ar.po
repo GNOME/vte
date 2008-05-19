@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD.ar\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-05-02 17:05+0100\n"
+"POT-Creation-Date: 2007-09-13 23:49+0100\n"
 "PO-Revision-Date: 2007-02-28 16:16+0100\n"
 "Last-Translator: Djihed Afifi <djihed@gmail.com>\n"
 "Language-Team: Arabic <doc@arabeyes.org>\n"
@@ -21,22 +21,22 @@ msgstr ""
 "n<=10 ? 2 : 3\n"
 
 #: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
-#: ../src/vte.c:1797
+#: ../src/vte.c:1840
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "لا يمكن تحويل المحارف من %s إلى %s."
 
-#: ../src/iso2022.c:1539
+#: ../src/iso2022.c:1540
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "محاولة ضبط خارطة NRC غير سليمة '%c'."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1569
+#: ../src/iso2022.c:1570
 msgid "Unrecognized identified coding system."
 msgstr "مُيّز نظام ترميز غير معروف."
 
-#: ../src/iso2022.c:1628 ../src/iso2022.c:1655
+#: ../src/iso2022.c:1629 ../src/iso2022.c:1656
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "محاولة لضبط خارطة NRC واسعة غير سليمة '%c'."
@@ -58,57 +58,57 @@ msgstr "خطأ انشاء أنبوب الإشارات."
 msgid "Duplicate (%s/%s)!"
 msgstr "مكرر (%s/%s)!"
 
-#: ../src/vte.c:1187
+#: ../src/vte.c:1227
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "خطأ عند تجميع التعبير النظامي \"%s\"."
 
-#: ../src/vte.c:2657 ../src/vte.c:2662
+#: ../src/vte.c:2701 ../src/vte.c:2706
 #, c-format
 msgid "No handler for control sequence `%s' defined."
 msgstr "لم يخصص معالج لسلسلة التحكم `%s'."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:3627
+#: ../src/vte.c:3671
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "خطأ عند القراءة من الابن: %s."
 
-#: ../src/vte.c:3743
+#: ../src/vte.c:3787
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr "لم يمكن ارسال البيانات للإبن، محول محارف غير صحيحة"
 
-#: ../src/vte.c:3754 ../src/vte.c:4631
+#: ../src/vte.c:3798 ../src/vte.c:4705
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "خطأ (%s) عند تحويل البيانات من الابن، تخلي."
 
-#: ../src/vte.c:6866
+#: ../src/vte.c:6941
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "خطأ عند قراءة حجم PTY، استعمال الافتراض: %s."
 
-#: ../src/vte.c:6895
+#: ../src/vte.c:6977
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "خطأ·عند ضبط·حجم·PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:11340
+#: ../src/vte.c:11451
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "فشل _vte_conv_open() في ضبط رموز الكلمة"
 
-#: ../src/vteseq.c:3926
+#: ../src/vteseq.c:3929
 #, c-format
 msgid "Got unexpected (key?) sequence `%s'."
 msgstr "تلقيت تتابع (مفتاح؟) غير متوقع `%s'."
 
 #. Bail back to normal mode.
-#: ../src/vteapp.c:774
+#: ../src/vteapp.c:780
 msgid "Could not open console.\n"
 msgstr "لا يمكن فتح الكونسول.\n"
 
-#: ../src/vteapp.c:838
+#: ../src/vteapp.c:844
 msgid "Could not parse the geometry spec passed to --geometry"
 msgstr "لا يمكن تحليل مواصفات الأبعاد الممرة للخيار --geometry "
 
