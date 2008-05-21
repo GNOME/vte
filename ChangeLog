@@ -1,3 +1,8 @@
+2008-05-21  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	* src/pty.c (merge_environ): Silence compiler warning about using
+	environ as a local variable name.
+
 2008-05-21  Richard Hult  <richard@imendio.com>
 
 	Bug 534148 – Use g_listenv() instead of environ
