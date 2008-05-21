@@ -1,3 +1,10 @@
+2008-05-21  Richard Hult  <richard@imendio.com>
+
+	Bug 534148 – Use g_listenv() instead of environ
+
+	* src/pty.c: (merge_environ): Use g_listenv() instead of
+	non-portable environ extern.
+
 2008-05-19  Kjartan Maraas  <kmaraas@gnome.org>
 
 	* configure.in: automake doesn't like to substitute more
