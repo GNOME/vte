@@ -403,8 +403,15 @@ _vte_iso2022_ambiguous_width(struct _vte_iso2022_state *state)
 	 * Decide the ambiguous width according to the default region if 
 	 * current locale is UTF-8.
 	 */
-	if (strcmp (codeset, "utf8") == 0 && g_getenv("VTE_CJK_WIDTH") != NULL)
-	  return _vte_iso2022_ambiguous_width_guess ();
+	if (strcmp (codeset, "utf8") == 0 && g_getenv("VTE_CJK_WIDTH") != NULL) {
+	  const char *env = g_getenv ("VTE_CJK_WIDTH");
+	  if (g_ascii_strcasecmp (env, "narrow"))
+	    return 1;
+	  if (g_ascii_strcasecmp (env, "wide"))
+	    return 2;
+	  else
+	    _vte_iso2022_ambiguous_width_guess ();
+	}
 
 	/* Not in the list => not wide. */
 	return 1;

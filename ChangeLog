@@ -1,3 +1,12 @@
+2008-05-27  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 535022 – ambiguous width in utf8 locale
+
+	* src/iso2022.c (_vte_iso2022_ambiguous_width): Recognize
+	env var settings VTE_CJK_WIDTH=narrow and VTE_CJK_WIDTH=wide.
+	Any other value means "auto" based on locale, as it was doing
+	previously.
+
 2008-05-21  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	* src/pty.c (merge_environ): Silence compiler warning about using
