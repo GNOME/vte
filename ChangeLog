@@ -1,5 +1,10 @@
 2008-05-27  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/iso2022.c (_vte_iso2022_ambiguous_width): Oops.  Fix thinko
+	in last commit.
+
+2008-05-27  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 535022 – ambiguous width in utf8 locale
 
 	* src/iso2022.c (_vte_iso2022_ambiguous_width): Recognize

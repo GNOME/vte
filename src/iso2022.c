@@ -410,7 +410,7 @@ _vte_iso2022_ambiguous_width(struct _vte_iso2022_state *state)
 	  if (g_ascii_strcasecmp (env, "wide"))
 	    return 2;
 	  else
-	    _vte_iso2022_ambiguous_width_guess ();
+	    return _vte_iso2022_ambiguous_width_guess ();
 	}
 
 	/* Not in the list => not wide. */
