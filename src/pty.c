@@ -277,12 +277,9 @@ merge_environ (char **envp)
 
 	parent_environ = g_listenv ();
 	for (i = 0; parent_environ[i] != NULL; i++) {
-		gchar *name = g_strdup (parent_environ[i]);
-		const gchar *value = g_getenv (name);
-		if (value != NULL) {
-			value = g_strdup (value);
-		}
-		g_hash_table_replace (table, name, (gchar *) value);
+		g_hash_table_replace (table,
+			              g_strdup (parent_environ[i]),
+				      g_strdup (g_getenv (parent_environ[i])));
 	}
 	g_strfreev (parent_environ);
 

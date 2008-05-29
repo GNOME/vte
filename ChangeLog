@@ -1,5 +1,10 @@
 2008-05-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* src/pty.c (merge_environ): Replace previous commit with the
+	better patch by Christian Persch.
+
+2008-05-29  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/pty.c (merge_environ): Fix bug in patch to use g_listenv()
 	as it only returns the variable name and we need to use g_getenv()
 	to retrieve its value.
