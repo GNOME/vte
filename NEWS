@@ -1,3 +1,15 @@
+0.16.14
+=======
+- Bugs fixed in this release:
+	Bug 536632 – vte build failure in ring.c:210: error: expected
+		expression before 'do'
+	Bug 535022 – ambiguous width in utf8 locale
+	Bug 534148 – Use g_listenv() instead of environ
+	Bug 516869 – vte displays nothing on GTK+/DirectFB
+		Original patch by Jérémy Bobbio.
+	Fix "GLib-CRITICAL **: g_io_add_watch_full: assertion
+	                       `channel != NULL' failed"
+
 0.16.13
 =======
 - Minor optimization.

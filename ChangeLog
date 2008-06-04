@@ -1,5 +1,14 @@
 2008-06-04  Behdad Esfahbod  <behdad@gnome.org>
 
+	Released vte-0.16.14.
+
+	* NEWS: Updated.
+
+	* configure.in: Bumped version to 0.16.14.
+	Bumped libtool version to 11:18:2.
+
+2008-06-04  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 536632 – vte build failure in ring.c:210: error: expected
 	expression before 'do'
 
