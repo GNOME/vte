@@ -37,7 +37,7 @@ _vte_ring_validate(VteRing * ring)
 	}
 }
 #else
-#define _vte_ring_validate(ring)
+#define _vte_ring_validate(ring) G_STMT_START {} G_STMT_END
 #endif
 
 /**

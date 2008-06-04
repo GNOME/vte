@@ -1,3 +1,16 @@
+2008-06-04  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 536632 – vte build failure in ring.c:210: error: expected
+	expression before 'do'
+
+	* src/debug.h:
+	* src/ring.c:
+	* src/ring.h:
+	With latest glib (after bug #519026), g_error is expanding to
+	"do {...} while(0)" instead of "{...}".  This breaks build in
+	debugging mode.  Use g_critical instead.  Also add some
+	G_STMT_START/END to some macros.
+
 2008-05-29  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	* src/pty.c (merge_environ): Replace previous commit with the

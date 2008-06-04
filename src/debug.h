@@ -60,7 +60,7 @@ gboolean _vte_debug_on(VteDebugFlags flags) G_GNUC_CONST;
 
 #if defined(__GNUC__) && G_HAVE_GNUC_VARARGS
 #define _vte_debug_print(flags, fmt, ...) \
-	_VTE_DEBUG_IF(flags) g_printerr(fmt, ##__VA_ARGS__)
+	G_STMT_START { _VTE_DEBUG_IF(flags) g_printerr(fmt, ##__VA_ARGS__); } G_STMT_END
 #else
 #include <stdarg.h>
 #include <glib/gstdio.h>
