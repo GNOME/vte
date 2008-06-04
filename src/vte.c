@@ -2401,7 +2401,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			color.blue = (i & 4) ? 0xc000 : 0;
 			color.green = (i & 2) ? 0xc000 : 0;
 			color.red = (i & 1) ? 0xc000 : 0;
-			if (i > 8) {
+			if (i > 7) {
 				color.blue += 0x3fff;
 				color.green += 0x3fff;
 				color.red += 0x3fff;
