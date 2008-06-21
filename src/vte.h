@@ -173,28 +173,28 @@ struct vte_char_attributes {
 };
 
 /* The widget's type. */
-GtkType vte_terminal_get_type(void);
-GtkType vte_terminal_erase_binding_get_type(void);
-GtkType vte_terminal_anti_alias_get_type(void);
+GType vte_terminal_get_type(void);
+GType vte_terminal_erase_binding_get_type(void);
+GType vte_terminal_anti_alias_get_type(void);
 
 #define VTE_TYPE_TERMINAL		(vte_terminal_get_type())
-#define VTE_TERMINAL(obj)		(GTK_CHECK_CAST((obj),\
+#define VTE_TERMINAL(obj)		(G_TYPE_CHECK_INSTANCE_CAST((obj),\
 							VTE_TYPE_TERMINAL,\
 							VteTerminal))
-#define VTE_TERMINAL_CLASS(klass)	GTK_CHECK_CLASS_CAST((klass),\
+#define VTE_TERMINAL_CLASS(klass)	G_TYPE_CHECK_CLASS_CAST((klass),\
 							     VTE_TYPE_TERMINAL,\
 							     VteTerminalClass)
-#define VTE_IS_TERMINAL(obj)		GTK_CHECK_TYPE((obj),\
+#define VTE_IS_TERMINAL(obj)		G_TYPE_CHECK_INSTANCE_TYPE((obj),\
 						       VTE_TYPE_TERMINAL)
-#define VTE_IS_TERMINAL_CLASS(klass)	GTK_CHECK_CLASS_TYPE((klass),\
+#define VTE_IS_TERMINAL_CLASS(klass)	G_TYPE_CHECK_CLASS_TYPE((klass),\
 							     VTE_TYPE_TERMINAL)
 #define VTE_TERMINAL_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS ((obj), VTE_TYPE_TERMINAL, VteTerminalClass))
 
 #define VTE_TYPE_TERMINAL_ERASE_BINDING	(vte_terminal_erase_binding_get_type())
-#define VTE_IS_TERMINAL_ERASE_BINDING(obj)	GTK_CHECK_TYPE((obj),\
+#define VTE_IS_TERMINAL_ERASE_BINDING(obj)	G_TYPE_CHECK_INSTANCE_TYPE((obj),\
 						VTE_TYPE_TERMINAL_ERASE_BINDING)
 #define VTE_TYPE_TERMINAL_ANTI_ALIAS	(vte_terminal_anti_alias_get_type())
-#define VTE_IS_TERMINAL_ANTI_ALIAS(obj)		GTK_CHECK_TYPE((obj),\
+#define VTE_IS_TERMINAL_ANTI_ALIAS(obj)		G_TYPE_CHECK_INSTANCE_TYPE((obj),\
 						VTE_TYPE_TERMINAL_ANTI_ALIAS)
 
 /* You can get by with just these two functions. */

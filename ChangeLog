@@ -1,3 +1,7 @@
+2008-06-21  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* src/vte.h: Don't use GTK_CHECK* macros.
+
 2008-06-04  Christian Persch  <chpe@gnome.org>
 
 	Bug 515972 – Bold black is black in vte's default palette
