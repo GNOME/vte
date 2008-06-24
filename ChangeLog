@@ -1,3 +1,15 @@
+2008-06-23  Christian Persch  <chpe@gnome.org>
+
+        Bug 535468 – need version check macros
+
+        * configure.in
+        * doc/reference/tmpl/vteversion.sgml
+        * doc/reference/vte-sections.txt
+        * doc/reference/vte.types
+        * src/Makefile.am
+        * src/vte.h
+        A src/vteversion.h.in: Add version check macro.
+
 2008-06-21  Kjartan Maraas  <kmaraas@gnome.org>
 
 	* src/vte.h: Don't use GTK_CHECK* macros.

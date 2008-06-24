@@ -98,6 +98,16 @@ vte_terminal_get_window_title
 </SECTION>
 
 <SECTION>
+<FILE>vteversion</FILE>
+<TITLE>Version Information</TITLE>
+<SUBSECTION>
+VTE_MAJOR_VERSION
+VTE_MINOR_VERSION
+VTE_MICRO_VERSION
+VTE_CHECK_VERSION
+</SECTION>
+
+<SECTION>
 <FILE>vteaccess</FILE>
 <TITLE>VteTerminalAccessible</TITLE>
 VteTerminalAccessible

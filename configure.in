@@ -1,9 +1,15 @@
+m4_define([vte_version_major],[0])
+m4_define([vte_version_minor],[16])
+m4_define([vte_version_micro],[15])
+m4_define([vte_version],[vte_version_major.vte_version_minor.vte_version_micro])
+
 AC_PREREQ(2.56)
-AC_INIT(vte, [0.16.14],
+AC_INIT(vte, [vte_version],
         [http://bugzilla.gnome.org/enter_bug.cgi?product=vte])
 AC_CONFIG_SRCDIR([src/vte.c])
-AM_INIT_AUTOMAKE(1.6)
-AM_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADERS([config.h])
+
+AM_INIT_AUTOMAKE([1.9 no-dist-gzip dist-bzip2])
 
 ################################################################################
 # Libtool shared library versioning stuffs.
@@ -238,11 +244,12 @@ case $host in
 	;;
 esac
 
-
+GLIB_REQUIRED=2.14.0
+GTK_REQUIRED=2.6.0
 AC_DEFINE(GDK_MULTIHEAD_SAFE,1,[Force use of GDK's multihead-safe APIs.])
-PKG_CHECK_MODULES(GLIB,glib-2.0 > 2.9.0)
+PKG_CHECK_MODULES(GLIB,[glib-2.0 > $GLIB_REQUIRED])
 PKG_CHECK_MODULES(GOBJECT,[glib-2.0 gobject-2.0])
-PKG_CHECK_MODULES(GTK,[glib-2.0 gobject-2.0 gtk+-2.0 >= 2.6.0])
+PKG_CHECK_MODULES(GTK,[glib-2.0 >= $GLIB_REQUIRED gobject-2.0 gtk+-2.0 >= $GTK_REQUIRED])
 
 wantedmodules="glib-2.0 gobject-2.0 gtk+-2.0 fontconfig"
 
@@ -613,9 +620,16 @@ GTK_DOC_CHECK([1.0])
 
 ################################################################################
 
+AC_SUBST([VTE_MAJOR_VERSION],[vte_version_major])
+AC_SUBST([VTE_MINOR_VERSION],[vte_version_minor])
+AC_SUBST([VTE_MICRO_VERSION],[vte_version_micro])
+
+################################################################################
+
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
+src/vteversion.h
 termcaps/Makefile
 python/Makefile
 po/Makefile.in

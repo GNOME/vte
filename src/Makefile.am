@@ -1,5 +1,5 @@
 bin_PROGRAMS = vte
-pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h
+pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h vteversion.h
 lib_LTLIBRARIES = libvte.la
 pkglib_PROGRAMS = interpret utf8echo nativeecho utf8mode iso8859mode slowcat vterdb
 pkglib_SCRIPTS = decset osc window
@@ -103,7 +103,9 @@ libvte_la_SOURCES = \
 	vtetc.c \
 	vtetc.h \
 	vtetree.c \
-	vtetree.h
+	vtetree.h \
+	vteversion.h
+
 if BUILD_XFT
 libvte_la_SOURCES += \
 	vtexft.c \

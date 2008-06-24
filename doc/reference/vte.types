@@ -2,6 +2,7 @@
 #include <glib-object.h>
 #include <gtk/gtk.h>
 #include "vte.h"
+#include "vteversion.h"
 #include "vteaccess.h"
 #include "reaper.h"
 

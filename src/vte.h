@@ -25,6 +25,8 @@
 
 #include <sys/types.h> /* for pid_t */
 
+#include "vteversion.h"
+
 G_BEGIN_DECLS
 
 /* Private implementation details. */
