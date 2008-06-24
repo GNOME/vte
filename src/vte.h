@@ -365,7 +365,10 @@ void vte_terminal_match_clear_all(VteTerminal *terminal);
 
 /* Add a matching expression, returning the tag the widget assigns to that
  * expression. */
-int vte_terminal_match_add(VteTerminal *terminal, const char *match);
+#ifndef VTE_DISABLE_DEPRECATED
+int vte_terminal_match_add(VteTerminal *terminal, const char *match) G_GNUC_DEPRECATED;
+#endif /* VTE_DISABLE_DEPRECATED */
+int vte_terminal_match_add_gregex(VteTerminal *terminal, GRegex *regex, GRegexMatchFlags flags);
 /* Set the cursor to be used when the pointer is over a given match. */
 void vte_terminal_match_set_cursor(VteTerminal *terminal, int tag,
 				   GdkCursor *cursor);

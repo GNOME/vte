@@ -1,5 +1,14 @@
 2008-06-23  Christian Persch  <chpe@gnome.org>
 
+        Bug 418918 – Switch to GRegex
+
+        * src/vte-private.h
+        * src/vte.c
+        * src/vte.h: Implement GRegex matching, to be used alternatively
+        to the old vteregex matching.
+
+2008-06-23  Christian Persch  <chpe@gnome.org>
+
         Bug 535467 – implement set-scroll-adjustments signal
 
         * src/vte.c: Add set-scroll-adjustments signal, needed to allow

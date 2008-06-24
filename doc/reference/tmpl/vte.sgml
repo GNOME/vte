@@ -847,6 +847,17 @@ keys.
 @Returns: 
 
 
+<!-- ##### FUNCTION vte_terminal_match_add_gregex ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@regex: 
+@flags: 
+@Returns: 
+
+
 <!-- ##### FUNCTION vte_terminal_match_remove ##### -->
 <para>
 
