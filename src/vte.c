@@ -11289,7 +11289,13 @@ void
 vte_terminal_set_allow_bold(VteTerminal *terminal, gboolean allow_bold)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        allow_bold = allow_bold != FALSE;
+        if (allow_bold == terminal->pvt->allow_bold)
+                return;
+
 	terminal->pvt->allow_bold = allow_bold;
+	_vte_invalidate_all (terminal);
 }
 
 /**

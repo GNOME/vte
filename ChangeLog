@@ -1,5 +1,11 @@
 2008-06-23  Christian Persch  <chpe@gnome.org>
 
+      Bug 535552 – vte_terminal_set_allow_bold doesn't queue redraw
+
+      * src/vte.c: Invalidate all when changing the allow-bold property.
+
+2008-06-23  Christian Persch  <chpe@gnome.org>
+
         Bug 535469 – support named cursors on matches
 
         * src/vte-private.h
