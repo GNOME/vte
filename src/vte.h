@@ -96,8 +96,11 @@ struct _VteTerminalClass {
 	void (*copy_clipboard)(VteTerminal* terminal);
 	void (*paste_clipboard)(VteTerminal* terminal);
 
+	void (* set_scroll_adjustments) (GtkWidget *widget,
+					 GtkAdjustment *hadjustment,
+					 GtkAdjustment *vadjustment);
+
 	/* Padding for future expansion. */
-	void (*vte_reserved1)(void);
 	void (*vte_reserved2)(void);
 	void (*vte_reserved3)(void);
 	void (*vte_reserved4)(void);

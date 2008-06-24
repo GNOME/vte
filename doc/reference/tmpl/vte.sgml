@@ -213,6 +213,15 @@ Emitted whenever the contents of terminal's selection changes.
 
 @vteterminal: the object which received the signal.
 
+<!-- ##### SIGNAL VteTerminal::set-scroll-adjustments ##### -->
+<para>
+
+</para>
+
+@vteterminal: the object which received the signal.
+@arg1: 
+@arg2: 
+
 <!-- ##### SIGNAL VteTerminal::status-line-changed ##### -->
 <para>
 Emitted whenever the contents of the status line are modified or cleared.

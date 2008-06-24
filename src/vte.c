@@ -7089,29 +7089,41 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 
 /* Set the adjustment objects used by the terminal widget. */
 static void
-vte_terminal_set_scroll_adjustment(VteTerminal *terminal,
-				   GtkAdjustment *adjustment)
+vte_terminal_set_scroll_adjustments(GtkWidget *widget,
+				    GtkAdjustment *hadjustment G_GNUC_UNUSED,
+				    GtkAdjustment *adjustment)
 {
-	if (adjustment != NULL) {
-		/* Add a reference to the new adjustment object. */
-		g_object_ref(adjustment);
-		/* Get rid of the old adjustment object. */
-		if (terminal->adjustment != NULL) {
-			/* Disconnect our signal handlers from this object. */
-			g_signal_handlers_disconnect_by_func(terminal->adjustment,
-							     vte_terminal_handle_scroll,
-							     terminal);
-			g_object_unref(terminal->adjustment);
-		}
-		/* Set the new adjustment object. */
-		terminal->adjustment = adjustment;
+	VteTerminal *terminal = VTE_TERMINAL (widget);
 
-		/* We care about the offset, not the top or bottom. */
-		g_signal_connect_swapped(terminal->adjustment,
-					 "value-changed",
-					 G_CALLBACK(vte_terminal_handle_scroll),
-					 terminal);
+	if (adjustment != NULL && adjustment == terminal->adjustment)
+		return;
+	if (adjustment == NULL && terminal->adjustment != NULL)
+		return;
+
+	if (adjustment == NULL)
+		adjustment = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0, 0, 0, 0));
+	else
+		g_return_if_fail(GTK_IS_ADJUSTMENT(adjustment));
+
+	/* Add a reference to the new adjustment object. */
+	g_object_ref_sink(adjustment);
+	/* Get rid of the old adjustment object. */
+	if (terminal->adjustment != NULL) {
+		/* Disconnect our signal handlers from this object. */
+		g_signal_handlers_disconnect_by_func(terminal->adjustment,
+						     vte_terminal_handle_scroll,
+						     terminal);
+		g_object_unref(terminal->adjustment);
 	}
+
+	/* Set the new adjustment object. */
+	terminal->adjustment = adjustment;
+
+	/* We care about the offset, not the top or bottom. */
+	g_signal_connect_swapped(terminal->adjustment,
+				 "value-changed",
+				 G_CALLBACK(vte_terminal_handle_scroll),
+				 terminal);
 }
 
 /**
@@ -7394,7 +7406,6 @@ static void
 vte_terminal_init(VteTerminal *terminal)
 {
 	VteTerminalPrivate *pvt;
-	GtkAdjustment *adjustment;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_init()\n");
 
@@ -7408,8 +7419,7 @@ vte_terminal_init(VteTerminal *terminal)
 	gtk_widget_set_redraw_on_allocate (&terminal->widget, FALSE);
 
 	/* Set an adjustment for the application to use to control scrolling. */
-	adjustment = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0, 0, 0, 0));
-	vte_terminal_set_scroll_adjustment(terminal, adjustment);
+	vte_terminal_set_scroll_adjustments(GTK_WIDGET(terminal), NULL, NULL);
 
 	/* Set up dummy metrics, value != 0 to avoid division by 0 */
 	terminal->char_width = 1;
@@ -10502,6 +10512,17 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->copy_clipboard = vte_terminal_real_copy_clipboard;
 	klass->paste_clipboard = vte_terminal_real_paste_clipboard;
 
+	klass->set_scroll_adjustments = vte_terminal_set_scroll_adjustments;
+
+	widget_class->set_scroll_adjustments_signal =
+		g_signal_new("set-scroll-adjustments",
+			     G_TYPE_FROM_CLASS (klass),
+			     G_SIGNAL_RUN_LAST,
+			     G_STRUCT_OFFSET (VteTerminalClass, set_scroll_adjustments),
+			     NULL, NULL,
+			     _vte_marshal_VOID__OBJECT_OBJECT,
+			     G_TYPE_NONE, 2,
+			     GTK_TYPE_ADJUSTMENT, GTK_TYPE_ADJUSTMENT);
 
 	/* Register some signals of our own. */
 	klass->eof_signal =

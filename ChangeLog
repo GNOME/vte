@@ -1,5 +1,12 @@
 2008-06-23  Christian Persch  <chpe@gnome.org>
 
+        Bug 535467 – implement set-scroll-adjustments signal
+
+        * src/vte.c: Add set-scroll-adjustments signal, needed to allow
+        adding a VteTerminal into a GtkScrolledWindow.
+
+2008-06-23  Christian Persch  <chpe@gnome.org>
+
         Bug 535468 – need version check macros
 
         * configure.in
