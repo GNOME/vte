@@ -130,8 +130,15 @@ typedef enum {
         VTE_REGEX_UNDECIDED
 } VteRegexMode;
 
+typedef enum {
+  VTE_REGEX_CURSOR_GDKCURSOR,
+  VTE_REGEX_CURSOR_GDKCURSORTYPE,
+  VTE_REGEX_CURSOR_NAME
+} VteRegexCursorMode;
+
 /* A match regex, with a tag. */
 struct vte_match_regex {
+	gint tag;
         VteRegexMode mode;
         union { /* switched on |mode| */
               struct {
@@ -140,8 +147,12 @@ struct vte_match_regex {
               } gregex;
               struct _vte_regex *reg;
         } regex;
-	gint tag;
-	GdkCursor *cursor;
+        VteRegexCursorMode cursor_mode;
+        union {
+	       GdkCursor *cursor;
+               char *cursor_name;
+               GdkCursorType cursor_type;
+        } cursor;
 };
 
 /* The terminal's keypad/cursor state.  A terminal can either be using the

@@ -1127,25 +1127,64 @@ vte_terminal_match_contents_refresh(VteTerminal *terminal)
 }
 
 static void
+regex_match_clear_cursor (struct vte_match_regex *regex)
+{
+        switch (regex->cursor_mode) {
+                case VTE_REGEX_CURSOR_GDKCURSOR:
+                        if (regex->cursor.cursor != NULL) {
+                                gdk_cursor_unref(regex->cursor.cursor);
+                                regex->cursor.cursor = NULL;
+                        }
+                        break;
+                case VTE_REGEX_CURSOR_GDKCURSORTYPE:
+                        break;
+                case VTE_REGEX_CURSOR_NAME:
+                        g_free (regex->cursor.cursor_name);
+                        regex->cursor.cursor_name = NULL;
+                        break;
+        }
+}
+
+static void
 regex_match_clear (struct vte_match_regex *regex)
 {
-        if (regex->cursor != NULL) {
-                gdk_cursor_unref(regex->cursor);
-                regex->cursor = NULL;
-        }
+        regex_match_clear_cursor(regex);
 
-        if (regex->mode == VTE_REGEX_GREGEX)
-        {
+        if (regex->mode == VTE_REGEX_GREGEX) {
                 g_regex_unref(regex->regex.gregex.regex);
                 regex->regex.gregex.regex = NULL;
-        }
-        else if (regex->mode == VTE_REGEX_VTE)
-        {
+        } else if (regex->mode == VTE_REGEX_VTE) {
                 _vte_regex_free(regex->regex.reg);
                 regex->regex.reg = NULL;
         }
 
         regex->tag = -1;
+}
+
+static void
+vte_terminal_set_cursor_from_regex_match(VteTerminal *terminal, struct vte_match_regex *regex)
+{
+        GdkCursor *cursor;
+
+        if (!GTK_WIDGET_REALIZED(terminal))
+                return;
+        switch (regex->cursor_mode) {
+                case VTE_REGEX_CURSOR_GDKCURSOR:
+                        if (regex->cursor.cursor != NULL) {
+                                cursor = gdk_cursor_ref(regex->cursor.cursor);
+                        }
+                        break;
+                case VTE_REGEX_CURSOR_GDKCURSORTYPE:
+                        cursor = gdk_cursor_new_for_display(gtk_widget_get_display(GTK_WIDGET(terminal)), regex->cursor.cursor_type);
+                        break;
+                case VTE_REGEX_CURSOR_NAME:
+                        cursor = gdk_cursor_new_from_name(gtk_widget_get_display(GTK_WIDGET(terminal)), regex->cursor.cursor_name);
+                        break;
+        }
+
+        gdk_window_set_cursor(GTK_WIDGET(terminal)->window, cursor);
+        if (cursor)
+                gdk_cursor_unref(cursor);
 }
 
 /**
@@ -1261,8 +1300,8 @@ vte_terminal_match_add(VteTerminal *terminal, const char *match)
 	}
 	/* Set the tag to the insertion point. */
 	new_regex.tag = ret;
-	new_regex.cursor = vte_terminal_cursor_new(terminal,
-						   VTE_DEFAULT_CURSOR);
+        new_regex.cursor_mode = VTE_REGEX_CURSOR_GDKCURSORTYPE;
+        new_regex.cursor.cursor_type = VTE_DEFAULT_CURSOR;
 	if (ret < terminal->pvt->match_regexes->len) {
 		/* Overwrite. */
 		g_array_index(terminal->pvt->match_regexes,
@@ -1319,8 +1358,8 @@ vte_terminal_match_add_gregex(VteTerminal *terminal, GRegex *regex, GRegexMatchF
         new_regex_match.regex.gregex.regex = g_regex_ref(regex);
         new_regex_match.regex.gregex.flags = flags;
 	new_regex_match.tag = ret;
-	new_regex_match.cursor = vte_terminal_cursor_new(terminal,
-                                                         VTE_DEFAULT_CURSOR);
+        new_regex_match.cursor_mode = VTE_REGEX_CURSOR_GDKCURSORTYPE;
+        new_regex_match.cursor.cursor_type = VTE_DEFAULT_CURSOR;
 	if (ret < pvt->match_regexes->len) {
 		/* Overwrite. */
 		g_array_index(pvt->match_regexes,
@@ -1356,10 +1395,9 @@ vte_terminal_match_set_cursor(VteTerminal *terminal, int tag, GdkCursor *cursor)
 	regex = &g_array_index(terminal->pvt->match_regexes,
 			       struct vte_match_regex,
 			       tag);
-	if (regex->cursor != NULL) {
-		gdk_cursor_unref(regex->cursor);
-	}
-	regex->cursor = gdk_cursor_ref(cursor);
+        regex_match_clear_cursor(regex);
+        regex->cursor_mode = VTE_REGEX_CURSOR_GDKCURSOR;
+	regex->cursor.cursor = cursor ? gdk_cursor_ref(cursor) : NULL;
 	vte_terminal_match_hilite_clear(terminal);
 }
 
@@ -1370,8 +1408,7 @@ vte_terminal_match_set_cursor(VteTerminal *terminal, int tag, GdkCursor *cursor)
  * @cursor_type: a #GdkCursorType
  *
  * Sets which cursor the terminal will use if the pointer is over the pattern
- * specified by @tag.  A convenience wrapper for
- * vte_terminal_match_set_cursor().
+ * specified by @tag.
  *
  * Since: 0.11.9
  *
@@ -1380,10 +1417,45 @@ void
 vte_terminal_match_set_cursor_type(VteTerminal *terminal,
 				   int tag, GdkCursorType cursor_type)
 {
-	GdkCursor *cursor;
-	cursor = vte_terminal_cursor_new(terminal, cursor_type);
-	vte_terminal_match_set_cursor(terminal, tag, cursor);
-	gdk_cursor_unref(cursor);
+	struct vte_match_regex *regex;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail((guint) tag < terminal->pvt->match_regexes->len);
+	regex = &g_array_index(terminal->pvt->match_regexes,
+			       struct vte_match_regex,
+			       tag);
+        regex_match_clear_cursor(regex);
+        regex->cursor_mode = VTE_REGEX_CURSOR_GDKCURSORTYPE;
+	regex->cursor.cursor_type = cursor_type;
+	vte_terminal_match_hilite_clear(terminal);
+}
+
+/**
+ * vte_terminal_match_set_cursor_name:
+ * @terminal: a #VteTerminal
+ * @tag: the tag of the regex which should use the specified cursor
+ * @cursor_name: the name of the cursor
+ *
+ * Sets which cursor the terminal will use if the pointer is over the pattern
+ * specified by @tag.
+ *
+ * Since: 0.16.15
+ *
+ */
+void
+vte_terminal_match_set_cursor_name(VteTerminal *terminal,
+				   int tag, const char *cursor_name)
+{
+	struct vte_match_regex *regex;
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(cursor_name != NULL);
+	g_return_if_fail((guint) tag < terminal->pvt->match_regexes->len);
+	regex = &g_array_index(terminal->pvt->match_regexes,
+			       struct vte_match_regex,
+			       tag);
+        regex_match_clear_cursor(regex);
+        regex->cursor_mode = VTE_REGEX_CURSOR_NAME;
+	regex->cursor.cursor_name = g_strdup (cursor_name);
+	vte_terminal_match_hilite_clear(terminal);
 }
 
 /* Check if a given cell on the screen contains part of a matched string.  If
@@ -1570,10 +1642,7 @@ vte_terminal_match_check_internal_vte(VteTerminal *terminal,
 					if (end != NULL) {
 						*end = sattr + k + matches[j].rm_eo - 1;
 					}
-					if (GTK_WIDGET_REALIZED(terminal)) {
-						gdk_window_set_cursor(terminal->widget.window,
-								      regex->cursor);
-					}
+                                        vte_terminal_set_cursor_from_regex_match(terminal, regex);
 					result = g_strndup(line + k + matches[j].rm_so,
 							 matches[j].rm_eo - matches[j].rm_so);
 					line[eattr] = eol;
@@ -1800,10 +1869,7 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 					if (end != NULL) {
 						*end = sattr + rm_eo - 1;
 					}
-					if (GTK_WIDGET_REALIZED(terminal)) {
-						gdk_window_set_cursor(terminal->widget.window,
-								      regex->cursor);
-					}
+                                        vte_terminal_set_cursor_from_regex_match(terminal, regex);
                                         result = g_match_info_fetch(match_info, 0);
 					line[eattr] = eol;
 
@@ -2363,8 +2429,12 @@ _vte_terminal_update_insert_delta(VteTerminal *terminal)
 void
 _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 {
-	GdkCursor *cursor = NULL;
 	struct vte_match_regex *regex = NULL;
+	terminal->pvt->mouse_cursor_visible = visible;
+
+        if (!GTK_WIDGET_REALIZED(terminal))
+                return;
+
 	if (visible || !terminal->pvt->mouse_autohide) {
 		if (terminal->pvt->mouse_send_xy_on_click ||
 		    terminal->pvt->mouse_send_xy_on_button ||
@@ -2373,29 +2443,23 @@ _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 		    terminal->pvt->mouse_all_motion_tracking) {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
 					"Setting mousing cursor.\n");
-			cursor = terminal->pvt->mouse_mousing_cursor;
+			gdk_window_set_cursor(terminal->widget.window, terminal->pvt->mouse_mousing_cursor);
 		} else
 		if ( (guint)terminal->pvt->match_tag < terminal->pvt->match_regexes->len) {
 			regex = &g_array_index(terminal->pvt->match_regexes,
 					       struct vte_match_regex,
 					       terminal->pvt->match_tag);
-			cursor = regex->cursor;
+                        vte_terminal_set_cursor_from_regex_match(terminal, regex);
 		} else {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
 					"Setting default mouse cursor.\n");
-			cursor = terminal->pvt->mouse_default_cursor;
+			gdk_window_set_cursor(terminal->widget.window, terminal->pvt->mouse_default_cursor);
 		}
 	} else {
 		_vte_debug_print(VTE_DEBUG_CURSOR,
 				"Setting to invisible cursor.\n");
-		cursor = terminal->pvt->mouse_inviso_cursor;
+		gdk_window_set_cursor(terminal->widget.window, terminal->pvt->mouse_inviso_cursor);
 	}
-	if (cursor) {
-		if (GTK_WIDGET_REALIZED(terminal)) {
-			gdk_window_set_cursor(terminal->widget.window, cursor);
-		}
-	}
-	terminal->pvt->mouse_cursor_visible = visible;
 }
 
 /**

@@ -899,6 +899,16 @@ keys.
 @cursor_type: 
 
 
+<!-- ##### FUNCTION vte_terminal_match_set_cursor_name ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@tag: 
+@cursor_name: 
+
+
 <!-- ##### FUNCTION vte_terminal_set_emulation ##### -->
 <para>
 

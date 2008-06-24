@@ -374,6 +374,8 @@ void vte_terminal_match_set_cursor(VteTerminal *terminal, int tag,
 				   GdkCursor *cursor);
 void vte_terminal_match_set_cursor_type(VteTerminal *terminal,
 					int tag, GdkCursorType cursor_type);
+void vte_terminal_match_set_cursor_name(VteTerminal *terminal,
+					int tag, const char *cursor_name);
 /* Remove a matching expression by tag. */
 void vte_terminal_match_remove(VteTerminal *terminal, int tag);
 

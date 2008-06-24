@@ -1,5 +1,13 @@
 2008-06-23  Christian Persch  <chpe@gnome.org>
 
+        Bug 535469 – support named cursors on matches
+
+        * src/vte-private.h
+        * src/vte.c
+        * src/vte.h: Implement named cursors on matches.
+
+2008-06-23  Christian Persch  <chpe@gnome.org>
+
         Bug 418918 – Switch to GRegex
 
         * src/vte-private.h
