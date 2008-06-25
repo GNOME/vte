@@ -1484,9 +1484,6 @@ vte_terminal_match_check_internal_vte(VteTerminal *terminal,
 	if (end != NULL) {
 		*end = 0;
 	}
-	if (terminal->pvt->match_contents == NULL) {
-		vte_terminal_match_contents_refresh(terminal);
-	}
 	/* Map the pointer position to a portion of the string. */
 	eattr = terminal->pvt->match_attributes->len;
 	for (offset = eattr; offset--; ) {
@@ -1711,9 +1708,6 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 	if (end != NULL) {
 		*end = 0;
 	}
-	if (terminal->pvt->match_contents == NULL) {
-		vte_terminal_match_contents_refresh(terminal);
-	}
 	/* Map the pointer position to a portion of the string. */
 	eattr = terminal->pvt->match_attributes->len;
 	for (offset = eattr; offset--; ) {
@@ -1912,6 +1906,10 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
                                   long column, glong row,
                                   int *tag, int *start, int *end)
 {
+	if (terminal->pvt->match_contents == NULL) {
+		vte_terminal_match_contents_refresh(terminal);
+	}
+
         if (terminal->pvt->match_regex_mode == VTE_REGEX_GREGEX)
                 return vte_terminal_match_check_internal_gregex(terminal, column, row, tag, start, end);
         if (terminal->pvt->match_regex_mode == VTE_REGEX_VTE)

@@ -1,8 +1,15 @@
+2008-06-25  Christian Persch  <chpe@gnome.org>
+
+	Bug 540182 – crash in geany with vte trunk
+
+	* src/vte.c: Make sure that match_attributes always exist even if
+	there haven't been any matches added.
+
 2008-06-23  Christian Persch  <chpe@gnome.org>
 
-      Bug 535552 – vte_terminal_set_allow_bold doesn't queue redraw
+	Bug 535552 – vte_terminal_set_allow_bold doesn't queue redraw
 
-      * src/vte.c: Invalidate all when changing the allow-bold property.
+	* src/vte.c: Invalidate all when changing the allow-bold property.
 
 2008-06-23  Christian Persch  <chpe@gnome.org>
 
