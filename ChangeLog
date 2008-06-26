@@ -1,5 +1,15 @@
 2008-06-26  Christian Persch  <chpe@gnome.org>
 
+	* configure.in:
+	* src/Makefile.am:
+	* src/vte.c:
+	* src/vte.h:
+	* src/vtetypebuiltins.c.template:
+	* src/vtetypebuiltins.h.template: Use glib-mkenums to generate the
+	enum types; makes it easier to add more enum types.
+
+2008-06-26  Christian Persch  <chpe@gnome.org>
+
         Bug 539130 – building g-t fails due to GtkType etc. deprecation
 
         * src/reaper.h:

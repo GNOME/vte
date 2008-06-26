@@ -49,7 +49,7 @@ IGNORE_HFILES= \
 
 # CFLAGS and LDFLAGS for compiling scan program. Only needed
 # if $(DOC_MODULE).types is non-empty.
-GTKDOC_CFLAGS = $(VTE_CFLAGS) -I$(top_srcdir)/src
+GTKDOC_CFLAGS = $(VTE_CFLAGS) -I$(top_srcdir)/src -DVTE_COMPILATION
 GTKDOC_LIBS = $(top_builddir)/src/libvte.la
 
 # Extra options to supply to gtkdoc-mkdb

@@ -11170,44 +11170,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	process_timer = g_timer_new ();
 }
 
-GType
-vte_terminal_erase_binding_get_type(void)
-{
-	static GType terminal_erase_binding_type = 0;
-	static GEnumValue values[] = {
-		{VTE_ERASE_AUTO, "VTE_ERASE_AUTO", "auto"},
-		{VTE_ERASE_ASCII_BACKSPACE, "VTE_ERASE_ASCII_BACKSPACE",
-		 "ascii-backspace"},
-		{VTE_ERASE_ASCII_DELETE, "VTE_ERASE_ASCII_DELETE",
-		 "ascii-delete"},
-		{VTE_ERASE_DELETE_SEQUENCE, "VTE_ERASE_DELETE_SEQUENCE",
-		 "delete-sequence"},
-	};
-	if (terminal_erase_binding_type == 0) {
-		terminal_erase_binding_type =
-			g_enum_register_static("VteTerminalEraseBinding",
-					       values);
-	}
-	return terminal_erase_binding_type;
-}
-
-GType
-vte_terminal_anti_alias_get_type(void)
-{
-	static GType terminal_anti_alias_type = 0;
-	static GEnumValue values[] = {
-		{VTE_ANTI_ALIAS_USE_DEFAULT, "VTE_ANTI_ALIAS_USE_DEFAULT", "use-default"},
-		{VTE_ANTI_ALIAS_FORCE_ENABLE, "VTE_ANTI_ALIAS_FORCE_ENABLE", "force-enable"},
-		{VTE_ANTI_ALIAS_FORCE_DISABLE, "VTE_ANTI_ALIAS_FORCE_DISABLE", "force-disable"},
-	};
-	if (terminal_anti_alias_type == 0) {
-		terminal_anti_alias_type =
-			g_enum_register_static("VteTerminalAntiAlias",
-					       values);
-	}
-	return terminal_anti_alias_type;
-}
-
 /**
  * vte_terminal_set_audible_bell:
  * @terminal: a #VteTerminal

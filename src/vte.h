@@ -25,7 +25,12 @@
 
 #include <sys/types.h> /* for pid_t */
 
+#define __VTE_VTE_H_INSIDE__ 1
+
+#include "vtetypebuiltins.h"
 #include "vteversion.h"
+
+#undef __VTE_VTE_H_INSIDE__
 
 G_BEGIN_DECLS
 
@@ -195,10 +200,8 @@ GType vte_terminal_anti_alias_get_type(void);
 							     VTE_TYPE_TERMINAL)
 #define VTE_TERMINAL_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS ((obj), VTE_TYPE_TERMINAL, VteTerminalClass))
 
-#define VTE_TYPE_TERMINAL_ERASE_BINDING	(vte_terminal_erase_binding_get_type())
 #define VTE_IS_TERMINAL_ERASE_BINDING(obj)	G_TYPE_CHECK_INSTANCE_TYPE((obj),\
 						VTE_TYPE_TERMINAL_ERASE_BINDING)
-#define VTE_TYPE_TERMINAL_ANTI_ALIAS	(vte_terminal_anti_alias_get_type())
 #define VTE_IS_TERMINAL_ANTI_ALIAS(obj)		G_TYPE_CHECK_INSTANCE_TYPE((obj),\
 						VTE_TYPE_TERMINAL_ANTI_ALIAS)
 

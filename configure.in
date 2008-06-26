@@ -33,6 +33,7 @@ AC_PROG_CC
 AC_STDC_HEADERS
 AM_PROG_CC_STDC
 AM_MAINTAINER_MODE
+AM_PROG_CC_C_O
 
 AM_PROG_LIBTOOL
 IT_PROG_INTLTOOL([0.35.0])
@@ -613,6 +614,12 @@ if test "$enable_gnome_pty_helper" != no; then
 	AC_CONFIG_SUBDIRS(gnome-pty-helper)
 fi
 AM_CONDITIONAL(BUILD_GNOME_PTY_HELPER,[test "$enable_gnome_pty_helper" != no])
+
+AC_PATH_PROG([GLIB_GENMARSHAL],[glib-genmarshal])
+AC_PATH_PROG([GLIB_MKENUMS],[glib-mkenums])
+
+PKG_CHECK_EXISTS([glib-2.0 >= 2.14],[GLIB_GENMARSHAL_INTERNAL="--internal"],[GLIB_GENMARSHAL_INTERNAL=""])
+AC_SUBST([GLIB_GENMARSHAL_INTERNAL])
 
 ################################################################################
 

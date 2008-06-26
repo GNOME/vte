@@ -1,5 +1,5 @@
 bin_PROGRAMS = vte
-pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h vteversion.h
+pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h vtetypebuiltins.h vteversion.h
 lib_LTLIBRARIES = libvte.la
 pkglib_PROGRAMS = interpret utf8echo nativeecho utf8mode iso8859mode slowcat vterdb
 pkglib_SCRIPTS = decset osc window
@@ -11,6 +11,8 @@ EXTRA_DIST = \
 	vteseq-n.gperf \
 	vteseq-2.c \
 	vteseq-n.c \
+	vtetypebuiltins.c.template \
+	vtetypebuiltins.h.template \
 	genkeysyms.py \
 	iso2022.txt \
 	marshal.list \
@@ -36,7 +38,8 @@ AM_CFLAGS = $(VTE_CFLAGS) $(FT2_CFLAGS) $(X_CFLAGS) $(PCRE_CFLAGS) \
 	    -DG_DISABLE_ASSERT -DG_LOG_DOMAIN=\"Vte\"
 AM_CPPFLAGS = -DDATADIR='"$(datadir)"' \
 	      -DLIBEXECDIR='"$(libexecdir)"' \
-	      -DLOCALEDIR='"$(localedir)"'
+	      -DLOCALEDIR='"$(localedir)"' \
+	      -DVTE_COMPILATION
 AM_LDFLAGS = $(LDFLAGS)
 
 EXTRA_libvte_la_SOURCES = keysyms.c
@@ -104,6 +107,8 @@ libvte_la_SOURCES = \
 	vtetc.h \
 	vtetree.c \
 	vtetree.h \
+	vtetypebuiltins.c \
+	vtetypebuiltins.h \
 	vteversion.h
 
 if BUILD_XFT
@@ -123,11 +128,25 @@ libvte_la_LDFLAGS = $(LDFLAGS) \
 	@LIBTOOL_EXPORT_OPTIONS@ @LIBTOOL_FLAGS@
 libvte_la_LIBADD = $(LIBS) $(VTE_LIBS) $(X_LIBS) $(PCRE_LIBS) $(FT2_LIBS)
 
-CLEANFILES = marshal.c marshal.h
+BUILT_SOURCES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h
+CLEANFILES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h stamp-vtetypebuiltins.h
 
 marshal.c marshal.h: marshal.list
-	glib-genmarshal --prefix=_vte_marshal --body $^ > marshal.c
-	glib-genmarshal --prefix=_vte_marshal --header $^ > marshal.h
+	$(GLIB_GENMARSHAL) --prefix=_vte_marshal --body $(GLIB_GENMARSHAL_INTERNAL) $^ > marshal.c
+	$(GLIB_GENMARSHAL) --prefix=_vte_marshal --header $(GLIB_GENMARSHAL_INTERNAL) $^ > marshal.h
+
+vtetypebuiltins.h: stamp-vtetypebuiltins.h
+	@true
+stamp-vtetypebuiltins.h: vtetypebuiltins.h.template vte.h
+	$(GLIB_MKENUMS) --template $< $(filter-out $<,$^) > xgen-vtbh \
+	&& (cmp -s xgen-vtbh vtetypebuiltins.h || cp xgen-vtbh vtetypebuiltins.h ) \
+	&& rm -f xgen-vtbh \
+	&& echo timestamp > $(@F)
+
+vtetypebuiltins.c: vtetypebuiltins.c.template vte.h
+	$(GLIB_MKENUMS) --template $< $(filter-out $<,$^) > xgen-vtbc \
+	&& (cmp -s xgen-vtbc vtetypebuiltins.c || cp xgen-vtbc vtetypebuiltins.c ) \
+	&& rm -f xgen-vtbc
 
 vte_SOURCES = \
 	vteapp.c
