@@ -1,7 +1,6 @@
 SUBDIRS = src python termcaps po doc
-EXTRA_DIST = MAINTAINERS HACKING vte.pc.in vte-uninstalled.pc.in \
-	     intltool-extract.in intltool-merge.in intltool-update.in
-DISTCLEANFILES = intltool-extract intltool-merge intltool-update
+EXTRA_DIST = MAINTAINERS HACKING vte.pc.in vte-uninstalled.pc.in
+DISTCLEANFILES =
 
 if BUILD_GNOME_PTY_HELPER
 SUBDIRS += gnome-pty-helper
