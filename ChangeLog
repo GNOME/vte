@@ -1,5 +1,10 @@
 2008-06-26  Christian Persch  <chpe@gnome.org>
 
+	* src/vteversion.h.in: Disallow direct inclusion of the new
+	vteversion.h file.
+
+2008-06-26  Christian Persch  <chpe@gnome.org>
+
 	* configure.in:
 	* src/Makefile.am:
 	* src/vte.c:
