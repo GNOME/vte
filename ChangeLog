@@ -1,5 +1,10 @@
 2008-06-26  Christian Persch  <chpe@gnome.org>
 
+	* src/vte.h: Remove the enum type declarations that are now in
+        vtetypebuiltins.h.
+
+2008-06-26  Christian Persch  <chpe@gnome.org>
+
         * Makefile.am:
         * autogen.sh: Fix the build from svn and make dist when using
         intltool 0.40.0. Tarball builds still only require 0.35.0.

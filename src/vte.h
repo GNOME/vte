@@ -184,8 +184,6 @@ struct vte_char_attributes {
 
 /* The widget's type. */
 GType vte_terminal_get_type(void);
-GType vte_terminal_erase_binding_get_type(void);
-GType vte_terminal_anti_alias_get_type(void);
 
 #define VTE_TYPE_TERMINAL		(vte_terminal_get_type())
 #define VTE_TERMINAL(obj)		(G_TYPE_CHECK_INSTANCE_CAST((obj),\
