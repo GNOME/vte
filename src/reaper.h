@@ -43,14 +43,14 @@ typedef struct _VteReaperClass VteReaperClass;
 GType vte_reaper_get_type(void);
 
 #define VTE_TYPE_REAPER			(vte_reaper_get_type())
-#define VTE_REAPER(obj)			(GTK_CHECK_CAST((obj), \
+#define VTE_REAPER(obj)			(G_TYPE_CHECK_INSTANCE_CAST((obj), \
 							VTE_TYPE_REAPER, \
 							VteReaper))
-#define VTE_REAPER_CLASS(klass)		GTK_CHECK_CLASS_CAST((klass), \
+#define VTE_REAPER_CLASS(klass)		G_TYPE_CHECK_CLASS_CAST((klass), \
 							     VTE_TYPE_REAPER, \
 							     VteReaperClass)
-#define VTE_IS_REAPER(obj)		GTK_CHECK_TYPE((obj), VTE_TYPE_REAPER)
-#define VTE_IS_REAPER_CLASS(klass)	GTK_CHECK_CLASS_TYPE((klass), \
+#define VTE_IS_REAPER(obj)		G_TYPE_CHECK_INSTANCE_TYPE((obj), VTE_TYPE_REAPER)
+#define VTE_IS_REAPER_CLASS(klass)	G_TYPE_CHECK_CLASS_TYPE((klass), \
 							     VTE_TYPE_REAPER)
 #define VTE_REAPER_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS((obj), \
 								   VTE_TYPE_REAPER, \

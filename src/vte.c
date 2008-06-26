@@ -11170,10 +11170,10 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	process_timer = g_timer_new ();
 }
 
-GtkType
+GType
 vte_terminal_erase_binding_get_type(void)
 {
-	static GtkType terminal_erase_binding_type = 0;
+	static GType terminal_erase_binding_type = 0;
 	static GEnumValue values[] = {
 		{VTE_ERASE_AUTO, "VTE_ERASE_AUTO", "auto"},
 		{VTE_ERASE_ASCII_BACKSPACE, "VTE_ERASE_ASCII_BACKSPACE",
@@ -11191,10 +11191,10 @@ vte_terminal_erase_binding_get_type(void)
 	return terminal_erase_binding_type;
 }
 
-GtkType
+GType
 vte_terminal_anti_alias_get_type(void)
 {
-	static GtkType terminal_anti_alias_type = 0;
+	static GType terminal_anti_alias_type = 0;
 	static GEnumValue values[] = {
 		{VTE_ANTI_ALIAS_USE_DEFAULT, "VTE_ANTI_ALIAS_USE_DEFAULT", "use-default"},
 		{VTE_ANTI_ALIAS_FORCE_ENABLE, "VTE_ANTI_ALIAS_FORCE_ENABLE", "force-enable"},
