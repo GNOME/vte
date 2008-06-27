@@ -315,11 +315,13 @@ struct _VteTerminalPrivate {
 	long scrollback_lines;
 
 	/* Cursor blinking. */
+        VteTerminalCursorBlinkMode cursor_blink_mode;
 	gboolean cursor_blink_state;
-	gboolean cursor_blinks;
-	guint cursor_blink_tag;
-	gint cursor_blink_timeout;
-	gint64 cursor_blink_time;
+	guint cursor_blink_tag;           /* cursor blinking timeout ID */
+        gint cursor_blink_cycle;          /* gtk-cursor-blink-time / 2 */
+	gint cursor_blink_timeout;        /* gtk-cursor-blink-timeout */
+        gboolean cursor_blinks;           /* whether the cursor is actually blinking */
+	gint64 cursor_blink_time;         /* how long the cursor has been blinking yet */
 	gboolean cursor_visible;
 
 	/* Input device options. */

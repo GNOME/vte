@@ -167,6 +167,13 @@ typedef enum {
 	VTE_ANTI_ALIAS_FORCE_DISABLE
 } VteTerminalAntiAlias;
 
+/* Values for the cursor blink setting */
+typedef enum {
+        VTE_CURSOR_BLINK_SYSTEM,
+        VTE_CURSOR_BLINK_ON,
+        VTE_CURSOR_BLINK_OFF
+} VteTerminalCursorBlinkMode;
+
 /* The structure we return as the supplemental attributes for strings. */
 struct _VteCharAttributes {
 	long row, column;
@@ -283,7 +290,11 @@ void vte_terminal_set_background_transparent(VteTerminal *terminal,
 void vte_terminal_set_opacity(VteTerminal *terminal, guint16 opacity);
 
 /* Set whether or not the cursor blinks. */
-void vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink);
+#ifndef VTE_DISABLE_DEPRECATED
+void vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink) G_GNUC_DEPRECATED;
+#endif
+void vte_terminal_set_cursor_blink_mode(VteTerminal *terminal, VteTerminalCursorBlinkMode mode);
+VteTerminalCursorBlinkMode vte_terminal_get_cursor_blink_mode(VteTerminal *terminal);
 
 /* Set the number of scrollback lines, above or at an internal minimum. */
 void vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines);

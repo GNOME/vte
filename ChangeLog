@@ -1,3 +1,14 @@
+2008-06-27  Christian Persch  <chpe@gnome.org>
+
+        Bug 510903 – use gtk-cursor-blink setting
+
+        * doc/reference/tmpl/vte.sgml:
+        * doc/reference/vte-sections.txt:
+        * src/vte-private.h:
+        * src/vte.c:
+        * src/vte.h: Make the cursor blinking follow the gtk setting by
+        default, with a possible override.
+
 2008-06-26  Christian Persch  <chpe@gnome.org>
 
 	* src/vte.h: Remove the enum type declarations that are now in

@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include "../config.h"
+#include <config.h>
 
 #include <math.h>
 
@@ -121,6 +121,7 @@ static void vte_terminal_add_process_timeout (VteTerminal *terminal);
 static void add_update_timeout (VteTerminal *terminal);
 static void remove_update_timeout (VteTerminal *terminal);
 static void reset_update_regions (VteTerminal *terminal);
+static void vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink);
 
 static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
@@ -731,64 +732,27 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 static gboolean
 vte_invalidate_cursor_periodic (VteTerminal *terminal)
 {
-	GtkSettings *settings;
-	int blink_cycle = 1000;
-	int timeout = INT_MAX;
-	static gboolean have_timeout;
-	static gboolean have_queried_timeout;
+        VteTerminalPrivate *pvt = terminal->pvt;
 
-	settings = gtk_widget_get_settings (&terminal->widget);
-
-	terminal->pvt->cursor_blink_state = !terminal->pvt->cursor_blink_state;
-	terminal->pvt->cursor_blink_time += terminal->pvt->cursor_blink_timeout;
+	pvt->cursor_blink_state = !pvt->cursor_blink_state;
+	pvt->cursor_blink_time += pvt->cursor_blink_cycle;
 
 	_vte_invalidate_cursor_once(terminal, TRUE);
-
-	if (settings == NULL)
-		return TRUE;
-
-	/* Temporary hack to prevent GObject complaining about missing
-	 * properties on the GtkSettings object.  This hack should be
-	 * removed once VTE depends on a version of GTK which includes
-	 * gtk-cursor-blink-timeout.
-	 */
-	if (!have_queried_timeout)
-	{
-		GObjectClass *oclass;
-		GParamSpec *param;
-
-		oclass = G_OBJECT_GET_CLASS (settings);
-		param = g_object_class_find_property (oclass,
-					      "gtk-cursor-blink-timeout");
-
-		have_timeout = (param != NULL);
-		have_queried_timeout = TRUE;
-	}
-
-	if (have_timeout)
-		g_object_get (G_OBJECT (settings), "gtk-cursor-blink-timeout",
-			      &timeout, NULL);
 
 	/* only disable the blink if the cursor is currently shown.
 	 * else, wait until next time.
 	 */
-	if (terminal->pvt->cursor_blink_time / 1000 >= timeout &&
-	    terminal->pvt->cursor_blink_state)
+	if (pvt->cursor_blink_time / 1000 >= pvt->cursor_blink_timeout &&
+	    pvt->cursor_blink_state) {
+                pvt->cursor_blink_tag = 0;
 		return FALSE;
+        }
 
-	g_object_get (G_OBJECT (settings), "gtk-cursor-blink-time",
-		      &blink_cycle, NULL);
-	blink_cycle /= 2;
-
-	if (terminal->pvt->cursor_blink_timeout == blink_cycle)
-		return TRUE;
-
-	terminal->pvt->cursor_blink_timeout = blink_cycle;
-	terminal->pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
-							     terminal->pvt->cursor_blink_timeout,
-							     (GSourceFunc)vte_invalidate_cursor_periodic,
-							     terminal,
-							     NULL);
+	pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
+						   terminal->pvt->cursor_blink_cycle,
+						   (GSourceFunc)vte_invalidate_cursor_periodic,
+						   terminal,
+						   NULL);
 	return FALSE;
 }
 
@@ -4485,20 +4449,9 @@ vte_terminal_style_changed(GtkWidget *widget, GtkStyle *style, gpointer data)
 static void
 add_cursor_timeout (VteTerminal *terminal)
 {
-	GtkSettings *settings;
-
-	/* Setup cursor blink */
-	settings = gtk_widget_get_settings(&terminal->widget);
-	if (settings != NULL) {
-		gint blink_cycle = 1000;
-		g_object_get(G_OBJECT(settings), "gtk-cursor-blink-time",
-			     &blink_cycle, NULL);
-		terminal->pvt->cursor_blink_timeout = blink_cycle / 2;
-	}
-
 	terminal->pvt->cursor_blink_time = 0;
 	terminal->pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
-							     terminal->pvt->cursor_blink_timeout,
+							     terminal->pvt->cursor_blink_cycle,
 							     (GSourceFunc)vte_invalidate_cursor_periodic,
 							     terminal,
 							     NULL);
@@ -7875,6 +7828,8 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Cursor blinking. */
 	pvt->cursor_visible = TRUE;
 	pvt->cursor_blink_timeout = 500;
+        pvt->cursor_blinks = FALSE;
+        pvt->cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
 
 	/* Matching data. */
         pvt->match_regex_mode = VTE_REGEX_UNDECIDED;
@@ -8151,6 +8106,65 @@ vte_terminal_unrealize(GtkWidget *widget)
 	GTK_WIDGET_UNSET_FLAGS(widget, GTK_REALIZED);
 }
 
+static void
+vte_terminal_sync_settings (GtkSettings *settings,
+                            GParamSpec *pspec,
+                            VteTerminal *terminal)
+{
+        VteTerminalPrivate *pvt = terminal->pvt;
+        gboolean blink;
+        int blink_time = 1000;
+        int blink_timeout = G_MAXINT;
+
+        g_object_get(G_OBJECT (settings),
+                     "gtk-cursor-blink", &blink,
+#if GTK_CHECK_VERSION (2, 12, 0)
+                     "gtk-cursor-blink-time", &blink_time,
+                     "gtk-cursor-blink-timeout", &blink_timeout,
+#endif
+                     NULL);
+
+	pvt->cursor_blink_cycle = blink_time / 2;
+        pvt->cursor_blink_timeout = blink_timeout;
+
+        if (pvt->cursor_blink_mode == VTE_CURSOR_BLINK_SYSTEM)
+                vte_terminal_set_cursor_blinks_internal(terminal, blink);
+}
+
+static void
+vte_terminal_screen_changed (GtkWidget *widget, GdkScreen *previous_screen)
+{
+        GdkScreen *screen;
+        GtkSettings *settings;
+
+        screen = gtk_widget_get_screen (widget);
+        if (previous_screen != NULL &&
+            (screen != previous_screen || screen == NULL)) {
+                settings = gtk_settings_get_for_screen (previous_screen);
+                g_signal_handlers_disconnect_matched (settings, G_SIGNAL_MATCH_DATA,
+                                                      0, 0, NULL, NULL,
+                                                      widget);
+        }
+
+        if (GTK_WIDGET_CLASS (vte_terminal_parent_class)->screen_changed) {
+                GTK_WIDGET_CLASS (vte_terminal_parent_class)->screen_changed (widget, previous_screen);
+        }
+
+        if (screen == previous_screen)
+                return;
+
+        settings = gtk_widget_get_settings (widget);
+        vte_terminal_sync_settings (settings, NULL, VTE_TERMINAL (widget));
+        g_signal_connect (settings, "notify::gtk-cursor-blink",
+                          G_CALLBACK (vte_terminal_sync_settings), widget);
+#if GTK_CHECK_VERSION (2, 12, 0)
+        g_signal_connect (settings, "notify::gtk-cursor-blink-time",
+                          G_CALLBACK (vte_terminal_sync_settings), widget);
+        g_signal_connect (settings, "notify::gtk-cursor-blink-timeout",
+                          G_CALLBACK (vte_terminal_sync_settings), widget);
+#endif
+}
+
 /* Perform final cleanups for the widget before it's freed. */
 static void
 vte_terminal_finalize(GObject *object)
@@ -8158,6 +8172,7 @@ vte_terminal_finalize(GObject *object)
 	VteTerminal *terminal;
 	GtkWidget *toplevel;
 	GtkClipboard *clipboard;
+        GtkSettings *settings;
 	struct vte_match_regex *regex;
 	guint i;
 
@@ -8320,6 +8335,11 @@ vte_terminal_finalize(GObject *object)
 	if (terminal->adjustment != NULL) {
 		g_object_unref(terminal->adjustment);
 	}
+
+        settings = gtk_widget_get_settings (GTK_WIDGET (terminal));
+        g_signal_handlers_disconnect_matched (settings, G_SIGNAL_MATCH_DATA,
+                                              0, 0, NULL, NULL,
+                                              terminal);
 
 	/* Call the inherited finalize() method. */
 	G_OBJECT_CLASS(vte_terminal_parent_class)->finalize(object);
@@ -10849,6 +10869,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	widget_class->size_request = vte_terminal_size_request;
 	widget_class->size_allocate = vte_terminal_size_allocate;
 	widget_class->get_accessible = vte_terminal_get_accessible;
+        widget_class->screen_changed = vte_terminal_screen_changed;
 
 	/* Initialize default handlers. */
 	klass->eof = NULL;
@@ -11750,25 +11771,16 @@ vte_terminal_get_using_xft(VteTerminal *terminal)
 	return _vte_draw_get_using_fontconfig(terminal->pvt->draw);
 }
 
-/**
- * vte_terminal_set_cursor_blinks:
- * @terminal: a #VteTerminal
- * @blink: %TRUE if the cursor should blink
- *
- * Sets whether or not the cursor will blink.  The length of the blinking cycle
- * is controlled by the "gtk-cursor-blink-time" GTK+ setting.
- *
- */
-void
-vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
+static void
+vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        VteTerminalPrivate *pvt = terminal->pvt;
 
 	blink = !!blink;
-	if (terminal->pvt->cursor_blinks == blink)
+	if (pvt->cursor_blinks == blink)
 		return;
 
-	terminal->pvt->cursor_blinks = blink;
+	pvt->cursor_blinks = blink;
 
 	if (!GTK_WIDGET_REALIZED (terminal) ||
 	    !GTK_WIDGET_HAS_FOCUS (terminal))
@@ -11778,6 +11790,78 @@ vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
 		add_cursor_timeout (terminal);
 	else
 		remove_cursor_timeout (terminal);
+}
+
+/**
+ * vte_terminal_set_cursor_blinks:
+ * @terminal: a #VteTerminal
+ * @blink: %TRUE if the cursor should blink
+ *
+ *  Sets whether or not the cursor will blink.
+ *
+ * Deprecated: 0.16.15 Use vte_terminal_set_cursor_blink_mode() instead.
+ */
+void
+vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
+{
+        vte_terminal_set_cursor_blink_mode(terminal, blink ? VTE_CURSOR_BLINK_ON : VTE_CURSOR_BLINK_OFF);
+}
+
+/**
+ * vte_terminal_set_cursor_blink_mode:
+ * @terminal: a #VteTerminal
+ * @mode: the #VteTerminalCursorBlinkMode to use
+ *
+ * Sets whether or not the cursor will blink. Using VTE_CURSOR_BLINK_SYSTEM
+ * will use the #GtkSettings::gtk-cursor-blink setting.
+ *
+ * Since: 0.16.15
+ */
+void
+vte_terminal_set_cursor_blink_mode(VteTerminal *terminal, VteTerminalCursorBlinkMode mode)
+{
+        VteTerminalPrivate *pvt;
+        gboolean blinks;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        pvt = terminal->pvt;
+
+        if (pvt->cursor_blink_mode == mode)
+                return;
+
+        pvt->cursor_blink_mode = mode;
+
+        switch (mode) {
+          case VTE_CURSOR_BLINK_SYSTEM:
+            g_object_get(gtk_widget_get_settings(GTK_WIDGET(terminal)),
+                                                 "gtk-cursor-blink", &blinks,
+                                                 NULL);
+            break;
+          case VTE_CURSOR_BLINK_ON:
+            blinks = TRUE;
+            break;
+          case VTE_CURSOR_BLINK_OFF:
+            blinks = FALSE;
+            break;
+        }
+
+        vte_terminal_set_cursor_blinks_internal(terminal, blinks);
+}
+
+/**
+ * vte_terminal_get_cursor_blink_mode:
+ * @terminal: a #VteTerminal
+ *
+ * Returns the cursor blink mode.
+ *
+ * Since: 0.16.15
+ */
+VteTerminalCursorBlinkMode
+vte_terminal_get_cursor_blink_mode(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_BLINK_SYSTEM);
+
+        return terminal->pvt->cursor_blink_mode;
 }
 
 /**
