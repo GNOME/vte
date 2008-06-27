@@ -1,5 +1,12 @@
 2008-06-27  Christian Persch  <chpe@gnome.org>
 
+        Bug 399744 – Hide more font-aa implementation details
+
+        * src/vtexft.c: Disable antialiasing if using the default antialias
+        setting and the XRender extension is not available.
+
+2008-06-27  Christian Persch  <chpe@gnome.org>
+
         Bug 510903 – use gtk-cursor-blink setting
 
         * doc/reference/tmpl/vte.sgml:

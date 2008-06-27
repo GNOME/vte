@@ -139,6 +139,16 @@ _vte_xft_font_open (GtkWidget *widget, const PangoFontDescription *fontdesc,
 {
 	struct _vte_xft_font *font, *old;
 	GPtrArray *patterns;
+        Display *dpy;
+        int event_base, error_base;
+
+        /* Don't enable anti-aliasing unless the XRender extension is available */
+        dpy = GDK_DISPLAY_XDISPLAY (gtk_widget_get_display (widget));
+        if (antialias == VTE_ANTI_ALIAS_USE_DEFAULT &&
+            (!XRenderQueryExtension (dpy, &event_base, &error_base) ||
+             !XRenderFindVisualFormat (dpy, DefaultVisual (dpy, DefaultScreen (dpy))))) {
+                antialias = VTE_ANTI_ALIAS_FORCE_DISABLE;
+        }
 
 	patterns = g_ptr_array_new ();
 	if (!_vte_fc_patterns_from_pango_font_desc (widget, fontdesc, antialias,
@@ -149,7 +159,7 @@ _vte_xft_font_open (GtkWidget *widget, const PangoFontDescription *fontdesc,
 
 	font = g_slice_new (struct _vte_xft_font);
 	font->ref = 1;
-	font->display = GDK_DISPLAY_XDISPLAY (gtk_widget_get_display (widget));
+	font->display = dpy;
 	font->patterns = patterns;
 	font->last_pattern = 0;
 	font->have_metrics = FALSE;
