@@ -405,9 +405,9 @@ _vte_iso2022_ambiguous_width(struct _vte_iso2022_state *state)
 	 */
 	if (strcmp (codeset, "utf8") == 0 && g_getenv("VTE_CJK_WIDTH") != NULL) {
 	  const char *env = g_getenv ("VTE_CJK_WIDTH");
-	  if (g_ascii_strcasecmp (env, "narrow"))
+	  if ((g_ascii_strcasecmp (env, "narrow")==0) || (g_ascii_strcasecmp (env, "0")==0))
 	    return 1;
-	  if (g_ascii_strcasecmp (env, "wide"))
+	  if ((g_ascii_strcasecmp (env, "wide")==0) || (g_ascii_strcasecmp (env, "1")==0))
 	    return 2;
 	  else
 	    return _vte_iso2022_ambiguous_width_guess ();

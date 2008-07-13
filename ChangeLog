@@ -1,3 +1,10 @@
+2008-07-14  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 542795 – VTE_CJK_WIDTH don't work
+
+	* src/iso2022.c (_vte_iso2022_ambiguous_width): Fix VTE_CJK_WIDTH env
+	handling.
+
 2008-06-27  Christian Persch  <chpe@gnome.org>
 
         Bug 399744 – Hide more font-aa implementation details
