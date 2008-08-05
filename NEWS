@@ -1,3 +1,30 @@
+0.17.1
+======
+- New API to:
+  * Make the cursor blinking follow the gtk setting by default, with a
+    possible override.
+  * Set named cursors on matches.
+  * Do GRegex matching, to be used alternatively to the old vteregex matching.
+  * Add set-scroll-adjustments signal, needed to allow adding a VteTerminal
+    into a GtkScrolledWindow.
+  * Add version check macro.
+- Misc bug fixes.
+- Bugs fixed in this release:
+	Bug 546366 – hard to select last tab char on a line
+	Bug 545924 – tab characters not handled correctly after ncurses clear	
+		Patch from Patryk Zawadzki
+	Bug 542795 – VTE_CJK_WIDTH don't work
+        Bug 399744 – Hide more font-aa implementation details
+        Bug 510903 – use gtk-cursor-blink setting
+        Bug 539130 – building g-t fails due to GtkType etc. deprecation
+	Bug 540182 – crash in geany with vte trunk
+	Bug 535552 – vte_terminal_set_allow_bold doesn't queue redraw
+        Bug 535469 – support named cursors on matches
+        Bug 418918 – Switch to GRegex
+        Bug 535467 – implement set-scroll-adjustments signal
+        Bug 535468 – need version check macros
+	Bug 515972 – Bold black is black in vte's default palette
+
 0.16.14
 =======
 - Bugs fixed in this release:
