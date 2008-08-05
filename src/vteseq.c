@@ -2448,6 +2448,22 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 		 * Otherwise, just append empty cells that will show up
 		 * as a space each.
 		 */
+
+		/* Get rid of trailing empty cells: bug 545924 */
+		if (rowdata->cells->len > col)
+		{
+			struct vte_charcell *pcell;
+			int i;
+			i = rowdata->cells->len;
+			pcell = &g_array_index(rowdata->cells, struct vte_charcell, i - 1);
+			while ((i > col) && (pcell->c == 0))
+			{
+				i--;
+				pcell = &g_array_index(rowdata->cells, struct vte_charcell, i - 1);
+			}
+			g_array_set_size(rowdata->cells, i);
+		}
+
 		if (rowdata->cells->len <= col)
 		  {
 		    struct vte_charcell cell;
