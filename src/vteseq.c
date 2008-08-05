@@ -2456,7 +2456,7 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 			int i;
 			i = rowdata->cells->len;
 			pcell = &g_array_index(rowdata->cells, struct vte_charcell, i - 1);
-			while ((i > col) && (pcell->c == 0))
+			while ((i > col) && !pcell->attr.fragment && pcell->c == 0)
 			{
 				i--;
 				pcell = &g_array_index(rowdata->cells, struct vte_charcell, i - 1);

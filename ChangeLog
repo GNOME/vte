@@ -1,5 +1,13 @@
 2008-08-05  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 546366 – hard to select last tab char on a line
+
+	* src/vte.c (vte_terminal_extend_selection):
+	* src/vteseq.c (vte_sequence_handler_ta):
+	Handle fragment cells.
+
+2008-08-05  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 545924 – tab characters not handled correctly after ncurses clear	
 	Patch from Patryk Zawadzki
 

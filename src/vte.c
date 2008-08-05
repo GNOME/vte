@@ -6141,15 +6141,12 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 		rowdata = _vte_terminal_find_row_data(terminal, sc->y);
 		if (rowdata != NULL) {
 			/* Find the last non-empty character on the first line. */
-			last_nonempty = -1;
-			for (i = 0; i < rowdata->cells->len; i++) {
+			for (i = rowdata->cells->len - 1; i >= 0; i--) {
 				cell = &g_array_index(rowdata->cells,
 						struct vte_charcell, i);
-				if (cell->c != 0)
-					last_nonempty = i;
+				if (cell->attr.fragment || cell->c != 0)
+					break;
 			}
-			/* Now find the first empty after it. */
-			i = last_nonempty + 1;
 			/* If the start point is to its right, then move the
 			 * startpoint up to the beginning of the next line
 			 * unless that would move the startpoint after the end
@@ -6160,7 +6157,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 					sc->x = 0;
 					sc->y++;
 				} else {
-					sc->x = i;
+					sc->x = i + 1;
 				}
 			}
 		} else {
@@ -6175,18 +6172,15 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 		rowdata = _vte_terminal_find_row_data(terminal, ec->y);
 		if (rowdata != NULL) {
 			/* Find the last non-empty character on the last line. */
-			last_nonempty = -1;
-			for (i = 0; i < rowdata->cells->len; i++) {
+			for (i = rowdata->cells->len - 1; i >= 0; i--) {
 				cell = &g_array_index(rowdata->cells,
 						struct vte_charcell, i);
-				if (cell->c != 0)
-					last_nonempty = i;
+				if (cell->attr.fragment || cell->c != 0)
+					break;
 			}
-			/* Now find the first empty after it. */
-			i = last_nonempty + 1;
 			/* If the end point is to its right, then extend the
 			 * endpoint as far right as we can expect. */
-			if (ec->x >= i) {
+			if (ec->x > i) {
 				ec->x = MAX(ec->x,
 						MAX(terminal->column_count - 1,
 							rowdata->cells->len));
