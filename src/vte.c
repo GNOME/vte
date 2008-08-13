@@ -87,7 +87,7 @@ static gboolean vte_terminal_background_update(VteTerminal *data);
 static void vte_terminal_queue_background_update(VteTerminal *terminal);
 static void vte_terminal_process_incoming(VteTerminal *terminal);
 static void vte_terminal_emit_pending_signals(VteTerminal *terminal);
-static inline gboolean vte_cell_is_selected(VteTerminal *terminal,
+static gboolean vte_cell_is_selected(VteTerminal *terminal,
 				     glong col, glong row, gpointer data);
 static char *vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 						       glong start_row,
@@ -2016,7 +2016,7 @@ vte_terminal_queue_adjustment_changed(VteTerminal *terminal)
 	terminal->pvt->adjustment_changed_pending = TRUE;
 	add_update_timeout (terminal);
 }
-static inline void
+static void
 vte_terminal_queue_adjustment_value_changed(VteTerminal *terminal, glong v)
 {
 	if (v != terminal->pvt->screen->scroll_delta) {
@@ -5042,7 +5042,7 @@ vte_cell_is_between(glong col, glong row,
 }
 
 /* Check if a cell is selected or not. */
-static inline gboolean
+static gboolean
 vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 {
 	struct selection_cell_coords ss, se;
@@ -8461,7 +8461,7 @@ vte_terminal_realize(GtkWidget *widget)
 	vte_terminal_background_update(terminal);
 }
 
-static inline void
+static void
 vte_terminal_determine_colors(VteTerminal *terminal,
 			      const struct vte_charcell *cell,
 			      gboolean reverse,
@@ -8522,7 +8522,7 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 
 /* Check if a unicode character is actually a graphic character we draw
  * ourselves to handle cases where fonts don't have glyphs for them. */
-static inline gboolean
+static gboolean
 vte_unichar_is_local_graphic(gunichar c)
 {
 	if ((c >= 0x2500) && (c <= 0x257f)) {
@@ -8561,7 +8561,7 @@ vte_unichar_is_local_graphic(gunichar c)
 	}
 	return FALSE;
 }
-static inline gboolean
+static gboolean
 vte_terminal_unichar_is_local_graphic(VteTerminal *terminal, gunichar c)
 {
 	return vte_unichar_is_local_graphic (c) &&

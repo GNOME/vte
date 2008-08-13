@@ -1,5 +1,10 @@
 2008-08-13  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c: Remove useless "inline" decorators.  Gcc has been
+	rightfully complaining.
+
+2008-08-13  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 546940 – Crash when selecting text
 
 	* src/vte.c (vte_terminal_extend_selection): Fix crash with 64-bit
