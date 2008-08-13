@@ -1106,6 +1106,9 @@ regex_match_clear_cursor (struct vte_match_regex *regex)
                         g_free (regex->cursor.cursor_name);
                         regex->cursor.cursor_name = NULL;
                         break;
+		default:
+			g_assert_not_reached ();
+			return;
         }
 }
 
@@ -1128,7 +1131,7 @@ regex_match_clear (struct vte_match_regex *regex)
 static void
 vte_terminal_set_cursor_from_regex_match(VteTerminal *terminal, struct vte_match_regex *regex)
 {
-        GdkCursor *cursor;
+        GdkCursor *cursor = NULL;
 
         if (!GTK_WIDGET_REALIZED(terminal))
                 return;
@@ -1144,6 +1147,9 @@ vte_terminal_set_cursor_from_regex_match(VteTerminal *terminal, struct vte_match
                 case VTE_REGEX_CURSOR_NAME:
                         cursor = gdk_cursor_new_from_name(gtk_widget_get_display(GTK_WIDGET(terminal)), regex->cursor.cursor_name);
                         break;
+		default:
+			g_assert_not_reached ();
+			return;
         }
 
         gdk_window_set_cursor(GTK_WIDGET(terminal)->window, cursor);

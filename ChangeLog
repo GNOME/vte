@@ -1,5 +1,12 @@
 2008-08-13  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c (regex_match_clear_cursor),
+	(vte_terminal_set_cursor_from_regex_match):
+	Fix uninitialized cursor warning.  Setting to NULL sounds
+	right to me.  ChPe?
+
+2008-08-13  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte.c: Remove useless "inline" decorators.  Gcc has been
 	rightfully complaining.
 
