@@ -1,3 +1,16 @@
+2008-08-13  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 546940 – Crash when selecting text
+
+	* src/vte.c (vte_terminal_extend_selection): Fix crash with 64-bit
+	systems.  Note to self:
+
+		unsigned int len = 0;
+		long i = len - 1;
+		assert (i < 0);
+
+	fails on 64-bit systems.
+
 2008-08-05  Behdad Esfahbod  <behdad@gnome.org>
 
 	Released vte-0.17.1.

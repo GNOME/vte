@@ -6025,7 +6025,8 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 {
 	VteScreen *screen;
 	VteRowData *rowdata;
-	long delta, height, width, i, j, last_nonempty;
+	long delta, height, width, j;
+	guint i;
 	struct vte_charcell *cell;
 	struct selection_event_coords *origin, *last, *start, *end;
 	struct selection_cell_coords old_start, old_end, *sc, *ec, tc;
@@ -6141,9 +6142,9 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 		rowdata = _vte_terminal_find_row_data(terminal, sc->y);
 		if (rowdata != NULL) {
 			/* Find the last non-empty character on the first line. */
-			for (i = rowdata->cells->len - 1; i >= 0; i--) {
+			for (i = rowdata->cells->len; i > 0; i--) {
 				cell = &g_array_index(rowdata->cells,
-						struct vte_charcell, i);
+						struct vte_charcell, i - 1);
 				if (cell->attr.fragment || cell->c != 0)
 					break;
 			}
@@ -6151,13 +6152,13 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 			 * startpoint up to the beginning of the next line
 			 * unless that would move the startpoint after the end
 			 * point, or we're in select-by-line mode. */
-			if ((sc->x > i) &&
+			if ((sc->x >= i) &&
 					(terminal->pvt->selection_type != selection_type_line)) {
 				if (sc->y < ec->y) {
 					sc->x = 0;
 					sc->y++;
 				} else {
-					sc->x = i + 1;
+					sc->x = i;
 				}
 			}
 		} else {
@@ -6172,15 +6173,15 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 		rowdata = _vte_terminal_find_row_data(terminal, ec->y);
 		if (rowdata != NULL) {
 			/* Find the last non-empty character on the last line. */
-			for (i = rowdata->cells->len - 1; i >= 0; i--) {
+			for (i = rowdata->cells->len; i > 0; i--) {
 				cell = &g_array_index(rowdata->cells,
-						struct vte_charcell, i);
+						struct vte_charcell, i - 1);
 				if (cell->attr.fragment || cell->c != 0)
 					break;
 			}
 			/* If the end point is to its right, then extend the
 			 * endpoint as far right as we can expect. */
-			if (ec->x > i) {
+			if (ec->x >= i) {
 				ec->x = MAX(ec->x,
 						MAX(terminal->column_count - 1,
 							rowdata->cells->len));
