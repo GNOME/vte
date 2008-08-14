@@ -1437,7 +1437,8 @@ vte_terminal_match_check_internal_vte(VteTerminal *terminal,
                                       int *tag, int *start, int *end)
 {
 	struct _vte_regex_match matches[256];
-	gint i, j, k;
+	guint i, j;
+	gint k;
 	gint start_blank, end_blank;
 	int ret, offset;
 	struct vte_match_regex *regex = NULL;
@@ -1583,7 +1584,7 @@ vte_terminal_match_check_internal_vte(VteTerminal *terminal,
 					_eattr = &g_array_index(terminal->pvt->match_attributes,
 							struct _VteCharAttributes,
 							matches[j].rm_eo + k - 1);
-					g_printerr("Match %d `%s' from %d(%ld,%ld) to %d(%ld,%ld) (%d).\n",
+					g_printerr("Match %u `%s' from %d(%ld,%ld) to %d(%ld,%ld) (%d).\n",
 							j, match,
 							matches[j].rm_so + k,
 							_sattr->column,
@@ -2351,7 +2352,7 @@ vte_terminal_ensure_cursor(VteTerminal *terminal)
 	g_assert(row != NULL);
 
 	v = screen->cursor_current.col;
-	if (G_UNLIKELY (row->cells->len < v)) { /* pad */
+	if (G_UNLIKELY ((glong) row->cells->len < v)) { /* pad */
 		vte_g_array_fill (row->cells, &screen->basic_defaults, v);
 	}
 
@@ -2809,7 +2810,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			}
 
 		/* Override from the supplied palette if there is one. */
-		if (i < palette_size) {
+		if ((glong) i < palette_size) {
 			color = palette[i];
 		}
 
@@ -2927,7 +2928,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		g_array_insert_val(row->cells, col,
 				screen->color_defaults);
 	} else {
-		if (G_LIKELY (row->cells->len < col + columns)) {
+		if (G_LIKELY ((glong) row->cells->len < col + columns)) {
 			g_array_set_size (row->cells, col + columns);
 		}
 	}
@@ -2963,7 +2964,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		g_array_index(row->cells, struct vte_charcell, col).attr = attr;
 		col++;
 	}
-	if (G_UNLIKELY (row->cells->len > terminal->column_count)) {
+	if (G_UNLIKELY ((long) row->cells->len > terminal->column_count)) {
 		g_array_set_size(row->cells, terminal->column_count);
 	}
 
@@ -4088,7 +4089,7 @@ vte_terminal_feed(VteTerminal *terminal, const char *data, glong length)
 		}
 		do { /* break the incoming data into chunks */
 			gsize rem = sizeof (chunk->data) - chunk->len;
-			gsize len = length < rem ? length : rem;
+			gsize len = (gsize) length < rem ? (gsize) length : rem;
 			memcpy (chunk->data + chunk->len, data, len);
 			chunk->len += len;
 			length -= len;
@@ -4541,8 +4542,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		 * margin, bell. */
 		if (terminal->pvt->margin_bell) {
 			if ((terminal->pvt->screen->cursor_current.col +
-			     terminal->pvt->bell_margin) ==
-			    terminal->column_count) {
+			     (glong) terminal->pvt->bell_margin) ==
+			     terminal->column_count) {
 				_vte_sequence_handler_bl(terminal,
 							 "bl",
 							 0,
@@ -5415,7 +5416,7 @@ vte_terminal_match_hilite_update(VteTerminal *terminal, double x, double y)
 
 	/* Read the new locations. */
 	attr = NULL;
-	if (start < terminal->pvt->match_attributes->len) {
+	if ((guint) start < terminal->pvt->match_attributes->len) {
 		attr = &g_array_index(terminal->pvt->match_attributes,
 				struct _VteCharAttributes,
 				start);
@@ -5423,7 +5424,7 @@ vte_terminal_match_hilite_update(VteTerminal *terminal, double x, double y)
 		terminal->pvt->match_start.column = attr->column;
 
 		attr = NULL;
-		if (end < terminal->pvt->match_attributes->len) {
+		if ((guint) end < terminal->pvt->match_attributes->len) {
 			attr = &g_array_index(terminal->pvt->match_attributes,
 					struct _VteCharAttributes,
 					end);
@@ -6031,8 +6032,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 {
 	VteScreen *screen;
 	VteRowData *rowdata;
-	long delta, height, width, j;
-	guint i;
+	long delta, height, width, i, j;
 	struct vte_charcell *cell;
 	struct selection_event_coords *origin, *last, *start, *end;
 	struct selection_cell_coords old_start, old_end, *sc, *ec, tc;
@@ -6189,8 +6189,8 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 			 * endpoint as far right as we can expect. */
 			if (ec->x >= i) {
 				ec->x = MAX(ec->x,
-						MAX(terminal->column_count - 1,
-							rowdata->cells->len));
+					    MAX(terminal->column_count - 1,
+						(long) rowdata->cells->len));
 			}
 		} else {
 			/* Snap to the rightmost column. */
@@ -6323,7 +6323,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 			rowdata = _vte_ring_index(screen->row_data,
 						  VteRowData *, ec->y);
 			if (rowdata != NULL) {
-				ec->x = MAX(ec->x, rowdata->cells->len);
+				ec->x = MAX(ec->x, (long) rowdata->cells->len);
 			}
 		}
 		break;

@@ -76,7 +76,7 @@ vte_terminal_find_charcell(VteTerminal *terminal, glong col, glong row)
 	screen = terminal->pvt->screen;
 	if (_vte_ring_contains(screen->row_data, row)) {
 		rowdata = _vte_ring_index(screen->row_data, VteRowData *, row);
-		if (rowdata->cells->len > col) {
+		if ((glong) rowdata->cells->len > col) {
 			ret = &g_array_index(rowdata->cells,
 					     struct vte_charcell,
 					     col);
@@ -392,7 +392,7 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 			outbuf = outbufptr = terminal->pvt->conv_buffer->bytes;
 			if (conv != VTE_INVALID_CONV) {
 				if (_vte_conv(conv, &inbuf, &inbuf_len,
-					      &outbuf, &outbuf_len) == -1) {
+					      &outbuf, &outbuf_len) == (size_t)-1) {
 					_vte_debug_print(VTE_DEBUG_IO,
 							"Error "
 							"converting %ld title "
@@ -526,7 +526,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
 		/* 47: Alternate screen. */
-		{47, NULL, NULL, (gpointer*) &terminal->pvt->screen,
+		{47, NULL, NULL, (gpointer) &terminal->pvt->screen,
 		 &terminal->pvt->normal_screen,
 		 &terminal->pvt->alternate_screen,
 		 NULL, NULL,},
@@ -571,7 +571,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		/* 1037: disallowed, delete key policy is set by user. */
 		{1037, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 1047: Use alternate screen buffer. */
-		{1047, NULL, NULL, (gpointer*) &terminal->pvt->screen,
+		{1047, NULL, NULL, (gpointer) &terminal->pvt->screen,
 		 &terminal->pvt->normal_screen,
 		 &terminal->pvt->alternate_screen,
 		 NULL, NULL,},
@@ -583,28 +583,28 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 vte_sequence_handler_sc,},
 		/* 1049: Use alternate screen buffer, saving the cursor
 		 * position. */
-		{1049, NULL, NULL, (gpointer*) &terminal->pvt->screen,
+		{1049, NULL, NULL, (gpointer) &terminal->pvt->screen,
 		 &terminal->pvt->normal_screen,
 		 &terminal->pvt->alternate_screen,
 		 vte_sequence_handler_rc,
 		 vte_sequence_handler_sc,},
 		/* 1051: Sun function key mode. */
-		{1051, NULL, NULL, (gpointer*) &terminal->pvt->sun_fkey_mode,
+		{1051, NULL, NULL, (gpointer) &terminal->pvt->sun_fkey_mode,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL},
 		/* 1052: HP function key mode. */
-		{1052, NULL, NULL, (gpointer*) &terminal->pvt->hp_fkey_mode,
+		{1052, NULL, NULL, (gpointer) &terminal->pvt->hp_fkey_mode,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL},
 		/* 1060: Legacy function key mode. */
-		{1060, NULL, NULL, (gpointer*) &terminal->pvt->legacy_fkey_mode,
+		{1060, NULL, NULL, (gpointer) &terminal->pvt->legacy_fkey_mode,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL},
 		/* 1061: VT220 function key mode. */
-		{1061, NULL, NULL, (gpointer*) &terminal->pvt->vt220_fkey_mode,
+		{1061, NULL, NULL, (gpointer) &terminal->pvt->vt220_fkey_mode,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL},
@@ -1028,7 +1028,7 @@ vte_sequence_handler_cb(VteTerminal *terminal,
 	 * attributes.  If there is no such character cell, we need
 	 * to add one. */
 	for (i = 0; i <= screen->cursor_current.col; i++) {
-		if (i < rowdata->cells->len) {
+		if (i < (glong) rowdata->cells->len) {
 			/* Muck with the cell in this location. */
 			pcell = &g_array_index(rowdata->cells,
 					       struct vte_charcell,
@@ -1058,7 +1058,7 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 			GValueArray *params)
 {
 	VteRowData *rowdata;
-	long i;
+	glong i;
 	VteScreen *screen;
 
 	screen = terminal->pvt->screen;
@@ -1070,7 +1070,7 @@ vte_sequence_handler_cd(VteTerminal *terminal,
 		rowdata = _vte_ring_index(screen->row_data, VteRowData *, i);
 		/* Clear everything to the right of the cursor. */
 		if ((rowdata != NULL) &&
-		    (rowdata->cells->len > screen->cursor_current.col)) {
+		    ((glong) rowdata->cells->len > screen->cursor_current.col)) {
 			g_array_set_size(rowdata->cells,
 					 screen->cursor_current.col);
 		}
@@ -1138,7 +1138,7 @@ vte_sequence_handler_ce(VteTerminal *terminal,
 	g_assert(rowdata != NULL);
 	/* Remove the data at the end of the array until the current column
 	 * is the end of the array. */
-	if (rowdata->cells->len > screen->cursor_current.col) {
+	if ((glong) rowdata->cells->len > screen->cursor_current.col) {
 		g_array_set_size(rowdata->cells, screen->cursor_current.col);
 		/* We've modified the display.  Make a note of it. */
 		terminal->pvt->text_deleted_flag = TRUE;
@@ -1660,7 +1660,7 @@ vte_sequence_handler_ec(VteTerminal *terminal,
 		for (i = 0; i < count; i++) {
 			col = screen->cursor_current.col + i;
 			if (col >= 0) {
-				if (col < rowdata->cells->len) {
+				if (col < (glong) rowdata->cells->len) {
 					/* Replace this cell with the current
 					 * defaults. */
 					cell = &g_array_index(rowdata->cells,
@@ -2419,6 +2419,8 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 	screen = terminal->pvt->screen;
 	newcol = col = screen->cursor_current.col;
 
+	g_assert (col >= 0);
+
 	if (terminal->pvt->tabstops != NULL) {
 		/* Find the next tabstop. */
 		for (newcol++; newcol < VTE_TAB_MAX; newcol++) {
@@ -2450,21 +2452,20 @@ vte_sequence_handler_ta(VteTerminal *terminal,
 		 */
 
 		/* Get rid of trailing empty cells: bug 545924 */
-		if (rowdata->cells->len > col)
+		if ((glong) rowdata->cells->len > col)
 		{
-			struct vte_charcell *pcell;
-			int i;
-			i = rowdata->cells->len;
-			pcell = &g_array_index(rowdata->cells, struct vte_charcell, i - 1);
-			while ((i > col) && !pcell->attr.fragment && pcell->c == 0)
-			{
-				i--;
-				pcell = &g_array_index(rowdata->cells, struct vte_charcell, i - 1);
+			struct vte_charcell *cell;
+			guint i;
+			for (i = rowdata->cells->len; (glong) i > col; i--) {
+				cell = &g_array_index(rowdata->cells,
+						      struct vte_charcell, i - 1);
+				if (cell->attr.fragment || cell->c != 0)
+					break;
 			}
 			g_array_set_size(rowdata->cells, i);
 		}
 
-		if (rowdata->cells->len <= col)
+		if ((glong) rowdata->cells->len <= col)
 		  {
 		    struct vte_charcell cell;
 
@@ -3183,7 +3184,7 @@ vte_sequence_handler_set_mode(VteTerminal *terminal,
 			      GQuark match_quark,
 			      GValueArray *params)
 {
-	int i, again;
+	guint i, again;
 	long setting;
 	GValue *value;
 	if ((params == NULL) || (params->n_values == 0)) {
@@ -3786,8 +3787,8 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 	GtkWidget *widget;
 	char buf[LINE_MAX];
 	long param, arg1, arg2;
-	guint width, height, i;
-	gint len;
+	gint width, height, len;
+	guint i;
 
 	widget = &terminal->widget;
 	screen = terminal->pvt->screen;

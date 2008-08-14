@@ -1,5 +1,22 @@
 2008-08-13  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte-private.h:
+	* src/vte.c (vte_terminal_match_check_internal_vte),
+	(vte_terminal_ensure_cursor), (vte_terminal_set_colors),
+	(_vte_terminal_insert_char), (vte_terminal_feed),
+	(vte_terminal_key_press), (vte_terminal_match_hilite_update),
+	(vte_terminal_extend_selection):
+	* src/vteseq.c (vte_terminal_find_charcell),
+	(vte_sequence_handler_set_title_internal),
+	(vte_sequence_handler_decset_internal), (vte_sequence_handler_cb),
+	(vte_sequence_handler_cd), (vte_sequence_handler_ce),
+	(vte_sequence_handler_ec), (vte_sequence_handler_ta),
+	(vte_sequence_handler_set_mode),
+	(vte_sequence_handler_window_manipulation):
+	Fix all "signed vs unsigned comparison" warnings.
+
+2008-08-13  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte.c (regex_match_clear_cursor),
 	(vte_terminal_set_cursor_from_regex_match):
 	Fix uninitialized cursor warning.  Setting to NULL sounds

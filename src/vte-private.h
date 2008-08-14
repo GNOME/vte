@@ -213,9 +213,9 @@ struct _VteTerminalPrivate {
 	struct _vte_iso2022_state *iso2022;
 	struct _vte_incoming_chunk{
 		struct _vte_incoming_chunk *next;
-		gint len;
+		guint len;
 		guchar data[VTE_INPUT_CHUNK_SIZE
-			- sizeof(struct _vte_incoming_chunk *) - sizeof(gint)];
+			- 2 * sizeof(void *)];
 	} *incoming;			/* pending bytestream */
 	GArray *pending;		/* pending characters */
 	GSList *update_regions;
