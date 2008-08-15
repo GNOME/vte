@@ -1,3 +1,8 @@
+2008-08-15  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	* src/vte.c (vte_terminal_set_pty):
+	fcntl(2) specifies that the flags argument is a long. Make it so.
+
 2008-08-13  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte-private.h:
