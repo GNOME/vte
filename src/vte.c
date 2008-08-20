@@ -1786,8 +1786,10 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
                                         line, -1, 0,
                                         regex->regex.gregex.flags,
                                         &match_info,
-                                        NULL))
+                                        NULL)) {
+                        g_match_info_free(match_info);
                         continue;
+                }
 
                 while (g_match_info_matches(match_info)) {
 			gint ko = offset;
