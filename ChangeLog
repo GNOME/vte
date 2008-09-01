@@ -1,3 +1,9 @@
+2008-08-20  Sébastien Granjoux  <seb.sfo@free.fr>
+
+	Bug 538344 – Anjuta hangs when program is executed in terminal
+
+	* src/vte.c: Ensure the output channel exists when we need to write.
+
 2008-08-20  Christian Persch  <chpe@gnome.org>
 
 	* src/vte.c: (vte_terminal_match_check_internal_gregex): Plug a mem

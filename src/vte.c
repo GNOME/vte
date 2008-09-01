@@ -3171,7 +3171,8 @@ static void
 _vte_terminal_connect_pty_write(VteTerminal *terminal)
 {
 	if (terminal->pvt->pty_channel == NULL) {
-		return;
+		terminal->pvt->pty_channel =
+			g_io_channel_unix_new(terminal->pvt->pty_master);
 	}
 
 	if (terminal->pvt->pty_output_source == VTE_INVALID_SOURCE) {
@@ -3238,10 +3239,12 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 	/* Close any existing ptys. */
 	if (terminal->pvt->pty_channel != NULL) {
 		g_io_channel_unref (terminal->pvt->pty_channel);
+		terminal->pvt->pty_channel = NULL;
 	}
 	if (terminal->pvt->pty_master != -1) {
 		_vte_pty_close(terminal->pvt->pty_master);
 		close(terminal->pvt->pty_master);
+		terminal->pvt->pty_master = -1;
 	}
 
 	/* Open the new pty. */
