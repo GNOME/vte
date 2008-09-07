@@ -32,22 +32,23 @@
   )
 )
 
+(define-enum TerminalCursorBlinkMode
+  (in-module "Vte")
+  (c-name "VteTerminalCursorBlinkMode")
+  (gtype-id "VTE_TYPE_TERMINAL_CURSOR_BLINK_MODE")
+  (values
+    '("system" "VTE_CURSOR_BLINK_SYSTEM")
+    '("on" "VTE_CURSOR_BLINK_ON")
+    '("off" "VTE_CURSOR_BLINK_OFF")
+  )
+)
 
-;; From ../src/vte.h
+
+;; From vte.h
 
 (define-function vte_terminal_get_type
   (c-name "vte_terminal_get_type")
-  (return-type "GtkType")
-)
-
-(define-function vte_terminal_erase_binding_get_type
-  (c-name "vte_terminal_erase_binding_get_type")
-  (return-type "GtkType")
-)
-
-(define-function vte_terminal_anti_alias_get_type
-  (c-name "vte_terminal_anti_alias_get_type")
-  (return-type "GtkType")
+  (return-type "GType")
 )
 
 (define-function vte_terminal_new
@@ -81,15 +82,6 @@
     '("gboolean" "lastlog")
     '("gboolean" "utmp")
     '("gboolean" "wtmp")
-  )
-)
-
-(define-method set_pty
-  (of-object "VteTerminal")
-  (c-name "vte_terminal_set_pty")
-  (return-type "none")
-  (parameters
-    '("int" "pty_master")
   )
 )
 
@@ -144,6 +136,18 @@
 (define-method paste_primary
   (of-object "VteTerminal")
   (c-name "vte_terminal_paste_primary")
+  (return-type "none")
+)
+
+(define-method select_all
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_select_all")
+  (return-type "none")
+)
+
+(define-method select_none
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_select_none")
   (return-type "none")
 )
 
@@ -286,15 +290,6 @@
   (return-type "none")
 )
 
-(define-method set_opacity
-  (of-object "VteTerminal")
-  (c-name "vte_terminal_set_opacity")
-  (return-type "none")
-  (parameters
-    '("guint16" "opacity")
-  )
-)
-
 (define-method set_background_image
   (of-object "VteTerminal")
   (c-name "vte_terminal_set_background_image")
@@ -340,6 +335,15 @@
   )
 )
 
+(define-method set_opacity
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_opacity")
+  (return-type "none")
+  (parameters
+    '("guint16" "opacity")
+  )
+)
+
 (define-method set_cursor_blinks
   (of-object "VteTerminal")
   (c-name "vte_terminal_set_cursor_blinks")
@@ -347,6 +351,21 @@
   (parameters
     '("gboolean" "blink")
   )
+)
+
+(define-method set_cursor_blink_mode
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_cursor_blink_mode")
+  (return-type "none")
+  (parameters
+    '("VteTerminalCursorBlinkMode" "mode")
+  )
+)
+
+(define-method get_cursor_blink_mode
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_cursor_blink_mode")
+  (return-type "VteTerminalCursorBlinkMode")
 )
 
 (define-method set_scrollback_lines
@@ -555,6 +574,16 @@
   )
 )
 
+(define-method match_add_gregex
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_match_add_gregex")
+  (return-type "int")
+  (parameters
+    '("GRegex*" "regex")
+    '("GRegexMatchFlags" "flags" (default 0))
+  )
+)
+
 (define-method match_set_cursor
   (of-object "VteTerminal")
   (c-name "vte_terminal_match_set_cursor")
@@ -572,6 +601,16 @@
   (parameters
     '("int" "tag")
     '("GdkCursorType" "cursor_type")
+  )
+)
+
+(define-method match_set_cursor_name
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_match_set_cursor_name")
+  (return-type "none")
+  (parameters
+    '("int" "tag")
+    '("const-char*" "cursor_name")
   )
 )
 
@@ -647,6 +686,15 @@
   )
 )
 
+(define-method set_pty
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_pty")
+  (return-type "none")
+  (parameters
+    '("int" "pty_master")
+  )
+)
+
 (define-method get_adjustment
   (of-object "VteTerminal")
   (c-name "vte_terminal_get_adjustment")
@@ -699,6 +747,25 @@
   (of-object "VteTerminal")
   (c-name "vte_terminal_get_icon_title")
   (return-type "const-char*")
+)
+
+
+
+;; From vtetypebuiltins.h
+
+(define-function vte_terminal_erase_binding_get_type
+  (c-name "vte_terminal_erase_binding_get_type")
+  (return-type "GType")
+)
+
+(define-function vte_terminal_anti_alias_get_type
+  (c-name "vte_terminal_anti_alias_get_type")
+  (return-type "GType")
+)
+
+(define-function vte_terminal_cursor_blink_mode_get_type
+  (c-name "vte_terminal_cursor_blink_mode_get_type")
+  (return-type "GType")
 )
 
 
