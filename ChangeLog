@@ -1,3 +1,10 @@
+2008-09-08  Christian Persch  <chpe@gnome.org>
+
+        Release 0.17.3.
+
+        * NEWS:
+	* configure.in: Updated.
+
 2008-09-07  Christian Persch  <chpe@gnome.org>
 
 	* python/vte.defs: Update python bindings.

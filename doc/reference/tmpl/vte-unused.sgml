@@ -172,21 +172,6 @@ VteBg
 @VTE_DEBUG_KEYBOARD: 
 @VTE_DEBUG_LIFECYCLE: 
 
-<!-- ##### STRUCT VteReaper ##### -->
-<para>
-This should not be accessed directly.
-</para>
-
-
-<!-- ##### SIGNAL VteReaper::child-exited ##### -->
-<para>
-Emitted when the #VteReaper object detects that a child of the current process has exited.
-</para>
-
-@vtereaper: the object which received the signal.
-@arg1: the process ID of the exited child.
-@arg2: the status of the exited child, as returned by waitpid().
-
 <!-- ##### STRUCT VteReaperClass ##### -->
 <para>
 
@@ -346,21 +331,6 @@ Emitted when the #VteReaper object detects that a child of the current process h
 @master: 
 @columns: 
 @rows: 
-@Returns: 
-
-<!-- ##### FUNCTION vte_reaper_add_child ##### -->
-<para>
-
-</para>
-
-@pid: 
-@Returns: 
-
-<!-- ##### FUNCTION vte_reaper_get ##### -->
-<para>
-
-</para>
-
 @Returns: 
 
 <!-- ##### FUNCTION vte_ring_append ##### -->

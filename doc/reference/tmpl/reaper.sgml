@@ -23,3 +23,35 @@ a proxy for glib's own functionality.
 <!-- ##### SECTION Stability_Level ##### -->
 
 
+<!-- ##### STRUCT VteReaper ##### -->
+<para>
+This should not be accessed directly.
+</para>
+
+
+<!-- ##### SIGNAL VteReaper::child-exited ##### -->
+<para>
+Emitted when the #VteReaper object detects that a child of the current process has exited.
+</para>
+
+@vtereaper: the object which received the signal.
+@arg1: the process ID of the exited child.
+@arg2: the status of the exited child, as returned by waitpid().
+
+<!-- ##### FUNCTION vte_reaper_get ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+
+<!-- ##### FUNCTION vte_reaper_add_child ##### -->
+<para>
+
+</para>
+
+@pid: 
+@Returns: 
+
+
