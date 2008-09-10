@@ -1,6 +1,6 @@
 # translation of vte.HEAD.ml.po to Malayalam
-# This file is distributed under the same license as the PACKAGE package.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER.
+# This file is distributed under the same license as the vte package.
+# Copyright (C) 2003-2008 vte'S COPYRIGHT HOLDER.
 # FSF-India <locale@gnu.org.in>, 2003.
 # Suresh Valiya Parambil <mvpsuresh@yahoo.com>, 2003.
 # Ani Peter <apeter@redhat.com>, 2006.
@@ -117,9 +117,3 @@ msgstr "Could not parse the geometry spec passed to --geometry"
 #, c-format
 msgid "Unknown pixel mode %d.\n"
 msgstr "അറിയാത്ത പിക്സല്‍ രീതി %d.\n"
-
-#~ msgid "Error adding `%s' to environment, continuing."
-#~ msgstr "%s നെ ചുറ്റുപാടുമായി ചേര്‍ക്കുന്നതില്‍ പിശക്, എങ്കിലും മുന്നോട്ട് നീങ്ങുന്നു."
-
-#~ msgid "Can not draw character U+%04x.\n"
-#~ msgstr "എഴുതാനാവാത്ത അക്ഷരം  U+%04x.\n"
