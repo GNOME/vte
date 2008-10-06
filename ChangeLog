@@ -1,5 +1,11 @@
 2008-10-06  Christian Persch  <chpe@gnome.org>
 
+        Bug 539130 – building g-t fails due to GtkType etc. deprecation
+
+        * src/vte.h: Deprecate useless macros.
+
+2008-10-06  Christian Persch  <chpe@gnome.org>
+
         Bug 509204 – child-exited signal does not provide exit code
 
         * src/vte-private.h:

@@ -205,10 +205,10 @@ GType vte_terminal_get_type(void);
 							     VTE_TYPE_TERMINAL)
 #define VTE_TERMINAL_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS ((obj), VTE_TYPE_TERMINAL, VteTerminalClass))
 
-#define VTE_IS_TERMINAL_ERASE_BINDING(obj)	G_TYPE_CHECK_INSTANCE_TYPE((obj),\
-						VTE_TYPE_TERMINAL_ERASE_BINDING)
-#define VTE_IS_TERMINAL_ANTI_ALIAS(obj)		G_TYPE_CHECK_INSTANCE_TYPE((obj),\
-						VTE_TYPE_TERMINAL_ANTI_ALIAS)
+#ifndef VTE_DISABLE_DEPRECATED
+#define VTE_IS_TERMINAL_ERASE_BINDING(obj)  (FALSE)
+#define VTE_IS_TERMINAL_ANTI_ALIAS(obj)     (FALSE)
+#endif /* VTE_DISABLE_DEPRECATED */
 
 /* You can get by with just these two functions. */
 GtkWidget *vte_terminal_new(void);
