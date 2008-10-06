@@ -749,6 +749,16 @@
   (return-type "const-char*")
 )
 
+(define-method get_child_exit_status
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_child_exit_status")
+  (return-type "int")
+)
+
+
+
+;; From vteversion.h
+
 
 
 ;; From vtetypebuiltins.h
