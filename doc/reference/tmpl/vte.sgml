@@ -33,6 +33,13 @@ All of these fields should be considered read-only.
 @window_title: The terminal's idea of what the window's title should be.
 @icon_title: The terminal's idea of what the window's title should be when iconified.
 
+<!-- ##### SIGNAL VteTerminal::beep ##### -->
+<para>
+
+</para>
+
+@vteterminal: the object which received the signal.
+
 <!-- ##### SIGNAL VteTerminal::char-size-changed ##### -->
 <para>
 Emitted whenever selection of a new font causes the values of the

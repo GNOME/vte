@@ -10918,6 +10918,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
 	klass->set_scroll_adjustments = vte_terminal_set_scroll_adjustments;
 
+        klass->beep = NULL;
+
 	widget_class->set_scroll_adjustments_signal =
 		g_signal_new("set-scroll-adjustments",
 			     G_TYPE_FROM_CLASS (klass),
@@ -11187,6 +11189,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
 			     G_STRUCT_OFFSET(VteTerminalClass, paste_clipboard),
+			     NULL,
+			     NULL,
+			     _vte_marshal_VOID__VOID,
+			     G_TYPE_NONE, 0);
+			     
+	g_signal_new("beep",
+			     G_OBJECT_CLASS_TYPE(klass),
+			     G_SIGNAL_RUN_LAST,
+			     G_STRUCT_OFFSET(VteTerminalClass, beep),
 			     NULL,
 			     NULL,
 			     _vte_marshal_VOID__VOID,

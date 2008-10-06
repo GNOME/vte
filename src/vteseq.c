@@ -971,6 +971,8 @@ vte_sequence_handler_bl(VteTerminal *terminal,
 		/* Visual bell. */
 		vte_sequence_handler_vb(terminal, match, match_quark, params);
 	}
+	g_signal_emit_by_name(terminal, "beep");
+
 	return FALSE;
 }
 

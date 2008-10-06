@@ -105,8 +105,9 @@ struct _VteTerminalClass {
 					 GtkAdjustment *hadjustment,
 					 GtkAdjustment *vadjustment);
 
+ 	void (*beep)(VteTerminal* terminal);
+
 	/* Padding for future expansion. */
-	void (*vte_reserved2)(void);
 	void (*vte_reserved3)(void);
 	void (*vte_reserved4)(void);
 
