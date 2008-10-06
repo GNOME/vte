@@ -143,7 +143,7 @@ _vte_conv_open(const char *target, const char *source)
 	 * checks for bad data. */
 	conv = NULL;
 	if (!utf8) {
-		const char *translit_target = g_strdup_printf ("%s//translit", real_target);
+		char *translit_target = g_strdup_printf ("%s//translit", real_target);
 		conv = g_iconv_open(translit_target, real_source);
 		g_free (translit_target);
 		if (conv == ((GIConv) -1)) {
