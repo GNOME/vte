@@ -428,6 +428,8 @@ glong vte_terminal_get_column_count(VteTerminal *terminal);
 const char *vte_terminal_get_window_title(VteTerminal *terminal);
 const char *vte_terminal_get_icon_title(VteTerminal *terminal);
 
+int vte_terminal_get_child_exit_status(VteTerminal *terminal);
+
 G_END_DECLS
 
 #endif

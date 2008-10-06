@@ -3134,6 +3134,7 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 		_vte_buffer_clear(terminal->pvt->outgoing);
 
 		/* Tell observers what's happened. */
+                terminal->pvt->child_exit_status = status;
 		vte_terminal_emit_child_exited(terminal);
 	}
 }
@@ -3246,6 +3247,8 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 		close(terminal->pvt->pty_master);
 		terminal->pvt->pty_master = -1;
 	}
+
+        terminal->pvt->child_exit_status = 0;
 
 	/* Open the new pty. */
 	pid = -1;
@@ -7798,6 +7801,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->pty_input_source = VTE_INVALID_SOURCE;
 	pvt->pty_output_source = VTE_INVALID_SOURCE;
 	pvt->pty_pid = -1;
+        pvt->child_exit_status = 0;
 
 	/* Initialize the screens and histories. */
 	vte_terminal_reset_rowdata(&pvt->alternate_screen.row_data,
@@ -12480,6 +12484,28 @@ vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
 
        /* Open channels to listen for input on. */
        _vte_terminal_connect_pty_read (terminal);
+}
+
+/**
+ * vte_terminal_get_child_exit_status:
+ * @terminal: a #VteTerminal
+ *
+ * Gets the exit status of the command started by vte_terminal_fork_command().
+ * See your C library's documentation for more details on how to interpret the
+ * exit status.
+ * 
+ * Note that this function may only be called from the signal handler of
+ * the "child-exited" signal.
+ * 
+ * Returns: the child's exit status
+ * 
+ * Since: 0.17.5
+ */
+int
+vte_terminal_get_child_exit_status(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+        return terminal->pvt->child_exit_status;
 }
 
 /* We need this bit of glue to ensure that accessible objects will always

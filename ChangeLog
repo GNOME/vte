@@ -1,5 +1,13 @@
 2008-10-06  Christian Persch  <chpe@gnome.org>
 
+        Bug 509204 – child-exited signal does not provide exit code
+
+        * src/vte-private.h:
+        * src/vte.h:
+        * src/vte.c: Add function to get the child's exit status.
+
+2008-10-06  Christian Persch  <chpe@gnome.org>
+
 	* configure.in: Bump version to 0.17.5.
 
 2008-09-08  Christian Persch  <chpe@gnome.org>
