@@ -417,6 +417,7 @@ void vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad);
 /* Attach an existing PTY master side to the terminal widget.  Use
  * instead of vte_terminal_fork_command(). */
 void vte_terminal_set_pty(VteTerminal *terminal, int pty_master);
+int vte_terminal_get_pty(VteTerminal *terminal);
 
 /* Accessors for bindings. */
 GtkAdjustment *vte_terminal_get_adjustment(VteTerminal *terminal);

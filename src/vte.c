@@ -12498,6 +12498,23 @@ vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
 }
 
 /**
+ * vte_terminal_get_pty:
+ * @terminal: a #VteTerminal
+ * @pty_master: a file descriptor of the master end of a PTY
+ *
+ * Returns: the file descriptor of the master end of @terminal's PTY,
+ *   or -1 if the terminal has no PTY.
+ *
+ * Since: 0.17.5
+ */
+int vte_terminal_get_pty(VteTerminal *terminal)
+{
+  g_return_val_if_fail (VTE_IS_TERMINAL (terminal), -1);
+
+  return terminal->pvt->pty_master;
+}
+
+/**
  * vte_terminal_get_child_exit_status:
  * @terminal: a #VteTerminal
  *
