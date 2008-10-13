@@ -1,3 +1,8 @@
+2008-10-13  Christian Persch  <chpe@gnome.org>
+
+	* src/Makefile.am: Fix missing prototypes compiler warning in
+	marshal.c.
+
 2008-10-06  Christian Persch  <chpe@gnome.org>
 
 	* src/vteconv.c: (_vte_conv_open): Fix compiler warning.
