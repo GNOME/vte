@@ -133,6 +133,10 @@ enum {
 };
 static guint signals[LAST_SIGNAL];
 
+enum {
+  PROP_0
+};
+
 /* these static variables are guarded by the GDK mutex */
 static guint process_timeout_tag = VTE_INVALID_SOURCE;
 static gboolean in_process_timeout;
@@ -10812,6 +10816,34 @@ vte_terminal_get_accessible(GtkWidget *widget)
 	return GTK_WIDGET_CLASS (vte_terminal_parent_class)->get_accessible (widget);
 }
 
+static void
+vte_terminal_get_property (GObject *object,
+                           guint prop_id,
+                           GValue *value,
+                           GParamSpec *pspec)
+{
+	switch (prop_id)
+	{
+		default:
+			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+			return;
+	}
+}
+
+static void
+vte_terminal_set_property (GObject *object,
+                           guint prop_id,
+                           const GValue *value,
+                           GParamSpec *pspec)
+{
+	switch (prop_id)
+	{
+		default:
+			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+			return;
+	}
+}
+
 /* Initialize methods. */
 static void
 vte_terminal_class_init(VteTerminalClass *klass)
@@ -10861,6 +10893,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
 	/* Override some of the default handlers. */
 	gobject_class->finalize = vte_terminal_finalize;
+        gobject_class->get_property = vte_terminal_get_property;
+        gobject_class->set_property = vte_terminal_set_property;
 	widget_class->realize = vte_terminal_realize;
 	widget_class->scroll_event = vte_terminal_scroll;
 	widget_class->expose_event = vte_terminal_expose;
@@ -12500,7 +12534,6 @@ vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
 /**
  * vte_terminal_get_pty:
  * @terminal: a #VteTerminal
- * @pty_master: a file descriptor of the master end of a PTY
  *
  * Returns: the file descriptor of the master end of @terminal's PTY,
  *   or -1 if the terminal has no PTY.

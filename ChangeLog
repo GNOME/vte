@@ -1,5 +1,9 @@
 2008-10-13  Christian Persch  <chpe@gnome.org>
 
+	* src/vte.c: Add gobject property infrastructure.
+
+2008-10-13  Christian Persch  <chpe@gnome.org>
+
 	* src/Makefile.am: Fix missing prototypes compiler warning in
 	marshal.c.
 
