@@ -1,5 +1,12 @@
 2008-10-14  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c (vte_terminal_paint_im_preedit_string),
+	(vte_terminal_paint):
+	Move IM preedit string drawing into its own function for code
+	clarity.
+
+2008-10-14  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 549835 – Feature Request: Configurable cursor appearance
 
 	* src/vte.h:
