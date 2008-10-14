@@ -1,3 +1,7 @@
+2008-10-15  Christian Persch  <chpe@gnome.org>
+
+	* python/vte.defs: Add new API to the binding.
+
 2008-10-14  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte-private.h:

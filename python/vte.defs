@@ -43,6 +43,17 @@
   )
 )
 
+(define-enum TerminalCursorShape
+  (in-module "Vte")
+  (c-name "VteTerminalCursorShape")
+  (gtype-id "VTE_TYPE_TERMINAL_CURSOR_SHAPE")
+  (values
+    '("block" "VTE_CURSOR_SHAPE_BLOCK")
+    '("ibeam" "VTE_CURSOR_SHAPE_IBEAM")
+    '("underline" "VTE_CURSOR_SHAPE_UNDERLINE")
+  )
+)
+
 
 ;; From vte.h
 
@@ -366,6 +377,21 @@
   (of-object "VteTerminal")
   (c-name "vte_terminal_get_cursor_blink_mode")
   (return-type "VteTerminalCursorBlinkMode")
+)
+
+(define-method set_cursor_shape
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_set_cursor_shape")
+  (return-type "none")
+  (parameters
+    '("VteTerminalCursorShape" "shape")
+  )
+)
+
+(define-method get_cursor_shape
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_cursor_shape")
+  (return-type "VteTerminalCursorShape")
 )
 
 (define-method set_scrollback_lines
@@ -695,6 +721,12 @@
   )
 )
 
+(define-method get_pty
+  (of-object "VteTerminal")
+  (c-name "vte_terminal_get_pty")
+  (return-type "int")
+)
+
 (define-method get_adjustment
   (of-object "VteTerminal")
   (c-name "vte_terminal_get_adjustment")
@@ -757,10 +789,6 @@
 
 
 
-;; From vteversion.h
-
-
-
 ;; From vtetypebuiltins.h
 
 (define-function vte_terminal_erase_binding_get_type
@@ -777,5 +805,14 @@
   (c-name "vte_terminal_cursor_blink_mode_get_type")
   (return-type "GType")
 )
+
+(define-function vte_terminal_cursor_shape_get_type
+  (c-name "vte_terminal_cursor_shape_get_type")
+  (return-type "GType")
+)
+
+
+
+;; From vteversion.h
 
 
