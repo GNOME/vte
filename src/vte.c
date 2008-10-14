@@ -2870,6 +2870,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	VteScreen *screen;
 	gboolean line_wrapped = FALSE; /* cursor moved before char inserted */
 
+	g_message ("insert %04X", c);
 	screen = terminal->pvt->screen;
 	insert |= screen->insert_mode;
 	invalidate_now |= insert;
@@ -2906,6 +2907,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Autowrapping before character\n");
 			/* Wrap. */
+			/* XXX clear to the end of line */
 			col = screen->cursor_current.col = 0;
 			/* Mark this line as soft-wrapped. */
 			row = _vte_terminal_ensure_row(terminal);
@@ -7839,6 +7841,9 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->nrc_mode = TRUE;
 	vte_terminal_set_default_tabstops(terminal);
 
+	/* Cursor shape. */
+	pvt->cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
+
 	/* Cursor blinking. */
 	pvt->cursor_visible = TRUE;
 	pvt->cursor_blink_timeout = 500;
@@ -10313,18 +10318,163 @@ vte_terminal_paint_area (VteTerminal *terminal, const GdkRectangle *area)
 			      height);
 }
 
+static void
+vte_terminal_paint_cursor(VteTerminal *terminal)
+{
+	VteScreen *screen;
+	GdkColor color;
+	struct vte_charcell *cell;
+	struct _vte_draw_text_request item;
+	int row, drow, col;
+	long width, height, delta, cursor_width;
+	int fore, back, x, y;
+	gboolean blink, selected, focus;
+
+	if (!terminal->pvt->cursor_visible)
+		return;
+
+	screen = terminal->pvt->screen;
+	delta = screen->scroll_delta;
+	col = screen->cursor_current.col;
+	drow = screen->cursor_current.row;
+	row = drow - delta;
+	width = terminal->char_width;
+	height = terminal->char_height;
+
+	if ((CLAMP(col, 0, terminal->column_count - 1) != col) ||
+	    (CLAMP(row, 0, terminal->row_count    - 1) != row))
+		return;
+
+	focus = GTK_WIDGET_HAS_FOCUS(terminal);
+	blink = terminal->pvt->cursor_blink_state ^ terminal->pvt->screen->reverse_mode;
+
+	if (focus && !blink)
+		return;
+
+	/* Find the character "under" the cursor. */
+	cell = vte_terminal_find_charcell(terminal, col, drow);
+	while ((cell != NULL) && (cell->attr.fragment) && (col > 0)) {
+		col--;
+		cell = vte_terminal_find_charcell(terminal, col, drow);
+	}
+
+	/* Draw the cursor. */
+	item.c = (cell && cell->c) ? cell->c : ' ';
+	item.columns = cell ? cell->attr.columns : 1;
+	item.x = col * width;
+	item.y = row * height;
+	cursor_width = item.columns * width;
+	if (cell && cell->c != 0) {
+		gint cw = _vte_draw_get_char_width (terminal->pvt->draw,
+				cell->c, cell->attr.columns);
+		cursor_width = MAX(cursor_width, cw);
+		cursor_width += cell->attr.bold; /* for pseudo-bolding */
+	}
+
+	selected = vte_cell_is_selected(terminal, col, drow, NULL);
+
+	vte_terminal_determine_colors(terminal, cell,
+			TRUE^selected, selected, TRUE,
+			&fore, &back);
+
+	x = item.x + VTE_PAD_WIDTH;
+	y = item.y + VTE_PAD_WIDTH;
+
+	switch (terminal->pvt->cursor_shape) {
+
+		case VTE_CURSOR_SHAPE_IBEAM:
+		 	
+			vte_terminal_draw_line(terminal, &terminal->pvt->palette[back],
+					       x - 2,
+					       y,
+					       x - 2,
+					       y + height - 1);
+			break;
+
+		case VTE_CURSOR_SHAPE_UNDERLINE:
+
+			vte_terminal_draw_line(terminal, &terminal->pvt->palette[back],
+					       x,
+					       y + height - 1,
+					       x + cursor_width - 1,
+					       y + height - 1);
+			break;
+
+		case VTE_CURSOR_SHAPE_BLOCK:
+
+			color.red = terminal->pvt->palette[back].red;
+			color.green = terminal->pvt->palette[back].green;
+			color.blue = terminal->pvt->palette[back].blue;
+
+			if (selected || focus) {
+				/* just reverse the character under the cursor */
+
+				_vte_draw_fill_rectangle(terminal->pvt->draw,
+							 x,
+							 y,
+							 cursor_width,
+							 height,
+							 &color,
+							 VTE_DRAW_OPAQUE);
+
+				if (!vte_terminal_unichar_is_local_graphic(terminal, item.c) ||
+				    !vte_terminal_draw_graphic(terminal,
+							       item.c,
+							       fore, back,
+							       TRUE,
+							       item.x,
+							       item.y,
+							       width,
+							       item.columns,
+							       height)) {
+					gboolean hilite = FALSE;
+					if (cell && terminal->pvt->show_match) {
+						hilite = vte_cell_is_between(col, row,
+								terminal->pvt->match_start.column,
+								terminal->pvt->match_start.row,
+								terminal->pvt->match_end.column,
+								terminal->pvt->match_end.row,
+								TRUE);
+					}
+					if (cell && cell->c != 0 && cell->c != ' ') {
+						vte_terminal_draw_cells(terminal,
+								&item, 1,
+								fore, back, TRUE, FALSE,
+								cell->attr.bold,
+								cell->attr.underline,
+								cell->attr.strikethrough,
+								hilite,
+								FALSE,
+								width,
+								height);
+					}
+				}
+
+			} else {
+				/* draw a box around the character */
+
+				_vte_draw_draw_rectangle(terminal->pvt->draw,
+							 x - VTE_CURSOR_OUTLINE,
+							 y - VTE_CURSOR_OUTLINE,
+							 cursor_width + 2*VTE_CURSOR_OUTLINE,
+							 height + 2*VTE_CURSOR_OUTLINE,
+							 &color,
+							 VTE_DRAW_OPAQUE);
+			}
+
+			break;
+	}
+}
+
 /* Draw the widget. */
 static void
 vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 {
 	VteTerminal *terminal;
 	VteScreen *screen;
-	struct vte_charcell *cell;
-	struct _vte_draw_text_request item;
 	int row, drow, col, columns;
-	long width, height, ascent, descent, delta, cursor_width;
+	long width, height, ascent, descent, delta;
 	int i, len, fore, back, x, y;
-	gboolean blink, selected;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_paint()\n");
 	_vte_debug_print(VTE_DEBUG_WORK, "=");
@@ -10409,157 +10559,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 		g_free (rectangles);
 	}
 
-
-	/* Draw the cursor. */
-	if (terminal->pvt->cursor_visible &&
-	    (CLAMP(screen->cursor_current.col, 0, terminal->column_count - 1) ==
-	     screen->cursor_current.col) &&
-	    (CLAMP(screen->cursor_current.row,
-		   delta, delta + terminal->row_count - 1) ==
-	     screen->cursor_current.row)) {
-		/* Get the location of the cursor. */
-		col = screen->cursor_current.col;
-		drow = screen->cursor_current.row;
-		row = drow - delta;
-
-		/* Find the character "under" the cursor. */
-		cell = vte_terminal_find_charcell(terminal, col, drow);
-		while ((cell != NULL) && (cell->attr.fragment) && (col > 0)) {
-			col--;
-			cell = vte_terminal_find_charcell(terminal, col, drow);
-		}
-
-		/* Draw the cursor. */
-		item.c = (cell && cell->c) ? cell->c : ' ';
-		item.columns = cell ? cell->attr.columns : 1;
-		item.x = col * width;
-		item.y = row * height;
-		cursor_width = item.columns * width;
-		if (cell && cell->c != 0) {
-			gint cw = _vte_draw_get_char_width (terminal->pvt->draw,
-					cell->c, cell->attr.columns);
-			cursor_width = MAX(cursor_width, cw);
-			cursor_width += cell->attr.bold; /* pseudo-bolding */
-		}
-		selected = vte_cell_is_selected(terminal, col, drow, NULL);
-		if (GTK_WIDGET_HAS_FOCUS(terminal)) {
-			blink = terminal->pvt->cursor_blink_state ^
-				terminal->pvt->screen->reverse_mode;
-			vte_terminal_determine_colors(terminal, cell,
-						      blink | selected,
-						      selected,
-						      blink,
-						      &fore, &back);
-			if (blink) {
-				GdkColor color;
-				if (selected) {
-					goto draw_cursor_outline;
-				}
-				color.red = terminal->pvt->palette[back].red;
-				color.green = terminal->pvt->palette[back].green;
-				color.blue = terminal->pvt->palette[back].blue;
-				_vte_draw_fill_rectangle(terminal->pvt->draw,
-							 item.x + VTE_PAD_WIDTH,
-							 item.y + VTE_PAD_WIDTH,
-							 cursor_width,
-							 height,
-							 &color,
-							 VTE_DRAW_OPAQUE);
-				if (!vte_terminal_unichar_is_local_graphic(terminal, item.c) ||
-				    !vte_terminal_draw_graphic(terminal,
-							       item.c,
-							       fore, back,
-							       TRUE,
-							       item.x,
-							       item.y,
-							       width,
-							       item.columns,
-							       height)) {
-					gboolean hilite = FALSE;
-					if (cell && terminal->pvt->show_match) {
-						hilite = vte_cell_is_between(col, row,
-								terminal->pvt->match_start.column,
-								terminal->pvt->match_start.row,
-								terminal->pvt->match_end.column,
-								terminal->pvt->match_end.row,
-								TRUE);
-					}
-					if (cell && cell->c != 0 && cell->c != ' ') {
-						vte_terminal_draw_cells(terminal,
-								&item, 1,
-								fore, back, TRUE, FALSE,
-								cell->attr.bold,
-								cell->attr.underline,
-								cell->attr.strikethrough,
-								hilite,
-								FALSE,
-								width,
-								height);
-					}
-				}
-			}
-		} else {
-			GdkColor color;
-draw_cursor_outline:
-			_vte_draw_clear(terminal->pvt->draw,
-					col * width + VTE_PAD_WIDTH,
-					row * height + VTE_PAD_WIDTH,
-					cursor_width, height);
-			vte_terminal_determine_colors(terminal, cell,
-					terminal->pvt->screen->reverse_mode,
-					selected,
-					TRUE,
-					&fore, &back);
-			if (!vte_terminal_unichar_is_local_graphic(terminal, item.c) ||
-			    !vte_terminal_draw_graphic(terminal,
-						       item.c,
-						       fore, back,
-						       TRUE,
-						       item.x,
-						       item.y,
-						       width,
-						       item.columns,
-						       height)) {
-				gboolean hilite = FALSE;
-				if (cell && terminal->pvt->show_match) {
-					hilite = vte_cell_is_between(col, row,
-							terminal->pvt->match_start.column,
-							terminal->pvt->match_start.row,
-							terminal->pvt->match_end.column,
-							terminal->pvt->match_end.row,
-							TRUE);
-				}
-				/* Draw it as a hollow rectangle overtop character. */
-				if (cell && cell->c != 0 && cell->c != ' ') {
-					vte_terminal_draw_cells(terminal,
-							&item, 1,
-							fore, back, TRUE, FALSE,
-							cell->attr.bold,
-							cell->attr.underline,
-							cell->attr.strikethrough,
-							hilite,
-							FALSE,
-							width,
-							height);
-				}
-			}
-			vte_terminal_determine_colors(terminal, cell,
-					!terminal->pvt->screen->reverse_mode,
-					selected,
-					TRUE,
-					&fore, &back);
-			color.red = terminal->pvt->palette[back].red;
-			color.green = terminal->pvt->palette[back].green;
-			color.blue = terminal->pvt->palette[back].blue;
-			_vte_draw_draw_rectangle(terminal->pvt->draw,
-						 item.x + VTE_PAD_WIDTH - VTE_CURSOR_OUTLINE,
-						 item.y + VTE_PAD_WIDTH - VTE_CURSOR_OUTLINE,
-						 cursor_width + 2*VTE_CURSOR_OUTLINE,
-						 height + 2*VTE_CURSOR_OUTLINE,
-						 &color,
-						 VTE_DRAW_OPAQUE);
-		}
-	}
+	vte_terminal_paint_cursor(terminal);
 
 	/* Draw the pre-edit string (if one exists) over the cursor. */
 	if (terminal->pvt->im_preedit) {
@@ -11907,7 +11907,9 @@ vte_terminal_set_cursor_blink_mode(VteTerminal *terminal, VteTerminalCursorBlink
  * vte_terminal_get_cursor_blink_mode:
  * @terminal: a #VteTerminal
  *
- * Returns the cursor blink mode.
+ * Returns the currently set cursor blink mode.
+ *
+ * Return value: cursor blink mode.
  *
  * Since: 0.16.15
  */
@@ -11917,6 +11919,47 @@ vte_terminal_get_cursor_blink_mode(VteTerminal *terminal)
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_BLINK_SYSTEM);
 
         return terminal->pvt->cursor_blink_mode;
+}
+
+/**
+ * vte_terminal_set_cursor_shape:
+ * @terminal: a #VteTerminal
+ * @shape: the #VteTerminalCursorShape to use
+ *
+ * Sets the shape of the cursor drawn.
+ *
+ * Since: 0.17.6
+ */
+void
+vte_terminal_set_cursor_shape(VteTerminal *terminal, VteTerminalCursorShape shape)
+{
+        VteTerminalPrivate *pvt;
+
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        pvt = terminal->pvt;
+
+        if (pvt->cursor_shape == shape)
+                return;
+
+        pvt->cursor_shape = shape;
+}
+
+/**
+ * vte_terminal_get_cursor_shape:
+ * @terminal: a #VteTerminal
+ *
+ * Returns the currently set cursor shape.
+ *
+ * Return value: cursor shape.
+ *
+ * Since: 0.17.6
+ */
+VteTerminalCursorShape
+vte_terminal_get_cursor_shape(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_SHAPE_BLOCK);
+
+        return terminal->pvt->cursor_shape;
 }
 
 /**
@@ -12535,8 +12578,9 @@ vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
  * vte_terminal_get_pty:
  * @terminal: a #VteTerminal
  *
- * Returns: the file descriptor of the master end of @terminal's PTY,
- *   or -1 if the terminal has no PTY.
+ * Returns the file descriptor of the master end of @terminal's PTY.
+ *
+ * Return value: the file descriptor, or -1 if the terminal has no PTY.
  *
  * Since: 0.17.5
  */

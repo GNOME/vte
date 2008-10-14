@@ -35,7 +35,7 @@ All of these fields should be considered read-only.
 
 <!-- ##### SIGNAL VteTerminal::beep ##### -->
 <para>
-
+This signal is emitted when the a child sends a beep request to the terminal.
 </para>
 
 @vteterminal: the object which received the signal.
@@ -288,6 +288,27 @@ keys.
 @VTE_ERASE_ASCII_DELETE: Send an ASCII delete character (0x7F).
 @VTE_ERASE_DELETE_SEQUENCE: Send the "@@7" control sequence.
 
+<!-- ##### ENUM VteTerminalCursorShape ##### -->
+<para>
+An enumerated type which can be used to indicate what should the terminal
+draw at the cursor position.
+</para>
+
+@VTE_CURSOR_SHAPE_BLOCK: Draw a block cursor.  This is the default.
+@VTE_CURSOR_SHAPE_IBEAM: Draw a vertical bar on the left side of character.
+This is similar to the default cursor for other GTK+ widgets.
+@VTE_CURSOR_SHAPE_UNDERLINE: Draw a horizontal bar below the character.
+
+<!-- ##### ENUM VteTerminalCursorBlinkMode ##### -->
+<para>
+An enumerated type which can be used to indicate the cursor blink mode
+for the terminal.
+</para>
+
+@VTE_CURSOR_BLINK_SYSTEM: Follow GTK+ settings for cursor blinking.
+@VTE_CURSOR_BLINK_ON: Cursor blinks.
+@VTE_CURSOR_BLINK_OFF: Cursor does not blink.
+
 <!-- ##### FUNCTION vte_terminal_new ##### -->
 <para>
 </para>
@@ -341,6 +362,15 @@ keys.
 @pty_master: 
 
 
+<!-- ##### FUNCTION vte_terminal_get_pty ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
+
+
 <!-- ##### FUNCTION vte_terminal_feed ##### -->
 <para>
 
@@ -369,6 +399,15 @@ keys.
 @terminal: 
 @data: 
 @length: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_child_exit_status ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
 
 
 <!-- ##### FUNCTION vte_terminal_select_all ##### -->
@@ -636,6 +675,24 @@ keys.
 
 @terminal: 
 @scroll: 
+
+
+<!-- ##### FUNCTION vte_terminal_set_cursor_shape ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@shape: 
+
+
+<!-- ##### FUNCTION vte_terminal_get_cursor_shape ##### -->
+<para>
+
+</para>
+
+@terminal: 
+@Returns: 
 
 
 <!-- ##### FUNCTION vte_terminal_set_cursor_blinks ##### -->

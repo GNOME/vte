@@ -315,6 +315,9 @@ struct _VteTerminalPrivate {
 	gboolean scroll_on_keystroke;
 	long scrollback_lines;
 
+	/* Cursor shape */
+	VteTerminalCursorShape cursor_shape;
+
 	/* Cursor blinking. */
         VteTerminalCursorBlinkMode cursor_blink_mode;
 	gboolean cursor_blink_state;

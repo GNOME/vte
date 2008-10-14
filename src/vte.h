@@ -175,6 +175,13 @@ typedef enum {
         VTE_CURSOR_BLINK_OFF
 } VteTerminalCursorBlinkMode;
 
+/* Values for the cursor shape setting */
+typedef enum {
+        VTE_CURSOR_SHAPE_BLOCK,
+        VTE_CURSOR_SHAPE_IBEAM,
+        VTE_CURSOR_SHAPE_UNDERLINE
+} VteTerminalCursorShape;
+
 /* The structure we return as the supplemental attributes for strings. */
 struct _VteCharAttributes {
 	long row, column;
@@ -292,10 +299,17 @@ void vte_terminal_set_opacity(VteTerminal *terminal, guint16 opacity);
 
 /* Set whether or not the cursor blinks. */
 #ifndef VTE_DISABLE_DEPRECATED
-void vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink) G_GNUC_DEPRECATED;
+void vte_terminal_set_cursor_blinks(VteTerminal *terminal,
+				    gboolean blink) G_GNUC_DEPRECATED;
 #endif
-void vte_terminal_set_cursor_blink_mode(VteTerminal *terminal, VteTerminalCursorBlinkMode mode);
+void vte_terminal_set_cursor_blink_mode(VteTerminal *terminal,
+					VteTerminalCursorBlinkMode mode);
 VteTerminalCursorBlinkMode vte_terminal_get_cursor_blink_mode(VteTerminal *terminal);
+
+/* Set cursor shape */
+void vte_terminal_set_cursor_shape(VteTerminal *terminal,
+				   VteTerminalCursorShape shape);
+VteTerminalCursorShape vte_terminal_get_cursor_shape(VteTerminal *terminal);
 
 /* Set the number of scrollback lines, above or at an internal minimum. */
 void vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines);

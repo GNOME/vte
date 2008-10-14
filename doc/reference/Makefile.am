@@ -6,6 +6,9 @@ DOC_MODULE=vte
 # The top-level SGML file.
 DOC_MAIN_SGML_FILE=vte-docs.sgml
 
+# Extra options to supply to gtkdoc-scan
+SCAN_OPTIONS=--deprecated-guards="VTE_DISABLE_DEPRECATED"
+
 # The directory containing the source code. Relative to $(srcdir)
 DOC_SOURCE_DIR=../../src
 
