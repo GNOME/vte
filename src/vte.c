@@ -8640,7 +8640,7 @@ vte_terminal_draw_line(VteTerminal *terminal,
 {
 	vte_terminal_fill_rectangle(terminal, entry,
 				    x, y,
-				    MAX(1, xp - x + 1), MAX(1, yp - y + 1));
+				    MAX(VTE_LINE_WIDTH, xp - x + 1), MAX(VTE_LINE_WIDTH, yp - y + 1));
 }
 
 static void
@@ -10386,9 +10386,9 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 		case VTE_CURSOR_SHAPE_IBEAM:
 		 	
 			vte_terminal_draw_line(terminal, &terminal->pvt->palette[back],
-					       x - 2,
+					       x - 2*VTE_LINE_WIDTH,
 					       y,
-					       x - 2,
+					       x - 2*VTE_LINE_WIDTH,
 					       y + height - 1);
 			break;
 
@@ -10396,9 +10396,9 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 
 			vte_terminal_draw_line(terminal, &terminal->pvt->palette[back],
 					       x,
-					       y + height - 1,
+					       y + height - VTE_LINE_WIDTH,
 					       x + cursor_width - 1,
-					       y + height - 1);
+					       y + height - VTE_LINE_WIDTH);
 			break;
 
 		case VTE_CURSOR_SHAPE_BLOCK:
@@ -10455,10 +10455,10 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 				/* draw a box around the character */
 
 				_vte_draw_draw_rectangle(terminal->pvt->draw,
-							 x - VTE_CURSOR_OUTLINE,
-							 y - VTE_CURSOR_OUTLINE,
-							 cursor_width + 2*VTE_CURSOR_OUTLINE,
-							 height + 2*VTE_CURSOR_OUTLINE,
+							 x - VTE_LINE_WIDTH,
+							 y - VTE_LINE_WIDTH,
+							 cursor_width + 2*VTE_LINE_WIDTH,
+							 height + 2*VTE_LINE_WIDTH,
 							 &color,
 							 VTE_DRAW_OPAQUE);
 			}

@@ -1,5 +1,11 @@
 2008-10-14  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte-private.h:
+	* src/vte.c (vte_terminal_draw_line), (vte_terminal_paint_cursor):
+	Remove VTE_CURSOR_OUTLINE in favor of VTE_LINE_WIDTH.
+
+2008-10-14  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte.c (vte_terminal_paint_cursor):
 	Supposedly handle reverse video during cursor drawing.
 
