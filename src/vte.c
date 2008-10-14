@@ -10328,7 +10328,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	int row, drow, col;
 	long width, height, delta, cursor_width;
 	int fore, back, x, y;
-	gboolean blink, selected, focus;
+	gboolean blink, selected, focus, reverse;
 
 	if (!terminal->pvt->cursor_visible)
 		return;
@@ -10346,7 +10346,8 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 		return;
 
 	focus = GTK_WIDGET_HAS_FOCUS(terminal);
-	blink = terminal->pvt->cursor_blink_state ^ terminal->pvt->screen->reverse_mode;
+	blink = terminal->pvt->cursor_blink_state;
+	reverse = terminal->pvt->screen->reverse_mode;
 
 	if (focus && !blink)
 		return;
@@ -10374,7 +10375,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	selected = vte_cell_is_selected(terminal, col, drow, NULL);
 
 	vte_terminal_determine_colors(terminal, cell,
-			TRUE^selected, selected, TRUE,
+			TRUE^(reverse|selected), selected, TRUE,
 			&fore, &back);
 
 	x = item.x + VTE_PAD_WIDTH;
