@@ -1,3 +1,10 @@
+2008-10-15  Behdad Esfahbod  <behdad@gnome.org>
+
+	* doc/reference/Makefile.am:
+	* doc/reference/check-doc-coverage.sh:
+	* doc/reference/check.docs:
+	Update doc coverage test from cairo.
+
 2008-10-14  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte.c (vte_terminal_set_cursor_shape):

@@ -65,6 +65,11 @@ MAINTAINERCLEANFILES = vte-undocumented.txt
 
 include $(top_srcdir)/gtk-doc.make
 
-EXTRA_DIST += check.docs
+# This line really belongs in gtk-doc.mk
+$(REPORT_FILES): sgml-build.stamp
 
-TESTS = check.docs
+if ENABLE_GTK_DOC
+TESTS = check-doc-coverage.sh
+endif
+
+EXTRA_DIST += check-doc-coverage.sh
