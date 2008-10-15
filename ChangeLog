@@ -1,3 +1,8 @@
+2008-10-14  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vte.c (vte_terminal_set_cursor_shape):
+	Invalidate cursor upon shape change.
+
 2008-10-15  Christian Persch  <chpe@gnome.org>
 
 	* python/vte.defs: Add new API to the binding.

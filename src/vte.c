@@ -11952,6 +11952,7 @@ vte_terminal_set_cursor_shape(VteTerminal *terminal, VteTerminalCursorShape shap
                 return;
 
         pvt->cursor_shape = shape;
+	_vte_invalidate_cursor_once(terminal, FALSE);
 }
 
 /**
