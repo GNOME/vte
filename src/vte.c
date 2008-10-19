@@ -10964,6 +10964,18 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         klass->beep = NULL;
 
+        /**
+         * VteTerminal::set-scroll-adjustments:
+         * @terminal: the terminal which received the signal
+         * @hadjustment: the #GtkAdjustment used for horizontal scrolling (unused in #VteTerminal)
+         * @vadjustment: the #GtkAdjustment used for vertical scrolling
+         *
+         * This signal is an implementation detail; it is emitted when @terminal
+         * is added to a #GtkScrolledWindow. If @hadjustment or @vadjustment are %NULL,
+         * a new #GtkAdjustment is created internally.
+         *
+         * Since: 0.17.1
+         */
 	widget_class->set_scroll_adjustments_signal =
 		g_signal_new("set-scroll-adjustments",
 			     G_TYPE_FROM_CLASS (klass),
@@ -11237,7 +11249,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
-			     
+
 	g_signal_new("beep",
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
