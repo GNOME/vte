@@ -2870,7 +2870,6 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	VteScreen *screen;
 	gboolean line_wrapped = FALSE; /* cursor moved before char inserted */
 
-	g_message ("insert %04X", c);
 	screen = terminal->pvt->screen;
 	insert |= screen->insert_mode;
 	invalidate_now |= insert;
