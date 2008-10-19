@@ -3317,6 +3317,9 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
  * terminal widget's emulation setting.  If @lastlog, @utmp, or @wtmp are %TRUE,
  * logs the session to the specified system log files.
  *
+ * Note that all file descriptors except stdin/stdout/stderr will be closed
+ * before calling exec() in the child.
+ * 
  * Returns: the ID of the new process
  */
 pid_t
