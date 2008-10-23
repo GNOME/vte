@@ -618,9 +618,6 @@ AM_CONDITIONAL(BUILD_GNOME_PTY_HELPER,[test "$enable_gnome_pty_helper" != no])
 AC_PATH_PROG([GLIB_GENMARSHAL],[glib-genmarshal])
 AC_PATH_PROG([GLIB_MKENUMS],[glib-mkenums])
 
-PKG_CHECK_EXISTS([glib-2.0 >= 2.14],[GLIB_GENMARSHAL_INTERNAL="--internal"],[GLIB_GENMARSHAL_INTERNAL=""])
-AC_SUBST([GLIB_GENMARSHAL_INTERNAL])
-
 ################################################################################
 # Glade catalogue
 ################################################################################

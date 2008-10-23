@@ -132,8 +132,8 @@ BUILT_SOURCES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h
 CLEANFILES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h stamp-vtetypebuiltins.h
 
 marshal.c marshal.h: marshal.list
-	$(GLIB_GENMARSHAL) --prefix=_vte_marshal --header --body $(GLIB_GENMARSHAL_INTERNAL) $^ > marshal.c
-	$(GLIB_GENMARSHAL) --prefix=_vte_marshal --header $(GLIB_GENMARSHAL_INTERNAL) $^ > marshal.h
+	$(GLIB_GENMARSHAL) --prefix=_vte_marshal --header --body --internal $^ > marshal.c
+	$(GLIB_GENMARSHAL) --prefix=_vte_marshal --header --internal $^ > marshal.h
 
 vtetypebuiltins.h: stamp-vtetypebuiltins.h
 	@true
