@@ -625,7 +625,7 @@ AC_PATH_PROG([GLIB_MKENUMS],[glib-mkenums])
 AC_MSG_CHECKING([whether to install the glade catalogue])
 AC_ARG_ENABLE([glade-catalogue],
   [AS_HELP_STRING([--disable-glade],[Disable installing the glade catalogue])],
-  [],[enable_glade_catalogue=yes])
+  [],[enable_glade_catalogue=no])
 AC_MSG_RESULT([$enable_glade_catalogue])
 
 if test "$enable_glade_catalogue" = "yes"; then
