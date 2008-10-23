@@ -1,3 +1,14 @@
+2008-10-23  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 557375 – >=vte-0.16.14 breaks highlighting on activity
+
+	* src/vte.c (vte_terminal_deselect_all),
+	(vte_terminal_extend_selection):
+	After the user modifies the selection, copy it to PRIMARY and store
+	it on the terminal. This ensures that after a screen redraw, we
+	compare the contents of the selected region with the current
+	selection, instead of stale data.
+
 2008-10-23  Christian Persch  <chpe@gnome.org>
 
         * configure.in:

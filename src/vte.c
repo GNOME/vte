@@ -1018,10 +1018,16 @@ vte_terminal_deselect_all(VteTerminal *terminal)
 {
 	if (terminal->pvt->has_selection) {
 		gint sx, sy, ex, ey;
-		terminal->pvt->has_selection = FALSE;
+
 		_vte_debug_print(VTE_DEBUG_SELECTION,
 				"Deselecting all text.\n");
+
+		terminal->pvt->has_selection = FALSE;
+		g_free (terminal->pvt->selection);
+		terminal->pvt->selection = NULL;
+
 		vte_terminal_emit_selection_changed(terminal);
+
 		sx = terminal->pvt->selection_start.x;
 		sy = terminal->pvt->selection_start.y;
 		ex = terminal->pvt->selection_end.x;
@@ -6142,7 +6148,6 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 	gboolean invalidate_selected = FALSE;
 	gboolean had_selection;
 
-
 	height = terminal->char_height;
 	width = terminal->char_width;
 
@@ -6153,7 +6158,6 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 			floor (y / height) == floor (terminal->pvt->mouse_last_y / height)) {
 		return;
 	}
-
 
 	screen = terminal->pvt->screen;
 	old_start = terminal->pvt->selection_start;
@@ -6510,6 +6514,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 			terminal->pvt->selection_start.y,
 			terminal->pvt->selection_end.x,
 			terminal->pvt->selection_end.y);
+	vte_terminal_copy_primary(terminal);
 	vte_terminal_emit_selection_changed(terminal);
 }
 
