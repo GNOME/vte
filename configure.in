@@ -622,6 +622,32 @@ PKG_CHECK_EXISTS([glib-2.0 >= 2.14],[GLIB_GENMARSHAL_INTERNAL="--internal"],[GLI
 AC_SUBST([GLIB_GENMARSHAL_INTERNAL])
 
 ################################################################################
+# Glade catalogue
+################################################################################
+
+AC_MSG_CHECKING([whether to install the glade catalogue])
+AC_ARG_ENABLE([glade-catalogue],
+  [AS_HELP_STRING([--disable-glade],[Disable installing the glade catalogue])],
+  [],[enable_glade_catalogue=yes])
+AC_MSG_RESULT([$enable_glade_catalogue])
+
+if test "$enable_glade_catalogue" = "yes"; then
+  GLADE_CATALOGUE_DIR="$($PKG_CONFIG --variable=catalogdir gladeui-1.0)"
+  GLADE_ICON_DIR="$($PKG_CONFIG --variable=pixmapdir gladeui-1.0)"
+  GLADE_MODULE_DIR="$($PKG_CONFIG --variable=moduledir gladeui-1.0)"
+
+  if test -z "$GLADE_CATALOGUE_DIR" -o -z "$GLADE_MODULE_DIR"; then
+    AC_MSG_ERROR([gladeui-1.0 not found])
+  fi
+
+  AC_SUBST([GLADE_CATALOGUE_DIR])
+  AC_SUBST([GLADE_ICON_DIR])
+  AC_SUBST([GLADE_MODULE_DIR])
+fi
+  
+AM_CONDITIONAL([ENABLE_GLADE_CATALOGUE],[test "$enable_glade_catalogue" = "yes"])
+
+################################################################################
 
 GTK_DOC_CHECK([1.0])
 
@@ -643,6 +669,7 @@ po/Makefile.in
 doc/Makefile
 doc/openi18n/Makefile
 doc/reference/Makefile
+glade/Makefile
 vte.pc
 vte-uninstalled.pc
 ])
@@ -662,6 +689,7 @@ Configuration for libvte $VERSION
 	With XFT: $with_xft2
 	With PangoX: $with_pangox
 	With PCRE: $use_pcre
+	Installing Glade catalogue: $enable_glade_catalogue
 	Debugging: $DEBUG
 	Disable deprecated features: $usedeprecation
 EOF

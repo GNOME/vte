@@ -6,6 +6,10 @@ if BUILD_GNOME_PTY_HELPER
 SUBDIRS += gnome-pty-helper
 endif
 
+if ENABLE_GLADE_CATALOGUE
+SUBDIRS += glade
+endif
+
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = vte.pc
 
