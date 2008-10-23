@@ -66,6 +66,9 @@ typedef gunichar wint_t;
 #define gdk_keymap_get_for_display(dpy) gdk_keymap_get_default()
 #endif
 
+#define STATIC_PARAMS (G_PARAM_STATIC_NAME | G_PARAM_STATIC_NICK | G_PARAM_STATIC_BLURB)
+
+
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
 static void vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 				     gboolean reset);
@@ -134,7 +137,33 @@ enum {
 static guint signals[LAST_SIGNAL];
 
 enum {
-  PROP_0
+        PROP_0,
+        PROP_ALLOW_BOLD,
+        PROP_AUDIBLE_BELL,
+        PROP_BACKGROUND_IMAGE_FILE,
+        PROP_BACKGROUND_IMAGE_PIXBUF,
+        PROP_BACKGROUND_OPACITY,
+        PROP_BACKGROUND_SATURATION,
+        PROP_BACKGROUND_TINT_COLOR,
+        PROP_BACKGROUND_TRANSPARENT,
+        PROP_BACKSPACE_BINDING,
+        PROP_CURSOR_BLINK_MODE,
+        PROP_CURSOR_SHAPE,
+        PROP_DELETE_BINDING,
+        PROP_EMULATION,
+        PROP_ENCODING,
+        PROP_FONT,
+        PROP_FONT_ANTIALIAS,
+        PROP_ICON_TITLE,
+        PROP_MOUSE_POINTER_AUTOHIDE,
+        PROP_PTY,
+        PROP_SCROLL_BACKGROUND,
+        PROP_SCROLLBACK_LINES,
+        PROP_SCROLL_ON_KEYSTROKE,
+        PROP_SCROLL_ON_OUTPUT,
+        PROP_WINDOW_TITLE,
+        PROP_WORD_CHARS,
+        PROP_VISIBLE_BELL
 };
 
 /* these static variables are guarded by the GDK mutex */
@@ -801,6 +830,8 @@ vte_terminal_emit_emulation_changed(VteTerminal *terminal)
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `emulation-changed'.\n");
 	g_signal_emit_by_name(terminal, "emulation-changed");
+        g_object_notify(G_OBJECT(terminal), "emulation");
+
 }
 
 /* Emit an "encoding-changed" signal. */
@@ -810,6 +841,7 @@ vte_terminal_emit_encoding_changed(VteTerminal *terminal)
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `encoding-changed'.\n");
 	g_signal_emit_by_name(terminal, "encoding-changed");
+        g_object_notify(G_OBJECT(terminal), "encoding");
 }
 
 /* Emit a "child-exited" signal. */
@@ -899,6 +931,7 @@ vte_terminal_emit_char_size_changed(VteTerminal *terminal,
 			"Emitting `char-size-changed'.\n");
 	g_signal_emit_by_name(terminal, "char-size-changed",
 			      width, height);
+//         g_object_notify(G_OBJECT(terminal), "char-size");
 }
 
 /* Emit a "status-line-changed" signal. */
@@ -908,6 +941,7 @@ _vte_terminal_emit_status_line_changed(VteTerminal *terminal)
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `status-line-changed'.\n");
 	g_signal_emit_by_name(terminal, "status-line-changed");
+//         g_object_notify(G_OBJECT(terminal), "status-line");
 }
 
 /* Emit an "increase-font-size" signal. */
@@ -917,6 +951,7 @@ vte_terminal_emit_increase_font_size(VteTerminal *terminal)
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `increase-font-size'.\n");
 	g_signal_emit_by_name(terminal, "increase-font-size");
+        g_object_notify(G_OBJECT(terminal), "font-scale");
 }
 
 /* Emit a "decrease-font-size" signal. */
@@ -926,6 +961,7 @@ vte_terminal_emit_decrease_font_size(VteTerminal *terminal)
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `decrease-font-size'.\n");
 	g_signal_emit_by_name(terminal, "decrease-font-size");
+        g_object_notify(G_OBJECT(terminal), "font-scale");
 }
 
 /* Emit a "text-inserted" signal. */
@@ -2183,6 +2219,8 @@ _vte_terminal_setup_utf8 (VteTerminal *terminal)
 void
 vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 {
+        VteTerminalPrivate *pvt;
+        GObject *object;
 	const char *old_codeset;
 	VteConv conv;
 	char *obuf1, *obuf2;
@@ -2190,7 +2228,10 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-	old_codeset = terminal->pvt->encoding;
+        object = G_OBJECT(terminal);
+        pvt = terminal->pvt;
+
+	old_codeset = pvt->encoding;
 	if (codeset == NULL) {
 		g_get_charset(&codeset);
 	}
@@ -2198,6 +2239,8 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 		/* Nothing to do! */
 		return;
 	}
+
+        g_object_freeze_notify(object);
 
 	/* Open new conversions. */
 	conv = _vte_conv_open(codeset, "UTF-8");
@@ -2253,6 +2296,8 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 			"Set terminal encoding to `%s'.\n",
 			terminal->pvt->encoding);
 	vte_terminal_emit_encoding_changed(terminal);
+
+        g_object_thaw_notify(object);
 }
 
 /**
@@ -2840,8 +2885,18 @@ vte_terminal_set_colors(VteTerminal *terminal,
 void
 vte_terminal_set_opacity(VteTerminal *terminal, guint16 opacity)
 {
+        VteTerminalPrivate *pvt;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->bg_opacity = opacity;
+
+        pvt = terminal->pvt;
+
+        if (opacity == pvt->bg_opacity)
+                return;
+
+	pvt->bg_opacity = opacity;
+
+        g_object_notify(G_OBJECT(terminal), "background-opacity");
 }
 
 /**
@@ -3087,6 +3142,11 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 				VteTerminal *terminal)
 {
 	if (pid == terminal->pvt->pty_pid) {
+                GObject *object = G_OBJECT(terminal);
+
+                g_object_ref(object);
+                g_object_freeze_notify(object);
+
 		_VTE_DEBUG_IF (VTE_DEBUG_LIFECYCLE) {
 			g_printerr ("Child[%d] exited with status %d\n",
 					pid, status);
@@ -3121,6 +3181,8 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 			_vte_pty_close(terminal->pvt->pty_master);
 			close(terminal->pvt->pty_master);
 			terminal->pvt->pty_master = -1;
+                
+                        g_object_notify(object, "pty");
 		}
 
 		/* Take one last shot at processing whatever data is pending,
@@ -3141,6 +3203,11 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 		/* Tell observers what's happened. */
                 terminal->pvt->child_exit_status = status;
 		vte_terminal_emit_child_exited(terminal);
+
+                g_object_thaw_notify(object);
+                g_object_unref(object);
+
+                /* NOTE! terminal may be destroyed at this point */
 	}
 }
 
@@ -3226,10 +3293,13 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 			 const char *directory,
 			 gboolean lastlog, gboolean utmp, gboolean wtmp)
 {
+        GObject *object = G_OBJECT(terminal);
 	char **env_add;
 	int i, fd;
 	pid_t pid;
 	VteReaper *reaper;
+
+        g_object_freeze_notify(object);
 
 	/* Duplicate the environment, and add one more variable. */
 	for (i = 0; (envv != NULL) && (envv[i] != NULL); i++) {
@@ -3251,6 +3321,9 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 		_vte_pty_close(terminal->pvt->pty_master);
 		close(terminal->pvt->pty_master);
 		terminal->pvt->pty_master = -1;
+
+                g_object_notify(object, "pty");
+
 	}
 
         terminal->pvt->child_exit_status = 0;
@@ -3262,6 +3335,9 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 			  lastlog, utmp, wtmp);
 	if (pid == -1 || fd == -1) {
 		g_strfreev(env_add);
+
+                g_object_thaw_notify(object);
+
 		return -1;
 	}
 
@@ -3293,6 +3369,8 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 
 	/* Clean up. */
 	g_strfreev(env_add);
+
+        g_object_thaw_notify(object);
 
 	/* Return the pid to the caller. */
 	return pid;
@@ -3400,6 +3478,11 @@ vte_terminal_forkpty(VteTerminal *terminal,
 static void
 vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
 {
+        GObject *object = G_OBJECT(terminal);
+
+        g_object_freeze_notify(object);
+
+
 	/* Close the connections to the child -- note that the source channel
 	 * has already been dereferenced. */
 
@@ -3413,6 +3496,8 @@ vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
 		_vte_pty_close(terminal->pvt->pty_master);
 		close(terminal->pvt->pty_master);
 		terminal->pvt->pty_master = -1;
+        
+                g_object_notify(object, "pty");
 	}
 
 	/* Take one last shot at processing whatever data is pending, then
@@ -3430,6 +3515,8 @@ vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
 
 	/* Emit a signal that we read an EOF. */
 	vte_terminal_queue_eof(terminal);
+
+        g_object_thaw_notify(object);
 }
 
 /* Reset the input method context. */
@@ -7212,10 +7299,15 @@ vte_terminal_set_font_full(VteTerminal *terminal,
 			   const PangoFontDescription *font_desc,
 			   VteTerminalAntiAlias antialias)
 {
+        VteTerminalPrivate *pvt;
+        GObject *object;
 	PangoFontDescription *desc;
+        gboolean same_antialias, same_desc;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
+        object = G_OBJECT(terminal);
+        pvt = terminal->pvt;
 
 	/* Create an owned font description. */
 	gtk_widget_ensure_style (&terminal->widget);
@@ -7237,26 +7329,35 @@ vte_terminal_set_font_full(VteTerminal *terminal,
 	}
 
 	/* check for any change */
-	if (antialias == terminal->pvt->fontantialias &&
-			terminal->pvt->fontdesc &&
-			pango_font_description_equal(desc, terminal->pvt->fontdesc)) {
+        same_antialias = antialias == pvt->fontantialias;
+        same_desc = pvt->fontdesc && pango_font_description_equal (pvt->fontdesc, desc);
+	if (same_antialias && same_desc) {
 		pango_font_description_free(desc);
 		return;
 	}
+
+        g_object_freeze_notify(object);
 
 	/* Free the old font description and save the new one. */
 	if (terminal->pvt->fontdesc != NULL) {
 		pango_font_description_free(terminal->pvt->fontdesc);
 	}
-	terminal->pvt->fontdesc = desc;
-	terminal->pvt->fontantialias = antialias;
-	terminal->pvt->fontdirty = TRUE;
-	terminal->pvt->has_fonts = TRUE;
+	pvt->fontdesc = desc;
+	pvt->fontantialias = antialias;
+	pvt->fontdirty = TRUE;
+	pvt->has_fonts = TRUE;
+
+        if (!same_desc)
+                g_object_notify(object, "font");
+        if (!same_antialias)
+                g_object_notify(object, "font-antialias");
 
 	/* Set the drawing font. */
 	if (GTK_WIDGET_REALIZED(terminal)) {
 		vte_terminal_ensure_font (terminal);
 	}
+
+        g_object_thaw_notify(object);
 }
 
 /**
@@ -7484,9 +7585,16 @@ vte_terminal_set_scroll_adjustments(GtkWidget *widget,
 void
 vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 {
+        VteTerminalPrivate *pvt;
+        GObject *object;
 	int columns, rows;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        object = G_OBJECT(terminal);
+        pvt = terminal->pvt;
+
+        g_object_freeze_notify(object);
 
 	/* Set the emulation type, for reference. */
 	if (emulation == NULL) {
@@ -7542,6 +7650,8 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 
 	/* Notify observers that we changed our emulation. */
 	vte_terminal_emit_emulation_changed(terminal);
+
+        g_object_thaw_notify(object);
 }
 
 /**
@@ -7598,6 +7708,7 @@ static void
 vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 			 gboolean reset)
 {
+        GObject *object = G_OBJECT(terminal);
 	struct stat st;
 	char *wpath;
 
@@ -7618,6 +7729,9 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 	if (path == terminal->pvt->termcap_path) {
 		return;
 	}
+
+        g_object_freeze_notify(object);
+
 	terminal->pvt->termcap_path = path;
 
 	_vte_debug_print(VTE_DEBUG_MISC, "Loading termcap `%s'...",
@@ -7635,6 +7749,8 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 	if (reset) {
 		vte_terminal_set_emulation(terminal, terminal->pvt->emulation);
 	}
+
+        g_object_thaw_notify(object);
 }
 
 static void
@@ -10834,12 +10950,94 @@ vte_terminal_get_property (GObject *object,
                            GValue *value,
                            GParamSpec *pspec)
 {
+        VteTerminal *terminal = VTE_TERMINAL (object);
+        VteTerminalPrivate *pvt = terminal->pvt;
+
 	switch (prop_id)
 	{
+                case PROP_ALLOW_BOLD:
+                        g_value_set_boolean (value, vte_terminal_get_allow_bold (terminal));
+                        break;
+                case PROP_AUDIBLE_BELL:
+                        g_value_set_boolean (value, vte_terminal_get_audible_bell (terminal));
+                        break;
+                case PROP_BACKGROUND_IMAGE_FILE:
+                        g_value_set_string (value, pvt->bg_file);
+                        break;
+                case PROP_BACKGROUND_IMAGE_PIXBUF:
+                        g_value_set_object (value, pvt->bg_pixbuf);
+                        break;
+                case PROP_BACKGROUND_OPACITY:
+                        g_value_set_double (value, (double) pvt->bg_opacity / (double) G_MAXUINT16);
+                        break;
+                case PROP_BACKGROUND_SATURATION:
+                        g_value_set_double (value, (double) pvt->bg_saturation / (double) VTE_SATURATION_MAX);
+                        break;
+                case PROP_BACKGROUND_TINT_COLOR:
+                        g_value_set_boxed (value, &pvt->bg_tint_color);
+                        break;
+                case PROP_BACKGROUND_TRANSPARENT:
+                        g_value_set_boolean (value, pvt->bg_transparent);
+                        break;
+                case PROP_BACKSPACE_BINDING:
+                        g_value_set_enum (value, pvt->backspace_binding);
+                        break;
+                case PROP_CURSOR_BLINK_MODE:
+                        g_value_set_enum (value, vte_terminal_get_cursor_blink_mode (terminal));
+                        break;
+                case PROP_CURSOR_SHAPE:
+                        g_value_set_enum (value, vte_terminal_get_cursor_shape (terminal));
+                        break;
+                case PROP_DELETE_BINDING:
+                        g_value_set_enum (value, pvt->delete_binding);
+                        break;
+                case PROP_EMULATION:
+                        g_value_set_string (value, vte_terminal_get_emulation (terminal));
+                        break;
+                case PROP_ENCODING:
+                        g_value_set_string (value, vte_terminal_get_encoding (terminal));
+                        break;
+                case PROP_FONT:
+                        g_value_set_boxed (value, vte_terminal_get_font (terminal));
+                        break;
+                case PROP_FONT_ANTIALIAS:
+                        g_value_set_enum (value, pvt->fontantialias);
+                        break;
+                case PROP_ICON_TITLE:
+                        g_value_set_string (value, vte_terminal_get_icon_title (terminal));
+                        break;
+                case PROP_MOUSE_POINTER_AUTOHIDE:
+                        g_value_set_boolean (value, vte_terminal_get_mouse_autohide (terminal));
+                        break;
+                case PROP_PTY:
+                        g_value_set_int (value, pvt->pty_master);
+                        break;
+                case PROP_SCROLL_BACKGROUND:
+                        g_value_set_boolean (value, pvt->scroll_background);
+                        break;
+                case PROP_SCROLLBACK_LINES:
+                        g_value_set_uint (value, pvt->scrollback_lines);
+                        break;
+                case PROP_SCROLL_ON_KEYSTROKE:
+                        g_value_set_boolean (value, pvt->scroll_on_keystroke);
+                        break;
+                case PROP_SCROLL_ON_OUTPUT:
+                        g_value_set_boolean (value, pvt->scroll_on_output);
+                        break;
+                case PROP_WINDOW_TITLE:
+                        g_value_set_string (value, vte_terminal_get_window_title (terminal));
+                        break;
+                case PROP_WORD_CHARS:
+                        g_value_set_string (value, NULL /* FIXME */);
+                        break;
+                case PROP_VISIBLE_BELL:
+                        g_value_set_boolean (value, vte_terminal_get_visible_bell (terminal));
+                        break;
+
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 			return;
-	}
+        }
 }
 
 static void
@@ -10848,8 +11046,90 @@ vte_terminal_set_property (GObject *object,
                            const GValue *value,
                            GParamSpec *pspec)
 {
+        VteTerminal *terminal = VTE_TERMINAL (object);
+        VteTerminalPrivate *pvt = terminal->pvt;
+
 	switch (prop_id)
 	{
+                case PROP_ALLOW_BOLD:
+                        vte_terminal_set_allow_bold (terminal, g_value_get_boolean (value));
+                        break;
+                case PROP_AUDIBLE_BELL:
+                        vte_terminal_set_audible_bell (terminal, g_value_get_boolean (value));
+                        break;
+                case PROP_BACKGROUND_IMAGE_FILE:
+                        vte_terminal_set_background_image_file (terminal, g_value_get_string (value));
+                        break;
+                case PROP_BACKGROUND_IMAGE_PIXBUF:
+                        vte_terminal_set_background_image (terminal, g_value_get_object (value));
+                        break;
+                case PROP_BACKGROUND_OPACITY:
+                        vte_terminal_set_opacity (terminal, g_value_get_double (value) * (double) G_MAXUINT16);
+                        break;
+                case PROP_BACKGROUND_SATURATION:
+                        vte_terminal_set_background_saturation (terminal, g_value_get_double (value));
+                        break;
+                case PROP_BACKGROUND_TINT_COLOR:
+                        vte_terminal_set_background_tint_color (terminal, g_value_get_boxed (value));
+                        break;
+                case PROP_BACKGROUND_TRANSPARENT:
+                        vte_terminal_set_background_transparent (terminal, g_value_get_boolean (value));
+                        break;
+                case PROP_BACKSPACE_BINDING:
+                        vte_terminal_set_backspace_binding (terminal, g_value_get_enum (value));
+                        break;
+                case PROP_CURSOR_BLINK_MODE:
+                        vte_terminal_set_cursor_blink_mode (terminal, g_value_get_enum (value));
+                        break;
+                case PROP_CURSOR_SHAPE:
+                        vte_terminal_set_cursor_shape (terminal, g_value_get_enum (value));
+                        break;
+                case PROP_DELETE_BINDING:
+                        vte_terminal_set_delete_binding (terminal, g_value_get_enum (value));
+                        break;
+                case PROP_EMULATION:
+                        vte_terminal_set_emulation (terminal, g_value_get_string (value));
+                        break;
+                case PROP_ENCODING:
+                        vte_terminal_set_encoding (terminal, g_value_get_string (value));
+                        break;
+                case PROP_FONT:
+                        vte_terminal_set_font_full (terminal, g_value_get_boxed (value), pvt->fontantialias);
+                        break;
+                case PROP_FONT_ANTIALIAS:
+                        vte_terminal_set_font_full (terminal, pvt->fontdesc, g_value_get_enum (value));
+                        break;
+                case PROP_MOUSE_POINTER_AUTOHIDE:
+                        vte_terminal_set_mouse_autohide (terminal, g_value_get_boolean (value));
+                        break;
+                case PROP_PTY:
+                        vte_terminal_set_pty (terminal, g_value_get_int (value));
+                        break;
+                case PROP_SCROLL_BACKGROUND:
+                        vte_terminal_set_scroll_background (terminal, g_value_get_boolean (value));
+                        break;
+                case PROP_SCROLLBACK_LINES:
+                        vte_terminal_set_scrollback_lines (terminal, g_value_get_uint (value));
+                        break;
+                case PROP_SCROLL_ON_KEYSTROKE:
+                        vte_terminal_set_scroll_on_keystroke(terminal, g_value_get_boolean (value));
+                        break;
+                case PROP_SCROLL_ON_OUTPUT:
+                        vte_terminal_set_scroll_on_output (terminal, g_value_get_boolean (value));
+                        break;
+                case PROP_WORD_CHARS:
+                        vte_terminal_set_word_chars (terminal, g_value_get_string (value));
+                        break;
+                case PROP_VISIBLE_BELL:
+                        vte_terminal_set_visible_bell (terminal, g_value_get_boolean (value));
+                        break;
+
+                /* Not writable */
+                case PROP_ICON_TITLE:
+                case PROP_WINDOW_TITLE:
+                        g_assert_not_reached ();
+                        break;
+
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 			return;
@@ -11261,8 +11541,442 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 
-	/* Bind Copy, Paste, Cut keys */
+        /**
+         * VteTerminal:allow-bold:
+         *
+         * Controls whether or not the terminal will attempt to draw bold text.
+         * This may happen either by using a bold font variant, or by
+         * repainting text with a different offset.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_ALLOW_BOLD,
+                 g_param_spec_boolean ("allow-bold", NULL, NULL,
+                                       TRUE,
+                                       G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:audible-bell:
+         *
+         * Controls whether or not the terminal will beep when the child outputs the
+         * "bl" sequence.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_AUDIBLE_BELL,
+                 g_param_spec_boolean ("audible-bell", NULL, NULL,
+                                       TRUE,
+                                       G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:background-image-file:
+         *
+         * Sets a background image file for the widget.  If specified by
+         * #VteTerminal:background-saturation:, the terminal will tint its
+         * in-memory copy of the image before applying it to the terminal.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_BACKGROUND_IMAGE_FILE,
+                 g_param_spec_string ("background-image-file", NULL, NULL,
+                                      NULL,
+                                      G_PARAM_READWRITE | STATIC_PARAMS));
+
+        /**
+         * VteTerminal:background-image-pixbuf:
+         *
+         * Sets a background image for the widget.  Text which would otherwise be
+         * drawn using the default background color will instead be drawn over the
+         * specified image.  If necessary, the image will be tiled to cover the
+         * widget's entire visible area. If specified by
+         * #VteTerminal:background-saturation:, the terminal will tint its
+         * in-memory copy of the image before applying it to the terminal.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_BACKGROUND_IMAGE_PIXBUF,
+                 g_param_spec_object ("background-image-pixbuf", NULL, NULL,
+                                      GDK_TYPE_PIXBUF,
+                                      G_PARAM_READWRITE | STATIC_PARAMS));
+
+        /**
+         * VteTerminal:background-opacity:
+         *
+         * Sets the opacity of the terminal background, were 0.0 means completely
+         * transparent and 1.0 means completely opaque.
+         *
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_BACKGROUND_OPACITY,
+                 g_param_spec_double ("background-opacity", NULL, NULL,
+                                      0.0, 1.0,
+                                      1.0,
+                                      G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:background-saturation:
+         *
+         * If a background image has been set using #VteTerminal:background-image-file: or
+         * #VteTermina:background-image-pixbuf:, or #VteTerminal:background-transparent:,
+         * and the saturation value is less
+         * than 1.0, the terminal will adjust the colors of the image before drawing
+         * the image.  To do so, the terminal will create a copy of the background
+         * image (or snapshot of the root window) and modify its pixel values.
+         *
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_BACKGROUND_SATURATION,
+                 g_param_spec_double ("background-saturation", NULL, NULL,
+                                      0.0, 1.0,
+                                      0.4,
+                                      G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:background-tint-color:
+         *
+         * If a background image has been set using #VteTerminal:background-image-file: or
+         * #VteTermina:background-image-pixbuf:, or #VteTerminal:background-transparent:, and
+         * and the value set by VteTerminal:background-saturation: is less than 1.0,
+         * the terminal
+         * will adjust the color of the image before drawing the image.  To do so,
+         * the terminal will create a copy of the background image (or snapshot of
+         * the root window) and modify its pixel values.  The initial tint color
+         * is black.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_BACKGROUND_TINT_COLOR,
+                 g_param_spec_boxed ("background-tint-color", NULL, NULL,
+                                     GDK_TYPE_COLOR,
+                                     G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:background-transparent:
+         *
+         * Sets whther the terminal uses the pixmap stored in the root
+         * window as the background, adjusted so that if there are no windows
+         * below your application, the widget will appear to be transparent.
+         *
+         * NOTE: When using a compositing window manager, you should instead
+         * set a RGBA colourmap on the toplevel window, so you get real transparency.
+         *
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_BACKGROUND_TRANSPARENT,
+                 g_param_spec_boolean ("background-transparent", NULL, NULL,
+                                       FALSE,
+                                       G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:backspace-binding:
+         *
+         * *Controls what string or control sequence the terminal sends to its child
+         * when the user presses the backspace key.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_BACKSPACE_BINDING,
+                 g_param_spec_enum ("backspace-binding", NULL, NULL,
+                                    VTE_TYPE_TERMINAL_ERASE_BINDING,
+                                    VTE_ERASE_AUTO,
+                                    G_PARAM_READWRITE | STATIC_PARAMS));
+
+        /**
+         * VteTerminal:cusor-blink-mode:
+         *
+         * Sets whether or not the cursor will blink. Using VTE_CURSOR_BLINK_SYSTEM
+         * will use the #GtkSettings::gtk-cursor-blink setting.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_CURSOR_BLINK_MODE,
+                 g_param_spec_enum ("cursor-blink-mode", NULL, NULL,
+                                    VTE_TYPE_TERMINAL_CURSOR_BLINK_MODE,
+                                    VTE_CURSOR_BLINK_SYSTEM,
+                                    G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:cursor-shape:
+         *
+         * Controls the shape of the cursor.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_CURSOR_SHAPE,
+                 g_param_spec_enum ("cursor-shape", NULL, NULL,
+                                    VTE_TYPE_TERMINAL_CURSOR_SHAPE,
+                                    VTE_CURSOR_SHAPE_BLOCK,
+                                    G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:delete-binding:
+         *
+         * Controls what string or control sequence the terminal sends to its child
+         * when the user presses the delete key.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_DELETE_BINDING,
+                 g_param_spec_enum ("delete-binding", NULL, NULL,
+                                    VTE_TYPE_TERMINAL_ERASE_BINDING,
+                                    VTE_ERASE_AUTO,
+                                    G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:emulation:
+         *
+         * Sets what type of terminal the widget attempts to emulate by scanning for
+         * control sequences defined in the system's termcap file.  Unless you
+         * are interested in this feature, always use the default which is "xterm".
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_EMULATION,
+                 g_param_spec_string ("emulation", NULL, NULL,
+                                      VTE_DEFAULT_EMULATION,
+                                      G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:encoding:
+         *
+         * Controls the encoding the terminal will expect data from the child to
+         * be encoded with.  For certain terminal types, applications executing in the
+         * terminal can change the encoding.  The default is defined by the
+         * application's locale settings.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_ENCODING,
+                 g_param_spec_string ("encoding", NULL, NULL,
+                                      NULL,
+                                      G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:font:
+         *
+         * Specifies the font used for rendering all text displayed by the terminal,
+         * overriding any fonts set using gtk_widget_modify_font().  The terminal
+         * will immediately attempt to load the desired font, retrieve its
+         * metrics, and attempt to resize itself to keep the same number of rows
+         * and columns.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_FONT,
+                 g_param_spec_boxed ("font", NULL, NULL,
+                                     PANGO_TYPE_FONT_DESCRIPTION,
+                                     G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:font-antialias:
+         *
+         * Specifies the antialias to apply to the font set with #VteTerminal:font:.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_FONT_ANTIALIAS,
+                 g_param_spec_enum ("font-antialias", NULL, NULL,
+                                    VTE_TYPE_TERMINAL_ANTI_ALIAS,
+                                    VTE_ANTI_ALIAS_USE_DEFAULT,
+                                    G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:icon-title:
+         *
+         * The terminal's so-called icon title, or %NULL if no icon title has been set.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_ICON_TITLE,
+                 g_param_spec_string ("icon-title", NULL, NULL,
+                                      NULL,
+                                      G_PARAM_READABLE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:pointer-autohide:
+         *
+         * Controls the value of the terminal's mouse autohide setting.  When autohiding
+         * is enabled, the mouse cursor will be hidden when the user presses a key and
+         * shown when the user moves the mouse.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_MOUSE_POINTER_AUTOHIDE,
+                 g_param_spec_boolean ("pointer-autohide", NULL, NULL,
+                                       FALSE,
+                                       G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:pty:
+         *
+         * The file descriptor of the master end of the terminal's PTY.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_PTY,
+                 g_param_spec_int ("pty", NULL, NULL,
+                                   -1, G_MAXINT,
+                                   -1,
+                                   G_PARAM_READWRITE | STATIC_PARAMS));
+
+        /**
+         * VteTerminal:scroll-background:
+         *
+         * Controls whether or not the terminal will scroll the background image (if
+         * one is set) when the text in the window must be scrolled.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_SCROLL_BACKGROUND,
+                 g_param_spec_boolean ("scroll-background", NULL, NULL,
+                                       FALSE,
+                                       G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:scrollback-lines:
+         *
+         * The length of the scrollback buffer used by the terminal.  The size of
+         * the scrollback buffer will be set to the larger of this value and the number
+         * of visible rows the widget can display, so 0 can safely be used to disable
+         * scrollback.  Note that this setting only affects the normal screen buffer.
+         * For terminal types which have an alternate screen buffer, no scrollback is
+         * allowed on the alternate screen buffer.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_SCROLLBACK_LINES,
+                 g_param_spec_uint ("scrollback-lines", NULL, NULL,
+                                    0, G_MAXUINT,
+                                    VTE_SCROLLBACK_INIT,
+                                    G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:scroll-on-keystroke:
+         *
+         * Controls whether or not the terminal will forcibly scroll to the bottom of
+         * the viewable history when the user presses a key.  Modifier keys do not
+         * trigger this behavior.
+         *
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_SCROLL_ON_KEYSTROKE,
+                 g_param_spec_boolean ("scroll-on-keystroke", NULL, NULL,
+                                       FALSE,
+                                       G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:scroll-on-output:
+         *
+         * Controls whether or not the terminal will forcibly scroll to the bottom of
+         * the viewable history when the new data is received from the child.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_SCROLL_ON_OUTPUT,
+                 g_param_spec_boolean ("scroll-on-output", NULL, NULL,
+                                       TRUE,
+                                       G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:window-title:
+         *
+         * The terminal's title.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_WINDOW_TITLE,
+                 g_param_spec_string ("window-title", NULL, NULL,
+                                      NULL,
+                                      G_PARAM_READABLE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:word-chars:
+         *
+         * When the user double-clicks to start selection, the terminal will extend
+         * the selection on word boundaries.  It will treat characters the word-chars
+         * characters as parts of words, and all other characters as word separators.
+         * Ranges of characters can be specified by separating them with a hyphen.
+         *
+         * As a special case, when setting this to %NULL or the empty string, the terminal will
+         * treat all graphic non-punctuation non-space characters as word characters.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_WORD_CHARS,
+                 g_param_spec_string ("word-chars", NULL, NULL,
+                                      NULL,
+                                      G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /**
+         * VteTerminal:visible-bell:
+         *
+         * Controls whether the terminal will present a visible bell to the
+         * user when the child outputs the "bl" sequence.  The terminal
+         * will clear itself to the default foreground color and then repaint itself.
+         * 
+         * Since: 0.17.5
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_AUDIBLE_BELL,
+                 g_param_spec_boolean ("visible-bell", NULL, NULL,
+                                       FALSE,
+                                       G_PARAM_READWRITE | STATIC_PARAMS));
+     
+        /* Keybindings */
 	binding_set = gtk_binding_set_by_class(klass);
+
+	/* Bind Copy, Paste, Cut keys */
 	gtk_binding_entry_add_signal(binding_set, GDK_F16, 0, "copy-clipboard",0);
 	gtk_binding_entry_add_signal(binding_set, GDK_F18, 0, "paste-clipboard", 0);
 	gtk_binding_entry_add_signal(binding_set, GDK_F20, 0, "copy-clipboard",0);
@@ -11282,8 +11996,19 @@ vte_terminal_class_init(VteTerminalClass *klass)
 void
 vte_terminal_set_audible_bell(VteTerminal *terminal, gboolean is_audible)
 {
+        VteTerminalPrivate *pvt;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->audible_bell = is_audible;
+
+        pvt = terminal->pvt;
+
+        is_audible = is_audible != FALSE;
+        if (is_audible == pvt->audible_bell)
+                return;
+
+	pvt->audible_bell = is_audible;
+
+        g_object_notify (G_OBJECT (terminal), "audible-bell");
 }
 
 /**
@@ -11315,8 +12040,19 @@ vte_terminal_get_audible_bell(VteTerminal *terminal)
 void
 vte_terminal_set_visible_bell(VteTerminal *terminal, gboolean is_visible)
 {
+        VteTerminalPrivate *pvt;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->visible_bell = is_visible;
+
+        pvt = terminal->pvt;
+
+        is_visible = is_visible != FALSE;
+        if (is_visible == pvt->visible_bell)
+                return;
+
+	pvt->visible_bell = is_visible;
+
+        g_object_notify (G_OBJECT (terminal), "visible-bell");
 }
 
 /**
@@ -11341,20 +12077,27 @@ vte_terminal_get_visible_bell(VteTerminal *terminal)
  * @terminal: a #VteTerminal
  * @allow_bold: %TRUE if the terminal should attempt to draw bold text
  *
- * Controls whether or not the terminal will attempt to draw bold text by
- * repainting text with a different offset.
+ * Controls whether or not the terminal will attempt to draw bold text,
+ * either by using a bold font variant or by repainting text with a different
+ * offset.
  *
  */
 void
 vte_terminal_set_allow_bold(VteTerminal *terminal, gboolean allow_bold)
 {
+        VteTerminalPrivate *pvt;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
+        pvt = terminal->pvt;
+
         allow_bold = allow_bold != FALSE;
-        if (allow_bold == terminal->pvt->allow_bold)
+        if (allow_bold == pvt->allow_bold)
                 return;
 
-	terminal->pvt->allow_bold = allow_bold;
+	pvt->allow_bold = allow_bold;
+        g_object_notify (G_OBJECT (terminal), "allow-bold");
+
 	_vte_invalidate_all (terminal);
 }
 
@@ -11389,8 +12132,19 @@ vte_terminal_get_allow_bold(VteTerminal *terminal)
 void
 vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll)
 {
+        VteTerminalPrivate *pvt;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->scroll_background = scroll;
+
+        pvt = terminal->pvt;
+
+        scroll = scroll != FALSE;
+        if (scroll == pvt->scroll_background)
+                return;
+
+	pvt->scroll_background = scroll;
+
+        g_object_notify (G_OBJECT (terminal), "scroll-background");
 }
 
 /**
@@ -11422,8 +12176,19 @@ vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll)
 void
 vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal, gboolean scroll)
 {
+        VteTerminalPrivate *pvt;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->scroll_on_keystroke = scroll;
+
+        pvt = terminal->pvt;
+
+        scroll = scroll != FALSE;
+        if (scroll == pvt->scroll_on_keystroke)
+                return;
+
+	pvt->scroll_on_keystroke = scroll;
+
+        g_object_notify (G_OBJECT (terminal), "scroll-on-keystroke");
 }
 
 static void
@@ -11657,19 +12422,25 @@ vte_terminal_queue_background_update(VteTerminal *terminal)
 void
 vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
 {
+        VteTerminalPrivate *pvt;
 	guint v;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-	v = CLAMP(saturation * VTE_SATURATION_MAX,
-				0, VTE_SATURATION_MAX);
+        pvt = terminal->pvt;
+
+	v = CLAMP(saturation * VTE_SATURATION_MAX, 0, VTE_SATURATION_MAX);
+        if (v == pvt->bg_saturation)
+                return;
+
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Setting background saturation to %d/%d.\n",
 			v, VTE_SATURATION_MAX);
-	if (v != terminal->pvt->bg_saturation) {
-		terminal->pvt->bg_saturation = v;
-		vte_terminal_queue_background_update(terminal);
-	}
+
+        pvt->bg_saturation = v;
+        g_object_notify(G_OBJECT (terminal), "background-saturation");
+
+        vte_terminal_queue_background_update(terminal);
 }
 
 /**
@@ -11695,20 +12466,27 @@ void
 vte_terminal_set_background_tint_color(VteTerminal *terminal,
 				       const GdkColor *color)
 {
+        VteTerminalPrivate *pvt;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail(color != NULL);
+
+        pvt = terminal->pvt;
 
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Setting background tint to %d,%d,%d.\n",
 			terminal->pvt->bg_tint_color.red >> 8,
 			terminal->pvt->bg_tint_color.green >> 8,
 			terminal->pvt->bg_tint_color.blue >> 8);
-	if (color->red != terminal->pvt->bg_tint_color.red ||
-			color->green != terminal->pvt->bg_tint_color.green ||
-			color->blue != terminal->pvt->bg_tint_color.blue) {
-		terminal->pvt->bg_tint_color = *color;
-		vte_terminal_queue_background_update(terminal);
-	}
+	if (color->red == terminal->pvt->bg_tint_color.red &&
+            color->green == terminal->pvt->bg_tint_color.green &&
+            color->blue == terminal->pvt->bg_tint_color.blue)
+                return;
+
+        pvt->bg_tint_color = *color;
+        g_object_notify(G_OBJECT (terminal), "background-tint-color");
+
+        vte_terminal_queue_background_update(terminal);
 }
 
 /**
@@ -11725,18 +12503,25 @@ void
 vte_terminal_set_background_transparent(VteTerminal *terminal,
 					gboolean transparent)
 {
+        VteTerminalPrivate *pvt;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        pvt = terminal->pvt;
+
+        transparent = transparent != FALSE;
+        if (transparent == pvt->bg_transparent)
+                return;
+
 	_vte_debug_print(VTE_DEBUG_MISC,
 		"Turning background transparency %s.\n",
 			transparent ? "on" : "off");
-	transparent = !!transparent;
-	if(transparent != terminal->pvt->bg_transparent) {
-		/* Save this background type. */
-		terminal->pvt->bg_transparent = transparent;
+		
+	pvt->bg_transparent = transparent;
+        g_object_notify(G_OBJECT (terminal), "background-transparent");
 
-		/* Update the background. */
-		vte_terminal_queue_background_update(terminal);
-	}
+        /* Update the background. */
+        vte_terminal_queue_background_update(terminal);
 }
 
 /**
@@ -11755,12 +12540,23 @@ vte_terminal_set_background_transparent(VteTerminal *terminal,
 void
 vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
 {
+        VteTerminalPrivate *pvt;
+        GObject *object;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail(image==NULL || GDK_IS_PIXBUF(image));
+
+        object = G_OBJECT(terminal);
+        pvt = terminal->pvt;
+
+        if (image == pvt->bg_pixbuf)
+                return;
 
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"%s background image.\n",
 			GDK_IS_PIXBUF(image) ? "Setting" : "Clearing");
+
+        g_object_freeze_notify(object);
 
 	/* Get a ref to the new image if there is one.  Do it here just in
 	 * case we're actually given the same one we're already using. */
@@ -11769,20 +12565,26 @@ vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
 	}
 
 	/* Unref the previous background image. */
-	if (terminal->pvt->bg_pixbuf != NULL) {
-		g_object_unref(terminal->pvt->bg_pixbuf);
+	if (pvt->bg_pixbuf != NULL) {
+		g_object_unref(pvt->bg_pixbuf);
 	}
 
 	/* Clear a background file name, if one was set. */
-	if (terminal->pvt->bg_file != NULL) {
-		g_free(terminal->pvt->bg_file);
-		terminal->pvt->bg_file = NULL;
-	}
+        if (pvt->bg_file) {
+                g_free(pvt->bg_file);
+                pvt->bg_file = NULL;
+
+                g_object_notify(object, "background-image-file");
+        }
 
 	/* Set the new background. */
-	terminal->pvt->bg_pixbuf = image;
+	pvt->bg_pixbuf = image;
+
+        g_object_notify(object, "background-image-pixbuf");
 
 	vte_terminal_queue_background_update(terminal);
+
+        g_object_thaw_notify(object);
 }
 
 /**
@@ -11798,20 +12600,36 @@ vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
 void
 vte_terminal_set_background_image_file(VteTerminal *terminal, const char *path)
 {
+        VteTerminalPrivate *pvt;
+        GObject *object;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        object = G_OBJECT(terminal);
+        pvt = terminal->pvt;
+
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Loading background image from `%s'.\n", path);
+
+        g_object_freeze_notify(G_OBJECT(terminal));
+
 	/* Save this background type. */
-	g_free(terminal->pvt->bg_file);
-	terminal->pvt->bg_file = path ? g_strdup(path) : NULL;
+	g_free(pvt->bg_file);
+	pvt->bg_file = g_strdup(path);
 
 	/* Turn off other background types. */
-	if (terminal->pvt->bg_pixbuf != NULL) {
-		g_object_unref(terminal->pvt->bg_pixbuf);
-		terminal->pvt->bg_pixbuf = NULL;
+	if (pvt->bg_pixbuf != NULL) {
+		g_object_unref(pvt->bg_pixbuf);
+		pvt->bg_pixbuf = NULL;
+
+                g_object_notify(object, "background-image-pixbuf");
 	}
 
+        g_object_notify(object, "background-image-file");
+
 	vte_terminal_queue_background_update(terminal);
+
+        g_object_thaw_notify(G_OBJECT(terminal));
 }
 
 /**
@@ -11925,6 +12743,8 @@ vte_terminal_set_cursor_blink_mode(VteTerminal *terminal, VteTerminalCursorBlink
         }
 
         vte_terminal_set_cursor_blinks_internal(terminal, blinks);
+
+        g_object_notify(G_OBJECT(terminal), "cursor-blink-mode");
 }
 
 /**
@@ -11952,7 +12772,7 @@ vte_terminal_get_cursor_blink_mode(VteTerminal *terminal)
  *
  * Sets the shape of the cursor drawn.
  *
- * Since: 0.17.6
+ * Since: 0.17.5
  */
 void
 vte_terminal_set_cursor_shape(VteTerminal *terminal, VteTerminalCursorShape shape)
@@ -11967,6 +12787,8 @@ vte_terminal_set_cursor_shape(VteTerminal *terminal, VteTerminalCursorShape shap
 
         pvt->cursor_shape = shape;
 	_vte_invalidate_cursor_once(terminal, FALSE);
+
+        g_object_notify(G_OBJECT(terminal), "cursor-shape");
 }
 
 /**
@@ -12003,15 +12825,26 @@ vte_terminal_get_cursor_shape(VteTerminal *terminal)
 void
 vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 {
+        VteTerminalPrivate *pvt;
+        GObject *object;
 	glong scroll_delta;
 	VteScreen *screen;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        object = G_OBJECT(terminal);
+        pvt = terminal->pvt;
+
+        if (lines == pvt->scrollback_lines)
+                return;
+
+        g_object_freeze_notify(object);
+
 	_vte_debug_print (VTE_DEBUG_MISC,
 			"Setting scrollback lines to %ld\n", lines);
 
-	terminal->pvt->scrollback_lines = lines;
-	screen = terminal->pvt->screen;
+	pvt->scrollback_lines = lines;
+	screen = pvt->screen;
 	scroll_delta = screen->scroll_delta;
 
 	/* The main screen gets the full scrollback buffer, but the
@@ -12044,6 +12877,10 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 	/* Adjust the scrollbars to the new locations. */
 	vte_terminal_queue_adjustment_value_changed (terminal, scroll_delta);
 	_vte_terminal_adjust_adjustments_full (terminal);
+
+        g_object_notify(object, "scrollback-lines");
+
+        g_object_thaw_notify(object);
 }
 
 /**
@@ -12077,10 +12914,12 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	terminal->pvt->word_chars = g_array_new(FALSE, FALSE,
 						sizeof(VteWordCharRange));
 	/* Special case: if spec is NULL, try to do the right thing. */
-	if ((spec == NULL) || (strlen(spec) == 0)) {
+	if (spec == NULL || spec[0] == '\0') {
+                g_object_notify(G_OBJECT(terminal), "word-chars");
 		return;
 	}
 	/* Convert the spec from UTF-8 to a string of gunichars . */
+        /* FIXME: why not just directly use g_utf8_to_ucs4 here? It'll never fail */
 	conv = _vte_conv_open(VTE_CONV_GUNICHAR_TYPE, "UTF-8");
 	if (conv == VTE_INVALID_CONV) {
 		/* Aaargh.  We're screwed. */
@@ -12133,6 +12972,8 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 		}
 	}
 	g_free(ibufptr);
+
+        g_object_notify(G_OBJECT(terminal), "word-chars");
 }
 
 /**
@@ -12149,9 +12990,19 @@ void
 vte_terminal_set_backspace_binding(VteTerminal *terminal,
 				   VteTerminalEraseBinding binding)
 {
+        VteTerminalPrivate *pvt;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        pvt = terminal->pvt;
+
+        if (binding == pvt->backspace_binding)
+                return;
+
 	/* FIXME: should we set the pty mode to match? */
-	terminal->pvt->backspace_binding = binding;
+	pvt->backspace_binding = binding;
+
+        g_object_notify(G_OBJECT(terminal), "backspace-binding");
 }
 
 /**
@@ -12168,8 +13019,18 @@ void
 vte_terminal_set_delete_binding(VteTerminal *terminal,
 				VteTerminalEraseBinding binding)
 {
+        VteTerminalPrivate *pvt;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->delete_binding = binding;
+
+        pvt = terminal->pvt;
+
+        if (binding == pvt->delete_binding)
+                return;
+
+	pvt->delete_binding = binding;
+
+        g_object_notify(G_OBJECT(terminal), "delete-binding");
 }
 
 /**
@@ -12186,8 +13047,19 @@ vte_terminal_set_delete_binding(VteTerminal *terminal,
 void
 vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting)
 {
+        VteTerminalPrivate *pvt;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->mouse_autohide = setting;
+
+        pvt = terminal->pvt;
+
+        setting = setting != FALSE;
+        if (setting == pvt->mouse_autohide)
+                return;
+
+	pvt->mouse_autohide = setting;
+
+        g_object_notify(G_OBJECT(terminal), "pointer-autohide");
 }
 
 /**
@@ -12224,6 +13096,9 @@ void
 vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        g_object_freeze_notify(G_OBJECT(terminal));
+
 	/* Stop processing any of the data we've got backed up. */
 	vte_terminal_stop_processing (terminal);
 
@@ -12363,6 +13238,8 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	/* Cause everything to be redrawn (or cleared). */
 	vte_terminal_maybe_scroll_to_bottom(terminal);
 	_vte_invalidate_all(terminal);
+
+        g_object_thaw_notify(G_OBJECT(terminal));
 }
 
 /**
@@ -12563,13 +13440,19 @@ vte_terminal_get_icon_title(VteTerminal *terminal)
 void
 vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
 {
-       long flags;
+        long flags;
+        VteTerminalPrivate *pvt;
+        GObject *object;
 
-       g_return_if_fail (VTE_IS_TERMINAL (terminal));
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-       if (pty_master == terminal->pvt->pty_master) {
-	       return;
-       }
+        object = G_OBJECT(terminal);
+        pvt = terminal->pvt;
+        if (pty_master == pvt->pty_master) {
+                return;
+        }
+
+        g_object_freeze_notify(object);
 
        if (terminal->pvt->pty_channel != NULL) {
 	       g_io_channel_unref (terminal->pvt->pty_channel);
@@ -12597,6 +13480,10 @@ vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
 
        /* Open channels to listen for input on. */
        _vte_terminal_connect_pty_read (terminal);
+
+        g_object_notify(object, "pty");
+
+        g_object_thaw_notify(object);
 }
 
 /**
@@ -12857,6 +13744,10 @@ vte_terminal_emit_window_title_changed(VteTerminal *terminal)
 static void
 vte_terminal_emit_pending_signals(VteTerminal *terminal)
 {
+        GObject *object = G_OBJECT(terminal);
+
+        g_object_freeze_notify(object);
+
 	vte_terminal_emit_adjustment_changed (terminal);
 
 	if (terminal->pvt->screen->status_line_changed) {
@@ -12873,6 +13764,7 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 			gdk_window_set_title (terminal->widget.window,
 					terminal->window_title);
 		vte_terminal_emit_window_title_changed(terminal);
+                g_object_notify(object, "window-title");
 	}
 
 	if (terminal->pvt->icon_title_changed) {
@@ -12884,12 +13776,15 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 			gdk_window_set_icon_name (terminal->widget.window,
 					terminal->icon_title);
 		vte_terminal_emit_icon_title_changed(terminal);
+                g_object_notify(object, "icon-title");
 	}
 
 	/* Flush any pending "inserted" signals. */
 	vte_terminal_emit_cursor_moved(terminal);
 	vte_terminal_emit_pending_text_signals(terminal, 0);
 	vte_terminal_emit_contents_changed (terminal);
+
+        g_object_thaw_notify(object);
 }
 
 static void time_process_incoming (VteTerminal *terminal)
