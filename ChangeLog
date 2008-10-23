@@ -1,3 +1,30 @@
+2008-10-23  Christian Persch  <chpe@gnome.org>
+
+        * configure.in:
+        * src/Makefile.am: Use glib-genmarshal --internal directly instead
+        of checking the glib version, since we now depend on a glib version
+        that provides this.
+
+2008-10-23  Christian Persch  <chpe@gnome.org>
+
+        Bug 556398 – maybe deprecate vte_terminal_get_char_ascent/descent
+
+        * src/vte.[ch]: Deprecate vte_terminal_get_char_ascent/descent.
+
+2008-10-23  Christian Persch  <chpe@gnome.org>
+
+        Bug 339819 – LibVTE terminals in GLADE
+
+        A glade/*:
+        * Makefile.am
+        * configure.in: Add glade catalogue.
+
+2008-10-23  Christian Persch  <chpe@gnome.org>
+
+        Bug 399364 – Implement properties
+
+        * src/vte.c: Add gobject properties.
+
 2008-10-19  Christian Persch  <chpe@gnome.org>
 
         Bug 556328 – Document set-scroll-adjustment parameters
