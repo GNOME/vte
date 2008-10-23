@@ -437,8 +437,10 @@ int vte_terminal_get_pty(VteTerminal *terminal);
 GtkAdjustment *vte_terminal_get_adjustment(VteTerminal *terminal);
 glong vte_terminal_get_char_width(VteTerminal *terminal);
 glong vte_terminal_get_char_height(VteTerminal *terminal);
-glong vte_terminal_get_char_descent(VteTerminal *terminal);
-glong vte_terminal_get_char_ascent(VteTerminal *terminal);
+#ifndef VTE_DISABLE_DEPRECATED
+glong vte_terminal_get_char_descent(VteTerminal *terminal) G_GNUC_DEPRECATED;
+glong vte_terminal_get_char_ascent(VteTerminal *terminal) G_GNUC_DEPRECATED;
+#endif
 glong vte_terminal_get_row_count(VteTerminal *terminal);
 glong vte_terminal_get_column_count(VteTerminal *terminal);
 const char *vte_terminal_get_window_title(VteTerminal *terminal);

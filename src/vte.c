@@ -13342,6 +13342,8 @@ vte_terminal_get_char_height(VteTerminal *terminal)
  * An accessor function provided for the benefit of language bindings.
  *
  * Returns: the contents of @terminal's char_descent field
+ *
+ * Deprecated: 0.17.5
  */
 glong
 vte_terminal_get_char_descent(VteTerminal *terminal)
@@ -13358,6 +13360,8 @@ vte_terminal_get_char_descent(VteTerminal *terminal)
  * An accessor function provided for the benefit of language bindings.
  *
  * Returns: the contents of @terminal's char_ascent field
+ *
+ * Deprecated: 0.17.5
  */
 glong
 vte_terminal_get_char_ascent(VteTerminal *terminal)
