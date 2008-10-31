@@ -1023,8 +1023,8 @@ vte_terminal_deselect_all(VteTerminal *terminal)
 				"Deselecting all text.\n");
 
 		terminal->pvt->has_selection = FALSE;
-		g_free (terminal->pvt->selection);
-		terminal->pvt->selection = NULL;
+		/* Don't free the current selection, as we need to keep
+		 * hold of it for async copying from the clipboard. */
 
 		vte_terminal_emit_selection_changed(terminal);
 

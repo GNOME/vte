@@ -1,3 +1,12 @@
+2008-10-31  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	Bug 557375 – >=vte-0.16.14 breaks highlighting on activity
+
+	* src/vte.c (vte_terminal_deselect_all):
+	Preserve the copy of the selection until it is replace by a new
+	selection, so that we can perform asynchronous copies from the
+	clipboard.
+
 2008-10-23  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 557375 – >=vte-0.16.14 breaks highlighting on activity
