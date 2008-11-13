@@ -1,5 +1,11 @@
 2008-11-13  Behdad Esfahbod  <behdad@gnome.org>
 
+	* configure.in:
+	* src/vte-private.h:
+	Why do we let people configure random things?
+
+2008-11-13  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte.c (vte_terminal_background_update):
 	* src/vtedraw.c (_vte_draw_update_requires_clear), (_vte_draw_new),
 	(_vte_draw_set_background_opacity),
