@@ -90,9 +90,6 @@ G_BEGIN_DECLS
 #define VTE_MAX_PROCESS_TIME		100
 #define VTE_CELL_BBOX_SLACK		1
 
-#define VTE_UTF8_BPC			6
-#define VTE_INVALID_SOURCE		(guint)-1
-
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
 struct vte_charcell {

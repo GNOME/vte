@@ -2,6 +2,12 @@
 
 	* configure.in:
 	* src/vte-private.h:
+	Undo previous change instead of cleanly fix it for now.
+
+2008-11-13  Behdad Esfahbod  <behdad@gnome.org>
+
+	* configure.in:
+	* src/vte-private.h:
 	Why do we let people configure random things?
 
 2008-11-13  Behdad Esfahbod  <behdad@gnome.org>
