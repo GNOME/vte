@@ -1,3 +1,19 @@
+2008-11-13  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vtedraw.h:
+	* src/vtedraw.c (_vte_draw_new), (_vte_draw_get_visual),
+	(_vte_draw_get_colormap), (_vte_draw_start), (_vte_draw_end),
+	(_vte_draw_set_background_color), (_vte_draw_set_background_image),
+	(_vte_draw_requires_repaint), (_vte_draw_clip), (_vte_draw_clear),
+	(_vte_draw_set_text_font), (_vte_draw_get_text_width),
+	(_vte_draw_get_text_height), (_vte_draw_get_text_ascent),
+	(_vte_draw_get_char_width), (_vte_draw_get_using_fontconfig),
+	(_vte_draw_text), (_vte_draw_char), (_vte_draw_has_char),
+	(_vte_draw_fill_rectangle), (_vte_draw_draw_rectangle),
+	(_vte_draw_set_scroll):
+	Use sensical defaults instead of g_return_if_fail'ing when backend
+	functions are not implemented.
+
 2008-10-31  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	Bug 557375 – >=vte-0.16.14 breaks highlighting on activity

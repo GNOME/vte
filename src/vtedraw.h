@@ -100,6 +100,7 @@ struct _vte_draw {
 	GtkWidget *widget;
 	gboolean started;
 	gint width, height, ascent;
+	gint scrollx, scrolly;
 	gboolean requires_clear;
 	const struct _vte_draw_impl *impl;
 	gpointer impl_data;
