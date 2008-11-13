@@ -12337,12 +12337,12 @@ vte_terminal_background_update(VteTerminal *terminal)
 			bgcolor.red, bgcolor.green, bgcolor.blue,
 			bgcolor.pixel);
 	gdk_window_set_background(terminal->widget.window, &bgcolor);
-	_vte_draw_set_background_color(terminal->pvt->draw, &bgcolor,
-				       terminal->pvt->bg_opacity);
+	_vte_draw_set_background_color (terminal->pvt->draw, &bgcolor);
+	_vte_draw_set_background_opacity (terminal->pvt->draw, terminal->pvt->bg_opacity);
 
 	/* If we're transparent, and either have no root image or are being
 	 * told to update it, get a new copy of the root window. */
-	saturation = terminal->pvt->bg_saturation * 1.0;
+	saturation = (double) terminal->pvt->bg_saturation;
 	saturation /= VTE_SATURATION_MAX;
 	if (terminal->pvt->bg_transparent) {
 		if (terminal->pvt->root_pixmap_changed_tag == VTE_INVALID_SOURCE) {

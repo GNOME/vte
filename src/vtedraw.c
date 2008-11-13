@@ -127,6 +127,14 @@ _vte_draw_init_default (struct _vte_draw *draw)
 }
 
 
+static void
+_vte_draw_update_requires_clear (struct _vte_draw *draw)
+{
+	draw->requires_clear = draw->impl->always_requires_clear
+			    || draw->bg_type != VTE_BG_SOURCE_NONE
+			    || draw->bg_opacity != 0xFFFF;
+}
+
 struct _vte_draw *
 _vte_draw_new (GtkWidget *widget)
 {
@@ -135,6 +143,8 @@ _vte_draw_new (GtkWidget *widget)
 	/* Create the structure. */
 	draw = g_slice_new0 (struct _vte_draw);
 	draw->widget = g_object_ref (widget);
+	draw->bg_type = VTE_BG_SOURCE_NONE;
+	draw->bg_opacity = 0xffff; 
 
 	/* Allow the user to specify her preferred backends */
 	if (!_vte_draw_init_user (draw) &&
@@ -144,6 +154,8 @@ _vte_draw_new (GtkWidget *widget)
 		g_assert_not_reached ();
 		draw->impl = &_vte_draw_skel;
 	}
+
+	_vte_draw_update_requires_clear (draw);
 
 	_vte_debug_print (VTE_DEBUG_DRAW,
 			"draw_new (%s)\n", draw->impl->name);
@@ -230,42 +242,46 @@ _vte_draw_end (struct _vte_draw *draw)
 }
 
 void
-_vte_draw_set_background_color (struct _vte_draw *draw,
-			       GdkColor *color,
-			       guint16 opacity)
+_vte_draw_set_background_opacity (struct _vte_draw *draw,
+				  guint16 opacity)
 {
-	g_return_if_fail (draw->impl->set_background_color != NULL);
+	draw->bg_opacity = opacity;
+	_vte_draw_update_requires_clear (draw);
 
-	draw->impl->set_background_color (draw, color, opacity);
+	if (draw->impl->set_background_opacity)
+		draw->impl->set_background_opacity (draw, opacity);
+}
+
+void
+_vte_draw_set_background_color (struct _vte_draw *draw,
+			        GdkColor *color)
+{
+	draw->bg_color = *color;
+
+	if (draw->impl->set_background_color)
+		draw->impl->set_background_color (draw, color);
 }
 
 void
 _vte_draw_set_background_image (struct _vte_draw *draw,
-			       enum VteBgSourceType type,
-			       GdkPixbuf *pixbuf,
-			       const char *filename,
-			       const GdkColor *color,
-			       double saturation)
+			        enum VteBgSourceType type,
+			        GdkPixbuf *pixbuf,
+			        const char *filename,
+			        const GdkColor *color,
+			        double saturation)
 {
-	g_return_if_fail (draw->impl->set_background_image != NULL);
+	draw->bg_type = type;
+	_vte_draw_update_requires_clear (draw);
 
-	draw->impl->set_background_image (draw, type, pixbuf, filename,
-					  color, saturation);
+	if (draw->impl->set_background_image)
+		draw->impl->set_background_image (draw, type, pixbuf, filename,
+						  color, saturation);
 }
 
 gboolean
 _vte_draw_requires_clear (struct _vte_draw *draw)
 {
 	return draw->requires_clear;
-}
-
-gboolean
-_vte_draw_requires_repaint (struct _vte_draw *draw)
-{
-	_vte_debug_print (VTE_DEBUG_DRAW, "draw_requires_repaint = %d\n",
-			  draw->impl->requires_repaint);
-
-	return draw->impl->requires_repaint;
 }
 
 gboolean
@@ -404,8 +420,9 @@ _vte_draw_char (struct _vte_draw *draw,
 	if (draw->impl->draw_char)
 		has_char = draw->impl->draw_char (draw, request, color, alpha);
 	else {
-		_vte_draw_text (draw, request, 1, color, alpha);
 		has_char =_vte_draw_has_char (draw, request->c);
+		if (has_char)
+			_vte_draw_text (draw, request, 1, color, alpha);
 	}
 
 	return has_char;
@@ -464,9 +481,9 @@ _vte_draw_set_scroll (struct _vte_draw *draw, gint x, gint y)
 			"draw_set_scroll (%d, %d)\n",
 			x, y);
 
-	if (draw->impl->set_scroll)
-		draw->impl->set_scroll (draw, x, y);
-
 	draw->scrollx = x;
 	draw->scrolly = y;
+
+	if (draw->impl->set_scroll)
+		draw->impl->set_scroll (draw, x, y);
 }

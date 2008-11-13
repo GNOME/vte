@@ -44,10 +44,8 @@ struct _vte_gl_data
 	XVisualInfo *visual_info;
 	Display *display;
 	GLXContext context;
-	GdkColor color;
 	GdkPixbuf *bgpixbuf;
 	GLXDrawable glwindow;
-	gint scrollx, scrolly;
 	struct _vte_glyph_cache *cache;
 	struct _vte_buffer *buffer;
 };
@@ -141,17 +139,12 @@ _vte_gl_create(struct _vte_draw *draw, GtkWidget *widget)
 		g_error("Unable to create a GLX context.\n");
 	}
 
-	data->color.red = 0;
-	data->color.green = 0;
-	data->color.blue = 0;
 	data->bgpixbuf = NULL;
 	data->glwindow = -1;
-	data->scrollx = data->scrolly = 0;
 	data->cache = _vte_glyph_cache_new();
 	data->buffer = _vte_buffer_new();
 
 	gtk_widget_set_double_buffered(widget, FALSE);
-	draw->requires_clear = TRUE;
 }
 
 static void
@@ -233,15 +226,6 @@ _vte_gl_end(struct _vte_draw *draw)
 }
 
 static void
-_vte_gl_set_background_color(struct _vte_draw *draw, GdkColor *color, guint16 opacity)
-{
-	struct _vte_gl_data *data;
-
-	data = (struct _vte_gl_data*) draw->impl_data;
-	data->color = *color;
-}
-
-static void
 _vte_gl_set_background_image(struct _vte_draw *draw,
 			     enum VteBgSourceType type,
 			     GdkPixbuf *pixbuf,
@@ -286,10 +270,10 @@ _vte_gl_clear(struct _vte_draw *draw, gint x, gint y, gint width, gint height)
 	}
 
 	if ((pixbufw == 0) || (pixbufh == 0)) {
-		glColor4us(data->color.red,
-			   data->color.green,
-			   data->color.blue,
-			   0xffff);
+		glColor4us(draw->bg_color.red,
+			   draw->bg_color.green,
+			   draw->bg_color.blue,
+			   0xFFFF);
 		glBegin(GL_POLYGON);
 		glVertex2d(x, y);
 		glVertex2d(x + width, y);
@@ -320,10 +304,10 @@ _vte_gl_clear(struct _vte_draw *draw, gint x, gint y, gint width, gint height)
 	}
 
 	y = ystop - height;
-	j = (data->scrolly + y) % pixbufh;
+	j = (draw->scrolly + y) % pixbufh;
 	while (y < ystop) {
 		x = xstop - width;
-		i = (data->scrollx + x) % pixbufw;
+		i = (draw->scrollx + x) % pixbufw;
 
 		/* h = MIN(pixbufh - (j % pixbufh), ystop - y); */
 		h = 1;
@@ -338,7 +322,7 @@ _vte_gl_clear(struct _vte_draw *draw, gint x, gint y, gint width, gint height)
 			i = 0;
 		}
 		y += h;
-		j = (data->scrolly + y) % pixbufh;
+		j = (draw->scrolly + y) % pixbufh;
 	}
 	glFlush();
 }
@@ -411,17 +395,10 @@ _vte_gl_get_char_width(struct _vte_draw *draw, gunichar c, int columns)
 	data = (struct _vte_gl_data*) draw->impl_data;
 
 	glyph = _vte_glyph_get(data->cache, c);
-	if (glyph != NULL) {
-		return glyph->width;
-	}
+	if (glyph == NULL)
+		return 0;
 
-	return _vte_gl_get_text_width(draw) * columns;
-}
-
-static gboolean
-_vte_gl_get_using_fontconfig(struct _vte_draw *draw)
-{
-	return TRUE;
+	return glyph->width;
 }
 
 static void
@@ -432,7 +409,8 @@ _vte_gl_draw_text(struct _vte_draw *draw,
 	struct _vte_gl_data *data;
 	const struct _vte_glyph *glyph;
 	guint16 a, r, g, b;
-	int i, j, x, y, w, pad, rows, columns, src, dest;
+	guint i, j;
+	int k, x, y, w, pad, rows, columns, src, dest;
 	guchar *pixels;
 
 	data = (struct _vte_gl_data*) draw->impl_data;
@@ -459,10 +437,10 @@ _vte_gl_draw_text(struct _vte_draw *draw,
 	_vte_buffer_set_minimum_size(data->buffer, rows * columns * 4);
 	pixels = data->buffer->bytes;
 	memset(pixels, 0, rows * columns * 4);
-	for (i = 0; i < rows * columns; i++) {
-		pixels[i * 4 + 0] = r;
-		pixels[i * 4 + 1] = g;
-		pixels[i * 4 + 2] = b;
+	for (k = 0; k < rows * columns; k++) {
+		pixels[k * 4 + 0] = r;
+		pixels[k * 4 + 1] = g;
+		pixels[k * 4 + 2] = b;
 	}
 
 	for (i = j = 0; i < n_requests; i++) {
@@ -498,24 +476,6 @@ _vte_gl_draw_text(struct _vte_draw *draw,
 	glRasterPos2i(requests[0].x, requests[0].y);
 	glPixelZoom(1, -1);
 	glDrawPixels(columns, rows, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-}
-
-static gboolean
-_vte_gl_draw_char(struct _vte_draw *draw,
-		  struct _vte_draw_text_request *request,
-		  GdkColor *color, guchar alpha)
-{
-	struct _vte_gl_data *data;
-
-	data = (struct _vte_gl_data*) draw->impl_data;
-
-	if (data->cache != NULL) {
-		if (_vte_glyph_get(data->cache, request->c) != NULL) {
-			_vte_gl_draw_text(draw, request, 1, color, alpha);
-			return TRUE;
-		}
-	}
-	return FALSE;
 }
 
 static gboolean
@@ -573,16 +533,6 @@ _vte_gl_fill_rectangle(struct _vte_draw *draw,
 			  color, alpha);
 }
 
-static void
-_vte_gl_set_scroll(struct _vte_draw *draw, gint x, gint y)
-{
-	struct _vte_gl_data *data;
-
-	data = (struct _vte_gl_data*) draw->impl_data;
-	data->scrollx = x;
-	data->scrolly = y;
-}
-
 const struct _vte_draw_impl _vte_draw_gl = {
 	"gl",
 	_vte_gl_check,
@@ -592,23 +542,24 @@ const struct _vte_draw_impl _vte_draw_gl = {
 	_vte_gl_get_colormap,
 	_vte_gl_start,
 	_vte_gl_end,
-	_vte_gl_set_background_color,
+	NULL, /* set_background_opacity */
+	NULL, /* set_background_color */
 	_vte_gl_set_background_image,
-	TRUE,
-	NULL,
+	TRUE, /* always_requires_clear */
+	NULL, /* clip */
 	_vte_gl_clear,
 	_vte_gl_set_text_font,
 	_vte_gl_get_text_width,
 	_vte_gl_get_text_height,
 	_vte_gl_get_text_ascent,
 	_vte_gl_get_char_width,
-	_vte_gl_get_using_fontconfig,
+	NULL, /* get_using_fontconfig */
 	_vte_gl_draw_text,
-	_vte_gl_draw_char,
+	NULL, /* draw_char */
 	_vte_gl_draw_has_char,
 	_vte_gl_draw_rectangle,
 	_vte_gl_fill_rectangle,
-	_vte_gl_set_scroll,
+	NULL /* set_scroll */
 };
 
 #endif

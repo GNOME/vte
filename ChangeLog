@@ -1,5 +1,23 @@
 2008-11-13  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c (vte_terminal_background_update):
+	* src/vtedraw.c (_vte_draw_update_requires_clear), (_vte_draw_new),
+	(_vte_draw_set_background_opacity),
+	(_vte_draw_set_background_color), (_vte_draw_set_background_image),
+	(_vte_draw_char), (_vte_draw_set_scroll):
+	* src/vtedraw.h:
+	* src/vteft2.c (_vte_ft2_set_background_image), (_vte_ft2_clear),
+	(_vte_ft2_get_char_width):
+	* src/vtegl.c (_vte_gl_create), (_vte_gl_clear),
+	(_vte_gl_get_char_width), (_vte_gl_draw_text):
+	* src/vtepango.c (_vte_pango_create), (_vte_pango_start),
+	(_vte_pango_set_background_image), (_vte_pango_clear):
+	* src/vtexft.c (_vte_xft_create), (_vte_xft_set_background_image),
+	(_vte_xft_clear), (_vte_xft_get_char_width):
+	Simplify backends by relying more on defaults.
+
+2008-11-13  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vtedraw.c (_vte_draw_init_user), (_vte_draw_init_default):
 	Accept draw impl if impl->check is NULL.
 

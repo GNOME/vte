@@ -38,18 +38,9 @@ struct _vte_ft2_data
 {
 	struct _vte_glyph_cache *cache;
 	struct _vte_rgb_buffer *rgb;
-	GdkColor color;
 	GdkPixbuf *pixbuf;
-	gint scrollx, scrolly;
 	gint left, right, top, bottom;
 };
-
-static gboolean
-_vte_ft2_check(struct _vte_draw *draw, GtkWidget *widget)
-{
-	/* We can draw onto any widget. */
-	return TRUE;
-}
 
 static void
 _vte_ft2_create(struct _vte_draw *draw, GtkWidget *widget)
@@ -73,18 +64,6 @@ _vte_ft2_destroy(struct _vte_draw *draw)
 		g_object_unref(data->pixbuf);
 	}
 	g_slice_free(struct _vte_ft2_data, data);
-}
-
-static GdkVisual *
-_vte_ft2_get_visual(struct _vte_draw *draw)
-{
-	return gtk_widget_get_visual(draw->widget);
-}
-
-static GdkColormap *
-_vte_ft2_get_colormap(struct _vte_draw *draw)
-{
-	return gtk_widget_get_colormap(draw->widget);
 }
 
 static void
@@ -135,14 +114,6 @@ _vte_ft2_end(struct _vte_draw *draw)
 }
 
 static void
-_vte_ft2_set_background_color(struct _vte_draw *draw, GdkColor *color, guint16 opacity)
-{
-	struct _vte_ft2_data *data;
-	data = (struct _vte_ft2_data*) draw->impl_data;
-	data->color = *color;
-}
-
-static void
 _vte_ft2_set_background_image(struct _vte_draw *draw,
 			      enum VteBgSourceType type,
 			      GdkPixbuf *pixbuf,
@@ -165,7 +136,6 @@ _vte_ft2_set_background_image(struct _vte_draw *draw,
 		g_object_unref(data->pixbuf);
 	}
 	data->pixbuf = bgpixbuf;
-	draw->requires_clear = bgpixbuf != NULL;
 }
 
 static void
@@ -199,11 +169,11 @@ _vte_ft2_clear(struct _vte_draw *draw,
 		/* Tile a pixbuf in. */
 		_vte_rgb_draw_pixbuf(data->rgb, x, y, width, height,
 				     data->pixbuf,
-				     data->scrollx + x, data->scrolly + y);
+				     draw->scrollx + x, draw->scrolly + y);
 	} else {
 		/* The simple case is a solid color. */
 		_vte_rgb_draw_color(data->rgb, x, y, width, height,
-				    &data->color);
+				    &draw->bg_color);
 	}
 	update_bbox(data, x, y, width, height);
 }
@@ -264,11 +234,10 @@ _vte_ft2_get_char_width(struct _vte_draw *draw, gunichar c, int columns)
 	data = (struct _vte_ft2_data*) draw->impl_data;
 
 	glyph = _vte_glyph_get(data->cache, c);
-	if (glyph != NULL) {
-		return glyph->width;
-	}
+	if (glyph == NULL)
+		return 0;
 
-	return _vte_ft2_get_text_width(draw) * columns;
+	return glyph->width;
 }
 
 static gboolean
@@ -312,24 +281,6 @@ _vte_ft2_draw_text(struct _vte_draw *draw,
 			}
 		}
 	}
-}
-
-static gboolean
-_vte_ft2_draw_char(struct _vte_draw *draw,
-		   struct _vte_draw_text_request *request,
-		   GdkColor *color, guchar alpha)
-{
-	struct _vte_ft2_data *data;
-
-	data = (struct _vte_ft2_data*) draw->impl_data;
-
-	if (data->cache != NULL) {
-		if (_vte_glyph_get(data->cache, request->c) != NULL) {
-			_vte_ft2_draw_text(draw, request, 1, color, alpha);
-			return TRUE;
-		}
-	}
-	return FALSE;
 }
 
 static gboolean
@@ -388,27 +339,19 @@ _vte_ft2_fill_rectangle(struct _vte_draw *draw,
 	update_bbox(data, x, y, width, height);
 }
 
-static void
-_vte_ft2_set_scroll(struct _vte_draw *draw, gint x, gint y)
-{
-	struct _vte_ft2_data *data;
-	data = (struct _vte_ft2_data*) draw->impl_data;
-	data->scrollx = x;
-	data->scrolly = y;
-}
-
 const struct _vte_draw_impl _vte_draw_ft2 = {
 	"ft2",
-	_vte_ft2_check,
+	NULL, /* check */
 	_vte_ft2_create,
 	_vte_ft2_destroy,
-	_vte_ft2_get_visual,
-	_vte_ft2_get_colormap,
+	NULL, /* get_visual */
+	NULL, /* get_colormap */
 	_vte_ft2_start,
 	_vte_ft2_end,
-	_vte_ft2_set_background_color,
+	NULL, /* set_background_opacity */
+	NULL, /* set_background_color */
 	_vte_ft2_set_background_image,
-	FALSE,
+	FALSE, /* always_require_clear */
 	_vte_ft2_clip,
 	_vte_ft2_clear,
 	_vte_ft2_set_text_font,
@@ -418,9 +361,9 @@ const struct _vte_draw_impl _vte_draw_ft2 = {
 	_vte_ft2_get_char_width,
 	_vte_ft2_get_using_fontconfig,
 	_vte_ft2_draw_text,
-	_vte_ft2_draw_char,
+	NULL, /* draw_char */
 	_vte_ft2_draw_has_char,
 	_vte_ft2_draw_rectangle,
 	_vte_ft2_fill_rectangle,
-	_vte_ft2_set_scroll,
+	NULL /* set_scroll */
 };

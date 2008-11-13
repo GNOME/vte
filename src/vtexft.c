@@ -68,12 +68,9 @@ struct _vte_xft_data {
 	Visual *visual;
 	Colormap colormap;
 	XftDraw *draw;
-	GdkColor color;
-	guint16 opacity;
 	GdkPixmap *pixmap;
 	Pixmap xpixmap;
 	gint pixmapw, pixmaph;
-	gint scrollx, scrolly;
 	GPtrArray *locked_fonts[2];
 	guint cur_locked_fonts;
 	gboolean has_clip_mask;
@@ -343,13 +340,6 @@ _vte_xft_char_width (struct _vte_xft_font *font, XftFont *ftfont, gunichar c, in
 
 }
 
-static gboolean
-_vte_xft_check (struct _vte_draw *draw, GtkWidget *widget)
-{
-	/* We can draw onto any widget. */
-	return TRUE;
-}
-
 static void
 _vte_xft_create (struct _vte_draw *draw, GtkWidget *widget)
 {
@@ -357,8 +347,6 @@ _vte_xft_create (struct _vte_draw *draw, GtkWidget *widget)
 
 	data = g_slice_new0 (struct _vte_xft_data);
 	draw->impl_data = data;
-
-	data->opacity = 0xffff;
 
 	data->xpixmap = -1;
 	data->pixmapw = data->pixmaph = -1;
@@ -398,18 +386,6 @@ _vte_xft_destroy (struct _vte_draw *draw)
 		XftDrawDestroy (data->draw);
 	}
 	g_slice_free (struct _vte_xft_data, data);
-}
-
-static GdkVisual *
-_vte_xft_get_visual (struct _vte_draw *draw)
-{
-	return gtk_widget_get_visual (draw->widget);
-}
-
-static GdkColormap *
-_vte_xft_get_colormap (struct _vte_draw *draw)
-{
-	return gtk_widget_get_colormap (draw->widget);
 }
 
 static void
@@ -472,19 +448,6 @@ _vte_xft_end (struct _vte_draw *draw)
 }
 
 static void
-_vte_xft_set_background_color (struct _vte_draw *draw, GdkColor *color,
-			      guint16 opacity)
-{
-	struct _vte_xft_data *data;
-	data = (struct _vte_xft_data*) draw->impl_data;
-	data->color = *color;
-	data->opacity = opacity;
-
-	draw->requires_clear = opacity != 0xffff
-		|| (data->pixmapw > 0 && data->pixmaph > 0);
-}
-
-static void
 _vte_xft_set_background_image (struct _vte_draw *draw,
 			      enum VteBgSourceType type,
 			      GdkPixbuf *pixbuf,
@@ -497,7 +460,6 @@ _vte_xft_set_background_image (struct _vte_draw *draw,
 
 	data = (struct _vte_xft_data*) draw->impl_data;
 
-	draw->requires_clear = data->opacity != 0xffff;
 	data->xpixmap = -1;
 	data->pixmapw = data->pixmaph = 0;
 
@@ -519,8 +481,6 @@ _vte_xft_set_background_image (struct _vte_draw *draw,
 	if (pixmap != NULL) {
 		data->xpixmap = gdk_x11_drawable_get_xid (pixmap);
 		gdk_drawable_get_size (pixmap, &data->pixmapw, &data->pixmaph);
-		draw->requires_clear |=
-			data->pixmapw > 0 && data->pixmaph > 0;
 	}
 }
 
@@ -577,10 +537,10 @@ _vte_xft_clear (struct _vte_draw *draw,
 	if (data->pixmap == NULL ||
 	    (data->pixmapw <= 0) ||
 	    (data->pixmaph <= 0)) {
-		rcolor.red = data->color.red * data->opacity / 0xffff;
-		rcolor.green = data->color.green * data->opacity / 0xffff;
-		rcolor.blue = data->color.blue * data->opacity / 0xffff;
-		rcolor.alpha = data->opacity;
+		rcolor.red = draw->bg_color.red * draw->bg_opacity / 0xffff;
+		rcolor.green = draw->bg_color.green * draw->bg_opacity / 0xffff;
+		rcolor.blue = draw->bg_color.blue * draw->bg_opacity / 0xffff;
+		rcolor.alpha = draw->bg_opacity;
 		if (XftColorAllocValue (data->display, data->visual,
 				       data->colormap, &rcolor, &ftcolor)) {
 			XftDrawRect (data->draw, &ftcolor,
@@ -601,11 +561,11 @@ _vte_xft_clear (struct _vte_draw *draw,
 
 	/* Flood fill. */
 	gc = XCreateGC (data->display, data->drawable, 0, NULL);
-	sy = (data->scrolly + y) % data->pixmaph;
+	sy = (draw->scrolly + y) % data->pixmaph;
 	while (ty < tystop) {
 		h = MIN (data->pixmaph - sy, tystop - ty);
 		tx = x;
-		sx = (data->scrollx + x) % data->pixmapw;
+		sx = (draw->scrollx + x) % data->pixmapw;
 		while (tx < txstop) {
 			w = MIN (data->pixmapw - sx, txstop - tx);
 			XCopyArea (data->display,
@@ -758,24 +718,6 @@ _vte_xft_set_text_font (struct _vte_draw *draw,
 	}
 }
 
-static inline int
-_vte_xft_get_text_width (struct _vte_draw *draw)
-{
-	return draw->width;
-}
-
-static inline int
-_vte_xft_get_text_height (struct _vte_draw *draw)
-{
-	return draw->height;
-}
-
-static inline int
-_vte_xft_get_text_ascent (struct _vte_draw *draw)
-{
-	return draw->ascent;
-}
-
 static int
 _vte_xft_get_char_width (struct _vte_draw *draw, gunichar c, int columns)
 {
@@ -794,13 +736,8 @@ _vte_xft_get_char_width (struct _vte_draw *draw, gunichar c, int columns)
 			}
 		}
 	}
-	return _vte_xft_get_text_width (draw) * columns;
-}
 
-static gboolean
-_vte_xft_get_using_fontconfig (struct _vte_draw *draw)
-{
-	return TRUE;
+	return 0;
 }
 
 static void
@@ -916,23 +853,6 @@ draw:
 }
 
 static gboolean
-_vte_xft_draw_char (struct _vte_draw *draw,
-		   struct _vte_draw_text_request *request,
-		   GdkColor *color, guchar alpha)
-{
-	struct _vte_xft_data *data;
-
-	data = (struct _vte_xft_data*) draw->impl_data;
-	if (data->font != NULL &&
-			_vte_xft_font_for_char (data->font, request->c,
-				data->locked_fonts[data->cur_locked_fonts&1]) != NULL) {
-		_vte_xft_draw_text (draw, request, 1, color, alpha);
-		return TRUE;
-	}
-	return FALSE;
-}
-
-static gboolean
 _vte_xft_draw_has_char (struct _vte_draw *draw, gunichar c)
 {
 	struct _vte_xft_data *data;
@@ -1005,39 +925,31 @@ _vte_xft_fill_rectangle (struct _vte_draw *draw,
 	}
 }
 
-static void
-_vte_xft_set_scroll (struct _vte_draw *draw, gint x, gint y)
-{
-	struct _vte_xft_data *data;
-	data = (struct _vte_xft_data*) draw->impl_data;
-	data->scrollx = x;
-	data->scrolly = y;
-}
-
 const struct _vte_draw_impl _vte_draw_xft = {
 	"xft",
-	_vte_xft_check,
+	NULL, /* check */
 	_vte_xft_create,
 	_vte_xft_destroy,
-	_vte_xft_get_visual,
-	_vte_xft_get_colormap,
+	NULL, /* get_visual */
+	NULL, /* get_colormap */
 	_vte_xft_start,
 	_vte_xft_end,
-	_vte_xft_set_background_color,
+	NULL, /* set_background_opacity */
+	NULL, /* set_background_color */
 	_vte_xft_set_background_image,
 	FALSE,
 	_vte_xft_clip,
 	_vte_xft_clear,
 	_vte_xft_set_text_font,
-	_vte_xft_get_text_width,
-	_vte_xft_get_text_height,
-	_vte_xft_get_text_ascent,
+	NULL, /* get_text_width */
+	NULL, /* get_text_height */
+	NULL, /* get_text_ascent */
 	_vte_xft_get_char_width,
-	_vte_xft_get_using_fontconfig,
+	NULL, /* get_using_fontconfig */
 	_vte_xft_draw_text,
-	_vte_xft_draw_char,
+	NULL, /* draw_char */
 	_vte_xft_draw_has_char,
 	_vte_xft_draw_rectangle,
 	_vte_xft_fill_rectangle,
-	_vte_xft_set_scroll,
+	NULL /* set_scroll */
 };
