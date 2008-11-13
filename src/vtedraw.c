@@ -94,7 +94,8 @@ _vte_draw_init_user (struct _vte_draw *draw)
 		/* find among available draws */
 		for (i = 0; i < G_N_ELEMENTS (_vte_draw_impls); i++) {
 			if (strcmp (*s, _vte_draw_impls[i]->name) == 0) {
-				if (_vte_draw_impls[i]->check (draw, draw->widget)) {
+				if (_vte_draw_impls[i]->check == NULL ||
+				    _vte_draw_impls[i]->check (draw, draw->widget)) {
 					draw->impl = _vte_draw_impls[i];
 					goto out;
 				}
@@ -115,7 +116,8 @@ _vte_draw_init_default (struct _vte_draw *draw)
 	guint i;
 
 	for (i = 0; i < G_N_ELEMENTS (_vte_draw_impls); i++) {
-		if (_vte_draw_impls[i]->check (draw, draw->widget)) {
+		if (_vte_draw_impls[i]->check == NULL ||
+		    _vte_draw_impls[i]->check (draw, draw->widget)) {
 			draw->impl = _vte_draw_impls[i];
 			return TRUE;
 		}

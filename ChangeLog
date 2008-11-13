@@ -1,5 +1,10 @@
 2008-11-13  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vtedraw.c (_vte_draw_init_user), (_vte_draw_init_default):
+	Accept draw impl if impl->check is NULL.
+
+2008-11-13  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vtedraw.h:
 	* src/vtedraw.c (_vte_draw_new), (_vte_draw_get_visual),
 	(_vte_draw_get_colormap), (_vte_draw_start), (_vte_draw_end),
