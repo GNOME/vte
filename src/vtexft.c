@@ -937,7 +937,7 @@ const struct _vte_draw_impl _vte_draw_xft = {
 	NULL, /* set_background_opacity */
 	NULL, /* set_background_color */
 	_vte_xft_set_background_image,
-	FALSE,
+	FALSE, /* always_requires_clear */
 	_vte_xft_clip,
 	_vte_xft_clear,
 	_vte_xft_set_text_font,
