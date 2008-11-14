@@ -7270,16 +7270,15 @@ vte_terminal_ensure_font (VteTerminal *terminal)
 					terminal->pvt->fontantialias);
 		}
 		if (terminal->pvt->fontdirty) {
+			gint width, height, ascent;
 			terminal->pvt->fontdirty = FALSE;
 			_vte_draw_set_text_font (terminal->pvt->draw,
 					terminal->pvt->fontdesc,
 					terminal->pvt->fontantialias);
+			_vte_draw_get_text_metrics (terminal->pvt->draw,
+						    &width, &height, &ascent);
 			vte_terminal_apply_metrics(terminal,
-					_vte_draw_get_text_width (terminal->pvt->draw),
-					_vte_draw_get_text_height (terminal->pvt->draw),
-					_vte_draw_get_text_ascent (terminal->pvt->draw),
-					_vte_draw_get_text_height (terminal->pvt->draw) -
-					_vte_draw_get_text_ascent (terminal->pvt->draw));
+						   width, height, ascent, height - ascent);
 		}
 	}
 }

@@ -62,31 +62,24 @@ struct _vte_draw_impl {
 	GdkColormap* (*get_colormap)(struct _vte_draw *draw);
 	void (*start)(struct _vte_draw *draw);
 	void (*end)(struct _vte_draw *draw);
-	void (*set_background_opacity)(struct _vte_draw *, guint16);
-	void (*set_background_color)(struct _vte_draw *, GdkColor *);
 	void (*set_background_image)(struct _vte_draw *,
 				     enum VteBgSourceType type,
 				     GdkPixbuf *pixbuf,
 				     const char *file,
 				     const GdkColor *color,
 				     double saturation);
-	gboolean always_requires_clear;
 	void (*clip)(struct _vte_draw *, GdkRegion *);
+	gboolean always_requires_clear;
 	void (*clear)(struct _vte_draw *, gint, gint, gint, gint);
 	void (*set_text_font)(struct _vte_draw *,
 			      const PangoFontDescription *,
 			      VteTerminalAntiAlias);
-	int (*get_text_width)(struct _vte_draw *);
-	int (*get_text_height)(struct _vte_draw *);
-	int (*get_text_ascent)(struct _vte_draw *);
+	void (*get_text_metrics)(struct _vte_draw *, gint *, gint *, gint *);
 	int (*get_char_width)(struct _vte_draw *, gunichar c, int columns);
 	gboolean (*get_using_fontconfig)(struct _vte_draw *);
 	void (*draw_text)(struct _vte_draw *,
 			  struct _vte_draw_text_request *, gsize,
 			  GdkColor *, guchar);
-	gboolean (*draw_char)(struct _vte_draw *,
-			      struct _vte_draw_text_request *,
-			      GdkColor *, guchar);
 	gboolean (*has_char)(struct _vte_draw *, gunichar);
 	void (*draw_rectangle)(struct _vte_draw *,
 			       gint, gint, gint, gint,
@@ -94,7 +87,6 @@ struct _vte_draw_impl {
 	void (*fill_rectangle)(struct _vte_draw *,
 			       gint, gint, gint, gint,
 			       GdkColor *, guchar);
-	void (*set_scroll)(struct _vte_draw *, gint, gint);
 };
 
 struct _vte_draw {
@@ -111,10 +103,6 @@ struct _vte_draw {
 	gboolean requires_clear;
 
 	const struct _vte_draw_impl *impl;
-
-	/* impl should set these */
-	gint width, height, ascent;
-
 
 	/* for use by impl */
 	gpointer impl_data;
@@ -158,9 +146,8 @@ void _vte_draw_set_text_font(struct _vte_draw *draw,
 			     const PangoFontDescription *fontdesc,
 			     VteTerminalAntiAlias anti_alias);
 /* Read font metrics. */
-int _vte_draw_get_text_width(struct _vte_draw *draw);
-int _vte_draw_get_text_height(struct _vte_draw *draw);
-int _vte_draw_get_text_ascent(struct _vte_draw *draw);
+void _vte_draw_get_text_metrics(struct _vte_draw *draw,
+				gint *width, gint *height, gint *ascent);
 int _vte_draw_get_char_width(struct _vte_draw *draw, gunichar c, int columns);
 gboolean _vte_draw_get_using_fontconfig(struct _vte_draw *draw);
 

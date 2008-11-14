@@ -38,6 +38,7 @@ struct _vte_pango_data
 	PangoFontDescription *font;
 	PangoLayout *layout;
 	GdkGC *gc;
+	gint width, height, ascent;
 };
 
 static void
@@ -225,16 +226,16 @@ _vte_pango_set_text_font(struct _vte_draw *draw,
 			      VTE_DRAW_SINGLE_WIDE_CHARACTERS,
 			      strlen(VTE_DRAW_SINGLE_WIDE_CHARACTERS));
 	pango_layout_get_extents(layout, &ink, &logical);
-	draw->width = logical.width;
-	draw->width = howmany(draw->width,
+	data->width = logical.width;
+	data->width = howmany(data->width,
 			      strlen(VTE_DRAW_SINGLE_WIDE_CHARACTERS));
 	iter = pango_layout_get_iter(layout);
-	draw->height = PANGO_PIXELS(logical.height);
-	draw->ascent = PANGO_PIXELS(pango_layout_iter_get_baseline(iter));
+	data->height = PANGO_PIXELS(logical.height);
+	data->ascent = PANGO_PIXELS(pango_layout_iter_get_baseline(iter));
 	pango_layout_iter_free(iter);
 
 	/* Estimate for CJK characters. */
-	full_width = draw->width * 2;
+	full_width = data->width * 2;
 	full_string = g_string_new(NULL);
 	for (i = 0; i < G_N_ELEMENTS(full_codepoints); i++) {
 		g_string_append_unichar(full_string, full_codepoints[i]);
@@ -245,26 +246,37 @@ _vte_pango_set_text_font(struct _vte_draw *draw,
 	g_string_free(full_string, TRUE);
 
 	/* If they're the same, then we have a screwy font. */
-	if (full_width == draw->width) {
+	if (full_width == data->width) {
 		/* add 1 to round up when dividing by 2 */
-		draw->width = (draw->width + 1) / 2;
+		data->width = (data->width + 1) / 2;
 	}
 
-	draw->width = PANGO_PIXELS(draw->width);
+	data->width = PANGO_PIXELS(data->width);
 	iter = pango_layout_get_iter(layout);
-	if (draw->height == 0) {
-		draw->height = PANGO_PIXELS(logical.height);
+	if (data->height == 0) {
+		data->height = PANGO_PIXELS(logical.height);
 	}
-	if (draw->ascent == 0) {
-		draw->ascent = PANGO_PIXELS(pango_layout_iter_get_baseline(iter));
+	if (data->ascent == 0) {
+		data->ascent = PANGO_PIXELS(pango_layout_iter_get_baseline(iter));
 	}
 	pango_layout_iter_free(iter);
 
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"VtePango font metrics = %dx%d (%d).\n",
-			draw->width, draw->height, draw->ascent);
+			data->width, data->height, data->ascent);
 
 	g_object_unref(layout);
+}
+
+static void
+_vte_pango_get_text_metrics(struct _vte_draw *draw,
+			    gint *width, gint *height, gint *ascent)
+{
+	struct _vte_pango_data *data = draw->impl_data;
+	
+	*width  = data->width;
+	*height = data->height;
+	*ascent = data->ascent;
 }
 
 static void
@@ -352,22 +364,16 @@ const struct _vte_draw_impl _vte_draw_pango = {
 	NULL, /* get_colormap */
 	_vte_pango_start,
 	_vte_pango_end,
-	NULL, /* set_background_opacity */
-	NULL, /* set_background_color */
 	_vte_pango_set_background_image,
-	FALSE, /* always_requires_clear */
 	_vte_pango_clip,
+	FALSE, /* always_requires_clear */
 	_vte_pango_clear,
 	_vte_pango_set_text_font,
-	NULL, /* get_text_width */
-	NULL, /* get_text_height */
-	NULL, /* get_text_ascent */
+	_vte_pango_get_text_metrics,
 	NULL, /* get_char_width */
 	NULL, /* get_using_fontconfig */
 	_vte_pango_draw_text,
-	NULL, /* draw_char */
 	_vte_pango_draw_has_char,
 	_vte_pango_draw_rectangle,
-	_vte_pango_fill_rectangle,
-	NULL /* set_scroll */
+	_vte_pango_fill_rectangle
 };

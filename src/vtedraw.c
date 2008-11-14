@@ -51,7 +51,7 @@ static const struct _vte_draw_impl
 	&_vte_draw_pango,
 #ifndef X_DISPLAY_MISSING
 #ifdef HAVE_PANGOX
-	&_vte_draw_pango_x,
+	&_vte_draw_pangox,
 #endif /* HAVE_PANGOX */
 #endif /* !X_DISPLAY_MISSING */
 };
@@ -161,7 +161,8 @@ _vte_draw_new (GtkWidget *widget)
 			"draw_new (%s)\n", draw->impl->name);
 	_vte_debug_print (VTE_DEBUG_MISC, "Using %s.\n", draw->impl->name);
 
-	draw->impl->create (draw, draw->widget);
+	if (draw->impl->create)
+		draw->impl->create (draw, draw->widget);
 
 	return draw;
 }
@@ -170,7 +171,9 @@ void
 _vte_draw_free (struct _vte_draw *draw)
 {
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_free\n");
-	draw->impl->destroy (draw);
+
+	if (draw->impl->destroy)
+		draw->impl->destroy (draw);
 
 	if (draw->widget != NULL) {
 		g_object_unref (draw->widget);
@@ -247,9 +250,6 @@ _vte_draw_set_background_opacity (struct _vte_draw *draw,
 {
 	draw->bg_opacity = opacity;
 	_vte_draw_update_requires_clear (draw);
-
-	if (draw->impl->set_background_opacity)
-		draw->impl->set_background_opacity (draw, opacity);
 }
 
 void
@@ -257,9 +257,6 @@ _vte_draw_set_background_color (struct _vte_draw *draw,
 			        GdkColor *color)
 {
 	draw->bg_color = *color;
-
-	if (draw->impl->set_background_color)
-		draw->impl->set_background_color (draw, color);
 }
 
 void
@@ -314,45 +311,26 @@ _vte_draw_set_text_font (struct _vte_draw *draw,
 			const PangoFontDescription *fontdesc,
 			VteTerminalAntiAlias anti_alias)
 {
-	g_return_if_fail (draw->impl->set_text_font != NULL);
-
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_set_text_font (aa=%d)\n",
 			  anti_alias);
 
-	draw->impl->set_text_font (draw, fontdesc, anti_alias);
+	if (draw->impl->set_text_font)
+		draw->impl->set_text_font (draw, fontdesc, anti_alias);
 }
 
-int
-_vte_draw_get_text_width (struct _vte_draw *draw)
+void
+_vte_draw_get_text_metrics(struct _vte_draw *draw,
+			   gint *width, gint *height, gint *ascent)
 {
-	int width = 0;
+	gint swidth = 0, sheight = 0, sascent = 0;
 
-	if (draw->impl->get_text_width)
-		width = draw->impl->get_text_width (draw);
+	g_return_if_fail (draw->impl->get_text_metrics != NULL);
 
-	return width ? width : draw->width;
-}
+	draw->impl->get_text_metrics (draw, &swidth, &sheight, &sascent);
 
-int
-_vte_draw_get_text_height (struct _vte_draw *draw)
-{
-	int height = 0;
-
-	if (draw->impl->get_text_height)
-		height = draw->impl->get_text_height (draw);
-
-	return height ? height : draw->height;
-}
-
-int
-_vte_draw_get_text_ascent (struct _vte_draw *draw)
-{
-	int ascent = 0;
-
-	if (draw->impl->get_text_ascent)
-		ascent = draw->impl->get_text_ascent (draw);
-
-	return ascent ? ascent : draw->ascent;
+	if (width)  *width  = swidth;
+	if (height) *height = sheight;
+	if (ascent) *ascent = sascent;
 }
 
 int
@@ -363,7 +341,10 @@ _vte_draw_get_char_width (struct _vte_draw *draw, gunichar c, int columns)
 	if (draw->impl->get_char_width)
 		width = draw->impl->get_char_width (draw, c, columns);
 
-	return width ? width : _vte_draw_get_text_width (draw) * columns;
+	if (width == 0)
+		_vte_draw_get_text_metrics (draw, &width, NULL, NULL);
+
+	return width;
 }
 
 gboolean
@@ -409,21 +390,15 @@ _vte_draw_char (struct _vte_draw *draw,
 {
 	gboolean has_char;
 
-	g_return_val_if_fail (draw->started == TRUE, FALSE);
-
 	_vte_debug_print (VTE_DEBUG_DRAW,
 			"draw_char ('%c', color=(%d,%d,%d,%d))\n",
 			request->c,
 			color->red, color->green, color->blue,
 			alpha);
 
-	if (draw->impl->draw_char)
-		has_char = draw->impl->draw_char (draw, request, color, alpha);
-	else {
-		has_char =_vte_draw_has_char (draw, request->c);
-		if (has_char)
-			_vte_draw_text (draw, request, 1, color, alpha);
-	}
+	has_char =_vte_draw_has_char (draw, request->c);
+	if (has_char)
+		_vte_draw_text (draw, request, 1, color, alpha);
 
 	return has_char;
 }
@@ -463,7 +438,6 @@ _vte_draw_draw_rectangle (struct _vte_draw *draw,
 			 GdkColor *color, guchar alpha)
 {
 	g_return_if_fail (draw->started == TRUE);
-	g_return_if_fail (draw->impl->draw_rectangle != NULL);
 
 	_vte_debug_print (VTE_DEBUG_DRAW,
 			"draw_rectangle (%d, %d, %d, %d, color=(%d,%d,%d,%d))\n",
@@ -471,7 +445,18 @@ _vte_draw_draw_rectangle (struct _vte_draw *draw,
 			color->red, color->green, color->blue,
 			alpha);
 
-	draw->impl->draw_rectangle (draw, x, y, width, height, color, alpha);
+	if (draw->impl->draw_rectangle)
+		draw->impl->draw_rectangle (draw, x, y, width, height, color, alpha);
+	else {
+		if (width > 0) {
+			_vte_draw_fill_rectangle (draw, x, y, width-1, 1, color, alpha);
+			_vte_draw_fill_rectangle (draw, x+1, y+height-1, width-1, 1, color, alpha);
+		}
+		if (height > 0) {
+			_vte_draw_fill_rectangle (draw, x, y+1, 1, height-1, color, alpha);
+			_vte_draw_fill_rectangle (draw, x+width-1, y, 1, height-1, color, alpha);
+		}
+	}
 }
 
 void
@@ -483,7 +468,4 @@ _vte_draw_set_scroll (struct _vte_draw *draw, gint x, gint y)
 
 	draw->scrollx = x;
 	draw->scrolly = y;
-
-	if (draw->impl->set_scroll)
-		draw->impl->set_scroll (draw, x, y);
 }

@@ -1,5 +1,42 @@
 2008-11-14  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c (vte_terminal_ensure_font):
+	* src/vtedraw.c (_vte_draw_new), (_vte_draw_free),
+	(_vte_draw_set_background_opacity),
+	(_vte_draw_set_background_color), (_vte_draw_set_text_font),
+	(_vte_draw_get_text_metrics), (_vte_draw_get_char_width),
+	(_vte_draw_char), (_vte_draw_draw_rectangle),
+	(_vte_draw_set_scroll):
+	* src/vtedraw.h:
+	* src/vteft2.c (_vte_ft2_destroy), (_vte_ft2_start),
+	(_vte_ft2_end), (_vte_ft2_set_background_image), (_vte_ft2_clear),
+	(_vte_ft2_set_text_font), (_vte_ft2_get_text_metrics),
+	(_vte_ft2_get_char_width), (_vte_ft2_draw_text),
+	(_vte_ft2_draw_has_char), (_vte_ft2_draw_rectangle),
+	(_vte_ft2_fill_rectangle):
+	* src/vtegl.c (_vte_gl_destroy), (_vte_gl_get_visual),
+	(_vte_gl_start), (_vte_gl_end), (_vte_gl_set_background_image),
+	(_vte_gl_clear), (_vte_gl_set_text_font),
+	(_vte_gl_get_text_metrics), (_vte_gl_get_char_width),
+	(_vte_gl_draw_text), (_vte_gl_draw_has_char), (_vte_gl_rectangle):
+	* src/vtepango.c (_vte_pango_set_text_font),
+	(_vte_pango_get_text_metrics):
+	* src/vtepangox.c (_vte_pangox_create), (_vte_pangox_destroy),
+	(_vte_pangox_start), (_vte_pangox_end),
+	(_vte_pangox_set_background_image), (_vte_pangox_clip),
+	(_vte_pangox_clear), (_vte_pangox_set_text_font),
+	(_vte_pangox_get_text_metrics), (_vte_pangox_get_using_fontconfig),
+	(_vte_pangox_draw_text), (_vte_pangox_draw_has_char),
+	(_vte_pangox_draw_rectangle), (_vte_pangox_fill_rectangle):
+	* src/vtepangox.h:
+	* src/vteskel.c (_vte_skel_clear), (_vte_skel_get_text_metrics),
+	(_vte_skel_draw_text), (_vte_skel_fill_rectangle):
+	* src/vtexft.c (_vte_xft_set_text_font),
+	(_vte_xft_get_text_metrics), (_vte_xft_draw_text):
+	Remove unneeded draw methods.
+
+2008-11-14  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vtedraw.c (_vte_draw_get_char_width): Minor fix.
 
 	* src/vtepangox.c (_vte_pango_x_create), (_vte_pango_x_start),

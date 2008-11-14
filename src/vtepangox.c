@@ -34,7 +34,7 @@
 #include "vtedraw.h"
 #include "vtepangox.h"
 
-struct _vte_pango_x_data
+struct _vte_pangox_data
 {
 	GdkPixmap *pixmap;
 	gint pixmapw, pixmaph;
@@ -44,15 +44,16 @@ struct _vte_pango_x_data
 	PangoContext *ctx;
 	Drawable drawable;
 	int x_offs, y_offs;
+	gint width, height, ascent;
 };
 
 static void
-_vte_pango_x_create(struct _vte_draw *draw, GtkWidget *widget)
+_vte_pangox_create(struct _vte_draw *draw, GtkWidget *widget)
 {
-	struct _vte_pango_x_data *data;
+	struct _vte_pangox_data *data;
 
-	draw->impl_data = g_slice_new(struct _vte_pango_x_data);
-	data = (struct _vte_pango_x_data*) draw->impl_data;
+	draw->impl_data = g_slice_new(struct _vte_pangox_data);
+	data = (struct _vte_pangox_data*) draw->impl_data;
 
 	data->pixmap = NULL;
 	data->pixmapw = data->pixmaph = 0;
@@ -63,10 +64,10 @@ _vte_pango_x_create(struct _vte_draw *draw, GtkWidget *widget)
 }
 
 static void
-_vte_pango_x_destroy(struct _vte_draw *draw)
+_vte_pangox_destroy(struct _vte_draw *draw)
 {
-	struct _vte_pango_x_data *data;
-	data = (struct _vte_pango_x_data*) draw->impl_data;
+	struct _vte_pangox_data *data;
+	data = (struct _vte_pangox_data*) draw->impl_data;
 
 	if (data->pixmap != NULL) {
 		g_object_unref(data->pixmap);
@@ -84,18 +85,18 @@ _vte_pango_x_destroy(struct _vte_draw *draw)
 		g_object_unref(data->ctx);
 	}
 
-	g_slice_free(struct _vte_pango_x_data, draw->impl_data);
+	g_slice_free(struct _vte_pangox_data, draw->impl_data);
 }
 
 static void
-_vte_pango_x_start(struct _vte_draw *draw)
+_vte_pangox_start(struct _vte_draw *draw)
 {
-	struct _vte_pango_x_data *data;
+	struct _vte_pangox_data *data;
 	Display *display;
 	GdkDrawable *drawable;
 	int x_offs, y_offs;
 
-	data = (struct _vte_pango_x_data*) draw->impl_data;
+	data = (struct _vte_pangox_data*) draw->impl_data;
 
 	display = gdk_x11_drawable_get_xdisplay(draw->widget->window);
 	if (data->ctx != NULL) {
@@ -128,10 +129,10 @@ _vte_pango_x_start(struct _vte_draw *draw)
 }
 
 static void
-_vte_pango_x_end(struct _vte_draw *draw)
+_vte_pangox_end(struct _vte_draw *draw)
 {
-	struct _vte_pango_x_data *data;
-	data = (struct _vte_pango_x_data*) draw->impl_data;
+	struct _vte_pangox_data *data;
+	data = (struct _vte_pangox_data*) draw->impl_data;
 
 	data->drawable = -1;
 	data->x_offs = 0;
@@ -154,7 +155,7 @@ _vte_pango_x_end(struct _vte_draw *draw)
 }
 
 static void
-_vte_pango_x_set_background_image(struct _vte_draw *draw,
+_vte_pangox_set_background_image(struct _vte_draw *draw,
 				  enum VteBgSourceType type,
 				  GdkPixbuf *pixbuf,
 				  const char *file,
@@ -162,12 +163,12 @@ _vte_pango_x_set_background_image(struct _vte_draw *draw,
 				  double saturation)
 {
 	GdkPixmap *pixmap;
-	struct _vte_pango_x_data *data;
+	struct _vte_pangox_data *data;
 	GdkScreen *screen;
 
 	screen = gtk_widget_get_screen (draw->widget);
 
-	data = (struct _vte_pango_x_data*) draw->impl_data;
+	data = (struct _vte_pangox_data*) draw->impl_data;
 	pixmap = vte_bg_get_pixmap(vte_bg_get_for_screen(screen),
 				   type, pixbuf, file,
 				   color, saturation,
@@ -187,20 +188,20 @@ _vte_pango_x_set_background_image(struct _vte_draw *draw,
 }
 
 static void
-_vte_pango_x_clip(struct _vte_draw *draw, GdkRegion *region)
+_vte_pangox_clip(struct _vte_draw *draw, GdkRegion *region)
 {
-	struct _vte_pango_x_data *data = draw->impl_data;
+	struct _vte_pangox_data *data = draw->impl_data;
 	gdk_gc_set_clip_region(data->gc, region);
 }
 
 static void
-_vte_pango_x_clear(struct _vte_draw *draw,
+_vte_pangox_clear(struct _vte_draw *draw,
 		   gint x, gint y, gint width, gint height)
 {
-	struct _vte_pango_x_data *data;
+	struct _vte_pangox_data *data;
 	gint i, j, h, w, xstop, ystop;
 
-	data = (struct _vte_pango_x_data*) draw->impl_data;
+	data = (struct _vte_pangox_data*) draw->impl_data;
 
 	if ((data->pixmap == NULL) ||
 	    (data->pixmapw == 0) ||
@@ -240,7 +241,7 @@ _vte_pango_x_clear(struct _vte_draw *draw,
 }
 
 static void
-_vte_pango_x_set_text_font(struct _vte_draw *draw,
+_vte_pangox_set_text_font(struct _vte_draw *draw,
 			   const PangoFontDescription *fontdesc,
 			   VteTerminalAntiAlias antialias)
 {
@@ -253,9 +254,9 @@ _vte_pango_x_set_text_font(struct _vte_draw *draw,
 	GString *full_string;
 	gint full_width;
 	guint i;
-	struct _vte_pango_x_data *data;
+	struct _vte_pangox_data *data;
 
-	data = (struct _vte_pango_x_data*) draw->impl_data;
+	data = (struct _vte_pangox_data*) draw->impl_data;
 
 	display = gdk_x11_display_get_xdisplay(gtk_widget_get_display(draw->widget));
 	if (data->ctx != NULL) {
@@ -275,12 +276,12 @@ _vte_pango_x_set_text_font(struct _vte_draw *draw,
 			      VTE_DRAW_SINGLE_WIDE_CHARACTERS,
 			      strlen(VTE_DRAW_SINGLE_WIDE_CHARACTERS));
 	pango_layout_get_extents(layout, &ink, &logical);
-	draw->width = logical.width;
-	draw->width = howmany(draw->width,
+	data->width = logical.width;
+	data->width = howmany(data->width,
 			      strlen(VTE_DRAW_SINGLE_WIDE_CHARACTERS));
 	iter = pango_layout_get_iter(layout);
-	draw->height = PANGO_PIXELS(logical.height);
-	draw->ascent = PANGO_PIXELS(pango_layout_iter_get_baseline(iter));
+	data->height = PANGO_PIXELS(logical.height);
+	data->ascent = PANGO_PIXELS(pango_layout_iter_get_baseline(iter));
 	pango_layout_iter_free(iter);
 
 	/* Estimate for CJK characters. */
@@ -294,48 +295,59 @@ _vte_pango_x_set_text_font(struct _vte_draw *draw,
 	g_string_free(full_string, TRUE);
 
 	/* If they're the same, then we have a screwy font. */
-	if (full_width == draw->width) {
+	if (full_width == data->width) {
 		/* add 1 to round up when dividing by 2 */
-		draw->width = (draw->width + 1) / 2;
+		data->width = (data->width + 1) / 2;
 	}
 
-	draw->width = PANGO_PIXELS(draw->width);
+	data->width = PANGO_PIXELS(data->width);
 	iter = pango_layout_get_iter(layout);
-	if (draw->height == 0) {
-		draw->height = PANGO_PIXELS(logical.height);
+	if (data->height == 0) {
+		data->height = PANGO_PIXELS(logical.height);
 	}
-	if (draw->ascent == 0) {
-		draw->ascent = PANGO_PIXELS(pango_layout_iter_get_baseline(iter));
+	if (data->ascent == 0) {
+		data->ascent = PANGO_PIXELS(pango_layout_iter_get_baseline(iter));
 	}
 	pango_layout_iter_free(iter);
 
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"VtePangoX font metrics = %dx%d (%d).\n",
-			draw->width, draw->height, draw->ascent);
+			data->width, data->height, data->ascent);
 	g_object_unref(layout);
 	g_object_unref(ctx);
 }
 
+static void
+_vte_pangox_get_text_metrics(struct _vte_draw *draw,
+			     gint *width, gint *height, gint *ascent)
+{
+	struct _vte_pangox_data *data = draw->impl_data;
+	
+	*width  = data->width;
+	*height = data->height;
+	*ascent = data->ascent;
+}
+
 static gboolean
-_vte_pango_x_get_using_fontconfig(struct _vte_draw *draw)
+_vte_pangox_get_using_fontconfig(struct _vte_draw *draw)
 {
 	return FALSE;
 }
 
 static void
-_vte_pango_x_draw_text(struct _vte_draw *draw,
+_vte_pangox_draw_text(struct _vte_draw *draw,
 		       struct _vte_draw_text_request *requests,
 		       gsize n_requests,
 		       GdkColor *color, guchar alpha)
 {
 	Display *display;
 	GC gc;
-	struct _vte_pango_x_data *data;
+	struct _vte_pangox_data *data;
 	char buf[VTE_UTF8_BPC];
 	gsize i, length;
 	GdkColor wcolor;
 
-	data = (struct _vte_pango_x_data*) draw->impl_data;
+	data = (struct _vte_pangox_data*) draw->impl_data;
 
 	wcolor = *color;
 	gdk_rgb_find_color(gdk_drawable_get_colormap(draw->widget->window),
@@ -357,21 +369,21 @@ _vte_pango_x_draw_text(struct _vte_draw *draw,
 }
 
 static gboolean
-_vte_pango_x_draw_has_char(struct _vte_draw *draw, gunichar c)
+_vte_pangox_draw_has_char(struct _vte_draw *draw, gunichar c)
 {
 	return FALSE;
 }
 
 
 static void
-_vte_pango_x_draw_rectangle(struct _vte_draw *draw,
+_vte_pangox_draw_rectangle(struct _vte_draw *draw,
 			  gint x, gint y, gint width, gint height,
 			  GdkColor *color, guchar alpha)
 {
-	struct _vte_pango_x_data *data;
+	struct _vte_pangox_data *data;
 	GdkColor wcolor;
 
-	data = (struct _vte_pango_x_data*) draw->impl_data;
+	data = (struct _vte_pangox_data*) draw->impl_data;
 
 	wcolor = *color;
 	gdk_rgb_find_color(gdk_drawable_get_colormap(draw->widget->window),
@@ -383,14 +395,14 @@ _vte_pango_x_draw_rectangle(struct _vte_draw *draw,
 }
 
 static void
-_vte_pango_x_fill_rectangle(struct _vte_draw *draw,
+_vte_pangox_fill_rectangle(struct _vte_draw *draw,
 			  gint x, gint y, gint width, gint height,
 			  GdkColor *color, guchar alpha)
 {
-	struct _vte_pango_x_data *data;
+	struct _vte_pangox_data *data;
 	GdkColor wcolor;
 
-	data = (struct _vte_pango_x_data*) draw->impl_data;
+	data = (struct _vte_pangox_data*) draw->impl_data;
 	wcolor = *color;
 	gdk_rgb_find_color(gdk_drawable_get_colormap(draw->widget->window),
 			   &wcolor);
@@ -399,33 +411,27 @@ _vte_pango_x_fill_rectangle(struct _vte_draw *draw,
 			   x, y, width, height);
 }
 
-const struct _vte_draw_impl _vte_draw_pango_x = {
+const struct _vte_draw_impl _vte_draw_pangox = {
 	"pangox",
 	NULL, /* check */
-	_vte_pango_x_create,
-	_vte_pango_x_destroy,
+	_vte_pangox_create,
+	_vte_pangox_destroy,
 	NULL, /* get_visual */
 	NULL, /* get_colormap */
-	_vte_pango_x_start,
-	_vte_pango_x_end,
-	NULL, /* set_background_opacity */
-	NULL, /* set_background_color */
-	_vte_pango_x_set_background_image,
+	_vte_pangox_start,
+	_vte_pangox_end,
+	_vte_pangox_set_background_image,
+	_vte_pangox_clip,
 	FALSE, /* always_requires_clear */
-	_vte_pango_x_clip,
-	_vte_pango_x_clear,
-	_vte_pango_x_set_text_font,
-	NULL, /* get_text_width */
-	NULL, /* get_text_height */
-	NULL, /* get_text_ascent */
+	_vte_pangox_clear,
+	_vte_pangox_set_text_font,
+	_vte_pangox_get_text_metrics,
 	NULL, /* get_char_width */
-	_vte_pango_x_get_using_fontconfig,
-	_vte_pango_x_draw_text,
-	NULL, /* draw_char */
-	_vte_pango_x_draw_has_char,
-	_vte_pango_x_draw_rectangle,
-	_vte_pango_x_fill_rectangle,
-	NULL /* set_scroll */
+	_vte_pangox_get_using_fontconfig,
+	_vte_pangox_draw_text,
+	_vte_pangox_draw_has_char,
+	_vte_pangox_draw_rectangle,
+	_vte_pangox_fill_rectangle
 };
 
 #endif

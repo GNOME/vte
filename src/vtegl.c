@@ -150,9 +150,7 @@ _vte_gl_create(struct _vte_draw *draw, GtkWidget *widget)
 static void
 _vte_gl_destroy(struct _vte_draw *draw)
 {
-	struct _vte_gl_data *data;
-
-	data = (struct _vte_gl_data*) draw->impl_data;
+	struct _vte_gl_data *data = draw->impl_data;
 
 	_vte_buffer_free(data->buffer);
 
@@ -172,10 +170,9 @@ _vte_gl_destroy(struct _vte_draw *draw)
 static GdkVisual *
 _vte_gl_get_visual(struct _vte_draw *draw)
 {
+	struct _vte_gl_data *data = draw->impl_data;
 	GdkScreen *gscreen;
-	struct _vte_gl_data *data;
 
-	data = (struct _vte_gl_data*) draw->impl_data;
 	gscreen = gdk_screen_get_default();
 #ifdef VTE_DEBUG
 	g_print("Using GLX-capable visual 0x%02lx.\n",
@@ -194,10 +191,8 @@ _vte_gl_get_colormap(struct _vte_draw *draw)
 static void
 _vte_gl_start(struct _vte_draw *draw)
 {
-	struct _vte_gl_data *data;
+	struct _vte_gl_data *data = draw->impl_data;
 	gint width, height;
-
-	data = (struct _vte_gl_data*) draw->impl_data;
 
 	data->glwindow = gdk_x11_drawable_get_xid(draw->widget->window);
 	width = draw->widget->allocation.width;
@@ -215,9 +210,7 @@ _vte_gl_start(struct _vte_draw *draw)
 static void
 _vte_gl_end(struct _vte_draw *draw)
 {
-	struct _vte_gl_data *data;
-
-	data = (struct _vte_gl_data*) draw->impl_data;
+	struct _vte_gl_data *data = draw->impl_data;
 
 	glXMakeCurrent(data->display, data->glwindow, data->context);
 	glXSwapBuffers(data->display, data->glwindow);
@@ -233,13 +226,12 @@ _vte_gl_set_background_image(struct _vte_draw *draw,
 			     const GdkColor *tint,
 			     double saturation)
 {
-	struct _vte_gl_data *data;
+	struct _vte_gl_data *data = draw->impl_data;
 	GdkPixbuf *bgpixbuf;
 	GdkScreen *screen;
 
 	screen = gtk_widget_get_screen(draw->widget);
 
-	data = (struct _vte_gl_data*) draw->impl_data;
 	bgpixbuf = vte_bg_get_pixbuf(vte_bg_get_for_screen(screen),
 				     type, pixbuf, file,
 				     tint, saturation);
@@ -252,13 +244,11 @@ _vte_gl_set_background_image(struct _vte_draw *draw,
 static void
 _vte_gl_clear(struct _vte_draw *draw, gint x, gint y, gint width, gint height)
 {
-	struct _vte_gl_data *data;
+	struct _vte_gl_data *data = draw->impl_data;
 	long xstop, ystop, i, j;
 	int pixbufw, pixbufh, w, h, channels, stride;
 	GLenum format = 0;
 	guchar *pixels;
-
-	data = (struct _vte_gl_data*) draw->impl_data;
 
 	glXMakeCurrent(data->display, data->glwindow, data->context);
 
@@ -343,9 +333,8 @@ _vte_gl_set_text_font(struct _vte_draw *draw,
 		     const PangoFontDescription *fontdesc,
 		     VteTerminalAntiAlias antialias)
 {
-	struct _vte_gl_data *data;
+	struct _vte_gl_data *data = draw->impl_data;
 
-	data = (struct _vte_gl_data*) draw->impl_data;
 	if (data->cache != NULL) {
 		_vte_glyph_cache_free(data->cache);
 		data->cache = NULL;
@@ -359,40 +348,22 @@ _vte_gl_set_text_font(struct _vte_draw *draw,
 					      NULL);
 }
 
-static int
-_vte_gl_get_text_width(struct _vte_draw *draw)
+static void
+_vte_gl_get_text_metrics(struct _vte_draw *draw,
+			 gint *width, gint *height, gint *ascent)
 {
-	struct _vte_gl_data *data;
-
-	data = (struct _vte_gl_data*) draw->impl_data;
-	return data->cache->width;
-}
-
-static int
-_vte_gl_get_text_height(struct _vte_draw *draw)
-{
-	struct _vte_gl_data *data;
-
-	data = (struct _vte_gl_data*) draw->impl_data;
-	return data->cache->height;
-}
-
-static int
-_vte_gl_get_text_ascent(struct _vte_draw *draw)
-{
-	struct _vte_gl_data *data;
-
-	data = (struct _vte_gl_data*) draw->impl_data;
-	return data->cache->ascent;
+	struct _vte_gl_data *data = draw->impl_data;
+	
+	*width  = data->cache->width;
+	*height = data->cache->height;
+	*ascent = data->cache->ascent;
 }
 
 static int
 _vte_gl_get_char_width(struct _vte_draw *draw, gunichar c, int columns)
 {
-	struct _vte_gl_data *data;
+	struct _vte_gl_data *data = draw->impl_data;
 	const struct _vte_glyph *glyph;
-
-	data = (struct _vte_gl_data*) draw->impl_data;
 
 	glyph = _vte_glyph_get(data->cache, c);
 	if (glyph == NULL)
@@ -406,14 +377,12 @@ _vte_gl_draw_text(struct _vte_draw *draw,
 		  struct _vte_draw_text_request *requests, gsize n_requests,
 		  GdkColor *color, guchar alpha)
 {
-	struct _vte_gl_data *data;
+	struct _vte_gl_data *data = draw->impl_data;
 	const struct _vte_glyph *glyph;
 	guint16 a, r, g, b;
 	guint i, j;
 	int k, x, y, w, pad, rows, columns, src, dest;
 	guchar *pixels;
-
-	data = (struct _vte_gl_data*) draw->impl_data;
 
 	glXMakeCurrent(data->display, data->glwindow, data->context);
 
@@ -481,9 +450,7 @@ _vte_gl_draw_text(struct _vte_draw *draw,
 static gboolean
 _vte_gl_draw_has_char(struct _vte_draw *draw, gunichar c)
 {
-	struct _vte_gl_data *data;
-
-	data = (struct _vte_gl_data*) draw->impl_data;
+	struct _vte_gl_data *data = draw->impl_data;
 
 	if (data->cache != NULL) {
 		if (_vte_glyph_get(data->cache, c) != NULL) {
@@ -499,9 +466,7 @@ _vte_gl_rectangle(struct _vte_draw *draw,
 		  gint x, gint y, gint width, gint height,
 		  GdkColor *color, guchar alpha)
 {
-	struct _vte_gl_data *data;
-
-	data = (struct _vte_gl_data*) draw->impl_data;
+	struct _vte_gl_data *data = draw->impl_data;
 
 	glXMakeCurrent(data->display, data->glwindow, data->context);
 
@@ -542,24 +507,18 @@ const struct _vte_draw_impl _vte_draw_gl = {
 	_vte_gl_get_colormap,
 	_vte_gl_start,
 	_vte_gl_end,
-	NULL, /* set_background_opacity */
-	NULL, /* set_background_color */
 	_vte_gl_set_background_image,
-	TRUE, /* always_requires_clear */
 	NULL, /* clip */
+	TRUE, /* always_requires_clear */
 	_vte_gl_clear,
 	_vte_gl_set_text_font,
-	_vte_gl_get_text_width,
-	_vte_gl_get_text_height,
-	_vte_gl_get_text_ascent,
+	_vte_gl_get_text_metrics,
 	_vte_gl_get_char_width,
 	NULL, /* get_using_fontconfig */
 	_vte_gl_draw_text,
-	NULL, /* draw_char */
 	_vte_gl_draw_has_char,
 	_vte_gl_draw_rectangle,
-	_vte_gl_fill_rectangle,
-	NULL /* set_scroll */
+	_vte_gl_fill_rectangle
 };
 
 #endif

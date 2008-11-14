@@ -52,26 +52,28 @@ _vte_ft2_create(struct _vte_draw *draw, GtkWidget *widget)
 static void
 _vte_ft2_destroy(struct _vte_draw *draw)
 {
-	struct _vte_ft2_data *data;
-	data = (struct _vte_ft2_data*) draw->impl_data;
+	struct _vte_ft2_data *data = draw->impl_data;
+
 	if (data->cache != NULL) {
 		_vte_glyph_cache_free(data->cache);
 	}
+
 	if (data->rgb != NULL) {
 		_vte_rgb_buffer_free(data->rgb);
 	}
+
 	if (data->pixbuf != NULL) {
 		g_object_unref(data->pixbuf);
 	}
+
 	g_slice_free(struct _vte_ft2_data, data);
 }
 
 static void
 _vte_ft2_start(struct _vte_draw *draw)
 {
-	struct _vte_ft2_data *data;
+	struct _vte_ft2_data *data = draw->impl_data;
 	guint width, height;
-	data = (struct _vte_ft2_data*) draw->impl_data;
 
 	width = draw->widget->allocation.width;
 	height = draw->widget->allocation.height;
@@ -87,10 +89,10 @@ _vte_ft2_start(struct _vte_draw *draw)
 static void
 _vte_ft2_end(struct _vte_draw *draw)
 {
-	struct _vte_ft2_data *data;
+	struct _vte_ft2_data *data = draw->impl_data;
 	GtkWidget *widget;
 	GtkStateType state;
-	data = (struct _vte_ft2_data*) draw->impl_data;
+
 	widget = draw->widget;
 	state = GTK_WIDGET_STATE(widget);
 	if (data->right < data->left) {
@@ -110,6 +112,7 @@ _vte_ft2_end(struct _vte_draw *draw)
 					  data->rgb,
 					  data->left, data->top);
 	}
+
 	gdk_gc_set_clip_region(widget->style->fg_gc[state], NULL);
 }
 
@@ -121,13 +124,11 @@ _vte_ft2_set_background_image(struct _vte_draw *draw,
 			      const GdkColor *color,
 			      double saturation)
 {
-	struct _vte_ft2_data *data;
+	struct _vte_ft2_data *data = draw->impl_data;
 	GdkPixbuf *bgpixbuf;
 	GdkScreen *screen;
 
 	screen = gtk_widget_get_screen(draw->widget);
-
-	data = (struct _vte_ft2_data*) draw->impl_data;
 
 	bgpixbuf = vte_bg_get_pixbuf(vte_bg_get_for_screen(screen),
 				     type, pixbuf, file,
@@ -162,8 +163,7 @@ static void
 _vte_ft2_clear(struct _vte_draw *draw,
 	       gint x, gint y, gint width, gint height)
 {
-	struct _vte_ft2_data *data;
-	data = (struct _vte_ft2_data*) draw->impl_data;
+	struct _vte_ft2_data *data = draw->impl_data;
 
 	if (data->pixbuf != NULL) {
 		/* Tile a pixbuf in. */
@@ -183,9 +183,7 @@ _vte_ft2_set_text_font(struct _vte_draw *draw,
 		       const PangoFontDescription *fontdesc,
 		       VteTerminalAntiAlias anti_alias)
 {
-	struct _vte_ft2_data *data;
-
-	data = (struct _vte_ft2_data*) draw->impl_data;
+	struct _vte_ft2_data *data = draw->impl_data;
 
 	if (data->cache != NULL) {
 		_vte_glyph_cache_free(data->cache);
@@ -201,37 +199,22 @@ _vte_ft2_set_text_font(struct _vte_draw *draw,
 			data->cache->ascent);
 }
 
-static int
-_vte_ft2_get_text_width(struct _vte_draw *draw)
+static void
+_vte_ft2_get_text_metrics(struct _vte_draw *draw,
+			  gint *width, gint *height, gint *ascent)
 {
-	struct _vte_ft2_data *data;
-	data = (struct _vte_ft2_data*) draw->impl_data;
-	return data->cache->width;
-}
-
-static int
-_vte_ft2_get_text_height(struct _vte_draw *draw)
-{
-	struct _vte_ft2_data *data;
-	data = (struct _vte_ft2_data*) draw->impl_data;
-	return data->cache->height;
-}
-
-static int
-_vte_ft2_get_text_ascent(struct _vte_draw *draw)
-{
-	struct _vte_ft2_data *data;
-	data = (struct _vte_ft2_data*) draw->impl_data;
-	return data->cache->ascent;
+	struct _vte_ft2_data *data = draw->impl_data;
+	
+	*width  = data->cache->width;
+	*height = data->cache->height;
+	*ascent = data->cache->ascent;
 }
 
 static int
 _vte_ft2_get_char_width(struct _vte_draw *draw, gunichar c, int columns)
 {
-	struct _vte_ft2_data *data;
+	struct _vte_ft2_data *data = draw->impl_data;
 	const struct _vte_glyph *glyph;
-
-	data = (struct _vte_ft2_data*) draw->impl_data;
 
 	glyph = _vte_glyph_get(data->cache, c);
 	if (glyph == NULL)
@@ -251,10 +234,8 @@ _vte_ft2_draw_text(struct _vte_draw *draw,
 		   struct _vte_draw_text_request *requests, gsize n_requests,
 		   GdkColor *color, guchar alpha)
 {
-	struct _vte_ft2_data *data;
+	struct _vte_ft2_data *data = draw->impl_data;
 	gsize i, j;
-
-	data = (struct _vte_ft2_data*) draw->impl_data;
 
 	for (i = 0; i < n_requests; i++) {
 		if (requests[i].c == (gunichar)-1 ||
@@ -286,9 +267,7 @@ _vte_ft2_draw_text(struct _vte_draw *draw,
 static gboolean
 _vte_ft2_draw_has_char(struct _vte_draw *draw, gunichar c)
 {
-	struct _vte_ft2_data *data;
-
-	data = (struct _vte_ft2_data*) draw->impl_data;
+	struct _vte_ft2_data *data = draw->impl_data;
 
 	if (data->cache != NULL) {
 		if (_vte_glyph_get(data->cache, c) != NULL) {
@@ -303,9 +282,7 @@ _vte_ft2_draw_rectangle(struct _vte_draw *draw,
 			gint x, gint y, gint width, gint height,
 			GdkColor *color, guchar alpha)
 {
-	struct _vte_ft2_data *data;
-
-	data = (struct _vte_ft2_data*) draw->impl_data;
+	struct _vte_ft2_data *data = draw->impl_data;
 
 	_vte_rgb_draw_color(data->rgb,
 			    x, y,
@@ -331,9 +308,7 @@ _vte_ft2_fill_rectangle(struct _vte_draw *draw,
 			gint x, gint y, gint width, gint height,
 			GdkColor *color, guchar alpha)
 {
-	struct _vte_ft2_data *data;
-
-	data = (struct _vte_ft2_data*) draw->impl_data;
+	struct _vte_ft2_data *data = draw->impl_data;
 
 	_vte_rgb_draw_color(data->rgb, x, y, width, height, color);
 	update_bbox(data, x, y, width, height);
@@ -348,22 +323,16 @@ const struct _vte_draw_impl _vte_draw_ft2 = {
 	NULL, /* get_colormap */
 	_vte_ft2_start,
 	_vte_ft2_end,
-	NULL, /* set_background_opacity */
-	NULL, /* set_background_color */
 	_vte_ft2_set_background_image,
-	FALSE, /* always_require_clear */
 	_vte_ft2_clip,
+	FALSE, /* always_requires_clear */
 	_vte_ft2_clear,
 	_vte_ft2_set_text_font,
-	_vte_ft2_get_text_width,
-	_vte_ft2_get_text_height,
-	_vte_ft2_get_text_ascent,
+	_vte_ft2_get_text_metrics,
 	_vte_ft2_get_char_width,
 	_vte_ft2_get_using_fontconfig,
 	_vte_ft2_draw_text,
-	NULL, /* draw_char */
 	_vte_ft2_draw_has_char,
 	_vte_ft2_draw_rectangle,
-	_vte_ft2_fill_rectangle,
-	NULL /* set_scroll */
+	_vte_ft2_fill_rectangle
 };

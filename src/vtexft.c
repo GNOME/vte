@@ -619,11 +619,7 @@ _vte_xft_set_text_font (struct _vte_draw *draw,
 	data->locked_fonts[0] = ptr_array_zeroed_new (1 + data->font->patterns->len);
 	data->locked_fonts[1] = ptr_array_zeroed_new (1 + data->font->patterns->len);
 
-	if (data->font->have_metrics) {
-		draw->width = data->font->width;
-		draw->height = data->font->height;
-		draw->ascent = data->font->ascent;
-	} else {
+	if (!data->font->have_metrics) {
 		XftFont *font, *prev_font;
 		XGlyphInfo extents;
 		gunichar wide_chars[] = {VTE_DRAW_DOUBLE_WIDE_CHARACTERS};
@@ -632,9 +628,9 @@ _vte_xft_set_text_font (struct _vte_draw *draw,
 		FcChar32 c;
 		GPtrArray *locked_fonts;
 
-		draw->width = 1;
-		draw->height = 1;
-		draw->ascent = 1;
+		data->font->width = 1;
+		data->font->height = 1;
+		data->font->ascent = 1;
 
 		locked_fonts = data->locked_fonts [data->cur_locked_fonts&1];
 
@@ -662,10 +658,10 @@ _vte_xft_set_text_font (struct _vte_draw *draw,
 			}
 		}
 		if (n > 0) {
-			draw->width = howmany (width, n);
-			draw->height = (font != NULL) ?
+			data->font->width = howmany (width, n);
+			data->font->height = (font != NULL) ?
 				font->ascent + font->descent : height;
-			draw->ascent = (font != NULL) ?
+			data->font->ascent = (font != NULL) ?
 				font->ascent : height;
 		}
 		/* Estimate a typical cell width by looking at double-width
@@ -679,10 +675,10 @@ _vte_xft_set_text_font (struct _vte_draw *draw,
 			if (font != NULL) {
 				if (n && prev_font != font) {/* font change */
 					width = howmany (width, n);
-					if (width >= draw->width -1 &&
-							width <= draw->width + 1){
+					if (width >= data->font->width -1 &&
+							width <= data->font->width + 1){
 						/* add 1 to round up when dividing by 2 */
-						draw->width = (draw->width + 1) / 2;
+						data->font->width = (data->font->width + 1) / 2;
 						break;
 					}
 					n = width = 0;
@@ -696,26 +692,34 @@ _vte_xft_set_text_font (struct _vte_draw *draw,
 		}
 		if (n > 0) {
 			width = howmany (width, n);
-			if (width >= draw->width -1 &&
-					width <= draw->width + 1){
+			if (width >= data->font->width -1 &&
+					width <= data->font->width + 1){
 				/* add 1 to round up when dividing by 2 */
-				draw->width = (draw->width + 1) / 2;
+				data->font->width = (data->font->width + 1) / 2;
 			}
 		}
 
 		gdk_error_trap_pop ();
 
-		data->font->width = draw->width;
-		data->font->height = draw->height;
-		data->font->ascent = draw->ascent;
 		data->font->have_metrics = TRUE;
 
 		_vte_debug_print (VTE_DEBUG_MISC,
 				"VteXft font metrics = %dx%d (%d),"
 				" width range [%d, %d].\n",
-				draw->width, draw->height, draw->ascent,
+				data->font->width, data->font->height, data->font->ascent,
 				min, max);
 	}
+}
+
+static void
+_vte_xft_get_text_metrics(struct _vte_draw *draw,
+			  gint *width, gint *height, gint *ascent)
+{
+	struct _vte_xft_data *data = draw->impl_data;
+	
+	*width  = data->font->width;
+	*height = data->font->height;
+	*ascent = data->font->ascent;
 }
 
 static int
@@ -789,8 +793,8 @@ _vte_xft_draw_text (struct _vte_draw *draw,
 	 * font, to work around a bug which appears to be in Xft and which I
 	 * haven't pinned down yet." */
 	x_off = -data->x_offs;
-	y_off = draw->ascent - data->y_offs;
-	char_width = draw->width;
+	y_off = data->font->ascent - data->y_offs;
+	char_width = data->font->width;
 	do {
 		j = 0;
 		do {
@@ -934,22 +938,16 @@ const struct _vte_draw_impl _vte_draw_xft = {
 	NULL, /* get_colormap */
 	_vte_xft_start,
 	_vte_xft_end,
-	NULL, /* set_background_opacity */
-	NULL, /* set_background_color */
 	_vte_xft_set_background_image,
-	FALSE, /* always_requires_clear */
 	_vte_xft_clip,
+	FALSE, /* always_requires_clear */
 	_vte_xft_clear,
 	_vte_xft_set_text_font,
-	NULL, /* get_text_width */
-	NULL, /* get_text_height */
-	NULL, /* get_text_ascent */
+	_vte_xft_get_text_metrics,
 	_vte_xft_get_char_width,
 	NULL, /* get_using_fontconfig */
 	_vte_xft_draw_text,
-	NULL, /* draw_char */
 	_vte_xft_draw_has_char,
 	_vte_xft_draw_rectangle,
-	_vte_xft_fill_rectangle,
-	NULL /* set_scroll */
+	_vte_xft_fill_rectangle
 };
