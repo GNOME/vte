@@ -36,10 +36,8 @@
 
 struct _vte_pango_x_data
 {
-	GdkColor color;
 	GdkPixmap *pixmap;
 	gint pixmapw, pixmaph;
-	gint scrollx, scrolly;
 	PangoFontDescription *font;
 	PangoLayout *layout;
 	GdkGC *gc;
@@ -47,13 +45,6 @@ struct _vte_pango_x_data
 	Drawable drawable;
 	int x_offs, y_offs;
 };
-
-static gboolean
-_vte_pango_x_check(struct _vte_draw *draw, GtkWidget *widget)
-{
-	/* We can draw onto any widget. */
-	return TRUE;
-}
 
 static void
 _vte_pango_x_create(struct _vte_draw *draw, GtkWidget *widget)
@@ -63,12 +54,8 @@ _vte_pango_x_create(struct _vte_draw *draw, GtkWidget *widget)
 	draw->impl_data = g_slice_new(struct _vte_pango_x_data);
 	data = (struct _vte_pango_x_data*) draw->impl_data;
 
-	data->color.red = 0;
-	data->color.green = 0;
-	data->color.blue = 0;
 	data->pixmap = NULL;
 	data->pixmapw = data->pixmaph = 0;
-	data->scrollx = data->scrolly = 0;
 	data->font = NULL;
 	data->layout = NULL;
 	data->gc = NULL;
@@ -98,18 +85,6 @@ _vte_pango_x_destroy(struct _vte_draw *draw)
 	}
 
 	g_slice_free(struct _vte_pango_x_data, draw->impl_data);
-}
-
-static GdkVisual *
-_vte_pango_x_get_visual(struct _vte_draw *draw)
-{
-	return gtk_widget_get_visual(draw->widget);
-}
-
-static GdkColormap *
-_vte_pango_x_get_colormap(struct _vte_draw *draw)
-{
-	return gtk_widget_get_colormap(draw->widget);
 }
 
 static void
@@ -143,7 +118,7 @@ _vte_pango_x_start(struct _vte_draw *draw)
 	data->gc = gdk_gc_new(draw->widget->window);
 
 	gdk_rgb_find_color(gdk_drawable_get_colormap(draw->widget->window),
-			   &data->color);
+			   &draw->bg_color);
 
 	gdk_window_get_internal_paint_info(draw->widget->window, &drawable,
 					&x_offs, &y_offs);
@@ -176,14 +151,6 @@ _vte_pango_x_end(struct _vte_draw *draw)
 		g_object_unref(data->ctx);
 	}
 	data->ctx = NULL;
-}
-
-static void
-_vte_pango_x_set_background_color(struct _vte_draw *draw, GdkColor *color, guint16 opacity)
-{
-	struct _vte_pango_x_data *data;
-	data = (struct _vte_pango_x_data*) draw->impl_data;
-	data->color = *color;
 }
 
 static void
@@ -238,7 +205,7 @@ _vte_pango_x_clear(struct _vte_draw *draw,
 	if ((data->pixmap == NULL) ||
 	    (data->pixmapw == 0) ||
 	    (data->pixmaph == 0)) {
-		gdk_gc_set_foreground(data->gc, &data->color);
+		gdk_gc_set_foreground(data->gc, &draw->bg_color);
 		gdk_draw_rectangle(draw->widget->window,
 				   data->gc,
 				   TRUE,
@@ -251,10 +218,10 @@ _vte_pango_x_clear(struct _vte_draw *draw,
 	ystop = y + height;
 
 	y = ystop - height;
-	j = (data->scrolly + y) % data->pixmaph;
+	j = (draw->scrolly + y) % data->pixmaph;
 	while (y < ystop) {
 		x = xstop - width;
-		i = (data->scrollx + x) % data->pixmapw;
+		i = (draw->scrollx + x) % data->pixmapw;
 		h = MIN(data->pixmaph - (j % data->pixmaph), ystop - y);
 		while (x < xstop) {
 			w = MIN(data->pixmapw - (i % data->pixmapw), xstop - x);
@@ -349,30 +316,6 @@ _vte_pango_x_set_text_font(struct _vte_draw *draw,
 	g_object_unref(ctx);
 }
 
-static int
-_vte_pango_x_get_text_width(struct _vte_draw *draw)
-{
-	return draw->width;
-}
-
-static int
-_vte_pango_x_get_text_height(struct _vte_draw *draw)
-{
-	return draw->height;
-}
-
-static int
-_vte_pango_x_get_text_ascent(struct _vte_draw *draw)
-{
-	return draw->ascent;
-}
-
-static int
-_vte_pango_x_get_char_width(struct _vte_draw *draw, gunichar c, int columns)
-{
-	return _vte_pango_x_get_text_width(draw) * columns;
-}
-
 static gboolean
 _vte_pango_x_get_using_fontconfig(struct _vte_draw *draw)
 {
@@ -411,15 +354,6 @@ _vte_pango_x_draw_text(struct _vte_draw *draw,
 				      requests[i].x - data->x_offs,
 				      requests[i].y - data->y_offs);
 	}
-}
-
-static gboolean
-_vte_pango_x_draw_char(struct _vte_draw *draw,
-		       struct _vte_draw_text_request *request,
-		       GdkColor *color, guchar alpha)
-{
-	_vte_pango_x_draw_text(draw, request, 1, color, alpha);
-	return TRUE;
 }
 
 static gboolean
@@ -465,41 +399,33 @@ _vte_pango_x_fill_rectangle(struct _vte_draw *draw,
 			   x, y, width, height);
 }
 
-static void
-_vte_pango_x_set_scroll(struct _vte_draw *draw, gint x, gint y)
-{
-	struct _vte_pango_x_data *data;
-	data = (struct _vte_pango_x_data*) draw->impl_data;
-	data->scrollx = x;
-	data->scrolly = y;
-}
-
 const struct _vte_draw_impl _vte_draw_pango_x = {
 	"pangox",
-	_vte_pango_x_check,
+	NULL, /* check */
 	_vte_pango_x_create,
 	_vte_pango_x_destroy,
-	_vte_pango_x_get_visual,
-	_vte_pango_x_get_colormap,
+	NULL, /* get_visual */
+	NULL, /* get_colormap */
 	_vte_pango_x_start,
 	_vte_pango_x_end,
-	_vte_pango_x_set_background_color,
+	NULL, /* set_background_opacity */
+	NULL, /* set_background_color */
 	_vte_pango_x_set_background_image,
-	FALSE,
+	FALSE, /* always_requires_clear */
 	_vte_pango_x_clip,
 	_vte_pango_x_clear,
 	_vte_pango_x_set_text_font,
-	_vte_pango_x_get_text_width,
-	_vte_pango_x_get_text_height,
-	_vte_pango_x_get_text_ascent,
-	_vte_pango_x_get_char_width,
+	NULL, /* get_text_width */
+	NULL, /* get_text_height */
+	NULL, /* get_text_ascent */
+	NULL, /* get_char_width */
 	_vte_pango_x_get_using_fontconfig,
 	_vte_pango_x_draw_text,
-	_vte_pango_x_draw_char,
+	NULL, /* draw_char */
 	_vte_pango_x_draw_has_char,
 	_vte_pango_x_draw_rectangle,
 	_vte_pango_x_fill_rectangle,
-	_vte_pango_x_set_scroll,
+	NULL /* set_scroll */
 };
 
 #endif

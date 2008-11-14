@@ -1,3 +1,10 @@
+2008-11-14  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vtedraw.c (_vte_draw_get_char_width): Minor fix.
+
+	* src/vtepangox.c (_vte_pango_x_create), (_vte_pango_x_start),
+	(_vte_pango_x_clear): Cleanup here too.
+
 2008-11-13  Behdad Esfahbod  <behdad@gnome.org>
 
 	* configure.in:

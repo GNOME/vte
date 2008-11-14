@@ -363,7 +363,7 @@ _vte_draw_get_char_width (struct _vte_draw *draw, gunichar c, int columns)
 	if (draw->impl->get_char_width)
 		width = draw->impl->get_char_width (draw, c, columns);
 
-	return width ? width : draw->width * columns;
+	return width ? width : _vte_draw_get_text_width (draw) * columns;
 }
 
 gboolean
