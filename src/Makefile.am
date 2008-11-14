@@ -91,6 +91,8 @@ libvte_la_SOURCES = \
 	vteint.h \
 	vtepango.c \
 	vtepango.h \
+	vtepangocairo.c \
+	vtepangocairo.h \
 	vterdb.c \
 	vterdb.h \
 	vteregex.c \

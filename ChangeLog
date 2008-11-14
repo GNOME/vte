@@ -1,5 +1,21 @@
 2008-11-14  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 395599 – Add pangocairo backend
+
+	* configure.in:
+	Require pango >= 1.22.0
+
+	* src/Makefile.am:
+	* src/vtedraw.c:
+	* src/vtepangocairo.c:
+	* src/vtepangocairo.h:
+	Add a pangocairo drawing backend.  Use it by default.  This is as fast
+	as the xft backend.  Doesn't share font caches across widgets yet.
+	Also, the transparent background stuff doesn't match xft backend's
+	yet.
+
+2008-11-14  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte.c (vte_terminal_ensure_font):
 	* src/vtedraw.c (_vte_draw_new), (_vte_draw_free),
 	(_vte_draw_set_background_opacity),

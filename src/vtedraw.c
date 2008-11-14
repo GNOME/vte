@@ -31,12 +31,14 @@
 #include "vteft2.h"
 #include "vtegl.h"
 #include "vtepango.h"
+#include "vtepangocairo.h"
 #include "vtepangox.h"
 #include "vteskel.h"
 #include "vtexft.h"
 
 static const struct _vte_draw_impl
 *_vte_draw_impls[] = {
+	&_vte_draw_pangocairo,
 #ifndef X_DISPLAY_MISSING
 #ifdef HAVE_XFT2
 	&_vte_draw_xft,
