@@ -503,20 +503,17 @@ _vte_pangocairo_clear (struct _vte_draw *draw,
 	struct _vte_pangocairo_data *data = draw->impl_data;
 
 	cairo_rectangle (data->cr, x, y, width, height);
+	cairo_set_operator (data->cr, CAIRO_OPERATOR_SOURCE);
 
 	if (data->pixmap == NULL) {
 		set_source_color_alpha (data->cr, &draw->bg_color, draw->bg_opacity >> 8);
-		cairo_fill (data->cr);
 	} else {
-		/* XXX do this in set_background? */
-		cairo_save (data->cr);
-		cairo_clip (data->cr);
 		gdk_cairo_set_source_pixmap (data->cr, data->pixmap,
 					     draw->scrollx, draw->scrolly);
 		cairo_pattern_set_extend (cairo_get_source (data->cr), CAIRO_EXTEND_REPEAT);
-		cairo_paint_with_alpha (data->cr, draw->bg_opacity / (double) 0xffff);
-		cairo_restore (data->cr);
 	}
+
+	cairo_fill (data->cr);
 }
 
 static void
@@ -570,6 +567,7 @@ _vte_pangocairo_draw_text (struct _vte_draw *draw,
 	g_return_if_fail (data->font != NULL);
 
 	set_source_color_alpha (data->cr, color, alpha);
+	cairo_set_operator (data->cr, CAIRO_OPERATOR_OVER);
 
 	for (i = 0; i < n_requests; i++) {
 		gunichar c = requests[i].c;
@@ -640,6 +638,7 @@ _vte_pangocairo_draw_rectangle (struct _vte_draw *draw,
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
 
+	cairo_set_operator (data->cr, CAIRO_OPERATOR_OVER);
 	cairo_rectangle (data->cr, x+.5, y+.5, width-1, height-1);
 	set_source_color_alpha (data->cr, color, alpha);
 	cairo_set_line_width (data->cr, 1);
@@ -653,6 +652,7 @@ _vte_pangocairo_fill_rectangle (struct _vte_draw *draw,
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
 
+	cairo_set_operator (data->cr, CAIRO_OPERATOR_OVER);
 	cairo_rectangle (data->cr, x, y, width, height);
 	set_source_color_alpha (data->cr, color, alpha);
 	cairo_fill (data->cr);

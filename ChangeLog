@@ -1,5 +1,14 @@
 2008-11-16  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 560817 – pagocairo backend doesn't have correct opacity support	
+
+	* src/vtepangocairo.c (_vte_pangocairo_clear),
+	(_vte_pangocairo_draw_text), (_vte_pangocairo_draw_rectangle),
+	(_vte_pangocairo_fill_rectangle): Fix opacity support by using
+	SOURCE operator.
+
+2008-11-16  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 560991 – Unsetting background doesn't work
 
 	* src/vte.c (vte_terminal_set_background_image): Correctly unset
