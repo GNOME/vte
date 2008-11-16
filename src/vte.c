@@ -12553,7 +12553,7 @@ vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
         object = G_OBJECT(terminal);
         pvt = terminal->pvt;
 
-        if (image == pvt->bg_pixbuf)
+        if (image && image == pvt->bg_pixbuf)
                 return;
 
 	_vte_debug_print(VTE_DEBUG_MISC,

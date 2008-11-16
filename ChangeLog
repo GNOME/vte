@@ -1,3 +1,10 @@
+2008-11-16  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 560991 – Unsetting background doesn't work
+
+	* src/vte.c (vte_terminal_set_background_image): Correctly unset
+	background if image==NULL.
+
 2008-11-14  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 395599 – Add pangocairo backend
