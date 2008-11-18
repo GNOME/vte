@@ -1,8 +1,5 @@
 libexec_PROGRAMS = gnome-pty-helper
 
-AM_CFLAGS = $(GLIB_CFLAGS)
-AM_LDFLAGS = $(LDFLAGS) $(GLIB_LIBS)
-
 gnome_pty_helper_SOURCES = \
 	gnome-pty.h \
 	gnome-login-support.c \

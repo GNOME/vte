@@ -1,3 +1,14 @@
+2008-11-18  Christian Persch  <chpe@gnome.org>
+
+	Remove glib usage from gnome-pty-helper. Bug #560977.
+
+	* gnome-pty-helper/Makefile.am: Remove GLIB CFLAGS/LIBS.
+	* gnome-pty-helper/configure.in: Remove glib check, and do some auto*
+	modernisation.
+	* gnome-pty-helper/gnome-pty-helper.c: (open_ptys), (exit_handler),
+	(main): Use alloca instead of g_alloca, and use int instead of
+	gboolean.
+
 2008-11-18  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vtepangocairo.c (font_info_create_for_screen),

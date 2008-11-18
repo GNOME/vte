@@ -1,6 +1,9 @@
-AC_INIT(gnome-pty.h)
+AC_INIT([gnome-pty-helper],[1.95.0],[http://bugzilla.gnome.org/enter_bug.cgi?product=vte])
 
-AM_INIT_AUTOMAKE(gnome-pty-helper,1.95.0)
+AM_INIT_AUTOMAKE([1.9 foreign no-dist-gzip dist-bzip2])
+
+AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_SRCDIR([gnome-pty.h])
 
 AC_ISC_POSIX
 AC_PROG_CC
@@ -9,7 +12,6 @@ AM_PROG_CC_STDC
 
 AM_MAINTAINER_MODE
 
-PKG_CHECK_MODULES(GLIB,glib-2.0)
 AC_CHECK_HEADERS(sys/syslimits.h sys/time.h sys/types.h sys/un.h alloca.h lastlog.h libutil.h paths.h pty.h stropts.h termios.h ttyent.h util.h utmp.h utmpx.h pty.h util.h libutil.h ttyent.h)
 have_openpty=0
 AC_CHECK_LIB(c,grantpt,true,[AC_CHECK_LIB(pt,grantpt)])
@@ -40,6 +42,6 @@ case $host in
 	;;
 esac
 
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_FILES([Makefile])
 
-AC_OUTPUT(Makefile)
+AC_OUTPUT

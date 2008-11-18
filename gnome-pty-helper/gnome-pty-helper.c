@@ -53,7 +53,6 @@ extern char *strdup(const char *);
 #include <stdio.h>
 #include <utmp.h>
 #include <grp.h>
-#include <glib/galloca.h>
 #include "gnome-pty.h"
 #include "gnome-login-support.h"
 
@@ -476,7 +475,7 @@ open_ptys (int utmp, int wtmp, int lastlog)
 	struct group *group_info;
 	struct termios term;
 
-	term_name = (char *) g_alloca (path_max () + 1);
+	term_name = (char *) alloca (path_max () + 1);
 
 	if (term_name == NULL) {
 		exit (1);
@@ -658,12 +657,12 @@ sanity_checks (void)
 	}
 }
 
-static volatile gboolean done;
+static volatile int done;
 
 static void
 exit_handler (int signum)
 {
-	done = TRUE;
+	done = 1;
 }
 
 
@@ -702,7 +701,7 @@ main (int argc, char *argv [])
 	if (!display_name)
 		display_name = "localhost";
 
-	done = FALSE;
+	done = 0;
 
 	/* Make sure we clean up utmp/wtmp even under vncserver */
 	signal (SIGHUP, exit_handler);
@@ -715,7 +714,7 @@ main (int argc, char *argv [])
 		res = n_read (STDIN_FILENO, &op, sizeof (op));
 
 		if (res != sizeof (op)) {
-			done = TRUE;
+			done = 1;
 			continue;
 		}
 
