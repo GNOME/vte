@@ -1,5 +1,11 @@
 2008-11-18  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vtepangocairo.c (font_info_create_for_screen),
+	(font_info_destroy): Remove copy of font desc and antialias from font
+	info object as they were not used.
+
+2008-11-18  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 561185 – pangocairo backend sets antialias incorrectly
 
 	* src/vtepangocairo.c (font_info_create_for_screen): Handle

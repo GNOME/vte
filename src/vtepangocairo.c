@@ -127,8 +127,6 @@ unichar_info_destroy (struct unichar_info *uinfo)
 }
 
 struct font_info {
-	PangoFontDescription *desc;
-	VteTerminalAntiAlias  antialias;
 	PangoLayout *layout;
 
 	PangoCoverage *coverage;
@@ -200,9 +198,6 @@ font_info_create_for_screen (GdkScreen                  *screen,
 
 	info = g_slice_new0 (struct font_info);
 
-	info->antialias = antialias;
-	info->desc = pango_font_description_copy (desc);
-
 	context = gdk_pango_context_get_for_screen (screen);
 	if (!PANGO_IS_CAIRO_FONT_MAP (pango_context_get_font_map (context))) {
 		/* Ouch, Gtk+ switched over to some drawing system?
@@ -213,8 +208,8 @@ font_info_create_for_screen (GdkScreen                  *screen,
 	}
 
 	pango_context_set_base_dir (context, PANGO_DIRECTION_LTR);
-	if (info->desc)
-		pango_context_set_font_description (context, info->desc);
+	if (desc)
+		pango_context_set_font_description (context, desc);
 
 	switch (antialias) {
 		cairo_font_options_t *font_options;
@@ -257,9 +252,6 @@ font_info_destroy (struct font_info *info)
 
 	if (!info)
 		return;
-
-	pango_font_description_free (info->desc);
-	info->desc = NULL;
 
 	g_object_unref (info->layout);
 	info->layout = NULL;
