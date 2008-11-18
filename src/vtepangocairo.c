@@ -218,13 +218,21 @@ font_info_create_for_screen (GdkScreen                  *screen,
 
 	switch (antialias) {
 		cairo_font_options_t *font_options;
+		cairo_antialias_t cr_aa;
 
 	case VTE_ANTI_ALIAS_FORCE_ENABLE:
 	case VTE_ANTI_ALIAS_FORCE_DISABLE:
+
+		if (antialias == VTE_ANTI_ALIAS_FORCE_ENABLE)
+			cr_aa = CAIRO_ANTIALIAS_DEFAULT; /* let surface decide between gray and subpixel */
+		else
+			cr_aa = CAIRO_ANTIALIAS_NONE;
+
 		font_options = cairo_font_options_copy (pango_cairo_context_get_font_options (context));
-		cairo_font_options_set_antialias (font_options, antialias == VTE_ANTI_ALIAS_FORCE_ENABLE);
+		cairo_font_options_set_antialias (font_options, cr_aa);
 		pango_cairo_context_set_font_options (context, font_options);
 		cairo_font_options_destroy (font_options);
+
 		break;
 
 	default:
