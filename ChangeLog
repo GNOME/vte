@@ -27,6 +27,10 @@
 	* src/vte.c (vte_terminal_set_background_image): Correctly unset
 	background if image==NULL.
 
+2008-11-14 Christian Persch <chpe@gnome.org>
+
+	* src/vteskel.c: Fix missing prototype warning.
+
 2008-11-14  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 395599 – Add pangocairo backend

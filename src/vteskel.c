@@ -35,7 +35,7 @@ _vte_skel_clear(struct _vte_draw *draw,
 		   x, y, width, height);
 }
 
-void
+static void
 _vte_skel_get_text_metrics(struct _vte_draw *draw,
 			   gint *width, gint *height, gint *ascent)
 {
