@@ -1,3 +1,10 @@
+2008-11-19  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vtepangocairo.c (font_info_find_unichar_info),
+	(font_info_cache_ascii), (font_info_measure_font),
+	(font_info_get_unichar_info): Cache ASCII characters when building
+	font.
+
 2008-11-18  Christian Persch  <chpe@gnome.org>
 
 	Remove glib usage from gnome-pty-helper. Bug #560977.

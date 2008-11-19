@@ -137,6 +137,109 @@ struct font_info {
 	gint width, height, ascent;
 };
 
+static struct unichar_info *
+font_info_find_unichar_info (struct font_info    *info,
+			     gunichar             c)
+{
+	struct unichar_info *uinfo;
+
+	if (G_LIKELY (c < G_N_ELEMENTS (info->ascii_unichar_info)))
+		return &info->ascii_unichar_info[c];
+
+	if (G_UNLIKELY (info->other_unichar_info == NULL))
+		info->other_unichar_info = g_hash_table_new_full (NULL, NULL, NULL, (GDestroyNotify) unichar_info_destroy);
+
+	uinfo = g_hash_table_lookup (info->other_unichar_info, GINT_TO_POINTER (c));
+	if (G_LIKELY (uinfo))
+		return uinfo;
+
+	uinfo = unichar_info_create ();
+	g_hash_table_insert (info->other_unichar_info, GINT_TO_POINTER (c), uinfo);
+	return uinfo;
+}
+
+static void
+font_info_cache_ascii (struct font_info *info)
+{
+	PangoLayoutLine *line;
+	PangoGlyphItemIter iter;
+	PangoGlyphItem *glyph_item;
+	PangoGlyphString *glyph_string;
+	PangoFont *pango_font;
+	cairo_scaled_font_t *scaled_font;
+	const char *text;
+	gboolean more;
+	
+	/* We have info->layout holding most ASCII characters.  We want to
+	 * cache as much info as we can about the ASCII letters so we don't
+	 * have to look them up again later */
+
+	/* Don't cache if unknown glyphs found in layout */
+	if (pango_layout_get_unknown_glyphs_count (info->layout) != 0)
+		return;
+
+	text = pango_layout_get_text (info->layout);
+
+	line = pango_layout_get_line_readonly (info->layout, 0);
+
+	/* Don't cache if more than one font used for the line */
+	if (G_UNLIKELY (!line || !line->runs || line->runs->next))
+		return;
+
+	glyph_item = line->runs->data;
+	glyph_string = glyph_item->glyphs;
+	pango_font = glyph_item->item->analysis.font;
+	if (!pango_font)
+		return;
+	scaled_font = pango_cairo_font_get_scaled_font ((PangoCairoFont *) pango_font);
+	if (!scaled_font)
+		return;
+
+	for (more = pango_glyph_item_iter_init_start (&iter, glyph_item, text);
+	     more;
+	     more = pango_glyph_item_iter_next_cluster (&iter))
+	{
+		struct unichar_info *uinfo;
+		union unichar_font_info *ufi;
+	 	PangoGlyphGeometry *geometry;
+		PangoGlyph glyph;
+		gunichar c;
+
+		/* Only cache simple clusters */
+		if (iter.start_char +1 != iter.end_char  ||
+		    iter.start_index+1 != iter.end_index ||
+		    iter.start_glyph+1 != iter.end_glyph)
+			continue;
+
+		c = text[iter.start_index];
+		glyph = glyph_string->glyphs[iter.start_glyph].glyph;
+		geometry = &glyph_string->glyphs[iter.start_glyph].geometry;
+
+		/* Only cache non-common characters as common characters get
+		 * their font from their neighbors */
+		if (pango_script_for_unichar (c) <= PANGO_SCRIPT_INHERITED)
+			continue;
+
+		/* Only cache simple glyphs */
+		if (!(glyph <= 0xFFFF) || (geometry->x_offset | geometry->y_offset) != 0)
+			continue;
+
+		uinfo = font_info_find_unichar_info (info, c);
+		if (G_UNLIKELY (uinfo->coverage != COVERAGE_UNKNOWN))
+			continue;
+
+		ufi = &uinfo->ufi;
+
+		uinfo->width = PANGO_PIXELS_CEIL (geometry->width);
+		uinfo->has_unknown_chars = FALSE;
+
+		uinfo->coverage = COVERAGE_USE_CAIRO_GLYPH;
+
+		ufi->using_cairo_glyph.scaled_font = cairo_scaled_font_reference (scaled_font);
+		ufi->using_cairo_glyph.glyph_index = glyph;
+	}
+}
+
 static void
 font_info_measure_font (struct font_info *info)
 {
@@ -152,6 +255,10 @@ font_info_measure_font (struct font_info *info)
 	single_width = howmany (logical.width, strlen(VTE_DRAW_SINGLE_WIDE_CHARACTERS));
 	info->height = PANGO_PIXELS_CEIL (logical.height);
 	info->ascent = PANGO_PIXELS_CEIL (pango_layout_get_baseline (info->layout));
+
+	/* Now that we shaped the entire ASCII character string, cache glyph
+	 * info for them */
+	font_info_cache_ascii (info);
 
 	/* Estimate for CJK characters. */
 	full_width = single_width * 2;
@@ -294,27 +401,6 @@ font_info_create_for_widget (GtkWidget                  *widget,
 }
 
 static struct unichar_info *
-font_info_find_unichar_info (struct font_info    *info,
-			     gunichar             c)
-{
-	struct unichar_info *uinfo;
-
-	if (G_LIKELY (c < G_N_ELEMENTS (info->ascii_unichar_info)))
-		return &info->ascii_unichar_info[c];
-
-	if (G_UNLIKELY (info->other_unichar_info == NULL))
-		info->other_unichar_info = g_hash_table_new_full (NULL, NULL, NULL, (GDestroyNotify) unichar_info_destroy);
-
-	uinfo = g_hash_table_lookup (info->other_unichar_info, GINT_TO_POINTER (c));
-	if (G_LIKELY (uinfo))
-		return uinfo;
-
-	uinfo = unichar_info_create ();
-	g_hash_table_insert (info->other_unichar_info, GINT_TO_POINTER (c), uinfo);
-	return uinfo;
-}
-
-static struct unichar_info *
 font_info_get_unichar_info (struct font_info *info,
 			    gunichar c)
 {
@@ -344,7 +430,7 @@ font_info_get_unichar_info (struct font_info *info,
 	{
 		uinfo->coverage = COVERAGE_USE_PANGO_LAYOUT_LINE;
 
-		ufi->using_pango_layout_line.line = pango_layout_line_ref (pango_layout_get_line (info->layout, 0));
+		ufi->using_pango_layout_line.line = pango_layout_line_ref (line);
 		/* we hold a manual reference on layout.  pango currently
 		 * doesn't work if line->layout is NULL.  ugh! */
 		pango_layout_set_text (info->layout, "", -1); /* make layout disassociate from the line */
@@ -359,7 +445,8 @@ font_info_get_unichar_info (struct font_info *info,
 		 * glyph and at origin */
 		if (!uinfo->has_unknown_chars &&
 		    glyph_string->num_glyphs == 1 && glyph_string->glyphs[0].glyph <= 0xFFFF &&
-		    (glyph_string->glyphs[0].geometry.x_offset | glyph_string->glyphs[0].geometry.y_offset) == 0)
+		    (glyph_string->glyphs[0].geometry.x_offset |
+		     glyph_string->glyphs[0].geometry.y_offset) == 0)
 		{
 			cairo_scaled_font_t *scaled_font = pango_cairo_font_get_scaled_font ((PangoCairoFont *) pango_font);
 
