@@ -129,8 +129,6 @@ unichar_info_destroy (struct unichar_info *uinfo)
 struct font_info {
 	PangoLayout *layout;
 
-	PangoCoverage *coverage;
-
 	struct unichar_info ascii_unichar_info[128];
 	GHashTable *other_unichar_info;
 
@@ -345,8 +343,6 @@ font_info_create_for_screen (GdkScreen                  *screen,
 	info->layout = layout = pango_layout_new (context);
 	g_object_unref (context);
 
-	info->coverage = pango_coverage_new ();
-
 	font_info_measure_font (info);
 
 	return info;
@@ -370,9 +366,6 @@ font_info_destroy (struct font_info *info)
 		g_hash_table_destroy (info->other_unichar_info);
 		info->other_unichar_info = NULL;
 	}
-
-	pango_coverage_unref (info->coverage);
-	info->coverage = NULL;
 
 	info->width = info->height = info->ascent = 1;
 
