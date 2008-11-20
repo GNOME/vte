@@ -32,7 +32,6 @@
 #include "vtegl.h"
 #include "vtepango.h"
 #include "vtepangocairo.h"
-#include "vtepangox.h"
 #include "vteskel.h"
 #include "vtexft.h"
 
@@ -52,9 +51,6 @@ static const struct _vte_draw_impl
 #endif /* !X_DISPLAY_MISSING */
 	&_vte_draw_pango,
 #ifndef X_DISPLAY_MISSING
-#ifdef HAVE_PANGOX
-	&_vte_draw_pangox,
-#endif /* HAVE_PANGOX */
 #endif /* !X_DISPLAY_MISSING */
 };
 

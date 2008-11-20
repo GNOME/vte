@@ -118,11 +118,6 @@ libvte_la_SOURCES += \
 	vtexft.c \
 	vtexft.h
 endif
-if BUILD_PANGOX
-libvte_la_SOURCES += \
-	vtepangox.c \
-	vtepangox.h
-endif
 
 libvte_la_LDFLAGS = $(LDFLAGS) \
 	-version-info $(LIBVTE_LTVERSION) \

@@ -344,31 +344,6 @@ else
 fi
 AM_CONDITIONAL(BUILD_XFT, test "x$with_xft2" = "xyes")
 
-# Use PangoX if we have it and it isn't disabled.
-if test "x$usedeprecation" != "xyes" ; then
-	if test "x$have_x" = "xyes" ; then
-		AC_ARG_WITH(pangox,
-			    [AS_HELP_STRING([--with-pangox],
-					    [enable drawing using PangoX])
-			    ], with_pangox=$withval, with_pangox=yes)
-		if test "x$with_pangox" = "xyes" ; then
-			PKG_CHECK_EXISTS(pangox, [
-				AC_DEFINE(HAVE_PANGOX, 1, 
-					  [Whether we have PangoX])
-				wantedmodules="$wantedmodules pangox"
-				],[
-				AC_MSG_WARN([PangoX not detected])
-				with_pangox="no - not detected"
-				])
-		fi
-	else
-		with_pangox="no - missing X Window System"
-	fi
-else
-	with_pangox="no - deprecated"
-fi
-AM_CONDITIONAL(BUILD_PANGOX, test "x$with_pangox" = "xyes")
-
 # Use glX if we have it and it isn't disabled.
 if test "$have_x" = yes ; then
 	AC_ARG_WITH(glX,[AS_HELP_STRING(--with-glX,enable drawing using glX)],with_glx=$withval,with_glx=no)

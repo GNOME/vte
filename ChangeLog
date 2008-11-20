@@ -1,5 +1,16 @@
 2008-11-20  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 560819 – Remove obsolete backends
+
+	* configure.in:
+	* src/Makefile.am:
+	* src/vtedraw.c:
+	* src/vtepangox.c:
+	* src/vtepangox.h:
+	Remove pangox backend.
+
+2008-11-20  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 560818 – pangocairo backend doesn't share font cache across
 	widgets
 
