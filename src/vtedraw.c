@@ -30,7 +30,6 @@
 #include "vtedraw.h"
 #include "vteft2.h"
 #include "vtegl.h"
-#include "vtepango.h"
 #include "vtepangocairo.h"
 #include "vteskel.h"
 #include "vtexft.h"
