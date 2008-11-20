@@ -252,7 +252,9 @@ font_info_cache_ascii (struct font_info *info)
 	}
 
 #ifdef VTEPANGOCAIRO_PROFILE
-	g_message ("vtepangocairo: cached %d ASCII letters", info->coverage_count[0]);
+	g_message ("vtepangocairo: %p cached %d ASCII letters",
+		   info,
+		   info->coverage_count[0]);
 #endif
 }
 
@@ -314,11 +316,12 @@ font_info_allocate (PangoContext *context)
 {
 	struct font_info *info;
 
-#ifdef VTEPANGOCAIRO_PROFILE
-	g_message ("vtepangocairo: allocating font_info");
-#endif
-
 	info = g_slice_new0 (struct font_info);
+
+#ifdef VTEPANGOCAIRO_PROFILE
+	g_message ("vtepangocairo: %p allocating font_info",
+		   info);
+#endif
 
 	info->layout = pango_layout_new (context);
 
@@ -333,7 +336,8 @@ font_info_free (struct font_info *info)
 	gunichar i;
 
 #ifdef VTEPANGOCAIRO_PROFILE
-	g_message ("vtepangocairo: freeing font_info.  coverages %d = %d + %d + %d",
+	g_message ("vtepangocairo: %p freeing font_info.  coverages %d = %d + %d + %d",
+		   info,
 		   info->coverage_count[0],
 		   info->coverage_count[1],
 		   info->coverage_count[2],
@@ -446,7 +450,8 @@ font_info_find_for_context (PangoContext *context)
 	info = g_hash_table_lookup (font_info_for_context, context);
 	if (G_LIKELY (info)) {
 #ifdef VTEPANGOCAIRO_PROFILE
-		g_message ("vtepangocairo: found font_info in cache");
+		g_message ("vtepangocairo: %p found font_info in cache",
+			   info);
 #endif
 		return font_info_reference (info);
 	}
