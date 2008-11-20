@@ -1,5 +1,12 @@
 2008-11-20  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 561713 – crash on font cache cleanup
+
+	* src/vtepangocairo.c (font_info_reference), (font_info_destroy):
+	Remove destroy timeout when resurrecting a font info.
+
+2008-11-20  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vtepangocairo.c (font_info_cache_ascii),
 	(font_info_allocate), (font_info_free),
 	(font_info_find_for_context):

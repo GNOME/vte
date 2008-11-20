@@ -128,16 +128,22 @@ unichar_info_destroy (struct unichar_info *uinfo)
 }
 
 struct font_info {
+	/* lifecycle */
 	int ref_count;
+	guint destroy_timeout; /* only used when ref_count == 0 */
 
+	/* reusable layout set with font and everything */
 	PangoLayout *layout;
 
+	/* cache of character info */
 	struct unichar_info ascii_unichar_info[128];
 	GHashTable *other_unichar_info;
 
+	/* cell metrics */
 	gint width, height, ascent;
 
 #ifdef VTEPANGOCAIRO_PROFILE
+	/* profiling info */
 	int coverage_count[4];
 #endif
 };
@@ -386,6 +392,9 @@ font_info_reference (struct font_info *info)
 
 	g_return_val_if_fail (info->ref_count >= 0, info);
 
+	if (info->ref_count == 0)
+		g_source_remove (info->destroy_timeout);
+
 	info->ref_count++;
 
 	return info;
@@ -419,7 +428,9 @@ font_info_destroy (struct font_info *info)
 		return;
 
 	/* Delay destruction by a few seconds, in case we need it again */
-	g_timeout_add_seconds (30, (GSourceFunc) font_info_destroy_delayed, info);
+	info->destroy_timeout = g_timeout_add_seconds (30,
+						       (GSourceFunc) font_info_destroy_delayed,
+						       info);
 }
 
 static guint
