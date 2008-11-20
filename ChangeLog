@@ -1,3 +1,17 @@
+2008-11-20  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 560818 – pangocairo backend doesn't share font cache across
+	widgets
+
+	* src/vtepangocairo.c (font_info_cache_ascii),
+	(font_info_allocate), (font_info_free), (font_info_register),
+	(font_info_unregister), (font_info_reference),
+	(font_info_destroy_delayed), (font_info_destroy), (context_hash),
+	(context_equal), (font_info_find_for_context),
+	(font_info_create_for_context), (font_info_create_for_screen),
+	(font_info_get_unichar_info): Cache font info and use it for multiple
+	widgets.
+
 2008-11-19  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vtepangocairo.c (font_info_create_for_screen),

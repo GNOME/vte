@@ -30,7 +30,7 @@
 G_BEGIN_DECLS
 
 #define VTE_DRAW_SINGLE_WIDE_CHARACTERS	"ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
-					"abcdefgjijklmnopqrstuvwxyz" \
+					"abcdefghijklmnopqrstuvwxyz" \
 					"0123456789./+@&"
 #define VTE_DRAW_DOUBLE_WIDE_CHARACTERS 0x4e00, 0x4e8c, 0x4e09, 0x56db, 0x4e94,\
 					0xac00, 0xac01, 0xac04, 0xac08, 0xac10

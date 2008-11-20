@@ -32,11 +32,12 @@
 #include <pango/pangocairo.h>
 #include <glib/gi18n-lib.h>
 
-#undef PROFILE_COVERAGE
+#undef VTEPANGOCAIRO_PROFILE
 
-#ifdef PROFILE_COVERAGE
-static int coverage_count[4];
-#endif
+
+/* All shared data structures are implicitly protected by GDK mutex, because
+ * that's how vte.c works and we only get called from there. */
+
 
 /* cairo_show_glyphs accepts runs up to 102 glyphs before it allocates a
  * temporary array.
@@ -127,13 +128,20 @@ unichar_info_destroy (struct unichar_info *uinfo)
 }
 
 struct font_info {
+	int ref_count;
+
 	PangoLayout *layout;
 
 	struct unichar_info ascii_unichar_info[128];
 	GHashTable *other_unichar_info;
 
 	gint width, height, ascent;
+
+#ifdef VTEPANGOCAIRO_PROFILE
+	int coverage_count[4];
+#endif
 };
+
 
 static struct unichar_info *
 font_info_find_unichar_info (struct font_info    *info,
@@ -155,6 +163,7 @@ font_info_find_unichar_info (struct font_info    *info,
 	g_hash_table_insert (info->other_unichar_info, GINT_TO_POINTER (c), uinfo);
 	return uinfo;
 }
+
 
 static void
 font_info_cache_ascii (struct font_info *info)
@@ -235,7 +244,16 @@ font_info_cache_ascii (struct font_info *info)
 
 		ufi->using_cairo_glyph.scaled_font = cairo_scaled_font_reference (scaled_font);
 		ufi->using_cairo_glyph.glyph_index = glyph;
+
+#ifdef VTEPANGOCAIRO_PROFILE
+		info->coverage_count[0]++;
+		info->coverage_count[uinfo->coverage]++;
+#endif
 	}
+
+#ifdef VTEPANGOCAIRO_PROFILE
+	g_message ("vtepangocairo: cached %d ASCII letters", info->coverage_count[0]);
+#endif
 }
 
 static void
@@ -290,20 +308,164 @@ font_info_measure_font (struct font_info *info)
 			  info->width, info->height, info->ascent);
 }
 
+
 static struct font_info *
-font_info_create_for_screen (GdkScreen                  *screen,
-			     const PangoFontDescription *desc,
-			     VteTerminalAntiAlias        antialias)
+font_info_allocate (PangoContext *context)
 {
 	struct font_info *info;
-	PangoContext *context;
-	PangoLayout *layout;
 
-	/* XXX caching */
+#ifdef VTEPANGOCAIRO_PROFILE
+	g_message ("vtepangocairo: allocating font_info");
+#endif
 
 	info = g_slice_new0 (struct font_info);
 
-	context = gdk_pango_context_get_for_screen (screen);
+	info->layout = pango_layout_new (context);
+
+	font_info_measure_font (info);
+
+	return info;
+}
+
+static void
+font_info_free (struct font_info *info)
+{
+	gunichar i;
+
+#ifdef VTEPANGOCAIRO_PROFILE
+	g_message ("vtepangocairo: freeing font_info.  coverages %d = %d + %d + %d",
+		   info->coverage_count[0],
+		   info->coverage_count[1],
+		   info->coverage_count[2],
+		   info->coverage_count[3]);
+#endif
+
+	g_object_unref (info->layout);
+
+	for (i = 0; i < G_N_ELEMENTS (info->ascii_unichar_info); i++)
+		unichar_info_finish (&info->ascii_unichar_info[i]);
+		
+	if (info->other_unichar_info) {
+		g_hash_table_destroy (info->other_unichar_info);
+	}
+
+	g_slice_free (struct font_info, info);
+}
+
+
+static GHashTable *font_info_for_context;
+
+static struct font_info *
+font_info_register (struct font_info *info)
+{
+	/* claims the context reference, but doesn't hold a ref to font_info */
+	g_hash_table_insert (font_info_for_context,
+			     pango_layout_get_context (info->layout),
+			     info);
+
+	return info;
+}
+
+static void
+font_info_unregister (struct font_info *info)
+{
+	g_hash_table_remove (font_info_for_context,
+			     pango_layout_get_context (info->layout));
+}
+
+
+static struct font_info *
+font_info_reference (struct font_info *info)
+{
+	if (!info)
+		return info;
+
+	g_return_val_if_fail (info->ref_count >= 0, info);
+
+	info->ref_count++;
+
+	return info;
+}
+
+static gboolean
+font_info_destroy_delayed (struct font_info *info)
+{
+	GDK_THREADS_ENTER ();
+
+	if (info->ref_count == 0) {
+		font_info_unregister (info);
+		font_info_free (info);
+	}
+
+	GDK_THREADS_LEAVE ();
+
+	return FALSE;
+}
+
+static void
+font_info_destroy (struct font_info *info)
+{
+	if (!info)
+		return;
+
+	g_return_if_fail (info->ref_count > 0);
+
+	info->ref_count--;
+	if (info->ref_count)
+		return;
+
+	/* Delay destruction by a few seconds, in case we need it again */
+	g_timeout_add_seconds (30, (GSourceFunc) font_info_destroy_delayed, info);
+}
+
+static guint
+context_hash (PangoContext *context)
+{
+	return pango_units_from_double (pango_cairo_context_get_resolution (context))
+	     ^ pango_font_description_hash (pango_context_get_font_description (context))
+	     ^ cairo_font_options_hash (pango_cairo_context_get_font_options (context));
+}
+
+static gboolean
+context_equal (PangoContext *a,
+	       PangoContext *b)
+{
+	return pango_cairo_context_get_resolution (a) == pango_cairo_context_get_resolution (b)
+	    && pango_font_description_equal (pango_context_get_font_description (a), pango_context_get_font_description (b))
+	    && cairo_font_options_equal (pango_cairo_context_get_font_options (a), pango_cairo_context_get_font_options (b));
+}
+
+static struct font_info *
+font_info_find_for_context (PangoContext *context)
+{
+	struct font_info *info;
+
+	if (G_UNLIKELY (font_info_for_context == NULL))
+		font_info_for_context = g_hash_table_new ((GHashFunc) context_hash, (GEqualFunc) context_equal);
+
+	info = g_hash_table_lookup (font_info_for_context, context);
+	if (G_LIKELY (info)) {
+#ifdef VTEPANGOCAIRO_PROFILE
+		g_message ("vtepangocairo: found font_info in cache");
+#endif
+		return font_info_reference (info);
+	}
+
+	info = font_info_allocate (context);
+	info->ref_count = 1;
+	font_info_register (info);
+
+	g_object_unref (context);
+
+	return info;
+}
+
+/* assumes ownership/reference of context */
+static struct font_info *
+font_info_create_for_context (PangoContext               *context,
+			      const PangoFontDescription *desc,
+			      VteTerminalAntiAlias        antialias)
+{
 	if (!PANGO_IS_CAIRO_FONT_MAP (pango_context_get_font_map (context))) {
 		/* Ouch, Gtk+ switched over to some drawing system?
 		 * Lets just create one from the default font map.
@@ -337,45 +499,27 @@ font_info_create_for_screen (GdkScreen                  *screen,
 
 	default:
 	case VTE_ANTI_ALIAS_USE_DEFAULT:
+		/* Make sure our contexts have a font_options set.  We use
+		 * this invariant in our context hash and equal functions.
+		 */
+		if (!pango_cairo_context_get_font_options (context)) {
+			font_options = cairo_font_options_create ();
+			pango_cairo_context_set_font_options (context, font_options);
+			cairo_font_options_destroy (font_options);
+		}
 		break;
 	}
 
-	info->layout = layout = pango_layout_new (context);
-	g_object_unref (context);
-
-	font_info_measure_font (info);
-
-	return info;
+	return font_info_find_for_context (context);
 }
 
-static void
-font_info_destroy (struct font_info *info)
+static struct font_info *
+font_info_create_for_screen (GdkScreen                  *screen,
+			     const PangoFontDescription *desc,
+			     VteTerminalAntiAlias        antialias)
 {
-	gunichar i;
-
-	if (!info)
-		return;
-
-	g_object_unref (info->layout);
-	info->layout = NULL;
-
-	for (i = 0; i < G_N_ELEMENTS (info->ascii_unichar_info); i++)
-		unichar_info_finish (&info->ascii_unichar_info[i]);
-		
-	if (info->other_unichar_info) {
-		g_hash_table_destroy (info->other_unichar_info);
-		info->other_unichar_info = NULL;
-	}
-
-	info->width = info->height = info->ascent = 1;
-
-#ifdef PROFILE_COVERAGE
-	g_message ("coverages %d = %d + %d + %d",
-		   coverage_count[0],
-		   coverage_count[1],
-		   coverage_count[2],
-		   coverage_count[3]);
-#endif
+	return font_info_create_for_context (gdk_pango_context_get_for_screen (screen),
+					     desc, antialias);
 }
 
 static struct font_info *
@@ -460,9 +604,9 @@ font_info_get_unichar_info (struct font_info *info,
 		}
 	}
 
-#ifdef PROFILE_COVERAGE
-	coverage_count[0]++;
-	coverage_count[uinfo->coverage]++;
+#ifdef VTEPANGOCAIRO_PROFILE
+	info->coverage_count[0]++;
+	info->coverage_count[uinfo->coverage]++;
 #endif
 	return uinfo;
 }
