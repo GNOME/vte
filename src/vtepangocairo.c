@@ -405,10 +405,8 @@ font_info_destroy_delayed (struct font_info *info)
 {
 	GDK_THREADS_ENTER ();
 
-	if (info->ref_count == 0) {
-		font_info_unregister (info);
-		font_info_free (info);
-	}
+	font_info_unregister (info);
+	font_info_free (info);
 
 	GDK_THREADS_LEAVE ();
 
