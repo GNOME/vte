@@ -1,5 +1,9 @@
 2008-11-20  Behdad Esfahbod  <behdad@gnome.org>
 
+	* configure.in:  Remove more cruft.
+
+2008-11-20  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 560819 – Remove obsolete backends
 
 	* configure.in:
