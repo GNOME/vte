@@ -1,7 +1,7 @@
 bin_PROGRAMS = vte
 pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h vtetypebuiltins.h vteversion.h
 lib_LTLIBRARIES = libvte.la
-pkglib_PROGRAMS = interpret utf8echo nativeecho utf8mode iso8859mode slowcat vterdb
+pkglib_PROGRAMS = interpret utf8echo nativeecho utf8mode iso8859mode slowcat
 pkglib_SCRIPTS = decset osc window
 EXTRA_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-vte ring mev ssfe table trie xticker vteconv vtetc
 EXTRA_DIST = \
@@ -80,23 +80,11 @@ libvte_la_SOURCES = \
 	vteconv.h \
 	vtedraw.c \
 	vtedraw.h \
-	vtefc.c \
-	vtefc.h \
-	vteft2.c \
-	vteft2.h \
-	vtegl.c \
-	vtegl.h \
-	vteglyph.c \
-	vteglyph.h \
 	vteint.h \
 	vtepangocairo.c \
 	vtepangocairo.h \
-	vterdb.c \
-	vterdb.h \
 	vteregex.c \
 	vteregex.h \
-	vtergb.c \
-	vtergb.h \
 	vteseq.c \
 	vteseq.h \
 	vteseq-list.h \
@@ -110,12 +98,6 @@ libvte_la_SOURCES = \
 	vtetypebuiltins.c \
 	vtetypebuiltins.h \
 	vteversion.h
-
-if BUILD_XFT
-libvte_la_SOURCES += \
-	vtexft.c \
-	vtexft.h
-endif
 
 libvte_la_LDFLAGS = $(LDFLAGS) \
 	-version-info $(LIBVTE_LTVERSION) \
@@ -307,10 +289,6 @@ reaper_SOURCES = \
 	reaper.c \
 	reaper.h
 reaper_LDADD = $(LDFLAGS) $(LIBS) $(GOBJECT_LIBS)
-
-vterdb_CFLAGS = $(GTK_CFLAGS) $(X_CFLAGS) -DVTERDB_MAIN
-vterdb_SOURCES = vterdb.c
-vterdb_LDADD = $(LDFLAGS) $(LIBS) $(GTK_LIBS)
 
 vteconv_CFLAGS = $(GLIB_CFLAGS) -DVTECONV_MAIN
 vteconv_SOURCES = \

@@ -28,26 +28,12 @@
 #include <gtk/gtk.h>
 #include "debug.h"
 #include "vtedraw.h"
-#include "vteft2.h"
-#include "vtegl.h"
 #include "vtepangocairo.h"
 #include "vteskel.h"
-#include "vtexft.h"
 
 static const struct _vte_draw_impl
 *_vte_draw_impls[] = {
 	&_vte_draw_pangocairo,
-#ifndef X_DISPLAY_MISSING
-#ifdef HAVE_XFT2
-	&_vte_draw_xft,
-#endif /* HAVE_XFT2 */
-#endif /* !X_DISPLAY_MISSING */
-	&_vte_draw_ft2,
-#ifndef X_DISPLAY_MISSING
-#ifdef HAVE_GL
-	&_vte_draw_gl,
-#endif /* HAVE_GL */
-#endif /* !X_DISPLAY_MISSING */
 };
 
 static gboolean

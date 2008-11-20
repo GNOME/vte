@@ -324,45 +324,6 @@ fi
 # Backends
 ################################################################################
 
-# Use Xft2 if Pango has Xft2 support and it isn't disabled.
-if test "x$have_x" = "xyes" ; then
-	AC_ARG_WITH(xft2,
-		    [AS_HELP_STRING([--with-xft2],
-				    [enable drawing using Xft2])
-		    ], with_xft2=$withval, with_xft2=yes)
-	if test "x$with_xft2" = "xyes" ; then
-		PKG_CHECK_EXISTS([pangoxft >= 1.1.0], [
-			AC_DEFINE(HAVE_XFT2,1,[Whether we have Xft2])
-			wantedmodules="xft >= 2.0 $wantedmodules pangoxft >= 1.1.0"
-			],[
-			AC_MSG_WARN([Xft2 not detected])
-			with_xft2="no - not detected"
-			])
-	fi
-else
-	with_xft2="no - missing X Window System"
-fi
-AM_CONDITIONAL(BUILD_XFT, test "x$with_xft2" = "xyes")
-
-# Use glX if we have it and it isn't disabled.
-if test "$have_x" = yes ; then
-	AC_ARG_WITH(glX,[AS_HELP_STRING(--with-glX,enable drawing using glX)],with_glx=$withval,with_glx=no)
-	if test $with_glx = yes ; then
-		have_gl=0
-		have_libgl=0
-		AC_CHECK_HEADERS(GL/glx.h)
-		if test $ac_cv_header_GL_glx_h = yes ; then
-			AC_CHECK_FUNC(glXQueryExtension,[have_gl=1],AC_CHECK_LIB(GL,glXQueryExtension,[have_gl=1;have_libgl=1]))
-		fi
-		if test $have_gl = 1 ; then
-			AC_DEFINE(HAVE_GL,1,[Whether we have GL and glX.])
-		fi
-		if test $have_libgl = 1 ; then
-			LIBS="-lGL $LIBS"
-		fi
-	fi
-fi
-
 # Search for the required modules.
 PKG_CHECK_MODULES(VTE,[$wantedmodules])
 NEEDEDPACKAGES="$wantedmodules"
@@ -658,7 +619,6 @@ cat <<EOF | tee -a config.log
 ## -------------- ##
 
 Configuration for libvte $VERSION
-	With XFT: $with_xft2
 	With PCRE: $use_pcre
 	Installing Glade catalogue: $enable_glade_catalogue
 	Debugging: $DEBUG

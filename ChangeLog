@@ -2,6 +2,31 @@
 
 	Bug 560819 – Remove obsolete backends
 
+	* configure.in:
+	* src/Makefile.am:
+	* src/vtebg.c (vte_bg_get_pixmap):
+	* src/vtebg.h:
+	* src/vtedraw.c:
+	* src/vtefc.c:
+	* src/vtefc.h:
+	* src/vteft2.c:
+	* src/vteft2.h:
+	* src/vtegl.c:
+	* src/vtegl.h:
+	* src/vteglyph.c:
+	* src/vteglyph.h:
+	* src/vterdb.c:
+	* src/vterdb.h:
+	* src/vtergb.c:
+	* src/vtergb.h:
+	* src/vtexft.c:
+	* src/vtexft.h:
+	Remove all backends except for pangocairo.  Saves so much code.
+
+2008-11-20  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 560819 – Remove obsolete backends
+
 	* src/Makefile.am:
 	* src/vtedraw.c:
 	* src/vtepango.c:

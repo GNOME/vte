@@ -65,11 +65,6 @@ GdkPixmap *vte_bg_get_pixmap(VteBg *bg, enum VteBgSourceType source_type,
 			     const GdkColor *tint, double saturation,
 			     GdkColormap *colormap);
 
-GdkPixbuf *vte_bg_get_pixbuf(VteBg *bg, enum VteBgSourceType source_type,
-			     GdkPixbuf *source_pixbuf,
-			     const char *source_file,
-			     const GdkColor *tint, double saturation);
-
 G_END_DECLS
 
 #endif
