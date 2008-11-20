@@ -89,8 +89,6 @@ libvte_la_SOURCES = \
 	vteglyph.c \
 	vteglyph.h \
 	vteint.h \
-	vtepango.c \
-	vtepango.h \
 	vtepangocairo.c \
 	vtepangocairo.h \
 	vterdb.c \

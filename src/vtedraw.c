@@ -49,9 +49,6 @@ static const struct _vte_draw_impl
 	&_vte_draw_gl,
 #endif /* HAVE_GL */
 #endif /* !X_DISPLAY_MISSING */
-	&_vte_draw_pango,
-#ifndef X_DISPLAY_MISSING
-#endif /* !X_DISPLAY_MISSING */
 };
 
 static gboolean
