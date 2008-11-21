@@ -1,3 +1,7 @@
+2008-11-20  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	* src/Makefile.am: Remove FT2_FLAGS
+
 2008-11-20  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vtepangocairo.c (font_info_destroy_delayed): Remove obsolete
