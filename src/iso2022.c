@@ -307,14 +307,18 @@ _vte_iso2022_is_ambiguous(gunichar c)
 {
 	gsize i;
 	for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_unambiguous_ranges); i++) {
-		if ((c >= _vte_iso2022_unambiguous_ranges[i].start) &&
-		    (c <= _vte_iso2022_unambiguous_ranges[i].end)) {
+		if (c < _vte_iso2022_unambiguous_ranges[i].start) {
+			break;
+		}
+		if (c <= _vte_iso2022_unambiguous_ranges[i].end) {
 			return FALSE;
 		}
 	}
 	for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_ambiguous_ranges); i++) {
-		if ((c >= _vte_iso2022_ambiguous_ranges[i].start) &&
-		    (c <= _vte_iso2022_ambiguous_ranges[i].end)) {
+		if (c < _vte_iso2022_ambiguous_ranges[i].start) {
+			break;
+		}
+		if (c <= _vte_iso2022_ambiguous_ranges[i].end) {
 			return TRUE;
 		}
 	}
