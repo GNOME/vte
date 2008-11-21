@@ -1,3 +1,8 @@
+2008-11-21  Chris Wilson  <chris@chris-wilson.co.uk>
+
+	* src/iso2022.c (process_cdata): Copy the gunichars directly to the
+	array from the incoming chunk.
+
 2008-11-20  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	* src/Makefile.am: Remove FT2_FLAGS

@@ -1246,7 +1246,9 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 		} while ((inbytes > 0) && !stop);
 
 		/* encode any ambiguous widths and skip blanks */
-		for (i = j = 0; buf + i < outbuf; i++) {
+		j = gunichars->len;
+		g_array_set_size(gunichars, gunichars->len + outbuf-buf);
+		for (i = 0; buf + i < outbuf; i++) {
 			c = buf[i];
 			if (G_UNLIKELY (c == '\0')) {
 				/* Skip the padding character. */
@@ -1256,10 +1258,9 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 				width = ambiguous_width;
 				c = _vte_iso2022_set_encoded_width(c, width);
 			}
-			buf[j++] = c;
+			g_array_index(gunichars, gunichar, j++) = c;
 		}
-		/* And append the unichars to the GArray. */
-		g_array_append_vals(gunichars, buf, j);
+		gunichars->len = j;
 
 		/* Done. */
 		processed = length - inbytes;
@@ -1269,6 +1270,8 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 				     &or_mask, &and_mask);
 		i = 0;
 		acc = 0;
+		j = gunichars->len;
+		g_array_set_size(gunichars, gunichars->len + length);
 		do {
 			if (i < length) {
 				acc = (acc << 8) | cdata[i];
@@ -1301,7 +1304,7 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 							"%04x\n", acc, c);
 					c = _vte_iso2022_set_encoded_width(c, width);
 				}
-				g_array_append_val(gunichars, c);
+				g_array_index(gunichars, gunichar, j++) = c;
 				if (single) {
 					break;
 				}
@@ -1309,6 +1312,7 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 			}
 		} while (i < length);
 		processed = i;
+		gunichars->len = j;
 	}
 	return processed;
 }
