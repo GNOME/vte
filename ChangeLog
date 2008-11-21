@@ -1,5 +1,9 @@
 2008-11-21  Chris Wilson  <chris@chris-wilson.co.uk>
 
+	* vte.pc.in: Remove FT2_LIBS and FT2_CFLAGS
+
+2008-11-21  Chris Wilson  <chris@chris-wilson.co.uk>
+
 	* src/iso2022.c (_vte_iso2022_is_ambiguous): Break out of interval
 	search as early as possible. Exploit the strict ordering of the 
 	ambiguous/unambiguous ranges to break out of the for loop as soon
