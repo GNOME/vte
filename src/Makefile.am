@@ -45,7 +45,6 @@ AM_CPPFLAGS = -DDATADIR='"$(datadir)"' \
 	      -DLIBEXECDIR='"$(libexecdir)"' \
 	      -DLOCALEDIR='"$(localedir)"' \
 	      -DVTE_COMPILATION
-AM_LDFLAGS = $(LDFLAGS)
 
 EXTRA_libvte_la_SOURCES = keysyms.c
 
@@ -104,7 +103,7 @@ libvte_la_SOURCES = \
 	vtetypebuiltins.h \
 	vteversion.h
 
-libvte_la_LDFLAGS = $(LDFLAGS) \
+libvte_la_LDFLAGS = \
 	-version-info $(LIBVTE_LTVERSION) \
 	-export-symbols-regex "^vte_terminal_.*|^_vte_pty_.*|^vte_reaper_.*|_vte_debug_.*" \
 	@LIBTOOL_EXPORT_OPTIONS@ @LIBTOOL_FLAGS@
@@ -132,15 +131,15 @@ vtetypebuiltins.c: vtetypebuiltins.c.template vte.h
 
 vte_SOURCES = \
 	vteapp.c
-vte_LDADD = libvte.la $(LDFLAGS) $(VTE_LIBS)
+vte_LDADD = libvte.la $(VTE_LIBS)
 
 reflect_text_view_CFLAGS = -DUSE_TEXT_VIEW $(VTE_CFLAGS)
 reflect_text_view_SOURCES = reflect.c
-reflect_text_view_LDADD = $(LDFLAGS) $(VTE_LIBS)
+reflect_text_view_LDADD = $(VTE_LIBS)
 
 reflect_vte_CFLAGS = -DUSE_VTE $(VTE_CFLAGS)
 reflect_vte_SOURCES = reflect.c
-reflect_vte_LDADD = libvte.la $(LDFLAGS) $(VTE_LIBS)
+reflect_vte_LDADD = libvte.la $(VTE_LIBS)
 
 interpret_CFLAGS = $(GTK_CFLAGS) -DINTERPRET_MAIN
 interpret_SOURCES = \
@@ -165,7 +164,7 @@ interpret_SOURCES = \
 	vtetree.c \
 	vtetree.h \
 	interpret.c
-interpret_LDADD = $(LDFLAGS) $(GOBJECT_LIBS)
+interpret_LDADD = $(GOBJECT_LIBS)
 
 iso2022_CFLAGS = $(GTK_CFLAGS) -DISO2022_MAIN
 iso2022_SOURCES = \
@@ -189,7 +188,7 @@ iso2022_SOURCES = \
 	vtetc.h \
 	vtetree.c \
 	vtetree.h
-iso2022_LDADD = $(LDFLAGS) $(GOBJECT_LIBS)
+iso2022_LDADD = $(GOBJECT_LIBS)
 
 utf8echo_CFLAGS = $(GOBJECT_CFLAGS) -DUTF8ECHO_MAIN
 utf8echo_SOURCES = \
@@ -210,12 +209,12 @@ utf8echo_SOURCES = \
 	vteconv.h \
 	vtetc.c \
 	vtetc.h
-utf8echo_LDADD = $(LDFLAGS) $(GOBJECT_LIBS)
+utf8echo_LDADD = $(GOBJECT_LIBS)
 
 nativeecho_CFLAGS = $(GLIB_CFLAGS) -DNATIVEECHO_MAIN
 nativeecho_SOURCES = \
 	nativeecho.c
-nativeecho_LDADD = $(LDFLAGS) $(GLIB_LIBS)
+nativeecho_LDADD = $(GLIB_LIBS)
 
 ring_CFLAGS = $(GLIB_CFLAGS) -DRING_MAIN
 ring_SOURCES = \
@@ -223,11 +222,11 @@ ring_SOURCES = \
 	debug.h \
 	ring.c \
 	ring.h
-ring_LDADD = $(LDFLAGS) $(GLIB_LIBS)
+ring_LDADD = $(GLIB_LIBS)
 
 slowcat_SOURCES = \
 	slowcat.c
-slowcat_LDADD = $(LDFLAGS) $(GLIB_LIBS)
+slowcat_LDADD = $(GLIB_LIBS)
 
 table_CFLAGS = $(GOBJECT_CFLAGS) -DTABLE_MAIN
 table_SOURCES = \
@@ -247,7 +246,7 @@ table_SOURCES = \
 	vteconv.h \
 	vtetc.c \
 	vtetc.h
-table_LDADD = $(LDFLAGS) $(GOBJECT_LIBS)
+table_LDADD = $(GOBJECT_LIBS)
 
 trie_CFLAGS = $(GOBJECT_CFLAGS) -DTRIE_MAIN
 trie_SOURCES = \
@@ -267,7 +266,7 @@ trie_SOURCES = \
 	vteconv.h \
 	vtetc.c \
 	vtetc.h 
-trie_LDADD = $(LDFLAGS) $(GOBJECT_LIBS)
+trie_LDADD = $(GOBJECT_LIBS)
 
 vtetc_CFLAGS = $(GLIB_CFLAGS) -DTERMCAP_MAIN
 vtetc_SOURCES = \
@@ -275,7 +274,7 @@ vtetc_SOURCES = \
 	debug.h \
 	vtetc.c \
 	vtetc.h
-vtetc_LDADD = $(LDFLAGS) $(GLIB_LIBS)
+vtetc_LDADD = $(GLIB_LIBS)
 
 pty_CFLAGS = $(GLIB_CFLAGS) -DPTY_MAIN
 pty_SOURCES = \
@@ -283,7 +282,7 @@ pty_SOURCES = \
 	debug.h \
 	pty.c \
 	pty.h
-pty_LDADD = $(LDFLAGS) $(GLIB_LIBS)
+pty_LDADD = $(GLIB_LIBS)
 
 reaper_CFLAGS = $(GTK_CFLAGS) -DREAPER_MAIN
 reaper_SOURCES = \
@@ -293,7 +292,7 @@ reaper_SOURCES = \
 	marshal.h \
 	reaper.c \
 	reaper.h
-reaper_LDADD = $(LDFLAGS) $(GOBJECT_LIBS)
+reaper_LDADD = $(GOBJECT_LIBS)
 
 vteconv_CFLAGS = $(GLIB_CFLAGS) -DVTECONV_MAIN
 vteconv_SOURCES = \
@@ -303,24 +302,24 @@ vteconv_SOURCES = \
 	debug.h \
 	vteconv.c \
 	vteconv.h
-vteconv_LDADD = $(LDFLAGS) $(GLIB_LIBS)
+vteconv_LDADD = $(GLIB_LIBS)
 
 buffer_CFLAGS = $(GLIB_CFLAGS) -DBUFFER_MAIN
 buffer_SOURCES = buffer.c
-buffer_LDADD = $(LDFLAGS) $(GLIB_LIBS)
+buffer_LDADD = $(GLIB_LIBS)
 
 dumpkeys_SOURCES = dumpkeys.c
-dumpkeys_LDADD = $(LDFLAGS) $(GLIB_LIBS)
+dumpkeys_LDADD = $(GLIB_LIBS)
 
 mev_SOURCES = mev.c
-mev_LDADD = $(LDFLAGS) $(GLIB_LIBS)
+mev_LDADD = $(GLIB_LIBS)
 
 ssfe_SOURCES = ssfe.c
-ssfe_LDADD = $(LDFLAGS)
+ssfe_LDADD =
 
 xticker_CFLAGS = $(GLIB_CFLAGS)
 xticker_SOURCES = xticker.c
-xticker_LDADD = $(LDFLAGS) $(GLIB_LIBS)
+xticker_LDADD = $(GLIB_LIBS)
 
 vteseq-table.h: vteseq-gen.c vteseq-list.h
 	$(MAKE) vteseq-gen

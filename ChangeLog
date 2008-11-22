@@ -1,5 +1,10 @@
 2008-11-22  Christian Persch  <chpe@gnome.org>
 
+	* src/Makefile.am: Don't add LDFLAGS to *_LDADD, that's wrong and
+	broken.
+
+2008-11-22  Christian Persch  <chpe@gnome.org>
+
 	* configure.in:
 	* src/Makefile.am:
 	* vte-uninstalled.pc.in:
