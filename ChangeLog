@@ -1,5 +1,9 @@
 2008-11-22  Christian Persch  <chpe@gnome.org>
 
+	* configure.in: Depend on gtk 2.12. Bug #398862.
+
+2008-11-22  Christian Persch  <chpe@gnome.org>
+
 	* src/table.c: (print_array): Fix the build (broken since r1622).
 
 2008-11-22  Christian Persch  <chpe@gnome.org>
