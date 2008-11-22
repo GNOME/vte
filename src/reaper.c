@@ -25,7 +25,6 @@
 #include <unistd.h>
 #include <glib.h>
 #include <glib-object.h>
-#include <gtk/gtk.h>
 #include "debug.h"
 #include "marshal.h"
 #include "reaper.h"
