@@ -67,10 +67,10 @@ struct _VteRing {
 	(__cast) _vte_ring_at(__ring, __position)
 
 VteRing *_vte_ring_new(glong max_elements,
-		      VteRingFreeFunc free,
+		      VteRingFreeFunc free_func,
 		      gpointer data);
 VteRing *_vte_ring_new_with_delta(glong max_elements, glong delta,
-				  VteRingFreeFunc free, gpointer data);
+				  VteRingFreeFunc free_func, gpointer data);
 gpointer _vte_ring_insert(VteRing *ring, glong position, gpointer data);
 gpointer _vte_ring_insert_preserve(VteRing *ring, glong position, gpointer data);
 gpointer _vte_ring_remove(VteRing *ring, glong position, gboolean free_element);

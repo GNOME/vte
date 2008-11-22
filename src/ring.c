@@ -43,7 +43,7 @@ _vte_ring_validate(VteRing * ring)
 /**
  * _vte_ring_new:
  * @max_elements: the maximum size the new ring will be allowed to reach
- * @free: a #VteRingFreeFunc
+ * @free_func: a #VteRingFreeFunc
  * @data: user data for @free
  *
  * Allocates a new ring capable of holding up to @max_elements elements at a
@@ -53,23 +53,23 @@ _vte_ring_validate(VteRing * ring)
  * Returns: a new ring
  */
 VteRing *
-_vte_ring_new(glong max_elements, VteRingFreeFunc free, gpointer data)
+_vte_ring_new(glong max_elements, VteRingFreeFunc free_func, gpointer data)
 {
 	VteRing *ret = g_slice_new0(VteRing);
 	ret->user_data = data;
 	ret->cached_item = -1;
 	ret->max = MAX(max_elements, 2);
 	ret->array = g_malloc0(sizeof(gpointer) * ret->max);
-	ret->free = free;
+	ret->free = free_func;
 	return ret;
 }
 
 VteRing *
 _vte_ring_new_with_delta(glong max_elements, glong delta,
-			 VteRingFreeFunc free, gpointer data)
+			 VteRingFreeFunc free_func, gpointer data)
 {
 	VteRing *ret;
-	ret = _vte_ring_new(max_elements, free, data);
+	ret = _vte_ring_new(max_elements, free_func, data);
 	ret->delta = delta;
 	return ret;
 }
@@ -244,7 +244,7 @@ _vte_ring_insert_preserve(VteRing * ring, long position, gpointer data)
  *
  */
 gpointer
-_vte_ring_remove(VteRing * ring, long position, gboolean free)
+_vte_ring_remove(VteRing * ring, long position, gboolean free_element)
 {
 	long i;
 	gpointer old_data;
@@ -261,7 +261,7 @@ _vte_ring_remove(VteRing * ring, long position, gboolean free)
 	i = position % ring->max;
 	/* Remove the data at this position. */
 	old_data = ring->array[i];
-	if (free && old_data && ring->free) {
+	if (free_element && old_data && ring->free) {
 		_vte_debug_print(VTE_DEBUG_RING,
 				"Freeing item at position %ld.\n", position);
 		ring->free(old_data, ring->user_data);
