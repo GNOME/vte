@@ -1833,7 +1833,7 @@ main(int argc, char **argv)
 			}
 		}
 		_vte_buffer_append(buffer, string->str, string->len);
-		_vte_iso2022_process(state, buffer, gunichars);
+		_vte_iso2022_process(state, buffer, _vte_buffer_length (buffer), gunichars);
 		g_string_free(string, TRUE);
 	} else {
 		for (i = 0; i < G_N_ELEMENTS(strings); i++) {
@@ -1841,7 +1841,7 @@ main(int argc, char **argv)
 			_vte_buffer_append(buffer, string->str, string->len);
 			g_string_free(string, TRUE);
 			if (strings[i].process) {
-				_vte_iso2022_process(state, buffer, gunichars);
+				_vte_iso2022_process(state, buffer, _vte_buffer_length (buffer), gunichars);
 			}
 		}
 	}

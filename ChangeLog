@@ -1,5 +1,10 @@
 2008-11-22  Christian Persch  <chpe@gnome.org>
 
+	* src/iso2022.c: (main): Make iso2022 programme build again; it was
+	broken since r1612.
+
+2008-11-22  Christian Persch  <chpe@gnome.org>
+
 	* src/Makefile.am: Separate CFLAGS and CPPFLAGS.
 
 2008-11-22  Christian Persch  <chpe@gnome.org>
