@@ -1,5 +1,9 @@
 2008-11-22  Christian Persch  <chpe@gnome.org>
 
+	* src/vtepangocairo.c: No need to include gi18n-lib.h here.
+
+2008-11-22  Christian Persch  <chpe@gnome.org>
+
 	* configure.in:
 	* vte-uninstalled.pc.in:
 	* vte.pc.in: Clean up the pkgs declared for use in the .pc files.

@@ -30,7 +30,6 @@
 #include "vte-private.h"
 
 #include <pango/pangocairo.h>
-#include <glib/gi18n-lib.h>
 
 #define FONT_CACHE_TIMEOUT (30) /* seconds */
 
