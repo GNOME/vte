@@ -1,5 +1,16 @@
 2008-11-22  Christian Persch  <chpe@gnome.org>
 
+	Bug 560766 – Deprecate and remove vte_terminal_get_using_xft()
+
+	* src/vte.c: (vte_terminal_get_using_xft):
+	* src/vte.h:
+	* src/vtedraw.c: (_vte_draw_text):
+	* src/vtedraw.h:
+	* src/vtepangocairo.c: Deprecate vte_terminal_get_using_xft() as preparation for
+	bug #560766. Remove the internal vtedraw method already.
+
+2008-11-22  Christian Persch  <chpe@gnome.org>
+
 	Bug 536894 – Confusing use of "free" as variable-name in ring
 	functions
 

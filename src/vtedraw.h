@@ -76,7 +76,6 @@ struct _vte_draw_impl {
 			      VteTerminalAntiAlias);
 	void (*get_text_metrics)(struct _vte_draw *, gint *, gint *, gint *);
 	int (*get_char_width)(struct _vte_draw *, gunichar c, int columns);
-	gboolean (*get_using_fontconfig)(struct _vte_draw *);
 	void (*draw_text)(struct _vte_draw *,
 			  struct _vte_draw_text_request *, gsize,
 			  GdkColor *, guchar);
@@ -149,7 +148,6 @@ void _vte_draw_set_text_font(struct _vte_draw *draw,
 void _vte_draw_get_text_metrics(struct _vte_draw *draw,
 				gint *width, gint *height, gint *ascent);
 int _vte_draw_get_char_width(struct _vte_draw *draw, gunichar c, int columns);
-gboolean _vte_draw_get_using_fontconfig(struct _vte_draw *draw);
 
 /* Draw text or rectangles. */
 void _vte_draw_text(struct _vte_draw *draw,

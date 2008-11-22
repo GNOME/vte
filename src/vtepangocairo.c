@@ -913,7 +913,6 @@ const struct _vte_draw_impl _vte_draw_pangocairo = {
 	_vte_pangocairo_set_text_font,
 	_vte_pangocairo_get_text_metrics,
 	_vte_pangocairo_get_char_width,
-	NULL, /* get_using_fontconfig */
 	_vte_pangocairo_draw_text,
 	_vte_pangocairo_draw_has_char,
 	_vte_pangocairo_draw_rectangle,

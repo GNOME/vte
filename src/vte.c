@@ -12662,14 +12662,15 @@ vte_terminal_get_has_selection(VteTerminal *terminal)
  * fontconfig to find fonts.  This setting cannot be changed by the caller,
  * but in practice usually matches the behavior of GTK+ itself.
  *
- * Returns: %TRUE if the terminal is using fontconfig to find fonts, %FALSE if
- * the terminal is using PangoX.
+ * Returns: %TRUE
+ *
+ * Deprecated: 0.17.5
  */
 gboolean
 vte_terminal_get_using_xft(VteTerminal *terminal)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return _vte_draw_get_using_fontconfig(terminal->pvt->draw);
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), TRUE);
+	return TRUE;
 }
 
 static void

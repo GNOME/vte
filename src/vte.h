@@ -329,7 +329,9 @@ void vte_terminal_set_font_from_string_full(VteTerminal *terminal,
 					    const char *name,
 					    VteTerminalAntiAlias antialias);
 const PangoFontDescription *vte_terminal_get_font(VteTerminal *terminal);
-gboolean vte_terminal_get_using_xft(VteTerminal *terminal);
+#ifndef VTE_DISABLE_DEPRECATED
+gboolean vte_terminal_get_using_xft(VteTerminal *terminal) G_GNUC_DEPRECATED;
+#endif
 void vte_terminal_set_allow_bold(VteTerminal *terminal, gboolean allow_bold);
 gboolean vte_terminal_get_allow_bold(VteTerminal *terminal);
 

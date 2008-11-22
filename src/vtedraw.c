@@ -327,17 +327,6 @@ _vte_draw_get_char_width (struct _vte_draw *draw, gunichar c, int columns)
 	return width;
 }
 
-gboolean
-_vte_draw_get_using_fontconfig (struct _vte_draw *draw)
-{
-	gboolean using_fontconfig = TRUE;
-
-	if (draw->impl->get_using_fontconfig)
-		using_fontconfig = draw->impl->get_using_fontconfig (draw);
-
-	return using_fontconfig;
-}
-
 void
 _vte_draw_text (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *requests, gsize n_requests,
