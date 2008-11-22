@@ -7,6 +7,9 @@ headers
 #include <pygobject.h>
 #include <gtk/gtk.h>
 #include "../src/vte.h"
+
+void pyvte_add_constants(PyObject *module, const gchar *strip_prefix);
+void pyvte_register_classes(PyObject *d);
 %%
 modulename vte
 %%

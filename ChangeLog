@@ -1,5 +1,9 @@
 2008-11-22  Christian Persch  <chpe@gnome.org>
 
+	* python/vte.override: Fix missing-prototypes warnings.
+
+2008-11-22  Christian Persch  <chpe@gnome.org>
+
 	* src/vtepangocairo.c: No need to include gi18n-lib.h here.
 
 2008-11-22  Christian Persch  <chpe@gnome.org>
