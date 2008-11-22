@@ -217,13 +217,12 @@ case $host in
 esac
 
 GLIB_REQUIRED=2.14.0
+PANGO_REQUIRED=1.22.0
 GTK_REQUIRED=2.12.0
 AC_DEFINE(GDK_MULTIHEAD_SAFE,1,[Force use of GDK's multihead-safe APIs.])
 PKG_CHECK_MODULES(GLIB,[glib-2.0 > $GLIB_REQUIRED])
 PKG_CHECK_MODULES(GOBJECT,[glib-2.0 gobject-2.0])
 PKG_CHECK_MODULES(GTK,[glib-2.0 >= $GLIB_REQUIRED gobject-2.0 gtk+-2.0 >= $GTK_REQUIRED])
-
-wantedmodules="glib-2.0 gobject-2.0 gtk+-2.0 fontconfig pango >= 1.22.0"
 
 AC_ARG_ENABLE(deprecation,
 	      [AS_HELP_STRING([--enable-deprecation],
@@ -292,9 +291,9 @@ fi
 
 
 # Search for the required modules.
-PKG_CHECK_MODULES(VTE,[$wantedmodules])
-NEEDEDPACKAGES="$wantedmodules"
-AC_SUBST(NEEDEDPACKAGES)
+VTE_PKGS="glib-2.0 >= $GLIB_REQUIRED gobject-2.0 pango >= $PANGO_REQUIRED gtk+-2.0 >= $GTK_REQUIRED"
+PKG_CHECK_MODULES([VTE],[$VTE_PKGS])
+AC_SUBST([VTE_PKGS])
 
 wcs_funcs_includes="
 #ifdef HAVE_STRING_H
