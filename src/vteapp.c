@@ -689,7 +689,7 @@ main(int argc, char **argv)
 	/* Set some defaults. */
 	vte_terminal_set_audible_bell(terminal, audible);
 	vte_terminal_set_visible_bell(terminal, !audible);
-	vte_terminal_set_cursor_blinks(terminal, blink);
+	vte_terminal_set_cursor_blink_mode(terminal, blink ? VTE_CURSOR_BLINK_OFF : VTE_CURSOR_BLINK_SYSTEM);
 	vte_terminal_set_scroll_background(terminal, scroll);
 	vte_terminal_set_scroll_on_output(terminal, FALSE);
 	vte_terminal_set_scroll_on_keystroke(terminal, TRUE);

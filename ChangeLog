@@ -1,5 +1,10 @@
 2008-11-22  Christian Persch  <chpe@gnome.org>
 
+	* src/vteapp.c: (main): Use vte_terminal_set_cursor_blink_mode instead
+	of the deprecated set_cursor_blinks here.
+
+2008-11-22  Christian Persch  <chpe@gnome.org>
+
 	Bug 560766 – Deprecate and remove vte_terminal_get_using_xft()
 
 	* src/vte.c: (vte_terminal_get_using_xft):
