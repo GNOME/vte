@@ -17,7 +17,7 @@
  */
 
 
-#include "../config.h"
+#include <config.h>
 
 #include <sys/param.h>
 #include <string.h>
@@ -31,6 +31,8 @@
 
 #include <pango/pangocairo.h>
 #include <glib/gi18n-lib.h>
+
+#define FONT_CACHE_TIMEOUT (30) /* seconds */
 
 #undef VTEPANGOCAIRO_PROFILE
 
@@ -403,12 +405,8 @@ font_info_reference (struct font_info *info)
 static gboolean
 font_info_destroy_delayed (struct font_info *info)
 {
-	GDK_THREADS_ENTER ();
-
 	font_info_unregister (info);
 	font_info_free (info);
-
-	GDK_THREADS_LEAVE ();
 
 	return FALSE;
 }
@@ -426,9 +424,13 @@ font_info_destroy (struct font_info *info)
 		return;
 
 	/* Delay destruction by a few seconds, in case we need it again */
-	info->destroy_timeout = g_timeout_add_seconds (30,
-						       (GSourceFunc) font_info_destroy_delayed,
-						       info);
+#if GTK_CHECK_VERSION (2, 14, 0)
+	info->destroy_timeout = gdk_threads_add_timeout_seconds (FONT_CACHE_TIMEOUT,
+#else
+	info->destroy_timeout = gdk_threads_add_timeout (FONT_CACHE_TIMEOUT * 1000,
+#endif
+								 (GSourceFunc) font_info_destroy_delayed,
+								 info);
 }
 
 static guint
