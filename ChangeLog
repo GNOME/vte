@@ -1,5 +1,9 @@
 2008-11-22  Christian Persch  <chpe@gnome.org>
 
+	* src/vteapp.c: (main): Fix --blink; the flag is inverted.
+
+2008-11-22  Christian Persch  <chpe@gnome.org>
+
 	* src/vteapp.c: (main): Use vte_terminal_set_cursor_blink_mode instead
 	of the deprecated set_cursor_blinks here.
 
