@@ -19,6 +19,7 @@
 #include "../config.h"
 #include <sys/types.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
 #ifdef HAVE_SYS_TERMIOS_H
 #include <sys/termios.h>
 #endif
@@ -52,7 +53,6 @@
 #include <glib/gi18n-lib.h>
 
 #ifdef VTE_USE_GNOME_PTY_HELPER
-#include <sys/socket.h>
 #include <sys/uio.h>
 #ifdef HAVE_SYS_UN_H
 #include <sys/un.h>

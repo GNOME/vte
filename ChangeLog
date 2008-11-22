@@ -1,5 +1,11 @@
 2008-11-22  Christian Persch  <chpe@gnome.org>
 
+	Bug 542561 – Doesn't build when disabling gnome-pty-helper
+
+	* src/pty.c: Always include sys/socket.h. Patch by Loïc Minier.
+
+2008-11-22  Christian Persch  <chpe@gnome.org>
+
 	* src/vteapp.c: (main): Fix --blink; the flag is inverted.
 
 2008-11-22  Christian Persch  <chpe@gnome.org>
