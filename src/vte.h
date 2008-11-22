@@ -213,11 +213,6 @@ GType vte_terminal_get_type(void);
 							     VTE_TYPE_TERMINAL)
 #define VTE_TERMINAL_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS ((obj), VTE_TYPE_TERMINAL, VteTerminalClass))
 
-#ifndef VTE_DISABLE_DEPRECATED
-#define VTE_IS_TERMINAL_ERASE_BINDING(obj)  (FALSE)
-#define VTE_IS_TERMINAL_ANTI_ALIAS(obj)     (FALSE)
-#endif /* VTE_DISABLE_DEPRECATED */
-
 /* You can get by with just these two functions. */
 GtkWidget *vte_terminal_new(void);
 pid_t vte_terminal_fork_command(VteTerminal *terminal,
@@ -298,10 +293,6 @@ void vte_terminal_set_background_transparent(VteTerminal *terminal,
 void vte_terminal_set_opacity(VteTerminal *terminal, guint16 opacity);
 
 /* Set whether or not the cursor blinks. */
-#ifndef VTE_DISABLE_DEPRECATED
-void vte_terminal_set_cursor_blinks(VteTerminal *terminal,
-				    gboolean blink) G_GNUC_DEPRECATED;
-#endif
 void vte_terminal_set_cursor_blink_mode(VteTerminal *terminal,
 					VteTerminalCursorBlinkMode mode);
 VteTerminalCursorBlinkMode vte_terminal_get_cursor_blink_mode(VteTerminal *terminal);
@@ -329,9 +320,6 @@ void vte_terminal_set_font_from_string_full(VteTerminal *terminal,
 					    const char *name,
 					    VteTerminalAntiAlias antialias);
 const PangoFontDescription *vte_terminal_get_font(VteTerminal *terminal);
-#ifndef VTE_DISABLE_DEPRECATED
-gboolean vte_terminal_get_using_xft(VteTerminal *terminal) G_GNUC_DEPRECATED;
-#endif
 void vte_terminal_set_allow_bold(VteTerminal *terminal, gboolean allow_bold);
 gboolean vte_terminal_get_allow_bold(VteTerminal *terminal);
 
@@ -394,9 +382,6 @@ void vte_terminal_match_clear_all(VteTerminal *terminal);
 
 /* Add a matching expression, returning the tag the widget assigns to that
  * expression. */
-#ifndef VTE_DISABLE_DEPRECATED
-int vte_terminal_match_add(VteTerminal *terminal, const char *match) G_GNUC_DEPRECATED;
-#endif /* VTE_DISABLE_DEPRECATED */
 int vte_terminal_match_add_gregex(VteTerminal *terminal, GRegex *regex, GRegexMatchFlags flags);
 /* Set the cursor to be used when the pointer is over a given match. */
 void vte_terminal_match_set_cursor(VteTerminal *terminal, int tag,
@@ -439,16 +424,26 @@ int vte_terminal_get_pty(VteTerminal *terminal);
 GtkAdjustment *vte_terminal_get_adjustment(VteTerminal *terminal);
 glong vte_terminal_get_char_width(VteTerminal *terminal);
 glong vte_terminal_get_char_height(VteTerminal *terminal);
-#ifndef VTE_DISABLE_DEPRECATED
-glong vte_terminal_get_char_descent(VteTerminal *terminal) G_GNUC_DEPRECATED;
-glong vte_terminal_get_char_ascent(VteTerminal *terminal) G_GNUC_DEPRECATED;
-#endif
 glong vte_terminal_get_row_count(VteTerminal *terminal);
 glong vte_terminal_get_column_count(VteTerminal *terminal);
 const char *vte_terminal_get_window_title(VteTerminal *terminal);
 const char *vte_terminal_get_icon_title(VteTerminal *terminal);
 
 int vte_terminal_get_child_exit_status(VteTerminal *terminal);
+
+#ifndef VTE_DISABLE_DEPRECATED
+
+#define VTE_IS_TERMINAL_ERASE_BINDING(obj)  (FALSE)
+#define VTE_IS_TERMINAL_ANTI_ALIAS(obj)     (FALSE)
+
+void vte_terminal_set_cursor_blinks(VteTerminal *terminal,
+				    gboolean blink) G_GNUC_DEPRECATED;
+gboolean vte_terminal_get_using_xft(VteTerminal *terminal) G_GNUC_DEPRECATED;
+int vte_terminal_match_add(VteTerminal *terminal, const char *match) G_GNUC_DEPRECATED;
+glong vte_terminal_get_char_descent(VteTerminal *terminal) G_GNUC_DEPRECATED;
+glong vte_terminal_get_char_ascent(VteTerminal *terminal) G_GNUC_DEPRECATED;
+
+#endif /* VTE_DISABLE_DEPRECATED */
 
 G_END_DECLS
 
