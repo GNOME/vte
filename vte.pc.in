@@ -9,5 +9,5 @@ Name: vte
 Description: Vte terminal widget.
 Version: @VERSION@
 Requires: @NEEDEDPACKAGES@
-Libs: -L${libdir} -lvte @OTHERLIBS@
-Cflags: -I${includedir} @OTHERCFLAGS@
+Libs: -L${libdir} -lvte
+Cflags: -I${includedir}

@@ -87,12 +87,6 @@ AC_SUBST([LIBTOOL_FLAGS])
 # Compilation
 ################################################################################
 
-# Save the names of these other libraries.
-OTHERCFLAGS="$X_CFLAGS"
-AC_SUBST(OTHERCFLAGS)
-OTHERLIBS="$LIBS"
-AC_SUBST(OTHERLIBS)
-
 dnl Use lots of warning flags with with gcc and compatible compilers
 dnl Copied from cairo
 AC_DEFUN([VTE_CC_TRY_FLAG], [
@@ -202,29 +196,6 @@ fi
 ################################################################################
 # Core
 ################################################################################
-
-
-# On some OSs, AC_PATH_XTRA doesn't work right(?), so let the user specify
-# X_PRE_LIBS and X_EXTRA_LIBS to add even more libraries, and add -lX11 to
-# the list of libraries for grins.
-AC_PATH_XTRA([X11], [X11/Xlib.h], [XFlush(NULL)])
-if test "$have_x" = yes ; then
-	if test -d "$x_includes" ; then
-		X_CFLAGS="-I$x_includes $X_CFLAGS"
-	elif test -d "$ac_x_includes" ; then
-		X_CFLAGS="-I$ac_x_includes $X_CFLAGS"
-	fi
-	X_LIBS="$X_PRE_LIBS $X_LIBS -lX11 $X_EXTRA_LIBS"
-	if test -d "$ac_x_libraries" ; then
-		X_LIBS="-L$x_libraries $X_LIBS"
-	elif test -d "$ac_x_libraries" ; then
-		X_LIBS="-L$ac_x_libraries $X_LIBS"
-	fi
-fi
-AC_SUBST([X_CFLAGS])
-AC_SUBST([X_LIBS])
-
-
 
 # Use all available features under glibc, and disable accidental use of
 # deprecated functionality.
