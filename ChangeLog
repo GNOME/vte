@@ -1,5 +1,9 @@
 2008-11-22  Christian Persch  <chpe@gnome.org>
 
+	* src/table.c: (print_array): Fix the build (broken since r1622).
+
+2008-11-22  Christian Persch  <chpe@gnome.org>
+
 	* src/reaper.c: Don't include gtk.h here, it's unneeded.
 
 2008-11-22  Christian Persch  <chpe@gnome.org>

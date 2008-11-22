@@ -856,7 +856,7 @@ print_array(GValueArray *array)
 			}
 		}
 		printf(")");
-		_vte_matcher_free_params_array(array);
+		/* _vte_matcher_free_params_array(array); */
 	}
 }
 
