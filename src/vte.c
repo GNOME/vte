@@ -3288,9 +3288,7 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
         g_object_freeze_notify(object);
 
 	/* Duplicate the environment, and add one more variable. */
-	for (i = 0; (envv != NULL) && (envv[i] != NULL); i++) {
-		/* nothing */ ;
-	}
+	i = envv ? g_strv_length(envv) : 0;
 	env_add = g_new(char *, i + 2);
 	env_add[0] = g_strdup_printf("TERM=%s", terminal->pvt->emulation);
 	for (i = 0; (envv != NULL) && (envv[i] != NULL); i++) {
