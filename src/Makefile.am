@@ -32,10 +32,11 @@ EXTRA_DIST = \
 	unitable.KSX1001
 
 # gperf - files need to be modified afterwards
-#vteseq-2.c: vteseq-2.gperf
-#	gperf vteseq-2.gperf -g -a -S 4 -t -m 100 -C -H vteseq_2_hash -N vteseq_2_lookup > $@
-#vteseq-n.c: vteseq-n.gperf
-#	gperf vteseq-n.gperf -g -a -S 4 -t -m 100 -C -P -l -H vteseq_n_hash -N vteseq_n_lookup -Q vteseq_n_stringpool > $@
+gperf: vteseq-2.gperf vteseq-n.gperf
+	gperf vteseq-2.gperf -g -a -S 4 -t -m 100 -C -H vteseq_2_hash -N vteseq_2_lookup > vteseq-2.c
+	gperf vteseq-n.gperf -g -a -S 4 -t -m 100 -C -P -l -H vteseq_n_hash -N vteseq_n_lookup -Q vteseq_n_stringpool > vteseq-n.c
+
+#vteseq-2.c vteseq-n.c: gperf
 
 
 EXTRA_libvte_la_SOURCES = keysyms.c

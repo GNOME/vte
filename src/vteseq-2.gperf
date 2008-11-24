@@ -1,3 +1,4 @@
+/* run "make gperf" after modifying this file */
 struct vteseq_two_lookup { const guchar name[2]; VteTerminalSequenceHandler handler; };
 %%
 "!1", vte_sequence_handler_complain_key

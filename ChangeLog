@@ -1,5 +1,19 @@
 2008-11-24  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 562187 – Add make rules for calling gperf
+
+	* src/Makefile.am: Add a "gperf" target to be run manually.
+
+	* src/vteseq-2.gperf:
+	* src/vteseq-n.gperf:
+	Add comment about "make gperf".
+
+	* src/vteseq-2.c:
+	* src/vteseq-n.c:
+	Regenerate using newer gperf.
+
+2008-11-24  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 416518 – Do something about uniwidths
 
 	* src/iso2022.c (_vte_iso2022_is_ambiguous):
