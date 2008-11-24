@@ -1,5 +1,15 @@
 2008-11-24  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 500191 – Remove vteseq-table.h?
+
+	* src/Makefile.am:
+	* src/vteseq-gen.c:
+	* src/vteseq-table.h:
+	Remove the old table implementation.  We use gperf-generated tables
+	now.
+
+2008-11-24  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 514457 – Use g_strv_length()
 
 	* src/vte.c (_vte_terminal_fork_basic): Do it.

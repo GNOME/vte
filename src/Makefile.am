@@ -11,7 +11,6 @@ pkglib_SCRIPTS = decset osc window
 EXTRA_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-vte ring mev ssfe table trie xticker vteconv vtetc
 EXTRA_DIST = \
 	$(pkglib_SCRIPTS) \
-	vteseq-gen.c \
 	vteseq-2.gperf \
 	vteseq-n.gperf \
 	vteseq-2.c \
@@ -340,7 +339,3 @@ ssfe_SOURCES = ssfe.c
 xticker_SOURCES = xticker.c
 xticker_CFLAGS = $(GLIB_CFLAGS)
 xticker_LDADD = $(GLIB_LIBS)
-
-vteseq-table.h: vteseq-gen.c vteseq-list.h
-	$(MAKE) vteseq-gen
-	./vteseq-gen > $@
