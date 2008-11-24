@@ -544,11 +544,6 @@ font_info_create_for_widget (GtkWidget                  *widget,
 {
 	GdkScreen *screen = gtk_widget_get_screen (widget);
 
-	if (!desc) {
-		PangoContext *context = gtk_widget_get_pango_context (widget);
-		desc = pango_context_get_font_description (context);
-	}
-
 	return font_info_create_for_screen (screen, desc, antialias);
 }
 

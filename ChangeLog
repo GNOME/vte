@@ -1,5 +1,10 @@
 2008-11-24  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vtepangocairo.c (font_info_create_for_widget): No need to check
+	widget font desc here as vte.c does that for us already.
+
+2008-11-24  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vtepangocairo.c (font_info_destroy): Modify GTK_CHECK_VERSION
 	handling to make my vim syntax highlighter happy.
 
