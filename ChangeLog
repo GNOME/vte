@@ -1,3 +1,8 @@
+2008-11-24  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vtepangocairo.c (font_info_destroy): Modify GTK_CHECK_VERSION
+	handling to make my vim syntax highlighter happy.
+
 2008-11-23  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte.c (vte_terminal_ensure_cursor): Refactor duplicate code.

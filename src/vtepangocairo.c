@@ -422,12 +422,12 @@ font_info_destroy (struct font_info *info)
 	if (info->ref_count)
 		return;
 
-	/* Delay destruction by a few seconds, in case we need it again */
-#if GTK_CHECK_VERSION (2, 14, 0)
-	info->destroy_timeout = gdk_threads_add_timeout_seconds (FONT_CACHE_TIMEOUT,
-#else
-	info->destroy_timeout = gdk_threads_add_timeout (FONT_CACHE_TIMEOUT * 1000,
+#if !GTK_CHECK_VERSION (2, 14, 0)
+#define gdk_threads_add_timeout_seconds(sec, func, data) gdk_threads_add_timeout ((sec) * 1000, (func), (data))
 #endif
+
+	/* Delay destruction by a few seconds, in case we need it again */
+	info->destroy_timeout = gdk_threads_add_timeout_seconds (FONT_CACHE_TIMEOUT,
 								 (GSourceFunc) font_info_destroy_delayed,
 								 info);
 }
