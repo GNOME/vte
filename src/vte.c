@@ -2381,34 +2381,14 @@ static VteRowData *
 vte_terminal_ensure_cursor(VteTerminal *terminal)
 {
 	VteRowData *row;
-	VteScreen *screen;
-	gint delta;
+	const VteScreen *screen;
 	glong v;
 
-	g_assert (VTE_IS_TERMINAL (terminal));
+	row = _vte_terminal_ensure_row (terminal);
 
-	/* Must make sure we're in a sane area. */
 	screen = terminal->pvt->screen;
-	v = screen->cursor_current.row;
-
-	if (!_vte_ring_is_cached (screen->row_data, v)) {
-		/* Figure out how many rows we need to add. */
-		delta = v - _vte_ring_next(screen->row_data) + 1;
-		if (delta > 0) {
-			row = vte_terminal_insert_rows (terminal, delta);
-			_vte_terminal_adjust_adjustments(terminal);
-		} else {
-			/* Find the row the cursor is in. */
-			row = _vte_ring_index(screen->row_data,
-					VteRowData *, v);
-		}
-		_vte_ring_set_cache (screen->row_data, v, row);
-	} else {
-		row = _vte_ring_get_cached_data (screen->row_data);
-	}
-	g_assert(row != NULL);
-
 	v = screen->cursor_current.col;
+
 	if (G_UNLIKELY ((glong) row->cells->len < v)) { /* pad */
 		vte_g_array_fill (row->cells, &screen->basic_defaults, v);
 	}

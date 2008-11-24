@@ -1,3 +1,7 @@
+2008-11-23  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vte.c (vte_terminal_ensure_cursor): Refactor duplicate code.
+
 2008-11-22  Christian Persch  <chpe@gnome.org>
 
 	* src/vte.h: Move all the deprecated stuff into one place.
