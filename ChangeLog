@@ -1,5 +1,16 @@
 2008-11-24  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 416518 – Do something about uniwidths
+
+	* src/iso2022.c (_vte_iso2022_is_ambiguous):
+	Call into glib to determine ambiguous-width chars.
+
+	* src/genwidths.py:
+	* src/uniwidths:
+	Remove.
+
+2008-11-24  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 500191 – Remove vteseq-table.h?
 
 	* src/Makefile.am:

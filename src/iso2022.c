@@ -278,51 +278,20 @@ static const struct _vte_iso2022_map _vte_iso2022_map_wide_G[] = {
 #include "unitable.CNS11643"
 };
 
-#include "uniwidths"
-
 static gint
 _vte_direct_compare(gconstpointer a, gconstpointer b)
 {
 	return GPOINTER_TO_INT(a) - GPOINTER_TO_INT(b);
 }
 
-static gboolean
-_vte_iso2022_is_ambiguous_ht(gunichar c)
-{
-	static GHashTable *ambiguous;
-	if (G_UNLIKELY (ambiguous == NULL)) {
-		gpointer p;
-		gsize i;
-		ambiguous = g_hash_table_new (NULL, NULL);
-		for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_ambiguous_chars); i++) {
-			p = GINT_TO_POINTER(_vte_iso2022_ambiguous_chars[i]);
-			g_hash_table_insert(ambiguous, p, p);
-		}
-	}
-
-	return g_hash_table_lookup(ambiguous, GINT_TO_POINTER(c)) != NULL;
-}
 static inline gboolean
 _vte_iso2022_is_ambiguous(gunichar c)
 {
-	gsize i;
-	for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_unambiguous_ranges); i++) {
-		if (c < _vte_iso2022_unambiguous_ranges[i].start) {
-			break;
-		}
-		if (c <= _vte_iso2022_unambiguous_ranges[i].end) {
-			return FALSE;
-		}
-	}
-	for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_ambiguous_ranges); i++) {
-		if (c < _vte_iso2022_ambiguous_ranges[i].start) {
-			break;
-		}
-		if (c <= _vte_iso2022_ambiguous_ranges[i].end) {
-			return TRUE;
-		}
-	}
-	return _vte_iso2022_is_ambiguous_ht (c);
+	/* ASCII chars are not ambiguous */
+	if (G_LIKELY (c < 0x80))
+		return FALSE;
+
+	return g_unichar_iswide (c) != g_unichar_iswide_cjk (c);
 }
 
 /* If we only have a codepoint, guess what the ambiguous width should be based
