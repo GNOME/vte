@@ -1,3 +1,13 @@
+2008-11-25  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/Makefile.am:
+	* src/vteseq-2.c (vteseq_2_hash), (vteseq_2_lookup):
+	* src/vteseq-2.gperf:
+	* src/vteseq-n.c (vteseq_n_hash), (vteseq_n_lookup):
+	* src/vteseq-n.gperf:
+	* src/vteseq.c (_vte_sequence_get_handler):
+	Cleanup gperf stuff.
+
 2008-11-24  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 562187 – Add make rules for calling gperf

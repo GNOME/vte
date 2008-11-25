@@ -1,5 +1,22 @@
 /* run "make gperf" after modifying this file */
-struct vteseq_two_lookup { const guchar name[2]; VteTerminalSequenceHandler handler; };
+
+%struct-type
+%language=ANSI-C
+%includes
+%enum
+%switch=4
+%readonly-tables
+%define slot-name seq
+%define hash-function-name vteseq_2_hash
+%define lookup-function-name vteseq_2_lookup
+
+%compare-strncmp
+
+struct vteseq_2_struct {
+	char seq[3];
+	VteTerminalSequenceHandler handler;
+};
+
 %%
 "!1", vte_sequence_handler_complain_key
 "!2", vte_sequence_handler_complain_key

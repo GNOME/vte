@@ -4004,14 +4004,24 @@ vte_sequence_handler_complain_key(VteTerminal *terminal,
 
 
 /* LOOKUP */
+
+static const struct vteseq_2_struct *
+vteseq_2_lookup (register const char *str, register unsigned int len);
+
 #include"vteseq-2.c"
+
+static const struct vteseq_n_struct *
+vteseq_n_lookup (register const char *str, register unsigned int len);
+
 #include"vteseq-n.c"
+
+
 VteTerminalSequenceHandler
 _vte_sequence_get_handler (const char *code)
 {
 	/* all codes at least two characters... */
 	if (code[2] == '\0')
-		return vteseq_2_lookup ((const guchar *)code);
+		return (vteseq_2_lookup ((const char *)code, 2))->handler;
 	else
-		return vteseq_n_lookup ((const guchar *)code, strlen (code));
+		return (vteseq_n_lookup ((const char *)code, strlen (code)))->handler;
 }
