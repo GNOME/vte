@@ -1,3 +1,14 @@
+2008-11-26  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 562332 – cleanup font infos on exit?
+
+	* src/vtepangocairo.c
+	(cleanup_delayed_font_info_destroys_predicate),
+	(cleanup_delayed_font_info_destroys), (ensure_quit_handler),
+	(font_info_register), (font_info_reference),
+	(font_info_destroy_delayed), (font_info_destroy):
+	Use gtk_quit_add() to complete delayed font_info destroys.
+
 2008-11-26  Christian Persch  <chpe@gnome.org>
 
 	Bug 562338 – don't need to connect to bunch of xft settings

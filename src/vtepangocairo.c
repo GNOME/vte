@@ -31,9 +31,98 @@
 
 #include <pango/pangocairo.h>
 
-#define FONT_CACHE_TIMEOUT (30) /* seconds */
+
+/* Overview:
+ *
+ *
+ * This file implements vte rendering using pangocairo.  Note that this does
+ * NOT implement any kind of complex text rendering.  That's not currently a
+ * goal.
+ *
+ * The aim is to be super-fast and avoid unneeded work as much as possible.
+ * Here is an overview of how that is accomplished:
+ *
+ *   - We attach a font_info to draw as our private data.  A font_info has
+ *     all the information to quickly draw text.
+ *
+ *   - A font_info keeps uses unichar_font_info structs that represent all
+ *     information needed to quickly draw a single gunichar.  The font_info
+ *     creates those unichar_font_info structs on demand and caches them
+ *     indefinitely.  It uses a direct array for the ASCII range and a hash
+ *     table for the rest.
+ *
+ *
+ * Fast rendering of unichars:
+ *
+ * A unichar_font_info (uinfo) calls Pango to set text for the unichar upon
+ * initialization and then caches information needed to draw the results
+ * later.  It uses three different internal representations and respectively
+ * three drawing paths:
+ *
+ *   - COVERAGE_USE_CAIRO_GLYPH:
+ *     Keeping a single glyph index and a cairo scaled-font.  This is the
+ *     fastest way to draw text as it bypasses Pango completely and allows
+ *     for stuffing multiple glyphs into a single cairo_show_glyphs() request
+ *     (if scaled-fonts match).  This method is used if the glyphs used for
+ *     the gunichar as determined by Pango consists of a single regular glyph
+ *     positioned at 0,0 using a regular font.  This method is used for more
+ *     than 99% of the cases.  Only exceptional cases fall through to the
+ *     other two methods.
+ *
+ *   - COVERAGE_USE_PANGO_GLYPH_STRING:
+ *     Keeping a pango glyphstring and a pango font.  This is slightly slower
+ *     than the previous case as drawing each glyph goes through pango
+ *     separately and causes a separate cairo_show_glyphs() call.  This method
+ *     is used when the previous method cannot be used by the glyphs for the
+ *     character all use a single font.  This is the method used for hexboxes
+ *     and "empty" characters like U+200C ZERO WIDTH NON-JOINER for example.
+ *
+ *   - COVERAGE_USE_PANGO_LAYOUT_LINE:
+ *     Keeping a pango layout line.  This method is used only in the very
+ *     weird and exception case that a single gunichar uses more than one font
+ *     to be drawn.  This is not expected to happen, but exists for
+ *     completeness, to make sure we can deal with any junk pango decides to
+ *     throw at us.
+ *
+ *
+ * Caching of font infos:
+ *
+ * To avoid recreating font info structs for the same font again and again we
+ * do the following:
+ *
+ *   - Use a global cache to share font info structs across different widgets.
+ *     We use cairo font options, resolution, and font description as the key
+ *     for our hash table.
+ *
+ *   - When a font info struct is no longer used by any widget, we delay
+ *     destroying it for a while (FONT_CACHE_TIMEOUT seconds).  This is
+ *     supposed to serve two purposes:
+ *
+ *       * Destroying a terminal widget and creating it again right after will
+ *         reuse the font info struct from the previous widget.
+ *
+ *       * Zooming in and out a terminal reuses the font info structs.
+ *
+ *     Since we use gdk timeout to schedule the delayed destruction, we also
+ *     add a gtk quit handler which is run when the innermost main loop exits
+ *     to cleanup any pending delayed destructions.
+ *
+ *
+ * Pre-caching ASCII letters:
+ *
+ * When initializing a font info struct we measure a string consisting of all
+ * ASCII letters and some other ASCII characters.  Since we have a shaped pango
+ * layout at hand, we walk over it and cache unichar font info for the ASCII
+ * letters if we can do that easily using COVERAGE_USE_CAIRO_GLYPH.  This
+ * means that we precache all ASCII letters without any extra pango shaping
+ * involved.
+ */
+
+
 
 #undef VTEPANGOCAIRO_PROFILE
+
+#define FONT_CACHE_TIMEOUT (30) /* seconds */
 
 
 /* All shared data structures are implicitly protected by GDK mutex, because
@@ -365,11 +454,46 @@ font_info_free (struct font_info *info)
 
 
 static GHashTable *font_info_for_context;
+static guint quit_id;
+
+static gboolean
+cleanup_delayed_font_info_destroys_predicate (PangoContext *context,
+					      struct font_info *info)
+{
+	if (info->destroy_timeout) {
+		g_source_remove (info->destroy_timeout);
+		info->destroy_timeout = 0;
+
+		font_info_free (info);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+static gboolean
+cleanup_delayed_font_info_destroys (void)
+{
+	g_hash_table_foreach_remove (font_info_for_context,
+				     (GHRFunc) cleanup_delayed_font_info_destroys_predicate,
+				     NULL);
+
+	quit_id = 0;
+	return 0;
+}
+
+static void
+ensure_quit_handler (void)
+{
+	if (G_UNLIKELY (quit_id == 0))
+		quit_id = gtk_quit_add (1,
+					(GtkFunction) cleanup_delayed_font_info_destroys,
+					NULL);
+}
 
 static struct font_info *
 font_info_register (struct font_info *info)
 {
-	/* claims the context reference, but doesn't hold a ref to font_info */
 	g_hash_table_insert (font_info_for_context,
 			     pango_layout_get_context (info->layout),
 			     info);
@@ -393,8 +517,10 @@ font_info_reference (struct font_info *info)
 
 	g_return_val_if_fail (info->ref_count >= 0, info);
 
-	if (info->ref_count == 0)
+	if (info->destroy_timeout) {
 		g_source_remove (info->destroy_timeout);
+		info->destroy_timeout = 0;
+	}
 
 	info->ref_count++;
 
@@ -404,6 +530,8 @@ font_info_reference (struct font_info *info)
 static gboolean
 font_info_destroy_delayed (struct font_info *info)
 {
+	info->destroy_timeout = 0;
+
 	font_info_unregister (info);
 	font_info_free (info);
 
@@ -427,6 +555,7 @@ font_info_destroy (struct font_info *info)
 #endif
 
 	/* Delay destruction by a few seconds, in case we need it again */
+	ensure_quit_handler ();
 	info->destroy_timeout = gdk_threads_add_timeout_seconds (FONT_CACHE_TIMEOUT,
 								 (GSourceFunc) font_info_destroy_delayed,
 								 info);
