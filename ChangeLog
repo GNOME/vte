@@ -1,5 +1,16 @@
 2008-11-26  Christian Persch  <chpe@gnome.org>
 
+	Bug 562338 – don't need to connect to bunch of xft settings
+
+	* src/vte-private.h:
+	* src/vte.c: (vte_terminal_style_changed), (add_cursor_timeout),
+	(vte_terminal_init), (vte_terminal_size_allocate),
+	(vte_terminal_finalize), (vte_terminal_realize): Don't listen to
+	changes on the gtk-xft-* GtkSettings properties. Just calling
+	vte_terminal_set_font_full in the style-set handler works fine.
+
+2008-11-26  Christian Persch  <chpe@gnome.org>
+
 	Bug 488960 – gnome-terminal on Solaris 10 does not clean up utmpx on
 	exit (intermittent)
 

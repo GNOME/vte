@@ -4532,14 +4532,8 @@ vte_terminal_style_changed(GtkWidget *widget, GtkStyle *style, gpointer data)
 
 	terminal = VTE_TERMINAL(widget);
 
-	/* If the font we're using is the same as the old default, then we
-	 * need to pick up the new default. */
-	if (pango_font_description_equal(style->font_desc,
-					 widget->style->font_desc) ||
-	    (terminal->pvt->fontdesc == NULL)) {
-		vte_terminal_set_font_full_internal(terminal, terminal->pvt->fontdesc,
-                                                    terminal->pvt->fontantialias);
-	}
+        vte_terminal_set_font_full_internal(terminal, terminal->pvt->fontdesc,
+                                            terminal->pvt->fontantialias);
 }
 
 static void
@@ -7786,76 +7780,6 @@ vte_terminal_reset_rowdata(VteRing **ring, glong lines)
 	*ring = new_ring;
 }
 
-/* Re-set the font because hinting settings changed. */
-static void
-vte_terminal_fc_settings_changed(GtkSettings *settings, GParamSpec *spec,
-				 VteTerminal *terminal)
-{
-	PangoFontDescription *fontdesc;
-
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Fontconfig setting \"%s\" changed.\n",
-			spec->name);
-
-	/* force an update... */
-	fontdesc = terminal->pvt->fontdesc;
-	terminal->pvt->fontdesc = NULL;
-
-	vte_terminal_set_font_full_internal(terminal, fontdesc,
-                                            terminal->pvt->fontantialias);
-
-	pango_font_description_free(fontdesc);
-}
-
-/* Connect to notifications from our settings object that font hints have
- * changed. */
-static void
-vte_terminal_connect_xft_settings(VteTerminal *terminal)
-{
-	GtkSettings *settings;
-	GObjectClass *klass;
-
-	gtk_widget_ensure_style(&terminal->widget);
-	settings = gtk_widget_get_settings(&terminal->widget);
-	if (settings == NULL) {
-		return;
-	}
-
-	/* Check that the properties we're looking at are defined. */
-	klass = G_OBJECT_GET_CLASS(settings);
-	if (g_object_class_find_property(klass, "gtk-xft-antialias") == NULL) {
-		return;
-	}
-
-	/* If this is our first time in here, start listening for changes
-	 * to the Xft settings. */
-	if (terminal->pvt->connected_settings == NULL) {
-		GCallback func = G_CALLBACK(vte_terminal_fc_settings_changed);
-		terminal->pvt->connected_settings = settings;
-		g_signal_connect(settings, "notify::gtk-xft-antialias", func, terminal);
-		g_signal_connect(settings, "notify::gtk-xft-hinting", func, terminal);
-		g_signal_connect(settings, "notify::gtk-xft-hintstyle", func, terminal);
-		g_signal_connect(settings, "notify::gtk-xft-rgba", func, terminal);
-		g_signal_connect(settings, "notify::gtk-xft-dpi", func, terminal);
-	}
-}
-
-/* Disconnect from notifications from our settings object that font hints have
- * changed. */
-static void
-vte_terminal_disconnect_xft_settings(VteTerminal *terminal)
-{
-	GtkSettings *settings;
-
-	if (terminal->pvt->connected_settings != NULL) {
-		settings = terminal->pvt->connected_settings;
-		g_signal_handlers_disconnect_by_func(settings,
-				         vte_terminal_fc_settings_changed,
-					 terminal);
-		terminal->pvt->connected_settings = NULL;
-	}
-}
-
 static void
 _vte_terminal_codeset_changed_cb(struct _vte_iso2022_state *state, gpointer p)
 {
@@ -7982,7 +7906,6 @@ vte_terminal_init(VteTerminal *terminal)
 	/* The font description. */
 	pvt->fontantialias = VTE_ANTI_ALIAS_USE_DEFAULT;
 	gtk_widget_ensure_style(&terminal->widget);
-	vte_terminal_connect_xft_settings(terminal);
 
 	/* Set up background information. */
 	pvt->bg_tint_color.red = 0;
@@ -8261,7 +8184,11 @@ vte_terminal_sync_settings (GtkSettings *settings,
                      "gtk-cursor-blink-timeout", &blink_timeout,
                      NULL);
 
-	pvt->cursor_blink_cycle = blink_time / 2;
+        _vte_debug_print(VTE_DEBUG_MISC,
+                         "Cursor blinking settings setting: blink=%d time=%d timeout=%d\n",
+                         blink, blink_time, blink_timeout);
+
+        pvt->cursor_blink_cycle = blink_time / 2;
         pvt->cursor_blink_timeout = blink_timeout;
 
         if (pvt->cursor_blink_mode == VTE_CURSOR_BLINK_SYSTEM)
@@ -8269,8 +8196,10 @@ vte_terminal_sync_settings (GtkSettings *settings,
 }
 
 static void
-vte_terminal_screen_changed (GtkWidget *widget, GdkScreen *previous_screen)
+vte_terminal_screen_changed (GtkWidget *widget,
+                             GdkScreen *previous_screen)
 {
+        VteTerminal *terminal = VTE_TERMINAL (widget);
         GdkScreen *screen;
         GtkSettings *settings;
 
@@ -8287,11 +8216,11 @@ vte_terminal_screen_changed (GtkWidget *widget, GdkScreen *previous_screen)
                 GTK_WIDGET_CLASS (vte_terminal_parent_class)->screen_changed (widget, previous_screen);
         }
 
-        if (screen == previous_screen)
+        if (screen == previous_screen || screen == NULL)
                 return;
 
         settings = gtk_widget_get_settings (widget);
-        vte_terminal_sync_settings (settings, NULL, VTE_TERMINAL (widget));
+        vte_terminal_sync_settings (settings, NULL, terminal);
         g_signal_connect (settings, "notify::gtk-cursor-blink",
                           G_CALLBACK (vte_terminal_sync_settings), widget);
         g_signal_connect (settings, "notify::gtk-cursor-blink-time",
@@ -8304,7 +8233,8 @@ vte_terminal_screen_changed (GtkWidget *widget, GdkScreen *previous_screen)
 static void
 vte_terminal_finalize(GObject *object)
 {
-	VteTerminal *terminal;
+    	GtkWidget *widget = GTK_WIDGET (object);
+    	VteTerminal *terminal = VTE_TERMINAL (object);
 	GtkWidget *toplevel;
 	GtkClipboard *clipboard;
         GtkSettings *settings;
@@ -8312,8 +8242,6 @@ vte_terminal_finalize(GObject *object)
 	guint i;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_finalize()\n");
-
-	terminal = VTE_TERMINAL(object);
 
 	/* Free the draw structure. */
 	if (terminal->pvt->draw != NULL) {
@@ -8331,7 +8259,6 @@ vte_terminal_finalize(GObject *object)
 		pango_font_description_free(terminal->pvt->fontdesc);
 	}
 	terminal->pvt->fontantialias = VTE_ANTI_ALIAS_USE_DEFAULT;
-	vte_terminal_disconnect_xft_settings(terminal);
 
 	/* Free matching data. */
 	if (terminal->pvt->match_attributes != NULL) {
@@ -8471,7 +8398,7 @@ vte_terminal_finalize(GObject *object)
 		g_object_unref(terminal->adjustment);
 	}
 
-        settings = gtk_widget_get_settings (GTK_WIDGET (terminal));
+        settings = gtk_widget_get_settings (widget);
         g_signal_handlers_disconnect_matched (settings, G_SIGNAL_MATCH_DATA,
                                               0, 0, NULL, NULL,
                                               terminal);
