@@ -762,6 +762,13 @@ main (int argc, char *argv [])
 			}
 			close_pty_pair (tag);
 			break;
+
+		case GNOME_PTY_SYNCH:
+			{
+				int result = 0;
+				n_write (STDIN_FILENO, &result, 1);
+			}
+			break;
 		}
 
 	}

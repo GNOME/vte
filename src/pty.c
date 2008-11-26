@@ -1064,9 +1064,10 @@ _vte_pty_close(int pty)
 		if (g_tree_lookup(_vte_pty_helper_map, GINT_TO_POINTER(pty))) {
 			/* Signal the helper that it needs to close its
 			 * connection. */
-			ops = GNOME_PTY_CLOSE_PTY;
 			tag = g_tree_lookup(_vte_pty_helper_map,
 					    GINT_TO_POINTER(pty));
+
+			ops = GNOME_PTY_CLOSE_PTY;
 			if (n_write(_vte_pty_helper_tunnel,
 				    &ops, sizeof(ops)) != sizeof(ops)) {
 				return;
@@ -1075,6 +1076,14 @@ _vte_pty_close(int pty)
 				    &tag, sizeof(tag)) != sizeof(tag)) {
 				return;
 			}
+
+			ops = GNOME_PTY_SYNCH;
+			if (n_write(_vte_pty_helper_tunnel,
+				    &ops, sizeof(ops)) != sizeof(ops)) {
+				return;
+			}
+			n_read(_vte_pty_helper_tunnel, &ops, 1);
+
 			/* Remove the item from the map. */
 			g_tree_remove(_vte_pty_helper_map,
 				      GINT_TO_POINTER(pty));
