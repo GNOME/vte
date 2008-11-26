@@ -8239,10 +8239,8 @@ vte_terminal_sync_settings (GtkSettings *settings,
 
         g_object_get(G_OBJECT (settings),
                      "gtk-cursor-blink", &blink,
-#if GTK_CHECK_VERSION (2, 12, 0)
                      "gtk-cursor-blink-time", &blink_time,
                      "gtk-cursor-blink-timeout", &blink_timeout,
-#endif
                      NULL);
 
 	pvt->cursor_blink_cycle = blink_time / 2;
@@ -8278,12 +8276,10 @@ vte_terminal_screen_changed (GtkWidget *widget, GdkScreen *previous_screen)
         vte_terminal_sync_settings (settings, NULL, VTE_TERMINAL (widget));
         g_signal_connect (settings, "notify::gtk-cursor-blink",
                           G_CALLBACK (vte_terminal_sync_settings), widget);
-#if GTK_CHECK_VERSION (2, 12, 0)
         g_signal_connect (settings, "notify::gtk-cursor-blink-time",
                           G_CALLBACK (vte_terminal_sync_settings), widget);
         g_signal_connect (settings, "notify::gtk-cursor-blink-timeout",
                           G_CALLBACK (vte_terminal_sync_settings), widget);
-#endif
 }
 
 /* Perform final cleanups for the widget before it's freed. */
