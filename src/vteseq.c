@@ -4014,14 +4014,17 @@ vteseq_n_lookup (register const char *str, register unsigned int len);
 VteTerminalSequenceHandler
 _vte_sequence_get_handler (const char *code)
 {
-	/* all codes at least two characters... */
-	if (code[2] == '\0') {
+	int len = strlen (code);
+
+	if (G_UNLIKELY (len < 2)) {
+		return NULL;
+	} else if (len == 2) {
 		const struct vteseq_2_struct *seqhandler;
 		seqhandler = vteseq_2_lookup (code, 2);
 		return seqhandler ? seqhandler->handler : NULL;
 	} else {
 		const struct vteseq_n_struct *seqhandler;
-		seqhandler = vteseq_n_lookup (code, strlen (code));
+		seqhandler = vteseq_n_lookup (code, len);
 		return seqhandler ? seqhandler->handler : NULL;
 	}
 }

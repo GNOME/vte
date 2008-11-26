@@ -1,5 +1,10 @@
 2008-11-26  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vteseq.c (_vte_sequence_get_handler): Safely handle input of
+	length 1.
+
+2008-11-26  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/Makefile.am:
 	* src/vteseq-2.c (vteseq_2_hash), (vteseq_2_lookup):
 	* src/vteseq-2.gperf:
