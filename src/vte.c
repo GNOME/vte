@@ -7275,6 +7275,8 @@ vte_terminal_ensure_font (VteTerminal *terminal)
  * and columns.
  *
  * Since: 0.11.11
+ * 
+ * Deprecated: 0.17.5
  */
 void
 vte_terminal_set_font_full(VteTerminal *terminal,
@@ -7331,8 +7333,6 @@ vte_terminal_set_font_full(VteTerminal *terminal,
 
         if (!same_desc)
                 g_object_notify(object, "font");
-        if (!same_antialias)
-                g_object_notify(object, "font-antialias");
 
 	/* Set the drawing font. */
 	if (GTK_WIDGET_REALIZED(terminal)) {
@@ -7373,6 +7373,8 @@ vte_terminal_set_font(VteTerminal *terminal,
  * passes it to vte_terminal_set_font_full().
  *
  * Since: 0.11.11
+ *
+ * Deprecated: 0.17.5
  */
 void
 vte_terminal_set_font_from_string_full(VteTerminal *terminal, const char *name,
@@ -10982,9 +10984,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_FONT:
                         g_value_set_boxed (value, vte_terminal_get_font (terminal));
                         break;
-                case PROP_FONT_ANTIALIAS:
-                        g_value_set_enum (value, pvt->fontantialias);
-                        break;
                 case PROP_ICON_TITLE:
                         g_value_set_string (value, vte_terminal_get_icon_title (terminal));
                         break;
@@ -11778,21 +11777,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_boxed ("font", NULL, NULL,
                                      PANGO_TYPE_FONT_DESCRIPTION,
                                      G_PARAM_READWRITE | STATIC_PARAMS));
-     
-        /**
-         * VteTerminal:font-antialias:
-         *
-         * Specifies the antialias to apply to the font set with #VteTerminal:font:.
-         * 
-         * Since: 0.17.5
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_FONT_ANTIALIAS,
-                 g_param_spec_enum ("font-antialias", NULL, NULL,
-                                    VTE_TYPE_TERMINAL_ANTI_ALIAS,
-                                    VTE_ANTI_ALIAS_USE_DEFAULT,
-                                    G_PARAM_READWRITE | STATIC_PARAMS));
      
         /**
          * VteTerminal:icon-title:

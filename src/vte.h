@@ -161,13 +161,6 @@ typedef enum {
 	VTE_ERASE_DELETE_SEQUENCE
 } VteTerminalEraseBinding;
 
-/* Values for the anti alias setting */
-typedef enum {
-	VTE_ANTI_ALIAS_USE_DEFAULT,
-	VTE_ANTI_ALIAS_FORCE_ENABLE,
-	VTE_ANTI_ALIAS_FORCE_DISABLE
-} VteTerminalAntiAlias;
-
 /* Values for the cursor blink setting */
 typedef enum {
         VTE_CURSOR_BLINK_SYSTEM,
@@ -312,13 +305,7 @@ void vte_terminal_im_append_menuitems(VteTerminal *terminal,
 /* Set or retrieve the current font. */
 void vte_terminal_set_font(VteTerminal *terminal,
 			   const PangoFontDescription *font_desc);
-void vte_terminal_set_font_full(VteTerminal *terminal,
-				const PangoFontDescription *font_desc,
-				VteTerminalAntiAlias antialias);
 void vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name);
-void vte_terminal_set_font_from_string_full(VteTerminal *terminal,
-					    const char *name,
-					    VteTerminalAntiAlias antialias);
 const PangoFontDescription *vte_terminal_get_font(VteTerminal *terminal);
 void vte_terminal_set_allow_bold(VteTerminal *terminal, gboolean allow_bold);
 gboolean vte_terminal_get_allow_bold(VteTerminal *terminal);
@@ -436,12 +423,25 @@ int vte_terminal_get_child_exit_status(VteTerminal *terminal);
 #define VTE_IS_TERMINAL_ERASE_BINDING(obj)  (FALSE)
 #define VTE_IS_TERMINAL_ANTI_ALIAS(obj)     (FALSE)
 
+/* Values for the anti alias setting */
+typedef enum {
+	VTE_ANTI_ALIAS_USE_DEFAULT,
+	VTE_ANTI_ALIAS_FORCE_ENABLE,
+	VTE_ANTI_ALIAS_FORCE_DISABLE
+} VteTerminalAntiAlias;
+
 void vte_terminal_set_cursor_blinks(VteTerminal *terminal,
 				    gboolean blink) G_GNUC_DEPRECATED;
 gboolean vte_terminal_get_using_xft(VteTerminal *terminal) G_GNUC_DEPRECATED;
 int vte_terminal_match_add(VteTerminal *terminal, const char *match) G_GNUC_DEPRECATED;
 glong vte_terminal_get_char_descent(VteTerminal *terminal) G_GNUC_DEPRECATED;
 glong vte_terminal_get_char_ascent(VteTerminal *terminal) G_GNUC_DEPRECATED;
+void vte_terminal_set_font_full(VteTerminal *terminal,
+				const PangoFontDescription *font_desc,
+				VteTerminalAntiAlias antialias) G_GNUC_DEPRECATED;
+void vte_terminal_set_font_from_string_full(VteTerminal *terminal,
+					    const char *name,
+					    VteTerminalAntiAlias antialias) G_GNUC_DEPRECATED;
 
 #endif /* VTE_DISABLE_DEPRECATED */
 

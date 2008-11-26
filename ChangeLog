@@ -1,3 +1,12 @@
+2008-11-26  Christian Persch  <chpe@gnome.org>
+
+	Bug 561366 – remove antialias setting for 1.0
+	
+	* src/vte.c: (vte_terminal_set_font_full),
+	(vte_terminal_get_property), (vte_terminal_class_init):
+	* src/vte.h: Deprecate the font antialias setting, and remove the
+	(existing only on trunk) font-antialias property already.
+
 2008-11-25  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/Makefile.am:
