@@ -2,6 +2,17 @@
 
 	* src/Makefile.am:
 	* src/vteseq-2.c (vteseq_2_hash), (vteseq_2_lookup):
+	* src/vteseq-2.gperf:
+	* src/vteseq-n.c (vteseq_n_lookup):
+	* src/vteseq-n.gperf:
+	Don't use switch in gperf-generated code.  This increases .data by 1k
+	but decreases .text by 6k AND the lookup code is MUCH faster.  It used
+	to do tens of compares before.
+
+2008-11-26  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/Makefile.am:
+	* src/vteseq-2.c (vteseq_2_hash), (vteseq_2_lookup):
 	* src/vteseq-n.c (vteseq_n_lookup):
 	* src/vteseq.c (_vte_sequence_get_handler):
 	Revert previous commit, fix NULL dereference that it was trying to

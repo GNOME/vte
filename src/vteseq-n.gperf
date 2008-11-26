@@ -4,7 +4,6 @@
 %language=ANSI-C
 %includes
 %enum
-%switch=4
 %readonly-tables
 %define slot-name seq
 %define hash-function-name vteseq_n_hash

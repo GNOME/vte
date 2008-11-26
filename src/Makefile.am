@@ -32,7 +32,7 @@ EXTRA_DIST = \
 	unitable.KSX1001
 
 gperf: vteseq-2.gperf vteseq-n.gperf
-	gperf vteseq-2.gperf -m 100 > vteseq-2.c
+	gperf vteseq-2.gperf -m 100 --no-strlen > vteseq-2.c
 	gperf vteseq-n.gperf -m 100 > vteseq-n.c
 
 #vteseq-2.c vteseq-n.c: gperf
