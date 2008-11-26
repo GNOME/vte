@@ -1,3 +1,12 @@
+2008-11-26  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/Makefile.am:
+	* src/vteseq-2.c (vteseq_2_hash), (vteseq_2_lookup):
+	* src/vteseq-n.c (vteseq_n_lookup):
+	* src/vteseq.c (_vte_sequence_get_handler):
+	Revert previous commit, fix NULL dereference that it was trying to
+	fix, and make lookup functions inline.
+
 2008-11-26  Chris Wilson  <chris@chris-wilson.co.uk>
 
 	* src/Makefile.am:

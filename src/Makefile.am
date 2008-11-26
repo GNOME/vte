@@ -31,11 +31,6 @@ EXTRA_DIST = \
 	unitable.JIS0212 \
 	unitable.KSX1001
 
-# gperf - files need to be modified afterwards
-# In particular:
-# 1. The lookup needs to return the VteTerminalSequenceHandler, or NULL.
-# 2. The functions need to be declared static.
-# 3. For vtese-2, the strlen is known so remove the redudant parameter.
 gperf: vteseq-2.gperf vteseq-n.gperf
 	gperf vteseq-2.gperf -m 100 > vteseq-2.c
 	gperf vteseq-n.gperf -m 100 > vteseq-n.c

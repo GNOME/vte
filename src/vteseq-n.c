@@ -1,5 +1,5 @@
 /* ANSI-C code produced by gperf version 3.0.3 */
-/* Command-line: gperf -m 100 -C vteseq-n.gperf  */
+/* Command-line: gperf -m 100 vteseq-n.gperf  */
 /* Computed positions: -k'1,$' */
 
 #if !((' ' == 32) && ('!' == 33) && ('"' == 34) && ('#' == 35) \
@@ -212,7 +212,7 @@ __inline
 __attribute__ ((__gnu_inline__))
 #endif
 #endif
-static VteTerminalSequenceHandler
+const struct vteseq_n_struct *
 vteseq_n_lookup (register const char *str, register unsigned int len)
 {
   enum
@@ -812,7 +812,7 @@ vteseq_n_lookup (register const char *str, register unsigned int len)
             register const char *s = resword->seq + vteseq_n_pool;
 
             if (*str == *s && !memcmp (str + 1, s + 1, len - 1))
-              return resword->handler;
+              return resword;
           }
         }
     }
