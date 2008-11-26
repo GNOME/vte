@@ -743,6 +743,9 @@ font_info_get_unichar_info (struct font_info *info,
 		}
 	}
 
+	/* release internal layout resources */
+	pango_layout_set_text (info->layout, "", -1);
+
 #ifdef VTEPANGOCAIRO_PROFILE
 	info->coverage_count[0]++;
 	info->coverage_count[uinfo->coverage]++;

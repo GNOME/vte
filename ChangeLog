@@ -1,5 +1,10 @@
 2008-11-26  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vtepangocairo.c (font_info_get_unichar_info):
+	Free internal layout resources.
+
+2008-11-26  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 562332 – cleanup font infos on exit?
 
 	* src/vtepangocairo.c
