@@ -45,7 +45,7 @@ inline
 #endif
 #endif
 static unsigned int
-vteseq_2_hash (register const char *str, register unsigned int len)
+vteseq_2_hash (register const char *str)
 {
   static const unsigned short asso_values[] =
     {
@@ -77,7 +77,7 @@ vteseq_2_hash (register const char *str, register unsigned int len)
       361, 361, 361, 361, 361, 361, 361, 361, 361, 361,
       361, 361, 361, 361, 361, 361, 361, 361, 361, 361
     };
-  return len + asso_values[(unsigned char)str[1]+6] + asso_values[(unsigned char)str[0]+14];
+  return 2 + asso_values[(unsigned char)str[1]+6] + asso_values[(unsigned char)str[0]+14];
 }
 
 #ifdef __GNUC__
@@ -86,14 +86,12 @@ __inline
 __attribute__ ((__gnu_inline__))
 #endif
 #endif
-const struct vteseq_2_struct *
-vteseq_2_lookup (register const char *str, register unsigned int len)
+static VteTerminalSequenceHandler
+vteseq_2_lookup (register const char *str)
 {
   enum
     {
       TOTAL_KEYWORDS = 221,
-      MIN_WORD_LENGTH = 2,
-      MAX_WORD_LENGTH = 2,
       MIN_HASH_VALUE = 2,
       MAX_HASH_VALUE = 360
     };
@@ -544,9 +542,8 @@ vteseq_2_lookup (register const char *str, register unsigned int len)
       {"LE", vte_sequence_handler_LE}
     };
 
-  if (len <= MAX_WORD_LENGTH && len >= MIN_WORD_LENGTH)
     {
-      register int key = vteseq_2_hash (str, len);
+      register int key = vteseq_2_hash (str);
 
       if (key <= MAX_HASH_VALUE && key >= MIN_HASH_VALUE)
         {
@@ -1250,8 +1247,8 @@ vteseq_2_lookup (register const char *str, register unsigned int len)
           {
             register const char *s = resword->seq;
 
-            if (*str == *s && !strncmp (str + 1, s + 1, len - 1) && s[len] == '\0')
-              return resword;
+            if (str[0] == s[0] && str[1] == s[1] && s[2] == '\0')
+              return resword->handler;
           }
         }
     }

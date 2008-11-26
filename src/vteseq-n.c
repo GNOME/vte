@@ -212,7 +212,7 @@ __inline
 __attribute__ ((__gnu_inline__))
 #endif
 #endif
-const struct vteseq_n_struct *
+static VteTerminalSequenceHandler
 vteseq_n_lookup (register const char *str, register unsigned int len)
 {
   enum
@@ -812,7 +812,7 @@ vteseq_n_lookup (register const char *str, register unsigned int len)
             register const char *s = resword->seq + vteseq_n_pool;
 
             if (*str == *s && !memcmp (str + 1, s + 1, len - 1))
-              return resword;
+              return resword->handler;
           }
         }
     }
