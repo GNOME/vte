@@ -215,6 +215,12 @@ Emitted when the #VteReaper object detects that a child of the current process h
 @freeing: 
 @data: 
 
+<!-- ##### ARG VteTerminal:font-antialias ##### -->
+<para>
+
+</para>
+
+
 <!-- ##### STRUCT VteTerminalClass ##### -->
 <para>
 

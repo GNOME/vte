@@ -351,11 +351,6 @@ Emitted when the terminal's @window_title field is modified.
 
 </para>
 
-<!-- ##### ARG VteTerminal:font-antialias ##### -->
-<para>
-
-</para>
-
 <!-- ##### ARG VteTerminal:icon-title ##### -->
 <para>
 
