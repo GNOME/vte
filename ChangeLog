@@ -1,3 +1,7 @@
+2008-11-27  Behdad Esfahbod  <behdad@gnome.org>
+
+	* HACKING: Update :P.
+
 2008-11-26  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vteseq.c (_vte_sequence_get_handler): Safely handle input of
