@@ -4,7 +4,7 @@ pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h vtetypebuiltins.h vteversi
 
 lib_LTLIBRARIES = libvte.la
 
-pkglib_PROGRAMS = interpret utf8echo nativeecho utf8mode iso8859mode slowcat
+pkglib_PROGRAMS = interpret utf8echo nativeecho slowcat
 
 pkglib_SCRIPTS = decset osc window
 
