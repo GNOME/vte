@@ -1,5 +1,11 @@
 2008-11-27  Behdad Esfahbod  <behdad@gnome.org>
 
+	* configure.in:
+	* src/Makefile.am:
+	More cleanup.
+
+2008-11-27  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/Makefile.am:
 	Run some of the utilities in "make check", and build the others.
 

@@ -1,23 +1,16 @@
-bin_PROGRAMS = vte
+
+EXTRA_DIST = iso2022.txt
+
+
+# The library
 
 pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h vtetypebuiltins.h vteversion.h
 
 lib_LTLIBRARIES = libvte.la
 
-pkglib_PROGRAMS = interpret slowcat
-pkglib_SCRIPTS = decset osc window
-
-check_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-vte ring mev ssfe table trie xticker vteconv vtetc
-TESTS = buffer ring table trie
-
-EXTRA_DIST = \
-	$(pkglib_SCRIPTS) \
-	vteseq-2.gperf \
-	vteseq-n.gperf \
-	vtetypebuiltins.c.template \
-	vtetypebuiltins.h.template \
+EXTRA_libvte_la_SOURCES = \
 	genkeysyms.py \
-	iso2022.txt \
+	keysyms.c \
 	marshal.list \
 	mkunitables.sh \
 	unitable.CNS11643 \
@@ -28,19 +21,12 @@ EXTRA_DIST = \
 	unitable.JIS0208 \
 	unitable.JIS0212 \
 	unitable.KSX1001 \
-	$(NULL)
-
-gperf: vteseq-2.gperf vteseq-n.gperf
-	gperf vteseq-2.gperf -m 100 --no-strlen > vteseq-2.c
-	gperf vteseq-n.gperf -m 100 > vteseq-n.c
-
-#vteseq-2.c vteseq-n.c: gperf
-
-
-EXTRA_libvte_la_SOURCES = \
-	keysyms.c \
+	vteseq-2.gperf \
 	vteseq-2.c \
+	vteseq-n.gperf \
 	vteseq-n.c \
+	vtetypebuiltins.c.template \
+	vtetypebuiltins.h.template \
 	$(NULL)
 
 libvte_la_SOURCES = \
@@ -105,12 +91,15 @@ libvte_la_CPPFLAGS = \
 	-DLIBEXECDIR='"$(libexecdir)"' \
 	-DLOCALEDIR='"$(localedir)"' \
 	-DVTE_COMPILATION
-libvte_la_CFLAGS = $(VTE_CFLAGS) $(PCRE_CFLAGS)
-libvte_la_LIBADD = $(VTE_LIBS) $(PCRE_LIBS)
+libvte_la_CFLAGS = $(VTE_CFLAGS)
+libvte_la_LIBADD = $(VTE_LIBS)
 libvte_la_LDFLAGS = \
 	-version-info $(LIBVTE_LTVERSION) \
 	-export-symbols-regex "^vte_terminal_.*|^_vte_pty_.*|^vte_reaper_.*|_vte_debug_.*" \
 	@LIBTOOL_EXPORT_OPTIONS@ @LIBTOOL_FLAGS@
+
+
+# Generated sources
 
 BUILT_SOURCES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h
 CLEANFILES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h stamp-vtetypebuiltins.h
@@ -132,10 +121,32 @@ vtetypebuiltins.c: vtetypebuiltins.c.template vte.h
 	&& (cmp -s xgen-vtbc vtetypebuiltins.c || cp xgen-vtbc vtetypebuiltins.c ) \
 	&& rm -f xgen-vtbc
 
-vte_SOURCES = \
-	vteapp.c
+gperf: vteseq-2.gperf vteseq-n.gperf
+	gperf vteseq-2.gperf -m 100 --no-strlen > vteseq-2.c
+	gperf vteseq-n.gperf -m 100 > vteseq-n.c
+
+#vteseq-2.c vteseq-n.c: gperf
+
+
+# vte the application
+
+bin_PROGRAMS = vte
+
+vte_SOURCES = vteapp.c
 vte_CFLAGS = $(VTE_CFLAGS)
 vte_LDADD = libvte.la $(VTE_LIBS)
+
+
+# Misc unit tests and utilities
+
+pkglib_PROGRAMS = interpret slowcat
+pkglib_SCRIPTS = decset osc window
+
+check_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-vte ring mev ssfe table trie xticker vteconv vtetc
+TESTS = buffer ring table trie
+
+AM_CFLAGS = $(GLIB_CFLAGS) $(GOBJECT_CFLAGS)
+LDADD = $(GLIB_LIBS) $(GOBJECT_LIBS)
 
 reflect_text_view_CPPFLAGS = -DUSE_TEXT_VIEW
 reflect_text_view_CFLAGS = $(VTE_CFLAGS)
@@ -263,6 +274,3 @@ dumpkeys_SOURCES = dumpkeys.c
 mev_SOURCES = mev.c
 ssfe_SOURCES = ssfe.c
 xticker_SOURCES = xticker.c
-
-AM_CFLAGS = $(GLIB_CFLAGS) $(GOBJECT_CFLAGS)
-LDADD = $(GLIB_LIBS) $(GOBJECT_LIBS)
