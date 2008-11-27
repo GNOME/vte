@@ -141,6 +141,7 @@ vte_LDADD = libvte.la $(VTE_LIBS)
 
 pkglib_PROGRAMS = interpret slowcat
 pkglib_SCRIPTS = decset osc window
+EXTRA_DIST += $(pkglib_SCRIPTS)
 
 check_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-vte ring mev ssfe table trie xticker vteconv vtetc
 TESTS = buffer ring table trie
