@@ -1,6 +1,15 @@
 2008-11-27  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/Makefile.am:
+	Run some of the utilities in "make check", and build the others.
+
+	* src/nativeecho.c:
+	* src/utf8echo.c:
+	Remove more useless trivial utilities.
+
+2008-11-27  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/Makefile.am:
 	* src/iso8859mode.c:
 	* src/utf8mode.c:
 	Remove useless trivial utilities.
