@@ -21,7 +21,6 @@ EXTRA_DIST = \
 	iso2022.txt \
 	marshal.list \
 	mkunitables.sh \
-	uniwidths \
 	unitable.CNS11643 \
 	unitable.CP437 \
 	unitable.GB12345 \
@@ -84,7 +83,6 @@ libvte_la_SOURCES = \
 	vteseq.c \
 	vteseq.h \
 	vteseq-list.h \
-	vteseq-table.h \
 	vteskel.c \
 	vteskel.h \
 	vtetc.c \
