@@ -343,6 +343,7 @@ _vte_iso2022_ambiguous_width(struct _vte_iso2022_state *state)
 		"gb18030",
 		"gb2312",
 		"gbk",
+		"shiftjis",
 		"tcvn",
 	};
 	gsize i, j;

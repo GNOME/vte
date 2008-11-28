@@ -1,3 +1,12 @@
+2008-11-28  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 459553 – gnome-terminal cannot shows circled digits with the
+	correct width on ja_JP.PCK
+	Patch from Takao Fujiwara
+
+	* src/iso2022.c (_vte_iso2022_ambiguous_width): Recognize Shift_JIS
+	as East Asian locale for width considerations.
+
 2008-11-28  Christian Persch  <chpe@gnome.org>
 
 	* src/vteregex.c: (compare_matches), (_vte_regex_compile),
@@ -12,10 +21,10 @@
 
 2008-11-28  Christian Persch  <chpe@gnome.org>
 
-        Bug 562385 – gnome-pty-helper goes to 100% cpu usage
+	Bug 562385 – gnome-pty-helper goes to 100% cpu usage
 
 	* gnome-pty-helper/gnome-pty-helper.c: (pass_fd), (pty_free),
-        (main): Make sure data structures are correctly aligned and of the
+	(main): Make sure data structures are correctly aligned and of the
 	right size. 
 
 2008-11-27  Behdad Esfahbod  <behdad@gnome.org>
