@@ -1109,7 +1109,7 @@ main(int argc, char **argv)
 	char c;
 	int ret;
 	signal(SIGCHLD, sigchld_handler);
-	_vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
+	_vte_debug_init();
 	fd = _vte_pty_open(&child, NULL,
 			   (argc > 1) ? argv[1] : NULL,
 			   (argc > 1) ? argv + 1 : NULL,

@@ -16,91 +16,48 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include "../config.h"
+#include <config.h>
+
 #include <glib.h>
 #include "debug.h"
 
 static VteDebugFlags _vte_debug_flags = 0;
 
 void
-_vte_debug_parse_string(const char *string)
+_vte_debug_init(void)
 {
-	char **flags = NULL;
-	int i;
-	_vte_debug_flags = 0;
-	flags = g_strsplit(string ? string : "", ",", 0);
-	if (flags != NULL) {
-		for (i = 0; flags[i] != NULL; i++) {
-			if (g_ascii_strcasecmp(flags[i], "ALL") == 0) {
-				_vte_debug_flags |= 0xffffffff;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "MISC") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_MISC;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "IO") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_IO;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "ADJ") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_ADJ;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "UPDATES") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_UPDATES;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "EVENTS") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_EVENTS;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "PARSE") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_PARSE;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "SIGNALS") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_SIGNALS;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "SELECTION") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_SELECTION;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "SUBSTITUTION") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_SUBSTITUTION;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "RING") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_RING;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "PTY") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_PTY;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "CURSOR") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_CURSOR;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "KEYBOARD") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_KEYBOARD;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "LIFECYCLE") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_LIFECYCLE;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "TRIE") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_TRIE;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "WORK") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_WORK;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "CELLS") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_CELLS;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "TIMEOUT") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_TIMEOUT;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "DRAW") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_DRAW;
-			} else
-			if (g_ascii_strcasecmp(flags[i], "ALLY") == 0) {
-				_vte_debug_flags |= VTE_DEBUG_ALLY;
-			}
-		}
-		g_strfreev(flags);
-	}
+#ifdef VTE_DEBUG
+  const GDebugKey keys[] = {
+    { "misc",         VTE_DEBUG_MISC         },
+    { "io",           VTE_DEBUG_IO           },
+    { "adj",          VTE_DEBUG_ADJ          },
+    { "updates",      VTE_DEBUG_UPDATES      },
+    { "events",       VTE_DEBUG_EVENTS       },
+    { "parse",        VTE_DEBUG_PARSE        },
+    { "signals",      VTE_DEBUG_SIGNALS      },
+    { "selection",    VTE_DEBUG_SELECTION    },
+    { "substitution", VTE_DEBUG_SUBSTITUTION },
+    { "ring",         VTE_DEBUG_RING         },
+    { "pty",          VTE_DEBUG_PTY          },
+    { "cursor",       VTE_DEBUG_CURSOR       },
+    { "keyboard",     VTE_DEBUG_KEYBOARD     },
+    { "lifecycle",    VTE_DEBUG_LIFECYCLE    },
+    { "trie",         VTE_DEBUG_TRIE         },
+    { "work",         VTE_DEBUG_WORK         },
+    { "cells",        VTE_DEBUG_CELLS        },
+    { "timeout",      VTE_DEBUG_TIMEOUT      },
+    { "draw",         VTE_DEBUG_DRAW         },
+    { "ally",         VTE_DEBUG_ALLY         }
+  };
+
+  _vte_debug_flags = g_parse_debug_string (g_getenv("VTE_DEBUG_FLAGS"),
+                                           keys, G_N_ELEMENTS (keys));
+  _vte_debug_print(0xFFFFFFFF, "VTE debug flags = %x\n", _vte_debug_flags);
+#endif /* VTE_DEBUG */
 }
 
 gboolean
 _vte_debug_on(VteDebugFlags flags)
 {
-	return (_vte_debug_flags & flags) == flags;
+	return (_vte_debug_flags & flags) != 0;
 }

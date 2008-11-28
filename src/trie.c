@@ -861,7 +861,7 @@ main(int argc, char **argv)
 	const gunichar *consumed;
 	gsize buflen;
 
-	_vte_debug_parse_string(getenv("VTE_DEBUG_FLAGS"));
+	_vte_debug_init();
 
 	g_type_init();
 	trie = _vte_trie_new();

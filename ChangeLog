@@ -9,6 +9,17 @@
 
 2008-11-28  Christian Persch  <chpe@gnome.org>
 
+	* src/debug.c: (_vte_debug_init), (_vte_debug_on):
+	* src/debug.h:
+	* src/interpret.c: (main):
+	* src/pty.c: (main):
+	* src/reaper.c: (main):
+	* src/trie.c: (main):
+	* src/vte.c: (vte_terminal_new), (vte_terminal_class_init): Use
+	g_parse_debug_string to parse the debug flags.
+
+2008-11-28  Christian Persch  <chpe@gnome.org>
+
 	* src/vteregex.c: (compare_matches), (_vte_regex_compile),
 	(_vte_regex_free), (_vte_regex_exec): Remove the unused GNU regex
 	code too.

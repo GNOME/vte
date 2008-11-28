@@ -49,7 +49,7 @@ typedef enum {
 	VTE_DEBUG_ADJ		= 1 << 19
 } VteDebugFlags;
 
-void _vte_debug_parse_string(const char *string);
+void _vte_debug_init(void);
 gboolean _vte_debug_on(VteDebugFlags flags) G_GNUC_CONST;
 
 #ifdef VTE_DEBUG

@@ -2480,10 +2480,7 @@ _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 GtkWidget *
 vte_terminal_new(void)
 {
-	/* we don't parse VTE_DEBUG_FLAGS until class init ... */
-	GType type = vte_terminal_get_type ();
-	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_new()\n");
-	return g_object_new(type, NULL);
+	return g_object_new(VTE_TYPE_TERMINAL, NULL);
 }
 
 /* Set up a palette entry with a more-or-less match for the requested color. */
@@ -11065,11 +11062,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
 #ifdef VTE_DEBUG
 	{
-		const gchar *env = g_getenv("VTE_DEBUG_FLAGS");
-		/* Turn on debugging if we were asked to. */
-		if (env != NULL) {
-			_vte_debug_parse_string(env);
-		}
+                _vte_debug_init();
 		_vte_debug_print(VTE_DEBUG_LIFECYCLE,
 				"vte_terminal_class_init()\n");
 		/* print out the legend */
