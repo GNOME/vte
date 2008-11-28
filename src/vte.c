@@ -62,10 +62,6 @@ typedef gunichar wint_t;
 #define howmany(x, y) (((x) + ((y) - 1)) / (y))
 #endif
 
-#if !GTK_CHECK_VERSION(2,2,0)
-#define gdk_keymap_get_for_display(dpy) gdk_keymap_get_default()
-#endif
-
 #define STATIC_PARAMS (G_PARAM_STATIC_NAME | G_PARAM_STATIC_NICK | G_PARAM_STATIC_BLURB)
 
 

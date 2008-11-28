@@ -1,5 +1,10 @@
 2008-11-28  Christian Persch  <chpe@gnome.org>
 
+	* src/vte.c: Remove backward compat define for gtk 2.0, since we
+	already depend on a much higher version.
+
+2008-11-28  Christian Persch  <chpe@gnome.org>
+
 	* src/debug.c: (_vte_debug_on): Revert behaviour change of
 	_vte_debug_on() from last commit.
 
