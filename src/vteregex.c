@@ -16,7 +16,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include "../config.h"
+#include <config.h>
+
 #include <sys/types.h>
 #include <errno.h>
 #include <limits.h>
@@ -28,8 +29,6 @@
 
 #if defined(USE_GNU_REGEX)
 #include <regex.h>
-#elif defined(USE_PCRE)
-#include <pcre.h>
 #else
 #include <regex.h>
 #endif
@@ -127,86 +126,6 @@ _vte_regex_exec(struct _vte_regex *regex, const char *string,
 		return 0;
 	}
 	return -1;
-}
-
-#elif defined(USE_PCRE)
-
-/* PCRE-based matching.  In addition to not being "real" regexps, I'm seeing
- * problems matching non-ASCII portions of UTF-8 strings, even when compiling
- * the pattern with UTF-8 support enabled. */
-
-struct _vte_regex {
-	pcre *pcre;
-	pcre_extra *extra;
-};
-
-struct _vte_regex *
-_vte_regex_compile(const char *pattern)
-{
-	struct _vte_regex *ret;
-	const char *err;
-	int err_offset;
-
-	ret = g_slice_new(struct _vte_regex);
-
-	ret->pcre = pcre_compile(pattern, PCRE_UTF8|PCRE_NO_UTF8_CHECK,
-			&err, &err_offset, NULL);
-	if (ret->pcre == NULL) {
-		g_slice_free(struct _vte_regex, ret);
-		return NULL;
-	}
-
-	ret->extra = pcre_study(ret->pcre, 0, &err);
-	if (err != NULL) {
-		pcre_free(ret->pcre);
-		g_slice_free(struct _vte_regex, ret);
-		return NULL;
-	}
-
-	return ret;
-}
-
-void
-_vte_regex_free(struct _vte_regex *regex)
-{
-	pcre_free(regex->pcre);
-	pcre_free(regex->extra);
-	g_slice_free(struct _vte_regex, regex);
-}
-
-int
-_vte_regex_exec(struct _vte_regex *regex, const char *string,
-		gsize nmatch, struct _vte_regex_match *matches)
-{
-	int ret, *ovector, ovector_length, length;
-	gsize n, n_matches;
-
-	for (n = 0; n < nmatch; n++) {
-		matches[n].rm_so = -1;
-		matches[n].rm_eo = -1;
-	}
-
-	length = strlen(string);
-	ovector_length = 3 * (length + 1);
-	ovector = g_new(int, ovector_length);
-
-	ret = pcre_exec(regex->pcre, regex->extra, string, length,
-		      0, 0, ovector, ovector_length);
-	if (ret < 0) {
-		g_free(ovector);
-		return -1;
-	}
-
-	n = n_matches = ret;
-	while (n-- > 0) {
-		if (n < nmatch) {
-			matches[n].rm_so = ovector[n * 2];
-			matches[n].rm_eo = ovector[n * 2 + 1];
-		}
-	}
-	_vte_regex_sort_matches(matches, n_matches);
-
-	return 0;
 }
 
 #else
