@@ -1,5 +1,11 @@
 2008-11-28  Christian Persch  <chpe@gnome.org>
 
+	* src/vteregex.c: (compare_matches), (_vte_regex_compile),
+	(_vte_regex_free), (_vte_regex_exec): Remove the unused GNU regex
+	code too.
+
+2008-11-28  Christian Persch  <chpe@gnome.org>
+
 	* src/vteregex.c: (_vte_regex_compile), (_vte_regex_free),
 	(_vte_regex_exec): Remove unused PCRE code. If you want PCRE regexes,
 	use the new APIs that take GRegex.

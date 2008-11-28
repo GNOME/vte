@@ -25,13 +25,9 @@
 #include <unistd.h>
 #include <glib.h>
 
-#include "vteregex.h"
+#include <regex.h>
 
-#if defined(USE_GNU_REGEX)
-#include <regex.h>
-#else
-#include <regex.h>
-#endif
+#include "vteregex.h"
 
 static gint
 compare_matches(gconstpointer a, gconstpointer b)
@@ -62,73 +58,6 @@ _vte_regex_sort_matches(struct _vte_regex_match *matches, gsize n_matches)
 		n_matches * sizeof(struct _vte_regex_match));
 	g_array_free(array, TRUE);
 }
-
-#if defined(USE_GNU_REGEX)
-
-/* GNU regex-based matching.  The GNU regex library also provides POSIX
- * workalikes, so I don't see much of a win from using this chunk of code. */
-
-struct _vte_regex {
-	struct re_pattern_buffer buffer;
-};
-
-struct _vte_regex *
-_vte_regex_compile(const char *pattern)
-{
-	struct _vte_regex *ret;
-	const char *res;
-
-	ret = g_slice_new0(struct _vte_regex);
-	res = re_compile_pattern(pattern, strlen(pattern), &ret->buffer);
-	if (res != NULL) {
-		g_slice_free(struct _vte_regex, ret);
-		return NULL;
-	}
-	return ret;
-}
-
-void
-_vte_regex_free(struct _vte_regex *regex)
-{
-	regfree(&regex->buffer);
-	g_slice_free(struct _vte_regex, regex);
-}
-
-int
-_vte_regex_exec(struct _vte_regex *regex, const char *string,
-		gsize nmatch, struct _vte_regex_match *matches)
-{
-	struct re_registers registers;
-	int i, length, ret;
-
-	length = strlen(string);
-	registers.num_regs = 0;
-	registers.start = NULL;
-	registers.end = NULL;
-	ret = re_search(&regex->buffer,
-			string, length,
-			0, length - 1,
-			&registers);
-	if (ret >= 0) {
-		for (i = 0; i < nmatch; i++) {
-			matches[i].rm_so = -1;
-			matches[i].rm_eo = -1;
-		}
-		for (i = 0; (i < nmatch) && (i < registers.num_regs); i++) {
-			matches[i].rm_so = registers.start[i];
-			matches[i].rm_eo = registers.end[i];
-		}
-		if ((i == nmatch) || (matches[i].rm_so == -1)) {
-			_vte_regex_sort_matches(matches, i);
-		}
-	}
-	if (ret >= 0) {
-		return 0;
-	}
-	return -1;
-}
-
-#else
 
 /* Ah, POSIX regex.  Kind of clunky, but I don't have anything better to
  * suggest.  Better still, it works on my machine. */
@@ -188,5 +117,3 @@ _vte_regex_exec(struct _vte_regex *regex, const char *string,
 	}
 	return -1;
 }
-
-#endif
