@@ -59,5 +59,5 @@ _vte_debug_init(void)
 gboolean
 _vte_debug_on(VteDebugFlags flags)
 {
-	return (_vte_debug_flags & flags) != 0;
+	return (_vte_debug_flags & flags) == flags;
 }
