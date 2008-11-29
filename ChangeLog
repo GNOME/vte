@@ -1,5 +1,9 @@
 2008-11-29  Christian Persch  <chpe@gnome.org>
 
+	* python/vtemodule.c: (initvte): Register the constants too!
+
+2008-11-29  Christian Persch  <chpe@gnome.org>
+
 	* src/debug.c: (_vte_debug_init):
 	* src/debug.h:
 	* src/vte.c: (vte_terminal_size_request),

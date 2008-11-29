@@ -27,6 +27,7 @@
 #include "../src/vte.h"
 
 extern void pyvte_register_classes(PyObject * d);
+extern void pyvte_add_constants(PyObject *module, const gchar *strip_prefix);
 extern PyMethodDef pyvte_functions[];
 extern DL_EXPORT(void) initvte(void);
 extern PyTypeObject PyVteTerminal_Type;
@@ -43,6 +44,7 @@ initvte(void)
 	d = PyModule_GetDict(m);
 
 	pyvte_register_classes(d);
+	pyvte_add_constants(m, "VTE_");
 
 	if (PyErr_Occurred()) {
 		Py_FatalError("can't initialise module vte");
