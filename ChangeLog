@@ -1,5 +1,12 @@
 2008-11-29  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c (vte_terminal_emit_char_size_changed),
+	(_vte_terminal_emit_status_line_changed), (vte_terminal_init),
+	(vte_terminal_background_update):
+	Remove C++-style comment markers.
+
+2008-11-29  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 514632 – Problem with cursor in emacs in gnome-terminal
 
 	* src/vte-private.h:

@@ -929,7 +929,7 @@ vte_terminal_emit_char_size_changed(VteTerminal *terminal,
 			"Emitting `char-size-changed'.\n");
 	g_signal_emit_by_name(terminal, "char-size-changed",
 			      width, height);
-//         g_object_notify(G_OBJECT(terminal), "char-size");
+/*         g_object_notify(G_OBJECT(terminal), "char-size"); */
 }
 
 /* Emit a "status-line-changed" signal. */
@@ -939,7 +939,7 @@ _vte_terminal_emit_status_line_changed(VteTerminal *terminal)
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `status-line-changed'.\n");
 	g_signal_emit_by_name(terminal, "status-line-changed");
-//         g_object_notify(G_OBJECT(terminal), "status-line");
+/*         g_object_notify(G_OBJECT(terminal), "status-line"); */
 }
 
 /* Emit an "increase-font-size" signal. */
@@ -7849,7 +7849,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt = terminal->pvt = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalPrivate);
 
 	GTK_WIDGET_SET_FLAGS(terminal, GTK_CAN_FOCUS);
-	//gtk_widget_set_double_buffered (&terminal->widget, FALSE);
+	/* gtk_widget_set_double_buffered (&terminal->widget, FALSE); */
 
 	/* We do our own redrawing. */
 	gtk_widget_set_redraw_on_allocate (&terminal->widget, FALSE);
@@ -12271,7 +12271,7 @@ vte_terminal_background_update(VteTerminal *terminal)
 	bgcolor.blue = terminal->pvt->palette[VTE_DEF_BG].blue;
 	bgcolor.pixel = 0;
 	gtk_widget_ensure_style(&terminal->widget);
-	//colormap = gdk_gc_get_colormap(terminal->widget.style->fg_gc[GTK_WIDGET_STATE(terminal)]);
+	/*colormap = gdk_gc_get_colormap(terminal->widget.style->fg_gc[GTK_WIDGET_STATE(terminal)]);*/
 	colormap = gtk_widget_get_colormap (&terminal->widget);
 	if (colormap) {
 		gdk_rgb_find_color(colormap, &bgcolor);
