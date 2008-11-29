@@ -2894,6 +2894,42 @@ vte_terminal_set_default_colors(VteTerminal *terminal)
 	vte_terminal_set_colors(terminal, NULL, NULL, NULL, 0);
 }
 
+
+/* Cleanup smart-tabs.  See vte_sequence_handler_ta */
+inline void
+_vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
+{
+	VteRowData *row = _vte_terminal_ensure_row (terminal);
+	VteScreen *screen = terminal->pvt->screen;
+	long col = screen->cursor_current.col;
+	struct vte_charcell *cell = _vte_row_data_find_charcell(row, col);
+
+	if (G_UNLIKELY (cell != NULL && cell->c == '\t')) {
+		int i, num_columns;
+		
+		_vte_debug_print(VTE_DEBUG_MISC,
+				 "Cleaning tab fragments at %ld",
+				 col);
+		g_message ("cleaning tab at %ld", col);
+
+		/* go back to the beginning of the tab */
+		while (cell != NULL && cell->attr.fragment && col > 0) {
+			cell = _vte_row_data_find_charcell(row, --col);
+		}
+
+		if (!cell) {
+			/* heck, whatever */
+			return;
+		}
+
+		num_columns = cell->attr.columns;
+		for (i = 0; i < num_columns; i++) {
+			cell = _vte_row_data_find_charcell(row, col++);
+			*cell = screen->fill_defaults;
+		}
+	}
+}
+
 /* Insert a single character into the stored data array. */
 gboolean
 _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
@@ -2968,11 +3004,35 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	row = vte_terminal_ensure_cursor (terminal);
 	g_assert(row != NULL);
 	if (insert) {
-		g_array_insert_val(row->cells, col,
-				screen->color_defaults);
+		for (i = 0; i < columns; i++)
+			g_array_insert_val(row->cells, col + i,
+					   screen->color_defaults);
 	} else {
 		if (G_LIKELY ((glong) row->cells->len < col + columns)) {
 			g_array_set_size (row->cells, col + columns);
+		}
+	}
+
+	_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
+
+	/* Convert any wide characters we may have broken into single
+	 * cells. (#514632) */
+	if (col > 0) {
+		glong col2 = col - 1;
+		struct vte_charcell *cell = _vte_row_data_find_charcell(row, col2);
+		while (cell != NULL && cell->attr.fragment && col2 > 0) {
+			cell = _vte_row_data_find_charcell(row, --col2);
+		}
+		cell->attr.columns = col - col2;
+	}
+	{
+		glong col2 = col + columns;
+		struct vte_charcell *cell = _vte_row_data_find_charcell(row, col2);
+		while (cell != NULL && cell->attr.fragment) {
+			cell->attr.fragment = 0;
+			cell->attr.columns = 1;
+			cell->c = 0;
+			cell = _vte_row_data_find_charcell(row, ++col2);
 		}
 	}
 
@@ -2997,12 +3057,8 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	col++;
 
 	/* insert wide-char fragments */
+	attr.fragment = 1;
 	for (i = 1; i < columns; i++) {
-		attr.fragment = 1;
-		if (insert) {
-			g_array_insert_val(row->cells, col,
-				screen->color_defaults);
-		}
 		g_array_index(row->cells, struct vte_charcell, col).c = c;
 		g_array_index(row->cells, struct vte_charcell, col).attr = attr;
 		col++;

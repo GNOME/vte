@@ -1183,6 +1183,7 @@ vte_sequence_handler_ch(VteTerminal *terminal,
 				    terminal->column_count - 1);
 			/* Move the cursor. */
 			screen->cursor_current.col = val;
+			_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
 		}
 	}
 	return FALSE;
@@ -1241,6 +1242,7 @@ vte_sequence_handler_cm(VteTerminal *terminal,
 	}
 	screen->cursor_current.row = rowval + screen->insert_delta;
 	screen->cursor_current.col = colval;
+	_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
 	return FALSE;
 }
 
@@ -1845,6 +1847,7 @@ vte_sequence_handler_le(VteTerminal *terminal,
 	if (screen->cursor_current.col > 0) {
 		/* There's room to move left, so do so. */
 		screen->cursor_current.col--;
+		_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
 	} else {
 		if (terminal->pvt->flags.bw) {
 			/* Wrap to the previous line. */
@@ -2992,6 +2995,7 @@ vte_sequence_handler_cursor_character_absolute(VteTerminal *terminal,
 	}
 
         screen->cursor_current.col = val;
+	_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
 
 	return FALSE;
 }

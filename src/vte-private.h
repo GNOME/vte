@@ -445,6 +445,7 @@ void _vte_terminal_clear_tabstop(VteTerminal *terminal, int column);
 gboolean _vte_terminal_get_tabstop(VteTerminal *terminal, int column);
 void _vte_terminal_set_tabstop(VteTerminal *terminal, int column);
 void _vte_terminal_update_insert_delta(VteTerminal *terminal);
+void _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal);
 
 void _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ...) G_GNUC_PRINTF(2,3);
 
