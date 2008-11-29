@@ -799,12 +799,13 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 	default:
 		break;
 	}
-#ifdef VTE_DEBUG
+
 	if (!recognized) {
-		g_warning("DECSET/DECRESET mode %d not recognized, ignoring.\n",
-			  setting);
+		_vte_debug_print (VTE_DEBUG_MISC,
+				  "DECSET/DECRESET mode %d not recognized, ignoring.\n",
+				  setting);
 	}
-#endif
+
 	return again;
 }
 

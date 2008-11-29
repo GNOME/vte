@@ -1,5 +1,14 @@
 2008-11-29  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 107031 – device-control-string error
+
+	* src/table.c (_vte_table_addi):
+	* src/vte.c (vte_terminal_handle_sequence):
+	* src/vteseq.c (vte_sequence_handler_decset_internal):
+	Replace some g_warning's with vte debug output.
+
+2008-11-29  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 521420 – vte closes connection to child before all output is read
 	Patch from Thomas Leonard
 

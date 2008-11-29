@@ -209,11 +209,11 @@ _vte_table_addi(struct _vte_table *table,
 
 	/* If this is the terminal node, set the result. */
 	if (length == 0) {
-		_VTE_DEBUG_IF(VTE_DEBUG_PARSE) {
-			if (table->result != NULL)
-				g_warning("`%s' and `%s' are indistinguishable",
-						table->result, result);
-		}
+		if (table->result != NULL)
+			_vte_debug_print (VTE_DEBUG_PARSE, 
+					  "`%s' and `%s' are indistinguishable.\n",
+					  table->result, result);
+
 		table->resultq = g_quark_from_string(result);
 		table->result = g_quark_to_string(table->resultq);
 		if (table->original != NULL) {
