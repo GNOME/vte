@@ -40,6 +40,7 @@ struct _VteConv {
 	struct _vte_buffer *in_scratch, *out_scratch;
 };
 
+/* We can't use g_utf8_strlen as that's not nul-safe :( */
 static glong
 _vte_conv_utf8_strlen(const gchar *p, gssize max)
 {
@@ -63,7 +64,7 @@ _vte_conv_utf8_utf8(GIConv converter,
 {
 	gboolean validated;
 	const gchar *endptr;
-	size_t length, bytes;
+	size_t bytes;
 	guint skip;
 
 	/* We don't tolerate shenanigans! */
@@ -74,27 +75,45 @@ _vte_conv_utf8_utf8(GIConv converter,
 
 	/* Copy whatever data was validated. */
 	bytes = endptr - *inbuf;
-	length = _vte_conv_utf8_strlen(*inbuf, bytes);
 	memcpy(*outbuf, *inbuf, bytes);
 	*inbuf += bytes;
 	*outbuf += bytes;
 	*outbytes_left -= bytes;
 	*inbytes_left -= bytes;
 
-	/* Return the character count if everything looked good, else EILSEQ. */
+	/* Return 0 (number of non-reversible conversions performed) if everything
+	 * looked good, else EILSEQ. */
 	if (validated) {
-		return length;
+		return 0;
 	}
 
-	/* Determine why the end of the string is not valid. */
+	/* Determine why the end of the string is not valid.
+	 * We are pur b@stards for running g_utf8_next_char() on an
+	 * invalid sequence. */
 	skip = g_utf8_next_char(*inbuf) - *inbuf;
-	if ((skip > *inbytes_left) || (skip <= 0)) {
-		/* We had enough bytes to validate the character, and
-		 * it failed, or it just doesn't look right. */
+	if (skip > *inbytes_left) {
+		/* We didn't have enough bytes to validate the character.
+		 * That qualifies for EINVAL, but only if the part of the
+		 * character that we have is a valid prefix to a character.
+		 * Differentiating those requires verifying that all the
+		 * remaining bytes after this one are UTF-8 continuation
+		 * bytes.  Actually even that is not quite enough as not
+		 * all continuation bytes are valid in the most strict
+		 * interpretation of UTF-8, but we don't care about that.
+		 */
+		size_t i;
+
+		for (i = 1; i < *inbytes_left; i++)
+			if (((*inbuf)[i] & 0xC0) != 0x80) {
+				/* Not a continuation byte */
+				errno = EILSEQ;
+				return (size_t) -1;
+			}
+
 		errno = EINVAL;
 	} else {
-		/* We didn't have enough bytes to validate the character, so
-		 * it failed. */
+		/* We had enough bytes to validate the character, and
+		 * it failed.  It just doesn't look right. */
 		errno = EILSEQ;
 	}
 	return (size_t) -1;

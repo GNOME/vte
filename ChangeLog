@@ -1,5 +1,14 @@
 2008-11-29  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 317236 – vte resynchrones too late on invalid UTF-8
+
+	* src/vteconv.c (_vte_conv_utf8_utf8): In our UTF-8 to UTF-8 converter
+	differentiate between an incomplete sequence and an ill sequence at
+	the end of the buffer.  Also cleanup some minor inaccuracies (return
+	value).
+
+2008-11-29  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 107031 – device-control-string error
 
 	* src/table.c (_vte_table_addi):
