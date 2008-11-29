@@ -1,3 +1,10 @@
+2008-11-29  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 127870 – terminal garbled and needs 'reset' after cat'ing file
+
+	* src/iso2022.c (_vte_iso2022_state_new): Initialize all four maps
+	(G0, G1, G2, G3) in USASCII mode, like xterm does.
+
 2008-11-29  Christian Persch  <chpe@gnome.org>
 
 	* python/vtemodule.c: (initvte): Register the constants too!
