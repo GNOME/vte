@@ -1,3 +1,9 @@
+2008-11-29  Christian Persch  <chpe@gnome.org>
+
+	* src/vteapp.c: (main): Add options to use a GtkScrolledWindow as the
+	terminal's container, and to set its vertical scrollbar policy, to
+	allow testing VteTerminal in a scrolled window.
+
 2008-11-29  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 317236 – vte resynchrones too late on invalid UTF-8
