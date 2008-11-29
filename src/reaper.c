@@ -114,7 +114,7 @@ int
 vte_reaper_add_child(GPid pid)
 {
 #if GLIB_CHECK_VERSION(2,4,0)
-	return g_child_watch_add_full(G_PRIORITY_HIGH,
+	return g_child_watch_add_full(G_PRIORITY_LOW,
 				      pid,
 				      vte_reaper_child_watch_cb,
 				      vte_reaper_get(),

@@ -1,5 +1,13 @@
 2008-11-29  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 521420 – vte closes connection to child before all output is read
+	Patch from Thomas Leonard
+
+	* src/reaper.c (vte_reaper_add_child): Install child watch at low
+	priority instead of high.
+
+2008-11-29  Behdad Esfahbod  <behdad@gnome.org>
+
 	* configure.in: Require glib >= 2.18.0 as earlier glib versions
 	had a totally bogus g_unichar_iswide_cjk().
 
