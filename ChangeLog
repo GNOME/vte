@@ -1,3 +1,9 @@
+2008-11-28  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/debug.c (_vte_debug_init):
+	* src/debug.h:
+	Make _vte_debug_on() inline.
+
 2008-11-28  Christian Persch  <chpe@gnome.org>
 
 	* src/vte.c: Remove backward compat define for gtk 2.0, since we

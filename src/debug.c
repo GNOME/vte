@@ -21,7 +21,7 @@
 #include <glib.h>
 #include "debug.h"
 
-static VteDebugFlags _vte_debug_flags = 0;
+VteDebugFlags _vte_debug_flags;
 
 void
 _vte_debug_init(void)
@@ -54,10 +54,4 @@ _vte_debug_init(void)
                                            keys, G_N_ELEMENTS (keys));
   _vte_debug_print(0xFFFFFFFF, "VTE debug flags = %x\n", _vte_debug_flags);
 #endif /* VTE_DEBUG */
-}
-
-gboolean
-_vte_debug_on(VteDebugFlags flags)
-{
-	return (_vte_debug_flags & flags) == flags;
 }

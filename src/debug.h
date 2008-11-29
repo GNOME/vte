@@ -50,7 +50,15 @@ typedef enum {
 } VteDebugFlags;
 
 void _vte_debug_init(void);
-gboolean _vte_debug_on(VteDebugFlags flags) G_GNUC_CONST;
+
+extern VteDebugFlags _vte_debug_flags;
+static inline gboolean _vte_debug_on(VteDebugFlags flags) G_GNUC_CONST G_GNUC_UNUSED;
+
+static inline gboolean
+_vte_debug_on(VteDebugFlags flags)
+{
+	return (_vte_debug_flags & flags) == flags;
+}
 
 #ifdef VTE_DEBUG
 #define _VTE_DEBUG_IF(flags) if (G_UNLIKELY (_vte_debug_on (flags)))
