@@ -50,7 +50,7 @@ _vte_debug_init(void)
     { "ally",         VTE_DEBUG_ALLY         }
   };
 
-  _vte_debug_flags = g_parse_debug_string (g_getenv("VTE_DEBUG_FLAGS"),
+  _vte_debug_flags = g_parse_debug_string (g_getenv("VTE_DEBUG"),
                                            keys, G_N_ELEMENTS (keys));
   _vte_debug_print(0xFFFFFFFF, "VTE debug flags = %x\n", _vte_debug_flags);
 #endif /* VTE_DEBUG */
