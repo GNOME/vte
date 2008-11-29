@@ -120,8 +120,6 @@
 
 
 
-#undef VTEPANGOCAIRO_PROFILE
-
 #define FONT_CACHE_TIMEOUT (30) /* seconds */
 
 
@@ -232,7 +230,7 @@ struct font_info {
 	/* cell metrics */
 	gint width, height, ascent;
 
-#ifdef VTEPANGOCAIRO_PROFILE
+#ifdef VTE_DEBUG
 	/* profiling info */
 	int coverage_count[4];
 #endif
@@ -341,16 +339,16 @@ font_info_cache_ascii (struct font_info *info)
 		ufi->using_cairo_glyph.scaled_font = cairo_scaled_font_reference (scaled_font);
 		ufi->using_cairo_glyph.glyph_index = glyph;
 
-#ifdef VTEPANGOCAIRO_PROFILE
+#ifdef VTE_DEBUG
 		info->coverage_count[0]++;
 		info->coverage_count[uinfo->coverage]++;
 #endif
 	}
 
-#ifdef VTEPANGOCAIRO_PROFILE
-	g_message ("vtepangocairo: %p cached %d ASCII letters",
-		   info,
-		   info->coverage_count[0]);
+#ifdef VTE_DEBUG
+	_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
+			  "vtepangocairo: %p cached %d ASCII letters\n",
+			  info, info->coverage_count[0]);
 #endif
 }
 
@@ -402,8 +400,8 @@ font_info_measure_font (struct font_info *info)
 	}
 
 	_vte_debug_print (VTE_DEBUG_MISC,
-			  "VtePangoCairo font metrics = %dx%d (%d).\n",
-			  info->width, info->height, info->ascent);
+			  "vtepangocairo: %p font metrics = %dx%d (%d)\n",
+			  info, info->width, info->height, info->ascent);
 }
 
 
@@ -414,10 +412,9 @@ font_info_allocate (PangoContext *context)
 
 	info = g_slice_new0 (struct font_info);
 
-#ifdef VTEPANGOCAIRO_PROFILE
-	g_message ("vtepangocairo: %p allocating font_info",
-		   info);
-#endif
+	_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
+			  "vtepangocairo: %p allocating font_info\n",
+			  info);
 
 	info->layout = pango_layout_new (context);
 
@@ -431,13 +428,14 @@ font_info_free (struct font_info *info)
 {
 	gunichar i;
 
-#ifdef VTEPANGOCAIRO_PROFILE
-	g_message ("vtepangocairo: %p freeing font_info.  coverages %d = %d + %d + %d",
-		   info,
-		   info->coverage_count[0],
-		   info->coverage_count[1],
-		   info->coverage_count[2],
-		   info->coverage_count[3]);
+#ifdef VTE_DEBUG
+	_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
+			  "vtepangocairo: %p freeing font_info.  coverages %d = %d + %d + %d\n",
+			  info,
+			  info->coverage_count[0],
+			  info->coverage_count[1],
+			  info->coverage_count[2],
+			  info->coverage_count[3]);
 #endif
 
 	g_object_unref (info->layout);
@@ -588,10 +586,9 @@ font_info_find_for_context (PangoContext *context)
 
 	info = g_hash_table_lookup (font_info_for_context, context);
 	if (G_LIKELY (info)) {
-#ifdef VTEPANGOCAIRO_PROFILE
-		g_message ("vtepangocairo: %p found font_info in cache",
-			   info);
-#endif
+		_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
+				  "vtepangocairo: %p found font_info in cache\n",
+				  info);
 		return font_info_reference (info);
 	}
 
@@ -746,10 +743,11 @@ font_info_get_unichar_info (struct font_info *info,
 	/* release internal layout resources */
 	pango_layout_set_text (info->layout, "", -1);
 
-#ifdef VTEPANGOCAIRO_PROFILE
+#ifdef VTE_DEBUG
 	info->coverage_count[0]++;
 	info->coverage_count[uinfo->coverage]++;
 #endif
+
 	return uinfo;
 }
 

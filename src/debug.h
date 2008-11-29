@@ -46,7 +46,8 @@ typedef enum {
 	VTE_DEBUG_TIMEOUT	= 1 << 16,
 	VTE_DEBUG_DRAW		= 1 << 17,
 	VTE_DEBUG_ALLY		= 1 << 18,
-	VTE_DEBUG_ADJ		= 1 << 19
+	VTE_DEBUG_ADJ		= 1 << 19,
+	VTE_DEBUG_PANGOCAIRO    = 1 << 20
 } VteDebugFlags;
 
 void _vte_debug_init(void);
