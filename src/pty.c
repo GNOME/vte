@@ -998,7 +998,7 @@ _vte_pty_open(pid_t *child_pid, char **env_add,
 	}
 	g_assert(op >= 0);
 	g_assert(op < G_N_ELEMENTS(opmap));
-	if (ret == -1) {
+	if (ret == -1 && op != 0) {
 		ret = _vte_pty_open_with_helper(&child, env_add, command, argv,
 						directory,
 						columns, rows, opmap[op]);
