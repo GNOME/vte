@@ -48,7 +48,8 @@ _vte_debug_init(void)
     { "timeout",      VTE_DEBUG_TIMEOUT      },
     { "draw",         VTE_DEBUG_DRAW         },
     { "ally",         VTE_DEBUG_ALLY         },
-    { "pangocairo",   VTE_DEBUG_PANGOCAIRO   }
+    { "pangocairo",   VTE_DEBUG_PANGOCAIRO   },
+    { "widget-size",  VTE_DEBUG_WIDGET_SIZE  }
   };
 
   _vte_debug_flags = g_parse_debug_string (g_getenv("VTE_DEBUG"),

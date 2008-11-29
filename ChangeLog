@@ -1,5 +1,13 @@
 2008-11-29  Christian Persch  <chpe@gnome.org>
 
+	* src/debug.c: (_vte_debug_init):
+	* src/debug.h:
+	* src/vte.c: (vte_terminal_size_request),
+	(vte_terminal_size_allocate): Add a specific debug flag for widget
+	size-request/size-allocation.
+
+2008-11-29  Christian Persch  <chpe@gnome.org>
+
 	* src/vteapp.c: (main): Add options to use a GtkScrolledWindow as the
 	terminal's container, and to set its vertical scrollbar policy, to
 	allow testing VteTerminal in a scrolled window.

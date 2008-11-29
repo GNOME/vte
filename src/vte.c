@@ -8006,8 +8006,9 @@ vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
 	requisition->width += VTE_PAD_WIDTH * 2;
 	requisition->height += VTE_PAD_WIDTH * 2;
 
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Size request is %dx%d for %ldx%ld cells.\n",
+	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
+			"[Terminal %p] Size request is %dx%d for %ldx%ld cells.\n",
+                        terminal,
 			requisition->width, requisition->height,
 			(terminal->pvt->pty_master != -1) ?
 			terminal->column_count :
@@ -8035,8 +8036,9 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	height = (allocation->height - (2 * VTE_PAD_WIDTH)) /
 		 terminal->char_height;
 
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Sizing window to %dx%d (%ldx%ld).\n",
+	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
+			"[Terminal %p] Sizing window to %dx%d (%ldx%ld).\n",
+                        terminal,
 			allocation->width, allocation->height,
 			width, height);
 	repaint = widget->allocation.width != allocation->width ||
