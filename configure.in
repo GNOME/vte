@@ -216,7 +216,7 @@ case $host in
 	;;
 esac
 
-GLIB_REQUIRED=2.14.0
+GLIB_REQUIRED=2.18.0
 PANGO_REQUIRED=1.22.0
 GTK_REQUIRED=2.12.0
 AC_DEFINE(GDK_MULTIHEAD_SAFE,1,[Force use of GDK's multihead-safe APIs.])

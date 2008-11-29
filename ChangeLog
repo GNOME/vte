@@ -1,5 +1,12 @@
 2008-11-29  Behdad Esfahbod  <behdad@gnome.org>
 
+	* configure.in: Require glib >= 2.18.0 as earlier glib versions
+	had a totally bogus g_unichar_iswide_cjk().
+
+	* perf/vim.sh: Don't use builting time command.
+
+2008-11-29  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte.c (vte_terminal_emit_char_size_changed),
 	(_vte_terminal_emit_status_line_changed), (vte_terminal_init),
 	(vte_terminal_background_update):
