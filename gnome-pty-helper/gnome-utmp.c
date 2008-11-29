@@ -158,6 +158,7 @@ update_utmp (UTMP *ut)
 {
 	setutxent();
 	pututxline (ut);
+	endutxent();
 }
 #elif defined(HAVE_GETUTENT)
 static void
@@ -165,6 +166,7 @@ update_utmp (UTMP *ut)
 {
 	setutent();
 	pututline (ut);
+	endutent();
 }
 #elif defined(HAVE_GETTTYENT)
 /* This variant is sutable for most BSD */

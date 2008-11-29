@@ -1,3 +1,10 @@
+2008-11-30  Christian Persch  <chpe@gnome.org>
+
+	Bug 465036 – gnome-pty-helper locks /var/run/utmp
+
+	* gnome-pty-helper/gnome-utmp.c: (update_utmp): Close the utmp
+	database after updating it. Patch by Kevin W. Rudd.
+
 2008-11-29  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 127870 – terminal garbled and needs 'reset' after cat'ing file
