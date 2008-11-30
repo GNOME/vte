@@ -1,5 +1,9 @@
 2008-11-30  Christian Persch  <chpe@gnome.org>
 
+	* acinclude.m4: Remove more crufty macros.
+
+2008-11-30  Christian Persch  <chpe@gnome.org>
+
 	* acinclude.m4: Remove FT2 check macro.
 
 2008-11-30  Christian Persch  <chpe@gnome.org>
