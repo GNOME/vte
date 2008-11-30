@@ -1,5 +1,9 @@
 2008-11-30  Christian Persch  <chpe@gnome.org>
 
+	* acinclude.m4: Remove FT2 check macro.
+
+2008-11-30  Christian Persch  <chpe@gnome.org>
+
 	Bug 540951 – The gnome-pty-helper is spawn when its not needed
 	
 	* src/pty.c: (_vte_pty_open): Don't use the pty helper when we don't
