@@ -8018,6 +8018,7 @@ vte_terminal_init(VteTerminal *terminal)
 
 	/* Scrolling options. */
 	pvt->scroll_on_keystroke = TRUE;
+        pvt->scrollback_lines = -1; /* force update in vte_terminal_set_scrollback_lines */
 	vte_terminal_set_scrollback_lines(terminal, VTE_SCROLLBACK_INIT);
 
 	/* Selection info. */
@@ -12886,8 +12887,11 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
         object = G_OBJECT(terminal);
         pvt = terminal->pvt;
 
+#if 0
+        /* FIXME: this breaks the scrollbar range, bug #562511 */
         if (lines == pvt->scrollback_lines)
                 return;
+#endif
 
         g_object_freeze_notify(object);
 

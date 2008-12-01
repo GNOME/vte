@@ -1,5 +1,14 @@
 2008-12-01  Christian Persch  <chpe@gnome.org>
 
+	Bug 562511 – scrollbar doesn't sit at the bottom
+
+	* src/vte.c: (vte_terminal_init),
+	(vte_terminal_set_scrollback_lines): Always update the scrollback
+	lines, even if the setting hasn't changed. Work-around to fix bug
+	#562511.
+
+2008-12-01  Christian Persch  <chpe@gnome.org>
+
 	* src/vte.c: (vte_terminal_class_init): Fix visible-bell property.
 
 2008-12-01  Christian Persch  <chpe@gnome.org>
