@@ -359,6 +359,52 @@ _vte_reset_row_data (VteTerminal *terminal, VteRowData *row, gboolean fill)
 	return row;
 }
 
+/* Insert a blank line at an arbitrary position. */
+static void
+vte_insert_line_internal(VteTerminal *terminal, glong position)
+{
+	VteRowData *row, *old_row;
+	old_row = terminal->pvt->free_row;
+	/* Pad out the line data to the insertion point. */
+	while (_vte_ring_next(terminal->pvt->screen->row_data) < position) {
+		if (old_row) {
+			row = _vte_reset_row_data (terminal, old_row, TRUE);
+		} else {
+			row = _vte_new_row_data_sized(terminal, TRUE);
+		}
+		old_row = _vte_ring_append(terminal->pvt->screen->row_data, row);
+	}
+	/* If we haven't inserted a line yet, insert a new one. */
+	if (old_row) {
+		row = _vte_reset_row_data (terminal, old_row, TRUE);
+	} else {
+		row = _vte_new_row_data_sized(terminal, TRUE);
+	}
+	if (_vte_ring_next(terminal->pvt->screen->row_data) >= position) {
+		old_row = _vte_ring_insert(terminal->pvt->screen->row_data,
+				 position, row);
+	} else {
+		old_row =_vte_ring_append(terminal->pvt->screen->row_data, row);
+	}
+	terminal->pvt->free_row = old_row;
+}
+
+/* Remove a line at an arbitrary position. */
+static void
+vte_remove_line_internal(VteTerminal *terminal, glong position)
+{
+	if (_vte_ring_next(terminal->pvt->screen->row_data) > position) {
+		if (terminal->pvt->free_row)
+			_vte_free_row_data (terminal->pvt->free_row);
+
+		terminal->pvt->free_row = _vte_ring_remove(
+				terminal->pvt->screen->row_data,
+				position,
+				FALSE);
+	}
+}
+
+
 /* Reset defaults for character insertion. */
 void
 _vte_terminal_set_default_attributes(VteTerminal *terminal)
@@ -2930,6 +2976,94 @@ _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
 	}
 }
 
+/* Cursor down, with scrolling. */
+void
+_vte_terminal_cursor_down (VteTerminal *terminal)
+{
+	VteRowData *row;
+	long start, end;
+	VteScreen *screen;
+
+	screen = terminal->pvt->screen;
+
+	if (screen->scrolling_restricted) {
+		start = screen->insert_delta + screen->scrolling_region.start;
+		end = screen->insert_delta + screen->scrolling_region.end;
+	} else {
+		start = screen->insert_delta;
+		end = start + terminal->row_count - 1;
+	}
+	if (screen->cursor_current.row == end) {
+		/* Match xterm and fill to the end of row when scrolling. */
+		if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
+			VteRowData *rowdata;
+			rowdata = _vte_terminal_ensure_row (terminal);
+			vte_g_array_fill (rowdata->cells,
+					&screen->fill_defaults,
+					terminal->column_count);
+		}
+
+		if (screen->scrolling_restricted) {
+			if (start == screen->insert_delta) {
+				/* Scroll this line into the scrollback
+				 * buffer by inserting a line at the next
+				 * line and scrolling the area up. */
+				screen->insert_delta++;
+				screen->scroll_delta++;
+				screen->cursor_current.row++;
+				/* update start and end, as they are relative
+				 * to insert_delta. */
+				start++;
+				end++;
+				if (terminal->pvt->free_row) {
+					row = _vte_reset_row_data (terminal,
+							terminal->pvt->free_row,
+							FALSE);
+				} else {
+					row = _vte_new_row_data_sized(terminal, FALSE);
+				}
+				terminal->pvt->free_row = _vte_ring_insert_preserve(terminal->pvt->screen->row_data,
+							  screen->cursor_current.row,
+							  row);
+				/* Force the areas below the region to be
+				 * redrawn -- they've moved. */
+				_vte_terminal_scroll_region(terminal, start,
+							    end - start + 1, 1);
+				/* Force scroll. */
+				_vte_terminal_adjust_adjustments(terminal);
+			} else {
+				/* If we're at the bottom of the scrolling
+				 * region, add a line at the top to scroll the
+				 * bottom off. */
+				vte_remove_line_internal(terminal, start);
+				vte_insert_line_internal(terminal, end);
+				/* Update the display. */
+				_vte_terminal_scroll_region(terminal, start,
+							   end - start + 1, -1);
+				_vte_invalidate_cells(terminal,
+						      0, terminal->column_count,
+						      end - 2, 2);
+			}
+		} else {
+			/* Scroll up with history. */
+			screen->cursor_current.row++;
+			_vte_terminal_update_insert_delta(terminal);
+		}
+
+		/* Match xterm and fill the new row when scrolling. */
+		if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
+			VteRowData *rowdata;
+			rowdata = _vte_terminal_ensure_row (terminal);
+			vte_g_array_fill (rowdata->cells,
+					&screen->fill_defaults,
+					terminal->column_count);
+		}
+	} else {
+		/* Otherwise, just move the cursor down. */
+		screen->cursor_current.row++;
+	}
+}
+
 /* Insert a single character into the stored data array. */
 gboolean
 _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
@@ -2983,7 +3117,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			/* Mark this line as soft-wrapped. */
 			row = _vte_terminal_ensure_row(terminal);
 			row->soft_wrapped = 1;
-			_vte_sequence_handler_sf(terminal, NULL, 0, NULL);
+			_vte_terminal_cursor_down (terminal);
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
 			col = screen->cursor_current.col =
@@ -3084,7 +3218,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			screen->cursor_current.col = 0;
 			/* Mark this line as soft-wrapped. */
 			row->soft_wrapped = 1;
-			_vte_sequence_handler_sf(terminal, NULL, 0, NULL);
+			_vte_terminal_cursor_down (terminal);
 		}
 	}
 
@@ -4594,6 +4728,49 @@ remove_cursor_timeout (VteTerminal *terminal)
 	terminal->pvt->cursor_blink_tag = VTE_INVALID_SOURCE;
 }
 
+
+void
+_vte_terminal_audible_beep(VteTerminal *terminal)
+{
+	GdkDisplay *display;
+
+	g_assert(VTE_IS_TERMINAL(terminal));
+	display = gtk_widget_get_display(&terminal->widget);
+	gdk_display_beep(display);
+}
+
+void
+_vte_terminal_visible_beep(VteTerminal *terminal)
+{
+	GtkWidget *widget;
+
+	widget = &terminal->widget;
+	if (GTK_WIDGET_REALIZED(widget)) {
+		/* Fill the screen with the default foreground color, and then
+		 * repaint everything, to provide visual bell. */
+		gdk_draw_rectangle(widget->window,
+				   widget->style->fg_gc[GTK_WIDGET_STATE(widget)],
+				   TRUE,
+				   0, 0,
+				   widget->allocation.width, widget->allocation.height);
+		gdk_flush();
+		/* Force the repaint. */
+		_vte_invalidate_all(terminal); /* max delay of UPDATE_REPEAT_TIMEOUT */
+	}
+}
+
+void
+_vte_terminal_beep(VteTerminal *terminal)
+{
+	if (terminal->pvt->audible_bell) {
+		_vte_terminal_audible_beep (terminal);
+	}
+	if (terminal->pvt->visible_bell) {
+		_vte_terminal_visible_beep (terminal);
+	}
+}
+
+
 /*
  * Translate national keys with Crtl|Alt modifier
  * Refactored from http://bugzilla.gnome.org/show_bug.cgi?id=375112
@@ -4667,10 +4844,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			if ((terminal->pvt->screen->cursor_current.col +
 			     (glong) terminal->pvt->bell_margin) ==
 			     terminal->column_count) {
-				_vte_sequence_handler_bl(terminal,
-							 "bl",
-							 0,
-							 NULL);
+				_vte_terminal_beep (terminal);
 			}
 		}
 

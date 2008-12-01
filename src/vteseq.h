@@ -32,8 +32,4 @@ typedef gboolean (*VteTerminalSequenceHandler)(VteTerminal *terminal,
 
 VteTerminalSequenceHandler _vte_sequence_get_handler (const char *code);
 
-
-gboolean _vte_sequence_handler_bl(VteTerminal *terminal, const char *match, GQuark match_quark, GValueArray *params);
-gboolean _vte_sequence_handler_sf(VteTerminal *terminal, const char *match, GQuark match_quark, GValueArray *params);
-
 #endif

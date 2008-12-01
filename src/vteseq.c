@@ -43,20 +43,6 @@
 #include "vteseq-list.h"
 #undef VTE_SEQUENCE_HANDLER
 
-/* These two handlers are accessed from vte.c */
-gboolean
-_vte_sequence_handler_bl(VteTerminal *terminal, const char *match, GQuark match_quark, GValueArray *params)
-{
-	return vte_sequence_handler_bl(terminal, match, match_quark, params);
-}
-gboolean
-_vte_sequence_handler_sf(VteTerminal *terminal, const char *match, GQuark match_quark, GValueArray *params)
-{
-	return vte_sequence_handler_sf(terminal, match, match_quark, params);
-}
-
-
-
 
 
 /* FUNCTIONS WE USE */
@@ -101,6 +87,60 @@ vte_g_array_fill(GArray *array, gpointer item, guint final_size)
 	do {
 		g_array_append_vals(array, item, 1);
 	} while (--final_size);
+}
+
+/* Insert a blank line at an arbitrary position. */
+static void
+vte_insert_line_internal(VteTerminal *terminal, glong position)
+{
+	VteRowData *row, *old_row;
+	old_row = terminal->pvt->free_row;
+	/* Pad out the line data to the insertion point. */
+	while (_vte_ring_next(terminal->pvt->screen->row_data) < position) {
+		if (old_row) {
+			row = _vte_reset_row_data (terminal, old_row, TRUE);
+		} else {
+			row = _vte_new_row_data_sized(terminal, TRUE);
+		}
+		old_row = _vte_ring_append(terminal->pvt->screen->row_data, row);
+	}
+	/* If we haven't inserted a line yet, insert a new one. */
+	if (old_row) {
+		row = _vte_reset_row_data (terminal, old_row, TRUE);
+	} else {
+		row = _vte_new_row_data_sized(terminal, TRUE);
+	}
+	if (_vte_ring_next(terminal->pvt->screen->row_data) >= position) {
+		old_row = _vte_ring_insert(terminal->pvt->screen->row_data,
+				 position, row);
+	} else {
+		old_row =_vte_ring_append(terminal->pvt->screen->row_data, row);
+	}
+	terminal->pvt->free_row = old_row;
+}
+
+/* Remove a line at an arbitrary position. */
+static void
+vte_remove_line_internal(VteTerminal *terminal, glong position)
+{
+	if (_vte_ring_next(terminal->pvt->screen->row_data) > position) {
+		if (terminal->pvt->free_row)
+			_vte_free_row_data (terminal->pvt->free_row);
+
+		terminal->pvt->free_row = _vte_ring_remove(
+				terminal->pvt->screen->row_data,
+				position,
+				FALSE);
+	}
+}
+
+/* Check how long a string of unichars is.  Slow version. */
+static gssize
+vte_unichar_strlen(gunichar *c)
+{
+	int i;
+	for (i = 0; c[i] != 0; i++) ;
+	return i;
 }
 
 
@@ -190,70 +230,7 @@ vte_terminal_emit_resize_window(VteTerminal *terminal,
 	g_signal_emit_by_name(terminal, "resize-window", width, height);
 }
 
-static void
-vte_terminal_beep(VteTerminal *terminal)
-{
-	GdkDisplay *display;
 
-	g_assert(VTE_IS_TERMINAL(terminal));
-	display = gtk_widget_get_display(&terminal->widget);
-	gdk_display_beep(display);
-}
-
-
-/* Insert a blank line at an arbitrary position. */
-static void
-vte_insert_line_internal(VteTerminal *terminal, glong position)
-{
-	VteRowData *row, *old_row;
-	old_row = terminal->pvt->free_row;
-	/* Pad out the line data to the insertion point. */
-	while (_vte_ring_next(terminal->pvt->screen->row_data) < position) {
-		if (old_row) {
-			row = _vte_reset_row_data (terminal, old_row, TRUE);
-		} else {
-			row = _vte_new_row_data_sized(terminal, TRUE);
-		}
-		old_row = _vte_ring_append(terminal->pvt->screen->row_data, row);
-	}
-	/* If we haven't inserted a line yet, insert a new one. */
-	if (old_row) {
-		row = _vte_reset_row_data (terminal, old_row, TRUE);
-	} else {
-		row = _vte_new_row_data_sized(terminal, TRUE);
-	}
-	if (_vte_ring_next(terminal->pvt->screen->row_data) >= position) {
-		old_row = _vte_ring_insert(terminal->pvt->screen->row_data,
-				 position, row);
-	} else {
-		old_row =_vte_ring_append(terminal->pvt->screen->row_data, row);
-	}
-	terminal->pvt->free_row = old_row;
-}
-
-/* Remove a line at an arbitrary position. */
-static void
-vte_remove_line_internal(VteTerminal *terminal, glong position)
-{
-	if (_vte_ring_next(terminal->pvt->screen->row_data) > position) {
-		if (terminal->pvt->free_row)
-			_vte_free_row_data (terminal->pvt->free_row);
-
-		terminal->pvt->free_row = _vte_ring_remove(
-				terminal->pvt->screen->row_data,
-				position,
-				FALSE);
-	}
-}
-
-/* Check how long a string of unichars is.  Slow version. */
-static gssize
-vte_unichar_strlen(gunichar *c)
-{
-	int i;
-	for (i = 0; c[i] != 0; i++) ;
-	return i;
-}
 
 /* Call another function, offsetting any long arguments by the given
  * increment value. */
@@ -965,14 +942,7 @@ vte_sequence_handler_bl(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	if (terminal->pvt->audible_bell) {
-		/* Feep. */
-		vte_terminal_beep(terminal);
-	}
-	if (terminal->pvt->visible_bell) {
-		/* Visual bell. */
-		vte_sequence_handler_vb(terminal, match, match_quark, params);
-	}
+	_vte_terminal_beep (terminal);
 	g_signal_emit_by_name(terminal, "beep");
 
 	return FALSE;
@@ -2188,88 +2158,8 @@ vte_sequence_handler_sf(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	VteRowData *row;
-	long start, end;
-	VteScreen *screen;
+	_vte_terminal_cursor_down (terminal);
 
-	screen = terminal->pvt->screen;
-
-	if (screen->scrolling_restricted) {
-		start = screen->insert_delta + screen->scrolling_region.start;
-		end = screen->insert_delta + screen->scrolling_region.end;
-	} else {
-		start = screen->insert_delta;
-		end = start + terminal->row_count - 1;
-	}
-	if (screen->cursor_current.row == end) {
-		/* Match xterm and fill to the end of row when scrolling. */
-		if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
-			VteRowData *rowdata;
-			rowdata = _vte_terminal_ensure_row (terminal);
-			vte_g_array_fill (rowdata->cells,
-					&screen->fill_defaults,
-					terminal->column_count);
-		}
-
-		if (screen->scrolling_restricted) {
-			if (start == screen->insert_delta) {
-				/* Scroll this line into the scrollback
-				 * buffer by inserting a line at the next
-				 * line and scrolling the area up. */
-				screen->insert_delta++;
-				screen->scroll_delta++;
-				screen->cursor_current.row++;
-				/* update start and end, as they are relative
-				 * to insert_delta. */
-				start++;
-				end++;
-				if (terminal->pvt->free_row) {
-					row = _vte_reset_row_data (terminal,
-							terminal->pvt->free_row,
-							FALSE);
-				} else {
-					row = _vte_new_row_data_sized(terminal, FALSE);
-				}
-				terminal->pvt->free_row = _vte_ring_insert_preserve(terminal->pvt->screen->row_data,
-							  screen->cursor_current.row,
-							  row);
-				/* Force the areas below the region to be
-				 * redrawn -- they've moved. */
-				_vte_terminal_scroll_region(terminal, start,
-							    end - start + 1, 1);
-				/* Force scroll. */
-				_vte_terminal_adjust_adjustments(terminal);
-			} else {
-				/* If we're at the bottom of the scrolling
-				 * region, add a line at the top to scroll the
-				 * bottom off. */
-				vte_remove_line_internal(terminal, start);
-				vte_insert_line_internal(terminal, end);
-				/* Update the display. */
-				_vte_terminal_scroll_region(terminal, start,
-							   end - start + 1, -1);
-				_vte_invalidate_cells(terminal,
-						      0, terminal->column_count,
-						      end - 2, 2);
-			}
-		} else {
-			/* Scroll up with history. */
-			screen->cursor_current.row++;
-			_vte_terminal_update_insert_delta(terminal);
-		}
-
-		/* Match xterm and fill the new row when scrolling. */
-		if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
-			VteRowData *rowdata;
-			rowdata = _vte_terminal_ensure_row (terminal);
-			vte_g_array_fill (rowdata->cells,
-					&screen->fill_defaults,
-					terminal->column_count);
-		}
-	} else {
-		/* Otherwise, just move the cursor down. */
-		screen->cursor_current.row++;
-	}
 	return FALSE;
 }
 
@@ -2280,6 +2170,7 @@ vte_sequence_handler_SF(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
+	/* XXX implment this directly in _vte_terminal_cursor_down */
 	return vte_sequence_handler_multiple(terminal, match, match_quark,
 					     params, vte_sequence_handler_sf);
 }
@@ -2662,21 +2553,7 @@ vte_sequence_handler_vb(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	GtkWidget *widget;
-
-	widget = &terminal->widget;
-	if (GTK_WIDGET_REALIZED(widget)) {
-		/* Fill the screen with the default foreground color, and then
-		 * repaint everything, to provide visual bell. */
-		gdk_draw_rectangle(widget->window,
-				   widget->style->fg_gc[GTK_WIDGET_STATE(widget)],
-				   TRUE,
-				   0, 0,
-				   widget->allocation.width, widget->allocation.height);
-		gdk_flush();
-		/* Force the repaint. */
-		_vte_invalidate_all(terminal); /* max delay of UPDATE_REPEAT_TIMEOUT */
-	}
+	_vte_terminal_visible_beep (terminal);
 	return FALSE;
 }
 
