@@ -1,5 +1,11 @@
 2008-12-01  Christian Persch  <chpe@gnome.org>
 
+	* src/vte.c: (vte_terminal_set_font_full_internal),
+	(vte_terminal_class_init): Rename font property to "font-desc" to be
+	more in line with other properties of this type in gtk.
+
+2008-12-01  Christian Persch  <chpe@gnome.org>
+
 	* src/vteapp.c: (main): Add gobject notification debugging.
 
 2008-12-01  Behdad Esfahbod  <behdad@gnome.org>

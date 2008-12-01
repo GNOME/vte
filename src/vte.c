@@ -150,7 +150,7 @@ enum {
         PROP_DELETE_BINDING,
         PROP_EMULATION,
         PROP_ENCODING,
-        PROP_FONT,
+        PROP_FONT_DESC,
         PROP_ICON_TITLE,
         PROP_MOUSE_POINTER_AUTOHIDE,
         PROP_PTY,
@@ -7484,7 +7484,7 @@ vte_terminal_set_font_full_internal(VteTerminal *terminal,
 	pvt->has_fonts = TRUE;
 
         if (!same_desc)
-                g_object_notify(object, "font");
+                g_object_notify(object, "font-desc");
 
 	/* Set the drawing font. */
 	if (GTK_WIDGET_REALIZED(terminal)) {
@@ -11072,7 +11072,7 @@ vte_terminal_get_property (GObject *object,
                 case PROP_ENCODING:
                         g_value_set_string (value, vte_terminal_get_encoding (terminal));
                         break;
-                case PROP_FONT:
+                case PROP_FONT_DESC:
                         g_value_set_boxed (value, vte_terminal_get_font (terminal));
                         break;
                 case PROP_ICON_TITLE:
@@ -11165,7 +11165,7 @@ vte_terminal_set_property (GObject *object,
                 case PROP_ENCODING:
                         vte_terminal_set_encoding (terminal, g_value_get_string (value));
                         break;
-                case PROP_FONT:
+                case PROP_FONT_DESC:
                         vte_terminal_set_font_full_internal (terminal, g_value_get_boxed (value), pvt->fontantialias);
                         break;
                 case PROP_MOUSE_POINTER_AUTOHIDE:
@@ -11845,7 +11845,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                       G_PARAM_READWRITE | STATIC_PARAMS));
      
         /**
-         * VteTerminal:font:
+         * VteTerminal:font-desc:
          *
          * Specifies the font used for rendering all text displayed by the terminal,
          * overriding any fonts set using gtk_widget_modify_font().  The terminal
@@ -11857,8 +11857,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
          */
         g_object_class_install_property
                 (gobject_class,
-                 PROP_FONT,
-                 g_param_spec_boxed ("font", NULL, NULL,
+                 PROP_FONT_DESC,
+                 g_param_spec_boxed ("font-desc", NULL, NULL,
                                      PANGO_TYPE_FONT_DESCRIPTION,
                                      G_PARAM_READWRITE | STATIC_PARAMS));
      
