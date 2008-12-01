@@ -1,3 +1,9 @@
+0.19.0
+======
+
+ * New PangoCairo backend; all other backends were removed
+ * Bugs fixed: [http://bugzilla.gnome.org/buglist.cgi?product=vte&bug_status=RESOLVED&resolution=FIXED&chfieldfrom=2008-09-22&chfieldto=2008-12-02&chfield=bug_status]
+
 0.17.4
 ======
 - Translation updates

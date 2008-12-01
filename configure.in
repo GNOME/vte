@@ -1,6 +1,6 @@
 m4_define([vte_version_major],[0])
-m4_define([vte_version_minor],[17])
-m4_define([vte_version_micro],[5])
+m4_define([vte_version_minor],[19])
+m4_define([vte_version_micro],[0])
 m4_define([vte_version],[vte_version_major.vte_version_minor.vte_version_micro])
 
 AC_PREREQ(2.56)
@@ -18,7 +18,7 @@ AM_INIT_AUTOMAKE([1.9 no-dist-gzip dist-bzip2])
 LTVERSION_REVISION=4
 # CURRENT must be incremented when an API or ABI change (addition or removal)
 # is made, and REVISION must be reset to 0 when this happens.
-LTVERSION_CURRENT=12
+LTVERSION_CURRENT=13
 # AGE must be incremented when an API or ABI addition is made, and REVISION
 # must be reset to 0 when this happens.
 LTVERSION_AGE=3

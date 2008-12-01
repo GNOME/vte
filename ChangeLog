@@ -1,5 +1,10 @@
 2008-12-01  Christian Persch  <chpe@gnome.org>
 
+	* NEWS:
+	* configure.in: Prepare 0.19.0.
+
+2008-12-01  Christian Persch  <chpe@gnome.org>
+
 	Bug 562511 – scrollbar doesn't sit at the bottom
 
 	* src/vte.c: (vte_terminal_init),
