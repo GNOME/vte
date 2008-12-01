@@ -1,5 +1,9 @@
 2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vteseq.c: Rip out VTE_SEQUENCE_HANDLER_PROTO.
+
+2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vteseq.c: Rip out vte_sequence_handler_invoke.
 
 2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
