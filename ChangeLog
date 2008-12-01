@@ -1,5 +1,15 @@
 2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vteseq-2.c (vteseq_2_lookup):
+	* src/vteseq-2.gperf:
+	* src/vteseq-n.c (vteseq_n_lookup):
+	* src/vteseq-n.gperf:
+	* src/vteseq.c:
+	Add a macro around sequence handler citations, for future table
+	tricks.
+
+2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vteseq-n.gperf:
 	* src/vteseq-n.c (vteseq_n_hash), (vteseq_n_lookup):
 	Remove bogus entry that accidentally made it into the gperf list.

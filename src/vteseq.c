@@ -4008,6 +4008,9 @@ vte_sequence_handler_complain_key(VteTerminal *terminal,
 
 /* LOOKUP */
 
+#define VTE_SEQUENCE_HANDLER(name) name
+#define VTE_SEQUENCE_HANDLER_NULL  NULL
+
 static inline const struct vteseq_2_struct *
 vteseq_2_lookup (register const char *str, register unsigned int len);
 #include"vteseq-2.c"
@@ -4015,6 +4018,8 @@ vteseq_2_lookup (register const char *str, register unsigned int len);
 static inline const struct vteseq_n_struct *
 vteseq_n_lookup (register const char *str, register unsigned int len);
 #include"vteseq-n.c"
+
+#undef VTE_SEQUENCE_HANDLER
 
 VteTerminalSequenceHandler
 _vte_sequence_get_handler (const char *code)
