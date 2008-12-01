@@ -554,13 +554,12 @@ vte_sequence_handler_set_mode_internal(VteTerminal *terminal,
 	static VTE_SEQUENCE_HANDLER_SIGNATURE (name)
 
 #define VTE_SEQUENCE_HANDLER_INVOKE(handler, terminal, params) \
-	vte_sequence_handler_invoke (VTE_SEQUENCE_HANDLER_REFERENCE (handler), (terminal), (params))
+	vte_sequence_handler_invoke ((handler), (terminal), (params))
 
 
 /* The type of sequence handler handle. */
 
 typedef VTE_SEQUENCE_HANDLER_SIGNATURE((*VteTerminalSequenceHandler));
-#define VTE_SEQUENCE_HANDLER_REFERENCE(name) (name)
 #define vte_sequence_handler_invoke(handler, terminal, params) (handler) ((terminal), (params))
 
 
@@ -755,15 +754,15 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		{1048, NULL, NULL, NULL,
 		 NULL,
 		 NULL,
-		 VTE_SEQUENCE_HANDLER_REFERENCE (vte_sequence_handler_rc),
-		 VTE_SEQUENCE_HANDLER_REFERENCE (vte_sequence_handler_sc),},
+		 vte_sequence_handler_rc,
+		 vte_sequence_handler_sc,},
 		/* 1049: Use alternate screen buffer, saving the cursor
 		 * position. */
 		{1049, NULL, NULL, (gpointer) &terminal->pvt->screen,
 		 &terminal->pvt->normal_screen,
 		 &terminal->pvt->alternate_screen,
-		 VTE_SEQUENCE_HANDLER_REFERENCE (vte_sequence_handler_rc),
-		 VTE_SEQUENCE_HANDLER_REFERENCE (vte_sequence_handler_sc),},
+		 vte_sequence_handler_rc,
+		 vte_sequence_handler_sc,},
 		/* 1051: Sun function key mode. */
 		{1051, NULL, NULL, (gpointer) &terminal->pvt->sun_fkey_mode,
 		 GINT_TO_POINTER(FALSE),
@@ -1501,8 +1500,7 @@ VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_dc)
 /* Delete N characters at the current cursor position. */
 VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_DC)
 {
-	vte_sequence_handler_multiple(terminal, params,
-				      VTE_SEQUENCE_HANDLER_REFERENCE (vte_sequence_handler_dc));
+	vte_sequence_handler_multiple(terminal, params, vte_sequence_handler_dc);
 }
 
 /* Delete a line at the current cursor position. */
@@ -1576,8 +1574,7 @@ VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_do)
 /* Cursor down, no scrolling. */
 VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_DO)
 {
-	vte_sequence_handler_multiple(terminal, params,
-				      VTE_SEQUENCE_HANDLER_REFERENCE (vte_sequence_handler_do));
+	vte_sequence_handler_multiple(terminal, params, vte_sequence_handler_do);
 }
 
 /* Start using alternate character set. */
@@ -1668,8 +1665,7 @@ VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_ho)
 /* Move the cursor to a specified position. */
 VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_horizontal_and_vertical_position)
 {
-	vte_sequence_handler_offset(terminal, params, -1,
-				    VTE_SEQUENCE_HANDLER_REFERENCE (vte_sequence_handler_cm));
+	vte_sequence_handler_offset(terminal, params, -1, vte_sequence_handler_cm);
 }
 
 /* Insert a character. */
@@ -1690,8 +1686,7 @@ VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_ic)
 /* Insert N characters. */
 VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_IC)
 {
-	vte_sequence_handler_multiple(terminal, params,
-				      VTE_SEQUENCE_HANDLER_REFERENCE (vte_sequence_handler_ic));
+	vte_sequence_handler_multiple(terminal, params, vte_sequence_handler_ic);
 }
 
 /* Begin insert mode. */
@@ -1756,8 +1751,7 @@ VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_le)
 /* Move the cursor left N columns. */
 VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_LE)
 {
-	vte_sequence_handler_multiple(terminal, params,
-				      VTE_SEQUENCE_HANDLER_REFERENCE (vte_sequence_handler_le));
+	vte_sequence_handler_multiple(terminal, params, vte_sequence_handler_le);
 }
 
 /* Move the cursor to the lower left corner of the display. */
@@ -1868,8 +1862,7 @@ VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_reverse_index)
 /* Cursor right N characters. */
 VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_RI)
 {
-	vte_sequence_handler_multiple(terminal, params,
-				      VTE_SEQUENCE_HANDLER_REFERENCE (vte_sequence_handler_nd));
+	vte_sequence_handler_multiple(terminal, params, vte_sequence_handler_nd);
 }
 
 /* Save cursor (position). */
@@ -1983,8 +1976,7 @@ VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_sf)
 VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_SF)
 {
 	/* XXX implement this directly in _vte_terminal_cursor_down */
-	vte_sequence_handler_multiple(terminal, params,
-				      VTE_SEQUENCE_HANDLER_REFERENCE (vte_sequence_handler_sf));
+	vte_sequence_handler_multiple(terminal, params, vte_sequence_handler_sf);
 }
 
 /* Standout start. */
@@ -2082,8 +2074,7 @@ VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_sr)
 /* Cursor up, with scrolling. */
 VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_SR)
 {
-	vte_sequence_handler_multiple(terminal, params,
-				      VTE_SEQUENCE_HANDLER_REFERENCE (vte_sequence_handler_sr));
+	vte_sequence_handler_multiple(terminal, params, vte_sequence_handler_sr);
 }
 
 /* Set tab stop in the current column. */
@@ -2289,8 +2280,7 @@ VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_up)
 /* Cursor up N lines, no scrolling. */
 VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_UP)
 {
-	vte_sequence_handler_multiple(terminal, params,
-				      VTE_SEQUENCE_HANDLER_REFERENCE (vte_sequence_handler_up));
+	vte_sequence_handler_multiple(terminal, params, vte_sequence_handler_up);
 }
 
 /* Underline start. */
@@ -2520,8 +2510,7 @@ VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_cursor_character_absolute)
 /* Move the cursor to the given position, 1-based. */
 VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_cursor_position)
 {
-	vte_sequence_handler_offset(terminal, params, -1,
-				    VTE_SEQUENCE_HANDLER_REFERENCE (vte_sequence_handler_cm));
+	vte_sequence_handler_offset(terminal, params, -1, vte_sequence_handler_cm);
 }
 
 /* Request terminal attributes. */
@@ -2589,8 +2578,7 @@ VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_set_icon_and_window_title)
 /* Restrict the scrolling region. */
 VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_set_scrolling_region)
 {
-	vte_sequence_handler_offset(terminal, params, -1,
-				    VTE_SEQUENCE_HANDLER_REFERENCE (vte_sequence_handler_cs));
+	vte_sequence_handler_offset(terminal, params, -1, vte_sequence_handler_cs);
 }
 
 /* Set the application or normal keypad. */
@@ -2611,13 +2599,11 @@ VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_normal_keypad)
 /* Move the cursor. */
 VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_character_position_absolute)
 {
-	vte_sequence_handler_offset(terminal, params, -1,
-				    VTE_SEQUENCE_HANDLER_REFERENCE (vte_sequence_handler_ch));
+	vte_sequence_handler_offset(terminal, params, -1, vte_sequence_handler_ch);
 }
 VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_line_position_absolute)
 {
-	vte_sequence_handler_offset(terminal, params, -1,
-				    VTE_SEQUENCE_HANDLER_REFERENCE (vte_sequence_handler_cv));
+	vte_sequence_handler_offset(terminal, params, -1, vte_sequence_handler_cv);
 }
 
 /* Set certain terminal attributes. */
@@ -3298,7 +3284,7 @@ VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_window_manipulation)
 /* More boilerplate */
 
 
-#define VTE_SEQUENCE_HANDLER(name) VTE_SEQUENCE_HANDLER_REFERENCE (name)
+#define VTE_SEQUENCE_HANDLER(name) name
 
 static const struct vteseq_2_struct *
 vteseq_2_lookup (register const char *str, register unsigned int len);

@@ -1,5 +1,9 @@
 2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vteseq.c: Rip out VTE_SEQUENCE_HANDLER_REFERENCE.
+
+2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vteseq.c (_vte_terminal_handle_sequence): Rip out the gcc label
 	vtable code.
 
