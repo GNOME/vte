@@ -1,5 +1,10 @@
 2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vteseq.c (VTE_SEQUENCE_HANDLER_PROTO): Use a macro to define
+	type of sequence handlers.
+
+2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/Makefile.am:
 	* src/vteseq-2.c:
 	* src/vteseq-n.c:
