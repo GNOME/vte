@@ -554,11 +554,8 @@ vte_sequence_handler_set_mode_internal(VteTerminal *terminal,
 	static VTE_SEQUENCE_HANDLER_SIGNATURE (name)
 
 
-/* The type of sequence handler handle. */
-
+/* Typedef the handle type */
 typedef VTE_SEQUENCE_HANDLER_SIGNATURE((*VteTerminalSequenceHandler));
-#define vte_sequence_handler_invoke(handler, terminal, params) (handler) ((terminal), (params))
-
 
 /* Prototype all handlers... */
 #define VTE_SEQUENCE_HANDLER(name) VTE_SEQUENCE_HANDLER_PROTO (name);
@@ -588,7 +585,7 @@ vte_sequence_handler_offset(VteTerminal *terminal,
 			g_value_set_long(value, val);
 		}
 	}
-	vte_sequence_handler_invoke (handler, terminal, params);
+	handler (terminal, params);
 }
 
 /* Call another function a given number of times, or once. */
@@ -609,7 +606,7 @@ vte_sequence_handler_multiple(VteTerminal *terminal,
 		}
 	}
 	for (i = 0; i < val; i++)
-		vte_sequence_handler_invoke (handler, terminal, NULL);
+		handler (terminal, NULL);
 }
 
 
@@ -828,7 +825,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 					"Setting %d to %s.\n",
 					setting, set ? "set" : "unset");
 			if (settings[i].set && set) {
-				vte_sequence_handler_invoke (settings[i].set, terminal, NULL);
+				settings[i].set (terminal, NULL);
 			}
 			if (settings[i].bvalue) {
 				*(settings[i].bvalue) = set;
@@ -844,7 +841,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 					settings[i].fvalue;
 			}
 			if (settings[i].reset && !set) {
-				vte_sequence_handler_invoke (settings[i].reset, terminal, NULL);
+				settings[i].reset (terminal, NULL);
 			}
 		}
 	}
@@ -3330,7 +3327,7 @@ _vte_terminal_handle_sequence(VteTerminal *terminal2,
 
 	if (handler != NULL) {
 		/* Let the handler handle it. */
-		vte_sequence_handler_invoke (handler, terminal2, params2);
+		handler (terminal2, params2);
 	} else {
 		_vte_debug_print (VTE_DEBUG_MISC,
 				  "No handler for control sequence `%s' defined.\n",
