@@ -11767,7 +11767,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                     G_PARAM_READWRITE | STATIC_PARAMS));
 
         /**
-         * VteTerminal:cusor-blink-mode:
+         * VteTerminal:cursor-blink-mode:
          *
          * Sets whether or not the cursor will blink. Using VTE_CURSOR_BLINK_SYSTEM
          * will use the #GtkSettings::gtk-cursor-blink setting.
