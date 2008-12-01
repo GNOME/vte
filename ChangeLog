@@ -1,5 +1,15 @@
 2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/Makefile.am:
+	* src/vte-private.h:
+	* src/vte.c (vte_terminal_process_incoming):
+	* src/vteseq.c (display_control_sequence),
+	(_vte_terminal_handle_sequence):
+	* src/vteseq.h:
+	Move _vte_terminal_handle_sequence() into vteseq.c
+
+2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte-private.h:
 	* src/vte.c (vte_insert_line_internal), (vte_remove_line_internal),
 	(_vte_terminal_cursor_down), (_vte_terminal_insert_char),

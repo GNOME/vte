@@ -453,6 +453,12 @@ void _vte_terminal_beep(VteTerminal *terminal);
 
 void _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ...) G_GNUC_PRINTF(2,3);
 
+/* vteseq.c: */
+gboolean _vte_terminal_handle_sequence(VteTerminal *terminal,
+				       const char *match_s,
+				       GQuark match,
+				       GValueArray *params);
+
 G_END_DECLS
 
 #endif

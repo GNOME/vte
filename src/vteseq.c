@@ -28,11 +28,17 @@
 
 #include "vte.h"
 #include "vte-private.h"
-#include "vteseq.h"
 #include "vtetc.h"
 
 
 
+/* A function which can handle a terminal control sequence.  Returns TRUE only
+ * if something happened (usually a signal emission) to which the controlling
+ * application must have an immediate opportunity to respond. */
+typedef gboolean (*VteTerminalSequenceHandler)(VteTerminal *terminal,
+					       const char *match,
+					       GQuark match_quark,
+					       GValueArray *params);
 
 /* Prototype all handlers... */
 #define VTE_SEQUENCE_HANDLER(name) \
@@ -3898,7 +3904,7 @@ vteseq_n_lookup (register const char *str, register unsigned int len);
 
 #undef VTE_SEQUENCE_HANDLER
 
-VteTerminalSequenceHandler
+static VteTerminalSequenceHandler
 _vte_sequence_get_handler (const char *code)
 {
 	int len = strlen (code);
@@ -3914,4 +3920,70 @@ _vte_sequence_get_handler (const char *code)
 		seqhandler = vteseq_n_lookup (code, len);
 		return seqhandler ? seqhandler->handler : NULL;
 	}
+}
+
+static void
+display_control_sequence(const char *name, GValueArray *params)
+{
+#ifdef VTE_DEBUG
+	/* Display the control sequence with its parameters, to
+	 * help me debug this thing.  I don't have all of the
+	 * sequences implemented yet. */
+	guint i;
+	long l;
+	const char *s;
+	const gunichar *w;
+	GValue *value;
+	g_printerr("%s(", name);
+	if (params != NULL) {
+		for (i = 0; i < params->n_values; i++) {
+			value = g_value_array_get_nth(params, i);
+			if (i > 0) {
+				g_printerr(", ");
+			}
+			if (G_VALUE_HOLDS_LONG(value)) {
+				l = g_value_get_long(value);
+				g_printerr("%ld", l);
+			} else
+			if (G_VALUE_HOLDS_STRING(value)) {
+				s = g_value_get_string(value);
+				g_printerr("\"%s\"", s);
+			} else
+			if (G_VALUE_HOLDS_POINTER(value)) {
+				w = g_value_get_pointer(value);
+				g_printerr("\"%ls\"", (const wchar_t*) w);
+			}
+		}
+	}
+	g_printerr(")\n");
+#endif
+}
+
+/* Handle a terminal control sequence and its parameters. */
+gboolean
+_vte_terminal_handle_sequence(VteTerminal *terminal,
+			      const char *match_s,
+			      GQuark match,
+			      GValueArray *params)
+{
+	VteTerminalSequenceHandler handler;
+	gboolean ret;
+
+	_VTE_DEBUG_IF(VTE_DEBUG_PARSE)
+		display_control_sequence(match_s, params);
+
+	/* Find the handler for this control sequence. */
+	handler = _vte_sequence_get_handler (match_s);
+
+	if (handler != NULL) {
+		/* Let the handler handle it. */
+		ret = handler(terminal, match_s, match, params);
+	} else {
+		_vte_debug_print (VTE_DEBUG_MISC,
+				  "No handler for control sequence `%s' defined.\n",
+				  match_s);
+		ret = FALSE;
+	}
+
+	return ret;
 }
