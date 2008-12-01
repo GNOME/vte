@@ -346,7 +346,7 @@ Emitted when the terminal's @window_title field is modified.
 
 </para>
 
-<!-- ##### ARG VteTerminal:font ##### -->
+<!-- ##### ARG VteTerminal:font-desc ##### -->
 <para>
 
 </para>
