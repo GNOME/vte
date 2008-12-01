@@ -3877,18 +3877,6 @@ vte_sequence_handler_window_manipulation(VteTerminal *terminal,
 	return TRUE;
 }
 
-/* Complain that we got an escape sequence that's actually a keystroke. */
-static gboolean
-vte_sequence_handler_complain_key(VteTerminal *terminal,
-				  const char *match,
-				  GQuark match_quark,
-				  GValueArray *params)
-{
-	g_warning(_("Got unexpected (key?) sequence `%s'."),
-		  match ? match : "???");
-	return FALSE;
-}
-
 
 /* LOOKUP */
 
