@@ -3905,19 +3905,19 @@ vteseq_n_lookup (register const char *str, register unsigned int len);
 #undef VTE_SEQUENCE_HANDLER
 
 static VteTerminalSequenceHandler
-_vte_sequence_get_handler (const char *code)
+_vte_sequence_get_handler (const char *name)
 {
-	int len = strlen (code);
+	int len = strlen (name);
 
 	if (G_UNLIKELY (len < 2)) {
 		return NULL;
 	} else if (len == 2) {
 		const struct vteseq_2_struct *seqhandler;
-		seqhandler = vteseq_2_lookup (code, 2);
+		seqhandler = vteseq_2_lookup (name, 2);
 		return seqhandler ? seqhandler->handler : NULL;
 	} else {
 		const struct vteseq_n_struct *seqhandler;
-		seqhandler = vteseq_n_lookup (code, len);
+		seqhandler = vteseq_n_lookup (name, len);
 		return seqhandler ? seqhandler->handler : NULL;
 	}
 }
@@ -3926,9 +3926,6 @@ static void
 display_control_sequence(const char *name, GValueArray *params)
 {
 #ifdef VTE_DEBUG
-	/* Display the control sequence with its parameters, to
-	 * help me debug this thing.  I don't have all of the
-	 * sequences implemented yet. */
 	guint i;
 	long l;
 	const char *s;
