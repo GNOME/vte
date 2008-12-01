@@ -1,5 +1,16 @@
 2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte-private.h:
+	* src/vteseq.c (vte_sequence_handler_offset),
+	(vte_sequence_handler_multiple),
+	(vte_sequence_handler_decset_internal),
+	(vte_sequence_handler_set_mode_internal),
+	(VTE_SEQUENCE_HANDLER_PROTO), (_vte_terminal_handle_sequence):
+	Make sequence handlers return void instead of gboolean.  The return
+	value was unused.
+
+2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vteseq.c (vte_sequence_handler_offset),
 	(vte_sequence_handler_multiple),
 	(vte_sequence_handler_decset_internal),
