@@ -32,25 +32,6 @@
 
 
 
-/* A function which can handle a terminal control sequence.  Returns TRUE only
- * if something happened (usually a signal emission) to which the controlling
- * application must have an immediate opportunity to respond. */
-typedef gboolean (*VteTerminalSequenceHandler)(VteTerminal *terminal,
-					       const char *match,
-					       GQuark match_quark,
-					       GValueArray *params);
-
-/* Prototype all handlers... */
-#define VTE_SEQUENCE_HANDLER(name) \
-	static gboolean name(VteTerminal *terminal, \
-			     const char *match, \
-			     GQuark match_quark, \
-			     GValueArray *params);
-#include "vteseq-list.h"
-#undef VTE_SEQUENCE_HANDLER
-
-
-
 /* FUNCTIONS WE USE */
 
 
@@ -238,6 +219,38 @@ vte_terminal_emit_resize_window(VteTerminal *terminal,
 
 
 
+
+
+
+
+/*
+ * Sequence handling boilerplate
+ */
+
+
+
+
+
+/* A function which can handle a terminal control sequence.  Returns TRUE only
+ * if something happened (usually a signal emission) to which the controlling
+ * application must have an immediate opportunity to respond. */
+typedef gboolean (*VteTerminalSequenceHandler)(VteTerminal *terminal,
+					       const char *match,
+					       GQuark match_quark,
+					       GValueArray *params);
+
+/* Prototype all handlers... */
+#define VTE_SEQUENCE_HANDLER(name) \
+	static gboolean name(VteTerminal *terminal, \
+			     const char *match, \
+			     GQuark match_quark, \
+			     GValueArray *params);
+#include "vteseq-list.h"
+#undef VTE_SEQUENCE_HANDLER
+
+
+
+
 /* Call another function, offsetting any long arguments by the given
  * increment value. */
 static gboolean
@@ -289,61 +302,6 @@ vte_sequence_handler_multiple(VteTerminal *terminal,
 		}
 	}
 	return (again > 0);
-}
-
-/* Scroll the text, but don't move the cursor.  Negative = up,
- * positive = down. */
-static gboolean
-vte_sequence_handler_scroll_up_or_down(VteTerminal *terminal, int scroll_amount)
-{
-	VteRowData *row, *old_row;
-	long start, end, i;
-	VteScreen *screen;
-
-	screen = terminal->pvt->screen;
-
-	if (screen->scrolling_restricted) {
-		start = screen->insert_delta + screen->scrolling_region.start;
-		end = screen->insert_delta + screen->scrolling_region.end;
-	} else {
-		start = screen->insert_delta;
-		end = start + terminal->row_count - 1;
-	}
-
-	old_row = terminal->pvt->free_row;
-	while (_vte_ring_next(screen->row_data) <= end) {
-		if (old_row) {
-			row = _vte_reset_row_data (terminal, old_row, FALSE);
-		} else {
-			row = _vte_new_row_data_sized(terminal, FALSE);
-		}
-		old_row = _vte_ring_append(terminal->pvt->screen->row_data, row);
-	}
-	terminal->pvt->free_row = old_row;
-	if (scroll_amount > 0) {
-		for (i = 0; i < scroll_amount; i++) {
-			vte_remove_line_internal(terminal, end);
-			vte_insert_line_internal(terminal, start);
-		}
-	} else {
-		for (i = 0; i < -scroll_amount; i++) {
-			vte_remove_line_internal(terminal, start);
-			vte_insert_line_internal(terminal, end);
-		}
-	}
-
-	/* Update the display. */
-	_vte_terminal_scroll_region(terminal, start, end - start + 1,
-				   scroll_amount);
-
-	/* Adjust the scrollbars if necessary. */
-	_vte_terminal_adjust_adjustments(terminal);
-
-	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_inserted_flag = TRUE;
-	terminal->pvt->text_deleted_flag = TRUE;
-
-	return FALSE;
 }
 
 /* Set icon/window titles. */
@@ -2061,7 +2019,8 @@ vte_sequence_handler_scroll_down_one(VteTerminal *terminal,
 				     GQuark match_quark,
 				     GValueArray *params)
 {
-	return vte_sequence_handler_scroll_up_or_down(terminal, 1);
+	_vte_terminal_scroll (terminal, 1);
+	return FALSE;
 }
 
 /* Scroll the text down, but don't move the cursor. */
@@ -2082,7 +2041,8 @@ vte_sequence_handler_scroll_up_one(VteTerminal *terminal,
 				   GQuark match_quark,
 				   GValueArray *params)
 {
-	return vte_sequence_handler_scroll_up_or_down(terminal, -1);
+	_vte_terminal_scroll (terminal, -1);
+	return FALSE;
 }
 
 /* Scroll the text up, but don't move the cursor. */

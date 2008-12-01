@@ -1,5 +1,13 @@
 2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte-private.h:
+	* src/vte.c (_vte_terminal_scroll), (_vte_terminal_scroll_region):
+	* src/vteseq.c (vte_sequence_handler_scroll_down_one),
+	(vte_sequence_handler_scroll_up_one):
+	Move vte_terminal_scroll to vte.c
+
+2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vteseq-2.c (vteseq_2_hash), (vteseq_2_lookup):
 	* src/vteseq-2.gperf:
 	* src/vteseq-list.h:
