@@ -541,12 +541,6 @@ vte_sequence_handler_set_mode_internal(VteTerminal *terminal,
 
 
 
-
-
-
-
-
-
 /*
  * Sequence handling boilerplate
  */
@@ -565,67 +559,9 @@ vte_sequence_handler_set_mode_internal(VteTerminal *terminal,
 
 /* The type of sequence handler handle. */
 
-#ifndef USE_GCC_LABELS
-#if __GNUC__ >= 4
-#define USE_GCC_LABELS 1
-#else
-#define USE_GCC_LABELS 0
-#endif
-#endif
-
-#if !USE_GCC_LABELS
-
 typedef VTE_SEQUENCE_HANDLER_SIGNATURE((*VteTerminalSequenceHandler));
 #define VTE_SEQUENCE_HANDLER_REFERENCE(name) (name)
 #define vte_sequence_handler_invoke(handler, terminal, params) (handler) ((terminal), (params))
-
-#else
-
-typedef void *VteTerminalSequenceHandler;
-#define VTE_SEQUENCE_HANDLER_LABEL0(name) name##_label
-#define VTE_SEQUENCE_HANDLER_LABEL(name) VTE_SEQUENCE_HANDLER_LABEL0(name)
-#define VTE_SEQUENCE_HANDLER_REFERENCE(name) \
-	((VteTerminalSequenceHandler) ((char *) &&VTE_SEQUENCE_HANDLER_LABEL(name) - (char *) && vte_sequence_handler__base_label))
-#define vte_sequence_handler_invoke(handler, terminal, params) \
-	vte_sequence_handler_invoke_internal((handler), NULL, (terminal), (params)) \
-
-#endif
-
-
-
-
-
-
-
-/* More boilerplate */
-
-#if USE_GCC_LABELS
-
-void
-_vte_terminal_handle_sequence(VteTerminal *terminal2,
-			      const char *match_s,
-			      GQuark match G_GNUC_UNUSED,
-			      GValueArray *params2)
-{
-
-void
-vte_sequence_handler_invoke_internal (VteTerminalSequenceHandler handler,
-				      const char *name3,
-				      VteTerminal *terminal3,
-				      GValueArray *params3)
-{
-	/* Open-ended functions.  Close at the other end of the file! */
-
-/* Prototype all lables... */
-#define VTE_SEQUENCE_HANDLER(name) __label__ VTE_SEQUENCE_HANDLER_LABEL (name);
-	__label__ vte_sequence_handler__base_label;
-#include "vteseq-list.h"
-#undef VTE_SEQUENCE_HANDLER
-
-#define static auto
-
-#endif
-
 
 
 /* Prototype all handlers... */
@@ -3359,8 +3295,6 @@ VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_window_manipulation)
 
 
 
-
-
 /* More boilerplate */
 
 
@@ -3396,34 +3330,6 @@ _vte_sequence_get_handler (const char *name)
 }
 
 
-#if USE_GCC_LABELS
-
-#undef static
-
-	if (G_LIKELY (name3))
-		handler = _vte_sequence_get_handler (name3);
-
-	goto *((char *) &&vte_sequence_handler__base_label + (gsize) handler);
-
-#define VTE_SEQUENCE_HANDLER(name) VTE_SEQUENCE_HANDLER_LABEL (name): name (terminal3, params3); return;
-vte_sequence_handler__base_label:
-		_vte_debug_print (VTE_DEBUG_MISC,
-				  "No handler for control sequence `%s' defined.\n",
-				  name3);
-		return;
-#include "vteseq-list.h"
-#undef VTE_SEQUENCE_HANDLER
-}
-
-	_VTE_DEBUG_IF(VTE_DEBUG_PARSE)
-		display_control_sequence(match_s, params2);
-
-	vte_sequence_handler_invoke_internal (NULL, match_s, terminal2, params2);
-}
-
-#else 
-
-
 /* Handle a terminal control sequence and its parameters. */
 void
 _vte_terminal_handle_sequence(VteTerminal *terminal2,
@@ -3448,4 +3354,3 @@ _vte_terminal_handle_sequence(VteTerminal *terminal2,
 				  match_s);
 	}
 }
-#endif
