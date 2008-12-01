@@ -1,5 +1,14 @@
 2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte-private.h:
+	* src/vte.c:
+	* src/vteseq.c (_vte_terminal_scroll_text),
+	(vte_sequence_handler_scroll_down),
+	(vte_sequence_handler_scroll_up):
+	More code shufflling.
+
+2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/Makefile.am:
 	* src/vteseq-list.h:
 	Remove vteseq-list.h from SVN, but still distribute it in the tarball.
