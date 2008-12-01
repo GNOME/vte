@@ -137,22 +137,6 @@ VTE_TERMINAL_ACCESSIBLE_GET_CLASS
 </SECTION>
 
 <SECTION>
-<FILE>reaper</FILE>
-<TITLE>VteReaper</TITLE>
-VteReaper
-vte_reaper_get
-vte_reaper_add_child
-<SUBSECTION Standard>
-VTE_REAPER
-VTE_IS_REAPER
-VTE_TYPE_REAPER
-vte_reaper_get_type
-VTE_REAPER_CLASS
-VTE_IS_REAPER_CLASS
-VTE_REAPER_GET_CLASS
-</SECTION>
-
-<SECTION>
 <FILE>internals</FILE>
 <TITLE>Internals</TITLE>
 <SUBSECTION Private>

@@ -1,5 +1,11 @@
 2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
 
+	* doc/reference/tmpl/vte-unused.sgml:
+	* doc/reference/vte-sections.txt:
+	Remove reaper docs.
+
+2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 562806 – crash in Terminal: Typing "cd " just after ...
 
 	* src/vte.c (_vte_terminal_cleanup_tab_fragments_at_cursor):
