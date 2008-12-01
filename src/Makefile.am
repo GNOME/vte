@@ -100,7 +100,9 @@ libvte_la_LDFLAGS = \
 
 # Generated sources
 
-BUILT_SOURCES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h
+BUILT_SOURCES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h vteseq-list.h
+MAINTAINERCLEANFILES = vteseq-list.h
+EXTRA_DIST += vteseq-list.h
 CLEANFILES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h stamp-vtetypebuiltins.h
 
 marshal.c marshal.h: marshal.list
