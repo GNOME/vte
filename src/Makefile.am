@@ -100,9 +100,10 @@ libvte_la_LDFLAGS = \
 
 # Generated sources
 
-BUILT_SOURCES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h vteseq-list.h
-MAINTAINERCLEANFILES = vteseq-list.h
-EXTRA_DIST += vteseq-list.h
+VTESEQ_BUILTSOURCES = vteseq-list.h vteseq-2.c vteseq-n.c
+BUILT_SOURCES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h $(VTESEQ_BUILTSOURCES)
+MAINTAINERCLEANFILES = $(VTESEQ_BUILTSOURCES)
+EXTRA_DIST += $(VTESEQ_BUILTSOURCES)
 CLEANFILES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h stamp-vtetypebuiltins.h
 
 marshal.c marshal.h: marshal.list
@@ -122,9 +123,15 @@ vtetypebuiltins.c: vtetypebuiltins.c.template vte.h
 	&& (cmp -s xgen-vtbc vtetypebuiltins.c || cp xgen-vtbc vtetypebuiltins.c ) \
 	&& rm -f xgen-vtbc
 
-gperf: vteseq-2.gperf vteseq-n.gperf
-	gperf vteseq-2.gperf -m 100 --no-strlen > vteseq-2.c
-	gperf vteseq-n.gperf -m 100 > vteseq-n.c
+vteseq-2.c: vteseq-2.gperf
+	@echo creating $@
+	$(top_srcdir)/missing --run gperf -m 100 --no-strlen $< > $@.tmp && \
+	mv -f $@.tmp $@
+
+vteseq-n.c: vteseq-n.gperf
+	@echo creating $@
+	$(top_srcdir)/missing --run gperf -m 100 $< > $@.tmp && \
+	mv -f $@.tmp $@
 
 vteseq-list.h: vteseq-2.gperf vteseq-n.gperf
 	@echo creating $@

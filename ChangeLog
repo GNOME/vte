@@ -1,5 +1,13 @@
 2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/Makefile.am:
+	* src/vteseq-2.c:
+	* src/vteseq-n.c:
+	Remove gperf-generated files from SVN, but still distribute them in
+	the tarball.
+
+2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte-private.h:
 	* src/vte.c:
 	* src/vteseq.c (_vte_terminal_scroll_text),
