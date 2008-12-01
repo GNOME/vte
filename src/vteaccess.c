@@ -20,7 +20,7 @@
  * accessibility code. */
 
 
-#include "../config.h"
+#include <config.h>
 
 #include <atk/atk.h>
 #include <gtk/gtk.h>

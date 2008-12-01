@@ -1,5 +1,32 @@
 2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/buffer.c:
+	* src/caps.c:
+	* src/dumpkeys.c:
+	* src/interpret.c:
+	* src/iso2022.c:
+	* src/keymap.c:
+	* src/matcher.c:
+	* src/mev.c:
+	* src/pty.c:
+	* src/reaper.c:
+	* src/reflect.c:
+	* src/ring.c:
+	* src/slowcat.c:
+	* src/ssfe.c:
+	* src/table.c:
+	* src/trie.c:
+	* src/vteaccess.c:
+	* src/vtebg.c:
+	* src/vteconv.c:
+	* src/vtedraw.c:
+	* src/vteseq.c:
+	* src/vteskel.c:
+	* src/xticker.c:
+	#include <config.h> instead of "../config.h".
+
+2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vteseq.c: Some wild crack to build the vtable using gcc
 	extension for labels as values.  The advantage is that we get down to
 	an empty .data for vteseq.o but .text grows considerably.  And we have

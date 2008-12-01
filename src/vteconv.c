@@ -19,7 +19,7 @@
 /* The interfaces in this file are subject to change at any time. */
 
 
-#include "../config.h"
+#include <config.h>
 #include <sys/types.h>
 #include <errno.h>
 #include <string.h>

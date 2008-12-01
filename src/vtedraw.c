@@ -19,7 +19,7 @@
 /* The interfaces in this file are subject to change at any time. */
 
 
-#include "../config.h"
+#include <config.h>
 
 #include <stdio.h>
 #include <stdlib.h>

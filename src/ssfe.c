@@ -18,7 +18,7 @@
    From attachment to Red Hat Bugzilla #75900.
 */
 
-#include "../config.h"
+#include <config.h>
 
 #include <stdarg.h>
 

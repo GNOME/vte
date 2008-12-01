@@ -17,7 +17,7 @@
  */
 
 
-#include "../config.h"
+#include <config.h>
 
 #include <limits.h>
 #ifdef HAVE_SYS_SYSLIMITS_H
