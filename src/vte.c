@@ -2956,7 +2956,6 @@ _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
 		_vte_debug_print(VTE_DEBUG_MISC,
 				 "Cleaning tab fragments at %ld",
 				 col);
-		g_message ("cleaning tab at %ld", col);
 
 		/* go back to the beginning of the tab */
 		while (cell != NULL && cell->attr.fragment && col > 0) {
@@ -2971,6 +2970,8 @@ _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
 		num_columns = cell->attr.columns;
 		for (i = 0; i < num_columns; i++) {
 			cell = _vte_row_data_find_charcell(row, col++);
+			if (!cell)
+				break;
 			*cell = screen->fill_defaults;
 		}
 	}

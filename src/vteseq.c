@@ -2162,7 +2162,7 @@ vte_sequence_handler_ta (VteTerminal *terminal, GValueArray *params)
 		    cell.c = '\t';
 		    g_array_append_vals(rowdata->cells, &cell, 1);
 
-		    cell = screen->fill_defaults;
+		    cell.attr = screen->fill_defaults.attr;
 		    cell.attr.fragment = 1;
 		    vte_g_array_fill (rowdata->cells,
 				      &cell,

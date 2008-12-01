@@ -1,3 +1,13 @@
+2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 562806 – crash in Terminal: Typing "cd " just after ...
+
+	* src/vte.c (_vte_terminal_cleanup_tab_fragments_at_cursor):
+	Fix possible NULL dereference.
+
+	* src/vteseq.c (vte_sequence_handler_ta):
+	Fix tab fragments to have \t as c.
+
 2008-12-01  Christian Persch  <chpe@gnome.org>
 
 	* NEWS:
