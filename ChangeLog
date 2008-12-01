@@ -1,6 +1,17 @@
 2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vteseq-list.h:
+	* src/vteseq.c (_vte_terminal_home_cursor),
+	(_vte_terminal_clear_screen), (_vte_terminal_clear_current_line),
+	(_vte_terminal_clear_above_current),
+	(vte_sequence_handler_decset_internal), (vte_sequence_handler_cl),
+	(vte_sequence_handler_ho), (vte_sequence_handler_erase_in_display),
+	(vte_sequence_handler_erase_in_line):
+	Sync vteseql-list.h with actual handlers used in gperf files.
+
+2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vteseq-list.h:
 	* src/vteseq.c (vte_sequence_handler_scroll_down),
 	(vte_sequence_handler_scroll_up):
 	Implement these calling vte_terminal_scroll() directly instead of

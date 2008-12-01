@@ -218,6 +218,125 @@ vte_terminal_emit_resize_window(VteTerminal *terminal,
 }
 
 
+/* Some common functions */
+
+static void
+_vte_terminal_home_cursor (VteTerminal *terminal)
+{
+	VteScreen *screen;
+	screen = terminal->pvt->screen;
+	screen->cursor_current.row = screen->insert_delta;
+	screen->cursor_current.col = 0;
+}
+
+/* Clear the entire screen. */
+static void
+_vte_terminal_clear_screen (VteTerminal *terminal)
+{
+	VteRowData *rowdata, *old_row;
+	long i, initial, row;
+	VteScreen *screen;
+	screen = terminal->pvt->screen;
+	initial = screen->insert_delta;
+	row = screen->cursor_current.row - screen->insert_delta;
+	/* Add a new screen's worth of rows. */
+	old_row = terminal->pvt->free_row;
+	for (i = 0; i < terminal->row_count; i++) {
+		/* Add a new row */
+		if (i == 0) {
+			initial = _vte_ring_next(screen->row_data);
+		}
+		if (old_row) {
+			rowdata = _vte_reset_row_data (terminal, old_row, TRUE);
+		} else {
+			rowdata = _vte_new_row_data_sized(terminal, TRUE);
+		}
+		old_row = _vte_ring_append(screen->row_data, rowdata);
+	}
+	terminal->pvt->free_row = old_row;
+	/* Move the cursor and insertion delta to the first line in the
+	 * newly-cleared area and scroll if need be. */
+	screen->insert_delta = initial;
+	screen->cursor_current.row = row + screen->insert_delta;
+	_vte_terminal_adjust_adjustments(terminal);
+	/* Redraw everything. */
+	_vte_invalidate_all(terminal);
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->text_deleted_flag = TRUE;
+}
+
+/* Clear the current line. */
+static void
+_vte_terminal_clear_current_line (VteTerminal *terminal)
+{
+	VteRowData *rowdata;
+	VteScreen *screen;
+
+	screen = terminal->pvt->screen;
+
+	/* If the cursor is actually on the screen, clear data in the row
+	 * which corresponds to the cursor. */
+	if (_vte_ring_next(screen->row_data) > screen->cursor_current.row) {
+		/* Get the data for the row which the cursor points to. */
+		rowdata = _vte_ring_index(screen->row_data, VteRowData *,
+					  screen->cursor_current.row);
+		g_assert(rowdata != NULL);
+		/* Remove it. */
+		if (rowdata->cells->len > 0) {
+			g_array_set_size(rowdata->cells, 0);
+		}
+		/* Add enough cells to the end of the line to fill out the
+		 * row. */
+		vte_g_array_fill(rowdata->cells,
+				 &screen->fill_defaults,
+				 terminal->column_count);
+		rowdata->soft_wrapped = 0;
+		/* Repaint this row. */
+		_vte_invalidate_cells(terminal,
+				      0, terminal->column_count,
+				      screen->cursor_current.row, 1);
+	}
+
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->text_deleted_flag = TRUE;
+}
+
+/* Clear above the current line. */
+static void
+_vte_terminal_clear_above_current (VteTerminal *terminal)
+{
+	VteRowData *rowdata;
+	long i;
+	VteScreen *screen;
+	screen = terminal->pvt->screen;
+	/* If the cursor is actually on the screen, clear data in the row
+	 * which corresponds to the cursor. */
+	for (i = screen->insert_delta; i < screen->cursor_current.row; i++) {
+		if (_vte_ring_next(screen->row_data) > i) {
+			guint len;
+			/* Get the data for the row we're erasing. */
+			rowdata = _vte_ring_index(screen->row_data,
+						  VteRowData *, i);
+			g_assert(rowdata != NULL);
+			/* Remove it. */
+			len = rowdata->cells->len;
+			if (len > 0) {
+				g_array_set_size(rowdata->cells, 0);
+			}
+			/* Add new cells until we fill the row. */
+			vte_g_array_fill(rowdata->cells,
+					 &screen->fill_defaults,
+					 terminal->column_count);
+			rowdata->soft_wrapped = 0;
+			/* Repaint the row. */
+			_vte_invalidate_cells(terminal,
+					0, terminal->column_count, i, 1);
+		}
+	}
+	/* We've modified the display.  Make a note of it. */
+	terminal->pvt->text_deleted_flag = TRUE;
+}
+
 
 
 
@@ -664,14 +783,8 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		/* Clear the alternate screen if we're switching
 		 * to it, and home the cursor. */
 		if (set) {
-			vte_sequence_handler_clear_screen(terminal,
-							  NULL,
-							  0,
-							  NULL);
-			vte_sequence_handler_ho(terminal,
-						NULL,
-						0,
-						NULL);
+			_vte_terminal_clear_screen (terminal);
+			_vte_terminal_home_cursor (terminal);
 		}
 		/* Reset scrollbars and repaint everything. */
 		terminal->adjustment->value =
@@ -1132,8 +1245,8 @@ vte_sequence_handler_cl(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	vte_sequence_handler_clear_screen(terminal, NULL, 0, NULL);
-	vte_sequence_handler_ho(terminal, NULL, 0, NULL);
+	_vte_terminal_clear_screen (terminal);
+	_vte_terminal_home_cursor (terminal);
 
 	/* We've modified the display.  Make a note of it. */
 	terminal->pvt->text_deleted_flag = TRUE;
@@ -1179,46 +1292,6 @@ vte_sequence_handler_cm(VteTerminal *terminal,
 	screen->cursor_current.row = rowval + screen->insert_delta;
 	screen->cursor_current.col = colval;
 	_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
-	return FALSE;
-}
-
-/* Clear the current line. */
-static gboolean
-vte_sequence_handler_clear_current_line(VteTerminal *terminal,
-					const char *match,
-					GQuark match_quark,
-					GValueArray *params)
-{
-	VteRowData *rowdata;
-	VteScreen *screen;
-
-	screen = terminal->pvt->screen;
-
-	/* If the cursor is actually on the screen, clear data in the row
-	 * which corresponds to the cursor. */
-	if (_vte_ring_next(screen->row_data) > screen->cursor_current.row) {
-		/* Get the data for the row which the cursor points to. */
-		rowdata = _vte_ring_index(screen->row_data, VteRowData *,
-					  screen->cursor_current.row);
-		g_assert(rowdata != NULL);
-		/* Remove it. */
-		if (rowdata->cells->len > 0) {
-			g_array_set_size(rowdata->cells, 0);
-		}
-		/* Add enough cells to the end of the line to fill out the
-		 * row. */
-		vte_g_array_fill(rowdata->cells,
-				 &screen->fill_defaults,
-				 terminal->column_count);
-		rowdata->soft_wrapped = 0;
-		/* Repaint this row. */
-		_vte_invalidate_cells(terminal,
-				      0, terminal->column_count,
-				      screen->cursor_current.row, 1);
-	}
-
-	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
 	return FALSE;
 }
 
@@ -1665,10 +1738,7 @@ vte_sequence_handler_ho(VteTerminal *terminal,
 			GQuark match_quark,
 			GValueArray *params)
 {
-	VteScreen *screen;
-	screen = terminal->pvt->screen;
-	screen->cursor_current.row = screen->insert_delta;
-	screen->cursor_current.col = 0;
+	_vte_terminal_home_cursor (terminal);
 	return FALSE;
 }
 
@@ -2737,86 +2807,6 @@ vte_sequence_handler_character_attributes(VteTerminal *terminal,
 	return FALSE;
 }
 
-/* Clear above the current line. */
-static gboolean
-vte_sequence_handler_clear_above_current(VteTerminal *terminal,
-					 const char *match,
-					 GQuark match_quark,
-					 GValueArray *params)
-{
-	VteRowData *rowdata;
-	long i;
-	VteScreen *screen;
-	screen = terminal->pvt->screen;
-	/* If the cursor is actually on the screen, clear data in the row
-	 * which corresponds to the cursor. */
-	for (i = screen->insert_delta; i < screen->cursor_current.row; i++) {
-		if (_vte_ring_next(screen->row_data) > i) {
-			guint len;
-			/* Get the data for the row we're erasing. */
-			rowdata = _vte_ring_index(screen->row_data,
-						  VteRowData *, i);
-			g_assert(rowdata != NULL);
-			/* Remove it. */
-			len = rowdata->cells->len;
-			if (len > 0) {
-				g_array_set_size(rowdata->cells, 0);
-			}
-			/* Add new cells until we fill the row. */
-			vte_g_array_fill(rowdata->cells,
-					 &screen->fill_defaults,
-					 terminal->column_count);
-			rowdata->soft_wrapped = 0;
-			/* Repaint the row. */
-			_vte_invalidate_cells(terminal,
-					0, terminal->column_count, i, 1);
-		}
-	}
-	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
-	return FALSE;
-}
-
-/* Clear the entire screen. */
-static gboolean
-vte_sequence_handler_clear_screen(VteTerminal *terminal,
-				  const char *match,
-				  GQuark match_quark,
-				  GValueArray *params)
-{
-	VteRowData *rowdata, *old_row;
-	long i, initial, row;
-	VteScreen *screen;
-	screen = terminal->pvt->screen;
-	initial = screen->insert_delta;
-	row = screen->cursor_current.row - screen->insert_delta;
-	/* Add a new screen's worth of rows. */
-	old_row = terminal->pvt->free_row;
-	for (i = 0; i < terminal->row_count; i++) {
-		/* Add a new row */
-		if (i == 0) {
-			initial = _vte_ring_next(screen->row_data);
-		}
-		if (old_row) {
-			rowdata = _vte_reset_row_data (terminal, old_row, TRUE);
-		} else {
-			rowdata = _vte_new_row_data_sized(terminal, TRUE);
-		}
-		old_row = _vte_ring_append(screen->row_data, rowdata);
-	}
-	terminal->pvt->free_row = old_row;
-	/* Move the cursor and insertion delta to the first line in the
-	 * newly-cleared area and scroll if need be. */
-	screen->insert_delta = initial;
-	screen->cursor_current.row = row + screen->insert_delta;
-	_vte_terminal_adjust_adjustments(terminal);
-	/* Redraw everything. */
-	_vte_invalidate_all(terminal);
-	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
-	return FALSE;
-}
-
 /* Move the cursor to the given column, 1-based. */
 static gboolean
 vte_sequence_handler_cursor_character_absolute(VteTerminal *terminal,
@@ -3179,25 +3169,19 @@ vte_sequence_handler_erase_in_display(VteTerminal *terminal,
 	switch (param) {
 	case 0:
 		/* Clear below the current line. */
-		again = vte_sequence_handler_cd(terminal, NULL, 0, NULL);
+		again = vte_sequence_handler_cd (terminal, NULL, 0, NULL);
 		break;
 	case 1:
 		/* Clear above the current line. */
-		again = vte_sequence_handler_clear_above_current(terminal,
-								 NULL,
-								 0,
-								 NULL);
+		_vte_terminal_clear_above_current (terminal);
 		/* Clear everything to the left of the cursor, too. */
 		/* FIXME: vttest. */
-		again = vte_sequence_handler_cb(terminal, NULL, 0, NULL) ||
+		again = vte_sequence_handler_cb (terminal, NULL, 0, NULL) ||
 			again;
 		break;
 	case 2:
 		/* Clear the entire screen. */
-		again = vte_sequence_handler_clear_screen(terminal,
-							  NULL,
-							  0,
-							  NULL);
+		_vte_terminal_clear_screen (terminal);
 		break;
 	default:
 		break;
@@ -3233,16 +3217,15 @@ vte_sequence_handler_erase_in_line(VteTerminal *terminal,
 	switch (param) {
 	case 0:
 		/* Clear to end of the line. */
-		again = vte_sequence_handler_ce(terminal, NULL, 0, NULL);
+		again = vte_sequence_handler_ce (terminal, NULL, 0, NULL);
 		break;
 	case 1:
 		/* Clear to start of the line. */
-		again = vte_sequence_handler_cb(terminal, NULL, 0, NULL);
+		again = vte_sequence_handler_cb (terminal, NULL, 0, NULL);
 		break;
 	case 2:
 		/* Clear the entire line. */
-		again = vte_sequence_handler_clear_current_line(terminal,
-								NULL, 0, NULL);
+		_vte_terminal_clear_current_line (terminal);
 		break;
 	default:
 		break;
