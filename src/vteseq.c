@@ -480,12 +480,11 @@ vte_sequence_handler_multiple(VteTerminal *terminal,
 }
 
 /* Set icon/window titles. */
-static gboolean
+static void
 vte_sequence_handler_set_title_internal(VteTerminal *terminal,
-					const char *match,
-					GQuark match_quark,
 					GValueArray *params,
-					const char *mode)
+					gboolean icon_title,
+					gboolean window_title)
 {
 	GValue *value;
 	VteConv conv;
@@ -493,7 +492,9 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 	guchar *outbuf = NULL, *outbufptr = NULL;
 	char *title = NULL;
 	gsize inbuf_len, outbuf_len;
-	gboolean ret = FALSE;
+
+	if (icon_title == FALSE && window_title == FALSE)
+		return;
 
 	/* Get the string parameter's value. */
 	value = g_value_array_get_nth(params, 0);
@@ -551,21 +552,20 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 			}
 
 			/* Emit the signal */
-			if (strcmp(mode, "window") == 0) {
+			if (window_title) {
 				g_free (terminal->pvt->window_title_changed);
-				terminal->pvt->window_title_changed = validated;
-			} else
-			if (strcmp(mode, "icon") == 0) {
-				g_free (terminal->pvt->icon_title_changed);
-				terminal->pvt->icon_title_changed = validated;
-			} else
-				g_free(validated);
-			g_free(title);
+				terminal->pvt->window_title_changed = g_strdup (validated);
+			}
 
-			ret = TRUE;
+			if (icon_title) {
+				g_free (terminal->pvt->icon_title_changed);
+				terminal->pvt->icon_title_changed = g_strdup (validated);
+			}
+
+			g_free (validated);
+			g_free(title);
 		}
 	}
-	return ret;
 }
 
 /* Manipulate certain terminal attributes. */
@@ -2625,33 +2625,21 @@ VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_send_secondary_device_attribute
 /* Set one or the other. */
 VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_set_icon_title)
 {
-	return vte_sequence_handler_set_title_internal(terminal,
-						       match, match_quark,
-						       params, "icon");
+	vte_sequence_handler_set_title_internal(terminal, params, TRUE, FALSE);
+	return FALSE;
 }
+
 VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_set_window_title)
 {
-	return vte_sequence_handler_set_title_internal(terminal,
-						       match, match_quark,
-						       params, "window");
+	vte_sequence_handler_set_title_internal(terminal, params, FALSE, TRUE);
+	return FALSE;
 }
 
 /* Set both the window and icon titles to the same string. */
 VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_set_icon_and_window_title)
 {
-	int again;
-	again = 0;
-	if (vte_sequence_handler_set_title_internal(terminal,
-						    match, match_quark,
-						    params, "icon")) {
-		again++;
-	}
-	if (vte_sequence_handler_set_title_internal(terminal,
-						    match, match_quark,
-						    params, "window")) {
-		again++;
-	}
-	return (again > 0);
+	vte_sequence_handler_set_title_internal(terminal, params, TRUE, TRUE);
+	return FALSE;
 }
 
 /* Restrict the scrolling region. */

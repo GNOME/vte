@@ -1,3 +1,8 @@
+2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vteseq.c (vte_sequence_handler_set_title_internal):
+	Cleanup vte_sequence_handler_set_title_internal.
+
 2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vteseq.c (VTE_SEQUENCE_HANDLER_PROTO): Use a macro to define
