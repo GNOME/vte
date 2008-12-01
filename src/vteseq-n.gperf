@@ -19,7 +19,6 @@ struct vteseq_n_struct {
 };
 
 %%
-vte_sequence_handlers_others[] = {
 #"..rp", 0
 #"..sa", 0
 "index", vte_sequence_handler_index

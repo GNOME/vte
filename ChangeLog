@@ -1,3 +1,9 @@
+2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vteseq-n.gperf:
+	* src/vteseq-n.c (vteseq_n_hash), (vteseq_n_lookup):
+	Remove bogus entry that accidentally made it into the gperf list.
+
 2008-11-30  Christian Persch  <chpe@gnome.org>
 
 	* acinclude.m4: Remove more crufty macros.
