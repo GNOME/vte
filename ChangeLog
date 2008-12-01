@@ -1,5 +1,15 @@
 2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vteseq.c (vte_sequence_handler_offset),
+	(vte_sequence_handler_multiple),
+	(vte_sequence_handler_decset_internal),
+	(VTE_SEQUENCE_HANDLER_PROTO), (_vte_terminal_handle_sequence):
+	Switch to calling other handlers using two macros.
+	Get rid of match and match_quark arguments to sequence handlers.
+	They were unused.
+
+2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vteseq.c (vte_sequence_handler_set_title_internal):
 	Cleanup vte_sequence_handler_set_title_internal.
 
