@@ -1,5 +1,14 @@
 2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vteseq.c: Some wild crack to build the vtable using gcc
+	extension for labels as values.  The advantage is that we get down to
+	an empty .data for vteseq.o but .text grows considerably.  And we have
+	to use nested functions, and #define static auto.  It's really ugly.
+	I'm going to remove it in the next commit or the one after.  Just
+	wanted to record it here for posterity.
+
+2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vteseq.c (vte_sequence_handler_invoke),
 	(vte_sequence_handler_offset), (vte_sequence_handler_multiple),
 	(vte_sequence_handler_decset_internal),

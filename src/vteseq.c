@@ -398,57 +398,48 @@ _vte_terminal_scroll_text (VteTerminal *terminal, int scroll_amount)
  * Sequence handling boilerplate
  */
 
+#if __GNUC__ >= 4
+#define USE_GCC_LABELS 1
+#endif
+
 
 #define VTE_SEQUENCE_HANDLER_SIGNATURE(name) \
 	void name (VteTerminal *terminal, \
 		   GValueArray *params)
 
-#define VTE_SEQUENCE_HANDLER_PROTO(name) \
-	static VTE_SEQUENCE_HANDLER_SIGNATURE (name)
-
-/* Prototype all handlers... */
-#define VTE_SEQUENCE_HANDLER(name) VTE_SEQUENCE_HANDLER_PROTO (name);
-#include "vteseq-list.h"
-#undef VTE_SEQUENCE_HANDLER
-
-
 
 
 /* The type of sequence handler handle. */
 
-#if 1
+#ifndef USE_GCC_LABELS
 
 typedef VTE_SEQUENCE_HANDLER_SIGNATURE((*VteTerminalSequenceHandler));
 #define VTE_SEQUENCE_HANDLER_REFERENCE(name) (name)
 #define vte_sequence_handler_invoke(handler, terminal, params) (handler) ((terminal), (params))
 #define VTE_SEQUENCE_HANDLER_INVOKE(handler, terminal, params) (handler) ((terminal), (params))
 
+
 #else
 
 typedef void *VteTerminalSequenceHandler;
 
-static void
-vte_sequence_handler_invoke (VteTerminalSequenceHandler handler,
-			     VteTerminal *terminal,
-			     GValueArray *params)
-{
-	goto *((char *) &&vte_sequence_handler__base_label + (gsize) handler);
-#define VTE_SEQUENCE_HANDLER(name) name: name (terminal, params); return;
-vte_sequence_handler__base_label: return;
-#include "vteseq-list.h"
-#undef VTE_SEQUENCE_HANDLER
-}
-
-
+#define VTE_SEQUENCE_HANDLER_LABEL0(name) name##_label
+#define VTE_SEQUENCE_HANDLER_LABEL(name) VTE_SEQUENCE_HANDLER_LABEL0(name)
 #define VTE_SEQUENCE_HANDLER_REFERENCE(name) \
-	((VteTerminalSequenceHandler) ((char *) &&name - (char *) && vte_sequence_handler__base_label))
+	((VteTerminalSequenceHandler) ((char *) &&VTE_SEQUENCE_HANDLER_LABEL(name) - (char *) && vte_sequence_handler__base_label))
+#define vte_sequence_handler_invoke(handler, terminal, params) \
+	vte_sequence_handler_invoke_internal ((handler), NULL, (terminal), (params))
 #define VTE_SEQUENCE_HANDLER_INVOKE(handler, terminal, params) \
 	vte_sequence_handler_invoke (VTE_SEQUENCE_HANDLER_REFERENCE (handler), (terminal), (params))
 
+
+static void
+vte_sequence_handler_invoke_internal (VteTerminalSequenceHandler handler,
+				      const char *name2,
+				      VteTerminal *terminal2,
+				      GValueArray *params2);
+
 #endif
-
-
-
 
 
 /* Call another handler, offsetting any long arguments by the given
@@ -494,6 +485,46 @@ vte_sequence_handler_multiple(VteTerminal *terminal,
 	for (i = 0; i < val; i++)
 		vte_sequence_handler_invoke (handler, terminal, NULL);
 }
+
+
+
+
+
+
+/* More boilerplate */
+
+#ifdef USE_GCC_LABELS
+static void
+vte_sequence_handler_invoke_internal (VteTerminalSequenceHandler handler,
+				      const char *name2,
+				      VteTerminal *terminal2,
+				      GValueArray *params2)
+{
+	/* Open-ended function.  Closes at the other end of the file! */
+
+/* Prototype all lables... */
+#define VTE_SEQUENCE_HANDLER(name) __label__ VTE_SEQUENCE_HANDLER_LABEL (name);
+	__label__ vte_sequence_handler__base_label;
+#include "vteseq-list.h"
+#undef VTE_SEQUENCE_HANDLER
+
+#define static auto
+
+#endif
+
+
+
+#define VTE_SEQUENCE_HANDLER_PROTO(name) \
+	static VTE_SEQUENCE_HANDLER_SIGNATURE (name)
+
+/* Prototype all handlers... */
+#define VTE_SEQUENCE_HANDLER(name) VTE_SEQUENCE_HANDLER_PROTO (name);
+#include "vteseq-list.h"
+#undef VTE_SEQUENCE_HANDLER
+
+
+
+
 
 /* Set icon/window titles. */
 static void
@@ -3281,19 +3312,27 @@ VTE_SEQUENCE_HANDLER_PROTO (vte_sequence_handler_window_manipulation)
 }
 
 
-/* LOOKUP */
+
+
+
+
+
+
+/* More boilerplate */
+
 
 #define VTE_SEQUENCE_HANDLER(name) VTE_SEQUENCE_HANDLER_REFERENCE (name)
 
-static inline const struct vteseq_2_struct *
+static const struct vteseq_2_struct *
 vteseq_2_lookup (register const char *str, register unsigned int len);
 #include"vteseq-2.c"
 
-static inline const struct vteseq_n_struct *
+static const struct vteseq_n_struct *
 vteseq_n_lookup (register const char *str, register unsigned int len);
 #include"vteseq-n.c"
 
 #undef VTE_SEQUENCE_HANDLER
+
 
 static VteTerminalSequenceHandler
 _vte_sequence_get_handler (const char *name)
@@ -3312,6 +3351,27 @@ _vte_sequence_get_handler (const char *name)
 		return seqhandler ? seqhandler->handler : NULL;
 	}
 }
+
+#ifdef USE_GCC_LABELS
+
+#undef static
+
+	if (G_LIKELY (name2))
+    		handler = _vte_sequence_get_handler (name2);
+
+	goto *((char *) &&vte_sequence_handler__base_label + (gsize) handler);
+
+#define VTE_SEQUENCE_HANDLER(name) VTE_SEQUENCE_HANDLER_LABEL (name): name (terminal2, params2); return;
+vte_sequence_handler__base_label:
+		_vte_debug_print (VTE_DEBUG_MISC,
+				  "No handler for control sequence `%s' defined.\n",
+				  name2);
+		return;
+#include "vteseq-list.h"
+#undef VTE_SEQUENCE_HANDLER
+}
+
+#endif
 
 static void
 display_control_sequence(const char *name, GValueArray *params)
@@ -3359,6 +3419,9 @@ _vte_terminal_handle_sequence(VteTerminal *terminal,
 	_VTE_DEBUG_IF(VTE_DEBUG_PARSE)
 		display_control_sequence(match_s, params);
 
+#ifdef USE_GCC_LABELS
+	vte_sequence_handler_invoke_internal (NULL, match_s, terminal, params);
+#else
 	/* Find the handler for this control sequence. */
 	handler = _vte_sequence_get_handler (match_s);
 
@@ -3370,4 +3433,5 @@ _vte_terminal_handle_sequence(VteTerminal *terminal,
 				  "No handler for control sequence `%s' defined.\n",
 				  match_s);
 	}
+#endif
 }
