@@ -1,5 +1,11 @@
 2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vteseq.c (vte_terminal_termcap_string_same_as_for),
+	(vte_sequence_handler_se), (vte_sequence_handler_so):
+	Simplify standout handling code.
+
+2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vteseq.c: Rip out VTE_SEQUENCE_HANDLER_PROTO.
 
 2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
