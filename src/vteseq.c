@@ -190,6 +190,16 @@ vte_terminal_emit_resize_window(VteTerminal *terminal,
 	g_signal_emit_by_name(terminal, "resize-window", width, height);
 }
 
+static void
+vte_terminal_beep(VteTerminal *terminal)
+{
+	GdkDisplay *display;
+
+	g_assert(VTE_IS_TERMINAL(terminal));
+	display = gtk_widget_get_display(&terminal->widget);
+	gdk_display_beep(display);
+}
+
 
 /* Insert a blank line at an arbitrary position. */
 static void
@@ -244,6 +254,7 @@ vte_unichar_strlen(gunichar *c)
 	for (i = 0; c[i] != 0; i++) ;
 	return i;
 }
+
 /* Call another function, offsetting any long arguments by the given
  * increment value. */
 static gboolean
@@ -945,16 +956,6 @@ vte_sequence_handler_as(VteTerminal *terminal,
 {
 	terminal->pvt->screen->alternate_charset = TRUE;
 	return FALSE;
-}
-
-static void
-vte_terminal_beep(VteTerminal *terminal)
-{
-	GdkDisplay *display;
-
-	g_assert(VTE_IS_TERMINAL(terminal));
-	display = gtk_widget_get_display(&terminal->widget);
-	gdk_display_beep(display);
 }
 
 /* Beep. */

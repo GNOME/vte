@@ -1,5 +1,10 @@
 2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vteseq.c (vte_terminal_beep): Move helper function out of the
+	way.
+
+2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vteseq-2.c (vteseq_2_lookup):
 	* src/vteseq-2.gperf:
 	* src/vteseq-n.c (vteseq_n_lookup):
