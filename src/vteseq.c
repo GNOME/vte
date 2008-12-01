@@ -2012,17 +2012,6 @@ vte_sequence_handler_sc(VteTerminal *terminal,
 	return FALSE;
 }
 
-/* Scroll the text down one line, but don't move the cursor. */
-static gboolean
-vte_sequence_handler_scroll_down_one(VteTerminal *terminal,
-				     const char *match,
-				     GQuark match_quark,
-				     GValueArray *params)
-{
-	_vte_terminal_scroll (terminal, 1);
-	return FALSE;
-}
-
 /* Scroll the text down, but don't move the cursor. */
 static gboolean
 vte_sequence_handler_scroll_down(VteTerminal *terminal,
@@ -2030,18 +2019,18 @@ vte_sequence_handler_scroll_down(VteTerminal *terminal,
 				 GQuark match_quark,
 				 GValueArray *params)
 {
-	return vte_sequence_handler_multiple(terminal, match, match_quark,
-					     params, vte_sequence_handler_scroll_down_one);
-}
+	long val = 1;
+	GValue *value;
 
-/* Scroll the text up one line, but don't move the cursor. */
-static gboolean
-vte_sequence_handler_scroll_up_one(VteTerminal *terminal,
-				   const char *match,
-				   GQuark match_quark,
-				   GValueArray *params)
-{
-	_vte_terminal_scroll (terminal, -1);
+	if ((params != NULL) && (params->n_values > 0)) {
+		value = g_value_array_get_nth(params, 0);
+		if (G_VALUE_HOLDS_LONG(value)) {
+			val = g_value_get_long(value);
+			val = MAX(val, 1);
+		}
+	}
+
+	_vte_terminal_scroll (terminal, val);
 	return FALSE;
 }
 
@@ -2052,8 +2041,19 @@ vte_sequence_handler_scroll_up(VteTerminal *terminal,
 			       GQuark match_quark,
 			       GValueArray *params)
 {
-	return vte_sequence_handler_multiple(terminal, match, match_quark,
-					     params, vte_sequence_handler_scroll_up_one);
+	long val = 1;
+	GValue *value;
+
+	if ((params != NULL) && (params->n_values > 0)) {
+		value = g_value_array_get_nth(params, 0);
+		if (G_VALUE_HOLDS_LONG(value)) {
+			val = g_value_get_long(value);
+			val = MAX(val, 1);
+		}
+	}
+
+	_vte_terminal_scroll (terminal, -val);
+	return FALSE;
 }
 
 /* Standout end. */

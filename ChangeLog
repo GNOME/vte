@@ -1,5 +1,13 @@
 2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vteseq-list.h:
+	* src/vteseq.c (vte_sequence_handler_scroll_down),
+	(vte_sequence_handler_scroll_up):
+	Implement these calling vte_terminal_scroll() directly instead of
+	multiple'ing.
+
+2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte-private.h:
 	* src/vte.c (_vte_terminal_scroll), (_vte_terminal_scroll_region):
 	* src/vteseq.c (vte_sequence_handler_scroll_down_one),
