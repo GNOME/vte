@@ -1,3 +1,7 @@
+2008-12-01  Christian Persch  <chpe@gnome.org>
+
+	* src/vteapp.c: (main): Add gobject notification debugging.
+
 2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vteseq.c (vte_terminal_termcap_string_same_as_for),

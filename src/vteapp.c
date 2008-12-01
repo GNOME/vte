@@ -411,6 +411,27 @@ add_weak_pointer(GObject *object, GtkWidget **target)
 	g_object_add_weak_pointer(object, (gpointer*)target);
 }
 
+static void
+terminal_notify_cb(GObject *object,
+                   GParamSpec *pspec,
+                   gpointer user_data)
+{
+  GValue value = { 0, };
+  char *value_string;
+
+  if (!pspec ||
+      pspec->owner_type != VTE_TYPE_TERMINAL)
+    return;
+
+
+  g_value_init(&value, pspec->value_type);
+  g_object_get_property(object, pspec->name, &value);
+  value_string = g_strdup_value_contents(&value);
+  g_print("NOTIFY property \"%s\" value '%s'\n", pspec->name, value_string);
+  g_free(value_string);
+  g_value_unset(&value);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -429,7 +450,8 @@ main(int argc, char **argv)
 		 console = FALSE, scroll = FALSE, keep = FALSE,
 		 icon_title = FALSE, shell = TRUE, highlight_set = FALSE,
 		 cursor_set = FALSE, reverse = FALSE, use_geometry_hints = TRUE,
-		 antialias = TRUE, use_scrolled_window = FALSE;
+		 antialias = TRUE, use_scrolled_window = FALSE,
+                 show_object_notifications = FALSE;
         int scrollbar_policy = 0;
         char *geometry = NULL;
 	gint lines = 100;
@@ -570,6 +592,12 @@ main(int argc, char **argv)
 			"Set the policy for the vertical scroolbar in the scrolled window (0=always, 1=auto, 2=never; default:0)",
 			NULL
 		},
+		{
+			"object-notifications", 'N', 0,
+			G_OPTION_ARG_NONE, &show_object_notifications,
+			"Print VteTerminal object notifications",
+			NULL
+		},
 		{ NULL }
 	};
 	GOptionContext *context;
@@ -642,6 +670,8 @@ main(int argc, char **argv)
 	if (!dbuffer) {
 		gtk_widget_set_double_buffered(widget, dbuffer);
 	}
+        if (show_object_notifications)
+                g_signal_connect(terminal, "notify", G_CALLBACK(terminal_notify_cb), NULL);
         if (use_scrolled_window) {
                 gtk_container_add(GTK_CONTAINER(scrolled_window), GTK_WIDGET(terminal));
         } else {
