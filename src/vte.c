@@ -12018,7 +12018,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          */
         g_object_class_install_property
                 (gobject_class,
-                 PROP_AUDIBLE_BELL,
+                 PROP_VISIBLE_BELL,
                  g_param_spec_boolean ("visible-bell", NULL, NULL,
                                        FALSE,
                                        G_PARAM_READWRITE | STATIC_PARAMS));
