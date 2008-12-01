@@ -124,7 +124,11 @@ gperf: vteseq-2.gperf vteseq-n.gperf
 	gperf vteseq-2.gperf -m 100 --no-strlen > vteseq-2.c
 	gperf vteseq-n.gperf -m 100 > vteseq-n.c
 
-#vteseq-2.c vteseq-n.c: gperf
+vteseq-list.h: vteseq-2.gperf vteseq-n.gperf
+	@echo creating $@
+	echo '/* Generated file.  Do not edit */' > $@.tmp && \
+	cat $^ | grep -v '^#' | grep '\<VTE_SEQUENCE_HANDLER\>'| sed 's/.*, //' | LANG=C sort -u >> $@.tmp && \
+	mv -f $@.tmp $@
 
 
 # vte the application

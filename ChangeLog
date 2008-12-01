@@ -1,5 +1,11 @@
 2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/Makefile.am:
+	* src/vteseq-list.h:
+	Autogenerate vteseq-list.h.
+
+2008-11-30  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vteseq-list.h:
 	* src/vteseq.c (_vte_terminal_home_cursor),
 	(_vte_terminal_clear_screen), (_vte_terminal_clear_current_line),
