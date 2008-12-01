@@ -1,5 +1,9 @@
 2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vteskel.c: Remove excess initializer.
+
+2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/buffer.c:
 	* src/caps.c:
 	* src/dumpkeys.c:
