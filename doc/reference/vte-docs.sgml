@@ -4,7 +4,6 @@
 <!ENTITY nbsp "&#160;">
 <!ENTITY vte-VteTerminal SYSTEM "xml/vte.xml">
 <!ENTITY vte-vteaccess SYSTEM "xml/vteaccess.xml">
-<!ENTITY vte-VteReaper SYSTEM "xml/reaper.xml">
 <!ENTITY vte-caps SYSTEM "xml/caps.xml">
 <!ENTITY vte-termcap SYSTEM "xml/termcap.xml">
 <!ENTITY vte-trie SYSTEM "xml/trie.xml">
@@ -22,6 +21,5 @@
     <title>VTE</title>
     &vte-VteTerminal;
     &vte-vteaccess;
-    &vte-VteReaper;
   </chapter>
 </book>
