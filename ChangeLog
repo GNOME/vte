@@ -1,5 +1,17 @@
 2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vteseq.c (vte_sequence_handler_invoke),
+	(vte_sequence_handler_offset), (vte_sequence_handler_multiple),
+	(vte_sequence_handler_decset_internal),
+	(VTE_SEQUENCE_HANDLER_PROTO), (_vte_terminal_handle_sequence):
+	Almost there.  Towards a .data-free vtable.
+
+2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vteseq.c: Finish decoupling handle type from function type.
+
+2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte-private.h:
 	* src/vteseq.c (vte_sequence_handler_offset),
 	(vte_sequence_handler_multiple),
