@@ -1,5 +1,11 @@
 2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vteseq.c (display_control_sequence),
+	(_vte_terminal_handle_sequence):
+	Some cleanup of the gcc label vtable code before I rip it out.
+
+2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vteseq.c (vte_sequence_handler_set_title_internal),
 	(vte_sequence_handler_set_mode_internal),
 	(vte_sequence_handler_invoke_internal):
