@@ -29,6 +29,8 @@
 #include <gtk/gtk.h>
 #include <glib-object.h>
 #include "debug.h"
+
+#undef VTE_DISABLE_DEPRECATED
 #include "vte.h"
 
 #include <glib/gi18n.h>
