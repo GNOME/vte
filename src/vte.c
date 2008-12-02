@@ -78,8 +78,8 @@ static gboolean vte_terminal_io_write(GIOChannel *channel,
 				      VteTerminal *terminal);
 static void vte_terminal_match_hilite_clear(VteTerminal *terminal);
 static void vte_terminal_match_hilite_hide(VteTerminal *terminal);
-static void vte_terminal_match_hilite_show(VteTerminal *terminal, double x, double y);
-static void vte_terminal_match_hilite_update(VteTerminal *terminal, double x, double y);
+static void vte_terminal_match_hilite_show(VteTerminal *terminal, long x, long y);
+static void vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y);
 static void vte_terminal_match_contents_clear(VteTerminal *terminal);
 static gboolean vte_terminal_background_update(VteTerminal *data);
 static void vte_terminal_queue_background_update(VteTerminal *terminal);
@@ -5344,7 +5344,7 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 static void
 vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 					int button,
-					double x, double y)
+					long x, long y)
 {
 	unsigned char cb = 0, cx = 0, cy = 0;
 	char buf[LINE_MAX];
@@ -5440,6 +5440,10 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	unsigned char cb = 0, cx = 0, cy = 0;
 	char buf[LINE_MAX];
 	gint len;
+	long x, y;
+
+	x = event->x - VTE_PAD_WIDTH;
+	y = event->y - VTE_PAD_WIDTH;
 
 	/* First determine if we even want to send notification. */
 	switch (event->type) {
@@ -5449,17 +5453,13 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 			return;
 		}
 		if (!(terminal->pvt->mouse_event_mode & MOUSE_EVENT_ALL_MOTION_TRACKING)) {
+			int width = terminal->char_width;
+			int height = terminal->char_height;
 			if (terminal->pvt->mouse_last_button == 0) {
 				return;
 			}
-			if ((floor((event->x - VTE_PAD_WIDTH) /
-				   terminal->char_width) ==
-			     floor(terminal->pvt->mouse_last_x /
-				   terminal->char_width)) &&
-			    (floor((event->y - VTE_PAD_WIDTH) /
-				   terminal->char_height) ==
-			     floor(terminal->pvt->mouse_last_y /
-				   terminal->char_height))) {
+			if (x / width  == terminal->pvt->mouse_last_x / width &&
+			    y / height == terminal->pvt->mouse_last_y / height) {
 				return;
 			}
 		}
@@ -5504,9 +5504,9 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	}
 
 	/* Encode the cursor coordinates. */
-	cx = 32 + CLAMP(1 + ((event->x - VTE_PAD_WIDTH) / terminal->char_width),
+	cx = 32 + CLAMP(1 + (x / terminal->char_width),
 			1, terminal->column_count);
-	cy = 32 + CLAMP(1 + ((event->y - VTE_PAD_WIDTH) / terminal->char_height),
+	cy = 32 + CLAMP(1 + (y / terminal->char_height),
 			1, terminal->row_count);;
 
 	/* Send event direct to the child, this is binary not text data */
@@ -5543,12 +5543,12 @@ vte_terminal_match_hilite_clear(VteTerminal *terminal)
 }
 
 static gboolean
-cursor_inside_match (VteTerminal *terminal, gdouble x, gdouble y)
+cursor_inside_match (VteTerminal *terminal, long x, long y)
 {
 	gint width = terminal->char_width;
 	gint height = terminal->char_height;
-	glong col = floor(x) / width;
-	glong row = floor(y) / height + terminal->pvt->screen->scroll_delta;
+	glong col = x / width;
+	glong row = y / height + terminal->pvt->screen->scroll_delta;
 	if (terminal->pvt->match_start.row == terminal->pvt->match_end.row) {
 		return row == terminal->pvt->match_start.row &&
 			col >= terminal->pvt->match_start.column &&
@@ -5569,7 +5569,7 @@ cursor_inside_match (VteTerminal *terminal, gdouble x, gdouble y)
 }
 
 static void
-vte_terminal_match_hilite_show(VteTerminal *terminal, double x, double y)
+vte_terminal_match_hilite_show(VteTerminal *terminal, long x, long y)
 {
 	if(terminal->pvt->match != NULL && !terminal->pvt->show_match){
 		if (cursor_inside_match (terminal, x, y)) {
@@ -5599,7 +5599,7 @@ vte_terminal_match_hilite_hide(VteTerminal *terminal)
 
 
 static void
-vte_terminal_match_hilite_update(VteTerminal *terminal, double x, double y)
+vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y)
 {
 	int start, end, width, height;
 	char *match;
@@ -5615,14 +5615,14 @@ vte_terminal_match_hilite_update(VteTerminal *terminal, double x, double y)
 	delta = screen->scroll_delta;
 
 	_vte_debug_print(VTE_DEBUG_EVENTS,
-			"Match hilite update (%.0f, %.0f) -> %.0f, %.0f\n",
+			"Match hilite update (%ld, %ld) -> %ld, %ld\n",
 			x, y,
-			floor(x) / width,
-			floor(y) / height + delta);
+			x / width,
+			y / height + delta);
 
 	match = vte_terminal_match_check_internal(terminal,
-						  floor(x) / width,
-						  floor(y) / height + delta,
+						  x / width,
+						  y / height + delta,
 						  &terminal->pvt->match_tag,
 						  &start,
 						  &end);
@@ -5693,7 +5693,7 @@ vte_terminal_match_hilite_update(VteTerminal *terminal, double x, double y)
 }
 /* Update the hilited text if the pointer has moved to a new character cell. */
 static void
-vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
+vte_terminal_match_hilite(VteTerminal *terminal, long x, long y)
 {
 	int width, height;
 
@@ -5708,8 +5708,8 @@ vte_terminal_match_hilite(VteTerminal *terminal, double x, double y)
 
 	/* If the pointer hasn't moved to another character cell, then we
 	 * need do nothing. */
-	if (floor (x / width) == floor (terminal->pvt->mouse_last_x / width) &&
-	    floor (y / height) == floor (terminal->pvt->mouse_last_y / height)) {
+	if (x / width  == terminal->pvt->mouse_last_x / width &&
+	    y / height == terminal->pvt->mouse_last_y / height) {
 		terminal->pvt->show_match = terminal->pvt->match != NULL;
 		return;
 	}
@@ -6261,12 +6261,13 @@ math_div (long a, long b)
 
 /* Extend selection to include the given event coordinates. */
 static void
-vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
+vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 			      gboolean always_grow, gboolean force)
 {
 	VteScreen *screen;
 	VteRowData *rowdata;
-	long delta, height, width, residual, i, j;
+	int width, height;
+	long delta, residual, i, j;
 	struct vte_charcell *cell;
 	struct selection_event_coords *origin, *last, *start, *end;
 	struct selection_cell_coords old_start, old_end, *sc, *ec, tc;
@@ -6289,7 +6290,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 		vte_terminal_deselect_all(terminal);
 		invalidate_selected = TRUE;
 		_vte_debug_print(VTE_DEBUG_SELECTION,
-				"Selection delayed start at (%lf,%lf).\n",
+				"Selection delayed start at (%ld,%ld).\n",
 				terminal->pvt->selection_origin.x / width,
 				terminal->pvt->selection_origin.y / height);
 	}
@@ -6339,7 +6340,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 	}
 
 	_vte_debug_print(VTE_DEBUG_SELECTION,
-			"Selection is (%lf,%lf) to (%lf,%lf).\n",
+			"Selection is (%ld,%ld) to (%ld,%ld).\n",
 			start->x, start->y, end->x, end->y);
 
 	/* Recalculate the selection area in terms of cell positions. */
@@ -6719,7 +6720,7 @@ static gboolean
 vte_terminal_autoscroll(VteTerminal *terminal)
 {
 	gboolean extend = FALSE;
-	gdouble x, y, xmax, ymax;
+	long x, y, xmax, ymax;
 	glong adj;
 
 	/* Provide an immediate effect for mouse wigglers. */
@@ -6805,7 +6806,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	VteTerminal *terminal;
 	GdkModifierType modifiers;
 	int width, height;
-	gdouble x, y;
+	long x, y;
 
 	/* check to see if it matters */
 	if (!GTK_WIDGET_DRAWABLE(widget)) {
@@ -6819,9 +6820,9 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	height = terminal->char_height;
 
 	_vte_debug_print(VTE_DEBUG_EVENTS,
-			"Motion notify (%lf,%lf) [%.0f, %.0f].\n",
-			event->x, event->y,
-			floor (x / width), floor (y / height) + terminal->pvt->screen->scroll_delta);
+			"Motion notify (%ld,%ld) [%ld, %ld].\n",
+			x, y,
+			x / width, y / height + terminal->pvt->screen->scroll_delta);
 
 	/* Read the modifiers. */
 	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
@@ -6907,7 +6908,10 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	gboolean handled = FALSE;
 	gboolean start_selecting = FALSE, extend_selecting = FALSE;
 	long cellx, celly;
-	gdouble x,y;
+	long x,y;
+
+	x = event->x - VTE_PAD_WIDTH;
+	y = event->y - VTE_PAD_WIDTH;
 
 	terminal = VTE_TERMINAL(widget);
 	height = terminal->char_height;
@@ -6915,9 +6919,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	delta = terminal->pvt->screen->scroll_delta;
 
 	/* Hilite any matches. */
-	vte_terminal_match_hilite(terminal,
-				  event->x - VTE_PAD_WIDTH,
-				  event->y - VTE_PAD_WIDTH);
+	vte_terminal_match_hilite(terminal, x, y);
 
 	_vte_terminal_set_pointer_visible(terminal, TRUE);
 
@@ -6927,15 +6929,13 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	}
 
 	/* Convert the event coordinates to cell coordinates. */
-	x = event->x - VTE_PAD_WIDTH;
-	y = event->y - VTE_PAD_WIDTH;
 	cellx = x / width;
 	celly = y / height + delta;
 
 	switch (event->type) {
 	case GDK_BUTTON_PRESS:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Button %d single-click at (%lf,%lf)\n",
+				"Button %d single-click at (%ld,%ld)\n",
 				event->button,
 				x, y + terminal->char_height * delta);
 		/* Handle this event ourselves. */
@@ -7013,7 +7013,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		break;
 	case GDK_2BUTTON_PRESS:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Button %d double-click at (%lf,%lf)\n",
+				"Button %d double-click at (%ld,%ld)\n",
 				event->button,
 				x, y + (terminal->char_height * delta));
 		switch (event->button) {
@@ -7035,7 +7035,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		break;
 	case GDK_3BUTTON_PRESS:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Button %d triple-click at (%lf,%lf).\n",
+				"Button %d triple-click at (%ld,%ld).\n",
 				event->button,
 				x, y + (terminal->char_height * delta));
 		switch (event->button) {
@@ -7073,13 +7073,15 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 	VteTerminal *terminal;
 	GdkModifierType modifiers;
 	gboolean handled = FALSE;
+	int x, y;
+
+	x = event->x - VTE_PAD_WIDTH;
+	y = event->y - VTE_PAD_WIDTH;
 
 	terminal = VTE_TERMINAL(widget);
 
 	/* Hilite any matches. */
-	vte_terminal_match_hilite(terminal,
-				  event->x - VTE_PAD_WIDTH,
-				  event->y - VTE_PAD_WIDTH);
+	vte_terminal_match_hilite(terminal, x, y);
 
 	_vte_terminal_set_pointer_visible(terminal, TRUE);
 
@@ -7094,10 +7096,8 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 	switch (event->type) {
 	case GDK_BUTTON_RELEASE:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Button %d released at (%lf,%lf).\n",
-				event->button,
-				event->x - VTE_PAD_WIDTH,
-				event->y - VTE_PAD_WIDTH);
+				"Button %d released at (%d,%d).\n",
+				event->button, x, y);
 		switch (event->button) {
 		case 1:
 			/* If Shift is held down, or we're not in events mode,
@@ -7136,8 +7136,8 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 
 	/* Save the pointer state for later use. */
 	terminal->pvt->mouse_last_button = 0;
-	terminal->pvt->mouse_last_x = event->x - VTE_PAD_WIDTH;
-	terminal->pvt->mouse_last_y = event->y - VTE_PAD_WIDTH;
+	terminal->pvt->mouse_last_x = x;
+	terminal->pvt->mouse_last_y = y;
 
 	return TRUE;
 }
@@ -7219,8 +7219,8 @@ vte_terminal_enter(GtkWidget *widget, GdkEventCrossing *event)
 		VteTerminal *terminal = VTE_TERMINAL (widget);
 		/* Hilite any matches. */
 		vte_terminal_match_hilite_show(terminal,
-					  event->x - VTE_PAD_WIDTH,
-					  event->y - VTE_PAD_WIDTH);
+					       event->x - VTE_PAD_WIDTH,
+					       event->y - VTE_PAD_WIDTH);
 	}
 	return ret;
 }

@@ -1,6 +1,18 @@
 2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte-private.h:
+	* src/vte.c (vte_terminal_send_mouse_button_internal),
+	(vte_terminal_maybe_send_mouse_drag), (cursor_inside_match),
+	(vte_terminal_match_hilite_show),
+	(vte_terminal_match_hilite_update), (vte_terminal_match_hilite),
+	(vte_terminal_extend_selection), (vte_terminal_autoscroll),
+	(vte_terminal_motion_notify), (vte_terminal_button_press),
+	(vte_terminal_button_release):
+	Change mouse coordinates type from double to long.
+
+2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vte-private.h:
 	* src/vte.c (vte_terminal_start_selection),
 	(vte_terminal_extend_selection):
 	Cleanup selection code a bit more.

@@ -292,7 +292,7 @@ struct _VteTerminalPrivate {
 		selection_type_line
 	} selection_type;
 	struct selection_event_coords {
-		double x, y;
+		long x, y;
 	} selection_origin, selection_last;
 	struct selection_cell_coords {
 		long row, col;
@@ -342,7 +342,7 @@ struct _VteTerminalPrivate {
 #define MOUSE_EVENT_ALL_MOTION_TRACKING		0x0010
 	gint mouse_event_mode;
 	guint mouse_last_button;
-	gdouble mouse_last_x, mouse_last_y;
+	long mouse_last_x, mouse_last_y;
 	gboolean mouse_autohide;
 	guint mouse_autoscroll_tag;
 
