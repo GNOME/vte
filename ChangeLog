@@ -1,5 +1,11 @@
 2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vtedraw.h:
+	* src/vtepangocairo.c (font_info_cache_ascii):
+	Cache the full ASCII range if Latin uses the default language.
+
+2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vtepangocairo.c (context_hash), (context_equal),
 	(font_info_create_for_context), (font_info_create_for_screen),
 	(font_info_create_for_widget): Respect PangoLanguage set on a widget's

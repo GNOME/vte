@@ -270,6 +270,8 @@ font_info_cache_ascii (struct font_info *info)
 	cairo_scaled_font_t *scaled_font;
 	const char *text;
 	gboolean more;
+	PangoLanguage *language;
+	gboolean latin_uses_default_language;
 	
 	/* We have info->layout holding most ASCII characters.  We want to
 	 * cache as much info as we can about the ASCII letters so we don't
@@ -278,6 +280,11 @@ font_info_cache_ascii (struct font_info *info)
 	/* Don't cache if unknown glyphs found in layout */
 	if (pango_layout_get_unknown_glyphs_count (info->layout) != 0)
 		return;
+
+	language = pango_context_get_language (pango_layout_get_context (info->layout));
+	if (language == NULL)
+		language = pango_language_get_default ();
+	latin_uses_default_language = pango_language_includes_script (language, PANGO_SCRIPT_LATIN);
 
 	text = pango_layout_get_text (info->layout);
 
@@ -316,9 +323,11 @@ font_info_cache_ascii (struct font_info *info)
 		glyph = glyph_string->glyphs[iter.start_glyph].glyph;
 		geometry = &glyph_string->glyphs[iter.start_glyph].geometry;
 
-		/* Only cache non-common characters as common characters get
-		 * their font from their neighbors */
-		if (pango_script_for_unichar (c) <= PANGO_SCRIPT_INHERITED)
+		/* If not using the default locale language, only cache non-common
+		 * characters as common characters get their font from their neighbors
+		 * and we don't want to force Latin on them. */
+		if (!latin_uses_default_language &&
+		    pango_script_for_unichar (c) <= PANGO_SCRIPT_INHERITED)
 			continue;
 
 		/* Only cache simple glyphs */
