@@ -1,5 +1,10 @@
 2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
 
+	* configure.in: Add -Wno-switch-enum warning flag as we are not
+	-Wswitch-enum clean.
+
+2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte.c (vte_terminal_extend_selection_on_type),
 	(vte_terminal_extend_selection):
 	Cut one third of the 400-line function out into a function of its own.
