@@ -11412,7 +11412,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__UINT_UINT,
 			     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
 	klass->selection_changed_signal =
-                g_signal_new ("selection-changed",
+                g_signal_new (I_("selection-changed"),
 			      G_OBJECT_CLASS_TYPE(klass),
 			      G_SIGNAL_RUN_LAST,
 			      G_STRUCT_OFFSET(VteTerminalClass, selection_changed),
