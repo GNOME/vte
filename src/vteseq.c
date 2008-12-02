@@ -667,9 +667,9 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		/* 8: disallowed, keyboard repeat is set by user. */
 		{8, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 9: Send-coords-on-click. */
-		{9, NULL, &terminal->pvt->mouse_event_mode, NULL,
+		{9, NULL, &terminal->pvt->mouse_tracking_mode, NULL,
 		 GINT_TO_POINTER(0),
-		 GINT_TO_POINTER(MOUSE_EVENT_SEND_XY_ON_CLICK),
+		 GINT_TO_POINTER(MOUSE_TRACKING_SEND_XY_ON_CLICK),
 		 NULL, NULL,},
 		/* 12: disallowed, cursor blinks is set by user. */
 		{12, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
@@ -711,24 +711,24 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		/* 67: disallowed, backspace key policy is set by user. */
 		{67, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 1000: Send-coords-on-button. */
-		{1000, NULL, &terminal->pvt->mouse_event_mode, NULL,
+		{1000, NULL, &terminal->pvt->mouse_tracking_mode, NULL,
 		 GINT_TO_POINTER(0),
-		 GINT_TO_POINTER(MOUSE_EVENT_SEND_XY_ON_BUTTON),
+		 GINT_TO_POINTER(MOUSE_TRACKING_SEND_XY_ON_BUTTON),
 		 NULL, NULL,},
 		/* 1001: Hilite tracking. */
-		{1001, NULL, &terminal->pvt->mouse_event_mode, NULL,
+		{1001, NULL, &terminal->pvt->mouse_tracking_mode, NULL,
 		 GINT_TO_POINTER(0),
-		 GINT_TO_POINTER(MOUSE_EVENT_HILITE_TRACKING),
+		 GINT_TO_POINTER(MOUSE_TRACKING_HILITE_TRACKING),
 		 NULL, NULL,},
 		/* 1002: Cell motion tracking. */
-		{1002, NULL, &terminal->pvt->mouse_event_mode, NULL,
+		{1002, NULL, &terminal->pvt->mouse_tracking_mode, NULL,
 		 GINT_TO_POINTER(0),
-		 GINT_TO_POINTER(MOUSE_EVENT_CELL_MOTION_TRACKING),
+		 GINT_TO_POINTER(MOUSE_TRACKING_CELL_MOTION_TRACKING),
 		 NULL, NULL,},
 		/* 1003: All motion tracking. */
-		{1003, NULL, &terminal->pvt->mouse_event_mode, NULL,
+		{1003, NULL, &terminal->pvt->mouse_tracking_mode, NULL,
 		 GINT_TO_POINTER(0),
-		 GINT_TO_POINTER(MOUSE_EVENT_ALL_MOTION_TRACKING),
+		 GINT_TO_POINTER(MOUSE_TRACKING_ALL_MOTION_TRACKING),
 		 NULL, NULL,},
 		/* 1010/rxvt: disallowed, scroll-on-output is set by user. */
 		{1010, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},

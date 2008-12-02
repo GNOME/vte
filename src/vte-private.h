@@ -140,6 +140,16 @@ typedef enum {
   VTE_REGEX_CURSOR_NAME
 } VteRegexCursorMode;
 
+/* The order is important */
+typedef enum {
+	MOUSE_TRACKING_NONE,
+	MOUSE_TRACKING_SEND_XY_ON_CLICK,
+	MOUSE_TRACKING_SEND_XY_ON_BUTTON,
+	MOUSE_TRACKING_HILITE_TRACKING,
+	MOUSE_TRACKING_CELL_MOTION_TRACKING,
+	MOUSE_TRACKING_ALL_MOTION_TRACKING
+} MouseTrackingMode;
+
 /* A match regex, with a tag. */
 struct vte_match_regex {
 	gint tag;
@@ -335,12 +345,8 @@ struct _VteTerminalPrivate {
 	/* Input device options. */
 	time_t last_keypress_time;
 
-#define MOUSE_EVENT_SEND_XY_ON_CLICK		0x0001
-#define MOUSE_EVENT_SEND_XY_ON_BUTTON		0x0002
-#define MOUSE_EVENT_HILITE_TRACKING		0x0004
-#define MOUSE_EVENT_CELL_MOTION_TRACKING	0x0008
-#define MOUSE_EVENT_ALL_MOTION_TRACKING		0x0010
-	gint mouse_event_mode;
+	int mouse_tracking_mode; /* this is of type MouseTrackingMode,
+				    but we need to guarantee its type. */
 	guint mouse_last_button;
 	long mouse_last_x, mouse_last_y;
 	gboolean mouse_autohide;

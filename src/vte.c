@@ -2486,7 +2486,7 @@ _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
                 return;
 
 	if (visible || !terminal->pvt->mouse_autohide) {
-		if (terminal->pvt->mouse_event_mode) {
+		if (terminal->pvt->mouse_tracking_mode) {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
 					"Setting mousing cursor.\n");
 			gdk_window_set_cursor(terminal->widget.window, terminal->pvt->mouse_mousing_cursor);
@@ -5340,15 +5340,16 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 	}
 }
 
-/* Send a button down or up notification. */
 static void
-vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
-					int button,
-					long x, long y)
+vte_terminal_get_mouse_tracking_info (VteTerminal   *terminal,
+				      int            button,
+				      long           col,
+				      long           row,
+				      unsigned char *pb,
+				      unsigned char *px,
+				      unsigned char *py)
 {
 	unsigned char cb = 0, cx = 0, cy = 0;
-	char buf[LINE_MAX];
-	gint len;
 
 	/* Encode the button information in cb. */
 	switch (button) {
@@ -5365,10 +5366,10 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 		cb = 2;
 		break;
 	case 4:
-		cb = 64;	/* Scroll up. FIXME: check */
+		cb = 64;	/* Scroll up. */
 		break;
 	case 5:
-		cb = 65;	/* Scroll down. FIXME: check */
+		cb = 65;	/* Scroll down. */
 		break;
 	}
 	cb += 32; /* 32 for normal */
@@ -5385,10 +5386,33 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 	}
 
 	/* Encode the cursor coordinates. */
-	cx = 32 + CLAMP(1 + (x / terminal->char_width),
+	cx = 32 + CLAMP(1 + col,
 			1, terminal->column_count);
-	cy = 32 + CLAMP(1 + (y / terminal->char_height),
+	cy = 32 + CLAMP(1 + row,
 			1, terminal->row_count);;
+
+	*pb = cb;
+	*px = cx;
+	*py = cy;
+}
+
+static void
+vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
+					int          button,
+					long         x,
+					long         y)
+{
+	unsigned char cb, cx, cy;
+	char buf[LINE_MAX];
+	gint len;
+	int width = terminal->char_width;
+	int height = terminal->char_height;
+	long col = (x - VTE_PAD_WIDTH) / width;
+	long row = (y - VTE_PAD_WIDTH) / height;
+
+	vte_terminal_get_mouse_tracking_info (terminal,
+					      button, col, row,
+					      &cb, &cx, &cy);
 
 	/* Send event direct to the child, this is binary not text data */
 	len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, cx, cy);
@@ -5410,12 +5434,12 @@ vte_terminal_maybe_send_mouse_button(VteTerminal *terminal,
 	/* Decide whether or not to do anything. */
 	switch (event->type) {
 	case GDK_BUTTON_PRESS:
-		if (!terminal->pvt->mouse_event_mode) {
+		if (terminal->pvt->mouse_tracking_mode < MOUSE_TRACKING_SEND_XY_ON_CLICK) {
 			return;
 		}
 		break;
 	case GDK_BUTTON_RELEASE: {
-		if (!(terminal->pvt->mouse_event_mode&~MOUSE_EVENT_SEND_XY_ON_CLICK)) {
+		if (terminal->pvt->mouse_tracking_mode < MOUSE_TRACKING_SEND_XY_ON_BUTTON) {
 			return;
 		}
 		break;
@@ -5425,43 +5449,39 @@ vte_terminal_maybe_send_mouse_button(VteTerminal *terminal,
 		break;
 	}
 
-	/* Encode the parameters and send them to the app. */
 	vte_terminal_send_mouse_button_internal(terminal,
-						(event->type == GDK_BUTTON_PRESS) ?
-						event->button : 0,
-						event->x - VTE_PAD_WIDTH,
-						event->y - VTE_PAD_WIDTH);
+					        (event->type == GDK_BUTTON_PRESS) ? event->button : 0,
+						event->x, event->y);
 }
 
 /* Send a mouse motion notification. */
 static void
 vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 {
-	unsigned char cb = 0, cx = 0, cy = 0;
+	unsigned char cb, cx, cy;
 	char buf[LINE_MAX];
 	gint len;
-	long x, y;
-
-	x = event->x - VTE_PAD_WIDTH;
-	y = event->y - VTE_PAD_WIDTH;
+	int width = terminal->char_width;
+	int height = terminal->char_height;
+	long col = ((long) event->x - VTE_PAD_WIDTH) / width;
+	long row = ((long) event->y - VTE_PAD_WIDTH) / height;
 
 	/* First determine if we even want to send notification. */
 	switch (event->type) {
 	case GDK_MOTION_NOTIFY:
-		if (!(terminal->pvt->mouse_event_mode &
-		      (MOUSE_EVENT_CELL_MOTION_TRACKING|MOUSE_EVENT_ALL_MOTION_TRACKING))) {
+		if (terminal->pvt->mouse_tracking_mode < MOUSE_TRACKING_CELL_MOTION_TRACKING)
 			return;
-		}
-		if (!(terminal->pvt->mouse_event_mode & MOUSE_EVENT_ALL_MOTION_TRACKING)) {
-			int width = terminal->char_width;
-			int height = terminal->char_height;
+
+		if (terminal->pvt->mouse_tracking_mode < MOUSE_TRACKING_ALL_MOTION_TRACKING) {
+
 			if (terminal->pvt->mouse_last_button == 0) {
 				return;
 			}
-			if (x / width  == terminal->pvt->mouse_last_x / width &&
-			    y / height == terminal->pvt->mouse_last_y / height) {
+			/* the xterm doc is not clear as to whether
+			 * all-tracking also sends degenerate same-cell events */
+			if (col == terminal->pvt->mouse_last_x / width &&
+			    row == terminal->pvt->mouse_last_y / height)
 				return;
-			}
 		}
 		break;
 	default:
@@ -5469,45 +5489,10 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 		break;
 	}
 
-	/* Encode which button we're being dragged with. */
-	switch (terminal->pvt->mouse_last_button) {
-	case 0:
-		cb = 3;
-		break;
-	case 1:
-		cb = 0;
-		break;
-	case 2:
-		cb = 1;
-		break;
-	case 3:
-		cb = 2;
-		break;
-	case 4:
-		cb = 64;	/* FIXME: check */
-		break;
-	case 5:
-		cb = 65;	/* FIXME: check */
-		break;
-	}
-	cb += 64; /* 32 for normal, 32 for movement */
-
-	/* Encode the modifiers. */
-	if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
-		cb |= 4;
-	}
-	if (terminal->pvt->modifiers & VTE_META_MASK) {
-		cb |= 8;
-	}
-	if (terminal->pvt->modifiers & GDK_CONTROL_MASK) {
-		cb |= 16;
-	}
-
-	/* Encode the cursor coordinates. */
-	cx = 32 + CLAMP(1 + (x / terminal->char_width),
-			1, terminal->column_count);
-	cy = 32 + CLAMP(1 + (y / terminal->char_height),
-			1, terminal->row_count);;
+	vte_terminal_get_mouse_tracking_info (terminal,
+					      terminal->pvt->mouse_last_button, col, row,
+					      &cb, &cx, &cy);
+	cb += 32; /* for movement */
 
 	/* Send event direct to the child, this is binary not text data */
 	len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, cx, cy);
@@ -6871,7 +6856,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 			}
 
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    !terminal->pvt->mouse_event_mode) {
+			    !terminal->pvt->mouse_tracking_mode) {
 				vte_terminal_extend_selection(terminal,
 							      x, y, FALSE, FALSE);
 			} else {
@@ -6893,7 +6878,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	    event->y >= terminal->row_count * height + VTE_PAD_WIDTH) {
 		switch (terminal->pvt->mouse_last_button) {
 		case 1:
-			if (!terminal->pvt->mouse_event_mode) {
+			if (!terminal->pvt->mouse_tracking_mode) {
 				/* Give mouse wigglers something. */
 				vte_terminal_autoscroll(terminal);
 				/* Start a timed autoscroll if we're not doing it
@@ -6967,7 +6952,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 
 			/* If we're in event mode, and the user held down the
 			 * shift key, we start selecting. */
-			if (terminal->pvt->mouse_event_mode) {
+			if (terminal->pvt->mouse_tracking_mode) {
 				if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
 					start_selecting = TRUE;
 				}
@@ -7012,7 +6997,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		 * to the app. */
 		case 2:
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    !terminal->pvt->mouse_event_mode) {
+			    !terminal->pvt->mouse_tracking_mode) {
 				vte_terminal_paste_primary(terminal);
 				handled = TRUE;
 			}
@@ -7036,7 +7021,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		switch (event->button) {
 		case 1:
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    !terminal->pvt->mouse_event_mode) {
+			    !terminal->pvt->mouse_tracking_mode) {
 				vte_terminal_start_selection(terminal,
 							     event,
 							     selection_type_word);
@@ -7058,7 +7043,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		switch (event->button) {
 		case 1:
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    !terminal->pvt->mouse_event_mode) {
+			    !terminal->pvt->mouse_tracking_mode) {
 				vte_terminal_start_selection(terminal,
 							     event,
 							     selection_type_line);
@@ -7119,7 +7104,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 		case 1:
 			/* If Shift is held down, or we're not in events mode,
 			 * copy the selected text. */
-			if (terminal->pvt->selecting || !terminal->pvt->mouse_event_mode) {
+			if (terminal->pvt->selecting || !terminal->pvt->mouse_tracking_mode) {
 				/* Copy only if something was selected. */
 				if (terminal->pvt->has_selection &&
 				    !terminal->pvt->selecting_restart &&
@@ -7134,7 +7119,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 			break;
 		case 2:
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    !terminal->pvt->mouse_event_mode) {
+			    !terminal->pvt->mouse_tracking_mode) {
 				handled = TRUE;
 			}
 			break;
@@ -10894,7 +10879,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 
 	/* If we're running a mouse-aware application, map the scroll event
 	 * to a button press on buttons four and five. */
-	if (terminal->pvt->mouse_event_mode) {
+	if (terminal->pvt->mouse_tracking_mode) {
 		switch (event->direction) {
 		case GDK_SCROLL_UP:
 			button = 4;
@@ -10910,8 +10895,8 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 			/* Encode the parameters and send them to the app. */
 			vte_terminal_send_mouse_button_internal(terminal,
 								button,
-								event->x - VTE_PAD_WIDTH,
-								event->y - VTE_PAD_WIDTH);
+								event->x,
+								event->y);
 		}
 		return TRUE;
 	}
@@ -13270,7 +13255,7 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 		       sizeof(&terminal->pvt->selection_end));
 	}
 	/* Reset mouse motion events. */
-	terminal->pvt->mouse_event_mode = 0;
+	terminal->pvt->mouse_tracking_mode = MOUSE_TRACKING_NONE;
 	terminal->pvt->mouse_last_button = 0;
 	terminal->pvt->mouse_last_x = 0;
 	terminal->pvt->mouse_last_y = 0;
