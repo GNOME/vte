@@ -6250,13 +6250,157 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 	_vte_terminal_disconnect_pty_read(terminal);
 }
 
-long
+static long
 math_div (long a, long b)
 {
 	if (G_LIKELY (a >= 0))
 		return a / b;
 	else
 		return (a / b) - 1;
+}
+
+/* Helper */
+void
+vte_terminal_extend_selection_on_type (VteTerminal *terminal)
+{
+	long i, j;
+	VteScreen *screen;
+	VteRowData *rowdata;
+	struct selection_cell_coords *sc, *ec;
+
+	screen = terminal->pvt->screen;
+	sc = &terminal->pvt->selection_start;
+	ec = &terminal->pvt->selection_end;
+
+	/* Now extend again based on selection type. */
+	switch (terminal->pvt->selection_type) {
+	case selection_type_char:
+		/* Nothing more to do. */
+		break;
+	case selection_type_word:
+		/* Keep selecting to the left as long as the next character we
+		 * look at is of the same class as the current start point. */
+		i = sc->col;
+		j = sc->row;
+		while (_vte_ring_contains(screen->row_data, j)) {
+			/* Get the data for the row we're looking at. */
+			rowdata = _vte_ring_index(screen->row_data,
+						  VteRowData *, j);
+			if (rowdata == NULL) {
+				break;
+			}
+			/* Back up. */
+			for (i = (j == sc->row) ?
+				 sc->col :
+				 terminal->column_count - 1;
+			     i > 0;
+			     i--) {
+				if (vte_same_class(terminal,
+						   i - 1,
+						   j,
+						   i,
+						   j)) {
+					sc->col = i - 1;
+					sc->row = j;
+				} else {
+					break;
+				}
+			}
+			if (i > 0) {
+				/* We hit a stopping point, so stop. */
+				break;
+			} else {
+				if (vte_line_is_wrappable(terminal, j - 1) &&
+				    vte_same_class(terminal,
+						   terminal->column_count - 1,
+						   j - 1,
+						   0,
+						   j)) {
+					/* Move on to the previous line. */
+					j--;
+					sc->col = terminal->column_count - 1;
+					sc->row = j;
+				} else {
+					break;
+				}
+			}
+		}
+		/* Keep selecting to the right as long as the next character we
+		 * look at is of the same class as the current end point. */
+		i = ec->col;
+		j = ec->row;
+		while (_vte_ring_contains(screen->row_data, j)) {
+			/* Get the data for the row we're looking at. */
+			rowdata = _vte_ring_index(screen->row_data,
+						  VteRowData *, j);
+			if (rowdata == NULL) {
+				break;
+			}
+			/* Move forward. */
+			for (i = (j == ec->row) ?
+				 ec->col :
+				 0;
+			     i < terminal->column_count - 1;
+			     i++) {
+				if (vte_same_class(terminal,
+						   i,
+						   j,
+						   i + 1,
+						   j)) {
+					ec->col = i + 1;
+					ec->row = j;
+				} else {
+					break;
+				}
+			}
+			if (i < terminal->column_count - 1) {
+				/* We hit a stopping point, so stop. */
+				break;
+			} else {
+				if (vte_line_is_wrappable(terminal, j) &&
+				    vte_same_class(terminal,
+						   terminal->column_count - 1,
+						   j,
+						   0,
+						   j + 1)) {
+					/* Move on to the next line. */
+					j++;
+					ec->col = 0;
+					ec->row = j;
+				} else {
+					break;
+				}
+			}
+		}
+		break;
+	case selection_type_line:
+		/* Extend the selection to the beginning of the start line. */
+		sc->col = 0;
+		/* Now back up as far as we can go. */
+		j = sc->row;
+		while (_vte_ring_contains(screen->row_data, j - 1) &&
+		       vte_line_is_wrappable(terminal, j - 1)) {
+			j--;
+			sc->row = j;
+		}
+		/* And move forward as far as we can go. */
+		j = ec->row;
+		while (_vte_ring_contains(screen->row_data, j) &&
+		       vte_line_is_wrappable(terminal, j)) {
+			j++;
+			ec->row = j;
+		}
+		/* Make sure we include all of the last line. */
+		ec->col = terminal->column_count - 1;
+		if (_vte_ring_contains(screen->row_data, ec->row)) {
+			rowdata = _vte_ring_index(screen->row_data,
+						  VteRowData *, ec->row);
+			if (rowdata != NULL) {
+				ec->col = MAX(ec->col, (long) rowdata->cells->len);
+			}
+		}
+		break;
+	}
 }
 
 /* Extend selection to include the given event coordinates. */
@@ -6441,134 +6585,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	ec->col = find_end_column (terminal, ec->col, ec->row);
 
 	/* Now extend again based on selection type. */
-	switch (terminal->pvt->selection_type) {
-	case selection_type_char:
-		/* Nothing more to do. */
-		break;
-	case selection_type_word:
-		/* Keep selecting to the left as long as the next character we
-		 * look at is of the same class as the current start point. */
-		i = sc->col;
-		j = sc->row;
-		while (_vte_ring_contains(screen->row_data, j)) {
-			/* Get the data for the row we're looking at. */
-			rowdata = _vte_ring_index(screen->row_data,
-						  VteRowData *, j);
-			if (rowdata == NULL) {
-				break;
-			}
-			/* Back up. */
-			for (i = (j == sc->row) ?
-				 sc->col :
-				 terminal->column_count - 1;
-			     i > 0;
-			     i--) {
-				if (vte_same_class(terminal,
-						   i - 1,
-						   j,
-						   i,
-						   j)) {
-					sc->col = i - 1;
-					sc->row = j;
-				} else {
-					break;
-				}
-			}
-			if (i > 0) {
-				/* We hit a stopping point, so stop. */
-				break;
-			} else {
-				if (vte_line_is_wrappable(terminal, j - 1) &&
-				    vte_same_class(terminal,
-						   terminal->column_count - 1,
-						   j - 1,
-						   0,
-						   j)) {
-					/* Move on to the previous line. */
-					j--;
-					sc->col = terminal->column_count - 1;
-					sc->row = j;
-				} else {
-					break;
-				}
-			}
-		}
-		/* Keep selecting to the right as long as the next character we
-		 * look at is of the same class as the current end point. */
-		i = ec->col;
-		j = ec->row;
-		while (_vte_ring_contains(screen->row_data, j)) {
-			/* Get the data for the row we're looking at. */
-			rowdata = _vte_ring_index(screen->row_data,
-						  VteRowData *, j);
-			if (rowdata == NULL) {
-				break;
-			}
-			/* Move forward. */
-			for (i = (j == ec->row) ?
-				 ec->col :
-				 0;
-			     i < terminal->column_count - 1;
-			     i++) {
-				if (vte_same_class(terminal,
-						   i,
-						   j,
-						   i + 1,
-						   j)) {
-					ec->col = i + 1;
-					ec->row = j;
-				} else {
-					break;
-				}
-			}
-			if (i < terminal->column_count - 1) {
-				/* We hit a stopping point, so stop. */
-				break;
-			} else {
-				if (vte_line_is_wrappable(terminal, j) &&
-				    vte_same_class(terminal,
-						   terminal->column_count - 1,
-						   j,
-						   0,
-						   j + 1)) {
-					/* Move on to the next line. */
-					j++;
-					ec->col = 0;
-					ec->row = j;
-				} else {
-					break;
-				}
-			}
-		}
-		break;
-	case selection_type_line:
-		/* Extend the selection to the beginning of the start line. */
-		sc->col = 0;
-		/* Now back up as far as we can go. */
-		j = sc->row;
-		while (_vte_ring_contains(screen->row_data, j - 1) &&
-		       vte_line_is_wrappable(terminal, j - 1)) {
-			j--;
-			sc->row = j;
-		}
-		/* And move forward as far as we can go. */
-		j = ec->row;
-		while (_vte_ring_contains(screen->row_data, j) &&
-		       vte_line_is_wrappable(terminal, j)) {
-			j++;
-			ec->row = j;
-		}
-		/* Make sure we include all of the last line. */
-		ec->col = terminal->column_count - 1;
-		if (_vte_ring_contains(screen->row_data, ec->row)) {
-			rowdata = _vte_ring_index(screen->row_data,
-						  VteRowData *, ec->row);
-			if (rowdata != NULL) {
-				ec->col = MAX(ec->col, (long) rowdata->cells->len);
-			}
-		}
-		break;
-	}
+	vte_terminal_extend_selection_on_type (terminal);
 
 	/* Update the selection area in block mode. */
 	if (terminal->pvt->block_mode || terminal->pvt->had_block_mode) {
