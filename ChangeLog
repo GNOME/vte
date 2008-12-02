@@ -1,3 +1,14 @@
+2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 471480 – select single character
+	Bug 110371 – Cannot select newline at end of full line
+
+	* src/vte-private.h:
+	* src/vte.c (find_start_column), (find_end_column),
+	(vte_terminal_start_selection), (math_div),
+	(vte_terminal_extend_selection):
+	Make selection work more I-beam-like.
+
 2008-12-02  Christian Persch  <chpe@gnome.org>
 
 	Bug 112172 – Get rid of VteReaper

@@ -6149,6 +6149,8 @@ static glong
 find_start_column (VteTerminal *terminal, glong col, glong row)
 {
 	VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
+	if (G_UNLIKELY (col < 0))
+		return col;
 	if (row_data != NULL) {
 		struct vte_charcell *cell = _vte_row_data_find_charcell(row_data, col);
 		while (cell != NULL && cell->attr.fragment && col > 0) {
@@ -6162,6 +6164,8 @@ find_end_column (VteTerminal *terminal, glong col, glong row)
 {
 	VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
 	gint columns = 0;
+	if (G_UNLIKELY (col < 0))
+		return col;
 	if (row_data != NULL) {
 		struct vte_charcell *cell = _vte_row_data_find_charcell(row_data, col);
 		while (cell != NULL && cell->attr.fragment && col > 0) {
@@ -6194,6 +6198,12 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 	terminal->pvt->selection_last.x = event->x - VTE_PAD_WIDTH;
 	terminal->pvt->selection_last.y = event->y - VTE_PAD_WIDTH +
 					  (terminal->char_height * delta);
+
+	/* Clear cached coords */
+	terminal->pvt->last_selection_start.row = -1;
+	terminal->pvt->last_selection_start.col = -1;
+	terminal->pvt->last_selection_end.row = -1;
+	terminal->pvt->last_selection_end.col = -1;
 
 	/* Decide whether or not to restart on the next drag. */
 	switch (selection_type) {
@@ -6247,6 +6257,15 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 	_vte_terminal_disconnect_pty_read(terminal);
 }
 
+long
+math_div (long a, long b)
+{
+	if (G_LIKELY (a >= 0))
+		return a / b;
+	else
+		return (a / b) - 1;
+}
+
 /* Extend selection to include the given event coordinates. */
 static void
 vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
@@ -6254,7 +6273,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 {
 	VteScreen *screen;
 	VteRowData *rowdata;
-	long delta, height, width, i, j;
+	long delta, height, width, residual, i, j;
 	struct vte_charcell *cell;
 	struct selection_event_coords *origin, *last, *start, *end;
 	struct selection_cell_coords old_start, old_end, *sc, *ec, tc;
@@ -6263,14 +6282,6 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 
 	height = terminal->char_height;
 	width = terminal->char_width;
-
-	/* If the pointer hasn't moved to another character cell, then we
-	 * need do nothing. */
-	if (force == FALSE &&
-			floor (x / width) == floor (terminal->pvt->mouse_last_x / width) &&
-			floor (y / height) == floor (terminal->pvt->mouse_last_y / height)) {
-		return;
-	}
 
 	screen = terminal->pvt->screen;
 	old_start = terminal->pvt->selection_start;
@@ -6342,22 +6353,53 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 			start->x, start->y, end->x, end->y);
 
 	/* Recalculate the selection area in terms of cell positions. */
-	terminal->pvt->selection_start.col = MAX (0, start->x / width);
-	terminal->pvt->selection_start.row = MAX (0, start->y / height);
-	terminal->pvt->selection_end.col = MAX (0, end->x / width);
-	terminal->pvt->selection_end.row = MAX (0, end->y / height);
 
-	/* Re-sort using cell coordinates to catch round-offs that make two
-	 * coordinates "the same". */
 	sc = &terminal->pvt->selection_start;
 	ec = &terminal->pvt->selection_end;
-	if ((sc->row > ec->row) || ((sc->row == ec->row) && (sc->row > ec->row))) {
-		tc = *sc;
-		*sc = *ec;
-		*ec = tc;
+
+	/* Rows are easy.  But we try to be a bit lenient by discounting
+	 * one fourth of the height on each side as wiggle room */
+	residual = (height + 1) / 4;
+	sc->row = MAX (0, ((long)start->y + residual) / height);
+	ec->row = MAX (0, ((long)end->y - residual) / height);
+
+	/* Re-sort using row cell coordinates */
+	if ((sc->row == ec->row) && (start->x > end->x)) {
+		struct selection_event_coords *tmp;
+		tmp = start;
+		start = end;
+		end = tmp;
 	}
+
+	/* Columns are trickier.  We want to be more I-beam-like, so we round
+	 * to closest logical position (positions are located between cells).
+	 * But we don't want to fully round.  So we divide the char width into
+	 * three parts.  The side parts round to their nearest position.  The
+	 * middle part is always inclusive in the selection. XXXXXXX */
+	residual = (width + 1) / 3;
+	sc->col = math_div ((long)start->x + residual, width);
+	ec->col = math_div ((long)end->x - residual, width);
+
+#if 0
+	THIS CURRENTLY DOESN'T WORK AS WE HAVE INVALIDATED ALREADY.  GOT TO MOVE
+	INVALIDATION AFTER THIS CHECK AND ENABLE IT.
+
+	/* If the endpoint cells have not changed, then we need do nothing. */
+	if (force == FALSE &&
+	    sc->row == terminal->pvt->last_selection_start.row &&
+	    sc->col == terminal->pvt->last_selection_start.col &&
+	    ec->row == terminal->pvt->last_selection_end.row &&
+	    ec->col == terminal->pvt->last_selection_end.col) {
+		return;
+	}
+	terminal->pvt->last_selection_start = *sc;
+	terminal->pvt->last_selection_end   = *ec;
+#endif
+
+	/* Extend them to full multi-col characters. */
 	sc->col = find_start_column (terminal, sc->col, sc->row);
 	ec->col = find_end_column (terminal, ec->col, ec->row);
+
 
 	/* Extend the selection to handle end-of-line cases, word, and line
 	 * selection.  We do this here because calculating it once is cheaper
