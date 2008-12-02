@@ -1,5 +1,12 @@
 2008-12-02  Christian Persch  <chpe@gnome.org>
 
+	Bug 560667 – invalid definition of VTE_INVALID_SOURCE
+
+	* src/vte-private.h: Fix VTE_INVALID_SOURCE define to use 0 instead of
+	-1.
+
+2008-12-02  Christian Persch  <chpe@gnome.org>
+
 	* configure.in: Remove two AC_DEFINEs from here.
 	* src/vte-private.h: Define VTE_INVALID_SOURCE here for now.
 
