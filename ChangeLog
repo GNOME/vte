@@ -119,6 +119,11 @@
 
 2008-12-02  Christian Persch  <chpe@gnome.org>
 
+	* src/vte.c: (vte_terminal_class_init): Show the correct version in
+	Since: and Deprecated: annotations.
+
+2008-12-02  Christian Persch  <chpe@gnome.org>
+
 	Bug 112172 – Get rid of VteReaper
 
 	* src/reaper.h: Deprecate.
