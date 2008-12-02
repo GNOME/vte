@@ -432,6 +432,13 @@ terminal_notify_cb(GObject *object,
   g_value_unset(&value);
 }
 
+static void
+child_exit_cb(VteTerminal *terminal,
+                 gpointer user_data)
+{
+  g_print("Child exited with status %x\n", vte_terminal_get_child_exit_status(terminal));
+}
+
 int
 main(int argc, char **argv)
 {
@@ -670,6 +677,7 @@ main(int argc, char **argv)
 	if (!dbuffer) {
 		gtk_widget_set_double_buffered(widget, dbuffer);
 	}
+        g_signal_connect(terminal, "child-exited", G_CALLBACK(child_exit_cb), NULL);
         if (show_object_notifications)
                 g_signal_connect(terminal, "notify", G_CALLBACK(terminal_notify_cb), NULL);
         if (use_scrolled_window) {

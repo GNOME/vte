@@ -1,5 +1,10 @@
 2008-12-02  Christian Persch  <chpe@gnome.org>
 
+	* src/vteapp.c: (main): Catch the child-exited signal to the child's
+	exit code.
+
+2008-12-02  Christian Persch  <chpe@gnome.org>
+
 	* src/vte-private.h:
 	* src/vte.c: (vte_terminal_class_init): Intern the signal names.
 
