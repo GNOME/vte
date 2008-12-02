@@ -667,9 +667,9 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		/* 8: disallowed, keyboard repeat is set by user. */
 		{8, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 9: Send-coords-on-click. */
-		{9, &terminal->pvt->mouse_send_xy_on_click, NULL, NULL,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{9, NULL, &terminal->pvt->mouse_event_mode, NULL,
+		 GINT_TO_POINTER(0),
+		 GINT_TO_POINTER(MOUSE_EVENT_SEND_XY_ON_CLICK),
 		 NULL, NULL,},
 		/* 12: disallowed, cursor blinks is set by user. */
 		{12, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
@@ -711,24 +711,24 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		/* 67: disallowed, backspace key policy is set by user. */
 		{67, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 1000: Send-coords-on-button. */
-		{1000, &terminal->pvt->mouse_send_xy_on_button, NULL, NULL,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{1000, NULL, &terminal->pvt->mouse_event_mode, NULL,
+		 GINT_TO_POINTER(0),
+		 GINT_TO_POINTER(MOUSE_EVENT_SEND_XY_ON_BUTTON),
 		 NULL, NULL,},
 		/* 1001: Hilite tracking. */
-		{1001, &terminal->pvt->mouse_hilite_tracking, NULL, NULL,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{1001, NULL, &terminal->pvt->mouse_event_mode, NULL,
+		 GINT_TO_POINTER(0),
+		 GINT_TO_POINTER(MOUSE_EVENT_HILITE_TRACKING),
 		 NULL, NULL,},
 		/* 1002: Cell motion tracking. */
-		{1002, &terminal->pvt->mouse_cell_motion_tracking, NULL, NULL,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{1002, NULL, &terminal->pvt->mouse_event_mode, NULL,
+		 GINT_TO_POINTER(0),
+		 GINT_TO_POINTER(MOUSE_EVENT_CELL_MOTION_TRACKING),
 		 NULL, NULL,},
 		/* 1003: All motion tracking. */
-		{1003, &terminal->pvt->mouse_all_motion_tracking, NULL, NULL,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{1003, NULL, &terminal->pvt->mouse_event_mode, NULL,
+		 GINT_TO_POINTER(0),
+		 GINT_TO_POINTER(MOUSE_EVENT_ALL_MOTION_TRACKING),
 		 NULL, NULL,},
 		/* 1010/rxvt: disallowed, scroll-on-output is set by user. */
 		{1010, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
@@ -900,40 +900,6 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 	case 1001:
 	case 1002:
 	case 1003:
-		/* Reset all of the options except the one which was
-		 * just toggled. */
-		switch (setting) {
-		case 9:
-			terminal->pvt->mouse_send_xy_on_button = FALSE; /* 1000 */
-			terminal->pvt->mouse_hilite_tracking = FALSE; /* 1001 */
-			terminal->pvt->mouse_cell_motion_tracking = FALSE; /* 1002 */
-			terminal->pvt->mouse_all_motion_tracking = FALSE; /* 1003 */
-			break;
-		case 1000:
-			terminal->pvt->mouse_send_xy_on_click = FALSE; /* 9 */
-			terminal->pvt->mouse_hilite_tracking = FALSE; /* 1001 */
-			terminal->pvt->mouse_cell_motion_tracking = FALSE; /* 1002 */
-			terminal->pvt->mouse_all_motion_tracking = FALSE; /* 1003 */
-			break;
-		case 1001:
-			terminal->pvt->mouse_send_xy_on_click = FALSE; /* 9 */
-			terminal->pvt->mouse_send_xy_on_button = FALSE; /* 1000 */
-			terminal->pvt->mouse_cell_motion_tracking = FALSE; /* 1002 */
-			terminal->pvt->mouse_all_motion_tracking = FALSE; /* 1003 */
-			break;
-		case 1002:
-			terminal->pvt->mouse_send_xy_on_click = FALSE; /* 9 */
-			terminal->pvt->mouse_send_xy_on_button = FALSE; /* 1000 */
-			terminal->pvt->mouse_hilite_tracking = FALSE; /* 1001 */
-			terminal->pvt->mouse_all_motion_tracking = FALSE; /* 1003 */
-			break;
-		case 1003:
-			terminal->pvt->mouse_send_xy_on_click = FALSE; /* 9 */
-			terminal->pvt->mouse_send_xy_on_button = FALSE; /* 1000 */
-			terminal->pvt->mouse_hilite_tracking = FALSE; /* 1001 */
-			terminal->pvt->mouse_cell_motion_tracking = FALSE; /* 1002 */
-			break;
-		}
 		/* Make the pointer visible. */
 		_vte_terminal_set_pointer_visible(terminal, TRUE);
 		break;

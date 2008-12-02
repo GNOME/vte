@@ -1,6 +1,18 @@
 2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte-private.h:
+	* src/vte.c (_vte_terminal_set_pointer_visible),
+	(vte_terminal_maybe_send_mouse_button),
+	(vte_terminal_maybe_send_mouse_drag), (vte_terminal_motion_notify),
+	(vte_terminal_button_press), (vte_terminal_button_release),
+	(vte_terminal_scroll), (vte_terminal_reset):
+	* src/vteseq.c (vte_sequence_handler_decset_internal):
+	Simplify mouse event tracking by using a single int instead of five
+	booleans.
+
+2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vte-private.h:
 	* src/vte.c (vte_terminal_deselect_all),
 	(vte_terminal_process_incoming), (vte_cell_is_selected),
 	(vte_terminal_copy), (vte_terminal_start_selection),

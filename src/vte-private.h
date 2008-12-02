@@ -329,11 +329,13 @@ struct _VteTerminalPrivate {
 
 	/* Input device options. */
 	time_t last_keypress_time;
-	gboolean mouse_send_xy_on_click;
-	gboolean mouse_send_xy_on_button;
-	gboolean mouse_hilite_tracking;
-	gboolean mouse_cell_motion_tracking;
-	gboolean mouse_all_motion_tracking;
+
+#define MOUSE_EVENT_SEND_XY_ON_CLICK		0x0001
+#define MOUSE_EVENT_SEND_XY_ON_BUTTON		0x0002
+#define MOUSE_EVENT_HILITE_TRACKING		0x0004
+#define MOUSE_EVENT_CELL_MOTION_TRACKING	0x0008
+#define MOUSE_EVENT_ALL_MOTION_TRACKING		0x0010
+	gint mouse_event_mode;
 	guint mouse_last_button;
 	gdouble mouse_last_x, mouse_last_y;
 	gboolean mouse_autohide;

@@ -2486,11 +2486,7 @@ _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
                 return;
 
 	if (visible || !terminal->pvt->mouse_autohide) {
-		if (terminal->pvt->mouse_send_xy_on_click ||
-		    terminal->pvt->mouse_send_xy_on_button ||
-		    terminal->pvt->mouse_hilite_tracking ||
-		    terminal->pvt->mouse_cell_motion_tracking ||
-		    terminal->pvt->mouse_all_motion_tracking) {
+		if (terminal->pvt->mouse_event_mode) {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
 					"Setting mousing cursor.\n");
 			gdk_window_set_cursor(terminal->widget.window, terminal->pvt->mouse_mousing_cursor);
@@ -5414,22 +5410,16 @@ vte_terminal_maybe_send_mouse_button(VteTerminal *terminal,
 	/* Decide whether or not to do anything. */
 	switch (event->type) {
 	case GDK_BUTTON_PRESS:
-		if (!terminal->pvt->mouse_send_xy_on_button &&
-		    !terminal->pvt->mouse_send_xy_on_click &&
-		    !terminal->pvt->mouse_hilite_tracking &&
-		    !terminal->pvt->mouse_cell_motion_tracking &&
-		    !terminal->pvt->mouse_all_motion_tracking) {
+		if (!terminal->pvt->mouse_event_mode) {
 			return;
 		}
 		break;
-	case GDK_BUTTON_RELEASE:
-		if (!terminal->pvt->mouse_send_xy_on_button &&
-		    !terminal->pvt->mouse_hilite_tracking &&
-		    !terminal->pvt->mouse_cell_motion_tracking &&
-		    !terminal->pvt->mouse_all_motion_tracking) {
+	case GDK_BUTTON_RELEASE: {
+		if (!(terminal->pvt->mouse_event_mode&~MOUSE_EVENT_SEND_XY_ON_CLICK)) {
 			return;
 		}
 		break;
+	}
 	default:
 		return;
 		break;
@@ -5454,11 +5444,11 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	/* First determine if we even want to send notification. */
 	switch (event->type) {
 	case GDK_MOTION_NOTIFY:
-		if (!terminal->pvt->mouse_cell_motion_tracking &&
-		    !terminal->pvt->mouse_all_motion_tracking) {
+		if (!(terminal->pvt->mouse_event_mode &
+		      (MOUSE_EVENT_CELL_MOTION_TRACKING|MOUSE_EVENT_ALL_MOTION_TRACKING))) {
 			return;
 		}
-		if (!terminal->pvt->mouse_all_motion_tracking) {
+		if (!(terminal->pvt->mouse_event_mode & MOUSE_EVENT_ALL_MOTION_TRACKING)) {
 			if (terminal->pvt->mouse_last_button == 0) {
 				return;
 			}
@@ -6794,7 +6784,6 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 {
 	VteTerminal *terminal;
 	GdkModifierType modifiers;
-	gboolean event_mode;
 	int width, height;
 	gdouble x, y;
 
@@ -6816,12 +6805,6 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 		return TRUE;
 	}
 
-
-	event_mode = terminal->pvt->mouse_send_xy_on_click ||
-		     terminal->pvt->mouse_send_xy_on_button ||
-		     terminal->pvt->mouse_hilite_tracking ||
-		     terminal->pvt->mouse_cell_motion_tracking ||
-		     terminal->pvt->mouse_all_motion_tracking;
 
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Motion notify (%lf,%lf) [%.0f, %.0f].\n",
@@ -6866,7 +6849,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 			}
 
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    !event_mode) {
+			    !terminal->pvt->mouse_event_mode) {
 				vte_terminal_extend_selection(terminal,
 							      x, y, FALSE, FALSE);
 			} else {
@@ -6889,7 +6872,7 @@ skip_hilite:
 	    event->y >= terminal->row_count * height + VTE_PAD_WIDTH) {
 		switch (terminal->pvt->mouse_last_button) {
 		case 1:
-			if (!event_mode) {
+			if (!terminal->pvt->mouse_event_mode) {
 				/* Give mouse wigglers something. */
 				vte_terminal_autoscroll(terminal);
 				/* Start a timed autoscroll if we're not doing it
@@ -6918,7 +6901,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	VteTerminal *terminal;
 	long height, width, delta;
 	GdkModifierType modifiers;
-	gboolean handled = FALSE, event_mode;
+	gboolean handled = FALSE;
 	gboolean start_selecting = FALSE, extend_selecting = FALSE;
 	long cellx, celly;
 	gdouble x,y;
@@ -6934,12 +6917,6 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				  event->y - VTE_PAD_WIDTH);
 
 	_vte_terminal_set_pointer_visible(terminal, TRUE);
-
-	event_mode = terminal->pvt->mouse_send_xy_on_click ||
-		     terminal->pvt->mouse_send_xy_on_button ||
-		     terminal->pvt->mouse_hilite_tracking ||
-		     terminal->pvt->mouse_cell_motion_tracking ||
-		     terminal->pvt->mouse_all_motion_tracking;
 
 	/* Read the modifiers. */
 	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
@@ -6970,7 +6947,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 
 			/* If we're in event mode, and the user held down the
 			 * shift key, we start selecting. */
-			if (event_mode) {
+			if (terminal->pvt->mouse_event_mode) {
 				if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
 					start_selecting = TRUE;
 				}
@@ -7015,7 +6992,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		 * to the app. */
 		case 2:
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    !event_mode) {
+			    !terminal->pvt->mouse_event_mode) {
 				vte_terminal_paste_primary(terminal);
 				handled = TRUE;
 			}
@@ -7039,7 +7016,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		switch (event->button) {
 		case 1:
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    !event_mode) {
+			    !terminal->pvt->mouse_event_mode) {
 				vte_terminal_start_selection(terminal,
 							     event,
 							     selection_type_word);
@@ -7061,7 +7038,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		switch (event->button) {
 		case 1:
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    !event_mode) {
+			    !terminal->pvt->mouse_event_mode) {
 				vte_terminal_start_selection(terminal,
 							     event,
 							     selection_type_line);
@@ -7093,7 +7070,6 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 	VteTerminal *terminal;
 	GdkModifierType modifiers;
 	gboolean handled = FALSE;
-	gboolean event_mode;
 
 	terminal = VTE_TERMINAL(widget);
 
@@ -7103,12 +7079,6 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 				  event->y - VTE_PAD_WIDTH);
 
 	_vte_terminal_set_pointer_visible(terminal, TRUE);
-
-	event_mode = terminal->pvt->mouse_send_xy_on_click ||
-		     terminal->pvt->mouse_send_xy_on_button ||
-		     terminal->pvt->mouse_hilite_tracking ||
-		     terminal->pvt->mouse_cell_motion_tracking ||
-		     terminal->pvt->mouse_all_motion_tracking;
 
 	/* Disconnect from autoscroll requests. */
 	vte_terminal_stop_autoscroll(terminal);
@@ -7129,7 +7099,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 		case 1:
 			/* If Shift is held down, or we're not in events mode,
 			 * copy the selected text. */
-			if (terminal->pvt->selecting || !event_mode) {
+			if (terminal->pvt->selecting || !terminal->pvt->mouse_event_mode) {
 				/* Copy only if something was selected. */
 				if (terminal->pvt->has_selection &&
 				    !terminal->pvt->selecting_restart &&
@@ -7144,7 +7114,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 			break;
 		case 2:
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    !event_mode) {
+			    !terminal->pvt->mouse_event_mode) {
 				handled = TRUE;
 			}
 			break;
@@ -10901,11 +10871,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 
 	/* If we're running a mouse-aware application, map the scroll event
 	 * to a button press on buttons four and five. */
-	if (terminal->pvt->mouse_send_xy_on_click ||
-	    terminal->pvt->mouse_send_xy_on_button ||
-	    terminal->pvt->mouse_hilite_tracking ||
-	    terminal->pvt->mouse_cell_motion_tracking ||
-	    terminal->pvt->mouse_all_motion_tracking) {
+	if (terminal->pvt->mouse_event_mode) {
 		switch (event->direction) {
 		case GDK_SCROLL_UP:
 			button = 4;
@@ -13281,11 +13247,7 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 		       sizeof(&terminal->pvt->selection_end));
 	}
 	/* Reset mouse motion events. */
-	terminal->pvt->mouse_send_xy_on_click = FALSE;
-	terminal->pvt->mouse_send_xy_on_button = FALSE;
-	terminal->pvt->mouse_hilite_tracking = FALSE;
-	terminal->pvt->mouse_cell_motion_tracking = FALSE;
-	terminal->pvt->mouse_all_motion_tracking = FALSE;
+	terminal->pvt->mouse_event_mode = 0;
 	terminal->pvt->mouse_last_button = 0;
 	terminal->pvt->mouse_last_x = 0;
 	terminal->pvt->mouse_last_y = 0;
