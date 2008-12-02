@@ -1,5 +1,13 @@
 2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c (vte_terminal_motion_notify): Do not discard motion notify
+	events with coordinates out of our allocation, or when the cell under
+	the cursor didn't change.  These are useful for extending selection
+	and for sub-cell selection details, as well as app-requested all
+	motion tracking.
+
+2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 541441 – Dehighlight links on visibility notify?
 
 	* src/vte.c (vte_terminal_focus_in), (vte_terminal_enter):  Move match

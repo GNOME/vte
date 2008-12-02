@@ -6798,26 +6798,10 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	width = terminal->char_width;
 	height = terminal->char_height;
 
-	/* If the pointer hasn't moved to another character cell, then we
-	 * need do nothing. */
-	if (floor (x / width) == floor (terminal->pvt->mouse_last_x / width) &&
-			floor (y / height) == floor (terminal->pvt->mouse_last_y / height)) {
-		return TRUE;
-	}
-
-
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Motion notify (%lf,%lf) [%.0f, %.0f].\n",
 			event->x, event->y,
 			floor (x / width), floor (y / height) + terminal->pvt->screen->scroll_delta);
-
-	/* check to see if we care */
-	if (event->window != widget->window ||
-			event->x < 0 || event->x >= widget->allocation.width ||
-			event->y < 0 || event->y >= widget->allocation.height) {
-		goto skip_hilite;
-	}
-
 
 	/* Read the modifiers. */
 	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
@@ -6866,7 +6850,6 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 		break;
 	}
 
-skip_hilite:
 	/* Start scrolling if we need to. */
 	if (event->y < VTE_PAD_WIDTH ||
 	    event->y >= terminal->row_count * height + VTE_PAD_WIDTH) {
