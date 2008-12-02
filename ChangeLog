@@ -1,5 +1,11 @@
 2008-12-02  Christian Persch  <chpe@gnome.org>
 
+	Bug 112172 – Get rid of VteReaper
+
+	* src/reaper.h: Deprecate.
+
+2008-12-02  Christian Persch  <chpe@gnome.org>
+
 	* configure.in: Enable maintainer mode by default. Define more
 	deprecation defines, and define the *_DISABLE_SINGLE_INCLUDES defines.
 	Enable deprecations by default in maintainer mode.
