@@ -164,9 +164,9 @@ enum {
 };
 
 /* these static variables are guarded by the GDK mutex */
-static guint process_timeout_tag = VTE_INVALID_SOURCE;
+static guint process_timeout_tag = 0;
 static gboolean in_process_timeout;
-static guint update_timeout_tag = VTE_INVALID_SOURCE;
+static guint update_timeout_tag = 0;
 static gboolean in_update_timeout;
 static GList *active_terminals;
 static GTimer *process_timer;
@@ -3307,7 +3307,7 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 static void mark_input_source_invalid(VteTerminal *terminal)
 {
 	_vte_debug_print (VTE_DEBUG_IO, "removed poll of vte_terminal_io_read\n");
-	terminal->pvt->pty_input_source = VTE_INVALID_SOURCE;
+	terminal->pvt->pty_input_source = 0;
 }
 static void
 _vte_terminal_connect_pty_read(VteTerminal *terminal)
@@ -3316,7 +3316,7 @@ _vte_terminal_connect_pty_read(VteTerminal *terminal)
 		return;
 	}
 
-	if (terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
+	if (terminal->pvt->pty_input_source == 0) {
 		_vte_debug_print (VTE_DEBUG_IO, "polling vte_terminal_io_read\n");
 		terminal->pvt->pty_input_source =
 			g_io_add_watch_full(terminal->pvt->pty_channel,
@@ -3331,7 +3331,7 @@ _vte_terminal_connect_pty_read(VteTerminal *terminal)
 static void mark_output_source_invalid(VteTerminal *terminal)
 {
 	_vte_debug_print (VTE_DEBUG_IO, "removed poll of vte_terminal_io_write\n");
-	terminal->pvt->pty_output_source = VTE_INVALID_SOURCE;
+	terminal->pvt->pty_output_source = 0;
 }
 static void
 _vte_terminal_connect_pty_write(VteTerminal *terminal)
@@ -3341,7 +3341,7 @@ _vte_terminal_connect_pty_write(VteTerminal *terminal)
 			g_io_channel_unix_new(terminal->pvt->pty_master);
 	}
 
-	if (terminal->pvt->pty_output_source == VTE_INVALID_SOURCE) {
+	if (terminal->pvt->pty_output_source == 0) {
 		if (vte_terminal_io_write (terminal->pvt->pty_channel,
 					     G_IO_OUT,
 					     terminal))
@@ -3361,21 +3361,21 @@ _vte_terminal_connect_pty_write(VteTerminal *terminal)
 static void
 _vte_terminal_disconnect_pty_read(VteTerminal *terminal)
 {
-	if (terminal->pvt->pty_input_source != VTE_INVALID_SOURCE) {
+	if (terminal->pvt->pty_input_source != 0) {
 		_vte_debug_print (VTE_DEBUG_IO, "disconnecting poll of vte_terminal_io_read\n");
 		g_source_remove(terminal->pvt->pty_input_source);
-		terminal->pvt->pty_input_source = VTE_INVALID_SOURCE;
+		terminal->pvt->pty_input_source = 0;
 	}
 }
 
 static void
 _vte_terminal_disconnect_pty_write(VteTerminal *terminal)
 {
-	if (terminal->pvt->pty_output_source != VTE_INVALID_SOURCE) {
+	if (terminal->pvt->pty_output_source != 0) {
 		_vte_debug_print (VTE_DEBUG_IO, "disconnecting poll of vte_terminal_io_write\n");
 
 		g_source_remove(terminal->pvt->pty_output_source);
-		terminal->pvt->pty_output_source = VTE_INVALID_SOURCE;
+		terminal->pvt->pty_output_source = 0;
 	}
 }
 
@@ -4101,7 +4101,7 @@ _vte_terminal_enable_input_source (VteTerminal *terminal)
 		return;
 	}
 
-	if (terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
+	if (terminal->pvt->pty_input_source == 0) {
 		_vte_debug_print (VTE_DEBUG_IO, "polling vte_terminal_io_read\n");
 		terminal->pvt->pty_input_source =
 			g_io_add_watch_full(terminal->pvt->pty_channel,
@@ -4656,7 +4656,7 @@ static void
 remove_cursor_timeout (VteTerminal *terminal)
 {
 	g_source_remove (terminal->pvt->cursor_blink_tag);
-	terminal->pvt->cursor_blink_tag = VTE_INVALID_SOURCE;
+	terminal->pvt->cursor_blink_tag = 0;
 }
 
 
@@ -4779,7 +4779,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			}
 		}
 
-		if (terminal->pvt->cursor_blink_tag != VTE_INVALID_SOURCE)
+		if (terminal->pvt->cursor_blink_tag != 0)
 		{
 			remove_cursor_timeout (terminal);
 			terminal->pvt->cursor_blink_state = TRUE;
@@ -7144,7 +7144,7 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 		terminal->pvt->cursor_blink_state = TRUE;
 
 		if (terminal->pvt->cursor_blinks &&
-		    terminal->pvt->cursor_blink_tag == VTE_INVALID_SOURCE)
+		    terminal->pvt->cursor_blink_tag == 0)
 			add_cursor_timeout (terminal);
 
 		gtk_im_context_focus_in(terminal->pvt->im_context);
@@ -7181,7 +7181,7 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 		terminal->pvt->mouse_cursor_visible = FALSE;
 	}
 
-	if (terminal->pvt->cursor_blink_tag != VTE_INVALID_SOURCE)
+	if (terminal->pvt->cursor_blink_tag != 0)
 		remove_cursor_timeout (terminal);
 
 	return FALSE;
@@ -7931,7 +7931,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->incoming = NULL;
 	pvt->pending = g_array_new(FALSE, FALSE, sizeof(gunichar));
 	pvt->max_input_bytes = VTE_MAX_INPUT_READ;
-	pvt->cursor_blink_tag = VTE_INVALID_SOURCE;
+	pvt->cursor_blink_tag = 0;
 	pvt->outgoing = _vte_buffer_new();
 	pvt->outgoing_conv = VTE_INVALID_CONV;
 	pvt->conv_buffer = _vte_buffer_new();
@@ -7953,8 +7953,8 @@ vte_terminal_init(VteTerminal *terminal)
 			      pvt->default_column_count,
 			      pvt->default_row_count);
 	g_assert (pvt->pty_master == -1);
-	pvt->pty_input_source = VTE_INVALID_SOURCE;
-	pvt->pty_output_source = VTE_INVALID_SOURCE;
+	pvt->pty_input_source = 0;
+	pvt->pty_output_source = 0;
 	pvt->pty_pid = -1;
         pvt->child_exit_status = 0;
 
@@ -8022,7 +8022,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->block_mode = FALSE;
 	pvt->had_block_mode = FALSE;
 	pvt->has_fonts = FALSE;
-	pvt->root_pixmap_changed_tag = VTE_INVALID_SOURCE;
+	pvt->root_pixmap_changed_tag = 0;
 
 	/* Not all backends generate GdkVisibilityNotify, so mark the
 	 * window as unobscured initially. */
@@ -8189,12 +8189,12 @@ vte_terminal_unrealize(GtkWidget *widget)
 	terminal = VTE_TERMINAL(widget);
 
 	/* Disconnect from background-change events. */
-	if (terminal->pvt->root_pixmap_changed_tag != VTE_INVALID_SOURCE) {
+	if (terminal->pvt->root_pixmap_changed_tag != 0) {
 		VteBg       *bg;
 		bg = vte_bg_get_for_screen(gtk_widget_get_screen(widget));
 		g_signal_handler_disconnect (bg,
 				terminal->pvt->root_pixmap_changed_tag);
-		terminal->pvt->root_pixmap_changed_tag = VTE_INVALID_SOURCE;
+		terminal->pvt->root_pixmap_changed_tag = 0;
 	}
 
 	/* Deallocate the cursors. */
@@ -8253,9 +8253,9 @@ vte_terminal_unrealize(GtkWidget *widget)
 	}
 
 	/* Remove the blink timeout function. */
-	if (terminal->pvt->cursor_blink_tag != VTE_INVALID_SOURCE) {
+	if (terminal->pvt->cursor_blink_tag != 0) {
 		g_source_remove(terminal->pvt->cursor_blink_tag);
-		terminal->pvt->cursor_blink_tag = VTE_INVALID_SOURCE;
+		terminal->pvt->cursor_blink_tag = 0;
 	}
 	terminal->pvt->cursor_blink_state = FALSE;
 
@@ -10798,7 +10798,7 @@ vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 			event->area.x, event->area.y,
 			event->area.width, event->area.height);
 	if (terminal->pvt->active != NULL &&
-			update_timeout_tag != VTE_INVALID_SOURCE &&
+			update_timeout_tag != 0 &&
 			!in_update_timeout) {
 		/* fix up a race condition where we schedule a delayed update
 		 * after an 'immediate' invalidate all */
@@ -12344,7 +12344,7 @@ vte_terminal_background_update(VteTerminal *terminal)
 	saturation = (double) terminal->pvt->bg_saturation;
 	saturation /= VTE_SATURATION_MAX;
 	if (terminal->pvt->bg_transparent) {
-		if (terminal->pvt->root_pixmap_changed_tag == VTE_INVALID_SOURCE) {
+		if (terminal->pvt->root_pixmap_changed_tag == 0) {
 			VteBg *bg;
 
 			/* Connect to background-change events. */
@@ -13618,7 +13618,7 @@ _vte_terminal_remove_selection(VteTerminal *terminal)
 static void
 add_update_timeout (VteTerminal *terminal)
 {
-	if (update_timeout_tag == VTE_INVALID_SOURCE) {
+	if (update_timeout_tag == 0) {
 		_vte_debug_print (VTE_DEBUG_TIMEOUT,
 				"Starting update timeout\n");
 		update_timeout_tag =
@@ -13628,11 +13628,11 @@ add_update_timeout (VteTerminal *terminal)
 					NULL);
 	}
 	if (in_process_timeout == FALSE &&
-			process_timeout_tag != VTE_INVALID_SOURCE) {
+			process_timeout_tag != 0) {
 		_vte_debug_print (VTE_DEBUG_TIMEOUT,
 				"Removing process timeout\n");
 		g_source_remove (process_timeout_tag);
-		process_timeout_tag = VTE_INVALID_SOURCE;
+		process_timeout_tag = 0;
 	}
 	if (terminal->pvt->active == NULL) {
 		_vte_debug_print (VTE_DEBUG_TIMEOUT,
@@ -13670,18 +13670,18 @@ remove_from_active_list (VteTerminal *terminal)
 
 		if (active_terminals == NULL) {
 			if (in_process_timeout == FALSE &&
-					process_timeout_tag != VTE_INVALID_SOURCE) {
+					process_timeout_tag != 0) {
 				_vte_debug_print(VTE_DEBUG_TIMEOUT,
 						"Removing process timeout\n");
 				g_source_remove (process_timeout_tag);
-				process_timeout_tag = VTE_INVALID_SOURCE;
+				process_timeout_tag = 0;
 			}
 			if (in_update_timeout == FALSE &&
-					update_timeout_tag != VTE_INVALID_SOURCE) {
+					update_timeout_tag != 0) {
 				_vte_debug_print(VTE_DEBUG_TIMEOUT,
 						"Removing update timeout\n");
 				g_source_remove (update_timeout_tag);
-				update_timeout_tag = VTE_INVALID_SOURCE;
+				update_timeout_tag = 0;
 			}
 		}
 	}
@@ -13700,8 +13700,8 @@ vte_terminal_add_process_timeout (VteTerminal *terminal)
 			"Adding terminal to active list\n");
 	terminal->pvt->active = active_terminals =
 		g_list_prepend (active_terminals, terminal);
-	if (update_timeout_tag == VTE_INVALID_SOURCE &&
-			process_timeout_tag == VTE_INVALID_SOURCE) {
+	if (update_timeout_tag == 0 &&
+			process_timeout_tag == 0) {
 		_vte_debug_print(VTE_DEBUG_TIMEOUT,
 				"Starting process timeout\n");
 		process_timeout_tag =
@@ -13840,7 +13840,7 @@ process_timeout (gpointer data)
 		}
 		if (terminal->pvt->pty_channel != NULL) {
 			if (terminal->pvt->pty_input_active ||
-					terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
+					terminal->pvt->pty_input_source == 0) {
 				terminal->pvt->pty_input_active = FALSE;
 				vte_terminal_io_read (terminal->pvt->pty_channel,
 						G_IO_IN, terminal);
@@ -13871,12 +13871,12 @@ process_timeout (gpointer data)
 
 	_vte_debug_print (VTE_DEBUG_WORK, ">");
 
-	if (active_terminals && update_timeout_tag == VTE_INVALID_SOURCE) {
+	if (active_terminals && update_timeout_tag == 0) {
 		again = TRUE;
 	} else {
 		_vte_debug_print(VTE_DEBUG_TIMEOUT,
 				"Stoping process timeout\n");
-		process_timeout_tag = VTE_INVALID_SOURCE;
+		process_timeout_tag = 0;
 		again = FALSE;
 	}
 
@@ -13889,7 +13889,7 @@ process_timeout (gpointer data)
 		 * at full tilt and making us run to keep up...
 		 */
 		g_usleep (0);
-	} else if (update_timeout_tag == VTE_INVALID_SOURCE) {
+	} else if (update_timeout_tag == 0) {
 		/* otherwise free up memory used to capture incoming data */
 		prune_chunks (10);
 	}
@@ -13964,7 +13964,7 @@ update_repeat_timeout (gpointer data)
 		}
 		if (terminal->pvt->pty_channel != NULL) {
 			if (terminal->pvt->pty_input_active ||
-					terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
+					terminal->pvt->pty_input_source == 0) {
 				terminal->pvt->pty_input_active = FALSE;
 				vte_terminal_io_read (terminal->pvt->pty_channel,
 						G_IO_IN, terminal);
@@ -14015,7 +14015,7 @@ update_repeat_timeout (gpointer data)
 	if (active_terminals == NULL) {
 		_vte_debug_print(VTE_DEBUG_TIMEOUT,
 				"Stoping update timeout\n");
-		update_timeout_tag = VTE_INVALID_SOURCE;
+		update_timeout_tag = 0;
 		again = FALSE;
 	}
 
@@ -14051,11 +14051,11 @@ update_timeout (gpointer data)
 			"Update timeout:  %d active\n",
 			g_list_length (active_terminals));
 
-	if (process_timeout_tag != VTE_INVALID_SOURCE) {
+	if (process_timeout_tag != 0) {
 		_vte_debug_print(VTE_DEBUG_TIMEOUT,
 				"Removing process timeout\n");
 		g_source_remove (process_timeout_tag);
-		process_timeout_tag = VTE_INVALID_SOURCE;
+		process_timeout_tag = 0;
 	}
 
 	for (l = active_terminals; l != NULL; l = next) {
@@ -14068,7 +14068,7 @@ update_timeout (gpointer data)
 		}
 		if (terminal->pvt->pty_channel != NULL) {
 			if (terminal->pvt->pty_input_active ||
-					terminal->pvt->pty_input_source == VTE_INVALID_SOURCE) {
+					terminal->pvt->pty_input_source == 0) {
 				terminal->pvt->pty_input_active = FALSE;
 				vte_terminal_io_read (terminal->pvt->pty_channel,
 						G_IO_IN, terminal);

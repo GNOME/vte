@@ -91,7 +91,6 @@ G_BEGIN_DECLS
 #define VTE_CELL_BBOX_SLACK		1
 
 #define I_(string) (g_intern_static_string(string))
-#define VTE_INVALID_SOURCE (0) /* A number which can never be a valid source ID */
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */

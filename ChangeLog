@@ -1,5 +1,22 @@
 2008-12-02  Christian Persch  <chpe@gnome.org>
 
+	* src/vte-private.h:
+	* src/vte.c: (mark_input_source_invalid),
+	(_vte_terminal_connect_pty_read), (mark_output_source_invalid),
+	(_vte_terminal_connect_pty_write),
+	(_vte_terminal_disconnect_pty_read),
+	(_vte_terminal_disconnect_pty_write),
+	(_vte_terminal_enable_input_source), (remove_cursor_timeout),
+	(vte_terminal_key_press), (vte_terminal_focus_in),
+	(vte_terminal_focus_out), (vte_terminal_init),
+	(vte_terminal_unrealize), (vte_terminal_expose),
+	(vte_terminal_background_update), (add_update_timeout),
+	(remove_from_active_list), (vte_terminal_add_process_timeout),
+	(process_timeout), (update_repeat_timeout), (update_timeout): Remove
+	VTE_INVALID_SOURCE definition and just use 0 directly.
+
+2008-12-02  Christian Persch  <chpe@gnome.org>
+
 	Bug 560667 – invalid definition of VTE_INVALID_SOURCE
 
 	* src/vte-private.h: Fix VTE_INVALID_SOURCE define to use 0 instead of
