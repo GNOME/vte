@@ -6260,7 +6260,7 @@ math_div (long a, long b)
 }
 
 /* Helper */
-void
+static void
 vte_terminal_extend_selection_on_type (VteTerminal *terminal)
 {
 	long i, j;
@@ -6411,7 +6411,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	VteScreen *screen;
 	VteRowData *rowdata;
 	int width, height;
-	long delta, residual, i, j;
+	long delta, residual, i;
 	struct vte_charcell *cell;
 	struct selection_event_coords *origin, *last, *start, *end;
 	struct selection_cell_coords old_start, old_end, *sc, *ec, tc;
