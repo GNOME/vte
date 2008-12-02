@@ -6182,6 +6182,17 @@ find_end_column (VteTerminal *terminal, glong col, glong row)
 	return MIN(col + columns, terminal->column_count);
 }
 
+static void
+vte_terminal_invalidate_selection (VteTerminal *terminal)
+{
+	_vte_invalidate_region (terminal,
+				terminal->pvt->selection_start.col,
+				terminal->pvt->selection_end.col,
+				terminal->pvt->selection_start.row,
+				terminal->pvt->selection_end.row,
+				terminal->pvt->selection_block_mode);
+}
+
 
 /* Start selection at the location of the event. */
 static void
@@ -6230,16 +6241,7 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 		terminal->pvt->selection_end.row = celly;
 		terminal->pvt->selection_origin =
 			terminal->pvt->selection_last;
-		_vte_invalidate_region(terminal,
-				     MIN(terminal->pvt->selection_start.col,
-				         terminal->pvt->selection_end.col),
-				     MAX(terminal->pvt->selection_start.col,
-					 terminal->pvt->selection_end.col),
-				     MIN(terminal->pvt->selection_start.row,
-				         terminal->pvt->selection_end.row),
-				     MAX(terminal->pvt->selection_start.row,
-					 terminal->pvt->selection_end.row),
-				     FALSE);
+		vte_terminal_invalidate_selection (terminal);
 		break;
 	}
 
@@ -6263,17 +6265,6 @@ math_div (long a, long b)
 		return a / b;
 	else
 		return (a / b) - 1;
-}
-
-static void
-vte_terminal_invalidate_selection (VteTerminal *terminal)
-{
-	_vte_invalidate_region (terminal,
-				terminal->pvt->selection_start.col,
-				terminal->pvt->selection_end.col,
-				terminal->pvt->selection_start.row,
-				terminal->pvt->selection_end.row,
-				terminal->pvt->selection_block_mode);
 }
 
 /* Helper */
