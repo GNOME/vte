@@ -6199,19 +6199,13 @@ static void
 vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 			     enum vte_selection_type selection_type)
 {
-	long cellx, celly, delta;
+	long delta;
 
 	if (terminal->pvt->selection_block_mode)
 		selection_type = selection_type_char;
 
-	/* Convert the event coordinates to cell coordinates. */
-	delta = terminal->pvt->screen->scroll_delta;
-	celly = (event->y - VTE_PAD_WIDTH) / terminal->char_height + delta;
-	cellx = find_start_column (terminal,
-			(event->x - VTE_PAD_WIDTH) / terminal->char_width,
-			celly);
-
 	/* Record that we have the selection, and where it started. */
+	delta = terminal->pvt->screen->scroll_delta;
 	terminal->pvt->has_selection = TRUE;
 	terminal->pvt->selection_last.x = event->x - VTE_PAD_WIDTH;
 	terminal->pvt->selection_last.y = event->y - VTE_PAD_WIDTH +
@@ -6231,17 +6225,8 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 	case selection_type_line:
 		/* Mark the newly-selected areas now. */
 		terminal->pvt->selecting_restart = FALSE;
-		terminal->pvt->has_selection = TRUE;
+		terminal->pvt->has_selection = FALSE;
 		terminal->pvt->selecting_had_delta = FALSE;
-
-		terminal->pvt->selection_start.col = cellx;
-		terminal->pvt->selection_start.row = celly;
-		terminal->pvt->selection_end.col = find_end_column (terminal,
-				cellx, celly);
-		terminal->pvt->selection_end.row = celly;
-		terminal->pvt->selection_origin =
-			terminal->pvt->selection_last;
-		vte_terminal_invalidate_selection (terminal);
 		break;
 	}
 
@@ -6581,18 +6566,8 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	sc = &terminal->pvt->selection_start;
 	ec = &terminal->pvt->selection_end;
 
-	/* We want to be more lenient on the user with their selection.
-	 * We round to closest logical position (positions are located between
-	 * cells).  But we don't want to fully round.  So we divide the cell
-	 * width/height into three parts.  The side parts round to their nearest
-	 * position.  The middle part is always inclusive in the selection.
-	 *
-	 * We use different partitions for height and width.
-	 */
-
-	residual = (height + 1) / 4;
-	sc->row = MAX (0, ((long)start->y + residual) / height);
-	ec->row = MAX (0, ((long)end->y - residual) / height);
+	sc->row = MAX (0, start->y / height);
+	ec->row = MAX (0, end->y   / height);
 
 	/* Sort x using row cell coordinates */
 	if ((terminal->pvt->selection_block_mode || sc->row == ec->row) && (start->x > end->x)) {
@@ -6602,12 +6577,18 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 		end = tmp;
 	}
 
-	/* math_div and no MAX, to allow selecting no cells in the line,
+	/* We want to be more lenient on the user with their column selection.
+	 * We round to closest logical position (positions are located between
+	 * cells).  But we don't want to fully round.  So we divide the cell
+	 * width/height into three parts.  The side parts round to their nearest
+	 * position.  The middle part is always inclusive in the selection.
+	 *
+	 * math_div and no MAX, to allow selecting no cells in the line,
 	 * ie. ec->col = -1, which is essentially equal to copying the
 	 * newline from previous line but no chars from current line. */
 	residual = (width + 1) / 3;
-	sc->col = math_div ((long)start->x + residual, width);
-	ec->col = math_div ((long)end->x - residual, width);
+	sc->col = math_div (start->x + residual, width);
+	ec->col = math_div (end->x - residual, width);
 
 
 	vte_terminal_extend_selection_expand (terminal);

@@ -1,5 +1,11 @@
 2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c (vte_terminal_start_selection),
+	(vte_terminal_extend_selection): Don't do fancy rounding for row
+	selection, only for column.
+
+2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte.c (vte_terminal_invalidate_selection),
 	(vte_terminal_start_selection): Call function instead of open coding.
 
