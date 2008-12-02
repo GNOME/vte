@@ -296,7 +296,7 @@ struct _VteTerminalPrivate {
 	} selection_origin, selection_last;
 	struct selection_cell_coords {
 		long row, col;
-	} selection_start, selection_end, last_selection_start, last_selection_end;
+	} selection_start, selection_end;
 
 	/* Miscellaneous options. */
 	VteTerminalEraseBinding backspace_binding, delete_binding;

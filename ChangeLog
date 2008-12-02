@@ -3,6 +3,13 @@
 	* src/vte-private.h:
 	* src/vte.c (vte_terminal_start_selection),
 	(vte_terminal_extend_selection):
+	Cleanup selection code a bit more.
+
+2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
+
+	* src/vte-private.h:
+	* src/vte.c (vte_terminal_start_selection),
+	(vte_terminal_extend_selection):
 	Merge selection_origin and selection_restart_origin as only one was
 	being used at a time.
 
