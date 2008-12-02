@@ -1,5 +1,12 @@
 2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vtepangocairo.c (context_hash), (context_equal),
+	(font_info_create_for_context), (font_info_create_for_screen),
+	(font_info_create_for_widget): Respect PangoLanguage set on a widget's
+	PangoContext.
+
+2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vtepangocairo.c (font_info_measure_font): Remove CJK fullwidth
 	measurement hacks.  Pango doesn't need these.  We're down to one
 	FcFontSort() instead of two during initialization.

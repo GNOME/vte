@@ -91,8 +91,8 @@
  * do the following:
  *
  *   - Use a global cache to share font info structs across different widgets.
- *     We use cairo font options, resolution, and font description as the key
- *     for our hash table.
+ *     We use pango language, cairo font options, resolution, and font description
+ *     as the key for our hash table.
  *
  *   - When a font info struct is no longer used by any widget, we delay
  *     destroying it for a while (FONT_CACHE_TIMEOUT seconds).  This is
@@ -543,7 +543,8 @@ context_hash (PangoContext *context)
 {
 	return pango_units_from_double (pango_cairo_context_get_resolution (context))
 	     ^ pango_font_description_hash (pango_context_get_font_description (context))
-	     ^ cairo_font_options_hash (pango_cairo_context_get_font_options (context));
+	     ^ cairo_font_options_hash (pango_cairo_context_get_font_options (context))
+	     ^ GPOINTER_TO_UINT (pango_context_get_language (context));
 }
 
 static gboolean
@@ -552,7 +553,8 @@ context_equal (PangoContext *a,
 {
 	return pango_cairo_context_get_resolution (a) == pango_cairo_context_get_resolution (b)
 	    && pango_font_description_equal (pango_context_get_font_description (a), pango_context_get_font_description (b))
-	    && cairo_font_options_equal (pango_cairo_context_get_font_options (a), pango_cairo_context_get_font_options (b));
+	    && cairo_font_options_equal (pango_cairo_context_get_font_options (a), pango_cairo_context_get_font_options (b))
+	    && pango_context_get_language (a) == pango_context_get_language (b);
 }
 
 static struct font_info *
@@ -584,7 +586,8 @@ font_info_find_for_context (PangoContext *context)
 static struct font_info *
 font_info_create_for_context (PangoContext               *context,
 			      const PangoFontDescription *desc,
-			      VteTerminalAntiAlias        antialias)
+			      VteTerminalAntiAlias        antialias,
+			      PangoLanguage              *language)
 {
 	if (!PANGO_IS_CAIRO_FONT_MAP (pango_context_get_font_map (context))) {
 		/* Ouch, Gtk+ switched over to some drawing system?
@@ -595,8 +598,11 @@ font_info_create_for_context (PangoContext               *context,
 	}
 
 	pango_context_set_base_dir (context, PANGO_DIRECTION_LTR);
+
 	if (desc)
 		pango_context_set_font_description (context, desc);
+
+	pango_context_set_language (context, language);
 
 	switch (antialias) {
 		cairo_font_options_t *font_options;
@@ -636,10 +642,11 @@ font_info_create_for_context (PangoContext               *context,
 static struct font_info *
 font_info_create_for_screen (GdkScreen                  *screen,
 			     const PangoFontDescription *desc,
-			     VteTerminalAntiAlias        antialias)
+			     VteTerminalAntiAlias        antialias,
+			     PangoLanguage              *language)
 {
 	return font_info_create_for_context (gdk_pango_context_get_for_screen (screen),
-					     desc, antialias);
+					     desc, antialias, language);
 }
 
 static struct font_info *
@@ -648,8 +655,9 @@ font_info_create_for_widget (GtkWidget                  *widget,
 			     VteTerminalAntiAlias        antialias)
 {
 	GdkScreen *screen = gtk_widget_get_screen (widget);
+	PangoLanguage *language = pango_context_get_language (gtk_widget_get_pango_context (widget));
 
-	return font_info_create_for_screen (screen, desc, antialias);
+	return font_info_create_for_screen (screen, desc, antialias, language);
 }
 
 static struct unichar_info *
