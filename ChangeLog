@@ -1,5 +1,9 @@
 2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c (vte_terminal_extend_selection): Revert previous change.
+
+2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte.c (vte_terminal_extend_selection):  Add a shortcircuit
 	check.
 

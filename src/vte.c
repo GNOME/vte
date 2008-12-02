@@ -6274,10 +6274,6 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	gboolean invalidate_selected = FALSE;
 	gboolean had_selection;
 
-	if (G_UNLIKELY (x == terminal->pvt->mouse_last_x &&
-			y == terminal->pvt->mouse_last_y))
-		return;
-
 	height = terminal->char_height;
 	width = terminal->char_width;
 
