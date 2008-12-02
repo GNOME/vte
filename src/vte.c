@@ -7167,10 +7167,6 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 		gtk_im_context_focus_in(terminal->pvt->im_context);
 		_vte_invalidate_cursor_once(terminal, FALSE);
 		_vte_terminal_set_pointer_visible(terminal, TRUE);
-
-		vte_terminal_match_hilite_show(terminal,
-				terminal->pvt->mouse_last_x,
-				terminal->pvt->mouse_last_y);
 	}
 
 	return FALSE;
@@ -7215,6 +7211,13 @@ vte_terminal_enter(GtkWidget *widget, GdkEventCrossing *event)
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Enter.\n");
 	if (GTK_WIDGET_CLASS (vte_terminal_parent_class)->enter_notify_event) {
 		ret = GTK_WIDGET_CLASS (vte_terminal_parent_class)->enter_notify_event (widget, event);
+	}
+	if (GTK_WIDGET_REALIZED (widget)) {
+		VteTerminal *terminal = VTE_TERMINAL (widget);
+		/* Hilite any matches. */
+		vte_terminal_match_hilite_show(terminal,
+					  event->x - VTE_PAD_WIDTH,
+					  event->y - VTE_PAD_WIDTH);
 	}
 	return ret;
 }
