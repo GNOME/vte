@@ -6251,7 +6251,6 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 			"Selection started at (%ld,%ld).\n",
 			terminal->pvt->selection_start.col,
 			terminal->pvt->selection_start.row);
-	vte_terminal_emit_selection_changed(terminal);
 
 	/* Temporarily stop caring about input from the child. */
 	_vte_terminal_disconnect_pty_read(terminal);
@@ -6491,7 +6490,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	int width, height;
 	long delta, residual;
 	struct selection_event_coords *origin, *last, *start, *end;
-	struct selection_cell_coords old_start, old_end, *sc, *ec;
+	struct selection_cell_coords old_start, old_end, *sc, *ec, *so, *eo;
 	gboolean invalidate_selected = FALSE;
 	gboolean had_selection;
 
@@ -6501,6 +6500,8 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	screen = terminal->pvt->screen;
 	old_start = terminal->pvt->selection_start;
 	old_end = terminal->pvt->selection_end;
+	so = &old_start;
+	eo = &old_end;
 
 	/* Convert the event coordinates to cell coordinates. */
 	delta = screen->scroll_delta;
@@ -6620,14 +6621,15 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 
 	vte_terminal_extend_selection_expand (terminal);
 
+	if (!invalidate_selected &&
+	    0 == memcmp (sc, so, sizeof (*sc)) &&
+	    0 == memcmp (ec, eo, sizeof (*ec)))
+		/* No change */
+		return;
 
 	/* Invalidate */
 
 	if (had_selection) {
-		struct selection_cell_coords *so, *eo;
-
-		so = &old_start;
-		eo = &old_end;
 
 		if (terminal->pvt->selection_block_mode) {
 			/* Update the selection area diff in block mode. */

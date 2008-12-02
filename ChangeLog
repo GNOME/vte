@@ -1,5 +1,13 @@
 2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 559818 – redundant selection-changed signal on deselection
+
+	* src/vte.c (vte_terminal_start_selection),
+	(vte_terminal_extend_selection): Fix all redundant selection-changed
+	signals.  Including those on double-click.
+
+2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte-private.h:
 	* src/vte.c:
 	Rewrite text selection.  In particular, fix block_mode.
