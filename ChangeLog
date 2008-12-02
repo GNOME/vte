@@ -1,5 +1,16 @@
 2008-12-02  Christian Persch  <chpe@gnome.org>
 
+	Bug 112172 – Get rid of VteReaper
+
+	* src/reaper.c: (vte_reaper_child_watch_cb),
+	(vte_reaper_add_child), (vte_reaper_init),
+	(vte_reaper_constructor), (vte_reaper_finalize),
+	(vte_reaper_class_init), (vte_reaper_get), (child_exited), (main):
+	* src/reaper.h: Prepare for removal of Reaper in vte1.0 by removing
+	the unused pre-glib-2.4 code from Reaper.
+
+2008-12-02  Christian Persch  <chpe@gnome.org>
+
 	* src/vteapp.c: (main): Catch the child-exited signal to the child's
 	exit code.
 

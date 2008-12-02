@@ -17,78 +17,15 @@
  */
 
 #include <config.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <glib.h>
-#include <glib-object.h>
+
 #include "debug.h"
 #include "marshal.h"
 #include "reaper.h"
 
-#ifdef HAVE_LOCALE_H
-#include <locale.h>
-#endif
-#include <glib/gi18n-lib.h>
-
-
 static VteReaper *singleton_reaper = NULL;
-struct reaper_info {
-	int signum;
-	pid_t pid;
-	int status;
-};
 
 G_DEFINE_TYPE(VteReaper, vte_reaper, G_TYPE_OBJECT)
 
-static void
-vte_reaper_signal_handler(int signum)
-{
-	struct reaper_info info;
-	int status;
-
-	/* This might become more general-purpose in the future, but for now
-	 * just forget about signals other than SIGCHLD. */
-	info.signum = signum;
-	if (signum != SIGCHLD) {
-		return;
-	}
-
-	if ((singleton_reaper != NULL) && (singleton_reaper->iopipe[0] != -1)) {
-		info.pid = waitpid(-1, &status, WNOHANG);
-		if (info.pid != -1) {
-			info.status = status;
-			if (write(singleton_reaper->iopipe[1], "", 0) == 0) {
-				write(singleton_reaper->iopipe[1],
-				      &info, sizeof(info));
-			}
-		}
-	}
-}
-
-static gboolean
-vte_reaper_emit_signal(GIOChannel *channel, GIOCondition condition,
-		       gpointer data)
-{
-	struct reaper_info info;
-	if (condition != G_IO_IN) {
-		return FALSE;
-	}
-	g_assert(data == singleton_reaper);
-	read(singleton_reaper->iopipe[0], &info, sizeof(info));
-	if (info.signum == SIGCHLD) {
-		_vte_debug_print(VTE_DEBUG_SIGNALS,
-				"Reaper emitting child-exited signal.\n");
-		g_signal_emit_by_name(data, "child-exited",
-				      info.pid, info.status);
-	}
-	return TRUE;
-}
-
-#if GLIB_CHECK_VERSION(2,4,0)
 static void
 vte_reaper_child_watch_cb(GPid pid, gint status, gpointer data)
 {
@@ -97,7 +34,6 @@ vte_reaper_child_watch_cb(GPid pid, gint status, gpointer data)
 	g_signal_emit_by_name(data, "child-exited", pid, status);
 	g_spawn_close_pid (pid);
 }
-#endif
 
 /**
  * vte_reaper_add_child:
@@ -113,53 +49,16 @@ vte_reaper_child_watch_cb(GPid pid, gint status, gpointer data)
 int
 vte_reaper_add_child(GPid pid)
 {
-#if GLIB_CHECK_VERSION(2,4,0)
 	return g_child_watch_add_full(G_PRIORITY_LOW,
 				      pid,
 				      vte_reaper_child_watch_cb,
 				      vte_reaper_get(),
 				      (GDestroyNotify)g_object_unref);
-#endif
-	return VTE_INVALID_SOURCE;
 }
 
 static void
 vte_reaper_init(VteReaper *reaper)
 {
-	struct sigaction action;
-	int ret;
-
-	/* Open the signal pipe. */
-	ret = pipe(reaper->iopipe);
-	if (ret == -1) {
-		g_error(_("Error creating signal pipe."));
-	}
-
-	/* Create the channel. */
-	reaper->channel = g_io_channel_unix_new(reaper->iopipe[0]);
-
-#if GLIB_CHECK_VERSION(2,4,0)
-	if ((glib_major_version > 2) || /* 3.x and later */
-	    ((glib_major_version == 2) && (glib_minor_version >= 4))) {/* 2.4 */
-		return;
-	}
-#endif
-
-	/* Add the channel to the source list. */
-	g_io_add_watch_full(reaper->channel,
-			    G_PRIORITY_HIGH,
-			    G_IO_IN,
-			    vte_reaper_emit_signal,
-			    reaper,
-			    NULL);
-
-	/* Set the signal handler. */
-	action.sa_handler = vte_reaper_signal_handler;
-	sigemptyset(&action.sa_mask);
-	action.sa_flags = SA_RESTART | SA_NOCLDSTOP;
-	sigaction(SIGCHLD, &action, NULL);
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Hooked SIGCHLD signal in reaper.\n");
 }
 
 static GObject*
@@ -181,29 +80,6 @@ vte_reaper_constructor (GType                  type,
 static void
 vte_reaper_finalize(GObject *reaper)
 {
-	struct sigaction action, old_action;
-
-	/* Reset the signal handler if we still have it hooked. */
-	action.sa_handler = SIG_DFL;
-	sigemptyset(&action.sa_mask);
-	action.sa_flags = SA_RESTART | SA_NOCLDSTOP;
-	sigaction(SIGCHLD, NULL, &old_action);
-	if (old_action.sa_handler == vte_reaper_signal_handler) {
-		sigaction(SIGCHLD, &action, NULL);
-	}
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Unhooked SIGCHLD signal in reaper.\n");
-
-	/* Remove the channel from the source list. */
-	g_source_remove_by_user_data(reaper);
-
-	/* Remove the channel. */
-	g_io_channel_unref(VTE_REAPER(reaper)->channel);
-
-	/* Close the pipes. */
-	close(VTE_REAPER(reaper)->iopipe[1]);
-	close(VTE_REAPER(reaper)->iopipe[0]);
-
 	G_OBJECT_CLASS(vte_reaper_parent_class)->finalize(reaper);
 	singleton_reaper = NULL;
 }
@@ -213,12 +89,7 @@ vte_reaper_class_init(VteReaperClass *klass)
 {
 	GObjectClass *gobject_class;
 
-	bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
-#ifdef HAVE_DECL_BIND_TEXTDOMAIN_CODESET
-	bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
-#endif
-
-	klass->child_exited_signal = g_signal_new("child-exited",
+	klass->child_exited_signal = g_signal_new(g_intern_static_string("child-exited"),
 						  G_OBJECT_CLASS_TYPE(klass),
 						  G_SIGNAL_RUN_LAST,
 						  0,

@@ -29,8 +29,8 @@ G_BEGIN_DECLS
 
 struct _VteReaper {
 	GObject object;
-	GIOChannel *channel;
-	int iopipe[2];
+	GIOChannel *_channel; /* unused */
+	int _iopipe[2]; /* unused */
 };
 typedef struct _VteReaper VteReaper;
 
