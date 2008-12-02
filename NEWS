@@ -1,8 +1,61 @@
 0.19.0
 ======
-
- * New PangoCairo backend; all other backends were removed
- * Bugs fixed: [http://bugzilla.gnome.org/buglist.cgi?product=vte&bug_status=RESOLVED&resolution=FIXED&chfieldfrom=2008-09-22&chfieldto=2008-12-02&chfield=bug_status]
+- New, PangoCairo, rendering backend.  This is functionally equivalent to the
+  previous default backend which was Xft.  And just a tad bit faster.
+- All other backends are removed.
+- Configurable cursor shape (block, underline, I-beam).
+- Preliminary object properties added to VteTerminal.
+- Vte now depends on glib, pango, gtk+, and nothing else.
+- API that will be removed in vte 1.0 has been marked deprecated in this
+  release.
+- gnome-pty-helper does no longer depend on and link to glib
+- General code maintenance and cleanup.
+- Misc bug fixes.
+- Bugs fixed in this release:
+	Bug 562806 – crash in Terminal: Typing "cd " just after ...
+	Bug 562511 – scrollbar doesn't sit at the bottom
+	Bug 540951 – The gnome-pty-helper is spawn when its not needed
+	Bug 465036 – gnome-pty-helper locks /var/run/utmp
+	Bug 127870 – terminal garbled and needs 'reset' after cat'ing file
+	Bug 317236 – vte resynchrones too late on invalid UTF-8
+	Bug 107031 – device-control-string error
+	Bug 521420 – vte closes connection to child before all output is read
+		Patch from Thomas Leonard
+	Bug 514632 – Problem with cursor in emacs in gnome-terminal
+	Bug 459553 – gnome-terminal cannot shows circled digits with the
+		correct width on ja_JP.PCK
+		Patch from Takao Fujiwara
+	Bug 562385 – gnome-pty-helper goes to 100% cpu usage
+	Bug 562332 – cleanup font infos on exit?
+	Bug 562338 – don't need to connect to bunch of xft settings
+	Bug 488960 – gnome-terminal on Solaris 10 does not clean up utmpx on
+		exit (intermittent)
+	Bug 561366 – remove antialias setting for 1.0
+	Bug 562187 – Add make rules for calling gperf
+	Bug 416518 – Do something about uniwidths
+	Bug 500191 – Remove vteseq-table.h?
+	Bug 514457 – Use g_strv_length()
+	Bug 542561 – Doesn't build when disabling gnome-pty-helper
+	Bug 560766 – Deprecate and remove vte_terminal_get_using_xft()
+	Bug 536894 – Confusing use of "free" as variable-name in ring
+		functions
+	Bug 561713 – crash on font cache cleanup
+	Bug 560819 – Remove obsolete backends
+	Bug 560818 – pangocairo backend doesn't share font cache across
+		widgets
+	Bug 560977 – Cleaning up GTK Includes in vte
+	Bug 561185 – pangocairo backend sets antialias incorrectly
+	Bug 560817 – pagocairo backend doesn't have correct opacity support	
+	Bug 560991 – Unsetting background doesn't work
+	Bug 395599 – Add pangocairo backend
+	Bug 557375 – >=vte-0.16.14 breaks highlighting on activity
+        Bug 556398 – maybe deprecate vte_terminal_get_char_ascent/descent
+        Bug 339819 – LibVTE terminals in GLADE
+        Bug 399364 – Implement properties
+        Bug 556328 – Document set-scroll-adjustment parameters
+	Bug 549835 – Feature Request: Configurable cursor appearance
+        Bug 509204 – child-exited signal does not provide exit code
+        Bug 539130 – building g-t fails due to GtkType etc. deprecation
 
 0.17.4
 ======

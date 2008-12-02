@@ -1,5 +1,11 @@
 2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
 
+	* NEWS:
+	* configure.in:
+	Released 0.19.1.
+
+2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
+
 	* doc/reference/Makefile.am:
 	* doc/reference/check-doc-syntax.sh:
 	* src/Makefile.am:
