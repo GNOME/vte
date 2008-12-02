@@ -1,5 +1,12 @@
 2008-12-02  Christian Persch  <chpe@gnome.org>
 
+	* configure.in:
+	* src/vte-private.h: Move VTE_UTF8_BPC definition from configure to
+	vte-private.h.
+	* src/vteconv.c: Include vte-private.h here.
+
+2008-12-02  Christian Persch  <chpe@gnome.org>
+
 	* src/vte-private.h:
 	* src/vte.c: (mark_input_source_invalid),
 	(_vte_terminal_connect_pty_read), (mark_output_source_invalid),

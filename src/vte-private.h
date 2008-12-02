@@ -90,7 +90,10 @@ G_BEGIN_DECLS
 #define VTE_MAX_PROCESS_TIME		100
 #define VTE_CELL_BBOX_SLACK		1
 
+#define VTE_UTF8_BPC                    (6) /* Maximum number of bytes used per UTF-8 character */
+
 #define I_(string) (g_intern_static_string(string))
+
 
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */

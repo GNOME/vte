@@ -26,6 +26,7 @@
 #include <glib.h>
 #include "buffer.h"
 #include "vteconv.h"
+#include "vte-private.h"
 
 typedef size_t (*convert_func)(GIConv converter,
 			  const guchar **inbuf,
