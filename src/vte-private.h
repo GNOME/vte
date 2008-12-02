@@ -90,6 +90,8 @@ G_BEGIN_DECLS
 #define VTE_MAX_PROCESS_TIME		100
 #define VTE_CELL_BBOX_SLACK		1
 
+#define I_(string) (g_intern_static_string(string))
+
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
 struct vte_charcell {

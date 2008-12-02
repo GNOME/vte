@@ -1,3 +1,8 @@
+2008-12-02  Christian Persch  <chpe@gnome.org>
+
+	* src/vte-private.h:
+	* src/vte.c: (vte_terminal_class_init): Intern the signal names.
+
 2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte.c (vte_terminal_motion_notify): Do not discard motion notify

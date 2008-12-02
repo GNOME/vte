@@ -11278,7 +11278,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Since: 0.17.1
          */
 	widget_class->set_scroll_adjustments_signal =
-		g_signal_new("set-scroll-adjustments",
+		g_signal_new(I_("set-scroll-adjustments"),
 			     G_TYPE_FROM_CLASS (klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET (VteTerminalClass, set_scroll_adjustments),
@@ -11289,7 +11289,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
 	/* Register some signals of our own. */
 	klass->eof_signal =
-		g_signal_new("eof",
+                g_signal_new(I_("eof"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, eof),
@@ -11298,7 +11298,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->child_exited_signal =
-		g_signal_new("child-exited",
+                g_signal_new(I_("child-exited"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, child_exited),
@@ -11307,7 +11307,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->window_title_changed_signal =
-		g_signal_new("window-title-changed",
+                g_signal_new(I_("window-title-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, window_title_changed),
@@ -11316,7 +11316,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->icon_title_changed_signal =
-		g_signal_new("icon-title-changed",
+                g_signal_new(I_("icon-title-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, icon_title_changed),
@@ -11325,7 +11325,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->encoding_changed_signal =
-		g_signal_new("encoding-changed",
+                g_signal_new(I_("encoding-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, encoding_changed),
@@ -11334,7 +11334,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->commit_signal =
-		g_signal_new("commit",
+                g_signal_new(I_("commit"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, commit),
@@ -11343,7 +11343,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__STRING_UINT,
 			     G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_UINT);
 	klass->emulation_changed_signal =
-		g_signal_new("emulation-changed",
+                g_signal_new(I_("emulation-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, emulation_changed),
@@ -11352,7 +11352,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->char_size_changed_signal =
-		g_signal_new("char-size-changed",
+                g_signal_new(I_("char-size-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, char_size_changed),
@@ -11361,7 +11361,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__UINT_UINT,
 			     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
 	klass->selection_changed_signal =
-		g_signal_new ("selection-changed",
+                g_signal_new ("selection-changed",
 			      G_OBJECT_CLASS_TYPE(klass),
 			      G_SIGNAL_RUN_LAST,
 			      G_STRUCT_OFFSET(VteTerminalClass, selection_changed),
@@ -11370,7 +11370,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			      _vte_marshal_VOID__VOID,
 			      G_TYPE_NONE, 0);
 	klass->contents_changed_signal =
-		g_signal_new("contents-changed",
+                g_signal_new(I_("contents-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, contents_changed),
@@ -11379,7 +11379,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->cursor_moved_signal =
-		g_signal_new("cursor-moved",
+                g_signal_new(I_("cursor-moved"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, cursor_moved),
@@ -11388,7 +11388,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->deiconify_window_signal =
-		g_signal_new("deiconify-window",
+                g_signal_new(I_("deiconify-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, deiconify_window),
@@ -11397,7 +11397,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->iconify_window_signal =
-		g_signal_new("iconify-window",
+                g_signal_new(I_("iconify-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, iconify_window),
@@ -11406,7 +11406,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->raise_window_signal =
-		g_signal_new("raise-window",
+                g_signal_new(I_("raise-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, raise_window),
@@ -11415,7 +11415,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->lower_window_signal =
-		g_signal_new("lower-window",
+                g_signal_new(I_("lower-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, lower_window),
@@ -11424,7 +11424,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->refresh_window_signal =
-		g_signal_new("refresh-window",
+                g_signal_new(I_("refresh-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, refresh_window),
@@ -11433,7 +11433,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->restore_window_signal =
-		g_signal_new("restore-window",
+                g_signal_new(I_("restore-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, restore_window),
@@ -11442,7 +11442,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->maximize_window_signal =
-		g_signal_new("maximize-window",
+                g_signal_new(I_("maximize-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, maximize_window),
@@ -11451,7 +11451,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->resize_window_signal =
-		g_signal_new("resize-window",
+                g_signal_new(I_("resize-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, resize_window),
@@ -11460,7 +11460,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__UINT_UINT,
 			     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
 	klass->move_window_signal =
-		g_signal_new("move-window",
+                g_signal_new(I_("move-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, move_window),
@@ -11469,7 +11469,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__UINT_UINT,
 			     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
 	klass->status_line_changed_signal =
-		g_signal_new("status-line-changed",
+                g_signal_new(I_("status-line-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, status_line_changed),
@@ -11478,7 +11478,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->increase_font_size_signal =
-		g_signal_new("increase-font-size",
+                g_signal_new(I_("increase-font-size"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, increase_font_size),
@@ -11487,7 +11487,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->decrease_font_size_signal =
-		g_signal_new("decrease-font-size",
+                g_signal_new(I_("decrease-font-size"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, decrease_font_size),
@@ -11496,7 +11496,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->text_modified_signal =
-		g_signal_new("text-modified",
+                g_signal_new(I_("text-modified"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, text_modified),
@@ -11505,7 +11505,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->text_inserted_signal =
-		g_signal_new("text-inserted",
+                g_signal_new(I_("text-inserted"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, text_inserted),
@@ -11514,7 +11514,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->text_deleted_signal =
-		g_signal_new("text-deleted",
+                g_signal_new(I_("text-deleted"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, text_deleted),
@@ -11523,7 +11523,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 	klass->text_scrolled_signal =
-		g_signal_new("text-scrolled",
+                g_signal_new(I_("text-scrolled"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, text_scrolled),
@@ -11532,7 +11532,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__INT,
 			     G_TYPE_NONE, 1, G_TYPE_INT);
 	signals[COPY_CLIPBOARD] =
-		g_signal_new("copy-clipboard",
+                g_signal_new(I_("copy-clipboard"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
 			     G_STRUCT_OFFSET(VteTerminalClass, copy_clipboard),
@@ -11542,7 +11542,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     G_TYPE_NONE, 0);
 
 	signals[PASTE_CLIPBOARD] =
-		g_signal_new("paste-clipboard",
+                g_signal_new(I_("paste-clipboard"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
 			     G_STRUCT_OFFSET(VteTerminalClass, paste_clipboard),
@@ -11551,7 +11551,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 
-	g_signal_new("beep",
+        g_signal_new(I_("beep"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, beep),
