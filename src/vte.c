@@ -280,7 +280,7 @@ G_DEFINE_TYPE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET)
 
 
 /* Indexes in the "palette" color array for the dim colors.
- * Only the first VTE_LEGACY_COLOR_SET_SIZE colors have dim versions.  */
+ * Only the first %VTE_LEGACY_COLOR_SET_SIZE colors have dim versions.  */
 static const guchar corresponding_dim_index[] = {16,88,28,100,18,90,30,102};
 
 /* Free a no-longer-used row data array. */
@@ -2941,7 +2941,7 @@ vte_terminal_set_default_colors(VteTerminal *terminal)
 }
 
 
-/* Cleanup smart-tabs.  See vte_sequence_handler_ta */
+/* Cleanup smart-tabs.  See vte_sequence_handler_ta() */
 inline void
 _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
 {
@@ -3304,7 +3304,7 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
                 g_object_thaw_notify(object);
                 g_object_unref(object);
 
-                /* NOTE! terminal may be destroyed at this point */
+                /* Note: terminal may be destroyed at this point */
 	}
 }
 
@@ -6027,7 +6027,7 @@ vte_terminal_get_text(VteTerminal *terminal,
  * passed the column and row, respectively.  A #VteCharAttributes structure
  * is added to @attributes for each byte added to the returned string detailing
  * the character's position, colors, and other characteristics. This function
- * differs from vte_terminal_get_text in that trailing spaces at the end of
+ * differs from vte_terminal_get_text() in that trailing spaces at the end of
  * lines are included.
  *
  * Returns: a text string which must be freed by the caller, or %NULL.
@@ -11738,7 +11738,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * window as the background, adjusted so that if there are no windows
          * below your application, the widget will appear to be transparent.
          *
-         * NOTE: When using a compositing window manager, you should instead
+         * Note: When using a compositing window manager, you should instead
          * set a RGBA colourmap on the toplevel window, so you get real transparency.
          *
          * Since: 0.17.5
@@ -11769,7 +11769,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
         /**
          * VteTerminal:cursor-blink-mode:
          *
-         * Sets whether or not the cursor will blink. Using VTE_CURSOR_BLINK_SYSTEM
+         * Sets whether or not the cursor will blink. Using %VTE_CURSOR_BLINK_SYSTEM
          * will use the #GtkSettings::gtk-cursor-blink setting.
          * 
          * Since: 0.17.5
@@ -12762,7 +12762,7 @@ vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
  * @terminal: a #VteTerminal
  * @mode: the #VteTerminalCursorBlinkMode to use
  *
- * Sets whether or not the cursor will blink. Using VTE_CURSOR_BLINK_SYSTEM
+ * Sets whether or not the cursor will blink. Using %VTE_CURSOR_BLINK_SYSTEM
  * will use the #GtkSettings::gtk-cursor-blink setting.
  *
  * Since: 0.16.15

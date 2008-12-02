@@ -1,5 +1,17 @@
 2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
 
+	* doc/reference/Makefile.am:
+	* doc/reference/check-doc-syntax.sh:
+	* src/Makefile.am:
+	* src/check-doc-syntax.sh:
+	* src/vte.c (vte_terminal_catch_child_exited),
+	(vte_terminal_class_init):
+	* src/vte.h:
+	* src/vtepangocairo.c:
+	Copy check-doc-syntax.sh tests from cairo and fix doc bugs.
+
+2008-12-01  Behdad Esfahbod  <behdad@gnome.org>
+
 	* doc/reference/tmpl/vte-unused.sgml:
 	* doc/reference/vte-sections.txt:
 	Remove reaper docs.

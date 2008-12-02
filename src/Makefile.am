@@ -155,8 +155,11 @@ pkglib_PROGRAMS = interpret slowcat
 pkglib_SCRIPTS = decset osc window
 EXTRA_DIST += $(pkglib_SCRIPTS)
 
+TEST_SH = check-doc-syntax.sh
+EXTRA_DIST += $(TEST_SH)
+
 check_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-vte ring mev ssfe table trie xticker vteconv vtetc
-TESTS = buffer ring table trie
+TESTS = buffer ring table trie $(TEST_SH)
 
 AM_CFLAGS = $(GLIB_CFLAGS) $(GOBJECT_CFLAGS)
 LDADD = $(GLIB_LIBS) $(GOBJECT_LIBS)
