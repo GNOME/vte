@@ -6213,8 +6213,7 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 		terminal->pvt->has_selection = FALSE;
 		terminal->pvt->selecting_had_delta = FALSE;
 
-		terminal->pvt->selection_restart_origin =
-			terminal->pvt->selection_last;
+		terminal->pvt->selection_origin = terminal->pvt->selection_last;
 		break;
 	case selection_type_word:
 	case selection_type_line:
@@ -6295,9 +6294,6 @@ vte_terminal_extend_selection(VteTerminal *terminal, double x, double y,
 	if (terminal->pvt->selecting_restart) {
 		vte_terminal_deselect_all(terminal);
 		invalidate_selected = TRUE;
-		/* Record the origin of the selection. */
-		terminal->pvt->selection_origin =
-			terminal->pvt->selection_restart_origin;
 		_vte_debug_print(VTE_DEBUG_SELECTION,
 				"Selection delayed start at (%lf,%lf).\n",
 				terminal->pvt->selection_origin.x / width,

@@ -293,7 +293,7 @@ struct _VteTerminalPrivate {
 	} selection_type;
 	struct selection_event_coords {
 		double x, y;
-	} selection_origin, selection_last, selection_restart_origin;
+	} selection_origin, selection_last;
 	struct selection_cell_coords {
 		long row, col;
 	} selection_start, selection_end, last_selection_start, last_selection_end;
