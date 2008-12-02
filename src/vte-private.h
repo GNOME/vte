@@ -290,7 +290,7 @@ struct _VteTerminalPrivate {
 		double x, y;
 	} selection_origin, selection_last, selection_restart_origin;
 	struct selection_cell_coords {
-		long x, y;
+		long row, col;
 	} selection_start, selection_end;
 
 	/* Miscellaneous options. */
