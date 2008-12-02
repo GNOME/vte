@@ -1,5 +1,9 @@
 2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
 
+	* HACKING: Update.
+
+2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte-private.h:
 	* src/vte.c (_vte_terminal_set_pointer_visible),
 	(vte_terminal_get_mouse_tracking_info),
