@@ -1,3 +1,12 @@
+2008-12-02  Christian Persch  <chpe@gnome.org>
+
+	Bug 552096 – Detect tgetent if provided by libtinfo
+
+	* configure.in: Rewrote tgetent checks to be more readable. Also check
+	for tgetent in libtinfo.
+	* src/keymap.c: (_vte_keymap_map), (_vte_keymap_key_is_modifier):
+	* src/ssfe.c: Adjust includes accordingly.
+
 2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vte.c (vte_terminal_start_selection),

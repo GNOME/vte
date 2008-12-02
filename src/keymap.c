@@ -27,25 +27,24 @@
 #include "debug.h"
 #include "keymap.h"
 #include "vtetc.h"
-#ifdef HAVE_NCURSES
+
+#if defined(HAVE_NCURSES_H) && defined(HAVE_TERM_H)
 #include <ncurses.h>
 #include <term.h>
-#define HAVE_CURSES
-#else
-#ifdef HAVE_NCURSES_CURSES
+#define VTE_TERMCAP_NAME "ncurses"
+#elif defined(HAVE_NCURSES_CURSES_H) && defined(HAVE_NCURSES_TERM_H)
 #include <ncurses/curses.h>
 #include <ncurses/term.h>
-#define HAVE_CURSES
-#else
-#ifdef HAVE_CURSES
+#define VTE_TERMCAP_NAME "ncurses"
+#elif defined(HAVE_CURSES_H) && defined(HAVE_TERM_H)
 #include <curses.h>
 #include <term.h>
-#else
-#ifdef HAVE_TERMCAP
+#define VTE_TERMCAP_NAME "curses"
+#elif defined(HAVE_TERMCAP_H)
 #include <termcap.h>
-#endif
-#endif
-#endif
+#define VTE_TERMCAP_NAME "termcap"
+#else
+#error No termcap??
 #endif
 
 #ifdef VTE_DEBUG
@@ -1009,10 +1008,8 @@ _vte_keymap_map(guint keyval,
 	enum _vte_fkey_mode fkey_mode;
 	char *cap, *tmp;
 	const char *termcap_special = NULL;
-#if defined(HAVE_CURSES) || defined(HAVE_TERMCAP)
 	char ncurses_buffer[4096];
 	char ncurses_area[512];
-#endif
 
 	g_return_if_fail(normal != NULL);
 	g_return_if_fail(normal_length != NULL);
@@ -1167,7 +1164,6 @@ _vte_keymap_map(guint keyval,
 			}
 		}
 	}
-#if defined(HAVE_CURSES) || defined(HAVE_TERMCAP)
 	if (termcap_special != NULL) {
 		tmp = g_strdup(terminal);
 		cap = NULL;
@@ -1191,13 +1187,7 @@ _vte_keymap_map(guint keyval,
 #ifdef VTE_DEBUG
 			if (_vte_debug_on(VTE_DEBUG_KEYBOARD)) {
 				int j;
-#ifdef HAVE_CURSES
-				g_printerr(" via ncurses to '");
-#else
-#ifdef HAVE_TERMCAP
-				g_printerr(" via termcap to '");
-#endif
-#endif
+				g_printerr(" via " VTE_TERMCAP_NAME " to '");
 				for (j = 0; j < *normal_length; j++) {
 					if (((*normal)[j] < 32) ||
 					    ((*normal)[j] >= 127)) {
@@ -1214,7 +1204,6 @@ _vte_keymap_map(guint keyval,
 			return;
 		}
 	}
-#endif
 
 	_vte_debug_print(VTE_DEBUG_KEYBOARD,
 			" (ignoring, no match for modifier state).\n");
