@@ -247,8 +247,6 @@ AC_SUBST(VTE_DEFAULT_EMULATION)
 
 # Miscellaneous definitions.
 AC_DEFINE(VTE_UTF8_BPC,6,[Maximum number of bytes used per UTF-8 character.])
-AC_DEFINE(VTE_INVALID_SOURCE,(guint)-1,[A number which can never be a valid source ID.])
-AC_DEFINE_UNQUOTED(PACKAGE,"$PACKAGE",[Package name.])
 
 # Check for headers.
 AC_CHECK_HEADERS(sys/select.h sys/syslimits.h sys/termios.h sys/un.h sys/wait.h stropts.h termios.h wchar.h)

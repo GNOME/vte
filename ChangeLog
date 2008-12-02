@@ -1,5 +1,10 @@
 2008-12-02  Christian Persch  <chpe@gnome.org>
 
+	* configure.in: Remove two AC_DEFINEs from here.
+	* src/vte-private.h: Define VTE_INVALID_SOURCE here for now.
+
+2008-12-02  Christian Persch  <chpe@gnome.org>
+
 	Bug 112172 – Get rid of VteReaper
 
 	* src/reaper.c: (vte_reaper_child_watch_cb),
