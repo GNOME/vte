@@ -1,5 +1,11 @@
 2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vtepangocairo.c (font_info_measure_font): Remove CJK fullwidth
+	measurement hacks.  Pango doesn't need these.  We're down to one
+	FcFontSort() instead of two during initialization.
+
+2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 559818 – redundant selection-changed signal on deselection
 
 	* src/vte.c (vte_terminal_start_selection),

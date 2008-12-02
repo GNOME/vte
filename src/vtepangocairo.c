@@ -356,15 +356,13 @@ static void
 font_info_measure_font (struct font_info *info)
 {
 	PangoRectangle logical;
-	gunichar full_codepoints[] = {VTE_DRAW_DOUBLE_WIDE_IDEOGRAPHS};
-	GString *full_string;
-	gint single_width, full_width;
-	guint i;
 
 	/* Estimate for ASCII characters. */
 	pango_layout_set_text (info->layout, VTE_DRAW_SINGLE_WIDE_CHARACTERS, -1);
 	pango_layout_get_extents (info->layout, NULL, &logical);
-	single_width = howmany (logical.width, strlen(VTE_DRAW_SINGLE_WIDE_CHARACTERS));
+	/* We don't do CEIL for width since we are averaging;
+	 * rounding is more accurate */
+	info->width  = PANGO_PIXELS (howmany (logical.width, strlen(VTE_DRAW_SINGLE_WIDE_CHARACTERS)));
 	info->height = PANGO_PIXELS_CEIL (logical.height);
 	info->ascent = PANGO_PIXELS_CEIL (pango_layout_get_baseline (info->layout));
 
@@ -372,25 +370,6 @@ font_info_measure_font (struct font_info *info)
 	 * info for them */
 	font_info_cache_ascii (info);
 
-	/* Estimate for CJK characters. */
-	full_width = single_width * 2;
-	full_string = g_string_new(NULL);
-	for (i = 0; i < G_N_ELEMENTS (full_codepoints); i++) {
-		g_string_append_unichar (full_string, full_codepoints[i]);
-	}
-	pango_layout_set_text (info->layout, full_string->str, -1);
-	g_string_free (full_string, TRUE);
-	pango_layout_get_extents (info->layout, NULL, &logical);
-	full_width = howmany (logical.width, G_N_ELEMENTS(full_codepoints));
-
-	/* If they're the same, then we have a screwy font. */
-	if (full_width == single_width) {
-		single_width = (full_width + 1) / 2;
-	}
-
-	/* We don't do CEIL for width since we are averaging; rounding is
-	 * more accurate */
-	info->width = PANGO_PIXELS (single_width);
 
 	if (info->height == 0) {
 		info->height = PANGO_PIXELS_CEIL (logical.height);
