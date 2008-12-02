@@ -1,5 +1,11 @@
 2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte-private.h:
+	* src/vte.c:
+	Rewrite text selection.  In particular, fix block_mode.
+
+2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
+
 	* HACKING: Update.
 
 2008-12-02  Behdad Esfahbod  <behdad@gnome.org>

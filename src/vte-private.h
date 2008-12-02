@@ -293,8 +293,7 @@ struct _VteTerminalPrivate {
 	gboolean selecting;
 	gboolean selecting_restart;
 	gboolean selecting_had_delta;
-	gboolean block_mode;
-	gboolean had_block_mode;
+	gboolean selection_block_mode;
 	char *selection;
 	enum vte_selection_type {
 		selection_type_char,

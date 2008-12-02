@@ -123,6 +123,8 @@ static void vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gbool
 static void vte_terminal_set_font_full_internal(VteTerminal *terminal,
                                                 const PangoFontDescription *font_desc,
                                                 VteTerminalAntiAlias antialias);
+static void vte_terminal_set_selection_block_mode (VteTerminal *terminal,
+						   gboolean     selection_block_mode);
 
 static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
@@ -531,7 +533,10 @@ _vte_invalidate_cells(VteTerminal *terminal,
 }
 
 static void
-_vte_invalidate_region (VteTerminal *terminal, glong scolumn, glong ecolumn, glong srow, glong erow, gboolean block)
+_vte_invalidate_region (VteTerminal *terminal,
+			glong scolumn, glong ecolumn,
+			glong srow, glong erow,
+			gboolean block)
 {
 	if (block || srow == erow) {
 		_vte_invalidate_cells(terminal,
@@ -4728,11 +4733,26 @@ vte_translate_national_ctrlkeys (GdkEventKey *event)
 	return keyval;
 }
 
+static void
+vte_terminal_read_modifiers (VteTerminal *terminal,
+			     GdkEvent    *event)
+{
+	GdkModifierType modifiers;
+
+	/* Read the modifiers. */
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
+		terminal->pvt->modifiers = modifiers;
+
+		vte_terminal_set_selection_block_mode (terminal, modifiers & GDK_CONTROL_MASK);
+	}
+}
+
 /* Read and handle a keypress event. */
 static gint
 vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 {
 	VteTerminal *terminal;
+	GdkModifierType modifiers;
 	struct _vte_termcap *termcap;
 	const char *tterm;
 	char *normal = NULL, *output;
@@ -4745,7 +4765,6 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	guint keyval = 0;
 	gunichar keychar = 0;
 	char keybuf[VTE_UTF8_BPC];
-	GdkModifierType modifiers;
 
 	terminal = VTE_TERMINAL(widget);
 
@@ -4763,11 +4782,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	if (event->type == GDK_KEY_PRESS) {
 		/* Store a copy of the key. */
 		keyval = event->keyval;
-		if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
-			terminal->pvt->modifiers = modifiers;
-		} else {
-			modifiers = terminal->pvt->modifiers;
-		}
+		vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
 		/* If we're in margin bell mode and on the border of the
 		 * margin, bell. */
@@ -4788,6 +4803,9 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 
 		/* Determine if this is just a modifier key. */
 		modifier = _vte_keymap_key_is_modifier(keyval);
+
+		if (G_UNLIKELY (keyval == GDK_Control_L || keyval == GDK_Control_R))
+			vte_terminal_set_selection_block_mode (terminal, TRUE);
 
 		/* Unless it's a modifier key, hide the pointer. */
 		if (!modifier) {
@@ -4813,7 +4831,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			default:
 				break;
 			}
-			if (modifiers & VTE_META_MASK) {
+			if (terminal->pvt->modifiers & VTE_META_MASK) {
 				steal = TRUE;
 			}
 			switch (keyval) {
@@ -4845,6 +4863,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			}
 		}
 	}
+
+	modifiers = terminal->pvt->modifiers;
 
 	/* Let the input method at this one first. */
 	if (!steal) {
@@ -4916,8 +4936,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			break;
 		case GDK_KP_Insert:
 		case GDK_Insert:
-			if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
-				if (terminal->pvt->modifiers & GDK_CONTROL_MASK) {
+			if (modifiers & GDK_SHIFT_MASK) {
+				if (modifiers & GDK_CONTROL_MASK) {
 					vte_terminal_paste_clipboard(terminal);
 					handled = TRUE;
 					suppress_meta_esc = TRUE;
@@ -4926,7 +4946,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 					handled = TRUE;
 					suppress_meta_esc = TRUE;
 				}
-			} else if (terminal->pvt->modifiers & GDK_CONTROL_MASK) {
+			} else if (modifiers & GDK_CONTROL_MASK) {
 				vte_terminal_copy_clipboard(terminal);
 				handled = TRUE;
 				suppress_meta_esc = TRUE;
@@ -4935,8 +4955,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		/* Keypad/motion keys. */
 		case GDK_KP_Up:
 		case GDK_Up:
-			if (terminal->pvt->modifiers & GDK_CONTROL_MASK 
-                            && terminal->pvt->modifiers & GDK_SHIFT_MASK) {
+			if (modifiers & GDK_CONTROL_MASK 
+                            && modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_scroll_lines(terminal, -1);
 				scrolled = TRUE;
 				handled = TRUE;
@@ -4945,8 +4965,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			break;
 		case GDK_KP_Down:
 		case GDK_Down:
-			if (terminal->pvt->modifiers & GDK_CONTROL_MASK
-                            && terminal->pvt->modifiers & GDK_SHIFT_MASK) {
+			if (modifiers & GDK_CONTROL_MASK
+                            && modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_scroll_lines(terminal, 1);
 				scrolled = TRUE;
 				handled = TRUE;
@@ -4955,7 +4975,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			break;
 		case GDK_KP_Page_Up:
 		case GDK_Page_Up:
-			if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
+			if (modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_scroll_pages(terminal, -1);
 				scrolled = TRUE;
 				handled = TRUE;
@@ -4964,7 +4984,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			break;
 		case GDK_KP_Page_Down:
 		case GDK_Page_Down:
-			if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
+			if (modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_scroll_pages(terminal, 1);
 				scrolled = TRUE;
 				handled = TRUE;
@@ -4973,7 +4993,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			break;
 		case GDK_KP_Home:
 		case GDK_Home:
-			if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
+			if (modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_maybe_scroll_to_top(terminal);
 				scrolled = TRUE;
 				handled = TRUE;
@@ -4981,7 +5001,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			break;
 		case GDK_KP_End:
 		case GDK_End:
-			if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
+			if (modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_maybe_scroll_to_bottom(terminal);
 				scrolled = TRUE;
 				handled = TRUE;
@@ -4990,7 +5010,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		/* Let Shift +/- tweak the font, like XTerm does. */
 		case GDK_KP_Add:
 		case GDK_KP_Subtract:
-			if (terminal->pvt->modifiers &
+			if (modifiers &
 			    (GDK_SHIFT_MASK | GDK_CONTROL_MASK)) {
 				switch (keyval) {
 				case GDK_KP_Add:
@@ -5012,7 +5032,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		/* If the above switch statement didn't do the job, try mapping
 		 * it to a literal or capability name. */
 		if (handled == FALSE && terminal->pvt->termcap != NULL) {
-			_vte_keymap_map(keyval, terminal->pvt->modifiers,
+			_vte_keymap_map(keyval, modifiers,
 					terminal->pvt->sun_fkey_mode,
 					terminal->pvt->hp_fkey_mode,
 					terminal->pvt->legacy_fkey_mode,
@@ -5036,7 +5056,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		 * printable string. */
 		if (handled == FALSE && normal == NULL && special == NULL) {
 			if (event->group &&
-					(terminal->pvt->modifiers & GDK_CONTROL_MASK))
+					(modifiers & GDK_CONTROL_MASK))
 				keyval = vte_translate_national_ctrlkeys(event);
 
 			/* Convert the keyval to a gunichar. */
@@ -5055,7 +5075,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				}
 			}
 			if ((normal != NULL) &&
-			    (terminal->pvt->modifiers & GDK_CONTROL_MASK)) {
+			    (modifiers & GDK_CONTROL_MASK)) {
 				/* Replace characters which have "control"
 				 * counterparts with those counterparts. */
 				for (i = 0; i < normal_length; i++) {
@@ -5069,7 +5089,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				if (normal) g_printerr(
 						"Keypress, modifiers=0x%x, "
 						"keyval=0x%x, cooked string=`%s'.\n",
-						terminal->pvt->modifiers,
+						modifiers,
 						keyval, normal);
 			}
 		}
@@ -5078,7 +5098,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			if (terminal->pvt->meta_sends_escape &&
 			    !suppress_meta_esc &&
 			    (normal_length > 0) &&
-			    (terminal->pvt->modifiers & VTE_META_MASK)) {
+			    (modifiers & VTE_META_MASK)) {
 				vte_terminal_feed_child(terminal,
 							_VTE_CAP_ESC,
 							1);
@@ -5099,7 +5119,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 								 special,
 								 &normal_length);
 			_vte_keymap_key_add_key_modifiers(keyval,
-							  terminal->pvt->modifiers,
+							  modifiers,
 							  terminal->pvt->sun_fkey_mode,
 							  terminal->pvt->hp_fkey_mode,
 							  terminal->pvt->legacy_fkey_mode,
@@ -5127,12 +5147,15 @@ static gboolean
 vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
 {
 	VteTerminal *terminal;
-	GdkModifierType modifiers;
 
 	terminal = VTE_TERMINAL(widget);
 
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
-		terminal->pvt->modifiers = modifiers;
+	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
+
+	if (event->type == GDK_KEY_RELEASE) {
+		if (G_UNLIKELY (event->keyval == GDK_Control_L ||
+				event->keyval == GDK_Control_R))
+			vte_terminal_set_selection_block_mode (terminal, FALSE);
 	}
 
 	return GTK_WIDGET_REALIZED(terminal) &&
@@ -5295,7 +5318,7 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 	}
 
 	/* Limit selection in block mode. */
-	if (terminal->pvt->block_mode) {
+	if (terminal->pvt->selection_block_mode) {
 		if (col < ss.col || col > se.col) {
 			return FALSE;
 		}
@@ -5424,12 +5447,8 @@ static void
 vte_terminal_maybe_send_mouse_button(VteTerminal *terminal,
 				     GdkEventButton *event)
 {
-	GdkModifierType modifiers;
-
 	/* Read the modifiers. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
-		terminal->pvt->modifiers = modifiers;
-	}
+	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
 	/* Decide whether or not to do anything. */
 	switch (event->type) {
@@ -5904,7 +5923,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 		attr.column = MAX(terminal->column_count, attr.column + 1);
 
 		/* Add a newline in block mode. */
-		if (terminal->pvt->block_mode) {
+		if (terminal->pvt->selection_block_mode) {
 			string = g_string_append_c(string, '\n');
 		}
 		/* Else, if the last visible column on this line was selected and
@@ -6171,6 +6190,9 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 {
 	long cellx, celly, delta;
 
+	if (terminal->pvt->selection_block_mode)
+		selection_type = selection_type_char;
+
 	/* Convert the event coordinates to cell coordinates. */
 	delta = terminal->pvt->screen->scroll_delta;
 	celly = (event->y - VTE_PAD_WIDTH) / terminal->char_height + delta;
@@ -6244,18 +6266,90 @@ math_div (long a, long b)
 		return (a / b) - 1;
 }
 
+static void
+vte_terminal_invalidate_selection (VteTerminal *terminal)
+{
+	_vte_invalidate_region (terminal,
+				terminal->pvt->selection_start.col,
+				terminal->pvt->selection_end.col,
+				terminal->pvt->selection_start.row,
+				terminal->pvt->selection_end.row,
+				terminal->pvt->selection_block_mode);
+}
+
 /* Helper */
 static void
-vte_terminal_extend_selection_on_type (VteTerminal *terminal)
+vte_terminal_extend_selection_expand (VteTerminal *terminal)
 {
 	long i, j;
 	VteScreen *screen;
 	VteRowData *rowdata;
+	struct vte_charcell *cell;
 	struct selection_cell_coords *sc, *ec;
+
+	if (terminal->pvt->selection_block_mode)
+		return;
 
 	screen = terminal->pvt->screen;
 	sc = &terminal->pvt->selection_start;
 	ec = &terminal->pvt->selection_end;
+
+	/* Extend the selection to handle end-of-line cases, word, and line
+	 * selection.  We do this here because calculating it once is cheaper
+	 * than recalculating for each cell as we render it. */
+
+	/* Handle end-of-line at the start-cell. */
+	rowdata = _vte_terminal_find_row_data(terminal, sc->row);
+	if (rowdata != NULL) {
+		/* Find the last non-empty character on the first line. */
+		for (i = rowdata->cells->len; i > 0; i--) {
+			cell = &g_array_index(rowdata->cells,
+					struct vte_charcell, i - 1);
+			if (cell->attr.fragment || cell->c != 0)
+				break;
+		}
+		/* If the start point is to its right, then move the
+		 * startpoint up to the beginning of the next line
+		 * unless that would move the startpoint after the end
+		 * point, or we're in select-by-line mode. */
+		if ((sc->col >= i) &&
+				(terminal->pvt->selection_type != selection_type_line)) {
+			if (sc->row < ec->row) {
+				sc->col = 0;
+				sc->row++;
+			} else {
+				sc->col = i;
+			}
+		}
+	} else {
+		/* Snap to the leftmost column. */
+		sc->col = 0;
+	}
+	sc->col = find_start_column (terminal, sc->col, sc->row);
+
+	/* Handle end-of-line at the end-cell. */
+	rowdata = _vte_terminal_find_row_data(terminal, ec->row);
+	if (rowdata != NULL) {
+		/* Find the last non-empty character on the last line. */
+		for (i = rowdata->cells->len; i > 0; i--) {
+			cell = &g_array_index(rowdata->cells,
+					struct vte_charcell, i - 1);
+			if (cell->attr.fragment || cell->c != 0)
+				break;
+		}
+		/* If the end point is to its right, then extend the
+		 * endpoint as far right as we can expect. */
+		if (ec->col >= i) {
+			ec->col = MAX(ec->col,
+				    MAX(terminal->column_count - 1,
+					(long) rowdata->cells->len));
+		}
+	} else {
+		/* Snap to the rightmost column. */
+		ec->col = MAX(ec->col, terminal->column_count - 1);
+	}
+	ec->col = find_end_column (terminal, ec->col, ec->row);
+
 
 	/* Now extend again based on selection type. */
 	switch (terminal->pvt->selection_type) {
@@ -6394,12 +6488,10 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 			      gboolean always_grow, gboolean force)
 {
 	VteScreen *screen;
-	VteRowData *rowdata;
 	int width, height;
-	long delta, residual, i;
-	struct vte_charcell *cell;
+	long delta, residual;
 	struct selection_event_coords *origin, *last, *start, *end;
-	struct selection_cell_coords old_start, old_end, *sc, *ec, tc;
+	struct selection_cell_coords old_start, old_end, *sc, *ec;
 	gboolean invalidate_selected = FALSE;
 	gboolean had_selection;
 
@@ -6433,38 +6525,58 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	/* If we're not in always-grow mode, update the last location of
 	 * the selection. */
 	last = &terminal->pvt->selection_last;
-	if (!always_grow) {
-		last->x = x;
-		last->y = y + height * delta;
-	}
 
 	/* Map the origin and last selected points to a start and end. */
 	origin = &terminal->pvt->selection_origin;
-	if ((origin->y / height < last->y / height) ||
-	    ((origin->y / height == last->y / height) &&
-	     (origin->x / width < last->x / width ))) {
-		/* The origin point is "before" the last point. */
-		start = origin;
-		end = last;
-	} else {
-		/* The last point is "before" the origin point. */
-		start = last;
-		end = origin;
-	}
+	if (terminal->pvt->selection_block_mode) {
+		last->x = x;
+		last->y = y + height * delta;
 
-	/* Extend the selection by moving whichever end of the selection is
-	 * closer to the new point. */
-	if (always_grow) {
-		/* New endpoint is before existing selection. */
-		if ((y / height < ((start->y / height) - delta)) ||
-		    ((y / height == ((start->y / height) - delta)) &&
-		     (x / width < start->x / width))) {
-			start->x = x;
-			start->y = y + height * delta;
+		/* We don't support always_grow in block mode */
+		if (always_grow)
+			vte_terminal_invalidate_selection (terminal);
+
+		if (origin->y <= last->y) {
+			/* The origin point is "before" the last point. */
+			start = origin;
+			end = last;
 		} else {
-			/* New endpoint is after existing selection. */
-			end->x = x;
-			end->y = y + height * delta;
+			/* The last point is "before" the origin point. */
+			start = last;
+			end = origin;
+		}
+	} else {
+		if (!always_grow) {
+			last->x = x;
+			last->y = y + height * delta;
+		}
+
+		if ((origin->y / height < last->y / height) ||
+		    ((origin->y / height == last->y / height) &&
+		     (origin->x / width < last->x / width ))) {
+			/* The origin point is "before" the last point. */
+			start = origin;
+			end = last;
+		} else {
+			/* The last point is "before" the origin point. */
+			start = last;
+			end = origin;
+		}
+
+		/* Extend the selection by moving whichever end of the selection is
+		 * closer to the new point. */
+		if (always_grow) {
+			/* New endpoint is before existing selection. */
+			if ((y / height < ((start->y / height) - delta)) ||
+			    ((y / height == ((start->y / height) - delta)) &&
+			     (x / width < start->x / width))) {
+				start->x = x;
+				start->y = y + height * delta;
+			} else {
+				/* New endpoint is after existing selection. */
+				end->x = x;
+				end->y = y + height * delta;
+			}
 		}
 	}
 
@@ -6490,8 +6602,8 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	sc->row = MAX (0, ((long)start->y + residual) / height);
 	ec->row = MAX (0, ((long)end->y - residual) / height);
 
-	/* Re-sort using row cell coordinates */
-	if ((sc->row == ec->row) && (start->x > end->x)) {
+	/* Sort x using row cell coordinates */
+	if ((terminal->pvt->selection_block_mode || sc->row == ec->row) && (start->x > end->x)) {
 		struct selection_event_coords *tmp;
 		tmp = start;
 		start = end;
@@ -6505,154 +6617,125 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	sc->col = math_div ((long)start->x + residual, width);
 	ec->col = math_div ((long)end->x - residual, width);
 
-	/* Extend them to full multi-col characters. */
-	sc->col = find_start_column (terminal, sc->col, sc->row);
-	ec->col = find_end_column (terminal, ec->col, ec->row);
 
-	/* Extend the selection to handle end-of-line cases, word, and line
-	 * selection.  We do this here because calculating it once is cheaper
-	 * than recalculating for each cell as we render it. */
+	vte_terminal_extend_selection_expand (terminal);
 
-	/* Handle end-of-line at the start-cell. */
-	if (!terminal->pvt->block_mode) {
-		rowdata = _vte_terminal_find_row_data(terminal, sc->row);
-		if (rowdata != NULL) {
-			/* Find the last non-empty character on the first line. */
-			for (i = rowdata->cells->len; i > 0; i--) {
-				cell = &g_array_index(rowdata->cells,
-						struct vte_charcell, i - 1);
-				if (cell->attr.fragment || cell->c != 0)
-					break;
-			}
-			/* If the start point is to its right, then move the
-			 * startpoint up to the beginning of the next line
-			 * unless that would move the startpoint after the end
-			 * point, or we're in select-by-line mode. */
-			if ((sc->col >= i) &&
-					(terminal->pvt->selection_type != selection_type_line)) {
-				if (sc->row < ec->row) {
-					sc->col = 0;
-					sc->row++;
-				} else {
-					sc->col = i;
-				}
-			}
+
+	/* Invalidate */
+
+	if (had_selection) {
+		struct selection_cell_coords *so, *eo;
+
+		so = &old_start;
+		eo = &old_end;
+
+		if (terminal->pvt->selection_block_mode) {
+			/* Update the selection area diff in block mode. */
+
+			/* The top band */
+			_vte_invalidate_region (terminal,
+						MIN(sc->col, so->col),
+						MAX(ec->col, eo->col),
+						MIN(sc->row, so->row),
+						MAX(sc->row, so->row) - 1,
+						TRUE);
+			/* The bottom band */
+			_vte_invalidate_region (terminal,
+						MIN(sc->col, so->col),
+						MAX(ec->col, eo->col),
+						MIN(ec->row, eo->row) + 1,
+						MAX(ec->row, eo->row),
+						TRUE);
+			/* The left band */
+			_vte_invalidate_region (terminal,
+						MIN(sc->col, so->col),
+						MAX(sc->col, so->col) - 1,
+						MIN(sc->row, so->row),
+						MAX(ec->row, eo->row),
+						TRUE);
+			/* The right band */
+			_vte_invalidate_region (terminal,
+						MIN(ec->col, eo->col) + 1,
+						MAX(ec->col, eo->col),
+						MIN(sc->row, so->row),
+						MAX(ec->row, eo->row),
+						TRUE);
 		} else {
-			/* Snap to the leftmost column. */
-			sc->col = 0;
+			/* Update the selection area diff in non-block mode. */
+
+			/* The before band */
+			if (sc->row < so->row)
+				_vte_invalidate_region (terminal,
+							sc->col, so->col - 1,
+							sc->row, so->row,
+							FALSE);
+			else if (sc->row > so->row)
+				_vte_invalidate_region (terminal,
+							so->col, sc->col - 1,
+							so->row, sc->row,
+							FALSE);
+			else
+				_vte_invalidate_region (terminal,
+							MIN(sc->col, so->col), MAX(sc->col, so->col) - 1,
+							sc->row, sc->row,
+							TRUE);
+
+			/* The after band */
+			if (ec->row < eo->row)
+				_vte_invalidate_region (terminal,
+							ec->col + 1, eo->col,
+							ec->row, eo->row,
+							FALSE);
+			else if (ec->row > eo->row)
+				_vte_invalidate_region (terminal,
+							eo->col + 1, ec->col,
+							eo->row, ec->row,
+							FALSE);
+			else
+				_vte_invalidate_region (terminal,
+							MIN(ec->col, eo->col) + 1, MAX(ec->col, eo->col),
+							ec->row, ec->row,
+							TRUE);
 		}
 	}
-	sc->col = find_start_column (terminal, sc->col, sc->row);
 
-	/* Handle end-of-line at the end-cell. */
-	if (!terminal->pvt->block_mode) {
-		rowdata = _vte_terminal_find_row_data(terminal, ec->row);
-		if (rowdata != NULL) {
-			/* Find the last non-empty character on the last line. */
-			for (i = rowdata->cells->len; i > 0; i--) {
-				cell = &g_array_index(rowdata->cells,
-						struct vte_charcell, i - 1);
-				if (cell->attr.fragment || cell->c != 0)
-					break;
-			}
-			/* If the end point is to its right, then extend the
-			 * endpoint as far right as we can expect. */
-			if (ec->col >= i) {
-				ec->col = MAX(ec->col,
-					    MAX(terminal->column_count - 1,
-						(long) rowdata->cells->len));
-			}
-		} else {
-			/* Snap to the rightmost column. */
-			ec->col = MAX(ec->col, terminal->column_count - 1);
-		}
-	}
-	ec->col = find_end_column (terminal, ec->col, ec->row);
-
-	/* Now extend again based on selection type. */
-	vte_terminal_extend_selection_on_type (terminal);
-
-	/* Update the selection area in block mode. */
-	if (terminal->pvt->block_mode || terminal->pvt->had_block_mode) {
-		/* Fix coordinates for block mode operation. */
-		if (sc->col > ec->col) {
-			tc.col = ec->col;
-			ec->col = sc->col;
-			sc->col = tc.col;
-		}
-		if (had_selection) {
-			_vte_invalidate_region(terminal,
-					MIN(terminal->pvt->selection_start.col, old_start.col),
-					MAX(terminal->pvt->selection_end.col, old_end.col),
-					MIN(old_start.row, terminal->pvt->selection_start.row),
-					MAX(old_end.row, terminal->pvt->selection_end.row),
-					terminal->pvt->had_block_mode);
-		}
-
-		terminal->pvt->had_block_mode = FALSE;
-	}
-
-	/* Redraw the rows which contain cells which have changed their
-	 * is-selected status. */
-	if (!terminal->pvt->block_mode && had_selection &&
-	    ((old_start.col != terminal->pvt->selection_start.col) ||
-	    (old_start.row != terminal->pvt->selection_start.row))) {
-		_vte_debug_print(VTE_DEBUG_SELECTION,
-			"Refreshing lines %ld to %ld.\n",
-				MIN(old_start.row,
-				    terminal->pvt->selection_start.row),
-				MAX(old_start.row,
-				    terminal->pvt->selection_start.row));
-		_vte_invalidate_region(terminal,
-				MIN (old_start.col, terminal->pvt->selection_start.col),
-				MAX (old_start.col, terminal->pvt->selection_start.col),
-				MIN (old_start.row, terminal->pvt->selection_start.row),
-				MAX (old_start.row, terminal->pvt->selection_start.row),
-				FALSE);
-	}
-	if (!terminal->pvt->block_mode && had_selection &&
-	    ((old_end.col != terminal->pvt->selection_end.col) ||
-	    (old_end.row != terminal->pvt->selection_end.row))) {
-		_vte_debug_print(VTE_DEBUG_SELECTION,
-			"Refreshing selection, lines %ld to %ld.\n",
-				MIN(old_end.row, terminal->pvt->selection_end.row),
-				MAX(old_end.row, terminal->pvt->selection_end.row));
-		_vte_invalidate_region(terminal,
-				MIN (old_end.col, terminal->pvt->selection_end.col),
-				MAX (old_end.col, terminal->pvt->selection_end.col),
-				MIN (old_end.row, terminal->pvt->selection_end.row),
-				MAX (old_end.row, terminal->pvt->selection_end.row),
-				FALSE);
-	}
-	if (invalidate_selected) {
-		_vte_debug_print(VTE_DEBUG_SELECTION,
-				"Invalidating selection, lines %ld to %ld.\n",
-				MIN(terminal->pvt->selection_start.row,
-				    terminal->pvt->selection_end.row),
-				MAX(terminal->pvt->selection_start.row,
-				    terminal->pvt->selection_end.row));
-		_vte_invalidate_region(terminal,
-				     MIN(terminal->pvt->selection_start.col,
-				         terminal->pvt->selection_end.col),
-				     MAX(terminal->pvt->selection_start.col,
-					 terminal->pvt->selection_end.col),
-				     MIN(terminal->pvt->selection_start.row,
-				         terminal->pvt->selection_end.row),
-				     MAX(terminal->pvt->selection_start.row,
-					 terminal->pvt->selection_end.row),
-				     terminal->pvt->block_mode);
+	if (invalidate_selected || !had_selection) {
+		_vte_debug_print(VTE_DEBUG_SELECTION, "Invalidating selection.");
+		vte_terminal_invalidate_selection (terminal);
 	}
 
 	_vte_debug_print(VTE_DEBUG_SELECTION,
 			"Selection changed to "
 			"(%ld,%ld) to (%ld,%ld).\n",
-			terminal->pvt->selection_start.col,
-			terminal->pvt->selection_start.row,
-			terminal->pvt->selection_end.col,
-			terminal->pvt->selection_end.row);
+			sc->col, sc->row, ec->col, ec->row);
+
 	vte_terminal_copy_primary(terminal);
 	vte_terminal_emit_selection_changed(terminal);
 }
+
+static void
+vte_terminal_set_selection_block_mode (VteTerminal *terminal,
+				       gboolean     selection_block_mode)
+{
+	if (G_LIKELY (!terminal->pvt->has_selection))
+		return;
+
+	if (G_LIKELY (terminal->pvt->mouse_last_button != 1))
+		return;
+
+	selection_block_mode = !!selection_block_mode;
+
+	if (terminal->pvt->selection_block_mode != selection_block_mode) {
+		vte_terminal_invalidate_selection (terminal);
+		terminal->pvt->selection_block_mode = selection_block_mode;
+		vte_terminal_extend_selection(terminal,
+					      terminal->pvt->mouse_last_x,
+					      terminal->pvt->mouse_last_y,
+					      FALSE, TRUE);
+		vte_terminal_invalidate_selection (terminal);
+	}
+}
+
 
 /**
  * vte_terminal_select_all:
@@ -6762,10 +6845,10 @@ vte_terminal_autoscroll(VteTerminal *terminal)
 		y = CLAMP(terminal->pvt->mouse_last_y, 0, ymax);
 		/* If we clamped the Y, mess with the X to get the entire
 		 * lines. */
-		if (terminal->pvt->mouse_last_y < 0 && !terminal->pvt->block_mode) {
+		if (terminal->pvt->mouse_last_y < 0 && !terminal->pvt->selection_block_mode) {
 			x = 0;
 		}
-		if (terminal->pvt->mouse_last_y >= ymax && !terminal->pvt->block_mode) {
+		if (terminal->pvt->mouse_last_y >= ymax && !terminal->pvt->selection_block_mode) {
 			x = terminal->column_count * terminal->char_width;
 		}
 		/* Extend selection to cover the newly-scrolled area. */
@@ -6806,7 +6889,6 @@ static gboolean
 vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 {
 	VteTerminal *terminal;
-	GdkModifierType modifiers;
 	int width, height;
 	long x, y;
 
@@ -6827,9 +6909,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 			x / width, y / height + terminal->pvt->screen->scroll_delta);
 
 	/* Read the modifiers. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
-		terminal->pvt->modifiers = modifiers;
-	}
+	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
 	if (terminal->pvt->mouse_last_button) {
 		vte_terminal_match_hilite_hide (terminal);
@@ -6845,16 +6925,6 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 		switch (terminal->pvt->mouse_last_button) {
 		case 1:
 			_vte_debug_print(VTE_DEBUG_EVENTS, "Mousing drag 1.\n");
-			/* If user hit ctrl, change selection mode. */
-			if ((terminal->pvt->modifiers & GDK_CONTROL_MASK) &&
-			    !terminal->pvt->block_mode) {
-				terminal->pvt->block_mode = TRUE;
-			} else if (!(terminal->pvt->modifiers & GDK_CONTROL_MASK) &&
-				   terminal->pvt->block_mode) {
-				terminal->pvt->block_mode = FALSE;
-				terminal->pvt->had_block_mode = TRUE;
-			}
-
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
 			    !terminal->pvt->mouse_tracking_mode) {
 				vte_terminal_extend_selection(terminal,
@@ -6906,7 +6976,6 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 {
 	VteTerminal *terminal;
 	long height, width, delta;
-	GdkModifierType modifiers;
 	gboolean handled = FALSE;
 	gboolean start_selecting = FALSE, extend_selecting = FALSE;
 	long cellx, celly;
@@ -6926,9 +6995,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	_vte_terminal_set_pointer_visible(terminal, TRUE);
 
 	/* Read the modifiers. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
-		terminal->pvt->modifiers = modifiers;
-	}
+	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
 	/* Convert the event coordinates to cell coordinates. */
 	cellx = x / width;
@@ -6969,14 +7036,6 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 					extend_selecting = TRUE;
 				} else {
 					start_selecting = TRUE;
-				}
-
-				/* If user hit ctrl, change selection type. */
-				if ((terminal->pvt->modifiers & GDK_CONTROL_MASK) &&
-				    !terminal->pvt->block_mode) {
-					terminal->pvt->block_mode = TRUE;
-				} else if (terminal->pvt->block_mode) {
-					terminal->pvt->block_mode = FALSE;
 				}
 			}
 			if (start_selecting) {
@@ -7073,7 +7132,6 @@ static gint
 vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 {
 	VteTerminal *terminal;
-	GdkModifierType modifiers;
 	gboolean handled = FALSE;
 	int x, y;
 
@@ -7091,9 +7149,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 	vte_terminal_stop_autoscroll(terminal);
 
 	/* Read the modifiers. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
-		terminal->pvt->modifiers = modifiers;
-	}
+	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
 	switch (event->type) {
 	case GDK_BUTTON_RELEASE:
@@ -7149,16 +7205,13 @@ static gboolean
 vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 {
 	VteTerminal *terminal;
-	GdkModifierType modifiers;
 
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus in.\n");
 
 	terminal = VTE_TERMINAL(widget);
 	GTK_WIDGET_SET_FLAGS(widget, GTK_HAS_FOCUS);
 	/* Read the keyboard modifiers, though they're probably garbage. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
-		terminal->pvt->modifiers = modifiers;
-	}
+	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting the cursor if we don't have a window. */
@@ -7181,14 +7234,11 @@ static gboolean
 vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 {
 	VteTerminal *terminal;
-	GdkModifierType modifiers;
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus out.\n");
 	terminal = VTE_TERMINAL(widget);
 	GTK_WIDGET_UNSET_FLAGS(widget, GTK_HAS_FOCUS);
 	/* Read the keyboard modifiers, though they're probably garbage. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
-		terminal->pvt->modifiers = modifiers;
-	}
+	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting ourselves if we don't have a window. */
 	if (GTK_WIDGET_REALIZED(widget)) {
@@ -8041,8 +8091,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->bg_tint_color.blue = 0;
 	pvt->bg_saturation = 0.4 * VTE_SATURATION_MAX;
 	pvt->bg_opacity = 0xffff;
-	pvt->block_mode = FALSE;
-	pvt->had_block_mode = FALSE;
+	pvt->selection_block_mode = FALSE;
 	pvt->has_fonts = FALSE;
 	pvt->root_pixmap_changed_tag = 0;
 
@@ -10730,22 +10779,6 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 
 	terminal = VTE_TERMINAL(widget);
 
-	/* Update whole selection if terminal is in block mode. */
-	if (terminal->pvt->has_selection && terminal->pvt->block_mode) {
-		GdkRectangle selected_area;
-		selected_area.x = terminal->pvt->selection_start.col *
-				  terminal->char_width;
-		selected_area.y = terminal->pvt->selection_start.row *
-				  terminal->char_height;
-		selected_area.width = terminal->pvt->selection_end.col *
-				      terminal->char_width;
-		selected_area.height = terminal->pvt->selection_end.row *
-				       terminal->char_height;
-		selected_area.width -= selected_area.x;
-		selected_area.height -= selected_area.y;
-		gdk_region_union_with_rect(region, &selected_area);
-	}
-
 	/* Designate the start of the drawing operation and clear the area. */
 	_vte_draw_start(terminal->pvt->draw);
 	if (terminal->pvt->bg_transparent) {
@@ -10855,15 +10888,11 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 	VteTerminal *terminal;
 	gdouble v;
 	glong new_value;
-	GdkModifierType modifiers;
 	int button;
 
 	terminal = VTE_TERMINAL(widget);
 
-	/* Read the modifiers. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
-		terminal->pvt->modifiers = modifiers;
-	}
+	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
 	_VTE_DEBUG_IF(VTE_DEBUG_EVENTS)
 		switch (event->direction) {
