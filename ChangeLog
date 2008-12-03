@@ -1,3 +1,14 @@
+2008-12-02  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 563024 – In alternate-screen, selection can copy out of screen
+	boundaries
+
+	* src/vte.c (vte_terminal_extend_selection_expand),
+	(vte_terminal_extend_selection): Make sure current selection row is in the
+	visible screen.
+
+	I have a deja vu of fixing this bug like two years ago...
+
 2008-12-02  Christian Persch  <chpe@gnome.org>
 
 	Bug 552096 – Detect tgetent if provided by libtinfo

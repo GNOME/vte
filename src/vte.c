@@ -6320,8 +6320,10 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 					(long) rowdata->cells->len));
 		}
 	} else {
-		/* Snap to the rightmost column. */
-		ec->col = MAX(ec->col, terminal->column_count - 1);
+		/* Snap to the rightmost column, only if selecting anything of
+		 * this row. */
+		if (ec->col >= 0)
+			ec->col = MAX(ec->col, terminal->column_count - 1);
 	}
 	ec->col = find_end_column (terminal, ec->col, ec->row);
 
@@ -6473,6 +6475,20 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	height = terminal->char_height;
 	width = terminal->char_width;
 
+	/* Confine y into the visible area. (#563024) */
+	if (y < 0) {
+		y = 0;
+		if (!terminal->pvt->selection_block_mode)
+			x = 0;
+	} else if (y >= terminal->row_count * height) {
+		if (!terminal->pvt->selection_block_mode) {
+			y = terminal->row_count * height;
+			x = -1;
+		} else {
+			y = terminal->row_count * height - 1;
+		}
+	}
+
 	screen = terminal->pvt->screen;
 	old_start = terminal->pvt->selection_start;
 	old_end = terminal->pvt->selection_end;
@@ -6557,9 +6573,11 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 		}
 	}
 
+#if 0
 	_vte_debug_print(VTE_DEBUG_SELECTION,
 			"Selection is (%ld,%ld) to (%ld,%ld).\n",
 			start->x, start->y, end->x, end->y);
+#endif
 
 	/* Recalculate the selection area in terms of cell positions. */
 
