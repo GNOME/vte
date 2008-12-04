@@ -3700,7 +3700,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	struct _vte_incoming_chunk *chunk, *next_chunk, *achunk = NULL;
 
 	_vte_debug_print(VTE_DEBUG_IO,
-			"Handler processing %"G_GSIZE_FORMAT" bytes over %"G_GSIZE_FORMAT" chunks + %d bytes pendnig.\n",
+			"Handler processing %"G_GSIZE_FORMAT" bytes over %"G_GSIZE_FORMAT" chunks + %d bytes pending.\n",
 			_vte_incoming_chunks_length(terminal->pvt->incoming),
 			_vte_incoming_chunks_count(terminal->pvt->incoming),
 			terminal->pvt->pending->len);
