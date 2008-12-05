@@ -1,7 +1,13 @@
 2008-12-05  Behdad Esfahbod  <behdad@gnome.org>
 
-	 Bug 474618 -  gnome-terminal sometime leaves empty begining of the
-	 line
+	* NEWS:
+	* configure.in:
+	Released 0.19.2.
+
+2008-12-05  Behdad Esfahbod  <behdad@gnome.org>
+
+	Red Hat Bug 474618 -  gnome-terminal sometime leaves empty begining
+	of the line
 
 	* src/vte.c (_vte_terminal_cleanup_tab_fragments_at_cursor): continue
 	instead of break'ing out of the loop.

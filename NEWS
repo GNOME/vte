@@ -1,3 +1,24 @@
+0.19.1
+======
+- Rewrote text selection.  Much less buggy now.  Specially block-mode.
+- Fixed rendering bug caused by wrong tab handling introduced in 0.19.0.
+- More deprecation.  VteReaper is deprecated and will be removed in 1.0.
+- Minor optimizations in the pangocairo backend.  Only one FcFontSort now
+  instead of the previous two.
+
+	Red Hat Bug 474618 -  gnome-terminal sometime leaves empty begining
+		of the line
+	Bug 563274 – Misspelled word in src code
+	Bug 563024 – In alternate-screen, selection can copy out of screen
+		boundaries
+	Bug 552096 – Detect tgetent if provided by libtinfo
+	Bug 559818 – redundant selection-changed signal on deselection
+	Bug 471480 – select single character
+	Bug 110371 – Cannot select newline at end of full line
+	Bug 112172 – Get rid of VteReaper
+	Bug 560667 – invalid definition of VTE_INVALID_SOURCE
+	Bug 541441 – Dehighlight links on visibility notify?
+
 0.19.0
 ======
 - New, PangoCairo, rendering backend.  This is functionally equivalent to the
