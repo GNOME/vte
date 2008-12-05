@@ -251,6 +251,8 @@ table_SOURCES = \
 	vtetc.c \
 	vtetc.h
 table_CPPFLAGS = -DTABLE_MAIN
+table_CFLAGS = $(VTE_CFLAGS)
+table_LDADD = $(VTE_LIBS)
 
 trie_SOURCES = \
 	trie.c \
@@ -270,6 +272,8 @@ trie_SOURCES = \
 	vtetc.c \
 	vtetc.h 
 trie_CPPFLAGS = -DTRIE_MAIN
+trie_CFLAGS = $(VTE_CFLAGS)
+trie_LDADD = $(VTE_LIBS)
 
 vtetc_SOURCES = vtetc.c vtetc.h debug.c debug.h
 vtetc_CPPFLAGS = -DTERMCAP_MAIN
@@ -282,6 +286,8 @@ reaper_CPPFLAGS =  -DREAPER_MAIN -DLOCALEDIR='"$(localedir)"'
 
 vteconv_SOURCES = buffer.c buffer.h debug.c debug.h vteconv.c vteconv.h
 vteconv_CPPFLAGS = -DVTECONV_MAIN
+vteconv_CFLAGS = $(VTE_CFLAGS)
+vteconv_LDADD = $(VTE_LIBS)
 
 buffer_SOURCES = buffer.c
 buffer_CPPFLAGS = -DBUFFER_MAIN
