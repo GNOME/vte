@@ -2972,7 +2972,7 @@ _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
 		for (i = 0; i < num_columns; i++) {
 			cell = _vte_row_data_find_charcell(row, col++);
 			if (!cell)
-				break;
+				continue;
 			*cell = screen->fill_defaults;
 		}
 	}
