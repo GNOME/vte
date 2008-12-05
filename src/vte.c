@@ -3165,7 +3165,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		}
 	}
 
-	memcpy (&attr, &screen->defaults.attr, sizeof (attr));
+	attr = screen->defaults.attr;
 	attr.columns = columns;
 
 	if (G_UNLIKELY (c == '_' && terminal->pvt->flags.ul)) {

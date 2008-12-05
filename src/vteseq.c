@@ -3060,7 +3060,7 @@ vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *
 		_vte_terminal_emit_text_deleted(terminal);
 		/* Fill this row. */
 		cell.c = 'E';
-		memcpy (&cell.attr, &screen->basic_defaults.attr, sizeof (cell.attr));
+		cell.attr = screen->basic_defaults.attr;
 		cell.attr.columns = 1;
 		vte_g_array_fill(rowdata->cells, &cell, terminal->column_count);
 		_vte_terminal_emit_text_inserted(terminal);

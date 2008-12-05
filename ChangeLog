@@ -1,5 +1,11 @@
 2008-12-05  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c (_vte_terminal_insert_char):
+	* src/vteseq.c (vte_sequence_handler_screen_alignment_test):
+	Use structure assignment instead of memcpy().
+
+2008-12-05  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte.c (_vte_terminal_cleanup_tab_fragments_at_cursor): Remove
 	unneeded checks.  They were masking bugs.
 
