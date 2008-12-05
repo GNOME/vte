@@ -1,3 +1,10 @@
+2008-12-05  Christian Persch  <chpe@gnome.org>
+
+	* src/vtebg.c: (vte_bg_get_pixmap): Don't modify source_pixbuf. If
+	we're going to change the saturation, first make a copy. Fixes
+	switching background type between fauxtransparency and image in
+	gnome-terminal trunk.
+
 2008-12-05  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vtepangocairo.c (_vte_pangocairo_clear): Fix scrolling offset.

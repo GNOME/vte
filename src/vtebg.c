@@ -619,9 +619,13 @@ vte_bg_get_pixmap(VteBg *bg,
 		}
 		break;
 	case VTE_BG_SOURCE_PIXBUF:
-		pixbuf = source_pixbuf;
-		if (GDK_IS_PIXBUF(pixbuf)) {
-			g_object_ref(pixbuf);
+		if (GDK_IS_PIXBUF(source_pixbuf)) {
+                        /* If we're going to modify the pixbuf below, make a copy first! */
+                        if (saturation != 1.0) {
+                                pixbuf = gdk_pixbuf_copy(source_pixbuf);
+                        } else {
+                                pixbuf = g_object_ref(source_pixbuf);
+                        }
 		}
 		break;
 	case VTE_BG_SOURCE_FILE:
