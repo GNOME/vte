@@ -1,5 +1,14 @@
 2008-12-05  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c (_vte_new_row_data), (_vte_new_row_data_sized),
+	(vte_terminal_match_contents_refresh),
+	(vte_terminal_process_incoming), (vte_terminal_init),
+	(vte_terminal_set_word_chars):
+	Always call g_array_new() with clear flag set.  It incurs no overhead
+	but avoids heisenbugs.
+
+2008-12-05  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vte.c (_vte_terminal_insert_char):
 	* src/vteseq.c (vte_sequence_handler_screen_alignment_test):
 	Use structure assignment instead of memcpy().

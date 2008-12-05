@@ -314,11 +314,7 @@ _vte_new_row_data(VteTerminal *terminal)
 {
 	VteRowData *row = NULL;
 	row = g_slice_new(VteRowData);
-#ifdef VTE_DEBUG
 	row->cells = g_array_new(FALSE, TRUE, sizeof(struct vte_charcell));
-#else
-	row->cells = g_array_new(FALSE, FALSE, sizeof(struct vte_charcell));
-#endif
 	row->soft_wrapped = 0;
 	return row;
 }
@@ -329,15 +325,9 @@ _vte_new_row_data_sized(VteTerminal *terminal, gboolean fill)
 {
 	VteRowData *row = NULL;
 	row = g_slice_new(VteRowData);
-#ifdef VTE_DEBUG
 	row->cells = g_array_sized_new(FALSE, TRUE,
 				       sizeof(struct vte_charcell),
 				       terminal->column_count);
-#else
-	row->cells = g_array_sized_new(FALSE, FALSE,
-				       sizeof(struct vte_charcell),
-				       terminal->column_count);
-#endif
 	row->soft_wrapped = 0;
 	if (fill) {
 		vte_g_array_fill(row->cells,
@@ -1177,7 +1167,7 @@ vte_terminal_match_contents_refresh(VteTerminal *terminal)
 {
 	GArray *array;
 	vte_terminal_match_contents_clear(terminal);
-	array = g_array_new(FALSE, FALSE, sizeof(struct _VteCharAttributes));
+	array = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
 	terminal->pvt->match_contents = vte_terminal_get_text(terminal,
 							      always_selected,
 							      NULL,
@@ -3991,7 +3981,7 @@ next_match:
 
 	/* Remove most of the processed characters. */
 	if (start < wcount) {
-		unichars = g_array_new(FALSE, FALSE, sizeof(gunichar));
+		unichars = g_array_new(FALSE, TRUE, sizeof(gunichar));
 		g_array_append_vals(unichars,
 				    &g_array_index(terminal->pvt->pending,
 						   gunichar,
@@ -7986,7 +7976,7 @@ vte_terminal_init(VteTerminal *terminal)
 					      &_vte_terminal_codeset_changed_cb,
 					      terminal);
 	pvt->incoming = NULL;
-	pvt->pending = g_array_new(FALSE, FALSE, sizeof(gunichar));
+	pvt->pending = g_array_new(FALSE, TRUE, sizeof(gunichar));
 	pvt->max_input_bytes = VTE_MAX_INPUT_READ;
 	pvt->cursor_blink_tag = 0;
 	pvt->outgoing = _vte_buffer_new();
@@ -8059,7 +8049,7 @@ vte_terminal_init(VteTerminal *terminal)
 
 	/* Matching data. */
         pvt->match_regex_mode = VTE_REGEX_UNDECIDED;
-	pvt->match_regexes = g_array_new(FALSE, FALSE,
+	pvt->match_regexes = g_array_new(FALSE, TRUE,
 					 sizeof(struct vte_match_regex));
 	vte_terminal_match_hilite_clear(terminal);
 
@@ -12955,7 +12945,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	if (terminal->pvt->word_chars != NULL) {
 		g_array_free(terminal->pvt->word_chars, TRUE);
 	}
-	terminal->pvt->word_chars = g_array_new(FALSE, FALSE,
+	terminal->pvt->word_chars = g_array_new(FALSE, TRUE,
 						sizeof(VteWordCharRange));
 	/* Special case: if spec is NULL, try to do the right thing. */
 	if (spec == NULL || spec[0] == '\0') {
