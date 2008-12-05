@@ -119,6 +119,9 @@ vte_reaper_get(void)
 }
 
 #ifdef REAPER_MAIN
+
+#include <unistd.h>
+
 GMainContext *context;
 GMainLoop *loop;
 pid_t child;
