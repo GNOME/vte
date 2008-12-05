@@ -474,6 +474,7 @@ Makefile
 src/Makefile
 src/vteversion.h
 termcaps/Makefile
+perf/Makefile
 python/Makefile
 po/Makefile.in
 doc/Makefile

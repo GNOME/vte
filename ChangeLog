@@ -1,5 +1,13 @@
 2008-12-05  Behdad Esfahbod  <behdad@gnome.org>
 
+	* Makefile.am:
+	* configure.in:
+	Hook up perf/.
+
+	Also adjust svn:ignore props.
+
+2008-12-05  Behdad Esfahbod  <behdad@gnome.org>
+
 	* NEWS:
 	* configure.in:
 	Released 0.19.3.

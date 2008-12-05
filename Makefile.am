@@ -1,4 +1,4 @@
-SUBDIRS = src python termcaps po doc
+SUBDIRS = src python termcaps po doc perf
 EXTRA_DIST = MAINTAINERS HACKING vte.pc.in vte-uninstalled.pc.in
 DISTCLEANFILES =
 
