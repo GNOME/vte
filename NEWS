@@ -1,4 +1,4 @@
-0.19.1
+0.19.2
 ======
 - Rewrote text selection.  Much less buggy now.  Specially block-mode.
 - Fixed rendering bug caused by wrong tab handling introduced in 0.19.0.
@@ -19,7 +19,7 @@
 	Bug 560667 – invalid definition of VTE_INVALID_SOURCE
 	Bug 541441 – Dehighlight links on visibility notify?
 
-0.19.0
+0.19.1
 ======
 - New, PangoCairo, rendering backend.  This is functionally equivalent to the
   previous default backend which was Xft.  And just a tad bit faster.
