@@ -1,5 +1,10 @@
 2008-12-05  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c (_vte_terminal_cleanup_tab_fragments_at_cursor): Remove
+	unneeded checks.  They were masking bugs.
+
+2008-12-05  Behdad Esfahbod  <behdad@gnome.org>
+
 	Red Hat Bug 474618 -  gnome-terminal sometime leaves empty begining
 	of the line
 

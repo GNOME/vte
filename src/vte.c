@@ -2952,27 +2952,19 @@ _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
 	struct vte_charcell *cell = _vte_row_data_find_charcell(row, col);
 
 	if (G_UNLIKELY (cell != NULL && cell->c == '\t')) {
-		int i, num_columns;
+		long i, num_columns;
 		
 		_vte_debug_print(VTE_DEBUG_MISC,
 				 "Cleaning tab fragments at %ld",
 				 col);
 
 		/* go back to the beginning of the tab */
-		while (cell != NULL && cell->attr.fragment && col > 0) {
+		while (cell->attr.fragment && col > 0)
 			cell = _vte_row_data_find_charcell(row, --col);
-		}
-
-		if (!cell) {
-			/* heck, whatever */
-			return;
-		}
 
 		num_columns = cell->attr.columns;
 		for (i = 0; i < num_columns; i++) {
 			cell = _vte_row_data_find_charcell(row, col++);
-			if (!cell)
-				continue;
 			*cell = screen->fill_defaults;
 		}
 	}
