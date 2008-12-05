@@ -869,7 +869,7 @@ _vte_pangocairo_clear (struct _vte_draw *draw,
 		set_source_color_alpha (data->cr, &draw->bg_color, draw->bg_opacity >> 8);
 	} else {
 		gdk_cairo_set_source_pixmap (data->cr, data->pixmap,
-					     draw->scrollx, draw->scrolly);
+					     -draw->scrollx, -draw->scrolly);
 		cairo_pattern_set_extend (cairo_get_source (data->cr), CAIRO_EXTEND_REPEAT);
 	}
 

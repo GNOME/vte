@@ -1,5 +1,11 @@
 2008-12-05  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vtepangocairo.c (_vte_pangocairo_clear): Fix scrolling offset.
+	Ray Strode reported that background offset was being done incorrectly.
+	A negation did it.
+
+2008-12-05  Behdad Esfahbod  <behdad@gnome.org>
+
 	* Makefile.am:
 	* configure.in:
 	Hook up perf/.
