@@ -1,5 +1,12 @@
 2008-12-05  Behdad Esfahbod  <behdad@gnome.org>
 
+	Red Hat Bug 474618 -  gnome-terminal sometime leaves empty begining
+	of the line
+
+	* src/vte.c (_vte_terminal_insert_char): Really fix the bug this time.
+
+2008-12-05  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/Makefile.am:
 	Build fixes.
 

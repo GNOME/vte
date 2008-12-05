@@ -3139,6 +3139,9 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	/* Make sure we have enough rows to hold this data. */
 	row = vte_terminal_ensure_cursor (terminal);
 	g_assert(row != NULL);
+
+	_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
+
 	if (insert) {
 		for (i = 0; i < columns; i++)
 			g_array_insert_val(row->cells, col + i,
@@ -3148,8 +3151,6 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			g_array_set_size (row->cells, col + columns);
 		}
 	}
-
-	_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
 
 	/* Convert any wide characters we may have broken into single
 	 * cells. (#514632) */
