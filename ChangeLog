@@ -1,5 +1,8 @@
 2008-12-05  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/Makefile.am:
+	Build fixes.
+
 	* NEWS:
 	* configure.in:
 	Released 0.19.2.
