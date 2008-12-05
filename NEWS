@@ -1,3 +1,10 @@
+0.19.3
+======
+- Really fix the rendering bug.
+- Bugs fixed in this release:
+	Red Hat Bug 474618 -  gnome-terminal sometime leaves empty begining
+		of the line
+
 0.19.2
 ======
 - Rewrote text selection.  Much less buggy now.  Specially block-mode.
@@ -5,7 +12,7 @@
 - More deprecation.  VteReaper is deprecated and will be removed in 1.0.
 - Minor optimizations in the pangocairo backend.  Only one FcFontSort now
   instead of the previous two.
-
+- Bugs fixed in this release:
 	Red Hat Bug 474618 -  gnome-terminal sometime leaves empty begining
 		of the line
 	Bug 563274 – Misspelled word in src code
