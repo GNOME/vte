@@ -68,12 +68,17 @@ struct _vte_draw_impl {
 	GdkColormap* (*get_colormap)(struct _vte_draw *draw);
 	void (*start)(struct _vte_draw *draw);
 	void (*end)(struct _vte_draw *draw);
+	void (*set_background_solid)(struct _vte_draw *,
+				     GdkColor *color,
+				     guint16 opacity);
 	void (*set_background_image)(struct _vte_draw *,
 				     enum VteBgSourceType type,
 				     GdkPixbuf *pixbuf,
 				     const char *file,
 				     const GdkColor *color,
 				     double saturation);
+	void (*set_background_scroll)(struct _vte_draw *,
+				      gint, gint);
 	void (*clip)(struct _vte_draw *, GdkRegion *);
 	gboolean always_requires_clear;
 	void (*clear)(struct _vte_draw *, gint, gint, gint, gint);
@@ -99,12 +104,6 @@ struct _vte_draw {
 
 	gboolean started;
 
-	guint16 bg_opacity;
-	GdkColor bg_color;
-	enum VteBgSourceType bg_type;
-
-	gint scrollx, scrolly;
-
 	gboolean requires_clear;
 
 	const struct _vte_draw_impl *impl;
@@ -129,33 +128,30 @@ GdkColormap *_vte_draw_get_colormap(struct _vte_draw *draw,
 void _vte_draw_start(struct _vte_draw *draw);
 void _vte_draw_end(struct _vte_draw *draw);
 
-/* Set the background color, a background pixbuf (if you want transparency,
-   you'll have to do that yourself), and clear an area to the default. */
-void _vte_draw_set_background_opacity(struct _vte_draw *draw,
-				      guint16 opacity);
-void _vte_draw_set_background_color(struct _vte_draw *draw,
-				    GdkColor *color);
+void _vte_draw_set_background_solid(struct _vte_draw *draw,
+				    GdkColor *color,
+				    guint16 opacity);
 void _vte_draw_set_background_image(struct _vte_draw *draw,
 				    enum VteBgSourceType type,
 				    GdkPixbuf *pixbuf,
 				    const char *file,
 				    const GdkColor *color,
 				    double saturation);
-gboolean _vte_draw_requires_clear (struct _vte_draw *draw);
+void _vte_draw_set_background_scroll(struct _vte_draw *draw,
+				     gint x, gint y);
+
 gboolean _vte_draw_clip(struct _vte_draw *draw, GdkRegion *region);
+gboolean _vte_draw_requires_clear (struct _vte_draw *draw);
 void _vte_draw_clear(struct _vte_draw *draw,
 		     gint x, gint y, gint width, gint height);
 
-/* Set the font which will be used to draw text. */
 void _vte_draw_set_text_font(struct _vte_draw *draw,
 			     const PangoFontDescription *fontdesc,
 			     VteTerminalAntiAlias anti_alias);
-/* Read font metrics. */
 void _vte_draw_get_text_metrics(struct _vte_draw *draw,
 				gint *width, gint *height, gint *ascent);
 int _vte_draw_get_char_width(struct _vte_draw *draw, gunichar c, int columns);
 
-/* Draw text or rectangles. */
 void _vte_draw_text(struct _vte_draw *draw,
 		    struct _vte_draw_text_request *requests, gsize n_requests,
 		    GdkColor *color, guchar alpha);
@@ -163,15 +159,13 @@ gboolean _vte_draw_char(struct _vte_draw *draw,
 			struct _vte_draw_text_request *request,
 			GdkColor *color, guchar alpha);
 gboolean _vte_draw_has_char(struct _vte_draw *draw, gunichar c);
+
 void _vte_draw_fill_rectangle(struct _vte_draw *draw,
 			      gint x, gint y, gint width, gint height,
 			      GdkColor *color, guchar alpha);
 void _vte_draw_draw_rectangle(struct _vte_draw *draw,
 			      gint x, gint y, gint width, gint height,
 			      GdkColor *color, guchar alpha);
-
-/* Set the scrolling offset for painting in a pixbuf background. */
-void _vte_draw_set_scroll(struct _vte_draw *draw, gint x, gint y);
 
 G_END_DECLS
 

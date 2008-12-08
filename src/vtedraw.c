@@ -107,14 +107,6 @@ _vte_draw_init_default (struct _vte_draw *draw)
 }
 
 
-static void
-_vte_draw_update_requires_clear (struct _vte_draw *draw)
-{
-	draw->requires_clear = draw->impl->always_requires_clear
-			    || draw->bg_type != VTE_BG_SOURCE_NONE
-			    || draw->bg_opacity != 0xFFFF;
-}
-
 struct _vte_draw *
 _vte_draw_new (GtkWidget *widget)
 {
@@ -123,8 +115,6 @@ _vte_draw_new (GtkWidget *widget)
 	/* Create the structure. */
 	draw = g_slice_new0 (struct _vte_draw);
 	draw->widget = g_object_ref (widget);
-	draw->bg_type = VTE_BG_SOURCE_NONE;
-	draw->bg_opacity = 0xffff; 
 
 	/* Allow the user to specify her preferred backends */
 	if (!_vte_draw_init_user (draw) &&
@@ -135,7 +125,7 @@ _vte_draw_new (GtkWidget *widget)
 		draw->impl = &_vte_draw_skel;
 	}
 
-	_vte_draw_update_requires_clear (draw);
+	draw->requires_clear = draw->impl->always_requires_clear;
 
 	_vte_debug_print (VTE_DEBUG_DRAW,
 			"draw_new (%s)\n", draw->impl->name);
@@ -225,18 +215,14 @@ _vte_draw_end (struct _vte_draw *draw)
 }
 
 void
-_vte_draw_set_background_opacity (struct _vte_draw *draw,
-				  guint16 opacity)
+_vte_draw_set_background_solid(struct _vte_draw *draw,
+			       GdkColor *color,
+			       guint16 opacity)
 {
-	draw->bg_opacity = opacity;
-	_vte_draw_update_requires_clear (draw);
-}
+	draw->requires_clear = draw->impl->always_requires_clear || opacity != 0xFFFF;
 
-void
-_vte_draw_set_background_color (struct _vte_draw *draw,
-			        GdkColor *color)
-{
-	draw->bg_color = *color;
+	if (draw->impl->set_background_solid)
+		draw->impl->set_background_solid (draw, color, opacity);
 }
 
 void
@@ -247,12 +233,24 @@ _vte_draw_set_background_image (struct _vte_draw *draw,
 			        const GdkColor *color,
 			        double saturation)
 {
-	draw->bg_type = type;
-	_vte_draw_update_requires_clear (draw);
+	if (type != VTE_BG_SOURCE_NONE)
+		draw->requires_clear = TRUE;
 
 	if (draw->impl->set_background_image)
 		draw->impl->set_background_image (draw, type, pixbuf, filename,
 						  color, saturation);
+}
+
+void
+_vte_draw_set_background_scroll (struct _vte_draw *draw,
+				 gint x, gint y)
+{
+	_vte_debug_print (VTE_DEBUG_DRAW,
+			"draw_set_scroll (%d, %d)\n",
+			x, y);
+
+	if (draw->impl->set_background_scroll)
+		draw->impl->set_background_scroll (draw, x, y);
 }
 
 gboolean
@@ -426,15 +424,4 @@ _vte_draw_draw_rectangle (struct _vte_draw *draw,
 			_vte_draw_fill_rectangle (draw, x+width-1, y, 1, height-1, color, alpha);
 		}
 	}
-}
-
-void
-_vte_draw_set_scroll (struct _vte_draw *draw, gint x, gint y)
-{
-	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_set_scroll (%d, %d)\n",
-			x, y);
-
-	draw->scrollx = x;
-	draw->scrolly = y;
 }

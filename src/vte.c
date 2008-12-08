@@ -10759,15 +10759,15 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 	if (terminal->pvt->bg_transparent) {
 		int x, y;
 		gdk_window_get_origin(widget->window, &x, &y);
-		_vte_draw_set_scroll(terminal->pvt->draw, x, y);
+		_vte_draw_set_background_scroll(terminal->pvt->draw, x, y);
 	} else {
 		if (terminal->pvt->scroll_background) {
-			_vte_draw_set_scroll(terminal->pvt->draw,
-					     0,
-					     terminal->pvt->screen->scroll_delta *
-					     terminal->char_height);
+			_vte_draw_set_background_scroll(terminal->pvt->draw,
+							0,
+							terminal->pvt->screen->scroll_delta *
+							terminal->char_height);
 		} else {
-			_vte_draw_set_scroll(terminal->pvt->draw, 0, 0);
+			_vte_draw_set_background_scroll(terminal->pvt->draw, 0, 0);
 		}
 	}
 
@@ -12175,6 +12175,8 @@ vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll)
 	pvt->scroll_background = scroll;
 
         g_object_notify (G_OBJECT (terminal), "scroll-background");
+
+        vte_terminal_queue_background_update(terminal);
 }
 
 /**
@@ -12362,8 +12364,7 @@ vte_terminal_background_update(VteTerminal *terminal)
 			bgcolor.red, bgcolor.green, bgcolor.blue,
 			bgcolor.pixel);
 	gdk_window_set_background(terminal->widget.window, &bgcolor);
-	_vte_draw_set_background_color (terminal->pvt->draw, &bgcolor);
-	_vte_draw_set_background_opacity (terminal->pvt->draw, terminal->pvt->bg_opacity);
+	_vte_draw_set_background_solid (terminal->pvt->draw, &bgcolor, terminal->pvt->bg_opacity);
 
 	/* If we're transparent, and either have no root image or are being
 	 * told to update it, get a new copy of the root window. */

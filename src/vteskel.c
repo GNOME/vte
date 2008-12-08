@@ -69,7 +69,9 @@ const struct _vte_draw_impl _vte_draw_skel = {
 	NULL, /* get_colormap */
 	NULL, /* start */
 	NULL, /* end */
+	NULL, /* set_background_solid */
 	NULL, /* set_background_image */
+	NULL, /* set_background_scroll */
 	NULL, /* clip */
 	TRUE, /* always_requires_clear */
 	_vte_skel_clear,

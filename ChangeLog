@@ -1,3 +1,26 @@
+2008-12-08  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 563752 – pangocairo backend recreates cairo_surface_t for
+	background drawing
+
+	* src/vte.c (vte_terminal_paint),
+	(vte_terminal_set_scroll_background),
+	(vte_terminal_background_update):
+	* src/vtedraw.c (_vte_draw_new), (_vte_draw_set_background_solid),
+	(_vte_draw_set_background_image),
+	(_vte_draw_set_background_scroll), (_vte_draw_draw_rectangle):
+	* src/vtedraw.h:
+	* src/vtepangocairo.c (_vte_pangocairo_destroy),
+	(_vte_pangocairo_set_background_solid),
+	(_vte_pangocairo_set_background_image),
+	(_vte_pangocairo_set_background_scroll), (_vte_pangocairo_clear),
+	(_vte_pangocairo_clip), (set_source_color_alpha):
+	* src/vteskel.c:
+	Cleanup vte_draw background API.  Use a cached cairo_pattern_t in
+	pangocairo backend.
+
+	Also, queue background update on scroll_background change.
+
 2008-12-07  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 163213 – Cursor should remain visible when selected

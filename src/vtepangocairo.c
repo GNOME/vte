@@ -750,25 +750,10 @@ font_info_get_unichar_info (struct font_info *info,
 
 struct _vte_pangocairo_data {
 	struct font_info *font;
+	cairo_pattern_t *bg_pattern;
 
 	cairo_t *cr;
-
-	GdkPixmap *pixmap;
-	gint pixmapw, pixmaph;
 };
-
-static void
-set_source_color_alpha (cairo_t        *cr,
-			const GdkColor *color,
-			guchar alpha)
-{
-	cairo_set_source_rgba (cr,
-			      color->red / 65535.,
-			      color->green / 65535.,
-			      color->blue / 65535.,
-			      alpha / 255.);
-}
-
 
 static void
 _vte_pangocairo_create (struct _vte_draw *draw, GtkWidget *widget)
@@ -784,9 +769,9 @@ _vte_pangocairo_destroy (struct _vte_draw *draw)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
 
-	if (data->pixmap != NULL) {
-		g_object_unref (data->pixmap);
-		data->pixmap = NULL;
+	if (data->bg_pattern != NULL) {
+		cairo_pattern_destroy (data->bg_pattern);
+		data->bg_pattern = NULL;
 	}
 
 	if (data->font != NULL) {
@@ -817,6 +802,22 @@ _vte_pangocairo_end (struct _vte_draw *draw)
 }
 
 static void
+_vte_pangocairo_set_background_solid(struct _vte_draw *draw,
+				     GdkColor *color,
+				     guint16 opacity)
+{
+	struct _vte_pangocairo_data *data = draw->impl_data;
+
+	if (data->bg_pattern)
+		cairo_pattern_destroy (data->bg_pattern);
+
+	data->bg_pattern = cairo_pattern_create_rgba (color->red / 65535.,
+						      color->green / 65535.,
+						      color->blue / 65535.,
+						      opacity / 65535.);
+}
+
+static void
 _vte_pangocairo_set_background_image (struct _vte_draw *draw,
 				      enum VteBgSourceType type,
 				      GdkPixbuf *pixbuf,
@@ -826,24 +827,70 @@ _vte_pangocairo_set_background_image (struct _vte_draw *draw,
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
 	GdkPixmap *pixmap;
-	GdkScreen *screen;
 
-	if (data->pixmap != NULL) {
-		g_object_unref(data->pixmap);
+	if (type == VTE_BG_SOURCE_NONE)
+		return;
+
+	if (data->bg_pattern) {
+		cairo_pattern_destroy (data->bg_pattern);
+		data->bg_pattern = NULL;
 	}
 
-	screen = gtk_widget_get_screen(draw->widget);
-	pixmap = vte_bg_get_pixmap(vte_bg_get_for_screen(screen),
-				   type, pixbuf, file,
-				   color, saturation,
-				   _vte_draw_get_colormap(draw, TRUE));
+	pixmap = vte_bg_get_pixmap (vte_bg_get_for_screen (gtk_widget_get_screen (draw->widget)),
+				    type, pixbuf, file,
+				    color, saturation,
+				    _vte_draw_get_colormap(draw, TRUE));
 
-	data->pixmap = NULL;
-	data->pixmapw = data->pixmaph = 0;
 	if (pixmap) {
-		gdk_drawable_get_size(pixmap, &data->pixmapw, &data->pixmaph);
-		data->pixmap = pixmap;
+
+		/* Ugh... We need to create a dummy cairo_t */
+		cairo_surface_t *surface;
+		cairo_t *cr;
+
+		surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, 0, 0);
+		cr = cairo_create (surface);
+
+		gdk_cairo_set_source_pixmap (cr, pixmap, 0, 0);
+		data->bg_pattern = cairo_pattern_reference (cairo_get_source (cr));
+
+		cairo_destroy (cr);
+		cairo_surface_destroy (surface);
+
+		/* Transfer the pixmap ownership to the pattern */
+		cairo_pattern_set_user_data (data->bg_pattern,
+					     (cairo_user_data_key_t *) data,
+					     pixmap,
+					     (cairo_destroy_func_t) g_object_unref);
+
+		cairo_pattern_set_extend (data->bg_pattern, CAIRO_EXTEND_REPEAT);
 	}
+}
+
+static void
+_vte_pangocairo_set_background_scroll (struct _vte_draw *draw,
+				       gint x, gint y)
+{
+	struct _vte_pangocairo_data *data = draw->impl_data;
+	cairo_matrix_t matrix;
+
+	g_return_if_fail (data->bg_pattern != NULL);
+
+	cairo_matrix_init_translate (&matrix, x, y);
+	cairo_pattern_set_matrix (data->bg_pattern, &matrix);
+}
+
+static void
+_vte_pangocairo_clear (struct _vte_draw *draw,
+		       gint x, gint y, gint width, gint height)
+{
+	struct _vte_pangocairo_data *data = draw->impl_data;
+
+	g_return_if_fail (data->bg_pattern != NULL);
+
+	cairo_rectangle (data->cr, x, y, width, height);
+	cairo_set_operator (data->cr, CAIRO_OPERATOR_SOURCE);
+	cairo_set_source (data->cr, data->bg_pattern);
+	cairo_fill (data->cr);
 }
 
 static void
@@ -854,26 +901,6 @@ _vte_pangocairo_clip (struct _vte_draw *draw,
 
 	gdk_cairo_region(data->cr, region);
 	cairo_clip (data->cr);
-}
-
-static void
-_vte_pangocairo_clear (struct _vte_draw *draw,
-		       gint x, gint y, gint width, gint height)
-{
-	struct _vte_pangocairo_data *data = draw->impl_data;
-
-	cairo_rectangle (data->cr, x, y, width, height);
-	cairo_set_operator (data->cr, CAIRO_OPERATOR_SOURCE);
-
-	if (data->pixmap == NULL) {
-		set_source_color_alpha (data->cr, &draw->bg_color, draw->bg_opacity >> 8);
-	} else {
-		gdk_cairo_set_source_pixmap (data->cr, data->pixmap,
-					     -draw->scrollx, -draw->scrolly);
-		cairo_pattern_set_extend (cairo_get_source (data->cr), CAIRO_EXTEND_REPEAT);
-	}
-
-	cairo_fill (data->cr);
 }
 
 static void
@@ -911,6 +938,18 @@ _vte_pangocairo_get_char_width (struct _vte_draw *draw, gunichar c, int columns)
 
 	uinfo = font_info_get_unichar_info (data->font, c);
 	return uinfo->width;
+}
+
+static void
+set_source_color_alpha (cairo_t        *cr,
+			const GdkColor *color,
+			guchar alpha)
+{
+	cairo_set_source_rgba (cr,
+			      color->red / 65535.,
+			      color->green / 65535.,
+			      color->blue / 65535.,
+			      alpha / 255.);
 }
 
 static void
@@ -1027,7 +1066,9 @@ const struct _vte_draw_impl _vte_draw_pangocairo = {
 	NULL, /* get_colormap */
 	_vte_pangocairo_start,
 	_vte_pangocairo_end,
+	_vte_pangocairo_set_background_solid,
 	_vte_pangocairo_set_background_image,
+	_vte_pangocairo_set_background_scroll,
 	_vte_pangocairo_clip,
 	FALSE, /* always_requires_clear */
 	_vte_pangocairo_clear,
