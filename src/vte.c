@@ -10604,7 +10604,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 			color.green = terminal->pvt->palette[back].green;
 			color.blue = terminal->pvt->palette[back].blue;
 
-			if (selected || focus) {
+			if (focus) {
 				/* just reverse the character under the cursor */
 
 				_vte_draw_fill_rectangle(terminal->pvt->draw,

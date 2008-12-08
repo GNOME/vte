@@ -1,3 +1,10 @@
+2008-12-07  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 163213 – Cursor should remain visible when selected
+
+	* src/vte.c (vte_terminal_paint_cursor): Do a reverse hollow cursor
+	if selected but not focused.
+
 2008-12-05  Christian Persch  <chpe@gnome.org>
 
 	* src/vtebg.c: (vte_bg_get_pixmap): Don't modify source_pixbuf. If
