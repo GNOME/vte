@@ -1,4 +1,10 @@
-EXTRA_DIST = vte.defs vte.override cat.py unrealize.py vte-demo.py
+EXTRA_DIST = vte.defs pyvte.pc.in vte.override cat.py unrealize.py vte-demo.py
+
+defsdir = $(datadir)/pygtk/2.0/defs
+defs_DATA = vte.defs
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = pyvte.pc
 
 PYTHON_MODULES = vtemodule.la
 

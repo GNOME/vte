@@ -476,6 +476,7 @@ src/vteversion.h
 termcaps/Makefile
 perf/Makefile
 python/Makefile
+python/pyvte.pc
 po/Makefile.in
 doc/Makefile
 doc/openi18n/Makefile

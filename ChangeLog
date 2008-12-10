@@ -1,3 +1,11 @@
+2008-12-10  Paolo Borelli  <pborelli@katamail.com>
+
+	Bug 562695 - ship pkg-config file for python bindings
+
+	* configure.in:
+        * python/Makefile.am:
+	* python/pyvte.pc.in:
+
 2008-12-08  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 563752 – pangocairo backend recreates cairo_surface_t for
