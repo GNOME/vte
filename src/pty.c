@@ -636,6 +636,7 @@ _vte_pty_open_unix98(GPid *child, char **env_add,
 	return fd;
 }
 
+#ifdef VTE_USE_GNOME_PTY_HELPER
 #ifdef HAVE_RECVMSG
 static void
 _vte_pty_read_ptypair(int tunnel, int *parentfd, int *childfd)
@@ -695,7 +696,6 @@ _vte_pty_read_ptypair(int tunnel, int *parentfd, int *childfd)
 }
 #endif
 
-#ifdef VTE_USE_GNOME_PTY_HELPER
 #ifdef HAVE_SOCKETPAIR
 static int
 _vte_pty_pipe_open(int *a, int *b)

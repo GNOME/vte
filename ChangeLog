@@ -1,5 +1,13 @@
 2008-12-11  Christian Persch  <chpe@gnome.org>
 
+	Bug 564057 – src/pty.c does not compile with
+	--disable-gnome-pty-helper
+	
+	* src/pty.c: Build with --disable-gnome-pty-helper. Patch by
+	yselkowitz at users.sourceforge.net .
+
+2008-12-11  Christian Persch  <chpe@gnome.org>
+
 	* src/vte.c: (vte_terminal_class_init): Update set-scroll-adjustement
 	docs.
 
