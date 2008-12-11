@@ -11296,7 +11296,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * @horizontal: the horizontal #GtkAdjustment (unused in #VteTerminal)
          * @vertical: the vertical #GtkAdjustment
          *
-         * Set the scroll adjustments for the text view. Usually scrolled containers
+         * Set the scroll adjustments for the terminal. Usually scrolled containers
          * like #GtkScrolledWindow will emit this signal to connect two instances
          * of #GtkScrollbar to the scroll directions of the #VteTerminal.
          *
