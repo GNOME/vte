@@ -26,21 +26,63 @@
 
 G_BEGIN_DECLS
 
+/**
+ * vteunistr:
+ *
+ * vteunistr is a gunichar-compatible way to store strings.  A string
+ * consisting of a single unichar c is represented as the same value
+ * as c itself.  In that sense, gunichars can be readily used as
+ * vteunistrs.  Longer strings can be built by appending a unichar
+ * to an already existing string.
+ *
+ * vteunistr is essentially just a gunicode-compatible quark value.
+ * It can be used to store strings (of a base followed by combining
+ * characters) where the code was designed to only allow one character.
+ *
+ * Strings are internalized efficiently and never freed.  No memory
+ * management of vteunistr values is needed.
+ **/
 typedef guint32 vteunistr;
 
+/**
+ * _vte_unistr_append_unichar:
+ * @s: a #vteunistr
+ * @c: Unicode character to append to @s
+ *
+ * Creates a vteunistr value for the string @s followed by the
+ * character @c.
+ *
+ * Returns: the new #vteunistr value
+ **/
 vteunistr
 _vte_unistr_append_unichar (vteunistr s, gunichar c);
-
-/* Unused
-int
-_vte_unistr_strlen (vteunistr s);
-*/
 
 gunichar
 _vte_unistr_get_base (vteunistr s);
 
+/**
+ * _vte_unistr_append_to_string:
+ * @s: a #vteunistr
+ * @gs: a #GString to append @s to
+ *
+ * Appends @s to @gs.  This is how one converts a #vteunistr to a
+ * traditional string.
+ **/
 void
 _vte_unistr_append_to_string (vteunistr s, GString *gs);
+
+#if 0 /* unused */
+/**
+ * _vte_unistr_strlen:
+ * @s: a #vteunistr
+ *
+ * Counts the number of character in @s.
+ *
+ * Returns: length of @s in characters.
+ **/
+int
+_vte_unistr_strlen (vteunistr s);
+#endif
 
 G_END_DECLS
 

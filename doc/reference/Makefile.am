@@ -47,6 +47,7 @@ IGNORE_HFILES= \
 	vteskel.h \
 	vtetc.h \
 	vtetree.h \
+	vteunistr.h \
 	vtexft.h
 
 

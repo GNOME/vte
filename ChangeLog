@@ -1,5 +1,14 @@
 2008-12-12  Behdad Esfahbod  <behdad@gnome.org>
 
+	* doc/reference/Makefile.am:
+	* src/vteunistr.c (unistr_comp_hash), (unistr_comp_equal),
+	(_vte_unistr_append_unichar), (_vte_unistr_get_base),
+	(_vte_unistr_append_to_string), (_vte_unistr_strlen):
+	* src/vteunistr.h:
+	Document vteunistr.
+
+2008-12-12  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/vteunistr.h: Minor cleanup.
 
 2008-12-12  Behdad Esfahbod  <behdad@gnome.org>
