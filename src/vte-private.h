@@ -41,6 +41,7 @@
 #include <unistd.h>
 #include <glib/gi18n-lib.h>
 
+#include "vteunistr.h"
 #include "vte.h"
 #include "buffer.h"
 #include "debug.h"
@@ -98,7 +99,7 @@ G_BEGIN_DECLS
 /* The structure we use to hold characters we're supposed to display -- this
  * includes any supported visible attributes. */
 struct vte_charcell {
-	gunichar c;		/* The Unicode character. */
+	vteunistr c;		/* The Unicode string for the cell. */
 
 	struct vte_charcell_attr {
 		guint32 columns: 4;	/* Number of visible columns

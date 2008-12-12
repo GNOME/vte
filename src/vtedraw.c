@@ -312,7 +312,7 @@ _vte_draw_get_text_metrics(struct _vte_draw *draw,
 }
 
 int
-_vte_draw_get_char_width (struct _vte_draw *draw, gunichar c, int columns)
+_vte_draw_get_char_width (struct _vte_draw *draw, vteunistr c, int columns)
 {
 	int width = 0;
 
@@ -370,11 +370,11 @@ _vte_draw_char (struct _vte_draw *draw,
 	return has_char;
 }
 gboolean
-_vte_draw_has_char (struct _vte_draw *draw, gunichar c)
+_vte_draw_has_char (struct _vte_draw *draw, vteunistr c)
 {
 	gboolean has_char = TRUE;
 
-	_vte_debug_print (VTE_DEBUG_DRAW, "draw_has_char ('%c')\n", c);
+	_vte_debug_print (VTE_DEBUG_DRAW, "draw_has_char ('0x%04X')\n", c);
 
 	if (draw->impl->has_char)
 		has_char = draw->impl->has_char (draw, c);

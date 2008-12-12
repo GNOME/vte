@@ -284,39 +284,26 @@ _vte_direct_compare(gconstpointer a, gconstpointer b)
 	return GPOINTER_TO_INT(a) - GPOINTER_TO_INT(b);
 }
 
-static inline gboolean
-_vte_iso2022_is_ambiguous(gunichar c)
-{
-	/* ASCII chars are not ambiguous */
-	if (G_LIKELY (c < 0x80))
-		return FALSE;
-
-	return g_unichar_iswide (c) != g_unichar_iswide_cjk (c);
-}
-
 /* If we only have a codepoint, guess what the ambiguous width should be based
  * on the default region.  Just hope we don't do this too often. */
 static int
 _vte_iso2022_ambiguous_width_guess(void)
 {
 	static int guess;
-	if (guess == 0) {
+	if (G_UNLIKELY (guess == 0)) {
 		const char *lang = NULL;
 		guess = 1;
-		if ((lang == NULL) && (g_getenv("LC_ALL") != NULL)) {
+		if (lang == NULL)
 			lang = g_getenv("LC_ALL");
-		}
-		if ((lang == NULL) && (g_getenv("LC_CTYPE") != NULL)) {
+		if (lang == NULL)
 			lang = g_getenv("LC_CTYPE");
-		}
-		if ((lang == NULL) && (g_getenv("LANG") != NULL)) {
+		if (lang == NULL)
 			lang = g_getenv("LANG");
-		}
-		if (lang != NULL) {
+		if (lang) {
 			if (g_ascii_strncasecmp(lang, "ja", 2) == 0 ||
-					g_ascii_strncasecmp(lang, "ko", 2) == 0 ||
-					g_ascii_strncasecmp(lang, "vi", 2) == 0 ||
-					g_ascii_strncasecmp(lang, "zh", 2) == 0) {
+			    g_ascii_strncasecmp(lang, "ko", 2) == 0 ||
+			    g_ascii_strncasecmp(lang, "vi", 2) == 0 ||
+			    g_ascii_strncasecmp(lang, "zh", 2) == 0) {
 				guess = 2;
 			}
 		}
@@ -357,12 +344,11 @@ _vte_iso2022_ambiguous_width(struct _vte_iso2022_state *state)
 	/* Sort-of canonify the encoding name. */
 	i = j = 0;
 	for (i = 0; state->codeset[i] != '\0'; i++) {
-		if (g_ascii_isalnum(state->codeset[i])) {
+		if (g_ascii_isalnum(state->codeset[i]))
 			codeset[j++] = g_ascii_tolower(state->codeset[i]);
-		}
-		if (j >= sizeof(codeset) - 1) {
+
+		if (j >= sizeof(codeset) - 1)
 			break;
-		}
 	}
 	codeset[j] = '\0';
 
@@ -377,17 +363,44 @@ _vte_iso2022_ambiguous_width(struct _vte_iso2022_state *state)
 	 * Decide the ambiguous width according to the default region if 
 	 * current locale is UTF-8.
 	 */
-	if (strcmp (codeset, "utf8") == 0 && g_getenv("VTE_CJK_WIDTH") != NULL) {
+	if (strcmp (codeset, "utf8") == 0) {
 	  const char *env = g_getenv ("VTE_CJK_WIDTH");
-	  if ((g_ascii_strcasecmp (env, "narrow")==0) || (g_ascii_strcasecmp (env, "0")==0))
+	  if (env && (g_ascii_strcasecmp (env, "narrow")==0 || g_ascii_strcasecmp (env, "0")==0))
 	    return 1;
-	  if ((g_ascii_strcasecmp (env, "wide")==0) || (g_ascii_strcasecmp (env, "1")==0))
+	  if (env && (g_ascii_strcasecmp (env, "wide")==0 || g_ascii_strcasecmp (env, "1")==0))
 	    return 2;
 	  else
 	    return _vte_iso2022_ambiguous_width_guess ();
 	}
 
 	/* Not in the list => not wide. */
+	return 1;
+}
+
+static inline gboolean
+_vte_iso2022_is_ambiguous(gunichar c)
+{
+	if (G_LIKELY (c < 0x80))
+		return FALSE;
+	if (G_UNLIKELY (g_unichar_iszerowidth (c)))
+		return FALSE;
+	return G_UNLIKELY (!g_unichar_iswide (c) && g_unichar_iswide_cjk (c));
+}
+
+int
+_vte_iso2022_unichar_width(struct _vte_iso2022_state *state,
+			   gunichar c)
+{
+	if (G_LIKELY (c < 0x80))
+		return 1;
+	if (G_UNLIKELY (g_unichar_iszerowidth (c)))
+		return 0;
+	if (G_UNLIKELY (g_unichar_iswide (c)))
+		return 2;
+	if (G_LIKELY (state->ambiguous_width == 1))
+		return 1;
+	if (G_UNLIKELY (g_unichar_iswide_cjk (c)))
+		return 2;
 	return 1;
 }
 
@@ -722,16 +735,16 @@ _vte_iso2022_map_get(gunichar mapname,
 	}
 }
 
-gssize
+int
 _vte_iso2022_get_encoded_width(gunichar c)
 {
-	gssize width;
+	int width;
 	width = (c & VTE_ISO2022_ENCODED_WIDTH_MASK) >> VTE_ISO2022_ENCODED_WIDTH_BIT_OFFSET;
 	return CLAMP(width, 0, 2);
 }
 
 static gunichar
-_vte_iso2022_set_encoded_width(gunichar c, gssize width)
+_vte_iso2022_set_encoded_width(gunichar c, int width)
 {
 	width = CLAMP(width, 0, 2);
 	c &= ~(VTE_ISO2022_ENCODED_WIDTH_MASK);
@@ -817,7 +830,7 @@ _vte_iso2022_state_set_codeset(struct _vte_iso2022_state *state,
 	}
 	state->codeset = g_intern_string (codeset);
 	state->conv = conv;
-	state->ambiguous_width = _vte_iso2022_ambiguous_width(state);
+	state->ambiguous_width = _vte_iso2022_ambiguous_width (state);
 }
 
 const char *
@@ -1737,19 +1750,6 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 	_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
 			"Consuming %ld bytes.\n", (long) length);
 	return length;
-}
-
-gssize
-_vte_iso2022_unichar_width(gunichar c)
-{
-	c = c & ~(VTE_ISO2022_ENCODED_WIDTH_MASK); /* just in case */
-	if (G_UNLIKELY (_vte_iso2022_is_ambiguous(c))) {
-		return _vte_iso2022_ambiguous_width_guess();
-	}
-	if (g_unichar_iswide(c)) {
-		return 2;
-	}
-	return 1;
 }
 
 #ifdef ISO2022_MAIN

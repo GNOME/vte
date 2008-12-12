@@ -669,7 +669,7 @@ vte_terminal_preedit_width(VteTerminal *terminal, gboolean left_only)
 		     (!left_only || (i < terminal->pvt->im_preedit_cursor));
 		     i++) {
 			c = g_utf8_get_char(preedit);
-			ret += _vte_iso2022_unichar_width(c);
+			ret += _vte_iso2022_unichar_width(terminal->pvt->iso2022, c);
 			preedit = g_utf8_next_char(preedit);
 		}
 	}
@@ -3069,7 +3069,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	if (G_UNLIKELY (screen->alternate_charset)) {
 		_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
 				"Attempting charset substitution"
-				"for 0x%04x.\n", c);
+				"for U+%04X.\n", c);
 		/* See if there's a mapping for it. */
 		c = _vte_iso2022_process_single(terminal->pvt->iso2022, c, '0');
 	}
@@ -3086,12 +3086,13 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		columns = _vte_iso2022_get_encoded_width(c);
 		c &= ~VTE_ISO2022_ENCODED_WIDTH_MASK;
 	} else {
-		columns = _vte_iso2022_unichar_width(c);
+		columns = _vte_iso2022_unichar_width(terminal->pvt->iso2022, c);
 	}
+
 
 	/* If we're autowrapping here, do it. */
 	col = screen->cursor_current.col;
-	if (G_UNLIKELY (col + columns > terminal->column_count)) {
+	if (G_UNLIKELY (columns && col + columns > terminal->column_count)) {
 		if (terminal->pvt->flags.am) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Autowrapping before character\n");
@@ -3117,6 +3118,73 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			screen->defaults.attr.back,
 			col, columns, (long)screen->cursor_current.row,
 			(long)screen->insert_delta);
+
+
+	if (G_UNLIKELY (columns == 0)) {
+
+		/* It's a combining mark */
+
+		long row_num;
+		struct vte_charcell *cell;
+
+		_vte_debug_print(VTE_DEBUG_PARSE, "combining U+%04X", c);
+
+		row_num = screen->cursor_current.row;
+		row = NULL;
+		if (col == 0) {
+			/* We are at first column.  See if the previous line softwrapped.
+			 * If it did, move there.  Otherwise skip inserting. */
+
+			if (row_num > 0) {
+				row_num--;
+				row = _vte_terminal_find_row_data (terminal, row_num);
+
+				if (!row->soft_wrapped)
+					row = NULL;
+				else
+					col = row->cells->len;
+			}
+		} else {
+			row = _vte_terminal_find_row_data (terminal, row_num);
+		}
+
+		if (G_UNLIKELY (!row || !col))
+			goto not_inserted;
+
+		/* Combine it on the previous cell */
+
+		col--;
+		cell = _vte_row_data_find_charcell(row, col);
+
+		if (G_UNLIKELY (!cell))
+			goto not_inserted;
+
+		/* Find the previous cell */
+		while (cell->attr.fragment && col > 0) {
+			cell = _vte_row_data_find_charcell(row, --col);
+		}
+		if (G_UNLIKELY (!cell || cell->c == '\t'))
+			goto not_inserted;
+
+		/* Combine the new character on top of the cell string */
+		c = _vte_unistr_append_unichar (cell->c, c);
+
+		/* And set it */
+		columns = cell->attr.columns;
+		for (i = 0; i < columns; i++) {
+			cell = _vte_row_data_find_charcell(row, col++);
+			cell->c = c;
+		}
+
+		/* Always invalidate since we put the mark on the *previous* cell
+		 * and the higher level code doesn't know this. */
+		_vte_invalidate_cells(terminal,
+				      col - columns,
+				      columns,
+				      row_num, 1);
+
+		goto done;
+	}
 
 	/* Make sure we have enough rows to hold this data. */
 	row = vte_terminal_ensure_cursor (terminal);
@@ -3207,9 +3275,11 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		}
 	}
 
+done:
 	/* We added text, so make a note of it. */
 	terminal->pvt->text_inserted_flag = TRUE;
 
+not_inserted:
 	_vte_debug_print(VTE_DEBUG_ADJ|VTE_DEBUG_PARSE,
 			"insertion delta => %ld.\n",
 			(long)screen->insert_delta);
@@ -5193,7 +5263,7 @@ vte_same_class(VteTerminal *terminal, glong acol, glong arow,
 	struct vte_charcell *pcell = NULL;
 	gboolean word_char;
 	if ((pcell = vte_terminal_find_charcell(terminal, acol, arow)) != NULL && pcell->c != 0) {
-		word_char = vte_terminal_is_word_char(terminal, pcell->c);
+		word_char = vte_terminal_is_word_char(terminal, _vte_unistr_get_base (pcell->c));
 
 		/* Lets not group non-wordchars together (bug #25290) */
 		if (!word_char)
@@ -5204,7 +5274,7 @@ vte_same_class(VteTerminal *terminal, glong acol, glong arow,
 			return FALSE;
 		}
 		if (word_char != vte_terminal_is_word_char(terminal,
-							   pcell->c)) {
+							   _vte_unistr_get_base (pcell->c))) {
 			return FALSE;
 		}
 		return TRUE;
@@ -5846,21 +5916,19 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 					attr.underline = pcell->attr.underline;
 					attr.strikethrough = pcell->attr.strikethrough;
 
-					/* Store the character. */
-					string = g_string_append_unichar(string,
-							pcell->c ?
-							pcell->c :
-							' ');
+					/* Store the cell string */
 					if (pcell->c == 0) {
+						g_string_append_c (string, ' ');
 						last_empty = string->len;
 						last_emptycol = col;
 					} else {
+						_vte_unistr_append_to_string (pcell->c, string);
 						last_nonempty = string->len;
 						last_nonemptycol = col;
 					}
 
-					/* If we added a character to the string, record its
-					 * attributes, one per char. */
+					/* If we added text to the string, record its
+					 * attributes, one per byte. */
 					if (attributes) {
 						vte_g_array_fill(attributes,
 								&attr, string->len);
@@ -8744,7 +8812,7 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 /* Check if a unicode character is actually a graphic character we draw
  * ourselves to handle cases where fonts don't have glyphs for them. */
 static gboolean
-vte_unichar_is_local_graphic(gunichar c)
+vte_unichar_is_local_graphic(vteunistr c)
 {
 	if ((c >= 0x2500) && (c <= 0x257f)) {
 		return TRUE;
@@ -8783,7 +8851,7 @@ vte_unichar_is_local_graphic(gunichar c)
 	return FALSE;
 }
 static gboolean
-vte_terminal_unichar_is_local_graphic(VteTerminal *terminal, gunichar c)
+vte_terminal_unichar_is_local_graphic(VteTerminal *terminal, vteunistr c)
 {
 	return vte_unichar_is_local_graphic (c) &&
 		!_vte_draw_has_char (terminal->pvt->draw, c);
@@ -8870,7 +8938,7 @@ vte_terminal_draw_point(VteTerminal *terminal,
 /* Draw the graphic representation of a line-drawing or special graphics
  * character. */
 static gboolean
-vte_terminal_draw_graphic(VteTerminal *terminal, gunichar c,
+vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
 			  gint fore, gint back, gboolean draw_default_bg,
 			  gint x, gint y,
 			  gint column_width, gint columns, gint row_height)
@@ -10708,7 +10776,8 @@ vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 		items = g_new(struct _vte_draw_text_request, len);
 		for (i = columns = 0; i < len; i++) {
 			items[i].c = g_utf8_get_char(preedit);
-			items[i].columns = _vte_iso2022_unichar_width(items[i].c);
+			items[i].columns = _vte_iso2022_unichar_width(terminal->pvt->iso2022,
+								      items[i].c);
 			items[i].x = (col + columns) * width;
 			items[i].y = row * height;
 			columns += items[i].columns;

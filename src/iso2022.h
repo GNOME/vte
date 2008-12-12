@@ -49,8 +49,9 @@ void _vte_iso2022_state_free(struct _vte_iso2022_state *);
 #define VTE_ISO2022_ENCODED_WIDTH_BIT_OFFSET	28
 #define VTE_ISO2022_ENCODED_WIDTH_MASK		(3 << VTE_ISO2022_ENCODED_WIDTH_BIT_OFFSET)
 #define VTE_ISO2022_HAS_ENCODED_WIDTH(__c)	(((__c) & VTE_ISO2022_ENCODED_WIDTH_MASK) != 0)
-gssize _vte_iso2022_get_encoded_width(gunichar c);
-gssize _vte_iso2022_unichar_width(gunichar c);
+int _vte_iso2022_get_encoded_width(gunichar c);
+int _vte_iso2022_unichar_width(struct _vte_iso2022_state *state,
+			       gunichar c);
 
 G_END_DECLS
 

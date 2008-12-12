@@ -80,6 +80,8 @@ libvte_la_SOURCES = \
 	vtetree.h \
 	vtetypebuiltins.c \
 	vtetypebuiltins.h \
+	vteunistr.c \
+	vteunistr.h \
 	vteversion.h
 	$(NULL)
 

@@ -45,16 +45,16 @@
  *   - We attach a font_info to draw as our private data.  A font_info has
  *     all the information to quickly draw text.
  *
- *   - A font_info keeps uses unichar_font_info structs that represent all
- *     information needed to quickly draw a single gunichar.  The font_info
- *     creates those unichar_font_info structs on demand and caches them
+ *   - A font_info keeps uses unistr_font_info structs that represent all
+ *     information needed to quickly draw a single vteunistr.  The font_info
+ *     creates those unistr_font_info structs on demand and caches them
  *     indefinitely.  It uses a direct array for the ASCII range and a hash
  *     table for the rest.
  *
  *
- * Fast rendering of unichars:
+ * Fast rendering of unistrs:
  *
- * A unichar_font_info (uinfo) calls Pango to set text for the unichar upon
+ * A unistr_font_info (uinfo) calls Pango to set text for the unistr upon
  * initialization and then caches information needed to draw the results
  * later.  It uses three different internal representations and respectively
  * three drawing paths:
@@ -64,7 +64,7 @@
  *     fastest way to draw text as it bypasses Pango completely and allows
  *     for stuffing multiple glyphs into a single cairo_show_glyphs() request
  *     (if scaled-fonts match).  This method is used if the glyphs used for
- *     the gunichar as determined by Pango consists of a single regular glyph
+ *     the vteunistr as determined by Pango consists of a single regular glyph
  *     positioned at 0,0 using a regular font.  This method is used for more
  *     than 99% of the cases.  Only exceptional cases fall through to the
  *     other two methods.
@@ -79,7 +79,7 @@
  *
  *   - COVERAGE_USE_PANGO_LAYOUT_LINE:
  *     Keeping a pango layout line.  This method is used only in the very
- *     weird and exception case that a single gunichar uses more than one font
+ *     weird and exception case that a single vteunistr uses more than one font
  *     to be drawn.  This is not expected to happen, but exists for
  *     completeness, to make sure we can deal with any junk pango decides to
  *     throw at us.
@@ -112,7 +112,7 @@
  *
  * When initializing a font info struct we measure a string consisting of all
  * ASCII letters and some other ASCII characters.  Since we have a shaped pango
- * layout at hand, we walk over it and cache unichar font info for the ASCII
+ * layout at hand, we walk over it and cache unistr font info for the ASCII
  * letters if we can do that easily using COVERAGE_USE_CAIRO_GLYPH.  This
  * means that we precache all ASCII letters without any extra pango shaping
  * involved.
@@ -139,7 +139,7 @@
 #define MAX_RUN_LENGTH 100
 
 
-enum unichar_coverage {
+enum unistr_coverage {
 	/* in increasing order of speed */
 	COVERAGE_UNKNOWN = 0,		/* we don't know about the character yet */
 	COVERAGE_USE_PANGO_LAYOUT_LINE,	/* use a PangoLayoutLine for the character */
@@ -147,7 +147,7 @@ enum unichar_coverage {
 	COVERAGE_USE_CAIRO_GLYPH	/* use a cairo_glyph_t for the character */
 };
 
-union unichar_font_info {
+union unistr_font_info {
 	/* COVERAGE_USE_PANGO_LAYOUT_LINE */
 	struct {
 		PangoLayoutLine *line;
@@ -164,23 +164,23 @@ union unichar_font_info {
 	} using_cairo_glyph;
 };
 
-struct unichar_info {
+struct unistr_info {
 	guchar coverage;
 	guchar has_unknown_chars;
 	guint16 width;
-	union unichar_font_info ufi;
+	union unistr_font_info ufi;
 };
 
-static struct unichar_info *
-unichar_info_create (void)
+static struct unistr_info *
+unistr_info_create (void)
 {
-	return g_slice_new0 (struct unichar_info);
+	return g_slice_new0 (struct unistr_info);
 }
 
 static void
-unichar_info_finish (struct unichar_info *uinfo)
+unistr_info_finish (struct unistr_info *uinfo)
 {
-	union unichar_font_info *ufi = &uinfo->ufi;
+	union unistr_font_info *ufi = &uinfo->ufi;
 
 	switch (uinfo->coverage) {
 	default:
@@ -209,10 +209,10 @@ unichar_info_finish (struct unichar_info *uinfo)
 }
 
 static void
-unichar_info_destroy (struct unichar_info *uinfo)
+unistr_info_destroy (struct unistr_info *uinfo)
 {
-	unichar_info_finish (uinfo);
-	g_slice_free (struct unichar_info, uinfo);
+	unistr_info_finish (uinfo);
+	g_slice_free (struct unistr_info, uinfo);
 }
 
 struct font_info {
@@ -220,15 +220,18 @@ struct font_info {
 	int ref_count;
 	guint destroy_timeout; /* only used when ref_count == 0 */
 
-	/* reusable layout set with font and everything */
+	/* reusable layout set with font and everything set */
 	PangoLayout *layout;
 
 	/* cache of character info */
-	struct unichar_info ascii_unichar_info[128];
-	GHashTable *other_unichar_info;
+	struct unistr_info ascii_unistr_info[128];
+	GHashTable *other_unistr_info;
 
 	/* cell metrics */
 	gint width, height, ascent;
+
+	/* reusable string for UTF-8 conversion */
+	GString *string;
 
 #ifdef VTE_DEBUG
 	/* profiling info */
@@ -237,24 +240,24 @@ struct font_info {
 };
 
 
-static struct unichar_info *
-font_info_find_unichar_info (struct font_info    *info,
-			     gunichar             c)
+static struct unistr_info *
+font_info_find_unistr_info (struct font_info    *info,
+			    vteunistr            c)
 {
-	struct unichar_info *uinfo;
+	struct unistr_info *uinfo;
 
-	if (G_LIKELY (c < G_N_ELEMENTS (info->ascii_unichar_info)))
-		return &info->ascii_unichar_info[c];
+	if (G_LIKELY (c < G_N_ELEMENTS (info->ascii_unistr_info)))
+		return &info->ascii_unistr_info[c];
 
-	if (G_UNLIKELY (info->other_unichar_info == NULL))
-		info->other_unichar_info = g_hash_table_new_full (NULL, NULL, NULL, (GDestroyNotify) unichar_info_destroy);
+	if (G_UNLIKELY (info->other_unistr_info == NULL))
+		info->other_unistr_info = g_hash_table_new_full (NULL, NULL, NULL, (GDestroyNotify) unistr_info_destroy);
 
-	uinfo = g_hash_table_lookup (info->other_unichar_info, GINT_TO_POINTER (c));
+	uinfo = g_hash_table_lookup (info->other_unistr_info, GINT_TO_POINTER (c));
 	if (G_LIKELY (uinfo))
 		return uinfo;
 
-	uinfo = unichar_info_create ();
-	g_hash_table_insert (info->other_unichar_info, GINT_TO_POINTER (c), uinfo);
+	uinfo = unistr_info_create ();
+	g_hash_table_insert (info->other_unistr_info, GINT_TO_POINTER (c), uinfo);
 	return uinfo;
 }
 
@@ -307,11 +310,11 @@ font_info_cache_ascii (struct font_info *info)
 	     more;
 	     more = pango_glyph_item_iter_next_cluster (&iter))
 	{
-		struct unichar_info *uinfo;
-		union unichar_font_info *ufi;
+		struct unistr_info *uinfo;
+		union unistr_font_info *ufi;
 	 	PangoGlyphGeometry *geometry;
 		PangoGlyph glyph;
-		gunichar c;
+		vteunistr c;
 
 		/* Only cache simple clusters */
 		if (iter.start_char +1 != iter.end_char  ||
@@ -334,7 +337,7 @@ font_info_cache_ascii (struct font_info *info)
 		if (!(glyph <= 0xFFFF) || (geometry->x_offset | geometry->y_offset) != 0)
 			continue;
 
-		uinfo = font_info_find_unichar_info (info, c);
+		uinfo = font_info_find_unistr_info (info, c);
 		if (G_UNLIKELY (uinfo->coverage != COVERAGE_UNKNOWN))
 			continue;
 
@@ -405,6 +408,7 @@ font_info_allocate (PangoContext *context)
 			  info);
 
 	info->layout = pango_layout_new (context);
+	info->string = g_string_sized_new (VTE_UTF8_BPC+1);
 
 	font_info_measure_font (info);
 
@@ -414,7 +418,7 @@ font_info_allocate (PangoContext *context)
 static void
 font_info_free (struct font_info *info)
 {
-	gunichar i;
+	vteunistr i;
 
 #ifdef VTE_DEBUG
 	_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
@@ -426,13 +430,14 @@ font_info_free (struct font_info *info)
 			  info->coverage_count[3]);
 #endif
 
+	g_string_free (info->string, TRUE);
 	g_object_unref (info->layout);
 
-	for (i = 0; i < G_N_ELEMENTS (info->ascii_unichar_info); i++)
-		unichar_info_finish (&info->ascii_unichar_info[i]);
+	for (i = 0; i < G_N_ELEMENTS (info->ascii_unistr_info); i++)
+		unistr_info_finish (&info->ascii_unistr_info[i]);
 		
-	if (info->other_unichar_info) {
-		g_hash_table_destroy (info->other_unichar_info);
+	if (info->other_unistr_info) {
+		g_hash_table_destroy (info->other_unistr_info);
 	}
 
 	g_slice_free (struct font_info, info);
@@ -669,24 +674,24 @@ font_info_create_for_widget (GtkWidget                  *widget,
 	return font_info_create_for_screen (screen, desc, antialias, language);
 }
 
-static struct unichar_info *
-font_info_get_unichar_info (struct font_info *info,
-			    gunichar c)
+static struct unistr_info *
+font_info_get_unistr_info (struct font_info *info,
+			   vteunistr c)
 {
-	struct unichar_info *uinfo;
-	union unichar_font_info *ufi;
-	char buf[VTE_UTF8_BPC+1];
+	struct unistr_info *uinfo;
+	union unistr_font_info *ufi;
 	PangoRectangle logical;
 	PangoLayoutLine *line;
 
-	uinfo = font_info_find_unichar_info (info, c);
+	uinfo = font_info_find_unistr_info (info, c);
 	if (G_LIKELY (uinfo->coverage != COVERAGE_UNKNOWN))
 		return uinfo;
 
 	ufi = &uinfo->ufi;
 
-	buf[g_unichar_to_utf8 (c, buf)] = '\0';
-	pango_layout_set_text (info->layout, buf, -1);
+	g_string_set_size (info->string, 0);
+	_vte_unistr_append_to_string (c, info->string);
+	pango_layout_set_text (info->layout, info->string->str, -1);
 	pango_layout_get_extents (info->layout, NULL, &logical);
 
 	uinfo->width = PANGO_PIXELS_CEIL (logical.width);
@@ -929,14 +934,14 @@ _vte_pangocairo_get_text_metrics(struct _vte_draw *draw,
 
 
 static int
-_vte_pangocairo_get_char_width (struct _vte_draw *draw, gunichar c, int columns)
+_vte_pangocairo_get_char_width (struct _vte_draw *draw, vteunistr c, int columns)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
-	struct unichar_info *uinfo;
+	struct unistr_info *uinfo;
 
 	g_return_val_if_fail (data->font != NULL, 0);
 
-	uinfo = font_info_get_unichar_info (data->font, c);
+	uinfo = font_info_get_unistr_info (data->font, c);
 	return uinfo->width;
 }
 
@@ -969,11 +974,11 @@ _vte_pangocairo_draw_text (struct _vte_draw *draw,
 	cairo_set_operator (data->cr, CAIRO_OPERATOR_OVER);
 
 	for (i = 0; i < n_requests; i++) {
-		gunichar c = requests[i].c;
+		vteunistr c = requests[i].c;
 		int x = requests[i].x;
 		int y = requests[i].y + data->font->ascent;
-		struct unichar_info *uinfo = font_info_get_unichar_info (data->font, c);
-		union unichar_font_info *ufi = &uinfo->ufi;
+		struct unistr_info *uinfo = font_info_get_unistr_info (data->font, c);
+		union unistr_font_info *ufi = &uinfo->ufi;
 
 		switch (uinfo->coverage) {
 		default:
@@ -1019,14 +1024,14 @@ _vte_pangocairo_draw_text (struct _vte_draw *draw,
 }
 
 static gboolean
-_vte_pangocairo_draw_has_char (struct _vte_draw *draw, gunichar c)
+_vte_pangocairo_draw_has_char (struct _vte_draw *draw, vteunistr c)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
-	struct unichar_info *uinfo;
+	struct unistr_info *uinfo;
 
 	g_return_val_if_fail (data->font != NULL, FALSE);
 
-	uinfo = font_info_get_unichar_info (data->font, c);
+	uinfo = font_info_get_unistr_info (data->font, c);
 	return !uinfo->has_unknown_chars;
 }
 

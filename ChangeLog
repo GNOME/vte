@@ -1,3 +1,27 @@
+2008-12-12  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 149631 – gnome-terminal doesn't combine combining chars in utf8
+
+	* src/vteunistr.c:
+	* src/vteunistr.h:
+	An extended UTF-32 type that assigns numeric values to UTF-8 sequences
+	on demand.  Can be used to efficiently store a string, instead of one
+	character, at each cell.
+
+	* src/vte-private.h:
+	* src/vte.c:
+	* src/vtedraw.c:
+	* src/vtedraw.h:
+	* src/vtepangocairo.c:
+	Port to vteunistr instead of gunichar for cell content.
+	
+	* src/vte.c:
+	Handle zerowidth insertions by sticking it on the previous cell.
+
+	* src/iso2022.h:
+	* src/iso2022.c:
+	Cleanup ambiguous-width handling.  Handle zero-width chars.
+
 2008-12-11  Christian Persch  <chpe@gnome.org>
 
 	Bug 564057 – src/pty.c does not compile with
@@ -16,7 +40,7 @@
 	Bug 562695 - ship pkg-config file for python bindings
 
 	* configure.in:
-        * python/Makefile.am:
+	* python/Makefile.am:
 	* python/pyvte.pc.in:
 
 2008-12-08  Behdad Esfahbod  <behdad@gnome.org>
