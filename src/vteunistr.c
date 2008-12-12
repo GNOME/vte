@@ -28,18 +28,18 @@
 /* Overview:
  *
  * The way vteunistr is implemented is very simple: Unicode only defines
- * codepoints less than 0x10FFFF.  That leaves plenty of room in a guint32 to
+ * codepoints less than 0x110000.  That leaves plenty of room in a guint32 to
  * use for other things.  So, whenever our "string" contains only one Unicode
  * character, we use its code as our vteunistr.  Otherwise, we register the
- * string in a central registry and use assign a unique number to it.  That
- * number can be thought as "our own private non-unicode code for this
+ * string in a central registry and assign a unique number to it and use that.
+ * This number is "our own private internal non-unicode code for this
  * sequence of characters".
  *
  * The rest of the problem would be how to efficiently implement this
  * registry.  It does *NOT* really have to be efficient at all, as it will
- * only be access in case of combining marks.  And the strings are pretty
- * short most of the time.  But our implementation is quite efficient and
- * nifty anyway.
+ * only be accessed in case of combining marks.  And the strings are pretty
+ * short (two or three characters).  But our implementation is quite efficient
+ * anyway.
  *
  * The access pattern of using vteunistr's is that we have a vteunistr in a
  * terminal cell, a new gunichar comes in and we decide to combine with it,
@@ -51,7 +51,7 @@
  * We start giving new vteunistr's unique numbers starting at
  * VTE_UNISTR_START+1 and going up.  We keep the decompositions in a GArray,
  * called unistr_decomp.  The first entry of the array is unused (that's why
- * we start from VTE_UNISTR_START plus one).  The decomposition table provides
+ * we start from VTE_UNISTR_START *plus one*).  The decomposition table provides
  * enough information to efficiently answer questions like "what's the first
  * gunichar in this vteunistr?", "what's the sequence of gunichar's in this
  * vteunistr?", and "how many gunichar's are there in this vteunistr?".
@@ -61,17 +61,17 @@
  * decomposition table to see if we have already registered (encoded) this
  * combination.  To make that operation fast, we use a reverse map, that is,
  * a GHashTable named unistr_comp.  The hash table maps a decomposition to its
- * encoded vteunistr value.  The value obivously fits in a pointer and does
+ * encoded vteunistr value.  The value obviously fits in a pointer and does
  * not need memory allocation.  We also want to avoid allocating memory for
- * the keys of the hash table entries, as we already have those decompositions
+ * the key of the hash table entries, as we already have those decompositions
  * in the memory in the unistr_decomp array.  We cannot use direct pointers
- * though as when growing the GArray may resize and move to a new memory
+ * though as when growing, the GArray may resize and move to a new memory
  * buffer, rendering all our pointers invalid.  For this reason, we keep the
  * index into the array as our hash table key.  When we want to perform a
  * lookup in the hash table, we insert the decomposition that we are searching
  * for as item zero in the unistr_decomp table, then lookup for an equal entry
  * of it in the hash table.  Finally, if the hash lookup fails, we add the new
- * decomposition to the lookup array and the hash table and return the newly
+ * decomposition to the lookup array and the hash table, and return the newly
  * encoded vteunistr value.
  */
 
