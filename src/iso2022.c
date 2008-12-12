@@ -320,7 +320,7 @@ _vte_iso2022_ambiguous_width_guess(void)
 static int
 _vte_iso2022_ambiguous_width(struct _vte_iso2022_state *state)
 {
-	const char *wide_codelist[] = {
+	const char wide_codelist[][10] = {
 		"big5",
 		"big5hkscs",
 		"euccn",
