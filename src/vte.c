@@ -5273,8 +5273,7 @@ vte_same_class(VteTerminal *terminal, glong acol, glong arow,
 		if (pcell == NULL || pcell->c == 0) {
 			return FALSE;
 		}
-		if (word_char != vte_terminal_is_word_char(terminal,
-							   _vte_unistr_get_base (pcell->c))) {
+		if (word_char != vte_terminal_is_word_char(terminal, _vte_unistr_get_base (pcell->c))) {
 			return FALSE;
 		}
 		return TRUE;
@@ -10067,6 +10066,9 @@ vte_terminal_draw_cells_with_attributes(VteTerminal *terminal,
 	struct vte_charcell *cells;
 	char scratch_buf[VTE_UTF8_BPC];
 	int fore, back;
+
+	/* Note: since this function is only called with the pre-edit text,
+	 * all the items contain gunichar only, not vteunistr. */
 
 	for (i = 0, cell_count = 0; i < n; i++) {
 		cell_count += g_unichar_to_utf8(items[i].c, scratch_buf);

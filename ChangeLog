@@ -1,5 +1,9 @@
 2008-12-12  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vteunistr.h:
+
+2008-12-12  Behdad Esfahbod  <behdad@gnome.org>
+
 	* src/iso2022.c (_vte_iso2022_ambiguous_width): Avoid pointers in the
 	const array.
 

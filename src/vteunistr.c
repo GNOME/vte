@@ -95,6 +95,7 @@ _vte_unistr_append_unichar (vteunistr s, gunichar c)
 	return ret;
 }
 
+/* Unused
 int
 _vte_unistr_strlen (vteunistr s)
 {
@@ -108,6 +109,7 @@ _vte_unistr_strlen (vteunistr s)
 	}
 	return len;
 }
+*/
 
 gunichar
 _vte_unistr_get_base (vteunistr s)

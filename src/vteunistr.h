@@ -28,13 +28,13 @@ G_BEGIN_DECLS
 
 typedef guint32 vteunistr;
 
-#define vte_unistr_from_unichar(c) ((vteunistr) c)
-
 vteunistr
 _vte_unistr_append_unichar (vteunistr s, gunichar c);
 
+/* Unused
 int
 _vte_unistr_strlen (vteunistr s);
+*/
 
 gunichar
 _vte_unistr_get_base (vteunistr s);
