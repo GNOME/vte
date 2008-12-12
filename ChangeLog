@@ -1,6 +1,6 @@
 2008-12-12  Behdad Esfahbod  <behdad@gnome.org>
 
-	* src/vteunistr.h:
+	* src/vteunistr.h: Minor cleanup.
 
 2008-12-12  Behdad Esfahbod  <behdad@gnome.org>
 
