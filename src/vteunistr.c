@@ -49,9 +49,9 @@
  * form it.  That's what VteUnistrDecomp is.  That is the decomposition.
  *
  * We start giving new vteunistr's unique numbers starting at
- * VTE_UNISTR_START+1 and going up.  We keep the decompositions in a GArray,
+ * %VTE_UNISTR_START+1 and going up.  We keep the decompositions in a GArray,
  * called unistr_decomp.  The first entry of the array is unused (that's why
- * we start from VTE_UNISTR_START *plus one*).  The decomposition table provides
+ * we start from %VTE_UNISTR_START plus one).  The decomposition table provides
  * enough information to efficiently answer questions like "what's the first
  * gunichar in this vteunistr?", "what's the sequence of gunichar's in this
  * vteunistr?", and "how many gunichar's are there in this vteunistr?".
