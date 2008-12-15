@@ -224,4 +224,15 @@ vte_regex_match
 VteReaperClass
 VteTerminalClass
 
+VTE_IS_REAPER
+VTE_IS_REAPER_CLASS
+VTE_REAPER
+VTE_REAPER_CLASS
+VTE_REAPER_GET_CLASS
+VTE_TYPE_REAPER
+VteReaper
+vte_reaper_add_child
+vte_reaper_get
+vte_reaper_get_type
+
 </SECTION>
