@@ -1,3 +1,18 @@
+0.19.4
+======
+- Support for correct rendering of combining characters
+- Fix background rendering.
+- Misc bug fixes.
+- Bugs fixed in this release:
+	Bug 564535 – check for gperf in autogen.sh
+	Bug 149631 – gnome-terminal doesn't combine combining chars in utf8
+	Bug 564057 – src/pty.c does not compile with
+		--disable-gnome-pty-helper
+	Bug 562695 - ship pkg-config file for python bindings
+	Bug 563752 – pangocairo backend recreates cairo_surface_t for
+		background drawing
+	Bug 163213 – Cursor should remain visible when selected
+
 0.19.3
 ======
 - Really fix the rendering bug.
