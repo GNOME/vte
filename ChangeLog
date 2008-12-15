@@ -1,3 +1,9 @@
+2008-12-14  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 564535 – check for gperf on build
+
+	* autogen.sh: Check for gperf.
+
 2008-12-12  Behdad Esfahbod  <behdad@gnome.org>
 
 	* doc/reference/Makefile.am:

@@ -14,6 +14,13 @@ PKG_NAME="vte"
     exit 1
 }
 
+echo "checking for GNU gperf"
+which gperf || {
+    echo "You need to install GNU gperf"
+    exit 1
+}
+
+echo "checking for gnome-autogen.sh"
 which gnome-autogen.sh || {
     echo "You need to install gnome-common from the GNOME SVN"
     exit 1
