@@ -1,3 +1,11 @@
+2008-12-17  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 149631 – gnome-terminal doesn't combine combining chars in utf8
+
+	* src/vteunistr.c:
+	Limit to 9 combining marks per unistr, and a total of 100,000 unistrs.
+	All to prevent OOM.
+
 2008-12-15  Behdad Esfahbod  <behdad@gnome.org>
 
 	* NEWS:

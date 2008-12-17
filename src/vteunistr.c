@@ -77,6 +77,8 @@
 
 #define VTE_UNISTR_START 0x80000000
 
+static int _vte_unistr_strlen (vteunistr s);
+
 static vteunistr unistr_next = VTE_UNISTR_START + 1;
 
 struct VteUnistrDecomp {
@@ -125,6 +127,10 @@ _vte_unistr_append_unichar (vteunistr s, gunichar c)
 	}
 
 	if (G_UNLIKELY (!ret)) {
+		/* sanity check to avoid OOM */
+		if (G_UNLIKELY (_vte_unistr_strlen (s) > 10 || unistr_next - VTE_UNISTR_START > 100000))
+			return s;
+
 		ret = unistr_next++;
 		g_array_append_val (unistr_decomp, decomp);
 		g_hash_table_insert (unistr_comp,
@@ -157,8 +163,7 @@ _vte_unistr_append_to_string (vteunistr s, GString *gs)
 	g_string_append_unichar (gs, (gunichar) s);
 }
 
-#if 0 /* unused */
-int
+static int
 _vte_unistr_strlen (vteunistr s)
 {
 	int len = 1;
@@ -169,4 +174,3 @@ _vte_unistr_strlen (vteunistr s)
 	}
 	return len;
 }
-#endif
