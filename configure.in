@@ -303,7 +303,7 @@ case "$vte_cv_termcap_lib" in
               ;;
   libncurses) # We need ncurses.h and term.h, or ncurses/curses.h and ncurses/term.h
               AC_CHECK_HEADERS([ncurses.h term.h],[],
-                [AC_CHECK_HEADERS([ncuses/curses.h ncurses/term.h],[],
+                [AC_CHECK_HEADERS([ncurses/curses.h ncurses/term.h],[],
                   [AC_MSG_ERROR([ncurses headers not found])])])
               LIBS="-lncurses $LIBS"
               ;;
