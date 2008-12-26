@@ -462,7 +462,7 @@ open_ptys (int utmp, int wtmp, int lastlog)
 	struct group *group_info;
 	struct termios term;
 
-	term_name = (char *) alloca (path_max () + 1);
+	term_name = (char *) malloc (path_max () + 1);
 
 	if (term_name == NULL) {
 		exit (1);
@@ -501,6 +501,7 @@ open_ptys (int utmp, int wtmp, int lastlog)
 	if (status == -1) {
 		result = 0;
 		n_write (STDIN_FILENO, &result, sizeof (result));
+		free (term_name);
 		return 0;
 	}
 
@@ -520,6 +521,7 @@ open_ptys (int utmp, int wtmp, int lastlog)
 	    n_write (STDIN_FILENO, &p, sizeof (p)) != sizeof (p) ||
 	    pass_fd (STDOUT_FILENO, master_pty)  == -1 ||
 	    pass_fd (STDOUT_FILENO, slave_pty)   == -1) {
+		free (term_name);
 		exit (0);
 	}
 
@@ -530,6 +532,7 @@ open_ptys (int utmp, int wtmp, int lastlog)
 
 	close (master_pty);
 	close (slave_pty);
+	free (term_name);
 
 	return 1;
 }
