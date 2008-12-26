@@ -125,11 +125,11 @@ offset_from_xy (VteTerminalAccessiblePrivate *priv,
 	gint linebreak;
 	gint next_linebreak;
 
-	if (y >= priv->snapshot_linebreaks->len)
+	if (y >= (gint) priv->snapshot_linebreaks->len)
 		y = priv->snapshot_linebreaks->len -1;
 
 	linebreak = g_array_index (priv->snapshot_linebreaks, int, y);
-	if (y +1 == priv->snapshot_linebreaks->len)
+	if (y + 1 == (gint) priv->snapshot_linebreaks->len)
 		next_linebreak = priv->snapshot_characters->len;
 	else
 		next_linebreak = g_array_index (priv->snapshot_linebreaks, int, y + 1);
@@ -871,7 +871,7 @@ vte_terminal_accessible_finalize(GObject *object)
 
 	if (accessible->widget != NULL) {
 		g_object_remove_weak_pointer(G_OBJECT(accessible->widget),
-					     (gpointer*) &accessible->widget);
+					     (gpointer*)(gpointer)&accessible->widget);
 		g_signal_handlers_disconnect_matched(accessible->widget,
 						     G_SIGNAL_MATCH_FUNC |
 						     G_SIGNAL_MATCH_DATA,
@@ -958,13 +958,13 @@ vte_terminal_accessible_get_text(AtkText *text,
 
 	/* If the requested area is after all of the text, just return an
 	 * empty string. */
-	if (start_offset >= priv->snapshot_characters->len) {
+	if (start_offset >= (int) priv->snapshot_characters->len) {
 		return g_strdup("");
 	}
 
 	/* Map the offsets to, er, offsets. */
 	start = g_array_index(priv->snapshot_characters, int, start_offset);
-	if ((end_offset == -1) || (end_offset >= priv->snapshot_characters->len) ) {
+	if ((end_offset == -1) || (end_offset >= (int) priv->snapshot_characters->len) ) {
 		/* Get everything up to the end of the buffer. */
 		end = priv->snapshot_text->len;
 	} else {
@@ -1019,7 +1019,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			offset, priv->snapshot_attributes->len);
 	g_assert(priv->snapshot_text != NULL);
 	g_assert(priv->snapshot_characters != NULL);
-	if (offset == priv->snapshot_characters->len) {
+	if (offset == (int) priv->snapshot_characters->len) {
 		return g_strdup("");
 	}
 	g_assert(offset < priv->snapshot_characters->len);
@@ -1031,7 +1031,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			 * position, the one before it, or the one after it. */
 			offset += direction;
 			start = MAX(offset, 0);
-			end = MIN(offset + 1, priv->snapshot_attributes->len);
+			end = MIN(offset + 1, (int) priv->snapshot_attributes->len);
 			break;
 		case ATK_TEXT_BOUNDARY_WORD_START:
 			/* Back up to the previous non-word-word transition. */
@@ -1072,7 +1072,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			 * non-word character, then the next word character
 			 * after that. */
 			if (direction == direction_next) {
-				while (offset < priv->snapshot_characters->len) {
+				while (offset < (int) priv->snapshot_characters->len) {
 					next = vte_terminal_accessible_get_character_at_offset(text, offset);
 					if (vte_terminal_is_word_char(terminal, next)) {
 						offset++;
@@ -1080,7 +1080,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 						break;
 					}
 				}
-				while (offset < priv->snapshot_characters->len) {
+				while (offset < (int) priv->snapshot_characters->len) {
 					next = vte_terminal_accessible_get_character_at_offset(text, offset);
 					if (!vte_terminal_is_word_char(terminal, next)) {
 						offset++;
@@ -1091,7 +1091,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 				start = offset;
 			}
 			/* Now find the end of this word. */
-			while (offset < priv->snapshot_characters->len) {
+			while (offset < (int) priv->snapshot_characters->len) {
 				current = vte_terminal_accessible_get_character_at_offset(text, offset);
 				if (vte_terminal_is_word_char(terminal, current)) {
 					offset++;
@@ -1101,7 +1101,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 
 			}
 			/* Now find the next non-word-word transition */
-			while (offset < priv->snapshot_characters->len) {
+			while (offset < (int) priv->snapshot_characters->len) {
 				next = vte_terminal_accessible_get_character_at_offset(text, offset);
 				if (!vte_terminal_is_word_char(terminal, next)) {
 					offset++;
@@ -1156,7 +1156,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			 * word character, then the next non-word character
 			 * after that. */
 			if (direction == direction_next) {
-				while (offset < priv->snapshot_characters->len) {
+				while (offset < (int) priv->snapshot_characters->len) {
 					current = vte_terminal_accessible_get_character_at_offset(text, offset);
 					if (!vte_terminal_is_word_char(terminal, current)) {
 						offset++;
@@ -1164,7 +1164,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 						break;
 					}
 				}
-				while (offset < priv->snapshot_characters->len) {
+				while (offset < (int) priv->snapshot_characters->len) {
 					current = vte_terminal_accessible_get_character_at_offset(text, offset);
 					if (vte_terminal_is_word_char(terminal, current)) {
 						offset++;
@@ -1175,7 +1175,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 				start = offset;
 			}
 			/* Now find the next word end. */
-			while (offset < priv->snapshot_characters->len) {
+			while (offset < (int) priv->snapshot_characters->len) {
 				current = vte_terminal_accessible_get_character_at_offset(text, offset);
 				if (!vte_terminal_is_word_char(terminal, current)) {
 					offset++;
@@ -1183,7 +1183,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 					break;
 				}
 			}
-			while (offset < priv->snapshot_characters->len) {
+			while (offset < (int) priv->snapshot_characters->len) {
 				current = vte_terminal_accessible_get_character_at_offset(text, offset);
 				if (vte_terminal_is_word_char(terminal, current)) {
 					offset++;

@@ -706,7 +706,7 @@ _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
 	VteRowData *row_data;
 	int columns;
 
-	if (!GTK_WIDGET_DRAWABLE(terminal) || terminal->pvt->invalidated_all) {
+	if (G_UNLIKELY (!GTK_WIDGET_DRAWABLE(terminal) || terminal->pvt->invalidated_all)) {
 		return;
 	}
 
@@ -3131,11 +3131,11 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 		row_num = screen->cursor_current.row;
 		row = NULL;
-		if (col == 0) {
+		if (G_UNLIKELY (col == 0)) {
 			/* We are at first column.  See if the previous line softwrapped.
 			 * If it did, move there.  Otherwise skip inserting. */
 
-			if (row_num > 0) {
+			if (G_LIKELY (row_num > 0)) {
 				row_num--;
 				row = _vte_terminal_find_row_data (terminal, row_num);
 

@@ -343,16 +343,16 @@ vte_bg_cache_item_free(struct VteBgCacheItem *item)
 	/* Clean up whatever is left in the structure. */
 	if (item->source_pixbuf != NULL) {
 		g_object_remove_weak_pointer(G_OBJECT(item->source_pixbuf),
-				(gpointer*)&item->source_pixbuf);
+				(gpointer*)(void*)&item->source_pixbuf);
 	}
 	g_free(item->source_file);
 	if (item->pixmap != NULL) {
 		g_object_remove_weak_pointer(G_OBJECT(item->pixmap),
-				(gpointer*)&item->pixmap);
+				(gpointer*)(void*)&item->pixmap);
 	}
 	if (item->pixbuf != NULL) {
 		g_object_remove_weak_pointer(G_OBJECT(item->pixbuf),
-				(gpointer*)&item->pixbuf);
+				(gpointer*)(void*)&item->pixbuf);
 	}
 
 	g_slice_free(struct VteBgCacheItem, item);
@@ -441,15 +441,15 @@ vte_bg_cache_add(VteBg *bg, struct VteBgCacheItem *item)
 	bg->pvt->cache = g_list_prepend(bg->pvt->cache, item);
 	if (item->source_pixbuf != NULL) {
 		g_object_add_weak_pointer(G_OBJECT(item->source_pixbuf),
-					  (gpointer*)&item->source_pixbuf);
+					  (gpointer*)(void*)&item->source_pixbuf);
 	}
 	if (item->pixbuf != NULL) {
 		g_object_add_weak_pointer(G_OBJECT(item->pixbuf),
-					  (gpointer*)&item->pixbuf);
+					  (gpointer*)(void*)&item->pixbuf);
 	}
 	if (item->pixmap != NULL) {
 		g_object_add_weak_pointer(G_OBJECT(item->pixmap),
-					  (gpointer*)&item->pixmap);
+					  (gpointer*)(void*)&item->pixmap);
 	}
 }
 

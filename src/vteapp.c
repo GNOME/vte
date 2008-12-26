@@ -446,7 +446,7 @@ main(int argc, char **argv)
 {
 	GdkScreen *screen;
 	GdkColormap *colormap;
-	GtkWidget *window, *widget,*hbox, *scrollbar, *scrolled_window;
+	GtkWidget *window, *widget,*hbox = NULL, *scrollbar, *scrolled_window = NULL;
 	VteTerminal *terminal;
 	char *env_add[] = {
 #ifdef VTE_DEBUG
@@ -789,13 +789,17 @@ main(int argc, char **argv)
 					       antialias ? VTE_ANTI_ALIAS_USE_DEFAULT : VTE_ANTI_ALIAS_FORCE_DISABLE);
 
 	/* Match "abcdefg". */
-	vte_terminal_match_add(terminal, "abcdefg");
 	if (dingus) {
 		int id;
-		id = vte_terminal_match_add(terminal, DINGUS1);
+		GRegex *regex;
+		regex = g_regex_new (DINGUS1, 0, 0, NULL);
+		id = vte_terminal_match_add_gregex(terminal, regex, 0);
+		g_regex_unref (regex);
 		vte_terminal_match_set_cursor_type(terminal,
 						   id, GDK_GUMBY);
-		id = vte_terminal_match_add(terminal, DINGUS2);
+		regex = g_regex_new (DINGUS2, 0, 0, NULL);
+		id = vte_terminal_match_add_gregex(terminal, regex, 0);
+		g_regex_unref (regex);
 		vte_terminal_match_set_cursor_type(terminal,
 						   id, GDK_HAND1);
 	}

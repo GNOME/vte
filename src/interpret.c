@@ -42,8 +42,9 @@ main(int argc, char **argv)
 	struct _vte_termcap *termcap = NULL;
 	struct _vte_buffer *buffer = NULL;
 	GArray *array;
-	int i, j, l;
-	char c;
+	unsigned int i, j;
+	int l;
+	char b;
 	GValue *value;
 	FILE *infile = NULL;
 	struct _vte_iso2022_state *subst;
@@ -83,8 +84,8 @@ main(int argc, char **argv)
 
 	subst = _vte_iso2022_state_new(NULL, NULL, NULL);
 
-	while (fread(&c, 1, 1, infile) == 1) {
-		_vte_buffer_append(buffer, &c, 1);
+	while (fread(&b, 1, 1, infile) == 1) {
+		_vte_buffer_append(buffer, &b, 1);
 	}
 	_vte_iso2022_process(subst, buffer->bytes,
 			_vte_buffer_length(buffer), array);

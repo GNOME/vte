@@ -1,5 +1,20 @@
 2008-12-25  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/interpret.c (main):
+	* src/slowcat.c (catfile):
+	* src/table.c (_vte_table_addi), (_vte_table_add):
+	* src/trie.c (_vte_trie_matchx):
+	* src/vte.c (_vte_invalidate_cell), (_vte_terminal_insert_char):
+	* src/vteaccess.c (offset_from_xy),
+	(vte_terminal_accessible_finalize),
+	(vte_terminal_accessible_get_text),
+	(vte_terminal_accessible_get_text_somewhere):
+	* src/vteapp.c (main):
+	* src/vtebg.c (vte_bg_cache_item_free), (vte_bg_cache_add):
+	Fix warnings.
+
+2008-12-25  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 565663 – compile failure because use static function in another .h
 	file
 

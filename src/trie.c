@@ -573,7 +573,7 @@ _vte_trie_matchx(struct _vte_trie *trie, const gunichar *pattern, gsize length,
 				/* Move past characters which might match this
 				 * part of the string... */
 				while (cclass->multiple &&
-				       ((prospect - pattern) < length) &&
+				       ((gsize)(prospect - pattern) < length) &&
 				       cclass->check(prospect[0], data)) {
 					prospect++;
 				}

@@ -201,7 +201,7 @@ _vte_table_addi(struct _vte_table *table,
 	struct _vte_table *subtable;
 
 	if (original_length == -1) {
-		original_length = strlen(original);
+		original_length = strlen((char *) original);
 	}
 	if (length == -1) {
 		length = strlen(pattern);
@@ -269,9 +269,9 @@ _vte_table_addi(struct _vte_table *table,
 				b = g_byte_array_new();
 				g_byte_array_set_size(b, 0);
 				g_byte_array_append(b, original, initial);
-				g_byte_array_append(b, pattern + 2, length - 2);
+				g_byte_array_append(b, (const guint8*)pattern + 2, length - 2);
 				_vte_table_addi(table, b->data, b->len,
-						b->data + initial,
+						(const char *)b->data + initial,
 						b->len - initial,
 						result, quark, inc);
 				g_byte_array_free(b, TRUE);
@@ -401,7 +401,8 @@ _vte_table_add(struct _vte_table *table,
 	       const char *pattern, gssize length,
 	       const char *result, GQuark quark)
 {
-	_vte_table_addi(table, pattern, length,
+	_vte_table_addi(table,
+			(const unsigned char *) pattern, length,
 			pattern, length,
 			result, quark, 0);
 }
