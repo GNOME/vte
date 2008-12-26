@@ -3204,7 +3204,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 	/* Convert any wide characters we may have broken into single
 	 * cells. (#514632) */
-	if (col > 0) {
+	if (G_LIKELY (col > 0)) {
 		glong col2 = col - 1;
 		struct vte_charcell *cell = _vte_row_data_find_charcell(row, col2);
 		while (cell != NULL && cell->attr.fragment && col2 > 0) {
