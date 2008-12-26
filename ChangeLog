@@ -1,3 +1,7 @@
+2008-12-26  Christian Persch  <chpe@gnome.org>
+
+	* configure.in: Fix the same typo also in the libinfo check.
+
 2008-12-26  Halton Huo  <halton.huo@sun.com>
 
 	Bug 565675 – typo in configure.in cause ncurses checking fail
