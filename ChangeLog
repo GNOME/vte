@@ -1,3 +1,10 @@
+2008-12-25  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 565663 – compile failure because use static function in another .h
+	file
+
+	* src/vte.c: Don't mark extern function inline.
+
 2008-12-17  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 149631 – gnome-terminal doesn't combine combining chars in utf8

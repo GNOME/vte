@@ -2933,7 +2933,7 @@ vte_terminal_set_default_colors(VteTerminal *terminal)
 
 
 /* Cleanup smart-tabs.  See vte_sequence_handler_ta() */
-inline void
+void
 _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
 {
 	VteRowData *row = _vte_terminal_ensure_row (terminal);
