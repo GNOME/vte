@@ -1,3 +1,13 @@
+2009-01-06  Saleem Abdulrasool <compnerd@compnerd.org>
+
+	* src/vteseq-n.gperf:
+	* src/vteseq.c (vte_ucs4_to_utf8), (vte_parse_color),
+	(vte_terminal_emit_deiconify_window), (vte_sequence_handler_change_color),
+	(vte_sequence_handler_change_cursor_color):
+
+	Bug #524170 - Pull out ucs4_to_utf8 and use in new functions.  Add support
+	for OSC 4 (initc) and OSC 12 (change cursor color).
+
 2009-01-06  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 566730 – vte_terminal_set_color_cursor() calls invalidate_all but

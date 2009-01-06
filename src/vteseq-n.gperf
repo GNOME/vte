@@ -41,7 +41,7 @@ struct vteseq_n_struct {
 #"memory-lock", VTE_SEQUENCE_HANDLER_NULL
 "save-cursor", VTE_SEQUENCE_HANDLER(vte_sequence_handler_sc)
 "scroll-down", VTE_SEQUENCE_HANDLER(vte_sequence_handler_scroll_down)
-#"change-color", VTE_SEQUENCE_HANDLER_NULL
+"change-color", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_color)
 "delete-lines", VTE_SEQUENCE_HANDLER(vte_sequence_handler_delete_lines)
 #"double-width", VTE_SEQUENCE_HANDLER_NULL
 "insert-lines", VTE_SEQUENCE_HANDLER(vte_sequence_handler_insert_lines)
@@ -77,7 +77,7 @@ struct vteseq_n_struct {
 #"end-of-guarded-area", VTE_SEQUENCE_HANDLER_NULL
 "utf-8-character-set", VTE_SEQUENCE_HANDLER(vte_sequence_handler_utf_8_charset)
 "window-manipulation", VTE_SEQUENCE_HANDLER(vte_sequence_handler_window_manipulation)
-#"change-cursor-colors", VTE_SEQUENCE_HANDLER_NULL
+"change-cursor-colors", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_cursor_color)
 "character-attributes", VTE_SEQUENCE_HANDLER(vte_sequence_handler_character_attributes)
 "device-status-report", VTE_SEQUENCE_HANDLER(vte_sequence_handler_device_status_report)
 "set-scrolling-region", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_scrolling_region)

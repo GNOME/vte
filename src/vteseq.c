@@ -30,6 +30,8 @@
 #include "vte-private.h"
 #include "vtetc.h"
 
+#define BEL "\007"
+
 
 
 /* FUNCTIONS WE USE */
@@ -163,6 +165,70 @@ vte_unichar_strlen(gunichar *c)
 	int i;
 	for (i = 0; c[i] != 0; i++) ;
 	return i;
+}
+
+/* Convert a wide character string to a multibyte string */
+static gchar *
+vte_ucs4_to_utf8 (VteTerminal *terminal, const guchar *in)
+{
+	gchar *out = NULL;
+	guchar *buf = NULL, *bufptr = NULL;
+	gsize inlen, outlen;
+	VteConv conv;
+
+	conv = _vte_conv_open ("UTF-8", VTE_CONV_GUNICHAR_TYPE);
+
+	if (conv != VTE_INVALID_CONV) {
+		inlen = vte_unichar_strlen ((gunichar *) in) * sizeof (gunichar);
+		outlen = (inlen * VTE_UTF8_BPC) + 1;
+
+		_vte_buffer_set_minimum_size (terminal->pvt->conv_buffer, outlen);
+		buf = bufptr = terminal->pvt->conv_buffer->bytes;
+
+		if (_vte_conv (conv, &in, &inlen, &buf, &outlen) == (size_t) -1) {
+			_vte_debug_print (VTE_DEBUG_IO,
+					  "Error converting %ld string bytes (%s), skipping.\n",
+					  (long) _vte_buffer_length (terminal->pvt->outgoing),
+					  g_strerror (errno));
+			bufptr = NULL;
+		} else {
+			out = g_strndup ((gchar *) bufptr, buf - bufptr);
+		}
+	}
+
+	_vte_conv_close (conv);
+
+	return out;
+}
+
+static gboolean
+vte_parse_color (const char *spec, GdkColor *color)
+{
+	gchar *spec_copy = (gchar *) spec;
+	gboolean retval = FALSE;
+
+	/* gdk_color_parse doesnt handle all XParseColor formats.  It only
+	 * supports the #RRRGGGBBB format, not the rgb:RRR/GGG/BBB format.
+	 * See: man XParseColor */
+
+	if (g_ascii_strncasecmp (spec_copy, "rgb:", 4) == 0) {
+		spec_copy = g_strdup (spec);
+		gchar *cur = spec_copy;
+		gchar *ptr = spec_copy + 3;
+
+		*cur++ = '#';
+		while (*ptr++)
+			if (*ptr != '/')
+				*cur++ = *ptr;
+		*cur++ = '\0';
+	}
+
+	retval = gdk_color_parse (spec_copy, color);
+
+	if (spec_copy != spec)
+		g_free (spec_copy);
+
+	return retval;
 }
 
 
@@ -451,11 +517,7 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 					gboolean window_title)
 {
 	GValue *value;
-	VteConv conv;
-	const guchar *inbuf = NULL;
-	guchar *outbuf = NULL, *outbufptr = NULL;
 	char *title = NULL;
-	gsize inbuf_len, outbuf_len;
 
 	if (icon_title == FALSE && window_title == FALSE)
 		return;
@@ -472,33 +534,7 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 			title = g_value_dup_string(value);
 		} else
 		if (G_VALUE_HOLDS_POINTER(value)) {
-			/* Convert the unicode-character string into a
-			 * multibyte string. */
-			conv = _vte_conv_open("UTF-8", VTE_CONV_GUNICHAR_TYPE);
-			inbuf = g_value_get_pointer(value);
-			inbuf_len = vte_unichar_strlen((gunichar*)inbuf) *
-				    sizeof(gunichar);
-			outbuf_len = (inbuf_len * VTE_UTF8_BPC) + 1;
-			_vte_buffer_set_minimum_size(terminal->pvt->conv_buffer,
-						     outbuf_len);
-			outbuf = outbufptr = terminal->pvt->conv_buffer->bytes;
-			if (conv != VTE_INVALID_CONV) {
-				if (_vte_conv(conv, &inbuf, &inbuf_len,
-					      &outbuf, &outbuf_len) == (size_t)-1) {
-					_vte_debug_print(VTE_DEBUG_IO,
-							"Error "
-							"converting %ld title "
-							"bytes (%s), "
-							"skipping.\n",
-							(long) _vte_buffer_length(terminal->pvt->outgoing),
-							g_strerror(errno));
-					outbufptr = NULL;
-				} else {
-					title = g_strndup((gchar *)outbufptr,
-							  outbuf - outbufptr);
-				}
-				_vte_conv_close(conv);
-			}
+			title = vte_ucs4_to_utf8 (terminal, g_value_get_pointer (value));
 		}
 		if (title != NULL) {
 			char *p, *validated;
@@ -1895,6 +1931,63 @@ vte_sequence_handler_scroll_down (VteTerminal *terminal, GValueArray *params)
 	_vte_terminal_scroll_text (terminal, val);
 }
 
+/* change color in the palette */
+static void
+vte_sequence_handler_change_color (VteTerminal *terminal, GValueArray *params)
+{
+	gchar **pairs, *str = NULL;
+	GValue *value;
+	GdkColor color;
+	guint idx, i, len;
+
+	if (params != NULL && params->n_values > 0) {
+		value = g_value_array_get_nth (params, 0);
+
+		if (G_VALUE_HOLDS_STRING (value))
+			str = g_value_dup_string (value);
+		else if (G_VALUE_HOLDS_POINTER (value))
+			str = vte_ucs4_to_utf8 (terminal, g_value_get_pointer (value));
+
+		if (! str)
+			return;
+
+		pairs = g_strsplit (str, ";", 0);
+		if (! pairs) {
+			g_free (str);
+			return;
+		}
+
+		for (i = 0; pairs[i] && pairs[i + 1]; i += 2) {
+			idx = strtoul (pairs[i], (char **) NULL, 10);
+
+			if (idx >= VTE_DEF_FG)
+				continue;
+
+			if (vte_parse_color (pairs[i + 1], &color)) {
+				terminal->pvt->palette[idx].red = color.red;
+				terminal->pvt->palette[idx].green = color.green;
+				terminal->pvt->palette[idx].blue = color.blue;
+			} else if (strcmp (pairs[i + 1], "?") == 0) {
+				gchar *buffer;
+
+				buffer = g_strdup_printf (_VTE_CAP_OSC "4;%u;rgb:%04x/%04x/%04x" BEL, idx,
+							  terminal->pvt->palette[idx].red,
+							  terminal->pvt->palette[idx].green,
+							  terminal->pvt->palette[idx].blue);
+				vte_terminal_feed_child (terminal, buffer, strlen (buffer));
+				g_free (buffer);
+			}
+		}
+
+		g_free (str);
+		g_strfreev (pairs);
+
+		/* emit the refresh as the palette has changed and previous
+		 * renders need to be updated. */
+		vte_terminal_emit_refresh_window (terminal);
+	}
+}
+
 /* Scroll the text up, but don't move the cursor. */
 static void
 vte_sequence_handler_scroll_up (VteTerminal *terminal, GValueArray *params)
@@ -3285,6 +3378,43 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 			}
 			break;
 		}
+	}
+}
+
+/* Change the color of the cursor */
+static void
+vte_sequence_handler_change_cursor_color (VteTerminal *terminal, GValueArray *params)
+{
+	gchar *name = NULL;
+	GValue *value;
+	GdkColor color;
+	guint len;
+
+	if (params != NULL && params->n_values > 0) {
+		value = g_value_array_get_nth (params, 0);
+
+		if (G_VALUE_HOLDS_STRING (value))
+			name = g_value_dup_string (value);
+		else if (G_VALUE_HOLDS_POINTER (value))
+			name = vte_ucs4_to_utf8 (terminal, g_value_get_pointer (value));
+
+		if (! name)
+			return;
+
+		if (vte_parse_color (name, &color))
+			vte_terminal_set_color_cursor (terminal, &color);
+		else if (strcmp (name, "?") == 0) {
+			gchar *buffer;
+
+			buffer = g_strdup_printf (_VTE_CAP_OSC "12;rgb:%04x/%04x/%04x" BEL,
+						  terminal->pvt->palette[VTE_CUR_BG].red,
+						  terminal->pvt->palette[VTE_CUR_BG].green,
+						  terminal->pvt->palette[VTE_CUR_BG].blue);
+			vte_terminal_feed_child (terminal, buf, len);
+			g_free (buffer);
+		}
+
+		g_free (name);
 	}
 }
 
