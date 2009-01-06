@@ -1,5 +1,25 @@
 2009-01-06  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vteseq.c (vte_parse_color),
+	(vte_sequence_handler_change_color),
+	(vte_sequence_handler_request_terminal_parameters),
+	(vte_sequence_handler_send_primary_device_attributes),
+	(vte_sequence_handler_send_secondary_device_attributes),
+	(vte_sequence_handler_device_status_report),
+	(vte_sequence_handler_dec_device_status_report),
+	(vte_sequence_handler_window_manipulation),
+	(vte_sequence_handler_change_cursor_color):
+	Convert some g_strdup_printf() uses to g_snprintf() when
+	the buffer was fixed-size and freed immediately.
+	Also fix g_snprintf usage by not using its return value.
+	*If* the buffer is short, the returned len is not what we
+	are interested in.
+	Finally, pass -1 as len to vte_terminal_feed_child() in
+	most places.  This means a bit more work for the processor,
+	but cleaner code.
+
+2009-01-06  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 566795 – VTE fails to build in trunk
 
 	* src/vteseq.c (vte_sequence_handler_change_cursor_color):

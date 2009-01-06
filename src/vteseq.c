@@ -212,9 +212,11 @@ vte_parse_color (const char *spec, GdkColor *color)
 	 * See: man XParseColor */
 
 	if (g_ascii_strncasecmp (spec_copy, "rgb:", 4) == 0) {
+		gchar *cur, *ptr;
+
 		spec_copy = g_strdup (spec);
-		gchar *cur = spec_copy;
-		gchar *ptr = spec_copy + 3;
+		cur = spec_copy;
+		ptr = spec_copy + 3;
 
 		*cur++ = '#';
 		while (*ptr++)
@@ -1938,7 +1940,7 @@ vte_sequence_handler_change_color (VteTerminal *terminal, GValueArray *params)
 	gchar **pairs, *str = NULL;
 	GValue *value;
 	GdkColor color;
-	guint idx, i, len;
+	guint idx, i;
 
 	if (params != NULL && params->n_values > 0) {
 		value = g_value_array_get_nth (params, 0);
@@ -1968,14 +1970,13 @@ vte_sequence_handler_change_color (VteTerminal *terminal, GValueArray *params)
 				terminal->pvt->palette[idx].green = color.green;
 				terminal->pvt->palette[idx].blue = color.blue;
 			} else if (strcmp (pairs[i + 1], "?") == 0) {
-				gchar *buffer;
-
-				buffer = g_strdup_printf (_VTE_CAP_OSC "4;%u;rgb:%04x/%04x/%04x" BEL, idx,
-							  terminal->pvt->palette[idx].red,
-							  terminal->pvt->palette[idx].green,
-							  terminal->pvt->palette[idx].blue);
-				vte_terminal_feed_child (terminal, buffer, strlen (buffer));
-				g_free (buffer);
+				gchar buf[128];
+				g_snprintf (buf, sizeof (buf),
+					    _VTE_CAP_OSC "4;%u;rgb:%04x/%04x/%04x" BEL, idx,
+					    terminal->pvt->palette[idx].red,
+					    terminal->pvt->palette[idx].green,
+					    terminal->pvt->palette[idx].blue);
+				vte_terminal_feed_child (terminal, buf, -1);
 			}
 		}
 
@@ -2589,7 +2590,7 @@ vte_sequence_handler_cursor_position (VteTerminal *terminal, GValueArray *params
 static void
 vte_sequence_handler_request_terminal_parameters (VteTerminal *terminal, GValueArray *params)
 {
-	vte_terminal_feed_child(terminal, "\e[?x", strlen("\e[?x"));
+	vte_terminal_feed_child(terminal, "\e[?x", -1);
 }
 
 /* Request terminal attributes. */
@@ -2604,7 +2605,7 @@ static void
 vte_sequence_handler_send_primary_device_attributes (VteTerminal *terminal, GValueArray *params)
 {
 	/* Claim to be a VT220 with only national character set support. */
-	vte_terminal_feed_child(terminal, "\e[?62;9;c", strlen("\e[?62;9;c"));
+	vte_terminal_feed_child(terminal, "\e[?62;9;c", -1);
 }
 
 /* Send terminal ID. */
@@ -2618,7 +2619,8 @@ vte_sequence_handler_return_terminal_id (VteTerminal *terminal, GValueArray *par
 static void
 vte_sequence_handler_send_secondary_device_attributes (VteTerminal *terminal, GValueArray *params)
 {
-	char **version, *ret;
+	char **version;
+	char buf[128];
 	long ver = 0, i;
 	/* Claim to be a VT220, more or less.  The '>' in the response appears
 	 * to be undocumented. */
@@ -2630,9 +2632,8 @@ vte_sequence_handler_send_secondary_device_attributes (VteTerminal *terminal, GV
 		}
 		g_strfreev(version);
 	}
-	ret = g_strdup_printf(_VTE_CAP_ESC "[>1;%ld;0c", ver);
-	vte_terminal_feed_child(terminal, ret, -1);
-	g_free(ret);
+	g_snprintf(buf, sizeof (buf), _VTE_CAP_ESC "[>1;%ld;0c", ver);
+	vte_terminal_feed_child(terminal, buf, -1);
 }
 
 /* Set one or the other. */
@@ -2991,8 +2992,7 @@ vte_sequence_handler_device_status_report (VteTerminal *terminal, GValueArray *p
 	GValue *value;
 	VteScreen *screen;
 	long param;
-	char buf[LINE_MAX];
-	gint len;
+	char buf[128];
 
 	screen = terminal->pvt->screen;
 
@@ -3003,18 +3003,16 @@ vte_sequence_handler_device_status_report (VteTerminal *terminal, GValueArray *p
 			switch (param) {
 			case 5:
 				/* Send a thumbs-up sequence. */
-				vte_terminal_feed_child(terminal,
-						_VTE_CAP_CSI "0n",
-						sizeof(_VTE_CAP_CSI "0n")-1);
+				vte_terminal_feed_child(terminal, _VTE_CAP_CSI "0n", -1);
 				break;
 			case 6:
 				/* Send the cursor position. */
-				len = g_snprintf(buf, sizeof(buf),
-					 _VTE_CAP_CSI "%ld;%ldR",
-					 screen->cursor_current.row + 1 -
-					 screen->insert_delta,
-					 screen->cursor_current.col + 1);
-				vte_terminal_feed_child(terminal, buf, len);
+				g_snprintf(buf, sizeof(buf),
+					   _VTE_CAP_CSI "%ld;%ldR",
+					   screen->cursor_current.row + 1 -
+					   screen->insert_delta,
+					   screen->cursor_current.col + 1);
+				vte_terminal_feed_child(terminal, buf, -1);
 				break;
 			default:
 				break;
@@ -3030,8 +3028,7 @@ vte_sequence_handler_dec_device_status_report (VteTerminal *terminal, GValueArra
 	GValue *value;
 	VteScreen *screen;
 	long param;
-	char buf[LINE_MAX];
-	gint len;
+	char buf[128];
 
 	screen = terminal->pvt->screen;
 
@@ -3042,33 +3039,27 @@ vte_sequence_handler_dec_device_status_report (VteTerminal *terminal, GValueArra
 			switch (param) {
 			case 6:
 				/* Send the cursor position. */
-				len = g_snprintf(buf, sizeof(buf),
-					 _VTE_CAP_CSI "?%ld;%ldR",
-					 screen->cursor_current.row + 1 -
-					 screen->insert_delta,
-					 screen->cursor_current.col + 1);
-				vte_terminal_feed_child(terminal, buf, len);
+				g_snprintf(buf, sizeof(buf),
+					   _VTE_CAP_CSI "?%ld;%ldR",
+					   screen->cursor_current.row + 1 -
+					   screen->insert_delta,
+					   screen->cursor_current.col + 1);
+				vte_terminal_feed_child(terminal, buf, -1);
 				break;
 			case 15:
 				/* Send printer status -- 10 = ready,
 				 * 11 = not ready.  We don't print. */
-				vte_terminal_feed_child(terminal,
-						_VTE_CAP_CSI "?11n",
-						sizeof(_VTE_CAP_CSI "?11n")-1);
+				vte_terminal_feed_child(terminal, _VTE_CAP_CSI "?11n", -1);
 				break;
 			case 25:
 				/* Send UDK status -- 20 = locked,
 				 * 21 = not locked.  I don't even know what
 				 * that means, but punt anyway. */
-				vte_terminal_feed_child(terminal,
-						_VTE_CAP_CSI "?20n",
-						sizeof(_VTE_CAP_CSI "?20n")-1);
+				vte_terminal_feed_child(terminal, _VTE_CAP_CSI "?20n", -1);
 				break;
 			case 26:
 				/* Send keyboard status.  50 = no locator. */
-				vte_terminal_feed_child(terminal,
-						_VTE_CAP_CSI "?50n",
-						sizeof(_VTE_CAP_CSI "?50n")-1);
+				vte_terminal_feed_child(terminal, _VTE_CAP_CSI "?50n", -1);
 				break;
 			default:
 				break;
@@ -3181,9 +3172,9 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 	VteScreen *screen;
 	GValue *value;
 	GtkWidget *widget;
-	char buf[LINE_MAX];
+	char buf[128];
 	long param, arg1, arg2;
-	gint width, height, len;
+	gint width, height;
 	guint i;
 
 	widget = &terminal->widget;
@@ -3290,50 +3281,50 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 			break;
 		case 11:
 			/* If we're unmapped, then we're iconified. */
-			len = g_snprintf(buf, sizeof(buf),
-				 _VTE_CAP_CSI "%dt",
-				 1 + !GTK_WIDGET_MAPPED(widget));
+			g_snprintf(buf, sizeof(buf),
+				   _VTE_CAP_CSI "%dt",
+				   1 + !GTK_WIDGET_MAPPED(widget));
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Reporting window state %s.\n",
 					GTK_WIDGET_MAPPED(widget) ?
 					"non-iconified" : "iconified");
-			vte_terminal_feed_child(terminal, buf, len);
+			vte_terminal_feed_child(terminal, buf, -1);
 			break;
 		case 13:
 			/* Send window location, in pixels. */
 			gdk_window_get_origin(widget->window,
 					      &width, &height);
-			len = g_snprintf(buf, sizeof(buf),
-				 _VTE_CAP_CSI "%d;%dt",
-				 width + VTE_PAD_WIDTH, height + VTE_PAD_WIDTH);
+			g_snprintf(buf, sizeof(buf),
+				   _VTE_CAP_CSI "%d;%dt",
+				   width + VTE_PAD_WIDTH, height + VTE_PAD_WIDTH);
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Reporting window location"
 					"(%d++,%d++).\n",
 					width, height);
-			vte_terminal_feed_child(terminal, buf, len);
+			vte_terminal_feed_child(terminal, buf, -1);
 			break;
 		case 14:
 			/* Send window size, in pixels. */
-			len = g_snprintf(buf, sizeof(buf),
-				 _VTE_CAP_CSI "%d;%dt",
-				 widget->allocation.height - 2 * VTE_PAD_WIDTH,
-				 widget->allocation.width - 2 * VTE_PAD_WIDTH);
+			g_snprintf(buf, sizeof(buf),
+				   _VTE_CAP_CSI "%d;%dt",
+				   widget->allocation.height - 2 * VTE_PAD_WIDTH,
+				   widget->allocation.width - 2 * VTE_PAD_WIDTH);
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Reporting window size "
 					"(%dx%dn",
 					width - 2 * VTE_PAD_WIDTH,
 					height - 2 * VTE_PAD_WIDTH);
-			vte_terminal_feed_child(terminal, buf, len);
+			vte_terminal_feed_child(terminal, buf, -1);
 			break;
 		case 18:
 			/* Send widget size, in cells. */
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Reporting widget size.\n");
-			len = g_snprintf(buf, sizeof(buf),
-				 _VTE_CAP_CSI "%ld;%ldt",
-				 terminal->row_count,
-				 terminal->column_count);
-			vte_terminal_feed_child(terminal, buf, len);
+			g_snprintf(buf, sizeof(buf),
+				   _VTE_CAP_CSI "%ld;%ldt",
+				   terminal->row_count,
+				   terminal->column_count);
+			vte_terminal_feed_child(terminal, buf, -1);
 			break;
 		case 19:
 			_vte_debug_print(VTE_DEBUG_PARSE,
@@ -3341,27 +3332,23 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 			gscreen = gtk_widget_get_screen(widget);
 			height = gdk_screen_get_height(gscreen);
 			width = gdk_screen_get_width(gscreen);
-			len = g_snprintf(buf, sizeof(buf),
-				 _VTE_CAP_CSI "%ld;%ldt",
-				 height / terminal->char_height,
-				 width / terminal->char_width);
-			vte_terminal_feed_child(terminal, buf, len);
+			g_snprintf(buf, sizeof(buf),
+				   _VTE_CAP_CSI "%ld;%ldt",
+				   height / terminal->char_height,
+				   width / terminal->char_width);
+			vte_terminal_feed_child(terminal, buf, -1);
 			break;
 		case 20:
 			/* Report the icon title. */
 			_vte_debug_print(VTE_DEBUG_PARSE,
 				"Reporting icon title.\n");
-			vte_terminal_feed_child(terminal,
-				 _VTE_CAP_OSC "LTerminal" _VTE_CAP_ST,
-				 sizeof(_VTE_CAP_OSC "LTerminal" _VTE_CAP_ST) - 1);
+			vte_terminal_feed_child(terminal, _VTE_CAP_OSC "LTerminal" _VTE_CAP_ST, -1);
 			break;
 		case 21:
 			/* Report the window title. */
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Reporting window title.\n");
-			vte_terminal_feed_child(terminal,
-				 _VTE_CAP_OSC "LTerminal" _VTE_CAP_ST,
-				 sizeof(_VTE_CAP_OSC "LTerminal" _VTE_CAP_ST) - 1);
+			vte_terminal_feed_child(terminal, _VTE_CAP_OSC "LTerminal" _VTE_CAP_ST, -1);
 			break;
 		default:
 			if (param >= 24) {
@@ -3388,7 +3375,6 @@ vte_sequence_handler_change_cursor_color (VteTerminal *terminal, GValueArray *pa
 	gchar *name = NULL;
 	GValue *value;
 	GdkColor color;
-	guint len;
 
 	if (params != NULL && params->n_values > 0) {
 		value = g_value_array_get_nth (params, 0);
@@ -3404,14 +3390,13 @@ vte_sequence_handler_change_cursor_color (VteTerminal *terminal, GValueArray *pa
 		if (vte_parse_color (name, &color))
 			vte_terminal_set_color_cursor (terminal, &color);
 		else if (strcmp (name, "?") == 0) {
-			gchar *buffer;
-
-			buffer = g_strdup_printf (_VTE_CAP_OSC "12;rgb:%04x/%04x/%04x" BEL,
-						  terminal->pvt->palette[VTE_CUR_BG].red,
-						  terminal->pvt->palette[VTE_CUR_BG].green,
-						  terminal->pvt->palette[VTE_CUR_BG].blue);
-			vte_terminal_feed_child (terminal, buffer, len);
-			g_free (buffer);
+			gchar buf[128];
+			g_snprintf (buf, sizeof (buf),
+				    _VTE_CAP_OSC "12;rgb:%04x/%04x/%04x" BEL,
+				    terminal->pvt->palette[VTE_CUR_BG].red,
+				    terminal->pvt->palette[VTE_CUR_BG].green,
+				    terminal->pvt->palette[VTE_CUR_BG].blue);
+			vte_terminal_feed_child (terminal, buf, -1);
 		}
 
 		g_free (name);
