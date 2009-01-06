@@ -2526,8 +2526,8 @@ vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
 	color = &terminal->pvt->palette[entry];
 
 	if (color->red == proposed->red &&
-			color->green == proposed->green &&
-			color->blue == proposed->blue) {
+	    color->green == proposed->green &&
+	    color->blue == proposed->blue) {
 		return;
 	}
 
@@ -2552,7 +2552,10 @@ vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
 	}
 
 	/* and redraw */
-	_vte_invalidate_all (terminal);
+	if (entry == VTE_CUR_BG)
+		_vte_invalidate_cursor_once(terminal, FALSE);
+	else
+		_vte_invalidate_all (terminal);
 }
 
 static void
