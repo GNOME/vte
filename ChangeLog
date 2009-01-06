@@ -1,5 +1,8 @@
 2009-01-06  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 566730 – vte_terminal_set_color_cursor() calls invalidate_all but
+	it doesn't have to
+
 	* src/vte.c (vte_terminal_set_color_internal): If color is VTE_CUR_BG,
 	invalidate_cursor_once instead of invalidate_all.
 
