@@ -3410,7 +3410,7 @@ vte_sequence_handler_change_cursor_color (VteTerminal *terminal, GValueArray *pa
 						  terminal->pvt->palette[VTE_CUR_BG].red,
 						  terminal->pvt->palette[VTE_CUR_BG].green,
 						  terminal->pvt->palette[VTE_CUR_BG].blue);
-			vte_terminal_feed_child (terminal, buf, len);
+			vte_terminal_feed_child (terminal, buffer, len);
 			g_free (buffer);
 		}
 
