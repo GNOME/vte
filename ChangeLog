@@ -1,3 +1,9 @@
+2009-01-20  Christian Persch  <chpe@gnome.org>
+
+	* gnome-pty-helper/gnome-pty-helper.c: (init_term_with_defaults),
+	(open_ptys), (close_pty_pair): Use ttyname() as recommended in the
+	glibc manual. Bug #565688.
+
 2009-01-06  Behdad Esfahbod  <behdad@gnome.org>
 
 	* src/vteseq.c (vte_parse_color),
