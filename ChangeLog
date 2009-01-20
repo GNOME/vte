@@ -1,5 +1,10 @@
 2009-01-20  Christian Persch  <chpe@gnome.org>
 
+	* src/vte.c: (vte_terminal_realize): Use GDK_BLANK_CURSOR for the
+	invisible cursor on gtk+ >= 2.15.
+
+2009-01-20  Christian Persch  <chpe@gnome.org>
+
 	* gnome-pty-helper/gnome-pty-helper.c: (init_term_with_defaults),
 	(open_ptys), (close_pty_pair): Use ttyname() as recommended in the
 	glibc manual. Bug #565688.

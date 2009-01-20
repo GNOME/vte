@@ -8637,8 +8637,7 @@ vte_terminal_realize(GtkWidget *widget)
 {
 	VteTerminal *terminal;
 	GdkWindowAttr attributes;
-	GdkPixmap *bitmap;
-	GdkColor black = {0,0,0}, color;
+        GdkColor color;
 	guint attributes_mask = 0, i;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_realize()\n");
@@ -8736,6 +8735,13 @@ vte_terminal_realize(GtkWidget *widget)
 	terminal->pvt->modifiers = 0;
 
 	/* Create our invisible cursor. */
+#if GTK_CHECK_VERSION (2, 15, 1)
+	terminal->pvt->mouse_inviso_cursor = gdk_cursor_new_for_display(gtk_widget_get_display(widget), GDK_BLANK_CURSOR);
+#else
+    {
+	GdkPixmap *bitmap;
+	GdkColor black = {0,0,0,0};
+
 	bitmap = gdk_bitmap_create_from_data(widget->window, "\0", 1, 1);
 	terminal->pvt->mouse_inviso_cursor = gdk_cursor_new_from_pixmap(bitmap,
 									bitmap,
@@ -8743,6 +8749,8 @@ vte_terminal_realize(GtkWidget *widget)
 									&black,
 									0, 0);
 	g_object_unref(bitmap);
+    }
+#endif /* GTK >= 2.15.1 */
 
 	widget->style = gtk_style_attach(widget->style, widget->window);
 
