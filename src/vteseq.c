@@ -3295,7 +3295,7 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 			gdk_window_get_origin(widget->window,
 					      &width, &height);
 			g_snprintf(buf, sizeof(buf),
-				   _VTE_CAP_CSI "%d;%dt",
+				   _VTE_CAP_CSI "3;%d;%dt",
 				   width + VTE_PAD_WIDTH, height + VTE_PAD_WIDTH);
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Reporting window location"
@@ -3306,7 +3306,7 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 		case 14:
 			/* Send window size, in pixels. */
 			g_snprintf(buf, sizeof(buf),
-				   _VTE_CAP_CSI "%d;%dt",
+				   _VTE_CAP_CSI "4;%d;%dt",
 				   widget->allocation.height - 2 * VTE_PAD_WIDTH,
 				   widget->allocation.width - 2 * VTE_PAD_WIDTH);
 			_vte_debug_print(VTE_DEBUG_PARSE,
@@ -3321,7 +3321,7 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Reporting widget size.\n");
 			g_snprintf(buf, sizeof(buf),
-				   _VTE_CAP_CSI "%ld;%ldt",
+				   _VTE_CAP_CSI "8;%ld;%ldt",
 				   terminal->row_count,
 				   terminal->column_count);
 			vte_terminal_feed_child(terminal, buf, -1);
@@ -3333,7 +3333,7 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 			height = gdk_screen_get_height(gscreen);
 			width = gdk_screen_get_width(gscreen);
 			g_snprintf(buf, sizeof(buf),
-				   _VTE_CAP_CSI "%ld;%ldt",
+				   _VTE_CAP_CSI "9;%ld;%ldt",
 				   height / terminal->char_height,
 				   width / terminal->char_width);
 			vte_terminal_feed_child(terminal, buf, -1);
@@ -3342,13 +3342,19 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 			/* Report the icon title. */
 			_vte_debug_print(VTE_DEBUG_PARSE,
 				"Reporting icon title.\n");
-			vte_terminal_feed_child(terminal, _VTE_CAP_OSC "LTerminal" _VTE_CAP_ST, -1);
+			g_snprintf (buf, sizeof (buf),
+				    _VTE_CAP_OSC "L%s" _VTE_CAP_ST,
+				    terminal->icon_title);
+			vte_terminal_feed_child(terminal, buf, -1);
 			break;
 		case 21:
 			/* Report the window title. */
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Reporting window title.\n");
-			vte_terminal_feed_child(terminal, _VTE_CAP_OSC "LTerminal" _VTE_CAP_ST, -1);
+			g_snprintf (buf, sizeof (buf),
+				    _VTE_CAP_OSC "l%s" _VTE_CAP_ST,
+				    terminal->window_title);
+			vte_terminal_feed_child(terminal, buf, -1);
 			break;
 		default:
 			if (param >= 24) {

@@ -1,3 +1,8 @@
+2009-01-22  Saleem Abdulrasool <compnerd@compnerd.org>
+
+	* src/vteseq.c (vte_sequence_handler_window_manipulation):
+		Tweak output for OSC 13, 14, 18, 19, 20, 21.  Bug #548272.
+
 2009-01-20  Christian Persch  <chpe@gnome.org>
 
 	* src/vte.c: (vte_terminal_realize): Use GDK_BLANK_CURSOR for the
