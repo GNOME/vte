@@ -4685,9 +4685,9 @@ vte_terminal_hierarchy_changed(GtkWidget *widget, GtkWidget *old_toplevel,
 	}
 }
 
-/* Handle a style-changed signal. */
 static void
-vte_terminal_style_changed(GtkWidget *widget, GtkStyle *style, gpointer data)
+vte_terminal_style_set (GtkWidget      *widget,
+			GtkStyle       *prev_style)
 {
 	VteTerminal *terminal;
 	if (!GTK_WIDGET_REALIZED(widget)) {
@@ -7512,7 +7512,7 @@ vte_terminal_set_font_full_internal(VteTerminal *terminal,
         VteTerminalPrivate *pvt;
         GObject *object;
 	PangoFontDescription *desc;
-        gboolean same_antialias, same_desc;
+        gboolean same_desc;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
@@ -7538,13 +7538,13 @@ vte_terminal_set_font_full_internal(VteTerminal *terminal,
 				"Using default monospace font.\n");
 	}
 
-	/* check for any change */
-        same_antialias = antialias == pvt->fontantialias;
         same_desc = pvt->fontdesc && pango_font_description_equal (pvt->fontdesc, desc);
-	if (same_antialias && same_desc) {
-		pango_font_description_free(desc);
-		return;
-	}
+	
+	/* Note that we proceed to recreating the font even if the description
+	 * and antialias settings are the same.  This is because maybe screen
+	 * font options were changed, or new fonts installed.  Those will be
+	 * detected at font creation time and respected.
+	 */
 
         g_object_freeze_notify(object);
 
@@ -8147,11 +8147,6 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Listen for hierarchy change notifications. */
 	g_signal_connect(terminal, "hierarchy-changed",
 			 G_CALLBACK(vte_terminal_hierarchy_changed),
-			 NULL);
-
-	/* Listen for style changes. */
-	g_signal_connect(terminal, "style-set",
-			 G_CALLBACK(vte_terminal_style_changed),
 			 NULL);
 
 #ifdef VTE_DEBUG
@@ -11329,6 +11324,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	widget_class->visibility_notify_event = vte_terminal_visibility_notify;
 	widget_class->unrealize = vte_terminal_unrealize;
 	widget_class->style_set = NULL;
+	widget_class->style_set = vte_terminal_style_set;
 	widget_class->size_request = vte_terminal_size_request;
 	widget_class->size_allocate = vte_terminal_size_allocate;
 	widget_class->get_accessible = vte_terminal_get_accessible;

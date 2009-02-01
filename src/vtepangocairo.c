@@ -541,15 +541,38 @@ font_info_destroy (struct font_info *info)
 	if (info->ref_count)
 		return;
 
-#if !GTK_CHECK_VERSION (2, 14, 0)
-#define gdk_threads_add_timeout_seconds(sec, func, data) gdk_threads_add_timeout ((sec) * 1000, (func), (data))
-#endif
-
 	/* Delay destruction by a few seconds, in case we need it again */
 	ensure_quit_handler ();
 	info->destroy_timeout = gdk_threads_add_timeout_seconds (FONT_CACHE_TIMEOUT,
 								 (GSourceFunc) font_info_destroy_delayed,
 								 info);
+}
+
+static GQuark
+fontconfig_timestamp_quark (void)
+{
+	static GQuark quark;
+
+	if (G_UNLIKELY (!quark))
+		quark = g_quark_from_static_string ("vte-fontconfig-timestamp");
+
+	return quark;
+}
+
+static void
+vte_pango_cairo_set_fontconfig_timestamp (PangoContext *context,
+					  guint         fontconfig_timestamp)
+{
+	g_object_set_qdata ((GObject *) context,
+			    fontconfig_timestamp_quark (),
+			    GUINT_TO_POINTER (fontconfig_timestamp));
+}
+
+static guint
+vte_pango_cairo_get_fontconfig_timestamp (PangoContext *context)
+{
+	return GPOINTER_TO_UINT (g_object_get_qdata ((GObject *) context,
+						     fontconfig_timestamp_quark ()));
 }
 
 static guint
@@ -558,7 +581,8 @@ context_hash (PangoContext *context)
 	return pango_units_from_double (pango_cairo_context_get_resolution (context))
 	     ^ pango_font_description_hash (pango_context_get_font_description (context))
 	     ^ cairo_font_options_hash (pango_cairo_context_get_font_options (context))
-	     ^ GPOINTER_TO_UINT (pango_context_get_language (context));
+	     ^ GPOINTER_TO_UINT (pango_context_get_language (context))
+	     ^ vte_pango_cairo_get_fontconfig_timestamp (context);
 }
 
 static gboolean
@@ -568,7 +592,8 @@ context_equal (PangoContext *a,
 	return pango_cairo_context_get_resolution (a) == pango_cairo_context_get_resolution (b)
 	    && pango_font_description_equal (pango_context_get_font_description (a), pango_context_get_font_description (b))
 	    && cairo_font_options_equal (pango_cairo_context_get_font_options (a), pango_cairo_context_get_font_options (b))
-	    && pango_context_get_language (a) == pango_context_get_language (b);
+	    && pango_context_get_language (a) == pango_context_get_language (b)
+	    && vte_pango_cairo_get_fontconfig_timestamp (a) == vte_pango_cairo_get_fontconfig_timestamp (b);
 }
 
 static struct font_info *
@@ -601,7 +626,8 @@ static struct font_info *
 font_info_create_for_context (PangoContext               *context,
 			      const PangoFontDescription *desc,
 			      VteTerminalAntiAlias        antialias,
-			      PangoLanguage              *language)
+			      PangoLanguage              *language,
+			      guint                       fontconfig_timestamp)
 {
 	if (!PANGO_IS_CAIRO_FONT_MAP (pango_context_get_font_map (context))) {
 		/* Ouch, Gtk+ switched over to some drawing system?
@@ -610,6 +636,8 @@ font_info_create_for_context (PangoContext               *context,
 		g_object_unref (context);
 		context = pango_font_map_create_context (pango_cairo_font_map_get_default ());
 	}
+
+	vte_pango_cairo_set_fontconfig_timestamp (context, fontconfig_timestamp);
 
 	pango_context_set_base_dir (context, PANGO_DIRECTION_LTR);
 
@@ -659,8 +687,11 @@ font_info_create_for_screen (GdkScreen                  *screen,
 			     VteTerminalAntiAlias        antialias,
 			     PangoLanguage              *language)
 {
+	GtkSettings *settings = gtk_settings_get_for_screen (screen);
+	int fontconfig_timestamp;
+	g_object_get (settings, "gtk-fontconfig-timestamp", &fontconfig_timestamp, NULL);
 	return font_info_create_for_context (gdk_pango_context_get_for_screen (screen),
-					     desc, antialias, language);
+					     desc, antialias, language, fontconfig_timestamp);
 }
 
 static struct font_info *

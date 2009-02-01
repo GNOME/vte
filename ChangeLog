@@ -1,3 +1,25 @@
+2009-02-01  Behdad Esfahbod  <behdad@gnome.org>
+
+	* configure.in: Require GTK+ >= 2.14, for "gtk-fontconfig-timestamp"
+	settings property.
+
+	* src/vte.c (vte_terminal_style_set),
+	(vte_terminal_set_font_full_internal), (vte_terminal_init),
+	(vte_terminal_class_init):  Use style_set class method instead of
+	hooking to style-set signal.  Also, proceed to recreating the font
+	even if neither description nor antialias setting changed.  This is
+	necessary to pick up fontconfig configuration changes as well as font
+	install/uninstallations or GNOME font preferences changes.
+
+	* src/vtepangocairo.c (font_info_destroy),
+	(fontconfig_timestamp_quark),
+	(vte_pango_cairo_set_fontconfig_timestamp),
+	(vte_pango_cairo_get_fontconfig_timestamp), (context_hash),
+	(context_equal), (font_info_create_for_context),
+	(font_info_create_for_screen):
+	Use fontconfig_timestamp in the font object hash, such that we respond
+	to fontconfig configuration changes.
+
 2009-01-22  Saleem Abdulrasool <compnerd@compnerd.org>
 
 	* src/vteseq.c (vte_sequence_handler_window_manipulation):

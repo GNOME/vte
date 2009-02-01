@@ -438,7 +438,7 @@ static void
 child_exit_cb(VteTerminal *terminal,
                  gpointer user_data)
 {
-  g_print("Child exited with status %x\n", vte_terminal_get_child_exit_status(terminal));
+  _vte_debug_print(VTE_DEBUG_MISC, "Child exited with status %x\n", vte_terminal_get_child_exit_status(terminal));
 }
 
 int
