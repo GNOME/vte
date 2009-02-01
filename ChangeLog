@@ -1,3 +1,10 @@
+2009-02-01  Christian Persch  <chpe@gnome.org>
+
+	* src/marshal.list:
+	* src/vte.c: (vte_terminal_class_init):
+	* src/vtebg.c: (vte_bg_class_init): Remove marshalers that have stock
+	ones in gobject, and use the stock ones instead.
+
 2009-02-01  Behdad Esfahbod  <behdad@gnome.org>
 
 	* configure.in: Require GTK+ >= 2.14, for "gtk-fontconfig-timestamp"

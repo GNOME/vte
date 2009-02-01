@@ -243,7 +243,7 @@ vte_bg_class_init(VteBgClass *klass)
 						  0,
 						  NULL,
 						  NULL,
-						  _vte_marshal_VOID__VOID,
+                                                  g_cclosure_marshal_VOID__VOID,
 						  G_TYPE_NONE, 0);
 	g_type_class_add_private(klass, sizeof (struct VteBgPrivate));
 }
