@@ -1,3 +1,9 @@
+2009-02-02  Christian Persch  <chpe@gnome.org>
+
+	Bug 570208 – vte fails to build outside source tree
+
+	* python/Makefile.am: Build fix.
+
 2009-02-01  Christian Persch  <chpe@gnome.org>
 
 	* src/marshal.list:
