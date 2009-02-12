@@ -1,3 +1,22 @@
+2009-02-12  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 54926 – Should try bold version of font before pseudo-bolding
+
+	Patch from Kees Cook <kees@outflux.net>
+
+	* src/vte.c (_vte_invalidate_cell), (_vte_invalidate_cursor_once),
+	(vte_terminal_unichar_is_local_graphic),
+	(vte_terminal_draw_graphic), (vte_terminal_draw_cells),
+	(vte_terminal_draw_rows), (vte_terminal_paint_cursor):
+	* src/vtedraw.c (_vte_draw_get_char_width), (_vte_draw_text),
+	(_vte_draw_char), (_vte_draw_has_char):
+	* src/vtedraw.h:
+	* src/vtepangocairo.c (_vte_pangocairo_set_text_font),
+	(_vte_pangocairo_get_char_width), (_vte_pangocairo_has_bold),
+	(_vte_pangocairo_draw_text), (_vte_pangocairo_draw_has_char):
+	* src/vteskel.c:
+	Try bold font before pseudo-bolding.
+
 2009-02-02  Christian Persch  <chpe@gnome.org>
 
 	Bug 570208 – vte fails to build outside source tree

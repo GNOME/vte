@@ -786,6 +786,7 @@ font_info_get_unistr_info (struct font_info *info,
 
 struct _vte_pangocairo_data {
 	struct font_info *font;
+	struct font_info *font_bold;
 	cairo_pattern_t *bg_pattern;
 
 	cairo_t *cr;
@@ -945,9 +946,27 @@ _vte_pangocairo_set_text_font (struct _vte_draw *draw,
 			       VteTerminalAntiAlias antialias)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
+	PangoFontDescription *bolddesc = NULL;
 
+	if (data->font_bold != data->font)
+		font_info_destroy (data->font_bold);
 	font_info_destroy (data->font);
 	data->font = font_info_create_for_widget (draw->widget, fontdesc, antialias);
+
+	/* calculate bold font desc */
+	bolddesc = pango_font_description_copy (fontdesc);
+	pango_font_description_set_weight (bolddesc, PANGO_WEIGHT_BOLD);
+
+	data->font_bold = font_info_create_for_widget (draw->widget, bolddesc, antialias);
+	pango_font_description_free (bolddesc);
+
+	/* Decide if we should keep this bold font face, per bug 54926:
+	 *  - reject bold font if it is not within 10% of normal font width
+	 */
+	if ( abs((data->font_bold->width * 100 / data->font->width) - 100) > 10 ) {
+		font_info_destroy (data->font_bold);
+		data->font_bold = data->font;
+	}
 }
 
 static void
@@ -965,15 +984,24 @@ _vte_pangocairo_get_text_metrics(struct _vte_draw *draw,
 
 
 static int
-_vte_pangocairo_get_char_width (struct _vte_draw *draw, vteunistr c, int columns)
+_vte_pangocairo_get_char_width (struct _vte_draw *draw, vteunistr c, int columns,
+				gboolean bold)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
 	struct unistr_info *uinfo;
 
 	g_return_val_if_fail (data->font != NULL, 0);
 
-	uinfo = font_info_get_unistr_info (data->font, c);
+	uinfo = font_info_get_unistr_info (bold ? data->font_bold : data->font, c);
 	return uinfo->width;
+}
+
+static gboolean
+_vte_pangocairo_has_bold (struct _vte_draw *draw)
+{
+	struct _vte_pangocairo_data *data = draw->impl_data;
+
+	return (data->font != data->font_bold);
 }
 
 static void
@@ -991,15 +1019,16 @@ set_source_color_alpha (cairo_t        *cr,
 static void
 _vte_pangocairo_draw_text (struct _vte_draw *draw,
 			   struct _vte_draw_text_request *requests, gsize n_requests,
-			   GdkColor *color, guchar alpha)
+			   GdkColor *color, guchar alpha, gboolean bold)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
 	gsize i;
 	cairo_scaled_font_t *last_scaled_font = NULL;
 	int n_cr_glyphs = 0;
 	cairo_glyph_t cr_glyphs[MAX_RUN_LENGTH];
+	struct font_info *font = bold ? data->font_bold : data->font;
 
-	g_return_if_fail (data->font != NULL);
+	g_return_if_fail (font != NULL);
 
 	set_source_color_alpha (data->cr, color, alpha);
 	cairo_set_operator (data->cr, CAIRO_OPERATOR_OVER);
@@ -1007,8 +1036,8 @@ _vte_pangocairo_draw_text (struct _vte_draw *draw,
 	for (i = 0; i < n_requests; i++) {
 		vteunistr c = requests[i].c;
 		int x = requests[i].x;
-		int y = requests[i].y + data->font->ascent;
-		struct unistr_info *uinfo = font_info_get_unistr_info (data->font, c);
+		int y = requests[i].y + font->ascent;
+		struct unistr_info *uinfo = font_info_get_unistr_info (font, c);
 		union unistr_font_info *ufi = &uinfo->ufi;
 
 		switch (uinfo->coverage) {
@@ -1055,14 +1084,15 @@ _vte_pangocairo_draw_text (struct _vte_draw *draw,
 }
 
 static gboolean
-_vte_pangocairo_draw_has_char (struct _vte_draw *draw, vteunistr c)
+_vte_pangocairo_draw_has_char (struct _vte_draw *draw, vteunistr c,
+			       gboolean bold)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
 	struct unistr_info *uinfo;
 
 	g_return_val_if_fail (data->font != NULL, FALSE);
 
-	uinfo = font_info_get_unistr_info (data->font, c);
+	uinfo = font_info_get_unistr_info (bold ? data->font_bold : data->font, c);
 	return !uinfo->has_unknown_chars;
 }
 
@@ -1111,6 +1141,7 @@ const struct _vte_draw_impl _vte_draw_pangocairo = {
 	_vte_pangocairo_set_text_font,
 	_vte_pangocairo_get_text_metrics,
 	_vte_pangocairo_get_char_width,
+	_vte_pangocairo_has_bold,
 	_vte_pangocairo_draw_text,
 	_vte_pangocairo_draw_has_char,
 	_vte_pangocairo_draw_rectangle,

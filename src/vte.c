@@ -724,7 +724,7 @@ _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
 					_vte_draw_get_char_width (
 						terminal->pvt->draw,
 						cell->c,
-						columns) >
+						columns, cell->attr.bold) >
 					terminal->char_width * columns) {
 				columns++;
 			}
@@ -781,7 +781,7 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 					_vte_draw_get_char_width (
 						terminal->pvt->draw,
 						cell->c,
-						columns) >
+						columns, cell->attr.bold) >
 			    terminal->char_width * columns) {
 				columns++;
 			}
@@ -8856,10 +8856,10 @@ vte_unichar_is_local_graphic(vteunistr c)
 	return FALSE;
 }
 static gboolean
-vte_terminal_unichar_is_local_graphic(VteTerminal *terminal, vteunistr c)
+vte_terminal_unichar_is_local_graphic(VteTerminal *terminal, vteunistr c, gboolean bold)
 {
 	return vte_unichar_is_local_graphic (c) &&
-		!_vte_draw_has_char (terminal->pvt->draw, c);
+		!_vte_draw_has_char (terminal->pvt->draw, c, bold);
 }
 
 static void
@@ -8946,7 +8946,8 @@ static gboolean
 vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
 			  gint fore, gint back, gboolean draw_default_bg,
 			  gint x, gint y,
-			  gint column_width, gint columns, gint row_height)
+			  gint column_width, gint columns, gint row_height,
+			  gboolean bold)
 {
 	gboolean ret;
 	gint xcenter, xright, ycenter, ybottom, i, j, draw;
@@ -8974,7 +8975,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
 	}
 
 	if (_vte_draw_char(terminal->pvt->draw, &request,
-			   &color, VTE_DRAW_OPAQUE)) {
+			   &color, VTE_DRAW_OPAQUE, bold)) {
 		/* We were able to draw with actual fonts. */
 		return TRUE;
 	}
@@ -9767,20 +9768,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	color.green = fg->green;
 	_vte_draw_text(terminal->pvt->draw,
 			items, n,
-			&color, VTE_DRAW_OPAQUE);
-	if (bold) {
-		/* Take a step to the right. */
-		for (i = 0; i < n; i++) {
-			items[i].x++;
-		}
-		_vte_draw_text(terminal->pvt->draw,
-				items, n,
-				&color, VTE_DRAW_OPAQUE);
-		/* Now take a step back. */
-		for (i = 0; i < n; i++) {
-			items[i].x--;
-		}
-	}
+			&color, VTE_DRAW_OPAQUE, bold);
 	for (i = 0; i < n; i++) {
 		/* Deadjust for the border. */
 		items[i].x -= VTE_PAD_WIDTH;
@@ -10311,7 +10299,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			j = i + items[0].columns;
 
 			/* If this is a graphics character, draw it locally. */
-			if (vte_terminal_unichar_is_local_graphic(terminal, cell->c)) {
+			if (vte_terminal_unichar_is_local_graphic(terminal, cell->c, cell->attr.bold)) {
 				if (vte_terminal_draw_graphic(terminal,
 							items[0].c,
 							fore, back,
@@ -10320,7 +10308,8 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 							items[0].y,
 							column_width,
 							items[0].columns,
-							row_height)) {
+							row_height,
+							cell->attr.bold)) {
 					i = j;
 					continue;
 				}
@@ -10363,7 +10352,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 							FALSE,
 							&nfore, &nback);
 					/* Graphic characters must be drawn individually. */
-					if (vte_terminal_unichar_is_local_graphic(terminal, cell->c)) {
+					if (vte_terminal_unichar_is_local_graphic(terminal, cell->c, cell->attr.bold)) {
 						if (vte_terminal_draw_graphic(terminal,
 									cell->c,
 									nfore, nback,
@@ -10372,7 +10361,8 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 									y,
 									column_width,
 									cell->attr.columns,
-									row_height)) {
+									row_height,
+									cell->attr.bold)) {
 
 							j += cell->attr.columns;
 							continue;
@@ -10640,9 +10630,8 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	cursor_width = item.columns * width;
 	if (cell && cell->c != 0) {
 		gint cw = _vte_draw_get_char_width (terminal->pvt->draw,
-				cell->c, cell->attr.columns);
+				cell->c, cell->attr.columns, cell->attr.bold);
 		cursor_width = MAX(cursor_width, cw);
-		cursor_width += cell->attr.bold; /* for pseudo-bolding */
 	}
 
 	selected = vte_cell_is_selected(terminal, col, drow, NULL);
@@ -10691,7 +10680,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 							 &color,
 							 VTE_DRAW_OPAQUE);
 
-				if (!vte_terminal_unichar_is_local_graphic(terminal, item.c) ||
+				if (!vte_terminal_unichar_is_local_graphic(terminal, item.c, cell ? cell->attr.bold : FALSE) ||
 				    !vte_terminal_draw_graphic(terminal,
 							       item.c,
 							       fore, back,
@@ -10700,7 +10689,8 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 							       item.y,
 							       width,
 							       item.columns,
-							       height)) {
+							       height,
+							       cell ? cell->attr.bold : FALSE)) {
 					gboolean hilite = FALSE;
 					if (cell && terminal->pvt->show_match) {
 						hilite = vte_cell_is_between(col, row,

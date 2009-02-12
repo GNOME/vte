@@ -87,11 +87,13 @@ struct _vte_draw_impl {
 			      const PangoFontDescription *,
 			      VteTerminalAntiAlias);
 	void (*get_text_metrics)(struct _vte_draw *, gint *, gint *, gint *);
-	int (*get_char_width)(struct _vte_draw *, vteunistr c, int columns);
+	int (*get_char_width)(struct _vte_draw *, vteunistr c, int columns,
+			      gboolean);
+	gboolean (*has_bold)(struct _vte_draw *);
 	void (*draw_text)(struct _vte_draw *,
-			  struct _vte_draw_text_request *, gsize,
-			  GdkColor *, guchar);
-	gboolean (*has_char)(struct _vte_draw *, vteunistr);
+			  		  struct _vte_draw_text_request *, gsize,
+					  GdkColor *, guchar, gboolean);
+	gboolean (*has_char)(struct _vte_draw *, vteunistr, gboolean);
 	void (*draw_rectangle)(struct _vte_draw *,
 			       gint, gint, gint, gint,
 			       GdkColor *, guchar);
@@ -151,15 +153,17 @@ void _vte_draw_set_text_font(struct _vte_draw *draw,
 			     VteTerminalAntiAlias anti_alias);
 void _vte_draw_get_text_metrics(struct _vte_draw *draw,
 				gint *width, gint *height, gint *ascent);
-int _vte_draw_get_char_width(struct _vte_draw *draw, vteunistr c, int columns);
+int _vte_draw_get_char_width(struct _vte_draw *draw, vteunistr c, int columns,
+			     gboolean bold);
 
 void _vte_draw_text(struct _vte_draw *draw,
 		    struct _vte_draw_text_request *requests, gsize n_requests,
-		    GdkColor *color, guchar alpha);
+		    GdkColor *color, guchar alpha, gboolean);
 gboolean _vte_draw_char(struct _vte_draw *draw,
 			struct _vte_draw_text_request *request,
-			GdkColor *color, guchar alpha);
-gboolean _vte_draw_has_char(struct _vte_draw *draw, vteunistr c);
+			GdkColor *color, guchar alpha, gboolean bold);
+gboolean _vte_draw_has_char(struct _vte_draw *draw, vteunistr c, gboolean bold);
+
 
 void _vte_draw_fill_rectangle(struct _vte_draw *draw,
 			      gint x, gint y, gint width, gint height,

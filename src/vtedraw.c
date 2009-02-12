@@ -312,12 +312,13 @@ _vte_draw_get_text_metrics(struct _vte_draw *draw,
 }
 
 int
-_vte_draw_get_char_width (struct _vte_draw *draw, vteunistr c, int columns)
+_vte_draw_get_char_width (struct _vte_draw *draw, vteunistr c, int columns,
+			  gboolean bold)
 {
 	int width = 0;
 
 	if (draw->impl->get_char_width)
-		width = draw->impl->get_char_width (draw, c, columns);
+		width = draw->impl->get_char_width (draw, c, columns, bold);
 
 	if (width == 0)
 		_vte_draw_get_text_metrics (draw, &width, NULL, NULL);
@@ -328,7 +329,7 @@ _vte_draw_get_char_width (struct _vte_draw *draw, vteunistr c, int columns)
 void
 _vte_draw_text (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *requests, gsize n_requests,
-	       GdkColor *color, guchar alpha)
+	       GdkColor *color, guchar alpha, gboolean bold)
 {
 	g_return_if_fail (draw->started == TRUE);
 	g_return_if_fail (draw->impl->draw_text != NULL);
@@ -341,43 +342,59 @@ _vte_draw_text (struct _vte_draw *draw,
 			g_string_append_unichar (string, requests[n].c);
 		}
 		str = g_string_free (string, FALSE);
-		g_printerr ("draw_text (\"%s\", len=%"G_GSIZE_FORMAT", color=(%d,%d,%d,%d))\n",
+		g_printerr ("draw_text (\"%s\", len=%"G_GSIZE_FORMAT", color=(%d,%d,%d,%d), %s)\n",
 				str, n_requests, color->red, color->green, color->blue,
-				alpha);
+				alpha, bold ? "bold" : "normal");
 		g_free (str);
 	}
 
-	draw->impl->draw_text (draw, requests, n_requests, color, alpha);
+	draw->impl->draw_text (draw, requests, n_requests, color, alpha, bold);
+
+	/* handle fonts that lack a bold face by double-striking */
+	if (bold && !(draw->impl->has_bold && draw->impl->has_bold (draw))) {
+		int i;
+
+		/* Take a step to the right. */
+		for (i = 0; i < n_requests; i++) {
+			requests[i].x++;
+		}
+		draw->impl->draw_text (draw, requests, n_requests, color, alpha, FALSE);
+		/* Now take a step back. */
+		for (i = 0; i < n_requests; i++) {
+			requests[i].x--;
+		}
+	}
 }
 
 gboolean
 _vte_draw_char (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *request,
-	       GdkColor *color, guchar alpha)
+	       GdkColor *color, guchar alpha, gboolean bold)
 {
 	gboolean has_char;
 
 	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_char ('%c', color=(%d,%d,%d,%d))\n",
+			"draw_char ('%c', color=(%d,%d,%d,%d), %s)\n",
 			request->c,
 			color->red, color->green, color->blue,
-			alpha);
+			alpha, bold ? "bold" : "normal");
 
-	has_char =_vte_draw_has_char (draw, request->c);
+	has_char =_vte_draw_has_char (draw, request->c, bold);
 	if (has_char)
-		_vte_draw_text (draw, request, 1, color, alpha);
+		_vte_draw_text (draw, request, 1, color, alpha, bold);
 
 	return has_char;
 }
 gboolean
-_vte_draw_has_char (struct _vte_draw *draw, vteunistr c)
+_vte_draw_has_char (struct _vte_draw *draw, vteunistr c, gboolean bold)
 {
 	gboolean has_char = TRUE;
 
-	_vte_debug_print (VTE_DEBUG_DRAW, "draw_has_char ('0x%04X')\n", c);
+	_vte_debug_print (VTE_DEBUG_DRAW, "draw_has_char ('0x%04X', %s)\n", c,
+			  bold ? "bold" : "normal");
 
 	if (draw->impl->has_char)
-		has_char = draw->impl->has_char (draw, c);
+		has_char = draw->impl->has_char (draw, c, bold);
 
 	return has_char;
 }

@@ -78,6 +78,7 @@ const struct _vte_draw_impl _vte_draw_skel = {
 	NULL, /* set_text_font */
 	_vte_skel_get_text_metrics,
 	NULL, /* get_char_width */
+	NULL, /* has_bold */
 	_vte_skel_draw_text,
 	NULL, /* draw_has_char */
 	NULL, /* draw_rectangle */
