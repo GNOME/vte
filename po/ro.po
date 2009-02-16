@@ -1,36 +1,39 @@
 # Romanian translation for vte
 # Copyright (C) 2003 - 2006 Free Software Foundation, Inc.
-# Mișu Moldovan <dumol@gnome.ro>, 2003 - 2006.
+# Mișu Moldovan <dumol@gnome.ro>, 2003 - 2006, 2009
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-04-25 03:21+0100\n"
-"PO-Revision-Date: 2006-09-04 03:28+0300\n"
-"Last-Translator: Mișu Moldovan <dumol@go.ro>\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=vte&component=general\n"
+"POT-Creation-Date: 2009-02-12 05:33+0000\n"
+"PO-Revision-Date: 2009-02-16 20:23+0200\n"
+"Last-Translator: Adi Roiban <adi@roiban.ro>\n"
 "Language-Team: Romanian <gnomero-list@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2009-01-14 02:40+0000\n"
+"X-Generator: Launchpad (build Unknown)\n"
 
-#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
-#: ../src/vte.c:1797
+#: ../src/iso2022.c:785 ../src/iso2022.c:793 ../src/iso2022.c:824
+#: ../src/vte.c:2293
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Nu se pot converti caracterele din %s în %s."
 
-#: ../src/iso2022.c:1539
+#: ../src/iso2022.c:1472
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Încercare de a seta harta NRC invalidă „%c”."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1569
+#: ../src/iso2022.c:1502
 msgid "Unrecognized identified coding system."
 msgstr "Cod necunoscut de identificare sistem."
 
-#: ../src/iso2022.c:1628 ../src/iso2022.c:1655
+#: ../src/iso2022.c:1561 ../src/iso2022.c:1588
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Încercare de a seta harta „wide” NRC „%c”."
@@ -38,81 +41,59 @@ msgstr "Încercare de a seta harta „wide” NRC „%c”."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: ../src/pty.c:837
+#: ../src/pty.c:831
 #, c-format
 msgid "can not run %s"
 msgstr "nu se poate porni %s"
 
-#: ../src/reaper.c:136
-msgid "Error creating signal pipe."
-msgstr "Eroare la crearea filtrului de semnalizare."
-
-#: ../src/trie.c:414
+#: ../src/trie.c:409
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicat (%s/%s)!"
 
-#: ../src/vte.c:1187
+#. Bail back to normal mode.
+#: ../src/vteapp.c:846
+msgid "Could not open console.\n"
+msgstr "Nu s-a putut deschide consola.\n"
+
+#: ../src/vteapp.c:910
+msgid "Could not parse the geometry spec passed to --geometry"
+msgstr "Nu s-a putut analiza specificația geometriei trimisă de --geometry"
+
+#: ../src/vte.c:1342
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "Eroare la compilarea expresiei regulare „%s”."
-
-#: ../src/vte.c:2657 ../src/vte.c:2662
-#, c-format
-msgid "No handler for control sequence `%s' defined."
-msgstr "Nu există o asociere desemnată pentru secvența „%s”."
+msgstr "Eroare la compilarea expresiei regulate „%s”."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:3627
+#: ../src/vte.c:4294
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Eroare la citirea datelor de la procesul copil: %s."
 
-#: ../src/vte.c:3743
+#: ../src/vte.c:4422
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
+"Nu s-a putut trimte data către procesul părinte, convertorul pentru seturi "
+"de caractere nu este valid"
 
-#: ../src/vte.c:3754 ../src/vte.c:4631
+#: ../src/vte.c:4433 ../src/vte.c:5400
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "Eroare (%s) la convertirea datelor de la procesul copil, abandon..."
+msgstr "Eroare (%s) la convertirea datelor de la procesul copil, abandon."
 
-#: ../src/vte.c:6866
+#: ../src/vte.c:7669
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Eroare la citirea mărimii PTY, se utilizează valoarea implicită: %s."
 
-#: ../src/vte.c:6895
+#: ../src/vte.c:7705
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Eroare la setarea mărimii PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:11348
+#: ../src/vte.c:13028
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_iconv_open() a eșuat la setarea caracterelor cuvintelor"
 
-#: ../src/vteseq.c:3926
-#, c-format
-msgid "Got unexpected (key?) sequence `%s'."
-msgstr ""
-
-#. Bail back to normal mode.
-#: ../src/vteapp.c:774
-msgid "Could not open console.\n"
-msgstr "Nu s-a putut deschide consola.\n"
-
-#: ../src/vteapp.c:838
-msgid "Could not parse the geometry spec passed to --geometry"
-msgstr ""
-
-#: ../src/vteglyph.c:562
-#, c-format
-msgid "Unknown pixel mode %d.\n"
-msgstr "Mod pixel necunoscut %d.\n"
-
-#~ msgid "Error adding `%s' to environment, continuing."
-#~ msgstr "Eroare la adăugarea „%s” ca variabilă de mediu, se continuă..."
-
-#~ msgid "Can not draw character U+%04x.\n"
-#~ msgstr "Nu se poate trasa caracterul U+%04x.\n"
