@@ -1,37 +1,38 @@
 # Italian translation of vte.
 # Copyright (C) 2003 THE vte'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the vte package.
-# Francesco Marletta <francesco.marletta@tiscali.it>, 2003-2008.
+# Francesco Marletta <francesco.marletta@tiscali.it>, 2003-2009.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte \n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2008-09-17 03:18+0000\n"
-"PO-Revision-Date: 2008-09-03 22:56+0200\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=vte&component=general\n"
+"POT-Creation-Date: 2009-02-16 19:55+0000\n"
+"PO-Revision-Date: 2009-02-06 00:40+0100\n"
 "Last-Translator: Francesco Marletta <francesco.marletta@tiscali.it>\n"
 "Language-Team: Italian <tp@lists.linux.it>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: ../src/iso2022.c:798 ../src/iso2022.c:806 ../src/iso2022.c:837
-#: ../src/vte.c:2201
+#: ../src/iso2022.c:785 ../src/iso2022.c:793 ../src/iso2022.c:824
+#: ../src/vte.c:2293
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Impossibile convertire i caratteri da %s a %s."
 
-#: ../src/iso2022.c:1481
+#: ../src/iso2022.c:1472
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Tentativo di impostare una mappa '%c' NRC non valida."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1511
+#: ../src/iso2022.c:1502
 msgid "Unrecognized identified coding system."
 msgstr "«Sistema di codifica identificato» non riconosciuto."
 
-#: ../src/iso2022.c:1570 ../src/iso2022.c:1597
+#: ../src/iso2022.c:1561 ../src/iso2022.c:1588
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Tentativo di impostare una mappa NRC ampia non valida '%c'."
@@ -44,75 +45,56 @@ msgstr "Tentativo di impostare una mappa NRC ampia non valida '%c'."
 msgid "can not run %s"
 msgstr "impossibile eseguire %s"
 
-#: ../src/reaper.c:136
-msgid "Error creating signal pipe."
-msgstr "Errore nel creare la pipe dei segnali."
-
 #: ../src/trie.c:409
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicato (%s/%s)!"
 
-#: ../src/vte.c:1257
+#. Bail back to normal mode.
+#: ../src/vteapp.c:846
+msgid "Could not open console.\n"
+msgstr "Impossibile aprire la console.\n"
+
+#: ../src/vteapp.c:910
+msgid "Could not parse the geometry spec passed to --geometry"
+msgstr "Impossibile analizzare la specifica di geometria passata a --geometry"
+
+#: ../src/vte.c:1342
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Errore nel compilare l'espressione regolare \"%s\"."
 
-#: ../src/vte.c:3061 ../src/vte.c:3066
-#, c-format
-msgid "No handler for control sequence `%s' defined."
-msgstr "Nessun gestore definito per la sequenza di controllo \"%s\"."
-
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4044
+#: ../src/vte.c:4294
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Errore nella lettura dal processo figlio: %s."
 
-#: ../src/vte.c:4172
+#: ../src/vte.c:4422
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
 "Impossibile inviare dati al figlio, convertitore di set caratteri non valido"
 
-#: ../src/vte.c:4183 ../src/vte.c:5099
+#: ../src/vte.c:4433 ../src/vte.c:5400
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "Errore (%s) nel convertire i dati per il processo figlio, rimarranno "
 "invariati."
 
-#: ../src/vte.c:7339
+#: ../src/vte.c:7669
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr ""
 "Errore nella lettura della dimensione PTY, sarà usato il valore predefinito: "
 "%s."
 
-#: ../src/vte.c:7375
+#: ../src/vte.c:7705
 #, c-format
 msgid "Error setting PTY size: %s."
 msgstr "Errore nell'impostazione della dimensione PTY: %s."
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:11970
+#: ../src/vte.c:13028
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_con_open() ha fallito nell'impostare i caratteri della parola"
-
-#: ../src/vteseq.c:3996
-#, c-format
-msgid "Got unexpected (key?) sequence `%s'."
-msgstr "Ricevuta una sequenza (tasto?) inattesa \"%s\"."
-
-#. Bail back to normal mode.
-#: ../src/vteapp.c:775
-msgid "Could not open console.\n"
-msgstr "Impossibile aprire la console.\n"
-
-#: ../src/vteapp.c:839
-msgid "Could not parse the geometry spec passed to --geometry"
-msgstr "Impossibile analizzare la specifica di geometria passata a --geometry"
-
-#: ../src/vteglyph.c:556
-#, c-format
-msgid "Unknown pixel mode %d.\n"
-msgstr "Modo pixel %d sconosciuto.\n"
