@@ -1775,16 +1775,8 @@ vte_terminal_accessible_set_size(AtkComponent *component,
 	vte_terminal_get_padding(terminal, &xpad, &ypad);
 	/* If the size is an exact multiple of the cell size, use that,
 	 * otherwise round down. */
-	if (width % terminal->char_width == 0) {
-		columns = width / terminal->char_width;
-	} else {
-		columns = (width + xpad) / terminal->char_width;
-	}
-	if (height % terminal->char_height == 0) {
-		rows = height / terminal->char_height;
-	} else {
-		rows = (height + xpad) / terminal->char_height;
-	}
+        columns = (width - xpad) / terminal->char_width;
+        rows = (height - ypad) / terminal->char_height;
 	vte_terminal_set_size(terminal, columns, rows);
 	return (terminal->row_count == rows) &&
 	       (terminal->column_count == columns);

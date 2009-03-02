@@ -1,5 +1,12 @@
 2009-03-02  Christian Persch  <chpe@gnome.org>
 
+	* src/vteaccess.c: (vte_terminal_accessible_set_size),
+	(vte_terminal_accessible_ref_accessible_at_point):
+	* src/vteapp.c: (button_pressed): Correct use of padding returned
+        by vte_terminal_get_padding().
+
+2009-03-02  Christian Persch  <chpe@gnome.org>
+
 	* src/vte.c: (vte_terminal_refresh_size), (vte_terminal_set_size):
 	Use g_strerror() instead of strerror().
 

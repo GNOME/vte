@@ -174,9 +174,9 @@ button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
 		terminal = VTE_TERMINAL(widget);
 		vte_terminal_get_padding(terminal, &xpad, &ypad);
 		match = vte_terminal_match_check(terminal,
-						 (event->x - ypad) /
+						 (event->x - xpad / 2) /
 						 terminal->char_width,
-						 (event->y - ypad) /
+						 (event->y - ypad / 2) /
 						 terminal->char_height,
 						 &tag);
 		if (match != NULL) {
