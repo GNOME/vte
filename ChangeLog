@@ -1,3 +1,8 @@
+2009-03-02  Christian Persch  <chpe@gnome.org>
+
+	* src/vte.c: (vte_terminal_refresh_size), (vte_terminal_set_size):
+	Use g_strerror() instead of strerror().
+
 2009-02-12  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 54926 – Should try bold version of font before pseudo-bolding
