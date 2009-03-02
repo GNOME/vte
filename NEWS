@@ -1,3 +1,21 @@
+0.19.5
+=======
+- Support using a real bold font instead of pseudo-bolding
+- Respond to fontconfig configuration changes
+- Bugs fixed in this release:
+    Bug 54926 – Should try bold version of font before pseudo-bolding
+    Bug 570208 – vte fails to build outside source tree
+    Bug 548272 – Fix output of CSI 13,14, 18-21
+    Bug 565688 – [gnome-pty-helper] using openpty in a bad way
+    Bug 566795 – VTE fails to build in trunk
+    Bug 524170 – Support initc terminfo capability and change-cursor-color
+    Bug 566730 – vte_terminal_set_color_cursor() calls invalidate_all but
+                 it doesn't have to
+    Bug 565679 – alloca is discouraged
+    Bug 565675 – typo in configure.in cause ncurses checking fail
+    Bug 565663 – compile failure because use static function in another .h
+                 file
+    
 0.19.4
 ======
 - Support for correct rendering of combining characters

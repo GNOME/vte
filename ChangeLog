@@ -1,5 +1,10 @@
 2009-03-02  Christian Persch  <chpe@gnome.org>
 
+	* NEWS:
+	* configure.in: Updated for version 0.19.5.
+
+2009-03-02  Christian Persch  <chpe@gnome.org>
+
 	* src/vteaccess.c: (vte_terminal_accessible_set_size),
 	(vte_terminal_accessible_ref_accessible_at_point):
 	* src/vteapp.c: (button_pressed): Correct use of padding returned
