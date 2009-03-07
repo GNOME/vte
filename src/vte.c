@@ -3142,10 +3142,12 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 				row_num--;
 				row = _vte_terminal_find_row_data (terminal, row_num);
 
-				if (!row->soft_wrapped)
-					row = NULL;
-				else
-					col = row->cells->len;
+				if (row) {
+					if (!row->soft_wrapped)
+						row = NULL;
+					else
+						col = row->cells->len;
+				}
 			}
 		} else {
 			row = _vte_terminal_find_row_data (terminal, row_num);
