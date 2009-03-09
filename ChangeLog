@@ -1,3 +1,13 @@
+2009-03-09  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 574616 – "real" transparency not working from python bindings
+
+	* src/vtepangocairo.c (_vte_pangocairo_destroy),
+	(_vte_pangocairo_set_background_image): Better handle failure of
+	creating pixmap.
+
+	* src/vtebg.c (vte_bg_get_pixmap): Get rid of unused mask parameter.
+
 2009-03-07  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 574025 – Crash in _vte_terminal_insert_char

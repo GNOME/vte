@@ -817,6 +817,7 @@ _vte_pangocairo_destroy (struct _vte_draw *draw)
 	}
 
 	g_slice_free (struct _vte_pangocairo_data, draw->impl_data);
+	draw->impl_data = NULL;
 }
 
 static void
@@ -864,43 +865,38 @@ _vte_pangocairo_set_background_image (struct _vte_draw *draw,
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
 	GdkPixmap *pixmap;
-
-	if (type == VTE_BG_SOURCE_NONE)
-		return;
-
-	if (data->bg_pattern) {
-		cairo_pattern_destroy (data->bg_pattern);
-		data->bg_pattern = NULL;
-	}
+	cairo_pattern_t *old_pattern;
+	cairo_surface_t *surface;
+	cairo_t *cr;
 
 	pixmap = vte_bg_get_pixmap (vte_bg_get_for_screen (gtk_widget_get_screen (draw->widget)),
 				    type, pixbuf, file,
 				    color, saturation,
 				    _vte_draw_get_colormap(draw, TRUE));
 
-	if (pixmap) {
+	if (!pixmap)
+		return;
 
-		/* Ugh... We need to create a dummy cairo_t */
-		cairo_surface_t *surface;
-		cairo_t *cr;
+	if (data->bg_pattern)
+		cairo_pattern_destroy (data->bg_pattern);
 
-		surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, 0, 0);
-		cr = cairo_create (surface);
+	/* Ugh... We need to create a dummy cairo_t */
+	surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, 0, 0);
+	cr = cairo_create (surface);
 
-		gdk_cairo_set_source_pixmap (cr, pixmap, 0, 0);
-		data->bg_pattern = cairo_pattern_reference (cairo_get_source (cr));
+	gdk_cairo_set_source_pixmap (cr, pixmap, 0, 0);
+	data->bg_pattern = cairo_pattern_reference (cairo_get_source (cr));
 
-		cairo_destroy (cr);
-		cairo_surface_destroy (surface);
+	cairo_destroy (cr);
+	cairo_surface_destroy (surface);
 
-		/* Transfer the pixmap ownership to the pattern */
-		cairo_pattern_set_user_data (data->bg_pattern,
-					     (cairo_user_data_key_t *) data,
-					     pixmap,
-					     (cairo_destroy_func_t) g_object_unref);
+	/* Transfer the pixmap ownership to the pattern */
+	cairo_pattern_set_user_data (data->bg_pattern,
+				     (cairo_user_data_key_t *) data,
+				     pixmap,
+				     (cairo_destroy_func_t) g_object_unref);
 
-		cairo_pattern_set_extend (data->bg_pattern, CAIRO_EXTEND_REPEAT);
-	}
+	cairo_pattern_set_extend (data->bg_pattern, CAIRO_EXTEND_REPEAT);
 }
 
 static void

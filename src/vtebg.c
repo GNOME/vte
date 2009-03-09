@@ -555,7 +555,6 @@ vte_bg_get_pixmap(VteBg *bg,
 	gpointer cached;
 	GdkColormap *rcolormap;
 	GdkPixmap *pixmap;
-	GdkBitmap *mask;
 	GdkPixbuf *pixbuf;
 	char *file;
 
@@ -652,7 +651,6 @@ vte_bg_get_pixmap(VteBg *bg,
 	}
 
 	pixmap = NULL;
-	mask = NULL;
 	if (GDK_IS_PIXBUF(pixbuf)) {
 		/* If the image is smaller than 256x256 then tile it into a
 		 * pixbuf that is at least this large.  This is done because
@@ -661,11 +659,8 @@ vte_bg_get_pixmap(VteBg *bg,
 		pixbuf = _vte_bg_resize_pixbuf(pixbuf, 256, 256);
 		gdk_pixbuf_render_pixmap_and_mask_for_colormap(pixbuf,
 							       colormap,
-							       &pixmap, &mask,
+							       &pixmap, NULL,
 							       0);
-		if (mask != NULL) {
-			g_object_unref(mask);
-		}
 		g_object_unref(pixbuf);
 	}
 
