@@ -1,3 +1,8 @@
+2009-03-13  Amitakhya Phukan <amitakhya@svn.gnome.org>
+
+	* LINGUAS: Added as.
+	* as.po: Updated Assamese translations.
+
 2009-02-18  Luca Ferretti  <elle.uca@libero.it>
 
 	* it.po: Updated Italian translation by Francesco Marletta.
