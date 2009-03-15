@@ -315,8 +315,11 @@ case "$vte_cv_termcap_lib" in
               ;;
   libcurses)  # Need curses.h and term.h
               AC_CHECK_HEADERS([curses.h term.h],[],
-                [AC_MSG_ERROR([curses headers not found])])
-              LIBS="-lncurses $LIBS"
+                [AC_MSG_ERROR([curses headers not found])],
+                [[#ifdef HAVE_CURSES_H
+                  #include <curses.h>
+                  #endif]])
+              LIBS="-lcurses $LIBS"
               ;;
   libtermcap) # Need termcap.h
               AC_CHECK_HEADERS([termcap.h],[],
