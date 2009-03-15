@@ -1,15 +1,15 @@
 m4_define([vte_version_major],[0])
-m4_define([vte_version_minor],[19])
-m4_define([vte_version_micro],[5])
+m4_define([vte_version_minor],[20])
+m4_define([vte_version_micro],[0])
 m4_define([vte_version],[vte_version_major.vte_version_minor.vte_version_micro])
 
-AC_PREREQ(2.56)
+AC_PREREQ([2.59])
 AC_INIT(vte, [vte_version],
         [http://bugzilla.gnome.org/enter_bug.cgi?product=vte])
 AC_CONFIG_SRCDIR([src/vte.c])
 AC_CONFIG_HEADERS([config.h])
 
-AM_INIT_AUTOMAKE([1.9 no-dist-gzip dist-bzip2])
+AM_INIT_AUTOMAKE([1.9 foreign no-dist-gzip dist-bzip2])
 
 if test -z "$enable_maintainer_mode"; then
   enable_maintainer_mode=yes
@@ -20,13 +20,13 @@ AM_MAINTAINER_MODE([enable])
 # Libtool shared library versioning stuffs.
 # REVISION gets incremented whenever the source code changes without adding
 # an API or ABI change.
-LTVERSION_REVISION=4
+LTVERSION_REVISION=0
 # CURRENT must be incremented when an API or ABI change (addition or removal)
 # is made, and REVISION must be reset to 0 when this happens.
-LTVERSION_CURRENT=13
+LTVERSION_CURRENT=14
 # AGE must be incremented when an API or ABI addition is made, and REVISION
 # must be reset to 0 when this happens.
-LTVERSION_AGE=4
+LTVERSION_AGE=5
 
 LIBVTE_LTVERSION=${LTVERSION_CURRENT}:${LTVERSION_REVISION}:${LTVERSION_AGE}
 AC_SUBST([LIBVTE_LTVERSION])

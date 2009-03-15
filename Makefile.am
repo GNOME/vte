@@ -1,5 +1,5 @@
 SUBDIRS = src python termcaps po doc perf
-EXTRA_DIST = MAINTAINERS HACKING vte.pc.in vte-uninstalled.pc.in
+EXTRA_DIST = MAINTAINERS HACKING autogen.sh
 DISTCLEANFILES =
 
 if BUILD_GNOME_PTY_HELPER

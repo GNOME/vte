@@ -1,5 +1,9 @@
 2009-03-15  Christian Persch  <chpe@gnome.org>
 
+	* configure.in: Prepare version 0.20.0.
+
+2009-03-15  Christian Persch  <chpe@gnome.org>
+
 	Bug 575398 – configure warns about term.h under OpenSolaris
 
 	* configure.in: Fix curses detection on solaris. Patch by David	Adam.
