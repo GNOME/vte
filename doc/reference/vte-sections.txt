@@ -221,6 +221,7 @@ _vte_fc_defaults_cb
 _vte_iso2022_codeset_changed_cb_fn
 vte_regex_match
 
+
 VteReaperClass
 VteTerminalClass
 
