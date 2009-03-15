@@ -1,4 +1,4 @@
-0.19.5
+0.20.0
 =======
 - Support using a real bold font instead of pseudo-bolding
 - Respond to fontconfig configuration changes
@@ -15,7 +15,10 @@
     Bug 565675 – typo in configure.in cause ncurses checking fail
     Bug 565663 – compile failure because use static function in another .h
                  file
-    
+    Bug 575398 – configure warns about term.h under OpenSolaris
+    Bug 574616 – "real" transparency not working from python bindings
+    Bug 574025 – Crash in _vte_terminal_insert_char
+
 0.19.4
 ======
 - Support for correct rendering of combining characters
