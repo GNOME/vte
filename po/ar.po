@@ -7,8 +7,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-09-13 23:49+0100\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=vte&component=general\n"
+"POT-Creation-Date: 2009-03-17 22:08+0000\n"
 "PO-Revision-Date: 2008-05-24 18:50+0300\n"
 "Last-Translator: Khaled Hosny <khaledhosny@eglug.org>\n"
 "Language-Team: Arabic <doc@arabeyes.org>\n"
@@ -16,25 +17,26 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 1.11.4\n"
-"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
+"&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
 
-#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
-#: ../src/vte.c:1840
+#: ../src/iso2022.c:785 ../src/iso2022.c:793 ../src/iso2022.c:824
+#: ../src/vte.c:2293
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "لا يمكن تحويل المحارف من %s إلى %s."
 
-#: ../src/iso2022.c:1540
+#: ../src/iso2022.c:1472
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "محاولة ضبط خارطة NRC غير سليمة '%c'."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1570
+#: ../src/iso2022.c:1502
 msgid "Unrecognized identified coding system."
 msgstr "مُيّز نظام ترميز غير معروف."
 
-#: ../src/iso2022.c:1629 ../src/iso2022.c:1656
+#: ../src/iso2022.c:1561 ../src/iso2022.c:1588
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "محاولة لضبط خارطة NRC واسعة غير سليمة '%c'."
@@ -42,76 +44,66 @@ msgstr "محاولة لضبط خارطة NRC واسعة غير سليمة '%c'."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: ../src/pty.c:837
+#: ../src/pty.c:831
 #, c-format
 msgid "can not run %s"
 msgstr "تعذّر تشغيل %s"
 
-#: ../src/reaper.c:136
-msgid "Error creating signal pipe."
-msgstr "خطأ أثناء إنشاء أنبوب الإشارات."
-
-#: ../src/trie.c:414
+#: ../src/trie.c:409
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "مكرر (%s/%s)!"
 
-#: ../src/vte.c:1227
+#. Bail back to normal mode.
+#: ../src/vteapp.c:846
+msgid "Could not open console.\n"
+msgstr "لا يمكن فتح الكونسول.\n"
+
+#: ../src/vteapp.c:910
+msgid "Could not parse the geometry spec passed to --geometry"
+msgstr "لا يمكن تحليل مواصفات الأبعاد الممرة للخيار ‪--geometry‬"
+
+#: ../src/vte.c:1342
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "خطأ عند تجميع التعبير النظامي \"%s\"."
 
-#: ../src/vte.c:2701 ../src/vte.c:2706
-#, c-format
-msgid "No handler for control sequence `%s' defined."
-msgstr "لم يخصص معالج لسلسلة التحكم `%s'."
-
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:3671
+#: ../src/vte.c:4296
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "خطأ عند القراءة من الابن: %s."
 
-#: ../src/vte.c:3787
+#: ../src/vte.c:4424
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr "تعذّر إرسال البيانات للابن، محول محارف غير صحيح"
 
-#: ../src/vte.c:3798 ../src/vte.c:4705
+#: ../src/vte.c:4435 ../src/vte.c:5402
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "خطأ (%s) عند تحويل البيانات من الابن، تخلي."
 
-#: ../src/vte.c:6941
+#: ../src/vte.c:7673
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "خطأ عند قراءة حجم PTY، استعمال الافتراض: %s."
 
-#: ../src/vte.c:6977
-#, c-format
-msgid "Error setting PTY size: %s."
-msgstr "خطأ عند ضبط حجم PTY: %s."
-
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:11451
+#: ../src/vte.c:13032
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "فشل ‪_vte_conv_open()‬ في ضبط رموز الكلمة"
 
-#: ../src/vteseq.c:3929
-#, c-format
-msgid "Got unexpected (key?) sequence `%s'."
-msgstr "تلقيت تتابع (مفتاح؟) غير متوقع `%s'."
+#~ msgid "Error setting PTY size: %s."
+#~ msgstr "خطأ عند ضبط حجم PTY: %s."
 
-#. Bail back to normal mode.
-#: ../src/vteapp.c:780
-msgid "Could not open console.\n"
-msgstr "لا يمكن فتح الكونسول.\n"
+#~ msgid "Error creating signal pipe."
+#~ msgstr "خطأ أثناء إنشاء أنبوب الإشارات."
 
-#: ../src/vteapp.c:844
-msgid "Could not parse the geometry spec passed to --geometry"
-msgstr "لا يمكن تحليل مواصفات الأبعاد الممرة للخيار ‪--geometry‬"
+#~ msgid "No handler for control sequence `%s' defined."
+#~ msgstr "لم يخصص معالج لسلسلة التحكم `%s'."
 
-#: ../src/vteglyph.c:562
-#, c-format
-msgid "Unknown pixel mode %d.\n"
-msgstr "نمط بكسلي %Id مجهول.\n"
+#~ msgid "Got unexpected (key?) sequence `%s'."
+#~ msgstr "تلقيت تتابع (مفتاح؟) غير متوقع `%s'."
 
+#~ msgid "Unknown pixel mode %d.\n"
+#~ msgstr "نمط بكسلي %Id مجهول.\n"
