@@ -1,3 +1,11 @@
+2009-03-23  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 576504 – vte does not pass its testsuite.
+
+	* src/vte.c:
+	* src/vtedraw.h:
+	Fix "make check".
+
 2009-03-15  Christian Persch  <chpe@gnome.org>
 
 	Bug 574491 – gnome-pty-helper can prevent volumes from being unmounted

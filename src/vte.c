@@ -3442,7 +3442,7 @@ _vte_terminal_disconnect_pty_write(VteTerminal *terminal)
 	}
 }
 
-/* Basic wrapper around _vte_pty_open, which handles the pipefitting. */
+/* Basic wrapper around _vte_pty_open(), which handles the pipefitting. */
 static pid_t
 _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
 			 char **argv, char **envv,

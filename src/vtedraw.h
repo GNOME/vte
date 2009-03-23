@@ -48,7 +48,6 @@ G_BEGIN_DECLS
 #define VTE_DRAW_OPAQUE 0xff
 #define VTE_DRAW_MAX_LENGTH 1024
 
-/* The _vte_draw structure. */
 struct _vte_draw;
 
 /* A request to draw a particular character spanning a given number of columns
