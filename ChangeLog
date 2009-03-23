@@ -1,5 +1,11 @@
 2009-03-15  Christian Persch  <chpe@gnome.org>
 
+	Bug 574491 – gnome-pty-helper can prevent volumes from being unmounted
+
+	* gnome-pty-helper/gnome-pty-helper.c: (main): chdir to /.
+
+2009-03-15  Christian Persch  <chpe@gnome.org>
+
 	* configure.in: Prepare version 0.20.0.
 
 2009-03-15  Christian Persch  <chpe@gnome.org>

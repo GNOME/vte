@@ -665,6 +665,12 @@ main (int argc, char *argv [])
 		login_name = login_name_buffer;
 	}
 
+        /* Change directory so we don't prevent unmounting in case the initial cwd
+         * is on an external device (see bug #574491). 
+         */
+	if (chdir ("/") < 0)
+                fprintf (stderr, "Failed to chdir to /: %s\n", strerror (errno));
+ 
 	display_name = getenv ("DISPLAY");
 	if (!display_name)
 		display_name = "localhost";
