@@ -895,6 +895,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 				"Entering application cursor mode.\n" :
 				"Leaving application cursor mode.\n");
 		break;
+#if 0		/* 3: disallowed, window size is set by user. */
 	case 3:
 		vte_terminal_emit_resize_window(terminal,
 						(set ? 132 : 80) *
@@ -906,6 +907,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		/* Request a resize and redraw. */
 		_vte_invalidate_all(terminal);
 		break;
+#endif
 	case 5:
 		/* Repaint everything in reverse mode. */
 		_vte_invalidate_all(terminal);

@@ -1,3 +1,10 @@
+2009-03-26  Behdad Esfahbod  <behdad@gnome.org>
+
+	Bug 573674 – reset resets width to 80 chars
+
+	* src/vteseq.c (vte_sequence_handler_decset_internal): Disable
+	resizing on decreset.
+
 2009-03-23  Behdad Esfahbod  <behdad@gnome.org>
 
 	Bug 576504 – vte does not pass its testsuite.
