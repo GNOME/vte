@@ -865,7 +865,6 @@ _vte_pangocairo_set_background_image (struct _vte_draw *draw,
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
 	GdkPixmap *pixmap;
-	cairo_pattern_t *old_pattern;
 	cairo_surface_t *surface;
 	cairo_t *cr;
 

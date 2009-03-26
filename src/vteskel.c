@@ -45,7 +45,7 @@ _vte_skel_get_text_metrics(struct _vte_draw *draw,
 static void
 _vte_skel_draw_text(struct _vte_draw *draw,
 		    struct _vte_draw_text_request *requests, gsize n_requests,
-		    GdkColor *color, guchar alpha)
+		    GdkColor *color, guchar alpha, gboolean bold)
 {
 	g_message ("_vte_skel_draw_text: %d chars",
 		   n_requests);

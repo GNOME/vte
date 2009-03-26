@@ -1158,10 +1158,11 @@ vte_terminal_match_contents_clear(VteTerminal *terminal)
 
 /* Refresh the cache of the screen contents we keep. */
 static gboolean
-always_selected(VteTerminal *terminal, glong row, glong column, gpointer data)
+always_selected(VteTerminal *terminal, glong column, glong row, gpointer data)
 {
 	return TRUE;
 }
+
 static void
 vte_terminal_match_contents_refresh(VteTerminal *terminal)
 {

@@ -1,5 +1,12 @@
 2009-03-26  Behdad Esfahbod  <behdad@gnome.org>
 
+	* src/vte.c (always_selected):
+	* src/vtepangocairo.c (_vte_pangocairo_set_background_image):
+	* src/vteskel.c (_vte_skel_draw_text):
+	Minor fixes from Richard Russon.
+
+2009-03-26  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 576797 – Double-click sometimes stops working
 
 	* src/vte.c (vte_terminal_extend_selection): Invalidate selection
