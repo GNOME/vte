@@ -1,5 +1,12 @@
 2009-03-26  Behdad Esfahbod  <behdad@gnome.org>
 
+	Bug 576797 – Double-click sometimes stops working
+
+	* src/vte.c (vte_terminal_extend_selection): Invalidate selection
+	if forced.
+
+2009-03-26  Behdad Esfahbod  <behdad@gnome.org>
+
 	Bug 573674 – reset resets width to 80 chars
 
 	* src/vteseq.c (vte_sequence_handler_decset_internal): Disable

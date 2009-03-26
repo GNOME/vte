@@ -6666,7 +6666,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 
 	vte_terminal_extend_selection_expand (terminal);
 
-	if (!invalidate_selected &&
+	if (!invalidate_selected && !force &&
 	    0 == memcmp (sc, so, sizeof (*sc)) &&
 	    0 == memcmp (ec, eo, sizeof (*ec)))
 		/* No change */
