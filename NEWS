@@ -2,6 +2,9 @@
 =======
 - Bugs fixed in this release:
     Bug 574491 – gnome-pty-helper can prevent volumes from being unmounted
+    Bug 576504 – vte does not pass its testsuite.
+    Bug 573674 – reset resets width to 80 chars
+    Bug 576797 – Double-click sometimes stops working
 
 0.20.0
 =======
