@@ -6,9 +6,6 @@ EXTRA_DIST = \
 	autogen.sh \
 	ChangeLog.pre-git
 
-CLEANFILES = \
-	ChangeLog
-
 DISTCLEANFILES =
 
 if BUILD_GNOME_PTY_HELPER
@@ -25,6 +22,7 @@ pkgconfig_DATA = vte.pc
 DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc
 
 MAINTAINERCLEANFILES = \
+		ChangeLog \
 		$(srcdir)/INSTALL \
 		$(srcdir)/aclocal.m4 \
 		$(srcdir)/autoscan.log \
