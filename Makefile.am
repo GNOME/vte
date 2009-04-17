@@ -6,6 +6,9 @@ EXTRA_DIST = \
 	autogen.sh \
 	ChangeLog.pre-git
 
+CLEANFILES = \
+	ChangeLog
+
 DISTCLEANFILES =
 
 if BUILD_GNOME_PTY_HELPER
