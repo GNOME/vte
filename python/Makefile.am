@@ -38,3 +38,5 @@ vte.c: vte.defs vte.override
         && rm -f gen-$*.c
 
 endif
+
+-include $(top_srcdir)/git.mk

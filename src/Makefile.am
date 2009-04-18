@@ -298,3 +298,5 @@ dumpkeys_SOURCES = dumpkeys.c
 mev_SOURCES = mev.c
 ssfe_SOURCES = ssfe.c
 xticker_SOURCES = xticker.c
+
+-include $(top_srcdir)/git.mk

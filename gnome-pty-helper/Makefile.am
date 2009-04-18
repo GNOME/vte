@@ -14,8 +14,16 @@ install-exec-hook:
 MAINTAINERCLEANFILES = \
 		$(srcdir)/INSTALL \
 		$(srcdir)/aclocal.m4 \
+		$(srcdir)/config.guess \
 		$(srcdir)/config.h.in \
+		$(srcdir)/config.sub \
 		$(srcdir)/configure \
+		$(srcdir)/depcomp \
+		$(srcdir)/install-sh \
+		$(srcdir)/mkinstalldirs \
+		$(srcdir)/missing \
 		$(srcdir)/omf.make \
 		$(srcdir)/xmldocs.make \
 		`find "$(srcdir)" -type f -name Makefile.in -print`
+
+-include $(top_srcdir)/git.mk

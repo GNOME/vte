@@ -40,4 +40,8 @@ install-data-local: install-icons
 
 uninstall-local: uninstall-icons
 
+MAINTAINERCLEANFILES = $(catalogue_DATA)
+
 @INTLTOOL_XML_NOMERGE_RULE@
+
+-include $(top_srcdir)/git.mk

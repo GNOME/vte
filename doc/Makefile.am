@@ -7,3 +7,5 @@ ctlseqs.ps: ctlseqs.ms
 
 ctlseqs.txt: ctlseqs.ms
 	tbl $^ | nroff -c -ms > $@
+
+-include $(top_srcdir)/git.mk
