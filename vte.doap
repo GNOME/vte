@@ -7,12 +7,12 @@
   <name xml:lang="en">Terminal widget</name>
   <shortdesc xml:lang="en">vte terminal widget</shortdesc>
 
-  <!--
-  <homepage rdf:resource="http://www.gnome.org/" />
-  -->
-  <!--
-  <mailing-list rdf:resource="http://mail.gnome.org/mailman/listinfo/desktop-devel-list" />
-  -->
+  <mailing-list
+  rdf:resource="http://mail.gnome.org/mailman/listinfo/desktop-devel-list" />
+  <download-page
+  rdf:resource="http://download.gnome.org/sources/vte"/>
+  <bug-database
+  rdf:resource="http://bugzilla.gnome.org/browse.cgi?product=vte"/>
 
   <maintainer>
     <foaf:Person>
