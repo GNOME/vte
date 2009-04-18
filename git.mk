@@ -1,7 +1,11 @@
 # git.mk
 #
-# Use as you wish.  Copyright not claimed.
+# Copyright 2009, Red Hat, Inc.
 # Written by Behdad Esfahbod
+#
+# Copying and distribution of this file, with or without modification,
+# are permitted in any medium without royalty provided the copyright
+# notice and this notice are preserved.
 #
 # The canonical source for this file is pango/git.mk, or whereever the
 # header of pango/git.mk suggests in the future.
@@ -34,6 +38,9 @@
 # Don't EXTRA_DIST this file.  It is supposed to only live in git clones,
 # not tarballs.  It serves no useful purpose in tarballs and clutters the
 # build dir.
+#
+# This file knows how to handle autoconf, automake, libtool, gtk-doc,
+# gnome-doc-utils, intltool.
 #
 #
 # KNOWN ISSUES:
@@ -74,15 +81,28 @@ git-mk-install:
 
 ### .gitignore generation
 
-.gitignore: Makefile.am $(top_srcdir)/git.mk
+$(srcdir)/.gitignore: Makefile.am $(top_srcdir)/git.mk
 	@echo Generating $@; \
-	GTKDOCGITIGNOREFILES=; test "x$(DOC_MODULE)" = x || \
+	GTKDOCGITIGNOREFILES=; \
+	test "x$(DOC_MODULE)" = x -o "x$(DOC_MAIN_SGML_FILE)" = x || \
 	GTKDOCGITIGNOREFILES=" \
 		$(DOC_MODULE)-decl-list.txt \
 		$(DOC_MODULE)-decl.txt \
 		tmpl/$(DOC_MODULE)-unused.sgml \
 		tmpl/*.bak \
 		xml html \
+		"; \
+	GNOMEDOCUTILSGITIGNOREFILES=; \
+	test "x$(DOC_MODULE)" = x -o "x$(DOC_LINGUAS)" = x || \
+	GNOMEDOCUTILSGITIGNOREFILES=" \
+		$(_DOC_C_DOCS) \
+		$(_DOC_LC_DOCS) \
+		$(_DOC_OMF_ALL) \
+		$(_DOC_DSK_ALL) \
+		$(_DOC_HTML_ALL) \
+		$(_DOC_POFILES) \
+		*/.xml2po.mo \
+		*/*.omf.out \
 		"; \
 	INTLTOOLGITIGNOREFILES=; test -f $(srcdir)/po/Makefile.in.in && \
 	INTLTOOLGITIGNOREFILES=" \
@@ -93,6 +113,7 @@ git-mk-install:
 		po/*.mo \
 		po/POTFILES \
 		po/stamp-it \
+		po/.intltool-merge-cache \
 		intltool-extract.in \
 		intltool-merge.in \
 		intltool-update.in \
@@ -109,6 +130,7 @@ git-mk-install:
 	for x in \
 		.gitignore \
 		$$GTKDOCGITIGNOREFILES \
+		$$GNOMEDOCUTILSGITIGNOREFILES \
 		$$INTLTOOLGITIGNOREFILES \
 		$$AUTOCONFGITIGNOREFILES \
 		$(GITIGNOREFILES) \
@@ -135,13 +157,14 @@ git-mk-install:
 		"*.rej" \
 		"*.bak" \
 		"*~" \
+		".*.swp" \
 	; do echo /$$x; done | \
-	grep -v '/[.][.]/' | \
+	sed "s@^/`echo "$(srcdir)" | sed 's/\(.\)/[\1]/g'`/@/@" | \
 	sed 's@/[.]/@/@g' | \
 	LANG=C sort | uniq > $@.tmp && \
 	mv $@.tmp $@;
 
-all: .gitignore gitignore-recurse
+all: $(srcdir)/.gitignore gitignore-recurse
 gitignore-recurse:
 	@if test "x$(SUBDIRS)" = "x$(DIST_SUBDIRS)"; then :; else \
 		list='$(DIST_SUBDIRS)'; for subdir in $$list; do \
@@ -150,6 +173,6 @@ gitignore-recurse:
 	fi;
 maintainer-clean-local: gitignore-clean
 gitignore-clean:
-	rm -f .gitignore
+	rm -f $(srcdir)/.gitignore
 .PHONY: gitignore-clean gitignore-recurse
 
