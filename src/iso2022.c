@@ -1197,9 +1197,15 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 								   &outbytes);
 					switch (i) {
 					case 0:
-						/* Nope, munge the input. */
-						inbuf++;
-						inbytes--;
+						/* iconv() may be buggy,
+						 * returning EILSEQ and
+						 * no remaining bytes.
+						 * Bug 567064 */
+						if (inbytes) {
+							/* Nope, munge the input. */
+							inbuf++;
+							inbytes--;
+						}
 						*outbuf++ = INVALID_CODEPOINT;
 						outbytes -= sizeof(gunichar);
 						break;
