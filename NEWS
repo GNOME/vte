@@ -1,3 +1,8 @@
+0.20.2
+=======
+- Bugs fixed in this release:
+    Bug 567064 - Work around buggy iconv
+
 0.20.1
 =======
 - Bugs fixed in this release:
