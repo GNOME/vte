@@ -169,7 +169,7 @@ _wrap_vte_terminal_fork_command(PyGObject * self, PyObject * args,
 	int i, n_args, n_envs;
 	pid_t pid;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|sOOsOOO:fork_command",
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|zOOzOOO:fork_command",
 					 kwlist, &command, &py_argv, &py_envv,
 					 &directory,
 					 &loglastlog, &logutmp, &logwtmp)) {
@@ -234,7 +234,7 @@ _wrap_vte_terminal_forkpty(PyGObject * self, PyObject * args, PyObject * kwargs)
 	int n_envs;
 	pid_t pid;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OsOOO:forkpty",
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OzOOO:forkpty",
 					 kwlist, &py_envv, &directory,
 					 &loglastlog, &logutmp, &logwtmp)) {
 		return NULL;
