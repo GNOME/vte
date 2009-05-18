@@ -35,246 +35,231 @@ All of these fields should be considered read-only.
 
 <!-- ##### SIGNAL VteTerminal::beep ##### -->
 <para>
-This signal is emitted when the a child sends a beep request to the terminal.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::char-size-changed ##### -->
 <para>
-Emitted whenever selection of a new font causes the values of the
-@char_width or @char_height fields to change.
+
 </para>
 
-@vteterminal: the object which received the signal.
-@arg1: the new character cell width.
-@arg2: the new character cell height.
+@vteterminal: 
+@arg1: 
+@arg2: 
 
 <!-- ##### SIGNAL VteTerminal::child-exited ##### -->
 <para>
-This signal is emitted when the terminal detects that a child started using
-vte_terminal_fork_command() has exited.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::commit ##### -->
 <para>
-Emitted whenever the terminal receives input from the user and prepares to send
-it to the child process.  The signal is emitted even when there is no child
-process.
+
 </para>
 
-@vteterminal: the object which received the signal.
-@arg1: a string of text.
-@arg2: the length of that string of text.
+@vteterminal: 
+@arg1: 
+@arg2: 
 
 <!-- ##### SIGNAL VteTerminal::contents-changed ##### -->
 <para>
-Emitted whenever the visible appearance of the terminal has changed.  Used
-primarily by #VteTerminalAccessible.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::copy-clipboard ##### -->
 <para>
-Emitted whenever vte_terminal_copy_clipboard() is called.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::cursor-moved ##### -->
 <para>
-Emitted whenever the cursor moves to a new character cell.  Used primarily
-by #VteTerminalAccessible.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::decrease-font-size ##### -->
 <para>
-Emitted when the user hits the '-' key while holding the Control key.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::deiconify-window ##### -->
 <para>
-Emitted at the child application's request.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::emulation-changed ##### -->
 <para>
-Emitted whenever the terminal's emulation changes, only possible at the
-parent application's request.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::encoding-changed ##### -->
 <para>
-Emitted whenever the terminal's current encoding has changed, either as a
-result of receiving a control sequence which toggled between the local and
-UTF-8 encodings, or at the parent application's request.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::eof ##### -->
 <para>
-Emitted when the terminal receives an end-of-file from a child which is running
-in the terminal.  This signal is frequently (but not always) emitted with a
-"child-exited" signal.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::icon-title-changed ##### -->
 <para>
-Emitted when the terminal's @icon_title field is modified.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::iconify-window ##### -->
 <para>
-Emitted at the child application's request.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::increase-font-size ##### -->
 <para>
-Emitted when the user hits the '+' key while holding the Control key.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::lower-window ##### -->
 <para>
-Emitted at the child application's request.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::maximize-window ##### -->
 <para>
-Emitted at the child application's request.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::move-window ##### -->
 <para>
-Emitted at the child application's request.
+
 </para>
 
-@vteterminal: the object which received the signal.
-@arg1: the terminal's desired location, X coordinate.
-@arg2: the terminal's desired location, Y coordinate.
+@vteterminal: 
+@arg1: 
+@arg2: 
 
 <!-- ##### SIGNAL VteTerminal::paste-clipboard ##### -->
 <para>
-Emitted whenever vte_terminal_paste_clipboard() is called.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::raise-window ##### -->
 <para>
-Emitted at the child application's request.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::refresh-window ##### -->
 <para>
-Emitted at the child application's request.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::resize-window ##### -->
 <para>
-Emitted at the child application's request.
+
 </para>
 
-@vteterminal: the object which received the signal.
-@arg1: the desired width in pixels, including padding.
-@arg2: the desired height in pixels, including padding.
+@vteterminal: 
+@arg1: 
+@arg2: 
 
 <!-- ##### SIGNAL VteTerminal::restore-window ##### -->
 <para>
-Emitted at the child application's request.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::selection-changed ##### -->
 <para>
-Emitted whenever the contents of terminal's selection changes.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::set-scroll-adjustments ##### -->
 <para>
 
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 @arg1: 
 @arg2: 
 
 <!-- ##### SIGNAL VteTerminal::status-line-changed ##### -->
 <para>
-Emitted whenever the contents of the status line are modified or cleared.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::text-deleted ##### -->
 <para>
-An internal signal used for communication between the terminal and its
-accessibility peer.  May not be emitted under certain circumstances.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::text-inserted ##### -->
 <para>
-An internal signal used for communication between the terminal and its
-accessibility peer.  May not be emitted under certain circumstances.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::text-modified ##### -->
 <para>
-An internal signal used for communication between the terminal and its
-accessibility peer.  May not be emitted under certain circumstances.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### SIGNAL VteTerminal::text-scrolled ##### -->
 <para>
-An internal signal used for communication between the terminal and its
-accessibility peer.  May not be emitted under certain circumstances.
+
 </para>
 
-@vteterminal: the object which received the signal.
-@arg1: the number of lines scrolled.
+@vteterminal: 
+@arg1: 
 
 <!-- ##### SIGNAL VteTerminal::window-title-changed ##### -->
 <para>
-Emitted when the terminal's @window_title field is modified.
+
 </para>
 
-@vteterminal: the object which received the signal.
+@vteterminal: 
 
 <!-- ##### ARG VteTerminal:allow-bold ##### -->
 <para>

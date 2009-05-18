@@ -2606,7 +2606,7 @@ vte_terminal_generate_bold(const struct vte_palette_entry *foreground,
 }
 
 /**
- * vte_terminal_set_color_bold
+ * vte_terminal_set_color_bold:
  * @terminal: a #VteTerminal
  * @bold: the new bold color
  *
@@ -2626,7 +2626,7 @@ vte_terminal_set_color_bold(VteTerminal *terminal, const GdkColor *bold)
 }
 
 /**
- * vte_terminal_set_color_dim
+ * vte_terminal_set_color_dim:
  * @terminal: a #VteTerminal
  * @dim: the new dim color
  *
@@ -2646,7 +2646,7 @@ vte_terminal_set_color_dim(VteTerminal *terminal, const GdkColor *dim)
 }
 
 /**
- * vte_terminal_set_color_foreground
+ * vte_terminal_set_color_foreground:
  * @terminal: a #VteTerminal
  * @foreground: the new foreground color
  *
@@ -2667,7 +2667,7 @@ vte_terminal_set_color_foreground(VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_set_color_background
+ * vte_terminal_set_color_background:
  * @terminal: a #VteTerminal
  * @background: the new background color
  *
@@ -2690,7 +2690,7 @@ vte_terminal_set_color_background(VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_set_color_cursor
+ * vte_terminal_set_color_cursor:
  * @terminal: a #VteTerminal
  * @cursor_background: the new color to use for the text cursor
  *
@@ -2724,7 +2724,7 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_set_color_highlight
+ * vte_terminal_set_color_highlight:
  * @terminal: a #VteTerminal
  * @highlight_background: the new color to use for highlighted text
  *
@@ -2758,7 +2758,7 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_set_colors
+ * vte_terminal_set_colors:
  * @terminal: a #VteTerminal
  * @foreground: the new foreground color, or %NULL
  * @background: the new background color, or %NULL
@@ -2896,7 +2896,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_set_opacity
+ * vte_terminal_set_opacity:
  * @terminal: a #VteTerminal
  * @opacity: the new opacity
  *
@@ -11366,8 +11366,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::set-scroll-adjustments:
-         * @horizontal: the horizontal #GtkAdjustment (unused in #VteTerminal)
-         * @vertical: the vertical #GtkAdjustment
+         * @vteterminal: the object which received the signal.
+         * @horizontal: the horizontal #GtkAdjustment (unused in #VteTerminal).
+         * @vertical: the vertical #GtkAdjustment.
          *
          * Set the scroll adjustments for the terminal. Usually scrolled containers
          * like #GtkScrolledWindow will emit this signal to connect two instances
@@ -11386,6 +11387,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     GTK_TYPE_ADJUSTMENT, GTK_TYPE_ADJUSTMENT);
 
 	/* Register some signals of our own. */
+
+        /**
+         * VteTerminal::eof:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted when the terminal receives an end-of-file from a child which
+         * is running in the terminal.  This signal is frequently (but not
+         * always) emitted with a "child-exited" signal.
+         */
 	klass->eof_signal =
                 g_signal_new(I_("eof"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11395,6 +11405,14 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::child-exited:
+         * @vteterminal: the object which received the signal.
+         *
+         * This signal is emitted when the terminal detects that a child started
+         * using vte_terminal_fork_command() has exited.
+         */
 	klass->child_exited_signal =
                 g_signal_new(I_("child-exited"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11404,6 +11422,13 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
 			     g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::window-title-changed:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted when the terminal's %window_title field is modified.
+         */
 	klass->window_title_changed_signal =
                 g_signal_new(I_("window-title-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11413,6 +11438,13 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::icon-title-changed:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted when the terminal's %icon_title field is modified.
+         */
 	klass->icon_title_changed_signal =
                 g_signal_new(I_("icon-title-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11422,6 +11454,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::encoding-changed:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted whenever the terminal's current encoding has changed, either
+         * as a result of receiving a control sequence which toggled between the
+         * local and UTF-8 encodings, or at the parent application's request.
+         */
 	klass->encoding_changed_signal =
                 g_signal_new(I_("encoding-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11431,6 +11472,17 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::commit:
+         * @vteterminal: the object which received the signal.
+         * @text: a string of text.
+         * @size: the length of that string of text.
+         *
+         * Emitted whenever the terminal receives input from the user and
+         * prepares to send it to the child process.  The signal is emitted even
+         * when there is no child process.
+         */
 	klass->commit_signal =
                 g_signal_new(I_("commit"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11440,6 +11492,14 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
 			     _vte_marshal_VOID__STRING_UINT,
 			     G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_UINT);
+
+        /**
+         * VteTerminal::emulation-changed:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted whenever the terminal's emulation changes, only possible at
+         * the parent application's request.
+         */
 	klass->emulation_changed_signal =
                 g_signal_new(I_("emulation-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11449,6 +11509,16 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::char-size-changed:
+         * @vteterminal: the object which received the signal.
+         * @width: the new character cell width.
+         * @height: the new character cell height.
+         *
+         * Emitted whenever selection of a new font causes the values of the
+         * %char_width or %char_height fields to change.
+         */
 	klass->char_size_changed_signal =
                 g_signal_new(I_("char-size-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11458,6 +11528,13 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
 			     _vte_marshal_VOID__UINT_UINT,
 			     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
+
+        /**
+         * VteTerminal::selection-changed:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted whenever the contents of terminal's selection changes.
+         */
 	klass->selection_changed_signal =
                 g_signal_new (I_("selection-changed"),
 			      G_OBJECT_CLASS_TYPE(klass),
@@ -11465,8 +11542,16 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			      G_STRUCT_OFFSET(VteTerminalClass, selection_changed),
 			      NULL,
 			      NULL,
-                             g_cclosure_marshal_VOID__VOID,
+                              g_cclosure_marshal_VOID__VOID,
 			      G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::contents-changed:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted whenever the visible appearance of the terminal has changed.
+         * Used primarily by #VteTerminalAccessible.
+         */
 	klass->contents_changed_signal =
                 g_signal_new(I_("contents-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11476,6 +11561,14 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::cursor-moved:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted whenever the cursor moves to a new character cell.  Used
+         * primarily by #VteTerminalAccessible.
+         */
 	klass->cursor_moved_signal =
                 g_signal_new(I_("cursor-moved"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11485,6 +11578,13 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::deiconify-window:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted at the child application's request.
+         */
 	klass->deiconify_window_signal =
                 g_signal_new(I_("deiconify-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11494,6 +11594,13 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::iconify-window:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted at the child application's request.
+         */
 	klass->iconify_window_signal =
                 g_signal_new(I_("iconify-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11503,6 +11610,13 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::raise-window:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted at the child application's request.
+         */
 	klass->raise_window_signal =
                 g_signal_new(I_("raise-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11512,6 +11626,13 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::lower-window:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted at the child application's request.
+         */
 	klass->lower_window_signal =
                 g_signal_new(I_("lower-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11521,6 +11642,13 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::refresh-window:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted at the child application's request.
+         */
 	klass->refresh_window_signal =
                 g_signal_new(I_("refresh-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11530,6 +11658,13 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::restore-window:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted at the child application's request.
+         */
 	klass->restore_window_signal =
                 g_signal_new(I_("restore-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11539,6 +11674,13 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::maximize-window:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted at the child application's request.
+         */
 	klass->maximize_window_signal =
                 g_signal_new(I_("maximize-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11548,6 +11690,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::resize-window:
+         * @vteterminal: the object which received the signal.
+         * @width: the desired width in pixels, including padding.
+         * @height: the desired height in pixels, including padding.
+         *
+         * Emitted at the child application's request.
+         */
 	klass->resize_window_signal =
                 g_signal_new(I_("resize-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11557,6 +11708,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
 			     _vte_marshal_VOID__UINT_UINT,
 			     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
+
+        /**
+         * VteTerminal::resize-window:
+         * @vteterminal: the object which received the signal.
+         * @x: the terminal's desired location, X coordinate.
+         * @y: the terminal's desired location, Y coordinate.
+         *
+         * Emitted at the child application's request.
+         */
 	klass->move_window_signal =
                 g_signal_new(I_("move-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11566,6 +11726,14 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
 			     _vte_marshal_VOID__UINT_UINT,
 			     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
+
+        /**
+         * VteTerminal::status-line-changed:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted whenever the contents of the status line are modified or
+         * cleared.
+         */
 	klass->status_line_changed_signal =
                 g_signal_new(I_("status-line-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11575,6 +11743,13 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::increase-font-size:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted when the user hits the '+' key while holding the Control key.
+         */
 	klass->increase_font_size_signal =
                 g_signal_new(I_("increase-font-size"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11584,6 +11759,13 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::decrease-font-size:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted when the user hits the '-' key while holding the Control key.
+         */
 	klass->decrease_font_size_signal =
                 g_signal_new(I_("decrease-font-size"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11593,6 +11775,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::text-modified:
+         * @vteterminal: the object which received the signal.
+         *
+         * An internal signal used for communication between the terminal and
+         * its accessibility peer. May not be emitted under certain
+         * circumstances.
+         */
 	klass->text_modified_signal =
                 g_signal_new(I_("text-modified"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11602,6 +11793,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::text-inserted:
+         * @vteterminal: the object which received the signal.
+         *
+         * An internal signal used for communication between the terminal and
+         * its accessibility peer. May not be emitted under certain
+         * circumstances.
+         */
 	klass->text_inserted_signal =
                 g_signal_new(I_("text-inserted"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11611,6 +11811,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::text-deleted:
+         * @vteterminal: the object which received the signal.
+         *
+         * An internal signal used for communication between the terminal and
+         * its accessibility peer. May not be emitted under certain
+         * circumstances.
+         */
 	klass->text_deleted_signal =
                 g_signal_new(I_("text-deleted"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11620,6 +11829,16 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::text-scrolled:
+         * @vteterminal: the object which received the signal.
+         * @delta: the number of lines scrolled.
+         *
+         * An internal signal used for communication between the terminal and
+         * its accessibility peer. May not be emitted under certain
+         * circumstances.
+         */
 	klass->text_scrolled_signal =
                 g_signal_new(I_("text-scrolled"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11629,6 +11848,13 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__INT,
 			     G_TYPE_NONE, 1, G_TYPE_INT);
+
+        /**
+         * VteTerminal::copy-clipboard:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted whenever vte_terminal_copy_clipboard() is called.
+         */
 	signals[COPY_CLIPBOARD] =
                 g_signal_new(I_("copy-clipboard"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11639,6 +11865,12 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 
+        /**
+         * VteTerminal::paste-clipboard:
+         * @vteterminal: the object which received the signal.
+         *
+         * Emitted whenever vte_terminal_paste_clipboard() is called.
+         */
 	signals[PASTE_CLIPBOARD] =
                 g_signal_new(I_("paste-clipboard"),
 			     G_OBJECT_CLASS_TYPE(klass),
@@ -11649,6 +11881,13 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 
+        /**
+         * VteTerminal::beep:
+         * @vteterminal: the object which received the signal.
+         *
+         * This signal is emitted when the a child sends a beep request to the
+         * terminal.
+         */
         g_signal_new(I_("beep"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -13374,8 +13613,8 @@ vte_terminal_get_status_line(VteTerminal *terminal)
  * edges of its visible area.  This is necessary for cases where characters in
  * the selected font don't themselves include a padding area and the text
  * itself would otherwise be contiguous with the window border.  Applications
- * which use the widget's #row_count, #column_count, #char_height, and
- * #char_width fields to set geometry hints using
+ * which use the widget's %row_count, %column_count, %char_height, and
+ * %char_width fields to set geometry hints using
  * gtk_window_set_geometry_hints() will need to add this value to the base
  * size.  The values returned in @xpad and @ypad are the total padding used in
  * each direction, and do not need to be doubled.
