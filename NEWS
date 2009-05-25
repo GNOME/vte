@@ -1,3 +1,9 @@
+0.20.3
+=======
+- Bugs fixed in this release:
+    Bug 583129 - [python] allow passing None as command or directory option
+    Bug 583078 - [python] allow passing of environment as a dictionary
+
 0.20.2
 =======
 - Bugs fixed in this release:
