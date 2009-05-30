@@ -264,6 +264,7 @@ emulation=$withval,emulation=xterm)
 AC_DEFINE_UNQUOTED(VTE_DEFAULT_EMULATION,"$emulation",[The default terminal type to be emulated.])
 VTE_DEFAULT_EMULATION=$emulation
 AC_SUBST(VTE_DEFAULT_EMULATION)
+AM_CONDITIONAL(VTE_DEFAULT_EMULATION, [test "$emulation" != xterm])
 
 # Check for headers.
 AC_CHECK_HEADERS(sys/select.h sys/syslimits.h sys/termios.h sys/un.h sys/wait.h stropts.h termios.h wchar.h)
