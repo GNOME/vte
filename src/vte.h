@@ -158,7 +158,8 @@ typedef enum {
 	VTE_ERASE_AUTO,
 	VTE_ERASE_ASCII_BACKSPACE,
 	VTE_ERASE_ASCII_DELETE,
-	VTE_ERASE_DELETE_SEQUENCE
+	VTE_ERASE_DELETE_SEQUENCE,
+	VTE_ERASE_TTY
 } VteTerminalEraseBinding;
 
 /* Values for the cursor blink setting */

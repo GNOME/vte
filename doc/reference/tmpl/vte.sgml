@@ -397,6 +397,7 @@ keys.
 @VTE_ERASE_ASCII_BACKSPACE: Send an ASCII backspace character (0x08).
 @VTE_ERASE_ASCII_DELETE: Send an ASCII delete character (0x7F).
 @VTE_ERASE_DELETE_SEQUENCE: Send the "@@7" control sequence.
+@VTE_ERASE_TTY: Send terminal's "erase" setting.
 
 <!-- ##### ENUM VteTerminalCursorShape ##### -->
 <para>

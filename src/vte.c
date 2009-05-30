@@ -4957,16 +4957,32 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				special = "kD";
 				suppress_meta_esc = TRUE;
 				break;
-			/* Use the tty's erase character. */
+			case VTE_ERASE_TTY:
+				if (terminal->pvt->pty_master != -1 &&
+				    tcgetattr(terminal->pvt->pty_master, &tio) != -1)
+				{
+					normal = g_strdup_printf("%c", tio.c_cc[VERASE]);
+					normal_length = 1;
+				}
+				suppress_meta_esc = FALSE;
+				break;
 			case VTE_ERASE_AUTO:
 			default:
-				if (terminal->pvt->pty_master != -1) {
-					if (tcgetattr(terminal->pvt->pty_master,
-						      &tio) != -1) {
-						normal = g_strdup_printf("%c",
-									 tio.c_cc[VERASE]);
-						normal_length = 1;
-					}
+#ifndef _POSIX_VDISABLE
+#define _POSIX_VDISABLE '\0'
+#endif
+				if (terminal->pvt->pty_master != -1 &&
+				    tcgetattr(terminal->pvt->pty_master, &tio) != -1 &&
+				    tio.c_cc[VERASE] != _POSIX_VDISABLE)
+				{
+					normal = g_strdup_printf("%c", tio.c_cc[VERASE]);
+					normal_length = 1;
+				}
+				else
+				{
+					normal = g_strdup("");
+					normal_length = 1;
+					suppress_meta_esc = FALSE;
 				}
 				suppress_meta_esc = FALSE;
 				break;
@@ -4983,6 +4999,15 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			case VTE_ERASE_ASCII_DELETE:
 				normal = g_strdup("\177");
 				normal_length = 1;
+				break;
+			case VTE_ERASE_TTY:
+				if (terminal->pvt->pty_master != -1 &&
+				    tcgetattr(terminal->pvt->pty_master, &tio) != -1)
+				{
+					normal = g_strdup_printf("%c", tio.c_cc[VERASE]);
+					normal_length = 1;
+				}
+				suppress_meta_esc = FALSE;
 				break;
 			case VTE_ERASE_DELETE_SEQUENCE:
 			case VTE_ERASE_AUTO:
