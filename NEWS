@@ -1,3 +1,11 @@
+0.20.4
+=======
+- New enum value VTE_ERASE_TTY.
+- Make VTE_ERASE_AUTO send \H for backspace if terminal erase is undefined.
+- Bugs fixed in this release:
+    Bug 584281 - build: avoid double installation of xterm
+    Bug 543379 - VTE sends NUL/^@ for backspace
+
 0.20.3
 =======
 - Bugs fixed in this release:
