@@ -93,19 +93,13 @@ static char *vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 						       glong end_row,
 						       glong end_col,
 						       gboolean wrap,
-						       gboolean(*is_selected)(VteTerminal *,
-									      glong,
-									      glong,
-									      gpointer),
+						       VteSelectionFunc is_selected,
 						       gpointer data,
 						       GArray *attributes,
 						       gboolean include_trailing_spaces);
 static char *vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 						 gboolean wrap,
-						 gboolean(*is_selected)(VteTerminal *,
-									glong,
-									glong,
-									gpointer),
+						 VteSelectionFunc is_selected,
 						 gpointer data,
 						 GArray *attributes,
 						 gboolean include_trailing_spaces);
@@ -5844,6 +5838,19 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 }
 
 /**
+ * VteSelectionFunc:
+ * @terminal: terminal in which the cell is.
+ * @column: column in which the cell is.
+ * @row: row in which the cell is.
+ * @data: user data.
+ *
+ * Specifies the type of a selection function used to check whether
+ * a cell has to be selected or not.
+ *
+ * Returns: %TRUE if cell has to be selected; %FALSE if otherwise.
+ */
+
+/**
  * vte_terminal_get_text_range:
  * @terminal: a #VteTerminal
  * @start_row: first row to search for data
@@ -5868,10 +5875,7 @@ char *
 vte_terminal_get_text_range(VteTerminal *terminal,
 			    glong start_row, glong start_col,
 			    glong end_row, glong end_col,
-			    gboolean(*is_selected)(VteTerminal *,
-						   glong,
-						   glong,
-						   gpointer),
+			    VteSelectionFunc is_selected,
 			    gpointer data,
 			    GArray *attributes)
 {
@@ -5891,10 +5895,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 					  glong start_row, glong start_col,
 					  glong end_row, glong end_col,
 					  gboolean wrap,
-					  gboolean(*is_selected)(VteTerminal *,
-								 glong,
-								 glong,
-								 gpointer),
+					  VteSelectionFunc is_selected,
 					  gpointer data,
 					  GArray *attributes,
 					  gboolean include_trailing_spaces)
@@ -6030,10 +6031,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 static char *
 vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 				    gboolean wrap,
-				    gboolean(*is_selected)(VteTerminal *,
-							   glong,
-							   glong,
-							   gpointer),
+				    VteSelectionFunc is_selected,
 				    gpointer data,
 				    GArray *attributes,
 				    gboolean include_trailing_spaces)
@@ -6072,10 +6070,7 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
  */
 char *
 vte_terminal_get_text(VteTerminal *terminal,
-		      gboolean(*is_selected)(VteTerminal *,
-					     glong,
-					     glong,
-					     gpointer),
+		      VteSelectionFunc is_selected,
 		      gpointer data,
 		      GArray *attributes)
 {
@@ -6111,10 +6106,7 @@ vte_terminal_get_text(VteTerminal *terminal,
  */
 char *
 vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
-					      gboolean(*is_selected)(VteTerminal *,
-								     glong,
-								     glong,
-								     gpointer),
+					      VteSelectionFunc is_selected,
 					      gpointer data,
 					      GArray *attributes)
 {

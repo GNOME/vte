@@ -191,6 +191,11 @@ struct vte_char_attributes {
 	guint underline:1, strikethrough:1;
 };
 
+typedef gboolean (*VteSelectionFunc)(VteTerminal *terminal,
+                                     glong column,
+                                     glong row,
+                                     gpointer data);
+
 /* The widget's type. */
 GType vte_terminal_get_type(void);
 
@@ -341,26 +346,17 @@ void vte_terminal_reset(VteTerminal *terminal, gboolean full,
  * Note that it will have one entry per byte, not per character, so indexes
  * should match up exactly. */
 char *vte_terminal_get_text(VteTerminal *terminal,
-			    gboolean(*is_selected)(VteTerminal *terminal,
-						   glong column,
-						   glong row,
-						   gpointer data),
+			    VteSelectionFunc is_selected,
 			    gpointer data,
 			    GArray *attributes);
 char *vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
-						    gboolean(*is_selected)(VteTerminal *terminal,
-									   glong column,
-									   glong row,
-									   gpointer data),
+						    VteSelectionFunc is_selected,
 						    gpointer data,
 						    GArray *attributes);
 char *vte_terminal_get_text_range(VteTerminal *terminal,
 				  glong start_row, glong start_col,
 				  glong end_row, glong end_col,
-				  gboolean(*is_selected)(VteTerminal *terminal,
-							 glong column,
-							 glong row,
-							 gpointer data),
+				  VteSelectionFunc is_selected,
 				  gpointer data,
 				  GArray *attributes);
 void vte_terminal_get_cursor_position(VteTerminal *terminal,
