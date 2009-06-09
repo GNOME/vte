@@ -1,3 +1,7 @@
+0.20.5
+=======
+- Followup release to undo unintentded .soname bump
+
 0.20.4
 =======
 - New enum value VTE_ERASE_TTY.
