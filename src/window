@@ -25,4 +25,4 @@ for arg in $@ ; do
 		args="$args;$arg"
 	fi
 done
-echo -e -n "["${args}t
+printf "["${args}t

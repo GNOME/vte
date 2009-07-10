@@ -18,4 +18,4 @@ for arg in $@ ; do
 		args="$args;$arg"
 	fi
 done
-echo -e -n "]"${args}
+printf "]"${args}
