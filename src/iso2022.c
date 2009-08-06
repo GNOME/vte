@@ -284,36 +284,6 @@ _vte_direct_compare(gconstpointer a, gconstpointer b)
 	return GPOINTER_TO_INT(a) - GPOINTER_TO_INT(b);
 }
 
-/* If we only have a codepoint, guess what the ambiguous width should be based
- * on the default region.  Just hope we don't do this too often. */
-static int
-_vte_iso2022_ambiguous_width_guess(void)
-{
-	static int guess;
-	if (G_UNLIKELY (guess == 0)) {
-		const char *lang = NULL;
-		guess = 1;
-		if (lang == NULL)
-			lang = g_getenv("LC_ALL");
-		if (lang == NULL)
-			lang = g_getenv("LC_CTYPE");
-		if (lang == NULL)
-			lang = g_getenv("LANG");
-		if (lang) {
-			if (g_ascii_strncasecmp(lang, "ja", 2) == 0 ||
-			    g_ascii_strncasecmp(lang, "ko", 2) == 0 ||
-			    g_ascii_strncasecmp(lang, "vi", 2) == 0 ||
-			    g_ascii_strncasecmp(lang, "zh", 2) == 0) {
-				guess = 2;
-			}
-		}
-		_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
-				"Ambiguous characters will have width = %d.\n",
-				guess);
-	}
-	return guess;
-}
-
 /* If we have the encoding, decide how wide an ambiguously-wide character is
  * based on the encoding.  This is basically what GNU libc does, and it agrees
  * with my reading of Unicode UAX 11, so.... */
@@ -360,17 +330,13 @@ _vte_iso2022_ambiguous_width(struct _vte_iso2022_state *state)
 	}
 
 	/*
-	 * Decide the ambiguous width according to the default region if 
+	 * Decide the ambiguous width according to user preference if
 	 * current locale is UTF-8.
 	 */
 	if (strcmp (codeset, "utf8") == 0) {
 	  const char *env = g_getenv ("VTE_CJK_WIDTH");
-	  if (env && (g_ascii_strcasecmp (env, "narrow")==0 || g_ascii_strcasecmp (env, "0")==0))
-	    return 1;
 	  if (env && (g_ascii_strcasecmp (env, "wide")==0 || g_ascii_strcasecmp (env, "1")==0))
 	    return 2;
-	  else
-	    return _vte_iso2022_ambiguous_width_guess ();
 	}
 
 	/* Not in the list => not wide. */
