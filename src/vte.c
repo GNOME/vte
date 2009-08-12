@@ -2953,6 +2953,8 @@ _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
 		num_columns = cell->attr.columns;
 		for (i = 0; i < num_columns; i++) {
 			cell = _vte_row_data_find_charcell(row, col++);
+			if (G_UNLIKELY (!cell))
+			  break;
 			*cell = screen->fill_defaults;
 		}
 	}
