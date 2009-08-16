@@ -4053,14 +4053,7 @@ next_match:
 
 	/* Remove most of the processed characters. */
 	if (start < wcount) {
-		unichars = g_array_new(FALSE, TRUE, sizeof(gunichar));
-		g_array_append_vals(unichars,
-				    &g_array_index(terminal->pvt->pending,
-						   gunichar,
-						   start),
-				    wcount - start);
-		g_array_free(terminal->pvt->pending, TRUE);
-		terminal->pvt->pending = unichars;
+		g_array_remove_range(terminal->pvt->pending, 0, start);
 	} else {
 		g_array_set_size(terminal->pvt->pending, 0);
 		/* If we're out of data, we needn't pause to let the
