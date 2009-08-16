@@ -108,35 +108,37 @@ MAINTAINERCLEANFILES = $(VTESEQ_BUILTSOURCES)
 EXTRA_DIST += $(VTESEQ_BUILTSOURCES)
 CLEANFILES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h stamp-vtetypebuiltins.h
 
-marshal.c marshal.h: marshal.list
-	$(GLIB_GENMARSHAL) --prefix=_vte_marshal --header --body --internal $^ > marshal.c
-	$(GLIB_GENMARSHAL) --prefix=_vte_marshal --header --internal $^ > marshal.h
+marshal.c: marshal.list
+	$(AM_V_GEN) $(GLIB_GENMARSHAL) --prefix=_vte_marshal --header --body --internal $< > $@
+	
+marshal.h: marshal.list
+	$(AM_V_GEN) $(GLIB_GENMARSHAL) --prefix=_vte_marshal --header --internal $< > $@
 
 vtetypebuiltins.h: stamp-vtetypebuiltins.h
 	@true
 stamp-vtetypebuiltins.h: vtetypebuiltins.h.template vte.h
-	$(GLIB_MKENUMS) --template $< $(filter-out $<,$^) > xgen-vtbh \
+	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter-out $<,$^) > xgen-vtbh \
 	&& (cmp -s xgen-vtbh vtetypebuiltins.h || cp xgen-vtbh vtetypebuiltins.h ) \
 	&& rm -f xgen-vtbh \
 	&& echo timestamp > $(@F)
 
 vtetypebuiltins.c: vtetypebuiltins.c.template vte.h
-	$(GLIB_MKENUMS) --template $< $(filter-out $<,$^) > xgen-vtbc \
+	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter-out $<,$^) > xgen-vtbc \
 	&& (cmp -s xgen-vtbc vtetypebuiltins.c || cp xgen-vtbc vtetypebuiltins.c ) \
 	&& rm -f xgen-vtbc
 
 vteseq-2.c: vteseq-2.gperf
-	@echo creating $@
+	$(AM_V_GEN)
 	$(top_srcdir)/missing --run gperf -m 100 --no-strlen $< > $@.tmp && \
 	mv -f $@.tmp $@
 
 vteseq-n.c: vteseq-n.gperf
-	@echo creating $@
+	$(AM_V_GEN)
 	$(top_srcdir)/missing --run gperf -m 100 $< > $@.tmp && \
 	mv -f $@.tmp $@
 
 vteseq-list.h: vteseq-2.gperf vteseq-n.gperf
-	@echo creating $@
+	$(AM_V_GEN)
 	echo '/* Generated file.  Do not edit */' > $@.tmp && \
 	cat $^ | grep -v '^#' | grep '\<VTE_SEQUENCE_HANDLER\>'| sed 's/.*, //' | LANG=C sort -u >> $@.tmp && \
 	mv -f $@.tmp $@

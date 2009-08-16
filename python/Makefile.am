@@ -27,7 +27,7 @@ nodist_vtemodule_la_SOURCES = vte.c
 vte.c: vte.defs vte.override
 
 .defs.c:
-	(cd $(srcdir) \
+	$(AM_V_GEN) (cd $(srcdir) \
 	 && $(PYGTK_CODEGEN) \
             --register $(PYGTK_DEFSDIR)/pango-types.defs \
             --register $(PYGTK_DEFSDIR)/gdk-types.defs \
