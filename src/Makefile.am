@@ -128,18 +128,15 @@ vtetypebuiltins.c: vtetypebuiltins.c.template vte.h
 	&& rm -f xgen-vtbc
 
 vteseq-2.c: vteseq-2.gperf
-	$(AM_V_GEN)
-	$(top_srcdir)/missing --run gperf -m 100 --no-strlen $< > $@.tmp && \
+	$(AM_V_GEN) $(top_srcdir)/missing --run gperf -m 100 --no-strlen $< > $@.tmp && \
 	mv -f $@.tmp $@
 
 vteseq-n.c: vteseq-n.gperf
-	$(AM_V_GEN)
-	$(top_srcdir)/missing --run gperf -m 100 $< > $@.tmp && \
+	$(AM_V_GEN) $(top_srcdir)/missing --run gperf -m 100 $< > $@.tmp && \
 	mv -f $@.tmp $@
 
 vteseq-list.h: vteseq-2.gperf vteseq-n.gperf
-	$(AM_V_GEN)
-	echo '/* Generated file.  Do not edit */' > $@.tmp && \
+	$(AM_V_GEN) echo '/* Generated file.  Do not edit */' > $@.tmp && \
 	cat $^ | grep -v '^#' | grep '\<VTE_SEQUENCE_HANDLER\>'| sed 's/.*, //' | LANG=C sort -u >> $@.tmp && \
 	mv -f $@.tmp $@
 
