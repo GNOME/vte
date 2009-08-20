@@ -252,14 +252,14 @@ _vte_conv(VteConv converter,
 					     (char_count + 1) * VTE_UTF8_BPC);
 		/* Convert the incoming text. */
 		g = (gunichar*) *inbuf;
-		p = converter->in_scratch->bytes;
+		p = converter->in_scratch->data;
 		end = p + (char_count + 1) * VTE_UTF8_BPC;
 		for (i = 0; i < char_count; i++) {
 			p += g_unichar_to_utf8(g[i], (gchar *)p);
 			g_assert(p <= end);
 		}
 		/* Update our working pointers. */
-		work_inbuf_start = converter->in_scratch->bytes;
+		work_inbuf_start = converter->in_scratch->data;
 		work_inbuf_working = work_inbuf_start;
 		work_inbytes = p - work_inbuf_start;
 	}
@@ -269,7 +269,7 @@ _vte_conv(VteConv converter,
 		work_outbytes = *outbytes_left * VTE_UTF8_BPC;
 		_vte_buffer_set_minimum_size(converter->out_scratch,
 					     work_outbytes);
-		work_outbuf_start = converter->out_scratch->bytes;
+		work_outbuf_start = converter->out_scratch->data;
 		work_outbuf_working = work_outbuf_start;
 	}
 

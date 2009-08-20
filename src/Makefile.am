@@ -30,7 +30,6 @@ EXTRA_libvte_la_SOURCES = \
 	$(NULL)
 
 libvte_la_SOURCES = \
-	buffer.c \
 	buffer.h \
 	caps.c \
 	caps.h \
@@ -176,7 +175,6 @@ reflect_vte_SOURCES = reflect.c
 reflect_vte_LDADD = libvte.la $(VTE_LIBS)
 
 interpret_SOURCES = \
-	buffer.c \
 	buffer.h \
 	caps.c \
 	caps.h \
@@ -204,7 +202,6 @@ interpret_CFLAGS = $(GTK_CFLAGS)
 interpret_LDADD = $(GTK_LIBS)
 
 iso2022_SOURCES = \
-	buffer.c \
 	buffer.h \
 	caps.c \
 	caps.h \
@@ -235,7 +232,6 @@ slowcat_SOURCES = \
 	slowcat.c
 
 table_SOURCES = \
-	buffer.c \
 	buffer.h \
 	caps.c \
 	caps.h \
@@ -258,7 +254,6 @@ table_LDADD = $(VTE_LIBS)
 trie_SOURCES = \
 	trie.c \
 	trie.h \
-	buffer.c \
 	buffer.h \
 	caps.c \
 	caps.h \
@@ -285,7 +280,7 @@ pty_CPPFLAGS = -DPTY_MAIN -DLIBEXECDIR='"$(libexecdir)"'
 reaper_SOURCES = reaper.c reaper.h debug.c debug.h marshal.c marshal.h
 reaper_CPPFLAGS =  -DREAPER_MAIN -DLOCALEDIR='"$(localedir)"'
 
-vteconv_SOURCES = buffer.c buffer.h debug.c debug.h vteconv.c vteconv.h
+vteconv_SOURCES = buffer.h debug.c debug.h vteconv.c vteconv.h
 vteconv_CPPFLAGS = -DVTECONV_MAIN
 vteconv_CFLAGS = $(VTE_CFLAGS)
 vteconv_LDADD = $(VTE_LIBS)

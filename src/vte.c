@@ -2302,7 +2302,7 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	if ((_vte_buffer_length(terminal->pvt->outgoing) > 0) &&
 	    (old_codeset != NULL)) {
 		/* Convert back to UTF-8. */
-		obuf1 = g_convert((gchar *)terminal->pvt->outgoing->bytes,
+		obuf1 = g_convert((gchar *)terminal->pvt->outgoing->data,
 				  _vte_buffer_length(terminal->pvt->outgoing),
 				  "UTF-8",
 				  old_codeset,
@@ -4364,18 +4364,18 @@ vte_terminal_io_write(GIOChannel *channel,
 
 	fd = g_io_channel_unix_get_fd(channel);
 
-	count = write(fd, terminal->pvt->outgoing->bytes,
+	count = write(fd, terminal->pvt->outgoing->data,
 		      _vte_buffer_length(terminal->pvt->outgoing));
 	if (count != -1) {
 		_VTE_DEBUG_IF (VTE_DEBUG_IO) {
 			gssize i;
 			for (i = 0; i < count; i++) {
 				g_printerr("Wrote %c%c\n",
-					((guint8)terminal->pvt->outgoing->bytes[i]) >= 32 ?
+					((guint8)terminal->pvt->outgoing->data[i]) >= 32 ?
 					' ' : '^',
-					((guint8)terminal->pvt->outgoing->bytes[i]) >= 32 ?
-					terminal->pvt->outgoing->bytes[i] :
-					((guint8)terminal->pvt->outgoing->bytes[i])  + 64);
+					((guint8)terminal->pvt->outgoing->data[i]) >= 32 ?
+					terminal->pvt->outgoing->data[i] :
+					((guint8)terminal->pvt->outgoing->data[i])  + 64);
 			}
 		}
 		_vte_buffer_consume(terminal->pvt->outgoing, count);
@@ -4419,7 +4419,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	ibuf =  data;
 	ocount = ((length + 1) * VTE_UTF8_BPC) + 1;
 	_vte_buffer_set_minimum_size(terminal->pvt->conv_buffer, ocount);
-	obuf = obufptr = terminal->pvt->conv_buffer->bytes;
+	obuf = obufptr = terminal->pvt->conv_buffer->data;
 
 	if (_vte_conv(conv, &ibuf, &icount, &obuf, &ocount) == (gsize)-1) {
 		g_warning(_("Error (%s) converting data for child, dropping."),
@@ -13288,7 +13288,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	ibuf = ibufptr = (guchar *)g_strdup(spec);
 	olen = (ilen + 1) * sizeof(gunichar);
 	_vte_buffer_set_minimum_size(terminal->pvt->conv_buffer, olen);
-	obuf = obufptr = terminal->pvt->conv_buffer->bytes;
+	obuf = obufptr = terminal->pvt->conv_buffer->data;
 	wbuf = (gunichar*) obuf;
 	wbuf[ilen] = '\0';
 	_vte_conv(conv, (const guchar **)&ibuf, &ilen, &obuf, &olen);

@@ -1143,7 +1143,7 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 		inbytes = length;
 		_vte_buffer_set_minimum_size(state->buffer,
 					     sizeof(gunichar) * length * 2);
-		buf = (gunichar *)state->buffer->bytes;
+		buf = (gunichar *)state->buffer->data;
 		outbuf = buf;
 		outbytes = sizeof(gunichar) * length * 2;
 		do {

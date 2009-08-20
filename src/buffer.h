@@ -24,24 +24,19 @@
 #define vte_buffer_h_included
 
 
-#include <sys/types.h>
+#include <glib.h>
 
 G_BEGIN_DECLS
 
-typedef struct {
-	/* public */
-	unsigned char *bytes;
-	/* private stuff is hidden */
-} VteBuffer;
+typedef GByteArray VteBuffer;
 
-VteBuffer* _vte_buffer_new(void);
-void _vte_buffer_free(VteBuffer *buffer);
-void _vte_buffer_append(VteBuffer *buffer,
-			gconstpointer bytes, size_t length);
-size_t _vte_buffer_length(VteBuffer *buffer);
-void _vte_buffer_consume(VteBuffer *buffer, size_t length);
-void _vte_buffer_clear(VteBuffer *buffer);
-void _vte_buffer_set_minimum_size(VteBuffer *buffer, size_t length);
+#define _vte_buffer_new				g_byte_array_new
+#define _vte_buffer_free(B)			g_byte_array_free (B, TRUE)
+#define _vte_buffer_append			g_byte_array_append
+#define _vte_buffer_length(B)			((B)->len)
+#define _vte_buffer_consume(B, length)		g_byte_array_remove_range (B, 0, length)
+#define _vte_buffer_clear(B)			g_byte_array_set_size (B, 0)
+#define _vte_buffer_set_minimum_size(B, length)	g_byte_array_set_size (B, MAX ((length), (B)->len))
 
 G_END_DECLS
 

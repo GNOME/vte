@@ -183,7 +183,7 @@ vte_ucs4_to_utf8 (VteTerminal *terminal, const guchar *in)
 		outlen = (inlen * VTE_UTF8_BPC) + 1;
 
 		_vte_buffer_set_minimum_size (terminal->pvt->conv_buffer, outlen);
-		buf = bufptr = terminal->pvt->conv_buffer->bytes;
+		buf = bufptr = terminal->pvt->conv_buffer->data;
 
 		if (_vte_conv (conv, &in, &inlen, &buf, &outlen) == (size_t) -1) {
 			_vte_debug_print (VTE_DEBUG_IO,

@@ -87,7 +87,7 @@ main(int argc, char **argv)
 	while (fread(&b, 1, 1, infile) == 1) {
 		_vte_buffer_append(buffer, &b, 1);
 	}
-	_vte_iso2022_process(subst, buffer->bytes,
+	_vte_iso2022_process(subst, buffer->data,
 			_vte_buffer_length(buffer), array);
 
 	i = 0;
