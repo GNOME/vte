@@ -50,7 +50,7 @@
 #define INVALID_CODEPOINT 0xFFFD
 
 struct _vte_iso2022_map {
-	gulong from;
+	guint from;
 	gunichar to;
 };
 
