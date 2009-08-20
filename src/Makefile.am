@@ -159,8 +159,8 @@ EXTRA_DIST += $(pkglib_SCRIPTS)
 TEST_SH = check-doc-syntax.sh
 EXTRA_DIST += $(TEST_SH)
 
-check_PROGRAMS = buffer dumpkeys iso2022 pty reaper reflect-text-view reflect-vte ring mev ssfe table trie xticker vteconv vtetc
-TESTS = buffer ring table trie $(TEST_SH)
+check_PROGRAMS = dumpkeys iso2022 pty reaper reflect-text-view reflect-vte ring mev ssfe table trie xticker vteconv vtetc
+TESTS = ring table trie $(TEST_SH)
 
 AM_CFLAGS = $(GLIB_CFLAGS) $(GOBJECT_CFLAGS)
 LDADD = $(GLIB_LIBS) $(GOBJECT_LIBS)
@@ -289,9 +289,6 @@ vteconv_SOURCES = buffer.c buffer.h debug.c debug.h vteconv.c vteconv.h
 vteconv_CPPFLAGS = -DVTECONV_MAIN
 vteconv_CFLAGS = $(VTE_CFLAGS)
 vteconv_LDADD = $(VTE_LIBS)
-
-buffer_SOURCES = buffer.c
-buffer_CPPFLAGS = -DBUFFER_MAIN
 
 dumpkeys_SOURCES = dumpkeys.c
 mev_SOURCES = mev.c
