@@ -135,6 +135,7 @@ $(srcdir)/.gitignore: Makefile.am $(top_srcdir)/git.mk
 			$(GITIGNOREFILES) \
 			$(CLEANFILES) \
 			$(PROGRAMS) \
+			$(check_PROGRAMS) \
 			$(EXTRA_PROGRAMS) \
 			$(LTLIBRARIES) \
 			so_locations \
@@ -171,7 +172,7 @@ gitignore-recurse-maybe:
 	fi;
 gitignore-recurse:
 	@list='$(DIST_SUBDIRS)'; for subdir in $$list; do \
-	  test "$$subdir" = . || (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) .gitignore gitignore-recurse); \
+	  test "$$subdir" = . || (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) .gitignore gitignore-recurse || echo "Skipping $$subdir"); \
 	done
 gitignore: $(srcdir)/.gitignore gitignore-recurse
 
