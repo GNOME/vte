@@ -28,20 +28,20 @@
 
 G_BEGIN_DECLS
 
-struct _vte_buffer {
+typedef struct {
 	/* public */
 	unsigned char *bytes;
 	/* private stuff is hidden */
-};
+} VteBuffer;
 
-struct _vte_buffer* _vte_buffer_new(void);
-void _vte_buffer_free(struct _vte_buffer *buffer);
-void _vte_buffer_append(struct _vte_buffer *buffer,
+VteBuffer* _vte_buffer_new(void);
+void _vte_buffer_free(VteBuffer *buffer);
+void _vte_buffer_append(VteBuffer *buffer,
 			gconstpointer bytes, size_t length);
-size_t _vte_buffer_length(struct _vte_buffer *buffer);
-void _vte_buffer_consume(struct _vte_buffer *buffer, size_t length);
-void _vte_buffer_clear(struct _vte_buffer *buffer);
-void _vte_buffer_set_minimum_size(struct _vte_buffer *buffer, size_t length);
+size_t _vte_buffer_length(VteBuffer *buffer);
+void _vte_buffer_consume(VteBuffer *buffer, size_t length);
+void _vte_buffer_clear(VteBuffer *buffer);
+void _vte_buffer_set_minimum_size(VteBuffer *buffer, size_t length);
 
 G_END_DECLS
 

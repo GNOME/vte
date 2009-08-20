@@ -35,7 +35,7 @@ struct _vte_real_buffer {
 
 #ifndef G_DISABLE_ASSERT
 static void
-_vte_buffer_check(struct _vte_buffer *buffer, size_t length)
+_vte_buffer_check(VteBuffer *buffer, size_t length)
 {
 	struct _vte_real_buffer *buf = (struct _vte_real_buffer*) buffer;
 	if (length > 0) {
@@ -54,18 +54,18 @@ _vte_buffer_calc_new_size(size_t minimum_length)
 	return minimum_length + VTE_BUFFER_FUDGE_SIZE;
 }
 
-struct _vte_buffer*
+VteBuffer*
 _vte_buffer_new(void)
 {
 	struct _vte_real_buffer *buf;
 	buf = g_slice_new(struct _vte_real_buffer);
 	buf->buf_used = buf->buf_length = 0;
 	buf->bytes = NULL;
-	return (struct _vte_buffer*) buf;
+	return (VteBuffer*) buf;
 }
 
 void
-_vte_buffer_set_minimum_size(struct _vte_buffer *buffer, size_t length)
+_vte_buffer_set_minimum_size(VteBuffer *buffer, size_t length)
 {
 	struct _vte_real_buffer *buf = (struct _vte_real_buffer*) buffer;
 	size_t size;
@@ -89,7 +89,7 @@ _vte_buffer_set_minimum_size(struct _vte_buffer *buffer, size_t length)
 }
 
 void
-_vte_buffer_append(struct _vte_buffer *buffer,
+_vte_buffer_append(VteBuffer *buffer,
 		   gconstpointer bytes, size_t length)
 {
 	struct _vte_real_buffer *buf = (struct _vte_real_buffer*) buffer;
@@ -116,7 +116,7 @@ _vte_buffer_append(struct _vte_buffer *buffer,
 }
 
 void
-_vte_buffer_consume(struct _vte_buffer *buffer, size_t length)
+_vte_buffer_consume(VteBuffer *buffer, size_t length)
 {
 	struct _vte_real_buffer *buf = (struct _vte_real_buffer*) buffer;
 	_vte_buffer_check(buffer, length);
@@ -131,7 +131,7 @@ _vte_buffer_consume(struct _vte_buffer *buffer, size_t length)
 }
 
 void
-_vte_buffer_clear(struct _vte_buffer *buffer)
+_vte_buffer_clear(VteBuffer *buffer)
 {
 	struct _vte_real_buffer *buf = (struct _vte_real_buffer*) buffer;
 	_vte_buffer_check(buffer, 0);
@@ -139,7 +139,7 @@ _vte_buffer_clear(struct _vte_buffer *buffer)
 }
 
 void
-_vte_buffer_free(struct _vte_buffer *buffer)
+_vte_buffer_free(VteBuffer *buffer)
 {
 	struct _vte_real_buffer *buf = (struct _vte_real_buffer*) buffer;
 	_vte_buffer_check(buffer, 0);
@@ -148,7 +148,7 @@ _vte_buffer_free(struct _vte_buffer *buffer)
 }
 
 size_t
-_vte_buffer_length(struct _vte_buffer *buffer)
+_vte_buffer_length(VteBuffer *buffer)
 {
 	struct _vte_real_buffer *buf = (struct _vte_real_buffer*) buffer;
 	_vte_buffer_check(buffer, 0);

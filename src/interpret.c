@@ -40,7 +40,7 @@ main(int argc, char **argv)
 	char *terminal = NULL;
 	struct _vte_matcher *matcher = NULL;
 	struct _vte_termcap *termcap = NULL;
-	struct _vte_buffer *buffer = NULL;
+	VteBuffer *buffer = NULL;
 	GArray *array;
 	unsigned int i, j;
 	int l;

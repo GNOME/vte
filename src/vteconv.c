@@ -38,7 +38,7 @@ struct _VteConv {
 	convert_func convert;
 	gint (*close)(GIConv converter);
 	gboolean in_unichar, out_unichar;
-	struct _vte_buffer *in_scratch, *out_scratch;
+	VteBuffer *in_scratch, *out_scratch;
 };
 
 /* We can't use g_utf8_strlen as that's not nul-safe :( */

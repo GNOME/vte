@@ -241,11 +241,11 @@ struct _VteTerminalPrivate {
 	glong max_input_bytes;
 
 	/* Output data queue. */
-	struct _vte_buffer *outgoing;	/* pending input characters */
+	VteBuffer *outgoing;	/* pending input characters */
 	VteConv outgoing_conv;
 
 	/* IConv buffer. */
-	struct _vte_buffer *conv_buffer;
+	VteBuffer *conv_buffer;
 
 	/* Screen data.  We support the normal screen, and an alternate
 	 * screen, which seems to be a DEC-specific feature. */

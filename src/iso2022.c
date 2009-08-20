@@ -72,7 +72,7 @@ struct _vte_iso2022_state {
 	VteConv conv;
 	_vte_iso2022_codeset_changed_cb_fn codeset_changed;
 	gpointer codeset_changed_data;
-	struct _vte_buffer *buffer;
+	VteBuffer *buffer;
 };
 
 /* DEC Special Character and Line Drawing Set.  VT100 and higher (per XTerm
@@ -1729,7 +1729,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 int
 main(int argc, char **argv)
 {
-	struct _vte_buffer *buffer;
+	VteBuffer *buffer;
 	struct _vte_iso2022_state *state;
 	GString *string;
 	GArray *gunichars;
