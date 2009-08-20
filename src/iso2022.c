@@ -49,9 +49,12 @@
 /* An invalid codepoint. */
 #define INVALID_CODEPOINT 0xFFFD
 
-struct _vte_iso2022_map {
-	guint from;
-	gunichar to;
+struct _vte_iso2022_map16 {
+	guint16 from, to;
+};
+
+struct _vte_iso2022_map32 {
+	guint32 from, to;
 };
 
 struct _vte_iso2022_block {
@@ -77,7 +80,7 @@ struct _vte_iso2022_state {
 
 /* DEC Special Character and Line Drawing Set.  VT100 and higher (per XTerm
  * docs). */
-static const struct _vte_iso2022_map _vte_iso2022_map_0[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_0[] = {
 	{ 96, 0x25c6},	/* diamond */
 	{'a', 0x2592},	/* checkerboard */
 	{'b', 0x2409},	/* HT symbol */
@@ -111,15 +114,15 @@ static const struct _vte_iso2022_map _vte_iso2022_map_0[] = {
 	{'~', 0x00b7},	/* bullet */
 };
 /* United Kingdom.  VT100 and higher (per XTerm docs). */
-static const struct _vte_iso2022_map _vte_iso2022_map_A[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_A[] = {
 	{'$', GDK_sterling},
 };
 /* US-ASCII (no conversions).  VT100 and higher (per XTerm docs). */
-static const struct _vte_iso2022_map _vte_iso2022_map_B[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_B[] = {
 	{0, 0},
 };
 /* Dutch. VT220 and higher (per XTerm docs). */
-static const struct _vte_iso2022_map _vte_iso2022_map_4[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_4[] = {
 	{'#',  GDK_sterling},
 	{'@',  GDK_threequarters},
 	{'[',  GDK_ydiaeresis},
@@ -131,7 +134,7 @@ static const struct _vte_iso2022_map _vte_iso2022_map_4[] = {
 	{'~',  GDK_acute}
 };
 /* Finnish. VT220 and higher (per XTerm docs). */
-static const struct _vte_iso2022_map _vte_iso2022_map_C[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_C[] = {
 	{'[',  GDK_Adiaeresis},
 	{'\\', GDK_Odiaeresis},
 	{']',  GDK_Aring},
@@ -143,7 +146,7 @@ static const struct _vte_iso2022_map _vte_iso2022_map_C[] = {
 	{'~',  GDK_udiaeresis},
 };
 /* French. VT220 and higher (per XTerm docs). */
-static const struct _vte_iso2022_map _vte_iso2022_map_R[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_R[] = {
 	{'#',  GDK_sterling},
 	{'@',  GDK_agrave},
 	{'[',  GDK_degree},
@@ -155,7 +158,7 @@ static const struct _vte_iso2022_map _vte_iso2022_map_R[] = {
 	{'~',  GDK_diaeresis},
 };
 /* French Canadian. VT220 and higher (per XTerm docs). */
-static const struct _vte_iso2022_map _vte_iso2022_map_Q[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_Q[] = {
 	{'@',  GDK_agrave},
 	{'[',  GDK_acircumflex},
 	{'\\', GDK_ccedilla},
@@ -168,7 +171,7 @@ static const struct _vte_iso2022_map _vte_iso2022_map_Q[] = {
 	{'~',  GDK_ucircumflex},
 };
 /* German. VT220 and higher (per XTerm docs). */
-static const struct _vte_iso2022_map _vte_iso2022_map_K[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_K[] = {
 	{'@',  GDK_section},
 	{'[',  GDK_Adiaeresis},
 	{'\\', GDK_Odiaeresis},
@@ -179,7 +182,7 @@ static const struct _vte_iso2022_map _vte_iso2022_map_K[] = {
 	{'~',  GDK_ssharp},
 };
 /* Italian. VT220 and higher (per XTerm docs). */
-static const struct _vte_iso2022_map _vte_iso2022_map_Y[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_Y[] = {
 	{'#',  GDK_sterling},
 	{'@',  GDK_section},
 	{'[',  GDK_degree},
@@ -192,7 +195,7 @@ static const struct _vte_iso2022_map _vte_iso2022_map_Y[] = {
 	{'~',  GDK_igrave},
 };
 /* Norwegian and Danish. VT220 and higher (per XTerm docs). */
-static const struct _vte_iso2022_map _vte_iso2022_map_E[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_E[] = {
 	{'@',  GDK_Adiaeresis},
 	{'[',  GDK_AE},
 	{'\\', GDK_Ooblique},
@@ -205,7 +208,7 @@ static const struct _vte_iso2022_map _vte_iso2022_map_E[] = {
 	{'~',  GDK_udiaeresis},
 };
 /* Spanish. VT220 and higher (per XTerm docs). */
-static const struct _vte_iso2022_map _vte_iso2022_map_Z[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_Z[] = {
 	{'#',  GDK_sterling},
 	{'@',  GDK_section},
 	{'[',  GDK_exclamdown},
@@ -216,7 +219,7 @@ static const struct _vte_iso2022_map _vte_iso2022_map_Z[] = {
 	{'}',  GDK_ccedilla},
 };
 /* Swedish. VT220 and higher (per XTerm docs). */
-static const struct _vte_iso2022_map _vte_iso2022_map_H[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_H[] = {
 	{'@',  GDK_Eacute},
 	{'[',  GDK_Adiaeresis},
 	{'\\', GDK_Odiaeresis},
@@ -229,7 +232,7 @@ static const struct _vte_iso2022_map _vte_iso2022_map_H[] = {
 	{'~',  GDK_udiaeresis},
 };
 /* Swiss. VT220 and higher (per XTerm docs). */
-static const struct _vte_iso2022_map _vte_iso2022_map_equal[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_equal[] = {
 	{'#',  GDK_ugrave},
 	{'@',  GDK_agrave},
 	{'[',  GDK_eacute},
@@ -244,37 +247,37 @@ static const struct _vte_iso2022_map _vte_iso2022_map_equal[] = {
 	{'~',  GDK_ucircumflex},
 };
 /* Codepage 437. */
-static const struct _vte_iso2022_map _vte_iso2022_map_U[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_U[] = {
 #include "unitable.CP437"
 };
 
 /* Japanese.  JIS X 0201-1976 ("Roman" set), per RFC 1468/2237. */
-static const struct _vte_iso2022_map _vte_iso2022_map_J[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_J[] = {
 #include "unitable.JIS0201"
 };
 /* Japanese.  JIS X 0208-1978, per RFC 1468/2237. */
-static const struct _vte_iso2022_map _vte_iso2022_map_wide_at[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_wide_at[] = {
 #include "unitable.JIS0208"
 };
 /* Chinese.  GB 2312-80, per RFC 1922. */
-static const struct _vte_iso2022_map _vte_iso2022_map_wide_A[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_wide_A[] = {
 #include "unitable.GB2312"
 };
 /* Japanese.  JIS X 0208-1983, per RFC 1468/2237. */
-static const struct _vte_iso2022_map _vte_iso2022_map_wide_B[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_wide_B[] = {
 #include "unitable.JIS0208"
 };
 /* Korean.  KS X 1001 (formerly KS C 5601), per Ken Lunde's
  * CJKV_Information_Processing. */
-static const struct _vte_iso2022_map _vte_iso2022_map_wide_C[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_wide_C[] = {
 #include "unitable.KSX1001"
 };
 /* Japanese.  JIS X 0212-1990, per RFC 2237. */
-static const struct _vte_iso2022_map _vte_iso2022_map_wide_D[] = {
+static const struct _vte_iso2022_map16 _vte_iso2022_map_wide_D[] = {
 #include "unitable.JIS0212"
 };
 /* Chinese.  CNS 11643-plane-1, per RFC 1922. */
-static const struct _vte_iso2022_map _vte_iso2022_map_wide_G[] = {
+static const struct _vte_iso2022_map32 _vte_iso2022_map_wide_G[] = {
 #include "unitable.CNS11643"
 };
 
@@ -371,7 +374,7 @@ _vte_iso2022_unichar_width(struct _vte_iso2022_state *state,
 }
 
 static GHashTable *
-_vte_iso2022_map_init(const struct _vte_iso2022_map *map, gssize length)
+_vte_iso2022_map_init16(const struct _vte_iso2022_map16 *map, gssize length)
 {
 	GHashTable *ret;
 	int i;
@@ -381,8 +384,25 @@ _vte_iso2022_map_init(const struct _vte_iso2022_map *map, gssize length)
 	ret = g_hash_table_new(NULL, NULL);
 	for (i = 0; i < length; i++) {
 		g_hash_table_insert(ret,
-			      GINT_TO_POINTER(map[i].from),
-			      GINT_TO_POINTER(map[i].to));
+			      GINT_TO_POINTER((unsigned int) map[i].from),
+			      GINT_TO_POINTER((unsigned int) map[i].to));
+	}
+	return ret;
+}
+
+static GHashTable *
+_vte_iso2022_map_init32(const struct _vte_iso2022_map32 *map, gssize length)
+{
+	GHashTable *ret;
+	int i;
+	if (length == 0) {
+		return NULL;
+	}
+	ret = g_hash_table_new(NULL, NULL);
+	for (i = 0; i < length; i++) {
+		g_hash_table_insert(ret,
+			      GINT_TO_POINTER((unsigned int) map[i].from),
+			      GINT_TO_POINTER((unsigned int) map[i].to));
 	}
 	return ret;
 }
@@ -393,7 +413,6 @@ _vte_iso2022_map_get(gunichar mapname,
 		     gulong *or_mask, gulong *and_mask)
 {
 	static VteTree *maps = NULL;
-	struct _vte_iso2022_map _vte_iso2022_map_NUL[256];
 	gint bytes = 0, width = 0;
 	GHashTable *map = NULL;
 	gboolean new_map = FALSE;
@@ -419,7 +438,7 @@ _vte_iso2022_map_get(gunichar mapname,
 	switch (mapname) {
 	case '0':
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_0,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_0,
 					    G_N_ELEMENTS(_vte_iso2022_map_0));
 		}
 		width = 1;
@@ -427,7 +446,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'A':
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_A,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_A,
 					    G_N_ELEMENTS(_vte_iso2022_map_A));
 		}
 		width = 1;
@@ -437,7 +456,7 @@ _vte_iso2022_map_get(gunichar mapname,
 	case '2': /* treated as an alias in xterm */
 	case 'B':
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_B,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_B,
 					    G_N_ELEMENTS(_vte_iso2022_map_B));
 		}
 		width = 1;
@@ -445,7 +464,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case '4':
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_4,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_4,
 					    G_N_ELEMENTS(_vte_iso2022_map_4));
 		}
 		width = 1;
@@ -454,7 +473,7 @@ _vte_iso2022_map_get(gunichar mapname,
 	case 'C':
 	case '5':
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_C,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_C,
 					    G_N_ELEMENTS(_vte_iso2022_map_C));
 		}
 		width = 1;
@@ -462,7 +481,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'R':
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_R,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_R,
 					    G_N_ELEMENTS(_vte_iso2022_map_R));
 		}
 		width = 1;
@@ -470,7 +489,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'Q':
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_Q,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_Q,
 					    G_N_ELEMENTS(_vte_iso2022_map_Q));
 		}
 		width = 1;
@@ -478,7 +497,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'K':
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_K,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_K,
 					    G_N_ELEMENTS(_vte_iso2022_map_K));
 		}
 		width = 1;
@@ -486,7 +505,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'Y':
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_Y,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_Y,
 					    G_N_ELEMENTS(_vte_iso2022_map_Y));
 		}
 		width = 1;
@@ -495,7 +514,7 @@ _vte_iso2022_map_get(gunichar mapname,
 	case 'E':
 	case '6':
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_E,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_E,
 					    G_N_ELEMENTS(_vte_iso2022_map_E));
 		}
 		width = 1;
@@ -503,7 +522,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'Z':
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_Z,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_Z,
 					    G_N_ELEMENTS(_vte_iso2022_map_Z));
 		}
 		width = 1;
@@ -512,7 +531,7 @@ _vte_iso2022_map_get(gunichar mapname,
 	case 'H':
 	case '7':
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_H,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_H,
 					    G_N_ELEMENTS(_vte_iso2022_map_H));
 		}
 		width = 1;
@@ -520,7 +539,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case '=':
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_equal,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_equal,
 					    G_N_ELEMENTS(_vte_iso2022_map_equal));
 		}
 		width = 1;
@@ -528,7 +547,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'U':
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_U,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_U,
 					    G_N_ELEMENTS(_vte_iso2022_map_U));
 		}
 		width = 1;
@@ -536,7 +555,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'J':
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_J,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_J,
 					    G_N_ELEMENTS(_vte_iso2022_map_J));
 		}
 		width = 1;
@@ -544,7 +563,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case '@' + WIDE_FUDGE:
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_at,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_wide_at,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_at));
 		}
 		width = 2; /* CJKV expects 2 bytes -> 2 columns */
@@ -553,7 +572,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'A' + WIDE_FUDGE:
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_A,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_wide_A,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_A));
 		}
 		width = 2; /* CJKV expects 2 bytes -> 2 columns */
@@ -562,7 +581,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'B' + WIDE_FUDGE:
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_B,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_wide_B,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_B));
 		}
 		width = 2; /* CJKV expects 2 bytes -> 2 columns */
@@ -571,7 +590,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'C' + WIDE_FUDGE:
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_C,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_wide_C,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_C));
 		}
 		width = 2; /* CJKV expects 2 bytes -> 2 columns */
@@ -580,7 +599,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'D' + WIDE_FUDGE:
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_D,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_wide_D,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_D));
 		}
 		width = 2; /* CJKV expects 2 bytes -> 2 columns */
@@ -589,7 +608,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'G' + WIDE_FUDGE:
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_G,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
 		/* Return the plane number as part of the "or" mask. */
@@ -601,7 +620,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'H' + WIDE_FUDGE:
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_G,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
 		/* Return the plane number as part of the "or" mask. */
@@ -613,7 +632,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'I' + WIDE_FUDGE:
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_G,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
 		/* Return the plane number as part of the "or" mask. */
@@ -625,7 +644,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'J' + WIDE_FUDGE:
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_G,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
 		/* Return the plane number as part of the "or" mask. */
@@ -637,7 +656,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'K' + WIDE_FUDGE:
 		if (map == NULL) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_G,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
 		/* Return the plane number as part of the "or" mask. */
@@ -649,7 +668,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'L' + WIDE_FUDGE:
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_G,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
 		/* Return the plane number as part of the "or" mask. */
@@ -661,7 +680,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'M' + WIDE_FUDGE:
 		if (G_UNLIKELY(map == NULL)) {
-			map = _vte_iso2022_map_init(_vte_iso2022_map_wide_G,
+			map = _vte_iso2022_map_init32(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
 		/* Return the plane number as part of the "or" mask. */
@@ -674,11 +693,12 @@ _vte_iso2022_map_get(gunichar mapname,
 	default:
 		/* No such map.  Set up a ISO-8859-1 to UCS-4 map. */
 		if (G_UNLIKELY (map == NULL)) {
+			struct _vte_iso2022_map16 _vte_iso2022_map_NUL[256];
 			for (i = 0; i < G_N_ELEMENTS(_vte_iso2022_map_NUL); i++) {
 				_vte_iso2022_map_NUL[i].from = (i & 0xff);
 				_vte_iso2022_map_NUL[i].to = (i & 0xff);
 			}
-			map = _vte_iso2022_map_init(_vte_iso2022_map_NUL,
+			map = _vte_iso2022_map_init16(_vte_iso2022_map_NUL,
 					    G_N_ELEMENTS(_vte_iso2022_map_NUL));
 		}
 		width = 1;
