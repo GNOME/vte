@@ -32,7 +32,7 @@ typedef GByteArray VteBuffer;
 
 #define _vte_buffer_new				g_byte_array_new
 #define _vte_buffer_free(B)			g_byte_array_free (B, TRUE)
-#define _vte_buffer_append			g_byte_array_append
+#define _vte_buffer_append(B, data, length)	g_byte_array_append (B, (const guint8 *) (data), length)
 #define _vte_buffer_length(B)			((B)->len)
 #define _vte_buffer_consume(B, length)		g_byte_array_remove_range (B, 0, length)
 #define _vte_buffer_clear(B)			g_byte_array_set_size (B, 0)
