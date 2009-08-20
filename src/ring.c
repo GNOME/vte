@@ -85,16 +85,15 @@ _vte_ring_new_with_delta(glong max_elements, glong delta,
  * being replaced by the new @data.
  *
  */
-gpointer
+void
 _vte_ring_insert(VteRing * ring, long position, gpointer data)
 {
-	gpointer old_data = NULL;
 	long point, i;
 
-	g_return_val_if_fail(ring != NULL, NULL);
-	g_return_val_if_fail(position >= ring->delta, NULL);
-	g_return_val_if_fail(position <= ring->delta + ring->length, NULL);
-	g_return_val_if_fail(data != NULL, NULL);
+	g_return_if_fail(ring != NULL);
+	g_return_if_fail(position >= ring->delta);
+	g_return_if_fail(position <= ring->delta + ring->length);
+	g_return_if_fail(data != NULL);
 
 	_vte_debug_print(VTE_DEBUG_RING,
 			"Inserting at position %ld.\n"
@@ -104,13 +103,20 @@ _vte_ring_insert(VteRing * ring, long position, gpointer data)
 
 	/* Initial insertion, or append. */
 	if (position == ring->length + ring->delta) {
-		i = position % ring->max;
-		old_data = ring->array[i];
+		/* If there was something there before, free it. */
+		if ((ring->free != NULL) &&
+		    (ring->array[position % ring->max] != NULL)) {
+			_vte_debug_print(VTE_DEBUG_RING, 
+					"Freeing item at position "
+					"%ld.\n", position);
+			ring->free(ring->array[position % ring->max],
+				   ring->user_data);
+		}
 		/* Set the new item, and if the buffer wasn't "full", increase
 		 * our idea of how big it is, otherwise increase the delta so
 		 * that this becomes the "last" item and the previous item
 		 * scrolls off the *top*. */
-		ring->array[i] = data;
+		ring->array[position % ring->max] = data;
 		if (ring->length == ring->max) {
 			ring->delta++;
 			if (ring->delta > ring->cached_item) {
@@ -125,7 +131,7 @@ _vte_ring_insert(VteRing * ring, long position, gpointer data)
 				"Max = %ld.\n",
 				ring->delta, ring->length, ring->max);
 		_vte_ring_validate(ring);
-		return old_data;
+		return;
 	}
 
 	if (position <= ring->cached_item) {
@@ -143,7 +149,13 @@ _vte_ring_insert(VteRing * ring, long position, gpointer data)
 		/* If the buffer's full, then the last item will have to be
 		 * "lost" to make room for the new item so that the buffer
 		 * doesn't grow (here we scroll off the *bottom*). */
-		old_data = ring->array[point % ring->max];
+		if (ring->free && ring->array[point % ring->max]) {
+			_vte_debug_print(VTE_DEBUG_RING,
+					"Freeing item at position "
+					"%ld.\n", point);
+			ring->free(ring->array[point % ring->max],
+				   ring->user_data);
+		}
 	} else {
 		/* We don't want to discard the last item. */
 		point++;
@@ -163,8 +175,6 @@ _vte_ring_insert(VteRing * ring, long position, gpointer data)
 			" Delta = %ld, Length = %ld, Max = %ld.\n",
 			ring->delta, ring->length, ring->max);
 	_vte_ring_validate(ring);
-
-	return old_data;
 }
 
 /**
@@ -179,14 +189,14 @@ _vte_ring_insert(VteRing * ring, long position, gpointer data)
  * from the *top*.
  *
  */
-gpointer
+void
 _vte_ring_insert_preserve(VteRing * ring, long position, gpointer data)
 {
 	long point, i;
-	gpointer **tmp, old_data = NULL;
+	gpointer **tmp;
 	gpointer *stack_tmp[128];
 
-	g_return_val_if_fail(position <= _vte_ring_next(ring), NULL);
+	g_return_if_fail(position <= _vte_ring_next(ring));
 
 	_vte_debug_print(VTE_DEBUG_RING,
 			"Inserting+ at position %ld.\n"
@@ -216,21 +226,16 @@ _vte_ring_insert_preserve(VteRing * ring, long position, gpointer data)
 	}
 
 	/* Append the new item. */
-	old_data = _vte_ring_append(ring, data);
+	_vte_ring_append(ring, data);
 
 	/* Append the old items. */
 	for (i = position; i < point; i++) {
-		if (old_data && ring->free) {
-			ring->free (old_data, ring->user_data);
-		}
-		old_data = _vte_ring_append(ring, tmp[i - position]);
+		_vte_ring_append(ring, tmp[i - position]);
 	}
 
 	/* Clean up. */
 	if (tmp != stack_tmp)
 		g_free(tmp);
-
-	return old_data;
 }
 
 /**
@@ -243,11 +248,10 @@ _vte_ring_insert_preserve(VteRing * ring, long position, gpointer data)
  * %TRUE.
  *
  */
-gpointer
+void
 _vte_ring_remove(VteRing * ring, long position, gboolean free_element)
 {
 	long i;
-	gpointer old_data;
 	_vte_debug_print(VTE_DEBUG_RING,
 			"Removing item at position %ld.\n"
 			" Delta = %ld, Length = %ld, Max = %ld.\n",
@@ -260,14 +264,12 @@ _vte_ring_remove(VteRing * ring, long position, gboolean free_element)
 
 	i = position % ring->max;
 	/* Remove the data at this position. */
-	old_data = ring->array[i];
-	if (free_element && old_data && ring->free) {
+	if (free_element && ring->array[position % ring->max] && ring->free) {
 		_vte_debug_print(VTE_DEBUG_RING,
 				"Freeing item at position %ld.\n", position);
-		ring->free(old_data, ring->user_data);
-		old_data = NULL;
+		ring->free(ring->array[position % ring->max], ring->user_data);
 	}
-	ring->array[i] = NULL;
+	ring->array[position % ring->max] = NULL;
 
 	/* Bubble the rest of the buffer up one notch.  This is also less
 	 * of a problem than it might appear, again due to usage patterns. */
@@ -285,8 +287,6 @@ _vte_ring_remove(VteRing * ring, long position, gboolean free_element)
 			" Delta = %ld, Length = %ld, Max = %ld.\n",
 			ring->delta, ring->length, ring->max);
 	_vte_ring_validate(ring);
-
-	return old_data;
 }
 
 /**
@@ -298,11 +298,11 @@ _vte_ring_remove(VteRing * ring, long position, gboolean free_element)
  * the new item, it is freed.
  *
  */
-gpointer
+void
 _vte_ring_append(VteRing * ring, gpointer data)
 {
 	g_assert(data != NULL);
-	return _vte_ring_insert(ring, ring->delta + ring->length, data);
+	_vte_ring_insert(ring, ring->delta + ring->length, data);
 }
 
 /**

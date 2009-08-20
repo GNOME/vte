@@ -286,7 +286,7 @@ struct _VteTerminalPrivate {
 		GString *status_line_contents;
 		gboolean status_line_changed;
 	} normal_screen, alternate_screen, *screen;
-	VteRowData *free_row;
+	VteRowData *free_row;	/* cached VteRowData */
 
 	/* Selection information. */
 	GArray *word_chars;
@@ -442,8 +442,6 @@ void _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row);
 void _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic);
 VteRowData * _vte_new_row_data(VteTerminal *terminal);
 VteRowData * _vte_new_row_data_sized(VteTerminal *terminal, gboolean fill);
-VteRowData * _vte_reset_row_data (VteTerminal *terminal, VteRowData *row, gboolean fill);
-void _vte_free_row_data(VteRowData *row);
 void _vte_terminal_adjust_adjustments(VteTerminal *terminal);
 void _vte_terminal_queue_contents_changed(VteTerminal *terminal);
 void _vte_terminal_emit_text_deleted(VteTerminal *terminal);
