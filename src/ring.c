@@ -257,7 +257,8 @@ _vte_ring_remove(VteRing * ring, long position, gboolean free_element)
 
 	i = position % ring->max;
 	/* Remove the data at this position. */
-	_vte_free_row_data (ring->array[position % ring->max]);
+	if (free_element)
+		_vte_free_row_data (ring->array[position % ring->max]);
 	ring->array[position % ring->max] = NULL;
 
 	/* Bubble the rest of the buffer up one notch.  This is also less
