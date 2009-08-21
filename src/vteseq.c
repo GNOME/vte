@@ -126,8 +126,7 @@ vte_insert_line_internal(VteTerminal *terminal, glong position)
 	/* If we haven't inserted a line yet, insert a new one. */
 	row = _vte_new_row_data(terminal, TRUE);
 	if (_vte_ring_next(terminal->pvt->screen->row_data) >= position) {
-		_vte_ring_insert(terminal->pvt->screen->row_data,
-				 position, row);
+		_vte_ring_insert(terminal->pvt->screen->row_data, position, row);
 	} else {
 		_vte_ring_append(terminal->pvt->screen->row_data, row);
 	}
