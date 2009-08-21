@@ -294,22 +294,9 @@ vte_g_array_fill(GArray *array, gconstpointer item, guint final_size)
 	} while (--final_size);
 }
 
-static VteRowData *
-_vte_reset_row_data (VteTerminal *terminal, VteRowData *row, gboolean fill)
-{
-       g_array_set_size (row->cells, 0);
-       row->soft_wrapped = 0;
-       if (fill) {
-               vte_g_array_fill(row->cells,
-                               &terminal->pvt->screen->fill_defaults,
-                               terminal->column_count);
-       }
-       return row;
-}
-
 /* Allocate a new line. */
 VteRowData *
-_vte_new_row_data(VteTerminal *terminal, gboolean fill)
+_vte_new_row_data(VteTerminal *terminal)
 {
 	VteRowData *row = NULL;
 	row = g_slice_new(VteRowData);
@@ -317,11 +304,6 @@ _vte_new_row_data(VteTerminal *terminal, gboolean fill)
 				       sizeof(struct vte_charcell),
 				       terminal->column_count);
 	row->soft_wrapped = 0;
-	if (fill) {
-		vte_g_array_fill(row->cells,
-				 &terminal->pvt->screen->fill_defaults,
-				 terminal->column_count);
-	}
 	return row;
 }
 
@@ -332,11 +314,11 @@ vte_insert_line_internal(VteTerminal *terminal, glong position)
 	VteRowData *row;
 	/* Pad out the line data to the insertion point. */
 	while (_vte_ring_next(terminal->pvt->screen->row_data) < position) {
-		row = _vte_new_row_data(terminal, TRUE);
+		row = _vte_new_row_data(terminal);
 		_vte_ring_append(terminal->pvt->screen->row_data, row);
 	}
 	/* If we haven't inserted a line yet, insert a new one. */
-	row = _vte_new_row_data(terminal, TRUE);
+	row = _vte_new_row_data(terminal);
 	if (_vte_ring_next(terminal->pvt->screen->row_data) >= position) {
 		_vte_ring_insert(terminal->pvt->screen->row_data, position, row);
 	} else {
@@ -2326,7 +2308,7 @@ vte_terminal_insert_rows (VteTerminal *terminal, guint cnt)
 	const VteScreen *screen = terminal->pvt->screen;
 	VteRowData *row;
 	do {
-		row = _vte_new_row_data (terminal, FALSE);
+		row = _vte_new_row_data (terminal);
 		_vte_ring_append(screen->row_data, row);
 	} while(--cnt);
 	return row;
@@ -2956,7 +2938,7 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 				 * to insert_delta. */
 				start++;
 				end++;
-				row = _vte_new_row_data(terminal, FALSE);
+				row = _vte_new_row_data(terminal);
 				_vte_ring_insert_preserve(terminal->pvt->screen->row_data,
 							  screen->cursor_current.row,
 							  row);

@@ -120,11 +120,11 @@ vte_insert_line_internal(VteTerminal *terminal, glong position)
 	VteRowData *row;
 	/* Pad out the line data to the insertion point. */
 	while (_vte_ring_next(terminal->pvt->screen->row_data) < position) {
-		row = _vte_new_row_data(terminal, TRUE);
+		row = _vte_new_row_data(terminal);
 		_vte_ring_append(terminal->pvt->screen->row_data, row);
 	}
 	/* If we haven't inserted a line yet, insert a new one. */
-	row = _vte_new_row_data(terminal, TRUE);
+	row = _vte_new_row_data(terminal);
 	if (_vte_ring_next(terminal->pvt->screen->row_data) >= position) {
 		_vte_ring_insert(terminal->pvt->screen->row_data, position, row);
 	} else {
@@ -328,7 +328,7 @@ _vte_terminal_clear_screen (VteTerminal *terminal)
 	initial = _vte_ring_next(screen->row_data);
 	/* Add a new screen's worth of rows. */
 	for (i = 0; i < terminal->row_count; i++) {
-		rowdata = _vte_new_row_data(terminal, TRUE);
+		rowdata = _vte_new_row_data(terminal);
 		_vte_ring_append(screen->row_data, rowdata);
 	}
 	/* Move the cursor and insertion delta to the first line in the
@@ -431,7 +431,7 @@ _vte_terminal_scroll_text (VteTerminal *terminal, int scroll_amount)
 	}
 
 	while (_vte_ring_next(screen->row_data) <= end) {
-		row = _vte_new_row_data(terminal, FALSE);
+		row = _vte_new_row_data(terminal);
 		_vte_ring_append(terminal->pvt->screen->row_data, row);
 	}
 	if (scroll_amount > 0) {
@@ -1140,7 +1140,7 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 			rowdata = _vte_ring_index(screen->row_data, i);
 			g_assert(rowdata != NULL);
 		} else {
-			rowdata = _vte_new_row_data(terminal, FALSE);
+			rowdata = _vte_new_row_data(terminal);
 			_vte_ring_append(screen->row_data, rowdata);
 		}
 		/* Pad out the row. */
@@ -3082,7 +3082,7 @@ vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *
 	     row++) {
 		/* Find this row. */
 		while (_vte_ring_next(screen->row_data) <= row) {
-			rowdata = _vte_new_row_data(terminal, FALSE);
+			rowdata = _vte_new_row_data(terminal);
 			_vte_ring_append(screen->row_data, rowdata);
 		}
 		_vte_terminal_adjust_adjustments(terminal);
