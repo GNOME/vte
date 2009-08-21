@@ -325,12 +325,9 @@ _vte_terminal_clear_screen (VteTerminal *terminal)
 	screen = terminal->pvt->screen;
 	initial = screen->insert_delta;
 	row = screen->cursor_current.row - screen->insert_delta;
+	initial = _vte_ring_next(screen->row_data);
 	/* Add a new screen's worth of rows. */
 	for (i = 0; i < terminal->row_count; i++) {
-		/* Add a new row */
-		if (i == 0) {
-			initial = _vte_ring_next(screen->row_data);
-		}
 		rowdata = _vte_new_row_data(terminal, TRUE);
 		_vte_ring_append(screen->row_data, rowdata);
 	}
