@@ -2331,19 +2331,14 @@ _vte_terminal_ensure_row (VteTerminal *terminal)
 	screen = terminal->pvt->screen;
 	v = screen->cursor_current.row;
 
-	if (!_vte_ring_is_cached (screen->row_data, v)) {
-		/* Figure out how many rows we need to add. */
-		delta = v - _vte_ring_next(screen->row_data) + 1;
-		if (delta > 0) {
-			row = vte_terminal_insert_rows (terminal, delta);
-			_vte_terminal_adjust_adjustments(terminal);
-		} else {
-			/* Find the row the cursor is in. */
-			row = _vte_ring_index(screen->row_data, v);
-		}
-		_vte_ring_set_cache (screen->row_data, v, row);
+	/* Figure out how many rows we need to add. */
+	delta = v - _vte_ring_next(screen->row_data) + 1;
+	if (delta > 0) {
+		row = vte_terminal_insert_rows (terminal, delta);
+		_vte_terminal_adjust_adjustments(terminal);
 	} else {
-		row = _vte_ring_get_cached_data (screen->row_data);
+		/* Find the row the cursor is in. */
+		row = _vte_ring_index(screen->row_data, v);
 	}
 	g_assert(row != NULL);
 

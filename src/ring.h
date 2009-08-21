@@ -35,8 +35,6 @@ typedef struct _VteRing VteRing;
 
 struct _VteRing {
 	glong delta, length, max;
-	glong cached_item;
-	gpointer cached_data;
 	VteRowData **array;
 };
 
@@ -47,9 +45,6 @@ struct _VteRing {
 #define _vte_ring_length(__ring) ((__ring)->length)
 #define _vte_ring_next(__ring) ((__ring)->delta + (__ring)->length)
 #define _vte_ring_max(__ring) ((__ring)->max)
-#define _vte_ring_is_cached(__ring, __v) ((__ring)->cached_item == (__v))
-#define _vte_ring_get_cached_data(__ring) ((__ring)->cached_data)
-#define _vte_ring_set_cache(__ring, __v, __data) ((__ring)->cached_item = (__v), (__ring)->cached_data = (__data))
 #ifdef VTE_DEBUG
 #define _vte_ring_index(__ring, __position) \
 	((__ring)->array[(__position) % (__ring)->max] ? \

@@ -65,7 +65,6 @@ VteRing *
 _vte_ring_new(glong max_elements)
 {
 	VteRing *ret = g_slice_new0(VteRing);
-	ret->cached_item = -1;
 	ret->max = MAX(max_elements, 2);
 	ret->array = g_malloc0(sizeof(gpointer) * ret->max);
 	return ret;
@@ -118,10 +117,6 @@ _vte_ring_insert(VteRing * ring, long position, gpointer data)
 		ring->array[position % ring->max] = data;
 		if (ring->length == ring->max) {
 			ring->delta++;
-			if (ring->delta > ring->cached_item) {
-				_vte_ring_set_cache (ring, -1, NULL);
-			}
-
 		} else {
 			ring->length++;
 		}
@@ -131,10 +126,6 @@ _vte_ring_insert(VteRing * ring, long position, gpointer data)
 				ring->delta, ring->length, ring->max);
 		_vte_ring_validate(ring);
 		return;
-	}
-
-	if (position <= ring->cached_item) {
-		_vte_ring_set_cache (ring, -1, NULL);
 	}
 
 	/* All other cases.  Calculate the location where the last "item" in the
@@ -197,10 +188,6 @@ _vte_ring_insert_preserve(VteRing * ring, long position, gpointer data)
 			position, ring->delta, ring->length, ring->max);
 	_vte_ring_validate(ring);
 
-	if (position <= ring->cached_item) {
-		_vte_ring_set_cache (ring, -1, NULL);
-	}
-
 	/* Allocate space to save existing elements. */
 	point = _vte_ring_next(ring);
 	i = MAX(1, point - position);
@@ -250,10 +237,6 @@ _vte_ring_remove(VteRing * ring, long position, gboolean free_element)
 			" Delta = %ld, Length = %ld, Max = %ld.\n",
 			position, ring->delta, ring->length, ring->max);
 	_vte_ring_validate(ring);
-
-	if (position <= ring->cached_item) {
-		_vte_ring_set_cache (ring, -1, NULL);
-	}
 
 	i = position % ring->max;
 	/* Remove the data at this position. */
