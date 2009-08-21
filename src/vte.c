@@ -309,17 +309,6 @@ _vte_reset_row_data (VteTerminal *terminal, VteRowData *row, gboolean fill)
 
 /* Allocate a new line. */
 VteRowData *
-_vte_new_row_data(VteTerminal *terminal)
-{
-	VteRowData *row = NULL;
-	row = g_slice_new(VteRowData);
-	row->cells = g_array_new(FALSE, TRUE, sizeof(struct vte_charcell));
-	row->soft_wrapped = 0;
-	return row;
-}
-
-/* Allocate a new line of a given size. */
-VteRowData *
 _vte_new_row_data_sized(VteTerminal *terminal, gboolean fill)
 {
 	VteRowData *row = NULL;

@@ -1144,7 +1144,7 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 			rowdata = _vte_ring_index(screen->row_data, i);
 			g_assert(rowdata != NULL);
 		} else {
-			rowdata = _vte_new_row_data(terminal);
+			rowdata = _vte_new_row_data_sized(terminal, FALSE);
 			_vte_ring_append(screen->row_data, rowdata);
 		}
 		/* Pad out the row. */
@@ -3086,7 +3086,7 @@ vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *
 	     row++) {
 		/* Find this row. */
 		while (_vte_ring_next(screen->row_data) <= row) {
-			rowdata = _vte_new_row_data(terminal);
+			rowdata = _vte_new_row_data_sized(terminal, FALSE);
 			_vte_ring_append(screen->row_data, rowdata);
 		}
 		_vte_terminal_adjust_adjustments(terminal);
