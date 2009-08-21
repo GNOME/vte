@@ -85,7 +85,7 @@ vte_terminal_find_charcell(VteTerminal *terminal, glong col, glong row)
 	g_assert(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
 	if (_vte_ring_contains(screen->row_data, row)) {
-		rowdata = _vte_ring_index(screen->row_data, VteRowData *, row);
+		rowdata = _vte_ring_index(screen->row_data, row);
 		if ((glong) rowdata->cells->len > col) {
 			ret = &g_array_index(rowdata->cells,
 					     struct vte_charcell,
@@ -359,8 +359,7 @@ _vte_terminal_clear_current_line (VteTerminal *terminal)
 	 * which corresponds to the cursor. */
 	if (_vte_ring_next(screen->row_data) > screen->cursor_current.row) {
 		/* Get the data for the row which the cursor points to. */
-		rowdata = _vte_ring_index(screen->row_data, VteRowData *,
-					  screen->cursor_current.row);
+		rowdata = _vte_ring_index(screen->row_data, screen->cursor_current.row);
 		g_assert(rowdata != NULL);
 		/* Remove it. */
 		if (rowdata->cells->len > 0) {
@@ -396,8 +395,7 @@ _vte_terminal_clear_above_current (VteTerminal *terminal)
 		if (_vte_ring_next(screen->row_data) > i) {
 			guint len;
 			/* Get the data for the row we're erasing. */
-			rowdata = _vte_ring_index(screen->row_data,
-						  VteRowData *, i);
+			rowdata = _vte_ring_index(screen->row_data, i);
 			g_assert(rowdata != NULL);
 			/* Remove it. */
 			len = rowdata->cells->len;
@@ -998,8 +996,7 @@ vte_sequence_handler_al (VteTerminal *terminal, GValueArray *params)
 		vte_remove_line_internal(terminal, end);
 		vte_insert_line_internal(terminal, start);
 		/* Get the data for the new row. */
-		rowdata = _vte_ring_index(screen->row_data,
-					  VteRowData *, start);
+		rowdata = _vte_ring_index(screen->row_data, start);
 		g_assert(rowdata != NULL);
 		/* Add enough cells to it so that it has the default columns. */
 		vte_g_array_fill(rowdata->cells, &screen->fill_defaults,
@@ -1119,7 +1116,7 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 	i = screen->cursor_current.row;
 	if (i < _vte_ring_next(screen->row_data)) {
 		/* Get the data for the row we're clipping. */
-		rowdata = _vte_ring_index(screen->row_data, VteRowData *, i);
+		rowdata = _vte_ring_index(screen->row_data, i);
 		/* Clear everything to the right of the cursor. */
 		if ((rowdata != NULL) &&
 		    ((glong) rowdata->cells->len > screen->cursor_current.col)) {
@@ -1132,7 +1129,7 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 	     i < _vte_ring_next(screen->row_data);
 	     i++) {
 		/* Get the data for the row we're removing. */
-		rowdata = _vte_ring_index(screen->row_data, VteRowData *, i);
+		rowdata = _vte_ring_index(screen->row_data, i);
 		/* Remove it. */
 		if ((rowdata != NULL) && (rowdata->cells->len > 0)) {
 			g_array_set_size(rowdata->cells, 0);
@@ -1144,8 +1141,7 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 	     i++) {
 		/* Retrieve the row's data, creating it if necessary. */
 		if (_vte_ring_contains(screen->row_data, i)) {
-			rowdata = _vte_ring_index(screen->row_data,
-						  VteRowData *, i);
+			rowdata = _vte_ring_index(screen->row_data, i);
 			g_assert(rowdata != NULL);
 		} else {
 			rowdata = _vte_new_row_data(terminal);
@@ -1440,9 +1436,7 @@ vte_sequence_handler_dc (VteTerminal *terminal, GValueArray *params)
 	if (_vte_ring_next(screen->row_data) > screen->cursor_current.row) {
 		long len;
 		/* Get the data for the row which the cursor points to. */
-		rowdata = _vte_ring_index(screen->row_data,
-					  VteRowData *,
-					  screen->cursor_current.row);
+		rowdata = _vte_ring_index(screen->row_data, screen->cursor_current.row);
 		g_assert(rowdata != NULL);
 		col = screen->cursor_current.col;
 		len = rowdata->cells->len;
@@ -2872,7 +2866,7 @@ vte_sequence_handler_insert_lines (VteTerminal *terminal, GValueArray *params)
 		vte_remove_line_internal(terminal, end);
 		vte_insert_line_internal(terminal, row);
 		/* Get the data for the new row. */
-		rowdata = _vte_ring_index(screen->row_data, VteRowData *, row);
+		rowdata = _vte_ring_index(screen->row_data, row);
 		g_assert(rowdata != NULL);
 		/* Add enough cells to it so that it has the default colors. */
 		vte_g_array_fill(rowdata->cells,
@@ -2921,7 +2915,7 @@ vte_sequence_handler_delete_lines (VteTerminal *terminal, GValueArray *params)
 		vte_remove_line_internal(terminal, row);
 		vte_insert_line_internal(terminal, end);
 		/* Get the data for the new row. */
-		rowdata = _vte_ring_index(screen->row_data, VteRowData *, end);
+		rowdata = _vte_ring_index(screen->row_data, end);
 		g_assert(rowdata != NULL);
 		/* Add enough cells to it so that it has the default colors. */
 		vte_g_array_fill(rowdata->cells,
@@ -3096,7 +3090,7 @@ vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *
 			_vte_ring_append(screen->row_data, rowdata);
 		}
 		_vte_terminal_adjust_adjustments(terminal);
-		rowdata = _vte_ring_index(screen->row_data, VteRowData *, row);
+		rowdata = _vte_ring_index(screen->row_data, row);
 		g_assert(rowdata != NULL);
 		/* Clear this row. */
 		if (rowdata->cells->len > 0) {

@@ -26,17 +26,18 @@
 
 G_BEGIN_DECLS
 
+typedef struct _VteRowData {
+	GArray *cells;
+	guchar soft_wrapped: 1;
+} VteRowData;
+
 typedef struct _VteRing VteRing;
-typedef void (*VteRingFreeFunc)(gpointer freeing, gpointer data);
 
 struct _VteRing {
 	glong delta, length, max;
 	glong cached_item;
 	gpointer cached_data;
-	gpointer *array;
-
-	VteRingFreeFunc free;
-	gpointer user_data;
+	VteRowData **array;
 };
 
 #define _vte_ring_contains(__ring, __position) \
@@ -50,7 +51,7 @@ struct _VteRing {
 #define _vte_ring_get_cached_data(__ring) ((__ring)->cached_data)
 #define _vte_ring_set_cache(__ring, __v, __data) ((__ring)->cached_item = (__v), (__ring)->cached_data = (__data))
 #ifdef VTE_DEBUG
-#define _vte_ring_at(__ring, __position) \
+#define _vte_ring_index(__ring, __position) \
 	((__ring)->array[(__position) % (__ring)->max] ? \
 	 (__ring)->array[(__position) % (__ring)->max] : \
 	 (g_critical("NULL at %ld(->%ld) delta %ld, length %ld, max %ld next %ld" \
@@ -60,17 +61,12 @@ struct _VteRing {
 		  (__ring)->delta + (__ring)->length, \
 		  __LINE__), (gpointer) NULL))
 #else
-#define _vte_ring_at(__ring, __position) \
+#define _vte_ring_index(__ring, __position) \
 	((__ring)->array[(__position) % (__ring)->max])
 #endif
-#define _vte_ring_index(__ring, __cast, __position) \
-	(__cast) _vte_ring_at(__ring, __position)
 
-VteRing *_vte_ring_new(glong max_elements,
-		      VteRingFreeFunc free_func,
-		      gpointer data);
-VteRing *_vte_ring_new_with_delta(glong max_elements, glong delta,
-				  VteRingFreeFunc free_func, gpointer data);
+VteRing *_vte_ring_new(glong max_elements);
+VteRing *_vte_ring_new_with_delta(glong max_elements, glong delta);
 void _vte_ring_insert(VteRing *ring, glong position, gpointer data);
 void _vte_ring_insert_preserve(VteRing *ring, glong position, gpointer data);
 void _vte_ring_remove(VteRing *ring, glong position, gboolean free_element);

@@ -279,30 +279,6 @@ G_DEFINE_TYPE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET)
  * Only the first %VTE_LEGACY_COLOR_SET_SIZE colors have dim versions.  */
 static const guchar corresponding_dim_index[] = {16,88,28,100,18,90,30,102};
 
-static void
-_vte_free_row_data(VteRowData *row)
-{
-	g_array_free(row->cells, TRUE);
-	g_slice_free(VteRowData, row);
-}
-
-static void
-_vte_terminal_free_row_data(VteTerminal *terminal,
-			    VteRowData *row)
-{
-	if (terminal->pvt->free_row)
-		_vte_free_row_data (terminal->pvt->free_row);
-
-	terminal->pvt->free_row = row;
-}
-
-static void
-_vte_terminal_free_row_data_ring_callback (VteRowData *row,
-					   VteTerminal *terminal)
-{
-  _vte_terminal_free_row_data(terminal, row);
-}
-
 /* Append a single item to a GArray a given number of times. Centralizing all
  * of the places we do this may let me do something more clever later. */
 static void
@@ -336,11 +312,6 @@ VteRowData *
 _vte_new_row_data(VteTerminal *terminal)
 {
 	VteRowData *row = NULL;
-	if (terminal->pvt->free_row) {
-		row = terminal->pvt->free_row;
-		terminal->pvt->free_row = NULL;
-		return _vte_reset_row_data (terminal, row, FALSE);
-	}
 	row = g_slice_new(VteRowData);
 	row->cells = g_array_new(FALSE, TRUE, sizeof(struct vte_charcell));
 	row->soft_wrapped = 0;
@@ -352,11 +323,6 @@ VteRowData *
 _vte_new_row_data_sized(VteTerminal *terminal, gboolean fill)
 {
 	VteRowData *row = NULL;
-	if (terminal->pvt->free_row) {
-		row = terminal->pvt->free_row;
-		terminal->pvt->free_row = NULL;
-		return _vte_reset_row_data (terminal, row, fill);
-	}
 	row = g_slice_new(VteRowData);
 	row->cells = g_array_sized_new(FALSE, TRUE,
 				       sizeof(struct vte_charcell),
@@ -618,7 +584,7 @@ _vte_terminal_find_row_data(VteTerminal *terminal, glong row)
 	VteRowData *rowdata = NULL;
 	VteScreen *screen = terminal->pvt->screen;
 	if (_vte_ring_contains(screen->row_data, row)) {
-		rowdata = _vte_ring_index(screen->row_data, VteRowData *, row);
+		rowdata = _vte_ring_index(screen->row_data, row);
 	}
 	return rowdata;
 }
@@ -631,7 +597,7 @@ vte_terminal_find_charcell(VteTerminal *terminal, gulong col, glong row)
 	VteScreen *screen;
 	screen = terminal->pvt->screen;
 	if (_vte_ring_contains(screen->row_data, row)) {
-		rowdata = _vte_ring_index(screen->row_data, VteRowData *, row);
+		rowdata = _vte_ring_index(screen->row_data, row);
 		if (rowdata->cells->len > col) {
 			ret = &g_array_index(rowdata->cells,
 					     struct vte_charcell,
@@ -2402,8 +2368,7 @@ _vte_terminal_ensure_row (VteTerminal *terminal)
 			_vte_terminal_adjust_adjustments(terminal);
 		} else {
 			/* Find the row the cursor is in. */
-			row = _vte_ring_index(screen->row_data,
-					VteRowData *, v);
+			row = _vte_ring_index(screen->row_data, v);
 		}
 		_vte_ring_set_cache (screen->row_data, v, row);
 	} else {
@@ -6405,8 +6370,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 		j = sc->row;
 		while (_vte_ring_contains(screen->row_data, j)) {
 			/* Get the data for the row we're looking at. */
-			rowdata = _vte_ring_index(screen->row_data,
-						  VteRowData *, j);
+			rowdata = _vte_ring_index(screen->row_data, j);
 			if (rowdata == NULL) {
 				break;
 			}
@@ -6452,8 +6416,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 		j = ec->row;
 		while (_vte_ring_contains(screen->row_data, j)) {
 			/* Get the data for the row we're looking at. */
-			rowdata = _vte_ring_index(screen->row_data,
-						  VteRowData *, j);
+			rowdata = _vte_ring_index(screen->row_data, j);
 			if (rowdata == NULL) {
 				break;
 			}
@@ -6514,8 +6477,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 		/* Make sure we include all of the last line. */
 		ec->col = terminal->column_count - 1;
 		if (_vte_ring_contains(screen->row_data, ec->row)) {
-			rowdata = _vte_ring_index(screen->row_data,
-						  VteRowData *, ec->row);
+			rowdata = _vte_ring_index(screen->row_data, ec->row);
 			if (rowdata != NULL) {
 				ec->col = MAX(ec->col, (long) rowdata->cells->len);
 			}
@@ -7998,14 +7960,11 @@ vte_terminal_reset_rowdata(VteTerminal *terminal, VteRing **ring, glong lines)
 	if (*ring && (_vte_ring_max(*ring) == lines)) {
 		return;
 	}
-	new_ring = _vte_ring_new_with_delta(lines,
-					    *ring ? _vte_ring_delta(*ring) : 0,
-					    (GFunc) _vte_terminal_free_row_data_ring_callback,
-					    terminal);
+	new_ring = _vte_ring_new_with_delta(lines, *ring ? _vte_ring_delta(*ring) : 0);
 	if (*ring) {
 		next = _vte_ring_next(*ring);
 		for (i = _vte_ring_delta(*ring); i < next; i++) {
-			row = _vte_ring_index(*ring, VteRowData *, i);
+			row = _vte_ring_index(*ring, i);
 			_vte_ring_append(new_ring, row);
 		}
 		_vte_ring_free(*ring, FALSE);
@@ -8548,9 +8507,6 @@ vte_terminal_finalize(GObject *object)
 	/* Clear the output histories. */
 	_vte_ring_free(terminal->pvt->normal_screen.row_data, TRUE);
 	_vte_ring_free(terminal->pvt->alternate_screen.row_data, TRUE);
-	if (terminal->pvt->free_row) {
-		_vte_free_row_data (terminal->pvt->free_row);
-	}
 
 	/* Clear the status lines. */
 	g_string_free(terminal->pvt->normal_screen.status_line_contents,
@@ -13500,13 +13456,9 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	/* Clear the scrollback buffers and reset the cursors. */
 	if (clear_history) {
 		_vte_ring_free(terminal->pvt->normal_screen.row_data, TRUE);
-		terminal->pvt->normal_screen.row_data =
-			_vte_ring_new(terminal->pvt->scrollback_lines,
-				      (GFunc) _vte_terminal_free_row_data_ring_callback, terminal);
+		terminal->pvt->normal_screen.row_data = _vte_ring_new(terminal->pvt->scrollback_lines);
 		_vte_ring_free(terminal->pvt->alternate_screen.row_data, TRUE);
-		terminal->pvt->alternate_screen.row_data =
-			_vte_ring_new(terminal->pvt->scrollback_lines,
-				      (GFunc) _vte_terminal_free_row_data_ring_callback, terminal);
+		terminal->pvt->alternate_screen.row_data = _vte_ring_new(terminal->pvt->scrollback_lines);
 		terminal->pvt->normal_screen.cursor_saved.row = 0;
 		terminal->pvt->normal_screen.cursor_saved.col = 0;
 		terminal->pvt->normal_screen.cursor_current.row = 0;

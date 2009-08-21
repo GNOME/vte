@@ -183,11 +183,6 @@ typedef struct _VteWordCharRange {
 	gunichar start, end;
 } VteWordCharRange;
 
-typedef struct _VteRowData {
-	GArray *cells;
-	guchar soft_wrapped: 1;
-} VteRowData;
-
 /* Terminal private data. */
 struct _VteTerminalPrivate {
 	/* Emulation setup data. */
@@ -286,7 +281,6 @@ struct _VteTerminalPrivate {
 		GString *status_line_contents;
 		gboolean status_line_changed;
 	} normal_screen, alternate_screen, *screen;
-	VteRowData *free_row;	/* cached VteRowData */
 
 	/* Selection information. */
 	GArray *word_chars;
