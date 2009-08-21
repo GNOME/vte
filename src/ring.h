@@ -41,10 +41,10 @@ struct _VteRing {
 #define _vte_ring_contains(__ring, __position) \
 	(((__position) >= (__ring)->delta) && \
 	 ((__position) < (__ring)->delta + (__ring)->length))
-#define _vte_ring_delta(__ring) ((__ring)->delta)
-#define _vte_ring_length(__ring) ((__ring)->length)
+#define _vte_ring_delta(__ring) ((__ring)->delta + 0)
+#define _vte_ring_length(__ring) ((__ring)->length /* + 0 XXX */)
 #define _vte_ring_next(__ring) ((__ring)->delta + (__ring)->length)
-#define _vte_ring_max(__ring) ((__ring)->max)
+#define _vte_ring_max(__ring) ((__ring)->max + 0)
 #ifdef VTE_DEBUG
 #define _vte_ring_index(__ring, __position) \
 	((__ring)->array[(__position) % (__ring)->max] ? \
@@ -54,18 +54,18 @@ struct _VteRing {
 		  (__position), (__position) % (__ring)->max, \
 		  (__ring)->delta, (__ring)->length, (__ring)->max, \
 		  (__ring)->delta + (__ring)->length, \
-		  __LINE__), (gpointer) NULL))
+		  __LINE__), (VteRowData *) NULL))
 #else
 #define _vte_ring_index(__ring, __position) \
 	((__ring)->array[(__position) % (__ring)->max])
 #endif
 
 VteRing *_vte_ring_new(glong max_elements);
-VteRing *_vte_ring_new_with_delta(glong max_elements, glong delta);
-void _vte_ring_insert(VteRing *ring, glong position, gpointer data);
-void _vte_ring_insert_preserve(VteRing *ring, glong position, gpointer data);
+void _vte_ring_resize(VteRing *ring, glong max_elements);
+void _vte_ring_insert(VteRing *ring, glong position, VteRowData * data);
+void _vte_ring_insert_preserve(VteRing *ring, glong position, VteRowData * data);
 void _vte_ring_remove(VteRing *ring, glong position, gboolean free_element);
-void _vte_ring_append(VteRing *ring, gpointer data);
+void _vte_ring_append(VteRing *ring, VteRowData * data);
 void _vte_ring_free(VteRing *ring, gboolean free_elements);
 
 G_END_DECLS

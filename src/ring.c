@@ -66,18 +66,41 @@ _vte_ring_new(glong max_elements)
 {
 	VteRing *ret = g_slice_new0(VteRing);
 	ret->max = MAX(max_elements, 2);
-	ret->array = g_malloc0(sizeof(gpointer) * ret->max);
+	ret->array = g_malloc0(sizeof(VteRowData *) * ret->max);
 	return ret;
 }
 
-VteRing *
-_vte_ring_new_with_delta(glong max_elements, glong delta)
+void
+_vte_ring_resize(VteRing *ring, glong max_elements)
 {
-	VteRing *ret;
-	ret = _vte_ring_new(max_elements);
-	ret->delta = delta;
-	return ret;
+	glong position, end, old_max;
+	VteRowData **old_array;
+
+	max_elements = MAX(max_elements, 2);
+
+	if (ring->max == max_elements)
+		return;
+
+	old_max = ring->max;
+	old_array = ring->array;
+
+	ring->max = max_elements;
+	ring->array = g_malloc0(sizeof(VteRowData *) * ring->max);
+
+	end = ring->delta + ring->length;
+	for (position = ring->delta; position < end; position++) {
+		_vte_free_row_data (ring->array[position % ring->max]);
+		ring->array[position % ring->max] = old_array[position % old_max];
+	}
+
+	if (ring->length > ring->max) {
+	  ring->length = ring->max;
+	  ring->delta = end - ring->max;
+	}
+
+	g_free (old_array);
 }
+
 
 /**
  * _vte_ring_insert:
@@ -91,7 +114,7 @@ _vte_ring_new_with_delta(glong max_elements, glong delta)
  *
  */
 void
-_vte_ring_insert(VteRing * ring, long position, gpointer data)
+_vte_ring_insert(VteRing * ring, long position, VteRowData * data)
 {
 	long point, i;
 
@@ -174,7 +197,7 @@ _vte_ring_insert(VteRing * ring, long position, gpointer data)
  *
  */
 void
-_vte_ring_insert_preserve(VteRing * ring, long position, gpointer data)
+_vte_ring_insert_preserve(VteRing * ring, long position, VteRowData * data)
 {
 	long point, i;
 	VteRowData **tmp;
@@ -272,7 +295,7 @@ _vte_ring_remove(VteRing * ring, long position, gboolean free_element)
  *
  */
 void
-_vte_ring_append(VteRing * ring, gpointer data)
+_vte_ring_append(VteRing * ring, VteRowData * data)
 {
 	g_assert(data != NULL);
 	_vte_ring_insert(ring, ring->delta + ring->length, data);

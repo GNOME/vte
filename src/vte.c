@@ -7914,31 +7914,6 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 }
 
 static void
-vte_terminal_reset_rowdata(VteTerminal *terminal, VteRing **ring, glong lines)
-{
-	VteRing *new_ring;
-	VteRowData *row;
-	long i, next;
-
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Sizing scrollback buffer to %ld lines.\n",
-			lines);
-	if (*ring && (_vte_ring_max(*ring) == lines)) {
-		return;
-	}
-	new_ring = _vte_ring_new_with_delta(lines, *ring ? _vte_ring_delta(*ring) : 0);
-	if (*ring) {
-		next = _vte_ring_next(*ring);
-		for (i = _vte_ring_delta(*ring); i < next; i++) {
-			row = _vte_ring_index(*ring, i);
-			_vte_ring_append(new_ring, row);
-		}
-		_vte_ring_free(*ring, FALSE);
-	}
-	*ring = new_ring;
-}
-
-static void
 _vte_terminal_codeset_changed_cb(struct _vte_iso2022_state *state, gpointer p)
 {
 	vte_terminal_set_encoding(p, _vte_iso2022_state_get_codeset(state));
@@ -8012,15 +7987,13 @@ vte_terminal_init(VteTerminal *terminal)
         pvt->child_exit_status = 0;
 
 	/* Initialize the screens and histories. */
-	vte_terminal_reset_rowdata(terminal, &pvt->alternate_screen.row_data,
-				   VTE_SCROLLBACK_INIT);
+	pvt->alternate_screen.row_data = _vte_ring_new (VTE_SCROLLBACK_INIT);
 	pvt->alternate_screen.sendrecv_mode = TRUE;
 	pvt->alternate_screen.status_line_contents = g_string_new(NULL);
 	pvt->screen = &terminal->pvt->alternate_screen;
 	_vte_terminal_set_default_attributes(terminal);
 
-	vte_terminal_reset_rowdata(terminal, &pvt->normal_screen.row_data,
-				   VTE_SCROLLBACK_INIT);
+	pvt->normal_screen.row_data = _vte_ring_new (VTE_SCROLLBACK_INIT);
 	pvt->normal_screen.sendrecv_mode = TRUE;
 	pvt->normal_screen.status_line_contents = g_string_new(NULL);
 	pvt->screen = &terminal->pvt->normal_screen;
@@ -13129,7 +13102,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 		lines = MAX (lines, terminal->row_count);
 		next = MAX (screen->cursor_current.row + 1,
 				_vte_ring_next (screen->row_data));
-		vte_terminal_reset_rowdata (terminal, &screen->row_data, lines);
+		_vte_ring_resize (screen->row_data, lines);
 		low = _vte_ring_delta (screen->row_data);
 		high = low + lines - terminal->row_count + 1;
 		screen->insert_delta = CLAMP (screen->insert_delta, low, high);
@@ -13139,8 +13112,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 			_vte_ring_length (screen->row_data) = next - low;
 		}
 	} else {
-		vte_terminal_reset_rowdata (terminal, &screen->row_data,
-				terminal->row_count);
+		_vte_ring_resize (screen->row_data, terminal->row_count);
 		scroll_delta = _vte_ring_delta (screen->row_data);
 		screen->insert_delta = _vte_ring_delta (screen->row_data);
 		if (_vte_ring_next (screen->row_data) > screen->insert_delta + terminal->row_count){
