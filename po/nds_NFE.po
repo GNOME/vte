@@ -1,0 +1,94 @@
+# Low German translation for vte.
+# Copyright (C) 2009 vte's COPYRIGHT HOLDER
+# This file is distributed under the same license as the vte package.
+# Nils-Christoph Fiedler <linux@medienkompanie.de>, 2009.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte master\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=vte&component=general\n"
+"POT-Creation-Date: 2009-08-21 18:12+0000\n"
+"PO-Revision-Date: 2009-08-22 19:13+0100\n"
+"Last-Translator: Nils-Christoph Fiedler <linux@medienkompanie.de>\n"
+"Language-Team: Low German <nds_NFE@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../src/iso2022.c:771
+#: ../src/iso2022.c:779
+#: ../src/iso2022.c:810
+#: ../src/vte.c:2234
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Nich möglich, Teken vun %s to %s to konverteeren."
+
+#: ../src/iso2022.c:1464
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr "Versöök ungültige NRC Koort '%c' to setten."
+
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: ../src/iso2022.c:1494
+msgid "Unrecognized identified coding system."
+msgstr "Nich wieswarrnes, identifiziertes Kodeerungssystem."
+
+#: ../src/iso2022.c:1553
+#: ../src/iso2022.c:1580
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr "Versöök ungültige wiete NRC Koort '%c' to setten."
+
+#. Give the user some clue as to why session logging is not
+#. * going to work (assuming we can open a pty using some other
+#. * method).
+#: ../src/pty.c:831
+#, c-format
+msgid "can not run %s"
+msgstr "kunn %s nicht to'm Lööpen bringen."
+
+#: ../src/trie.c:409
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "Erstelle Kopie vun (%s/%s)!"
+
+#. Bail back to normal mode.
+#: ../src/vteapp.c:846
+msgid "Could not open console.\n"
+msgstr "Kunn dat Terminal nich opmaken.\n"
+
+#: ../src/vteapp.c:910
+msgid "Could not parse the geometry spec passed to --geometry"
+msgstr "Kunn nich de Geometrie Spezifikatschoon uteenannerklamüsern, de to --geometry föhrt"
+
+#: ../src/vte.c:1283
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Fehler bi'm Kompileeren vum akeraten Utdruck \"%s\"."
+
+#. Translators: %s is replaced with error message returned by strerror().
+#: ../src/vte.c:4214
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Fehler bi'm Lesen vun Kind: %s."
+
+#: ../src/vte.c:4342
+msgid "Unable to send data to child, invalid charset convertor"
+msgstr "Nich möglich, Daten an Kind to sennen, ungültiger Schrievsettenskonverter"
+
+#: ../src/vte.c:4353
+#: ../src/vte.c:5345
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Fehler (%s) bi'm Konverteeren vun Daten för Kind, fertig."
+
+#: ../src/vte.c:7611
+#, c-format
+msgid "Error reading PTY size, using defaults: %s."
+msgstr "Fehler bi'm Lesen vun de PTY Grote, nehme Standard:  %s."
+
+#. Aaargh.  We're screwed.
+#: ../src/vte.c:13172
+msgid "_vte_conv_open() failed setting word characters"
+msgstr "_vte_conv_open() kunn keene Woordteken setten"
+
