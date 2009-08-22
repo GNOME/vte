@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2002 Red Hat, Inc.
+ * Copyright (C) 2002,2009 Red Hat, Inc.
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Library General Public License as published by
@@ -14,23 +14,36 @@
  * You should have received a copy of the GNU Library General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * Red Hat Author(s): Nalin Dahyabhai, Behdad Esfahbod
  */
 
 #include <config.h>
 #include <stdio.h>
-#include <string.h>
 #include <glib.h>
 #include "debug.h"
 #include "ring.h"
 
+
+static VteRowData *
+_vte_row_data_new (void)
+{
+	VteRowData *row = NULL;
+	row = g_slice_new(VteRowData);
+	row->cells = g_array_new(FALSE, TRUE, sizeof(struct vte_charcell));
+	row->soft_wrapped = 0;
+	return row;
+}
+
 static void
-_vte_free_row_data(VteRowData *row)
+_vte_row_data_free(VteRowData *row)
 {
 	if (!row)
 		return;
 	g_array_free(row->cells, TRUE);
 	g_slice_free(VteRowData, row);
 }
+
 
 #ifdef VTE_DEBUG
 static void
@@ -52,24 +65,50 @@ _vte_ring_validate(VteRing * ring)
 /**
  * _vte_ring_new:
  * @max_elements: the maximum size the new ring will be allowed to reach
- * @free_func: a #VteRingFreeFunc
- * @data: user data for @free
  *
- * Allocates a new ring capable of holding up to @max_elements elements at a
- * time, using @free to free them when they are removed from the ring.  The
- * @data pointer is passed to the @free callback whenever it is called.
+ * Allocates a new ring capable of holding up to @max_elements rows at a time.
  *
- * Returns: a new ring
+ * Returns: the new ring
  */
 VteRing *
-_vte_ring_new(glong max_elements)
+_vte_ring_new (glong max_elements)
 {
-	VteRing *ret = g_slice_new0(VteRing);
-	ret->max = MAX(max_elements, 2);
-	ret->array = g_malloc0(sizeof(VteRowData *) * ret->max);
-	return ret;
+	VteRing *ring = g_slice_new0(VteRing);
+	ring->max = MAX(max_elements, 2);
+	ring->array = g_malloc0(sizeof(VteRowData *) * ring->max);
+
+	_vte_debug_print(VTE_DEBUG_RING,
+			"New ring %p.\n"
+			" Delta = %ld, Length = %ld, Max = %ld.\n",
+			ring, ring->delta, ring->length, ring->max);
+	_vte_ring_validate(ring);
+
+	return ring;
 }
 
+/**
+ * _vte_ring_free:
+ * @ring: a #VteRing
+ *
+ * Frees the ring and each of the items it contains.
+ */
+void
+_vte_ring_free(VteRing *ring)
+{
+	glong i;
+	for (i = 0; i < ring->max; i++)
+		_vte_row_data_free (ring->array[i]);
+	g_free(ring->array);
+	g_slice_free(VteRing, ring);
+}
+
+/**
+ * _vte_ring_free:
+ * @ring: a #VteRing
+ * @max_elements: new maximum numbers of rows in the ring
+ *
+ * Changes the number of lines the ring can contain.
+ */
 void
 _vte_ring_resize(VteRing *ring, glong max_elements)
 {
@@ -81,6 +120,12 @@ _vte_ring_resize(VteRing *ring, glong max_elements)
 	if (ring->max == max_elements)
 		return;
 
+	_vte_debug_print(VTE_DEBUG_RING,
+			"Before resizing ring.\n"
+			" Delta = %ld, Length = %ld, Max = %ld.\n",
+			ring->delta, ring->length, ring->max);
+	_vte_ring_validate(ring);
+
 	old_max = ring->max;
 	old_array = ring->array;
 
@@ -89,7 +134,7 @@ _vte_ring_resize(VteRing *ring, glong max_elements)
 
 	end = ring->delta + ring->length;
 	for (position = ring->delta; position < end; position++) {
-		_vte_free_row_data (ring->array[position % ring->max]);
+		_vte_row_data_free (ring->array[position % ring->max]);
 		ring->array[position % ring->max] = old_array[position % old_max];
 	}
 
@@ -99,29 +144,32 @@ _vte_ring_resize(VteRing *ring, glong max_elements)
 	}
 
 	g_free (old_array);
-}
 
+	_vte_debug_print(VTE_DEBUG_RING,
+			"After resizing ring.\n"
+			" Delta = %ld, Length = %ld, Max = %ld.\n",
+			ring->delta, ring->length, ring->max);
+	_vte_ring_validate(ring);
+}
 
 /**
  * _vte_ring_insert:
  * @ring: a #VteRing
  * @position: an index
- * @data: the new item
  *
- * Inserts a new item (@data) into @ring at the @position'th offset.  If @ring
- * already has an item stored at the desired location, it will be freed before
- * being replaced by the new @data.
+ * Inserts a new, empty, row into @ring at the @position'th offset.
+ * XXX document how exactly this thing is supposed to work.
  *
+ * Return: the newly added row.
  */
-void
-_vte_ring_insert(VteRing * ring, long position, VteRowData * data)
+VteRowData *
+_vte_ring_insert(VteRing * ring, long position)
 {
 	long point, i;
+	VteRowData *row;
 
-	g_return_if_fail(ring != NULL);
-	g_return_if_fail(position >= ring->delta);
-	g_return_if_fail(position <= ring->delta + ring->length);
-	g_return_if_fail(data != NULL);
+	g_return_val_if_fail(position >= ring->delta, NULL);
+	g_return_val_if_fail(position <= ring->delta + ring->length, NULL);
 
 	_vte_debug_print(VTE_DEBUG_RING,
 			"Inserting at position %ld.\n"
@@ -132,37 +180,37 @@ _vte_ring_insert(VteRing * ring, long position, VteRowData * data)
 	/* Initial insertion, or append. */
 	if (position == ring->length + ring->delta) {
 		/* If there was something there before, free it. */
-		_vte_free_row_data (ring->array[position % ring->max]);
+		_vte_row_data_free (ring->array[position % ring->max]);
 		/* Set the new item, and if the buffer wasn't "full", increase
 		 * our idea of how big it is, otherwise increase the delta so
 		 * that this becomes the "last" item and the previous item
 		 * scrolls off the *top*. */
-		ring->array[position % ring->max] = data;
-		if (ring->length == ring->max) {
+		ring->array[position % ring->max] = row = _vte_row_data_new ();
+		if (ring->length == ring->max)
 			ring->delta++;
-		} else {
+		else
 			ring->length++;
-		}
+
 		_vte_debug_print(VTE_DEBUG_RING,
 				" Delta = %ld, Length = %ld, "
 				"Max = %ld.\n",
 				ring->delta, ring->length, ring->max);
 		_vte_ring_validate(ring);
-		return;
+
+		return row;
 	}
 
 	/* All other cases.  Calculate the location where the last "item" in the
 	 * buffer is going to end up in the array. */
 	point = ring->delta + ring->length - 1;
-	while (point < 0) {
+	while (point < 0)
 		point += ring->max;
-	}
 
 	if (ring->length == ring->max) {
 		/* If the buffer's full, then the last item will have to be
 		 * "lost" to make room for the new item so that the buffer
 		 * doesn't grow (here we scroll off the *bottom*). */
-		_vte_free_row_data (ring->array[point % ring->max]);
+		_vte_row_data_free (ring->array[point % ring->max]);
 	} else {
 		/* We don't want to discard the last item. */
 		point++;
@@ -170,40 +218,40 @@ _vte_ring_insert(VteRing * ring, long position, VteRowData * data)
 
 	/* We need to bubble the remaining valid elements down.  This isn't as
 	 * slow as you probably think it is due to the pattern of usage. */
-	for (i = point; i > position; i--) {
+	for (i = point; i > position; i--)
 		ring->array[i % ring->max] = ring->array[(i - 1) % ring->max];
-	}
 
 	/* Store the new item and bump up the length, unless we've hit the
 	 * maximum length already. */
-	ring->array[position % ring->max] = data;
+	ring->array[position % ring->max] = row = _vte_row_data_new ();
 	ring->length = CLAMP(ring->length + 1, 0, ring->max);
 	_vte_debug_print(VTE_DEBUG_RING,
 			" Delta = %ld, Length = %ld, Max = %ld.\n",
 			ring->delta, ring->length, ring->max);
 	_vte_ring_validate(ring);
+
+	return row;
 }
 
 /**
  * _vte_ring_insert_preserve:
  * @ring: a #VteRing
  * @position: an index
- * @data: the new item
  *
- * Inserts a new item (@data) into @ring at the @position'th offset.  If @ring
+ * Inserts a new, empty, row into @ring at the @position'th offset.  If @ring
  * already has an item stored at the desired location, it (and any successive
  * items) will be moved down, items that need to be removed will be removed
  * from the *top*.
  *
+ * Return: the newly added row.
  */
-void
-_vte_ring_insert_preserve(VteRing * ring, long position, VteRowData * data)
+VteRowData *
+_vte_ring_insert_preserve(VteRing * ring, long position)
 {
-	long point, i;
-	VteRowData **tmp;
-	VteRowData *stack_tmp[128];
+	long i;
+	VteRowData *row;
 
-	g_return_if_fail(position <= _vte_ring_next(ring));
+	g_return_val_if_fail(position <= _vte_ring_next(ring), NULL);
 
 	_vte_debug_print(VTE_DEBUG_RING,
 			"Inserting+ at position %ld.\n"
@@ -211,48 +259,48 @@ _vte_ring_insert_preserve(VteRing * ring, long position, VteRowData * data)
 			position, ring->delta, ring->length, ring->max);
 	_vte_ring_validate(ring);
 
-	/* Allocate space to save existing elements. */
-	point = _vte_ring_next(ring);
-	i = MAX(1, point - position);
+	if (ring->length < ring->max)
+		return _vte_ring_insert (ring, position);
 
-	/* Save existing elements. */
-	tmp = stack_tmp;
-	if ((guint) i > G_N_ELEMENTS (stack_tmp))
-		tmp = g_new0(VteRowData *, i);
-	for (i = position; i < point; i++) {
-		tmp[i - position] = _vte_ring_index(ring, i);
-	}
+	/* Otherwise, we need to shift items back */
+	_vte_row_data_free (ring->array[ring->delta % ring->max]);
+	for (i = ring->delta; i < position; i++)
+		_vte_ring_index(ring, i) = _vte_ring_index(ring, i + 1);
+	_vte_ring_index(ring, position) = row = _vte_row_data_new ();
 
-	/* Remove the existing elements. */
-	for (i = point; i > position; i--) {
-		_vte_ring_remove(ring, i - 1, FALSE);
-	}
+	_vte_debug_print(VTE_DEBUG_RING,
+			" Delta = %ld, Length = %ld, Max = %ld.\n",
+			ring->delta, ring->length, ring->max);
+	_vte_ring_validate(ring);
 
-	/* Append the new item. */
-	_vte_ring_append(ring, data);
+	return row;
+}
 
-	/* Append the old items. */
-	for (i = position; i < point; i++) {
-		_vte_ring_append(ring, tmp[i - position]);
-	}
-
-	/* Clean up. */
-	if (tmp != stack_tmp)
-		g_free(tmp);
+/**
+ * _vte_ring_append:
+ * @ring: a #VteRing
+ * @data: the new item
+ *
+ * Appends a new item to the ring.  If an item must be removed to make room for
+ * the new item, it is freed.
+ *
+ * Return: the newly added row.
+ */
+VteRowData *
+_vte_ring_append(VteRing * ring)
+{
+	return _vte_ring_insert(ring, ring->delta + ring->length);
 }
 
 /**
  * _vte_ring_remove:
  * @ring: a #VteRing
  * @position: an index
- * @free_element: %TRUE if the item should be freed
  *
- * Removes the @position'th item from @ring, freeing it only if @free_element is
- * %TRUE.
- *
+ * Removes the @position'th item from @ring.
  */
 void
-_vte_ring_remove(VteRing * ring, long position, gboolean free_element)
+_vte_ring_remove(VteRing * ring, long position)
 {
 	long i;
 	_vte_debug_print(VTE_DEBUG_RING,
@@ -263,8 +311,7 @@ _vte_ring_remove(VteRing * ring, long position, gboolean free_element)
 
 	i = position % ring->max;
 	/* Remove the data at this position. */
-	if (free_element)
-		_vte_free_row_data (ring->array[position % ring->max]);
+	_vte_row_data_free (ring->array[position % ring->max]);
 	ring->array[position % ring->max] = NULL;
 
 	/* Bubble the rest of the buffer up one notch.  This is also less
@@ -283,42 +330,4 @@ _vte_ring_remove(VteRing * ring, long position, gboolean free_element)
 			" Delta = %ld, Length = %ld, Max = %ld.\n",
 			ring->delta, ring->length, ring->max);
 	_vte_ring_validate(ring);
-}
-
-/**
- * _vte_ring_append:
- * @ring: a #VteRing
- * @data: the new item
- *
- * Appends a new item to the ring.  If an item must be removed to make room for
- * the new item, it is freed.
- *
- */
-void
-_vte_ring_append(VteRing * ring, VteRowData * data)
-{
-	g_assert(data != NULL);
-	_vte_ring_insert(ring, ring->delta + ring->length, data);
-}
-
-/**
- * _vte_ring_free:
- * @ring: a #VteRing
- * @free_elements: %TRUE if items in the ring should be freed
- *
- * Frees the ring and, optionally, each of the items it contains.
- *
- */
-void
-_vte_ring_free(VteRing *ring, gboolean free_elements)
-{
-	long i;
-	if (free_elements) {
-		for (i = 0; i < ring->max; i++) {
-			/* Remove this item. */
-			_vte_free_row_data (ring->array[i]);
-		}
-	}
-	g_free(ring->array);
-	g_slice_free(VteRing, ring);
 }

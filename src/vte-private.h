@@ -41,7 +41,6 @@
 #include <unistd.h>
 #include <glib/gi18n-lib.h>
 
-#include "vteunistr.h"
 #include "vte.h"
 #include "buffer.h"
 #include "debug.h"
@@ -95,39 +94,6 @@ G_BEGIN_DECLS
 
 #define I_(string) (g_intern_static_string(string))
 
-
-/* The structure we use to hold characters we're supposed to display -- this
- * includes any supported visible attributes. */
-struct vte_charcell {
-	vteunistr c;		/* The Unicode string for the cell. */
-
-	struct vte_charcell_attr {
-		guint32 columns: 4;	/* Number of visible columns
-					   (as determined by g_unicode_iswide(c)).
-					   Also abused for tabs; bug 353610
-					   Keep at least 4 for tabs to work
-					   */
-		guint32 fore: 9;	/* Index into color palette */
-		guint32 back: 9;	/* Index into color palette. */
-
-		guint32 fragment: 1;	/* A continuation cell. */
-		guint32 standout: 1;	/* Single-bit attributes. */
-		guint32 underline: 1;
-		guint32 strikethrough: 1;
-
-		guint32 reverse: 1;
-		guint32 blink: 1;
-		guint32 half: 1;
-		guint32 bold: 1;
-
-		guint32 invisible: 1;
-		/* unused; bug 499893
-		guint32 protect: 1;
-		 */
-
-		/* 31 bits */
-	} attr;
-};
 
 typedef enum {
         VTE_REGEX_GREGEX,

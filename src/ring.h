@@ -24,7 +24,43 @@
 
 #include <glib.h>
 
+#include "debug.h"
+#include "vteunistr.h"
+
 G_BEGIN_DECLS
+
+/* The structure we use to hold characters we're supposed to display -- this
+ * includes any supported visible attributes. */
+struct vte_charcell {
+	vteunistr c;		/* The Unicode string for the cell. */
+
+	struct vte_charcell_attr {
+		guint32 columns: 4;	/* Number of visible columns
+					   (as determined by g_unicode_iswide(c)).
+					   Also abused for tabs; bug 353610
+					   Keep at least 4 for tabs to work
+					   */
+		guint32 fore: 9;	/* Index into color palette */
+		guint32 back: 9;	/* Index into color palette. */
+
+		guint32 fragment: 1;	/* A continuation cell. */
+		guint32 standout: 1;	/* Single-bit attributes. */
+		guint32 underline: 1;
+		guint32 strikethrough: 1;
+
+		guint32 reverse: 1;
+		guint32 blink: 1;
+		guint32 half: 1;
+		guint32 bold: 1;
+
+		guint32 invisible: 1;
+		/* unused; bug 499893
+		guint32 protect: 1;
+		 */
+
+		/* 31 bits */
+	} attr;
+};
 
 typedef struct _VteRowData {
 	GArray *cells;
@@ -45,28 +81,15 @@ struct _VteRing {
 #define _vte_ring_length(__ring) ((__ring)->length /* + 0 XXX */)
 #define _vte_ring_next(__ring) ((__ring)->delta + (__ring)->length)
 #define _vte_ring_max(__ring) ((__ring)->max + 0)
-#ifdef VTE_DEBUG
-#define _vte_ring_index(__ring, __position) \
-	((__ring)->array[(__position) % (__ring)->max] ? \
-	 (__ring)->array[(__position) % (__ring)->max] : \
-	 (g_critical("NULL at %ld(->%ld) delta %ld, length %ld, max %ld next %ld" \
-		  " at %d\n", \
-		  (__position), (__position) % (__ring)->max, \
-		  (__ring)->delta, (__ring)->length, (__ring)->max, \
-		  (__ring)->delta + (__ring)->length, \
-		  __LINE__), (VteRowData *) NULL))
-#else
-#define _vte_ring_index(__ring, __position) \
-	((__ring)->array[(__position) % (__ring)->max])
-#endif
+#define _vte_ring_index(__ring, __position) ((__ring)->array[(__position) % (__ring)->max])
 
 VteRing *_vte_ring_new(glong max_elements);
 void _vte_ring_resize(VteRing *ring, glong max_elements);
-void _vte_ring_insert(VteRing *ring, glong position, VteRowData * data);
-void _vte_ring_insert_preserve(VteRing *ring, glong position, VteRowData * data);
-void _vte_ring_remove(VteRing *ring, glong position, gboolean free_element);
-void _vte_ring_append(VteRing *ring, VteRowData * data);
-void _vte_ring_free(VteRing *ring, gboolean free_elements);
+VteRowData *_vte_ring_insert(VteRing *ring, glong position);
+VteRowData *_vte_ring_insert_preserve(VteRing *ring, glong position);
+VteRowData *_vte_ring_append(VteRing *ring);
+void _vte_ring_remove(VteRing *ring, glong position);
+void _vte_ring_free(VteRing *ring);
 
 G_END_DECLS
 

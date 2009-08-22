@@ -294,35 +294,18 @@ vte_g_array_fill(GArray *array, gconstpointer item, guint final_size)
 	} while (--final_size);
 }
 
-/* Allocate a new line. */
-VteRowData *
-_vte_new_row_data(VteTerminal *terminal)
-{
-	VteRowData *row = NULL;
-	row = g_slice_new(VteRowData);
-	row->cells = g_array_sized_new(FALSE, TRUE,
-				       sizeof(struct vte_charcell),
-				       terminal->column_count);
-	row->soft_wrapped = 0;
-	return row;
-}
-
 /* Insert a blank line at an arbitrary position. */
 static void
 vte_insert_line_internal(VteTerminal *terminal, glong position)
 {
-	VteRowData *row;
 	/* Pad out the line data to the insertion point. */
-	while (_vte_ring_next(terminal->pvt->screen->row_data) < position) {
-		row = _vte_new_row_data(terminal);
-		_vte_ring_append(terminal->pvt->screen->row_data, row);
-	}
+	while (_vte_ring_next(terminal->pvt->screen->row_data) < position)
+		_vte_ring_append(terminal->pvt->screen->row_data);
 	/* If we haven't inserted a line yet, insert a new one. */
-	row = _vte_new_row_data(terminal);
 	if (_vte_ring_next(terminal->pvt->screen->row_data) >= position) {
-		_vte_ring_insert(terminal->pvt->screen->row_data, position, row);
+		_vte_ring_insert(terminal->pvt->screen->row_data, position);
 	} else {
-		_vte_ring_append(terminal->pvt->screen->row_data, row);
+		_vte_ring_append(terminal->pvt->screen->row_data);
 	}
 }
 
@@ -330,9 +313,8 @@ vte_insert_line_internal(VteTerminal *terminal, glong position)
 static void
 vte_remove_line_internal(VteTerminal *terminal, glong position)
 {
-	if (_vte_ring_next(terminal->pvt->screen->row_data) > position) {
-		_vte_ring_remove(terminal->pvt->screen->row_data, position, TRUE);
-	}
+	if (_vte_ring_next(terminal->pvt->screen->row_data) > position)
+		_vte_ring_remove(terminal->pvt->screen->row_data, position);
 }
 
 
@@ -2305,11 +2287,10 @@ vte_terminal_get_encoding(VteTerminal *terminal)
 static inline VteRowData*
 vte_terminal_insert_rows (VteTerminal *terminal, guint cnt)
 {
-	const VteScreen *screen = terminal->pvt->screen;
 	VteRowData *row;
+	const VteScreen *screen = terminal->pvt->screen;
 	do {
-		row = _vte_new_row_data (terminal);
-		_vte_ring_append(screen->row_data, row);
+		row = _vte_ring_append(screen->row_data);
 	} while(--cnt);
 	return row;
 }
@@ -2898,7 +2879,6 @@ _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
 void
 _vte_terminal_cursor_down (VteTerminal *terminal)
 {
-	VteRowData *row;
 	long start, end;
 	VteScreen *screen;
 
@@ -2933,10 +2913,8 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 				 * to insert_delta. */
 				start++;
 				end++;
-				row = _vte_new_row_data(terminal);
 				_vte_ring_insert_preserve(terminal->pvt->screen->row_data,
-							  screen->cursor_current.row,
-							  row);
+							  screen->cursor_current.row);
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
 				_vte_terminal_scroll_region(terminal, start,
@@ -8444,8 +8422,8 @@ vte_terminal_finalize(GObject *object)
 	}
 
 	/* Clear the output histories. */
-	_vte_ring_free(terminal->pvt->normal_screen.row_data, TRUE);
-	_vte_ring_free(terminal->pvt->alternate_screen.row_data, TRUE);
+	_vte_ring_free(terminal->pvt->normal_screen.row_data);
+	_vte_ring_free(terminal->pvt->alternate_screen.row_data);
 
 	/* Clear the status lines. */
 	g_string_free(terminal->pvt->normal_screen.status_line_contents,
@@ -13393,9 +13371,9 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	terminal->pvt->alternate_screen.alternate_charset = FALSE;
 	/* Clear the scrollback buffers and reset the cursors. */
 	if (clear_history) {
-		_vte_ring_free(terminal->pvt->normal_screen.row_data, TRUE);
+		_vte_ring_free(terminal->pvt->normal_screen.row_data);
 		terminal->pvt->normal_screen.row_data = _vte_ring_new(terminal->pvt->scrollback_lines);
-		_vte_ring_free(terminal->pvt->alternate_screen.row_data, TRUE);
+		_vte_ring_free(terminal->pvt->alternate_screen.row_data);
 		terminal->pvt->alternate_screen.row_data = _vte_ring_new(terminal->pvt->scrollback_lines);
 		terminal->pvt->normal_screen.cursor_saved.row = 0;
 		terminal->pvt->normal_screen.cursor_saved.col = 0;
