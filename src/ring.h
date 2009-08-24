@@ -78,10 +78,11 @@ struct _VteRing {
 	(((__position) >= (__ring)->delta) && \
 	 ((__position) < (__ring)->delta + (__ring)->length))
 #define _vte_ring_delta(__ring) ((__ring)->delta + 0)
-#define _vte_ring_length(__ring) ((__ring)->length /* + 0 XXX */)
+#define _vte_ring_length(__ring) ((__ring)->length + 0)
 #define _vte_ring_next(__ring) ((__ring)->delta + (__ring)->length)
 #define _vte_ring_max(__ring) ((__ring)->max + 0)
 #define _vte_ring_index(__ring, __position) (&(__ring)->array[(__position) % (__ring)->max])
+#define _vte_ring_set_length(__ring, __length) ((__ring)->length = __length)
 
 VteRing *_vte_ring_new(glong max_elements);
 void _vte_ring_resize(VteRing *ring, glong max_elements);
