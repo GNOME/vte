@@ -1,3 +1,11 @@
+0.21.1
+=======
+- Redesigning the vte buffer ring is going on.  Please report any misbehavior
+- Bugs fixed in this release:
+    Bug 590824 - gnome-terminal crashed with SIGSEGV after hiting ctrl+o
+    Bug 572230 - text mode program rendering is strange in cjk locale.
+    Bug 588200 - bashisms in shell scripts
+
 0.20.5
 =======
 - Followup release to undo unintentded .soname bump
