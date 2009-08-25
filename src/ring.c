@@ -238,50 +238,6 @@ _vte_ring_insert(VteRing * ring, long position)
 }
 
 /**
- * _vte_ring_insert_preserve:
- * @ring: a #VteRing
- * @position: an index
- *
- * Inserts a new, empty, row into @ring at the @position'th offset.  If @ring
- * already has an item stored at the desired location, it (and any successive
- * items) will be moved down, items that need to be removed will be removed
- * from the *top*.
- *
- * Return: the newly added row.
- */
-VteRowData *
-_vte_ring_insert_preserve(VteRing * ring, long position)
-{
-	long i;
-	VteRowData *row;
-
-	g_return_val_if_fail(position <= _vte_ring_next(ring), NULL);
-
-	_vte_debug_print(VTE_DEBUG_RING,
-			"Inserting+ at position %ld.\n"
-			" Delta = %ld, Length = %ld, Max = %ld.\n",
-			position, ring->delta, ring->length, ring->max);
-	_vte_ring_validate(ring);
-
-	if (ring->length < ring->max)
-		return _vte_ring_insert (ring, position);
-
-	/* Otherwise, we need to shift items back */
-	_vte_row_data_fini (&ring->array[ring->delta % ring->max], TRUE);
-	for (i = ring->delta; i < position; i++)
-		*_vte_ring_index(ring, i) = *_vte_ring_index(ring, i + 1);
-	_vte_row_data_fini (&ring->array[position % ring->max], FALSE);
-	row = _vte_row_data_init(&ring->array[position % ring->max]);
-
-	_vte_debug_print(VTE_DEBUG_RING,
-			" Delta = %ld, Length = %ld, Max = %ld.\n",
-			ring->delta, ring->length, ring->max);
-	_vte_ring_validate(ring);
-
-	return row;
-}
-
-/**
  * _vte_ring_append:
  * @ring: a #VteRing
  * @data: the new item

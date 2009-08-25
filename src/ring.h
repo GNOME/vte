@@ -87,7 +87,6 @@ struct _VteRing {
 VteRing *_vte_ring_new(glong max_elements);
 void _vte_ring_resize(VteRing *ring, glong max_elements);
 VteRowData *_vte_ring_insert(VteRing *ring, glong position);
-VteRowData *_vte_ring_insert_preserve(VteRing *ring, glong position);
 VteRowData *_vte_ring_append(VteRing *ring);
 void _vte_ring_remove(VteRing *ring, glong position);
 void _vte_ring_free(VteRing *ring);

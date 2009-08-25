@@ -2913,8 +2913,8 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 				 * to insert_delta. */
 				start++;
 				end++;
-				_vte_ring_insert_preserve(terminal->pvt->screen->row_data,
-							  screen->cursor_current.row);
+				_vte_ring_insert(terminal->pvt->screen->row_data,
+						 screen->cursor_current.row);
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
 				_vte_terminal_scroll_region(terminal, start,
