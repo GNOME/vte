@@ -1,3 +1,8 @@
+0.21.4
+=======
+- Remove another stale assert()
+- Oops, use the right map decoding function is iso2022 code
+
 0.21.3
 =======
 - Really fix the ring this time
