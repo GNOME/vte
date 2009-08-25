@@ -39,10 +39,9 @@ _vte_row_data_init (VteRowData *row)
 static void
 _vte_row_data_fini(VteRowData *row, gboolean free_cells)
 {
-	if (free_cells && row->cells) {
+	if (free_cells && row->cells)
 		g_array_free(row->cells, TRUE);
-		row->cells = NULL;
-	}
+	row->cells = NULL;
 }
 
 
