@@ -1065,7 +1065,6 @@ _vte_keymap_map(guint keyval,
 		default:
 			/* Everything else we double-check. */
 			g_assert((fkey_mode == 0) || (fkey_mode == fkey_all));
-			g_assert(mods == 0);
 			break;
 		}
 		entries = NULL;
