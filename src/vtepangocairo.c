@@ -185,7 +185,6 @@ unistr_info_finish (struct unistr_info *uinfo)
 	switch (uinfo->coverage) {
 	default:
 	case COVERAGE_UNKNOWN:
-		g_assert_not_reached ();
 		break;
 	case COVERAGE_USE_PANGO_LAYOUT_LINE:
 		/* we hold a manual reference on layout */
