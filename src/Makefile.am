@@ -85,7 +85,6 @@ libvte_la_SOURCES = \
 	$(NULL)
 
 libvte_la_CPPFLAGS = \
-	-DG_DISABLE_ASSERT \
 	-DG_LOG_DOMAIN=\"Vte\" \
  	-DDATADIR='"$(datadir)"' \
 	-DLIBEXECDIR='"$(libexecdir)"' \
