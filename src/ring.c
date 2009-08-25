@@ -52,6 +52,9 @@ _vte_ring_validate(VteRing * ring)
 {
 	long i, max;
 	g_assert(ring != NULL);
+	_vte_debug_print(VTE_DEBUG_RING,
+			" Delta = %ld, Length = %ld, Max = %ld.\n",
+			ring->delta, ring->length, ring->max);
 	g_assert(ring->length <= ring->max);
 	max = ring->delta + ring->length;
 	for (i = ring->delta; i < max; i++) {
@@ -78,10 +81,7 @@ _vte_ring_new (glong max_elements)
 	ring->max = MAX(max_elements, 2);
 	ring->array = g_malloc0(sizeof(ring->array[0]) * ring->max);
 
-	_vte_debug_print(VTE_DEBUG_RING,
-			"New ring %p.\n"
-			" Delta = %ld, Length = %ld, Max = %ld.\n",
-			ring, ring->delta, ring->length, ring->max);
+	_vte_debug_print(VTE_DEBUG_RING, "New ring %p.\n", ring);
 	_vte_ring_validate(ring);
 
 	return ring;
@@ -121,10 +121,7 @@ _vte_ring_resize(VteRing *ring, glong max_elements)
 	if (ring->max == max_elements)
 		return;
 
-	_vte_debug_print(VTE_DEBUG_RING,
-			"Before resizing ring.\n"
-			" Delta = %ld, Length = %ld, Max = %ld.\n",
-			ring->delta, ring->length, ring->max);
+	_vte_debug_print(VTE_DEBUG_RING, "Resizing ring.\n");
 	_vte_ring_validate(ring);
 
 	old_max = ring->max;
@@ -146,10 +143,6 @@ _vte_ring_resize(VteRing *ring, glong max_elements)
 
 	g_free (old_array);
 
-	_vte_debug_print(VTE_DEBUG_RING,
-			"After resizing ring.\n"
-			" Delta = %ld, Length = %ld, Max = %ld.\n",
-			ring->delta, ring->length, ring->max);
 	_vte_ring_validate(ring);
 }
 
@@ -172,10 +165,7 @@ _vte_ring_insert(VteRing * ring, long position)
 	g_return_val_if_fail(position >= ring->delta, NULL);
 	g_return_val_if_fail(position <= ring->delta + ring->length, NULL);
 
-	_vte_debug_print(VTE_DEBUG_RING,
-			"Inserting at position %ld.\n"
-			" Delta = %ld, Length = %ld, Max = %ld.\n",
-			position, ring->delta, ring->length, ring->max);
+	_vte_debug_print(VTE_DEBUG_RING, "Inserting at position %ld.\n", position);
 	_vte_ring_validate(ring);
 
 	/* Initial insertion, or append. */
@@ -192,11 +182,7 @@ _vte_ring_insert(VteRing * ring, long position)
 		else
 			ring->length++;
 
-		_vte_debug_print(VTE_DEBUG_RING,
-				" Delta = %ld, Length = %ld, Max = %ld.\n",
-				ring->delta, ring->length, ring->max);
 		_vte_ring_validate(ring);
-
 		return row;
 	}
 
@@ -226,11 +212,8 @@ _vte_ring_insert(VteRing * ring, long position)
 	 * maximum length already. */
 	row = _vte_row_data_init(&ring->array[position % ring->max]);
 	ring->length = CLAMP(ring->length + 1, 0, ring->max);
-	_vte_debug_print(VTE_DEBUG_RING,
-			" Delta = %ld, Length = %ld, Max = %ld.\n",
-			ring->delta, ring->length, ring->max);
-	_vte_ring_validate(ring);
 
+	_vte_ring_validate(ring);
 	return row;
 }
 
@@ -261,10 +244,7 @@ void
 _vte_ring_remove(VteRing * ring, long position)
 {
 	long i;
-	_vte_debug_print(VTE_DEBUG_RING,
-			"Removing item at position %ld.\n"
-			" Delta = %ld, Length = %ld, Max = %ld.\n",
-			position, ring->delta, ring->length, ring->max);
+	_vte_debug_print(VTE_DEBUG_RING, "Removing item at position %ld.\n", position);
 	_vte_ring_validate(ring);
 
 	/* Remove the data at this position. */
@@ -278,8 +258,5 @@ _vte_ring_remove(VteRing * ring, long position)
 	if (ring->length > 0) {
 		ring->length--;
 	}
-	_vte_debug_print(VTE_DEBUG_RING,
-			" Delta = %ld, Length = %ld, Max = %ld.\n",
-			ring->delta, ring->length, ring->max);
 	_vte_ring_validate(ring);
 }
