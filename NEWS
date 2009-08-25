@@ -1,3 +1,8 @@
+0.21.3
+=======
+- Really fix the ring this time
+- Enable g_assert().  May trigger some bogus ones now.  Please report.
+
 0.21.2
 =======
 - Bugs fixed in this release:
