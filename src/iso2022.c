@@ -608,7 +608,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'G' + WIDE_FUDGE:
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init16(_vte_iso2022_map_wide_G,
+			map = _vte_iso2022_map_init32(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
 		/* Return the plane number as part of the "or" mask. */
@@ -620,7 +620,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'H' + WIDE_FUDGE:
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init16(_vte_iso2022_map_wide_G,
+			map = _vte_iso2022_map_init32(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
 		/* Return the plane number as part of the "or" mask. */
@@ -632,7 +632,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'I' + WIDE_FUDGE:
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init16(_vte_iso2022_map_wide_G,
+			map = _vte_iso2022_map_init32(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
 		/* Return the plane number as part of the "or" mask. */
@@ -644,7 +644,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'J' + WIDE_FUDGE:
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init16(_vte_iso2022_map_wide_G,
+			map = _vte_iso2022_map_init32(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
 		/* Return the plane number as part of the "or" mask. */
@@ -656,7 +656,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'K' + WIDE_FUDGE:
 		if (map == NULL) {
-			map = _vte_iso2022_map_init16(_vte_iso2022_map_wide_G,
+			map = _vte_iso2022_map_init32(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
 		/* Return the plane number as part of the "or" mask. */
@@ -668,7 +668,7 @@ _vte_iso2022_map_get(gunichar mapname,
 		break;
 	case 'L' + WIDE_FUDGE:
 		if (G_UNLIKELY (map == NULL)) {
-			map = _vte_iso2022_map_init16(_vte_iso2022_map_wide_G,
+			map = _vte_iso2022_map_init32(_vte_iso2022_map_wide_G,
 					    G_N_ELEMENTS(_vte_iso2022_map_wide_G));
 		}
 		/* Return the plane number as part of the "or" mask. */
