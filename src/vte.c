@@ -7971,7 +7971,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->screen = &terminal->pvt->alternate_screen;
 	_vte_terminal_set_default_attributes(terminal);
 
-	pvt->normal_screen.row_data = _vte_ring_new (VTE_SCROLLBACK_INIT);
+	pvt->normal_screen.row_data = _vte_ring_new (terminal->row_count);
 	pvt->normal_screen.sendrecv_mode = TRUE;
 	pvt->normal_screen.status_line_contents = g_string_new(NULL);
 	pvt->screen = &terminal->pvt->normal_screen;
