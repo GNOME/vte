@@ -19,6 +19,7 @@
  */
 
 #include <config.h>
+
 #include <stdio.h>
 #include <glib.h>
 #include "debug.h"
@@ -28,10 +29,8 @@
 static VteRowData *
 _vte_row_data_init (VteRowData *row)
 {
-	if (row->cells)
-		g_array_set_size (row->cells, 0);
-	else
-		row->cells = g_array_new(FALSE, TRUE, sizeof(struct vte_charcell));
+	g_assert (row->cells == NULL);
+	row->cells = g_array_new(FALSE, TRUE, sizeof(struct vte_charcell));
 	row->soft_wrapped = 0;
 	return row;
 }
@@ -53,8 +52,15 @@ _vte_ring_validate(VteRing * ring)
 	g_assert(ring != NULL);
 	g_assert(ring->length <= ring->max);
 	max = ring->delta + ring->length;
-	for (i = ring->delta; i < max; i++)
+	for (i = ring->delta; i < max; i++) {
 		g_assert(_vte_ring_contains(ring, i));
+		g_assert(_vte_ring_index(ring, i)->cells != NULL);
+	}
+	max = ring->delta + ring->max;
+	for (; i < max; i++) {
+		g_assert(!_vte_ring_contains(ring, i));
+		g_assert(_vte_ring_index(ring, i)->cells == NULL);
+	}
 }
 #else
 #define _vte_ring_validate(ring) G_STMT_START {} G_STMT_END
@@ -190,8 +196,7 @@ _vte_ring_insert(VteRing * ring, long position)
 			ring->length++;
 
 		_vte_debug_print(VTE_DEBUG_RING,
-				" Delta = %ld, Length = %ld, "
-				"Max = %ld.\n",
+				" Delta = %ld, Length = %ld, Max = %ld.\n",
 				ring->delta, ring->length, ring->max);
 		_vte_ring_validate(ring);
 
@@ -218,6 +223,7 @@ _vte_ring_insert(VteRing * ring, long position)
 	 * slow as you probably think it is due to the pattern of usage. */
 	for (i = point; i > position; i--)
 		ring->array[i % ring->max] = ring->array[(i - 1) % ring->max];
+	_vte_row_data_fini (&ring->array[position % ring->max], FALSE);
 
 	/* Store the new item and bump up the length, unless we've hit the
 	 * maximum length already. */
@@ -264,6 +270,7 @@ _vte_ring_insert_preserve(VteRing * ring, long position)
 	_vte_row_data_fini (&ring->array[ring->delta % ring->max], TRUE);
 	for (i = ring->delta; i < position; i++)
 		*_vte_ring_index(ring, i) = *_vte_ring_index(ring, i + 1);
+	_vte_row_data_fini (&ring->array[position % ring->max], FALSE);
 	row = _vte_row_data_init(&ring->array[position % ring->max]);
 
 	_vte_debug_print(VTE_DEBUG_RING,
@@ -307,15 +314,13 @@ _vte_ring_remove(VteRing * ring, long position)
 			position, ring->delta, ring->length, ring->max);
 	_vte_ring_validate(ring);
 
-	i = position % ring->max;
 	/* Remove the data at this position. */
 	_vte_row_data_fini (&ring->array[position % ring->max], TRUE);
 
 	/* Bubble the rest of the buffer up one notch.  This is also less
 	 * of a problem than it might appear, again due to usage patterns. */
-	for (i = position; i < ring->delta + ring->length - 1; i++) {
+	for (i = position; i < ring->delta + ring->length - 1; i++)
 		ring->array[i % ring->max] = ring->array[(i + 1) % ring->max];
-	}
 	_vte_row_data_fini (&ring->array[(ring->delta + ring->length - 1) % ring->max], FALSE);
 	if (ring->length > 0) {
 		ring->length--;
