@@ -1,3 +1,8 @@
+0.21.2
+=======
+- Bugs fixed in this release:
+    Bug 592990 - gnome terminal crashes with glibc detected
+
 0.21.1
 =======
 - Redesigning the vte buffer ring is going on.  Please report any misbehavior
