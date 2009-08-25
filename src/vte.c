@@ -13374,7 +13374,7 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 		_vte_ring_free(terminal->pvt->normal_screen.row_data);
 		terminal->pvt->normal_screen.row_data = _vte_ring_new(terminal->pvt->scrollback_lines);
 		_vte_ring_free(terminal->pvt->alternate_screen.row_data);
-		terminal->pvt->alternate_screen.row_data = _vte_ring_new(terminal->pvt->scrollback_lines);
+		terminal->pvt->alternate_screen.row_data = _vte_ring_new(terminal->row_count);
 		terminal->pvt->normal_screen.cursor_saved.row = 0;
 		terminal->pvt->normal_screen.cursor_saved.col = 0;
 		terminal->pvt->normal_screen.cursor_current.row = 0;

@@ -21,6 +21,7 @@
 #ifndef vte_debug_h_included
 #define vte_debug_h_included
 
+#include <config.h>
 
 #include <glib.h>
 
