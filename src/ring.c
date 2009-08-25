@@ -29,8 +29,10 @@
 static VteRowData *
 _vte_row_data_init (VteRowData *row)
 {
-	g_assert (row->cells == NULL);
-	row->cells = g_array_new(FALSE, TRUE, sizeof(struct vte_charcell));
+	if (row->cells)
+		g_array_set_size (row->cells, 0);
+	else
+		row->cells = g_array_new(FALSE, TRUE, sizeof(struct vte_charcell));
 	row->soft_wrapped = 0;
 	return row;
 }
@@ -55,11 +57,6 @@ _vte_ring_validate(VteRing * ring)
 	for (i = ring->delta; i < max; i++) {
 		g_assert(_vte_ring_contains(ring, i));
 		g_assert(_vte_ring_index(ring, i)->cells != NULL);
-	}
-	max = ring->delta + ring->max;
-	for (; i < max; i++) {
-		g_assert(!_vte_ring_contains(ring, i));
-		g_assert(_vte_ring_index(ring, i)->cells == NULL);
 	}
 }
 #else
