@@ -295,17 +295,18 @@ vte_g_array_fill(GArray *array, gconstpointer item, guint final_size)
 }
 
 /* Insert a blank line at an arbitrary position. */
-static void
+static VteRowData *
 vte_insert_line_internal(VteTerminal *terminal, glong position)
 {
 	/* Pad out the line data to the insertion point. */
-	while (_vte_ring_next(terminal->pvt->screen->row_data) < position)
+	while (_vte_ring_next(terminal->pvt->screen->row_data) < position) {
 		_vte_ring_append(terminal->pvt->screen->row_data);
+	}
 	/* If we haven't inserted a line yet, insert a new one. */
 	if (_vte_ring_next(terminal->pvt->screen->row_data) >= position) {
-		_vte_ring_insert(terminal->pvt->screen->row_data, position);
+		return _vte_ring_insert(terminal->pvt->screen->row_data, position);
 	} else {
-		_vte_ring_append(terminal->pvt->screen->row_data);
+		return _vte_ring_append(terminal->pvt->screen->row_data);
 	}
 }
 

@@ -114,7 +114,7 @@ vte_g_array_fill(GArray *array, gpointer item, guint final_size)
 }
 
 /* Insert a blank line at an arbitrary position. */
-static void
+static VteRowData *
 vte_insert_line_internal(VteTerminal *terminal, glong position)
 {
 	/* Pad out the line data to the insertion point. */
@@ -123,9 +123,9 @@ vte_insert_line_internal(VteTerminal *terminal, glong position)
 	}
 	/* If we haven't inserted a line yet, insert a new one. */
 	if (_vte_ring_next(terminal->pvt->screen->row_data) >= position) {
-		_vte_ring_insert(terminal->pvt->screen->row_data, position);
+		return _vte_ring_insert(terminal->pvt->screen->row_data, position);
 	} else {
-		_vte_ring_append(terminal->pvt->screen->row_data);
+		return _vte_ring_append(terminal->pvt->screen->row_data);
 	}
 }
 
@@ -981,10 +981,7 @@ vte_sequence_handler_al (VteTerminal *terminal, GValueArray *params)
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
 		vte_remove_line_internal(terminal, end);
-		vte_insert_line_internal(terminal, start);
-		/* Get the data for the new row. */
-		rowdata = _vte_ring_index(screen->row_data, start);
-		g_assert(rowdata != NULL);
+		rowdata = vte_insert_line_internal(terminal, start);
 		/* Add enough cells to it so that it has the default columns. */
 		vte_g_array_fill(rowdata->cells, &screen->fill_defaults,
 				 terminal->column_count);
@@ -2850,10 +2847,7 @@ vte_sequence_handler_insert_lines (VteTerminal *terminal, GValueArray *params)
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
 		vte_remove_line_internal(terminal, end);
-		vte_insert_line_internal(terminal, row);
-		/* Get the data for the new row. */
-		rowdata = _vte_ring_index(screen->row_data, row);
-		g_assert(rowdata != NULL);
+		rowdata = vte_insert_line_internal(terminal, row);
 		/* Add enough cells to it so that it has the default colors. */
 		vte_g_array_fill(rowdata->cells,
 				 &screen->fill_defaults,
@@ -2899,10 +2893,7 @@ vte_sequence_handler_delete_lines (VteTerminal *terminal, GValueArray *params)
 		/* Insert a line at the end of the region and remove one from
 		 * the top of the region. */
 		vte_remove_line_internal(terminal, row);
-		vte_insert_line_internal(terminal, end);
-		/* Get the data for the new row. */
-		rowdata = _vte_ring_index(screen->row_data, end);
-		g_assert(rowdata != NULL);
+		rowdata = vte_insert_line_internal(terminal, end);
 		/* Add enough cells to it so that it has the default colors. */
 		vte_g_array_fill(rowdata->cells,
 				 &screen->fill_defaults,
