@@ -133,8 +133,7 @@ vte_insert_line_internal(VteTerminal *terminal, glong position)
 static void
 vte_remove_line_internal(VteTerminal *terminal, glong position)
 {
-	if (_vte_ring_next(terminal->pvt->screen->row_data) > position)
-		_vte_ring_remove(terminal->pvt->screen->row_data, position);
+	_vte_ring_remove(terminal->pvt->screen->row_data, position);
 }
 
 /* Check how long a string of unichars is.  Slow version. */
