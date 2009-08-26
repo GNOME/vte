@@ -509,8 +509,7 @@ vte_terminal_find_charcell(VteTerminal *terminal, gulong col, glong row)
 	screen = terminal->pvt->screen;
 	if (_vte_ring_contains(screen->row_data, row)) {
 		rowdata = _vte_ring_index(screen->row_data, row);
-		if (_vte_row_data_length (rowdata) > col)
-			ret = _vte_row_data_get (rowdata, col);
+		ret = _vte_row_data_get (rowdata, col);
 	}
 	return ret;
 }

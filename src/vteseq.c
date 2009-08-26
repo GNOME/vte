@@ -86,8 +86,7 @@ vte_terminal_find_charcell(VteTerminal *terminal, glong col, glong row)
 	screen = terminal->pvt->screen;
 	if (_vte_ring_contains(screen->row_data, row)) {
 		rowdata = _vte_ring_index(screen->row_data, row);
-		if ((glong) _vte_row_data_length (rowdata) > col)
-			ret = _vte_row_data_get_writable (rowdata, col);
+		ret = _vte_row_data_get_writable (rowdata, col);
 	}
 	return ret;
 }
@@ -306,8 +305,7 @@ _vte_terminal_clear_current_line (VteTerminal *terminal)
 		rowdata = _vte_ring_index(screen->row_data, screen->cursor_current.row);
 		g_assert(rowdata != NULL);
 		/* Remove it. */
-		if (_vte_row_data_length (rowdata) > 0)
-			_vte_row_data_set_length (rowdata, 0);
+		_vte_row_data_set_length (rowdata, 0);
 		/* Add enough cells to the end of the line to fill out the
 		 * row. */
 		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
