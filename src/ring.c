@@ -31,7 +31,7 @@ _vte_row_data_init (VteRowData *row)
 	if (row->_cells)
 		g_array_set_size (row->_cells, 0);
 	else
-		row->_cells = g_array_new(FALSE, TRUE, sizeof(struct vte_charcell));
+		row->_cells = g_array_new(FALSE, TRUE, sizeof(vtecell));
 	row->soft_wrapped = 0;
 	return row;
 }

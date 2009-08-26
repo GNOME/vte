@@ -29,37 +29,65 @@
 
 G_BEGIN_DECLS
 
-/* The structure we use to hold characters we're supposed to display -- this
- * includes any supported visible attributes. */
-struct vte_charcell {
-	vteunistr c;		/* The Unicode string for the cell. */
+#define VTE_DEF_FG			256
+#define VTE_DEF_BG			257
+#define VTE_BOLD_FG			258
+#define VTE_DIM_FG			259
+#define VTE_DEF_HL                      260
+#define VTE_CUR_BG			261
 
-	struct vte_charcell_attr {
-		guint32 columns: 4;	/* Number of visible columns
-					   (as determined by g_unicode_iswide(c)).
-					   Also abused for tabs; bug 353610
-					   Keep at least 4 for tabs to work
-					   */
-		guint32 fore: 9;	/* Index into color palette */
-		guint32 back: 9;	/* Index into color palette. */
+typedef struct _vtecellattr {
+	guint32 columns: 4;	/* Number of visible columns
+				   (as determined by g_unicode_iswide(c)).
+				   Also abused for tabs; bug 353610
+				   Keep at least 4 for tabs to work
+				   */
+	guint32 fore: 9;	/* Index into color palette */
+	guint32 back: 9;	/* Index into color palette. */
 
-		guint32 fragment: 1;	/* A continuation cell. */
-		guint32 standout: 1;	/* Single-bit attributes. */
-		guint32 underline: 1;
-		guint32 strikethrough: 1;
+	guint32 fragment: 1;	/* A continuation cell. */
+	guint32 standout: 1;	/* Single-bit attributes. */
+	guint32 underline: 1;
+	guint32 strikethrough: 1;
 
-		guint32 reverse: 1;
-		guint32 blink: 1;
-		guint32 half: 1;
-		guint32 bold: 1;
+	guint32 reverse: 1;
+	guint32 blink: 1;
+	guint32 half: 1;
+	guint32 bold: 1;
 
-		guint32 invisible: 1;
-		/* unused; bug 499893
-		guint32 protect: 1;
-		 */
+	guint32 invisible: 1;
+	/* unused; bug 499893
+	guint32 protect: 1;
+	 */
 
-		/* 31 bits */
-	} attr;
+	/* 31 bits */
+} vtecellattr;
+
+
+typedef struct _vtecell {
+	vteunistr c;
+	vtecellattr attr;
+} vtecell;
+
+static const vtecell basic_cell = {
+	0,
+	{
+	1, /* columns */
+	VTE_DEF_FG, /* fore */
+	VTE_DEF_BG, /* back */
+
+	0, /* fragment */
+	0, /* standout */
+	0, /* underline */
+	0, /* strikethrough */
+
+	0, /* reverse */
+	0, /* blink */
+	0, /* half */
+	0, /* bold */
+
+	0  /* invisible */
+	}
 };
 
 typedef struct _VteRowData {
@@ -68,9 +96,9 @@ typedef struct _VteRowData {
 } VteRowData;
 
 
-#define _vte_row_data_get(__row, __col)			((const struct vte_charcell *) _vte_row_data_get_writable (__row, __col))
+#define _vte_row_data_get(__row, __col)			((const vtecell *) _vte_row_data_get_writable (__row, __col))
 #define _vte_row_data_get_writable(__row, __col)	(G_UNLIKELY ((__row)->_cells->len <= (unsigned int) __col) ? NULL : \
-							 &g_array_index (__row->_cells, struct vte_charcell, __col))
+							 &g_array_index (__row->_cells, vtecell, __col))
 #define _vte_row_data_length(__row)			((__row)->_cells->len + 0)
 #define _vte_row_data_insert(__row, __pos, __cell)	g_array_insert_val ((__row)->_cells, __pos, *(__cell))
 #define _vte_row_data_append(__row, __cell)		g_array_append_val ((__row)->_cells, *(__cell))
@@ -84,13 +112,13 @@ typedef struct _VteRowData {
 #define _vte_row_data_set_length(__row, __len)		g_array_set_size ((__row)->_cells, __len)
 
 #if 0
-const struct vte_charcell *_vte_row_data_get (VteRowData *row, unsigned int col);
-struct vte_charcell *_vte_row_data_get_writable (VteRowData *row, unsigned int col);
+const vtecell *_vte_row_data_get (VteRowData *row, unsigned int col);
+vtecell *_vte_row_data_get_writable (VteRowData *row, unsigned int col);
 unsigned int _vte_row_data_length (VteRowData *row);
-void _vte_row_data_insert (VteRowData *row, int pos, const struct vte_charcell *cell);
-void _vte_row_data_append (VteRowData *row, const struct vte_charcell *cell);
+void _vte_row_data_insert (VteRowData *row, int pos, const vtecell *cell);
+void _vte_row_data_append (VteRowData *row, const vtecell *cell);
 void _vte_row_data_remove (VteRowData *row, unsigned int col);
-void _vte_row_data_fill (VteRowData *row, const struct vte_charcell *cell, int len);
+void _vte_row_data_fill (VteRowData *row, const vtecell *cell, int len);
 void _vte_row_data_set_length (VteRowData *row, int len);
 #endif
 

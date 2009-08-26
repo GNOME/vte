@@ -76,11 +76,11 @@ display_control_sequence(const char *name, GValueArray *params)
 /* A couple are duplicated from vte.c, to keep them static... */
 
 /* Find the character an the given position in the backscroll buffer. */
-static struct vte_charcell *
+static vtecell *
 vte_terminal_find_charcell(VteTerminal *terminal, glong col, glong row)
 {
 	VteRowData *rowdata;
-	struct vte_charcell *ret = NULL;
+	vtecell *ret = NULL;
 	VteScreen *screen;
 	g_assert(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
@@ -1001,7 +1001,7 @@ vte_sequence_handler_cb (VteTerminal *terminal, GValueArray *params)
 	VteRowData *rowdata;
 	long i;
 	VteScreen *screen;
-	struct vte_charcell *pcell;
+	vtecell *pcell;
 	screen = terminal->pvt->screen;
 
 	/* Get the data for the row which the cursor points to. */
@@ -1477,7 +1477,7 @@ vte_sequence_handler_ec (VteTerminal *terminal, GValueArray *params)
 	VteScreen *screen;
 	VteRowData *rowdata;
 	GValue *value;
-	struct vte_charcell *cell;
+	vtecell *cell;
 	long col, i, count;
 
 	screen = terminal->pvt->screen;
@@ -2064,7 +2064,7 @@ vte_sequence_handler_ta (VteTerminal *terminal, GValueArray *params)
 		/* Get rid of trailing empty cells: bug 545924 */
 		if ((glong) _vte_row_data_length (rowdata) > col)
 		{
-			const struct vte_charcell *cell;
+			const vtecell *cell;
 			guint i;
 			for (i = _vte_row_data_length (rowdata); (glong) i > col; i--) {
 				cell = _vte_row_data_get (rowdata, i - 1);
@@ -2076,7 +2076,7 @@ vte_sequence_handler_ta (VteTerminal *terminal, GValueArray *params)
 
 		if ((glong) _vte_row_data_length (rowdata) <= col)
 		  {
-		    struct vte_charcell cell;
+		    vtecell cell;
 
 		    _vte_row_data_fill (rowdata, &screen->fill_defaults, col);
 
@@ -2149,7 +2149,7 @@ vte_sequence_handler_ts (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_uc (VteTerminal *terminal, GValueArray *params)
 {
-	struct vte_charcell *cell;
+	vtecell *cell;
 	int column;
 	VteScreen *screen;
 
@@ -2969,7 +2969,7 @@ vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *
 	long row;
 	VteRowData *rowdata;
 	VteScreen *screen;
-	struct vte_charcell cell;
+	vtecell cell;
 
 	screen = terminal->pvt->screen;
 
@@ -2988,7 +2988,7 @@ vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *
 		_vte_terminal_emit_text_deleted(terminal);
 		/* Fill this row. */
 		cell.c = 'E';
-		cell.attr = screen->basic_defaults.attr;
+		cell.attr = basic_cell.attr;
 		cell.attr.columns = 1;
 		_vte_row_data_fill (rowdata, &cell, terminal->column_count);
 		_vte_terminal_emit_text_inserted(terminal);

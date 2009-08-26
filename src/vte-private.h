@@ -61,12 +61,7 @@ G_BEGIN_DECLS
 #define VTE_COLOR_PLAIN_OFFSET		0
 #define VTE_COLOR_BRIGHT_OFFSET		8
 #define VTE_COLOR_DIM_OFFSET		16
-#define VTE_DEF_FG			256
-#define VTE_DEF_BG			257
-#define VTE_BOLD_FG			258
-#define VTE_DIM_FG			259
-#define VTE_DEF_HL                      260
-#define VTE_CUR_BG			261
+/* More color defines in ring.h */
 
 #define VTE_SATURATION_MAX		10000
 #define VTE_SCROLLBACK_INIT		100
@@ -231,17 +226,16 @@ struct _VteTerminalPrivate {
 		gboolean scrolling_restricted;
 		long scroll_delta;	/* scroll offset */
 		long insert_delta;	/* insertion offset */
-		struct vte_charcell defaults;	/* default characteristics
+		vtecell defaults;	/* default characteristics
 						   for insertion of any new
 						   characters */
-		struct vte_charcell color_defaults;	/* original defaults
+		vtecell color_defaults;	/* original defaults
 							   plus the current
 							   fore/back */
-		struct vte_charcell fill_defaults;	/* original defaults
+		vtecell fill_defaults;	/* original defaults
 							   plus the current
 							   fore/back with no
 							   character data */
-		struct vte_charcell basic_defaults;	/* original defaults */
 		gboolean alternate_charset;
 		gboolean status_line;
 		GString *status_line_contents;
