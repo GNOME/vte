@@ -215,6 +215,10 @@ void
 _vte_ring_remove(VteRing * ring, long position)
 {
 	long i;
+
+	g_return_if_fail(position >= ring->delta);
+	g_return_if_fail(position < ring->delta + ring->length);
+
 	_vte_debug_print(VTE_DEBUG_RING, "Removing item at position %ld.\n", position);
 	_vte_ring_validate(ring);
 
