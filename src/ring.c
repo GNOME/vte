@@ -45,6 +45,13 @@ _vte_row_data_fini(VteRowData *row, gboolean free_cells)
 	row->cells = NULL;
 }
 
+static void
+_vte_ring_move(VteRing *ring, unsigned int to, unsigned int from)
+{
+	ring->array[to] = ring->array[from];
+	ring->array[from].cells = NULL;
+}
+
 
 #ifdef VTE_DEBUG
 static void
@@ -192,12 +199,7 @@ _vte_ring_insert(VteRing * ring, long position)
 	while (point < 0)
 		point += ring->max;
 
-	if (ring->length == ring->max) {
-		/* If the buffer's full, then the last item will have to be
-		 * "lost" to make room for the new item so that the buffer
-		 * doesn't grow (here we scroll off the *bottom*). */
-		_vte_row_data_fini (&ring->array[point % ring->max], TRUE);
-	} else {
+	if (ring->length != ring->max) {
 		/* We don't want to discard the last item. */
 		point++;
 	}
@@ -205,8 +207,7 @@ _vte_ring_insert(VteRing * ring, long position)
 	/* We need to bubble the remaining valid elements down.  This isn't as
 	 * slow as you probably think it is due to the pattern of usage. */
 	for (i = point; i > position; i--)
-		ring->array[i % ring->max] = ring->array[(i - 1) % ring->max];
-	_vte_row_data_fini (&ring->array[position % ring->max], FALSE);
+		_vte_ring_move (ring, i % ring->max, (i - 1) % ring->max);
 
 	/* Store the new item and bump up the length, unless we've hit the
 	 * maximum length already. */
@@ -247,16 +248,11 @@ _vte_ring_remove(VteRing * ring, long position)
 	_vte_debug_print(VTE_DEBUG_RING, "Removing item at position %ld.\n", position);
 	_vte_ring_validate(ring);
 
-	/* Remove the data at this position. */
-	_vte_row_data_fini (&ring->array[position % ring->max], TRUE);
-
-	/* Bubble the rest of the buffer up one notch.  This is also less
-	 * of a problem than it might appear, again due to usage patterns. */
 	for (i = position; i < ring->delta + ring->length - 1; i++)
-		ring->array[i % ring->max] = ring->array[(i + 1) % ring->max];
-	_vte_row_data_fini (&ring->array[(ring->delta + ring->length - 1) % ring->max], FALSE);
-	if (ring->length > 0) {
+		_vte_ring_move (ring, i % ring->max, (i + 1) % ring->max);
+
+	if (ring->length > 0)
 		ring->length--;
-	}
+
 	_vte_ring_validate(ring);
 }
