@@ -294,22 +294,6 @@ vte_g_array_fill(GArray *array, gconstpointer item, guint final_size)
 	} while (--final_size);
 }
 
-/* Insert a blank line at an arbitrary position. */
-static VteRowData *
-vte_insert_line_internal(VteTerminal *terminal, glong position)
-{
-	while (_vte_ring_next(terminal->pvt->screen->row_data) < position)
-		_vte_ring_append(terminal->pvt->screen->row_data);
-	return _vte_ring_insert(terminal->pvt->screen->row_data, position);
-}
-
-/* Remove a line at an arbitrary position. */
-static void
-vte_remove_line_internal(VteTerminal *terminal, glong position)
-{
-	_vte_ring_remove(terminal->pvt->screen->row_data, position);
-}
-
 
 /* Reset defaults for character insertion. */
 void
@@ -2906,8 +2890,8 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 				 * to insert_delta. */
 				start++;
 				end++;
-				_vte_ring_insert(terminal->pvt->screen->row_data,
-						 screen->cursor_current.row);
+				_vte_ring_insert (terminal->pvt->screen->row_data,
+						  screen->cursor_current.row);
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
 				_vte_terminal_scroll_region(terminal, start,
@@ -2918,8 +2902,8 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 				/* If we're at the bottom of the scrolling
 				 * region, add a line at the top to scroll the
 				 * bottom off. */
-				vte_remove_line_internal(terminal, start);
-				vte_insert_line_internal(terminal, end);
+				_vte_ring_remove (terminal->pvt->screen->row_data, start);
+				_vte_ring_insert (terminal->pvt->screen->row_data, end);
 				/* Update the display. */
 				_vte_terminal_scroll_region(terminal, start,
 							   end - start + 1, -1);

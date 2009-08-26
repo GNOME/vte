@@ -38,7 +38,7 @@ _vte_row_data_init (VteRowData *row)
 }
 
 static void
-_vte_row_data_fini(VteRowData *row)
+_vte_row_data_fini (VteRowData *row)
 {
 	if (row->cells)
 		g_array_free(row->cells, TRUE);
@@ -46,7 +46,7 @@ _vte_row_data_fini(VteRowData *row)
 }
 
 static void
-_vte_ring_move(VteRing *ring, unsigned int to, unsigned int from)
+_vte_ring_move (VteRing *ring, unsigned int to, unsigned int from)
 {
 	_vte_row_data_fini (&ring->array[to]);
 	ring->array[to] = ring->array[from];
@@ -56,7 +56,7 @@ _vte_ring_move(VteRing *ring, unsigned int to, unsigned int from)
 
 #ifdef VTE_DEBUG
 static void
-_vte_ring_validate(VteRing * ring)
+_vte_ring_validate (VteRing * ring)
 {
 	long i, max;
 	g_assert(ring != NULL);
@@ -102,7 +102,7 @@ _vte_ring_new (glong max_elements)
  * Frees the ring and each of the items it contains.
  */
 void
-_vte_ring_free(VteRing *ring)
+_vte_ring_free (VteRing *ring)
 {
 	glong i;
 	for (i = 0; i < ring->max; i++)
@@ -119,7 +119,7 @@ _vte_ring_free(VteRing *ring)
  * Changes the number of lines the ring can contain.
  */
 void
-_vte_ring_resize(VteRing *ring, glong max_elements)
+_vte_ring_resize (VteRing *ring, glong max_elements)
 {
 	glong position, end, old_max;
 	VteRowData *old_array;
@@ -155,7 +155,7 @@ _vte_ring_resize(VteRing *ring, glong max_elements)
 }
 
 /**
- * _vte_ring_insert:
+ * _vte_ring_insert_internal:
  * @ring: a #VteRing
  * @position: an index
  *
@@ -164,8 +164,8 @@ _vte_ring_resize(VteRing *ring, glong max_elements)
  *
  * Return: the newly added row.
  */
-VteRowData *
-_vte_ring_insert(VteRing * ring, long position)
+static VteRowData *
+_vte_ring_insert_internal (VteRing * ring, long position)
 {
 	long i;
 	VteRowData *row;
@@ -190,6 +190,25 @@ _vte_ring_insert(VteRing * ring, long position)
 }
 
 /**
+ * _vte_ring_insert:
+ * @ring: a #VteRing
+ * @data: the new item
+ *
+ * Inserts a new, empty, row into @ring at the @position'th offset.
+ * The item at that position and any items after that are shifted down.
+ * It pads enough lines if @position is after the end of the ring.
+ *
+ * Return: the newly added row.
+ */
+VteRowData *
+_vte_ring_insert (VteRing *ring, glong position)
+{
+	while (G_UNLIKELY (_vte_ring_next (ring) < position))
+		_vte_ring_append (ring);
+	return _vte_ring_insert_internal (ring, position);
+}
+
+/**
  * _vte_ring_append:
  * @ring: a #VteRing
  * @data: the new item
@@ -199,9 +218,9 @@ _vte_ring_insert(VteRing * ring, long position)
  * Return: the newly added row.
  */
 VteRowData *
-_vte_ring_append(VteRing * ring)
+_vte_ring_append (VteRing * ring)
 {
-	return _vte_ring_insert(ring, ring->delta + ring->length);
+	return _vte_ring_insert_internal (ring, ring->delta + ring->length);
 }
 
 /**
@@ -212,7 +231,7 @@ _vte_ring_append(VteRing * ring)
  * Removes the @position'th item from @ring.
  */
 void
-_vte_ring_remove(VteRing * ring, long position)
+_vte_ring_remove (VteRing * ring, long position)
 {
 	long i;
 

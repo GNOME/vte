@@ -113,22 +113,6 @@ vte_g_array_fill(GArray *array, gpointer item, guint final_size)
 	} while (--final_size);
 }
 
-/* Insert a blank line at an arbitrary position. */
-static VteRowData *
-vte_insert_line_internal(VteTerminal *terminal, glong position)
-{
-	while (_vte_ring_next(terminal->pvt->screen->row_data) < position)
-		_vte_ring_append(terminal->pvt->screen->row_data);
-	return _vte_ring_insert(terminal->pvt->screen->row_data, position);
-}
-
-/* Remove a line at an arbitrary position. */
-static void
-vte_remove_line_internal(VteTerminal *terminal, glong position)
-{
-	_vte_ring_remove(terminal->pvt->screen->row_data, position);
-}
-
 /* Check how long a string of unichars is.  Slow version. */
 static gssize
 vte_unichar_strlen(gunichar *c)
@@ -419,13 +403,13 @@ _vte_terminal_scroll_text (VteTerminal *terminal, int scroll_amount)
 
 	if (scroll_amount > 0) {
 		for (i = 0; i < scroll_amount; i++) {
-			vte_remove_line_internal(terminal, end);
-			vte_insert_line_internal(terminal, start);
+			_vte_ring_remove (terminal->pvt->screen->row_data, end);
+			_vte_ring_insert (terminal->pvt->screen->row_data, start);
 		}
 	} else {
 		for (i = 0; i < -scroll_amount; i++) {
-			vte_remove_line_internal(terminal, start);
-			vte_insert_line_internal(terminal, end);
+			_vte_ring_remove (terminal->pvt->screen->row_data, start);
+			_vte_ring_insert (terminal->pvt->screen->row_data, end);
 		}
 	}
 
@@ -972,8 +956,8 @@ vte_sequence_handler_al (VteTerminal *terminal, GValueArray *params)
 	for (i = 0; i < param; i++) {
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
-		vte_remove_line_internal(terminal, end);
-		rowdata = vte_insert_line_internal(terminal, start);
+		_vte_ring_remove (terminal->pvt->screen->row_data, end);
+		rowdata = _vte_ring_insert (terminal->pvt->screen->row_data, start);
 		/* Add enough cells to it so that it has the default columns. */
 		vte_g_array_fill(rowdata->cells, &screen->fill_defaults,
 				 terminal->column_count);
@@ -1472,8 +1456,8 @@ vte_sequence_handler_dl (VteTerminal *terminal, GValueArray *params)
 	for (i = 0; i < param; i++) {
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
-		vte_remove_line_internal(terminal, start);
-		vte_insert_line_internal(terminal, end);
+		_vte_ring_remove (terminal->pvt->screen->row_data, start);
+		_vte_ring_insert (terminal->pvt->screen->row_data, end);
 		/* Adjust the scrollbars if necessary. */
 		_vte_terminal_adjust_adjustments(terminal);
 	}
@@ -2045,8 +2029,8 @@ vte_sequence_handler_sr (VteTerminal *terminal, GValueArray *params)
 	if (screen->cursor_current.row == start) {
 		/* If we're at the top of the scrolling region, add a
 		 * line at the top to scroll the bottom off. */
-		vte_remove_line_internal(terminal, end);
-		vte_insert_line_internal(terminal, start);
+		_vte_ring_remove (terminal->pvt->screen->row_data, end);
+		_vte_ring_insert (terminal->pvt->screen->row_data, start);
 		/* Update the display. */
 		_vte_terminal_scroll_region(terminal, start, end - start + 1, 1);
 		_vte_invalidate_cells(terminal,
@@ -2838,8 +2822,8 @@ vte_sequence_handler_insert_lines (VteTerminal *terminal, GValueArray *params)
 	for (i = 0; i < param; i++) {
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
-		vte_remove_line_internal(terminal, end);
-		rowdata = vte_insert_line_internal(terminal, row);
+		_vte_ring_remove (terminal->pvt->screen->row_data, end);
+		rowdata = _vte_ring_insert (terminal->pvt->screen->row_data, row);
 		/* Add enough cells to it so that it has the default colors. */
 		vte_g_array_fill(rowdata->cells,
 				 &screen->fill_defaults,
@@ -2884,8 +2868,8 @@ vte_sequence_handler_delete_lines (VteTerminal *terminal, GValueArray *params)
 	for (i = 0; i < param; i++) {
 		/* Insert a line at the end of the region and remove one from
 		 * the top of the region. */
-		vte_remove_line_internal(terminal, row);
-		rowdata = vte_insert_line_internal(terminal, end);
+		_vte_ring_remove (terminal->pvt->screen->row_data, row);
+		rowdata = _vte_ring_insert (terminal->pvt->screen->row_data, end);
 		/* Add enough cells to it so that it has the default colors. */
 		vte_g_array_fill(rowdata->cells,
 				 &screen->fill_defaults,
