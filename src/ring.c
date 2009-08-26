@@ -159,7 +159,7 @@ _vte_ring_resize(VteRing *ring, glong max_elements)
  * @position: an index
  *
  * Inserts a new, empty, row into @ring at the @position'th offset.
- * XXX document how exactly this thing is supposed to work.
+ * The item at that position and any items after that are shifted down.
  *
  * Return: the newly added row.
  */
@@ -223,8 +223,7 @@ _vte_ring_insert(VteRing * ring, long position)
  * @ring: a #VteRing
  * @data: the new item
  *
- * Appends a new item to the ring.  If an item must be removed to make room for
- * the new item, it is freed.
+ * Appends a new item to the ring.
  *
  * Return: the newly added row.
  */
