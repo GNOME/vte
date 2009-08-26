@@ -25,14 +25,13 @@
 #include "debug.h"
 #include "ring.h"
 
-
 static VteRowData *
 _vte_row_data_init (VteRowData *row)
 {
-	if (row->cells)
-		g_array_set_size (row->cells, 0);
+	if (row->_cells)
+		g_array_set_size (row->_cells, 0);
 	else
-		row->cells = g_array_new(FALSE, TRUE, sizeof(struct vte_charcell));
+		row->_cells = g_array_new(FALSE, TRUE, sizeof(struct vte_charcell));
 	row->soft_wrapped = 0;
 	return row;
 }
@@ -40,9 +39,9 @@ _vte_row_data_init (VteRowData *row)
 static void
 _vte_row_data_fini (VteRowData *row)
 {
-	if (row->cells)
-		g_array_free(row->cells, TRUE);
-	row->cells = NULL;
+	if (row->_cells)
+		g_array_free(row->_cells, TRUE);
+	row->_cells = NULL;
 }
 
 static void
@@ -50,7 +49,7 @@ _vte_ring_move (VteRing *ring, unsigned int to, unsigned int from)
 {
 	_vte_row_data_fini (&ring->array[to]);
 	ring->array[to] = ring->array[from];
-	ring->array[from].cells = NULL;
+	ring->array[from]._cells = NULL;
 }
 
 
@@ -67,7 +66,7 @@ _vte_ring_validate (VteRing * ring)
 	max = ring->delta + ring->length;
 	for (i = ring->delta; i < max; i++) {
 		g_assert(_vte_ring_contains(ring, i));
-		g_assert(_vte_ring_index(ring, i)->cells != NULL);
+		g_assert(_vte_ring_index(ring, i)->_cells != NULL);
 	}
 }
 #else

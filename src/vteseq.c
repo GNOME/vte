@@ -86,31 +86,10 @@ vte_terminal_find_charcell(VteTerminal *terminal, glong col, glong row)
 	screen = terminal->pvt->screen;
 	if (_vte_ring_contains(screen->row_data, row)) {
 		rowdata = _vte_ring_index(screen->row_data, row);
-		if ((glong) rowdata->cells->len > col) {
-			ret = &g_array_index(rowdata->cells,
-					     struct vte_charcell,
-					     col);
-		}
+		if ((glong) _vte_row_data_length (rowdata) > col)
+			ret = _vte_row_data_get_writable (rowdata, col);
 	}
 	return ret;
-}
-
-/* Append a single item to a GArray a given number of times. Centralizing all
- * of the places we do this may let me do something more clever later.
- * Dupped from vte.c. */
-static void
-vte_g_array_fill(GArray *array, gpointer item, guint final_size)
-{
-	g_assert(array != NULL);
-	if (array->len >= final_size) {
-		return;
-	}
-	g_assert(item != NULL);
-
-	final_size -= array->len;
-	do {
-		g_array_append_vals(array, item, 1);
-	} while (--final_size);
 }
 
 /* Check how long a string of unichars is.  Slow version. */
@@ -327,14 +306,11 @@ _vte_terminal_clear_current_line (VteTerminal *terminal)
 		rowdata = _vte_ring_index(screen->row_data, screen->cursor_current.row);
 		g_assert(rowdata != NULL);
 		/* Remove it. */
-		if (rowdata->cells->len > 0) {
-			g_array_set_size(rowdata->cells, 0);
-		}
+		if (_vte_row_data_length (rowdata) > 0)
+			_vte_row_data_set_length (rowdata, 0);
 		/* Add enough cells to the end of the line to fill out the
 		 * row. */
-		vte_g_array_fill(rowdata->cells,
-				 &screen->fill_defaults,
-				 terminal->column_count);
+		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
 		rowdata->soft_wrapped = 0;
 		/* Repaint this row. */
 		_vte_invalidate_cells(terminal,
@@ -358,19 +334,13 @@ _vte_terminal_clear_above_current (VteTerminal *terminal)
 	 * which corresponds to the cursor. */
 	for (i = screen->insert_delta; i < screen->cursor_current.row; i++) {
 		if (_vte_ring_next(screen->row_data) > i) {
-			guint len;
 			/* Get the data for the row we're erasing. */
 			rowdata = _vte_ring_index(screen->row_data, i);
 			g_assert(rowdata != NULL);
 			/* Remove it. */
-			len = rowdata->cells->len;
-			if (len > 0) {
-				g_array_set_size(rowdata->cells, 0);
-			}
+			_vte_row_data_set_length (rowdata, 0);
 			/* Add new cells until we fill the row. */
-			vte_g_array_fill(rowdata->cells,
-					 &screen->fill_defaults,
-					 terminal->column_count);
+			_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
 			rowdata->soft_wrapped = 0;
 			/* Repaint the row. */
 			_vte_invalidate_cells(terminal,
@@ -959,8 +929,7 @@ vte_sequence_handler_al (VteTerminal *terminal, GValueArray *params)
 		_vte_ring_remove (terminal->pvt->screen->row_data, end);
 		rowdata = _vte_ring_insert (terminal->pvt->screen->row_data, start);
 		/* Add enough cells to it so that it has the default columns. */
-		vte_g_array_fill(rowdata->cells, &screen->fill_defaults,
-				 terminal->column_count);
+		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
 		/* Adjust the scrollbars if necessary. */
 		_vte_terminal_adjust_adjustments(terminal);
 	}
@@ -1041,16 +1010,13 @@ vte_sequence_handler_cb (VteTerminal *terminal, GValueArray *params)
 	 * attributes.  If there is no such character cell, we need
 	 * to add one. */
 	for (i = 0; i <= screen->cursor_current.col; i++) {
-		if (i < (glong) rowdata->cells->len) {
+		if (i < (glong) _vte_row_data_length (rowdata)) {
 			/* Muck with the cell in this location. */
-			pcell = &g_array_index(rowdata->cells,
-					       struct vte_charcell,
-					       i);
+			pcell = _vte_row_data_get_writable (rowdata, i);
 			*pcell = screen->color_defaults;
 		} else {
 			/* Add new cells until we have one here. */
-			g_array_append_val(rowdata->cells,
-					   screen->color_defaults);
+			_vte_row_data_append (rowdata, &screen->color_defaults);
 		}
 	}
 	/* Repaint this row. */
@@ -1079,9 +1045,8 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 		rowdata = _vte_ring_index(screen->row_data, i);
 		/* Clear everything to the right of the cursor. */
 		if ((rowdata != NULL) &&
-		    ((glong) rowdata->cells->len > screen->cursor_current.col)) {
-			g_array_set_size(rowdata->cells,
-					 screen->cursor_current.col);
+		    ((glong) _vte_row_data_length (rowdata) > screen->cursor_current.col)) {
+			_vte_row_data_set_length (rowdata, screen->cursor_current.col);
 		}
 	}
 	/* Now for the rest of the lines. */
@@ -1091,9 +1056,8 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 		/* Get the data for the row we're removing. */
 		rowdata = _vte_ring_index(screen->row_data, i);
 		/* Remove it. */
-		if ((rowdata != NULL) && (rowdata->cells->len > 0)) {
-			g_array_set_size(rowdata->cells, 0);
-		}
+		if (rowdata != NULL)
+			_vte_row_data_set_length (rowdata, 0);
 	}
 	/* Now fill the cleared areas. */
 	for (i = screen->cursor_current.row;
@@ -1107,9 +1071,7 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 			rowdata = _vte_ring_append(screen->row_data);
 		}
 		/* Pad out the row. */
-		vte_g_array_fill(rowdata->cells,
-				 &screen->fill_defaults,
-				 terminal->column_count);
+		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
 		rowdata->soft_wrapped = 0;
 		/* Repaint this row. */
 		_vte_invalidate_cells(terminal,
@@ -1134,16 +1096,14 @@ vte_sequence_handler_ce (VteTerminal *terminal, GValueArray *params)
 	g_assert(rowdata != NULL);
 	/* Remove the data at the end of the array until the current column
 	 * is the end of the array. */
-	if ((glong) rowdata->cells->len > screen->cursor_current.col) {
-		g_array_set_size(rowdata->cells, screen->cursor_current.col);
+	if ((glong) _vte_row_data_length (rowdata) > screen->cursor_current.col) {
+		_vte_row_data_set_length (rowdata, screen->cursor_current.col);
 		/* We've modified the display.  Make a note of it. */
 		terminal->pvt->text_deleted_flag = TRUE;
 	}
 	if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
 		/* Add enough cells to fill out the row. */
-		vte_g_array_fill(rowdata->cells,
-				 &screen->fill_defaults,
-				 terminal->column_count);
+		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
 	}
 	rowdata->soft_wrapped = 0;
 	/* Repaint this row. */
@@ -1398,14 +1358,12 @@ vte_sequence_handler_dc (VteTerminal *terminal, GValueArray *params)
 		rowdata = _vte_ring_index(screen->row_data, screen->cursor_current.row);
 		g_assert(rowdata != NULL);
 		col = screen->cursor_current.col;
-		len = rowdata->cells->len;
+		len = _vte_row_data_length (rowdata);
 		/* Remove the column. */
 		if (col < len) {
-			g_array_remove_index(rowdata->cells, col);
+			_vte_row_data_remove (rowdata, col);
 			if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
-				vte_g_array_fill (rowdata->cells,
-						&screen->fill_defaults,
-						terminal->column_count);
+				_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
 				len = terminal->column_count;
 			}
 			/* Repaint this row. */
@@ -1542,18 +1500,14 @@ vte_sequence_handler_ec (VteTerminal *terminal, GValueArray *params)
 		for (i = 0; i < count; i++) {
 			col = screen->cursor_current.col + i;
 			if (col >= 0) {
-				if (col < (glong) rowdata->cells->len) {
+				if (col < (glong) _vte_row_data_length (rowdata)) {
 					/* Replace this cell with the current
 					 * defaults. */
-					cell = &g_array_index(rowdata->cells,
-							      struct vte_charcell,
-							      col);
+					cell = _vte_row_data_get_writable (rowdata, col);
 					*cell = screen->color_defaults;
 				} else {
 					/* Add new cells until we have one here. */
-					vte_g_array_fill(rowdata->cells,
-							 &screen->color_defaults,
-							 col);
+					_vte_row_data_fill (rowdata, &screen->color_defaults, col);
 				}
 			}
 		}
@@ -2108,26 +2062,23 @@ vte_sequence_handler_ta (VteTerminal *terminal, GValueArray *params)
 		 */
 
 		/* Get rid of trailing empty cells: bug 545924 */
-		if ((glong) rowdata->cells->len > col)
+		if ((glong) _vte_row_data_length (rowdata) > col)
 		{
-			struct vte_charcell *cell;
+			const struct vte_charcell *cell;
 			guint i;
-			for (i = rowdata->cells->len; (glong) i > col; i--) {
-				cell = &g_array_index(rowdata->cells,
-						      struct vte_charcell, i - 1);
+			for (i = _vte_row_data_length (rowdata); (glong) i > col; i--) {
+				cell = _vte_row_data_get (rowdata, i - 1);
 				if (cell->attr.fragment || cell->c != 0)
 					break;
 			}
-			g_array_set_size(rowdata->cells, i);
+			_vte_row_data_set_length (rowdata, i);
 		}
 
-		if ((glong) rowdata->cells->len <= col)
+		if ((glong) _vte_row_data_length (rowdata) <= col)
 		  {
 		    struct vte_charcell cell;
 
-		    vte_g_array_fill (rowdata->cells,
-				      &screen->fill_defaults,
-				      col);
+		    _vte_row_data_fill (rowdata, &screen->fill_defaults, col);
 
 		    cell.attr = screen->fill_defaults.attr;
 		    cell.attr.invisible = 1; /* FIXME: bug 499944 */
@@ -2140,20 +2091,16 @@ vte_sequence_handler_ta (VteTerminal *terminal, GValueArray *params)
 		       goto fallback_tab;
 		      }
 		    cell.c = '\t';
-		    g_array_append_vals(rowdata->cells, &cell, 1);
+		    _vte_row_data_append (rowdata, &cell);
 
 		    cell.attr = screen->fill_defaults.attr;
 		    cell.attr.fragment = 1;
-		    vte_g_array_fill (rowdata->cells,
-				      &cell,
-				newcol);
+		    _vte_row_data_fill (rowdata, &cell, newcol);
 		  }
 		else
 		  {
 		  fallback_tab:
-		    vte_g_array_fill (rowdata->cells,
-				      &screen->fill_defaults,
-				      newcol);
+		    _vte_row_data_fill (rowdata, &screen->fill_defaults, newcol);
 		  }
 
 		_vte_invalidate_cells (terminal,
@@ -2208,14 +2155,10 @@ vte_sequence_handler_uc (VteTerminal *terminal, GValueArray *params)
 
 	screen = terminal->pvt->screen;
 	column = screen->cursor_current.col;
-	cell = vte_terminal_find_charcell(terminal,
-					  column,
-					  screen->cursor_current.row);
+	cell = vte_terminal_find_charcell(terminal, column, screen->cursor_current.row);
 	while ((cell != NULL) && (cell->attr.fragment) && (column > 0)) {
 		column--;
-		cell = vte_terminal_find_charcell(terminal,
-						  column,
-						  screen->cursor_current.row);
+		cell = vte_terminal_find_charcell(terminal, column, screen->cursor_current.row);
 	}
 	if (cell != NULL) {
 		/* Set this character to be underlined. */
@@ -2825,9 +2768,7 @@ vte_sequence_handler_insert_lines (VteTerminal *terminal, GValueArray *params)
 		_vte_ring_remove (terminal->pvt->screen->row_data, end);
 		rowdata = _vte_ring_insert (terminal->pvt->screen->row_data, row);
 		/* Add enough cells to it so that it has the default colors. */
-		vte_g_array_fill(rowdata->cells,
-				 &screen->fill_defaults,
-				 terminal->column_count);
+		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
 	}
 	/* Update the display. */
 	_vte_terminal_scroll_region(terminal, row, end - row + 1, param);
@@ -2871,9 +2812,7 @@ vte_sequence_handler_delete_lines (VteTerminal *terminal, GValueArray *params)
 		_vte_ring_remove (terminal->pvt->screen->row_data, row);
 		rowdata = _vte_ring_insert (terminal->pvt->screen->row_data, end);
 		/* Add enough cells to it so that it has the default colors. */
-		vte_g_array_fill(rowdata->cells,
-				 &screen->fill_defaults,
-				 terminal->column_count);
+		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
 	}
 	/* Update the display. */
 	_vte_terminal_scroll_region(terminal, row, end - row + 1, -param);
@@ -3044,15 +2983,14 @@ vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *
 		rowdata = _vte_ring_index(screen->row_data, row);
 		g_assert(rowdata != NULL);
 		/* Clear this row. */
-		if (rowdata->cells->len > 0) {
-			g_array_set_size(rowdata->cells, 0);
-		}
+		_vte_row_data_set_length (rowdata, 0);
+
 		_vte_terminal_emit_text_deleted(terminal);
 		/* Fill this row. */
 		cell.c = 'E';
 		cell.attr = screen->basic_defaults.attr;
 		cell.attr.columns = 1;
-		vte_g_array_fill(rowdata->cells, &cell, terminal->column_count);
+		_vte_row_data_fill (rowdata, &cell, terminal->column_count);
 		_vte_terminal_emit_text_inserted(terminal);
 	}
 	_vte_invalidate_all(terminal);

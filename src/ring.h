@@ -63,9 +63,38 @@ struct vte_charcell {
 };
 
 typedef struct _VteRowData {
-	GArray *cells;
+	GArray *_cells;
 	guchar soft_wrapped: 1;
 } VteRowData;
+
+
+#define _vte_row_data_get(__row, __col)			((const struct vte_charcell *) _vte_row_data_get_writable (__row, __col))
+#define _vte_row_data_get_writable(__row, __col)	(G_UNLIKELY ((__row)->_cells->len <= (unsigned int) __col) ? NULL : \
+							 &g_array_index (__row->_cells, struct vte_charcell, __col))
+#define _vte_row_data_length(__row)			((__row)->_cells->len + 0)
+#define _vte_row_data_insert(__row, __pos, __cell)	g_array_insert_val ((__row)->_cells, __pos, *(__cell))
+#define _vte_row_data_append(__row, __cell)		g_array_append_val ((__row)->_cells, *(__cell))
+#define _vte_row_data_remove(__row, __col)		g_array_remove_index ((__row)->_cells, __col)
+#define _vte_row_data_fill(__row, __cell, __len)	G_STMT_START { \
+								int __i = (__len) - (__row)->_cells->len; \
+								while (__i-- > 0)  \
+									_vte_row_data_append (__row, __cell); \
+							} G_STMT_END
+
+#define _vte_row_data_set_length(__row, __len)		g_array_set_size ((__row)->_cells, __len)
+
+#if 0
+const struct vte_charcell *_vte_row_data_get (VteRowData *row, unsigned int col);
+struct vte_charcell *_vte_row_data_get_writable (VteRowData *row, unsigned int col);
+unsigned int _vte_row_data_length (VteRowData *row);
+void _vte_row_data_insert (VteRowData *row, int pos, const struct vte_charcell *cell);
+void _vte_row_data_append (VteRowData *row, const struct vte_charcell *cell);
+void _vte_row_data_remove (VteRowData *row, unsigned int col);
+void _vte_row_data_fill (VteRowData *row, const struct vte_charcell *cell, int len);
+void _vte_row_data_set_length (VteRowData *row, int len);
+#endif
+
+
 
 typedef struct _VteRing VteRing;
 

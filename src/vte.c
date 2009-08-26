@@ -279,14 +279,11 @@ G_DEFINE_TYPE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET)
  * Only the first %VTE_LEGACY_COLOR_SET_SIZE colors have dim versions.  */
 static const guchar corresponding_dim_index[] = {16,88,28,100,18,90,30,102};
 
-/* Append a single item to a GArray a given number of times. Centralizing all
- * of the places we do this may let me do something more clever later. */
 static void
 vte_g_array_fill(GArray *array, gconstpointer item, guint final_size)
 {
-	if (array->len >= final_size) {
+	if (array->len >= final_size)
 		return;
-	}
 
 	final_size -= array->len;
 	do {
@@ -519,33 +516,17 @@ _vte_terminal_find_row_data(VteTerminal *terminal, glong row)
 	return rowdata;
 }
 /* Find the character an the given position in the backscroll buffer. */
-static struct vte_charcell *
+static const struct vte_charcell *
 vte_terminal_find_charcell(VteTerminal *terminal, gulong col, glong row)
 {
 	VteRowData *rowdata;
-	struct vte_charcell *ret = NULL;
+	const struct vte_charcell *ret = NULL;
 	VteScreen *screen;
 	screen = terminal->pvt->screen;
 	if (_vte_ring_contains(screen->row_data, row)) {
 		rowdata = _vte_ring_index(screen->row_data, row);
-		if (rowdata->cells->len > col) {
-			ret = &g_array_index(rowdata->cells,
-					     struct vte_charcell,
-					     col);
-		}
-	}
-	return ret;
-}
-
-/* Find the character in the given position in the given row. */
-static inline struct vte_charcell *
-_vte_row_data_find_charcell(VteRowData *rowdata, gulong col)
-{
-	struct vte_charcell *ret = NULL;
-	if (rowdata->cells->len > col) {
-		ret = &g_array_index(rowdata->cells,
-				struct vte_charcell,
-				col);
+		if (_vte_row_data_length (rowdata) > col)
+			ret = _vte_row_data_get (rowdata, col);
 	}
 	return ret;
 }
@@ -612,11 +593,11 @@ _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
 	columns = 1;
 	row_data = _vte_terminal_find_row_data(terminal, row);
 	if (row_data != NULL) {
-		struct vte_charcell *cell;
-		cell = _vte_row_data_find_charcell(row_data, col);
+		const struct vte_charcell *cell;
+		cell = _vte_row_data_get (row_data, col);
 		if (cell != NULL) {
 			while (cell->attr.fragment && col> 0) {
-				cell = _vte_row_data_find_charcell(row_data, --col);
+				cell = _vte_row_data_get (row_data, --col);
 			}
 			columns = cell->attr.columns;
 			if (cell->c != 0 &&
@@ -643,7 +624,7 @@ void
 _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 {
 	VteScreen *screen;
-	struct vte_charcell *cell;
+	const struct vte_charcell *cell;
 	gssize preedit_width;
 	glong column, row;
 	gint columns;
@@ -665,9 +646,7 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 		row = screen->cursor_current.row;
 		column = screen->cursor_current.col;
 		columns = 1;
-		cell = vte_terminal_find_charcell(terminal,
-						  column,
-						  screen->cursor_current.row);
+		cell = vte_terminal_find_charcell(terminal, column, screen->cursor_current.row);
 		while ((cell != NULL) && (cell->attr.fragment) && (column > 0)) {
 			column--;
 			cell = vte_terminal_find_charcell(terminal,
@@ -2315,9 +2294,8 @@ vte_terminal_ensure_cursor(VteTerminal *terminal)
 	screen = terminal->pvt->screen;
 	v = screen->cursor_current.col;
 
-	if (G_UNLIKELY ((glong) row->cells->len < v)) { /* pad */
-		vte_g_array_fill (row->cells, &screen->basic_defaults, v);
-	}
+	if (G_UNLIKELY ((glong) _vte_row_data_length (row) < v)) /* pad */
+		_vte_row_data_fill (row, &screen->basic_defaults, v);
 
 	return row;
 }
@@ -2829,10 +2807,11 @@ _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
 	VteRowData *row = _vte_terminal_ensure_row (terminal);
 	VteScreen *screen = terminal->pvt->screen;
 	long col = screen->cursor_current.col;
-	struct vte_charcell *cell = _vte_row_data_find_charcell(row, col);
+	const struct vte_charcell *pcell = _vte_row_data_get (row, col);
 
-	if (G_UNLIKELY (cell != NULL && cell->c == '\t')) {
+	if (G_UNLIKELY (pcell != NULL && pcell->c == '\t')) {
 		long i, num_columns;
+		struct vte_charcell *cell = _vte_row_data_get_writable (row, col);
 		
 		_vte_debug_print(VTE_DEBUG_MISC,
 				 "Cleaning tab fragments at %ld",
@@ -2840,11 +2819,11 @@ _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
 
 		/* go back to the beginning of the tab */
 		while (cell->attr.fragment && col > 0)
-			cell = _vte_row_data_find_charcell(row, --col);
+			cell = _vte_row_data_get_writable (row, --col);
 
 		num_columns = cell->attr.columns;
 		for (i = 0; i < num_columns; i++) {
-			cell = _vte_row_data_find_charcell(row, col++);
+			cell = _vte_row_data_get_writable (row, col++);
 			if (G_UNLIKELY (!cell))
 			  break;
 			*cell = screen->fill_defaults;
@@ -2873,9 +2852,7 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 		if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
 			VteRowData *rowdata;
 			rowdata = _vte_terminal_ensure_row (terminal);
-			vte_g_array_fill (rowdata->cells,
-					&screen->fill_defaults,
-					terminal->column_count);
+			_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
 		}
 
 		if (screen->scrolling_restricted) {
@@ -2921,9 +2898,7 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 		if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
 			VteRowData *rowdata;
 			rowdata = _vte_terminal_ensure_row (terminal);
-			vte_g_array_fill (rowdata->cells,
-					&screen->fill_defaults,
-					terminal->column_count);
+			_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
 		}
 	} else {
 		/* Otherwise, just move the cursor down. */
@@ -3026,7 +3001,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 					if (!row->soft_wrapped)
 						row = NULL;
 					else
-						col = row->cells->len;
+						col = _vte_row_data_length (row);
 				}
 			}
 		} else {
@@ -3039,14 +3014,14 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		/* Combine it on the previous cell */
 
 		col--;
-		cell = _vte_row_data_find_charcell(row, col);
+		cell = _vte_row_data_get_writable (row, col);
 
 		if (G_UNLIKELY (!cell))
 			goto not_inserted;
 
 		/* Find the previous cell */
 		while (cell->attr.fragment && col > 0) {
-			cell = _vte_row_data_find_charcell(row, --col);
+			cell = _vte_row_data_get_writable (row, --col);
 		}
 		if (G_UNLIKELY (!cell || cell->c == '\t'))
 			goto not_inserted;
@@ -3057,7 +3032,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		/* And set it */
 		columns = cell->attr.columns;
 		for (i = 0; i < columns; i++) {
-			cell = _vte_row_data_find_charcell(row, col++);
+			cell = _vte_row_data_get_writable (row, col++);
 			cell->c = c;
 		}
 
@@ -3079,32 +3054,30 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 	if (insert) {
 		for (i = 0; i < columns; i++)
-			g_array_insert_val(row->cells, col + i,
-					   screen->color_defaults);
+			_vte_row_data_insert (row, col + i, &screen->color_defaults);
 	} else {
-		if (G_LIKELY ((glong) row->cells->len < col + columns)) {
-			g_array_set_size (row->cells, col + columns);
-		}
+		if (G_LIKELY ((glong) _vte_row_data_length (row) < col + columns))
+			_vte_row_data_set_length (row, col + columns);
 	}
 
 	/* Convert any wide characters we may have broken into single
 	 * cells. (#514632) */
 	if (G_LIKELY (col > 0)) {
 		glong col2 = col - 1;
-		struct vte_charcell *cell = _vte_row_data_find_charcell(row, col2);
+		struct vte_charcell *cell = _vte_row_data_get_writable (row, col2);
 		while (cell != NULL && cell->attr.fragment && col2 > 0) {
-			cell = _vte_row_data_find_charcell(row, --col2);
+			cell = _vte_row_data_get_writable (row, --col2);
 		}
 		cell->attr.columns = col - col2;
 	}
 	{
 		glong col2 = col + columns;
-		struct vte_charcell *cell = _vte_row_data_find_charcell(row, col2);
+		struct vte_charcell *cell = _vte_row_data_get_writable (row, col2);
 		while (cell != NULL && cell->attr.fragment) {
 			cell->attr.fragment = 0;
 			cell->attr.columns = 1;
 			cell->c = 0;
-			cell = _vte_row_data_find_charcell(row, ++col2);
+			cell = _vte_row_data_get_writable (row, ++col2);
 		}
 	}
 
@@ -3112,8 +3085,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	attr.columns = columns;
 
 	if (G_UNLIKELY (c == '_' && terminal->pvt->flags.ul)) {
-		struct vte_charcell *pcell =
-			&g_array_index (row->cells, struct vte_charcell, col);
+		const struct vte_charcell *pcell = _vte_row_data_get (row, col);
 		/* Handle overstrike-style underlining. */
 		if (pcell->c != 0) {
 			/* restore previous contents */
@@ -3124,20 +3096,25 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			attr.underline = 1;
 		}
 	}
-	g_array_index(row->cells, struct vte_charcell, col).c = c;
-	g_array_index(row->cells, struct vte_charcell, col).attr = attr;
-	col++;
+
+
+	{
+		struct vte_charcell *pcell = _vte_row_data_get_writable (row, col);
+		pcell->c = c;
+		pcell->attr = attr;
+		col++;
+	}
 
 	/* insert wide-char fragments */
 	attr.fragment = 1;
 	for (i = 1; i < columns; i++) {
-		g_array_index(row->cells, struct vte_charcell, col).c = c;
-		g_array_index(row->cells, struct vte_charcell, col).attr = attr;
+		struct vte_charcell *pcell = _vte_row_data_get_writable (row, col);
+		pcell->c = c;
+		pcell->attr = attr;
 		col++;
 	}
-	if (G_UNLIKELY ((long) row->cells->len > terminal->column_count)) {
-		g_array_set_size(row->cells, terminal->column_count);
-	}
+	if (G_UNLIKELY ((long) _vte_row_data_length (row) > terminal->column_count))
+		_vte_row_data_set_length (row, terminal->column_count);
 
 	/* Signal that this part of the window needs drawing. */
 	if (G_UNLIKELY (invalidate_now)) {
@@ -5163,7 +5140,7 @@ static gboolean
 vte_same_class(VteTerminal *terminal, glong acol, glong arow,
 	       glong bcol, glong brow)
 {
-	struct vte_charcell *pcell = NULL;
+	const struct vte_charcell *pcell = NULL;
 	gboolean word_char;
 	if ((pcell = vte_terminal_find_charcell(terminal, acol, arow)) != NULL && pcell->c != 0) {
 		word_char = vte_terminal_is_word_char(terminal, _vte_unistr_get_base (pcell->c));
@@ -5780,7 +5757,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 {
 	long col, row, last_empty, last_emptycol, last_nonempty, last_nonemptycol;
 	VteScreen *screen;
-	struct vte_charcell *pcell = NULL;
+	const struct vte_charcell *pcell = NULL;
 	GString *string;
 	struct _VteCharAttributes attr;
 	struct vte_palette_entry fore, back, *palette;
@@ -5804,7 +5781,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 		attr.column = col;
 		pcell = NULL;
 		if (row_data != NULL) {
-			while ((pcell = _vte_row_data_find_charcell(row_data, col))) {
+			while ((pcell = _vte_row_data_get (row_data, col))) {
 
 				attr.column = col;
 
@@ -5861,7 +5838,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 			col = last_emptycol + 1;
 
 			if (row_data != NULL) {
-				while ((pcell = _vte_row_data_find_charcell(row_data, col))) {
+				while ((pcell = _vte_row_data_get (row_data, col))) {
 					col++;
 
 					if (pcell->attr.fragment)
@@ -5898,7 +5875,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 
 		/* Make sure that the attributes array is as long as the string. */
 		if (attributes) {
-			vte_g_array_fill(attributes, &attr, string->len);
+			vte_g_array_fill (attributes, &attr, string->len);
 		}
 	}
 	/* Sanity check. */
@@ -6107,9 +6084,9 @@ find_start_column (VteTerminal *terminal, glong col, glong row)
 	if (G_UNLIKELY (col < 0))
 		return col;
 	if (row_data != NULL) {
-		struct vte_charcell *cell = _vte_row_data_find_charcell(row_data, col);
+		const struct vte_charcell *cell = _vte_row_data_get (row_data, col);
 		while (cell != NULL && cell->attr.fragment && col > 0) {
-			cell = _vte_row_data_find_charcell(row_data, --col);
+			cell = _vte_row_data_get (row_data, --col);
 		}
 	}
 	return MAX(col, 0);
@@ -6122,9 +6099,9 @@ find_end_column (VteTerminal *terminal, glong col, glong row)
 	if (G_UNLIKELY (col < 0))
 		return col;
 	if (row_data != NULL) {
-		struct vte_charcell *cell = _vte_row_data_find_charcell(row_data, col);
+		const struct vte_charcell *cell = _vte_row_data_get (row_data, col);
 		while (cell != NULL && cell->attr.fragment && col > 0) {
-			cell = _vte_row_data_find_charcell(row_data, --col);
+			cell = _vte_row_data_get (row_data, --col);
 		}
 		if (cell) {
 			columns = cell->attr.columns - 1;
@@ -6210,7 +6187,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 	long i, j;
 	VteScreen *screen;
 	VteRowData *rowdata;
-	struct vte_charcell *cell;
+	const struct vte_charcell *cell;
 	struct selection_cell_coords *sc, *ec;
 
 	if (terminal->pvt->selection_block_mode)
@@ -6228,9 +6205,8 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 	rowdata = _vte_terminal_find_row_data(terminal, sc->row);
 	if (rowdata != NULL) {
 		/* Find the last non-empty character on the first line. */
-		for (i = rowdata->cells->len; i > 0; i--) {
-			cell = &g_array_index(rowdata->cells,
-					struct vte_charcell, i - 1);
+		for (i = _vte_row_data_length (rowdata); i > 0; i--) {
+			cell = _vte_row_data_get (rowdata, i - 1);
 			if (cell->attr.fragment || cell->c != 0)
 				break;
 		}
@@ -6257,9 +6233,8 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 	rowdata = _vte_terminal_find_row_data(terminal, ec->row);
 	if (rowdata != NULL) {
 		/* Find the last non-empty character on the last line. */
-		for (i = rowdata->cells->len; i > 0; i--) {
-			cell = &g_array_index(rowdata->cells,
-					struct vte_charcell, i - 1);
+		for (i = _vte_row_data_length (rowdata); i > 0; i--) {
+			cell = _vte_row_data_get (rowdata, i - 1);
 			if (cell->attr.fragment || cell->c != 0)
 				break;
 		}
@@ -6268,7 +6243,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 		if (ec->col >= i) {
 			ec->col = MAX(ec->col,
 				    MAX(terminal->column_count - 1,
-					(long) rowdata->cells->len));
+					(long) _vte_row_data_length (rowdata)));
 		}
 	} else {
 		/* Snap to the rightmost column, only if selecting anything of
@@ -6400,7 +6375,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 		if (_vte_ring_contains(screen->row_data, ec->row)) {
 			rowdata = _vte_ring_index(screen->row_data, ec->row);
 			if (rowdata != NULL) {
-				ec->col = MAX(ec->col, (long) rowdata->cells->len);
+				ec->col = MAX(ec->col, (long) _vte_row_data_length (rowdata));
 			}
 		}
 		break;
@@ -9968,7 +9943,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 	gboolean underline, nunderline, bold, nbold, hilite, nhilite, reverse,
 		 selected, nselected, strikethrough, nstrikethrough;
 	guint item_count;
-	struct vte_charcell *cell;
+	const struct vte_charcell *cell;
 	VteRowData *row_data;
 
 	reverse = terminal->pvt->screen->reverse_mode;
@@ -9989,16 +9964,16 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 		 * making the drawing area a little wider. */
 		i = start_column;
 		if (row_data != NULL) {
-			cell = _vte_row_data_find_charcell(row_data, i);
+			cell = _vte_row_data_get (row_data, i);
 			if (cell != NULL) {
 				while (cell->attr.fragment && i > 0) {
-					cell = _vte_row_data_find_charcell(row_data, --i);
+					cell = _vte_row_data_get (row_data, --i);
 				}
 			}
 			/* Walk the line. */
 			do {
 				/* Get the character cell's contents. */
-				cell = _vte_row_data_find_charcell(row_data, i);
+				cell = _vte_row_data_get (row_data, i);
 				/* Find the colors for this cell. */
 				selected = vte_cell_is_selected(terminal, i, row, NULL);
 				vte_terminal_determine_colors(terminal, cell,
@@ -10012,7 +9987,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 
 				while (j < end_column){
 					/* Retrieve the cell. */
-					cell = _vte_row_data_find_charcell(row_data, j);
+					cell = _vte_row_data_get (row_data, j);
 					/* Don't render fragments of multicolumn characters
 					 * which have the same attributes as the initial
 					 * portions. */
@@ -10104,18 +10079,18 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 		/* Back up in case this is a multicolumn character,
 		 * making the drawing area a little wider. */
 		i = start_column;
-		cell = _vte_row_data_find_charcell(row_data, i);
+		cell = _vte_row_data_get (row_data, i);
 		if (cell == NULL) {
 			goto fg_skip_row;
 		}
 		while (cell->attr.fragment && i > 0) {
-			cell = _vte_row_data_find_charcell(row_data, --i);
+			cell = _vte_row_data_get (row_data, --i);
 		}
 
 		/* Walk the line. */
 		do {
 			/* Get the character cell's contents. */
-			cell = _vte_row_data_find_charcell(row_data, i);
+			cell = _vte_row_data_get (row_data, i);
 			if (cell == NULL) {
 				goto fg_skip_row;
 			}
@@ -10127,7 +10102,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				if (++i >= end_column) {
 					goto fg_skip_row;
 				}
-				cell = _vte_row_data_find_charcell(row_data, i);
+				cell = _vte_row_data_get (row_data, i);
 				if (cell == NULL) {
 					goto fg_skip_row;
 				}
@@ -10181,7 +10156,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				while (j < end_column &&
 						item_count < G_N_ELEMENTS(items)) {
 					/* Retrieve the cell. */
-					cell = _vte_row_data_find_charcell(row_data, j);
+					cell = _vte_row_data_get (row_data, j);
 					if (cell == NULL) {
 						goto fg_next_row;
 					}
@@ -10288,10 +10263,10 @@ fg_next_row:
 					 * multicolumn character, making the drawing
 					 * area a little wider. */
 					j = start_column;
-					cell = _vte_row_data_find_charcell(row_data, j);
+					cell = _vte_row_data_get (row_data, j);
 				} while (cell == NULL);
 				while (cell->attr.fragment && j > 0) {
-					cell = _vte_row_data_find_charcell(row_data, --j);
+					cell = _vte_row_data_get (row_data, --j);
 				}
 			} while (TRUE);
 fg_draw:
@@ -10447,7 +10422,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 {
 	VteScreen *screen;
 	GdkColor color;
-	struct vte_charcell *cell;
+	const struct vte_charcell *cell;
 	struct _vte_draw_text_request item;
 	int row, drow, col;
 	long width, height, delta, cursor_width;
