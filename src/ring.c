@@ -38,9 +38,9 @@ _vte_row_data_init (VteRowData *row)
 }
 
 static void
-_vte_row_data_fini(VteRowData *row, gboolean free_cells)
+_vte_row_data_fini(VteRowData *row)
 {
-	if (free_cells && row->cells)
+	if (row->cells)
 		g_array_free(row->cells, TRUE);
 	row->cells = NULL;
 }
@@ -48,6 +48,7 @@ _vte_row_data_fini(VteRowData *row, gboolean free_cells)
 static void
 _vte_ring_move(VteRing *ring, unsigned int to, unsigned int from)
 {
+	_vte_row_data_fini (&ring->array[to]);
 	ring->array[to] = ring->array[from];
 	ring->array[from].cells = NULL;
 }
@@ -105,7 +106,7 @@ _vte_ring_free(VteRing *ring)
 {
 	glong i;
 	for (i = 0; i < ring->max; i++)
-		_vte_row_data_fini (&ring->array[i], TRUE);
+		_vte_row_data_fini (&ring->array[i]);
 	g_free(ring->array);
 	g_slice_free(VteRing, ring);
 }
@@ -139,7 +140,7 @@ _vte_ring_resize(VteRing *ring, glong max_elements)
 
 	end = ring->delta + ring->length;
 	for (position = ring->delta; position < end; position++) {
-		_vte_row_data_fini (&ring->array[position % ring->max], TRUE);
+		_vte_row_data_fini (&ring->array[position % ring->max]);
 		ring->array[position % ring->max] = old_array[position % old_max];
 	}
 
@@ -166,7 +167,7 @@ _vte_ring_resize(VteRing *ring, glong max_elements)
 VteRowData *
 _vte_ring_insert(VteRing * ring, long position)
 {
-	long point, i;
+	long i;
 	VteRowData *row;
 
 	g_return_val_if_fail(position >= ring->delta, NULL);
@@ -175,42 +176,14 @@ _vte_ring_insert(VteRing * ring, long position)
 	_vte_debug_print(VTE_DEBUG_RING, "Inserting at position %ld.\n", position);
 	_vte_ring_validate(ring);
 
-	/* Initial insertion, or append. */
-	if (position == ring->length + ring->delta) {
-		/* Set the new item, and if the buffer wasn't "full", increase
-		 * our idea of how big it is, otherwise increase the delta so
-		 * that this becomes the "last" item and the previous item
-		 * scrolls off the *top*. */
-		row = _vte_row_data_init(&ring->array[position % ring->max]);
-		if (ring->length == ring->max)
-			ring->delta++;
-		else
-			ring->length++;
-
-		_vte_ring_validate(ring);
-		return row;
-	}
-
-	/* All other cases.  Calculate the location where the last "item" in the
-	 * buffer is going to end up in the array. */
-	point = ring->delta + ring->length - 1;
-	while (point < 0)
-		point += ring->max;
-
-	if (ring->length != ring->max) {
-		/* We don't want to discard the last item. */
-		point++;
-	}
-
-	/* We need to bubble the remaining valid elements down.  This isn't as
-	 * slow as you probably think it is due to the pattern of usage. */
-	for (i = point; i > position; i--)
+	for (i = ring->delta + ring->length; i > position; i--)
 		_vte_ring_move (ring, i % ring->max, (i - 1) % ring->max);
 
-	/* Store the new item and bump up the length, unless we've hit the
-	 * maximum length already. */
 	row = _vte_row_data_init(&ring->array[position % ring->max]);
-	ring->length = CLAMP(ring->length + 1, 0, ring->max);
+	if (ring->length < ring->max)
+		ring->length++;
+	else
+		ring->delta++;
 
 	_vte_ring_validate(ring);
 	return row;
