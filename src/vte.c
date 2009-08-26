@@ -2269,16 +2269,9 @@ static VteRowData *
 vte_terminal_ensure_cursor(VteTerminal *terminal)
 {
 	VteRowData *row;
-	const VteScreen *screen;
-	glong v;
 
 	row = _vte_terminal_ensure_row (terminal);
-
-	screen = terminal->pvt->screen;
-	v = screen->cursor_current.col;
-
-	if (G_UNLIKELY ((glong) _vte_row_data_length (row) < v)) /* pad */
-		_vte_row_data_fill (row, &basic_cell, v);
+	_vte_row_data_fill (row, &basic_cell, terminal->pvt->screen->cursor_current.col);
 
 	return row;
 }
@@ -3039,8 +3032,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		for (i = 0; i < columns; i++)
 			_vte_row_data_insert (row, col + i, &screen->color_defaults);
 	} else {
-		if (G_LIKELY ((glong) _vte_row_data_length (row) < col + columns))
-			_vte_row_data_set_length (row, col + columns);
+		_vte_row_data_fill (row, &basic_cell, col + columns);
 	}
 
 	/* Convert any wide characters we may have broken into single
@@ -3096,8 +3088,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		pcell->attr = attr;
 		col++;
 	}
-	if (G_UNLIKELY ((long) _vte_row_data_length (row) > terminal->column_count))
-		_vte_row_data_set_length (row, terminal->column_count);
+	_vte_row_data_shrink (row, terminal->column_count);
 
 	/* Signal that this part of the window needs drawing. */
 	if (G_UNLIKELY (invalidate_now)) {

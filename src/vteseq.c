@@ -305,9 +305,8 @@ _vte_terminal_clear_current_line (VteTerminal *terminal)
 		rowdata = _vte_ring_index(screen->row_data, screen->cursor_current.row);
 		g_assert(rowdata != NULL);
 		/* Remove it. */
-		_vte_row_data_set_length (rowdata, 0);
-		/* Add enough cells to the end of the line to fill out the
-		 * row. */
+		_vte_row_data_shrink (rowdata, 0);
+		/* Add enough cells to the end of the line to fill out the row. */
 		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
 		rowdata->soft_wrapped = 0;
 		/* Repaint this row. */
@@ -336,7 +335,7 @@ _vte_terminal_clear_above_current (VteTerminal *terminal)
 			rowdata = _vte_ring_index(screen->row_data, i);
 			g_assert(rowdata != NULL);
 			/* Remove it. */
-			_vte_row_data_set_length (rowdata, 0);
+			_vte_row_data_shrink (rowdata, 0);
 			/* Add new cells until we fill the row. */
 			_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
 			rowdata->soft_wrapped = 0;
@@ -1042,10 +1041,8 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 		/* Get the data for the row we're clipping. */
 		rowdata = _vte_ring_index(screen->row_data, i);
 		/* Clear everything to the right of the cursor. */
-		if ((rowdata != NULL) &&
-		    ((glong) _vte_row_data_length (rowdata) > screen->cursor_current.col)) {
-			_vte_row_data_set_length (rowdata, screen->cursor_current.col);
-		}
+		if (rowdata)
+			_vte_row_data_shrink (rowdata, screen->cursor_current.col);
 	}
 	/* Now for the rest of the lines. */
 	for (i = screen->cursor_current.row + 1;
@@ -1054,8 +1051,8 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 		/* Get the data for the row we're removing. */
 		rowdata = _vte_ring_index(screen->row_data, i);
 		/* Remove it. */
-		if (rowdata != NULL)
-			_vte_row_data_set_length (rowdata, 0);
+		if (rowdata)
+			_vte_row_data_shrink (rowdata, 0);
 	}
 	/* Now fill the cleared areas. */
 	for (i = screen->cursor_current.row;
@@ -1095,7 +1092,7 @@ vte_sequence_handler_ce (VteTerminal *terminal, GValueArray *params)
 	/* Remove the data at the end of the array until the current column
 	 * is the end of the array. */
 	if ((glong) _vte_row_data_length (rowdata) > screen->cursor_current.col) {
-		_vte_row_data_set_length (rowdata, screen->cursor_current.col);
+		_vte_row_data_shrink (rowdata, screen->cursor_current.col);
 		/* We've modified the display.  Make a note of it. */
 		terminal->pvt->text_deleted_flag = TRUE;
 	}
@@ -2069,7 +2066,7 @@ vte_sequence_handler_ta (VteTerminal *terminal, GValueArray *params)
 				if (cell->attr.fragment || cell->c != 0)
 					break;
 			}
-			_vte_row_data_set_length (rowdata, i);
+			_vte_row_data_shrink (rowdata, i);
 		}
 
 		if ((glong) _vte_row_data_length (rowdata) <= col)
@@ -2981,7 +2978,7 @@ vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *
 		rowdata = _vte_ring_index(screen->row_data, row);
 		g_assert(rowdata != NULL);
 		/* Clear this row. */
-		_vte_row_data_set_length (rowdata, 0);
+		_vte_row_data_shrink (rowdata, 0);
 
 		_vte_terminal_emit_text_deleted(terminal);
 		/* Fill this row. */
