@@ -177,8 +177,6 @@ _vte_ring_insert(VteRing * ring, long position)
 
 	/* Initial insertion, or append. */
 	if (position == ring->length + ring->delta) {
-		/* If there was something there before, free it. */
-		_vte_row_data_fini (&ring->array[position % ring->max], TRUE);
 		/* Set the new item, and if the buffer wasn't "full", increase
 		 * our idea of how big it is, otherwise increase the delta so
 		 * that this becomes the "last" item and the previous item
