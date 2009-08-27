@@ -97,8 +97,6 @@ typedef struct _VteRowData {
 
 
 #define _vte_row_data_get(__row, __col)			((const vtecell *) _vte_row_data_get_writable (__row, __col))
-#define _vte_row_data_get_writable(__row, __col)	(G_UNLIKELY ((__row)->_cells->len <= (unsigned int) __col) ? NULL : \
-							 &g_array_index (__row->_cells, vtecell, __col))
 #define _vte_row_data_length(__row)			((__row)->_cells->len + 0)
 #define _vte_row_data_insert(__row, __pos, __cell)	g_array_insert_val ((__row)->_cells, __pos, *(__cell))
 #define _vte_row_data_append(__row, __cell)		g_array_append_val ((__row)->_cells, *(__cell))
@@ -111,9 +109,17 @@ typedef struct _VteRowData {
 
 #define _vte_row_data_shrink(__row, __max_len)		g_array_set_size ((__row)->_cells, MIN((__row)->_cells->len, (unsigned int)(__max_len)))
 
+static inline vtecell *
+_vte_row_data_get_writable (VteRowData *row, unsigned int col)
+{
+	if (G_UNLIKELY (row->_cells->len <= col))
+		return NULL;
+
+	return &g_array_index (row->_cells, vtecell, col);
+}
+
 #if 0
 const vtecell *_vte_row_data_get (VteRowData *row, unsigned int col);
-vtecell *_vte_row_data_get_writable (VteRowData *row, unsigned int col);
 unsigned int _vte_row_data_length (VteRowData *row);
 void _vte_row_data_insert (VteRowData *row, int pos, const vtecell *cell);
 void _vte_row_data_append (VteRowData *row, const vtecell *cell);
@@ -121,7 +127,6 @@ void _vte_row_data_remove (VteRowData *row, unsigned int col);
 void _vte_row_data_fill (VteRowData *row, const vtecell *cell, int len);
 void _vte_row_data_shrink (VteRowData *row, int max_len);
 #endif
-
 
 
 typedef struct _VteRing VteRing;
