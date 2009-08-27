@@ -157,8 +157,8 @@ EXTRA_DIST += $(pkglib_SCRIPTS)
 TEST_SH = check-doc-syntax.sh
 EXTRA_DIST += $(TEST_SH)
 
-check_PROGRAMS = dumpkeys iso2022 pty reaper reflect-text-view reflect-vte ring mev ssfe table trie xticker vteconv vtetc
-TESTS = ring table trie $(TEST_SH)
+check_PROGRAMS = dumpkeys iso2022 pty reaper reflect-text-view reflect-vte mev ssfe table trie xticker vteconv vtetc
+TESTS = table trie $(TEST_SH)
 
 AM_CFLAGS = $(GLIB_CFLAGS) $(GOBJECT_CFLAGS)
 LDADD = $(GLIB_LIBS) $(GOBJECT_LIBS)
@@ -223,9 +223,6 @@ iso2022_SOURCES = \
 iso2022_CPPFLAGS = -DISO2022_MAIN
 iso2022_CFLAGS = $(GTK_CFLAGS)
 iso2022_LDADD = $(GTK_LIBS)
-
-ring_SOURCES = ring.c ring.h debug.c debug.h
-ring_CPPFLAGS = -DRING_MAIN
 
 slowcat_SOURCES = \
 	slowcat.c
