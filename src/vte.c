@@ -514,6 +514,40 @@ vte_terminal_find_charcell(VteTerminal *terminal, gulong col, glong row)
 	return ret;
 }
 
+static glong
+find_start_column (VteTerminal *terminal, glong col, glong row)
+{
+	VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
+	if (G_UNLIKELY (col < 0))
+		return col;
+	if (row_data != NULL) {
+		const vtecell *cell = _vte_row_data_get (row_data, col);
+		while (cell != NULL && cell->attr.fragment && col > 0) {
+			cell = _vte_row_data_get (row_data, --col);
+		}
+	}
+	return MAX(col, 0);
+}
+static glong
+find_end_column (VteTerminal *terminal, glong col, glong row)
+{
+	VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
+	gint columns = 0;
+	if (G_UNLIKELY (col < 0))
+		return col;
+	if (row_data != NULL) {
+		const vtecell *cell = _vte_row_data_get (row_data, col);
+		while (cell != NULL && cell->attr.fragment && col > 0) {
+			cell = _vte_row_data_get (row_data, --col);
+		}
+		if (cell) {
+			columns = cell->attr.columns - 1;
+		}
+	}
+	return MIN(col + columns, terminal->column_count);
+}
+
+
 /* Determine the width of the portion of the preedit string which lies
  * to the left of the cursor, or the entire string, in columns. */
 static gssize
@@ -629,13 +663,8 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 		row = screen->cursor_current.row;
 		column = screen->cursor_current.col;
 		columns = 1;
-		cell = vte_terminal_find_charcell(terminal, column, screen->cursor_current.row);
-		while ((cell != NULL) && (cell->attr.fragment) && (column > 0)) {
-			column--;
-			cell = vte_terminal_find_charcell(terminal,
-							  column,
-							  row);
-		}
+		column = find_start_column (terminal, column, row);
+		cell = vte_terminal_find_charcell(terminal, column, row);
 		if (cell != NULL) {
 			columns = cell->attr.columns;
 			if (cell->c != 0 &&
@@ -2996,9 +3025,8 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			goto not_inserted;
 
 		/* Find the previous cell */
-		while (cell->attr.fragment && col > 0) {
+		while (cell && cell->attr.fragment && col > 0)
 			cell = _vte_row_data_get_writable (row, --col);
-		}
 		if (G_UNLIKELY (!cell || cell->c == '\t'))
 			goto not_inserted;
 
@@ -3040,9 +3068,8 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	if (G_LIKELY (col > 0)) {
 		glong col2 = col - 1;
 		vtecell *cell = _vte_row_data_get_writable (row, col2);
-		while (cell != NULL && cell->attr.fragment && col2 > 0) {
+		while (cell != NULL && cell->attr.fragment && col2 > 0)
 			cell = _vte_row_data_get_writable (row, --col2);
-		}
 		cell->attr.columns = col - col2;
 	}
 	{
@@ -5762,8 +5789,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 				/* If it's not part of a multi-column character,
 				 * and passes the selection criterion, add it to
 				 * the selection. */
-				if (!pcell->attr.fragment &&
-						is_selected(terminal, col, row, data)) {
+				if (!pcell->attr.fragment && is_selected(terminal, col, row, data)) {
 					/* Store the attributes of this character. */
 					fore = palette[pcell->attr.fore];
 					back = palette[pcell->attr.back];
@@ -6049,39 +6075,6 @@ vte_terminal_paste(VteTerminal *terminal, GdkAtom board)
 					   vte_terminal_paste_cb,
 					   terminal);
 	}
-}
-
-static glong
-find_start_column (VteTerminal *terminal, glong col, glong row)
-{
-	VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
-	if (G_UNLIKELY (col < 0))
-		return col;
-	if (row_data != NULL) {
-		const vtecell *cell = _vte_row_data_get (row_data, col);
-		while (cell != NULL && cell->attr.fragment && col > 0) {
-			cell = _vte_row_data_get (row_data, --col);
-		}
-	}
-	return MAX(col, 0);
-}
-static glong
-find_end_column (VteTerminal *terminal, glong col, glong row)
-{
-	VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
-	gint columns = 0;
-	if (G_UNLIKELY (col < 0))
-		return col;
-	if (row_data != NULL) {
-		const vtecell *cell = _vte_row_data_get (row_data, col);
-		while (cell != NULL && cell->attr.fragment && col > 0) {
-			cell = _vte_row_data_get (row_data, --col);
-		}
-		if (cell) {
-			columns = cell->attr.columns - 1;
-		}
-	}
-	return MIN(col + columns, terminal->column_count);
 }
 
 static void
@@ -10057,9 +10050,8 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 		if (cell == NULL) {
 			goto fg_skip_row;
 		}
-		while (cell->attr.fragment && i > 0) {
+		while (cell->attr.fragment && i > 0)
 			cell = _vte_row_data_get (row_data, --i);
-		}
 
 		/* Walk the line. */
 		do {
