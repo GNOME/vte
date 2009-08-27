@@ -36,6 +36,8 @@ G_BEGIN_DECLS
 #define VTE_DEF_HL                      260
 #define VTE_CUR_BG			261
 
+#define FRAGMENT			-2
+
 typedef struct _vtecellattr {
 	guint32 columns: 4;	/* Number of visible columns
 				   (as determined by g_unicode_iswide(c)).
@@ -45,7 +47,6 @@ typedef struct _vtecellattr {
 	guint32 fore: 9;	/* Index into color palette */
 	guint32 back: 9;	/* Index into color palette. */
 
-	guint32 fragment: 1;	/* A continuation cell. */
 	guint32 standout: 1;	/* Single-bit attributes. */
 	guint32 underline: 1;
 	guint32 strikethrough: 1;
@@ -60,7 +61,7 @@ typedef struct _vtecellattr {
 	guint32 protect: 1;
 	 */
 
-	/* 31 bits */
+	/* 30 bits */
 } vtecellattr;
 
 
@@ -76,7 +77,6 @@ static const vtecell basic_cell = {
 	VTE_DEF_FG, /* fore */
 	VTE_DEF_BG, /* back */
 
-	0, /* fragment */
 	0, /* standout */
 	0, /* underline */
 	0, /* strikethrough */

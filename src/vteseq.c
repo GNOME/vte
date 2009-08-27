@@ -2063,7 +2063,7 @@ vte_sequence_handler_ta (VteTerminal *terminal, GValueArray *params)
 			guint i;
 			for (i = _vte_row_data_length (rowdata); (glong) i > col; i--) {
 				cell = _vte_row_data_get (rowdata, i - 1);
-				if (cell->attr.fragment || cell->c != 0)
+				if (cell->c == FRAGMENT || cell->c != 0)
 					break;
 			}
 			_vte_row_data_shrink (rowdata, i);
@@ -2089,7 +2089,7 @@ vte_sequence_handler_ta (VteTerminal *terminal, GValueArray *params)
 		    _vte_row_data_append (rowdata, &cell);
 
 		    cell.attr = screen->fill_defaults.attr;
-		    cell.attr.fragment = 1;
+		    cell.c = FRAGMENT;
 		    _vte_row_data_fill (rowdata, &cell, newcol);
 		  }
 		else
@@ -2151,7 +2151,7 @@ vte_sequence_handler_uc (VteTerminal *terminal, GValueArray *params)
 	screen = terminal->pvt->screen;
 	column = screen->cursor_current.col;
 	cell = vte_terminal_find_charcell(terminal, column, screen->cursor_current.row);
-	while ((cell != NULL) && (cell->attr.fragment) && (column > 0)) {
+	while ((cell != NULL) && (cell->c == FRAGMENT) && (column > 0)) {
 		column--;
 		cell = vte_terminal_find_charcell(terminal, column, screen->cursor_current.row);
 	}
