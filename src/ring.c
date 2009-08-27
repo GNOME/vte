@@ -45,20 +45,15 @@ _vte_row_data_fini (VteRowData *row)
 }
 
 static void
-_vte_row_data_clear (VteRowData *row)
+_vte_ring_swap (VteRing *ring, unsigned int to, unsigned int from)
 {
-	row->_cells = NULL;
-}
-
-static void
-_vte_ring_move (VteRing *ring, unsigned int to, unsigned int from)
-{
+	VteRowData tmp;
 	VteRowData *to_row = _vte_ring_index(ring, to);
 	VteRowData *from_row = _vte_ring_index(ring, from);
 
-	_vte_row_data_fini (to_row);
+	tmp = *to_row;
 	*to_row = *from_row;
-	_vte_row_data_clear (from_row);
+	*from_row = tmp;
 }
 
 
@@ -185,7 +180,7 @@ _vte_ring_insert_internal (VteRing * ring, long position)
 	_vte_ring_validate(ring);
 
 	for (i = ring->delta + ring->length; i > position; i--)
-		_vte_ring_move (ring, i % ring->max, (i - 1) % ring->max);
+		_vte_ring_swap (ring, i % ring->max, (i - 1) % ring->max);
 
 	row = _vte_row_data_init(_vte_ring_index(ring, position));
 	if (ring->length < ring->max)
@@ -250,7 +245,7 @@ _vte_ring_remove (VteRing * ring, long position)
 	_vte_ring_validate(ring);
 
 	for (i = position; i < ring->delta + ring->length - 1; i++)
-		_vte_ring_move (ring, i % ring->max, (i + 1) % ring->max);
+		_vte_ring_swap (ring, i % ring->max, (i + 1) % ring->max);
 
 	if (ring->length > 0)
 		ring->length--;
