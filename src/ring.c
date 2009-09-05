@@ -25,13 +25,54 @@
 #include "debug.h"
 #include "ring.h"
 
+/*
+ * vtecells: A row's cell array
+ */
+
+typedef struct _vtecells vtecells;
+struct _vtecells {
+	unsigned int alloc_size;
+	union {
+		vtecells *next;
+		vtecell cells[1];
+	} p;
+};
+
+static inline vtecells *
+vtecells_for_cells (vtecell *cells)
+{
+  return (vtecells *) (((char *) cells) - G_STRUCT_OFFSET (vtecells, p.cells));
+}
+
+static vtecell *
+_vte_cells_realloc (vtecell *cells, unsigned int len)
+{
+	vtecells *vcells = cells ? vtecells_for_cells (cells) : NULL;
+	unsigned int new_size = (1 << g_bit_storage (MAX (len, 80)));
+
+	vcells = g_realloc (vcells, sizeof (vtecells) + len * sizeof (vtecell));
+	vcells->alloc_size = new_size;
+
+	return vcells->p.cells;
+}
+
+static void
+_vte_cells_free (vtecell *cells)
+{
+	vtecells *vcells = vtecells_for_cells (cells);
+
+	g_free (vcells);
+}
+
+
+/*
+ * VteRowData: A row's data
+ */
+
 static VteRowData *
 _vte_row_data_init (VteRowData *row)
 {
-	if (row->_cells)
-		g_array_set_size (row->_cells, 0);
-	else
-		row->_cells = g_array_new(FALSE, TRUE, sizeof(vtecell));
+	row->len = 0;
 	row->soft_wrapped = 0;
 	return row;
 }
@@ -39,10 +80,75 @@ _vte_row_data_init (VteRowData *row)
 static void
 _vte_row_data_fini (VteRowData *row)
 {
-	if (row->_cells)
-		g_array_free(row->_cells, TRUE);
-	row->_cells = NULL;
+	if (row->cells)
+		_vte_cells_free (row->cells);
+	row->cells = NULL;
 }
+
+static void
+_vte_row_data_ensure (VteRowData *row, unsigned int len)
+{
+	if (row->len < len)
+		row->cells = _vte_cells_realloc (row->cells, len);
+}
+
+void
+_vte_row_data_insert (VteRowData *row, unsigned int col, const vtecell *cell)
+{
+	unsigned int i;
+
+	_vte_row_data_ensure (row, row->len + 1);
+
+	for (i = row->len; i > col; i--)
+		row->cells[i] = row->cells[i - 1];
+
+	row->cells[col] = *cell;
+	row->len++;
+}
+
+void _vte_row_data_append (VteRowData *row, const vtecell *cell)
+{
+	_vte_row_data_ensure (row, row->len + 1);
+	row->cells[row->len] = *cell;
+	row->len++;
+}
+
+void _vte_row_data_remove (VteRowData *row, unsigned int col)
+{
+	unsigned int i;
+
+	for (i = col + 1; i < row->len; i++)
+		row->cells[i - 1] = row->cells[i];
+
+	if (G_LIKELY (row->len))
+		row->len--;
+}
+
+void _vte_row_data_fill (VteRowData *row, const vtecell *cell, unsigned int len)
+{
+	if (row->len < len) {
+		unsigned int i = len - row->len;
+
+		_vte_row_data_ensure (row, len);
+
+		for (i = row->len; i < len; i++)
+			row->cells[i] = *cell;
+
+		row->len = len;
+	}
+}
+
+void _vte_row_data_shrink (VteRowData *row, unsigned int max_len)
+{
+	if (max_len < row->len)
+		row->len = max_len;
+}
+
+
+
+/*
+ * VteRing: A buffer ring
+ */
 
 static void
 _vte_ring_swap (VteRing *ring, unsigned int to, unsigned int from)
@@ -68,10 +174,8 @@ _vte_ring_validate (VteRing * ring)
 			ring->delta, ring->length, ring->max);
 	g_assert(ring->length <= ring->max);
 	max = ring->delta + ring->length;
-	for (i = ring->delta; i < max; i++) {
+	for (i = ring->delta; i < max; i++)
 		g_assert(_vte_ring_contains(ring, i));
-		g_assert(_vte_ring_index(ring, i)->_cells != NULL);
-	}
 }
 #else
 #define _vte_ring_validate(ring) G_STMT_START {} G_STMT_END

@@ -38,6 +38,11 @@ G_BEGIN_DECLS
 
 #define FRAGMENT			-2
 
+
+/*
+ * vtecellattr: A single cell style attributes
+ */
+
 typedef struct _vtecellattr {
 	guint32 columns: 4;	/* Number of visible columns
 				   (as determined by g_unicode_iswide(c)).
@@ -65,6 +70,10 @@ typedef struct _vtecellattr {
 } vtecellattr;
 
 
+/*
+ * vtecell: A single cell's data
+ */
+
 typedef struct _vtecell {
 	vteunistr c;
 	vtecellattr attr;
@@ -90,44 +99,40 @@ static const vtecell basic_cell = {
 	}
 };
 
+
+/*
+ * VteRowData: A single row's data
+ */
+
 typedef struct _VteRowData {
-	GArray *_cells;
+	vtecell *cells;
+	unsigned int len;
 	guchar soft_wrapped: 1;
 } VteRowData;
 
 
 #define _vte_row_data_get(__row, __col)			((const vtecell *) _vte_row_data_get_writable (__row, __col))
-#define _vte_row_data_length(__row)			((__row)->_cells->len + 0)
-#define _vte_row_data_insert(__row, __pos, __cell)	g_array_insert_val ((__row)->_cells, __pos, *(__cell))
-#define _vte_row_data_append(__row, __cell)		g_array_append_val ((__row)->_cells, *(__cell))
-#define _vte_row_data_remove(__row, __col)		g_array_remove_index ((__row)->_cells, __col)
-#define _vte_row_data_fill(__row, __cell, __len)	G_STMT_START { \
-								int __i = (__len) - (__row)->_cells->len; \
-								while (__i-- > 0)  \
-									_vte_row_data_append (__row, __cell); \
-							} G_STMT_END
-
-#define _vte_row_data_shrink(__row, __max_len)		g_array_set_size ((__row)->_cells, MIN((__row)->_cells->len, (unsigned int)(__max_len)))
+#define _vte_row_data_length(__row)			((__row)->len + 0)
 
 static inline vtecell *
 _vte_row_data_get_writable (VteRowData *row, unsigned int col)
 {
-	if (G_UNLIKELY (row->_cells->len <= col))
+	if (G_UNLIKELY (row->len <= col))
 		return NULL;
 
-	return &g_array_index (row->_cells, vtecell, col);
+	return &row->cells[col];
 }
 
-#if 0
-const vtecell *_vte_row_data_get (VteRowData *row, unsigned int col);
-unsigned int _vte_row_data_length (VteRowData *row);
-void _vte_row_data_insert (VteRowData *row, int pos, const vtecell *cell);
+void _vte_row_data_insert (VteRowData *row, unsigned int col, const vtecell *cell);
 void _vte_row_data_append (VteRowData *row, const vtecell *cell);
 void _vte_row_data_remove (VteRowData *row, unsigned int col);
-void _vte_row_data_fill (VteRowData *row, const vtecell *cell, int len);
-void _vte_row_data_shrink (VteRowData *row, int max_len);
-#endif
+void _vte_row_data_fill (VteRowData *row, const vtecell *cell, unsigned int len);
+void _vte_row_data_shrink (VteRowData *row, unsigned int max_len);
 
+
+/*
+ * VteRing: A buffer ring
+ */
 
 typedef struct _VteRing VteRing;
 
