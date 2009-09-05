@@ -3693,7 +3693,6 @@ skip_chunk:
 		}
 	}
 	terminal->pvt->incoming = chunk;
-	g_assert (chunk == NULL || chunk->next == NULL);
 
 	/* Compute the number of unicode characters we got. */
 	wbuf = &g_array_index(unichars, gunichar, 0);
