@@ -169,17 +169,14 @@ static GTimer *process_timer;
 
 /* process incoming data without copying */
 static struct _vte_incoming_chunk *free_chunks;
-G_LOCK_DEFINE_STATIC(free_chunks);
 static struct _vte_incoming_chunk *
 get_chunk (void)
 {
 	struct _vte_incoming_chunk *chunk = NULL;
-	G_LOCK (free_chunks);
 	if (free_chunks) {
 		chunk = free_chunks;
 		free_chunks = free_chunks->next;
 	}
-	G_UNLOCK (free_chunks);
 	if (chunk == NULL) {
 		chunk = g_new (struct _vte_incoming_chunk, 1);
 	}
@@ -190,17 +187,14 @@ get_chunk (void)
 static void
 release_chunk (struct _vte_incoming_chunk *chunk)
 {
-	G_LOCK (free_chunks);
 	chunk->next = free_chunks;
 	chunk->len = free_chunks ? free_chunks->len + 1 : 0;
 	free_chunks = chunk;
-	G_UNLOCK (free_chunks);
 }
 static void
 prune_chunks (guint len)
 {
 	struct _vte_incoming_chunk *chunk = NULL;
-	G_LOCK (free_chunks);
 	if (len && free_chunks != NULL) {
 	    if (free_chunks->len > len) {
 		struct _vte_incoming_chunk *last;
@@ -215,7 +209,6 @@ prune_chunks (guint len)
 	    chunk = free_chunks;
 	    free_chunks = NULL;
 	}
-	G_UNLOCK (free_chunks);
 	while (chunk != NULL) {
 		struct _vte_incoming_chunk *next = chunk->next;
 		g_free (chunk);
