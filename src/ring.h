@@ -106,7 +106,7 @@ static const VteCell basic_cell = {
 
 typedef struct _VteRowData {
 	VteCell *cells;
-	unsigned int len;
+	guint len;
 	guchar soft_wrapped: 1;
 } VteRowData;
 
@@ -115,7 +115,7 @@ typedef struct _VteRowData {
 #define _vte_row_data_length(__row)			((__row)->len + 0)
 
 static inline VteCell *
-_vte_row_data_get_writable (VteRowData *row, unsigned int col)
+_vte_row_data_get_writable (VteRowData *row, guint col)
 {
 	if (G_UNLIKELY (row->len <= col))
 		return NULL;
@@ -123,11 +123,11 @@ _vte_row_data_get_writable (VteRowData *row, unsigned int col)
 	return &row->cells[col];
 }
 
-void _vte_row_data_insert (VteRowData *row, unsigned int col, const VteCell *cell);
+void _vte_row_data_insert (VteRowData *row, guint col, const VteCell *cell);
 void _vte_row_data_append (VteRowData *row, const VteCell *cell);
-void _vte_row_data_remove (VteRowData *row, unsigned int col);
-void _vte_row_data_fill (VteRowData *row, const VteCell *cell, unsigned int len);
-void _vte_row_data_shrink (VteRowData *row, unsigned int max_len);
+void _vte_row_data_remove (VteRowData *row, guint col);
+void _vte_row_data_fill (VteRowData *row, const VteCell *cell, guint len);
+void _vte_row_data_shrink (VteRowData *row, guint max_len);
 
 
 /*
@@ -137,7 +137,7 @@ void _vte_row_data_shrink (VteRowData *row, unsigned int max_len);
 typedef struct _VteRing VteRing;
 
 struct _VteRing {
-	glong delta, length, max;
+	guint delta, length, max;
 	VteRowData *array;
 };
 
@@ -149,13 +149,13 @@ struct _VteRing {
 #define _vte_ring_next(__ring) ((__ring)->delta + (__ring)->length)
 #define _vte_ring_index(__ring, __position) (&(__ring)->array[(__position) % (__ring)->max])
 
-VteRing *_vte_ring_new (glong max_rows);
+VteRing *_vte_ring_new (guint max_rows);
 void _vte_ring_free (VteRing *ring);
-void _vte_ring_resize (VteRing *ring, glong max_rows);
-void _vte_ring_shrink (VteRing *ring, unsigned int max_len);
-VteRowData *_vte_ring_insert (VteRing *ring, glong position);
+void _vte_ring_resize (VteRing *ring, guint max_rows);
+void _vte_ring_shrink (VteRing *ring, guint max_len);
+VteRowData *_vte_ring_insert (VteRing *ring, guint position);
 VteRowData *_vte_ring_append (VteRing *ring);
-void _vte_ring_remove (VteRing *ring, glong position);
+void _vte_ring_remove (VteRing *ring, guint position);
 
 G_END_DECLS
 

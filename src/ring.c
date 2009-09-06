@@ -37,7 +37,7 @@
 typedef struct _VtePool VtePool;
 struct _VtePool {
 	VtePool *next_pool;
-	unsigned int bytes_left;
+	guint bytes_left;
 	char *next_data;
 	char data[1];
 };
@@ -45,12 +45,12 @@ struct _VtePool {
 static VtePool *current_pool;
 
 static void *
-_vte_pool_alloc (unsigned int size)
+_vte_pool_alloc (guint size)
 {
 	void *ret;
 
 	if (G_UNLIKELY (!current_pool || current_pool->bytes_left < size)) {
-		unsigned int alloc_size = MAX (VTE_POOL_BYTES, size + G_STRUCT_OFFSET (VtePool, data));
+		guint alloc_size = MAX (VTE_POOL_BYTES, size + G_STRUCT_OFFSET (VtePool, data));
 		VtePool *pool = g_malloc (alloc_size);
 
 		_vte_debug_print(VTE_DEBUG_RING, "Allocating new pool of size %d \n", alloc_size);
@@ -89,7 +89,7 @@ _vte_pool_free_all (void)
  * Free all pools if all rings have been destructed.
  */
 
-static unsigned int ring_count;
+static guint ring_count;
 
 static void
 _ring_created (void)
@@ -138,10 +138,10 @@ _vte_cells_for_cell_array (VteCell *cells)
 }
 
 static VteCells *
-_vte_cells_alloc (unsigned int len)
+_vte_cells_alloc (guint len)
 {
 	VteCells *ret;
-	unsigned int rank = g_bit_storage (MAX (len, 80));
+	guint rank = g_bit_storage (MAX (len, 80));
 
 	g_assert (rank < 32);
 
@@ -151,7 +151,7 @@ _vte_cells_alloc (unsigned int len)
 		free_cells[rank] = ret->p.next;
 
 	} else {
-		unsigned int alloc_len = (1 << rank) - 1;
+		guint alloc_len = (1 << rank) - 1;
 		_vte_debug_print(VTE_DEBUG_RING, "Allocating new array of %d cells (rank %d)\n", len, rank);
 
 		ret = _vte_pool_alloc (G_STRUCT_OFFSET (VteCells, p.cells) + alloc_len * sizeof (ret->p.cells[0]));
@@ -173,7 +173,7 @@ _vte_cells_free (VteCells *cells)
 }
 
 static inline VteCells *
-_vte_cells_realloc (VteCells *cells, unsigned int len)
+_vte_cells_realloc (VteCells *cells, guint len)
 {
 	if (G_UNLIKELY (!cells || len > cells->alloc_len)) {
 		VteCells *new_cells = _vte_cells_alloc (len);
@@ -194,7 +194,7 @@ _vte_cells_realloc (VteCells *cells, unsigned int len)
 /* Convenience */
 
 static inline VteCell *
-_vte_cell_array_realloc (VteCell *cells, unsigned int len)
+_vte_cell_array_realloc (VteCell *cells, guint len)
 {
 	return _vte_cells_realloc (_vte_cells_for_cell_array (cells), len)->p.cells;
 }
@@ -227,16 +227,16 @@ _vte_row_data_fini (VteRowData *row)
 }
 
 static inline void
-_vte_row_data_ensure (VteRowData *row, unsigned int len)
+_vte_row_data_ensure (VteRowData *row, guint len)
 {
 	if (G_LIKELY (row->len < len))
 		row->cells = _vte_cell_array_realloc (row->cells, len);
 }
 
 void
-_vte_row_data_insert (VteRowData *row, unsigned int col, const VteCell *cell)
+_vte_row_data_insert (VteRowData *row, guint col, const VteCell *cell)
 {
-	unsigned int i;
+	guint i;
 
 	_vte_row_data_ensure (row, row->len + 1);
 
@@ -254,9 +254,9 @@ void _vte_row_data_append (VteRowData *row, const VteCell *cell)
 	row->len++;
 }
 
-void _vte_row_data_remove (VteRowData *row, unsigned int col)
+void _vte_row_data_remove (VteRowData *row, guint col)
 {
-	unsigned int i;
+	guint i;
 
 	for (i = col + 1; i < row->len; i++)
 		row->cells[i - 1] = row->cells[i];
@@ -265,10 +265,10 @@ void _vte_row_data_remove (VteRowData *row, unsigned int col)
 		row->len--;
 }
 
-void _vte_row_data_fill (VteRowData *row, const VteCell *cell, unsigned int len)
+void _vte_row_data_fill (VteRowData *row, const VteCell *cell, guint len)
 {
 	if (row->len < len) {
-		unsigned int i = len - row->len;
+		guint i = len - row->len;
 
 		_vte_row_data_ensure (row, len);
 
@@ -279,7 +279,7 @@ void _vte_row_data_fill (VteRowData *row, const VteCell *cell, unsigned int len)
 	}
 }
 
-void _vte_row_data_shrink (VteRowData *row, unsigned int max_len)
+void _vte_row_data_shrink (VteRowData *row, guint max_len)
 {
 	if (max_len < row->len)
 		row->len = max_len;
@@ -292,7 +292,7 @@ void _vte_row_data_shrink (VteRowData *row, unsigned int max_len)
  */
 
 static void
-_vte_ring_swap (VteRing *ring, unsigned int to, unsigned int from)
+_vte_ring_swap (VteRing *ring, guint to, guint from)
 {
 	VteRowData tmp;
 	VteRowData *to_row = _vte_ring_index(ring, to);
@@ -308,10 +308,10 @@ _vte_ring_swap (VteRing *ring, unsigned int to, unsigned int from)
 static void
 _vte_ring_validate (VteRing * ring)
 {
-	long i, max;
+	guint i, max;
 	g_assert(ring != NULL);
 	_vte_debug_print(VTE_DEBUG_RING,
-			" Delta = %ld, Length = %ld, Max = %ld.\n",
+			" Delta = %u, Length = %u, Max = %u.\n",
 			ring->delta, ring->length, ring->max);
 	g_assert(ring->length <= ring->max);
 	max = ring->delta + ring->length;
@@ -331,7 +331,7 @@ _vte_ring_validate (VteRing * ring)
  * Returns: the new ring
  */
 VteRing *
-_vte_ring_new (glong max_rows)
+_vte_ring_new (guint max_rows)
 {
 	VteRing *ring = g_slice_new0(VteRing);
 	ring->max = MAX(max_rows, 2);
@@ -354,7 +354,7 @@ _vte_ring_new (glong max_rows)
 void
 _vte_ring_free (VteRing *ring)
 {
-	glong i;
+	guint i;
 	for (i = 0; i < ring->max; i++)
 		_vte_row_data_fini (&ring->array[i]);
 	g_free(ring->array);
@@ -371,9 +371,9 @@ _vte_ring_free (VteRing *ring)
  * Changes the number of lines the ring can contain.
  */
 void
-_vte_ring_resize (VteRing *ring, glong max_rows)
+_vte_ring_resize (VteRing *ring, guint max_rows)
 {
-	glong position, end, old_max;
+	guint position, end, old_max;
 	VteRowData *old_array;
 
 	max_rows = MAX(max_rows, 2);
@@ -407,7 +407,7 @@ _vte_ring_resize (VteRing *ring, glong max_rows)
 }
 
 void
-_vte_ring_shrink (VteRing *ring, unsigned int max_len)
+_vte_ring_shrink (VteRing *ring, guint max_len)
 {
 	if (ring->length > max_len)
 		ring->length = max_len;
@@ -424,15 +424,15 @@ _vte_ring_shrink (VteRing *ring, unsigned int max_len)
  * Return: the newly added row.
  */
 static VteRowData *
-_vte_ring_insert_internal (VteRing * ring, long position)
+_vte_ring_insert_internal (VteRing * ring, guint position)
 {
-	long i;
+	guint i;
 	VteRowData *row;
 
 	g_return_val_if_fail(position >= ring->delta, NULL);
 	g_return_val_if_fail(position <= ring->delta + ring->length, NULL);
 
-	_vte_debug_print(VTE_DEBUG_RING, "Inserting at position %ld.\n", position);
+	_vte_debug_print(VTE_DEBUG_RING, "Inserting at position %u.\n", position);
 	_vte_ring_validate(ring);
 
 	for (i = ring->delta + ring->length; i > position; i--)
@@ -460,7 +460,7 @@ _vte_ring_insert_internal (VteRing * ring, long position)
  * Return: the newly added row.
  */
 VteRowData *
-_vte_ring_insert (VteRing *ring, glong position)
+_vte_ring_insert (VteRing *ring, guint position)
 {
 	while (G_UNLIKELY (_vte_ring_next (ring) < position))
 		_vte_ring_append (ring);
@@ -490,14 +490,14 @@ _vte_ring_append (VteRing * ring)
  * Removes the @position'th item from @ring.
  */
 void
-_vte_ring_remove (VteRing * ring, long position)
+_vte_ring_remove (VteRing * ring, guint position)
 {
-	long i;
+	guint i;
 
 	if (G_UNLIKELY (!_vte_ring_contains (ring, position)))
 		return;
 
-	_vte_debug_print(VTE_DEBUG_RING, "Removing item at position %ld.\n", position);
+	_vte_debug_print(VTE_DEBUG_RING, "Removing item at position %u.\n", position);
 	_vte_ring_validate(ring);
 
 	for (i = position; i < ring->delta + ring->length - 1; i++)
