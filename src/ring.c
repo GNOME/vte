@@ -21,9 +21,85 @@
 #include <config.h>
 
 #include <stdio.h>
+#include <string.h>
 #include <glib.h>
 #include "debug.h"
 #include "ring.h"
+
+
+#define VTE_POOL_BYTES	(1024*1024 - 4 * sizeof (void *)) /* hopefully we get some nice mmapped region */
+
+/*
+ * VtePool: Global, alloc-only, allocator for VteCells
+ */
+
+typedef struct _VtePool VtePool;
+struct _VtePool {
+	VtePool *next_pool;
+	unsigned int bytes_left;
+	char *next_data;
+	char data[1];
+};
+
+static VtePool *current_pool;
+
+static void *
+_vte_pool_alloc (unsigned int size)
+{
+	void *ret;
+
+	if (G_UNLIKELY (!current_pool || current_pool->bytes_left < size)) {
+		unsigned int alloc_size = MAX (VTE_POOL_BYTES, size + sizeof (VtePool));
+		VtePool *pool = g_malloc (alloc_size);
+
+		pool->next_pool = current_pool;
+		pool->bytes_left = alloc_size - G_STRUCT_OFFSET (VtePool, data);
+		pool->next_data = pool->data;
+
+		current_pool = pool;
+	}
+
+	ret = current_pool->next_data;
+	current_pool->bytes_left -= size;
+	current_pool->next_data += size;
+
+	return ret;
+}
+
+static void
+_vte_pool_free_all (void)
+{
+	/* Free all cells pools */
+	while (current_pool) {
+		VtePool *pool = current_pool;
+		current_pool = pool->next_pool;
+		g_free (pool);
+	}
+}
+
+
+/*
+ * Free all pools if all rings have been destructed.
+ */
+
+static unsigned int ring_count;
+
+static void
+_ring_created (void)
+{
+	ring_count++;
+}
+
+static void
+_ring_destroyed (void)
+{
+	g_assert (ring_count > 0);
+	ring_count--;
+
+	if (!ring_count)
+		_vte_pool_free_all ();
+}
+
 
 
 /*
@@ -32,37 +108,84 @@
 
 typedef struct _VteCells VteCells;
 struct _VteCells {
-	unsigned int alloc_size;
+	unsigned int rank;
+	unsigned int alloc_len; /* 1 << rank */
 	union {
 		VteCells *next;
 		VteCell cells[1];
 	} p;
 };
 
+/* Cache of freed VteCells by rank */
+static VteCells *free_cells[sizeof (unsigned int) * 8];
+
 static inline VteCells *
 VteCells_for_cells (VteCell *cells)
 {
-  return (VteCells *) (((char *) cells) - G_STRUCT_OFFSET (VteCells, p.cells));
+	if (!cells)
+		return NULL;
+
+	return (VteCells *) (((char *) cells) - G_STRUCT_OFFSET (VteCells, p.cells));
 }
 
-static VteCell *
-_vte_cells_realloc (VteCell *cells, unsigned int len)
+static VteCells *
+_vte_cells_alloc (unsigned int len)
 {
-	VteCells *vcells = cells ? VteCells_for_cells (cells) : NULL;
-	unsigned int new_size = (1 << g_bit_storage (MAX (len, 80)));
+	VteCells *ret;
+	unsigned int rank = g_bit_storage (MAX (len, 16) - 1);
 
-	vcells = g_realloc (vcells, sizeof (VteCells) + len * sizeof (VteCell));
-	vcells->alloc_size = new_size;
+	if (G_LIKELY (free_cells[rank])) {
+		ret = free_cells[rank];
+		free_cells[rank] = ret->p.next;
 
-	return vcells->p.cells;
+	} else {
+		unsigned int alloc_len = (1 << rank);
+
+		ret = _vte_pool_alloc (G_STRUCT_OFFSET (VteCells, p.cells) + alloc_len * sizeof (ret->p.cells[0]));
+
+		ret->rank = rank;
+		ret->alloc_len = alloc_len;
+	}
+
+	return ret;
 }
 
 static void
-_vte_cells_free (VteCell *cells)
+_vte_cells_free (VteCells *cells)
 {
-	VteCells *vcells = VteCells_for_cells (cells);
+	cells->p.next = free_cells[cells->rank];
+	free_cells[cells->rank] = cells;
+}
 
-	g_free (vcells);
+static VteCells *
+_vte_cells_realloc (VteCells *cells, unsigned int len)
+{
+	if (G_UNLIKELY (!cells || len > cells->alloc_len)) {
+		VteCells *new_cells = _vte_cells_alloc (len);
+
+		if (cells) {
+			memcpy (new_cells->p.cells, cells->p.cells, sizeof (cells->p.cells[0]) * cells->alloc_len);
+			_vte_cells_free (cells);
+		}
+
+		cells = new_cells;
+	}
+
+	return cells;
+}
+
+/* Convenience */
+
+static VteCell *
+_vte_cell_array_realloc (VteCell *cells, unsigned int len)
+{
+	return _vte_cells_realloc (VteCells_for_cells (cells), len)->p.cells;
+}
+
+static void
+_vte_cell_array_free (VteCell *cells)
+{
+	_vte_cells_free (VteCells_for_cells (cells));
 }
 
 
@@ -82,7 +205,7 @@ static void
 _vte_row_data_fini (VteRowData *row)
 {
 	if (row->cells)
-		_vte_cells_free (row->cells);
+		_vte_cell_array_free (row->cells);
 	row->cells = NULL;
 }
 
@@ -90,7 +213,7 @@ static void
 _vte_row_data_ensure (VteRowData *row, unsigned int len)
 {
 	if (row->len < len)
-		row->cells = _vte_cells_realloc (row->cells, len);
+		row->cells = _vte_cell_array_realloc (row->cells, len);
 }
 
 void
@@ -200,6 +323,8 @@ _vte_ring_new (glong max_elements)
 	_vte_debug_print(VTE_DEBUG_RING, "New ring %p.\n", ring);
 	_vte_ring_validate(ring);
 
+	_ring_created ();
+
 	return ring;
 }
 
@@ -217,6 +342,8 @@ _vte_ring_free (VteRing *ring)
 		_vte_row_data_fini (&ring->array[i]);
 	g_free(ring->array);
 	g_slice_free(VteRing, ring);
+
+	_ring_destroyed ();
 }
 
 /**
