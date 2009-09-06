@@ -117,8 +117,8 @@ _ring_destroyed (void)
 
 typedef struct _VteCells VteCells;
 struct _VteCells {
-	unsigned int rank;
-	unsigned int alloc_len; /* 1 << rank */
+	guint32 rank;
+	guint32 alloc_len; /* (1 << rank) - 1 */
 	union {
 		VteCells *next;
 		VteCell cells[1];
@@ -126,7 +126,7 @@ struct _VteCells {
 };
 
 /* Cache of freed VteCells by rank */
-static VteCells *free_cells[sizeof (unsigned int) * 8];
+static VteCells *free_cells[32];
 
 static inline VteCells *
 _vte_cells_for_cell_array (VteCell *cells)
@@ -141,7 +141,9 @@ static VteCells *
 _vte_cells_alloc (unsigned int len)
 {
 	VteCells *ret;
-	unsigned int rank = g_bit_storage (MAX (len, 80) - 1);
+	unsigned int rank = g_bit_storage (MAX (len, 80));
+
+	g_assert (rank < 32);
 
 	if (G_LIKELY (free_cells[rank])) {
 		_vte_debug_print(VTE_DEBUG_RING, "Allocating array of %d cells (rank %d) from cache\n", len, rank);
@@ -149,7 +151,7 @@ _vte_cells_alloc (unsigned int len)
 		free_cells[rank] = ret->p.next;
 
 	} else {
-		unsigned int alloc_len = (1 << rank);
+		unsigned int alloc_len = (1 << rank) - 1;
 		_vte_debug_print(VTE_DEBUG_RING, "Allocating new array of %d cells (rank %d)\n", len, rank);
 
 		ret = _vte_pool_alloc (G_STRUCT_OFFSET (VteCells, p.cells) + alloc_len * sizeof (ret->p.cells[0]));
