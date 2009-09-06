@@ -148,14 +148,14 @@ struct _VteRing {
 #define _vte_ring_length(__ring) ((__ring)->length + 0)
 #define _vte_ring_next(__ring) ((__ring)->delta + (__ring)->length)
 #define _vte_ring_index(__ring, __position) (&(__ring)->array[(__position) % (__ring)->max])
-#define _vte_ring_set_length(__ring, __length) ((__ring)->length = __length)
 
-VteRing *_vte_ring_new(glong max_elements);
-void _vte_ring_resize(VteRing *ring, glong max_elements);
-VteRowData *_vte_ring_insert(VteRing *ring, glong position);
-VteRowData *_vte_ring_append(VteRing *ring);
-void _vte_ring_remove(VteRing *ring, glong position);
-void _vte_ring_free(VteRing *ring);
+VteRing *_vte_ring_new (glong max_rows);
+void _vte_ring_free (VteRing *ring);
+void _vte_ring_resize (VteRing *ring, glong max_rows);
+void _vte_ring_shrink (VteRing *ring, unsigned int max_len);
+VteRowData *_vte_ring_insert (VteRing *ring, glong position);
+VteRowData *_vte_ring_append (VteRing *ring);
+void _vte_ring_remove (VteRing *ring, glong position);
 
 G_END_DECLS
 

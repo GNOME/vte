@@ -12993,14 +12993,14 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 		scroll_delta = CLAMP (scroll_delta, low, screen->insert_delta);
 		next = MIN (next, screen->insert_delta + terminal->row_count);
 		if (_vte_ring_next (screen->row_data) > next){
-			_vte_ring_set_length (screen->row_data, next - low);
+			_vte_ring_shrink (screen->row_data, next - low);
 		}
 	} else {
 		_vte_ring_resize (screen->row_data, terminal->row_count);
 		scroll_delta = _vte_ring_delta (screen->row_data);
 		screen->insert_delta = _vte_ring_delta (screen->row_data);
 		if (_vte_ring_next (screen->row_data) > screen->insert_delta + terminal->row_count){
-			_vte_ring_set_length (screen->row_data, terminal->row_count);
+			_vte_ring_shrink (screen->row_data, terminal->row_count);
 		}
 	}
 

@@ -324,17 +324,17 @@ _vte_ring_validate (VteRing * ring)
 
 /**
  * _vte_ring_new:
- * @max_elements: the maximum size the new ring will be allowed to reach
+ * @max_rows: the maximum size the new ring will be allowed to reach
  *
- * Allocates a new ring capable of holding up to @max_elements rows at a time.
+ * Allocates a new ring capable of holding up to @max_rows rows at a time.
  *
  * Returns: the new ring
  */
 VteRing *
-_vte_ring_new (glong max_elements)
+_vte_ring_new (glong max_rows)
 {
 	VteRing *ring = g_slice_new0(VteRing);
-	ring->max = MAX(max_elements, 2);
+	ring->max = MAX(max_rows, 2);
 	ring->array = g_malloc0(sizeof(ring->array[0]) * ring->max);
 
 	_vte_debug_print(VTE_DEBUG_RING, "New ring %p.\n", ring);
@@ -366,19 +366,19 @@ _vte_ring_free (VteRing *ring)
 /**
  * _vte_ring_free:
  * @ring: a #VteRing
- * @max_elements: new maximum numbers of rows in the ring
+ * @max_rows: new maximum numbers of rows in the ring
  *
  * Changes the number of lines the ring can contain.
  */
 void
-_vte_ring_resize (VteRing *ring, glong max_elements)
+_vte_ring_resize (VteRing *ring, glong max_rows)
 {
 	glong position, end, old_max;
 	VteRowData *old_array;
 
-	max_elements = MAX(max_elements, 2);
+	max_rows = MAX(max_rows, 2);
 
-	if (ring->max == max_elements)
+	if (ring->max == max_rows)
 		return;
 
 	_vte_debug_print(VTE_DEBUG_RING, "Resizing ring.\n");
@@ -387,7 +387,7 @@ _vte_ring_resize (VteRing *ring, glong max_elements)
 	old_max = ring->max;
 	old_array = ring->array;
 
-	ring->max = max_elements;
+	ring->max = max_rows;
 	ring->array = g_malloc0(sizeof(ring->array[0]) * ring->max);
 
 	end = ring->delta + ring->length;
@@ -404,6 +404,13 @@ _vte_ring_resize (VteRing *ring, glong max_elements)
 	g_free (old_array);
 
 	_vte_ring_validate(ring);
+}
+
+void
+_vte_ring_shrink (VteRing *ring, unsigned int max_len)
+{
+	if (ring->length > max_len)
+		ring->length = max_len;
 }
 
 /**
