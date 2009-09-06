@@ -68,6 +68,7 @@ typedef struct _vtecellattr {
 
 	/* 30 bits */
 } vtecellattr;
+ASSERT_STATIC (sizeof (vtecellattr) == 4);
 
 
 /*
@@ -78,6 +79,7 @@ typedef struct _VteCell {
 	vteunistr c;
 	vtecellattr attr;
 } VteCell;
+ASSERT_STATIC (sizeof (VteCell) == 8);
 
 static const VteCell basic_cell = {
 	0,
