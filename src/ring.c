@@ -141,7 +141,7 @@ static VteCells *
 _vte_cells_alloc (unsigned int len)
 {
 	VteCells *ret;
-	unsigned int rank = g_bit_storage (MAX (len, 16) - 1);
+	unsigned int rank = g_bit_storage (MAX (len, 80) - 1);
 
 	if (G_LIKELY (free_cells[rank])) {
 		_vte_debug_print(VTE_DEBUG_RING, "Allocating array of %d cells (rank %d) from cache\n", len, rank);
