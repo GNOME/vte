@@ -71,15 +71,15 @@ typedef struct _vtecellattr {
 
 
 /*
- * vtecell: A single cell's data
+ * VteCell: A single cell's data
  */
 
-typedef struct _vtecell {
+typedef struct _VteCell {
 	vteunistr c;
 	vtecellattr attr;
-} vtecell;
+} VteCell;
 
-static const vtecell basic_cell = {
+static const VteCell basic_cell = {
 	0,
 	{
 	1, /* columns */
@@ -105,16 +105,16 @@ static const vtecell basic_cell = {
  */
 
 typedef struct _VteRowData {
-	vtecell *cells;
+	VteCell *cells;
 	unsigned int len;
 	guchar soft_wrapped: 1;
 } VteRowData;
 
 
-#define _vte_row_data_get(__row, __col)			((const vtecell *) _vte_row_data_get_writable (__row, __col))
+#define _vte_row_data_get(__row, __col)			((const VteCell *) _vte_row_data_get_writable (__row, __col))
 #define _vte_row_data_length(__row)			((__row)->len + 0)
 
-static inline vtecell *
+static inline VteCell *
 _vte_row_data_get_writable (VteRowData *row, unsigned int col)
 {
 	if (G_UNLIKELY (row->len <= col))
@@ -123,10 +123,10 @@ _vte_row_data_get_writable (VteRowData *row, unsigned int col)
 	return &row->cells[col];
 }
 
-void _vte_row_data_insert (VteRowData *row, unsigned int col, const vtecell *cell);
-void _vte_row_data_append (VteRowData *row, const vtecell *cell);
+void _vte_row_data_insert (VteRowData *row, unsigned int col, const VteCell *cell);
+void _vte_row_data_append (VteRowData *row, const VteCell *cell);
 void _vte_row_data_remove (VteRowData *row, unsigned int col);
-void _vte_row_data_fill (VteRowData *row, const vtecell *cell, unsigned int len);
+void _vte_row_data_fill (VteRowData *row, const VteCell *cell, unsigned int len);
 void _vte_row_data_shrink (VteRowData *row, unsigned int max_len);
 
 

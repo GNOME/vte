@@ -493,11 +493,11 @@ _vte_terminal_find_row_data(VteTerminal *terminal, glong row)
 	return rowdata;
 }
 /* Find the character an the given position in the backscroll buffer. */
-static const vtecell *
+static const VteCell *
 vte_terminal_find_charcell(VteTerminal *terminal, gulong col, glong row)
 {
 	VteRowData *rowdata;
-	const vtecell *ret = NULL;
+	const VteCell *ret = NULL;
 	VteScreen *screen;
 	screen = terminal->pvt->screen;
 	if (_vte_ring_contains(screen->row_data, row)) {
@@ -514,7 +514,7 @@ find_start_column (VteTerminal *terminal, glong col, glong row)
 	if (G_UNLIKELY (col < 0))
 		return col;
 	if (row_data != NULL) {
-		const vtecell *cell = _vte_row_data_get (row_data, col);
+		const VteCell *cell = _vte_row_data_get (row_data, col);
 		while (cell != NULL && cell->c == FRAGMENT && col > 0) {
 			cell = _vte_row_data_get (row_data, --col);
 		}
@@ -529,7 +529,7 @@ find_end_column (VteTerminal *terminal, glong col, glong row)
 	if (G_UNLIKELY (col < 0))
 		return col;
 	if (row_data != NULL) {
-		const vtecell *cell = _vte_row_data_get (row_data, col);
+		const VteCell *cell = _vte_row_data_get (row_data, col);
 		while (cell != NULL && cell->c == FRAGMENT && col > 0) {
 			cell = _vte_row_data_get (row_data, --col);
 		}
@@ -603,7 +603,7 @@ _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
 	columns = 1;
 	row_data = _vte_terminal_find_row_data(terminal, row);
 	if (row_data != NULL) {
-		const vtecell *cell;
+		const VteCell *cell;
 		cell = _vte_row_data_get (row_data, col);
 		if (cell != NULL) {
 			while (cell->c == FRAGMENT && col> 0) {
@@ -634,7 +634,7 @@ void
 _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 {
 	VteScreen *screen;
-	const vtecell *cell;
+	const VteCell *cell;
 	gssize preedit_width;
 	glong column, row;
 	gint columns;
@@ -2805,11 +2805,11 @@ _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
 	VteRowData *row = _vte_terminal_ensure_row (terminal);
 	VteScreen *screen = terminal->pvt->screen;
 	long col = screen->cursor_current.col;
-	const vtecell *pcell = _vte_row_data_get (row, col);
+	const VteCell *pcell = _vte_row_data_get (row, col);
 
 	if (G_UNLIKELY (pcell != NULL && pcell->c == '\t')) {
 		long i, num_columns;
-		vtecell *cell = _vte_row_data_get_writable (row, col);
+		VteCell *cell = _vte_row_data_get_writable (row, col);
 		
 		_vte_debug_print(VTE_DEBUG_MISC,
 				 "Cleaning tab fragments at %ld",
@@ -2981,7 +2981,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		/* It's a combining mark */
 
 		long row_num;
-		vtecell *cell;
+		VteCell *cell;
 
 		_vte_debug_print(VTE_DEBUG_PARSE, "combining U+%04X", c);
 
@@ -3060,14 +3060,14 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	 * cells. (#514632) */
 	if (G_LIKELY (col > 0)) {
 		glong col2 = col - 1;
-		vtecell *cell = _vte_row_data_get_writable (row, col2);
+		VteCell *cell = _vte_row_data_get_writable (row, col2);
 		while (cell != NULL && cell->c == FRAGMENT && col2 > 0)
 			cell = _vte_row_data_get_writable (row, --col2);
 		cell->attr.columns = col - col2;
 	}
 	{
 		glong col2 = col + columns;
-		vtecell *cell = _vte_row_data_get_writable (row, col2);
+		VteCell *cell = _vte_row_data_get_writable (row, col2);
 		while (cell != NULL && cell->c == FRAGMENT) {
 			cell->attr.columns = 1;
 			cell->c = 0;
@@ -3079,7 +3079,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	attr.columns = columns;
 
 	if (G_UNLIKELY (c == '_' && terminal->pvt->flags.ul)) {
-		const vtecell *pcell = _vte_row_data_get (row, col);
+		const VteCell *pcell = _vte_row_data_get (row, col);
 		/* Handle overstrike-style underlining. */
 		if (pcell->c != 0) {
 			/* restore previous contents */
@@ -3091,7 +3091,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 
 	{
-		vtecell *pcell = _vte_row_data_get_writable (row, col);
+		VteCell *pcell = _vte_row_data_get_writable (row, col);
 		pcell->c = c;
 		pcell->attr = attr;
 		col++;
@@ -3099,7 +3099,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 	/* insert wide-char fragments */
 	for (i = 1; i < columns; i++) {
-		vtecell *pcell = _vte_row_data_get_writable (row, col);
+		VteCell *pcell = _vte_row_data_get_writable (row, col);
 		pcell->c = FRAGMENT;
 		pcell->attr = attr;
 		col++;
@@ -5129,7 +5129,7 @@ static gboolean
 vte_same_class(VteTerminal *terminal, glong acol, glong arow,
 	       glong bcol, glong brow)
 {
-	const vtecell *pcell = NULL;
+	const VteCell *pcell = NULL;
 	gboolean word_char;
 	if ((pcell = vte_terminal_find_charcell(terminal, acol, arow)) != NULL && pcell->c != 0) {
 		word_char = vte_terminal_is_word_char(terminal, _vte_unistr_get_base (pcell->c));
@@ -5746,7 +5746,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 {
 	long col, row, last_empty, last_emptycol, last_nonempty, last_nonemptycol;
 	VteScreen *screen;
-	const vtecell *pcell = NULL;
+	const VteCell *pcell = NULL;
 	GString *string;
 	struct _VteCharAttributes attr;
 	struct vte_palette_entry fore, back, *palette;
@@ -6142,7 +6142,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 	long i, j;
 	VteScreen *screen;
 	VteRowData *rowdata;
-	const vtecell *cell;
+	const VteCell *cell;
 	struct selection_cell_coords *sc, *ec;
 
 	if (terminal->pvt->selection_block_mode)
@@ -8548,7 +8548,7 @@ vte_terminal_realize(GtkWidget *widget)
 
 static void
 vte_terminal_determine_colors(VteTerminal *terminal,
-			      const vtecell *cell,
+			      const VteCell *cell,
 			      gboolean reverse,
 			      gboolean highlight,
 			      gboolean cursor,
@@ -9656,7 +9656,7 @@ _vte_terminal_map_pango_color(VteTerminal *terminal, PangoColor *color)
  * the right thing. */
 static void
 _vte_terminal_fudge_pango_colors(VteTerminal *terminal, GSList *attributes,
-				 vtecell *cells, gssize n)
+				 VteCell *cells, gssize n)
 {
 	int i, sumlen = 0;
 	struct _fudge_cell_props{
@@ -9727,7 +9727,7 @@ _vte_terminal_fudge_pango_colors(VteTerminal *terminal, GSList *attributes,
 /* Apply the attribute given in the PangoAttribute to the list of cells. */
 static void
 _vte_terminal_apply_pango_attr(VteTerminal *terminal, PangoAttribute *attr,
-			       vtecell *cells, guint n_cells)
+			       VteCell *cells, guint n_cells)
 {
 	guint i, ival;
 	PangoAttrInt *attrint;
@@ -9794,7 +9794,7 @@ _vte_terminal_pango_attribute_destroy(gpointer attr, gpointer data)
 }
 static void
 _vte_terminal_translate_pango_cells(VteTerminal *terminal, PangoAttrList *attrs,
-				    vtecell *cells, guint n_cells)
+				    VteCell *cells, guint n_cells)
 {
 	PangoAttribute *attr;
 	PangoAttrIterator *attriter;
@@ -9848,7 +9848,7 @@ vte_terminal_draw_cells_with_attributes(VteTerminal *terminal,
 					gint column_width, gint height)
 {
 	int i, j, cell_count;
-	vtecell *cells;
+	VteCell *cells;
 	char scratch_buf[VTE_UTF8_BPC];
 	int fore, back;
 
@@ -9858,7 +9858,7 @@ vte_terminal_draw_cells_with_attributes(VteTerminal *terminal,
 	for (i = 0, cell_count = 0; i < n; i++) {
 		cell_count += g_unichar_to_utf8(items[i].c, scratch_buf);
 	}
-	cells = g_new(vtecell, cell_count);
+	cells = g_new(VteCell, cell_count);
 	_vte_terminal_translate_pango_cells(terminal, attrs, cells, cell_count);
 	for (i = 0, j = 0; i < n; i++) {
 		vte_terminal_determine_colors(terminal, &cells[j],
@@ -9898,7 +9898,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 	gboolean underline, nunderline, bold, nbold, hilite, nhilite, reverse,
 		 selected, nselected, strikethrough, nstrikethrough;
 	guint item_count;
-	const vtecell *cell;
+	const VteCell *cell;
 	VteRowData *row_data;
 
 	reverse = terminal->pvt->screen->reverse_mode;
@@ -10376,7 +10376,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 {
 	VteScreen *screen;
 	GdkColor color;
-	const vtecell *cell;
+	const VteCell *cell;
 	struct _vte_draw_text_request item;
 	int row, drow, col;
 	long width, height, delta, cursor_width;

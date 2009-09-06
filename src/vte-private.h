@@ -226,13 +226,13 @@ struct _VteTerminalPrivate {
 		gboolean scrolling_restricted;
 		long scroll_delta;	/* scroll offset */
 		long insert_delta;	/* insertion offset */
-		vtecell defaults;	/* default characteristics
+		VteCell defaults;	/* default characteristics
 						   for insertion of any new
 						   characters */
-		vtecell color_defaults;	/* original defaults
+		VteCell color_defaults;	/* original defaults
 							   plus the current
 							   fore/back */
-		vtecell fill_defaults;	/* original defaults
+		VteCell fill_defaults;	/* original defaults
 							   plus the current
 							   fore/back with no
 							   character data */
