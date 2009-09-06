@@ -291,19 +291,6 @@ void _vte_row_data_shrink (VteRowData *row, guint max_len)
  * VteRing: A buffer ring
  */
 
-static void
-_vte_ring_swap (VteRing *ring, guint to, guint from)
-{
-	VteRowData tmp;
-	VteRowData *to_row = _vte_ring_index(ring, to);
-	VteRowData *from_row = _vte_ring_index(ring, from);
-
-	tmp = *to_row;
-	*to_row = *from_row;
-	*from_row = tmp;
-}
-
-
 #ifdef VTE_DEBUG
 static void
 _vte_ring_validate (VteRing * ring)
@@ -438,7 +425,7 @@ static VteRowData *
 _vte_ring_insert_internal (VteRing * ring, guint position)
 {
 	guint i;
-	VteRowData *row;
+	VteRowData *row, tmp;
 
 	g_return_val_if_fail(position >= ring->delta, NULL);
 	g_return_val_if_fail(position <= ring->delta + ring->length, NULL);
@@ -446,8 +433,10 @@ _vte_ring_insert_internal (VteRing * ring, guint position)
 	_vte_debug_print(VTE_DEBUG_RING, "Inserting at position %u.\n", position);
 	_vte_ring_validate(ring);
 
+	tmp = *_vte_ring_index (ring, ring->delta + ring->length);
 	for (i = ring->delta + ring->length; i > position; i--)
-		_vte_ring_swap (ring, i & ring->mask, (i - 1) & ring->mask);
+		*_vte_ring_index (ring, i) = *_vte_ring_index (ring, i - 1);
+	*_vte_ring_index (ring, position) = tmp;
 
 	row = _vte_row_data_init(_vte_ring_index(ring, position));
 	if (ring->length < ring->max)
@@ -504,6 +493,7 @@ void
 _vte_ring_remove (VteRing * ring, guint position)
 {
 	guint i;
+	VteRowData tmp;
 
 	if (G_UNLIKELY (!_vte_ring_contains (ring, position)))
 		return;
@@ -511,8 +501,10 @@ _vte_ring_remove (VteRing * ring, guint position)
 	_vte_debug_print(VTE_DEBUG_RING, "Removing item at position %u.\n", position);
 	_vte_ring_validate(ring);
 
+	tmp = *_vte_ring_index (ring, position);
 	for (i = position; i < ring->delta + ring->length - 1; i++)
-		_vte_ring_swap (ring, i & ring->mask, (i + 1) & ring->mask);
+		*_vte_ring_index (ring, i) = *_vte_ring_index (ring, i + 1);
+	*_vte_ring_index (ring, ring->delta + ring->length - 1) = tmp;
 
 	if (ring->length > 0)
 		ring->length--;
