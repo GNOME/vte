@@ -27,31 +27,31 @@
 
 
 /*
- * vtecells: A row's cell array
+ * VteCells: A row's cell array
  */
 
-typedef struct _vtecells vtecells;
-struct _vtecells {
+typedef struct _VteCells VteCells;
+struct _VteCells {
 	unsigned int alloc_size;
 	union {
-		vtecells *next;
+		VteCells *next;
 		VteCell cells[1];
 	} p;
 };
 
-static inline vtecells *
-vtecells_for_cells (VteCell *cells)
+static inline VteCells *
+VteCells_for_cells (VteCell *cells)
 {
-  return (vtecells *) (((char *) cells) - G_STRUCT_OFFSET (vtecells, p.cells));
+  return (VteCells *) (((char *) cells) - G_STRUCT_OFFSET (VteCells, p.cells));
 }
 
 static VteCell *
 _vte_cells_realloc (VteCell *cells, unsigned int len)
 {
-	vtecells *vcells = cells ? vtecells_for_cells (cells) : NULL;
+	VteCells *vcells = cells ? VteCells_for_cells (cells) : NULL;
 	unsigned int new_size = (1 << g_bit_storage (MAX (len, 80)));
 
-	vcells = g_realloc (vcells, sizeof (vtecells) + len * sizeof (VteCell));
+	vcells = g_realloc (vcells, sizeof (VteCells) + len * sizeof (VteCell));
 	vcells->alloc_size = new_size;
 
 	return vcells->p.cells;
@@ -60,7 +60,7 @@ _vte_cells_realloc (VteCell *cells, unsigned int len)
 static void
 _vte_cells_free (VteCell *cells)
 {
-	vtecells *vcells = vtecells_for_cells (cells);
+	VteCells *vcells = VteCells_for_cells (cells);
 
 	g_free (vcells);
 }
