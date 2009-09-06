@@ -129,7 +129,7 @@ struct _VteCells {
 static VteCells *free_cells[sizeof (unsigned int) * 8];
 
 static inline VteCells *
-VteCells_for_cells (VteCell *cells)
+_vte_cells_for_cell_array (VteCell *cells)
 {
 	if (!cells)
 		return NULL;
@@ -194,13 +194,13 @@ _vte_cells_realloc (VteCells *cells, unsigned int len)
 static inline VteCell *
 _vte_cell_array_realloc (VteCell *cells, unsigned int len)
 {
-	return _vte_cells_realloc (VteCells_for_cells (cells), len)->p.cells;
+	return _vte_cells_realloc (_vte_cells_for_cell_array (cells), len)->p.cells;
 }
 
 static void
 _vte_cell_array_free (VteCell *cells)
 {
-	_vte_cells_free (VteCells_for_cells (cells));
+	_vte_cells_free (_vte_cells_for_cell_array (cells));
 }
 
 
