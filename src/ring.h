@@ -139,7 +139,7 @@ void _vte_row_data_shrink (VteRowData *row, guint max_len);
 typedef struct _VteRing VteRing;
 
 struct _VteRing {
-	guint delta, length, max;
+	guint delta, length, max, mask;
 	VteRowData *array;
 };
 
@@ -149,7 +149,7 @@ struct _VteRing {
 #define _vte_ring_delta(__ring) ((__ring)->delta + 0)
 #define _vte_ring_length(__ring) ((__ring)->length + 0)
 #define _vte_ring_next(__ring) ((__ring)->delta + (__ring)->length)
-#define _vte_ring_index(__ring, __position) (&(__ring)->array[(__position) % (__ring)->max])
+#define _vte_ring_index(__ring, __position) (&(__ring)->array[(__position) & (__ring)->mask])
 
 VteRing *_vte_ring_new (guint max_rows);
 void _vte_ring_free (VteRing *ring);
