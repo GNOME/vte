@@ -77,7 +77,7 @@ _vte_debug_on(VteDebugFlags flags)
 #include <glib/gstdio.h>
 static void _vte_debug_print(guint flags, const char *fmt, ...)
 {
-	if (_vte_debug_on (flags)) {
+	_VTE_DEBUG_IF(flags) {
 		va_list  ap;
 		va_start (ap, fmt);
 		g_vfprintf (stderr, fmt, ap);

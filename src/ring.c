@@ -29,6 +29,7 @@
 
 #define VTE_POOL_BYTES	(1024*1024 - 4 * sizeof (void *)) /* hopefully we get some nice mmapped region */
 
+
 /*
  * VtePool: Global, alloc-only, allocator for VteCells
  */
