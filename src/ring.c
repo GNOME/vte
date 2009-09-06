@@ -50,8 +50,10 @@ _vte_pool_alloc (unsigned int size)
 	void *ret;
 
 	if (G_UNLIKELY (!current_pool || current_pool->bytes_left < size)) {
-		unsigned int alloc_size = MAX (VTE_POOL_BYTES, size + sizeof (VtePool));
+		unsigned int alloc_size = MAX (VTE_POOL_BYTES, size + G_STRUCT_OFFSET (VtePool, data));
 		VtePool *pool = g_malloc (alloc_size);
+
+		_vte_debug_print(VTE_DEBUG_RING, "Allocating new pool of size %d \n", alloc_size);
 
 		pool->next_pool = current_pool;
 		pool->bytes_left = alloc_size - G_STRUCT_OFFSET (VtePool, data);
@@ -59,6 +61,8 @@ _vte_pool_alloc (unsigned int size)
 
 		current_pool = pool;
 	}
+
+	_vte_debug_print(VTE_DEBUG_RING, "Allocating %d bytes from pool\n", size);
 
 	ret = current_pool->next_data;
 	current_pool->bytes_left -= size;
@@ -70,6 +74,8 @@ _vte_pool_alloc (unsigned int size)
 static void
 _vte_pool_free_all (void)
 {
+	_vte_debug_print(VTE_DEBUG_RING, "Freeing all pools\n");
+
 	/* Free all cells pools */
 	while (current_pool) {
 		VtePool *pool = current_pool;
@@ -89,6 +95,7 @@ static void
 _ring_created (void)
 {
 	ring_count++;
+	_vte_debug_print(VTE_DEBUG_RING, "Rings++: %d\n", ring_count);
 }
 
 static void
@@ -96,6 +103,7 @@ _ring_destroyed (void)
 {
 	g_assert (ring_count > 0);
 	ring_count--;
+	_vte_debug_print(VTE_DEBUG_RING, "Rings--: %d\n", ring_count);
 
 	if (!ring_count)
 		_vte_pool_free_all ();
@@ -136,11 +144,13 @@ _vte_cells_alloc (unsigned int len)
 	unsigned int rank = g_bit_storage (MAX (len, 16) - 1);
 
 	if (G_LIKELY (free_cells[rank])) {
+		_vte_debug_print(VTE_DEBUG_RING, "Allocating array of %d cells (rank %d) from cache\n", len, rank);
 		ret = free_cells[rank];
 		free_cells[rank] = ret->p.next;
 
 	} else {
 		unsigned int alloc_len = (1 << rank);
+		_vte_debug_print(VTE_DEBUG_RING, "Allocating new array of %d cells (rank %d)\n", len, rank);
 
 		ret = _vte_pool_alloc (G_STRUCT_OFFSET (VteCells, p.cells) + alloc_len * sizeof (ret->p.cells[0]));
 
@@ -154,17 +164,21 @@ _vte_cells_alloc (unsigned int len)
 static void
 _vte_cells_free (VteCells *cells)
 {
+	_vte_debug_print(VTE_DEBUG_RING, "Freeing cells (rank %d) to cache\n", cells->rank);
+
 	cells->p.next = free_cells[cells->rank];
 	free_cells[cells->rank] = cells;
 }
 
-static VteCells *
+static inline VteCells *
 _vte_cells_realloc (VteCells *cells, unsigned int len)
 {
 	if (G_UNLIKELY (!cells || len > cells->alloc_len)) {
 		VteCells *new_cells = _vte_cells_alloc (len);
 
 		if (cells) {
+			_vte_debug_print(VTE_DEBUG_RING, "Moving cells (rank %d to %d)\n", cells->rank, new_cells->rank);
+
 			memcpy (new_cells->p.cells, cells->p.cells, sizeof (cells->p.cells[0]) * cells->alloc_len);
 			_vte_cells_free (cells);
 		}
@@ -177,7 +191,7 @@ _vte_cells_realloc (VteCells *cells, unsigned int len)
 
 /* Convenience */
 
-static VteCell *
+static inline VteCell *
 _vte_cell_array_realloc (VteCell *cells, unsigned int len)
 {
 	return _vte_cells_realloc (VteCells_for_cells (cells), len)->p.cells;
@@ -210,10 +224,10 @@ _vte_row_data_fini (VteRowData *row)
 	row->cells = NULL;
 }
 
-static void
+static inline void
 _vte_row_data_ensure (VteRowData *row, unsigned int len)
 {
-	if (row->len < len)
+	if (G_LIKELY (row->len < len))
 		row->cells = _vte_cell_array_realloc (row->cells, len);
 }
 
