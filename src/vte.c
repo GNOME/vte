@@ -7873,13 +7873,13 @@ vte_terminal_init(VteTerminal *terminal)
         pvt->child_exit_status = 0;
 
 	/* Initialize the screens and histories. */
-	_vte_ring_init (pvt->alternate_screen.row_data, VTE_SCROLLBACK_INIT);
+	_vte_ring_init (pvt->alternate_screen.row_data, terminal->row_count);
 	pvt->alternate_screen.sendrecv_mode = TRUE;
 	pvt->alternate_screen.status_line_contents = g_string_new(NULL);
 	pvt->screen = &terminal->pvt->alternate_screen;
 	_vte_terminal_set_default_attributes(terminal);
 
-	_vte_ring_init (pvt->normal_screen.row_data, terminal->row_count);
+	_vte_ring_init (pvt->normal_screen.row_data,  VTE_SCROLLBACK_INIT);
 	pvt->normal_screen.sendrecv_mode = TRUE;
 	pvt->normal_screen.status_line_contents = g_string_new(NULL);
 	pvt->screen = &terminal->pvt->normal_screen;
