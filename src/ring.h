@@ -35,6 +35,7 @@ G_BEGIN_DECLS
 #define VTE_DIM_FG			259
 #define VTE_DEF_HL                      260
 #define VTE_CUR_BG			261
+#define VTE_PALETTE_SIZE		262
 
 #define FRAGMENT			-2
 

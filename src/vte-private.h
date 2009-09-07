@@ -334,7 +334,7 @@ struct _VteTerminalPrivate {
 	gboolean cursor_color_set;
 	struct vte_palette_entry {
 		guint16 red, green, blue;
-	} palette[VTE_CUR_BG + 1];
+	} palette[VTE_PALETTE_SIZE];
 
 	/* Mouse cursors. */
 	gboolean mouse_cursor_visible;
