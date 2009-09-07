@@ -104,13 +104,29 @@ static const VteCell basic_cell = {
 
 
 /*
+ * VteRowStorage: Storage layout flags for a row's cells
+ */
+
+typedef union _VteRowStorage {
+	guint8 compact; /* For quick access */
+	struct {
+		guint8 compact   : 1;
+		/* TODO these can be made faster using shifts instead of num bytes */
+		guint8 charbytes : 3;
+		guint8 attrbytes : 3;
+	} flags;
+} VteRowStorage;
+ASSERT_STATIC (sizeof (VteRowStorage) == 1);
+
+/*
  * VteRowData: A single row's data
  */
 
 typedef struct _VteRowData {
 	VteCell *cells;
-	guint len;
-	guchar soft_wrapped: 1;
+	guint32 len;
+	VteRowStorage storage;
+	guint8 soft_wrapped: 1;
 } VteRowData;
 
 

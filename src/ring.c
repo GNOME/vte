@@ -208,6 +208,110 @@ _vte_cell_array_free (VteCell *cells)
 
 
 /*
+ * VteRowStorage: Storage layout flags for a row's cells
+ */
+
+static guint
+_width_bytes (guint x)
+{
+	if (!x)
+		return 0;
+	if (G_LIKELY (x < 0x100))
+		return 1;
+	if (x < 0x10000)
+		return 2;
+	return 4;
+}
+
+static VteRowStorage
+_vte_row_storage_compute (const VteCell *cells, guint len)
+{
+	guint i;
+	guint32 *c = (guint32 *) cells;
+	guint32 basic_attrs = * (guint32 *) &basic_cell.attr;
+	guint32 chars = 0, attrs = 0;
+	VteRowStorage storage;
+
+	for (i = 0; i < len; i++) {
+		if (G_LIKELY (*c != (vteunistr) FRAGMENT))
+			chars |= *c;
+		else
+			chars |= (guint8) FRAGMENT;
+		c++;
+		attrs |= (*c ^ basic_attrs);
+		c++;
+	}
+
+	storage.compact = 0;
+	return storage; /* XXX disable compacting for now */
+	storage.flags.compact = 1;
+	storage.flags.charbytes = _width_bytes (chars);
+	storage.flags.attrbytes = _width_bytes (attrs);
+
+	return storage;
+}
+
+static guint
+_vte_row_storage_get_size (VteRowStorage storage, guint len)
+{
+	if (!storage.compact)
+		return len * sizeof (VteCell);
+
+	return len * (storage.flags.charbytes + storage.flags.attrbytes);
+}
+
+static char *
+_store (char *out, guint32 *from, guint xor, guint width, guint len)
+{
+	guint i;
+
+	switch (width) {
+        default: break;
+	case 1:
+		 for (i = 0; i < len; i++) {
+			guint8 c = *from ^ xor;
+			*out++ = c;
+			from += 2;
+		 }
+		 break;
+	case 2:
+		 for (i = 0; i < len; i++) {
+			guint16 c = *from ^ xor;
+			*out++ = c >> 8;
+			*out++ = c;
+			from += 2;
+		 }
+		 break;
+	case 4:
+		 for (i = 0; i < len; i++) {
+			guint8 c = *from ^ xor;
+			*out++ = c >> 24;
+			*out++ = c >> 16;
+			*out++ = c >> 8;
+			*out++ = c;
+			from += 2;
+		 }
+		 break;
+	}
+
+	return out;
+}
+
+static void
+_vte_row_storage_compact (VteRowStorage storage, char *out, const VteCell *cells, guint len)
+{
+	guint32 basic_attrs = * (guint32 *) &basic_cell.attr;
+
+	if (!storage.compact) {
+		memcpy (out, cells, len * sizeof (VteCell));
+		return;
+	}
+
+	out = _store (out,     (guint32 *) cells, 0,           storage.flags.charbytes, len);
+	out = _store (out, 1 + (guint32 *) cells, basic_attrs, storage.flags.attrbytes, len);
+}
+
+/*
  * VteRowData: A row's data
  */
 
@@ -216,6 +320,7 @@ _vte_row_data_init (VteRowData *row)
 {
 	row->len = 0;
 	row->soft_wrapped = 0;
+	row->storage.compact = 0;
 	return row;
 }
 
@@ -298,6 +403,113 @@ _vte_ring_chunk_init (VteRingChunk *chunk)
 	memset (chunk, 0, sizeof (*chunk));
 }
 
+static void
+_vte_ring_chunk_insert_chunk_before (VteRingChunk *chunk, VteRingChunk *new)
+{
+	new->prev_chunk = chunk->prev_chunk;
+	new->next_chunk = chunk;
+
+	if (chunk->prev_chunk)
+		chunk->prev_chunk->next_chunk = new;
+	chunk->prev_chunk = new;
+}
+
+
+/* Compact chunk type */
+
+typedef struct _VteRingChunkCompact {
+	VteRingChunk base;
+
+	guint total_bytes;
+	guint bytes_left;
+	char *cursor; /* move backward */
+	union {
+		VteRowData rows[1];
+		char data[1];
+	} p;
+} VteRingChunkCompact;
+
+static VteRingChunkCompact *free_chunk_compact;
+static guint num_free_chunk_compact;
+
+static VteRingChunk *
+_vte_ring_chunk_new_compact (guint start)
+{
+	VteRingChunkCompact *chunk;
+
+	if (G_LIKELY (free_chunk_compact)) {
+		chunk = free_chunk_compact;
+		free_chunk_compact = (VteRingChunkCompact *) chunk->base.next_chunk;
+		num_free_chunk_compact--;
+	} else {
+		chunk = malloc (VTE_POOL_BYTES);
+		chunk->total_bytes = VTE_POOL_BYTES - G_STRUCT_OFFSET (VteRingChunkCompact, p);
+	}
+	
+	_vte_ring_chunk_init (&chunk->base);
+	chunk->base.type = VTE_RING_CHUNK_TYPE_COMPACT;
+	chunk->base.offset = chunk->base.start = chunk->base.end = start;
+	chunk->base.array = chunk->p.rows;
+	chunk->bytes_left = chunk->total_bytes;
+	chunk->cursor = chunk->p.data + chunk->bytes_left;
+
+	return &chunk->base;
+}
+
+static void
+_vte_ring_chunk_free_compact (VteRingChunk *bchunk)
+{
+	VteRingChunkCompact *chunk = (VteRingChunkCompact *) bchunk;
+	g_assert (bchunk->type == VTE_RING_CHUNK_TYPE_COMPACT);
+
+	if (num_free_chunk_compact >= VTE_RING_CHUNK_COMPACT_MAX_FREE) {
+		g_free (bchunk);
+		return;
+	}
+
+	chunk->base.next_chunk = (VteRingChunk *) free_chunk_compact;
+	free_chunk_compact = chunk;
+	num_free_chunk_compact++;
+}
+
+/* Optimized version of _vte_ring_index() for writable chunks */
+static inline VteRowData *
+_vte_ring_chunk_compact_index (VteRingChunkCompact *chunk, guint position)
+{
+	return &chunk->p.rows[position - chunk->base.offset];
+}
+
+static gboolean
+_vte_ring_chunk_compact_push_head_row (VteRingChunk *bchunk, VteRowData *row)
+{
+	VteRingChunkCompact *chunk = (VteRingChunkCompact *) bchunk;
+	VteRowStorage storage;
+	VteRowData *new_row;
+	guint size;
+
+	g_assert (!row->storage.compact);
+
+	storage = _vte_row_storage_compute (row->cells, row->len);
+	size = _vte_row_storage_get_size (storage, row->len);
+
+	if (chunk->bytes_left < sizeof (chunk->p.rows[0]) + size)
+		return FALSE;
+
+	/* Store cell data */
+	chunk->cursor -= size;
+	_vte_row_storage_compact (storage, chunk->cursor, row->cells, row->len);
+
+	/* Store row data */
+	new_row = _vte_ring_chunk_compact_index (chunk, chunk->base.end);
+	*new_row = *row;
+	new_row->storage = storage;
+	new_row->cells = chunk->cursor;
+
+	chunk->base.end++;
+	return TRUE;
+}
+
+
 
 /* Writable chunk type */
 
@@ -335,7 +547,19 @@ _vte_ring_chunk_writable_index (VteRingChunk *chunk, guint position)
 static void
 _vte_ring_chunk_writable_store_tail_row (VteRingChunk *chunk)
 {
-	/* XXX */
+	VteRowData *row;
+
+	row = _vte_ring_chunk_writable_index (chunk, chunk->start);
+
+
+	if (!chunk->prev_chunk ||
+	    !_vte_ring_chunk_compact_push_head_row (chunk->prev_chunk, row))
+	{
+		/* Previous chunk doesn't have enough room, add a new chunk and retry */
+		_vte_ring_chunk_insert_chunk_before (chunk, _vte_ring_chunk_new_compact (chunk->start));
+		_vte_ring_chunk_compact_push_head_row (chunk->prev_chunk, row);
+	}
+
 	chunk->start++;
 }
 
@@ -372,62 +596,6 @@ _vte_ring_chunk_writable_remove (VteRingChunk *chunk, guint position)
 
 	if (chunk->end > chunk->start)
 		chunk->end--;
-}
-
-/* Compact chunk type */
-
-typedef struct _VteRingChunkCompact {
-	VteRingChunk base;
-
-	guint total_bytes;
-	guint bytes_left;
-	char *cursor; /* move backward */
-	union {
-		VteRowData rows[1];
-		char data[1];
-	} p;
-} VteRingChunkCompact;
-
-static VteRingChunkCompact *free_chunk_compact;
-static guint num_free_chunk_compact;
-
-static VteRingChunk *
-_vte_ring_chunk_new_compact (guint start)
-{
-	VteRingChunkCompact *chunk;
-
-	if (G_LIKELY (free_chunk_compact)) {
-		chunk = free_chunk_compact;
-		free_chunk_compact = (VteRingChunkCompact *) chunk->base.next_chunk;
-		num_free_chunk_compact--;
-	} else {
-		chunk = malloc (VTE_POOL_BYTES);
-		chunk->total_bytes = VTE_POOL_BYTES - G_STRUCT_OFFSET (VteRingChunkCompact, p);
-	}
-	
-	_vte_ring_chunk_init (&chunk->base);
-	chunk->base.type = VTE_RING_CHUNK_TYPE_COMPACT;
-	chunk->base.offset = chunk->base.start = chunk->base.end = start;
-	chunk->bytes_left = chunk->total_bytes;
-	chunk->cursor = chunk->p.data + chunk->bytes_left;
-
-	return &chunk->base;
-}
-
-static void
-_vte_ring_chunk_free_compact (VteRingChunk *bchunk)
-{
-	VteRingChunkCompact *chunk = (VteRingChunkCompact *) bchunk;
-	g_assert (bchunk->type == VTE_RING_CHUNK_TYPE_COMPACT);
-
-	if (num_free_chunk_compact >= VTE_RING_CHUNK_COMPACT_MAX_FREE) {
-		g_free (bchunk);
-		return;
-	}
-
-	chunk->base.next_chunk = (VteRingChunk *) free_chunk_compact;
-	free_chunk_compact = chunk;
-	num_free_chunk_compact++;
 }
 
 
