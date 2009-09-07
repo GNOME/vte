@@ -134,26 +134,56 @@ void _vte_row_data_shrink (VteRowData *row, guint max_len);
 
 
 /*
- * VteRing: A buffer ring
+ * VteRingChunk: A chunk of the scrollback buffer ring
  */
 
-typedef struct _VteRing VteRing;
+typedef enum _VteRingChunkType VteRingChunkType;
+enum _VteRingChunkType {
+	VTE_RING_CHUNK_TYPE_INVALID,
+	VTE_RING_CHUNK_TYPE_WRITABLE,
+	VTE_RING_CHUNK_TYPE_COMPACT
 
-struct _VteRing {
-	guint delta, next, max, mask;
+};
+
+typedef struct _VteRingChunk VteRingChunk;
+struct _VteRingChunk {
+	VteRingChunkType type; /* Chunk implementation type */
+
+	VteRingChunk *prev_chunk, *next_chunk;
+
+	/* This chunk contains lines [start..end).
+	 * To access a line in that range, one looks up:
+	 *
+	 *   array[(row - offset) & mask]
+	 */
+	guint start, end, offset, mask;
 	VteRowData *array;
 };
 
-#define _vte_ring_contains(__ring, __position) \
-	(((__position) >= (__ring)->delta) && \
-	 ((__position) < (__ring)->next))
-#define _vte_ring_delta(__ring) ((__ring)->delta + 0)
-#define _vte_ring_length(__ring) ((__ring)->next - (__ring)->delta)
-#define _vte_ring_next(__ring) ((__ring)->next + 0)
-#define _vte_ring_index(__ring, __position) (&(__ring)->array[(__position) & (__ring)->mask])
 
-VteRing *_vte_ring_new (guint max_rows);
-void _vte_ring_free (VteRing *ring);
+/*
+ * VteRing: A scrollback buffer ring
+ */
+
+typedef struct _VteRing VteRing;
+struct _VteRing {
+	guint max;
+	VteRingChunk *tail, *cursor;
+	VteRingChunk head[1];
+};
+
+#define _vte_ring_contains(__ring, __position) \
+	(((__position) >= (__ring)->tail->start) && \
+	 ((__position) < (__ring)->head->end))
+#define _vte_ring_delta(__ring) ((__ring)->tail->start + 0)
+#define _vte_ring_length(__ring) ((__ring)->head->end - (__ring)->tail->start)
+#define _vte_ring_next(__ring) ((__ring)->head->end + 0)
+
+VteRowData *
+_vte_ring_index (VteRing *ring, guint position);
+
+void _vte_ring_init (VteRing *ring, guint max_rows);
+void _vte_ring_fini (VteRing *ring);
 void _vte_ring_resize (VteRing *ring, guint max_rows);
 void _vte_ring_shrink (VteRing *ring, guint max_len);
 VteRowData *_vte_ring_insert (VteRing *ring, guint position);

@@ -28,6 +28,7 @@
 
 
 #define VTE_POOL_BYTES	(1024*1024 - 4 * sizeof (void *)) /* hopefully we get some nice mmapped region */
+#define VTE_RING_CHUNK_COMPACT_MAX_FREE		10
 
 
 /*
@@ -38,7 +39,7 @@ typedef struct _VtePool VtePool;
 struct _VtePool {
 	VtePool *next_pool;
 	guint bytes_left;
-	char *next_data;
+	char *cursor;
 	char data[1];
 };
 
@@ -57,16 +58,16 @@ _vte_pool_alloc (guint size)
 
 		pool->next_pool = current_pool;
 		pool->bytes_left = alloc_size - G_STRUCT_OFFSET (VtePool, data);
-		pool->next_data = pool->data;
+		pool->cursor = pool->data;
 
 		current_pool = pool;
 	}
 
 	_vte_debug_print(VTE_DEBUG_RING, "Allocating %d bytes from pool\n", size);
 
-	ret = current_pool->next_data;
+	ret = current_pool->cursor;
 	current_pool->bytes_left -= size;
-	current_pool->next_data += size;
+	current_pool->cursor += size;
 
 	return ret;
 }
@@ -134,7 +135,7 @@ _vte_cells_for_cell_array (VteCell *cells)
 	if (!cells)
 		return NULL;
 
-	return (VteCells *) (((char *) cells) - G_STRUCT_OFFSET (VteCells, p.cells));
+	return (VteCells *) (((char *) cells) - G_STRUCT_OFFSET (VteCells, p));
 }
 
 static VteCells *
@@ -154,7 +155,7 @@ _vte_cells_alloc (guint len)
 		guint alloc_len = (1 << rank) - 1;
 		_vte_debug_print(VTE_DEBUG_RING, "Allocating new array of %d cells (rank %d)\n", len, rank);
 
-		ret = _vte_pool_alloc (G_STRUCT_OFFSET (VteCells, p.cells) + alloc_len * sizeof (ret->p.cells[0]));
+		ret = _vte_pool_alloc (G_STRUCT_OFFSET (VteCells, p) + alloc_len * sizeof (ret->p.cells[0]));
 
 		ret->rank = rank;
 		ret->alloc_len = alloc_len;
@@ -288,6 +289,100 @@ void _vte_row_data_shrink (VteRowData *row, guint max_len)
 
 
 /*
+ * VteRingChunk: A chunk of the scrollback buffer ring
+ */
+
+static void
+_vte_ring_chunk_init (VteRingChunk *chunk)
+{
+	memset (chunk, 0, sizeof (*chunk));
+}
+
+
+/* Writable chunk type */
+
+static void
+_vte_ring_chunk_init_writable (VteRingChunk *chunk)
+{
+	_vte_ring_chunk_init (chunk);
+
+	chunk->type = VTE_RING_CHUNK_TYPE_WRITABLE;
+	chunk->offset = 0;
+	chunk->mask = 63;
+	chunk->array = g_malloc0 (sizeof (chunk->array[0]) * (chunk->mask + 1));
+}
+
+static void
+_vte_ring_chunk_fini_writable (VteRingChunk *chunk)
+{
+	guint i;
+	g_assert (chunk->type == VTE_RING_CHUNK_TYPE_WRITABLE);
+
+	for (i = 0; i <= chunk->mask; i++)
+		_vte_row_data_fini (&chunk->array[i]);
+
+	g_free(chunk->array);
+	chunk->array = NULL;
+}
+
+
+/* Compact chunk type */
+
+typedef struct _VteRingChunkCompact {
+	VteRingChunk base;
+
+	guint total_bytes;
+	guint bytes_left;
+	char *cursor; /* move backward */
+	union {
+		VteRowData rows[1];
+		char data[1];
+	} p;
+} VteRingChunkCompact;
+
+static VteRingChunkCompact *free_chunk_compact;
+static guint num_free_chunk_compact;
+
+static VteRingChunk *
+_vte_ring_chunk_new_compact (void)
+{
+	VteRingChunkCompact *chunk;
+
+	if (G_LIKELY (free_chunk_compact)) {
+		chunk = free_chunk_compact;
+		free_chunk_compact = (VteRingChunkCompact *) chunk->base.next_chunk;
+		num_free_chunk_compact--;
+	} else {
+		chunk = malloc (VTE_POOL_BYTES);
+		chunk->total_bytes = VTE_POOL_BYTES - G_STRUCT_OFFSET (VteRingChunkCompact, p);
+	}
+	
+	_vte_ring_chunk_init (&chunk->base);
+	chunk->base.type = VTE_RING_CHUNK_TYPE_COMPACT;
+	chunk->bytes_left = chunk->total_bytes;
+	chunk->cursor = chunk->p.data + chunk->bytes_left;
+
+	return &chunk->base;
+}
+
+static void
+_vte_ring_chunk_free_compact (VteRingChunk *bchunk)
+{
+	VteRingChunkCompact *chunk = (VteRingChunkCompact *) bchunk;
+	g_assert (bchunk->type == VTE_RING_CHUNK_TYPE_COMPACT);
+
+	if (num_free_chunk_compact >= VTE_RING_CHUNK_COMPACT_MAX_FREE) {
+		g_free (bchunk);
+		return;
+	}
+
+	chunk->base.next_chunk = (VteRingChunk *) free_chunk_compact;
+	free_chunk_compact = chunk;
+	num_free_chunk_compact++;
+}
+
+
+/*
  * VteRing: A buffer ring
  */
 
@@ -295,64 +390,84 @@ void _vte_row_data_shrink (VteRowData *row, guint max_len)
 static void
 _vte_ring_validate (VteRing * ring)
 {
-	guint i;
+	VteRingChunk *chunk;
+
 	g_assert(ring != NULL);
 	_vte_debug_print(VTE_DEBUG_RING,
-			" Delta = %u, Length = %u, Max = %u, Mask = %x.\n",
-			ring->delta, ring->next - ring->delta, ring->max, ring->mask);
-	g_assert(ring->next - ring->delta <= ring->max);
-	for (i = ring->delta; i < ring->next; i++)
-		g_assert(_vte_ring_contains(ring, i));
+			" Delta = %u, Length = %u, Max = %u, Writable = %u.\n",
+			ring->tail->start, ring->head->end - ring->tail->start, ring->max, ring->head->end - ring->head->start);
+	g_assert(ring->head->end - ring->tail->start <= ring->max);
+
+	chunk = ring->head;
+	while (chunk) {
+		g_assert(chunk->start <= chunk->end);
+		if (chunk->prev_chunk)
+			g_assert(chunk->start == chunk->prev_chunk->end);
+		chunk = chunk->prev_chunk;
+	}
 }
 #else
 #define _vte_ring_validate(ring) G_STMT_START {} G_STMT_END
 #endif
 
-#define VTE_RING_MASK_FOR_MAX_ROWS(max_rows) ((1 << g_bit_storage ((max_rows) - 1)) - 1)
-/**
- * _vte_ring_new:
- * @max_rows: the maximum size the new ring will be allowed to reach
- *
- * Allocates a new ring capable of holding up to @max_rows rows at a time.
- *
- * Returns: the new ring
- */
-VteRing *
-_vte_ring_new (guint max_rows)
+void
+_vte_ring_init (VteRing *ring, guint max_rows)
 {
-	VteRing *ring = g_slice_new0(VteRing);
 	ring->max = MAX(max_rows, 2);
-	ring->mask = VTE_RING_MASK_FOR_MAX_ROWS (ring->max);
-	ring->array = g_malloc0 (sizeof (ring->array[0]) * (ring->mask + 1));
+
+	ring->tail = ring->cursor = ring->head;
+
+	_vte_ring_chunk_init_writable (ring->head);
 
 	_vte_debug_print(VTE_DEBUG_RING, "New ring %p.\n", ring);
 	_vte_ring_validate(ring);
 
 	_ring_created ();
-
-	return ring;
 }
 
-/**
- * _vte_ring_free:
- * @ring: a #VteRing
- *
- * Frees the ring and each of the items it contains.
- */
 void
-_vte_ring_free (VteRing *ring)
+_vte_ring_fini (VteRing *ring)
 {
-	guint i;
-	for (i = 0; i <= ring->mask; i++)
-		_vte_row_data_fini (&ring->array[i]);
-	g_free(ring->array);
-	g_slice_free(VteRing, ring);
+	VteRingChunk *chunk;
+
+	for (chunk = ring->head->prev_chunk; chunk; chunk = chunk->prev_chunk)
+		_vte_ring_chunk_free_compact (chunk);
+
+	_vte_ring_chunk_fini_writable (ring->head);
 
 	_ring_destroyed ();
 }
 
+static VteRingChunk *
+_vte_ring_find_chunk (VteRing *ring, guint position)
+{
+	g_assert (_vte_ring_contains (ring, position));
+
+	while (position < ring->cursor->start)
+		ring->cursor = ring->cursor->prev_chunk;
+	while (position >= ring->cursor->end)
+		ring->cursor = ring->cursor->next_chunk;
+
+	return ring->cursor;
+}
+
+VteRowData *
+_vte_ring_index (VteRing *ring, guint position)
+{
+	VteRingChunk *chunk;
+
+	if (G_LIKELY (position >= ring->head->start))
+		chunk = ring->head;
+	else
+		chunk = _vte_ring_find_chunk (ring, position);
+
+
+	return &chunk->array[(position - chunk->offset) & chunk->mask];
+}
+
+
 /**
- * _vte_ring_free:
+ * _vte_ring_resize:
  * @ring: a #VteRing
  * @max_rows: new maximum numbers of rows in the ring
  *
@@ -361,6 +476,7 @@ _vte_ring_free (VteRing *ring)
 void
 _vte_ring_resize (VteRing *ring, guint max_rows)
 {
+#if 0
 	guint position, old_max, old_mask;
 	VteRowData *old_array;
 
@@ -398,13 +514,16 @@ _vte_ring_resize (VteRing *ring, guint max_rows)
 	}
 
 	_vte_ring_validate(ring);
+#endif
 }
 
 void
 _vte_ring_shrink (VteRing *ring, guint max_len)
 {
+#if 0
 	if (ring->next - ring->delta > max_len)
 		ring->next = ring->delta + max_len;
+#endif
 }
 
 /**
@@ -420,6 +539,7 @@ _vte_ring_shrink (VteRing *ring, guint max_len)
 static VteRowData *
 _vte_ring_insert_internal (VteRing * ring, guint position)
 {
+#if 0
 	guint i;
 	VteRowData *row, tmp;
 
@@ -441,7 +561,42 @@ _vte_ring_insert_internal (VteRing * ring, guint position)
 
 	_vte_ring_validate(ring);
 	return row;
+#endif
 }
+
+/**
+ * _vte_ring_remove:
+ * @ring: a #VteRing
+ * @position: an index
+ *
+ * Removes the @position'th item from @ring.
+ */
+void
+_vte_ring_remove (VteRing * ring, guint position)
+{
+#if 0
+	guint i;
+	VteRowData tmp;
+
+	if (G_UNLIKELY (!_vte_ring_contains (ring, position)))
+		return;
+
+	_vte_debug_print(VTE_DEBUG_RING, "Removing item at position %u.\n", position);
+	_vte_ring_validate(ring);
+
+	tmp = *_vte_ring_index (ring, position);
+	for (i = position; i < ring->next - 1; i++)
+		*_vte_ring_index (ring, i) = *_vte_ring_index (ring, i + 1);
+	*_vte_ring_index (ring, ring->next - 1) = tmp;
+
+	if (ring->next > ring->delta)
+		ring->next--;
+
+	_vte_ring_validate(ring);
+#endif
+}
+
+
 
 /**
  * _vte_ring_insert:
@@ -474,35 +629,6 @@ _vte_ring_insert (VteRing *ring, guint position)
 VteRowData *
 _vte_ring_append (VteRing * ring)
 {
-	return _vte_ring_insert_internal (ring, ring->next);
+	return _vte_ring_insert_internal (ring, _vte_ring_next (ring));
 }
 
-/**
- * _vte_ring_remove:
- * @ring: a #VteRing
- * @position: an index
- *
- * Removes the @position'th item from @ring.
- */
-void
-_vte_ring_remove (VteRing * ring, guint position)
-{
-	guint i;
-	VteRowData tmp;
-
-	if (G_UNLIKELY (!_vte_ring_contains (ring, position)))
-		return;
-
-	_vte_debug_print(VTE_DEBUG_RING, "Removing item at position %u.\n", position);
-	_vte_ring_validate(ring);
-
-	tmp = *_vte_ring_index (ring, position);
-	for (i = position; i < ring->next - 1; i++)
-		*_vte_ring_index (ring, i) = *_vte_ring_index (ring, i + 1);
-	*_vte_ring_index (ring, ring->next - 1) = tmp;
-
-	if (ring->next > ring->delta)
-		ring->next--;
-
-	_vte_ring_validate(ring);
-}

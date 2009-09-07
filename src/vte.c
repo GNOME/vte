@@ -7873,13 +7873,13 @@ vte_terminal_init(VteTerminal *terminal)
         pvt->child_exit_status = 0;
 
 	/* Initialize the screens and histories. */
-	pvt->alternate_screen.row_data = _vte_ring_new (VTE_SCROLLBACK_INIT);
+	_vte_ring_init (pvt->alternate_screen.row_data, VTE_SCROLLBACK_INIT);
 	pvt->alternate_screen.sendrecv_mode = TRUE;
 	pvt->alternate_screen.status_line_contents = g_string_new(NULL);
 	pvt->screen = &terminal->pvt->alternate_screen;
 	_vte_terminal_set_default_attributes(terminal);
 
-	pvt->normal_screen.row_data = _vte_ring_new (terminal->row_count);
+	_vte_ring_init (pvt->normal_screen.row_data, terminal->row_count);
 	pvt->normal_screen.sendrecv_mode = TRUE;
 	pvt->normal_screen.status_line_contents = g_string_new(NULL);
 	pvt->screen = &terminal->pvt->normal_screen;
@@ -8330,8 +8330,8 @@ vte_terminal_finalize(GObject *object)
 	}
 
 	/* Clear the output histories. */
-	_vte_ring_free(terminal->pvt->normal_screen.row_data);
-	_vte_ring_free(terminal->pvt->alternate_screen.row_data);
+	_vte_ring_fini(terminal->pvt->normal_screen.row_data);
+	_vte_ring_fini(terminal->pvt->alternate_screen.row_data);
 
 	/* Clear the status lines. */
 	g_string_free(terminal->pvt->normal_screen.status_line_contents,
@@ -13278,10 +13278,10 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	terminal->pvt->alternate_screen.alternate_charset = FALSE;
 	/* Clear the scrollback buffers and reset the cursors. */
 	if (clear_history) {
-		_vte_ring_free(terminal->pvt->normal_screen.row_data);
-		terminal->pvt->normal_screen.row_data = _vte_ring_new(terminal->pvt->scrollback_lines);
-		_vte_ring_free(terminal->pvt->alternate_screen.row_data);
-		terminal->pvt->alternate_screen.row_data = _vte_ring_new(terminal->row_count);
+		_vte_ring_fini(terminal->pvt->normal_screen.row_data);
+		_vte_ring_init(terminal->pvt->normal_screen.row_data, terminal->pvt->scrollback_lines);
+		_vte_ring_fini(terminal->pvt->alternate_screen.row_data);
+		_vte_ring_init(terminal->pvt->alternate_screen.row_data, terminal->row_count);
 		terminal->pvt->normal_screen.cursor_saved.row = 0;
 		terminal->pvt->normal_screen.cursor_saved.col = 0;
 		terminal->pvt->normal_screen.cursor_current.row = 0;
