@@ -206,8 +206,7 @@ struct _VteTerminalPrivate {
 	/* Screen data.  We support the normal screen, and an alternate
 	 * screen, which seems to be a DEC-specific feature. */
 	struct _VteScreen {
-		VteRing row_data[1];	/* row data, arranged as a GArray of
-					   vte_charcell structures */
+		VteRing row_data[1];	/* buffer contents */
 		struct vte_cursor_position {
 			long row, col;
 		} cursor_current, cursor_saved;

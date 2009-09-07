@@ -548,6 +548,7 @@ static void
 _vte_ring_chunk_writable_store_tail_row (VteRingChunk *chunk)
 {
 	VteRowData *row;
+	g_message ("HERE");
 
 	row = _vte_ring_chunk_writable_index (chunk, chunk->start);
 
