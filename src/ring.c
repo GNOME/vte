@@ -295,14 +295,13 @@ void _vte_row_data_shrink (VteRowData *row, guint max_len)
 static void
 _vte_ring_validate (VteRing * ring)
 {
-	guint i, max;
+	guint i;
 	g_assert(ring != NULL);
 	_vte_debug_print(VTE_DEBUG_RING,
 			" Delta = %u, Length = %u, Max = %u, Mask = %x.\n",
-			ring->delta, ring->length, ring->max, ring->mask);
-	g_assert(ring->length <= ring->max);
-	max = ring->delta + ring->length;
-	for (i = ring->delta; i < max; i++)
+			ring->delta, ring->next - ring->delta, ring->max, ring->mask);
+	g_assert(ring->next - ring->delta <= ring->max);
+	for (i = ring->delta; i < ring->next; i++)
 		g_assert(_vte_ring_contains(ring, i));
 }
 #else
@@ -362,7 +361,7 @@ _vte_ring_free (VteRing *ring)
 void
 _vte_ring_resize (VteRing *ring, guint max_rows)
 {
-	guint position, end, old_max, old_mask;
+	guint position, old_max, old_mask;
 	VteRowData *old_array;
 
 	max_rows = MAX(max_rows, 2);
@@ -373,8 +372,6 @@ _vte_ring_resize (VteRing *ring, guint max_rows)
 	_vte_debug_print(VTE_DEBUG_RING, "Resizing ring.\n");
 	_vte_ring_validate(ring);
 
-	end = ring->delta + ring->length;
-
 	old_max = ring->max;
 	old_mask = ring->mask;
 	old_array = ring->array;
@@ -384,7 +381,7 @@ _vte_ring_resize (VteRing *ring, guint max_rows)
 	if (ring->mask != old_mask) {
 		ring->array = g_malloc0 (sizeof (ring->array[0]) * (ring->mask + 1));
 
-		for (position = ring->delta; position < end; position++) {
+		for (position = ring->delta; position < ring->next; position++) {
 			_vte_row_data_fini (_vte_ring_index(ring, position));
 			*_vte_ring_index(ring, position) = old_array[position & old_mask];
 			old_array[position & old_mask].cells = NULL;
@@ -396,9 +393,8 @@ _vte_ring_resize (VteRing *ring, guint max_rows)
 		g_free (old_array);
 	}
 
-	if (ring->length > ring->max) {
-	  ring->length = ring->max;
-	  ring->delta = end - ring->max;
+	if (ring->next - ring->delta > ring->max) {
+	  ring->delta = ring->next - ring->max;
 	}
 
 	_vte_ring_validate(ring);
@@ -407,8 +403,8 @@ _vte_ring_resize (VteRing *ring, guint max_rows)
 void
 _vte_ring_shrink (VteRing *ring, guint max_len)
 {
-	if (ring->length > max_len)
-		ring->length = max_len;
+	if (ring->next - ring->delta > max_len)
+		ring->next = ring->delta + max_len;
 }
 
 /**
@@ -428,20 +424,19 @@ _vte_ring_insert_internal (VteRing * ring, guint position)
 	VteRowData *row, tmp;
 
 	g_return_val_if_fail(position >= ring->delta, NULL);
-	g_return_val_if_fail(position <= ring->delta + ring->length, NULL);
+	g_return_val_if_fail(position <= ring->next, NULL);
 
 	_vte_debug_print(VTE_DEBUG_RING, "Inserting at position %u.\n", position);
 	_vte_ring_validate(ring);
 
-	tmp = *_vte_ring_index (ring, ring->delta + ring->length);
-	for (i = ring->delta + ring->length; i > position; i--)
+	tmp = *_vte_ring_index (ring, ring->next);
+	for (i = ring->next; i > position; i--)
 		*_vte_ring_index (ring, i) = *_vte_ring_index (ring, i - 1);
 	*_vte_ring_index (ring, position) = tmp;
 
 	row = _vte_row_data_init(_vte_ring_index(ring, position));
-	if (ring->length < ring->max)
-		ring->length++;
-	else
+	ring->next++;
+	if (ring->next - ring->delta > ring->max)
 		ring->delta++;
 
 	_vte_ring_validate(ring);
@@ -479,7 +474,7 @@ _vte_ring_insert (VteRing *ring, guint position)
 VteRowData *
 _vte_ring_append (VteRing * ring)
 {
-	return _vte_ring_insert_internal (ring, ring->delta + ring->length);
+	return _vte_ring_insert_internal (ring, ring->next);
 }
 
 /**
@@ -502,12 +497,12 @@ _vte_ring_remove (VteRing * ring, guint position)
 	_vte_ring_validate(ring);
 
 	tmp = *_vte_ring_index (ring, position);
-	for (i = position; i < ring->delta + ring->length - 1; i++)
+	for (i = position; i < ring->next - 1; i++)
 		*_vte_ring_index (ring, i) = *_vte_ring_index (ring, i + 1);
-	*_vte_ring_index (ring, ring->delta + ring->length - 1) = tmp;
+	*_vte_ring_index (ring, ring->next - 1) = tmp;
 
-	if (ring->length > 0)
-		ring->length--;
+	if (ring->next > ring->delta)
+		ring->next--;
 
 	_vte_ring_validate(ring);
 }
