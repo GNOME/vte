@@ -327,16 +327,18 @@ _vte_row_data_init (VteRowData *row)
 static void
 _vte_row_data_fini (VteRowData *row)
 {
-	if (row->cells)
-		_vte_cell_array_free (row->cells);
-	row->cells = NULL;
+	g_assert (!row->storage.compact);
+
+	if (row->data.cells)
+		_vte_cell_array_free (row->data.cells);
+	row->data.cells = NULL;
 }
 
 static inline void
 _vte_row_data_ensure (VteRowData *row, guint len)
 {
 	if (G_LIKELY (row->len < len))
-		row->cells = _vte_cell_array_realloc (row->cells, len);
+		row->data.cells = _vte_cell_array_realloc (row->data.cells, len);
 }
 
 void
@@ -347,16 +349,16 @@ _vte_row_data_insert (VteRowData *row, guint col, const VteCell *cell)
 	_vte_row_data_ensure (row, row->len + 1);
 
 	for (i = row->len; i > col; i--)
-		row->cells[i] = row->cells[i - 1];
+		row->data.cells[i] = row->data.cells[i - 1];
 
-	row->cells[col] = *cell;
+	row->data.cells[col] = *cell;
 	row->len++;
 }
 
 void _vte_row_data_append (VteRowData *row, const VteCell *cell)
 {
 	_vte_row_data_ensure (row, row->len + 1);
-	row->cells[row->len] = *cell;
+	row->data.cells[row->len] = *cell;
 	row->len++;
 }
 
@@ -365,7 +367,7 @@ void _vte_row_data_remove (VteRowData *row, guint col)
 	guint i;
 
 	for (i = col + 1; i < row->len; i++)
-		row->cells[i - 1] = row->cells[i];
+		row->data.cells[i - 1] = row->data.cells[i];
 
 	if (G_LIKELY (row->len))
 		row->len--;
@@ -379,7 +381,7 @@ void _vte_row_data_fill (VteRowData *row, const VteCell *cell, guint len)
 		_vte_row_data_ensure (row, len);
 
 		for (i = row->len; i < len; i++)
-			row->cells[i] = *cell;
+			row->data.cells[i] = *cell;
 
 		row->len = len;
 	}
@@ -491,7 +493,7 @@ _vte_ring_chunk_compact_push_head_row (VteRingChunk *bchunk, VteRowData *row)
 
 	g_assert (!row->storage.compact);
 
-	storage = _vte_row_storage_compute (row->cells, row->len);
+	storage = _vte_row_storage_compute (row->data.cells, row->len);
 	size = _vte_row_storage_get_size (storage, row->len);
 
 	if (chunk->bytes_left < sizeof (chunk->p.rows[0]) + size)
@@ -500,13 +502,13 @@ _vte_ring_chunk_compact_push_head_row (VteRingChunk *bchunk, VteRowData *row)
 	/* Store cell data */
 	chunk->cursor -= size;
 	chunk->bytes_left -= size;
-	_vte_row_storage_compact (storage, chunk->cursor, row->cells, row->len);
+	_vte_row_storage_compact (storage, chunk->cursor, row->data.cells, row->len);
 
 	/* Store row data */
 	new_row = _vte_ring_chunk_compact_index (chunk, chunk->base.end);
 	*new_row = *row;
 	new_row->storage = storage;
-	new_row->cells = chunk->cursor;
+	new_row->data.bytes = chunk->cursor;
 
 	chunk->base.end++;
 	return TRUE;

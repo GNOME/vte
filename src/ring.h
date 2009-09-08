@@ -133,7 +133,10 @@ ASSERT_STATIC (sizeof (VteRowStorage) == 1);
  */
 
 typedef struct _VteRowData {
-	VteCell *cells;
+	union {
+		VteCell *cells; /* for non-compact storage */
+		char *bytes;    /* for compact storage */
+	} data;
 	guint32 len;
 	VteRowStorage storage;
 	guint8 soft_wrapped: 1;
@@ -149,7 +152,7 @@ _vte_row_data_get_writable (VteRowData *row, guint col)
 	if (G_UNLIKELY (row->len <= col))
 		return NULL;
 
-	return &row->cells[col];
+	return &row->data.cells[col];
 }
 
 void _vte_row_data_insert (VteRowData *row, guint col, const VteCell *cell);
