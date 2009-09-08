@@ -212,7 +212,7 @@ _vte_cell_array_free (VteCell *cells)
  */
 
 static guint
-_width_bytes (guint x)
+_width (guint x)
 {
 	if (!x)
 		return 0;
@@ -241,8 +241,8 @@ _vte_row_storage_compute (const VteCell *cells, guint len)
 
 	storage.compact = 0;
 	storage.flags.compact = 1;
-	storage.flags.charbytes = _width_bytes (chars);
-	storage.flags.attrbytes = _width_bytes (attrs);
+	storage.flags.charbytes = _width (chars);
+	storage.flags.attrbytes = _width (attrs);
 
 	return storage;
 }

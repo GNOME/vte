@@ -44,6 +44,9 @@ G_BEGIN_DECLS
 
 /*
  * vtecellattr: A single cell style attributes
+ *
+ * Ordered by most commonly changed attributes, to
+ * optimize the compact representation.
  */
 
 typedef struct _vtecellattr {
@@ -52,17 +55,17 @@ typedef struct _vtecellattr {
 				   Also abused for tabs; bug 353610
 				   Keep at least 4 for tabs to work
 				   */
+	guint32 bold: 1;
 	guint32 fore: 9;	/* Index into color palette */
 	guint32 back: 9;	/* Index into color palette. */
 
-	guint32 standout: 1;	/* Single-bit attributes. */
+	guint32 standout: 1;
 	guint32 underline: 1;
 	guint32 strikethrough: 1;
 
 	guint32 reverse: 1;
 	guint32 blink: 1;
 	guint32 half: 1;
-	guint32 bold: 1;
 
 	guint32 invisible: 1;
 	/* unused; bug 499893
@@ -97,6 +100,7 @@ static const VteCellInt basic_cell = {
 		0,
 		{
 			1, /* columns */
+			0, /* bold */
 			VTE_DEF_FG, /* fore */
 			VTE_DEF_BG, /* back */
 
@@ -107,7 +111,6 @@ static const VteCellInt basic_cell = {
 			0, /* reverse */
 			0, /* blink */
 			0, /* half */
-			0, /* bold */
 
 			0  /* invisible */
 		}
