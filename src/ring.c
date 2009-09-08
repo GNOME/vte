@@ -785,8 +785,12 @@ _vte_ring_fini (VteRing *ring)
 
 	_vte_row_data_fini (&ring->cached_row);
 
-	for (chunk = ring->head->prev_chunk; chunk; chunk = chunk->prev_chunk)
+	chunk = ring->head->prev_chunk;
+	while (chunk) {
+		VteRingChunk *prev_chunk = chunk->prev_chunk;
 		_vte_ring_chunk_free_compact (chunk);
+		chunk = prev_chunk;
+	}
 
 	_vte_ring_chunk_fini_writable (ring->head);
 
