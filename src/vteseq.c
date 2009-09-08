@@ -77,15 +77,15 @@ display_control_sequence(const char *name, GValueArray *params)
 
 /* Find the character an the given position in the backscroll buffer. */
 static VteCell *
-vte_terminal_find_charcell(VteTerminal *terminal, glong col, glong row)
+vte_terminal_find_charcell (VteTerminal *terminal, glong col, glong row)
 {
 	VteRowData *rowdata;
 	VteCell *ret = NULL;
 	VteScreen *screen;
 	g_assert(VTE_IS_TERMINAL(terminal));
 	screen = terminal->pvt->screen;
-	if (_vte_ring_contains(screen->row_data, row)) {
-		rowdata = _vte_ring_index(screen->row_data, row);
+	if (_vte_ring_contains (screen->row_data, row)) {
+		rowdata = _vte_ring_index_writable (screen->row_data, row);
 		ret = _vte_row_data_get_writable (rowdata, col);
 	}
 	return ret;
@@ -302,7 +302,7 @@ _vte_terminal_clear_current_line (VteTerminal *terminal)
 	 * which corresponds to the cursor. */
 	if (_vte_ring_next(screen->row_data) > screen->cursor_current.row) {
 		/* Get the data for the row which the cursor points to. */
-		rowdata = _vte_ring_index(screen->row_data, screen->cursor_current.row);
+		rowdata = _vte_ring_index_writable (screen->row_data, screen->cursor_current.row);
 		g_assert(rowdata != NULL);
 		/* Remove it. */
 		_vte_row_data_shrink (rowdata, 0);
@@ -332,7 +332,7 @@ _vte_terminal_clear_above_current (VteTerminal *terminal)
 	for (i = screen->insert_delta; i < screen->cursor_current.row; i++) {
 		if (_vte_ring_next(screen->row_data) > i) {
 			/* Get the data for the row we're erasing. */
-			rowdata = _vte_ring_index(screen->row_data, i);
+			rowdata = _vte_ring_index_writable (screen->row_data, i);
 			g_assert(rowdata != NULL);
 			/* Remove it. */
 			_vte_row_data_shrink (rowdata, 0);
@@ -1039,7 +1039,7 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 	i = screen->cursor_current.row;
 	if (i < _vte_ring_next(screen->row_data)) {
 		/* Get the data for the row we're clipping. */
-		rowdata = _vte_ring_index(screen->row_data, i);
+		rowdata = _vte_ring_index_writable (screen->row_data, i);
 		/* Clear everything to the right of the cursor. */
 		if (rowdata)
 			_vte_row_data_shrink (rowdata, screen->cursor_current.col);
@@ -1049,7 +1049,7 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 	     i < _vte_ring_next(screen->row_data);
 	     i++) {
 		/* Get the data for the row we're removing. */
-		rowdata = _vte_ring_index(screen->row_data, i);
+		rowdata = _vte_ring_index_writable (screen->row_data, i);
 		/* Remove it. */
 		if (rowdata)
 			_vte_row_data_shrink (rowdata, 0);
@@ -1059,11 +1059,11 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 	     i < screen->insert_delta + terminal->row_count;
 	     i++) {
 		/* Retrieve the row's data, creating it if necessary. */
-		if (_vte_ring_contains(screen->row_data, i)) {
-			rowdata = _vte_ring_index(screen->row_data, i);
+		if (_vte_ring_contains (screen->row_data, i)) {
+			rowdata = _vte_ring_index_writable (screen->row_data, i);
 			g_assert(rowdata != NULL);
 		} else {
-			rowdata = _vte_ring_append(screen->row_data);
+			rowdata = _vte_ring_append (screen->row_data);
 		}
 		/* Pad out the row. */
 		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
@@ -1350,7 +1350,7 @@ vte_sequence_handler_dc (VteTerminal *terminal, GValueArray *params)
 	if (_vte_ring_next(screen->row_data) > screen->cursor_current.row) {
 		long len;
 		/* Get the data for the row which the cursor points to. */
-		rowdata = _vte_ring_index(screen->row_data, screen->cursor_current.row);
+		rowdata = _vte_ring_index_writable (screen->row_data, screen->cursor_current.row);
 		g_assert(rowdata != NULL);
 		col = screen->cursor_current.col;
 		len = _vte_row_data_length (rowdata);
@@ -2975,7 +2975,7 @@ vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *
 		while (_vte_ring_next(screen->row_data) <= row)
 			_vte_ring_append(screen->row_data);
 		_vte_terminal_adjust_adjustments(terminal);
-		rowdata = _vte_ring_index(screen->row_data, row);
+		rowdata = _vte_ring_index_writable (screen->row_data, row);
 		g_assert(rowdata != NULL);
 		/* Clear this row. */
 		_vte_row_data_shrink (rowdata, 0);

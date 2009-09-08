@@ -419,6 +419,9 @@ _vte_ring_chunk_insert_chunk_before (VteRingChunk *chunk, VteRingChunk *new)
 
 /* Compact chunk type */
 
+/* TODO Get rid of the temp cell */
+static const VteCellInt temp_cell;
+
 typedef struct _VteRingChunkCompact {
 	VteRingChunk base;
 
@@ -664,7 +667,7 @@ _vte_ring_find_chunk (VteRing *ring, guint position)
 	return ring->cursor;
 }
 
-VteRowData *
+const VteRowData *
 _vte_ring_index (VteRing *ring, guint position)
 {
 	VteRingChunk *chunk;
@@ -676,6 +679,15 @@ _vte_ring_index (VteRing *ring, guint position)
 
 
 	return &chunk->array[(position - chunk->offset) & chunk->mask];
+}
+
+static void _vte_ring_ensure_writable (VteRing *ring, guint position);
+
+VteRowData *
+_vte_ring_index_writable (VteRing *ring, guint position)
+{
+	_vte_ring_ensure_writable (ring, position);
+	return _vte_ring_chunk_writable_index (ring->head, position);
 }
 
 static void

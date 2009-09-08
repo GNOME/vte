@@ -482,26 +482,39 @@ _vte_terminal_scroll_region (VteTerminal *terminal,
 }
 
 /* Find the row in the given position in the backscroll buffer. */
-static inline VteRowData *
-_vte_terminal_find_row_data(VteTerminal *terminal, glong row)
+static inline const VteRowData *
+_vte_terminal_find_row_data (VteTerminal *terminal, glong row)
 {
-	VteRowData *rowdata = NULL;
+	const VteRowData *rowdata = NULL;
 	VteScreen *screen = terminal->pvt->screen;
-	if (_vte_ring_contains(screen->row_data, row)) {
-		rowdata = _vte_ring_index(screen->row_data, row);
+	if (G_LIKELY (_vte_ring_contains (screen->row_data, row))) {
+		rowdata = _vte_ring_index (screen->row_data, row);
 	}
 	return rowdata;
 }
+
+/* Find the row in the given position in the backscroll buffer. */
+static inline VteRowData *
+_vte_terminal_find_row_data_writable (VteTerminal *terminal, glong row)
+{
+	VteRowData *rowdata = NULL;
+	VteScreen *screen = terminal->pvt->screen;
+	if (G_LIKELY (_vte_ring_contains (screen->row_data, row))) {
+		rowdata = _vte_ring_index_writable (screen->row_data, row);
+	}
+	return rowdata;
+}
+
 /* Find the character an the given position in the backscroll buffer. */
 static const VteCell *
 vte_terminal_find_charcell(VteTerminal *terminal, gulong col, glong row)
 {
-	VteRowData *rowdata;
+	const VteRowData *rowdata;
 	const VteCell *ret = NULL;
 	VteScreen *screen;
 	screen = terminal->pvt->screen;
-	if (_vte_ring_contains(screen->row_data, row)) {
-		rowdata = _vte_ring_index(screen->row_data, row);
+	if (_vte_ring_contains (screen->row_data, row)) {
+		rowdata = _vte_ring_index (screen->row_data, row);
 		ret = _vte_row_data_get (rowdata, col);
 	}
 	return ret;
@@ -510,7 +523,7 @@ vte_terminal_find_charcell(VteTerminal *terminal, gulong col, glong row)
 static glong
 find_start_column (VteTerminal *terminal, glong col, glong row)
 {
-	VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
+	const VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
 	if (G_UNLIKELY (col < 0))
 		return col;
 	if (row_data != NULL) {
@@ -524,7 +537,7 @@ find_start_column (VteTerminal *terminal, glong col, glong row)
 static glong
 find_end_column (VteTerminal *terminal, glong col, glong row)
 {
-	VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
+	const VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
 	gint columns = 0;
 	if (G_UNLIKELY (col < 0))
 		return col;
@@ -593,7 +606,7 @@ vte_terminal_preedit_length(VteTerminal *terminal, gboolean left_only)
 void
 _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
 {
-	VteRowData *row_data;
+	const VteRowData *row_data;
 	int columns;
 
 	if (G_UNLIKELY (!GTK_WIDGET_DRAWABLE(terminal) || terminal->pvt->invalidated_all)) {
@@ -2245,13 +2258,13 @@ vte_terminal_get_encoding(VteTerminal *terminal)
 	return terminal->pvt->encoding;
 }
 
-static inline VteRowData*
+static inline VteRowData *
 vte_terminal_insert_rows (VteTerminal *terminal, guint cnt)
 {
 	VteRowData *row;
-	const VteScreen *screen = terminal->pvt->screen;
+	VteScreen *screen = terminal->pvt->screen;
 	do {
-		row = _vte_ring_append(screen->row_data);
+		row = _vte_ring_append (screen->row_data);
 	} while(--cnt);
 	return row;
 }
@@ -2263,7 +2276,7 @@ VteRowData *
 _vte_terminal_ensure_row (VteTerminal *terminal)
 {
 	VteRowData *row;
-	const VteScreen *screen;
+	VteScreen *screen;
 	gint delta;
 	glong v;
 
@@ -2280,7 +2293,7 @@ _vte_terminal_ensure_row (VteTerminal *terminal)
 		_vte_terminal_adjust_adjustments(terminal);
 	} else {
 		/* Find the row the cursor is in. */
-		row = _vte_ring_index(screen->row_data, v);
+		row = _vte_ring_index_writable (screen->row_data, v);
 	}
 	g_assert(row != NULL);
 
@@ -2957,7 +2970,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			/* XXX clear to the end of line */
 			col = screen->cursor_current.col = 0;
 			/* Mark this line as soft-wrapped. */
-			row = _vte_terminal_ensure_row(terminal);
+			row = _vte_terminal_ensure_row (terminal);
 			row->soft_wrapped = 1;
 			_vte_terminal_cursor_down (terminal);
 		} else {
@@ -2994,7 +3007,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 			if (G_LIKELY (row_num > 0)) {
 				row_num--;
-				row = _vte_terminal_find_row_data (terminal, row_num);
+				row = _vte_terminal_find_row_data_writable (terminal, row_num);
 
 				if (row) {
 					if (!row->soft_wrapped)
@@ -3004,7 +3017,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 				}
 			}
 		} else {
-			row = _vte_terminal_find_row_data (terminal, row_num);
+			row = _vte_terminal_find_row_data_writable (terminal, row_num);
 		}
 
 		if (G_UNLIKELY (!row || !col))
@@ -5155,7 +5168,7 @@ vte_same_class(VteTerminal *terminal, glong acol, glong arow,
 static gboolean
 vte_line_is_wrappable(VteTerminal *terminal, glong row)
 {
-	VteRowData *rowdata;
+	const VteRowData *rowdata;
 	rowdata = _vte_terminal_find_row_data(terminal, row);
 	return rowdata && rowdata->soft_wrapped;
 }
@@ -5763,7 +5776,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 	palette = terminal->pvt->palette;
 	col = start_col;
 	for (row = start_row; row <= end_row; row++, col = 0) {
-		VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
+		const VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
 		last_empty = last_nonempty = string->len;
 		last_emptycol = last_nonemptycol = -1;
 
@@ -6142,7 +6155,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 {
 	long i, j;
 	VteScreen *screen;
-	VteRowData *rowdata;
+	const VteRowData *rowdata;
 	const VteCell *cell;
 	struct selection_cell_coords *sc, *ec;
 
@@ -6220,7 +6233,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 		 * look at is of the same class as the current start point. */
 		i = sc->col;
 		j = sc->row;
-		while (_vte_ring_contains(screen->row_data, j)) {
+		while (_vte_ring_contains (screen->row_data, j)) {
 			/* Get the data for the row we're looking at. */
 			rowdata = _vte_ring_index(screen->row_data, j);
 			if (rowdata == NULL) {
@@ -6266,7 +6279,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 		 * look at is of the same class as the current end point. */
 		i = ec->col;
 		j = ec->row;
-		while (_vte_ring_contains(screen->row_data, j)) {
+		while (_vte_ring_contains (screen->row_data, j)) {
 			/* Get the data for the row we're looking at. */
 			rowdata = _vte_ring_index(screen->row_data, j);
 			if (rowdata == NULL) {
@@ -6314,21 +6327,21 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 		sc->col = 0;
 		/* Now back up as far as we can go. */
 		j = sc->row;
-		while (_vte_ring_contains(screen->row_data, j - 1) &&
+		while (_vte_ring_contains (screen->row_data, j - 1) &&
 		       vte_line_is_wrappable(terminal, j - 1)) {
 			j--;
 			sc->row = j;
 		}
 		/* And move forward as far as we can go. */
 		j = ec->row;
-		while (_vte_ring_contains(screen->row_data, j) &&
+		while (_vte_ring_contains (screen->row_data, j) &&
 		       vte_line_is_wrappable(terminal, j)) {
 			j++;
 			ec->row = j;
 		}
 		/* Make sure we include all of the last line. */
 		ec->col = terminal->column_count - 1;
-		if (_vte_ring_contains(screen->row_data, ec->row)) {
+		if (_vte_ring_contains (screen->row_data, ec->row)) {
 			rowdata = _vte_ring_index(screen->row_data, ec->row);
 			if (rowdata != NULL) {
 				ec->col = MAX(ec->col, (long) _vte_row_data_length (rowdata));
@@ -9900,7 +9913,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 		 selected, nselected, strikethrough, nstrikethrough;
 	guint item_count;
 	const VteCell *cell;
-	VteRowData *row_data;
+	const VteRowData *row_data;
 
 	reverse = terminal->pvt->screen->reverse_mode;
 

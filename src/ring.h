@@ -145,8 +145,16 @@ typedef struct _VteRowData {
 } VteRowData;
 
 
-#define _vte_row_data_get(__row, __col)			((const VteCell *) _vte_row_data_get_writable (__row, __col))
 #define _vte_row_data_length(__row)			((__row)->len + 0)
+
+static inline const VteCell *
+_vte_row_data_get (const VteRowData *row, guint col)
+{
+	if (G_UNLIKELY (row->len <= col))
+		return NULL;
+
+	return &row->data.cells[col];
+}
 
 static inline VteCell *
 _vte_row_data_get_writable (VteRowData *row, guint col)
@@ -210,8 +218,8 @@ struct _VteRing {
 #define _vte_ring_length(__ring) ((__ring)->head->end - (__ring)->tail->start)
 #define _vte_ring_next(__ring) ((__ring)->head->end + 0)
 
-VteRowData *
-_vte_ring_index (VteRing *ring, guint position);
+const VteRowData *_vte_ring_index (VteRing *ring, guint position);
+VteRowData *_vte_ring_index_writable (VteRing *ring, guint position);
 
 void _vte_ring_init (VteRing *ring, guint max_rows);
 void _vte_ring_fini (VteRing *ring);
