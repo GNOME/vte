@@ -372,11 +372,18 @@ _vte_row_storage_uncompact (VteRowStorage storage, const char *from, VteCell *ce
  * VteRowData: A row's data
  */
 
-static VteRowData *
+static void
 _vte_row_data_init (VteRowData *row)
 {
 	memset (row, 0, sizeof (*row));
-	return row;
+}
+
+static void
+_vte_row_data_clear (VteRowData *row)
+{
+	VteCell *cells = row->data.cells;
+	_vte_row_data_init (row);
+	row->data.cells = cells;
 }
 
 static void
@@ -621,8 +628,7 @@ _vte_ring_chunk_init_writable (VteRingChunk *chunk)
 
 	chunk->type = VTE_RING_CHUNK_TYPE_WRITABLE;
 	chunk->offset = 0;
-	/* Allocate min of 512 and VTE_SCROLLBACK_INIT */
-	chunk->mask = MIN (512, (1 << g_bit_storage (VTE_SCROLLBACK_INIT - 1))) - 1;
+	chunk->mask = 31;
 	chunk->array = g_malloc0 (sizeof (chunk->array[0]) * (chunk->mask + 1));
 }
 
@@ -655,7 +661,7 @@ _vte_ring_chunk_writable_ensure_tail (VteRingChunk *chunk)
 	if (G_LIKELY (chunk->start + chunk->mask > chunk->end))
 		return;
 
-	/* Enlarge writable array */
+	_vte_debug_print(VTE_DEBUG_RING, "Enlarging writable array.\n");
 
 	old_mask = chunk->mask;
 	old_array = chunk->array;
@@ -684,7 +690,8 @@ _vte_ring_chunk_writable_insert (VteRingChunk *chunk, guint position)
 		*_vte_ring_chunk_writable_index (chunk, i) = *_vte_ring_chunk_writable_index (chunk, i - 1);
 	*_vte_ring_chunk_writable_index (chunk, position) = tmp;
 
-	row = _vte_row_data_init (_vte_ring_chunk_writable_index(chunk, position));
+	row = _vte_ring_chunk_writable_index(chunk, position);
+	_vte_row_data_clear (row);
 	chunk->end++;
 
 	return row;
@@ -821,6 +828,8 @@ _vte_ring_index_writable (VteRing *ring, guint position)
 static void
 _vte_ring_free_chunk (VteRing *ring, VteRingChunk *chunk)
 {
+	_vte_debug_print(VTE_DEBUG_RING, "Freeing chunk.\n");
+
 	if (chunk == ring->head)
 		return;
 
@@ -850,6 +859,8 @@ _vte_ring_compact_one_row (VteRing *ring)
 	VteRowData *row;
 	VteRingChunk *head = ring->head;
 
+	_vte_debug_print(VTE_DEBUG_RING, "Compacting row %d.\n", head->start);
+
 	row = _vte_ring_chunk_writable_index (head, head->start);
 
 	if (!head->prev_chunk ||
@@ -857,6 +868,8 @@ _vte_ring_compact_one_row (VteRing *ring)
 	{
 		/* Previous head doesn't have enough room, add a new head and retry */
 		VteRingChunk *new_chunk = _vte_ring_chunk_new_compact (head->start);
+
+		_vte_debug_print(VTE_DEBUG_RING, "Allocating chunk.\n");
 
 		_vte_ring_chunk_insert_chunk_before (head, new_chunk);
 		if (ring->tail == head)
@@ -870,17 +883,32 @@ _vte_ring_compact_one_row (VteRing *ring)
 }
 
 static void
+_vte_ring_ensure_writable_head (VteRing *ring)
+{
+	if (G_LIKELY (ring->head->start + ring->head->mask == ring->head->end))
+		_vte_ring_compact_one_row (ring);
+}
+
+static void
+_vte_ring_ensure_writable_tail (VteRing *ring)
+{
+	_vte_ring_chunk_writable_ensure_tail (ring->head);
+}
+
+static void
 _vte_ring_uncompact_one_row (VteRing *ring)
 {
 	VteRowData *row;
 	VteRingChunk *head = ring->head;
 
-	_vte_ring_chunk_writable_ensure_tail (head);
+	_vte_debug_print(VTE_DEBUG_RING, "Uncompacting row %d.\n", head->start - 1);
+
+	_vte_ring_ensure_writable_tail (ring);
 
 	head->start--;
 
 	row = _vte_ring_chunk_writable_index (head, head->start);
-	_vte_row_data_init (row);
+	_vte_row_data_clear (row);
 
 	if (!head->prev_chunk)
 		return;
@@ -888,6 +916,16 @@ _vte_ring_uncompact_one_row (VteRing *ring)
 	_vte_ring_chunk_compact_pop_head_row (head->prev_chunk, row);
 	if (head->prev_chunk->start == head->prev_chunk->end)
 		_vte_ring_free_chunk (ring, head->prev_chunk);
+}
+
+static void
+_vte_ring_ensure_writable (VteRing *ring, guint position)
+{
+	if (G_LIKELY (position >= ring->head->start))
+		return;
+
+	while (position < ring->head->start)
+		_vte_ring_uncompact_one_row (ring);
 }
 
 
@@ -901,6 +939,9 @@ _vte_ring_uncompact_one_row (VteRing *ring)
 void
 _vte_ring_resize (VteRing *ring, guint max_rows)
 {
+	_vte_debug_print(VTE_DEBUG_RING, "Resizing to %d.\n", max_rows);
+	_vte_ring_validate(ring);
+
 	/* Get rid of unneeded chunks at the tail */
 	while (ring->head != ring->tail && ring->head->end - ring->tail->end >= max_rows)
 		_vte_ring_free_chunk (ring, ring->tail);
@@ -912,28 +953,14 @@ _vte_ring_resize (VteRing *ring, guint max_rows)
 	ring->max = max_rows;
 }
 
-static void
-_vte_ring_ensure_writable_head (VteRing *ring)
-{
-	if (G_LIKELY (ring->head->start + ring->head->mask == ring->head->end))
-		_vte_ring_compact_one_row (ring);
-}
-
-static void
-_vte_ring_ensure_writable (VteRing *ring, guint position)
-{
-	if (G_LIKELY (position >= ring->head->start))
-		return;
-
-	while (position < ring->head->start)
-		_vte_ring_uncompact_one_row (ring);
-}
-
 void
 _vte_ring_shrink (VteRing *ring, guint max_len)
 {
 	if (_vte_ring_length (ring) <= max_len)
 		return;
+
+	_vte_debug_print(VTE_DEBUG_RING, "Shrinking to %d.\n", max_len);
+	_vte_ring_validate(ring);
 
 	if (ring->head->start - ring->tail->start <= max_len)
 		ring->head->end = ring->tail->start + max_len;
@@ -945,6 +972,8 @@ _vte_ring_shrink (VteRing *ring, guint max_len)
 	}
 
 	/* TODO May want to shrink down ring->head */
+
+	_vte_ring_validate(ring);
 }
 
 /**
@@ -971,7 +1000,9 @@ _vte_ring_insert_internal (VteRing *ring, guint position)
 	g_assert (position >= ring->tail->start);
 	g_assert (position <= ring->head->end);
 
-	_vte_ring_ensure_writable (ring, MAX (position - 1, 0));
+	_vte_ring_ensure_writable (ring, position);
+	if (position == ring->head->start)
+		_vte_ring_ensure_writable_tail (ring);
 	_vte_ring_ensure_writable_head (ring);
 
 	row = _vte_ring_chunk_writable_insert (ring->head, position);
