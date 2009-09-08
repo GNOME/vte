@@ -147,18 +147,13 @@ typedef struct _VteRowData {
 
 #define _vte_row_data_length(__row)			((__row)->len + 0)
 
-const VteCell *_vte_row_data_get_compact (const VteRowData *row, guint col);
-
 static inline const VteCell *
 _vte_row_data_get (const VteRowData *row, guint col)
 {
 	if (G_UNLIKELY (row->len <= col))
 		return NULL;
 
-	if (!row->storage.compact)
-		return &row->data.cells[col];
-
-	return _vte_row_data_get_compact (row, col);
+	return &row->data.cells[col];
 }
 
 static inline VteCell *
@@ -212,6 +207,10 @@ struct _VteRingChunk {
 typedef struct _VteRing VteRing;
 struct _VteRing {
 	guint max;
+
+	VteRowData cached_row;
+	guint cached_row_num;
+
 	VteRingChunk *tail, *cursor;
 	VteRingChunk head[1];
 };

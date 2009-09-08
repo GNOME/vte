@@ -448,23 +448,25 @@ void _vte_row_data_shrink (VteRowData *row, guint max_len)
 		row->len = max_len;
 }
 
-const VteCell *
-_vte_row_data_get_compact (const VteRowData *row, guint col)
+static void
+_vte_row_data_uncompact_row (VteRowData *row, const VteRowData *old_row)
 {
-	static VteRowData cached_row;
-	static const char *cached_row_data;
+	VteRowStorage storage;
+	VteCell *cells;
 
-	if (G_LIKELY (row->data.bytes != cached_row_data)) {
-		_vte_row_data_ensure (&cached_row, row->len);
-		_vte_row_storage_uncompact (row->storage, row->data.bytes, cached_row.data.cells, row->len);
-		cached_row.len = row->len;
-		cached_row_data = row->data.bytes;
-	}
+	g_assert (!row->storage.compact);
 
-	if (G_UNLIKELY (cached_row.len <= col))
-		g_assert_not_reached ();
+	storage = old_row->storage;
 
-	return &cached_row.data.cells[col];
+	/* Store cell data */
+	_vte_row_data_ensure (row, old_row->len);
+	_vte_row_storage_uncompact (storage, old_row->data.bytes, row->data.cells, old_row->len);
+
+	/* Store row data */
+	cells = row->data.cells;
+	*row = *old_row;
+	row->storage.compact = 0;
+	row->data.cells = cells;
 }
 
 
@@ -595,30 +597,18 @@ static void
 _vte_ring_chunk_compact_pop_head_row (VteRingChunk *bchunk, VteRowData *row)
 {
 	VteRingChunkCompact *chunk = (VteRingChunkCompact *) bchunk;
-	VteRowStorage storage;
-	VteRowData *old_row;
-	VteCell *cells;
+	const VteRowData *compact_row;
 	guint size;
 
-	g_assert (!row->storage.compact);
+	compact_row = _vte_ring_chunk_compact_index (chunk, chunk->base.end - 1);
+
+	_vte_row_data_uncompact_row (row, compact_row);
+
+	size = _vte_row_storage_get_size (compact_row->storage, compact_row->len);
 
 	chunk->base.end--;
-	old_row = _vte_ring_chunk_compact_index (chunk, chunk->base.end);
-
-	storage = old_row->storage;
-	size = _vte_row_storage_get_size (storage, old_row->len);
-
-	/* Store cell data */
-	_vte_row_data_ensure (row, old_row->len);
-	_vte_row_storage_uncompact (storage, chunk->cursor, row->data.cells, old_row->len);
 	chunk->cursor += size;
 	chunk->bytes_left += size;
-
-	/* Store row data */
-	cells = row->data.cells;
-	*row = *old_row;
-	row->storage.compact = 0;
-	row->data.cells = cells;
 }
 
 
@@ -761,6 +751,9 @@ _vte_ring_init (VteRing *ring, guint max_rows)
 {
 	ring->max = MAX (max_rows, 2);
 
+	_vte_row_data_init (&ring->cached_row);
+	ring->cached_row_num = (guint) -1;
+
 	ring->tail = ring->cursor = ring->head;
 
 	_vte_ring_chunk_init_writable (ring->head);
@@ -776,6 +769,8 @@ _vte_ring_fini (VteRing *ring)
 {
 	VteRingChunk *chunk;
 
+	_vte_row_data_fini (&ring->cached_row);
+
 	for (chunk = ring->head->prev_chunk; chunk; chunk = chunk->prev_chunk)
 		_vte_ring_chunk_free_compact (chunk);
 
@@ -784,7 +779,7 @@ _vte_ring_fini (VteRing *ring)
 	_ring_destroyed ();
 }
 
-static VteRingChunk *
+static const VteRingChunk *
 _vte_ring_find_chunk (VteRing *ring, guint position)
 {
 	g_assert (_vte_ring_contains (ring, position));
@@ -800,15 +795,18 @@ _vte_ring_find_chunk (VteRing *ring, guint position)
 const VteRowData *
 _vte_ring_index (VteRing *ring, guint position)
 {
-	VteRingChunk *chunk;
-
 	if (G_LIKELY (position >= ring->head->start))
-		chunk = ring->head;
-	else
-		chunk = _vte_ring_find_chunk (ring, position);
+		return _vte_ring_chunk_writable_index (ring->head, position);
 
+	if (ring->cached_row_num != position) {
+		VteRingChunkCompact *chunk = (VteRingChunkCompact *) _vte_ring_find_chunk (ring, position);
+		VteRowData *compact_row = _vte_ring_chunk_compact_index (chunk, position);
 
-	return &chunk->array[(position - chunk->offset) & chunk->mask];
+		_vte_row_data_uncompact_row (&ring->cached_row, compact_row);
+		ring->cached_row_num = position;
+	}
+
+	return &ring->cached_row;
 }
 
 static void _vte_ring_ensure_writable (VteRing *ring, guint position);
