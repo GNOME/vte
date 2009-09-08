@@ -512,7 +512,7 @@ _vte_ring_chunk_new_compact (guint start)
 		chunk = g_malloc (VTE_POOL_BYTES);
 		chunk->total_bytes = VTE_POOL_BYTES - G_STRUCT_OFFSET (VteRingChunkCompact, p);
 	}
-	
+
 	_vte_ring_chunk_init (&chunk->base);
 	chunk->base.type = VTE_RING_CHUNK_TYPE_COMPACT;
 	chunk->offset = chunk->base.start = chunk->base.end = start;
