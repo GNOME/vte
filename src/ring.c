@@ -533,7 +533,7 @@ _vte_ring_chunk_new_compact (guint start)
 		free_chunk_compact = (VteRingChunkCompact *) chunk->base.next_chunk;
 		num_free_chunk_compact--;
 	} else {
-		chunk = malloc (VTE_POOL_BYTES);
+		chunk = g_malloc (VTE_POOL_BYTES);
 		chunk->total_bytes = VTE_POOL_BYTES - G_STRUCT_OFFSET (VteRingChunkCompact, p);
 	}
 	
@@ -914,6 +914,10 @@ _vte_ring_uncompact_one_row (VteRing *ring)
 	_vte_ring_ensure_writable_tail (ring);
 
 	head->start--;
+
+	if (head->start == ring->cached_row_num)
+		/* Invalidate cached row */
+		ring->cached_row_num = (guint) -1;
 
 	row = _vte_ring_chunk_writable_index (head, head->start);
 	_vte_row_data_clear (row);
