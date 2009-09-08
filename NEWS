@@ -1,3 +1,9 @@
+0.21.5
+=======
+- Finish ring rewrite.  Scrollback buffer consumes ten times less
+  memory now, and better, doesn't allocate from the heap, so closing
+  tabs actually releases memory.
+
 0.21.4
 =======
 - Remove another stale assert()
