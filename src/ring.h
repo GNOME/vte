@@ -193,12 +193,8 @@ struct _VteRingChunk {
 
 	VteRingChunk *prev_chunk, *next_chunk;
 
-	/* This chunk contains lines [start..end).
-	 * To access a line in that range, one looks up:
-	 *
-	 *   array[(row - offset) & mask]
-	 */
-	guint start, end, offset, mask;
+	guint start, end;
+	guint mask; /* For WRITABLE chunks only */
 	VteRowData *array;
 };
 

@@ -511,6 +511,7 @@ _vte_ring_chunk_insert_chunk_before (VteRingChunk *chunk, VteRingChunk *new)
 typedef struct _VteRingChunkCompact {
 	VteRingChunk base;
 
+	guint offset;
 	guint total_bytes;
 	guint bytes_left;
 	char *cursor; /* move backward */
@@ -539,8 +540,7 @@ _vte_ring_chunk_new_compact (guint start)
 	
 	_vte_ring_chunk_init (&chunk->base);
 	chunk->base.type = VTE_RING_CHUNK_TYPE_COMPACT;
-	chunk->base.offset = chunk->base.start = chunk->base.end = start;
-	chunk->base.mask = (guint) -1;
+	chunk->offset = chunk->base.start = chunk->base.end = start;
 	chunk->base.array = chunk->p.rows;
 
 	chunk->bytes_left = chunk->total_bytes;
@@ -569,7 +569,7 @@ _vte_ring_chunk_free_compact (VteRingChunk *bchunk)
 static inline VteRowData *
 _vte_ring_chunk_compact_index (VteRingChunkCompact *chunk, guint position)
 {
-	return &chunk->p.rows[position - chunk->base.offset];
+	return &chunk->p.rows[position - chunk->offset];
 }
 
 static gboolean
@@ -578,19 +578,20 @@ _vte_ring_chunk_compact_push_head_row (VteRingChunk *bchunk, VteRowData *row)
 	VteRingChunkCompact *chunk = (VteRingChunkCompact *) bchunk;
 	VteRowStorage storage;
 	VteRowData *new_row;
-	guint size;
+	guint compact_size, total_size;
 
 	g_assert (!row->storage.compact);
 
 	storage = _vte_row_storage_compute (row->data.cells, row->len);
-	size = _vte_row_storage_get_size (storage, row->len);
+	compact_size = _vte_row_storage_get_size (storage, row->len);
+	total_size = compact_size + sizeof (chunk->p.rows[0]);
 
-	if (chunk->bytes_left < sizeof (chunk->p.rows[0]) + size)
+	if (chunk->bytes_left < total_size)
 		return FALSE;
 
 	/* Store cell data */
-	chunk->cursor -= size;
-	chunk->bytes_left -= size;
+	chunk->cursor -= compact_size;
+	chunk->bytes_left -= total_size;
 	_vte_row_storage_compact (storage, chunk->cursor, row->data.cells, row->len);
 
 	/* Store row data */
@@ -599,7 +600,7 @@ _vte_ring_chunk_compact_push_head_row (VteRingChunk *bchunk, VteRowData *row)
 	new_row->storage = storage;
 	new_row->data.bytes = chunk->cursor;
 	/* Truncate rows of no information */
-	if (!size)
+	if (!compact_size)
 		new_row->len = 0;
 
 	chunk->base.end++;
@@ -611,17 +612,18 @@ _vte_ring_chunk_compact_pop_head_row (VteRingChunk *bchunk, VteRowData *row)
 {
 	VteRingChunkCompact *chunk = (VteRingChunkCompact *) bchunk;
 	const VteRowData *compact_row;
-	guint size;
+	guint compact_size, total_size;
 
 	compact_row = _vte_ring_chunk_compact_index (chunk, chunk->base.end - 1);
 
 	_vte_row_data_uncompact_row (row, compact_row);
 
-	size = _vte_row_storage_get_size (compact_row->storage, compact_row->len);
+	compact_size = _vte_row_storage_get_size (compact_row->storage, row->len);
+	total_size = compact_size + sizeof (chunk->p.rows[0]);
 
 	chunk->base.end--;
-	chunk->cursor += size;
-	chunk->bytes_left += size;
+	chunk->cursor += compact_size;
+	chunk->bytes_left += total_size;
 }
 
 
@@ -633,7 +635,6 @@ _vte_ring_chunk_init_writable (VteRingChunk *chunk)
 	_vte_ring_chunk_init (chunk);
 
 	chunk->type = VTE_RING_CHUNK_TYPE_WRITABLE;
-	chunk->offset = 0;
 	chunk->mask = 31;
 	chunk->array = g_malloc0 (sizeof (chunk->array[0]) * (chunk->mask + 1));
 }
