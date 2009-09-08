@@ -720,6 +720,7 @@ _vte_ring_compact_one_row (VteRing *ring)
 		if (ring->tail == head)
 			ring->tail = new_chunk;
 
+		/* TODO this may fail too */
 		_vte_ring_chunk_compact_push_head_row (head->prev_chunk, row);
 	}
 
@@ -746,8 +747,6 @@ _vte_ring_resize (VteRing *ring, guint max_rows)
 		ring->tail->start = ring->head->end - max_rows;
 
 	ring->max = max_rows;
-
-	/* TODO May want to shrink down ring->head */
 }
 
 static void
@@ -777,6 +776,8 @@ _vte_ring_shrink (VteRing *ring, guint max_len)
 			ring->head->end = ring->head->start;
 		}
 	}
+
+	/* TODO May want to shrink down ring->head */
 }
 
 /**
@@ -803,7 +804,7 @@ _vte_ring_insert_internal (VteRing *ring, guint position)
 	g_assert (position >= ring->tail->start);
 	g_assert (position <= ring->head->end);
 
-	_vte_ring_ensure_writable (ring, position);
+	_vte_ring_ensure_writable (ring, MAX (position - 1, 0));
 	_vte_ring_ensure_writable_room (ring);
 
 	row = _vte_ring_chunk_writable_insert (ring->head, position);
