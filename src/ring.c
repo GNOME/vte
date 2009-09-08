@@ -344,6 +344,9 @@ _vte_row_storage_compact (VteRowStorage storage, char *out, const VteCell *cells
 {
 	guint32 basic_attrs = basic_cell.i.attr;
 
+	_vte_debug_print(VTE_DEBUG_RING, "Compacting row: %d %d %d.\n",
+			 storage.flags.compact, storage.flags.charbytes, storage.flags.attrbytes);
+
 	if (!storage.compact) {
 		memcpy (out, cells, len * sizeof (VteCell));
 		return;
@@ -357,6 +360,9 @@ static void
 _vte_row_storage_uncompact (VteRowStorage storage, const char *from, VteCell *cells, guint len)
 {
 	guint32 basic_attrs = basic_cell.i.attr;
+
+	_vte_debug_print(VTE_DEBUG_RING, "Uncompacting row: %d %d %d.\n",
+			 storage.flags.compact, storage.flags.charbytes, storage.flags.attrbytes);
 
 	if (!storage.compact) {
 		memcpy (cells, from, len * sizeof (VteCell));
@@ -809,6 +815,8 @@ _vte_ring_index (VteRing *ring, guint position)
 		VteRingChunkCompact *chunk = (VteRingChunkCompact *) _vte_ring_find_chunk (ring, position);
 		VteRowData *compact_row = _vte_ring_chunk_compact_index (chunk, position);
 
+		_vte_debug_print(VTE_DEBUG_RING, "Caching row %d.\n", position);
+
 		_vte_row_data_uncompact_row (&ring->cached_row, compact_row);
 		ring->cached_row_num = position;
 	}
@@ -923,6 +931,8 @@ _vte_ring_ensure_writable (VteRing *ring, guint position)
 {
 	if (G_LIKELY (position >= ring->head->start))
 		return;
+
+	_vte_debug_print(VTE_DEBUG_RING, "Ensure writable %d.\n", position);
 
 	while (position < ring->head->start)
 		_vte_ring_uncompact_one_row (ring);
