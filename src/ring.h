@@ -140,7 +140,7 @@ ASSERT_STATIC (sizeof (VteRowStorage) == 1);
 typedef struct _VteRowData {
 	union {
 		VteCell *cells; /* for non-compact storage */
-		char *bytes;    /* for compact storage */
+		guchar *bytes;  /* for compact storage */
 	} data;
 	guint32 len;
 	VteRowStorage storage;

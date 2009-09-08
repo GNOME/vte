@@ -39,8 +39,8 @@ typedef struct _VtePool VtePool;
 struct _VtePool {
 	VtePool *next_pool;
 	guint bytes_left;
-	char *cursor;
-	char data[1];
+	guchar *cursor;
+	guchar data[1];
 };
 
 static VtePool *current_pool;
@@ -110,7 +110,7 @@ _vte_cells_for_cell_array (VteCell *cells)
 	if (!cells)
 		return NULL;
 
-	return (VteCells *) (((char *) cells) - G_STRUCT_OFFSET (VteCells, p));
+	return (VteCells *) (((guchar *) cells) - G_STRUCT_OFFSET (VteCells, p));
 }
 
 static VteCells *
@@ -187,7 +187,7 @@ _vte_cell_array_free (VteCell *cells)
  */
 
 static guint
-_width (guint x)
+_width (guint32 x)
 {
 	if (!x)
 		return 0;
@@ -231,8 +231,8 @@ _vte_row_storage_get_size (VteRowStorage storage, guint len)
 	return len * (storage.flags.charbytes + storage.flags.attrbytes);
 }
 
-static char *
-_store (char *to, const guint32 *from, guint32 xor, guint width, guint len)
+static guchar *
+_store (guchar *to, const guint32 *from, guint32 xor, guint width, guint len)
 {
 	guint i;
 
@@ -268,8 +268,8 @@ _store (char *to, const guint32 *from, guint32 xor, guint width, guint len)
 	return to;
 }
 
-static const char *
-_fetch (const char *from, guint32 *to, guint32 xor, guint width, guint len)
+static const guchar *
+_fetch (const guchar *from, guint32 *to, guint32 xor, guint width, guint len)
 {
 	guint i;
 
@@ -315,7 +315,7 @@ _fetch (const char *from, guint32 *to, guint32 xor, guint width, guint len)
 }
 
 static void
-_vte_row_storage_compact (VteRowStorage storage, char *to, const VteCell *cells, guint len)
+_vte_row_storage_compact (VteRowStorage storage, guchar *to, const VteCell *cells, guint len)
 {
 	guint32 basic_attrs = basic_cell.i.attr;
 
@@ -332,7 +332,7 @@ _vte_row_storage_compact (VteRowStorage storage, char *to, const VteCell *cells,
 }
 
 static void
-_vte_row_storage_uncompact (VteRowStorage storage, const char *from, VteCell *cells, guint len)
+_vte_row_storage_uncompact (VteRowStorage storage, const guchar *from, VteCell *cells, guint len)
 {
 	guint32 basic_attrs = basic_cell.i.attr;
 
@@ -489,10 +489,10 @@ typedef struct _VteRingChunkCompact {
 	guint offset;
 	guint total_bytes;
 	guint bytes_left;
-	char *cursor; /* move backward */
+	guchar *cursor; /* move backward */
 	union {
 		VteRowData rows[1];
-		char data[1];
+		guchar data[1];
 	} p;
 } VteRingChunkCompact;
 
