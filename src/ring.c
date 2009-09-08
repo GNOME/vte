@@ -228,7 +228,7 @@ _vte_row_storage_compute (const VteCell *cells, guint len)
 {
 	guint i;
 	guint32 *c = (guint32 *) cells;
-	guint32 basic_attrs = * (guint32 *) &basic_cell.attr;
+	guint32 basic_attrs = basic_cell.i.attr;
 	guint32 chars = 0, attrs = 0;
 	VteRowStorage storage;
 
@@ -243,7 +243,7 @@ _vte_row_storage_compute (const VteCell *cells, guint len)
 	}
 
 	storage.compact = 0;
-	return storage; /* XXX disable compacting for now */
+	return storage; /* XXX no compact for now */
 	storage.flags.compact = 1;
 	storage.flags.charbytes = _width_bytes (chars);
 	storage.flags.attrbytes = _width_bytes (attrs);
@@ -300,7 +300,7 @@ _store (char *out, guint32 *from, guint xor, guint width, guint len)
 static void
 _vte_row_storage_compact (VteRowStorage storage, char *out, const VteCell *cells, guint len)
 {
-	guint32 basic_attrs = * (guint32 *) &basic_cell.attr;
+	guint32 basic_attrs = basic_cell.i.attr;
 
 	if (!storage.compact) {
 		memcpy (out, cells, len * sizeof (VteCell));

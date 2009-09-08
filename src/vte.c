@@ -293,7 +293,7 @@ _vte_terminal_set_default_attributes(VteTerminal *terminal)
 
 	screen = terminal->pvt->screen;
 
-	screen->defaults = basic_cell;
+	screen->defaults = basic_cell.cell;
 	screen->color_defaults = screen->defaults;
 	screen->fill_defaults = screen->defaults;
 }
@@ -2293,7 +2293,7 @@ vte_terminal_ensure_cursor(VteTerminal *terminal)
 	VteRowData *row;
 
 	row = _vte_terminal_ensure_row (terminal);
-	_vte_row_data_fill (row, &basic_cell, terminal->pvt->screen->cursor_current.col);
+	_vte_row_data_fill (row, &basic_cell.cell, terminal->pvt->screen->cursor_current.col);
 
 	return row;
 }
@@ -3054,7 +3054,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		for (i = 0; i < columns; i++)
 			_vte_row_data_insert (row, col + i, &screen->color_defaults);
 	} else {
-		_vte_row_data_fill (row, &basic_cell, col + columns);
+		_vte_row_data_fill (row, &basic_cell.cell, col + columns);
 	}
 
 	/* Convert any wide characters we may have broken into single

@@ -84,23 +84,31 @@ typedef struct _VteCell {
 } VteCell;
 ASSERT_STATIC (sizeof (VteCell) == 8);
 
-static const VteCell basic_cell = {
-	0,
+static const union {
+	VteCell cell;
+	struct {
+		guint32 c;
+		guint32 attr;
+	} i;
+} basic_cell = {
 	{
-	1, /* columns */
-	VTE_DEF_FG, /* fore */
-	VTE_DEF_BG, /* back */
+		0,
+		{
+			1, /* columns */
+			VTE_DEF_FG, /* fore */
+			VTE_DEF_BG, /* back */
 
-	0, /* standout */
-	0, /* underline */
-	0, /* strikethrough */
+			0, /* standout */
+			0, /* underline */
+			0, /* strikethrough */
 
-	0, /* reverse */
-	0, /* blink */
-	0, /* half */
-	0, /* bold */
+			0, /* reverse */
+			0, /* blink */
+			0, /* half */
+			0, /* bold */
 
-	0  /* invisible */
+			0  /* invisible */
+		}
 	}
 };
 
