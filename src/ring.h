@@ -29,8 +29,6 @@
 
 G_BEGIN_DECLS
 
-#define VTE_SCROLLBACK_INIT		100
-
 #define VTE_DEF_FG			256
 #define VTE_DEF_BG			257
 #define VTE_BOLD_FG			258
@@ -38,8 +36,6 @@ G_BEGIN_DECLS
 #define VTE_DEF_HL                      260
 #define VTE_CUR_BG			261
 #define VTE_PALETTE_SIZE		262
-
-#define FRAGMENT			-2
 
 
 /*
@@ -50,6 +46,7 @@ G_BEGIN_DECLS
  */
 
 typedef struct _vtecellattr {
+	guint32 fragment: 1;	/* A continuation cell. */
 	guint32 columns: 4;	/* Number of visible columns
 				   (as determined by g_unicode_iswide(c)).
 				   Also abused for tabs; bug 353610
@@ -99,6 +96,7 @@ static const VteCellInt basic_cell = {
 	{
 		0,
 		{
+			0, /* fragment */
 			1, /* columns */
 			0, /* bold */
 			VTE_DEF_FG, /* fore */

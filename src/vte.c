@@ -528,7 +528,7 @@ find_start_column (VteTerminal *terminal, glong col, glong row)
 		return col;
 	if (row_data != NULL) {
 		const VteCell *cell = _vte_row_data_get (row_data, col);
-		while (cell != NULL && cell->c == FRAGMENT && col > 0) {
+		while (cell != NULL && cell->attr.fragment && col > 0) {
 			cell = _vte_row_data_get (row_data, --col);
 		}
 	}
@@ -543,7 +543,7 @@ find_end_column (VteTerminal *terminal, glong col, glong row)
 		return col;
 	if (row_data != NULL) {
 		const VteCell *cell = _vte_row_data_get (row_data, col);
-		while (cell != NULL && cell->c == FRAGMENT && col > 0) {
+		while (cell != NULL && cell->attr.fragment && col > 0) {
 			cell = _vte_row_data_get (row_data, --col);
 		}
 		if (cell) {
@@ -619,7 +619,7 @@ _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
 		const VteCell *cell;
 		cell = _vte_row_data_get (row_data, col);
 		if (cell != NULL) {
-			while (cell->c == FRAGMENT && col> 0) {
+			while (cell->attr.fragment && col> 0) {
 				cell = _vte_row_data_get (row_data, --col);
 			}
 			columns = cell->attr.columns;
@@ -2830,7 +2830,7 @@ _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
 				 col);
 
 		/* go back to the beginning of the tab */
-		while (cell->c == FRAGMENT && col > 0)
+		while (cell->attr.fragment && col > 0)
 			cell = _vte_row_data_get_writable (row, --col);
 
 		num_columns = cell->attr.columns;
@@ -3032,7 +3032,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			goto not_inserted;
 
 		/* Find the previous cell */
-		while (cell && cell->c == FRAGMENT && col > 0)
+		while (cell && cell->attr.fragment && col > 0)
 			cell = _vte_row_data_get_writable (row, --col);
 		if (G_UNLIKELY (!cell || cell->c == '\t'))
 			goto not_inserted;
@@ -3075,14 +3075,14 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	if (G_LIKELY (col > 0)) {
 		glong col2 = col - 1;
 		VteCell *cell = _vte_row_data_get_writable (row, col2);
-		while (cell != NULL && cell->c == FRAGMENT && col2 > 0)
+		while (cell != NULL && cell->attr.fragment && col2 > 0)
 			cell = _vte_row_data_get_writable (row, --col2);
 		cell->attr.columns = col - col2;
 	}
 	{
 		glong col2 = col + columns;
 		VteCell *cell = _vte_row_data_get_writable (row, col2);
-		while (cell != NULL && cell->c == FRAGMENT) {
+		while (cell != NULL && cell->attr.fragment) {
 			cell->attr.columns = 1;
 			cell->c = 0;
 			cell = _vte_row_data_get_writable (row, ++col2);
@@ -3099,6 +3099,8 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			/* restore previous contents */
 			c = pcell->c;
 			attr.columns = pcell->attr.columns;
+			attr.fragment = pcell->attr.fragment;
+
 			attr.underline = 1;
 		}
 	}
@@ -3112,9 +3114,10 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 
 	/* insert wide-char fragments */
+	attr.fragment = 1;
 	for (i = 1; i < columns; i++) {
 		VteCell *pcell = _vte_row_data_get_writable (row, col);
-		pcell->c = FRAGMENT;
+		pcell->c = c;
 		pcell->attr = attr;
 		col++;
 	}
@@ -5791,7 +5794,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 				/* If it's not part of a multi-column character,
 				 * and passes the selection criterion, add it to
 				 * the selection. */
-				if (pcell->c != FRAGMENT && is_selected(terminal, col, row, data)) {
+				if (!pcell->attr.fragment && is_selected(terminal, col, row, data)) {
 					/* Store the attributes of this character. */
 					fore = palette[pcell->attr.fore];
 					back = palette[pcell->attr.back];
@@ -5843,7 +5846,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 				while ((pcell = _vte_row_data_get (row_data, col))) {
 					col++;
 
-					if (pcell->c == FRAGMENT)
+					if (pcell->attr.fragment)
 						continue;
 
 					if (pcell->c != 0)
@@ -6176,7 +6179,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 		/* Find the last non-empty character on the first line. */
 		for (i = _vte_row_data_length (rowdata); i > 0; i--) {
 			cell = _vte_row_data_get (rowdata, i - 1);
-			if (cell->c == FRAGMENT || cell->c != 0)
+			if (cell->attr.fragment || cell->c != 0)
 				break;
 		}
 		/* If the start point is to its right, then move the
@@ -6204,7 +6207,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 		/* Find the last non-empty character on the last line. */
 		for (i = _vte_row_data_length (rowdata); i > 0; i--) {
 			cell = _vte_row_data_get (rowdata, i - 1);
-			if (cell->c == FRAGMENT || cell->c != 0)
+			if (cell->attr.fragment || cell->c != 0)
 				break;
 		}
 		/* If the end point is to its right, then extend the
@@ -9935,7 +9938,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 		if (row_data != NULL) {
 			cell = _vte_row_data_get (row_data, i);
 			if (cell != NULL) {
-				while (cell->c == FRAGMENT && i > 0) {
+				while (cell->attr.fragment && i > 0) {
 					cell = _vte_row_data_get (row_data, --i);
 				}
 			}
@@ -9960,7 +9963,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					/* Don't render fragments of multicolumn characters
 					 * which have the same attributes as the initial
 					 * portions. */
-					if (cell != NULL && cell->c == FRAGMENT) {
+					if (cell != NULL && cell->attr.fragment) {
 						j++;
 						continue;
 					}
@@ -10052,7 +10055,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 		if (cell == NULL) {
 			goto fg_skip_row;
 		}
-		while (cell->c == FRAGMENT && i > 0)
+		while (cell->attr.fragment && i > 0)
 			cell = _vte_row_data_get (row_data, --i);
 
 		/* Walk the line. */
@@ -10066,7 +10069,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					(cell->c == ' ' &&
 					 !cell->attr.underline &&
 					 !cell->attr.strikethrough) ||
-					cell->c == FRAGMENT) {
+					cell->attr.fragment) {
 				if (++i >= end_column) {
 					goto fg_skip_row;
 				}
@@ -10131,7 +10134,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					/* Don't render blank cells or fragments of multicolumn characters
 					 * which have the same attributes as the initial
 					 * portions.  Don't render invisible cells */
-					if (cell->c == FRAGMENT || cell->attr.invisible) {
+					if (cell->attr.fragment || cell->attr.invisible) {
 						j++;
 						continue;
 					}
@@ -10233,7 +10236,7 @@ fg_next_row:
 					j = start_column;
 					cell = _vte_row_data_get (row_data, j);
 				} while (cell == NULL);
-				while (cell->c == FRAGMENT && j > 0) {
+				while (cell->attr.fragment && j > 0) {
 					cell = _vte_row_data_get (row_data, --j);
 				}
 			} while (TRUE);
@@ -10421,7 +10424,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 
 	/* Find the character "under" the cursor. */
 	cell = vte_terminal_find_charcell(terminal, col, drow);
-	while ((cell != NULL) && (cell->c == FRAGMENT) && (col > 0)) {
+	while ((cell != NULL) && (cell->attr.fragment) && (col > 0)) {
 		col--;
 		cell = vte_terminal_find_charcell(terminal, col, drow);
 	}
