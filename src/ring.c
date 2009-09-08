@@ -202,7 +202,7 @@ static VteRowStorage
 _vte_row_storage_compute (const VteCell *cells, guint len)
 {
 	guint i;
-	guint32 *c = (guint32 *) cells;
+	const guint32 *c = (const guint32 *) cells;
 	guint32 basic_attrs = basic_cell.i.attr;
 	guint32 chars = 0, attrs = 0;
 	VteRowStorage storage;
@@ -210,7 +210,7 @@ _vte_row_storage_compute (const VteCell *cells, guint len)
 	for (i = 0; i < len; i++) {
 		chars |= *c;
 		c++;
-		attrs |= (*c ^ basic_attrs);
+		attrs |= *c ^ basic_attrs;
 		c++;
 	}
 
@@ -232,7 +232,7 @@ _vte_row_storage_get_size (VteRowStorage storage, guint len)
 }
 
 static char *
-_store (char *to, guint32 *from, guint xor, guint width, guint len)
+_store (char *to, const guint32 *from, guint32 xor, guint width, guint len)
 {
 	guint i;
 
@@ -269,7 +269,7 @@ _store (char *to, guint32 *from, guint xor, guint width, guint len)
 }
 
 static const char *
-_fetch (const char *from, guint32 *to, guint xor, guint width, guint len)
+_fetch (const char *from, guint32 *to, guint32 xor, guint width, guint len)
 {
 	guint i;
 
@@ -327,8 +327,8 @@ _vte_row_storage_compact (VteRowStorage storage, char *to, const VteCell *cells,
 		return;
 	}
 
-	to = _store (to,     (guint32 *) cells, 0,           storage.flags.charbytes, len);
-	to = _store (to, 1 + (guint32 *) cells, basic_attrs, storage.flags.attrbytes, len);
+	to = _store (to,     (const guint32 *) cells, 0,           storage.flags.charbytes, len);
+	to = _store (to, 1 + (const guint32 *) cells, basic_attrs, storage.flags.attrbytes, len);
 }
 
 static void
