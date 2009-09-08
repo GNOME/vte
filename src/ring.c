@@ -28,7 +28,7 @@
 
 
 #define VTE_POOL_BYTES	(1024*1024 - 4 * sizeof (void *)) /* hopefully we get some nice mmapped region */
-#define VTE_RING_CHUNK_COMPACT_MAX_FREE		10
+#define VTE_RING_CHUNK_COMPACT_MAX_FREE		4
 
 
 /*
