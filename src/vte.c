@@ -13242,7 +13242,11 @@ vte_terminal_get_mouse_autohide(VteTerminal *terminal)
 void
 vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 {
+        VteTerminalPrivate *pvt;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        pvt = terminal->pvt;
 
         g_object_freeze_notify(G_OBJECT(terminal));
 
@@ -13250,130 +13254,130 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	vte_terminal_stop_processing (terminal);
 
 	/* Clear the input and output buffers. */
-	_vte_incoming_chunks_release (terminal->pvt->incoming);
-	terminal->pvt->incoming = NULL;
-	g_array_set_size(terminal->pvt->pending, 0);
-	_vte_buffer_clear(terminal->pvt->outgoing);
+	_vte_incoming_chunks_release (pvt->incoming);
+	pvt->incoming = NULL;
+	g_array_set_size(pvt->pending, 0);
+	_vte_buffer_clear(pvt->outgoing);
 	/* Reset charset substitution state. */
-	_vte_iso2022_state_free(terminal->pvt->iso2022);
-	terminal->pvt->iso2022 = _vte_iso2022_state_new(NULL,
+	_vte_iso2022_state_free(pvt->iso2022);
+	pvt->iso2022 = _vte_iso2022_state_new(NULL,
 							&_vte_terminal_codeset_changed_cb,
 							terminal);
-	_vte_iso2022_state_set_codeset(terminal->pvt->iso2022,
-				       terminal->pvt->encoding);
+	_vte_iso2022_state_set_codeset(pvt->iso2022,
+				       pvt->encoding);
 	/* Reset keypad/cursor/function key modes. */
-	terminal->pvt->keypad_mode = VTE_KEYMODE_NORMAL;
-	terminal->pvt->cursor_mode = VTE_KEYMODE_NORMAL;
-	terminal->pvt->sun_fkey_mode = FALSE;
-	terminal->pvt->hp_fkey_mode = FALSE;
-	terminal->pvt->legacy_fkey_mode = FALSE;
-	terminal->pvt->vt220_fkey_mode = FALSE;
+	pvt->keypad_mode = VTE_KEYMODE_NORMAL;
+	pvt->cursor_mode = VTE_KEYMODE_NORMAL;
+	pvt->sun_fkey_mode = FALSE;
+	pvt->hp_fkey_mode = FALSE;
+	pvt->legacy_fkey_mode = FALSE;
+	pvt->vt220_fkey_mode = FALSE;
 	/* Enable meta-sends-escape. */
-	terminal->pvt->meta_sends_escape = TRUE;
+	pvt->meta_sends_escape = TRUE;
 	/* Disable smooth scroll. */
-	terminal->pvt->smooth_scroll = FALSE;
+	pvt->smooth_scroll = FALSE;
 	/* Disable margin bell. */
-	terminal->pvt->margin_bell = FALSE;
+	pvt->margin_bell = FALSE;
 	/* Enable iso2022/NRC processing. */
-	terminal->pvt->nrc_mode = TRUE;
+	pvt->nrc_mode = TRUE;
 	/* Reset saved settings. */
-	if (terminal->pvt->dec_saved != NULL) {
-		g_hash_table_destroy(terminal->pvt->dec_saved);
-		terminal->pvt->dec_saved = g_hash_table_new(NULL, NULL);
+	if (pvt->dec_saved != NULL) {
+		g_hash_table_destroy(pvt->dec_saved);
+		pvt->dec_saved = g_hash_table_new(NULL, NULL);
 	}
 	/* Reset the color palette. */
 	/* vte_terminal_set_default_colors(terminal); */
 	/* Reset the default attributes.  Reset the alternate attribute because
 	 * it's not a real attribute, but we need to treat it as one here. */
-	terminal->pvt->screen = &terminal->pvt->alternate_screen;
+	pvt->screen = &pvt->alternate_screen;
 	_vte_terminal_set_default_attributes(terminal);
-	terminal->pvt->screen = &terminal->pvt->normal_screen;
+	pvt->screen = &pvt->normal_screen;
 	_vte_terminal_set_default_attributes(terminal);
 	/* Reset alternate charset mode. */
-	terminal->pvt->normal_screen.alternate_charset = FALSE;
-	terminal->pvt->alternate_screen.alternate_charset = FALSE;
+	pvt->normal_screen.alternate_charset = FALSE;
+	pvt->alternate_screen.alternate_charset = FALSE;
 	/* Clear the scrollback buffers and reset the cursors. */
 	if (clear_history) {
-		_vte_ring_fini(terminal->pvt->normal_screen.row_data);
-		_vte_ring_init(terminal->pvt->normal_screen.row_data, terminal->pvt->scrollback_lines);
-		_vte_ring_fini(terminal->pvt->alternate_screen.row_data);
-		_vte_ring_init(terminal->pvt->alternate_screen.row_data, terminal->row_count);
-		terminal->pvt->normal_screen.cursor_saved.row = 0;
-		terminal->pvt->normal_screen.cursor_saved.col = 0;
-		terminal->pvt->normal_screen.cursor_current.row = 0;
-		terminal->pvt->normal_screen.cursor_current.col = 0;
-		terminal->pvt->normal_screen.scroll_delta = 0;
-		terminal->pvt->normal_screen.insert_delta = 0;
-		terminal->pvt->alternate_screen.cursor_saved.row = 0;
-		terminal->pvt->alternate_screen.cursor_saved.col = 0;
-		terminal->pvt->alternate_screen.cursor_current.row = 0;
-		terminal->pvt->alternate_screen.cursor_current.col = 0;
-		terminal->pvt->alternate_screen.scroll_delta = 0;
-		terminal->pvt->alternate_screen.insert_delta = 0;
+		_vte_ring_fini(pvt->normal_screen.row_data);
+		_vte_ring_init(pvt->normal_screen.row_data, pvt->scrollback_lines);
+		_vte_ring_fini(pvt->alternate_screen.row_data);
+		_vte_ring_init(pvt->alternate_screen.row_data, terminal->row_count);
+		pvt->normal_screen.cursor_saved.row = 0;
+		pvt->normal_screen.cursor_saved.col = 0;
+		pvt->normal_screen.cursor_current.row = 0;
+		pvt->normal_screen.cursor_current.col = 0;
+		pvt->normal_screen.scroll_delta = 0;
+		pvt->normal_screen.insert_delta = 0;
+		pvt->alternate_screen.cursor_saved.row = 0;
+		pvt->alternate_screen.cursor_saved.col = 0;
+		pvt->alternate_screen.cursor_current.row = 0;
+		pvt->alternate_screen.cursor_current.col = 0;
+		pvt->alternate_screen.scroll_delta = 0;
+		pvt->alternate_screen.insert_delta = 0;
 		_vte_terminal_adjust_adjustments_full (terminal);
 	}
 	/* Clear the status lines. */
-	terminal->pvt->normal_screen.status_line = FALSE;
-	terminal->pvt->normal_screen.status_line_changed = FALSE;
-	if (terminal->pvt->normal_screen.status_line_contents != NULL) {
-		g_string_free(terminal->pvt->normal_screen.status_line_contents,
+	pvt->normal_screen.status_line = FALSE;
+	pvt->normal_screen.status_line_changed = FALSE;
+	if (pvt->normal_screen.status_line_contents != NULL) {
+		g_string_free(pvt->normal_screen.status_line_contents,
 			      TRUE);
 	}
-	terminal->pvt->normal_screen.status_line_contents = g_string_new(NULL);
-	terminal->pvt->alternate_screen.status_line = FALSE;
-	terminal->pvt->alternate_screen.status_line_changed = FALSE;
-	if (terminal->pvt->alternate_screen.status_line_contents != NULL) {
-		g_string_free(terminal->pvt->alternate_screen.status_line_contents,
+	pvt->normal_screen.status_line_contents = g_string_new(NULL);
+	pvt->alternate_screen.status_line = FALSE;
+	pvt->alternate_screen.status_line_changed = FALSE;
+	if (pvt->alternate_screen.status_line_contents != NULL) {
+		g_string_free(pvt->alternate_screen.status_line_contents,
 			      TRUE);
 	}
-	terminal->pvt->alternate_screen.status_line_contents = g_string_new(NULL);
+	pvt->alternate_screen.status_line_contents = g_string_new(NULL);
 	/* Do more stuff we refer to as a "full" reset. */
 	if (full) {
 		vte_terminal_set_default_tabstops(terminal);
 	}
 	/* Reset restricted scrolling regions, leave insert mode, make
 	 * the cursor visible again. */
-	terminal->pvt->normal_screen.scrolling_restricted = FALSE;
-	terminal->pvt->normal_screen.sendrecv_mode = TRUE;
-	terminal->pvt->normal_screen.insert_mode = FALSE;
-	terminal->pvt->normal_screen.linefeed_mode = FALSE;
-	terminal->pvt->normal_screen.origin_mode = FALSE;
-	terminal->pvt->normal_screen.reverse_mode = FALSE;
-	terminal->pvt->alternate_screen.scrolling_restricted = FALSE;
-	terminal->pvt->alternate_screen.sendrecv_mode = TRUE;
-	terminal->pvt->alternate_screen.insert_mode = FALSE;
-	terminal->pvt->alternate_screen.linefeed_mode = FALSE;
-	terminal->pvt->alternate_screen.origin_mode = FALSE;
-	terminal->pvt->alternate_screen.reverse_mode = FALSE;
-	terminal->pvt->cursor_visible = TRUE;
+	pvt->normal_screen.scrolling_restricted = FALSE;
+	pvt->normal_screen.sendrecv_mode = TRUE;
+	pvt->normal_screen.insert_mode = FALSE;
+	pvt->normal_screen.linefeed_mode = FALSE;
+	pvt->normal_screen.origin_mode = FALSE;
+	pvt->normal_screen.reverse_mode = FALSE;
+	pvt->alternate_screen.scrolling_restricted = FALSE;
+	pvt->alternate_screen.sendrecv_mode = TRUE;
+	pvt->alternate_screen.insert_mode = FALSE;
+	pvt->alternate_screen.linefeed_mode = FALSE;
+	pvt->alternate_screen.origin_mode = FALSE;
+	pvt->alternate_screen.reverse_mode = FALSE;
+	pvt->cursor_visible = TRUE;
 	/* Reset the encoding. */
 	vte_terminal_set_encoding(terminal, NULL);
-	g_assert(terminal->pvt->encoding != NULL);
+	g_assert(pvt->encoding != NULL);
 	/* Reset selection. */
 	vte_terminal_deselect_all(terminal);
-	terminal->pvt->has_selection = FALSE;
-	terminal->pvt->selecting = FALSE;
-	terminal->pvt->selecting_restart = FALSE;
-	terminal->pvt->selecting_had_delta = FALSE;
-	if (terminal->pvt->selection != NULL) {
-		g_free(terminal->pvt->selection);
-		terminal->pvt->selection = NULL;
-		memset(&terminal->pvt->selection_origin, 0,
-		       sizeof(&terminal->pvt->selection_origin));
-		memset(&terminal->pvt->selection_last, 0,
-		       sizeof(&terminal->pvt->selection_last));
-		memset(&terminal->pvt->selection_start, 0,
-		       sizeof(&terminal->pvt->selection_start));
-		memset(&terminal->pvt->selection_end, 0,
-		       sizeof(&terminal->pvt->selection_end));
+	pvt->has_selection = FALSE;
+	pvt->selecting = FALSE;
+	pvt->selecting_restart = FALSE;
+	pvt->selecting_had_delta = FALSE;
+	if (pvt->selection != NULL) {
+		g_free(pvt->selection);
+		pvt->selection = NULL;
+		memset(&pvt->selection_origin, 0,
+		       sizeof(&pvt->selection_origin));
+		memset(&pvt->selection_last, 0,
+		       sizeof(&pvt->selection_last));
+		memset(&pvt->selection_start, 0,
+		       sizeof(&pvt->selection_start));
+		memset(&pvt->selection_end, 0,
+		       sizeof(&pvt->selection_end));
 	}
 	/* Reset mouse motion events. */
-	terminal->pvt->mouse_tracking_mode = MOUSE_TRACKING_NONE;
-	terminal->pvt->mouse_last_button = 0;
-	terminal->pvt->mouse_last_x = 0;
-	terminal->pvt->mouse_last_y = 0;
+	pvt->mouse_tracking_mode = MOUSE_TRACKING_NONE;
+	pvt->mouse_last_button = 0;
+	pvt->mouse_last_x = 0;
+	pvt->mouse_last_y = 0;
 	/* Clear modifiers. */
-	terminal->pvt->modifiers = 0;
+	pvt->modifiers = 0;
 	/* Cause everything to be redrawn (or cleared). */
 	vte_terminal_maybe_scroll_to_bottom(terminal);
 	_vte_invalidate_all(terminal);
