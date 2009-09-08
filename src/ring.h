@@ -147,13 +147,18 @@ typedef struct _VteRowData {
 
 #define _vte_row_data_length(__row)			((__row)->len + 0)
 
+const VteCell *_vte_row_data_get_compact (const VteRowData *row, guint col);
+
 static inline const VteCell *
 _vte_row_data_get (const VteRowData *row, guint col)
 {
 	if (G_UNLIKELY (row->len <= col))
 		return NULL;
 
-	return &row->data.cells[col];
+	if (!row->storage.compact)
+		return &row->data.cells[col];
+
+	return _vte_row_data_get_compact (row, col);
 }
 
 static inline VteCell *
