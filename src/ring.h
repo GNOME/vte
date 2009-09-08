@@ -29,6 +29,8 @@
 
 G_BEGIN_DECLS
 
+#define VTE_SCROLLBACK_INIT		100
+
 #define VTE_DEF_FG			256
 #define VTE_DEF_BG			257
 #define VTE_BOLD_FG			258

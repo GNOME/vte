@@ -451,6 +451,7 @@ _vte_ring_chunk_new_compact (guint start)
 	chunk->base.offset = chunk->base.start = chunk->base.end = start;
 	chunk->base.mask = (guint) -1;
 	chunk->base.array = chunk->p.rows;
+
 	chunk->bytes_left = chunk->total_bytes;
 	chunk->cursor = chunk->p.data + chunk->bytes_left;
 
@@ -522,7 +523,8 @@ _vte_ring_chunk_init_writable (VteRingChunk *chunk)
 
 	chunk->type = VTE_RING_CHUNK_TYPE_WRITABLE;
 	chunk->offset = 0;
-	chunk->mask = 63;
+	/* Allocate min of 512 and VTE_SCROLLBACK_INIT */
+	chunk->mask = MIN (512, (1 << g_bit_storage (VTE_SCROLLBACK_INIT - 1))) - 1;
 	chunk->array = g_malloc0 (sizeof (chunk->array[0]) * (chunk->mask + 1));
 }
 
@@ -535,7 +537,7 @@ _vte_ring_chunk_fini_writable (VteRingChunk *chunk)
 	for (i = 0; i <= chunk->mask; i++)
 		_vte_row_data_fini (&chunk->array[i]);
 
-	g_free(chunk->array);
+	g_free (chunk->array);
 	chunk->array = NULL;
 }
 
@@ -622,7 +624,7 @@ _vte_ring_validate (VteRing * ring)
 void
 _vte_ring_init (VteRing *ring, guint max_rows)
 {
-	ring->max = MAX(max_rows, 2);
+	ring->max = MAX (max_rows, 2);
 
 	ring->tail = ring->cursor = ring->head;
 

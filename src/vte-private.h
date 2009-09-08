@@ -64,7 +64,6 @@ G_BEGIN_DECLS
 /* More color defines in ring.h */
 
 #define VTE_SATURATION_MAX		10000
-#define VTE_SCROLLBACK_INIT		100
 #define VTE_DEFAULT_CURSOR		GDK_XTERM
 #define VTE_MOUSING_CURSOR		GDK_LEFT_PTR
 #define VTE_TAB_MAX			999
