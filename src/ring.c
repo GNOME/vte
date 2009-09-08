@@ -86,31 +86,6 @@ _vte_pool_free_all (void)
 }
 
 
-/*
- * Free all pools if all rings have been destructed.
- */
-
-static guint ring_count;
-
-static void
-_ring_created (void)
-{
-	ring_count++;
-	_vte_debug_print(VTE_DEBUG_RING, "Rings++: %d\n", ring_count);
-}
-
-static void
-_ring_destroyed (void)
-{
-	g_assert (ring_count > 0);
-	ring_count--;
-	_vte_debug_print(VTE_DEBUG_RING, "Rings--: %d\n", ring_count);
-
-	if (!ring_count)
-		_vte_pool_free_all ();
-}
-
-
 
 /*
  * VteCells: A row's cell array
@@ -565,6 +540,22 @@ _vte_ring_chunk_free_compact (VteRingChunk *bchunk)
 	num_free_chunk_compact++;
 }
 
+static void
+_vte_ring_chunk_free_compact_spares (void)
+{
+	VteRingChunk *chunk;
+
+	chunk = (VteRingChunk *) free_chunk_compact;
+	while (chunk) {
+		VteRingChunk *next_chunk = chunk->next_chunk;
+		g_free (chunk);
+		chunk = next_chunk;
+		num_free_chunk_compact--;
+	}
+
+	g_assert (num_free_chunk_compact == 0);
+}
+
 /* Optimized version of _vte_ring_index() for writable chunks */
 static inline VteRowData *
 _vte_ring_chunk_compact_index (VteRingChunkCompact *chunk, guint position)
@@ -732,6 +723,34 @@ _vte_ring_chunk_free (VteRingChunk *chunk)
 
 
 /*
+ * Free all pools if all rings have been destructed.
+ */
+
+static guint ring_count;
+
+static void
+_ring_created (void)
+{
+	ring_count++;
+	_vte_debug_print(VTE_DEBUG_RING, "Rings++: %d\n", ring_count);
+}
+
+static void
+_ring_destroyed (void)
+{
+	g_assert (ring_count > 0);
+	ring_count--;
+	_vte_debug_print(VTE_DEBUG_RING, "Rings--: %d\n", ring_count);
+
+	if (ring_count)
+		return;
+
+	_vte_pool_free_all ();
+	_vte_ring_chunk_free_compact_spares ();
+}
+
+
+/*
  * VteRing: A buffer ring
  */
 
@@ -759,6 +778,7 @@ _vte_ring_validate (VteRing * ring)
 #else
 #define _vte_ring_validate(ring) G_STMT_START {} G_STMT_END
 #endif
+
 
 void
 _vte_ring_init (VteRing *ring, guint max_rows)
