@@ -544,34 +544,11 @@ _vte_ring_chunk_writable_index (VteRingChunk *chunk, guint position)
 	return &chunk->array[position & chunk->mask];
 }
 
-static void
-_vte_ring_chunk_writable_store_tail_row (VteRingChunk *chunk)
-{
-	VteRowData *row;
-	g_message ("HERE");
-
-	row = _vte_ring_chunk_writable_index (chunk, chunk->start);
-
-
-	if (!chunk->prev_chunk ||
-	    !_vte_ring_chunk_compact_push_head_row (chunk->prev_chunk, row))
-	{
-		/* Previous chunk doesn't have enough room, add a new chunk and retry */
-		_vte_ring_chunk_insert_chunk_before (chunk, _vte_ring_chunk_new_compact (chunk->start));
-		_vte_ring_chunk_compact_push_head_row (chunk->prev_chunk, row);
-	}
-
-	chunk->start++;
-}
-
 static VteRowData *
 _vte_ring_chunk_writable_insert (VteRingChunk *chunk, guint position)
 {
 	guint i;
 	VteRowData *row, tmp;
-
-	if (chunk->start + chunk->mask == chunk->end)
-		_vte_ring_chunk_writable_store_tail_row (chunk);
 
 	tmp = *_vte_ring_chunk_writable_index (chunk, chunk->end);
 	for (i = chunk->end; i > position; i--)
@@ -754,6 +731,37 @@ _vte_ring_shrink (VteRing *ring, guint max_len)
 }
 
 static void
+_vte_ring_compact_one_row (VteRing *ring)
+{
+	VteRowData *row;
+	VteRingChunk *head = ring->head;
+
+	row = _vte_ring_chunk_writable_index (head, head->start);
+
+	if (!head->prev_chunk ||
+	    !_vte_ring_chunk_compact_push_head_row (head->prev_chunk, row))
+	{
+		/* Previous head doesn't have enough room, add a new head and retry */
+		VteRingChunk *new_chunk = _vte_ring_chunk_new_compact (head->start);
+
+		_vte_ring_chunk_insert_chunk_before (head, new_chunk);
+		if (ring->tail == head)
+			ring->tail = new_chunk;
+
+		_vte_ring_chunk_compact_push_head_row (head->prev_chunk, row);
+	}
+
+	head->start++;
+}
+
+static void
+_vte_ring_ensure_writable_room (VteRing *ring)
+{
+	if (ring->head->start + ring->head->mask == ring->head->end)
+		_vte_ring_compact_one_row (ring);
+}
+
+static void
 _vte_ring_ensure_writable (VteRing *ring, guint position)
 {
 	/* XXX */
@@ -784,6 +792,8 @@ _vte_ring_insert_internal (VteRing *ring, guint position)
 	g_assert (position <= ring->head->end);
 
 	_vte_ring_ensure_writable (ring, position);
+	_vte_ring_ensure_writable_room (ring);
+
 	row = _vte_ring_chunk_writable_insert (ring->head, position);
 
 	_vte_ring_validate(ring);
