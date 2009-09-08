@@ -232,7 +232,7 @@ _vte_row_storage_get_size (VteRowStorage storage, guint len)
 }
 
 static char *
-_store (char *out, guint32 *from, guint xor, guint width, guint len)
+_store (char *to, guint32 *from, guint xor, guint width, guint len)
 {
 	guint i;
 
@@ -241,35 +241,35 @@ _store (char *out, guint32 *from, guint xor, guint width, guint len)
 	case 1:
 		for (i = 0; i < len; i++) {
 			guint8 c = *from ^ xor;
-			*out++ = c;
+			*to++ = c;
 			from += 2;
 		}
 		break;
 	case 2:
 		for (i = 0; i < len; i++) {
 			guint16 c = *from ^ xor;
-			*out++ = c >> 8;
-			*out++ = c;
+			*to++ = c >> 8;
+			*to++ = c;
 			from += 2;
 		}
 		break;
 	case 4:
 		for (i = 0; i < len; i++) {
 			guint8 c = *from ^ xor;
-			*out++ = c >> 24;
-			*out++ = c >> 16;
-			*out++ = c >> 8;
-			*out++ = c;
+			*to++ = c >> 24;
+			*to++ = c >> 16;
+			*to++ = c >> 8;
+			*to++ = c;
 			from += 2;
 		}
 		break;
 	}
 
-	return out;
+	return to;
 }
 
 static const char *
-_fetch (const char *in, guint32 *to, guint xor, guint width, guint len)
+_fetch (const char *from, guint32 *to, guint xor, guint width, guint len)
 {
 	guint i;
 
@@ -284,7 +284,7 @@ _fetch (const char *in, guint32 *to, guint xor, guint width, guint len)
 	case 1:
 		for (i = 0; i < len; i++) {
 			guint32 c = 0;
-			c += *in++;
+			c += *from++;
 			*to = c ^ xor;
 			to += 2;
 		}
@@ -292,8 +292,8 @@ _fetch (const char *in, guint32 *to, guint xor, guint width, guint len)
 	case 2:
 		for (i = 0; i < len; i++) {
 			guint32 c = 0;
-			c += *in++ << 8;
-			c += *in++;
+			c += *from++ << 8;
+			c += *from++;
 			*to = c ^ xor;
 			to += 2;
 		}
@@ -301,21 +301,21 @@ _fetch (const char *in, guint32 *to, guint xor, guint width, guint len)
 	case 4:
 		for (i = 0; i < len; i++) {
 			guint8 c = 0;
-			c += *in++ << 24;
-			c += *in++ << 16;
-			c += *in++ << 8;
-			c += *in++;
+			c += *from++ << 24;
+			c += *from++ << 16;
+			c += *from++ << 8;
+			c += *from++;
 			*to = c ^ xor;
 			to += 2;
 		}
 		break;
 	}
 
-	return in;
+	return from;
 }
 
 static void
-_vte_row_storage_compact (VteRowStorage storage, char *out, const VteCell *cells, guint len)
+_vte_row_storage_compact (VteRowStorage storage, char *to, const VteCell *cells, guint len)
 {
 	guint32 basic_attrs = basic_cell.i.attr;
 
@@ -323,12 +323,12 @@ _vte_row_storage_compact (VteRowStorage storage, char *out, const VteCell *cells
 			 storage.flags.compact, storage.flags.charbytes, storage.flags.attrbytes);
 
 	if (!storage.compact) {
-		memcpy (out, cells, len * sizeof (VteCell));
+		memcpy (to, cells, len * sizeof (VteCell));
 		return;
 	}
 
-	out = _store (out,     (guint32 *) cells, 0,           storage.flags.charbytes, len);
-	out = _store (out, 1 + (guint32 *) cells, basic_attrs, storage.flags.attrbytes, len);
+	to = _store (to,     (guint32 *) cells, 0,           storage.flags.charbytes, len);
+	to = _store (to, 1 + (guint32 *) cells, basic_attrs, storage.flags.attrbytes, len);
 }
 
 static void
