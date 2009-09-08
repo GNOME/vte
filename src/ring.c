@@ -449,6 +449,7 @@ _vte_ring_chunk_new_compact (guint start)
 	_vte_ring_chunk_init (&chunk->base);
 	chunk->base.type = VTE_RING_CHUNK_TYPE_COMPACT;
 	chunk->base.offset = chunk->base.start = chunk->base.end = start;
+	chunk->base.mask = (guint) -1;
 	chunk->base.array = chunk->p.rows;
 	chunk->bytes_left = chunk->total_bytes;
 	chunk->cursor = chunk->p.data + chunk->bytes_left;
@@ -497,6 +498,7 @@ _vte_ring_chunk_compact_push_head_row (VteRingChunk *bchunk, VteRowData *row)
 
 	/* Store cell data */
 	chunk->cursor -= size;
+	chunk->bytes_left -= size;
 	_vte_row_storage_compact (storage, chunk->cursor, row->cells, row->len);
 
 	/* Store row data */
@@ -698,38 +700,6 @@ _vte_ring_pop_tail_row (VteRing *ring)
 		_vte_ring_free_chunk (ring, ring->tail);
 }
 
-
-/**
- * _vte_ring_resize:
- * @ring: a #VteRing
- * @max_rows: new maximum numbers of rows in the ring
- *
- * Changes the number of lines the ring can contain.
- */
-void
-_vte_ring_resize (VteRing *ring, guint max_rows)
-{
-	/* Get rid of unneeded chunks at the tail */
-	while (ring->head != ring->tail && ring->head->end - ring->tail->end >= max_rows)
-		_vte_ring_free_chunk (ring, ring->tail);
-
-	/* Adjust the start of tail chunk now */
-	if (_vte_ring_length (ring) > max_rows)
-		ring->tail->start = ring->head->end - max_rows;
-
-	/* TODO May want to shrink down ring->head */
-}
-
-void
-_vte_ring_shrink (VteRing *ring, guint max_len)
-{
-#if 0
-	XXX
-	if (ring->next - ring->delta > max_len)
-		ring->next = ring->delta + max_len;
-#endif
-}
-
 static void
 _vte_ring_compact_one_row (VteRing *ring)
 {
@@ -754,6 +724,30 @@ _vte_ring_compact_one_row (VteRing *ring)
 	head->start++;
 }
 
+
+/**
+ * _vte_ring_resize:
+ * @ring: a #VteRing
+ * @max_rows: new maximum numbers of rows in the ring
+ *
+ * Changes the number of lines the ring can contain.
+ */
+void
+_vte_ring_resize (VteRing *ring, guint max_rows)
+{
+	/* Get rid of unneeded chunks at the tail */
+	while (ring->head != ring->tail && ring->head->end - ring->tail->end >= max_rows)
+		_vte_ring_free_chunk (ring, ring->tail);
+
+	/* Adjust the start of tail chunk now */
+	if (_vte_ring_length (ring) > max_rows)
+		ring->tail->start = ring->head->end - max_rows;
+
+	ring->max = max_rows;
+
+	/* TODO May want to shrink down ring->head */
+}
+
 static void
 _vte_ring_ensure_writable_room (VteRing *ring)
 {
@@ -765,6 +759,22 @@ static void
 _vte_ring_ensure_writable (VteRing *ring, guint position)
 {
 	/* XXX */
+}
+
+void
+_vte_ring_shrink (VteRing *ring, guint max_len)
+{
+	if (_vte_ring_length (ring) <= max_len)
+		return;
+
+	if (ring->head->start - ring->tail->start <= max_len)
+		ring->head->end = ring->tail->start + max_len;
+	else {
+		while (ring->head->start - ring->tail->start > max_len) {
+			_vte_ring_ensure_writable (ring, ring->head->start - 1);
+			ring->head->end = ring->head->start;
+		}
+	}
 }
 
 /**
