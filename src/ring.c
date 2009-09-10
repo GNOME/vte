@@ -32,77 +32,14 @@
 
 
 /*
- * VtePool: Global, alloc-only, allocator for VteCells
- */
-
-typedef struct _VtePool VtePool;
-struct _VtePool {
-	VtePool *next_pool;
-	guint bytes_left;
-	guchar *cursor;
-	guchar data[1];
-};
-
-static VtePool *current_pool;
-
-static void *
-_vte_pool_alloc (guint size)
-{
-	void *ret;
-
-	if (G_UNLIKELY (!current_pool || current_pool->bytes_left < size)) {
-		guint alloc_size = MAX (VTE_POOL_BYTES, size + G_STRUCT_OFFSET (VtePool, data));
-		VtePool *pool = g_malloc (alloc_size);
-
-		_vte_debug_print(VTE_DEBUG_RING, "Allocating new pool of size %d \n", alloc_size);
-
-		pool->next_pool = current_pool;
-		pool->bytes_left = alloc_size - G_STRUCT_OFFSET (VtePool, data);
-		pool->cursor = pool->data;
-
-		current_pool = pool;
-	}
-
-	_vte_debug_print(VTE_DEBUG_RING, "Allocating %d bytes from pool\n", size);
-
-	ret = current_pool->cursor;
-	current_pool->bytes_left -= size;
-	current_pool->cursor += size;
-
-	return ret;
-}
-
-static void
-_vte_pool_free_all (void)
-{
-	_vte_debug_print(VTE_DEBUG_RING, "Freeing all pools\n");
-
-	/* Free all cells pools */
-	while (current_pool) {
-		VtePool *pool = current_pool;
-		current_pool = pool->next_pool;
-		g_free (pool);
-	}
-}
-
-
-
-/*
  * VteCells: A row's cell array
  */
 
 typedef struct _VteCells VteCells;
 struct _VteCells {
-	guint32 rank;
-	guint32 alloc_len; /* (1 << rank) - 1 */
-	union {
-		VteCells *next;
-		VteCell cells[1];
-	} p;
+	guint32 alloc_len;
+	VteCell cells[1];
 };
-
-/* Cache of freed VteCells by rank */
-static VteCells *free_cells[32];
 
 static inline VteCells *
 _vte_cells_for_cell_array (VteCell *cells)
@@ -110,75 +47,33 @@ _vte_cells_for_cell_array (VteCell *cells)
 	if (!cells)
 		return NULL;
 
-	return (VteCells *) (((guchar *) cells) - G_STRUCT_OFFSET (VteCells, p));
+	return (VteCells *) (((guchar *) cells) - G_STRUCT_OFFSET (VteCells, cells));
 }
 
-static VteCells *
-_vte_cells_alloc (guint len)
+static VteCell *
+_vte_cell_array_realloc (VteCell *cell_array, guint len)
 {
-	VteCells *ret;
-	guint rank = g_bit_storage (MAX (len, 80));
+	VteCells *cells = _vte_cells_for_cell_array (cell_array);
+	guint alloc_len;
 
-	g_assert (rank < 32);
+	if (G_LIKELY (cells && len <= cells->alloc_len))
+		return cells->cells;
 
-	if (G_LIKELY (free_cells[rank])) {
-		_vte_debug_print(VTE_DEBUG_RING, "Allocating array of %d cells (rank %d) from cache\n", len, rank);
-		ret = free_cells[rank];
-		free_cells[rank] = ret->p.next;
+	alloc_len = (1 << g_bit_storage (MAX (len, 80))) - 1;
 
-	} else {
-		guint alloc_len = (1 << rank) - 1;
-		_vte_debug_print(VTE_DEBUG_RING, "Allocating new array of %d cells (rank %d)\n", len, rank);
+	_vte_debug_print(VTE_DEBUG_RING, "Enlarging cell array of %d cells to %d cells\n", cells ? cells->alloc_len : 0, alloc_len);
+	cells = g_realloc (cells, G_STRUCT_OFFSET (VteCells, cells) + alloc_len * sizeof (cells->cells[0]));
+	cells->alloc_len = alloc_len;
 
-		ret = _vte_pool_alloc (G_STRUCT_OFFSET (VteCells, p) + alloc_len * sizeof (ret->p.cells[0]));
-
-		ret->rank = rank;
-		ret->alloc_len = alloc_len;
-	}
-
-	return ret;
+	return cells->cells;
 }
 
 static void
-_vte_cells_free (VteCells *cells)
+_vte_cell_array_free (VteCell *cell_array)
 {
-	_vte_debug_print(VTE_DEBUG_RING, "Freeing cells (rank %d) to cache\n", cells->rank);
-
-	cells->p.next = free_cells[cells->rank];
-	free_cells[cells->rank] = cells;
-}
-
-static inline VteCells *
-_vte_cells_realloc (VteCells *cells, guint len)
-{
-	if (G_UNLIKELY (!cells || len > cells->alloc_len)) {
-		VteCells *new_cells = _vte_cells_alloc (len);
-
-		if (cells) {
-			_vte_debug_print(VTE_DEBUG_RING, "Moving cells (rank %d to %d)\n", cells->rank, new_cells->rank);
-
-			memcpy (new_cells->p.cells, cells->p.cells, sizeof (cells->p.cells[0]) * cells->alloc_len);
-			_vte_cells_free (cells);
-		}
-
-		cells = new_cells;
-	}
-
-	return cells;
-}
-
-/* Convenience */
-
-static inline VteCell *
-_vte_cell_array_realloc (VteCell *cells, guint len)
-{
-	return _vte_cells_realloc (_vte_cells_for_cell_array (cells), len)->p.cells;
-}
-
-static void
-_vte_cell_array_free (VteCell *cells)
-{
-	_vte_cells_free (_vte_cells_for_cell_array (cells));
+	VteCells *cells = _vte_cells_for_cell_array (cell_array);
+	_vte_debug_print(VTE_DEBUG_RING, "Freeing cell array of %d cells\n", cells->alloc_len);
+	g_free (cells);
 }
 
 
@@ -745,7 +640,6 @@ _ring_destroyed (void)
 	if (ring_count)
 		return;
 
-	_vte_pool_free_all ();
 	_vte_ring_chunk_free_compact_spares ();
 }
 
