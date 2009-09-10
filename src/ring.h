@@ -117,20 +117,6 @@ static const VteCellInt basic_cell = {
 
 
 /*
- * VteRowStorage: Storage layout flags for a row's cells
- */
-
-typedef union _VteRowStorage {
-	guint8 compact; /* For quick access */
-	struct {
-		guint8 compact   : 1;
-		guint8 charbytes : 3;
-		guint8 attrbytes : 3;
-	} flags;
-} VteRowStorage;
-ASSERT_STATIC (sizeof (VteRowStorage) == 1);
-
-/*
  * VteRowAttr: A single row's attributes
  */
 
@@ -144,13 +130,9 @@ ASSERT_STATIC (sizeof (VteRowAttr) == 4);
  */
 
 typedef struct _VteRowData {
-	union {
-		VteCell *cells; /* for non-compact storage */
-		guchar *bytes;  /* for compact storage */
-	} data;
+	VteCell *cells;
 	guint32 len;
 	VteRowAttr attr;
-	VteRowStorage storage;
 } VteRowData;
 
 
@@ -162,7 +144,7 @@ _vte_row_data_get (const VteRowData *row, guint col)
 	if (G_UNLIKELY (row->len <= col))
 		return NULL;
 
-	return &row->data.cells[col];
+	return &row->cells[col];
 }
 
 static inline VteCell *
@@ -171,7 +153,7 @@ _vte_row_data_get_writable (VteRowData *row, guint col)
 	if (G_UNLIKELY (row->len <= col))
 		return NULL;
 
-	return &row->data.cells[col];
+	return &row->cells[col];
 }
 
 void _vte_row_data_insert (VteRowData *row, guint col, const VteCell *cell);
