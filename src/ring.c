@@ -162,13 +162,9 @@ void _vte_row_data_shrink (VteRowData *row, guint max_len)
  * VteCompactRowData: Compact representation of a row
  */
 
-typedef union _VteRowStorage {
-	guint8 compact; /* For quick access */
-	struct {
-		guint8 compact   : 1;
-		guint8 charbytes : 3;
-		guint8 attrbytes : 3;
-	} flags;
+typedef struct _VteRowStorage {
+	guint8 charbytes : 3;
+	guint8 attrbytes : 3;
 } VteRowStorage;
 ASSERT_STATIC (sizeof (VteRowStorage) == 1);
 
@@ -179,14 +175,6 @@ typedef struct _VteCompactRowData {
 	VteRowStorage storage;
 } VteCompactRowData;
 
-
-static void
-_vte_compact_row_init (VteCompactRowData *compact_row, VteRowStorage storage, guchar *bytes)
-{
-	compact_row->len = 0;
-	compact_row->storage = storage;
-	compact_row->bytes = bytes;
-}
 
 static guint
 _width (guint32 x)
@@ -217,21 +205,16 @@ _vte_row_storage_compute (const VteRowData *row)
 		c++;
 	}
 
-	storage.compact = 0;
-	storage.flags.compact = 1;
-	storage.flags.charbytes = _width (chars);
-	storage.flags.attrbytes = _width (attrs);
+	storage.charbytes = _width (chars);
+	storage.attrbytes = _width (attrs);
 
 	return storage;
 }
 
-static guint
+static inline guint
 _vte_row_storage_get_size (VteRowStorage storage, guint len)
 {
-	if (!storage.compact)
-		return len * sizeof (VteCell);
-
-	return len * (storage.flags.charbytes + storage.flags.attrbytes);
+	return len * (storage.charbytes + storage.attrbytes);
 }
 
 static guchar *
@@ -318,25 +301,27 @@ _fetch (const guchar *from, guint32 *to, guint32 xor, guint width, guint len)
 }
 
 static void
+_vte_compact_row_init (VteCompactRowData *compact_row, VteRowStorage storage, guchar *bytes)
+{
+	compact_row->len = 0;
+	compact_row->storage = storage;
+	compact_row->bytes = bytes;
+}
+
+static void
 _vte_compact_row_data_compact (VteCompactRowData *compact_row, const VteRowData *row)
 {
 	guint32 basic_attrs = basic_cell.i.attr;
 	guchar *to = compact_row->bytes;
 	VteRowStorage storage = compact_row->storage;
 
-	_vte_debug_print(VTE_DEBUG_RING, "Compacting row: %d %d %d.\n",
-			 storage.flags.compact, storage.flags.charbytes, storage.flags.attrbytes);
+	_vte_debug_print(VTE_DEBUG_RING, "Compacting row: %d %d.\n", storage.charbytes, storage.attrbytes);
 
 	compact_row->len = row->len;
 	compact_row->attr = row->attr;
 
-	if (!storage.compact) {
-		memcpy (to, row->cells, row->len * sizeof (VteCell));
-		return;
-	}
-
-	to = _store (to,     (const guint32 *) row->cells, 0,           storage.flags.charbytes, row->len);
-	to = _store (to, 1 + (const guint32 *) row->cells, basic_attrs, storage.flags.attrbytes, row->len);
+	to = _store (to,     (const guint32 *) row->cells, 0,           storage.charbytes, row->len);
+	to = _store (to, 1 + (const guint32 *) row->cells, basic_attrs, storage.attrbytes, row->len);
 }
 
 static void
@@ -346,20 +331,14 @@ _vte_compact_row_data_uncompact (const VteCompactRowData *compact_row, VteRowDat
 	const guchar *from = compact_row->bytes;
 	VteRowStorage storage = compact_row->storage;
 
-	_vte_debug_print(VTE_DEBUG_RING, "Uncompacting row: %d %d %d.\n",
-			 storage.flags.compact, storage.flags.charbytes, storage.flags.attrbytes);
+	_vte_debug_print(VTE_DEBUG_RING, "Uncompacting row: %d %d.\n", storage.charbytes, storage.attrbytes);
 
 	_vte_row_data_ensure (row, compact_row->len);
 	row->len = compact_row->len;
 	row->attr = compact_row->attr;
 
-	if (!storage.compact) {
-		memcpy (row->cells, compact_row->bytes, compact_row->len * sizeof (VteCell));
-		return;
-	}
-
-	from = _fetch (from,     (guint32 *) row->cells, 0,           storage.flags.charbytes, compact_row->len);
-	from = _fetch (from, 1 + (guint32 *) row->cells, basic_attrs, storage.flags.attrbytes, compact_row->len);
+	from = _fetch (from,     (guint32 *) row->cells, 0,           storage.charbytes, compact_row->len);
+	from = _fetch (from, 1 + (guint32 *) row->cells, basic_attrs, storage.attrbytes, compact_row->len);
 }
 
 
