@@ -2923,7 +2923,7 @@ gboolean
 _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			 gboolean insert, gboolean invalidate_now)
 {
-	vtecellattr attr;
+	VteCellAttr attr;
 	VteRowData *row;
 	long col;
 	int columns, i;

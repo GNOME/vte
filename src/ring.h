@@ -39,13 +39,13 @@ G_BEGIN_DECLS
 
 
 /*
- * vtecellattr: A single cell style attributes
+ * VteCellAttr: A single cell style attributes
  *
  * Ordered by most commonly changed attributes, to
  * optimize the compact representation.
  */
 
-typedef struct _vtecellattr {
+typedef struct _VteCellAttr {
 	guint32 fragment: 1;	/* A continuation cell. */
 	guint32 columns: 4;	/* Number of visible columns
 				   (as determined by g_unicode_iswide(c)).
@@ -70,8 +70,8 @@ typedef struct _vtecellattr {
 	 */
 
 	/* 30 bits */
-} vtecellattr;
-ASSERT_STATIC (sizeof (vtecellattr) == 4);
+} VteCellAttr;
+ASSERT_STATIC (sizeof (VteCellAttr) == 4);
 
 
 /*
@@ -80,7 +80,7 @@ ASSERT_STATIC (sizeof (vtecellattr) == 4);
 
 typedef struct _VteCell {
 	vteunistr c;
-	vtecellattr attr;
+	VteCellAttr attr;
 } VteCell;
 ASSERT_STATIC (sizeof (VteCell) == 8);
 
