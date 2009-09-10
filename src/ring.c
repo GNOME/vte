@@ -95,14 +95,19 @@ _vte_row_data_fini (VteRowData *row)
 	row->cells = NULL;
 }
 
-static inline void
+static inline gboolean
 _vte_row_data_ensure (VteRowData *row, guint len)
 {
 	VteCells *cells = _vte_cells_for_cell_array (row->cells);
 	if (G_LIKELY (cells && len <= cells->alloc_len))
-		return;
+		return TRUE;
+
+	if (G_UNLIKELY (len >= 0xFFFF))
+		return FALSE;
 
 	row->cells = _vte_cells_realloc (cells, len)->cells;
+
+	return TRUE;
 }
 
 void
@@ -110,7 +115,8 @@ _vte_row_data_insert (VteRowData *row, guint col, const VteCell *cell)
 {
 	guint i;
 
-	_vte_row_data_ensure (row, row->len + 1);
+	if (G_UNLIKELY (!_vte_row_data_ensure (row, row->len + 1)))
+		return;
 
 	for (i = row->len; i > col; i--)
 		row->cells[i] = row->cells[i - 1];
@@ -121,7 +127,9 @@ _vte_row_data_insert (VteRowData *row, guint col, const VteCell *cell)
 
 void _vte_row_data_append (VteRowData *row, const VteCell *cell)
 {
-	_vte_row_data_ensure (row, row->len + 1);
+	if (G_UNLIKELY (!_vte_row_data_ensure (row, row->len + 1)))
+		return;
+
 	row->cells[row->len] = *cell;
 	row->len++;
 }
@@ -142,7 +150,8 @@ void _vte_row_data_fill (VteRowData *row, const VteCell *cell, guint len)
 	if (row->len < len) {
 		guint i = len - row->len;
 
-		_vte_row_data_ensure (row, len);
+		if (G_UNLIKELY (!_vte_row_data_ensure (row, len)))
+			return;
 
 		for (i = row->len; i < len; i++)
 			row->cells[i] = *cell;
@@ -170,10 +179,11 @@ ASSERT_STATIC (sizeof (VteRowStorage) == 1);
 
 typedef struct _VteCompactRowData {
 	guchar *bytes;
-	guint32 len;
+	guint16 len;
 	VteRowAttr attr;
 	VteRowStorage storage;
 } VteCompactRowData;
+ASSERT_STATIC (sizeof (VteCompactRowData) <= 2 * sizeof (void *));
 
 
 static guint
@@ -333,9 +343,12 @@ _vte_compact_row_data_uncompact (const VteCompactRowData *compact_row, VteRowDat
 
 	_vte_debug_print(VTE_DEBUG_RING, "Uncompacting row: %d %d.\n", storage.charbytes, storage.attrbytes);
 
-	_vte_row_data_ensure (row, compact_row->len);
-	row->len = compact_row->len;
 	row->attr = compact_row->attr;
+	if (G_UNLIKELY (!_vte_row_data_ensure (row, compact_row->len))) {
+		row->len = 0;
+		return;
+	}
+	row->len = compact_row->len;
 
 	from = _fetch (from,     (guint32 *) row->cells, 0,           storage.charbytes, compact_row->len);
 	from = _fetch (from, 1 + (guint32 *) row->cells, basic_attrs, storage.attrbytes, compact_row->len);

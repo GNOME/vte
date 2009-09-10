@@ -119,9 +119,9 @@ static const union {
  */
 
 typedef struct _VteRowAttr {
-	guint32 soft_wrapped: 1;
+	guint8 soft_wrapped: 1;
 } VteRowAttr;
-ASSERT_STATIC (sizeof (VteRowAttr) == 4);
+ASSERT_STATIC (sizeof (VteRowAttr) == 1);
 
 /*
  * VteRowData: A single row's data
@@ -129,7 +129,7 @@ ASSERT_STATIC (sizeof (VteRowAttr) == 4);
 
 typedef struct _VteRowData {
 	VteCell *cells;
-	guint32 len;
+	guint16 len;
 	VteRowAttr attr;
 } VteRowData;
 
