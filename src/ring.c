@@ -27,7 +27,7 @@
 #include "ring.h"
 
 
-#define VTE_POOL_BYTES	(1024*1024 - 4 * sizeof (void *)) /* hopefully we get some nice mmapped region */
+#define VTE_RING_CHUNK_COMPACT_BYTES	(1024*1024 - 4 * sizeof (void *)) /* hopefully we get some nice mmapped region */
 
 
 /*
@@ -396,14 +396,14 @@ _vte_ring_chunk_new_compact (guint start)
 
 	_vte_debug_print(VTE_DEBUG_RING, "Allocating compact chunk\n");
 
-	chunk = g_malloc (VTE_POOL_BYTES);
+	chunk = g_malloc (VTE_RING_CHUNK_COMPACT_BYTES);
 
 	_vte_ring_chunk_init (&chunk->base);
 	chunk->base.type = VTE_RING_CHUNK_TYPE_COMPACT;
 	chunk->offset = chunk->base.start = chunk->base.end = start;
 	chunk->base.array = chunk->p.rows;
 
-	chunk->bytes_left = VTE_POOL_BYTES - G_STRUCT_OFFSET (VteRingChunkCompact, p);
+	chunk->bytes_left = VTE_RING_CHUNK_COMPACT_BYTES - G_STRUCT_OFFSET (VteRingChunkCompact, p);
 	chunk->cursor = chunk->p.data + chunk->bytes_left;
 
 	return &chunk->base;
