@@ -124,7 +124,6 @@ typedef union _VteRowStorage {
 	guint8 compact; /* For quick access */
 	struct {
 		guint8 compact   : 1;
-		/* TODO these can be made faster using shifts instead of num bytes */
 		guint8 charbytes : 3;
 		guint8 attrbytes : 3;
 	} flags;
