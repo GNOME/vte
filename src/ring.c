@@ -28,7 +28,6 @@
 
 
 #define VTE_POOL_BYTES	(1024*1024 - 4 * sizeof (void *)) /* hopefully we get some nice mmapped region */
-#define VTE_RING_CHUNK_COMPACT_MAX_FREE		4
 
 
 /*
@@ -382,7 +381,6 @@ typedef struct _VteRingChunkCompact {
 	VteRingChunk base;
 
 	guint offset;
-	guint total_bytes;
 	guint bytes_left;
 	guchar *cursor; /* move backward */
 	union {
@@ -391,29 +389,21 @@ typedef struct _VteRingChunkCompact {
 	} p;
 } VteRingChunkCompact;
 
-static VteRingChunkCompact *free_chunk_compact;
-static guint num_free_chunk_compact;
-
 static VteRingChunk *
 _vte_ring_chunk_new_compact (guint start)
 {
 	VteRingChunkCompact *chunk;
 
-	if (G_LIKELY (free_chunk_compact)) {
-		chunk = free_chunk_compact;
-		free_chunk_compact = (VteRingChunkCompact *) chunk->base.next_chunk;
-		num_free_chunk_compact--;
-	} else {
-		chunk = g_malloc (VTE_POOL_BYTES);
-		chunk->total_bytes = VTE_POOL_BYTES - G_STRUCT_OFFSET (VteRingChunkCompact, p);
-	}
+	_vte_debug_print(VTE_DEBUG_RING, "Allocating compact chunk\n");
+
+	chunk = g_malloc (VTE_POOL_BYTES);
 
 	_vte_ring_chunk_init (&chunk->base);
 	chunk->base.type = VTE_RING_CHUNK_TYPE_COMPACT;
 	chunk->offset = chunk->base.start = chunk->base.end = start;
 	chunk->base.array = chunk->p.rows;
 
-	chunk->bytes_left = chunk->total_bytes;
+	chunk->bytes_left = VTE_POOL_BYTES - G_STRUCT_OFFSET (VteRingChunkCompact, p);
 	chunk->cursor = chunk->p.data + chunk->bytes_left;
 
 	return &chunk->base;
@@ -422,33 +412,9 @@ _vte_ring_chunk_new_compact (guint start)
 static void
 _vte_ring_chunk_free_compact (VteRingChunk *bchunk)
 {
-	VteRingChunkCompact *chunk = (VteRingChunkCompact *) bchunk;
+	_vte_debug_print(VTE_DEBUG_RING, "Freeing compact chunk\n");
 	g_assert (bchunk->type == VTE_RING_CHUNK_TYPE_COMPACT);
-
-	if (num_free_chunk_compact >= VTE_RING_CHUNK_COMPACT_MAX_FREE) {
-		g_free (bchunk);
-		return;
-	}
-
-	chunk->base.next_chunk = (VteRingChunk *) free_chunk_compact;
-	free_chunk_compact = chunk;
-	num_free_chunk_compact++;
-}
-
-static void
-_vte_ring_chunk_free_compact_spares (void)
-{
-	VteRingChunk *chunk;
-
-	chunk = (VteRingChunk *) free_chunk_compact;
-	while (chunk) {
-		VteRingChunk *next_chunk = chunk->next_chunk;
-		g_free (chunk);
-		chunk = next_chunk;
-		num_free_chunk_compact--;
-	}
-
-	g_assert (num_free_chunk_compact == 0);
+	g_free (bchunk);
 }
 
 /* Optimized version of _vte_ring_index() for writable chunks */
@@ -618,33 +584,6 @@ _vte_ring_chunk_free (VteRingChunk *chunk)
 
 
 /*
- * Free all pools if all rings have been destructed.
- */
-
-static guint ring_count;
-
-static void
-_ring_created (void)
-{
-	ring_count++;
-	_vte_debug_print(VTE_DEBUG_RING, "Rings++: %d\n", ring_count);
-}
-
-static void
-_ring_destroyed (void)
-{
-	g_assert (ring_count > 0);
-	ring_count--;
-	_vte_debug_print(VTE_DEBUG_RING, "Rings--: %d\n", ring_count);
-
-	if (ring_count)
-		return;
-
-	_vte_ring_chunk_free_compact_spares ();
-}
-
-
-/*
  * VteRing: A buffer ring
  */
 
@@ -688,8 +627,6 @@ _vte_ring_init (VteRing *ring, guint max_rows)
 
 	_vte_debug_print(VTE_DEBUG_RING, "New ring %p.\n", ring);
 	_vte_ring_validate(ring);
-
-	_ring_created ();
 }
 
 void
@@ -707,8 +644,6 @@ _vte_ring_fini (VteRing *ring)
 	}
 
 	_vte_ring_chunk_fini_writable (ring->head);
-
-	_ring_destroyed ();
 }
 
 static const VteRingChunk *
