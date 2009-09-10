@@ -176,14 +176,16 @@ enum _VteRingChunkType {
 typedef struct _VteRingChunk VteRingChunk;
 struct _VteRingChunk {
 	VteRingChunkType type; /* Chunk implementation type */
-
 	VteRingChunk *prev_chunk, *next_chunk;
-
 	guint start, end;
-	guint mask; /* For WRITABLE chunks only */
-	VteRowData *array;
 };
 
+typedef struct _VteRingChunkWritable {
+	VteRingChunk base;
+
+	guint mask;
+	VteRowData *array;
+} VteRingChunkWritable;
 
 /*
  * VteRing: A scrollback buffer ring
@@ -197,15 +199,15 @@ struct _VteRing {
 	guint cached_row_num;
 
 	VteRingChunk *tail, *cursor;
-	VteRingChunk head[1];
+	VteRingChunkWritable head[1];
 };
 
 #define _vte_ring_contains(__ring, __position) \
 	(((__position) >= (__ring)->tail->start) && \
-	 ((__position) < (__ring)->head->end))
+	 ((__position) < (__ring)->head->base.end))
 #define _vte_ring_delta(__ring) ((__ring)->tail->start + 0)
-#define _vte_ring_length(__ring) ((__ring)->head->end - (__ring)->tail->start)
-#define _vte_ring_next(__ring) ((__ring)->head->end + 0)
+#define _vte_ring_length(__ring) ((__ring)->head->base.end - (__ring)->tail->start)
+#define _vte_ring_next(__ring) ((__ring)->head->base.end + 0)
 
 const VteRowData *_vte_ring_index (VteRing *ring, guint position);
 VteRowData *_vte_ring_index_writable (VteRing *ring, guint position);
