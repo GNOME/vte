@@ -84,15 +84,13 @@ typedef struct _VteCell {
 } VteCell;
 ASSERT_STATIC (sizeof (VteCell) == 8);
 
-typedef union _VteCellInt {
+static const union {
 	VteCell cell;
 	struct {
 		guint32 c;
 		guint32 attr;
 	} i;
-} VteCellInt;
-
-static const VteCellInt basic_cell = {
+} basic_cell = {
 	{
 		0,
 		{
