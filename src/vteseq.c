@@ -308,7 +308,7 @@ _vte_terminal_clear_current_line (VteTerminal *terminal)
 		_vte_row_data_shrink (rowdata, 0);
 		/* Add enough cells to the end of the line to fill out the row. */
 		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
-		rowdata->soft_wrapped = 0;
+		rowdata->attr.soft_wrapped = 0;
 		/* Repaint this row. */
 		_vte_invalidate_cells(terminal,
 				      0, terminal->column_count,
@@ -338,7 +338,7 @@ _vte_terminal_clear_above_current (VteTerminal *terminal)
 			_vte_row_data_shrink (rowdata, 0);
 			/* Add new cells until we fill the row. */
 			_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
-			rowdata->soft_wrapped = 0;
+			rowdata->attr.soft_wrapped = 0;
 			/* Repaint the row. */
 			_vte_invalidate_cells(terminal,
 					0, terminal->column_count, i, 1);
@@ -1067,7 +1067,7 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 		}
 		/* Pad out the row. */
 		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
-		rowdata->soft_wrapped = 0;
+		rowdata->attr.soft_wrapped = 0;
 		/* Repaint this row. */
 		_vte_invalidate_cells(terminal,
 				      0, terminal->column_count,
@@ -1100,7 +1100,7 @@ vte_sequence_handler_ce (VteTerminal *terminal, GValueArray *params)
 		/* Add enough cells to fill out the row. */
 		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
 	}
-	rowdata->soft_wrapped = 0;
+	rowdata->attr.soft_wrapped = 0;
 	/* Repaint this row. */
 	_vte_invalidate_cells(terminal,
 			      screen->cursor_current.col,

@@ -132,6 +132,15 @@ typedef union _VteRowStorage {
 ASSERT_STATIC (sizeof (VteRowStorage) == 1);
 
 /*
+ * VteRowAttr: A single row's attributes
+ */
+
+typedef struct _VteRowAttr {
+	guint32 soft_wrapped: 1;
+} VteRowAttr;
+ASSERT_STATIC (sizeof (VteRowAttr) == 4);
+
+/*
  * VteRowData: A single row's data
  */
 
@@ -141,8 +150,8 @@ typedef struct _VteRowData {
 		guchar *bytes;  /* for compact storage */
 	} data;
 	guint32 len;
+	VteRowAttr attr;
 	VteRowStorage storage;
-	guint8 soft_wrapped: 1;
 } VteRowData;
 
 

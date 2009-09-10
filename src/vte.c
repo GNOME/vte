@@ -2971,7 +2971,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			col = screen->cursor_current.col = 0;
 			/* Mark this line as soft-wrapped. */
 			row = _vte_terminal_ensure_row (terminal);
-			row->soft_wrapped = 1;
+			row->attr.soft_wrapped = 1;
 			_vte_terminal_cursor_down (terminal);
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
@@ -3010,7 +3010,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 				row = _vte_terminal_find_row_data_writable (terminal, row_num);
 
 				if (row) {
-					if (!row->soft_wrapped)
+					if (!row->attr.soft_wrapped)
 						row = NULL;
 					else
 						col = _vte_row_data_length (row);
@@ -3139,7 +3139,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			/* Wrap. */
 			screen->cursor_current.col = 0;
 			/* Mark this line as soft-wrapped. */
-			row->soft_wrapped = 1;
+			row->attr.soft_wrapped = 1;
 			_vte_terminal_cursor_down (terminal);
 		}
 	}
@@ -5173,7 +5173,7 @@ vte_line_is_wrappable(VteTerminal *terminal, glong row)
 {
 	const VteRowData *rowdata;
 	rowdata = _vte_terminal_find_row_data(terminal, row);
-	return rowdata && rowdata->soft_wrapped;
+	return rowdata && rowdata->attr.soft_wrapped;
 }
 
 /* Check if the given point is in the region between the two points,
