@@ -70,6 +70,95 @@ _vte_cells_free (VteCells *cells)
 
 
 /*
+ * VteRowData: A row's data
+ */
+
+static void
+_vte_row_data_init (VteRowData *row)
+{
+	memset (row, 0, sizeof (*row));
+}
+
+static void
+_vte_row_data_clear (VteRowData *row)
+{
+	VteCell *cells = row->cells;
+	_vte_row_data_init (row);
+	row->cells = cells;
+}
+
+static void
+_vte_row_data_fini (VteRowData *row)
+{
+	if (row->cells)
+		_vte_cells_free (_vte_cells_for_cell_array (row->cells));
+	row->cells = NULL;
+}
+
+static inline void
+_vte_row_data_ensure (VteRowData *row, guint len)
+{
+	VteCells *cells = _vte_cells_for_cell_array (row->cells);
+	if (G_LIKELY (cells && len <= cells->alloc_len))
+		return;
+
+	row->cells = _vte_cells_realloc (cells, len)->cells;
+}
+
+void
+_vte_row_data_insert (VteRowData *row, guint col, const VteCell *cell)
+{
+	guint i;
+
+	_vte_row_data_ensure (row, row->len + 1);
+
+	for (i = row->len; i > col; i--)
+		row->cells[i] = row->cells[i - 1];
+
+	row->cells[col] = *cell;
+	row->len++;
+}
+
+void _vte_row_data_append (VteRowData *row, const VteCell *cell)
+{
+	_vte_row_data_ensure (row, row->len + 1);
+	row->cells[row->len] = *cell;
+	row->len++;
+}
+
+void _vte_row_data_remove (VteRowData *row, guint col)
+{
+	guint i;
+
+	for (i = col + 1; i < row->len; i++)
+		row->cells[i - 1] = row->cells[i];
+
+	if (G_LIKELY (row->len))
+		row->len--;
+}
+
+void _vte_row_data_fill (VteRowData *row, const VteCell *cell, guint len)
+{
+	if (row->len < len) {
+		guint i = len - row->len;
+
+		_vte_row_data_ensure (row, len);
+
+		for (i = row->len; i < len; i++)
+			row->cells[i] = *cell;
+
+		row->len = len;
+	}
+}
+
+void _vte_row_data_shrink (VteRowData *row, guint max_len)
+{
+	if (max_len < row->len)
+		row->len = max_len;
+}
+
+
+/*
  * VteRowStorage: Storage layout flags for a row's cells
  */
 
@@ -96,10 +185,11 @@ _width (guint32 x)
 }
 
 static VteRowStorage
-_vte_row_storage_compute (const VteCell *cells, guint len)
+_vte_row_storage_compute (const VteRowData *row)
 {
 	guint i;
-	const guint32 *c = (const guint32 *) cells;
+	const guint32 *c = (const guint32 *) row->cells;
+	guint len = row->len;
 	guint32 basic_attrs = basic_cell.i.attr;
 	guint32 chars = 0, attrs = 0;
 	VteRowStorage storage;
@@ -212,7 +302,7 @@ _fetch (const guchar *from, guint32 *to, guint32 xor, guint width, guint len)
 }
 
 static void
-_vte_row_storage_compact (VteRowStorage storage, guchar *to, const VteCell *cells, guint len)
+_vte_row_storage_compact (VteRowStorage storage, guchar *to, const VteRowData *row)
 {
 	guint32 basic_attrs = basic_cell.i.attr;
 
@@ -220,141 +310,33 @@ _vte_row_storage_compact (VteRowStorage storage, guchar *to, const VteCell *cell
 			 storage.flags.compact, storage.flags.charbytes, storage.flags.attrbytes);
 
 	if (!storage.compact) {
-		memcpy (to, cells, len * sizeof (VteCell));
+		memcpy (to, row->cells, row->len * sizeof (VteCell));
 		return;
 	}
 
-	to = _store (to,     (const guint32 *) cells, 0,           storage.flags.charbytes, len);
-	to = _store (to, 1 + (const guint32 *) cells, basic_attrs, storage.flags.attrbytes, len);
+	to = _store (to,     (const guint32 *) row->cells, 0,           storage.flags.charbytes, row->len);
+	to = _store (to, 1 + (const guint32 *) row->cells, basic_attrs, storage.flags.attrbytes, row->len);
 }
 
 static void
-_vte_row_storage_uncompact (VteRowStorage storage, const guchar *from, VteCell *cells, guint len)
+_vte_row_storage_uncompact (VteRowStorage storage, const guchar *from, guint len, VteRowData *row)
 {
 	guint32 basic_attrs = basic_cell.i.attr;
 
 	_vte_debug_print(VTE_DEBUG_RING, "Uncompacting row: %d %d %d.\n",
 			 storage.flags.compact, storage.flags.charbytes, storage.flags.attrbytes);
 
+	_vte_row_data_ensure (row, len);
+	row->len = len;
+
 	if (!storage.compact) {
-		memcpy (cells, from, len * sizeof (VteCell));
+		memcpy (row->cells, from, len * sizeof (VteCell));
 		return;
 	}
 
-	from = _fetch (from,     (guint32 *) cells, 0,           storage.flags.charbytes, len);
-	from = _fetch (from, 1 + (guint32 *) cells, basic_attrs, storage.flags.attrbytes, len);
+	from = _fetch (from,     (guint32 *) row->cells, 0,           storage.flags.charbytes, len);
+	from = _fetch (from, 1 + (guint32 *) row->cells, basic_attrs, storage.flags.attrbytes, len);
 }
-
-
-/*
- * VteRowData: A row's data
- */
-
-static void
-_vte_row_data_init (VteRowData *row)
-{
-	memset (row, 0, sizeof (*row));
-}
-
-static void
-_vte_row_data_clear (VteRowData *row)
-{
-	VteCell *cells = row->cells;
-	_vte_row_data_init (row);
-	row->cells = cells;
-}
-
-static void
-_vte_row_data_fini (VteRowData *row)
-{
-	if (row->cells)
-		_vte_cells_free (_vte_cells_for_cell_array (row->cells));
-	row->cells = NULL;
-}
-
-static inline void
-_vte_row_data_ensure (VteRowData *row, guint len)
-{
-	VteCells *cells = _vte_cells_for_cell_array (row->cells);
-	if (G_LIKELY (cells && len <= cells->alloc_len))
-		return;
-
-	row->cells = _vte_cells_realloc (cells, len)->cells;
-}
-
-void
-_vte_row_data_insert (VteRowData *row, guint col, const VteCell *cell)
-{
-	guint i;
-
-	_vte_row_data_ensure (row, row->len + 1);
-
-	for (i = row->len; i > col; i--)
-		row->cells[i] = row->cells[i - 1];
-
-	row->cells[col] = *cell;
-	row->len++;
-}
-
-void _vte_row_data_append (VteRowData *row, const VteCell *cell)
-{
-	_vte_row_data_ensure (row, row->len + 1);
-	row->cells[row->len] = *cell;
-	row->len++;
-}
-
-void _vte_row_data_remove (VteRowData *row, guint col)
-{
-	guint i;
-
-	for (i = col + 1; i < row->len; i++)
-		row->cells[i - 1] = row->cells[i];
-
-	if (G_LIKELY (row->len))
-		row->len--;
-}
-
-void _vte_row_data_fill (VteRowData *row, const VteCell *cell, guint len)
-{
-	if (row->len < len) {
-		guint i = len - row->len;
-
-		_vte_row_data_ensure (row, len);
-
-		for (i = row->len; i < len; i++)
-			row->cells[i] = *cell;
-
-		row->len = len;
-	}
-}
-
-void _vte_row_data_shrink (VteRowData *row, guint max_len)
-{
-	if (max_len < row->len)
-		row->len = max_len;
-}
-
-
-
-typedef struct _VteCompactRowData {
-	guchar *bytes;
-	guint32 len;
-	VteRowAttr attr;
-	VteRowStorage storage;
-} VteCompactRowData;
-
-static void
-_vte_row_data_uncompact_row (VteRowData *row, const VteCompactRowData *compact_row)
-{
-	/* Store cell data */
-	_vte_row_data_ensure (row, compact_row->len);
-	_vte_row_storage_uncompact (compact_row->storage, compact_row->bytes, row->cells, compact_row->len);
-
-	/* Store row data */
-	row->len = compact_row->len;
-	row->attr = compact_row->attr;
-}
-
 
 
 /*
@@ -380,6 +362,25 @@ _vte_ring_chunk_insert_chunk_before (VteRingChunk *chunk, VteRingChunk *new)
 
 
 /* Compact chunk type */
+
+
+typedef struct _VteCompactRowData {
+	guchar *bytes;
+	guint32 len;
+	VteRowAttr attr;
+	VteRowStorage storage;
+} VteCompactRowData;
+
+static void
+_vte_row_data_uncompact_row (VteRowData *row, const VteCompactRowData *compact_row)
+{
+	/* Store cell data */
+	_vte_row_storage_uncompact (compact_row->storage, compact_row->bytes, compact_row->len, row);
+
+	/* Store row data */
+	row->attr = compact_row->attr;
+}
+
 
 typedef struct _VteRingChunkCompact {
 	VteRingChunk base;
@@ -434,7 +435,7 @@ _vte_ring_chunk_compact_push_head_row (VteRingChunk *bchunk, VteRowData *row)
 	VteCompactRowData *compact_row;
 	guint compact_size, total_size;
 
-	storage = _vte_row_storage_compute (row->cells, row->len);
+	storage = _vte_row_storage_compute (row);
 	compact_size = _vte_row_storage_get_size (storage, row->len);
 	total_size = compact_size + sizeof (chunk->p.rows[0]);
 
@@ -444,7 +445,7 @@ _vte_ring_chunk_compact_push_head_row (VteRingChunk *bchunk, VteRowData *row)
 	/* Store cell data */
 	chunk->cursor -= compact_size;
 	chunk->bytes_left -= total_size;
-	_vte_row_storage_compact (storage, chunk->cursor, row->cells, row->len);
+	_vte_row_storage_compact (storage, chunk->cursor, row);
 
 	/* Store row data */
 	compact_row = _vte_ring_chunk_compact_index (chunk, chunk->base.end);
