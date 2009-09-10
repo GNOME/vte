@@ -43,34 +43,27 @@ struct _VteCells {
 static inline VteCells *
 _vte_cells_for_cell_array (VteCell *cells)
 {
-	if (!cells)
+	if (G_UNLIKELY (!cells))
 		return NULL;
 
 	return (VteCells *) (((guchar *) cells) - G_STRUCT_OFFSET (VteCells, cells));
 }
 
-static VteCell *
-_vte_cell_array_realloc (VteCell *cell_array, guint len)
+static VteCells *
+_vte_cells_realloc (VteCells *cells, guint len)
 {
-	VteCells *cells = _vte_cells_for_cell_array (cell_array);
-	guint alloc_len;
-
-	if (G_LIKELY (cells && len <= cells->alloc_len))
-		return cells->cells;
-
-	alloc_len = (1 << g_bit_storage (MAX (len, 80))) - 1;
+	guint alloc_len = (1 << g_bit_storage (MAX (len, 80))) - 1;
 
 	_vte_debug_print(VTE_DEBUG_RING, "Enlarging cell array of %d cells to %d cells\n", cells ? cells->alloc_len : 0, alloc_len);
 	cells = g_realloc (cells, G_STRUCT_OFFSET (VteCells, cells) + alloc_len * sizeof (cells->cells[0]));
 	cells->alloc_len = alloc_len;
 
-	return cells->cells;
+	return cells;
 }
 
 static void
-_vte_cell_array_free (VteCell *cell_array)
+_vte_cells_free (VteCells *cells)
 {
-	VteCells *cells = _vte_cells_for_cell_array (cell_array);
 	_vte_debug_print(VTE_DEBUG_RING, "Freeing cell array of %d cells\n", cells->alloc_len);
 	g_free (cells);
 }
@@ -267,15 +260,18 @@ _vte_row_data_fini (VteRowData *row)
 	g_assert (!row->storage.compact);
 
 	if (row->data.cells)
-		_vte_cell_array_free (row->data.cells);
+		_vte_cells_free (_vte_cells_for_cell_array (row->data.cells));
 	row->data.cells = NULL;
 }
 
 static inline void
 _vte_row_data_ensure (VteRowData *row, guint len)
 {
-	if (G_LIKELY (row->len < len))
-		row->data.cells = _vte_cell_array_realloc (row->data.cells, len);
+	VteCells *cells = _vte_cells_for_cell_array (row->data.cells);
+	if (G_LIKELY (cells && len <= cells->alloc_len))
+		return;
+
+	row->data.cells = _vte_cells_realloc (cells, len)->cells;
 }
 
 void
