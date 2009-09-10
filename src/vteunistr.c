@@ -21,9 +21,10 @@
 
 #include <config.h>
 
+#include "vteunistr.h"
+
 #include <string.h>
 
-#include "vteunistr.h"
 
 /* Overview:
  *

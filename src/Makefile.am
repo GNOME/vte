@@ -69,6 +69,8 @@ libvte_la_SOURCES = \
 	vtepangocairo.h \
 	vteregex.c \
 	vteregex.h \
+	vterowdata.c \
+	vterowdata.h \
 	vteseq.c \
 	vteseq-list.h \
 	vteskel.c \
