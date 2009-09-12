@@ -23,33 +23,12 @@
 #include "debug.h"
 #include "vtestream.h"
 
-#include <glib-object.h>
 
 /*
- * VteStream: Abstract base stream class
+ * Note: Lot of this should have become possible using gio, not sure though.
+ * In paticular, I don't see input+output streams in gio, so we probably would
+ * have to reinvent it all ourselves anyway.
  */
 
-typedef GObject VteStream;
-
-typedef struct _VteStreamClass {
-	void (*add) (const char *data, gsize len);
-	void (*read) (gsize offset, char *data, gsize len);
-	void (*trunc) (gsize len);
-	void (*newpage) (void);
-} VteStreamClass;
-
-static GType _vte_stream_get_type (void);
-#define VTE_TYPE_STREAM _vte_stream_get_type ()
-
-G_DEFINE_ABSTRACT_TYPE (VteStream, _vte_stream, G_TYPE_OBJECT)
-
-static void
-_vte_stream_class_init (VteStreamClass *klass)
-{
-}
-
-static void
-_vte_stream_init (VteStream *stream)
-{
-}
-
+#include "vtestream-base.h"
+#include "vtestream-file.h"

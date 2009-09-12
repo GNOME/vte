@@ -1,0 +1,215 @@
+/*
+ * Copyright (C) 2009 Red Hat, Inc.
+ *
+ * This is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Library General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public
+ * License along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * Red Hat Author(s): Behdad Esfahbod
+ */
+
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+
+/*
+ * VteFileStream: A POSIX file-based stream
+ */
+
+typedef struct _VteFileStream {
+	VteStream parent;
+
+	/* The first fd/offset is for the write head, second is for last page */
+	gint fd[2];
+	gsize offset[2];
+} VteFileStream;
+
+typedef VteStreamClass VteFileStreamClass;
+
+static GType _vte_file_stream_get_type (void);
+#define VTE_TYPE_FILE_STREAM _vte_file_stream_get_type ()
+
+G_DEFINE_ABSTRACT_TYPE (VteFileStream, _vte_file_stream, VTE_TYPE_STREAM)
+
+static void
+_vte_file_stream_init (VteFileStream *stream)
+{
+}
+
+VteStream *
+_vte_file_stream_new (void)
+{
+	return (VteStream *) g_object_new (VTE_TYPE_FILE_STREAM, NULL);
+}
+
+static void
+_vte_file_stream_finalize (GObject *object)
+{
+	VteFileStream *stream = (VteFileStream *) object;
+
+	if (stream->fd[0]) close (stream->fd[0]);
+	if (stream->fd[1]) close (stream->fd[1]);
+
+	G_OBJECT_CLASS (_vte_file_stream_parent_class)->finalize(object);
+}
+
+static inline void
+_vte_file_stream_ensure_fd0 (VteFileStream *stream)
+{
+	gint fd;
+	gchar *file_name;
+	if (G_LIKELY (stream->fd[0]))
+		return;
+
+	fd = g_file_open_tmp ("vteXXXXXX", &file_name, NULL);
+	if (fd != -1) {
+		unlink (file_name);
+		g_free (file_name);
+	}
+
+	stream->fd[0] = dup (fd); /* we do the dup to make sure ->fd[0] is not 0 */
+
+	close (fd);
+}
+
+static void
+_xwrite (int fd, const char *data, gsize len)
+{
+	gsize ret;
+	while (len) {
+		ret = write (fd, data, len);
+		if (G_UNLIKELY (ret == (gsize) -1)) {
+			if (errno == EINTR)
+				continue;
+			else
+				break;
+		}
+		data += ret;
+		len -= ret;
+	}
+}
+
+static void
+_vte_file_stream_add (VteStream *astream, const char *data, gsize len)
+{
+	VteFileStream *stream = (VteFileStream *) astream;
+
+	_vte_file_stream_ensure_fd0 (stream);
+
+	lseek (stream->fd[0], 0, SEEK_END);
+	_xwrite (stream->fd[0], data, len);
+}
+
+static gsize
+_xread (int fd, char *data, gsize len)
+{
+	gsize ret, total = 0;
+	while (len) {
+		ret = read (fd, data, len);
+		if (G_UNLIKELY (ret == (gsize) -1)) {
+			if (errno == EINTR)
+				continue;
+			else
+				break;
+		}
+		data += ret;
+		len -= ret;
+		total += ret;
+	}
+	return total;
+}
+
+static void
+_vte_file_stream_read (VteStream *astream, gsize offset, char *data, gsize len)
+{
+	VteFileStream *stream = (VteFileStream *) astream;
+	gsize l;
+
+	if (G_UNLIKELY (offset < stream->offset[1])) {
+		l = MIN (len, stream->offset[1] - offset);
+		memset (data, 0, l);
+		offset += l; data += l; len -= l; if (!len) return;
+	}
+
+	if (offset < stream->offset[0]) {
+		lseek (stream->fd[1], offset - stream->offset[1], SEEK_SET);
+		l = _xread (stream->fd[1], data, len);
+		offset += l; data += l; len -= l; if (!len) return;
+	}
+
+	lseek (stream->fd[0], offset - stream->offset[0], SEEK_SET);
+	l = _xread (stream->fd[0], data, len);
+	offset += l; data += l; len -= l; if (!len) return;
+
+	memset (data, 0, len);
+}
+
+static void
+_vte_file_stream_swap_fds (VteFileStream *stream)
+{
+	gint fd;
+
+	fd = stream->fd[0]; stream->fd[0] = stream->fd[1]; stream->fd[1] = fd;
+}
+
+static void
+_xtruncate (gint fd, gsize offset)
+{
+	int ret;
+	do {
+		ret = ftruncate (fd, offset);
+	} while (ret == -1 && errno == EINTR);
+}
+
+static void
+_vte_file_stream_trunc (VteStream *astream, gsize offset)
+{
+	VteFileStream *stream = (VteFileStream *) astream;
+
+	if (G_UNLIKELY (offset < stream->offset[1])) {
+		_xtruncate (stream->fd[1], 0);
+		stream->offset[1] = offset;
+	}
+
+	if (G_UNLIKELY (offset < stream->offset[0])) {
+		_xtruncate (stream->fd[0], 0);
+		stream->offset[0] = stream->offset[1];
+		_vte_file_stream_swap_fds (stream);
+	} else {
+		_xtruncate (stream->fd[0], offset - stream->offset[0]);
+	}
+}
+
+static void
+_vte_file_stream_newpage (VteStream *astream)
+{
+	VteFileStream *stream = (VteFileStream *) astream;
+
+	stream->offset[1] = stream->offset[0];
+	_vte_file_stream_swap_fds (stream);
+	if (stream->fd[0])
+		_xtruncate (stream->fd[0], 0);
+}
+
+static void
+_vte_file_stream_class_init (VteFileStreamClass *klass)
+{
+	GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+
+	gobject_class->finalize = _vte_file_stream_finalize;
+
+	klass->add = _vte_file_stream_add;
+	klass->read = _vte_file_stream_read;
+	klass->trunc = _vte_file_stream_trunc;
+	klass->newpage = _vte_file_stream_newpage;
+}

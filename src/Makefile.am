@@ -77,6 +77,8 @@ libvte_la_SOURCES = \
 	vteskel.h \
 	vtestream.c \
 	vtestream.h \
+	vtestream-base.h \
+	vtestream-file.h \
 	vtetc.c \
 	vtetc.h \
 	vtetree.c \

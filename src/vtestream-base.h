@@ -18,19 +18,34 @@
  * Red Hat Author(s): Behdad Esfahbod
  */
 
-#ifndef vtestream_h_included
-#define vtestream_h_included
-
 #include <glib-object.h>
 
-G_BEGIN_DECLS
+/*
+ * VteStream: Abstract base stream class
+ */
 
-typedef struct _VteStream VteStream;
+struct _VteStream {
+	GObject parent;
+};
 
-VteStream *
-_vte_file_stream_new (void);
+typedef struct _VteStreamClass {
+	void (*add) (VteStream *stream, const char *data, gsize len);
+	void (*read) (VteStream *stream, gsize offset, char *data, gsize len);
+	void (*trunc) (VteStream *stream, gsize offset);
+	void (*newpage) (VteStream *stream);
+} VteStreamClass;
 
-G_END_DECLS
+static GType _vte_stream_get_type (void);
+#define VTE_TYPE_STREAM _vte_stream_get_type ()
 
-#endif
+G_DEFINE_ABSTRACT_TYPE (VteStream, _vte_stream, G_TYPE_OBJECT)
 
+static void
+_vte_stream_class_init (VteStreamClass *klass)
+{
+}
+
+static void
+_vte_stream_init (VteStream *stream)
+{
+}
