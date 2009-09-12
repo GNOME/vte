@@ -22,34 +22,10 @@
 #define vte_ring_h_included
 
 #include "vterowdata.h"
+#include "vtestream.h"
 
 G_BEGIN_DECLS
 
-/*
- * VteRingChunk: A chunk of the scrollback buffer ring
- */
-
-typedef enum _VteRingChunkType VteRingChunkType;
-enum _VteRingChunkType {
-	VTE_RING_CHUNK_TYPE_INVALID,
-	VTE_RING_CHUNK_TYPE_WRITABLE,
-	VTE_RING_CHUNK_TYPE_COMPACT
-
-};
-
-typedef struct _VteRingChunk VteRingChunk;
-struct _VteRingChunk {
-	VteRingChunkType type; /* Chunk implementation type */
-	VteRingChunk *prev_chunk, *next_chunk;
-	guint start, end;
-};
-
-typedef struct _VteRingChunkWritable {
-	VteRingChunk base;
-
-	guint mask;
-	VteRowData *array;
-} VteRingChunkWritable;
 
 /*
  * VteRing: A scrollback buffer ring
@@ -59,19 +35,27 @@ typedef struct _VteRing VteRing;
 struct _VteRing {
 	guint max;
 
+	guint start, end;
+
+	/* Writable */
+	guint writable, mask;
+	VteRowData *array;
+
+	/* Storage */
+	guint last_page;
+	VteStream *cell_stream, *row_stream;
+
 	VteRowData cached_row;
 	guint cached_row_num;
 
-	VteRingChunk *tail, *cursor;
-	VteRingChunkWritable head[1];
 };
 
 #define _vte_ring_contains(__ring, __position) \
-	(((__position) >= (__ring)->tail->start) && \
-	 ((__position) < (__ring)->head->base.end))
-#define _vte_ring_delta(__ring) ((__ring)->tail->start + 0)
-#define _vte_ring_length(__ring) ((__ring)->head->base.end - (__ring)->tail->start)
-#define _vte_ring_next(__ring) ((__ring)->head->base.end + 0)
+	(((__position) >= (__ring)->start) && \
+	 ((__position) < (__ring)->end))
+#define _vte_ring_delta(__ring) ((__ring)->start + 0)
+#define _vte_ring_length(__ring) ((__ring)->end - (__ring)->start)
+#define _vte_ring_next(__ring) ((__ring)->end + 0)
 
 const VteRowData *_vte_ring_index (VteRing *ring, guint position);
 VteRowData *_vte_ring_index_writable (VteRing *ring, guint position);

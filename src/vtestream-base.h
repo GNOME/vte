@@ -29,14 +29,17 @@ struct _VteStream {
 };
 
 typedef struct _VteStreamClass {
-	void (*add) (VteStream *stream, const char *data, gsize len);
+	GObjectClass parent_class;
+
+	gsize (*append) (VteStream *stream, const char *data, gsize len);
 	void (*read) (VteStream *stream, gsize offset, char *data, gsize len);
 	void (*trunc) (VteStream *stream, gsize offset);
-	void (*newpage) (VteStream *stream);
+	void (*new_page) (VteStream *stream);
 } VteStreamClass;
 
 static GType _vte_stream_get_type (void);
 #define VTE_TYPE_STREAM _vte_stream_get_type ()
+#define VTE_STREAM_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), VTE_TYPE_STREAM, VteStreamClass))
 
 G_DEFINE_ABSTRACT_TYPE (VteStream, _vte_stream, G_TYPE_OBJECT)
 
@@ -48,4 +51,28 @@ _vte_stream_class_init (VteStreamClass *klass)
 static void
 _vte_stream_init (VteStream *stream)
 {
+}
+
+gsize
+_vte_stream_append (VteStream *stream, const char *data, gsize len)
+{
+	return VTE_STREAM_GET_CLASS (stream)->append (stream, data, len);
+}
+
+void
+_vte_stream_read (VteStream *stream, gsize offset, char *data, gsize len)
+{
+	VTE_STREAM_GET_CLASS (stream)->read (stream, offset, data, len);
+}
+
+void
+_vte_stream_trunc (VteStream *stream, gsize offset)
+{
+	VTE_STREAM_GET_CLASS (stream)->trunc (stream, offset);
+}
+
+void
+_vte_stream_new_page (VteStream *stream)
+{
+	VTE_STREAM_GET_CLASS (stream)->new_page (stream);
 }

@@ -39,7 +39,7 @@ typedef VteStreamClass VteFileStreamClass;
 static GType _vte_file_stream_get_type (void);
 #define VTE_TYPE_FILE_STREAM _vte_file_stream_get_type ()
 
-G_DEFINE_ABSTRACT_TYPE (VteFileStream, _vte_file_stream, VTE_TYPE_STREAM)
+G_DEFINE_TYPE (VteFileStream, _vte_file_stream, VTE_TYPE_STREAM)
 
 static void
 _vte_file_stream_init (VteFileStream *stream)
@@ -99,15 +99,18 @@ _xwrite (int fd, const char *data, gsize len)
 	}
 }
 
-static void
-_vte_file_stream_add (VteStream *astream, const char *data, gsize len)
+static gsize
+_vte_file_stream_append (VteStream *astream, const char *data, gsize len)
 {
 	VteFileStream *stream = (VteFileStream *) astream;
+	gsize ret;
 
 	_vte_file_stream_ensure_fd0 (stream);
 
-	lseek (stream->fd[0], 0, SEEK_END);
+	ret = lseek (stream->fd[0], 0, SEEK_END);
 	_xwrite (stream->fd[0], data, len);
+
+	return ret;
 }
 
 static gsize
@@ -191,7 +194,7 @@ _vte_file_stream_trunc (VteStream *astream, gsize offset)
 }
 
 static void
-_vte_file_stream_newpage (VteStream *astream)
+_vte_file_stream_new_page (VteStream *astream)
 {
 	VteFileStream *stream = (VteFileStream *) astream;
 
@@ -208,8 +211,8 @@ _vte_file_stream_class_init (VteFileStreamClass *klass)
 
 	gobject_class->finalize = _vte_file_stream_finalize;
 
-	klass->add = _vte_file_stream_add;
+	klass->append = _vte_file_stream_append;
 	klass->read = _vte_file_stream_read;
 	klass->trunc = _vte_file_stream_trunc;
-	klass->newpage = _vte_file_stream_newpage;
+	klass->new_page = _vte_file_stream_new_page;
 }
