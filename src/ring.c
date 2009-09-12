@@ -585,7 +585,7 @@ _vte_ring_compact_one_row (VteRing *ring)
 	if (!head->prev_chunk ||
 	    !_vte_ring_chunk_compact_push_head_row (head->prev_chunk, row))
 	{
-		/* Previous head doesn't have enough room, add a new head and retry */
+		/* Previous chunk doesn't have enough room, add a new chunk and retry */
 		VteRingChunk *new_chunk = _vte_ring_chunk_new_compact (head->start);
 
 		_vte_debug_print(VTE_DEBUG_RING, "Allocating chunk.\n");
