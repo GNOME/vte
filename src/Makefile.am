@@ -75,6 +75,8 @@ libvte_la_SOURCES = \
 	vteseq-list.h \
 	vteskel.c \
 	vteskel.h \
+	vtestream.c \
+	vtestream.h \
 	vtetc.c \
 	vtetc.h \
 	vtetree.c \
