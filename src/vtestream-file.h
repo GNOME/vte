@@ -31,12 +31,15 @@ _xread (int fd, char *data, gsize len)
 
 	while (len) {
 		ret = read (fd, data, len);
+	g_message ("%d %d", len, ret);
 		if (G_UNLIKELY (ret == (gsize) -1)) {
 			if (errno == EINTR)
 				continue;
 			else
 				break;
 		}
+		if (G_UNLIKELY (ret == 0))
+			break;
 		data += ret;
 		len -= ret;
 		total += ret;
@@ -59,6 +62,8 @@ _xwrite (int fd, const char *data, gsize len)
 			else
 				break;
 		}
+		if (G_UNLIKELY (ret == 0))
+			break;
 		data += ret;
 		len -= ret;
 	}
