@@ -27,6 +27,7 @@ G_BEGIN_DECLS
 
 typedef struct _VteStream VteStream;
 
+void _vte_stream_reset (VteStream *stream, gsize offset);
 gsize _vte_stream_append (VteStream *stream, const char *data, gsize len);
 void _vte_stream_read (VteStream *stream, gsize offset, char *data, gsize len);
 void _vte_stream_truncate (VteStream *stream, gsize offset);

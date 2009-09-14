@@ -31,6 +31,7 @@ struct _VteStream {
 typedef struct _VteStreamClass {
 	GObjectClass parent_class;
 
+	void (*reset) (VteStream *stream, gsize offset);
 	gsize (*append) (VteStream *stream, const char *data, gsize len);
 	void (*read) (VteStream *stream, gsize offset, char *data, gsize len);
 	void (*truncate) (VteStream *stream, gsize offset);
@@ -51,6 +52,12 @@ _vte_stream_class_init (VteStreamClass *klass)
 static void
 _vte_stream_init (VteStream *stream)
 {
+}
+
+void
+_vte_stream_reset (VteStream *stream, gsize offset)
+{
+	return VTE_STREAM_GET_CLASS (stream)->reset (stream, offset);
 }
 
 gsize

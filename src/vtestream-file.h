@@ -22,6 +22,61 @@
 #include <unistd.h>
 #include <errno.h>
 
+static gsize
+_xread (int fd, char *data, gsize len)
+{
+	gsize ret, total = 0;
+
+	g_assert (fd);
+
+	while (len) {
+		ret = read (fd, data, len);
+		if (G_UNLIKELY (ret == (gsize) -1)) {
+			if (errno == EINTR)
+				continue;
+			else
+				break;
+		}
+		data += ret;
+		len -= ret;
+		total += ret;
+	}
+	return total;
+}
+
+static void
+_xwrite (int fd, const char *data, gsize len)
+{
+	gsize ret;
+
+	g_assert (fd);
+
+	while (len) {
+		ret = write (fd, data, len);
+		if (G_UNLIKELY (ret == (gsize) -1)) {
+			if (errno == EINTR)
+				continue;
+			else
+				break;
+		}
+		data += ret;
+		len -= ret;
+	}
+}
+
+static void
+_xtruncate (gint fd, gsize offset)
+{
+	int ret;
+
+	g_assert (fd);
+
+	do {
+		ret = ftruncate (fd, offset);
+	} while (ret == -1 && errno == EINTR);
+}
+
+
 /*
  * VteFileStream: A POSIX file-based stream
  */
@@ -83,20 +138,14 @@ _vte_file_stream_ensure_fd0 (VteFileStream *stream)
 }
 
 static void
-_xwrite (int fd, const char *data, gsize len)
+_vte_file_stream_reset (VteStream *astream, gsize offset)
 {
-	gsize ret;
-	while (len) {
-		ret = write (fd, data, len);
-		if (G_UNLIKELY (ret == (gsize) -1)) {
-			if (errno == EINTR)
-				continue;
-			else
-				break;
-		}
-		data += ret;
-		len -= ret;
-	}
+	VteFileStream *stream = (VteFileStream *) astream;
+
+	if (stream->fd[0]) _xtruncate (stream->fd[0], 0);
+	if (stream->fd[1]) _xtruncate (stream->fd[1], 0);
+
+	stream->offset[0] = stream->offset[1] = offset;
 }
 
 static gsize
@@ -111,25 +160,6 @@ _vte_file_stream_append (VteStream *astream, const char *data, gsize len)
 	_xwrite (stream->fd[0], data, len);
 
 	return stream->offset[0] + ret;
-}
-
-static gsize
-_xread (int fd, char *data, gsize len)
-{
-	gsize ret, total = 0;
-	while (len) {
-		ret = read (fd, data, len);
-		if (G_UNLIKELY (ret == (gsize) -1)) {
-			if (errno == EINTR)
-				continue;
-			else
-				break;
-		}
-		data += ret;
-		len -= ret;
-		total += ret;
-	}
-	return total;
 }
 
 static void
@@ -163,15 +193,6 @@ _vte_file_stream_swap_fds (VteFileStream *stream)
 	gint fd;
 
 	fd = stream->fd[0]; stream->fd[0] = stream->fd[1]; stream->fd[1] = fd;
-}
-
-static void
-_xtruncate (gint fd, gsize offset)
-{
-	int ret;
-	do {
-		ret = ftruncate (fd, offset);
-	} while (ret == -1 && errno == EINTR);
 }
 
 static void
@@ -211,6 +232,7 @@ _vte_file_stream_class_init (VteFileStreamClass *klass)
 
 	gobject_class->finalize = _vte_file_stream_finalize;
 
+	klass->reset = _vte_file_stream_reset;
 	klass->append = _vte_file_stream_append;
 	klass->read = _vte_file_stream_read;
 	klass->truncate = _vte_file_stream_truncate;
