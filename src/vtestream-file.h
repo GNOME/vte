@@ -31,7 +31,6 @@ _xread (int fd, char *data, gsize len)
 
 	while (len) {
 		ret = read (fd, data, len);
-	g_message ("%d %d", len, ret);
 		if (G_UNLIKELY (ret == (gsize) -1)) {
 			if (errno == EINTR)
 				continue;
@@ -225,6 +224,8 @@ _vte_file_stream_new_page (VteStream *astream)
 	VteFileStream *stream = (VteFileStream *) astream;
 
 	stream->offset[1] = stream->offset[0];
+	if (stream->fd[0])
+		stream->offset[0] += lseek (stream->fd[0], 0, SEEK_END);
 	_vte_file_stream_swap_fds (stream);
 	if (stream->fd[0])
 		_xtruncate (stream->fd[0], 0);
