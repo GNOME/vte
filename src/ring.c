@@ -308,7 +308,8 @@ _vte_ring_resize (VteRing *ring, guint max_rows)
 	/* Adjust the start of tail chunk now */
 	if (_vte_ring_length (ring) > max_rows) {
 		ring->start = ring->end - max_rows;
-		/* XXX writable */
+		if (ring->start >= ring->writable)
+			_vte_ring_reset_streams (ring, 0);
 	}
 
 	ring->max = max_rows;
