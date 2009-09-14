@@ -110,7 +110,7 @@ _vte_file_stream_append (VteStream *astream, const char *data, gsize len)
 	ret = lseek (stream->fd[0], 0, SEEK_END);
 	_xwrite (stream->fd[0], data, len);
 
-	return ret;
+	return stream->offset[0] + ret;
 }
 
 static gsize
