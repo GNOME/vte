@@ -39,7 +39,6 @@ _vte_ring_validate (VteRing * ring)
 			ring->start, ring->end - ring->start,
 			ring->max, ring->end - ring->writable);
 
-	g_assert (ring->last_page <= ring->start);
 	g_assert (ring->start <= ring->writable);
 	g_assert (ring->writable <= ring->end);
 
@@ -123,13 +122,42 @@ _vte_ring_thaw_row (VteRing *ring, guint position, VteRowData *row)
 }
 
 static void
+_vte_ring_truncate_streams (VteRing *ring, guint position)
+{
+	gsize cell_position;
+	VteRowData row;
+
+	_vte_debug_print (VTE_DEBUG_RING, "Truncating streams to %d.\n", position);
+
+	_vte_stream_read (ring->row_stream, position * sizeof (row), (char *) &row, sizeof (row));
+	cell_position = GPOINTER_TO_SIZE (row.cells);
+
+	_vte_stream_truncate (ring->row_stream, position * sizeof (row));
+	_vte_stream_truncate (ring->cell_stream, cell_position);
+}
+
+static void
+_vte_ring_reset_streams (VteRing *ring, guint position)
+{
+	_vte_debug_print (VTE_DEBUG_RING, "Reseting streams to %d.\n", position);
+
+	_vte_stream_reset (ring->row_stream, position * sizeof (VteRowData));
+	_vte_stream_reset (ring->cell_stream, 0);
+
+	ring->last_page = position;
+}
+
+static void
 _vte_ring_new_page (VteRing *ring)
 {
+	_vte_debug_print (VTE_DEBUG_RING, "Starting new stream page at %d.\n", ring->writable);
+
 	_vte_stream_new_page (ring->cell_stream);
 	_vte_stream_new_page (ring->row_stream);
 
 	ring->last_page = ring->writable;
 }
+
 
 
 static inline VteRowData *
@@ -154,6 +182,7 @@ _vte_ring_index (VteRing *ring, guint position)
 }
 
 static void _vte_ring_ensure_writable (VteRing *ring, guint position);
+static void _vte_ring_ensure_writable_room (VteRing *ring);
 
 VteRowData *
 _vte_ring_index_writable (VteRing *ring, guint position)
@@ -167,29 +196,70 @@ _vte_ring_freeze_one_row (VteRing *ring)
 {
 	VteRowData *row;
 
-	if (G_UNLIKELY (ring->start - ring->last_page >= ring->max))
-		_vte_ring_new_page (ring);
+	if (G_UNLIKELY (ring->writable == ring->start))
+		_vte_ring_reset_streams (ring, ring->writable);
 
 	row = _vte_ring_writable_index (ring, ring->writable);
 	_vte_ring_freeze_row (ring, ring->writable, row);
 
 	ring->writable++;
+
+	if (G_UNLIKELY (ring->writable == ring->last_page || ring->writable - ring->last_page >= ring->max))
+		_vte_ring_new_page (ring);
 }
 
 static void
-_vte_ring_ensure_writable_head (VteRing *ring)
+_vte_ring_thaw_one_row (VteRing *ring)
+{
+	VteRowData *row;
+
+	g_assert (ring->start < ring->writable);
+
+	_vte_ring_ensure_writable_room (ring);
+
+	ring->writable--;
+
+	if (ring->writable == ring->cached_row_num)
+		ring->cached_row_num = (guint) -1; /* Invalidate cached row */
+
+	row = _vte_ring_writable_index (ring, ring->writable);
+
+	_vte_ring_thaw_row (ring, ring->writable, row);
+	_vte_ring_truncate_streams (ring, ring->writable);
+}
+
+static void
+_vte_ring_discard_one_row (VteRing *ring)
+{
+	ring->start++;
+	if (G_UNLIKELY (ring->start == ring->writable)) {
+		_vte_ring_reset_streams (ring, 0);
+	}
+	if (ring->start > ring->writable)
+		ring->writable = ring->start;
+}
+
+static void
+_vte_ring_maybe_freeze_one_row (VteRing *ring)
 {
 	if (G_LIKELY (ring->writable + ring->mask == ring->end))
 		_vte_ring_freeze_one_row (ring);
 }
 
 static void
-_vte_ring_ensure_writable_tail (VteRing *ring)
+_vte_ring_maybe_discard_one_row (VteRing *ring)
+{
+	if (_vte_ring_length (ring) == ring->max)
+		_vte_ring_discard_one_row (ring);
+}
+
+static void
+_vte_ring_ensure_writable_room (VteRing *ring)
 {
 	guint new_mask, old_mask, i, end;
 	VteRowData *old_array, *new_array;;
 
-	if (G_LIKELY (ring->start + ring->mask > ring->end))
+	if (G_LIKELY (ring->writable + ring->mask > ring->end))
 		return;
 
 	_vte_debug_print(VTE_DEBUG_RING, "Enlarging writable array.\n");
@@ -211,31 +281,6 @@ _vte_ring_ensure_writable_tail (VteRing *ring)
 }
 
 static void
-_vte_ring_thaw_one_row (VteRing *ring)
-{
-	VteRowData *row;
-
-	_vte_ring_ensure_writable_tail (ring);
-
-	ring->writable--;
-
-	if (ring->writable == ring->cached_row_num)
-		/* Invalidate cached row */
-		ring->cached_row_num = (guint) -1;
-
-	row = _vte_ring_writable_index (ring, ring->writable);
-
-	if (ring->start >= ring->writable) {
-		g_assert_not_reached ();
-		_vte_row_data_clear (row);
-		ring->start = ring->writable;
-		return;
-	}
-
-	_vte_ring_thaw_row (ring, ring->writable, row);
-}
-
-static void
 _vte_ring_ensure_writable (VteRing *ring, guint position)
 {
 	if (G_LIKELY (position >= ring->writable))
@@ -246,7 +291,6 @@ _vte_ring_ensure_writable (VteRing *ring, guint position)
 	while (position < ring->writable)
 		_vte_ring_thaw_one_row (ring);
 }
-
 
 /**
  * _vte_ring_resize:
@@ -262,8 +306,10 @@ _vte_ring_resize (VteRing *ring, guint max_rows)
 	_vte_ring_validate(ring);
 
 	/* Adjust the start of tail chunk now */
-	if (_vte_ring_length (ring) > max_rows)
+	if (_vte_ring_length (ring) > max_rows) {
 		ring->start = ring->end - max_rows;
+		/* XXX writable */
+	}
 
 	ring->max = max_rows;
 }
@@ -310,16 +356,12 @@ _vte_ring_insert_internal (VteRing *ring, guint position)
 	_vte_debug_print(VTE_DEBUG_RING, "Inserting at position %u.\n", position);
 	_vte_ring_validate(ring);
 
-	if (_vte_ring_length (ring) == ring->max)
-		ring->start++;
+	_vte_ring_maybe_discard_one_row (ring);
 
-	g_assert (position >= ring->start && position <= ring->end);
-
-	/* Make room */
 	_vte_ring_ensure_writable (ring, position);
-	if (position == ring->writable)
-		_vte_ring_ensure_writable_tail (ring);
-	_vte_ring_ensure_writable_head (ring);
+	_vte_ring_ensure_writable_room (ring);
+
+	g_assert (position >= ring->writable && position <= ring->end);
 
 	tmp = *_vte_ring_writable_index (ring, ring->end);
 	for (i = ring->end; i > position; i--)
@@ -329,6 +371,8 @@ _vte_ring_insert_internal (VteRing *ring, guint position)
 	row = _vte_ring_writable_index (ring, position);
 	_vte_row_data_clear (row);
 	ring->end++;
+
+	_vte_ring_maybe_freeze_one_row (ring);
 
 	_vte_ring_validate(ring);
 	return row;
