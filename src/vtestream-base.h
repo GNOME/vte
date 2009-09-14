@@ -36,6 +36,7 @@ typedef struct _VteStreamClass {
 	void (*read) (VteStream *stream, gsize offset, char *data, gsize len);
 	void (*truncate) (VteStream *stream, gsize offset);
 	void (*new_page) (VteStream *stream);
+	gsize (*head) (VteStream *stream);
 } VteStreamClass;
 
 static GType _vte_stream_get_type (void);
@@ -82,4 +83,10 @@ void
 _vte_stream_new_page (VteStream *stream)
 {
 	VTE_STREAM_GET_CLASS (stream)->new_page (stream);
+}
+
+gsize
+_vte_stream_head (VteStream *stream)
+{
+	return VTE_STREAM_GET_CLASS (stream)->head (stream);
 }

@@ -231,6 +231,17 @@ _vte_file_stream_new_page (VteStream *astream)
 		_xtruncate (stream->fd[0], 0);
 }
 
+static gsize
+_vte_file_stream_head (VteStream *astream)
+{
+	VteFileStream *stream = (VteFileStream *) astream;
+
+	if (stream->fd[0])
+		return stream->offset[0] += lseek (stream->fd[0], 0, SEEK_END);
+	else
+		return stream->offset[0];
+}
+
 static void
 _vte_file_stream_class_init (VteFileStreamClass *klass)
 {
@@ -243,4 +254,5 @@ _vte_file_stream_class_init (VteFileStreamClass *klass)
 	klass->read = _vte_file_stream_read;
 	klass->truncate = _vte_file_stream_truncate;
 	klass->new_page = _vte_file_stream_new_page;
+	klass->head = _vte_file_stream_head;
 }
