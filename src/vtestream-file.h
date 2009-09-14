@@ -175,7 +175,7 @@ _xtruncate (gint fd, gsize offset)
 }
 
 static void
-_vte_file_stream_trunc (VteStream *astream, gsize offset)
+_vte_file_stream_truncate (VteStream *astream, gsize offset)
 {
 	VteFileStream *stream = (VteFileStream *) astream;
 
@@ -213,6 +213,6 @@ _vte_file_stream_class_init (VteFileStreamClass *klass)
 
 	klass->append = _vte_file_stream_append;
 	klass->read = _vte_file_stream_read;
-	klass->trunc = _vte_file_stream_trunc;
+	klass->truncate = _vte_file_stream_truncate;
 	klass->new_page = _vte_file_stream_new_page;
 }
