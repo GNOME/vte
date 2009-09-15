@@ -71,7 +71,6 @@ _vte_unistr_get_base (vteunistr s);
 void
 _vte_unistr_append_to_string (vteunistr s, GString *gs);
 
-#if 0 /* unused */
 /**
  * _vte_unistr_strlen:
  * @s: a #vteunistr
@@ -82,7 +81,6 @@ _vte_unistr_append_to_string (vteunistr s, GString *gs);
  **/
 int
 _vte_unistr_strlen (vteunistr s);
-#endif
 
 G_END_DECLS
 

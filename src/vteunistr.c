@@ -78,8 +78,6 @@
 
 #define VTE_UNISTR_START 0x80000000
 
-static int _vte_unistr_strlen (vteunistr s);
-
 static vteunistr unistr_next = VTE_UNISTR_START + 1;
 
 struct VteUnistrDecomp {
@@ -164,7 +162,7 @@ _vte_unistr_append_to_string (vteunistr s, GString *gs)
 	g_string_append_unichar (gs, (gunichar) s);
 }
 
-static int
+int
 _vte_unistr_strlen (vteunistr s)
 {
 	int len = 1;
