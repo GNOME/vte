@@ -27,7 +27,7 @@ _xread (int fd, char *data, gsize len)
 {
 	gsize ret, total = 0;
 
-	g_assert (fd);
+	g_assert (fd || !len);
 
 	while (len) {
 		ret = read (fd, data, len);
@@ -51,7 +51,7 @@ _xwrite (int fd, const char *data, gsize len)
 {
 	gsize ret;
 
-	g_assert (fd);
+	g_assert (fd || !len);
 
 	while (len) {
 		ret = write (fd, data, len);
@@ -73,7 +73,7 @@ _xtruncate (gint fd, gsize offset)
 {
 	int ret;
 
-	g_assert (fd);
+	g_assert (fd || !offset);
 
 	do {
 		ret = ftruncate (fd, offset);
@@ -237,7 +237,7 @@ _vte_file_stream_head (VteStream *astream)
 	VteFileStream *stream = (VteFileStream *) astream;
 
 	if (stream->fd[0])
-		return stream->offset[0] += lseek (stream->fd[0], 0, SEEK_END);
+		return stream->offset[0] + lseek (stream->fd[0], 0, SEEK_END);
 	else
 		return stream->offset[0];
 }
