@@ -2280,8 +2280,6 @@ _vte_terminal_ensure_row (VteTerminal *terminal)
 	gint delta;
 	glong v;
 
-	g_assert (VTE_IS_TERMINAL (terminal));
-
 	/* Must make sure we're in a sane area. */
 	screen = terminal->pvt->screen;
 	v = screen->cursor_current.row;
