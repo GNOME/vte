@@ -70,6 +70,11 @@ typedef struct _VteCellAttr {
 } VteCellAttr;
 ASSERT_STATIC (sizeof (VteCellAttr) == 4);
 
+typedef union _VteIntCellAttr {
+	VteCellAttr s;
+	guint32 i;
+} VteIntCellAttr;
+ASSERT_STATIC (sizeof (VteCellAttr) == sizeof (VteIntCellAttr));
 
 /*
  * VteCell: A single cell's data
@@ -88,6 +93,7 @@ typedef union _VteIntCell {
 		guint32 attr;
 	} i;
 } VteIntCell;
+ASSERT_STATIC (sizeof (VteCell) == sizeof (VteIntCell));
 
 static const VteIntCell basic_cell = {
 	{

@@ -27,6 +27,12 @@
 G_BEGIN_DECLS
 
 
+typedef struct _VteCellAttrChange {
+	gsize text_offset;
+	VteIntCellAttr attr;
+} VteCellAttrChange;
+
+
 /*
  * VteRing: A scrollback buffer ring
  */
@@ -43,7 +49,9 @@ struct _VteRing {
 
 	/* Storage */
 	guint last_page;
-	VteStream *cell_stream, *row_stream;
+	VteStream *attr_stream, *text_stream, *row_stream;
+	VteCellAttrChange last_attr;
+	GString *utf8_buffer;
 
 	VteRowData cached_row;
 	guint cached_row_num;

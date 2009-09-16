@@ -60,8 +60,13 @@ _vte_ring_init (VteRing *ring, guint max_rows)
 	ring->mask = 31;
 	ring->array = g_malloc0 (sizeof (ring->array[0]) * (ring->mask + 1));
 
-	ring->cell_stream = _vte_file_stream_new ();
+	ring->attr_stream = _vte_file_stream_new ();
+	ring->text_stream = _vte_file_stream_new ();
 	ring->row_stream = _vte_file_stream_new ();
+
+	ring->last_attr.text_offset = 0;
+	ring->last_attr.attr.i = 0;
+	ring->utf8_buffer = g_string_sized_new (128);
 
 	_vte_row_data_init (&ring->cached_row);
 	ring->cached_row_num = (guint) -1;
@@ -79,61 +84,160 @@ _vte_ring_fini (VteRing *ring)
 
 	g_free (ring->array);
 
-	g_object_unref (ring->cell_stream);
+	g_object_unref (ring->attr_stream);
+	g_object_unref (ring->text_stream);
 	g_object_unref (ring->row_stream);
+
+	g_string_free (ring->utf8_buffer, TRUE);
 
 	_vte_row_data_fini (&ring->cached_row);
 }
 
+typedef struct _VteRowRecord {
+	gsize text_offset;
+	gsize attr_offset;
+} VteRowRecord;
+
 static void
 _vte_ring_freeze_row (VteRing *ring, guint position, const VteRowData *row)
 {
-	gsize cell_position;
-	VteRowData tmp;
+	VteRowRecord record;
+	VteCell *cell;
+	GString *buffer = ring->utf8_buffer;
+	guint32 basic_attr = basic_cell.i.attr;
+	int i;
 
 	_vte_debug_print (VTE_DEBUG_RING, "Freezing row %d.\n", position);
 
-	cell_position = _vte_stream_append (ring->cell_stream, (const char *) row->cells, row->len * sizeof (row->cells[0]));
+	record.text_offset = _vte_stream_head (ring->text_stream);
+	record.attr_offset = _vte_stream_head (ring->attr_stream);
 
-	tmp = *row;
-	tmp.cells = GSIZE_TO_POINTER (cell_position);
-	_vte_stream_append (ring->row_stream, (const char *) &tmp, sizeof (tmp));
+	g_string_set_size (buffer, 0);
+	for (i = 0, cell = row->cells; i < row->len; i++, cell++) {
+		VteIntCellAttr attr;
+		int num_chars;
+
+		/* Attr storage:
+		 *
+		 * 1. We don't store attrs for fragments.  They can be
+		 * reconstructed using the columns of their start cell.
+		 *
+		 * 2. We store one attr per vteunistr character starting
+		 * from the second character, with columns=0.
+		 *
+		 * That's enough to reconstruct the attrs, and to store
+		 * the text in real UTF-8.
+		 */
+		attr.s = cell->attr;
+		if (G_LIKELY (!attr.s.fragment)) {
+
+			attr.i ^= basic_attr;
+			if (ring->last_attr.attr.i != attr.i) {
+				ring->last_attr.text_offset = record.text_offset + buffer->len;
+				_vte_stream_append (ring->attr_stream, (const char *) &ring->last_attr, sizeof (ring->last_attr));
+				if (!buffer->len)
+					/* This row doesn't use last_attr, adjust */
+					record.attr_offset += sizeof (ring->last_attr);
+				ring->last_attr.attr = attr;
+			}
+
+			num_chars = _vte_unistr_strlen (cell->c);
+			if (num_chars > 1) {
+				attr.s = cell->attr;
+				attr.s.columns = 0;
+				attr.i ^= basic_attr;
+				ring->last_attr.text_offset = record.text_offset + buffer->len
+							    + g_unichar_to_utf8 (_vte_unistr_get_base (cell->c), NULL);
+				_vte_stream_append (ring->attr_stream, (const char *) &ring->last_attr, sizeof (ring->last_attr));
+				ring->last_attr.attr = attr;
+			}
+		}
+
+		_vte_unistr_append_to_string (cell->c, buffer);
+	}
+	if (!row->attr.soft_wrapped)
+		g_string_append_c (buffer, '\n');
+
+	_vte_stream_append (ring->text_stream, buffer->str, buffer->len);
+	_vte_stream_append (ring->row_stream, (const char *) &record, sizeof (record));
 }
 
 static void
-_vte_ring_thaw_row (VteRing *ring, guint position, VteRowData *row)
+_vte_ring_thaw_row (VteRing *ring, guint position, VteRowData *row, gboolean truncate)
 {
-	VteCell *cells;
-	gsize cell_position;
+	VteRowRecord records[2], record;
+	VteIntCellAttr attr;
+	VteCellAttrChange attr_change;
+	VteCell cell;
+	const char *p, *q, *end;
+	GString *buffer = ring->utf8_buffer;
+	guint32 basic_attr = basic_cell.i.attr;
 
 	_vte_debug_print (VTE_DEBUG_RING, "Thawing row %d.\n", position);
 
-	cells = row->cells;
-	_vte_stream_read (ring->row_stream, position * sizeof (*row), (char *) row, sizeof (*row));
-	cell_position = GPOINTER_TO_SIZE (row->cells);
-	row->cells = cells;
+	_vte_row_data_clear (row);
 
-	if (G_UNLIKELY (!_vte_row_data_ensure (row, row->len))) {
-		row->len = 0;
-		return;
+	attr_change.text_offset = 0;
+
+	_vte_stream_read (ring->row_stream, position * sizeof (record), (char *) records, sizeof (records));
+	if (records[1].text_offset < records[0].text_offset)
+		records[1].text_offset = _vte_stream_head (ring->text_stream);
+
+	g_string_set_size (buffer, records[1].text_offset - records[0].text_offset);
+	_vte_stream_read (ring->text_stream, records[0].text_offset, buffer->str, buffer->len);
+
+	record = records[0];
+
+	if (G_LIKELY (buffer->len && buffer->str[buffer->len - 1] == '\n'))
+		buffer->len--;
+	else
+		row->attr.soft_wrapped = TRUE;
+
+	p = buffer->str;
+	end = p + buffer->len;
+	while (p < end) {
+
+		if (record.text_offset >= ring->last_attr.text_offset) {
+			attr = ring->last_attr.attr;
+		} else {
+			if (record.text_offset >= attr_change.text_offset) {
+				_vte_stream_read (ring->attr_stream, record.attr_offset, (char *) &attr_change, sizeof (attr_change));
+				record.attr_offset += sizeof (attr_change);
+			}
+			attr = attr_change.attr;
+		}
+
+		attr.i ^= basic_attr;
+		cell.attr = attr.s;
+		cell.c = g_utf8_get_char (p);
+
+		q = g_utf8_next_char (p);
+		record.text_offset += q - p;
+		p = q;
+
+		if (G_UNLIKELY (cell.attr.columns == 0)) {
+			/* Combine it */
+			g_assert (row->len);
+			row->cells[row->len - 1].c = _vte_unistr_append_unichar (row->cells[row->len - 1].c, cell.c);
+		} else {
+			_vte_row_data_append (row, &cell);
+			if (cell.attr.columns > 1) {
+				/* Add the fragments */
+				int i, columns = cell.attr.columns;
+				cell.attr.fragment = 1;
+				for (i = 1; i < columns; i++)
+					_vte_row_data_append (row, &cell);
+			}
+		}
 	}
 
-	_vte_stream_read (ring->cell_stream, cell_position, (char *) row->cells, row->len * sizeof (row->cells[0]));
-}
-
-static void
-_vte_ring_truncate_streams (VteRing *ring, guint position)
-{
-	gsize cell_position;
-	VteRowData row;
-
-	_vte_debug_print (VTE_DEBUG_RING, "Truncating streams to %d.\n", position);
-
-	_vte_stream_read (ring->row_stream, position * sizeof (row), (char *) &row, sizeof (row));
-	cell_position = GPOINTER_TO_SIZE (row.cells);
-
-	_vte_stream_truncate (ring->row_stream, position * sizeof (row));
-	_vte_stream_truncate (ring->cell_stream, cell_position);
+	if (truncate) {
+		if (records[0].text_offset < ring->last_attr.text_offset)
+			_vte_stream_read (ring->attr_stream, records[0].attr_offset, (char *) &ring->last_attr, sizeof (ring->last_attr));
+		_vte_stream_truncate (ring->row_stream, position * sizeof (record));
+		_vte_stream_truncate (ring->attr_stream, records[0].attr_offset);
+		_vte_stream_truncate (ring->text_stream, records[0].text_offset);
+	}
 }
 
 static void
@@ -141,8 +245,12 @@ _vte_ring_reset_streams (VteRing *ring, guint position)
 {
 	_vte_debug_print (VTE_DEBUG_RING, "Reseting streams to %d.\n", position);
 
-	_vte_stream_reset (ring->row_stream, position * sizeof (VteRowData));
-	_vte_stream_reset (ring->cell_stream, 0);
+	_vte_stream_reset (ring->row_stream, position * sizeof (VteRowRecord));
+	_vte_stream_reset (ring->text_stream, 0);
+	_vte_stream_reset (ring->attr_stream, 0);
+
+	ring->last_attr.text_offset = 0;
+	ring->last_attr.attr.i = 0;
 
 	ring->last_page = position;
 }
@@ -152,7 +260,8 @@ _vte_ring_new_page (VteRing *ring)
 {
 	_vte_debug_print (VTE_DEBUG_RING, "Starting new stream page at %d.\n", ring->writable);
 
-	_vte_stream_new_page (ring->cell_stream);
+	_vte_stream_new_page (ring->attr_stream);
+	_vte_stream_new_page (ring->text_stream);
 	_vte_stream_new_page (ring->row_stream);
 
 	ring->last_page = ring->writable;
@@ -174,7 +283,7 @@ _vte_ring_index (VteRing *ring, guint position)
 
 	if (ring->cached_row_num != position) {
 		_vte_debug_print(VTE_DEBUG_RING, "Caching row %d.\n", position);
-		_vte_ring_thaw_row (ring, position, &ring->cached_row);
+		_vte_ring_thaw_row (ring, position, &ring->cached_row, FALSE);
 		ring->cached_row_num = position;
 	}
 
@@ -224,8 +333,7 @@ _vte_ring_thaw_one_row (VteRing *ring)
 
 	row = _vte_ring_writable_index (ring, ring->writable);
 
-	_vte_ring_thaw_row (ring, ring->writable, row);
-	_vte_ring_truncate_streams (ring, ring->writable);
+	_vte_ring_thaw_row (ring, ring->writable, row, TRUE);
 }
 
 static void
