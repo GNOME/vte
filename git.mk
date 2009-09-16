@@ -162,7 +162,7 @@ $(srcdir)/.gitignore: Makefile.am $(top_srcdir)/git.mk
 	} | \
 	sed "s@^/`echo "$(srcdir)" | sed 's/\(.\)/[\1]/g'`/@/@" | \
 	sed 's@/[.]/@/@g' | \
-	LANG=C sort | uniq > $@.tmp && \
+	LC_ALL=C sort | uniq > $@.tmp && \
 	mv $@.tmp $@;
 
 all: $(srcdir)/.gitignore gitignore-recurse-maybe

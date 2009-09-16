@@ -1,6 +1,8 @@
 #!/bin/sh
 
-LANG=C
+LC_ALL=C
+export LC_ALL
+
 if test -z "$DOC_MODULE"; then
 	# extract from Makefile
 	eval `grep '^DOC_MODULE' Makefile | sed 's/ //g'`
