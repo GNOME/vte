@@ -98,6 +98,18 @@ typedef struct _VteRowRecord {
 	gsize attr_offset;
 } VteRowRecord;
 
+static gboolean
+_vte_ring_read_row_record (VteRing *ring, VteRowRecord *record, guint position)
+{
+	return _vte_stream_read (ring->row_stream, position * sizeof (*record), (char *) record, sizeof (*record));
+}
+
+static void
+_vte_ring_append_row_record (VteRing *ring, const VteRowRecord *record, guint position)
+{
+	_vte_stream_append (ring->row_stream, (const char *) record, sizeof (*record));
+}
+
 static void
 _vte_ring_freeze_row (VteRing *ring, guint position, const VteRowData *row)
 {
@@ -159,7 +171,7 @@ _vte_ring_freeze_row (VteRing *ring, guint position, const VteRowData *row)
 		g_string_append_c (buffer, '\n');
 
 	_vte_stream_append (ring->text_stream, buffer->str, buffer->len);
-	_vte_stream_append (ring->row_stream, (const char *) &record, sizeof (record));
+	_vte_ring_append_row_record (ring, &record, position);
 }
 
 static void
@@ -179,10 +191,10 @@ _vte_ring_thaw_row (VteRing *ring, guint position, VteRowData *row, gboolean tru
 
 	attr_change.text_offset = 0;
 
-	if (!_vte_stream_read (ring->row_stream, position * sizeof (records[0]), (char *) &records[0], sizeof (records[0])))
+	if (!_vte_ring_read_row_record (ring, &records[0], position))
 		return;
-	if ((position + 1) * sizeof (VteRowRecord) < _vte_stream_head (ring->row_stream)) {
-		if (!_vte_stream_read (ring->row_stream, (position + 1) * sizeof (records[1]), (char *) &records[1], sizeof (records[1])))
+	if ((position + 1) * sizeof (records[0]) < _vte_stream_head (ring->row_stream)) {
+		if (!_vte_ring_read_row_record (ring, &records[1], position + 1))
 			return;
 	} else
 		records[1].text_offset = _vte_stream_head (ring->text_stream);
