@@ -166,29 +166,26 @@ _vte_file_stream_append (VteStream *astream, const char *data, gsize len)
 	return stream->offset[0] + ret;
 }
 
-static void
+static gboolean
 _vte_file_stream_read (VteStream *astream, gsize offset, char *data, gsize len)
 {
 	VteFileStream *stream = (VteFileStream *) astream;
 	gsize l;
 
-	if (G_UNLIKELY (offset < stream->offset[1])) {
-		l = MIN (len, stream->offset[1] - offset);
-		memset (data, 0, l);
-		offset += l; data += l; len -= l; if (!len) return;
-	}
+	if (G_UNLIKELY (offset < stream->offset[1]))
+		return FALSE;
 
 	if (offset < stream->offset[0]) {
 		lseek (stream->fd[1], offset - stream->offset[1], SEEK_SET);
 		l = _xread (stream->fd[1], data, len);
-		offset += l; data += l; len -= l; if (!len) return;
+		offset += l; data += l; len -= l; if (!len) return TRUE;
 	}
 
 	lseek (stream->fd[0], offset - stream->offset[0], SEEK_SET);
 	l = _xread (stream->fd[0], data, len);
-	offset += l; data += l; len -= l; if (!len) return;
+	offset += l; data += l; len -= l; if (!len) return TRUE;
 
-	memset (data, 0, len);
+	return FALSE;
 }
 
 static void

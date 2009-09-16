@@ -179,12 +179,17 @@ _vte_ring_thaw_row (VteRing *ring, guint position, VteRowData *row, gboolean tru
 
 	attr_change.text_offset = 0;
 
-	_vte_stream_read (ring->row_stream, position * sizeof (record), (char *) records, sizeof (records));
-	if (records[1].text_offset < records[0].text_offset)
+	if (!_vte_stream_read (ring->row_stream, position * sizeof (records[0]), (char *) &records[0], sizeof (records[0])))
+		return;
+	if ((position + 1) * sizeof (VteRowRecord) < _vte_stream_head (ring->row_stream)) {
+		if (!_vte_stream_read (ring->row_stream, (position + 1) * sizeof (records[1]), (char *) &records[1], sizeof (records[1])))
+			return;
+	} else
 		records[1].text_offset = _vte_stream_head (ring->text_stream);
 
 	g_string_set_size (buffer, records[1].text_offset - records[0].text_offset);
-	_vte_stream_read (ring->text_stream, records[0].text_offset, buffer->str, buffer->len);
+	if (!_vte_stream_read (ring->text_stream, records[0].text_offset, buffer->str, buffer->len))
+		return;
 
 	record = records[0];
 
@@ -201,7 +206,8 @@ _vte_ring_thaw_row (VteRing *ring, guint position, VteRowData *row, gboolean tru
 			attr = ring->last_attr.attr;
 		} else {
 			if (record.text_offset >= attr_change.text_offset) {
-				_vte_stream_read (ring->attr_stream, record.attr_offset, (char *) &attr_change, sizeof (attr_change));
+				if (!_vte_stream_read (ring->attr_stream, record.attr_offset, (char *) &attr_change, sizeof (attr_change)))
+					return;
 				record.attr_offset += sizeof (attr_change);
 			}
 			attr = attr_change.attr;
@@ -233,7 +239,10 @@ _vte_ring_thaw_row (VteRing *ring, guint position, VteRowData *row, gboolean tru
 
 	if (truncate) {
 		if (records[0].text_offset < ring->last_attr.text_offset)
-			_vte_stream_read (ring->attr_stream, records[0].attr_offset, (char *) &ring->last_attr, sizeof (ring->last_attr));
+			if (!_vte_stream_read (ring->attr_stream, records[0].attr_offset, (char *) &ring->last_attr, sizeof (ring->last_attr))) {
+				ring->last_attr.text_offset = 0;
+				ring->last_attr.attr.i = 0;
+			}
 		_vte_stream_truncate (ring->row_stream, position * sizeof (record));
 		_vte_stream_truncate (ring->attr_stream, records[0].attr_offset);
 		_vte_stream_truncate (ring->text_stream, records[0].text_offset);
