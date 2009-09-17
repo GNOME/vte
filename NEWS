@@ -1,3 +1,9 @@
+0.21.6
+=======
+- Another rewrite of the ring.  Stores ring data on tmp files on disk now.
+  Please report any regressions.
+- Mark library-internal symbols as such
+
 0.21.5
 =======
 - Finish ring rewrite.  Scrollback buffer consumes ten times less
