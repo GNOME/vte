@@ -29,10 +29,10 @@ struct _vte_regex_match {
 };
 struct _vte_regex;
 
-struct _vte_regex * _vte_regex_compile(const char *pattern);
-void _vte_regex_free(struct _vte_regex *regex);
-int _vte_regex_exec(struct _vte_regex *regex, const char *string,
-		    gsize nmatch, struct _vte_regex_match *matches);
+VTE_STATIC  struct _vte_regex * _vte_regex_compile(const char *pattern);
+VTE_STATIC  void _vte_regex_free(struct _vte_regex *regex);
+VTE_STATIC  int _vte_regex_exec(struct _vte_regex *regex, const char *string,
+				gsize nmatch, struct _vte_regex_match *matches);
 G_END_DECLS
 
 #endif

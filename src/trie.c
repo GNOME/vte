@@ -1101,7 +1101,7 @@ main(int argc, char **argv)
 }
 #endif
 
-const struct _vte_matcher_class _vte_matcher_trie = {
+VTE_STATIC const struct _vte_matcher_class _vte_matcher_trie = {
 	(_vte_matcher_create_func)_vte_trie_new,
 	(_vte_matcher_add_func)_vte_trie_add,
 	(_vte_matcher_print_func)_vte_trie_print,

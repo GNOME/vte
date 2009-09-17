@@ -29,33 +29,33 @@ G_BEGIN_DECLS
 struct _vte_termcap;
 
 /* Create a new termcap structure. */
-struct _vte_termcap *_vte_termcap_new(const char *filename);
+VTE_STATIC  struct _vte_termcap *_vte_termcap_new(const char *filename);
 
 /* Free a termcap structure. */
-void _vte_termcap_free(struct _vte_termcap *termcap);
+VTE_STATIC  void _vte_termcap_free(struct _vte_termcap *termcap);
 
 /* Read a boolean capability for a given terminal. */
-gboolean _vte_termcap_find_boolean(struct _vte_termcap *termcap,
-				   const char *tname, const char *cap);
+VTE_STATIC  gboolean _vte_termcap_find_boolean(struct _vte_termcap *termcap,
+					       const char *tname, const char *cap);
 
 /* Read a numeric capability for a given terminal. */
-long _vte_termcap_find_numeric(struct _vte_termcap *termcap, const char *tname,
-			       const char *cap);
+VTE_STATIC  long _vte_termcap_find_numeric(struct _vte_termcap *termcap, const char *tname,
+					   const char *cap);
 
 /* Read a string capability for a given terminal.  The returned string should
  * be freed with g_free(). */
-char *_vte_termcap_find_string(struct _vte_termcap *termcap, const char *tname,
-			       const char *cap);
+VTE_STATIC  char *_vte_termcap_find_string(struct _vte_termcap *termcap, const char *tname,
+					   const char *cap);
 
 /* Read a string capability for a given terminal, and return the length of
  * the result in addition to the result itself.  The returned string should
  * be freed with g_free(). */
-char *_vte_termcap_find_string_length(struct _vte_termcap *termcap,
-				      const char *tname,
-				      const char *cap, gssize *length);
+VTE_STATIC  char *_vte_termcap_find_string_length(struct _vte_termcap *termcap,
+						  const char *tname,
+						  const char *cap, gssize *length);
 
 /* Preprocess a termcap-style string, expanding any escape sequences. */
-void _vte_termcap_strip(const char *termcap, char **stripped, gssize *len);
+VTE_STATIC  void _vte_termcap_strip(const char *termcap, char **stripped, gssize *len);
 
 G_END_DECLS
 

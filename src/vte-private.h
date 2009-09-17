@@ -386,41 +386,41 @@ struct _VteTerminalPrivate {
 
 
 VteRowData *_vte_terminal_ensure_row(VteTerminal *terminal);
-void _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible);
-void _vte_invalidate_all(VteTerminal *terminal);
-void _vte_invalidate_cells(VteTerminal *terminal,
-			   glong column_start, gint column_count,
-			   glong row_start, gint row_count);
-void _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row);
-void _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic);
+VTE_STATIC  void _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible);
+VTE_STATIC  void _vte_invalidate_all(VteTerminal *terminal);
+VTE_STATIC  void _vte_invalidate_cells(VteTerminal *terminal,
+				       glong column_start, gint column_count,
+				       glong row_start, gint row_count);
+VTE_STATIC  void _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row);
+VTE_STATIC  void _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic);
 VteRowData * _vte_new_row_data(VteTerminal *terminal);
-void _vte_terminal_adjust_adjustments(VteTerminal *terminal);
-void _vte_terminal_queue_contents_changed(VteTerminal *terminal);
-void _vte_terminal_emit_text_deleted(VteTerminal *terminal);
-void _vte_terminal_emit_text_inserted(VteTerminal *terminal);
-void _vte_terminal_cursor_down (VteTerminal *terminal);
-gboolean _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
-			       gboolean force_insert_mode,
-			       gboolean invalidate_cells);
-void _vte_terminal_scroll_region(VteTerminal *terminal,
-				 long row, glong count, glong delta);
-void _vte_terminal_set_default_attributes(VteTerminal *terminal);
-void _vte_terminal_clear_tabstop(VteTerminal *terminal, int column);
-gboolean _vte_terminal_get_tabstop(VteTerminal *terminal, int column);
-void _vte_terminal_set_tabstop(VteTerminal *terminal, int column);
-void _vte_terminal_update_insert_delta(VteTerminal *terminal);
-void _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal);
-void _vte_terminal_audible_beep(VteTerminal *terminal);
-void _vte_terminal_visible_beep(VteTerminal *terminal);
-void _vte_terminal_beep(VteTerminal *terminal);
+VTE_STATIC  void _vte_terminal_adjust_adjustments(VteTerminal *terminal);
+VTE_STATIC  void _vte_terminal_queue_contents_changed(VteTerminal *terminal);
+VTE_STATIC  void _vte_terminal_emit_text_deleted(VteTerminal *terminal);
+VTE_STATIC  void _vte_terminal_emit_text_inserted(VteTerminal *terminal);
+VTE_STATIC  void _vte_terminal_cursor_down (VteTerminal *terminal);
+VTE_STATIC  gboolean _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
+					       gboolean force_insert_mode,
+					       gboolean invalidate_cells);
+VTE_STATIC  void _vte_terminal_scroll_region(VteTerminal *terminal,
+					     long row, glong count, glong delta);
+VTE_STATIC  void _vte_terminal_set_default_attributes(VteTerminal *terminal);
+VTE_STATIC  void _vte_terminal_clear_tabstop(VteTerminal *terminal, int column);
+VTE_STATIC  gboolean _vte_terminal_get_tabstop(VteTerminal *terminal, int column);
+VTE_STATIC  void _vte_terminal_set_tabstop(VteTerminal *terminal, int column);
+VTE_STATIC  void _vte_terminal_update_insert_delta(VteTerminal *terminal);
+VTE_STATIC  void _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal);
+VTE_STATIC  void _vte_terminal_audible_beep(VteTerminal *terminal);
+VTE_STATIC  void _vte_terminal_visible_beep(VteTerminal *terminal);
+VTE_STATIC  void _vte_terminal_beep(VteTerminal *terminal);
 
-void _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ...) G_GNUC_PRINTF(2,3);
+VTE_STATIC  void _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ...) G_GNUC_PRINTF(2,3);
 
 /* vteseq.c: */
-void _vte_terminal_handle_sequence(VteTerminal *terminal,
-				   const char *match_s,
-				   GQuark match,
-				   GValueArray *params);
+VTE_STATIC  void _vte_terminal_handle_sequence(VteTerminal *terminal,
+					       const char *match_s,
+					       GQuark match,
+					       GValueArray *params);
 
 G_END_DECLS
 

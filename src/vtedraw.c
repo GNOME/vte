@@ -281,7 +281,7 @@ _vte_draw_clear (struct _vte_draw *draw, gint x, gint y, gint width, gint height
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_clear (%d, %d, %d, %d)\n",
 			  x,y,width, height);
 
-	draw->impl->clear (draw, x, y, width, height);
+	(draw->impl->clear) (draw, x, y, width, height);
 }
 
 void

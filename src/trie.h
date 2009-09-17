@@ -30,16 +30,16 @@ G_BEGIN_DECLS
 struct _vte_trie;
 
 /* Create a new trie structure. */
-struct _vte_trie *_vte_trie_new(void);
+VTE_STATIC struct _vte_trie *_vte_trie_new(void);
 
 /* Free a trie structure. */
-void _vte_trie_free(struct _vte_trie *trie);
+VTE_STATIC void _vte_trie_free(struct _vte_trie *trie);
 
 /* Add a string to the trie, along with its associated result and an optional
  * Quark to store with it. */
-void _vte_trie_add(struct _vte_trie *trie,
-		   const char *pattern, size_t length,
-		   const char *result, GQuark quark);
+VTE_STATIC void _vte_trie_add(struct _vte_trie *trie,
+			      const char *pattern, size_t length,
+			      const char *result, GQuark quark);
 
 /* See if a given pattern of a given length is in the trie.  The result is
  * returned both as the result of the function, and in the pointer res (if
@@ -48,17 +48,17 @@ void _vte_trie_add(struct _vte_trie *trie,
  * empty string is returned for the answer.  If no match is found, and the
  * passed-in string can not be an initial substring of one of the strings in
  * the trie, then NULL is returned. */
-const char *_vte_trie_match(struct _vte_trie *trie,
-			    const gunichar *pattern, size_t length,
-			    const char **res,
-			    const gunichar **consumed,
-			    GQuark *quark,
-			    GValueArray **array);
+VTE_STATIC const char *_vte_trie_match(struct _vte_trie *trie,
+				       const gunichar *pattern, size_t length,
+				       const char **res,
+				       const gunichar **consumed,
+				       GQuark *quark,
+				       GValueArray **array);
 
 /* Print the contents of the trie (mainly for diagnostic purposes). */
-void _vte_trie_print(struct _vte_trie *trie);
+VTE_STATIC void _vte_trie_print(struct _vte_trie *trie);
 
-extern const struct _vte_matcher_class _vte_matcher_trie;
+VTE_EXTERN const struct _vte_matcher_class _vte_matcher_trie;
 
 G_END_DECLS
 

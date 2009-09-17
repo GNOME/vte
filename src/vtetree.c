@@ -18,6 +18,8 @@
 
 /* The interfaces in this file are subject to change at any time. */
 
+#include <config.h>
+
 #include "vtetree.h"
 
 VteTree *

@@ -477,6 +477,17 @@ AC_SUBST([VTE_MICRO_VERSION],[vte_version_micro])
 
 ################################################################################
 
+AH_VERBATIM([SINGLE_FILE_BUILD], [
+#ifndef VTE_EXTERN
+#define VTE_EXTERN extern G_GNUC_INTERNAL
+#endif
+#ifndef VTE_STATIC
+#define VTE_STATIC G_GNUC_INTERNAL
+#endif
+])
+
+################################################################################
+
 AC_CONFIG_FILES([
 Makefile
 src/Makefile

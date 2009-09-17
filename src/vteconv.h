@@ -32,20 +32,20 @@ G_BEGIN_DECLS
 struct _VteConv;
 typedef struct _VteConv *VteConv;
 
-VteConv _vte_conv_open(const char *target, const char *source);
-size_t _vte_conv(VteConv converter,
-		 const guchar **inbuf, gsize *inbytes_left,
-		 guchar **outbuf, gsize *outbytes_left);
-size_t _vte_conv_uc(VteConv converter,
-		    const gunichar **inbuf, gsize *inbytes_left,
-		    guchar **outbuf, gsize *outbytes_left);
-size_t _vte_conv_uu(VteConv converter,
-		    const gunichar **inbuf, gsize *inbytes_left,
-		    gunichar **outbuf, gsize *outbytes_left);
-size_t _vte_conv_cu(VteConv converter,
-		    const guchar **inbuf, gsize *inbytes_left,
-		    gunichar **outbuf, gsize *outbytes_left);
-gint _vte_conv_close(VteConv converter);
+VTE_STATIC VteConv _vte_conv_open(const char *target, const char *source);
+VTE_STATIC size_t _vte_conv(VteConv converter,
+			    const guchar **inbuf, gsize *inbytes_left,
+			    guchar **outbuf, gsize *outbytes_left);
+VTE_STATIC size_t _vte_conv_uc(VteConv converter,
+			       const gunichar **inbuf, gsize *inbytes_left,
+			       guchar **outbuf, gsize *outbytes_left);
+VTE_STATIC size_t _vte_conv_uu(VteConv converter,
+			       const gunichar **inbuf, gsize *inbytes_left,
+			       gunichar **outbuf, gsize *outbytes_left);
+VTE_STATIC size_t _vte_conv_cu(VteConv converter,
+			       const guchar **inbuf, gsize *inbytes_left,
+			       gunichar **outbuf, gsize *outbytes_left);
+VTE_STATIC gint _vte_conv_close(VteConv converter);
 
 G_END_DECLS
 

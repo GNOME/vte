@@ -39,10 +39,10 @@ struct _VteTree {
   gpointer array[VTE_TREE_ARRAY_SIZE];
 };
 
-VteTree *_vte_tree_new(GCompareFunc key_compare_func);
-void _vte_tree_destroy(VteTree *tree);
-void _vte_tree_insert(VteTree *tree, gpointer key, gpointer value);
-gpointer _vte_tree_lookup(VteTree *tree, gconstpointer key);
+VTE_STATIC  VteTree *_vte_tree_new(GCompareFunc key_compare_func);
+VTE_STATIC  void _vte_tree_destroy(VteTree *tree);
+VTE_STATIC  void _vte_tree_insert(VteTree *tree, gpointer key, gpointer value);
+VTE_STATIC  gpointer _vte_tree_lookup(VteTree *tree, gconstpointer key);
 /* extend as needed */
 
 G_END_DECLS
