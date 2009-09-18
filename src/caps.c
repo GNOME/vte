@@ -41,7 +41,7 @@
 
 /* This list combined from the Linux termcap(5) man page, and
  * termcap_&_terminfo by Strang, Mui, and O'Reilly. */
-VTE_STATIC struct _vte_capability_quark _vte_terminal_capability_strings[] = {
+struct _vte_capability_quark _vte_terminal_capability_strings[] = {
 	{"!1", TRUE, 0},
 	{"!2", TRUE, 0},
 	{"!3", TRUE, 0},
@@ -362,7 +362,7 @@ VTE_STATIC struct _vte_capability_quark _vte_terminal_capability_strings[] = {
 
 /* From some really old XTerm docs we had at the office, and an updated
  * version at Moy, Gildea, and Dickey. */
-VTE_STATIC struct _vte_capability_string _vte_xterm_capability_strings[] = {
+struct _vte_capability_string _vte_xterm_capability_strings[] = {
 	{ENQ, "return-terminal-status", 0},
 	{VT,  "vertical-tab", 0},
 	{FF,  "form-feed", 0},

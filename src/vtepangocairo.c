@@ -1117,7 +1117,7 @@ _vte_pangocairo_fill_rectangle (struct _vte_draw *draw,
 	cairo_fill (data->cr);
 }
 
-VTE_STATIC const struct _vte_draw_impl _vte_draw_pangocairo = {
+const struct _vte_draw_impl _vte_draw_pangocairo = {
 	"pangocairo",
 	NULL, /* check */
 	_vte_pangocairo_create,

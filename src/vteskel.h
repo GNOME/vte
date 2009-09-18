@@ -26,7 +26,7 @@
 
 G_BEGIN_DECLS
 
-VTE_EXTERN const struct _vte_draw_impl _vte_draw_skel;
+extern const struct _vte_draw_impl _vte_draw_skel;
 
 G_END_DECLS
 

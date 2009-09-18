@@ -54,10 +54,10 @@ typedef guint32 vteunistr;
  *
  * Returns: the new #vteunistr value
  **/
-VTE_STATIC  vteunistr
+vteunistr
 _vte_unistr_append_unichar (vteunistr s, gunichar c);
 
-VTE_STATIC  gunichar
+gunichar
 _vte_unistr_get_base (vteunistr s);
 
 /**
@@ -68,7 +68,7 @@ _vte_unistr_get_base (vteunistr s);
  * Appends @s to @gs.  This is how one converts a #vteunistr to a
  * traditional string.
  **/
-VTE_STATIC  void
+void
 _vte_unistr_append_to_string (vteunistr s, GString *gs);
 
 /**
@@ -79,7 +79,7 @@ _vte_unistr_append_to_string (vteunistr s, GString *gs);
  *
  * Returns: length of @s in characters.
  **/
-VTE_STATIC  int
+int
 _vte_unistr_strlen (vteunistr s);
 
 G_END_DECLS

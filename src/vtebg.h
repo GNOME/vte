@@ -48,9 +48,9 @@ struct _VteBgClass {
 #define VTE_IS_BG_CLASS(klass) G_TYPE_CHECK_CLASS_TYPE((klass), VTE_TYPE_BG)
 #define VTE_BG_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS((obj), VTE_TYPE_BG, VteBgClass))
 
-VTE_STATIC GType vte_bg_get_type(void);
+GType vte_bg_get_type(void);
 
-VTE_STATIC VteBg *vte_bg_get_for_screen(GdkScreen *screen);
+VteBg *vte_bg_get_for_screen(GdkScreen *screen);
 
 enum VteBgSourceType {
 	VTE_BG_SOURCE_NONE,
@@ -59,11 +59,11 @@ enum VteBgSourceType {
 	VTE_BG_SOURCE_FILE
 };
 
-VTE_STATIC GdkPixmap *vte_bg_get_pixmap(VteBg *bg, enum VteBgSourceType source_type,
-				        GdkPixbuf *source_pixbuf,
-				        const char *source_file,
-				        const GdkColor *tint, double saturation,
-				        GdkColormap *colormap);
+GdkPixmap *vte_bg_get_pixmap(VteBg *bg, enum VteBgSourceType source_type,
+			     GdkPixbuf *source_pixbuf,
+			     const char *source_file,
+			     const GdkColor *tint, double saturation,
+			     GdkColormap *colormap);
 
 G_END_DECLS
 

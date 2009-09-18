@@ -65,16 +65,16 @@ struct _VteRing {
 #define _vte_ring_length(__ring) ((__ring)->end - (__ring)->start)
 #define _vte_ring_next(__ring) ((__ring)->end + 0)
 
-VTE_STATIC const VteRowData *_vte_ring_index (VteRing *ring, guint position);
-VTE_STATIC VteRowData *_vte_ring_index_writable (VteRing *ring, guint position);
+const VteRowData *_vte_ring_index (VteRing *ring, guint position);
+VteRowData *_vte_ring_index_writable (VteRing *ring, guint position);
 
-VTE_STATIC void _vte_ring_init (VteRing *ring, guint max_rows);
-VTE_STATIC void _vte_ring_fini (VteRing *ring);
-VTE_STATIC void _vte_ring_resize (VteRing *ring, guint max_rows);
-VTE_STATIC void _vte_ring_shrink (VteRing *ring, guint max_len);
-VTE_STATIC VteRowData *_vte_ring_insert (VteRing *ring, guint position);
-VTE_STATIC VteRowData *_vte_ring_append (VteRing *ring);
-VTE_STATIC void _vte_ring_remove (VteRing *ring, guint position);
+void _vte_ring_init (VteRing *ring, guint max_rows);
+void _vte_ring_fini (VteRing *ring);
+void _vte_ring_resize (VteRing *ring, guint max_rows);
+void _vte_ring_shrink (VteRing *ring, guint max_len);
+VteRowData *_vte_ring_insert (VteRing *ring, guint position);
+VteRowData *_vte_ring_append (VteRing *ring);
+void _vte_ring_remove (VteRing *ring, guint position);
 
 G_END_DECLS
 

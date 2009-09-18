@@ -32,33 +32,33 @@ G_BEGIN_DECLS
 
 /* Map the specified keyval/modifier setup, dependent on the mode, to either
  * a literal string or a capability name. */
-VTE_STATIC void _vte_keymap_map(guint keyval,
-				GdkModifierType modifiers,
-				gboolean sun_mode,
-				gboolean hp_mode,
-				gboolean legacy_mode,
-				gboolean vt220_mode,
-				gboolean app_cursor_keys,
-				gboolean app_keypad_keys,
-				struct _vte_termcap *termcap,
-				const char *term,
-				char **normal,
-				gssize *normal_length,
-				const char **special);
+void _vte_keymap_map(guint keyval,
+		     GdkModifierType modifiers,
+		     gboolean sun_mode,
+		     gboolean hp_mode,
+		     gboolean legacy_mode,
+		     gboolean vt220_mode,
+		     gboolean app_cursor_keys,
+		     gboolean app_keypad_keys,
+		     struct _vte_termcap *termcap,
+		     const char *term,
+		     char **normal,
+		     gssize *normal_length,
+		     const char **special);
 
 /* Return TRUE if a keyval is just a modifier key. */
-VTE_STATIC gboolean _vte_keymap_key_is_modifier(guint keyval);
+gboolean _vte_keymap_key_is_modifier(guint keyval);
 
 /* Add modifiers to the sequence if they're needed. */
-VTE_STATIC void _vte_keymap_key_add_key_modifiers(guint keyval,
-						  GdkModifierType modifiers,
-						  gboolean sun_mode,
-						  gboolean hp_mode,
-						  gboolean legacy_mode,
-						  gboolean vt220_mode,
-						  gboolean app_cursor_keys,
-						  char **normal,
-						  gssize *normal_length);
+void _vte_keymap_key_add_key_modifiers(guint keyval,
+				       GdkModifierType modifiers,
+				       gboolean sun_mode,
+				       gboolean hp_mode,
+				       gboolean legacy_mode,
+				       gboolean vt220_mode,
+				       gboolean app_cursor_keys,
+				       char **normal,
+				       gssize *normal_length);
 
 G_END_DECLS
 

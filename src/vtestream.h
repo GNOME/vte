@@ -27,17 +27,18 @@ G_BEGIN_DECLS
 
 typedef struct _VteStream VteStream;
 
-VTE_STATIC  void _vte_stream_reset (VteStream *stream, gsize offset);
-VTE_STATIC  gsize _vte_stream_append (VteStream *stream, const char *data, gsize len);
-VTE_STATIC  gboolean _vte_stream_read (VteStream *stream, gsize offset, char *data, gsize len);
-VTE_STATIC  void _vte_stream_truncate (VteStream *stream, gsize offset);
-VTE_STATIC  void _vte_stream_new_page (VteStream *stream);
-VTE_STATIC  gsize _vte_stream_head (VteStream *stream);
+void _vte_stream_reset (VteStream *stream, gsize offset);
+gsize _vte_stream_append (VteStream *stream, const char *data, gsize len);
+gboolean _vte_stream_read (VteStream *stream, gsize offset, char *data, gsize len);
+void _vte_stream_truncate (VteStream *stream, gsize offset);
+void _vte_stream_new_page (VteStream *stream);
+gsize _vte_stream_head (VteStream *stream);
 
 
 /* Various streams */
 
-VTE_STATIC VteStream * _vte_file_stream_new (void);
+VteStream *
+_vte_file_stream_new (void);
 
 G_END_DECLS
 

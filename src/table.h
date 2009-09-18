@@ -32,22 +32,22 @@ struct _vte_table;
 struct _vte_table *_vte_table_new(void);
 
 /* Free a table tree. */
-VTE_STATIC void _vte_table_free(struct _vte_table *table);
+void _vte_table_free(struct _vte_table *table);
 
 /* Add a string to the matching tree. */
-VTE_STATIC void _vte_table_add(struct _vte_table *table,
-			       const char *pattern, gssize length,
-			       const char *result, GQuark quark);
+void _vte_table_add(struct _vte_table *table,
+		    const char *pattern, gssize length,
+		    const char *result, GQuark quark);
 
 /* Check if a string matches something in the tree. */
-VTE_STATIC const char *_vte_table_match(struct _vte_table *table,
-					const gunichar *pattern, gssize length,
-					const char **res, const gunichar **consumed,
-					GQuark *quark, GValueArray **array);
+const char *_vte_table_match(struct _vte_table *table,
+			     const gunichar *pattern, gssize length,
+			     const char **res, const gunichar **consumed,
+			     GQuark *quark, GValueArray **array);
 /* Dump out the contents of a tree. */
-VTE_STATIC void _vte_table_print(struct _vte_table *table);
+void _vte_table_print(struct _vte_table *table);
 
-VTE_EXTERN const struct _vte_matcher_class _vte_matcher_table;
+extern const struct _vte_matcher_class _vte_matcher_table;
 
 G_END_DECLS
 

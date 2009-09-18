@@ -115,61 +115,61 @@ struct _vte_draw {
 };
 
 /* Create and destroy a draw structure. */
-VTE_STATIC  struct _vte_draw *_vte_draw_new(GtkWidget *widget);
-VTE_STATIC  void _vte_draw_free(struct _vte_draw *draw);
+struct _vte_draw *_vte_draw_new(GtkWidget *widget);
+void _vte_draw_free(struct _vte_draw *draw);
 
 /* Get the visual and colormap the draw structure desires.  Certain draw
    implementations may require that this visual/colormap pair be used when
    creating a window, and may fail otherwise. */
-VTE_STATIC  GdkVisual *_vte_draw_get_visual(struct _vte_draw *draw);
-VTE_STATIC  GdkColormap *_vte_draw_get_colormap(struct _vte_draw *draw,
-						gboolean maybe_use_default);
+GdkVisual *_vte_draw_get_visual(struct _vte_draw *draw);
+GdkColormap *_vte_draw_get_colormap(struct _vte_draw *draw,
+				    gboolean maybe_use_default);
 
 /* Begin and end a drawing operation.  If anything is buffered locally, it is
    flushed to the window system when _end() is called. */
-VTE_STATIC  void _vte_draw_start(struct _vte_draw *draw);
-VTE_STATIC  void _vte_draw_end(struct _vte_draw *draw);
+void _vte_draw_start(struct _vte_draw *draw);
+void _vte_draw_end(struct _vte_draw *draw);
 
-VTE_STATIC  void _vte_draw_set_background_solid(struct _vte_draw *draw,
-						GdkColor *color,
-						guint16 opacity);
-VTE_STATIC  void _vte_draw_set_background_image(struct _vte_draw *draw,
-						enum VteBgSourceType type,
-						GdkPixbuf *pixbuf,
-						const char *file,
-						const GdkColor *color,
-						double saturation);
-VTE_STATIC  void _vte_draw_set_background_scroll(struct _vte_draw *draw,
-						 gint x, gint y);
+void _vte_draw_set_background_solid(struct _vte_draw *draw,
+				    GdkColor *color,
+				    guint16 opacity);
+void _vte_draw_set_background_image(struct _vte_draw *draw,
+				    enum VteBgSourceType type,
+				    GdkPixbuf *pixbuf,
+				    const char *file,
+				    const GdkColor *color,
+				    double saturation);
+void _vte_draw_set_background_scroll(struct _vte_draw *draw,
+				     gint x, gint y);
 
-VTE_STATIC  gboolean _vte_draw_clip(struct _vte_draw *draw, GdkRegion *region);
-VTE_STATIC  gboolean _vte_draw_requires_clear (struct _vte_draw *draw);
-VTE_STATIC  void _vte_draw_clear(struct _vte_draw *draw,
-				 gint x, gint y, gint width, gint height);
+gboolean _vte_draw_clip(struct _vte_draw *draw, GdkRegion *region);
+gboolean _vte_draw_requires_clear (struct _vte_draw *draw);
+void _vte_draw_clear(struct _vte_draw *draw,
+		     gint x, gint y, gint width, gint height);
 
-VTE_STATIC  void _vte_draw_set_text_font(struct _vte_draw *draw,
-					 const PangoFontDescription *fontdesc,
-					 VteTerminalAntiAlias anti_alias);
-VTE_STATIC  void _vte_draw_get_text_metrics(struct _vte_draw *draw,
-					    gint *width, gint *height, gint *ascent);
-VTE_STATIC  int _vte_draw_get_char_width(struct _vte_draw *draw, vteunistr c, int columns,
-					 gboolean bold);
+void _vte_draw_set_text_font(struct _vte_draw *draw,
+			     const PangoFontDescription *fontdesc,
+			     VteTerminalAntiAlias anti_alias);
+void _vte_draw_get_text_metrics(struct _vte_draw *draw,
+				gint *width, gint *height, gint *ascent);
+int _vte_draw_get_char_width(struct _vte_draw *draw, vteunistr c, int columns,
+			     gboolean bold);
 
-VTE_STATIC  void _vte_draw_text(struct _vte_draw *draw,
-				struct _vte_draw_text_request *requests, gsize n_requests,
-				GdkColor *color, guchar alpha, gboolean);
-VTE_STATIC  gboolean _vte_draw_char(struct _vte_draw *draw,
-				    struct _vte_draw_text_request *request,
-				    GdkColor *color, guchar alpha, gboolean bold);
-VTE_STATIC  gboolean _vte_draw_has_char(struct _vte_draw *draw, vteunistr c, gboolean bold);
+void _vte_draw_text(struct _vte_draw *draw,
+		    struct _vte_draw_text_request *requests, gsize n_requests,
+		    GdkColor *color, guchar alpha, gboolean);
+gboolean _vte_draw_char(struct _vte_draw *draw,
+			struct _vte_draw_text_request *request,
+			GdkColor *color, guchar alpha, gboolean bold);
+gboolean _vte_draw_has_char(struct _vte_draw *draw, vteunistr c, gboolean bold);
 
 
-VTE_STATIC  void _vte_draw_fill_rectangle(struct _vte_draw *draw,
-					  gint x, gint y, gint width, gint height,
-					  GdkColor *color, guchar alpha);
-VTE_STATIC  void _vte_draw_draw_rectangle(struct _vte_draw *draw,
-					  gint x, gint y, gint width, gint height,
-					  GdkColor *color, guchar alpha);
+void _vte_draw_fill_rectangle(struct _vte_draw *draw,
+			      gint x, gint y, gint width, gint height,
+			      GdkColor *color, guchar alpha);
+void _vte_draw_draw_rectangle(struct _vte_draw *draw,
+			      gint x, gint y, gint width, gint height,
+			      GdkColor *color, guchar alpha);
 
 G_END_DECLS
 

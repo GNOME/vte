@@ -53,23 +53,23 @@ struct _vte_matcher_class{
 };
 
 /* Create and init matcher. */
-VTE_STATIC struct _vte_matcher *_vte_matcher_new(const char *emulation,
-						 struct _vte_termcap *termcap);
+struct _vte_matcher *_vte_matcher_new(const char *emulation,
+				      struct _vte_termcap *termcap);
 
 /* Free a matcher. */
-VTE_STATIC void _vte_matcher_free(struct _vte_matcher *matcher);
+void _vte_matcher_free(struct _vte_matcher *matcher);
 
 /* Check if a string matches a sequence the matcher knows about. */
-VTE_STATIC const char *_vte_matcher_match(struct _vte_matcher *matcher,
-					  const gunichar *pattern, gssize length,
-					  const char **res, const gunichar **consumed,
-					  GQuark *quark, GValueArray **array);
+const char *_vte_matcher_match(struct _vte_matcher *matcher,
+			       const gunichar *pattern, gssize length,
+			       const char **res, const gunichar **consumed,
+			       GQuark *quark, GValueArray **array);
 
 /* Dump out the contents of a matcher, mainly for debugging. */
-VTE_STATIC void _vte_matcher_print(struct _vte_matcher *matcher);
+void _vte_matcher_print(struct _vte_matcher *matcher);
 
 /* Free a parameter array. */
-VTE_STATIC void _vte_matcher_free_params_array(struct _vte_matcher *matcher, GValueArray *params);
+void _vte_matcher_free_params_array(struct _vte_matcher *matcher, GValueArray *params);
 
 G_END_DECLS
 

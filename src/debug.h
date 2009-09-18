@@ -52,9 +52,9 @@ typedef enum {
 	VTE_DEBUG_WIDGET_SIZE   = 1 << 21
 } VteDebugFlags;
 
-VTE_STATIC void _vte_debug_init(void);
+void _vte_debug_init(void);
 
-VTE_EXTERN VteDebugFlags _vte_debug_flags;
+extern VteDebugFlags _vte_debug_flags;
 static inline gboolean _vte_debug_on(VteDebugFlags flags) G_GNUC_CONST G_GNUC_UNUSED;
 
 static inline gboolean

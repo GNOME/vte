@@ -923,7 +923,7 @@ main(int argc, char **argv)
 }
 #endif
 
-VTE_STATIC const struct _vte_matcher_class _vte_matcher_table = {
+const struct _vte_matcher_class _vte_matcher_table = {
 	(_vte_matcher_create_func)_vte_table_new,
 	(_vte_matcher_add_func)_vte_table_add,
 	(_vte_matcher_print_func)_vte_table_print,

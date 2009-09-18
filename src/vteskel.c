@@ -60,7 +60,7 @@ _vte_skel_fill_rectangle(struct _vte_draw *draw,
 		   x, y, width, height);
 }
 
-VTE_STATIC const struct _vte_draw_impl _vte_draw_skel = {
+const struct _vte_draw_impl _vte_draw_skel = {
 	"null",
 	NULL, /* check */
 	NULL, /* create */

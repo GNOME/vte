@@ -159,15 +159,15 @@ _vte_row_data_get_writable (VteRowData *row, guint col)
 	return &row->cells[col];
 }
 
-VTE_STATIC  void _vte_row_data_init (VteRowData *row);
-VTE_STATIC  void _vte_row_data_clear (VteRowData *row);
-VTE_STATIC  void _vte_row_data_fini (VteRowData *row);
-VTE_STATIC  gboolean _vte_row_data_ensure (VteRowData *row, guint len);
-VTE_STATIC  void _vte_row_data_insert (VteRowData *row, guint col, const VteCell *cell);
-VTE_STATIC  void _vte_row_data_append (VteRowData *row, const VteCell *cell);
-VTE_STATIC  void _vte_row_data_remove (VteRowData *row, guint col);
-VTE_STATIC  void _vte_row_data_fill (VteRowData *row, const VteCell *cell, guint len);
-VTE_STATIC  void _vte_row_data_shrink (VteRowData *row, guint max_len);
+void _vte_row_data_init (VteRowData *row);
+void _vte_row_data_clear (VteRowData *row);
+void _vte_row_data_fini (VteRowData *row);
+gboolean _vte_row_data_ensure (VteRowData *row, guint len);
+void _vte_row_data_insert (VteRowData *row, guint col, const VteCell *cell);
+void _vte_row_data_append (VteRowData *row, const VteCell *cell);
+void _vte_row_data_remove (VteRowData *row, guint col);
+void _vte_row_data_fill (VteRowData *row, const VteCell *cell, guint len);
+void _vte_row_data_shrink (VteRowData *row, guint max_len);
 
 
 G_END_DECLS
