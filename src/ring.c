@@ -163,9 +163,9 @@ _vte_ring_freeze_row (VteRing *ring, guint position, const VteRowData *row)
 				_vte_stream_append (ring->attr_stream, (const char *) &ring->last_attr, sizeof (ring->last_attr));
 				ring->last_attr.attr = attr;
 			}
-		}
 
-		_vte_unistr_append_to_string (cell->c, buffer);
+			_vte_unistr_append_to_string (cell->c, buffer);
+		}
 	}
 	if (!row->attr.soft_wrapped)
 		g_string_append_c (buffer, '\n');
