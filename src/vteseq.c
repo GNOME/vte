@@ -2088,7 +2088,7 @@ vte_sequence_handler_ta (VteTerminal *terminal, GValueArray *params)
 		    cell.c = '\t';
 		    _vte_row_data_append (rowdata, &cell);
 
-		    cell.attr = screen->fill_defaults.attr;
+		    cell.attr.columns = 1;
 		    cell.attr.fragment = 1;
 		    _vte_row_data_fill (rowdata, &cell, newcol);
 		  }
