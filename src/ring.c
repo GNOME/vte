@@ -243,6 +243,7 @@ _vte_ring_thaw_row (VteRing *ring, guint position, VteRowData *row, gboolean tru
 				/* Add the fragments */
 				int i, columns = cell.attr.columns;
 				cell.attr.fragment = 1;
+				cell.attr.columns = 1;
 				for (i = 1; i < columns; i++)
 					_vte_row_data_append (row, &cell);
 			}
