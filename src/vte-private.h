@@ -418,6 +418,7 @@ void _vte_terminal_inline_error_message(VteTerminal *terminal, const char *forma
 
 VteRowData *_vte_terminal_ring_insert (VteTerminal *terminal, guint position, gboolean fill);
 VteRowData *_vte_terminal_ring_append (VteTerminal *terminal, gboolean fill);
+void _vte_terminal_ring_remove (VteTerminal *terminal, guint position);
 
 /* vteseq.c: */
 void _vte_terminal_handle_sequence(VteTerminal *terminal,

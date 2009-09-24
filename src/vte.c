@@ -306,6 +306,11 @@ _vte_terminal_ring_append (VteTerminal *terminal, gboolean fill)
 	return _vte_terminal_ring_insert (terminal, _vte_ring_next (terminal->pvt->screen->row_data), fill);
 }
 
+void
+_vte_terminal_ring_remove (VteTerminal *terminal, guint position)
+{
+	return _vte_ring_remove (terminal->pvt->screen->row_data, position);
+}
 
 /* Reset defaults for character insertion. */
 void
@@ -2909,7 +2914,7 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 				/* If we're at the bottom of the scrolling
 				 * region, add a line at the top to scroll the
 				 * bottom off. */
-				_vte_ring_remove (terminal->pvt->screen->row_data, start);
+				_vte_terminal_ring_remove (terminal, start);
 				_vte_terminal_ring_insert (terminal, end, TRUE);
 				/* Update the display. */
 				_vte_terminal_scroll_region(terminal, start,

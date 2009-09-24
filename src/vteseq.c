@@ -370,12 +370,12 @@ _vte_terminal_scroll_text (VteTerminal *terminal, int scroll_amount)
 
 	if (scroll_amount > 0) {
 		for (i = 0; i < scroll_amount; i++) {
-			_vte_ring_remove (terminal->pvt->screen->row_data, end);
+			_vte_terminal_ring_remove (terminal, end);
 			_vte_terminal_ring_insert (terminal, start, TRUE);
 		}
 	} else {
 		for (i = 0; i < -scroll_amount; i++) {
-			_vte_ring_remove (terminal->pvt->screen->row_data, start);
+			_vte_terminal_ring_remove (terminal, start);
 			_vte_terminal_ring_insert (terminal, end, TRUE);
 		}
 	}
@@ -922,7 +922,7 @@ vte_sequence_handler_al (VteTerminal *terminal, GValueArray *params)
 	for (i = 0; i < param; i++) {
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
-		_vte_ring_remove (terminal->pvt->screen->row_data, end);
+		_vte_terminal_ring_remove (terminal, end);
 		_vte_terminal_ring_insert (terminal, start, TRUE);
 		/* Adjust the scrollbars if necessary. */
 		_vte_terminal_adjust_adjustments(terminal);
@@ -1406,7 +1406,7 @@ vte_sequence_handler_dl (VteTerminal *terminal, GValueArray *params)
 	for (i = 0; i < param; i++) {
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
-		_vte_ring_remove (terminal->pvt->screen->row_data, start);
+		_vte_terminal_ring_remove (terminal, start);
 		_vte_terminal_ring_insert (terminal, end, TRUE);
 		/* Adjust the scrollbars if necessary. */
 		_vte_terminal_adjust_adjustments(terminal);
@@ -1975,7 +1975,7 @@ vte_sequence_handler_sr (VteTerminal *terminal, GValueArray *params)
 	if (screen->cursor_current.row == start) {
 		/* If we're at the top of the scrolling region, add a
 		 * line at the top to scroll the bottom off. */
-		_vte_ring_remove (terminal->pvt->screen->row_data, end);
+		_vte_terminal_ring_remove (terminal, end);
 		_vte_terminal_ring_insert (terminal, start, TRUE);
 		/* Update the display. */
 		_vte_terminal_scroll_region(terminal, start, end - start + 1, 1);
@@ -2756,7 +2756,7 @@ vte_sequence_handler_insert_lines (VteTerminal *terminal, GValueArray *params)
 	for (i = 0; i < param; i++) {
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
-		_vte_ring_remove (terminal->pvt->screen->row_data, end);
+		_vte_terminal_ring_remove (terminal, end);
 		_vte_terminal_ring_insert (terminal, row, TRUE);
 	}
 	/* Update the display. */
@@ -2797,7 +2797,7 @@ vte_sequence_handler_delete_lines (VteTerminal *terminal, GValueArray *params)
 	for (i = 0; i < param; i++) {
 		/* Insert a line at the end of the region and remove one from
 		 * the top of the region. */
-		_vte_ring_remove (terminal->pvt->screen->row_data, row);
+		_vte_terminal_ring_remove (terminal, row);
 		_vte_terminal_ring_insert (terminal, end, TRUE);
 	}
 	/* Update the display. */
