@@ -480,8 +480,8 @@ _vte_ring_shrink (VteRing *ring, guint max_len)
  *
  * Return: the newly added row.
  */
-static VteRowData *
-_vte_ring_insert_internal (VteRing *ring, guint position)
+VteRowData *
+_vte_ring_insert (VteRing *ring, guint position)
 {
 	guint i;
 	VteRowData *row, tmp;
@@ -544,25 +544,6 @@ _vte_ring_remove (VteRing * ring, guint position)
 
 
 /**
- * _vte_ring_insert:
- * @ring: a #VteRing
- * @data: the new item
- *
- * Inserts a new, empty, row into @ring at the @position'th offset.
- * The item at that position and any items after that are shifted down.
- * It pads enough lines if @position is after the end of the ring.
- *
- * Return: the newly added row.
- */
-VteRowData *
-_vte_ring_insert (VteRing *ring, guint position)
-{
-	while (G_UNLIKELY (_vte_ring_next (ring) < position))
-		_vte_ring_append (ring);
-	return _vte_ring_insert_internal (ring, position);
-}
-
-/**
  * _vte_ring_append:
  * @ring: a #VteRing
  * @data: the new item
@@ -574,6 +555,6 @@ _vte_ring_insert (VteRing *ring, guint position)
 VteRowData *
 _vte_ring_append (VteRing * ring)
 {
-	return _vte_ring_insert_internal (ring, _vte_ring_next (ring));
+	return _vte_ring_insert (ring, _vte_ring_next (ring));
 }
 

@@ -277,7 +277,7 @@ _vte_terminal_clear_screen (VteTerminal *terminal)
 	initial = _vte_ring_next(screen->row_data);
 	/* Add a new screen's worth of rows. */
 	for (i = 0; i < terminal->row_count; i++)
-		_vte_ring_append(screen->row_data);
+		_vte_terminal_ring_append (terminal, TRUE);
 	/* Move the cursor and insertion delta to the first line in the
 	 * newly-cleared area and scroll if need be. */
 	screen->insert_delta = initial;
@@ -366,17 +366,17 @@ _vte_terminal_scroll_text (VteTerminal *terminal, int scroll_amount)
 	}
 
 	while (_vte_ring_next(screen->row_data) <= end)
-		_vte_ring_append(terminal->pvt->screen->row_data);
+		_vte_terminal_ring_append (terminal, FALSE);
 
 	if (scroll_amount > 0) {
 		for (i = 0; i < scroll_amount; i++) {
 			_vte_ring_remove (terminal->pvt->screen->row_data, end);
-			_vte_ring_insert (terminal->pvt->screen->row_data, start);
+			_vte_terminal_ring_insert (terminal, start, TRUE);
 		}
 	} else {
 		for (i = 0; i < -scroll_amount; i++) {
 			_vte_ring_remove (terminal->pvt->screen->row_data, start);
-			_vte_ring_insert (terminal->pvt->screen->row_data, end);
+			_vte_terminal_ring_insert (terminal, end, TRUE);
 		}
 	}
 
@@ -897,7 +897,6 @@ static void
 vte_sequence_handler_al (VteTerminal *terminal, GValueArray *params)
 {
 	VteScreen *screen;
-	VteRowData *rowdata;
 	long start, end, param, i;
 	GValue *value;
 
@@ -924,9 +923,7 @@ vte_sequence_handler_al (VteTerminal *terminal, GValueArray *params)
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
 		_vte_ring_remove (terminal->pvt->screen->row_data, end);
-		rowdata = _vte_ring_insert (terminal->pvt->screen->row_data, start);
-		/* Add enough cells to it so that it has the default columns. */
-		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
+		_vte_terminal_ring_insert (terminal, start, TRUE);
 		/* Adjust the scrollbars if necessary. */
 		_vte_terminal_adjust_adjustments(terminal);
 	}
@@ -1063,7 +1060,7 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 			rowdata = _vte_ring_index_writable (screen->row_data, i);
 			g_assert(rowdata != NULL);
 		} else {
-			rowdata = _vte_ring_append (screen->row_data);
+			rowdata = _vte_terminal_ring_append (screen->row_data, FALSE);
 		}
 		/* Pad out the row. */
 		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
@@ -1410,7 +1407,7 @@ vte_sequence_handler_dl (VteTerminal *terminal, GValueArray *params)
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
 		_vte_ring_remove (terminal->pvt->screen->row_data, start);
-		_vte_ring_insert (terminal->pvt->screen->row_data, end);
+		_vte_terminal_ring_insert (terminal, end, TRUE);
 		/* Adjust the scrollbars if necessary. */
 		_vte_terminal_adjust_adjustments(terminal);
 	}
@@ -1979,7 +1976,7 @@ vte_sequence_handler_sr (VteTerminal *terminal, GValueArray *params)
 		/* If we're at the top of the scrolling region, add a
 		 * line at the top to scroll the bottom off. */
 		_vte_ring_remove (terminal->pvt->screen->row_data, end);
-		_vte_ring_insert (terminal->pvt->screen->row_data, start);
+		_vte_terminal_ring_insert (terminal, start, TRUE);
 		/* Update the display. */
 		_vte_terminal_scroll_region(terminal, start, end - start + 1, 1);
 		_vte_invalidate_cells(terminal,
@@ -2734,7 +2731,6 @@ vte_sequence_handler_insert_blank_characters (VteTerminal *terminal, GValueArray
 static void
 vte_sequence_handler_insert_lines (VteTerminal *terminal, GValueArray *params)
 {
-	VteRowData *rowdata;
 	GValue *value;
 	VteScreen *screen;
 	long param, end, row;
@@ -2761,9 +2757,7 @@ vte_sequence_handler_insert_lines (VteTerminal *terminal, GValueArray *params)
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
 		_vte_ring_remove (terminal->pvt->screen->row_data, end);
-		rowdata = _vte_ring_insert (terminal->pvt->screen->row_data, row);
-		/* Add enough cells to it so that it has the default colors. */
-		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
+		_vte_terminal_ring_insert (terminal, row, TRUE);
 	}
 	/* Update the display. */
 	_vte_terminal_scroll_region(terminal, row, end - row + 1, param);
@@ -2778,7 +2772,6 @@ static void
 vte_sequence_handler_delete_lines (VteTerminal *terminal, GValueArray *params)
 {
 	GValue *value;
-	VteRowData *rowdata;
 	VteScreen *screen;
 	long param, end, row;
 	int i;
@@ -2805,9 +2798,7 @@ vte_sequence_handler_delete_lines (VteTerminal *terminal, GValueArray *params)
 		/* Insert a line at the end of the region and remove one from
 		 * the top of the region. */
 		_vte_ring_remove (terminal->pvt->screen->row_data, row);
-		rowdata = _vte_ring_insert (terminal->pvt->screen->row_data, end);
-		/* Add enough cells to it so that it has the default colors. */
-		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
+		_vte_terminal_ring_insert (terminal, end, TRUE);
 	}
 	/* Update the display. */
 	_vte_terminal_scroll_region(terminal, row, end - row + 1, -param);
@@ -2973,7 +2964,7 @@ vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *
 	     row++) {
 		/* Find this row. */
 		while (_vte_ring_next(screen->row_data) <= row)
-			_vte_ring_append(screen->row_data);
+			_vte_terminal_ring_append (terminal, FALSE);
 		_vte_terminal_adjust_adjustments(terminal);
 		rowdata = _vte_ring_index_writable (screen->row_data, row);
 		g_assert(rowdata != NULL);

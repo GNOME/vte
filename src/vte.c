@@ -285,6 +285,28 @@ vte_g_array_fill(GArray *array, gconstpointer item, guint final_size)
 }
 
 
+VteRowData *
+_vte_terminal_ring_insert (VteTerminal *terminal, guint position, gboolean fill)
+{
+	VteRowData *row;
+	VteRing *ring = terminal->pvt->screen->row_data;
+	while (G_UNLIKELY (_vte_ring_next (ring) < position)) {
+		row = _vte_ring_append (ring);
+		_vte_row_data_fill (row, &terminal->pvt->screen->fill_defaults, terminal->column_count);
+	}
+	row = _vte_ring_insert (ring, position);
+	if (fill)
+		_vte_row_data_fill (row, &terminal->pvt->screen->fill_defaults, terminal->column_count);
+	return row;
+}
+
+VteRowData *
+_vte_terminal_ring_append (VteTerminal *terminal, gboolean fill)
+{
+	return _vte_terminal_ring_insert (terminal, _vte_ring_next (terminal->pvt->screen->row_data), fill);
+}
+
+
 /* Reset defaults for character insertion. */
 void
 _vte_terminal_set_default_attributes(VteTerminal *terminal)
@@ -2262,9 +2284,8 @@ static inline VteRowData *
 vte_terminal_insert_rows (VteTerminal *terminal, guint cnt)
 {
 	VteRowData *row;
-	VteScreen *screen = terminal->pvt->screen;
 	do {
-		row = _vte_ring_append (screen->row_data);
+		row = _vte_terminal_ring_append (terminal, FALSE);
 	} while(--cnt);
 	return row;
 }
@@ -2877,8 +2898,7 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 				 * to insert_delta. */
 				start++;
 				end++;
-				_vte_ring_insert (terminal->pvt->screen->row_data,
-						  screen->cursor_current.row);
+				_vte_terminal_ring_insert (terminal, screen->cursor_current.row, FALSE);
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
 				_vte_terminal_scroll_region(terminal, start,
@@ -2890,7 +2910,7 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 				 * region, add a line at the top to scroll the
 				 * bottom off. */
 				_vte_ring_remove (terminal->pvt->screen->row_data, start);
-				_vte_ring_insert (terminal->pvt->screen->row_data, end);
+				_vte_terminal_ring_insert (terminal, end, TRUE);
 				/* Update the display. */
 				_vte_terminal_scroll_region(terminal, start,
 							   end - start + 1, -1);
