@@ -91,7 +91,7 @@ _vte_row_data_fini (VteRowData *row)
 	row->cells = NULL;
 }
 
-inline gboolean
+static inline gboolean
 _vte_row_data_ensure (VteRowData *row, guint len)
 {
 	VteCells *cells = _vte_cells_for_cell_array (row->cells);
