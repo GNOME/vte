@@ -58,7 +58,7 @@ _vte_stream_init (VteStream *stream)
 void
 _vte_stream_reset (VteStream *stream, gsize offset)
 {
-	return VTE_STREAM_GET_CLASS (stream)->reset (stream, offset);
+	VTE_STREAM_GET_CLASS (stream)->reset (stream, offset);
 }
 
 gsize
