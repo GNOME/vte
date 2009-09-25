@@ -46,12 +46,12 @@ static GType _vte_stream_get_type (void);
 G_DEFINE_ABSTRACT_TYPE (VteStream, _vte_stream, G_TYPE_OBJECT)
 
 static void
-_vte_stream_class_init (VteStreamClass *klass)
+_vte_stream_class_init (VteStreamClass *klass G_GNUC_UNUSED)
 {
 }
 
 static void
-_vte_stream_init (VteStream *stream)
+_vte_stream_init (VteStream *stream G_GNUC_UNUSED)
 {
 }
 

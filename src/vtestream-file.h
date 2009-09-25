@@ -101,7 +101,7 @@ static GType _vte_file_stream_get_type (void);
 G_DEFINE_TYPE (VteFileStream, _vte_file_stream, VTE_TYPE_STREAM)
 
 static void
-_vte_file_stream_init (VteFileStream *stream)
+_vte_file_stream_init (VteFileStream *stream G_GNUC_UNUSED)
 {
 }
 
