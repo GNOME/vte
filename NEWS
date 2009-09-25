@@ -1,3 +1,13 @@
+0.22.1
+=======
+- Fix crash on terminal reset
+- Fix build on Solaris
+- Bugs fixed in this release:
+    Bug 596365 - libvte crashes when issueing 'reset' in a terminal
+    Bug 588033 - background tabs may lose lines off the bottom of the scrollback
+    Bug 596163 - Doesn't display expected background color in ncurses apps
+    Bug 596011 - Problem compiling vte 0.22.0 on Solaris
+
 0.22.0
 =======
 - New stable release series
