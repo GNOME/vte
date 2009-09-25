@@ -55,6 +55,8 @@ _vte_ring_init (VteRing *ring, guint max_rows)
 {
 	_vte_debug_print(VTE_DEBUG_RING, "New ring %p.\n", ring);
 
+	memset (ring, 0, sizeof (*ring));
+
 	ring->max = MAX (max_rows, 3);
 
 	ring->mask = 31;
