@@ -1060,7 +1060,7 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 			rowdata = _vte_ring_index_writable (screen->row_data, i);
 			g_assert(rowdata != NULL);
 		} else {
-			rowdata = _vte_terminal_ring_append (screen->row_data, FALSE);
+			rowdata = _vte_terminal_ring_append (terminal, FALSE);
 		}
 		/* Pad out the row. */
 		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
