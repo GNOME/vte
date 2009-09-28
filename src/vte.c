@@ -5893,7 +5893,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 		}
 		/* Else, if the last visible column on this line was selected and
 		 * not soft-wrapped, append a newline. */
-		else if (is_selected(terminal, terminal->column_count - 1, row, data)) {
+		else if (is_selected(terminal, terminal->column_count, row, data)) {
 			/* If we didn't softwrap, add a newline. */
 			/* XXX need to clear row->soft_wrap on deletion! */
 			if (!vte_line_is_wrappable(terminal, row)) {
@@ -6237,14 +6237,14 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 		 * endpoint as far right as we can expect. */
 		if (ec->col >= i) {
 			ec->col = MAX(ec->col,
-				    MAX(terminal->column_count - 1,
+				    MAX(terminal->column_count,
 					(long) _vte_row_data_length (rowdata)));
 		}
 	} else {
 		/* Snap to the rightmost column, only if selecting anything of
 		 * this row. */
 		if (ec->col >= 0)
-			ec->col = MAX(ec->col, terminal->column_count - 1);
+			ec->col = MAX(ec->col, terminal->column_count);
 	}
 	ec->col = find_end_column (terminal, ec->col, ec->row);
 
@@ -6268,7 +6268,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 			/* Back up. */
 			for (i = (j == sc->row) ?
 				 sc->col :
-				 terminal->column_count - 1;
+				 terminal->column_count;
 			     i > 0;
 			     i--) {
 				if (vte_same_class(terminal,
@@ -6366,7 +6366,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 			ec->row = j;
 		}
 		/* Make sure we include all of the last line. */
-		ec->col = terminal->column_count - 1;
+		ec->col = terminal->column_count;
 		if (_vte_ring_contains (screen->row_data, ec->row)) {
 			rowdata = _vte_ring_index(screen->row_data, ec->row);
 			if (rowdata != NULL) {
