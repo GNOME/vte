@@ -1019,7 +1019,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			offset, priv->snapshot_attributes->len);
 	g_assert(priv->snapshot_text != NULL);
 	g_assert(priv->snapshot_characters != NULL);
-	if (offset == (int) priv->snapshot_characters->len) {
+	if (offset >= (int) priv->snapshot_characters->len) {
 		return g_strdup("");
 	}
 	g_assert(offset < priv->snapshot_characters->len);
