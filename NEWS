@@ -1,3 +1,13 @@
+0.22.2
+=======
+- Fix crash introduced in previous release
+- Fix a11y assertion failure
+- Improve selection at the end of row
+- Bugs fixed in this release:
+    https://bugs.launchpad.net/ubuntu/+source/gnome-terminal/+bug/435646
+    Bug 596444 - word-select includes \n when the word ends at the edge of the terminal
+    Bug 596460 - 0.22.1 kills vte based apps
+
 0.22.1
 =======
 - Fix crash on terminal reset
