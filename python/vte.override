@@ -112,7 +112,7 @@ _build_envv(PyObject *py_envv, char ***envv)
 	int i, pos, n_envs;
 	PyObject *py_dict_k, *py_dict_v;
 
-	if (py_envv == NULL || py_envv != Py_None) {
+	if (py_envv == NULL || py_envv == Py_None) {
 		return 0;
 	}
 
@@ -122,20 +122,20 @@ _build_envv(PyObject *py_envv, char ***envv)
 		pos = 0;
 		i = 0;
 		while (PyDict_Next(py_envv, &pos, &py_dict_k, &py_dict_v)) {
-			*envv[i++] = g_strdup_printf("%s=%s",
+			(*envv)[i++] = g_strdup_printf("%s=%s",
 				PyString_AsString(py_dict_k),
 				PyString_AsString(py_dict_v));
 		}
-		*envv[n_envs] = NULL;
+		(*envv)[n_envs] = NULL;
 	} else if (PySequence_Check(py_envv)) {
 		n_envs = PySequence_Length(py_envv);
 		*envv = g_new(gchar *, n_envs + 1);
 		for (i = 0; i < n_envs; i++) {
 			PyObject *item = PySequence_GetItem(py_envv, i);
 			Py_DECREF(item);  /* PySequence_GetItem INCREF's */
-			*envv[i] = PyString_AsString(item);
+			(*envv)[i] = PyString_AsString(item);
 		}
-		*envv[n_envs] = NULL;
+		(*envv)[n_envs] = NULL;
 	} else {
 		PyErr_SetString(PyExc_TypeError,
 				"envv must be a sequence or a dictionary");
