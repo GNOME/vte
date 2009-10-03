@@ -309,7 +309,7 @@ _vte_terminal_ring_append (VteTerminal *terminal, gboolean fill)
 void
 _vte_terminal_ring_remove (VteTerminal *terminal, guint position)
 {
-	return _vte_ring_remove (terminal->pvt->screen->row_data, position);
+	_vte_ring_remove (terminal->pvt->screen->row_data, position);
 }
 
 /* Reset defaults for character insertion. */
