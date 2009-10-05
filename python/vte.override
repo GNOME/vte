@@ -328,6 +328,42 @@ call_callback(VteTerminal *terminal, glong column, glong row, gpointer data)
     return ret;
 }
 
+static PyObject*
+build_attributes(GArray *attrs)
+{
+    PyObject *py_attrs = PyTuple_New(attrs->len);
+    int count;
+    PyObject *row = PyString_FromString("row");
+    PyObject *column = PyString_FromString("column");
+    PyObject *fore = PyString_FromString("fore");
+    PyObject *back = PyString_FromString("back");
+    PyObject *underline = PyString_FromString("underline");
+    PyObject *striketrough = PyString_FromString("striketrough");
+    
+    for (count = 0; count < attrs->len; count++) {
+	VteCharAttributes *cht;
+	PyObject *py_char_attr;
+
+	py_char_attr = Py_BuildValue("{S:l,S:l,S:N,S:N,S:I,S:I}",
+	                             row, cht->row,
+	                             column, cht->column,
+	                             fore, pyg_boxed_new(GDK_TYPE_COLOR, &cht->fore, TRUE, TRUE),
+	                             back, pyg_boxed_new(GDK_TYPE_COLOR, &cht->back, TRUE, TRUE),
+	                             underline, (unsigned int) cht->underline,
+	                             striketrough, (unsigned int) cht->strikethrough);
+	PyTuple_SetItem(py_attrs, count, py_char_attr);
+    }
+
+    Py_DECREF(row);
+    Py_DECREF(column);
+    Py_DECREF(fore);
+    Py_DECREF(back);
+    Py_DECREF(underline);
+    Py_DECREF(striketrough);
+
+    return py_attrs;
+}
+
 static gboolean
 always_true(VteTerminal *terminal, glong row, glong column, gpointer data)
 {
@@ -340,6 +376,7 @@ _wrap_vte_terminal_get_text(PyGObject *self, PyObject *args, PyObject *kwargs)
     static char *kwlist[] = { "callback", "get_attributes", "data", NULL };
     PyObject *callback = NULL, *do_attr = NULL, *data = NULL;
     PyObject *callback_and_args = NULL;
+    PyObject *result = NULL;
     GArray *attrs = NULL;
     char *text;
     PyObject *py_attrs;
@@ -390,35 +427,16 @@ _wrap_vte_terminal_get_text(PyGObject *self, PyObject *args, PyObject *kwargs)
     }
 
     if (attrs) {
-	py_attrs = PyTuple_New(attrs->len);
-	for (count = 0; count < attrs->len; count++) {
-	    VteCharAttributes *cht;
-	    PyObject *py_char_attr;
-	    PyObject *py_gdkcolor;
-
-	    cht = &g_array_index(attrs, VteCharAttributes, count);
-	    py_char_attr = PyDict_New();
-	    PyDict_SetItemString(py_char_attr, "row", PyInt_FromLong(cht->row));
-	    PyDict_SetItemString(py_char_attr, "column", PyInt_FromLong(cht->column));
-	    
-	    py_gdkcolor = pyg_boxed_new(GDK_TYPE_COLOR, &cht->fore, TRUE, TRUE);
-	    PyDict_SetItemString(py_char_attr, "fore", py_gdkcolor);
-	    py_gdkcolor = pyg_boxed_new(GDK_TYPE_COLOR, &cht->back, TRUE, TRUE);
-	    PyDict_SetItemString(py_char_attr, "back", py_gdkcolor);
-	    
-	    PyDict_SetItemString(py_char_attr, "underline", 
-		    PyInt_FromLong(cht->underline));
-	    PyDict_SetItemString(py_char_attr, "strikethrough", 
-		    PyInt_FromLong(cht->strikethrough));
-
-	    PyTuple_SetItem(py_attrs, count, py_char_attr);
-	}
+	py_attrs = build_attributes(attrs);
 	length = attrs->len;
 	g_array_free(attrs, TRUE);
-	return Py_BuildValue("(s#O)", text, length, py_attrs);
+	result = Py_BuildValue("(s#N)", text, length, py_attrs);
     } else {
-    	return Py_BuildValue("s", text);
+    	result = Py_BuildValue("s", text);
     }
+
+    g_free (text);
+    return result;
 }
 %%
 override vte_terminal_get_text_include_trailing_spaces kwargs
@@ -429,6 +447,7 @@ _wrap_vte_terminal_get_text_include_trailing_spaces(PyGObject *self, PyObject *a
     static char *kwlist[] = { "callback", "get_attributes", "data", NULL };
     PyObject *callback = NULL, *do_attr = NULL, *data = NULL;
     PyObject *callback_and_args = NULL;
+    PyObject *result = NULL;
     GArray *attrs = NULL;
     char *text;
     PyObject *py_attrs;
@@ -479,35 +498,15 @@ _wrap_vte_terminal_get_text_include_trailing_spaces(PyGObject *self, PyObject *a
     }
 
     if (attrs) {
-	py_attrs = PyTuple_New(attrs->len);
-	for (count = 0; count < attrs->len; count++) {
-	    VteCharAttributes *cht;
-	    PyObject *py_char_attr;
-	    PyObject *py_gdkcolor;
-
-	    cht = &g_array_index(attrs, VteCharAttributes, count);
-	    py_char_attr = PyDict_New();
-	    PyDict_SetItemString(py_char_attr, "row", PyInt_FromLong(cht->row));
-	    PyDict_SetItemString(py_char_attr, "column", PyInt_FromLong(cht->column));
-	    
-	    py_gdkcolor = pyg_boxed_new(GDK_TYPE_COLOR, &cht->fore, TRUE, TRUE);
-	    PyDict_SetItemString(py_char_attr, "fore", py_gdkcolor);
-	    py_gdkcolor = pyg_boxed_new(GDK_TYPE_COLOR, &cht->back, TRUE, TRUE);
-	    PyDict_SetItemString(py_char_attr, "back", py_gdkcolor);
-	    
-	    PyDict_SetItemString(py_char_attr, "underline", 
-		    PyInt_FromLong(cht->underline));
-	    PyDict_SetItemString(py_char_attr, "strikethrough", 
-		    PyInt_FromLong(cht->strikethrough));
-
-	    PyTuple_SetItem(py_attrs, count, py_char_attr);
-	}
+	py_attrs = build_attributes(attrs);
 	length = attrs->len;
 	g_array_free(attrs, TRUE);
-	return Py_BuildValue("(s#O)", text, length, py_attrs);
+	result = Py_BuildValue("(s#N)", text, length, py_attrs);
     } else {
-    	return Py_BuildValue("s", text);
+    	result = Py_BuildValue("s", text);
     }
+    g_free (text);
+    return result;
 }
 %%
 override vte_terminal_get_text_range kwargs
@@ -519,6 +518,7 @@ _wrap_vte_terminal_get_text_range(PyGObject *self, PyObject *args, PyObject *kwa
     PyObject *callback = NULL, *do_attr = NULL, *data = NULL;
     glong start_row, start_col, end_row, end_col;
     PyObject *callback_and_args = NULL;
+    PyObject *result = NULL;
     GArray *attrs = NULL;
     char *text;
     PyObject *py_attrs;
@@ -576,35 +576,16 @@ _wrap_vte_terminal_get_text_range(PyGObject *self, PyObject *args, PyObject *kwa
     }
 
     if (attrs) {
-	py_attrs = PyTuple_New(attrs->len);
-	for (count = 0; count < attrs->len; count++) {
-	    VteCharAttributes *cht;
-	    PyObject *py_char_attr;
-	    PyObject *py_gdkcolor;
-
-	    cht = &g_array_index(attrs, VteCharAttributes, count);
-	    py_char_attr = PyDict_New();
-	    PyDict_SetItemString(py_char_attr, "row", PyInt_FromLong(cht->row));
-	    PyDict_SetItemString(py_char_attr, "column", PyInt_FromLong(cht->column));
-	    
-	    py_gdkcolor = pyg_boxed_new(GDK_TYPE_COLOR, &cht->fore, TRUE, TRUE);
-	    PyDict_SetItemString(py_char_attr, "fore", py_gdkcolor);
-	    py_gdkcolor = pyg_boxed_new(GDK_TYPE_COLOR, &cht->back, TRUE, TRUE);
-	    PyDict_SetItemString(py_char_attr, "back", py_gdkcolor);
-	    
-	    PyDict_SetItemString(py_char_attr, "underline", 
-		    PyInt_FromLong(cht->underline));
-	    PyDict_SetItemString(py_char_attr, "strikethrough", 
-		    PyInt_FromLong(cht->strikethrough));
-
-	    PyTuple_SetItem(py_attrs, count, py_char_attr);
-	}
+	py_attrs = build_attributes(attrs);
 	length = attrs->len;
 	g_array_free(attrs, TRUE);
-	return Py_BuildValue("(s#O)", text, length, py_attrs);
+	result = Py_BuildValue("(s#N)", text, length, py_attrs);
     } else {
-    	return Py_BuildValue("s", text);
+    	result = Py_BuildValue("s", text);
     }
+
+    g_free (text);
+    return result;
 }
 %%
 override vte_terminal_set_colors kwargs
