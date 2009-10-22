@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: vte master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=vte&component=general\n"
-"POT-Creation-Date: 2009-09-16 02:22+0000\n"
-"PO-Revision-Date: 2009-08-25 03:02+0100\n"
+"POT-Creation-Date: 2009-10-21 22:22+0000\n"
+"PO-Revision-Date: 2009-10-22 18:41+0100\n"
 "Last-Translator: Nils-Christoph Fiedler <linux@medienkompanie.de>\n"
 "Language-Team: Low German <nds-lowgerman@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -17,10 +17,10 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
-#: ../src/vte.c:2190
+#: ../src/vte.c:2217
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "Nich möglich, Teken vun %s to %s to konverteeren."
+msgstr "Nich möglich, Teken vun %s to %s to konverteren."
 
 #: ../src/iso2022.c:1464
 #, c-format
@@ -30,7 +30,7 @@ msgstr "Versöök ungültige NRC Koort '%c' to setten."
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #: ../src/iso2022.c:1494
 msgid "Unrecognized identified coding system."
-msgstr "Nich wieswarrnes, identifiziertes Kodeerungssystem."
+msgstr "Nich wieswarrnes, identifiziertes Koderenssystem."
 
 #: ../src/iso2022.c:1553 ../src/iso2022.c:1580
 #, c-format
@@ -61,33 +61,33 @@ msgstr ""
 "Kunn nich de Geometrie Spezifikatschoon uteenannerklamüsern, de to --"
 "geometry föhrt"
 
-#: ../src/vte.c:1239
+#: ../src/vte.c:1266
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "Fehler bi'm Kompileeren vum akeraten Utdruck \"%s\"."
+msgstr "Fehler bi'm Kompileren vum akeraten Utdruck \"%s\"."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4152
+#: ../src/vte.c:4175
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Fehler bi'm Lesen vun Kind: %s."
 
-#: ../src/vte.c:4280
+#: ../src/vte.c:4303
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
 "Nich möglich, Daten an Kind to sennen, ungültiger Schrievsettenskonverter"
 
-#: ../src/vte.c:4291 ../src/vte.c:5283
+#: ../src/vte.c:4314 ../src/vte.c:5306
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "Fehler (%s) bi'm Konverteeren vun Daten för Kind, fertig."
+msgstr "Fehler (%s) bi'm Konverteren vun Daten för Kind, fertig."
 
-#: ../src/vte.c:7513
+#: ../src/vte.c:7536
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Fehler bi'm Lesen vun de PTY Gröte, nehme Standard:  %s."
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:13073
+#: ../src/vte.c:13099
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "_vte_conv_open() kunn keene Woordteken setten"
+msgstr "_vte_conv_open() künn keene Woordteken setten"
