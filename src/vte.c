@@ -555,7 +555,7 @@ find_start_column (VteTerminal *terminal, glong col, glong row)
 		return col;
 	if (row_data != NULL) {
 		const VteCell *cell = _vte_row_data_get (row_data, col);
-		while (cell != NULL && cell->attr.fragment && col > 0) {
+		while (col > 0 && cell != NULL && cell->attr.fragment) {
 			cell = _vte_row_data_get (row_data, --col);
 		}
 	}
@@ -570,7 +570,7 @@ find_end_column (VteTerminal *terminal, glong col, glong row)
 		return col;
 	if (row_data != NULL) {
 		const VteCell *cell = _vte_row_data_get (row_data, col);
-		while (cell != NULL && cell->attr.fragment && col > 0) {
+		while (col > 0 && cell != NULL && cell->attr.fragment) {
 			cell = _vte_row_data_get (row_data, --col);
 		}
 		if (cell) {
@@ -3098,7 +3098,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	if (G_LIKELY (col > 0)) {
 		glong col2 = col - 1;
 		VteCell *cell = _vte_row_data_get_writable (row, col2);
-		while (cell != NULL && cell->attr.fragment && col2 > 0)
+		while (col2 > 0 && cell != NULL && cell->attr.fragment)
 			cell = _vte_row_data_get_writable (row, --col2);
 		cell->attr.columns = col - col2;
 	}
@@ -5784,7 +5784,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 					  GArray *attributes,
 					  gboolean include_trailing_spaces)
 {
-	long col, row, last_empty, last_emptycol, last_nonempty, last_nonemptycol;
+	glong col, row, last_empty, last_emptycol, last_nonempty, last_nonemptycol;
 	VteScreen *screen;
 	const VteCell *pcell = NULL;
 	GString *string;
@@ -5801,7 +5801,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 
 	palette = terminal->pvt->palette;
 	col = start_col;
-	for (row = start_row; row <= end_row; row++, col = 0) {
+	for (row = start_row; row < end_row + 1; row++, col = 0) {
 		const VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
 		last_empty = last_nonempty = string->len;
 		last_emptycol = last_nonemptycol = -1;
@@ -8786,7 +8786,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
 			  gboolean bold)
 {
 	gboolean ret;
-	gint xcenter, xright, ycenter, ybottom, i, j, draw;
+	gint xcenter, xright, ycenter, ybottom, i;
 	struct _vte_draw_text_request request;
 	GdkColor color;
 
@@ -9489,8 +9489,8 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
 					    VTE_LINE_WIDTH * 2);
 		break;
 	case 0x2592:  /* a */
-		for (i = x; i <= xright; i++) {
-			draw = ((i - x) & 1) == 0;
+		for (i = x; i < xright + 1; i++) {
+			gint j, draw = ((i - x) & 1) == 0;
 			for (j = y; j < ybottom; j++) {
 				if (draw) {
 					vte_terminal_draw_point(terminal,
