@@ -12990,7 +12990,11 @@ vte_terminal_get_cursor_shape(VteTerminal *terminal)
  * Sets the length of the scrollback buffer used by the terminal.  The size of
  * the scrollback buffer will be set to the larger of this value and the number
  * of visible rows the widget can display, so 0 can safely be used to disable
- * scrollback.  Note that this setting only affects the normal screen buffer.
+ * scrollback.
+ *
+ * A negative value means "infinite scrollback".
+ *
+ * Note that this setting only affects the normal screen buffer.
  * For terminal types which have an alternate screen buffer, no scrollback is
  * allowed on the alternate screen buffer.
  *
@@ -13004,6 +13008,9 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 	VteScreen *screen;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	if (lines < 0)
+		lines = G_MAXLONG;
 
         object = G_OBJECT(terminal);
         pvt = terminal->pvt;
