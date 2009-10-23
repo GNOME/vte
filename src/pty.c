@@ -206,18 +206,20 @@ vte_pty_child_setup (gpointer arg)
 #endif
 
 #ifdef HAVE_STROPTS_H
-	if ((ioctl(fd, I_FIND, "ptem") == 0) &&
-			(ioctl(fd, I_PUSH, "ptem") == -1)) {
-		_exit (127);
-	}
-	if ((ioctl(fd, I_FIND, "ldterm") == 0) &&
-			(ioctl(fd, I_PUSH, "ldterm") == -1)) {
-		_exit (127);
-	}
-	if ((ioctl(fd, I_FIND, "ttcompat") == 0) &&
-			(ioctl(fd, I_PUSH, "ttcompat") == -1)) {
-		perror ("ioctl (fd, I_PUSH, \"ttcompat\")");
-		_exit (127);
+	if (isastream (fd) == 1) {
+		if ((ioctl(fd, I_FIND, "ptem") == 0) &&
+				(ioctl(fd, I_PUSH, "ptem") == -1)) {
+			_exit (127);
+		}
+		if ((ioctl(fd, I_FIND, "ldterm") == 0) &&
+				(ioctl(fd, I_PUSH, "ldterm") == -1)) {
+			_exit (127);
+		}
+		if ((ioctl(fd, I_FIND, "ttcompat") == 0) &&
+				(ioctl(fd, I_PUSH, "ttcompat") == -1)) {
+			perror ("ioctl (fd, I_PUSH, \"ttcompat\")");
+			_exit (127);
+		}
 	}
 #endif
 
