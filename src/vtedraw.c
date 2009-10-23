@@ -352,7 +352,7 @@ _vte_draw_text (struct _vte_draw *draw,
 
 	/* handle fonts that lack a bold face by double-striking */
 	if (bold && !(draw->impl->has_bold && draw->impl->has_bold (draw))) {
-		int i;
+		gsize i;
 
 		/* Take a step to the right. */
 		for (i = 0; i < n_requests; i++) {
