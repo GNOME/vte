@@ -6618,9 +6618,6 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 			"Selection changed to "
 			"(%ld,%ld) to (%ld,%ld).\n",
 			sc->col, sc->row, ec->col, ec->row);
-
-	vte_terminal_copy_primary(terminal);
-	vte_terminal_emit_selection_changed(terminal);
 }
 
 static void
@@ -7076,6 +7073,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 				    !terminal->pvt->selecting_restart &&
 				    terminal->pvt->selecting_had_delta) {
 					vte_terminal_copy_primary(terminal);
+					vte_terminal_emit_selection_changed(terminal);
 				}
 				terminal->pvt->selecting = FALSE;
 				handled = TRUE;
