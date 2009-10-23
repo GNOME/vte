@@ -51,7 +51,7 @@ _vte_ring_validate (VteRing * ring)
 
 
 void
-_vte_ring_init (VteRing *ring, guint max_rows)
+_vte_ring_init (VteRing *ring, gulong max_rows)
 {
 	_vte_debug_print(VTE_DEBUG_RING, "New ring %p.\n", ring);
 
@@ -71,7 +71,7 @@ _vte_ring_init (VteRing *ring, guint max_rows)
 	ring->utf8_buffer = g_string_sized_new (128);
 
 	_vte_row_data_init (&ring->cached_row);
-	ring->cached_row_num = (guint) -1;
+	ring->cached_row_num = (gulong) -1;
 
 	_vte_ring_validate(ring);
 }
@@ -79,7 +79,7 @@ _vte_ring_init (VteRing *ring, guint max_rows)
 void
 _vte_ring_fini (VteRing *ring)
 {
-	guint i;
+	gulong i;
 
 	for (i = 0; i <= ring->mask; i++)
 		_vte_row_data_fini (&ring->array[i]);
@@ -101,19 +101,19 @@ typedef struct _VteRowRecord {
 } VteRowRecord;
 
 static gboolean
-_vte_ring_read_row_record (VteRing *ring, VteRowRecord *record, guint position)
+_vte_ring_read_row_record (VteRing *ring, VteRowRecord *record, gulong position)
 {
 	return _vte_stream_read (ring->row_stream, position * sizeof (*record), (char *) record, sizeof (*record));
 }
 
 static void
-_vte_ring_append_row_record (VteRing *ring, const VteRowRecord *record, guint position)
+_vte_ring_append_row_record (VteRing *ring, const VteRowRecord *record, gulong position)
 {
 	_vte_stream_append (ring->row_stream, (const char *) record, sizeof (*record));
 }
 
 static void
-_vte_ring_freeze_row (VteRing *ring, guint position, const VteRowData *row)
+_vte_ring_freeze_row (VteRing *ring, gulong position, const VteRowData *row)
 {
 	VteRowRecord record;
 	VteCell *cell;
@@ -121,7 +121,7 @@ _vte_ring_freeze_row (VteRing *ring, guint position, const VteRowData *row)
 	guint32 basic_attr = basic_cell.i.attr;
 	int i;
 
-	_vte_debug_print (VTE_DEBUG_RING, "Freezing row %d.\n", position);
+	_vte_debug_print (VTE_DEBUG_RING, "Freezing row %lu.\n", position);
 
 	record.text_offset = _vte_stream_head (ring->text_stream);
 	record.attr_offset = _vte_stream_head (ring->attr_stream);
@@ -177,7 +177,7 @@ _vte_ring_freeze_row (VteRing *ring, guint position, const VteRowData *row)
 }
 
 static void
-_vte_ring_thaw_row (VteRing *ring, guint position, VteRowData *row, gboolean truncate)
+_vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean truncate)
 {
 	VteRowRecord records[2], record;
 	VteIntCellAttr attr;
@@ -187,7 +187,7 @@ _vte_ring_thaw_row (VteRing *ring, guint position, VteRowData *row, gboolean tru
 	GString *buffer = ring->utf8_buffer;
 	guint32 basic_attr = basic_cell.i.attr;
 
-	_vte_debug_print (VTE_DEBUG_RING, "Thawing row %d.\n", position);
+	_vte_debug_print (VTE_DEBUG_RING, "Thawing row %lu.\n", position);
 
 	_vte_row_data_clear (row);
 
@@ -265,9 +265,9 @@ _vte_ring_thaw_row (VteRing *ring, guint position, VteRowData *row, gboolean tru
 }
 
 static void
-_vte_ring_reset_streams (VteRing *ring, guint position)
+_vte_ring_reset_streams (VteRing *ring, gulong position)
 {
-	_vte_debug_print (VTE_DEBUG_RING, "Reseting streams to %d.\n", position);
+	_vte_debug_print (VTE_DEBUG_RING, "Reseting streams to %lu.\n", position);
 
 	_vte_stream_reset (ring->row_stream, position * sizeof (VteRowRecord));
 	_vte_stream_reset (ring->text_stream, 0);
@@ -282,7 +282,7 @@ _vte_ring_reset_streams (VteRing *ring, guint position)
 static void
 _vte_ring_new_page (VteRing *ring)
 {
-	_vte_debug_print (VTE_DEBUG_RING, "Starting new stream page at %d.\n", ring->writable);
+	_vte_debug_print (VTE_DEBUG_RING, "Starting new stream page at %lu.\n", ring->writable);
 
 	_vte_stream_new_page (ring->attr_stream);
 	_vte_stream_new_page (ring->text_stream);
@@ -294,19 +294,19 @@ _vte_ring_new_page (VteRing *ring)
 
 
 static inline VteRowData *
-_vte_ring_writable_index (VteRing *ring, guint position)
+_vte_ring_writable_index (VteRing *ring, gulong position)
 {
 	return &ring->array[position & ring->mask];
 }
 
 const VteRowData *
-_vte_ring_index (VteRing *ring, guint position)
+_vte_ring_index (VteRing *ring, gulong position)
 {
 	if (G_LIKELY (position >= ring->writable))
 		return _vte_ring_writable_index (ring, position);
 
 	if (ring->cached_row_num != position) {
-		_vte_debug_print(VTE_DEBUG_RING, "Caching row %d.\n", position);
+		_vte_debug_print(VTE_DEBUG_RING, "Caching row %lu.\n", position);
 		_vte_ring_thaw_row (ring, position, &ring->cached_row, FALSE);
 		ring->cached_row_num = position;
 	}
@@ -314,11 +314,11 @@ _vte_ring_index (VteRing *ring, guint position)
 	return &ring->cached_row;
 }
 
-static void _vte_ring_ensure_writable (VteRing *ring, guint position);
+static void _vte_ring_ensure_writable (VteRing *ring, gulong position);
 static void _vte_ring_ensure_writable_room (VteRing *ring);
 
 VteRowData *
-_vte_ring_index_writable (VteRing *ring, guint position)
+_vte_ring_index_writable (VteRing *ring, gulong position)
 {
 	_vte_ring_ensure_writable (ring, position);
 	return _vte_ring_writable_index (ring, position);
@@ -353,7 +353,7 @@ _vte_ring_thaw_one_row (VteRing *ring)
 	ring->writable--;
 
 	if (ring->writable == ring->cached_row_num)
-		ring->cached_row_num = (guint) -1; /* Invalidate cached row */
+		ring->cached_row_num = (gulong) -1; /* Invalidate cached row */
 
 	row = _vte_ring_writable_index (ring, ring->writable);
 
@@ -381,14 +381,14 @@ _vte_ring_maybe_freeze_one_row (VteRing *ring)
 static void
 _vte_ring_maybe_discard_one_row (VteRing *ring)
 {
-	if (_vte_ring_length (ring) == ring->max)
+	if ((gulong) _vte_ring_length (ring) == ring->max)
 		_vte_ring_discard_one_row (ring);
 }
 
 static void
 _vte_ring_ensure_writable_room (VteRing *ring)
 {
-	guint new_mask, old_mask, i, end;
+	gulong new_mask, old_mask, i, end;
 	VteRowData *old_array, *new_array;;
 
 	if (G_LIKELY (ring->writable + ring->mask > ring->end))
@@ -413,12 +413,12 @@ _vte_ring_ensure_writable_room (VteRing *ring)
 }
 
 static void
-_vte_ring_ensure_writable (VteRing *ring, guint position)
+_vte_ring_ensure_writable (VteRing *ring, gulong position)
 {
 	if (G_LIKELY (position >= ring->writable))
 		return;
 
-	_vte_debug_print(VTE_DEBUG_RING, "Ensure writable %d.\n", position);
+	_vte_debug_print(VTE_DEBUG_RING, "Ensure writable %lu.\n", position);
 
 	while (position < ring->writable)
 		_vte_ring_thaw_one_row (ring);
@@ -432,13 +432,13 @@ _vte_ring_ensure_writable (VteRing *ring, guint position)
  * Changes the number of lines the ring can contain.
  */
 void
-_vte_ring_resize (VteRing *ring, guint max_rows)
+_vte_ring_resize (VteRing *ring, gulong max_rows)
 {
-	_vte_debug_print(VTE_DEBUG_RING, "Resizing to %d.\n", max_rows);
+	_vte_debug_print(VTE_DEBUG_RING, "Resizing to %lu.\n", max_rows);
 	_vte_ring_validate(ring);
 
 	/* Adjust the start of tail chunk now */
-	if (_vte_ring_length (ring) > max_rows) {
+	if ((gulong) _vte_ring_length (ring) > max_rows) {
 		ring->start = ring->end - max_rows;
 		if (ring->start >= ring->writable) {
 			_vte_ring_reset_streams (ring, 0);
@@ -450,12 +450,12 @@ _vte_ring_resize (VteRing *ring, guint max_rows)
 }
 
 void
-_vte_ring_shrink (VteRing *ring, guint max_len)
+_vte_ring_shrink (VteRing *ring, gulong max_len)
 {
-	if (_vte_ring_length (ring) <= max_len)
+	if ((gulong) _vte_ring_length (ring) <= max_len)
 		return;
 
-	_vte_debug_print(VTE_DEBUG_RING, "Shrinking to %d.\n", max_len);
+	_vte_debug_print(VTE_DEBUG_RING, "Shrinking to %lu.\n", max_len);
 	_vte_ring_validate(ring);
 
 	if (ring->writable - ring->start <= max_len)
@@ -483,12 +483,12 @@ _vte_ring_shrink (VteRing *ring, guint max_len)
  * Return: the newly added row.
  */
 VteRowData *
-_vte_ring_insert (VteRing *ring, guint position)
+_vte_ring_insert (VteRing *ring, gulong position)
 {
-	guint i;
+	gulong i;
 	VteRowData *row, tmp;
 
-	_vte_debug_print(VTE_DEBUG_RING, "Inserting at position %u.\n", position);
+	_vte_debug_print(VTE_DEBUG_RING, "Inserting at position %lu.\n", position);
 	_vte_ring_validate(ring);
 
 	_vte_ring_maybe_discard_one_row (ring);
@@ -521,12 +521,12 @@ _vte_ring_insert (VteRing *ring, guint position)
  * Removes the @position'th item from @ring.
  */
 void
-_vte_ring_remove (VteRing * ring, guint position)
+_vte_ring_remove (VteRing * ring, gulong position)
 {
-	guint i;
+	gulong i;
 	VteRowData tmp;
 
-	_vte_debug_print(VTE_DEBUG_RING, "Removing item at position %u.\n", position);
+	_vte_debug_print(VTE_DEBUG_RING, "Removing item at position %lu.\n", position);
 	_vte_ring_validate(ring);
 
 	g_assert (_vte_ring_contains (ring, position));

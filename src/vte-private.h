@@ -416,9 +416,9 @@ void _vte_terminal_beep(VteTerminal *terminal);
 
 void _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ...) G_GNUC_PRINTF(2,3);
 
-VteRowData *_vte_terminal_ring_insert (VteTerminal *terminal, guint position, gboolean fill);
+VteRowData *_vte_terminal_ring_insert (VteTerminal *terminal, glong position, gboolean fill);
 VteRowData *_vte_terminal_ring_append (VteTerminal *terminal, gboolean fill);
-void _vte_terminal_ring_remove (VteTerminal *terminal, guint position);
+void _vte_terminal_ring_remove (VteTerminal *terminal, glong position);
 
 /* vteseq.c: */
 void _vte_terminal_handle_sequence(VteTerminal *terminal,

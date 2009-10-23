@@ -142,7 +142,7 @@ typedef struct _VteRowData {
 #define _vte_row_data_length(__row)			((__row)->len + 0)
 
 static inline const VteCell *
-_vte_row_data_get (const VteRowData *row, guint col)
+_vte_row_data_get (const VteRowData *row, gulong col)
 {
 	if (G_UNLIKELY (row->len <= col))
 		return NULL;
@@ -151,7 +151,7 @@ _vte_row_data_get (const VteRowData *row, guint col)
 }
 
 static inline VteCell *
-_vte_row_data_get_writable (VteRowData *row, guint col)
+_vte_row_data_get_writable (VteRowData *row, gulong col)
 {
 	if (G_UNLIKELY (row->len <= col))
 		return NULL;
@@ -162,11 +162,11 @@ _vte_row_data_get_writable (VteRowData *row, guint col)
 void _vte_row_data_init (VteRowData *row);
 void _vte_row_data_clear (VteRowData *row);
 void _vte_row_data_fini (VteRowData *row);
-void _vte_row_data_insert (VteRowData *row, guint col, const VteCell *cell);
+void _vte_row_data_insert (VteRowData *row, gulong col, const VteCell *cell);
 void _vte_row_data_append (VteRowData *row, const VteCell *cell);
-void _vte_row_data_remove (VteRowData *row, guint col);
-void _vte_row_data_fill (VteRowData *row, const VteCell *cell, guint len);
-void _vte_row_data_shrink (VteRowData *row, guint max_len);
+void _vte_row_data_remove (VteRowData *row, gulong col);
+void _vte_row_data_fill (VteRowData *row, const VteCell *cell, gulong len);
+void _vte_row_data_shrink (VteRowData *row, gulong max_len);
 
 
 G_END_DECLS

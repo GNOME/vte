@@ -39,42 +39,42 @@ typedef struct _VteCellAttrChange {
 
 typedef struct _VteRing VteRing;
 struct _VteRing {
-	guint max;
+	gulong max;
 
-	guint start, end;
+	gulong start, end;
 
 	/* Writable */
-	guint writable, mask;
+	gulong writable, mask;
 	VteRowData *array;
 
 	/* Storage */
-	guint last_page;
+	gulong last_page;
 	VteStream *attr_stream, *text_stream, *row_stream;
 	VteCellAttrChange last_attr;
 	GString *utf8_buffer;
 
 	VteRowData cached_row;
-	guint cached_row_num;
+	gulong cached_row_num;
 
 };
 
 #define _vte_ring_contains(__ring, __position) \
-	(((__position) >= (__ring)->start) && \
-	 ((__position) < (__ring)->end))
-#define _vte_ring_delta(__ring) ((__ring)->start + 0)
-#define _vte_ring_length(__ring) ((__ring)->end - (__ring)->start)
-#define _vte_ring_next(__ring) ((__ring)->end + 0)
+	(((gulong) (__position) >= (__ring)->start) && \
+	 ((gulong) (__position) < (__ring)->end))
+#define _vte_ring_delta(__ring) ((glong) (__ring)->start)
+#define _vte_ring_length(__ring) ((glong) ((__ring)->end - (__ring)->start))
+#define _vte_ring_next(__ring) ((glong) (__ring)->end)
 
-const VteRowData *_vte_ring_index (VteRing *ring, guint position);
-VteRowData *_vte_ring_index_writable (VteRing *ring, guint position);
+const VteRowData *_vte_ring_index (VteRing *ring, gulong position);
+VteRowData *_vte_ring_index_writable (VteRing *ring, gulong position);
 
-void _vte_ring_init (VteRing *ring, guint max_rows);
+void _vte_ring_init (VteRing *ring, gulong max_rows);
 void _vte_ring_fini (VteRing *ring);
-void _vte_ring_resize (VteRing *ring, guint max_rows);
-void _vte_ring_shrink (VteRing *ring, guint max_len);
-VteRowData *_vte_ring_insert (VteRing *ring, guint position);
+void _vte_ring_resize (VteRing *ring, gulong max_rows);
+void _vte_ring_shrink (VteRing *ring, gulong max_len);
+VteRowData *_vte_ring_insert (VteRing *ring, gulong position);
 VteRowData *_vte_ring_append (VteRing *ring);
-void _vte_ring_remove (VteRing *ring, guint position);
+void _vte_ring_remove (VteRing *ring, gulong position);
 
 G_END_DECLS
 

@@ -46,9 +46,9 @@ _vte_cells_for_cell_array (VteCell *cells)
 }
 
 static VteCells *
-_vte_cells_realloc (VteCells *cells, guint len)
+_vte_cells_realloc (VteCells *cells, guint32 len)
 {
-	guint alloc_len = (1 << g_bit_storage (MAX (len, 80))) - 1;
+	guint32 alloc_len = (1 << g_bit_storage (MAX (len, 80))) - 1;
 
 	_vte_debug_print(VTE_DEBUG_RING, "Enlarging cell array of %d cells to %d cells\n", cells ? cells->alloc_len : 0, alloc_len);
 	cells = g_realloc (cells, G_STRUCT_OFFSET (VteCells, cells) + alloc_len * sizeof (cells->cells[0]));
@@ -92,7 +92,7 @@ _vte_row_data_fini (VteRowData *row)
 }
 
 static inline gboolean
-_vte_row_data_ensure (VteRowData *row, guint len)
+_vte_row_data_ensure (VteRowData *row, gulong len)
 {
 	VteCells *cells = _vte_cells_for_cell_array (row->cells);
 	if (G_LIKELY (cells && len <= cells->alloc_len))
@@ -107,9 +107,9 @@ _vte_row_data_ensure (VteRowData *row, guint len)
 }
 
 void
-_vte_row_data_insert (VteRowData *row, guint col, const VteCell *cell)
+_vte_row_data_insert (VteRowData *row, gulong col, const VteCell *cell)
 {
-	guint i;
+	gulong i;
 
 	if (G_UNLIKELY (!_vte_row_data_ensure (row, row->len + 1)))
 		return;
@@ -130,9 +130,9 @@ void _vte_row_data_append (VteRowData *row, const VteCell *cell)
 	row->len++;
 }
 
-void _vte_row_data_remove (VteRowData *row, guint col)
+void _vte_row_data_remove (VteRowData *row, gulong col)
 {
-	guint i;
+	gulong i;
 
 	for (i = col + 1; i < row->len; i++)
 		row->cells[i - 1] = row->cells[i];
@@ -141,10 +141,10 @@ void _vte_row_data_remove (VteRowData *row, guint col)
 		row->len--;
 }
 
-void _vte_row_data_fill (VteRowData *row, const VteCell *cell, guint len)
+void _vte_row_data_fill (VteRowData *row, const VteCell *cell, gulong len)
 {
 	if (row->len < len) {
-		guint i = len - row->len;
+		gulong i = len - row->len;
 
 		if (G_UNLIKELY (!_vte_row_data_ensure (row, len)))
 			return;
@@ -156,7 +156,7 @@ void _vte_row_data_fill (VteRowData *row, const VteCell *cell, guint len)
 	}
 }
 
-void _vte_row_data_shrink (VteRowData *row, guint max_len)
+void _vte_row_data_shrink (VteRowData *row, gulong max_len)
 {
 	if (max_len < row->len)
 		row->len = max_len;

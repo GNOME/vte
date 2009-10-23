@@ -286,7 +286,7 @@ vte_g_array_fill(GArray *array, gconstpointer item, guint final_size)
 
 
 VteRowData *
-_vte_terminal_ring_insert (VteTerminal *terminal, guint position, gboolean fill)
+_vte_terminal_ring_insert (VteTerminal *terminal, glong position, gboolean fill)
 {
 	VteRowData *row;
 	VteRing *ring = terminal->pvt->screen->row_data;
@@ -307,7 +307,7 @@ _vte_terminal_ring_append (VteTerminal *terminal, gboolean fill)
 }
 
 void
-_vte_terminal_ring_remove (VteTerminal *terminal, guint position)
+_vte_terminal_ring_remove (VteTerminal *terminal, glong position)
 {
 	_vte_ring_remove (terminal->pvt->screen->row_data, position);
 }
@@ -8073,13 +8073,15 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 
 	if (width != terminal->column_count
 			|| height != terminal->row_count
-			|| update_scrollback) {
+			|| update_scrollback)
+	{
+		VteScreen *screen = terminal->pvt->screen;
+
 		/* Set the size of the pseudo-terminal. */
 		vte_terminal_set_size(terminal, width, height);
 
 		/* Adjust scrolling area in case our boundaries have just been
 		 * redefined to be invalid. */
-		VteScreen *screen = terminal->pvt->screen;
 		if (screen->scrolling_restricted) {
 			screen->scrolling_region.start =
 				MIN(screen->scrolling_region.start,
