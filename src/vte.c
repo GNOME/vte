@@ -6801,10 +6801,11 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	VteTerminal *terminal;
 	int width, height;
 	long x, y;
+	gboolean handled = FALSE;
 
 	/* check to see if it matters */
 	if (!GTK_WIDGET_DRAWABLE(widget)) {
-		return TRUE;
+		return handled;
 	}
 
 	terminal = VTE_TERMINAL(widget);
@@ -6843,6 +6844,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 				vte_terminal_maybe_send_mouse_drag(terminal,
 								   event);
 			}
+			handled = TRUE;
 			break;
 		default:
 			vte_terminal_maybe_send_mouse_drag(terminal, event);
@@ -6877,7 +6879,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	terminal->pvt->mouse_last_x = x;
 	terminal->pvt->mouse_last_y = y;
 
-	return TRUE;
+	return handled;
 }
 
 /* Read and handle a pointing device buttonpress event. */
