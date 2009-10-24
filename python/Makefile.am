@@ -1,5 +1,7 @@
 EXTRA_DIST = vte.defs pyvte.pc.in vte.override cat.py unrealize.py vte-demo.py
 
+if BUILD_PYTHON_MODULES
+
 defsdir = $(datadir)/pygtk/2.0/defs
 defs_DATA = vte.defs
 
@@ -8,7 +10,6 @@ pkgconfig_DATA = pyvte.pc
 
 PYTHON_MODULES = vtemodule.la
 
-if BUILD_PYTHON_MODULES
 pythonsiteexecdir = $(pyexecdir)/gtk-2.0
 pythonsiteexec_LTLIBRARIES = $(PYTHON_MODULES)
 
