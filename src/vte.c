@@ -6658,31 +6658,28 @@ vte_terminal_set_selection_block_mode (VteTerminal *terminal,
 void
 vte_terminal_select_all (VteTerminal *terminal)
 {
-	long delta;
-
 	g_return_if_fail (VTE_IS_TERMINAL (terminal));
 
 	vte_terminal_deselect_all (terminal);
-
-	delta = terminal->pvt->screen->scroll_delta;
 
 	terminal->pvt->has_selection = TRUE;
 	terminal->pvt->selecting_had_delta = TRUE;
 	terminal->pvt->selecting_restart = FALSE;
 
+	terminal->pvt->selection_start.row = _vte_ring_delta (terminal->pvt->screen->row_data);
 	terminal->pvt->selection_start.col = 0;
-	terminal->pvt->selection_start.row = 0;
-	terminal->pvt->selection_end.col = terminal->column_count;
-	terminal->pvt->selection_end.row = delta + terminal->row_count;
+	terminal->pvt->selection_end.row = terminal->pvt->screen->scroll_delta + terminal->row_count;
+	terminal->pvt->selection_end.col = 0;
 
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Selecting *all* text.\n");
 
 	g_free (terminal->pvt->selection);
 	terminal->pvt->selection =
 		vte_terminal_get_text_range (terminal,
-				0, 0,
-				delta + terminal->row_count,
-				terminal->column_count,
+				terminal->pvt->selection_start.row,
+				terminal->pvt->selection_start.col,
+				terminal->pvt->selection_end.row,
+				terminal->pvt->selection_end.col,
 				vte_cell_is_selected,
 				NULL, NULL);
 
