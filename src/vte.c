@@ -7562,8 +7562,7 @@ vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 			old_columns != terminal->column_count) {
 		VteScreen *screen = terminal->pvt->screen;
 		if (screen) {
-			glong visible_rows = MIN (old_rows,
-					_vte_ring_length (screen->row_data));
+			glong visible_rows = MIN (old_rows, _vte_ring_length (screen->row_data));
 			if (terminal->row_count < visible_rows) {
 				glong delta = visible_rows - terminal->row_count;
 				screen->insert_delta += delta;
