@@ -533,7 +533,8 @@ _vte_ring_remove (VteRing * ring, gulong position)
 	_vte_debug_print(VTE_DEBUG_RING, "Removing item at position %lu.\n", position);
 	_vte_ring_validate(ring);
 
-	g_assert (_vte_ring_contains (ring, position));
+	if (G_UNLIKELY (!_vte_ring_contains (ring, position)))
+		return;
 
 	_vte_ring_ensure_writable (ring, position);
 
