@@ -5408,10 +5408,8 @@ static void
 vte_terminal_maybe_send_mouse_button(VteTerminal *terminal,
 				     GdkEventButton *event)
 {
-	/* Read the modifiers. */
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
-	/* Decide whether or not to do anything. */
 	switch (event->type) {
 	case GDK_BUTTON_PRESS:
 		if (terminal->pvt->mouse_tracking_mode < MOUSE_TRACKING_SEND_XY_ON_CLICK) {
@@ -6166,6 +6164,29 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 	_vte_terminal_disconnect_pty_read(terminal);
 }
 
+static gboolean
+_vte_terminal_maybe_end_selection (VteTerminal *terminal)
+{
+	/* If Shift is held down, or we're not in events mode,
+	 * copy the selected text. */
+	if (terminal->pvt->selecting || !terminal->pvt->mouse_tracking_mode) {
+		/* Copy only if something was selected. */
+		if (terminal->pvt->has_selection &&
+		    !terminal->pvt->selecting_restart &&
+		    terminal->pvt->selecting_had_delta) {
+			vte_terminal_copy_primary(terminal);
+			vte_terminal_emit_selection_changed(terminal);
+		}
+		terminal->pvt->selecting = FALSE;
+
+		/* Reconnect to input from the child if we paused it. */
+		_vte_terminal_connect_pty_read(terminal);
+
+		return TRUE;
+	}
+	return FALSE;
+}
+
 static long
 math_div (long a, long b)
 {
@@ -6630,7 +6651,7 @@ vte_terminal_set_selection_block_mode (VteTerminal *terminal,
 	if (G_LIKELY (!terminal->pvt->has_selection))
 		return;
 
-	if (G_LIKELY (terminal->pvt->mouse_last_button != 1))
+	if (G_LIKELY (!terminal->pvt->selecting))
 		return;
 
 	selection_block_mode = !!selection_block_mode;
@@ -6816,7 +6837,6 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 			x, y,
 			x / width, y / height + terminal->pvt->screen->scroll_delta);
 
-	/* Read the modifiers. */
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
 	if (terminal->pvt->mouse_last_button) {
@@ -6830,46 +6850,33 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 
 	switch (event->type) {
 	case GDK_MOTION_NOTIFY:
-		switch (terminal->pvt->mouse_last_button) {
-		case 1:
+		if (terminal->pvt->selecting &&
+		    ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
+		      !terminal->pvt->mouse_tracking_mode))
+		{
 			_vte_debug_print(VTE_DEBUG_EVENTS, "Mousing drag 1.\n");
-			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    !terminal->pvt->mouse_tracking_mode) {
-				vte_terminal_extend_selection(terminal,
-							      x, y, FALSE, FALSE);
-			} else {
-				vte_terminal_maybe_send_mouse_drag(terminal,
-								   event);
-			}
-			handled = TRUE;
-			break;
-		default:
-			vte_terminal_maybe_send_mouse_drag(terminal, event);
-			break;
-		}
-		break;
-	default:
-		break;
-	}
+			vte_terminal_extend_selection(terminal,
+						      x, y, FALSE, FALSE);
 
-	/* Start scrolling if we need to. */
-	if (event->y < VTE_PAD_WIDTH ||
-	    event->y >= terminal->row_count * height + VTE_PAD_WIDTH) {
-		switch (terminal->pvt->mouse_last_button) {
-		case 1:
-			if (!terminal->pvt->mouse_tracking_mode) {
+			/* Start scrolling if we need to. */
+			if (event->y < VTE_PAD_WIDTH ||
+			    event->y >= terminal->row_count * height + VTE_PAD_WIDTH)
+			{
 				/* Give mouse wigglers something. */
 				vte_terminal_autoscroll(terminal);
 				/* Start a timed autoscroll if we're not doing it
 				 * already. */
 				vte_terminal_start_autoscroll(terminal);
 			}
-			break;
-		case 2:
-		case 3:
-		default:
-			break;
+
+			handled = TRUE;
 		}
+
+		if (!handled)
+			vte_terminal_maybe_send_mouse_drag(terminal, event);
+		break;
+	default:
+		break;
 	}
 
 	/* Save the pointer coordinates for later use. */
@@ -6898,12 +6905,10 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	width = terminal->char_width;
 	delta = terminal->pvt->screen->scroll_delta;
 
-	/* Hilite any matches. */
 	vte_terminal_match_hilite(terminal, x, y);
 
 	_vte_terminal_set_pointer_visible(terminal, TRUE);
 
-	/* Read the modifiers. */
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
 	/* Convert the event coordinates to cell coordinates. */
@@ -7049,15 +7054,12 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 
 	terminal = VTE_TERMINAL(widget);
 
-	/* Hilite any matches. */
 	vte_terminal_match_hilite(terminal, x, y);
 
 	_vte_terminal_set_pointer_visible(terminal, TRUE);
 
-	/* Disconnect from autoscroll requests. */
 	vte_terminal_stop_autoscroll(terminal);
 
-	/* Read the modifiers. */
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
 	switch (event->type) {
@@ -7067,20 +7069,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 				event->button, x, y);
 		switch (event->button) {
 		case 1:
-			/* If Shift is held down, or we're not in events mode,
-			 * copy the selected text. */
-			if (terminal->pvt->selecting || !terminal->pvt->mouse_tracking_mode) {
-				/* Copy only if something was selected. */
-				if (terminal->pvt->has_selection &&
-				    !terminal->pvt->selecting_restart &&
-				    terminal->pvt->selecting_had_delta) {
-					vte_terminal_copy_primary(terminal);
-				}
-				terminal->pvt->selecting = FALSE;
-				handled = TRUE;
-			}
-			/* Reconnect to input from the child if we paused it. */
-			_vte_terminal_connect_pty_read(terminal);
+			handled = _vte_terminal_maybe_end_selection (terminal);
 			break;
 		case 2:
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
@@ -7092,7 +7081,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 		default:
 			break;
 		}
-		if (handled == FALSE) {
+		if (!handled) {
 			vte_terminal_maybe_send_mouse_button(terminal, event);
 			handled = TRUE;
 		}
@@ -7151,6 +7140,8 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting ourselves if we don't have a window. */
 	if (GTK_WIDGET_REALIZED(widget)) {
+		_vte_terminal_maybe_end_selection (terminal);
+
 		gtk_im_context_focus_out(terminal->pvt->im_context);
 		_vte_invalidate_cursor_once(terminal, FALSE);
 
