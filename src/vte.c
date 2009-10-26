@@ -6167,9 +6167,7 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 static gboolean
 _vte_terminal_maybe_end_selection (VteTerminal *terminal)
 {
-	/* If Shift is held down, or we're not in events mode,
-	 * copy the selected text. */
-	if (terminal->pvt->selecting || !terminal->pvt->mouse_tracking_mode) {
+	if (terminal->pvt->selecting) {
 		/* Copy only if something was selected. */
 		if (terminal->pvt->has_selection &&
 		    !terminal->pvt->selecting_restart &&
@@ -6639,9 +6637,6 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 			"Selection changed to "
 			"(%ld,%ld) to (%ld,%ld).\n",
 			sc->col, sc->row, ec->col, ec->row);
-
-	vte_terminal_copy_primary(terminal);
-	vte_terminal_emit_selection_changed(terminal);
 }
 
 static void
@@ -6694,16 +6689,7 @@ vte_terminal_select_all (VteTerminal *terminal)
 
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Selecting *all* text.\n");
 
-	g_free (terminal->pvt->selection);
-	terminal->pvt->selection =
-		vte_terminal_get_text_range (terminal,
-				terminal->pvt->selection_start.row,
-				terminal->pvt->selection_start.col,
-				terminal->pvt->selection_end.row,
-				terminal->pvt->selection_end.col,
-				vte_cell_is_selected,
-				NULL, NULL);
-
+	vte_terminal_copy_primary(terminal);
 	vte_terminal_emit_selection_changed (terminal);
 	_vte_invalidate_all (terminal);
 }
@@ -7069,7 +7055,11 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 				event->button, x, y);
 		switch (event->button) {
 		case 1:
-			handled = _vte_terminal_maybe_end_selection (terminal);
+			/* If Shift is held down, or we're not in events mode,
+			 * copy the selected text. */
+			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
+			    !terminal->pvt->mouse_tracking_mode)
+				handled = _vte_terminal_maybe_end_selection (terminal);
 			break;
 		case 2:
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
@@ -13765,12 +13755,13 @@ _vte_terminal_select_text(VteTerminal *terminal,
 	terminal->pvt->selection_end.col = end_col;
 	terminal->pvt->selection_end.row = end_row;
 	vte_terminal_copy_primary(terminal);
+	vte_terminal_emit_selection_changed(terminal);
+
 	_vte_invalidate_region (terminal,
 			MIN (start_col, start_row), MAX (start_col, start_row),
 			MIN (start_row, end_row),   MAX (start_row, end_row),
 			FALSE);
 
-	vte_terminal_emit_selection_changed(terminal);
 }
 
 void
