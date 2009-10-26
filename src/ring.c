@@ -236,9 +236,13 @@ _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean tr
 		p = q;
 
 		if (G_UNLIKELY (cell.attr.columns == 0)) {
-			/* Combine it */
-			g_assert (row->len);
-			row->cells[row->len - 1].c = _vte_unistr_append_unichar (row->cells[row->len - 1].c, cell.c);
+			if (G_LIKELY (row->len)) {
+				/* Combine it */
+				row->cells[row->len - 1].c = _vte_unistr_append_unichar (row->cells[row->len - 1].c, cell.c);
+			} else {
+				cell.attr.columns = 1;
+				_vte_row_data_append (row, &cell);
+			}
 		} else {
 			_vte_row_data_append (row, &cell);
 			if (cell.attr.columns > 1) {
