@@ -6869,7 +6869,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	terminal->pvt->mouse_last_x = x;
 	terminal->pvt->mouse_last_y = y;
 
-	return handled;
+	return TRUE;
 }
 
 /* Read and handle a pointing device buttonpress event. */
