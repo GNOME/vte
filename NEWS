@@ -1,3 +1,25 @@
+0.22.3
+=======
+- Various crash and bug fixes
+- Rework mouse selection to be more robust.  In particular, PRIMARY selection
+  now only changes when mouse button is released, not upon every motion when
+  selecting.
+- Interpret and document negative number of scrollback lines as infinite
+- Bugs fixed in this release:
+    Bug 597604 - assertion failed: (_vte_ring_contains (ring, position))
+    Bug 598124 - The selection does not only change when the mousebutton is released
+    Bug 598090 - LMB Mouse up event not registered when opining context popup menu
+    Bug 587463 - "select all"+copy from gnome-terminal includes lines no longer in scrollback
+    Bug 585370 - Incomplete disabling of python
+    Bug 597242 - libvte color and cursor glitches
+    Bug 591648 - Don't clear the screen when switching to the alternate screen
+    Bug 569184 - vte generates unnecessary ioctl(I_FIND) kernel warnings
+    Bug 599444 - Scrollback index type mess
+    Bug 598814 - text.getText(0, -1) triggers assertion in vteaccess.c
+    Bug 596739 - Python bindings leak memory
+    Bug 597165 - void return in vte.c
+    Bug 587894 - the environment passing with python does no longer work
+
 0.22.2
 =======
 - Fix crash introduced in previous release
