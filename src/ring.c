@@ -35,7 +35,7 @@ _vte_ring_validate (VteRing * ring)
 {
 	g_assert(ring != NULL);
 	_vte_debug_print(VTE_DEBUG_RING,
-			" Delta = %u, Length = %u, Max = %u, Writable = %u.\n",
+			" Delta = %lu, Length = %lu, Max = %lu, Writable = %lu.\n",
 			ring->start, ring->end - ring->start,
 			ring->max, ring->end - ring->writable);
 
