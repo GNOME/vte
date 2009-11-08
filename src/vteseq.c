@@ -821,6 +821,12 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 	case 47:
 	case 1047:
 	case 1049:
+		/* Clear the alternate screen if we're switching
+		 * to it, and home the cursor. */
+		if (set) {
+			_vte_terminal_clear_screen (terminal);
+			_vte_terminal_home_cursor (terminal);
+		}
 		/* Reset scrollbars and repaint everything. */
 		terminal->adjustment->value =
 			terminal->pvt->screen->scroll_delta;
