@@ -558,6 +558,7 @@ struct _vte_capability_string _vte_xterm_capability_strings[] = {
 	{NULL, NULL, 0},
 };
 
+#if 0
 /**
  * vte_capability_init:
  *
@@ -589,3 +590,4 @@ _vte_capability_init(void)
 		}
 	}
 }
+#endif
