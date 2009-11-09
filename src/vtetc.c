@@ -478,7 +478,6 @@ _vte_termcap_create (const char *filename)
   int length;
 
   file = g_mapped_file_new (filename, FALSE, NULL);
-  
   if (file == NULL)
     return NULL;
 
@@ -496,6 +495,8 @@ _vte_termcap_create (const char *filename)
 static void
 _vte_termcap_destroy (VteTermcap *termcap)
 {
+  if (!termcap)
+    return;
   g_tree_destroy (termcap->tree);
   g_mapped_file_free (termcap->file);
   g_slice_free (VteTermcap, termcap);
