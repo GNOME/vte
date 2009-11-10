@@ -695,6 +695,7 @@ _vte_table_match(struct _vte_table *table,
 				}
 				/* Handle an escaped '%'. */
 				else if (p[1] == '%') {
+					p++;
 				}
 				/* Handle numeric parameters. */
 				else if ((p[1] == 'd') ||
@@ -720,7 +721,9 @@ _vte_table_match(struct _vte_table *table,
 								p[2]);
 					p += 2;
 				} else {
-					g_assert_not_reached();
+					_vte_debug_print (VTE_DEBUG_PARSE,
+							  "Invalid termcap sequence %s\n",
+							  original);
 				}
 			} /* else Literal. */
 			arginfo = arginfo->next;
