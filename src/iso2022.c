@@ -1772,7 +1772,7 @@ main(int argc, char **argv)
 		{"\033(B\033)0\033*B\033+B", TRUE},
 		{"\r\n", TRUE},
 	};
-	int i;
+	guint i;
 	FILE *fp;
 	guchar b;
 
@@ -1781,7 +1781,7 @@ main(int argc, char **argv)
 	gunichars = g_array_new(FALSE, FALSE, sizeof(gunichar));
 	if (argc > 1) {
 		string = g_string_new(NULL);
-		for (i = 1; i < argc; i++) {
+		for (i = 1; i < (guint) argc; i++) {
 			if (strcmp(argv[i], "-") == 0) {
 				fp = stdin;
 			} else {
@@ -1795,7 +1795,7 @@ main(int argc, char **argv)
 			}
 		}
 		_vte_buffer_append(buffer, string->str, string->len);
-		_vte_iso2022_process(state, buffer, _vte_buffer_length (buffer), gunichars);
+		_vte_iso2022_process(state, buffer->data, _vte_buffer_length (buffer), gunichars);
 		g_string_free(string, TRUE);
 	} else {
 		for (i = 0; i < G_N_ELEMENTS(strings); i++) {
@@ -1803,7 +1803,7 @@ main(int argc, char **argv)
 			_vte_buffer_append(buffer, string->str, string->len);
 			g_string_free(string, TRUE);
 			if (strings[i].process) {
-				_vte_iso2022_process(state, buffer, _vte_buffer_length (buffer), gunichars);
+				_vte_iso2022_process(state, buffer->data, _vte_buffer_length (buffer), gunichars);
 			}
 		}
 	}
@@ -1815,7 +1815,7 @@ main(int argc, char **argv)
 		g_string_append_unichar(string,
 					g_array_index(gunichars, gunichar, i));
 	}
-	write(STDOUT_FILENO, string->str, string->len);
+	(void) write(STDOUT_FILENO, string->str, string->len);
 	g_string_free(string, TRUE);
 
 	return 0;
