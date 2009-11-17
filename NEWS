@@ -1,3 +1,9 @@
+0.22.5
+=======
+- Misc bug fixes
+- Bugs fixed in this release:
+    Bug 601265 -  gnome-terminal assert failure: table.c:723:_vte_table_match
+
 0.22.4
 =======
 - Fix a regression introduced in 0.22.4
