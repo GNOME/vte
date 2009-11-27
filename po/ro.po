@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=vte&component=general\n"
-"POT-Creation-Date: 2009-02-12 05:33+0000\n"
+"POT-Creation-Date: 2009-11-10 01:03+0000\n"
 "PO-Revision-Date: 2009-02-16 20:23+0200\n"
 "Last-Translator: Adi Roiban <adi@roiban.ro>\n"
 "Language-Team: Romanian <gnomero-list@lists.sourceforge.net>\n"
@@ -17,23 +17,23 @@ msgstr ""
 "X-Launchpad-Export-Date: 2009-01-14 02:40+0000\n"
 "X-Generator: Launchpad (build Unknown)\n"
 
-#: ../src/iso2022.c:785 ../src/iso2022.c:793 ../src/iso2022.c:824
-#: ../src/vte.c:2293
+#: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
+#: ../src/vte.c:2217
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Nu se pot converti caracterele din %s în %s."
 
-#: ../src/iso2022.c:1472
+#: ../src/iso2022.c:1464
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Încercare de a seta harta NRC invalidă „%c”."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1502
+#: ../src/iso2022.c:1494
 msgid "Unrecognized identified coding system."
 msgstr "Cod necunoscut de identificare sistem."
 
-#: ../src/iso2022.c:1561 ../src/iso2022.c:1588
+#: ../src/iso2022.c:1553 ../src/iso2022.c:1580
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Încercare de a seta harta „wide” NRC „%c”."
@@ -41,7 +41,7 @@ msgstr "Încercare de a seta harta „wide” NRC „%c”."
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: ../src/pty.c:831
+#: ../src/pty.c:833
 #, c-format
 msgid "can not run %s"
 msgstr "nu se poate porni %s"
@@ -60,40 +60,37 @@ msgstr "Nu s-a putut deschide consola.\n"
 msgid "Could not parse the geometry spec passed to --geometry"
 msgstr "Nu s-a putut analiza specificația geometriei trimisă de --geometry"
 
-#: ../src/vte.c:1342
+#: ../src/vte.c:1266
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Eroare la compilarea expresiei regulate „%s”."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4294
+#: ../src/vte.c:4175
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Eroare la citirea datelor de la procesul copil: %s."
 
-#: ../src/vte.c:4422
+#: ../src/vte.c:4303
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
 "Nu s-a putut trimte data către procesul părinte, convertorul pentru seturi "
 "de caractere nu este valid"
 
-#: ../src/vte.c:4433 ../src/vte.c:5400
+#: ../src/vte.c:4314 ../src/vte.c:5306
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Eroare (%s) la convertirea datelor de la procesul copil, abandon."
 
-#: ../src/vte.c:7669
+#: ../src/vte.c:7516
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "Eroare la citirea mărimii PTY, se utilizează valoarea implicită: %s."
 
-#: ../src/vte.c:7705
-#, c-format
-msgid "Error setting PTY size: %s."
-msgstr "Eroare la setarea mărimii PTY: %s."
-
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:13028
+#: ../src/vte.c:13087
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "_vte_iconv_open() a eșuat la setarea caracterelor cuvintelor"
+msgstr "_vte_iconv_open() a eșuat la definirea caracterelor cuvintelor"
 
+#~ msgid "Error setting PTY size: %s."
+#~ msgstr "Eroare la definirea mărimii PTY: %s."
