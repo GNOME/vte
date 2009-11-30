@@ -4570,17 +4570,19 @@ static void
 vte_terminal_style_set (GtkWidget      *widget,
 			GtkStyle       *prev_style)
 {
-	VteTerminal *terminal;
+	VteTerminal *terminal = VTE_TERMINAL(widget);
+
 	if (!GTK_WIDGET_REALIZED(widget)) {
 		_vte_debug_print(VTE_DEBUG_MISC,
 				"Don't change style if we aren't realized.\n");
 		return;
 	}
 
-	terminal = VTE_TERMINAL(widget);
+        GTK_WIDGET_CLASS (vte_terminal_parent_class)->style_set (widget, prev_style);
 
         vte_terminal_set_font_full_internal(terminal, terminal->pvt->fontdesc,
                                             terminal->pvt->fontantialias);
+
 }
 
 static void
@@ -11127,7 +11129,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	widget_class->focus_out_event = vte_terminal_focus_out;
 	widget_class->visibility_notify_event = vte_terminal_visibility_notify;
 	widget_class->unrealize = vte_terminal_unrealize;
-	widget_class->style_set = NULL;
 	widget_class->style_set = vte_terminal_style_set;
 	widget_class->size_request = vte_terminal_size_request;
 	widget_class->size_allocate = vte_terminal_size_allocate;
