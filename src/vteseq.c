@@ -800,10 +800,12 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		vte_terminal_emit_resize_window(terminal,
 						(set ? 132 : 80) *
 						terminal->char_width +
-						VTE_PAD_WIDTH * 2,
+						terminal->pvt->inner_border.left +
+                                                terminal->pvt->inner_border.right,
 						terminal->row_count *
 						terminal->char_height +
-						VTE_PAD_WIDTH * 2);
+						terminal->pvt->inner_border.top +
+                                                terminal->pvt->inner_border.bottom);
 		/* Request a resize and redraw. */
 		_vte_invalidate_all(terminal);
 		break;
@@ -3057,9 +3059,11 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 						arg2, arg1);
 				vte_terminal_emit_resize_window(terminal,
 								arg2 +
-								VTE_PAD_WIDTH * 2,
+								terminal->pvt->inner_border.left +
+								terminal->pvt->inner_border.right,
 								arg1 +
-								VTE_PAD_WIDTH * 2);
+								terminal->pvt->inner_border.top +
+								terminal->pvt->inner_border.bottom);
 				i += 2;
 			}
 			break;
@@ -3085,9 +3089,11 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 						arg2, arg1);
 				vte_terminal_emit_resize_window(terminal,
 								arg2 * terminal->char_width +
-								VTE_PAD_WIDTH * 2,
+								terminal->pvt->inner_border.left +
+								terminal->pvt->inner_border.right,
 								arg1 * terminal->char_height +
-								VTE_PAD_WIDTH * 2);
+								terminal->pvt->inner_border.top +
+								terminal->pvt->inner_border.bottom);
 				i += 2;
 			}
 			break;
@@ -3125,7 +3131,8 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 					      &width, &height);
 			g_snprintf(buf, sizeof(buf),
 				   _VTE_CAP_CSI "3;%d;%dt",
-				   width + VTE_PAD_WIDTH, height + VTE_PAD_WIDTH);
+				   width + terminal->pvt->inner_border.left,
+                                   height + terminal->pvt->inner_border.top);
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Reporting window location"
 					"(%d++,%d++).\n",
@@ -3136,13 +3143,17 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 			/* Send window size, in pixels. */
 			g_snprintf(buf, sizeof(buf),
 				   _VTE_CAP_CSI "4;%d;%dt",
-				   widget->allocation.height - 2 * VTE_PAD_WIDTH,
-				   widget->allocation.width - 2 * VTE_PAD_WIDTH);
+				   widget->allocation.height -
+                                       (terminal->pvt->inner_border.top +
+                                        terminal->pvt->inner_border.bottom),
+				   widget->allocation.width -
+                                       (terminal->pvt->inner_border.left +
+                                        terminal->pvt->inner_border.right));
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Reporting window size "
 					"(%dx%dn",
-					width - 2 * VTE_PAD_WIDTH,
-					height - 2 * VTE_PAD_WIDTH);
+					width - (terminal->pvt->inner_border.left + terminal->pvt->inner_border.right),
+					height - (terminal->pvt->inner_border.top + terminal->pvt->inner_border.bottom));
 			vte_terminal_feed_child(terminal, buf, -1);
 			break;
 		case 18:
@@ -3194,9 +3205,11 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 				 * rows. */
 				vte_terminal_emit_resize_window(terminal,
 								terminal->column_count * terminal->char_width +
-								VTE_PAD_WIDTH * 2,
+                                                                terminal->pvt->inner_border.left +
+                                                                terminal->pvt->inner_border.right,
 								param * terminal->char_height +
-								VTE_PAD_WIDTH * 2);
+								terminal->pvt->inner_border.top +
+                                                                terminal->pvt->inner_border.bottom);
 			}
 			break;
 		}

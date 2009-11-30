@@ -387,21 +387,21 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	 */
 	rect.x = column_start * terminal->char_width - 1;
 	if (column_start != 0) {
-		rect.x += VTE_PAD_WIDTH;
+		rect.x += terminal->pvt->inner_border.left;
 	}
-	rect.width = (column_start + column_count) * terminal->char_width + 3 + VTE_PAD_WIDTH;
+	rect.width = (column_start + column_count) * terminal->char_width + 3 + terminal->pvt->inner_border.left;
 	if (column_start + column_count == terminal->column_count) {
-		rect.width += VTE_PAD_WIDTH;
+		rect.width += terminal->pvt->inner_border.right;
 	}
 	rect.width -= rect.x;
 
 	rect.y = row_start * terminal->char_height - 1;
 	if (row_start != 0) {
-		rect.y += VTE_PAD_WIDTH;
+		rect.y += terminal->pvt->inner_border.top;
 	}
-	rect.height = (row_start + row_count) * terminal->char_height + 2 + VTE_PAD_WIDTH;
+	rect.height = (row_start + row_count) * terminal->char_height + 2 + terminal->pvt->inner_border.top;
 	if (row_start + row_count == terminal->row_count) {
-		rect.height += VTE_PAD_WIDTH;
+		rect.height += terminal->pvt->inner_border.bottom;
 	}
 	rect.height -= rect.y;
 
@@ -4021,10 +4021,10 @@ next_match:
 	if (GTK_WIDGET_REALIZED(terminal)) {
 		GdkRectangle rect;
 		rect.x = terminal->pvt->screen->cursor_current.col *
-			 terminal->char_width + VTE_PAD_WIDTH;
+			 terminal->char_width + terminal->pvt->inner_border.left;
 		rect.width = terminal->char_width;
 		rect.y = (terminal->pvt->screen->cursor_current.row - delta) *
-			 terminal->char_height + VTE_PAD_WIDTH;
+			 terminal->char_height + terminal->pvt->inner_border.top;
 		rect.height = terminal->char_height;
 		gtk_im_context_set_cursor_location(terminal->pvt->im_context,
 						   &rect);
@@ -5418,8 +5418,8 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 	gint len;
 	int width = terminal->char_width;
 	int height = terminal->char_height;
-	long col = (x - VTE_PAD_WIDTH) / width;
-	long row = (y - VTE_PAD_WIDTH) / height;
+	long col = (x - terminal->pvt->inner_border.left) / width;
+	long row = (y - terminal->pvt->inner_border.top) / height;
 
 	vte_terminal_get_mouse_tracking_info (terminal,
 					      button, col, row,
@@ -5468,8 +5468,8 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	gint len;
 	int width = terminal->char_width;
 	int height = terminal->char_height;
-	long col = ((long) event->x - VTE_PAD_WIDTH) / width;
-	long row = ((long) event->y - VTE_PAD_WIDTH) / height;
+	long col = ((long) event->x - terminal->pvt->inner_border.left) / width;
+	long row = ((long) event->y - terminal->pvt->inner_border.top) / height;
 
 	/* First determine if we even want to send notification. */
 	switch (event->type) {
@@ -6155,8 +6155,8 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 	/* Record that we have the selection, and where it started. */
 	delta = terminal->pvt->screen->scroll_delta;
 	terminal->pvt->has_selection = TRUE;
-	terminal->pvt->selection_last.x = event->x - VTE_PAD_WIDTH;
-	terminal->pvt->selection_last.y = event->y - VTE_PAD_WIDTH +
+	terminal->pvt->selection_last.x = event->x - terminal->pvt->inner_border.left;
+	terminal->pvt->selection_last.y = event->y - terminal->pvt->inner_border.top +
 					  (terminal->char_height * delta);
 
 	/* Decide whether or not to restart on the next drag. */
@@ -6840,8 +6840,8 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	}
 
 	terminal = VTE_TERMINAL(widget);
-	x = event->x - VTE_PAD_WIDTH;
-	y = event->y - VTE_PAD_WIDTH;
+	x = event->x - terminal->pvt->inner_border.left;
+	y = event->y - terminal->pvt->inner_border.top;
 	width = terminal->char_width;
 	height = terminal->char_height;
 
@@ -6872,8 +6872,9 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 						      x, y, FALSE, FALSE);
 
 			/* Start scrolling if we need to. */
-			if (event->y < VTE_PAD_WIDTH ||
-			    event->y >= terminal->row_count * height + VTE_PAD_WIDTH)
+			if (event->y < terminal->pvt->inner_border.top ||
+			    event->y >= terminal->row_count * height +
+                                        terminal->pvt->inner_border.top)
 			{
 				/* Give mouse wigglers something. */
 				vte_terminal_autoscroll(terminal);
@@ -6910,10 +6911,11 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	long cellx, celly;
 	long x,y;
 
-	x = event->x - VTE_PAD_WIDTH;
-	y = event->y - VTE_PAD_WIDTH;
-
 	terminal = VTE_TERMINAL(widget);
+
+	x = event->x - terminal->pvt->inner_border.left;
+	y = event->y - terminal->pvt->inner_border.top;
+
 	height = terminal->char_height;
 	width = terminal->char_width;
 	delta = terminal->pvt->screen->scroll_delta;
@@ -7062,10 +7064,10 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 	gboolean handled = FALSE;
 	int x, y;
 
-	x = event->x - VTE_PAD_WIDTH;
-	y = event->y - VTE_PAD_WIDTH;
-
 	terminal = VTE_TERMINAL(widget);
+
+	x = event->x - terminal->pvt->inner_border.left;
+	y = event->y - terminal->pvt->inner_border.top;
 
 	vte_terminal_match_hilite(terminal, x, y);
 
@@ -7188,8 +7190,8 @@ vte_terminal_enter(GtkWidget *widget, GdkEventCrossing *event)
 		VteTerminal *terminal = VTE_TERMINAL (widget);
 		/* Hilite any matches. */
 		vte_terminal_match_hilite_show(terminal,
-					       event->x - VTE_PAD_WIDTH,
-					       event->y - VTE_PAD_WIDTH);
+					       event->x - terminal->pvt->inner_border.left,
+					       event->y - terminal->pvt->inner_border.top);
 	}
 	return ret;
 }
@@ -8034,8 +8036,10 @@ vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
 			terminal->pvt->default_row_count;
 	}
 
-	requisition->width += VTE_PAD_WIDTH * 2;
-	requisition->height += VTE_PAD_WIDTH * 2;
+	requisition->width += terminal->pvt->inner_border.left +
+                              terminal->pvt->inner_border.right;
+	requisition->height += terminal->pvt->inner_border.top +
+                               terminal->pvt->inner_border.bottom;
 
 	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
 			"[Terminal %p] Size request is %dx%d for %ldx%ld cells.\n",
@@ -8062,9 +8066,9 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 
 	terminal = VTE_TERMINAL(widget);
 
-	width = (allocation->width - (2 * VTE_PAD_WIDTH)) /
+	width = (allocation->width - (terminal->pvt->inner_border.left + terminal->pvt->inner_border.right)) /
 		terminal->char_width;
-	height = (allocation->height - (2 * VTE_PAD_WIDTH)) /
+	height = (allocation->height - (terminal->pvt->inner_border.top + terminal->pvt->inner_border.bottom)) /
 		 terminal->char_height;
 
 	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
@@ -8725,7 +8729,8 @@ vte_terminal_fill_rectangle_int(VteTerminal *terminal,
 	color.green = entry->green;
 	color.blue = entry->blue;
 	_vte_draw_fill_rectangle(terminal->pvt->draw,
-				 x + VTE_PAD_WIDTH, y + VTE_PAD_WIDTH,
+				 x + terminal->pvt->inner_border.left,
+                                 y + terminal->pvt->inner_border.top,
 				 width, height,
 				 &color, VTE_DRAW_OPAQUE);
 	if (!wasdrawing) {
@@ -8799,8 +8804,8 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
 	GdkColor color;
 
 	request.c = c;
-	request.x = x + VTE_PAD_WIDTH;
-	request.y = y + VTE_PAD_WIDTH;
+	request.x = x + terminal->pvt->inner_border.left;
+	request.y = y + terminal->pvt->inner_border.top;
 	request.columns = columns;
 
 	color.red = terminal->pvt->palette[fore].red;
@@ -9595,13 +9600,14 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		y = items[i].y;
 		for (; i < n && items[i].y == y; i++) {
 			/* Adjust for the border. */
-			items[i].x += VTE_PAD_WIDTH;
-			items[i].y += VTE_PAD_WIDTH;
+			items[i].x += terminal->pvt->inner_border.left;
+			items[i].y += terminal->pvt->inner_border.top;
 			columns += items[i].columns;
 		}
 		if (clear && (draw_default_bg || bg != defbg)) {
 			_vte_draw_fill_rectangle(terminal->pvt->draw,
-					x + VTE_PAD_WIDTH, y + VTE_PAD_WIDTH,
+					x + terminal->pvt->inner_border.left,
+                                        y + terminal->pvt->inner_border.top,
 					columns * column_width + bold,
 					row_height,
 					&color, VTE_DRAW_OPAQUE);
@@ -9615,8 +9621,8 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			&color, VTE_DRAW_OPAQUE, bold);
 	for (i = 0; i < n; i++) {
 		/* Deadjust for the border. */
-		items[i].x -= VTE_PAD_WIDTH;
-		items[i].y -= VTE_PAD_WIDTH;
+		items[i].x -= terminal->pvt->inner_border.left;
+		items[i].y -= terminal->pvt->inner_border.top;
 	}
 
 	/* Draw whatever SFX are required. */
@@ -9962,8 +9968,8 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 
 	/* clear the background */
 	delta = screen->scroll_delta;
-	x = start_x + VTE_PAD_WIDTH;
-	y = start_y + VTE_PAD_WIDTH;
+	x = start_x + terminal->pvt->inner_border.left;
+	y = start_y + terminal->pvt->inner_border.top;
 	row = start_row;
 	rows = row_count;
 	do {
@@ -10316,23 +10322,23 @@ vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, const GdkR
 
 	/* increase the paint by one pixel on all sides to force the
 	 * inclusion of neighbouring cells */
-	row = MAX(0, (area->y - VTE_PAD_WIDTH - 1) / height);
-	row_stop = MIN(howmany(area->height + area->y - VTE_PAD_WIDTH + 1, height),
+	row = MAX(0, (area->y - terminal->pvt->inner_border.top - 1) / height);
+	row_stop = MIN(howmany(area->height + area->y - terminal->pvt->inner_border.top + 1, height),
 		       terminal->row_count);
 	if (row_stop <= row) {
 		return;
 	}
-	col = MAX(0, (area->x - VTE_PAD_WIDTH - 1) / width);
-	col_stop = MIN(howmany(area->width + area->x - VTE_PAD_WIDTH + 1, width),
+	col = MAX(0, (area->x - terminal->pvt->inner_border.left - 1) / width);
+	col_stop = MIN(howmany(area->width + area->x - terminal->pvt->inner_border.left + 1, width),
 		       terminal->column_count);
 	if (col_stop <= col) {
 		return;
 	}
 
-	rect.x = col*width + VTE_PAD_WIDTH;
+	rect.x = col*width + terminal->pvt->inner_border.left;
 	rect.width = (col_stop - col) * width;
 
-	rect.y = row*height + VTE_PAD_WIDTH;
+	rect.y = row*height + terminal->pvt->inner_border.top;
 	rect.height = (row_stop - row)*height;
 
 	/* the rect must be cell aligned to avoid overlapping XY bands */
@@ -10360,14 +10366,14 @@ vte_terminal_paint_area (VteTerminal *terminal, const GdkRectangle *area)
 	width = terminal->char_width;
 	height = terminal->char_height;
 
-	row = MAX(0, (area->y - VTE_PAD_WIDTH) / height);
-	row_stop = MIN((area->height + area->y - VTE_PAD_WIDTH) / height,
+	row = MAX(0, (area->y - terminal->pvt->inner_border.top) / height);
+	row_stop = MIN((area->height + area->y - terminal->pvt->inner_border.top) / height,
 		       terminal->row_count);
 	if (row_stop <= row) {
 		return;
 	}
-	col = MAX(0, (area->x - VTE_PAD_WIDTH) / width);
-	col_stop = MIN((area->width + area->x - VTE_PAD_WIDTH) / width,
+	col = MAX(0, (area->x - terminal->pvt->inner_border.left) / width);
+	col_stop = MIN((area->width + area->x - terminal->pvt->inner_border.left) / width,
 		       terminal->column_count);
 	if (col_stop <= col) {
 		return;
@@ -10379,8 +10385,8 @@ vte_terminal_paint_area (VteTerminal *terminal, const GdkRectangle *area)
 			" [(%d,%d)x(%d,%d) pixels]\n",
 			area->x, area->y, area->width, area->height,
 			col, row, col_stop - col, row_stop - row,
-			col * width + VTE_PAD_WIDTH,
-			row * height + VTE_PAD_WIDTH,
+			col * width + terminal->pvt->inner_border.left,
+			row * height + terminal->pvt->inner_border.top,
 			(col_stop - col) * width,
 			(row_stop - row) * height);
 	if (!GTK_WIDGET_DOUBLE_BUFFERED (terminal) ||
@@ -10483,8 +10489,8 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 			TRUE^(reverse|selected), selected, TRUE,
 			&fore, &back);
 
-	x = item.x + VTE_PAD_WIDTH;
-	y = item.y + VTE_PAD_WIDTH;
+	x = item.x + terminal->pvt->inner_border.left;
+	y = item.y + terminal->pvt->inner_border.top;
 
 	switch (terminal->pvt->cursor_shape) {
 
@@ -10625,8 +10631,8 @@ vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 			preedit = g_utf8_next_char(preedit);
 		}
 		_vte_draw_clear(terminal->pvt->draw,
-				col * width + VTE_PAD_WIDTH,
-				row * height + VTE_PAD_WIDTH,
+				col * width + terminal->pvt->inner_border.left,
+				row * height + terminal->pvt->inner_border.top,
 				width * columns,
 				height);
 		fore = screen->defaults.attr.fore;
@@ -13478,6 +13484,7 @@ vte_terminal_get_status_line(VteTerminal *terminal)
  * size.  The values returned in @xpad and @ypad are the total padding used in
  * each direction, and do not need to be doubled.
  *
+ * @Deprecated: 0.22: Get the VteTerminal:inner-border style property instead (FIXMEchpe: what about the default value?)
  */
 void
 vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad)
@@ -13485,8 +13492,8 @@ vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail(xpad != NULL);
 	g_return_if_fail(ypad != NULL);
-	*xpad = 2 * VTE_PAD_WIDTH;
-	*ypad = 2 * VTE_PAD_WIDTH;
+	*xpad = terminal->pvt->inner_border.left + terminal->pvt->inner_border.right;
+	*ypad = terminal->pvt->inner_border.top + terminal->pvt->inner_border.bottom;
 }
 
 /**
