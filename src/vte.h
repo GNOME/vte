@@ -396,8 +396,10 @@ const char *vte_terminal_get_encoding(VteTerminal *terminal);
 /* Get the contents of the status line. */
 const char *vte_terminal_get_status_line(VteTerminal *terminal);
 
+#ifndef VTE_DISABLE_DEPRECATED
 /* Get the padding the widget is using. */
 void vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad);
+#endif
 
 /* Attach an existing PTY master side to the terminal widget.  Use
  * instead of vte_terminal_fork_command(). */

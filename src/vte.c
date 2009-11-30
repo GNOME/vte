@@ -4585,6 +4585,11 @@ vte_terminal_set_inner_border(VteTerminal *terminal)
                 inner_border = default_inner_border;
         }
 
+        _vte_debug_print(VTE_DEBUG_MISC,
+                         "Setting inner-border to { %d, %d, %d, %d }\n",
+                         inner_border.left, inner_border.right,
+                         inner_border.top, inner_border.bottom);
+
         if (memcmp(&inner_border, &pvt->inner_border, sizeof(GtkBorder)) == 0)
                 return;
 
@@ -12173,6 +12178,12 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                      G_PARAM_READABLE |
                                      G_PARAM_STATIC_STRINGS));
 
+        /* Now install the default style */
+        gtk_rc_parse_string("style \"vte-default-style\" {\n"
+                              "VteTerminal::inner-border = { 1, 1, 1, 1 }\n"
+                            "}\n"
+                            "class \"VteTerminal\" style : gtk \"vte-default-style\"\n");
+
         /* Keybindings */
 	binding_set = gtk_binding_set_by_class(klass);
 
@@ -13484,7 +13495,7 @@ vte_terminal_get_status_line(VteTerminal *terminal)
  * size.  The values returned in @xpad and @ypad are the total padding used in
  * each direction, and do not need to be doubled.
  *
- * @Deprecated: 0.22: Get the VteTerminal:inner-border style property instead (FIXMEchpe: what about the default value?)
+ * @Deprecated: 0.22: Get the VteTerminal:inner-border style property instead
  */
 void
 vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad)
