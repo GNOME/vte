@@ -4572,12 +4572,6 @@ vte_terminal_style_set (GtkWidget      *widget,
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
 
-	if (!GTK_WIDGET_REALIZED(widget)) {
-		_vte_debug_print(VTE_DEBUG_MISC,
-				"Don't change style if we aren't realized.\n");
-		return;
-	}
-
         GTK_WIDGET_CLASS (vte_terminal_parent_class)->style_set (widget, prev_style);
 
         vte_terminal_set_font_full_internal(terminal, terminal->pvt->fontdesc,
