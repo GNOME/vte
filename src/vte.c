@@ -167,6 +167,8 @@ static gboolean in_update_timeout;
 static GList *active_terminals;
 static GTimer *process_timer;
 
+static const GtkBorder default_inner_border = { 1, 1, 1, 1 };
+
 /* process incoming data without copying */
 static struct _vte_incoming_chunk *free_chunks;
 static struct _vte_incoming_chunk *
@@ -4567,6 +4569,31 @@ vte_terminal_hierarchy_changed(GtkWidget *widget, GtkWidget *old_toplevel,
 }
 
 static void
+vte_terminal_set_inner_border(VteTerminal *terminal)
+{
+        VteTerminalPrivate *pvt = terminal->pvt;
+        GtkWidget *widget = GTK_WIDGET(terminal);
+        GtkBorder *border = NULL;
+        GtkBorder inner_border;
+
+        gtk_widget_style_get(widget, "inner-border", &border, NULL);
+
+        if (border != NULL) {
+                inner_border = *border;
+                gtk_border_free(border);
+        } else {
+                inner_border = default_inner_border;
+        }
+
+        if (memcmp(&inner_border, &pvt->inner_border, sizeof(GtkBorder)) == 0)
+                return;
+
+        pvt->inner_border = inner_border;
+
+        gtk_widget_queue_resize(widget);
+}
+
+static void
 vte_terminal_style_set (GtkWidget      *widget,
 			GtkStyle       *prev_style)
 {
@@ -4574,9 +4601,13 @@ vte_terminal_style_set (GtkWidget      *widget,
 
         GTK_WIDGET_CLASS (vte_terminal_parent_class)->style_set (widget, prev_style);
 
+        if (gtk_widget_get_style(widget) == prev_style)
+                return;
+
         vte_terminal_set_font_full_internal(terminal, terminal->pvt->fontdesc,
                                             terminal->pvt->fontantialias);
 
+        vte_terminal_set_inner_border(terminal);
 }
 
 static void
@@ -7969,6 +8000,8 @@ vte_terminal_init(VteTerminal *terminal)
 	g_signal_connect(terminal, "hierarchy-changed",
 			 G_CALLBACK(vte_terminal_hierarchy_changed),
 			 NULL);
+
+        pvt->inner_border = default_inner_border;
 
 #ifdef VTE_DEBUG
 	/* In debuggable mode, we always do this. */
@@ -12117,7 +12150,23 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_boolean ("visible-bell", NULL, NULL,
                                        FALSE,
                                        G_PARAM_READWRITE | STATIC_PARAMS));
-     
+
+        /* Style properties */
+
+        /**
+         * VteTerminal:inner-border:
+         *
+         * Sets the border around the terminal.
+         *
+         * Since: 0.22
+         */
+        gtk_widget_class_install_style_property
+                (widget_class,
+                 g_param_spec_boxed ("inner-border", NULL, NULL,
+                                     GTK_TYPE_BORDER,
+                                     G_PARAM_READABLE |
+                                     G_PARAM_STATIC_STRINGS));
+
         /* Keybindings */
 	binding_set = gtk_binding_set_by_class(klass);
 

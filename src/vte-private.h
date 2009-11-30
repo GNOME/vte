@@ -382,6 +382,9 @@ struct _VteTerminalPrivate {
 	glong line_thickness;
 	glong underline_position;
 	glong strikethrough_position;
+
+        /* Style stuff */
+        GtkBorder inner_border;
 };
 
 
