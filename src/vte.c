@@ -13495,7 +13495,7 @@ vte_terminal_get_status_line(VteTerminal *terminal)
  * size.  The values returned in @xpad and @ypad are the total padding used in
  * each direction, and do not need to be doubled.
  *
- * @Deprecated: 0.22: Get the VteTerminal:inner-border style property instead
+ * @Deprecated: 0.24: Get the VteTerminal:inner-border style property instead
  */
 void
 vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad)
