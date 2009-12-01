@@ -11752,7 +11752,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * This may happen either by using a bold font variant, or by
          * repainting text with a different offset.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11767,7 +11767,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Controls whether or not the terminal will beep when the child outputs the
          * "bl" sequence.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11783,7 +11783,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * #VteTerminal:background-saturation:, the terminal will tint its
          * in-memory copy of the image before applying it to the terminal.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11802,7 +11802,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * #VteTerminal:background-saturation:, the terminal will tint its
          * in-memory copy of the image before applying it to the terminal.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11817,7 +11817,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Sets the opacity of the terminal background, were 0.0 means completely
          * transparent and 1.0 means completely opaque.
          *
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11837,7 +11837,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * the image.  To do so, the terminal will create a copy of the background
          * image (or snapshot of the root window) and modify its pixel values.
          *
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11859,7 +11859,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * the root window) and modify its pixel values.  The initial tint color
          * is black.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11878,7 +11878,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Note: When using a compositing window manager, you should instead
          * set a RGBA colourmap on the toplevel window, so you get real transparency.
          *
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11893,7 +11893,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * *Controls what string or control sequence the terminal sends to its child
          * when the user presses the backspace key.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11909,7 +11909,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Sets whether or not the cursor will blink. Using %VTE_CURSOR_BLINK_SYSTEM
          * will use the #GtkSettings::gtk-cursor-blink setting.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11924,7 +11924,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Controls the shape of the cursor.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11940,7 +11940,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Controls what string or control sequence the terminal sends to its child
          * when the user presses the delete key.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11957,7 +11957,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * control sequences defined in the system's termcap file.  Unless you
          * are interested in this feature, always use the default which is "xterm".
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11974,7 +11974,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * terminal can change the encoding.  The default is defined by the
          * application's locale settings.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11992,7 +11992,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * metrics, and attempt to resize itself to keep the same number of rows
          * and columns.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -12006,7 +12006,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * The terminal's so-called icon title, or %NULL if no icon title has been set.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -12022,7 +12022,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * is enabled, the mouse cursor will be hidden when the user presses a key and
          * shown when the user moves the mouse.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -12036,7 +12036,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * The file descriptor of the master end of the terminal's PTY.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -12052,7 +12052,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Controls whether or not the terminal will scroll the background image (if
          * one is set) when the text in the window must be scrolled.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -12071,7 +12071,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * For terminal types which have an alternate screen buffer, no scrollback is
          * allowed on the alternate screen buffer.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -12088,7 +12088,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * the viewable history when the user presses a key.  Modifier keys do not
          * trigger this behavior.
          *
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -12103,7 +12103,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Controls whether or not the terminal will forcibly scroll to the bottom of
          * the viewable history when the new data is received from the child.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -12117,7 +12117,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * The terminal's title.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -12137,7 +12137,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * As a special case, when setting this to %NULL or the empty string, the terminal will
          * treat all graphic non-punctuation non-space characters as word characters.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -12153,7 +12153,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * user when the child outputs the "bl" sequence.  The terminal
          * will clear itself to the default foreground color and then repaint itself.
          * 
-         * Since: 0.19.1
+         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -12169,7 +12169,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Sets the border around the terminal.
          *
-         * Since: 0.22
+         * Since: 0.24
          */
         gtk_widget_class_install_style_property
                 (widget_class,
@@ -12985,7 +12985,7 @@ vte_terminal_get_cursor_blink_mode(VteTerminal *terminal)
  *
  * Sets the shape of the cursor drawn.
  *
- * Since: 0.19.1
+ * Since: 0.20
  */
 void
 vte_terminal_set_cursor_shape(VteTerminal *terminal, VteTerminalCursorShape shape)
@@ -13717,7 +13717,7 @@ vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
  *
  * Return value: the file descriptor, or -1 if the terminal has no PTY.
  *
- * Since: 0.19.1
+ * Since: 0.20
  */
 int vte_terminal_get_pty(VteTerminal *terminal)
 {
@@ -13739,7 +13739,7 @@ int vte_terminal_get_pty(VteTerminal *terminal)
  * 
  * Returns: the child's exit status
  * 
- * Since: 0.19.1
+ * Since: 0.20
  */
 int
 vte_terminal_get_child_exit_status(VteTerminal *terminal)
