@@ -4773,6 +4773,7 @@ vte_terminal_style_set (GtkWidget      *widget,
 			GtkStyle       *prev_style)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
+        float aspect;
 
         GTK_WIDGET_CLASS (vte_terminal_parent_class)->style_set (widget, prev_style);
 
@@ -4783,6 +4784,12 @@ vte_terminal_style_set (GtkWidget      *widget,
                                             terminal->pvt->fontantialias);
 
         vte_terminal_set_inner_border(terminal);
+
+        gtk_widget_style_get(widget, "cursor-aspect-ratio", &aspect, NULL);
+        if (aspect != terminal->pvt->cursor_aspect_ratio) {
+                terminal->pvt->cursor_aspect_ratio = aspect;
+                _vte_invalidate_cursor_once(terminal, FALSE);
+        }
 }
 
 static void
@@ -8112,6 +8119,7 @@ vte_terminal_init(VteTerminal *terminal)
 
 	/* Cursor shape. */
 	pvt->cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
+        pvt->cursor_aspect_ratio = 0.04;
 
 	/* Cursor blinking. */
 	pvt->cursor_visible = TRUE;
@@ -10587,19 +10595,28 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 
 	switch (terminal->pvt->cursor_shape) {
 
-		case VTE_CURSOR_SHAPE_IBEAM:
+		case VTE_CURSOR_SHAPE_IBEAM: {
+                        int stem_width;
+
+                        stem_width = (int) (((float) height) * terminal->pvt->cursor_aspect_ratio + 0.5);
+                        stem_width = CLAMP (stem_width, VTE_LINE_WIDTH, cursor_width);
 		 	
 			vte_terminal_fill_rectangle(terminal, &terminal->pvt->palette[back],
-						     x, y,
-						     VTE_LINE_WIDTH, height);
+						     x, y, stem_width, height);
 			break;
+                }
 
-		case VTE_CURSOR_SHAPE_UNDERLINE:
+		case VTE_CURSOR_SHAPE_UNDERLINE: {
+                        int line_height;
+
+                        line_height = (int) (((float) cursor_width) * terminal->pvt->cursor_aspect_ratio + 0.5);
+                        line_height = CLAMP (line_height, VTE_LINE_WIDTH, height);
 
 			vte_terminal_fill_rectangle(terminal, &terminal->pvt->palette[back],
-						     x, y + height - VTE_LINE_WIDTH,
-						     cursor_width, VTE_LINE_WIDTH);
+						     x, y + height - line_height,
+						     cursor_width, line_height);
 			break;
+                }
 
 		case VTE_CURSOR_SHAPE_BLOCK:
 

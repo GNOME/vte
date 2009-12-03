@@ -283,6 +283,7 @@ struct _VteTerminalPrivate {
 
 	/* Cursor shape */
 	VteTerminalCursorShape cursor_shape;
+        float cursor_aspect_ratio;
 
 	/* Cursor blinking. */
         VteTerminalCursorBlinkMode cursor_blink_mode;
