@@ -8716,12 +8716,12 @@ vte_terminal_unichar_is_local_graphic(VteTerminal *terminal, vteunistr c, gboole
 }
 
 static void
-vte_terminal_fill_rectangle_int(VteTerminal *terminal,
-				struct vte_palette_entry *entry,
-				gint x,
-				gint y,
-				gint width,
-				gint height)
+vte_terminal_fill_rectangle(VteTerminal *terminal,
+			    struct vte_palette_entry *entry,
+			    gint x,
+			    gint y,
+			    gint width,
+			    gint height)
 {
 	GdkColor color;
 	gboolean wasdrawing;
@@ -8741,17 +8741,6 @@ vte_terminal_fill_rectangle_int(VteTerminal *terminal,
 	if (!wasdrawing) {
 		_vte_draw_end(terminal->pvt->draw);
 	}
-}
-
-static void
-vte_terminal_fill_rectangle(VteTerminal *terminal,
-			    struct vte_palette_entry *entry,
-			    gint x,
-			    gint y,
-			    gint width,
-			    gint height)
-{
-	vte_terminal_fill_rectangle_int(terminal, entry, x, y, width, height);
 }
 
 static void
@@ -10494,30 +10483,29 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 			TRUE^(reverse|selected), selected, TRUE,
 			&fore, &back);
 
-	x = item.x + terminal->pvt->inner_border.left;
-	y = item.y + terminal->pvt->inner_border.top;
+	x = item.x;
+	y = item.y;
 
 	switch (terminal->pvt->cursor_shape) {
 
 		case VTE_CURSOR_SHAPE_IBEAM:
 		 	
-			vte_terminal_draw_line(terminal, &terminal->pvt->palette[back],
-					       x - 2*VTE_LINE_WIDTH,
-					       y,
-					       x - 2*VTE_LINE_WIDTH,
-					       y + height - 1);
+			vte_terminal_fill_rectangle(terminal, &terminal->pvt->palette[back],
+						     x, y,
+						     VTE_LINE_WIDTH, height);
 			break;
 
 		case VTE_CURSOR_SHAPE_UNDERLINE:
 
-			vte_terminal_draw_line(terminal, &terminal->pvt->palette[back],
-					       x,
-					       y + height - VTE_LINE_WIDTH,
-					       x + cursor_width - 1,
-					       y + height - VTE_LINE_WIDTH);
+			vte_terminal_fill_rectangle(terminal, &terminal->pvt->palette[back],
+						     x, y + height - VTE_LINE_WIDTH,
+						     cursor_width, VTE_LINE_WIDTH);
 			break;
 
 		case VTE_CURSOR_SHAPE_BLOCK:
+
+			x += terminal->pvt->inner_border.left;
+			y += terminal->pvt->inner_border.top;
 
 			color.red = terminal->pvt->palette[back].red;
 			color.green = terminal->pvt->palette[back].green;
