@@ -786,9 +786,9 @@ main(int argc, char **argv)
 	if (cursor_set) {
 		vte_terminal_set_color_cursor(terminal, &cursor);
 	}
-        if (g_strcmp0(cursor_shape, "underline")) {
+        if (g_strcmp0(cursor_shape, "underline") == 0) {
                 vte_terminal_set_cursor_shape(terminal, VTE_CURSOR_SHAPE_UNDERLINE);
-        } else if (g_strcmp0(cursor_shape, "underline")) {
+        } else if (g_strcmp0(cursor_shape, "ibeam") == 0) {
                 vte_terminal_set_cursor_shape(terminal, VTE_CURSOR_SHAPE_IBEAM);
         } else {
                 vte_terminal_set_cursor_shape(terminal, VTE_CURSOR_SHAPE_BLOCK);
