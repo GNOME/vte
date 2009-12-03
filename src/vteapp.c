@@ -450,7 +450,7 @@ main(int argc, char **argv)
 	VteTerminal *terminal;
 	char *env_add[] = {
 #ifdef VTE_DEBUG
-		"FOO=BAR", "BOO=BIZ",
+		(char *) "FOO=BAR", (char *) "BOO=BIZ",
 #endif
 		NULL};
 	const char *background = NULL;
@@ -469,6 +469,7 @@ main(int argc, char **argv)
 	const char *termcap = NULL;
 	const char *command = NULL;
 	const char *working_directory = NULL;
+        char *cursor_shape = NULL;
 	GdkColor fore, back, tint, highlight, cursor;
 	const GOptionEntry options[]={
 		{
@@ -561,6 +562,11 @@ main(int argc, char **argv)
 			"color-cursor", 'r', 0,
 			G_OPTION_ARG_NONE, &cursor_set,
 			"Enable a colored cursor", NULL
+		},
+		{
+			"cursor-shape", 0, 0,
+			G_OPTION_ARG_STRING, &cursor_shape,
+			"Set cursor shape (block, underline, ibeam)", NULL
 		},
 		{
 			"scroll-background", 's', 0,
@@ -780,6 +786,13 @@ main(int argc, char **argv)
 	if (cursor_set) {
 		vte_terminal_set_color_cursor(terminal, &cursor);
 	}
+        if (g_strcmp0(cursor_shape, "underline")) {
+                vte_terminal_set_cursor_shape(terminal, VTE_CURSOR_SHAPE_UNDERLINE);
+        } else if (g_strcmp0(cursor_shape, "underline")) {
+                vte_terminal_set_cursor_shape(terminal, VTE_CURSOR_SHAPE_IBEAM);
+        } else {
+                vte_terminal_set_cursor_shape(terminal, VTE_CURSOR_SHAPE_BLOCK);
+        }
 	if (termcap != NULL) {
 		vte_terminal_set_emulation(terminal, termcap);
 	}
