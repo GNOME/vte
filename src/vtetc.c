@@ -498,7 +498,7 @@ _vte_termcap_destroy (VteTermcap *termcap)
   if (!termcap)
     return;
   g_tree_destroy (termcap->tree);
-  g_mapped_file_free (termcap->file);
+  g_mapped_file_unref (termcap->file);
   g_slice_free (VteTermcap, termcap);
 }
 
