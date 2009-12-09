@@ -1227,8 +1227,7 @@ vte_sequence_handler_cs (VteTerminal *terminal, GValueArray *params)
 	    screen->scrolling_region.end == rows - 1) {
 		screen->scrolling_restricted = FALSE;
 	}
-	screen->cursor_current.row = screen->insert_delta + start;
-	screen->cursor_current.col = 0;
+	_vte_terminal_home_cursor (terminal);
 }
 
 /* Restrict scrolling and updates to a subset of the visible lines, because
