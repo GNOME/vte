@@ -13068,7 +13068,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 				_vte_ring_next (screen->row_data));
 		_vte_ring_resize (screen->row_data, lines);
 		low = _vte_ring_delta (screen->row_data);
-		high = low + lines - terminal->row_count + 1;
+		high = lines + MIN (G_MAXLONG - lines, low - terminal->row_count + 1);
 		screen->insert_delta = CLAMP (screen->insert_delta, low, high);
 		scroll_delta = CLAMP (scroll_delta, low, screen->insert_delta);
 		next = MIN (next, screen->insert_delta + terminal->row_count);
