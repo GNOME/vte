@@ -6716,8 +6716,8 @@ vte_terminal_select_all (VteTerminal *terminal)
 
 	terminal->pvt->selection_start.row = _vte_ring_delta (terminal->pvt->screen->row_data);
 	terminal->pvt->selection_start.col = 0;
-	terminal->pvt->selection_end.row = terminal->pvt->screen->scroll_delta + terminal->row_count;
-	terminal->pvt->selection_end.col = 0;
+	terminal->pvt->selection_end.row = _vte_ring_next (terminal->pvt->screen->row_data);
+	terminal->pvt->selection_end.col = -1;
 
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Selecting *all* text.\n");
 
