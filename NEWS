@@ -1,3 +1,19 @@
+0.23.2
+=======
+- Fix overflow with unlimited scrollback lines
+- Require glib >= 2.22.0
+- Deprecate vte_terminal_get_padding
+- Add VteTerminal::inner-border style property
+- vteapp: Add --cursor-shape option
+- Bugs fixed in this release:
+    Bug 604966 - Fix "select all" to include text occurring after the visible region
+    Bug 604135 - [PATCH] fix behaviour of set-scrolling-region
+    Bug 603733 - Remove deprecated Glib symbol
+    Bug 603713 - ibeam/underline cursor broken with large inner-border
+    Bug 471920 - Expose the border width property
+    Bug 601265 -  gnome-terminal assert failure: table.c:723:_vte_table_match
+    Revert "Bug 591648 - Don't clear the screen when switching to the alternate screen"
+
 0.23.1
 =======
 - Various crash and bug fixes

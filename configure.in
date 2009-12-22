@@ -1,6 +1,6 @@
 m4_define([vte_version_major],[0])
 m4_define([vte_version_minor],[23])
-m4_define([vte_version_micro],[1])
+m4_define([vte_version_micro],[2])
 m4_define([vte_version],[vte_version_major.vte_version_minor.vte_version_micro])
 
 AC_PREREQ([2.59])
@@ -25,10 +25,10 @@ AM_MAINTAINER_MODE([enable])
 LTVERSION_REVISION=0
 # CURRENT must be incremented when an API or ABI change (addition or removal)
 # is made, and REVISION must be reset to 0 when this happens.
-LTVERSION_CURRENT=19
+LTVERSION_CURRENT=20
 # AGE must be incremented when an API or ABI addition is made, and REVISION
 # must be reset to 0 when this happens.
-LTVERSION_AGE=10
+LTVERSION_AGE=11
 
 LIBVTE_LTVERSION=${LTVERSION_CURRENT}:${LTVERSION_REVISION}:${LTVERSION_AGE}
 AC_SUBST([LIBVTE_LTVERSION])
