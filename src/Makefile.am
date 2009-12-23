@@ -66,15 +66,12 @@ libvte_la_SOURCES = \
 	vtedraw.h \
 	vteint.h \
 	vtepangocairo.c \
-	vtepangocairo.h \
 	vteregex.c \
 	vteregex.h \
 	vterowdata.c \
 	vterowdata.h \
 	vteseq.c \
 	vteseq-list.h \
-	vteskel.c \
-	vteskel.h \
 	vtestream.c \
 	vtestream.h \
 	vtestream-base.h \

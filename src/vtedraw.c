@@ -28,20 +28,13 @@
 #include <gtk/gtk.h>
 #include "debug.h"
 #include "vtedraw.h"
-#include "vtepangocairo.h"
-#include "vteskel.h"
 
 GdkVisual *
 _vte_draw_get_visual (struct _vte_draw *draw)
 {
-	GdkVisual *visual = NULL;
-
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_get_visual\n");
 
-	if (draw->impl->get_visual)
-		visual = draw->impl->get_visual (draw);
-
-	return visual ? visual : gtk_widget_get_visual (draw->widget);
+	return gtk_widget_get_visual (draw->widget);
 }
 
 GdkColormap *
@@ -51,10 +44,7 @@ _vte_draw_get_colormap (struct _vte_draw *draw, gboolean maybe_use_default)
 
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_get_colormap\n");
 
-	if (draw->impl->get_colormap)
-		colormap = draw->impl->get_colormap (draw);
-	else
-		colormap = gtk_widget_get_colormap (draw->widget);
+	colormap = gtk_widget_get_colormap (draw->widget);
 
 	if (colormap == NULL && maybe_use_default) {
 		colormap = gdk_screen_get_default_colormap (gtk_widget_get_screen (draw->widget));

@@ -59,56 +59,12 @@ struct _vte_draw_text_request {
 	gshort x, y, columns;
 };
 
-struct _vte_draw_impl {
-	const char *name;
-	gboolean (*check)(struct _vte_draw *draw, GtkWidget *widget);
-	void (*create)(struct _vte_draw *draw, GtkWidget *widget);
-	void (*destroy)(struct _vte_draw *draw);
-	GdkVisual* (*get_visual)(struct _vte_draw *draw);
-	GdkColormap* (*get_colormap)(struct _vte_draw *draw);
-	void (*start)(struct _vte_draw *draw);
-	void (*end)(struct _vte_draw *draw);
-	void (*set_background_solid)(struct _vte_draw *,
-				     GdkColor *color,
-				     guint16 opacity);
-	void (*set_background_image)(struct _vte_draw *,
-				     enum VteBgSourceType type,
-				     GdkPixbuf *pixbuf,
-				     const char *file,
-				     const GdkColor *color,
-				     double saturation);
-	void (*set_background_scroll)(struct _vte_draw *,
-				      gint, gint);
-	void (*clip)(struct _vte_draw *, GdkRegion *);
-	gboolean always_requires_clear;
-	void (*clear)(struct _vte_draw *, gint, gint, gint, gint);
-	void (*set_text_font)(struct _vte_draw *,
-			      const PangoFontDescription *,
-			      VteTerminalAntiAlias);
-	void (*get_text_metrics)(struct _vte_draw *, gint *, gint *, gint *);
-	int (*get_char_width)(struct _vte_draw *, vteunistr c, int columns,
-			      gboolean);
-	gboolean (*has_bold)(struct _vte_draw *);
-	void (*draw_text)(struct _vte_draw *,
-			  		  struct _vte_draw_text_request *, gsize,
-					  GdkColor *, guchar, gboolean);
-	gboolean (*has_char)(struct _vte_draw *, vteunistr, gboolean);
-	void (*draw_rectangle)(struct _vte_draw *,
-			       gint, gint, gint, gint,
-			       GdkColor *, guchar);
-	void (*fill_rectangle)(struct _vte_draw *,
-			       gint, gint, gint, gint,
-			       GdkColor *, guchar);
-};
-
 struct _vte_draw {
 	GtkWidget *widget;
 
 	gboolean started;
 
 	gboolean requires_clear;
-
-	const struct _vte_draw_impl *impl;
 
 	/* for use by impl */
 	gpointer impl_data;

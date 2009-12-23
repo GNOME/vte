@@ -26,7 +26,6 @@
 #include "debug.h"
 #include "vtebg.h"
 #include "vtedraw.h"
-#include "vtepangocairo.h"
 #include "vte-private.h"
 
 #include <pango/pangocairo.h>
@@ -791,6 +790,8 @@ struct _vte_pangocairo_data {
 	cairo_t *cr;
 };
 
+const char impl_name[] = "pangocairo";
+
 struct _vte_draw *
 _vte_draw_new (GtkWidget *widget)
 {
@@ -800,15 +801,11 @@ _vte_draw_new (GtkWidget *widget)
 	/* Create the structure. */
 	draw = g_slice_new0 (struct _vte_draw);
 	draw->widget = g_object_ref (widget);
-	draw->impl = &_vte_draw_pangocairo;
-	draw->requires_clear = draw->impl->always_requires_clear;
+	draw->requires_clear = FALSE;
 
 	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_new (%s)\n", draw->impl->name);
-	_vte_debug_print (VTE_DEBUG_MISC, "Using %s.\n", draw->impl->name);
-
-	if (draw->impl->create)
-		draw->impl->create (draw, draw->widget);
+			"draw_new (%s)\n", impl_name);
+	_vte_debug_print (VTE_DEBUG_MISC, "Using %s.\n", impl_name);
 
 	data = g_slice_new0 (struct _vte_pangocairo_data);
 	draw->impl_data = data;
@@ -884,8 +881,7 @@ _vte_draw_set_background_solid(struct _vte_draw *draw,
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
 
-	draw->requires_clear =
-		draw->impl->always_requires_clear || opacity != 0xFFFF;
+	draw->requires_clear = opacity != 0xFFFF;
 
 	if (data->bg_pattern)
 		cairo_pattern_destroy (data->bg_pattern);
@@ -1234,28 +1230,3 @@ _vte_draw_fill_rectangle (struct _vte_draw *draw,
 	set_source_color_alpha (data->cr, color, alpha);
 	cairo_fill (data->cr);
 }
-
-const struct _vte_draw_impl _vte_draw_pangocairo = {
-	"pangocairo",
-	NULL, /* check */
-	NULL, /* create */
-	NULL, /* destroy */
-	NULL, /* get_visual */
-	NULL, /* get_colormap */
-	NULL, /* start */
-	NULL, /* end */
-	NULL, /* set_background_solid */
-	NULL, /* set_background_image */
-	NULL, /* set_background_scroll */
-	NULL, /* clip */
-	FALSE, /* always_requires_clear */
-	NULL, /* clear */
-	NULL, /* text_font */
-	NULL, /* text_metrics */
-	NULL, /* char_width */
-	NULL, /* has_bold */
-	NULL, /* draw_text */
-	NULL, /* draw_has_char */
-	NULL, /* draw_rectangle */
-	NULL, /* fill_rectangle */
-};
