@@ -843,31 +843,49 @@ _vte_draw_free (struct _vte_draw *draw)
 	g_slice_free (struct _vte_draw, draw);
 }
 
-static void
-_vte_pangocairo_start (struct _vte_draw *draw)
+void
+_vte_draw_start (struct _vte_draw *draw)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
+
+	g_return_if_fail (GTK_WIDGET_REALIZED (draw->widget));
+
+	_vte_debug_print (VTE_DEBUG_DRAW, "draw_start\n");
+
+	g_object_ref (draw->widget->window);
 
 	data->cr = gdk_cairo_create (draw->widget->window);
+	draw->started = TRUE;
 }
 
-static void
-_vte_pangocairo_end (struct _vte_draw *draw)
+void
+_vte_draw_end (struct _vte_draw *draw)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
+
+	g_return_if_fail (draw->started == TRUE);
 
 	if (data->cr != NULL) {
 		cairo_destroy (data->cr);
 		data->cr = NULL;
 	}
+
+	g_object_unref (draw->widget->window);
+
+	draw->started = FALSE;
+
+	_vte_debug_print (VTE_DEBUG_DRAW, "draw_end\n");
 }
 
-static void
-_vte_pangocairo_set_background_solid(struct _vte_draw *draw,
-				     GdkColor *color,
-				     guint16 opacity)
+void
+_vte_draw_set_background_solid(struct _vte_draw *draw,
+			       GdkColor *color,
+			       guint16 opacity)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
+
+	draw->requires_clear =
+		draw->impl->always_requires_clear || opacity != 0xFFFF;
 
 	if (data->bg_pattern)
 		cairo_pattern_destroy (data->bg_pattern);
@@ -878,21 +896,24 @@ _vte_pangocairo_set_background_solid(struct _vte_draw *draw,
 						      opacity / 65535.);
 }
 
-static void
-_vte_pangocairo_set_background_image (struct _vte_draw *draw,
-				      enum VteBgSourceType type,
-				      GdkPixbuf *pixbuf,
-				      const char *file,
-				      const GdkColor *color,
-				      double saturation)
+void
+_vte_draw_set_background_image (struct _vte_draw *draw,
+			        enum VteBgSourceType type,
+			        GdkPixbuf *pixbuf,
+			        const char *filename,
+			        const GdkColor *color,
+			        double saturation)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
 	GdkPixmap *pixmap;
 	cairo_surface_t *surface;
 	cairo_t *cr;
 
+	if (type != VTE_BG_SOURCE_NONE)
+		draw->requires_clear = TRUE;
+
 	pixmap = vte_bg_get_pixmap (vte_bg_get_for_screen (gtk_widget_get_screen (draw->widget)),
-				    type, pixbuf, file,
+				    type, pixbuf, filename,
 				    color, saturation,
 				    _vte_draw_get_colormap(draw, TRUE));
 
@@ -921,12 +942,16 @@ _vte_pangocairo_set_background_image (struct _vte_draw *draw,
 	cairo_pattern_set_extend (data->bg_pattern, CAIRO_EXTEND_REPEAT);
 }
 
-static void
-_vte_pangocairo_set_background_scroll (struct _vte_draw *draw,
-				       gint x, gint y)
+void
+_vte_draw_set_background_scroll (struct _vte_draw *draw,
+				 gint x, gint y)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
 	cairo_matrix_t matrix;
+
+	_vte_debug_print (VTE_DEBUG_DRAW,
+			"draw_set_scroll (%d, %d)\n",
+			x, y);
 
 	g_return_if_fail (data->bg_pattern != NULL);
 
@@ -934,13 +959,27 @@ _vte_pangocairo_set_background_scroll (struct _vte_draw *draw,
 	cairo_pattern_set_matrix (data->bg_pattern, &matrix);
 }
 
-static void
-_vte_pangocairo_clear (struct _vte_draw *draw,
-		       gint x, gint y, gint width, gint height)
+gboolean
+_vte_draw_clip (struct _vte_draw *draw, GdkRegion *region)
+{
+	struct _vte_pangocairo_data *data = draw->impl_data;
+
+	_vte_debug_print (VTE_DEBUG_DRAW, "draw_clip\n");
+	gdk_cairo_region(data->cr, region);
+	cairo_clip (data->cr);
+
+	return TRUE;
+}
+
+void
+_vte_draw_clear (struct _vte_draw *draw, gint x, gint y, gint width, gint height)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
 
 	g_return_if_fail (data->bg_pattern != NULL);
+
+	_vte_debug_print (VTE_DEBUG_DRAW, "draw_clear (%d, %d, %d, %d)\n",
+			  x,y,width, height);
 
 	cairo_rectangle (data->cr, x, y, width, height);
 	cairo_set_operator (data->cr, CAIRO_OPERATOR_SOURCE);
@@ -948,23 +987,16 @@ _vte_pangocairo_clear (struct _vte_draw *draw,
 	cairo_fill (data->cr);
 }
 
-static void
-_vte_pangocairo_clip (struct _vte_draw *draw,
-		      GdkRegion *region)
-{
-	struct _vte_pangocairo_data *data = draw->impl_data;
-
-	gdk_cairo_region(data->cr, region);
-	cairo_clip (data->cr);
-}
-
-static void
-_vte_pangocairo_set_text_font (struct _vte_draw *draw,
-			       const PangoFontDescription *fontdesc,
-			       VteTerminalAntiAlias antialias)
+void
+_vte_draw_set_text_font (struct _vte_draw *draw,
+			const PangoFontDescription *fontdesc,
+			VteTerminalAntiAlias antialias)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
 	PangoFontDescription *bolddesc = NULL;
+
+	_vte_debug_print (VTE_DEBUG_DRAW, "draw_set_text_font (aa=%d)\n",
+			  antialias);
 
 	if (data->font_bold != data->font)
 		font_info_destroy (data->font_bold);
@@ -987,23 +1019,26 @@ _vte_pangocairo_set_text_font (struct _vte_draw *draw,
 	}
 }
 
-static void
-_vte_pangocairo_get_text_metrics(struct _vte_draw *draw,
-				 gint *width, gint *height, gint *ascent)
+void
+_vte_draw_get_text_metrics(struct _vte_draw *draw,
+			   gint *width, gint *height, gint *ascent)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
 	
 	g_return_if_fail (data->font != NULL);
 
-	*width  = data->font->width;
-	*height = data->font->height;
-	*ascent = data->font->ascent;
+	if (width)
+		*width  = data->font->width;
+	if (height)
+		*height = data->font->height;
+	if (ascent)
+		*ascent = data->font->ascent;
 }
 
 
-static int
-_vte_pangocairo_get_char_width (struct _vte_draw *draw, vteunistr c, int columns,
-				gboolean bold)
+int
+_vte_draw_get_char_width (struct _vte_draw *draw, vteunistr c, int columns,
+			  gboolean bold)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
 	struct unistr_info *uinfo;
@@ -1101,12 +1136,55 @@ _vte_pangocairo_draw_text (struct _vte_draw *draw,
 	}
 }
 
-static gboolean
-_vte_pangocairo_draw_has_char (struct _vte_draw *draw, vteunistr c,
-			       gboolean bold)
+void
+_vte_draw_text (struct _vte_draw *draw,
+	       struct _vte_draw_text_request *requests, gsize n_requests,
+	       GdkColor *color, guchar alpha, gboolean bold)
+{
+	g_return_if_fail (draw->started == TRUE);
+
+	if (_vte_debug_on (VTE_DEBUG_DRAW)) {
+		GString *string = g_string_new ("");
+		gchar *str;
+		gsize n;
+		for (n = 0; n < n_requests; n++) {
+			g_string_append_unichar (string, requests[n].c);
+		}
+		str = g_string_free (string, FALSE);
+		g_printerr ("draw_text (\"%s\", len=%"G_GSIZE_FORMAT", color=(%d,%d,%d,%d), %s)\n",
+				str, n_requests, color->red, color->green, color->blue,
+				alpha, bold ? "bold" : "normal");
+		g_free (str);
+	}
+
+	_vte_pangocairo_draw_text (draw, requests,
+				   n_requests, color, alpha, bold);
+
+	/* handle fonts that lack a bold face by double-striking */
+	if (bold && !_vte_pangocairo_has_bold (draw)) {
+		gsize i;
+
+		/* Take a step to the right. */
+		for (i = 0; i < n_requests; i++) {
+			requests[i].x++;
+		}
+		_vte_pangocairo_draw_text (draw, requests,
+					   n_requests, color, alpha, FALSE);
+		/* Now take a step back. */
+		for (i = 0; i < n_requests; i++) {
+			requests[i].x--;
+		}
+	}
+}
+
+gboolean
+_vte_draw_has_char (struct _vte_draw *draw, vteunistr c, gboolean bold)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
 	struct unistr_info *uinfo;
+
+	_vte_debug_print (VTE_DEBUG_DRAW, "draw_has_char ('0x%04X', %s)\n", c,
+			  bold ? "bold" : "normal");
 
 	g_return_val_if_fail (data->font != NULL, FALSE);
 
@@ -1114,12 +1192,20 @@ _vte_pangocairo_draw_has_char (struct _vte_draw *draw, vteunistr c,
 	return !uinfo->has_unknown_chars;
 }
 
-static void
-_vte_pangocairo_draw_rectangle (struct _vte_draw *draw,
-				gint x, gint y, gint width, gint height,
-				GdkColor *color, guchar alpha)
+void
+_vte_draw_draw_rectangle (struct _vte_draw *draw,
+			 gint x, gint y, gint width, gint height,
+			 GdkColor *color, guchar alpha)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
+
+	g_return_if_fail (draw->started == TRUE);
+
+	_vte_debug_print (VTE_DEBUG_DRAW,
+			"draw_rectangle (%d, %d, %d, %d, color=(%d,%d,%d,%d))\n",
+			x,y,width,height,
+			color->red, color->green, color->blue,
+			alpha);
 
 	cairo_set_operator (data->cr, CAIRO_OPERATOR_OVER);
 	cairo_rectangle (data->cr, x+.5, y+.5, width-1, height-1);
@@ -1128,12 +1214,20 @@ _vte_pangocairo_draw_rectangle (struct _vte_draw *draw,
 	cairo_stroke (data->cr);
 }
 
-static void
-_vte_pangocairo_fill_rectangle (struct _vte_draw *draw,
-				gint x, gint y, gint width, gint height,
-				GdkColor *color, guchar alpha)
+void
+_vte_draw_fill_rectangle (struct _vte_draw *draw,
+			 gint x, gint y, gint width, gint height,
+			 GdkColor *color, guchar alpha)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
+
+	g_return_if_fail (draw->started == TRUE);
+
+	_vte_debug_print (VTE_DEBUG_DRAW,
+			"draw_fill_rectangle (%d, %d, %d, %d, color=(%d,%d,%d,%d))\n",
+			x,y,width,height,
+			color->red, color->green, color->blue,
+			alpha);
 
 	cairo_set_operator (data->cr, CAIRO_OPERATOR_OVER);
 	cairo_rectangle (data->cr, x, y, width, height);
@@ -1148,20 +1242,20 @@ const struct _vte_draw_impl _vte_draw_pangocairo = {
 	NULL, /* destroy */
 	NULL, /* get_visual */
 	NULL, /* get_colormap */
-	_vte_pangocairo_start,
-	_vte_pangocairo_end,
-	_vte_pangocairo_set_background_solid,
-	_vte_pangocairo_set_background_image,
-	_vte_pangocairo_set_background_scroll,
-	_vte_pangocairo_clip,
+	NULL, /* start */
+	NULL, /* end */
+	NULL, /* set_background_solid */
+	NULL, /* set_background_image */
+	NULL, /* set_background_scroll */
+	NULL, /* clip */
 	FALSE, /* always_requires_clear */
-	_vte_pangocairo_clear,
-	_vte_pangocairo_set_text_font,
-	_vte_pangocairo_get_text_metrics,
-	_vte_pangocairo_get_char_width,
-	_vte_pangocairo_has_bold,
-	_vte_pangocairo_draw_text,
-	_vte_pangocairo_draw_has_char,
-	_vte_pangocairo_draw_rectangle,
-	_vte_pangocairo_fill_rectangle
+	NULL, /* clear */
+	NULL, /* text_font */
+	NULL, /* text_metrics */
+	NULL, /* char_width */
+	NULL, /* has_bold */
+	NULL, /* draw_text */
+	NULL, /* draw_has_char */
+	NULL, /* draw_rectangle */
+	NULL, /* fill_rectangle */
 };
