@@ -59,17 +59,6 @@ struct _vte_draw_text_request {
 	gshort x, y, columns;
 };
 
-struct _vte_draw {
-	GtkWidget *widget;
-
-	gint started;
-
-	gboolean requires_clear;
-
-	/* for use by impl */
-	gpointer impl_data;
-};
-
 /* Create and destroy a draw structure. */
 struct _vte_draw *_vte_draw_new(GtkWidget *widget);
 void _vte_draw_free(struct _vte_draw *draw);

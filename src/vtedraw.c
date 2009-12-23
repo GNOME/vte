@@ -781,8 +781,13 @@ font_info_get_unistr_info (struct font_info *info,
 	return uinfo;
 }
 
+struct _vte_draw {
+	GtkWidget *widget;
 
-struct _vte_pangocairo_data {
+	gint started;
+
+	gboolean requires_clear;
+
 	struct font_info *font;
 	struct font_info *font_bold;
 	cairo_pattern_t *bg_pattern;
@@ -790,25 +795,17 @@ struct _vte_pangocairo_data {
 	cairo_t *cr;
 };
 
-const char impl_name[] = "pangocairo";
-
 struct _vte_draw *
 _vte_draw_new (GtkWidget *widget)
 {
 	struct _vte_draw *draw;
-	struct _vte_pangocairo_data *data;
 
 	/* Create the structure. */
 	draw = g_slice_new0 (struct _vte_draw);
 	draw->widget = g_object_ref (widget);
 	draw->requires_clear = FALSE;
 
-	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_new (%s)\n", impl_name);
-	_vte_debug_print (VTE_DEBUG_MISC, "Using %s.\n", impl_name);
-
-	data = g_slice_new0 (struct _vte_pangocairo_data);
-	draw->impl_data = data;
+	_vte_debug_print (VTE_DEBUG_DRAW, "draw_new\n");
 
 	return draw;
 }
@@ -816,22 +813,17 @@ _vte_draw_new (GtkWidget *widget)
 void
 _vte_draw_free (struct _vte_draw *draw)
 {
-	struct _vte_pangocairo_data *data = draw->impl_data;
-
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_free\n");
 
-	if (data->bg_pattern != NULL) {
-		cairo_pattern_destroy (data->bg_pattern);
-		data->bg_pattern = NULL;
+	if (draw->bg_pattern != NULL) {
+		cairo_pattern_destroy (draw->bg_pattern);
+		draw->bg_pattern = NULL;
 	}
 
-	if (data->font != NULL) {
-		font_info_destroy (data->font);
-		data->font = NULL;
+	if (draw->font != NULL) {
+		font_info_destroy (draw->font);
+		draw->font = NULL;
 	}
-
-	g_slice_free (struct _vte_pangocairo_data, draw->impl_data);
-	draw->impl_data = NULL;
 
 	if (draw->widget != NULL) {
 		g_object_unref (draw->widget);
@@ -867,8 +859,6 @@ _vte_draw_get_colormap (struct _vte_draw *draw, gboolean maybe_use_default)
 void
 _vte_draw_start (struct _vte_draw *draw)
 {
-	struct _vte_pangocairo_data *data = draw->impl_data;
-
 	g_return_if_fail (GTK_WIDGET_REALIZED (draw->widget));
 
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_start\n");
@@ -876,7 +866,7 @@ _vte_draw_start (struct _vte_draw *draw)
 	g_object_ref (draw->widget->window);
 
 	if (draw->started == 0)
-		data->cr = gdk_cairo_create (draw->widget->window);
+		draw->cr = gdk_cairo_create (draw->widget->window);
 
 	draw->started++;
 }
@@ -884,15 +874,13 @@ _vte_draw_start (struct _vte_draw *draw)
 void
 _vte_draw_end (struct _vte_draw *draw)
 {
-	struct _vte_pangocairo_data *data = draw->impl_data;
-
 	g_return_if_fail (draw->started == TRUE);
 	g_assert (draw->started > 0);
 
 	draw->started--;
 	if (draw->started == 0) {
-		cairo_destroy (data->cr);
-		data->cr = NULL;
+		cairo_destroy (draw->cr);
+		draw->cr = NULL;
  	}
 
 	g_object_unref (draw->widget->window);
@@ -905,14 +893,12 @@ _vte_draw_set_background_solid(struct _vte_draw *draw,
 			       GdkColor *color,
 			       guint16 opacity)
 {
-	struct _vte_pangocairo_data *data = draw->impl_data;
-
 	draw->requires_clear = opacity != 0xFFFF;
 
-	if (data->bg_pattern)
-		cairo_pattern_destroy (data->bg_pattern);
+	if (draw->bg_pattern)
+		cairo_pattern_destroy (draw->bg_pattern);
 
-	data->bg_pattern = cairo_pattern_create_rgba (color->red / 65535.,
+	draw->bg_pattern = cairo_pattern_create_rgba (color->red / 65535.,
 						      color->green / 65535.,
 						      color->blue / 65535.,
 						      opacity / 65535.);
@@ -926,7 +912,6 @@ _vte_draw_set_background_image (struct _vte_draw *draw,
 			        const GdkColor *color,
 			        double saturation)
 {
-	struct _vte_pangocairo_data *data = draw->impl_data;
 	GdkPixmap *pixmap;
 	cairo_surface_t *surface;
 	cairo_t *cr;
@@ -942,53 +927,50 @@ _vte_draw_set_background_image (struct _vte_draw *draw,
 	if (!pixmap)
 		return;
 
-	if (data->bg_pattern)
-		cairo_pattern_destroy (data->bg_pattern);
+	if (draw->bg_pattern)
+		cairo_pattern_destroy (draw->bg_pattern);
 
 	/* Ugh... We need to create a dummy cairo_t */
 	surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, 0, 0);
 	cr = cairo_create (surface);
 
 	gdk_cairo_set_source_pixmap (cr, pixmap, 0, 0);
-	data->bg_pattern = cairo_pattern_reference (cairo_get_source (cr));
+	draw->bg_pattern = cairo_pattern_reference (cairo_get_source (cr));
 
 	cairo_destroy (cr);
 	cairo_surface_destroy (surface);
 
 	/* Transfer the pixmap ownership to the pattern */
-	cairo_pattern_set_user_data (data->bg_pattern,
-				     (cairo_user_data_key_t *) data,
+	cairo_pattern_set_user_data (draw->bg_pattern,
+				     (cairo_user_data_key_t *) draw,
 				     pixmap,
 				     (cairo_destroy_func_t) g_object_unref);
 
-	cairo_pattern_set_extend (data->bg_pattern, CAIRO_EXTEND_REPEAT);
+	cairo_pattern_set_extend (draw->bg_pattern, CAIRO_EXTEND_REPEAT);
 }
 
 void
 _vte_draw_set_background_scroll (struct _vte_draw *draw,
 				 gint x, gint y)
 {
-	struct _vte_pangocairo_data *data = draw->impl_data;
 	cairo_matrix_t matrix;
 
 	_vte_debug_print (VTE_DEBUG_DRAW,
 			"draw_set_scroll (%d, %d)\n",
 			x, y);
 
-	g_return_if_fail (data->bg_pattern != NULL);
+	g_return_if_fail (draw->bg_pattern != NULL);
 
 	cairo_matrix_init_translate (&matrix, x, y);
-	cairo_pattern_set_matrix (data->bg_pattern, &matrix);
+	cairo_pattern_set_matrix (draw->bg_pattern, &matrix);
 }
 
 gboolean
 _vte_draw_clip (struct _vte_draw *draw, GdkRegion *region)
 {
-	struct _vte_pangocairo_data *data = draw->impl_data;
-
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_clip\n");
-	gdk_cairo_region(data->cr, region);
-	cairo_clip (data->cr);
+	gdk_cairo_region(draw->cr, region);
+	cairo_clip (draw->cr);
 
 	return TRUE;
 }
@@ -996,17 +978,15 @@ _vte_draw_clip (struct _vte_draw *draw, GdkRegion *region)
 void
 _vte_draw_clear (struct _vte_draw *draw, gint x, gint y, gint width, gint height)
 {
-	struct _vte_pangocairo_data *data = draw->impl_data;
-
-	g_return_if_fail (data->bg_pattern != NULL);
+	g_return_if_fail (draw->bg_pattern != NULL);
 
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_clear (%d, %d, %d, %d)\n",
 			  x,y,width, height);
 
-	cairo_rectangle (data->cr, x, y, width, height);
-	cairo_set_operator (data->cr, CAIRO_OPERATOR_SOURCE);
-	cairo_set_source (data->cr, data->bg_pattern);
-	cairo_fill (data->cr);
+	cairo_rectangle (draw->cr, x, y, width, height);
+	cairo_set_operator (draw->cr, CAIRO_OPERATOR_SOURCE);
+	cairo_set_source (draw->cr, draw->bg_pattern);
+	cairo_fill (draw->cr);
 }
 
 void
@@ -1014,30 +994,29 @@ _vte_draw_set_text_font (struct _vte_draw *draw,
 			const PangoFontDescription *fontdesc,
 			VteTerminalAntiAlias antialias)
 {
-	struct _vte_pangocairo_data *data = draw->impl_data;
 	PangoFontDescription *bolddesc = NULL;
 
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_set_text_font (aa=%d)\n",
 			  antialias);
 
-	if (data->font_bold != data->font)
-		font_info_destroy (data->font_bold);
-	font_info_destroy (data->font);
-	data->font = font_info_create_for_widget (draw->widget, fontdesc, antialias);
+	if (draw->font_bold != draw->font)
+		font_info_destroy (draw->font_bold);
+	font_info_destroy (draw->font);
+	draw->font = font_info_create_for_widget (draw->widget, fontdesc, antialias);
 
 	/* calculate bold font desc */
 	bolddesc = pango_font_description_copy (fontdesc);
 	pango_font_description_set_weight (bolddesc, PANGO_WEIGHT_BOLD);
 
-	data->font_bold = font_info_create_for_widget (draw->widget, bolddesc, antialias);
+	draw->font_bold = font_info_create_for_widget (draw->widget, bolddesc, antialias);
 	pango_font_description_free (bolddesc);
 
 	/* Decide if we should keep this bold font face, per bug 54926:
 	 *  - reject bold font if it is not within 10% of normal font width
 	 */
-	if ( abs((data->font_bold->width * 100 / data->font->width) - 100) > 10 ) {
-		font_info_destroy (data->font_bold);
-		data->font_bold = data->font;
+	if ( abs((draw->font_bold->width * 100 / draw->font->width) - 100) > 10 ) {
+		font_info_destroy (draw->font_bold);
+		draw->font_bold = draw->font;
 	}
 }
 
@@ -1045,16 +1024,14 @@ void
 _vte_draw_get_text_metrics(struct _vte_draw *draw,
 			   gint *width, gint *height, gint *ascent)
 {
-	struct _vte_pangocairo_data *data = draw->impl_data;
-	
-	g_return_if_fail (data->font != NULL);
+	g_return_if_fail (draw->font != NULL);
 
 	if (width)
-		*width  = data->font->width;
+		*width  = draw->font->width;
 	if (height)
-		*height = data->font->height;
+		*height = draw->font->height;
 	if (ascent)
-		*ascent = data->font->ascent;
+		*ascent = draw->font->ascent;
 }
 
 
@@ -1062,21 +1039,18 @@ int
 _vte_draw_get_char_width (struct _vte_draw *draw, vteunistr c, int columns,
 			  gboolean bold)
 {
-	struct _vte_pangocairo_data *data = draw->impl_data;
 	struct unistr_info *uinfo;
 
-	g_return_val_if_fail (data->font != NULL, 0);
+	g_return_val_if_fail (draw->font != NULL, 0);
 
-	uinfo = font_info_get_unistr_info (bold ? data->font_bold : data->font, c);
+	uinfo = font_info_get_unistr_info (bold ? draw->font_bold : draw->font, c);
 	return uinfo->width;
 }
 
 static gboolean
 _vte_pangocairo_has_bold (struct _vte_draw *draw)
 {
-	struct _vte_pangocairo_data *data = draw->impl_data;
-
-	return (data->font != data->font_bold);
+	return (draw->font != draw->font_bold);
 }
 
 static void
@@ -1096,17 +1070,16 @@ _vte_pangocairo_draw_text (struct _vte_draw *draw,
 			   struct _vte_draw_text_request *requests, gsize n_requests,
 			   GdkColor *color, guchar alpha, gboolean bold)
 {
-	struct _vte_pangocairo_data *data = draw->impl_data;
 	gsize i;
 	cairo_scaled_font_t *last_scaled_font = NULL;
 	int n_cr_glyphs = 0;
 	cairo_glyph_t cr_glyphs[MAX_RUN_LENGTH];
-	struct font_info *font = bold ? data->font_bold : data->font;
+	struct font_info *font = bold ? draw->font_bold : draw->font;
 
 	g_return_if_fail (font != NULL);
 
-	set_source_color_alpha (data->cr, color, alpha);
-	cairo_set_operator (data->cr, CAIRO_OPERATOR_OVER);
+	set_source_color_alpha (draw->cr, color, alpha);
+	cairo_set_operator (draw->cr, CAIRO_OPERATOR_OVER);
 
 	for (i = 0; i < n_requests; i++) {
 		vteunistr c = requests[i].c;
@@ -1121,21 +1094,21 @@ _vte_pangocairo_draw_text (struct _vte_draw *draw,
 			g_assert_not_reached ();
 			break;
 		case COVERAGE_USE_PANGO_LAYOUT_LINE:
-			cairo_move_to (data->cr, x, y);
-			pango_cairo_show_layout_line (data->cr,
+			cairo_move_to (draw->cr, x, y);
+			pango_cairo_show_layout_line (draw->cr,
 						      ufi->using_pango_layout_line.line);
 			break;
 		case COVERAGE_USE_PANGO_GLYPH_STRING:
-			cairo_move_to (data->cr, x, y);
-			pango_cairo_show_glyph_string (data->cr,
+			cairo_move_to (draw->cr, x, y);
+			pango_cairo_show_glyph_string (draw->cr,
 						       ufi->using_pango_glyph_string.font,
 						       ufi->using_pango_glyph_string.glyph_string);
 			break;
 		case COVERAGE_USE_CAIRO_GLYPH:
 			if (last_scaled_font != ufi->using_cairo_glyph.scaled_font || n_cr_glyphs == MAX_RUN_LENGTH) {
 				if (n_cr_glyphs) {
-					cairo_set_scaled_font (data->cr, last_scaled_font);
-					cairo_show_glyphs (data->cr,
+					cairo_set_scaled_font (draw->cr, last_scaled_font);
+					cairo_show_glyphs (draw->cr,
 							   cr_glyphs,
 							   n_cr_glyphs);
 					n_cr_glyphs = 0;
@@ -1150,8 +1123,8 @@ _vte_pangocairo_draw_text (struct _vte_draw *draw,
 		}
 	}
 	if (n_cr_glyphs) {
-		cairo_set_scaled_font (data->cr, last_scaled_font);
-		cairo_show_glyphs (data->cr,
+		cairo_set_scaled_font (draw->cr, last_scaled_font);
+		cairo_show_glyphs (draw->cr,
 				   cr_glyphs,
 				   n_cr_glyphs);
 		n_cr_glyphs = 0;
@@ -1202,15 +1175,14 @@ _vte_draw_text (struct _vte_draw *draw,
 gboolean
 _vte_draw_has_char (struct _vte_draw *draw, vteunistr c, gboolean bold)
 {
-	struct _vte_pangocairo_data *data = draw->impl_data;
 	struct unistr_info *uinfo;
 
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_has_char ('0x%04X', %s)\n", c,
 			  bold ? "bold" : "normal");
 
-	g_return_val_if_fail (data->font != NULL, FALSE);
+	g_return_val_if_fail (draw->font != NULL, FALSE);
 
-	uinfo = font_info_get_unistr_info (bold ? data->font_bold : data->font, c);
+	uinfo = font_info_get_unistr_info (bold ? draw->font_bold : draw->font, c);
 	return !uinfo->has_unknown_chars;
 }
 
@@ -1239,8 +1211,6 @@ _vte_draw_draw_rectangle (struct _vte_draw *draw,
 			 gint x, gint y, gint width, gint height,
 			 GdkColor *color, guchar alpha)
 {
-	struct _vte_pangocairo_data *data = draw->impl_data;
-
 	g_return_if_fail (draw->started == TRUE);
 
 	_vte_debug_print (VTE_DEBUG_DRAW,
@@ -1249,11 +1219,11 @@ _vte_draw_draw_rectangle (struct _vte_draw *draw,
 			color->red, color->green, color->blue,
 			alpha);
 
-	cairo_set_operator (data->cr, CAIRO_OPERATOR_OVER);
-	cairo_rectangle (data->cr, x+.5, y+.5, width-1, height-1);
-	set_source_color_alpha (data->cr, color, alpha);
-	cairo_set_line_width (data->cr, 1);
-	cairo_stroke (data->cr);
+	cairo_set_operator (draw->cr, CAIRO_OPERATOR_OVER);
+	cairo_rectangle (draw->cr, x+.5, y+.5, width-1, height-1);
+	set_source_color_alpha (draw->cr, color, alpha);
+	cairo_set_line_width (draw->cr, 1);
+	cairo_stroke (draw->cr);
 }
 
 void
@@ -1261,8 +1231,6 @@ _vte_draw_fill_rectangle (struct _vte_draw *draw,
 			 gint x, gint y, gint width, gint height,
 			 GdkColor *color, guchar alpha)
 {
-	struct _vte_pangocairo_data *data = draw->impl_data;
-
 	g_return_if_fail (draw->started == TRUE);
 
 	_vte_debug_print (VTE_DEBUG_DRAW,
@@ -1271,10 +1239,10 @@ _vte_draw_fill_rectangle (struct _vte_draw *draw,
 			color->red, color->green, color->blue,
 			alpha);
 
-	cairo_set_operator (data->cr, CAIRO_OPERATOR_OVER);
-	cairo_rectangle (data->cr, x, y, width, height);
-	set_source_color_alpha (data->cr, color, alpha);
-	cairo_fill (data->cr);
+	cairo_set_operator (draw->cr, CAIRO_OPERATOR_OVER);
+	cairo_rectangle (draw->cr, x, y, width, height);
+	set_source_color_alpha (draw->cr, color, alpha);
+	cairo_fill (draw->cr);
 }
 
 gboolean
