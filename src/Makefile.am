@@ -65,7 +65,6 @@ libvte_la_SOURCES = \
 	vtedraw.c \
 	vtedraw.h \
 	vteint.h \
-	vtepangocairo.c \
 	vteregex.c \
 	vteregex.h \
 	vterowdata.c \
