@@ -791,19 +791,37 @@ struct _vte_pangocairo_data {
 	cairo_t *cr;
 };
 
-static void
-_vte_pangocairo_create (struct _vte_draw *draw, GtkWidget *widget)
+struct _vte_draw *
+_vte_draw_new (GtkWidget *widget)
 {
+	struct _vte_draw *draw;
 	struct _vte_pangocairo_data *data;
+
+	/* Create the structure. */
+	draw = g_slice_new0 (struct _vte_draw);
+	draw->widget = g_object_ref (widget);
+	draw->impl = &_vte_draw_pangocairo;
+	draw->requires_clear = draw->impl->always_requires_clear;
+
+	_vte_debug_print (VTE_DEBUG_DRAW,
+			"draw_new (%s)\n", draw->impl->name);
+	_vte_debug_print (VTE_DEBUG_MISC, "Using %s.\n", draw->impl->name);
+
+	if (draw->impl->create)
+		draw->impl->create (draw, draw->widget);
 
 	data = g_slice_new0 (struct _vte_pangocairo_data);
 	draw->impl_data = data;
+
+	return draw;
 }
 
-static void
-_vte_pangocairo_destroy (struct _vte_draw *draw)
+void
+_vte_draw_free (struct _vte_draw *draw)
 {
 	struct _vte_pangocairo_data *data = draw->impl_data;
+
+	_vte_debug_print (VTE_DEBUG_DRAW, "draw_free\n");
 
 	if (data->bg_pattern != NULL) {
 		cairo_pattern_destroy (data->bg_pattern);
@@ -817,6 +835,12 @@ _vte_pangocairo_destroy (struct _vte_draw *draw)
 
 	g_slice_free (struct _vte_pangocairo_data, draw->impl_data);
 	draw->impl_data = NULL;
+
+	if (draw->widget != NULL) {
+		g_object_unref (draw->widget);
+	}
+
+	g_slice_free (struct _vte_draw, draw);
 }
 
 static void
@@ -1120,8 +1144,8 @@ _vte_pangocairo_fill_rectangle (struct _vte_draw *draw,
 const struct _vte_draw_impl _vte_draw_pangocairo = {
 	"pangocairo",
 	NULL, /* check */
-	_vte_pangocairo_create,
-	_vte_pangocairo_destroy,
+	NULL, /* create */
+	NULL, /* destroy */
 	NULL, /* get_visual */
 	NULL, /* get_colormap */
 	_vte_pangocairo_start,
