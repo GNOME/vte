@@ -62,7 +62,7 @@ struct _vte_draw_text_request {
 struct _vte_draw {
 	GtkWidget *widget;
 
-	gboolean started;
+	gint started;
 
 	gboolean requires_clear;
 

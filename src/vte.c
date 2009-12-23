@@ -8724,12 +8724,8 @@ vte_terminal_fill_rectangle(VteTerminal *terminal,
 			    gint height)
 {
 	GdkColor color;
-	gboolean wasdrawing;
 
-	wasdrawing = terminal->pvt->draw->started;
-	if (!wasdrawing) {
-		_vte_draw_start(terminal->pvt->draw);
-	}
+	_vte_draw_start(terminal->pvt->draw);
 	color.red = entry->red;
 	color.green = entry->green;
 	color.blue = entry->blue;
@@ -8738,9 +8734,7 @@ vte_terminal_fill_rectangle(VteTerminal *terminal,
                                  y + terminal->pvt->inner_border.top,
 				 width, height,
 				 &color, VTE_DRAW_OPAQUE);
-	if (!wasdrawing) {
-		_vte_draw_end(terminal->pvt->draw);
-	}
+	_vte_draw_end(terminal->pvt->draw);
 }
 
 static void

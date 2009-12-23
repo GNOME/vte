@@ -875,8 +875,10 @@ _vte_draw_start (struct _vte_draw *draw)
 
 	g_object_ref (draw->widget->window);
 
-	data->cr = gdk_cairo_create (draw->widget->window);
-	draw->started = TRUE;
+	if (draw->started == 0)
+		data->cr = gdk_cairo_create (draw->widget->window);
+
+	draw->started++;
 }
 
 void
@@ -885,15 +887,15 @@ _vte_draw_end (struct _vte_draw *draw)
 	struct _vte_pangocairo_data *data = draw->impl_data;
 
 	g_return_if_fail (draw->started == TRUE);
+	g_assert (draw->started > 0);
 
-	if (data->cr != NULL) {
+	draw->started--;
+	if (draw->started == 0) {
 		cairo_destroy (data->cr);
 		data->cr = NULL;
-	}
+ 	}
 
 	g_object_unref (draw->widget->window);
-
-	draw->started = FALSE;
 
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_end\n");
 }
