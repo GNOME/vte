@@ -866,18 +866,20 @@ _vte_draw_end (struct _vte_draw *draw)
 
 void
 _vte_draw_set_background_solid(struct _vte_draw *draw,
-			       GdkColor *color,
-			       guint16 opacity)
+			       double red,
+			       double green,
+			       double blue,
+			       double opacity)
 {
 	draw->requires_clear = opacity != 0xFFFF;
 
 	if (draw->bg_pattern)
 		cairo_pattern_destroy (draw->bg_pattern);
 
-	draw->bg_pattern = cairo_pattern_create_rgba (color->red / 65535.,
-						      color->green / 65535.,
-						      color->blue / 65535.,
-						      opacity / 65535.);
+	draw->bg_pattern = cairo_pattern_create_rgba (red,
+						      green,
+						      blue,
+						      opacity);
 }
 
 void

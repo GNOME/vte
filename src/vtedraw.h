@@ -69,8 +69,10 @@ void _vte_draw_start(struct _vte_draw *draw);
 void _vte_draw_end(struct _vte_draw *draw);
 
 void _vte_draw_set_background_solid(struct _vte_draw *draw,
-				    GdkColor *color,
-				    guint16 opacity);
+				    double red,
+				    double green,
+				    double blue,
+				    double opacity);
 void _vte_draw_set_background_image(struct _vte_draw *draw,
 				    enum VteBgSourceType type,
 				    GdkPixbuf *pixbuf,

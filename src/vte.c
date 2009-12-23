@@ -12494,9 +12494,9 @@ vte_terminal_im_append_menuitems(VteTerminal *terminal, GtkMenuShell *menushell)
 static gboolean
 vte_terminal_background_update(VteTerminal *terminal)
 {
-	GdkColormap *colormap;
 	GdkColor bgcolor;
 	double saturation;
+	struct vte_palette_entry *entry;
 
 	/* If we're not realized yet, don't worry about it, because we get
 	 * called when we realize. */
@@ -12510,23 +12510,16 @@ vte_terminal_background_update(VteTerminal *terminal)
 	_vte_debug_print(VTE_DEBUG_MISC|VTE_DEBUG_EVENTS,
 			"Updating background image.\n");
 
-	/* Set the default background color. */
-	bgcolor.red = terminal->pvt->palette[VTE_DEF_BG].red;
-	bgcolor.green = terminal->pvt->palette[VTE_DEF_BG].green;
-	bgcolor.blue = terminal->pvt->palette[VTE_DEF_BG].blue;
-	bgcolor.pixel = 0;
-	gtk_widget_ensure_style(&terminal->widget);
-	/*colormap = gdk_gc_get_colormap(terminal->widget.style->fg_gc[GTK_WIDGET_STATE(terminal)]);*/
-	colormap = gtk_widget_get_colormap (&terminal->widget);
-	if (colormap) {
-		gdk_rgb_find_color(colormap, &bgcolor);
-	}
+	entry = &terminal->pvt->palette[VTE_DEF_BG];
 	_vte_debug_print(VTE_DEBUG_MISC,
-			"Setting background color to (%d, %d, %d) cmap index=%d.\n",
-			bgcolor.red, bgcolor.green, bgcolor.blue,
-			bgcolor.pixel);
-	gdk_window_set_background(terminal->widget.window, &bgcolor);
-	_vte_draw_set_background_solid (terminal->pvt->draw, &bgcolor, terminal->pvt->bg_opacity);
+			"Setting background color to (%d, %d, %d).\n",
+			bgcolor.red, bgcolor.green, bgcolor.blue);
+
+	_vte_draw_set_background_solid (terminal->pvt->draw, 
+					entry->red / 65535.,
+					entry->green / 65535.,
+					entry->blue / 65535.,
+					terminal->pvt->bg_opacity / 65535.);
 
 	/* If we're transparent, and either have no root image or are being
 	 * told to update it, get a new copy of the root window. */
