@@ -832,30 +832,6 @@ _vte_draw_free (struct _vte_draw *draw)
 	g_slice_free (struct _vte_draw, draw);
 }
 
-GdkVisual *
-_vte_draw_get_visual (struct _vte_draw *draw)
-{
-	_vte_debug_print (VTE_DEBUG_DRAW, "draw_get_visual\n");
-
-	return gtk_widget_get_visual (draw->widget);
-}
-
-GdkColormap *
-_vte_draw_get_colormap (struct _vte_draw *draw, gboolean maybe_use_default)
-{
-	GdkColormap *colormap;
-
-	_vte_debug_print (VTE_DEBUG_DRAW, "draw_get_colormap\n");
-
-	colormap = gtk_widget_get_colormap (draw->widget);
-
-	if (colormap == NULL && maybe_use_default) {
-		colormap = gdk_screen_get_default_colormap (gtk_widget_get_screen (draw->widget));
-	}
-
-	return colormap;
-}
-
 void
 _vte_draw_start (struct _vte_draw *draw)
 {
@@ -922,7 +898,7 @@ _vte_draw_set_background_image (struct _vte_draw *draw,
 	pixmap = vte_bg_get_pixmap (vte_bg_get_for_screen (gtk_widget_get_screen (draw->widget)),
 				    type, pixbuf, filename,
 				    color, saturation,
-				    _vte_draw_get_colormap(draw, TRUE));
+				    gtk_widget_get_colormap (draw->widget));
 
 	if (!pixmap)
 		return;

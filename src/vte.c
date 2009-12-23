@@ -8511,9 +8511,8 @@ vte_terminal_realize(GtkWidget *widget)
 	attributes.width = widget->allocation.width;
 	attributes.height = widget->allocation.height;
 	attributes.wclass = GDK_INPUT_OUTPUT;
-	attributes.visual = _vte_draw_get_visual(terminal->pvt->draw);
-	attributes.colormap = _vte_draw_get_colormap(terminal->pvt->draw,
-						     FALSE);
+	attributes.visual = gtk_widget_get_visual (widget);
+	attributes.colormap = gtk_widget_get_colormap (widget);
 	attributes.event_mask = gtk_widget_get_events(widget) |
 				GDK_EXPOSURE_MASK |
 				GDK_VISIBILITY_NOTIFY_MASK |
