@@ -5351,7 +5351,11 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 				p++;
 			}
 		}
+		if (terminal->pvt->screen->bracketed_paste_mode)
+			vte_terminal_feed_child(terminal, "\e[200~", -1);
 		vte_terminal_feed_child(terminal, paste, length);
+		if (terminal->pvt->screen->bracketed_paste_mode)
+			vte_terminal_feed_child(terminal, "\e[201~", -1);
 		g_free(paste);
 	}
 }
@@ -13406,12 +13410,14 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	pvt->normal_screen.linefeed_mode = FALSE;
 	pvt->normal_screen.origin_mode = FALSE;
 	pvt->normal_screen.reverse_mode = FALSE;
+	pvt->normal_screen.bracketed_paste_mode = FALSE;
 	pvt->alternate_screen.scrolling_restricted = FALSE;
 	pvt->alternate_screen.sendrecv_mode = TRUE;
 	pvt->alternate_screen.insert_mode = FALSE;
 	pvt->alternate_screen.linefeed_mode = FALSE;
 	pvt->alternate_screen.origin_mode = FALSE;
 	pvt->alternate_screen.reverse_mode = FALSE;
+	pvt->alternate_screen.bracketed_paste_mode = FALSE;
 	pvt->cursor_visible = TRUE;
 	/* Reset the encoding. */
 	vte_terminal_set_encoding(terminal, NULL);

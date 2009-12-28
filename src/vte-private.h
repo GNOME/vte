@@ -218,6 +218,7 @@ struct _VteTerminalPrivate {
 		gboolean sendrecv_mode;	/* sendrecv mode */
 		gboolean insert_mode;	/* insert mode */
 		gboolean linefeed_mode;	/* linefeed mode */
+		gboolean bracketed_paste_mode;
 		struct vte_scrolling_region {
 			int start, end;
 		} scrolling_region;	/* the region we scroll in */
