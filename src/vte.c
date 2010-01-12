@@ -12454,7 +12454,6 @@ vte_terminal_im_append_menuitems(VteTerminal *terminal, GtkMenuShell *menushell)
 static gboolean
 vte_terminal_background_update(VteTerminal *terminal)
 {
-	GdkColor bgcolor;
 	double saturation;
 	const PangoColor *entry;
 
@@ -12473,7 +12472,7 @@ vte_terminal_background_update(VteTerminal *terminal)
 	entry = &terminal->pvt->palette[VTE_DEF_BG];
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Setting background color to (%d, %d, %d).\n",
-			bgcolor.red, bgcolor.green, bgcolor.blue);
+			entry->red, entry->green, entry->blue);
 
 	_vte_draw_set_background_solid (terminal->pvt->draw, 
 					entry->red / 65535.,
