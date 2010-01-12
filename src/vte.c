@@ -8717,7 +8717,7 @@ vte_terminal_unichar_is_local_graphic(VteTerminal *terminal, vteunistr c, gboole
 
 static void
 vte_terminal_fill_rectangle(VteTerminal *terminal,
-			    struct vte_palette_entry *entry,
+			    const struct vte_palette_entry *entry,
 			    gint x,
 			    gint y,
 			    gint width,
@@ -8739,7 +8739,7 @@ vte_terminal_fill_rectangle(VteTerminal *terminal,
 
 static void
 vte_terminal_draw_line(VteTerminal *terminal,
-		       struct vte_palette_entry *entry,
+		       const struct vte_palette_entry *entry,
 		       gint x,
 		       gint y,
 		       gint xp,
@@ -8752,12 +8752,13 @@ vte_terminal_draw_line(VteTerminal *terminal,
 
 static void
 vte_terminal_draw_rectangle(VteTerminal *terminal,
-			    struct vte_palette_entry *entry,
+			    const struct vte_palette_entry *entry,
 			    gint x,
 			    gint y,
 			    gint width,
 			    gint height)
 {
+	_vte_draw_start(terminal->pvt->draw);
 	vte_terminal_draw_line(terminal, entry,
 			       x, y, x, y + height);
 	vte_terminal_draw_line(terminal, entry,
@@ -8766,6 +8767,7 @@ vte_terminal_draw_rectangle(VteTerminal *terminal,
 			       x, y, x + width, y);
 	vte_terminal_draw_line(terminal, entry,
 			       x, y + height, x + width, y + height);
+	_vte_draw_end(terminal->pvt->draw);
 }
 
 static void
@@ -10422,7 +10424,6 @@ static void
 vte_terminal_paint_cursor(VteTerminal *terminal)
 {
 	VteScreen *screen;
-	GdkColor color;
 	const VteCell *cell;
 	struct _vte_draw_text_request item;
 	int row, drow, col;
@@ -10498,23 +10499,12 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 
 		case VTE_CURSOR_SHAPE_BLOCK:
 
-			x += terminal->pvt->inner_border.left;
-			y += terminal->pvt->inner_border.top;
-
-			color.red = terminal->pvt->palette[back].red;
-			color.green = terminal->pvt->palette[back].green;
-			color.blue = terminal->pvt->palette[back].blue;
-
 			if (focus) {
 				/* just reverse the character under the cursor */
-
-				_vte_draw_fill_rectangle(terminal->pvt->draw,
-							 x,
-							 y,
-							 cursor_width,
-							 height,
-							 &color,
-							 VTE_DRAW_OPAQUE);
+				vte_terminal_fill_rectangle (terminal,
+							     &terminal->pvt->palette[back],
+							     x, y,
+							     cursor_width, height);
 
 				if (!vte_terminal_unichar_is_local_graphic(terminal, item.c, cell ? cell->attr.bold : FALSE) ||
 				    !vte_terminal_draw_graphic(terminal,
@@ -10553,13 +10543,12 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 			} else {
 				/* draw a box around the character */
 
-				_vte_draw_draw_rectangle(terminal->pvt->draw,
-							 x - VTE_LINE_WIDTH,
-							 y - VTE_LINE_WIDTH,
-							 cursor_width + 2*VTE_LINE_WIDTH,
-							 height + 2*VTE_LINE_WIDTH,
-							 &color,
-							 VTE_DRAW_OPAQUE);
+				vte_terminal_draw_rectangle (terminal,
+							    &terminal->pvt->palette[back],
+							     x - VTE_LINE_WIDTH,
+							     y - VTE_LINE_WIDTH,
+							     cursor_width + 2*VTE_LINE_WIDTH,
+							     height + 2*VTE_LINE_WIDTH);
 			}
 
 			break;
