@@ -7596,18 +7596,15 @@ vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 		terminal->row_count = rows;
 		terminal->column_count = columns;
 	}
-	if (old_rows != terminal->row_count ||
-			old_columns != terminal->column_count) {
+	if (old_rows != terminal->row_count || old_columns != terminal->column_count) {
 		VteScreen *screen = terminal->pvt->screen;
-		if (screen) {
-			glong visible_rows = MIN (old_rows, _vte_ring_length (screen->row_data));
-			if (terminal->row_count < visible_rows) {
-				glong delta = visible_rows - terminal->row_count;
-				screen->insert_delta += delta;
-				vte_terminal_queue_adjustment_value_changed (
-						terminal,
-						screen->scroll_delta + delta);
-			}
+		glong visible_rows = MIN (old_rows, _vte_ring_length (screen->row_data));
+		if (terminal->row_count < visible_rows) {
+			glong delta = visible_rows - terminal->row_count;
+			screen->insert_delta += delta;
+			vte_terminal_queue_adjustment_value_changed (
+					terminal,
+					screen->scroll_delta + delta);
 		}
 		gtk_widget_queue_resize (&terminal->widget);
 		/* Our visible text changed. */
@@ -7906,6 +7903,19 @@ vte_terminal_init(VteTerminal *terminal)
 
 	/* We allocated zeroed memory, just fill in non-zero stuff. */
 
+	/* Initialize the screens and histories. */
+	_vte_ring_init (pvt->alternate_screen.row_data, terminal->row_count);
+	pvt->alternate_screen.sendrecv_mode = TRUE;
+	pvt->alternate_screen.status_line_contents = g_string_new(NULL);
+	pvt->screen = &terminal->pvt->alternate_screen;
+	_vte_terminal_set_default_attributes(terminal);
+
+	_vte_ring_init (pvt->normal_screen.row_data,  VTE_SCROLLBACK_INIT);
+	pvt->normal_screen.sendrecv_mode = TRUE;
+	pvt->normal_screen.status_line_contents = g_string_new(NULL);
+	pvt->screen = &terminal->pvt->normal_screen;
+	_vte_terminal_set_default_attributes(terminal);
+
 	/* Set up I/O encodings. */
 	pvt->iso2022 = _vte_iso2022_state_new(pvt->encoding,
 					      &_vte_terminal_codeset_changed_cb,
@@ -7939,19 +7949,6 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->pty_output_source = 0;
 	pvt->pty_pid = -1;
         pvt->child_exit_status = 0;
-
-	/* Initialize the screens and histories. */
-	_vte_ring_init (pvt->alternate_screen.row_data, terminal->row_count);
-	pvt->alternate_screen.sendrecv_mode = TRUE;
-	pvt->alternate_screen.status_line_contents = g_string_new(NULL);
-	pvt->screen = &terminal->pvt->alternate_screen;
-	_vte_terminal_set_default_attributes(terminal);
-
-	_vte_ring_init (pvt->normal_screen.row_data,  VTE_SCROLLBACK_INIT);
-	pvt->normal_screen.sendrecv_mode = TRUE;
-	pvt->normal_screen.status_line_contents = g_string_new(NULL);
-	pvt->screen = &terminal->pvt->normal_screen;
-	_vte_terminal_set_default_attributes(terminal);
 
 	/* Scrolling options. */
 	pvt->scroll_on_keystroke = TRUE;
