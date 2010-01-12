@@ -839,10 +839,10 @@ _vte_draw_start (struct _vte_draw *draw)
 
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_start\n");
 
-	g_object_ref (draw->widget->window);
-
-	if (draw->started == 0)
+	if (draw->started == 0) {
+		g_object_ref (draw->widget->window);
 		draw->cr = gdk_cairo_create (draw->widget->window);
+	}
 
 	draw->started++;
 }
@@ -850,16 +850,14 @@ _vte_draw_start (struct _vte_draw *draw)
 void
 _vte_draw_end (struct _vte_draw *draw)
 {
-	g_return_if_fail (draw->started == TRUE);
-	g_assert (draw->started > 0);
+	g_return_if_fail (draw->started);
 
 	draw->started--;
 	if (draw->started == 0) {
 		cairo_destroy (draw->cr);
 		draw->cr = NULL;
+		g_object_unref (draw->widget->window);
  	}
-
-	g_object_unref (draw->widget->window);
 
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_end\n");
 }
@@ -1114,7 +1112,7 @@ _vte_draw_text (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *requests, gsize n_requests,
 	       GdkColor *color, guchar alpha, gboolean bold)
 {
-	g_return_if_fail (draw->started == TRUE);
+	g_return_if_fail (draw->started);
 
 	if (_vte_debug_on (VTE_DEBUG_DRAW)) {
 		GString *string = g_string_new ("");
@@ -1189,7 +1187,7 @@ _vte_draw_draw_rectangle (struct _vte_draw *draw,
 			 gint x, gint y, gint width, gint height,
 			 GdkColor *color, guchar alpha)
 {
-	g_return_if_fail (draw->started == TRUE);
+	g_return_if_fail (draw->started);
 
 	_vte_debug_print (VTE_DEBUG_DRAW,
 			"draw_rectangle (%d, %d, %d, %d, color=(%d,%d,%d,%d))\n",
@@ -1209,7 +1207,7 @@ _vte_draw_fill_rectangle (struct _vte_draw *draw,
 			 gint x, gint y, gint width, gint height,
 			 GdkColor *color, guchar alpha)
 {
-	g_return_if_fail (draw->started == TRUE);
+	g_return_if_fail (draw->started);
 
 	_vte_debug_print (VTE_DEBUG_DRAW,
 			"draw_fill_rectangle (%d, %d, %d, %d, color=(%d,%d,%d,%d))\n",
