@@ -2423,7 +2423,7 @@ static void
 vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
 				const GdkColor *proposed)
 {
-	struct vte_palette_entry *color;
+	PangoColor *color;
 
 	color = &terminal->pvt->palette[entry];
 
@@ -2461,8 +2461,8 @@ vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
 }
 
 static void
-vte_terminal_generate_bold(const struct vte_palette_entry *foreground,
-			   const struct vte_palette_entry *background,
+vte_terminal_generate_bold(const PangoColor *foreground,
+			   const PangoColor *background,
 			   double factor,
 			   GdkColor *bold)
 {
@@ -2498,6 +2498,7 @@ vte_terminal_generate_bold(const struct vte_palette_entry *foreground,
 			"Calculated bold (%d, %d, %d) = (%lf,%lf,%lf)",
 			foreground->red, foreground->green, foreground->blue,
 			r, g, b);
+	bold->pixel = 0;
 	bold->red = CLAMP(r, 0, 0xffff);
 	bold->green = CLAMP(g, 0, 0xffff);
 	bold->blue = CLAMP(b, 0, 0xffff);
@@ -5823,7 +5824,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 	const VteCell *pcell = NULL;
 	GString *string;
 	struct _VteCharAttributes attr;
-	struct vte_palette_entry fore, back, *palette;
+	PangoColor fore, back, *palette;
 
 	screen = terminal->pvt->screen;
 
@@ -8717,68 +8718,58 @@ vte_terminal_unichar_is_local_graphic(VteTerminal *terminal, vteunistr c, gboole
 
 static void
 vte_terminal_fill_rectangle(VteTerminal *terminal,
-			    const struct vte_palette_entry *entry,
+			    const PangoColor *color,
 			    gint x,
 			    gint y,
 			    gint width,
 			    gint height)
 {
-	GdkColor color;
-
 	_vte_draw_start(terminal->pvt->draw);
-	color.red = entry->red;
-	color.green = entry->green;
-	color.blue = entry->blue;
 	_vte_draw_fill_rectangle(terminal->pvt->draw,
 				 x + terminal->pvt->inner_border.left,
                                  y + terminal->pvt->inner_border.top,
 				 width, height,
-				 &color, VTE_DRAW_OPAQUE);
+				 color, VTE_DRAW_OPAQUE);
 	_vte_draw_end(terminal->pvt->draw);
 }
 
 static void
 vte_terminal_draw_line(VteTerminal *terminal,
-		       const struct vte_palette_entry *entry,
+		       const PangoColor *color,
 		       gint x,
 		       gint y,
 		       gint xp,
 		       gint yp)
 {
-	vte_terminal_fill_rectangle(terminal, entry,
+	vte_terminal_fill_rectangle(terminal, color,
 				    x, y,
 				    MAX(VTE_LINE_WIDTH, xp - x + 1), MAX(VTE_LINE_WIDTH, yp - y + 1));
 }
 
 static void
 vte_terminal_draw_rectangle(VteTerminal *terminal,
-			    const struct vte_palette_entry *entry,
+			    const PangoColor *color,
 			    gint x,
 			    gint y,
 			    gint width,
 			    gint height)
 {
-	GdkColor color;
-
 	_vte_draw_start(terminal->pvt->draw);
-	color.red = entry->red;
-	color.green = entry->green;
-	color.blue = entry->blue;
 	_vte_draw_draw_rectangle(terminal->pvt->draw,
 				 x + terminal->pvt->inner_border.left,
                                  y + terminal->pvt->inner_border.top,
 				 width, height,
-				 &color, VTE_DRAW_OPAQUE);
+				 color, VTE_DRAW_OPAQUE);
 	_vte_draw_end(terminal->pvt->draw);
 }
 
 static void
 vte_terminal_draw_point(VteTerminal *terminal,
-			struct vte_palette_entry *entry,
+			const PangoColor *color,
 			gint x,
 			gint y)
 {
-	vte_terminal_fill_rectangle(terminal, entry, x, y, 1, 1);
+	vte_terminal_fill_rectangle(terminal, color, x, y, 1, 1);
 }
 
 /* Draw the graphic representation of a line-drawing or special graphics
@@ -8793,16 +8784,12 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
 	gboolean ret;
 	gint xcenter, xright, ycenter, ybottom, i;
 	struct _vte_draw_text_request request;
-	GdkColor color;
 
 	request.c = c;
 	request.x = x + terminal->pvt->inner_border.left;
 	request.y = y + terminal->pvt->inner_border.top;
 	request.columns = columns;
 
-	color.red = terminal->pvt->palette[fore].red;
-	color.green = terminal->pvt->palette[fore].green;
-	color.blue = terminal->pvt->palette[fore].blue;
 	xright = x + column_width * columns;
 	ybottom = y + row_height;
 	xcenter = (x + xright) / 2;
@@ -8816,7 +8803,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
 	}
 
 	if (_vte_draw_char(terminal->pvt->draw, &request,
-			   &color, VTE_DRAW_OPAQUE, bold)) {
+			   &terminal->pvt->palette[fore], VTE_DRAW_OPAQUE, bold)) {
 		/* We were able to draw with actual fonts. */
 		return TRUE;
 	}
@@ -9558,8 +9545,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 {
 	int i, x, y, ascent;
 	gint columns = 0;
-	GdkColor color = {0,};
-	struct vte_palette_entry *fg, *bg, *defbg;
+	PangoColor *fg, *bg, *defbg;
 
 	g_assert(n > 0);
 	_VTE_DEBUG_IF(VTE_DEBUG_CELLS) {
@@ -9582,9 +9568,6 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	defbg = &terminal->pvt->palette[VTE_DEF_BG];
 	ascent = terminal->char_ascent;
 
-	color.red = bg->red;
-	color.blue = bg->blue;
-	color.green = bg->green;
 	i = 0;
 	do {
 		columns = 0;
@@ -9602,15 +9585,12 @@ vte_terminal_draw_cells(VteTerminal *terminal,
                                         y + terminal->pvt->inner_border.top,
 					columns * column_width + bold,
 					row_height,
-					&color, VTE_DRAW_OPAQUE);
+					bg, VTE_DRAW_OPAQUE);
 		}
 	} while (i < n);
-	color.red = fg->red;
-	color.blue = fg->blue;
-	color.green = fg->green;
 	_vte_draw_text(terminal->pvt->draw,
 			items, n,
-			&color, VTE_DRAW_OPAQUE, bold);
+			fg, VTE_DRAW_OPAQUE, bold);
 	for (i = 0; i < n; i++) {
 		/* Deadjust for the border. */
 		items[i].x -= terminal->pvt->inner_border.left;
@@ -9666,12 +9646,11 @@ static guint
 _vte_terminal_map_pango_color(VteTerminal *terminal, PangoColor *color)
 {
 	long distance[G_N_ELEMENTS(terminal->pvt->palette)];
-	struct vte_palette_entry *entry;
 	guint i, ret;
 
 	/* Calculate a "distance" value.  Could stand to be improved a bit. */
 	for (i = 0; i < G_N_ELEMENTS(distance); i++) {
-		entry = &terminal->pvt->palette[i];
+		const PangoColor *entry = &terminal->pvt->palette[i];
 		distance[i] = 0;
 		distance[i] += ((entry->red >> 8) - (color->red >> 8)) *
 			       ((entry->red >> 8) - (color->red >> 8));
@@ -10017,18 +9996,13 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					j += cell ? cell->attr.columns : 1;
 				}
 				if (back != VTE_DEF_BG) {
-					GdkColor color;
-					const struct vte_palette_entry *bg = &terminal->pvt->palette[back];
-					color.red = bg->red;
-					color.blue = bg->blue;
-					color.green = bg->green;
 					_vte_draw_fill_rectangle (
 							terminal->pvt->draw,
 							x + i * column_width,
 							y,
 							(j - i) * column_width + bold,
 							row_height,
-							&color, VTE_DRAW_OPAQUE);
+							&terminal->pvt->palette[back], VTE_DRAW_OPAQUE);
 				}
 				/* We'll need to continue at the first cell which didn't
 				 * match the first one in this set. */
@@ -10051,18 +10025,12 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 						FALSE,
 						&fore, &back);
 				if (back != VTE_DEF_BG) {
-					GdkColor color;
-					const struct vte_palette_entry *bg = &terminal->pvt->palette[back];
-					color.red = bg->red;
-					color.blue = bg->blue;
-					color.green = bg->green;
-					_vte_draw_fill_rectangle (
-							terminal->pvt->draw,
-							x + i *column_width,
-							y,
-							(j - i)  * column_width,
-							row_height,
-							&color, VTE_DRAW_OPAQUE);
+					_vte_draw_fill_rectangle (terminal->pvt->draw,
+								  x + i *column_width,
+								  y,
+								  (j - i)  * column_width,
+								  row_height,
+								  &terminal->pvt->palette[back], VTE_DRAW_OPAQUE);
 				}
 				i = j;
 			} while (i < end_column);
@@ -12488,7 +12456,7 @@ vte_terminal_background_update(VteTerminal *terminal)
 {
 	GdkColor bgcolor;
 	double saturation;
-	struct vte_palette_entry *entry;
+	const PangoColor *entry;
 
 	/* If we're not realized yet, don't worry about it, because we get
 	 * called when we realize. */
@@ -12645,6 +12613,7 @@ vte_terminal_set_background_tint_color(VteTerminal *terminal,
 				       const GdkColor *color)
 {
         VteTerminalPrivate *pvt;
+	PangoColor *tint;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail(color != NULL);
@@ -12656,12 +12625,16 @@ vte_terminal_set_background_tint_color(VteTerminal *terminal,
 			terminal->pvt->bg_tint_color.red >> 8,
 			terminal->pvt->bg_tint_color.green >> 8,
 			terminal->pvt->bg_tint_color.blue >> 8);
-	if (color->red == terminal->pvt->bg_tint_color.red &&
-            color->green == terminal->pvt->bg_tint_color.green &&
-            color->blue == terminal->pvt->bg_tint_color.blue)
+        tint = &pvt->bg_tint_color;
+	if (color->red == tint->red &&
+            color->green == tint->green &&
+            color->blue == tint->blue)
                 return;
 
-        pvt->bg_tint_color = *color;
+	tint->red = color->red;
+	tint->green = color->green;
+	tint->blue = color->blue;
+
         g_object_notify(G_OBJECT (terminal), "background-tint-color");
 
         vte_terminal_queue_background_update(terminal);

@@ -62,7 +62,7 @@ enum VteBgSourceType {
 GdkPixmap *vte_bg_get_pixmap(VteBg *bg, enum VteBgSourceType source_type,
 			     GdkPixbuf *source_pixbuf,
 			     const char *source_file,
-			     const GdkColor *tint, double saturation,
+			     const PangoColor *tint, double saturation,
 			     GdkColormap *colormap);
 
 G_END_DECLS

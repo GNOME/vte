@@ -37,7 +37,7 @@ struct VteBgCacheItem {
 	GdkPixbuf *source_pixbuf;
 	char *source_file;
 
-	GdkColor tint_color;
+	PangoColor tint_color;
 	double saturation;
 
 	GdkPixmap *pixmap;
@@ -293,7 +293,7 @@ vte_bg_get_for_screen(GdkScreen *screen)
 /* Generate lookup tables for desaturating an image toward a given color.  The
  * saturation value is a floating point number between 0 and 1. */
 static void
-_vte_bg_generate_desat_tables(const GdkColor *color, double saturation,
+_vte_bg_generate_desat_tables(const PangoColor *color, double saturation,
 			      guchar red[256],
 			      guchar green[256],
 			      guchar blue[256])
@@ -330,7 +330,7 @@ _vte_bg_generate_desat_tables(const GdkColor *color, double saturation,
 }
 
 static gboolean
-vte_bg_colors_equal(const GdkColor *a, const GdkColor *b)
+vte_bg_colors_equal(const PangoColor *a, const PangoColor *b)
 {
 	return  (a->red >> 8) == (b->red >> 8) &&
 		(a->green >> 8) == (b->green >> 8) &&
@@ -456,7 +456,7 @@ vte_bg_cache_add(VteBg *bg, struct VteBgCacheItem *item)
 /* Desaturate a pixbuf in the direction of a specified color. */
 static void
 vte_bg_desaturate_pixbuf(GdkPixbuf *pixbuf,
-			 const GdkColor *tint, double saturation)
+			 const PangoColor *tint, double saturation)
 {
 	guchar red[256], green[256], blue[256];
 	long stride, width, height, channels, x, y;
@@ -497,7 +497,7 @@ vte_bg_cache_search(VteBg *bg,
 		    enum VteBgSourceType source_type,
 		    const GdkPixbuf *source_pixbuf,
 		    const char *source_file,
-		    const GdkColor *tint,
+		    const PangoColor *tint,
 		    double saturation,
 		    GdkVisual *visual,
 		    gboolean pixbuf,
@@ -547,7 +547,7 @@ vte_bg_get_pixmap(VteBg *bg,
 		  enum VteBgSourceType source_type,
 		  GdkPixbuf *source_pixbuf,
 		  const char *source_file,
-		  const GdkColor *tint,
+		  const PangoColor *tint,
 		  double saturation,
 		  GdkColormap *colormap)
 {

@@ -885,7 +885,7 @@ _vte_draw_set_background_image (struct _vte_draw *draw,
 			        enum VteBgSourceType type,
 			        GdkPixbuf *pixbuf,
 			        const char *filename,
-			        const GdkColor *color,
+			        const PangoColor *color,
 			        double saturation)
 {
 	GdkPixmap *pixmap;
@@ -1031,7 +1031,7 @@ _vte_pangocairo_has_bold (struct _vte_draw *draw)
 
 static void
 set_source_color_alpha (cairo_t        *cr,
-			const GdkColor *color,
+			const PangoColor *color,
 			guchar alpha)
 {
 	cairo_set_source_rgba (cr,
@@ -1044,7 +1044,7 @@ set_source_color_alpha (cairo_t        *cr,
 static void
 _vte_pangocairo_draw_text (struct _vte_draw *draw,
 			   struct _vte_draw_text_request *requests, gsize n_requests,
-			   const GdkColor *color, guchar alpha, gboolean bold)
+			   const PangoColor *color, guchar alpha, gboolean bold)
 {
 	gsize i;
 	cairo_scaled_font_t *last_scaled_font = NULL;
@@ -1110,7 +1110,7 @@ _vte_pangocairo_draw_text (struct _vte_draw *draw,
 void
 _vte_draw_text (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *requests, gsize n_requests,
-	       const GdkColor *color, guchar alpha, gboolean bold)
+	       const PangoColor *color, guchar alpha, gboolean bold)
 {
 	g_return_if_fail (draw->started);
 
@@ -1165,7 +1165,7 @@ _vte_draw_has_char (struct _vte_draw *draw, vteunistr c, gboolean bold)
 gboolean
 _vte_draw_char (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *request,
-	       const GdkColor *color, guchar alpha, gboolean bold)
+	       const PangoColor *color, guchar alpha, gboolean bold)
 {
 	gboolean has_char;
 
@@ -1185,7 +1185,7 @@ _vte_draw_char (struct _vte_draw *draw,
 void
 _vte_draw_draw_rectangle (struct _vte_draw *draw,
 			 gint x, gint y, gint width, gint height,
-			 const GdkColor *color, guchar alpha)
+			 const PangoColor *color, guchar alpha)
 {
 	g_return_if_fail (draw->started);
 
@@ -1205,7 +1205,7 @@ _vte_draw_draw_rectangle (struct _vte_draw *draw,
 void
 _vte_draw_fill_rectangle (struct _vte_draw *draw,
 			 gint x, gint y, gint width, gint height,
-			 const GdkColor *color, guchar alpha)
+			 const PangoColor *color, guchar alpha)
 {
 	g_return_if_fail (draw->started);
 
