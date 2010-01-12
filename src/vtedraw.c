@@ -1196,9 +1196,9 @@ _vte_draw_draw_rectangle (struct _vte_draw *draw,
 			alpha);
 
 	cairo_set_operator (draw->cr, CAIRO_OPERATOR_OVER);
-	cairo_rectangle (draw->cr, x+.5, y+.5, width-1, height-1);
+	cairo_rectangle (draw->cr, x+VTE_LINE_WIDTH/2., y+VTE_LINE_WIDTH/2., width-VTE_LINE_WIDTH, height-VTE_LINE_WIDTH);
 	set_source_color_alpha (draw->cr, color, alpha);
-	cairo_set_line_width (draw->cr, 1);
+	cairo_set_line_width (draw->cr, VTE_LINE_WIDTH);
 	cairo_stroke (draw->cr);
 }
 

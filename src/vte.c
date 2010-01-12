@@ -8758,15 +8758,17 @@ vte_terminal_draw_rectangle(VteTerminal *terminal,
 			    gint width,
 			    gint height)
 {
+	GdkColor color;
+
 	_vte_draw_start(terminal->pvt->draw);
-	vte_terminal_draw_line(terminal, entry,
-			       x, y, x, y + height);
-	vte_terminal_draw_line(terminal, entry,
-			       x + width, y, x + width, y + height);
-	vte_terminal_draw_line(terminal, entry,
-			       x, y, x + width, y);
-	vte_terminal_draw_line(terminal, entry,
-			       x, y + height, x + width, y + height);
+	color.red = entry->red;
+	color.green = entry->green;
+	color.blue = entry->blue;
+	_vte_draw_draw_rectangle(terminal->pvt->draw,
+				 x + terminal->pvt->inner_border.left,
+                                 y + terminal->pvt->inner_border.top,
+				 width, height,
+				 &color, VTE_DRAW_OPAQUE);
 	_vte_draw_end(terminal->pvt->draw);
 }
 
@@ -9652,8 +9654,8 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 				vte_terminal_draw_rectangle(terminal,
 						&terminal->pvt->palette[fore],
 						x, y,
-						MAX(0, (columns * column_width) - 1),
-						MAX(0, row_height - 1));
+						MAX(0, (columns * column_width)),
+						MAX(0, row_height));
 			}
 		}while (i < n);
 	}
