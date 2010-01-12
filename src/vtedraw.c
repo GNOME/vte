@@ -887,40 +887,29 @@ _vte_draw_set_background_image (struct _vte_draw *draw,
 			        const PangoColor *color,
 			        double saturation)
 {
-	GdkPixmap *pixmap;
 	cairo_surface_t *surface;
-	cairo_t *cr;
 
 	if (type != VTE_BG_SOURCE_NONE)
 		draw->requires_clear = TRUE;
 
-	pixmap = vte_bg_get_pixmap (vte_bg_get_for_screen (gtk_widget_get_screen (draw->widget)),
-				    type, pixbuf, filename,
-				    color, saturation,
-				    gtk_widget_get_colormap (draw->widget));
+	/* Need a valid draw->cr for cairo_get_target () */
+	_vte_draw_start (draw);
 
-	if (!pixmap)
+	surface = vte_bg_get_surface (vte_bg_get_for_screen (gtk_widget_get_screen (draw->widget)),
+				     type, pixbuf, filename,
+				     color, saturation,
+				     cairo_get_target(draw->cr));
+
+	_vte_draw_end (draw);
+
+	if (!surface)
 		return;
 
 	if (draw->bg_pattern)
 		cairo_pattern_destroy (draw->bg_pattern);
 
-	/* Ugh... We need to create a dummy cairo_t */
-	surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, 0, 0);
-	cr = cairo_create (surface);
-
-	gdk_cairo_set_source_pixmap (cr, pixmap, 0, 0);
-	draw->bg_pattern = cairo_pattern_reference (cairo_get_source (cr));
-
-	cairo_destroy (cr);
+	draw->bg_pattern = cairo_pattern_create_for_surface (surface);
 	cairo_surface_destroy (surface);
-
-	/* Transfer the pixmap ownership to the pattern */
-	cairo_pattern_set_user_data (draw->bg_pattern,
-				     (cairo_user_data_key_t *) draw,
-				     pixmap,
-				     (cairo_destroy_func_t) g_object_unref);
-
 	cairo_pattern_set_extend (draw->bg_pattern, CAIRO_EXTEND_REPEAT);
 }
 

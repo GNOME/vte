@@ -30,7 +30,7 @@ typedef struct _VteBg VteBg;
 struct _VteBg {
 	GObject parent;
 	GdkScreen *screen;
-	GdkPixmap *root_pixmap;
+	cairo_surface_t *root_surface;
 	struct VteBgNative *native;
 	struct VteBgPrivate *pvt;
 };
@@ -59,11 +59,14 @@ enum VteBgSourceType {
 	VTE_BG_SOURCE_FILE
 };
 
-GdkPixmap *vte_bg_get_pixmap(VteBg *bg, enum VteBgSourceType source_type,
-			     GdkPixbuf *source_pixbuf,
-			     const char *source_file,
-			     const PangoColor *tint, double saturation,
-			     GdkColormap *colormap);
+cairo_surface_t *
+vte_bg_get_surface(VteBg *bg,
+		   enum VteBgSourceType source_type,
+		   GdkPixbuf *source_pixbuf,
+		   const char *source_file,
+		   const PangoColor *tint,
+		   double saturation,
+		   cairo_surface_t *other);
 
 G_END_DECLS
 
