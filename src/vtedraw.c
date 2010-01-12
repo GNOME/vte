@@ -41,8 +41,8 @@
  * The aim is to be super-fast and avoid unneeded work as much as possible.
  * Here is an overview of how that is accomplished:
  *
- *   - We attach a font_info to draw as our private data.  A font_info has
- *     all the information to quickly draw text.
+ *   - We attach a font_info to the draw.  A font_info has all the information
+ *     to quickly draw text.
  *
  *   - A font_info keeps uses unistr_font_info structs that represent all
  *     information needed to quickly draw a single vteunistr.  The font_info
@@ -72,16 +72,15 @@
  *     Keeping a pango glyphstring and a pango font.  This is slightly slower
  *     than the previous case as drawing each glyph goes through pango
  *     separately and causes a separate cairo_show_glyphs() call.  This method
- *     is used when the previous method cannot be used by the glyphs for the
+ *     is used when the previous method cannot be used but the glyphs for the
  *     character all use a single font.  This is the method used for hexboxes
  *     and "empty" characters like U+200C ZERO WIDTH NON-JOINER for example.
  *
  *   - COVERAGE_USE_PANGO_LAYOUT_LINE:
  *     Keeping a pango layout line.  This method is used only in the very
- *     weird and exception case that a single vteunistr uses more than one font
- *     to be drawn.  This is not expected to happen, but exists for
- *     completeness, to make sure we can deal with any junk pango decides to
- *     throw at us.
+ *     weird and exceptional case that a single vteunistr uses more than one
+ *     font to be drawn.  This happens for example if some diacretics is not
+ *     available in the font chosen for the base character.
  *
  *
  * Caching of font infos:
