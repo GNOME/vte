@@ -557,8 +557,8 @@ fontconfig_timestamp_quark (void)
 }
 
 static void
-vte_pango_cairo_set_fontconfig_timestamp (PangoContext *context,
-					  guint         fontconfig_timestamp)
+vte_pango_context_set_fontconfig_timestamp (PangoContext *context,
+					    guint         fontconfig_timestamp)
 {
 	g_object_set_qdata ((GObject *) context,
 			    fontconfig_timestamp_quark (),
@@ -566,7 +566,7 @@ vte_pango_cairo_set_fontconfig_timestamp (PangoContext *context,
 }
 
 static guint
-vte_pango_cairo_get_fontconfig_timestamp (PangoContext *context)
+vte_pango_context_get_fontconfig_timestamp (PangoContext *context)
 {
 	return GPOINTER_TO_UINT (g_object_get_qdata ((GObject *) context,
 						     fontconfig_timestamp_quark ()));
@@ -579,7 +579,7 @@ context_hash (PangoContext *context)
 	     ^ pango_font_description_hash (pango_context_get_font_description (context))
 	     ^ cairo_font_options_hash (pango_cairo_context_get_font_options (context))
 	     ^ GPOINTER_TO_UINT (pango_context_get_language (context))
-	     ^ vte_pango_cairo_get_fontconfig_timestamp (context);
+	     ^ vte_pango_context_get_fontconfig_timestamp (context);
 }
 
 static gboolean
@@ -590,7 +590,7 @@ context_equal (PangoContext *a,
 	    && pango_font_description_equal (pango_context_get_font_description (a), pango_context_get_font_description (b))
 	    && cairo_font_options_equal (pango_cairo_context_get_font_options (a), pango_cairo_context_get_font_options (b))
 	    && pango_context_get_language (a) == pango_context_get_language (b)
-	    && vte_pango_cairo_get_fontconfig_timestamp (a) == vte_pango_cairo_get_fontconfig_timestamp (b);
+	    && vte_pango_context_get_fontconfig_timestamp (a) == vte_pango_context_get_fontconfig_timestamp (b);
 }
 
 static struct font_info *
@@ -634,7 +634,7 @@ font_info_create_for_context (PangoContext               *context,
 		context = pango_font_map_create_context (pango_cairo_font_map_get_default ());
 	}
 
-	vte_pango_cairo_set_fontconfig_timestamp (context, fontconfig_timestamp);
+	vte_pango_context_set_fontconfig_timestamp (context, fontconfig_timestamp);
 
 	pango_context_set_base_dir (context, PANGO_DIRECTION_LTR);
 
@@ -1023,7 +1023,7 @@ _vte_draw_get_char_width (struct _vte_draw *draw, vteunistr c, int columns,
 }
 
 static gboolean
-_vte_pangocairo_has_bold (struct _vte_draw *draw)
+_vte_draw_has_bold (struct _vte_draw *draw)
 {
 	return (draw->font != draw->font_bold);
 }
@@ -1041,9 +1041,9 @@ set_source_color_alpha (cairo_t        *cr,
 }
 
 static void
-_vte_pangocairo_draw_text (struct _vte_draw *draw,
-			   struct _vte_draw_text_request *requests, gsize n_requests,
-			   const PangoColor *color, guchar alpha, gboolean bold)
+_vte_draw_text_internal (struct _vte_draw *draw,
+			 struct _vte_draw_text_request *requests, gsize n_requests,
+			 const PangoColor *color, guchar alpha, gboolean bold)
 {
 	gsize i;
 	cairo_scaled_font_t *last_scaled_font = NULL;
@@ -1127,18 +1127,17 @@ _vte_draw_text (struct _vte_draw *draw,
 		g_free (str);
 	}
 
-	_vte_pangocairo_draw_text (draw, requests,
-				   n_requests, color, alpha, bold);
+	_vte_draw_text_internal (draw, requests, n_requests, color, alpha, bold);
 
 	/* handle fonts that lack a bold face by double-striking */
-	if (bold && !_vte_pangocairo_has_bold (draw)) {
+	if (bold && !_vte_draw_has_bold (draw)) {
 		gsize i;
 
 		/* Take a step to the right. */
 		for (i = 0; i < n_requests; i++) {
 			requests[i].x++;
 		}
-		_vte_pangocairo_draw_text (draw, requests,
+		_vte_draw_text_internal (draw, requests,
 					   n_requests, color, alpha, FALSE);
 		/* Now take a step back. */
 		for (i = 0; i < n_requests; i++) {
