@@ -1044,7 +1044,7 @@ set_source_color_alpha (cairo_t        *cr,
 static void
 _vte_pangocairo_draw_text (struct _vte_draw *draw,
 			   struct _vte_draw_text_request *requests, gsize n_requests,
-			   GdkColor *color, guchar alpha, gboolean bold)
+			   const GdkColor *color, guchar alpha, gboolean bold)
 {
 	gsize i;
 	cairo_scaled_font_t *last_scaled_font = NULL;
@@ -1110,7 +1110,7 @@ _vte_pangocairo_draw_text (struct _vte_draw *draw,
 void
 _vte_draw_text (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *requests, gsize n_requests,
-	       GdkColor *color, guchar alpha, gboolean bold)
+	       const GdkColor *color, guchar alpha, gboolean bold)
 {
 	g_return_if_fail (draw->started);
 
@@ -1165,7 +1165,7 @@ _vte_draw_has_char (struct _vte_draw *draw, vteunistr c, gboolean bold)
 gboolean
 _vte_draw_char (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *request,
-	       GdkColor *color, guchar alpha, gboolean bold)
+	       const GdkColor *color, guchar alpha, gboolean bold)
 {
 	gboolean has_char;
 
@@ -1185,7 +1185,7 @@ _vte_draw_char (struct _vte_draw *draw,
 void
 _vte_draw_draw_rectangle (struct _vte_draw *draw,
 			 gint x, gint y, gint width, gint height,
-			 GdkColor *color, guchar alpha)
+			 const GdkColor *color, guchar alpha)
 {
 	g_return_if_fail (draw->started);
 
@@ -1205,7 +1205,7 @@ _vte_draw_draw_rectangle (struct _vte_draw *draw,
 void
 _vte_draw_fill_rectangle (struct _vte_draw *draw,
 			 gint x, gint y, gint width, gint height,
-			 GdkColor *color, guchar alpha)
+			 const GdkColor *color, guchar alpha)
 {
 	g_return_if_fail (draw->started);
 

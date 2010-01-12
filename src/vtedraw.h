@@ -97,19 +97,19 @@ int _vte_draw_get_char_width(struct _vte_draw *draw, vteunistr c, int columns,
 
 void _vte_draw_text(struct _vte_draw *draw,
 		    struct _vte_draw_text_request *requests, gsize n_requests,
-		    GdkColor *color, guchar alpha, gboolean);
+		    const GdkColor *color, guchar alpha, gboolean);
 gboolean _vte_draw_char(struct _vte_draw *draw,
 			struct _vte_draw_text_request *request,
-			GdkColor *color, guchar alpha, gboolean bold);
+			const GdkColor *color, guchar alpha, gboolean bold);
 gboolean _vte_draw_has_char(struct _vte_draw *draw, vteunistr c, gboolean bold);
 
 
 void _vte_draw_fill_rectangle(struct _vte_draw *draw,
 			      gint x, gint y, gint width, gint height,
-			      GdkColor *color, guchar alpha);
+			      const GdkColor *color, guchar alpha);
 void _vte_draw_draw_rectangle(struct _vte_draw *draw,
 			      gint x, gint y, gint width, gint height,
-			      GdkColor *color, guchar alpha);
+			      const GdkColor *color, guchar alpha);
 
 G_END_DECLS
 
