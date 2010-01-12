@@ -7607,7 +7607,7 @@ vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 					terminal,
 					screen->scroll_delta + delta);
 		}
-		gtk_widget_queue_resize (&terminal->widget);
+		gtk_widget_queue_resize_no_redraw (&terminal->widget);
 		/* Our visible text changed. */
 		vte_terminal_emit_text_modified(terminal);
 	}
