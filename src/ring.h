@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2002 Red Hat, Inc.
+ * Copyright (C) 2002,2009,2010 Red Hat, Inc.
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Library General Public License as published by
@@ -14,12 +14,17 @@
  * You should have received a copy of the GNU Library General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * Red Hat Author(s): Behdad Esfahbod
  */
 
 /* The interfaces in this file are subject to change at any time. */
 
 #ifndef vte_ring_h_included
 #define vte_ring_h_included
+
+#include <gio/gio.h>
+#include "vte.h"
 
 #include "vterowdata.h"
 #include "vtestream.h"
@@ -75,6 +80,11 @@ void _vte_ring_shrink (VteRing *ring, gulong max_len);
 VteRowData *_vte_ring_insert (VteRing *ring, gulong position);
 VteRowData *_vte_ring_append (VteRing *ring);
 void _vte_ring_remove (VteRing *ring, gulong position);
+gboolean _vte_ring_write_contents (VteRing *ring,
+				   GOutputStream *stream,
+				   VteTerminalWriteFlags flags,
+				   GCancellable *cancellable,
+				   GError **error);
 
 G_END_DECLS
 

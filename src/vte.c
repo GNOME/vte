@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 Red Hat, Inc.
+ * Copyright (C) 2001-2004,2009,2010 Red Hat, Inc.
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Library General Public License as published by
@@ -14269,4 +14269,40 @@ update_timeout (gpointer data)
 	GDK_THREADS_LEAVE();
 
 	return FALSE;
+}
+
+
+
+/**
+ * vte_terminal_write_contents:
+ * @terminal: a #VteTerminal
+ * @stream: a #GOutputStream to write to
+ * @flags: a set of #VteTerminalWriteFlags
+ * @cancellable: optional #GCancellable object, %NULL to ignore
+ * @error: a #GError location to store the error occuring, or %NULL to ignore
+ *
+ * Write contents of the current contents of @terminal (including any
+ * scrollback history) to @stream according to @flags.
+ *
+ * If @cancellable is not %NULL, then the operation can be cancelled by triggering
+ * the cancellable object from another thread. If the operation was cancelled,
+ * the error %G_IO_ERROR_CANCELLED will be returned in @error.
+ *
+ * This is a synchronous operation and will make the widget (and input
+ * processing) during the write operation, which may take a long time
+ * depending on scrollback history and @stream availability for writing.
+ *
+ * Return: %TRUE on success, %FALSE if there was an error
+ *
+ * Since: 0.24
+ */
+gboolean vte_terminal_write_contents (VteTerminal *terminal,
+				      GOutputStream *stream,
+				      VteTerminalWriteFlags flags,
+				      GCancellable *cancellable,
+				      GError **error)
+{
+	return _vte_ring_write_contents (terminal->pvt->screen->row_data,
+					 stream, flags,
+					 cancellable, error);
 }

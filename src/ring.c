@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2002,2009 Red Hat, Inc.
+ * Copyright (C) 2002,2009,2010 Red Hat, Inc.
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Library General Public License as published by
@@ -559,3 +559,65 @@ _vte_ring_append (VteRing * ring)
 	return _vte_ring_insert (ring, _vte_ring_next (ring));
 }
 
+
+static gboolean
+_vte_ring_write_row (VteRing *ring,
+		     GOutputStream *stream,
+		     VteRowData *row,
+		     VteTerminalWriteFlags flags,
+		     GCancellable *cancellable,
+		     GError **error)
+{
+	VteCell *cell;
+	GString *buffer = ring->utf8_buffer;
+	int i;
+	gsize bytes_written;
+
+	/* Simple version of the loop in _vte_ring_freeze_row().
+	 * TODO Should unify one day */
+	g_string_set_size (buffer, 0);
+	for (i = 0, cell = row->cells; i < row->len; i++, cell++) {
+		if (G_LIKELY (!cell->attr.fragment))
+			_vte_unistr_append_to_string (cell->c, buffer);
+	}
+	if (!row->attr.soft_wrapped)
+		g_string_append_c (buffer, '\n');
+
+	return g_output_stream_write_all (stream, buffer->str, buffer->len, &bytes_written, cancellable, error);
+}
+
+/**
+ * _vte_ring_write_contents:
+ * @ring: a #VteRing
+ * @stream: a #GOutputStream to write to
+ * @flags: a set of #VteTerminalWriteFlags
+ * @cancellable: optional #GCancellable object, %NULL to ignore
+ * @error: a #GError location to store the error occuring, or %NULL to ignore
+ *
+ * Write entire ring contents to @stream according to @flags.
+ *
+ * Return: %TRUE on success, %FALSE if there was an error
+ */
+gboolean
+_vte_ring_write_contents (VteRing *ring,
+			  GOutputStream *stream,
+			  VteTerminalWriteFlags flags,
+			  GCancellable *cancellable,
+			  GError **error)
+{
+	gulong i;
+
+	_vte_debug_print(VTE_DEBUG_RING, "Writing contents to GOutputStream.\n");
+
+	if (!_vte_stream_write_contents (ring->text_stream, stream, cancellable, error))
+		return FALSE;
+
+	for (i = ring->writable; i < ring->end; i++) {
+		if (!_vte_ring_write_row (ring, stream,
+					  _vte_ring_writable_index (ring, i),
+					  flags, cancellable, error))
+			return FALSE;
+	}
+
+	return TRUE;
+}

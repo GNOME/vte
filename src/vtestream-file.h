@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 Red Hat, Inc.
+ * Copyright (C) 2009,2010 Red Hat, Inc.
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Library General Public License as published by
@@ -21,6 +21,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+
+#include <gio/gunixinputstream.h>
 
 static gsize
 _xread (int fd, char *data, gsize len)
@@ -80,6 +82,23 @@ _xtruncate (gint fd, gsize offset)
 	do {
 		ret = ftruncate (fd, offset);
 	} while (ret == -1 && errno == EINTR);
+}
+
+static gboolean
+_xwrite_contents (gint fd, GOutputStream *output, GCancellable *cancellable, GError **error)
+{
+	gboolean ret;
+	GInputStream *input;
+
+	if (G_UNLIKELY (!fd))
+		return TRUE;
+
+	lseek (fd, 0, SEEK_SET);
+	input = g_unix_input_stream_new (fd, FALSE);
+	ret = -1 != g_output_stream_splice (output, input, G_OUTPUT_STREAM_SPLICE_NONE, cancellable, error);
+	g_object_unref (input);
+
+	return ret;
 }
 
 
@@ -240,6 +259,15 @@ _vte_file_stream_head (VteStream *astream)
 		return stream->offset[0];
 }
 
+static gboolean
+_vte_file_stream_write_contents (VteStream *astream, GOutputStream *output, GCancellable *cancellable, GError **error)
+{
+	VteFileStream *stream = (VteFileStream *) astream;
+
+	return _xwrite_contents (stream->fd[1], output, cancellable, error) &&
+	       _xwrite_contents (stream->fd[0], output, cancellable, error);
+}
+
 static void
 _vte_file_stream_class_init (VteFileStreamClass *klass)
 {
@@ -253,4 +281,5 @@ _vte_file_stream_class_init (VteFileStreamClass *klass)
 	klass->truncate = _vte_file_stream_truncate;
 	klass->new_page = _vte_file_stream_new_page;
 	klass->head = _vte_file_stream_head;
+	klass->write_contents = _vte_file_stream_write_contents;
 }

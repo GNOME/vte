@@ -257,8 +257,7 @@ GLIB_REQUIRED=2.22.0
 PANGO_REQUIRED=1.22.0
 GTK_REQUIRED=2.14.0
 AC_DEFINE(GDK_MULTIHEAD_SAFE,1,[Force use of GDK's multihead-safe APIs.])
-PKG_CHECK_MODULES(GLIB,[glib-2.0 > $GLIB_REQUIRED])
-PKG_CHECK_MODULES(GOBJECT,[glib-2.0 gobject-2.0])
+PKG_CHECK_MODULES(GLIB,[glib-2.0 > $GLIB_REQUIRED gobject-2.0])
 PKG_CHECK_MODULES(GTK,[glib-2.0 >= $GLIB_REQUIRED gobject-2.0 gtk+-2.0 >= $GTK_REQUIRED])
 
 # Let the user specify the default terminal emulation.
@@ -335,7 +334,7 @@ case "$vte_cv_termcap_lib" in
 esac
 
 # Search for the required modules.
-VTE_PKGS="glib-2.0 >= $GLIB_REQUIRED gobject-2.0 pango >= $PANGO_REQUIRED gtk+-2.0 >= $GTK_REQUIRED"
+VTE_PKGS="glib-2.0 >= $GLIB_REQUIRED gobject-2.0 pango >= $PANGO_REQUIRED gtk+-2.0 >= $GTK_REQUIRED gobject-2.0 gio-2.0 gio-unix-2.0"
 PKG_CHECK_MODULES([VTE],[$VTE_PKGS])
 AC_SUBST([VTE_PKGS])
 

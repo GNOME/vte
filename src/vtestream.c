@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 Red Hat, Inc.
+ * Copyright (C) 2009,2010 Red Hat, Inc.
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Library General Public License as published by
@@ -25,9 +25,8 @@
 
 
 /*
- * Note: Lot of this should have become possible using gio, not sure though.
- * In paticular, I don't see input+output streams in gio, so we probably would
- * have to reinvent it all ourselves anyway.
+ * In the future it may be worth replacing these with gio.  Not sure about
+ * the overhead though.
  */
 
 #include "vtestream-base.h"

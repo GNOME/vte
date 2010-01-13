@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 Red Hat, Inc.
+ * Copyright (C) 2009,2010 Red Hat, Inc.
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Library General Public License as published by
@@ -22,6 +22,7 @@
 #define vtestream_h_included
 
 #include <glib-object.h>
+#include <gio/gio.h>
 
 G_BEGIN_DECLS
 
@@ -33,6 +34,7 @@ gboolean _vte_stream_read (VteStream *stream, gsize offset, char *data, gsize le
 void _vte_stream_truncate (VteStream *stream, gsize offset);
 void _vte_stream_new_page (VteStream *stream);
 gsize _vte_stream_head (VteStream *stream);
+gboolean _vte_stream_write_contents (VteStream *stream, GOutputStream *output, GCancellable *cancellable, GError **error);
 
 
 /* Various streams */

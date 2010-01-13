@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 Red Hat, Inc.
+ * Copyright (C) 2009,2010 Red Hat, Inc.
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Library General Public License as published by
@@ -19,6 +19,7 @@
  */
 
 #include <glib-object.h>
+#include <gio/gio.h>
 
 /*
  * VteStream: Abstract base stream class
@@ -37,6 +38,7 @@ typedef struct _VteStreamClass {
 	void (*truncate) (VteStream *stream, gsize offset);
 	void (*new_page) (VteStream *stream);
 	gsize (*head) (VteStream *stream);
+	gboolean (*write_contents) (VteStream *stream, GOutputStream *output, GCancellable *cancellable, GError **error);
 } VteStreamClass;
 
 static GType _vte_stream_get_type (void);
@@ -89,4 +91,10 @@ gsize
 _vte_stream_head (VteStream *stream)
 {
 	return VTE_STREAM_GET_CLASS (stream)->head (stream);
+}
+
+gboolean
+_vte_stream_write_contents (VteStream *stream, GOutputStream *output, GCancellable *cancellable, GError **error)
+{
+	return VTE_STREAM_GET_CLASS (stream)->write_contents (stream, output, cancellable, error);
 }
