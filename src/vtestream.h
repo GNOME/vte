@@ -34,7 +34,9 @@ gboolean _vte_stream_read (VteStream *stream, gsize offset, char *data, gsize le
 void _vte_stream_truncate (VteStream *stream, gsize offset);
 void _vte_stream_new_page (VteStream *stream);
 gsize _vte_stream_head (VteStream *stream);
-gboolean _vte_stream_write_contents (VteStream *stream, GOutputStream *output, GCancellable *cancellable, GError **error);
+gboolean _vte_stream_write_contents (VteStream *stream, GOutputStream *output,
+				     gsize start_offset,
+				     GCancellable *cancellable, GError **error);
 
 
 /* Various streams */

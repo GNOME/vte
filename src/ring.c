@@ -609,8 +609,16 @@ _vte_ring_write_contents (VteRing *ring,
 
 	_vte_debug_print(VTE_DEBUG_RING, "Writing contents to GOutputStream.\n");
 
-	if (!_vte_stream_write_contents (ring->text_stream, stream, cancellable, error))
-		return FALSE;
+	if (ring->start < ring->writable) {
+		VteRowRecord record;
+		/* XXX what to do in case of error? */
+		if (_vte_ring_read_row_record (ring, &record, ring->start)) {
+			if (!_vte_stream_write_contents (ring->text_stream, stream,
+							 record.text_offset,
+							 cancellable, error))
+				return FALSE;
+		}
+	}
 
 	for (i = ring->writable; i < ring->end; i++) {
 		if (!_vte_ring_write_row (ring, stream,
