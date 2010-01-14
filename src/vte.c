@@ -14292,7 +14292,7 @@ update_timeout (gpointer data)
  * processing) during the write operation, which may take a long time
  * depending on scrollback history and @stream availability for writing.
  *
- * Return: %TRUE on success, %FALSE if there was an error
+ * Returns: %TRUE on success, %FALSE if there was an error
  *
  * Since: 0.24
  */
