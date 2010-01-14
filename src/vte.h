@@ -28,6 +28,7 @@
 
 #define __VTE_VTE_H_INSIDE__ 1
 
+#include "vtepty.h"
 #include "vtetypebuiltins.h"
 #include "vteversion.h"
 
@@ -264,21 +265,39 @@ GType vte_terminal_get_type(void);
 							     VTE_TYPE_TERMINAL)
 #define VTE_TERMINAL_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS ((obj), VTE_TYPE_TERMINAL, VteTerminalClass))
 
-/* You can get by with just these two functions. */
 GtkWidget *vte_terminal_new(void);
+
+VtePty *vte_terminal_pty_new (VteTerminal *terminal,
+                              VtePtyFlags flags,
+                              GError **error);
+
+void vte_terminal_watch_child (VteTerminal *terminal,
+                               GPid child_pid);
+
+#ifndef VTE_DISABLE_DEPRECATED
 pid_t vte_terminal_fork_command(VteTerminal *terminal,
 				const char *command, char **argv,
-				char **envv, const char *directory,
+				char **envv, const char *working_directory,
 				gboolean lastlog,
 				gboolean utmp,
-				gboolean wtmp);
-
-/* Users of libzvt may find this useful. */
+				gboolean wtmp) G_GNUC_DEPRECATED;
 pid_t vte_terminal_forkpty(VteTerminal *terminal,
-			   char **envv, const char *directory,
+			   char **envv, const char *working_directory,
 			   gboolean lastlog,
 			   gboolean utmp,
-			   gboolean wtmp);
+			   gboolean wtmp) G_GNUC_DEPRECATED;
+#endif /* VTE_DISABLE_DEPRECATED */
+
+gboolean vte_terminal_fork_command_full(VteTerminal *terminal,
+                                        VtePtyFlags pty_flags,
+                                        const char *working_directory,
+                                        char **argv,
+                                        char **envv,
+                                        GSpawnFlags spawn_flags,
+                                        GSpawnChildSetupFunc child_setup,
+                                        gpointer child_setup_data,
+                                        GPid *child_pid /* out */,
+                                        GError **error);
 
 /* Send data to the terminal to display, or to the terminal's forked command
  * to handle in some way.  If it's 'cat', they should be the same. */
@@ -453,10 +472,13 @@ const char *vte_terminal_get_status_line(VteTerminal *terminal);
 void vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad) G_GNUC_DEPRECATED;
 #endif
 
-/* Attach an existing PTY master side to the terminal widget.  Use
- * instead of vte_terminal_fork_command(). */
+#ifndef VTE_DISABLE_DEPRECATED
 void vte_terminal_set_pty(VteTerminal *terminal, int pty_master);
 int vte_terminal_get_pty(VteTerminal *terminal);
+#endif
+
+void vte_terminal_set_pty_object(VteTerminal *terminal, VtePty *pty);
+VtePty *vte_terminal_get_pty_object(VteTerminal *terminal);
 
 /* Accessors for bindings. */
 GtkAdjustment *vte_terminal_get_adjustment(VteTerminal *terminal);

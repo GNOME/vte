@@ -4,7 +4,7 @@ EXTRA_DIST = iso2022.txt
 
 # The library
 
-pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h vtetypebuiltins.h vteversion.h
+pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h vtepty.h vtetypebuiltins.h vteversion.h
 
 lib_LTLIBRARIES = libvte.la
 
@@ -65,6 +65,8 @@ libvte_la_SOURCES = \
 	vtedraw.c \
 	vtedraw.h \
 	vteint.h \
+	vtepty.h \
+	vtepty-private.h \
 	vteregex.c \
 	vteregex.h \
 	vterowdata.c \
@@ -96,7 +98,7 @@ libvte_la_CFLAGS = $(VTE_CFLAGS)
 libvte_la_LIBADD = $(VTE_LIBS)
 libvte_la_LDFLAGS = \
 	-version-info $(LIBVTE_LTVERSION) \
-	-export-symbols-regex "^vte_terminal_.*|^_vte_pty_.*|^vte_reaper_.*|_vte_debug_.*" \
+	-export-symbols-regex "^vte_terminal_.*|^vte_pty_.*|^_vte_pty_.*|^vte_reaper_.*|_vte_debug_.*" \
 	@LIBTOOL_EXPORT_OPTIONS@ @LIBTOOL_FLAGS@
 
 
@@ -116,14 +118,14 @@ marshal.h: marshal.list
 
 vtetypebuiltins.h: stamp-vtetypebuiltins.h
 	@true
-stamp-vtetypebuiltins.h: vtetypebuiltins.h.template vte.h
-	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter-out $<,$^) > xgen-vtbh \
+stamp-vtetypebuiltins.h: vtetypebuiltins.h.template vte.h vtepty.h
+	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter %.h,$^) > xgen-vtbh \
 	&& (cmp -s xgen-vtbh vtetypebuiltins.h || cp xgen-vtbh vtetypebuiltins.h ) \
 	&& rm -f xgen-vtbh \
 	&& echo timestamp > $(@F)
 
-vtetypebuiltins.c: vtetypebuiltins.c.template vte.h
-	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter-out $<,$^) > xgen-vtbc \
+vtetypebuiltins.c: vtetypebuiltins.c.template vte.h vtepty.h
+	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter %.h,$^) > xgen-vtbc \
 	&& (cmp -s xgen-vtbc vtetypebuiltins.c || cp xgen-vtbc vtetypebuiltins.c ) \
 	&& rm -f xgen-vtbc
 

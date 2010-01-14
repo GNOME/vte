@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2001,2002 Red Hat, Inc.
+ * Copyright © 2009, 2010 Christian Persch
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Library General Public License as published by
@@ -16,7 +17,23 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+/**
+ * SECTION: vte-pty
+ * @short_description: Functions for starting a new process on a new pseudo-terminal and for
+ * manipulating pseudo-terminals
+ *
+ * The terminal widget uses these functions to start commands with new controlling
+ * pseudo-terminals and to resize pseudo-terminals.
+ *
+ * Since: 0.24
+ */
+
 #include <config.h>
+
+#include "vtepty.h"
+#include "vtepty-private.h"
+#include "vte.h"
+
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -41,6 +58,7 @@
 #include <stropts.h>
 #endif
 #include <glib.h>
+#include <gio/gio.h>
 #include "debug.h"
 #include "pty.h"
 
@@ -61,7 +79,6 @@
 static gboolean _vte_pty_helper_started = FALSE;
 static pid_t _vte_pty_helper_pid = -1;
 static int _vte_pty_helper_tunnel = -1;
-static GTree *_vte_pty_helper_map = NULL;
 #endif
 
 /* Reset the handlers for all known signals to their defaults.  The parent
@@ -144,7 +161,9 @@ _vte_pty_reset_signal_handlers(void)
 #endif
 }
 
-struct vte_pty_child_setup_data {
+typedef struct _VtePtyPrivate VtePtyPrivate;
+
+typedef struct {
 	enum {
 		TTY_OPEN_BY_NAME,
 		TTY_OPEN_BY_FD
@@ -153,31 +172,90 @@ struct vte_pty_child_setup_data {
 		const char *name;
 		int fd;
 	} tty;
+} VtePtyChildSetupData;
+
+/**
+ * VtePty:
+ *
+ * Since: 0.24
+ */
+struct _VtePty {
+        GObject parent_instance;
+
+        /* <private> */
+        VtePtyPrivate *priv;
 };
-static void
-vte_pty_child_setup (gpointer arg)
+
+struct _VtePtyPrivate {
+        VtePtyFlags flags;
+        int pty_fd;
+
+        const char *term;
+        VtePtyChildSetupData child_setup_data;
+
+        gpointer helper_tag; /* only use when using_helper is TRUE */
+
+        guint utf8 : 1;
+        guint foreign : 1;
+        guint using_helper : 1;
+};
+
+struct _VtePtyClass {
+        GObjectClass parent_class;
+};
+
+/**
+ * vte_pty_child_setup:
+ * @pty: a #VtePty
+ *
+ * FIXMEchpe
+ *
+ * Since: 0.24
+ */
+void
+vte_pty_child_setup (VtePty *pty)
 {
-	struct vte_pty_child_setup_data *data = arg;
+        VtePtyPrivate *priv = pty->priv;
+	VtePtyChildSetupData *data = &priv->child_setup_data;
 	int fd = -1;
 	const char *tty = NULL;
 
+        if (priv->foreign) {
+                fd = priv->pty_fd;
+        } else {
+                /* Save the name of the pty -- we'll need it later to acquire
+                * it as our controlling terminal.
+                */
+                switch (data->mode) {
+                        case TTY_OPEN_BY_NAME:
+                                tty = data->tty.name;
+                                break;
+                        case TTY_OPEN_BY_FD:
+                                fd = data->tty.fd;
+                                tty = ttyname(fd);
+                                break;
+                }
 
-	/* Save the name of the pty -- we'll need it later to acquire
-	 * it as our controlling terminal. */
-	switch (data->mode) {
-		case TTY_OPEN_BY_NAME:
-			tty = data->tty.name;
-			break;
-		case TTY_OPEN_BY_FD:
-			fd = data->tty.fd;
-			tty = ttyname(fd);
-			break;
-	}
+                _vte_debug_print (VTE_DEBUG_PTY,
+                                "Setting up child pty: name = %s, fd = %d\n",
+                                        tty ? tty : "(none)", fd);
 
-	_vte_debug_print (VTE_DEBUG_PTY,
-			"Setting up child pty: name = %s, fd = %d\n",
-				tty ? tty : "(none)", fd);
 
+                /* Try to reopen the pty to acquire it as our controlling terminal. */
+                /* FIXMEchpe: why not just use the passed fd in TTY_OPEN_BY_FD mode? */
+                if (tty != NULL) {
+                        int i = open(tty, O_RDWR);
+                        if (i != -1) {
+                                if (fd != -1){
+                                        close(fd);
+                                }
+                                fd = i;
+                        }
+                }
+        }
+
+	if (fd == -1)
+		_exit (127);
 
 	/* Start a new session and become process-group leader. */
 #if defined(HAVE_SETSID) && defined(HAVE_SETPGID)
@@ -185,20 +263,6 @@ vte_pty_child_setup (gpointer arg)
 	setsid();
 	setpgid(0, 0);
 #endif
-
-	/* Try to reopen the pty to acquire it as our controlling terminal. */
-	if (tty != NULL) {
-		int i = open(tty, O_RDWR);
-		if (i != -1) {
-			if (fd != -1){
-				close(fd);
-			}
-			fd = i;
-		}
-	}
-
-	if (fd == -1)
-		_exit (127);
 
 #ifdef TIOCSCTTY
 	/* TIOCSCTTY is defined?  Let's try that, too. */
@@ -248,29 +312,73 @@ vte_pty_child_setup (gpointer arg)
 		close(fd);
 	}
 
-
 	/* Reset our signals -- our parent may have done any number of
 	 * weird things to them. */
 	_vte_pty_reset_signal_handlers();
+
+        /* Now set the TERM environment variable */
+        if (priv->term != NULL) {
+                g_setenv("TERM", priv->term, TRUE);
+        }
 }
 
 /* TODO: clean up the spawning
  * - replace current env rather than adding!
- * - allow user control over flags (eg DO_NOT_CLOSE)
- * - additional user callback for child setup
  */
 
-static void
-collect_variables (char *name, char *value, GPtrArray *array)
+/*
+ * __vte_pty_get_argv:
+ * @command: the command to run
+ * @argv: the argument vector
+ * @flags: (inout) flags from #GSpawnFlags
+ *
+ * Creates an argument vector to pass to g_spawn_async() from @command and
+ * @argv, modifying *@flags if necessary.
+ *
+ * Returns: a newly allocated array of strings. Free with g_strfreev()
+ */
+char **
+__vte_pty_get_argv (const char *command,
+                    char **argv,
+                    GSpawnFlags *flags /* inout */)
 {
-	g_ptr_array_add (array,
-			g_strconcat (name, "=", value, NULL));
+	char **argv2;
+	int i, argc;
+
+        g_return_val_if_fail(command != NULL, NULL);
+
+	/* push the command into argv[0] */
+	argc = argv ? g_strv_length (argv) : 0;
+	argv2 = g_new (char *, argc + 2);
+
+	argv2[0] = g_strdup (command);
+
+	for (i = 0; i < argc; i++) {
+		argv2[i+1] = g_strdup (argv[i]);
+	}
+	argv2[i+1] = NULL;
+
+        if (argv) {
+                *flags |= G_SPAWN_FILE_AND_ARGV_ZERO;
+        }
+
+	return argv2;
 }
 
+/*
+ * __vte_pty_merge_environ:
+ * @envp: environment vector
+ *
+ * Merges @envp to the parent environment, and returns a new environment vector.
+ *
+ * Returns: a newly allocated string array. Free using g_strfreev()
+ */
 static gchar **
-merge_environ (char **envp)
+__vte_pty_merge_environ (char **envp)
 {
 	GHashTable *table;
+        GHashTableIter iter;
+        char *name, *value;
 	gchar **parent_environ;
 	GPtrArray *array;
 	gint i;
@@ -287,8 +395,8 @@ merge_environ (char **envp)
 
 	if (envp != NULL) {
 		for (i = 0; envp[i] != NULL; i++) {
-			gchar *name = g_strdup (envp[i]);
-			gchar *value = strchr (name, '=');
+			name = g_strdup (envp[i]);
+			value = strchr (name, '=');
 			if (value) {
 				*value = '\0';
 				value = g_strdup (value + 1);
@@ -298,175 +406,221 @@ merge_environ (char **envp)
 	}
 
 	array = g_ptr_array_sized_new (g_hash_table_size (table) + 1);
-	g_hash_table_foreach (table, (GHFunc) collect_variables, array);
+        g_hash_table_iter_init(&iter, table);
+        while (g_hash_table_iter_next(&iter, (gpointer) &name, (gpointer) &value)) {
+                g_ptr_array_add (array, g_strconcat (name, "=", value, NULL));
+        }
+        g_assert(g_hash_table_size(table) == array->len);
 	g_hash_table_destroy (table);
 	g_ptr_array_add (array, NULL);
+
 	return (gchar **) g_ptr_array_free (array, FALSE);
 }
 
-/* Run the given command (if specified) */
-static gboolean
-_vte_pty_run_on_pty (struct vte_pty_child_setup_data *data,
-		     const char *command, char **argv, char **envp,
-		     const char *directory,
-		     GPid *pid, GError **error)
+/*
+ * __vte_pty_get_pty_flags:
+ * @lastlog: %TRUE if the session should be logged to the lastlog
+ * @utmp: %TRUE if the session should be logged to the utmp/utmpx log
+ * @wtmp: %TRUE if the session should be logged to the wtmp/wtmpx log
+ *
+ * Combines the @lastlog, @utmp, @wtmp arguments into the coresponding
+ * #VtePtyFlags flags.
+ *
+ * Returns: flags from #VtePtyFlags
+ */
+VtePtyFlags
+__vte_pty_get_pty_flags(gboolean lastlog,
+                        gboolean utmp,
+                        gboolean wtmp)
+{
+        VtePtyFlags flags = VTE_PTY_DEFAULT;
+
+        if (!lastlog)
+                flags |= VTE_PTY_NO_LASTLOG;
+        if (!utmp)
+                flags |= VTE_PTY_NO_UTMP;
+        if (!wtmp)
+                flags |= VTE_PTY_NO_WTMP;
+
+        return flags;
+}
+
+/*
+ * __vte_pty_spawn:
+ * @pty: a #VtePty
+ * @directory: the name of a directory the command should start in, or %NULL
+ *   to use the cwd
+ * @argv: child's argument vector
+ * @envv: a list of environment variables to be added to the environment before
+ *   starting the process, or %NULL
+ * @spawn_flags: flags from #GSpawnFlags
+ * @child_setup: function to run in the child just before exec()
+ * @child_setup_data: user data for @child_setup
+ * @child_pid: a location to store the child PID, or %NULL
+ * @error: return location for a #GError, or %NULL
+ *
+ * Uses g_spawn_async() to spawn the command in @argv. The child's environment will
+ * be the parent environment with the variables in @envv set afterwards.
+ *
+ * Enforces the vte_terminal_watch_child() requirements by adding
+ * %G_SPAWN_DO_NOT_REAP_CHILD to @spawn_flags.
+ *
+ * Note that the %G_SPAWN_LEAVE_DESCRIPTORS_OPEN flag is not supported;
+ * it will be cleared!
+ *
+ * If spawning the command in @working_directory fails because the child
+ * is unable to chdir() to it, falls back trying to spawn the command
+ * in the parent's working directory.
+ *
+ * Returns: %TRUE on success, or %FALSE on failure with @error filled in
+ */
+gboolean
+__vte_pty_spawn (VtePty *pty,
+                 const char *directory,
+                 char **argv,
+                 char **envv,
+                 GSpawnFlags spawn_flags,
+                 GSpawnChildSetupFunc child_setup,
+                 gpointer child_setup_data,
+                 GPid *child_pid /* out */,
+                 GError **error)
 {
 	gboolean ret = TRUE;
-	GError *local_error = NULL;
+        char **envp2;
+        gint i;
+        GError *err = NULL;
 
-	if (command != NULL) {
-		gchar **arg2, **envp2;
-		gint i, argc;
+        spawn_flags |= G_SPAWN_DO_NOT_REAP_CHILD;
 
-		/* push the command into argv[0] */
-		argc = argv ? g_strv_length (argv) : 0;
-		arg2 = g_new (char *, argc + 2);
-		arg2[0] = g_strdup (command);
-		for (i = 0; i < argc; i++) {
-			arg2[i+1] = g_strdup (argv[i]);
-		}
-		arg2[i+1] = NULL;
+        /* FIXMEchpe: Enforce this until I've checked our code to make sure
+         * it doesn't leak out internal FDs into the child this way.
+         */
+        spawn_flags &= ~G_SPAWN_LEAVE_DESCRIPTORS_OPEN;
 
-		/* add the given environment to the childs */
-		envp2 = merge_environ (envp);
+        /* add the given environment to the childs */
+        envp2 = __vte_pty_merge_environ (envv);
 
-		_VTE_DEBUG_IF (VTE_DEBUG_MISC) {
-			g_printerr ("Spawing command '%s'\n", command);
-			for (i = 0; arg2[i] != NULL; i++) {
-				g_printerr ("    argv[%d] = %s\n", i, arg2[i]);
-			}
-			for (i = 0; envp2[i] != NULL; i++) {
-				g_printerr ("    env[%d] = %s\n", i, envp2[i]);
-			}
-			g_printerr ("    directory: %s\n",
-					directory ? directory : "(none)");
-		}
+        _VTE_DEBUG_IF (VTE_DEBUG_MISC) {
+                g_printerr ("Spawing command:\n");
+                for (i = 0; argv[i] != NULL; i++) {
+                        g_printerr ("    argv[%d] = %s\n", i, argv[i]);
+                }
+                for (i = 0; envp2[i] != NULL; i++) {
+                        g_printerr ("    env[%d] = %s\n", i, envp2[i]);
+                }
+                g_printerr ("    directory: %s\n",
+                            directory ? directory : "(none)");
+        }
 
-		ret = g_spawn_async_with_pipes (directory,
-				arg2, envp2,
-				G_SPAWN_CHILD_INHERITS_STDIN |
-				G_SPAWN_SEARCH_PATH |
-				G_SPAWN_DO_NOT_REAP_CHILD |
-				(argv ? G_SPAWN_FILE_AND_ARGV_ZERO : 0),
-				vte_pty_child_setup, data,
-				pid,
-				NULL, NULL, NULL,
-				&local_error);
-		if (ret == FALSE) {
-			if (g_error_matches (local_error,
-						G_SPAWN_ERROR,
-						G_SPAWN_ERROR_CHDIR)) {
-				/* try spawning in our working directory */
-				g_clear_error (&local_error);
-				ret = g_spawn_async_with_pipes (NULL,
-						arg2, envp2,
-						G_SPAWN_CHILD_INHERITS_STDIN |
-						G_SPAWN_SEARCH_PATH |
-						G_SPAWN_DO_NOT_REAP_CHILD |
-						(argv ? G_SPAWN_FILE_AND_ARGV_ZERO : 0),
-						vte_pty_child_setup, data,
-						pid,
-						NULL, NULL, NULL,
-						&local_error);
-			}
-		}
-		g_strfreev (arg2);
-		g_strfreev (envp2);
+        ret = g_spawn_async_with_pipes(directory,
+                                       argv, envp2,
+                                       spawn_flags,
+                                       child_setup ? child_setup
+                                                   : (GSpawnChildSetupFunc) vte_pty_child_setup,
+                                       child_setup ? child_setup_data : pty,
+                                       child_pid,
+                                       NULL, NULL, NULL,
+                                       &err);
+        if (!ret &&
+            directory != NULL &&
+            g_error_matches(err, G_SPAWN_ERROR, G_SPAWN_ERROR_CHDIR)) {
+                /* try spawning in our working directory */
+                g_clear_error(&err);
+                ret = g_spawn_async_with_pipes(NULL,
+                                               argv, envp2,
+                                               spawn_flags,
+                                               child_setup ? child_setup
+                                                           : (GSpawnChildSetupFunc) vte_pty_child_setup,
+                                               child_setup ? child_setup_data : pty,
+                                               child_pid,
+                                               NULL, NULL, NULL,
+                                               &err);
+        }
 
-		_vte_debug_print (VTE_DEBUG_MISC,
-				"Spawn result: %s%s\n",
-				ret?"Success":"Failure - ",
-				ret?"":local_error->message);
-		if (local_error)
-			g_propagate_error (error, local_error);
-	}
+        g_strfreev (envp2);
+
+        if (ret)
+                return TRUE;
+
+        g_propagate_error (error, err);
+        return FALSE;
+}
+
+/*
+ * __vte_pty_fork:
+ * @pty: a #VtePty
+ * @pid: (out) a location to store a #GPid, or %NULL
+ * @error: a location to store a #GError, or %NULL
+ *
+ * Forks and calls vte_pty_child_setup() in the child.
+ *
+ * Returns: %TRUE on success, or %FALSE on failure with @error filled in
+ */
+gboolean
+__vte_pty_fork(VtePty *pty,
+               GPid *pid,
+               GError **error)
+{
 #ifdef HAVE_FORK
-	else {
-		*pid = fork();
-		switch (*pid) {
-			case -1:
-				g_set_error (error,
-						G_SPAWN_ERROR,
-						G_SPAWN_ERROR_FAILED,
-						"Unable to fork: %s",
-						g_strerror (errno));
-				ret = FALSE;
-			case 0: /* child */
-				vte_pty_child_setup (data);
-				break;
-			default: /* parent */
-				break;
-		}
-	}
-#endif
+        gboolean ret = TRUE;
+
+        *pid = fork();
+        switch (*pid) {
+                case -1:
+                        g_set_error(error,
+                                    G_SPAWN_ERROR,
+                                    G_SPAWN_ERROR_FAILED,
+                                    "Unable to fork: %s",
+                                    g_strerror(errno));
+                        ret = FALSE;
+                case 0: /* child */
+                        vte_pty_child_setup(pty);
+                        break;
+                default: /* parent */
+                        break;
+        }
 
 	return ret;
-}
-
-/* Open the named PTY slave, fork off a child (storing its PID in child),
- * and exec the named command in its own session as a process group leader */
-static gboolean
-_vte_pty_fork_on_pty_name (const char *path, int parent_fd, char **envp,
-			   const char *command, char **argv,
-			   const char *directory,
-			   int columns, int rows, GPid *child)
-{
-	struct vte_pty_child_setup_data data;
-
-	data.mode = TTY_OPEN_BY_NAME;
-	data.tty.name = path;
-
-	if (!_vte_pty_run_on_pty(&data,
-			command, argv, envp, directory,
-			child, NULL)) {
-		/* XXX propagate the error */
-		return FALSE;
-	}
-
-	_vte_pty_set_size(parent_fd, columns, rows);
-	return TRUE;
-}
-
-/* Fork off a child (storing its PID in child), and exec the named command
- * in its own session as a process group leader using the given terminal. */
-static gboolean
-_vte_pty_fork_on_pty_fd (int fd, char **envp,
-			 const char *command, char **argv,
-			 const char *directory,
-			 int columns, int rows, GPid *child)
-{
-	struct vte_pty_child_setup_data data;
-
-	data.mode = TTY_OPEN_BY_FD;
-	data.tty.fd = fd;
-
-	if (!_vte_pty_run_on_pty(&data,
-				command, argv, envp, directory,
-				child, NULL)) {
-		/* XXX propagate the error */
-		return FALSE;
-	}
-
-	_vte_pty_set_size(fd, columns, rows);
-	return TRUE;
+#else /* !HAVE_FORK */
+        g_set_error_literal(error, G_SPAWN_ERROR, G_SPAWN_ERROR_FAILED,
+                            "No fork implementation");
+        return FALSE;
+#endif /* HAVE_FORK */
 }
 
 /**
  * vte_pty_set_size:
- * @master: the file descriptor of the pty master
- * @columns: the desired number of columns
+ * @pty: a #VtePty
  * @rows: the desired number of rows
+ * @columns: the desired number of columns
+ * @error: return location to store a #GError, or %NULL
  *
  * Attempts to resize the pseudo terminal's window size.  If successful, the
  * OS kernel will send #SIGWINCH to the child process group.
  *
- * Returns: 0 on success, -1 on failure.
+ * If setting the window size failed, @error will be set to a #GIOError.
+ *
+ * Returns: %TRUE on success, %FALSE on failure with @error filled in
+ *
+ * Since: 0.24
  */
-int
-_vte_pty_set_size(int master, int columns, int rows)
+gboolean
+vte_pty_set_size(VtePty *pty,
+                 int rows,
+                 int columns,
+                 GError **error)
 {
+        VtePtyPrivate *priv;
 	struct winsize size;
+        int master;
 	int ret;
+
+        g_return_val_if_fail(VTE_IS_PTY(pty), FALSE);
+
+        priv = pty->priv;
+
+        master = vte_pty_get_fd(pty);
+
 	memset(&size, 0, sizeof(size));
 	size.ws_row = rows ? rows : 24;
 	size.ws_col = columns ? columns : 80;
@@ -475,28 +629,57 @@ _vte_pty_set_size(int master, int columns, int rows)
 			master, columns, rows);
 	ret = ioctl(master, TIOCSWINSZ, &size);
 	if (ret != 0) {
+                int errsv = errno;
+
+                g_set_error(error, G_IO_ERROR,
+                            g_io_error_from_errno(errsv),
+                            "Failed to set window size: %s",
+                            g_strerror(errno));
+
 		_vte_debug_print(VTE_DEBUG_PTY,
 				"Failed to set size on %d: %s.\n",
-				master, strerror(errno));
+				master, g_strerror(errsv));
+
+                errno = errsv;
+
+                return FALSE;
 	}
-	return ret;
+
+        return TRUE;
 }
 
 /**
  * vte_pty_get_size:
- * @master: the file descriptor of the pty master
- * @columns: a place to store the number of columns
+ * @pty: a #VtePty
  * @rows: a place to store the number of rows
+ * @columns: a place to store the number of columns
+ * @error: return location to store a #GError, or %NULL
  *
- * Attempts to read the pseudo terminal's window size.
+ * Reads the pseudo terminal's window size.
  *
- * Returns: 0 on success, -1 on failure.
+ * If getting the window size failed, @error will be set to a #GIOError.
+ *
+ * Returns: %TRUE on success, %FALSE on failure with @error filled in
+ *
+ * Since: 0.24
  */
-int
-_vte_pty_get_size(int master, int *columns, int *rows)
+gboolean
+vte_pty_get_size(VtePty *pty,
+                 int *rows,
+                 int *columns,
+                 GError **error)
 {
+        VtePtyPrivate *priv;
 	struct winsize size;
+        int master;
 	int ret;
+
+        g_return_val_if_fail(VTE_IS_PTY(pty), FALSE);
+
+        priv = pty->priv;
+
+        master = vte_pty_get_fd(pty);
+
 	memset(&size, 0, sizeof(size));
 	ret = ioctl(master, TIOCGWINSZ, &size);
 	if (ret == 0) {
@@ -509,14 +692,32 @@ _vte_pty_get_size(int master, int *columns, int *rows)
 		_vte_debug_print(VTE_DEBUG_PTY,
 				"Size on fd %d is (%d,%d).\n",
 				master, size.ws_col, size.ws_row);
+                return TRUE;
 	} else {
+                int errsv = errno;
+
+                g_set_error(error, G_IO_ERROR,
+                            g_io_error_from_errno(errsv),
+                            "Failed to get window size: %s",
+                            g_strerror(errno));
+
 		_vte_debug_print(VTE_DEBUG_PTY,
-				"Failed to read size from fd %d.\n",
-				master);
+				"Failed to read size from fd %d: %s\n",
+				master, g_strerror(errsv));
+
+                errno = errsv;
+
+                return FALSE;
 	}
-	return ret;
 }
 
+/*
+ * _vte_pty_ptsname:
+ * @master: file descriptor to the PTY master
+ *
+ * Returns: a newly allocated string containing the file name of the
+ *   PTY slave device, or %NULL on failure
+ */
 static char *
 _vte_pty_ptsname(int master)
 {
@@ -558,6 +759,14 @@ _vte_pty_ptsname(int master)
 	return NULL;
 }
 
+/*
+ * _vte_pty_getpt:
+ *
+ * Opens a file descriptor for the next available PTY master.
+ * Sets the descriptor to blocking mode!
+ *
+ * Returns: a new file descriptor, or %-1 on failure
+ */
 static int
 _vte_pty_getpt(void)
 {
@@ -572,7 +781,11 @@ _vte_pty_getpt(void)
 		fd = open("/dev/ptc", O_RDWR | O_NOCTTY); /* AIX */
 	}
 #endif
+        if (fd == -1)
+                return fd;
+
 	/* Set it to blocking. */
+        /* FIXMEchpe: why?? vte_terminal_set_pty does the inverse... */
 	flags = fcntl(fd, F_GETFL);
 	flags &= ~(O_NONBLOCK);
 	fcntl(fd, F_SETFL, flags);
@@ -602,40 +815,58 @@ _vte_pty_unlockpt(int fd)
 #endif
 }
 
-static int
-_vte_pty_open_unix98(GPid *child, char **env_add,
-		     const char *command, char **argv,
-		     const char *directory, int columns, int rows)
+/*
+ * _vte_pty_open_unix98:
+ * @pty: a #VtePty
+ * @error: a location to store a #GError, or %NULL
+ *
+ * Opens a new file descriptor to a new PTY master.
+ *
+ * Returns: %TRUE on success, %FALSE on failure with @error filled in
+ */
+static gboolean
+_vte_pty_open_unix98(VtePty *pty,
+                     GError **error)
 {
+        VtePtyPrivate *priv = pty->priv;
 	int fd;
 	char *buf;
 
 	/* Attempt to open the master. */
 	fd = _vte_pty_getpt();
 	_vte_debug_print(VTE_DEBUG_PTY, "Allocated pty on fd %d.\n", fd);
-	if (fd != -1) {
-		/* Read the slave number and unlock it. */
-		if (((buf = _vte_pty_ptsname(fd)) == NULL) ||
-		    (_vte_pty_grantpt(fd) != 0) ||
-		    (_vte_pty_unlockpt(fd) != 0)) {
-			_vte_debug_print(VTE_DEBUG_PTY,
-					"PTY setup failed, bailing.\n");
-			close(fd);
-			fd = -1;
-		} else {
-			/* Start up a child process with the given command. */
-			if (!_vte_pty_fork_on_pty_name(buf, fd,
-						      env_add, command,
-						      argv, directory,
-						      columns, rows,
-						      child)) {
-				close(fd);
-				fd = -1;
-			}
-			g_free(buf);
-		}
-	}
-	return fd;
+	if (fd == -1) {
+                g_set_error (error, VTE_PTY_ERROR,
+                             VTE_PTY_ERROR_PTY98_FAILED,
+                             "getpt failed: %s", g_strerror(errno));
+                return FALSE;
+        }
+
+        /* Read the slave number and unlock it. */
+        if (((buf = _vte_pty_ptsname(fd)) == NULL) ||
+            (_vte_pty_grantpt(fd) != 0) ||
+            (_vte_pty_unlockpt(fd) != 0)) {
+                int errsv = errno;
+
+                g_set_error(error, VTE_PTY_ERROR,
+                            VTE_PTY_ERROR_PTY98_FAILED,
+                            "PTY setup failed: %s",
+                            g_strerror(errsv));
+
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                "PTY setup failed, bailing.\n");
+                close(fd);
+                errno = errsv;
+
+                return FALSE;
+        }
+
+        priv->pty_fd = fd;
+        priv->child_setup_data.mode = TTY_OPEN_BY_NAME;
+        priv->child_setup_data.tty.name = buf;
+        priv->using_helper = FALSE;
+
+        return TRUE;
 }
 
 #ifdef VTE_USE_GNOME_PTY_HELPER
@@ -799,14 +1030,15 @@ n_write(int fd, const void *buffer, size_t count)
 	return n;
 }
 
-
-
+/*
+ * _vte_pty_stop_helper:
+ *
+ * Terminates the running GNOME PTY helper.
+ */
 static void
 _vte_pty_stop_helper(void)
 {
 	if (_vte_pty_helper_started) {
-		g_tree_destroy(_vte_pty_helper_map);
-		_vte_pty_helper_map = NULL;
 		close(_vte_pty_helper_tunnel);
 		_vte_pty_helper_tunnel = -1;
 		kill(_vte_pty_helper_pid, SIGTERM);
@@ -815,43 +1047,55 @@ _vte_pty_stop_helper(void)
 	}
 }
 
-static gint
-_vte_direct_compare(gconstpointer a, gconstpointer b)
-{
-	return GPOINTER_TO_INT(a) - GPOINTER_TO_INT(b);
-}
-
+/*
+ * _vte_pty_start_helper:
+ * @error: a location to store a #GError, or %NULL
+ *
+ * Starts the GNOME PTY helper process, if it is not already running.
+ *
+ * Returns: %TRUE if the helper was already started, or starting it succeeded,
+ *   %FALSE on failure with @error filled in
+ */
 static gboolean
-_vte_pty_start_helper(void)
+_vte_pty_start_helper(GError **error)
 {
-	int i, tmp[2], tunnel;
+	int i, tunnel;
+        int tmp[2] = { -1, -1 };
+
+        if (_vte_pty_helper_started)
+                return TRUE;
+
 	/* Sanity check. */
 	if (access(LIBEXECDIR "/gnome-pty-helper", X_OK) != 0) {
 		/* Give the user some clue as to why session logging is not
 		 * going to work (assuming we can open a pty using some other
 		 * method). */
 		g_warning(_("can not run %s"), LIBEXECDIR "/gnome-pty-helper");
+		g_set_error(error, VTE_PTY_ERROR,
+                            VTE_PTY_ERROR_PTY_HELPER_FAILED,
+                            _("can not run %s"), LIBEXECDIR "/gnome-pty-helper");
 		return FALSE;
 	}
 	/* Create a communication link for use with the helper. */
 	tmp[0] = open("/dev/null", O_RDONLY);
 	if (tmp[0] == -1) {
-		return FALSE;
+		goto failure;
 	}
 	tmp[1] = open("/dev/null", O_RDONLY);
 	if (tmp[1] == -1) {
-		close(tmp[0]);
-		return FALSE;
+		goto failure;
 	}
 	if (_vte_pty_pipe_open(&_vte_pty_helper_tunnel, &tunnel) != 0) {
-		return FALSE;
+		goto failure;
 	}
 	close(tmp[0]);
 	close(tmp[1]);
+        tmp[0] = tmp[1] = -1;
+
 	/* Now fork and start the helper. */
 	_vte_pty_helper_pid = fork();
 	if (_vte_pty_helper_pid == -1) {
-		return FALSE;
+		goto failure;
 	}
 	if (_vte_pty_helper_pid == 0) {
 		/* Child.  Close descriptors.  No need to close all,
@@ -871,49 +1115,125 @@ _vte_pty_start_helper(void)
 		_exit(1);
 	}
 	close(tunnel);
-	_vte_pty_helper_map = g_tree_new(_vte_direct_compare);
 	atexit(_vte_pty_stop_helper);
+
+        _vte_pty_helper_started = TRUE;
 	return TRUE;
+
+failure:
+        g_set_error(error, VTE_PTY_ERROR,
+                    VTE_PTY_ERROR_PTY_HELPER_FAILED,
+                    "Failed to start gnome-pty-helper: %s",
+                    g_strerror (errno));
+
+        if (tmp[0] != -1)
+                close(tmp[0]);
+        if (tmp[1] != -1)
+                close(tmp[1]);
+
+        return FALSE;
 }
 
+/*
+ * _vte_pty_helper_ops_from_flags:
+ * @flags: flags from #VtePtyFlags
+ *
+ * Translates @flags into the corresponding op code for the
+ * GNOME PTY helper.
+ *
+ * Returns: the #GnomePtyOps corresponding to @flags
+ */
 static int
-_vte_pty_open_with_helper(GPid *child, char **env_add,
-			  const char *command, char **argv,
-			  const char *directory,
-			  int columns, int rows, int op)
+_vte_pty_helper_ops_from_flags (VtePtyFlags flags)
 {
+	int op = 0;
+	static const int opmap[8] = {
+		GNOME_PTY_OPEN_NO_DB_UPDATE,		/* 0 0 0 */
+		GNOME_PTY_OPEN_PTY_LASTLOG,		/* 0 0 1 */
+		GNOME_PTY_OPEN_PTY_UTMP,		/* 0 1 0 */
+		GNOME_PTY_OPEN_PTY_LASTLOGUTMP,		/* 0 1 1 */
+		GNOME_PTY_OPEN_PTY_WTMP,		/* 1 0 0 */
+		GNOME_PTY_OPEN_PTY_LASTLOGWTMP,		/* 1 0 1 */
+		GNOME_PTY_OPEN_PTY_UWTMP,		/* 1 1 0 */
+		GNOME_PTY_OPEN_PTY_LASTLOGUWTMP,	/* 1 1 1 */
+	};
+	if ((flags & VTE_PTY_NO_LASTLOG) == 0) {
+		op += 1;
+	}
+	if ((flags & VTE_PTY_NO_UTMP) == 0) {
+		op += 2;
+	}
+	if ((flags & VTE_PTY_NO_WTMP) == 0) {
+		op += 4;
+	}
+	g_assert(op >= 0 && op < (int) G_N_ELEMENTS(opmap));
+
+        return opmap[op];
+}
+
+/*
+ * _vte_pty_open_with_helper:
+ * @pty: a #VtePty
+ * @error: a location to store a #GError, or %NULL
+ *
+ * Opens a new file descriptor to a new PTY master using the
+ * GNOME PTY helper.
+ *
+ * Returns: %TRUE on success, %FALSE on failure with @error filled in
+ */
+static gboolean
+_vte_pty_open_with_helper(VtePty *pty,
+                          GError **error)
+{
+        VtePtyPrivate *priv = pty->priv;
 	GnomePtyOps ops;
 	int ret;
 	int parentfd = -1, childfd = -1;
 	gpointer tag;
+
 	/* We have to use the pty helper here. */
-	if (!_vte_pty_helper_started) {
-		_vte_pty_helper_started = _vte_pty_start_helper();
-	}
+	if (!_vte_pty_start_helper(error))
+                return FALSE;
+
 	/* Try to open a new descriptor. */
-	if (_vte_pty_helper_started) {
-		ops = op;
+	{
+		ops = _vte_pty_helper_ops_from_flags(priv->flags);
 		/* Send our request. */
 		if (n_write(_vte_pty_helper_tunnel,
 			    &ops, sizeof(ops)) != sizeof(ops)) {
-			return -1;
+                        g_set_error (error, VTE_PTY_ERROR,
+                                     VTE_PTY_ERROR_PTY_HELPER_FAILED,
+                                     "Failed to send request to gnome-pty-helper: %s",
+                                     g_strerror(errno));
+			return FALSE;
 		}
 		_vte_debug_print(VTE_DEBUG_PTY, "Sent request to helper.\n");
 		/* Read back the response. */
 		if (n_read(_vte_pty_helper_tunnel,
 			   &ret, sizeof(ret)) != sizeof(ret)) {
-			return -1;
+                        g_set_error (error, VTE_PTY_ERROR,
+                                     VTE_PTY_ERROR_PTY_HELPER_FAILED,
+                                     "Failed to read response from gnome-pty-helper: %s",
+                                     g_strerror(errno));
+			return FALSE;
 		}
 		_vte_debug_print(VTE_DEBUG_PTY,
 				"Received response from helper.\n");
 		if (ret == 0) {
-			return -1;
+                        g_set_error_literal (error, VTE_PTY_ERROR,
+                                             VTE_PTY_ERROR_PTY_HELPER_FAILED,
+                                             "gnome-pty-helper failed to open pty");
+			return FALSE;
 		}
 		_vte_debug_print(VTE_DEBUG_PTY, "Helper returns success.\n");
 		/* Read back a tag. */
 		if (n_read(_vte_pty_helper_tunnel,
 			   &tag, sizeof(tag)) != sizeof(tag)) {
-			return -1;
+                        g_set_error (error, VTE_PTY_ERROR,
+                                     VTE_PTY_ERROR_PTY_HELPER_FAILED,
+                                     "Failed to read tag from gnome-pty-helper: %s",
+                                     g_strerror(errno));
+			return FALSE;
 		}
 		_vte_debug_print(VTE_DEBUG_PTY, "Tag = %p.\n", tag);
 		/* Receive the master and slave ptys. */
@@ -921,32 +1241,548 @@ _vte_pty_open_with_helper(GPid *child, char **env_add,
 				      &parentfd, &childfd);
 
 		if ((parentfd == -1) || (childfd == -1)) {
+                        int errsv = errno;
+
 			close(parentfd);
 			close(childfd);
-			return -1;
+
+                        g_set_error (error, VTE_PTY_ERROR,
+                                     VTE_PTY_ERROR_PTY_HELPER_FAILED,
+                                     "Failed to read master or slave pty from gnome-pty-helper: %s",
+                                     g_strerror(errsv));
+                        errno = errsv;
+			return FALSE;
 		}
+
 		_vte_debug_print(VTE_DEBUG_PTY,
 				"Got master pty %d and slave pty %d.\n",
 				parentfd, childfd);
 
-		/* Add the parent and the tag to our map. */
-		g_tree_insert(_vte_pty_helper_map,
-			      GINT_TO_POINTER(parentfd),
-			      tag);
-		/* Start up a child process with the given command. */
-		if (!_vte_pty_fork_on_pty_fd(childfd, env_add, command,
-					    argv, directory,
-					    columns, rows, child)) {
-			close(parentfd);
-			close(childfd);
-			return -1;
-		}
-		close(childfd);
-		return parentfd;
+                priv->using_helper = TRUE;
+                priv->helper_tag = tag;
+                priv->pty_fd = parentfd;
+
+                priv->child_setup_data.mode = TTY_OPEN_BY_FD;
+                priv->child_setup_data.tty.fd = childfd;
+
+                // FIXMEchpe do this later
+//                 _vte_pty_set_size(fd, columns, rows);
+                return TRUE;
 	}
-	return -1;
 }
+
+#endif /* VTE_USE_GNOME_PTY_HELPER */
+
+/**
+ * vte_pty_set_utf8:
+ * @pty: a #VtePty
+ * @utf8: Whether or not the pty is in UTF-8 mode
+ *
+ * Tells the kernel whether the terminal is UTF-8 or not, in case it can make
+ * use of the info.  Linux 2.6.5 or so defines IUTF8 to make the line
+ * discipline do multibyte backspace correctly.
+ *
+ * Since: 0.24
+ */
+void
+vte_pty_set_utf8(VtePty *pty,
+                 gboolean utf8)
+{
+#if defined(HAVE_TCSETATTR) && defined(IUTF8)
+        VtePtyPrivate *priv;
+	struct termios tio;
+	tcflag_t saved_cflag;
+
+        g_return_if_fail(VTE_IS_PTY(pty));
+        priv = pty->priv;
+
+        priv->utf8 = utf8 != FALSE;
+
+	if (priv->pty_fd != -1) {
+		if (tcgetattr(priv->pty_fd, &tio) != -1) {
+			saved_cflag = tio.c_iflag;
+			tio.c_iflag &= ~IUTF8;
+			if (utf8) {
+				tio.c_iflag |= IUTF8;
+			}
+			if (saved_cflag != tio.c_iflag) {
+				tcsetattr(priv->pty_fd, TCSANOW, &tio);
+			}
+		}
+	}
 #endif
+
+        g_object_notify(G_OBJECT(pty), "utf-8");
+}
+
+/**
+ * vte_pty_close:
+ * @pty: a #VtePty
+ *
+ * Cleans up the PTY, specifically any logging performed for the session.
+ * The file descriptor to the PTY master remains open.
+ *
+ * Since: 0.24
+ */
+void
+vte_pty_close (VtePty *pty)
+{
+#ifdef VTE_USE_GNOME_PTY_HELPER
+        VtePtyPrivate *priv = pty->priv;
+	gpointer tag;
+	GnomePtyOps ops;
+
+        if (priv->using_helper) {
+			/* Signal the helper that it needs to close its
+			 * connection. */
+			tag = priv->helper_tag;
+
+			ops = GNOME_PTY_CLOSE_PTY;
+			if (n_write(_vte_pty_helper_tunnel,
+				    &ops, sizeof(ops)) != sizeof(ops)) {
+				return;
+			}
+			if (n_write(_vte_pty_helper_tunnel,
+				    &tag, sizeof(tag)) != sizeof(tag)) {
+				return;
+			}
+
+			ops = GNOME_PTY_SYNCH;
+			if (n_write(_vte_pty_helper_tunnel,
+				    &ops, sizeof(ops)) != sizeof(ops)) {
+				return;
+			}
+			n_read(_vte_pty_helper_tunnel, &ops, 1);
+
+                        priv->helper_tag = NULL;
+                        priv->using_helper = FALSE;
+	}
+#endif
+}
+
+/* VTE PTY class */
+
+enum {
+        PROP_0,
+        PROP_FLAGS,
+        PROP_FD,
+        PROP_UTF8,
+        PROP_TERM
+};
+
+/* GInitable impl */
+
+static gboolean
+vte_pty_initable_init (GInitable *initable,
+                       GCancellable *cancellable,
+                       GError **error)
+{
+        VtePty *pty = VTE_PTY (initable);
+        VtePtyPrivate *priv = pty->priv;
+        gboolean ret = FALSE;
+        GError *err = NULL;
+
+        if (cancellable != NULL) {
+                g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
+                                    "Cancellable initialisation not supported");
+                return FALSE;
+        }
+
+        /* If we already have a (foreign) FD, we're done. */
+        if (priv->foreign) {
+                g_assert(priv->pty_fd != -1);
+                // FIXMEchpe fill in the child_setup_data struct
+                return TRUE;
+        }
+
+#ifdef VTE_USE_GNOME_PTY_HELPER
+	if ((priv->flags & VTE_PTY_NO_HELPER) == 0) {
+		ret = _vte_pty_open_with_helper(pty, &err);
+                g_assert(ret || err != NULL);
+
+                if (ret)
+                        goto out;
+
+                /* Only do fallback if gnome-pty-helper failed! */
+                if ((priv->flags & VTE_PTY_NO_FALLBACK) ||
+                    !g_error_matches(err,
+                                     VTE_PTY_ERROR,
+                                     VTE_PTY_ERROR_PTY_HELPER_FAILED)) {
+                        g_propagate_error (error, err);
+                        goto out;
+                }
+
+                g_error_free(err);
+                /* Fall back to unix98 PTY */
+        }
+#endif /* VTE_USE_GNOME_PTY_HELPER */
+
+        ret = _vte_pty_open_unix98(pty, error);
+
+  out:
+	_vte_debug_print(VTE_DEBUG_PTY,
+			"vte_pty_initable_init returning %s with ptyfd = %d\n",
+			ret ? "TRUE" : "FALSE", priv->pty_fd);
+
+	return ret;
+}
+
+static void
+vte_pty_initable_iface_init (GInitableIface  *iface)
+{
+        iface->init = vte_pty_initable_init;
+}
+
+/* GObjectClass impl */
+
+G_DEFINE_TYPE_WITH_CODE (VtePty, vte_pty, G_TYPE_OBJECT,
+                         G_IMPLEMENT_INTERFACE (G_TYPE_INITABLE, vte_pty_initable_iface_init))
+
+static void
+vte_pty_init (VtePty *pty)
+{
+        VtePtyPrivate *priv;
+
+        priv = pty->priv = G_TYPE_INSTANCE_GET_PRIVATE (pty, VTE_TYPE_PTY, VtePtyPrivate);
+
+        priv->flags = VTE_PTY_DEFAULT;
+        priv->pty_fd = -1;
+        priv->foreign = FALSE;
+        priv->using_helper = FALSE;
+        priv->helper_tag = NULL;
+        priv->term = vte_terminal_get_default_emulation(NULL /* that's ok, this function is just retarded */); /* already interned */
+}
+
+static void
+vte_pty_finalize (GObject *object)
+{
+        VtePty *pty = VTE_PTY (object);
+        VtePtyPrivate *priv = pty->priv;
+
+        if (priv->child_setup_data.mode == TTY_OPEN_BY_FD &&
+            priv->child_setup_data.tty.fd != -1) {
+                /* Close the child FD */
+                close(priv->child_setup_data.tty.fd);
+        }
+
+        vte_pty_close(pty);
+
+        /* Close the master FD */
+        if (priv->pty_fd != -1) {
+                close(priv->pty_fd);
+        }
+
+        G_OBJECT_CLASS (vte_pty_parent_class)->finalize (object);
+}
+
+static void
+vte_pty_get_property (GObject    *object,
+                       guint       property_id,
+                       GValue     *value,
+                       GParamSpec *pspec)
+{
+        VtePty *pty = VTE_PTY (object);
+        VtePtyPrivate *priv = pty->priv;
+
+        switch (property_id) {
+        case PROP_FLAGS:
+                g_value_set_flags(value, priv->flags);
+                break;
+
+        case PROP_FD:
+                g_value_set_int(value, vte_pty_get_fd(pty));
+                break;
+
+        case PROP_UTF8:
+                g_value_set_boolean(value, priv->utf8);
+                break;
+
+        case PROP_TERM:
+                g_value_set_string(value, priv->term);
+                break;
+
+        default:
+                G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
+        }
+}
+
+static void
+vte_pty_set_property (GObject      *object,
+                       guint         property_id,
+                       const GValue *value,
+                       GParamSpec   *pspec)
+{
+        VtePty *pty = VTE_PTY (object);
+        VtePtyPrivate *priv = pty->priv;
+
+        switch (property_id) {
+        case PROP_FLAGS:
+                priv->flags = g_value_get_flags(value);
+                break;
+
+        case PROP_FD:
+                priv->pty_fd = g_value_get_int(value);
+                priv->foreign = (priv->pty_fd != -1);
+                break;
+
+        case PROP_UTF8:
+                vte_pty_set_utf8 (pty, g_value_get_boolean (value));
+                break;
+
+        case PROP_TERM:
+                vte_pty_set_term(pty, g_value_get_string(value));
+                break;
+
+        default:
+                G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        }
+}
+
+static void
+vte_pty_class_init (VtePtyClass *klass)
+{
+        GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+        g_type_class_add_private(object_class, sizeof(VtePtyPrivate));
+
+        object_class->set_property = vte_pty_set_property;
+        object_class->get_property = vte_pty_get_property;
+        object_class->finalize     = vte_pty_finalize;
+
+        /**
+         * VtePty:flags:
+         *
+         * Controls how the session is recorded in lastlog, utmp, and wtmp,
+         * and whether to use the GNOME PTY helper.
+         *
+         * Since: 0.24
+         */
+        g_object_class_install_property
+                (object_class,
+                 PROP_FLAGS,
+                 g_param_spec_flags ("flags", NULL, NULL,
+                                     VTE_TYPE_PTY_FLAGS,
+                                     VTE_PTY_DEFAULT,
+                                     G_PARAM_READWRITE |
+                                     G_PARAM_CONSTRUCT_ONLY |
+                                     G_PARAM_STATIC_STRINGS));
+
+        /**
+         * VtePty:fd:
+         *
+         * The file descriptor of the PTY master.
+         *
+         * Since: 0.24
+         */
+        g_object_class_install_property
+                (object_class,
+                 PROP_FD,
+                 g_param_spec_int ("fd", NULL, NULL,
+                                   -1, G_MAXINT, -1,
+                                   G_PARAM_READWRITE |
+                                   G_PARAM_CONSTRUCT_ONLY |
+                                   G_PARAM_STATIC_STRINGS));
+
+        /**
+         * VtePty:utf-8:
+         *
+         * Whether the PTY is in UTF-8 mode.
+         *
+         * Since: 0.24
+         */
+        g_object_class_install_property
+                (object_class,
+                 PROP_UTF8,
+                 g_param_spec_boolean ("utf-8", NULL, NULL,
+                                       TRUE,
+                                       G_PARAM_READWRITE |
+                                       G_PARAM_STATIC_STRINGS));
+
+        /**
+         * VtePty:term:
+         *
+         * The value to set for the TERM environment variable
+         * in vte_pty_child_setup().
+         *
+         * Since: 0.24
+         */
+        g_object_class_install_property
+                (object_class,
+                 PROP_UTF8,
+                 g_param_spec_string ("term", NULL, NULL,
+                                      "xterm",
+                                      G_PARAM_READWRITE |
+                                      G_PARAM_STATIC_STRINGS));
+}
+
+/* public API */
+
+/**
+ * vte_pty_error_quark:
+ *
+ * Error domain for VTE PTY errors. Errors in this domain will be from the #VtePtyError
+ * enumeration. See #GError for more information on error domains.
+ *
+ * Returns: the error domain for VTE PTY errors
+ *
+ * Since: 0.24
+ */
+GQuark
+vte_pty_error_quark(void)
+{
+  static GQuark quark = 0;
+
+  if (G_UNLIKELY (quark == 0))
+    quark = g_quark_from_static_string("vte-pty-error");
+
+  return quark;
+}
+
+/**
+ * vte_pty_new:
+ * @flags: flags from #VtePtyFlags
+ * @error: return location for a #GError, or %NULL
+ *
+ * Allocates a new pseudo-terminal.
+ *
+ * You can later use fork() or the g_spawn_async() familty of functions
+ * to start a process on the PTY.
+ *
+ * If using fork(), you MUST call vte_pty_child_setup() in the child.
+ *
+ * If using g_spawn_async() and friends, you MUST either use
+ * vte_pty_child_setup () directly as the child setup function, or call
+ * vte_pty_child_setup() from your own child setup function supplied.
+ *
+ * Also, you MUST pass the %G_SPAWN_DO_NOT_REAP_CHILD flag.
+ *
+ * When using the GNOME PTY Helper,
+ * unless some of the %VTE_PTY_NO_LASTLOG, %VTE_PTY_NO_UTMP or
+ * %VTE_PTY_NO_WTMP flags are passed in @flags, the
+ * session is logged in the corresponding lastlog, utmp or wtmp
+ * system files.
+ *
+ * When passing %VTE_PTY_NO_HELPER in @flags, the
+ * GNOME PTY Helper bypassed entirely.
+ *
+ * When passing %VTE_PTY_NO_FALLBACK in @flags,
+ * and opening a PTY using the PTY helper fails, there will
+ * be no fallback to allocate a PTY using Unix98 PTY functions.
+ *
+ * Returns: a new #VtePty, or %NULL on error with @error filled in
+ *
+ * Since: 0.24
+ */
+VtePty *
+vte_pty_new (VtePtyFlags flags,
+             GError **error)
+{
+        return g_initable_new (VTE_TYPE_PTY,
+                               NULL /* cancellable */,
+                               error,
+                               "flags", flags,
+                               NULL);
+}
+
+/**
+ * vte_pty_new_foreign:
+ * @fd: a file descriptor to the PTY
+ *
+ * Creates a new #VtePty for the PTY master @fd.
+ *
+ * No entry will be made in the lastlog, utmp or wtmp system files.
+ *
+ * Note that the newly created #VtePty will take ownership of @fd
+ * and close it on finalize.
+ *
+ * Returns: a new #VtePty for @fd
+ *
+ * Since: 0.24
+ */
+VtePty *
+vte_pty_new_foreign (int fd)
+{
+        VtePty *pty;
+        GError *error = NULL;
+
+        g_return_val_if_fail(fd >= 0, NULL);
+
+        pty = g_initable_new (VTE_TYPE_PTY,
+                              NULL /* cancellable */,
+                              &error,
+                              "fd", fd,
+                              NULL);
+        g_assert(error == NULL);
+
+        return pty;
+}
+
+/**
+ * vte_pty_get_fd:
+ * @pty: a #VtePty
+ *
+ * Returns: the file descriptor of the PTY master in @pty. The
+ *   file descriptor belongs to @pty and must not be closed
+ */
+int
+vte_pty_get_fd (VtePty *pty)
+{
+        VtePtyPrivate *priv;
+
+        g_return_val_if_fail(VTE_IS_PTY(pty), -1);
+
+        priv = pty->priv;
+        g_return_val_if_fail(priv->pty_fd != -1, -1);
+
+        return priv->pty_fd;
+}
+
+/**
+ * vte_pty_set_term:
+ * @pty: a #VtePty
+ * @emulation: the name of a terminal description
+ *
+ * Sets what value of the TERM environment variable to set
+ * when using vte_pty_child_setup().
+ *
+ * Since: 0.24
+ */
+void
+vte_pty_set_term (VtePty *pty,
+                  const char *emulation)
+{
+        VtePtyPrivate *priv;
+
+        g_return_if_fail(VTE_IS_PTY(pty));
+        g_return_if_fail(emulation != NULL);
+
+        priv = pty->priv;
+        emulation = g_intern_string(emulation);
+        if (emulation == priv->term)
+                return;
+
+        priv->term = emulation;
+        g_object_notify(G_OBJECT(pty), "term");
+}
+
+/* Reimplementation of the ugly deprecated APIs _vte_pty_*() */
+
+#ifndef VTE_DISABLE_DEPRECATED_SOURCE
+
+static GHashTable *fd_to_pty_hash = NULL;
+
+static VtePty *
+get_vte_pty_for_fd (int fd)
+{
+        VtePty *pty;
+
+        if (fd_to_pty_hash != NULL &&
+            (pty = g_hash_table_lookup(fd_to_pty_hash, &fd)) != NULL)
+                return pty;
+
+        g_warning("No VtePty found for fd %d!\n", fd);
+        return NULL;
+}
 
 /**
  * _vte_pty_open:
@@ -968,54 +1804,127 @@ _vte_pty_open_with_helper(GPid *child, char **env_add,
  * corresponding system files.
  *
  * Returns: an open file descriptor for the pty master, -1 on failure
+ *
+ * Deprecated: 0.24: Use #VtePty together with fork() or the g_spawn_async() family of functions instead
  */
 int
-_vte_pty_open(pid_t *child_pid, char **env_add,
-	      const char *command, char **argv, const char *directory,
-	      int columns, int rows,
-	      gboolean lastlog, gboolean utmp, gboolean wtmp)
+_vte_pty_open(pid_t *child,
+              char **env_add,
+              const char *command,
+              char **argv,
+              const char *directory,
+              int columns,
+              int rows,
+              gboolean lastlog,
+              gboolean utmp,
+              gboolean wtmp)
 {
-	GPid child;
-	int ret = -1;
-#ifdef VTE_USE_GNOME_PTY_HELPER
-	int op = 0;
-	int opmap[8] = {
-		GNOME_PTY_OPEN_NO_DB_UPDATE,		/* 0 0 0 */
-		GNOME_PTY_OPEN_PTY_LASTLOG,		/* 0 0 1 */
-		GNOME_PTY_OPEN_PTY_UTMP,		/* 0 1 0 */
-		GNOME_PTY_OPEN_PTY_LASTLOGUTMP,		/* 0 1 1 */
-		GNOME_PTY_OPEN_PTY_WTMP,		/* 1 0 0 */
-		GNOME_PTY_OPEN_PTY_LASTLOGWTMP,		/* 1 0 1 */
-		GNOME_PTY_OPEN_PTY_UWTMP,		/* 1 1 0 */
-		GNOME_PTY_OPEN_PTY_LASTLOGUWTMP,	/* 1 1 1 */
-	};
-	if (lastlog) {
-		op += 1;
-	}
-	if (utmp) {
-		op += 2;
-	}
-	if (wtmp) {
-		op += 4;
-	}
-	g_assert(op >= 0 && op < (int) G_N_ELEMENTS(opmap));
-	if (ret == -1 && op != 0) {
-		ret = _vte_pty_open_with_helper(&child, env_add, command, argv,
-						directory,
-						columns, rows, opmap[op]);
-	}
-#endif
-	if (ret == -1) {
-		ret = _vte_pty_open_unix98(&child, env_add, command, argv,
-					   directory, columns, rows);
-	}
-	if (ret != -1) {
-		*child_pid = (pid_t) child;
-	}
-	_vte_debug_print(VTE_DEBUG_PTY,
-			"Returning ptyfd = %d, child = %ld.\n",
-			ret, (long) child);
-	return ret;
+        VtePty *pty;
+        GPid pid;
+        gboolean ret;
+
+        pty = vte_pty_new(__vte_pty_get_pty_flags (lastlog, utmp, wtmp), NULL);
+        if (pty == NULL)
+                return -1;
+
+        if (command != NULL) {
+                char **real_argv;
+                GSpawnFlags spawn_flags;
+
+                spawn_flags = G_SPAWN_CHILD_INHERITS_STDIN |
+                              G_SPAWN_SEARCH_PATH;
+                real_argv = __vte_pty_get_argv(command, argv, &spawn_flags);
+                ret = __vte_pty_spawn(pty,
+                                      directory,
+                                      real_argv,
+                                      env_add,
+                                      spawn_flags,
+                                      NULL, NULL,
+                                      &pid,
+                                      NULL);
+                g_strfreev(real_argv);
+        } else {
+                ret = __vte_pty_fork(pty, &pid, NULL);
+        }
+
+        if (!ret) {
+                g_object_unref(pty);
+                return -1;
+        }
+
+        vte_pty_set_size(pty, rows, columns, NULL);
+
+        /* Stash the pty in the hash so we can later retrieve it by FD */
+        if (fd_to_pty_hash == NULL) {
+                fd_to_pty_hash = g_hash_table_new_full(g_int_hash,
+                                                       g_int_equal,
+                                                       NULL,
+                                                       (GDestroyNotify) g_object_unref);
+        }
+
+        g_hash_table_insert(fd_to_pty_hash, &pty->priv->pty_fd, pty /* adopt refcount */);
+
+        if (child)
+                *child = (pid_t) pid;
+
+        return vte_pty_get_fd(pty);
+}
+
+/**
+ * _vte_pty_get_size:
+ * @master: the file descriptor of the PTY master
+ * @columns: a place to store the number of columns
+ * @rows: a place to store the number of rows
+ *
+ * Attempts to read the pseudo terminal's window size.
+ *
+ * Returns: 0 on success, -1 on failure.
+ *
+ * Deprecated: 0.24: Use #VtePty and vte_pty_get_size() instead
+ */
+int
+_vte_pty_get_size(int master,
+                  int *columns,
+                  int *rows)
+{
+        VtePty *pty;
+
+        if ((pty = get_vte_pty_for_fd(master)) == NULL)
+                return -1;
+
+        if (vte_pty_get_size(pty, rows, columns, NULL))
+                return 0;
+
+        return -1;
+}
+
+/**
+ * _vte_pty_set_size:
+ * @master: the file descriptor of the PTY master
+ * @columns: the desired number of columns
+ * @rows: the desired number of rows
+ *
+ * Attempts to resize the pseudo terminal's window size.  If successful, the
+ * OS kernel will send #SIGWINCH to the child process group.
+ *
+ * Returns: 0 on success, -1 on failure.
+ *
+ * Deprecated: 0.24: Use #VtePty and vte_pty_set_size() instead
+ */
+int
+_vte_pty_set_size(int master,
+                  int columns,
+                  int rows)
+{
+        VtePty *pty;
+
+        if ((pty = get_vte_pty_for_fd(master)) == NULL)
+                return -1;
+
+        if (vte_pty_set_size(pty, rows, columns, NULL))
+                return 0;
+
+        return -1;
 }
 
 /**
@@ -1026,26 +1935,18 @@ _vte_pty_open(pid_t *child_pid, char **env_add,
  * Tells the kernel whether the terminal is UTF-8 or not, in case it can make
  * use of the info.  Linux 2.6.5 or so defines IUTF8 to make the line
  * discipline do multibyte backspace correctly.
+ *
+ * Deprecated: 0.24: Use #VtePty and vte_pty_set_utf8() instead
  */
-void
-_vte_pty_set_utf8(int pty, gboolean utf8)
+void _vte_pty_set_utf8(int master,
+                       gboolean utf8)
 {
-#if defined(HAVE_TCSETATTR) && defined(IUTF8)
-	struct termios tio;
-	tcflag_t saved_cflag;
-	if (pty != -1) {
-		if (tcgetattr(pty, &tio) != -1) {
-			saved_cflag = tio.c_iflag;
-			tio.c_iflag &= ~IUTF8;
-			if (utf8) {
-				tio.c_iflag |= IUTF8;
-			}
-			if (saved_cflag != tio.c_iflag) {
-				tcsetattr(pty, TCSANOW, &tio);
-			}
-		}
-	}
-#endif
+        VtePty *pty;
+
+        if ((pty = get_vte_pty_for_fd(master)) == NULL)
+                return;
+
+        vte_pty_set_utf8(pty, utf8);
 }
 
 /**
@@ -1054,104 +1955,25 @@ _vte_pty_set_utf8(int pty, gboolean utf8)
  *
  * Cleans up the PTY associated with the descriptor, specifically any logging
  * performed for the session.  The descriptor itself remains open.
+ *
+ * Deprecated: 0.24: Use #VtePty and vte_pty_close() instead
  */
-void
-_vte_pty_close(int pty)
+void _vte_pty_close(int master)
 {
-#ifdef VTE_USE_GNOME_PTY_HELPER
-	gpointer tag;
-	GnomePtyOps ops;
-	if (_vte_pty_helper_map != NULL) {
-		if (g_tree_lookup(_vte_pty_helper_map, GINT_TO_POINTER(pty))) {
-			/* Signal the helper that it needs to close its
-			 * connection. */
-			tag = g_tree_lookup(_vte_pty_helper_map,
-					    GINT_TO_POINTER(pty));
+        VtePty *pty;
 
-			ops = GNOME_PTY_CLOSE_PTY;
-			if (n_write(_vte_pty_helper_tunnel,
-				    &ops, sizeof(ops)) != sizeof(ops)) {
-				return;
-			}
-			if (n_write(_vte_pty_helper_tunnel,
-				    &tag, sizeof(tag)) != sizeof(tag)) {
-				return;
-			}
+        if ((pty = get_vte_pty_for_fd(master)) == NULL)
+                return;
 
-			ops = GNOME_PTY_SYNCH;
-			if (n_write(_vte_pty_helper_tunnel,
-				    &ops, sizeof(ops)) != sizeof(ops)) {
-				return;
-			}
-			n_read(_vte_pty_helper_tunnel, &ops, 1);
+        /* Prevent closing the FD */
+        pty->priv->pty_fd = -1;
 
-			/* Remove the item from the map. */
-			g_tree_remove(_vte_pty_helper_map,
-				      GINT_TO_POINTER(pty));
-		}
-	}
-#endif
+        g_hash_table_remove(fd_to_pty_hash, &master);
+
+        if (g_hash_table_size(fd_to_pty_hash) == 0) {
+                g_hash_table_destroy(fd_to_pty_hash);
+                fd_to_pty_hash = NULL;
+        }
 }
 
-#ifdef PTY_MAIN
-int fd;
-
-static void
-sigchld_handler(int signum)
-{
-	/* This is very unsafe.  Never do it in production code. */
-	_vte_pty_close(fd);
-}
-
-int
-main(int argc, char **argv)
-{
-	GPid child = 0;
-	char c;
-	int ret;
-	signal(SIGCHLD, sigchld_handler);
-	_vte_debug_init();
-	fd = _vte_pty_open(&child, NULL,
-			   (argc > 1) ? argv[1] : NULL,
-			   (argc > 1) ? argv + 1 : NULL,
-			   NULL,
-			   0, 0,
-			   TRUE, TRUE, TRUE);
-	if (child == 0) {
-		int i;
-		for (i = 0; ; i++) {
-			switch (i % 3) {
-			case 0:
-			case 1:
-				g_print("%d\n", i);
-				break;
-			case 2:
-				g_printerr("%d\n", i);
-				break;
-			default:
-				g_assert_not_reached();
-				break;
-			}
-			sleep(1);
-		}
-	}
-	g_print("Child pid is %d.\n", (int)child);
-	do {
-		ret = n_read(fd, &c, 1);
-		if (ret == 0) {
-			break;
-		}
-		if ((ret == -1) && (errno != EAGAIN) && (errno != EINTR)) {
-			break;
-		}
-		if (argc < 2) {
-			n_write(STDOUT_FILENO, "[", 1);
-		}
-		n_write(STDOUT_FILENO, &c, 1);
-		if (argc < 2) {
-			n_write(STDOUT_FILENO, "]", 1);
-		}
-	} while (TRUE);
-	return 0;
-}
-#endif
+#endif /* !VTE_DISABLE_DEPRECATED_SOURCE */

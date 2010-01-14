@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2001-2004,2009,2010 Red Hat, Inc.
- * Copyright © 2009, 2010 Christian Persch
+ * Copyright © 2008, 2009, 2010 Christian Persch
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Library General Public License as published by
@@ -54,6 +54,8 @@
 #include "pty.h"
 #include "vteaccess.h"
 #include "vteint.h"
+#include "vtepty.h"
+#include "vtepty-private.h"
 #include "vteregex.h"
 #include "vtetc.h"
 
@@ -158,6 +160,7 @@ enum {
         PROP_ICON_TITLE,
         PROP_MOUSE_POINTER_AUTOHIDE,
         PROP_PTY,
+        PROP_PTY_OBJECT,
         PROP_SCROLL_BACKGROUND,
         PROP_SCROLLBACK_LINES,
         PROP_SCROLL_ON_KEYSTROKE,
@@ -1255,7 +1258,7 @@ vte_terminal_cursor_new(VteTerminal *terminal, GdkCursorType cursor_type)
  *
  * Returns: an integer associated with this expression
  *
- * @Deprecated: 0.17.1
+ * Deprecated: 0.17.1
  */
 int
 vte_terminal_match_add(VteTerminal *terminal, const char *match)
@@ -2180,8 +2183,10 @@ vte_terminal_maybe_scroll_to_bottom(VteTerminal *terminal)
 static void
 _vte_terminal_setup_utf8 (VteTerminal *terminal)
 {
-  _vte_pty_set_utf8(terminal->pvt->pty_master,
-		    (strcmp(terminal->pvt->encoding, "UTF-8") == 0));
+        VteTerminalPrivate *pvt = terminal->pvt;
+
+        vte_pty_set_utf8(pvt->pty,
+		         strcmp(terminal->pvt->encoding, "UTF-8") == 0);
 }
 
 /**
@@ -3225,34 +3230,7 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 		terminal->pvt->pty_pid = -1;
 
 		/* Close out the PTY. */
-		_vte_terminal_disconnect_pty_read(terminal);
-		_vte_terminal_disconnect_pty_write(terminal);
-		if (terminal->pvt->pty_channel != NULL) {
-			g_io_channel_unref (terminal->pvt->pty_channel);
-			terminal->pvt->pty_channel = NULL;
-		}
-		if (terminal->pvt->pty_master != -1) {
-			_vte_pty_close(terminal->pvt->pty_master);
-			close(terminal->pvt->pty_master);
-			terminal->pvt->pty_master = -1;
-                
-                        g_object_notify(object, "pty");
-		}
-
-		/* Take one last shot at processing whatever data is pending,
-		 * then flush the buffers in case we're about to run a new
-		 * command, disconnecting the timeout. */
-		if (terminal->pvt->incoming != NULL) {
-			vte_terminal_process_incoming(terminal);
-			_vte_incoming_chunks_release (terminal->pvt->incoming);
-			terminal->pvt->incoming = NULL;
-			terminal->pvt->input_bytes = 0;
-		}
-		g_array_set_size(terminal->pvt->pending, 0);
-		vte_terminal_stop_processing (terminal);
-
-		/* Clear the outgoing buffer as well. */
-		_vte_buffer_clear(terminal->pvt->outgoing);
+                vte_terminal_set_pty_object(terminal, NULL);
 
 		/* Tell observers what's happened. */
                 terminal->pvt->child_exit_status = status;
@@ -3297,9 +3275,12 @@ static void mark_output_source_invalid(VteTerminal *terminal)
 static void
 _vte_terminal_connect_pty_write(VteTerminal *terminal)
 {
+        VteTerminalPrivate *pvt = terminal->pvt;
+
+        g_assert(pvt->pty != NULL);
 	if (terminal->pvt->pty_channel == NULL) {
-		terminal->pvt->pty_channel =
-			g_io_channel_unix_new(terminal->pvt->pty_master);
+		pvt->pty_channel =
+			g_io_channel_unix_new(vte_pty_get_fd(pvt->pty));
 	}
 
 	if (terminal->pvt->pty_output_source == 0) {
@@ -3340,102 +3321,187 @@ _vte_terminal_disconnect_pty_write(VteTerminal *terminal)
 	}
 }
 
-/* Basic wrapper around _vte_pty_open(), which handles the pipefitting. */
-static pid_t
-_vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
-			 char **argv, char **envv,
-			 const char *directory,
-			 gboolean lastlog, gboolean utmp, gboolean wtmp)
+/**
+ * vte_terminal_pty_new:
+ * @terminal: a #VteTerminal
+ * @flags: flags from #VtePtyFlags
+ * @error: return location for a #GError, or %NULL
+ *
+ * Creates a new #VtePty, and sets the emulation property
+ * from #VteTerminal:emulation.
+ *
+ * See vte_pty_new() for more information.
+ *
+ * Since: 0.24
+ */
+VtePty *
+vte_terminal_pty_new(VteTerminal *terminal,
+                     VtePtyFlags flags,
+                     GError **error)
 {
-        GObject *object = G_OBJECT(terminal);
-	char **env_add;
-	int i, fd;
-	pid_t pid;
-	VteReaper *reaper;
+        VteTerminalPrivate *pvt;
+        VtePty *pty;
+
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+
+        pvt = terminal->pvt;
+
+        pty = vte_pty_new(flags, error);
+        if (pty == NULL)
+                return NULL;
+
+        vte_pty_set_term(pty, vte_terminal_get_emulation(terminal));
+
+        return pty;
+}
+
+/**
+ * vte_terminal_watch_child:
+ * @terminal: a #VteTerminal
+ * @child_pid: a #GPid
+ *
+ * Watches @child_pid. When the process exists, the #VteReaper::child-exited
+ * signal will be called. Use vte_terminal_get_child_exit_status() to
+ * retrieve the child's exit status.
+ *
+ * Prior to calling this function, a #VtePty must have been set in @terminal
+ * using vte_terminal_set_pty_object().
+ * When the child exits, the terminal's #VtePty will be set to %NULL.
+ *
+ * Note: g_child_watch_add() or g_child_watch_add_full() must not have
+ * been called for @child_pid, nor a #GSource for it been created with
+ * g_child_watch_source_new().
+ *
+ * Note: when using the g_spawn_async() family of functions,
+ * the %G_SPAWN_DO_NOT_REAP_CHILD flag MUST have been passed.
+ *
+ * Since: 0.24
+ */
+void
+vte_terminal_watch_child (VteTerminal *terminal,
+                          GPid child_pid)
+{
+        VteTerminalPrivate *pvt;
+        GObject *object;
+        VteReaper *reaper;
+
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(child_pid != -1);
+
+        pvt = terminal->pvt;
+        g_return_if_fail(pvt->pty != NULL);
+
+        // FIXMEchpe: support passing child_pid = -1 to remove the wathch
+
+        object = G_OBJECT(terminal);
 
         g_object_freeze_notify(object);
 
-	/* Duplicate the environment, and add one more variable. */
-	i = envv ? g_strv_length(envv) : 0;
-	env_add = g_new(char *, i + 2);
-	env_add[0] = g_strdup_printf("TERM=%s", terminal->pvt->emulation);
-	for (i = 0; (envv != NULL) && (envv[i] != NULL); i++) {
-		env_add[i + 1] = g_strdup(envv[i]);
-	}
-	env_add[i + 1] = NULL;
+        /* Set this as the child's pid. */
+        pvt->pty_pid = child_pid;
+        pvt->child_exit_status = 0;
 
-	/* Close any existing ptys. */
-	if (terminal->pvt->pty_channel != NULL) {
-		g_io_channel_unref (terminal->pvt->pty_channel);
-		terminal->pvt->pty_channel = NULL;
-	}
-	if (terminal->pvt->pty_master != -1) {
-		_vte_pty_close(terminal->pvt->pty_master);
-		close(terminal->pvt->pty_master);
-		terminal->pvt->pty_master = -1;
-
-                g_object_notify(object, "pty");
-
-	}
-
-        terminal->pvt->child_exit_status = 0;
-
-	/* Open the new pty. */
-	pid = -1;
-	fd = _vte_pty_open(&pid, env_add, command, argv, directory,
-			  terminal->column_count, terminal->row_count,
-			  lastlog, utmp, wtmp);
-	if (pid == -1 || fd == -1) {
-		g_strfreev(env_add);
-
-                g_object_thaw_notify(object);
-
-		return -1;
+        /* Catch a child-exited signal from the child pid. */
+        reaper = vte_reaper_get();
+        vte_reaper_add_child(child_pid);
+        if (reaper != pvt->pty_reaper) {
+                if (terminal->pvt->pty_reaper != NULL) {
+                        g_signal_handlers_disconnect_by_func(pvt->pty_reaper,
+                                        vte_terminal_catch_child_exited,
+                                        terminal);
+                        g_object_unref(pvt->pty_reaper);
+                }
+                g_signal_connect(reaper, "child-exited",
+                                G_CALLBACK(vte_terminal_catch_child_exited),
+                                terminal);
+                pvt->pty_reaper = reaper;
+        } else {
+                g_object_unref(reaper);
 	}
 
-	/* If we successfully started the process, set up to listen for its
-	 * output. */
-	if (pid != 0) {
-		/* Set this as the child's pid. */
-		terminal->pvt->pty_pid = pid;
-
-		vte_terminal_set_pty (terminal, fd);
-
-		/* Catch a child-exited signal from the child pid. */
-		reaper = vte_reaper_get();
-		vte_reaper_add_child(pid);
-		if (reaper != terminal->pvt->pty_reaper) {
-			if (terminal->pvt->pty_reaper != NULL) {
-				g_signal_handlers_disconnect_by_func(terminal->pvt->pty_reaper,
-						vte_terminal_catch_child_exited,
-						terminal);
-				g_object_unref(terminal->pvt->pty_reaper);
-			}
-			g_signal_connect(reaper, "child-exited",
-					G_CALLBACK(vte_terminal_catch_child_exited),
-					terminal);
-			terminal->pvt->pty_reaper = reaper;
-		} else
-			g_object_unref(reaper);
-	}
-
-	/* Clean up. */
-	g_strfreev(env_add);
+        /* FIXMEchpe: call vte_terminal_set_size here? */
 
         g_object_thaw_notify(object);
+}
 
-	/* Return the pid to the caller. */
-	return pid;
+/*
+ * _vte_terminal_get_user_shell:
+ *
+ * Uses getpwd() to determine the user's shell. If that fails, falls back
+ * to using the SHELL environment variable. As last-ditch fallback, returns
+ * "/bin/sh".
+ *
+ * Returns: a newly allocated string containing the command to run the
+ *   user's shell
+ */
+static char *
+_vte_terminal_get_user_shell (void)
+{
+	struct passwd *pwd;
+	char *command;
+
+	pwd = getpwuid(getuid());
+	if (pwd != NULL) {
+	        command = g_strdup (pwd->pw_shell);
+	        _vte_debug_print(VTE_DEBUG_MISC,
+				"Using user's shell (%s).\n",
+				command ? command : "(null)");
+	}
+	if (command == NULL) {
+		if (g_getenv ("SHELL")) {
+			command = g_strdup (g_getenv ("SHELL"));
+			_vte_debug_print(VTE_DEBUG_MISC,
+					 "Using $SHELL shell (%s).\n",
+					 command);
+		} else {
+			command = g_strdup ("/bin/sh");
+			_vte_debug_print(VTE_DEBUG_MISC,
+					 "Using default shell (%s).\n",
+					 command);
+		}
+	}
+
+	g_assert (command != NULL);
+
+	return command;
+}
+
+/*
+ * _vte_terminal_get_argv:
+ * @command: the command to run
+ * @argv: the argument vector
+ * @flags: (inout) flags from #GSpawnFlags
+ *
+ * Creates an argument vector to pass to g_spawn_async() from @command and
+ * @argv, modifying *@flags if necessary.
+ * Like __vte_pty_get_argv(), but returns the argument vector to spawn
+ * the user's shell if @command is %NULL.
+ *
+ * Returns: a newly allocated array of strings. Free with g_strfreev()
+ */
+static char **
+_vte_terminal_get_argv (const char *command,
+                        char **argv,
+                        GSpawnFlags *flags /* inout */)
+{
+	char **argv2;
+        char *shell = NULL;
+
+        argv2 = __vte_pty_get_argv(command ? command : (shell = _vte_terminal_get_user_shell()),
+                                   argv,
+                                   flags);
+        g_free(shell);
+        return argv2;
 }
 
 /**
  * vte_terminal_fork_command:
  * @terminal: a #VteTerminal
- * @command: the name of a binary to run, or %NULL to get user's shell
+ * @command: the name of a binary to run, or %NULL to spawn the user's shell
  * @argv: the argument list to be passed to @command, or %NULL
  * @envv: a list of environment variables to be added to the environment before
  * starting @command, or %NULL
- * @directory: the name of a directory the command should start in, or %NULL
+ * @working_directory: the name of a directory the command should start in, or %NULL
  * @lastlog: %TRUE if the session should be logged to the lastlog
  * @utmp: %TRUE if the session should be logged to the utmp/utmpx log
  * @wtmp: %TRUE if the session should be logged to the wtmp/wtmpx log
@@ -3449,49 +3515,142 @@ _vte_terminal_fork_basic(VteTerminal *terminal, const char *command,
  *
  * Note that all file descriptors except stdin/stdout/stderr will be closed
  * before calling exec() in the child.
- * 
- * Returns: the ID of the new process
+ *
+ * Returns: the PID of the new process
+ *
+ * Deprecated: 0.24: Use vte_terminal_fork_command_full()
  */
 pid_t
 vte_terminal_fork_command(VteTerminal *terminal,
-			  const char *command, char **argv, char **envv,
-			  const char *directory,
-			  gboolean lastlog, gboolean utmp, gboolean wtmp)
+			  const char *command,
+                          char **argv,
+                          char **envv,
+			  const char *working_directory,
+			  gboolean lastlog,
+                          gboolean utmp,
+                          gboolean wtmp)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+        char **real_argv;
+        GSpawnFlags spawn_flags;
+        GPid child_pid;
+        gboolean ret;
+#ifdef VTE_DEBUG
+        GError *error = NULL;
+        GError **err = &error;
+#else
+        GError **err = NULL;
+#endif
 
-	/* Make the user's shell the default command. */
-	if (command == NULL) {
-		if (terminal->pvt->shell == NULL) {
-			struct passwd *pwd;
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
 
-			pwd = getpwuid(getuid());
-			if (pwd != NULL) {
-				terminal->pvt->shell = pwd->pw_shell;
-				_vte_debug_print(VTE_DEBUG_MISC,
-						"Using user's shell (%s).\n",
-						terminal->pvt->shell);
-			}
-		}
-		if (terminal->pvt->shell == NULL) {
-			if (getenv ("SHELL")) {
-				terminal->pvt->shell = getenv ("SHELL");
-				_vte_debug_print(VTE_DEBUG_MISC,
-					"Using $SHELL shell (%s).\n",
-						terminal->pvt->shell);
-			} else {
-				terminal->pvt->shell = "/bin/sh";
-				_vte_debug_print(VTE_DEBUG_MISC,
-						"Using default shell (%s).\n",
-						terminal->pvt->shell);
-			}
-		}
-		command = terminal->pvt->shell;
-	}
+        spawn_flags = G_SPAWN_CHILD_INHERITS_STDIN |
+                      G_SPAWN_SEARCH_PATH;
+        real_argv = _vte_terminal_get_argv (command, argv, &spawn_flags);
 
-	/* Start up the command and get the PTY of the master. */
-	return _vte_terminal_fork_basic(terminal, command, argv, envv,
-				        directory, lastlog, utmp, wtmp);
+        ret = vte_terminal_fork_command_full(terminal,
+                                             __vte_pty_get_pty_flags(lastlog, utmp, wtmp),
+                                             working_directory,
+                                             real_argv,
+                                             envv,
+                                             spawn_flags,
+                                             NULL, NULL,
+                                             &child_pid,
+                                             err);
+        g_strfreev (real_argv);
+
+#ifdef VTE_DEBUG
+        if (error) {
+                _vte_debug_print(VTE_DEBUG_MISC,
+                                "vte_terminal_fork_command failed: %s\n", error->message);
+                g_error_free(error);
+        }
+#endif
+
+        if (!ret)
+                return -1;
+
+        return (pid_t) child_pid;
+}
+
+/**
+ * vte_terminal_fork_command_full:
+ * @terminal: a #VteTerminal
+ * @pty_flags: flags from #VtePtyFlags
+ * @argv: child's argument vector
+ * @envv: a list of environment variables to be added to the environment before
+ *   starting the process, or %NULL
+ * @working_directory: the name of a directory the command should start in, or %NULL
+ *   to use the cwd
+ * @spawn_flags: flags from #GSpawnFlags
+ * @child_setup: function to run in the child just before exec()
+ * @child_setup_data: user data for @child_setup
+ * @child_pid: a location to store the child PID, or %NULL
+ * @error: return location for a #GError, or %NULL
+ *
+ * Starts the specified command under a newly-allocated controlling
+ * pseudo-terminal.  The @argv and @envv lists should be %NULL-terminated.
+ * The "TERM" environment variable is automatically set to reflect the
+ * terminal widget's emulation setting.
+ * @vte_spawn_flags controls logging the session to the specified system log files.
+ *
+ * Note that %G_SPAWN_DO_NOT_REAP_CHILD will always be added to @spawn_flags.
+ *
+ * Note that all unless @flags contains %G_SPAWN_LEAVE_DESCRIPTORS_OPEN, all file
+ * descriptors except stdin/stdout/stderr will be closed before calling exec()
+ * in the child.
+ *
+ * See vte_terminal_FIXMEchpe() and g_spawn_async() for more information.
+ *
+ * Returns: %TRUE on success, or %FALSE on error with @error filled in
+ *
+ * Since: 0.24
+ */
+gboolean
+vte_terminal_fork_command_full(VteTerminal *terminal,
+                               VtePtyFlags pty_flags,
+                               const char *working_directory,
+                               char **argv,
+                               char **envv,
+                               GSpawnFlags spawn_flags,
+                               GSpawnChildSetupFunc child_setup,
+                               gpointer child_setup_data,
+                               GPid *child_pid /* out */,
+                               GError **error)
+{
+        VtePty *pty;
+        GPid pid;
+
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        g_return_val_if_fail(argv != NULL, FALSE);
+        g_return_val_if_fail(child_setup_data == NULL || child_setup, FALSE);
+        g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+        pty = vte_pty_new(pty_flags, error);
+        if (pty == NULL)
+                return FALSE;
+
+        /* FIXMEchpe: is this flag needed */
+        spawn_flags |= G_SPAWN_CHILD_INHERITS_STDIN;
+
+        if (!__vte_pty_spawn(pty,
+                             working_directory,
+                             argv,
+                             envv,
+                             spawn_flags,
+                             child_setup, child_setup_data,
+                             &pid,
+                             error)) {
+                g_object_unref(pty);
+                return FALSE;
+        }
+
+        vte_terminal_set_pty_object(terminal, pty);
+        vte_terminal_watch_child(terminal, pid);
+
+        if (child_pid)
+                *child_pid = pid;
+
+        return TRUE;
 }
 
 /**
@@ -3499,7 +3658,7 @@ vte_terminal_fork_command(VteTerminal *terminal,
  * @terminal: a #VteTerminal
  * @envv: a list of environment variables to be added to the environment before
  * starting returning in the child process, or %NULL
- * @directory: the name of a directory the child process should change to, or
+ * @working_directory: the name of a directory the child process should change to, or
  * %NULL
  * @lastlog: %TRUE if the session should be logged to the lastlog
  * @utmp: %TRUE if the session should be logged to the utmp/utmpx log
@@ -3510,20 +3669,48 @@ vte_terminal_fork_command(VteTerminal *terminal,
  * emulation setting.  If @lastlog, @utmp, or @wtmp are %TRUE, logs the session
  * to the specified system log files.
  *
+ * Note that all file descriptors except stdin/stdout/stderr will be closed
+ * in the child.
+ *
+ * Note that @envv and @working_directory are silently ignored.
+ *
  * Returns: the ID of the new process in the parent, 0 in the child, and -1 if
  * there was an error
  *
  * Since: 0.11.11
+ *
+ * Deprecated: 0.24: Use #VtePty and fork() instead
  */
 pid_t
 vte_terminal_forkpty(VteTerminal *terminal,
-		     char **envv, const char *directory,
+		     char **envv, const char *working_directory,
 		     gboolean lastlog, gboolean utmp, gboolean wtmp)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+#ifdef HAVE_FORK
+        VtePty *pty;
+        GPid pid;
 
-	return _vte_terminal_fork_basic(terminal, NULL, NULL, envv,
-				       directory, lastlog, utmp, wtmp);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+
+        pty = vte_pty_new(__vte_pty_get_pty_flags(lastlog, utmp, wtmp), NULL);
+        if (pty == NULL)
+                return FALSE;
+
+        if (!__vte_pty_fork(pty,
+                            &pid,
+                            NULL)) {
+                g_object_unref(pty);
+                return FALSE;
+        }
+
+        vte_terminal_set_pty_object(terminal, pty);
+        // FIXMEchpe is that really right?
+        vte_terminal_watch_child(terminal, pid);
+
+        return pid;
+#else
+        return -1;
+#endif
 }
 
 /* Handle an EOF from the client. */
@@ -3534,36 +3721,7 @@ vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
 
         g_object_freeze_notify(object);
 
-
-	/* Close the connections to the child -- note that the source channel
-	 * has already been dereferenced. */
-
-	_vte_terminal_disconnect_pty_read(terminal);
-	_vte_terminal_disconnect_pty_write(terminal);
-	if (terminal->pvt->pty_channel != NULL) {
-		g_io_channel_unref (terminal->pvt->pty_channel);
-		terminal->pvt->pty_channel = NULL;
-	}
-	if (terminal->pvt->pty_master != -1) {
-		_vte_pty_close(terminal->pvt->pty_master);
-		close(terminal->pvt->pty_master);
-		terminal->pvt->pty_master = -1;
-        
-                g_object_notify(object, "pty");
-	}
-
-	/* Take one last shot at processing whatever data is pending, then
-	 * flush the buffers in case we're about to run a new command,
-	 * disconnecting the timeout. */
-	vte_terminal_stop_processing (terminal);
-	if (terminal->pvt->incoming) {
-		vte_terminal_process_incoming(terminal);
-		terminal->pvt->input_bytes = 0;
-	}
-	g_array_set_size(terminal->pvt->pending, 0);
-
-	/* Clear the outgoing buffer as well. */
-	_vte_buffer_clear(terminal->pvt->outgoing);
+        vte_terminal_set_pty_object(terminal, NULL);
 
 	/* Emit a signal that we read an EOF. */
 	vte_terminal_queue_eof(terminal);
@@ -4379,7 +4537,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		}
 		/* If there's a place for it to go, add the data to the
 		 * outgoing buffer. */
-		if ((cooked_length > 0) && (terminal->pvt->pty_master != -1)) {
+		if ((cooked_length > 0) && (terminal->pvt->pty != NULL)) {
 			_vte_buffer_append(terminal->pvt->outgoing,
 					   cooked, cooked_length);
 			_VTE_DEBUG_IF(VTE_DEBUG_KEYBOARD) {
@@ -4453,7 +4611,7 @@ vte_terminal_feed_child_binary(VteTerminal *terminal, const char *data, glong le
 
 		/* If there's a place for it to go, add the data to the
 		 * outgoing buffer. */
-		if (terminal->pvt->pty_master != -1) {
+		if (terminal->pvt->pty != NULL) {
 			_vte_buffer_append(terminal->pvt->outgoing,
 					   data, length);
 			/* If we need to start waiting for the child pty to
@@ -4877,8 +5035,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				suppress_meta_esc = TRUE;
 				break;
 			case VTE_ERASE_TTY:
-				if (terminal->pvt->pty_master != -1 &&
-				    tcgetattr(terminal->pvt->pty_master, &tio) != -1)
+				if (terminal->pvt->pty != NULL &&
+				    tcgetattr(vte_pty_get_fd(terminal->pvt->pty), &tio) != -1)
 				{
 					normal = g_strdup_printf("%c", tio.c_cc[VERASE]);
 					normal_length = 1;
@@ -4890,8 +5048,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 #ifndef _POSIX_VDISABLE
 #define _POSIX_VDISABLE '\0'
 #endif
-				if (terminal->pvt->pty_master != -1 &&
-				    tcgetattr(terminal->pvt->pty_master, &tio) != -1 &&
+				if (terminal->pvt->pty != NULL &&
+				    tcgetattr(vte_pty_get_fd(terminal->pvt->pty), &tio) != -1 &&
 				    tio.c_cc[VERASE] != _POSIX_VDISABLE)
 				{
 					normal = g_strdup_printf("%c", tio.c_cc[VERASE]);
@@ -4920,8 +5078,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				normal_length = 1;
 				break;
 			case VTE_ERASE_TTY:
-				if (terminal->pvt->pty_master != -1 &&
-				    tcgetattr(terminal->pvt->pty_master, &tio) != -1)
+				if (terminal->pvt->pty != NULL &&
+				    tcgetattr(vte_pty_get_fd(terminal->pvt->pty), &tio) != -1)
 				{
 					normal = g_strdup_printf("%c", tio.c_cc[VERASE]);
 					normal_length = 1;
@@ -7554,18 +7712,19 @@ vte_terminal_get_font(VteTerminal *terminal)
 static void
 vte_terminal_refresh_size(VteTerminal *terminal)
 {
+        VteTerminalPrivate *pvt = terminal->pvt;
 	int rows, columns;
-	if (terminal->pvt->pty_master != -1) {
-		/* Use an ioctl to read the size of the terminal. */
-		if (_vte_pty_get_size(terminal->pvt->pty_master, &columns, &rows) != 0) {
-                        int errsv = errno;
+        GError *error = NULL;
 
-			g_warning(_("Error reading PTY size, using defaults: "
-				    "%s."), g_strerror(errsv));
-		} else {
-			terminal->row_count = rows;
-			terminal->column_count = columns;
-		}
+        if (pvt->pty == NULL)
+                return;
+
+        if (vte_pty_get_size(pvt->pty, &rows, &columns, &error)) {
+                terminal->row_count = rows;
+                terminal->column_count = columns;
+        } else {
+                g_warning(_("Error reading PTY size, using defaults: %s\n"), error->message);
+                g_error_free(error);
 	}
 }
 
@@ -7593,13 +7752,16 @@ vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 	old_rows = terminal->row_count;
 	old_columns = terminal->column_count;
 
-	if (terminal->pvt->pty_master != -1) {
-		/* Try to set the terminal size. */
-		if (_vte_pty_set_size(terminal->pvt->pty_master, columns, rows) != 0) {
-			g_warning("Error setting PTY size: %s.",
-				  g_strerror(errno));
+	if (terminal->pvt->pty != NULL) {
+                GError *error = NULL;
+
+		/* Try to set the terminal size, and read it back,
+		 * in case something went awry.
+                 */
+		if (!vte_pty_set_size(terminal->pvt->pty, rows, columns, &error)) {
+			g_warning("%s\n", error->message);
+                        g_error_free(error);
 		}
-		/* Read the terminal size, in case something went awry. */
 		vte_terminal_refresh_size(terminal);
 	} else {
 		terminal->row_count = rows;
@@ -7774,6 +7936,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
         g_object_thaw_notify(object);
 }
 
+/* FIXMEchpe deprecate this function, it's wrong */
 /**
  * vte_terminal_get_default_emulation:
  * @terminal: a #VteTerminal
@@ -7781,14 +7944,15 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
  * Queries the terminal for its default emulation, which is attempted if the
  * terminal type passed to vte_terminal_set_emulation() is %NULL.
  *
- * Returns: the name of the default terminal type the widget attempts to emulate
+ * Returns: an interned string containing the name of the default terminal
+ *   type the widget attempts to emulate
  *
  * Since: 0.11.11
  */
 const char *
 vte_terminal_get_default_emulation(VteTerminal *terminal)
 {
-	return VTE_DEFAULT_EMULATION;
+	return g_intern_static_string(VTE_DEFAULT_EMULATION);
 }
 
 /**
@@ -7798,7 +7962,8 @@ vte_terminal_get_default_emulation(VteTerminal *terminal)
  * Queries the terminal for its current emulation, as last set by a call to
  * vte_terminal_set_emulation().
  *
- * Returns: the name of the terminal type the widget is attempting to emulate
+ * Returns: an interned string containing the name of the terminal type the
+ *   widget is attempting to emulate
  */
 const char *
 vte_terminal_get_emulation(VteTerminal *terminal)
@@ -7948,12 +8113,11 @@ vte_terminal_init(VteTerminal *terminal)
 
 	/* Setting the terminal type and size requires the PTY master to
 	 * be set up properly first. */
-	pvt->pty_master = -1;
+        pvt->pty = NULL;
 	vte_terminal_set_emulation(terminal, NULL);
 	vte_terminal_set_size(terminal,
 			      pvt->default_column_count,
 			      pvt->default_row_count);
-	g_assert (pvt->pty_master == -1);
 	pvt->pty_input_source = 0;
 	pvt->pty_output_source = 0;
 	pvt->pty_pid = -1;
@@ -8038,7 +8202,7 @@ vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
 
 	vte_terminal_ensure_font (terminal);
 
-	if (terminal->pvt->pty_master != -1) {
+	if (terminal->pvt->pty != NULL) {
 		vte_terminal_refresh_size(terminal);
 		requisition->width = terminal->char_width *
 			terminal->column_count;
@@ -8060,10 +8224,10 @@ vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
 			"[Terminal %p] Size request is %dx%d for %ldx%ld cells.\n",
                         terminal,
 			requisition->width, requisition->height,
-			(terminal->pvt->pty_master != -1) ?
+			(terminal->pvt->pty != NULL) ?
 			terminal->column_count :
 			terminal->pvt->default_column_count,
-			(terminal->pvt->pty_master != -1) ?
+			(terminal->pvt->pty != NULL) ?
 			terminal->row_count :
 			terminal->pvt->default_row_count);
 }
@@ -8449,9 +8613,9 @@ vte_terminal_finalize(GObject *object)
 	if (terminal->pvt->pty_channel != NULL) {
 		g_io_channel_unref (terminal->pvt->pty_channel);
 	}
-	if (terminal->pvt->pty_master != -1) {
-		_vte_pty_close(terminal->pvt->pty_master);
-		close(terminal->pvt->pty_master);
+	if (terminal->pvt->pty != NULL) {
+                vte_pty_close(terminal->pvt->pty);
+                g_object_unref(terminal->pvt->pty);
 	}
 
 	/* Remove hash tables. */
@@ -10932,7 +11096,10 @@ vte_terminal_get_property (GObject *object,
                         g_value_set_boolean (value, vte_terminal_get_mouse_autohide (terminal));
                         break;
                 case PROP_PTY:
-                        g_value_set_int (value, pvt->pty_master);
+                        g_value_set_int (value, pvt->pty != NULL ? vte_pty_get_fd(pvt->pty) : -1);
+                        break;
+                case PROP_PTY_OBJECT:
+                        g_value_set_object (value, vte_terminal_get_pty_object(terminal));
                         break;
                 case PROP_SCROLL_BACKGROUND:
                         g_value_set_boolean (value, pvt->scroll_background);
@@ -11023,6 +11190,9 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_PTY:
                         vte_terminal_set_pty (terminal, g_value_get_int (value));
+                        break;
+                case PROP_PTY_OBJECT:
+                        vte_terminal_set_pty_object (terminal, g_value_get_object (value));
                         break;
                 case PROP_SCROLL_BACKGROUND:
                         vte_terminal_set_scroll_background (terminal, g_value_get_boolean (value));
@@ -11191,7 +11361,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted when the terminal receives an end-of-file from a child which
          * is running in the terminal.  This signal is frequently (but not
-         * always) emitted with a "child-exited" signal.
+         * always) emitted with a #VteTerminal::child-exited signal.
          */
 	klass->eof_signal =
                 g_signal_new(I_("eof"),
@@ -11780,7 +11950,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal:background-saturation:
          *
          * If a background image has been set using #VteTerminal:background-image-file: or
-         * #VteTermina:background-image-pixbuf:, or #VteTerminal:background-transparent:,
+         * #VteTerminal:background-image-pixbuf:, or #VteTerminal:background-transparent:,
          * and the saturation value is less
          * than 1.0, the terminal will adjust the colors of the image before drawing
          * the image.  To do so, the terminal will create a copy of the background
@@ -11800,7 +11970,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal:background-tint-color:
          *
          * If a background image has been set using #VteTerminal:background-image-file: or
-         * #VteTermina:background-image-pixbuf:, or #VteTerminal:background-transparent:, and
+         * #VteTerminal:background-image-pixbuf:, or #VteTerminal:background-transparent:, and
          * and the value set by VteTerminal:background-saturation: is less than 1.0,
          * the terminal
          * will adjust the color of the image before drawing the image.  To do so,
@@ -11986,6 +12156,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * The file descriptor of the master end of the terminal's PTY.
          * 
          * Since: 0.20
+         *
+         * Deprecated: 0.24: Use the #VteTerminal:pty-object property instead
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11994,6 +12166,21 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                    -1, G_MAXINT,
                                    -1,
                                    G_PARAM_READWRITE | STATIC_PARAMS));
+
+        /**
+         * VteTerminal:pty-object:
+         *
+         * The PTY object for the terminal.
+         *
+         * Since: 0.24
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_PTY_OBJECT,
+                 g_param_spec_object ("pty-object", NULL, NULL,
+                                      VTE_TYPE_PTY,
+                                      G_PARAM_READWRITE |
+                                      G_PARAM_STATIC_STRINGS));
 
         /**
          * VteTerminal:scroll-background:
@@ -13443,7 +13630,7 @@ vte_terminal_get_status_line(VteTerminal *terminal)
  * size.  The values returned in @xpad and @ypad are the total padding used in
  * each direction, and do not need to be doubled.
  *
- * @Deprecated: 0.24: Get the VteTerminal:inner-border style property instead
+ * Deprecated: 0.24: Get the #VteTerminal:inner-border style property instead
  */
 void
 vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad)
@@ -13601,58 +13788,123 @@ vte_terminal_get_icon_title(VteTerminal *terminal)
 /**
  * vte_terminal_set_pty:
  * @terminal: a #VteTerminal
- * @pty_master: a file descriptor of the master end of a PTY
+ * @pty_master: a file descriptor of the master end of a PTY, or %-1
  *
  * Attach an existing PTY master side to the terminal widget.  Use
  * instead of vte_terminal_fork_command() or vte_terminal_forkpty().
  *
  * Since: 0.12.1
+ *
+ * Deprecated: 0.24: Use vte_pty_new_foreign() and vte_terminal_set_pty_object()
  */
 void
 vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
 {
-        long flags;
-        VteTerminalPrivate *pvt;
-        GObject *object;
+        VtePty *pty;
 
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        object = G_OBJECT(terminal);
-        pvt = terminal->pvt;
-        if (pty_master == pvt->pty_master) {
+        if (pty_master == -1) {
+                vte_terminal_set_pty_object(terminal, NULL);
                 return;
         }
 
+        pty = vte_pty_new_foreign(pty_master);
+        g_assert(pty != NULL);
+
+        vte_terminal_set_pty_object(terminal, pty);
+        g_object_unref(pty);
+}
+
+/**
+ * vte_terminal_set_pty_object:
+ * @terminal: a #VteTerminal
+ * @pty: a #VtePty, or %NULL
+ *
+ * Sets @pty as the PTY to use in @terminal.
+ * Use %NULL to unset the PTY.
+ *
+ * Since: 0.24.
+ */
+void
+vte_terminal_set_pty_object(VteTerminal *terminal,
+                            VtePty *pty)
+{
+        VteTerminalPrivate *pvt;
+        GObject *object;
+        long flags;
+        int pty_master;
+
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(pty == NULL || VTE_IS_PTY(pty));
+
+        pvt = terminal->pvt;
+        if (pvt->pty == pty)
+                return;
+
+        object = G_OBJECT(terminal);
+
         g_object_freeze_notify(object);
 
-       if (terminal->pvt->pty_channel != NULL) {
-	       g_io_channel_unref (terminal->pvt->pty_channel);
-       }
-       if (terminal->pvt->pty_master != -1) {
-               _vte_pty_close (terminal->pvt->pty_master);
-               close (terminal->pvt->pty_master);
-       }
-       terminal->pvt->pty_master = pty_master;
-       terminal->pvt->pty_channel = g_io_channel_unix_new (pty_master);
-       g_io_channel_set_close_on_unref (terminal->pvt->pty_channel, FALSE);
+        if (pvt->pty != NULL) {
+                _vte_terminal_disconnect_pty_read(terminal);
+                _vte_terminal_disconnect_pty_write(terminal);
 
+                if (terminal->pvt->pty_channel != NULL) {
+                        g_io_channel_unref (terminal->pvt->pty_channel);
+                        pvt->pty_channel = NULL;
+                }
 
-       /* Set the pty to be non-blocking. */
-       flags = fcntl (terminal->pvt->pty_master, F_GETFL);
-       if ((flags & O_NONBLOCK) == 0) {
-	       fcntl (terminal->pvt->pty_master, F_SETFL, flags | O_NONBLOCK);
-       }
+		/* Take one last shot at processing whatever data is pending,
+		 * then flush the buffers in case we're about to run a new
+		 * command, disconnecting the timeout. */
+		if (terminal->pvt->incoming != NULL) {
+			vte_terminal_process_incoming(terminal);
+			_vte_incoming_chunks_release (terminal->pvt->incoming);
+			terminal->pvt->incoming = NULL;
+			terminal->pvt->input_bytes = 0;
+		}
+		g_array_set_size(terminal->pvt->pending, 0);
+		vte_terminal_stop_processing (terminal);
 
-       vte_terminal_set_size (terminal,
+		/* Clear the outgoing buffer as well. */
+		_vte_buffer_clear(terminal->pvt->outgoing);
+
+                vte_pty_close(pvt->pty);
+                g_object_unref(pvt->pty);
+                pvt->pty = NULL;
+        }
+
+        if (pty == NULL) {
+                pvt->pty = NULL;
+                g_object_notify(object, "pty");
+                g_object_notify(object, "pty-object");
+                g_object_thaw_notify(object);
+                return;
+        }
+
+        pvt->pty = g_object_ref(pty);
+        pty_master = vte_pty_get_fd(pvt->pty);
+
+        pvt->pty_channel = g_io_channel_unix_new (pty_master);
+        g_io_channel_set_close_on_unref (pvt->pty_channel, FALSE);
+
+        /* FIXMEchpe: vte_pty_open_unix98 does the inverse ... */
+        /* Set the pty to be non-blocking. */
+        flags = fcntl(pty_master, F_GETFL);
+        if ((flags & O_NONBLOCK) == 0) {
+                fcntl(pty_master, F_SETFL, flags | O_NONBLOCK);
+        }
+
+        vte_terminal_set_size(terminal,
                               terminal->column_count,
                               terminal->row_count);
 
-       _vte_terminal_setup_utf8 (terminal);
+        _vte_terminal_setup_utf8 (terminal);
 
-       /* Open channels to listen for input on. */
-       _vte_terminal_connect_pty_read (terminal);
+        /* Open channels to listen for input on. */
+        _vte_terminal_connect_pty_read (terminal);
 
         g_object_notify(object, "pty");
+        g_object_notify(object, "pty-object");
 
         g_object_thaw_notify(object);
 }
@@ -13666,12 +13918,39 @@ vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
  * Return value: the file descriptor, or -1 if the terminal has no PTY.
  *
  * Since: 0.20
+ *
+ * Deprecated: 0.24: Use vte_terminal_get_pty_object() and vte_pty_get_fd()
  */
-int vte_terminal_get_pty(VteTerminal *terminal)
+int
+vte_terminal_get_pty(VteTerminal *terminal)
 {
-  g_return_val_if_fail (VTE_IS_TERMINAL (terminal), -1);
+        VteTerminalPrivate *pvt;
 
-  return terminal->pvt->pty_master;
+        g_return_val_if_fail (VTE_IS_TERMINAL (terminal), -1);
+
+        pvt = terminal->pvt;
+        if (pvt->pty != NULL)
+                return vte_pty_get_fd(pvt->pty);
+
+        return -1;
+}
+
+/**
+ * vte_terminal_get_pty_object:
+ * @terminal: a #VteTerminal
+ *
+ * Returns the #VtePty of @terminal.
+ *
+ * Return value: a #VtePty, or %NULL
+ *
+ * Since: 0.24
+ */
+VtePty *
+vte_terminal_get_pty_object(VteTerminal *terminal)
+{
+        g_return_val_if_fail (VTE_IS_TERMINAL (terminal), NULL);
+
+        return terminal->pvt->pty;
 }
 
 /**
@@ -13683,7 +13962,7 @@ int vte_terminal_get_pty(VteTerminal *terminal)
  * exit status.
  * 
  * Note that this function may only be called from the signal handler of
- * the "child-exited" signal.
+ * the #VteTerminal::child-exited signal.
  * 
  * Returns: the child's exit status
  * 

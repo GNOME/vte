@@ -16,6 +16,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#ifndef VTE_DISABLE_DEPRECATED
+
 #ifndef vte_pty_h_included
 #define vte_pty_h_included
 
@@ -45,4 +47,6 @@ void _vte_pty_close(int pty);
 
 G_END_DECLS
 
-#endif
+#endif /* vte_pty_h_included */
+
+#endif /* !VTE_DISABLE_DEPRECATED */

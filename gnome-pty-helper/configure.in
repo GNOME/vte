@@ -10,7 +10,10 @@ AC_PROG_CC
 AC_STDC_HEADERS
 AM_PROG_CC_STDC
 
-AM_MAINTAINER_MODE
+if test -z "$enable_maintainer_mode"; then
+  enable_maintainer_mode=yes
+fi
+AM_MAINTAINER_MODE([enable])
 
 AC_CHECK_HEADERS(sys/syslimits.h sys/time.h sys/types.h sys/un.h alloca.h lastlog.h libutil.h paths.h pty.h stropts.h termios.h ttyent.h util.h utmp.h utmpx.h pty.h util.h libutil.h ttyent.h)
 have_openpty=0

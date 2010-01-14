@@ -19,7 +19,7 @@ endif
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = vte.pc
 
-DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc
+DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc --disable-silent-rules
 
 MAINTAINERCLEANFILES = \
 		ChangeLog \

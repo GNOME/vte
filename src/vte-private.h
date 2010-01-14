@@ -169,8 +169,7 @@ struct _VteTerminalPrivate {
 	int default_column_count, default_row_count;	/* default sizes */
 
 	/* PTY handling data. */
-	const char *shell;		/* shell we started */
-	int pty_master;			/* pty master descriptor */
+	VtePty *pty;
 	GIOChannel *pty_channel;	/* master channel */
 	guint pty_input_source;
 	guint pty_output_source;

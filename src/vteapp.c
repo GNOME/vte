@@ -881,13 +881,35 @@ main(int argc, char **argv)
 
 	if (!console) {
 		if (shell) {
-			/* Launch a shell. */
+                        GError *err = NULL;
+                        char **command_argv = NULL;
+                        int command_argc;
+                        GPid pid = -1;
+
 			_VTE_DEBUG_IF(VTE_DEBUG_MISC)
 				vte_terminal_feed(terminal, message, -1);
-			vte_terminal_fork_command(terminal,
-						  command, NULL, env_add,
-						  working_directory,
-						  TRUE, TRUE, TRUE);
+
+                        if (command == NULL)
+                                command = "/bin/sh"; // FIXMEchpe
+
+                        if (command != NULL) {
+                                if (!g_shell_parse_argv(command, &command_argc, &command_argv, &err) ||
+                                    !vte_terminal_fork_command_full(terminal,
+                                                                    VTE_PTY_DEFAULT,
+                                                                    NULL,
+                                                                    command_argv,
+                                                                    env_add,
+                                                                    0,
+                                                                    NULL, NULL,
+                                                                    &pid,
+                                                                    &err)) {
+                                        g_warning("Failed to fork: %s\n", err->message);
+                                        g_error_free(err);
+                                } else {
+                                        g_print("Fork succeeded, PID %d\n", pid);
+                                }
+                        }
+                        g_strfreev(command_argv);
 	#ifdef VTE_DEBUG
 			if (command == NULL) {
 				vte_terminal_feed_child(terminal,
