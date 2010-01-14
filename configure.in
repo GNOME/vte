@@ -3,6 +3,8 @@ m4_define([vte_version_minor],[23])
 m4_define([vte_version_micro],[5])
 m4_define([vte_version],[vte_version_major.vte_version_minor.vte_version_micro])
 
+m4_define([vte_api_version],[0])
+
 AC_PREREQ([2.59])
 AC_INIT(vte, [vte_version],
         [http://bugzilla.gnome.org/enter_bug.cgi?product=vte])
@@ -466,13 +468,17 @@ AM_CONDITIONAL([ENABLE_GLADE_CATALOGUE],[test "$enable_glade_catalogue" = "yes"]
 
 ################################################################################
 
-GTK_DOC_CHECK([1.0])
+GTK_DOC_CHECK([1.13],[--flavour no-tmpl])
+
+AC_SUBST([GLIB_PREFIX],[$($PKG_CONFIG --variable=prefix glib-2.0)])
+AC_SUBST([GTK_PREFIX],[$($PKG_CONFIG --variable=prefix gtk+-2.0)])
 
 ################################################################################
 
 AC_SUBST([VTE_MAJOR_VERSION],[vte_version_major])
 AC_SUBST([VTE_MINOR_VERSION],[vte_version_minor])
 AC_SUBST([VTE_MICRO_VERSION],[vte_version_micro])
+AC_SUBST([VTE_API_VERSION],[vte_api_version])
 
 ################################################################################
 
@@ -488,6 +494,7 @@ po/Makefile.in
 doc/Makefile
 doc/openi18n/Makefile
 doc/reference/Makefile
+doc/reference/version.xml
 glade/Makefile
 vte.pc
 vte-uninstalled.pc

@@ -16,9 +16,13 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* VTE accessibility object.  Based heavily on inspection of libzvt's
- * accessibility code. */
-
+/**
+ * SECTION: vte-access
+ * @short_description: Accessibility peer of #VteTerminal
+ *
+ * The accessibility peer of a #VteTerminal, implementing GNOME's accessibility
+ * framework.
+ */
 
 #include <config.h>
 

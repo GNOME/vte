@@ -40,6 +40,22 @@ typedef struct _VteTerminalPrivate VteTerminalPrivate;
 
 /* The terminal widget itself. */
 typedef struct _VteTerminal VteTerminal;
+
+/**
+ * VteTerminal:
+ * @widget: Base #GtkWidget of the terminal widget.
+ * @adjustment: Scroll bar adjustments.
+ * @char_width: Width of a narrow character cell.
+ * @char_height: Height of a character cell.
+ * @char_ascent: The distance (in pixels) from the baseline of drawn text to the top of the character cell.
+ * @char_descent: The distance (in pixels) from the baseline of drawn text to the bottom of the character cell.
+ * @row_count: Number of visible rows.
+ * @column_count: Number of visible columns.
+ * @window_title: The terminal's idea of what the window's title should be.
+ * @icon_title: The terminal's idea of what the window's title should be when iconified.
+ * 
+ * All of these fields should be considered read-only.
+ */
 struct _VteTerminal {
 	/*< public >*/
 
@@ -62,6 +78,12 @@ struct _VteTerminal {
 
 /* The widget's class structure. */
 typedef struct _VteTerminalClass VteTerminalClass;
+
+/**
+ * VteTerminalClass:
+ *
+ * All of these fields should be considered read-only, except for derived classes.
+ */
 struct _VteTerminalClass {
 	/*< public > */
 	/* Inherited parent class. */
@@ -153,8 +175,18 @@ struct _VteTerminalClass {
 	guint reserved6;
 };
 
-/* Values for "what should happen when the user hits backspace/delete".  Use
- * AUTO unless the user can cause them to be overridden. */
+/**
+ * VteTerminalEraseBinding:
+ * @VTE_ERASE_AUTO: For backspace, attempt to determine the right value from the terminal's IO settings.  For delete, use the control sequence.
+ * @VTE_ERASE_ASCII_BACKSPACE: Send an ASCII backspace character (0x08).
+ * @VTE_ERASE_ASCII_DELETE: Send an ASCII delete character (0x7F).
+ * @VTE_ERASE_DELETE_SEQUENCE: Send the "@@7" control sequence.
+ * @VTE_ERASE_TTY: Send terminal's "erase" setting.
+ *
+ * An enumerated type which can be used to indicate which string the terminal
+ * should send to an application when the user presses the Delete or Backspace
+ * keys.
+ */
 typedef enum {
 	VTE_ERASE_AUTO,
 	VTE_ERASE_ASCII_BACKSPACE,
@@ -163,14 +195,31 @@ typedef enum {
 	VTE_ERASE_TTY
 } VteTerminalEraseBinding;
 
-/* Values for the cursor blink setting */
+/**
+ * VteTerminalCursorBlinkMode:
+ * @VTE_CURSOR_BLINK_SYSTEM: Follow GTK+ settings for cursor blinking.
+ * @VTE_CURSOR_BLINK_ON: Cursor blinks.
+ * @VTE_CURSOR_BLINK_OFF: Cursor does not blink.
+ *
+ * An enumerated type which can be used to indicate the cursor blink mode
+ * for the terminal.
+ */
 typedef enum {
         VTE_CURSOR_BLINK_SYSTEM,
         VTE_CURSOR_BLINK_ON,
         VTE_CURSOR_BLINK_OFF
 } VteTerminalCursorBlinkMode;
 
-/* Values for the cursor shape setting */
+/**
+ * VteTerminalCursorShape:
+ * @VTE_CURSOR_SHAPE_BLOCK: Draw a block cursor.  This is the default.
+ * @VTE_CURSOR_SHAPE_IBEAM: Draw a vertical bar on the left side of character.
+ * This is similar to the default cursor for other GTK+ widgets.
+ * @VTE_CURSOR_SHAPE_UNDERLINE: Draw a horizontal bar below the character.
+ *
+ * An enumerated type which can be used to indicate what should the terminal
+ * draw at the cursor position.
+ */
 typedef enum {
         VTE_CURSOR_SHAPE_BLOCK,
         VTE_CURSOR_SHAPE_IBEAM,
@@ -179,6 +228,7 @@ typedef enum {
 
 /* The structure we return as the supplemental attributes for strings. */
 struct _VteCharAttributes {
+        /*< private >*/
 	long row, column;
 	GdkColor fore, back;
 	guint underline:1, strikethrough:1;
@@ -187,6 +237,7 @@ typedef struct _VteCharAttributes VteCharAttributes;
 
 /* The name of the same structure in the 0.10 series, for API compatibility. */
 struct vte_char_attributes {
+        /*< private >*/
 	long row, column;
 	GdkColor fore, back;
 	guint underline:1, strikethrough:1;
@@ -399,7 +450,7 @@ const char *vte_terminal_get_status_line(VteTerminal *terminal);
 
 #ifndef VTE_DISABLE_DEPRECATED
 /* Get the padding the widget is using. */
-void vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad);
+void vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad) G_GNUC_DEPRECATED;
 #endif
 
 /* Attach an existing PTY master side to the terminal widget.  Use
@@ -421,6 +472,13 @@ int vte_terminal_get_child_exit_status(VteTerminal *terminal);
 
 /* Writing contents out */
 
+/**
+ * VteTerminalWriteFlags:
+ * @VTE_TERMINAL_WRITE_DEFAULT: Write contents as UTF-8 text.  This is the default.
+ *
+ * A flag type to determine how terminal contents should be written
+ * to an output stream.
+ */
 typedef enum {
   VTE_TERMINAL_WRITE_DEFAULT = 0
 } VteTerminalWriteFlags;
@@ -434,10 +492,38 @@ gboolean vte_terminal_write_contents (VteTerminal *terminal,
 
 #ifndef VTE_DISABLE_DEPRECATED
 
+/**
+ * VTE_IS_TERMINAL_ERASE_BINDING:
+ *
+ * Does nothing.
+ *
+ * Returns: %FALSE
+ *
+ * @Deprecated: 0.20
+ */
 #define VTE_IS_TERMINAL_ERASE_BINDING(obj)  (FALSE)
+
+/**
+ * VTE_IS_TERMINAL_ANTI_ALIAS:
+ *
+ * Does nothing.
+ *
+ * Returns: %FALSE
+ *
+ * @Deprecated: 0.20
+ */
 #define VTE_IS_TERMINAL_ANTI_ALIAS(obj)     (FALSE)
 
-/* Values for the anti alias setting */
+/**
+ * VteTerminalAntiAlias:
+ * @VTE_ANTI_ALIAS_USE_DEFAULT: Use the system default anti-alias setting
+ * @VTE_ANTI_ALIAS_FORCE_ENABLE: Force enable anti-aliasing
+ * @VTE_ANTI_ALIAS_FORCE_DISABLE: Force disable anti-aliasing
+ *
+ * An enumeration describing which anti-alias setting to use.
+ *
+ * @Deprecated: 0.20
+ */
 typedef enum {
 	VTE_ANTI_ALIAS_USE_DEFAULT,
 	VTE_ANTI_ALIAS_FORCE_ENABLE,

@@ -1,10 +1,11 @@
 <SECTION>
-<FILE>vte</FILE>
+<FILE>vte-terminal</FILE>
 <TITLE>VteTerminal</TITLE>
 VteTerminal
-VteTerminalEraseBinding
-VteTerminalCursorShape
+VteTerminalAntiAlias
 VteTerminalCursorBlinkMode
+VteTerminalCursorShape
+VteTerminalEraseBinding
 VteTerminalWriteFlags
 VteSelectionFunc
 vte_terminal_new
@@ -88,22 +89,24 @@ vte_terminal_get_status_line
 vte_terminal_get_padding
 vte_terminal_write_contents
 <SUBSECTION Standard>
-vte_terminal_cursor_blink_mode_get_type
-vte_terminal_cursor_shape_get_type
 VTE_TYPE_TERMINAL_CURSOR_BLINK_MODE
+vte_terminal_cursor_blink_mode_get_type
 VTE_TYPE_TERMINAL_CURSOR_SHAPE
-vte_terminal_erase_binding_get_type
+vte_terminal_cursor_shape_get_type
 VTE_TYPE_TERMINAL_ERASE_BINDING
-VTE_IS_TERMINAL_ERASE_BINDING
+vte_terminal_erase_binding_get_type
+VTE_TYPE_TERMINAL_WRITE_FLAGS
+vte_terminal_write_flags_get_type
+VTE_TYPE_TERMINAL_ANTI_ALIAS
+vte_terminal_anti_alias_get_type
 VTE_TYPE_TERMINAL
+vte_terminal_get_type
 VTE_IS_TERMINAL
 VTE_TERMINAL
-vte_terminal_get_type
 VTE_TERMINAL_GET_CLASS
 VTE_IS_TERMINAL_CLASS
 VTE_TERMINAL_CLASS
-VTE_TYPE_TERMINAL_WRITE_FLAGS
-vte_terminal_write_flags_get_type
+
 <SUBSECTION Binding Accessors>
 vte_terminal_get_adjustment
 vte_terminal_get_char_ascent
@@ -114,20 +117,29 @@ vte_terminal_get_column_count
 vte_terminal_get_icon_title
 vte_terminal_get_row_count
 vte_terminal_get_window_title
+
+<SUBSECTION Private>
+VTE_IS_TERMINAL_ANTI_ALIAS
+VTE_IS_TERMINAL_ERASE_BINDING
+VteCharAttributes
+VteTerminalPrivate
 </SECTION>
 
 <SECTION>
-<FILE>vteversion</FILE>
+<FILE>vte-version</FILE>
 <TITLE>Version Information</TITLE>
-<SUBSECTION>
+
 VTE_MAJOR_VERSION
 VTE_MINOR_VERSION
 VTE_MICRO_VERSION
+
+<SUBSECTION>
 VTE_CHECK_VERSION
+
 </SECTION>
 
 <SECTION>
-<FILE>vteaccess</FILE>
+<FILE>vte-access</FILE>
 <TITLE>VteTerminalAccessible</TITLE>
 VteTerminalAccessible
 vte_terminal_accessible_new
@@ -137,45 +149,33 @@ VTE_IS_TERMINAL_ACCESSIBLE_CLASS
 VTE_IS_TERMINAL_ACCESSIBLE_FACTORY
 VTE_IS_TERMINAL_ACCESSIBLE_FACTORY_CLASS
 VTE_TERMINAL_ACCESSIBLE
-VteTerminalAccessibleClass
 VTE_TERMINAL_ACCESSIBLE_CLASS
-VteTerminalAccessibleFactory
 VTE_TERMINAL_ACCESSIBLE_FACTORY
-VteTerminalAccessibleFactoryClass
 VTE_TERMINAL_ACCESSIBLE_FACTORY_CLASS
 VTE_TERMINAL_ACCESSIBLE_FACTORY_GET_CLASS
-vte_terminal_accessible_factory_get_type
-vte_terminal_accessible_factory_new
 VTE_TERMINAL_ACCESSIBLE_GET_CLASS
 vte_terminal_accessible_get_type
 VTE_TYPE_TERMINAL_ACCESSIBLE
+vte_terminal_accessible_factory_get_type
 VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY
+VteTerminalAccessibleFactory
+VteTerminalAccessibleFactoryClass
+vte_terminal_accessible_factory_new
 </SECTION>
 
 <SECTION>
-<FILE>internals</FILE>
-<TITLE>Internals</TITLE>
-<SUBSECTION Private>
+<FILE>vte-reaper</FILE>
+<TITLE>VteReaper</TITLE>
+VteReaper
+vte_reaper_add_child
+vte_reaper_get
 
-VTE_IS_TERMINAL_ANTI_ALIAS
-VTE_TYPE_TERMINAL_ANTI_ALIAS
-VteCharAttributes
-VteTerminalAntiAlias
-VteTerminalPrivate
-vte_terminal_anti_alias_get_type
-
-VteReaperClass
-VteTerminalClass
-
+<SUBSECTION Standard>
 VTE_IS_REAPER
 VTE_IS_REAPER_CLASS
 VTE_REAPER
 VTE_REAPER_CLASS
 VTE_REAPER_GET_CLASS
 VTE_TYPE_REAPER
-VteReaper
-vte_reaper_add_child
-vte_reaper_get
 vte_reaper_get_type
-
 </SECTION>

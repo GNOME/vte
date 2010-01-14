@@ -28,8 +28,15 @@
 
 G_BEGIN_DECLS
 
+/**
+ * VteReaper:
+ *
+ * The reaper object.
+ */
 struct _VteReaper {
 	GObject object;
+
+        /*< private >*/
 	GIOChannel *_channel; /* unused */
 	int _iopipe[2]; /* unused */
 };
@@ -37,6 +44,7 @@ typedef struct _VteReaper VteReaper;
 
 struct _VteReaperClass {
 	GObjectClass parent_class;
+        /*< private >*/
 	guint child_exited_signal;
 };
 typedef struct _VteReaperClass VteReaperClass;

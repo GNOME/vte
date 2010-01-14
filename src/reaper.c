@@ -16,6 +16,21 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+/**
+ * SECTION: vte-reaper
+ * @short_description: A singleton object which catches %SIGCHLD signals and
+ * converts them into GObject-style &quot;child-exited&quot; signals
+ *
+ * Because an application may need to be notified when child processes
+ * exit, and because there is only one %SIGCHLD handler, the #VteTerminal
+ * widget relies on a #VteReaper to watch for %SIGCHLD notifications and
+ * retrieve the exit status of child processes which have exited.  When
+ * glib provides child_watch functionality, the #VteReaper merely acts as
+ * a proxy for glib's own functionality.
+ *
+ * Since 0.11.11
+ */
+
 #include <config.h>
 
 #include "debug.h"
@@ -89,6 +104,17 @@ vte_reaper_class_init(VteReaperClass *klass)
 {
 	GObjectClass *gobject_class;
 
+        /**
+         * VteReaper::child-exited:
+         * @vtereaper: the object which received the signal
+         * @arg1: the process ID of the exited child
+         * @arg2: the status of the exited child, as returned by waitpid()
+         * 
+         * Emitted when the #VteReaper object detects that a child of the
+         * current process has exited.
+         *
+         * Since: 0.11.11
+         */
 	klass->child_exited_signal = g_signal_new(g_intern_static_string("child-exited"),
 						  G_OBJECT_CLASS_TYPE(klass),
 						  G_SIGNAL_RUN_LAST,
