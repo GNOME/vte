@@ -25,30 +25,24 @@ IGNORE_HFILES= \
 	marshal.h \
 	matcher.h \
 	ring.h \
+	stamp-vtetypebuiltins.h \
 	table.h \
 	trie.h \
 	vtebg.h \
 	vteconv.h \
 	vtedraw.h \
-	vtefc.h \
-	vteft2.h \
-	vtegl.h \
-	vteglyph.h \
 	vteint.h \
-	vtepango.h \
-	vtepangox.h \
 	vte-private.h \
-	vterdb.h \
 	vteregex.h \
-	vtergb.h \
-	vteseq.h \
+	vterowdata.h \
 	vteseq-list.h \
-	vteseq-table.h \
-	vteskel.h \
+	vtestream-base.h \
+	vtestream-file.h \
+	vtestream.h \
 	vtetc.h \
 	vtetree.h \
 	vteunistr.h \
-	vtexft.h
+	vteunistr.h
 
 
 # CFLAGS and LDFLAGS for compiling scan program. Only needed
