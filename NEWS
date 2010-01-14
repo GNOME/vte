@@ -1,3 +1,8 @@
+0.23.4
+=======
+- Add public API vte_terminal_write_contents()
+- Update docs
+
 0.23.3
 =======
 - Disable symbol deprecation stuff since they were broken
