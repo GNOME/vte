@@ -132,12 +132,11 @@ char_size_realized(GtkWidget *widget, gpointer data)
 
 
 static void
-destroy_and_quit(GtkWidget *widget, gpointer data)
+destroy_and_quit(VteTerminal *terminal, GtkWidget *window)
 {
-	const char *output_file = g_object_get_data (G_OBJECT (widget), "output_file");
+	const char *output_file = g_object_get_data (G_OBJECT (terminal), "output_file");
 
 	if (output_file) {
-		VteTerminal *terminal = VTE_TERMINAL (widget);
 		GFile *file;
 		GOutputStream *stream;
 		GError *error = NULL;
@@ -160,19 +159,20 @@ destroy_and_quit(GtkWidget *widget, gpointer data)
 		g_object_unref (file);
 	}
 
-	gtk_widget_destroy(GTK_WIDGET(data));
-	gtk_main_quit();
+	gtk_widget_destroy (window);
+	gtk_main_quit ();
 }
 static void
-delete_event(GtkWidget *widget, GdkEvent *event, gpointer data)
+delete_event(GtkWidget *window, GdkEvent *event, gpointer terminal)
 {
-	destroy_and_quit(widget, data);
+	destroy_and_quit(VTE_TERMINAL (terminal), window);
 }
 static void
-child_exited(GtkWidget *widget, gpointer data)
+child_exited(GtkWidget *terminal, gpointer window)
 {
-	_vte_debug_print(VTE_DEBUG_MISC, "Detected child exit.\n");
-	destroy_and_quit(widget, data);
+	_vte_debug_print(VTE_DEBUG_MISC, "Child exited with status %x\n",
+			 vte_terminal_get_child_exit_status (VTE_TERMINAL (terminal)));
+	destroy_and_quit(VTE_TERMINAL (terminal), GTK_WIDGET (window));
 }
 
 static void
@@ -458,7 +458,6 @@ static void
 child_exit_cb(VteTerminal *terminal,
                  gpointer user_data)
 {
-  _vte_debug_print(VTE_DEBUG_MISC, "Child exited with status %x\n", vte_terminal_get_child_exit_status(terminal));
 }
 
 int
@@ -684,8 +683,6 @@ main(int argc, char **argv)
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_container_set_resize_mode(GTK_CONTAINER(window),
 				      GTK_RESIZE_IMMEDIATE);
-	g_signal_connect(window, "delete-event",
-			 G_CALLBACK(delete_event), window);
 
 	/* Set ARGB colormap */
 	screen = gtk_widget_get_screen (window);
@@ -738,10 +735,6 @@ main(int argc, char **argv)
 		g_signal_connect(widget, "icon-title-changed",
 				 G_CALLBACK(icon_title_changed), window);
 	}
-
-	/* Connect to the "child-exited" signal to quit when the session ends. */
-	g_signal_connect(widget, "child-exited",
-			 G_CALLBACK(child_exited), window);
 
 	/* Connect to the "status-line-changed" signal. */
 	g_signal_connect(widget, "status-line-changed",
@@ -940,6 +933,9 @@ main(int argc, char **argv)
 	g_object_set_data (G_OBJECT (widget), "output_file", (gpointer) output_file);
 
 	/* Go for it! */
+	g_signal_connect(widget, "child-exited", G_CALLBACK(child_exited), window);
+	g_signal_connect(window, "delete-event", G_CALLBACK(delete_event), widget);
+
 	add_weak_pointer(G_OBJECT(widget), &widget);
 	add_weak_pointer(G_OBJECT(window), &window);
 
