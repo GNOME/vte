@@ -11499,7 +11499,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
 
         /**
-         * VteTerminal::resize-window:
+         * VteTerminal::move-window:
          * @vteterminal: the object which received the signal.
          * @x: the terminal's desired location, X coordinate.
          * @y: the terminal's desired location, Y coordinate.
