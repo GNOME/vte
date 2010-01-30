@@ -25,7 +25,7 @@
  * The terminal widget uses these functions to start commands with new controlling
  * pseudo-terminals and to resize pseudo-terminals.
  *
- * Since: 0.24
+ * Since: 0.26
  */
 
 #include <config.h>
@@ -177,7 +177,7 @@ typedef struct {
 /**
  * VtePty:
  *
- * Since: 0.24
+ * Since: 0.26
  */
 struct _VtePty {
         GObject parent_instance;
@@ -210,7 +210,7 @@ struct _VtePtyClass {
  *
  * FIXMEchpe
  *
- * Since: 0.24
+ * Since: 0.26
  */
 void
 vte_pty_child_setup (VtePty *pty)
@@ -602,7 +602,7 @@ __vte_pty_fork(VtePty *pty,
  *
  * Returns: %TRUE on success, %FALSE on failure with @error filled in
  *
- * Since: 0.24
+ * Since: 0.26
  */
 gboolean
 vte_pty_set_size(VtePty *pty,
@@ -661,7 +661,7 @@ vte_pty_set_size(VtePty *pty,
  *
  * Returns: %TRUE on success, %FALSE on failure with @error filled in
  *
- * Since: 0.24
+ * Since: 0.26
  */
 gboolean
 vte_pty_get_size(VtePty *pty,
@@ -1282,7 +1282,7 @@ _vte_pty_open_with_helper(VtePty *pty,
  * use of the info.  Linux 2.6.5 or so defines IUTF8 to make the line
  * discipline do multibyte backspace correctly.
  *
- * Since: 0.24
+ * Since: 0.26
  */
 void
 vte_pty_set_utf8(VtePty *pty,
@@ -1322,7 +1322,7 @@ vte_pty_set_utf8(VtePty *pty,
  * Cleans up the PTY, specifically any logging performed for the session.
  * The file descriptor to the PTY master remains open.
  *
- * Since: 0.24
+ * Since: 0.26
  */
 void
 vte_pty_close (VtePty *pty)
@@ -1555,7 +1555,7 @@ vte_pty_class_init (VtePtyClass *klass)
          * Controls how the session is recorded in lastlog, utmp, and wtmp,
          * and whether to use the GNOME PTY helper.
          *
-         * Since: 0.24
+         * Since: 0.26
          */
         g_object_class_install_property
                 (object_class,
@@ -1572,7 +1572,7 @@ vte_pty_class_init (VtePtyClass *klass)
          *
          * The file descriptor of the PTY master.
          *
-         * Since: 0.24
+         * Since: 0.26
          */
         g_object_class_install_property
                 (object_class,
@@ -1588,7 +1588,7 @@ vte_pty_class_init (VtePtyClass *klass)
          *
          * Whether the PTY is in UTF-8 mode.
          *
-         * Since: 0.24
+         * Since: 0.26
          */
         g_object_class_install_property
                 (object_class,
@@ -1604,7 +1604,7 @@ vte_pty_class_init (VtePtyClass *klass)
          * The value to set for the TERM environment variable
          * in vte_pty_child_setup().
          *
-         * Since: 0.24
+         * Since: 0.26
          */
         g_object_class_install_property
                 (object_class,
@@ -1625,7 +1625,7 @@ vte_pty_class_init (VtePtyClass *klass)
  *
  * Returns: the error domain for VTE PTY errors
  *
- * Since: 0.24
+ * Since: 0.26
  */
 GQuark
 vte_pty_error_quark(void)
@@ -1671,7 +1671,7 @@ vte_pty_error_quark(void)
  *
  * Returns: a new #VtePty, or %NULL on error with @error filled in
  *
- * Since: 0.24
+ * Since: 0.26
  */
 VtePty *
 vte_pty_new (VtePtyFlags flags,
@@ -1697,7 +1697,7 @@ vte_pty_new (VtePtyFlags flags,
  *
  * Returns: a new #VtePty for @fd
  *
- * Since: 0.24
+ * Since: 0.26
  */
 VtePty *
 vte_pty_new_foreign (int fd)
@@ -1745,7 +1745,7 @@ vte_pty_get_fd (VtePty *pty)
  * Sets what value of the TERM environment variable to set
  * when using vte_pty_child_setup().
  *
- * Since: 0.24
+ * Since: 0.26
  */
 void
 vte_pty_set_term (VtePty *pty,
@@ -1805,7 +1805,7 @@ get_vte_pty_for_fd (int fd)
  *
  * Returns: an open file descriptor for the pty master, -1 on failure
  *
- * Deprecated: 0.24: Use #VtePty together with fork() or the g_spawn_async() family of functions instead
+ * Deprecated: 0.26: Use #VtePty together with fork() or the g_spawn_async() family of functions instead
  */
 int
 _vte_pty_open(pid_t *child,
@@ -1880,7 +1880,7 @@ _vte_pty_open(pid_t *child,
  *
  * Returns: 0 on success, -1 on failure.
  *
- * Deprecated: 0.24: Use #VtePty and vte_pty_get_size() instead
+ * Deprecated: 0.26: Use #VtePty and vte_pty_get_size() instead
  */
 int
 _vte_pty_get_size(int master,
@@ -1909,7 +1909,7 @@ _vte_pty_get_size(int master,
  *
  * Returns: 0 on success, -1 on failure.
  *
- * Deprecated: 0.24: Use #VtePty and vte_pty_set_size() instead
+ * Deprecated: 0.26: Use #VtePty and vte_pty_set_size() instead
  */
 int
 _vte_pty_set_size(int master,
@@ -1936,7 +1936,7 @@ _vte_pty_set_size(int master,
  * use of the info.  Linux 2.6.5 or so defines IUTF8 to make the line
  * discipline do multibyte backspace correctly.
  *
- * Deprecated: 0.24: Use #VtePty and vte_pty_set_utf8() instead
+ * Deprecated: 0.26: Use #VtePty and vte_pty_set_utf8() instead
  */
 void _vte_pty_set_utf8(int master,
                        gboolean utf8)
@@ -1956,7 +1956,7 @@ void _vte_pty_set_utf8(int master,
  * Cleans up the PTY associated with the descriptor, specifically any logging
  * performed for the session.  The descriptor itself remains open.
  *
- * Deprecated: 0.24: Use #VtePty and vte_pty_close() instead
+ * Deprecated: 0.26: Use #VtePty and vte_pty_close() instead
  */
 void _vte_pty_close(int master)
 {

@@ -39,7 +39,7 @@ G_BEGIN_DECLS
  *   don't fall back to try using PTY98
  * @VTE_PTY_DEFAULT: the default flags
  *
- * Since: 0.24
+ * Since: 0.26
  */
 typedef enum {
   VTE_PTY_NO_LASTLOG  = 1 << 0,
@@ -56,7 +56,7 @@ typedef enum {
  *   allocate the PTY
  * @VTE_PTY_ERROR_PTY98_FAILED: failure when using PTY98 to allocate the PTY
  *
- * Since: 0.24
+ * Since: 0.26
  */
 typedef enum {
   VTE_PTY_ERROR_PTY_HELPER_FAILED = 0,
@@ -71,7 +71,7 @@ GQuark vte_pty_error_quark (void);
  * Error domain for VTE PTY errors. Errors in this domain will be from the #VtePtyError
  * enumeration. See #GError for more information on error domains.
  *
- * Since: 0.24
+ * Since: 0.26
  */
 #define VTE_PTY_ERROR (vte_pty_error_quark ())
 

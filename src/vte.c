@@ -3332,7 +3332,7 @@ _vte_terminal_disconnect_pty_write(VteTerminal *terminal)
  *
  * See vte_pty_new() for more information.
  *
- * Since: 0.24
+ * Since: 0.26
  */
 VtePty *
 vte_terminal_pty_new(VteTerminal *terminal,
@@ -3375,7 +3375,7 @@ vte_terminal_pty_new(VteTerminal *terminal,
  * Note: when using the g_spawn_async() family of functions,
  * the %G_SPAWN_DO_NOT_REAP_CHILD flag MUST have been passed.
  *
- * Since: 0.24
+ * Since: 0.26
  */
 void
 vte_terminal_watch_child (VteTerminal *terminal,
@@ -3518,7 +3518,7 @@ _vte_terminal_get_argv (const char *command,
  *
  * Returns: the PID of the new process
  *
- * Deprecated: 0.24: Use vte_terminal_fork_command_full()
+ * Deprecated: 0.26: Use vte_terminal_fork_command_full()
  */
 pid_t
 vte_terminal_fork_command(VteTerminal *terminal,
@@ -3603,7 +3603,7 @@ vte_terminal_fork_command(VteTerminal *terminal,
  *
  * Returns: %TRUE on success, or %FALSE on error with @error filled in
  *
- * Since: 0.24
+ * Since: 0.26
  */
 gboolean
 vte_terminal_fork_command_full(VteTerminal *terminal,
@@ -3679,7 +3679,7 @@ vte_terminal_fork_command_full(VteTerminal *terminal,
  *
  * Since: 0.11.11
  *
- * Deprecated: 0.24: Use #VtePty and fork() instead
+ * Deprecated: 0.26: Use #VtePty and fork() instead
  */
 pid_t
 vte_terminal_forkpty(VteTerminal *terminal,
@@ -12157,7 +12157,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * 
          * Since: 0.20
          *
-         * Deprecated: 0.24: Use the #VteTerminal:pty-object property instead
+         * Deprecated: 0.26: Use the #VteTerminal:pty-object property instead
          */
         g_object_class_install_property
                 (gobject_class,
@@ -12172,7 +12172,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * The PTY object for the terminal.
          *
-         * Since: 0.24
+         * Since: 0.26
          */
         g_object_class_install_property
                 (gobject_class,
@@ -13630,7 +13630,7 @@ vte_terminal_get_status_line(VteTerminal *terminal)
  * size.  The values returned in @xpad and @ypad are the total padding used in
  * each direction, and do not need to be doubled.
  *
- * Deprecated: 0.24: Get the #VteTerminal:inner-border style property instead
+ * Deprecated: 0.26: Get the #VteTerminal:inner-border style property instead
  */
 void
 vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad)
@@ -13795,7 +13795,7 @@ vte_terminal_get_icon_title(VteTerminal *terminal)
  *
  * Since: 0.12.1
  *
- * Deprecated: 0.24: Use vte_pty_new_foreign() and vte_terminal_set_pty_object()
+ * Deprecated: 0.26: Use vte_pty_new_foreign() and vte_terminal_set_pty_object()
  */
 void
 vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
@@ -13822,7 +13822,7 @@ vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
  * Sets @pty as the PTY to use in @terminal.
  * Use %NULL to unset the PTY.
  *
- * Since: 0.24.
+ * Since: 0.26.
  */
 void
 vte_terminal_set_pty_object(VteTerminal *terminal,
@@ -13919,7 +13919,7 @@ vte_terminal_set_pty_object(VteTerminal *terminal,
  *
  * Since: 0.20
  *
- * Deprecated: 0.24: Use vte_terminal_get_pty_object() and vte_pty_get_fd()
+ * Deprecated: 0.26: Use vte_terminal_get_pty_object() and vte_pty_get_fd()
  */
 int
 vte_terminal_get_pty(VteTerminal *terminal)
@@ -13943,7 +13943,7 @@ vte_terminal_get_pty(VteTerminal *terminal)
  *
  * Return value: a #VtePty, or %NULL
  *
- * Since: 0.24
+ * Since: 0.26
  */
 VtePty *
 vte_terminal_get_pty_object(VteTerminal *terminal)
