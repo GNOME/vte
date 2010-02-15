@@ -5,48 +5,49 @@
 # Ignacio Casal Quinteiro <nacho.resa@gmail.com>, 2005.
 # Ignacio Casal Quinteiro <icq@cvs.gnome.org>, 2007, 2008.
 # Mancomún - Centro de Referencia e Servizos de Software Libre <g11n@mancomun.org>, 2009.
+# Fran Diéguez <frandieguez@ubuntu.com>, 2010.
 msgid ""
 msgstr ""
 "Project-Id-Version: gl\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2009-03-17 23:08+0100\n"
-"PO-Revision-Date: 2009-03-10 20:17+0000\n"
-"Last-Translator: Suso Baleato <suso.baleato@xunta.es>\n"
-"Language-Team: Galego <proxecto@trasno.net>\n"
+"POT-Creation-Date: 2010-02-15 17:19+0100\n"
+"PO-Revision-Date: 2010-01-07 11:39+0100\n"
+"Last-Translator: Fran Diéguez <frandieguez@ubuntu.com>\n"
+"Language-Team: Galician <proxecto@trasno.net>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Language: gl\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../src/iso2022.c:785 ../src/iso2022.c:793 ../src/iso2022.c:824
-#: ../src/vte.c:2293
+#: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
+#: ../src/vte.c:2227
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "Non é posíbel converter caracteres de %s a %s."
+msgstr "Non foi posíbel converter os caracteres desde %s a %s."
 
-#: ../src/iso2022.c:1472
+#: ../src/iso2022.c:1464
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr "Tentando definir un mapa NRC '%c' non válido."
+msgstr "Tentando definir un mapa NRC '%c' incorrecto."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1502
+#: ../src/iso2022.c:1494
 msgid "Unrecognized identified coding system."
 msgstr "Sistema de codificación identificado non recoñecido."
 
-#: ../src/iso2022.c:1561 ../src/iso2022.c:1588
+#: ../src/iso2022.c:1553 ../src/iso2022.c:1580
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "Tentando definir un mapa NRC global '%c' non válido."
+msgstr "Tentando definir un mapa NRC global '%c' incorrecto."
 
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: ../src/pty.c:831
+#: ../src/pty.c:833
 #, c-format
 msgid "can not run %s"
-msgstr "non se pode executar %s"
+msgstr "non foi posíbel executar %s"
 
 #: ../src/trie.c:409
 #, c-format
@@ -54,46 +55,47 @@ msgid "Duplicate (%s/%s)!"
 msgstr "Duplicado (%s/%s)!"
 
 #. Bail back to normal mode.
-#: ../src/vteapp.c:846
+#: ../src/vteapp.c:876
 msgid "Could not open console.\n"
 msgstr "Non foi posíbel abrir a consola.\n"
 
-#: ../src/vteapp.c:910
+#: ../src/vteapp.c:945
 msgid "Could not parse the geometry spec passed to --geometry"
 msgstr ""
 "Non foi posíbel analizar a especificación de xeometría pasada a --geometry"
 
-#: ../src/vte.c:1342
+#: ../src/vte.c:1276
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "Erro ao compilar a expresión regular \"%s\"."
+msgstr "Produciuse un erro ao compilar a expresión regular \"%s\"."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4296
+#: ../src/vte.c:4186
 #, c-format
 msgid "Error reading from child: %s."
-msgstr "Erro ao ler desde o fillo: %s."
+msgstr "Produciuse un erro ao ler desde o fillo: %s."
 
-#: ../src/vte.c:4424
+#: ../src/vte.c:4314
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
-"Non é posíbel enviar os datos ao fillo; o convertedor de conxunto de "
-"caracteres non é válido"
+"Non foi posíbel enviar os datos ao fillo; o convertedor de conxunto de "
+"caracteres é incorrecto"
 
-#: ../src/vte.c:4435 ../src/vte.c:5402
+#: ../src/vte.c:4325 ../src/vte.c:5347
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "Erro (%s) ao converter os datos do fillo; ignorando."
+msgstr "Produciuse un erro (%s) ao converter os datos do fillo; eliminando."
 
-#: ../src/vte.c:7673
+#: ../src/vte.c:7563
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
-msgstr "Erro ao ler o tamaño PTY; utilizando os predeterminados: %s."
+msgstr "Produciuse un erro ao ler o tamaño do PTY; usarase o predefinido: %s."
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:13032
+#: ../src/vte.c:13094
 msgid "_vte_conv_open() failed setting word characters"
-msgstr " _vte_conv_open() fallou ao definir os caracteres da palabra"
+msgstr ""
+"Produciuse un fallo en _vte_conv_open() ao definir os caracteres da palabra"
 
 #~ msgid "Error setting PTY size: %s."
 #~ msgstr "Erro ao definir o tamaño do PTY: %s."
