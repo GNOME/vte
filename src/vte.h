@@ -56,34 +56,22 @@ typedef struct _VteTerminal VteTerminal;
 
 /**
  * VteTerminal:
- * @widget: Base #GtkWidget of the terminal widget.
- * @adjustment: Scroll bar adjustments.
- * @char_width: Width of a narrow character cell.
- * @char_height: Height of a character cell.
- * @char_ascent: The distance (in pixels) from the baseline of drawn text to the top of the character cell.
- * @char_descent: The distance (in pixels) from the baseline of drawn text to the bottom of the character cell.
- * @row_count: Number of visible rows.
- * @column_count: Number of visible columns.
- * @window_title: The terminal's idea of what the window's title should be.
- * @icon_title: The terminal's idea of what the window's title should be when iconified.
- * 
- * All of these fields should be considered read-only.
+ *
+ * All of these fields should be considered read-only and deprecated.
  */
 struct _VteTerminal {
-	/*< public >*/
-
-	/* Widget implementation stuffs. */
 	GtkWidget widget;
-	GtkAdjustment *adjustment;	/* Scrolling adjustment. */
+        /*< private >*/
+	GtkAdjustment *VTE_SEAL(adjustment);	/* Scrolling adjustment. */
 
 	/* Metric and sizing data. */
-	glong char_width, char_height;	/* dimensions of character cells */
-	glong char_ascent, char_descent; /* important font metrics */
-	glong row_count, column_count;	/* dimensions of the window */
+	glong VTE_SEAL(char_width), VTE_SEAL(char_height);	/* dimensions of character cells */
+	glong VTE_SEAL(char_ascent), VTE_SEAL(char_descent); /* important font metrics */
+	glong VTE_SEAL(row_count), VTE_SEAL(column_count);	/* dimensions of the window */
 
 	/* Titles. */
-	char *window_title;
-	char *icon_title;
+	char *VTE_SEAL(window_title);
+	char *VTE_SEAL(icon_title);
 
 	/*< private >*/
 	VteTerminalPrivate *pvt;
