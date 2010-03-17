@@ -915,7 +915,7 @@ main(int argc, char **argv)
                                                                     NULL,
                                                                     command_argv,
                                                                     env_add,
-                                                                    0,
+                                                                    G_SPAWN_SEARCH_PATH,
                                                                     NULL, NULL,
                                                                     &pid,
                                                                     &err)) {
