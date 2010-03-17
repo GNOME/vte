@@ -3591,15 +3591,15 @@ vte_terminal_fork_command(VteTerminal *terminal,
  * pseudo-terminal.  The @argv and @envv lists should be %NULL-terminated.
  * The "TERM" environment variable is automatically set to reflect the
  * terminal widget's emulation setting.
- * @vte_spawn_flags controls logging the session to the specified system log files.
+ * @pty_flags controls logging the session to the specified system log files.
  *
  * Note that %G_SPAWN_DO_NOT_REAP_CHILD will always be added to @spawn_flags.
  *
- * Note that all unless @flags contains %G_SPAWN_LEAVE_DESCRIPTORS_OPEN, all file
+ * Note that unless @spawn_flags contains %G_SPAWN_LEAVE_DESCRIPTORS_OPEN, all file
  * descriptors except stdin/stdout/stderr will be closed before calling exec()
  * in the child.
  *
- * See vte_terminal_FIXMEchpe() and g_spawn_async() for more information.
+ * See vte_pty_new(), g_spawn_async() and vte_terminal_watch_child() for more information.
  *
  * Returns: %TRUE on success, or %FALSE on error with @error filled in
  *
