@@ -1769,21 +1769,27 @@ vte_terminal_accessible_set_size(AtkComponent *component,
 				 gint width, gint height)
 {
 	VteTerminal *terminal;
-	gint columns, rows, xpad, ypad;
+	gint columns, rows, char_width, char_height;
 	GtkWidget *widget;
+        GtkBorder *inner_border;
+
 	widget = GTK_ACCESSIBLE(component)->widget;
 	if (widget == NULL) {
 		return FALSE;
 	}
 	terminal = VTE_TERMINAL(widget);
-	vte_terminal_get_padding(terminal, &xpad, &ypad);
+
+        char_width = vte_terminal_get_char_width (terminal);
+        char_height = vte_terminal_get_char_height (terminal);
+        gtk_widget_style_get (widget, "inner-border", &inner_border, NULL);
 	/* If the size is an exact multiple of the cell size, use that,
 	 * otherwise round down. */
-        columns = (width - xpad) / terminal->char_width;
-        rows = (height - ypad) / terminal->char_height;
+        columns = (width - (inner_border ? (inner_border->left + inner_border->right) : 0)) / char_width;
+        rows = (height - (inner_border ? (inner_border->top + inner_border->bottom) : 0)) / char_height;
+        gtk_border_free (inner_border);
 	vte_terminal_set_size(terminal, columns, rows);
-	return (terminal->row_count == rows) &&
-	       (terminal->column_count == columns);
+	return (vte_terminal_get_row_count (terminal) == rows) &&
+	       (vte_terminal_get_column_count (terminal) == columns);
 }
 
 

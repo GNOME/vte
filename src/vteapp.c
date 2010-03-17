@@ -71,7 +71,7 @@ char_size_changed(GtkWidget *widget, guint width, guint height, gpointer data)
 	VteTerminal *terminal;
 	GtkWindow *window;
 	GdkGeometry geometry;
-	int xpad, ypad;
+        GtkBorder *inner_border;
 
 	g_assert(GTK_IS_WINDOW(data));
 	g_assert(VTE_IS_TERMINAL(widget));
@@ -81,14 +81,14 @@ char_size_changed(GtkWidget *widget, guint width, guint height, gpointer data)
 	if (!GTK_WIDGET_REALIZED (window))
 		return;
 
-	vte_terminal_get_padding(terminal, &xpad, &ypad);
-
+        gtk_widget_style_get (widget, "inner-border", &inner_border, NULL);
 	geometry.width_inc = width;
 	geometry.height_inc = height;
-	geometry.base_width = xpad;
-	geometry.base_height = ypad;
-	geometry.min_width = xpad + width * 2;
-	geometry.min_height = ypad + height * 2;
+	geometry.base_width = inner_border ? (inner_border->left + inner_border->right) : 0;
+	geometry.base_height = inner_border ? (inner_border->top + inner_border->bottom) : 0;
+	geometry.min_width = geometry.base_width + width * 2;
+	geometry.min_height = geometry.base_height + height * 2;
+        gtk_border_free (inner_border);
 
 	gtk_window_set_geometry_hints(window, widget, &geometry,
 				      GDK_HINT_RESIZE_INC |
@@ -103,7 +103,7 @@ char_size_realized(GtkWidget *widget, gpointer data)
 	GtkWindow *window;
 	GdkGeometry geometry;
 	guint width, height;
-	int xpad, ypad;
+        GtkBorder *inner_border;
 
 	g_assert(GTK_IS_WINDOW(data));
 	g_assert(VTE_IS_TERMINAL(widget));
@@ -113,16 +113,16 @@ char_size_realized(GtkWidget *widget, gpointer data)
 	if (!GTK_WIDGET_REALIZED (window))
 		return;
 
-	vte_terminal_get_padding(terminal, &xpad, &ypad);
-
+        gtk_widget_style_get (widget, "inner-border", &inner_border, NULL);
 	width = vte_terminal_get_char_width (terminal);
 	height = vte_terminal_get_char_height (terminal);
 	geometry.width_inc = width;
 	geometry.height_inc = height;
-	geometry.base_width = xpad;
-	geometry.base_height = ypad;
-	geometry.min_width = xpad + width * 2;
-	geometry.min_height = ypad + height * 2;
+	geometry.base_width = inner_border ? (inner_border->left + inner_border->right) : 0;
+	geometry.base_height = inner_border ? (inner_border->top + inner_border->bottom) : 0;
+	geometry.min_width = geometry.base_width + width * 2;
+	geometry.min_height = geometry.base_height + height * 2;
+        gtk_border_free (inner_border);
 
 	gtk_window_set_geometry_hints(window, widget, &geometry,
 				      GDK_HINT_RESIZE_INC |
@@ -188,17 +188,21 @@ button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
 	VteTerminal *terminal;
 	char *match;
 	int tag;
-	gint xpad, ypad;
+        GtkBorder *inner_border;
+        int char_width, char_height;
+
 	switch (event->button) {
 	case 3:
 		terminal = VTE_TERMINAL(widget);
-		vte_terminal_get_padding(terminal, &xpad, &ypad);
+
+                gtk_widget_style_get (widget, "inner-border", &inner_border, NULL);
+                char_width = vte_terminal_get_char_width (terminal);
+                char_height = vte_terminal_get_char_height (terminal);
 		match = vte_terminal_match_check(terminal,
-						 (event->x - xpad / 2) /
-						 terminal->char_width,
-						 (event->y - ypad / 2) /
-						 terminal->char_height,
+						 (event->x - (inner_border ? inner_border->left : 0)) / char_width,
+						 (event->y - (inner_border ? inner_border->top : 0)) / char_height,
 						 &tag);
+                gtk_border_free (inner_border);
 		if (match != NULL) {
 			g_print("Matched `%s' (%d).\n", match, tag);
 			g_free(match);
@@ -294,19 +298,31 @@ static void
 resize_window(GtkWidget *widget, guint width, guint height, gpointer data)
 {
 	VteTerminal *terminal;
-	gint owidth, oheight, xpad, ypad;
+
 	if ((GTK_IS_WINDOW(data)) && (width >= 2) && (height >= 2)) {
+                gint owidth, oheight, char_width, char_height, column_count, row_count;
+                GtkBorder *inner_border;
+
 		terminal = VTE_TERMINAL(widget);
-		/* Take into account border overhead. */
+
 		gtk_window_get_size(GTK_WINDOW(data), &owidth, &oheight);
-		owidth -= terminal->char_width * terminal->column_count;
-		oheight -= terminal->char_height * terminal->row_count;
-		/* Take into account padding, which needn't be re-added. */
-		vte_terminal_get_padding(VTE_TERMINAL(widget), &xpad, &ypad);
-		owidth -= xpad;
-		oheight -= ypad;
+
+		/* Take into account border overhead. */
+                char_width = vte_terminal_get_char_width (terminal);
+                char_height = vte_terminal_get_char_height (terminal);
+                column_count = vte_terminal_get_column_count (terminal);
+                row_count = vte_terminal_get_row_count (terminal);
+                gtk_widget_style_get (widget, "inner-border", &inner_border, NULL);
+
+                owidth -= char_width * column_count;
+                oheight -= char_height * row_count;
+                if (inner_border != NULL) {
+                        owidth -= inner_border->left + inner_border->right;
+                        oheight -= inner_border->top + inner_border->bottom;
+                }
 		gtk_window_resize(GTK_WINDOW(data),
 				  width + owidth, height + oheight);
+                gtk_border_free (inner_border);
 	}
 }
 
