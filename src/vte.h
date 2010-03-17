@@ -37,15 +37,15 @@
 G_BEGIN_DECLS
 
 #ifdef GSEAL_ENABLE
-#define VTE_SEAL(name) _vte_sealed__ ## name
+#define _VTE_SEAL(name) _vte_sealed__ ## name
 #else
-#define VTE_SEAL(name) name
+#define _VTE_SEAL(name) name
 #endif
 
 #ifdef VTE_DISABLE_DEPRECATED
-#define VTE_DEPRECATED(name) _vte_deprecated__ ## name
+#define _VTE_DEPRECATED(name) _vte_deprecated__ ## name
 #else
-#define VTE_DEPRECATED(name) name
+#define _VTE_DEPRECATED(name) name
 #endif
 
 /* Private implementation details. */
@@ -62,16 +62,16 @@ typedef struct _VteTerminal VteTerminal;
 struct _VteTerminal {
 	GtkWidget widget;
         /*< private >*/
-	GtkAdjustment *VTE_SEAL(adjustment);	/* Scrolling adjustment. */
+	GtkAdjustment *_VTE_SEAL(adjustment);	/* Scrolling adjustment. */
 
 	/* Metric and sizing data. */
-	glong VTE_SEAL(char_width), VTE_SEAL(char_height);	/* dimensions of character cells */
-	glong VTE_SEAL(char_ascent), VTE_SEAL(char_descent); /* important font metrics */
-	glong VTE_SEAL(row_count), VTE_SEAL(column_count);	/* dimensions of the window */
+	glong _VTE_SEAL(char_width), _VTE_SEAL(char_height);	/* dimensions of character cells */
+	glong _VTE_SEAL(char_ascent), _VTE_SEAL(char_descent); /* important font metrics */
+	glong _VTE_SEAL(row_count), _VTE_SEAL(column_count);	/* dimensions of the window */
 
 	/* Titles. */
-	char *VTE_SEAL(window_title);
-	char *VTE_SEAL(icon_title);
+	char *_VTE_SEAL(window_title);
+	char *_VTE_SEAL(icon_title);
 
 	/*< private >*/
 	VteTerminalPrivate *pvt;
@@ -137,39 +137,39 @@ struct _VteTerminalClass {
 
 	/*< private > */
 	/* Signals we might emit. */
-        guint VTE_SEAL(eof_signal);
-        guint VTE_SEAL(child_exited_signal);
-        guint VTE_SEAL(emulation_changed_signal);
-        guint VTE_SEAL(encoding_changed_signal);
-        guint VTE_SEAL(char_size_changed_signal);
-        guint VTE_SEAL(window_title_changed_signal);
-        guint VTE_SEAL(icon_title_changed_signal);
-        guint VTE_SEAL(selection_changed_signal);
-        guint VTE_SEAL(contents_changed_signal);
-        guint VTE_SEAL(cursor_moved_signal);
-        guint VTE_SEAL(status_line_changed_signal);
-        guint VTE_SEAL(commit_signal);
-        guint VTE_SEAL(deiconify_window_signal);
-        guint VTE_SEAL(iconify_window_signal);
-        guint VTE_SEAL(raise_window_signal);
-        guint VTE_SEAL(lower_window_signal);
-        guint VTE_SEAL(refresh_window_signal);
-        guint VTE_SEAL(restore_window_signal);
-        guint VTE_SEAL(maximize_window_signal);
-        guint VTE_SEAL(resize_window_signal);
-        guint VTE_SEAL(move_window_signal);
-        guint VTE_SEAL(increase_font_size_signal);
-        guint VTE_SEAL(decrease_font_size_signal);
-        guint VTE_SEAL(text_modified_signal);
-        guint VTE_SEAL(text_inserted_signal);
-        guint VTE_SEAL(text_deleted_signal);
-        guint VTE_SEAL(text_scrolled_signal);
-        guint VTE_SEAL(reserved1);
-        guint VTE_SEAL(reserved2);
-        guint VTE_SEAL(reserved3);
-        guint VTE_SEAL(reserved4);
-        guint VTE_SEAL(reserved5);
-        guint VTE_SEAL(reserved6);
+        guint _VTE_DEPRECATED(eof_signal);
+        guint _VTE_DEPRECATED(child_exited_signal);
+        guint _VTE_DEPRECATED(emulation_changed_signal);
+        guint _VTE_DEPRECATED(encoding_changed_signal);
+        guint _VTE_DEPRECATED(char_size_changed_signal);
+        guint _VTE_DEPRECATED(window_title_changed_signal);
+        guint _VTE_DEPRECATED(icon_title_changed_signal);
+        guint _VTE_DEPRECATED(selection_changed_signal);
+        guint _VTE_DEPRECATED(contents_changed_signal);
+        guint _VTE_DEPRECATED(cursor_moved_signal);
+        guint _VTE_DEPRECATED(status_line_changed_signal);
+        guint _VTE_DEPRECATED(commit_signal);
+        guint _VTE_DEPRECATED(deiconify_window_signal);
+        guint _VTE_DEPRECATED(iconify_window_signal);
+        guint _VTE_DEPRECATED(raise_window_signal);
+        guint _VTE_DEPRECATED(lower_window_signal);
+        guint _VTE_DEPRECATED(refresh_window_signal);
+        guint _VTE_DEPRECATED(restore_window_signal);
+        guint _VTE_DEPRECATED(maximize_window_signal);
+        guint _VTE_DEPRECATED(resize_window_signal);
+        guint _VTE_DEPRECATED(move_window_signal);
+        guint _VTE_DEPRECATED(increase_font_size_signal);
+        guint _VTE_DEPRECATED(decrease_font_size_signal);
+        guint _VTE_DEPRECATED(text_modified_signal);
+        guint _VTE_DEPRECATED(text_inserted_signal);
+        guint _VTE_DEPRECATED(text_deleted_signal);
+        guint _VTE_DEPRECATED(text_scrolled_signal);
+        guint _VTE_DEPRECATED(reserved1);
+        guint _VTE_DEPRECATED(reserved2);
+        guint _VTE_DEPRECATED(reserved3);
+        guint _VTE_DEPRECATED(reserved4);
+        guint _VTE_DEPRECATED(reserved5);
+        guint _VTE_DEPRECATED(reserved6);
 };
 
 /**
@@ -563,8 +563,8 @@ void vte_terminal_set_font_from_string_full(VteTerminal *terminal,
 
 #endif /* VTE_DISABLE_DEPRECATED */
 
-#undef VTE_SEAL
-#undef VTE_DEPRECATED
+#undef _VTE_SEAL
+#undef _VTE_DEPRECATED
 
 G_END_DECLS
 
