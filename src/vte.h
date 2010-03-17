@@ -24,7 +24,9 @@
 #include <pango/pango.h>
 #include <gtk/gtk.h>
 
+#ifndef VTE_DISABLE_DEPRECATED
 #include <sys/types.h> /* for pid_t */
+#endif
 
 #define __VTE_VTE_H_INSIDE__ 1
 

@@ -25,8 +25,6 @@
 
 #include <glib-object.h>
 
-#include <sys/types.h> /* for pid_t */
-
 G_BEGIN_DECLS
 
 /**
