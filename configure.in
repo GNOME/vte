@@ -466,6 +466,17 @@ fi
   
 AM_CONDITIONAL([ENABLE_GLADE_CATALOGUE],[test "$enable_glade_catalogue" = "yes"])
 
+# *************
+# Introspection
+# *************
+
+# No automagic please!
+if test -z "$enable_introspection"; then
+  enable_introspection=no
+fi
+
+GOBJECT_INTROSPECTION_CHECK([0.6.7])
+
 ################################################################################
 
 GTK_DOC_CHECK([1.13],[--flavour no-tmpl])

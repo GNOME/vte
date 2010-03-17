@@ -151,6 +151,38 @@ vte_SOURCES = vteapp.c
 vte_CFLAGS = $(VTE_CFLAGS)
 vte_LDADD = libvte.la $(VTE_LIBS)
 
+# introspection
+
+INTROSPECTION_GIRS =
+INTROSPECTION_SCANNER_ARGS = --add-include-path=$(srcdir)
+INTROSPECTION_COMPILER_ARGS = --includedir=$(srcdir)
+
+if HAVE_INTROSPECTION
+introspection_sources = \
+    vte.c \
+    vte.h \
+    vtepty.h \
+    pty.c \
+    vtetypebuiltins.c \
+    vtetypebuiltins.h
+
+Vte-@VTE_API_VERSION@.gir: libvte.la
+Vte_@VTE_API_VERSION@_gir_INCLUDES = Pango-1.0 Gdk-2.0 Gtk-2.0
+Vte_@VTE_API_VERSION@_gir_CFLAGS = $(VTE_CFLAGS) -DVTE_COMPILATION -I$(top_srcdir)
+Vte_@VTE_API_VERSION@_gir_LIBS = libvte.la
+Vte_@VTE_API_VERSION@_gir_FILES = $(addprefix $(srcdir)/,$(introspection_sources))
+
+INTROSPECTION_GIRS += Vte-@VTE_API_VERSION@.gir
+
+girdir = $(INTROSPECTION_GIRDIR)
+dist_gir_DATA = $(INTROSPECTION_GIRS)
+
+typelibdir = $(INTROSPECTION_TYPELIBDIR)
+typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
+
+CLEANFILES += $(dist_gir_DATA) $(typelib_DATA)
+endif
+
 
 # Misc unit tests and utilities
 
@@ -288,3 +320,4 @@ ssfe_SOURCES = ssfe.c
 xticker_SOURCES = xticker.c
 
 -include $(top_srcdir)/git.mk
+-include $(INTROSPECTION_MAKEFILE)
