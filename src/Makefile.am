@@ -161,7 +161,7 @@ EXTRA_DIST += $(pkglib_SCRIPTS)
 TEST_SH = check-doc-syntax.sh
 EXTRA_DIST += $(TEST_SH)
 
-check_PROGRAMS = dumpkeys iso2022 pty reaper reflect-text-view reflect-vte mev ssfe table trie xticker vteconv vtetc
+check_PROGRAMS = dumpkeys iso2022 reaper reflect-text-view reflect-vte mev ssfe table trie xticker vteconv vtetc
 TESTS = table trie $(TEST_SH)
 
 AM_CFLAGS = $(GLIB_CFLAGS)
@@ -273,9 +273,6 @@ trie_LDADD = $(VTE_LIBS)
 
 vtetc_SOURCES = vtetc.c vtetc.h debug.c debug.h
 vtetc_CPPFLAGS = -DTERMCAP_MAIN
-
-pty_SOURCES = pty.c pty.h debug.c debug.h
-pty_CPPFLAGS = -DPTY_MAIN -DLIBEXECDIR='"$(libexecdir)"'
 
 reaper_SOURCES = reaper.c reaper.h debug.c debug.h marshal.c marshal.h
 reaper_CPPFLAGS =  -DREAPER_MAIN -DLOCALEDIR='"$(localedir)"'
