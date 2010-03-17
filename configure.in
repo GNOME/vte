@@ -1,6 +1,6 @@
 m4_define([vte_version_major],[0])
-m4_define([vte_version_minor],[23])
-m4_define([vte_version_micro],[5])
+m4_define([vte_version_minor],[25])
+m4_define([vte_version_micro],[0])
 m4_define([vte_version],[vte_version_major.vte_version_minor.vte_version_micro])
 
 m4_define([vte_api_version],[0])
