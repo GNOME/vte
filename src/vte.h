@@ -149,43 +149,39 @@ struct _VteTerminalClass {
 
 	/*< private > */
 	/* Signals we might emit. */
-	guint eof_signal;
-	guint child_exited_signal;
-	guint emulation_changed_signal;
-	guint encoding_changed_signal;
-	guint char_size_changed_signal;
-	guint window_title_changed_signal;
-	guint icon_title_changed_signal;
-	guint selection_changed_signal;
-	guint contents_changed_signal;
-	guint cursor_moved_signal;
-	guint status_line_changed_signal;
-	guint commit_signal;
-
-	guint deiconify_window_signal;
-	guint iconify_window_signal;
-	guint raise_window_signal;
-	guint lower_window_signal;
-	guint refresh_window_signal;
-	guint restore_window_signal;
-	guint maximize_window_signal;
-	guint resize_window_signal;
-	guint move_window_signal;
-
-	guint increase_font_size_signal;
-	guint decrease_font_size_signal;
-
-	guint text_modified_signal;
-	guint text_inserted_signal;
-	guint text_deleted_signal;
-	guint text_scrolled_signal;
-
-	guint reserved1;
-	guint reserved2;
-	guint reserved3;
-	guint reserved4;
-	guint reserved5;
-	guint reserved6;
+        guint VTE_SEAL(eof_signal);
+        guint VTE_SEAL(child_exited_signal);
+        guint VTE_SEAL(emulation_changed_signal);
+        guint VTE_SEAL(encoding_changed_signal);
+        guint VTE_SEAL(char_size_changed_signal);
+        guint VTE_SEAL(window_title_changed_signal);
+        guint VTE_SEAL(icon_title_changed_signal);
+        guint VTE_SEAL(selection_changed_signal);
+        guint VTE_SEAL(contents_changed_signal);
+        guint VTE_SEAL(cursor_moved_signal);
+        guint VTE_SEAL(status_line_changed_signal);
+        guint VTE_SEAL(commit_signal);
+        guint VTE_SEAL(deiconify_window_signal);
+        guint VTE_SEAL(iconify_window_signal);
+        guint VTE_SEAL(raise_window_signal);
+        guint VTE_SEAL(lower_window_signal);
+        guint VTE_SEAL(refresh_window_signal);
+        guint VTE_SEAL(restore_window_signal);
+        guint VTE_SEAL(maximize_window_signal);
+        guint VTE_SEAL(resize_window_signal);
+        guint VTE_SEAL(move_window_signal);
+        guint VTE_SEAL(increase_font_size_signal);
+        guint VTE_SEAL(decrease_font_size_signal);
+        guint VTE_SEAL(text_modified_signal);
+        guint VTE_SEAL(text_inserted_signal);
+        guint VTE_SEAL(text_deleted_signal);
+        guint VTE_SEAL(text_scrolled_signal);
+        guint VTE_SEAL(reserved1);
+        guint VTE_SEAL(reserved2);
+        guint VTE_SEAL(reserved3);
+        guint VTE_SEAL(reserved4);
+        guint VTE_SEAL(reserved5);
+        guint VTE_SEAL(reserved6);
 };
 
 /**
