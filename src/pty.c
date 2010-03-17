@@ -634,7 +634,7 @@ vte_pty_set_size(VtePty *pty,
                 g_set_error(error, G_IO_ERROR,
                             g_io_error_from_errno(errsv),
                             "Failed to set window size: %s",
-                            g_strerror(errno));
+                            g_strerror(errsv));
 
 		_vte_debug_print(VTE_DEBUG_PTY,
 				"Failed to set size on %d: %s.\n",
@@ -699,7 +699,7 @@ vte_pty_get_size(VtePty *pty,
                 g_set_error(error, G_IO_ERROR,
                             g_io_error_from_errno(errsv),
                             "Failed to get window size: %s",
-                            g_strerror(errno));
+                            g_strerror(errsv));
 
 		_vte_debug_print(VTE_DEBUG_PTY,
 				"Failed to read size from fd %d: %s\n",
