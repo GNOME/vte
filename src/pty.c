@@ -724,7 +724,7 @@ _vte_pty_ptsname(int master)
 #if defined(HAVE_PTSNAME_R)
 	gsize len = 1024;
 	char *buf = NULL;
-	int i;
+	int i, errsv;
 	do {
 		buf = g_malloc0(len);
 		i = ptsname_r(master, buf, len - 1);
@@ -736,7 +736,9 @@ _vte_pty_ptsname(int master)
 			return buf;
 			break;
 		default:
+                        errsv = errno;
 			g_free(buf);
+                        errno = errsv;
 			buf = NULL;
 			break;
 		}
