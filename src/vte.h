@@ -36,6 +36,18 @@
 
 G_BEGIN_DECLS
 
+#ifdef GSEAL_ENABLE
+#define VTE_SEAL(name) _vte_sealed__ ## name
+#else
+#define VTE_SEAL(name) name
+#endif
+
+#ifdef VTE_DISABLE_DEPRECATED
+#define VTE_DEPRECATED(name) _vte_deprecated__ ## name
+#else
+#define VTE_DEPRECATED(name) name
+#endif
+
 /* Private implementation details. */
 typedef struct _VteTerminalPrivate VteTerminalPrivate;
 
@@ -566,6 +578,9 @@ void vte_terminal_set_font_from_string_full(VteTerminal *terminal,
 					    VteTerminalAntiAlias antialias) G_GNUC_DEPRECATED;
 
 #endif /* VTE_DISABLE_DEPRECATED */
+
+#undef VTE_SEAL
+#undef VTE_DEPRECATED
 
 G_END_DECLS
 
