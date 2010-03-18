@@ -24,10 +24,6 @@
 #include <pango/pango.h>
 #include <gtk/gtk.h>
 
-#ifndef VTE_DISABLE_DEPRECATED
-#include <sys/types.h> /* for pid_t */
-#endif
-
 #define __VTE_VTE_H_INSIDE__ 1
 
 #include "vtepty.h"
@@ -272,20 +268,6 @@ VtePty *vte_terminal_pty_new (VteTerminal *terminal,
 void vte_terminal_watch_child (VteTerminal *terminal,
                                GPid child_pid);
 
-#ifndef VTE_DISABLE_DEPRECATED
-pid_t vte_terminal_fork_command(VteTerminal *terminal,
-				const char *command, char **argv,
-				char **envv, const char *working_directory,
-				gboolean lastlog,
-				gboolean utmp,
-				gboolean wtmp) G_GNUC_DEPRECATED;
-pid_t vte_terminal_forkpty(VteTerminal *terminal,
-			   char **envv, const char *working_directory,
-			   gboolean lastlog,
-			   gboolean utmp,
-			   gboolean wtmp) G_GNUC_DEPRECATED;
-#endif /* VTE_DISABLE_DEPRECATED */
-
 gboolean vte_terminal_fork_command_full(VteTerminal *terminal,
                                         VtePtyFlags pty_flags,
                                         const char *working_directory,
@@ -465,16 +447,6 @@ const char *vte_terminal_get_encoding(VteTerminal *terminal);
 /* Get the contents of the status line. */
 const char *vte_terminal_get_status_line(VteTerminal *terminal);
 
-#ifndef VTE_DISABLE_DEPRECATED
-/* Get the padding the widget is using. */
-void vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad) G_GNUC_DEPRECATED;
-#endif
-
-#ifndef VTE_DISABLE_DEPRECATED
-void vte_terminal_set_pty(VteTerminal *terminal, int pty_master);
-int vte_terminal_get_pty(VteTerminal *terminal);
-#endif
-
 void vte_terminal_set_pty_object(VteTerminal *terminal, VtePty *pty);
 VtePty *vte_terminal_get_pty_object(VteTerminal *terminal);
 
@@ -511,6 +483,10 @@ gboolean vte_terminal_write_contents (VteTerminal *terminal,
 
 
 #ifndef VTE_DISABLE_DEPRECATED
+
+G_END_DECLS
+#include <sys/types.h> /* for pid_t */
+G_BEGIN_DECLS
 
 /**
  * VTE_IS_TERMINAL_ERASE_BINDING:
@@ -562,6 +538,20 @@ void vte_terminal_set_font_full(VteTerminal *terminal,
 void vte_terminal_set_font_from_string_full(VteTerminal *terminal,
 					    const char *name,
 					    VteTerminalAntiAlias antialias) G_GNUC_DEPRECATED;
+pid_t vte_terminal_fork_command(VteTerminal *terminal,
+				const char *command, char **argv,
+				char **envv, const char *working_directory,
+				gboolean lastlog,
+				gboolean utmp,
+				gboolean wtmp) G_GNUC_DEPRECATED;
+pid_t vte_terminal_forkpty(VteTerminal *terminal,
+			   char **envv, const char *working_directory,
+			   gboolean lastlog,
+			   gboolean utmp,
+			   gboolean wtmp) G_GNUC_DEPRECATED;
+void vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad) G_GNUC_DEPRECATED;
+void vte_terminal_set_pty(VteTerminal *terminal, int pty_master);
+int vte_terminal_get_pty(VteTerminal *terminal);
 
 #endif /* VTE_DISABLE_DEPRECATED */
 
