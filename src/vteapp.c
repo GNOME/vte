@@ -476,6 +476,34 @@ child_exit_cb(VteTerminal *terminal,
 {
 }
 
+static guint
+parse_flags(GType type,
+            const char *string)
+{
+  GFlagsClass *flags_klass;
+  guint value = 0;
+  char **flags;
+  guint i;
+
+  flags = g_strsplit_set(string, ",|", -1);
+  if (flags == NULL)
+    return 0;
+
+  flags_klass = (GFlagsClass*)g_type_class_ref(type);
+  for (i = 0; flags[i] != NULL; ++i) {
+          GFlagsValue *flags_value;
+
+          flags_value = g_flags_get_value_by_nick(flags_klass, flags[i]);
+          if (flags_value)
+                  value |= flags_value->value;
+          else
+                  g_warning("Unknown flag '%s'\n", flags[i]);
+  }
+  g_type_class_unref(flags_klass);
+
+  return value;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -505,6 +533,7 @@ main(int argc, char **argv)
 	const char *command = NULL;
 	const char *working_directory = NULL;
 	const char *output_file = NULL;
+        char *pty_flags_string = NULL;
         char *cursor_shape = NULL;
 	GdkColor fore, back, tint, highlight, cursor;
 	const GOptionEntry options[]={
@@ -654,10 +683,16 @@ main(int argc, char **argv)
 			G_OPTION_ARG_STRING, &output_file,
 			"Save terminal contents to file at exit", NULL
 		},
+		{
+			"pty-flags", 0, 0,
+			G_OPTION_ARG_STRING, &pty_flags_string,
+			"PTY flags set from default|no-utmp|no-wtmp|no-lastlog|no-helper|no-fallback", NULL
+		},
 		{ NULL }
 	};
 	GOptionContext *context;
 	GError *error = NULL;
+        VtePtyFlags pty_flags = VTE_PTY_DEFAULT;
 
 	/* Have to do this early. */
 	if (getenv("VTE_PROFILE_MEMORY")) {
@@ -677,6 +712,11 @@ main(int argc, char **argv)
 		g_error_free (error);
 		return 1;
 	}
+
+        if (pty_flags_string) {
+                pty_flags |= parse_flags(VTE_TYPE_PTY_FLAGS, pty_flags_string);
+                g_free(pty_flags_string);
+        }
 
 	if (!reverse) {
 		back.red = back.green = back.blue = 0xffff;
@@ -911,7 +951,7 @@ main(int argc, char **argv)
                         if (command != NULL) {
                                 if (!g_shell_parse_argv(command, &command_argc, &command_argv, &err) ||
                                     !vte_terminal_fork_command_full(terminal,
-                                                                    VTE_PTY_DEFAULT,
+                                                                    pty_flags,
                                                                     NULL,
                                                                     command_argv,
                                                                     env_add,
