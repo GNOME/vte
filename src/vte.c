@@ -8249,6 +8249,8 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 		terminal->char_width;
 	height = (allocation->height - (terminal->pvt->inner_border.top + terminal->pvt->inner_border.bottom)) /
 		 terminal->char_height;
+	width = MAX(width, 1);
+	height = MAX(height, 1);
 
 	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
 			"[Terminal %p] Sizing window to %dx%d (%ldx%ld).\n",
