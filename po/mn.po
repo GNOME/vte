@@ -8,115 +8,117 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-03-13 00:22-0500\n"
-"PO-Revision-Date: 2003-08-24 01:45+0200\n"
-"Last-Translator: Sanlig Badral <Badral@openmn.org>\n"
+"Report-Msgid-Bugs-To: "
+"http://bugzilla.gnome.org/enter_bug.cgi?product=vte&component=general\n"
+"POT-Creation-Date: 2010-03-17 23:26+0000\n"
+"PO-Revision-Date: 2010-03-22 14:14+0200\n"
+"Last-Translator: Badral <badral@openmn.org>\n"
 "Language-Team: Mongolian <openmn-kdemn@lists.sourceforge.net>\n"
+"Language: mn\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 1.0.2\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Pootle 2.0.3\n"
 
-#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:1590
+#: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
+#: ../src/vte.c:2227
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Тэмдэгт %s -с %s рүү хөрвөх боломжгүй."
 
-#: src/iso2022.c:1582
+#: ../src/iso2022.c:1464
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Хүчингүй '%c' NRC зургийг тогтоохыг оролдох."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1623
+#: ../src/iso2022.c:1494
 msgid "Unrecognized identified coding system."
 msgstr "Танигдахгүй ялгах кодчилолын систем"
 
-#: src/iso2022.c:1672 src/iso2022.c:1698
+#: ../src/iso2022.c:1553 ../src/iso2022.c:1580
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Хүчингүй '%c' wide NRC зургийг тогтоохыг оролдох."
 
-#: src/pty.c:329
-#, c-format
-msgid "Error adding `%s' to environment, continuing."
-msgstr "»%s« -г орчин руу нэмэхэд алдаа гарлаа, үргэлжлүүлэх."
-
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: src/pty.c:914
+#: ../src/pty.c:833
 #, c-format
 msgid "can not run %s"
 msgstr "%s ажиллаж чадахгүй байна"
 
-#: src/reaper.c:156
-msgid "Error creating signal pipe."
-msgstr "Сигнарын шугам үүсгэж байхад алдаа гарлаа."
-
-#: src/trie.c:412
+#: ../src/trie.c:409
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Давхардал (%s/%s)!"
 
-#: src/vte.c:1016
+#. Bail back to normal mode.
+#: ../src/vteapp.c:876
+msgid "Could not open console.\n"
+msgstr "Консолыг нээж чадсангүй.\n"
+
+#: ../src/vteapp.c:945
+msgid "Could not parse the geometry spec passed to --geometry"
+msgstr "--geometry параметрээр өгөгдсөн хэмжээг задлан шинжлэх боломжгүй байна"
+
+#: ../src/vte.c:1276
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "»%s« энгийн илэрхийлэлийг хөрвүүлж байхад алдаа."
 
-#: src/vte.c:2472
-#, c-format
-msgid "No handler for control sequence `%s' defined."
-msgstr "»%s« шалгах дарааллын боловсруулагч тодорхойлогдоогүй байна."
-
 #. Translators: %s is replaced with error message returned by strerror().
-#: src/vte.c:3315
+#: ../src/vte.c:4186
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Хүүг уншихад алдаа: %s."
 
-#: src/vte.c:3437 src/vte.c:4331
+#: ../src/vte.c:4314
+msgid "Unable to send data to child, invalid charset convertor"
+msgstr ""
+"Хүчингүй тэмдэгт кодчлолын хөрвүүлэгчийн улмаас хүү рүү өгөгдлийг илгээх "
+"боломжгүй"
+
+#: ../src/vte.c:4325 ../src/vte.c:5347
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Хүүгийн өгөгдлийн хөрвүүлэлтэнд алдаа (%s) гарч тасарлаа."
 
-#: src/vte.c:6284
+#: ../src/vte.c:7563
 #, c-format
 msgid "Error reading PTY size, using defaults: %s."
 msgstr "PTY-хэмжээ уншихад алдаа, стандартыг хэрэглэх: %s."
 
-#: src/vte.c:6320
-#, c-format
-msgid "Error setting PTY size: %s."
-msgstr "PTY-хэмжээ тогтооход алдаа: %s."
-
 #. Aaargh.  We're screwed.
-#: src/vte.c:10629
+#: ../src/vte.c:13094
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() үгийн тэмдэгтүүдийг тогтоож чадсангүй"
 
-#. Bail back to normal mode.
-#: src/vteapp.c:736
-msgid "Could not open console.\n"
-msgstr "Консолыг нээж чадсангүй.\n"
+#~ msgid "Error adding `%s' to environment, continuing."
+#~ msgstr "»%s« -г орчин руу нэмэхэд алдаа гарлаа, үргэлжлүүлэх."
 
-#: src/vteglyph.c:579
-#, c-format
-msgid "Unknown pixel mode %d.\n"
-msgstr "Мэдэгдэхгүй цэгэн горим %d.\n"
+#~ msgid "Error creating signal pipe."
+#~ msgstr "Сигнарын шугам үүсгэж байхад алдаа гарлаа."
 
-#: src/vtexft.c:714
-#, c-format
-msgid "Can not draw character U+%04x.\n"
-msgstr "U+%04x тэмдэгтүүдийг дүрсэлж чадахгүй.\n"
+#~ msgid "No handler for control sequence `%s' defined."
+#~ msgstr "»%s« шалгах дарааллын боловсруулагч тодорхойлогдоогүй байна."
+
+#~ msgid "Error setting PTY size: %s."
+#~ msgstr "PTY-хэмжээ тогтооход алдаа: %s."
+
+#~ msgid "Unknown pixel mode %d.\n"
+#~ msgstr "Мэдэгдэхгүй цэгэн горим %d.\n"
+
+#~ msgid "Can not draw character U+%04x.\n"
+#~ msgstr "U+%04x тэмдэгтүүдийг дүрсэлж чадахгүй.\n"
 
 #~ msgid "Got unexpected (key?) sequence `%s'."
 #~ msgstr "Гэнэтийн (Түлхүүр?) »%s« үр дагавар хүлээн авлаа."
 
 #~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
-#~ msgstr ""
-#~ "»%s« бичгийн хэвүүдийг хэрэглэхэд дараах тэмдэгтүүд дутуу байна: %s."
+#~ msgstr "»%s« бичгийн хэвүүдийг хэрэглэхэд дараах тэмдэгтүүд дутуу байна: %s."
 
 #~ msgid ""
 #~ "Failed to load Xft font pattern \"%s\", falling back to default font."
