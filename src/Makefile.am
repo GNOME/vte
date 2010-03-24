@@ -4,7 +4,7 @@ EXTRA_DIST = iso2022.txt
 
 # The library
 
-pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h vtepty.h vtetypebuiltins.h vteversion.h
+pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h vtepty.h vtetypebuiltins.h vteversion.h vtedeprecated.h
 
 lib_LTLIBRARIES = libvte.la
 
@@ -64,6 +64,7 @@ libvte_la_SOURCES = \
 	vteconv.h \
 	vtedraw.c \
 	vtedraw.h \
+	vtedeprecated.h \
 	vteint.h \
 	vtepty.h \
 	vtepty-private.h \
