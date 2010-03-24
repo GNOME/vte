@@ -714,12 +714,14 @@ vte_pty_get_size(VtePty *pty,
 /*
  * _vte_pty_ptsname:
  * @master: file descriptor to the PTY master
+ * @error: a location to store a #GError, or %NULL
  *
  * Returns: a newly allocated string containing the file name of the
- *   PTY slave device, or %NULL on failure
+ *   PTY slave device, or %NULL on failure with @error filled in
  */
 static char *
-_vte_pty_ptsname(int master)
+_vte_pty_ptsname(int master,
+                 GError **error)
 {
 #if defined(HAVE_PTSNAME_R)
 	gsize len = 1024;
@@ -744,12 +746,20 @@ _vte_pty_ptsname(int master)
 		}
 		len *= 2;
 	} while ((i != 0) && (errno == ERANGE));
+
+        g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
+                    "%s failed: %s", "ptsname_r", g_strerror(errno));
+        return NULL;
 #elif defined(HAVE_PTSNAME)
 	char *p;
 	if ((p = ptsname(master)) != NULL) {
 		_vte_debug_print(VTE_DEBUG_PTY, "PTY slave is `%s'.\n", p);
 		return g_strdup(p);
 	}
+
+        g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
+                    "%s failed: %s", "ptsname", g_strerror(errno));
+        return NULL;
 #elif defined(TIOCGPTN)
 	int pty = 0;
 	if (ioctl(master, TIOCGPTN, &pty) == 0) {
@@ -757,8 +767,13 @@ _vte_pty_ptsname(int master)
 				"PTY slave is `/dev/pts/%d'.\n", pty);
 		return g_strdup_printf("/dev/pts/%d", pty);
 	}
+
+        g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
+                    "%s failed: %s", "ioctl(TIOCGPTN)", g_strerror(errno));
+        return NULL;
+#else
+#error no ptsname implementation for this platform
 #endif
-	return NULL;
 }
 
 /*
@@ -794,26 +809,47 @@ _vte_pty_getpt(void)
 	return fd;
 }
 
-static int
-_vte_pty_grantpt(int master)
+static gboolean
+_vte_pty_grantpt(int master,
+                 GError **error)
 {
 #ifdef HAVE_GRANTPT
-	return grantpt(master);
-#else
-	return 0;
+        int rv;
+
+        rv = grantpt(master);
+        if (rv != 0) {
+                g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
+                            "%s failed: %s", "grantpt", g_strerror(errno));
+                return FALSE;
+        }
 #endif
+        return TRUE;
 }
 
-static int
-_vte_pty_unlockpt(int fd)
+static gboolean
+_vte_pty_unlockpt(int fd,
+                  GError **error)
 {
+        int rv;
 #ifdef HAVE_UNLOCKPT
-	return unlockpt(fd);
+	rv = unlockpt(fd);
+        if (rv != 0) {
+                g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
+                            "%s failed: %s", "unlockpt", g_strerror(errno));
+                return FALSE;
+        }
+        return TRUE;
 #elif defined(TIOCSPTLCK)
 	int zero = 0;
-	return ioctl(fd, TIOCSPTLCK, &zero);
+	rv = ioctl(fd, TIOCSPTLCK, &zero);
+        if (rv != 0) {
+                g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
+                            "%s failed: %s", "ioctl(TIOCSPTLCK)", g_strerror(errno));
+                return FALSE;
+        }
+        return TRUE;
 #else
-	return -1;
+#error no unlockpt implementation for this platform
 #endif
 }
 
@@ -845,21 +881,12 @@ _vte_pty_open_unix98(VtePty *pty,
         }
 
         /* Read the slave number and unlock it. */
-        if (((buf = _vte_pty_ptsname(fd)) == NULL) ||
-            (_vte_pty_grantpt(fd) != 0) ||
-            (_vte_pty_unlockpt(fd) != 0)) {
-                int errsv = errno;
-
-                g_set_error(error, VTE_PTY_ERROR,
-                            VTE_PTY_ERROR_PTY98_FAILED,
-                            "PTY setup failed: %s",
-                            g_strerror(errsv));
-
+        if ((buf = _vte_pty_ptsname(fd, error)) == NULL ||
+            !_vte_pty_grantpt(fd, error) ||
+            !_vte_pty_unlockpt(fd, error)) {
                 _vte_debug_print(VTE_DEBUG_PTY,
                                 "PTY setup failed, bailing.\n");
                 close(fd);
-                errno = errsv;
-
                 return FALSE;
         }
 
