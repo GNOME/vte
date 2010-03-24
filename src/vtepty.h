@@ -90,7 +90,8 @@ GType vte_pty_get_type (void);
 VtePty *vte_pty_new (VtePtyFlags flags,
                      GError **error);
 
-VtePty *vte_pty_new_foreign (int fd);
+VtePty *vte_pty_new_foreign (int fd,
+                             GError **error);
 
 int vte_pty_get_fd (VtePty *pty);
 

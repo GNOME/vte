@@ -13809,8 +13809,9 @@ vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
                 return;
         }
 
-        pty = vte_pty_new_foreign(pty_master);
-        g_assert(pty != NULL);
+        pty = vte_pty_new_foreign(pty_master, NULL);
+        if (pty == NULL)
+                return;
 
         vte_terminal_set_pty_object(terminal, pty);
         g_object_unref(pty);

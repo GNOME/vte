@@ -1756,6 +1756,7 @@ vte_pty_new (VtePtyFlags flags,
 /**
  * vte_pty_new_foreign:
  * @fd: a file descriptor to the PTY
+ * @error: return location for a #GError, or %NULL
  *
  * Creates a new #VtePty for the PTY master @fd.
  *
@@ -1764,26 +1765,21 @@ vte_pty_new (VtePtyFlags flags,
  * Note that the newly created #VtePty will take ownership of @fd
  * and close it on finalize.
  *
- * Returns: a new #VtePty for @fd
+ * Returns: a new #VtePty for @fd, or %NULL on error with @error filled in
  *
  * Since: 0.26
  */
 VtePty *
-vte_pty_new_foreign (int fd)
+vte_pty_new_foreign (int fd,
+                     GError **error)
 {
-        VtePty *pty;
-        GError *error = NULL;
-
         g_return_val_if_fail(fd >= 0, NULL);
 
-        pty = g_initable_new (VTE_TYPE_PTY,
-                              NULL /* cancellable */,
-                              &error,
-                              "fd", fd,
-                              NULL);
-        g_assert(error == NULL);
-
-        return pty;
+        return g_initable_new (VTE_TYPE_PTY,
+                               NULL /* cancellable */,
+                               error,
+                               "fd", fd,
+                               NULL);
 }
 
 /**
