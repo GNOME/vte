@@ -16,6 +16,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#if !defined (__VTE_VTE_H_INSIDE__) && !defined (VTE_COMPILATION)
+#error "Only <vte/vte.h> can be included directly."
+#endif
+
 #ifndef vte_deprecated_h_included
 #define vte_deprecated_h_included
 

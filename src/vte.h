@@ -487,7 +487,9 @@ gboolean vte_terminal_write_contents (VteTerminal *terminal,
 G_END_DECLS
 
 #ifndef VTE_DISABLE_DEPRECATED
+#define __VTE_VTE_H_INSIDE__ 1
 #include "vtedeprecated.h"
+#undef __VTE_VTE_H_INSIDE__
 #endif /* VTE_DISABLE_DEPRECATED */
 
 #endif
