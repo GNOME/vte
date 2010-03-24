@@ -906,9 +906,11 @@ _vte_pty_open_unix98(VtePty *pty,
         if ((buf = _vte_pty_ptsname(fd, error)) == NULL ||
             !_vte_pty_grantpt(fd, error) ||
             !_vte_pty_unlockpt(fd, error)) {
+                int errsv = errno;
                 _vte_debug_print(VTE_DEBUG_PTY,
                                 "PTY setup failed, bailing.\n");
                 close(fd);
+                errno = errsv;
                 return FALSE;
         }
 
