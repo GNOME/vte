@@ -1112,7 +1112,7 @@ _vte_pty_stop_helper(void)
 static gboolean
 _vte_pty_start_helper(GError **error)
 {
-	int i;
+	int i, errsv;
         int tunnel = -1;
         int tmp[2] = { -1, -1 };
 
@@ -1175,10 +1175,12 @@ _vte_pty_start_helper(GError **error)
 	return TRUE;
 
 failure:
+        errsv = errno;
+
         g_set_error(error, VTE_PTY_ERROR,
                     VTE_PTY_ERROR_PTY_HELPER_FAILED,
                     "Failed to start gnome-pty-helper: %s",
-                    g_strerror (errno));
+                    g_strerror (errsv));
 
         if (tmp[0] != -1)
                 close(tmp[0]);
@@ -1190,6 +1192,7 @@ failure:
         _vte_pty_helper_pid = -1;
         _vte_pty_helper_tunnel = -1;
 
+        errno = errsv;
         return FALSE;
 }
 
