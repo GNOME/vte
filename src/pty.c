@@ -788,7 +788,7 @@ _vte_pty_ptsname(int master,
 static int
 _vte_pty_getpt(GError **error)
 {
-	int fd, flags;
+	int fd, flags, rv;
 #ifdef HAVE_GETPT
 	/* Call the system's function for allocating a pty. */
 	fd = getpt();
@@ -806,12 +806,30 @@ _vte_pty_getpt(GError **error)
                 return -1;
         }
 
+        rv = fcntl(fd, F_GETFL, 0);
+        if (rv < 0) {
+                int errsv = errno;
+                g_set_error(error, VTE_PTY_ERROR,
+                            VTE_PTY_ERROR_PTY98_FAILED,
+                            "%s failed: %s", "fcntl(F_GETFL)", g_strerror(errno));
+                close(fd);
+                errno = errsv;
+                return -1;
+        }
+
 	/* Set it to blocking. */
         /* FIXMEchpe: why?? vte_terminal_set_pty does the inverse... */
-	flags = fcntl(fd, F_GETFL);
-	flags &= ~(O_NONBLOCK);
-	fcntl(fd, F_SETFL, flags);
-        /* FIXMEchpe: no error checks here?? */
+        flags = rv & ~(O_NONBLOCK);
+        rv = fcntl(fd, F_SETFL, flags);
+        if (rv < 0) {
+                int errsv = errno;
+                g_set_error(error, VTE_PTY_ERROR,
+                            VTE_PTY_ERROR_PTY98_FAILED,
+                            "%s failed: %s", "fcntl(F_SETFL)", g_strerror(errno));
+                close(fd);
+                errno = errsv;
+                return -1;
+        }
 
 	return fd;
 }
