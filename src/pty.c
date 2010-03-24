@@ -778,6 +778,7 @@ _vte_pty_ptsname(int master,
 
 /*
  * _vte_pty_getpt:
+ * @error: a location to store a #GError, or %NULL
  *
  * Opens a file descriptor for the next available PTY master.
  * Sets the descriptor to blocking mode!
@@ -785,7 +786,7 @@ _vte_pty_ptsname(int master,
  * Returns: a new file descriptor, or %-1 on failure
  */
 static int
-_vte_pty_getpt(void)
+_vte_pty_getpt(GError **error)
 {
 	int fd, flags;
 #ifdef HAVE_GETPT
@@ -798,14 +799,20 @@ _vte_pty_getpt(void)
 		fd = open("/dev/ptc", O_RDWR | O_NOCTTY); /* AIX */
 	}
 #endif
-        if (fd == -1)
-                return fd;
+        if (fd == -1) {
+                g_set_error (error, VTE_PTY_ERROR,
+                             VTE_PTY_ERROR_PTY98_FAILED,
+                             "%s failed: %s", "getpt", g_strerror(errno));
+                return -1;
+        }
 
 	/* Set it to blocking. */
         /* FIXMEchpe: why?? vte_terminal_set_pty does the inverse... */
 	flags = fcntl(fd, F_GETFL);
 	flags &= ~(O_NONBLOCK);
 	fcntl(fd, F_SETFL, flags);
+        /* FIXMEchpe: no error checks here?? */
+
 	return fd;
 }
 
@@ -871,14 +878,11 @@ _vte_pty_open_unix98(VtePty *pty,
 	char *buf;
 
 	/* Attempt to open the master. */
-	fd = _vte_pty_getpt();
-	_vte_debug_print(VTE_DEBUG_PTY, "Allocated pty on fd %d.\n", fd);
-	if (fd == -1) {
-                g_set_error (error, VTE_PTY_ERROR,
-                             VTE_PTY_ERROR_PTY98_FAILED,
-                             "getpt failed: %s", g_strerror(errno));
+	fd = _vte_pty_getpt(error);
+	if (fd == -1)
                 return FALSE;
-        }
+
+	_vte_debug_print(VTE_DEBUG_PTY, "Allocated pty on fd %d.\n", fd);
 
         /* Read the slave number and unlock it. */
         if ((buf = _vte_pty_ptsname(fd, error)) == NULL ||
