@@ -1112,7 +1112,8 @@ _vte_pty_stop_helper(void)
 static gboolean
 _vte_pty_start_helper(GError **error)
 {
-	int i, tunnel;
+	int i;
+        int tunnel = -1;
         int tmp[2] = { -1, -1 };
 
         if (_vte_pty_helper_started)
@@ -1183,6 +1184,11 @@ failure:
                 close(tmp[0]);
         if (tmp[1] != -1)
                 close(tmp[1]);
+        if (tunnel != -1)
+                close(tunnel);
+
+        _vte_pty_helper_pid = -1;
+        _vte_pty_helper_tunnel = -1;
 
         return FALSE;
 }
