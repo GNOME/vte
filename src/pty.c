@@ -1433,7 +1433,6 @@ vte_pty_initable_init (GInitable *initable,
         VtePty *pty = VTE_PTY (initable);
         VtePtyPrivate *priv = pty->priv;
         gboolean ret = FALSE;
-        GError *err = NULL;
 
         if (cancellable != NULL) {
                 g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
@@ -1450,6 +1449,8 @@ vte_pty_initable_init (GInitable *initable,
 
 #ifdef VTE_USE_GNOME_PTY_HELPER
 	if ((priv->flags & VTE_PTY_NO_HELPER) == 0) {
+                GError *err = NULL;
+
 		ret = _vte_pty_open_with_helper(pty, &err);
                 g_assert(ret || err != NULL);
 
@@ -1467,6 +1468,12 @@ vte_pty_initable_init (GInitable *initable,
 
                 g_error_free(err);
                 /* Fall back to unix98 PTY */
+        }
+#else
+        if (priv->flags & VTE_PTY_NO_FALLBACK) {
+                g_set_error_literal(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY_HELPER_FAILED,
+                                    "VTE compiled without GNOME PTY helper");
+                goto out;
         }
 #endif /* VTE_USE_GNOME_PTY_HELPER */
 
