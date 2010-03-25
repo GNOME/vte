@@ -8202,18 +8202,9 @@ vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
 
 	vte_terminal_ensure_font (terminal);
 
-	if (terminal->pvt->pty != NULL) {
-		vte_terminal_refresh_size(terminal);
-		requisition->width = terminal->char_width *
-			terminal->column_count;
-		requisition->height = terminal->char_height *
-			terminal->row_count;
-	} else {
-		requisition->width = terminal->char_width *
-			terminal->pvt->default_column_count;
-		requisition->height = terminal->char_height *
-			terminal->pvt->default_row_count;
-	}
+        vte_terminal_refresh_size(terminal);
+        requisition->width = terminal->char_width * terminal->column_count;
+        requisition->height = terminal->char_height * terminal->row_count;
 
 	requisition->width += terminal->pvt->inner_border.left +
                               terminal->pvt->inner_border.right;
@@ -8224,12 +8215,8 @@ vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
 			"[Terminal %p] Size request is %dx%d for %ldx%ld cells.\n",
                         terminal,
 			requisition->width, requisition->height,
-			(terminal->pvt->pty != NULL) ?
-			terminal->column_count :
-			terminal->pvt->default_column_count,
-			(terminal->pvt->pty != NULL) ?
-			terminal->row_count :
-			terminal->pvt->default_row_count);
+			terminal->column_count,
+			terminal->row_count);
 }
 
 /* Accept a given size from GTK+. */
