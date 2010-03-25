@@ -86,22 +86,42 @@ static int _vte_pty_helper_tunnel = -1;
 static void
 _vte_pty_reset_signal_handlers(void)
 {
+#ifdef SIGHUP
 	signal(SIGHUP,  SIG_DFL);
+#endif
 	signal(SIGINT,  SIG_DFL);
 	signal(SIGILL,  SIG_DFL);
 	signal(SIGABRT, SIG_DFL);
 	signal(SIGFPE,  SIG_DFL);
+#ifdef SIGKILL
 	signal(SIGKILL, SIG_DFL);
+#endif
 	signal(SIGSEGV, SIG_DFL);
+#ifdef SIGPIPE
 	signal(SIGPIPE, SIG_DFL);
+#endif
+#ifdef SIGALRM
 	signal(SIGALRM, SIG_DFL);
+#endif
 	signal(SIGTERM, SIG_DFL);
+#ifdef SIGCHLD
 	signal(SIGCHLD, SIG_DFL);
+#endif
+#ifdef SIGCONT
 	signal(SIGCONT, SIG_DFL);
+#endif
+#ifdef SIGSTOP
 	signal(SIGSTOP, SIG_DFL);
+#endif
+#ifdef SIGTSTP
 	signal(SIGTSTP, SIG_DFL);
+#endif
+#ifdef SIGTTIN
 	signal(SIGTTIN, SIG_DFL);
+#endif
+#ifdef SIGTTOU
 	signal(SIGTTOU, SIG_DFL);
+#endif
 #ifdef SIGBUS
 	signal(SIGBUS,  SIG_DFL);
 #endif
