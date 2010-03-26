@@ -127,8 +127,6 @@ static void vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gbool
 static void vte_terminal_set_font_full_internal(VteTerminal *terminal,
                                                 const PangoFontDescription *font_desc,
                                                 VteTerminalAntiAlias antialias);
-static void vte_terminal_set_selection_block_mode (VteTerminal *terminal,
-						   gboolean     selection_block_mode);
 
 static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
@@ -4876,11 +4874,8 @@ vte_terminal_read_modifiers (VteTerminal *terminal,
 	GdkModifierType modifiers;
 
 	/* Read the modifiers. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers))
 		terminal->pvt->modifiers = modifiers;
-
-		vte_terminal_set_selection_block_mode (terminal, modifiers & GDK_CONTROL_MASK);
-	}
 }
 
 /* Read and handle a keypress event. */
@@ -4939,9 +4934,6 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 
 		/* Determine if this is just a modifier key. */
 		modifier = _vte_keymap_key_is_modifier(keyval);
-
-		if (G_UNLIKELY (keyval == GDK_Control_L || keyval == GDK_Control_R))
-			vte_terminal_set_selection_block_mode (terminal, TRUE);
 
 		/* Unless it's a modifier key, hide the pointer. */
 		if (!modifier) {
@@ -5312,12 +5304,6 @@ vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
 	terminal = VTE_TERMINAL(widget);
 
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
-
-	if (event->type == GDK_KEY_RELEASE) {
-		if (G_UNLIKELY (event->keyval == GDK_Control_L ||
-				event->keyval == GDK_Control_R))
-			vte_terminal_set_selection_block_mode (terminal, FALSE);
-	}
 
 	return GTK_WIDGET_REALIZED(terminal) &&
 	       gtk_im_context_filter_keypress(terminal->pvt->im_context, event);
@@ -6325,6 +6311,8 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 {
 	long delta;
 
+	terminal->pvt->selection_block_mode = !!(terminal->pvt->modifiers & GDK_CONTROL_MASK);
+
 	if (terminal->pvt->selection_block_mode)
 		selection_type = selection_type_char;
 
@@ -6841,30 +6829,6 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 			"(%ld,%ld) to (%ld,%ld).\n",
 			sc->col, sc->row, ec->col, ec->row);
 }
-
-static void
-vte_terminal_set_selection_block_mode (VteTerminal *terminal,
-				       gboolean     selection_block_mode)
-{
-	if (G_LIKELY (!terminal->pvt->has_selection))
-		return;
-
-	if (G_LIKELY (!terminal->pvt->selecting))
-		return;
-
-	selection_block_mode = !!selection_block_mode;
-
-	if (terminal->pvt->selection_block_mode != selection_block_mode) {
-		vte_terminal_invalidate_selection (terminal);
-		terminal->pvt->selection_block_mode = selection_block_mode;
-		vte_terminal_extend_selection(terminal,
-					      terminal->pvt->mouse_last_x,
-					      terminal->pvt->mouse_last_y,
-					      FALSE, TRUE);
-		vte_terminal_invalidate_selection (terminal);
-	}
-}
-
 
 /**
  * vte_terminal_select_all:
