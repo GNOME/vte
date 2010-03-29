@@ -160,7 +160,7 @@ TEST_SH = check-doc-syntax.sh
 EXTRA_DIST += $(TEST_SH)
 
 check_PROGRAMS = dumpkeys iso2022 pty reaper reflect-text-view reflect-vte mev ssfe table trie xticker vteconv vtetc
-TESTS = table trie $(TEST_SH)
+TESTS = table trie
 
 AM_CFLAGS = $(GLIB_CFLAGS)
 LDADD = $(GLIB_LIBS)
