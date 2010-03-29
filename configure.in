@@ -24,13 +24,13 @@ AM_MAINTAINER_MODE([enable])
 # Libtool shared library versioning stuffs.
 # REVISION gets incremented whenever the source code changes without adding
 # an API or ABI change.
-LTVERSION_REVISION=1
+LTVERSION_REVISION=0
 # CURRENT must be incremented when an API or ABI change (addition or removal)
 # is made, and REVISION must be reset to 0 when this happens.
-LTVERSION_CURRENT=21
+LTVERSION_CURRENT=23
 # AGE must be incremented when an API or ABI addition is made, and REVISION
 # must be reset to 0 when this happens.
-LTVERSION_AGE=12
+LTVERSION_AGE=14
 
 LIBVTE_LTVERSION=${LTVERSION_CURRENT}:${LTVERSION_REVISION}:${LTVERSION_AGE}
 AC_SUBST([LIBVTE_LTVERSION])
