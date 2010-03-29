@@ -1,6 +1,6 @@
 m4_define([vte_version_major],[0])
-m4_define([vte_version_minor],[23])
-m4_define([vte_version_micro],[5])
+m4_define([vte_version_minor],[24])
+m4_define([vte_version_micro],[0])
 m4_define([vte_version],[vte_version_major.vte_version_minor.vte_version_micro])
 
 m4_define([vte_api_version],[0])
@@ -24,13 +24,13 @@ AM_MAINTAINER_MODE([enable])
 # Libtool shared library versioning stuffs.
 # REVISION gets incremented whenever the source code changes without adding
 # an API or ABI change.
-LTVERSION_REVISION=1
+LTVERSION_REVISION=0
 # CURRENT must be incremented when an API or ABI change (addition or removal)
 # is made, and REVISION must be reset to 0 when this happens.
-LTVERSION_CURRENT=21
+LTVERSION_CURRENT=22
 # AGE must be incremented when an API or ABI addition is made, and REVISION
 # must be reset to 0 when this happens.
-LTVERSION_AGE=12
+LTVERSION_AGE=13
 
 LIBVTE_LTVERSION=${LTVERSION_CURRENT}:${LTVERSION_REVISION}:${LTVERSION_AGE}
 AC_SUBST([LIBVTE_LTVERSION])

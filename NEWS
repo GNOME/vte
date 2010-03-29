@@ -1,3 +1,9 @@
+0.24.0
+======
+- Updated API docs
+- Cache backgrounds as cairo surfaces
+- Translation updates
+
 0.23.5
 =======
 - Fix unintented soversion bump
