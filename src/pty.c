@@ -1275,79 +1275,78 @@ _vte_pty_open_with_helper(VtePty *pty,
                 return FALSE;
 
 	/* Try to open a new descriptor. */
-	{
-		ops = _vte_pty_helper_ops_from_flags(priv->flags);
-		/* Send our request. */
-		if (n_write(_vte_pty_helper_tunnel,
-			    &ops, sizeof(ops)) != sizeof(ops)) {
-                        g_set_error (error, VTE_PTY_ERROR,
-                                     VTE_PTY_ERROR_PTY_HELPER_FAILED,
-                                     "Failed to send request to gnome-pty-helper: %s",
-                                     g_strerror(errno));
-			return FALSE;
-		}
-		_vte_debug_print(VTE_DEBUG_PTY, "Sent request to helper.\n");
-		/* Read back the response. */
-		if (n_read(_vte_pty_helper_tunnel,
-			   &ret, sizeof(ret)) != sizeof(ret)) {
-                        g_set_error (error, VTE_PTY_ERROR,
-                                     VTE_PTY_ERROR_PTY_HELPER_FAILED,
-                                     "Failed to read response from gnome-pty-helper: %s",
-                                     g_strerror(errno));
-			return FALSE;
-		}
-		_vte_debug_print(VTE_DEBUG_PTY,
-				"Received response from helper.\n");
-		if (ret == 0) {
-                        g_set_error_literal (error, VTE_PTY_ERROR,
-                                             VTE_PTY_ERROR_PTY_HELPER_FAILED,
-                                             "gnome-pty-helper failed to open pty");
-			return FALSE;
-		}
-		_vte_debug_print(VTE_DEBUG_PTY, "Helper returns success.\n");
-		/* Read back a tag. */
-		if (n_read(_vte_pty_helper_tunnel,
-			   &tag, sizeof(tag)) != sizeof(tag)) {
-                        g_set_error (error, VTE_PTY_ERROR,
-                                     VTE_PTY_ERROR_PTY_HELPER_FAILED,
-                                     "Failed to read tag from gnome-pty-helper: %s",
-                                     g_strerror(errno));
-			return FALSE;
-		}
-		_vte_debug_print(VTE_DEBUG_PTY, "Tag = %p.\n", tag);
-		/* Receive the master and slave ptys. */
-		_vte_pty_read_ptypair(_vte_pty_helper_tunnel,
-				      &parentfd, &childfd);
 
-		if ((parentfd == -1) || (childfd == -1)) {
-                        int errsv = errno;
+        ops = _vte_pty_helper_ops_from_flags(priv->flags);
+        /* Send our request. */
+        if (n_write(_vte_pty_helper_tunnel,
+                    &ops, sizeof(ops)) != sizeof(ops)) {
+                g_set_error (error, VTE_PTY_ERROR,
+                              VTE_PTY_ERROR_PTY_HELPER_FAILED,
+                              "Failed to send request to gnome-pty-helper: %s",
+                              g_strerror(errno));
+                return FALSE;
+        }
+        _vte_debug_print(VTE_DEBUG_PTY, "Sent request to helper.\n");
+        /* Read back the response. */
+        if (n_read(_vte_pty_helper_tunnel,
+                    &ret, sizeof(ret)) != sizeof(ret)) {
+                g_set_error (error, VTE_PTY_ERROR,
+                              VTE_PTY_ERROR_PTY_HELPER_FAILED,
+                              "Failed to read response from gnome-pty-helper: %s",
+                              g_strerror(errno));
+                return FALSE;
+        }
+        _vte_debug_print(VTE_DEBUG_PTY,
+                        "Received response from helper.\n");
+        if (ret == 0) {
+                g_set_error_literal (error, VTE_PTY_ERROR,
+                                      VTE_PTY_ERROR_PTY_HELPER_FAILED,
+                                      "gnome-pty-helper failed to open pty");
+                return FALSE;
+        }
+        _vte_debug_print(VTE_DEBUG_PTY, "Helper returns success.\n");
+        /* Read back a tag. */
+        if (n_read(_vte_pty_helper_tunnel,
+                    &tag, sizeof(tag)) != sizeof(tag)) {
+                g_set_error (error, VTE_PTY_ERROR,
+                              VTE_PTY_ERROR_PTY_HELPER_FAILED,
+                              "Failed to read tag from gnome-pty-helper: %s",
+                              g_strerror(errno));
+                return FALSE;
+        }
+        _vte_debug_print(VTE_DEBUG_PTY, "Tag = %p.\n", tag);
+        /* Receive the master and slave ptys. */
+        _vte_pty_read_ptypair(_vte_pty_helper_tunnel,
+                              &parentfd, &childfd);
 
-			close(parentfd);
-			close(childfd);
+        if ((parentfd == -1) || (childfd == -1)) {
+                int errsv = errno;
 
-                        g_set_error (error, VTE_PTY_ERROR,
-                                     VTE_PTY_ERROR_PTY_HELPER_FAILED,
-                                     "Failed to read master or slave pty from gnome-pty-helper: %s",
-                                     g_strerror(errsv));
-                        errno = errsv;
-			return FALSE;
-		}
+                close(parentfd);
+                close(childfd);
 
-		_vte_debug_print(VTE_DEBUG_PTY,
-				"Got master pty %d and slave pty %d.\n",
-				parentfd, childfd);
+                g_set_error (error, VTE_PTY_ERROR,
+                              VTE_PTY_ERROR_PTY_HELPER_FAILED,
+                              "Failed to read master or slave pty from gnome-pty-helper: %s",
+                              g_strerror(errsv));
+                errno = errsv;
+                return FALSE;
+        }
 
-                priv->using_helper = TRUE;
-                priv->helper_tag = tag;
-                priv->pty_fd = parentfd;
+        _vte_debug_print(VTE_DEBUG_PTY,
+                        "Got master pty %d and slave pty %d.\n",
+                        parentfd, childfd);
 
-                priv->child_setup_data.mode = TTY_OPEN_BY_FD;
-                priv->child_setup_data.tty.fd = childfd;
+        priv->using_helper = TRUE;
+        priv->helper_tag = tag;
+        priv->pty_fd = parentfd;
 
-                // FIXMEchpe do this later
+        priv->child_setup_data.mode = TTY_OPEN_BY_FD;
+        priv->child_setup_data.tty.fd = childfd;
+
+        // FIXMEchpe do this later
 //                 _vte_pty_set_size(fd, columns, rows);
-                return TRUE;
-	}
+        return TRUE;
 }
 
 #endif /* VTE_USE_GNOME_PTY_HELPER */
