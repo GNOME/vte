@@ -1145,17 +1145,6 @@ _vte_pty_start_helper(GError **error)
         if (_vte_pty_helper_started)
                 return TRUE;
 
-	/* Sanity check. */
-	if (access(LIBEXECDIR "/gnome-pty-helper", X_OK) != 0) {
-		/* Give the user some clue as to why session logging is not
-		 * going to work (assuming we can open a pty using some other
-		 * method). */
-		g_warning(_("can not run %s"), LIBEXECDIR "/gnome-pty-helper");
-		g_set_error(error, VTE_PTY_ERROR,
-                            VTE_PTY_ERROR_PTY_HELPER_FAILED,
-                            _("can not run %s"), LIBEXECDIR "/gnome-pty-helper");
-		return FALSE;
-	}
 	/* Create a communication link for use with the helper. */
 	tmp[0] = open("/dev/null", O_RDONLY);
 	if (tmp[0] == -1) {
