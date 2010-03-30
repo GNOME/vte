@@ -119,13 +119,13 @@ marshal.h: marshal.list
 
 vtetypebuiltins.h: stamp-vtetypebuiltins.h
 	@true
-stamp-vtetypebuiltins.h: vtetypebuiltins.h.template vte.h vtepty.h
+stamp-vtetypebuiltins.h: vtetypebuiltins.h.template vte.h vtepty.h vtedeprecated.h
 	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter %.h,$^) > xgen-vtbh \
 	&& (cmp -s xgen-vtbh vtetypebuiltins.h || cp xgen-vtbh vtetypebuiltins.h ) \
 	&& rm -f xgen-vtbh \
 	&& echo timestamp > $(@F)
 
-vtetypebuiltins.c: vtetypebuiltins.c.template vte.h vtepty.h
+vtetypebuiltins.c: vtetypebuiltins.c.template vte.h vtepty.h vtedeprecated.h
 	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter %.h,$^) > xgen-vtbc \
 	&& (cmp -s xgen-vtbc vtetypebuiltins.c || cp xgen-vtbc vtetypebuiltins.c ) \
 	&& rm -f xgen-vtbc
