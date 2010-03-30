@@ -1353,42 +1353,64 @@ _vte_pty_open_with_helper(VtePty *pty,
  * vte_pty_set_utf8:
  * @pty: a #VtePty
  * @utf8: Whether or not the pty is in UTF-8 mode
+ * @error: return location to store a #GError, or %NULL
  *
  * Tells the kernel whether the terminal is UTF-8 or not, in case it can make
  * use of the info.  Linux 2.6.5 or so defines IUTF8 to make the line
  * discipline do multibyte backspace correctly.
  *
+ * Returns: %TRUE on success, %FALSE on failure with @error filled in
+ *
  * Since: 0.26
  */
-void
+gboolean
 vte_pty_set_utf8(VtePty *pty,
-                 gboolean utf8)
+                 gboolean utf8,
+                 GError **error)
 {
-#if defined(HAVE_TCSETATTR) && defined(IUTF8)
         VtePtyPrivate *priv;
+#if defined(HAVE_TCSETATTR) && defined(IUTF8)
 	struct termios tio;
 	tcflag_t saved_cflag;
+#endif
 
-        g_return_if_fail(VTE_IS_PTY(pty));
+        g_return_val_if_fail(VTE_IS_PTY(pty), FALSE);
         priv = pty->priv;
 
         priv->utf8 = utf8 != FALSE;
 
-	if (priv->pty_fd != -1) {
-		if (tcgetattr(priv->pty_fd, &tio) != -1) {
-			saved_cflag = tio.c_iflag;
-			tio.c_iflag &= ~IUTF8;
-			if (utf8) {
-				tio.c_iflag |= IUTF8;
-			}
-			if (saved_cflag != tio.c_iflag) {
-				tcsetattr(priv->pty_fd, TCSANOW, &tio);
-			}
-		}
+#if defined(HAVE_TCSETATTR) && defined(IUTF8)
+        g_return_val_if_fail (priv->pty_fd > 0, FALSE);
+
+        if (tcgetattr(priv->pty_fd, &tio) == -1) {
+                int errsv = errno;
+                g_set_error(error, G_IO_ERROR, g_io_error_from_errno(errsv),
+                            "%s failed: %s", "tcgetattr", g_strerror(errsv));
+                errno = errsv;
+                return FALSE;
+        }
+
+        saved_cflag = tio.c_iflag;
+        if (utf8) {
+                tio.c_iflag |= IUTF8;
+        } else {
+              tio.c_iflag &= ~IUTF8;
+        }
+
+        /* Only set the flag if it changes */
+        if (saved_cflag != tio.c_iflag &&
+            tcsetattr(priv->pty_fd, TCSANOW, &tio) == -1) {
+                int errsv = errno;
+                g_set_error(error, G_IO_ERROR, g_io_error_from_errno(errsv),
+                            "%s failed: %s", "tcgetattr", g_strerror(errsv));
+                errno = errsv;
+                return FALSE;
 	}
 #endif
 
         g_object_notify(G_OBJECT(pty), "utf-8");
+
+        return TRUE;
 }
 
 /**
@@ -1609,7 +1631,7 @@ vte_pty_set_property (GObject      *object,
                 break;
 
         case PROP_UTF8:
-                vte_pty_set_utf8 (pty, g_value_get_boolean (value));
+                vte_pty_set_utf8 (pty, g_value_get_boolean (value), NULL);
                 break;
 
         case PROP_TERM:
@@ -2025,7 +2047,7 @@ void _vte_pty_set_utf8(int master,
         if ((pty = get_vte_pty_for_fd(master)) == NULL)
                 return;
 
-        vte_pty_set_utf8(pty, utf8);
+        vte_pty_set_utf8(pty, utf8, NULL);
 }
 
 /**

@@ -2182,9 +2182,14 @@ static void
 _vte_terminal_setup_utf8 (VteTerminal *terminal)
 {
         VteTerminalPrivate *pvt = terminal->pvt;
+        GError *error = NULL;
 
-        vte_pty_set_utf8(pvt->pty,
-		         strcmp(terminal->pvt->encoding, "UTF-8") == 0);
+        if (!vte_pty_set_utf8(pvt->pty,
+                              strcmp(terminal->pvt->encoding, "UTF-8") == 0,
+                              &error)) {
+                g_warning ("Failed to set UTF8 mode: %s\n", error->message);
+                g_error_free (error);
+        }
 }
 
 /**

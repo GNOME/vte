@@ -109,8 +109,9 @@ gboolean vte_pty_set_size (VtePty *pty,
                            int columns,
                            GError **error);
 
-void vte_pty_set_utf8 (VtePty *pty,
-                       gboolean utf8);
+gboolean vte_pty_set_utf8 (VtePty *pty,
+                           gboolean utf8,
+                           GError **error);
 
 void vte_pty_set_term (VtePty *pty,
                        const char *emulation);
