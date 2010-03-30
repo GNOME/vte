@@ -1368,18 +1368,14 @@ vte_pty_set_utf8(VtePty *pty,
                  gboolean utf8,
                  GError **error)
 {
-        VtePtyPrivate *priv;
 #if defined(HAVE_TCSETATTR) && defined(IUTF8)
+        VtePtyPrivate *priv;
 	struct termios tio;
 	tcflag_t saved_cflag;
-#endif
 
         g_return_val_if_fail(VTE_IS_PTY(pty), FALSE);
+
         priv = pty->priv;
-
-        priv->utf8 = utf8 != FALSE;
-
-#if defined(HAVE_TCSETATTR) && defined(IUTF8)
         g_return_val_if_fail (priv->pty_fd > 0, FALSE);
 
         if (tcgetattr(priv->pty_fd, &tio) == -1) {
@@ -1407,8 +1403,6 @@ vte_pty_set_utf8(VtePty *pty,
                 return FALSE;
 	}
 #endif
-
-        g_object_notify(G_OBJECT(pty), "utf-8");
 
         return TRUE;
 }
@@ -1464,7 +1458,6 @@ enum {
         PROP_0,
         PROP_FLAGS,
         PROP_FD,
-        PROP_UTF8,
         PROP_TERM
 };
 
@@ -1598,10 +1591,6 @@ vte_pty_get_property (GObject    *object,
                 g_value_set_int(value, vte_pty_get_fd(pty));
                 break;
 
-        case PROP_UTF8:
-                g_value_set_boolean(value, priv->utf8);
-                break;
-
         case PROP_TERM:
                 g_value_set_string(value, priv->term);
                 break;
@@ -1628,10 +1617,6 @@ vte_pty_set_property (GObject      *object,
         case PROP_FD:
                 priv->pty_fd = g_value_get_int(value);
                 priv->foreign = (priv->pty_fd != -1);
-                break;
-
-        case PROP_UTF8:
-                vte_pty_set_utf8 (pty, g_value_get_boolean (value), NULL);
                 break;
 
         case PROP_TERM:
@@ -1689,21 +1674,6 @@ vte_pty_class_init (VtePtyClass *klass)
                                    G_PARAM_STATIC_STRINGS));
 
         /**
-         * VtePty:utf-8:
-         *
-         * Whether the PTY is in UTF-8 mode.
-         *
-         * Since: 0.26
-         */
-        g_object_class_install_property
-                (object_class,
-                 PROP_UTF8,
-                 g_param_spec_boolean ("utf-8", NULL, NULL,
-                                       TRUE,
-                                       G_PARAM_READWRITE |
-                                       G_PARAM_STATIC_STRINGS));
-
-        /**
          * VtePty:term:
          *
          * The value to set for the TERM environment variable
@@ -1713,7 +1683,7 @@ vte_pty_class_init (VtePtyClass *klass)
          */
         g_object_class_install_property
                 (object_class,
-                 PROP_UTF8,
+                 PROP_TERM,
                  g_param_spec_string ("term", NULL, NULL,
                                       "xterm",
                                       G_PARAM_READWRITE |
