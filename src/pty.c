@@ -1424,31 +1424,31 @@ vte_pty_close (VtePty *pty)
 	gpointer tag;
 	GnomePtyOps ops;
 
-        if (priv->using_helper) {
-			/* Signal the helper that it needs to close its
-			 * connection. */
-			tag = priv->helper_tag;
+        if (!priv->using_helper)
+                return;
 
-			ops = GNOME_PTY_CLOSE_PTY;
-			if (n_write(_vte_pty_helper_tunnel,
-				    &ops, sizeof(ops)) != sizeof(ops)) {
-				return;
-			}
-			if (n_write(_vte_pty_helper_tunnel,
-				    &tag, sizeof(tag)) != sizeof(tag)) {
-				return;
-			}
+        /* Signal the helper that it needs to close its connection. */
+        tag = priv->helper_tag;
 
-			ops = GNOME_PTY_SYNCH;
-			if (n_write(_vte_pty_helper_tunnel,
-				    &ops, sizeof(ops)) != sizeof(ops)) {
-				return;
-			}
-			n_read(_vte_pty_helper_tunnel, &ops, 1);
+        ops = GNOME_PTY_CLOSE_PTY;
+        if (n_write(_vte_pty_helper_tunnel,
+                    &ops, sizeof(ops)) != sizeof(ops)) {
+                return;
+        }
+        if (n_write(_vte_pty_helper_tunnel,
+                    &tag, sizeof(tag)) != sizeof(tag)) {
+                return;
+        }
 
-                        priv->helper_tag = NULL;
-                        priv->using_helper = FALSE;
-	}
+        ops = GNOME_PTY_SYNCH;
+        if (n_write(_vte_pty_helper_tunnel,
+                    &ops, sizeof(ops)) != sizeof(ops)) {
+                return;
+        }
+        n_read(_vte_pty_helper_tunnel, &ops, 1);
+
+        priv->helper_tag = NULL;
+        priv->using_helper = FALSE;
 #endif
 }
 
