@@ -863,8 +863,10 @@ _vte_pty_grantpt(int master,
 
         rv = grantpt(master);
         if (rv != 0) {
+                int errsv = errno;
                 g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
-                            "%s failed: %s", "grantpt", g_strerror(errno));
+                            "%s failed: %s", "grantpt", g_strerror(errsv));
+                errno = errsv;
                 return FALSE;
         }
 #endif
@@ -879,8 +881,10 @@ _vte_pty_unlockpt(int fd,
 #ifdef HAVE_UNLOCKPT
 	rv = unlockpt(fd);
         if (rv != 0) {
+                int errsv = errno;
                 g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
-                            "%s failed: %s", "unlockpt", g_strerror(errno));
+                            "%s failed: %s", "unlockpt", g_strerror(errsv));
+                errno = errsv;
                 return FALSE;
         }
         return TRUE;
@@ -888,8 +892,10 @@ _vte_pty_unlockpt(int fd,
 	int zero = 0;
 	rv = ioctl(fd, TIOCSPTLCK, &zero);
         if (rv != 0) {
+                int errsv = errno;
                 g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
-                            "%s failed: %s", "ioctl(TIOCSPTLCK)", g_strerror(errno));
+                            "%s failed: %s", "ioctl(TIOCSPTLCK)", g_strerror(errsv));
+                errno = errsv;
                 return FALSE;
         }
         return TRUE;
