@@ -1203,6 +1203,8 @@ failure:
                 close(tmp[1]);
         if (tunnel != -1)
                 close(tunnel);
+        if (_vte_pty_helper_tunnel != -1)
+                close(_vte_pty_helper_tunnel);
 
         _vte_pty_helper_pid = -1;
         _vte_pty_helper_tunnel = -1;
