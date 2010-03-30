@@ -1344,8 +1344,6 @@ _vte_pty_open_with_helper(VtePty *pty,
         priv->child_setup_data.mode = TTY_OPEN_BY_FD;
         priv->child_setup_data.tty.fd = childfd;
 
-        // FIXMEchpe do this later
-//                 _vte_pty_set_size(fd, columns, rows);
         return TRUE;
 }
 
