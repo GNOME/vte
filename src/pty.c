@@ -1481,7 +1481,6 @@ vte_pty_initable_init (GInitable *initable,
         /* If we already have a (foreign) FD, we're done. */
         if (priv->foreign) {
                 g_assert(priv->pty_fd != -1);
-                // FIXMEchpe fill in the child_setup_data struct
                 return TRUE;
         }
 
