@@ -642,8 +642,8 @@ vte_pty_set_size(VtePty *pty,
         master = vte_pty_get_fd(pty);
 
 	memset(&size, 0, sizeof(size));
-	size.ws_row = rows ? rows : 24;
-	size.ws_col = columns ? columns : 80;
+	size.ws_row = rows > 0 ? rows : 24;
+	size.ws_col = columns > 0 ? columns : 80;
 	_vte_debug_print(VTE_DEBUG_PTY,
 			"Setting size on fd %d to (%d,%d).\n",
 			master, columns, rows);
