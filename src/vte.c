@@ -8760,10 +8760,6 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 	if (highlight && !cursor && terminal->pvt->highlight_color_set) {
 		*fore = cell ? cell->attr.fore : VTE_DEF_FG;
 		*back = VTE_DEF_HL;
-	} else
-	if (reverse ^ ((cell != NULL) && (cell->attr.reverse))) {
-		*fore = cell ? cell->attr.back : VTE_DEF_BG;
-		*back = cell ? cell->attr.fore : VTE_DEF_FG;
 	} else {
 		*fore = cell ? cell->attr.fore : VTE_DEF_FG;
 		*back = cell ? cell->attr.back : VTE_DEF_BG;
@@ -8795,6 +8791,13 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 				*back += VTE_COLOR_BRIGHT_OFFSET;
 			}
 		}
+	}
+
+	if (reverse ^ ((cell != NULL) && (cell->attr.reverse))) {
+	  int tmp;
+	  tmp = *fore;
+	  *fore = *back;
+	  *back = tmp;
 	}
 }
 
