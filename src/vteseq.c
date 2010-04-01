@@ -1200,6 +1200,8 @@ vte_sequence_handler_cs (VteTerminal *terminal, GValueArray *params)
 	GValue *value;
 	VteScreen *screen;
 
+	_vte_terminal_home_cursor (terminal);
+
 	/* We require two parameters.  Anything less is a reset. */
 	screen = terminal->pvt->screen;
 	if ((params == NULL) || (params->n_values < 2)) {
@@ -1232,7 +1234,6 @@ vte_sequence_handler_cs (VteTerminal *terminal, GValueArray *params)
 	    screen->scrolling_region.end == rows - 1) {
 		screen->scrolling_restricted = FALSE;
 	}
-	_vte_terminal_home_cursor (terminal);
 }
 
 /* Restrict scrolling and updates to a subset of the visible lines, because
