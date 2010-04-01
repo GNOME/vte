@@ -8767,9 +8767,6 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 
 	/* Handle invisible, bold, and standout text by adjusting colors. */
 	if (cell) {
-		if (cell->attr.invisible) {
-			*fore = *back;
-		}
 		if (cell->attr.bold) {
 			if (*fore == VTE_DEF_FG) {
 				*fore = VTE_BOLD_FG;
@@ -8798,6 +8795,10 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 	  tmp = *fore;
 	  *fore = *back;
 	  *back = tmp;
+	}
+
+	if (cell && cell->attr.invisible) {
+		*fore = *back;
 	}
 }
 
