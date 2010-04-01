@@ -170,7 +170,7 @@ reset(void)
 }
 
 /* Cleanly exit. */
-static void
+G_GNUC_NORETURN static void
 sigint_handler(int signum)
 {
 	if (tcsetattr(STDIN_FILENO, TCSANOW, &original) != 0) {
@@ -293,7 +293,7 @@ main(int argc, char **argv)
 			if (saved) {
 				restore_cursor();
 			}
-			g_byte_array_append(bytes, &c, 1);
+			g_byte_array_append(bytes, (const guint8 *) &c, 1);
 			/* Wait for up to just under 1/50 second. */
 			tv.tv_sec = 0;
 			tv.tv_usec = 1000000 / 50;
@@ -302,7 +302,7 @@ main(int argc, char **argv)
 			while (select(STDIN_FILENO + 1,
 				      &readset, NULL, NULL, &tv) == 1) {
 				if (read(STDIN_FILENO, &c, 1) == 1) {
-					g_byte_array_append(bytes, &c, 1);
+					g_byte_array_append(bytes, (const guint8 *) &c, 1);
 				} else {
 					break;
 				}
