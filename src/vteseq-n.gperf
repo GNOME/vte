@@ -81,6 +81,8 @@ struct vteseq_n_struct {
 "character-attributes", VTE_SEQUENCE_HANDLER(vte_sequence_handler_character_attributes)
 "device-status-report", VTE_SEQUENCE_HANDLER(vte_sequence_handler_device_status_report)
 "set-scrolling-region", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_scrolling_region)
+"set-scrolling-region-from-start", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_scrolling_region_from_start)
+"set-scrolling-region-to-end", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_scrolling_region_to_end)
 #"set-text-property-21", VTE_SEQUENCE_HANDLER_NULL
 #"set-text-property-2L", VTE_SEQUENCE_HANDLER_NULL
 "cursor-preceding-line", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cursor_preceding_line)

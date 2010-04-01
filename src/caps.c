@@ -496,8 +496,13 @@ struct _vte_capability_string _vte_xterm_capability_strings[] = {
 	{CSI "!p", "soft-reset", 0},
 	{CSI "%d;%d\"p", "set-conformance-level", 0},
 	{CSI "%d\"q", "select-character-protection", 0},
+
 	{CSI "r", "set-scrolling-region", 0},
+	{CSI ";r", "set-scrolling-region", 0},
+	{CSI ";%dr", "set-scrolling-region-from-start", 0},
+	{CSI "%d;r", "set-scrolling-region-to-end", 0},
 	{CSI "%d;%dr", "set-scrolling-region", 0},
+
 	{CSI "?%mr", "restore-mode", 0},
 	{CSI "s", "save-cursor", 0},
 	{CSI "?%ms", "save-mode", 0},
