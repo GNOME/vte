@@ -397,6 +397,7 @@ static struct font_info *
 font_info_allocate (PangoContext *context)
 {
 	struct font_info *info;
+	PangoTabArray *tabs;
 
 	info = g_slice_new0 (struct font_info);
 
@@ -405,6 +406,10 @@ font_info_allocate (PangoContext *context)
 			  info);
 
 	info->layout = pango_layout_new (context);
+	tabs = pango_tab_array_new_with_positions (1, FALSE, PANGO_TAB_LEFT, 1);
+	pango_layout_set_tabs (info->layout, tabs);
+	pango_tab_array_free (tabs);
+
 	info->string = g_string_sized_new (VTE_UTF8_BPC+1);
 
 	font_info_measure_font (info);

@@ -2082,7 +2082,6 @@ vte_sequence_handler_ta (VteTerminal *terminal, GValueArray *params)
 			if (!found) {
 				VteCell *cell = _vte_row_data_get_writable (rowdata, col);
 				VteCell tab = *cell;
-				tab.attr.invisible = 1; /* FIXME: bug 499944 */
 				tab.attr.columns = newcol - col;
 				tab.c = '\t';
 				/* Check if it fits in columns */
