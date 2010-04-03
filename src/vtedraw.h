@@ -74,7 +74,7 @@ void _vte_draw_set_background_solid(struct _vte_draw *draw,
 				    double blue,
 				    double opacity);
 void _vte_draw_set_background_image(struct _vte_draw *draw,
-				    enum VteBgSourceType type,
+				    VteBgSourceType type,
 				    GdkPixbuf *pixbuf,
 				    const char *file,
 				    const PangoColor *color,

@@ -24,18 +24,17 @@
 
 G_BEGIN_DECLS
 
-struct VteBgPrivate;
+typedef struct _VteBg         VteBg;
+typedef struct _VteBgPrivate  VteBgPrivate;
+typedef struct _VteBgClass    VteBgClass;
 
-typedef struct _VteBg VteBg;
 struct _VteBg {
 	GObject parent;
-	GdkScreen *screen;
-	cairo_surface_t *root_surface;
-	struct VteBgNative *native;
-	struct VteBgPrivate *pvt;
+
+        /*< private >*/
+	VteBgPrivate *pvt;
 };
 
-typedef struct _VteBgClass VteBgClass;
 struct _VteBgClass {
 	GObjectClass parent_class;
 	guint root_pixmap_changed;
@@ -52,16 +51,16 @@ GType vte_bg_get_type(void);
 
 VteBg *vte_bg_get_for_screen(GdkScreen *screen);
 
-enum VteBgSourceType {
+typedef enum {
 	VTE_BG_SOURCE_NONE,
 	VTE_BG_SOURCE_ROOT,
 	VTE_BG_SOURCE_PIXBUF,
 	VTE_BG_SOURCE_FILE
-};
+} VteBgSourceType;
 
 cairo_surface_t *
 vte_bg_get_surface(VteBg *bg,
-		   enum VteBgSourceType source_type,
+		   VteBgSourceType source_type,
 		   GdkPixbuf *source_pixbuf,
 		   const char *source_file,
 		   const PangoColor *tint,
