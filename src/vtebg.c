@@ -359,8 +359,9 @@ vte_bg_cache_add(VteBg *bg, VteBgCacheItem *item)
 					  (gpointer*)(void*)&item->source_pixbuf);
 	}
 
-	cairo_surface_set_user_data (item->surface, &item_surface_key, item,
-				     item_surface_destroy_func);
+        if (item->surface != NULL)
+                cairo_surface_set_user_data (item->surface, &item_surface_key, item,
+                                            item_surface_destroy_func);
 }
 
 /* Search for a match in the cache, and if found, return an object with an
