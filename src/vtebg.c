@@ -63,28 +63,6 @@ static void vte_bg_cache_item_free(VteBgCacheItem *item);
 static void vte_bg_cache_prune_int(VteBg *bg, gboolean root);
 static const cairo_user_data_key_t item_surface_key;
 
-#if 0
-static const char *
-vte_bg_source_name(enum VteBgSourceType type)
-{
-	switch (type) {
-	case VTE_BG_SOURCE_NONE:
-		return "none";
-		break;
-	case VTE_BG_SOURCE_ROOT:
-		return "root";
-		break;
-	case VTE_BG_SOURCE_PIXBUF:
-		return "pixbuf";
-		break;
-	case VTE_BG_SOURCE_FILE:
-		return "file";
-		break;
-	}
-	return "unknown";
-}
-#endif
-
 #ifdef GDK_WINDOWING_X11
 
 static void
