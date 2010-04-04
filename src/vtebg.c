@@ -197,14 +197,14 @@ vte_bg_class_init(VteBgClass *klass)
 
 	gobject_class->finalize = vte_bg_finalize;
 
-	klass->root_pixmap_changed = g_signal_new("root-pixmap-changed",
-						  G_OBJECT_CLASS_TYPE(klass),
-						  G_SIGNAL_RUN_LAST,
-						  0,
-						  NULL,
-						  NULL,
-                                                  g_cclosure_marshal_VOID__VOID,
-						  G_TYPE_NONE, 0);
+	g_signal_new("root-pixmap-changed",
+                     G_OBJECT_CLASS_TYPE(klass),
+                     G_SIGNAL_RUN_LAST,
+                     0,
+                     NULL,
+                     NULL,
+                     g_cclosure_marshal_VOID__VOID,
+                     G_TYPE_NONE, 0);
 	g_type_class_add_private(klass, sizeof (VteBgPrivate));
 }
 

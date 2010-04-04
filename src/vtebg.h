@@ -37,7 +37,6 @@ struct _VteBg {
 
 struct _VteBgClass {
 	GObjectClass parent_class;
-	guint root_pixmap_changed;
 };
 
 #define VTE_TYPE_BG vte_bg_get_type()
