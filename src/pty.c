@@ -1494,6 +1494,10 @@ vte_pty_initable_init (GInitable *initable,
                 if (ret)
                         goto out;
 
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                 "_vte_pty_open_with_helper failed: %s\n",
+                                 err->message);
+
                 /* Only do fallback if gnome-pty-helper failed! */
                 if ((priv->flags & VTE_PTY_NO_FALLBACK) ||
                     !g_error_matches(err,
