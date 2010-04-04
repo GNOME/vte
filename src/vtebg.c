@@ -25,8 +25,6 @@
 #include "marshal.h"
 #include "vtebg.h"
 
-#include <glib/gi18n-lib.h>
-
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
 #include <cairo-xlib.h>
@@ -196,11 +194,6 @@ static void
 vte_bg_class_init(VteBgClass *klass)
 {
 	GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
-
-	bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
-#ifdef HAVE_DECL_BIND_TEXTDOMAIN_CODESET
-	bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
-#endif
 
 	gobject_class->finalize = vte_bg_finalize;
 
