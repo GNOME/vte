@@ -20,6 +20,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <glib.h>
+#include <termcap.h>
 
 #include "vtetc.h"
 
