@@ -338,7 +338,9 @@ esac
 # Search for the required modules.
 
 # We have a direct dependency on X11 on gdk-x11, see bug #613525
+AC_MSG_CHECKING([for GDK target])
 GDK_TARGET="$($PKG_CONFIG --variable target gdk-2.0)"
+AC_MSG_RESULT([$GDK_TARGET])
 case "$GDK_TARGET" in
   x11) PLATFORM_PKGS="x11" ;;
   *) PLATFORM_PKGS="" ;;
