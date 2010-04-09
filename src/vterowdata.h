@@ -68,13 +68,13 @@ typedef struct _VteCellAttr {
 
 	/* 30 bits */
 } VteCellAttr;
-ASSERT_STATIC (sizeof (VteCellAttr) == 4);
+G_STATIC_ASSERT (sizeof (VteCellAttr) == 4);
 
 typedef union _VteIntCellAttr {
 	VteCellAttr s;
 	guint32 i;
 } VteIntCellAttr;
-ASSERT_STATIC (sizeof (VteCellAttr) == sizeof (VteIntCellAttr));
+G_STATIC_ASSERT (sizeof (VteCellAttr) == sizeof (VteIntCellAttr));
 
 /*
  * VteCell: A single cell's data
@@ -84,7 +84,7 @@ typedef struct _VteCell {
 	vteunistr c;
 	VteCellAttr attr;
 } VteCell;
-ASSERT_STATIC (sizeof (VteCell) == 8);
+G_STATIC_ASSERT (sizeof (VteCell) == 8);
 
 typedef union _VteIntCell {
 	VteCell cell;
@@ -93,7 +93,7 @@ typedef union _VteIntCell {
 		guint32 attr;
 	} i;
 } VteIntCell;
-ASSERT_STATIC (sizeof (VteCell) == sizeof (VteIntCell));
+G_STATIC_ASSERT (sizeof (VteCell) == sizeof (VteIntCell));
 
 static const VteIntCell basic_cell = {
 	{
@@ -126,7 +126,7 @@ static const VteIntCell basic_cell = {
 typedef struct _VteRowAttr {
 	guint8 soft_wrapped: 1;
 } VteRowAttr;
-ASSERT_STATIC (sizeof (VteRowAttr) == 1);
+G_STATIC_ASSERT (sizeof (VteRowAttr) == 1);
 
 /*
  * VteRowData: A single row's data

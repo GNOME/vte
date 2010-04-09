@@ -86,10 +86,6 @@ static void _vte_debug_print(guint flags, const char *fmt, ...)
 }
 #endif
 
-#define _ASSERT_STATIC1(_line, _cond) typedef int _static_assert_on_line_##_line##_failed[(_cond)?1:-1]
-#define _ASSERT_STATIC0(_line, _cond) _ASSERT_STATIC1 (_line, (_cond))
-#define ASSERT_STATIC(_cond) _ASSERT_STATIC0 (__LINE__, (_cond))
-
 G_END_DECLS
 
 #endif
