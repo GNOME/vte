@@ -342,7 +342,7 @@ AC_MSG_CHECKING([for GDK target])
 GDK_TARGET="$($PKG_CONFIG --variable target gdk-2.0)"
 AC_MSG_RESULT([$GDK_TARGET])
 case "$GDK_TARGET" in
-  x11) PLATFORM_PKGS="x11" ;;
+  x11) PLATFORM_PKGS="x11 cairo-xlib" ;;
   *) PLATFORM_PKGS="" ;;
 esac
 
