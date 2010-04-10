@@ -123,9 +123,8 @@ vte_bg_root_surface(VteBg *bg)
 					     DefaultVisualOfScreen(screen),
 					     width, height);
 
-	_VTE_DEBUG_IF(VTE_DEBUG_MISC|VTE_DEBUG_EVENTS) {
-		g_printerr("New background image %dx%d\n", width, height);
-	}
+        _vte_debug_print(VTE_DEBUG_MISC|VTE_DEBUG_EVENTS,
+                         "New root background image %dx%d\n", width, height);
 
  out_pixmaps:
 	g_free(pixmaps);
