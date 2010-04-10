@@ -2193,7 +2193,7 @@ _vte_terminal_setup_utf8 (VteTerminal *terminal)
 /**
  * vte_terminal_set_encoding:
  * @terminal: a #VteTerminal
- * @codeset: (allow-none): a valid @GIConv target, or %NULL to use the default encoding
+ * @codeset: (allow-none): a valid #GIConv target, or %NULL to use the default encoding
  *
  * Changes the encoding the terminal will expect data from the child to
  * be encoded with.  For certain terminal types, applications executing in the
@@ -14501,7 +14501,7 @@ update_timeout (gpointer data)
  * @terminal: a #VteTerminal
  * @stream: a #GOutputStream to write to
  * @flags: a set of #VteTerminalWriteFlags
- * @cancellable: (allow-none): optional #GCancellable object, %NULL
+ * @cancellable: (allow-none): a #GCancellable object, or %NULL
  * @error: (allow-none): a #GError location to store the error occuring, or %NULL
  *
  * Write contents of the current contents of @terminal (including any
