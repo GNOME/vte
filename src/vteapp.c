@@ -476,6 +476,25 @@ child_exit_cb(VteTerminal *terminal,
 {
 }
 
+static int
+parse_enum(GType type,
+           const char *string)
+{
+  GEnumClass *enum_klass;
+  const GEnumValue *enum_value;
+  int value = 0;
+
+  enum_klass = (GEnumClass*)g_type_class_ref(type);
+  enum_value = g_enum_get_value_by_nick(enum_klass, string);
+  if (enum_value)
+    value = enum_value->value;
+  else
+    g_warning("Unknown enum '%s'\n", string);
+  g_type_class_unref(enum_klass);
+
+  return value;
+}
+
 static guint
 parse_flags(GType type,
             const char *string)
@@ -491,7 +510,7 @@ parse_flags(GType type,
 
   flags_klass = (GFlagsClass*)g_type_class_ref(type);
   for (i = 0; flags[i] != NULL; ++i) {
-          GFlagsValue *flags_value;
+          const GFlagsValue *flags_value;
 
           flags_value = g_flags_get_value_by_nick(flags_klass, flags[i]);
           if (flags_value)
@@ -524,7 +543,6 @@ main(int argc, char **argv)
 		 cursor_set = FALSE, reverse = FALSE, use_geometry_hints = TRUE,
 		 antialias = TRUE, use_scrolled_window = FALSE,
                  show_object_notifications = FALSE;
-        int scrollbar_policy = 0;
         char *geometry = NULL;
 	gint lines = 100;
 	const char *message = "Launching interactive shell...\r\n";
@@ -534,7 +552,8 @@ main(int argc, char **argv)
 	const char *working_directory = NULL;
 	const char *output_file = NULL;
         char *pty_flags_string = NULL;
-        char *cursor_shape = NULL;
+        char *cursor_shape_string = NULL;
+        char *scrollbar_policy_string = NULL;
 	GdkColor fore, back, tint, highlight, cursor;
 	const GOptionEntry options[]={
 		{
@@ -630,8 +649,8 @@ main(int argc, char **argv)
 		},
 		{
 			"cursor-shape", 0, 0,
-			G_OPTION_ARG_STRING, &cursor_shape,
-			"Set cursor shape (block, underline, ibeam)", NULL
+			G_OPTION_ARG_STRING, &cursor_shape_string,
+			"Set cursor shape (block|underline|ibeam)", NULL
 		},
 		{
 			"scroll-background", 's', 0,
@@ -668,8 +687,8 @@ main(int argc, char **argv)
 		},
 		{
 			"scrollbar-policy", 'P', 0,
-			G_OPTION_ARG_INT, &scrollbar_policy,
-			"Set the policy for the vertical scroolbar in the scrolled window (0=always, 1=auto, 2=never; default:0)",
+			G_OPTION_ARG_STRING, &scrollbar_policy_string,
+			"Set the policy for the vertical scroolbar in the scrolled window (always|auto|never; default:always)",
 			NULL
 		},
 		{
@@ -692,6 +711,8 @@ main(int argc, char **argv)
 	};
 	GOptionContext *context;
 	GError *error = NULL;
+        VteTerminalCursorShape cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
+        GtkPolicyType scrollbar_policy = GTK_POLICY_ALWAYS;
         VtePtyFlags pty_flags = VTE_PTY_DEFAULT;
 
 	/* Have to do this early. */
@@ -713,6 +734,14 @@ main(int argc, char **argv)
 		return 1;
 	}
 
+        if (cursor_shape_string) {
+                cursor_shape = parse_enum(VTE_TYPE_TERMINAL_CURSOR_SHAPE, cursor_shape_string);
+                g_free(cursor_shape_string);
+        }
+        if (scrollbar_policy_string) {
+                scrollbar_policy = parse_enum(GTK_TYPE_POLICY_TYPE, scrollbar_policy_string);
+                g_free(scrollbar_policy_string);
+        }
         if (pty_flags_string) {
                 pty_flags |= parse_flags(VTE_TYPE_PTY_FLAGS, pty_flags_string);
                 g_free(pty_flags_string);
@@ -749,8 +778,7 @@ main(int argc, char **argv)
         if (use_scrolled_window) {
                 scrolled_window = gtk_scrolled_window_new (NULL, NULL);
                 gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window),
-                                               GTK_POLICY_NEVER,
-                                               CLAMP (scrollbar_policy, GTK_POLICY_ALWAYS, GTK_POLICY_NEVER));
+                                               GTK_POLICY_NEVER, scrollbar_policy);
                 gtk_container_add(GTK_CONTAINER(window), scrolled_window);
         } else {
                 /* Create a box to hold everything. */
@@ -859,16 +887,10 @@ main(int argc, char **argv)
 	if (cursor_set) {
 		vte_terminal_set_color_cursor(terminal, &cursor);
 	}
-        if (g_strcmp0(cursor_shape, "underline") == 0) {
-                vte_terminal_set_cursor_shape(terminal, VTE_CURSOR_SHAPE_UNDERLINE);
-        } else if (g_strcmp0(cursor_shape, "ibeam") == 0) {
-                vte_terminal_set_cursor_shape(terminal, VTE_CURSOR_SHAPE_IBEAM);
-        } else {
-                vte_terminal_set_cursor_shape(terminal, VTE_CURSOR_SHAPE_BLOCK);
-        }
 	if (termcap != NULL) {
 		vte_terminal_set_emulation(terminal, termcap);
 	}
+        vte_terminal_set_cursor_shape(terminal, cursor_shape);
 
 	/* Set the default font. */
 	vte_terminal_set_font_from_string_full(terminal, font,
