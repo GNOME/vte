@@ -215,12 +215,11 @@ vte_bg_init(VteBg *bg)
 
 /**
  * vte_bg_get:
- * @screen : A #GdkScreen.
+ * @screen: a #GdkScreen
  *
- * Finds the address of the global #VteBg object, creating the object if
- * necessary.
+ * Returns the global #VteBg object for @screen, creating it if necessary.
  *
- * Returns: the global #VteBg object
+ * Returns: (transfer none): a #VteBg
  */
 VteBg *
 vte_bg_get_for_screen(GdkScreen *screen)
@@ -317,8 +316,14 @@ static void item_surface_destroy_func(void *data)
 	item->surface = NULL;
 }
 
-/* Add an item to the cache, instructing all of the objects therein to clear
-   the field which holds a pointer to the object upon its destruction. */
+/*
+ * vte_bg_cache_add:
+ * @bg: a #VteBg
+ * @item: a #VteBgCacheItem
+ *
+ * Adds @item to @bg's cache, instructing all of the objects therein to
+ * clear the field which holds a pointer to the object upon its destruction.
+ */
 static void
 vte_bg_cache_add(VteBg *bg, VteBgCacheItem *item)
 {
@@ -334,8 +339,18 @@ vte_bg_cache_add(VteBg *bg, VteBgCacheItem *item)
                                             item_surface_destroy_func);
 }
 
-/* Search for a match in the cache, and if found, return an object with an
-   additional ref. */
+/*
+ * vte_bg_cache_search:
+ * @bg: a #VteBg
+ * @source_type: a #VteBgSourceType
+ * @source_pixbuf: a #GdkPixbuf, or %NULL
+ * @source_file: path of an image file, or %NULL
+ * @tint: a #PangoColor to use as tint color
+ * @saturation: the saturation as a value between 0.0 and 1.0
+ *
+ * Returns: a reference to a #cairo_surface_t, or %NULL on if
+ *   there is no matching item in the cache
+ */
 static cairo_surface_t *
 vte_bg_cache_search(VteBg *bg,
 		    VteBgSourceType source_type,
@@ -376,6 +391,18 @@ vte_bg_cache_search(VteBg *bg,
 	return NULL;
 }
 
+/**
+ * vte_bg_get_surface:
+ * @bg: a #VteBg
+ * @source_type: a #VteBgSourceType
+ * @source_pixbuf: (allow-none): a #GdkPixbuf, or %NULL
+ * @source_file: (allow-none): path of an image file, or %NULL
+ * @tint: a #PangoColor to use as tint color
+ * @saturation: the saturation as a value between 0.0 and 1.0
+ * @other: a #cairo_surface_t
+ *
+ * Returns: a reference to a #cairo_surface_t, or %NULL on failure
+ */
 cairo_surface_t *
 vte_bg_get_surface(VteBg *bg,
 		   VteBgSourceType source_type,
