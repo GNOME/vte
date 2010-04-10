@@ -46,11 +46,16 @@ G_BEGIN_DECLS
 #define _VTE_DEPRECATED(name) name
 #endif
 
-/* Private implementation details. */
-typedef struct _VteTerminalPrivate VteTerminalPrivate;
+#define VTE_TYPE_TERMINAL            (vte_terminal_get_type())
+#define VTE_TERMINAL(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), VTE_TYPE_TERMINAL, VteTerminal))
+#define VTE_TERMINAL_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  VTE_TYPE_TERMINAL, VteTerminalClass))
+#define VTE_IS_TERMINAL(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), VTE_TYPE_TERMINAL))
+#define VTE_IS_TERMINAL_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  VTE_TYPE_TERMINAL))
+#define VTE_TERMINAL_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  VTE_TYPE_TERMINAL, VteTerminalClass))
 
-/* The terminal widget itself. */
-typedef struct _VteTerminal VteTerminal;
+typedef struct _VteTerminal         VteTerminal;
+typedef struct _VteTerminalPrivate  VteTerminalPrivate;
+typedef struct _VteTerminalClass    VteTerminalClass;
 
 /**
  * VteTerminal:
@@ -74,9 +79,6 @@ struct _VteTerminal {
 	/*< private >*/
 	VteTerminalPrivate *pvt;
 };
-
-/* The widget's class structure. */
-typedef struct _VteTerminalClass VteTerminalClass;
 
 /**
  * VteTerminalClass:
@@ -245,19 +247,6 @@ typedef gboolean (*VteSelectionFunc)(VteTerminal *terminal,
 
 /* The widget's type. */
 GType vte_terminal_get_type(void);
-
-#define VTE_TYPE_TERMINAL		(vte_terminal_get_type())
-#define VTE_TERMINAL(obj)		(G_TYPE_CHECK_INSTANCE_CAST((obj),\
-							VTE_TYPE_TERMINAL,\
-							VteTerminal))
-#define VTE_TERMINAL_CLASS(klass)	G_TYPE_CHECK_CLASS_CAST((klass),\
-							     VTE_TYPE_TERMINAL,\
-							     VteTerminalClass)
-#define VTE_IS_TERMINAL(obj)		G_TYPE_CHECK_INSTANCE_TYPE((obj),\
-						       VTE_TYPE_TERMINAL)
-#define VTE_IS_TERMINAL_CLASS(klass)	G_TYPE_CHECK_CLASS_TYPE((klass),\
-							     VTE_TYPE_TERMINAL)
-#define VTE_TERMINAL_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS ((obj), VTE_TYPE_TERMINAL, VteTerminalClass))
 
 GtkWidget *vte_terminal_new(void);
 

@@ -16,13 +16,19 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-
 #ifndef vte_vtebg_included
 #define vte_vtebg_included
 
 #include <gtk/gtk.h>
 
 G_BEGIN_DECLS
+
+#define VTE_TYPE_BG            (vte_bg_get_type())
+#define VTE_BG(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), VTE_TYPE_BG, VteBg))
+#define VTE_BG_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  VTE_TYPE_BG, VteBgClass))
+#define VTE_IS_BG(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), VTE_TYPE_BG))
+#define VTE_IS_BG_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  VTE_TYPE_BG))
+#define VTE_BG_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  VTE_TYPE_BG, VteBgClass))
 
 typedef struct _VteBg         VteBg;
 typedef struct _VteBgPrivate  VteBgPrivate;
@@ -38,13 +44,6 @@ struct _VteBg {
 struct _VteBgClass {
 	GObjectClass parent_class;
 };
-
-#define VTE_TYPE_BG vte_bg_get_type()
-#define VTE_BG(obj)	       (G_TYPE_CHECK_INSTANCE_CAST((obj), VTE_TYPE_BG, VteBg))
-#define VTE_BG_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST((klass), VTE_TYPE_BG, VteBgClass)
-#define VTE_IS_BG(obj)	       G_TYPE_CHECK_INSTANCE_TYPE((obj), VTE_TYPE_BG)
-#define VTE_IS_BG_CLASS(klass) G_TYPE_CHECK_CLASS_TYPE((klass), VTE_TYPE_BG)
-#define VTE_BG_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS((obj), VTE_TYPE_BG, VteBgClass))
 
 GType vte_bg_get_type(void);
 
