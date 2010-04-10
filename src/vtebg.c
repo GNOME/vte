@@ -415,7 +415,7 @@ vte_bg_get_surface(VteBg *bg,
         VteBgPrivate *pvt;
 	VteBgCacheItem *item;
 	GdkPixbuf *pixbuf;
-	cairo_surface_t *cached, *source;
+	cairo_surface_t *cached;
 	cairo_t *cr;
 	int width, height;
 
@@ -453,7 +453,6 @@ vte_bg_get_surface(VteBg *bg,
 	item->tint_color = *tint;
 	item->saturation = saturation;
         item->surface = NULL;
-	source = NULL;
 	pixbuf = NULL;
 
 	switch (source_type) {
