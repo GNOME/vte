@@ -438,6 +438,14 @@ vte_bg_get_surface(VteBg *bg,
 		return cached;
 	}
 
+        /* FIXME: The above only returned a hit when the source *and*
+         * tint and saturation matched. This means that for VTE_BG_SOURCE_FILE,
+         * we will create below *another* #GdkPixbuf for the same source file,
+         * wasting memory. We should instead look up the source pixbuf regardless
+         * of tint and saturation, and just create a new #VteBgCacheItem
+         * with a new surface for it.
+         */
+
 	item = g_slice_new(VteBgCacheItem);
 	item->source_type = source_type;
 	item->source_pixbuf = NULL;
