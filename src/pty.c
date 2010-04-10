@@ -613,7 +613,7 @@ __vte_pty_fork(VtePty *pty,
  * @pty: a #VtePty
  * @rows: the desired number of rows
  * @columns: the desired number of columns
- * @error: return location to store a #GError, or %NULL
+ * @error: (allow-none); return location to store a #GError, or %NULL
  *
  * Attempts to resize the pseudo terminal's window size.  If successful, the
  * OS kernel will send #SIGWINCH to the child process group.
@@ -671,8 +671,8 @@ vte_pty_set_size(VtePty *pty,
 /**
  * vte_pty_get_size:
  * @pty: a #VtePty
- * @rows: a place to store the number of rows
- * @columns: a place to store the number of columns
+ * @rows: (out) (allow-none): a location to store the number of rows, or %NULL
+ * @columns: (out) (allow-none): a location to store the number of columns, or %NULL
  * @error: return location to store a #GError, or %NULL
  *
  * Reads the pseudo terminal's window size.
@@ -1352,8 +1352,8 @@ _vte_pty_open_with_helper(VtePty *pty,
 /**
  * vte_pty_set_utf8:
  * @pty: a #VtePty
- * @utf8: Whether or not the pty is in UTF-8 mode
- * @error: return location to store a #GError, or %NULL
+ * @utf8: whether or not the pty is in UTF-8 mode
+ * @error: (allow-none): return location to store a #GError, or %NULL
  *
  * Tells the kernel whether the terminal is UTF-8 or not, in case it can make
  * use of the info.  Linux 2.6.5 or so defines IUTF8 to make the line
@@ -1719,7 +1719,7 @@ vte_pty_error_quark(void)
 /**
  * vte_pty_new:
  * @flags: flags from #VtePtyFlags
- * @error: return location for a #GError, or %NULL
+ * @error: (allow-none): return location for a #GError, or %NULL
  *
  * Allocates a new pseudo-terminal.
  *
@@ -1747,7 +1747,7 @@ vte_pty_error_quark(void)
  * and opening a PTY using the PTY helper fails, there will
  * be no fallback to allocate a PTY using Unix98 PTY functions.
  *
- * Returns: a new #VtePty, or %NULL on error with @error filled in
+ * Returns: (transfer): a new #VtePty, or %NULL on error with @error filled in
  *
  * Since: 0.26
  */
@@ -1764,8 +1764,8 @@ vte_pty_new (VtePtyFlags flags,
 
 /**
  * vte_pty_new_foreign:
- * @fd: a file descriptor to the PTY
- * @error: return location for a #GError, or %NULL
+ * @fd: (transfer): a file descriptor to the PTY
+ * @error: (allow-none): return location for a #GError, or %NULL
  *
  * Creates a new #VtePty for the PTY master @fd.
  *
@@ -1774,7 +1774,7 @@ vte_pty_new (VtePtyFlags flags,
  * Note that the newly created #VtePty will take ownership of @fd
  * and close it on finalize.
  *
- * Returns: a new #VtePty for @fd, or %NULL on error with @error filled in
+ * Returns: (transfer): a new #VtePty for @fd, or %NULL on error with @error filled in
  *
  * Since: 0.26
  */
@@ -1795,7 +1795,7 @@ vte_pty_new_foreign (int fd,
  * vte_pty_get_fd:
  * @pty: a #VtePty
  *
- * Returns: the file descriptor of the PTY master in @pty. The
+ * Returns: (transfer none): the file descriptor of the PTY master in @pty. The
  *   file descriptor belongs to @pty and must not be closed
  */
 int
@@ -1814,7 +1814,7 @@ vte_pty_get_fd (VtePty *pty)
 /**
  * vte_pty_set_term:
  * @pty: a #VtePty
- * @emulation: the name of a terminal description
+ * @emulation: (allow-none): the name of a terminal description, or %NULL
  *
  * Sets what value of the TERM environment variable to set
  * when using vte_pty_child_setup().

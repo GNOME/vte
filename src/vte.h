@@ -376,7 +376,8 @@ void vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting);
 gboolean vte_terminal_get_mouse_autohide(VteTerminal *terminal);
 
 /* Reset the terminal, optionally clearing the tab stops and line history. */
-void vte_terminal_reset(VteTerminal *terminal, gboolean full,
+void vte_terminal_reset(VteTerminal *terminal,
+                        gboolean clear_tabstops,
 			gboolean clear_history);
 
 /* Read the contents of the terminal, using a callback function to determine
@@ -387,17 +388,17 @@ void vte_terminal_reset(VteTerminal *terminal, gboolean full,
  * should match up exactly. */
 char *vte_terminal_get_text(VteTerminal *terminal,
 			    VteSelectionFunc is_selected,
-			    gpointer data,
+			    gpointer user_data,
 			    GArray *attributes);
 char *vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 						    VteSelectionFunc is_selected,
-						    gpointer data,
+						    gpointer user_data,
 						    GArray *attributes);
 char *vte_terminal_get_text_range(VteTerminal *terminal,
 				  glong start_row, glong start_col,
 				  glong end_row, glong end_col,
 				  VteSelectionFunc is_selected,
-				  gpointer data,
+				  gpointer user_data,
 				  GArray *attributes);
 void vte_terminal_get_cursor_position(VteTerminal *terminal,
 				      glong *column, glong *row);

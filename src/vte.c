@@ -1183,7 +1183,6 @@ vte_terminal_set_cursor_from_regex_match(VteTerminal *terminal, struct vte_match
  *
  * Clears the list of regular expressions the terminal uses to highlight text
  * when the user moves the mouse cursor.
- *
  */
 void
 vte_terminal_match_clear_all(VteTerminal *terminal)
@@ -1212,7 +1211,6 @@ vte_terminal_match_clear_all(VteTerminal *terminal)
  * Removes the regular expression which is associated with the given @tag from
  * the list of expressions which the terminal will highlight when the user
  * moves the mouse cursor over matching text.
- *
  */
 void
 vte_terminal_match_remove(VteTerminal *terminal, int tag)
@@ -1256,7 +1254,7 @@ vte_terminal_cursor_new(VteTerminal *terminal, GdkCursorType cursor_type)
  *
  * Returns: an integer associated with this expression
  *
- * Deprecated: 0.17.1
+ * Deprecated: 0.17.1: Use vte_terminal_match_add_gregex() instead
  */
 int
 vte_terminal_match_add(VteTerminal *terminal, const char *match)
@@ -1367,8 +1365,8 @@ vte_terminal_match_add_gregex(VteTerminal *terminal, GRegex *regex, GRegexMatchF
  * vte_terminal_match_set_cursor:
  * @terminal: a #VteTerminal
  * @tag: the tag of the regex which should use the specified cursor
- * @cursor: the #GdkCursor which the terminal should use when the pattern is
- * highlighted
+ * @cursor: (allow-none): the #GdkCursor which the terminal should use when the pattern is
+ *   highlighted, or %NULL to use the standard cursor
  *
  * Sets which cursor the terminal will use if the pointer is over the pattern
  * specified by @tag.  The terminal keeps a reference to @cursor.
@@ -1937,7 +1935,7 @@ rowcol_inside_match (VteTerminal *terminal, glong row, glong col)
  * @terminal: a #VteTerminal
  * @column: the text column
  * @row: the text row
- * @tag: pointer to an integer
+ * @tag: (out) (allow-none): a location to store the tag, or %NULL
  *
  * Checks if the text in and around the specified position matches any of the
  * regular expressions previously set using vte_terminal_match_add().  If a
@@ -1948,8 +1946,8 @@ rowcol_inside_match (VteTerminal *terminal, glong row, glong col)
  * vte_terminal_match_add(), then expressions are checked in the order in
  * which they were added.
  *
- * Returns: a string which matches one of the previously set regular
- * expressions, and which must be freed by the caller.
+ * Returns: (transfer): a newly allocated string which matches one of the previously
+ *   set regular expressions
  */
 char *
 vte_terminal_match_check(VteTerminal *terminal, glong column, glong row,
@@ -2195,13 +2193,12 @@ _vte_terminal_setup_utf8 (VteTerminal *terminal)
 /**
  * vte_terminal_set_encoding:
  * @terminal: a #VteTerminal
- * @codeset: a valid #g_iconv target
+ * @codeset: (allow-none): a valid @GIConv target, or %NULL to use the default encoding
  *
  * Changes the encoding the terminal will expect data from the child to
  * be encoded with.  For certain terminal types, applications executing in the
  * terminal can change the encoding.  The default encoding is defined by the
  * application's locale settings.
- *
  */
 void
 vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
@@ -2294,7 +2291,7 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
  * Determines the name of the encoding in which the terminal expects data to be
  * encoded.
  *
- * Returns: the current encoding for the terminal.
+ * Returns: (transfer none): the current encoding for the terminal
  */
 const char *
 vte_terminal_get_encoding(VteTerminal *terminal)
@@ -2424,9 +2421,9 @@ _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 /**
  * vte_terminal_new:
  *
- * Create a new terminal widget.
+ * Creates a new terminal widget.
  *
- * Returns: a new #VteTerminal object
+ * Returns: (transfer) (type Vte.Terminal): a new #VteTerminal object
  */
 GtkWidget *
 vte_terminal_new(void)
@@ -2529,7 +2526,6 @@ vte_terminal_generate_bold(const PangoColor *foreground,
  * @bold: the new bold color
  *
  * Sets the color used to draw bold text in the default foreground color.
- *
  */
 void
 vte_terminal_set_color_bold(VteTerminal *terminal, const GdkColor *bold)
@@ -2549,7 +2545,6 @@ vte_terminal_set_color_bold(VteTerminal *terminal, const GdkColor *bold)
  * @dim: the new dim color
  *
  * Sets the color used to draw dim text in the default foreground color.
- *
  */
 void
 vte_terminal_set_color_dim(VteTerminal *terminal, const GdkColor *dim)
@@ -2569,7 +2564,6 @@ vte_terminal_set_color_dim(VteTerminal *terminal, const GdkColor *dim)
  * @foreground: the new foreground color
  *
  * Sets the foreground color used to draw normal text
- *
  */
 void
 vte_terminal_set_color_foreground(VteTerminal *terminal,
@@ -2592,7 +2586,6 @@ vte_terminal_set_color_foreground(VteTerminal *terminal,
  * Sets the background color for text which does not have a specific background
  * color assigned.  Only has effect when no background image is set and when
  * the terminal is not transparent.
- *
  */
 void
 vte_terminal_set_color_background(VteTerminal *terminal,
@@ -2610,14 +2603,13 @@ vte_terminal_set_color_background(VteTerminal *terminal,
 /**
  * vte_terminal_set_color_cursor:
  * @terminal: a #VteTerminal
- * @cursor_background: the new color to use for the text cursor
+ * @cursor_background: (allow-none): the new color to use for the text cursor, or %NULL
  *
  * Sets the background color for text which is under the cursor.  If %NULL, text
  * under the cursor will be drawn with foreground and background colors
  * reversed.
  *
  * Since: 0.11.11
- *
  */
 void
 vte_terminal_set_color_cursor(VteTerminal *terminal,
@@ -2644,14 +2636,13 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
 /**
  * vte_terminal_set_color_highlight:
  * @terminal: a #VteTerminal
- * @highlight_background: the new color to use for highlighted text
+ * @highlight_background: (allow-none): the new color to use for highlighted text, or %NULL
  *
  * Sets the background color for text which is highlighted.  If %NULL,
  * highlighted text (which is usually highlighted because it is selected) will
  * be drawn with foreground and background colors reversed.
  *
  * Since: 0.11.11
- *
  */
 void
 vte_terminal_set_color_highlight(VteTerminal *terminal,
@@ -2678,9 +2669,9 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
 /**
  * vte_terminal_set_colors:
  * @terminal: a #VteTerminal
- * @foreground: the new foreground color, or %NULL
- * @background: the new background color, or %NULL
- * @palette: the color palette
+ * @foreground: (allow-none): the new foreground color, or %NULL
+ * @background: (allow-none): the new background color, or %NULL
+ * @palette: (array length=palette_size zero-terminated=0) (element-type Gdk.Color): the color palette
  * @palette_size: the number of entries in @palette
  *
  * The terminal widget uses a 28-color model comprised of the default foreground
@@ -2696,7 +2687,6 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
  * @palette_size is 8 or 16, the third (dim) and possibly the second (bold)
  * 8-color palettes are extrapolated from the new background color and the items
  * in @palette.
- *
  */
 void
 vte_terminal_set_colors(VteTerminal *terminal,
@@ -2821,7 +2811,6 @@ vte_terminal_set_colors(VteTerminal *terminal,
  *
  * Sets the opacity of the terminal background, were 0 means completely
  * transparent and 65535 means completely opaque.
- *
  */
 void
 vte_terminal_set_opacity(VteTerminal *terminal, guint16 opacity)
@@ -2844,8 +2833,7 @@ vte_terminal_set_opacity(VteTerminal *terminal, guint16 opacity)
  * vte_terminal_set_default_colors:
  * @terminal: a #VteTerminal
  *
- * Reset the terminal palette to reasonable compiled-in defaults.
- *
+ * Reset the terminal palette to reasonable compiled-in default color.
  */
 void
 vte_terminal_set_default_colors(VteTerminal *terminal)
@@ -3328,13 +3316,14 @@ _vte_terminal_disconnect_pty_write(VteTerminal *terminal)
  * vte_terminal_pty_new:
  * @terminal: a #VteTerminal
  * @flags: flags from #VtePtyFlags
- * @error: return location for a #GError, or %NULL
+ * @error: (allow-none): return location for a #GError, or %NULL
  *
  * Creates a new #VtePty, and sets the emulation property
  * from #VteTerminal:emulation.
  *
  * See vte_pty_new() for more information.
  *
+ * Returns: (transfer): a new #VtePty
  * Since: 0.26
  */
 VtePty *
@@ -3500,11 +3489,11 @@ _vte_terminal_get_argv (const char *command,
 /**
  * vte_terminal_fork_command:
  * @terminal: a #VteTerminal
- * @command: the name of a binary to run, or %NULL to spawn the user's shell
- * @argv: the argument list to be passed to @command, or %NULL
- * @envv: a list of environment variables to be added to the environment before
- * starting @command, or %NULL
- * @working_directory: the name of a directory the command should start in, or %NULL
+ * @command: (allow-none) (type filename): the name of a binary to run, or %NULL to spawn the user's shell
+ * @argv: (allow-none) (array zero-terminated=1) (element-type filename): the argument list to be passed to @command, or %NULL
+ * @envv: (allow-none) (array zero-terminated=1) (element-type filename): a list of environment variables to be added to the environment before
+ *   starting @command, or %NULL
+ * @working_directory: (allow-none) (type filename): the name of a directory the command should start in, or %NULL
  * @lastlog: %TRUE if the session should be logged to the lastlog
  * @utmp: %TRUE if the session should be logged to the utmp/utmpx log
  * @wtmp: %TRUE if the session should be logged to the wtmp/wtmpx log
@@ -3519,7 +3508,7 @@ _vte_terminal_get_argv (const char *command,
  * Note that all file descriptors except stdin/stdout/stderr will be closed
  * before calling exec() in the child.
  *
- * Returns: the PID of the new process
+ * Returns: the PID of the new process, or <literal>-1</literal> on failure
  *
  * Deprecated: 0.26: Use vte_terminal_fork_command_full()
  */
@@ -3579,16 +3568,16 @@ vte_terminal_fork_command(VteTerminal *terminal,
  * vte_terminal_fork_command_full:
  * @terminal: a #VteTerminal
  * @pty_flags: flags from #VtePtyFlags
- * @argv: child's argument vector
- * @envv: a list of environment variables to be added to the environment before
- *   starting the process, or %NULL
- * @working_directory: the name of a directory the command should start in, or %NULL
- *   to use the cwd
+ * @argv: (array zero-terminated=1) (element-type filename): child's argument vector
+ * @envv: (allow-none) (array zero-terminated=1) (element-type filename): a list of environment
+ *   variables to be added to the environment before starting the process, or %NULL
+ * @working_directory: (allow-none) (type filename): the name of a directory the command should start
+ *   in, or %NULL to use the current working directory
  * @spawn_flags: flags from #GSpawnFlags
- * @child_setup: function to run in the child just before exec()
+ * @child_setup: (allow-none): function to run in the child just before exec(), or %NULL
  * @child_setup_data: user data for @child_setup
- * @child_pid: a location to store the child PID, or %NULL
- * @error: return location for a #GError, or %NULL
+ * @child_pid: (out) (allow-none) (transfer full): a location to store the child PID, or %NULL
+ * @error: (allow-none): return location for a #GError, or %NULL
  *
  * Starts the specified command under a newly-allocated controlling
  * pseudo-terminal.  The @argv and @envv lists should be %NULL-terminated.
@@ -4369,13 +4358,12 @@ out:
 /**
  * vte_terminal_feed:
  * @terminal: a #VteTerminal
- * @data: a string in the terminal's current encoding
+ * @data: (array length=length zero-terminated=0) (element-type uint8): a string in the terminal's current encoding
  * @length: the length of the string
  *
  * Interprets @data as if it were data received from a child process.  This
  * can either be used to drive the terminal without a child process, or just
  * to mess with your users.
- *
  */
 void
 vte_terminal_feed(VteTerminal *terminal, const char *data, glong length)
@@ -4573,7 +4561,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 /**
  * vte_terminal_feed_child:
  * @terminal: a #VteTerminal
- * @text: data to send to the child
+ * @text: (array length=length zero-terminated=maybe) (element-type uint8): data to send to the child
  * @length: length of @text in bytes, or -1 if @text is NUL-terminated
  *
  * Sends a block of UTF-8 text to the child as if it were entered by the user
@@ -4595,7 +4583,7 @@ vte_terminal_feed_child(VteTerminal *terminal, const char *text, glong length)
 /**
  * vte_terminal_feed_child_binary:
  * @terminal: a #VteTerminal
- * @data: data to send to the child
+ * @data: (array length=length zero-terminated=0) (element-type uint8): data to send to the child
  * @length: length of @data
  *
  * Sends a block of binary data to the child.
@@ -5942,7 +5930,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
  * @end_col: last column to search for data
  * @is_selected: a callback
  * @data: user data to be passed to the callback
- * @attributes: location for storing text attributes
+ * @attributes: (out) (transfer) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
  * %NULL, characters will only be read if @is_selected returns %TRUE after being
@@ -5952,14 +5940,14 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
  * entire scrollback buffer is scanned, so it is possible to read the entire
  * contents of the buffer using this function.
  *
- * Returns: a text string which must be freed by the caller, or %NULL.
+ * Returns: (transfer): a newly allocated text string, or %NULL.
  */
 char *
 vte_terminal_get_text_range(VteTerminal *terminal,
 			    glong start_row, glong start_col,
 			    glong end_row, glong end_col,
 			    VteSelectionFunc is_selected,
-			    gpointer data,
+			    gpointer user_data,
 			    GArray *attributes)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
@@ -5968,7 +5956,7 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 							 end_row, end_col,
 							 TRUE,
 							 is_selected,
-							 data,
+							 user_data,
 							 attributes,
 							 FALSE);
 }
@@ -6139,8 +6127,8 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
  * vte_terminal_get_text:
  * @terminal: a #VteTerminal
  * @is_selected: a callback
- * @data: user data to be passed to the callback
- * @attributes: location for storing text attributes
+ * @user_data: user data to be passed to the callback
+ * @attributes: (out) (transfer) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
  * %NULL, characters will only be read if @is_selected returns %TRUE after being
@@ -6148,12 +6136,12 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
  * is added to @attributes for each byte added to the returned string detailing
  * the character's position, colors, and other characteristics.
  *
- * Returns: a text string which must be freed by the caller, or %NULL.
+ * Returns: (transfer): a newly allocated text string, or %NULL.
  */
 char *
 vte_terminal_get_text(VteTerminal *terminal,
 		      VteSelectionFunc is_selected,
-		      gpointer data,
+		      gpointer user_data,
 		      GArray *attributes)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
@@ -6162,7 +6150,7 @@ vte_terminal_get_text(VteTerminal *terminal,
 						   is_selected ?
 						   is_selected :
 						   always_selected,
-						   data,
+						   user_data,
 						   attributes,
 						   FALSE);
 }
@@ -6171,8 +6159,8 @@ vte_terminal_get_text(VteTerminal *terminal,
  * vte_terminal_get_text_include_trailing_spaces:
  * @terminal: a #VteTerminal
  * @is_selected: a callback
- * @data: user data to be passed to the callback
- * @attributes: location for storing text attributes
+ * @user_data: user data to be passed to the callback
+ * @attributes: (out) (transfer) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
  * %NULL, characters will only be read if @is_selected returns %TRUE after being
@@ -6182,14 +6170,14 @@ vte_terminal_get_text(VteTerminal *terminal,
  * differs from vte_terminal_get_text() in that trailing spaces at the end of
  * lines are included.
  *
- * Returns: a text string which must be freed by the caller, or %NULL.
+ * Returns: (transfer): a newly allocated text string, or %NULL.
  *
  * Since: 0.11.11
  */
 char *
 vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 					      VteSelectionFunc is_selected,
-					      gpointer data,
+					      gpointer user_data,
 					      GArray *attributes)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
@@ -6198,7 +6186,7 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 						   is_selected ?
 						   is_selected :
 						   always_selected,
-						   data,
+						   user_data,
 						   attributes,
 						   TRUE);
 }
@@ -6206,12 +6194,11 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 /**
  * vte_terminal_get_cursor_position:
  * @terminal: a #VteTerminal
- * @column: long which will hold the column
- * @row : long which will hold the row
+ * @column: (out) (allow-none): a location to store the column, or %NULL
+ * @row : (out) (allow-none): a location to store the row, or %NULL
  *
  * Reads the location of the insertion cursor and returns it.  The row
  * coordinate is absolute.
- *
  */
 void
 vte_terminal_get_cursor_position(VteTerminal *terminal,
@@ -7509,7 +7496,7 @@ vte_terminal_ensure_font (VteTerminal *terminal)
 /**
  * vte_terminal_set_font_full:
  * @terminal: a #VteTerminal
- * @font_desc: The #PangoFontDescription of the desired font.
+ * @font_desc: The #PangoFontDescription of the desired font, or %NULL
  * @antialias: Specify if anti aliasing of the fonts is to be used or not.
  *
  * Sets the font used for rendering all text displayed by the terminal,
@@ -7520,7 +7507,7 @@ vte_terminal_ensure_font (VteTerminal *terminal)
  *
  * Since: 0.11.11
  * 
- * Deprecated: 0.20
+ * Deprecated: 0.20: Use vte_terminal_set_font()
  */
 void
 vte_terminal_set_font_full(VteTerminal *terminal,
@@ -7597,14 +7584,13 @@ vte_terminal_set_font_full_internal(VteTerminal *terminal,
 /**
  * vte_terminal_set_font:
  * @terminal: a #VteTerminal
- * @font_desc: The #PangoFontDescription of the desired font.
+ * @font_desc: (allow-none): a #PangoFontDescription for the desired font, or %NULL
  *
  * Sets the font used for rendering all text displayed by the terminal,
  * overriding any fonts set using gtk_widget_modify_font().  The terminal
  * will immediately attempt to load the desired font, retrieve its
  * metrics, and attempt to resize itself to keep the same number of rows
  * and columns.
- *
  */
 void
 vte_terminal_set_font(VteTerminal *terminal,
@@ -7640,7 +7626,7 @@ vte_terminal_set_font_from_string_full_internal(VteTerminal *terminal,
  *
  * Since: 0.11.11
  *
- * Deprecated: 0.20
+ * Deprecated: 0.20: Use vte_terminal_set_font()
  */
 void
 vte_terminal_set_font_from_string_full(VteTerminal *terminal, const char *name,
@@ -7652,11 +7638,10 @@ vte_terminal_set_font_from_string_full(VteTerminal *terminal, const char *name,
 /**
  * vte_terminal_set_font_from_string:
  * @terminal: a #VteTerminal
- * @name: A string describing the font.
+ * @name: (type utf8): a pango font description in string form
  *
  * A convenience function which converts @name into a #PangoFontDescription and
  * passes it to vte_terminal_set_font().
- *
  */
 void
 vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name)
@@ -7674,8 +7659,8 @@ vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name)
  * Queries the terminal for information about the fonts which will be
  * used to draw text in the terminal.
  *
- * Returns: a #PangoFontDescription describing the font the terminal is
- * currently using to render text.
+ * Returns: (transfer none): a #PangoFontDescription describing the font the terminal is
+ *   currently using to render text
  */
 const PangoFontDescription *
 vte_terminal_get_font(VteTerminal *terminal)
@@ -7712,7 +7697,6 @@ vte_terminal_refresh_size(VteTerminal *terminal)
  *
  * Attempts to change the terminal's size in terms of rows and columns.  If
  * the attempt succeeds, the widget will resize itself to the proper size.
- *
  */
 void
 vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
@@ -7833,12 +7817,11 @@ vte_terminal_set_scroll_adjustments(GtkWidget *widget,
 /**
  * vte_terminal_set_emulation:
  * @terminal: a #VteTerminal
- * @emulation: the name of a terminal description
+ * @emulation: (allow-none): the name of a terminal description, or %NULL to use the default
  *
  * Sets what type of terminal the widget attempts to emulate by scanning for
  * control sequences defined in the system's termcap file.  Unless you
  * are interested in this feature, always use "xterm".
- *
  */
 void
 vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
@@ -7920,7 +7903,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
  * Queries the terminal for its default emulation, which is attempted if the
  * terminal type passed to vte_terminal_set_emulation() is %NULL.
  *
- * Returns: an interned string containing the name of the default terminal
+ * Returns: (transfer none) (type utf8): an interned string containing the name of the default terminal
  *   type the widget attempts to emulate
  *
  * Since: 0.11.11
@@ -11312,9 +11295,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::set-scroll-adjustments:
-         * @vteterminal: the object which received the signal.
-         * @horizontal: the horizontal #GtkAdjustment (unused in #VteTerminal).
-         * @vertical: the vertical #GtkAdjustment.
+         * @vteterminal: the object which received the signal
+         * @horizontal: (allow-none): the horizontal #GtkAdjustment (unused in #VteTerminal)
+         * @vertical: (allow-none): the vertical #GtkAdjustment
          *
          * Set the scroll adjustments for the terminal. Usually scrolled containers
          * like #GtkScrolledWindow will emit this signal to connect two instances
@@ -11336,7 +11319,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::eof:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted when the terminal receives an end-of-file from a child which
          * is running in the terminal.  This signal is frequently (but not
@@ -11354,7 +11337,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::child-exited:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * This signal is emitted when the terminal detects that a child started
          * using vte_terminal_fork_command() has exited.
@@ -11371,7 +11354,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::window-title-changed:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted when the terminal's %window_title field is modified.
          */
@@ -11387,7 +11370,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::icon-title-changed:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted when the terminal's %icon_title field is modified.
          */
@@ -11403,7 +11386,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::encoding-changed:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted whenever the terminal's current encoding has changed, either
          * as a result of receiving a control sequence which toggled between the
@@ -11421,9 +11404,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::commit:
-         * @vteterminal: the object which received the signal.
-         * @text: a string of text.
-         * @size: the length of that string of text.
+         * @vteterminal: the object which received the signal
+         * @text: a string of text
+         * @size: the length of that string of text
          *
          * Emitted whenever the terminal receives input from the user and
          * prepares to send it to the child process.  The signal is emitted even
@@ -11441,7 +11424,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::emulation-changed:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted whenever the terminal's emulation changes, only possible at
          * the parent application's request.
@@ -11458,9 +11441,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::char-size-changed:
-         * @vteterminal: the object which received the signal.
-         * @width: the new character cell width.
-         * @height: the new character cell height.
+         * @vteterminal: the object which received the signal
+         * @width: the new character cell width
+         * @height: the new character cell height
          *
          * Emitted whenever selection of a new font causes the values of the
          * %char_width or %char_height fields to change.
@@ -11477,7 +11460,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::selection-changed:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted whenever the contents of terminal's selection changes.
          */
@@ -11493,7 +11476,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::contents-changed:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted whenever the visible appearance of the terminal has changed.
          * Used primarily by #VteTerminalAccessible.
@@ -11510,7 +11493,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::cursor-moved:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted whenever the cursor moves to a new character cell.  Used
          * primarily by #VteTerminalAccessible.
@@ -11527,7 +11510,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::deiconify-window:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted at the child application's request.
          */
@@ -11543,7 +11526,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::iconify-window:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted at the child application's request.
          */
@@ -11559,7 +11542,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::raise-window:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted at the child application's request.
          */
@@ -11575,7 +11558,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::lower-window:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted at the child application's request.
          */
@@ -11591,7 +11574,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::refresh-window:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted at the child application's request.
          */
@@ -11607,7 +11590,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::restore-window:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted at the child application's request.
          */
@@ -11623,7 +11606,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::maximize-window:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted at the child application's request.
          */
@@ -11639,9 +11622,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::resize-window:
-         * @vteterminal: the object which received the signal.
-         * @width: the desired width in pixels, including padding.
-         * @height: the desired height in pixels, including padding.
+         * @vteterminal: the object which received the signal
+         * @width: the desired width in pixels, including padding
+         * @height: the desired height in pixels, including padding
          *
          * Emitted at the child application's request.
          */
@@ -11657,9 +11640,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::move-window:
-         * @vteterminal: the object which received the signal.
-         * @x: the terminal's desired location, X coordinate.
-         * @y: the terminal's desired location, Y coordinate.
+         * @vteterminal: the object which received the signal
+         * @x: the terminal's desired location, X coordinate
+         * @y: the terminal's desired location, Y coordinate
          *
          * Emitted at the child application's request.
          */
@@ -11675,7 +11658,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::status-line-changed:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted whenever the contents of the status line are modified or
          * cleared.
@@ -11692,7 +11675,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::increase-font-size:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted when the user hits the '+' key while holding the Control key.
          */
@@ -11708,7 +11691,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::decrease-font-size:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted when the user hits the '-' key while holding the Control key.
          */
@@ -11724,7 +11707,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::text-modified:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * An internal signal used for communication between the terminal and
          * its accessibility peer. May not be emitted under certain
@@ -11742,7 +11725,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::text-inserted:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * An internal signal used for communication between the terminal and
          * its accessibility peer. May not be emitted under certain
@@ -11760,7 +11743,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::text-deleted:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * An internal signal used for communication between the terminal and
          * its accessibility peer. May not be emitted under certain
@@ -11778,8 +11761,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::text-scrolled:
-         * @vteterminal: the object which received the signal.
-         * @delta: the number of lines scrolled.
+         * @vteterminal: the object which received the signal
+         * @delta: the number of lines scrolled
          *
          * An internal signal used for communication between the terminal and
          * its accessibility peer. May not be emitted under certain
@@ -11797,7 +11780,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::copy-clipboard:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted whenever vte_terminal_copy_clipboard() is called.
          */
@@ -11813,7 +11796,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::paste-clipboard:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * Emitted whenever vte_terminal_paste_clipboard() is called.
          */
@@ -11829,7 +11812,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /**
          * VteTerminal::beep:
-         * @vteterminal: the object which received the signal.
+         * @vteterminal: the object which received the signal
          *
          * This signal is emitted when the a child sends a beep request to the
          * terminal.
@@ -11875,7 +11858,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                        G_PARAM_READWRITE | STATIC_PARAMS));
      
         /**
-         * VteTerminal:background-image-file:
+         * VteTerminal:background-image-file: (type filename):
          *
          * Sets a background image file for the widget.  If specified by
          * #VteTerminal:background-saturation:, the terminal will tint its
@@ -12317,7 +12300,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
  *
  * Controls whether or not the terminal will beep when the child outputs the
  * "bl" sequence.
- *
  */
 void
 vte_terminal_set_audible_bell(VteTerminal *terminal, gboolean is_audible)
@@ -12356,7 +12338,7 @@ vte_terminal_get_audible_bell(VteTerminal *terminal)
 /**
  * vte_terminal_set_visible_bell:
  * @terminal: a #VteTerminal
- * @is_visible: %TRUE if the terminal should flash
+ * @is_visible: whether the terminal should flash on bell
  *
  * Controls whether or not the terminal will present a visible bell to the
  * user when the child outputs the "bl" sequence.  The terminal
@@ -12446,14 +12428,13 @@ vte_terminal_get_allow_bold(VteTerminal *terminal)
 /**
  * vte_terminal_set_scroll_background:
  * @terminal: a #VteTerminal
- * @scroll: %TRUE if the terminal should scroll the background image along with
- * text.
+ * @scroll: whether the terminal should scroll the background image along with
+ *   the text
  *
  * Controls whether or not the terminal will scroll the background image (if
  * one is set) when the text in the window must be scrolled.
  *
  * Since: 0.11
- *
  */
 void
 vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll)
@@ -12478,11 +12459,10 @@ vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll)
 /**
  * vte_terminal_set_scroll_on_output:
  * @terminal: a #VteTerminal
- * @scroll: %TRUE if the terminal should scroll on output
+ * @scroll: whether the terminal should scroll on output
  *
  * Controls whether or not the terminal will forcibly scroll to the bottom of
  * the viewable history when the new data is received from the child.
- *
  */
 void
 vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll)
@@ -12494,12 +12474,11 @@ vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll)
 /**
  * vte_terminal_set_scroll_on_keystroke:
  * @terminal: a #VteTerminal
- * @scroll: %TRUE if the terminal should scroll on keystrokes
+ * @scroll: whether the terminal should scroll on keystrokes
  *
  * Controls whether or not the terminal will forcibly scroll to the bottom of
  * the viewable history when the user presses a key.  Modifier keys do not
  * trigger this behavior.
- *
  */
 void
 vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal, gboolean scroll)
@@ -12537,7 +12516,6 @@ vte_terminal_real_copy_clipboard(VteTerminal *terminal)
  *
  * Places the selected text in the terminal in the #GDK_SELECTION_CLIPBOARD
  * selection.
- *
  */
 void
 vte_terminal_copy_clipboard(VteTerminal *terminal)
@@ -12575,7 +12553,6 @@ vte_terminal_paste_clipboard(VteTerminal *terminal)
  *
  * Places the selected text in the terminal in the #GDK_SELECTION_PRIMARY
  * selection.
- *
  */
 void
 vte_terminal_copy_primary(VteTerminal *terminal)
@@ -12594,7 +12571,6 @@ vte_terminal_copy_primary(VteTerminal *terminal)
  * current encoding.  The terminal will call also paste the
  * #GDK_SELECTION_PRIMARY selection when the user clicks with the the second
  * mouse button.
- *
  */
 void
 vte_terminal_paste_primary(VteTerminal *terminal)
@@ -12612,7 +12588,6 @@ vte_terminal_paste_primary(VteTerminal *terminal)
  * Appends menu items for various input methods to the given menu.  The
  * user can select one of these items to modify the input method used by
  * the terminal.
- *
  */
 void
 vte_terminal_im_append_menuitems(VteTerminal *terminal, GtkMenuShell *menushell)
@@ -12620,6 +12595,7 @@ vte_terminal_im_append_menuitems(VteTerminal *terminal, GtkMenuShell *menushell)
 	GtkIMMulticontext *context;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail(GTK_WIDGET_REALIZED(terminal));
+        g_return_if_fail(GTK_IS_MENU_SHELL(menushell));
 	context = GTK_IM_MULTICONTEXT(terminal->pvt->im_context);
 	gtk_im_multicontext_append_menuitems(context, menushell);
 }
@@ -12736,7 +12712,6 @@ vte_terminal_queue_background_update(VteTerminal *terminal)
  * than 1.0, the terminal will adjust the colors of the image before drawing
  * the image.  To do so, the terminal will create a copy of the background
  * image (or snapshot of the root window) and modify its pixel values.
- *
  */
 void
 vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
@@ -12766,7 +12741,7 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
  * vte_terminal_set_background_tint_color:
  * @terminal: a #VteTerminal
  * @color: a color which the terminal background should be tinted to if its
- * saturation is not 1.0.
+ *   saturation is not 1.0.
  *
  * If a background image has been set using
  * vte_terminal_set_background_image(),
@@ -12779,7 +12754,6 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
  * is black.
  *
  * Since: 0.11
- *
  */
 void
 vte_terminal_set_background_tint_color(VteTerminal *terminal,
@@ -12816,12 +12790,11 @@ vte_terminal_set_background_tint_color(VteTerminal *terminal,
 /**
  * vte_terminal_set_background_transparent:
  * @terminal: a #VteTerminal
- * @transparent: %TRUE if the terminal should fake transparency
+ * @transparent: whether the terminal should fake transparency
  *
  * Sets the terminal's background image to the pixmap stored in the root
  * window, adjusted so that if there are no windows below your application,
  * the widget will appear to be transparent.
- *
  */
 void
 vte_terminal_set_background_transparent(VteTerminal *terminal,
@@ -12851,7 +12824,7 @@ vte_terminal_set_background_transparent(VteTerminal *terminal,
 /**
  * vte_terminal_set_background_image:
  * @terminal: a #VteTerminal
- * @image: a #GdkPixbuf to use, or %NULL to cancel
+ * @image: (allow-none): a #GdkPixbuf to use, or %NULL to unset the background
  *
  * Sets a background image for the widget.  Text which would otherwise be
  * drawn using the default background color will instead be drawn over the
@@ -12859,7 +12832,6 @@ vte_terminal_set_background_transparent(VteTerminal *terminal,
  * widget's entire visible area. If specified by
  * vte_terminal_set_background_saturation(), the terminal will tint its
  * in-memory copy of the image before applying it to the terminal.
- *
  */
 void
 vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
@@ -12914,12 +12886,11 @@ vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
 /**
  * vte_terminal_set_background_image_file:
  * @terminal: a #VteTerminal
- * @path: path to an image file
+ * @path: (type filename): path to an image file
  *
  * Sets a background image for the widget.  If specified by
  * vte_terminal_set_background_saturation(), the terminal will tint its
  * in-memory copy of the image before applying it to the terminal.
- *
  */
 void
 vte_terminal_set_background_image_file(VteTerminal *terminal, const char *path)
@@ -13017,7 +12988,7 @@ vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink)
 /**
  * vte_terminal_set_cursor_blinks:
  * @terminal: a #VteTerminal
- * @blink: %TRUE if the cursor should blink
+ * @blink: whether the cursor should blink
  *
  *  Sets whether or not the cursor will blink.
  *
@@ -13149,7 +13120,6 @@ vte_terminal_get_cursor_shape(VteTerminal *terminal)
  * Note that this setting only affects the normal screen buffer.
  * For terminal types which have an alternate screen buffer, no scrollback is
  * allowed on the alternate screen buffer.
- *
  */
 void
 vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
@@ -13318,7 +13288,6 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
  * Modifies the terminal's backspace key binding, which controls what
  * string or control sequence the terminal sends to its child when the user
  * presses the backspace key.
- *
  */
 void
 vte_terminal_set_backspace_binding(VteTerminal *terminal,
@@ -13347,7 +13316,6 @@ vte_terminal_set_backspace_binding(VteTerminal *terminal,
  * Modifies the terminal's delete key binding, which controls what
  * string or control sequence the terminal sends to its child when the user
  * presses the delete key.
- *
  */
 void
 vte_terminal_set_delete_binding(VteTerminal *terminal,
@@ -13370,13 +13338,12 @@ vte_terminal_set_delete_binding(VteTerminal *terminal,
 /**
  * vte_terminal_set_mouse_autohide:
  * @terminal: a #VteTerminal
- * @setting: %TRUE if the autohide should be enabled
+ * @setting: whether the mouse pointer should autohide
  *
  * Changes the value of the terminal's mouse autohide setting.  When autohiding
  * is enabled, the mouse cursor will be hidden when the user presses a key and
  * shown when the user moves the mouse.  This setting can be read using
  * vte_terminal_get_mouse_autohide().
- *
  */
 void
 vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting)
@@ -13405,7 +13372,7 @@ vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting)
  * a key and shown when the user moves the mouse.  This setting can be changed
  * using vte_terminal_set_mouse_autohide().
  *
- * Returns: %TRUE if autohiding is enabled, %FALSE if not.
+ * Returns: %TRUE if autohiding is enabled, %FALSE if not
  */
 gboolean
 vte_terminal_get_mouse_autohide(VteTerminal *terminal)
@@ -13417,8 +13384,8 @@ vte_terminal_get_mouse_autohide(VteTerminal *terminal)
 /**
  * vte_terminal_reset:
  * @terminal: a #VteTerminal
- * @full: %TRUE to reset tabstops
- * @clear_history: %TRUE to empty the terminal's scrollback buffer
+ * @clear_tabstops: whether to reset tabstops
+ * @clear_history: whether to empty the terminal's scrollback buffer
  *
  * Resets as much of the terminal's internal state as possible, discarding any
  * unprocessed input data, resetting character attributes, cursor state,
@@ -13427,7 +13394,9 @@ vte_terminal_get_mouse_autohide(VteTerminal *terminal)
  *
  */
 void
-vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
+vte_terminal_reset(VteTerminal *terminal,
+                   gboolean clear_tabstops,
+                   gboolean clear_history)
 {
         VteTerminalPrivate *pvt;
 
@@ -13519,7 +13488,7 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
 	}
 	pvt->alternate_screen.status_line_contents = g_string_new(NULL);
 	/* Do more stuff we refer to as a "full" reset. */
-	if (full) {
+	if (clear_tabstops) {
 		vte_terminal_set_default_tabstops(terminal);
 	}
 	/* Reset restricted scrolling regions, leave insert mode, make
@@ -13582,9 +13551,9 @@ vte_terminal_reset(VteTerminal *terminal, gboolean full, gboolean clear_history)
  * main display area, and define a means for applications to move the cursor
  * to the status line and back.
  *
- * Returns: the current contents of the terminal's status line.  For terminals
- * like "xterm", this will usually be the empty string.  The string must not
- * be modified or freed by the caller.
+ * Returns: (transfer none): the current contents of the terminal's status line.
+ *   For terminals like "xterm", this will usually be the empty string.  The string
+ *   must not be modified or freed by the caller.
  */
 const char *
 vte_terminal_get_status_line(VteTerminal *terminal)
@@ -13627,7 +13596,7 @@ vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad)
  *
  * An accessor function provided for the benefit of language bindings.
  *
- * Returns: the contents of @terminal's adjustment field
+ * Returns: (transfer none): the contents of @terminal's adjustment field
  */
 GtkAdjustment *
 vte_terminal_get_adjustment(VteTerminal *terminal)
@@ -13640,9 +13609,7 @@ vte_terminal_get_adjustment(VteTerminal *terminal)
  * vte_terminal_get_char_width:
  * @terminal: a #VteTerminal
  *
- * An accessor function provided for the benefit of language bindings.
- *
- * Returns: the contents of @terminal's char_width field
+ * Returns: the width of a character cell
  */
 glong
 vte_terminal_get_char_width(VteTerminal *terminal)
@@ -13656,9 +13623,7 @@ vte_terminal_get_char_width(VteTerminal *terminal)
  * vte_terminal_get_char_height:
  * @terminal: a #VteTerminal
  *
- * An accessor function provided for the benefit of language bindings.
- *
- * Returns: the contents of @terminal's char_height field
+ * Returns: the height of a character cell
  */
 glong
 vte_terminal_get_char_height(VteTerminal *terminal)
@@ -13708,9 +13673,8 @@ vte_terminal_get_char_ascent(VteTerminal *terminal)
  * vte_terminal_get_row_count:
  * @terminal: a #VteTerminal
  *
- * An accessor function provided for the benefit of language bindings.
  *
- * Returns: the contents of @terminal's row_count field
+ * Returns: the number of rows
  */
 glong
 vte_terminal_get_row_count(VteTerminal *terminal)
@@ -13723,9 +13687,7 @@ vte_terminal_get_row_count(VteTerminal *terminal)
  * vte_terminal_get_column_count:
  * @terminal: a #VteTerminal
  *
- * An accessor function provided for the benefit of language bindings.
- *
- * Returns: the contents of @terminal's column_count field
+ * Returns: the number of columns
  */
 glong
 vte_terminal_get_column_count(VteTerminal *terminal)
@@ -13738,9 +13700,7 @@ vte_terminal_get_column_count(VteTerminal *terminal)
  * vte_terminal_get_window_title:
  * @terminal: a #VteTerminal
  *
- * An accessor function provided for the benefit of language bindings.
- *
- * Returns: the contents of @terminal's window_title field
+ * Returns: (transfer none): the window title
  */
 const char *
 vte_terminal_get_window_title(VteTerminal *terminal)
@@ -13753,9 +13713,7 @@ vte_terminal_get_window_title(VteTerminal *terminal)
  * vte_terminal_get_icon_title:
  * @terminal: a #VteTerminal
  *
- * An accessor function provided for the benefit of language bindings.
- *
- * Returns: the contents of @terminal's icon_title field
+ * Returns: (transfer none): the icon title
  */
 const char *
 vte_terminal_get_icon_title(VteTerminal *terminal)
@@ -13797,7 +13755,7 @@ vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
 /**
  * vte_terminal_set_pty_object:
  * @terminal: a #VteTerminal
- * @pty: a #VtePty, or %NULL
+ * @pty: (allow-none): a #VtePty, or %NULL
  *
  * Sets @pty as the PTY to use in @terminal.
  * Use %NULL to unset the PTY.
@@ -13921,7 +13879,7 @@ vte_terminal_get_pty(VteTerminal *terminal)
  *
  * Returns the #VtePty of @terminal.
  *
- * Return value: a #VtePty, or %NULL
+ * Returns: (transfer none): a #VtePty, or %NULL
  *
  * Since: 0.26
  */
@@ -14543,8 +14501,8 @@ update_timeout (gpointer data)
  * @terminal: a #VteTerminal
  * @stream: a #GOutputStream to write to
  * @flags: a set of #VteTerminalWriteFlags
- * @cancellable: optional #GCancellable object, %NULL to ignore
- * @error: a #GError location to store the error occuring, or %NULL to ignore
+ * @cancellable: (allow-none): optional #GCancellable object, %NULL
+ * @error: (allow-none): a #GError location to store the error occuring, or %NULL
  *
  * Write contents of the current contents of @terminal (including any
  * scrollback history) to @stream according to @flags.
@@ -14569,6 +14527,7 @@ vte_terminal_write_contents (VteTerminal *terminal,
                              GError **error)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        g_return_val_if_fail(G_IS_OUTPUT_STREAM(stream), FALSE);
 	return _vte_ring_write_contents (terminal->pvt->screen->row_data,
 					 stream, flags,
 					 cancellable, error);
