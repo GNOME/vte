@@ -123,8 +123,8 @@ vte_bg_root_surface(VteBg *bg)
 					     DefaultVisualOfScreen(screen),
 					     width, height);
 
-        _vte_debug_print(VTE_DEBUG_MISC|VTE_DEBUG_EVENTS,
-                         "New root background image %dx%d\n", width, height);
+        _vte_debug_print(VTE_DEBUG_BG|VTE_DEBUG_EVENTS,
+                         "VteBg new background image %dx%d\n", width, height);
 
  out_pixmaps:
 	g_free(pixmaps);
@@ -177,14 +177,11 @@ vte_bg_root_filter(GdkXEvent *native, GdkEvent *event, gpointer data)
 static void
 vte_bg_finalize (GObject *obj)
 {
-	VteBg *bg;
+	VteBg *bg = VTE_BG (obj);
+        VteBgPrivate *pvt = bg->pvt;
 
-	bg = VTE_BG (obj);
-
-	if (bg->pvt->cache) {
-		g_list_foreach (bg->pvt->cache, (GFunc)vte_bg_cache_item_free, NULL);
-		g_list_free (bg->pvt->cache);
-	}
+        g_list_foreach (pvt->cache, (GFunc)vte_bg_cache_item_free, NULL);
+        g_list_free (pvt->cache);
 
 	G_OBJECT_CLASS(vte_bg_parent_class)->finalize (obj);
 }
@@ -271,6 +268,9 @@ vte_bg_colors_equal(const PangoColor *a, const PangoColor *b)
 static void
 vte_bg_cache_item_free(VteBgCacheItem *item)
 {
+        _vte_debug_print(VTE_DEBUG_BG,
+                         "VteBgCacheItem %p freed\n", item);
+
 	/* Clean up whatever is left in the structure. */
 	if (item->source_pixbuf != NULL) {
 		g_object_remove_weak_pointer(G_OBJECT(item->source_pixbuf),
@@ -312,6 +312,9 @@ vte_bg_cache_prune(VteBg *bg)
 static void item_surface_destroy_func(void *data)
 {
 	VteBgCacheItem *item = data;
+
+        _vte_debug_print(VTE_DEBUG_BG,
+                         "VteBgCacheItem %p surface destroyed\n", item);
 
 	item->surface = NULL;
 }
