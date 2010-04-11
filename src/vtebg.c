@@ -481,7 +481,8 @@ vte_bg_get_surface(VteBg *bg,
 		height = gdk_pixbuf_get_height(pixbuf);
 	}
 #ifdef GDK_WINDOWING_X11
-        else if (source_type == VTE_BG_SOURCE_ROOT) {
+        else if (source_type == VTE_BG_SOURCE_ROOT &&
+                 pvt->root_surface != NULL) {
 		width = cairo_xlib_surface_get_width(pvt->root_surface);
 		height = cairo_xlib_surface_get_height(pvt->root_surface);
 	}
