@@ -5929,7 +5929,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
  * @end_row: last row to search for data
  * @end_col: last column to search for data
  * @is_selected: a callback
- * @data: user data to be passed to the callback
+ * @user_data: user data to be passed to the callback
  * @attributes: (out) (transfer) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
