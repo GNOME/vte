@@ -500,6 +500,7 @@ struct _vte_capability_string _vte_xterm_capability_strings[] = {
 	{CSI "r", "set-scrolling-region", 0},
 	{CSI ";r", "set-scrolling-region", 0},
 	{CSI ";%dr", "set-scrolling-region-from-start", 0},
+	{CSI "%dr", "set-scrolling-region-to-end", 0},
 	{CSI "%d;r", "set-scrolling-region-to-end", 0},
 	{CSI "%d;%dr", "set-scrolling-region", 0},
 
