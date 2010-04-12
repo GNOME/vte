@@ -20,6 +20,8 @@
 #error "Only <vte/vte.h> can be included directly."
 #endif
 
+#ifndef VTE_DISABLE_DEPRECATED
+
 #ifndef vte_deprecated_h_included
 #define vte_deprecated_h_included
 
@@ -95,3 +97,5 @@ int vte_terminal_get_pty(VteTerminal *terminal);
 G_END_DECLS
 
 #endif /* !vte_deprecated_h_included */
+
+#endif /* !VTE_DISABLE_DEPRECATED */
