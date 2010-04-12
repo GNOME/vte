@@ -504,12 +504,12 @@ vte_bg_get_surface(VteBg *bg,
 #endif
 	cairo_paint (cr);
 
-	if (saturation != 1.0) {
+	if (saturation < 1.0) {
 		cairo_set_source_rgba (cr, 
 				       tint->red / 65535.,
 				       tint->green / 65535.,
 				       tint->blue / 65535.,
-				       saturation);
+				       1 - saturation);
 		cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
 		cairo_paint (cr);
 	}
