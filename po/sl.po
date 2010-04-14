@@ -1,20 +1,17 @@
-# Slovenian translation of vte.
+# Slovenian translation for vte
 # Copyright (C) 2005-2007 Free Software Foundation, Inc.
 # This file is distributed under the same license as the program package.
 #
-# Slovenian maintainer: Matej Urbančič <matej.urban@gmail.com>.
-#
-# Translators:
-# Andraz Tori <andraz.tori1@guest.arnes.si> 2002
-# Matej Urbančič <matej.urban@gmail.com>, 2006 - 2007.
+# Andraž Tori <andraz.tori1@guest.arnes.si> 2002
+# Matej Urbančič <mateju@svn.gnome.org>, 2006 - 2010.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-10-15 19:08+0100\n"
-"PO-Revision-Date: 2007-10-15 20:08+0100\n"
-"Last-Translator: Matej Urbančič <matej.urban@gmail.com>\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=vte&component=general\n"
+"POT-Creation-Date: 2010-04-12 18:32+0000\n"
+"PO-Revision-Date: 2010-04-14 17:56+0100\n"
+"Last-Translator: Matej Urbančič <mateju@svn.gnome.org>\n"
 "Language-Team: Slovenian GNOME Translation Team <gnome-si@googlegroups.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -24,101 +21,85 @@ msgstr ""
 "X-Poedit-Country: SLOVENIA\n"
 "X-Poedit-SourceCharset: utf-8\n"
 
-#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
-#: ../src/vte.c:1840
+#: ../src/iso2022.c:771
+#: ../src/iso2022.c:779
+#: ../src/iso2022.c:810
+#: ../src/vte.c:2232
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Ni mogoče pretvoriti znakov iz %s v %s."
 
-#: ../src/iso2022.c:1540
+#: ../src/iso2022.c:1464
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr "Poskus nastavljanja neveljavne preslikave NCR '%c'."
+msgstr "Poskus nastavljanja neveljavne preslikave NRC '%c'."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1570
+#: ../src/iso2022.c:1494
 msgid "Unrecognized identified coding system."
-msgstr "Neprepoznaven znakovni nabor."
+msgstr "Neprepoznan znakovni nabor."
 
-#: ../src/iso2022.c:1629 ../src/iso2022.c:1656
+#: ../src/iso2022.c:1553
+#: ../src/iso2022.c:1580
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "Poskus nastavitve neveljavne široke preslikave NCR '%c'."
+msgstr "Poskus nastavitve neveljavne široke preslikave NRC '%c'."
 
-#. Give the user some clue as to why session logging is not
-#. * going to work (assuming we can open a pty using some other
-#. * method).
-#: ../src/pty.c:837
-#, c-format
-msgid "can not run %s"
-msgstr "ni mogoče pognati %s"
-
-#: ../src/reaper.c:136
-msgid "Error creating signal pipe."
-msgstr "Napaka ob ustvarjanju cevi signala."
-
-#: ../src/trie.c:414
+#: ../src/trie.c:409
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Podvojitev (%s/%s)!"
 
-#: ../src/vte.c:1227
-#, c-format
-msgid "Error compiling regular expression \"%s\"."
-msgstr "Napaka ob prevajanju logičnega izraza \"%s\"."
-
-#: ../src/vte.c:2702 ../src/vte.c:2707
-#, c-format
-msgid "No handler for control sequence `%s' defined."
-msgstr "Za nadzorno zaporedje `%s' obravnalnik ni določen."
-
-#. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:3672
-#, c-format
-msgid "Error reading from child: %s."
-msgstr "Napaka ob branju podrejenega programa: %s."
-
-#: ../src/vte.c:3800
-msgid "Unable to send data to child, invalid charset convertor"
-msgstr ""
-"Ni mogoče poslati podatkov podrejenemu procesu, neveljaven pretvornik "
-"znakovnega nabora"
-
-#: ../src/vte.c:3811 ../src/vte.c:4718
-#, c-format
-msgid "Error (%s) converting data for child, dropping."
-msgstr "Napaka (%s) ob pretvarjanju podatkov za podpodrejeni predmet, izpuščam."
-
-#: ../src/vte.c:6954
-#, c-format
-msgid "Error reading PTY size, using defaults: %s."
-msgstr "Napaka ob branju velikosti PTY, uporabljam privzeto: %s."
-
-#: ../src/vte.c:6990
-#, c-format
-msgid "Error setting PTY size: %s."
-msgstr "Napaka ob nastavljanju velikosti PTY: %s."
-
-#. Aaargh.  We're screwed.
-#: ../src/vte.c:11464
-msgid "_vte_conv_open() failed setting word characters"
-msgstr "_vte_iconv_open() ni uspel nastaviti znakov besed"
-
-#: ../src/vteseq.c:3929
-#, c-format
-msgid "Got unexpected (key?) sequence `%s'."
-msgstr "Dobil nepričakovano zaporedje (ključa?) `%s'."
-
 #. Bail back to normal mode.
-#: ../src/vteapp.c:780
+#: ../src/vteapp.c:954
 msgid "Could not open console.\n"
 msgstr "Ni mogoče odpreti konzole.\n"
 
-#: ../src/vteapp.c:844
+#: ../src/vteapp.c:1045
 msgid "Could not parse the geometry spec passed to --geometry"
 msgstr "Ni mogoče razčleniti geometrije določene z oznako --geometry"
 
-#: ../src/vteglyph.c:562
+#: ../src/vte.c:1275
 #, c-format
-msgid "Unknown pixel mode %d.\n"
-msgstr "Neznan način točk %d.\n"
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Napaka med prevajanjem logičnega izraza \"%s\"."
+
+#. Translators: %s is replaced with error message returned by strerror().
+#: ../src/vte.c:4336
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Napaka med branjem podrejenega programa: %s."
+
+#: ../src/vte.c:4463
+msgid "Unable to send data to child, invalid charset convertor"
+msgstr "Ni mogoče poslati podatkov podrejenemu opravilu; neveljaven pretvornik znakovnega nabora"
+
+#: ../src/vte.c:4474
+#: ../src/vte.c:5491
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Napaka (%s) pretvarjanja podatkov za podrejeni predmet; ukaz je izpuščen."
+
+#: ../src/vte.c:7687
+#, c-format
+msgid "Error reading PTY size, using defaults: %s\n"
+msgstr "Napaka med branjem velikosti PTY, uporabljena bo privzeta vrednost: %s\n"
+
+#. Aaargh.  We're screwed.
+#: ../src/vte.c:13230
+msgid "_vte_conv_open() failed setting word characters"
+msgstr "z ukazom _vte_iconv_open() ni bilo mogoče nastaviti znakov besed"
+
+#~ msgid "can not run %s"
+#~ msgstr "ni mogoče zagnati %s"
+#~ msgid "Error creating signal pipe."
+#~ msgstr "Napaka ob ustvarjanju cevi signala."
+#~ msgid "No handler for control sequence `%s' defined."
+#~ msgstr "Za nadzorno zaporedje `%s' ni določenega upravljalnika."
+#~ msgid "Error setting PTY size: %s."
+#~ msgstr "Napaka ob nastavljanju velikosti PTY: %s."
+#~ msgid "Got unexpected (key?) sequence `%s'."
+#~ msgstr "Pridobljeno nepričakovano zaporedje (ključa?) `%s'."
+#~ msgid "Unknown pixel mode %d.\n"
+#~ msgstr "Neznan točkovni način %d.\n"
+
