@@ -1946,7 +1946,7 @@ rowcol_inside_match (VteTerminal *terminal, glong row, glong col)
  * vte_terminal_match_add(), then expressions are checked in the order in
  * which they were added.
  *
- * Returns: (transfer): a newly allocated string which matches one of the previously
+ * Returns: (transfer full): a newly allocated string which matches one of the previously
  *   set regular expressions
  */
 char *
@@ -2423,7 +2423,7 @@ _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
  *
  * Creates a new terminal widget.
  *
- * Returns: (transfer) (type Vte.Terminal): a new #VteTerminal object
+ * Returns: (transfer full) (type Vte.Terminal): a new #VteTerminal object
  */
 GtkWidget *
 vte_terminal_new(void)
@@ -3323,7 +3323,7 @@ _vte_terminal_disconnect_pty_write(VteTerminal *terminal)
  *
  * See vte_pty_new() for more information.
  *
- * Returns: (transfer): a new #VtePty
+ * Returns: (transfer full): a new #VtePty
  * Since: 0.26
  */
 VtePty *
@@ -5930,7 +5930,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
  * @end_col: last column to search for data
  * @is_selected: a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
- * @attributes: (out) (transfer) (array) (element-type Vte.CharAttributes): location for storing text attributes
+ * @attributes: (out) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
  * %NULL, characters will only be read if @is_selected returns %TRUE after being
@@ -5940,7 +5940,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
  * entire scrollback buffer is scanned, so it is possible to read the entire
  * contents of the buffer using this function.
  *
- * Returns: (transfer): a newly allocated text string, or %NULL.
+ * Returns: (transfer full): a newly allocated text string, or %NULL.
  */
 char *
 vte_terminal_get_text_range(VteTerminal *terminal,
@@ -6128,7 +6128,7 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
  * @terminal: a #VteTerminal
  * @is_selected: a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
- * @attributes: (out) (transfer) (array) (element-type Vte.CharAttributes): location for storing text attributes
+ * @attributes: (out) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
  * %NULL, characters will only be read if @is_selected returns %TRUE after being
@@ -6136,7 +6136,7 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
  * is added to @attributes for each byte added to the returned string detailing
  * the character's position, colors, and other characteristics.
  *
- * Returns: (transfer): a newly allocated text string, or %NULL.
+ * Returns: (transfer full): a newly allocated text string, or %NULL.
  */
 char *
 vte_terminal_get_text(VteTerminal *terminal,
@@ -6160,7 +6160,7 @@ vte_terminal_get_text(VteTerminal *terminal,
  * @terminal: a #VteTerminal
  * @is_selected: a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
- * @attributes: (out) (transfer) (array) (element-type Vte.CharAttributes): location for storing text attributes
+ * @attributes: (out) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
  * %NULL, characters will only be read if @is_selected returns %TRUE after being
@@ -6170,7 +6170,7 @@ vte_terminal_get_text(VteTerminal *terminal,
  * differs from vte_terminal_get_text() in that trailing spaces at the end of
  * lines are included.
  *
- * Returns: (transfer): a newly allocated text string, or %NULL.
+ * Returns: (transfer full): a newly allocated text string, or %NULL.
  *
  * Since: 0.11.11
  */

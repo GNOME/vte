@@ -1747,7 +1747,7 @@ vte_pty_error_quark(void)
  * and opening a PTY using the PTY helper fails, there will
  * be no fallback to allocate a PTY using Unix98 PTY functions.
  *
- * Returns: (transfer): a new #VtePty, or %NULL on error with @error filled in
+ * Returns: (transfer full): a new #VtePty, or %NULL on error with @error filled in
  *
  * Since: 0.26
  */
@@ -1764,7 +1764,7 @@ vte_pty_new (VtePtyFlags flags,
 
 /**
  * vte_pty_new_foreign:
- * @fd: (transfer): a file descriptor to the PTY
+ * @fd: (transfer full): a file descriptor to the PTY
  * @error: (allow-none): return location for a #GError, or %NULL
  *
  * Creates a new #VtePty for the PTY master @fd.
@@ -1774,7 +1774,7 @@ vte_pty_new (VtePtyFlags flags,
  * Note that the newly created #VtePty will take ownership of @fd
  * and close it on finalize.
  *
- * Returns: (transfer): a new #VtePty for @fd, or %NULL on error with @error filled in
+ * Returns: (transfer full): a new #VtePty for @fd, or %NULL on error with @error filled in
  *
  * Since: 0.26
  */
