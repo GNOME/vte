@@ -394,7 +394,7 @@ vte_bg_cache_search(VteBg *bg,
 	return NULL;
 }
 
-/**
+/*< private >
  * vte_bg_get_surface:
  * @bg: a #VteBg
  * @source_type: a #VteBgSourceType

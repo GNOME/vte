@@ -136,7 +136,6 @@ VteTerminalPrivate
 <SECTION>
 <FILE>vte-pty</FILE>
 <TITLE>Vte PTY</TITLE>
-
 VtePtyFlags
 VtePtyError
 VtePty
