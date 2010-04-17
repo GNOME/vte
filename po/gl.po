@@ -10,8 +10,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gl\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-02-15 17:19+0100\n"
-"PO-Revision-Date: 2010-01-07 11:39+0100\n"
+"POT-Creation-Date: 2010-04-17 21:35+0200\n"
+"PO-Revision-Date: 2010-04-17 21:34+0200\n"
 "Last-Translator: Fran Diéguez <frandieguez@ubuntu.com>\n"
 "Language-Team: Galician <proxecto@trasno.net>\n"
 "MIME-Version: 1.0\n"
@@ -21,7 +21,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
-#: ../src/vte.c:2227
+#: ../src/vte.c:2232
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Non foi posíbel converter os caracteres desde %s a %s."
@@ -41,61 +41,56 @@ msgstr "Sistema de codificación identificado non recoñecido."
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Tentando definir un mapa NRC global '%c' incorrecto."
 
-#. Give the user some clue as to why session logging is not
-#. * going to work (assuming we can open a pty using some other
-#. * method).
-#: ../src/pty.c:833
-#, c-format
-msgid "can not run %s"
-msgstr "non foi posíbel executar %s"
-
 #: ../src/trie.c:409
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicado (%s/%s)!"
 
 #. Bail back to normal mode.
-#: ../src/vteapp.c:876
+#: ../src/vteapp.c:954
 msgid "Could not open console.\n"
 msgstr "Non foi posíbel abrir a consola.\n"
 
-#: ../src/vteapp.c:945
+#: ../src/vteapp.c:1045
 msgid "Could not parse the geometry spec passed to --geometry"
 msgstr ""
 "Non foi posíbel analizar a especificación de xeometría pasada a --geometry"
 
-#: ../src/vte.c:1276
+#: ../src/vte.c:1275
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Produciuse un erro ao compilar a expresión regular \"%s\"."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4186
+#: ../src/vte.c:4336
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Produciuse un erro ao ler desde o fillo: %s."
 
-#: ../src/vte.c:4314
+#: ../src/vte.c:4463
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
 "Non foi posíbel enviar os datos ao fillo; o convertedor de conxunto de "
 "caracteres é incorrecto"
 
-#: ../src/vte.c:4325 ../src/vte.c:5347
+#: ../src/vte.c:4474 ../src/vte.c:5491
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Produciuse un erro (%s) ao converter os datos do fillo; eliminando."
 
-#: ../src/vte.c:7563
+#: ../src/vte.c:7687
 #, c-format
-msgid "Error reading PTY size, using defaults: %s."
-msgstr "Produciuse un erro ao ler o tamaño do PTY; usarase o predefinido: %s."
+msgid "Error reading PTY size, using defaults: %s\n"
+msgstr "Produciuse un erro ao ler o tamaño do PTY; usarase o predefinido: %s\n"
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:13094
+#: ../src/vte.c:13230
 msgid "_vte_conv_open() failed setting word characters"
 msgstr ""
 "Produciuse un fallo en _vte_conv_open() ao definir os caracteres da palabra"
+
+#~ msgid "can not run %s"
+#~ msgstr "non foi posíbel executar %s"
 
 #~ msgid "Error setting PTY size: %s."
 #~ msgstr "Erro ao definir o tamaño do PTY: %s."
