@@ -49,7 +49,8 @@ typedef enum {
 	VTE_DEBUG_ALLY		= 1 << 18,
 	VTE_DEBUG_ADJ		= 1 << 19,
 	VTE_DEBUG_PANGOCAIRO    = 1 << 20,
-	VTE_DEBUG_WIDGET_SIZE   = 1 << 21
+	VTE_DEBUG_WIDGET_SIZE   = 1 << 21,
+        VTE_DEBUG_BG            = 1 << 22
 } VteDebugFlags;
 
 void _vte_debug_init(void);
