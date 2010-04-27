@@ -14597,17 +14597,16 @@ vte_terminal_search_find_previous (VteTerminal *terminal)
 	if (!pvt->search_regex)
 		return result;
 
-	g_message ("has %d %d", pvt->has_selection, pvt->selection_start.row);
 	if (pvt->has_selection)
 		row = pvt->selection_start.row - 1;
 	else
 		row = MIN (pvt->screen->scroll_delta + terminal->row_count,
 			   _vte_ring_next (terminal->pvt->screen->row_data)) - 1;
-	g_message ("starting at %d", row);
 
+	/* TODO cache this */
 	attrs = g_array_new (FALSE, TRUE, sizeof (VteCharAttributes));
 
-	for (; row >= pvt->screen->insert_delta; row--) {
+	for (; row >= _vte_ring_delta (terminal->pvt->screen->row_data); row--) {
 		char *row_text;
 		GMatchInfo *match_info;
 		GError *error = NULL;
@@ -14641,7 +14640,6 @@ vte_terminal_search_find_previous (VteTerminal *terminal)
 		ca = &g_array_index (attrs, VteCharAttributes, start);
 		start_row = ca->row;
 		start_col = ca->column;
-		g_message ("Found: %s at (%ld,%ld)", word, ca->row, ca->column);
 		ca = &g_array_index (attrs, VteCharAttributes, end - 1);
 		end_row = ca->row;
 		end_col = ca->column;
@@ -14658,6 +14656,9 @@ vte_terminal_search_find_previous (VteTerminal *terminal)
 	}
 
 	g_array_free (attrs, TRUE);
+
+	if (!result)
+		vte_terminal_deselect_all (terminal);
 
 	return result;
 }
