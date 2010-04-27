@@ -5978,6 +5978,9 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 	struct _VteCharAttributes attr;
 	PangoColor fore, back, *palette;
 
+	if (!is_selected)
+		is_selected = always_selected;
+
 	screen = terminal->pvt->screen;
 
 	if (attributes)
@@ -6037,7 +6040,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 				}
 				/* If we're on the last line, and have just looked in
 				 * the last column, stop. */
-				if ((row == end_row) && (col == end_col)) {
+				if ((row == end_row) && (col >= end_col)) {
 					break;
 				}
 
@@ -6115,9 +6118,7 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 							 start_row, start_col,
 							 end_row, end_col,
 							 wrap,
-							 is_selected ?
-							 is_selected :
-							 always_selected,
+							 is_selected,
 							 data,
 							 attributes,
 							 include_trailing_spaces);
@@ -6147,9 +6148,7 @@ vte_terminal_get_text(VteTerminal *terminal,
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 	return vte_terminal_get_text_maybe_wrapped(terminal,
 						   TRUE,
-						   is_selected ?
-						   is_selected :
-						   always_selected,
+						   is_selected,
 						   user_data,
 						   attributes,
 						   FALSE);
@@ -6183,9 +6182,7 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 	return vte_terminal_get_text_maybe_wrapped(terminal,
 						   TRUE,
-						   is_selected ?
-						   is_selected :
-						   always_selected,
+						   is_selected,
 						   user_data,
 						   attributes,
 						   TRUE);
@@ -14572,13 +14569,81 @@ gboolean
 vte_terminal_search_find_previous (VteTerminal *terminal,
 				   gboolean     wrap_around)
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	gboolean result = FALSE;
+        VteTerminalPrivate *pvt;
+	GArray *attrs;
+	long row;
 
-	if (!terminal->pvt->search_regex)
-		return FALSE;
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), result);
 
-	/* TODO */
-	return FALSE;
+	pvt = terminal->pvt;
+
+	if (!pvt->search_regex)
+		return result;
+
+	g_message ("has %d %d", pvt->has_selection, pvt->selection_start.row);
+	if (pvt->has_selection)
+		row = pvt->selection_start.row - 1;
+	else
+		row = MIN (pvt->screen->scroll_delta + terminal->row_count,
+			   _vte_ring_next (terminal->pvt->screen->row_data)) - 1;
+	g_message ("starting at %d", row);
+
+	attrs = g_array_new (FALSE, TRUE, sizeof (VteCharAttributes));
+
+	for (; row >= pvt->screen->insert_delta; row--) {
+		char *row_text;
+		GMatchInfo *match_info;
+		GError *error = NULL;
+		int start, end;
+		long start_row, start_col, end_row, end_col;
+		gchar *word;
+		VteCharAttributes *ca;
+
+		row_text = vte_terminal_get_text_range (terminal, row, 0, row + 1, -1, NULL, NULL, attrs);
+
+		g_regex_match_full (pvt->search_regex, row_text, -1, 0, G_REGEX_MATCH_NOTEMPTY, &match_info, &error);
+		if (error) {
+			g_printerr ("Error while matching: %s\n", error->message);
+			g_error_free (error);
+			g_match_info_free (match_info);
+			g_free (row_text);
+			break;
+		}
+
+		if (!g_match_info_matches (match_info)) {
+			g_match_info_free (match_info);
+			g_free (row_text);
+			continue;
+		}
+
+		word = g_match_info_fetch (match_info, 0);
+
+		/* This gives us the offset in the buffer */
+		g_match_info_fetch_pos (match_info, 0, &start, &end);
+
+		ca = &g_array_index (attrs, VteCharAttributes, start);
+		start_row = ca->row;
+		start_col = ca->column;
+		g_message ("Found: %s at (%ld,%ld)", word, ca->row, ca->column);
+		ca = &g_array_index (attrs, VteCharAttributes, end - 1);
+		end_row = ca->row;
+		end_col = ca->column;
+
+		g_free (word);
+		g_free (row_text);
+		g_match_info_free (match_info);
+
+		gtk_adjustment_set_value (terminal->adjustment, row);
+		_vte_terminal_select_text (terminal, start_col, start_row, end_col, end_row, 0, 0);
+
+		result = TRUE;
+		break;
+	}
+
+	g_array_free (attrs, TRUE);
+
+	return result;
 }
 
 gboolean
