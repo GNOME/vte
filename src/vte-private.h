@@ -319,6 +319,7 @@ struct _VteTerminalPrivate {
 
 	/* Search data. */
 	GRegex *search_regex;
+	gboolean *search_wrap_around;
 
 	/* Data used when rendering the text which does not require server
 	 * resources and which can be kept after unrealizing. */

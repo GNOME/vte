@@ -14560,21 +14560,37 @@ vte_terminal_search_set_gregex (VteTerminal *terminal,
 GRegex *
 vte_terminal_search_get_gregex (VteTerminal *terminal)
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
 	return terminal->pvt->search_regex;
 }
 
+void
+vte_terminal_search_set_wrap_around (VteTerminal *terminal,
+				     gboolean     wrap_around)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	terminal->pvt->search_wrap_around = !!wrap_around;
+}
+
 gboolean
-vte_terminal_search_find_previous (VteTerminal *terminal,
-				   gboolean     wrap_around)
+vte_terminal_search_get_wrap_around (VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+
+	return terminal->pvt->search_wrap_around;
+}
+
+gboolean
+vte_terminal_search_find_previous (VteTerminal *terminal)
 {
 	gboolean result = FALSE;
         VteTerminalPrivate *pvt;
 	GArray *attrs;
 	long row;
 
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), result);
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), result);
 
 	pvt = terminal->pvt;
 
@@ -14647,10 +14663,9 @@ vte_terminal_search_find_previous (VteTerminal *terminal,
 }
 
 gboolean
-vte_terminal_search_find_next (VteTerminal *terminal,
-			       gboolean     wrap_around)
+vte_terminal_search_find_next (VteTerminal *terminal)
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 
 	if (!terminal->pvt->search_regex)
 		return FALSE;

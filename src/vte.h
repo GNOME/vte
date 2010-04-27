@@ -428,10 +428,11 @@ char *vte_terminal_match_check(VteTerminal *terminal,
 void      vte_terminal_search_set_gregex      (VteTerminal *terminal,
 					       GRegex      *regex);
 GRegex   *vte_terminal_search_get_gregex      (VteTerminal *terminal);
-gboolean  vte_terminal_search_find_previous   (VteTerminal *terminal,
+void      vte_terminal_search_set_wrap_around (VteTerminal *terminal,
 					       gboolean     wrap_around);
-gboolean  vte_terminal_search_find_next       (VteTerminal *terminal,
-					       gboolean     wrap_around);
+gboolean  vte_terminal_search_get_wrap_around (VteTerminal *terminal);
+gboolean  vte_terminal_search_find_previous   (VteTerminal *terminal);
+gboolean  vte_terminal_search_find_next       (VteTerminal *terminal);
 
 
 /* Set the emulation type.  Most of the time you won't need this. */
