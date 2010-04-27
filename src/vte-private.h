@@ -317,6 +317,9 @@ struct _VteTerminalPrivate {
 	} match_start, match_end;
 	gboolean show_match;
 
+	/* Search data. */
+	GRegex *search_regex;
+
 	/* Data used when rendering the text which does not require server
 	 * resources and which can be kept after unrealizing. */
 	PangoFontDescription *fontdesc;

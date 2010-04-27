@@ -14532,3 +14532,64 @@ vte_terminal_write_contents (VteTerminal *terminal,
 					 stream, flags,
 					 cancellable, error);
 }
+
+
+/*
+ * Buffer search
+ */
+
+/* TODO Add properties & signals */
+
+void
+vte_terminal_search_set_gregex (VteTerminal *terminal,
+				GRegex      *regex)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	if (terminal->pvt->search_regex == regex)
+		return;
+
+	if (terminal->pvt->search_regex) {
+		g_regex_unref (terminal->pvt->search_regex);
+		terminal->pvt->search_regex = NULL;
+	}
+
+	if (regex)
+		terminal->pvt->search_regex = g_regex_ref (regex);
+
+	_vte_invalidate_all (terminal);
+}
+
+GRegex *
+vte_terminal_search_get_gregex (VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+
+	return terminal->pvt->search_regex;
+}
+
+gboolean
+vte_terminal_search_find_previous (VteTerminal *terminal,
+				   gboolean     wrap_around)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+
+	if (!terminal->pvt->search_regex)
+		return FALSE;
+
+	/* TODO */
+	return FALSE;
+}
+
+gboolean
+vte_terminal_search_find_next (VteTerminal *terminal,
+			       gboolean     wrap_around)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+
+	if (!terminal->pvt->search_regex)
+		return FALSE;
+
+	/* TODO */
+	return FALSE;
+}

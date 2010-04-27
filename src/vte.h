@@ -425,6 +425,15 @@ char *vte_terminal_match_check(VteTerminal *terminal,
 			       glong column, glong row,
 			       int *tag);
 
+void      vte_terminal_search_set_gregex      (VteTerminal *terminal,
+					       GRegex      *regex);
+GRegex   *vte_terminal_search_get_gregex      (VteTerminal *terminal);
+gboolean  vte_terminal_search_find_previous   (VteTerminal *terminal,
+					       gboolean     wrap_around);
+gboolean  vte_terminal_search_find_next       (VteTerminal *terminal,
+					       gboolean     wrap_around);
+
+
 /* Set the emulation type.  Most of the time you won't need this. */
 void vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation);
 const char *vte_terminal_get_emulation(VteTerminal *terminal);
