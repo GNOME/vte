@@ -2326,17 +2326,19 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 			break;
 		case 38:
 		{
-			GValue *value1;
-			long param1;
 			/* The format looks like: ^[[38;5;COLORNUMBERm,
 			   so look for COLORNUMBER here. */
 			if ((i + 2) < params->n_values){
-				value1 = g_value_array_get_nth(params, i + 2);
-				if (!G_VALUE_HOLDS_LONG(value1)) {
+				GValue *value1, *value2;
+				long param1, param2;
+				value1 = g_value_array_get_nth(params, i + 1);
+				value2 = g_value_array_get_nth(params, i + 2);
+				if (G_UNLIKELY (!(G_VALUE_HOLDS_LONG(value1) && G_VALUE_HOLDS_LONG(value2))))
 					break;
-				}
 				param1 = g_value_get_long(value1);
-				terminal->pvt->screen->defaults.attr.fore = param1;
+				param2 = g_value_get_long(value2);
+				if (G_LIKELY (param1 == 5 && param2 >= 0 && param2 < 256))
+					terminal->pvt->screen->defaults.attr.fore = param2;
 				i += 2;
 			}
 			break;
@@ -2360,17 +2362,19 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 			break;
 		case 48:
 		{
-			GValue *value1;
-			long param1;
 			/* The format looks like: ^[[48;5;COLORNUMBERm,
 			   so look for COLORNUMBER here. */
 			if ((i + 2) < params->n_values){
-				value1 = g_value_array_get_nth(params, i + 2);
-				if (!G_VALUE_HOLDS_LONG(value1)) {
+				GValue *value1, *value2;
+				long param1, param2;
+				value1 = g_value_array_get_nth(params, i + 1);
+				value2 = g_value_array_get_nth(params, i + 2);
+				if (G_UNLIKELY (!(G_VALUE_HOLDS_LONG(value1) && G_VALUE_HOLDS_LONG(value2))))
 					break;
-				}
 				param1 = g_value_get_long(value1);
-				terminal->pvt->screen->defaults.attr.back = param1;
+				param2 = g_value_get_long(value2);
+				if (G_LIKELY (param1 == 5 && param2 >= 0 && param2 < 256))
+					terminal->pvt->screen->defaults.attr.back = param2;
 				i += 2;
 			}
 			break;
