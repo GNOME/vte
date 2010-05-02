@@ -8474,6 +8474,11 @@ vte_terminal_finalize(GObject *object)
 		g_array_free(terminal->pvt->match_regexes, TRUE);
 	}
 
+	if (terminal->pvt->search_regex)
+		g_regex_unref (terminal->pvt->search_regex);
+	if (terminal->pvt->search_attrs)
+		g_array_free (terminal->pvt->search_attrs, TRUE);
+
 	/* Disconnect from toplevel window configure events. */
 	toplevel = gtk_widget_get_toplevel(&terminal->widget);
 	if ((toplevel != NULL) && (G_OBJECT(toplevel) != object)) {
@@ -14582,95 +14587,140 @@ vte_terminal_search_get_wrap_around (VteTerminal *terminal)
 	return terminal->pvt->search_wrap_around;
 }
 
-gboolean
-vte_terminal_search_find_previous (VteTerminal *terminal)
+static gboolean
+vte_terminal_search_rows (VteTerminal *terminal,
+			  long start_row,
+			  long end_row)
 {
-	gboolean result = FALSE;
         VteTerminalPrivate *pvt;
+	char *row_text;
+	GMatchInfo *match_info;
+	GError *error = NULL;
+	int start, end;
+	long start_col, end_col;
+	gchar *word;
+	VteCharAttributes *ca;
 	GArray *attrs;
-	long row;
-
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), result);
 
 	pvt = terminal->pvt;
 
-	if (!pvt->search_regex)
-		return result;
+	row_text = vte_terminal_get_text_range (terminal, start_row, 0, end_row, -1, NULL, NULL, NULL);
 
-	if (pvt->has_selection)
-		row = pvt->selection_start.row - 1;
-	else
-		row = MIN (pvt->screen->scroll_delta + terminal->row_count,
-			   _vte_ring_next (terminal->pvt->screen->row_data)) - 1;
-
-	/* TODO cache this */
-	attrs = g_array_new (FALSE, TRUE, sizeof (VteCharAttributes));
-
-	for (; row >= _vte_ring_delta (terminal->pvt->screen->row_data); row--) {
-		char *row_text;
-		GMatchInfo *match_info;
-		GError *error = NULL;
-		int start, end;
-		long start_row, start_col, end_row, end_col;
-		gchar *word;
-		VteCharAttributes *ca;
-
-		row_text = vte_terminal_get_text_range (terminal, row, 0, row + 1, -1, NULL, NULL, attrs);
-
-		g_regex_match_full (pvt->search_regex, row_text, -1, 0, G_REGEX_MATCH_NOTEMPTY, &match_info, &error);
-		if (error) {
-			g_printerr ("Error while matching: %s\n", error->message);
-			g_error_free (error);
-			g_match_info_free (match_info);
-			g_free (row_text);
-			break;
-		}
-
-		if (!g_match_info_matches (match_info)) {
-			g_match_info_free (match_info);
-			g_free (row_text);
-			continue;
-		}
-
-		word = g_match_info_fetch (match_info, 0);
-
-		/* This gives us the offset in the buffer */
-		g_match_info_fetch_pos (match_info, 0, &start, &end);
-
-		ca = &g_array_index (attrs, VteCharAttributes, start);
-		start_row = ca->row;
-		start_col = ca->column;
-		ca = &g_array_index (attrs, VteCharAttributes, end - 1);
-		end_row = ca->row;
-		end_col = ca->column;
-
-		g_free (word);
-		g_free (row_text);
+	g_regex_match_full (pvt->search_regex, row_text, -1, 0, G_REGEX_MATCH_NOTEMPTY, &match_info, &error);
+	if (error) {
+		g_printerr ("Error while matching: %s\n", error->message);
+		g_error_free (error);
 		g_match_info_free (match_info);
-
-		gtk_adjustment_set_value (terminal->adjustment, row);
-		_vte_terminal_select_text (terminal, start_col, start_row, end_col, end_row, 0, 0);
-
-		result = TRUE;
-		break;
+		g_free (row_text);
+		return TRUE;
 	}
 
-	g_array_free (attrs, TRUE);
+	if (!g_match_info_matches (match_info)) {
+		g_match_info_free (match_info);
+		g_free (row_text);
+		return FALSE;
+	}
 
-	if (!result)
-		vte_terminal_deselect_all (terminal);
+	word = g_match_info_fetch (match_info, 0);
 
-	return result;
+	/* Fetch text again, with attributes */
+	g_free (row_text);
+	if (!pvt->search_attrs)
+		pvt->search_attrs = g_array_new (FALSE, TRUE, sizeof (VteCharAttributes));
+	attrs = pvt->search_attrs;
+	row_text = vte_terminal_get_text_range (terminal, start_row, 0, end_row, -1, NULL, NULL, attrs);
+
+	/* This gives us the offset in the buffer */
+	g_match_info_fetch_pos (match_info, 0, &start, &end);
+
+	ca = &g_array_index (attrs, VteCharAttributes, start);
+	start_row = ca->row;
+	start_col = ca->column;
+	ca = &g_array_index (attrs, VteCharAttributes, end - 1);
+	end_row = ca->row;
+	end_col = ca->column;
+
+	g_free (word);
+	g_free (row_text);
+	g_match_info_free (match_info);
+
+	_vte_terminal_select_text (terminal, start_col, start_row, end_col, end_row, 0, 0);
+	/* TODO present the result better */
+	gtk_adjustment_set_value (terminal->adjustment, start_row);
+
+	return TRUE;
+}
+
+static gboolean
+vte_terminal_search_find (VteTerminal *terminal,
+			  gboolean     backward)
+{
+        VteTerminalPrivate *pvt;
+	const VteRowData *row;
+	long buffer_start_row, buffer_end_row;
+	long current_start_row, current_end_row;
+
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+
+	pvt = terminal->pvt;
+	if (!pvt->search_regex)
+		return FALSE;
+
+	/* TODO Currently we only find one result per extended line */
+
+	buffer_start_row = _vte_ring_delta (terminal->pvt->screen->row_data);
+	buffer_end_row = _vte_ring_next (terminal->pvt->screen->row_data);
+
+	if (pvt->has_selection) {
+		current_start_row = pvt->selection_start.row;
+		current_end_row = pvt->selection_end.row + 1;
+	} else {
+		current_start_row = pvt->screen->scroll_delta + terminal->row_count;
+		current_end_row = pvt->screen->scroll_delta;
+	}
+	current_start_row = MAX (buffer_start_row, current_start_row);
+	current_end_row = MIN (buffer_end_row, current_end_row);
+
+	if (backward) {
+		while (current_start_row > buffer_start_row) {
+			current_end_row = current_start_row;
+
+			do {
+				current_start_row--;
+				row = _vte_terminal_find_row_data (terminal, current_start_row);
+			} while (row && row->attr.soft_wrapped);
+
+			if (vte_terminal_search_rows (terminal, current_start_row, current_end_row))
+				return TRUE;
+		}
+		/* TODO wrap-around */
+	} else {
+		while (current_end_row < buffer_end_row) {
+			current_start_row = current_end_row;
+
+			do {
+				row = _vte_terminal_find_row_data (terminal, current_end_row);
+				current_end_row++;
+			} while (row && row->attr.soft_wrapped);
+
+			if (vte_terminal_search_rows (terminal, current_start_row, current_end_row))
+				return TRUE;
+		}
+		/* TODO wrap-around */
+	}
+
+	vte_terminal_deselect_all (terminal);
+	return FALSE;
+}
+
+gboolean
+vte_terminal_search_find_previous (VteTerminal *terminal)
+{
+	return vte_terminal_search_find (terminal, TRUE);
 }
 
 gboolean
 vte_terminal_search_find_next (VteTerminal *terminal)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-
-	if (!terminal->pvt->search_regex)
-		return FALSE;
-
-	/* TODO */
-	return FALSE;
+	return vte_terminal_search_find (terminal, FALSE);
 }
