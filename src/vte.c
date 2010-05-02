@@ -1913,18 +1913,18 @@ rowcol_inside_match (VteTerminal *terminal, glong row, glong col)
 {
 	if (terminal->pvt->match_start.row == terminal->pvt->match_end.row) {
 		return row == terminal->pvt->match_start.row &&
-			col >= terminal->pvt->match_start.column &&
-			col <= terminal->pvt->match_end.column;
+			col >= terminal->pvt->match_start.col &&
+			col <= terminal->pvt->match_end.col;
 	} else {
 		if (row < terminal->pvt->match_start.row ||
 				row > terminal->pvt->match_end.row) {
 			return FALSE;
 		}
 		if (row == terminal->pvt->match_start.row) {
-			return col >= terminal->pvt->match_start.column;
+			return col >= terminal->pvt->match_start.col;
 		}
 		if (row == terminal->pvt->match_end.row) {
-			return col <= terminal->pvt->match_end.column;
+			return col <= terminal->pvt->match_end.col;
 		}
 		return TRUE;
 	}
@@ -3795,7 +3795,7 @@ static void
 vte_terminal_process_incoming(VteTerminal *terminal)
 {
 	VteScreen *screen;
-	struct vte_cursor_position cursor;
+	VteVisualPosition cursor;
 	gboolean cursor_visible;
 	GdkPoint bbox_topleft, bbox_bottomright;
 	gunichar *wbuf, c;
@@ -5449,7 +5449,7 @@ vte_cell_is_between(glong col, glong row,
 static gboolean
 vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 {
-	struct selection_cell_coords ss, se;
+	VteVisualPosition ss, se;
 
 	/* If there's nothing selected, it's an easy question to answer. */
 	if (!terminal->pvt->has_selection) {
@@ -5672,13 +5672,13 @@ vte_terminal_match_hilite_clear(VteTerminal *terminal)
 {
 	long srow, scolumn, erow, ecolumn;
 	srow = terminal->pvt->match_start.row;
-	scolumn = terminal->pvt->match_start.column;
+	scolumn = terminal->pvt->match_start.col;
 	erow = terminal->pvt->match_end.row;
-	ecolumn = terminal->pvt->match_end.column;
+	ecolumn = terminal->pvt->match_end.col;
 	terminal->pvt->match_start.row = -1;
-	terminal->pvt->match_start.column = -1;
+	terminal->pvt->match_start.col = -1;
 	terminal->pvt->match_end.row = -2;
-	terminal->pvt->match_end.column = -2;
+	terminal->pvt->match_end.col = -2;
 	if (terminal->pvt->match_tag != -1) {
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Clearing hilite (%ld,%ld) to (%ld,%ld).\n",
@@ -5703,18 +5703,18 @@ cursor_inside_match (VteTerminal *terminal, long x, long y)
 	glong row = y / height + terminal->pvt->screen->scroll_delta;
 	if (terminal->pvt->match_start.row == terminal->pvt->match_end.row) {
 		return row == terminal->pvt->match_start.row &&
-			col >= terminal->pvt->match_start.column &&
-			col <= terminal->pvt->match_end.column;
+			col >= terminal->pvt->match_start.col &&
+			col <= terminal->pvt->match_end.col;
 	} else {
 		if (row < terminal->pvt->match_start.row ||
 				row > terminal->pvt->match_end.row) {
 			return FALSE;
 		}
 		if (row == terminal->pvt->match_start.row) {
-			return col >= terminal->pvt->match_start.column;
+			return col >= terminal->pvt->match_start.col;
 		}
 		if (row == terminal->pvt->match_end.row) {
-			return col <= terminal->pvt->match_end.column;
+			return col <= terminal->pvt->match_end.col;
 		}
 		return TRUE;
 	}
@@ -5726,8 +5726,8 @@ vte_terminal_match_hilite_show(VteTerminal *terminal, long x, long y)
 	if(terminal->pvt->match != NULL && !terminal->pvt->show_match){
 		if (cursor_inside_match (terminal, x, y)) {
 			_vte_invalidate_region (terminal,
-					terminal->pvt->match_start.column,
-					terminal->pvt->match_end.column,
+					terminal->pvt->match_start.col,
+					terminal->pvt->match_end.col,
 					terminal->pvt->match_start.row,
 					terminal->pvt->match_end.row,
 					FALSE);
@@ -5740,8 +5740,8 @@ vte_terminal_match_hilite_hide(VteTerminal *terminal)
 {
 	if(terminal->pvt->match != NULL && terminal->pvt->show_match){
 		_vte_invalidate_region (terminal,
-				terminal->pvt->match_start.column,
-				terminal->pvt->match_end.column,
+				terminal->pvt->match_start.col,
+				terminal->pvt->match_end.col,
 				terminal->pvt->match_start.row,
 				terminal->pvt->match_end.row,
 				FALSE);
@@ -5781,8 +5781,8 @@ vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y)
 	if (terminal->pvt->show_match) {
 		/* Repaint what used to be hilited, if anything. */
 		_vte_invalidate_region(terminal,
-				terminal->pvt->match_start.column,
-				terminal->pvt->match_end.column,
+				terminal->pvt->match_start.col,
+				terminal->pvt->match_end.col,
 				terminal->pvt->match_start.row,
 				terminal->pvt->match_end.row,
 				FALSE);
@@ -5795,7 +5795,7 @@ vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y)
 				struct _VteCharAttributes,
 				start);
 		terminal->pvt->match_start.row = attr->row;
-		terminal->pvt->match_start.column = attr->column;
+		terminal->pvt->match_start.col = attr->column;
 
 		attr = NULL;
 		if ((guint) end < terminal->pvt->match_attributes->len) {
@@ -5803,14 +5803,14 @@ vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y)
 					struct _VteCharAttributes,
 					end);
 			terminal->pvt->match_end.row = attr->row;
-			terminal->pvt->match_end.column = attr->column;
+			terminal->pvt->match_end.col = attr->column;
 		}
 	}
 	if (attr == NULL) { /* i.e. if either endpoint is not found */
 		terminal->pvt->match_start.row = -1;
-		terminal->pvt->match_start.column = -1;
+		terminal->pvt->match_start.col = -1;
 		terminal->pvt->match_end.row = -2;
-		terminal->pvt->match_end.column = -2;
+		terminal->pvt->match_end.col = -2;
 		g_assert (match == NULL);
 	}
 
@@ -5821,25 +5821,25 @@ vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y)
 	if (match == NULL) {
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"No matches. [(%ld,%ld) to (%ld,%ld)]\n",
-				terminal->pvt->match_start.column,
+				terminal->pvt->match_start.col,
 				terminal->pvt->match_start.row,
-				terminal->pvt->match_end.column,
+				terminal->pvt->match_end.col,
 				terminal->pvt->match_end.row);
 		terminal->pvt->show_match = FALSE;
 	} else {
 		terminal->pvt->show_match = TRUE;
 		/* Repaint the newly-hilited area. */
 		_vte_invalidate_region(terminal,
-				terminal->pvt->match_start.column,
-				terminal->pvt->match_end.column,
+				terminal->pvt->match_start.col,
+				terminal->pvt->match_end.col,
 				terminal->pvt->match_start.row,
 				terminal->pvt->match_end.row,
 				FALSE);
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Matched (%ld,%ld) to (%ld,%ld).\n",
-				terminal->pvt->match_start.column,
+				terminal->pvt->match_start.col,
 				terminal->pvt->match_start.row,
-				terminal->pvt->match_end.column,
+				terminal->pvt->match_end.col,
 				terminal->pvt->match_end.row);
 	}
 }
@@ -6389,7 +6389,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 	VteScreen *screen;
 	const VteRowData *rowdata;
 	const VteCell *cell;
-	struct selection_cell_coords *sc, *ec;
+	VteVisualPosition *sc, *ec;
 
 	if (terminal->pvt->selection_block_mode)
 		return;
@@ -6592,7 +6592,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	int width, height;
 	long delta, residual;
 	struct selection_event_coords *origin, *last, *start, *end;
-	struct selection_cell_coords old_start, old_end, *sc, *ec, *so, *eo;
+	VteVisualPosition old_start, old_end, *sc, *ec, *so, *eo;
 	gboolean invalidate_selected = FALSE;
 	gboolean had_selection;
 
@@ -10219,9 +10219,9 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			bold = cell->attr.bold;
 			if (terminal->pvt->show_match) {
 				hilite = vte_cell_is_between(i, row,
-						terminal->pvt->match_start.column,
+						terminal->pvt->match_start.col,
 						terminal->pvt->match_start.row,
-						terminal->pvt->match_end.column,
+						terminal->pvt->match_end.col,
 						terminal->pvt->match_end.row,
 						TRUE);
 			} else {
@@ -10324,9 +10324,9 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					nhilite = FALSE;
 					if (terminal->pvt->show_match) {
 						nhilite = vte_cell_is_between(j, row,
-								terminal->pvt->match_start.column,
+								terminal->pvt->match_start.col,
 								terminal->pvt->match_start.row,
-								terminal->pvt->match_end.column,
+								terminal->pvt->match_end.col,
 								terminal->pvt->match_end.row,
 								TRUE);
 					}
@@ -10626,9 +10626,9 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 					gboolean hilite = FALSE;
 					if (cell && terminal->pvt->show_match) {
 						hilite = vte_cell_is_between(col, row,
-								terminal->pvt->match_start.column,
+								terminal->pvt->match_start.col,
 								terminal->pvt->match_start.row,
-								terminal->pvt->match_end.column,
+								terminal->pvt->match_end.col,
 								terminal->pvt->match_end.row,
 								TRUE);
 					}
@@ -13935,7 +13935,7 @@ _vte_terminal_get_selection(VteTerminal *terminal)
 void
 _vte_terminal_get_start_selection(VteTerminal *terminal, long *col, long *row)
 {
-	struct selection_cell_coords ss;
+	VteVisualPosition ss;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
@@ -13953,7 +13953,7 @@ _vte_terminal_get_start_selection(VteTerminal *terminal, long *col, long *row)
 void
 _vte_terminal_get_end_selection(VteTerminal *terminal, long *col, long *row)
 {
-	struct selection_cell_coords se;
+	VteVisualPosition se;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 

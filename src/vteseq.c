@@ -1559,7 +1559,7 @@ vte_sequence_handler_horizontal_and_vertical_position (VteTerminal *terminal, GV
 static void
 vte_sequence_handler_ic (VteTerminal *terminal, GValueArray *params)
 {
-	struct vte_cursor_position save;
+	VteVisualPosition save;
 	VteScreen *screen;
 
 	screen = terminal->pvt->screen;
