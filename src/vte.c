@@ -2022,7 +2022,7 @@ vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting adjustment_value_changed.\n");
 		terminal->pvt->adjustment_value_changed_pending = FALSE;
-		v = floor (terminal->adjustment->value);
+		v = round (terminal->adjustment->value);
 		if (v != terminal->pvt->screen->scroll_delta) {
 			/* this little dance is so that the scroll_delta is
 			 * updated immediately, but we still handled scrolling
@@ -7749,7 +7749,7 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	screen = terminal->pvt->screen;
 
 	/* Read the new adjustment value and save the difference. */
-	adj = floor (terminal->adjustment->value);
+	adj = round (terminal->adjustment->value);
 	dy = adj - screen->scroll_delta;
 	screen->scroll_delta = adj;
 
@@ -14588,7 +14588,8 @@ vte_terminal_search_get_wrap_around (VteTerminal *terminal)
 static gboolean
 vte_terminal_search_rows (VteTerminal *terminal,
 			  long start_row,
-			  long end_row)
+			  long end_row,
+			  gboolean backward)
 {
         VteTerminalPrivate *pvt;
 	char *row_text;
@@ -14643,7 +14644,16 @@ vte_terminal_search_rows (VteTerminal *terminal,
 	g_match_info_free (match_info);
 
 	_vte_terminal_select_text (terminal, start_col, start_row, end_col, end_row, 0, 0);
-	vte_terminal_queue_adjustment_value_changed_clamped (terminal, start_row);
+	/* Quite possibly the math here should not access adjustment directly... */
+	if (backward) {
+		if (end_row < terminal->adjustment->value ||
+		    end_row >= terminal->adjustment->value + terminal->adjustment->page_size)
+			vte_terminal_queue_adjustment_value_changed_clamped (terminal, end_row - terminal->adjustment->page_size + 1);
+	} else {
+		if (start_row < terminal->adjustment->value ||
+		    start_row >= terminal->adjustment->value + terminal->adjustment->page_size)
+			vte_terminal_queue_adjustment_value_changed_clamped (terminal, start_row);
+	}
 
 	return TRUE;
 }
@@ -14667,7 +14677,7 @@ vte_terminal_search_rows_iter (VteTerminal *terminal,
 				row = _vte_terminal_find_row_data (terminal, iter_start_row);
 			} while (row && row->attr.soft_wrapped);
 
-			if (vte_terminal_search_rows (terminal, iter_start_row, iter_end_row))
+			if (vte_terminal_search_rows (terminal, iter_start_row, iter_end_row, backward))
 				return TRUE;
 		}
 	} else {
@@ -14680,7 +14690,7 @@ vte_terminal_search_rows_iter (VteTerminal *terminal,
 				iter_end_row++;
 			} while (row && row->attr.soft_wrapped);
 
-			if (vte_terminal_search_rows (terminal, iter_start_row, iter_end_row))
+			if (vte_terminal_search_rows (terminal, iter_start_row, iter_end_row, backward))
 				return TRUE;
 		}
 	}
