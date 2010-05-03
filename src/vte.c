@@ -13997,6 +13997,13 @@ _vte_terminal_remove_selection(VteTerminal *terminal)
 }
 
 static void
+_vte_terminal_select_empty_at(VteTerminal *terminal,
+			      long col, long row)
+{
+	_vte_terminal_select_text(terminal, col, row, col - 1, row, 0, 0);
+}
+
+static void
 add_update_timeout (VteTerminal *terminal)
 {
 	if (update_timeout_tag == 0) {
@@ -14730,21 +14737,42 @@ vte_terminal_search_find (VteTerminal *terminal,
 	last_start_row = MAX (buffer_start_row, last_start_row);
 	last_end_row = MIN (buffer_end_row, last_end_row);
 
+	/* If search fails, we make an empty selection at the last searched
+	 * position... */
 	if (backward) {
 		if (vte_terminal_search_rows_iter (terminal, buffer_start_row, last_start_row, backward))
 			return TRUE;
 		if (pvt->search_wrap_around &&
 		    vte_terminal_search_rows_iter (terminal, last_end_row, buffer_end_row, backward))
 			return TRUE;
+		if (pvt->has_selection) {
+			if (pvt->search_wrap_around)
+			    _vte_terminal_select_empty_at (terminal,
+							   pvt->selection_start.col,
+							   pvt->selection_start.row);
+			else
+			    _vte_terminal_select_empty_at (terminal,
+							   -1,
+							   buffer_start_row - 1);
+		}
 	} else {
 		if (vte_terminal_search_rows_iter (terminal, last_end_row, buffer_end_row, backward))
 			return TRUE;
 		if (pvt->search_wrap_around &&
 		    vte_terminal_search_rows_iter (terminal, buffer_start_row, last_start_row, backward))
 			return TRUE;
+		if (pvt->has_selection) {
+			if (pvt->search_wrap_around)
+			    _vte_terminal_select_empty_at (terminal,
+							   pvt->selection_end.col + 1,
+							   pvt->selection_end.row);
+			else
+			    _vte_terminal_select_empty_at (terminal,
+							   -1,
+							   buffer_end_row);
+		}
 	}
 
-	_vte_terminal_remove_selection (terminal);
 	return FALSE;
 }
 
