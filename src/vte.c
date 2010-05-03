@@ -13986,8 +13986,8 @@ _vte_terminal_select_text(VteTerminal *terminal,
 	vte_terminal_emit_selection_changed(terminal);
 
 	_vte_invalidate_region (terminal,
-			MIN (start_col, start_row), MAX (start_col, start_row),
-			MIN (start_row, end_row),   MAX (start_row, end_row),
+			MIN (start_col, end_col), MAX (start_col, end_col),
+			MIN (start_row, end_row), MAX (start_row, end_row),
 			FALSE);
 
 }
