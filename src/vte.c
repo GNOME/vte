@@ -14652,13 +14652,52 @@ vte_terminal_search_rows (VteTerminal *terminal,
 }
 
 static gboolean
+vte_terminal_search_rows_iter (VteTerminal *terminal,
+			       long start_row,
+			       long end_row,
+			       gboolean backward)
+{
+	const VteRowData *row;
+	long iter_start_row, iter_end_row;
+
+	if (backward) {
+		iter_start_row = end_row;
+		while (iter_start_row > start_row) {
+			iter_end_row = iter_start_row;
+
+			do {
+				iter_start_row--;
+				row = _vte_terminal_find_row_data (terminal, iter_start_row);
+			} while (row && row->attr.soft_wrapped);
+
+			if (vte_terminal_search_rows (terminal, iter_start_row, iter_end_row))
+				return TRUE;
+		}
+	} else {
+		iter_end_row = start_row;
+		while (iter_end_row < end_row) {
+			iter_start_row = iter_end_row;
+
+			do {
+				row = _vte_terminal_find_row_data (terminal, iter_end_row);
+				iter_end_row++;
+			} while (row && row->attr.soft_wrapped);
+
+			if (vte_terminal_search_rows (terminal, iter_start_row, iter_end_row))
+				return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+static gboolean
 vte_terminal_search_find (VteTerminal *terminal,
 			  gboolean     backward)
 {
         VteTerminalPrivate *pvt;
-	const VteRowData *row;
 	long buffer_start_row, buffer_end_row;
-	long current_start_row, current_end_row;
+	long last_start_row, last_end_row;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 
@@ -14666,47 +14705,34 @@ vte_terminal_search_find (VteTerminal *terminal,
 	if (!pvt->search_regex)
 		return FALSE;
 
-	/* TODO Currently we only find one result per extended line */
+	/* TODO
+	 * Currently We only find one result per extended line, and ignore columns */
 
 	buffer_start_row = _vte_ring_delta (terminal->pvt->screen->row_data);
 	buffer_end_row = _vte_ring_next (terminal->pvt->screen->row_data);
 
 	if (pvt->has_selection) {
-		current_start_row = pvt->selection_start.row;
-		current_end_row = pvt->selection_end.row + 1;
+		last_start_row = pvt->selection_start.row;
+		last_end_row = pvt->selection_end.row + 1;
 	} else {
-		current_start_row = pvt->screen->scroll_delta + terminal->row_count;
-		current_end_row = pvt->screen->scroll_delta;
+		last_start_row = pvt->screen->scroll_delta + terminal->row_count;
+		last_end_row = pvt->screen->scroll_delta;
 	}
-	current_start_row = MAX (buffer_start_row, current_start_row);
-	current_end_row = MIN (buffer_end_row, current_end_row);
+	last_start_row = MAX (buffer_start_row, last_start_row);
+	last_end_row = MIN (buffer_end_row, last_end_row);
 
 	if (backward) {
-		while (current_start_row > buffer_start_row) {
-			current_end_row = current_start_row;
-
-			do {
-				current_start_row--;
-				row = _vte_terminal_find_row_data (terminal, current_start_row);
-			} while (row && row->attr.soft_wrapped);
-
-			if (vte_terminal_search_rows (terminal, current_start_row, current_end_row))
-				return TRUE;
-		}
-		/* TODO wrap-around */
+		if (vte_terminal_search_rows_iter (terminal, buffer_start_row, last_start_row, backward))
+			return TRUE;
+		if (pvt->search_wrap_around &&
+		    vte_terminal_search_rows_iter (terminal, last_end_row, buffer_end_row, backward))
+			return TRUE;
 	} else {
-		while (current_end_row < buffer_end_row) {
-			current_start_row = current_end_row;
-
-			do {
-				row = _vte_terminal_find_row_data (terminal, current_end_row);
-				current_end_row++;
-			} while (row && row->attr.soft_wrapped);
-
-			if (vte_terminal_search_rows (terminal, current_start_row, current_end_row))
-				return TRUE;
-		}
-		/* TODO wrap-around */
+		if (vte_terminal_search_rows_iter (terminal, last_end_row, buffer_end_row, backward))
+			return TRUE;
+		if (pvt->search_wrap_around &&
+		    vte_terminal_search_rows_iter (terminal, buffer_start_row, last_start_row, backward))
+			return TRUE;
 	}
 
 	vte_terminal_deselect_all (terminal);
