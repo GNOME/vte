@@ -21,18 +21,15 @@ fi
 AM_MAINTAINER_MODE([enable])
 
 ################################################################################
-# Libtool shared library versioning stuffs.
-# REVISION gets incremented whenever the source code changes without adding
-# an API or ABI change.
-LTVERSION_REVISION=0
-# CURRENT must be incremented when an API or ABI change (addition or removal)
-# is made, and REVISION must be reset to 0 when this happens.
-LTVERSION_CURRENT=23
-# AGE must be incremented when an API or ABI addition is made, and REVISION
-# must be reset to 0 when this happens.
-LTVERSION_AGE=14
-
-LIBVTE_LTVERSION=${LTVERSION_CURRENT}:${LTVERSION_REVISION}:${LTVERSION_AGE}
+m4_if(m4_eval(vte_version_minor % 2), [1],
+      [   dnl for unstable releases
+	m4_define([lt_revision], 0)
+      ],[ dnl for stable releases
+	m4_define([lt_revision], vte_version_micro)
+      ])
+m4_define([lt_age], [m4_eval(vte_version_minor*100+vte_version_micro - lt_revision)])
+m4_define([lt_current], [m4_eval(9 + lt_age)]) dnl 9 is current major .so version
+LIBVTE_LTVERSION="lt_current():lt_revision():lt_age()"
 AC_SUBST([LIBVTE_LTVERSION])
 
 ################################################################################
