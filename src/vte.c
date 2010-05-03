@@ -14706,7 +14706,9 @@ vte_terminal_search_find (VteTerminal *terminal,
 		return FALSE;
 
 	/* TODO
-	 * Currently We only find one result per extended line, and ignore columns */
+	 * Currently We only find one result per extended line, and ignore columns
+	 * Moreover, the whole search thing is implemented very inefficiently.
+	 */
 
 	buffer_start_row = _vte_ring_delta (terminal->pvt->screen->row_data);
 	buffer_end_row = _vte_ring_next (terminal->pvt->screen->row_data);
