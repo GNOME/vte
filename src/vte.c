@@ -2043,6 +2043,7 @@ vte_terminal_queue_adjustment_changed(VteTerminal *terminal)
 	terminal->pvt->adjustment_changed_pending = TRUE;
 	add_update_timeout (terminal);
 }
+
 static void
 vte_terminal_queue_adjustment_value_changed(VteTerminal *terminal, glong v)
 {
@@ -2051,6 +2052,17 @@ vte_terminal_queue_adjustment_value_changed(VteTerminal *terminal, glong v)
 		terminal->pvt->adjustment_value_changed_pending = TRUE;
 		add_update_timeout (terminal);
 	}
+}
+
+static void
+vte_terminal_queue_adjustment_value_changed_clamped(VteTerminal *terminal, glong v)
+{
+	v = CLAMP(v,
+		  terminal->adjustment->lower,
+		  MAX (terminal->adjustment->lower,
+		       terminal->adjustment->upper - terminal->row_count));
+
+	vte_terminal_queue_adjustment_value_changed (terminal, v);
 }
 
 
@@ -2142,13 +2154,8 @@ vte_terminal_scroll_lines(VteTerminal *terminal, gint lines)
 	/* Calculate the ideal position where we want to be before clamping. */
 	destination = terminal->pvt->screen->scroll_delta;
 	destination += lines;
-	/* Can't scroll past data we have. */
-	destination = CLAMP(destination,
-			    terminal->adjustment->lower,
-			    MAX (terminal->adjustment->lower, terminal->adjustment->upper - terminal->row_count));
 	/* Tell the scrollbar to adjust itself. */
-	vte_terminal_queue_adjustment_value_changed (terminal,
-			destination);
+	vte_terminal_queue_adjustment_value_changed_clamped (terminal, destination);
 }
 
 /* Scroll a fixed number of pages up or down, in the current screen. */
@@ -6889,12 +6896,8 @@ vte_terminal_autoscroll(VteTerminal *terminal)
 	if (terminal->pvt->mouse_last_y < 0) {
 		if (terminal->adjustment) {
 			/* Try to scroll up by one line. */
-			adj = CLAMP(terminal->pvt->screen->scroll_delta - 1,
-				    terminal->adjustment->lower,
-				    MAX (terminal->adjustment->lower,
-					    terminal->adjustment->upper -
-					    terminal->row_count));
-			vte_terminal_queue_adjustment_value_changed (terminal, adj);
+			adj = terminal->pvt->screen->scroll_delta - 1;
+			vte_terminal_queue_adjustment_value_changed_clamped (terminal, adj);
 			extend = TRUE;
 		}
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Autoscrolling down.\n");
@@ -6903,12 +6906,8 @@ vte_terminal_autoscroll(VteTerminal *terminal)
 	    terminal->row_count * terminal->char_height) {
 		if (terminal->adjustment) {
 			/* Try to scroll up by one line. */
-			adj = CLAMP(terminal->pvt->screen->scroll_delta + 1,
-				    terminal->adjustment->lower,
-				    MAX (terminal->adjustment->lower,
-					    terminal->adjustment->upper -
-					    terminal->row_count));
-			vte_terminal_queue_adjustment_value_changed (terminal, adj);
+			adj = terminal->pvt->screen->scroll_delta + 1;
+			vte_terminal_queue_adjustment_value_changed_clamped (terminal, adj);
 			extend = TRUE;
 		}
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Autoscrolling up.\n");
@@ -10860,7 +10859,6 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 	GtkAdjustment *adj;
 	VteTerminal *terminal;
 	gdouble v;
-	glong new_value;
 	int button;
 
 	terminal = VTE_TERMINAL(widget);
@@ -10950,9 +10948,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 	} else {
 		/* Perform a history scroll. */
 		v += terminal->pvt->screen->scroll_delta;
-		new_value = floor (CLAMP (v, adj->lower,
-					MAX (adj->lower, adj->upper - adj->page_size)));
-		vte_terminal_queue_adjustment_value_changed (terminal, new_value);
+		vte_terminal_queue_adjustment_value_changed_clamped (terminal, v);
 	}
 
 	return TRUE;
@@ -13976,6 +13972,8 @@ _vte_terminal_select_text(VteTerminal *terminal,
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
+	vte_terminal_deselect_all (terminal);
+
 	terminal->pvt->selection_type = selection_type_char;
 	terminal->pvt->selecting_had_delta = TRUE;
 	terminal->pvt->selection_start.col = start_col;
@@ -14645,8 +14643,7 @@ vte_terminal_search_rows (VteTerminal *terminal,
 	g_match_info_free (match_info);
 
 	_vte_terminal_select_text (terminal, start_col, start_row, end_col, end_row, 0, 0);
-	/* TODO present the result better */
-	gtk_adjustment_set_value (terminal->adjustment, start_row);
+	vte_terminal_queue_adjustment_value_changed_clamped (terminal, start_row);
 
 	return TRUE;
 }
@@ -14737,7 +14734,7 @@ vte_terminal_search_find (VteTerminal *terminal,
 			return TRUE;
 	}
 
-	vte_terminal_deselect_all (terminal);
+	_vte_terminal_remove_selection (terminal);
 	return FALSE;
 }
 
