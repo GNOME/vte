@@ -2344,11 +2344,8 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 			break;
 		}
 		case 39:
-			/* default foreground, no underscore */
+			/* default foreground */
 			terminal->pvt->screen->defaults.attr.fore = VTE_DEF_FG;
-			/* By ECMA 48, this underline off has no business
-			   being here, but the Linux console specifies it. */
-			terminal->pvt->screen->defaults.attr.underline = 0;
 			break;
 		case 40:
 		case 41:
