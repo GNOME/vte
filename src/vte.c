@@ -7113,6 +7113,10 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				vte_terminal_extend_selection(terminal,
 							      x, y,
 							      !terminal->pvt->selecting_restart, TRUE);
+				/* The whole selection code needs to be
+				 * rewritten.  For now, put this here to
+				 * fix bug 614658 */
+				terminal->pvt->selecting = TRUE;
 				handled = TRUE;
 			}
 			break;
