@@ -176,7 +176,7 @@ Vte_@VTE_API_VERSION@_gir_FILES = $(addprefix $(srcdir)/,$(introspection_sources
 INTROSPECTION_GIRS += Vte-@VTE_API_VERSION@.gir
 
 girdir = $(INTROSPECTION_GIRDIR)
-#dist_gir_DATA = $(INTROSPECTION_GIRS)
+dist_gir_DATA = $(INTROSPECTION_GIRS)
 
 typelibdir = $(INTROSPECTION_TYPELIBDIR)
 typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
