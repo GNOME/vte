@@ -12608,6 +12608,7 @@ vte_terminal_background_update(VteTerminal *terminal)
 {
 	double saturation;
 	const PangoColor *entry;
+	GdkColor color;
 
 	/* If we're not realized yet, don't worry about it, because we get
 	 * called when we realize. */
@@ -12622,9 +12623,17 @@ vte_terminal_background_update(VteTerminal *terminal)
 			"Updating background image.\n");
 
 	entry = &terminal->pvt->palette[VTE_DEF_BG];
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Setting background color to (%d, %d, %d).\n",
-			entry->red, entry->green, entry->blue);
+	_vte_debug_print(VTE_DEBUG_BG,
+			 "Setting background color to (%d, %d, %d, %d).\n",
+			 entry->red, entry->green, entry->blue,
+			 terminal->pvt->bg_opacity);
+
+	/* Set the terminal widget background color since otherwise we
+	 * won't draw it for VTE_BG_SOURCE_NONE. */
+	color.red = entry->red;
+	color.green = entry->green;
+	color.blue = entry->blue;
+	gtk_widget_modify_bg (terminal, GTK_STATE_NORMAL, &color);
 
 	_vte_draw_set_background_solid (terminal->pvt->draw, 
 					entry->red / 65535.,
