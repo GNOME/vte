@@ -873,7 +873,7 @@ _vte_draw_set_background_solid(struct _vte_draw *draw,
 			       double blue,
 			       double opacity)
 {
-	draw->requires_clear = opacity != 0xFFFF;
+	draw->requires_clear = opacity != 1;
 
 	if (draw->bg_pattern)
 		cairo_pattern_destroy (draw->bg_pattern);
