@@ -10,7 +10,7 @@ AUTOMAKE_OPTIONS = 1.10
 DOC_MODULE = vte
 
 # Uncomment for versioned docs and specify the version of the module, e.g. '2'.
-# DOC_MODULE_VERSION = $(VTE_API_VERSION)
+DOC_MODULE_VERSION = $(VTE_API_VERSION)
 
 # The top-level SGML file. You can change this if you want to.
 DOC_MAIN_SGML_FILE = $(DOC_MODULE)-docs.xml
@@ -123,7 +123,7 @@ GTKDOC_CFLAGS = \
 	$(VTE_CFLAGS)
 
 GTKDOC_LIBS = \
-	$(top_builddir)/src/libvte.la \
+	$(top_builddir)/src/libvte@VTE_LIBRARY_SUFFIX_U@.la \
 	$(VTE_LIBS)
 
 # This includes the standard gtk-doc make rules, copied by gtkdocize.

@@ -4,11 +4,12 @@ EXTRA_DIST = iso2022.txt
 
 # The library
 
-pkginclude_HEADERS = pty.h reaper.h vte.h vteaccess.h vtepty.h vtetypebuiltins.h vteversion.h vtedeprecated.h
+headerdir = $(includedir)/vte-$(VTE_API_VERSION)/vte
+header_HEADERS = pty.h reaper.h vte.h vteaccess.h vtepty.h vtetypebuiltins.h vteversion.h vtedeprecated.h
 
-lib_LTLIBRARIES = libvte.la
+lib_LTLIBRARIES = libvte@VTE_LIBRARY_SUFFIX_U@.la
 
-EXTRA_libvte_la_SOURCES = \
+EXTRA_libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
 	genkeysyms.py \
 	keysyms.c \
 	marshal.list \
@@ -29,7 +30,7 @@ EXTRA_libvte_la_SOURCES = \
 	vtetypebuiltins.h.template \
 	$(NULL)
 
-libvte_la_SOURCES = \
+libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
 	buffer.h \
 	caps.c \
 	caps.h \
@@ -89,15 +90,15 @@ libvte_la_SOURCES = \
 	vteversion.h
 	$(NULL)
 
-libvte_la_CPPFLAGS = \
-	-DG_LOG_DOMAIN=\"Vte\" \
+libvte@VTE_LIBRARY_SUFFIX_U@_la_CPPFLAGS = \
+	-DG_LOG_DOMAIN=\"Vte-$(VTE_API_VERSION)\" \
  	-DDATADIR='"$(datadir)"' \
 	-DLIBEXECDIR='"$(libexecdir)"' \
 	-DLOCALEDIR='"$(localedir)"' \
 	-DVTE_COMPILATION
-libvte_la_CFLAGS = $(VTE_CFLAGS)
-libvte_la_LIBADD = $(VTE_LIBS)
-libvte_la_LDFLAGS = \
+libvte@VTE_LIBRARY_SUFFIX_U@_la_CFLAGS = $(VTE_CFLAGS)
+libvte@VTE_LIBRARY_SUFFIX_U@_la_LIBADD = $(VTE_LIBS)
+libvte@VTE_LIBRARY_SUFFIX_U@_la_LDFLAGS = \
 	-version-info $(LIBVTE_LTVERSION) \
 	-export-symbols-regex "^vte_terminal_.*|^vte_pty_.*|^_vte_pty_.*|^vte_reaper_.*|_vte_debug_.*" \
 	@LIBTOOL_EXPORT_OPTIONS@ @LIBTOOL_FLAGS@
@@ -146,11 +147,11 @@ vteseq-list.h: vteseq-2.gperf vteseq-n.gperf
 
 # vte the application
 
-bin_PROGRAMS = vte
+bin_PROGRAMS = vte@VTE_LIBRARY_SUFFIX_U@
 
-vte_SOURCES = vteapp.c
-vte_CFLAGS = $(VTE_CFLAGS)
-vte_LDADD = libvte.la $(VTE_LIBS)
+vte@VTE_LIBRARY_SUFFIX_U@_SOURCES = vteapp.c
+vte@VTE_LIBRARY_SUFFIX_U@_CFLAGS = $(VTE_CFLAGS)
+vte@VTE_LIBRARY_SUFFIX_U@_LDADD = libvte@VTE_LIBRARY_SUFFIX_U@.la $(VTE_LIBS)
 
 # introspection
 
@@ -159,21 +160,21 @@ INTROSPECTION_SCANNER_ARGS = --add-include-path=$(srcdir)
 INTROSPECTION_COMPILER_ARGS = --includedir=$(srcdir)
 
 if HAVE_INTROSPECTION
-introspection_sources = \
-    vte.c \
-    vte.h \
-    vtepty.h \
-    pty.c \
-    vtetypebuiltins.c \
-    vtetypebuiltins.h
 
-Vte-@VTE_API_VERSION@.gir: libvte.la
-Vte_@VTE_API_VERSION@_gir_INCLUDES = Pango-1.0 Gdk-2.0 Gtk-2.0
-Vte_@VTE_API_VERSION@_gir_CFLAGS = $(VTE_CFLAGS) -DVTE_COMPILATION -I$(top_srcdir)
-Vte_@VTE_API_VERSION@_gir_LIBS = libvte.la
-Vte_@VTE_API_VERSION@_gir_FILES = $(addprefix $(srcdir)/,$(introspection_sources))
+Vte-@VTE_API_VERSION@.gir: libvte@VTE_LIBRARY_SUFFIX_U@.la
+Vte_@VTE_API_VERSION_U@_gir_INCLUDES = Pango-1.0 Gdk-$(GTK_API_VERSION) Gtk-$(GTK_API_VERSION)
+Vte_@VTE_API_VERSION_U@_gir_CFLAGS = $(VTE_CFLAGS) -DVTE_COMPILATION -I$(top_srcdir)
+Vte_@VTE_API_VERSION_U@_gir_LIBS = libvte@VTE_LIBRARY_SUFFIX_U@.la
+Vte_@VTE_API_VERSION_U@_gir_FILES = \
+	vte.c \
+	vte.h \
+	vtepty.h \
+	pty.c \
+	vtetypebuiltins.c \
+	vtetypebuiltins.h \
+	$(NULL)
 
-INTROSPECTION_GIRS += Vte-@VTE_API_VERSION@.gir
+INTROSPECTION_GIRS += Vte-$(VTE_API_VERSION).gir
 
 girdir = $(INTROSPECTION_GIRDIR)
 dist_gir_DATA = $(INTROSPECTION_GIRS)
@@ -187,8 +188,9 @@ endif
 
 # Misc unit tests and utilities
 
-pkglib_PROGRAMS = interpret slowcat
-pkglib_SCRIPTS = decset osc window
+vtelibdir = $(libdir)/vte-$(VTE_API_VERSION)
+vtelib_PROGRAMS = interpret slowcat
+vtelib_SCRIPTS = decset osc window
 EXTRA_DIST += $(pkglib_SCRIPTS)
 
 TEST_SH = check-doc-syntax.sh
@@ -208,7 +210,7 @@ reflect_text_view_LDADD = $(VTE_LIBS)
 reflect_vte_CPPFLAGS = -DUSE_VTE
 reflect_vte_CFLAGS = $(VTE_CFLAGS)
 reflect_vte_SOURCES = reflect.c
-reflect_vte_LDADD = libvte.la $(VTE_LIBS)
+reflect_vte_LDADD = libvte@VTE_LIBRARY_SUFFIX_U@.la $(VTE_LIBS)
 
 interpret_SOURCES = \
 	buffer.h \

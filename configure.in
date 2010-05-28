@@ -3,8 +3,6 @@ m4_define([vte_version_minor],[25])
 m4_define([vte_version_micro],[1])
 m4_define([vte_version],[vte_version_major.vte_version_minor.vte_version_micro])
 
-m4_define([vte_api_version],[0])
-
 AC_PREREQ([2.59])
 AC_INIT(vte, [vte_version],
         [http://bugzilla.gnome.org/enter_bug.cgi?product=vte])
@@ -31,6 +29,50 @@ m4_define([lt_age], [m4_eval(vte_version_minor*100+vte_version_micro - lt_revisi
 m4_define([lt_current], [m4_eval(9 + lt_age)]) dnl 9 is current major .so version
 LIBVTE_LTVERSION="lt_current():lt_revision():lt_age()"
 AC_SUBST([LIBVTE_LTVERSION])
+
+################################################################################
+# GTK+
+################################################################################
+
+AC_MSG_CHECKING([which gtk+ version to compile against])
+AC_ARG_WITH([gtk],
+  [AS_HELP_STRING([--with-gtk=2.0|3.0],[which gtk+ version to compile against (default: 2.0)])],
+  [case "$with_gtk" in
+     2.0|3.0) ;;
+     *) AC_MSG_ERROR([invalid gtk version specified]) ;;
+   esac],
+  [with_gtk=2.0])
+AC_MSG_RESULT([$with_gtk])
+
+case "$with_gtk" in
+  2.0) VTE_API_VERSION=0.0
+       VTE_API_MAJOR_VERSION=0
+       VTE_API_MINOR_VERSION=0
+       VTE_PC_VERSION=
+       VTE_LIBRARY_SUFFIX=
+       GTK_API_VERSION=2.0
+       GTK_REQUIRED=2.14.0
+       ;;
+  3.0) VTE_API_VERSION=2.90
+       VTE_API_MAJOR_VERSION=2
+       VTE_API_MINOR_VERSION=90
+       VTE_PC_VERSION=-2.90
+       VTE_LIBRARY_SUFFIX=2.90
+       GTK_API_VERSION=3.0
+       GTK_REQUIRED=2.90.0
+       ;;
+esac
+
+AC_SUBST([VTE_API_VERSION])
+AC_SUBST([VTE_API_VERSION_U],[AS_TR_SH([$VTE_API_VERSION])])
+AC_SUBST([VTE_API_MAJOR_VERSION])
+AC_SUBST([VTE_API_MINOR_VERSION])
+AC_SUBST([VTE_PC_VERSION])
+AC_SUBST([GTK_API_VERSION])
+AC_SUBST([VTE_LIBRARY_SUFFIX_U],[AS_TR_SH([$VTE_LIBRARY_SUFFIX])])
+
+AM_CONDITIONAL([HAVE_GTK_2],[test "$with_gtk" = "2.0"])
+AM_CONDITIONAL([HAVE_GTK_3],[test "$with_gtk" = "3.0"])
 
 ################################################################################
 
@@ -254,10 +296,12 @@ esac
 
 GLIB_REQUIRED=2.22.0
 PANGO_REQUIRED=1.22.0
-GTK_REQUIRED=2.14.0
 AC_DEFINE(GDK_MULTIHEAD_SAFE,1,[Force use of GDK's multihead-safe APIs.])
 PKG_CHECK_MODULES(GLIB,[glib-2.0 > $GLIB_REQUIRED gobject-2.0])
-PKG_CHECK_MODULES(GTK,[glib-2.0 >= $GLIB_REQUIRED gobject-2.0 gtk+-2.0 >= $GTK_REQUIRED])
+PKG_CHECK_MODULES(GTK,[glib-2.0 >= $GLIB_REQUIRED gobject-2.0 gtk+-$GTK_API_VERSION >= $GTK_REQUIRED])
+
+AC_PATH_PROG([GLIB_GENMARSHAL],[glib-genmarshal])
+AC_PATH_PROG([GLIB_MKENUMS],[glib-mkenums])
 
 # Let the user specify the default terminal emulation.
 AC_ARG_WITH(default-emulation,
@@ -336,14 +380,14 @@ esac
 
 # We have a direct dependency on X11 on gdk-x11, see bug #613525
 AC_MSG_CHECKING([for GDK target])
-GDK_TARGET="$($PKG_CONFIG --variable target gdk-2.0)"
+GDK_TARGET="$($PKG_CONFIG --variable target gdk-$GTK_API_VERSION)"
 AC_MSG_RESULT([$GDK_TARGET])
 case "$GDK_TARGET" in
   x11) PLATFORM_PKGS="x11 cairo-xlib" ;;
   *) PLATFORM_PKGS="" ;;
 esac
 
-VTE_PKGS="glib-2.0 >= $GLIB_REQUIRED gobject-2.0 pango >= $PANGO_REQUIRED gtk+-2.0 >= $GTK_REQUIRED gobject-2.0 gio-2.0 gio-unix-2.0 $PLATFORM_PKGS"
+VTE_PKGS="glib-2.0 >= $GLIB_REQUIRED gobject-2.0 pango >= $PANGO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED gobject-2.0 gio-2.0 gio-unix-2.0 $PLATFORM_PKGS"
 PKG_CHECK_MODULES([VTE],[$VTE_PKGS])
 AC_SUBST([VTE_PKGS])
 
@@ -369,6 +413,8 @@ AC_CHECK_TYPES(wint_t, AC_DEFINE(HAVE_WINT_T, , [Defined when the wint_t type is
 ################################################################################
 # Auxillary modules
 ################################################################################
+
+if test "$with_gtk" = "2.0"; then
 
 # Search for Python.
 BUILD_PYTHON=true
@@ -435,7 +481,16 @@ fi
 
 AC_SUBST(PYTHONREV)
 AC_SUBST(PYTHONMODULES)
+
+else # with_gtk = 3.0
+  BUILD_PYTHON=false
+fi # with_gtk = 2.0
+
 AM_CONDITIONAL(BUILD_PYTHON_MODULES, $BUILD_PYTHON)
+
+################################################################################
+# GNOME PTY Helper
+################################################################################
 
 AC_ARG_ENABLE(gnome-pty-helper, [AS_HELP_STRING(--enable-gnome-pty-helper,Build a setuid helper for opening ptys [default=yes])], enable_gnome_pty_helper="$enableval", enable_gnome_pty_helper=yes)
 if test "$enable_gnome_pty_helper" != no; then
@@ -443,9 +498,6 @@ if test "$enable_gnome_pty_helper" != no; then
 	AC_CONFIG_SUBDIRS(gnome-pty-helper)
 fi
 AM_CONDITIONAL(BUILD_GNOME_PTY_HELPER,[test "$enable_gnome_pty_helper" != no])
-
-AC_PATH_PROG([GLIB_GENMARSHAL],[glib-genmarshal])
-AC_PATH_PROG([GLIB_MKENUMS],[glib-mkenums])
 
 ################################################################################
 # Glade catalogue
@@ -489,14 +541,13 @@ GOBJECT_INTROSPECTION_CHECK([0.6.7])
 GTK_DOC_CHECK([1.13],[--flavour no-tmpl])
 
 AC_SUBST([GLIB_PREFIX],[$($PKG_CONFIG --variable=prefix glib-2.0)])
-AC_SUBST([GTK_PREFIX],[$($PKG_CONFIG --variable=prefix gtk+-2.0)])
+AC_SUBST([GTK_PREFIX],[$($PKG_CONFIG --variable=prefix gtk+-$GTK_API_VERSION)])
 
 ################################################################################
 
 AC_SUBST([VTE_MAJOR_VERSION],[vte_version_major])
 AC_SUBST([VTE_MINOR_VERSION],[vte_version_minor])
 AC_SUBST([VTE_MICRO_VERSION],[vte_version_micro])
-AC_SUBST([VTE_API_VERSION],[vte_api_version])
 
 ################################################################################
 
@@ -514,11 +565,12 @@ doc/openi18n/Makefile
 doc/reference/Makefile
 doc/reference/version.xml
 glade/Makefile
-vte.pc
-vte-uninstalled.pc
 ])
-AC_OUTPUT
 
+AC_CONFIG_FILES([vte${VTE_PC_VERSION}.pc:vte.pc.in],[VTE_PC_VERSION=${VTE_PC_VERSION}])
+AC_CONFIG_FILES([vte${VTE_PC_VERSION}-uninstalled.pc:vte-uninstalled.pc.in],[VTE_PC_VERSION=${VTE_PC_VERSION}])
+
+AC_OUTPUT
 
 #####################
 # Print configuration
@@ -529,7 +581,7 @@ cat <<EOF | tee -a config.log
 ## Configuration. ##
 ## -------------- ##
 
-Configuration for libvte $VERSION
+Configuration for libvte $VERSION for gtk+-$GTK_API_VERSION
 	Installing Glade catalogue: $enable_glade_catalogue
 	Debugging: $DEBUG
 	Disallow deprecated features: $enable_deprecation

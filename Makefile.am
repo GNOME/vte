@@ -1,4 +1,8 @@
-SUBDIRS = src python termcaps po doc perf
+SUBDIRS = src termcaps po doc perf
+
+if HAVE_GTK_2
+SUBDIRS += python
+endif
 
 EXTRA_DIST = \
 	MAINTAINERS \
@@ -17,7 +21,7 @@ SUBDIRS += glade
 endif
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = vte.pc
+pkgconfig_DATA = vte$(VTE_PC_VERSION).pc
 
 DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc --enable-introspection --disable-silent-rules
 
