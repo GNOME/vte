@@ -113,6 +113,7 @@ pass_fd (int client_fd, int fd)
         char          buf [1];
         char    cmsgbuf[CMSG_SPACE(sizeof(int))];
         struct  cmsghdr *cmptr;
+        int *fdptr;
 
 	iov [0].iov_base = buf;
 	iov [0].iov_len  = 1;
@@ -128,8 +129,8 @@ pass_fd (int client_fd, int fd)
 	cmptr->cmsg_level = SOL_SOCKET;
 	cmptr->cmsg_type  = SCM_RIGHTS;
 	cmptr->cmsg_len   = CMSG_LEN(sizeof(int));
-	*(int *)CMSG_DATA (cmptr) = fd;
-
+        fdptr = (int *) CMSG_DATA(cmptr);
+        memcpy (fdptr, &fd, sizeof(int));
 	if (sendmsg (client_fd, &msg, 0) != 1)
 		return -1;
 
