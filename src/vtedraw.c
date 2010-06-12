@@ -790,8 +790,6 @@ struct _vte_draw {
 
 	gint started;
 
-	gboolean requires_clear;
-
 	struct font_info *font;
 	struct font_info *font_bold;
 	cairo_pattern_t *bg_pattern;
@@ -807,7 +805,6 @@ _vte_draw_new (GtkWidget *widget)
 	/* Create the structure. */
 	draw = g_slice_new0 (struct _vte_draw);
 	draw->widget = g_object_ref (widget);
-	draw->requires_clear = FALSE;
 
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_new\n");
 
@@ -873,8 +870,6 @@ _vte_draw_set_background_solid(struct _vte_draw *draw,
 			       double blue,
 			       double opacity)
 {
-	draw->requires_clear = opacity != 1;
-
 	if (draw->bg_pattern)
 		cairo_pattern_destroy (draw->bg_pattern);
 
@@ -893,9 +888,6 @@ _vte_draw_set_background_image (struct _vte_draw *draw,
 			        double saturation)
 {
 	cairo_surface_t *surface;
-
-	if (type != VTE_BG_SOURCE_NONE)
-		draw->requires_clear = TRUE;
 
 	/* Need a valid draw->cr for cairo_get_target () */
 	_vte_draw_start (draw);
@@ -934,14 +926,12 @@ _vte_draw_set_background_scroll (struct _vte_draw *draw,
 	cairo_pattern_set_matrix (draw->bg_pattern, &matrix);
 }
 
-gboolean
+void
 _vte_draw_clip (struct _vte_draw *draw, GdkRegion *region)
 {
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_clip\n");
 	gdk_cairo_region(draw->cr, region);
 	cairo_clip (draw->cr);
-
-	return TRUE;
 }
 
 void
@@ -1211,10 +1201,4 @@ _vte_draw_fill_rectangle (struct _vte_draw *draw,
 	cairo_rectangle (draw->cr, x, y, width, height);
 	set_source_color_alpha (draw->cr, color, alpha);
 	cairo_fill (draw->cr);
-}
-
-gboolean
-_vte_draw_requires_clear (struct _vte_draw *draw)
-{
-	return draw->requires_clear;
 }

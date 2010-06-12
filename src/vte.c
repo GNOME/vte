@@ -10479,33 +10479,6 @@ vte_terminal_paint_area (VteTerminal *terminal, const GdkRectangle *area)
 			row * height + terminal->pvt->inner_border.top,
 			(col_stop - col) * width,
 			(row_stop - row) * height);
-	if (!GTK_WIDGET_DOUBLE_BUFFERED (terminal) ||
-			_vte_draw_requires_clear (terminal->pvt->draw)) {
-		GdkRectangle rect;
-
-		/* expand clear area to cover borders */
-		if (col == 0)
-			rect.x = 0;
-		else
-			rect.x = area->x;
-		if (col_stop == terminal->column_count)
-			rect.width = terminal->widget.allocation.width;
-		else
-			rect.width = area->x + area->width;
-		rect.width -= rect.x;
-		if (row == 0)
-			rect.y = 0;
-		else
-			rect.y = area->y;
-		if (row_stop == terminal->row_count)
-			rect.height = terminal->widget.allocation.height;
-		else
-			rect.height = area->y + area->height;
-		rect.height -= rect.y;
-
-		_vte_draw_clear (terminal->pvt->draw,
-				rect.x, rect.y, rect.width, rect.height);
-	}
 
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */
@@ -10780,28 +10753,28 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 				clip.x, clip.y, clip.width, clip.height);
 	}
 
+	_vte_draw_clip(terminal->pvt->draw, region);
+	_vte_draw_clear (terminal->pvt->draw, 0, 0, terminal->widget.allocation.width, terminal->widget.allocation.height);
+
 	/* Calculate the bounding rectangle. */
-	if (!_vte_draw_clip(terminal->pvt->draw, region)) {
-		vte_terminal_paint_area (terminal,
-				&terminal->widget.allocation);
-	} else {
+	{
 		GdkRectangle *rectangles;
 		gint n, n_rectangles;
 		gdk_region_get_rectangles (region, &rectangles, &n_rectangles);
 		/* don't bother to enlarge an invalidate all */
 		if (!(n_rectangles == 1
-				&& rectangles[0].width == terminal->widget.allocation.width
-				&& rectangles[0].height == terminal->widget.allocation.height)) {
+		      && rectangles[0].width == terminal->widget.allocation.width
+		      && rectangles[0].height == terminal->widget.allocation.height)) {
 			GdkRegion *rr = gdk_region_new ();
-			/* convert pixels into cells */
+			/* convert pixels into whole cells */
 			for (n = 0; n < n_rectangles; n++) {
-				vte_terminal_expand_region (
-						terminal, rr, rectangles + n);
+				vte_terminal_expand_region (terminal, rr, rectangles + n);
 			}
 			g_free (rectangles);
 			gdk_region_get_rectangles (rr, &rectangles, &n_rectangles);
 			gdk_region_destroy (rr);
 		}
+
 		/* and now paint them */
 		for (n = 0; n < n_rectangles; n++) {
 			vte_terminal_paint_area (terminal, rectangles + n);
