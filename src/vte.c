@@ -8017,7 +8017,8 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt = terminal->pvt = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalPrivate);
 
 	GTK_WIDGET_SET_FLAGS(terminal, GTK_CAN_FOCUS);
-	/* gtk_widget_set_double_buffered (&terminal->widget, FALSE); */
+
+	gtk_widget_set_app_paintable (&terminal->widget, TRUE);
 
 	/* We do our own redrawing. */
 	gtk_widget_set_redraw_on_allocate (&terminal->widget, FALSE);
@@ -12606,7 +12607,7 @@ vte_terminal_background_update(VteTerminal *terminal)
 	color.red = entry->red;
 	color.green = entry->green;
 	color.blue = entry->blue;
-	gtk_widget_modify_bg (terminal, GTK_STATE_NORMAL, &color);
+	gtk_widget_modify_bg (&terminal->widget, GTK_STATE_NORMAL, &color);
 
 	_vte_draw_set_background_solid (terminal->pvt->draw, 
 					entry->red / 65535.,
