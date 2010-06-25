@@ -6727,9 +6727,9 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	}
 
 	/* We want to be more lenient on the user with their column selection.
-	 * We round to closest logical position (positions are located between
+	 * We round to the closest logical position (positions are located between
 	 * cells).  But we don't want to fully round.  So we divide the cell
-	 * width/height into three parts.  The side parts round to their nearest
+	 * width into three parts.  The side parts round to their nearest
 	 * position.  The middle part is always inclusive in the selection.
 	 *
 	 * math_div and no MAX, to allow selecting no cells in the line,
