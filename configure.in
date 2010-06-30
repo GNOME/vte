@@ -1,11 +1,12 @@
-m4_define([vte_version_major],[0])
-m4_define([vte_version_minor],[25])
-m4_define([vte_version_micro],[1])
-m4_define([vte_version],[vte_version_major.vte_version_minor.vte_version_micro])
+m4_define([version_major],0)
+m4_define([version_minor],25)
+m4_define([version_micro],1)
+m4_define([version_triplet],version_major.version_minor.version_micro)
+
+m4_define([so_major_adjust],9) dnl Don't change!
 
 AC_PREREQ([2.59])
-AC_INIT(vte, [vte_version],
-        [http://bugzilla.gnome.org/enter_bug.cgi?product=vte])
+AC_INIT(vte, [version_triplet], [http://bugzilla.gnome.org/enter_bug.cgi?product=vte])
 AC_CONFIG_SRCDIR([src/vte.c])
 AC_CONFIG_HEADERS([config.h])
 
@@ -19,16 +20,15 @@ fi
 AM_MAINTAINER_MODE([enable])
 
 ################################################################################
-m4_if(m4_eval(vte_version_minor % 2), [1],
-      [   dnl for unstable releases
-	m4_define([lt_revision], 0)
-      ],[ dnl for stable releases
-	m4_define([lt_revision], vte_version_micro)
-      ])
-m4_define([lt_age], [m4_eval(vte_version_minor*100+vte_version_micro - lt_revision)])
-m4_define([lt_current], [m4_eval(9 + lt_age)]) dnl 9 is current major .so version
-LIBVTE_LTVERSION="lt_current():lt_revision():lt_age()"
-AC_SUBST([LIBVTE_LTVERSION])
+# Libtool versioning
+################################################################################
+m4_define([lt_revision], m4_if(m4_eval(version_minor%2),1,0,version_micro))
+m4_define([lt_age], m4_eval(version_minor*100+version_micro-lt_revision))
+m4_define([lt_current], m4_eval(so_major_adjust+version_major+lt_age))
+m4_define([lt_triplet],lt_current:lt_revision:lt_age)
+
+LT_VERSION_INFO="lt_triplet()"
+AC_SUBST([LT_VERSION_INFO])
 
 ################################################################################
 # GTK+
@@ -545,9 +545,9 @@ AC_SUBST([GTK_PREFIX],[$($PKG_CONFIG --variable=prefix gtk+-$GTK_API_VERSION)])
 
 ################################################################################
 
-AC_SUBST([VTE_MAJOR_VERSION],[vte_version_major])
-AC_SUBST([VTE_MINOR_VERSION],[vte_version_minor])
-AC_SUBST([VTE_MICRO_VERSION],[vte_version_micro])
+AC_SUBST([VTE_MAJOR_VERSION],[version_major])
+AC_SUBST([VTE_MINOR_VERSION],[version_minor])
+AC_SUBST([VTE_MICRO_VERSION],[version_micro])
 
 ################################################################################
 
