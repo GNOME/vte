@@ -34,7 +34,7 @@
 
 G_BEGIN_DECLS
 
-#ifdef GSEAL_ENABLE
+#ifdef VTE_SEAL_ENABLE
 #define _VTE_SEAL(name) _vte_sealed__ ## name
 #else
 #define _VTE_SEAL(name) name
