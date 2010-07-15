@@ -343,7 +343,7 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		      glong column_start, gint column_count,
 		      glong row_start, gint row_count)
 {
-	GdkRectangle rect;
+	VteRegionRectangle rect;
 	glong i;
 
 	if (!column_count || !row_count) {
@@ -462,7 +462,7 @@ _vte_invalidate_region (VteTerminal *terminal,
 void
 _vte_invalidate_all(VteTerminal *terminal)
 {
-	GdkRectangle rect;
+	VteRegionRectangle rect;
 	GtkAllocation allocation;
 
 	g_assert(VTE_IS_TERMINAL(terminal));
@@ -10441,7 +10441,7 @@ vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, const GdkR
 	VteScreen *screen;
 	int width, height;
 	int row, col, row_stop, col_stop;
-	GdkRectangle rect;
+	VteRegionRectangle rect;
 
 	screen = terminal->pvt->screen;
 

@@ -23,6 +23,33 @@
 
 G_BEGIN_DECLS
 
+#if GTK_CHECK_VERSION (2, 90, 5)
+
+#define GdkRegion cairo_region_t
+#define VteRegionRectangle cairo_rectangle_int_t
+#define gdk_region_new() cairo_region_create()
+#define gdk_region_rectangle(r) cairo_region_create_rectangle(r)
+#define gdk_region_copy(r) cairo_region_copy(r)
+#define gdk_region_destroy cairo_region_destroy
+#define gdk_region_union_with_rect(r, rect) cairo_region_union_rectangle(r, rect)
+#define gdk_region_union(r, s) cairo_region_union(r, s)
+#define gdk_region_get_clipbox(r, rect) cairo_region_get_extents(r, rect)
+#define gdk_region_get_rectangles(r, rects, n_rects)			\
+	do {								\
+		int i;							\
+									\
+		*(n_rects) = cairo_region_num_rectangles(r);		\
+		*(rects) = g_new(cairo_rectangle_int_t, *(n_rects));	\
+		for (i = 0; i < *(n_rects); i++)			\
+			cairo_region_get_rectangle ((r), i, &(*(rects))[i]); \
+	} while (0)
+
+#else
+
+#define VteRegionRectangle GdkRectangle
+
+#endif
+
 #if !GTK_CHECK_VERSION (2, 20, 0)
 #define gtk_widget_get_mapped(widget)                   (GTK_WIDGET_MAPPED ((widget)))
 #define gtk_widget_get_realized(widget)                 (GTK_WIDGET_REALIZED ((widget)))
