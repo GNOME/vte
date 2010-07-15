@@ -278,7 +278,7 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 	}
 
 	/* Re-read the contents of the widget if the contents have changed. */
-	terminal = VTE_TERMINAL((GTK_ACCESSIBLE(text))->widget);
+	terminal = VTE_TERMINAL(gtk_accessible_get_widget(GTK_ACCESSIBLE(text)));
 	if (priv->snapshot_contents_invalid) {
 		/* Free the outdated snapshot data, unless the caller
 		 * wants it. */
@@ -748,7 +748,7 @@ vte_terminal_accessible_visibility_notify(VteTerminal *terminal,
 		if (widget == NULL) {
 			break;
 		}
-		visible = visible && (GTK_WIDGET_VISIBLE(widget));
+		visible = visible && (gtk_widget_get_visible(widget));
 		widget = gtk_widget_get_parent(widget);
 	}
 	/* The SHOWING state indicates that this widget, and all of its
@@ -817,8 +817,8 @@ vte_terminal_initialize (AtkObject *obj, gpointer data)
 			 G_CALLBACK(vte_terminal_accessible_selection_changed),
 			 obj);
 
-	if (GTK_IS_WIDGET((GTK_WIDGET(terminal))->parent)) {
-		parent = gtk_widget_get_accessible((GTK_WIDGET(terminal))->parent);
+	if (GTK_IS_WIDGET(gtk_widget_get_parent(GTK_WIDGET(terminal)))) {
+		parent = gtk_widget_get_accessible(gtk_widget_get_parent ((GTK_WIDGET(terminal))));
 		if (ATK_IS_OBJECT(parent)) {
 			atk_object_set_parent(obj, parent);
 		}
@@ -867,52 +867,54 @@ vte_terminal_accessible_finalize(GObject *object)
 {
 	VteTerminalAccessiblePrivate *priv;
 	GtkAccessible *accessible = NULL;
+        GtkWidget *widget;
 
 	_vte_debug_print(VTE_DEBUG_ALLY, "Finalizing accessible peer.\n");
 
 	g_assert(VTE_IS_TERMINAL_ACCESSIBLE(object));
 	accessible = GTK_ACCESSIBLE(object);
+        widget = gtk_accessible_get_widget (accessible);
 
-	if (accessible->widget != NULL) {
-		g_object_remove_weak_pointer(G_OBJECT(accessible->widget),
-					     (gpointer*)(gpointer)&accessible->widget);
-		g_signal_handlers_disconnect_matched(accessible->widget,
+	if (widget != NULL) {
+		g_object_remove_weak_pointer(G_OBJECT(widget),
+					     (gpointer*)(gpointer)&widget);
+		g_signal_handlers_disconnect_matched(widget,
 						     G_SIGNAL_MATCH_FUNC |
 						     G_SIGNAL_MATCH_DATA,
 						     0, 0, NULL,
 						     vte_terminal_accessible_text_modified,
 						     object);
-		g_signal_handlers_disconnect_matched(accessible->widget,
+		g_signal_handlers_disconnect_matched(widget,
 						     G_SIGNAL_MATCH_FUNC |
 						     G_SIGNAL_MATCH_DATA,
 						     0, 0, NULL,
 						     vte_terminal_accessible_text_scrolled,
 						     object);
-		g_signal_handlers_disconnect_matched(accessible->widget,
+		g_signal_handlers_disconnect_matched(widget,
 						     G_SIGNAL_MATCH_FUNC |
 						     G_SIGNAL_MATCH_DATA,
 						     0, 0, NULL,
 						     vte_terminal_accessible_invalidate_cursor,
 						     object);
-		g_signal_handlers_disconnect_matched(accessible->widget,
+		g_signal_handlers_disconnect_matched(widget,
 						     G_SIGNAL_MATCH_FUNC |
 						     G_SIGNAL_MATCH_DATA,
 						     0, 0, NULL,
 						     vte_terminal_accessible_title_changed,
 						     object);
-		g_signal_handlers_disconnect_matched(accessible->widget,
+		g_signal_handlers_disconnect_matched(widget,
 						     G_SIGNAL_MATCH_FUNC |
 						     G_SIGNAL_MATCH_DATA,
 						     0, 0, NULL,
 						     vte_terminal_accessible_focus_in,
 						     object);
-		g_signal_handlers_disconnect_matched(accessible->widget,
+		g_signal_handlers_disconnect_matched(widget,
 						     G_SIGNAL_MATCH_FUNC |
 						     G_SIGNAL_MATCH_DATA,
 						     0, 0, NULL,
 						     vte_terminal_accessible_focus_out,
 						     object);
-		g_signal_handlers_disconnect_matched(accessible->widget,
+		g_signal_handlers_disconnect_matched(widget,
 						     G_SIGNAL_MATCH_FUNC |
 						     G_SIGNAL_MATCH_DATA,
 						     0, 0, NULL,
@@ -1007,7 +1009,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 
 	priv = g_object_get_data(G_OBJECT(text),
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
-	terminal = VTE_TERMINAL((GTK_ACCESSIBLE(text))->widget);
+	terminal = VTE_TERMINAL(gtk_accessible_get_widget (GTK_ACCESSIBLE(text)));
 
 	_vte_debug_print(VTE_DEBUG_ALLY,
 			"Getting %s %s at %d of %d.\n",
@@ -1435,7 +1437,7 @@ vte_terminal_accessible_get_character_extents(AtkText *text, gint offset,
 							      NULL, NULL);
 	priv = g_object_get_data(G_OBJECT(text),
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
-	terminal = VTE_TERMINAL (GTK_ACCESSIBLE (text)->widget);
+	terminal = VTE_TERMINAL (gtk_accessible_get_widget (GTK_ACCESSIBLE (text)));
 
 	atk_component_get_position (ATK_COMPONENT (text), &base_x, &base_y, coords);
 	xy_from_offset (priv, offset, x, y);
@@ -1479,7 +1481,7 @@ vte_terminal_accessible_get_offset_at_point(AtkText *text,
 							      NULL, NULL);
 	priv = g_object_get_data(G_OBJECT(text),
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
-	terminal = VTE_TERMINAL (GTK_ACCESSIBLE (text)->widget);
+	terminal = VTE_TERMINAL (gtk_accessible_get_widget (GTK_ACCESSIBLE (text)));
 
 	atk_component_get_position (ATK_COMPONENT (text), &base_x, &base_y, coords);
 	char_width = vte_terminal_get_char_width (terminal);
@@ -1501,7 +1503,7 @@ vte_terminal_accessible_get_n_selections(AtkText *text)
 	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
 							      NULL, NULL);
 
-	widget = GTK_ACCESSIBLE(text)->widget;
+	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE(text));
 	if (widget == NULL) {
 		/* State is defunct */
 		return -1;
@@ -1523,7 +1525,7 @@ vte_terminal_accessible_get_selection(AtkText *text, gint selection_number,
 	g_assert(VTE_IS_TERMINAL_ACCESSIBLE(text));
 	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
 							      NULL, NULL);
-	widget = GTK_ACCESSIBLE(text)->widget;
+	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE(text));
 	if (widget == NULL) {
 		/* State is defunct */
 		return NULL;
@@ -1558,7 +1560,7 @@ vte_terminal_accessible_add_selection(AtkText *text,
 	g_assert(VTE_IS_TERMINAL_ACCESSIBLE(text));
 	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
 							      NULL, NULL);
-	widget = GTK_ACCESSIBLE(text)->widget;
+	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE(text));
 	if (widget == NULL) {
 		/* State is defunct */
 		return FALSE;
@@ -1584,7 +1586,7 @@ vte_terminal_accessible_remove_selection(AtkText *text,
 	g_assert(VTE_IS_TERMINAL_ACCESSIBLE(text));
 	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
 							      NULL, NULL);
-	widget = GTK_ACCESSIBLE(text)->widget;
+	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE(text));
 	if (widget == NULL) {
 		/* State is defunct */
 		return FALSE;
@@ -1609,7 +1611,7 @@ vte_terminal_accessible_set_selection(AtkText *text, gint selection_number,
 	g_assert(VTE_IS_TERMINAL_ACCESSIBLE(text));
 	vte_terminal_accessible_update_private_data_if_needed(ATK_OBJECT(text),
 							      NULL, NULL);
-	widget = GTK_ACCESSIBLE(text)->widget;
+	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE(text));
 	if (widget == NULL) {
 		/* State is defunct */
 		return FALSE;
@@ -1707,19 +1709,19 @@ vte_terminal_accessible_get_position(AtkComponent *component,
 	GtkWidget *widget;
 	*x = 0;
 	*y = 0;
-	widget = (GTK_ACCESSIBLE(component))->widget;
+	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE(component));
 	if (widget == NULL) {
 		return;
 	}
-	if (!GTK_WIDGET_REALIZED(widget)) {
+	if (!gtk_widget_get_realized(widget)) {
 		return;
 	}
 	switch (coord_type) {
 	case ATK_XY_SCREEN:
-		gdk_window_get_origin(widget->window, x, y);
+		gdk_window_get_origin(gtk_widget_get_window (widget), x, y);
 		break;
 	case ATK_XY_WINDOW:
-		gdk_window_get_position(widget->window, x, y);
+		gdk_window_get_position(gtk_widget_get_window (widget), x, y);
 		break;
 	default:
 		g_assert_not_reached();
@@ -1734,14 +1736,14 @@ vte_terminal_accessible_get_size(AtkComponent *component,
 	GtkWidget *widget;
 	*width = 0;
 	*height = 0;
-	widget = (GTK_ACCESSIBLE(component))->widget;
+	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE(component));
 	if (widget == NULL) {
 		return;
 	}
-	if (!GTK_WIDGET_REALIZED(widget)) {
+	if (!gtk_widget_get_realized(widget)) {
 		return;
 	}
-	gdk_drawable_get_size(widget->window, width, height);
+	gdk_drawable_get_size(gtk_widget_get_window (widget), width, height);
 }
 
 static gboolean
@@ -1773,7 +1775,7 @@ vte_terminal_accessible_set_size(AtkComponent *component,
 	GtkWidget *widget;
         GtkBorder *inner_border;
 
-	widget = GTK_ACCESSIBLE(component)->widget;
+	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE(component));
 	if (widget == NULL) {
 		return FALSE;
 	}
@@ -1865,7 +1867,7 @@ vte_terminal_accessible_do_action (AtkAction *accessible, int i)
 
 	g_return_val_if_fail (i < LAST_ACTION, FALSE);
 
-	widget = GTK_ACCESSIBLE (accessible)->widget;
+	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE (accessible));
 	if (!widget) {
 		return FALSE;
 	}

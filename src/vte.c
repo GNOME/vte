@@ -10786,7 +10786,7 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 	}
 
 	_VTE_DEBUG_IF (VTE_DEBUG_UPDATES) {
-		GdkRectangle clip;
+		VteRegionRectangle clip;
 		gdk_region_get_clipbox (region, &clip);
 		g_printerr ("vte_terminal_paint"
 				"	(%d,%d)x(%d,%d) pixels\n",
@@ -10794,17 +10794,19 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 	}
 
 	_vte_draw_clip(terminal->pvt->draw, region);
-	_vte_draw_clear (terminal->pvt->draw, 0, 0, terminal->widget.allocation.width, terminal->widget.allocation.height);
+	gtk_widget_get_allocation(&terminal->widget, &allocation);
+	_vte_draw_clear (terminal->pvt->draw, 0, 0,
+			 allocation.width, allocation.height);
 
 	/* Calculate the bounding rectangle. */
 	{
-		GdkRectangle *rectangles;
+		VteRegionRectangle *rectangles;
 		gint n, n_rectangles;
 		gdk_region_get_rectangles (region, &rectangles, &n_rectangles);
 		/* don't bother to enlarge an invalidate all */
 		if (!(n_rectangles == 1
-		      && rectangles[0].width == terminal->widget.allocation.width
-		      && rectangles[0].height == terminal->widget.allocation.height)) {
+		      && rectangles[0].width == allocation.width
+		      && rectangles[0].height == allocation.height)) {
 			GdkRegion *rr = gdk_region_new ();
 			/* convert pixels into whole cells */
 			for (n = 0; n < n_rectangles; n++) {
@@ -10835,6 +10837,8 @@ static gint
 vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL (widget);
+	GtkAllocation allocation;
+
 	/* Beware the out of order events -
 	 *   do not even think about skipping exposes! */
 	_vte_debug_print (VTE_DEBUG_WORK, "+");
@@ -10853,12 +10857,9 @@ vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 		/* if we expect to redraw the widget soon,
 		 * just add this event to the list */
 		if (!terminal->pvt->invalidated_all) {
-			GtkAllocation allocation;
-
 			gtk_widget_get_allocation (widget, &allocation);
-
 			if (event->area.width >= allocation.width &&
-					event->area.height >= allocation.height) {
+			    event->area.height >= allocation.height) {
 				_vte_invalidate_all (terminal);
 			} else {
 				terminal->pvt->update_regions =

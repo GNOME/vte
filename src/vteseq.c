@@ -835,8 +835,8 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 			_vte_terminal_home_cursor (terminal);
 		}
 		/* Reset scrollbars and repaint everything. */
-		terminal->adjustment->value =
-			terminal->pvt->screen->scroll_delta;
+		gtk_adjustment_set_value(terminal->adjustment,
+					 terminal->pvt->screen->scroll_delta);
 		vte_terminal_set_scrollback_lines(terminal,
 				terminal->pvt->scrollback_lines);
 		_vte_terminal_queue_contents_changed(terminal);
@@ -3038,6 +3038,7 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 	long param, arg1, arg2;
 	gint width, height;
 	guint i;
+	GtkAllocation allocation;
 
 	widget = &terminal->widget;
 	screen = terminal->pvt->screen;
@@ -3149,16 +3150,16 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 			/* If we're unmapped, then we're iconified. */
 			g_snprintf(buf, sizeof(buf),
 				   _VTE_CAP_CSI "%dt",
-				   1 + !GTK_WIDGET_MAPPED(widget));
+				   1 + !gtk_widget_get_mapped(widget));
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Reporting window state %s.\n",
-					GTK_WIDGET_MAPPED(widget) ?
+					gtk_widget_get_mapped(widget) ?
 					"non-iconified" : "iconified");
 			vte_terminal_feed_child(terminal, buf, -1);
 			break;
 		case 13:
 			/* Send window location, in pixels. */
-			gdk_window_get_origin(widget->window,
+			gdk_window_get_origin(gtk_widget_get_window(widget),
 					      &width, &height);
 			g_snprintf(buf, sizeof(buf),
 				   _VTE_CAP_CSI "3;%d;%dt",
@@ -3172,12 +3173,13 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 			break;
 		case 14:
 			/* Send window size, in pixels. */
+			gtk_widget_get_allocation(widget, &allocation);
 			g_snprintf(buf, sizeof(buf),
 				   _VTE_CAP_CSI "4;%d;%dt",
-				   widget->allocation.height -
+				   allocation.height -
                                        (terminal->pvt->inner_border.top +
                                         terminal->pvt->inner_border.bottom),
-				   widget->allocation.width -
+				   allocation.width -
                                        (terminal->pvt->inner_border.left +
                                         terminal->pvt->inner_border.right));
 			_vte_debug_print(VTE_DEBUG_PARSE,

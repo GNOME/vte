@@ -836,13 +836,16 @@ _vte_draw_free (struct _vte_draw *draw)
 void
 _vte_draw_start (struct _vte_draw *draw)
 {
-	g_return_if_fail (GTK_WIDGET_REALIZED (draw->widget));
+	GdkWindow *window;
+
+	g_return_if_fail (gtk_widget_get_realized (draw->widget));
 
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_start\n");
 
 	if (draw->started == 0) {
-		g_object_ref (draw->widget->window);
-		draw->cr = gdk_cairo_create (draw->widget->window);
+		window = gtk_widget_get_window(draw->widget);
+		g_object_ref (window);
+		draw->cr = gdk_cairo_create (window);
 	}
 
 	draw->started++;
@@ -857,7 +860,7 @@ _vte_draw_end (struct _vte_draw *draw)
 	if (draw->started == 0) {
 		cairo_destroy (draw->cr);
 		draw->cr = NULL;
-		g_object_unref (draw->widget->window);
+		g_object_unref (gtk_widget_get_window(draw->widget));
  	}
 
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_end\n");

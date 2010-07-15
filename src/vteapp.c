@@ -78,7 +78,7 @@ char_size_changed(GtkWidget *widget, guint width, guint height, gpointer data)
 
 	terminal = VTE_TERMINAL(widget);
 	window = GTK_WINDOW(data);
-	if (!GTK_WIDGET_REALIZED (window))
+	if (!gtk_widget_get_realized (GTK_WIDGET (window)))
 		return;
 
         gtk_widget_style_get (widget, "inner-border", &inner_border, NULL);
@@ -110,7 +110,7 @@ char_size_realized(GtkWidget *widget, gpointer data)
 
 	terminal = VTE_TERMINAL(widget);
 	window = GTK_WINDOW(data);
-	if (!GTK_WIDGET_REALIZED (window))
+	if (!gtk_widget_get_realized (GTK_WIDGET(window)))
 		return;
 
         gtk_widget_style_get (widget, "inner-border", &inner_border, NULL);
@@ -222,29 +222,24 @@ button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
 static void
 iconify_window(GtkWidget *widget, gpointer data)
 {
-	if (GTK_IS_WIDGET(data)) {
-		if ((GTK_WIDGET(data))->window) {
-			gdk_window_iconify((GTK_WIDGET(data))->window);
-		}
-	}
+	gtk_window_iconify(data);
 }
 
 static void
 deiconify_window(GtkWidget *widget, gpointer data)
 {
-	if (GTK_IS_WIDGET(data)) {
-		if ((GTK_WIDGET(data))->window) {
-			gdk_window_deiconify((GTK_WIDGET(data))->window);
-		}
-	}
+	gtk_window_deiconify(data);
 }
 
 static void
 raise_window(GtkWidget *widget, gpointer data)
 {
+	GdkWindow *window;
+
 	if (GTK_IS_WIDGET(data)) {
-		if ((GTK_WIDGET(data))->window) {
-			gdk_window_raise((GTK_WIDGET(data))->window);
+		window = gtk_widget_get_window(GTK_WIDGET(data));
+		if (window) {
+			gdk_window_raise(window);
 		}
 	}
 }
@@ -252,9 +247,12 @@ raise_window(GtkWidget *widget, gpointer data)
 static void
 lower_window(GtkWidget *widget, gpointer data)
 {
+	GdkWindow *window;
+
 	if (GTK_IS_WIDGET(data)) {
-		if ((GTK_WIDGET(data))->window) {
-			gdk_window_lower((GTK_WIDGET(data))->window);
+		window = gtk_widget_get_window(GTK_WIDGET(data));
+		if (window) {
+			gdk_window_lower(window);
 		}
 	}
 }
@@ -262,9 +260,12 @@ lower_window(GtkWidget *widget, gpointer data)
 static void
 maximize_window(GtkWidget *widget, gpointer data)
 {
+	GdkWindow *window;
+
 	if (GTK_IS_WIDGET(data)) {
-		if ((GTK_WIDGET(data))->window) {
-			gdk_window_maximize((GTK_WIDGET(data))->window);
+		window = gtk_widget_get_window(GTK_WIDGET(data));
+		if (window) {
+			gdk_window_maximize(window);
 		}
 	}
 }
@@ -272,9 +273,12 @@ maximize_window(GtkWidget *widget, gpointer data)
 static void
 restore_window(GtkWidget *widget, gpointer data)
 {
+	GdkWindow *window;
+
 	if (GTK_IS_WIDGET(data)) {
-		if ((GTK_WIDGET(data))->window) {
-			gdk_window_unmaximize((GTK_WIDGET(data))->window);
+		window = gtk_widget_get_window(GTK_WIDGET(data));
+		if (window) {
+			gdk_window_unmaximize(window);
 		}
 	}
 }
@@ -282,14 +286,18 @@ restore_window(GtkWidget *widget, gpointer data)
 static void
 refresh_window(GtkWidget *widget, gpointer data)
 {
+	GdkWindow *window;
+	GtkAllocation allocation;
 	GdkRectangle rect;
+
 	if (GTK_IS_WIDGET(data)) {
-		if ((GTK_WIDGET(data))->window) {
+		window = gtk_widget_get_window(widget);
+		if (window) {
+			gtk_widget_get_allocation(widget, &allocation);
 			rect.x = rect.y = 0;
-			rect.width = (GTK_WIDGET(data))->allocation.width;
-			rect.height = (GTK_WIDGET(data))->allocation.height;
-			gdk_window_invalidate_rect((GTK_WIDGET(data))->window,
-						   &rect, TRUE);
+			rect.width = allocation.width;
+			rect.height = allocation.height;
+			gdk_window_invalidate_rect(window, &rect, TRUE);
 		}
 	}
 }
@@ -329,9 +337,12 @@ resize_window(GtkWidget *widget, guint width, guint height, gpointer data)
 static void
 move_window(GtkWidget *widget, guint x, guint y, gpointer data)
 {
+	GdkWindow *window;
+
 	if (GTK_IS_WIDGET(data)) {
-		if ((GTK_WIDGET(data))->window) {
-			gdk_window_move((GTK_WIDGET(data))->window, x, y);
+		window = gtk_widget_get_window(GTK_WIDGET(data));
+		if (window) {
+			gdk_window_move(window, x, y);
 		}
 	}
 }
