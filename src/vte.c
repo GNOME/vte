@@ -1993,13 +1993,15 @@ vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 		glong v;
 		gdouble current;
 
+		g_object_freeze_notify (G_OBJECT (terminal->adjustment));
+
 		v = _vte_ring_delta (screen->row_data);
 		current = gtk_adjustment_get_lower(terminal->adjustment);
 		if (current != v) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Changing lower bound from %.0f to %ld\n",
 					 current, v);
-			terminal->adjustment->lower = v;
+			gtk_adjustment_set_lower(terminal->adjustment, v);
 			changed = TRUE;
 		}
 
@@ -2012,19 +2014,19 @@ vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Changing upper bound from %.0f to %ld\n",
 					 current, v);
-			terminal->adjustment->upper = v;
+			gtk_adjustment_set_upper(terminal->adjustment, v);
 			changed = TRUE;
 		}
 
-		if (changed) {
+		g_object_thaw_notify (G_OBJECT (terminal->adjustment));
+
+		if (changed)
 			_vte_debug_print(VTE_DEBUG_SIGNALS,
 					"Emitting adjustment_changed.\n");
-			gtk_adjustment_changed(terminal->adjustment);
-		}
 		terminal->pvt->adjustment_changed_pending = FALSE;
 	}
 	if (terminal->pvt->adjustment_value_changed_pending) {
-		glong v;
+		glong v, delta;
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting adjustment_value_changed.\n");
 		terminal->pvt->adjustment_value_changed_pending = FALSE;
@@ -2035,9 +2037,9 @@ vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 			 * via the adjustment - e.g. user interaction with the
 			 * scrollbar
 			 */
-			terminal->adjustment->value = terminal->pvt->screen->scroll_delta;
+			delta = terminal->pvt->screen->scroll_delta;
 			terminal->pvt->screen->scroll_delta = v;
-			gtk_adjustment_value_changed(terminal->adjustment);
+			gtk_adjustment_set_value(terminal->adjustment, delta);
 		}
 	}
 }
@@ -2114,13 +2116,15 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 
 	_vte_terminal_adjust_adjustments(terminal);
 
+        g_object_freeze_notify(G_OBJECT(terminal->adjustment));
+
 	/* The step increment should always be one. */
 	v = gtk_adjustment_get_step_increment(terminal->adjustment);
 	if (v != 1) {
 		_vte_debug_print(VTE_DEBUG_ADJ,
 				"Changing step increment from %.0lf to %ld\n",
 				v, terminal->row_count);
-		terminal->adjustment->step_increment = 1;
+		gtk_adjustment_set_step_increment(terminal->adjustment, 1);
 		changed = TRUE;
 	}
 
@@ -2131,7 +2135,8 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 		_vte_debug_print(VTE_DEBUG_ADJ,
 				"Changing page size from %.0f to %ld\n",
 				 v, terminal->row_count);
-		terminal->adjustment->page_size = terminal->row_count;
+		gtk_adjustment_set_page_size(terminal->adjustment,
+					     terminal->row_count);
 		changed = TRUE;
 	}
 
@@ -2143,15 +2148,16 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 				"Changing page increment from "
 				"%.0f to %ld\n",
 				v, terminal->row_count);
-		terminal->adjustment->page_increment = terminal->row_count;
+		gtk_adjustment_set_page_increment(terminal->adjustment,
+						  terminal->row_count);
 		changed = TRUE;
 	}
 
-	if (changed) {
+	g_object_thaw_notify(G_OBJECT(terminal->adjustment));
+
+	if (changed)
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting adjustment_changed.\n");
-		gtk_adjustment_changed(terminal->adjustment);
-	}
 }
 
 /* Scroll a fixed number of lines up or down in the current screen. */
