@@ -30,6 +30,7 @@
 
 #include "vte.h"
 #include "vte-private.h"
+#include "vte-gtk-compat.h"
 
 #ifdef HAVE_WCHAR_H
 #include <wchar.h>
@@ -349,8 +350,8 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		return;
 	}
 
-	if (G_UNLIKELY (!GTK_WIDGET_DRAWABLE(terminal) ||
-				terminal->pvt->invalidated_all)) {
+	if (G_UNLIKELY (! gtk_widget_is_drawable (&terminal->widget)
+				|| terminal->pvt->invalidated_all)) {
 		return;
 	}
 
@@ -426,8 +427,7 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		 * case updates are coming in really soon. */
 		add_update_timeout (terminal);
 	} else {
-		gdk_window_invalidate_rect (terminal->widget.window,
-				&rect, FALSE);
+		gdk_window_invalidate_rect (gtk_widget_get_window (&terminal->widget), &rect, FALSE);
 	}
 
 	_vte_debug_print (VTE_DEBUG_WORK, "!");
@@ -463,10 +463,11 @@ void
 _vte_invalidate_all(VteTerminal *terminal)
 {
 	GdkRectangle rect;
+	GtkAllocation allocation;
 
 	g_assert(VTE_IS_TERMINAL(terminal));
 
-	if (!GTK_WIDGET_DRAWABLE(terminal)) {
+	if (! gtk_widget_is_drawable (&terminal->widget)) {
 		return;
 	}
 	if (terminal->pvt->invalidated_all) {
@@ -476,11 +477,13 @@ _vte_invalidate_all(VteTerminal *terminal)
 	_vte_debug_print (VTE_DEBUG_WORK, "*");
 	_vte_debug_print (VTE_DEBUG_UPDATES, "Invalidating all.\n");
 
+	gtk_widget_get_allocation (&terminal->widget, &allocation);
+
 	/* replace invalid regions with one covering the whole terminal */
 	reset_update_regions (terminal);
 	rect.x = rect.y = 0;
-	rect.width = terminal->widget.allocation.width;
-	rect.height = terminal->widget.allocation.height;
+	rect.width = allocation.width;
+	rect.height = allocation.height;
 	terminal->pvt->invalidated_all = TRUE;
 
 	if (terminal->pvt->active != NULL) {
@@ -490,8 +493,7 @@ _vte_invalidate_all(VteTerminal *terminal)
 		 * case updates are coming in really soon. */
 		add_update_timeout (terminal);
 	} else {
-		gdk_window_invalidate_rect (terminal->widget.window,
-				&rect, FALSE);
+		gdk_window_invalidate_rect (gtk_widget_get_window (&terminal->widget), &rect, FALSE);
 	}
 }
 
@@ -647,7 +649,8 @@ _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
 	const VteRowData *row_data;
 	int columns;
 
-	if (G_UNLIKELY (!GTK_WIDGET_DRAWABLE(terminal) || terminal->pvt->invalidated_all)) {
+	if (G_UNLIKELY (! gtk_widget_is_drawable (&terminal->widget)
+				|| terminal->pvt->invalidated_all)) {
 		return;
 	}
 
@@ -700,7 +703,7 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 		}
 	}
 
-	if (terminal->pvt->cursor_visible && GTK_WIDGET_DRAWABLE(terminal)) {
+	if (terminal->pvt->cursor_visible && gtk_widget_is_drawable (&terminal->widget)) {
 		preedit_width = vte_terminal_preedit_width(terminal, FALSE);
 
 		screen = terminal->pvt->screen;
@@ -1153,8 +1156,9 @@ vte_terminal_set_cursor_from_regex_match(VteTerminal *terminal, struct vte_match
 {
         GdkCursor *cursor = NULL;
 
-        if (!GTK_WIDGET_REALIZED(terminal))
+        if (! gtk_widget_get_realized (&terminal->widget))
                 return;
+
         switch (regex->cursor_mode) {
                 case VTE_REGEX_CURSOR_GDKCURSOR:
                         if (regex->cursor.cursor != NULL) {
@@ -1172,7 +1176,8 @@ vte_terminal_set_cursor_from_regex_match(VteTerminal *terminal, struct vte_match
 			return;
         }
 
-        gdk_window_set_cursor(GTK_WIDGET(terminal)->window, cursor);
+	gdk_window_set_cursor (gtk_widget_get_window (&terminal->widget), cursor);
+
         if (cursor)
                 gdk_cursor_unref(cursor);
 }
@@ -2396,17 +2401,21 @@ _vte_terminal_update_insert_delta(VteTerminal *terminal)
 void
 _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 {
+	GdkWindow *window;
 	struct vte_match_regex *regex = NULL;
+
 	terminal->pvt->mouse_cursor_visible = visible;
 
-        if (!GTK_WIDGET_REALIZED(terminal))
+        if (! gtk_widget_get_realized (&terminal->widget))
                 return;
+
+	window = gtk_widget_get_window (&terminal->widget);
 
 	if (visible || !terminal->pvt->mouse_autohide) {
 		if (terminal->pvt->mouse_tracking_mode) {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
 					"Setting mousing cursor.\n");
-			gdk_window_set_cursor(terminal->widget.window, terminal->pvt->mouse_mousing_cursor);
+			gdk_window_set_cursor (window, terminal->pvt->mouse_mousing_cursor);
 		} else
 		if ( (guint)terminal->pvt->match_tag < terminal->pvt->match_regexes->len) {
 			regex = &g_array_index(terminal->pvt->match_regexes,
@@ -2416,12 +2425,12 @@ _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 		} else {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
 					"Setting default mouse cursor.\n");
-			gdk_window_set_cursor(terminal->widget.window, terminal->pvt->mouse_default_cursor);
+			gdk_window_set_cursor (window, terminal->pvt->mouse_default_cursor);
 		}
 	} else {
 		_vte_debug_print(VTE_DEBUG_CURSOR,
 				"Setting to invisible cursor.\n");
-		gdk_window_set_cursor(terminal->widget.window, terminal->pvt->mouse_inviso_cursor);
+		gdk_window_set_cursor (window, terminal->pvt->mouse_inviso_cursor);
 	}
 }
 
@@ -2463,7 +2472,7 @@ vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
 	color->blue = proposed->blue;
 
 	/* If we're not realized yet, there's nothing else to do. */
-	if (!GTK_WIDGET_REALIZED(terminal)) {
+	if (! gtk_widget_get_realized (&terminal->widget)) {
 		return;
 	}
 
@@ -3732,7 +3741,7 @@ vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
 static void
 vte_terminal_im_reset(VteTerminal *terminal)
 {
-	if (GTK_WIDGET_REALIZED(terminal)) {
+	if (gtk_widget_get_realized (&terminal->widget)) {
 		gtk_im_context_reset(terminal->pvt->im_context);
 		if (terminal->pvt->im_preedit != NULL) {
 			g_free(terminal->pvt->im_preedit);
@@ -4184,7 +4193,7 @@ next_match:
 	}
 
 	/* Tell the input method where the cursor is. */
-	if (GTK_WIDGET_REALIZED(terminal)) {
+	if (gtk_widget_get_realized (&terminal->widget)) {
 		GdkRectangle rect;
 		rect.x = terminal->pvt->screen->cursor_current.col *
 			 terminal->char_width + terminal->pvt->inner_border.left;
@@ -4822,17 +4831,24 @@ _vte_terminal_visible_beep(VteTerminal *terminal)
 	GtkWidget *widget;
 
 	widget = &terminal->widget;
-	if (GTK_WIDGET_REALIZED(widget)) {
+
+	if (gtk_widget_get_realized (widget)) {
+		GtkStyle *style;
+		GtkAllocation allocation;
+
+		style = gtk_widget_get_style (widget);
+		gtk_widget_get_allocation (widget, &allocation);
+
 		/* Fill the screen with the default foreground color, and then
 		 * repaint everything, to provide visual bell. */
-		gdk_draw_rectangle(widget->window,
-				   widget->style->fg_gc[GTK_WIDGET_STATE(widget)],
-				   TRUE,
-				   0, 0,
-				   widget->allocation.width, widget->allocation.height);
-		gdk_flush();
+		gdk_draw_rectangle (gtk_widget_get_window (widget),
+				    style->fg_gc[gtk_widget_get_state (widget)],
+				    TRUE, 0, 0, allocation.width, allocation.height);
+
+		gdk_flush ();
+
 		/* Force the repaint. */
-		_vte_invalidate_all(terminal); /* max delay of UPDATE_REPEAT_TIMEOUT */
+		_vte_invalidate_all (terminal); /* max delay of UPDATE_REPEAT_TIMEOUT */
 	}
 }
 
@@ -5003,9 +5019,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 
 	/* Let the input method at this one first. */
 	if (!steal) {
-		if (GTK_WIDGET_REALIZED(terminal) &&
-		    gtk_im_context_filter_keypress(terminal->pvt->im_context,
-						   event)) {
+		if (gtk_widget_get_realized (&terminal->widget)
+				&& gtk_im_context_filter_keypress (terminal->pvt->im_context, event)) {
 			_vte_debug_print(VTE_DEBUG_EVENTS,
 					"Keypress taken by IM.\n");
 			return TRUE;
@@ -5312,8 +5327,8 @@ vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
 
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
-	return GTK_WIDGET_REALIZED(terminal) &&
-	       gtk_im_context_filter_keypress(terminal->pvt->im_context, event);
+	return gtk_widget_get_realized (&terminal->widget)
+			&& gtk_im_context_filter_keypress (terminal->pvt->im_context, event);
 }
 
 /**
@@ -5855,13 +5870,16 @@ static void
 vte_terminal_match_hilite(VteTerminal *terminal, long x, long y)
 {
 	int width, height;
+	GtkAllocation allocation;
 
 	width = terminal->char_width;
 	height = terminal->char_height;
 
+	gtk_widget_get_allocation (&terminal->widget, &allocation);
+
 	/* if the cursor is not above a cell, skip */
-	if (x < 0 || x > terminal->widget.allocation.width
-			|| y < 0 || y > terminal->widget.allocation.height) {
+	if (x < 0 || x > allocation.width
+			|| y < 0 || y > allocation.height) {
 		return;
 	}
 
@@ -6970,7 +6988,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	gboolean handled = FALSE;
 
 	/* check to see if it matters */
-	if (!GTK_WIDGET_DRAWABLE(widget)) {
+	if (! gtk_widget_is_drawable (widget)) {
 		return handled;
 	}
 
@@ -7077,7 +7095,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			_vte_debug_print(VTE_DEBUG_EVENTS,
 					"Handling click ourselves.\n");
 			/* Grab focus. */
-			if (!GTK_WIDGET_HAS_FOCUS(widget)) {
+			if (! gtk_widget_has_focus (widget)) {
 				gtk_widget_grab_focus(widget);
 			}
 
@@ -7265,13 +7283,14 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus in.\n");
 
 	terminal = VTE_TERMINAL(widget);
-	GTK_WIDGET_SET_FLAGS(widget, GTK_HAS_FOCUS);
+	gtk_widget_grab_focus (widget);
+
 	/* Read the keyboard modifiers, though they're probably garbage. */
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting the cursor if we don't have a window. */
-	if (GTK_WIDGET_REALIZED(widget)) {
+	if (gtk_widget_get_realized (widget)) {
 		terminal->pvt->cursor_blink_state = TRUE;
 
 		if (terminal->pvt->cursor_blinks &&
@@ -7292,12 +7311,11 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 	VteTerminal *terminal;
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus out.\n");
 	terminal = VTE_TERMINAL(widget);
-	GTK_WIDGET_UNSET_FLAGS(widget, GTK_HAS_FOCUS);
 	/* Read the keyboard modifiers, though they're probably garbage. */
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting ourselves if we don't have a window. */
-	if (GTK_WIDGET_REALIZED(widget)) {
+	if (gtk_widget_get_realized (widget)) {
 		_vte_terminal_maybe_end_selection (terminal);
 
 		gtk_im_context_focus_out(terminal->pvt->im_context);
@@ -7325,7 +7343,7 @@ vte_terminal_enter(GtkWidget *widget, GdkEventCrossing *event)
 	if (GTK_WIDGET_CLASS (vte_terminal_parent_class)->enter_notify_event) {
 		ret = GTK_WIDGET_CLASS (vte_terminal_parent_class)->enter_notify_event (widget, event);
 	}
-	if (GTK_WIDGET_REALIZED (widget)) {
+	if (gtk_widget_get_realized (widget)) {
 		VteTerminal *terminal = VTE_TERMINAL (widget);
 		/* Hilite any matches. */
 		vte_terminal_match_hilite_show(terminal,
@@ -7342,7 +7360,7 @@ vte_terminal_leave(GtkWidget *widget, GdkEventCrossing *event)
 	if (GTK_WIDGET_CLASS (vte_terminal_parent_class)->leave_notify_event) {
 		ret = GTK_WIDGET_CLASS (vte_terminal_parent_class)->leave_notify_event (widget, event);
 	}
-	if (GTK_WIDGET_REALIZED (widget)) {
+	if (gtk_widget_get_realized (widget)) {
 		VteTerminal *terminal = VTE_TERMINAL (widget);
 		vte_terminal_match_hilite_hide (terminal);
 		/* Mark the cursor as invisible to disable hilite updating,
@@ -7453,7 +7471,7 @@ vte_terminal_apply_metrics(VteTerminal *terminal,
 
 	/* Queue a resize if anything's changed. */
 	if (resize) {
-		if (GTK_WIDGET_REALIZED(terminal)) {
+		if (gtk_widget_get_realized (&terminal->widget)) {
 			gtk_widget_queue_resize_no_redraw(&terminal->widget);
 		}
 	}
@@ -7522,8 +7540,9 @@ vte_terminal_set_font_full_internal(VteTerminal *terminal,
                                     const PangoFontDescription *font_desc,
                                     VteTerminalAntiAlias antialias)
 {
-        VteTerminalPrivate *pvt;
         GObject *object;
+	GtkStyle *style;
+	VteTerminalPrivate *pvt;
 	PangoFontDescription *desc;
         gboolean same_desc;
 
@@ -7534,7 +7553,8 @@ vte_terminal_set_font_full_internal(VteTerminal *terminal,
 
 	/* Create an owned font description. */
 	gtk_widget_ensure_style (&terminal->widget);
-	desc = pango_font_description_copy (terminal->widget.style->font_desc);
+	style = gtk_widget_get_style (&terminal->widget);
+	desc = pango_font_description_copy (style->font_desc);
 	pango_font_description_set_family_static (desc, "monospace");
 	if (font_desc != NULL) {
 		pango_font_description_merge (desc, font_desc, TRUE);
@@ -7574,7 +7594,7 @@ vte_terminal_set_font_full_internal(VteTerminal *terminal,
                 g_object_notify(object, "font-desc");
 
 	/* Set the drawing font. */
-	if (GTK_WIDGET_REALIZED(terminal)) {
+	if (gtk_widget_get_realized (&terminal->widget)) {
 		vte_terminal_ensure_font (terminal);
 	}
 
@@ -7758,8 +7778,8 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	screen->scroll_delta = adj;
 
 	/* Sanity checks. */
-	if (!GTK_WIDGET_DRAWABLE(terminal) ||
-			terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
+	if (! gtk_widget_is_drawable (&terminal->widget)
+			|| terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
 		return;
 	}
 
@@ -8016,7 +8036,7 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Initialize private data. */
 	pvt = terminal->pvt = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalPrivate);
 
-	GTK_WIDGET_SET_FLAGS(terminal, GTK_CAN_FOCUS);
+	gtk_widget_set_can_focus(&terminal->widget, TRUE);
 
 	gtk_widget_set_app_paintable (&terminal->widget, TRUE);
 
@@ -8186,6 +8206,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 {
 	VteTerminal *terminal;
 	glong width, height;
+	GtkAllocation current_allocation;
 	gboolean repaint, update_scrollback;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE,
@@ -8205,12 +8226,15 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
                         terminal,
 			allocation->width, allocation->height,
 			width, height);
-	repaint = widget->allocation.width != allocation->width ||
-		widget->allocation.height != allocation->height;
-	update_scrollback = widget->allocation.height != allocation->height;
+
+	gtk_widget_get_allocation (widget, &current_allocation);
+
+	repaint = current_allocation.width != allocation->width
+			|| current_allocation.height != allocation->height;
+	update_scrollback = current_allocation.height != allocation->height;
 
 	/* Set our allocation to match the structure. */
-	widget->allocation = *allocation;
+	gtk_widget_set_allocation (widget, allocation);
 
 	if (width != terminal->column_count
 			|| height != terminal->row_count
@@ -8245,12 +8269,12 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	}
 
 	/* Resize the GDK window. */
-	if (GTK_WIDGET_REALIZED (widget)) {
-		gdk_window_move_resize(widget->window,
-				       allocation->x,
-				       allocation->y,
-				       allocation->width,
-				       allocation->height);
+	if (gtk_widget_get_realized (widget)) {
+		gdk_window_move_resize (gtk_widget_get_window (widget),
+					allocation->x,
+					allocation->y,
+					allocation->width,
+					allocation->height);
 		/* Force a repaint if we were resized. */
 		if (repaint) {
 			reset_update_regions (terminal);
@@ -8273,11 +8297,13 @@ root_pixmap_changed_cb(VteBg *bg, VteTerminal *terminal)
 static void
 vte_terminal_unrealize(GtkWidget *widget)
 {
+	GdkWindow *window;
 	VteTerminal *terminal;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unrealize()\n");
 
-	terminal = VTE_TERMINAL(widget);
+	terminal = VTE_TERMINAL (widget);
+	window = gtk_widget_get_window (widget);
 
 	/* Disconnect from background-change events. */
 	if (terminal->pvt->root_pixmap_changed_tag != 0) {
@@ -8329,18 +8355,22 @@ vte_terminal_unrealize(GtkWidget *widget)
 	terminal->pvt->fontdirty = TRUE;
 
 	/* Unmap the widget if it hasn't been already. */
-	if (GTK_WIDGET_MAPPED(widget)) {
-		gtk_widget_unmap(widget);
+	if (gtk_widget_get_mapped (widget)) {
+		gtk_widget_unmap (widget);
 	}
 
 	/* Remove the GDK window. */
-	if (widget->window != NULL) {
+	if (window != NULL) {
 		/* detach style */
-		gtk_style_detach(widget->style);
+		GtkStyle *style;
 
-		gdk_window_set_user_data(widget->window, NULL);
-		gdk_window_destroy(widget->window);
-		widget->window = NULL;
+		style = gtk_widget_get_style (widget);
+		gtk_style_detach (style);
+
+		gdk_window_set_user_data (window, NULL);
+		gtk_widget_set_window (widget, NULL);
+
+		gdk_window_destroy (window);
 	}
 
 	/* Remove the blink timeout function. */
@@ -8364,7 +8394,7 @@ vte_terminal_unrealize(GtkWidget *widget)
 	terminal->pvt->modifiers = 0;
 
 	/* Mark that we no longer have a GDK window. */
-	GTK_WIDGET_UNSET_FLAGS(widget, GTK_REALIZED);
+	gtk_widget_set_realized (widget, FALSE);
 }
 
 static void
@@ -8612,14 +8642,18 @@ vte_terminal_finalize(GObject *object)
 static void
 vte_terminal_realize(GtkWidget *widget)
 {
+	GtkStyle *style;
+	GdkWindow *window;
 	VteTerminal *terminal;
 	GdkWindowAttr attributes;
+	GtkAllocation allocation;
         GdkColor color;
 	guint attributes_mask = 0, i;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_realize()\n");
 
 	terminal = VTE_TERMINAL(widget);
+	gtk_widget_get_allocation (widget, &allocation);
 
 	/* Create the draw structure if we don't already have one. */
 	if (terminal->pvt->draw == NULL) {
@@ -8635,10 +8669,10 @@ vte_terminal_realize(GtkWidget *widget)
 
 	/* Create a GDK window for the widget. */
 	attributes.window_type = GDK_WINDOW_CHILD;
-	attributes.x = widget->allocation.x;
-	attributes.y = widget->allocation.y;
-	attributes.width = widget->allocation.width;
-	attributes.height = widget->allocation.height;
+	attributes.x = allocation.x;
+	attributes.y = allocation.y;
+	attributes.width = allocation.width;
+	attributes.height = allocation.height;
 	attributes.wclass = GDK_INPUT_OUTPUT;
 	attributes.visual = gtk_widget_get_visual (widget);
 	attributes.colormap = gtk_widget_get_colormap (widget);
@@ -8660,14 +8694,16 @@ vte_terminal_realize(GtkWidget *widget)
 			  (attributes.visual ? GDK_WA_VISUAL : 0) |
 			  (attributes.colormap ? GDK_WA_COLORMAP : 0) |
 			  GDK_WA_CURSOR;
-	widget->window = gdk_window_new(gtk_widget_get_parent_window(widget),
-					&attributes,
-					attributes_mask);
-	_VTE_DEBUG_IF(VTE_DEBUG_UPDATES) gdk_window_set_debug_updates(TRUE);
-	gdk_window_set_user_data(widget->window, widget);
+
+	window = gdk_window_new (gtk_widget_get_parent_window (widget),
+				 &attributes, attributes_mask);
+
+	gtk_widget_set_window (widget, window);
+	gdk_window_set_user_data (window, widget);
+	_VTE_DEBUG_IF (VTE_DEBUG_UPDATES) gdk_window_set_debug_updates (TRUE);
 
 	/* Set the realized flag. */
-	GTK_WIDGET_SET_FLAGS(widget, GTK_REALIZED);
+	gtk_widget_set_realized (widget, TRUE);
 
 	/* Set up the desired palette. */
 	if (!terminal->pvt->palette_initialized) {
@@ -8692,8 +8728,7 @@ vte_terminal_realize(GtkWidget *widget)
 	}
 	terminal->pvt->im_preedit_active = FALSE;
 	terminal->pvt->im_context = gtk_im_multicontext_new();
-	gtk_im_context_set_client_window(terminal->pvt->im_context,
-					 widget->window);
+	gtk_im_context_set_client_window (terminal->pvt->im_context, window);
 	g_signal_connect(terminal->pvt->im_context, "commit",
 			 G_CALLBACK(vte_terminal_im_commit), terminal);
 	g_signal_connect(terminal->pvt->im_context, "preedit-start",
@@ -8718,7 +8753,7 @@ vte_terminal_realize(GtkWidget *widget)
 	GdkPixmap *bitmap;
 	GdkColor black = {0,0,0,0};
 
-	bitmap = gdk_bitmap_create_from_data(widget->window, "\0", 1, 1);
+	bitmap = gdk_bitmap_create_from_data (window, "\0", 1, 1);
 	terminal->pvt->mouse_inviso_cursor = gdk_cursor_new_from_pixmap(bitmap,
 									bitmap,
 									&black,
@@ -8728,7 +8763,9 @@ vte_terminal_realize(GtkWidget *widget)
     }
 #endif /* GTK >= 2.15.1 */
 
-	widget->style = gtk_style_attach(widget->style, widget->window);
+	style = gtk_widget_get_style (widget);
+	style = gtk_style_attach (style, window);
+	gtk_widget_set_style (widget, style);
 
 	vte_terminal_ensure_font (terminal);
 
@@ -10520,7 +10557,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	    (CLAMP(row, 0, terminal->row_count    - 1) != row))
 		return;
 
-	focus = GTK_WIDGET_HAS_FOCUS(terminal);
+	focus = gtk_widget_has_focus (&terminal->widget);
 	blink = terminal->pvt->cursor_blink_state;
 	reverse = terminal->pvt->screen->reverse_mode;
 
@@ -10723,17 +10760,19 @@ static void
 vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 {
 	VteTerminal *terminal;
+	GtkAllocation allocation;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_paint()\n");
 	_vte_debug_print(VTE_DEBUG_WORK, "=");
 
 	terminal = VTE_TERMINAL(widget);
+	gtk_widget_get_allocation (widget, &allocation);
 
 	/* Designate the start of the drawing operation and clear the area. */
 	_vte_draw_start(terminal->pvt->draw);
 	if (terminal->pvt->bg_transparent) {
 		int x, y;
-		gdk_window_get_origin(widget->window, &x, &y);
+		gdk_window_get_origin (gtk_widget_get_window (widget), &x, &y);
 		_vte_draw_set_background_scroll(terminal->pvt->draw, x, y);
 	} else {
 		if (terminal->pvt->scroll_background) {
@@ -10814,8 +10853,12 @@ vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 		/* if we expect to redraw the widget soon,
 		 * just add this event to the list */
 		if (!terminal->pvt->invalidated_all) {
-			if (event->area.width >= widget->allocation.width &&
-					event->area.height >= widget->allocation.height) {
+			GtkAllocation allocation;
+
+			gtk_widget_get_allocation (widget, &allocation);
+
+			if (event->area.width >= allocation.width &&
+					event->area.height >= allocation.height) {
 				_vte_invalidate_all (terminal);
 			} else {
 				terminal->pvt->update_regions =
@@ -10880,7 +10923,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 	}
 
 	adj = terminal->adjustment;
-	v = MAX (1., ceil (adj->page_increment / 10.));
+	v = MAX (1., ceil (gtk_adjustment_get_page_increment (adj) / 10.));
 	switch (event->direction) {
 	case GDK_SCROLL_UP:
 		v = -v;
@@ -12570,7 +12613,7 @@ vte_terminal_im_append_menuitems(VteTerminal *terminal, GtkMenuShell *menushell)
 {
 	GtkIMMulticontext *context;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(GTK_WIDGET_REALIZED(terminal));
+	g_return_if_fail (gtk_widget_get_realized (&terminal->widget));
         g_return_if_fail(GTK_IS_MENU_SHELL(menushell));
 	context = GTK_IM_MULTICONTEXT(terminal->pvt->im_context);
 	gtk_im_multicontext_append_menuitems(context, menushell);
@@ -12586,7 +12629,7 @@ vte_terminal_background_update(VteTerminal *terminal)
 
 	/* If we're not realized yet, don't worry about it, because we get
 	 * called when we realize. */
-	if (!GTK_WIDGET_REALIZED(terminal)) {
+	if (! gtk_widget_get_realized (&terminal->widget)) {
 		_vte_debug_print(VTE_DEBUG_MISC,
 				"Can not set background image without "
 				"window.\n");
@@ -12960,8 +13003,8 @@ vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink)
 
 	pvt->cursor_blinks = blink;
 
-	if (!GTK_WIDGET_REALIZED (terminal) ||
-	    !GTK_WIDGET_HAS_FOCUS (terminal))
+	if (! gtk_widget_get_realized (&terminal->widget)
+			|| ! gtk_widget_has_focus (&terminal->widget))
 		return;
 
 	if (blink)
@@ -14130,7 +14173,11 @@ vte_terminal_emit_window_title_changed(VteTerminal *terminal)
 static void
 vte_terminal_emit_pending_signals(VteTerminal *terminal)
 {
-        GObject *object = G_OBJECT(terminal);
+        GObject *object;
+	GdkWindow *window;
+
+	object = G_OBJECT (terminal);
+	window = gtk_widget_get_window (&terminal->widget);
 
         g_object_freeze_notify(object);
 
@@ -14146,9 +14193,8 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 		terminal->window_title = terminal->pvt->window_title_changed;
 		terminal->pvt->window_title_changed = NULL;
 
-		if (terminal->widget.window)
-			gdk_window_set_title (terminal->widget.window,
-					terminal->window_title);
+		if (window)
+			gdk_window_set_title (window, terminal->window_title);
 		vte_terminal_emit_window_title_changed(terminal);
                 g_object_notify(object, "window-title");
 	}
@@ -14158,9 +14204,8 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 		terminal->icon_title = terminal->pvt->icon_title_changed;
 		terminal->pvt->icon_title_changed = NULL;
 
-		if (terminal->widget.window)
-			gdk_window_set_icon_name (terminal->widget.window,
-					terminal->icon_title);
+		if (window)
+			gdk_window_set_icon_name (window, terminal->icon_title);
 		vte_terminal_emit_icon_title_changed(terminal);
                 g_object_notify(object, "icon-title");
 	}
@@ -14278,9 +14323,10 @@ update_regions (VteTerminal *terminal)
 {
 	GSList *l;
 	GdkRegion *region;
+	GdkWindow *window;
 
-	if (G_UNLIKELY (!GTK_WIDGET_DRAWABLE(terminal) ||
-				terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED)) {
+	if (G_UNLIKELY (! gtk_widget_is_drawable (&terminal->widget)
+				|| terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED)) {
 		reset_update_regions (terminal);
 		return FALSE;
 	}
@@ -14305,8 +14351,9 @@ update_regions (VteTerminal *terminal)
 	terminal->pvt->invalidated_all = FALSE;
 
 	/* and perform the merge with the window visible area */
-	gdk_window_invalidate_region (terminal->widget.window, region, FALSE);
-	gdk_window_process_updates (terminal->widget.window, FALSE);
+	window = gtk_widget_get_window (&terminal->widget);
+	gdk_window_invalidate_region (window, region, FALSE);
+	gdk_window_process_updates (window, FALSE);
 	gdk_region_destroy (region);
 
 	_vte_debug_print (VTE_DEBUG_WORK, "-");
