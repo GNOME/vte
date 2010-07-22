@@ -50,6 +50,10 @@ G_BEGIN_DECLS
 
 #endif
 
+#if !GTK_CHECK_VERSION (2, 22, 0)
+#define gtk_accessible_get_widget(accessible)           ((accessible)->widget)
+#endif
+
 #if !GTK_CHECK_VERSION (2, 20, 0)
 #define gtk_widget_get_mapped(widget)                   (GTK_WIDGET_MAPPED ((widget)))
 #define gtk_widget_get_realized(widget)                 (GTK_WIDGET_REALIZED ((widget)))
