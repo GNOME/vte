@@ -975,18 +975,13 @@ vte_sequence_handler_bt (VteTerminal *terminal, GValueArray *params)
 
 	if (terminal->pvt->tabstops != NULL) {
 		/* Find the next tabstop. */
-		while (newcol >= 0) {
+		while (newcol > 0) {
+			newcol--;
 			if (_vte_terminal_get_tabstop(terminal,
 						     newcol % terminal->column_count)) {
 				break;
 			}
-			newcol--;
 		}
-	}
-
-	/* If we have no tab stops, stop at the first column. */
-	if (newcol <= 0) {
-		newcol = 0;
 	}
 
 	/* Warp the cursor. */
