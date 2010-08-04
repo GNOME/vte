@@ -2,38 +2,39 @@
 # This file is distributed under the same license as the PACKAGE package.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER.
 #
-# A S Alam <aalam@users.sf.net>, 2004, 2005, 2006, 2007, 2009.
+# A S Alam <aalam@users.sf.net>, 2004, 2005, 2006, 2007, 2009, 2010.
 msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=vte&component=general\n"
-"POT-Creation-Date: 2009-03-02 20:14+0000\n"
-"PO-Revision-Date: 2009-03-17 07:22+0000\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug."
+"cgi?product=vte&component=general\n"
+"POT-Creation-Date: 2010-03-17 17:23+0000\n"
+"PO-Revision-Date: 2010-08-04 15:10+0530\n"
 "Last-Translator: A S Alam <aalam@users.sf.net>\n"
-"Language-Team: Punjabi/Panjabi <punjab-l10n@list.sf.net>\n"
+"Language-Team: Punjabi/Panjabi <punjabi-users@lists.sf.net>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Lokalize 0.3\n"
+"X-Generator: Lokalize 1.0\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../src/iso2022.c:785 ../src/iso2022.c:793 ../src/iso2022.c:824
-#: ../src/vte.c:2293
+#: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
+#: ../src/vte.c:2232
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "ਇਸ ਸੰਕੇਤ %s ਤੋਂ %s ਤਬਦੀਲ ਕਰਨ ਤੋਂ ਅਸਮਰੱਥ ਹੈ।"
 
-#: ../src/iso2022.c:1472
+#: ../src/iso2022.c:1464
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "ਗਲਤ NRC ਮੈਪ'%c' ਸੈੱਟ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਹੈ।"
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1502
+#: ../src/iso2022.c:1494
 msgid "Unrecognized identified coding system."
 msgstr "ਅਣਜਾਣ ਸ਼ਨਾਖਤੀ ਕੋਡਿੰਗ ਸਿਸਟਮ ਹੈ।"
 
-#: ../src/iso2022.c:1561 ../src/iso2022.c:1588
+#: ../src/iso2022.c:1553 ../src/iso2022.c:1580
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "ਗਲਤ ਚੌਡ਼ਾ NRC ਮੈਪ'%c' ਸੈੱਟ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਹੈ।"
@@ -41,7 +42,7 @@ msgstr "ਗਲਤ ਚੌਡ਼ਾ NRC ਮੈਪ'%c' ਸੈੱਟ ਕਰਨ ਦ�
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: ../src/pty.c:831
+#: ../src/pty.c:1073 ../src/pty.c:1076
 #, c-format
 msgid "can not run %s"
 msgstr "%s ਚਲਾਇਆ ਨਹੀਂ ਜਾ ਸਕਦਾ"
@@ -52,41 +53,42 @@ msgid "Duplicate (%s/%s)!"
 msgstr "ਡੁਪਲੀਕੇਟ (%s/%s)!"
 
 #. Bail back to normal mode.
-#: ../src/vteapp.c:846
+#: ../src/vteapp.c:876
 msgid "Could not open console.\n"
 msgstr "ਕੰਨਸੋਲ ਖੋਲ੍ਹਿਆ ਨਹੀ ਜਾ ਸਕਿਆ।\n"
 
-#: ../src/vteapp.c:910
+#: ../src/vteapp.c:967
 msgid "Could not parse the geometry spec passed to --geometry"
 msgstr "--geometry ਨੂੰ ਦਿੱਤੀ ਜੁਮੈਟਰੀ ਗਿਣਤੀ ਨੂੰ ਪਾਰਸ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਿਆ"
 
-#: ../src/vte.c:1342
+#: ../src/vte.c:1279
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "ਨਿਯਮਿਤ ਸਮੀਕਰਨ \"%s\" ਨੂੰ ਕੰਪਾਇਲ ਕਰਨ ਦੀ ਗਲਤੀ ਹੈ।"
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4294
+#: ../src/vte.c:4344
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "ਚਲਾਈਡ ਤੋਂ ਪੜ੍ਹਨ ਦੌਰਾਨ ਗਲਤੀ: %s।"
 
-#: ../src/vte.c:4422
+#: ../src/vte.c:4472
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr "ਚਾਈਲਡ ਨੂੰ ਡਾਟਾ ਭੇਜਣ ਲਈ ਅਸਮਰੱਥ, ਅਢੁੱਕਵਾਂ ਅੱਖਰ-ਸੈੱਟ ਕੰਨਵਰਟਰ"
 
-#: ../src/vte.c:4433 ../src/vte.c:5400
+#: ../src/vte.c:4483 ../src/vte.c:5505
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "ਗਲਤੀ (%s) ਚਲਾਈਡ ਲਈ ਡਾਟਾ ਬਦਲਣ ਦੌਰਾਨ, ਛੱਡਿਆ ਗਿਆ।"
 
-#: ../src/vte.c:7671
+#: ../src/vte.c:7726
 #, c-format
-msgid "Error reading PTY size, using defaults: %s."
-msgstr "PTY ਅਕਾਰ ਪਡ਼੍ਹਨ ਵਿੱਚ ਗਲਤੀ,ਮੂਲ ਦੀ ਵਰਤੋਂ: %s"
+#| msgid "Error reading PTY size, using defaults: %s."
+msgid "Error reading PTY size, using defaults: %s\n"
+msgstr "PTY ਅਕਾਰ ਪਡ਼੍ਹਨ ਵਿੱਚ ਗਲਤੀ, ਡਿਫਾਲਟ ਦੀ ਵਰਤੋਂ: %s\n"
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:13030
+#: ../src/vte.c:13281
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() ਸ਼ਬਦ ਅੱਖਰ ਸੈਟ ਕਰਨ ਲਈ ਫੇਲ੍ਹ"
 
