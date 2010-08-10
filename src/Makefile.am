@@ -56,6 +56,7 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
 	trie.h \
 	vte.c \
 	vte.h \
+	vte-gtk-compat.h \
 	vte-private.h \
 	vteaccess.c \
 	vteaccess.h \
