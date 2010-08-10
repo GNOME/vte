@@ -14595,6 +14595,15 @@ vte_terminal_write_contents (VteTerminal *terminal,
 
 /* TODO Add properties & signals */
 
+/**
+ * vte_terminal_search_set_gregex:
+ * @terminal: a #VteTerminal
+ * @regex: (allow-none): a #GRegex, or %NULL
+ *
+ * Sets the #GRegex regex to search for. Unsets the search regex when passed %NULL.
+ *
+ * Since: 0.26
+ */
 void
 vte_terminal_search_set_gregex (VteTerminal *terminal,
 				GRegex      *regex)
@@ -14615,6 +14624,14 @@ vte_terminal_search_set_gregex (VteTerminal *terminal,
 	_vte_invalidate_all (terminal);
 }
 
+/**
+ * vte_terminal_search_get_gregex:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: (transfer none): the search #GRegex regex set in @terminal, or %NULL
+ *
+ * Since: 0.26
+ */
 GRegex *
 vte_terminal_search_get_gregex (VteTerminal *terminal)
 {
@@ -14623,6 +14640,16 @@ vte_terminal_search_get_gregex (VteTerminal *terminal)
 	return terminal->pvt->search_regex;
 }
 
+/**
+ * vte_terminal_search_set_wrap_around:
+ * @terminal: a #VteTerminal
+ * @wrap_around: whether search should wrap
+ *
+ * Sets whether search should wrap around to the beginning of the
+ * terminal content when reaching its end.
+ * 
+ * Since: 0.26
+ */
 void
 vte_terminal_search_set_wrap_around (VteTerminal *terminal,
 				     gboolean     wrap_around)
@@ -14632,6 +14659,14 @@ vte_terminal_search_set_wrap_around (VteTerminal *terminal,
 	terminal->pvt->search_wrap_around = !!wrap_around;
 }
 
+/**
+ * vte_terminal_search_get_wrap_around:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: whether searching will wrap around
+ *
+ * Since: 0.26
+ */
 gboolean
 vte_terminal_search_get_wrap_around (VteTerminal *terminal)
 {
@@ -14825,12 +14860,34 @@ vte_terminal_search_find (VteTerminal *terminal,
 	return FALSE;
 }
 
+/**
+ * vte_terminal_search_find_previous:
+ * @terminal: a #VteTerminal
+ *
+ * Searches the previous string matching the search regex set with
+ * vte_terminal_search_set_gregex().
+ *
+ * Returns: %TRUE if a match was found
+ *
+ * Since: 0.26
+ */
 gboolean
 vte_terminal_search_find_previous (VteTerminal *terminal)
 {
 	return vte_terminal_search_find (terminal, TRUE);
 }
 
+/**
+ * vte_terminal_search_find_next:
+ * @terminal: a #VteTerminal
+ *
+ * Searches the next string matching the search regex set with
+ * vte_terminal_search_set_gregex().
+ *
+ * Returns: %TRUE if a match was found
+ *
+ * Since: 0.26
+ */
 gboolean
 vte_terminal_search_find_next (VteTerminal *terminal)
 {
