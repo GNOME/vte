@@ -191,7 +191,7 @@ endif
 vtelibdir = $(libdir)/vte-$(VTE_API_VERSION)
 vtelib_PROGRAMS = interpret slowcat
 vtelib_SCRIPTS = decset osc window
-EXTRA_DIST += $(pkglib_SCRIPTS)
+EXTRA_DIST += $(vtelib_SCRIPTS)
 
 TEST_SH = check-doc-syntax.sh
 EXTRA_DIST += $(TEST_SH)
