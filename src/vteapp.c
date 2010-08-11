@@ -636,7 +636,7 @@ main(int argc, char **argv)
 		{
 			"highlight", 'h', 0,
 			G_OPTION_ARG_NONE, &highlight_set,
-			"Enable the cursor highlighting", NULL
+			"Enable distinct highlight color for selection", NULL
 		},
 		{
 			"icon-title", 'i', 0,
