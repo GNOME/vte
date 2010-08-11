@@ -8787,9 +8787,9 @@ vte_terminal_realize(GtkWidget *widget)
 }
 
 static inline void
-swap (unsigned int *a, unsigned int *b)
+swap (guint *a, guint *b)
 {
-	unsigned int tmp;
+	guint tmp;
 	tmp = *a, *a = *b, *b = tmp;
 }
 
@@ -8798,9 +8798,9 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 				       const VteCell *cell,
 				       gboolean selected,
 				       gboolean cursor,
-				       unsigned int *pfore, unsigned int *pback)
+				       guint *pfore, guint *pback)
 {
-	unsigned int fore, back;
+	guint fore, back;
 
 	if (!cell)
 		cell = &basic_cell.cell;
@@ -8872,22 +8872,22 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	*pback = back;
 }
 
-static void
+static inline void
 vte_terminal_determine_colors (VteTerminal *terminal,
 			       const VteCell *cell,
 			       gboolean highlight,
-			       int *fore, int *back)
+			       guint *fore, guint *back)
 {
 	return vte_terminal_determine_colors_internal (terminal, cell,
 						       highlight, FALSE,
 						       fore, back);
 }
 
-static void
+static inline void
 vte_terminal_determine_cursor_colors (VteTerminal *terminal,
 				      const VteCell *cell,
 				      gboolean highlight,
-				      int *fore, int *back)
+				      guint *fore, guint *back)
 {
 	return vte_terminal_determine_colors_internal (terminal, cell,
 						       highlight, TRUE,
@@ -9002,7 +9002,7 @@ vte_terminal_draw_point(VteTerminal *terminal,
  * character. */
 static gboolean
 vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
-			  gint fore, gint back, gboolean draw_default_bg,
+			  guint fore, guint back, gboolean draw_default_bg,
 			  gint x, gint y,
 			  gint column_width, gint columns, gint row_height,
 			  gboolean bold)
@@ -9763,7 +9763,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
 static void
 vte_terminal_draw_cells(VteTerminal *terminal,
 			struct _vte_draw_text_request *items, gssize n,
-			gint fore, gint back, gboolean clear,
+			guint fore, guint back, gboolean clear,
 			gboolean draw_default_bg,
 			gboolean bold, gboolean underline,
 			gboolean strikethrough, gboolean hilite, gboolean boxed,
@@ -10106,7 +10106,7 @@ vte_terminal_draw_cells_with_attributes(VteTerminal *terminal,
 	int i, j, cell_count;
 	VteCell *cells;
 	char scratch_buf[VTE_UTF8_BPC];
-	int fore, back;
+	guint fore, back;
 
 	/* Note: since this function is only called with the pre-edit text,
 	 * all the items contain gunichar only, not vteunistr. */
@@ -10145,7 +10145,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 {
 	struct _vte_draw_text_request items[4*VTE_DRAW_MAX_LENGTH];
 	gint i, j, row, rows, x, y, end_column;
-	gint fore, nfore, back, nback;
+	guint fore, nfore, back, nback;
 	glong delta;
 	gboolean underline, nunderline, bold, nbold, hilite, nhilite,
 		 selected, nselected, strikethrough, nstrikethrough;
@@ -10571,7 +10571,8 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	struct _vte_draw_text_request item;
 	int row, drow, col;
 	long width, height, delta, cursor_width;
-	int fore, back, x, y;
+	guint fore, back;
+	int x, y;
 	gboolean blink, selected, focus;
 
 	if (!terminal->pvt->cursor_visible)
@@ -10710,7 +10711,8 @@ vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 	VteScreen *screen;
 	int row, drow, col, columns;
 	long width, height, ascent, descent, delta;
-	int i, len, fore, back;
+	int i, len;
+	guint fore, back;
 
 	if (!terminal->pvt->im_preedit)
 		return;
