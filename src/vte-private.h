@@ -227,15 +227,15 @@ struct _VteTerminalPrivate {
 		long scroll_delta;	/* scroll offset */
 		long insert_delta;	/* insertion offset */
 		VteCell defaults;	/* default characteristics
-						   for insertion of any new
-						   characters */
+					   for insertion of any new
+					   characters */
 		VteCell color_defaults;	/* original defaults
-							   plus the current
-							   fore/back */
+					   plus the current
+					   fore/back */
 		VteCell fill_defaults;	/* original defaults
-							   plus the current
-							   fore/back with no
-							   character data */
+					   plus the current
+					   fore/back with no
+					   character data */
 		gboolean alternate_charset;
 		gboolean status_line;
 		GString *status_line_contents;
