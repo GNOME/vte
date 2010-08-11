@@ -10599,7 +10599,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	selected = vte_cell_is_selected(terminal, col, drow, NULL);
 
 	vte_terminal_determine_colors(terminal, cell,
-			TRUE^(reverse|selected), selected, TRUE,
+			!(reverse|selected), selected, TRUE,
 			&fore, &back);
 
 	x = item.x;
