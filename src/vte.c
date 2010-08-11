@@ -8844,7 +8844,7 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 	  *back = tmp;
 	}
 
-	if (!cursor && cell && cell->attr.invisible) {
+	if (cell && cell->attr.invisible) {
 		*fore = *back;
 	}
 }
