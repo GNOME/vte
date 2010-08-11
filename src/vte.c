@@ -8789,11 +8789,13 @@ vte_terminal_realize(GtkWidget *widget)
 static void
 vte_terminal_determine_colors(VteTerminal *terminal,
 			      const VteCell *cell,
-			      gboolean reverse,
 			      gboolean highlight,
 			      gboolean cursor,
 			      int *fore, int *back)
 {
+	gboolean reverse = terminal->pvt->screen->reverse_mode;
+
+	reverse ^= highlight ^ cursor;
 	/* Determine what the foreground and background colors for rendering
 	 * text should be.
 	 *
@@ -10087,7 +10089,6 @@ vte_terminal_draw_cells_with_attributes(VteTerminal *terminal,
 		vte_terminal_determine_colors(terminal, &cells[j],
 					      FALSE,
 					      FALSE,
-					      FALSE,
 					      &fore, &back);
 		vte_terminal_draw_cells(terminal, items + i, 1,
 					fore,
@@ -10118,13 +10119,11 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 	gint i, j, row, rows, x, y, end_column;
 	gint fore, nfore, back, nback;
 	glong delta;
-	gboolean underline, nunderline, bold, nbold, hilite, nhilite, reverse,
+	gboolean underline, nunderline, bold, nbold, hilite, nhilite,
 		 selected, nselected, strikethrough, nstrikethrough;
 	guint item_count;
 	const VteCell *cell;
 	const VteRowData *row_data;
-
-	reverse = terminal->pvt->screen->reverse_mode;
 
 	/* adjust for the absolute start of row */
 	start_x -= start_column * column_width;
@@ -10155,9 +10154,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				/* Find the colors for this cell. */
 				selected = vte_cell_is_selected(terminal, i, row, NULL);
 				vte_terminal_determine_colors(terminal, cell,
-						reverse|selected,
-						selected,
-						FALSE,
+						selected, FALSE,
 						&fore, &back);
 
 				bold = cell && cell->attr.bold;
@@ -10178,9 +10175,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					 * in this chunk. */
 					selected = vte_cell_is_selected(terminal, j, row, NULL);
 					vte_terminal_determine_colors(terminal, cell,
-							reverse|selected,
-							selected,
-							FALSE,
+							selected, FALSE,
 							&nfore, &nback);
 					if (nback != back) {
 						break;
@@ -10213,9 +10208,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					j++;
 				}
 				vte_terminal_determine_colors(terminal, NULL,
-						reverse|selected,
-						selected,
-						FALSE,
+						selected, FALSE,
 						&fore, &back);
 				if (back != VTE_DEF_BG) {
 					_vte_draw_fill_rectangle (terminal->pvt->draw,
@@ -10276,9 +10269,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			/* Find the colors for this cell. */
 			selected = vte_cell_is_selected(terminal, i, row, NULL);
 			vte_terminal_determine_colors(terminal, cell,
-					reverse|selected,
-					selected,
-					FALSE,
+					selected, FALSE,
 					&fore, &back);
 			underline = cell->attr.underline;
 			strikethrough = cell->attr.strikethrough;
@@ -10349,9 +10340,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					 * in this chunk. */
 					selected = vte_cell_is_selected(terminal, j, row, NULL);
 					vte_terminal_determine_colors(terminal, cell,
-							reverse|selected,
-							selected,
-							FALSE,
+							selected, FALSE,
 							&nfore, &nback);
 					/* Graphic characters must be drawn individually. */
 					if (vte_terminal_unichar_is_local_graphic(terminal, cell->c, cell->attr.bold)) {
@@ -10565,7 +10554,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	int row, drow, col;
 	long width, height, delta, cursor_width;
 	int fore, back, x, y;
-	gboolean blink, selected, focus, reverse;
+	gboolean blink, selected, focus;
 
 	if (!terminal->pvt->cursor_visible)
 		return;
@@ -10584,7 +10573,6 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 
 	focus = gtk_widget_has_focus (&terminal->widget);
 	blink = terminal->pvt->cursor_blink_state;
-	reverse = terminal->pvt->screen->reverse_mode;
 
 	if (focus && !blink)
 		return;
@@ -10611,7 +10599,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	selected = vte_cell_is_selected(terminal, col, drow, NULL);
 
 	vte_terminal_determine_colors(terminal, cell,
-			!(reverse|selected), selected, TRUE,
+			selected, TRUE,
 			&fore, &back);
 
 	x = item.x;
