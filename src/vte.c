@@ -8786,81 +8786,112 @@ vte_terminal_realize(GtkWidget *widget)
 	vte_terminal_background_update(terminal);
 }
 
-static void
-vte_terminal_determine_colors(VteTerminal *terminal,
-			      const VteCell *cell,
-			      gboolean highlight,
-			      gboolean cursor,
-			      int *fore, int *back)
+static inline void
+swap (unsigned int *a, unsigned int *b)
 {
-	gboolean reverse = terminal->pvt->screen->reverse_mode;
+	unsigned int tmp;
+	tmp = *a, *a = *b, *b = tmp;
+}
 
-	reverse ^= highlight ^ cursor;
-	/* Determine what the foreground and background colors for rendering
-	 * text should be.
-	 *
-	 * This is how this works.
-	 *
-	 * First, choose base colors:
-	 * If cursor is set and we have a cursor color, use that scheme.
-	 * If highlight is set and we have a highlight color, use that scheme.
-	 * Otherwise, use the defaults.
-	 *
-	 * Then, adjust for bold, half, and standout.
-	 *
-	 * Then, reverse if requested (or implied).
-	 *
-	 * Finally, make invisible if needed.
-	 */
-	if (cursor && terminal->pvt->cursor_color_set) {
-		/* We reverse later */
-		*fore = VTE_CUR_BG;
-		*back = cell ? cell->attr.back : VTE_DEF_BG;
-	} else
-	if (highlight && !cursor && terminal->pvt->highlight_color_set) {
-		/* We reverse later */
-		*fore = VTE_DEF_HL;
-		*back = cell ? cell->attr.fore : VTE_DEF_FG;
-	} else {
-		*fore = cell ? cell->attr.fore : VTE_DEF_FG;
-		*back = cell ? cell->attr.back : VTE_DEF_BG;
+static void
+vte_terminal_determine_colors_internal(VteTerminal *terminal,
+				       const VteCell *cell,
+				       gboolean selected,
+				       gboolean cursor,
+				       unsigned int *pfore, unsigned int *pback)
+{
+	unsigned int fore, back;
+
+	if (!cell)
+		cell = &basic_cell.cell;
+
+	/* Start with cell colors */
+	fore = cell->attr.fore;
+	back = cell->attr.back;
+
+	/* Reverse-mode switches default fore and back colors */
+	if (G_UNLIKELY (terminal->pvt->screen->reverse_mode)) {
+		if (fore == VTE_DEF_FG)
+			fore = VTE_DEF_BG;
+		if (back == VTE_DEF_BG)
+			back = VTE_DEF_FG;
 	}
 
-	/* Handle invisible, bold, and standout text by adjusting colors. */
-	if (cell) {
-		if (cell->attr.bold) {
-			if (*fore == VTE_DEF_FG) {
-				*fore = VTE_BOLD_FG;
-			} else
-			if ((*fore != VTE_DEF_BG) && (*fore < VTE_LEGACY_COLOR_SET_SIZE)) {
-				*fore += VTE_COLOR_BRIGHT_OFFSET;
-			}
-		}
-		if (cell->attr.half) {
-			if (*fore == VTE_DEF_FG) {
-				*fore = VTE_DIM_FG;
-			} else
-			if ((*fore < VTE_LEGACY_COLOR_SET_SIZE)) {
-				*fore = corresponding_dim_index[*fore];;
-			}
-		}
-		if (cell->attr.standout) {
-			if (*back < VTE_LEGACY_COLOR_SET_SIZE) {
-				*back += VTE_COLOR_BRIGHT_OFFSET;
-			}
+	/* Handle bold by using set bold color or brightening */
+	if (cell->attr.bold) {
+		if (fore == VTE_DEF_FG)
+			fore = VTE_BOLD_FG;
+		else if (fore < VTE_LEGACY_COLOR_SET_SIZE) {
+			fore += VTE_COLOR_BRIGHT_OFFSET;
 		}
 	}
 
-	if (reverse ^ ((cell != NULL) && (cell->attr.reverse))) {
-	  int tmp;
-	  tmp = *fore;
-	  *fore = *back;
-	  *back = tmp;
+	/* Handle half similarly */
+	if (cell->attr.half) {
+		if (fore == VTE_DEF_FG)
+			fore = VTE_DIM_FG;
+		else if ((fore < VTE_LEGACY_COLOR_SET_SIZE))
+			fore = corresponding_dim_index[fore];
 	}
 
+	/* And standout */
+	if (cell->attr.standout) {
+		if (back < VTE_LEGACY_COLOR_SET_SIZE)
+			back += VTE_COLOR_BRIGHT_OFFSET;
+	}
+
+	/* Reverse cell? */
+	if (cell->attr.reverse) {
+		swap (&fore, &back);
+	}
+
+	/* Selection: use hightlight back, or inverse */
+	if (selected) {
+		/* XXX what if hightlight back is same color as current back? */
+		if (terminal->pvt->highlight_color_set)
+			back = VTE_DEF_HL;
+		else
+			swap (&fore, &back);
+	}
+
+	/* Cursor: use cursor back, or inverse */
+	if (cursor) {
+		/* XXX what if cursor back is same color as current back? */
+		if (terminal->pvt->cursor_color_set)
+			back = VTE_CUR_BG;
+		else
+			swap (&fore, &back);
+	}
+
+	/* Invisible? */
 	if (cell && cell->attr.invisible) {
-		*fore = *back;
+		fore = back;
 	}
+
+	*pfore = fore;
+	*pback = back;
+}
+
+static void
+vte_terminal_determine_colors (VteTerminal *terminal,
+			       const VteCell *cell,
+			       gboolean highlight,
+			       int *fore, int *back)
+{
+	return vte_terminal_determine_colors_internal (terminal, cell,
+						       highlight, FALSE,
+						       fore, back);
+}
+
+static void
+vte_terminal_determine_cursor_colors (VteTerminal *terminal,
+				      const VteCell *cell,
+				      gboolean highlight,
+				      int *fore, int *back)
+{
+	return vte_terminal_determine_colors_internal (terminal, cell,
+						       highlight, TRUE,
+						       fore, back);
 }
 
 /* Check if a unicode character is actually a graphic character we draw
@@ -10086,10 +10117,7 @@ vte_terminal_draw_cells_with_attributes(VteTerminal *terminal,
 	cells = g_new(VteCell, cell_count);
 	_vte_terminal_translate_pango_cells(terminal, attrs, cells, cell_count);
 	for (i = 0, j = 0; i < n; i++) {
-		vte_terminal_determine_colors(terminal, &cells[j],
-					      FALSE,
-					      FALSE,
-					      &fore, &back);
+		vte_terminal_determine_colors(terminal, &cells[j], FALSE, &fore, &back);
 		vte_terminal_draw_cells(terminal, items + i, 1,
 					fore,
 					back,
@@ -10153,9 +10181,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				cell = _vte_row_data_get (row_data, i);
 				/* Find the colors for this cell. */
 				selected = vte_cell_is_selected(terminal, i, row, NULL);
-				vte_terminal_determine_colors(terminal, cell,
-						selected, FALSE,
-						&fore, &back);
+				vte_terminal_determine_colors(terminal, cell, selected, &fore, &back);
 
 				bold = cell && cell->attr.bold;
 				j = i + (cell ? cell->attr.columns : 1);
@@ -10174,9 +10200,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					 * compare visual attributes to the first character
 					 * in this chunk. */
 					selected = vte_cell_is_selected(terminal, j, row, NULL);
-					vte_terminal_determine_colors(terminal, cell,
-							selected, FALSE,
-							&nfore, &nback);
+					vte_terminal_determine_colors(terminal, cell, selected, &nfore, &nback);
 					if (nback != back) {
 						break;
 					}
@@ -10207,9 +10231,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					}
 					j++;
 				}
-				vte_terminal_determine_colors(terminal, NULL,
-						selected, FALSE,
-						&fore, &back);
+				vte_terminal_determine_colors(terminal, NULL, selected, &fore, &back);
 				if (back != VTE_DEF_BG) {
 					_vte_draw_fill_rectangle (terminal->pvt->draw,
 								  x + i *column_width,
@@ -10268,9 +10290,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			}
 			/* Find the colors for this cell. */
 			selected = vte_cell_is_selected(terminal, i, row, NULL);
-			vte_terminal_determine_colors(terminal, cell,
-					selected, FALSE,
-					&fore, &back);
+			vte_terminal_determine_colors(terminal, cell, selected, &fore, &back);
 			underline = cell->attr.underline;
 			strikethrough = cell->attr.strikethrough;
 			bold = cell->attr.bold;
@@ -10339,9 +10359,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					 * compare visual attributes to the first character
 					 * in this chunk. */
 					selected = vte_cell_is_selected(terminal, j, row, NULL);
-					vte_terminal_determine_colors(terminal, cell,
-							selected, FALSE,
-							&nfore, &nback);
+					vte_terminal_determine_colors(terminal, cell, selected, &nfore, &nback);
 					/* Graphic characters must be drawn individually. */
 					if (vte_terminal_unichar_is_local_graphic(terminal, cell->c, cell->attr.bold)) {
 						if (vte_terminal_draw_graphic(terminal,
@@ -10598,9 +10616,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 
 	selected = vte_cell_is_selected(terminal, col, drow, NULL);
 
-	vte_terminal_determine_colors(terminal, cell,
-			selected, TRUE,
-			&fore, &back);
+	vte_terminal_determine_cursor_colors(terminal, cell, selected, &fore, &back);
 
 	x = item.x;
 	y = item.y;
