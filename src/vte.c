@@ -8795,18 +8795,30 @@ vte_terminal_determine_colors(VteTerminal *terminal,
 			      int *fore, int *back)
 {
 	/* Determine what the foreground and background colors for rendering
-	 * text should be.  If highlight is set and we have a highlight color,
-	 * use that scheme.  If cursor is set and we have a cursor color, use
-	 * that scheme.  If neither is set, and reverse is set, then use
-	 * reverse colors, else use the defaults.  This means that many callers
-	 * who specify highlight or cursor should also specify reverse. */
-	if (cursor && !highlight && terminal->pvt->cursor_color_set) {
-		*fore = cell ? cell->attr.back : VTE_DEF_BG;
-		*back = VTE_CUR_BG;
+	 * text should be.
+	 *
+	 * This is how this works.
+	 *
+	 * First, choose base colors:
+	 * If cursor is set and we have a cursor color, use that scheme.
+	 * If highlight is set and we have a highlight color, use that scheme.
+	 * Otherwise, use the defaults.
+	 *
+	 * Then, adjust for bold, half, and standout.
+	 *
+	 * Then, reverse if requested (or implied).
+	 *
+	 * Finally, make invisible if needed.
+	 */
+	if (cursor && terminal->pvt->cursor_color_set) {
+		/* We reverse later */
+		*fore = VTE_CUR_BG;
+		*back = cell ? cell->attr.back : VTE_DEF_BG;
 	} else
 	if (highlight && !cursor && terminal->pvt->highlight_color_set) {
-		*fore = cell ? cell->attr.fore : VTE_DEF_FG;
-		*back = VTE_DEF_HL;
+		/* We reverse later */
+		*fore = VTE_DEF_HL;
+		*back = cell ? cell->attr.fore : VTE_DEF_FG;
 	} else {
 		*fore = cell ? cell->attr.fore : VTE_DEF_FG;
 		*back = cell ? cell->attr.back : VTE_DEF_BG;
