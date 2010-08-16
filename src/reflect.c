@@ -48,7 +48,11 @@ terminal_shell_text_view(GtkWidget *widget)
 static GtkAdjustment *
 terminal_adjustment_text_view(GtkWidget *terminal)
 {
-	return (GTK_TEXT_VIEW(terminal))->vadjustment;
+#if GTK_CHECK_VERSION (2, 21, 6)
+	return gtk_text_view_get_vadjustment(GTK_TEXT_VIEW(terminal));
+#else
+	return GTK_TEXT_VIEW(terminal))->vadjustment;
+#endif
 }
 #endif
 #ifdef USE_VTE
