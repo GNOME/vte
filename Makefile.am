@@ -23,7 +23,11 @@ endif
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = vte$(VTE_PC_VERSION).pc
 
-DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc --enable-introspection --disable-silent-rules
+DISTCHECK_CONFIGURE_FLAGS = \
+	--enable-gtk-doc \
+	--enable-introspection \
+	--disable-silent-rules \
+	--with-gtk=3.0
 
 MAINTAINERCLEANFILES = \
 		ChangeLog \
