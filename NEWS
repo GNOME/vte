@@ -1,3 +1,18 @@
+0.25.90
+=======
+
+- Make vte parallel-buildable with gtk 2 and gtk 3
+- Bugs fixed:
+  * Bug 617690 - Setting default fg color should not cancel underline
+  * Bug 614658 - text selection with mouse is buggy when using the shift key
+  * Bug 618749 - set terminal widget background color to terminal background
+  * Bug 601926 - Don't hardcode meta to alt
+  * Bug 618097 - Broken backtab (cbt)
+  * Bug 621298 - Cursor invisible (plain black) in (xfce) Terminal & terminator
+  * Bug 626676 - Cleanup vte_terminal_determine_colors
+  * Bug 620493 - strict aliasing warning
+- Translation updates
+
 0.25.1
 =======
 - Add support for searching the buffer.  New public API:
