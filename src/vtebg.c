@@ -87,7 +87,6 @@ static cairo_surface_t *
 vte_bg_root_surface(VteBg *bg)
 {
         VteBgPrivate *pvt = bg->pvt;
-	GdkPixmap *pixmap;
 	GdkAtom prop_type;
 	int prop_size;
 	Window root;
@@ -98,7 +97,6 @@ vte_bg_root_surface(VteBg *bg)
 	Display *display;
 	Screen *screen;
 
-	pixmap = NULL;
 	pixmaps = NULL;
 	gdk_error_trap_push();
 	if (!_vte_property_get_pixmaps(pvt->native.window, pvt->native.atom,
