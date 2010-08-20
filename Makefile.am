@@ -25,9 +25,9 @@ pkgconfig_DATA = vte$(VTE_PC_VERSION).pc
 
 DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-gtk-doc \
-	--enable-introspection \
+	--disable-introspection \
 	--disable-silent-rules \
-	--with-gtk=3.0
+	--with-gtk=2.0
 
 MAINTAINERCLEANFILES = \
 		ChangeLog \
