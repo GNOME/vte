@@ -1,119 +1,105 @@
 # vte's Portuguese translation.
-# Copyright © 2003, 2004, 2007, 2008 vte
+# Copyright © 2003, 2004, 2007, 2008, 2010 vte
 # This file is distributed under the same license as the vte package.
-# Duarte Loreto <happyguy_pt@hotmail.com>, 2003, 2004, 2007, 2008.
+# Duarte Loreto <happyguy_pt@hotmail.com>, 2003, 2004, 2007, 2008, 2010.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: 2.24\n"
+"Project-Id-Version: 2.32\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2008-09-14 17:30+0100\n"
-"PO-Revision-Date: 2008-09-14 17:35+0000\n"
+"POT-Creation-Date: 2010-08-21 17:45+0100\n"
+"PO-Revision-Date: 2010-08-21 17:45+0000\n"
 "Last-Translator: Duarte Loreto <happyguy_pt@hotmail.com>\n"
 "Language-Team: pt <gnome_pt@yahoogroups.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: ../src/iso2022.c:798 ../src/iso2022.c:806 ../src/iso2022.c:837
-#: ../src/vte.c:2201
+#: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
+#: ../src/vte.c:2254
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Incapaz de converter caracteres de %s em %s."
 
-#: ../src/iso2022.c:1481
+#: ../src/iso2022.c:1464
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Tentativa de definição de mapa NRC inválido '%c'."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1511
+#: ../src/iso2022.c:1494
 msgid "Unrecognized identified coding system."
 msgstr "Sistema de codificação identificado desconhecido."
 
-#: ../src/iso2022.c:1570 ../src/iso2022.c:1597
+#: ../src/iso2022.c:1553 ../src/iso2022.c:1580
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Tentativa de definição de mapa abrangente NRC inválido '%c'."
-
-#. Give the user some clue as to why session logging is not
-#. * going to work (assuming we can open a pty using some other
-#. * method).
-#: ../src/pty.c:831
-#, c-format
-msgid "can not run %s"
-msgstr "incapaz de executar %s"
-
-#: ../src/reaper.c:136
-msgid "Error creating signal pipe."
-msgstr "Erro ao criar canal de sinal."
 
 #: ../src/trie.c:409
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplicado (%s/%s)!"
 
-#: ../src/vte.c:1257
+#. Bail back to normal mode.
+#: ../src/vteapp.c:965
+msgid "Could not open console.\n"
+msgstr "Incapaz de abrir consola.\n"
+
+#: ../src/vteapp.c:1056
+msgid "Could not parse the geometry spec passed to --geometry"
+msgstr ""
+"Incapaz de processar a especificação de geometria indicada por --geometry"
+
+#: ../src/vte.c:1280
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Erro ao compilar expressão regular \"%s\"."
 
-#: ../src/vte.c:3061 ../src/vte.c:3066
-#, c-format
-msgid "No handler for control sequence `%s' defined."
-msgstr "Nenhum manipulador definido para a sequência de controlo `%s'."
-
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4044
+#: ../src/vte.c:4362
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Erro ao ler do filho: %s."
 
-#: ../src/vte.c:4172
+#: ../src/vte.c:4489
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
 "Incapaz de enviar dados para o filho, conversor de conjunto de caracteres "
 "inválido"
 
-#: ../src/vte.c:4183 ../src/vte.c:5099
+#: ../src/vte.c:4500 ../src/vte.c:5526
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Erro (%s) a converter dados do filho, a ignorá-los."
 
-#: ../src/vte.c:7339
+#: ../src/vte.c:7720
 #, c-format
-msgid "Error reading PTY size, using defaults: %s."
-msgstr "Erro ao ler tamanho PTY, a utilizar valores por omissão: %s."
-
-#: ../src/vte.c:7375
-#, c-format
-msgid "Error setting PTY size: %s."
-msgstr "Erro ao definir tamanho PTY: %s."
+msgid "Error reading PTY size, using defaults: %s\n"
+msgstr "Erro ao ler tamanho PTY, a utilizar valores por omissão: %s\n"
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:11970
+#: ../src/vte.c:13290
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() falha ao definir caracteres de palavra"
 
-#: ../src/vteseq.c:3996
-#, c-format
-msgid "Got unexpected (key?) sequence `%s'."
-msgstr "Obtida sequência (chave?) inesperada `%s'."
+#~ msgid "can not run %s"
+#~ msgstr "incapaz de executar %s"
 
-#. Bail back to normal mode.
-#: ../src/vteapp.c:775
-msgid "Could not open console.\n"
-msgstr "Incapaz de abrir consola.\n"
+#~ msgid "Error creating signal pipe."
+#~ msgstr "Erro ao criar canal de sinal."
 
-#: ../src/vteapp.c:839
-msgid "Could not parse the geometry spec passed to --geometry"
-msgstr ""
-"Incapaz de processar a especificação de geometria indicada por --geometry"
+#~ msgid "No handler for control sequence `%s' defined."
+#~ msgstr "Nenhum manipulador definido para a sequência de controlo `%s'."
 
-#: ../src/vteglyph.c:556
-#, c-format
-msgid "Unknown pixel mode %d.\n"
-msgstr "Modo de pixel %d desconhecido.\n"
+#~ msgid "Error setting PTY size: %s."
+#~ msgstr "Erro ao definir tamanho PTY: %s."
+
+#~ msgid "Got unexpected (key?) sequence `%s'."
+#~ msgstr "Obtida sequência (chave?) inesperada `%s'."
+
+#~ msgid "Unknown pixel mode %d.\n"
+#~ msgstr "Modo de pixel %d desconhecido.\n"
 
 #~ msgid "Can not find appropiate font for character U+%04x.\n"
 #~ msgstr "Incapaz de encontrar a fonte apropriada para o caracter U+%04x.\n"
