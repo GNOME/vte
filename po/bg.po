@@ -1,7 +1,7 @@
 # Bulgarian translation of vte po-file.
 # Copyright (C) 2002, 2007, 2007, 2010 Free Software Foundation, Inc.
 # This file is distributed under the same license as the vte package.
-# Alexander Shopov <ash@contact.bg>, 2002, 2007, 2010.
+# Alexander Shopov <ash@kambanaria.org>, 2002, 2007, 2010.
 # Vladimir "Kaladan" Petkov <vpetkov@i-space.org>, 2005.
 # Yavor Doganov <yavor@doganov.org>, 2005.
 #
@@ -10,8 +10,8 @@ msgstr ""
 "Project-Id-Version: vte master\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2010-08-22 22:38+0300\n"
-"PO-Revision-Date: 2010-08-22 22:38+0300\n"
-"Last-Translator: Alexander Shopov <ash@contact.bg>\n"
+"PO-Revision-Date: 2010-08-22 23:11+0300\n"
+"Last-Translator: Alexander Shopov <ash@kambanaria.org>\n"
 "Language-Team: Bulgarian <dict@fsa-bg.org>\n"
 "Language: bg\n"
 "MIME-Version: 1.0\n"
