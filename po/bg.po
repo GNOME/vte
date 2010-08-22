@@ -1,121 +1,90 @@
 # Bulgarian translation of vte po-file.
-# Copyright (C) 2002, 2007, 2007 Free Software Foundation, Inc.
+# Copyright (C) 2002, 2007, 2007, 2010 Free Software Foundation, Inc.
 # This file is distributed under the same license as the vte package.
-# Alexander Shopov <ash@contact.bg>, 2002, 2007.
+# Alexander Shopov <ash@contact.bg>, 2002, 2007, 2010.
 # Vladimir "Kaladan" Petkov <vpetkov@i-space.org>, 2005.
 # Yavor Doganov <yavor@doganov.org>, 2005.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: vte trunk\n"
+"Project-Id-Version: vte master\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-09-11 12:00+0300\n"
-"PO-Revision-Date: 2007-09-11 12:00+0300\n"
+"POT-Creation-Date: 2010-08-22 22:38+0300\n"
+"PO-Revision-Date: 2010-08-22 22:38+0300\n"
 "Last-Translator: Alexander Shopov <ash@contact.bg>\n"
 "Language-Team: Bulgarian <dict@fsa-bg.org>\n"
+"Language: bg\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 
-#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
-#: ../src/vte.c:1840
+#: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
+#: ../src/vte.c:2254
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Неуспех при преобразуването на знаците от %s към %s."
 
-#: ../src/iso2022.c:1540
+#: ../src/iso2022.c:1464
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Опит за поставяне на невалидна карта за NRC „%c“."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1570
+#: ../src/iso2022.c:1494
 msgid "Unrecognized identified coding system."
 msgstr "Неразпозната идентификационна кодираща система."
 
-#: ../src/iso2022.c:1629 ../src/iso2022.c:1656
+#: ../src/iso2022.c:1553 ../src/iso2022.c:1580
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Опит за поставяне на невалидно широка карта за NRC „%c“."
 
-#. Give the user some clue as to why session logging is not
-#. * going to work (assuming we can open a pty using some other
-#. * method).
-#: ../src/pty.c:837
-#, c-format
-msgid "can not run %s"
-msgstr "не може да се изпълни %s"
-
-#: ../src/reaper.c:136
-msgid "Error creating signal pipe."
-msgstr "Грешка при създаването на сигнален канал."
-
-#: ../src/trie.c:414
+#: ../src/trie.c:409
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Повтаряне (%s/%s)!"
 
-#: ../src/vte.c:1227
+#. Bail back to normal mode.
+#: ../src/vteapp.c:965
+msgid "Could not open console.\n"
+msgstr "Терминалът не може да бъде отворен.\n"
+
+#: ../src/vteapp.c:1056
+msgid "Could not parse the geometry spec passed to --geometry"
+msgstr "Геометрията подадена чрез „--geometry“ не може да се анализира"
+
+#: ../src/vte.c:1280
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Грешка при компилирането на регулярния израз „%s“."
 
-#: ../src/vte.c:2701 ../src/vte.c:2706
-#, c-format
-msgid "No handler for control sequence `%s' defined."
-msgstr "Няма дефиниция за обработка на контролната последователност „%s“"
-
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:3671
+#: ../src/vte.c:4362
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Грешка при четене от дъщерния процес: %s."
 
-#: ../src/vte.c:3787
+#: ../src/vte.c:4489
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
 "Неуспех при изпращането на данни на дъщерния процес, неправилно "
 "преобразуване на знаци"
 
-#: ../src/vte.c:3798 ../src/vte.c:4705
+#: ../src/vte.c:4500 ../src/vte.c:5526
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "Грешка (%s) при преобразуването на данните за дъщерния процес, пропускане."
 
-#: ../src/vte.c:6941
+#: ../src/vte.c:7720
 #, c-format
-msgid "Error reading PTY size, using defaults: %s."
+msgid "Error reading PTY size, using defaults: %s\n"
 msgstr ""
-"Грешка при прочитането на размера на терминала, използване на %s по "
-"подразбиране."
-
-#: ../src/vte.c:6977
-#, c-format
-msgid "Error setting PTY size: %s."
-msgstr "Грешка при задаването на размера на терминала: %s."
+"Грешка при прочитането на размера на терминала, използване на стандартния: "
+"%s\n"
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:11451
+#: ../src/vte.c:13290
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() не успя да зададе знаците на думите"
-
-#: ../src/vteseq.c:3929
-#, c-format
-msgid "Got unexpected (key?) sequence `%s'."
-msgstr "Получена е неочаквана последователност (от клавиши?) „%s“."
-
-#. Bail back to normal mode.
-#: ../src/vteapp.c:780
-msgid "Could not open console.\n"
-msgstr "Терминалът не може да бъде отворен.\n"
-
-#: ../src/vteapp.c:844
-msgid "Could not parse the geometry spec passed to --geometry"
-msgstr "Геометрията подадена чрез „--geometry“ не може да се анализира"
-
-#: ../src/vteglyph.c:562
-#, c-format
-msgid "Unknown pixel mode %d.\n"
-msgstr "Непознат режим на пиксели %d.\n"
