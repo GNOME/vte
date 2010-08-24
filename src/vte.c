@@ -4910,8 +4910,13 @@ vte_terminal_read_modifiers (VteTerminal *terminal,
 	GdkModifierType modifiers;
 
 	/* Read the modifiers. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers))
+	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
+		GdkKeymap *keymap;
+		keymap = gdk_keymap_get_for_display (
+				gdk_drawable_get_display (((GdkEventAny *)event)->window));
+		gdk_keymap_add_virtual_modifiers (keymap, &modifiers);
 		terminal->pvt->modifiers = modifiers;
+	}
 }
 
 /* Read and handle a keypress event. */

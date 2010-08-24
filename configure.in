@@ -51,7 +51,7 @@ case "$with_gtk" in
        VTE_PC_VERSION=
        VTE_LIBRARY_SUFFIX=
        GTK_API_VERSION=2.0
-       GTK_REQUIRED=2.14.0
+       GTK_REQUIRED=2.20.0
        ;;
   3.0) VTE_API_VERSION=2.90
        VTE_API_MAJOR_VERSION=2
