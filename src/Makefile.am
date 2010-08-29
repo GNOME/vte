@@ -178,10 +178,10 @@ Vte_@VTE_API_VERSION_U@_gir_FILES = \
 INTROSPECTION_GIRS += Vte-$(VTE_API_VERSION).gir
 
 girdir = $(INTROSPECTION_GIRDIR)
-dist_gir_DATA = $(INTROSPECTION_GIRS)
+nodist_gir_DATA = $(INTROSPECTION_GIRS)
 
 typelibdir = $(INTROSPECTION_TYPELIBDIR)
-typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
+nodist_typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
 
 CLEANFILES += $(dist_gir_DATA) $(typelib_DATA)
 endif
