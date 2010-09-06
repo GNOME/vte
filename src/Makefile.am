@@ -183,7 +183,7 @@ nodist_gir_DATA = $(INTROSPECTION_GIRS)
 typelibdir = $(INTROSPECTION_TYPELIBDIR)
 nodist_typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
 
-CLEANFILES += $(dist_gir_DATA) $(typelib_DATA)
+CLEANFILES += $(nodist_gir_DATA) $(nodist_typelib_DATA)
 endif
 
 
