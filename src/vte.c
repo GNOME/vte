@@ -8660,7 +8660,6 @@ vte_terminal_finalize(GObject *object)
 static void
 vte_terminal_realize(GtkWidget *widget)
 {
-	GtkStyle *style;
 	GdkWindow *window;
 	VteTerminal *terminal;
 	GdkWindowAttr attributes;
