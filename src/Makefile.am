@@ -96,13 +96,17 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_CPPFLAGS = \
  	-DDATADIR='"$(datadir)"' \
 	-DLIBEXECDIR='"$(libexecdir)"' \
 	-DLOCALEDIR='"$(localedir)"' \
-	-DVTE_COMPILATION
-libvte@VTE_LIBRARY_SUFFIX_U@_la_CFLAGS = $(VTE_CFLAGS)
+	-DVTE_COMPILATION \
+	$(AM_CPPFLAGS)
+
+libvte@VTE_LIBRARY_SUFFIX_U@_la_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
 libvte@VTE_LIBRARY_SUFFIX_U@_la_LIBADD = $(VTE_LIBS)
 libvte@VTE_LIBRARY_SUFFIX_U@_la_LDFLAGS = \
+  $(VTE_LDFLAGS) \
 	-version-info $(LT_VERSION_INFO) \
 	-export-symbols-regex "^vte_terminal_.*|^vte_pty_.*|^_vte_pty_.*|^vte_reaper_.*|_vte_debug_.*" \
-	@LIBTOOL_EXPORT_OPTIONS@ @LIBTOOL_FLAGS@
+	@LIBTOOL_EXPORT_OPTIONS@ @LIBTOOL_FLAGS@ \
+	$(AM_LDFLAGS)
 
 
 # Generated sources
