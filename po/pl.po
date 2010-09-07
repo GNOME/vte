@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-02-25 13:47+0100\n"
-"PO-Revision-Date: 2010-02-25 02:50+0100\n"
+"POT-Creation-Date: 2010-09-07 19:02+0200\n"
+"PO-Revision-Date: 2010-09-07 17:30+0200\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <gnomepl@aviary.pl>\n"
 "MIME-Version: 1.0\n"
@@ -21,7 +21,7 @@ msgstr ""
 "X-Poedit-Country: Poland\n"
 
 #: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
-#: ../src/vte.c:2227
+#: ../src/vte.c:2254
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Nie można przekonwertować znaków z %s na %s."
@@ -41,56 +41,48 @@ msgstr "Nierozpoznany system kodowania."
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Próba ustawienia nieprawidłowej rozległej mapy NRC \"%c\"."
 
-#. Give the user some clue as to why session logging is not
-#. * going to work (assuming we can open a pty using some other
-#. * method).
-#: ../src/pty.c:833
-#, c-format
-msgid "can not run %s"
-msgstr "nie można uruchomić %s"
-
 #: ../src/trie.c:409
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Duplikat (%s/%s)!"
 
 #. Bail back to normal mode.
-#: ../src/vteapp.c:876
+#: ../src/vteapp.c:965
 msgid "Could not open console.\n"
 msgstr "Nie można otworzyć konsoli.\n"
 
-#: ../src/vteapp.c:945
+#: ../src/vteapp.c:1056
 msgid "Could not parse the geometry spec passed to --geometry"
 msgstr ""
 "Nie można przetworzyć danych geometrii przekazanych za pomocą --geometry"
 
-#: ../src/vte.c:1276
+#: ../src/vte.c:1280
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Błąd podczas kompilowania wyrażenia regularnego \"%s\"."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4186
+#: ../src/vte.c:4362
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Błąd podczas odczytywania z procesu potomnego: %s."
 
-#: ../src/vte.c:4314
+#: ../src/vte.c:4489
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr "Nie można wysłać danych do potomka, nieprawidłowa konwersja znaków"
 
-#: ../src/vte.c:4325 ../src/vte.c:5347
+#: ../src/vte.c:4500 ../src/vte.c:5531
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Błąd (%s) podczas konwertowania danych dla potomka. Porzucono."
 
-#: ../src/vte.c:7563
+#: ../src/vte.c:7725
 #, c-format
-msgid "Error reading PTY size, using defaults: %s."
-msgstr "Błąd podczas odczytywania rozmiaru PTY, używanie domyślnego: %s."
+msgid "Error reading PTY size, using defaults: %s\n"
+msgstr "Błąd podczas odczytywania rozmiaru PTY, używanie domyślnego: %s\n"
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:13094
+#: ../src/vte.c:13296
 msgid "_vte_conv_open() failed setting word characters"
 msgstr ""
 "Funkcja g_iconv_open() nie została ukończona podczas ustawiania znaków o "
