@@ -45,7 +45,6 @@
 #include <glib/gstdio.h>
 #include <glib-object.h>
 #include <gdk/gdk.h>
-#include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
 #include <pango/pango.h>
 #include "iso2022.h"
@@ -62,6 +61,13 @@
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
+#endif
+
+#if GTK_CHECK_VERSION (2, 90, 7)
+#define GDK_KEY(symbol) GDK_KEY_##symbol
+#else
+#include <gdk/gdkkeysyms.h>
+#define GDK_KEY(symbol) GDK_##symbol
 #endif
 
 #ifndef HAVE_WINT_T
@@ -4990,11 +4996,11 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		/* We steal many keypad keys here. */
 		if (!terminal->pvt->im_preedit_active) {
 			switch (keyval) {
-			case GDK_KP_Add:
-			case GDK_KP_Subtract:
-			case GDK_KP_Multiply:
-			case GDK_KP_Divide:
-			case GDK_KP_Enter:
+			case GDK_KEY (KP_Add):
+			case GDK_KEY (KP_Subtract):
+			case GDK_KEY (KP_Multiply):
+			case GDK_KEY (KP_Divide):
+			case GDK_KEY (KP_Enter):
 				steal = TRUE;
 				break;
 			default:
@@ -5004,27 +5010,27 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				steal = TRUE;
 			}
 			switch (keyval) {
-			case GDK_Multi_key:
-			case GDK_Codeinput:
-			case GDK_SingleCandidate:
-			case GDK_MultipleCandidate:
-			case GDK_PreviousCandidate:
-			case GDK_Kanji:
-			case GDK_Muhenkan:
-			case GDK_Henkan:
-			case GDK_Romaji:
-			case GDK_Hiragana:
-			case GDK_Katakana:
-			case GDK_Hiragana_Katakana:
-			case GDK_Zenkaku:
-			case GDK_Hankaku:
-			case GDK_Zenkaku_Hankaku:
-			case GDK_Touroku:
-			case GDK_Massyo:
-			case GDK_Kana_Lock:
-			case GDK_Kana_Shift:
-			case GDK_Eisu_Shift:
-			case GDK_Eisu_toggle:
+			case GDK_KEY (Multi_key):
+			case GDK_KEY (Codeinput):
+			case GDK_KEY (SingleCandidate):
+			case GDK_KEY (MultipleCandidate):
+			case GDK_KEY (PreviousCandidate):
+			case GDK_KEY (Kanji):
+			case GDK_KEY (Muhenkan):
+			case GDK_KEY (Henkan):
+			case GDK_KEY (Romaji):
+			case GDK_KEY (Hiragana):
+			case GDK_KEY (Katakana):
+			case GDK_KEY (Hiragana_Katakana):
+			case GDK_KEY (Zenkaku):
+			case GDK_KEY (Hankaku):
+			case GDK_KEY (Zenkaku_Hankaku):
+			case GDK_KEY (Touroku):
+			case GDK_KEY (Massyo):
+			case GDK_KEY (Kana_Lock):
+			case GDK_KEY (Kana_Shift):
+			case GDK_KEY (Eisu_Shift):
+			case GDK_KEY (Eisu_toggle):
 				steal = FALSE;
 				break;
 			default:
@@ -5050,7 +5056,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		handled = FALSE;
 		/* Map the key to a sequence name if we can. */
 		switch (keyval) {
-		case GDK_BackSpace:
+		case GDK_KEY (BackSpace):
 			switch (terminal->pvt->backspace_binding) {
 			case VTE_ERASE_ASCII_BACKSPACE:
 				normal = g_strdup("");
@@ -5098,8 +5104,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			}
 			handled = TRUE;
 			break;
-		case GDK_KP_Delete:
-		case GDK_Delete:
+		case GDK_KEY (KP_Delete):
+		case GDK_KEY (Delete):
 			switch (terminal->pvt->delete_binding) {
 			case VTE_ERASE_ASCII_BACKSPACE:
 				normal = g_strdup("\010");
@@ -5127,8 +5133,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			handled = TRUE;
 			suppress_meta_esc = TRUE;
 			break;
-		case GDK_KP_Insert:
-		case GDK_Insert:
+		case GDK_KEY (KP_Insert):
+		case GDK_KEY (Insert):
 			if (modifiers & GDK_SHIFT_MASK) {
 				if (modifiers & GDK_CONTROL_MASK) {
 					vte_terminal_paste_clipboard(terminal);
@@ -5146,8 +5152,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			}
 			break;
 		/* Keypad/motion keys. */
-		case GDK_KP_Up:
-		case GDK_Up:
+		case GDK_KEY (KP_Up):
+		case GDK_KEY (Up):
 			if (modifiers & GDK_CONTROL_MASK 
                             && modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_scroll_lines(terminal, -1);
@@ -5156,8 +5162,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				suppress_meta_esc = TRUE;
 			}
 			break;
-		case GDK_KP_Down:
-		case GDK_Down:
+		case GDK_KEY (KP_Down):
+		case GDK_KEY (Down):
 			if (modifiers & GDK_CONTROL_MASK
                             && modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_scroll_lines(terminal, 1);
@@ -5166,8 +5172,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				suppress_meta_esc = TRUE;
 			}
 			break;
-		case GDK_KP_Page_Up:
-		case GDK_Page_Up:
+		case GDK_KEY (KP_Page_Up):
+		case GDK_KEY (Page_Up):
 			if (modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_scroll_pages(terminal, -1);
 				scrolled = TRUE;
@@ -5175,8 +5181,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				suppress_meta_esc = TRUE;
 			}
 			break;
-		case GDK_KP_Page_Down:
-		case GDK_Page_Down:
+		case GDK_KEY (KP_Page_Down):
+		case GDK_KEY (Page_Down):
 			if (modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_scroll_pages(terminal, 1);
 				scrolled = TRUE;
@@ -5184,16 +5190,16 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				suppress_meta_esc = TRUE;
 			}
 			break;
-		case GDK_KP_Home:
-		case GDK_Home:
+		case GDK_KEY (KP_Home):
+		case GDK_KEY (Home):
 			if (modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_maybe_scroll_to_top(terminal);
 				scrolled = TRUE;
 				handled = TRUE;
 			}
 			break;
-		case GDK_KP_End:
-		case GDK_End:
+		case GDK_KEY (KP_End):
+		case GDK_KEY (End):
 			if (modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_maybe_scroll_to_bottom(terminal);
 				scrolled = TRUE;
@@ -5201,17 +5207,17 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			}
 			break;
 		/* Let Shift +/- tweak the font, like XTerm does. */
-		case GDK_KP_Add:
-		case GDK_KP_Subtract:
+		case GDK_KEY (KP_Add):
+		case GDK_KEY (KP_Subtract):
 			if (modifiers &
 			    (GDK_SHIFT_MASK | GDK_CONTROL_MASK)) {
 				switch (keyval) {
-				case GDK_KP_Add:
+				case GDK_KEY (KP_Add):
 					vte_terminal_emit_increase_font_size(terminal);
 					handled = TRUE;
 					suppress_meta_esc = TRUE;
 					break;
-				case GDK_KP_Subtract:
+				case GDK_KEY (KP_Subtract):
 					vte_terminal_emit_decrease_font_size(terminal);
 					handled = TRUE;
 					suppress_meta_esc = TRUE;
@@ -10983,7 +10989,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 		 * so fake a few cursor keystrokes. */
 
 		_vte_keymap_map (
-				cnt > 0 ? GDK_Down : GDK_Up,
+				cnt > 0 ? GDK_KEY (Down) : GDK_KEY (Up),
 				terminal->pvt->modifiers,
 				terminal->pvt->sun_fkey_mode,
 				terminal->pvt->hp_fkey_mode,
@@ -12343,9 +12349,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	binding_set = gtk_binding_set_by_class(klass);
 
 	/* Bind Copy, Paste, Cut keys */
-	gtk_binding_entry_add_signal(binding_set, GDK_F16, 0, "copy-clipboard",0);
-	gtk_binding_entry_add_signal(binding_set, GDK_F18, 0, "paste-clipboard", 0);
-	gtk_binding_entry_add_signal(binding_set, GDK_F20, 0, "copy-clipboard",0);
+	gtk_binding_entry_add_signal(binding_set, GDK_KEY (F16), 0, "copy-clipboard",0);
+	gtk_binding_entry_add_signal(binding_set, GDK_KEY (F18), 0, "paste-clipboard", 0);
+	gtk_binding_entry_add_signal(binding_set, GDK_KEY (F20), 0, "copy-clipboard",0);
 
 	process_timer = g_timer_new ();
 }

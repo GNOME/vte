@@ -21,12 +21,18 @@
 #include <stdarg.h>
 #include <string.h>
 #include <glib.h>
-#include <gdk/gdk.h>
-#include <gdk/gdkkeysyms.h>
+#include <gtk/gtk.h>
 #include "caps.h"
 #include "debug.h"
 #include "keymap.h"
 #include "vtetc.h"
+
+#if GTK_CHECK_VERSION (2, 90, 7)
+#define GDK_KEY(symbol) GDK_KEY_##symbol
+#else
+#include <gdk/gdkkeysyms.h>
+#define GDK_KEY(symbol) GDK_##symbol
+#endif
 
 #if defined(HAVE_NCURSES_H) && defined(HAVE_TERM_H)
 #include <ncurses.h>
@@ -884,104 +890,104 @@ static const struct _vte_keymap_group {
 	guint keyval;
 	const struct _vte_keymap_entry *entries;
 } _vte_keymap[] = {
-	{GDK_space,		_vte_keymap_GDK_space},
-	{GDK_Return,		_vte_keymap_GDK_Return},
-	{GDK_Escape,		_vte_keymap_GDK_Escape},
-	{GDK_Tab,		_vte_keymap_GDK_Tab},
-	{GDK_ISO_Left_Tab,	_vte_keymap_GDK_ISO_Left_Tab},
-	{GDK_Home,		_vte_keymap_GDK_Home},
-	{GDK_End,		_vte_keymap_GDK_End},
-	{GDK_Insert,		_vte_keymap_GDK_Insert},
-	{GDK_slash,		_vte_keymap_GDK_slash},
-	{GDK_question,		_vte_keymap_GDK_question},
-	/* GDK_Delete is all handled in code, due to funkiness. */
-	{GDK_Page_Up,		_vte_keymap_GDK_Page_Up},
-	{GDK_Page_Down,		_vte_keymap_GDK_Page_Down},
+	{GDK_KEY (space),		_vte_keymap_GDK_space},
+	{GDK_KEY (Return),		_vte_keymap_GDK_Return},
+	{GDK_KEY (Escape),		_vte_keymap_GDK_Escape},
+	{GDK_KEY (Tab),		        _vte_keymap_GDK_Tab},
+	{GDK_KEY (ISO_Left_Tab),	_vte_keymap_GDK_ISO_Left_Tab},
+	{GDK_KEY (Home),		_vte_keymap_GDK_Home},
+	{GDK_KEY (End),		        _vte_keymap_GDK_End},
+	{GDK_KEY (Insert),		_vte_keymap_GDK_Insert},
+	{GDK_KEY (slash),		_vte_keymap_GDK_slash},
+	{GDK_KEY (question),		_vte_keymap_GDK_question},
+	/* GDK_KEY (Delete is all handled in code), due to funkiness. */
+	{GDK_KEY (Page_Up),		_vte_keymap_GDK_Page_Up},
+	{GDK_KEY (Page_Down),		_vte_keymap_GDK_Page_Down},
 
-	{GDK_2,			_vte_keymap_GDK_2},
-	{GDK_3,			_vte_keymap_GDK_3},
-	{GDK_4,			_vte_keymap_GDK_4},
-	{GDK_5,			_vte_keymap_GDK_5},
-	{GDK_6,			_vte_keymap_GDK_6},
-	{GDK_7,			_vte_keymap_GDK_7},
-	{GDK_8,			_vte_keymap_GDK_8},
-	{GDK_minus,		_vte_keymap_GDK_Minus},
+	{GDK_KEY (2),			_vte_keymap_GDK_2},
+	{GDK_KEY (3),			_vte_keymap_GDK_3},
+	{GDK_KEY (4),			_vte_keymap_GDK_4},
+	{GDK_KEY (5),			_vte_keymap_GDK_5},
+	{GDK_KEY (6),			_vte_keymap_GDK_6},
+	{GDK_KEY (7),			_vte_keymap_GDK_7},
+	{GDK_KEY (8),			_vte_keymap_GDK_8},
+	{GDK_KEY (minus),		_vte_keymap_GDK_Minus},
 
-	{GDK_Up,		_vte_keymap_GDK_Up},
-	{GDK_Down,		_vte_keymap_GDK_Down},
-	{GDK_Right,		_vte_keymap_GDK_Right},
-	{GDK_Left,		_vte_keymap_GDK_Left},
+	{GDK_KEY (Up),		_vte_keymap_GDK_Up},
+	{GDK_KEY (Down),		_vte_keymap_GDK_Down},
+	{GDK_KEY (Right),		_vte_keymap_GDK_Right},
+	{GDK_KEY (Left),		_vte_keymap_GDK_Left},
 
-	{GDK_KP_Space,		_vte_keymap_GDK_KP_Space},
-	{GDK_KP_Tab,		_vte_keymap_GDK_KP_Tab},
-	{GDK_KP_Enter,		_vte_keymap_GDK_KP_Enter},
-	{GDK_KP_F1,		_vte_keymap_GDK_KP_F1},
-	{GDK_KP_F2,		_vte_keymap_GDK_KP_F2},
-	{GDK_KP_F3,		_vte_keymap_GDK_KP_F3},
-	{GDK_KP_F4,		_vte_keymap_GDK_KP_F4},
-	{GDK_KP_Multiply,	_vte_keymap_GDK_KP_Multiply},
-	{GDK_KP_Add,		_vte_keymap_GDK_KP_Add},
-	{GDK_KP_Separator,	_vte_keymap_GDK_KP_Separator},
-	{GDK_KP_Subtract,	_vte_keymap_GDK_KP_Subtract},
-	{GDK_KP_Decimal,	_vte_keymap_GDK_KP_Decimal_Delete},
-	{GDK_KP_Delete,		_vte_keymap_GDK_KP_Decimal_Delete},
-	{GDK_KP_Divide,		_vte_keymap_GDK_KP_Divide},
-	{GDK_KP_0,		_vte_keymap_GDK_KP_0},
-	{GDK_KP_Insert,		_vte_keymap_GDK_KP_Insert},
-	{GDK_KP_1,		_vte_keymap_GDK_KP_1},
-	{GDK_KP_End,		_vte_keymap_GDK_KP_End},
-	{GDK_KP_2,		_vte_keymap_GDK_KP_2},
-	{GDK_KP_Down,		_vte_keymap_GDK_KP_Down},
-	{GDK_KP_3,		_vte_keymap_GDK_KP_3},
-	{GDK_KP_Page_Down,	_vte_keymap_GDK_KP_Page_Down},
-	{GDK_KP_4,		_vte_keymap_GDK_KP_4},
-	{GDK_KP_Left,		_vte_keymap_GDK_KP_Left},
-	{GDK_KP_5,		_vte_keymap_GDK_KP_5},
-	{GDK_KP_Begin,		_vte_keymap_GDK_KP_Begin},
-	{GDK_KP_6,		_vte_keymap_GDK_KP_6},
-	{GDK_KP_Right,		_vte_keymap_GDK_KP_Right},
-	{GDK_KP_7,		_vte_keymap_GDK_KP_7},
-	{GDK_KP_Home,		_vte_keymap_GDK_KP_Home},
-	{GDK_KP_8,		_vte_keymap_GDK_KP_8},
-	{GDK_KP_Up,		_vte_keymap_GDK_KP_Up},
-	{GDK_KP_9,		_vte_keymap_GDK_KP_9},
-	{GDK_KP_Page_Up,	_vte_keymap_GDK_KP_Page_Up},
+	{GDK_KEY (KP_Space),		_vte_keymap_GDK_KP_Space},
+	{GDK_KEY (KP_Tab),		_vte_keymap_GDK_KP_Tab},
+	{GDK_KEY (KP_Enter),		_vte_keymap_GDK_KP_Enter},
+	{GDK_KEY (KP_F1),		_vte_keymap_GDK_KP_F1},
+	{GDK_KEY (KP_F2),		_vte_keymap_GDK_KP_F2},
+	{GDK_KEY (KP_F3),		_vte_keymap_GDK_KP_F3},
+	{GDK_KEY (KP_F4),		_vte_keymap_GDK_KP_F4},
+	{GDK_KEY (KP_Multiply),	_vte_keymap_GDK_KP_Multiply},
+	{GDK_KEY (KP_Add),		_vte_keymap_GDK_KP_Add},
+	{GDK_KEY (KP_Separator),	_vte_keymap_GDK_KP_Separator},
+	{GDK_KEY (KP_Subtract),	_vte_keymap_GDK_KP_Subtract},
+	{GDK_KEY (KP_Decimal),	_vte_keymap_GDK_KP_Decimal_Delete},
+	{GDK_KEY (KP_Delete),		_vte_keymap_GDK_KP_Decimal_Delete},
+	{GDK_KEY (KP_Divide),		_vte_keymap_GDK_KP_Divide},
+	{GDK_KEY (KP_0),		_vte_keymap_GDK_KP_0},
+	{GDK_KEY (KP_Insert),		_vte_keymap_GDK_KP_Insert},
+	{GDK_KEY (KP_1),		_vte_keymap_GDK_KP_1},
+	{GDK_KEY (KP_End),		_vte_keymap_GDK_KP_End},
+	{GDK_KEY (KP_2),		_vte_keymap_GDK_KP_2},
+	{GDK_KEY (KP_Down),		_vte_keymap_GDK_KP_Down},
+	{GDK_KEY (KP_3),		_vte_keymap_GDK_KP_3},
+	{GDK_KEY (KP_Page_Down),	_vte_keymap_GDK_KP_Page_Down},
+	{GDK_KEY (KP_4),		_vte_keymap_GDK_KP_4},
+	{GDK_KEY (KP_Left),		_vte_keymap_GDK_KP_Left},
+	{GDK_KEY (KP_5),		_vte_keymap_GDK_KP_5},
+	{GDK_KEY (KP_Begin),		_vte_keymap_GDK_KP_Begin},
+	{GDK_KEY (KP_6),		_vte_keymap_GDK_KP_6},
+	{GDK_KEY (KP_Right),		_vte_keymap_GDK_KP_Right},
+	{GDK_KEY (KP_7),		_vte_keymap_GDK_KP_7},
+	{GDK_KEY (KP_Home),		_vte_keymap_GDK_KP_Home},
+	{GDK_KEY (KP_8),		_vte_keymap_GDK_KP_8},
+	{GDK_KEY (KP_Up),		_vte_keymap_GDK_KP_Up},
+	{GDK_KEY (KP_9),		_vte_keymap_GDK_KP_9},
+	{GDK_KEY (KP_Page_Up),	_vte_keymap_GDK_KP_Page_Up},
 
-	{GDK_F1,		_vte_keymap_GDK_F1},
-	{GDK_F2,		_vte_keymap_GDK_F2},
-	{GDK_F3,		_vte_keymap_GDK_F3},
-	{GDK_F4,		_vte_keymap_GDK_F4},
-	{GDK_F5,		_vte_keymap_GDK_F5},
-	{GDK_F6,		_vte_keymap_GDK_F6},
-	{GDK_F7,		_vte_keymap_GDK_F7},
-	{GDK_F8,		_vte_keymap_GDK_F8},
-	{GDK_F9,		_vte_keymap_GDK_F9},
-	{GDK_F10,		_vte_keymap_GDK_F10},
-	{GDK_F11,		_vte_keymap_GDK_F11},
-	{GDK_F12,		_vte_keymap_GDK_F12},
-	{GDK_F13,		_vte_keymap_GDK_F13},
-	{GDK_F14,		_vte_keymap_GDK_F14},
-	{GDK_F15,		_vte_keymap_GDK_F15},
-	{GDK_F16,		_vte_keymap_GDK_F16},
-	{GDK_F17,		_vte_keymap_GDK_F17},
-	{GDK_F18,		_vte_keymap_GDK_F18},
-	{GDK_F19,		_vte_keymap_GDK_F19},
-	{GDK_F20,		_vte_keymap_GDK_F20},
-	{GDK_F21,		_vte_keymap_GDK_F21},
-	{GDK_F22,		_vte_keymap_GDK_F22},
-	{GDK_F23,		_vte_keymap_GDK_F23},
-	{GDK_F24,		_vte_keymap_GDK_F24},
-	{GDK_F25,		_vte_keymap_GDK_F25},
-	{GDK_F26,		_vte_keymap_GDK_F26},
-	{GDK_F27,		_vte_keymap_GDK_F27},
-	{GDK_F28,		_vte_keymap_GDK_F28},
-	{GDK_F29,		_vte_keymap_GDK_F29},
-	{GDK_F30,		_vte_keymap_GDK_F30},
-	{GDK_F31,		_vte_keymap_GDK_F31},
-	{GDK_F32,		_vte_keymap_GDK_F32},
-	{GDK_F33,		_vte_keymap_GDK_F33},
-	{GDK_F34,		_vte_keymap_GDK_F34},
-	{GDK_F35,		_vte_keymap_GDK_F35},
+	{GDK_KEY (F1),		_vte_keymap_GDK_F1},
+	{GDK_KEY (F2),		_vte_keymap_GDK_F2},
+	{GDK_KEY (F3),		_vte_keymap_GDK_F3},
+	{GDK_KEY (F4),		_vte_keymap_GDK_F4},
+	{GDK_KEY (F5),		_vte_keymap_GDK_F5},
+	{GDK_KEY (F6),		_vte_keymap_GDK_F6},
+	{GDK_KEY (F7),		_vte_keymap_GDK_F7},
+	{GDK_KEY (F8),		_vte_keymap_GDK_F8},
+	{GDK_KEY (F9),		_vte_keymap_GDK_F9},
+	{GDK_KEY (F10),		_vte_keymap_GDK_F10},
+	{GDK_KEY (F11),		_vte_keymap_GDK_F11},
+	{GDK_KEY (F12),		_vte_keymap_GDK_F12},
+	{GDK_KEY (F13),		_vte_keymap_GDK_F13},
+	{GDK_KEY (F14),		_vte_keymap_GDK_F14},
+	{GDK_KEY (F15),		_vte_keymap_GDK_F15},
+	{GDK_KEY (F16),		_vte_keymap_GDK_F16},
+	{GDK_KEY (F17),		_vte_keymap_GDK_F17},
+	{GDK_KEY (F18),		_vte_keymap_GDK_F18},
+	{GDK_KEY (F19),		_vte_keymap_GDK_F19},
+	{GDK_KEY (F20),		_vte_keymap_GDK_F20},
+	{GDK_KEY (F21),		_vte_keymap_GDK_F21},
+	{GDK_KEY (F22),		_vte_keymap_GDK_F22},
+	{GDK_KEY (F23),		_vte_keymap_GDK_F23},
+	{GDK_KEY (F24),		_vte_keymap_GDK_F24},
+	{GDK_KEY (F25),		_vte_keymap_GDK_F25},
+	{GDK_KEY (F26),		_vte_keymap_GDK_F26},
+	{GDK_KEY (F27),		_vte_keymap_GDK_F27},
+	{GDK_KEY (F28),		_vte_keymap_GDK_F28},
+	{GDK_KEY (F29),		_vte_keymap_GDK_F29},
+	{GDK_KEY (F30),		_vte_keymap_GDK_F30},
+	{GDK_KEY (F31),		_vte_keymap_GDK_F31},
+	{GDK_KEY (F32),		_vte_keymap_GDK_F32},
+	{GDK_KEY (F33),		_vte_keymap_GDK_F33},
+	{GDK_KEY (F34),		_vte_keymap_GDK_F34},
+	{GDK_KEY (F35),		_vte_keymap_GDK_F35},
 };
 
 /* Map the specified keyval/modifier setup, dependent on the mode, to either
@@ -1053,13 +1059,13 @@ _vte_keymap_map(guint keyval,
 			mods &= entries[j].mod_mask;
 		}
 		switch (_vte_keymap[i].keyval) {
-		case GDK_2:
-		case GDK_3:
-		case GDK_4:
-		case GDK_5:
-		case GDK_6:
-		case GDK_7:
-		case GDK_8:
+		case GDK_KEY (2):
+		case GDK_KEY (3):
+		case GDK_KEY (4):
+		case GDK_KEY (5):
+		case GDK_KEY (6):
+		case GDK_KEY (7):
+		case GDK_KEY (8):
 			/* Known non-full-coverage cases. */
 			break;
 		default:
@@ -1214,34 +1220,34 @@ _vte_keymap_key_is_modifier(guint keyval)
 	gboolean modifier = FALSE;
 	/* Determine if this is just a modifier key. */
 	switch (keyval) {
-	case GDK_Alt_L:
-	case GDK_Alt_R:
-	case GDK_Caps_Lock:
-	case GDK_Control_L:
-	case GDK_Control_R:
-	case GDK_Eisu_Shift:
-	case GDK_Hyper_L:
-	case GDK_Hyper_R:
-	case GDK_ISO_First_Group_Lock:
-	case GDK_ISO_Group_Lock:
-	case GDK_ISO_Group_Shift:
-	case GDK_ISO_Last_Group_Lock:
-	case GDK_ISO_Level3_Lock:
-	case GDK_ISO_Level3_Shift:
-	case GDK_ISO_Lock:
-	case GDK_ISO_Next_Group_Lock:
-	case GDK_ISO_Prev_Group_Lock:
-	case GDK_Kana_Lock:
-	case GDK_Kana_Shift:
-	case GDK_Meta_L:
-	case GDK_Meta_R:
-	case GDK_Num_Lock:
-	case GDK_Scroll_Lock:
-	case GDK_Shift_L:
-	case GDK_Shift_Lock:
-	case GDK_Shift_R:
-	case GDK_Super_L:
-	case GDK_Super_R:
+	case GDK_KEY (Alt_L):
+	case GDK_KEY (Alt_R):
+	case GDK_KEY (Caps_Lock):
+	case GDK_KEY (Control_L):
+	case GDK_KEY (Control_R):
+	case GDK_KEY (Eisu_Shift):
+	case GDK_KEY (Hyper_L):
+	case GDK_KEY (Hyper_R):
+	case GDK_KEY (ISO_First_Group_Lock):
+	case GDK_KEY (ISO_Group_Lock):
+	case GDK_KEY (ISO_Group_Shift):
+	case GDK_KEY (ISO_Last_Group_Lock):
+	case GDK_KEY (ISO_Level3_Lock):
+	case GDK_KEY (ISO_Level3_Shift):
+	case GDK_KEY (ISO_Lock):
+	case GDK_KEY (ISO_Next_Group_Lock):
+	case GDK_KEY (ISO_Prev_Group_Lock):
+	case GDK_KEY (Kana_Lock):
+	case GDK_KEY (Kana_Shift):
+	case GDK_KEY (Meta_L):
+	case GDK_KEY (Meta_R):
+	case GDK_KEY (Num_Lock):
+	case GDK_KEY (Scroll_Lock):
+	case GDK_KEY (Shift_L):
+	case GDK_KEY (Shift_Lock):
+	case GDK_KEY (Shift_R):
+	case GDK_KEY (Super_L):
+	case GDK_KEY (Super_R):
 		modifier = TRUE;
 		break;
 	default:
@@ -1257,57 +1263,57 @@ _vte_keymap_key_gets_modifiers(guint keyval)
 	gboolean fkey = FALSE;
 	/* Determine if this key gets modifiers. */
 	switch (keyval) {
-	case GDK_Up:
-	case GDK_Down:
-	case GDK_Left:
-	case GDK_Right:
-	case GDK_Insert:
-	case GDK_Delete:
-	case GDK_Page_Up:
-	case GDK_Page_Down:
-	case GDK_KP_Up:
-	case GDK_KP_Down:
-	case GDK_KP_Left:
-	case GDK_KP_Right:
-	case GDK_KP_Insert:
-	case GDK_KP_Delete:
-	case GDK_KP_Page_Up:
-	case GDK_KP_Page_Down:
-	case GDK_F1:
-	case GDK_F2:
-	case GDK_F3:
-	case GDK_F4:
-	case GDK_F5:
-	case GDK_F6:
-	case GDK_F7:
-	case GDK_F8:
-	case GDK_F9:
-	case GDK_F10:
-	case GDK_F11:
-	case GDK_F12:
-	case GDK_F13:
-	case GDK_F14:
-	case GDK_F15:
-	case GDK_F16:
-	case GDK_F17:
-	case GDK_F18:
-	case GDK_F19:
-	case GDK_F20:
-	case GDK_F21:
-	case GDK_F22:
-	case GDK_F23:
-	case GDK_F24:
-	case GDK_F25:
-	case GDK_F26:
-	case GDK_F27:
-	case GDK_F28:
-	case GDK_F29:
-	case GDK_F30:
-	case GDK_F31:
-	case GDK_F32:
-	case GDK_F33:
-	case GDK_F34:
-	case GDK_F35:
+	case GDK_KEY (Up):
+	case GDK_KEY (Down):
+	case GDK_KEY (Left):
+	case GDK_KEY (Right):
+	case GDK_KEY (Insert):
+	case GDK_KEY (Delete):
+	case GDK_KEY (Page_Up):
+	case GDK_KEY (Page_Down):
+	case GDK_KEY (KP_Up):
+	case GDK_KEY (KP_Down):
+	case GDK_KEY (KP_Left):
+	case GDK_KEY (KP_Right):
+	case GDK_KEY (KP_Insert):
+	case GDK_KEY (KP_Delete):
+	case GDK_KEY (KP_Page_Up):
+	case GDK_KEY (KP_Page_Down):
+	case GDK_KEY (F1):
+	case GDK_KEY (F2):
+	case GDK_KEY (F3):
+	case GDK_KEY (F4):
+	case GDK_KEY (F5):
+	case GDK_KEY (F6):
+	case GDK_KEY (F7):
+	case GDK_KEY (F8):
+	case GDK_KEY (F9):
+	case GDK_KEY (F10):
+	case GDK_KEY (F11):
+	case GDK_KEY (F12):
+	case GDK_KEY (F13):
+	case GDK_KEY (F14):
+	case GDK_KEY (F15):
+	case GDK_KEY (F16):
+	case GDK_KEY (F17):
+	case GDK_KEY (F18):
+	case GDK_KEY (F19):
+	case GDK_KEY (F20):
+	case GDK_KEY (F21):
+	case GDK_KEY (F22):
+	case GDK_KEY (F23):
+	case GDK_KEY (F24):
+	case GDK_KEY (F25):
+	case GDK_KEY (F26):
+	case GDK_KEY (F27):
+	case GDK_KEY (F28):
+	case GDK_KEY (F29):
+	case GDK_KEY (F30):
+	case GDK_KEY (F31):
+	case GDK_KEY (F32):
+	case GDK_KEY (F33):
+	case GDK_KEY (F34):
+	case GDK_KEY (F35):
 		fkey = TRUE;
 		break;
 	default:
@@ -1322,19 +1328,19 @@ static gboolean
 is_cursor_key(guint keyval)
 {
 	switch (keyval) {
-	case GDK_Home:
-	case GDK_Left:
-	case GDK_Up:
-	case GDK_Right:
-	case GDK_Down:
-	case GDK_End:
+	case GDK_KEY (Home):
+	case GDK_KEY (Left):
+	case GDK_KEY (Up):
+	case GDK_KEY (Right):
+	case GDK_KEY (Down):
+	case GDK_KEY (End):
 
-	case GDK_KP_Home:
-	case GDK_KP_Left:
-	case GDK_KP_Up:
-	case GDK_KP_Right:
-	case GDK_KP_Down:
-	case GDK_KP_End:
+	case GDK_KEY (KP_Home):
+	case GDK_KEY (KP_Left):
+	case GDK_KEY (KP_Up):
+	case GDK_KEY (KP_Right):
+	case GDK_KEY (KP_Down):
+	case GDK_KEY (KP_End):
 		return TRUE;
 	default:
 		return FALSE;
