@@ -4922,8 +4922,11 @@ vte_translate_national_ctrlkeys (GdkEventKey *event)
 	GdkModifierType consumed_modifiers;
 	GdkKeymap *keymap;
 
-	keymap = gdk_keymap_get_for_display (
-			gdk_drawable_get_display (event->window));
+#if GTK_CHECK_VERSION (2, 90, 8)
+        keymap = gdk_keymap_get_for_display(gdk_window_get_display (event->window));
+#else
+	keymap = gdk_keymap_get_for_display(gdk_drawable_get_display (event->window));
+#endif
 
 	gdk_keymap_translate_keyboard_state (keymap,
 			event->hardware_keycode, event->state,
@@ -4939,16 +4942,19 @@ vte_translate_national_ctrlkeys (GdkEventKey *event)
 
 static void
 vte_terminal_read_modifiers (VteTerminal *terminal,
-			     GdkEvent    *event)
+			     GdkEvent *event)
 {
 	GdkModifierType modifiers;
 
 	/* Read the modifiers. */
 	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
 		GdkKeymap *keymap;
-		keymap = gdk_keymap_get_for_display (
-				gdk_drawable_get_display (((GdkEventAny *)event)->window));
-		gdk_keymap_add_virtual_modifiers (keymap, &modifiers);
+#if GTK_CHECK_VERSION (2, 90, 8)
+                keymap = gdk_keymap_get_for_display(gdk_window_get_display(((GdkEventAny*)event)->window));
+#else
+                keymap = gdk_keymap_get_for_display(gdk_drawable_get_display(((GdkEventAny*)event)->window));
+#endif
+                gdk_keymap_add_virtual_modifiers (keymap, &modifiers);
 		terminal->pvt->modifiers = modifiers;
 	}
 }
@@ -8726,7 +8732,9 @@ vte_terminal_realize(GtkWidget *widget)
 	attributes.height = allocation.height;
 	attributes.wclass = GDK_INPUT_OUTPUT;
 	attributes.visual = gtk_widget_get_visual (widget);
+#if !GTK_CHECK_VERSION (2, 90, 8)
 	attributes.colormap = gtk_widget_get_colormap (widget);
+#endif
 	attributes.event_mask = gtk_widget_get_events(widget) |
 				GDK_EXPOSURE_MASK |
 				GDK_VISIBILITY_NOTIFY_MASK |
@@ -8743,7 +8751,9 @@ vte_terminal_realize(GtkWidget *widget)
 	attributes_mask = GDK_WA_X |
 			  GDK_WA_Y |
 			  (attributes.visual ? GDK_WA_VISUAL : 0) |
+#if !GTK_CHECK_VERSION (2, 90, 8)
 			  (attributes.colormap ? GDK_WA_COLORMAP : 0) |
+#endif
 			  GDK_WA_CURSOR;
 
 	window = gdk_window_new (gtk_widget_get_parent_window (widget),
