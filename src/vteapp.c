@@ -547,7 +547,7 @@ main(int argc, char **argv)
 #endif
 		NULL};
 	const char *background = NULL;
-	gboolean transparent = FALSE, audible = TRUE, blink = TRUE,
+	gboolean transparent = FALSE, audible = TRUE,
 		 debug = FALSE, dingus = FALSE, dbuffer = TRUE,
 		 console = FALSE, scroll = FALSE, keep = FALSE,
 		 icon_title = FALSE, shell = TRUE, highlight_set = FALSE,
@@ -563,6 +563,7 @@ main(int argc, char **argv)
 	const char *working_directory = NULL;
 	const char *output_file = NULL;
         char *pty_flags_string = NULL;
+        char *cursor_blink_mode_string = NULL;
         char *cursor_shape_string = NULL;
         char *scrollbar_policy_string = NULL;
 	GdkColor fore, back, tint, highlight, cursor;
@@ -609,11 +610,6 @@ main(int argc, char **argv)
 			NULL
 		},
 		{
-			"blink", 'b', G_OPTION_FLAG_REVERSE,
-			G_OPTION_ARG_NONE, &blink,
-			"Disable the blinking cursor", NULL
-		},
-		{
 			"command", 'c', 0,
 			G_OPTION_ARG_STRING, &command,
 			"Execute a command in the terminal", NULL
@@ -653,6 +649,11 @@ main(int argc, char **argv)
 			G_OPTION_ARG_INT, &lines,
 			"Specify the number of scrollback-lines", NULL
 		},
+                {
+                        "cursor-blink", 0, 0,
+                        G_OPTION_ARG_STRING, &cursor_blink_mode_string,
+                        "Cursor blink mode (system|on|off)", "MODE"
+                },
 		{
 			"color-cursor", 'r', 0,
 			G_OPTION_ARG_NONE, &cursor_set,
@@ -722,6 +723,7 @@ main(int argc, char **argv)
 	};
 	GOptionContext *context;
 	GError *error = NULL;
+        VteTerminalCursorBlinkMode cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
         VteTerminalCursorShape cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
         GtkPolicyType scrollbar_policy = GTK_POLICY_ALWAYS;
         VtePtyFlags pty_flags = VTE_PTY_DEFAULT;
@@ -745,6 +747,10 @@ main(int argc, char **argv)
 		return 1;
 	}
 
+        if (cursor_blink_mode_string) {
+                cursor_blink_mode = parse_enum(VTE_TYPE_TERMINAL_CURSOR_BLINK_MODE, cursor_blink_mode_string);
+                g_free(cursor_blink_mode_string);
+        }
         if (cursor_shape_string) {
                 cursor_shape = parse_enum(VTE_TYPE_TERMINAL_CURSOR_SHAPE, cursor_shape_string);
                 g_free(cursor_shape_string);
@@ -874,7 +880,7 @@ main(int argc, char **argv)
 	/* Set some defaults. */
 	vte_terminal_set_audible_bell(terminal, audible);
 	vte_terminal_set_visible_bell(terminal, !audible);
-	vte_terminal_set_cursor_blink_mode(terminal, blink ? VTE_CURSOR_BLINK_SYSTEM : VTE_CURSOR_BLINK_OFF);
+	vte_terminal_set_cursor_blink_mode(terminal, cursor_blink_mode);
 	vte_terminal_set_scroll_background(terminal, scroll);
 	vte_terminal_set_scroll_on_output(terminal, FALSE);
 	vte_terminal_set_scroll_on_keystroke(terminal, TRUE);
