@@ -3518,6 +3518,32 @@ _vte_terminal_get_argv (const char *command,
         return argv2;
 }
 
+/*
+ * _vte_terminal_filter_envv:
+ * @envv: the environment vector
+ *
+ * Filters out the TERM variable from @envv.
+ *
+ * Returns: (transfer container): the filtered environment vector
+ */
+static char **
+_vte_terminal_filter_envv (char **envv)
+{
+  GPtrArray *array;
+  int i;
+
+  if (envv == NULL)
+    return NULL;
+
+  array = g_ptr_array_sized_new (g_strv_length (envv));
+  for (i = 0; envv[i]; ++i)
+    if (!g_str_has_prefix (envv[i], "TERM="))
+      g_ptr_array_add (array, envv[i]);
+  g_ptr_array_add (array, NULL);
+
+  return (char **) g_ptr_array_free (array, FALSE);
+}
+
 /**
  * vte_terminal_fork_command:
  * @terminal: a #VteTerminal
@@ -3554,7 +3580,7 @@ vte_terminal_fork_command(VteTerminal *terminal,
                           gboolean utmp,
                           gboolean wtmp)
 {
-        char **real_argv;
+        char **real_argv, **real_envv;
         GSpawnFlags spawn_flags;
         GPid child_pid;
         gboolean ret;
@@ -3570,17 +3596,19 @@ vte_terminal_fork_command(VteTerminal *terminal,
         spawn_flags = G_SPAWN_CHILD_INHERITS_STDIN |
                       G_SPAWN_SEARCH_PATH;
         real_argv = _vte_terminal_get_argv (command, argv, &spawn_flags);
+        real_envv = _vte_terminal_filter_envv (envv);
 
         ret = vte_terminal_fork_command_full(terminal,
                                              __vte_pty_get_pty_flags(lastlog, utmp, wtmp),
                                              working_directory,
                                              real_argv,
-                                             envv,
+                                             real_envv,
                                              spawn_flags,
                                              NULL, NULL,
                                              &child_pid,
                                              err);
         g_strfreev (real_argv);
+        g_free (real_envv);
 
 #ifdef VTE_DEBUG
         if (error) {

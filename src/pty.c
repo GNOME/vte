@@ -1819,6 +1819,11 @@ vte_pty_get_fd (VtePty *pty)
  * Sets what value of the TERM environment variable to set
  * when using vte_pty_child_setup().
  *
+ * Note: When using fork() and execve(), or the g_spawn_async() family of
+ * functions with vte_pty_child_setup(),
+ * and the environment passed to them contains the <literal>TERM</literal>
+ * environment variable, that value will override the one set here.
+ *
  * Since: 0.26
  */
 void
