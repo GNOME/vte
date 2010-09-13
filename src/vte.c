@@ -10916,6 +10916,46 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 /* Handle an expose event by painting the exposed area. */
 #if GTK_CHECK_VERSION (2, 90, 8)
 
+static cairo_region_t *
+vte_cairo_get_clip_region (cairo_t *cr)
+{
+        cairo_rectangle_list_t *list;
+        cairo_region_t *region;
+        int i;
+
+        list = cairo_copy_clip_rectangle_list (cr);
+        if (list->status == CAIRO_STATUS_CLIP_NOT_REPRESENTABLE) {
+                cairo_rectangle_int_t clip_rect;
+
+                cairo_rectangle_list_destroy (list);
+
+                if (!gdk_cairo_get_clip_rectangle (cr, &clip_rect))
+                        return NULL;
+                return cairo_region_create_rectangle (&clip_rect);
+        }
+
+
+        region = cairo_region_create ();
+        for (i = list->num_rectangles - 1; i >= 0; --i) {
+                cairo_rectangle_t *rect = &list->rectangles[i];
+                cairo_rectangle_int_t clip_rect;
+
+                clip_rect.x = floor (rect->x);
+                clip_rect.y = floor (rect->y);
+                clip_rect.width = ceil (rect->x + rect->width) - clip_rect.x;
+                clip_rect.height = ceil (rect->y + rect->height) - clip_rect.y;
+
+                if (cairo_region_union_rectangle (region, &clip_rect) != CAIRO_STATUS_SUCCESS) {
+                        cairo_region_destroy (region);
+                        region = NULL;
+                        break;
+                }
+        }
+
+        cairo_rectangle_list_destroy (list);
+        return region;
+}
+
 static gboolean
 vte_terminal_draw(GtkWidget *widget,
                   cairo_t *cr,
@@ -10934,10 +10974,10 @@ vte_terminal_draw(GtkWidget *widget,
                           clip_rect.x, clip_rect.y,
                           clip_rect.width, clip_rect.height);
 
-        /* Sucks that we don't have the expose region available; the clip rect
-         * is potentially much much larger.
-         */
-        region = cairo_region_create_rectangle (&clip_rect);
+        region = vte_cairo_get_clip_region (cr);
+        if (region == NULL)
+                return FALSE;
+
         vte_terminal_paint(widget, region);
         cairo_region_destroy (region);
 
