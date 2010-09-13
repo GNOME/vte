@@ -10914,8 +10914,43 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 }
 
 /* Handle an expose event by painting the exposed area. */
-static gint
-vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
+#if GTK_CHECK_VERSION (2, 90, 8)
+
+static gboolean
+vte_terminal_draw(GtkWidget *widget,
+                  cairo_t *cr,
+                  int draw_width G_GNUC_UNUSED,
+                  int draw_height G_GNUC_UNUSED)
+{
+        VteTerminal *terminal = VTE_TERMINAL (widget);
+        cairo_rectangle_int_t clip_rect;
+        cairo_region_t *region;
+
+        if (!gdk_cairo_get_clip_rectangle (cr, &clip_rect))
+                return FALSE;
+
+        _vte_debug_print (VTE_DEBUG_WORK, "+");
+        _vte_debug_print (VTE_DEBUG_EVENTS, "Draw (%d,%d)x(%d,%d)\n",
+                          clip_rect.x, clip_rect.y,
+                          clip_rect.width, clip_rect.height);
+
+        /* Sucks that we don't have the expose region available; the clip rect
+         * is potentially much much larger.
+         */
+        region = cairo_region_create_rectangle (&clip_rect);
+        vte_terminal_paint(widget, region);
+        cairo_region_destroy (region);
+
+        terminal->pvt->invalidated_all = FALSE;
+
+        return FALSE;
+}
+
+#else
+
+static gboolean
+vte_terminal_expose(GtkWidget *widget,
+                    GdkEventExpose *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL (widget);
 	GtkAllocation allocation;
@@ -10954,6 +10989,8 @@ vte_terminal_expose(GtkWidget *widget, GdkEventExpose *event)
 	}
 	return FALSE;
 }
+
+#endif /* GTK 3.0 */
 
 /* Handle a scroll event. */
 static gboolean
@@ -11337,7 +11374,11 @@ vte_terminal_class_init(VteTerminalClass *klass)
         gobject_class->set_property = vte_terminal_set_property;
 	widget_class->realize = vte_terminal_realize;
 	widget_class->scroll_event = vte_terminal_scroll;
+#if GTK_CHECK_VERSION (2, 90, 8)
+        widget_class->draw = vte_terminal_draw;
+#else
 	widget_class->expose_event = vte_terminal_expose;
+#endif
 	widget_class->key_press_event = vte_terminal_key_press;
 	widget_class->key_release_event = vte_terminal_key_release;
 	widget_class->button_press_event = vte_terminal_button_press;
