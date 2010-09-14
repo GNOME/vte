@@ -10958,9 +10958,7 @@ vte_cairo_get_clip_region (cairo_t *cr)
 
 static gboolean
 vte_terminal_draw(GtkWidget *widget,
-                  cairo_t *cr,
-                  int draw_width G_GNUC_UNUSED,
-                  int draw_height G_GNUC_UNUSED)
+                  cairo_t *cr)
 {
         VteTerminal *terminal = VTE_TERMINAL (widget);
         cairo_rectangle_int_t clip_rect;
