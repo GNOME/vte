@@ -10,4 +10,4 @@ Description: Vte terminal widget.
 Version: @VERSION@
 Requires: @VTE_PKGS@
 Libs: -L${libdir} -lvte@VTE_LIBRARY_SUFFIX_U@
-Cflags: -I${includedir}/vte-@VTE_API_VERSION@ -DVTE_SEAL_ENABLE
+Cflags: -I${includedir}/vte-@VTE_API_VERSION@ @VTE_SEAL_CFLAGS@
