@@ -1,23 +1,23 @@
 # Italian translation of vte.
-# Copyright (C) 2003 THE vte'S COPYRIGHT HOLDER
+# Copyright (C) 2003-2010 THE vte'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the vte package.
-# Francesco Marletta <francesco.marletta@tiscali.it>, 2003-2009.
+# Francesco Marletta <francesco.marletta@tiscali.it>, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte \n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=vte&component=general\n"
-"POT-Creation-Date: 2009-02-16 19:55+0000\n"
-"PO-Revision-Date: 2009-02-06 00:40+0100\n"
+"POT-Creation-Date: 2010-09-13 14:18+0000\n"
+"PO-Revision-Date: 2010-09-18 17:10+0200\n"
 "Last-Translator: Francesco Marletta <francesco.marletta@tiscali.it>\n"
 "Language-Team: Italian <tp@lists.linux.it>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: ../src/iso2022.c:785 ../src/iso2022.c:793 ../src/iso2022.c:824
-#: ../src/vte.c:2293
+#: ../src/iso2022.c:779 ../src/iso2022.c:787 ../src/iso2022.c:818
+#: ../src/vte.c:2260
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Impossibile convertire i caratteri da %s a %s."
@@ -25,7 +25,7 @@ msgstr "Impossibile convertire i caratteri da %s a %s."
 #: ../src/iso2022.c:1472
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr "Tentativo di impostare una mappa '%c' NRC non valida."
+msgstr "Tentativo di impostare una mappa \"%c\" NRC non valida."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #: ../src/iso2022.c:1502
@@ -35,66 +35,54 @@ msgstr "«Sistema di codifica identificato» non riconosciuto."
 #: ../src/iso2022.c:1561 ../src/iso2022.c:1588
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "Tentativo di impostare una mappa NRC ampia non valida '%c'."
-
-#. Give the user some clue as to why session logging is not
-#. * going to work (assuming we can open a pty using some other
-#. * method).
-#: ../src/pty.c:831
-#, c-format
-msgid "can not run %s"
-msgstr "impossibile eseguire %s"
+msgstr "Tentativo di impostare una mappa NRC ampia non valida \"%c\"."
 
 #: ../src/trie.c:409
 #, c-format
 msgid "Duplicate (%s/%s)!"
-msgstr "Duplicato (%s/%s)!"
+msgstr "Duplicato (%s/%s)."
 
 #. Bail back to normal mode.
-#: ../src/vteapp.c:846
+#: ../src/vteapp.c:971
 msgid "Could not open console.\n"
 msgstr "Impossibile aprire la console.\n"
 
-#: ../src/vteapp.c:910
+#: ../src/vteapp.c:1062
 msgid "Could not parse the geometry spec passed to --geometry"
 msgstr "Impossibile analizzare la specifica di geometria passata a --geometry"
 
-#: ../src/vte.c:1342
+#: ../src/vte.c:1286
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Errore nel compilare l'espressione regolare \"%s\"."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4294
+#: ../src/vte.c:4396
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Errore nella lettura dal processo figlio: %s."
 
-#: ../src/vte.c:4422
+#: ../src/vte.c:4523
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
 "Impossibile inviare dati al figlio, convertitore di set caratteri non valido"
 
-#: ../src/vte.c:4433 ../src/vte.c:5400
+#: ../src/vte.c:4534 ../src/vte.c:5565
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "Errore (%s) nel convertire i dati per il processo figlio, rimarranno "
 "invariati."
 
-#: ../src/vte.c:7669
+#: ../src/vte.c:7759
 #, c-format
-msgid "Error reading PTY size, using defaults: %s."
+#| msgid "Error reading PTY size, using defaults: %s."
+msgid "Error reading PTY size, using defaults: %s\n"
 msgstr ""
 "Errore nella lettura della dimensione PTY, sarà usato il valore predefinito: "
-"%s."
-
-#: ../src/vte.c:7705
-#, c-format
-msgid "Error setting PTY size: %s."
-msgstr "Errore nell'impostazione della dimensione PTY: %s."
+"%s\n"
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:13028
+#: ../src/vte.c:13330
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_con_open() ha fallito nell'impostare i caratteri della parola"
