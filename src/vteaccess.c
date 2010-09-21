@@ -1735,6 +1735,7 @@ vte_terminal_accessible_get_size(AtkComponent *component,
 				 gint *width, gint *height)
 {
 	GtkWidget *widget;
+	GdkWindow *window;
 	*width = 0;
 	*height = 0;
 	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE(component));
@@ -1744,7 +1745,15 @@ vte_terminal_accessible_get_size(AtkComponent *component,
 	if (!gtk_widget_get_realized(widget)) {
 		return;
 	}
-	gdk_drawable_get_size(gtk_widget_get_window (widget), width, height);
+	window = gtk_widget_get_window (widget);
+#if GTK_CHECK_VERSION (2, 90, 8)
+	if (width)
+		*width = gdk_window_get_width (window);
+	if (height)
+		*height = gdk_window_get_height (window);
+#else
+	gdk_drawable_get_size(window, width, height);
+#endif
 }
 
 static gboolean
