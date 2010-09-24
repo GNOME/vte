@@ -128,7 +128,7 @@ vte_bg_root_surface(VteBg *bg)
 	g_free(pixmaps);
  out:
 	_vte_bg_display_sync(bg);
-	gdk_error_trap_pop();
+	gdk_error_trap_pop_ignored ();
 
 	return surface;
 }

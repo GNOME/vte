@@ -50,6 +50,10 @@ G_BEGIN_DECLS
 
 #endif
 
+#if !GTK_CHECK_VERSION (2, 90, 8)
+#define gdk_error_trap_pop_ignored gdk_error_trap_pop
+#endif
+
 #if !GTK_CHECK_VERSION (2, 22, 0)
 #define gtk_accessible_get_widget(accessible)           ((accessible)->widget)
 #endif
