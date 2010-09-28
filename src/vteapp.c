@@ -795,7 +795,7 @@ main(int argc, char **argv)
 #if GTK_CHECK_VERSION (2, 90, 8)
         visual = gdk_screen_get_rgba_visual(screen);
         if (visual)
-                gtk_window_set_visual(GTK_WINDOW(window), visual);
+                gtk_widget_set_visual(GTK_WIDGET(window), visual);
 #else
 	colormap = gdk_screen_get_rgba_colormap (screen);
 	if (colormap)
