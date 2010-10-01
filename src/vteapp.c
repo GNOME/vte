@@ -1000,23 +1000,22 @@ main(int argc, char **argv)
                         if (command == NULL || *command == '\0')
                                 command = "/bin/sh";
 
-                        if (command != NULL) {
-                                if (!g_shell_parse_argv(command, &command_argc, &command_argv, &err) ||
-                                    !vte_terminal_fork_command_full(terminal,
-                                                                    pty_flags,
-                                                                    NULL,
-                                                                    command_argv,
-                                                                    env_add,
-                                                                    G_SPAWN_SEARCH_PATH,
-                                                                    NULL, NULL,
-                                                                    &pid,
-                                                                    &err)) {
-                                        g_warning("Failed to fork: %s\n", err->message);
-                                        g_error_free(err);
-                                } else {
-                                        g_print("Fork succeeded, PID %d\n", pid);
-                                }
-                        }
+			if (!g_shell_parse_argv(command, &command_argc, &command_argv, &err) ||
+			    !vte_terminal_fork_command_full(terminal,
+							    pty_flags,
+							    NULL,
+							    command_argv,
+							    env_add,
+							    G_SPAWN_SEARCH_PATH,
+							    NULL, NULL,
+							    &pid,
+							    &err)) {
+				g_warning("Failed to fork: %s\n", err->message);
+				g_error_free(err);
+			} else {
+				g_print("Fork succeeded, PID %d\n", pid);
+			}
+
                         g_strfreev(command_argv);
 	#ifdef VTE_DEBUG
 			if (command == NULL) {
