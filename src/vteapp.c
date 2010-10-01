@@ -994,8 +994,11 @@ main(int argc, char **argv)
 			_VTE_DEBUG_IF(VTE_DEBUG_MISC)
 				vte_terminal_feed(terminal, message, -1);
 
-                        if (command == NULL)
-                                command = "/bin/sh"; // FIXMEchpe
+                        if (command == NULL || *command == '\0')
+                                command = g_getenv ("SHELL");
+
+                        if (command == NULL || *command == '\0')
+                                command = "/bin/sh";
 
                         if (command != NULL) {
                                 if (!g_shell_parse_argv(command, &command_argc, &command_argv, &err) ||
