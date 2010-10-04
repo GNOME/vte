@@ -61,7 +61,7 @@ case "$with_gtk" in
        VTE_LIBRARY_SUFFIX=$VTE_API_VERSION
        VTE_SEAL_CFLAGS="-DVTE_SEAL_ENABLE"
        GTK_API_VERSION=3.0
-       GTK_REQUIRED=2.90.0
+       GTK_REQUIRED=2.91.0
        ;;
 esac
 
