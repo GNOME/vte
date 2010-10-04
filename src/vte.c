@@ -8035,10 +8035,11 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 	char *wpath;
 
 	if (path == NULL) {
-		wpath = g_strdup_printf(DATADIR "/" PACKAGE "/termcap/%s",
-					terminal->pvt->emulation ?
-					terminal->pvt->emulation :
-					vte_terminal_get_default_emulation(terminal));
+		wpath = g_build_filename(TERMCAPDIR,
+					 terminal->pvt->emulation ?
+					 terminal->pvt->emulation :
+					 vte_terminal_get_default_emulation(terminal),
+					 NULL);
 		if (g_stat(wpath, &st) != 0) {
 			g_free(wpath);
 			wpath = g_strdup("/etc/termcap");

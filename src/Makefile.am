@@ -96,6 +96,7 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_CPPFLAGS = \
  	-DDATADIR='"$(datadir)"' \
 	-DLIBEXECDIR='"$(libexecdir)"' \
 	-DLOCALEDIR='"$(localedir)"' \
+	-DTERMCAPDIR='"$(pkgdatadir)/termcap-$(VTE_API_VERSION)"' \
 	-DVTE_COMPILATION \
 	$(AM_CPPFLAGS)
 
@@ -240,7 +241,7 @@ interpret_SOURCES = \
 	interpret.c
 interpret_CPPFLAGS = \
  	-DINTERPRET_MAIN \
- 	-DDATADIR='"$(datadir)"'
+ 	-DTERMCAPDIR='"$(pkgdatadir)/termcap-$(VTE_API_VERSION)"'
 interpret_CFLAGS = $(GTK_CFLAGS)
 interpret_LDADD = $(GTK_LIBS)
 

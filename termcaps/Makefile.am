@@ -1,5 +1,5 @@
 EXTRA_DIST = xterm xterm.baseline
-termcapdir = $(pkgdatadir)/termcap
+termcapdir = $(pkgdatadir)/termcap-$(VTE_API_VERSION)
 termcap_DATA = xterm
 
 if VTE_DEFAULT_EMULATION

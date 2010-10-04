@@ -72,8 +72,7 @@ main(int argc, char **argv)
 
 	g_type_init();
 	terminal = argv[1];
-	termcap = _vte_termcap_new(g_strdup_printf(DATADIR "/" PACKAGE
-						   "/termcap/%s", terminal));
+	termcap = _vte_termcap_new(g_build_filename(TERMCAPDIR, terminal, NULL));
 	if (termcap == NULL) {
 		termcap = _vte_termcap_new("/etc/termcap");
 	}
