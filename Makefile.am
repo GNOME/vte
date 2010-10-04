@@ -27,7 +27,7 @@ DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-gtk-doc \
 	--disable-introspection \
 	--disable-silent-rules \
-	--with-gtk=2.0
+	--with-gtk=3.0
 
 MAINTAINERCLEANFILES = \
 		ChangeLog \
