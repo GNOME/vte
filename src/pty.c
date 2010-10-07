@@ -394,7 +394,7 @@ __vte_pty_get_argv (const char *command,
  * Returns: a newly allocated string array. Free using g_strfreev()
  */
 static gchar **
-__vte_pty_merge_environ (char **envp)
+__vte_pty_merge_environ (char **envp, const char *term_value)
 {
 	GHashTable *table;
         GHashTableIter iter;
@@ -424,6 +424,9 @@ __vte_pty_merge_environ (char **envp)
 			g_hash_table_replace (table, name, value);
 		}
 	}
+
+        if (term_value != NULL)
+                g_hash_table_replace (table, g_strdup ("TERM"), g_strdup (term_value));
 
 	array = g_ptr_array_sized_new (g_hash_table_size (table) + 1);
         g_hash_table_iter_init(&iter, table);
@@ -518,7 +521,7 @@ __vte_pty_spawn (VtePty *pty,
         spawn_flags &= ~G_SPAWN_LEAVE_DESCRIPTORS_OPEN;
 
         /* add the given environment to the childs */
-        envp2 = __vte_pty_merge_environ (envv);
+        envp2 = __vte_pty_merge_environ (envv, pty->priv->term);
 
         _VTE_DEBUG_IF (VTE_DEBUG_MISC) {
                 g_printerr ("Spawing command:\n");
@@ -1679,8 +1682,8 @@ vte_pty_class_init (VtePtyClass *klass)
         /**
          * VtePty:term:
          *
-         * The value to set for the TERM environment variable
-         * in vte_pty_child_setup().
+         * The value to set for the TERM environment variable just after
+         * forking.
          *
          * Since: 0.26
          */
@@ -1816,13 +1819,7 @@ vte_pty_get_fd (VtePty *pty)
  * @pty: a #VtePty
  * @emulation: (allow-none): the name of a terminal description, or %NULL
  *
- * Sets what value of the TERM environment variable to set
- * when using vte_pty_child_setup().
- *
- * Note: When using fork() and execve(), or the g_spawn_async() family of
- * functions with vte_pty_child_setup(),
- * and the environment passed to them contains the <literal>TERM</literal>
- * environment variable, that value will override the one set here.
+ * Sets what value of the TERM environment variable to set just after forking.
  *
  * Since: 0.26
  */
