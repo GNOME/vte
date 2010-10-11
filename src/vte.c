@@ -8203,6 +8203,67 @@ vte_terminal_init(VteTerminal *terminal)
 }
 
 /* Tell GTK+ how much space we need. */
+#if GTK_CHECK_VERSION (2, 91, 0)
+static void
+vte_terminal_get_preferred_width(GtkWidget *widget,
+				 int       *minimum_width,
+				 int       *natural_width)
+{
+	VteTerminal *terminal;
+
+	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_get_preferred_width()\n");
+
+	terminal = VTE_TERMINAL(widget);
+
+	vte_terminal_ensure_font (terminal);
+
+        vte_terminal_refresh_size(terminal);
+	*minimum_width = terminal->char_width * 1;
+        *natural_width = terminal->char_width * terminal->column_count;
+
+	*minimum_width += terminal->pvt->inner_border.left +
+                          terminal->pvt->inner_border.right;
+	*natural_width += terminal->pvt->inner_border.left +
+                          terminal->pvt->inner_border.right;
+
+	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
+			"[Terminal %p] minimum_width=%d, natural_width=%d for %ldx%ld cells.\n",
+                        terminal,
+			*minimum_width, *natural_width,
+			terminal->column_count,
+			terminal->row_count);
+}
+
+static void
+vte_terminal_get_preferred_height(GtkWidget *widget,
+				  int       *minimum_height,
+				  int       *natural_height)
+{
+	VteTerminal *terminal;
+
+	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_get_preferred_height()\n");
+
+	terminal = VTE_TERMINAL(widget);
+
+	vte_terminal_ensure_font (terminal);
+
+        vte_terminal_refresh_size(terminal);
+	*minimum_height = terminal->char_height * 1;
+        *natural_height = terminal->char_height * terminal->row_count;
+
+	*minimum_height += terminal->pvt->inner_border.left +
+			   terminal->pvt->inner_border.right;
+	*natural_height += terminal->pvt->inner_border.left +
+			   terminal->pvt->inner_border.right;
+
+	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
+			"[Terminal %p] minimum_height=%d, natural_height=%d for %ldx%ld cells.\n",
+                        terminal,
+			*minimum_height, *natural_height,
+			terminal->column_count,
+			terminal->row_count);
+}
+#else /* GTK+ 2.x */
 static void
 vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
 {
@@ -8230,6 +8291,7 @@ vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
 			terminal->column_count,
 			terminal->row_count);
 }
+#endif
 
 /* Accept a given size from GTK+. */
 static void
@@ -11402,7 +11464,12 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	widget_class->visibility_notify_event = vte_terminal_visibility_notify;
 	widget_class->unrealize = vte_terminal_unrealize;
 	widget_class->style_set = vte_terminal_style_set;
+#if GTK_CHECK_VERSION (2, 91, 0)
+	widget_class->get_preferred_width = vte_terminal_get_preferred_width;
+	widget_class->get_preferred_height = vte_terminal_get_preferred_height;
+#else
 	widget_class->size_request = vte_terminal_size_request;
+#endif
 	widget_class->size_allocate = vte_terminal_size_allocate;
 	widget_class->get_accessible = vte_terminal_get_accessible;
         widget_class->screen_changed = vte_terminal_screen_changed;
