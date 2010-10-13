@@ -1,3 +1,10 @@
+0.26.1
+======
+
+- Pass the correct TERM value inside envp when spawning.
+- Bugs fixed:
+    Bug 631589 - set_emulation does not work in the python bindings
+
 0.26.0
 ======
 
