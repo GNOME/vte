@@ -3670,6 +3670,7 @@ vte_terminal_fork_command_full(VteTerminal *terminal,
 
         vte_terminal_set_pty_object(terminal, pty);
         vte_terminal_watch_child(terminal, pid);
+        g_object_unref (pty);
 
         if (child_pid)
                 *child_pid = pid;
