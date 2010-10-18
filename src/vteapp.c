@@ -1079,7 +1079,7 @@ main(int argc, char **argv)
 		/* As of GTK+ 2.91.0, the default size of a window comes from its minimum
 		 * size not its natural size, so we need to set the right default size
 		 * explicitly */
-		gtk_window_set_default_geometry (window,
+		gtk_window_set_default_geometry (GTK_WINDOW (window),
 						 vte_terminal_get_column_count (terminal),
 						 vte_terminal_get_row_count (terminal));
 	}
