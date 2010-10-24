@@ -147,6 +147,10 @@ static guint signals[LAST_SIGNAL];
 
 enum {
         PROP_0,
+#if GTK_CHECK_VERSION (2, 91, 2)
+        PROP_HADJUSTMENT,
+        PROP_VADJUSTMENT,
+#endif
         PROP_ALLOW_BOLD,
         PROP_AUDIBLE_BELL,
         PROP_BACKGROUND_IMAGE_FILE,
@@ -276,6 +280,18 @@ _vte_incoming_chunks_reverse(struct _vte_incoming_chunk *chunk)
 }
 
 
+#if GTK_CHECK_VERSION (2, 91, 2)
+#ifdef VTE_DEBUG
+G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
+                        G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, NULL)
+                        if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
+                                g_printerr("vte_terminal_get_type()\n");
+                        })
+#else
+G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
+                        G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, NULL))
+#endif
+#else
 #ifdef VTE_DEBUG
 G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
 		if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
@@ -284,7 +300,7 @@ G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
 #else
 G_DEFINE_TYPE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET)
 #endif
-
+#endif /* GTK 3.0 */
 
 /* Indexes in the "palette" color array for the dim colors.
  * Only the first %VTE_LEGACY_COLOR_SET_SIZE colors have dim versions.  */
@@ -7826,14 +7842,17 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	}
 }
 
-/* Set the adjustment objects used by the terminal widget. */
 static void
-vte_terminal_set_scroll_adjustments(GtkWidget *widget,
-				    GtkAdjustment *hadjustment G_GNUC_UNUSED,
-				    GtkAdjustment *adjustment)
+vte_terminal_set_hadjustment(VteTerminal *terminal,
+                             GtkAdjustment *adjustment)
 {
-	VteTerminal *terminal = VTE_TERMINAL (widget);
+  /* do nothing */
+}
 
+static void
+vte_terminal_set_vadjustment(VteTerminal *terminal,
+                             GtkAdjustment *adjustment)
+{
 	if (adjustment != NULL && adjustment == terminal->adjustment)
 		return;
 	if (adjustment == NULL && terminal->adjustment != NULL)
@@ -7864,6 +7883,17 @@ vte_terminal_set_scroll_adjustments(GtkWidget *widget,
 				 G_CALLBACK(vte_terminal_handle_scroll),
 				 terminal);
 }
+
+/* Set the adjustment objects used by the terminal widget. */
+#if !GTK_CHECK_VERSION (2, 91, 2)
+static void
+vte_terminal_set_scroll_adjustments(GtkWidget *widget,
+                                   GtkAdjustment *hadjustment G_GNUC_UNUSED,
+                                   GtkAdjustment *vadjustment)
+{
+        vte_terminal_set_vadjustment(VTE_TERMINAL(widget), vadjustment);
+}
+#endif /* GTK 2.x */
 
 /**
  * vte_terminal_set_emulation:
@@ -8076,7 +8106,7 @@ vte_terminal_init(VteTerminal *terminal)
 	gtk_widget_set_redraw_on_allocate (&terminal->widget, FALSE);
 
 	/* Set an adjustment for the application to use to control scrolling. */
-	vte_terminal_set_scroll_adjustments(GTK_WIDGET(terminal), NULL, NULL);
+	vte_terminal_set_vadjustment(terminal, NULL);
 
 	/* Set up dummy metrics, value != 0 to avoid division by 0 */
 	terminal->char_width = 1;
@@ -11218,6 +11248,14 @@ vte_terminal_get_property (GObject *object,
 
 	switch (prop_id)
 	{
+#if GTK_CHECK_VERSION (2, 91, 2 )
+                case PROP_HADJUSTMENT:
+                        g_value_set_object (value, NULL);
+                        break;
+                case PROP_VADJUSTMENT:
+                        g_value_set_object (value, terminal->adjustment);
+                        break;
+#endif
                 case PROP_ALLOW_BOLD:
                         g_value_set_boolean (value, vte_terminal_get_allow_bold (terminal));
                         break;
@@ -11314,6 +11352,14 @@ vte_terminal_set_property (GObject *object,
 
 	switch (prop_id)
 	{
+#if GTK_CHECK_VERSION (2, 91, 2 )
+                case PROP_HADJUSTMENT:
+                        vte_terminal_set_hadjustment (terminal, g_value_get_object (value));
+                        break;
+                case PROP_VADJUSTMENT:
+                        vte_terminal_set_vadjustment (terminal, g_value_get_object (value));
+                        break;
+#endif
                 case PROP_ALLOW_BOLD:
                         vte_terminal_set_allow_bold (terminal, g_value_get_boolean (value));
                         break;
@@ -11510,9 +11556,16 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->copy_clipboard = vte_terminal_real_copy_clipboard;
 	klass->paste_clipboard = vte_terminal_real_paste_clipboard;
 
-	klass->set_scroll_adjustments = vte_terminal_set_scroll_adjustments;
-
         klass->beep = NULL;
+
+#if GTK_CHECK_VERSION (2, 91, 2)
+        /* GtkScrollable interface properties */
+        g_object_class_override_property (gobject_class, PROP_HADJUSTMENT, "hadjustment");
+        g_object_class_override_property (gobject_class, PROP_VADJUSTMENT, "vadjustment");
+
+#else
+
+        klass->set_scroll_adjustments = vte_terminal_set_scroll_adjustments;
 
         /**
          * VteTerminal::set-scroll-adjustments:
@@ -11535,6 +11588,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     _vte_marshal_VOID__OBJECT_OBJECT,
 			     G_TYPE_NONE, 2,
 			     GTK_TYPE_ADJUSTMENT, GTK_TYPE_ADJUSTMENT);
+
+#endif
 
 	/* Register some signals of our own. */
 
@@ -13827,6 +13882,8 @@ vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad)
  * An accessor function provided for the benefit of language bindings.
  *
  * Returns: (transfer none): the contents of @terminal's adjustment field
+ *
+ * Deprecated: 0.28: Use gtk_scrollable_get_vadjustment() instead
  */
 GtkAdjustment *
 vte_terminal_get_adjustment(VteTerminal *terminal)

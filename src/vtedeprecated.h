@@ -94,6 +94,10 @@ void vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad) G_GNU
 void vte_terminal_set_pty(VteTerminal *terminal, int pty_master);
 int vte_terminal_get_pty(VteTerminal *terminal);
 
+#if GTK_CHECK_VERSION (2, 91, 2)
+GtkAdjustment *vte_terminal_get_adjustment(VteTerminal *terminal);
+#endif
+
 G_END_DECLS
 
 #endif /* !vte_deprecated_h_included */
