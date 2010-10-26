@@ -150,6 +150,8 @@ enum {
 #if GTK_CHECK_VERSION (2, 91, 2)
         PROP_HADJUSTMENT,
         PROP_VADJUSTMENT,
+        PROP_HSCROLL_POLICY,
+        PROP_VSCROLL_POLICY,
 #endif
         PROP_ALLOW_BOLD,
         PROP_AUDIBLE_BELL,
@@ -7846,7 +7848,15 @@ static void
 vte_terminal_set_hadjustment(VteTerminal *terminal,
                              GtkAdjustment *adjustment)
 {
-  /* do nothing */
+  VteTerminalPrivate *pvt = terminal->pvt;
+
+  if (adjustment == pvt->hadjustment)
+    return;
+
+  if (pvt->hadjustment)
+    g_object_unref (pvt->hadjustment);
+
+  pvt->hadjustment = adjustment ? g_object_ref_sink (adjustment) : NULL;
 }
 
 static void
@@ -8106,7 +8116,17 @@ vte_terminal_init(VteTerminal *terminal)
 	gtk_widget_set_redraw_on_allocate (&terminal->widget, FALSE);
 
 	/* Set an adjustment for the application to use to control scrolling. */
+        terminal->adjustment = NULL;
+#if GTK_CHECK_VERSION (2, 91, 2)
+        pvt->hadjustment = NULL;
+        /* GtkScrollable */
+        pvt->hscroll_policy = GTK_SCROLL_NATURAL;
+        pvt->vscroll_policy = GTK_SCROLL_NATURAL;
+#endif
+
+        vte_terminal_set_hadjustment(terminal, NULL);
 	vte_terminal_set_vadjustment(terminal, NULL);
+
 
 	/* Set up dummy metrics, value != 0 to avoid division by 0 */
 	terminal->char_width = 1;
@@ -11248,13 +11268,18 @@ vte_terminal_get_property (GObject *object,
 
 	switch (prop_id)
 	{
-#if GTK_CHECK_VERSION (2, 91, 2 )
+#if GTK_CHECK_VERSION (2, 91, 2)
                 case PROP_HADJUSTMENT:
-                        g_value_set_object (value, NULL);
+                        g_value_set_object (value, pvt->hadjustment);
                         break;
                 case PROP_VADJUSTMENT:
                         g_value_set_object (value, terminal->adjustment);
                         break;
+                case PROP_HSCROLL_POLICY:
+                        g_value_set_enum (value, pvt->hscroll_policy);
+                        break;
+                case PROP_VSCROLL_POLICY:
+                        g_value_set_enum (value, pvt->vscroll_policy);
 #endif
                 case PROP_ALLOW_BOLD:
                         g_value_set_boolean (value, vte_terminal_get_allow_bold (terminal));
@@ -11352,13 +11377,20 @@ vte_terminal_set_property (GObject *object,
 
 	switch (prop_id)
 	{
-#if GTK_CHECK_VERSION (2, 91, 2 )
+#if GTK_CHECK_VERSION (2, 91, 2)
                 case PROP_HADJUSTMENT:
                         vte_terminal_set_hadjustment (terminal, g_value_get_object (value));
                         break;
                 case PROP_VADJUSTMENT:
                         vte_terminal_set_vadjustment (terminal, g_value_get_object (value));
                         break;
+                case PROP_HSCROLL_POLICY:
+                        pvt->hscroll_policy = g_value_get_enum (value);
+                        gtk_widget_queue_resize_no_redraw (GTK_WIDGET (terminal));
+                        break;
+                case PROP_VSCROLL_POLICY:
+                        pvt->vscroll_policy = g_value_get_enum (value);
+                        gtk_widget_queue_resize_no_redraw (GTK_WIDGET (terminal));
 #endif
                 case PROP_ALLOW_BOLD:
                         vte_terminal_set_allow_bold (terminal, g_value_get_boolean (value));
@@ -11562,6 +11594,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
         /* GtkScrollable interface properties */
         g_object_class_override_property (gobject_class, PROP_HADJUSTMENT, "hadjustment");
         g_object_class_override_property (gobject_class, PROP_VADJUSTMENT, "vadjustment");
+        g_object_class_override_property (gobject_class, PROP_HSCROLL_POLICY, "hscroll-policy");
+        g_object_class_override_property (gobject_class, PROP_VSCROLL_POLICY, "vscroll-policy");
 
 #else
 
