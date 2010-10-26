@@ -11392,6 +11392,7 @@ vte_terminal_set_property (GObject *object,
                 case PROP_VSCROLL_POLICY:
                         pvt->vscroll_policy = g_value_get_enum (value);
                         gtk_widget_queue_resize_no_redraw (GTK_WIDGET (terminal));
+                        break;
 #endif
                 case PROP_ALLOW_BOLD:
                         vte_terminal_set_allow_bold (terminal, g_value_get_boolean (value));
