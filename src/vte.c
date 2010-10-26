@@ -11280,6 +11280,7 @@ vte_terminal_get_property (GObject *object,
                         break;
                 case PROP_VSCROLL_POLICY:
                         g_value_set_enum (value, pvt->vscroll_policy);
+                        break;
 #endif
                 case PROP_ALLOW_BOLD:
                         g_value_set_boolean (value, vte_terminal_get_allow_bold (terminal));
