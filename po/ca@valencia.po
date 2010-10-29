@@ -7,42 +7,35 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte 0.11.6\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2009-09-14 13:38+0200\n"
-"PO-Revision-Date: 2007-03-05 03:02+0100\n"
+"POT-Creation-Date: 2010-10-29 21:49+0100\n"
+"PO-Revision-Date: 2010-08-22 10:11+0200\n"
 "Last-Translator: Jordi Mallach <jordi@sindominio.net>\n"
 "Language-Team: Catalan <tradgnome@softcatala.org>\n"
+"Language: ca\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
-#: ../src/vte.c:2190
+#: ../src/iso2022.c:779 ../src/iso2022.c:787 ../src/iso2022.c:818
+#: ../src/vte.c:2278
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "No es pot convertir el caràcter %s a %s."
 
-#: ../src/iso2022.c:1464
+#: ../src/iso2022.c:1472
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "S'ha intentat fixar el mapa NRC invàlid «%c»."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1494
+#: ../src/iso2022.c:1502
 msgid "Unrecognized identified coding system."
 msgstr "No s'ha reconegut el sistema de codificació identificat."
 
-#: ../src/iso2022.c:1553 ../src/iso2022.c:1580
+#: ../src/iso2022.c:1561 ../src/iso2022.c:1588
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "S'ha intentat fixar el mapa global NRC «%c»."
-
-#. Give the user some clue as to why session logging is not
-#. * going to work (assuming we can open a pty using some other
-#. * method).
-#: ../src/pty.c:831
-#, c-format
-msgid "can not run %s"
-msgstr "no es pot executar %s"
 
 #: ../src/trie.c:409
 #, c-format
@@ -50,50 +43,53 @@ msgid "Duplicate (%s/%s)!"
 msgstr "Duplicat (%s/%s)!"
 
 #. Bail back to normal mode.
-#: ../src/vteapp.c:846
+#: ../src/vteapp.c:981
 msgid "Could not open console.\n"
 msgstr "No s'ha pogut obrir la consola.\n"
 
-#: ../src/vteapp.c:910
+#: ../src/vteapp.c:1074
 msgid "Could not parse the geometry spec passed to --geometry"
 msgstr ""
 "No s'ha pogut analitzar l'especificació geomètrica indicada a --geometry"
 
-#: ../src/vte.c:1239
+#: ../src/vte.c:1304
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "S'ha produït un error en compilar l'expressió regular «%s»."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4152
+#: ../src/vte.c:4387
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "S'ha produït un error en llegir del fill: %s."
 
-#: ../src/vte.c:4280
+#: ../src/vte.c:4514
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
 "No s'ha pogut enviar les dades al fill, el convertidor de codificació no és "
 "vàlid"
 
-#: ../src/vte.c:4291 ../src/vte.c:5283
+#: ../src/vte.c:4525 ../src/vte.c:5562
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "S'ha produït un error (%s) en convertir dades per al fill; s'ometrà la "
 "conversió."
 
-#: ../src/vte.c:7513
+#: ../src/vte.c:7756
 #, c-format
-msgid "Error reading PTY size, using defaults: %s."
+msgid "Error reading PTY size, using defaults: %s\n"
 msgstr ""
-"S'ha produït un error en llegir la mida de PTY; s'emprarà el valor per "
-"defecte: %s."
+"S'ha produït un error en llegir la mida de PTY; s'utilitzarà el valor per "
+"defecte: %s\n"
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:13073
+#: ../src/vte.c:13551
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() no ha pogut establir els caràcters de paraula"
+
+#~ msgid "can not run %s"
+#~ msgstr "no es pot executar %s"
 
 #~ msgid "Error creating signal pipe."
 #~ msgstr "S'ha produït un error en crear el senyal de conducte (SIGPIPE)."
@@ -120,14 +116,14 @@ msgstr "_vte_conv_open() no ha pogut establir els caràcters de paraula"
 
 #~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
 #~ msgstr ""
-#~ "S'està utilitzant la font «%s», que no té els següents jocs de caràcters: %"
-#~ "s."
+#~ "S'està utilitzant la font «%s», que no té els següents jocs de caràcters: "
+#~ "%s."
 
 #~ msgid ""
 #~ "Failed to load Xft font pattern \"%s\", falling back to default font."
 #~ msgstr ""
-#~ "No s'ha pogut carregar el patró de font Xft «%s»; es carregarà la font per "
-#~ "defecte."
+#~ "No s'ha pogut carregar el patró de font Xft «%s»; es carregarà la font "
+#~ "per defecte."
 
 #~ msgid "Failed to load default Xft font."
 #~ msgstr "No s'ha pogut carregar la font Xft per defecte."
