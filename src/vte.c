@@ -7844,6 +7844,7 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	}
 }
 
+#if GTK_CHECK_VERSION (2, 91, 2)
 static void
 vte_terminal_set_hadjustment(VteTerminal *terminal,
                              GtkAdjustment *adjustment)
@@ -7858,6 +7859,7 @@ vte_terminal_set_hadjustment(VteTerminal *terminal,
 
   pvt->hadjustment = adjustment ? g_object_ref_sink (adjustment) : NULL;
 }
+#endif
 
 static void
 vte_terminal_set_vadjustment(VteTerminal *terminal,
@@ -8122,9 +8124,10 @@ vte_terminal_init(VteTerminal *terminal)
         /* GtkScrollable */
         pvt->hscroll_policy = GTK_SCROLL_NATURAL;
         pvt->vscroll_policy = GTK_SCROLL_NATURAL;
-#endif
 
         vte_terminal_set_hadjustment(terminal, NULL);
+#endif
+
 	vte_terminal_set_vadjustment(terminal, NULL);
 
 
