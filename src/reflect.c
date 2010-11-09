@@ -284,7 +284,11 @@ main(int argc, char **argv)
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(sw), label);
 	gtk_widget_show(label);
 
+#if GTK_CHECK_VERSION (2, 91, 2)
+	pane = gtk_paned_new (GTK_ORIENTATION_VERTICAL);
+#else
 	pane = gtk_vpaned_new();
+#endif
 	gtk_paned_pack1(GTK_PANED(pane), tophalf, TRUE, FALSE);
 	gtk_paned_pack2(GTK_PANED(pane), sw, TRUE, FALSE);
 	gtk_widget_show(tophalf);
