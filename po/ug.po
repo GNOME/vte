@@ -6,13 +6,11 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=vte&component=general\n"
-"POT-Creation-Date: 2010-09-28 19:02+0000\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=vte&component=general\n"
+"POT-Creation-Date: 2010-09-30 22:16+0000\n"
 "PO-Revision-Date: 2004-02-05 00:10+0100\n"
 "Last-Translator:  Abduxukur Abdurixit <abduxukur.abdurixit@t-systems.ch>\n"
-"Language-Team:  GNOME Uighur Translation Project <gnome-uighur@yahoogroups."
-"com>\n"
+"Language-Team:  GNOME Uighur Translation Project <gnome-uighur@yahoogroups.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -50,7 +48,7 @@ msgstr "كونترول سۇپىسىنى ئاچالمىدى.\n"
 
 #: ../src/vteapp.c:1072
 msgid "Could not parse the geometry spec passed to --geometry"
-msgstr "--geometry غا يوللايدىغان گىئومېتىرىك پارامېتىرنى يېشەلمىدى"
+msgstr "--geometry غا يوللايدىغان گېئومېتىرىيىلىك پارامېتىرنى يېشەلمىدى"
 
 #: ../src/vte.c:1286
 #, c-format
@@ -65,22 +63,17 @@ msgstr "تارماق پروگراممىدىن سانلىق-مەلۇمات ئوق
 
 #: ../src/vte.c:4523
 msgid "Unable to send data to child, invalid charset convertor"
-msgstr ""
-"تارماق جەريانغا سانلىق-مەلۇمات يوللىيالمىدى، ھەرپ-بەلگە ئايلاندۇرغۇچ "
-"ئىناۋەتسىز"
+msgstr "تارماق جەريانغا سانلىق-مەلۇمات يوللىيالمىدى، ھەرپ-بەلگە ئايلاندۇرغۇچ ئىناۋەتسىز"
 
 #: ../src/vte.c:4534 ../src/vte.c:5571
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr ""
-"تارماق پروگرامما سانلىق-ئاساسىنى ئۆزگەرتىش جەريانىدا خاتالىق كۆرۈلگەنىگى "
-"ئۈچۈن تاشلىۋېتىلدى(%s) ."
+msgstr "تارماق پروگرامما سانلىق-ئاساسىنى ئۆزگەرتىش جەريانىدا خاتالىق كۆرۈلگىنىنى ئۈچۈن تاشلىۋېتىلدى(%s) ."
 
 #: ../src/vte.c:7765
 #, c-format
 msgid "Error reading PTY size, using defaults: %s\n"
-msgstr ""
-"PTY چوڭلۇقىنى ئوقۇشتا خاتالىق كۆرۈلدى، كۆڭۈلدىكى چوڭلۇق ئىشلىتىلىدۇ: %s\n"
+msgstr "PTY چوڭلۇقىنى ئوقۇشتا خاتالىق كۆرۈلدى، كۆڭۈلدىكى چوڭلۇق ئىشلىتىلىدۇ: %s\n"
 
 #. Aaargh.  We're screwed.
 #: ../src/vte.c:13419
