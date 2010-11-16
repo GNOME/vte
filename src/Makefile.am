@@ -329,7 +329,7 @@ xticker_SOURCES = xticker.c
 
 # GSettings
 
-gsettings_ENUM_NAMESPACE = vte0
+gsettings_ENUM_NAMESPACE = org.gnome.vte.v0
 gsettings_ENUM_FILES = vte.h
 
 @GSETTINGS_RULES@
