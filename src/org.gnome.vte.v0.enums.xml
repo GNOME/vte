@@ -1,0 +1,28 @@
+
+<!-- Generated data (by glib-mkenums) -->
+
+<schemalist>
+  <enum id='org.gnome.vte.v0.Terminal.EraseBinding'>
+    <value nick='auto' value='0'/>
+    <value nick='ascii-backspace' value='1'/>
+    <value nick='ascii-delete' value='2'/>
+    <value nick='delete-sequence' value='3'/>
+    <value nick='tty' value='4'/>
+  </enum>
+  <enum id='org.gnome.vte.v0.Terminal.Cursor.BlinkMode'>
+    <value nick='system' value='0'/>
+    <value nick='on' value='1'/>
+    <value nick='off' value='2'/>
+  </enum>
+  <enum id='org.gnome.vte.v0.Terminal.Cursor.Shape'>
+    <value nick='block' value='0'/>
+    <value nick='ibeam' value='1'/>
+    <value nick='underline' value='2'/>
+  </enum>
+  <enum id='org.gnome.vte.v0.Terminal.WriteFlags'>
+    <value nick='default' value='0'/>
+  </enum>
+</schemalist>
+
+<!-- Generated data ends here -->
+
