@@ -327,5 +327,14 @@ mev_SOURCES = mev.c
 ssfe_SOURCES = ssfe.c
 xticker_SOURCES = xticker.c
 
+# GSettings
+
+gsettings_ENUM_NAMESPACE = vte0
+gsettings_ENUM_FILES = vte.h
+
+@GSETTINGS_RULES@
+
+#
+
 -include $(top_srcdir)/git.mk
 -include $(INTROSPECTION_MAKEFILE)

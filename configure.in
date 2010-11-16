@@ -322,7 +322,7 @@ case $host in
 	;;
 esac
 
-GLIB_REQUIRED=2.22.0
+GLIB_REQUIRED=2.26.0
 PANGO_REQUIRED=1.22.0
 AC_DEFINE(GDK_MULTIHEAD_SAFE,1,[Force use of GDK's multihead-safe APIs.])
 PKG_CHECK_MODULES(GLIB,[glib-2.0 > $GLIB_REQUIRED gobject-2.0])
@@ -563,6 +563,12 @@ if test -z "$enable_introspection"; then
 fi
 
 GOBJECT_INTROSPECTION_CHECK([0.6.7])
+
+# *********
+# GSettings
+# *********
+
+GLIB_GSETTINGS
 
 ################################################################################
 
