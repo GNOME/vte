@@ -265,7 +265,7 @@ if test "$enable_Bsymbolic" != "no"; then
        AC_MSG_WARN([-Bsymbolic not supported by ld; disabling])
        enable_Bsymbolic=no
      else
-       AC_MSG_ERROR([-Bsymbolic requested but not supported by ld])
+       AC_MSG_ERROR([-Bsymbolic requested but not supported by ld. Use --disable-Bsymbolic to disable])
      fi])
 fi
 
