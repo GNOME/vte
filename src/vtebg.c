@@ -240,10 +240,11 @@ vte_bg_get_for_screen(GdkScreen *screen)
 
 		window = gdk_screen_get_root_window(screen);
                 pvt->native.window = window;
-                pvt->native.native_window = gdk_x11_drawable_get_xid(window);
-#if GTK_CHECK_VERSION (2, 90, 8)
+#if GTK_CHECK_VERSION (2, 91, 6)
+                pvt->native.native_window = GDK_WINDOW_XID (window);
                 pvt->native.display = gdk_window_get_display(window);
 #else
+                pvt->native.native_window = gdk_x11_drawable_get_xid(window);
                 pvt->native.display = gdk_drawable_get_display(GDK_DRAWABLE(window));
 #endif
                 pvt->native.native_atom = gdk_x11_get_xatom_by_name_for_display(pvt->native.display, "_XROOTPMAP_ID");
