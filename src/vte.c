@@ -4409,7 +4409,7 @@ out:
 /**
  * vte_terminal_feed:
  * @terminal: a #VteTerminal
- * @data: (array length=length zero-terminated=0) (element-type uint8): a string in the terminal's current encoding
+ * @data: a string in the terminal's current encoding
  * @length: the length of the string
  *
  * Interprets @data as if it were data received from a child process.  This
@@ -4612,7 +4612,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 /**
  * vte_terminal_feed_child:
  * @terminal: a #VteTerminal
- * @text: (array length=length zero-terminated=maybe) (element-type uint8): data to send to the child
+ * @text: data to send to the child
  * @length: length of @text in bytes, or -1 if @text is NUL-terminated
  *
  * Sends a block of UTF-8 text to the child as if it were entered by the user
@@ -4634,7 +4634,7 @@ vte_terminal_feed_child(VteTerminal *terminal, const char *text, glong length)
 /**
  * vte_terminal_feed_child_binary:
  * @terminal: a #VteTerminal
- * @data: (array length=length zero-terminated=0) (element-type uint8): data to send to the child
+ * @data: data to send to the child
  * @length: length of @data
  *
  * Sends a block of binary data to the child.
