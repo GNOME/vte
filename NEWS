@@ -1,3 +1,16 @@
+0.27.3
+======
+- Add a gsettings .enums.xml file for vte's enum types
+- Fix build with latest gtk 3
+- Fix introspection annotations and require gobject-introspection 0.9.0
+- Bugs fixed:
+  * Bug 628870 - Clarify error message
+- Translation updates
+
+0.27.2
+======
+(See git log)
+
 0.27.1
 ======
 
