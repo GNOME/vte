@@ -3618,13 +3618,13 @@ vte_terminal_fork_command(VteTerminal *terminal,
  * vte_terminal_fork_command_full:
  * @terminal: a #VteTerminal
  * @pty_flags: flags from #VtePtyFlags
- * @argv: (array zero-terminated=1) (element-type filename): child's argument vector
- * @envv: (allow-none) (array zero-terminated=1) (element-type filename): a list of environment
- *   variables to be added to the environment before starting the process, or %NULL
- * @working_directory: (allow-none) (type filename): the name of a directory the command should start
+ * @working_directory: (allow-none): the name of a directory the command should start
  *   in, or %NULL to use the current working directory
+ * @argv: child's argument vector
+ * @envv: (allow-none): a list of environment
+ *   variables to be added to the environment before starting the process, or %NULL
  * @spawn_flags: flags from #GSpawnFlags
- * @child_setup: (allow-none): function to run in the child just before exec(), or %NULL
+ * @child_setup: (allow-none) (scope async): function to run in the child just before exec(), or %NULL
  * @child_setup_data: user data for @child_setup
  * @child_pid: (out) (allow-none) (transfer full): a location to store the child PID, or %NULL
  * @error: (allow-none): return location for a #GError, or %NULL
