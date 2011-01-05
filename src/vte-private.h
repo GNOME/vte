@@ -294,6 +294,7 @@ struct _VteTerminalPrivate {
         gboolean cursor_blinks;           /* whether the cursor is actually blinking */
 	gint64 cursor_blink_time;         /* how long the cursor has been blinking yet */
 	gboolean cursor_visible;
+	gboolean has_focus;               /* is the terminal window focused */
 
 	/* Input device options. */
 	time_t last_keypress_time;

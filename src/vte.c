@@ -134,6 +134,7 @@ static void vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gbool
 static void vte_terminal_set_font_full_internal(VteTerminal *terminal,
                                                 const PangoFontDescription *font_desc,
                                                 VteTerminalAntiAlias antialias);
+static void _vte_check_cursor_blink(VteTerminal *terminal);
 
 static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
@@ -520,7 +521,6 @@ _vte_invalidate_all(VteTerminal *terminal)
 		gdk_window_invalidate_rect (gtk_widget_get_window (&terminal->widget), &rect, FALSE);
 	}
 }
-
 
 /* Scroll a rectangular region up or down by a fixed number of lines,
  * negative = up, positive = down. */
@@ -4221,10 +4221,12 @@ next_match:
 		if (cursor_visible)
 			_vte_invalidate_cell(terminal, cursor.col, cursor.row);
 		_vte_invalidate_cursor_once(terminal, FALSE);
+		_vte_check_cursor_blink(terminal);
 		/* Signal that the cursor moved. */
 		vte_terminal_queue_cursor_moved(terminal);
 	} else if (cursor_visible != terminal->pvt->cursor_visible) {
 		_vte_invalidate_cell(terminal, cursor.col, cursor.row);
+		_vte_check_cursor_blink(terminal);
 	}
 
 	/* Tell the input method where the cursor is. */
@@ -4834,6 +4836,9 @@ vte_terminal_style_set (GtkWidget      *widget,
 static void
 add_cursor_timeout (VteTerminal *terminal)
 {
+	if (terminal->pvt->cursor_blink_tag)
+		return; /* already added */
+
 	terminal->pvt->cursor_blink_time = 0;
 	terminal->pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
 							     terminal->pvt->cursor_blink_cycle,
@@ -4845,10 +4850,24 @@ add_cursor_timeout (VteTerminal *terminal)
 static void
 remove_cursor_timeout (VteTerminal *terminal)
 {
+	if (terminal->pvt->cursor_blink_tag == 0)
+		return; /* already removed */
+
 	g_source_remove (terminal->pvt->cursor_blink_tag);
 	terminal->pvt->cursor_blink_tag = 0;
 }
 
+/* Activates / disactivates the cursor blink timer to reduce wakeups */
+static void
+_vte_check_cursor_blink(VteTerminal *terminal)
+{
+	if (terminal->pvt->has_focus &&
+	    terminal->pvt->cursor_blinks &&
+	    terminal->pvt->cursor_visible)
+		add_cursor_timeout(terminal);
+	else
+		remove_cursor_timeout(terminal);
+}
 
 void
 _vte_terminal_audible_beep(VteTerminal *terminal)
@@ -7349,10 +7368,9 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 	 * point to painting the cursor if we don't have a window. */
 	if (gtk_widget_get_realized (widget)) {
 		terminal->pvt->cursor_blink_state = TRUE;
+		terminal->pvt->has_focus = TRUE;
 
-		if (terminal->pvt->cursor_blinks &&
-		    terminal->pvt->cursor_blink_tag == 0)
-			add_cursor_timeout (terminal);
+		_vte_check_cursor_blink (terminal);
 
 		gtk_im_context_focus_in(terminal->pvt->im_context);
 		_vte_invalidate_cursor_once(terminal, FALSE);
@@ -7386,8 +7404,8 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 		terminal->pvt->mouse_cursor_visible = FALSE;
 	}
 
-	if (terminal->pvt->cursor_blink_tag != 0)
-		remove_cursor_timeout (terminal);
+	terminal->pvt->has_focus = FALSE;
+	_vte_check_cursor_blink (terminal);
 
 	return FALSE;
 }
@@ -8529,11 +8547,7 @@ vte_terminal_unrealize(GtkWidget *widget)
 	}
 
 	/* Remove the blink timeout function. */
-	if (terminal->pvt->cursor_blink_tag != 0) {
-		g_source_remove(terminal->pvt->cursor_blink_tag);
-		terminal->pvt->cursor_blink_tag = 0;
-	}
-	terminal->pvt->cursor_blink_state = FALSE;
+	remove_cursor_timeout(terminal);
 
 	/* Cancel any pending redraws. */
 	remove_update_timeout (terminal);
@@ -10737,7 +10751,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	    (CLAMP(row, 0, terminal->row_count    - 1) != row))
 		return;
 
-	focus = gtk_widget_has_focus (&terminal->widget);
+	focus = terminal->pvt->has_focus;
 	blink = terminal->pvt->cursor_blink_state;
 
 	if (focus && !blink)
@@ -13306,15 +13320,7 @@ vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink)
 		return;
 
 	pvt->cursor_blinks = blink;
-
-	if (! gtk_widget_get_realized (&terminal->widget)
-			|| ! gtk_widget_has_focus (&terminal->widget))
-		return;
-
-	if (blink)
-		add_cursor_timeout (terminal);
-	else
-		remove_cursor_timeout (terminal);
+	_vte_check_cursor_blink (terminal);
 }
 
 /**
