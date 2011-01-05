@@ -4902,16 +4902,15 @@ _vte_terminal_beep(VteTerminal *terminal)
 }
 
 
-/*
- * Translate national keys with Crtl|Alt modifier
- * Refactored from http://bugzilla.gnome.org/show_bug.cgi?id=375112
- */
 static guint
-vte_translate_national_ctrlkeys (GdkEventKey *event)
+vte_translate_ctrlkey (GdkEventKey *event)
 {
 	guint keyval;
-	GdkModifierType consumed_modifiers;
 	GdkKeymap *keymap;
+	unsigned int i;
+
+	if (event->keyval < 128)
+		return event->keyval;
 
 #if GTK_CHECK_VERSION (2, 90, 8)
         keymap = gdk_keymap_get_for_display(gdk_window_get_display (event->window));
@@ -4919,16 +4918,23 @@ vte_translate_national_ctrlkeys (GdkEventKey *event)
 	keymap = gdk_keymap_get_for_display(gdk_drawable_get_display (event->window));
 #endif
 
-	gdk_keymap_translate_keyboard_state (keymap,
-			event->hardware_keycode, event->state,
-			0, /* Force 0 group (English) */
-			&keyval, NULL, NULL, &consumed_modifiers);
+	/* Try groups in order to find one mapping the key to ASCII */
+	for (i = 0; i < 4; i++) {
+		GdkModifierType consumed_modifiers;
 
-	_vte_debug_print (VTE_DEBUG_EVENTS,
-			"ctrl+Key, group=%d de-grouped into keyval=0x%x\n",
-			event->group, keyval);
+		gdk_keymap_translate_keyboard_state (keymap,
+				event->hardware_keycode, event->state,
+				i,
+				&keyval, NULL, NULL, &consumed_modifiers);
+		if (keyval < 128) {
+			_vte_debug_print (VTE_DEBUG_EVENTS,
+					"ctrl+Key, group=%d de-grouped into keyval=0x%x\n",
+					event->group, keyval);
+			return keyval;
+		}
+	}
 
-	return keyval;
+	return event->keyval;
 }
 
 static void
@@ -5276,12 +5282,14 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				suppress_meta_esc = TRUE;
 			}
 		}
+
+		/* Shall we do this here or earlier?  See bug 375112 and bug 589557 */
+		if (modifiers & GDK_CONTROL_MASK)
+			keyval = vte_translate_ctrlkey(event);
+
 		/* If we didn't manage to do anything, try to salvage a
 		 * printable string. */
 		if (handled == FALSE && normal == NULL && special == NULL) {
-			if (event->group &&
-					(modifiers & GDK_CONTROL_MASK))
-				keyval = vte_translate_national_ctrlkeys(event);
 
 			/* Convert the keyval to a gunichar. */
 			keychar = gdk_keyval_to_unicode(keyval);
