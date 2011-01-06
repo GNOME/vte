@@ -101,10 +101,6 @@
  *
  *       * Zooming in and out a terminal reuses the font info structs.
  *
- *     Since we use gdk timeout to schedule the delayed destruction, we also
- *     add a gtk quit handler which is run when the innermost main loop exits
- *     to cleanup any pending delayed destructions.
- *
  *
  * Pre-caching ASCII letters:
  *
@@ -447,42 +443,6 @@ font_info_free (struct font_info *info)
 
 
 static GHashTable *font_info_for_context;
-static guint quit_id;
-
-static gboolean
-cleanup_delayed_font_info_destroys_predicate (PangoContext *context,
-					      struct font_info *info)
-{
-	if (info->destroy_timeout) {
-		g_source_remove (info->destroy_timeout);
-		info->destroy_timeout = 0;
-
-		font_info_free (info);
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-static gboolean
-cleanup_delayed_font_info_destroys (void)
-{
-	g_hash_table_foreach_remove (font_info_for_context,
-				     (GHRFunc) cleanup_delayed_font_info_destroys_predicate,
-				     NULL);
-
-	quit_id = 0;
-	return 0;
-}
-
-static void
-ensure_quit_handler (void)
-{
-	if (G_UNLIKELY (quit_id == 0))
-		quit_id = gtk_quit_add (1,
-					(GtkFunction) cleanup_delayed_font_info_destroys,
-					NULL);
-}
 
 static struct font_info *
 font_info_register (struct font_info *info)
@@ -544,7 +504,6 @@ font_info_destroy (struct font_info *info)
 		return;
 
 	/* Delay destruction by a few seconds, in case we need it again */
-	ensure_quit_handler ();
 	info->destroy_timeout = gdk_threads_add_timeout_seconds (FONT_CACHE_TIMEOUT,
 								 (GSourceFunc) font_info_destroy_delayed,
 								 info);
