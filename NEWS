@@ -1,3 +1,9 @@
+0.27.4
+======
+- Fix build with recent GTK+
+- Introspection fixes for fork_command_full
+- Translation updates
+
 0.27.3
 ======
 - Add a gsettings .enums.xml file for vte's enum types
