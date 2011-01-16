@@ -6354,13 +6354,7 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 
 			list = gtk_target_list_new (NULL, 0);
 			gtk_target_list_add_text_targets (list, 0);
-
-			n_targets = g_list_length (list->list);
-			targets = g_new0 (GtkTargetEntry, n_targets);
-			for (l = list->list, i = 0; l; l = l->next, i++) {
-				GtkTargetPair *pair = (GtkTargetPair *)l->data;
-				targets[i].target = gdk_atom_name (pair->target);
-			}
+                        targets = gtk_target_table_new_from_list (list, &n_targets);
 			gtk_target_list_unref (list);
 		}
 
