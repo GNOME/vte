@@ -329,6 +329,27 @@ void vte_terminal_set_colors(VteTerminal *terminal,
 			     const GdkColor *background,
 			     const GdkColor *palette,
 			     glong palette_size);
+
+#if GTK_CHECK_VERSION (2, 99, 0)
+void vte_terminal_set_color_bold_rgba(VteTerminal *terminal,
+                                      const GdkRGBA *bold);
+void vte_terminal_set_color_dim_rgba(VteTerminal *terminal,
+	                             const GdkRGBA *dim);
+void vte_terminal_set_color_foreground_rgba(VteTerminal *terminal,
+					    const GdkRGBA *foreground);
+void vte_terminal_set_color_background_rgba(VteTerminal *terminal,
+					    const GdkRGBA *background);
+void vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
+					const GdkRGBA *cursor_background);
+void vte_terminal_set_color_highlight_rgba(VteTerminal *terminal,
+					   const GdkRGBA *highlight_background);
+void vte_terminal_set_colors_rgba(VteTerminal *terminal,
+				  const GdkRGBA *foreground,
+				  const GdkRGBA *background,
+				  const GdkRGBA *palette,
+				  gsize palette_size);
+#endif
+
 void vte_terminal_set_default_colors(VteTerminal *terminal);
 
 /* Background effects. */
