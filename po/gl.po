@@ -5,39 +5,39 @@
 # Ignacio Casal Quinteiro <nacho.resa@gmail.com>, 2005.
 # Ignacio Casal Quinteiro <icq@cvs.gnome.org>, 2007, 2008.
 # Mancomún - Centro de Referencia e Servizos de Software Libre <g11n@mancomun.org>, 2009.
-# Fran Diéguez <frandieguez@ubuntu.com>, 2010.
+# Fran Diéguez <frandieguez@ubuntu.com>, 2010, 2011.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: gl\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-07-21 16:27+0200\n"
-"PO-Revision-Date: 2010-07-21 16:27+0200\n"
+"POT-Creation-Date: 2011-01-27 00:41+0100\n"
+"PO-Revision-Date: 2011-01-23 23:45+0100\n"
 "Last-Translator: Fran Diéguez <frandieguez@ubuntu.com>\n"
 "Language-Team: Galician <gnome-gl-list@gnome.org>\n"
+"Language: gl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: gl\n"
 "Plural-Forms: nplurals=2; plural=(n!=1);\n"
 
-#: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
-#: ../src/vte.c:2254
+#: ../src/iso2022.c:779 ../src/iso2022.c:787 ../src/iso2022.c:818
+#: ../src/vte.c:2278
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Non foi posíbel converter os caracteres desde %s a %s."
 
-#: ../src/iso2022.c:1464
+#: ../src/iso2022.c:1472
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Tentando definir un mapa NRC «%c» incorrecto."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1494
+#: ../src/iso2022.c:1502
 msgid "Unrecognized identified coding system."
 msgstr "Sistema de codificación identificado non recoñecido."
 
-#: ../src/iso2022.c:1553 ../src/iso2022.c:1580
+#: ../src/iso2022.c:1561 ../src/iso2022.c:1588
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Tentando definir un mapa NRC global «%c» incorrecto."
@@ -48,44 +48,46 @@ msgid "Duplicate (%s/%s)!"
 msgstr "Duplicado (%s/%s)!"
 
 #. Bail back to normal mode.
-#: ../src/vteapp.c:965
+#: ../src/vteapp.c:981
 msgid "Could not open console.\n"
 msgstr "Non foi posíbel abrir a consola.\n"
 
-#: ../src/vteapp.c:1056
+#: ../src/vteapp.c:1074
 msgid "Could not parse the geometry spec passed to --geometry"
 msgstr ""
 "Non foi posíbel analizar a especificación de xeometría pasada a --geometry"
 
-#: ../src/vte.c:1280
+#: ../src/vte.c:1304
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Produciuse un erro ao compilar a expresión regular «%s»."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4362
+#: ../src/vte.c:4389
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Produciuse un erro ao ler desde o fillo: %s."
 
-#: ../src/vte.c:4489
+#: ../src/vte.c:4516
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
 "Non foi posíbel enviar os datos ao fillo; o convertedor de conxunto de "
 "caracteres é incorrecto"
 
-#: ../src/vte.c:4500 ../src/vte.c:5526
+#: ../src/vte.c:4527 ../src/vte.c:5589
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Produciuse un erro (%s) ao converter os datos do fillo; eliminando."
 
-#: ../src/vte.c:7720
+#: ../src/vte.c:7776
 #, c-format
 msgid "Error reading PTY size, using defaults: %s\n"
-msgstr "Produciuse un erro ao ler o tamaño do PTY; usarase o predefinido: %s\n"
+msgstr ""
+"Produciuse un erro ao ler o tamaño do PTY; usarase o valor predeterminado: "
+"%s\n"
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:13272
+#: ../src/vte.c:13562
 msgid "_vte_conv_open() failed setting word characters"
 msgstr ""
 "Produciuse un fallo en _vte_conv_open() ao definir os caracteres da palabra"
