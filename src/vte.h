@@ -53,9 +53,10 @@ G_BEGIN_DECLS
 #define VTE_IS_TERMINAL_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  VTE_TYPE_TERMINAL))
 #define VTE_TERMINAL_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  VTE_TYPE_TERMINAL, VteTerminalClass))
 
-typedef struct _VteTerminal         VteTerminal;
-typedef struct _VteTerminalPrivate  VteTerminalPrivate;
-typedef struct _VteTerminalClass    VteTerminalClass;
+typedef struct _VteTerminal             VteTerminal;
+typedef struct _VteTerminalPrivate      VteTerminalPrivate;
+typedef struct _VteTerminalClass        VteTerminalClass;
+typedef struct _VteTerminalClassPrivate VteTerminalClassPrivate;
 
 /**
  * VteTerminal:
@@ -133,6 +134,10 @@ struct _VteTerminalClass {
 
  	void (*beep)(VteTerminal* terminal);
 
+#if GTK_CHECK_VERSION (2, 99, 0)
+        /* Padding for future expansion. */
+        gpointer padding[16];
+#else
 	/* Padding for future expansion. */
 	void (*vte_reserved3)(void);
 	void (*vte_reserved4)(void);
@@ -172,6 +177,11 @@ struct _VteTerminalClass {
         guint _VTE_DEPRECATED(reserved4);
         guint _VTE_DEPRECATED(reserved5);
         guint _VTE_DEPRECATED(reserved6);
+#endif
+
+#if GTK_CHECK_VERSION (2, 99, 0)
+        VteTerminalClassPrivate *priv;
+#endif
 };
 
 /**

@@ -11648,6 +11648,12 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
 	/* Register some signals of our own. */
 
+#if GTK_CHECK_VERSION (2, 99, 0)
+#define OBSOLETE_SIGNAL(str)
+#else
+#define OBSOLETE_SIGNAL(str) str
+#endif
+
         /**
          * VteTerminal::eof:
          * @vteterminal: the object which received the signal
@@ -11656,7 +11662,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * is running in the terminal.  This signal is frequently (but not
          * always) emitted with a #VteTerminal::child-exited signal.
          */
-	klass->eof_signal =
+        OBSOLETE_SIGNAL (klass->eof_signal =)
                 g_signal_new(I_("eof"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11673,7 +11679,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * This signal is emitted when the terminal detects that a child started
          * using vte_terminal_fork_command() has exited.
          */
-	klass->child_exited_signal =
+        OBSOLETE_SIGNAL (klass->child_exited_signal =)
                 g_signal_new(I_("child-exited"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11689,7 +11695,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted when the terminal's %window_title field is modified.
          */
-	klass->window_title_changed_signal =
+        OBSOLETE_SIGNAL (klass->window_title_changed_signal =)
                 g_signal_new(I_("window-title-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11705,7 +11711,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted when the terminal's %icon_title field is modified.
          */
-	klass->icon_title_changed_signal =
+        OBSOLETE_SIGNAL (klass->icon_title_changed_signal =)
                 g_signal_new(I_("icon-title-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11723,7 +11729,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * as a result of receiving a control sequence which toggled between the
          * local and UTF-8 encodings, or at the parent application's request.
          */
-	klass->encoding_changed_signal =
+        OBSOLETE_SIGNAL (klass->encoding_changed_signal =)
                 g_signal_new(I_("encoding-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11743,7 +11749,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * prepares to send it to the child process.  The signal is emitted even
          * when there is no child process.
          */
-	klass->commit_signal =
+        OBSOLETE_SIGNAL (klass->commit_signal =)
                 g_signal_new(I_("commit"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11760,7 +11766,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Emitted whenever the terminal's emulation changes, only possible at
          * the parent application's request.
          */
-	klass->emulation_changed_signal =
+        OBSOLETE_SIGNAL (klass->emulation_changed_signal =)
                 g_signal_new(I_("emulation-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11779,7 +11785,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Emitted whenever selection of a new font causes the values of the
          * %char_width or %char_height fields to change.
          */
-	klass->char_size_changed_signal =
+        OBSOLETE_SIGNAL (klass->char_size_changed_signal =)
                 g_signal_new(I_("char-size-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11795,7 +11801,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted whenever the contents of terminal's selection changes.
          */
-	klass->selection_changed_signal =
+        OBSOLETE_SIGNAL (klass->selection_changed_signal =)
                 g_signal_new (I_("selection-changed"),
 			      G_OBJECT_CLASS_TYPE(klass),
 			      G_SIGNAL_RUN_LAST,
@@ -11812,7 +11818,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Emitted whenever the visible appearance of the terminal has changed.
          * Used primarily by #VteTerminalAccessible.
          */
-	klass->contents_changed_signal =
+        OBSOLETE_SIGNAL (klass->contents_changed_signal =)
                 g_signal_new(I_("contents-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11829,7 +11835,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Emitted whenever the cursor moves to a new character cell.  Used
          * primarily by #VteTerminalAccessible.
          */
-	klass->cursor_moved_signal =
+        OBSOLETE_SIGNAL (klass->cursor_moved_signal =)
                 g_signal_new(I_("cursor-moved"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11845,7 +11851,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted at the child application's request.
          */
-	klass->deiconify_window_signal =
+        OBSOLETE_SIGNAL (klass->deiconify_window_signal =)
                 g_signal_new(I_("deiconify-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11861,7 +11867,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted at the child application's request.
          */
-	klass->iconify_window_signal =
+        OBSOLETE_SIGNAL (klass->iconify_window_signal =)
                 g_signal_new(I_("iconify-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11877,7 +11883,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted at the child application's request.
          */
-	klass->raise_window_signal =
+        OBSOLETE_SIGNAL (klass->raise_window_signal =)
                 g_signal_new(I_("raise-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11893,7 +11899,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted at the child application's request.
          */
-	klass->lower_window_signal =
+        OBSOLETE_SIGNAL (klass->lower_window_signal =)
                 g_signal_new(I_("lower-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11909,7 +11915,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted at the child application's request.
          */
-	klass->refresh_window_signal =
+        OBSOLETE_SIGNAL (klass->refresh_window_signal =)
                 g_signal_new(I_("refresh-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11925,7 +11931,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted at the child application's request.
          */
-	klass->restore_window_signal =
+        OBSOLETE_SIGNAL (klass->restore_window_signal =)
                 g_signal_new(I_("restore-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11941,7 +11947,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted at the child application's request.
          */
-	klass->maximize_window_signal =
+        OBSOLETE_SIGNAL (klass->maximize_window_signal =)
                 g_signal_new(I_("maximize-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11959,7 +11965,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted at the child application's request.
          */
-	klass->resize_window_signal =
+        OBSOLETE_SIGNAL (klass->resize_window_signal =)
                 g_signal_new(I_("resize-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11977,7 +11983,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted at the child application's request.
          */
-	klass->move_window_signal =
+        OBSOLETE_SIGNAL (klass->move_window_signal =)
                 g_signal_new(I_("move-window"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -11994,7 +12000,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Emitted whenever the contents of the status line are modified or
          * cleared.
          */
-	klass->status_line_changed_signal =
+        OBSOLETE_SIGNAL (klass->status_line_changed_signal =)
                 g_signal_new(I_("status-line-changed"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -12010,7 +12016,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted when the user hits the '+' key while holding the Control key.
          */
-	klass->increase_font_size_signal =
+        OBSOLETE_SIGNAL (klass->increase_font_size_signal =)
                 g_signal_new(I_("increase-font-size"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -12026,7 +12032,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted when the user hits the '-' key while holding the Control key.
          */
-	klass->decrease_font_size_signal =
+        OBSOLETE_SIGNAL (klass->decrease_font_size_signal =)
                 g_signal_new(I_("decrease-font-size"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -12044,7 +12050,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * its accessibility peer. May not be emitted under certain
          * circumstances.
          */
-	klass->text_modified_signal =
+        OBSOLETE_SIGNAL (klass->text_modified_signal =)
                 g_signal_new(I_("text-modified"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -12062,7 +12068,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * its accessibility peer. May not be emitted under certain
          * circumstances.
          */
-	klass->text_inserted_signal =
+        OBSOLETE_SIGNAL (klass->text_inserted_signal =)
                 g_signal_new(I_("text-inserted"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -12080,7 +12086,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * its accessibility peer. May not be emitted under certain
          * circumstances.
          */
-	klass->text_deleted_signal =
+        OBSOLETE_SIGNAL (klass->text_deleted_signal =)
                 g_signal_new(I_("text-deleted"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -12099,7 +12105,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * its accessibility peer. May not be emitted under certain
          * circumstances.
          */
-	klass->text_scrolled_signal =
+       OBSOLETE_SIGNAL (klass->text_scrolled_signal =)
                 g_signal_new(I_("text-scrolled"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
@@ -12108,6 +12114,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__INT,
 			     G_TYPE_NONE, 1, G_TYPE_INT);
+
+#undef OBSOLETE_SIGNAL
 
         /**
          * VteTerminal::copy-clipboard:
