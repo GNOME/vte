@@ -282,16 +282,17 @@ _vte_incoming_chunks_reverse(struct _vte_incoming_chunk *chunk)
 	return prev;
 }
 
-
-#if GTK_CHECK_VERSION (2, 91, 2)
+#if GTK_CHECK_VERSION (2, 99, 0)
 #ifdef VTE_DEBUG
 G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
+                        g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
                         G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, NULL)
                         if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
                                 g_printerr("vte_terminal_get_type()\n");
                         })
 #else
 G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
+                        g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
                         G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, NULL))
 #endif
 #else
@@ -8272,6 +8273,17 @@ vte_terminal_init(VteTerminal *terminal)
 	/* In debuggable mode, we always do this. */
 	/* gtk_widget_get_accessible(&terminal->widget); */
 #endif
+
+#if GTK_CHECK_VERSION (2, 99, 0)
+{
+        GtkStyleContext *context;
+
+        context = gtk_widget_get_style_context (&terminal->widget);
+        gtk_style_context_add_provider (context,
+                                        VTE_TERMINAL_GET_CLASS (terminal)->priv->style_provider,
+                                        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+}
+#endif
 }
 
 /* Tell GTK+ how much space we need. */
@@ -12613,11 +12625,13 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                      G_PARAM_READABLE |
                                      G_PARAM_STATIC_STRINGS));
 
+#if !GTK_CHECK_VERSION (2,99, 0)
         /* Now install the default style */
         gtk_rc_parse_string("style \"vte-default-style\" {\n"
                               "VteTerminal::inner-border = { 1, 1, 1, 1 }\n"
                             "}\n"
                             "class \"VteTerminal\" style : gtk \"vte-default-style\"\n");
+#endif
 
         /* Keybindings */
 	binding_set = gtk_binding_set_by_class(klass);
@@ -12628,6 +12642,17 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	gtk_binding_entry_add_signal(binding_set, GDK_KEY (F20), 0, "copy-clipboard",0);
 
 	process_timer = g_timer_new ();
+
+#if GTK_CHECK_VERSION (2, 99, 0)
+        klass->priv = G_TYPE_CLASS_GET_PRIVATE (klass, VTE_TYPE_TERMINAL, VteTerminalClassPrivate);
+
+        klass->priv->style_provider = GTK_STYLE_PROVIDER (gtk_css_provider_new ());
+        gtk_css_provider_load_from_data (GTK_CSS_PROVIDER (klass->priv->style_provider),
+                                         "VteTerminal {\n"
+                                           "-VteTerminal-inner-border: 1;\n"
+                                         "}\n",
+                                         -1, NULL);
+#endif /* GTK 3.0 */
 }
 
 /**
