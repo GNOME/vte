@@ -22,13 +22,8 @@ which gperf || {
 
 echo "checking for gnome-autogen.sh"
 which gnome-autogen.sh || {
-    echo "You need to install gnome-common from the GNOME SVN"
+    echo "You need to install the gnome-common package"
     exit 1
 }
-
-USE_COMMON_DOC_BUILD=yes
-REQUIRED_AUTOMAKE_VERSION=1.10
-REQUIRED_INTLTOOL_VERSION=0.40.0
-REQUIRED_GTK_DOC_VERSION=0.13
 
 . gnome-autogen.sh

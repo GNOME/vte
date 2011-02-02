@@ -5,12 +5,17 @@ m4_define([version_triplet],version_major.version_minor.version_micro)
 
 m4_define([so_major_adjust],9) dnl Don't change!
 
-AC_PREREQ([2.59])
-AC_INIT(vte, [version_triplet], [http://bugzilla.gnome.org/enter_bug.cgi?product=vte])
+AC_PREREQ([2.63])
+AC_INIT([vte],
+        [version_triplet],
+        [http://bugzilla.gnome.org/enter_bug.cgi?product=vte],
+        [vte])
+
 AC_CONFIG_SRCDIR([src/vte.c])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE([1.9 foreign no-dist-gzip dist-bzip2])
+AM_INIT_AUTOMAKE([1.10 foreign no-dist-gzip dist-bzip2])
 
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
@@ -79,22 +84,22 @@ AM_CONDITIONAL([HAVE_GTK_3],[test "$with_gtk" = "3.0"])
 
 ################################################################################
 
-AC_ISC_POSIX
+# Check for programs
 AC_PROG_CC
-AC_STDC_HEADERS
-AM_PROG_CC_STDC
-
+AC_HEADER_STDC
 AM_PROG_CC_C_O
-
-AM_PROG_LIBTOOL
-
 AC_PROG_SED
+
+# Initialize libtool
+LT_PREREQ([2.2])
+LT_INIT
+
 
 ################################################################################
 # i18n
 ################################################################################
 
-IT_PROG_INTLTOOL([0.35.0])
+IT_PROG_INTLTOOL([0.40.0])
 
 GETTEXT_PACKAGE=vte-$VTE_API_VERSION
 AC_SUBST(GETTEXT_PACKAGE)
@@ -272,8 +277,6 @@ fi
 AC_SUBST([VTE_LDFLAGS])
 
 ################################################################################
-
-GNOME_COMMON_INIT
 
 # Disable deprecations and single includes
 # We don't use GNOME_MAINTAINER_MODE_DEFINES here since it's too much and
@@ -469,7 +472,7 @@ if sys.version_info < minver:
 	sys.exit(1)
 sys.exit(0)
 "
-	if $PYTHON -c "$prog" 1>&AC_FD_CC 2>&AC_FD_CC
+	if $PYTHON -c "$prog" 1>&AS_MESSAGE_LOG_FD 2>&AS_MESSAGE_LOG_FD
 	then
 		AC_MSG_RESULT([okay])
 	else
