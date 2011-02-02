@@ -284,7 +284,7 @@ dnl                   [prohibit VTE from using deprecated GLib/Pango/ATK/GDK/GTK
 dnl   [],[enable_deprecation=$enable_maintainer_mode])
 dnl if test "x$enable_deprecation" = xyes; then
 dnl   AC_MSG_NOTICE([disabling deprecated GLIB/PANGO/GDK/ATK/GTK+ features])
-dnl 
+dnl
 dnl   AC_DEFINE([ATK_DISABLE_DEPRECATED],[1],[Disable deprecated features])
 dnl   AC_DEFINE([ATK_DISABLE_SINGLE_INCLUDES],[1],[Disable single includes])
 dnl   AC_DEFINE([G_DISABLE_DEPRECATED],[1],[Disable deprecated features])
@@ -550,7 +550,7 @@ if test "$enable_glade_catalogue" = "yes"; then
   AC_SUBST([GLADE_ICON_DIR])
   AC_SUBST([GLADE_MODULE_DIR])
 fi
-  
+
 AM_CONDITIONAL([ENABLE_GLADE_CATALOGUE],[test "$enable_glade_catalogue" = "yes"])
 
 # *************
