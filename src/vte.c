@@ -6349,8 +6349,6 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 				"Assuming ownership of selection.\n");
 		if (!targets) {
 			GtkTargetList *list;
-			GList *l;
-			int i;
 
 			list = gtk_target_list_new (NULL, 0);
 			gtk_target_list_add_text_targets (list, 0);
