@@ -173,7 +173,7 @@ _vte_ring_freeze_row (VteRing *ring, gulong position, const VteRowData *row)
 }
 
 static void
-_vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean truncate)
+_vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean do_truncate)
 {
 	VteRowRecord records[2], record;
 	VteIntCellAttr attr;
@@ -250,7 +250,7 @@ _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean tr
 		}
 	}
 
-	if (truncate) {
+	if (do_truncate) {
 		if (records[0].text_offset < ring->last_attr.text_offset)
 			if (!_vte_stream_read (ring->attr_stream, records[0].attr_offset, (char *) &ring->last_attr, sizeof (ring->last_attr))) {
 				ring->last_attr.text_offset = 0;
