@@ -483,6 +483,8 @@ const char *vte_terminal_get_status_line(VteTerminal *terminal);
 void vte_terminal_set_pty_object(VteTerminal *terminal, VtePty *pty);
 VtePty *vte_terminal_get_pty_object(VteTerminal *terminal);
 
+char *vte_get_user_shell (void);
+
 /* Accessors for bindings. */
 #if !GTK_CHECK_VERSION (2, 91, 2)
 GtkAdjustment *vte_terminal_get_adjustment(VteTerminal *terminal);

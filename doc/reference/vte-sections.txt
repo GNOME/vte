@@ -99,6 +99,9 @@ vte_terminal_search_set_gregex
 vte_terminal_search_set_wrap_around
 
 <SUBSECTION>
+vte_get_user_shell
+
+<SUBSECTION>
 vte_terminal_fork_command
 vte_terminal_fork_command_full
 vte_terminal_forkpty

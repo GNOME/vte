@@ -994,6 +994,9 @@ main(int argc, char **argv)
 			_VTE_DEBUG_IF(VTE_DEBUG_MISC)
 				vte_terminal_feed(terminal, message, -1);
 
+                        if (command == NULL || *command == '\0')
+                                command = vte_get_user_shell ();
+
 			if (command == NULL || *command == '\0')
 				command = g_getenv ("SHELL");
 

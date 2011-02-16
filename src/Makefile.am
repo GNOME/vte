@@ -105,7 +105,7 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_LIBADD = $(VTE_LIBS)
 libvte@VTE_LIBRARY_SUFFIX_U@_la_LDFLAGS = \
   $(VTE_LDFLAGS) \
 	-version-info $(LT_VERSION_INFO) \
-	-export-symbols-regex "^vte_terminal_.*|^vte_pty_.*|^_vte_pty_.*|^vte_reaper_.*|_vte_debug_.*" \
+	-export-symbols-regex "^vte_terminal_.*|^vte_pty_.*|^vte_get_.*|^_vte_pty_.*|^vte_reaper_.*|_vte_debug_.*" \
 	@LIBTOOL_EXPORT_OPTIONS@ @LIBTOOL_FLAGS@ \
 	$(AM_LDFLAGS)
 

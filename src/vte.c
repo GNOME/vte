@@ -3674,46 +3674,40 @@ vte_terminal_watch_child (VteTerminal *terminal,
         g_object_thaw_notify(object);
 }
 
-/*
- * _vte_terminal_get_user_shell:
+/**
+ * vte_get_user_shell:
  *
- * Uses getpwd() to determine the user's shell. If that fails, falls back
- * to using the SHELL environment variable. As last-ditch fallback, returns
- * "/bin/sh".
+ * Gets the user's shell, or %NULL. In the latter case, the
+ * system default (usually "/bin/sh") should be used.
  *
- * Returns: a newly allocated string containing the command to run the
- *   user's shell
+ * Returns: (tranfer full) (type filename): a newly allocated string with the
+ *   user's shell, or %NULL
  */
-static char *
-_vte_terminal_get_user_shell (void)
+char *
+vte_get_user_shell (void)
 {
 	struct passwd *pwd;
-	char *command;
 
 	pwd = getpwuid(getuid());
-	if (pwd != NULL) {
-	        command = g_strdup (pwd->pw_shell);
-	        _vte_debug_print(VTE_DEBUG_MISC,
-				"Using user's shell (%s).\n",
-				command ? command : "(null)");
-	}
-	if (command == NULL) {
-		if (g_getenv ("SHELL")) {
-			command = g_strdup (g_getenv ("SHELL"));
-			_vte_debug_print(VTE_DEBUG_MISC,
-					 "Using $SHELL shell (%s).\n",
-					 command);
-		} else {
-			command = g_strdup ("/bin/sh");
-			_vte_debug_print(VTE_DEBUG_MISC,
-					 "Using default shell (%s).\n",
-					 command);
-		}
-	}
+        if (pwd && pwd->pw_shell)
+                return g_strdup (pwd->pw_shell);
 
-	g_assert (command != NULL);
+        return NULL;
+}
 
-	return command;
+static char *
+_vte_terminal_get_user_shell_with_fallback (void)
+{
+        char *command;
+        const gchar *env;
+
+        if ((command = vte_get_user_shell ()))
+                return command;
+
+        if ((env = g_getenv ("SHELL")))
+                return g_strdup (env);
+
+        return g_strdup ("/bin/sh");
 }
 
 /*
@@ -3737,7 +3731,7 @@ _vte_terminal_get_argv (const char *command,
 	char **argv2;
         char *shell = NULL;
 
-        argv2 = __vte_pty_get_argv(command ? command : (shell = _vte_terminal_get_user_shell()),
+        argv2 = __vte_pty_get_argv(command ? command : (shell = _vte_terminal_get_user_shell_with_fallback ()),
                                    argv,
                                    flags);
         g_free(shell);
