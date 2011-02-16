@@ -3682,6 +3682,8 @@ vte_terminal_watch_child (VteTerminal *terminal,
  *
  * Returns: (tranfer full) (type filename): a newly allocated string with the
  *   user's shell, or %NULL
+ *
+ * Since: 0.28
  */
 char *
 vte_get_user_shell (void)
