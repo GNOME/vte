@@ -1,3 +1,8 @@
+0.27.90
+=======
+- Fix shrinking terminal on gtk3
+- Translation updates
+
 0.27.5
 ======
 - Fix build with recent GTK+
