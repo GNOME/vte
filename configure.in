@@ -566,12 +566,6 @@ fi
 
 GOBJECT_INTROSPECTION_CHECK([0.9.0])
 
-# *********
-# GSettings
-# *********
-
-GLIB_GSETTINGS
-
 ################################################################################
 
 GTK_DOC_CHECK([1.13],[--flavour no-tmpl])
