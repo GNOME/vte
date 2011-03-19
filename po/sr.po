@@ -1,54 +1,45 @@
 # Serbian translation of vte
 # Courtesy of Prevod.org team (http://www.prevod.org/) -- 2003, 2004, 2005, 2006, 2007.
-#
 # This file is distributed under the same license as the vte package.
-#
 # Maintainer: Вељко М. Станојевић <veljko@vms.homelinux.net>
 # Милош Поповић <gpopac@gmail.com>, 2010.
-#
+# Мирослав Николић <miroslavnikolic@rocketmail.com>, 2011.
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=vte&component=general\n"
-"POT-Creation-Date: 2010-03-17 17:23+0000\n"
-"PO-Revision-Date: 2010-08-23 01:37+0200\n"
-"Last-Translator: Милош Поповић <gpopac@gmail.com>\n"
+"POT-Creation-Date: 2011-03-04 10:22+0000\n"
+"PO-Revision-Date: 2011-03-06 06:53+0200\n"
+"Last-Translator: Мирослав Николић <miroslavnikolic@rocketmail.com>\n"
 "Language-Team: Serbian <gnom@prevod.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=4;    plural=n==1? 3 : n%10==1 && n%100!=11 ? 0 :    n"
-"%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Language: Serbian (sr)\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%"
+"10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-#: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
-#: ../src/vte.c:2232
+#: ../src/iso2022.c:779 ../src/iso2022.c:787 ../src/iso2022.c:818
+#: ../src/vte.c:2279
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "Не могу да преиначим знакове из %s у %s."
+msgstr "Не могу да пребацим знакове из „%s“ у „%s“."
 
-#: ../src/iso2022.c:1464
+#: ../src/iso2022.c:1472
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr "Покушај постављања погрешне NRC мапе „%c“."
+msgstr "Покушај постављања погрешне НРЦ мапе „%c“."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1494
+#: ../src/iso2022.c:1502
 msgid "Unrecognized identified coding system."
-msgstr "Пронађен непознат кодни систем."
+msgstr "Пронађен је непознат кодни систем."
 
-#: ../src/iso2022.c:1553 ../src/iso2022.c:1580
+#: ../src/iso2022.c:1561 ../src/iso2022.c:1588
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "Покушај постављања погрешне широке NRC мапе „%c“."
-
-#. Give the user some clue as to why session logging is not
-#. * going to work (assuming we can open a pty using some other
-#. * method).
-#: ../src/pty.c:1073 ../src/pty.c:1076
-#, c-format
-msgid "can not run %s"
-msgstr "не могу да покренем %s"
+msgstr "Покушај постављања погрешне широке НРЦ мапе „%c“."
 
 #: ../src/trie.c:409
 #, c-format
@@ -56,47 +47,49 @@ msgid "Duplicate (%s/%s)!"
 msgstr "Дупликат (%s/%s)!"
 
 #. Bail back to normal mode.
-#: ../src/vteapp.c:876
+#: ../src/vteapp.c:981
 msgid "Could not open console.\n"
 msgstr "Нисам успео да отворим конзолу.\n"
 
-#: ../src/vteapp.c:967
+#: ../src/vteapp.c:1077
 msgid "Could not parse the geometry spec passed to --geometry"
 msgstr ""
-"Не могу да рашчланим одредницу геометрије прослеђену опцијом --geometry"
+"Не могу да рашчланим одредницу геометрије прослеђену опцијом „--geometry“"
 
-#: ../src/vte.c:1279
+#: ../src/vte.c:1305
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "Грешка при превођењу правилног израза \"%s\"."
+msgstr "Грешка при превођењу правилног израза „%s“."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4344
+#: ../src/vte.c:4593
 #, c-format
 msgid "Error reading from child: %s."
-msgstr "Грешка при читању подпроцеса: %s."
+msgstr "Грешка при читању потпроцеса: %s."
 
-#: ../src/vte.c:4472
+#: ../src/vte.c:4720
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
 "Не могу да пошаљем податке потпроцесу, неисправан претварач скупа знакова"
 
-#: ../src/vte.c:4483 ../src/vte.c:5505
+#: ../src/vte.c:4731 ../src/vte.c:5793
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "Грешка (%s) при промени података за подпроцес - обустављам."
+msgstr "Грешка (%s) при промени података за потпроцес — обустављам."
 
-#: ../src/vte.c:7726
+#: ../src/vte.c:7978
 #, c-format
-#| msgid "Error reading PTY size, using defaults: %s."
 msgid "Error reading PTY size, using defaults: %s\n"
 msgstr ""
-"Грешка при читању величине PTY-а, користим подразумеване вредности: %s\n"
+"Грешка при читању „PTY“ величине, користим подразумеване вредности: %s\n"
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:13281
+#: ../src/vte.c:13796
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "_vte_conv_open() неуспешно постављање знакова речи"
+msgstr "„_vte_conv_open()“ није успео да постави знакове речи"
+
+#~ msgid "can not run %s"
+#~ msgstr "не могу да покренем %s"
 
 #~ msgid "Error creating signal pipe."
 #~ msgstr "Грешка при прављењу сигналне везе."
