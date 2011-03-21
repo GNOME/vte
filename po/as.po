@@ -2,37 +2,39 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Amitakhya Phukan <aphukan@fedoraproject.org>, 2009.
+# Nilamdyuti Goswami <ngoswami@redhat.com>, 2011.
 msgid ""
 msgstr ""
 "Project-Id-Version: as\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=vte&component=general\n"
-"POT-Creation-Date: 2009-03-09 10:21+0000\n"
-"PO-Revision-Date: 2009-03-13 16:54+0530\n"
-"Last-Translator: Amitakhya Phukan <aphukan@fedoraproject.org>\n"
-"Language-Team: Assamese <fedora-trans-as@redhat.com>\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug."
+"cgi?product=vte&component=general\n"
+"POT-Creation-Date: 2010-03-17 17:23+0000\n"
+"PO-Revision-Date: 2011-03-14 18:17+0000\n"
+"Last-Translator: Nilamdyuti Goswami <ngoswami@redhat.com>\n"
+"Language-Team: Assamese <kde-i18n-doc@kde.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Lokalize 0.3\n"
+"X-Generator: Lokalize 1.0\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 
-#: ../src/iso2022.c:785 ../src/iso2022.c:793 ../src/iso2022.c:824
-#: ../src/vte.c:2293
+#: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
+#: ../src/vte.c:2232
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "%s ৰ পৰা %s লৈ অক্ষৰ ৰূপান্তৰ কৰিবলৈ ব্যৰ্থ ।"
 
-#: ../src/iso2022.c:1472
+#: ../src/iso2022.c:1464
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "অবৈধ NRC মেপ '%c' নিৰ্ধাৰণৰ প্ৰচেষ্টা কৰা হৈছে ।"
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1502
+#: ../src/iso2022.c:1494
 msgid "Unrecognized identified coding system."
 msgstr "চিনাক্ত কৰা কোডিং প্ৰণালী অজ্ঞাত ।"
 
-#: ../src/iso2022.c:1561 ../src/iso2022.c:1588
+#: ../src/iso2022.c:1553 ../src/iso2022.c:1580
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "অবৈধ প্ৰশস্ত NRC মেপ '%c' নিৰ্ধাৰণৰ প্ৰচেষ্টা কৰা হৈছে ।"
@@ -40,7 +42,7 @@ msgstr "অবৈধ প্ৰশস্ত NRC মেপ '%c' নিৰ্ধা
 #. Give the user some clue as to why session logging is not
 #. * going to work (assuming we can open a pty using some other
 #. * method).
-#: ../src/pty.c:831
+#: ../src/pty.c:1073 ../src/pty.c:1076
 #, c-format
 msgid "can not run %s"
 msgstr "%s চলাওঁতে ব্যৰ্থ"
@@ -51,41 +53,42 @@ msgid "Duplicate (%s/%s)!"
 msgstr "দ্বৈত (%s/%s)!"
 
 #. Bail back to normal mode.
-#: ../src/vteapp.c:846
+#: ../src/vteapp.c:876
 msgid "Could not open console.\n"
 msgstr "কন্সোল খুলিবলৈ ব্যৰ্থ ।\n"
 
-#: ../src/vteapp.c:910
+#: ../src/vteapp.c:967
 msgid "Could not parse the geometry spec passed to --geometry"
 msgstr "--geometry বিকল্পৰ সৈতে প্ৰেৰিত geometry spec বিশ্লেষণ কৰিবলৈ বিফল"
 
-#: ../src/vte.c:1342
+#: ../src/vte.c:1279
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "ৰেগুলাৰ এক্সপ্ৰেশন \"%s\" কম্পাইল কৰিবলৈ সমস্যা ।"
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4296
+#: ../src/vte.c:4344
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "চাইল্ডৰ পৰা পঢ়িবলৈ সমস্যা: %s ।"
 
-#: ../src/vte.c:4424
+#: ../src/vte.c:4472
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr "অবৈধ charset ৰূপান্তৰৰ ফলত চাইল্ডত তথ্য প্ৰেৰণ কৰিবলৈ ব্যৰ্থ"
 
-#: ../src/vte.c:4435 ../src/vte.c:5402
+#: ../src/vte.c:4483 ../src/vte.c:5505
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "চাইল্ডৰ বাবে তথ্য ৰূপান্তৰ কৰিবলৈ সমস্যা (%s), বৰ্জন কৰা হৈছে ।"
 
-#: ../src/vte.c:7673
+#: ../src/vte.c:7726
 #, c-format
-msgid "Error reading PTY size, using defaults: %s."
-msgstr "PTY ৰ মাপ পঢ়িবলৈ সমস্যা, অবিকল্পিত মান ব্যবহাৰ কৰা হ'ব: %s ।"
+#| msgid "Error reading PTY size, using defaults: %s."
+msgid "Error reading PTY size, using defaults: %s\n"
+msgstr "PTY -ৰ আকাৰ পঢ়িবলৈ সমস্যা, অবিকল্পিত মান ব্যবহাৰ কৰা হৈছে: %s\n"
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:13032
+#: ../src/vte.c:13281
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() দ্বাৰা শব্দৰ অক্ষৰ নিৰ্ধাৰণ কৰিবলৈ ব্যৰ্থ"
 
