@@ -1726,25 +1726,22 @@ vte_pty_error_quark(void)
  *
  * Allocates a new pseudo-terminal.
  *
- * You can later use fork() or the g_spawn_async() familty of functions
+ * You can later use fork() or the g_spawn_async() family of functions
  * to start a process on the PTY.
  *
  * If using fork(), you MUST call vte_pty_child_setup() in the child.
  *
  * If using g_spawn_async() and friends, you MUST either use
- * vte_pty_child_setup () directly as the child setup function, or call
+ * vte_pty_child_setup() directly as the child setup function, or call
  * vte_pty_child_setup() from your own child setup function supplied.
- *
  * Also, you MUST pass the %G_SPAWN_DO_NOT_REAP_CHILD flag.
  *
- * When using the GNOME PTY Helper,
+ * If GNOME PTY Helper is available and
  * unless some of the %VTE_PTY_NO_LASTLOG, %VTE_PTY_NO_UTMP or
  * %VTE_PTY_NO_WTMP flags are passed in @flags, the
  * session is logged in the corresponding lastlog, utmp or wtmp
- * system files.
- *
- * When passing %VTE_PTY_NO_HELPER in @flags, the
- * GNOME PTY Helper bypassed entirely.
+ * system files.  When passing %VTE_PTY_NO_HELPER in @flags, the
+ * GNOME PTY Helper is bypassed entirely.
  *
  * When passing %VTE_PTY_NO_FALLBACK in @flags,
  * and opening a PTY using the PTY helper fails, there will
