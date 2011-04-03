@@ -1,3 +1,9 @@
+0.28.0
+======
+- Bugs fixed:
+   * Bug 642184 - vte does not build against new glade (with gladeui-2.0)
+- Translation updates
+
 0.27.90
 =======
 - Fix shrinking terminal on gtk3
