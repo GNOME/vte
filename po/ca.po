@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: vte 0.11.6\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2010-08-22 10:10+0200\n"
-"PO-Revision-Date: 2010-08-22 10:11+0200\n"
+"PO-Revision-Date: 2011-04-05 23:08+0200\n"
 "Last-Translator: Jordi Mallach <jordi@sindominio.net>\n"
 "Language-Team: Catalan <tradgnome@softcatala.org>\n"
 "Language: ca\n"
@@ -25,7 +25,7 @@ msgstr "No es pot convertir el caràcter %s a %s."
 #: ../src/iso2022.c:1464
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr "S'ha intentat fixar el mapa NRC invàlid «%c»."
+msgstr "S'ha intentat fixar el mapa NRC no vàlid «%c»."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #: ../src/iso2022.c:1494
@@ -66,7 +66,7 @@ msgstr "S'ha produït un error en llegir del fill: %s."
 #: ../src/vte.c:4489
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
-"No s'ha pogut enviar les dades al fill, el convertidor de codificació no és "
+"No s'han pogut enviar les dades al fill, el convertidor de codificació no és "
 "vàlid"
 
 #: ../src/vte.c:4500 ../src/vte.c:5526
