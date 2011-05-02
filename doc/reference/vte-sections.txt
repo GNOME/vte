@@ -95,7 +95,6 @@ vte_terminal_search_set_wrap_around
 vte_get_user_shell
 
 <SUBSECTION>
-vte_terminal_fork_command
 vte_terminal_fork_command_full
 vte_terminal_get_pty
 vte_terminal_get_pty_object

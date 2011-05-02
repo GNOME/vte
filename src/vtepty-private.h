@@ -18,14 +18,6 @@
 
 G_BEGIN_DECLS
 
-VtePtyFlags __vte_pty_get_pty_flags(gboolean lastlog,
-                                    gboolean utmp,
-                                    gboolean wtmp);
-
-char **__vte_pty_get_argv (const char *command,
-                           char **argv,
-                           GSpawnFlags *flags /* inout */);
-
 gboolean __vte_pty_spawn (VtePty *pty,
                           const char *working_directory,
                           char **argv,

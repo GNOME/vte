@@ -67,14 +67,18 @@ terminal_init_vte(GtkWidget **terminal)
 static void
 terminal_shell_vte(GtkWidget *terminal)
 {
-	vte_terminal_fork_command(VTE_TERMINAL(terminal),
-				  getenv("SHELL") ? getenv("SHELL") : "/bin/sh",
-				  NULL,
-				  NULL,
-				  g_get_home_dir() ? g_get_home_dir() : NULL,
-				  FALSE,
-				  FALSE,
-				  FALSE);
+        char *argv[2];
+
+        argv[0] = vte_get_user_shell ();
+        argv[1] = NULL;
+	vte_terminal_fork_command_full(VTE_TERMINAL(terminal),
+                                       VTE_PTY_DEFAULT,
+                                       g_get_home_dir() ? g_get_home_dir() : NULL,
+                                       argv,
+                                       NULL,
+                                       0, NULL, NULL,
+                                       NULL,
+                                       NULL);
 }
 static GtkAdjustment *
 terminal_adjustment_vte(GtkWidget *terminal)
