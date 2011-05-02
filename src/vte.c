@@ -10758,7 +10758,7 @@ vte_terminal_get_accessible(GtkWidget *widget)
 		if (g_type_is_a (derived_atk_type, GTK_TYPE_ACCESSIBLE)) {
 			atk_registry_set_factory_type (registry,
 						       VTE_TYPE_TERMINAL,
-						       vte_terminal_accessible_factory_get_type ());
+						       _vte_terminal_accessible_factory_get_type ());
 		}
 		first_time = FALSE;
 	}

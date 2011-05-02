@@ -61,11 +61,6 @@
     <chapter>
       <xi:include href="xml/vte-version.xml"/>
     </chapter>
-
-    <chapter id="internal-objects">
-      <title>Interna</title>
-      <xi:include href="xml/vte-access.xml"/>
-    </chapter>
   </part>
 
   <chapter id="object-hierarchy">

@@ -68,7 +68,7 @@ static gunichar vte_terminal_accessible_get_character_at_offset(AtkText *text,
 								gint offset);
 static gpointer vte_terminal_accessible_parent_class;
 
-G_DEFINE_TYPE(VteTerminalAccessibleFactory, vte_terminal_accessible_factory, ATK_TYPE_OBJECT_FACTORY)
+G_DEFINE_TYPE(VteTerminalAccessibleFactory, _vte_terminal_accessible_factory, ATK_TYPE_OBJECT_FACTORY)
 
 static const char *vte_terminal_accessible_action_names[] = {
         "menu",
@@ -839,8 +839,8 @@ vte_terminal_initialize (AtkObject *obj, gpointer data)
 	obj->role = ATK_ROLE_TERMINAL;
 }
 
-/**
- * vte_terminal_accessible_new:
+/*
+ * _vte_terminal_accessible_new:
  * @terminal: a #VteTerminal
  *
  * Creates a new accessibility peer for the terminal widget.
@@ -848,7 +848,7 @@ vte_terminal_initialize (AtkObject *obj, gpointer data)
  * Returns: the new #AtkObject
  */
 AtkObject *
-vte_terminal_accessible_new(VteTerminal *terminal)
+_vte_terminal_accessible_new(VteTerminal *terminal)
 {
 	AtkObject *accessible;
 	GObject *object;
@@ -1989,7 +1989,7 @@ vte_terminal_accessible_class_init(gpointer *klass)
 }
 
 GType
-vte_terminal_accessible_get_type(void)
+_vte_terminal_accessible_get_type(void)
 {
 	static GType terminal_accessible_type = 0;
 
@@ -2092,27 +2092,27 @@ vte_terminal_accessible_factory_create_accessible(GObject *obj)
 	g_assert(VTE_IS_TERMINAL(obj));
 
 	terminal = VTE_TERMINAL(obj);
-	accessible = GTK_ACCESSIBLE(vte_terminal_accessible_new(terminal));
+	accessible = GTK_ACCESSIBLE(_vte_terminal_accessible_new(terminal));
 	g_assert(accessible != NULL);
 
 	return ATK_OBJECT(accessible);
 }
 
 static void
-vte_terminal_accessible_factory_class_init(VteTerminalAccessibleFactoryClass *klass)
+_vte_terminal_accessible_factory_class_init(VteTerminalAccessibleFactoryClass *klass)
 {
 	AtkObjectFactoryClass *class = ATK_OBJECT_FACTORY_CLASS(klass);
 	/* Override the one method we care about. */
 	class->create_accessible = vte_terminal_accessible_factory_create_accessible;
 }
 static void
-vte_terminal_accessible_factory_init(VteTerminalAccessibleFactory *self)
+_vte_terminal_accessible_factory_init(VteTerminalAccessibleFactory *self)
 {
 	/* nothing to initialise */
 }
 
 AtkObjectFactory *
-vte_terminal_accessible_factory_new(void)
+_vte_terminal_accessible_factory_new(void)
 {
 	_vte_debug_print(VTE_DEBUG_ALLY,
 			"Creating a new VteTerminalAccessibleFactory.\n");

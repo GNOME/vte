@@ -26,7 +26,7 @@
 
 G_BEGIN_DECLS
 
-#define VTE_TYPE_TERMINAL_ACCESSIBLE            (vte_terminal_accessible_get_type ())
+#define VTE_TYPE_TERMINAL_ACCESSIBLE            (_vte_terminal_accessible_get_type ())
 #define VTE_TERMINAL_ACCESSIBLE(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), VTE_TYPE_TERMINAL_ACCESSIBLE, VteTerminalAccessible))
 #define VTE_TERMINAL_ACCESSIBLE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), VTE_TYPE_TERMINAL_ACCESSIBLE, VteTerminalAccessibleClass))
 #define VTE_IS_TERMINAL_ACCESSIBLE(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), VTE_TYPE_TERMINAL_ACCESSIBLE))
@@ -55,11 +55,11 @@ struct _VteTerminalAccessibleClass {
 	 * is worked out at run-time. */
 };
 
-GType vte_terminal_accessible_get_type(void);
+GType _vte_terminal_accessible_get_type(void);
 
-AtkObject *vte_terminal_accessible_new(VteTerminal *terminal);
+AtkObject *_vte_terminal_accessible_new(VteTerminal *terminal);
 
-#define VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY            (vte_terminal_accessible_factory_get_type ())
+#define VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY            (_vte_terminal_accessible_factory_get_type ())
 #define VTE_TERMINAL_ACCESSIBLE_FACTORY(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY, VteTerminalAccessibleFactory))
 #define VTE_TERMINAL_ACCESSIBLE_FACTORY_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY, VteTerminalAccessibleFactoryClass))
 #define VTE_IS_TERMINAL_ACCESSIBLE_FACTORY(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY))
@@ -77,9 +77,9 @@ struct _VteTerminalAccessibleFactoryClass {
 	AtkObjectFactoryClass parent;
 };
 
-GType vte_terminal_accessible_factory_get_type(void);
+GType _vte_terminal_accessible_factory_get_type(void);
 
-AtkObjectFactory *vte_terminal_accessible_factory_new(void);
+AtkObjectFactory *_vte_terminal_accessible_factory_new(void);
 
 G_END_DECLS
 
