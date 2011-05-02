@@ -68,9 +68,6 @@ struct _VteTerminal {
         /*< private >*/
 	GtkAdjustment *_VTE_SEAL(adjustment);	/* Scrolling adjustment. */
 
-	/* Metric and sizing data. */
-	glong _VTE_SEAL(row_count), _VTE_SEAL(column_count);	/* dimensions of the window */
-
 	/* Titles. */
 	char *_VTE_SEAL(window_title);
 	char *_VTE_SEAL(icon_title);

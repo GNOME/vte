@@ -358,15 +358,15 @@ adjust_font_size(GtkWidget *widget, gpointer data, gint howmuch)
 
 	/* Read the screen dimensions in cells. */
 	terminal = VTE_TERMINAL(widget);
-	columns = terminal->column_count;
-	rows = terminal->row_count;
+	columns = vte_terminal_get_column_count(terminal);
+	rows = vte_terminal_get_row_count(terminal);
 
 	/* Take into account padding and border overhead. */
 	gtk_window_get_size(GTK_WINDOW(data), &owidth, &oheight);
         char_width = vte_terminal_get_char_width (terminal);
         char_height = vte_terminal_get_char_height (terminal);
-	owidth -= char_width * terminal->column_count;
-	oheight -= char_height * terminal->row_count;
+	owidth -= char_width * columns;
+	oheight -= char_height * rows;
 
 	/* Calculate the new font size. */
 	desired = pango_font_description_copy(vte_terminal_get_font(terminal));

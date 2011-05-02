@@ -276,7 +276,7 @@ _vte_terminal_clear_screen (VteTerminal *terminal)
 	row = screen->cursor_current.row - screen->insert_delta;
 	initial = _vte_ring_next(screen->row_data);
 	/* Add a new screen's worth of rows. */
-	for (i = 0; i < terminal->row_count; i++)
+	for (i = 0; i < terminal->pvt->row_count; i++)
 		_vte_terminal_ring_append (terminal, TRUE);
 	/* Move the cursor and insertion delta to the first line in the
 	 * newly-cleared area and scroll if need be. */
@@ -307,11 +307,11 @@ _vte_terminal_clear_current_line (VteTerminal *terminal)
 		/* Remove it. */
 		_vte_row_data_shrink (rowdata, 0);
 		/* Add enough cells to the end of the line to fill out the row. */
-		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
+		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->pvt->column_count);
 		rowdata->attr.soft_wrapped = 0;
 		/* Repaint this row. */
 		_vte_invalidate_cells(terminal,
-				      0, terminal->column_count,
+				      0, terminal->pvt->column_count,
 				      screen->cursor_current.row, 1);
 	}
 
@@ -337,11 +337,11 @@ _vte_terminal_clear_above_current (VteTerminal *terminal)
 			/* Remove it. */
 			_vte_row_data_shrink (rowdata, 0);
 			/* Add new cells until we fill the row. */
-			_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
+			_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->pvt->column_count);
 			rowdata->attr.soft_wrapped = 0;
 			/* Repaint the row. */
 			_vte_invalidate_cells(terminal,
-					0, terminal->column_count, i, 1);
+					0, terminal->pvt->column_count, i, 1);
 		}
 	}
 	/* We've modified the display.  Make a note of it. */
@@ -362,7 +362,7 @@ _vte_terminal_scroll_text (VteTerminal *terminal, int scroll_amount)
 		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
 		start = screen->insert_delta;
-		end = start + terminal->row_count - 1;
+		end = start + terminal->pvt->row_count - 1;
 	}
 
 	while (_vte_ring_next(screen->row_data) <= end)
@@ -824,7 +824,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 						terminal->pvt->char_width +
 						terminal->pvt->inner_border.left +
                                                 terminal->pvt->inner_border.right,
-						terminal->row_count *
+						terminal->pvt->row_count *
 						terminal->pvt->char_height +
 						terminal->pvt->inner_border.top +
                                                 terminal->pvt->inner_border.bottom);
@@ -930,7 +930,7 @@ vte_sequence_handler_al (VteTerminal *terminal, GValueArray *params)
 	if (screen->scrolling_restricted) {
 		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
-		end = screen->insert_delta + terminal->row_count - 1;
+		end = screen->insert_delta + terminal->pvt->row_count - 1;
 	}
 
 	/* Extract any parameters. */
@@ -995,7 +995,7 @@ vte_sequence_handler_bt (VteTerminal *terminal, GValueArray *params)
 		while (newcol > 0) {
 			newcol--;
 			if (_vte_terminal_get_tabstop(terminal,
-						     newcol % terminal->column_count)) {
+						     newcol % terminal->pvt->column_count)) {
 				break;
 			}
 		}
@@ -1072,7 +1072,7 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 	}
 	/* Now fill the cleared areas. */
 	for (i = screen->cursor_current.row;
-	     i < screen->insert_delta + terminal->row_count;
+	     i < screen->insert_delta + terminal->pvt->row_count;
 	     i++) {
 		/* Retrieve the row's data, creating it if necessary. */
 		if (_vte_ring_contains (screen->row_data, i)) {
@@ -1082,11 +1082,11 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 			rowdata = _vte_terminal_ring_append (terminal, FALSE);
 		}
 		/* Pad out the row. */
-		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
+		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->pvt->column_count);
 		rowdata->attr.soft_wrapped = 0;
 		/* Repaint this row. */
 		_vte_invalidate_cells(terminal,
-				      0, terminal->column_count,
+				      0, terminal->pvt->column_count,
 				      i, 1);
 	}
 
@@ -1114,13 +1114,13 @@ vte_sequence_handler_ce (VteTerminal *terminal, GValueArray *params)
 	}
 	if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
 		/* Add enough cells to fill out the row. */
-		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
+		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->pvt->column_count);
 	}
 	rowdata->attr.soft_wrapped = 0;
 	/* Repaint this row. */
 	_vte_invalidate_cells(terminal,
 			      screen->cursor_current.col,
-			      terminal->column_count -
+			      terminal->pvt->column_count -
 			      screen->cursor_current.col,
 			      screen->cursor_current.row, 1);
 }
@@ -1140,7 +1140,7 @@ vte_sequence_handler_ch (VteTerminal *terminal, GValueArray *params)
 		if (G_VALUE_HOLDS_LONG(value)) {
 			val = CLAMP(g_value_get_long(value),
 				    0,
-				    terminal->column_count - 1);
+				    terminal->pvt->column_count - 1);
 			/* Move the cursor. */
 			screen->cursor_current.col = val;
 			_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
@@ -1182,13 +1182,13 @@ vte_sequence_handler_cm (VteTerminal *terminal, GValueArray *params)
 				origin = 0;
 			}
 			rowval = g_value_get_long(row) + origin;
-			rowval = CLAMP(rowval, 0, terminal->row_count - 1);
+			rowval = CLAMP(rowval, 0, terminal->pvt->row_count - 1);
 		}
 		if (params->n_values >= 2) {
 			col = g_value_array_get_nth(params, 1);
 			if (G_VALUE_HOLDS_LONG(col)) {
 				colval = g_value_get_long(col);
-				colval = CLAMP(colval, 0, terminal->column_count - 1);
+				colval = CLAMP(colval, 0, terminal->pvt->column_count - 1);
 			}
 		}
 	}
@@ -1230,7 +1230,7 @@ vte_sequence_handler_cs (VteTerminal *terminal, GValueArray *params)
 		end = g_value_get_long(value);
 	}
 	/* Catch garbage. */
-	rows = terminal->row_count;
+	rows = terminal->pvt->row_count;
 	if (start <= 0 || start >= rows) {
 		start = 0;
 	}
@@ -1253,7 +1253,7 @@ vte_sequence_handler_cs (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_cS (VteTerminal *terminal, GValueArray *params)
 {
-	long start=0, end=terminal->row_count-1, rows;
+	long start=0, end=terminal->pvt->row_count-1, rows;
 	GValue *value;
 	VteScreen *screen;
 
@@ -1278,7 +1278,7 @@ vte_sequence_handler_cS (VteTerminal *terminal, GValueArray *params)
 	screen->scrolling_region.end = end;
 	screen->scrolling_restricted = TRUE;
 	/* Special case -- run wild, run free. */
-	rows = terminal->row_count;
+	rows = terminal->pvt->row_count;
 	if ((screen->scrolling_region.start == 0) &&
 	    (screen->scrolling_region.end == rows - 1)) {
 		screen->scrolling_restricted = FALSE;
@@ -1306,7 +1306,7 @@ vte_sequence_handler_cursor_lower_left (VteTerminal *terminal, GValueArray *para
 	VteScreen *screen;
 	long row;
 	screen = terminal->pvt->screen;
-	row = MAX(0, terminal->row_count - 1);
+	row = MAX(0, terminal->pvt->row_count - 1);
 	screen->cursor_current.row = screen->insert_delta + row;
 	screen->cursor_current.col = 0;
 }
@@ -1347,7 +1347,7 @@ vte_sequence_handler_cv (VteTerminal *terminal, GValueArray *params)
 				origin = 0;
 			}
 			val = g_value_get_long(value) + origin;
-			val = CLAMP(val, 0, terminal->row_count - 1);
+			val = CLAMP(val, 0, terminal->pvt->row_count - 1);
 			screen->cursor_current.row = screen->insert_delta + val;
 		}
 	}
@@ -1374,8 +1374,8 @@ vte_sequence_handler_dc (VteTerminal *terminal, GValueArray *params)
 		if (col < len) {
 			_vte_row_data_remove (rowdata, col);
 			if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
-				_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
-				len = terminal->column_count;
+				_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->pvt->column_count);
+				len = terminal->pvt->column_count;
 			}
 			/* Repaint this row. */
 			_vte_invalidate_cells(terminal,
@@ -1409,7 +1409,7 @@ vte_sequence_handler_dl (VteTerminal *terminal, GValueArray *params)
 	if (screen->scrolling_restricted) {
 		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
-		end = screen->insert_delta + terminal->row_count - 1;
+		end = screen->insert_delta + terminal->pvt->row_count - 1;
 	}
 
 	/* Extract any parameters. */
@@ -1459,7 +1459,7 @@ vte_sequence_handler_do (VteTerminal *terminal, GValueArray *params)
 		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
 		start = screen->insert_delta;
-		end = start + terminal->row_count - 1;
+		end = start + terminal->pvt->row_count - 1;
 	}
 
 	/* Move the cursor down. */
@@ -1641,7 +1641,7 @@ vte_sequence_handler_le (VteTerminal *terminal, GValueArray *params)
 	} else {
 		if (terminal->pvt->flags.bw) {
 			/* Wrap to the previous line. */
-			screen->cursor_current.col = terminal->column_count - 1;
+			screen->cursor_current.col = terminal->pvt->column_count - 1;
 			if (screen->scrolling_restricted) {
 				vte_sequence_handler_sr (terminal, params);
 			} else {
@@ -1670,7 +1670,7 @@ vte_sequence_handler_ll (VteTerminal *terminal, GValueArray *params)
 	screen = terminal->pvt->screen;
 	screen->cursor_current.row = MAX(screen->insert_delta,
 					 screen->insert_delta +
-					 terminal->row_count - 1);
+					 terminal->pvt->row_count - 1);
 	screen->cursor_current.col = 0;
 }
 
@@ -1733,7 +1733,7 @@ vte_sequence_handler_nd (VteTerminal *terminal, GValueArray *params)
 {
 	VteScreen *screen;
 	screen = terminal->pvt->screen;
-	if ((screen->cursor_current.col + 1) < terminal->column_count) {
+	if ((screen->cursor_current.col + 1) < terminal->pvt->column_count) {
 		/* There's room to move right. */
 		screen->cursor_current.col++;
 	}
@@ -1771,7 +1771,7 @@ vte_sequence_handler_rc (VteTerminal *terminal, GValueArray *params)
 					   screen->insert_delta,
 					   screen->insert_delta,
 					   screen->insert_delta +
-					   terminal->row_count - 1);
+					   terminal->pvt->row_count - 1);
 }
 
 /* Cursor down, with scrolling. */
@@ -1797,7 +1797,7 @@ vte_sequence_handler_sc (VteTerminal *terminal, GValueArray *params)
 	screen->cursor_saved.col = screen->cursor_current.col;
 	screen->cursor_saved.row = CLAMP(screen->cursor_current.row -
 					 screen->insert_delta,
-					 0, terminal->row_count - 1);
+					 0, terminal->pvt->row_count - 1);
 }
 
 /* Scroll the text down, but don't move the cursor. */
@@ -1988,7 +1988,7 @@ vte_sequence_handler_sr (VteTerminal *terminal, GValueArray *params)
 		end = screen->scrolling_region.end + screen->insert_delta;
 	} else {
 		start = terminal->pvt->screen->insert_delta;
-		end = start + terminal->row_count - 1;
+		end = start + terminal->pvt->row_count - 1;
 	}
 
 	if (screen->cursor_current.row == start) {
@@ -1999,7 +1999,7 @@ vte_sequence_handler_sr (VteTerminal *terminal, GValueArray *params)
 		/* Update the display. */
 		_vte_terminal_scroll_region(terminal, start, end - start + 1, 1);
 		_vte_invalidate_cells(terminal,
-				      0, terminal->column_count,
+				      0, terminal->pvt->column_count,
 				      start, 2);
 	} else {
 		/* Otherwise, just move the cursor up. */
@@ -2053,8 +2053,8 @@ vte_sequence_handler_ta (VteTerminal *terminal, GValueArray *params)
 
 	/* If we have no tab stops or went past the end of the line, stop
 	 * at the right-most column. */
-	if (newcol >= terminal->column_count) {
-		newcol = terminal->column_count - 1;
+	if (newcol >= terminal->pvt->column_count) {
+		newcol = terminal->pvt->column_count - 1;
 	}
 
 	/* but make sure we don't move cursor back (bug #340631) */
@@ -2206,7 +2206,7 @@ vte_sequence_handler_up (VteTerminal *terminal, GValueArray *params)
 		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
 		start = screen->insert_delta;
-		end = start + terminal->row_count - 1;
+		end = start + terminal->pvt->row_count - 1;
 	}
 
 	screen->cursor_current.row = MAX(screen->cursor_current.row - 1, start);
@@ -2444,7 +2444,7 @@ vte_sequence_handler_cursor_character_absolute (VteTerminal *terminal, GValueArr
 		value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
 			val = CLAMP(g_value_get_long(value),
-				    1, terminal->column_count) - 1;
+				    1, terminal->pvt->column_count) - 1;
 		}
 	}
 
@@ -2794,7 +2794,7 @@ vte_sequence_handler_insert_lines (VteTerminal *terminal, GValueArray *params)
 	if (screen->scrolling_restricted) {
 		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
-		end = screen->insert_delta + terminal->row_count - 1;
+		end = screen->insert_delta + terminal->pvt->row_count - 1;
 	}
 	/* Insert the new lines at the cursor. */
 	for (i = 0; i < param; i++) {
@@ -2835,7 +2835,7 @@ vte_sequence_handler_delete_lines (VteTerminal *terminal, GValueArray *params)
 	if (screen->scrolling_restricted) {
 		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
-		end = screen->insert_delta + terminal->row_count - 1;
+		end = screen->insert_delta + terminal->pvt->row_count - 1;
 	}
 	/* Clear them from below the current cursor. */
 	for (i = 0; i < param; i++) {
@@ -3004,7 +3004,7 @@ vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *
 	screen = terminal->pvt->screen;
 
 	for (row = terminal->pvt->screen->insert_delta;
-	     row < terminal->pvt->screen->insert_delta + terminal->row_count;
+	     row < terminal->pvt->screen->insert_delta + terminal->pvt->row_count;
 	     row++) {
 		/* Find this row. */
 		while (_vte_ring_next(screen->row_data) <= row)
@@ -3020,7 +3020,7 @@ vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *
 		cell.c = 'E';
 		cell.attr = basic_cell.cell.attr;
 		cell.attr.columns = 1;
-		_vte_row_data_fill (rowdata, &cell, terminal->column_count);
+		_vte_row_data_fill (rowdata, &cell, terminal->pvt->column_count);
 		_vte_terminal_emit_text_inserted(terminal);
 	}
 	_vte_invalidate_all(terminal);
@@ -3207,8 +3207,8 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 					"Reporting widget size.\n");
 			g_snprintf(buf, sizeof(buf),
 				   _VTE_CAP_CSI "8;%ld;%ldt",
-				   terminal->row_count,
-				   terminal->column_count);
+				   terminal->pvt->row_count,
+				   terminal->pvt->column_count);
 			vte_terminal_feed_child(terminal, buf, -1);
 			break;
 		case 19:
@@ -3257,7 +3257,7 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 				/* Resize to the specified number of
 				 * rows. */
 				vte_terminal_emit_resize_window(terminal,
-								terminal->column_count * terminal->pvt->char_width +
+								terminal->pvt->column_count * terminal->pvt->char_width +
                                                                 terminal->pvt->inner_border.left +
                                                                 terminal->pvt->inner_border.right,
 								param * terminal->pvt->char_height +
