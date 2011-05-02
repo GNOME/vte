@@ -34,18 +34,6 @@
 
 G_BEGIN_DECLS
 
-#ifdef VTE_SEAL_ENABLE
-#define _VTE_SEAL(name) _vte_sealed__ ## name
-#else
-#define _VTE_SEAL(name) name
-#endif
-
-#ifdef VTE_DISABLE_DEPRECATED
-#define _VTE_DEPRECATED(name) _vte_deprecated__ ## name
-#else
-#define _VTE_DEPRECATED(name) name
-#endif
-
 #define VTE_TYPE_TERMINAL            (vte_terminal_get_type())
 #define VTE_TERMINAL(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), VTE_TYPE_TERMINAL, VteTerminal))
 #define VTE_TERMINAL_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  VTE_TYPE_TERMINAL, VteTerminalClass))
@@ -60,14 +48,10 @@ typedef struct _VteTerminalClassPrivate VteTerminalClassPrivate;
 
 /**
  * VteTerminal:
- *
- * All of these fields should be considered read-only and deprecated.
  */
 struct _VteTerminal {
 	GtkWidget widget;
         /*< private >*/
-
-	/*< private >*/
 	VteTerminalPrivate *pvt;
 };
 
@@ -451,9 +435,6 @@ gboolean vte_terminal_write_contents (VteTerminal *terminal,
 				      VteTerminalWriteFlags flags,
 				      GCancellable *cancellable,
 				      GError **error);
-
-#undef _VTE_SEAL
-#undef _VTE_DEPRECATED
 
 G_END_DECLS
 
