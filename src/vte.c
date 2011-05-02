@@ -4959,7 +4959,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 					terminal->pvt->keypad_mode == VTE_KEYMODE_APPLICATION,
 					terminal->pvt->termcap,
 					terminal->pvt->emulation ?
-					terminal->pvt->emulation : vte_terminal_get_default_emulation(terminal),
+					terminal->pvt->emulation : vte_get_default_emulation(),
 					&normal,
 					&normal_length,
 					&special);
@@ -7539,7 +7539,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 
 	/* Set the emulation type, for reference. */
 	if (emulation == NULL) {
-		emulation = vte_terminal_get_default_emulation(terminal);
+		emulation = vte_get_default_emulation();
 	}
 	terminal->pvt->emulation = g_intern_string(emulation);
 	_vte_debug_print(VTE_DEBUG_MISC,
@@ -7595,21 +7595,19 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
         g_object_thaw_notify(object);
 }
 
-/* FIXMEchpe deprecate this function, it's wrong */
 /**
- * vte_terminal_get_default_emulation:
- * @terminal: a #VteTerminal
+ * vte_get_default_emulation:
  *
- * Queries the terminal for its default emulation, which is attempted if the
+ * Returns the default emulation, which is used in #VteTerminal if the
  * terminal type passed to vte_terminal_set_emulation() is %NULL.
  *
- * Returns: (transfer none) (type utf8): an interned string containing the name of the default terminal
- *   type the widget attempts to emulate
+ * Returns: (transfer none) (type utf8): an interned string containing the name
+ *   of the default terminal type the widget attempts to emulate
  *
- * Since: 0.11.11
+ * Since: 0.30
  */
 const char *
-vte_terminal_get_default_emulation(VteTerminal *terminal)
+vte_get_default_emulation(void)
 {
 	return g_intern_static_string(VTE_DEFAULT_EMULATION);
 }
@@ -7660,7 +7658,7 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 		wpath = g_build_filename(TERMCAPDIR,
 					 terminal->pvt->emulation ?
 					 terminal->pvt->emulation :
-					 vte_terminal_get_default_emulation(terminal),
+					 vte_get_default_emulation(),
 					 NULL);
 		if (g_stat(wpath, &st) != 0) {
 			g_free(wpath);
@@ -10707,7 +10705,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 				terminal->pvt->keypad_mode == VTE_KEYMODE_APPLICATION,
 				terminal->pvt->termcap,
 				terminal->pvt->emulation ?
-				terminal->pvt->emulation : vte_terminal_get_default_emulation(terminal),
+				terminal->pvt->emulation : vte_get_default_emulation(),
 				&normal,
 				&normal_length,
 				&special);
