@@ -129,7 +129,6 @@ VTE_IS_TERMINAL_CLASS
 VTE_TERMINAL_CLASS
 
 <SUBSECTION Binding Accessors>
-vte_terminal_get_adjustment
 vte_terminal_get_char_height
 vte_terminal_get_char_width
 vte_terminal_get_column_count
