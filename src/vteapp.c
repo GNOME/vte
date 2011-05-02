@@ -572,8 +572,7 @@ main(int argc, char **argv)
 	char *cursor_blink_mode_string = NULL;
 	char *cursor_shape_string = NULL;
 	char *scrollbar_policy_string = NULL;
-	GdkColor fore, back, highlight, cursor;
-        GdkRGBA tint;
+	GdkRGBA fore, back, highlight, cursor, tint;
 	const GOptionEntry options[]={
 		{
 			"background", 'B', 0,
@@ -767,18 +766,16 @@ main(int argc, char **argv)
 	}
 
 	if (!reverse) {
-		back.red = back.green = back.blue = 0xffff;
-		fore.red = fore.green = fore.blue = 0x0000;
+		back.red = back.green = back.blue = 1.0; back.alpha = 1.0;
+		fore.red = fore.green = fore.blue = 0.0; fore.alpha = 1.0;
 	} else {
-		back.red = back.green = back.blue = 0x0000;
-		fore.red = fore.green = fore.blue = 0xffff;
+		back.red = back.green = back.blue = 0.0; back.alpha = 1.0;
+		fore.red = fore.green = fore.blue = 1.0; fore.alpha = 1.0;
 	}
 
-	highlight.red = highlight.green = highlight.blue = 0xc000;
-	cursor.red = 0xffff;
-	cursor.green = cursor.blue = 0x8000;
-	tint.red = tint.green = tint.blue = 0.;
-        tint.alpha = .875;
+	highlight.red = highlight.green = highlight.blue = 0.75; highlight.alpha = 1.0;
+	cursor.red = 1.0; cursor.green = cursor.blue = 0.5; cursor.alpha = 1.0;
+	tint.red = tint.green = tint.blue = 0.; tint.alpha = .875;
 
 	gdk_window_set_debug_updates(debug);
 
@@ -788,7 +785,7 @@ main(int argc, char **argv)
 	gtk_container_set_resize_mode(GTK_CONTAINER(window),
 				      GTK_RESIZE_IMMEDIATE);
 
-	/* Set ARGB colormap */
+	/* Set ARGB visual */
 	screen = gtk_widget_get_screen (window);
 	visual = gdk_screen_get_rgba_visual(screen);
 	if (visual)
@@ -897,13 +894,12 @@ main(int argc, char **argv)
 							TRUE);
 	}
 	vte_terminal_set_background_tint_color_rgba(terminal, &tint);
-	vte_terminal_set_colors(terminal, &fore, &back, NULL, 0);
+	vte_terminal_set_colors_rgba(terminal, &fore, &back, NULL, 0);
 	if (highlight_set) {
-		vte_terminal_set_color_highlight(terminal,
-						 &highlight);
+		vte_terminal_set_color_highlight_rgba(terminal, &highlight);
 	}
 	if (cursor_set) {
-		vte_terminal_set_color_cursor(terminal, &cursor);
+		vte_terminal_set_color_cursor_rgba(terminal, &cursor);
 	}
 	if (termcap != NULL) {
 		vte_terminal_set_emulation(terminal, termcap);
