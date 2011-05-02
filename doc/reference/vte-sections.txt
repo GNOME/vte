@@ -140,7 +140,6 @@ vte_terminal_set_background_tint_color
 vte_terminal_set_scroll_background
 
 <SUBSECTION Private>
-VTE_IS_TERMINAL_ANTI_ALIAS
 VteCharAttributes
 VteTerminalPrivate
 VteTerminalClassPrivate

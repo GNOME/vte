@@ -30,17 +30,6 @@
 G_BEGIN_DECLS
 
 /**
- * VTE_IS_TERMINAL_ANTI_ALIAS:
- *
- * Does nothing.
- *
- * Returns: %FALSE
- *
- * @Deprecated: 0.20
- */
-#define VTE_IS_TERMINAL_ANTI_ALIAS(obj)     (FALSE)
-
-/**
  * VteTerminalAntiAlias:
  * @VTE_ANTI_ALIAS_USE_DEFAULT: Use the system default anti-alias setting
  * @VTE_ANTI_ALIAS_FORCE_ENABLE: Force enable anti-aliasing
