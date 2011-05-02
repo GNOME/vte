@@ -314,7 +314,6 @@ struct _VteTerminalPrivate {
 	/* Data used when rendering the text which does not require server
 	 * resources and which can be kept after unrealizing. */
 	PangoFontDescription *fontdesc;
-	VteTerminalAntiAlias fontantialias;
 	gboolean fontdirty;
         glong char_ascent;
         glong char_descent;
