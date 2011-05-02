@@ -161,15 +161,8 @@ typedef enum {
 } VteTerminalCursorShape;
 
 /* The structure we return as the supplemental attributes for strings. */
+typedef struct _VteCharAttributes VteCharAttributes;
 struct _VteCharAttributes {
-        /*< private >*/
-	long row, column;
-	GdkColor fore, back;
-	guint underline:1, strikethrough:1;
-};
-
-/* The name of the same structure in the 0.10 series, for API compatibility. */
-struct vte_char_attributes {
         /*< private >*/
 	long row, column;
 	GdkColor fore, back;
