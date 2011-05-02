@@ -347,45 +347,6 @@ vte_pty_child_setup (VtePty *pty)
  */
 
 /*
- * __vte_pty_get_argv:
- * @command: the command to run
- * @argv: the argument vector
- * @flags: (inout) flags from #GSpawnFlags
- *
- * Creates an argument vector to pass to g_spawn_async() from @command and
- * @argv, modifying *@flags if necessary.
- *
- * Returns: a newly allocated array of strings. Free with g_strfreev()
- */
-char **
-__vte_pty_get_argv (const char *command,
-                    char **argv,
-                    GSpawnFlags *flags /* inout */)
-{
-	char **argv2;
-	int i, argc;
-
-        g_return_val_if_fail(command != NULL, NULL);
-
-	/* push the command into argv[0] */
-	argc = argv ? g_strv_length (argv) : 0;
-	argv2 = g_new (char *, argc + 2);
-
-	argv2[0] = g_strdup (command);
-
-	for (i = 0; i < argc; i++) {
-		argv2[i+1] = g_strdup (argv[i]);
-	}
-	argv2[i+1] = NULL;
-
-        if (argv) {
-                *flags |= G_SPAWN_FILE_AND_ARGV_ZERO;
-        }
-
-	return argv2;
-}
-
-/*
  * __vte_pty_merge_environ:
  * @envp: environment vector
  *
@@ -438,34 +399,6 @@ __vte_pty_merge_environ (char **envp, const char *term_value)
 	g_ptr_array_add (array, NULL);
 
 	return (gchar **) g_ptr_array_free (array, FALSE);
-}
-
-/*
- * __vte_pty_get_pty_flags:
- * @lastlog: %TRUE if the session should be logged to the lastlog
- * @utmp: %TRUE if the session should be logged to the utmp/utmpx log
- * @wtmp: %TRUE if the session should be logged to the wtmp/wtmpx log
- *
- * Combines the @lastlog, @utmp, @wtmp arguments into the coresponding
- * #VtePtyFlags flags.
- *
- * Returns: flags from #VtePtyFlags
- */
-VtePtyFlags
-__vte_pty_get_pty_flags(gboolean lastlog,
-                        gboolean utmp,
-                        gboolean wtmp)
-{
-        VtePtyFlags flags = VTE_PTY_DEFAULT;
-
-        if (!lastlog)
-                flags |= VTE_PTY_NO_LASTLOG;
-        if (!utmp)
-                flags |= VTE_PTY_NO_UTMP;
-        if (!wtmp)
-                flags |= VTE_PTY_NO_WTMP;
-
-        return flags;
 }
 
 /*

@@ -75,12 +75,6 @@ void vte_terminal_set_font_full(VteTerminal *terminal,
 void vte_terminal_set_font_from_string_full(VteTerminal *terminal,
 					    const char *name,
 					    VteTerminalAntiAlias antialias) G_GNUC_DEPRECATED;
-pid_t vte_terminal_fork_command(VteTerminal *terminal,
-				const char *command, char **argv,
-				char **envv, const char *working_directory,
-				gboolean lastlog,
-				gboolean utmp,
-				gboolean wtmp) G_GNUC_DEPRECATED;
 void vte_terminal_set_pty(VteTerminal *terminal, int pty_master);
 int vte_terminal_get_pty(VteTerminal *terminal);
 
