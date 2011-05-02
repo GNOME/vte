@@ -46,7 +46,6 @@
 #include "debug.h"
 #include "vteconv.h"
 #include "vtedraw.h"
-#include "reaper.h"
 #include "ring.h"
 #include "caps.h"
 
@@ -200,7 +199,7 @@ struct _VteTerminalPrivate {
 	guint pty_output_source;
 	gboolean pty_input_active;
 	GPid pty_pid;			/* pid of child using pty slave */
-	VteReaper *pty_reaper;
+	guint child_watch_source;
         int child_exit_status;
 
 	/* Input data queues. */

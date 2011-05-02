@@ -227,20 +227,3 @@ VteTerminalAccessibleFactory
 VteTerminalAccessibleFactoryClass
 vte_terminal_accessible_factory_new
 </SECTION>
-
-<SECTION>
-<FILE>vte-reaper</FILE>
-<TITLE>VteReaper</TITLE>
-VteReaper
-vte_reaper_add_child
-vte_reaper_get
-
-<SUBSECTION Standard>
-VTE_IS_REAPER
-VTE_IS_REAPER_CLASS
-VTE_REAPER
-VTE_REAPER_CLASS
-VTE_REAPER_GET_CLASS
-VTE_TYPE_REAPER
-vte_reaper_get_type
-</SECTION>

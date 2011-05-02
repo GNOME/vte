@@ -66,10 +66,6 @@
       <title>Interna</title>
       <xi:include href="xml/vte-access.xml"/>
     </chapter>
-    <chapter id="deprecated-objects">
-      <title>Deprecated</title>
-      <xi:include href="xml/vte-reaper.xml"/>
-    </chapter>
   </part>
 
   <chapter id="object-hierarchy">

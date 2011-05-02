@@ -3215,11 +3215,10 @@ not_inserted:
 	return line_wrapped;
 }
 
-/* Catch a VteReaper child-exited signal, and if it matches the one we're
- * looking for, emit one of our own. */
 static void
-vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
-				VteTerminal *terminal)
+vte_terminal_child_watch_cb(GPid pid,
+                            int status,
+                            VteTerminal *terminal)
 {
 	if (pid == terminal->pvt->pty_pid) {
                 GObject *object = G_OBJECT(terminal);
@@ -3240,14 +3239,8 @@ vte_terminal_catch_child_exited(VteReaper *reaper, int pid, int status,
 			}
 #endif
 		}
-		/* Disconnect from the reaper. */
-		if (terminal->pvt->pty_reaper != NULL) {
-			g_signal_handlers_disconnect_by_func(terminal->pvt->pty_reaper,
-							     vte_terminal_catch_child_exited,
-							     terminal);
-			g_object_unref(terminal->pvt->pty_reaper);
-			terminal->pvt->pty_reaper = NULL;
-		}
+
+		terminal->pvt->child_watch_source = 0;
 		terminal->pvt->pty_pid = -1;
 
 		/* Close out the PTY. */
@@ -3402,7 +3395,6 @@ vte_terminal_watch_child (VteTerminal *terminal,
 {
         VteTerminalPrivate *pvt;
         GObject *object;
-        VteReaper *reaper;
 
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(child_pid != -1);
@@ -3421,22 +3413,14 @@ vte_terminal_watch_child (VteTerminal *terminal,
         pvt->child_exit_status = 0;
 
         /* Catch a child-exited signal from the child pid. */
-        reaper = vte_reaper_get();
-        vte_reaper_add_child(child_pid);
-        if (reaper != pvt->pty_reaper) {
-                if (terminal->pvt->pty_reaper != NULL) {
-                        g_signal_handlers_disconnect_by_func(pvt->pty_reaper,
-                                        vte_terminal_catch_child_exited,
-                                        terminal);
-                        g_object_unref(pvt->pty_reaper);
-                }
-                g_signal_connect(reaper, "child-exited",
-                                G_CALLBACK(vte_terminal_catch_child_exited),
-                                terminal);
-                pvt->pty_reaper = reaper;
-        } else {
-                g_object_unref(reaper);
-	}
+        if (terminal->pvt->child_watch_source != 0) {
+                g_source_remove (terminal->pvt->child_watch_source);
+        }
+        terminal->pvt->child_watch_source =
+                g_child_watch_add_full(G_PRIORITY_HIGH,
+                                       child_pid,
+                                       (GChildWatchFunc)vte_terminal_child_watch_cb,
+                                       terminal, NULL);
 
         /* FIXMEchpe: call vte_terminal_set_size here? */
 
@@ -8852,12 +8836,10 @@ vte_terminal_finalize(GObject *object)
 	}
 
 	/* Stop listening for child-exited signals. */
-	if (terminal->pvt->pty_reaper != NULL) {
-		g_signal_handlers_disconnect_by_func(terminal->pvt->pty_reaper,
-						     vte_terminal_catch_child_exited,
-						     terminal);
-		g_object_unref(terminal->pvt->pty_reaper);
-	}
+        if (terminal->pvt->child_watch_source != 0) {
+                g_source_remove (terminal->pvt->child_watch_source);
+                terminal->pvt->child_watch_source = 0;
+        }
 
 	/* Stop processing input. */
 	vte_terminal_stop_processing (terminal);
