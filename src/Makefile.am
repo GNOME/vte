@@ -5,7 +5,7 @@ EXTRA_DIST = iso2022.txt
 # The library
 
 headerdir = $(includedir)/vte-$(VTE_API_VERSION)/vte
-header_HEADERS = vte.h vteaccess.h vtepty.h vtetypebuiltins.h vteversion.h vtedeprecated.h
+header_HEADERS = vte.h vtepty.h vtetypebuiltins.h vteversion.h vtedeprecated.h
 
 lib_LTLIBRARIES = libvte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@.la
 

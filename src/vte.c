@@ -10693,7 +10693,7 @@ vte_terminal_get_accessible(GtkWidget *widget)
 		registry = atk_get_default_registry ();
 
 		atk_registry_set_factory_type (registry, VTE_TYPE_TERMINAL,
-			vte_terminal_accessible_factory_get_type ());
+			_vte_terminal_accessible_factory_get_type ());
 		quark_accessible_object = g_quark_from_static_string (
 		"gtk-accessible-object");
 		first_time = FALSE;

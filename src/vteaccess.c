@@ -71,7 +71,7 @@ static gunichar vte_terminal_accessible_get_character_at_offset(AtkText *text,
 								gint offset);
 static gpointer vte_terminal_accessible_parent_class;
 
-G_DEFINE_TYPE(VteTerminalAccessibleFactory, vte_terminal_accessible_factory, ATK_TYPE_OBJECT_FACTORY)
+G_DEFINE_TYPE(VteTerminalAccessibleFactory, _vte_terminal_accessible_factory, ATK_TYPE_OBJECT_FACTORY)
 
 static const char *vte_terminal_accessible_action_names[] = {
         "menu",
@@ -930,8 +930,8 @@ vte_terminal_initialize (AtkObject *obj, gpointer data)
   g_signal_connect (terminal, "unmap", G_CALLBACK (map_cb), NULL);
 }
 
-/**
- * vte_terminal_accessible_new:
+/*
+ * _vte_terminal_accessible_new:
  * @terminal: a #VteTerminal
  *
  * Creates a new accessibility peer for the terminal widget.
@@ -939,7 +939,7 @@ vte_terminal_initialize (AtkObject *obj, gpointer data)
  * Returns: the new #AtkObject
  */
 AtkObject *
-vte_terminal_accessible_new(VteTerminal *terminal)
+_vte_terminal_accessible_new(VteTerminal *terminal)
 {
 	AtkObject *accessible;
 	GObject *object;
@@ -2343,7 +2343,7 @@ vte_terminal_accessible_get_attributes (AtkObject *obj)
 }
 
 static void
-vte_terminal_accessible_class_init(VteTerminalAccessibleClass *klass)
+_vte_terminal_accessible_class_init(VteTerminalAccessibleClass *klass)
 {
 	GObjectClass *gobject_class;
 	AtkObjectClass *class = ATK_OBJECT_CLASS (klass);
@@ -2365,11 +2365,11 @@ vte_terminal_accessible_class_init(VteTerminalAccessibleClass *klass)
 }
 
 static void
-vte_terminal_accessible_init (VteTerminalAccessible *terminal)
+_vte_terminal_accessible_init (VteTerminalAccessible *terminal)
 {
 }
 
-G_DEFINE_TYPE_WITH_CODE (VteTerminalAccessible, vte_terminal_accessible, GTK_TYPE_ACCESSIBLE,
+G_DEFINE_TYPE_WITH_CODE (VteTerminalAccessible, _vte_terminal_accessible, GTK_TYPE_ACCESSIBLE,
                          G_IMPLEMENT_INTERFACE (ATK_TYPE_TEXT, vte_terminal_accessible_text_init)
                          G_IMPLEMENT_INTERFACE (ATK_TYPE_COMPONENT, vte_terminal_accessible_component_init)
                          G_IMPLEMENT_INTERFACE (ATK_TYPE_ACTION, vte_terminal_accessible_action_init))
@@ -2384,27 +2384,27 @@ vte_terminal_accessible_factory_create_accessible(GObject *obj)
 	g_assert(VTE_IS_TERMINAL(obj));
 
 	terminal = VTE_TERMINAL(obj);
-	accessible = GTK_ACCESSIBLE(vte_terminal_accessible_new(terminal));
+	accessible = GTK_ACCESSIBLE(_vte_terminal_accessible_new(terminal));
 	g_assert(accessible != NULL);
 
 	return ATK_OBJECT(accessible);
 }
 
 static void
-vte_terminal_accessible_factory_class_init(VteTerminalAccessibleFactoryClass *klass)
+_vte_terminal_accessible_factory_class_init(VteTerminalAccessibleFactoryClass *klass)
 {
 	AtkObjectFactoryClass *class = ATK_OBJECT_FACTORY_CLASS(klass);
 	/* Override the one method we care about. */
 	class->create_accessible = vte_terminal_accessible_factory_create_accessible;
 }
 static void
-vte_terminal_accessible_factory_init(VteTerminalAccessibleFactory *self)
+_vte_terminal_accessible_factory_init(VteTerminalAccessibleFactory *self)
 {
 	/* nothing to initialise */
 }
 
 AtkObjectFactory *
-vte_terminal_accessible_factory_new(void)
+_vte_terminal_accessible_factory_new(void)
 {
 	_vte_debug_print(VTE_DEBUG_ALLY,
 			"Creating a new VteTerminalAccessibleFactory.\n");
