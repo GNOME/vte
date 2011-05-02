@@ -68,8 +68,6 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vteint.h \
 	vtepty.h \
 	vtepty-private.h \
-	vteregex.c \
-	vteregex.h \
 	vteresources.c \
 	vterowdata.c \
 	vterowdata.h \

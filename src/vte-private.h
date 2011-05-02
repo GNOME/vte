@@ -115,13 +115,6 @@ G_BEGIN_DECLS
 
 #define I_(string) (g_intern_static_string(string))
 
-
-typedef enum {
-        VTE_REGEX_GREGEX,
-        VTE_REGEX_VTE,
-        VTE_REGEX_UNDECIDED
-} VteRegexMode;
-
 typedef enum {
   VTE_REGEX_CURSOR_GDKCURSOR,
   VTE_REGEX_CURSOR_GDKCURSORTYPE,
@@ -138,17 +131,16 @@ typedef enum {
 	MOUSE_TRACKING_ALL_MOTION_TRACKING
 } MouseTrackingMode;
 
+struct _vte_regex_match {
+       int rm_so;
+       int rm_eo;
+};
+
 /* A match regex, with a tag. */
 struct vte_match_regex {
 	gint tag;
-        VteRegexMode mode;
-        union { /* switched on |mode| */
-              struct {
-                    GRegex *regex;
-                    GRegexMatchFlags flags;
-              } gregex;
-              struct _vte_regex *reg;
-        } regex;
+        GRegex *regex;
+        GRegexMatchFlags match_flags;
         VteRegexCursorMode cursor_mode;
         union {
 	       GdkCursor *cursor;
@@ -344,7 +336,6 @@ struct _VteTerminalPrivate {
 	/* State variables for handling match checks. */
 	char *match_contents;
 	GArray *match_attributes;
-        VteRegexMode match_regex_mode;
 	GArray *match_regexes;
 	char *match;
 	int match_tag;
