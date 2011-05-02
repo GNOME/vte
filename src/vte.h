@@ -70,7 +70,6 @@ struct _VteTerminal {
 
 	/* Metric and sizing data. */
 	glong _VTE_SEAL(char_width), _VTE_SEAL(char_height);	/* dimensions of character cells */
-	glong _VTE_SEAL(char_ascent), _VTE_SEAL(char_descent); /* important font metrics */
 	glong _VTE_SEAL(row_count), _VTE_SEAL(column_count);	/* dimensions of the window */
 
 	/* Titles. */
