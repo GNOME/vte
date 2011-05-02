@@ -52,7 +52,7 @@ typedef struct {
 	GdkPixbuf *source_pixbuf;
 	char *source_file;
 
-	PangoColor tint_color;
+	GdkRGBA tint_color;
 	double saturation;
 	cairo_surface_t *surface;
 } VteBgCacheItem;
@@ -256,14 +256,6 @@ vte_bg_get_for_screen(GdkScreen *screen)
 	return bg;
 }
 
-static gboolean
-vte_bg_colors_equal(const PangoColor *a, const PangoColor *b)
-{
-	return  (a->red >> 8) == (b->red >> 8) &&
-		(a->green >> 8) == (b->green >> 8) &&
-		(a->blue >> 8) == (b->blue >> 8);
-}
-
 static void
 vte_bg_cache_item_free(VteBgCacheItem *item)
 {
@@ -347,7 +339,7 @@ vte_bg_cache_add(VteBg *bg, VteBgCacheItem *item)
  * @source_type: a #VteBgSourceType
  * @source_pixbuf: a #GdkPixbuf, or %NULL
  * @source_file: path of an image file, or %NULL
- * @tint: a #PangoColor to use as tint color
+ * @tint: a #GdkRGBA to use as tint color
  * @saturation: the saturation as a value between 0.0 and 1.0
  *
  * Returns: a reference to a #cairo_surface_t, or %NULL on if
@@ -358,7 +350,7 @@ vte_bg_cache_search(VteBg *bg,
 		    VteBgSourceType source_type,
 		    const GdkPixbuf *source_pixbuf,
 		    const char *source_file,
-		    const PangoColor *tint,
+		    const GdkRGBA *tint,
 		    double saturation)
 {
 	GList *i;
@@ -366,7 +358,7 @@ vte_bg_cache_search(VteBg *bg,
 	vte_bg_cache_prune(bg);
 	for (i = bg->pvt->cache; i != NULL; i = g_list_next(i)) {
 		VteBgCacheItem *item = i->data;
-		if (vte_bg_colors_equal(&item->tint_color, tint) &&
+		if (gdk_rgba_equal (&item->tint_color, tint) &&
 		    (saturation == item->saturation) &&
 		    (source_type == item->source_type)) {
 			switch (source_type) {
@@ -410,7 +402,7 @@ vte_bg_get_surface(VteBg *bg,
 		   VteBgSourceType source_type,
 		   GdkPixbuf *source_pixbuf,
 		   const char *source_file,
-		   const PangoColor *tint,
+		   const GdkRGBA *tint,
 		   double saturation,
 		   cairo_surface_t *other)
 {
@@ -420,6 +412,7 @@ vte_bg_get_surface(VteBg *bg,
 	cairo_surface_t *cached;
 	cairo_t *cr;
 	int width, height;
+        double alpha;
 
         g_return_val_if_fail(VTE_IS_BG(bg), NULL);
         pvt = bg->pvt;
@@ -503,12 +496,13 @@ vte_bg_get_surface(VteBg *bg,
 #endif
 	cairo_paint (cr);
 
-	if (saturation < 1.0) {
+        alpha = (1. - saturation) * tint->alpha;
+	if (alpha > 0.) {
 		cairo_set_source_rgba (cr, 
-				       tint->red / 65535.,
-				       tint->green / 65535.,
-				       tint->blue / 65535.,
-				       1 - saturation);
+				       tint->red,
+				       tint->green,
+				       tint->blue,
+				       alpha);
 		cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
 		cairo_paint (cr);
 	}

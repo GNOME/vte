@@ -567,7 +567,8 @@ main(int argc, char **argv)
 	char *cursor_blink_mode_string = NULL;
 	char *cursor_shape_string = NULL;
 	char *scrollbar_policy_string = NULL;
-	GdkColor fore, back, tint, highlight, cursor;
+	GdkColor fore, back, highlight, cursor;
+        GdkRGBA tint;
 	const GOptionEntry options[]={
 		{
 			"background", 'B', 0,
@@ -776,8 +777,8 @@ main(int argc, char **argv)
 	highlight.red = highlight.green = highlight.blue = 0xc000;
 	cursor.red = 0xffff;
 	cursor.green = cursor.blue = 0x8000;
-	tint.red = tint.green = tint.blue = 0;
-	tint = back;
+	tint.red = tint.green = tint.blue = 0.;
+        tint.alpha = .875;
 
 	gdk_window_set_debug_updates(debug);
 
@@ -896,8 +897,7 @@ main(int argc, char **argv)
 	if (transparent) {
 		vte_terminal_set_background_transparent(terminal,
 							TRUE);
-                vte_terminal_set_background_tint_color(terminal, &tint);
-                vte_terminal_set_opacity(terminal, 0xdddd);
+                vte_terminal_set_background_tint_color_rgba(terminal, &tint);
         }
         G_GNUC_END_IGNORE_DEPRECATIONS;
 

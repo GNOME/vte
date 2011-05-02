@@ -825,18 +825,15 @@ _vte_draw_end (struct _vte_draw *draw)
 
 void
 _vte_draw_set_background_solid(struct _vte_draw *draw,
-			       double red,
-			       double green,
-			       double blue,
-			       double opacity)
+                               const GdkRGBA *color)
 {
 	if (draw->bg_pattern)
 		cairo_pattern_destroy (draw->bg_pattern);
 
-	draw->bg_pattern = cairo_pattern_create_rgba (red,
-						      green,
-						      blue,
-						      opacity);
+	draw->bg_pattern = cairo_pattern_create_rgba (color->red,
+						      color->green,
+						      color->blue,
+						      color->alpha);
 }
 
 void
@@ -844,7 +841,7 @@ _vte_draw_set_background_image (struct _vte_draw *draw,
 			        VteBgSourceType type,
 			        GdkPixbuf *pixbuf,
 			        const char *filename,
-			        const PangoColor *color,
+			        const GdkRGBA *color,
 			        double saturation)
 {
 	cairo_surface_t *surface;

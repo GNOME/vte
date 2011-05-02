@@ -61,7 +61,7 @@ vte_bg_get_surface(VteBg *bg,
 		   VteBgSourceType source_type,
 		   GdkPixbuf *source_pixbuf,
 		   const char *source_file,
-		   const PangoColor *tint,
+		   const GdkRGBA *tint,
 		   double saturation,
 		   cairo_surface_t *other);
 

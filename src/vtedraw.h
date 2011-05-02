@@ -78,15 +78,12 @@ void _vte_draw_start(struct _vte_draw *draw);
 void _vte_draw_end(struct _vte_draw *draw);
 
 void _vte_draw_set_background_solid(struct _vte_draw *draw,
-				    double red,
-				    double green,
-				    double blue,
-				    double opacity);
+                                    const GdkRGBA *color);
 void _vte_draw_set_background_image(struct _vte_draw *draw,
 				    VteBgSourceType type,
 				    GdkPixbuf *pixbuf,
 				    const char *file,
-				    const PangoColor *color,
+				    const GdkRGBA *color,
 				    double saturation);
 void _vte_draw_set_background_scroll(struct _vte_draw *draw,
 				     gint x, gint y);

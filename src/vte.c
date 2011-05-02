@@ -154,7 +154,6 @@ enum {
         PROP_AUDIBLE_BELL,
         PROP_BACKGROUND_IMAGE_FILE,
         PROP_BACKGROUND_IMAGE_PIXBUF,
-        PROP_BACKGROUND_OPACITY,
         PROP_BACKGROUND_SATURATION,
         PROP_BACKGROUND_TINT_COLOR,
         PROP_BACKGROUND_TRANSPARENT,
@@ -2832,33 +2831,6 @@ vte_terminal_set_colors_rgba(VteTerminal *terminal,
 	                        pal, palette_size);
 
 	g_free (pal);
-}
-
-/**
- * vte_terminal_set_opacity:
- * @terminal: a #VteTerminal
- * @opacity: the new opacity
- *
- * Sets the opacity of the terminal background, were 0 means completely
- * transparent and 65535 means completely opaque.
- *
- * Deprecated: 0.34.8
- */
-void
-vte_terminal_set_opacity(VteTerminal *terminal, guint16 opacity)
-{
-        VteTerminalPrivate *pvt;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        pvt = terminal->pvt;
-
-        if (opacity == pvt->bg_opacity)
-                return;
-
-	pvt->bg_opacity = opacity;
-
-        g_object_notify(G_OBJECT(terminal), "background-opacity");
 }
 
 /**
@@ -8123,11 +8095,11 @@ vte_terminal_init(VteTerminal *terminal)
 	gtk_widget_ensure_style(&terminal->widget);
 
 	/* Set up background information. */
-	pvt->bg_tint_color.red = 0;
-	pvt->bg_tint_color.green = 0;
-	pvt->bg_tint_color.blue = 0;
+	pvt->bg_tint_color.red = 0.;
+	pvt->bg_tint_color.green = 0.;
+	pvt->bg_tint_color.blue = 0.;
+        pvt->bg_tint_color.alpha = 1.;
 	pvt->bg_saturation = 0.4 * VTE_SATURATION_MAX;
-	pvt->bg_opacity = 0xffff;
 	pvt->selection_block_mode = FALSE;
 	pvt->has_fonts = FALSE;
 	pvt->root_pixmap_changed_tag = 0;
@@ -10744,9 +10716,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_BACKGROUND_IMAGE_PIXBUF:
                         g_value_set_object (value, pvt->bg_pixbuf);
                         break;
-                case PROP_BACKGROUND_OPACITY:
-                        g_value_set_double (value, (double) pvt->bg_opacity / (double) G_MAXUINT16);
-                        break;
                 case PROP_BACKGROUND_SATURATION:
                         g_value_set_double (value, (double) pvt->bg_saturation / (double) VTE_SATURATION_MAX);
                         break;
@@ -10864,20 +10833,13 @@ vte_terminal_set_property (GObject *object,
                         vte_terminal_set_background_image (terminal, g_value_get_object (value));
                         G_GNUC_END_IGNORE_DEPRECATIONS;
                         break;
-                case PROP_BACKGROUND_OPACITY:
-                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-                        vte_terminal_set_opacity (terminal, g_value_get_double (value) * (double) G_MAXUINT16);
-                        G_GNUC_END_IGNORE_DEPRECATIONS;
-                        break;
                 case PROP_BACKGROUND_SATURATION:
                         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
                         vte_terminal_set_background_saturation (terminal, g_value_get_double (value));
                         G_GNUC_END_IGNORE_DEPRECATIONS;
                         break;
                 case PROP_BACKGROUND_TINT_COLOR:
-                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-                        vte_terminal_set_background_tint_color (terminal, g_value_get_boxed (value));
-                        G_GNUC_END_IGNORE_DEPRECATIONS;
+                        vte_terminal_set_background_tint_color_rgba (terminal, g_value_get_boxed (value));
                         break;
                 case PROP_BACKGROUND_TRANSPARENT:
                         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
@@ -11649,24 +11611,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                       G_PARAM_READWRITE | STATIC_PARAMS));
 
         /**
-         * VteTerminal:background-opacity:
-         *
-         * Sets the opacity of the terminal background, were 0.0 means completely
-         * transparent and 1.0 means completely opaque.
-         *
-         * Since: 0.20
-         *
-         * Deprecated: 0.34.8
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_BACKGROUND_OPACITY,
-                 g_param_spec_double ("background-opacity", NULL, NULL,
-                                      0.0, 1.0,
-                                      1.0,
-                                      G_PARAM_READWRITE | STATIC_PARAMS));
-     
-        /**
          * VteTerminal:background-saturation:
          *
          * If a background image has been set using #VteTerminal:background-image-file: or
@@ -11708,7 +11652,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                 (gobject_class,
                  PROP_BACKGROUND_TINT_COLOR,
                  g_param_spec_boxed ("background-tint-color", NULL, NULL,
-                                     GDK_TYPE_COLOR,
+                                     GDK_TYPE_RGBA,
                                      G_PARAM_READWRITE | STATIC_PARAMS));
      
         /**
@@ -12480,17 +12424,16 @@ vte_terminal_background_update(VteTerminal *terminal)
 
 	entry = _vte_terminal_get_color(terminal, VTE_DEFAULT_BG);
 	_vte_debug_print(VTE_DEBUG_BG,
-			 "Setting background color to (%d, %d, %d, %d).\n",
+			 "Setting background color to (%d, %d, %d, %.3f).\n",
 			 entry->red, entry->green, entry->blue,
-			 terminal->pvt->bg_opacity);
+			 terminal->pvt->bg_tint_color.alpha);
 
 	color.red = entry->red / 65535.;
 	color.green = entry->green / 65535.;
 	color.blue = entry->blue / 65535.;
-	color.alpha = terminal->pvt->bg_opacity / 65535.;
+        color.alpha = terminal->pvt->bg_tint_color.alpha;
 
-	_vte_draw_set_background_solid (terminal->pvt->draw, 
-					color.red, color.green, color.blue, color.alpha);
+        _vte_draw_set_background_solid (terminal->pvt->draw, &color);
 
 	/* If we're transparent, and either have no root image or are being
 	 * told to update it, get a new copy of the root window. */
@@ -12602,9 +12545,9 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
 }
 
 /**
- * vte_terminal_set_background_tint_color:
+ * vte_terminal_set_background_tint_color_rgba:
  * @terminal: a #VteTerminal
- * @color: a color which the terminal background should be tinted to if its
+ * @rgba: (allow-none): a color which the terminal background should be tinted to if its
  *   saturation is not 1.0.
  *
  * If a background image has been set using
@@ -12617,36 +12560,26 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
  * the root window) and modify its pixel values.  The initial tint color
  * is black.
  *
- * Since: 0.11
- *
- * Deprecated: 0.34.8
+ * Since: 0.38
  */
 void
-vte_terminal_set_background_tint_color(VteTerminal *terminal,
-				       const GdkColor *color)
+vte_terminal_set_background_tint_color_rgba(VteTerminal *terminal,
+                                            const GdkRGBA *rgba)
 {
         VteTerminalPrivate *pvt;
-	PangoColor *tint;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(color != NULL);
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(rgba != NULL);
 
         pvt = terminal->pvt;
 
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Setting background tint to %d,%d,%d.\n",
-			terminal->pvt->bg_tint_color.red >> 8,
-			terminal->pvt->bg_tint_color.green >> 8,
-			terminal->pvt->bg_tint_color.blue >> 8);
-        tint = &pvt->bg_tint_color;
-	if (color->red == tint->red &&
-            color->green == tint->green &&
-            color->blue == tint->blue)
+        _vte_debug_print(VTE_DEBUG_MISC,
+                        "Setting background tint to %.3f,%.3f,%.3f,%.3f\n",
+                        rgba->red, rgba->green, rgba->blue, rgba->alpha);
+        if (gdk_rgba_equal(&pvt->bg_tint_color, rgba))
                 return;
 
-	tint->red = color->red;
-	tint->green = color->green;
-	tint->blue = color->blue;
+        pvt->bg_tint_color = *rgba;
 
         g_object_notify(G_OBJECT (terminal), "background-tint-color");
 
