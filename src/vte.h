@@ -143,33 +143,6 @@ struct _VteTerminalClass {
 
 	/*< private > */
 	/* Signals we might emit. */
-        guint _VTE_DEPRECATED(eof_signal);
-        guint _VTE_DEPRECATED(child_exited_signal);
-        guint _VTE_DEPRECATED(emulation_changed_signal);
-        guint _VTE_DEPRECATED(encoding_changed_signal);
-        guint _VTE_DEPRECATED(char_size_changed_signal);
-        guint _VTE_DEPRECATED(window_title_changed_signal);
-        guint _VTE_DEPRECATED(icon_title_changed_signal);
-        guint _VTE_DEPRECATED(selection_changed_signal);
-        guint _VTE_DEPRECATED(contents_changed_signal);
-        guint _VTE_DEPRECATED(cursor_moved_signal);
-        guint _VTE_DEPRECATED(status_line_changed_signal);
-        guint _VTE_DEPRECATED(commit_signal);
-        guint _VTE_DEPRECATED(deiconify_window_signal);
-        guint _VTE_DEPRECATED(iconify_window_signal);
-        guint _VTE_DEPRECATED(raise_window_signal);
-        guint _VTE_DEPRECATED(lower_window_signal);
-        guint _VTE_DEPRECATED(refresh_window_signal);
-        guint _VTE_DEPRECATED(restore_window_signal);
-        guint _VTE_DEPRECATED(maximize_window_signal);
-        guint _VTE_DEPRECATED(resize_window_signal);
-        guint _VTE_DEPRECATED(move_window_signal);
-        guint _VTE_DEPRECATED(increase_font_size_signal);
-        guint _VTE_DEPRECATED(decrease_font_size_signal);
-        guint _VTE_DEPRECATED(text_modified_signal);
-        guint _VTE_DEPRECATED(text_inserted_signal);
-        guint _VTE_DEPRECATED(text_deleted_signal);
-        guint _VTE_DEPRECATED(text_scrolled_signal);
         guint _VTE_DEPRECATED(reserved1);
         guint _VTE_DEPRECATED(reserved2);
         guint _VTE_DEPRECATED(reserved3);
