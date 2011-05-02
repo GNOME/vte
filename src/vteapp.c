@@ -915,8 +915,9 @@ main(int argc, char **argv)
 	vte_terminal_set_cursor_shape(terminal, cursor_shape);
 
 	/* Set the default font. */
-	vte_terminal_set_font_from_string_full(terminal, font,
-					       VTE_ANTI_ALIAS_USE_DEFAULT);
+        if (font) {
+                vte_terminal_set_font_from_string(terminal, font);
+        }
 
 	/* Match "abcdefg". */
 	if (dingus) {
