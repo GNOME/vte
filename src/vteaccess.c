@@ -1353,14 +1353,12 @@ get_attribute_set (struct _VteCharAttributes attr)
 	}
 	at = g_new (AtkAttribute, 1);
 	at->name = g_strdup ("fg-color");
-	at->value = g_strdup_printf ("%u,%u,%u",
-				     attr.fore.red, attr.fore.green, attr.fore.blue);
+	at->value = gdk_rgba_to_string (&attr.fore);
 	set = g_slist_append (set, at);
 
 	at = g_new (AtkAttribute, 1);
 	at->name = g_strdup ("bg-color");
-	at->value = g_strdup_printf ("%u,%u,%u",
-				     attr.back.red, attr.back.green, attr.back.blue);
+        at->value = gdk_rgba_to_string (&attr.back);
 	set = g_slist_append (set, at);
 
 	return set;
@@ -1389,8 +1387,8 @@ vte_terminal_accessible_get_run_attributes(AtkText *text, gint offset,
 		cur_attr = g_array_index (priv->snapshot_attributes,
 				      struct _VteCharAttributes,
 				      i);
-		if (!gdk_color_equal (&cur_attr.fore, &attr.fore) ||
-		    !gdk_color_equal (&cur_attr.back, &attr.back) ||
+		if (!gdk_rgba_equal (&cur_attr.fore, &attr.fore) ||
+		    !gdk_rgba_equal (&cur_attr.back, &attr.back) ||
 		    cur_attr.underline != attr.underline ||
 		    cur_attr.strikethrough != attr.strikethrough) {
 			*start_offset = i + 1;
@@ -1402,8 +1400,8 @@ vte_terminal_accessible_get_run_attributes(AtkText *text, gint offset,
 		cur_attr = g_array_index (priv->snapshot_attributes,
 				      struct _VteCharAttributes,
 				      i);
-		if (!gdk_color_equal (&cur_attr.fore, &attr.fore) ||
-		    !gdk_color_equal (&cur_attr.back, &attr.back) ||
+		if (!gdk_rgba_equal (&cur_attr.fore, &attr.fore) ||
+		    !gdk_rgba_equal (&cur_attr.back, &attr.back) ||
 		    cur_attr.underline != attr.underline ||
 		    cur_attr.strikethrough != attr.strikethrough) {
 			*end_offset = i - 1;

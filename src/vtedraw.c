@@ -946,21 +946,9 @@ _vte_draw_has_bold (struct _vte_draw *draw)
 }
 
 static void
-set_source_color_alpha (cairo_t        *cr,
-			const PangoColor *color,
-			guchar alpha)
-{
-	cairo_set_source_rgba (cr,
-			      color->red / 65535.,
-			      color->green / 65535.,
-			      color->blue / 65535.,
-			      alpha / 255.);
-}
-
-static void
 _vte_draw_text_internal (struct _vte_draw *draw,
 			 struct _vte_draw_text_request *requests, gsize n_requests,
-			 const PangoColor *color, guchar alpha, gboolean bold)
+			 const GdkRGBA *color, gboolean bold)
 {
 	gsize i;
 	cairo_scaled_font_t *last_scaled_font = NULL;
@@ -970,7 +958,7 @@ _vte_draw_text_internal (struct _vte_draw *draw,
 
 	g_return_if_fail (font != NULL);
 
-	set_source_color_alpha (draw->cr, color, alpha);
+        gdk_cairo_set_source_rgba (draw->cr, color);
 	cairo_set_operator (draw->cr, CAIRO_OPERATOR_OVER);
 
 	for (i = 0; i < n_requests; i++) {
@@ -1026,7 +1014,7 @@ _vte_draw_text_internal (struct _vte_draw *draw,
 void
 _vte_draw_text (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *requests, gsize n_requests,
-	       const PangoColor *color, guchar alpha, gboolean bold)
+	       const GdkRGBA *color, gboolean bold)
 {
 	g_return_if_fail (draw->started);
 
@@ -1038,13 +1026,14 @@ _vte_draw_text (struct _vte_draw *draw,
 			g_string_append_unichar (string, requests[n].c);
 		}
 		str = g_string_free (string, FALSE);
-		g_printerr ("draw_text (\"%s\", len=%"G_GSIZE_FORMAT", color=(%d,%d,%d,%d), %s)\n",
-				str, n_requests, color->red, color->green, color->blue,
-				alpha, bold ? "bold" : "normal");
+		g_printerr ("draw_text (\"%s\", len=%"G_GSIZE_FORMAT", color=(%.3f,%.3f,%.3f,%.3f), %s)\n",
+				str, n_requests,
+                                color->red, color->green, color->blue, color->alpha,
+				bold ? "bold" : "normal");
 		g_free (str);
 	}
 
-	_vte_draw_text_internal (draw, requests, n_requests, color, alpha, bold);
+	_vte_draw_text_internal (draw, requests, n_requests, color, bold);
 
 	/* handle fonts that lack a bold face by double-striking */
 	if (bold && !_vte_draw_has_bold (draw)) {
@@ -1055,7 +1044,7 @@ _vte_draw_text (struct _vte_draw *draw,
 			requests[i].x++;
 		}
 		_vte_draw_text_internal (draw, requests,
-					   n_requests, color, alpha, FALSE);
+					   n_requests, color, FALSE);
 		/* Now take a step back. */
 		for (i = 0; i < n_requests; i++) {
 			requests[i].x--;
@@ -1080,19 +1069,19 @@ _vte_draw_has_char (struct _vte_draw *draw, vteunistr c, gboolean bold)
 gboolean
 _vte_draw_char (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *request,
-	       const PangoColor *color, guchar alpha, gboolean bold)
+	       const GdkRGBA *color, gboolean bold)
 {
 	gboolean has_char;
 
 	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_char ('%c', color=(%d,%d,%d,%d), %s)\n",
+			"draw_char ('%c', color=(%.3f,%.3f,%.3f,%.3f), %s)\n",
 			request->c,
-			color->red, color->green, color->blue,
-			alpha, bold ? "bold" : "normal");
+			color->red, color->green, color->blue, color->alpha,
+			bold ? "bold" : "normal");
 
 	has_char =_vte_draw_has_char (draw, request->c, bold);
 	if (has_char)
-		_vte_draw_text (draw, request, 1, color, alpha, bold);
+		_vte_draw_text (draw, request, 1, color, bold);
 
 	return has_char;
 }
@@ -1100,19 +1089,18 @@ _vte_draw_char (struct _vte_draw *draw,
 void
 _vte_draw_draw_rectangle (struct _vte_draw *draw,
 			 gint x, gint y, gint width, gint height,
-			 const PangoColor *color, guchar alpha)
+			 const GdkRGBA *color)
 {
 	g_return_if_fail (draw->started);
 
 	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_rectangle (%d, %d, %d, %d, color=(%d,%d,%d,%d))\n",
+			"draw_rectangle (%d, %d, %d, %d, color=(%.3f,%.3f,%.3f,%.3f))\n",
 			x,y,width,height,
-			color->red, color->green, color->blue,
-			alpha);
+			color->red, color->green, color->blue, color->alpha);
 
 	cairo_set_operator (draw->cr, CAIRO_OPERATOR_OVER);
 	cairo_rectangle (draw->cr, x+VTE_LINE_WIDTH/2., y+VTE_LINE_WIDTH/2., width-VTE_LINE_WIDTH, height-VTE_LINE_WIDTH);
-	set_source_color_alpha (draw->cr, color, alpha);
+	gdk_cairo_set_source_rgba (draw->cr, color);
 	cairo_set_line_width (draw->cr, VTE_LINE_WIDTH);
 	cairo_stroke (draw->cr);
 }
@@ -1120,18 +1108,17 @@ _vte_draw_draw_rectangle (struct _vte_draw *draw,
 void
 _vte_draw_fill_rectangle (struct _vte_draw *draw,
 			 gint x, gint y, gint width, gint height,
-			 const PangoColor *color, guchar alpha)
+			 const GdkRGBA *color)
 {
 	g_return_if_fail (draw->started);
 
 	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_fill_rectangle (%d, %d, %d, %d, color=(%d,%d,%d,%d))\n",
+			"draw_fill_rectangle (%d, %d, %d, %d, color=(%.3f,%.3f,%.3f,%.3f))\n",
 			x,y,width,height,
-			color->red, color->green, color->blue,
-			alpha);
+			color->red, color->green, color->blue, color->alpha);
 
 	cairo_set_operator (draw->cr, CAIRO_OPERATOR_OVER);
 	cairo_rectangle (draw->cr, x, y, width, height);
-	set_source_color_alpha (draw->cr, color, alpha);
+        gdk_cairo_set_source_rgba (draw->cr, color);
 	cairo_fill (draw->cr);
 }

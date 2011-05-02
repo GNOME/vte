@@ -332,7 +332,7 @@ struct _VteTerminalPrivate {
 	gboolean palette_initialized;
 	gboolean highlight_color_set;
 	gboolean cursor_color_set;
-	PangoColor palette[VTE_PALETTE_SIZE];
+	GdkRGBA palette[VTE_PALETTE_SIZE];
 
 	/* Mouse cursors. */
 	gboolean mouse_cursor_visible;

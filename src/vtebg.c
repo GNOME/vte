@@ -390,7 +390,7 @@ vte_bg_cache_search(VteBg *bg,
  * @source_type: a #VteBgSourceType
  * @source_pixbuf: (allow-none): a #GdkPixbuf, or %NULL
  * @source_file: (allow-none): path of an image file, or %NULL
- * @tint: a #PangoColor to use as tint color
+ * @tint: a #GdkRGBA to use as tint color
  * @saturation: the saturation as a value between 0.0 and 1.0
  * @other: a #cairo_surface_t
  *

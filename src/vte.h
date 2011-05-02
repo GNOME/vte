@@ -164,7 +164,7 @@ typedef struct _VteCharAttributes VteCharAttributes;
 struct _VteCharAttributes {
         /*< private >*/
 	long row, column;
-	GdkColor fore, back;
+	GdkRGBA fore, back;
 	guint underline:1, strikethrough:1;
 };
 
@@ -228,36 +228,19 @@ void vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 					  gboolean scroll);
 
 /* Set the color scheme. */
-void vte_terminal_set_color_dim(VteTerminal *terminal,
-				const GdkColor *dim);
-void vte_terminal_set_color_bold(VteTerminal *terminal,
-				 const GdkColor *bold);
-void vte_terminal_set_color_foreground(VteTerminal *terminal,
-				       const GdkColor *foreground);
-void vte_terminal_set_color_background(VteTerminal *terminal,
-				       const GdkColor *background);
-void vte_terminal_set_color_cursor(VteTerminal *terminal,
-				   const GdkColor *cursor_background);
-void vte_terminal_set_color_highlight(VteTerminal *terminal,
-				      const GdkColor *highlight_background);
-void vte_terminal_set_colors(VteTerminal *terminal,
-			     const GdkColor *foreground,
-			     const GdkColor *background,
-			     const GdkColor *palette,
-			     glong palette_size);
 
 void vte_terminal_set_color_bold_rgba(VteTerminal *terminal,
-                                      const GdkRGBA *bold);
+                                      const GdkRGBA *rgba);
 void vte_terminal_set_color_dim_rgba(VteTerminal *terminal,
-	                             const GdkRGBA *dim);
+	                             const GdkRGBA *rgba);
 void vte_terminal_set_color_foreground_rgba(VteTerminal *terminal,
-					    const GdkRGBA *foreground);
+					    const GdkRGBA *rgba);
 void vte_terminal_set_color_background_rgba(VteTerminal *terminal,
-					    const GdkRGBA *background);
+					    const GdkRGBA *rgba);
 void vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
-					const GdkRGBA *cursor_background);
+					const GdkRGBA *rgba);
 void vte_terminal_set_color_highlight_rgba(VteTerminal *terminal,
-					   const GdkRGBA *highlight_background);
+					   const GdkRGBA *rgba);
 void vte_terminal_set_colors_rgba(VteTerminal *terminal,
 				  const GdkRGBA *foreground,
 				  const GdkRGBA *background,
@@ -270,8 +253,6 @@ void vte_terminal_set_default_colors(VteTerminal *terminal);
 void vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image);
 void vte_terminal_set_background_image_file(VteTerminal *terminal,
 					    const char *path);
-void vte_terminal_set_background_tint_color(VteTerminal *terminal,
-					    const GdkColor *color);
 void vte_terminal_set_background_tint_color_rgba(VteTerminal *terminal,
                                                  const GdkRGBA *rgba);
 void vte_terminal_set_background_saturation(VteTerminal *terminal,

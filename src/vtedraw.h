@@ -45,7 +45,6 @@ G_BEGIN_DECLS
    returned by pango_layout would be screwed up for Chinese and Japanese
    fonts without Hangul */
 #define VTE_DRAW_DOUBLE_WIDE_IDEOGRAPHS 0x4e00, 0x4e8c, 0x4e09, 0x56db, 0x4e94
-#define VTE_DRAW_OPAQUE 0xff
 #define VTE_DRAW_MAX_LENGTH 1024
 
 struct _vte_draw;
@@ -92,19 +91,19 @@ int _vte_draw_get_char_width(struct _vte_draw *draw, vteunistr c, int columns,
 
 void _vte_draw_text(struct _vte_draw *draw,
 		    struct _vte_draw_text_request *requests, gsize n_requests,
-		    const PangoColor *color, guchar alpha, gboolean);
+		    const GdkRGBA *color, gboolean);
 gboolean _vte_draw_char(struct _vte_draw *draw,
 			struct _vte_draw_text_request *request,
-			const PangoColor *color, guchar alpha, gboolean bold);
+			const GdkRGBA *color, gboolean bold);
 gboolean _vte_draw_has_char(struct _vte_draw *draw, vteunistr c, gboolean bold);
 
 
 void _vte_draw_fill_rectangle(struct _vte_draw *draw,
 			      gint x, gint y, gint width, gint height,
-			      const PangoColor *color, guchar alpha);
+			      const GdkRGBA *color);
 void _vte_draw_draw_rectangle(struct _vte_draw *draw,
 			      gint x, gint y, gint width, gint height,
-			      const PangoColor *color, guchar alpha);
+			      const GdkRGBA *color);
 
 G_END_DECLS
 

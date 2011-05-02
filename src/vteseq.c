@@ -135,10 +135,11 @@ vte_ucs4_to_utf8 (VteTerminal *terminal, const guchar *in)
 }
 
 static gboolean
-vte_parse_color (const char *spec, GdkColor *color)
+vte_parse_color (const char *spec, GdkRGBA *rgba)
 {
 	gchar *spec_copy = (gchar *) spec;
 	gboolean retval = FALSE;
+        GdkColor color;
 
 	/* gdk_color_parse doesnt handle all XParseColor formats.  It only
 	 * supports the #RRRGGGBBB format, not the rgb:RRR/GGG/BBB format.
@@ -158,18 +159,20 @@ vte_parse_color (const char *spec, GdkColor *color)
 		*cur++ = '\0';
 	}
 
-	retval = gdk_color_parse (spec_copy, color);
-
+	retval = gdk_color_parse (spec_copy, &color);
 	if (spec_copy != spec)
 		g_free (spec_copy);
 
-	return retval;
+        if (!retval)
+                return FALSE;
+
+        rgba->red = color.red / 65535.;
+        rgba->green = color.green / 65535.;
+        rgba->blue = color.blue / 65535.;
+        rgba->alpha = 1.;
+
+        return TRUE;
 }
-
-
-
-
-
 
 /* Emit a "deiconify-window" signal. */
 static void
@@ -1824,7 +1827,7 @@ vte_sequence_handler_change_color (VteTerminal *terminal, GValueArray *params)
 {
 	gchar **pairs, *str = NULL;
 	GValue *value;
-	GdkColor color;
+	GdkRGBA color;
 	guint idx, i;
 
 	if (params != NULL && params->n_values > 0) {
@@ -1851,16 +1854,14 @@ vte_sequence_handler_change_color (VteTerminal *terminal, GValueArray *params)
 				continue;
 
 			if (vte_parse_color (pairs[i + 1], &color)) {
-				terminal->pvt->palette[idx].red = color.red;
-				terminal->pvt->palette[idx].green = color.green;
-				terminal->pvt->palette[idx].blue = color.blue;
+				terminal->pvt->palette[idx] = color;
 			} else if (strcmp (pairs[i + 1], "?") == 0) {
 				gchar buf[128];
 				g_snprintf (buf, sizeof (buf),
 					    _VTE_CAP_OSC "4;%u;rgb:%04x/%04x/%04x" BEL, idx,
-					    terminal->pvt->palette[idx].red,
-					    terminal->pvt->palette[idx].green,
-					    terminal->pvt->palette[idx].blue);
+					    (guint) (terminal->pvt->palette[idx].red * 65535.),
+                                            (guint) (terminal->pvt->palette[idx].green * 65535.),
+                                            (guint) (terminal->pvt->palette[idx].blue * 65535.));
 				vte_terminal_feed_child (terminal, buf, -1);
 			}
 		}
@@ -3275,7 +3276,7 @@ vte_sequence_handler_change_cursor_color (VteTerminal *terminal, GValueArray *pa
 {
 	gchar *name = NULL;
 	GValue *value;
-	GdkColor color;
+	GdkRGBA color;
 
 	if (params != NULL && params->n_values > 0) {
 		value = g_value_array_get_nth (params, 0);
@@ -3289,14 +3290,14 @@ vte_sequence_handler_change_cursor_color (VteTerminal *terminal, GValueArray *pa
 			return;
 
 		if (vte_parse_color (name, &color))
-			vte_terminal_set_color_cursor (terminal, &color);
+			vte_terminal_set_color_cursor_rgba (terminal, &color);
 		else if (strcmp (name, "?") == 0) {
 			gchar buf[128];
 			g_snprintf (buf, sizeof (buf),
 				    _VTE_CAP_OSC "12;rgb:%04x/%04x/%04x" BEL,
-				    terminal->pvt->palette[VTE_CUR_BG].red,
-				    terminal->pvt->palette[VTE_CUR_BG].green,
-				    terminal->pvt->palette[VTE_CUR_BG].blue);
+                                    (guint) (terminal->pvt->palette[VTE_CUR_BG].red * 65535.),
+                                    (guint) (terminal->pvt->palette[VTE_CUR_BG].green * 65535.),
+                                    (guint) (terminal->pvt->palette[VTE_CUR_BG].blue * 65535.));
 			vte_terminal_feed_child (terminal, buf, -1);
 		}
 
