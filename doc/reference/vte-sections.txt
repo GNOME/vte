@@ -133,7 +133,6 @@ vte_terminal_get_window_title
 
 <SUBSECTION Private>
 VTE_IS_TERMINAL_ANTI_ALIAS
-VTE_IS_TERMINAL_ERASE_BINDING
 VteCharAttributes
 VteTerminalPrivate
 VteTerminalClassPrivate

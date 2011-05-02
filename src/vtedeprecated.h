@@ -30,17 +30,6 @@
 G_BEGIN_DECLS
 
 /**
- * VTE_IS_TERMINAL_ERASE_BINDING:
- *
- * Does nothing.
- *
- * Returns: %FALSE
- *
- * @Deprecated: 0.20
- */
-#define VTE_IS_TERMINAL_ERASE_BINDING(obj)  (FALSE)
-
-/**
  * VTE_IS_TERMINAL_ANTI_ALIAS:
  *
  * Does nothing.
