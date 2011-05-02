@@ -130,8 +130,6 @@ static void add_update_timeout (VteTerminal *terminal);
 static void remove_update_timeout (VteTerminal *terminal);
 static void reset_update_regions (VteTerminal *terminal);
 static void vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink);
-static void vte_terminal_set_font_full_internal(VteTerminal *terminal,
-                                                const PangoFontDescription *font_desc);
 static void _vte_check_cursor_blink(VteTerminal *terminal);
 
 static gboolean process_timeout (gpointer data);
@@ -4527,7 +4525,7 @@ vte_terminal_style_set (GtkWidget      *widget,
         if (gtk_widget_get_style(widget) == prev_style)
                 return;
 
-        vte_terminal_set_font_full_internal(terminal, terminal->pvt->fontdesc);
+        vte_terminal_set_font(terminal, terminal->pvt->fontdesc);
         vte_terminal_set_inner_border(terminal);
 
         gtk_widget_style_get(widget, "cursor-aspect-ratio", &aspect, NULL);
@@ -7263,7 +7261,7 @@ vte_terminal_ensure_font (VteTerminal *terminal)
 	if (terminal->pvt->draw != NULL) {
 		/* Load default fonts, if no fonts have been loaded. */
 		if (!terminal->pvt->has_fonts) {
-			vte_terminal_set_font_full_internal(terminal,
+			vte_terminal_set_font(terminal,
                                                             terminal->pvt->fontdesc);
 		}
 		if (terminal->pvt->fontdirty) {
@@ -7279,34 +7277,20 @@ vte_terminal_ensure_font (VteTerminal *terminal)
 	}
 }
 
-
 /**
- * vte_terminal_set_font_full:
+ * vte_terminal_set_font:
  * @terminal: a #VteTerminal
- * @font_desc: The #PangoFontDescription of the desired font, or %NULL
- * @antialias: Specify if anti aliasing of the fonts is to be used or not.
+ * @font_desc: (allow-none): a #PangoFontDescription for the desired font, or %NULL
  *
  * Sets the font used for rendering all text displayed by the terminal,
  * overriding any fonts set using gtk_widget_modify_font().  The terminal
  * will immediately attempt to load the desired font, retrieve its
  * metrics, and attempt to resize itself to keep the same number of rows
  * and columns.
- *
- * Since: 0.11.11
- * 
- * Deprecated: 0.20: Use vte_terminal_set_font()
  */
 void
-vte_terminal_set_font_full(VteTerminal *terminal,
-			   const PangoFontDescription *font_desc,
-			   VteTerminalAntiAlias antialias)
-{
-        vte_terminal_set_font_full_internal(terminal, font_desc);
-}
-
-static void
-vte_terminal_set_font_full_internal(VteTerminal *terminal,
-                                    const PangoFontDescription *font_desc)
+vte_terminal_set_font(VteTerminal *terminal,
+                      const PangoFontDescription *font_desc)
 {
         GObject *object;
 	GtkStyle *style;
@@ -7368,25 +7352,6 @@ vte_terminal_set_font_full_internal(VteTerminal *terminal,
         g_object_thaw_notify(object);
 }
 
-/**
- * vte_terminal_set_font:
- * @terminal: a #VteTerminal
- * @font_desc: (allow-none): a #PangoFontDescription for the desired font, or %NULL
- *
- * Sets the font used for rendering all text displayed by the terminal,
- * overriding any fonts set using gtk_widget_modify_font().  The terminal
- * will immediately attempt to load the desired font, retrieve its
- * metrics, and attempt to resize itself to keep the same number of rows
- * and columns.
- */
-void
-vte_terminal_set_font(VteTerminal *terminal,
-		      const PangoFontDescription *font_desc)
-{
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	vte_terminal_set_font_full_internal(terminal, font_desc);
-}
-
 static void
 vte_terminal_set_font_from_string_full_internal(VteTerminal *terminal,
                                                 const char *name,
@@ -7397,7 +7362,7 @@ vte_terminal_set_font_from_string_full_internal(VteTerminal *terminal,
 
 	if (name)
 	  font_desc = pango_font_description_from_string(name);
-	vte_terminal_set_font_full_internal(terminal, font_desc);
+	vte_terminal_set_font(terminal, font_desc);
 	pango_font_description_free(font_desc);
 }
 
@@ -11156,7 +11121,7 @@ vte_terminal_set_property (GObject *object,
                         vte_terminal_set_encoding (terminal, g_value_get_string (value));
                         break;
                 case PROP_FONT_DESC:
-                        vte_terminal_set_font_full_internal (terminal, g_value_get_boxed (value));
+                        vte_terminal_set_font (terminal, g_value_get_boxed (value));
                         break;
                 case PROP_MOUSE_POINTER_AUTOHIDE:
                         vte_terminal_set_mouse_autohide (terminal, g_value_get_boolean (value));
