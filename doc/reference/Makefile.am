@@ -84,7 +84,6 @@ IGNORE_HFILES = \
 	vtedraw.h \
 	vteint.h \
 	vte-private.h \
-	vteregex.h \
 	vterowdata.h \
 	vteseq-list.h \
 	vtestream-base.h \

@@ -70,8 +70,6 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
 	vteint.h \
 	vtepty.h \
 	vtepty-private.h \
-	vteregex.c \
-	vteregex.h \
 	vterowdata.c \
 	vterowdata.h \
 	vteseq.c \

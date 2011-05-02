@@ -56,7 +56,6 @@
 #include "vteint.h"
 #include "vtepty.h"
 #include "vtepty-private.h"
-#include "vteregex.h"
 #include "vtetc.h"
 
 #ifdef HAVE_LOCALE_H
@@ -1163,13 +1162,8 @@ regex_match_clear (struct vte_match_regex *regex)
 {
         regex_match_clear_cursor(regex);
 
-        if (regex->mode == VTE_REGEX_GREGEX) {
-                g_regex_unref(regex->regex.gregex.regex);
-                regex->regex.gregex.regex = NULL;
-        } else if (regex->mode == VTE_REGEX_VTE) {
-                _vte_regex_free(regex->regex.reg);
-                regex->regex.reg = NULL;
-        }
+        g_regex_unref(regex->regex);
+        regex->regex = NULL;
 
         regex->tag = -1;
 }
@@ -1272,65 +1266,6 @@ vte_terminal_cursor_new(VteTerminal *terminal, GdkCursorType cursor_type)
 }
 
 /**
- * vte_terminal_match_add:
- * @terminal: a #VteTerminal
- * @match: a regular expression
- *
- * Adds a regular expression to the list of matching expressions.  When the
- * user moves the mouse cursor over a section of displayed text which matches
- * this expression, the text will be highlighted.
- *
- * Returns: an integer associated with this expression
- *
- * Deprecated: 0.17.1: Use vte_terminal_match_add_gregex() instead
- */
-int
-vte_terminal_match_add(VteTerminal *terminal, const char *match)
-{
-	struct vte_match_regex new_regex, *regex;
-	guint ret;
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-        g_return_val_if_fail(terminal->pvt->match_regex_mode != VTE_REGEX_GREGEX, -1);
-	g_return_val_if_fail(match != NULL, -1);
-	g_return_val_if_fail(strlen(match) > 0, -1);
-
-        terminal->pvt->match_regex_mode = VTE_REGEX_VTE;
-
-	memset(&new_regex, 0, sizeof(new_regex));
-        new_regex.mode = VTE_REGEX_VTE;
-	new_regex.regex.reg = _vte_regex_compile(match);
-	if (new_regex.regex.reg == NULL) {
-		g_warning(_("Error compiling regular expression \"%s\"."),
-			  match);
-		return -1;
-	}
-
-	/* Search for a hole. */
-	for (ret = 0; ret < terminal->pvt->match_regexes->len; ret++) {
-		regex = &g_array_index(terminal->pvt->match_regexes,
-				       struct vte_match_regex,
-				       ret);
-		if (regex->tag == -1) {
-			break;
-		}
-	}
-	/* Set the tag to the insertion point. */
-	new_regex.tag = ret;
-        new_regex.cursor_mode = VTE_REGEX_CURSOR_GDKCURSORTYPE;
-        new_regex.cursor.cursor_type = VTE_DEFAULT_CURSOR;
-	if (ret < terminal->pvt->match_regexes->len) {
-		/* Overwrite. */
-		g_array_index(terminal->pvt->match_regexes,
-			      struct vte_match_regex,
-			      ret) = new_regex;
-	} else {
-		/* Append. */
-		g_array_append_val(terminal->pvt->match_regexes, new_regex);
-	}
-	return new_regex.tag;
-}
-
-/**
  * vte_terminal_match_add_gregex:
  * @terminal: a #VteTerminal
  * @regex: a #GRegex
@@ -1352,11 +1287,9 @@ vte_terminal_match_add_gregex(VteTerminal *terminal, GRegex *regex, GRegexMatchF
 	guint ret, len;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-        g_return_val_if_fail(terminal->pvt->match_regex_mode != VTE_REGEX_VTE, -1);
 	g_return_val_if_fail(regex != NULL, -1);
 
         pvt = terminal->pvt;
-        pvt->match_regex_mode = VTE_REGEX_GREGEX;
 
 	/* Search for a hole. */
         len = pvt->match_regexes->len;
@@ -1370,9 +1303,8 @@ vte_terminal_match_add_gregex(VteTerminal *terminal, GRegex *regex, GRegexMatchF
 	}
 
 	/* Set the tag to the insertion point. */
-        new_regex_match.mode = VTE_REGEX_GREGEX;
-        new_regex_match.regex.gregex.regex = g_regex_ref(regex);
-        new_regex_match.regex.gregex.flags = flags;
+        new_regex_match.regex = g_regex_ref(regex);
+        new_regex_match.match_flags = flags;
 	new_regex_match.tag = ret;
         new_regex_match.cursor_mode = VTE_REGEX_CURSOR_GDKCURSORTYPE;
         new_regex_match.cursor.cursor_type = VTE_DEFAULT_CURSOR;
@@ -1472,231 +1404,6 @@ vte_terminal_match_set_cursor_name(VteTerminal *terminal,
         regex->cursor_mode = VTE_REGEX_CURSOR_NAME;
 	regex->cursor.cursor_name = g_strdup (cursor_name);
 	vte_terminal_match_hilite_clear(terminal);
-}
-
-/* Check if a given cell on the screen contains part of a matched string.  If
- * it does, return the string, and store the match tag in the optional tag
- * argument. */
-static char *
-vte_terminal_match_check_internal_vte(VteTerminal *terminal,
-                                      long column, glong row,
-                                      int *tag, int *start, int *end)
-{
-	struct _vte_regex_match matches[256];
-	guint i, j;
-	gint k;
-	gint start_blank, end_blank;
-	int ret, offset;
-	struct vte_match_regex *regex = NULL;
-	struct _VteCharAttributes *attr = NULL;
-	gssize sattr, eattr;
-	gchar *line, eol;
-
-	_vte_debug_print(VTE_DEBUG_EVENTS,
-			"Checking for match at (%ld,%ld).\n", row, column);
-	*tag = -1;
-	if (start != NULL) {
-		*start = 0;
-	}
-	if (end != NULL) {
-		*end = 0;
-	}
-	/* Map the pointer position to a portion of the string. */
-	eattr = terminal->pvt->match_attributes->len;
-	for (offset = eattr; offset--; ) {
-		attr = &g_array_index(terminal->pvt->match_attributes,
-				      struct _VteCharAttributes,
-				      offset);
-		if (row < attr->row) {
-			eattr = offset;
-		}
-		if (row == attr->row &&
-		    column == attr->column &&
-		    terminal->pvt->match_contents[offset] != ' ') {
-			break;
-		}
-	}
-
-	_VTE_DEBUG_IF(VTE_DEBUG_EVENTS) {
-		if (offset < 0)
-			g_printerr("Cursor is not on a character.\n");
-		else
-			g_printerr("Cursor is on character '%c' at %d.\n",
-					g_utf8_get_char (terminal->pvt->match_contents + offset),
-					offset);
-	}
-
-	/* If the pointer isn't on a matchable character, bug out. */
-	if (offset < 0) {
-		return NULL;
-	}
-
-	/* If the pointer is on a newline, bug out. */
-	if ((g_ascii_isspace(terminal->pvt->match_contents[offset])) ||
-	    (terminal->pvt->match_contents[offset] == '\0')) {
-		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Cursor is on whitespace.\n");
-		return NULL;
-	}
-
-	/* Snip off any final newlines. */
-	while (terminal->pvt->match_contents[eattr] == '\n' ||
-			terminal->pvt->match_contents[eattr] == '\0') {
-		eattr--;
-	}
-	/* and scan forwards to find the end of this line */
-	while (!(terminal->pvt->match_contents[eattr] == '\n' ||
-			terminal->pvt->match_contents[eattr] == '\0')) {
-		eattr++;
-	}
-
-	/* find the start of row */
-	if (row == 0) {
-		sattr = 0;
-	} else {
-		for (sattr = offset; sattr > 0; sattr--) {
-			attr = &g_array_index(terminal->pvt->match_attributes,
-					      struct _VteCharAttributes,
-					      sattr);
-			if (row > attr->row) {
-				break;
-			}
-		}
-	}
-	/* Scan backwards to find the start of this line */
-	while (sattr > 0 &&
-		! (terminal->pvt->match_contents[sattr] == '\n' ||
-		    terminal->pvt->match_contents[sattr] == '\0')) {
-		sattr--;
-	}
-	/* and skip any initial newlines. */
-	while (terminal->pvt->match_contents[sattr] == '\n' ||
-		terminal->pvt->match_contents[sattr] == '\0') {
-		sattr++;
-	}
-	if (eattr <= sattr) { /* blank line */
-		return NULL;
-	}
-	if (eattr <= offset || sattr > offset) {
-		/* nothing to match on this line */
-		return NULL;
-	}
-	offset -= sattr;
-	eattr -= sattr;
-
-	/* temporarily shorten the contents to this row */
-	line = terminal->pvt->match_contents + sattr;
-	eol = line[eattr];
-	line[eattr] = '\0';
-
-	start_blank = 0;
-	end_blank = eattr;
-
-	/* Now iterate over each regex we need to match against. */
-	for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
-		regex = &g_array_index(terminal->pvt->match_regexes,
-				       struct vte_match_regex,
-				       i);
-		/* Skip holes. */
-		if (regex->tag < 0) {
-			continue;
-		}
-		/* We'll only match the first item in the buffer which
-		 * matches, so we'll have to skip each match until we
-		 * stop getting matches. */
-		k = 0;
-		ret = _vte_regex_exec(regex->regex.reg,
-				      line + k,
-				      G_N_ELEMENTS(matches),
-				      matches);
-		while (ret == 0) {
-			gint ko = offset - k;
-			gint sblank=G_MININT, eblank=G_MAXINT;
-			for (j = 0;
-			     j < G_N_ELEMENTS(matches) &&
-			     matches[j].rm_so != -1;
-			     j++) {
-				/* The offsets should be "sane". */
-				g_assert(matches[j].rm_so + k < eattr);
-				g_assert(matches[j].rm_eo + k <= eattr);
-				_VTE_DEBUG_IF(VTE_DEBUG_MISC) {
-					gchar *match;
-					struct _VteCharAttributes *_sattr, *_eattr;
-					match = g_strndup(line + matches[j].rm_so + k,
-							matches[j].rm_eo - matches[j].rm_so);
-					_sattr = &g_array_index(terminal->pvt->match_attributes,
-							struct _VteCharAttributes,
-							matches[j].rm_so + k);
-					_eattr = &g_array_index(terminal->pvt->match_attributes,
-							struct _VteCharAttributes,
-							matches[j].rm_eo + k - 1);
-					g_printerr("Match %u `%s' from %d(%ld,%ld) to %d(%ld,%ld) (%d).\n",
-							j, match,
-							matches[j].rm_so + k,
-							_sattr->column,
-							_sattr->row,
-							matches[j].rm_eo + k - 1,
-							_eattr->column,
-							_eattr->row,
-							offset);
-					g_free(match);
-
-				}
-				/* If the pointer is in this substring,
-				 * then we're done. */
-				if (ko >= matches[j].rm_so &&
-				    ko < matches[j].rm_eo) {
-					gchar *result;
-					if (tag != NULL) {
-						*tag = regex->tag;
-					}
-					if (start != NULL) {
-						*start = sattr + k + matches[j].rm_so;
-					}
-					if (end != NULL) {
-						*end = sattr + k + matches[j].rm_eo - 1;
-					}
-                                        vte_terminal_set_cursor_from_regex_match(terminal, regex);
-					result = g_strndup(line + k + matches[j].rm_so,
-							 matches[j].rm_eo - matches[j].rm_so);
-					line[eattr] = eol;
-					return result;
-				}
-				if (ko > matches[j].rm_eo &&
-						matches[j].rm_eo > sblank) {
-					sblank = matches[j].rm_eo;
-				}
-				if (ko < matches[j].rm_so &&
-						matches[j].rm_so < eblank) {
-					eblank = matches[j].rm_so;
-				}
-			}
-			if (k + sblank > start_blank) {
-				start_blank = k + sblank;
-			}
-			if (k + eblank < end_blank) {
-				end_blank = k + eblank;
-			}
-			/* Skip past the beginning of this match to
-			 * look for more. */
-			k += matches[0].rm_so + 1;
-			if (k > offset) {
-				break;
-			}
-			ret = _vte_regex_exec(regex->regex.reg,
-					      line + k,
-					      G_N_ELEMENTS(matches),
-					      matches);
-		}
-	}
-	line[eattr] = eol;
-	if (start != NULL) {
-		*start = sattr + start_blank;
-	}
-	if (end != NULL) {
-		*end = sattr + end_blank;
-	}
-	return NULL;
 }
 
 /* Check if a given cell on the screen contains part of a matched string.  If
@@ -1828,9 +1535,9 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 		/* We'll only match the first item in the buffer which
 		 * matches, so we'll have to skip each match until we
 		 * stop getting matches. */
-                if (!g_regex_match_full(regex->regex.gregex.regex,
+                if (!g_regex_match_full(regex->regex,
                                         line, -1, 0,
-                                        regex->regex.gregex.flags,
+                                        regex->match_flags,
                                         &match_info,
                                         NULL)) {
                         g_match_info_free(match_info);
@@ -1929,11 +1636,7 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 		vte_terminal_match_contents_refresh(terminal);
 	}
 
-        if (terminal->pvt->match_regex_mode == VTE_REGEX_GREGEX)
-                return vte_terminal_match_check_internal_gregex(terminal, column, row, tag, start, end);
-        if (terminal->pvt->match_regex_mode == VTE_REGEX_VTE)
-                return vte_terminal_match_check_internal_vte(terminal, column, row, tag, start, end);
-        return NULL;
+        return vte_terminal_match_check_internal_gregex(terminal, column, row, tag, start, end);
 }
 
 static gboolean
@@ -8437,7 +8140,6 @@ vte_terminal_init(VteTerminal *terminal)
         pvt->cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
 
 	/* Matching data. */
-        pvt->match_regex_mode = VTE_REGEX_UNDECIDED;
 	pvt->match_regexes = g_array_new(FALSE, TRUE,
 					 sizeof(struct vte_match_regex));
 	vte_terminal_match_hilite_clear(terminal);
