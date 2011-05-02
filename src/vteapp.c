@@ -911,10 +911,9 @@ main(int argc, char **argv)
 	vte_terminal_set_rewrap_on_resize(terminal, rewrap);
 
 	/* Set the default font. */
-        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-	vte_terminal_set_font_from_string_full(terminal, font,
-					       VTE_ANTI_ALIAS_USE_DEFAULT);
-        G_GNUC_END_IGNORE_DEPRECATIONS;
+        if (font) {
+                vte_terminal_set_font_from_string(terminal, font);
+        }
 
 	/* Match "abcdefg". */
 	if (dingus) {
