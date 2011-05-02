@@ -131,8 +131,7 @@ static void remove_update_timeout (VteTerminal *terminal);
 static void reset_update_regions (VteTerminal *terminal);
 static void vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink);
 static void vte_terminal_set_font_full_internal(VteTerminal *terminal,
-                                                const PangoFontDescription *font_desc,
-                                                VteTerminalAntiAlias antialias);
+                                                const PangoFontDescription *font_desc);
 static void _vte_check_cursor_blink(VteTerminal *terminal);
 
 static gboolean process_timeout (gpointer data);
@@ -4528,9 +4527,7 @@ vte_terminal_style_set (GtkWidget      *widget,
         if (gtk_widget_get_style(widget) == prev_style)
                 return;
 
-        vte_terminal_set_font_full_internal(terminal, terminal->pvt->fontdesc,
-                                            terminal->pvt->fontantialias);
-
+        vte_terminal_set_font_full_internal(terminal, terminal->pvt->fontdesc);
         vte_terminal_set_inner_border(terminal);
 
         gtk_widget_style_get(widget, "cursor-aspect-ratio", &aspect, NULL);
@@ -7267,8 +7264,7 @@ vte_terminal_ensure_font (VteTerminal *terminal)
 		/* Load default fonts, if no fonts have been loaded. */
 		if (!terminal->pvt->has_fonts) {
 			vte_terminal_set_font_full_internal(terminal,
-                                                            terminal->pvt->fontdesc,
-                                                            terminal->pvt->fontantialias);
+                                                            terminal->pvt->fontdesc);
 		}
 		if (terminal->pvt->fontdirty) {
 			gint width, height, ascent;
@@ -7306,13 +7302,12 @@ vte_terminal_set_font_full(VteTerminal *terminal,
 			   const PangoFontDescription *font_desc,
 			   VteTerminalAntiAlias antialias)
 {
-        vte_terminal_set_font_full_internal(terminal, font_desc, antialias);
+        vte_terminal_set_font_full_internal(terminal, font_desc);
 }
 
 static void
 vte_terminal_set_font_full_internal(VteTerminal *terminal,
-                                    const PangoFontDescription *font_desc,
-                                    VteTerminalAntiAlias antialias)
+                                    const PangoFontDescription *font_desc)
 {
         GObject *object;
 	GtkStyle *style;
@@ -7360,7 +7355,6 @@ vte_terminal_set_font_full_internal(VteTerminal *terminal,
 		pango_font_description_free(terminal->pvt->fontdesc);
 	}
 	pvt->fontdesc = desc;
-	pvt->fontantialias = antialias;
 	pvt->fontdirty = TRUE;
 	pvt->has_fonts = TRUE;
 
@@ -7391,8 +7385,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 		      const PangoFontDescription *font_desc)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	vte_terminal_set_font_full_internal(terminal, font_desc,
-                                            VTE_ANTI_ALIAS_USE_DEFAULT);
+	vte_terminal_set_font_full_internal(terminal, font_desc);
 }
 
 static void
@@ -7405,7 +7398,7 @@ vte_terminal_set_font_from_string_full_internal(VteTerminal *terminal,
 
 	if (name)
 	  font_desc = pango_font_description_from_string(name);
-	vte_terminal_set_font_full_internal(terminal, font_desc, antialias);
+	vte_terminal_set_font_full_internal(terminal, font_desc);
 	pango_font_description_free(font_desc);
 }
 
@@ -11166,7 +11159,7 @@ vte_terminal_set_property (GObject *object,
                         vte_terminal_set_encoding (terminal, g_value_get_string (value));
                         break;
                 case PROP_FONT_DESC:
-                        vte_terminal_set_font_full_internal (terminal, g_value_get_boxed (value), pvt->fontantialias);
+                        vte_terminal_set_font_full_internal (terminal, g_value_get_boxed (value));
                         break;
                 case PROP_MOUSE_POINTER_AUTOHIDE:
                         vte_terminal_set_mouse_autohide (terminal, g_value_get_boolean (value));
