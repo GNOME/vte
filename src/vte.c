@@ -7559,13 +7559,13 @@ vte_terminal_apply_metrics(VteTerminal *terminal,
 		resize = cresize = TRUE;
 		terminal->char_height = height;
 	}
-	if (ascent != terminal->char_ascent) {
+	if (ascent != terminal->pvt->char_ascent) {
 		resize = TRUE;
-		terminal->char_ascent = ascent;
+		terminal->pvt->char_ascent = ascent;
 	}
-	if (descent != terminal->char_descent) {
+	if (descent != terminal->pvt->char_descent) {
 		resize = TRUE;
-		terminal->char_descent = descent;
+		terminal->pvt->char_descent = descent;
 	}
 	terminal->pvt->line_thickness = line_thickness = MAX (MIN ((height - ascent) / 2, height / 14), 1);
 	terminal->pvt->underline_position = MIN (ascent + line_thickness, height - line_thickness);
@@ -8282,8 +8282,8 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Set up dummy metrics, value != 0 to avoid division by 0 */
 	terminal->char_width = 1;
 	terminal->char_height = 1;
-	terminal->char_ascent = 1;
-	terminal->char_descent = 1;
+	terminal->pvt->char_ascent = 1;
+	terminal->pvt->char_descent = 1;
 	terminal->pvt->line_thickness = 1;
 	terminal->pvt->underline_position = 1;
 	terminal->pvt->strikethrough_position = 1;
