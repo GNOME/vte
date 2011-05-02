@@ -61,7 +61,6 @@ typedef struct _VteCharAttributes       VteCharAttributes;
 struct _VteTerminal {
 	GtkWidget widget;
         /*< private >*/
-	GtkAdjustment *_VTE_SEAL(adjustment);	/* Scrolling adjustment. */
 
 	/*< private >*/
 	VteTerminalPrivate *pvt;

@@ -920,7 +920,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 			_vte_terminal_home_cursor (terminal);
 		}
 		/* Reset scrollbars and repaint everything. */
-		gtk_adjustment_set_value(terminal->adjustment,
+		gtk_adjustment_set_value(terminal->pvt->vadjustment,
 					 terminal->pvt->screen->scroll_delta);
 		vte_terminal_set_scrollback_lines(terminal,
 				terminal->pvt->scrollback_lines);
