@@ -37,13 +37,6 @@
 
 #include <gtk/gtk.h>
 
-#if GTK_CHECK_VERSION (2, 90, 7)
-#define GDK_KEY(symbol) GDK_KEY_##symbol
-#else
-#include <gdk/gdkkeysyms.h>
-#define GDK_KEY(symbol) GDK_##symbol
-#endif
-
 /* Maps which jive with XTerm's ESC ()*+ ? sequences, RFC 1468.  Add the
  * PC437 map because despite knowing that XTerm doesn't support it, certain
  * applications try to use it anyway. */
@@ -123,7 +116,7 @@ static const struct _vte_iso2022_map16 _vte_iso2022_map_0[] = {
 };
 /* United Kingdom.  VT100 and higher (per XTerm docs). */
 static const struct _vte_iso2022_map16 _vte_iso2022_map_A[] = {
-	{'$', GDK_KEY (sterling)},
+	{'$', GDK_KEY_sterling},
 };
 /* US-ASCII (no conversions).  VT100 and higher (per XTerm docs). */
 static const struct _vte_iso2022_map16 _vte_iso2022_map_B[] = {
@@ -131,128 +124,128 @@ static const struct _vte_iso2022_map16 _vte_iso2022_map_B[] = {
 };
 /* Dutch. VT220 and higher (per XTerm docs). */
 static const struct _vte_iso2022_map16 _vte_iso2022_map_4[] = {
-	{'#',  GDK_KEY (sterling)},
-	{'@',  GDK_KEY (threequarters)},
-	{'[',  GDK_KEY (ydiaeresis)},
-	{'\\', GDK_KEY (onehalf)},
-	{']',  GDK_KEY (bar)}, /* FIXME? not in XTerm 170 */
-	{'{',  GDK_KEY (diaeresis)},
+	{'#',  GDK_KEY_sterling},
+	{'@',  GDK_KEY_threequarters},
+	{'[',  GDK_KEY_ydiaeresis},
+	{'\\', GDK_KEY_onehalf},
+	{']',  GDK_KEY_bar}, /* FIXME? not in XTerm 170 */
+	{'{',  GDK_KEY_diaeresis},
 	{'|',  0x192}, /* f with hook (florin) */ /* FIXME? not in XTerm 170 */
-	{'}',  GDK_KEY (onequarter)},
-	{'~',  GDK_KEY (acute)}
+	{'}',  GDK_KEY_onequarter},
+	{'~',  GDK_KEY_acute}
 };
 /* Finnish. VT220 and higher (per XTerm docs). */
 static const struct _vte_iso2022_map16 _vte_iso2022_map_C[] = {
-	{'[',  GDK_KEY (Adiaeresis)},
-	{'\\', GDK_KEY (Odiaeresis)},
-	{']',  GDK_KEY (Aring)},
-	{'^',  GDK_KEY (Udiaeresis)},
-	{'`',  GDK_KEY (eacute)},
-	{'{',  GDK_KEY (adiaeresis)},
-	{'|',  GDK_KEY (odiaeresis)},
-	{'}',  GDK_KEY (aring)},
-	{'~',  GDK_KEY (udiaeresis)},
+	{'[',  GDK_KEY_Adiaeresis},
+	{'\\', GDK_KEY_Odiaeresis},
+	{']',  GDK_KEY_Aring},
+	{'^',  GDK_KEY_Udiaeresis},
+	{'`',  GDK_KEY_eacute},
+	{'{',  GDK_KEY_adiaeresis},
+	{'|',  GDK_KEY_odiaeresis},
+	{'}',  GDK_KEY_aring},
+	{'~',  GDK_KEY_udiaeresis},
 };
 /* French. VT220 and higher (per XTerm docs). */
 static const struct _vte_iso2022_map16 _vte_iso2022_map_R[] = {
-	{'#',  GDK_KEY (sterling)},
-	{'@',  GDK_KEY (agrave)},
-	{'[',  GDK_KEY (degree)},
-	{'\\', GDK_KEY (ccedilla)},
-	{']',  GDK_KEY (section)},
-	{'{',  GDK_KEY (eacute)},
-	{'|',  GDK_KEY (ugrave)},
-	{'}',  GDK_KEY (egrave)},
-	{'~',  GDK_KEY (diaeresis)},
+	{'#',  GDK_KEY_sterling},
+	{'@',  GDK_KEY_agrave},
+	{'[',  GDK_KEY_degree},
+	{'\\', GDK_KEY_ccedilla},
+	{']',  GDK_KEY_section},
+	{'{',  GDK_KEY_eacute},
+	{'|',  GDK_KEY_ugrave},
+	{'}',  GDK_KEY_egrave},
+	{'~',  GDK_KEY_diaeresis},
 };
 /* French Canadian. VT220 and higher (per XTerm docs). */
 static const struct _vte_iso2022_map16 _vte_iso2022_map_Q[] = {
-	{'@',  GDK_KEY (agrave)},
-	{'[',  GDK_KEY (acircumflex)},
-	{'\\', GDK_KEY (ccedilla)},
-	{']',  GDK_KEY (ecircumflex)},
-	{'^',  GDK_KEY (icircumflex)},
-	{'`',  GDK_KEY (ocircumflex)},
-	{'{',  GDK_KEY (eacute)},
-	{'|',  GDK_KEY (ugrave)},
-	{'}',  GDK_KEY (egrave)},
-	{'~',  GDK_KEY (ucircumflex)},
+	{'@',  GDK_KEY_agrave},
+	{'[',  GDK_KEY_acircumflex},
+	{'\\', GDK_KEY_ccedilla},
+	{']',  GDK_KEY_ecircumflex},
+	{'^',  GDK_KEY_icircumflex},
+	{'`',  GDK_KEY_ocircumflex},
+	{'{',  GDK_KEY_eacute},
+	{'|',  GDK_KEY_ugrave},
+	{'}',  GDK_KEY_egrave},
+	{'~',  GDK_KEY_ucircumflex},
 };
 /* German. VT220 and higher (per XTerm docs). */
 static const struct _vte_iso2022_map16 _vte_iso2022_map_K[] = {
-	{'@',  GDK_KEY (section)},
-	{'[',  GDK_KEY (Adiaeresis)},
-	{'\\', GDK_KEY (Odiaeresis)},
-	{']',  GDK_KEY (Udiaeresis)},
-	{'{',  GDK_KEY (adiaeresis)},
-	{'|',  GDK_KEY (odiaeresis)},
-	{'}',  GDK_KEY (udiaeresis)},
-	{'~',  GDK_KEY (ssharp)},
+	{'@',  GDK_KEY_section},
+	{'[',  GDK_KEY_Adiaeresis},
+	{'\\', GDK_KEY_Odiaeresis},
+	{']',  GDK_KEY_Udiaeresis},
+	{'{',  GDK_KEY_adiaeresis},
+	{'|',  GDK_KEY_odiaeresis},
+	{'}',  GDK_KEY_udiaeresis},
+	{'~',  GDK_KEY_ssharp},
 };
 /* Italian. VT220 and higher (per XTerm docs). */
 static const struct _vte_iso2022_map16 _vte_iso2022_map_Y[] = {
-	{'#',  GDK_KEY (sterling)},
-	{'@',  GDK_KEY (section)},
-	{'[',  GDK_KEY (degree)},
-	{'\\', GDK_KEY (ccedilla)},
-	{']',  GDK_KEY (eacute)},
-	{'`',  GDK_KEY (ugrave)},
-	{'{',  GDK_KEY (agrave)},
-	{'|',  GDK_KEY (ograve)},
-	{'}',  GDK_KEY (egrave)},
-	{'~',  GDK_KEY (igrave)},
+	{'#',  GDK_KEY_sterling},
+	{'@',  GDK_KEY_section},
+	{'[',  GDK_KEY_degree},
+	{'\\', GDK_KEY_ccedilla},
+	{']',  GDK_KEY_eacute},
+	{'`',  GDK_KEY_ugrave},
+	{'{',  GDK_KEY_agrave},
+	{'|',  GDK_KEY_ograve},
+	{'}',  GDK_KEY_egrave},
+	{'~',  GDK_KEY_igrave},
 };
 /* Norwegian and Danish. VT220 and higher (per XTerm docs). */
 static const struct _vte_iso2022_map16 _vte_iso2022_map_E[] = {
-	{'@',  GDK_KEY (Adiaeresis)},
-	{'[',  GDK_KEY (AE)},
-	{'\\', GDK_KEY (Ooblique)},
-	{']',  GDK_KEY (Aring)},
-	{'^',  GDK_KEY (Udiaeresis)},
-	{'`',  GDK_KEY (adiaeresis)},
-	{'{',  GDK_KEY (ae)},
-	{'|',  GDK_KEY (oslash)},
-	{'}',  GDK_KEY (aring)},
-	{'~',  GDK_KEY (udiaeresis)},
+	{'@',  GDK_KEY_Adiaeresis},
+	{'[',  GDK_KEY_AE},
+	{'\\', GDK_KEY_Ooblique},
+	{']',  GDK_KEY_Aring},
+	{'^',  GDK_KEY_Udiaeresis},
+	{'`',  GDK_KEY_adiaeresis},
+	{'{',  GDK_KEY_ae},
+	{'|',  GDK_KEY_oslash},
+	{'}',  GDK_KEY_aring},
+	{'~',  GDK_KEY_udiaeresis},
 };
 /* Spanish. VT220 and higher (per XTerm docs). */
 static const struct _vte_iso2022_map16 _vte_iso2022_map_Z[] = {
-	{'#',  GDK_KEY (sterling)},
-	{'@',  GDK_KEY (section)},
-	{'[',  GDK_KEY (exclamdown)},
-	{'\\', GDK_KEY (Ntilde)},
-	{']',  GDK_KEY (questiondown)},
-	{'{',  GDK_KEY (degree)},
-	{'|',  GDK_KEY (ntilde)},
-	{'}',  GDK_KEY (ccedilla)},
+	{'#',  GDK_KEY_sterling},
+	{'@',  GDK_KEY_section},
+	{'[',  GDK_KEY_exclamdown},
+	{'\\', GDK_KEY_Ntilde},
+	{']',  GDK_KEY_questiondown},
+	{'{',  GDK_KEY_degree},
+	{'|',  GDK_KEY_ntilde},
+	{'}',  GDK_KEY_ccedilla},
 };
 /* Swedish. VT220 and higher (per XTerm docs). */
 static const struct _vte_iso2022_map16 _vte_iso2022_map_H[] = {
-	{'@',  GDK_KEY (Eacute)},
-	{'[',  GDK_KEY (Adiaeresis)},
-	{'\\', GDK_KEY (Odiaeresis)},
-	{']',  GDK_KEY (Aring)},
-	{'^',  GDK_KEY (Udiaeresis)},
-	{'`',  GDK_KEY (eacute)},
-	{'{',  GDK_KEY (adiaeresis)},
-	{'|',  GDK_KEY (odiaeresis)},
-	{'}',  GDK_KEY (aring)},
-	{'~',  GDK_KEY (udiaeresis)},
+	{'@',  GDK_KEY_Eacute},
+	{'[',  GDK_KEY_Adiaeresis},
+	{'\\', GDK_KEY_Odiaeresis},
+	{']',  GDK_KEY_Aring},
+	{'^',  GDK_KEY_Udiaeresis},
+	{'`',  GDK_KEY_eacute},
+	{'{',  GDK_KEY_adiaeresis},
+	{'|',  GDK_KEY_odiaeresis},
+	{'}',  GDK_KEY_aring},
+	{'~',  GDK_KEY_udiaeresis},
 };
 /* Swiss. VT220 and higher (per XTerm docs). */
 static const struct _vte_iso2022_map16 _vte_iso2022_map_equal[] = {
-	{'#',  GDK_KEY (ugrave)},
-	{'@',  GDK_KEY (agrave)},
-	{'[',  GDK_KEY (eacute)},
-	{'\\', GDK_KEY (ccedilla)},
-	{']',  GDK_KEY (ecircumflex)},
-	{'^',  GDK_KEY (icircumflex)},
-	{'_',  GDK_KEY (egrave)},
-	{'`',  GDK_KEY (ocircumflex)},
-	{'{',  GDK_KEY (adiaeresis)},
-	{'|',  GDK_KEY (odiaeresis)},
-	{'}',  GDK_KEY (udiaeresis)},
-	{'~',  GDK_KEY (ucircumflex)},
+	{'#',  GDK_KEY_ugrave},
+	{'@',  GDK_KEY_agrave},
+	{'[',  GDK_KEY_eacute},
+	{'\\', GDK_KEY_ccedilla},
+	{']',  GDK_KEY_ecircumflex},
+	{'^',  GDK_KEY_icircumflex},
+	{'_',  GDK_KEY_egrave},
+	{'`',  GDK_KEY_ocircumflex},
+	{'{',  GDK_KEY_adiaeresis},
+	{'|',  GDK_KEY_odiaeresis},
+	{'}',  GDK_KEY_udiaeresis},
+	{'~',  GDK_KEY_ucircumflex},
 };
 /* Codepage 437. */
 static const struct _vte_iso2022_map16 _vte_iso2022_map_U[] = {
