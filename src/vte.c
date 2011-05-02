@@ -3653,66 +3653,6 @@ vte_terminal_fork_command_full(VteTerminal *terminal,
         return TRUE;
 }
 
-/**
- * vte_terminal_forkpty:
- * @terminal: a #VteTerminal
- * @envv: a list of environment variables to be added to the environment before
- * starting returning in the child process, or %NULL
- * @working_directory: the name of a directory the child process should change to, or
- * %NULL
- * @lastlog: %TRUE if the session should be logged to the lastlog
- * @utmp: %TRUE if the session should be logged to the utmp/utmpx log
- * @wtmp: %TRUE if the session should be logged to the wtmp/wtmpx log
- *
- * Starts a new child process under a newly-allocated controlling
- * pseudo-terminal.  TERM is automatically set to reflect the terminal widget's
- * emulation setting.  If @lastlog, @utmp, or @wtmp are %TRUE, logs the session
- * to the specified system log files.
- *
- * Note that all file descriptors except stdin/stdout/stderr will be closed
- * in the child.
- *
- * Note that @envv and @working_directory are silently ignored.
- *
- * Returns: the ID of the new process in the parent, 0 in the child, and -1 if
- * there was an error
- *
- * Since: 0.11.11
- *
- * Deprecated: 0.26: Use #VtePty and fork() instead
- */
-pid_t
-vte_terminal_forkpty(VteTerminal *terminal,
-		     char **envv, const char *working_directory,
-		     gboolean lastlog, gboolean utmp, gboolean wtmp)
-{
-#ifdef HAVE_FORK
-        VtePty *pty;
-        GPid pid;
-
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-
-        pty = vte_pty_new(__vte_pty_get_pty_flags(lastlog, utmp, wtmp), NULL);
-        if (pty == NULL)
-                return FALSE;
-
-        if (!__vte_pty_fork(pty,
-                            &pid,
-                            NULL)) {
-                g_object_unref(pty);
-                return FALSE;
-        }
-
-        vte_terminal_set_pty_object(terminal, pty);
-        // FIXMEchpe is that really right?
-        vte_terminal_watch_child(terminal, pid);
-
-        return pid;
-#else
-        return -1;
-#endif
-}
-
 /* Handle an EOF from the client. */
 static void
 vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)

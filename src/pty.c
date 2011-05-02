@@ -611,48 +611,6 @@ __vte_pty_spawn (VtePty *pty,
         return FALSE;
 }
 
-/*
- * __vte_pty_fork:
- * @pty: a #VtePty
- * @pid: (out) a location to store a #GPid, or %NULL
- * @error: a location to store a #GError, or %NULL
- *
- * Forks and calls vte_pty_child_setup() in the child.
- *
- * Returns: %TRUE on success, or %FALSE on failure with @error filled in
- */
-gboolean
-__vte_pty_fork(VtePty *pty,
-               GPid *pid,
-               GError **error)
-{
-#ifdef HAVE_FORK
-        gboolean ret = TRUE;
-
-        *pid = fork();
-        switch (*pid) {
-                case -1:
-                        g_set_error(error,
-                                    G_SPAWN_ERROR,
-                                    G_SPAWN_ERROR_FAILED,
-                                    "Unable to fork: %s",
-                                    g_strerror(errno));
-                        ret = FALSE;
-                case 0: /* child */
-                        vte_pty_child_setup(pty);
-                        break;
-                default: /* parent */
-                        break;
-        }
-
-	return ret;
-#else /* !HAVE_FORK */
-        g_set_error_literal(error, G_SPAWN_ERROR, G_SPAWN_ERROR_FAILED,
-                            "No fork implementation");
-        return FALSE;
-#endif /* HAVE_FORK */
-}
-
 /**
  * vte_pty_set_size:
  * @pty: a #VtePty
