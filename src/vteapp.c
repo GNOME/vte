@@ -547,7 +547,7 @@ main(int argc, char **argv)
 		 console = FALSE, scroll = FALSE, keep = FALSE,
 		 icon_title = FALSE, shell = TRUE, highlight_set = FALSE,
 		 cursor_set = FALSE, reverse = FALSE, use_geometry_hints = TRUE,
-		 antialias = TRUE, use_scrolled_window = FALSE,
+		 use_scrolled_window = FALSE,
 		 show_object_notifications = FALSE, rewrap = TRUE;
 	char *geometry = NULL;
 	gint lines = -1;
@@ -563,11 +563,6 @@ main(int argc, char **argv)
 	char *scrollbar_policy_string = NULL;
 	GdkColor fore, back, tint, highlight, cursor;
 	const GOptionEntry options[]={
-		{
-			"antialias", 'A', G_OPTION_FLAG_REVERSE,
-			G_OPTION_ARG_NONE, &antialias,
-			"Disable the use of anti-aliasing", NULL
-		},
 		{
 			"background", 'B', 0,
 			G_OPTION_ARG_FILENAME, &background,
@@ -918,7 +913,7 @@ main(int argc, char **argv)
 	/* Set the default font. */
         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	vte_terminal_set_font_from_string_full(terminal, font,
-					       antialias ? VTE_ANTI_ALIAS_USE_DEFAULT : VTE_ANTI_ALIAS_FORCE_DISABLE);
+					       VTE_ANTI_ALIAS_USE_DEFAULT);
         G_GNUC_END_IGNORE_DEPRECATIONS;
 
 	/* Match "abcdefg". */
