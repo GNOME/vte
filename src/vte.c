@@ -12906,21 +12906,6 @@ vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink)
 }
 
 /**
- * vte_terminal_set_cursor_blinks:
- * @terminal: a #VteTerminal
- * @blink: whether the cursor should blink
- *
- *  Sets whether or not the cursor will blink.
- *
- * Deprecated: 0.17.1 Use vte_terminal_set_cursor_blink_mode() instead.
- */
-void
-vte_terminal_set_cursor_blinks(VteTerminal *terminal, gboolean blink)
-{
-        vte_terminal_set_cursor_blink_mode(terminal, blink ? VTE_CURSOR_BLINK_ON : VTE_CURSOR_BLINK_OFF);
-}
-
-/**
  * vte_terminal_set_cursor_blink_mode:
  * @terminal: a #VteTerminal
  * @mode: the #VteTerminalCursorBlinkMode to use
