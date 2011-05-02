@@ -8339,7 +8339,7 @@ vte_terminal_finalize(GObject *object)
 	g_free(terminal->pvt->icon_title_changed);
 
 	/* Free public-facing data. */
-	g_free(terminal->icon_title);
+	g_free(terminal->pvt->icon_title);
 	if (terminal->adjustment != NULL) {
 		g_object_unref(terminal->adjustment);
 	}
@@ -13339,7 +13339,7 @@ const char *
 vte_terminal_get_icon_title(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), "");
-	return terminal->icon_title;
+	return terminal->pvt->icon_title;
 }
 
 /**
@@ -13734,12 +13734,12 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 	}
 
 	if (terminal->pvt->icon_title_changed) {
-		g_free (terminal->icon_title);
-		terminal->icon_title = terminal->pvt->icon_title_changed;
+		g_free (terminal->pvt->icon_title);
+		terminal->pvt->icon_title = terminal->pvt->icon_title_changed;
 		terminal->pvt->icon_title_changed = NULL;
 
 		if (window)
-			gdk_window_set_icon_name (window, terminal->icon_title);
+			gdk_window_set_icon_name (window, terminal->pvt->icon_title);
 		vte_terminal_emit_icon_title_changed(terminal);
                 g_object_notify(object, "icon-title");
 	}

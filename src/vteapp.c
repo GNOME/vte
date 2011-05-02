@@ -57,11 +57,10 @@ icon_title_changed(GtkWidget *widget, gpointer win)
 
 	g_assert(VTE_TERMINAL(widget));
 	g_assert(GTK_IS_WINDOW(win));
-	g_assert(VTE_TERMINAL(widget)->icon_title != NULL);
 	window = GTK_WINDOW(win);
 
 	g_message("Icon title changed to \"%s\".\n",
-		  VTE_TERMINAL(widget)->icon_title);
+		  vte_terminal_get_icon_title(VTE_TERMINAL(widget)));
 }
 
 static void

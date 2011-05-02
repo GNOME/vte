@@ -3231,7 +3231,7 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 			   and CVE-2003-0070. */
 			_vte_debug_print(VTE_DEBUG_PARSE,
 				"Reporting fake icon title.\n");
-			/* never use terminal->icon_title here! */
+			/* never use terminal->pvt->icon_title here! */
 			g_snprintf (buf, sizeof (buf),
 				    _VTE_CAP_OSC "LTerminal" _VTE_CAP_ST);
 			vte_terminal_feed_child(terminal, buf, -1);

@@ -360,6 +360,7 @@ struct _VteTerminalPrivate {
 	/* window name changes */
         gchar *window_title;
 	gchar *window_title_changed;
+        gchar *icon_title;
 	gchar *icon_title_changed;
 
 	/* Background images/"transparency". */
