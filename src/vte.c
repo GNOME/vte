@@ -7417,7 +7417,7 @@ vte_terminal_ensure_font (VteTerminal *terminal)
 			terminal->pvt->fontdirty = FALSE;
 			_vte_draw_set_text_font (terminal->pvt->draw,
 					terminal->pvt->fontdesc,
-					terminal->pvt->fontantialias);
+					VTE_ANTI_ALIAS_USE_DEFAULT);
 			_vte_draw_get_text_metrics (terminal->pvt->draw,
 						    &width, &height, &ascent);
 			vte_terminal_apply_metrics(terminal,
@@ -8187,7 +8187,6 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->draw = _vte_draw_new(&terminal->widget);
 
 	/* The font description. */
-	pvt->fontantialias = VTE_ANTI_ALIAS_USE_DEFAULT;
 	gtk_widget_ensure_style(&terminal->widget);
 
 	/* Set up background information. */
@@ -8568,7 +8567,6 @@ vte_terminal_finalize(GObject *object)
 	if (terminal->pvt->fontdesc != NULL) {
 		pango_font_description_free(terminal->pvt->fontdesc);
 	}
-	terminal->pvt->fontantialias = VTE_ANTI_ALIAS_USE_DEFAULT;
 
 	/* Free matching data. */
 	if (terminal->pvt->match_attributes != NULL) {
