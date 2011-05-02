@@ -13200,26 +13200,6 @@ vte_terminal_get_has_selection(VteTerminal *terminal)
 	return terminal->pvt->has_selection;
 }
 
-/**
- * vte_terminal_get_using_xft:
- * @terminal: a #VteTerminal
- *
- * A #VteTerminal can use multiple methods to draw text.  This function
- * allows an application to determine whether or not the current method uses
- * fontconfig to find fonts.  This setting cannot be changed by the caller,
- * but in practice usually matches the behavior of GTK+ itself.
- *
- * Returns: %TRUE
- *
- * Deprecated: 0.20
- */
-gboolean
-vte_terminal_get_using_xft(VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), TRUE);
-	return TRUE;
-}
-
 static void
 vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink)
 {
