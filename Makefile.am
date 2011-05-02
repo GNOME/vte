@@ -2,10 +2,6 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
 SUBDIRS = src termcaps po doc perf
 
-if HAVE_GTK_2
-SUBDIRS += python
-endif
-
 EXTRA_DIST = \
 	MAINTAINERS \
 	HACKING \
