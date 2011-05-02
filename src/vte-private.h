@@ -390,6 +390,7 @@ struct _VteTerminalPrivate {
 
         /* GtkScrollable impl */
         GtkAdjustment *hadjustment; /* unused */
+        GtkAdjustment *vadjustment;
         guint hscroll_policy : 1; /* unused */
         guint vscroll_policy : 1;
 };

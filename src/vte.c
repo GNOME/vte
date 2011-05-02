@@ -1694,15 +1694,15 @@ vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 		glong v;
 		gdouble current;
 
-		g_object_freeze_notify (G_OBJECT (terminal->adjustment));
+		g_object_freeze_notify (G_OBJECT (terminal->pvt->vadjustment));
 
 		v = _vte_ring_delta (screen->row_data);
-		current = gtk_adjustment_get_lower(terminal->adjustment);
+		current = gtk_adjustment_get_lower(terminal->pvt->vadjustment);
 		if (current != v) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Changing lower bound from %.0f to %ld\n",
 					 current, v);
-			gtk_adjustment_set_lower(terminal->adjustment, v);
+			gtk_adjustment_set_lower(terminal->pvt->vadjustment, v);
 			changed = TRUE;
 		}
 
@@ -1710,16 +1710,16 @@ vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 		 * one to the cursor offset because it's zero-based.) */
 		v = MAX(_vte_ring_next(screen->row_data),
 				screen->cursor_current.row + 1);
-		current = gtk_adjustment_get_upper(terminal->adjustment);
+		current = gtk_adjustment_get_upper(terminal->pvt->vadjustment);
 		if (current != v) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Changing upper bound from %.0f to %ld\n",
 					 current, v);
-			gtk_adjustment_set_upper(terminal->adjustment, v);
+			gtk_adjustment_set_upper(terminal->pvt->vadjustment, v);
 			changed = TRUE;
 		}
 
-		g_object_thaw_notify (G_OBJECT (terminal->adjustment));
+		g_object_thaw_notify (G_OBJECT (terminal->pvt->vadjustment));
 
 		if (changed)
 			_vte_debug_print(VTE_DEBUG_SIGNALS,
@@ -1731,7 +1731,7 @@ vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting adjustment_value_changed.\n");
 		terminal->pvt->adjustment_value_changed_pending = FALSE;
-		v = round (gtk_adjustment_get_value(terminal->adjustment));
+		v = round (gtk_adjustment_get_value(terminal->pvt->vadjustment));
 		if (v != terminal->pvt->screen->scroll_delta) {
 			/* this little dance is so that the scroll_delta is
 			 * updated immediately, but we still handled scrolling
@@ -1740,7 +1740,7 @@ vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 			 */
 			delta = terminal->pvt->screen->scroll_delta;
 			terminal->pvt->screen->scroll_delta = v;
-			gtk_adjustment_set_value(terminal->adjustment, delta);
+			gtk_adjustment_set_value(terminal->pvt->vadjustment, delta);
 		}
 	}
 }
@@ -1768,8 +1768,8 @@ vte_terminal_queue_adjustment_value_changed_clamped(VteTerminal *terminal, glong
 {
 	gdouble lower, upper;
 
-	lower = gtk_adjustment_get_lower(terminal->adjustment);
-	upper = gtk_adjustment_get_upper(terminal->adjustment);
+	lower = gtk_adjustment_get_lower(terminal->pvt->vadjustment);
+	upper = gtk_adjustment_get_upper(terminal->pvt->vadjustment);
 
 	v = CLAMP(v, lower, MAX (lower, upper - terminal->pvt->row_count));
 
@@ -1817,44 +1817,44 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 
 	_vte_terminal_adjust_adjustments(terminal);
 
-        g_object_freeze_notify(G_OBJECT(terminal->adjustment));
+        g_object_freeze_notify(G_OBJECT(terminal->pvt->vadjustment));
 
 	/* The step increment should always be one. */
-	v = gtk_adjustment_get_step_increment(terminal->adjustment);
+	v = gtk_adjustment_get_step_increment(terminal->pvt->vadjustment);
 	if (v != 1) {
 		_vte_debug_print(VTE_DEBUG_ADJ,
 				"Changing step increment from %.0lf to %ld\n",
 				v, terminal->pvt->row_count);
-		gtk_adjustment_set_step_increment(terminal->adjustment, 1);
+		gtk_adjustment_set_step_increment(terminal->pvt->vadjustment, 1);
 		changed = TRUE;
 	}
 
 	/* Set the number of rows the user sees to the number of rows the
 	 * user sees. */
-	v = gtk_adjustment_get_page_size(terminal->adjustment);
+	v = gtk_adjustment_get_page_size(terminal->pvt->vadjustment);
 	if (v != terminal->pvt->row_count) {
 		_vte_debug_print(VTE_DEBUG_ADJ,
 				"Changing page size from %.0f to %ld\n",
 				 v, terminal->pvt->row_count);
-		gtk_adjustment_set_page_size(terminal->adjustment,
+		gtk_adjustment_set_page_size(terminal->pvt->vadjustment,
 					     terminal->pvt->row_count);
 		changed = TRUE;
 	}
 
 	/* Clicking in the empty area should scroll one screen, so set the
 	 * page size to the number of visible rows. */
-	v = gtk_adjustment_get_page_increment(terminal->adjustment);
+	v = gtk_adjustment_get_page_increment(terminal->pvt->vadjustment);
 	if (v != terminal->pvt->row_count) {
 		_vte_debug_print(VTE_DEBUG_ADJ,
 				"Changing page increment from "
 				"%.0f to %ld\n",
 				v, terminal->pvt->row_count);
-		gtk_adjustment_set_page_increment(terminal->adjustment,
+		gtk_adjustment_set_page_increment(terminal->pvt->vadjustment,
 						  terminal->pvt->row_count);
 		changed = TRUE;
 	}
 
-	g_object_thaw_notify(G_OBJECT(terminal->adjustment));
+	g_object_thaw_notify(G_OBJECT(terminal->pvt->vadjustment));
 
 	if (changed)
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
@@ -6649,7 +6649,7 @@ vte_terminal_autoscroll(VteTerminal *terminal)
 
 	/* Provide an immediate effect for mouse wigglers. */
 	if (terminal->pvt->mouse_last_y < 0) {
-		if (terminal->adjustment) {
+		if (terminal->pvt->vadjustment) {
 			/* Try to scroll up by one line. */
 			adj = terminal->pvt->screen->scroll_delta - 1;
 			vte_terminal_queue_adjustment_value_changed_clamped (terminal, adj);
@@ -6659,7 +6659,7 @@ vte_terminal_autoscroll(VteTerminal *terminal)
 	}
 	if (terminal->pvt->mouse_last_y >=
 	    terminal->pvt->row_count * terminal->pvt->char_height) {
-		if (terminal->adjustment) {
+		if (terminal->pvt->vadjustment) {
 			/* Try to scroll up by one line. */
 			adj = terminal->pvt->screen->scroll_delta + 1;
 			vte_terminal_queue_adjustment_value_changed_clamped (terminal, adj);
@@ -7442,7 +7442,7 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	screen = terminal->pvt->screen;
 
 	/* Read the new adjustment value and save the difference. */
-	adj = round (gtk_adjustment_get_value(terminal->adjustment));
+	adj = round (gtk_adjustment_get_value(terminal->pvt->vadjustment));
 	dy = adj - screen->scroll_delta;
 	screen->scroll_delta = adj;
 
@@ -7483,9 +7483,9 @@ static void
 vte_terminal_set_vadjustment(VteTerminal *terminal,
                              GtkAdjustment *adjustment)
 {
-	if (adjustment != NULL && adjustment == terminal->adjustment)
+	if (adjustment != NULL && adjustment == terminal->pvt->vadjustment)
 		return;
-	if (adjustment == NULL && terminal->adjustment != NULL)
+	if (adjustment == NULL && terminal->pvt->vadjustment != NULL)
 		return;
 
 	if (adjustment == NULL)
@@ -7496,19 +7496,19 @@ vte_terminal_set_vadjustment(VteTerminal *terminal,
 	/* Add a reference to the new adjustment object. */
 	g_object_ref_sink(adjustment);
 	/* Get rid of the old adjustment object. */
-	if (terminal->adjustment != NULL) {
+	if (terminal->pvt->vadjustment != NULL) {
 		/* Disconnect our signal handlers from this object. */
-		g_signal_handlers_disconnect_by_func(terminal->adjustment,
+		g_signal_handlers_disconnect_by_func(terminal->pvt->vadjustment,
 						     vte_terminal_handle_scroll,
 						     terminal);
-		g_object_unref(terminal->adjustment);
+		g_object_unref(terminal->pvt->vadjustment);
 	}
 
 	/* Set the new adjustment object. */
-	terminal->adjustment = adjustment;
+	terminal->pvt->vadjustment = adjustment;
 
 	/* We care about the offset, not the top or bottom. */
-	g_signal_connect_swapped(terminal->adjustment,
+	g_signal_connect_swapped(terminal->pvt->vadjustment,
 				 "value-changed",
 				 G_CALLBACK(vte_terminal_handle_scroll),
 				 terminal);
@@ -7725,7 +7725,7 @@ vte_terminal_init(VteTerminal *terminal)
 	gtk_widget_set_redraw_on_allocate (&terminal->widget, FALSE);
 
 	/* Set an adjustment for the application to use to control scrolling. */
-        terminal->adjustment = NULL;
+        terminal->pvt->vadjustment = NULL;
         pvt->hadjustment = NULL;
         /* GtkScrollable */
         pvt->hscroll_policy = GTK_SCROLL_NATURAL;
@@ -8340,8 +8340,8 @@ vte_terminal_finalize(GObject *object)
 
 	/* Free public-facing data. */
 	g_free(terminal->pvt->icon_title);
-	if (terminal->adjustment != NULL) {
-		g_object_unref(terminal->adjustment);
+	if (terminal->pvt->vadjustment != NULL) {
+		g_object_unref(terminal->pvt->vadjustment);
 	}
 
         settings = gtk_widget_get_settings (widget);
@@ -10674,7 +10674,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 		return TRUE;
 	}
 
-	adj = terminal->adjustment;
+	adj = terminal->pvt->vadjustment;
 	v = MAX (1., ceil (gtk_adjustment_get_page_increment (adj) / 10.));
 	switch (event->direction) {
 	case GDK_SCROLL_UP:
@@ -10781,7 +10781,7 @@ vte_terminal_get_property (GObject *object,
                         g_value_set_object (value, pvt->hadjustment);
                         break;
                 case PROP_VADJUSTMENT:
-                        g_value_set_object (value, terminal->adjustment);
+                        g_value_set_object (value, terminal->pvt->vadjustment);
                         break;
                 case PROP_HSCROLL_POLICY:
                         g_value_set_enum (value, pvt->hscroll_policy);
@@ -14256,8 +14256,8 @@ vte_terminal_search_rows (VteTerminal *terminal,
 
 	_vte_terminal_select_text (terminal, start_col, start_row, end_col, end_row, 0, 0);
 	/* Quite possibly the math here should not access adjustment directly... */
-	value = gtk_adjustment_get_value(terminal->adjustment);
-	page_size = gtk_adjustment_get_page_size(terminal->adjustment);
+	value = gtk_adjustment_get_value(terminal->pvt->vadjustment);
+	page_size = gtk_adjustment_get_page_size(terminal->pvt->vadjustment);
 	if (backward) {
 		if (end_row < value || end_row >= value + page_size)
 			vte_terminal_queue_adjustment_value_changed_clamped (terminal, end_row - page_size + 1);

@@ -80,11 +80,6 @@ terminal_shell_vte(GtkWidget *terminal)
                                        NULL,
                                        NULL);
 }
-static GtkAdjustment *
-terminal_adjustment_vte(GtkWidget *terminal)
-{
-	return (VTE_TERMINAL(terminal))->adjustment;
-}
 #endif
 
 /*
@@ -237,7 +232,7 @@ terminal_adjustment(GtkWidget *terminal)
 	return terminal_adjustment_text_view(terminal);
 #endif
 #ifdef USE_VTE
-	return terminal_adjustment_vte(terminal);
+	return gtk_scrollable_get_vadjustment(GTK_SCROLLABLE(terminal));
 #endif
 	g_assert_not_reached();
 }

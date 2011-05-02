@@ -874,7 +874,7 @@ main(int argc, char **argv)
 
 	if (!use_scrolled_window) {
 		/* Create the scrollbar for the widget. */
-		scrollbar = gtk_vscrollbar_new(terminal->adjustment);
+		scrollbar = gtk_vscrollbar_new(gtk_scrollable_get_vadjustment(GTK_SCROLLABLE(terminal)));
 		gtk_box_pack_start(GTK_BOX(hbox), scrollbar, FALSE, FALSE, 0);
 	}
 
