@@ -83,7 +83,6 @@ vte_terminal_get_default_emulation
 vte_terminal_set_encoding
 vte_terminal_get_encoding
 vte_terminal_get_status_line
-vte_terminal_get_padding
 vte_terminal_write_contents
 vte_terminal_search_find_next
 vte_terminal_search_find_previous
