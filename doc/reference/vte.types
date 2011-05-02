@@ -15,7 +15,6 @@ vte_terminal_accessible_factory_get_type
 
 vte_pty_error_get_type
 vte_pty_flags_get_type
-vte_terminal_anti_alias_get_type
 vte_terminal_cursor_blink_mode_get_type
 vte_terminal_cursor_shape_get_type
 vte_terminal_erase_binding_get_type

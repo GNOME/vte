@@ -2,7 +2,6 @@
 <FILE>vte-terminal</FILE>
 <TITLE>VteTerminal</TITLE>
 VteTerminal
-VteTerminalAntiAlias
 VteTerminalCursorBlinkMode
 VteTerminalCursorShape
 VteTerminalEraseBinding
@@ -107,8 +106,6 @@ VTE_TYPE_TERMINAL_ERASE_BINDING
 vte_terminal_erase_binding_get_type
 VTE_TYPE_TERMINAL_WRITE_FLAGS
 vte_terminal_write_flags_get_type
-VTE_TYPE_TERMINAL_ANTI_ALIAS
-vte_terminal_anti_alias_get_type
 VTE_TYPE_TERMINAL
 vte_terminal_get_type
 VTE_IS_TERMINAL
