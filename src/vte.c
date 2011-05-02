@@ -13699,23 +13699,6 @@ vte_terminal_get_status_line(VteTerminal *terminal)
 }
 
 /**
- * vte_terminal_get_adjustment:
- * @terminal: a #VteTerminal
- *
- * An accessor function provided for the benefit of language bindings.
- *
- * Returns: (transfer none): the contents of @terminal's adjustment field
- *
- * Deprecated: 0.28: Use gtk_scrollable_get_vadjustment() instead
- */
-GtkAdjustment *
-vte_terminal_get_adjustment(VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return terminal->adjustment;
-}
-
-/**
  * vte_terminal_get_char_width:
  * @terminal: a #VteTerminal
  *

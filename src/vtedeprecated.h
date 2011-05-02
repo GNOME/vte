@@ -92,8 +92,6 @@ int vte_terminal_get_pty(VteTerminal *terminal);
 void vte_terminal_im_append_menuitems(VteTerminal *terminal,
 				      GtkMenuShell *menushell) G_GNUC_DEPRECATED;
 
-GtkAdjustment *vte_terminal_get_adjustment(VteTerminal *terminal) G_GNUC_DEPRECATED;
-
 /* Background effects. */
 void vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll) G_GNUC_DEPRECATED;
 void vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image) G_GNUC_DEPRECATED;
