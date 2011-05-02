@@ -170,6 +170,10 @@ typedef struct _VtePaletteColor {
 
 /* Terminal private data. */
 struct _VteTerminalPrivate {
+        /* Metric and sizing data: dimensions of the window */
+        glong row_count;
+        glong column_count;
+
 	/* Emulation setup data. */
 	struct _vte_termcap *termcap;	/* termcap storage */
 	struct _vte_matcher *matcher;	/* control sequence matcher */

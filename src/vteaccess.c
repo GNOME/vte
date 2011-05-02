@@ -538,7 +538,7 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 {
 	VteTerminalAccessiblePrivate *priv;
 	struct _VteCharAttributes attr;
-	long delta;
+	long delta, row_count;
 	guint i, len;
 
 	g_assert(VTE_IS_TERMINAL_ACCESSIBLE(data));
@@ -548,8 +548,9 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
 	g_assert(priv != NULL);
 
-	if (((howmuch < 0) && (howmuch <= -terminal->row_count)) ||
-	    ((howmuch > 0) && (howmuch >= terminal->row_count))) {
+        row_count = vte_terminal_get_row_count(terminal);
+	if (((howmuch < 0) && (howmuch <= -row_count)) ||
+	    ((howmuch > 0) && (howmuch >= row_count))) {
 		/* All of the text was removed. */
 		if (priv->snapshot_text != NULL) {
 			if (priv->snapshot_text->str != NULL) {
@@ -586,7 +587,7 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 	}
 	/* We scrolled up, so text was added at the top and removed
 	 * from the bottom. */
-	if ((howmuch < 0) && (howmuch > -terminal->row_count)) {
+	if ((howmuch < 0) && (howmuch > -row_count)) {
 		gboolean inserted = FALSE;
 		howmuch = -howmuch;
 		if (priv->snapshot_attributes != NULL &&
@@ -596,7 +597,7 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 				attr = g_array_index(priv->snapshot_attributes,
 						struct _VteCharAttributes,
 						i);
-				if (attr.row >= delta + terminal->row_count - howmuch) {
+				if (attr.row >= delta + row_count - howmuch) {
 					break;
 				}
 			}
@@ -630,7 +631,7 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 	}
 	/* We scrolled down, so text was added at the bottom and removed
 	 * from the top. */
-	if ((howmuch > 0) && (howmuch < terminal->row_count)) {
+	if ((howmuch > 0) && (howmuch < row_count)) {
 		gboolean inserted = FALSE;
 		if (priv->snapshot_attributes != NULL &&
 				priv->snapshot_text != NULL) {
