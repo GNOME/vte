@@ -369,9 +369,8 @@ struct _VteTerminalPrivate {
 	gboolean bg_transparent;
 	GdkPixbuf *bg_pixbuf;
 	char *bg_file;
-	PangoColor bg_tint_color;
+        GdkRGBA bg_tint_color;
 	guint16 bg_saturation;	/* out of VTE_SATURATION_MAX */
-	guint16 bg_opacity;
 
 	/* Key modifiers. */
 	GdkModifierType modifiers;
