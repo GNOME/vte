@@ -29,22 +29,6 @@
 
 G_BEGIN_DECLS
 
-/**
- * VteTerminalAntiAlias:
- * @VTE_ANTI_ALIAS_USE_DEFAULT: Use the system default anti-alias setting
- * @VTE_ANTI_ALIAS_FORCE_ENABLE: Force enable anti-aliasing
- * @VTE_ANTI_ALIAS_FORCE_DISABLE: Force disable anti-aliasing
- *
- * An enumeration describing which anti-alias setting to use.
- *
- * @Deprecated: 0.20
- */
-typedef enum {
-	VTE_ANTI_ALIAS_USE_DEFAULT,
-	VTE_ANTI_ALIAS_FORCE_ENABLE,
-	VTE_ANTI_ALIAS_FORCE_DISABLE
-} VteTerminalAntiAlias;
-
 G_END_DECLS
 
 #endif /* !vte_deprecated_h_included */

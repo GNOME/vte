@@ -7326,7 +7326,7 @@ vte_terminal_set_font(VteTerminal *terminal,
         same_desc = pvt->fontdesc && pango_font_description_equal (pvt->fontdesc, desc);
 	
 	/* Note that we proceed to recreating the font even if the description
-	 * and antialias settings are the same.  This is because maybe screen
+	 * are the same.  This is because maybe screen
 	 * font options were changed, or new fonts installed.  Those will be
 	 * detected at font creation time and respected.
 	 */
