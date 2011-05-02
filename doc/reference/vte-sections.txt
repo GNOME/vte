@@ -141,7 +141,6 @@ vte_terminal_set_scroll_background
 
 <SUBSECTION Private>
 VTE_IS_TERMINAL_ANTI_ALIAS
-VTE_IS_TERMINAL_ERASE_BINDING
 VteCharAttributes
 VteTerminalPrivate
 VteTerminalClassPrivate
