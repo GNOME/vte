@@ -132,7 +132,6 @@ vte_terminal_get_row_count
 vte_terminal_get_window_title
 
 <SUBSECTION Private>
-VTE_IS_TERMINAL_ANTI_ALIAS
 VteCharAttributes
 VteTerminalPrivate
 VteTerminalClassPrivate
