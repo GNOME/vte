@@ -7352,40 +7352,6 @@ vte_terminal_set_font(VteTerminal *terminal,
         g_object_thaw_notify(object);
 }
 
-static void
-vte_terminal_set_font_from_string_full_internal(VteTerminal *terminal,
-                                                const char *name,
-                                                VteTerminalAntiAlias antialias)
-{
-	PangoFontDescription *font_desc = NULL;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-	if (name)
-	  font_desc = pango_font_description_from_string(name);
-	vte_terminal_set_font(terminal, font_desc);
-	pango_font_description_free(font_desc);
-}
-
-/**
- * vte_terminal_set_font_from_string_full:
- * @terminal: a #VteTerminal
- * @name: A string describing the font.
- * @antialias: Whether or not to antialias the font (if possible).
- *
- * A convenience function which converts @name into a #PangoFontDescription and
- * passes it to vte_terminal_set_font_full().
- *
- * Since: 0.11.11
- *
- * Deprecated: 0.20: Use vte_terminal_set_font()
- */
-void
-vte_terminal_set_font_from_string_full(VteTerminal *terminal, const char *name,
-				       VteTerminalAntiAlias antialias)
-{
-        vte_terminal_set_font_from_string_full_internal(terminal, name, antialias);
-}
-
 /**
  * vte_terminal_set_font_from_string:
  * @terminal: a #VteTerminal
@@ -7395,12 +7361,17 @@ vte_terminal_set_font_from_string_full(VteTerminal *terminal, const char *name,
  * passes it to vte_terminal_set_font().
  */
 void
-vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name)
+vte_terminal_set_font_from_string(VteTerminal *terminal,
+                                  const char *name)
 {
+	PangoFontDescription *font_desc = NULL;
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(name != NULL);
-	vte_terminal_set_font_from_string_full_internal(terminal, name,
-                                                        VTE_ANTI_ALIAS_USE_DEFAULT);
+        g_return_if_fail(name != NULL);
+
+	if (name)
+                font_desc = pango_font_description_from_string(name);
+	vte_terminal_set_font(terminal, font_desc);
+	pango_font_description_free(font_desc);
 }
 
 /**

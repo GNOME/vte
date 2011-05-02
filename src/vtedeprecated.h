@@ -45,10 +45,6 @@ typedef enum {
 	VTE_ANTI_ALIAS_FORCE_DISABLE
 } VteTerminalAntiAlias;
 
-void vte_terminal_set_font_from_string_full(VteTerminal *terminal,
-					    const char *name,
-					    VteTerminalAntiAlias antialias) G_GNUC_DEPRECATED;
-
 G_END_DECLS
 
 #endif /* !vte_deprecated_h_included */
