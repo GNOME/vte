@@ -347,6 +347,7 @@ adjust_font_size(GtkWidget *widget, gpointer data, gint howmuch)
 {
 	VteTerminal *terminal;
 	PangoFontDescription *desired;
+        glong char_width, char_height;
 	gint newsize;
 	gint columns, rows, owidth, oheight;
 
@@ -357,8 +358,10 @@ adjust_font_size(GtkWidget *widget, gpointer data, gint howmuch)
 
 	/* Take into account padding and border overhead. */
 	gtk_window_get_size(GTK_WINDOW(data), &owidth, &oheight);
-	owidth -= terminal->char_width * terminal->column_count;
-	oheight -= terminal->char_height * terminal->row_count;
+        char_width = vte_terminal_get_char_width (terminal);
+        char_height = vte_terminal_get_char_height (terminal);
+	owidth -= char_width * terminal->column_count;
+	oheight -= char_height * terminal->row_count;
 
 	/* Calculate the new font size. */
 	desired = pango_font_description_copy(vte_terminal_get_font(terminal));
@@ -370,9 +373,14 @@ adjust_font_size(GtkWidget *widget, gpointer data, gint howmuch)
 	/* Change the font, then resize the window so that we have the same
 	 * number of rows and columns. */
 	vte_terminal_set_font(terminal, desired);
+
+        /* This above call will have changed the char size! */
+        char_width = vte_terminal_get_char_width (terminal);
+        char_height = vte_terminal_get_char_height (terminal);
+
 	gtk_window_resize(GTK_WINDOW(data),
-			  columns * terminal->char_width + owidth,
-			  rows * terminal->char_height + oheight);
+			  columns * char_width + owidth,
+			  rows * char_height + oheight);
 
 	pango_font_description_free(desired);
 }

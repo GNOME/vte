@@ -888,11 +888,11 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
                 if (terminal->pvt->deccolm_mode) {
                         vte_terminal_emit_resize_window(terminal,
                                                         (set ? 132 : 80) *
-                                                        terminal->char_width +
+                                                        terminal->pvt->char_width +
                                                         terminal->pvt->inner_border.left +
                                                         terminal->pvt->inner_border.right,
                                                         terminal->row_count *
-                                                        terminal->char_height +
+                                                        terminal->pvt->char_height +
                                                         terminal->pvt->inner_border.top +
                                                         terminal->pvt->inner_border.bottom);
                         /* Request a resize and redraw. */
@@ -3404,10 +3404,10 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 						"(to %ld columns, %ld rows).\n",
 						arg2, arg1);
 				vte_terminal_emit_resize_window(terminal,
-								arg2 * terminal->char_width +
+								arg2 * terminal->pvt->char_width +
 								terminal->pvt->inner_border.left +
 								terminal->pvt->inner_border.right,
-								arg1 * terminal->char_height +
+								arg1 * terminal->pvt->char_height +
 								terminal->pvt->inner_border.top +
 								terminal->pvt->inner_border.bottom);
 				i += 2;
@@ -3491,8 +3491,8 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 			width = gdk_screen_get_width(gscreen);
 			g_snprintf(buf, sizeof(buf),
 				   _VTE_CAP_CSI "9;%ld;%ldt",
-				   height / terminal->char_height,
-				   width / terminal->char_width);
+				   height / terminal->pvt->char_height,
+				   width / terminal->pvt->char_width);
 			vte_terminal_feed_child(terminal, buf, -1);
 			break;
 		case 20:
@@ -3529,10 +3529,10 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 				/* Resize to the specified number of
 				 * rows. */
 				vte_terminal_emit_resize_window(terminal,
-								terminal->column_count * terminal->char_width +
+								terminal->column_count * terminal->pvt->char_width +
                                                                 terminal->pvt->inner_border.left +
                                                                 terminal->pvt->inner_border.right,
-								param * terminal->char_height +
+								param * terminal->pvt->char_height +
 								terminal->pvt->inner_border.top +
                                                                 terminal->pvt->inner_border.bottom);
 			}

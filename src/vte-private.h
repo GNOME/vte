@@ -352,6 +352,9 @@ struct _VteTerminalPrivate {
 	gboolean fontdirty;
         glong char_ascent;
         glong char_descent;
+        /* dimensions of character cells */
+        glong char_width;
+        glong char_height;
 
 	/* Data used when rendering the text which reflects server resources
 	 * and data, which should be dropped when unrealizing and (re)created
