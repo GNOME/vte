@@ -170,7 +170,6 @@ enum {
         PROP_FONT_DESC,
         PROP_ICON_TITLE,
         PROP_MOUSE_POINTER_AUTOHIDE,
-        PROP_PTY,
         PROP_PTY_OBJECT,
         PROP_SCROLL_BACKGROUND,
         PROP_SCROLLBACK_LINES,
@@ -11066,9 +11065,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_MOUSE_POINTER_AUTOHIDE:
                         g_value_set_boolean (value, vte_terminal_get_mouse_autohide (terminal));
                         break;
-                case PROP_PTY:
-                        g_value_set_int (value, pvt->pty != NULL ? vte_pty_get_fd(pvt->pty) : -1);
-                        break;
                 case PROP_PTY_OBJECT:
                         g_value_set_object (value, vte_terminal_get_pty_object(terminal));
                         break;
@@ -11174,9 +11170,6 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_MOUSE_POINTER_AUTOHIDE:
                         vte_terminal_set_mouse_autohide (terminal, g_value_get_boolean (value));
-                        break;
-                case PROP_PTY:
-                        vte_terminal_set_pty (terminal, g_value_get_int (value));
                         break;
                 case PROP_PTY_OBJECT:
                         vte_terminal_set_pty_object (terminal, g_value_get_object (value));
@@ -12164,23 +12157,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_boolean ("pointer-autohide", NULL, NULL,
                                        FALSE,
                                        G_PARAM_READWRITE | STATIC_PARAMS));
-     
-        /**
-         * VteTerminal:pty:
-         *
-         * The file descriptor of the master end of the terminal's PTY.
-         * 
-         * Since: 0.20
-         *
-         * Deprecated: 0.26: Use the #VteTerminal:pty-object property instead
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_PTY,
-                 g_param_spec_int ("pty", NULL, NULL,
-                                   -1, G_MAXINT,
-                                   -1,
-                                   G_PARAM_READWRITE | STATIC_PARAMS));
 
         /**
          * VteTerminal:pty-object:
@@ -13691,36 +13667,6 @@ vte_terminal_get_icon_title(VteTerminal *terminal)
 }
 
 /**
- * vte_terminal_set_pty:
- * @terminal: a #VteTerminal
- * @pty_master: a file descriptor of the master end of a PTY, or %-1
- *
- * Attach an existing PTY master side to the terminal widget.  Use
- * instead of vte_terminal_fork_command() or vte_terminal_forkpty().
- *
- * Since: 0.12.1
- *
- * Deprecated: 0.26: Use vte_pty_new_foreign() and vte_terminal_set_pty_object()
- */
-void
-vte_terminal_set_pty(VteTerminal *terminal, int pty_master)
-{
-        VtePty *pty;
-
-        if (pty_master == -1) {
-                vte_terminal_set_pty_object(terminal, NULL);
-                return;
-        }
-
-        pty = vte_pty_new_foreign(pty_master, NULL);
-        if (pty == NULL)
-                return;
-
-        vte_terminal_set_pty_object(terminal, pty);
-        g_object_unref(pty);
-}
-
-/**
  * vte_terminal_set_pty_object:
  * @terminal: a #VteTerminal
  * @pty: (allow-none): a #VtePty, or %NULL
@@ -13781,7 +13727,6 @@ vte_terminal_set_pty_object(VteTerminal *terminal,
 
         if (pty == NULL) {
                 pvt->pty = NULL;
-                g_object_notify(object, "pty");
                 g_object_notify(object, "pty-object");
                 g_object_thaw_notify(object);
                 return;
@@ -13809,36 +13754,9 @@ vte_terminal_set_pty_object(VteTerminal *terminal,
         /* Open channels to listen for input on. */
         _vte_terminal_connect_pty_read (terminal);
 
-        g_object_notify(object, "pty");
         g_object_notify(object, "pty-object");
 
         g_object_thaw_notify(object);
-}
-
-/**
- * vte_terminal_get_pty:
- * @terminal: a #VteTerminal
- *
- * Returns the file descriptor of the master end of @terminal's PTY.
- *
- * Return value: the file descriptor, or -1 if the terminal has no PTY.
- *
- * Since: 0.20
- *
- * Deprecated: 0.26: Use vte_terminal_get_pty_object() and vte_pty_get_fd()
- */
-int
-vte_terminal_get_pty(VteTerminal *terminal)
-{
-        VteTerminalPrivate *pvt;
-
-        g_return_val_if_fail (VTE_IS_TERMINAL (terminal), -1);
-
-        pvt = terminal->pvt;
-        if (pvt->pty != NULL)
-                return vte_pty_get_fd(pvt->pty);
-
-        return -1;
 }
 
 /**
