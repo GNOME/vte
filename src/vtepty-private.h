@@ -36,8 +36,4 @@ gboolean __vte_pty_spawn (VtePty *pty,
                           GPid *child_pid /* out */,
                           GError **error);
 
-gboolean __vte_pty_fork(VtePty *pty,
-                        GPid *pid,
-                        GError **error);
-
 G_END_DECLS

@@ -81,11 +81,6 @@ pid_t vte_terminal_fork_command(VteTerminal *terminal,
 				gboolean lastlog,
 				gboolean utmp,
 				gboolean wtmp) G_GNUC_DEPRECATED;
-pid_t vte_terminal_forkpty(VteTerminal *terminal,
-			   char **envv, const char *working_directory,
-			   gboolean lastlog,
-			   gboolean utmp,
-			   gboolean wtmp) G_GNUC_DEPRECATED;
 void vte_terminal_set_pty(VteTerminal *terminal, int pty_master);
 int vte_terminal_get_pty(VteTerminal *terminal);
 

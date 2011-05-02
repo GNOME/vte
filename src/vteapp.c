@@ -1027,26 +1027,32 @@ main(int argc, char **argv)
 			}
 	#endif
 		} else {
-			long i;
-			i = vte_terminal_forkpty(terminal,
-						 env_add, working_directory,
-						 TRUE, TRUE, TRUE);
-			switch (i) {
+                        #ifdef HAVE_FORK
+                        VtePty *pty;
+			pid_t pid;
+                        int i;
+
+                        pty = vte_pty_new(VTE_PTY_DEFAULT, NULL);
+			pid = fork();
+			switch (pid) {
 			case -1:
+                                g_object_unref(pty);
 				/* abnormal */
 				g_warning("Error in vte_terminal_forkpty(): %s",
 					  strerror(errno));
 				break;
 			case 0:
 				/* child */
+                                vte_pty_child_setup(pty);
+
 				for (i = 0; ; i++) {
 					switch (i % 3) {
 					case 0:
 					case 1:
-						g_print("%ld\n", i);
+						g_print("%d\n", i);
 						break;
 					case 2:
-						g_printerr("%ld\n", i);
+						g_printerr("%d\n", i);
 						break;
 					}
 					sleep(1);
@@ -1054,11 +1060,15 @@ main(int argc, char **argv)
 				_exit(0);
 				break;
 			default:
-				g_print("Child PID is %ld (mine is %ld).\n",
-					(long) i, (long) getpid());
+                                vte_terminal_set_pty_object(terminal, pty);
+                                g_object_unref(pty);
+                                vte_terminal_watch_child(terminal, pid);
+				g_print("Child PID is %d (mine is %d).\n",
+					(int) pid, (int) getpid());
 				/* normal */
 				break;
 			}
+                        #endif /* HAVE_FORK */
 		}
 	}
 
