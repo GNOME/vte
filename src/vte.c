@@ -10620,7 +10620,12 @@ vte_terminal_paint(GtkWidget *widget, cairo_region_t *region)
 	{
 		cairo_rectangle_int_t *rectangles;
 		gint n, n_rectangles;
-		gdk_region_get_rectangles (region, &rectangles, &n_rectangles);
+                n_rectangles = cairo_region_num_rectangles (region);
+                rectangles = g_new (cairo_rectangle_int_t, n_rectangles);
+                for (n = 0; n < n_rectangles; n++) {
+                        cairo_region_get_rectangle (region, n, &rectangles[n]);
+                }
+
 		/* don't bother to enlarge an invalidate all */
 		if (!(n_rectangles == 1
 		      && rectangles[0].width == allocation.width
@@ -10629,9 +10634,14 @@ vte_terminal_paint(GtkWidget *widget, cairo_region_t *region)
 			/* convert pixels into whole cells */
 			for (n = 0; n < n_rectangles; n++) {
 				vte_terminal_expand_region (terminal, rr, rectangles + n);
-			}
-			g_free (rectangles);
-			gdk_region_get_rectangles (rr, &rectangles, &n_rectangles);
+                        }
+                        g_free (rectangles);
+
+                        n_rectangles = cairo_region_num_rectangles (rr);
+                        rectangles = g_new (cairo_rectangle_int_t, n_rectangles);
+                        for (n = 0; n < n_rectangles; n++) {
+                                cairo_region_get_rectangle (rr, n, &rectangles[n]);
+                        }
 			cairo_region_destroy (rr);
 		}
 
