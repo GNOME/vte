@@ -13791,34 +13791,6 @@ vte_terminal_get_status_line(VteTerminal *terminal)
 }
 
 /**
- * vte_terminal_get_padding:
- * @terminal: a #VteTerminal
- * @xpad: address in which to store left/right-edge padding
- * @ypad: address in which to store top/bottom-edge ypadding
- *
- * Determines the amount of additional space the widget is using to pad the
- * edges of its visible area.  This is necessary for cases where characters in
- * the selected font don't themselves include a padding area and the text
- * itself would otherwise be contiguous with the window border.  Applications
- * which use the widget's %row_count, %column_count, %char_height, and
- * %char_width fields to set geometry hints using
- * gtk_window_set_geometry_hints() will need to add this value to the base
- * size.  The values returned in @xpad and @ypad are the total padding used in
- * each direction, and do not need to be doubled.
- *
- * Deprecated: 0.26: Get the #VteTerminal:inner-border style property instead
- */
-void
-vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad)
-{
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(xpad != NULL);
-	g_return_if_fail(ypad != NULL);
-	*xpad = terminal->pvt->inner_border.left + terminal->pvt->inner_border.right;
-	*ypad = terminal->pvt->inner_border.top + terminal->pvt->inner_border.bottom;
-}
-
-/**
  * vte_terminal_get_adjustment:
  * @terminal: a #VteTerminal
  *

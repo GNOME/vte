@@ -86,7 +86,6 @@ pid_t vte_terminal_forkpty(VteTerminal *terminal,
 			   gboolean lastlog,
 			   gboolean utmp,
 			   gboolean wtmp) G_GNUC_DEPRECATED;
-void vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad) G_GNUC_DEPRECATED;
 void vte_terminal_set_pty(VteTerminal *terminal, int pty_master);
 int vte_terminal_get_pty(VteTerminal *terminal);
 
