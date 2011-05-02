@@ -538,11 +538,7 @@ int
 main(int argc, char **argv)
 {
 	GdkScreen *screen;
-#if GTK_CHECK_VERSION (2, 90, 8)
 	GdkVisual *visual;
-#else
-	GdkColormap *colormap;
-#endif
 	GtkWidget *window, *widget,*hbox = NULL, *scrollbar, *scrolled_window = NULL;
 	VteTerminal *terminal;
 	char *env_add[] = {
@@ -787,15 +783,9 @@ main(int argc, char **argv)
 
 	/* Set ARGB colormap */
 	screen = gtk_widget_get_screen (window);
-#if GTK_CHECK_VERSION (2, 90, 8)
 	visual = gdk_screen_get_rgba_visual(screen);
 	if (visual)
 		gtk_widget_set_visual(GTK_WIDGET(window), visual);
-#else
-	colormap = gdk_screen_get_rgba_colormap (screen);
-	if (colormap)
-	    gtk_widget_set_colormap(window, colormap);
-#endif
 
 	if (use_scrolled_window) {
 		scrolled_window = gtk_scrolled_window_new (NULL, NULL);
@@ -1083,7 +1073,6 @@ main(int argc, char **argv)
 			g_warning (_("Could not parse the geometry spec passed to --geometry"));
 		}
 	}
-#if GTK_CHECK_VERSION(2, 91, 0)
 	else {
 		/* As of GTK+ 2.91.0, the default size of a window comes from its minimum
 		 * size not its natural size, so we need to set the right default size
@@ -1092,7 +1081,6 @@ main(int argc, char **argv)
 						 vte_terminal_get_column_count (terminal),
 						 vte_terminal_get_row_count (terminal));
 	}
-#endif
 
 	gtk_widget_show_all(window);
 

@@ -27,7 +27,6 @@
 #include "vtebg.h"
 #include "vte.h"
 #include "vteunistr.h"
-#include "vte-gtk-compat.h"
 
 G_BEGIN_DECLS
 

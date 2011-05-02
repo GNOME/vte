@@ -125,35 +125,12 @@ struct _VteTerminalClass {
 	void (*copy_clipboard)(VteTerminal* terminal);
 	void (*paste_clipboard)(VteTerminal* terminal);
 
-#if !GTK_CHECK_VERSION (2, 91, 2)
-	void (* set_scroll_adjustments) (GtkWidget *widget,
-					 GtkAdjustment *hadjustment,
-					 GtkAdjustment *vadjustment);
-#endif
-
  	void (*beep)(VteTerminal* terminal);
 
-#if GTK_CHECK_VERSION (2, 99, 0)
         /* Padding for future expansion. */
         gpointer padding[16];
-#else
-	/* Padding for future expansion. */
-	void (*vte_reserved3)(void);
-	void (*vte_reserved4)(void);
 
-	/*< private > */
-	/* Signals we might emit. */
-        guint _VTE_DEPRECATED(reserved1);
-        guint _VTE_DEPRECATED(reserved2);
-        guint _VTE_DEPRECATED(reserved3);
-        guint _VTE_DEPRECATED(reserved4);
-        guint _VTE_DEPRECATED(reserved5);
-        guint _VTE_DEPRECATED(reserved6);
-#endif
-
-#if GTK_CHECK_VERSION (2, 99, 0)
         VteTerminalClassPrivate *priv;
-#endif
 };
 
 /**
@@ -302,7 +279,6 @@ void vte_terminal_set_colors(VteTerminal *terminal,
 			     const GdkColor *palette,
 			     glong palette_size);
 
-#if GTK_CHECK_VERSION (2, 99, 0)
 void vte_terminal_set_color_bold_rgba(VteTerminal *terminal,
                                       const GdkRGBA *bold);
 void vte_terminal_set_color_dim_rgba(VteTerminal *terminal,
@@ -320,7 +296,6 @@ void vte_terminal_set_colors_rgba(VteTerminal *terminal,
 				  const GdkRGBA *background,
 				  const GdkRGBA *palette,
 				  gsize palette_size);
-#endif
 
 void vte_terminal_set_default_colors(VteTerminal *terminal);
 
@@ -456,11 +431,6 @@ void vte_terminal_set_pty_object(VteTerminal *terminal, VtePty *pty);
 VtePty *vte_terminal_get_pty_object(VteTerminal *terminal);
 
 char *vte_get_user_shell (void);
-
-/* Accessors for bindings. */
-#if !GTK_CHECK_VERSION (2, 91, 2)
-GtkAdjustment *vte_terminal_get_adjustment(VteTerminal *terminal);
-#endif
 
 glong vte_terminal_get_char_width(VteTerminal *terminal);
 glong vte_terminal_get_char_height(VteTerminal *terminal);

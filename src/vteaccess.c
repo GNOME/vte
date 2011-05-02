@@ -33,7 +33,6 @@
 #include "vte.h"
 #include "vteaccess.h"
 #include "vteint.h"
-#include "vte-gtk-compat.h"
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
@@ -1746,14 +1745,10 @@ vte_terminal_accessible_get_size(AtkComponent *component,
 		return;
 	}
 	window = gtk_widget_get_window (widget);
-#if GTK_CHECK_VERSION (2, 90, 8)
 	if (width)
 		*width = gdk_window_get_width (window);
 	if (height)
 		*height = gdk_window_get_height (window);
-#else
-	gdk_drawable_get_size(window, width, height);
-#endif
 }
 
 static gboolean
