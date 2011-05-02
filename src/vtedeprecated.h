@@ -69,8 +69,6 @@ typedef enum {
 
 void vte_terminal_set_cursor_blinks(VteTerminal *terminal,
 				    gboolean blink) G_GNUC_DEPRECATED;
-glong vte_terminal_get_char_descent(VteTerminal *terminal) G_GNUC_DEPRECATED;
-glong vte_terminal_get_char_ascent(VteTerminal *terminal) G_GNUC_DEPRECATED;
 void vte_terminal_set_font_full(VteTerminal *terminal,
 				const PangoFontDescription *font_desc,
 				VteTerminalAntiAlias antialias) G_GNUC_DEPRECATED;

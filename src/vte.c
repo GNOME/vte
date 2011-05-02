@@ -13864,42 +13864,6 @@ vte_terminal_get_char_height(VteTerminal *terminal)
 }
 
 /**
- * vte_terminal_get_char_descent:
- * @terminal: a #VteTerminal
- *
- * An accessor function provided for the benefit of language bindings.
- *
- * Returns: the contents of @terminal's char_descent field
- *
- * Deprecated: 0.20
- */
-glong
-vte_terminal_get_char_descent(VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-	vte_terminal_ensure_font (terminal);
-	return terminal->char_descent;
-}
-
-/**
- * vte_terminal_get_char_ascent:
- * @terminal: a #VteTerminal
- *
- * An accessor function provided for the benefit of language bindings.
- *
- * Returns: the contents of @terminal's char_ascent field
- *
- * Deprecated: 0.20
- */
-glong
-vte_terminal_get_char_ascent(VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-	vte_terminal_ensure_font (terminal);
-	return terminal->char_ascent;
-}
-
-/**
  * vte_terminal_get_row_count:
  * @terminal: a #VteTerminal
  *
