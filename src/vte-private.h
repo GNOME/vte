@@ -62,7 +62,6 @@ G_BEGIN_DECLS
 /* More color defines in ring.h */
 
 #define VTE_SCROLLBACK_INIT		100
-#define VTE_SATURATION_MAX		10000
 #define VTE_DEFAULT_CURSOR		GDK_XTERM
 #define VTE_MOUSING_CURSOR		GDK_LEFT_PTR
 #define VTE_TAB_MAX			999
@@ -370,7 +369,7 @@ struct _VteTerminalPrivate {
 	GdkPixbuf *bg_pixbuf;
 	char *bg_file;
         GdkRGBA bg_tint_color;
-	guint16 bg_saturation;	/* out of VTE_SATURATION_MAX */
+	double bg_saturation; /* 0.0 .. 1.0 */
 
 	/* Key modifiers. */
 	GdkModifierType modifiers;

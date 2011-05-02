@@ -7807,7 +7807,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->bg_tint_color.green = 0.;
 	pvt->bg_tint_color.blue = 0.;
         pvt->bg_tint_color.alpha = 1.;
-	pvt->bg_saturation = 0.4 * VTE_SATURATION_MAX;
+	pvt->bg_saturation = 0.4;
 	pvt->selection_block_mode = FALSE;
 	pvt->has_fonts = FALSE;
 	pvt->root_pixmap_changed_tag = 0;
@@ -10774,7 +10774,7 @@ vte_terminal_get_property (GObject *object,
                         g_value_set_object (value, pvt->bg_pixbuf);
                         break;
                 case PROP_BACKGROUND_SATURATION:
-                        g_value_set_double (value, (double) pvt->bg_saturation / (double) VTE_SATURATION_MAX);
+                        g_value_set_double (value, pvt->bg_saturation);
                         break;
                 case PROP_BACKGROUND_TINT_COLOR:
                         g_value_set_boxed (value, &pvt->bg_tint_color);
@@ -12287,7 +12287,7 @@ vte_terminal_im_append_menuitems(VteTerminal *terminal, GtkMenuShell *menushell)
 static gboolean
 vte_terminal_background_update(VteTerminal *terminal)
 {
-	double saturation;
+        double saturation;
 	const PangoColor *entry;
 	GdkColor color;
         GdkRGBA rgba;
@@ -12325,8 +12325,7 @@ vte_terminal_background_update(VteTerminal *terminal)
 
 	/* If we're transparent, and either have no root image or are being
 	 * told to update it, get a new copy of the root window. */
-	saturation = (double) terminal->pvt->bg_saturation;
-	saturation /= VTE_SATURATION_MAX;
+	saturation = terminal->pvt->bg_saturation;
 	if (terminal->pvt->bg_transparent) {
 		if (terminal->pvt->root_pixmap_changed_tag == 0) {
 			VteBg *bg;
@@ -12410,21 +12409,20 @@ void
 vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
 {
         VteTerminalPrivate *pvt;
-	guint v;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(saturation >= 0.0 && saturation <= 1.0);
 
         pvt = terminal->pvt;
 
-	v = CLAMP(saturation * VTE_SATURATION_MAX, 0, VTE_SATURATION_MAX);
-        if (v == pvt->bg_saturation)
+        if (saturation == pvt->bg_saturation)
                 return;
 
 	_vte_debug_print(VTE_DEBUG_MISC,
-			"Setting background saturation to %d/%d.\n",
-			v, VTE_SATURATION_MAX);
+			"Setting background saturation to %.3f\n",
+			saturation);
 
-        pvt->bg_saturation = v;
+        pvt->bg_saturation = saturation;
         g_object_notify(G_OBJECT (terminal), "background-saturation");
 
         vte_terminal_queue_background_update(terminal);
