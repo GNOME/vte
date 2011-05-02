@@ -12528,6 +12528,34 @@ vte_terminal_set_background_tint_color(VteTerminal *terminal,
 }
 
 /**
+ * vte_terminal_set_background_tint_color_rgba:
+ * @terminal: a #VteTerminal
+ * @color: (allow-none): a color which the terminal background should be tinted to if its
+ *   saturation is not 1.0.
+ *
+ * If a background image has been set using
+ * vte_terminal_set_background_image(),
+ * vte_terminal_set_background_image_file(), or
+ * vte_terminal_set_background_transparent(), and the value set by
+ * vte_terminal_set_background_saturation() is less than one, the terminal
+ * will adjust the color of the image before drawing the image.  To do so,
+ * the terminal will create a copy of the background image (or snapshot of
+ * the root window) and modify its pixel values.  The initial tint color
+ * is black.
+ *
+ * Since: 0.30
+ */
+void
+vte_terminal_set_background_tint_color_rgba(VteTerminal *terminal,
+                                            const GdkRGBA *rgba)
+{
+        GdkColor color;
+
+        gdk_color_from_rgba(&color, rgba);
+        vte_terminal_set_background_tint_color(terminal, &color);
+}
+
+/**
  * vte_terminal_set_background_transparent:
  * @terminal: a #VteTerminal
  * @transparent: whether the terminal should fake transparency
