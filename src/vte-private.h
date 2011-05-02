@@ -391,6 +391,7 @@ struct _VteTerminalPrivate {
 	gboolean contents_changed_pending;
 
 	/* window name changes */
+        gchar *window_title;
 	gchar *window_title_changed;
 	gchar *icon_title_changed;
         gchar *current_directory_uri;

@@ -64,7 +64,6 @@ struct _VteTerminal {
 	GtkAdjustment *_VTE_SEAL(adjustment);	/* Scrolling adjustment. */
 
 	/* Titles. */
-	char *_VTE_SEAL(window_title);
 	char *_VTE_SEAL(icon_title);
 
 	/*< private >*/

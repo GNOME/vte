@@ -8631,7 +8631,8 @@ vte_terminal_finalize(GObject *object)
 	remove_update_timeout (terminal);
 
 	/* discard title updates */
-	g_free(terminal->pvt->window_title_changed);
+        g_free(terminal->pvt->window_title);
+        g_free(terminal->pvt->window_title_changed);
 	g_free(terminal->pvt->icon_title_changed);
         g_free(terminal->pvt->current_directory_uri_changed);
         g_free(terminal->pvt->current_directory_uri);
@@ -8639,7 +8640,6 @@ vte_terminal_finalize(GObject *object)
         g_free(terminal->pvt->current_file_uri);
 
 	/* Free public-facing data. */
-	g_free(terminal->window_title);
 	g_free(terminal->icon_title);
 	if (terminal->adjustment != NULL) {
 		g_object_unref(terminal->adjustment);
@@ -13469,7 +13469,7 @@ const char *
 vte_terminal_get_window_title(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), "");
-	return terminal->window_title;
+	return terminal->pvt->window_title;
 }
 
 /**
@@ -13915,12 +13915,12 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 	}
 
 	if (terminal->pvt->window_title_changed) {
-		g_free (terminal->window_title);
-		terminal->window_title = terminal->pvt->window_title_changed;
+		g_free (terminal->pvt->window_title);
+		terminal->pvt->window_title = terminal->pvt->window_title_changed;
 		terminal->pvt->window_title_changed = NULL;
 
 		if (window)
-			gdk_window_set_title (window, terminal->window_title);
+			gdk_window_set_title (window, terminal->pvt->window_title);
 		vte_terminal_emit_window_title_changed(terminal);
                 g_object_notify(object, "window-title");
 	}
