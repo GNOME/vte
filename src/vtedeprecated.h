@@ -45,10 +45,6 @@ typedef enum {
 	VTE_ANTI_ALIAS_FORCE_DISABLE
 } VteTerminalAntiAlias;
 
-void vte_terminal_set_font_from_string_full(VteTerminal *terminal,
-					    const char *name,
-					    VteTerminalAntiAlias antialias) G_GNUC_DEPRECATED;
-
 void vte_terminal_im_append_menuitems(VteTerminal *terminal,
 				      GtkMenuShell *menushell) G_GNUC_DEPRECATED;
 
