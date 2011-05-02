@@ -288,7 +288,7 @@ refresh_window(GtkWidget *widget, gpointer data)
 {
 	GdkWindow *window;
 	GtkAllocation allocation;
-	GdkRectangle rect;
+	cairo_rectangle_int_t rect;
 
 	if (GTK_IS_WIDGET(data)) {
 		window = gtk_widget_get_window(widget);
