@@ -589,7 +589,6 @@ font_info_find_for_context (PangoContext *context)
 static struct font_info *
 font_info_create_for_context (PangoContext               *context,
 			      const PangoFontDescription *desc,
-			      VteTerminalAntiAlias        antialias,
 			      PangoLanguage              *language,
 			      guint                       fontconfig_timestamp)
 {
@@ -610,37 +609,16 @@ font_info_create_for_context (PangoContext               *context,
 
 	pango_context_set_language (context, language);
 
-	switch (antialias) {
-		cairo_font_options_t *font_options;
-		cairo_antialias_t cr_aa;
+        /* Make sure our contexts have a font_options set.  We use
+          * this invariant in our context hash and equal functions.
+          */
+        if (!pango_cairo_context_get_font_options (context)) {
+                cairo_font_options_t *font_options;
 
-	case VTE_ANTI_ALIAS_FORCE_ENABLE:
-	case VTE_ANTI_ALIAS_FORCE_DISABLE:
-
-		if (antialias == VTE_ANTI_ALIAS_FORCE_ENABLE)
-			cr_aa = CAIRO_ANTIALIAS_DEFAULT; /* let surface decide between gray and subpixel */
-		else
-			cr_aa = CAIRO_ANTIALIAS_NONE;
-
-		font_options = cairo_font_options_copy (pango_cairo_context_get_font_options (context));
-		cairo_font_options_set_antialias (font_options, cr_aa);
-		pango_cairo_context_set_font_options (context, font_options);
-		cairo_font_options_destroy (font_options);
-
-		break;
-
-	default:
-	case VTE_ANTI_ALIAS_USE_DEFAULT:
-		/* Make sure our contexts have a font_options set.  We use
-		 * this invariant in our context hash and equal functions.
-		 */
-		if (!pango_cairo_context_get_font_options (context)) {
-			font_options = cairo_font_options_create ();
-			pango_cairo_context_set_font_options (context, font_options);
-			cairo_font_options_destroy (font_options);
-		}
-		break;
-	}
+                font_options = cairo_font_options_create ();
+                pango_cairo_context_set_font_options (context, font_options);
+                cairo_font_options_destroy (font_options);
+        }
 
 	return font_info_find_for_context (context);
 }
@@ -648,25 +626,23 @@ font_info_create_for_context (PangoContext               *context,
 static struct font_info *
 font_info_create_for_screen (GdkScreen                  *screen,
 			     const PangoFontDescription *desc,
-			     VteTerminalAntiAlias        antialias,
 			     PangoLanguage              *language)
 {
 	GtkSettings *settings = gtk_settings_get_for_screen (screen);
 	int fontconfig_timestamp;
 	g_object_get (settings, "gtk-fontconfig-timestamp", &fontconfig_timestamp, NULL);
 	return font_info_create_for_context (gdk_pango_context_get_for_screen (screen),
-					     desc, antialias, language, fontconfig_timestamp);
+					     desc, language, fontconfig_timestamp);
 }
 
 static struct font_info *
 font_info_create_for_widget (GtkWidget                  *widget,
-			     const PangoFontDescription *desc,
-			     VteTerminalAntiAlias        antialias)
+			     const PangoFontDescription *desc)
 {
 	GdkScreen *screen = gtk_widget_get_screen (widget);
 	PangoLanguage *language = pango_context_get_language (gtk_widget_get_pango_context (widget));
 
-	return font_info_create_for_screen (screen, desc, antialias, language);
+	return font_info_create_for_screen (screen, desc, language);
 }
 
 static struct unistr_info *
@@ -934,16 +910,14 @@ _vte_draw_clear (struct _vte_draw *draw, gint x, gint y, gint width, gint height
 
 void
 _vte_draw_set_text_font (struct _vte_draw *draw,
-			const PangoFontDescription *fontdesc,
-			VteTerminalAntiAlias antialias)
+			const PangoFontDescription *fontdesc)
 {
 	PangoFontDescription *bolddesc   = NULL;
 	PangoFontDescription *italicdesc = NULL;
 	PangoFontDescription *bolditalicdesc = NULL;
 	gint style, normal, bold, ratio;
 
-	_vte_debug_print (VTE_DEBUG_DRAW, "draw_set_text_font (aa=%d)\n",
-			  antialias);
+	_vte_debug_print (VTE_DEBUG_DRAW, "draw_set_text_font\n");
 
 	/* Free all fonts (make sure to destroy every font only once)*/
 	for (style = 3; style >= 0; style--) {
@@ -966,15 +940,11 @@ _vte_draw_set_text_font (struct _vte_draw *draw,
 	bolditalicdesc = pango_font_description_copy (bolddesc);
 	pango_font_description_set_style (bolditalicdesc, PANGO_STYLE_ITALIC);
 
-	draw->fonts[VTE_DRAW_NORMAL]  = font_info_create_for_widget (draw->widget,
-										fontdesc, antialias);
-	draw->fonts[VTE_DRAW_BOLD]    = font_info_create_for_widget (draw->widget,
-										bolddesc, antialias);
-	draw->fonts[VTE_DRAW_ITALIC]  = font_info_create_for_widget (draw->widget,
-										italicdesc, antialias);
+	draw->fonts[VTE_DRAW_NORMAL]  = font_info_create_for_widget (draw->widget, fontdesc);
+	draw->fonts[VTE_DRAW_BOLD]    = font_info_create_for_widget (draw->widget, bolddesc);
+	draw->fonts[VTE_DRAW_ITALIC]  = font_info_create_for_widget (draw->widget, italicdesc);
 	draw->fonts[VTE_DRAW_ITALIC | VTE_DRAW_BOLD] =
-									font_info_create_for_widget (draw->widget,
-										bolditalicdesc, antialias);
+                font_info_create_for_widget (draw->widget, bolditalicdesc);
 	pango_font_description_free (bolddesc);
 	pango_font_description_free (italicdesc);
 	pango_font_description_free (bolditalicdesc);

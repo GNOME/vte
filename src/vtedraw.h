@@ -96,8 +96,7 @@ void _vte_draw_clear(struct _vte_draw *draw,
 		     gint x, gint y, gint width, gint height);
 
 void _vte_draw_set_text_font(struct _vte_draw *draw,
-			     const PangoFontDescription *fontdesc,
-			     VteTerminalAntiAlias anti_alias);
+			     const PangoFontDescription *fontdesc);
 void _vte_draw_get_text_metrics(struct _vte_draw *draw,
 				gint *width, gint *height, gint *ascent);
 int _vte_draw_get_char_width(struct _vte_draw *draw, vteunistr c, int columns,
