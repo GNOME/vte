@@ -45,10 +45,9 @@ window_title_changed(GtkWidget *widget, gpointer win)
 
 	g_assert(VTE_TERMINAL(widget));
 	g_assert(GTK_IS_WINDOW(win));
-	g_assert(VTE_TERMINAL(widget)->window_title != NULL);
 	window = GTK_WINDOW(win);
 
-	gtk_window_set_title(window, VTE_TERMINAL(widget)->window_title);
+	gtk_window_set_title(window, vte_terminal_get_window_title(VTE_TERMINAL(widget)));
 }
 
 static void
