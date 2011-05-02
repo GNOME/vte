@@ -382,7 +382,8 @@ gboolean  vte_terminal_search_find_next       (VteTerminal *terminal);
 /* Set the emulation type.  Most of the time you won't need this. */
 void vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation);
 const char *vte_terminal_get_emulation(VteTerminal *terminal);
-const char *vte_terminal_get_default_emulation(VteTerminal *terminal);
+
+const char *vte_get_default_emulation(void);
 
 /* Set the character encoding.  Most of the time you won't need this. */
 void vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset);
