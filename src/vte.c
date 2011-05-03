@@ -10178,89 +10178,6 @@ vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 	}
 }
 
-/* Draw the widget. */
-static void
-vte_terminal_paint(GtkWidget *widget, cairo_region_t *region)
-{
-	VteTerminal *terminal;
-	GtkAllocation allocation;
-
-	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_paint()\n");
-	_vte_debug_print(VTE_DEBUG_WORK, "=");
-
-	terminal = VTE_TERMINAL(widget);
-	gtk_widget_get_allocation (widget, &allocation);
-
-	/* Designate the start of the drawing operation and clear the area. */
-	_vte_draw_start(terminal->pvt->draw);
-        {
-		if (terminal->pvt->scroll_background) {
-			_vte_draw_set_background_scroll(terminal->pvt->draw,
-							0,
-							terminal->pvt->screen->scroll_delta *
-							terminal->pvt->char_height);
-		} else {
-			_vte_draw_set_background_scroll(terminal->pvt->draw, 0, 0);
-		}
-	}
-
-	_VTE_DEBUG_IF (VTE_DEBUG_UPDATES) {
-		cairo_rectangle_int_t clip;
-		cairo_region_get_extents (region, &clip);
-		g_printerr ("vte_terminal_paint"
-				"	(%d,%d)x(%d,%d) pixels\n",
-				clip.x, clip.y, clip.width, clip.height);
-	}
-
-	_vte_draw_clip(terminal->pvt->draw, region);
-	gtk_widget_get_allocation(&terminal->widget, &allocation);
-	_vte_draw_clear (terminal->pvt->draw, 0, 0,
-			 allocation.width, allocation.height);
-
-	/* Calculate the bounding rectangle. */
-	{
-		cairo_rectangle_int_t *rectangles;
-		gint n, n_rectangles;
-                n_rectangles = cairo_region_num_rectangles (region);
-                rectangles = g_new (cairo_rectangle_int_t, n_rectangles);
-                for (n = 0; n < n_rectangles; n++) {
-                        cairo_region_get_rectangle (region, n, &rectangles[n]);
-                }
-
-		/* don't bother to enlarge an invalidate all */
-		if (!(n_rectangles == 1
-		      && rectangles[0].width == allocation.width
-		      && rectangles[0].height == allocation.height)) {
-			cairo_region_t *rr = cairo_region_create ();
-			/* convert pixels into whole cells */
-			for (n = 0; n < n_rectangles; n++) {
-				vte_terminal_expand_region (terminal, rr, rectangles + n);
-                        }
-                        g_free (rectangles);
-
-                        n_rectangles = cairo_region_num_rectangles (rr);
-                        rectangles = g_new (cairo_rectangle_int_t, n_rectangles);
-                        for (n = 0; n < n_rectangles; n++) {
-                                cairo_region_get_rectangle (rr, n, &rectangles[n]);
-                        }
-			cairo_region_destroy (rr);
-		}
-
-		/* and now paint them */
-		for (n = 0; n < n_rectangles; n++) {
-			vte_terminal_paint_area (terminal, rectangles + n);
-		}
-		g_free (rectangles);
-	}
-
-	vte_terminal_paint_cursor(terminal);
-
-	vte_terminal_paint_im_preedit_string(terminal);
-
-	/* Done with various structures. */
-	_vte_draw_end(terminal->pvt->draw);
-}
-
 /* Handle an expose event by painting the exposed area. */
 
 static cairo_region_t *
@@ -10310,6 +10227,7 @@ vte_terminal_draw(GtkWidget *widget,
         VteTerminal *terminal = VTE_TERMINAL (widget);
         cairo_rectangle_int_t clip_rect;
         cairo_region_t *region;
+        GtkAllocation allocation;
 
         if (!gdk_cairo_get_clip_rectangle (cr, &clip_rect))
                 return FALSE;
@@ -10323,7 +10241,81 @@ vte_terminal_draw(GtkWidget *widget,
         if (region == NULL)
                 return FALSE;
 
-        vte_terminal_paint(widget, region);
+        _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_draw()\n");
+        _vte_debug_print(VTE_DEBUG_WORK, "=");
+
+        terminal = VTE_TERMINAL(widget);
+        gtk_widget_get_allocation (widget, &allocation);
+
+        /* Designate the start of the drawing operation and clear the area. */
+        _vte_draw_start(terminal->pvt->draw);
+        {
+                if (terminal->pvt->scroll_background) {
+                        _vte_draw_set_background_scroll(terminal->pvt->draw,
+                                                        0,
+                                                        terminal->pvt->screen->scroll_delta *
+                                                        terminal->pvt->char_height);
+                } else {
+                        _vte_draw_set_background_scroll(terminal->pvt->draw, 0, 0);
+                }
+        }
+
+        _VTE_DEBUG_IF (VTE_DEBUG_UPDATES) {
+                cairo_rectangle_int_t clip;
+                cairo_region_get_extents (region, &clip);
+                g_printerr ("vte_terminal_paint"
+                                "       (%d,%d)x(%d,%d) pixels\n",
+                                clip.x, clip.y, clip.width, clip.height);
+        }
+
+        _vte_draw_clip(terminal->pvt->draw, region);
+        gtk_widget_get_allocation(&terminal->widget, &allocation);
+        _vte_draw_clear (terminal->pvt->draw, 0, 0,
+                         allocation.width, allocation.height);
+
+        /* Calculate the bounding rectangle. */
+        {
+                cairo_rectangle_int_t *rectangles;
+                gint n, n_rectangles;
+                n_rectangles = cairo_region_num_rectangles (region);
+                rectangles = g_new (cairo_rectangle_int_t, n_rectangles);
+                for (n = 0; n < n_rectangles; n++) {
+                        cairo_region_get_rectangle (region, n, &rectangles[n]);
+                }
+
+                /* don't bother to enlarge an invalidate all */
+                if (!(n_rectangles == 1
+                      && rectangles[0].width == allocation.width
+                      && rectangles[0].height == allocation.height)) {
+                        cairo_region_t *rr = cairo_region_create ();
+                        /* convert pixels into whole cells */
+                        for (n = 0; n < n_rectangles; n++) {
+                                vte_terminal_expand_region (terminal, rr, rectangles + n);
+                        }
+                        g_free (rectangles);
+
+                        n_rectangles = cairo_region_num_rectangles (rr);
+                        rectangles = g_new (cairo_rectangle_int_t, n_rectangles);
+                        for (n = 0; n < n_rectangles; n++) {
+                                cairo_region_get_rectangle (rr, n, &rectangles[n]);
+                        }
+                        cairo_region_destroy (rr);
+                }
+
+                /* and now paint them */
+                for (n = 0; n < n_rectangles; n++) {
+                        vte_terminal_paint_area (terminal, rectangles + n);
+                }
+                g_free (rectangles);
+        }
+
+        vte_terminal_paint_cursor(terminal);
+
+        vte_terminal_paint_im_preedit_string(terminal);
+
+        /* Done with various structures. */
+        _vte_draw_end(terminal->pvt->draw);
+
         cairo_region_destroy (region);
 
         terminal->pvt->invalidated_all = FALSE;
@@ -10681,7 +10673,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 					"  )  end _vte_terminal_process_incoming\n"
 					"  -  gdk_window_process_updates\n"
 					"  +  vte_terminal_expose\n"
-					"  =  vte_terminal_paint\n"
+					"  =  vte_terminal_draw\n"
 					"  ]} end update_timeout\n"
 					"  >  end process_timeout\n");
 	}
