@@ -573,6 +573,7 @@ main(int argc, char **argv)
 	char *cursor_blink_mode_string = NULL;
 	char *cursor_shape_string = NULL;
 	char *scrollbar_policy_string = NULL;
+        char *border_width_string = NULL;
 	GdkRGBA fore, back, highlight, cursor, tint;
 	const GOptionEntry options[]={
 		{
@@ -721,6 +722,11 @@ main(int argc, char **argv)
                         G_OPTION_ARG_STRING, &tint_color_string,
                         "Background tint color", "RGBA"
                 },
+                {
+                        "border-width", 0, 0,
+                        G_OPTION_ARG_STRING, &border_width_string,
+                        "Border with", "WIDTH"
+                },
 		{ NULL }
 	};
 	GOptionContext *context;
@@ -791,6 +797,13 @@ main(int argc, char **argv)
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_container_set_resize_mode(GTK_CONTAINER(window),
 				      GTK_RESIZE_IMMEDIATE);
+        if (border_width_string) {
+                guint w;
+
+                w = g_ascii_strtoull (border_width_string, NULL, 10);
+                gtk_container_set_border_width(GTK_CONTAINER(window), w);
+                g_free (border_width_string);
+        }
 
 	/* Set ARGB visual */
 	screen = gtk_widget_get_screen (window);
