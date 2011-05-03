@@ -6983,7 +6983,8 @@ vte_terminal_ensure_font (VteTerminal *terminal)
 			gint width, height, ascent;
 			terminal->pvt->fontdirty = FALSE;
 			_vte_draw_set_text_font (terminal->pvt->draw,
-					terminal->pvt->fontdesc);
+                                                 GTK_WIDGET(terminal),
+                                                 terminal->pvt->fontdesc);
 			_vte_draw_get_text_metrics (terminal->pvt->draw,
 						    &width, &height, &ascent);
 			vte_terminal_apply_metrics(terminal,
@@ -7571,7 +7572,7 @@ vte_terminal_init(VteTerminal *terminal)
 	vte_terminal_match_hilite_clear(terminal);
 
 	/* Rendering data.  Try everything. */
-	pvt->draw = _vte_draw_new(&terminal->widget);
+	pvt->draw = _vte_draw_new();
 
 	/* The font description. */
 	gtk_widget_ensure_style(&terminal->widget);
@@ -8082,7 +8083,7 @@ vte_terminal_realize(GtkWidget *widget)
 
 	/* Create the draw structure if we don't already have one. */
 	if (terminal->pvt->draw == NULL) {
-		terminal->pvt->draw = _vte_draw_new(&terminal->widget);
+		terminal->pvt->draw = _vte_draw_new();
 	}
 
 	/* Create the stock cursors. */

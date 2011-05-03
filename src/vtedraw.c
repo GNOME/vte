@@ -720,8 +720,6 @@ font_info_get_unistr_info (struct font_info *info,
 }
 
 struct _vte_draw {
-	GtkWidget *widget;
-
 	struct font_info *font;
 	struct font_info *font_bold;
 	cairo_pattern_t *bg_pattern;
@@ -730,13 +728,12 @@ struct _vte_draw {
 };
 
 struct _vte_draw *
-_vte_draw_new (GtkWidget *widget)
+_vte_draw_new (void)
 {
 	struct _vte_draw *draw;
 
 	/* Create the structure. */
 	draw = g_slice_new0 (struct _vte_draw);
-	draw->widget = g_object_ref (widget);
 
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_new\n");
 
@@ -756,10 +753,6 @@ _vte_draw_free (struct _vte_draw *draw)
 	if (draw->font != NULL) {
 		font_info_destroy (draw->font);
 		draw->font = NULL;
-	}
-
-	if (draw->widget != NULL) {
-		g_object_unref (draw->widget);
 	}
 
 	g_slice_free (struct _vte_draw, draw);
@@ -833,7 +826,8 @@ _vte_draw_clear (struct _vte_draw *draw, gint x, gint y, gint width, gint height
 
 void
 _vte_draw_set_text_font (struct _vte_draw *draw,
-			const PangoFontDescription *fontdesc)
+                         GtkWidget *widget,
+                         const PangoFontDescription *fontdesc)
 {
 	PangoFontDescription *bolddesc = NULL;
 
@@ -842,13 +836,13 @@ _vte_draw_set_text_font (struct _vte_draw *draw,
 	if (draw->font_bold != draw->font)
 		font_info_destroy (draw->font_bold);
 	font_info_destroy (draw->font);
-	draw->font = font_info_create_for_widget (draw->widget, fontdesc);
+	draw->font = font_info_create_for_widget (widget, fontdesc);
 
 	/* calculate bold font desc */
 	bolddesc = pango_font_description_copy (fontdesc);
 	pango_font_description_set_weight (bolddesc, PANGO_WEIGHT_BOLD);
 
-	draw->font_bold = font_info_create_for_widget (draw->widget, bolddesc);
+	draw->font_bold = font_info_create_for_widget (widget, bolddesc);
 	pango_font_description_free (bolddesc);
 
 	/* Decide if we should keep this bold font face, per bug 54926:

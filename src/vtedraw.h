@@ -58,7 +58,7 @@ struct _vte_draw_text_request {
 };
 
 /* Create and destroy a draw structure. */
-struct _vte_draw *_vte_draw_new(GtkWidget *widget);
+struct _vte_draw *_vte_draw_new(void);
 void _vte_draw_free(struct _vte_draw *draw);
 
 void _vte_draw_set_cairo(struct _vte_draw *draw,
@@ -74,6 +74,7 @@ void _vte_draw_clear(struct _vte_draw *draw,
 		     gint x, gint y, gint width, gint height);
 
 void _vte_draw_set_text_font(struct _vte_draw *draw,
+                             GtkWidget *widget,
 			     const PangoFontDescription *fontdesc);
 void _vte_draw_get_text_metrics(struct _vte_draw *draw,
 				gint *width, gint *height, gint *ascent);
