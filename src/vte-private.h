@@ -362,11 +362,9 @@ struct _VteTerminalPrivate {
         gchar *icon_title;
 	gchar *icon_title_changed;
 
-	/* Background images/"transparency". */
-	gboolean bg_update_pending;
-	GdkPixbuf *bg_pixbuf;
-	char *bg_file;
-        GdkRGBA bg_tint_color;
+        /* Background pattern */
+        cairo_pattern_t *bg_pattern;
+        gboolean bg_update_pending;
 
 	/* Key modifiers. */
 	GdkModifierType modifiers;

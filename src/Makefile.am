@@ -56,8 +56,6 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
 	vte-private.h \
 	vteaccess.c \
 	vteaccess.h \
-	vtebg.c \
-	vtebg.h \
 	vteconv.c \
 	vteconv.h \
 	vtedraw.c \

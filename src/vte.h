@@ -250,11 +250,9 @@ void vte_terminal_set_colors_rgba(VteTerminal *terminal,
 void vte_terminal_set_default_colors(VteTerminal *terminal);
 
 /* Background effects. */
-void vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image);
-void vte_terminal_set_background_image_file(VteTerminal *terminal,
-					    const char *path);
-void vte_terminal_set_background_tint_color_rgba(VteTerminal *terminal,
-                                                 const GdkRGBA *rgba);
+cairo_pattern_t *vte_terminal_get_background_pattern(VteTerminal *terminal);
+void vte_terminal_set_background_pattern(VteTerminal *terminal,
+                                         cairo_pattern_t *pattern);
 
 /* Set whether or not the cursor blinks. */
 void vte_terminal_set_cursor_blink_mode(VteTerminal *terminal,

@@ -142,9 +142,7 @@ enum {
         PROP_VSCROLL_POLICY,
         PROP_ALLOW_BOLD,
         PROP_AUDIBLE_BELL,
-        PROP_BACKGROUND_IMAGE_FILE,
-        PROP_BACKGROUND_IMAGE_PIXBUF,
-        PROP_BACKGROUND_TINT_COLOR,
+        PROP_BACKGROUND_PATTERN,
         PROP_BACKSPACE_BINDING,
         PROP_CURSOR_BLINK_MODE,
         PROP_CURSOR_SHAPE,
@@ -7579,10 +7577,8 @@ vte_terminal_init(VteTerminal *terminal)
 	gtk_widget_ensure_style(&terminal->widget);
 
 	/* Set up background information. */
-        pvt->bg_tint_color.red = 1.;
-        pvt->bg_tint_color.green = 1.;
-        pvt->bg_tint_color.blue = 1.;
-        pvt->bg_tint_color.alpha = .6;
+        pvt->bg_pattern = cairo_pattern_create_rgba (1., 1., 1., .6);
+
 	pvt->selection_block_mode = FALSE;
 	pvt->has_fonts = FALSE;
 
@@ -7904,6 +7900,7 @@ vte_terminal_finalize(GObject *object)
 {
     	GtkWidget *widget = GTK_WIDGET (object);
     	VteTerminal *terminal = VTE_TERMINAL (object);
+        VteTerminalPrivate *pvt = terminal->pvt;
 	GtkClipboard *clipboard;
         GtkSettings *settings;
 	struct vte_match_regex *regex;
@@ -7920,7 +7917,9 @@ vte_terminal_finalize(GObject *object)
 	_vte_iso2022_state_free(terminal->pvt->iso2022);
 
 	/* Free background info. */
-	g_free(terminal->pvt->bg_file);
+        if (pvt->bg_pattern) {
+                cairo_pattern_destroy (pvt->bg_pattern);
+        }
 
 	/* Free the font description. */
 	if (terminal->pvt->fontdesc != NULL) {
@@ -10505,14 +10504,8 @@ vte_terminal_get_property (GObject *object,
                 case PROP_AUDIBLE_BELL:
                         g_value_set_boolean (value, vte_terminal_get_audible_bell (terminal));
                         break;
-                case PROP_BACKGROUND_IMAGE_FILE:
-                        g_value_set_string (value, pvt->bg_file);
-                        break;
-                case PROP_BACKGROUND_IMAGE_PIXBUF:
-                        g_value_set_object (value, pvt->bg_pixbuf);
-                        break;
-                case PROP_BACKGROUND_TINT_COLOR:
-                        g_value_set_boxed (value, &pvt->bg_tint_color);
+                case PROP_BACKGROUND_PATTERN:
+                        g_value_set_pointer (value, pvt->bg_pattern);
                         break;
                 case PROP_BACKSPACE_BINDING:
                         g_value_set_enum (value, pvt->backspace_binding);
@@ -10603,14 +10596,8 @@ vte_terminal_set_property (GObject *object,
                 case PROP_AUDIBLE_BELL:
                         vte_terminal_set_audible_bell (terminal, g_value_get_boolean (value));
                         break;
-                case PROP_BACKGROUND_IMAGE_FILE:
-                        vte_terminal_set_background_image_file (terminal, g_value_get_string (value));
-                        break;
-                case PROP_BACKGROUND_IMAGE_PIXBUF:
-                        vte_terminal_set_background_image (terminal, g_value_get_object (value));
-                        break;
-                case PROP_BACKGROUND_TINT_COLOR:
-                        vte_terminal_set_background_tint_color_rgba (terminal, g_value_get_boxed (value));
+                case PROP_BACKGROUND_PATTERN:
+                        vte_terminal_set_background_pattern (terminal, g_value_get_pointer (value));
                         break;
                 case PROP_BACKSPACE_BINDING:
                         vte_terminal_set_backspace_binding (terminal, g_value_get_enum (value));
@@ -11297,60 +11284,17 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                        G_PARAM_READWRITE | STATIC_PARAMS));
      
         /**
-         * VteTerminal:background-image-file: (type filename):
+         * VteTerminal:background-pattern: (type cairo_pattern_t):
          *
-         * Sets a background image file for the widget.  If specified by
-         * #VteTerminal:background-tint-color:, the terminal will tint its
-         * in-memory copy of the image before applying it to the terminal.
+         * Sets a background pattern for the widget.
          * 
-         * Since: 0.20
+         * Since: 0.30
          */
         g_object_class_install_property
                 (gobject_class,
-                 PROP_BACKGROUND_IMAGE_FILE,
-                 g_param_spec_string ("background-image-file", NULL, NULL,
-                                      NULL,
-                                      G_PARAM_READWRITE | STATIC_PARAMS));
-
-        /**
-         * VteTerminal:background-image-pixbuf:
-         *
-         * Sets a background image for the widget.  Text which would otherwise be
-         * drawn using the default background color will instead be drawn over the
-         * specified image.  If necessary, the image will be tiled to cover the
-         * widget's entire visible area. If specified by
-         * #VteTerminal:background-tint-color:, the terminal will tint its
-         * in-memory copy of the image before applying it to the terminal.
-         * 
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_BACKGROUND_IMAGE_PIXBUF,
-                 g_param_spec_object ("background-image-pixbuf", NULL, NULL,
-                                      GDK_TYPE_PIXBUF,
-                                      G_PARAM_READWRITE | STATIC_PARAMS));
-
-        /**
-         * VteTerminal:background-tint-color:
-         *
-         * If a background image has been set using #VteTerminal:background-image-file: or
-         * #VteTerminal:background-image-pixbuf:, and
-         * and the alpha value set by VteTerminal:background-tint-color: is greater than 0.0,
-         * the terminal
-         * will adjust the color of the image before drawing the image.  To do so,
-         * the terminal will create a copy of the background image
-         * and modify its pixel values.  The initial tint color
-         * is black.
-         * 
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_BACKGROUND_TINT_COLOR,
-                 g_param_spec_boxed ("background-tint-color", NULL, NULL,
-                                     GDK_TYPE_RGBA,
-                                     G_PARAM_READWRITE | STATIC_PARAMS));
+                 PROP_BACKGROUND_PATTERN,
+                 g_param_spec_pointer ("background-pattern", NULL, NULL,
+                                       G_PARAM_READWRITE | STATIC_PARAMS));
 
         /**
          * VteTerminal:backspace-binding:
@@ -11975,7 +11919,6 @@ static gboolean
 vte_terminal_background_update(VteTerminal *terminal)
 {
 	const GdkRGBA *entry;
-        GdkRGBA rgba;
         GdkColor color;
 
 	/* If we're not realized yet, don't worry about it, because we get
@@ -12003,30 +11946,8 @@ vte_terminal_background_update(VteTerminal *terminal)
         color.blue = entry->blue * 65535.;
 	gtk_widget_modify_bg (&terminal->widget, GTK_STATE_NORMAL, &color);
 
-        rgba = *entry;
-        rgba.alpha *= terminal->pvt->bg_tint_color.alpha;
-        _vte_draw_set_background_solid (terminal->pvt->draw, &rgba);
-
-	if (terminal->pvt->bg_file) {
-		_vte_draw_set_background_image(terminal->pvt->draw,
-					       VTE_BG_SOURCE_FILE,
-					       NULL,
-					       terminal->pvt->bg_file,
-					       &terminal->pvt->bg_tint_color);
-	} else
-	if (GDK_IS_PIXBUF(terminal->pvt->bg_pixbuf)) {
-		_vte_draw_set_background_image(terminal->pvt->draw,
-					       VTE_BG_SOURCE_PIXBUF,
-					       terminal->pvt->bg_pixbuf,
-					       NULL,
-					       &terminal->pvt->bg_tint_color);
-	} else {
-		_vte_draw_set_background_image(terminal->pvt->draw,
-					       VTE_BG_SOURCE_NONE,
-					       NULL,
-					       NULL,
-					       &terminal->pvt->bg_tint_color);
-	}
+        _vte_draw_set_background_pattern(terminal->pvt->draw,
+                                         terminal->pvt->bg_pattern);
 
 	/* Note that the update has finished. */
 	terminal->pvt->bg_update_pending = FALSE;
@@ -12052,150 +11973,75 @@ vte_terminal_queue_background_update(VteTerminal *terminal)
 }
 
 /**
- * vte_terminal_set_background_tint_color_rgba:
+ * vte_terminal_get_background_pattern:
  * @terminal: a #VteTerminal
- * @rgba: (allow-none): a color which the terminal background should be tinted to if
  *
- * If a background image has been set using
- * vte_terminal_set_background_image(),
- * vte_terminal_set_background_image_file(),
- * and the value set by
- * alpha value in @rgba is greater than 0.0, the terminal
- * will adjust the color of the image before drawing the image.  To do so,
- * the terminal will create a copy of the background image
- * and modify its pixel values.  The initial tint color
- * is black.
+ * Returns the current background pattern for the widget.
+ *
+ * Returns: (transfer none): a #cairo_pattern_t, or %NULL
+ *
+ * Since: 0.30
+ */
+cairo_pattern_t *
+vte_terminal_get_background_pattern(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+
+        return terminal->pvt->bg_pattern;
+}
+
+/**
+ * vte_terminal_set_background_pattern:
+ * @terminal: a #VteTerminal
+ * @pattern: (allow-none): a #cairo_pattern_t, or %NULL to unset the background
+ *
+ * Sets a background pattern for the widget.  Text which would otherwise be
+ * drawn using the default background color will instead be drawn over the
+ * specified pattern.  If necessary, the pattern will be tiled to cover the
+ * widget's entire visible area.
+ *
+ * If using a surface pattern, it is recommended to update the pattern
+ * on #GtkWidget:realize to use a similar surface to the widget's window.
  *
  * Since: 0.30
  */
 void
-vte_terminal_set_background_tint_color_rgba(VteTerminal *terminal,
-                                            const GdkRGBA *rgba)
-{
-        VteTerminalPrivate *pvt;
-
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(rgba != NULL);
-
-        pvt = terminal->pvt;
-
-        _vte_debug_print(VTE_DEBUG_MISC,
-                        "Setting background tint to rgba(%.3f,%.3f,%.3f,%.3f)\n",
-                        rgba->red, rgba->green, rgba->blue, rgba->alpha);
-        if (gdk_rgba_equal(&pvt->bg_tint_color, rgba))
-                return;
-
-        pvt->bg_tint_color = *rgba;
-
-        g_object_notify(G_OBJECT (terminal), "background-tint-color");
-
-        vte_terminal_queue_background_update(terminal);
-}
-
-/**
- * vte_terminal_set_background_image:
- * @terminal: a #VteTerminal
- * @image: (allow-none): a #GdkPixbuf to use, or %NULL to unset the background
- *
- * Sets a background image for the widget.  Text which would otherwise be
- * drawn using the default background color will instead be drawn over the
- * specified image.  If necessary, the image will be tiled to cover the
- * widget's entire visible area. If specified by
- * vte_terminal_set_background_tint_color_rgba(), the terminal will tint its
- * in-memory copy of the image before applying it to the terminal.
- */
-void
-vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
+vte_terminal_set_background_pattern(VteTerminal *terminal,
+                                    cairo_pattern_t *pattern)
 {
         VteTerminalPrivate *pvt;
         GObject *object;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(image==NULL || GDK_IS_PIXBUF(image));
+        if (pattern) {
+                g_return_if_fail(cairo_pattern_get_extend(pattern) != CAIRO_EXTEND_NONE);
+        }
 
         object = G_OBJECT(terminal);
         pvt = terminal->pvt;
 
-        if (image && image == pvt->bg_pixbuf)
+        if (pattern == pvt->bg_pattern)
                 return;
 
 	_vte_debug_print(VTE_DEBUG_MISC,
-			"%s background image.\n",
-			GDK_IS_PIXBUF(image) ? "Setting" : "Clearing");
+			"%s background pattern.\n",
+			pattern ? "Setting" : "Clearing");
 
         g_object_freeze_notify(object);
 
-	/* Get a ref to the new image if there is one.  Do it here just in
-	 * case we're actually given the same one we're already using. */
-	if (image != NULL) {
-		g_object_ref(image);
-	}
-
-	/* Unref the previous background image. */
-	if (pvt->bg_pixbuf != NULL) {
-		g_object_unref(pvt->bg_pixbuf);
-	}
-
-	/* Clear a background file name, if one was set. */
-        if (pvt->bg_file) {
-                g_free(pvt->bg_file);
-                pvt->bg_file = NULL;
-
-                g_object_notify(object, "background-image-file");
+        if (pvt->bg_pattern) {
+                cairo_pattern_destroy (pvt->bg_pattern);
         }
+        if (pattern) {
+                cairo_pattern_reference (pattern);
+        }
+        pvt->bg_pattern = pattern;
 
-	/* Set the new background. */
-	pvt->bg_pixbuf = image;
-
-        g_object_notify(object, "background-image-pixbuf");
+        g_object_notify(object, "background-pattern");
 
 	vte_terminal_queue_background_update(terminal);
 
         g_object_thaw_notify(object);
-}
-
-/**
- * vte_terminal_set_background_image_file:
- * @terminal: a #VteTerminal
- * @path: (type filename): path to an image file
- *
- * Sets a background image for the widget.  If specified by
- * vte_terminal_set_background_tint_color_rgba(), the terminal will tint its
- * in-memory copy of the image before applying it to the terminal.
- */
-void
-vte_terminal_set_background_image_file(VteTerminal *terminal, const char *path)
-{
-        VteTerminalPrivate *pvt;
-        GObject *object;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        object = G_OBJECT(terminal);
-        pvt = terminal->pvt;
-
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Loading background image from `%s'.\n", path);
-
-        g_object_freeze_notify(G_OBJECT(terminal));
-
-	/* Save this background type. */
-	g_free(pvt->bg_file);
-	pvt->bg_file = g_strdup(path);
-
-	/* Turn off other background types. */
-	if (pvt->bg_pixbuf != NULL) {
-		g_object_unref(pvt->bg_pixbuf);
-		pvt->bg_pixbuf = NULL;
-
-                g_object_notify(object, "background-image-pixbuf");
-	}
-
-        g_object_notify(object, "background-image-file");
-
-	vte_terminal_queue_background_update(terminal);
-
-        g_object_thaw_notify(G_OBJECT(terminal));
 }
 
 /**

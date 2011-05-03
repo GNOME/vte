@@ -79,7 +79,6 @@ IGNORE_HFILES = \
 	stamp-vtetypebuiltins.h \
 	table.h \
 	trie.h \
-	vtebg.h \
 	vteconv.h \
 	vtedraw.h \
 	vteint.h \

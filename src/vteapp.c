@@ -892,11 +892,30 @@ main(int argc, char **argv)
 	vte_terminal_set_scroll_on_keystroke(terminal, TRUE);
 	vte_terminal_set_scrollback_lines(terminal, lines);
 	vte_terminal_set_mouse_autohide(terminal, TRUE);
+
 	if (background != NULL) {
-		vte_terminal_set_background_image_file(terminal,
-						       background);
-	}
-	vte_terminal_set_background_tint_color_rgba(terminal, &tint);
+                cairo_surface_t *surface;
+
+                surface = cairo_image_surface_create_from_png (background);
+                if (cairo_surface_status (surface) == CAIRO_STATUS_SUCCESS) {
+                        cairo_pattern_t *pattern;
+
+                        pattern = cairo_pattern_create_for_surface(surface);
+                        cairo_pattern_set_extend (pattern, CAIRO_EXTEND_REPEAT);
+                        vte_terminal_set_background_pattern(terminal, pattern);
+                        cairo_pattern_destroy(pattern);
+                } else {
+                        g_printerr("Failed to create background pattern\n");
+                }
+                cairo_surface_destroy (surface);
+        } else {
+                cairo_pattern_t *pattern;
+
+                pattern = cairo_pattern_create_rgba (tint.red, tint.green, tint.blue, tint.alpha);
+                vte_terminal_set_background_pattern(terminal, pattern);
+                cairo_pattern_destroy(pattern);
+        }
+
 	vte_terminal_set_colors_rgba(terminal, &fore, &back, NULL, 0);
 	if (highlight_set) {
 		vte_terminal_set_color_highlight_rgba(terminal, &highlight);

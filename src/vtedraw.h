@@ -24,7 +24,6 @@
 
 #include <glib.h>
 #include <gtk/gtk.h>
-#include "vtebg.h"
 #include "vte.h"
 #include "vteunistr.h"
 
@@ -67,13 +66,8 @@ void _vte_draw_free(struct _vte_draw *draw);
 void _vte_draw_start(struct _vte_draw *draw);
 void _vte_draw_end(struct _vte_draw *draw);
 
-void _vte_draw_set_background_solid(struct _vte_draw *draw,
-                                    const GdkRGBA *color);
-void _vte_draw_set_background_image(struct _vte_draw *draw,
-				    VteBgSourceType type,
-				    GdkPixbuf *pixbuf,
-				    const char *file,
-				    const GdkRGBA *color);
+void _vte_draw_set_background_pattern (struct _vte_draw *draw,
+                                       cairo_pattern_t *pattern);
 void _vte_draw_set_background_scroll(struct _vte_draw *draw,
 				     gint x, gint y);
 
