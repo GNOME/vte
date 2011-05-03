@@ -11898,9 +11898,6 @@ vte_terminal_im_append_menuitems(VteTerminal *terminal, GtkMenuShell *menushell)
 static gboolean
 vte_terminal_background_update(VteTerminal *terminal)
 {
-	const GdkRGBA *entry;
-        GdkColor color;
-
 	/* If we're not realized yet, don't worry about it, because we get
 	 * called when we realize. */
 	if (! gtk_widget_get_realized (&terminal->widget)) {
@@ -11912,19 +11909,6 @@ vte_terminal_background_update(VteTerminal *terminal)
 
 	_vte_debug_print(VTE_DEBUG_MISC|VTE_DEBUG_EVENTS,
 			"Updating background image.\n");
-
-	entry = &terminal->pvt->palette[VTE_DEF_BG];
-	_vte_debug_print(VTE_DEBUG_BG,
-			 "Updating background color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
-			 entry->red, entry->green, entry->blue, entry->alpha);
-
-	/* Set the terminal widget background color since otherwise we
-	 * won't draw it for VTE_BG_SOURCE_NONE. */
-        color.pixel = 0;
-        color.red = entry->red * 65535.;
-        color.green = entry->green * 65535.;
-        color.blue = entry->blue * 65535.;
-	gtk_widget_modify_bg (&terminal->widget, GTK_STATE_NORMAL, &color);
 
         _vte_draw_set_background_pattern(terminal->pvt->draw,
                                          terminal->pvt->bg_pattern);
