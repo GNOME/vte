@@ -819,8 +819,7 @@ _vte_draw_set_background_image (struct _vte_draw *draw,
 			        VteBgSourceType type,
 			        GdkPixbuf *pixbuf,
 			        const char *filename,
-			        const GdkRGBA *color,
-			        double saturation)
+			        const GdkRGBA *color)
 {
 	cairo_surface_t *surface;
 
@@ -829,7 +828,7 @@ _vte_draw_set_background_image (struct _vte_draw *draw,
 
 	surface = vte_bg_get_surface (vte_bg_get_for_screen (gtk_widget_get_screen (draw->widget)),
 				     type, pixbuf, filename,
-				     color, saturation,
+				     color,
 				     cairo_get_target(draw->cr));
 
 	_vte_draw_end (draw);

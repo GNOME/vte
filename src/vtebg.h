@@ -61,7 +61,6 @@ vte_bg_get_surface(VteBg *bg,
 		   GdkPixbuf *source_pixbuf,
 		   const char *source_file,
 		   const GdkRGBA *tint,
-		   double saturation,
 		   cairo_surface_t *other);
 
 G_END_DECLS
