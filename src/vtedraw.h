@@ -61,10 +61,8 @@ struct _vte_draw_text_request {
 struct _vte_draw *_vte_draw_new(GtkWidget *widget);
 void _vte_draw_free(struct _vte_draw *draw);
 
-/* Begin and end a drawing operation.  If anything is buffered locally, it is
-   flushed to the window system when _end() is called. */
-void _vte_draw_start(struct _vte_draw *draw);
-void _vte_draw_end(struct _vte_draw *draw);
+void _vte_draw_set_cairo(struct _vte_draw *draw,
+                         cairo_t *cr);
 
 void _vte_draw_set_background_pattern (struct _vte_draw *draw,
                                        cairo_pattern_t *pattern);

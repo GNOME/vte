@@ -722,8 +722,6 @@ font_info_get_unistr_info (struct font_info *info,
 struct _vte_draw {
 	GtkWidget *widget;
 
-	gint started;
-
 	struct font_info *font;
 	struct font_info *font_bold;
 	cairo_pattern_t *bg_pattern;
@@ -768,36 +766,18 @@ _vte_draw_free (struct _vte_draw *draw)
 }
 
 void
-_vte_draw_start (struct _vte_draw *draw)
+_vte_draw_set_cairo(struct _vte_draw *draw,
+                    cairo_t *cr)
 {
-	GdkWindow *window;
+  _vte_debug_print (VTE_DEBUG_DRAW, "%s cairo context\n", cr ? "Settings" : "Unsetting");
 
-	g_return_if_fail (gtk_widget_get_realized (draw->widget));
-
-	_vte_debug_print (VTE_DEBUG_DRAW, "draw_start\n");
-
-	if (draw->started == 0) {
-		window = gtk_widget_get_window(draw->widget);
-		g_object_ref (window);
-		draw->cr = gdk_cairo_create (window);
-	}
-
-	draw->started++;
-}
-
-void
-_vte_draw_end (struct _vte_draw *draw)
-{
-	g_return_if_fail (draw->started);
-
-	draw->started--;
-	if (draw->started == 0) {
-		cairo_destroy (draw->cr);
-		draw->cr = NULL;
-		g_object_unref (gtk_widget_get_window(draw->widget));
- 	}
-
-	_vte_debug_print (VTE_DEBUG_DRAW, "draw_end\n");
+  if (cr) {
+    g_assert (draw->cr == NULL);
+    draw->cr = cr;
+  } else {
+    g_assert (draw->cr != NULL);
+    draw->cr = NULL;
+  }
 }
 
 void
@@ -831,7 +811,8 @@ void
 _vte_draw_clip (struct _vte_draw *draw, cairo_region_t *region)
 {
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_clip\n");
-	gdk_cairo_region(draw->cr, region);
+        g_assert(draw->cr);
+        gdk_cairo_region(draw->cr, region);
 	cairo_clip (draw->cr);
 }
 
@@ -843,7 +824,8 @@ _vte_draw_clear (struct _vte_draw *draw, gint x, gint y, gint width, gint height
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_clear (%d, %d, %d, %d)\n",
 			  x,y,width, height);
 
-	cairo_rectangle (draw->cr, x, y, width, height);
+        g_assert(draw->cr);
+        cairo_rectangle (draw->cr, x, y, width, height);
 	cairo_set_operator (draw->cr, CAIRO_OPERATOR_SOURCE);
 	cairo_set_source (draw->cr, draw->bg_pattern);
 	cairo_fill (draw->cr);
@@ -924,6 +906,7 @@ _vte_draw_text_internal (struct _vte_draw *draw,
 
 	g_return_if_fail (font != NULL);
 
+        g_assert(draw->cr);
         gdk_cairo_set_source_rgba (draw->cr, color);
 	cairo_set_operator (draw->cr, CAIRO_OPERATOR_OVER);
 
@@ -982,7 +965,7 @@ _vte_draw_text (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *requests, gsize n_requests,
 	       const GdkRGBA *color, gboolean bold)
 {
-	g_return_if_fail (draw->started);
+	g_assert(draw->cr);
 
 	if (_vte_debug_on (VTE_DEBUG_DRAW)) {
 		GString *string = g_string_new ("");
@@ -1057,14 +1040,13 @@ _vte_draw_draw_rectangle (struct _vte_draw *draw,
 			 gint x, gint y, gint width, gint height,
 			 const GdkRGBA *color)
 {
-	g_return_if_fail (draw->started);
-
 	_vte_debug_print (VTE_DEBUG_DRAW,
 			"draw_rectangle (%d, %d, %d, %d, color=(%.3f,%.3f,%.3f,%.3f))\n",
 			x,y,width,height,
 			color->red, color->green, color->blue, color->alpha);
 
-	cairo_set_operator (draw->cr, CAIRO_OPERATOR_OVER);
+        g_assert(draw->cr);
+        cairo_set_operator (draw->cr, CAIRO_OPERATOR_OVER);
 	cairo_rectangle (draw->cr, x+VTE_LINE_WIDTH/2., y+VTE_LINE_WIDTH/2., width-VTE_LINE_WIDTH, height-VTE_LINE_WIDTH);
 	gdk_cairo_set_source_rgba (draw->cr, color);
 	cairo_set_line_width (draw->cr, VTE_LINE_WIDTH);
@@ -1076,14 +1058,13 @@ _vte_draw_fill_rectangle (struct _vte_draw *draw,
 			 gint x, gint y, gint width, gint height,
 			 const GdkRGBA *color)
 {
-	g_return_if_fail (draw->started);
-
 	_vte_debug_print (VTE_DEBUG_DRAW,
 			"draw_fill_rectangle (%d, %d, %d, %d, color=(%.3f,%.3f,%.3f,%.3f))\n",
 			x,y,width,height,
 			color->red, color->green, color->blue, color->alpha);
 
-	cairo_set_operator (draw->cr, CAIRO_OPERATOR_OVER);
+        g_assert(draw->cr);
+        cairo_set_operator (draw->cr, CAIRO_OPERATOR_OVER);
 	cairo_rectangle (draw->cr, x, y, width, height);
         gdk_cairo_set_source_rgba (draw->cr, color);
 	cairo_fill (draw->cr);

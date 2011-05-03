@@ -4311,6 +4311,7 @@ _vte_terminal_visible_beep(VteTerminal *terminal)
 	widget = &terminal->widget;
 
 	if (gtk_widget_get_realized (widget)) {
+                cairo_t *cr;
 
 		style = gtk_widget_get_style (widget);
 		gtk_widget_get_allocation (widget, &allocation);
@@ -4319,12 +4320,14 @@ _vte_terminal_visible_beep(VteTerminal *terminal)
                 color.blue = style->fg[gtk_widget_get_state (widget)].blue / 65535.;
                 color.alpha = 1.0;
 
-		_vte_draw_start(terminal->pvt->draw);
+                cr = gdk_cairo_create(gtk_widget_get_window(widget));
+                _vte_draw_set_cairo(terminal->pvt->draw, cr);
 		_vte_draw_fill_rectangle(terminal->pvt->draw,
 					 0, 0,
 					 allocation.width, allocation.height,
 					 &color);
-		_vte_draw_end(terminal->pvt->draw);
+                _vte_draw_set_cairo(terminal->pvt->draw, NULL);
+                cairo_destroy(cr);
 
 		/* Force the repaint, max delay of UPDATE_REPEAT_TIMEOUT */
 		_vte_invalidate_all (terminal);
@@ -8331,13 +8334,11 @@ vte_terminal_fill_rectangle(VteTerminal *terminal,
 			    gint width,
 			    gint height)
 {
-	_vte_draw_start(terminal->pvt->draw);
 	_vte_draw_fill_rectangle(terminal->pvt->draw,
 				 x + terminal->pvt->inner_border.left,
                                  y + terminal->pvt->inner_border.top,
 				 width, height,
 				 color);
-	_vte_draw_end(terminal->pvt->draw);
 }
 
 static void
@@ -8361,13 +8362,11 @@ vte_terminal_draw_rectangle(VteTerminal *terminal,
 			    gint width,
 			    gint height)
 {
-	_vte_draw_start(terminal->pvt->draw);
 	_vte_draw_draw_rectangle(terminal->pvt->draw,
 				 x + terminal->pvt->inner_border.left,
                                  y + terminal->pvt->inner_border.top,
 				 width, height,
 				 color);
-	_vte_draw_end(terminal->pvt->draw);
 }
 
 static void
@@ -10245,11 +10244,12 @@ vte_terminal_draw(GtkWidget *widget,
                             clip_rect.width, clip_rect.height);
         }
 
+        _vte_draw_set_cairo(terminal->pvt->draw, cr);
+
         allocated_width = gtk_widget_get_allocated_width(widget);
         allocated_height = gtk_widget_get_allocated_height(widget);
 
         /* Designate the start of the drawing operation and clear the area. */
-        _vte_draw_start(terminal->pvt->draw);
         {
                 if (terminal->pvt->scroll_background) {
                         _vte_draw_set_background_scroll(terminal->pvt->draw,
@@ -10306,7 +10306,7 @@ vte_terminal_draw(GtkWidget *widget,
         vte_terminal_paint_im_preedit_string(terminal);
 
         /* Done with various structures. */
-        _vte_draw_end(terminal->pvt->draw);
+        _vte_draw_set_cairo(terminal->pvt->draw, NULL);
 
         cairo_region_destroy (region);
 
