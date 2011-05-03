@@ -10262,7 +10262,6 @@ vte_terminal_draw(GtkWidget *widget,
                 }
         }
 
-        _vte_draw_clip(terminal->pvt->draw, region);
         _vte_draw_clear (terminal->pvt->draw, 0, 0,
                          allocated_width, allocated_height);
 

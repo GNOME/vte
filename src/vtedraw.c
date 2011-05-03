@@ -801,15 +801,6 @@ _vte_draw_set_background_scroll (struct _vte_draw *draw,
 }
 
 void
-_vte_draw_clip (struct _vte_draw *draw, cairo_region_t *region)
-{
-	_vte_debug_print (VTE_DEBUG_DRAW, "draw_clip\n");
-        g_assert(draw->cr);
-        gdk_cairo_region(draw->cr, region);
-	cairo_clip (draw->cr);
-}
-
-void
 _vte_draw_clear (struct _vte_draw *draw, gint x, gint y, gint width, gint height)
 {
 	g_return_if_fail (draw->bg_pattern != NULL);
