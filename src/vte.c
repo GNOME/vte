@@ -10232,17 +10232,18 @@ vte_terminal_draw(GtkWidget *widget,
         if (!gdk_cairo_get_clip_rectangle (cr, &clip_rect))
                 return FALSE;
 
-        _vte_debug_print (VTE_DEBUG_WORK, "+");
-        _vte_debug_print (VTE_DEBUG_EVENTS, "Draw (%d,%d)x(%d,%d)\n",
-                          clip_rect.x, clip_rect.y,
-                          clip_rect.width, clip_rect.height);
+        _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_draw()\n");
+        _vte_debug_print(VTE_DEBUG_WORK, "=");
 
         region = vte_cairo_get_clip_region (cr);
         if (region == NULL)
                 return FALSE;
 
-        _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_draw()\n");
-        _vte_debug_print(VTE_DEBUG_WORK, "=");
+        _VTE_DEBUG_IF (VTE_DEBUG_UPDATES) {
+                g_printerr ("vte_terminal_draw (%d,%d)x(%d,%d) pixels\n",
+                            clip_rect.x, clip_rect.y,
+                            clip_rect.width, clip_rect.height);
+        }
 
         terminal = VTE_TERMINAL(widget);
         gtk_widget_get_allocation (widget, &allocation);
@@ -10258,14 +10259,6 @@ vte_terminal_draw(GtkWidget *widget,
                 } else {
                         _vte_draw_set_background_scroll(terminal->pvt->draw, 0, 0);
                 }
-        }
-
-        _VTE_DEBUG_IF (VTE_DEBUG_UPDATES) {
-                cairo_rectangle_int_t clip;
-                cairo_region_get_extents (region, &clip);
-                g_printerr ("vte_terminal_paint"
-                                "       (%d,%d)x(%d,%d) pixels\n",
-                                clip.x, clip.y, clip.width, clip.height);
         }
 
         _vte_draw_clip(terminal->pvt->draw, region);
@@ -10672,7 +10665,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 					"  *  _vte_invalidate_all\n"
 					"  )  end _vte_terminal_process_incoming\n"
 					"  -  gdk_window_process_updates\n"
-					"  +  vte_terminal_expose\n"
 					"  =  vte_terminal_draw\n"
 					"  ]} end update_timeout\n"
 					"  >  end process_timeout\n");
