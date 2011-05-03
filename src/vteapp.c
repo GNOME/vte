@@ -568,6 +568,7 @@ main(int argc, char **argv)
 	const char *command = NULL;
 	const char *working_directory = NULL;
 	const char *output_file = NULL;
+        char *tint_color_string = NULL;
 	char *pty_flags_string = NULL;
 	char *cursor_blink_mode_string = NULL;
 	char *cursor_shape_string = NULL;
@@ -715,6 +716,11 @@ main(int argc, char **argv)
 			G_OPTION_ARG_STRING, &pty_flags_string,
 			"PTY flags set from default|no-utmp|no-wtmp|no-lastlog|no-helper|no-fallback", NULL
 		},
+                {
+                        "tint-color", 0, 0,
+                        G_OPTION_ARG_STRING, &tint_color_string,
+                        "Background tint color", "RGBA"
+                },
 		{ NULL }
 	};
 	GOptionContext *context;
@@ -770,7 +776,13 @@ main(int argc, char **argv)
 
 	highlight.red = highlight.green = highlight.blue = 0.75; highlight.alpha = 1.0;
 	cursor.red = 1.0; cursor.green = cursor.blue = 0.5; cursor.alpha = 1.0;
-	tint.red = tint.green = tint.blue = 0.; tint.alpha = .875;
+        tint.red = tint.green = tint.blue = 0.; tint.alpha = .875;
+
+        if (tint_color_string) {
+                if (!gdk_rgba_parse (&tint, tint_color_string))
+                        g_printerr ("Failed to parse tint color string\n");
+                g_free (tint_color_string);
+        }
 
 	gdk_window_set_debug_updates(debug);
 
