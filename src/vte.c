@@ -10306,7 +10306,6 @@ vte_terminal_draw(GtkWidget *widget,
 	/* Designate the start of the drawing operation and clear the area. */
 	_vte_draw_set_cairo(terminal->pvt->draw, cr);
 
-	_vte_draw_clip(terminal->pvt->draw, region);
 	_vte_draw_clear (terminal->pvt->draw, 0, 0,
 			 allocated_width, allocated_height);
 

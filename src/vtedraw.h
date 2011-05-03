@@ -77,7 +77,6 @@ void _vte_draw_set_cairo(struct _vte_draw *draw,
 void _vte_draw_set_background_solid(struct _vte_draw *draw,
                                     const GdkRGBA *color);
 
-void _vte_draw_clip(struct _vte_draw *draw, cairo_region_t *region);
 void _vte_draw_clear(struct _vte_draw *draw,
 		     gint x, gint y, gint width, gint height);
 
