@@ -146,7 +146,6 @@ enum {
         PROP_BACKGROUND_IMAGE_PIXBUF,
         PROP_BACKGROUND_SATURATION,
         PROP_BACKGROUND_TINT_COLOR,
-        PROP_BACKGROUND_TRANSPARENT,
         PROP_BACKSPACE_BINDING,
         PROP_CURSOR_BLINK_MODE,
         PROP_CURSOR_SHAPE,
@@ -2471,8 +2470,7 @@ vte_terminal_set_color_foreground_rgba(VteTerminal *terminal,
  * @background: the new background color
  *
  * Sets the background color for text which does not have a specific background
- * color assigned.  Only has effect when no background image is set and when
- * the terminal is not transparent.
+ * color assigned.  Only has effect when no background image is set.
  *
  * Since: 0.28
  */
@@ -4208,44 +4206,6 @@ vte_terminal_im_preedit_changed(GtkIMContext *im_context, VteTerminal *terminal)
 	terminal->pvt->im_preedit_cursor = cursor;
 
 	_vte_invalidate_cursor_once(terminal, FALSE);
-}
-
-/* Handle the toplevel being reconfigured. */
-static gboolean
-vte_terminal_configure_toplevel(VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Top level parent configured.\n");
-
-	if (terminal->pvt->bg_transparent) {
-		/* We have to repaint the entire window, because we don't get
-		 * an expose event unless some portion of our visible area
-		 * moved out from behind another window. */
-		_vte_invalidate_all(terminal);
-	}
-
-	return FALSE;
-}
-
-/* Handle a hierarchy-changed signal. */
-static void
-vte_terminal_hierarchy_changed(GtkWidget *widget, GtkWidget *old_toplevel,
-			       gpointer data)
-{
-	GtkWidget *toplevel;
-
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Hierarchy changed.\n");
-	if (old_toplevel != NULL) {
-		g_signal_handlers_disconnect_by_func(old_toplevel,
-						     vte_terminal_configure_toplevel,
-						     widget);
-	}
-
-	toplevel = gtk_widget_get_toplevel(widget);
-	if (toplevel != NULL) {
-		g_signal_connect_swapped (toplevel, "configure-event",
-				 G_CALLBACK (vte_terminal_configure_toplevel),
-				 widget);
-	}
 }
 
 static void
@@ -7627,16 +7587,10 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->bg_saturation = 0.4;
 	pvt->selection_block_mode = FALSE;
 	pvt->has_fonts = FALSE;
-	pvt->root_pixmap_changed_tag = 0;
 
 	/* Not all backends generate GdkVisibilityNotify, so mark the
 	 * window as unobscured initially. */
 	pvt->visibility_state = GDK_VISIBILITY_UNOBSCURED;
-
-	/* Listen for hierarchy change notifications. */
-	g_signal_connect(terminal, "hierarchy-changed",
-			 G_CALLBACK(vte_terminal_hierarchy_changed),
-			 NULL);
 
         pvt->inner_border = default_inner_border;
 
@@ -7794,16 +7748,6 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	}
 }
 
-/* Queue a background update. */
-static void
-root_pixmap_changed_cb(VteBg *bg, VteTerminal *terminal)
-{
-	_vte_debug_print (VTE_DEBUG_EVENTS, "Root pixmap changed.\n");
-	if (terminal->pvt->bg_transparent) {
-		vte_terminal_queue_background_update(terminal);
-	}
-}
-
 /* The window is being destroyed. */
 static void
 vte_terminal_unrealize(GtkWidget *widget)
@@ -7815,15 +7759,6 @@ vte_terminal_unrealize(GtkWidget *widget)
 
 	terminal = VTE_TERMINAL (widget);
 	window = gtk_widget_get_window (widget);
-
-	/* Disconnect from background-change events. */
-	if (terminal->pvt->root_pixmap_changed_tag != 0) {
-		VteBg       *bg;
-		bg = vte_bg_get_for_screen(gtk_widget_get_screen(widget));
-		g_signal_handler_disconnect (bg,
-				terminal->pvt->root_pixmap_changed_tag);
-		terminal->pvt->root_pixmap_changed_tag = 0;
-	}
 
 	/* Deallocate the cursors. */
 	terminal->pvt->mouse_cursor_visible = FALSE;
@@ -7971,7 +7906,6 @@ vte_terminal_finalize(GObject *object)
 {
     	GtkWidget *widget = GTK_WIDGET (object);
     	VteTerminal *terminal = VTE_TERMINAL (object);
-	GtkWidget *toplevel;
 	GtkClipboard *clipboard;
         GtkSettings *settings;
 	struct vte_match_regex *regex;
@@ -8018,14 +7952,6 @@ vte_terminal_finalize(GObject *object)
 		g_regex_unref (terminal->pvt->search_regex);
 	if (terminal->pvt->search_attrs)
 		g_array_free (terminal->pvt->search_attrs, TRUE);
-
-	/* Disconnect from toplevel window configure events. */
-	toplevel = gtk_widget_get_toplevel(&terminal->widget);
-	if ((toplevel != NULL) && (G_OBJECT(toplevel) != object)) {
-		g_signal_handlers_disconnect_by_func(toplevel,
-						     vte_terminal_configure_toplevel,
-						     terminal);
-	}
 
 	/* Disconnect from autoscroll requests. */
 	vte_terminal_stop_autoscroll(terminal);
@@ -10273,11 +10199,7 @@ vte_terminal_paint(GtkWidget *widget, cairo_region_t *region)
 
 	/* Designate the start of the drawing operation and clear the area. */
 	_vte_draw_start(terminal->pvt->draw);
-	if (terminal->pvt->bg_transparent) {
-		int x, y;
-		gdk_window_get_origin (gtk_widget_get_window (widget), &x, &y);
-		_vte_draw_set_background_scroll(terminal->pvt->draw, x, y);
-	} else {
+        {
 		if (terminal->pvt->scroll_background) {
 			_vte_draw_set_background_scroll(terminal->pvt->draw,
 							0,
@@ -10597,9 +10519,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_BACKGROUND_TINT_COLOR:
                         g_value_set_boxed (value, &pvt->bg_tint_color);
                         break;
-                case PROP_BACKGROUND_TRANSPARENT:
-                        g_value_set_boolean (value, pvt->bg_transparent);
-                        break;
                 case PROP_BACKSPACE_BINDING:
                         g_value_set_enum (value, pvt->backspace_binding);
                         break;
@@ -10700,9 +10619,6 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_BACKGROUND_TINT_COLOR:
                         vte_terminal_set_background_tint_color_rgba (terminal, g_value_get_boxed (value));
-                        break;
-                case PROP_BACKGROUND_TRANSPARENT:
-                        vte_terminal_set_background_transparent (terminal, g_value_get_boolean (value));
                         break;
                 case PROP_BACKSPACE_BINDING:
                         vte_terminal_set_backspace_binding (terminal, g_value_get_enum (value));
@@ -11427,11 +11343,11 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal:background-saturation:
          *
          * If a background image has been set using #VteTerminal:background-image-file: or
-         * #VteTerminal:background-image-pixbuf:, or #VteTerminal:background-transparent:,
+         * #VteTerminal:background-image-pixbuf:,
          * and the saturation value is less
          * than 1.0, the terminal will adjust the colors of the image before drawing
          * the image.  To do so, the terminal will create a copy of the background
-         * image (or snapshot of the root window) and modify its pixel values.
+         * image and modify its pixel values.
          *
          * Since: 0.20
          */
@@ -11447,12 +11363,12 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal:background-tint-color:
          *
          * If a background image has been set using #VteTerminal:background-image-file: or
-         * #VteTerminal:background-image-pixbuf:, or #VteTerminal:background-transparent:, and
+         * #VteTerminal:background-image-pixbuf:, and
          * and the value set by VteTerminal:background-saturation: is less than 1.0,
          * the terminal
          * will adjust the color of the image before drawing the image.  To do so,
-         * the terminal will create a copy of the background image (or snapshot of
-         * the root window) and modify its pixel values.  The initial tint color
+         * the terminal will create a copy of the background image
+         * and modify its pixel values.  The initial tint color
          * is black.
          * 
          * Since: 0.20
@@ -11463,26 +11379,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_boxed ("background-tint-color", NULL, NULL,
                                      GDK_TYPE_RGBA,
                                      G_PARAM_READWRITE | STATIC_PARAMS));
-     
-        /**
-         * VteTerminal:background-transparent:
-         *
-         * Sets whther the terminal uses the pixmap stored in the root
-         * window as the background, adjusted so that if there are no windows
-         * below your application, the widget will appear to be transparent.
-         *
-         * Note: When using a compositing window manager, you should instead
-         * set a RGBA colourmap on the toplevel window, so you get real transparency.
-         *
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_BACKGROUND_TRANSPARENT,
-                 g_param_spec_boolean ("background-transparent", NULL, NULL,
-                                       FALSE,
-                                       G_PARAM_READWRITE | STATIC_PARAMS));
-     
+
         /**
          * VteTerminal:backspace-binding:
          *
@@ -12139,28 +12036,7 @@ vte_terminal_background_update(VteTerminal *terminal)
         rgba.alpha *= terminal->pvt->bg_tint_color.alpha;
         _vte_draw_set_background_solid (terminal->pvt->draw, &rgba);
 
-	/* If we're transparent, and either have no root image or are being
-	 * told to update it, get a new copy of the root window. */
 	saturation = terminal->pvt->bg_saturation;
-	if (terminal->pvt->bg_transparent) {
-		if (terminal->pvt->root_pixmap_changed_tag == 0) {
-			VteBg *bg;
-
-			/* Connect to background-change events. */
-			bg = vte_bg_get_for_screen (gtk_widget_get_screen (&terminal->widget));
-			terminal->pvt->root_pixmap_changed_tag =
-				g_signal_connect(bg, "root-pixmap-changed",
-					G_CALLBACK(root_pixmap_changed_cb),
-					terminal);
-		}
-
-		_vte_draw_set_background_image(terminal->pvt->draw,
-					       VTE_BG_SOURCE_ROOT,
-					       NULL,
-					       NULL,
-					       &terminal->pvt->bg_tint_color,
-					       saturation);
-	} else
 	if (terminal->pvt->bg_file) {
 		_vte_draw_set_background_image(terminal->pvt->draw,
 					       VTE_BG_SOURCE_FILE,
@@ -12215,11 +12091,11 @@ vte_terminal_queue_background_update(VteTerminal *terminal)
  *
  * If a background image has been set using
  * vte_terminal_set_background_image(),
- * vte_terminal_set_background_image_file(), or
- * vte_terminal_set_background_transparent(), and the saturation value is less
+ * vte_terminal_set_background_image_file(),
+ * and the saturation value is less
  * than 1.0, the terminal will adjust the colors of the image before drawing
  * the image.  To do so, the terminal will create a copy of the background
- * image (or snapshot of the root window) and modify its pixel values.
+ * image and modify its pixel values.
  */
 void
 vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
@@ -12252,12 +12128,12 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
  *
  * If a background image has been set using
  * vte_terminal_set_background_image(),
- * vte_terminal_set_background_image_file(), or
- * vte_terminal_set_background_transparent(), and the value set by
+ * vte_terminal_set_background_image_file(),
+ * and the value set by
  * vte_terminal_set_background_saturation() is less than one, the terminal
  * will adjust the color of the image before drawing the image.  To do so,
- * the terminal will create a copy of the background image (or snapshot of
- * the root window) and modify its pixel values.  The initial tint color
+ * the terminal will create a copy of the background image
+ * and modify its pixel values.  The initial tint color
  * is black.
  *
  * Since: 0.30
@@ -12283,40 +12159,6 @@ vte_terminal_set_background_tint_color_rgba(VteTerminal *terminal,
 
         g_object_notify(G_OBJECT (terminal), "background-tint-color");
 
-        vte_terminal_queue_background_update(terminal);
-}
-
-/**
- * vte_terminal_set_background_transparent:
- * @terminal: a #VteTerminal
- * @transparent: whether the terminal should fake transparency
- *
- * Sets the terminal's background image to the pixmap stored in the root
- * window, adjusted so that if there are no windows below your application,
- * the widget will appear to be transparent.
- */
-void
-vte_terminal_set_background_transparent(VteTerminal *terminal,
-					gboolean transparent)
-{
-        VteTerminalPrivate *pvt;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        pvt = terminal->pvt;
-
-        transparent = transparent != FALSE;
-        if (transparent == pvt->bg_transparent)
-                return;
-
-	_vte_debug_print(VTE_DEBUG_MISC,
-		"Turning background transparency %s.\n",
-			transparent ? "on" : "off");
-		
-	pvt->bg_transparent = transparent;
-        g_object_notify(G_OBJECT (terminal), "background-transparent");
-
-        /* Update the background. */
         vte_terminal_queue_background_update(terminal);
 }
 

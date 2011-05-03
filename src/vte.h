@@ -257,8 +257,6 @@ void vte_terminal_set_background_tint_color_rgba(VteTerminal *terminal,
                                                  const GdkRGBA *rgba);
 void vte_terminal_set_background_saturation(VteTerminal *terminal,
 					    double saturation);
-void vte_terminal_set_background_transparent(VteTerminal *terminal,
-					     gboolean transparent);
 
 /* Set whether or not the cursor blinks. */
 void vte_terminal_set_cursor_blink_mode(VteTerminal *terminal,

@@ -553,7 +553,7 @@ main(int argc, char **argv)
 #endif
 		NULL};
 	const char *background = NULL;
-	gboolean transparent = FALSE, audible = TRUE,
+	gboolean audible = TRUE,
 		 debug = FALSE, dingus = FALSE, dbuffer = TRUE,
 		 console = FALSE, scroll = FALSE, keep = FALSE,
 		 icon_title = FALSE, shell = TRUE, highlight_set = FALSE,
@@ -593,11 +593,6 @@ main(int argc, char **argv)
 			"shell", 'S', G_OPTION_FLAG_REVERSE,
 			G_OPTION_ARG_NONE, &shell,
 			"Disable spawning a shell inside the terminal", NULL
-		},
-		{
-			"transparent", 'T', 0,
-			G_OPTION_ARG_NONE, &transparent,
-			"Enable the use of a transparent background", NULL
 		},
 		{
 			"double-buffer", '2', G_OPTION_FLAG_REVERSE,
@@ -888,10 +883,6 @@ main(int argc, char **argv)
 	if (background != NULL) {
 		vte_terminal_set_background_image_file(terminal,
 						       background);
-	}
-	if (transparent) {
-		vte_terminal_set_background_transparent(terminal,
-							TRUE);
 	}
 	vte_terminal_set_background_tint_color_rgba(terminal, &tint);
 	vte_terminal_set_colors_rgba(terminal, &fore, &back, NULL, 0);
