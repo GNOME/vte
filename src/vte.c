@@ -684,6 +684,9 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 	glong column, row;
 	gint columns;
 
+        if (!gtk_widget_get_realized(&terminal->widget)) {
+                return;
+        }
 	if (terminal->pvt->invalidated_all) {
 		return;
 	}
@@ -4233,25 +4236,28 @@ vte_terminal_set_inner_border(VteTerminal *terminal)
 }
 
 static void
-vte_terminal_style_set (GtkWidget      *widget,
-			GtkStyle       *prev_style)
+vte_terminal_update_style(VteTerminal *terminal)
 {
-	VteTerminal *terminal = VTE_TERMINAL(widget);
+        VteTerminalPrivate *pvt = terminal->pvt;
+        GtkWidget *widget = &terminal->widget;
         float aspect;
 
-        GTK_WIDGET_CLASS (vte_terminal_parent_class)->style_set (widget, prev_style);
-
-        if (gtk_widget_get_style(widget) == prev_style)
-                return;
-
-        vte_terminal_set_font(terminal, terminal->pvt->fontdesc);
+        vte_terminal_set_font(terminal, pvt->fontdesc);
         vte_terminal_set_inner_border(terminal);
 
         gtk_widget_style_get(widget, "cursor-aspect-ratio", &aspect, NULL);
-        if (aspect != terminal->pvt->cursor_aspect_ratio) {
-                terminal->pvt->cursor_aspect_ratio = aspect;
+        if (aspect != pvt->cursor_aspect_ratio) {
+                pvt->cursor_aspect_ratio = aspect;
                 _vte_invalidate_cursor_once(terminal, FALSE);
         }
+}
+
+static void
+vte_terminal_style_updated(GtkWidget *widget)
+{
+        GTK_WIDGET_CLASS (vte_terminal_parent_class)->style_updated (widget);
+
+        vte_terminal_update_style(VTE_TERMINAL(widget));
 }
 
 static void
@@ -4303,22 +4309,20 @@ _vte_terminal_audible_beep(VteTerminal *terminal)
 void
 _vte_terminal_visible_beep(VteTerminal *terminal)
 {
-	GtkWidget *widget;
+	GtkWidget *widget = &terminal->widget;
 	GtkAllocation allocation;
-	GtkStyle *style;
 	GdkRGBA color;
+        cairo_t *cr;
 
-	widget = &terminal->widget;
 
-	if (gtk_widget_get_realized (widget)) {
-                cairo_t *cr;
+	if (!gtk_widget_get_realized (widget))
+                return;
 
-		style = gtk_widget_get_style (widget);
+        {
 		gtk_widget_get_allocation (widget, &allocation);
-		color.red = style->fg[gtk_widget_get_state (widget)].red / 65535.;
-                color.green = style->fg[gtk_widget_get_state (widget)].green / 65535.;
-                color.blue = style->fg[gtk_widget_get_state (widget)].blue / 65535.;
-                color.alpha = 1.0;
+                gtk_style_context_get_color(gtk_widget_get_style_context(widget),
+                                            GTK_STATE_FLAG_NORMAL,
+                                            &color);
 
                 cr = gdk_cairo_create(gtk_widget_get_window(widget));
                 _vte_draw_set_cairo(terminal->pvt->draw, cr);
@@ -7009,8 +7013,9 @@ vte_terminal_set_font(VteTerminal *terminal,
                       const PangoFontDescription *font_desc)
 {
         GObject *object;
-	GtkStyle *style;
+	GtkStyleContext *context;
 	VteTerminalPrivate *pvt;
+        const PangoFontDescription *style_font;
 	PangoFontDescription *desc;
         gboolean same_desc;
 
@@ -7020,9 +7025,9 @@ vte_terminal_set_font(VteTerminal *terminal,
         pvt = terminal->pvt;
 
 	/* Create an owned font description. */
-	gtk_widget_ensure_style (&terminal->widget);
-	style = gtk_widget_get_style (&terminal->widget);
-	desc = pango_font_description_copy (style->font_desc);
+        context = gtk_widget_get_style_context(&terminal->widget);
+        style_font = gtk_style_context_get_font(context, GTK_STATE_FLAG_NORMAL);
+	desc = pango_font_description_copy (style_font);
 	pango_font_description_set_family_static (desc, "monospace");
 	if (font_desc != NULL) {
 		pango_font_description_merge (desc, font_desc, TRUE);
@@ -7574,9 +7579,6 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Rendering data.  Try everything. */
 	pvt->draw = _vte_draw_new();
 
-	/* The font description. */
-	gtk_widget_ensure_style(&terminal->widget);
-
 	/* Set up background information. */
         pvt->bg_pattern = cairo_pattern_create_rgba (1., 1., 1., .6);
 
@@ -7597,6 +7599,8 @@ vte_terminal_init(VteTerminal *terminal)
         gtk_style_context_add_provider (gtk_widget_get_style_context (&terminal->widget),
                                         VTE_TERMINAL_GET_CLASS (terminal)->priv->style_provider,
                                         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+        vte_terminal_update_style (terminal);
 }
 
 /* Tell GTK+ how much space we need. */
@@ -7802,12 +7806,6 @@ vte_terminal_unrealize(GtkWidget *widget)
 
 	/* Remove the GDK window. */
 	if (window != NULL) {
-		/* detach style */
-		GtkStyle *style;
-
-		style = gtk_widget_get_style (widget);
-		gtk_style_detach (style);
-
 		gdk_window_set_user_data (window, NULL);
 		gtk_widget_set_window (widget, NULL);
 
@@ -8162,8 +8160,6 @@ vte_terminal_realize(GtkWidget *widget)
 
 	/* Create our invisible cursor. */
 	terminal->pvt->mouse_inviso_cursor = gdk_cursor_new_for_display(gtk_widget_get_display(widget), GDK_BLANK_CURSOR);
-
-	gtk_widget_style_attach (widget);
 
 	vte_terminal_ensure_font (terminal);
 
@@ -10698,7 +10694,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	widget_class->focus_out_event = vte_terminal_focus_out;
 	widget_class->visibility_notify_event = vte_terminal_visibility_notify;
 	widget_class->unrealize = vte_terminal_unrealize;
-	widget_class->style_set = vte_terminal_style_set;
+        widget_class->style_updated = vte_terminal_style_updated;
 	widget_class->get_preferred_width = vte_terminal_get_preferred_width;
 	widget_class->get_preferred_height = vte_terminal_get_preferred_height;
 	widget_class->size_allocate = vte_terminal_size_allocate;
