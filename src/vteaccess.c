@@ -36,6 +36,7 @@
 #include "vte.h"
 #include "vteaccess.h"
 #include "vteint.h"
+#include "vte-private.h"
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
@@ -1864,9 +1865,8 @@ vte_terminal_accessible_set_size(AtkComponent *component,
 				 gint width, gint height)
 {
 	VteTerminal *terminal;
-	gint columns, rows, char_width, char_height;
+	long columns, rows;
 	GtkWidget *widget;
-        GtkBorder *padding;
 
 	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE(component));
 	if (widget == NULL) {
@@ -1874,14 +1874,11 @@ vte_terminal_accessible_set_size(AtkComponent *component,
 	}
 	terminal = VTE_TERMINAL(widget);
 
-        char_width = vte_terminal_get_char_width (terminal);
-        char_height = vte_terminal_get_char_height (terminal);
-        gtk_widget_style_get (widget, "inner-border", &padding, NULL);
-	/* If the size is an exact multiple of the cell size, use that,
-	 * otherwise round down. */
-        columns = (width - (padding ? (padding->left + padding->right) : 0)) / char_width;
-        rows = (height - (padding ? (padding->top + padding->bottom) : 0)) / char_height;
-        gtk_border_free (padding);
+        /* If the size is an exact multiple of the cell size, use that,
+         * otherwise round down. */
+        if (!_vte_terminal_size_to_grid_size(terminal, width, height, &columns, &rows))
+                return FALSE;
+
 	vte_terminal_set_size(terminal, columns, rows);
 	return (vte_terminal_get_row_count (terminal) == rows) &&
 	       (vte_terminal_get_column_count (terminal) == columns);

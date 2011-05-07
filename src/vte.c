@@ -4494,20 +4494,14 @@ vte_terminal_set_padding(VteTerminal *terminal)
 {
         VteTerminalPrivate *pvt = terminal->pvt;
         GtkWidget *widget = GTK_WIDGET(terminal);
-        GtkBorder *border = NULL;
         GtkBorder padding;
 
-        gtk_widget_style_get(widget, "inner-border", &border, NULL);
-
-        if (border != NULL) {
-                padding = *border;
-                gtk_border_free(border);
-        } else {
-                padding = default_padding;
-        }
+        gtk_style_context_get_padding(gtk_widget_get_style_context(widget),
+                                      gtk_widget_get_state_flags(widget),
+                                      &padding);
 
         _vte_debug_print(VTE_DEBUG_MISC,
-                         "Setting inner-border to { %d, %d, %d, %d }\n",
+                         "Setting padding to (%d,%d,%d,%d)\n",
                          padding.left, padding.right,
                          padding.top, padding.bottom);
 
@@ -11784,20 +11778,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /* Style properties */
 
-        /**
-         * VteTerminal:inner-border:
-         *
-         * Sets the border around the terminal.
-         *
-         * Since: 0.24
-         */
-        gtk_widget_class_install_style_property
-                (widget_class,
-                 g_param_spec_boxed ("inner-border", NULL, NULL,
-                                     GTK_TYPE_BORDER,
-                                     G_PARAM_READABLE |
-                                     G_PARAM_STATIC_STRINGS));
-
         /* Keybindings */
 	binding_set = gtk_binding_set_by_class(klass);
 
@@ -11817,7 +11797,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
         klass->priv->style_provider = GTK_STYLE_PROVIDER (gtk_css_provider_new ());
         gtk_css_provider_load_from_data (GTK_CSS_PROVIDER (klass->priv->style_provider),
                                          "VteTerminal {\n"
-                                           "-VteTerminal-inner-border: 1;\n"
+                                           "padding: 1px 1px 1px 1px;\n"
                                          "}\n",
                                          -1, NULL);
 }
