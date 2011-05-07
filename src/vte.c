@@ -5303,6 +5303,73 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 	}
 }
 
+/**
+ * _vte_terminal_xy_to_grid:
+ * @x: the X coordinate
+ * @y: the Y coordinate
+ * @col: return location to store the column
+ * @row: return location to store the row
+ *
+ * Translates from widget coordinates to grid coordinates.
+ *
+ * If the coordinates are outside the grid, returns %FALSE.
+ */
+gboolean
+_vte_terminal_xy_to_grid(VteTerminal *terminal,
+                         long x,
+                         long y,
+                         long *col,
+                         long *row)
+{
+        VteTerminalPrivate *pvt = terminal->pvt;
+        long c, r;
+
+        /* FIXMEchpe: is this correct for RTL? */
+        c = (x - pvt->inner_border.left) / pvt->char_width;
+        r = (y - pvt->inner_border.top) / pvt->char_height;
+
+        if ((c < 0 || c >= pvt->column_count) ||
+            (r < 0 || r >= pvt->row_count))
+          return FALSE;
+
+        *col = c;
+        *row = r;
+        return TRUE;
+}
+
+/*
+ * _vte_terminal_size_to_grid_size:
+ * @w: the width in px
+ * @h: the height in px
+ * @col: return location to store the column count
+ * @row: return location to store the row count
+ *
+ * Translates from widget size to grid size.
+ *
+ * If the given width or height are insufficient to show even
+ * one column or row (i.e due to padding), returns %FALSE.
+ */
+gboolean
+_vte_terminal_size_to_grid_size(VteTerminal *terminal,
+                                long w,
+                                long h,
+                                long *cols,
+                                long *rows)
+{
+        VteTerminalPrivate *pvt = terminal->pvt;
+        long n_cols, n_rows;
+
+        n_cols = (w - pvt->inner_border.left - pvt->inner_border.right) / pvt->char_width;
+        n_rows = (h - pvt->inner_border.top -pvt->inner_border.bottom) / pvt->char_height;
+
+        if (n_cols <= 0 || n_rows <= 0)
+                return FALSE;
+
+        *cols = n_cols;
+        *rows = n_rows;
+        return TRUE;
+}
+
 static void
 vte_terminal_feed_mouse_event(VteTerminal *terminal,
 			      int          button,
