@@ -1776,7 +1776,7 @@ vte_terminal_accessible_set_size(AtkComponent *component,
 	VteTerminal *terminal;
 	gint columns, rows, char_width, char_height;
 	GtkWidget *widget;
-        GtkBorder *inner_border;
+        GtkBorder *padding;
 
 	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE(component));
 	if (widget == NULL) {
@@ -1786,12 +1786,12 @@ vte_terminal_accessible_set_size(AtkComponent *component,
 
         char_width = vte_terminal_get_char_width (terminal);
         char_height = vte_terminal_get_char_height (terminal);
-        gtk_widget_style_get (widget, "inner-border", &inner_border, NULL);
+        gtk_widget_style_get (widget, "inner-border", &padding, NULL);
 	/* If the size is an exact multiple of the cell size, use that,
 	 * otherwise round down. */
-        columns = (width - (inner_border ? (inner_border->left + inner_border->right) : 0)) / char_width;
-        rows = (height - (inner_border ? (inner_border->top + inner_border->bottom) : 0)) / char_height;
-        gtk_border_free (inner_border);
+        columns = (width - (padding ? (padding->left + padding->right) : 0)) / char_width;
+        rows = (height - (padding ? (padding->top + padding->bottom) : 0)) / char_height;
+        gtk_border_free (padding);
 	vte_terminal_set_size(terminal, columns, rows);
 	return (vte_terminal_get_row_count (terminal) == rows) &&
 	       (vte_terminal_get_column_count (terminal) == columns);
