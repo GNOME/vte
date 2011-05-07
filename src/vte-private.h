@@ -415,7 +415,7 @@ struct _VteTerminalPrivate {
 	glong strikethrough_position;
 
         /* Style stuff */
-        GtkBorder inner_border;
+        GtkBorder padding;
 
         /* GtkScrollable impl */
         GtkAdjustment *hadjustment; /* unused */
