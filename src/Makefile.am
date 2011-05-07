@@ -96,7 +96,7 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_LIBADD = $(VTE_LIBS)
 libvte@VTE_LIBRARY_SUFFIX_U@_la_LDFLAGS = \
   $(VTE_LDFLAGS) \
 	-version-info $(LT_VERSION_INFO) \
-	-export-symbols-regex "^vte_terminal_.*|^vte_pty_.*|^vte_get_.*|_vte_debug_.*" \
+	-export-symbols-regex "^vte_terminal_.*|^vte_pty_.*|^vte_get_.*" \
 	@LIBTOOL_EXPORT_OPTIONS@ @LIBTOOL_FLAGS@ \
 	$(AM_LDFLAGS)
 
@@ -146,7 +146,7 @@ vteseq-list.h: vteseq-2.gperf vteseq-n.gperf
 
 bin_PROGRAMS = vte@VTE_LIBRARY_SUFFIX_U@
 
-vte@VTE_LIBRARY_SUFFIX_U@_SOURCES = vteapp.c
+vte@VTE_LIBRARY_SUFFIX_U@_SOURCES = vteapp.c debug.c debug.h
 vte@VTE_LIBRARY_SUFFIX_U@_CFLAGS = $(VTE_CFLAGS)
 vte@VTE_LIBRARY_SUFFIX_U@_LDADD = libvte@VTE_LIBRARY_SUFFIX_U@.la $(VTE_LIBS)
 
