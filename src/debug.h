@@ -25,6 +25,15 @@
 
 #include <glib.h>
 
+#ifndef VTE_COMPILATION
+#define _vte_debug_flags _vte_external_debug_flags
+#define _vte_debug_init  _vte_external_debug_init
+#define _vte_debug_on    _vte_external_debug_on
+#if !defined(__GNUC__) || !G_HAVE_GNUC_VARARGS
+#define _vte_debug_print _vte_external_debug_print
+#endif
+#endif
+
 G_BEGIN_DECLS
 
 typedef enum {

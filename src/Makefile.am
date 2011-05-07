@@ -101,7 +101,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LIBADD = $(VTE_LIBS)
 libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LDFLAGS = \
 	$(VTE_LDFLAGS) \
 	-version-info $(LT_VERSION_INFO) \
-	-export-symbols-regex "^vte_terminal_.*|^vte_pty_.*|^vte_get_.*|_vte_debug_.*" \
+	-export-symbols-regex "^vte_terminal_.*|^vte_pty_.*|^vte_get_.*" \
 	@LIBTOOL_EXPORT_OPTIONS@ @LIBTOOL_FLAGS@ \
 	$(AM_LDFLAGS)
 
@@ -158,6 +158,8 @@ bin_PROGRAMS = vte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@
 
 vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_SOURCES = \
 	vteapp.c \
+	debug.c \
+	debug.h \
 	$(NULL)
 
 vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_CPPFLAGS = \

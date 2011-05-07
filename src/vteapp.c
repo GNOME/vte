@@ -725,6 +725,8 @@ main(int argc, char **argv)
 	GtkPolicyType scrollbar_policy = GTK_POLICY_ALWAYS;
 	VtePtyFlags pty_flags = VTE_PTY_DEFAULT;
 
+        _vte_debug_init();
+
 	/* Have to do this early. */
 	if (getenv("VTE_PROFILE_MEMORY")) {
 		if (atol(getenv("VTE_PROFILE_MEMORY")) != 0) {
