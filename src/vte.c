@@ -5149,6 +5149,13 @@ vte_terminal_get_mouse_tracking_info (VteTerminal   *terminal,
 	*py = cy;
 }
 
+/*
+ * vte_terminal_send_mouse_button_internal:
+ * @terminal:
+ * @button: the mouse button, or 0 for keyboard
+ * @x: the event X coordinate
+ * @y: the event Y coordinate
+ */
 static void
 vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 					int          button,
@@ -5158,10 +5165,10 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 	unsigned char cb, cx, cy;
 	char buf[LINE_MAX];
 	gint len;
-	int width = terminal->pvt->char_width;
-	int height = terminal->pvt->char_height;
-	long col = (x - terminal->pvt->padding.left) / width;
-	long row = (y - terminal->pvt->padding.top) / height;
+        long col, row;
+
+        if (!_vte_terminal_xy_to_grid(terminal, x, y, &col, &row))
+                return;
 
 	vte_terminal_get_mouse_tracking_info (terminal,
 					      button, col, row,
