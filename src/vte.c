@@ -6539,9 +6539,11 @@ vte_terminal_stop_autoscroll(VteTerminal *terminal)
 static gboolean
 vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 {
-	VteTerminal *terminal;
+        VteTerminal *terminal = VTE_TERMINAL(widget);
+        VteTerminalPrivate *pvt = terminal->pvt;
 	int width, height;
 	long x, y;
+        long cell_x, cell_y;
 	gboolean handled = FALSE;
 
 	/* check to see if it matters */
@@ -6549,16 +6551,16 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 		return handled;
 	}
 
-	terminal = VTE_TERMINAL(widget);
+        (void) _vte_terminal_xy_to_grid(terminal, event->x, event->y, &cell_x, &cell_y);
 	x = event->x - terminal->pvt->padding.left;
 	y = event->y - terminal->pvt->padding.top;
 	width = terminal->pvt->char_width;
 	height = terminal->pvt->char_height;
 
 	_vte_debug_print(VTE_DEBUG_EVENTS,
-			"Motion notify (%ld,%ld) [%ld, %ld].\n",
-			x, y,
-			x / width, y / height + terminal->pvt->screen->scroll_delta);
+			"Motion notify (%ld,%ld) [grid %ld,%ld].\n",
+			(long)event->x, (long)event->y,
+                        cell_x, cell_y + terminal->pvt->screen->scroll_delta);
 
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
@@ -6606,6 +6608,8 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	/* Save the pointer coordinates for later use. */
 	terminal->pvt->mouse_last_x = x;
 	terminal->pvt->mouse_last_y = y;
+        pvt->mouse_last_cell_x = cell_x;
+        pvt->mouse_last_cell_y = cell_y;
 
 	return handled;
 }
@@ -6614,14 +6618,14 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 static gint
 vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 {
-	VteTerminal *terminal;
+	VteTerminal *terminal = VTE_TERMINAL(widget);
+        VteTerminalPrivate *pvt = terminal->pvt;
 	long height, width, delta;
 	gboolean handled = FALSE;
 	gboolean start_selecting = FALSE, extend_selecting = FALSE;
+        long cell_x, cell_y;
 	long cellx, celly;
 	long x,y;
-
-	terminal = VTE_TERMINAL(widget);
 
 	x = event->x - terminal->pvt->padding.left;
 	y = event->y - terminal->pvt->padding.top;
@@ -6637,6 +6641,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
 	/* Convert the event coordinates to cell coordinates. */
+        (void) _vte_terminal_xy_to_grid(terminal, event->x, event->y, &cell_x, &cell_y);
 	cellx = x / width;
 	celly = y / height + delta;
 
@@ -6766,6 +6771,8 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	terminal->pvt->mouse_last_button = event->button;
 	terminal->pvt->mouse_last_x = x;
 	terminal->pvt->mouse_last_y = y;
+        pvt->mouse_last_cell_x = cell_x;
+        pvt->mouse_last_cell_y = cell_y;
 
 	return TRUE;
 }
@@ -6774,12 +6781,13 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 static gint
 vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 {
-	VteTerminal *terminal;
+        VteTerminal *terminal = VTE_TERMINAL(widget);
+        VteTerminalPrivate *pvt = terminal->pvt;
 	gboolean handled = FALSE;
+        long cell_x, cell_y;
 	int x, y;
 
-	terminal = VTE_TERMINAL(widget);
-
+        (void) _vte_terminal_xy_to_grid(terminal, event->x, event->y, &cell_x, &cell_y);
 	x = event->x - terminal->pvt->padding.left;
 	y = event->y - terminal->pvt->padding.top;
 
@@ -6827,6 +6835,8 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 	terminal->pvt->mouse_last_button = 0;
 	terminal->pvt->mouse_last_x = x;
 	terminal->pvt->mouse_last_y = y;
+        pvt->mouse_last_cell_x = cell_x;
+        pvt->mouse_last_cell_y = cell_y;
 
 	return TRUE;
 }
@@ -12622,6 +12632,8 @@ vte_terminal_reset(VteTerminal *terminal,
 	pvt->mouse_last_button = 0;
 	pvt->mouse_last_x = 0;
 	pvt->mouse_last_y = 0;
+        pvt->mouse_last_cell_x = 0;
+        pvt->mouse_last_cell_y = 0;
 	/* Clear modifiers. */
 	pvt->modifiers = 0;
 	/* Cause everything to be redrawn (or cleared). */

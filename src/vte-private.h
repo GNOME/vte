@@ -297,6 +297,7 @@ struct _VteTerminalPrivate {
 				    but we need to guarantee its type. */
 	guint mouse_last_button;
 	long mouse_last_x, mouse_last_y;
+        long mouse_last_cell_x, mouse_last_cell_y;
 	gboolean mouse_autohide;
 	guint mouse_autoscroll_tag;
 
