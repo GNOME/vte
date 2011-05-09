@@ -1,0 +1,87 @@
+# Aragonese translation for vte.
+# Copyright (C) 2011 vte's COPYRIGHT HOLDER
+# This file is distributed under the same license as the vte package.
+# Daniel Martinez Cucalon <entaltoaragon@gmail.com>, 2011.
+# FULL NAME <EMAIL@ADDRESS>, 2011.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte master\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=vte&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2011-04-25 23:03+0000\n"
+"PO-Revision-Date: 2011-05-09 18:20+0200\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: Aragonese <softaragones@googlegroups.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../src/iso2022.c:779 ../src/iso2022.c:787 ../src/iso2022.c:818
+#: ../src/vte.c:2279
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "No se pueden convertir caracters de %s a %s."
+
+#: ../src/iso2022.c:1472
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr "S'ha prebau de definir un mapa NRC no valido \"%c\"."
+
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: ../src/iso2022.c:1502
+msgid "Unrecognized identified coding system."
+msgstr "Sistema de codificacion identificau no reconoxiu."
+
+#: ../src/iso2022.c:1561 ../src/iso2022.c:1588
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr "S'ha prebau de definir un amplo no valido en o mapa NRC \"%c\"."
+
+#: ../src/trie.c:409
+#, c-format
+msgid "Duplicate (%s/%s)!"
+msgstr "Duplicau (%s/%s)"
+
+#. Bail back to normal mode.
+#: ../src/vteapp.c:981
+msgid "Could not open console.\n"
+msgstr "No s'ha puesto ubrir a consola.\n"
+
+#: ../src/vteapp.c:1077
+msgid "Could not parse the geometry spec passed to --geometry"
+msgstr ""
+"No s'ha puesto analizar a especificacion de cheometria pasada a --geometry"
+
+#: ../src/vte.c:1305
+#, c-format
+msgid "Error compiling regular expression \"%s\"."
+msgstr "Error en compilar a expresion regular \"%s\"."
+
+#. Translators: %s is replaced with error message returned by strerror().
+#: ../src/vte.c:4593
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Error en leyer dende o fillo: %s."
+
+#: ../src/vte.c:4720
+msgid "Unable to send data to child, invalid charset convertor"
+msgstr ""
+"No se pueden ninviar os datos a lo fillo, conversor de codigos de caracters "
+"invalido"
+
+#: ../src/vte.c:4731 ../src/vte.c:5793
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Error (%s) en convertir datos dende o fillo, omitiendo."
+
+#: ../src/vte.c:7978
+#, c-format
+msgid "Error reading PTY size, using defaults: %s\n"
+msgstr ""
+"Error en leyer o tamanyo PTY, fendo servir as valuras predeterminadas: %s.\n"
+
+#. Aaargh.  We're screwed.
+#: ../src/vte.c:13796
+msgid "_vte_conv_open() failed setting word characters"
+msgstr "Error en _vte_conv_open() al establir os caracters d'a parola"
