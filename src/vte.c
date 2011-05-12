@@ -5215,10 +5215,9 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	unsigned char cb, cx, cy;
 	char buf[LINE_MAX];
 	gint len;
-	int width = terminal->pvt->char_width;
-	int height = terminal->pvt->char_height;
-	long col = ((long) event->x - terminal->pvt->padding.left) / width;
-	long row = ((long) event->y - terminal->pvt->padding.top) / height;
+        long col, row;
+
+        (void) _vte_terminal_xy_to_grid(terminal, event->x, event->y, &col, &row);
 
 	/* First determine if we even want to send notification. */
 	switch (event->type) {
@@ -5233,8 +5232,8 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 			}
 			/* the xterm doc is not clear as to whether
 			 * all-tracking also sends degenerate same-cell events */
-			if (col == terminal->pvt->mouse_last_x / width &&
-			    row == terminal->pvt->mouse_last_y / height)
+			if (col == terminal->pvt->mouse_last_cell_x &&
+			    row == terminal->pvt->mouse_last_cell_y)
 				return;
 		}
 		break;
