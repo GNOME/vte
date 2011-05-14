@@ -832,11 +832,12 @@ vte_terminal_emit_encoding_changed(VteTerminal *terminal)
 
 /* Emit a "child-exited" signal. */
 static void
-vte_terminal_emit_child_exited(VteTerminal *terminal)
+vte_terminal_emit_child_exited(VteTerminal *terminal,
+                               int status)
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `child-exited'.\n");
-	g_signal_emit_by_name(terminal, "child-exited");
+	g_signal_emit_by_name(terminal, "child-exited", status);
 }
 
 /* Emit a "contents_changed" signal. */
@@ -3201,8 +3202,7 @@ vte_terminal_child_watch_cb(GPid pid,
                 vte_terminal_set_pty_object(terminal, NULL);
 
 		/* Tell observers what's happened. */
-                terminal->pvt->child_exit_status = status;
-		vte_terminal_emit_child_exited(terminal);
+		vte_terminal_emit_child_exited(terminal, status);
 
                 g_object_thaw_notify(object);
                 g_object_unref(object);
@@ -3326,9 +3326,8 @@ vte_terminal_pty_new(VteTerminal *terminal,
  * @terminal: a #VteTerminal
  * @child_pid: a #GPid
  *
- * Watches @child_pid. When the process exists, the #VteReaper::child-exited
- * signal will be called. Use vte_terminal_get_child_exit_status() to
- * retrieve the child's exit status.
+ * Watches @child_pid. When the process exists, the #VteTerminal::child-exited
+ * signal will be called with the child's exit status.
  *
  * Prior to calling this function, a #VtePty must have been set in @terminal
  * using vte_terminal_set_pty_object().
@@ -3364,7 +3363,6 @@ vte_terminal_watch_child (VteTerminal *terminal,
 
         /* Set this as the child's pid. */
         pvt->pty_pid = child_pid;
-        pvt->child_exit_status = 0;
 
         /* Catch a child-exited signal from the child pid. */
         if (terminal->pvt->child_watch_source != 0) {
@@ -8058,7 +8056,6 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->pty_input_source = 0;
 	pvt->pty_output_source = 0;
 	pvt->pty_pid = -1;
-        pvt->child_exit_status = 0;
 
 	/* Scrolling options. */
 	pvt->scroll_on_keystroke = TRUE;
@@ -10923,9 +10920,10 @@ vte_terminal_class_init(VteTerminalClass *klass)
         /**
          * VteTerminal::child-exited:
          * @vteterminal: the object which received the signal
+         * @status: the child's exit status
          *
-         * This signal is emitted when the terminal detects that a child started
-         * using vte_terminal_fork_command() has exited.
+         * This signal is emitted when the terminal detects that a child
+         * watched using vte_terminal_watch_child() has exited.
          */
 	g_signal_new(I_("child-exited"),
 		     G_OBJECT_CLASS_TYPE(klass),
@@ -10933,8 +10931,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
 		     G_STRUCT_OFFSET(VteTerminalClass, child_exited),
 		     NULL,
 		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+                     g_cclosure_marshal_VOID__INT,
+                     G_TYPE_NONE,
+                     1, G_TYPE_INT);
 
         /**
          * VteTerminal::window-title-changed:
@@ -13001,28 +13000,6 @@ vte_terminal_get_pty_object(VteTerminal *terminal)
         g_return_val_if_fail (VTE_IS_TERMINAL (terminal), NULL);
 
         return terminal->pvt->pty;
-}
-
-/**
- * vte_terminal_get_child_exit_status:
- * @terminal: a #VteTerminal
- *
- * Gets the exit status of the command started by vte_terminal_fork_command().
- * See your C library's documentation for more details on how to interpret the
- * exit status.
- * 
- * Note that this function may only be called from the signal handler of
- * the #VteTerminal::child-exited signal.
- * 
- * Returns: the child's exit status
- * 
- * Since: 0.20
- */
-int
-vte_terminal_get_child_exit_status(VteTerminal *terminal)
-{
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-        return terminal->pvt->child_exit_status;
 }
 
 /* We need this bit of glue to ensure that accessible objects will always

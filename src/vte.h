@@ -69,7 +69,7 @@ struct _VteTerminalClass {
 	/*< protected > */
 	/* Default signal handlers. */
 	void (*eof)(VteTerminal* terminal);
-	void (*child_exited)(VteTerminal* terminal);
+	void (*child_exited)(VteTerminal* terminal, int status);
 	void (*emulation_changed)(VteTerminal* terminal);
 	void (*encoding_changed)(VteTerminal* terminal);
 	void (*char_size_changed)(VteTerminal* terminal, guint char_width, guint char_height);
@@ -382,9 +382,6 @@ const char *vte_terminal_get_window_title(VteTerminal *terminal);
 const char *vte_terminal_get_icon_title(VteTerminal *terminal);
 const char *vte_terminal_get_current_directory_uri(VteTerminal *terminal);
 const char *vte_terminal_get_current_file_uri(VteTerminal *terminal);
-
-int vte_terminal_get_child_exit_status(VteTerminal *terminal);
-
 
 /* Writing contents out */
 

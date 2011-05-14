@@ -11,7 +11,6 @@ vte_terminal_new
 vte_terminal_feed
 vte_terminal_feed_child
 vte_terminal_feed_child_binary
-vte_terminal_get_child_exit_status
 vte_terminal_select_all
 vte_terminal_select_none
 vte_terminal_copy_clipboard

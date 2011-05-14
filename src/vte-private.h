@@ -203,7 +203,6 @@ struct _VteTerminalPrivate {
 	gboolean pty_input_active;
 	GPid pty_pid;			/* pid of child using pty slave */
 	guint child_watch_source;
-        int child_exit_status;
 
 	/* Input data queues. */
 	const char *encoding;		/* the pty's encoding */
