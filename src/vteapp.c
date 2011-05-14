@@ -168,10 +168,9 @@ delete_event(GtkWidget *window, GdkEvent *event, gpointer terminal)
 	destroy_and_quit(VTE_TERMINAL (terminal), window);
 }
 static void
-child_exited(GtkWidget *terminal, gpointer window)
+child_exited(GtkWidget *terminal, int status, gpointer window)
 {
-	_vte_debug_print(VTE_DEBUG_MISC, "Child exited with status %x\n",
-			 vte_terminal_get_child_exit_status (VTE_TERMINAL (terminal)));
+	_vte_debug_print(VTE_DEBUG_MISC, "Child exited with status %x\n", status);
 	destroy_and_quit(VTE_TERMINAL (terminal), GTK_WIDGET (window));
 }
 
@@ -417,7 +416,7 @@ read_and_feed(GIOChannel *source, GIOCondition condition, gpointer data)
 }
 
 static void
-disconnect_watch(GtkWidget *widget, gpointer data)
+disconnect_watch(gpointer data)
 {
 	g_source_remove(GPOINTER_TO_INT(data));
 }
@@ -485,12 +484,6 @@ terminal_notify_cb(GObject *object,
   g_print("NOTIFY property \"%s\" value '%s'\n", pspec->name, value_string);
   g_free(value_string);
   g_value_unset(&value);
-}
-
-static void
-child_exit_cb(VteTerminal *terminal,
-		 gpointer user_data)
-{
 }
 
 static int
@@ -828,7 +821,6 @@ main(int argc, char **argv)
 	if (!dbuffer) {
 		gtk_widget_set_double_buffered(widget, dbuffer);
 	}
-	g_signal_connect(terminal, "child-exited", G_CALLBACK(child_exit_cb), NULL);
 	if (show_object_notifications)
 		g_signal_connect(terminal, "notify", G_CALLBACK(terminal_notify_cb), NULL);
 	if (use_scrolled_window) {
@@ -978,14 +970,14 @@ main(int argc, char **argv)
 						       G_IO_IN,
 						       read_and_feed,
 						       widget);
-				g_signal_connect(widget,
-						 "eof",
-						 G_CALLBACK(disconnect_watch),
-						 GINT_TO_POINTER(watch));
-				g_signal_connect(widget,
-						 "child-exited",
-						 G_CALLBACK(disconnect_watch),
-						 GINT_TO_POINTER(watch));
+				g_signal_connect_swapped(widget,
+                                                         "eof",
+                                                         G_CALLBACK(disconnect_watch),
+                                                         GINT_TO_POINTER(watch));
+				g_signal_connect_swapped(widget,
+                                                         "child-exited",
+                                                         G_CALLBACK(disconnect_watch),
+                                                         GINT_TO_POINTER(watch));
 				g_signal_connect(widget,
 						 "realize",
 						 G_CALLBACK(take_xconsole_ownership),
