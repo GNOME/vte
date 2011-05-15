@@ -567,6 +567,8 @@ main(int argc, char **argv)
 	char *cursor_shape_string = NULL;
 	char *scrollbar_policy_string = NULL;
         char *border_width_string = NULL;
+        char *css = NULL;
+        char *css_file = NULL;
 	GdkRGBA fore, back, highlight, cursor, tint;
 	const GOptionEntry options[]={
 		{
@@ -720,6 +722,16 @@ main(int argc, char **argv)
                         G_OPTION_ARG_STRING, &border_width_string,
                         "Border with", "WIDTH"
                 },
+                {
+                        "css", 0, 0,
+                        G_OPTION_ARG_STRING, &css,
+                        "Inline CSS", "CSS"
+                },
+                {
+                        "css-file", 0, 0,
+                        G_OPTION_ARG_FILENAME, &css_file,
+                        "CSS File", "FILE"
+                },
 		{ NULL }
 	};
 	GOptionContext *context;
@@ -764,6 +776,39 @@ main(int argc, char **argv)
 		pty_flags |= parse_flags(VTE_TYPE_PTY_FLAGS, pty_flags_string);
 		g_free(pty_flags_string);
 	}
+
+        if (css_file) {
+                GtkCssProvider *provider;
+                GError *err = NULL;
+
+                provider = gtk_css_provider_new();
+                if (gtk_css_provider_load_from_path(provider, css_file, &err)) {
+                        gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
+                                                                  GTK_STYLE_PROVIDER(provider),
+                                                                  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                } else {
+                        g_printerr("Failed to load CSS file: %s\n", err->message);
+                        g_error_free(err);
+                }
+                g_object_unref(provider);
+                g_free(css_file);
+        }
+        if (css) {
+                GtkCssProvider *provider;
+                GError *err = NULL;
+
+                provider = gtk_css_provider_new();
+                if (gtk_css_provider_load_from_data(provider, css, -1, &err)) {
+                        gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
+                                                                  GTK_STYLE_PROVIDER(provider),
+                                                                  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                } else {
+                        g_printerr("Failed to parse CSS: %s\n", err->message);
+                        g_error_free(err);
+                }
+                g_object_unref(provider);
+                g_free(css_file);
+        }
 
 	if (!reverse) {
 		back.red = back.green = back.blue = 1.0; back.alpha = 1.0;
