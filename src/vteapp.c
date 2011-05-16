@@ -569,7 +569,7 @@ main(int argc, char **argv)
         char *border_width_string = NULL;
         char *css = NULL;
         char *css_file = NULL;
-	GdkRGBA fore, back, highlight, cursor, tint;
+	GdkRGBA fore, back, highlight, cursor;
 	const GOptionEntry options[]={
 		{
 			"background", 'B', 0,
@@ -820,13 +820,6 @@ main(int argc, char **argv)
 
 	highlight.red = highlight.green = highlight.blue = 0.75; highlight.alpha = 1.0;
 	cursor.red = 1.0; cursor.green = cursor.blue = 0.5; cursor.alpha = 1.0;
-        tint.red = tint.green = tint.blue = 1.; tint.alpha = .875;
-
-        if (tint_color_string) {
-                if (!gdk_rgba_parse (&tint, tint_color_string))
-                        g_printerr ("Failed to parse tint color string\n");
-                g_free (tint_color_string);
-        }
 
 	gdk_window_set_debug_updates(debug);
 
@@ -958,8 +951,14 @@ main(int argc, char **argv)
                         g_printerr("Failed to create background pattern\n");
                 }
                 cairo_surface_destroy (surface);
-        } else {
+        } else if (tint_color_string) {
+                GdkRGBA tint;
                 cairo_pattern_t *pattern;
+
+                tint.red = tint.green = tint.blue = 1.; tint.alpha = .875;
+                if (!gdk_rgba_parse (&tint, tint_color_string))
+                        g_printerr ("Failed to parse tint color string\n");
+                g_free (tint_color_string);
 
                 pattern = cairo_pattern_create_rgba (tint.red, tint.green, tint.blue, tint.alpha);
                 vte_terminal_set_background_pattern(terminal, pattern);

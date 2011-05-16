@@ -794,7 +794,8 @@ _vte_draw_set_background_scroll (struct _vte_draw *draw,
 			"draw_set_scroll (%d, %d)\n",
 			x, y);
 
-	g_return_if_fail (draw->bg_pattern != NULL);
+        if (draw->bg_pattern == NULL)
+                return;
 
 	cairo_matrix_init_translate (&matrix, x, y);
 	cairo_pattern_set_matrix (draw->bg_pattern, &matrix);
@@ -803,10 +804,11 @@ _vte_draw_set_background_scroll (struct _vte_draw *draw,
 void
 _vte_draw_clear (struct _vte_draw *draw, gint x, gint y, gint width, gint height)
 {
-	g_return_if_fail (draw->bg_pattern != NULL);
-
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_clear (%d, %d, %d, %d)\n",
 			  x,y,width, height);
+
+        if (draw->bg_pattern == NULL)
+                return;
 
         g_assert(draw->cr);
         cairo_rectangle (draw->cr, x, y, width, height);

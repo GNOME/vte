@@ -7654,7 +7654,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->draw = _vte_draw_new();
 
 	/* Set up background information. */
-        pvt->bg_pattern = cairo_pattern_create_rgba (1., 1., 1., .6);
+        pvt->bg_pattern = NULL;
 
 	pvt->selection_block_mode = FALSE;
 	pvt->has_fonts = FALSE;
