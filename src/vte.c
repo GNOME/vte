@@ -10223,7 +10223,8 @@ vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 				col * width + terminal->pvt->padding.left,
 				row * height + terminal->pvt->padding.top,
 				width * columns,
-				height);
+				height,
+                                &terminal->pvt->palette[VTE_DEF_BG]);
 		fore = screen->defaults.attr.fore;
 		back = screen->defaults.attr.back;
 		vte_terminal_draw_cells_with_attributes(terminal,
@@ -10333,7 +10334,8 @@ vte_terminal_draw(GtkWidget *widget,
         }
 
         _vte_draw_clear (terminal->pvt->draw, 0, 0,
-                         allocated_width, allocated_height);
+                         allocated_width, allocated_height,
+                         &terminal->pvt->palette[VTE_DEF_BG]);
 
         /* Calculate the bounding rectangle. */
         {

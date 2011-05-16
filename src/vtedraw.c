@@ -802,19 +802,39 @@ _vte_draw_set_background_scroll (struct _vte_draw *draw,
 }
 
 void
-_vte_draw_clear (struct _vte_draw *draw, gint x, gint y, gint width, gint height)
+_vte_draw_clear (struct _vte_draw *draw,
+                 gint x,
+                 gint y,
+                 gint width,
+                 gint height,
+                 const GdkRGBA *background)
 {
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_clear (%d, %d, %d, %d)\n",
 			  x,y,width, height);
 
-        if (draw->bg_pattern == NULL)
-                return;
-
         g_assert(draw->cr);
-        cairo_rectangle (draw->cr, x, y, width, height);
-	cairo_set_operator (draw->cr, CAIRO_OPERATOR_SOURCE);
-	cairo_set_source (draw->cr, draw->bg_pattern);
-	cairo_fill (draw->cr);
+
+        cairo_save (draw->cr);
+
+        if (draw->bg_pattern != NULL) {
+                cairo_rectangle (draw->cr, x, y, width, height);
+
+                cairo_set_operator (draw->cr, CAIRO_OPERATOR_SOURCE);
+                cairo_set_source (draw->cr, draw->bg_pattern);
+                cairo_fill (draw->cr);
+        }
+
+        if (background) {
+                cairo_rectangle (draw->cr, x, y, width, height);
+
+                cairo_set_operator (draw->cr,
+                                    draw->bg_pattern ? CAIRO_OPERATOR_OVER
+                                                     : CAIRO_OPERATOR_SOURCE);
+                gdk_cairo_set_source_rgba (draw->cr, background);
+                cairo_fill (draw->cr);
+        }
+
+        cairo_restore (draw->cr);
 }
 
 void
