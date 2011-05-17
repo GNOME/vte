@@ -141,7 +141,6 @@ enum {
         PROP_BACKGROUND_PATTERN,
         PROP_BACKSPACE_BINDING,
         PROP_CURSOR_BLINK_MODE,
-        PROP_CURSOR_SHAPE,
         PROP_DELETE_BINDING,
         PROP_EMULATION,
         PROP_ENCODING,
@@ -4238,18 +4237,25 @@ vte_terminal_update_style(VteTerminal *terminal)
         GtkWidget *widget = &terminal->widget;
         float aspect;
         gboolean allow_bold;
+        int cursor_shape;
 
         vte_terminal_set_font(terminal, pvt->fontdesc);
         vte_terminal_set_padding(terminal);
 
         gtk_widget_style_get(widget,
                              "allow-bold", &allow_bold,
+                             "cursor-shape", &cursor_shape,
                              "cursor-aspect-ratio", &aspect,
                              NULL);
 
         if (allow_bold != pvt->allow_bold) {
                 pvt->allow_bold = allow_bold;
                 _vte_invalidate_all (terminal);
+        }
+
+        if ((VteTerminalCursorShape)cursor_shape != pvt->cursor_shape) {
+                pvt->cursor_shape = (VteTerminalCursorShape)cursor_shape;
+                _vte_invalidate_cursor_once(terminal, FALSE);
         }
 
         if (aspect != pvt->cursor_aspect_ratio) {
@@ -10574,9 +10580,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_CURSOR_BLINK_MODE:
                         g_value_set_enum (value, vte_terminal_get_cursor_blink_mode (terminal));
                         break;
-                case PROP_CURSOR_SHAPE:
-                        g_value_set_enum (value, vte_terminal_get_cursor_shape (terminal));
-                        break;
                 case PROP_DELETE_BINDING:
                         g_value_set_enum (value, pvt->delete_binding);
                         break;
@@ -10662,9 +10665,6 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_CURSOR_BLINK_MODE:
                         vte_terminal_set_cursor_blink_mode (terminal, g_value_get_enum (value));
-                        break;
-                case PROP_CURSOR_SHAPE:
-                        vte_terminal_set_cursor_shape (terminal, g_value_get_enum (value));
                         break;
                 case PROP_DELETE_BINDING:
                         vte_terminal_set_delete_binding (terminal, g_value_get_enum (value));
@@ -11370,22 +11370,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                     VTE_TYPE_TERMINAL_CURSOR_BLINK_MODE,
                                     VTE_CURSOR_BLINK_SYSTEM,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-     
-        /**
-         * VteTerminal:cursor-shape:
-         *
-         * Controls the shape of the cursor.
-         * 
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_CURSOR_SHAPE,
-                 g_param_spec_enum ("cursor-shape", NULL, NULL,
-                                    VTE_TYPE_TERMINAL_CURSOR_SHAPE,
-                                    VTE_CURSOR_SHAPE_BLOCK,
-                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-     
+
         /**
          * VteTerminal:delete-binding:
          *
@@ -11631,6 +11616,20 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                        TRUE,
                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
+        /**
+         * VteTerminal:cursor-shape:
+         *
+         * Controls the shape of the cursor.
+         *
+         * Since: 0.30
+         */
+        gtk_widget_class_install_style_property
+                (widget_class,
+                 g_param_spec_enum ("cursor-shape", NULL, NULL,
+                                    VTE_TYPE_TERMINAL_CURSOR_SHAPE,
+                                    VTE_CURSOR_SHAPE_BLOCK,
+                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
         /* Keybindings */
 	binding_set = gtk_binding_set_by_class(klass);
 
@@ -11648,6 +11647,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                          "VteTerminal {\n"
                                            "padding: 1 1 1 1;\n"
                                            "-VteTerminal-allow-bold: true;\n"
+                                           "-VteTerminal-cursor-shape: block;\n"
                                          "}\n",
                                          -1, NULL);
 }
@@ -12117,50 +12117,6 @@ vte_terminal_get_cursor_blink_mode(VteTerminal *terminal)
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_BLINK_SYSTEM);
 
         return terminal->pvt->cursor_blink_mode;
-}
-
-/**
- * vte_terminal_set_cursor_shape:
- * @terminal: a #VteTerminal
- * @shape: the #VteTerminalCursorShape to use
- *
- * Sets the shape of the cursor drawn.
- *
- * Since: 0.20
- */
-void
-vte_terminal_set_cursor_shape(VteTerminal *terminal, VteTerminalCursorShape shape)
-{
-        VteTerminalPrivate *pvt;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        pvt = terminal->pvt;
-
-        if (pvt->cursor_shape == shape)
-                return;
-
-        pvt->cursor_shape = shape;
-	_vte_invalidate_cursor_once(terminal, FALSE);
-
-        g_object_notify(G_OBJECT(terminal), "cursor-shape");
-}
-
-/**
- * vte_terminal_get_cursor_shape:
- * @terminal: a #VteTerminal
- *
- * Returns the currently set cursor shape.
- *
- * Return value: cursor shape.
- *
- * Since: 0.17.6
- */
-VteTerminalCursorShape
-vte_terminal_get_cursor_shape(VteTerminal *terminal)
-{
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_SHAPE_BLOCK);
-
-        return terminal->pvt->cursor_shape;
 }
 
 /**

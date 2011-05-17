@@ -737,7 +737,6 @@ main(int argc, char **argv)
 	GOptionContext *context;
 	GError *error = NULL;
 	VteTerminalCursorBlinkMode cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
-	VteTerminalCursorShape cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
 	GtkPolicyType scrollbar_policy = GTK_POLICY_ALWAYS;
 	VtePtyFlags pty_flags = VTE_PTY_DEFAULT;
         GString *css_string;
@@ -764,10 +763,6 @@ main(int argc, char **argv)
 	if (cursor_blink_mode_string) {
 		cursor_blink_mode = parse_enum(VTE_TYPE_TERMINAL_CURSOR_BLINK_MODE, cursor_blink_mode_string);
 		g_free(cursor_blink_mode_string);
-	}
-	if (cursor_shape_string) {
-		cursor_shape = parse_enum(VTE_TYPE_TERMINAL_CURSOR_SHAPE, cursor_shape_string);
-		g_free(cursor_shape_string);
 	}
 	if (scrollbar_policy_string) {
 		scrollbar_policy = parse_enum(GTK_TYPE_POLICY_TYPE, scrollbar_policy_string);
@@ -800,6 +795,12 @@ main(int argc, char **argv)
         if (css) {
                 g_string_append (css_string, css);
                 g_string_append_c (css_string, '\n');
+        }
+
+        if (cursor_shape_string) {
+                g_string_append_printf (css_string, "VteTerminal { -VteTerminal-cursor-shape: %s; }\n",
+                                        cursor_shape_string);
+                g_free(cursor_shape_string);
         }
 
 	if (!reverse) {
@@ -967,7 +968,6 @@ main(int argc, char **argv)
 	if (termcap != NULL) {
 		vte_terminal_set_emulation(terminal, termcap);
 	}
-	vte_terminal_set_cursor_shape(terminal, cursor_shape);
 
 	/* Set the default font. */
         if (font) {

@@ -259,11 +259,6 @@ void vte_terminal_set_cursor_blink_mode(VteTerminal *terminal,
 					VteTerminalCursorBlinkMode mode);
 VteTerminalCursorBlinkMode vte_terminal_get_cursor_blink_mode(VteTerminal *terminal);
 
-/* Set cursor shape */
-void vte_terminal_set_cursor_shape(VteTerminal *terminal,
-				   VteTerminalCursorShape shape);
-VteTerminalCursorShape vte_terminal_get_cursor_shape(VteTerminal *terminal);
-
 /* Set the number of scrollback lines, above or at an internal minimum. */
 void vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines);
 
