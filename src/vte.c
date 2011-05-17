@@ -148,7 +148,6 @@ enum {
         PROP_ICON_TITLE,
         PROP_MOUSE_POINTER_AUTOHIDE,
         PROP_PTY_OBJECT,
-        PROP_SCROLL_BACKGROUND,
         PROP_SCROLLBACK_LINES,
         PROP_SCROLL_ON_KEYSTROKE,
         PROP_SCROLL_ON_OUTPUT,
@@ -4236,7 +4235,7 @@ vte_terminal_update_style(VteTerminal *terminal)
         VteTerminalPrivate *pvt = terminal->pvt;
         GtkWidget *widget = &terminal->widget;
         float aspect;
-        gboolean allow_bold;
+        gboolean allow_bold, scroll_background;
         int cursor_shape;
 
         vte_terminal_set_font(terminal, pvt->fontdesc);
@@ -4246,6 +4245,7 @@ vte_terminal_update_style(VteTerminal *terminal)
                              "allow-bold", &allow_bold,
                              "cursor-shape", &cursor_shape,
                              "cursor-aspect-ratio", &aspect,
+                             "scroll-background", &scroll_background,
                              NULL);
 
         if (allow_bold != pvt->allow_bold) {
@@ -4261,6 +4261,11 @@ vte_terminal_update_style(VteTerminal *terminal)
         if (aspect != pvt->cursor_aspect_ratio) {
                 pvt->cursor_aspect_ratio = aspect;
                 _vte_invalidate_cursor_once(terminal, FALSE);
+        }
+
+        if (scroll_background != pvt->scroll_background) {
+                  pvt->scroll_background = scroll_background;
+                  vte_terminal_queue_background_update(terminal);
         }
 }
 
@@ -7635,6 +7640,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->pty_pid = -1;
 
 	/* Scrolling options. */
+        pvt->scroll_background = FALSE;
 	pvt->scroll_on_keystroke = TRUE;
         pvt->scrollback_lines = -1; /* force update in vte_terminal_set_scrollback_lines */
 	vte_terminal_set_scrollback_lines(terminal, VTE_SCROLLBACK_INIT);
@@ -10601,9 +10607,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_PTY_OBJECT:
                         g_value_set_object (value, vte_terminal_get_pty_object(terminal));
                         break;
-                case PROP_SCROLL_BACKGROUND:
-                        g_value_set_boolean (value, pvt->scroll_background);
-                        break;
                 case PROP_SCROLLBACK_LINES:
                         g_value_set_uint (value, pvt->scrollback_lines);
                         break;
@@ -10683,9 +10686,6 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_PTY_OBJECT:
                         vte_terminal_set_pty_object (terminal, g_value_get_object (value));
-                        break;
-                case PROP_SCROLL_BACKGROUND:
-                        vte_terminal_set_scroll_background (terminal, g_value_get_boolean (value));
                         break;
                 case PROP_SCROLLBACK_LINES:
                         vte_terminal_set_scrollback_lines (terminal, g_value_get_uint (value));
@@ -11484,21 +11484,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                       G_PARAM_STATIC_STRINGS));
 
         /**
-         * VteTerminal:scroll-background:
-         *
-         * Controls whether or not the terminal will scroll the background image (if
-         * one is set) when the text in the window must be scrolled.
-         * 
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_SCROLL_BACKGROUND,
-                 g_param_spec_boolean ("scroll-background", NULL, NULL,
-                                       FALSE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-     
-        /**
          * VteTerminal:scrollback-lines:
          *
          * The length of the scrollback buffer used by the terminal.  The size of
@@ -11630,6 +11615,20 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                     VTE_CURSOR_SHAPE_BLOCK,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
+        /**
+         * VteTerminal:scroll-background:
+         *
+         * Controls whether or not the terminal will scroll the background image (if
+         * one is set) when the text in the window must be scrolled.
+         *
+         * Since: 0.30
+         */
+        gtk_widget_class_install_style_property
+                (widget_class,
+                 g_param_spec_boolean ("scroll-background", NULL, NULL,
+                                       FALSE,
+                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
         /* Keybindings */
 	binding_set = gtk_binding_set_by_class(klass);
 
@@ -11648,7 +11647,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                            "padding: 1 1 1 1;\n"
                                            "-VteTerminal-allow-bold: true;\n"
                                            "-VteTerminal-cursor-shape: block;\n"
-                                         "}\n",
+                                           "-VteTerminal-scroll-background: false;\n"
+                                           "}\n",
                                          -1, NULL);
 }
 
@@ -11737,37 +11737,6 @@ vte_terminal_get_visible_bell(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 	return terminal->pvt->visible_bell;
-}
-
-/**
- * vte_terminal_set_scroll_background:
- * @terminal: a #VteTerminal
- * @scroll: whether the terminal should scroll the background image along with
- *   the text
- *
- * Controls whether or not the terminal will scroll the background image (if
- * one is set) when the text in the window must be scrolled.
- *
- * Since: 0.11
- */
-void
-vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll)
-{
-        VteTerminalPrivate *pvt;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        pvt = terminal->pvt;
-
-        scroll = scroll != FALSE;
-        if (scroll == pvt->scroll_background)
-                return;
-
-	pvt->scroll_background = scroll;
-
-        g_object_notify (G_OBJECT (terminal), "scroll-background");
-
-        vte_terminal_queue_background_update(terminal);
 }
 
 /**

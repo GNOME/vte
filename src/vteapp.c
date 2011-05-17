@@ -802,6 +802,9 @@ main(int argc, char **argv)
                                         cursor_shape_string);
                 g_free(cursor_shape_string);
         }
+        if (scroll) {
+                g_string_append (css_string, "VteTerminal { -VteTerminal-scroll-background: true; }\n");
+        }
 
 	if (!reverse) {
 		back.red = back.green = back.blue = 1.0; back.alpha = 1.0;
@@ -923,7 +926,6 @@ main(int argc, char **argv)
 	vte_terminal_set_audible_bell(terminal, audible);
 	vte_terminal_set_visible_bell(terminal, !audible);
 	vte_terminal_set_cursor_blink_mode(terminal, cursor_blink_mode);
-	vte_terminal_set_scroll_background(terminal, scroll);
 	vte_terminal_set_scroll_on_output(terminal, FALSE);
 	vte_terminal_set_scroll_on_keystroke(terminal, TRUE);
 	vte_terminal_set_scrollback_lines(terminal, lines);
