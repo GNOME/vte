@@ -137,7 +137,6 @@ enum {
         PROP_VADJUSTMENT,
         PROP_HSCROLL_POLICY,
         PROP_VSCROLL_POLICY,
-        PROP_ALLOW_BOLD,
         PROP_AUDIBLE_BELL,
         PROP_BACKGROUND_PATTERN,
         PROP_BACKSPACE_BINDING,
@@ -4238,11 +4237,21 @@ vte_terminal_update_style(VteTerminal *terminal)
         VteTerminalPrivate *pvt = terminal->pvt;
         GtkWidget *widget = &terminal->widget;
         float aspect;
+        gboolean allow_bold;
 
         vte_terminal_set_font(terminal, pvt->fontdesc);
         vte_terminal_set_padding(terminal);
 
-        gtk_widget_style_get(widget, "cursor-aspect-ratio", &aspect, NULL);
+        gtk_widget_style_get(widget,
+                             "allow-bold", &allow_bold,
+                             "cursor-aspect-ratio", &aspect,
+                             NULL);
+
+        if (allow_bold != pvt->allow_bold) {
+                pvt->allow_bold = allow_bold;
+                _vte_invalidate_all (terminal);
+        }
+
         if (aspect != pvt->cursor_aspect_ratio) {
                 pvt->cursor_aspect_ratio = aspect;
                 _vte_invalidate_cursor_once(terminal, FALSE);
@@ -10553,9 +10562,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_VSCROLL_POLICY:
                         g_value_set_enum (value, pvt->vscroll_policy);
                         break;
-                case PROP_ALLOW_BOLD:
-                        g_value_set_boolean (value, vte_terminal_get_allow_bold (terminal));
-                        break;
                 case PROP_AUDIBLE_BELL:
                         g_value_set_boolean (value, vte_terminal_get_audible_bell (terminal));
                         break;
@@ -10644,9 +10650,6 @@ vte_terminal_set_property (GObject *object,
                 case PROP_VSCROLL_POLICY:
                         pvt->vscroll_policy = g_value_get_enum (value);
                         gtk_widget_queue_resize_no_redraw (GTK_WIDGET (terminal));
-                        break;
-                case PROP_ALLOW_BOLD:
-                        vte_terminal_set_allow_bold (terminal, g_value_get_boolean (value));
                         break;
                 case PROP_AUDIBLE_BELL:
                         vte_terminal_set_audible_bell (terminal, g_value_get_boolean (value));
@@ -11309,22 +11312,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     G_TYPE_NONE, 0);
 
         /**
-         * VteTerminal:allow-bold:
-         *
-         * Controls whether or not the terminal will attempt to draw bold text.
-         * This may happen either by using a bold font variant, or by
-         * repainting text with a different offset.
-         * 
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_ALLOW_BOLD,
-                 g_param_spec_boolean ("allow-bold", NULL, NULL,
-                                       TRUE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-     
-        /**
          * VteTerminal:audible-bell:
          *
          * Controls whether or not the terminal will beep when the child outputs the
@@ -11629,6 +11616,21 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /* Style properties */
 
+        /**
+         * VteTerminal:allow-bold:
+         *
+         * Controls whether or not the terminal will attempt to draw bold text.
+         * This may happen either by using a bold font variant, or by
+         * repainting text with a different offset.
+         *
+         * Since: 0.30
+         */
+        gtk_widget_class_install_style_property
+                (widget_class,
+                 g_param_spec_boolean ("allow-bold", NULL, NULL,
+                                       TRUE,
+                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
         /* Keybindings */
 	binding_set = gtk_binding_set_by_class(klass);
 
@@ -11645,6 +11647,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
         gtk_css_provider_load_from_data (GTK_CSS_PROVIDER (klass->priv->style_provider),
                                          "VteTerminal {\n"
                                            "padding: 1 1 1 1;\n"
+                                           "-VteTerminal-allow-bold: true;\n"
                                          "}\n",
                                          -1, NULL);
 }
@@ -11734,51 +11737,6 @@ vte_terminal_get_visible_bell(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 	return terminal->pvt->visible_bell;
-}
-
-/**
- * vte_terminal_set_allow_bold:
- * @terminal: a #VteTerminal
- * @allow_bold: %TRUE if the terminal should attempt to draw bold text
- *
- * Controls whether or not the terminal will attempt to draw bold text,
- * either by using a bold font variant or by repainting text with a different
- * offset.
- *
- */
-void
-vte_terminal_set_allow_bold(VteTerminal *terminal, gboolean allow_bold)
-{
-        VteTerminalPrivate *pvt;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        pvt = terminal->pvt;
-
-        allow_bold = allow_bold != FALSE;
-        if (allow_bold == pvt->allow_bold)
-                return;
-
-	pvt->allow_bold = allow_bold;
-        g_object_notify (G_OBJECT (terminal), "allow-bold");
-
-	_vte_invalidate_all (terminal);
-}
-
-/**
- * vte_terminal_get_allow_bold:
- * @terminal: a #VteTerminal
- *
- * Checks whether or not the terminal will attempt to draw bold text by
- * repainting text with a one-pixel offset.
- *
- * Returns: %TRUE if bolding is enabled, %FALSE if not
- */
-gboolean
-vte_terminal_get_allow_bold(VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return terminal->pvt->allow_bold;
 }
 
 /**
