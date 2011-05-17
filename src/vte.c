@@ -7683,7 +7683,7 @@ vte_terminal_init(VteTerminal *terminal)
 
         gtk_style_context_add_provider (gtk_widget_get_style_context (&terminal->widget),
                                         VTE_TERMINAL_GET_CLASS (terminal)->priv->style_provider,
-                                        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                                        GTK_STYLE_PROVIDER_PRIORITY_FALLBACK);
 
         vte_terminal_update_style (terminal);
 }
