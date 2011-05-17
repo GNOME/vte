@@ -740,6 +740,7 @@ main(int argc, char **argv)
 	VteTerminalCursorShape cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
 	GtkPolicyType scrollbar_policy = GTK_POLICY_ALWAYS;
 	VtePtyFlags pty_flags = VTE_PTY_DEFAULT;
+        GString *css_string;
 
 	/* Have to do this early. */
 	if (getenv("VTE_PROFILE_MEMORY")) {
@@ -791,23 +792,14 @@ main(int argc, char **argv)
                         g_error_free(err);
                 }
                 g_object_unref(provider);
+                provider = NULL;
                 g_free(css_file);
         }
-        if (css) {
-                GtkCssProvider *provider;
-                GError *err = NULL;
 
-                provider = gtk_css_provider_new();
-                if (gtk_css_provider_load_from_data(provider, css, -1, &err)) {
-                        gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
-                                                                  GTK_STYLE_PROVIDER(provider),
-                                                                  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                } else {
-                        g_printerr("Failed to parse CSS: %s\n", err->message);
-                        g_error_free(err);
-                }
-                g_object_unref(provider);
-                g_free(css_file);
+        css_string = g_string_new (NULL);
+        if (css) {
+                g_string_append (css_string, css);
+                g_string_append_c (css_string, '\n');
         }
 
 	if (!reverse) {
@@ -980,6 +972,24 @@ main(int argc, char **argv)
 	/* Set the default font. */
         if (font) {
                 vte_terminal_set_font_from_string(terminal, font);
+        }
+
+        if (css_string->len > 0) {
+                GtkCssProvider *provider;
+                GError *err = NULL;
+
+                provider = gtk_css_provider_new();
+                if (gtk_css_provider_load_from_data(provider, css_string->str, css_string->len, &err)) {
+                        gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
+                                                                  GTK_STYLE_PROVIDER(provider),
+                                                                  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                } else {
+                        g_printerr("Failed to parse CSS: %s\n", err->message);
+                        g_error_free(err);
+                }
+                g_object_unref(provider);
+                g_free(css_file);
+                g_string_free (css_string, TRUE);
         }
 
 	/* Match "abcdefg". */
