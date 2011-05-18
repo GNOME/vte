@@ -12183,7 +12183,7 @@ vte_terminal_background_update(VteTerminal *terminal)
 			"Updating background color.\n");
 
 	entry = _vte_terminal_get_color(terminal, VTE_DEFAULT_BG);
-	_vte_debug_print(VTE_DEBUG_BG,
+	_vte_debug_print(VTE_DEBUG_STYLE,
 			 "Setting background color to (%d, %d, %d, %.3f).\n",
 			 entry->red, entry->green, entry->blue,
 			 terminal->pvt->background_alpha);
