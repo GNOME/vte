@@ -550,7 +550,7 @@ main(int argc, char **argv)
 		 debug = FALSE, dingus = FALSE, dbuffer = TRUE,
 		 console = FALSE, scroll = FALSE, keep = FALSE,
 		 icon_title = FALSE, shell = TRUE, highlight_set = FALSE,
-		 cursor_set = FALSE, reverse = FALSE, use_geometry_hints = TRUE,
+		 reverse = FALSE, use_geometry_hints = TRUE,
 		 use_scrolled_window = FALSE,
 		 show_object_notifications = FALSE;
 	char *geometry = NULL;
@@ -563,6 +563,7 @@ main(int argc, char **argv)
 	const char *output_file = NULL;
         char *tint_color_string = NULL;
 	char *pty_flags_string = NULL;
+        char *cursor_color_string = NULL;
 	char *cursor_blink_mode_string = NULL;
 	char *cursor_shape_string = NULL;
 	char *scrollbar_policy_string = NULL;
@@ -648,9 +649,9 @@ main(int argc, char **argv)
 			"Cursor blink mode (system|on|off)", "MODE"
 		},
 		{
-			"color-cursor", 'r', 0,
-			G_OPTION_ARG_NONE, &cursor_set,
-			"Enable a colored cursor", NULL
+			"cursor-color", 'r', 0,
+			G_OPTION_ARG_STRING, &cursor_color_string,
+			"Enable a colored cursor", "COLOR"
 		},
 		{
 			"cursor-shape", 0, 0,
@@ -797,6 +798,11 @@ main(int argc, char **argv)
                 g_string_append_c (css_string, '\n');
         }
 
+        if (cursor_color_string) {
+                g_string_append_printf (css_string, "VteTerminal { -VteTerminal-cursor-background-color: %s; }\n",
+                                        cursor_color_string);
+                g_free(cursor_color_string);
+        }
         if (cursor_shape_string) {
                 g_string_append_printf (css_string, "VteTerminal { -VteTerminal-cursor-shape: %s; }\n",
                                         cursor_shape_string);
@@ -963,9 +969,6 @@ main(int argc, char **argv)
 	vte_terminal_set_colors_rgba(terminal, &fore, &back, NULL, 0);
 	if (highlight_set) {
 		vte_terminal_set_color_highlight_rgba(terminal, &highlight);
-	}
-	if (cursor_set) {
-		vte_terminal_set_color_cursor_rgba(terminal, &cursor);
 	}
 	if (termcap != NULL) {
 		vte_terminal_set_emulation(terminal, termcap);

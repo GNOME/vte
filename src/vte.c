@@ -2495,34 +2495,44 @@ vte_terminal_set_color_background_rgba(VteTerminal *terminal,
         vte_terminal_set_color_internal(terminal, VTE_DEF_BG, rgba, TRUE);
 }
 
-/**
- * vte_terminal_set_color_cursor_rgba:
+/*
+ * _vte_terminal_set_color_cursor_rgba:
  * @terminal: a #VteTerminal
  * @cursor_background: (allow-none): the new color to use for the text cursor, or %NULL
+ * @override: whether to override the style
  *
- * Sets the background color for text which is under the cursor.  If %NULL, text
- * under the cursor will be drawn with foreground and background colors
- * reversed.
+ * Sets the background color for text which is under the cursor.  If %NULL, the color
+ * will be taken from the style, or, if unset there, text under the cursor will be drawn
+ * with foreground and background colors reversed.
  *
  * Since: 0.28
  */
 void
-vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
-				   const GdkRGBA *rgba)
+_vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
+                                    const GdkRGBA *rgba,
+                                    gboolean override)
 {
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        VteTerminalPrivate *pvt = terminal->pvt;
+
+        if (!override && VTE_PALETTE_HAS_OVERRIDE(pvt->palette_set, VTE_CUR_BG)) {
+                _vte_debug_print(VTE_DEBUG_STYLE,
+                                 "Have cursor color override; not setting new color.\n");
+                return;
+        }
 
         if (rgba != NULL) {
-                _vte_debug_print(VTE_DEBUG_MISC,
-                                "Set cursor color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
-                                rgba->red, rgba->green, rgba->blue, rgba->alpha);
-                vte_terminal_set_color_internal(terminal, VTE_CUR_BG, rgba, TRUE);
+                _vte_debug_print(VTE_DEBUG_STYLE,
+                                 "Set cursor color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
+                                 rgba->red, rgba->green, rgba->blue, rgba->alpha);
+                vte_terminal_set_color_internal(terminal, VTE_CUR_BG, rgba, override);
                 terminal->pvt->cursor_color_set = TRUE;
         } else {
                 _vte_debug_print(VTE_DEBUG_MISC,
                                 "Cleared cursor color.\n");
                 terminal->pvt->cursor_color_set = FALSE;
         }
+
+        _vte_invalidate_cursor_once(terminal, FALSE);
 }
 
 /**
@@ -4239,6 +4249,53 @@ vte_terminal_set_padding(VteTerminal *terminal)
         gtk_widget_queue_resize(widget);
 }
 
+/**
+ * _vte_gtk_style_context_lookup_color:
+ * @context:
+ * @color_name:
+ * @color: a location to store the color
+ *
+ * Like gtk_style_context_lookup_color(), but returns the color
+ * instead of boolean.
+ *
+ * Returns: (transfer none): @color if lookup succeeded, else %NULL
+ */
+static const GdkRGBA *
+_vte_style_context_get_color(GtkStyleContext *context,
+                             const char *color_name,
+                             GdkRGBA *color)
+{
+  GdkRGBA *copy;
+
+  gtk_style_context_get_style(context, color_name, &copy, NULL);
+  if (copy == NULL)
+    {
+#if 0
+      /* Put in a nice shade of magenta, to indicate something's wrong */
+      color->red = color->blue = color->alpha = 1.; color->green = 0.;
+      return color;
+#endif
+      return NULL;
+    }
+
+  *color = *copy;
+  gdk_rgba_free (copy);
+  return color;
+}
+
+static void
+vte_terminal_update_style_colors(VteTerminal *terminal)
+{
+        GtkStyleContext *context;
+        GdkRGBA rgba;
+        const GdkRGBA *color;
+
+        context = gtk_widget_get_style_context(&terminal->widget);
+
+        color = _vte_style_context_get_color(context, "cursor-background-color", &rgba);
+        _vte_terminal_set_color_cursor_rgba(terminal, color, FALSE);
+}
+
 static void
 vte_terminal_update_style(VteTerminal *terminal)
 {
@@ -4250,6 +4307,7 @@ vte_terminal_update_style(VteTerminal *terminal)
 
         vte_terminal_set_font(terminal, pvt->fontdesc);
         vte_terminal_set_padding(terminal);
+        vte_terminal_update_style_colors(terminal);
 
         gtk_widget_style_get(widget,
                              "allow-bold", &allow_bold,
@@ -11638,6 +11696,23 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_boolean ("scroll-background", NULL, NULL,
                                        FALSE,
                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+        /* Colours */
+
+        /**
+         * VteTerminal:cursor-background-color:
+         *
+         * The background color for text which is under the cursor.  If not set,
+         * text under the cursor will be drawn with foreground and background
+         * colors reversed.
+         *
+         * Since: 0.30
+         */
+        gtk_widget_class_install_style_property
+                (widget_class,
+                 g_param_spec_boxed ("cursor-background-color", NULL, NULL,
+                                     GDK_TYPE_RGBA,
+                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /* Keybindings */
 	binding_set = gtk_binding_set_by_class(klass);

@@ -236,8 +236,6 @@ void vte_terminal_set_color_foreground_rgba(VteTerminal *terminal,
 					    const GdkRGBA *rgba);
 void vte_terminal_set_color_background_rgba(VteTerminal *terminal,
 					    const GdkRGBA *rgba);
-void vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
-					const GdkRGBA *rgba);
 void vte_terminal_set_color_highlight_rgba(VteTerminal *terminal,
 					   const GdkRGBA *rgba);
 void vte_terminal_set_colors_rgba(VteTerminal *terminal,

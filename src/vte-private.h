@@ -449,6 +449,11 @@ gboolean _vte_terminal_size_to_grid_size(VteTerminal *terminal,
                                          long *cols,
                                          long *rows);
 
+
+void _vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
+                                         const GdkRGBA *rgba,
+                                         gboolean override);
+
 G_END_DECLS
 
 #endif
