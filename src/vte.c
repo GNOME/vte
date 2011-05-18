@@ -2158,14 +2158,22 @@ vte_terminal_new(void)
 
 /* Set up a palette entry with a more-or-less match for the requested color. */
 static void
-vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
-				const GdkRGBA *proposed)
+vte_terminal_set_color_internal(VteTerminal *terminal,
+                                int entry,
+				const GdkRGBA *proposed,
+                                gboolean override)
 {
         GdkRGBA *color;
 
 	color = &terminal->pvt->palette[entry];
         if (gdk_rgba_equal(color, proposed))
 		return;
+
+        if (!override) {
+                if (VTE_PALETTE_HAS_OVERRIDE(terminal->pvt->palette_set, entry))
+                        return;
+                VTE_PALETTE_CLEAR_OVERRIDE(terminal->pvt->palette_set, entry);
+        }
 
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set color[%d] to rgba(%.3f,%.3f,%.3f,%.3f).\n", entry,
@@ -2302,7 +2310,7 @@ vte_terminal_set_colors_rgba(VteTerminal *terminal,
 
                 /* Take the supplied palette if there is one. */
                 if (i < palette_size) {
-                        vte_terminal_set_color_internal(terminal, i, &palette[i]);
+                        vte_terminal_set_color_internal(terminal, i, &palette[i], TRUE);
                         continue;
                 }
 
@@ -2373,7 +2381,7 @@ vte_terminal_set_colors_rgba(VteTerminal *terminal,
                 }
 
 		/* Set up the color entry. */
-		vte_terminal_set_color_internal(terminal, i, &color);
+		vte_terminal_set_color_internal(terminal, i, &color, TRUE);
 	}
 
 	/* Track that we had a color palette set. */
@@ -2407,7 +2415,7 @@ vte_terminal_set_color_bold_rgba(VteTerminal *terminal,
         _vte_debug_print(VTE_DEBUG_MISC,
                         "Set bold color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
                         rgba->red, rgba->green, rgba->blue, rgba->alpha);
-        vte_terminal_set_color_internal(terminal, VTE_BOLD_FG, rgba);
+        vte_terminal_set_color_internal(terminal, VTE_BOLD_FG, rgba, TRUE);
 }
 
 /**
@@ -2439,7 +2447,7 @@ vte_terminal_set_color_dim_rgba(VteTerminal *terminal,
         _vte_debug_print(VTE_DEBUG_MISC,
                         "Set dim color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
                         rgba->red, rgba->green, rgba->blue, rgba->alpha);
-        vte_terminal_set_color_internal(terminal, VTE_DIM_FG, rgba);
+        vte_terminal_set_color_internal(terminal, VTE_DIM_FG, rgba, TRUE);
 }
 
 /**
@@ -2461,7 +2469,7 @@ vte_terminal_set_color_foreground_rgba(VteTerminal *terminal,
         _vte_debug_print(VTE_DEBUG_MISC,
                         "Set foreground color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
                         rgba->red, rgba->green, rgba->blue, rgba->alpha);
-        vte_terminal_set_color_internal(terminal, VTE_DEF_FG, rgba);
+        vte_terminal_set_color_internal(terminal, VTE_DEF_FG, rgba, TRUE);
 }
 
 /**
@@ -2484,7 +2492,7 @@ vte_terminal_set_color_background_rgba(VteTerminal *terminal,
         _vte_debug_print(VTE_DEBUG_MISC,
                         "Set background color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
                         rgba->red, rgba->green, rgba->blue, rgba->alpha);
-        vte_terminal_set_color_internal(terminal, VTE_DEF_BG, rgba);
+        vte_terminal_set_color_internal(terminal, VTE_DEF_BG, rgba, TRUE);
 }
 
 /**
@@ -2508,7 +2516,7 @@ vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
                 _vte_debug_print(VTE_DEBUG_MISC,
                                 "Set cursor color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
                                 rgba->red, rgba->green, rgba->blue, rgba->alpha);
-                vte_terminal_set_color_internal(terminal, VTE_CUR_BG, rgba);
+                vte_terminal_set_color_internal(terminal, VTE_CUR_BG, rgba, TRUE);
                 terminal->pvt->cursor_color_set = TRUE;
         } else {
                 _vte_debug_print(VTE_DEBUG_MISC,
@@ -2538,7 +2546,7 @@ vte_terminal_set_color_highlight_rgba(VteTerminal *terminal,
                 _vte_debug_print(VTE_DEBUG_MISC,
                                 "Set highlight color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
                                 rgba->red, rgba->green, rgba->blue, rgba->alpha);
-                vte_terminal_set_color_internal(terminal, VTE_DEF_HL, rgba);
+                vte_terminal_set_color_internal(terminal, VTE_DEF_HL, rgba, TRUE);
                 terminal->pvt->highlight_color_set = TRUE;
         } else {
                 _vte_debug_print(VTE_DEBUG_MISC,
@@ -2557,6 +2565,8 @@ void
 vte_terminal_set_default_colors(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        memset(terminal->pvt->palette_set, 0, sizeof(terminal->pvt->palette_set));
 	vte_terminal_set_colors_rgba(terminal, NULL, NULL, NULL, 0);
 }
 

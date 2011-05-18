@@ -1855,6 +1855,7 @@ vte_sequence_handler_change_color (VteTerminal *terminal, GValueArray *params)
 
 			if (vte_parse_color (pairs[i + 1], &color)) {
 				terminal->pvt->palette[idx] = color;
+                                VTE_PALETTE_SET_OVERRIDE(terminal->pvt->palette_set, idx);
 			} else if (strcmp (pairs[i + 1], "?") == 0) {
 				gchar buf[128];
 				g_snprintf (buf, sizeof (buf),

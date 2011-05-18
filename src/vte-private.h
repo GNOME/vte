@@ -55,11 +55,16 @@ G_BEGIN_DECLS
 #define VTE_LINE_WIDTH			1
 #define VTE_ROWS			24
 #define VTE_COLUMNS			80
+
 #define VTE_LEGACY_COLOR_SET_SIZE	8
 #define VTE_COLOR_PLAIN_OFFSET		0
 #define VTE_COLOR_BRIGHT_OFFSET		8
 #define VTE_COLOR_DIM_OFFSET		16
-/* More color defines in ring.h */
+/* more color defines in vterowdata.h */
+
+#define VTE_PALETTE_HAS_OVERRIDE(array, idx)    (array[(idx) / 32] & (1U << ((idx) % 32)))
+#define VTE_PALETTE_SET_OVERRIDE(array, idx)    (array[(idx) / 32] |= (guint32)(1U << ((idx) % 32)))
+#define VTE_PALETTE_CLEAR_OVERRIDE(array,idx)   (array[(idx) / 32] &= ~(guint32)(1U << ((idx) % 32)))
 
 #define VTE_SCROLLBACK_INIT		100
 #define VTE_DEFAULT_CURSOR		GDK_XTERM
@@ -333,6 +338,7 @@ struct _VteTerminalPrivate {
 	gboolean highlight_color_set;
 	gboolean cursor_color_set;
 	GdkRGBA palette[VTE_PALETTE_SIZE];
+        guint32 palette_set[(VTE_PALETTE_SIZE + 31) / 32];
 
 	/* Mouse cursors. */
 	gboolean mouse_cursor_visible;
