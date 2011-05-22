@@ -344,6 +344,7 @@ move_window(GtkWidget *widget, guint x, guint y, gpointer data)
 	}
 }
 
+#if 0
 static void
 adjust_font_size(GtkWidget *widget, gpointer data, gint howmuch)
 {
@@ -366,7 +367,7 @@ adjust_font_size(GtkWidget *widget, gpointer data, gint howmuch)
 	oheight -= char_height * rows;
 
 	/* Calculate the new font size. */
-	desired = pango_font_description_copy(vte_terminal_get_font(terminal));
+        gtk_widget_style_get(&terminal->widget, "font", &desired, NULL);
 	newsize = pango_font_description_get_size(desired) / PANGO_SCALE;
 	newsize += howmuch;
 	pango_font_description_set_size(desired,
@@ -374,7 +375,6 @@ adjust_font_size(GtkWidget *widget, gpointer data, gint howmuch)
 
 	/* Change the font, then resize the window so that we have the same
 	 * number of rows and columns. */
-	vte_terminal_set_font(terminal, desired);
 
         /* This above call will have changed the char size! */
         char_width = vte_terminal_get_char_width (terminal);
@@ -398,6 +398,7 @@ decrease_font_size(GtkWidget *widget, gpointer data)
 {
 	adjust_font_size(widget, data, -1);
 }
+#endif
 
 static gboolean
 read_and_feed(GIOChannel *source, GIOCondition condition, gpointer data)
@@ -556,7 +557,7 @@ main(int argc, char **argv)
 	char *geometry = NULL;
 	gint lines = 100;
 	const char *message = "Launching interactive shell...\r\n";
-	const char *font = NULL;
+	char *font = NULL;
 	const char *termcap = NULL;
 	const char *command = NULL;
 	const char *working_directory = NULL;
@@ -813,6 +814,11 @@ main(int argc, char **argv)
                                         cursor_shape_string);
                 g_free(cursor_shape_string);
         }
+        if (font) {
+                g_string_append_printf (css_string, "VteTerminal { -VteTerminal-font: %s; }\n",
+                                        font);
+                g_free(font);
+        }
         if (scroll) {
                 g_string_append (css_string, "VteTerminal { -VteTerminal-scroll-background: true; }\n");
         }
@@ -910,11 +916,13 @@ main(int argc, char **argv)
 	g_signal_connect(widget, "move-window",
 			 G_CALLBACK(move_window), window);
 
+#if 0
 	/* Connect to font tweakage. */
 	g_signal_connect(widget, "increase-font-size",
 			 G_CALLBACK(increase_font_size), window);
 	g_signal_connect(widget, "decrease-font-size",
 			 G_CALLBACK(decrease_font_size), window);
+#endif
 
 	if (!use_scrolled_window) {
 		/* Create the scrollbar for the widget. */
@@ -962,11 +970,6 @@ main(int argc, char **argv)
 	if (termcap != NULL) {
 		vte_terminal_set_emulation(terminal, termcap);
 	}
-
-	/* Set the default font. */
-        if (font) {
-                vte_terminal_set_font_from_string(terminal, font);
-        }
 
         if (css_string->len > 0) {
                 GtkCssProvider *provider;

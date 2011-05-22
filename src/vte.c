@@ -120,6 +120,7 @@ static void remove_update_timeout (VteTerminal *terminal);
 static void reset_update_regions (VteTerminal *terminal);
 static void vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink);
 static void _vte_check_cursor_blink(VteTerminal *terminal);
+static void vte_terminal_set_font(VteTerminal *terminal, PangoFontDescription *desc /* adopted */);
 
 static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
@@ -143,7 +144,6 @@ enum {
         PROP_DELETE_BINDING,
         PROP_EMULATION,
         PROP_ENCODING,
-        PROP_FONT_DESC,
         PROP_ICON_TITLE,
         PROP_MOUSE_POINTER_AUTOHIDE,
         PROP_PTY_OBJECT,
@@ -4243,8 +4243,8 @@ vte_terminal_update_style(VteTerminal *terminal)
         VteTerminalPrivate *pvt = terminal->pvt;
         GtkWidget *widget = &terminal->widget;
         gboolean allow_bold, scroll_background;
+        PangoFontDescription *font_desc;
 
-        vte_terminal_set_font(terminal, pvt->fontdesc);
         vte_terminal_set_padding(terminal);
         vte_terminal_update_style_colors(terminal, FALSE);
         vte_terminal_update_cursor_style(terminal);
@@ -4252,7 +4252,10 @@ vte_terminal_update_style(VteTerminal *terminal)
         gtk_widget_style_get(widget,
                              "allow-bold", &allow_bold,
                              "scroll-background", &scroll_background,
+                             "font", &font_desc,
                              NULL);
+
+        vte_terminal_set_font(terminal, font_desc /* adopted */);
 
         if (allow_bold != pvt->allow_bold) {
                 pvt->allow_bold = allow_bold;
@@ -7069,11 +7072,6 @@ static void
 vte_terminal_ensure_font (VteTerminal *terminal)
 {
 	if (terminal->pvt->draw != NULL) {
-		/* Load default fonts, if no fonts have been loaded. */
-		if (!terminal->pvt->has_fonts) {
-			vte_terminal_set_font(terminal,
-                                                            terminal->pvt->fontdesc);
-		}
 		if (terminal->pvt->fontdirty) {
 			gint width, height, ascent;
 			terminal->pvt->fontdirty = FALSE;
@@ -7088,8 +7086,8 @@ vte_terminal_ensure_font (VteTerminal *terminal)
 	}
 }
 
-/**
- * vte_terminal_set_font:
+/*
+ * _vte_terminal_set_font:
  * @terminal: a #VteTerminal
  * @font_desc: (allow-none): a #PangoFontDescription for the desired font, or %NULL
  *
@@ -7099,108 +7097,41 @@ vte_terminal_ensure_font (VteTerminal *terminal)
  * metrics, and attempt to resize itself to keep the same number of rows
  * and columns.
  */
-void
+static void
 vte_terminal_set_font(VteTerminal *terminal,
-                      const PangoFontDescription *font_desc)
+                      PangoFontDescription *desc /* adopted */)
 {
-        GObject *object;
-	GtkStyleContext *context;
-	VteTerminalPrivate *pvt;
-        const PangoFontDescription *style_font;
-	PangoFontDescription *desc;
-        gboolean same_desc;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        object = G_OBJECT(terminal);
-        pvt = terminal->pvt;
+        VteTerminalPrivate *pvt = terminal->pvt;
 
 	/* Create an owned font description. */
-        context = gtk_widget_get_style_context(&terminal->widget);
-        style_font = gtk_style_context_get_font(context, GTK_STATE_FLAG_NORMAL);
-	desc = pango_font_description_copy (style_font);
-	pango_font_description_set_family_static (desc, "monospace");
-	if (font_desc != NULL) {
-		pango_font_description_merge (desc, font_desc, TRUE);
-		_VTE_DEBUG_IF(VTE_DEBUG_MISC) {
-			if (desc) {
-				char *tmp;
-				tmp = pango_font_description_to_string(desc);
-				g_printerr("Using pango font \"%s\".\n", tmp);
-				g_free (tmp);
-			}
-		}
-	} else {
-		_vte_debug_print(VTE_DEBUG_MISC,
-				"Using default monospace font.\n");
+        _VTE_DEBUG_IF(VTE_DEBUG_MISC | VTE_DEBUG_STYLE) {
+                char *tmp;
+                tmp = pango_font_description_to_string(desc);
+                g_printerr("Using pango font \"%s\".\n", tmp);
+                g_free (tmp);
 	}
 
-        same_desc = pvt->fontdesc && pango_font_description_equal (pvt->fontdesc, desc);
-	
-	/* Note that we proceed to recreating the font even if the description
-	 * are the same.  This is because maybe screen
-	 * font options were changed, or new fonts installed.  Those will be
-	 * detected at font creation time and respected.
+	/* Note that we proceed to recreating the font even if
+         * pango_font_description_equal(@desc, pvt->fontdesc).
+         * This is because maybe screen font options were changed,
+         * or new fonts installed.  Those will be
+         * detected at font creation time and respected.
+         *
+         * FIXMEchpe: handle these separately!
 	 */
 
-        g_object_freeze_notify(object);
-
 	/* Free the old font description and save the new one. */
-	if (terminal->pvt->fontdesc != NULL) {
-		pango_font_description_free(terminal->pvt->fontdesc);
-	}
-	pvt->fontdesc = desc;
+        if (pvt->fontdesc != NULL) {
+                pango_font_description_free(pvt->fontdesc);
+        }
+	pvt->fontdesc = desc /* adopted */;
 	pvt->fontdirty = TRUE;
 	pvt->has_fonts = TRUE;
-
-        if (!same_desc)
-                g_object_notify(object, "font-desc");
 
 	/* Set the drawing font. */
 	if (gtk_widget_get_realized (&terminal->widget)) {
 		vte_terminal_ensure_font (terminal);
 	}
-
-        g_object_thaw_notify(object);
-}
-
-/**
- * vte_terminal_set_font_from_string:
- * @terminal: a #VteTerminal
- * @name: (type utf8): a pango font description in string form
- *
- * A convenience function which converts @name into a #PangoFontDescription and
- * passes it to vte_terminal_set_font().
- */
-void
-vte_terminal_set_font_from_string(VteTerminal *terminal,
-                                  const char *name)
-{
-	PangoFontDescription *font_desc = NULL;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(name != NULL);
-
-	if (name)
-                font_desc = pango_font_description_from_string(name);
-	vte_terminal_set_font(terminal, font_desc);
-	pango_font_description_free(font_desc);
-}
-
-/**
- * vte_terminal_get_font:
- * @terminal: a #VteTerminal
- *
- * Queries the terminal for information about the fonts which will be
- * used to draw text in the terminal.
- *
- * Returns: (transfer none): a #PangoFontDescription describing the font the terminal is
- *   currently using to render text
- */
-const PangoFontDescription *
-vte_terminal_get_font(VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return terminal->pvt->fontdesc;
 }
 
 /* Read and refresh our perception of the size of the PTY. */
@@ -10583,9 +10514,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_ENCODING:
                         g_value_set_string (value, vte_terminal_get_encoding (terminal));
                         break;
-                case PROP_FONT_DESC:
-                        g_value_set_boxed (value, vte_terminal_get_font (terminal));
-                        break;
                 case PROP_ICON_TITLE:
                         g_value_set_string (value, vte_terminal_get_icon_title (terminal));
                         break;
@@ -10662,9 +10590,6 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_ENCODING:
                         vte_terminal_set_encoding (terminal, g_value_get_string (value));
-                        break;
-                case PROP_FONT_DESC:
-                        vte_terminal_set_font (terminal, g_value_get_boxed (value));
                         break;
                 case PROP_MOUSE_POINTER_AUTOHIDE:
                         vte_terminal_set_mouse_autohide (terminal, g_value_get_boolean (value));
@@ -11388,25 +11313,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_string ("encoding", NULL, NULL,
                                       NULL,
                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-     
-        /**
-         * VteTerminal:font-desc:
-         *
-         * Specifies the font used for rendering all text displayed by the terminal,
-         * overriding any fonts set using gtk_widget_modify_font().  The terminal
-         * will immediately attempt to load the desired font, retrieve its
-         * metrics, and attempt to resize itself to keep the same number of rows
-         * and columns.
-         * 
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_FONT_DESC,
-                 g_param_spec_boxed ("font-desc", NULL, NULL,
-                                     PANGO_TYPE_FONT_DESCRIPTION,
-                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-     
+
         /**
          * VteTerminal:icon-title:
          *
@@ -11570,7 +11477,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                        TRUE,
                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
-
         /**
          * VteTerminal:cursor-blink-mode:
          *
@@ -11599,6 +11505,20 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                     VTE_TYPE_TERMINAL_CURSOR_SHAPE,
                                     VTE_CURSOR_SHAPE_BLOCK,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+        /**
+         * VteTerminal:font:
+         *
+         * Specifies the font used for rendering all text displayed by the terminal.
+         * Must be a monospaced font!
+         *
+         * Since: 0.30
+         */
+        gtk_widget_class_install_style_property
+                (widget_class,
+                 g_param_spec_boxed ("font", NULL, NULL,
+                                     PANGO_TYPE_FONT_DESCRIPTION,
+                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
          * VteTerminal:scroll-background:
@@ -11637,6 +11557,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                            "-VteTerminal-allow-bold: true;\n"
                                            "-VteTerminal-cursor-blink-mode: system;\n"
                                            "-VteTerminal-cursor-shape: block;\n"
+                                           "-VteTerminal-font: Monospace 10;\n"
                                            "-VteTerminal-scroll-background: false;\n"
 #include "vtepalettecss.h"
                                            "}\n",
