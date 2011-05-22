@@ -200,7 +200,7 @@ write_properties (PropertyWriteFunc func)
         color.alpha = 1.;
         write_property_va (func, &color, "selection-background-color");
 
-        color.red = color.green = color.blue = 0.;
+        color.red = color.green = color.blue = .75;
         color.alpha = 1.;
         write_property_va (func, &color, "cursor-background-color");
 }
