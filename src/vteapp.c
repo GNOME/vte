@@ -794,34 +794,55 @@ main(int argc, char **argv)
                 g_string_append_c (css_string, '\n');
         }
 
+        g_string_append (css_string, "VteTerminal {\n");
         if (cursor_color_string) {
-                g_string_append_printf (css_string, "VteTerminal { -VteTerminal-cursor-background-color: %s; }\n",
+                g_string_append_printf (css_string, "-VteTerminal-cursor-background-color: %s;\n",
                                         cursor_color_string);
                 g_free(cursor_color_string);
         }
         if (selection_background_color_string) {
-                g_string_append_printf (css_string, "VteTerminal { -VteTerminal-selection-background-color: %s; }\n",
+                g_string_append_printf (css_string, "-VteTerminal-selection-background-color: %s;\n",
                                         selection_background_color_string);
                 g_free(selection_background_color_string);
         }
         if (cursor_blink_mode_string) {
-                g_string_append_printf (css_string, "VteTerminal { -VteTerminal-cursor-blink-mode: %s; }\n",
+                g_string_append_printf (css_string, "-VteTerminal-cursor-blink-mode: %s;\n",
                                         cursor_blink_mode_string);
                 g_free(cursor_blink_mode_string);
         }
         if (cursor_shape_string) {
-                g_string_append_printf (css_string, "VteTerminal { -VteTerminal-cursor-shape: %s; }\n",
+                g_string_append_printf (css_string, "-VteTerminal-cursor-shape: %s;\n",
                                         cursor_shape_string);
                 g_free(cursor_shape_string);
         }
         if (font) {
-                g_string_append_printf (css_string, "VteTerminal { -VteTerminal-font: %s; }\n",
+                g_string_append_printf (css_string, "-VteTerminal-font: %s;\n",
                                         font);
                 g_free(font);
         }
         if (scroll) {
-                g_string_append (css_string, "VteTerminal { -VteTerminal-scroll-background: true; }\n");
+                g_string_append (css_string, "-VteTerminal-scroll-background: true;\n");
         }
+        g_string_append (css_string, "}\n");
+
+        if (css_string->len > 14) {
+                GtkCssProvider *provider;
+                GError *err = NULL;
+
+                provider = gtk_css_provider_new();
+                if (gtk_css_provider_load_from_data(provider, css_string->str, css_string->len, &err)) {
+                        gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
+                                                                  GTK_STYLE_PROVIDER(provider),
+                                                                  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                } else {
+                        g_printerr("Failed to parse CSS: %s\n", err->message);
+                        g_error_free(err);
+                }
+                g_object_unref(provider);
+                g_free(css_file);
+                g_string_free (css_string, TRUE);
+        }
+
 
 	gdk_window_set_debug_updates(debug);
 
@@ -970,24 +991,6 @@ main(int argc, char **argv)
 	if (termcap != NULL) {
 		vte_terminal_set_emulation(terminal, termcap);
 	}
-
-        if (css_string->len > 0) {
-                GtkCssProvider *provider;
-                GError *err = NULL;
-
-                provider = gtk_css_provider_new();
-                if (gtk_css_provider_load_from_data(provider, css_string->str, css_string->len, &err)) {
-                        gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
-                                                                  GTK_STYLE_PROVIDER(provider),
-                                                                  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                } else {
-                        g_printerr("Failed to parse CSS: %s\n", err->message);
-                        g_error_free(err);
-                }
-                g_object_unref(provider);
-                g_free(css_file);
-                g_string_free (css_string, TRUE);
-        }
 
 	/* Match "abcdefg". */
 	if (dingus) {
