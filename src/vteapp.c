@@ -549,7 +549,7 @@ main(int argc, char **argv)
 	gboolean audible = TRUE,
 		 debug = FALSE, dingus = FALSE, dbuffer = TRUE,
 		 console = FALSE, scroll = FALSE, keep = FALSE,
-		 icon_title = FALSE, shell = TRUE, highlight_set = FALSE,
+		 icon_title = FALSE, shell = TRUE,
 		 reverse = FALSE, use_geometry_hints = TRUE,
 		 use_scrolled_window = FALSE,
 		 show_object_notifications = FALSE;
@@ -570,7 +570,8 @@ main(int argc, char **argv)
         char *border_width_string = NULL;
         char *css = NULL;
         char *css_file = NULL;
-	GdkRGBA fore, back, highlight, cursor;
+        char *selection_background_color_string = NULL;
+	GdkRGBA fore, back, cursor;
 	const GOptionEntry options[]={
 		{
 			"background", 'B', 0,
@@ -624,9 +625,9 @@ main(int argc, char **argv)
 			"Set the size (in characters) and position", "GEOMETRY"
 		},
 		{
-			"highlight", 'h', 0,
-			G_OPTION_ARG_NONE, &highlight_set,
-			"Enable distinct highlight color for selection", NULL
+			"selection-color", 'h', 0,
+			G_OPTION_ARG_STRING, &selection_background_color_string,
+			"Use distinct highlight color for selection", NULL
 		},
 		{
 			"icon-title", 'i', 0,
@@ -803,6 +804,11 @@ main(int argc, char **argv)
                                         cursor_color_string);
                 g_free(cursor_color_string);
         }
+        if (selection_background_color_string) {
+                g_string_append_printf (css_string, "VteTerminal { -VteTerminal-selection-background-color: %s; }\n",
+                                        selection_background_color_string);
+                g_free(selection_background_color_string);
+        }
         if (cursor_shape_string) {
                 g_string_append_printf (css_string, "VteTerminal { -VteTerminal-cursor-shape: %s; }\n",
                                         cursor_shape_string);
@@ -820,7 +826,6 @@ main(int argc, char **argv)
 		fore.red = fore.green = fore.blue = 1.0; fore.alpha = 1.0;
 	}
 
-	highlight.red = highlight.green = highlight.blue = 0.75; highlight.alpha = 1.0;
 	cursor.red = 1.0; cursor.green = cursor.blue = 0.5; cursor.alpha = 1.0;
 
 	gdk_window_set_debug_updates(debug);
@@ -967,9 +972,6 @@ main(int argc, char **argv)
         }
 
 	vte_terminal_set_colors_rgba(terminal, &fore, &back, NULL, 0);
-	if (highlight_set) {
-		vte_terminal_set_color_highlight_rgba(terminal, &highlight);
-	}
 	if (termcap != NULL) {
 		vte_terminal_set_emulation(terminal, termcap);
 	}

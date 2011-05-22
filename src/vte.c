@@ -2529,8 +2529,8 @@ _vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
         _vte_invalidate_cursor_once(terminal, FALSE);
 }
 
-/**
- * vte_terminal_set_color_highlight_rgba:
+/*
+ *_ vte_terminal_set_color_highlight_rgba:
  * @terminal: a #VteTerminal
  * @highlight_background: (allow-none): the new color to use for highlighted text, or %NULL
  *
@@ -2540,23 +2540,23 @@ _vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
  *
  * Since: 0.28
  */
-void
-vte_terminal_set_color_highlight_rgba(VteTerminal *terminal,
-				      const GdkRGBA *rgba)
+static void
+_vte_terminal_set_color_highlight_rgba(VteTerminal *terminal,
+                                       const GdkRGBA *rgba)
 {
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
         if (rgba != NULL) {
                 _vte_debug_print(VTE_DEBUG_MISC,
                                 "Set highlight color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
                                 rgba->red, rgba->green, rgba->blue, rgba->alpha);
-                vte_terminal_set_color_internal(terminal, VTE_DEF_HL, rgba, TRUE);
+                vte_terminal_set_color_internal(terminal, VTE_DEF_HL, rgba, FALSE);
                 terminal->pvt->highlight_color_set = TRUE;
         } else {
                 _vte_debug_print(VTE_DEBUG_MISC,
                                 "Cleared highlight color.\n");
                 terminal->pvt->highlight_color_set = FALSE;
         }
+
+        /* FIXMEchpe: need to do any invalidation? */
 }
 
 /**
@@ -4295,6 +4295,8 @@ vte_terminal_update_style_colors(VteTerminal *terminal)
           color = _vte_style_context_get_color(context, "dim-foreground-color", &rgba);
         _vte_terminal_set_color_dim_rgba(terminal, color);
 
+        color = _vte_style_context_get_color(context, "selection-background-color", &rgba);
+        _vte_terminal_set_color_highlight_rgba(terminal, color);
 }
 
 static void
@@ -11738,6 +11740,19 @@ vte_terminal_class_init(VteTerminalClass *klass)
         gtk_widget_class_install_style_property
                 (widget_class,
                  g_param_spec_boxed ("cursor-background-color", NULL, NULL,
+                                     GDK_TYPE_RGBA,
+                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+        /**
+         * VteTerminal:selection-background-color:
+         *
+         * The selection background color. If unset, selected text is reversed.
+         *
+         * Since: 0.30
+         */
+        gtk_widget_class_install_style_property
+                (widget_class,
+                 g_param_spec_boxed ("selection-background-color", NULL, NULL,
                                      GDK_TYPE_RGBA,
                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
