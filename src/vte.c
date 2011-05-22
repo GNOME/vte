@@ -69,6 +69,8 @@ typedef gunichar wint_t;
 #define howmany(x, y) (((x) + ((y) - 1)) / (y))
 #endif
 
+#define CAIRO_GOBJECT_TYPE_PATTERN (g_type_from_name("CairoPattern"))
+
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
 static void vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 				     gboolean reset);
@@ -139,7 +141,6 @@ enum {
         PROP_HSCROLL_POLICY,
         PROP_VSCROLL_POLICY,
         PROP_AUDIBLE_BELL,
-        PROP_BACKGROUND_PATTERN,
         PROP_BACKSPACE_BINDING,
         PROP_DELETE_BINDING,
         PROP_EMULATION,
@@ -4238,6 +4239,33 @@ vte_terminal_update_cursor_style(VteTerminal *terminal)
 }
 
 static void
+vte_terminal_update_background_style(VteTerminal *terminal)
+{
+        VteTerminalPrivate *pvt = terminal->pvt;
+        cairo_pattern_t *pattern;
+
+        gtk_widget_style_get(&terminal->widget, "background-pattern", &pattern, NULL);
+        g_return_if_fail (pattern == NULL || cairo_pattern_get_extend(pattern) != CAIRO_EXTEND_NONE);
+
+        _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_STYLE,
+                         "%s background pattern.\n",
+                         pattern ? "Setting" : "Clearing");
+
+        if (pattern == pvt->bg_pattern) {
+                if (pattern)
+                        cairo_pattern_destroy(pattern);
+                return;
+        }
+
+        if (pvt->bg_pattern) {
+                cairo_pattern_destroy (pvt->bg_pattern);
+        }
+        pvt->bg_pattern = pattern /* adopted */;
+
+        vte_terminal_queue_background_update(terminal);
+}
+
+static void
 vte_terminal_update_style(VteTerminal *terminal)
 {
         VteTerminalPrivate *pvt = terminal->pvt;
@@ -4248,6 +4276,7 @@ vte_terminal_update_style(VteTerminal *terminal)
         vte_terminal_set_padding(terminal);
         vte_terminal_update_style_colors(terminal, FALSE);
         vte_terminal_update_cursor_style(terminal);
+        vte_terminal_update_background_style(terminal);
 
         gtk_widget_style_get(widget,
                              "allow-bold", &allow_bold,
@@ -10499,9 +10528,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_AUDIBLE_BELL:
                         g_value_set_boolean (value, vte_terminal_get_audible_bell (terminal));
                         break;
-                case PROP_BACKGROUND_PATTERN:
-                        g_value_set_pointer (value, pvt->bg_pattern);
-                        break;
                 case PROP_BACKSPACE_BINDING:
                         g_value_set_enum (value, pvt->backspace_binding);
                         break;
@@ -10575,9 +10601,6 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_AUDIBLE_BELL:
                         vte_terminal_set_audible_bell (terminal, g_value_get_boolean (value));
-                        break;
-                case PROP_BACKGROUND_PATTERN:
-                        vte_terminal_set_background_pattern (terminal, g_value_get_pointer (value));
                         break;
                 case PROP_BACKSPACE_BINDING:
                         vte_terminal_set_backspace_binding (terminal, g_value_get_enum (value));
@@ -11235,19 +11258,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_boolean ("audible-bell", NULL, NULL,
                                        TRUE,
                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-     
-        /**
-         * VteTerminal:background-pattern: (type cairo_pattern_t):
-         *
-         * Sets a background pattern for the widget.
-         * 
-         * Since: 0.30
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_BACKGROUND_PATTERN,
-                 g_param_spec_pointer ("background-pattern", NULL, NULL,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
          * VteTerminal:backspace-binding:
@@ -11476,6 +11486,20 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_boolean ("allow-bold", NULL, NULL,
                                        TRUE,
                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+        /**
+         * VteTerminal:background-pattern:
+         *
+         * A #cairo_pattern_t to use as background.
+         * Must not have extends %CAIRO_EXTEND_NONE.
+         *
+         * Since: 0.30
+         */
+        gtk_widget_class_install_style_property
+                (widget_class,
+                 g_param_spec_boxed ("background-pattern", NULL, NULL,
+                                     CAIRO_GOBJECT_TYPE_PATTERN,
+                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
          * VteTerminal:cursor-blink-mode:
@@ -11835,78 +11859,6 @@ vte_terminal_queue_background_update(VteTerminal *terminal)
 	terminal->pvt->bg_update_pending = TRUE;
 	/* force a redraw when convenient */
 	add_update_timeout (terminal);
-}
-
-/**
- * vte_terminal_get_background_pattern:
- * @terminal: a #VteTerminal
- *
- * Returns the current background pattern for the widget.
- *
- * Returns: (transfer none): a #cairo_pattern_t, or %NULL
- *
- * Since: 0.30
- */
-cairo_pattern_t *
-vte_terminal_get_background_pattern(VteTerminal *terminal)
-{
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-
-        return terminal->pvt->bg_pattern;
-}
-
-/**
- * vte_terminal_set_background_pattern:
- * @terminal: a #VteTerminal
- * @pattern: (allow-none): a #cairo_pattern_t, or %NULL to unset the background
- *
- * Sets a background pattern for the widget.  Text which would otherwise be
- * drawn using the default background color will instead be drawn over the
- * specified pattern.  If necessary, the pattern will be tiled to cover the
- * widget's entire visible area.
- *
- * If using a surface pattern, it is recommended to update the pattern
- * on #GtkWidget:realize to use a similar surface to the widget's window.
- *
- * Since: 0.30
- */
-void
-vte_terminal_set_background_pattern(VteTerminal *terminal,
-                                    cairo_pattern_t *pattern)
-{
-        VteTerminalPrivate *pvt;
-        GObject *object;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        if (pattern) {
-                g_return_if_fail(cairo_pattern_get_extend(pattern) != CAIRO_EXTEND_NONE);
-        }
-
-        object = G_OBJECT(terminal);
-        pvt = terminal->pvt;
-
-        if (pattern == pvt->bg_pattern)
-                return;
-
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"%s background pattern.\n",
-			pattern ? "Setting" : "Clearing");
-
-        g_object_freeze_notify(object);
-
-        if (pvt->bg_pattern) {
-                cairo_pattern_destroy (pvt->bg_pattern);
-        }
-        if (pattern) {
-                cairo_pattern_reference (pattern);
-        }
-        pvt->bg_pattern = pattern;
-
-        g_object_notify(object, "background-pattern");
-
-	vte_terminal_queue_background_update(terminal);
-
-        g_object_thaw_notify(object);
 }
 
 /**

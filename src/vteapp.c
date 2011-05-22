@@ -546,7 +546,7 @@ main(int argc, char **argv)
 		(char *) "FOO=BAR", (char *) "BOO=BIZ",
 #endif
 		NULL};
-	const char *background = NULL;
+	char *background = NULL;
 	gboolean audible = TRUE,
 		 debug = FALSE, dingus = FALSE, dbuffer = TRUE,
 		 console = FALSE, scroll = FALSE, keep = FALSE,
@@ -562,7 +562,6 @@ main(int argc, char **argv)
 	const char *command = NULL;
 	const char *working_directory = NULL;
 	const char *output_file = NULL;
-        char *tint_color_string = NULL;
 	char *pty_flags_string = NULL;
         char *cursor_color_string = NULL;
 	char *cursor_blink_mode_string = NULL;
@@ -715,11 +714,6 @@ main(int argc, char **argv)
 			"PTY flags set from default|no-utmp|no-wtmp|no-lastlog|no-helper|no-fallback", NULL
 		},
                 {
-                        "tint-color", 0, 0,
-                        G_OPTION_ARG_STRING, &tint_color_string,
-                        "Background tint color", "RGBA"
-                },
-                {
                         "border-width", 0, 0,
                         G_OPTION_ARG_STRING, &border_width_string,
                         "Border with", "WIDTH"
@@ -795,6 +789,11 @@ main(int argc, char **argv)
         }
 
         g_string_append (css_string, "VteTerminal {\n");
+        if (background) {
+                g_string_append_printf (css_string, "background-image: url(\"%s\");\n",
+                                        background);
+                g_free(background);
+        }
         if (cursor_color_string) {
                 g_string_append_printf (css_string, "-VteTerminal-cursor-background-color: %s;\n",
                                         cursor_color_string);
@@ -958,35 +957,6 @@ main(int argc, char **argv)
 	vte_terminal_set_scroll_on_keystroke(terminal, TRUE);
 	vte_terminal_set_scrollback_lines(terminal, lines);
 	vte_terminal_set_mouse_autohide(terminal, TRUE);
-
-	if (background != NULL) {
-                cairo_surface_t *surface;
-
-                surface = cairo_image_surface_create_from_png (background);
-                if (cairo_surface_status (surface) == CAIRO_STATUS_SUCCESS) {
-                        cairo_pattern_t *pattern;
-
-                        pattern = cairo_pattern_create_for_surface(surface);
-                        cairo_pattern_set_extend (pattern, CAIRO_EXTEND_REPEAT);
-                        vte_terminal_set_background_pattern(terminal, pattern);
-                        cairo_pattern_destroy(pattern);
-                } else {
-                        g_printerr("Failed to create background pattern\n");
-                }
-                cairo_surface_destroy (surface);
-        } else if (tint_color_string) {
-                GdkRGBA tint;
-                cairo_pattern_t *pattern;
-
-                tint.red = tint.green = tint.blue = 1.; tint.alpha = .875;
-                if (!gdk_rgba_parse (&tint, tint_color_string))
-                        g_printerr ("Failed to parse tint color string\n");
-                g_free (tint_color_string);
-
-                pattern = cairo_pattern_create_rgba (tint.red, tint.green, tint.blue, tint.alpha);
-                vte_terminal_set_background_pattern(terminal, pattern);
-                cairo_pattern_destroy(pattern);
-        }
 
 	if (termcap != NULL) {
 		vte_terminal_set_emulation(terminal, termcap);

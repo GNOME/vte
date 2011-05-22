@@ -226,11 +226,6 @@ void vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll);
 void vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 					  gboolean scroll);
 
-/* Background effects. */
-cairo_pattern_t *vte_terminal_get_background_pattern(VteTerminal *terminal);
-void vte_terminal_set_background_pattern(VteTerminal *terminal,
-                                         cairo_pattern_t *pattern);
-
 /* Set the number of scrollback lines, above or at an internal minimum. */
 void vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines);
 
