@@ -260,7 +260,4 @@
 "-VteTerminal-shade-24-shades-24-color: rgb(238,238,238);\n"
 "-VteTerminal-foreground-color: rgb(191,191,191);\n"
 "-VteTerminal-background-color: rgb(0,0,0);\n"
-"-VteTerminal-bold-foreground-color: rgb(255,255,255);\n"
-"-VteTerminal-dim-foreground-color: rgb(96,96,96);\n"
-"-VteTerminal-selection-background-color: rgb(191,191,191);\n"
 "-VteTerminal-cursor-background-color: rgb(191,191,191);\n"
