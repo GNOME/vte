@@ -2388,21 +2388,19 @@ vte_terminal_set_colors_rgba(VteTerminal *terminal,
 	terminal->pvt->palette_initialized = TRUE;
 }
 
-/**
- * vte_terminal_set_color_bold_rgba:
+/*
+ * _vte_terminal_set_color_bold_rgba:
  * @terminal: a #VteTerminal
  * @bold: (allow-none): the new bold color or %NULL
  *
  * Sets the color used to draw bold text in the default foreground color.
  * If @bold is %NULL then the default color is used.
  */
-void
-vte_terminal_set_color_bold_rgba(VteTerminal *terminal,
-                                 const GdkRGBA *rgba)
+static void
+_vte_terminal_set_color_bold_rgba(VteTerminal *terminal,
+                                  const GdkRGBA *rgba)
 {
         GdkRGBA mixed;
-
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	if (rgba == NULL) {
 		vte_terminal_generate_bold(&terminal->pvt->palette[VTE_DEF_FG],
@@ -2415,7 +2413,7 @@ vte_terminal_set_color_bold_rgba(VteTerminal *terminal,
         _vte_debug_print(VTE_DEBUG_MISC,
                         "Set bold color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
                         rgba->red, rgba->green, rgba->blue, rgba->alpha);
-        vte_terminal_set_color_internal(terminal, VTE_BOLD_FG, rgba, TRUE);
+        vte_terminal_set_color_internal(terminal, VTE_BOLD_FG, rgba, FALSE);
 }
 
 /**
@@ -4294,6 +4292,9 @@ vte_terminal_update_style_colors(VteTerminal *terminal)
 
         color = _vte_style_context_get_color(context, "cursor-background-color", &rgba);
         _vte_terminal_set_color_cursor_rgba(terminal, color, FALSE);
+
+        color = _vte_style_context_get_color(context, "bold-foreground-color", &rgba);
+        _vte_terminal_set_color_bold_rgba(terminal, color);
 }
 
 static void
@@ -11698,6 +11699,19 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /* Colours */
+
+        /**
+         * VteTerminal:bold-foreground-color:
+         *
+         * The foreground color for bold text.
+         *
+         * Since: 0.30
+         */
+        gtk_widget_class_install_style_property
+                (widget_class,
+                 g_param_spec_boxed ("bold-foreground-color", NULL, NULL,
+                                     GDK_TYPE_RGBA,
+                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
          * VteTerminal:cursor-background-color:
