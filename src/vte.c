@@ -2444,49 +2444,43 @@ _vte_terminal_set_color_dim_rgba(VteTerminal *terminal,
         vte_terminal_set_color_internal(terminal, VTE_DIM_FG, rgba, FALSE);
 }
 
-/**
- * vte_terminal_set_color_foreground_rgba:
+/*
+ * _vte_terminal_set_color_foreground_rgba:
  * @terminal: a #VteTerminal
  * @foreground: the new foreground color
  *
  * Sets the foreground color used to draw normal text.
- *
- * Since: 0.28
  */
-void
-vte_terminal_set_color_foreground_rgba(VteTerminal *terminal,
-				       const GdkRGBA *rgba)
+static void
+_vte_terminal_set_color_foreground_rgba(VteTerminal *terminal,
+                                        const GdkRGBA *rgba)
 {
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(rgba != NULL);
 
         _vte_debug_print(VTE_DEBUG_MISC,
                         "Set foreground color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
                         rgba->red, rgba->green, rgba->blue, rgba->alpha);
-        vte_terminal_set_color_internal(terminal, VTE_DEF_FG, rgba, TRUE);
+        vte_terminal_set_color_internal(terminal, VTE_DEF_FG, rgba, FALSE);
 }
 
-/**
- * vte_terminal_set_color_background_rgba:
+/*
+ * _vte_terminal_set_color_background_rgba:
  * @terminal: a #VteTerminal
  * @background: the new background color
  *
  * Sets the background color for text which does not have a specific background
  * color assigned.  Only has effect when no background image is set.
- *
- * Since: 0.28
  */
-void
-vte_terminal_set_color_background_rgba(VteTerminal *terminal,
-				       const GdkRGBA *rgba)
+static void
+_vte_terminal_set_color_background_rgba(VteTerminal *terminal,
+                                        const GdkRGBA *rgba)
 {
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(rgba != NULL);
 
         _vte_debug_print(VTE_DEBUG_MISC,
                         "Set background color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
                         rgba->red, rgba->green, rgba->blue, rgba->alpha);
-        vte_terminal_set_color_internal(terminal, VTE_DEF_BG, rgba, TRUE);
+        vte_terminal_set_color_internal(terminal, VTE_DEF_BG, rgba, FALSE);
 }
 
 /*
@@ -4285,6 +4279,14 @@ vte_terminal_update_style_colors(VteTerminal *terminal)
         const GdkRGBA *color;
 
         context = gtk_widget_get_style_context(&terminal->widget);
+
+        /* Get foreground and background first, since other default colours
+         * may be defined in terms of these.
+         */
+        color = _vte_style_context_get_color(context, "foreground-color", &rgba);
+        _vte_terminal_set_color_foreground_rgba(terminal, color);
+        color = _vte_style_context_get_color(context, "background-color", &rgba);
+        _vte_terminal_set_color_background_rgba(terminal, color);
 
         color = _vte_style_context_get_color(context, "cursor-background-color", &rgba);
         _vte_terminal_set_color_cursor_rgba(terminal, color, FALSE);
@@ -11703,6 +11705,32 @@ vte_terminal_class_init(VteTerminalClass *klass)
         /* Colours */
 
         /**
+         * VteTerminal:foreground-color:
+         *
+         * The foreground text color.
+         *
+         * Since: 0.30
+         */
+        gtk_widget_class_install_style_property
+                (widget_class,
+                 g_param_spec_boxed ("foreground-color", NULL, NULL,
+                                     GDK_TYPE_RGBA,
+                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+        /**
+         * VteTerminal:background-color:
+         *
+         * The background color.
+         *
+         * Since: 0.30
+         */
+        gtk_widget_class_install_style_property
+                (widget_class,
+                 g_param_spec_boxed ("background-color", NULL, NULL,
+                                     GDK_TYPE_RGBA,
+                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+        /**
          * VteTerminal:bold-foreground-color:
          *
          * The foreground color for bold text.
@@ -11775,6 +11803,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                            "-VteTerminal-allow-bold: true;\n"
                                            "-VteTerminal-cursor-shape: block;\n"
                                            "-VteTerminal-scroll-background: false;\n"
+                                           "-VteTerminal-foreground-color: rgb(191,191,191);\n"
+                                           "-VteTerminal-background-color: rgb(0,0,0);\n"
                                            "}\n",
                                          -1, NULL);
 }
