@@ -737,7 +737,6 @@ main(int argc, char **argv)
 	};
 	GOptionContext *context;
 	GError *error = NULL;
-	VteTerminalCursorBlinkMode cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
 	GtkPolicyType scrollbar_policy = GTK_POLICY_ALWAYS;
 	VtePtyFlags pty_flags = VTE_PTY_DEFAULT;
         GString *css_string;
@@ -761,10 +760,6 @@ main(int argc, char **argv)
 		return 1;
 	}
 
-	if (cursor_blink_mode_string) {
-		cursor_blink_mode = parse_enum(VTE_TYPE_TERMINAL_CURSOR_BLINK_MODE, cursor_blink_mode_string);
-		g_free(cursor_blink_mode_string);
-	}
 	if (scrollbar_policy_string) {
 		scrollbar_policy = parse_enum(GTK_TYPE_POLICY_TYPE, scrollbar_policy_string);
 		g_free(scrollbar_policy_string);
@@ -807,6 +802,11 @@ main(int argc, char **argv)
                 g_string_append_printf (css_string, "VteTerminal { -VteTerminal-selection-background-color: %s; }\n",
                                         selection_background_color_string);
                 g_free(selection_background_color_string);
+        }
+        if (cursor_blink_mode_string) {
+                g_string_append_printf (css_string, "VteTerminal { -VteTerminal-cursor-blink-mode: %s; }\n",
+                                        cursor_blink_mode_string);
+                g_free(cursor_blink_mode_string);
         }
         if (cursor_shape_string) {
                 g_string_append_printf (css_string, "VteTerminal { -VteTerminal-cursor-shape: %s; }\n",
@@ -925,7 +925,6 @@ main(int argc, char **argv)
 	/* Set some defaults. */
 	vte_terminal_set_audible_bell(terminal, audible);
 	vte_terminal_set_visible_bell(terminal, !audible);
-	vte_terminal_set_cursor_blink_mode(terminal, cursor_blink_mode);
 	vte_terminal_set_scroll_on_output(terminal, FALSE);
 	vte_terminal_set_scroll_on_keystroke(terminal, TRUE);
 	vte_terminal_set_scrollback_lines(terminal, lines);

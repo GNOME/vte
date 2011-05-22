@@ -140,7 +140,6 @@ enum {
         PROP_AUDIBLE_BELL,
         PROP_BACKGROUND_PATTERN,
         PROP_BACKSPACE_BINDING,
-        PROP_CURSOR_BLINK_MODE,
         PROP_DELETE_BINDING,
         PROP_EMULATION,
         PROP_ENCODING,
@@ -4193,28 +4192,38 @@ vte_terminal_update_style_colors(VteTerminal *terminal,
 }
 
 static void
-vte_terminal_update_style(VteTerminal *terminal)
+vte_terminal_update_cursor_style(VteTerminal *terminal)
 {
         VteTerminalPrivate *pvt = terminal->pvt;
         GtkWidget *widget = &terminal->widget;
         float aspect;
-        gboolean allow_bold, scroll_background;
-        int cursor_shape;
-
-        vte_terminal_set_font(terminal, pvt->fontdesc);
-        vte_terminal_set_padding(terminal);
-        vte_terminal_update_style_colors(terminal, FALSE);
+        int cursor_shape, blink_mode;
+        gboolean blinks;
 
         gtk_widget_style_get(widget,
-                             "allow-bold", &allow_bold,
+                             "cursor-blink-mode", &blink_mode,
                              "cursor-shape", &cursor_shape,
                              "cursor-aspect-ratio", &aspect,
-                             "scroll-background", &scroll_background,
                              NULL);
 
-        if (allow_bold != pvt->allow_bold) {
-                pvt->allow_bold = allow_bold;
-                _vte_invalidate_all (terminal);
+        if ((VteTerminalCursorBlinkMode)blink_mode != pvt->cursor_blink_mode) {
+                pvt->cursor_blink_mode = (VteTerminalCursorBlinkMode)blink_mode;
+
+                switch ((VteTerminalCursorBlinkMode)blink_mode) {
+                case VTE_CURSOR_BLINK_SYSTEM:
+                        g_object_get(gtk_widget_get_settings(GTK_WIDGET(terminal)),
+                                                             "gtk-cursor-blink", &blinks,
+                                                             NULL);
+                        break;
+                case VTE_CURSOR_BLINK_ON:
+                        blinks = TRUE;
+                        break;
+                case VTE_CURSOR_BLINK_OFF:
+                        blinks = FALSE;
+                        break;
+                }
+
+                vte_terminal_set_cursor_blinks_internal(terminal, blinks);
         }
 
         if ((VteTerminalCursorShape)cursor_shape != pvt->cursor_shape) {
@@ -4225,6 +4234,29 @@ vte_terminal_update_style(VteTerminal *terminal)
         if (aspect != pvt->cursor_aspect_ratio) {
                 pvt->cursor_aspect_ratio = aspect;
                 _vte_invalidate_cursor_once(terminal, FALSE);
+        }
+}
+
+static void
+vte_terminal_update_style(VteTerminal *terminal)
+{
+        VteTerminalPrivate *pvt = terminal->pvt;
+        GtkWidget *widget = &terminal->widget;
+        gboolean allow_bold, scroll_background;
+
+        vte_terminal_set_font(terminal, pvt->fontdesc);
+        vte_terminal_set_padding(terminal);
+        vte_terminal_update_style_colors(terminal, FALSE);
+        vte_terminal_update_cursor_style(terminal);
+
+        gtk_widget_style_get(widget,
+                             "allow-bold", &allow_bold,
+                             "scroll-background", &scroll_background,
+                             NULL);
+
+        if (allow_bold != pvt->allow_bold) {
+                pvt->allow_bold = allow_bold;
+                _vte_invalidate_all (terminal);
         }
 
         if (scroll_background != pvt->scroll_background) {
@@ -10542,9 +10574,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_BACKSPACE_BINDING:
                         g_value_set_enum (value, pvt->backspace_binding);
                         break;
-                case PROP_CURSOR_BLINK_MODE:
-                        g_value_set_enum (value, vte_terminal_get_cursor_blink_mode (terminal));
-                        break;
                 case PROP_DELETE_BINDING:
                         g_value_set_enum (value, pvt->delete_binding);
                         break;
@@ -10624,9 +10653,6 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_BACKSPACE_BINDING:
                         vte_terminal_set_backspace_binding (terminal, g_value_get_enum (value));
-                        break;
-                case PROP_CURSOR_BLINK_MODE:
-                        vte_terminal_set_cursor_blink_mode (terminal, g_value_get_enum (value));
                         break;
                 case PROP_DELETE_BINDING:
                         vte_terminal_set_delete_binding (terminal, g_value_get_enum (value));
@@ -11315,22 +11341,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
-         * VteTerminal:cursor-blink-mode:
-         *
-         * Sets whether or not the cursor will blink. Using %VTE_CURSOR_BLINK_SYSTEM
-         * will use the #GtkSettings::gtk-cursor-blink setting.
-         * 
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_CURSOR_BLINK_MODE,
-                 g_param_spec_enum ("cursor-blink-mode", NULL, NULL,
-                                    VTE_TYPE_TERMINAL_CURSOR_BLINK_MODE,
-                                    VTE_CURSOR_BLINK_SYSTEM,
-                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-        /**
          * VteTerminal:delete-binding:
          *
          * Controls what string or control sequence the terminal sends to its child
@@ -11560,6 +11570,22 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                        TRUE,
                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
+
+        /**
+         * VteTerminal:cursor-blink-mode:
+         *
+         * Sets whether or not the cursor will blink. Using %VTE_CURSOR_BLINK_SYSTEM
+         * will use the #GtkSettings::gtk-cursor-blink setting.
+         *
+         * Since: 0.30
+         */
+        gtk_widget_class_install_style_property
+                (widget_class,
+                 g_param_spec_enum ("cursor-blink-mode", NULL, NULL,
+                                    VTE_TYPE_TERMINAL_CURSOR_BLINK_MODE,
+                                    VTE_CURSOR_BLINK_SYSTEM,
+                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
         /**
          * VteTerminal:cursor-shape:
          *
@@ -11609,6 +11635,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                          "VteTerminal {\n"
                                            "padding: 1 1 1 1;\n"
                                            "-VteTerminal-allow-bold: true;\n"
+                                           "-VteTerminal-cursor-blink-mode: system;\n"
                                            "-VteTerminal-cursor-shape: block;\n"
                                            "-VteTerminal-scroll-background: false;\n"
 #include "vtepalettecss.h"
@@ -11989,67 +12016,6 @@ vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink)
 
 	pvt->cursor_blinks = blink;
 	_vte_check_cursor_blink (terminal);
-}
-
-/**
- * vte_terminal_set_cursor_blink_mode:
- * @terminal: a #VteTerminal
- * @mode: the #VteTerminalCursorBlinkMode to use
- *
- * Sets whether or not the cursor will blink. Using %VTE_CURSOR_BLINK_SYSTEM
- * will use the #GtkSettings::gtk-cursor-blink setting.
- *
- * Since: 0.17.1
- */
-void
-vte_terminal_set_cursor_blink_mode(VteTerminal *terminal, VteTerminalCursorBlinkMode mode)
-{
-        VteTerminalPrivate *pvt;
-        gboolean blinks;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        pvt = terminal->pvt;
-
-        if (pvt->cursor_blink_mode == mode)
-                return;
-
-        pvt->cursor_blink_mode = mode;
-
-        switch (mode) {
-          case VTE_CURSOR_BLINK_SYSTEM:
-            g_object_get(gtk_widget_get_settings(GTK_WIDGET(terminal)),
-                                                 "gtk-cursor-blink", &blinks,
-                                                 NULL);
-            break;
-          case VTE_CURSOR_BLINK_ON:
-            blinks = TRUE;
-            break;
-          case VTE_CURSOR_BLINK_OFF:
-            blinks = FALSE;
-            break;
-        }
-
-        vte_terminal_set_cursor_blinks_internal(terminal, blinks);
-
-        g_object_notify(G_OBJECT(terminal), "cursor-blink-mode");
-}
-
-/**
- * vte_terminal_get_cursor_blink_mode:
- * @terminal: a #VteTerminal
- *
- * Returns the currently set cursor blink mode.
- *
- * Return value: cursor blink mode.
- *
- * Since: 0.17.1
- */
-VteTerminalCursorBlinkMode
-vte_terminal_get_cursor_blink_mode(VteTerminal *terminal)
-{
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_BLINK_SYSTEM);
-
-        return terminal->pvt->cursor_blink_mode;
 }
 
 /**
