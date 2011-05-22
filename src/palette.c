@@ -201,7 +201,7 @@ write_properties (PropertyWriteFunc func)
         generate_bold(&fore, &back, 0.5, &color);
         write_property_va (func, &color, "dim-foreground-color");
 
-        color.red = color.green = color.blue = 0.75;
+        color.red = color.green = color.blue = 1.;
         color.alpha = 1.;
         write_property_va (func, &color, "selection-background-color");
 
