@@ -571,7 +571,6 @@ main(int argc, char **argv)
         char *css = NULL;
         char *css_file = NULL;
         char *selection_background_color_string = NULL;
-	GdkRGBA fore, back, cursor;
 	const GOptionEntry options[]={
 		{
 			"background", 'B', 0,
@@ -818,16 +817,6 @@ main(int argc, char **argv)
                 g_string_append (css_string, "VteTerminal { -VteTerminal-scroll-background: true; }\n");
         }
 
-	if (!reverse) {
-		back.red = back.green = back.blue = 1.0; back.alpha = 1.0;
-		fore.red = fore.green = fore.blue = 0.0; fore.alpha = 1.0;
-	} else {
-		back.red = back.green = back.blue = 0.0; back.alpha = 1.0;
-		fore.red = fore.green = fore.blue = 1.0; fore.alpha = 1.0;
-	}
-
-	cursor.red = 1.0; cursor.green = cursor.blue = 0.5; cursor.alpha = 1.0;
-
 	gdk_window_set_debug_updates(debug);
 
 	/* Create a window to hold the scrolling shell, and hook its
@@ -971,7 +960,6 @@ main(int argc, char **argv)
                 cairo_pattern_destroy(pattern);
         }
 
-	vte_terminal_set_colors_rgba(terminal, &fore, &back, NULL, 0);
 	if (termcap != NULL) {
 		vte_terminal_set_emulation(terminal, termcap);
 	}
