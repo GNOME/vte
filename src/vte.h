@@ -226,16 +226,6 @@ void vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll);
 void vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 					  gboolean scroll);
 
-/* Set the color scheme. */
-
-void vte_terminal_set_colors_rgba(VteTerminal *terminal,
-				  const GdkRGBA *foreground,
-				  const GdkRGBA *background,
-				  const GdkRGBA *palette,
-				  gsize palette_size);
-
-void vte_terminal_set_default_colors(VteTerminal *terminal);
-
 /* Background effects. */
 cairo_pattern_t *vte_terminal_get_background_pattern(VteTerminal *terminal);
 void vte_terminal_set_background_pattern(VteTerminal *terminal,

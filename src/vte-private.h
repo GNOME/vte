@@ -60,6 +60,8 @@ G_BEGIN_DECLS
 #define VTE_COLOR_PLAIN_OFFSET		0
 #define VTE_COLOR_BRIGHT_OFFSET		8
 #define VTE_COLOR_DIM_OFFSET		16
+#define VTE_COLOR_COLORCUBE_OFFSET      16
+#define VTE_COLOR_SHADES_OFFSET         232
 /* more color defines in vterowdata.h */
 
 #define VTE_PALETTE_HAS_OVERRIDE(array, idx)    (array[(idx) / 32] & (1U << ((idx) % 32)))
@@ -334,7 +336,6 @@ struct _VteTerminalPrivate {
 	 * when realizing. */
 	struct _vte_draw *draw;
 
-	gboolean palette_initialized;
 	gboolean highlight_color_set;
 	gboolean cursor_color_set;
 	GdkRGBA palette[VTE_PALETTE_SIZE];

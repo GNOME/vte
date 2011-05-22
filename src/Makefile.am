@@ -1,5 +1,5 @@
 
-EXTRA_DIST = iso2022.txt
+EXTRA_DIST = iso2022.txt palette.c
 
 
 # The library
@@ -61,6 +61,8 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
 	vtedraw.c \
 	vtedraw.h \
 	vteint.h \
+	vtepalettedefs.h \
+	vtepalettecss.h \
 	vtepty.h \
 	vtepty-private.h \
 	vterowdata.c \

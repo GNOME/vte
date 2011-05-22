@@ -2175,9 +2175,9 @@ vte_terminal_set_color_internal(VteTerminal *terminal,
                 VTE_PALETTE_CLEAR_OVERRIDE(terminal->pvt->palette_set, entry);
         }
 
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Set color[%d] to rgba(%.3f,%.3f,%.3f,%.3f).\n", entry,
-			proposed->red, proposed->green, proposed->blue, proposed->alpha);
+	_vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_STYLE,
+			 "Set color[%d] to rgba(%.3f,%.3f,%.3f,%.3f).\n", entry,
+			 proposed->red, proposed->green, proposed->blue, proposed->alpha);
 
 	/* Save the requested color. */
         *color = *proposed;
@@ -2247,145 +2247,6 @@ vte_terminal_generate_bold(const GdkRGBA *foreground,
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"normed rgba(%.3f,%.3f,%.3f,%.3f).\n",
 			bold->red, bold->green, bold->blue, bold->alpha);
-}
-
-/**
- * vte_terminal_set_colors_rgba:
- * @terminal: a #VteTerminal
- * @foreground: (allow-none): the new foreground color, or %NULL
- * @background: (allow-none): the new background color, or %NULL
- * @palette: (array length=palette_size zero-terminated=0) (element-type Gdk.RGBA): the color palette
- * @palette_size: the number of entries in @palette
- *
- * The terminal widget uses a 28-color model comprised of the default foreground
- * and background colors, the bold foreground color, the dim foreground
- * color, an eight color palette, bold versions of the eight color palette,
- * and a dim version of the the eight color palette.
- *
- * @palette_size must be either 0, 8, 16, or 24, or between 25 and 255 inclusive.
- * If @foreground is %NULL and
- * @palette_size is greater than 0, the new foreground color is taken from
- * @palette[7].  If @background is %NULL and @palette_size is greater than 0,
- * the new background color is taken from @palette[0].  If
- * @palette_size is 8 or 16, the third (dim) and possibly the second (bold)
- * 8-color palettes are extrapolated from the new background color and the items
- * in @palette.
- *
- * Since: 0.28
- */
-void
-vte_terminal_set_colors_rgba(VteTerminal *terminal,
-                             const GdkRGBA *foreground,
-                             const GdkRGBA *background,
-                             const GdkRGBA *palette,
-                             gsize palette_size)
-{
-	gsize i;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-	g_return_if_fail((palette_size == 0) ||
-			 (palette_size == 8) ||
-			 (palette_size == 16) ||
-			 (palette_size == 24) ||
-			 (palette_size > 24 && palette_size < 256));
-
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Set color palette [%" G_GSIZE_FORMAT " elements].\n",
-			palette_size);
-
-	/* Accept NULL as the default foreground and background colors if we
-	 * got a palette. */
-	if ((foreground == NULL) && (palette_size >= 8)) {
-		foreground = &palette[7];
-	}
-	if ((background == NULL) && (palette_size >= 8)) {
-		background = &palette[0];
-	}
-
-	/* Initialize each item in the palette if we got any entries to work
-	 * with. */
-	for (i=0; i < G_N_ELEMENTS(terminal->pvt->palette); i++) {
-                GdkRGBA color;
-
-                /* Take the supplied palette if there is one. */
-                if (i < palette_size) {
-                        vte_terminal_set_color_internal(terminal, i, &palette[i], TRUE);
-                        continue;
-                }
-
-                /* Create default color */
-		if (i < 16) {
-			color.blue = (i & 4) ? 0.75 : 0.;
-			color.green = (i & 2) ? 0.75 : 0.;
-			color.red = (i & 1) ? 0.75 : 0.;
-                        color.alpha = 1.0;
-			if (i > 7) {
-				color.blue += 0.25;
-				color.green += 0.25;
-				color.red += 0.25;
-			}
-		}
-		else if (i < 232) {
-			int j = i - 16;
-			int r = j / 36, g = (j / 6) % 6, b = j % 6;
-			int red =   (r == 0) ? 0 : r * 40 + 55;
-			int green = (g == 0) ? 0 : g * 40 + 55;
-			int blue =  (b == 0) ? 0 : b * 40 + 55;
-			color.red   = (red | red << 8) / 65535.;
-			color.green = (green | green << 8) / 65535.;
-			color.blue  = (blue | blue << 8) / 65535.;
-                        color.alpha = 1.;
-		} else if (i < 256) {
-			int shade = 8 + (i - 232) * 10;
-			color.red = color.green = color.blue = (shade | shade << 8) / 65535.;
-                        color.alpha = 1.;
-		}
-		else switch (i) {
-			case VTE_DEF_BG:
-				if (background != NULL) {
-					color = *background;
-				} else {
-					color.red = color.green = color.blue = 0.;
-                                        color.alpha = 1.;
-				}
-				break;
-			case VTE_DEF_FG:
-				if (foreground != NULL) {
-					color = *foreground;
-				} else {
-                                        color.red= color.green = color.blue = 0.75;
-                                        color.alpha = 1.;
-				}
-				break;
-			case VTE_BOLD_FG:
-				vte_terminal_generate_bold(&terminal->pvt->palette[VTE_DEF_FG],
-							   &terminal->pvt->palette[VTE_DEF_BG],
-							   1.8,
-							   &color);
-				break;
-			case VTE_DIM_FG:
-				vte_terminal_generate_bold(&terminal->pvt->palette[VTE_DEF_FG],
-							   &terminal->pvt->palette[VTE_DEF_BG],
-							   0.5,
-							   &color);
-                                break;
-			case VTE_DEF_HL:
-                                color.red = color.green = color.blue = 0.75;
-                                color.alpha = 1.;
-				break;
-			case VTE_CUR_BG:
-                                color.red = color.green = color.blue = 0.;
-                                color.alpha = 1.;
-				break;
-                }
-
-		/* Set up the color entry. */
-		vte_terminal_set_color_internal(terminal, i, &color, TRUE);
-	}
-
-	/* Track that we had a color palette set. */
-	terminal->pvt->palette_initialized = TRUE;
 }
 
 /*
@@ -2517,10 +2378,9 @@ _vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
         } else {
                 _vte_debug_print(VTE_DEBUG_MISC,
                                 "Cleared cursor color.\n");
+                _vte_invalidate_cursor_once(terminal, FALSE);
                 terminal->pvt->cursor_color_set = FALSE;
         }
-
-        _vte_invalidate_cursor_once(terminal, FALSE);
 }
 
 /*
@@ -2547,27 +2407,10 @@ _vte_terminal_set_color_highlight_rgba(VteTerminal *terminal,
         } else {
                 _vte_debug_print(VTE_DEBUG_MISC,
                                 "Cleared highlight color.\n");
+                _vte_invalidate_all(terminal);
                 terminal->pvt->highlight_color_set = FALSE;
         }
-
-        /* FIXMEchpe: need to do any invalidation? */
 }
-
-/**
- * vte_terminal_set_default_colors:
- * @terminal: a #VteTerminal
- *
- * Reset the terminal palette to reasonable compiled-in default color.
- */
-void
-vte_terminal_set_default_colors(VteTerminal *terminal)
-{
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        memset(terminal->pvt->palette_set, 0, sizeof(terminal->pvt->palette_set));
-	vte_terminal_set_colors_rgba(terminal, NULL, NULL, NULL, 0);
-}
-
 
 /* Cleanup smart-tabs.  See vte_sequence_handler_ta() */
 void
@@ -4271,12 +4114,26 @@ _vte_style_context_get_color(GtkStyleContext *context,
   return color;
 }
 
+static const char color_names[8][8] = {
+        "black",
+        "red",
+        "green",
+        "yellow",
+        "blue",
+        "magenta",
+        "cyan",
+        "white"
+};
+
 static void
-vte_terminal_update_style_colors(VteTerminal *terminal)
+vte_terminal_update_style_colors(VteTerminal *terminal,
+                                 gboolean override)
 {
         GtkStyleContext *context;
         GdkRGBA rgba;
         const GdkRGBA *color;
+        int i;
+        char name[64];
 
         context = gtk_widget_get_style_context(&terminal->widget);
 
@@ -4288,8 +4145,42 @@ vte_terminal_update_style_colors(VteTerminal *terminal)
         color = _vte_style_context_get_color(context, "background-color", &rgba);
         _vte_terminal_set_color_background_rgba(terminal, color);
 
+        /* The 256 colour palette */
+
+        for (i = 0; i < 8; ++i) {
+                g_snprintf (name, sizeof (name), "%s-color", color_names[i]);
+                color = _vte_style_context_get_color(context, name, &rgba);
+                vte_terminal_set_color_internal(terminal, VTE_COLOR_PLAIN_OFFSET + i,
+                                                color, override);
+        }
+        for (i = 0; i < 8; ++i) {
+                g_snprintf (name, sizeof (name), "bright-%s-color", color_names[i]);
+                color = _vte_style_context_get_color(context, name, &rgba);
+                vte_terminal_set_color_internal(terminal, VTE_COLOR_BRIGHT_OFFSET + i,
+                                                color, override);
+        }
+        for (i = 0; i < 216; ++i) {
+                int r, g, b;
+
+                r = i / 36 + 1;
+                g = (i / 6) % 6 + 1;
+                b = i % 6 + 1;
+                g_snprintf (name, sizeof (name), "color-6-cube-%d-%d-%d-color", r, g, b);
+                color = _vte_style_context_get_color(context, name, &rgba);
+                vte_terminal_set_color_internal(terminal, VTE_COLOR_COLORCUBE_OFFSET + i,
+                                                color, override);
+        }
+        for (i = 0; i < 24; ++i) {
+                g_snprintf (name, sizeof (name), "shade-24-shades-%d-color", i + 1);
+                color = _vte_style_context_get_color(context, name, &rgba);
+                vte_terminal_set_color_internal(terminal, VTE_COLOR_SHADES_OFFSET + i,
+                                                color, override);
+        }
+
+        /* Now the extra colours */
+
         color = _vte_style_context_get_color(context, "cursor-background-color", &rgba);
-        _vte_terminal_set_color_cursor_rgba(terminal, color, FALSE);
+        _vte_terminal_set_color_cursor_rgba(terminal, color, override);
 
         color = _vte_style_context_get_color(context, "bold-foreground-color", &rgba);
         _vte_terminal_set_color_bold_rgba(terminal, color);
@@ -4312,7 +4203,7 @@ vte_terminal_update_style(VteTerminal *terminal)
 
         vte_terminal_set_font(terminal, pvt->fontdesc);
         vte_terminal_set_padding(terminal);
-        vte_terminal_update_style_colors(terminal);
+        vte_terminal_update_style_colors(terminal, FALSE);
 
         gtk_widget_style_get(widget,
                              "allow-bold", &allow_bold,
@@ -8297,11 +8188,6 @@ vte_terminal_realize(GtkWidget *widget)
 	/* Set the realized flag. */
 	gtk_widget_set_realized (widget, TRUE);
 
-	/* Set up the desired palette. */
-	if (!terminal->pvt->palette_initialized) {
-		vte_terminal_set_default_colors(terminal);
-	}
-
 	/* Set up input method support.  FIXME: do we need to handle the
 	 * "retrieve-surrounding" and "delete-surrounding" events? */
 	if (terminal->pvt->im_context != NULL) {
@@ -11704,85 +11590,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         /* Colours */
 
-        /**
-         * VteTerminal:foreground-color:
-         *
-         * The foreground text color.
-         *
-         * Since: 0.30
-         */
-        gtk_widget_class_install_style_property
-                (widget_class,
-                 g_param_spec_boxed ("foreground-color", NULL, NULL,
-                                     GDK_TYPE_RGBA,
-                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-        /**
-         * VteTerminal:background-color:
-         *
-         * The background color.
-         *
-         * Since: 0.30
-         */
-        gtk_widget_class_install_style_property
-                (widget_class,
-                 g_param_spec_boxed ("background-color", NULL, NULL,
-                                     GDK_TYPE_RGBA,
-                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-        /**
-         * VteTerminal:bold-foreground-color:
-         *
-         * The foreground color for bold text.
-         *
-         * Since: 0.30
-         */
-        gtk_widget_class_install_style_property
-                (widget_class,
-                 g_param_spec_boxed ("bold-foreground-color", NULL, NULL,
-                                     GDK_TYPE_RGBA,
-                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-        /**
-         * VteTerminal:dim-foreground-color:
-         *
-         * The foreground color for dim text.
-         *
-         * Since: 0.30
-         */
-        gtk_widget_class_install_style_property
-                (widget_class,
-                 g_param_spec_boxed ("dim-foreground-color", NULL, NULL,
-                                     GDK_TYPE_RGBA,
-                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-        /**
-         * VteTerminal:cursor-background-color:
-         *
-         * The background color for text which is under the cursor.  If not set,
-         * text under the cursor will be drawn with foreground and background
-         * colors reversed.
-         *
-         * Since: 0.30
-         */
-        gtk_widget_class_install_style_property
-                (widget_class,
-                 g_param_spec_boxed ("cursor-background-color", NULL, NULL,
-                                     GDK_TYPE_RGBA,
-                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-        /**
-         * VteTerminal:selection-background-color:
-         *
-         * The selection background color. If unset, selected text is reversed.
-         *
-         * Since: 0.30
-         */
-        gtk_widget_class_install_style_property
-                (widget_class,
-                 g_param_spec_boxed ("selection-background-color", NULL, NULL,
-                                     GDK_TYPE_RGBA,
-                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+#include "vtepalettedefs.h"
 
         /* Keybindings */
 	binding_set = gtk_binding_set_by_class(klass);
@@ -11803,8 +11611,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                            "-VteTerminal-allow-bold: true;\n"
                                            "-VteTerminal-cursor-shape: block;\n"
                                            "-VteTerminal-scroll-background: false;\n"
-                                           "-VteTerminal-foreground-color: rgb(191,191,191);\n"
-                                           "-VteTerminal-background-color: rgb(0,0,0);\n"
+#include "vtepalettecss.h"
                                            "}\n",
                                          -1, NULL);
 }
@@ -12582,7 +12389,7 @@ vte_terminal_reset(VteTerminal *terminal,
 		pvt->dec_saved = g_hash_table_new(NULL, NULL);
 	}
 	/* Reset the color palette. */
-	/* vte_terminal_set_default_colors(terminal); */
+        vte_terminal_update_style_colors(terminal, TRUE);
 	/* Reset the default attributes.  Reset the alternate attribute because
 	 * it's not a real attribute, but we need to treat it as one here. */
 	pvt->screen = &pvt->alternate_screen;
