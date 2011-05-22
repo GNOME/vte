@@ -228,8 +228,6 @@ void vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 
 /* Set the color scheme. */
 
-void vte_terminal_set_color_dim_rgba(VteTerminal *terminal,
-	                             const GdkRGBA *rgba);
 void vte_terminal_set_color_foreground_rgba(VteTerminal *terminal,
 					    const GdkRGBA *rgba);
 void vte_terminal_set_color_background_rgba(VteTerminal *terminal,
