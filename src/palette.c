@@ -75,30 +75,49 @@ generate_bold(const GdkRGBA *foreground,
 }
 
 typedef void (* PropertyWriteFunc) (const char *property_name,
-                                    const GdkRGBA *color);
+                                    const GdkRGBA *color,
+                                    const char *format,
+                                    ...) G_GNUC_PRINTF (3, 4);
 
 static void
 write_style_property (const char *property_name,
-                      const GdkRGBA *color)
+                      const GdkRGBA *color,
+                      const char *format,
+                      ...)
 {
+        va_list args;
+        char *doc_text, *color_string;
+
+        va_start (args, format);
+        doc_text = g_strdup_vprintf (format, args);
+        va_end (args);
+
+        color_string = gdk_rgba_to_string (color);
+
         g_print ("/**\n"
-                 " * VteTerminal: %s\n"
+                 " * VteTerminal:%s:\n"
+                 " *\n"
+                 " * %s\n"
+                 " *\n"
+                 " * The default color is <literal>%s</literal>.\n"
                  " *\n"
                  " * Since: 0.30\n"
                  " */\n"
-                 "\n"
-                 "gtk_widget_class_install_style_property\n"
-                 "  (widget_class,\n"
-                 "   g_param_spec_boxed (\"%s\", NULL, NULL,\n"
-                 "                       GDK_TYPE_RGBA,\n"
-                 "                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));\n"
+                 "gtk_widget_class_install_style_property(widget_class,"
+                 " g_param_spec_boxed (\"%s\", NULL, NULL, GDK_TYPE_RGBA,"
+                 " G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));\n"
                  "\n",
-                 property_name, property_name);
+                 property_name, doc_text, color_string, property_name);
+
+        g_free (doc_text);
+        g_free (color_string);
 }
 
 static void
 write_css_property (const char *property_name,
-                    const GdkRGBA *color)
+                    const GdkRGBA *color,
+                    const char *format,
+                    ...)
 {
         char *color_string;
 
@@ -117,33 +136,10 @@ write_css_property (const char *property_name,
 }
 
 static void
-write_property_va (PropertyWriteFunc func,
-                   const GdkRGBA *color,
-                   const char *format,
-                   ...) G_GNUC_PRINTF (3, 4);
-
-static void
-write_property_va (PropertyWriteFunc func,
-                   const GdkRGBA *color,
-                   const char *format,
-                   ...)
-{
-        va_list args;
-        char *property_name;
-
-        va_start (args, format);
-        property_name = g_strdup_vprintf (format, args);
-        va_end (args);
-
-        func (property_name, color);
-
-        g_free (property_name);
-}
-
-static void
 write_properties (PropertyWriteFunc func)
 {
         GdkRGBA color, fore, back;
+        char name[64];
         int i;
 
         for (i = 0; i < 8; ++i) {
@@ -152,7 +148,10 @@ write_properties (PropertyWriteFunc func)
                 color.red = (i & 1) ? 0.75 : 0.;
                 color.alpha = 1.0;
 
-                write_property_va (func, &color, "%s-color", color_names[i]);
+                g_snprintf (name, sizeof (name), "%s-color", color_names[i]);
+                func (name, &color,
+                      "The %s color in the palette.",
+                      color_names[i]);
         }
 
         for (i = 0; i < 8; ++i) {
@@ -161,7 +160,10 @@ write_properties (PropertyWriteFunc func)
                 color.red = (i & 1) ? 1. : 0.;
                 color.alpha = 1.0;
 
-                write_property_va (func, &color, "bright-%s-color", color_names[i]);
+                g_snprintf (name, sizeof (name), "bright-%s-color", color_names[i]);
+                func (name, &color,
+                      "The bright %s color in the palette.",
+                      color_names[i]);
         }
 
         for (i = 0 ; i < 216; ++i) {
@@ -178,7 +180,9 @@ write_properties (PropertyWriteFunc func)
                 color.blue  = (blue | blue << 8) / 65535.;
                 color.alpha = 1.;
 
-                write_property_va (func, &color, "color-6-cube-%d-%d-%d-color", r + 1, g + 1, b + 1);
+                g_snprintf (name, sizeof (name), "color-6-cube-%d-%d-%d-color", r + 1, g + 1, b + 1);
+                func (name, &color,
+                      "The (%d, %d, %d) color in the 6x6x6 color cube.", r + 1, g + 1, b + 1);
         }
 
         for (i = 0; i < 24; ++i) {
@@ -186,34 +190,48 @@ write_properties (PropertyWriteFunc func)
                 color.red = color.green = color.blue = (shade | shade << 8) / 65535.;
                 color.alpha = 1.;
 
-                write_property_va (func, &color, "shade-24-shades-%d-color", i + 1);
+                g_snprintf (name, sizeof (name), "shade-24-shades-%d-color", i + 1);
+                func (name, &color,
+                      "The %dth shade in the palette's shade ramp.", i + 1);
         }
 
         fore.red = fore.green = fore.blue = .75;
         fore.alpha = 1.;
-        write_property_va (func, &fore, "foreground-color");
+        func ("foreground-color", &fore,
+              "The foreground color.");
 
         back.red= back.green = back.blue = 0.;
         back.alpha = 1.;
-        write_property_va (func, &back, "background-color");
+        func ("background-color", &back,
+              "The background color.");
 
         generate_bold(&fore, &back, 1.8, &color);
-        write_property_va (func, &color, "bold-foreground-color");
+        func ("bold-foreground-color", &color,
+              "The color used for bold text. If unset, the terminal will use a suitable "
+              "combination of the foreground and background color.");
 
         generate_bold(&fore, &back, 0.5, &color);
-        write_property_va (func, &color, "dim-foreground-color");
+        func ("dim-foreground-color",&color,
+              "The color used for dim text. If unset, the terminal will use a suitable "
+              "combination of the foreground and background color.");
 
         color.red = color.green = color.blue = 1.;
         color.alpha = 1.;
-        write_property_va (func, &color, "selection-background-color");
+        func ("selection-background-color", &color,
+              "The selection background color. If unset, the terminal will show "
+              "selected text with reversed foreground and background.");
 
         color.red = color.green = color.blue = .75;
         color.alpha = 1.;
-        write_property_va (func, &color, "cursor-background-color");
+        func ("cursor-background-color", &color,
+              "The cursor background color. If unset, the terminal will show "
+              "the cursor with reversed foreground and background.");
 
         color.red = color.green = color.blue = 1.;
         color.alpha = 1.;
-        write_property_va (func, &color, "reverse-background-color");
+        func ("reverse-background-color", &color,
+              "The background color used for reversed text. If unset, the terminal will show "
+              "reversed text with reversed foreground and background.");
 }
 
 int
