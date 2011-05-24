@@ -338,6 +338,7 @@ struct _VteTerminalPrivate {
 
 	gboolean highlight_color_set;
 	gboolean cursor_color_set;
+        gboolean reverse_color_set;
 	GdkRGBA palette[VTE_PALETTE_SIZE];
         guint32 palette_set[(VTE_PALETTE_SIZE + 31) / 32];
 

@@ -2384,6 +2384,34 @@ _vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
 }
 
 /*
+ * _vte_terminal_set_color_reverse_rgba:
+ * @terminal: a #VteTerminal
+ * @reverse_background: (allow-none): the new color to use for the text reverse, or %NULL
+ * @override: whether to override the style
+ *
+ * Sets the background color for text which is under the reverse.  If %NULL, the color
+ * will be taken from the style, or, if unset there, text under the reverse will be drawn
+ * with foreground and background colors reversed.
+ */
+static void
+vte_terminal_set_color_reverse_rgba(VteTerminal *terminal,
+                                    const GdkRGBA *rgba)
+{
+        if (rgba != NULL) {
+                _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_STYLE,
+                                 "Set reverse color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
+                                 rgba->red, rgba->green, rgba->blue, rgba->alpha);
+                vte_terminal_set_color_internal(terminal, VTE_REV_BG, rgba, FALSE);
+                terminal->pvt->reverse_color_set = TRUE;
+        } else {
+                _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_STYLE,
+                                "Cleared reverse color.\n");
+                _vte_invalidate_all(terminal);
+                terminal->pvt->reverse_color_set = FALSE;
+        }
+}
+
+/*
  *_ vte_terminal_set_color_highlight_rgba:
  * @terminal: a #VteTerminal
  * @highlight_background: (allow-none): the new color to use for highlighted text, or %NULL
@@ -4190,6 +4218,9 @@ vte_terminal_update_style_colors(VteTerminal *terminal,
 
         color = _vte_style_context_get_color(context, "selection-background-color", &rgba);
         _vte_terminal_set_color_highlight_rgba(terminal, color);
+
+          color = _vte_style_context_get_color(context, "reverse-background-color", &rgba);
+        vte_terminal_set_color_reverse_rgba(terminal, color);
 }
 
 static void
@@ -8271,7 +8302,10 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 
 	/* Reverse cell? */
 	if (cell->attr.reverse) {
-		swap (&fore, &back);
+                if (terminal->pvt->reverse_color_set)
+                        back = VTE_REV_BG;
+                else
+                        swap (&fore, &back);
 	}
 
 	/* Selection: use hightlight back, or inverse */

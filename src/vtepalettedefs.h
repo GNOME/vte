@@ -3146,3 +3146,15 @@ gtk_widget_class_install_style_property
                        GDK_TYPE_RGBA,
                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
+/**
+ * VteTerminal: reverse-background-color
+ *
+ * Since: 0.30
+ */
+
+gtk_widget_class_install_style_property
+  (widget_class,
+   g_param_spec_boxed ("reverse-background-color", NULL, NULL,
+                       GDK_TYPE_RGBA,
+                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+

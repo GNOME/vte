@@ -105,7 +105,8 @@ write_css_property (const char *property_name,
         if (strcmp (property_name, "selection-background-color") == 0 ||
             strcmp (property_name, "bold-foreground-color") == 0 ||
             strcmp (property_name, "dim-foreground-color") == 0 ||
-            strcmp (property_name, "cursor-background-color") == 0)
+            strcmp (property_name, "cursor-background-color") == 0 ||
+            strcmp (property_name, "reverse-background-color") == 0)
                 return;
 
         color_string = gdk_rgba_to_string (color);
@@ -209,6 +210,10 @@ write_properties (PropertyWriteFunc func)
         color.red = color.green = color.blue = .75;
         color.alpha = 1.;
         write_property_va (func, &color, "cursor-background-color");
+
+        color.red = color.green = color.blue = 1.;
+        color.alpha = 1.;
+        write_property_va (func, &color, "reverse-background-color");
 }
 
 int
