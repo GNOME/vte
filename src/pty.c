@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2001,2002 Red Hat, Inc.
- * Copyright © 2009, 2010 Christian Persch
+ * Copyright © 2009, 2010, 2011 Christian Persch
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by
