@@ -21,7 +21,7 @@
  * SECTION: vte-terminal
  * @short_description: A terminal widget implementation
  *
- * A VteTerminal is a terminal emulator implemented as a GTK2 widget.
+ * A VteTerminal is a terminal emulator implemented as a GTK+ widget.
  */
 
 #include <config.h>
