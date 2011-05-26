@@ -23,7 +23,7 @@
 #ifndef VTE_PTY_H
 #define VTE_PTY_H
 
-#include <glib-object.h>
+#include <gio/gio.h>
 
 G_BEGIN_DECLS
 
@@ -89,11 +89,13 @@ typedef struct _VtePtyClass   VtePtyClass;
 
 GType vte_pty_get_type (void);
 
-VtePty *vte_pty_new (VtePtyFlags flags,
-                     GError **error);
+VtePty *vte_pty_new_sync (VtePtyFlags flags,
+                          GCancellable *cancellable,
+                          GError **error);
 
-VtePty *vte_pty_new_foreign (int fd,
-                             GError **error);
+VtePty *vte_pty_new_foreign_sync (int fd,
+                                  GCancellable *cancellable,
+                                  GError **error);
 
 int vte_pty_get_fd (VtePty *pty);
 

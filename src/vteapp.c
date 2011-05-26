@@ -1052,7 +1052,7 @@ main(int argc, char **argv)
 				command = "/bin/sh";
 
 			if (!g_shell_parse_argv(command, &command_argc, &command_argv, &err) ||
-			    !vte_terminal_fork_command_full(terminal,
+			    !vte_terminal_fork_command_sync(terminal,
 							    pty_flags,
 							    NULL,
 							    command_argv,
@@ -1060,6 +1060,7 @@ main(int argc, char **argv)
 							    G_SPAWN_SEARCH_PATH,
 							    NULL, NULL,
 							    &pid,
+                                                            NULL /* cancellable */,
 							    &err)) {
 				g_warning("Failed to fork: %s\n", err->message);
 				g_error_free(err);
@@ -1077,18 +1078,25 @@ main(int argc, char **argv)
 	#endif
 		} else {
                         #ifdef HAVE_FORK
+                        GError *err = NULL;
                         VtePty *pty;
 			pid_t pid;
                         int i;
 
-                        pty = vte_pty_new(VTE_PTY_DEFAULT, NULL);
+                        pty = vte_pty_new_sync(VTE_PTY_DEFAULT, NULL, &err);
+                        if (pty == NULL) {
+                                g_printerr ("Failed to create PTY: %s\n", err->message);
+                                g_error_free(err);
+                                return 1;
+                        }
+
 			pid = fork();
 			switch (pid) {
 			case -1:
                                 g_object_unref(pty);
 				/* abnormal */
 				g_warning("Error in vte_terminal_forkpty(): %s",
-					  strerror(errno));
+					  g_strerror(errno));
 				break;
 			case 0:
 				/* child */

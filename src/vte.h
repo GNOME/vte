@@ -179,14 +179,15 @@ GType vte_terminal_get_type(void);
 
 GtkWidget *vte_terminal_new(void);
 
-VtePty *vte_terminal_pty_new (VteTerminal *terminal,
-                              VtePtyFlags flags,
-                              GError **error);
+VtePty *vte_terminal_pty_new_sync (VteTerminal *terminal,
+                                   VtePtyFlags flags,
+                                   GCancellable *cancellable,
+                                   GError **error);
 
 void vte_terminal_watch_child (VteTerminal *terminal,
                                GPid child_pid);
 
-gboolean vte_terminal_fork_command_full(VteTerminal *terminal,
+gboolean vte_terminal_fork_command_sync(VteTerminal *terminal,
                                         VtePtyFlags pty_flags,
                                         const char *working_directory,
                                         char **argv,
@@ -195,6 +196,7 @@ gboolean vte_terminal_fork_command_full(VteTerminal *terminal,
                                         GSpawnChildSetupFunc child_setup,
                                         gpointer child_setup_data,
                                         GPid *child_pid /* out */,
+                                        GCancellable *cancellable,
                                         GError **error);
 
 /* Send data to the terminal to display, or to the terminal's forked command

@@ -1695,8 +1695,9 @@ vte_pty_error_quark(void)
 }
 
 /**
- * vte_pty_new:
+ * vte_pty_new_sync:
  * @flags: flags from #VtePtyFlags
+ * @cancellable: (allow-none): a #GCancellable, or %NULL
  * @error: (allow-none): return location for a #GError, or %NULL
  *
  * Allocates a new pseudo-terminal.
@@ -1732,19 +1733,21 @@ vte_pty_error_quark(void)
  * Since: 0.26
  */
 VtePty *
-vte_pty_new (VtePtyFlags flags,
-             GError **error)
+vte_pty_new_sync (VtePtyFlags flags,
+                  GCancellable *cancellable,
+                  GError **error)
 {
         return g_initable_new (VTE_TYPE_PTY,
-                               NULL /* cancellable */,
+                               cancellable,
                                error,
                                "flags", flags,
                                NULL);
 }
 
 /**
- * vte_pty_new_foreign:
+ * vte_pty_new_foreign_sync:
  * @fd: (transfer full): a file descriptor to the PTY
+ * @cancellable: (allow-none): a #GCancellable, or %NULL
  * @error: (allow-none): return location for a #GError, or %NULL
  *
  * Creates a new #VtePty for the PTY master @fd.
@@ -1759,13 +1762,14 @@ vte_pty_new (VtePtyFlags flags,
  * Since: 0.26
  */
 VtePty *
-vte_pty_new_foreign (int fd,
-                     GError **error)
+vte_pty_new_foreign_sync (int fd,
+                          GCancellable *cancellable,
+                          GError **error)
 {
         g_return_val_if_fail(fd >= 0, NULL);
 
         return g_initable_new (VTE_TYPE_PTY,
-                               NULL /* cancellable */,
+                               cancellable,
                                error,
                                "fd", fd,
                                NULL);
