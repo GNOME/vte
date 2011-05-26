@@ -2811,7 +2811,7 @@ vte_terminal_child_watch_cb(GPid pid,
 		terminal->pvt->pty_pid = -1;
 
 		/* Close out the PTY. */
-                vte_terminal_set_pty_object(terminal, NULL);
+                vte_terminal_set_pty(terminal, NULL);
 
 		/* Tell observers what's happened. */
 		vte_terminal_emit_child_exited(terminal, status);
@@ -2945,7 +2945,7 @@ vte_terminal_pty_new(VteTerminal *terminal,
  * signal will be called with the child's exit status.
  *
  * Prior to calling this function, a #VtePty must have been set in @terminal
- * using vte_terminal_set_pty_object().
+ * using vte_terminal_set_pty().
  * When the child exits, the terminal's #VtePty will be set to %NULL.
  *
  * Note: g_child_watch_add() or g_child_watch_add_full() must not have
@@ -3089,7 +3089,7 @@ vte_terminal_fork_command_full(VteTerminal *terminal,
                 return FALSE;
         }
 
-        vte_terminal_set_pty_object(terminal, pty);
+        vte_terminal_set_pty(terminal, pty);
         vte_terminal_watch_child(terminal, pid);
         g_object_unref (pty);
 
@@ -3107,7 +3107,7 @@ vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
 
         g_object_freeze_notify(object);
 
-        vte_terminal_set_pty_object(terminal, NULL);
+        vte_terminal_set_pty(terminal, NULL);
 
 	/* Emit a signal that we read an EOF. */
 	vte_terminal_queue_eof(terminal);
@@ -10581,7 +10581,7 @@ vte_terminal_get_property (GObject *object,
                         g_value_set_boolean (value, vte_terminal_get_mouse_autohide (terminal));
                         break;
                 case PROP_PTY_OBJECT:
-                        g_value_set_object (value, vte_terminal_get_pty_object(terminal));
+                        g_value_set_object (value, vte_terminal_get_pty(terminal));
                         break;
                 case PROP_SCROLLBACK_LINES:
                         g_value_set_uint (value, pvt->scrollback_lines);
@@ -10652,7 +10652,7 @@ vte_terminal_set_property (GObject *object,
                         vte_terminal_set_mouse_autohide (terminal, g_value_get_boolean (value));
                         break;
                 case PROP_PTY_OBJECT:
-                        vte_terminal_set_pty_object (terminal, g_value_get_object (value));
+                        vte_terminal_set_pty(terminal, g_value_get_object (value));
                         break;
                 case PROP_SCROLLBACK_LINES:
                         vte_terminal_set_scrollback_lines (terminal, g_value_get_uint (value));
@@ -12466,18 +12466,18 @@ vte_terminal_get_icon_title(VteTerminal *terminal)
 }
 
 /**
- * vte_terminal_set_pty_object:
+ * vte_terminal_set_pty:
  * @terminal: a #VteTerminal
  * @pty: (allow-none): a #VtePty, or %NULL
  *
  * Sets @pty as the PTY to use in @terminal.
  * Use %NULL to unset the PTY.
  *
- * Since: 0.26.
+ * Since: 0.30
  */
 void
-vte_terminal_set_pty_object(VteTerminal *terminal,
-                            VtePty *pty)
+vte_terminal_set_pty(VteTerminal *terminal,
+                     VtePty *pty)
 {
         VteTerminalPrivate *pvt;
         GObject *object;
@@ -12559,17 +12559,17 @@ vte_terminal_set_pty_object(VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_get_pty_object:
+ * vte_terminal_get_pty:
  * @terminal: a #VteTerminal
  *
  * Returns the #VtePty of @terminal.
  *
  * Returns: (transfer none): a #VtePty, or %NULL
  *
- * Since: 0.26
+ * Since: 0.30
  */
 VtePty *
-vte_terminal_get_pty_object(VteTerminal *terminal)
+vte_terminal_get_pty(VteTerminal *terminal)
 {
         g_return_val_if_fail (VTE_IS_TERMINAL (terminal), NULL);
 

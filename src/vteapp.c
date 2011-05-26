@@ -1099,7 +1099,7 @@ main(int argc, char **argv)
 				_exit(0);
 				break;
 			default:
-                                vte_terminal_set_pty_object(terminal, pty);
+                                vte_terminal_set_pty(terminal, pty);
                                 g_object_unref(pty);
                                 vte_terminal_watch_child(terminal, pid);
 				g_print("Child PID is %d (mine is %d).\n",
