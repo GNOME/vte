@@ -430,12 +430,14 @@ take_xconsole_ownership(GtkWidget *widget, gpointer data)
 	char *name, hostname[255];
 	GdkAtom atom;
 	GtkClipboard *clipboard;
-	const GtkTargetEntry targets[] = {
-		{(char*)"UTF8_STRING", 0, 0},
-		{(char*)"COMPOUND_TEXT", 0, 0},
-		{(char*)"TEXT", 0, 0},
-		{(char*)"STRING", 0, 0},
-	};
+        GtkTargetList *target_list;
+        GtkTargetEntry *targets;
+        int n_targets;
+
+        target_list = gtk_target_list_new(NULL, 0);
+        gtk_target_list_add_text_targets(target_list, 0);
+        targets = gtk_target_table_new_from_list (target_list, &n_targets);
+        gtk_target_list_unref(target_list);
 
 	memset(hostname, '\0', sizeof(hostname));
 	gethostname(hostname, sizeof(hostname) - 1);
@@ -448,7 +450,7 @@ take_xconsole_ownership(GtkWidget *widget, gpointer data)
 
 	gtk_clipboard_set_with_owner(clipboard,
 				     targets,
-				     G_N_ELEMENTS(targets),
+				     n_targets,
 				     clipboard_get,
 				     (GtkClipboardClearFunc)gtk_main_quit,
 				     G_OBJECT(widget));
