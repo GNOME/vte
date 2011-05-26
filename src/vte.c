@@ -2902,9 +2902,10 @@ _vte_terminal_disconnect_pty_write(VteTerminal *terminal)
 }
 
 /**
- * vte_terminal_pty_new:
+ * vte_terminal_pty_new_sync:
  * @terminal: a #VteTerminal
  * @flags: flags from #VtePtyFlags
+ * @cancellable: (allow-none): a #GCancellable, or %NULL
  * @error: (allow-none): return location for a #GError, or %NULL
  *
  * Creates a new #VtePty, and sets the emulation property
@@ -2913,12 +2914,14 @@ _vte_terminal_disconnect_pty_write(VteTerminal *terminal)
  * See vte_pty_new() for more information.
  *
  * Returns: (transfer full): a new #VtePty
- * Since: 0.26
+ *
+ * Since: 0.30
  */
 VtePty *
-vte_terminal_pty_new(VteTerminal *terminal,
-                     VtePtyFlags flags,
-                     GError **error)
+vte_terminal_pty_new_sync(VteTerminal *terminal,
+                          VtePtyFlags flags,
+                          GCancellable *cancellable,
+                          GError **error)
 {
         VteTerminalPrivate *pvt;
         VtePty *pty;
@@ -2927,7 +2930,7 @@ vte_terminal_pty_new(VteTerminal *terminal,
 
         pvt = terminal->pvt;
 
-        pty = vte_pty_new(flags, error);
+        pty = vte_pty_new_sync(flags, cancellable, error);
         if (pty == NULL)
                 return NULL;
 
@@ -3018,7 +3021,7 @@ vte_get_user_shell (void)
 }
 
 /**
- * vte_terminal_fork_command_full:
+ * vte_terminal_fork_command_sync:
  * @terminal: a #VteTerminal
  * @pty_flags: flags from #VtePtyFlags
  * @working_directory: (allow-none): the name of a directory the command should start
@@ -3030,6 +3033,7 @@ vte_get_user_shell (void)
  * @child_setup: (allow-none) (scope call): function to run in the child just before exec(), or %NULL
  * @child_setup_data: user data for @child_setup
  * @child_pid: (out) (allow-none) (transfer full): a location to store the child PID, or %NULL
+ * @cancellable: (allow-none): a #GCancellable, or %NULL
  * @error: (allow-none): return location for a #GError, or %NULL
  *
  * Starts the specified command under a newly-allocated controlling
@@ -3048,10 +3052,10 @@ vte_get_user_shell (void)
  *
  * Returns: %TRUE on success, or %FALSE on error with @error filled in
  *
- * Since: 0.26
+ * Since: 0.30
  */
 gboolean
-vte_terminal_fork_command_full(VteTerminal *terminal,
+vte_terminal_fork_command_sync(VteTerminal *terminal,
                                VtePtyFlags pty_flags,
                                const char *working_directory,
                                char **argv,
@@ -3060,6 +3064,7 @@ vte_terminal_fork_command_full(VteTerminal *terminal,
                                GSpawnChildSetupFunc child_setup,
                                gpointer child_setup_data,
                                GPid *child_pid /* out */,
+                               GCancellable *cancellable,
                                GError **error)
 {
         VtePty *pty;
@@ -3070,7 +3075,7 @@ vte_terminal_fork_command_full(VteTerminal *terminal,
         g_return_val_if_fail(child_setup_data == NULL || child_setup, FALSE);
         g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-        pty = vte_pty_new(pty_flags, error);
+        pty = vte_terminal_pty_new_sync(terminal, pty_flags, cancellable, error);
         if (pty == NULL)
                 return FALSE;
 
