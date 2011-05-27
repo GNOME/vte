@@ -111,6 +111,9 @@ G_BEGIN_DECLS
 #define VTE_COLOR_SOURCE_ESCAPE 0
 #define VTE_COLOR_SOURCE_API 1
 
+#define VTE_FONT_SCALE_MIN (.25)
+#define VTE_FONT_SCALE_MAX (4.)
+
 #define I_(string) (g_intern_static_string(string))
 
 typedef enum {
@@ -351,7 +354,9 @@ struct _VteTerminalPrivate {
 
 	/* Data used when rendering the text which does not require server
 	 * resources and which can be kept after unrealizing. */
+        PangoFontDescription *unscaled_font_desc;
 	PangoFontDescription *fontdesc;
+        gdouble font_scale;
 	gboolean fontdirty;
         glong char_ascent;
         glong char_descent;

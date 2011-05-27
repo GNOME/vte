@@ -168,7 +168,8 @@ enum {
         PROP_SCROLL_ON_OUTPUT,
         PROP_WINDOW_TITLE,
         PROP_WORD_CHARS,
-        PROP_VISIBLE_BELL
+        PROP_VISIBLE_BELL,
+        PROP_FONT_SCALE
 };
 
 /* these static variables are guarded by the GDK mutex */
@@ -7512,8 +7513,38 @@ vte_terminal_ensure_font (VteTerminal *terminal)
 	}
 }
 
-/**
- * vte_terminal_set_font:
+static void
+vte_terminal_update_font(VteTerminal *terminal)
+{
+        VteTerminalPrivate *pvt = terminal->pvt;
+        PangoFontDescription *desc;
+        gdouble size;
+
+        desc = pango_font_description_copy(pvt->unscaled_font_desc);
+
+        size = pango_font_description_get_size(desc);
+        if (pango_font_description_get_size_is_absolute(desc)) {
+                pango_font_description_set_absolute_size(desc, pvt->font_scale * size);
+        } else {
+                pango_font_description_set_size(desc, pvt->font_scale * size);
+        }
+
+        if (pvt->fontdesc) {
+                pango_font_description_free(pvt->fontdesc);
+        }
+        pvt->fontdesc = desc;
+
+        pvt->fontdirty = TRUE;
+        pvt->has_fonts = TRUE;
+
+        /* Set the drawing font. */
+        if (gtk_widget_get_realized (&terminal->widget)) {
+                vte_terminal_ensure_font (terminal);
+        }
+}
+
+/*
+ * _vte_terminal_set_font:
  * @terminal: a #VteTerminal
  * @font_desc: (allow-none): a #PangoFontDescription for the desired font, or %NULL
  *
@@ -7559,58 +7590,29 @@ vte_terminal_set_font(VteTerminal *terminal,
 				"Using default monospace font.\n");
 	}
 
-        same_desc = pvt->fontdesc && pango_font_description_equal (pvt->fontdesc, desc);
-	
+        same_desc = pvt->unscaled_font_desc &&
+                    pango_font_description_equal (pvt->unscaled_font_desc, desc);
+
 	/* Note that we proceed to recreating the font even if the description
 	 * are the same.  This is because maybe screen
 	 * font options were changed, or new fonts installed.  Those will be
 	 * detected at font creation time and respected.
 	 */
 
-        g_object_freeze_notify(object);
-
 	/* Free the old font description and save the new one. */
-	if (terminal->pvt->fontdesc != NULL) {
-		pango_font_description_free(terminal->pvt->fontdesc);
+	if (terminal->pvt->unscaled_font_desc != NULL) {
+		pango_font_description_free(terminal->pvt->unscaled_font_desc);
 	}
-	pvt->fontdesc = desc;
-	pvt->fontdirty = TRUE;
-	pvt->has_fonts = TRUE;
+
+        terminal->pvt->unscaled_font_desc = desc /* adopted */;
+
+        vte_terminal_update_font(terminal);
 
         if (!same_desc)
                 g_object_notify(object, "font-desc");
-
-	/* Set the drawing font. */
-	if (gtk_widget_get_realized (&terminal->widget)) {
-		vte_terminal_ensure_font (terminal);
-	}
-
-        g_object_thaw_notify(object);
 }
 
-/**
- * vte_terminal_set_font_from_string:
- * @terminal: a #VteTerminal
- * @name: (type utf8): a pango font description in string form
- *
- * A convenience function which converts @name into a #PangoFontDescription and
- * passes it to vte_terminal_set_font().
- */
-void
-vte_terminal_set_font_from_string(VteTerminal *terminal,
-                                  const char *name)
-{
-	PangoFontDescription *font_desc = NULL;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(name != NULL);
-
-	if (name)
-                font_desc = pango_font_description_from_string(name);
-	vte_terminal_set_font(terminal, font_desc);
-	pango_font_description_free(font_desc);
-}
-
-/**
+ /**
  * vte_terminal_get_font:
  * @terminal: a #VteTerminal
  *
@@ -7623,8 +7625,47 @@ vte_terminal_set_font_from_string(VteTerminal *terminal,
 const PangoFontDescription *
 vte_terminal_get_font(VteTerminal *terminal)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return terminal->pvt->fontdesc;
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+
+        return terminal->pvt->unscaled_font_desc;
+}
+
+/**
+ * vte_terminal_set_font_scale:
+ * @terminal: a #VteTerminal
+ * @scale: the font scale
+ *
+ * Sets the terminal's font scale to @scale.
+ *
+ * Since: 0.30
+ */
+void
+vte_terminal_set_font_scale(VteTerminal *terminal,
+                            gdouble scale)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(scale >= VTE_FONT_SCALE_MIN && scale <= VTE_FONT_SCALE_MAX);
+
+        terminal->pvt->font_scale = CLAMP(scale, VTE_FONT_SCALE_MIN, VTE_FONT_SCALE_MAX);
+        vte_terminal_update_font(terminal);
+
+        g_object_notify(G_OBJECT(terminal), "font-scale");
+}
+
+/**
+ * vte_terminal_get_font_scale:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: the terminal's font scale
+ *
+ * Since: 0.30
+ */
+gdouble
+vte_terminal_get_font_scale(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 1.);
+
+        return terminal->pvt->font_scale;
 }
 
 /* Read and refresh our perception of the size of the PTY. */
@@ -8216,6 +8257,8 @@ vte_terminal_init(VteTerminal *terminal)
         pvt->background_alpha = 1.;
 
 	pvt->selection_block_mode = FALSE;
+        pvt->unscaled_font_desc = pvt->fontdesc = NULL;
+        pvt->font_scale = 1.;
 	pvt->has_fonts = FALSE;
 
         pvt->alternate_screen_scroll = TRUE;
@@ -8528,6 +8571,7 @@ vte_terminal_finalize(GObject *object)
 {
     	GtkWidget *widget = GTK_WIDGET (object);
     	VteTerminal *terminal = VTE_TERMINAL (object);
+        VteTerminalPrivate *pvt = terminal->pvt;
 	GtkClipboard *clipboard;
         GtkSettings *settings;
 	struct vte_match_regex *regex;
@@ -8544,6 +8588,9 @@ vte_terminal_finalize(GObject *object)
 	_vte_iso2022_state_free(terminal->pvt->iso2022);
 
 	/* Free the font description. */
+        if (pvt->unscaled_font_desc != NULL) {
+                pango_font_description_free(pvt->unscaled_font_desc);
+        }
 	if (terminal->pvt->fontdesc != NULL) {
 		pango_font_description_free(terminal->pvt->fontdesc);
 	}
@@ -10761,6 +10808,9 @@ vte_terminal_get_property (GObject *object,
                 case PROP_VISIBLE_BELL:
                         g_value_set_boolean (value, vte_terminal_get_visible_bell (terminal));
                         break;
+                case PROP_FONT_SCALE:
+                        g_value_set_double (value, vte_terminal_get_font_scale (terminal));
+                        break;
 
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -10846,6 +10896,9 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_VISIBLE_BELL:
                         vte_terminal_set_visible_bell (terminal, g_value_get_boolean (value));
+                        break;
+                case PROP_FONT_SCALE:
+                        vte_terminal_set_font_scale (terminal, g_value_get_double (value));
                         break;
 
                 /* Not writable */
@@ -11619,7 +11672,23 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_string ("emulation", NULL, NULL,
                                       VTE_DEFAULT_EMULATION,
                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-     
+
+        /**
+         * VteTerminal:font-scale:
+         *
+         * The terminal's font scale.
+         *
+         * Since: 0.30
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_AUDIBLE_BELL,
+                 g_param_spec_double ("font-scale", NULL, NULL,
+                                      VTE_FONT_SCALE_MIN,
+                                      VTE_FONT_SCALE_MAX,
+                                      1.,
+                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
         /**
          * VteTerminal:encoding:
          *

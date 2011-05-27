@@ -91,6 +91,9 @@ struct _VteTerminalClass {
 	void (*resize_window)(VteTerminal* terminal, guint width, guint height);
 	void (*move_window)(VteTerminal* terminal, guint x, guint y);
 
+        /* FIXMEchpe: should these return gboolean and have defaul thandlers
+         * settings the "scale" property?
+         */
 	void (*increase_font_size)(VteTerminal* terminal);
 	void (*decrease_font_size)(VteTerminal* terminal);
 
@@ -220,6 +223,10 @@ void vte_terminal_select_none(VteTerminal *terminal);
 void vte_terminal_set_size(VteTerminal *terminal,
 			   glong columns, glong rows);
 
+void vte_terminal_set_font_scale(VteTerminal *terminal,
+                                 gdouble scale);
+gdouble vte_terminal_get_font_scale(VteTerminal *terminal);
+
 /* Set various on-off settings. */
 void vte_terminal_set_audible_bell(VteTerminal *terminal, gboolean is_audible);
 gboolean vte_terminal_get_audible_bell(VteTerminal *terminal);
@@ -270,7 +277,6 @@ void vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines);
 /* Set or retrieve the current font. */
 void vte_terminal_set_font(VteTerminal *terminal,
 			   const PangoFontDescription *font_desc);
-void vte_terminal_set_font_from_string(VteTerminal *terminal, const char *name);
 const PangoFontDescription *vte_terminal_get_font(VteTerminal *terminal);
 void vte_terminal_set_allow_bold(VteTerminal *terminal, gboolean allow_bold);
 gboolean vte_terminal_get_allow_bold(VteTerminal *terminal);
