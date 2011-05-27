@@ -2344,102 +2344,6 @@ _vte_terminal_set_color_background_rgba(VteTerminal *terminal,
         vte_terminal_set_color_internal(terminal, VTE_DEF_BG, rgba, FALSE);
 }
 
-/*
- * _vte_terminal_set_color_cursor_rgba:
- * @terminal: a #VteTerminal
- * @cursor_background: (allow-none): the new color to use for the text cursor, or %NULL
- * @override: whether to override the style
- *
- * Sets the background color for text which is under the cursor.  If %NULL, the color
- * will be taken from the style, or, if unset there, text under the cursor will be drawn
- * with foreground and background colors reversed.
- *
- * Since: 0.28
- */
-void
-_vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
-                                    const GdkRGBA *rgba,
-                                    gboolean override)
-{
-        VteTerminalPrivate *pvt = terminal->pvt;
-
-        if (!override && VTE_PALETTE_HAS_OVERRIDE(pvt->palette_set, VTE_CUR_BG)) {
-                _vte_debug_print(VTE_DEBUG_STYLE,
-                                 "Have cursor color override; not setting new color.\n");
-                return;
-        }
-
-        if (rgba != NULL) {
-                _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_STYLE,
-                                 "Set cursor color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
-                                 rgba->red, rgba->green, rgba->blue, rgba->alpha);
-                vte_terminal_set_color_internal(terminal, VTE_CUR_BG, rgba, override);
-                terminal->pvt->cursor_color_set = TRUE;
-        } else {
-                _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_STYLE,
-                                "Cleared cursor color.\n");
-                _vte_invalidate_cursor_once(terminal, FALSE);
-                terminal->pvt->cursor_color_set = FALSE;
-        }
-}
-
-/*
- * _vte_terminal_set_color_reverse_rgba:
- * @terminal: a #VteTerminal
- * @reverse_background: (allow-none): the new color to use for the text reverse, or %NULL
- * @override: whether to override the style
- *
- * Sets the background color for text which is under the reverse.  If %NULL, the color
- * will be taken from the style, or, if unset there, text under the reverse will be drawn
- * with foreground and background colors reversed.
- */
-static void
-vte_terminal_set_color_reverse_rgba(VteTerminal *terminal,
-                                    const GdkRGBA *rgba)
-{
-        if (rgba != NULL) {
-                _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_STYLE,
-                                 "Set reverse color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
-                                 rgba->red, rgba->green, rgba->blue, rgba->alpha);
-                vte_terminal_set_color_internal(terminal, VTE_REV_BG, rgba, FALSE);
-                terminal->pvt->reverse_color_set = TRUE;
-        } else {
-                _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_STYLE,
-                                "Cleared reverse color.\n");
-                _vte_invalidate_all(terminal);
-                terminal->pvt->reverse_color_set = FALSE;
-        }
-}
-
-/*
- *_ vte_terminal_set_color_highlight_rgba:
- * @terminal: a #VteTerminal
- * @highlight_background: (allow-none): the new color to use for highlighted text, or %NULL
- *
- * Sets the background color for text which is highlighted.  If %NULL,
- * highlighted text (which is usually highlighted because it is selected) will
- * be drawn with foreground and background colors reversed.
- *
- * Since: 0.28
- */
-static void
-_vte_terminal_set_color_highlight_rgba(VteTerminal *terminal,
-                                       const GdkRGBA *rgba)
-{
-        if (rgba != NULL) {
-                _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_STYLE,
-                                "Set highlight color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
-                                rgba->red, rgba->green, rgba->blue, rgba->alpha);
-                vte_terminal_set_color_internal(terminal, VTE_DEF_HL, rgba, FALSE);
-                terminal->pvt->highlight_color_set = TRUE;
-        } else {
-                _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_STYLE,
-                                "Cleared highlight color.\n");
-                _vte_invalidate_all(terminal);
-                terminal->pvt->highlight_color_set = FALSE;
-        }
-}
-
 /* Cleanup smart-tabs.  See vte_sequence_handler_ta() */
 void
 _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
@@ -4113,7 +4017,57 @@ vte_terminal_set_padding(VteTerminal *terminal)
         gtk_widget_queue_resize(widget);
 }
 
-/**
+/*
+ * _vte_terminal_set_effect_color:
+ * @terminal: a #VteTerminal
+ * @entry: the entry in the colour palette
+ * @rgba:
+ * @effect:
+ * @override: whether to override an application-set colour
+ *
+ * Sets the entry for @entry in the terminal colour palette
+ * to the given colour.
+ *
+ * If the colour was previously set by the terminal application
+ * and @override is %FALSE, does nothing.
+ */
+void
+_vte_terminal_set_effect_color(VteTerminal *terminal,
+                               int entry,
+                               const GdkRGBA *rgba,
+                               VteTerminalEffect effect,
+                               gboolean override)
+{
+        VteTerminalPrivate *pvt = terminal->pvt;
+        gboolean has_override, color_set;
+
+        has_override = VTE_PALETTE_HAS_OVERRIDE(pvt->palette_set, entry);
+        if (has_override && !override) {
+                _vte_debug_print(VTE_DEBUG_STYLE,
+                                 "Have color override for %d; not setting new color.\n",
+                                 entry);
+                return;
+        }
+
+        g_assert (rgba != NULL);
+
+        vte_terminal_set_color_internal(terminal, entry, rgba, override);
+
+        color_set = (effect == VTE_TERMINAL_EFFECT_COLOR);
+        switch (entry) {
+        case VTE_CUR_BG:
+                pvt->cursor_color_set = color_set;
+                break;
+        case VTE_DEF_HL:
+                pvt->highlight_color_set = color_set;
+                break;
+        case VTE_REV_BG:
+                pvt->reverse_color_set = color_set;
+                break;
+        }
+}
+
+/*
  * _vte_gtk_style_context_lookup_color:
  * @context:
  * @color_name:
@@ -4167,6 +4121,7 @@ vte_terminal_update_style_colors(VteTerminal *terminal,
         const GdkRGBA *color;
         int i;
         char name[64];
+        int cursor_effect, reverse_effect, selection_effect;
 
         context = gtk_widget_get_style_context(&terminal->widget);
 
@@ -4212,20 +4167,26 @@ vte_terminal_update_style_colors(VteTerminal *terminal,
 
         /* Now the extra colours */
 
-        color = _vte_style_context_get_color(context, "cursor-background-color", &rgba);
-        _vte_terminal_set_color_cursor_rgba(terminal, color, override);
-
         color = _vte_style_context_get_color(context, "bold-foreground-color", &rgba);
         _vte_terminal_set_color_bold_rgba(terminal, color);
 
           color = _vte_style_context_get_color(context, "dim-foreground-color", &rgba);
         _vte_terminal_set_color_dim_rgba(terminal, color);
 
-        color = _vte_style_context_get_color(context, "selection-background-color", &rgba);
-        _vte_terminal_set_color_highlight_rgba(terminal, color);
+        gtk_widget_style_get(&terminal->widget,
+                             "cursor-effect", &cursor_effect,
+                             "reverse-effect", &reverse_effect,
+                             "selection-effect", &selection_effect,
+                             NULL);
+
+        color = _vte_style_context_get_color(context, "cursor-background-color", &rgba);
+        _vte_terminal_set_effect_color(terminal, VTE_CUR_BG, color, cursor_effect, override);
 
           color = _vte_style_context_get_color(context, "reverse-background-color", &rgba);
-        vte_terminal_set_color_reverse_rgba(terminal, color);
+        _vte_terminal_set_effect_color(terminal, VTE_REV_BG, color, reverse_effect, override);
+
+        color = _vte_style_context_get_color(context, "selection-background-color", &rgba);
+        _vte_terminal_set_effect_color(terminal, VTE_DEF_HL, color, selection_effect, override);
 }
 
 static void
@@ -11600,6 +11561,60 @@ vte_terminal_class_init(VteTerminalClass *klass)
         /* Colours */
 
 #include "vtepalettedefs.h"
+
+        /**
+         * VteTerminal:cursor-effect:
+         *
+         * Controls how the terminal will draw the cursor.
+         *
+         * If set to %VTE_TERMINAL_EFFECT_COLOR, the cursor is drawn
+         * with the background color from the #VteTerminal:cursor-background-color
+         * style property.
+         *
+         * Since: 0.30
+         */
+        gtk_widget_class_install_style_property
+                (widget_class,
+                 g_param_spec_enum ("cursor-effect", NULL, NULL,
+                                    VTE_TYPE_TERMINAL_EFFECT,
+                                    VTE_TERMINAL_EFFECT_REVERSE,
+                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+        /**
+         * VteTerminal:reverse-effect:
+         *
+         * Controls how the terminal will draw reversed text.
+         *
+         * If set to %VTE_TERMINAL_EFFECT_COLOR, reversed text is drawn
+         * with the background color from the #VteTerminal:reverse-background-color
+         * style property.
+         *
+         * Since: 0.30
+         */
+        gtk_widget_class_install_style_property
+                (widget_class,
+                 g_param_spec_enum ("reverse-effect", NULL, NULL,
+                                    VTE_TYPE_TERMINAL_EFFECT,
+                                    VTE_TERMINAL_EFFECT_REVERSE,
+                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+        /**
+         * VteTerminal:selection-effect:
+         *
+         * Controls how the terminal will draw selected text.
+         *
+         * If set to %VTE_TERMINAL_EFFECT_COLOR, selected text is drawn
+         * with the background color from the #VteTerminal:selection-background-color
+         * style property.
+         *
+         * Since: 0.30
+         */
+        gtk_widget_class_install_style_property
+                (widget_class,
+                 g_param_spec_enum ("selection-effect", NULL, NULL,
+                                    VTE_TYPE_TERMINAL_EFFECT,
+                                    VTE_TERMINAL_EFFECT_REVERSE,
+                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /* Keybindings */
 	binding_set = gtk_binding_set_by_class(klass);

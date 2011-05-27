@@ -121,11 +121,8 @@ write_css_property (const char *property_name,
 {
         char *color_string;
 
-        if (strcmp (property_name, "selection-background-color") == 0 ||
-            strcmp (property_name, "bold-foreground-color") == 0 ||
-            strcmp (property_name, "dim-foreground-color") == 0 ||
-            strcmp (property_name, "cursor-background-color") == 0 ||
-            strcmp (property_name, "reverse-background-color") == 0)
+        if (strcmp (property_name, "bold-foreground-color") == 0 ||
+            strcmp (property_name, "dim-foreground-color") == 0)
                 return;
 
         color_string = gdk_rgba_to_string (color);

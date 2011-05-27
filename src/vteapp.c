@@ -797,12 +797,14 @@ main(int argc, char **argv)
                 g_free(background);
         }
         if (cursor_color_string) {
-                g_string_append_printf (css_string, "-VteTerminal-cursor-background-color: %s;\n",
+                g_string_append_printf (css_string, "-VteTerminal-cursor-background-color: %s;\n"
+                                                    "-VteTerminal-cursor-effect: color;\n",
                                         cursor_color_string);
                 g_free(cursor_color_string);
         }
         if (selection_background_color_string) {
-                g_string_append_printf (css_string, "-VteTerminal-selection-background-color: %s;\n",
+                g_string_append_printf (css_string, "-VteTerminal-selection-background-color: %s;\n"
+                                                    "-VteTerminal-selection-effect: color;\n",
                                         selection_background_color_string);
                 g_free(selection_background_color_string);
         }

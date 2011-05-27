@@ -159,6 +159,18 @@ typedef enum {
         VTE_CURSOR_SHAPE_UNDERLINE
 } VteTerminalCursorShape;
 
+/**
+ * VteTerminalEffect:
+ * @VTE_TERMINAL_EFFECT_REVERSE: Text is draw with foreground and background color reversed.
+ * @VTE_TERMINAL_EFFECT_COLOR: Text is drawn with the background color from the corresponding style property.
+ *
+ * Since: 0.30
+ */
+typedef enum {
+        VTE_TERMINAL_EFFECT_REVERSE,
+        VTE_TERMINAL_EFFECT_COLOR
+} VteTerminalEffect;
+
 /* The structure we return as the supplemental attributes for strings. */
 typedef struct _VteCharAttributes VteCharAttributes;
 struct _VteCharAttributes {

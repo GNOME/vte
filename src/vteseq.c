@@ -3291,7 +3291,8 @@ vte_sequence_handler_change_cursor_color (VteTerminal *terminal, GValueArray *pa
 			return;
 
 		if (vte_parse_color (name, &color))
-			_vte_terminal_set_color_cursor_rgba (terminal, &color, TRUE);
+			_vte_terminal_set_effect_color(terminal, VTE_CUR_BG, &color,
+                                                       VTE_TERMINAL_EFFECT_COLOR, TRUE);
 		else if (strcmp (name, "?") == 0) {
 			gchar buf[128];
 			g_snprintf (buf, sizeof (buf),

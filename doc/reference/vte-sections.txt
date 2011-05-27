@@ -4,6 +4,7 @@
 VteTerminal
 VteTerminalCursorBlinkMode
 VteTerminalCursorShape
+VteTerminalEffect
 VteTerminalEraseBinding
 VteTerminalWriteFlags
 VteSelectionFunc
@@ -74,6 +75,8 @@ VTE_TYPE_TERMINAL_CURSOR_BLINK_MODE
 vte_terminal_cursor_blink_mode_get_type
 VTE_TYPE_TERMINAL_CURSOR_SHAPE
 vte_terminal_cursor_shape_get_type
+VTE_TYPE_TERMINAL_EFFECT
+vte_terminal_effect_get_type
 VTE_TYPE_TERMINAL_ERASE_BINDING
 vte_terminal_erase_binding_get_type
 VTE_TYPE_TERMINAL_WRITE_FLAGS
