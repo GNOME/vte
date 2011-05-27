@@ -91,6 +91,9 @@ G_BEGIN_DECLS
 
 #define VTE_UTF8_BPC                    (6) /* Maximum number of bytes used per UTF-8 character */
 
+#define VTE_SCALE_MIN                   (.25)
+#define VTE_SCALE_MAX                   (4.)
+
 #define I_(string) (g_intern_static_string(string))
 
 typedef enum {
@@ -323,7 +326,9 @@ struct _VteTerminalPrivate {
 
 	/* Data used when rendering the text which does not require server
 	 * resources and which can be kept after unrealizing. */
+        PangoFontDescription *unscaled_font_desc;
 	PangoFontDescription *fontdesc;
+        gdouble font_scale;
 	gboolean fontdirty;
         glong char_ascent;
         glong char_descent;

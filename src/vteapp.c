@@ -344,14 +344,12 @@ move_window(GtkWidget *widget, guint x, guint y, gpointer data)
 	}
 }
 
-#if 0
 static void
-adjust_font_size(GtkWidget *widget, gpointer data, gint howmuch)
+adjust_font_size(GtkWidget *widget, gpointer data, gdouble factor)
 {
 	VteTerminal *terminal;
-	PangoFontDescription *desired;
+        gdouble scale;
         glong char_width, char_height;
-	gint newsize;
 	gint columns, rows, owidth, oheight;
 
 	/* Read the screen dimensions in cells. */
@@ -366,12 +364,8 @@ adjust_font_size(GtkWidget *widget, gpointer data, gint howmuch)
 	owidth -= char_width * columns;
 	oheight -= char_height * rows;
 
-	/* Calculate the new font size. */
-        gtk_widget_style_get(&terminal->widget, "font", &desired, NULL);
-	newsize = pango_font_description_get_size(desired) / PANGO_SCALE;
-	newsize += howmuch;
-	pango_font_description_set_size(desired,
-					CLAMP(newsize, 4, 144) * PANGO_SCALE);
+	scale = vte_terminal_get_font_scale(terminal);
+        vte_terminal_set_font_scale(terminal, scale * factor);
 
 	/* Change the font, then resize the window so that we have the same
 	 * number of rows and columns. */
@@ -383,22 +377,19 @@ adjust_font_size(GtkWidget *widget, gpointer data, gint howmuch)
 	gtk_window_resize(GTK_WINDOW(data),
 			  columns * char_width + owidth,
 			  rows * char_height + oheight);
-
-	pango_font_description_free(desired);
 }
 
 static void
 increase_font_size(GtkWidget *widget, gpointer data)
 {
-	adjust_font_size(widget, data, 1);
+	adjust_font_size(widget, data, 1.2);
 }
 
 static void
 decrease_font_size(GtkWidget *widget, gpointer data)
 {
-	adjust_font_size(widget, data, -1);
+	adjust_font_size(widget, data, 1. / 1.2);
 }
-#endif
 
 static gboolean
 read_and_feed(GIOChannel *source, GIOCondition condition, gpointer data)
@@ -885,7 +876,7 @@ main(int argc, char **argv)
 	/* Create the terminal widget and add it to the scrolling shell. */
 	widget = vte_terminal_new();
 	terminal = VTE_TERMINAL (widget);
-	if (!dbuffer) {
+        if (!dbuffer) {
 		gtk_widget_set_double_buffered(widget, dbuffer);
 	}
 	if (show_object_notifications)
@@ -943,13 +934,11 @@ main(int argc, char **argv)
 	g_signal_connect(widget, "move-window",
 			 G_CALLBACK(move_window), window);
 
-#if 0
 	/* Connect to font tweakage. */
 	g_signal_connect(widget, "increase-font-size",
 			 G_CALLBACK(increase_font_size), window);
 	g_signal_connect(widget, "decrease-font-size",
 			 G_CALLBACK(decrease_font_size), window);
-#endif
 
 	if (!use_scrolled_window) {
 		/* Create the scrollbar for the widget. */
