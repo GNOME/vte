@@ -336,6 +336,7 @@ struct _VteTerminalPrivate {
 	 * when realizing. */
 	struct _vte_draw *draw;
 
+        gboolean reverse;
 	gboolean highlight_color_set;
 	gboolean cursor_color_set;
         gboolean reverse_color_set;

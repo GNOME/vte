@@ -4267,7 +4267,7 @@ vte_terminal_update_style(VteTerminal *terminal)
 {
         VteTerminalPrivate *pvt = terminal->pvt;
         GtkWidget *widget = &terminal->widget;
-        gboolean allow_bold, scroll_background;
+        gboolean allow_bold, scroll_background, reverse;
         PangoFontDescription *font_desc;
 
         vte_terminal_set_padding(terminal);
@@ -4279,6 +4279,7 @@ vte_terminal_update_style(VteTerminal *terminal)
                              "allow-bold", &allow_bold,
                              "scroll-background", &scroll_background,
                              "font", &font_desc,
+                             "reverse", &reverse,
                              NULL);
 
         vte_terminal_set_font(terminal, font_desc /* adopted */);
@@ -4286,6 +4287,12 @@ vte_terminal_update_style(VteTerminal *terminal)
         if (allow_bold != pvt->allow_bold) {
                 pvt->allow_bold = allow_bold;
                 _vte_invalidate_all (terminal);
+        }
+
+        if (reverse != pvt->reverse) {
+                pvt->reverse = reverse;
+
+                _vte_invalidate_all(terminal);
         }
 
         if (scroll_background != pvt->scroll_background) {
@@ -7621,6 +7628,9 @@ vte_terminal_init(VteTerminal *terminal)
         pvt->cursor_blinks = FALSE;
         pvt->cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
 
+        /* Style properties */
+        pvt->reverse = FALSE;
+
 	/* Matching data. */
 	pvt->match_regexes = g_array_new(FALSE, TRUE,
 					 sizeof(struct vte_match_regex));
@@ -8236,7 +8246,7 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	back = cell->attr.back;
 
 	/* Reverse-mode switches default fore and back colors */
-	if (G_UNLIKELY (terminal->pvt->screen->reverse_mode)) {
+	if (G_UNLIKELY (terminal->pvt->screen->reverse_mode ^ terminal->pvt->reverse)) {
 		if (fore == VTE_DEF_FG)
 			fore = VTE_DEF_BG;
 		if (back == VTE_DEF_BG)
@@ -11555,6 +11565,26 @@ vte_terminal_class_init(VteTerminalClass *klass)
         gtk_widget_class_install_style_property
                 (widget_class,
                  g_param_spec_boolean ("scroll-background", NULL, NULL,
+                                       FALSE,
+                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+
+        /**
+         * VteTerminal:reverse:
+         *
+         * In reverse mode, the terminal draws everything with foreground and
+         * background colours reversed.
+         *
+         * This is a global setting; the terminal application can still
+         * set reverse mode explicitly. In case both this style property and
+         * the application select reverse mode, the terminal draws in
+         * non-reverse mode.
+         *
+         * Since: 0.30
+         */
+        gtk_widget_class_install_style_property
+                (widget_class,
+                 g_param_spec_boolean ("reverse", NULL, NULL,
                                        FALSE,
                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 

@@ -826,6 +826,9 @@ main(int argc, char **argv)
         if (scroll) {
                 g_string_append (css_string, "-VteTerminal-scroll-background: true;\n");
         }
+        if (reverse) {
+                g_string_append (css_string, "-VteTerminal-reverse: true;\n");
+        }
         g_string_append (css_string, "}\n");
 
         if (css_string->len > 14) {
