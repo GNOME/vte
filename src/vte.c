@@ -2250,101 +2250,6 @@ vte_terminal_generate_bold(const GdkRGBA *foreground,
 			bold->red, bold->green, bold->blue, bold->alpha);
 }
 
-/*
- * _vte_terminal_set_color_bold_rgba:
- * @terminal: a #VteTerminal
- * @bold: (allow-none): the new bold color or %NULL
- *
- * Sets the color used to draw bold text in the default foreground color.
- * If @bold is %NULL then the default color is used.
- */
-static void
-_vte_terminal_set_color_bold_rgba(VteTerminal *terminal,
-                                  const GdkRGBA *rgba)
-{
-        GdkRGBA mixed;
-
-	if (rgba == NULL) {
-		vte_terminal_generate_bold(&terminal->pvt->palette[VTE_DEF_FG],
-					   &terminal->pvt->palette[VTE_DEF_BG],
-					   1.8,
-					   &mixed);
-                rgba = &mixed;
-	}
-
-        _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_STYLE,
-                        "Set bold color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
-                        rgba->red, rgba->green, rgba->blue, rgba->alpha);
-        vte_terminal_set_color_internal(terminal, VTE_BOLD_FG, rgba, FALSE);
-}
-
-/*
- * _vte_terminal_set_color_dim_rgba:
- * @terminal: a #VteTerminal
- * @dim: (allow-none): the new dim color or %NULL
- *
- * Sets the color used to draw dim text in the default foreground color.
- * If @dim is %NULL then the default color is used.
- */
-static void
-_vte_terminal_set_color_dim_rgba(VteTerminal *terminal,
-                                 const GdkRGBA *rgba)
-{
-        GdkRGBA mixed;
-
-        if (rgba == NULL) {
-                vte_terminal_generate_bold(&terminal->pvt->palette[VTE_DEF_FG],
-                                           &terminal->pvt->palette[VTE_DEF_BG],
-                                           0.5,
-                                           &mixed);
-                rgba = &mixed;
-        }
-
-        _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_STYLE,
-                        "Set dim color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
-                        rgba->red, rgba->green, rgba->blue, rgba->alpha);
-        vte_terminal_set_color_internal(terminal, VTE_DIM_FG, rgba, FALSE);
-}
-
-/*
- * _vte_terminal_set_color_foreground_rgba:
- * @terminal: a #VteTerminal
- * @foreground: the new foreground color
- *
- * Sets the foreground color used to draw normal text.
- */
-static void
-_vte_terminal_set_color_foreground_rgba(VteTerminal *terminal,
-                                        const GdkRGBA *rgba)
-{
-        g_return_if_fail(rgba != NULL);
-
-        _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_STYLE,
-                        "Set foreground color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
-                        rgba->red, rgba->green, rgba->blue, rgba->alpha);
-        vte_terminal_set_color_internal(terminal, VTE_DEF_FG, rgba, FALSE);
-}
-
-/*
- * _vte_terminal_set_color_background_rgba:
- * @terminal: a #VteTerminal
- * @background: the new background color
- *
- * Sets the background color for text which does not have a specific background
- * color assigned.  Only has effect when no background image is set.
- */
-static void
-_vte_terminal_set_color_background_rgba(VteTerminal *terminal,
-                                        const GdkRGBA *rgba)
-{
-        g_return_if_fail(rgba != NULL);
-
-        _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_STYLE,
-                        "Set background color to rgba(%.3f,%.3f,%.3f,%.3f).\n",
-                        rgba->red, rgba->green, rgba->blue, rgba->alpha);
-        vte_terminal_set_color_internal(terminal, VTE_DEF_BG, rgba, FALSE);
-}
-
 /* Cleanup smart-tabs.  See vte_sequence_handler_ta() */
 void
 _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
@@ -4069,6 +3974,38 @@ _vte_terminal_set_effect_color(VteTerminal *terminal,
 }
 
 /*
+ * vte_terminal_set_mixed_color:
+ * @terminal: a #VteTerminal
+ * @entry: the entry in the colour palette
+ * @color: (allow-none): the new dim color or %NULL
+ * @factor:
+ * @override:
+ *
+ * Sets the entry in the terminal colour palette to @color, or
+ * if @color is %NULL, generates  a colour from the foreground and
+ * background color.
+ */
+static void
+vte_terminal_set_mixed_color(VteTerminal *terminal,
+                             int entry,
+                             const GdkRGBA *rgba,
+                             gdouble factor,
+                             gboolean override)
+{
+        GdkRGBA mixed;
+
+        if (rgba == NULL) {
+                vte_terminal_generate_bold(&terminal->pvt->palette[VTE_DEF_FG],
+                                           &terminal->pvt->palette[VTE_DEF_BG],
+                                           factor,
+                                           &mixed);
+                rgba = &mixed;
+        }
+
+        vte_terminal_set_color_internal(terminal, entry, rgba, override);
+}
+
+/*
  * _vte_gtk_style_context_lookup_color:
  * @context:
  * @color_name:
@@ -4130,9 +4067,9 @@ vte_terminal_update_style_colors(VteTerminal *terminal,
          * may be defined in terms of these.
          */
         color = _vte_style_context_get_color(context, "foreground-color", &rgba);
-        _vte_terminal_set_color_foreground_rgba(terminal, color);
+        vte_terminal_set_color_internal(terminal, VTE_DEF_FG, color, FALSE);
         color = _vte_style_context_get_color(context, "background-color", &rgba);
-        _vte_terminal_set_color_background_rgba(terminal, color);
+        vte_terminal_set_color_internal(terminal, VTE_DEF_BG, color, FALSE);
 
         /* The 256 colour palette */
 
@@ -4169,10 +4106,10 @@ vte_terminal_update_style_colors(VteTerminal *terminal,
         /* Now the extra colours */
 
         color = _vte_style_context_get_color(context, "bold-foreground-color", &rgba);
-        _vte_terminal_set_color_bold_rgba(terminal, color);
+        vte_terminal_set_mixed_color(terminal, VTE_BOLD_FG, color, 1.8, override);
 
-          color = _vte_style_context_get_color(context, "dim-foreground-color", &rgba);
-        _vte_terminal_set_color_dim_rgba(terminal, color);
+        color = _vte_style_context_get_color(context, "dim-foreground-color", &rgba);
+        vte_terminal_set_mixed_color(terminal, VTE_DIM_FG, color, 0.5, override);
 
         gtk_widget_style_get(&terminal->widget,
                              "cursor-effect", &cursor_effect,
