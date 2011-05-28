@@ -174,6 +174,15 @@ typedef enum {
         VTE_TERMINAL_EFFECT_COLOR
 } VteTerminalEffect;
 
+/**
+ * VTE_STYLE_CLASS_TERMINAL:
+ *
+ * A CSS class to match terminals.
+ *
+ * Since: 0.30
+ */
+#define VTE_STYLE_CLASS_TERMINAL "terminal"
+
 /* The structure we return as the supplemental attributes for strings. */
 typedef struct _VteCharAttributes VteCharAttributes;
 struct _VteCharAttributes {

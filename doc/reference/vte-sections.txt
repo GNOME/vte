@@ -62,6 +62,9 @@ vte_terminal_search_set_gregex
 vte_terminal_search_set_wrap_around
 
 <SUBSECTION>
+VTE_STYLE_CLASS_TERMINAL
+
+<SUBSECTION>
 vte_get_default_emulation
 vte_get_user_shell
 

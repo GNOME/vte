@@ -7521,6 +7521,7 @@ static void
 vte_terminal_init(VteTerminal *terminal)
 {
 	VteTerminalPrivate *pvt;
+        GtkStyleContext *context;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_init()\n");
 
@@ -7659,9 +7660,11 @@ vte_terminal_init(VteTerminal *terminal)
 	/* gtk_widget_get_accessible(&terminal->widget); */
 #endif
 
-        gtk_style_context_add_provider (gtk_widget_get_style_context (&terminal->widget),
+        context = gtk_widget_get_style_context (&terminal->widget);
+        gtk_style_context_add_provider (context,
                                         VTE_TERMINAL_GET_CLASS (terminal)->priv->style_provider,
                                         GTK_STYLE_PROVIDER_PRIORITY_FALLBACK);
+        gtk_style_context_add_class (context, VTE_STYLE_CLASS_TERMINAL);
 
         vte_terminal_update_style (terminal);
 }
