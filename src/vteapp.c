@@ -1159,11 +1159,11 @@ main(int argc, char **argv)
 			pid = fork();
 			switch (pid) {
 			case -1:
-                                g_object_unref(pty);
 				/* abnormal */
-				g_warning("Error in vte_terminal_forkpty(): %s",
+				g_warning("Error forking: %s",
 					  g_strerror(errno));
-				break;
+                                g_object_unref(pty);
+                                break;
 			case 0:
 				/* child */
                                 vte_pty_child_setup(pty);
