@@ -486,6 +486,40 @@ terminal_notify_cb(GObject *object,
   g_value_unset(&value);
 }
 
+/* Derived terminal class */
+
+typedef struct _VteappTerminal      VteappTerminal;
+typedef struct _VteappTerminalClass VteappTerminalClass;
+
+struct _VteappTerminalClass {
+        VteTerminalClass parent_class;
+};
+struct _VteappTerminal {
+        VteTerminal parent_instance;
+};
+
+static GType vteapp_terminal_get_type(void);
+
+G_DEFINE_TYPE(VteappTerminal, vteapp_terminal, VTE_TYPE_TERMINAL)
+
+static void
+vteapp_terminal_class_init(VteappTerminalClass *klass)
+{
+}
+
+static void
+vteapp_terminal_init(VteappTerminal *terminal)
+{
+}
+
+static GtkWidget *
+vteapp_terminal_new(void)
+{
+        return g_object_new(vteapp_terminal_get_type(), NULL);
+}
+
+/* Command line options */
+
 static int
 parse_enum(GType type,
 	   const char *string)
@@ -910,7 +944,7 @@ main(int argc, char **argv)
 	}
 
 	/* Create the terminal widget and add it to the scrolling shell. */
-	widget = vte_terminal_new();
+	widget = vteapp_terminal_new();
 	terminal = VTE_TERMINAL (widget);
         if (!dbuffer) {
 		gtk_widget_set_double_buffered(widget, dbuffer);
