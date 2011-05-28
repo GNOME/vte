@@ -1119,12 +1119,6 @@ main(int argc, char **argv)
 			}
 
 			g_strfreev(command_argv);
-	#ifdef VTE_DEBUG
-			if (command == NULL) {
-				vte_terminal_feed_child(terminal,
-							"pwd\n", -1);
-			}
-	#endif
 		} else {
                         #ifdef HAVE_FORK
                         GError *err = NULL;
