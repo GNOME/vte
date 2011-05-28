@@ -36,7 +36,13 @@
 #include <glib/gi18n.h>
 
 #define DINGUS1 "(((gopher|news|telnet|nntp|file|http|ftp|https)://)|(www|ftp)[-A-Za-z0-9]*\\.)[-A-Za-z0-9\\.]+(:[0-9]*)?"
-#define DINGUS2 "(((gopher|news|telnet|nntp|file|http|ftp|https)://)|(www|ftp)[-A-Za-z0-9]*\\.)[-A-Za-z0-9\\.]+(:[0-9]*)?/[-A-Za-z0-9_\\$\\.\\+\\!\\*\\(\\),;:@&=\\?/~\\#\\%]*[^]'\\.}>\\) ,\\\"]"
+#define DINGUS2 DINGUS1 "/[-A-Za-z0-9_\\$\\.\\+\\!\\*\\(\\),;:@&=\\?/~\\#\\%]*[^]'\\.}>\\) ,\\\"]"
+
+static const char *builtin_dingus[] = {
+  DINGUS1,
+  DINGUS2,
+  NULL
+};
 
 static void
 window_title_changed(GtkWidget *widget, gpointer win)
@@ -542,6 +548,31 @@ parse_color (const gchar *value,
         return TRUE;
 }
 
+static void
+add_dingus (VteTerminal *terminal,
+            char **dingus)
+{
+        const GdkCursorType cursors[] = { GDK_GUMBY, GDK_HAND1 };
+        GRegex *regex;
+        GError *error;
+        int id, i;
+
+        for (i = 0; dingus[i]; ++i) {
+                error = NULL;
+                if (!(regex = g_regex_new(dingus[i], G_REGEX_OPTIMIZE, 0, &error))) {
+                        g_warning("Failed to compile regex '%s': %s\n",
+                                  dingus[i], error->message);
+                        g_error_free(error);
+                        continue;
+                }
+
+                id = vte_terminal_match_add_gregex(terminal, regex, 0);
+                g_regex_unref (regex);
+                vte_terminal_match_set_cursor_type(terminal, id,
+                                                   cursors[i % G_N_ELEMENTS(cursors)]);
+        }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -558,7 +589,7 @@ main(int argc, char **argv)
         char *encoding = NULL;
         char *cjk_ambiguous_width = NULL;
 	gboolean audible = TRUE,
-		 debug = FALSE, dingus = FALSE, dbuffer = TRUE,
+		 debug = FALSE, no_builtin_dingus = FALSE, dbuffer = TRUE,
 		 console = FALSE, keep = FALSE,
                 icon_title = FALSE, shell = TRUE,
 		 reverse = FALSE, use_geometry_hints = TRUE,
@@ -580,6 +611,7 @@ main(int argc, char **argv)
         char *cursor_color_string = NULL;
         char *highlight_foreground_color_string = NULL;
         char *highlight_background_color_string = NULL;
+        char **dingus = NULL;
 	GdkRGBA fore, back;
 	const GOptionEntry options[]={
 		{
@@ -587,10 +619,15 @@ main(int argc, char **argv)
 			G_OPTION_ARG_NONE, &console,
 			"Watch /dev/console", NULL
 		},
+                {
+                        "no-builtin-dingus", 0, G_OPTION_FLAG_REVERSE,
+                        G_OPTION_ARG_NONE, &no_builtin_dingus,
+                        "Highlight URLs inside the terminal", NULL
+                },
 		{
-			"dingus", 'D', 0,
-			G_OPTION_ARG_NONE, &dingus,
-			"Highlight URLs inside the terminal", NULL
+			"dingu", 'D', 0,
+			G_OPTION_ARG_STRING_ARRAY, &dingus,
+			"Add regex highlight", NULL
 		},
 		{
 			"no-rewrap", 'R', G_OPTION_FLAG_REVERSE,
@@ -973,20 +1010,13 @@ main(int argc, char **argv)
         }
 
 	/* Match "abcdefg". */
-	if (dingus) {
-		int id;
-		GRegex *regex;
-		regex = g_regex_new (DINGUS1, 0, 0, NULL);
-		id = vte_terminal_match_add_gregex(terminal, regex, 0);
-		g_regex_unref (regex);
-		vte_terminal_match_set_cursor_type(terminal,
-						   id, GDK_GUMBY);
-		regex = g_regex_new (DINGUS2, 0, 0, NULL);
-		id = vte_terminal_match_add_gregex(terminal, regex, 0);
-		g_regex_unref (regex);
-		vte_terminal_match_set_cursor_type(terminal,
-						   id, GDK_HAND1);
+	if (!no_builtin_dingus) {
+                add_dingus (terminal, (char **) builtin_dingus);
 	}
+	if (dingus) {
+                add_dingus (terminal, dingus);
+                g_strfreev (dingus);
+        }
 
 	if (console) {
 		/* Open a "console" connection. */
