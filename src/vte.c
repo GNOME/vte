@@ -7636,6 +7636,7 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Matching data. */
 	pvt->match_regexes = g_array_new(FALSE, TRUE,
 					 sizeof(struct vte_match_regex));
+        pvt->match_tag = -1;
 	vte_terminal_match_hilite_clear(terminal);
 
 	/* Rendering data.  Try everything. */
