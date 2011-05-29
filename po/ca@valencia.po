@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte 0.11.6\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-10-29 21:49+0100\n"
+"POT-Creation-Date: 2011-05-29 19:12+0200\n"
 "PO-Revision-Date: 2010-08-22 10:11+0200\n"
 "Last-Translator: Jordi Mallach <jordi@sindominio.net>\n"
 "Language-Team: Catalan <tradgnome@softcatala.org>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #: ../src/iso2022.c:779 ../src/iso2022.c:787 ../src/iso2022.c:818
-#: ../src/vte.c:2278
+#: ../src/vte.c:2279
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "No es pot convertir el caràcter %s a %s."
@@ -47,36 +47,36 @@ msgstr "Duplicat (%s/%s)!"
 msgid "Could not open console.\n"
 msgstr "No s'ha pogut obrir la consola.\n"
 
-#: ../src/vteapp.c:1074
+#: ../src/vteapp.c:1077
 msgid "Could not parse the geometry spec passed to --geometry"
 msgstr ""
 "No s'ha pogut analitzar l'especificació geomètrica indicada a --geometry"
 
-#: ../src/vte.c:1304
+#: ../src/vte.c:1305
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "S'ha produït un error en compilar l'expressió regular «%s»."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4387
+#: ../src/vte.c:4593
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "S'ha produït un error en llegir del fill: %s."
 
-#: ../src/vte.c:4514
+#: ../src/vte.c:4720
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
 "No s'ha pogut enviar les dades al fill, el convertidor de codificació no és "
 "vàlid"
 
-#: ../src/vte.c:4525 ../src/vte.c:5562
+#: ../src/vte.c:4731 ../src/vte.c:5793
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "S'ha produït un error (%s) en convertir dades per al fill; s'ometrà la "
 "conversió."
 
-#: ../src/vte.c:7756
+#: ../src/vte.c:7978
 #, c-format
 msgid "Error reading PTY size, using defaults: %s\n"
 msgstr ""
@@ -84,7 +84,7 @@ msgstr ""
 "defecte: %s\n"
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:13551
+#: ../src/vte.c:13796
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() no ha pogut establir els caràcters de paraula"
 
