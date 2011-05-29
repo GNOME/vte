@@ -1111,7 +1111,7 @@ main(int argc, char **argv)
 				command = "/bin/sh";
 
 			if (!g_shell_parse_argv(command, &command_argc, &command_argv, &err) ||
-			    !vte_terminal_fork_command_sync(terminal,
+			    !vte_terminal_spawn_sync(terminal,
 							    pty_flags,
 							    NULL,
 							    command_argv,

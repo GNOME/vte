@@ -3475,7 +3475,7 @@ vte_get_user_shell (void)
 }
 
 /**
- * vte_terminal_fork_command_sync:
+ * vte_terminal_spawn_sync:
  * @terminal: a #VteTerminal
  * @pty_flags: flags from #VtePtyFlags
  * @working_directory: (allow-none): the name of a directory the command should start
@@ -3509,7 +3509,7 @@ vte_get_user_shell (void)
  * Since: 0.30
  */
 gboolean
-vte_terminal_fork_command_sync(VteTerminal *terminal,
+vte_terminal_spawn_sync(VteTerminal *terminal,
                                VtePtyFlags pty_flags,
                                const char *working_directory,
                                char **argv,
