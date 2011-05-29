@@ -1,0 +1,470 @@
+<?xml version="1.0"?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+               "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
+<!ENTITY version SYSTEM "version.xml">
+]>
+<chapter id="migration-0-30">
+  <!--
+    Copyright © 2011 Christian Persch
+
+    Permission is granted to copy, distribute and/or modify this document
+    under the terms of the GNU Free Documentation License, Version 1.2
+    or (at your option) any later version published by the Free Software Foundation;
+    with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+
+    A copy of the license is included in the COPYING.DOC file.
+    -->
+  <title>Migrating to VTE 0.30</title>
+
+  <para>
+    VTE 0.30 breaks API and ABI from ealier versions. This chapter details
+    the changes you need to make to your programme to adapt.
+  </para>
+
+  <para>
+    VTE now requires GTK+ 3.0; GTK+ 2.0 is no longer supported.
+  </para>
+
+  <section>
+    <title>Build system</title>
+
+    <para>
+      The VTE pkg-config file was renamed to <literal>vte-2.92.pc</literal>. Use
+        <programlisting>
+          PKG_CHECK_MODULES([VTE],[vte-2.92 >= 0.30])
+        </programlisting>
+      in <literal>configure.ac</literal>.
+    </para>
+  </section>
+
+  <section>
+    <title>Include headers</title>
+
+    <para>
+      All public VTE functions are exported from the
+      <filename>vte/vte.h</filename> include header; this is
+      the only VTE header that you can include directly.
+    </para>
+  </section>
+
+  <section>
+    <title>Public struct members</title>
+
+    <para>
+      Direct access to struct members has been removed, so you need to use
+      their accessor functions instead, or the corresponding object property.
+    </para>
+
+    <table>
+      <tgroup cols="3">
+        <title>VteTerminal struct member accessors</title>
+        <thead>
+          <row>
+            <entry>struct member</entry>
+            <entry>Accessor function</entry>
+            <entry>Object property</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>char_width</entry>
+            <entry>
+              <link linkend="vte-terminal-get-char-width">vte_terminal_get_char_width</link>
+            </entry>
+            <entry />
+          </row>
+          <row>
+            <entry>char_height</entry>
+            <entry>
+              <link linkend="vte-terminal-get-char-height">vte_terminal_get_char_height</link>
+            </entry>
+            <entry />
+          </row>
+          <row>
+            <entry>char_ascent</entry>
+            <entry />
+            <entry />
+          </row>
+          <row>
+            <entry>char_descent</entry>
+            <entry />
+            <entry />
+          </row>
+          <row>
+            <entry>row_count</entry>
+            <entry>
+              <link linkend="vte-terminal-get-row-count">vte_terminal_get_row_count</link>
+            </entry>
+            <entry />
+          </row>
+          <row>
+            <entry>column_count</entry>
+            <entry>
+              <link linkend="vte-terminal-get-column-count">vte_terminal_get_column_count</link>
+            </entry>
+            <entry />
+          </row>
+          <row>
+            <entry>window_title</entry>
+            <entry>
+              <link linkend="vte-terminal-get-window-title">vte_terminal_get_window_title</link>
+            </entry>
+            <entry>
+              <link linkend="VteTerminal--window-title">window-title</link>
+            </entry>
+          </row>
+          <row>
+            <entry>icon_title</entry>
+            <entry>
+              <link linkend="vte-terminal-get-icon-title">vte_terminal_get_icon_title</link>
+            </entry>
+            <entry>
+              <link linkend="VteTerminal--icon-title">icon-title</link>
+            </entry>
+          </row>
+          <row>
+            <entry>adjustment</entry>
+            <entry>
+              <link linkend="gtk-scrollable-get-vadjustment">gtk_scrollable_get_vadjustment</link>
+            </entry>
+            <entry>
+              <link linkend="GtkScrollable--vadjustment">vadjustment</link>
+            </entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+
+    <para>
+      All struct members of <link linkend="VteTerminalClass">VteTerminalClass</link> are now private.
+      Instead of using the signal IDs formerly provided there, either use
+      <link linkend="g-signal-query">g_signal_query</link>, or just
+      connect signals handlers by name with <link linkend="g-signal-connect">g_signal_connect</link>.
+    </para>
+  </section>
+
+  <section>
+    <title>Deprecated, removed and renamed functions and objects</title>
+
+    <para>
+      Some functions were marked as deprecated in earlier VTE versions; they have been
+      removed in VTE 0.30. You need to replace their use with their replacement functions
+      as indicated below, or write your own code.
+    </para>
+
+    <para>
+      Other functions have been renamed, and may also have had their argument list change.
+      Consult the documentation for the new functions for more information.
+    </para>
+
+    <para>
+      Some other functions and object properties that have been removed have been replaced
+      by style properties; see the <link linkend="migrating-0-30-style">section below</link>
+      for more information.
+    </para>
+
+    <table>
+      <tgroup cols="2">
+        <title>Non-style function replacements</title>
+        <thead>
+          <row>
+            <entry>Deprecated function</entry>
+            <entry>Replacement</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>vte_terminal_get_using_xft</entry>
+            <entry>No replacement</entry>
+          </row>
+          <row>
+            <entry>vte_terminal_get_char_ascent</entry>
+            <entry>No replacement</entry>
+          </row>
+          <row>
+            <entry>vte_terminal_get_char_descent</entry>
+            <entry>No replacement</entry>
+          </row>
+          <row>
+            <entry>vte_terminal_get_padding</entry>
+            <entry>
+              <link linkend="gtk-style-context-get-padding">gtk_style_context_get_padding</link>
+            </entry>
+          </row>
+          <row>
+            <entry>vte_terminal_set_cursor_blinks</entry>
+            <entry>
+              Use the new <link linkend="VteTerminal--cursor-blink-mode">cursor-blink-mode</link> style property.
+            </entry>
+          </row>
+          <row>
+            <entry>vte_terminal_get_adjustment</entry>
+            <entry>
+              <link linkend="gtk-scrollable-get-vadjustment">gtk_scrollable_get_vadjustment</link>
+            </entry>
+          </row>
+          <row>
+            <entry>vte_terminal_forkpty</entry>
+            <entry>
+              Use <link linkend="vte-pty-new-sync">vte_pty_new_sync</link>, <literal>fork(2)</literal>
+              with <link linkend="vte-pty-child-setup">vte_pty_child_setup</link> in the child, and then
+              <link linkend="vte-terminal-set-pty">vte_terminal_set_pty</link>.
+            </entry>
+          </row>
+          <row>
+            <entry>vte_terminal_fork_command_full</entry>
+            <entry>
+              Renamed to <link linkend="vte-terminal-fork-command-sync">vte_terminal_fork_command_sync</link>
+            </entry>
+          </row>
+          <row>
+            <entry>vte_terminal_get_pty_object</entry>
+            <entry>
+              Renamed to <link linkend="vte-terminal-get-pty">vte_terminal_get_pty</link>.
+            </entry>
+          </row>
+          <row>
+            <entry>vte_terminal_set_pty_object</entry>
+            <entry>
+              Renamed to <link linkend="vte-terminal-set-pty">vte_terminal_set_pty</link>.
+            </entry>
+          </row>
+          <row>
+            <entry>vte_terminal_set_default_color</entry>
+            <entry>
+              Reset the corresponding <link linkend="VteTerminal.style-properties">style properties</link>.
+            </entry>
+          </row>
+          <row>
+            <entry>vte_terminal_get_pty</entry>
+            <entry>
+              Use <link linkend="vte-pty-get-fd">vte_pty_get_fd</link> on the object returned from
+              <link linkend="vte-terminal-get-pty">vte_terminal_get_pty</link>.
+            </entry>
+          </row>
+          <row>
+            <entry>vte_terminal_set_pty</entry>
+            <entry>
+              Use <link linkend="vte-pty-new-sync">vte_pty_new_sync</link> or
+              <link linkend="vte-pty-new-foreign-sync">vte_pty_new_foreign_sync</link>
+              together with <link linkend="vte-terminal-set-pty">vte_terminal_set_pty</link>.
+            </entry>
+          </row>
+          <row>
+            <entry>vte_terminal_get_default_emulation</entry>
+            <entry>
+              Renamed to <link linkend="vte-get-default-emulation">vte_get_default_emulation</link>
+            </entry>
+          </row>
+          <row>
+            <entry>vte_terminal_get_child_exit_status</entry>
+            <entry>
+              The child exit status is now carried by the
+              <link linkend="VteTerminal-child-exited">child-exited</link> signal.
+            </entry>
+          </row>
+          <row>
+            <entry>vte_terminal_pty_new</entry>
+            <entry>
+              Renamed to <link linkend="vte-terminal-pty-new-sync">vte_terminal_pty_new_sync</link>.
+            </entry>
+          </row>
+          <row>
+            <entry>vte_pty_new</entry>
+            <entry>
+              Renamed to <link linkend="vte-pty-new-sync">vte_pty_new_sync</link>.
+            </entry>
+          </row>
+          <row>
+            <entry>vte_pty_new_foreign</entry>
+            <entry>
+              Renamed to <link linkend="vte-pty-new-foreign-sync">vte_pty_new_foreign_sync</link>.
+            </entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+
+    <para>
+      The VteReaper object has been removed. You can replace its use by
+      <link linkend="vte-terminal-watch-child">vte_terminal_watch_child</link>
+      (which is called by
+      <link linkend="vte-terminal-fork-command-sync">vte_terminal_fork_command_sync</link>)
+      and then listening to the <link linkend="VteTerminal-child-exited">child-exited</link>
+      signal. Alternatively, you can use <link linkend="g-child-watch-add">g_child_watch_add</link>
+      directly.
+    </para>
+
+    <para>
+      The VteAccess object is no longer public. It is still available internally to
+      provide the VteTerminal accessible implementation; use
+      <link linkend="gtk-widget-get-accessible">gtk_widget_get_accessible</link>
+      to get it.
+    </para>
+
+  </section>
+
+  <section>
+    <title>Signal changes</title>
+
+    <para>
+      Some <link linkend="VteTerminal.signals">VteTerminal signals</link> have changed
+      their argument list, or their behaviour.
+    </para>
+
+    <table>
+      <tgroup cols="2">
+        <title>Signal changes</title>
+        <thead>
+          <row>
+            <entry>Signal name</entry>
+            <entry>Change</entry>
+            <entry>Remark</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>
+              <link linkend="VteTerminal-child-exited">child-exited</link>
+            </entry>
+            <entry>Callback signature</entry>
+            <entry>
+              The child's exit status is now passed to the signal handler.
+            </entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+  </section>
+
+  <section>
+    <title>Style properties</title>
+
+    <para>
+      VTE 0.30 uses GTK+ style properties extensively. A number of former
+      <link linkend="VteTerminal">VteTerminal</link> object properties, as well as
+      their public accessor functions, have been replaced by style properties.
+    </para>
+
+    <table>
+      <tgroup cols="3">
+        <title>Style replacements</title>
+        <thead>
+          <row>
+            <entry>Former accessor function</entry>
+            <entry>Former object property</entry>
+            <entry>Style property</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>vte_terminal_get_padding</entry>
+            <entry>inner-border</entry>
+            <entry>
+              <link linkend="GtkStyleContext--padding">padding</link>
+            </entry>
+          </row>
+          <row>
+            <entry>vte_terminal_set_font</entry>
+            <entry>font-desc</entry>
+            <entry>
+              <link linkend="VteTerminal--font">font</link>
+            </entry>
+          </row>
+          <row>
+            <entry>
+              vte_terminal_set_background_tint_color,
+              vte_terminal_set_background_tint_color_rgba
+            </entry>
+            <entry></entry>
+            <entry>
+              <link linkend="VteTerminal--background-pattern">background-pattern</link>
+            </entry>
+          </row>
+          <row>
+            <entry>vte_terminal_set_allow_bold</entry>
+            <entry>allow-bold</entry>
+            <entry>
+              <link linkend="VteTerminal--allow-bold">allow-bold</link>
+            </entry>
+          </row>
+          <row>
+            <entry>vte_terminal_set_cursor_blink_mode</entry>
+            <entry>
+            </entry>
+            <entry>
+              <link linkend="VteTerminal--cursor-blink-mode">cursor-blink-mode</link>
+            </entry>
+          </row>
+          <row>
+            <entry>vte_terminal_set_cursor_shape</entry>
+            <entry></entry>
+            <entry>
+              <link linkend="VteTerminal--cursor-shape">cursor-shape</link>
+            </entry>
+          </row>
+          <row>
+            <entry>vte_terminal_set_scroll_background</entry>
+            <entry>scroll-background</entry>
+            <entry>
+              <link linkend="VteTerminal--scroll-background">scroll-background</link>
+            </entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+
+    <para>
+      All colours are now taken from
+      <link linkend="VteTerminal.style-properties">style properties</link>.
+      This replaces the
+      vte_terminal_set_colors,
+      vte_terminal_set_default_color,
+      vte_terminal_set_color_foreground,
+      vte_terminal_set_color_background,
+      vte_terminal_set_color_dim,
+      vte_terminal_set_color_bold,
+      vte_terminal_set_color_cursor, and
+      vte_terminal_set_color_highlight
+      functions, as well as their <link linkend="GdkRGBA">GdkRGBA</link> variants
+      that were added in VTE 0.28.
+      Note further that in order for the cursor, reverse and selection background
+      colours to apply instead of the default effect which is to reverse the foreground and
+      background of the text, you must also set the
+      <link linkend="VteTerminal--cursor-effect">cursor-effect</link>,
+      <link linkend="VteTerminal--cursor-effect">reverse-effect</link>
+      or <link linkend="VteTerminal--cursor-effect">selection-effect</link> style property to
+      <literal>VTE_TERMINAL_EFFECT_COLOR</literal>.
+    </para>
+
+    <para>
+      All background handling has been replaced by the
+      <link linkend="VteTerminal--background-pattern">background-pattern</link>
+      style property. This replaces the
+      vte_terminal_set_background_tint_color,
+      vte_terminal_set_background_tint_color_rgba,
+      vte_terminal_set_background_saturation,
+      vte_terminal_set_background_transparent,
+      vte_terminal_set_background_image,
+      vte_terminal_set_background_image_file and
+      vte_terminal_set_opacity
+      functions. Note that in order to make the background appear, you also need
+      to set the alpha component in the palette colours to a value less than <literal>1.0</literal>.
+    </para>
+
+    <para>
+      All font handling has been replaced by the
+      <link linkend="VteTerminal--font">font</link> style property.
+      This replaces the
+      vte_terminal_set_font,
+      vte_terminal_set_font_full,
+      vte_terminal_set_font_from_string, and
+      vte_terminal_set_font_from_string_full
+      functions, and the font-desc object property.
+      Note that if you just want to change the font scale, there is a new
+      <link linkend="VteTerminal--font-scale">font-scale</link> object property
+      that you can set instead of changing the font.
+    </para>
+  </section>
+
+</chapter>

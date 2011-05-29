@@ -63,6 +63,8 @@
     </chapter>
   </part>
 
+  <xi:include href="migration-0-30.xml"><xi:fallback /></xi:include>
+
   <chapter id="object-hierarchy">
   <title>Object Hierarchy</title>
     <xi:include href="xml/tree_index.sgml"/>
