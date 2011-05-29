@@ -214,7 +214,7 @@
           <row>
             <entry>vte_terminal_fork_command_full</entry>
             <entry>
-              Renamed to <link linkend="vte-terminal-fork-command-sync">vte_terminal_fork_command_sync</link>
+              Renamed to <link linkend="vte-terminal-spawn-sync">vte_terminal_spawn_sync</link>
             </entry>
           </row>
           <row>
@@ -289,7 +289,7 @@
       The VteReaper object has been removed. You can replace its use by
       <link linkend="vte-terminal-watch-child">vte_terminal_watch_child</link>
       (which is called by
-      <link linkend="vte-terminal-fork-command-sync">vte_terminal_fork_command_sync</link>)
+      <link linkend="vte-terminal-spawn-sync">vte_terminal_spawn_sync</link>)
       and then listening to the <link linkend="VteTerminal-child-exited">child-exited</link>
       signal. Alternatively, you can use <link linkend="g-child-watch-add">g_child_watch_add</link>
       directly.

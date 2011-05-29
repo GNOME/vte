@@ -210,17 +210,17 @@ VtePty *vte_terminal_pty_new_sync (VteTerminal *terminal,
 void vte_terminal_watch_child (VteTerminal *terminal,
                                GPid child_pid);
 
-gboolean vte_terminal_fork_command_sync(VteTerminal *terminal,
-                                        VtePtyFlags pty_flags,
-                                        const char *working_directory,
-                                        char **argv,
-                                        char **envv,
-                                        GSpawnFlags spawn_flags,
-                                        GSpawnChildSetupFunc child_setup,
-                                        gpointer child_setup_data,
-                                        GPid *child_pid /* out */,
-                                        GCancellable *cancellable,
-                                        GError **error);
+gboolean vte_terminal_spawn_sync(VteTerminal *terminal,
+                                 VtePtyFlags pty_flags,
+                                 const char *working_directory,
+                                 char **argv,
+                                 char **envv,
+                                 GSpawnFlags spawn_flags,
+                                 GSpawnChildSetupFunc child_setup,
+                                 gpointer child_setup_data,
+                                 GPid *child_pid /* out */,
+                                 GCancellable *cancellable,
+                                 GError **error);
 
 /* Send data to the terminal to display, or to the terminal's forked command
  * to handle in some way.  If it's 'cat', they should be the same. */
