@@ -952,7 +952,6 @@ vte_terminal_emit_increase_font_size(VteTerminal *terminal)
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `increase-font-size'.\n");
 	g_signal_emit_by_name(terminal, "increase-font-size");
-        g_object_notify(G_OBJECT(terminal), "font-scale");
 }
 
 /* Emit a "decrease-font-size" signal. */
@@ -962,7 +961,6 @@ vte_terminal_emit_decrease_font_size(VteTerminal *terminal)
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `decrease-font-size'.\n");
 	g_signal_emit_by_name(terminal, "decrease-font-size");
-        g_object_notify(G_OBJECT(terminal), "font-scale");
 }
 
 /* Emit a "text-inserted" signal. */
