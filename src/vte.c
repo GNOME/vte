@@ -1192,14 +1192,16 @@ vte_terminal_set_cursor_from_regex_match(VteTerminal *terminal, struct vte_match
 }
 
 /**
- * vte_terminal_match_clear_all:
+ * vte_terminal_match_remove_all:
  * @terminal: a #VteTerminal
  *
  * Clears the list of regular expressions the terminal uses to highlight text
  * when the user moves the mouse cursor.
+ *
+ * Since: 0.30
  */
 void
-vte_terminal_match_clear_all(VteTerminal *terminal)
+vte_terminal_match_remove_all(VteTerminal *terminal)
 {
 	struct vte_match_regex *regex;
 	guint i;
