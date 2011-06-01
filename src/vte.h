@@ -309,8 +309,6 @@ char *vte_terminal_get_text_range(VteTerminal *terminal,
 				  GArray *attributes);
 void vte_terminal_get_cursor_position(VteTerminal *terminal,
 				      glong *column, glong *row);
-/* Display string matching:  clear all matching expressions. */
-void vte_terminal_match_clear_all(VteTerminal *terminal);
 
 /* Add a matching expression, returning the tag the widget assigns to that
  * expression. */
@@ -322,8 +320,8 @@ void vte_terminal_match_set_cursor_type(VteTerminal *terminal,
 					int tag, GdkCursorType cursor_type);
 void vte_terminal_match_set_cursor_name(VteTerminal *terminal,
 					int tag, const char *cursor_name);
-/* Remove a matching expression by tag. */
 void vte_terminal_match_remove(VteTerminal *terminal, int tag);
+void vte_terminal_match_remove_all(VteTerminal *terminal);
 
 /* Check if a given cell on the screen contains part of a matched string.  If
  * it does, return the string, and store the match tag in the optional tag

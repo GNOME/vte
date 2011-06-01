@@ -236,6 +236,12 @@
             </entry>
           </row>
           <row>
+            <entry>vte_terminal_match_clear_all</entry>
+            <entry>
+              Renamed to <link linkend="vte-terminal-match-remove-all">vte_terminal_match_remove_all</link>
+            </entry>
+          </row>
+          <row>
             <entry>vte_terminal_get_pty</entry>
             <entry>
               Use <link linkend="vte-pty-get-fd">vte_pty_get_fd</link> on the object returned from
