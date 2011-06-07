@@ -38,7 +38,7 @@ struct _VteConv {
 	convert_func convert;
 	gint (*close)(GIConv converter);
 	gboolean in_unichar, out_unichar;
-	VteBuffer *in_scratch, *out_scratch;
+	VteByteArray *in_scratch, *out_scratch;
 };
 
 /* We can't use g_utf8_strlen as that's not nul-safe :( */
@@ -192,8 +192,8 @@ _vte_conv_open(const char *target, const char *source)
 	ret->out_unichar = out_unichar;
 
 	/* Create scratch buffers. */
-	ret->in_scratch = _vte_buffer_new();
-	ret->out_scratch = _vte_buffer_new();
+	ret->in_scratch = _vte_byte_array_new();
+	ret->out_scratch = _vte_byte_array_new();
 
 	return ret;
 }
@@ -211,8 +211,8 @@ _vte_conv_close(VteConv converter)
 	}
 
 	/* Free the scratch buffers. */
-	_vte_buffer_free(converter->in_scratch);
-	_vte_buffer_free(converter->out_scratch);
+	_vte_byte_array_free(converter->in_scratch);
+	_vte_byte_array_free(converter->out_scratch);
 
 	/* Free the structure itself. */
 	g_slice_free(struct _VteConv, converter);
@@ -248,7 +248,7 @@ _vte_conv(VteConv converter,
 		gunichar *g;
 		/* Make sure the scratch buffer has enough space. */
 		char_count = *inbytes_left / sizeof(gunichar);
-		_vte_buffer_set_minimum_size(converter->in_scratch,
+		_vte_byte_array_set_minimum_size(converter->in_scratch,
 					     (char_count + 1) * VTE_UTF8_BPC);
 		/* Convert the incoming text. */
 		g = (gunichar*) *inbuf;
@@ -267,7 +267,7 @@ _vte_conv(VteConv converter,
 	/* Possibly set the output pointers to point at our scratch buffer. */
 	if (converter->out_unichar) {
 		work_outbytes = *outbytes_left * VTE_UTF8_BPC;
-		_vte_buffer_set_minimum_size(converter->out_scratch,
+		_vte_byte_array_set_minimum_size(converter->out_scratch,
 					     work_outbytes);
 		work_outbuf_start = converter->out_scratch->data;
 		work_outbuf_working = work_outbuf_start;

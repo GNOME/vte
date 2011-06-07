@@ -1967,11 +1967,11 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	terminal->pvt->encoding = g_intern_string(codeset);
 
 	/* Convert any buffered output bytes. */
-	if ((_vte_buffer_length(terminal->pvt->outgoing) > 0) &&
+	if ((_vte_byte_array_length(terminal->pvt->outgoing) > 0) &&
 	    (old_codeset != NULL)) {
 		/* Convert back to UTF-8. */
 		obuf1 = g_convert((gchar *)terminal->pvt->outgoing->data,
-				  _vte_buffer_length(terminal->pvt->outgoing),
+				  _vte_byte_array_length(terminal->pvt->outgoing),
 				  "UTF-8",
 				  old_codeset,
 				  NULL,
@@ -1987,8 +1987,8 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 					  &bytes_written,
 					  NULL);
 			if (obuf2 != NULL) {
-				_vte_buffer_clear(terminal->pvt->outgoing);
-				_vte_buffer_append(terminal->pvt->outgoing,
+				_vte_byte_array_clear(terminal->pvt->outgoing);
+				_vte_byte_array_append(terminal->pvt->outgoing,
 						   obuf2, bytes_written);
 				g_free(obuf2);
 			}
@@ -3627,7 +3627,7 @@ vte_terminal_io_write(GIOChannel *channel,
 	fd = g_io_channel_unix_get_fd(channel);
 
 	count = write(fd, terminal->pvt->outgoing->data,
-		      _vte_buffer_length(terminal->pvt->outgoing));
+		      _vte_byte_array_length(terminal->pvt->outgoing));
 	if (count != -1) {
 		_VTE_DEBUG_IF (VTE_DEBUG_IO) {
 			gssize i;
@@ -3640,10 +3640,10 @@ vte_terminal_io_write(GIOChannel *channel,
 					((guint8)terminal->pvt->outgoing->data[i])  + 64);
 			}
 		}
-		_vte_buffer_consume(terminal->pvt->outgoing, count);
+		_vte_byte_array_consume(terminal->pvt->outgoing, count);
 	}
 
-	if (_vte_buffer_length(terminal->pvt->outgoing) == 0) {
+	if (_vte_byte_array_length(terminal->pvt->outgoing) == 0) {
 		leave_open = FALSE;
 	} else {
 		leave_open = TRUE;
@@ -3680,7 +3680,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	icount = length;
 	ibuf =  data;
 	ocount = ((length + 1) * VTE_UTF8_BPC) + 1;
-	_vte_buffer_set_minimum_size(terminal->pvt->conv_buffer, ocount);
+	_vte_byte_array_set_minimum_size(terminal->pvt->conv_buffer, ocount);
 	obuf = obufptr = terminal->pvt->conv_buffer->data;
 
 	if (_vte_conv(conv, &ibuf, &icount, &obuf, &ocount) == (gsize)-1) {
@@ -3742,7 +3742,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		/* If there's a place for it to go, add the data to the
 		 * outgoing buffer. */
 		if ((cooked_length > 0) && (terminal->pvt->pty != NULL)) {
-			_vte_buffer_append(terminal->pvt->outgoing,
+			_vte_byte_array_append(terminal->pvt->outgoing,
 					   cooked, cooked_length);
 			_VTE_DEBUG_IF(VTE_DEBUG_KEYBOARD) {
 				for (i = 0; i < cooked_length; i++) {
@@ -3816,7 +3816,7 @@ vte_terminal_feed_child_binary(VteTerminal *terminal, const char *data, glong le
 		/* If there's a place for it to go, add the data to the
 		 * outgoing buffer. */
 		if (terminal->pvt->pty != NULL) {
-			_vte_buffer_append(terminal->pvt->outgoing,
+			_vte_byte_array_append(terminal->pvt->outgoing,
 					   data, length);
 			/* If we need to start waiting for the child pty to
 			 * become available for writing, set that up here. */
@@ -7579,9 +7579,9 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->pending = g_array_new(FALSE, TRUE, sizeof(gunichar));
 	pvt->max_input_bytes = VTE_MAX_INPUT_READ;
 	pvt->cursor_blink_tag = 0;
-	pvt->outgoing = _vte_buffer_new();
+	pvt->outgoing = _vte_byte_array_new();
 	pvt->outgoing_conv = VTE_INVALID_CONV;
-	pvt->conv_buffer = _vte_buffer_new();
+	pvt->conv_buffer = _vte_byte_array_new();
 	vte_terminal_set_encoding(terminal, NULL);
 	g_assert(terminal->pvt->encoding != NULL);
 
@@ -8076,9 +8076,9 @@ vte_terminal_finalize(GObject *object)
 
 	/* Discard any pending data. */
 	_vte_incoming_chunks_release (terminal->pvt->incoming);
-	_vte_buffer_free(terminal->pvt->outgoing);
+	_vte_byte_array_free(terminal->pvt->outgoing);
 	g_array_free(terminal->pvt->pending, TRUE);
-	_vte_buffer_free(terminal->pvt->conv_buffer);
+	_vte_byte_array_free(terminal->pvt->conv_buffer);
 
 	/* Stop the child and stop watching for input from the child. */
 	if (terminal->pvt->pty_pid != -1) {
@@ -12137,7 +12137,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 	ilen = strlen(spec);
 	ibuf = ibufptr = (guchar *)g_strdup(spec);
 	olen = (ilen + 1) * sizeof(gunichar);
-	_vte_buffer_set_minimum_size(terminal->pvt->conv_buffer, olen);
+	_vte_byte_array_set_minimum_size(terminal->pvt->conv_buffer, olen);
 	obuf = obufptr = terminal->pvt->conv_buffer->data;
 	wbuf = (gunichar*) obuf;
 	wbuf[ilen] = '\0';
@@ -12317,7 +12317,7 @@ vte_terminal_reset(VteTerminal *terminal,
 	_vte_incoming_chunks_release (pvt->incoming);
 	pvt->incoming = NULL;
 	g_array_set_size(pvt->pending, 0);
-	_vte_buffer_clear(pvt->outgoing);
+	_vte_byte_array_clear(pvt->outgoing);
 	/* Reset charset substitution state. */
 	_vte_iso2022_state_free(pvt->iso2022);
 	pvt->iso2022 = _vte_iso2022_state_new(NULL,
@@ -12601,7 +12601,7 @@ vte_terminal_set_pty(VteTerminal *terminal,
 		vte_terminal_stop_processing (terminal);
 
 		/* Clear the outgoing buffer as well. */
-		_vte_buffer_clear(terminal->pvt->outgoing);
+		_vte_byte_array_clear(terminal->pvt->outgoing);
 
                 vte_pty_close(pvt->pty);
                 g_object_unref(pvt->pty);

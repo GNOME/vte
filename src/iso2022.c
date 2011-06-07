@@ -76,7 +76,7 @@ struct _vte_iso2022_state {
 	VteConv conv;
 	_vte_iso2022_codeset_changed_cb_fn codeset_changed;
 	gpointer codeset_changed_data;
-	VteBuffer *buffer;
+	VteByteArray *buffer;
 };
 
 /* DEC Special Character and Line Drawing Set.  VT100 and higher (per XTerm
@@ -767,7 +767,7 @@ _vte_iso2022_state_new(const char *native_codeset,
 	state->conv = _vte_conv_open(state->target_codeset, state->codeset);
 	state->codeset_changed = fn;
 	state->codeset_changed_data = data;
-	state->buffer = _vte_buffer_new();
+	state->buffer = _vte_byte_array_new();
 	if (state->conv == VTE_INVALID_CONV) {
 		g_warning(_("Unable to convert characters from %s to %s."),
 			  state->codeset, state->target_codeset);
@@ -788,7 +788,7 @@ _vte_iso2022_state_new(const char *native_codeset,
 void
 _vte_iso2022_state_free(struct _vte_iso2022_state *state)
 {
-	_vte_buffer_free(state->buffer);
+	_vte_byte_array_free(state->buffer);
 	if (state->conv != VTE_INVALID_CONV) {
 		_vte_conv_close(state->conv);
 	}
@@ -1162,7 +1162,7 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 	if (!state->nrc_enabled || (state->g[current] == 'B')) {
 		inbuf = cdata;
 		inbytes = length;
-		_vte_buffer_set_minimum_size(state->buffer,
+		_vte_byte_array_set_minimum_size(state->buffer,
 					     sizeof(gunichar) * length * 2);
 		buf = (gunichar *)state->buffer->data;
 		outbuf = buf;
@@ -1750,7 +1750,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 int
 main(int argc, char **argv)
 {
-	VteBuffer *buffer;
+	VteByteArray *buffer;
 	struct _vte_iso2022_state *state;
 	GString *string;
 	GArray *gunichars;
@@ -1778,7 +1778,7 @@ main(int argc, char **argv)
 	guchar b;
 
 	state = _vte_iso2022_state_new(NULL, NULL, NULL);
-	buffer = _vte_buffer_new();
+	buffer = _vte_byte_array_new();
 	gunichars = g_array_new(FALSE, FALSE, sizeof(gunichar));
 	if (argc > 1) {
 		string = g_string_new(NULL);
@@ -1795,20 +1795,20 @@ main(int argc, char **argv)
 				fclose(fp);
 			}
 		}
-		_vte_buffer_append(buffer, string->str, string->len);
-		_vte_iso2022_process(state, buffer->data, _vte_buffer_length (buffer), gunichars);
+		_vte_byte_array_append(buffer, string->str, string->len);
+		_vte_iso2022_process(state, buffer->data, _vte_byte_array_length (buffer), gunichars);
 		g_string_free(string, TRUE);
 	} else {
 		for (i = 0; i < G_N_ELEMENTS(strings); i++) {
 			string = g_string_new(strings[i].s);
-			_vte_buffer_append(buffer, string->str, string->len);
+			_vte_byte_array_append(buffer, string->str, string->len);
 			g_string_free(string, TRUE);
 			if (strings[i].process) {
-				_vte_iso2022_process(state, buffer->data, _vte_buffer_length (buffer), gunichars);
+				_vte_iso2022_process(state, buffer->data, _vte_byte_array_length (buffer), gunichars);
 			}
 		}
 	}
-	_vte_buffer_free(buffer);
+	_vte_byte_array_free(buffer);
 	_vte_iso2022_state_free(state);
 
 	string = g_string_new(NULL);

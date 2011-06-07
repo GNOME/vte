@@ -28,15 +28,15 @@
 
 G_BEGIN_DECLS
 
-typedef GByteArray VteBuffer;
+typedef GByteArray VteByteArray;
 
-#define _vte_buffer_new				g_byte_array_new
-#define _vte_buffer_free(B)			g_byte_array_free (B, TRUE)
-#define _vte_buffer_append(B, data, length)	g_byte_array_append (B, (const guint8 *) (data), length)
-#define _vte_buffer_length(B)			((B)->len)
-#define _vte_buffer_consume(B, length)		g_byte_array_remove_range (B, 0, length)
-#define _vte_buffer_clear(B)			g_byte_array_set_size (B, 0)
-#define _vte_buffer_set_minimum_size(B, length)	g_byte_array_set_size (B, (guint) MAX ((gint) (length), (gint) (B)->len))
+#define _vte_byte_array_new				g_byte_array_new
+#define _vte_byte_array_free(B)			g_byte_array_free (B, TRUE)
+#define _vte_byte_array_append(B, data, length)	g_byte_array_append (B, (const guint8 *) (data), length)
+#define _vte_byte_array_length(B)			((B)->len)
+#define _vte_byte_array_consume(B, length)		g_byte_array_remove_range (B, 0, length)
+#define _vte_byte_array_clear(B)			g_byte_array_set_size (B, 0)
+#define _vte_byte_array_set_minimum_size(B, length)	g_byte_array_set_size (B, (guint) MAX ((gint) (length), (gint) (B)->len))
 
 G_END_DECLS
 
