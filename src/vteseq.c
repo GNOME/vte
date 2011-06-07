@@ -116,13 +116,13 @@ vte_ucs4_to_utf8 (VteTerminal *terminal, const guchar *in)
 		inlen = vte_unichar_strlen ((gunichar *) in) * sizeof (gunichar);
 		outlen = (inlen * VTE_UTF8_BPC) + 1;
 
-		_vte_buffer_set_minimum_size (terminal->pvt->conv_buffer, outlen);
+		_vte_byte_array_set_minimum_size (terminal->pvt->conv_buffer, outlen);
 		buf = bufptr = terminal->pvt->conv_buffer->data;
 
 		if (_vte_conv (conv, &in, &inlen, &buf, &outlen) == (size_t) -1) {
 			_vte_debug_print (VTE_DEBUG_IO,
 					  "Error converting %ld string bytes (%s), skipping.\n",
-					  (long) _vte_buffer_length (terminal->pvt->outgoing),
+					  (long) _vte_byte_array_length (terminal->pvt->outgoing),
 					  g_strerror (errno));
 			bufptr = NULL;
 		} else {
