@@ -147,8 +147,19 @@ typedef struct _VteVisualPosition {
 	long row, col;
 } VteVisualPosition;
 
+struct _VteBufferPrivate {
+        gpointer dummy;
+};
+
+struct _VteBufferClassPrivate {
+        gpointer dummy;
+};
+
 /* Terminal private data. */
 struct _VteTerminalPrivate {
+
+        VteBuffer *buffer;
+
         /* Metric and sizing data: dimensions of the window */
         glong row_count;
         glong column_count;

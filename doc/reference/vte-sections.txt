@@ -9,6 +9,7 @@ VteTerminalEraseBinding
 VteTerminalWriteFlags
 VteSelectionFunc
 vte_terminal_new
+vte_terminal_get_buffer
 vte_terminal_im_append_menuitems
 vte_terminal_feed
 vte_terminal_feed_child
@@ -106,6 +107,27 @@ vte_terminal_get_window_title
 VteCharAttributes
 VteTerminalPrivate
 VteTerminalClassPrivate
+</SECTION>
+
+<SECTION>
+<FILE>vte-buffer</FILE>
+<TITLE>VteBuffer</TITLE>
+VteBuffer
+vte_buffer_new
+
+<SUBSECTION Standard>
+VTE_TYPE_BUFFER
+vte_buffer_get_type
+VTE_IS_BUFFER
+VTE_BUFFER
+VTE_BUFFER_GET_CLASS
+VTE_IS_BUFFER_CLASS
+VTE_BUFFER_CLASS
+VteBufferClass
+
+<SUBSECTION Private>
+VteBufferPrivate
+VteBufferClassPrivate
 </SECTION>
 
 <SECTION>

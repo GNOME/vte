@@ -53,6 +53,9 @@
   <part>
     <title>API Reference</title>
     <chapter>
+      <xi:include href="xml/vte-buffer.xml"/>
+    </chapter>
+    <chapter>
       <xi:include href="xml/vte-terminal.xml"/>
     </chapter>
     <chapter>

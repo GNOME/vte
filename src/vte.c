@@ -136,6 +136,7 @@ static guint signals[LAST_SIGNAL];
 
 enum {
         PROP_0,
+        PROP_BUFFER,
         PROP_HADJUSTMENT,
         PROP_VADJUSTMENT,
         PROP_HSCROLL_POLICY,
@@ -2157,6 +2158,22 @@ GtkWidget *
 vte_terminal_new(void)
 {
 	return g_object_new(VTE_TYPE_TERMINAL, NULL);
+}
+
+/**
+ * vte_terminal_get_buffer:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: (transfer none): the terminal's buffer
+ *
+ * Since: 0.30
+ */
+VteBuffer *
+vte_terminal_get_buffer(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+
+        return terminal->pvt->buffer;
 }
 
 /* Set up a palette entry with a more-or-less match for the requested color. */
@@ -7530,6 +7547,9 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Initialize private data. */
 	pvt = terminal->pvt = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalPrivate);
 
+        pvt->buffer = vte_buffer_new();
+        terminal->buffer_pvt = pvt->buffer->pvt;
+
 	gtk_widget_set_can_focus(&terminal->widget, TRUE);
 
 	gtk_widget_set_app_paintable (&terminal->widget, TRUE);
@@ -8131,6 +8151,11 @@ vte_terminal_finalize(GObject *object)
         g_signal_handlers_disconnect_matched (settings, G_SIGNAL_MATCH_DATA,
                                               0, 0, NULL, NULL,
                                               terminal);
+
+        if (pvt->buffer != NULL) {
+                g_object_unref(pvt->buffer);
+                pvt->buffer = NULL;
+        }
 
 	/* Call the inherited finalize() method. */
 	G_OBJECT_CLASS(vte_terminal_parent_class)->finalize(object);
@@ -10535,6 +10560,9 @@ vte_terminal_get_property (GObject *object,
 
 	switch (prop_id)
 	{
+                case PROP_BUFFER:
+                        g_value_set_object (value, pvt->buffer);
+                        break;
                 case PROP_HADJUSTMENT:
                         g_value_set_object (value, pvt->hadjustment);
                         break;
@@ -10665,6 +10693,7 @@ vte_terminal_set_property (GObject *object,
                         break;
 
                 /* Not writable */
+                case PROP_BUFFER:
                 case PROP_ICON_TITLE:
                 case PROP_WINDOW_TITLE:
                         g_assert_not_reached ();
@@ -11271,6 +11300,20 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal:buffer:
+         *
+         * The terminal's buffer.
+         *
+         * Since: 0.30
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_AUDIBLE_BELL,
+                 g_param_spec_object ("buffer", NULL, NULL,
+                                       VTE_TYPE_BUFFER,
+                                       G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
         /**
          * VteTerminal:audible-bell:
@@ -13597,4 +13640,109 @@ gboolean
 vte_terminal_search_find_next (VteTerminal *terminal)
 {
 	return vte_terminal_search_find (terminal, FALSE);
+}
+
+/* *********
+ * VteBuffer
+ * *********
+ */
+
+/**
+ * SECTION: vte-buffer
+ * @short_description: FIXME
+ *
+ * Long description FIXME.
+ *
+ * Since: 0.30
+ */
+
+#ifdef VTE_DEBUG
+G_DEFINE_TYPE_WITH_CODE(VteBuffer, vte_buffer, G_TYPE_OBJECT,
+                        g_type_add_class_private (g_define_type_id, sizeof (VteBufferClassPrivate));
+                        _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_buffer_get_type()\n");
+                        )
+#else
+G_DEFINE_TYPE_WITH_CODE(VteBuffer, vte_buffer, VTE_TYPE_TERMINAL,
+                        g_type_add_class_private (g_define_type_id, sizeof (VteBufferClassPrivate));
+                        )
+#endif
+
+static void
+vte_buffer_init(VteBuffer *buffer)
+{
+        VteBufferPrivate *pvt;
+
+        _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_buffer_init()\n");
+
+        pvt = buffer->pvt = G_TYPE_INSTANCE_GET_PRIVATE (buffer, VTE_TYPE_BUFFER, VteBufferPrivate);
+}
+
+static void
+vte_buffer_dispose(GObject *object)
+{
+        _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_buffer_dispose()\n");
+
+        G_OBJECT_CLASS(vte_buffer_parent_class)->dispose(object);
+}
+
+static void
+vte_buffer_finalize(GObject *object)
+{
+        _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_buffer_finalize()\n");
+
+        G_OBJECT_CLASS(vte_buffer_parent_class)->finalize(object);
+}
+
+static void
+vte_buffer_get_property (GObject *object,
+                         guint prop_id,
+                         GValue *value,
+                         GParamSpec *pspec)
+{
+        switch (prop_id) {
+        default:
+                G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+                return;
+        }
+}
+
+static void
+vte_buffer_set_property (GObject *object,
+                         guint prop_id,
+                         const GValue *value,
+                         GParamSpec *pspec)
+{
+        switch (prop_id) {
+        default:
+                G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+                return;
+        }
+}
+
+static void
+vte_buffer_class_init(VteBufferClass *klass)
+{
+        GObjectClass *gobject_class = &klass->object_class;
+
+        _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_buffer_class_init()\n");
+
+        g_type_class_add_private(klass, sizeof (VteBufferPrivate));
+
+        gobject_class->dispose = vte_buffer_dispose;
+        gobject_class->finalize = vte_buffer_finalize;
+        gobject_class->get_property = vte_buffer_get_property;
+        gobject_class->set_property = vte_buffer_set_property;
+}
+
+/**
+ * vte_buffer_new:
+ *
+ * Returns: (transfer full): a new #VteBuffer
+ *
+ * Since: 0.30
+ */
+VteBuffer *
+vte_buffer_new(void)
+{
+        return g_object_new(VTE_TYPE_BUFFER, NULL);
 }

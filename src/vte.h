@@ -27,6 +27,8 @@
 #define __VTE_VTE_H_INSIDE__ 1
 
 #include "vtepty.h"
+#include "vtebuffer.h"
+
 #include "vtetypebuiltins.h"
 #include "vteversion.h"
 
@@ -53,6 +55,9 @@ struct _VteTerminal {
 	GtkWidget widget;
         /*< private >*/
 	VteTerminalPrivate *pvt;
+
+        /* temporary hack! FIXMEchpe */
+        VteBufferPrivate *buffer_pvt;
 };
 
 /**
@@ -201,6 +206,8 @@ typedef gboolean (*VteSelectionFunc)(VteTerminal *terminal,
 GType vte_terminal_get_type(void);
 
 GtkWidget *vte_terminal_new(void);
+
+VteBuffer *vte_terminal_get_buffer(VteTerminal *terminal);
 
 VtePty *vte_terminal_pty_new_sync (VteTerminal *terminal,
                                    VtePtyFlags flags,
