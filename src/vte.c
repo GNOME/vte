@@ -2173,7 +2173,7 @@ vte_terminal_get_buffer(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
-        return terminal->pvt->buffer;
+        return terminal->term_pvt->buffer;
 }
 
 /* Set up a palette entry with a more-or-less match for the requested color. */
@@ -7540,15 +7540,19 @@ static void
 vte_terminal_init(VteTerminal *terminal)
 {
 	VteTerminalPrivate *pvt;
+        VteTerminalRealPrivate *term_pvt;
         GtkStyleContext *context;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_init()\n");
 
 	/* Initialize private data. */
-	pvt = terminal->pvt = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalPrivate);
+	term_pvt = terminal->term_pvt = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalRealPrivate);
 
-        pvt->buffer = vte_buffer_new();
-        terminal->buffer_pvt = pvt->buffer->pvt;
+        term_pvt->buffer = vte_buffer_new();
+        term_pvt->buffer_pvt = term_pvt->buffer->pvt;
+
+        pvt = terminal->pvt = term_pvt->buffer_pvt;
+        pvt->terminal = terminal;
 
 	gtk_widget_set_can_focus(&terminal->widget, TRUE);
 
@@ -7988,6 +7992,7 @@ vte_terminal_finalize(GObject *object)
 {
     	GtkWidget *widget = GTK_WIDGET (object);
     	VteTerminal *terminal = VTE_TERMINAL (object);
+        VteTerminalRealPrivate *term_pvt = terminal->term_pvt;
         VteTerminalPrivate *pvt = terminal->pvt;
 	GtkClipboard *clipboard;
         GtkSettings *settings;
@@ -8152,9 +8157,9 @@ vte_terminal_finalize(GObject *object)
                                               0, 0, NULL, NULL,
                                               terminal);
 
-        if (pvt->buffer != NULL) {
-                g_object_unref(pvt->buffer);
-                pvt->buffer = NULL;
+        if (term_pvt->buffer != NULL) {
+                g_object_unref(term_pvt->buffer);
+                term_pvt->buffer = NULL;
         }
 
 	/* Call the inherited finalize() method. */
@@ -10561,7 +10566,7 @@ vte_terminal_get_property (GObject *object,
 	switch (prop_id)
 	{
                 case PROP_BUFFER:
-                        g_value_set_object (value, pvt->buffer);
+                        g_value_set_object (value, vte_terminal_get_buffer(terminal));
                         break;
                 case PROP_HADJUSTMENT:
                         g_value_set_object (value, pvt->hadjustment);

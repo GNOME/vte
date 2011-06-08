@@ -147,18 +147,16 @@ typedef struct _VteVisualPosition {
 	long row, col;
 } VteVisualPosition;
 
-struct _VteBufferPrivate {
-        gpointer dummy;
-};
-
 struct _VteBufferClassPrivate {
         gpointer dummy;
 };
 
 /* Terminal private data. */
-struct _VteTerminalPrivate {
+struct _VteBufferPrivate {
+//  struct _VteTerminalPrivate {
 
-        VteBuffer *buffer;
+        /* The VteTerminal that's displaying this buffer */
+        VteTerminal *terminal;
 
         /* Metric and sizing data: dimensions of the window */
         glong row_count;
@@ -411,6 +409,13 @@ struct _VteTerminalPrivate {
         GtkAdjustment *vadjustment;
         guint hscroll_policy : 1; /* unused */
         guint vscroll_policy : 1;
+};
+
+#define VteTerminalPrivate VteBufferPrivate
+
+struct _VteTerminalRealPrivate {
+        VteBuffer *buffer;
+        VteBufferPrivate *buffer_pvt;
 };
 
 struct _VteTerminalClassPrivate {
