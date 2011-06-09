@@ -349,13 +349,6 @@ struct _VteBufferPrivate {
 		  *mouse_mousing_cursor,
 		  *mouse_inviso_cursor;
 
-	/* Input method support. */
-	GtkIMContext *im_context;
-	gboolean im_preedit_active;
-	char *im_preedit;
-	PangoAttrList *im_preedit_attrs;
-	int im_preedit_cursor;
-
 	gboolean accessible_emit;
 
 	/* Adjustment updates pending. */
@@ -418,6 +411,13 @@ struct _VteTerminalRealPrivate {
         gboolean cursor_blinks;           /* whether the cursor is actually blinking */
         gint64 cursor_blink_time;         /* how long the cursor has been blinking yet */
         gboolean has_focus;               /* is the terminal window focused */
+
+        /* Input method support */
+        GtkIMContext *im_context;
+        gboolean im_preedit_active;
+        char *im_preedit;
+        PangoAttrList *im_preedit_attrs;
+        int im_preedit_cursor;
 
 };
 

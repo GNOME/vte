@@ -615,17 +615,18 @@ vte_buffer_find_end_column(VteBuffer *buffer,
 static gssize
 vte_terminal_preedit_width(VteTerminal *terminal, gboolean left_only)
 {
+        VteTerminalRealPrivate *pvt = terminal->term_pvt;
 	gunichar c;
 	int i;
 	gssize ret = 0;
 	const char *preedit = NULL;
 
-	if (terminal->pvt->im_preedit != NULL) {
-		preedit = terminal->pvt->im_preedit;
+	if (pvt->im_preedit != NULL) {
+		preedit = pvt->im_preedit;
 		for (i = 0;
 		     (preedit != NULL) &&
 		     (preedit[0] != '\0') &&
-		     (!left_only || (i < terminal->pvt->im_preedit_cursor));
+		     (!left_only || (i < pvt->im_preedit_cursor));
 		     i++) {
 			c = g_utf8_get_char(preedit);
 			ret += _vte_iso2022_unichar_width(terminal->pvt->iso2022, c);
@@ -641,15 +642,16 @@ vte_terminal_preedit_width(VteTerminal *terminal, gboolean left_only)
 static gssize
 vte_terminal_preedit_length(VteTerminal *terminal, gboolean left_only)
 {
+        VteTerminalRealPrivate *pvt = terminal->term_pvt;
 	int i = 0;
 	const char *preedit = NULL;
 
-	if (terminal->pvt->im_preedit != NULL) {
-		preedit = terminal->pvt->im_preedit;
+	if (pvt->im_preedit != NULL) {
+		preedit = pvt->im_preedit;
 		for (i = 0;
 		     (preedit != NULL) &&
 		     (preedit[0] != '\0') &&
-		     (!left_only || (i < terminal->pvt->im_preedit_cursor));
+		     (!left_only || (i < pvt->im_preedit_cursor));
 		     i++) {
 			preedit = g_utf8_next_char(preedit);
 		}
@@ -2976,15 +2978,17 @@ vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
 static void
 vte_terminal_im_reset(VteTerminal *terminal)
 {
+        VteTerminalRealPrivate *pvt = terminal->term_pvt;
+
 	if (gtk_widget_get_realized (&terminal->widget)) {
-		gtk_im_context_reset(terminal->pvt->im_context);
-		if (terminal->pvt->im_preedit != NULL) {
-			g_free(terminal->pvt->im_preedit);
-			terminal->pvt->im_preedit = NULL;
+		gtk_im_context_reset(pvt->im_context);
+		if (pvt->im_preedit != NULL) {
+			g_free(pvt->im_preedit);
+			pvt->im_preedit = NULL;
 		}
-		if (terminal->pvt->im_preedit_attrs != NULL) {
-			pango_attr_list_unref(terminal->pvt->im_preedit_attrs);
-			terminal->pvt->im_preedit_attrs = NULL;
+		if (pvt->im_preedit_attrs != NULL) {
+			pango_attr_list_unref(pvt->im_preedit_attrs);
+			pvt->im_preedit_attrs = NULL;
 		}
 	}
 }
@@ -3438,7 +3442,7 @@ next_match:
 		rect.y = (terminal->pvt->screen->cursor_current.row - delta) *
 			 terminal->pvt->char_height + terminal->pvt->padding.top;
 		rect.height = terminal->pvt->char_height;
-		gtk_im_context_set_cursor_location(terminal->pvt->im_context,
+		gtk_im_context_set_cursor_location(terminal->term_pvt->im_context,
 						   &rect);
 	}
 
@@ -3899,7 +3903,7 @@ vte_terminal_im_preedit_start(GtkIMContext *im_context, VteTerminal *terminal)
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Input method pre-edit started.\n");
-	terminal->pvt->im_preedit_active = TRUE;
+	terminal->term_pvt->im_preedit_active = TRUE;
 }
 
 /* We've stopped pre-editing. */
@@ -3908,13 +3912,14 @@ vte_terminal_im_preedit_end(GtkIMContext *im_context, VteTerminal *terminal)
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Input method pre-edit ended.\n");
-	terminal->pvt->im_preedit_active = FALSE;
+	terminal->term_pvt->im_preedit_active = FALSE;
 }
 
 /* The pre-edit string changed. */
 static void
 vte_terminal_im_preedit_changed(GtkIMContext *im_context, VteTerminal *terminal)
 {
+        VteTerminalRealPrivate *pvt = terminal->term_pvt;
 	gchar *str;
 	PangoAttrList *attrs;
 	gint cursor;
@@ -3928,15 +3933,15 @@ vte_terminal_im_preedit_changed(GtkIMContext *im_context, VteTerminal *terminal)
 	 * for repainting. */
 	_vte_invalidate_cursor_once(terminal, FALSE);
 
-	g_free(terminal->pvt->im_preedit);
-	terminal->pvt->im_preedit = str;
+	g_free(pvt->im_preedit);
+	pvt->im_preedit = str;
 
-	if (terminal->pvt->im_preedit_attrs != NULL) {
-		pango_attr_list_unref(terminal->pvt->im_preedit_attrs);
+	if (pvt->im_preedit_attrs != NULL) {
+		pango_attr_list_unref(pvt->im_preedit_attrs);
 	}
-	terminal->pvt->im_preedit_attrs = attrs;
+	pvt->im_preedit_attrs = attrs;
 
-	terminal->pvt->im_preedit_cursor = cursor;
+	pvt->im_preedit_cursor = cursor;
 
 	_vte_invalidate_cursor_once(terminal, FALSE);
 }
@@ -4494,7 +4499,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				keyval, event->string);
 
 		/* We steal many keypad keys here. */
-		if (!terminal->pvt->im_preedit_active) {
+		if (!terminal->term_pvt->im_preedit_active) {
 			switch (keyval) {
 			case GDK_KEY_KP_Add:
 			case GDK_KEY_KP_Subtract:
@@ -4544,7 +4549,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	/* Let the input method at this one first. */
 	if (!steal) {
 		if (gtk_widget_get_realized (&terminal->widget)
-				&& gtk_im_context_filter_keypress (terminal->pvt->im_context, event)) {
+				&& gtk_im_context_filter_keypress (terminal->term_pvt->im_context, event)) {
 			_vte_debug_print(VTE_DEBUG_EVENTS,
 					"Keypress taken by IM.\n");
 			return TRUE;
@@ -4854,7 +4859,7 @@ vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
 	return gtk_widget_get_realized (&terminal->widget)
-			&& gtk_im_context_filter_keypress (terminal->pvt->im_context, event);
+			&& gtk_im_context_filter_keypress (terminal->term_pvt->im_context, event);
 }
 
 /**
@@ -6874,11 +6879,11 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 static gboolean
 vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 {
-	VteTerminal *terminal;
+	VteTerminal *terminal = VTE_TERMINAL(widget);
+        VteTerminalRealPrivate *pvt = terminal->term_pvt;
 
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus in.\n");
 
-	terminal = VTE_TERMINAL(widget);
 	gtk_widget_grab_focus (widget);
 
 	/* Read the keyboard modifiers, though they're probably garbage. */
@@ -6892,7 +6897,7 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 
 		_vte_check_cursor_blink (terminal);
 
-		gtk_im_context_focus_in(terminal->pvt->im_context);
+		gtk_im_context_focus_in(pvt->im_context);
 		_vte_invalidate_cursor_once(terminal, FALSE);
 		_vte_terminal_set_pointer_visible(terminal, TRUE);
 	}
@@ -6903,9 +6908,11 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 static gboolean
 vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 {
-	VteTerminal *terminal;
+	VteTerminal *terminal = VTE_TERMINAL(widget);
+        VteTerminalRealPrivate *pvt = terminal->term_pvt;
+
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus out.\n");
-	terminal = VTE_TERMINAL(widget);
+
 	/* Read the keyboard modifiers, though they're probably garbage. */
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 	/* We only have an IM context when we're realized, and there's not much
@@ -6913,7 +6920,7 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 	if (gtk_widget_get_realized (widget)) {
 		_vte_terminal_maybe_end_selection (terminal);
 
-		gtk_im_context_focus_out(terminal->pvt->im_context);
+		gtk_im_context_focus_out(pvt->im_context);
 		_vte_invalidate_cursor_once(terminal, FALSE);
 
 		/* XXX Do we want to hide the match just because the terminal
@@ -6924,7 +6931,7 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 		terminal->pvt->mouse_cursor_visible = FALSE;
 	}
 
-	terminal->term_pvt->has_focus = FALSE;
+	pvt->has_focus = FALSE;
 	_vte_check_cursor_blink (terminal);
 
 	return FALSE;
@@ -7869,7 +7876,8 @@ static void
 vte_terminal_unrealize(GtkWidget *widget)
 {
 	GdkWindow *window;
-	VteTerminal *terminal;
+        VteTerminal *terminal = VTE_TERMINAL(widget);;
+        VteTerminalRealPrivate *pvt = terminal->term_pvt;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unrealize()\n");
 
@@ -7888,26 +7896,25 @@ vte_terminal_unrealize(GtkWidget *widget)
 	vte_terminal_match_hilite_clear(terminal);
 
 	/* Shut down input methods. */
-	if (terminal->pvt->im_context != NULL) {
-	        g_signal_handlers_disconnect_by_func (terminal->pvt->im_context,
+	if (pvt->im_context != NULL) {
+	        g_signal_handlers_disconnect_by_func (pvt->im_context,
 						      vte_terminal_im_preedit_changed,
 						      terminal);
 		vte_terminal_im_reset(terminal);
-		gtk_im_context_set_client_window(terminal->pvt->im_context,
-						 NULL);
-		g_object_unref(terminal->pvt->im_context);
-		terminal->pvt->im_context = NULL;
+		gtk_im_context_set_client_window(pvt->im_context, NULL);
+		g_object_unref(pvt->im_context);
+		pvt->im_context = NULL;
 	}
-	terminal->pvt->im_preedit_active = FALSE;
-	if (terminal->pvt->im_preedit != NULL) {
-		g_free(terminal->pvt->im_preedit);
-		terminal->pvt->im_preedit = NULL;
+	pvt->im_preedit_active = FALSE;
+	if (pvt->im_preedit != NULL) {
+		g_free(pvt->im_preedit);
+		pvt->im_preedit = NULL;
 	}
-	if (terminal->pvt->im_preedit_attrs != NULL) {
-		pango_attr_list_unref(terminal->pvt->im_preedit_attrs);
-		terminal->pvt->im_preedit_attrs = NULL;
+	if (pvt->im_preedit_attrs != NULL) {
+		pango_attr_list_unref(pvt->im_preedit_attrs);
+		pvt->im_preedit_attrs = NULL;
 	}
-	terminal->pvt->im_preedit_cursor = 0;
+	pvt->im_preedit_cursor = 0;
 
 	/* Clean up our draw structure. */
 	if (terminal->pvt->draw != NULL) {
@@ -8194,15 +8201,15 @@ vte_terminal_finalize(GObject *object)
 static void
 vte_terminal_realize(GtkWidget *widget)
 {
+        VteTerminal *terminal = VTE_TERMINAL(widget);
+        VteTerminalRealPrivate *pvt = terminal->term_pvt;
 	GdkWindow *window;
-	VteTerminal *terminal;
 	GdkWindowAttr attributes;
 	GtkAllocation allocation;
 	guint attributes_mask = 0;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_realize()\n");
 
-	terminal = VTE_TERMINAL(widget);
 	gtk_widget_get_allocation (widget, &allocation);
 
 	/* Create the draw structure if we don't already have one. */
@@ -8255,26 +8262,26 @@ vte_terminal_realize(GtkWidget *widget)
 
 	/* Set up input method support.  FIXME: do we need to handle the
 	 * "retrieve-surrounding" and "delete-surrounding" events? */
-	if (terminal->pvt->im_context != NULL) {
+	if (pvt->im_context != NULL) {
 		vte_terminal_im_reset(terminal);
-		g_object_unref(terminal->pvt->im_context);
-		terminal->pvt->im_context = NULL;
+		g_object_unref(pvt->im_context);
+		pvt->im_context = NULL;
 	}
-	terminal->pvt->im_preedit_active = FALSE;
-	terminal->pvt->im_context = gtk_im_multicontext_new();
-	gtk_im_context_set_client_window (terminal->pvt->im_context, window);
-	g_signal_connect(terminal->pvt->im_context, "commit",
+	pvt->im_preedit_active = FALSE;
+	pvt->im_context = gtk_im_multicontext_new();
+	gtk_im_context_set_client_window (pvt->im_context, window);
+	g_signal_connect(pvt->im_context, "commit",
 			 G_CALLBACK(vte_terminal_im_commit), terminal);
-	g_signal_connect(terminal->pvt->im_context, "preedit-start",
+	g_signal_connect(pvt->im_context, "preedit-start",
 			 G_CALLBACK(vte_terminal_im_preedit_start),
 			 terminal);
-	g_signal_connect(terminal->pvt->im_context, "preedit-changed",
+	g_signal_connect(pvt->im_context, "preedit-changed",
 			 G_CALLBACK(vte_terminal_im_preedit_changed),
 			 terminal);
-	g_signal_connect(terminal->pvt->im_context, "preedit-end",
+	g_signal_connect(pvt->im_context, "preedit-end",
 			 G_CALLBACK(vte_terminal_im_preedit_end),
 			 terminal);
-	gtk_im_context_set_use_preedit(terminal->pvt->im_context, TRUE);
+	gtk_im_context_set_use_preedit(pvt->im_context, TRUE);
 
 	/* Clear modifiers. */
 	terminal->pvt->modifiers = 0;
@@ -10220,13 +10227,14 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 static void
 vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 {
+        VteTerminalRealPrivate *pvt = terminal->term_pvt;
 	VteScreen *screen;
 	int row, drow, col, columns;
 	long width, height, ascent, descent, delta;
 	int i, len;
 	guint fore, back;
 
-	if (!terminal->pvt->im_preedit)
+	if (!pvt->im_preedit)
 		return;
 
 	/* Get going. */
@@ -10256,7 +10264,7 @@ vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 	/* Draw the preedit string, boxed. */
 	if (len > 0) {
 		struct _vte_draw_text_request *items;
-		const char *preedit = terminal->pvt->im_preedit;
+		const char *preedit = pvt->im_preedit;
 		int preedit_cursor;
 
 		items = g_new(struct _vte_draw_text_request, len);
@@ -10279,10 +10287,10 @@ vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 		back = screen->defaults.attr.back;
 		vte_terminal_draw_cells_with_attributes(terminal,
 							items, len,
-							terminal->pvt->im_preedit_attrs,
+							pvt->im_preedit_attrs,
 							TRUE,
 							width, height);
-		preedit_cursor = terminal->pvt->im_preedit_cursor;
+		preedit_cursor = pvt->im_preedit_cursor;
 		if (preedit_cursor >= 0 && preedit_cursor < len) {
 			/* Cursored letter in reverse. */
 			vte_terminal_draw_cells(terminal,
@@ -12005,7 +12013,7 @@ vte_terminal_im_append_menuitems(VteTerminal *terminal, GtkMenuShell *menushell)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail (gtk_widget_get_realized (&terminal->widget));
         g_return_if_fail(GTK_IS_MENU_SHELL(menushell));
-	context = GTK_IM_MULTICONTEXT(terminal->pvt->im_context);
+	context = GTK_IM_MULTICONTEXT(terminal->term_pvt->im_context);
 	gtk_im_multicontext_append_menuitems(context, menushell);
 }
 
