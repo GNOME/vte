@@ -2307,10 +2307,10 @@ vte_terminal_generate_bold(const GdkRGBA *foreground,
 
 /* Cleanup smart-tabs.  See vte_sequence_handler_ta() */
 void
-_vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
+_vte_buffer_cleanup_tab_fragments_at_cursor (VteBuffer *buffer)
 {
-	VteRowData *row = _vte_buffer_ensure_row (terminal->term_pvt->buffer);
-	VteScreen *screen = terminal->pvt->screen;
+	VteRowData *row = _vte_buffer_ensure_row (buffer);
+	VteScreen *screen = buffer->pvt->screen;
 	long col = screen->cursor_current.col;
 	const VteCell *pcell = _vte_row_data_get (row, col);
 
@@ -2553,7 +2553,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	row = vte_buffer_ensure_cursor (terminal->term_pvt->buffer);
 	g_assert(row != NULL);
 
-	_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
+	_vte_buffer_cleanup_tab_fragments_at_cursor (terminal->term_pvt->buffer);
 
 	if (insert) {
 		for (i = 0; i < columns; i++)

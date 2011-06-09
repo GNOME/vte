@@ -442,7 +442,6 @@ gboolean _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			       gboolean invalidate_cells);
 void _vte_terminal_scroll_region(VteTerminal *terminal,
 				 long row, glong count, glong delta);
-void _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal);
 void _vte_terminal_audible_beep(VteTerminal *terminal);
 void _vte_terminal_visible_beep(VteTerminal *terminal);
 void _vte_terminal_beep(VteTerminal *terminal);
@@ -482,6 +481,7 @@ void _vte_buffer_clear_tabstops(VteBuffer *buffer);
 gboolean _vte_buffer_get_tabstop(VteBuffer *buffer, int column);
 void _vte_buffer_set_tabstop(VteBuffer *buffer, int column);
 VteRowData *_vte_buffer_ensure_row(VteBuffer *buffer);
+void _vte_buffer_cleanup_tab_fragments_at_cursor (VteBuffer *buffer);
 
 /* private VteScreen methods */
 void _vte_screen_set_default_attributes(VteScreen *screen);

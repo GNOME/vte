@@ -1134,6 +1134,7 @@ vte_sequence_handler_ce (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_ch (VteTerminal *terminal, GValueArray *params)
 {
+        VteBuffer *buffer = terminal->term_pvt->buffer;
 	VteScreen *screen;
 	GValue *value;
 	long val;
@@ -1148,7 +1149,7 @@ vte_sequence_handler_ch (VteTerminal *terminal, GValueArray *params)
 				    terminal->pvt->column_count - 1);
 			/* Move the cursor. */
 			screen->cursor_current.col = val;
-			_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
+			_vte_buffer_cleanup_tab_fragments_at_cursor (buffer);
 		}
 	}
 }
@@ -1168,6 +1169,7 @@ vte_sequence_handler_cl (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_cm (VteTerminal *terminal, GValueArray *params)
 {
+        VteBuffer *buffer = terminal->term_pvt->buffer;
 	GValue *row, *col;
 	long rowval, colval, origin;
 	VteScreen *screen;
@@ -1199,7 +1201,7 @@ vte_sequence_handler_cm (VteTerminal *terminal, GValueArray *params)
 	}
 	screen->cursor_current.row = rowval + screen->insert_delta;
 	screen->cursor_current.col = colval;
-	_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
+	_vte_buffer_cleanup_tab_fragments_at_cursor (buffer);
 }
 
 /* Carriage return. */
@@ -1634,13 +1636,14 @@ vte_sequence_handler_ks (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_le (VteTerminal *terminal, GValueArray *params)
 {
+        VteBuffer *buffer = terminal->term_pvt->buffer;
 	VteScreen *screen;
 
 	screen = terminal->pvt->screen;
 	if (screen->cursor_current.col > 0) {
 		/* There's room to move left, so do so. */
 		screen->cursor_current.col--;
-		_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
+		_vte_buffer_cleanup_tab_fragments_at_cursor (buffer);
 	} else {
 		if (terminal->pvt->flags.bw) {
 			/* Wrap to the previous line. */
@@ -2436,6 +2439,7 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 static void
 vte_sequence_handler_cursor_character_absolute (VteTerminal *terminal, GValueArray *params)
 {
+        VteBuffer *buffer = terminal->term_pvt->buffer;
 	VteScreen *screen;
 	GValue *value;
 	long val;
@@ -2452,7 +2456,7 @@ vte_sequence_handler_cursor_character_absolute (VteTerminal *terminal, GValueArr
 	}
 
         screen->cursor_current.col = val;
-	_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
+	_vte_buffer_cleanup_tab_fragments_at_cursor (buffer);
 }
 
 /* Move the cursor to the given position, 1-based. */
