@@ -1014,6 +1014,7 @@ vte_sequence_handler_bt (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_cb (VteTerminal *terminal, GValueArray *params)
 {
+        VteBuffer *buffer = terminal->term_pvt->buffer;
 	VteRowData *rowdata;
 	long i;
 	VteScreen *screen;
@@ -1021,7 +1022,7 @@ vte_sequence_handler_cb (VteTerminal *terminal, GValueArray *params)
 	screen = terminal->pvt->screen;
 
 	/* Get the data for the row which the cursor points to. */
-	rowdata = _vte_terminal_ensure_row(terminal);
+	rowdata = _vte_buffer_ensure_row(buffer);
 	/* Clear the data up to the current column with the default
 	 * attributes.  If there is no such character cell, we need
 	 * to add one. */
@@ -1101,12 +1102,13 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_ce (VteTerminal *terminal, GValueArray *params)
 {
+        VteBuffer *buffer = terminal->term_pvt->buffer;
 	VteRowData *rowdata;
 	VteScreen *screen;
 
 	screen = terminal->pvt->screen;
 	/* Get the data for the row which the cursor points to. */
-	rowdata = _vte_terminal_ensure_row(terminal);
+	rowdata = _vte_buffer_ensure_row(buffer);
 	g_assert(rowdata != NULL);
 	/* Remove the data at the end of the array until the current column
 	 * is the end of the array. */
@@ -1485,6 +1487,7 @@ vte_sequence_handler_eA (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_ec (VteTerminal *terminal, GValueArray *params)
 {
+        VteBuffer *buffer = terminal->term_pvt->buffer;
 	VteScreen *screen;
 	VteRowData *rowdata;
 	GValue *value;
@@ -1503,7 +1506,7 @@ vte_sequence_handler_ec (VteTerminal *terminal, GValueArray *params)
 	}
 
 	/* Clear out the given number of characters. */
-	rowdata = _vte_terminal_ensure_row(terminal);
+	rowdata = _vte_buffer_ensure_row(buffer);
 	if (_vte_ring_next(screen->row_data) > screen->cursor_current.row) {
 		g_assert(rowdata != NULL);
 		/* Write over the characters.  (If there aren't enough, we'll
@@ -2061,7 +2064,7 @@ vte_sequence_handler_ta (VteTerminal *terminal, GValueArray *params)
 
 	/* but make sure we don't move cursor back (bug #340631) */
 	if (col < newcol) {
-		VteRowData *rowdata = _vte_terminal_ensure_row (terminal);
+		VteRowData *rowdata = _vte_buffer_ensure_row (buffer);
 
 		/* Smart tab handling: bug 353610
 		 *

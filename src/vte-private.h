@@ -425,7 +425,6 @@ struct _VteTerminalClassPrivate {
         GtkStyleProvider *style_provider;
 };
 
-VteRowData *_vte_terminal_ensure_row(VteTerminal *terminal);
 void _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible);
 void _vte_invalidate_all(VteTerminal *terminal);
 void _vte_invalidate_cells(VteTerminal *terminal,
@@ -433,7 +432,6 @@ void _vte_invalidate_cells(VteTerminal *terminal,
 			   glong row_start, gint row_count);
 void _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row);
 void _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic);
-VteRowData * _vte_new_row_data(VteTerminal *terminal);
 void _vte_terminal_adjust_adjustments(VteTerminal *terminal);
 void _vte_terminal_queue_contents_changed(VteTerminal *terminal);
 void _vte_terminal_emit_text_deleted(VteTerminal *terminal);
@@ -484,6 +482,7 @@ void _vte_buffer_clear_tabstop(VteBuffer *buffer, int column);
 void _vte_buffer_clear_tabstops(VteBuffer *buffer);
 gboolean _vte_buffer_get_tabstop(VteBuffer *buffer, int column);
 void _vte_buffer_set_tabstop(VteBuffer *buffer, int column);
+VteRowData *_vte_buffer_ensure_row(VteBuffer *buffer);
 
 /* private VteScreen methods */
 void _vte_screen_set_default_attributes(VteScreen *screen);

@@ -2063,20 +2063,19 @@ vte_terminal_get_encoding(VteTerminal *terminal)
 }
 
 static inline VteRowData *
-vte_terminal_insert_rows (VteTerminal *terminal, guint cnt)
+vte_buffer_insert_rows (VteBuffer *buffer, guint cnt)
 {
 	VteRowData *row;
 	do {
-		row = _vte_buffer_ring_append (terminal->term_pvt->buffer, FALSE);
+		row = _vte_buffer_ring_append (buffer, FALSE);
 	} while(--cnt);
 	return row;
 }
 
-
 /* Make sure we have enough rows and columns to hold data at the current
  * cursor position. */
 VteRowData *
-_vte_terminal_ensure_row (VteTerminal *terminal)
+_vte_buffer_ensure_row (VteBuffer *buffer)
 {
 	VteRowData *row;
 	VteScreen *screen;
@@ -2084,14 +2083,14 @@ _vte_terminal_ensure_row (VteTerminal *terminal)
 	glong v;
 
 	/* Must make sure we're in a sane area. */
-	screen = terminal->pvt->screen;
+	screen = buffer->pvt->screen;
 	v = screen->cursor_current.row;
 
 	/* Figure out how many rows we need to add. */
 	delta = v - _vte_ring_next(screen->row_data) + 1;
 	if (delta > 0) {
-		row = vte_terminal_insert_rows (terminal, delta);
-		_vte_terminal_adjust_adjustments(terminal);
+		row = vte_buffer_insert_rows (buffer, delta);
+		_vte_terminal_adjust_adjustments(buffer->pvt->terminal);
 	} else {
 		/* Find the row the cursor is in. */
 		row = _vte_ring_index_writable (screen->row_data, v);
@@ -2106,7 +2105,7 @@ vte_terminal_ensure_cursor(VteTerminal *terminal)
 {
 	VteRowData *row;
 
-	row = _vte_terminal_ensure_row (terminal);
+	row = _vte_buffer_ensure_row (terminal->term_pvt->buffer);
 	_vte_row_data_fill (row, &basic_cell.cell, terminal->pvt->screen->cursor_current.col);
 
 	return row;
@@ -2127,7 +2126,7 @@ _vte_terminal_update_insert_delta(VteTerminal *terminal)
 	rows = _vte_ring_next (screen->row_data);
 	delta = screen->cursor_current.row - rows + 1;
 	if (G_UNLIKELY (delta > 0)) {
-		vte_terminal_insert_rows (terminal, delta);
+		vte_buffer_insert_rows (terminal->term_pvt->buffer, delta);
 		rows = _vte_ring_next (screen->row_data);
 	}
 
@@ -2310,7 +2309,7 @@ vte_terminal_generate_bold(const GdkRGBA *foreground,
 void
 _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
 {
-	VteRowData *row = _vte_terminal_ensure_row (terminal);
+	VteRowData *row = _vte_buffer_ensure_row (terminal->term_pvt->buffer);
 	VteScreen *screen = terminal->pvt->screen;
 	long col = screen->cursor_current.col;
 	const VteCell *pcell = _vte_row_data_get (row, col);
@@ -2357,7 +2356,7 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 		/* Match xterm and fill to the end of row when scrolling. */
 		if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
 			VteRowData *rowdata;
-			rowdata = _vte_terminal_ensure_row (terminal);
+			rowdata = _vte_buffer_ensure_row (terminal->term_pvt->buffer);
 			_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->pvt->column_count);
 		}
 
@@ -2402,7 +2401,7 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 		/* Match xterm and fill the new row when scrolling. */
 		if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
 			VteRowData *rowdata;
-			rowdata = _vte_terminal_ensure_row (terminal);
+			rowdata = _vte_buffer_ensure_row (terminal->term_pvt->buffer);
 			_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->pvt->column_count);
 		}
 	} else {
@@ -2463,7 +2462,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			/* XXX clear to the end of line */
 			col = screen->cursor_current.col = 0;
 			/* Mark this line as soft-wrapped. */
-			row = _vte_terminal_ensure_row (terminal);
+			row = _vte_buffer_ensure_row (terminal->term_pvt->buffer);
 			row->attr.soft_wrapped = 1;
 			_vte_terminal_cursor_down (terminal);
 		} else {
