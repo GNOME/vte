@@ -407,7 +407,7 @@ read_and_feed(GIOChannel *source, GIOCondition condition, gpointer data)
 	status = g_io_channel_read_chars(source, buf, sizeof(buf),
 					 &size, NULL);
 	if ((status == G_IO_STATUS_NORMAL) && (size > 0)) {
-		vte_terminal_feed(VTE_TERMINAL(data), buf, size);
+		vte_buffer_feed(vte_terminal_get_buffer(VTE_TERMINAL(data)), buf, size);
 		return TRUE;
 	}
 	return FALSE;
@@ -1067,7 +1067,7 @@ main(int argc, char **argv)
 						 G_CALLBACK(take_xconsole_ownership),
 						 NULL);
 #ifdef VTE_DEBUG
-				vte_terminal_feed(terminal,
+				vte_buffer_feed(vte_terminal_get_buffer(terminal),
 						  "Console log for ...\r\n",
 						  -1);
 #endif
@@ -1091,7 +1091,7 @@ main(int argc, char **argv)
 			GPid pid = -1;
 
 			_VTE_DEBUG_IF(VTE_DEBUG_MISC)
-				vte_terminal_feed(terminal, message, -1);
+				vte_buffer_feed(vte_terminal_get_buffer(terminal), message, -1);
 
                         if (command == NULL || *command == '\0')
                                 command = vte_get_user_shell ();

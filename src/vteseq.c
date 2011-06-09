@@ -32,6 +32,11 @@
 
 #define BEL "\007"
 
+/* FIXMEchpe hackery remove later */
+static inline void vte_terminal_feed_child(VteTerminal *terminal, const char *data, gssize len)
+{
+        vte_buffer_feed_child(terminal->term_pvt->buffer, data, len);
+}
 
 
 /* FUNCTIONS WE USE */

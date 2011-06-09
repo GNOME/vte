@@ -3495,7 +3495,8 @@ _vte_terminal_enable_input_source (VteTerminal *terminal)
 	}
 }
 static void
-_vte_terminal_feed_chunks (VteTerminal *terminal, struct _vte_incoming_chunk *chunks)
+_vte_buffer_feed_chunks (VteBuffer *buffer,
+                         struct _vte_incoming_chunk *chunks)
 {
 	struct _vte_incoming_chunk *last;
 
@@ -3504,8 +3505,8 @@ _vte_terminal_feed_chunks (VteTerminal *terminal, struct _vte_incoming_chunk *ch
 			_vte_incoming_chunks_count(chunks));
 
 	for (last = chunks; last->next != NULL; last = last->next) ;
-	last->next = terminal->pvt->incoming;
-	terminal->pvt->incoming = chunks;
+	last->next = buffer->pvt->incoming;
+	buffer->pvt->incoming = chunks;
 }
 /* Read and handle data from the child. */
 static gboolean
@@ -3583,7 +3584,7 @@ out:
 		}
 
 		if (chunks != NULL) {
-			_vte_terminal_feed_chunks (terminal, chunks);
+			_vte_buffer_feed_chunks (terminal->term_pvt->buffer, chunks);
 		}
 		if (!vte_terminal_is_processing (terminal)) {
 			GDK_THREADS_ENTER ();
@@ -3635,32 +3636,38 @@ out:
 }
 
 /**
- * vte_terminal_feed:
- * @terminal: a #VteTerminal
- * @data: a string in the terminal's current encoding
- * @length: the length of the string
+ * vte_buffer_feed:
+ * @buffer: a #VteBuffer
+ * @data: (allow-none): a string in the buffer's current encoding
+ * @length: the length of the string, or <literal>-1</literal>
  *
  * Interprets @data as if it were data received from a child process.  This
- * can either be used to drive the terminal without a child process, or just
+ * can either be used to drive the buffer without a child process, or just
  * to mess with your users.
  */
 void
-vte_terminal_feed(VteTerminal *terminal, const char *data, glong length)
+vte_buffer_feed(VteBuffer *buffer,
+                const char *data,
+                gssize length)
 {
-	/* If length == -1, use the length of the data string. */
-	if (length == ((gssize)-1)) {
+        g_return_if_fail(VTE_IS_BUFFER(buffer));
+
+        if (data == NULL || length == 0)
+                return;
+
+	if (length < 0) {
 		length = strlen(data);
 	}
 
 	/* If we have data, modify the incoming buffer. */
 	if (length > 0) {
 		struct _vte_incoming_chunk *chunk;
-		if (terminal->pvt->incoming &&
-				(gsize)length < sizeof (terminal->pvt->incoming->data) - terminal->pvt->incoming->len) {
-			chunk = terminal->pvt->incoming;
+		if (buffer->pvt->incoming &&
+				(gsize)length < sizeof (buffer->pvt->incoming->data) - buffer->pvt->incoming->len) {
+			chunk = buffer->pvt->incoming;
 		} else {
 			chunk = get_chunk ();
-			_vte_terminal_feed_chunks (terminal, chunk);
+			_vte_buffer_feed_chunks (buffer, chunk);
 		}
 		do { /* break the incoming data into chunks */
 			gsize rem = sizeof (chunk->data) - chunk->len;
@@ -3674,9 +3681,9 @@ vte_terminal_feed(VteTerminal *terminal, const char *data, glong length)
 			data += len;
 
 			chunk = get_chunk ();
-			_vte_terminal_feed_chunks (terminal, chunk);
+			_vte_buffer_feed_chunks (buffer, chunk);
 		} while (1);
-		vte_terminal_start_processing (terminal);
+		vte_terminal_start_processing (buffer->pvt->terminal);
 	}
 }
 
@@ -3838,55 +3845,63 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 }
 
 /**
- * vte_terminal_feed_child:
- * @terminal: a #VteTerminal
- * @text: data to send to the child
+ * vte_buffer_feed_child:
+ * @buffer: a #VteBuffer
+ * @text: (allow-none): data to send to the child
  * @length: length of @text in bytes, or -1 if @text is NUL-terminated
  *
  * Sends a block of UTF-8 text to the child as if it were entered by the user
  * at the keyboard.
  */
 void
-vte_terminal_feed_child(VteTerminal *terminal, const char *text, glong length)
+vte_buffer_feed_child(VteBuffer *buffer,
+                      const char *text,
+                      gssize length)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	if (length == ((gssize)-1)) {
+        g_return_if_fail(VTE_IS_BUFFER(buffer));
+
+        if (text == NULL || length == 0)
+                return;
+
+	if (length < 0) {
 		length = strlen(text);
 	}
 	if (length > 0) {
-		vte_terminal_send(terminal, "UTF-8", text, length,
+		vte_terminal_send(buffer->pvt->terminal, "UTF-8", text, length,
 				  FALSE, FALSE);
 	}
 }
 
 /**
- * vte_terminal_feed_child_binary:
- * @terminal: a #VteTerminal
- * @data: data to send to the child
+ * vte_buffer_feed_child_binary:
+ * @buffer: a #VteBuffer
+ * @data: (allow-none) (array zero-terminated=0 lenght=@length) (element-type uint8): data to send to the child
  * @length: length of @data
  *
  * Sends a block of binary data to the child.
- *
- * Since: 0.12.1
  */
 void
-vte_terminal_feed_child_binary(VteTerminal *terminal, const char *data, glong length)
+vte_buffer_feed_child_binary(VteBuffer *buffer,
+                             const char *data,
+                             gsize length)
 {
-	g_assert(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(VTE_IS_BUFFER(buffer));
+
+        if (data == NULL || length == 0)
+                return;
 
 	/* Tell observers that we're sending this to the child. */
 	if (length > 0) {
-		vte_buffer_emit_commit(terminal->term_pvt->buffer,
-					 data, length);
+		vte_buffer_emit_commit(buffer, data, length);
 
 		/* If there's a place for it to go, add the data to the
 		 * outgoing buffer. */
-		if (terminal->pvt->pty != NULL) {
-			_vte_byte_array_append(terminal->pvt->outgoing,
+		if (buffer->pvt->pty != NULL) {
+			_vte_byte_array_append(buffer->pvt->outgoing,
 					   data, length);
 			/* If we need to start waiting for the child pty to
 			 * become available for writing, set that up here. */
-			_vte_terminal_connect_pty_write(terminal);
+			_vte_terminal_connect_pty_write(buffer->pvt->terminal);
 		}
 	}
 }
@@ -4827,7 +4842,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			    !suppress_meta_esc &&
 			    (normal_length > 0) &&
 			    (modifiers & VTE_META_MASK)) {
-				vte_terminal_feed_child(terminal,
+				vte_buffer_feed_child(terminal->term_pvt->buffer,
 							_VTE_CAP_ESC,
 							1);
 			}
@@ -5054,10 +5069,13 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 static void
 vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 {
-	VteTerminal *terminal;
+	VteTerminal *terminal = data;
+        VteBuffer *buffer;
 	gchar *paste, *p;
 	long length;
-	terminal = data;
+
+        buffer = terminal->term_pvt->buffer;
+
 	if (text != NULL) {
 		_vte_debug_print(VTE_DEBUG_SELECTION,
 				"Pasting %"G_GSIZE_FORMAT" UTF-8 bytes.\n",
@@ -5080,10 +5098,10 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 			}
 		}
 		if (terminal->pvt->screen->bracketed_paste_mode)
-			vte_terminal_feed_child(terminal, "\e[200~", -1);
-		vte_terminal_feed_child(terminal, paste, length);
+			vte_buffer_feed_child(buffer, "\e[200~", -1);
+		vte_buffer_feed_child(buffer, paste, length);
 		if (terminal->pvt->screen->bracketed_paste_mode)
-			vte_terminal_feed_child(terminal, "\e[201~", -1);
+			vte_buffer_feed_child(buffer, "\e[201~", -1);
 		g_free(paste);
 	}
 }
@@ -5238,7 +5256,7 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 
 	/* Send event direct to the child, this is binary not text data */
 	len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, cx, cy);
-	vte_terminal_feed_child_binary(terminal, buf, len);
+	vte_buffer_feed_child_binary(terminal->term_pvt->buffer, buf, len);
 }
 
 /* Send a mouse button click/release notification. */
@@ -5311,7 +5329,7 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 
 	/* Send event direct to the child, this is binary not text data */
 	len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, cx, cy);
-	vte_terminal_feed_child_binary(terminal, buf, len);
+	vte_buffer_feed_child_binary(terminal->term_pvt->buffer, buf, len);
 }
 
 /* Clear all match hilites. */
@@ -7515,6 +7533,7 @@ vte_terminal_get_emulation(VteTerminal *terminal)
 void
 _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ...)
 {
+        VteBuffer *buffer = terminal->term_pvt->buffer;
 	va_list ap;
 	char *str;
 
@@ -7522,9 +7541,9 @@ _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ..
 	str = g_strdup_vprintf (format, ap);
 	va_end (ap);
 
-	vte_terminal_feed (terminal, "*** VTE ***: ", 13);
-	vte_terminal_feed (terminal, str, -1);
-	vte_terminal_feed (terminal, "\r\n", 2);
+	vte_buffer_feed (buffer, "*** VTE ***: ", 13);
+	vte_buffer_feed (buffer, str, -1);
+	vte_buffer_feed (buffer, "\r\n", 2);
 	g_free (str);
 }
 

@@ -11,9 +11,6 @@ VteSelectionFunc
 vte_terminal_new
 vte_terminal_get_buffer
 vte_terminal_im_append_menuitems
-vte_terminal_feed
-vte_terminal_feed_child
-vte_terminal_feed_child_binary
 vte_terminal_select_all
 vte_terminal_select_none
 vte_terminal_copy_clipboard
@@ -114,6 +111,9 @@ VteTerminalClassPrivate
 <TITLE>VteBuffer</TITLE>
 VteBuffer
 vte_buffer_new
+vte_buffer_feed
+vte_buffer_feed_child
+vte_buffer_feed_child_binary
 
 <SUBSECTION Standard>
 VTE_TYPE_BUFFER

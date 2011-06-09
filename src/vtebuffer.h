@@ -62,6 +62,18 @@ GType vte_buffer_get_type (void);
 
 VteBuffer *vte_buffer_new (void);
 
+void vte_buffer_feed                    (VteBuffer *buffer,
+                                         const char *data,
+                                         gssize length);
+
+void vte_buffer_feed_child              (VteBuffer *buffer,
+                                         const char *text,
+                                         gssize length);
+
+void vte_buffer_feed_child_binary       (VteBuffer *buffer,
+                                         const char *data,
+                                         gsize length);
+
 G_END_DECLS
 
 #endif /* VTE_BUFFER_H */
