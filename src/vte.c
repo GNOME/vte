@@ -2101,12 +2101,12 @@ _vte_buffer_ensure_row (VteBuffer *buffer)
 }
 
 static VteRowData *
-vte_terminal_ensure_cursor(VteTerminal *terminal)
+vte_buffer_ensure_cursor(VteBuffer *buffer)
 {
 	VteRowData *row;
 
-	row = _vte_buffer_ensure_row (terminal->term_pvt->buffer);
-	_vte_row_data_fill (row, &basic_cell.cell, terminal->pvt->screen->cursor_current.col);
+	row = _vte_buffer_ensure_row (buffer);
+	_vte_row_data_fill (row, &basic_cell.cell, buffer->pvt->screen->cursor_current.col);
 
 	return row;
 }
@@ -2550,7 +2550,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 
 	/* Make sure we have enough rows to hold this data. */
-	row = vte_terminal_ensure_cursor (terminal);
+	row = vte_buffer_ensure_cursor (terminal->term_pvt->buffer);
 	g_assert(row != NULL);
 
 	_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
