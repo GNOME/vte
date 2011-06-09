@@ -548,12 +548,13 @@ _vte_screen_find_row_data_writable(VteScreen *screen,
 
 /* Find the character an the given position in the backscroll buffer. */
 static const VteCell *
-vte_terminal_find_charcell(VteTerminal *terminal, gulong col, glong row)
+vte_screen_find_charcell(VteScreen *screen,
+                         gulong col,
+                         glong row)
 {
 	const VteRowData *rowdata;
 	const VteCell *ret = NULL;
-	VteScreen *screen;
-	screen = terminal->pvt->screen;
+
 	if (_vte_ring_contains (screen->row_data, row)) {
 		rowdata = _vte_ring_index (screen->row_data, row);
 		ret = _vte_row_data_get (rowdata, col);
@@ -717,7 +718,7 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 		column = screen->cursor_current.col;
 		columns = 1;
 		column = find_start_column (terminal, column, row);
-		cell = vte_terminal_find_charcell(terminal, column, row);
+		cell = vte_screen_find_charcell(terminal->pvt->screen, column, row);
 		if (cell != NULL) {
 			columns = cell->attr.columns;
 			if (cell->c != 0 &&
@@ -4889,14 +4890,14 @@ vte_same_class(VteTerminal *terminal, glong acol, glong arow,
 {
 	const VteCell *pcell = NULL;
 	gboolean word_char;
-	if ((pcell = vte_terminal_find_charcell(terminal, acol, arow)) != NULL && pcell->c != 0) {
+	if ((pcell = vte_screen_find_charcell(terminal->pvt->screen, acol, arow)) != NULL && pcell->c != 0) {
 		word_char = vte_terminal_is_word_char(terminal, _vte_unistr_get_base (pcell->c));
 
 		/* Lets not group non-wordchars together (bug #25290) */
 		if (!word_char)
 			return FALSE;
 
-		pcell = vte_terminal_find_charcell(terminal, bcol, brow);
+		pcell = vte_screen_find_charcell(terminal->pvt->screen, bcol, brow);
 		if (pcell == NULL || pcell->c == 0) {
 			return FALSE;
 		}
@@ -10094,10 +10095,10 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 		return;
 
 	/* Find the character "under" the cursor. */
-	cell = vte_terminal_find_charcell(terminal, col, drow);
+	cell = vte_screen_find_charcell(terminal->pvt->screen, col, drow);
 	while ((cell != NULL) && (cell->attr.fragment) && (col > 0)) {
 		col--;
-		cell = vte_terminal_find_charcell(terminal, col, drow);
+		cell = vte_screen_find_charcell(terminal->pvt->screen, col, drow);
 	}
 
 	/* Draw the cursor. */
