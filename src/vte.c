@@ -2113,20 +2113,20 @@ vte_buffer_ensure_cursor(VteBuffer *buffer)
 
 /* Update the insert delta so that the screen which includes it also
  * includes the end of the buffer. */
-void
-_vte_terminal_update_insert_delta(VteTerminal *terminal)
+static void
+vte_buffer_update_insert_delta(VteBuffer *buffer)
 {
 	long delta, rows;
 	VteScreen *screen;
 
-	screen = terminal->pvt->screen;
+	screen = buffer->pvt->screen;
 
 	/* The total number of lines.  Add one to the cursor offset
 	 * because it's zero-based. */
 	rows = _vte_ring_next (screen->row_data);
 	delta = screen->cursor_current.row - rows + 1;
 	if (G_UNLIKELY (delta > 0)) {
-		vte_buffer_insert_rows (terminal->term_pvt->buffer, delta);
+		vte_buffer_insert_rows (buffer, delta);
 		rows = _vte_ring_next (screen->row_data);
 	}
 
@@ -2134,15 +2134,15 @@ _vte_terminal_update_insert_delta(VteTerminal *terminal)
 	 * the buffer (even if it's empty).  This usually causes the
 	 * top row to become a history-only row. */
 	delta = screen->insert_delta;
-	delta = MIN(delta, rows - terminal->pvt->row_count);
+	delta = MIN(delta, rows - buffer->pvt->row_count);
 	delta = MAX(delta,
-		    screen->cursor_current.row - (terminal->pvt->row_count - 1));
+		    screen->cursor_current.row - (buffer->pvt->row_count - 1));
 	delta = MAX(delta, _vte_ring_delta(screen->row_data));
 
 	/* Adjust the insert delta and scroll if needed. */
 	if (delta != screen->insert_delta) {
 		screen->insert_delta = delta;
-		_vte_terminal_adjust_adjustments(terminal);
+		_vte_terminal_adjust_adjustments(buffer->pvt->terminal);
 	}
 }
 
@@ -2395,7 +2395,7 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 		} else {
 			/* Scroll up with history. */
 			screen->cursor_current.row++;
-			_vte_terminal_update_insert_delta(terminal);
+			vte_buffer_update_insert_delta(terminal->term_pvt->buffer);
 		}
 
 		/* Match xterm and fill the new row when scrolling. */
@@ -3380,7 +3380,7 @@ next_match:
 	if (modified) {
 		/* Keep the cursor on-screen if we scroll on output, or if
 		 * we're currently at the bottom of the buffer. */
-		_vte_terminal_update_insert_delta(terminal);
+		vte_buffer_update_insert_delta(terminal->term_pvt->buffer);
 		if (terminal->pvt->scroll_on_output || bottom) {
 			vte_terminal_maybe_scroll_to_bottom(terminal);
 		}

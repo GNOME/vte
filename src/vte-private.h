@@ -442,7 +442,6 @@ gboolean _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			       gboolean invalidate_cells);
 void _vte_terminal_scroll_region(VteTerminal *terminal,
 				 long row, glong count, glong delta);
-void _vte_terminal_update_insert_delta(VteTerminal *terminal);
 void _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal);
 void _vte_terminal_audible_beep(VteTerminal *terminal);
 void _vte_terminal_visible_beep(VteTerminal *terminal);
