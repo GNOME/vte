@@ -997,7 +997,7 @@ vte_sequence_handler_bt (VteTerminal *terminal, GValueArray *params)
 		/* Find the next tabstop. */
 		while (newcol > 0) {
 			newcol--;
-			if (_vte_terminal_get_tabstop(terminal,
+			if (_vte_buffer_get_tabstop(terminal->term_pvt->buffer,
 						     newcol % terminal->pvt->column_count)) {
 				break;
 			}
@@ -1296,10 +1296,7 @@ vte_sequence_handler_cS (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_ct (VteTerminal *terminal, GValueArray *params)
 {
-	if (terminal->pvt->tabstops != NULL) {
-		g_hash_table_destroy(terminal->pvt->tabstops);
-		terminal->pvt->tabstops = NULL;
-	}
+        _vte_buffer_clear_tabstops(terminal->term_pvt->buffer);
 }
 
 /* Move the cursor to the lower left-hand corner. */
@@ -2024,17 +2021,20 @@ vte_sequence_handler_SR (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_st (VteTerminal *terminal, GValueArray *params)
 {
-	if (terminal->pvt->tabstops == NULL) {
-		terminal->pvt->tabstops = g_hash_table_new(NULL, NULL);
+        VteBuffer *buffer = terminal->term_pvt->buffer;
+
+	if (buffer->pvt->tabstops == NULL) {
+		buffer->pvt->tabstops = g_hash_table_new(NULL, NULL);
 	}
-	_vte_terminal_set_tabstop(terminal,
-				 terminal->pvt->screen->cursor_current.col);
+	_vte_buffer_set_tabstop(buffer,
+				buffer->pvt->screen->cursor_current.col);
 }
 
 /* Tab. */
 static void
 vte_sequence_handler_ta (VteTerminal *terminal, GValueArray *params)
 {
+        VteBuffer *buffer = terminal->term_pvt->buffer;
 	VteScreen *screen;
 	long old_len, newcol, col;
 
@@ -2044,10 +2044,10 @@ vte_sequence_handler_ta (VteTerminal *terminal, GValueArray *params)
 
 	g_assert (col >= 0);
 
-	if (terminal->pvt->tabstops != NULL) {
+	if (buffer->pvt->tabstops != NULL) {
 		/* Find the next tabstop. */
 		for (newcol++; newcol < VTE_TAB_MAX; newcol++) {
-			if (_vte_terminal_get_tabstop(terminal, newcol)) {
+			if (_vte_buffer_get_tabstop(buffer, newcol)) {
 				break;
 			}
 		}
@@ -2126,6 +2126,7 @@ vte_sequence_handler_ta (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_tab_clear (VteTerminal *terminal, GValueArray *params)
 {
+        VteBuffer *buffer = terminal->term_pvt->buffer;
 	GValue *value;
 	long param = 0;
 
@@ -2136,14 +2137,11 @@ vte_sequence_handler_tab_clear (VteTerminal *terminal, GValueArray *params)
 		}
 	}
 	if (param == 0) {
-		_vte_terminal_clear_tabstop(terminal,
-					   terminal->pvt->screen->cursor_current.col);
+		_vte_buffer_clear_tabstop(buffer,
+					  buffer->pvt->screen->cursor_current.col);
 	} else
 	if (param == 3) {
-		if (terminal->pvt->tabstops != NULL) {
-			g_hash_table_destroy(terminal->pvt->tabstops);
-			terminal->pvt->tabstops = NULL;
-		}
+                _vte_buffer_clear_tabstops(buffer);
 	}
 }
 

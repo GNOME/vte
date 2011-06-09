@@ -1039,24 +1039,35 @@ vte_terminal_deselect_all(VteTerminal *terminal)
 
 /* Remove a tabstop. */
 void
-_vte_terminal_clear_tabstop(VteTerminal *terminal, int column)
+_vte_buffer_clear_tabstop(VteBuffer *buffer,
+                          int column)
 {
-	g_assert(VTE_IS_TERMINAL(terminal));
-	if (terminal->pvt->tabstops != NULL) {
+	g_assert(VTE_IS_BUFFER(buffer));
+	if (buffer->pvt->tabstops != NULL) {
 		/* Remove a tab stop from the hash table. */
-		g_hash_table_remove(terminal->pvt->tabstops,
+		g_hash_table_remove(buffer->pvt->tabstops,
 				    GINT_TO_POINTER(2 * column + 1));
 	}
 }
 
+void
+_vte_buffer_clear_tabstops(VteBuffer *buffer)
+{
+        if (buffer->pvt->tabstops != NULL) {
+                g_hash_table_destroy(buffer->pvt->tabstops);
+                buffer->pvt->tabstops = NULL;
+        }
+}
+
 /* Check if we have a tabstop at a given position. */
 gboolean
-_vte_terminal_get_tabstop(VteTerminal *terminal, int column)
+_vte_buffer_get_tabstop(VteBuffer *buffer,
+                        int column)
 {
 	gpointer hash;
-	g_assert(VTE_IS_TERMINAL(terminal));
-	if (terminal->pvt->tabstops != NULL) {
-		hash = g_hash_table_lookup(terminal->pvt->tabstops,
+	g_assert(VTE_IS_BUFFER(buffer));
+	if (buffer->pvt->tabstops != NULL) {
+		hash = g_hash_table_lookup(buffer->pvt->tabstops,
 					   GINT_TO_POINTER(2 * column + 1));
 		return (hash != NULL);
 	} else {
@@ -1066,36 +1077,37 @@ _vte_terminal_get_tabstop(VteTerminal *terminal, int column)
 
 /* Reset the set of tab stops to the default. */
 void
-_vte_terminal_set_tabstop(VteTerminal *terminal, int column)
+_vte_buffer_set_tabstop(VteBuffer *buffer,
+                        int column)
 {
-	g_assert(VTE_IS_TERMINAL(terminal));
-	if (terminal->pvt->tabstops != NULL) {
+	g_assert(VTE_IS_BUFFER(buffer));
+	if (buffer->pvt->tabstops != NULL) {
 		/* Just set a non-NULL pointer for this column number. */
-		g_hash_table_insert(terminal->pvt->tabstops,
+		g_hash_table_insert(buffer->pvt->tabstops,
 				    GINT_TO_POINTER(2 * column + 1),
-				    terminal);
+				    buffer);
 	}
 }
 
 /* Reset the set of tab stops to the default. */
 static void
-vte_terminal_set_default_tabstops(VteTerminal *terminal)
+vte_buffer_set_default_tabstops(VteBuffer *buffer)
 {
 	int i, width = 0;
-	if (terminal->pvt->tabstops != NULL) {
-		g_hash_table_destroy(terminal->pvt->tabstops);
+	if (buffer->pvt->tabstops != NULL) {
+		g_hash_table_destroy(buffer->pvt->tabstops);
 	}
-	terminal->pvt->tabstops = g_hash_table_new(NULL, NULL);
-	if (terminal->pvt->termcap != NULL) {
-		width = _vte_termcap_find_numeric(terminal->pvt->termcap,
-						  terminal->pvt->emulation,
+	buffer->pvt->tabstops = g_hash_table_new(NULL, NULL);
+	if (buffer->pvt->termcap != NULL) {
+		width = _vte_termcap_find_numeric(buffer->pvt->termcap,
+						  buffer->pvt->emulation,
 						  "it");
 	}
 	if (width == 0) {
 		width = VTE_TAB_WIDTH;
 	}
 	for (i = 0; i <= VTE_TAB_MAX; i += width) {
-		_vte_terminal_set_tabstop(terminal, i);
+		_vte_buffer_set_tabstop(buffer, i);
 	}
 }
 
@@ -7675,7 +7687,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->bell_margin = 10;
 	pvt->allow_bold = TRUE;
 	pvt->nrc_mode = TRUE;
-	vte_terminal_set_default_tabstops(terminal);
+	vte_buffer_set_default_tabstops(buffer);
 
 	/* Cursor shape. */
 	term_pvt->cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
@@ -12383,10 +12395,12 @@ vte_terminal_reset(VteTerminal *terminal,
                    gboolean clear_history)
 {
         VteTerminalPrivate *pvt;
+        VteBuffer *buffer;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         pvt = terminal->pvt;
+        buffer = terminal->term_pvt->buffer;
 
         g_object_freeze_notify(G_OBJECT(terminal));
 
@@ -12472,7 +12486,7 @@ vte_terminal_reset(VteTerminal *terminal,
 	pvt->alternate_screen.status_line_contents = g_string_new(NULL);
 	/* Do more stuff we refer to as a "full" reset. */
 	if (clear_tabstops) {
-		vte_terminal_set_default_tabstops(terminal);
+		vte_buffer_set_default_tabstops(buffer);
 	}
 	/* Reset restricted scrolling regions, leave insert mode, make
 	 * the cursor visible again. */

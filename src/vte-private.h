@@ -444,9 +444,6 @@ gboolean _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			       gboolean invalidate_cells);
 void _vte_terminal_scroll_region(VteTerminal *terminal,
 				 long row, glong count, glong delta);
-void _vte_terminal_clear_tabstop(VteTerminal *terminal, int column);
-gboolean _vte_terminal_get_tabstop(VteTerminal *terminal, int column);
-void _vte_terminal_set_tabstop(VteTerminal *terminal, int column);
 void _vte_terminal_update_insert_delta(VteTerminal *terminal);
 void _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal);
 void _vte_terminal_audible_beep(VteTerminal *terminal);
@@ -483,6 +480,10 @@ void _vte_terminal_set_effect_color(VteTerminal *terminal,
 VteRowData *_vte_buffer_ring_insert (VteBuffer *buffer, glong position, gboolean fill);
 VteRowData *_vte_buffer_ring_append (VteBuffer *buffer, gboolean fill);
 void _vte_buffer_ring_remove (VteBuffer *buffer, glong position);
+void _vte_buffer_clear_tabstop(VteBuffer *buffer, int column);
+void _vte_buffer_clear_tabstops(VteBuffer *buffer);
+gboolean _vte_buffer_get_tabstop(VteBuffer *buffer, int column);
+void _vte_buffer_set_tabstop(VteBuffer *buffer, int column);
 
 /* private VteScreen methods */
 void _vte_screen_set_default_attributes(VteScreen *screen);
