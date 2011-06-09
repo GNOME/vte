@@ -291,20 +291,8 @@ struct _VteBufferPrivate {
 	gboolean scroll_on_keystroke;
 	long scrollback_lines;
 
-	/* Cursor shape */
-	VteTerminalCursorShape cursor_shape;
-        float cursor_aspect_ratio;
-
-	/* Cursor blinking. */
-        VteTerminalCursorBlinkMode cursor_blink_mode;
-	gboolean cursor_blink_state;
-	guint cursor_blink_tag;           /* cursor blinking timeout ID */
-        gint cursor_blink_cycle;          /* gtk-cursor-blink-time / 2 */
-	gint cursor_blink_timeout;        /* gtk-cursor-blink-timeout */
-        gboolean cursor_blinks;           /* whether the cursor is actually blinking */
-	gint64 cursor_blink_time;         /* how long the cursor has been blinking yet */
-	gboolean cursor_visible;
-	gboolean has_focus;               /* is the terminal window focused */
+        /* Cursor */
+        gboolean cursor_visible;
 
 	/* Input device options. */
 	time_t last_keypress_time;
@@ -418,6 +406,19 @@ struct _VteTerminalRealPrivate {
         /* Expose event handling */
         GSList *update_regions;
         gboolean invalidated_all;       /* pending refresh of entire terminal */
+
+        /* Cursor */
+        VteTerminalCursorShape cursor_shape;
+        VteTerminalCursorBlinkMode cursor_blink_mode;
+        float cursor_aspect_ratio;
+        gboolean cursor_blink_state;
+        guint cursor_blink_tag;           /* cursor blinking timeout ID */
+        gint cursor_blink_cycle;          /* gtk-cursor-blink-time / 2 */
+        gint cursor_blink_timeout;        /* gtk-cursor-blink-timeout */
+        gboolean cursor_blinks;           /* whether the cursor is actually blinking */
+        gint64 cursor_blink_time;         /* how long the cursor has been blinking yet */
+        gboolean has_focus;               /* is the terminal window focused */
+
 };
 
 struct _VteTerminalClassPrivate {

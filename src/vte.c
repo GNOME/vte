@@ -719,7 +719,7 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 	}
 
 	if (periodic) {
-		if (!terminal->pvt->cursor_blinks) {
+		if (!terminal->term_pvt->cursor_blinks) {
 			return;
 		}
 	}
@@ -762,24 +762,24 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 static gboolean
 vte_invalidate_cursor_periodic (VteTerminal *terminal)
 {
-        VteTerminalPrivate *pvt = terminal->pvt;
+        VteTerminalRealPrivate *term_pvt = terminal->term_pvt;
 
-	pvt->cursor_blink_state = !pvt->cursor_blink_state;
-	pvt->cursor_blink_time += pvt->cursor_blink_cycle;
+	term_pvt->cursor_blink_state = !term_pvt->cursor_blink_state;
+	term_pvt->cursor_blink_time += term_pvt->cursor_blink_cycle;
 
 	_vte_invalidate_cursor_once(terminal, TRUE);
 
 	/* only disable the blink if the cursor is currently shown.
 	 * else, wait until next time.
 	 */
-	if (pvt->cursor_blink_time / 1000 >= pvt->cursor_blink_timeout &&
-	    pvt->cursor_blink_state) {
-                pvt->cursor_blink_tag = 0;
+	if (term_pvt->cursor_blink_time / 1000 >= term_pvt->cursor_blink_timeout &&
+	    term_pvt->cursor_blink_state) {
+                term_pvt->cursor_blink_tag = 0;
 		return FALSE;
         }
 
-	pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
-						   terminal->pvt->cursor_blink_cycle,
+	term_pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
+						   terminal->term_pvt->cursor_blink_cycle,
 						   (GSourceFunc)vte_invalidate_cursor_periodic,
 						   terminal,
 						   NULL);
@@ -4172,7 +4172,7 @@ vte_terminal_update_style_colors(VteTerminal *terminal,
 static void
 vte_terminal_update_cursor_style(VteTerminal *terminal)
 {
-        VteTerminalPrivate *pvt = terminal->pvt;
+        VteTerminalRealPrivate *term_pvt = terminal->term_pvt;
         GtkWidget *widget = &terminal->widget;
         float aspect;
         int cursor_shape, blink_mode;
@@ -4184,8 +4184,8 @@ vte_terminal_update_cursor_style(VteTerminal *terminal)
                              "cursor-aspect-ratio", &aspect,
                              NULL);
 
-        if ((VteTerminalCursorBlinkMode)blink_mode != pvt->cursor_blink_mode) {
-                pvt->cursor_blink_mode = (VteTerminalCursorBlinkMode)blink_mode;
+        if ((VteTerminalCursorBlinkMode)blink_mode != term_pvt->cursor_blink_mode) {
+                term_pvt->cursor_blink_mode = (VteTerminalCursorBlinkMode)blink_mode;
 
                 switch ((VteTerminalCursorBlinkMode)blink_mode) {
                 case VTE_CURSOR_BLINK_SYSTEM:
@@ -4204,13 +4204,13 @@ vte_terminal_update_cursor_style(VteTerminal *terminal)
                 vte_terminal_set_cursor_blinks_internal(terminal, blinks);
         }
 
-        if ((VteTerminalCursorShape)cursor_shape != pvt->cursor_shape) {
-                pvt->cursor_shape = (VteTerminalCursorShape)cursor_shape;
+        if ((VteTerminalCursorShape)cursor_shape != term_pvt->cursor_shape) {
+                term_pvt->cursor_shape = (VteTerminalCursorShape)cursor_shape;
                 _vte_invalidate_cursor_once(terminal, FALSE);
         }
 
-        if (aspect != pvt->cursor_aspect_ratio) {
-                pvt->cursor_aspect_ratio = aspect;
+        if (aspect != term_pvt->cursor_aspect_ratio) {
+                term_pvt->cursor_aspect_ratio = aspect;
                 _vte_invalidate_cursor_once(terminal, FALSE);
         }
 }
@@ -4292,12 +4292,12 @@ vte_terminal_style_updated(GtkWidget *widget)
 static void
 add_cursor_timeout (VteTerminal *terminal)
 {
-	if (terminal->pvt->cursor_blink_tag)
+	if (terminal->term_pvt->cursor_blink_tag)
 		return; /* already added */
 
-	terminal->pvt->cursor_blink_time = 0;
-	terminal->pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
-							     terminal->pvt->cursor_blink_cycle,
+	terminal->term_pvt->cursor_blink_time = 0;
+	terminal->term_pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
+							     terminal->term_pvt->cursor_blink_cycle,
 							     (GSourceFunc)vte_invalidate_cursor_periodic,
 							     terminal,
 							     NULL);
@@ -4306,19 +4306,19 @@ add_cursor_timeout (VteTerminal *terminal)
 static void
 remove_cursor_timeout (VteTerminal *terminal)
 {
-	if (terminal->pvt->cursor_blink_tag == 0)
+	if (terminal->term_pvt->cursor_blink_tag == 0)
 		return; /* already removed */
 
-	g_source_remove (terminal->pvt->cursor_blink_tag);
-	terminal->pvt->cursor_blink_tag = 0;
+	g_source_remove (terminal->term_pvt->cursor_blink_tag);
+	terminal->term_pvt->cursor_blink_tag = 0;
 }
 
 /* Activates / disactivates the cursor blink timer to reduce wakeups */
 static void
 _vte_check_cursor_blink(VteTerminal *terminal)
 {
-	if (terminal->pvt->has_focus &&
-	    terminal->pvt->cursor_blinks &&
+	if (terminal->term_pvt->has_focus &&
+	    terminal->term_pvt->cursor_blinks &&
 	    terminal->pvt->cursor_visible)
 		add_cursor_timeout(terminal);
 	else
@@ -4472,10 +4472,10 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			}
 		}
 
-		if (terminal->pvt->cursor_blink_tag != 0)
+		if (terminal->term_pvt->cursor_blink_tag != 0)
 		{
 			remove_cursor_timeout (terminal);
-			terminal->pvt->cursor_blink_state = TRUE;
+			terminal->term_pvt->cursor_blink_state = TRUE;
 			add_cursor_timeout (terminal);
 		}
 
@@ -6887,8 +6887,8 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting the cursor if we don't have a window. */
 	if (gtk_widget_get_realized (widget)) {
-		terminal->pvt->cursor_blink_state = TRUE;
-		terminal->pvt->has_focus = TRUE;
+		terminal->term_pvt->cursor_blink_state = TRUE;
+		terminal->term_pvt->has_focus = TRUE;
 
 		_vte_check_cursor_blink (terminal);
 
@@ -6924,7 +6924,7 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 		terminal->pvt->mouse_cursor_visible = FALSE;
 	}
 
-	terminal->pvt->has_focus = FALSE;
+	terminal->term_pvt->has_focus = FALSE;
 	_vte_check_cursor_blink (terminal);
 
 	return FALSE;
@@ -7626,7 +7626,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->incoming = NULL;
 	pvt->pending = g_array_new(FALSE, TRUE, sizeof(gunichar));
 	pvt->max_input_bytes = VTE_MAX_INPUT_READ;
-	pvt->cursor_blink_tag = 0;
+	term_pvt->cursor_blink_tag = 0;
 	pvt->outgoing = _vte_byte_array_new();
 	pvt->outgoing_conv = VTE_INVALID_CONV;
 	pvt->conv_buffer = _vte_byte_array_new();
@@ -7671,14 +7671,14 @@ vte_terminal_init(VteTerminal *terminal)
 	vte_terminal_set_default_tabstops(terminal);
 
 	/* Cursor shape. */
-	pvt->cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
-        pvt->cursor_aspect_ratio = 0.04;
+	term_pvt->cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
+        term_pvt->cursor_aspect_ratio = 0.04;
 
 	/* Cursor blinking. */
 	pvt->cursor_visible = TRUE;
-	pvt->cursor_blink_timeout = 500;
-        pvt->cursor_blinks = FALSE;
-        pvt->cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
+	term_pvt->cursor_blink_timeout = 500;
+        term_pvt->cursor_blinks = FALSE;
+        term_pvt->cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
 
         /* Style properties */
         pvt->reverse = FALSE;
@@ -7954,7 +7954,7 @@ vte_terminal_sync_settings (GtkSettings *settings,
                             GParamSpec *pspec,
                             VteTerminal *terminal)
 {
-        VteTerminalPrivate *pvt = terminal->pvt;
+        VteTerminalRealPrivate *term_pvt = terminal->term_pvt;
         gboolean blink;
         int blink_time = 1000;
         int blink_timeout = G_MAXINT;
@@ -7969,10 +7969,10 @@ vte_terminal_sync_settings (GtkSettings *settings,
                          "Cursor blinking settings setting: blink=%d time=%d timeout=%d\n",
                          blink, blink_time, blink_timeout);
 
-        pvt->cursor_blink_cycle = blink_time / 2;
-        pvt->cursor_blink_timeout = blink_timeout;
+        term_pvt->cursor_blink_cycle = blink_time / 2;
+        term_pvt->cursor_blink_timeout = blink_timeout;
 
-        if (pvt->cursor_blink_mode == VTE_CURSOR_BLINK_SYSTEM)
+        if (term_pvt->cursor_blink_mode == VTE_CURSOR_BLINK_SYSTEM)
                 vte_terminal_set_cursor_blinks_internal(terminal, blink);
 }
 
@@ -10102,8 +10102,8 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	    (CLAMP(row, 0, terminal->pvt->row_count    - 1) != row))
 		return;
 
-	focus = terminal->pvt->has_focus;
-	blink = terminal->pvt->cursor_blink_state;
+	focus = terminal->term_pvt->has_focus;
+	blink = terminal->term_pvt->cursor_blink_state;
 
 	if (focus && !blink)
 		return;
@@ -10134,12 +10134,12 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	x = item.x;
 	y = item.y;
 
-	switch (terminal->pvt->cursor_shape) {
+	switch (terminal->term_pvt->cursor_shape) {
 
 		case VTE_CURSOR_SHAPE_IBEAM: {
                         int stem_width;
 
-                        stem_width = (int) (((float) height) * terminal->pvt->cursor_aspect_ratio + 0.5);
+                        stem_width = (int) (((float) height) * terminal->term_pvt->cursor_aspect_ratio + 0.5);
                         stem_width = CLAMP (stem_width, VTE_LINE_WIDTH, cursor_width);
 		 	
 			vte_terminal_fill_rectangle(terminal, &terminal->pvt->palette[back],
@@ -10150,7 +10150,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 		case VTE_CURSOR_SHAPE_UNDERLINE: {
                         int line_height;
 
-                        line_height = (int) (((float) width) * terminal->pvt->cursor_aspect_ratio + 0.5);
+                        line_height = (int) (((float) width) * terminal->term_pvt->cursor_aspect_ratio + 0.5);
                         line_height = CLAMP (line_height, VTE_LINE_WIDTH, height);
 
 			vte_terminal_fill_rectangle(terminal, &terminal->pvt->palette[back],
@@ -12071,13 +12071,13 @@ vte_terminal_get_has_selection(VteTerminal *terminal)
 static void
 vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink)
 {
-        VteTerminalPrivate *pvt = terminal->pvt;
+        VteTerminalRealPrivate *term_pvt = terminal->term_pvt;
 
 	blink = !!blink;
-	if (pvt->cursor_blinks == blink)
+	if (term_pvt->cursor_blinks == blink)
 		return;
 
-	pvt->cursor_blinks = blink;
+	term_pvt->cursor_blinks = blink;
 	_vte_check_cursor_blink (terminal);
 }
 
