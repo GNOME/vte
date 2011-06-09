@@ -1696,7 +1696,7 @@ vte_sequence_handler_md (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_me (VteTerminal *terminal, GValueArray *params)
 {
-	_vte_terminal_set_default_attributes(terminal);
+	_vte_screen_set_default_attributes(terminal->pvt->screen);
 }
 
 /* Half-bright on. */
@@ -2283,7 +2283,7 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 		param = g_value_get_long(value);
 		switch (param) {
 		case 0:
-			_vte_terminal_set_default_attributes(terminal);
+			_vte_screen_set_default_attributes(terminal->pvt->screen);
 			break;
 		case 1:
 			terminal->pvt->screen->defaults.attr.bold = 1;
@@ -2418,7 +2418,7 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 	}
 	/* If we had no parameters, default to the defaults. */
 	if (i == 0) {
-		_vte_terminal_set_default_attributes(terminal);
+		_vte_screen_set_default_attributes(terminal->pvt->screen);
 	}
 	/* Save the new colors. */
 	terminal->pvt->screen->color_defaults.attr.fore =

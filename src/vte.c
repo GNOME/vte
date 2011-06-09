@@ -327,12 +327,8 @@ _vte_buffer_ring_remove (VteBuffer *buffer,
 
 /* Reset defaults for character insertion. */
 void
-_vte_terminal_set_default_attributes(VteTerminal *terminal)
+_vte_screen_set_default_attributes(VteScreen *screen)
 {
-	VteScreen *screen;
-
-	screen = terminal->pvt->screen;
-
 	screen->defaults = basic_cell.cell;
 	screen->color_defaults = screen->defaults;
 	screen->fill_defaults = screen->defaults;
@@ -7552,13 +7548,14 @@ vte_terminal_init(VteTerminal *terminal)
 	VteTerminalPrivate *pvt;
         VteTerminalRealPrivate *term_pvt;
         GtkStyleContext *context;
+        VteBuffer *buffer;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_init()\n");
 
 	/* Initialize private data. */
 	term_pvt = terminal->term_pvt = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalRealPrivate);
 
-        term_pvt->buffer = vte_buffer_new();
+        buffer = term_pvt->buffer = vte_buffer_new();
         term_pvt->buffer_pvt = term_pvt->buffer->pvt;
 
         pvt = terminal->pvt = term_pvt->buffer_pvt;
@@ -7596,14 +7593,14 @@ vte_terminal_init(VteTerminal *terminal)
 	_vte_ring_init (pvt->alternate_screen.row_data, terminal->pvt->row_count);
 	pvt->alternate_screen.sendrecv_mode = TRUE;
 	pvt->alternate_screen.status_line_contents = g_string_new(NULL);
-	pvt->screen = &terminal->pvt->alternate_screen;
-	_vte_terminal_set_default_attributes(terminal);
+	_vte_screen_set_default_attributes(&pvt->alternate_screen);
 
 	_vte_ring_init (pvt->normal_screen.row_data,  VTE_SCROLLBACK_INIT);
 	pvt->normal_screen.sendrecv_mode = TRUE;
 	pvt->normal_screen.status_line_contents = g_string_new(NULL);
-	pvt->screen = &terminal->pvt->normal_screen;
-	_vte_terminal_set_default_attributes(terminal);
+	_vte_screen_set_default_attributes(&pvt->normal_screen);
+
+        pvt->screen = &pvt->normal_screen;
 
 	/* Set up I/O encodings. */
 	pvt->iso2022 = _vte_iso2022_state_new(pvt->encoding,
@@ -12407,10 +12404,9 @@ vte_terminal_reset(VteTerminal *terminal,
         vte_terminal_update_style_colors(terminal, TRUE);
 	/* Reset the default attributes.  Reset the alternate attribute because
 	 * it's not a real attribute, but we need to treat it as one here. */
-	pvt->screen = &pvt->alternate_screen;
-	_vte_terminal_set_default_attributes(terminal);
-	pvt->screen = &pvt->normal_screen;
-	_vte_terminal_set_default_attributes(terminal);
+        _vte_screen_set_default_attributes(&pvt->alternate_screen);
+        _vte_screen_set_default_attributes(&pvt->normal_screen);
+        pvt->screen = &pvt->normal_screen;
 	/* Reset alternate charset mode. */
 	pvt->normal_screen.alternate_charset = FALSE;
 	pvt->alternate_screen.alternate_charset = FALSE;
