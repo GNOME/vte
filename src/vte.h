@@ -213,11 +213,6 @@ gboolean vte_terminal_is_word_char(VteTerminal *terminal, gunichar c);
 void vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting);
 gboolean vte_terminal_get_mouse_autohide(VteTerminal *terminal);
 
-/* Reset the terminal, optionally clearing the tab stops and line history. */
-void vte_terminal_reset(VteTerminal *terminal,
-                        gboolean clear_tabstops,
-			gboolean clear_history);
-
 /* Read the contents of the terminal, using a callback function to determine
  * if a particular location on the screen (0-based) is interesting enough to
  * include.  Each byte in the returned string will have a corresponding

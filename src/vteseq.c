@@ -2773,7 +2773,7 @@ vte_sequence_handler_erase_in_line (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_full_reset (VteTerminal *terminal, GValueArray *params)
 {
-	vte_terminal_reset(terminal, TRUE, TRUE);
+	vte_buffer_reset(terminal->term_pvt->buffer, TRUE, TRUE);
 }
 
 /* Insert a specified number of blank characters. */
@@ -3045,7 +3045,7 @@ vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *
 static void
 vte_sequence_handler_soft_reset (VteTerminal *terminal, GValueArray *params)
 {
-	vte_terminal_reset(terminal, FALSE, FALSE);
+	vte_buffer_reset(terminal->term_pvt->buffer, FALSE, FALSE);
 }
 
 /* Window manipulation control sequences.  Most of these are considered

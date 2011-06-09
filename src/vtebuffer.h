@@ -82,6 +82,10 @@ void vte_buffer_feed_child_binary       (VteBuffer *buffer,
                                          const char *data,
                                          gsize length);
 
+void vte_buffer_reset                   (VteBuffer *buffer,
+                                         gboolean clear_tabstops,
+                                         gboolean clear_history);
+
 G_END_DECLS
 
 #endif /* VTE_BUFFER_H */

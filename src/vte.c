@@ -12324,8 +12324,8 @@ vte_terminal_get_mouse_autohide(VteTerminal *terminal)
 }
 
 /**
- * vte_terminal_reset:
- * @terminal: a #VteTerminal
+ * vte_buffer:
+ * @buffer: a #VteBuffer
  * @clear_tabstops: whether to reset tabstops
  * @clear_history: whether to empty the terminal's scrollback buffer
  *
@@ -12336,19 +12336,19 @@ vte_terminal_get_mouse_autohide(VteTerminal *terminal)
  *
  */
 void
-vte_terminal_reset(VteTerminal *terminal,
-                   gboolean clear_tabstops,
-                   gboolean clear_history)
+vte_buffer_reset(VteBuffer *buffer,
+                 gboolean clear_tabstops,
+                 gboolean clear_history)
 {
-        VteTerminalPrivate *pvt;
-        VteBuffer *buffer;
+        VteBufferPrivate *pvt;
+        VteTerminal *terminal;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail(VTE_IS_BUFFER(buffer));
 
-        pvt = terminal->pvt;
-        buffer = terminal->term_pvt->buffer;
+        pvt = buffer->pvt;
+        terminal = pvt->terminal;
 
-        g_object_freeze_notify(G_OBJECT(terminal));
+        g_object_freeze_notify(G_OBJECT(buffer));
 
 	/* Stop processing any of the data we've got backed up. */
 	vte_terminal_stop_processing (terminal);
@@ -12485,7 +12485,7 @@ vte_terminal_reset(VteTerminal *terminal,
 	vte_terminal_maybe_scroll_to_bottom(terminal);
 	_vte_invalidate_all(terminal);
 
-        g_object_thaw_notify(G_OBJECT(terminal));
+        g_object_thaw_notify(G_OBJECT(buffer));
 }
 
 /**
