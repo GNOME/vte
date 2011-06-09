@@ -258,9 +258,6 @@ void vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll);
 void vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 					  gboolean scroll);
 
-/* Set the number of scrollback lines, above or at an internal minimum. */
-void vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines);
-
 /* Append the input method menu items to a given shell. */
 void vte_terminal_im_append_menuitems(VteTerminal *terminal,
 				      GtkMenuShell *menushell);

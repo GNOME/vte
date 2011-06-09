@@ -1022,7 +1022,7 @@ main(int argc, char **argv)
 	vte_terminal_set_visible_bell(terminal, !audible);
 	vte_terminal_set_scroll_on_output(terminal, FALSE);
 	vte_terminal_set_scroll_on_keystroke(terminal, TRUE);
-	vte_terminal_set_scrollback_lines(terminal, lines);
+	vte_buffer_set_scrollback_lines(vte_terminal_get_buffer(terminal), lines);
 	vte_terminal_set_mouse_autohide(terminal, TRUE);
 
 	if (termcap != NULL) {

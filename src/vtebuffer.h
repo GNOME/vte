@@ -62,6 +62,9 @@ GType vte_buffer_get_type (void);
 
 VteBuffer *vte_buffer_new (void);
 
+void vte_buffer_set_scrollback_lines    (VteBuffer *buffer,
+                                         glong lines);
+
 void vte_buffer_feed                    (VteBuffer *buffer,
                                          const char *data,
                                          gssize length);

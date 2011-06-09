@@ -149,13 +149,17 @@ enum {
         PROP_ICON_TITLE,
         PROP_MOUSE_POINTER_AUTOHIDE,
         PROP_PTY_OBJECT,
-        PROP_SCROLLBACK_LINES,
         PROP_SCROLL_ON_KEYSTROKE,
         PROP_SCROLL_ON_OUTPUT,
         PROP_WINDOW_TITLE,
         PROP_WORD_CHARS,
         PROP_VISIBLE_BELL,
         PROP_FONT_SCALE
+};
+
+enum {
+        BUFFER_PROP_0,
+        BUFFER_PROP_SCROLLBACK_LINES
 };
 
 enum {
@@ -7705,7 +7709,7 @@ vte_terminal_init(VteTerminal *terminal)
         pvt->scroll_background = FALSE;
 	pvt->scroll_on_keystroke = TRUE;
         pvt->scrollback_lines = -1; /* force update in vte_terminal_set_scrollback_lines */
-	vte_terminal_set_scrollback_lines(terminal, VTE_SCROLLBACK_INIT);
+	vte_buffer_set_scrollback_lines(buffer, VTE_SCROLLBACK_INIT);
 
 	/* Selection info. */
 	vte_terminal_set_word_chars(terminal, NULL);
@@ -7888,7 +7892,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 		}
 
 		/* Ensure scrollback buffers cover the screen. */
-		vte_terminal_set_scrollback_lines(terminal,
+		vte_buffer_set_scrollback_lines(terminal->term_pvt->buffer,
 				terminal->pvt->scrollback_lines);
 		/* Ensure the cursor is valid */
 		screen->cursor_current.row = CLAMP (screen->cursor_current.row,
@@ -10679,9 +10683,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_PTY_OBJECT:
                         g_value_set_object (value, vte_terminal_get_pty(terminal));
                         break;
-                case PROP_SCROLLBACK_LINES:
-                        g_value_set_uint (value, pvt->scrollback_lines);
-                        break;
                 case PROP_SCROLL_ON_KEYSTROKE:
                         g_value_set_boolean (value, pvt->scroll_on_keystroke);
                         break;
@@ -10752,9 +10753,6 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_PTY_OBJECT:
                         vte_terminal_set_pty(terminal, g_value_get_object (value));
-                        break;
-                case PROP_SCROLLBACK_LINES:
-                        vte_terminal_set_scrollback_lines (terminal, g_value_get_uint (value));
                         break;
                 case PROP_SCROLL_ON_KEYSTROKE:
                         vte_terminal_set_scroll_on_keystroke(terminal, g_value_get_boolean (value));
@@ -11515,26 +11513,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                       VTE_TYPE_PTY,
                                       G_PARAM_READWRITE |
                                       G_PARAM_STATIC_STRINGS));
-
-        /**
-         * VteTerminal:scrollback-lines:
-         *
-         * The length of the scrollback buffer used by the terminal.  The size of
-         * the scrollback buffer will be set to the larger of this value and the number
-         * of visible rows the widget can display, so 0 can safely be used to disable
-         * scrollback.  Note that this setting only affects the normal screen buffer.
-         * For terminal types which have an alternate screen buffer, no scrollback is
-         * allowed on the alternate screen buffer.
-         * 
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_SCROLLBACK_LINES,
-                 g_param_spec_uint ("scrollback-lines", NULL, NULL,
-                                    0, G_MAXUINT,
-                                    VTE_SCROLLBACK_INIT,
-                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
      
         /**
          * VteTerminal:scroll-on-keystroke:
@@ -12113,8 +12091,8 @@ vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink)
 }
 
 /**
- * vte_terminal_set_scrollback_lines:
- * @terminal: a #VteTerminal
+ * vte_buffer_set_scrollback_lines:
+ * @buffer: a #VteBuffer
  * @lines: the length of the history buffer
  *
  * Sets the length of the scrollback buffer used by the terminal.  The size of
@@ -12129,20 +12107,21 @@ vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink)
  * allowed on the alternate screen buffer.
  */
 void
-vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
+vte_buffer_set_scrollback_lines(VteBuffer *buffer,
+                                glong lines)
 {
-        VteTerminalPrivate *pvt;
+        VteBufferPrivate *pvt;
         GObject *object;
 	glong scroll_delta;
 	VteScreen *screen;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail(VTE_IS_BUFFER(buffer));
 
 	if (lines < 0)
 		lines = G_MAXLONG;
 
-        object = G_OBJECT(terminal);
-        pvt = terminal->pvt;
+        object = G_OBJECT(buffer);
+        pvt = buffer->pvt;
 
 #if 0
         /* FIXME: this breaks the scrollbar range, bug #562511 */
@@ -12161,33 +12140,33 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 
 	/* The main screen gets the full scrollback buffer, but the
 	 * alternate screen isn't allowed to scroll at all. */
-	if (screen == &terminal->pvt->normal_screen) {
+	if (screen == &buffer->pvt->normal_screen) {
 		glong low, high, next;
 		/* We need at least as many lines as are visible */
-		lines = MAX (lines, terminal->pvt->row_count);
+		lines = MAX (lines, buffer->pvt->row_count);
 		next = MAX (screen->cursor_current.row + 1,
 				_vte_ring_next (screen->row_data));
 		_vte_ring_resize (screen->row_data, lines);
 		low = _vte_ring_delta (screen->row_data);
-		high = lines + MIN (G_MAXLONG - lines, low - terminal->pvt->row_count + 1);
+		high = lines + MIN (G_MAXLONG - lines, low - buffer->pvt->row_count + 1);
 		screen->insert_delta = CLAMP (screen->insert_delta, low, high);
 		scroll_delta = CLAMP (scroll_delta, low, screen->insert_delta);
-		next = MIN (next, screen->insert_delta + terminal->pvt->row_count);
+		next = MIN (next, screen->insert_delta + buffer->pvt->row_count);
 		if (_vte_ring_next (screen->row_data) > next){
 			_vte_ring_shrink (screen->row_data, next - low);
 		}
 	} else {
-		_vte_ring_resize (screen->row_data, terminal->pvt->row_count);
+		_vte_ring_resize (screen->row_data, buffer->pvt->row_count);
 		scroll_delta = _vte_ring_delta (screen->row_data);
 		screen->insert_delta = _vte_ring_delta (screen->row_data);
-		if (_vte_ring_next (screen->row_data) > screen->insert_delta + terminal->pvt->row_count){
-			_vte_ring_shrink (screen->row_data, terminal->pvt->row_count);
+		if (_vte_ring_next (screen->row_data) > screen->insert_delta + buffer->pvt->row_count){
+			_vte_ring_shrink (screen->row_data, buffer->pvt->row_count);
 		}
 	}
 
 	/* Adjust the scrollbars to the new locations. */
-	vte_terminal_queue_adjustment_value_changed (terminal, scroll_delta);
-	_vte_terminal_adjust_adjustments_full (terminal);
+	vte_terminal_queue_adjustment_value_changed (buffer->pvt->terminal, scroll_delta);
+	_vte_terminal_adjust_adjustments_full (buffer->pvt->terminal);
 
         g_object_notify(object, "scrollback-lines");
 
@@ -13760,7 +13739,12 @@ vte_buffer_get_property (GObject *object,
                          GValue *value,
                          GParamSpec *pspec)
 {
+        VteBuffer *buffer = VTE_BUFFER(object);
+
         switch (prop_id) {
+        case BUFFER_PROP_SCROLLBACK_LINES:
+                g_value_set_uint (value, buffer->pvt->scrollback_lines);
+                break;
         default:
                 G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
                 return;
@@ -13773,7 +13757,12 @@ vte_buffer_set_property (GObject *object,
                          const GValue *value,
                          GParamSpec *pspec)
 {
+        VteBuffer *buffer = VTE_BUFFER(object);
+
         switch (prop_id) {
+        case BUFFER_PROP_SCROLLBACK_LINES:
+                vte_buffer_set_scrollback_lines (buffer, g_value_get_uint (value));
+                break;
         default:
                 G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
                 return;
@@ -13817,7 +13806,25 @@ vte_buffer_class_init(VteBufferClass *klass)
                              G_TYPE_NONE,
                              2, G_TYPE_STRING, G_TYPE_UINT);
 
+        /* Properties */
 
+        /**
+         * VteBuffer:scrollback-lines:
+         *
+         * The length of the scrollback buffer used by the terminal.  The size of
+         * the scrollback buffer will be set to the larger of this value and the number
+         * of visible rows the widget can display, so 0 can safely be used to disable
+         * scrollback.  Note that this setting only affects the normal screen buffer.
+         * For terminal types which have an alternate screen buffer, no scrollback is
+         * allowed on the alternate screen buffer.
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 BUFFER_PROP_SCROLLBACK_LINES,
+                 g_param_spec_uint ("scrollback-lines", NULL, NULL,
+                                    0, G_MAXUINT,
+                                    VTE_SCROLLBACK_INIT,
+                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
 /**

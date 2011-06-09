@@ -26,7 +26,6 @@ vte_terminal_set_visible_bell
 vte_terminal_get_visible_bell
 vte_terminal_set_scroll_on_output
 vte_terminal_set_scroll_on_keystroke
-vte_terminal_set_scrollback_lines
 vte_terminal_get_has_selection
 vte_terminal_set_word_chars
 vte_terminal_is_word_char
@@ -111,6 +110,7 @@ VteTerminalClassPrivate
 <TITLE>VteBuffer</TITLE>
 VteBuffer
 vte_buffer_new
+vte_buffer_set_scrollback_lines
 vte_buffer_feed
 vte_buffer_feed_child
 vte_buffer_feed_child_binary
