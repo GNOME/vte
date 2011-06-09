@@ -577,6 +577,7 @@ add_dingus (VteTerminal *terminal,
         int id, i;
 
         for (i = 0; dingus[i]; ++i) {
+                error = NULL;
                 if (!(regex = g_regex_new(dingus[i], G_REGEX_OPTIMIZE, 0, &error))) {
                         g_warning("Failed to compile regex '%s': %s\n",
                                   dingus[i], error->message);
