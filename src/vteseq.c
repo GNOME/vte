@@ -1933,7 +1933,7 @@ vte_sequence_handler_se (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_sf (VteTerminal *terminal, GValueArray *params)
 {
-	_vte_terminal_cursor_down (terminal);
+	_vte_buffer_cursor_down (terminal->term_pvt->buffer);
 }
 
 /* Cursor down, with scrolling. */

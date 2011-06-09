@@ -2338,12 +2338,13 @@ _vte_buffer_cleanup_tab_fragments_at_cursor (VteBuffer *buffer)
 
 /* Cursor down, with scrolling. */
 void
-_vte_terminal_cursor_down (VteTerminal *terminal)
+_vte_buffer_cursor_down (VteBuffer *buffer)
 {
+        VteTerminal *terminal = buffer->pvt->terminal;
 	long start, end;
 	VteScreen *screen;
 
-	screen = terminal->pvt->screen;
+	screen = buffer->pvt->screen;
 
 	if (screen->scrolling_restricted) {
 		start = screen->insert_delta + screen->scrolling_region.start;
@@ -2356,8 +2357,8 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 		/* Match xterm and fill to the end of row when scrolling. */
 		if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
 			VteRowData *rowdata;
-			rowdata = _vte_buffer_ensure_row (terminal->term_pvt->buffer);
-			_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->pvt->column_count);
+			rowdata = _vte_buffer_ensure_row (buffer);
+			_vte_row_data_fill (rowdata, &screen->fill_defaults, buffer->pvt->column_count);
 		}
 
 		if (screen->scrolling_restricted) {
@@ -2372,7 +2373,7 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 				 * to insert_delta. */
 				start++;
 				end++;
-				_vte_buffer_ring_insert (terminal->term_pvt->buffer, screen->cursor_current.row, FALSE);
+				_vte_buffer_ring_insert (buffer, screen->cursor_current.row, FALSE);
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
 				_vte_terminal_scroll_region(terminal, start,
@@ -2383,8 +2384,8 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 				/* If we're at the bottom of the scrolling
 				 * region, add a line at the top to scroll the
 				 * bottom off. */
-				_vte_buffer_ring_remove (terminal->term_pvt->buffer, start);
-				_vte_buffer_ring_insert (terminal->term_pvt->buffer, end, TRUE);
+				_vte_buffer_ring_remove (buffer, start);
+				_vte_buffer_ring_insert (buffer, end, TRUE);
 				/* Update the display. */
 				_vte_terminal_scroll_region(terminal, start,
 							   end - start + 1, -1);
@@ -2395,14 +2396,14 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 		} else {
 			/* Scroll up with history. */
 			screen->cursor_current.row++;
-			vte_buffer_update_insert_delta(terminal->term_pvt->buffer);
+			vte_buffer_update_insert_delta(buffer);
 		}
 
 		/* Match xterm and fill the new row when scrolling. */
 		if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
 			VteRowData *rowdata;
-			rowdata = _vte_buffer_ensure_row (terminal->term_pvt->buffer);
-			_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->pvt->column_count);
+			rowdata = _vte_buffer_ensure_row (buffer);
+			_vte_row_data_fill (rowdata, &screen->fill_defaults, buffer->pvt->column_count);
 		}
 	} else {
 		/* Otherwise, just move the cursor down. */
@@ -2464,7 +2465,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			/* Mark this line as soft-wrapped. */
 			row = _vte_buffer_ensure_row (terminal->term_pvt->buffer);
 			row->attr.soft_wrapped = 1;
-			_vte_terminal_cursor_down (terminal);
+			_vte_buffer_cursor_down (terminal->term_pvt->buffer);
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
 			col = screen->cursor_current.col =
@@ -2632,7 +2633,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			screen->cursor_current.col = 0;
 			/* Mark this line as soft-wrapped. */
 			row->attr.soft_wrapped = 1;
-			_vte_terminal_cursor_down (terminal);
+                        _vte_buffer_cursor_down (terminal->term_pvt->buffer);
 		}
 	}
 

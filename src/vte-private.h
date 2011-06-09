@@ -436,7 +436,6 @@ void _vte_terminal_adjust_adjustments(VteTerminal *terminal);
 void _vte_terminal_queue_contents_changed(VteTerminal *terminal);
 void _vte_terminal_emit_text_deleted(VteTerminal *terminal);
 void _vte_terminal_emit_text_inserted(VteTerminal *terminal);
-void _vte_terminal_cursor_down (VteTerminal *terminal);
 gboolean _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			       gboolean force_insert_mode,
 			       gboolean invalidate_cells);
@@ -482,6 +481,7 @@ gboolean _vte_buffer_get_tabstop(VteBuffer *buffer, int column);
 void _vte_buffer_set_tabstop(VteBuffer *buffer, int column);
 VteRowData *_vte_buffer_ensure_row(VteBuffer *buffer);
 void _vte_buffer_cleanup_tab_fragments_at_cursor (VteBuffer *buffer);
+void _vte_buffer_cursor_down (VteBuffer *buffer);
 
 /* private VteScreen methods */
 void _vte_screen_set_default_attributes(VteScreen *screen);
