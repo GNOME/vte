@@ -44,8 +44,6 @@ vte_terminal_match_set_cursor_type
 vte_terminal_match_set_cursor_name
 vte_terminal_set_emulation
 vte_terminal_get_emulation
-vte_terminal_set_encoding
-vte_terminal_get_encoding
 vte_terminal_get_status_line
 vte_terminal_write_contents
 vte_terminal_search_find_next
@@ -109,6 +107,8 @@ VteBuffer
 vte_buffer_new
 vte_buffer_set_backspace_binding
 vte_buffer_set_delete_binding
+vte_buffer_set_encoding
+vte_buffer_get_encoding
 vte_buffer_set_scrollback_lines
 vte_buffer_feed
 vte_buffer_feed_child

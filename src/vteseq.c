@@ -2870,13 +2870,13 @@ vte_sequence_handler_local_charset (VteTerminal *terminal, GValueArray *params)
 {
 	const char *locale_encoding;
 	g_get_charset(&locale_encoding);
-	vte_terminal_set_encoding(terminal, locale_encoding);
+	vte_buffer_set_encoding(terminal->term_pvt->buffer, locale_encoding);
 }
 
 static void
 vte_sequence_handler_utf_8_charset (VteTerminal *terminal, GValueArray *params)
 {
-	vte_terminal_set_encoding(terminal, "UTF-8");
+	vte_buffer_set_encoding(terminal->term_pvt->buffer, "UTF-8");
 }
 
 /* Device status reports. The possible reports are the cursor position and

@@ -78,7 +78,6 @@ struct _VteTerminalClass {
 	void (*eof)(VteTerminal* terminal);
 	void (*child_exited)(VteTerminal* terminal, int status);
 	void (*emulation_changed)(VteTerminal* terminal);
-	void (*encoding_changed)(VteTerminal* terminal);
 	void (*char_size_changed)(VteTerminal* terminal, guint char_width, guint char_height);
 	void (*window_title_changed)(VteTerminal* terminal);
 	void (*icon_title_changed)(VteTerminal* terminal);
@@ -271,10 +270,6 @@ void vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation);
 const char *vte_terminal_get_emulation(VteTerminal *terminal);
 
 const char *vte_get_default_emulation(void);
-
-/* Set the character encoding.  Most of the time you won't need this. */
-void vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset);
-const char *vte_terminal_get_encoding(VteTerminal *terminal);
 
 /* Get the contents of the status line. */
 const char *vte_terminal_get_status_line(VteTerminal *terminal);

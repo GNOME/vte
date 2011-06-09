@@ -47,7 +47,8 @@ struct _VteBufferClass {
   void (*commit)               (VteBuffer *buffer,
                                 const gchar *text,
                                 guint size);
-
+  void (*encoding_changed)     (VteBuffer *buffer);
+  
   /*< private >*/
   VteBufferClassPrivate *priv;
 };
@@ -66,6 +67,11 @@ void vte_buffer_set_backspace_binding   (VteBuffer *buffer,
                                          VteEraseBinding binding);
 void vte_buffer_set_delete_binding      (VteBuffer *buffer,
                                          VteEraseBinding binding);
+
+void vte_buffer_set_encoding            (VteBuffer *buffer,
+                                         const char *codeset);
+
+const char *vte_buffer_get_encoding     (VteBuffer *buffer);
 
 void vte_buffer_set_scrollback_lines    (VteBuffer *buffer,
                                          glong lines);

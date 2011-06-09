@@ -143,7 +143,6 @@ enum {
         PROP_VSCROLL_POLICY,
         PROP_AUDIBLE_BELL,
         PROP_EMULATION,
-        PROP_ENCODING,
         PROP_ICON_TITLE,
         PROP_MOUSE_POINTER_AUTOHIDE,
         PROP_PTY_OBJECT,
@@ -159,11 +158,13 @@ enum {
         BUFFER_PROP_0,
         BUFFER_PROP_BACKSPACE_BINDING,
         BUFFER_PROP_DELETE_BINDING,
+        BUFFER_PROP_ENCODING,
         BUFFER_PROP_SCROLLBACK_LINES
 };
 
 enum {
         BUFFER_COMMIT,
+        BUFFER_ENCODING_CHANGED,
         LAST_BUFFER_SIGNAL,
 };
 
@@ -847,12 +848,12 @@ vte_terminal_emit_emulation_changed(VteTerminal *terminal)
 
 /* Emit an "encoding-changed" signal. */
 static void
-vte_terminal_emit_encoding_changed(VteTerminal *terminal)
+vte_buffer_emit_encoding_changed(VteBuffer *buffer)
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `encoding-changed'.\n");
-	g_signal_emit_by_name(terminal, "encoding-changed");
-        g_object_notify(G_OBJECT(terminal), "encoding");
+	g_signal_emit(buffer, buffer_signals[BUFFER_ENCODING_CHANGED], 0);
+        g_object_notify(G_OBJECT(buffer), "encoding");
 }
 
 /* Emit a "child-exited" signal. */
@@ -1965,8 +1966,8 @@ _vte_terminal_setup_utf8 (VteTerminal *terminal)
 }
 
 /**
- * vte_terminal_set_encoding:
- * @terminal: a #VteTerminal
+ * vte_buffer_set_encoding:
+ * @buffer: a #VteBuffer
  * @codeset: (allow-none): a valid #GIConv target, or %NULL to use the default encoding
  *
  * Changes the encoding the terminal will expect data from the child to
@@ -1975,19 +1976,20 @@ _vte_terminal_setup_utf8 (VteTerminal *terminal)
  * application's locale settings.
  */
 void
-vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
+vte_buffer_set_encoding(VteBuffer *buffer,
+                        const char *codeset)
 {
-        VteTerminalPrivate *pvt;
+        VteBufferPrivate *pvt;
         GObject *object;
 	const char *old_codeset;
 	VteConv conv;
 	char *obuf1, *obuf2;
 	gsize bytes_written;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail(VTE_IS_BUFFER(buffer));
 
-        object = G_OBJECT(terminal);
-        pvt = terminal->pvt;
+        object = G_OBJECT(buffer);
+        pvt = buffer->pvt;
 
 	old_codeset = pvt->encoding;
 	if (codeset == NULL) {
@@ -2008,20 +2010,20 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 		/* fallback to no conversion */
 		conv = _vte_conv_open(codeset = "UTF-8", "UTF-8");
 	}
-	if (terminal->pvt->outgoing_conv != VTE_INVALID_CONV) {
-		_vte_conv_close(terminal->pvt->outgoing_conv);
+	if (buffer->pvt->outgoing_conv != VTE_INVALID_CONV) {
+		_vte_conv_close(buffer->pvt->outgoing_conv);
 	}
-	terminal->pvt->outgoing_conv = conv;
+	buffer->pvt->outgoing_conv = conv;
 
 	/* Set the terminal's encoding to the new value. */
-	terminal->pvt->encoding = g_intern_string(codeset);
+        buffer->pvt->encoding = g_intern_string(codeset);
 
 	/* Convert any buffered output bytes. */
-	if ((_vte_byte_array_length(terminal->pvt->outgoing) > 0) &&
+        if ((_vte_byte_array_length(buffer->pvt->outgoing) > 0) &&
 	    (old_codeset != NULL)) {
 		/* Convert back to UTF-8. */
-		obuf1 = g_convert((gchar *)terminal->pvt->outgoing->data,
-				  _vte_byte_array_length(terminal->pvt->outgoing),
+                obuf1 = g_convert((gchar *)buffer->pvt->outgoing->data,
+                                  _vte_byte_array_length(buffer->pvt->outgoing),
 				  "UTF-8",
 				  old_codeset,
 				  NULL,
@@ -2037,8 +2039,8 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 					  &bytes_written,
 					  NULL);
 			if (obuf2 != NULL) {
-				_vte_byte_array_clear(terminal->pvt->outgoing);
-				_vte_byte_array_append(terminal->pvt->outgoing,
+				_vte_byte_array_clear(buffer->pvt->outgoing);
+				_vte_byte_array_append(buffer->pvt->outgoing,
 						   obuf2, bytes_written);
 				g_free(obuf2);
 			}
@@ -2047,31 +2049,31 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	}
 
 	/* Set the encoding for incoming text. */
-	_vte_iso2022_state_set_codeset(terminal->pvt->iso2022,
-				       terminal->pvt->encoding);
+	_vte_iso2022_state_set_codeset(buffer->pvt->iso2022,
+				       buffer->pvt->encoding);
 
 	_vte_debug_print(VTE_DEBUG_IO,
 			"Set terminal encoding to `%s'.\n",
-			terminal->pvt->encoding);
-	vte_terminal_emit_encoding_changed(terminal);
+			buffer->pvt->encoding);
+	vte_buffer_emit_encoding_changed(buffer);
 
         g_object_thaw_notify(object);
 }
 
 /**
- * vte_terminal_get_encoding:
- * @terminal: a #VteTerminal
+ * vte_buffer_get_encoding:
+ * @buffer: a #VteBuffer
  *
- * Determines the name of the encoding in which the terminal expects data to be
+ * Determines the name of the encoding in which the buffer expects data to be
  * encoded.
  *
- * Returns: (transfer none): the current encoding for the terminal
+ * Returns: (transfer none): the current encoding for the buffer
  */
 const char *
-vte_terminal_get_encoding(VteTerminal *terminal)
+vte_buffer_get_encoding(VteBuffer *buffer)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return terminal->pvt->encoding;
+	g_return_val_if_fail(VTE_IS_BUFFER(buffer), NULL);
+	return buffer->pvt->encoding;
 }
 
 static inline VteRowData *
@@ -7607,7 +7609,7 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 static void
 _vte_terminal_codeset_changed_cb(struct _vte_iso2022_state *state, gpointer p)
 {
-	vte_terminal_set_encoding(p, _vte_iso2022_state_get_codeset(state));
+	vte_buffer_set_encoding(VTE_BUFFER(p), _vte_iso2022_state_get_codeset(state));
 }
 
 /* Initialize the terminal widget after the base widget stuff is initialized.
@@ -7676,7 +7678,7 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Set up I/O encodings. */
 	pvt->iso2022 = _vte_iso2022_state_new(pvt->encoding,
 					      &_vte_terminal_codeset_changed_cb,
-					      terminal);
+					      buffer);
 	pvt->incoming = NULL;
 	pvt->pending = g_array_new(FALSE, TRUE, sizeof(gunichar));
 	pvt->max_input_bytes = VTE_MAX_INPUT_READ;
@@ -7684,8 +7686,8 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->outgoing = _vte_byte_array_new();
 	pvt->outgoing_conv = VTE_INVALID_CONV;
 	pvt->conv_buffer = _vte_byte_array_new();
-	vte_terminal_set_encoding(terminal, NULL);
-	g_assert(terminal->pvt->encoding != NULL);
+	vte_buffer_set_encoding(buffer, NULL);
+	g_assert(buffer->pvt->encoding != NULL);
 
 	/* Load the termcap data and set up the emulation. */
 	pvt->keypad_mode = VTE_KEYMODE_NORMAL;
@@ -10665,9 +10667,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_EMULATION:
                         g_value_set_string (value, vte_terminal_get_emulation (terminal));
                         break;
-                case PROP_ENCODING:
-                        g_value_set_string (value, vte_terminal_get_encoding (terminal));
-                        break;
                 case PROP_ICON_TITLE:
                         g_value_set_string (value, vte_terminal_get_icon_title (terminal));
                         break;
@@ -10732,9 +10731,6 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_EMULATION:
                         vte_terminal_set_emulation (terminal, g_value_get_string (value));
-                        break;
-                case PROP_ENCODING:
-                        vte_terminal_set_encoding (terminal, g_value_get_string (value));
                         break;
                 case PROP_MOUSE_POINTER_AUTOHIDE:
                         vte_terminal_set_mouse_autohide (terminal, g_value_get_boolean (value));
@@ -10842,7 +10838,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->eof = NULL;
 	klass->child_exited = NULL;
 	klass->emulation_changed = NULL;
-	klass->encoding_changed = NULL;
 	klass->char_size_changed = NULL;
 	klass->window_title_changed = NULL;
 	klass->icon_title_changed = NULL;
@@ -10942,23 +10937,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, icon_title_changed),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
-
-        /**
-         * VteTerminal::encoding-changed:
-         * @vteterminal: the object which received the signal
-         *
-         * Emitted whenever the terminal's current encoding has changed, either
-         * as a result of receiving a control sequence which toggled between the
-         * local and UTF-8 encodings, or at the parent application's request.
-         */
-                g_signal_new(I_("encoding-changed"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, encoding_changed),
 			     NULL,
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
@@ -11406,23 +11384,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                       VTE_SCALE_MIN,
                                       VTE_SCALE_MAX,
                                       1.,
-                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-        /**
-         * VteTerminal:encoding:
-         *
-         * Controls the encoding the terminal will expect data from the child to
-         * be encoded with.  For certain terminal types, applications executing in the
-         * terminal can change the encoding.  The default is defined by the
-         * application's locale settings.
-         * 
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_ENCODING,
-                 g_param_spec_string ("encoding", NULL, NULL,
-                                      NULL,
                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
@@ -12362,7 +12323,7 @@ vte_buffer_reset(VteBuffer *buffer,
 	_vte_iso2022_state_free(pvt->iso2022);
 	pvt->iso2022 = _vte_iso2022_state_new(NULL,
 							&_vte_terminal_codeset_changed_cb,
-							terminal);
+							buffer);
 	_vte_iso2022_state_set_codeset(pvt->iso2022,
 				       pvt->encoding);
 	/* Reset keypad/cursor/function key modes. */
@@ -12452,7 +12413,7 @@ vte_buffer_reset(VteBuffer *buffer,
 	pvt->alternate_screen.bracketed_paste_mode = FALSE;
 	pvt->cursor_visible = TRUE;
 	/* Reset the encoding. */
-	vte_terminal_set_encoding(terminal, NULL);
+	vte_buffer_set_encoding(buffer, NULL);
 	g_assert(pvt->encoding != NULL);
 	/* Reset selection. */
 	vte_terminal_deselect_all(terminal);
@@ -13704,6 +13665,9 @@ vte_buffer_get_property (GObject *object,
         case BUFFER_PROP_DELETE_BINDING:
                 g_value_set_enum(value, buffer->pvt->delete_binding);
                 break;
+        case BUFFER_PROP_ENCODING:
+                g_value_set_string(value, vte_buffer_get_encoding(buffer));
+                break;
         case BUFFER_PROP_SCROLLBACK_LINES:
                 g_value_set_uint (value, buffer->pvt->scrollback_lines);
                 break;
@@ -13727,6 +13691,9 @@ vte_buffer_set_property (GObject *object,
                 break;
         case BUFFER_PROP_DELETE_BINDING:
                 vte_buffer_set_delete_binding(buffer, g_value_get_enum (value));
+                break;
+        case BUFFER_PROP_ENCODING:
+                vte_buffer_set_encoding(buffer, g_value_get_string (value));
                 break;
         case BUFFER_PROP_SCROLLBACK_LINES:
                 vte_buffer_set_scrollback_lines (buffer, g_value_get_uint (value));
@@ -13752,6 +13719,7 @@ vte_buffer_class_init(VteBufferClass *klass)
         gobject_class->set_property = vte_buffer_set_property;
 
         klass->commit = NULL;
+        klass->encoding_changed = NULL;
 
         /**
          * VteBuffer::commit:
@@ -13773,6 +13741,24 @@ vte_buffer_class_init(VteBufferClass *klass)
                              _vte_marshal_VOID__STRING_UINT,
                              G_TYPE_NONE,
                              2, G_TYPE_STRING, G_TYPE_UINT);
+
+        /**
+         * VteTerminal::encoding-changed:
+         * @vteterminal: the object which received the signal
+         *
+         * Emitted whenever the terminal's current encoding has changed, either
+         * as a result of receiving a control sequence which toggled between the
+         * local and UTF-8 encodings, or at the parent application's request.
+         */
+        buffer_signals[BUFFER_ENCODING_CHANGED] =
+                g_signal_new(I_("encoding-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, encoding_changed),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /* Properties */
 
@@ -13804,6 +13790,22 @@ vte_buffer_class_init(VteBufferClass *klass)
                                     VTE_ERASE_AUTO,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
+        /**
+         * VteBuffer:encoding:
+         *
+         * Controls the encoding the buffer will expect data from the child to
+         * be encoded with.  For certain buffer types, applications executing in the
+         * buffer can change the encoding.  The default is defined by the
+         * application's locale settings.
+         *
+         * Since: 0.20
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 BUFFER_PROP_ENCODING,
+                 g_param_spec_string ("encoding", NULL, NULL,
+                                      NULL,
+                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
         /**
          * VteBuffer:scrollback-lines:
          *
