@@ -562,12 +562,21 @@ vte_screen_find_charcell(VteScreen *screen,
 	return ret;
 }
 
+/* This could be vte_screen_find_start_column, but for symmetry
+ * with find_end_column (which needs buffer->pvt->column_count)
+ * it's a VteBuffer method.
+ */
 static glong
-find_start_column (VteTerminal *terminal, glong col, glong row)
+vte_buffer_find_start_column(VteBuffer *buffer,
+                             glong col,
+                             glong row)
 {
-	const VteRowData *row_data = _vte_screen_find_row_data(terminal->pvt->screen, row);
+	const VteRowData *row_data;
+
 	if (G_UNLIKELY (col < 0))
 		return col;
+
+        row_data = _vte_screen_find_row_data(buffer->pvt->screen, row);
 	if (row_data != NULL) {
 		const VteCell *cell = _vte_row_data_get (row_data, col);
 		while (col > 0 && cell != NULL && cell->attr.fragment) {
@@ -576,14 +585,20 @@ find_start_column (VteTerminal *terminal, glong col, glong row)
 	}
 	return MAX(col, 0);
 }
+
 static glong
-find_end_column (VteTerminal *terminal, glong col, glong row)
+vte_buffer_find_end_column(VteBuffer *buffer,
+                           glong col,
+                           glong row)
 {
-	const VteRowData *row_data = _vte_screen_find_row_data(terminal->pvt->screen, row);
-	gint columns = 0;
+	const VteRowData *row_data;
+        gint columns = 0;
+
 	if (G_UNLIKELY (col < 0))
 		return col;
-	if (row_data != NULL) {
+
+        row_data = _vte_screen_find_row_data(buffer->pvt->screen, row);
+        if (row_data != NULL) {
 		const VteCell *cell = _vte_row_data_get (row_data, col);
 		while (col > 0 && cell != NULL && cell->attr.fragment) {
 			cell = _vte_row_data_get (row_data, --col);
@@ -592,9 +607,8 @@ find_end_column (VteTerminal *terminal, glong col, glong row)
 			columns = cell->attr.columns - 1;
 		}
 	}
-	return MIN(col + columns, terminal->pvt->column_count);
+	return MIN(col + columns, buffer->pvt->column_count);
 }
-
 
 /* Determine the width of the portion of the preedit string which lies
  * to the left of the cursor, or the entire string, in columns. */
@@ -717,7 +731,7 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 		row = screen->cursor_current.row;
 		column = screen->cursor_current.col;
 		columns = 1;
-		column = find_start_column (terminal, column, row);
+		column = vte_buffer_find_start_column(terminal->term_pvt->buffer, column, row);
 		cell = vte_screen_find_charcell(terminal->pvt->screen, column, row);
 		if (cell != NULL) {
 			columns = cell->attr.columns;
@@ -6030,7 +6044,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 		/* Snap to the leftmost column. */
 		sc->col = 0;
 	}
-	sc->col = find_start_column (terminal, sc->col, sc->row);
+	sc->col = vte_buffer_find_start_column(terminal->term_pvt->buffer, sc->col, sc->row);
 
 	/* Handle end-of-line at the end-cell. */
 	rowdata = _vte_screen_find_row_data(terminal->pvt->screen, ec->row);
@@ -6054,7 +6068,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 		if (ec->col >= 0)
 			ec->col = MAX(ec->col, terminal->pvt->column_count);
 	}
-	ec->col = find_end_column (terminal, ec->col, ec->row);
+	ec->col = vte_buffer_find_end_column(terminal->term_pvt->buffer, ec->col, ec->row);
 
 
 	/* Now extend again based on selection type. */
