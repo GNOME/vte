@@ -522,10 +522,11 @@ _vte_terminal_scroll_region (VteTerminal *terminal,
 
 /* Find the row in the given position in the backscroll buffer. */
 static inline const VteRowData *
-_vte_terminal_find_row_data (VteTerminal *terminal, glong row)
+_vte_screen_find_row_data(VteScreen *screen,
+                          glong row)
 {
 	const VteRowData *rowdata = NULL;
-	VteScreen *screen = terminal->pvt->screen;
+
 	if (G_LIKELY (_vte_ring_contains (screen->row_data, row))) {
 		rowdata = _vte_ring_index (screen->row_data, row);
 	}
@@ -534,10 +535,11 @@ _vte_terminal_find_row_data (VteTerminal *terminal, glong row)
 
 /* Find the row in the given position in the backscroll buffer. */
 static inline VteRowData *
-_vte_terminal_find_row_data_writable (VteTerminal *terminal, glong row)
+_vte_screen_find_row_data_writable(VteScreen *screen,
+                                   glong row)
 {
 	VteRowData *rowdata = NULL;
-	VteScreen *screen = terminal->pvt->screen;
+
 	if (G_LIKELY (_vte_ring_contains (screen->row_data, row))) {
 		rowdata = _vte_ring_index_writable (screen->row_data, row);
 	}
@@ -562,7 +564,7 @@ vte_terminal_find_charcell(VteTerminal *terminal, gulong col, glong row)
 static glong
 find_start_column (VteTerminal *terminal, glong col, glong row)
 {
-	const VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
+	const VteRowData *row_data = _vte_screen_find_row_data(terminal->pvt->screen, row);
 	if (G_UNLIKELY (col < 0))
 		return col;
 	if (row_data != NULL) {
@@ -576,7 +578,7 @@ find_start_column (VteTerminal *terminal, glong col, glong row)
 static glong
 find_end_column (VteTerminal *terminal, glong col, glong row)
 {
-	const VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
+	const VteRowData *row_data = _vte_screen_find_row_data(terminal->pvt->screen, row);
 	gint columns = 0;
 	if (G_UNLIKELY (col < 0))
 		return col;
@@ -656,7 +658,7 @@ _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
 	}
 
 	columns = 1;
-	row_data = _vte_terminal_find_row_data(terminal, row);
+	row_data = _vte_screen_find_row_data(terminal->pvt->screen, row);
 	if (row_data != NULL) {
 		const VteCell *cell;
 		cell = _vte_row_data_get (row_data, col);
@@ -2469,7 +2471,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 			if (G_LIKELY (row_num > 0)) {
 				row_num--;
-				row = _vte_terminal_find_row_data_writable (terminal, row_num);
+				row = _vte_screen_find_row_data_writable(terminal->pvt->screen, row_num);
 
 				if (row) {
 					if (!row->attr.soft_wrapped)
@@ -2479,7 +2481,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 				}
 			}
 		} else {
-			row = _vte_terminal_find_row_data_writable (terminal, row_num);
+			row = _vte_screen_find_row_data_writable(terminal->pvt->screen, row_num);
 		}
 
 		if (G_UNLIKELY (!row || !col))
@@ -4911,7 +4913,7 @@ static gboolean
 vte_line_is_wrappable(VteTerminal *terminal, glong row)
 {
 	const VteRowData *rowdata;
-	rowdata = _vte_terminal_find_row_data(terminal, row);
+	rowdata = _vte_screen_find_row_data(terminal->pvt->screen, row);
 	return rowdata && rowdata->attr.soft_wrapped;
 }
 
@@ -5599,7 +5601,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 	palette = terminal->pvt->palette;
 	col = start_col;
 	for (row = start_row; row < end_row + 1; row++, col = 0) {
-		const VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
+		const VteRowData *row_data = _vte_screen_find_row_data(terminal->pvt->screen, row);
 		last_empty = last_nonempty = string->len;
 		last_emptycol = last_nonemptycol = -1;
 
@@ -6002,7 +6004,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 	 * than recalculating for each cell as we render it. */
 
 	/* Handle end-of-line at the start-cell. */
-	rowdata = _vte_terminal_find_row_data(terminal, sc->row);
+	rowdata = _vte_screen_find_row_data(terminal->pvt->screen, sc->row);
 	if (rowdata != NULL) {
 		/* Find the last non-empty character on the first line. */
 		for (i = _vte_row_data_length (rowdata); i > 0; i--) {
@@ -6030,7 +6032,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 	sc->col = find_start_column (terminal, sc->col, sc->row);
 
 	/* Handle end-of-line at the end-cell. */
-	rowdata = _vte_terminal_find_row_data(terminal, ec->row);
+	rowdata = _vte_screen_find_row_data(terminal->pvt->screen, ec->row);
 	if (rowdata != NULL) {
 		/* Find the last non-empty character on the last line. */
 		for (i = _vte_row_data_length (rowdata); i > 0; i--) {
@@ -9659,7 +9661,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 	row = start_row;
 	rows = row_count;
 	do {
-		row_data = _vte_terminal_find_row_data(terminal, row);
+		row_data = _vte_screen_find_row_data(terminal->pvt->screen, row);
 		/* Back up in case this is a multicolumn character,
 		 * making the drawing area a little wider. */
 		i = start_column;
@@ -9749,7 +9751,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 	rows = row_count;
 	item_count = 1;
 	do {
-		row_data = _vte_terminal_find_row_data(terminal, row);
+		row_data = _vte_screen_find_row_data(terminal->pvt->screen, row);
 		if (row_data == NULL) {
 			goto fg_skip_row;
 		}
@@ -9924,7 +9926,7 @@ fg_next_row:
 						/* restart on the next row */
 						row++;
 						y += row_height;
-						row_data = _vte_terminal_find_row_data(terminal, row);
+						row_data = _vte_screen_find_row_data(terminal->pvt->screen, row);
 					} while (row_data == NULL);
 
 					/* Back up in case this is a
@@ -13524,7 +13526,7 @@ vte_terminal_search_rows_iter (VteTerminal *terminal,
 
 			do {
 				iter_start_row--;
-				row = _vte_terminal_find_row_data (terminal, iter_start_row);
+				row = _vte_screen_find_row_data(terminal->pvt->screen, iter_start_row);
 			} while (row && row->attr.soft_wrapped);
 
 			if (vte_terminal_search_rows (terminal, iter_start_row, iter_end_row, backward))
@@ -13536,7 +13538,7 @@ vte_terminal_search_rows_iter (VteTerminal *terminal,
 			iter_start_row = iter_end_row;
 
 			do {
-				row = _vte_terminal_find_row_data (terminal, iter_end_row);
+				row = _vte_screen_find_row_data(terminal->pvt->screen, iter_end_row);
 				iter_end_row++;
 			} while (row && row->attr.soft_wrapped);
 
