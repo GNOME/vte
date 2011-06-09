@@ -289,30 +289,40 @@ vte_g_array_fill(GArray *array, gconstpointer item, guint final_size)
 
 
 VteRowData *
-_vte_terminal_ring_insert (VteTerminal *terminal, glong position, gboolean fill)
+_vte_buffer_ring_insert (VteBuffer *buffer,
+                         glong position,
+                         gboolean fill)
 {
 	VteRowData *row;
-	VteRing *ring = terminal->pvt->screen->row_data;
+        VteScreen *screen;
+        VteRing *ring;
+
+        screen = buffer->pvt->screen;
+	ring = screen->row_data;
 	while (G_UNLIKELY (_vte_ring_next (ring) < position)) {
 		row = _vte_ring_append (ring);
-		_vte_row_data_fill (row, &terminal->pvt->screen->fill_defaults, terminal->pvt->column_count);
+		_vte_row_data_fill (row, &screen->fill_defaults, buffer->pvt->column_count);
 	}
 	row = _vte_ring_insert (ring, position);
 	if (fill)
-		_vte_row_data_fill (row, &terminal->pvt->screen->fill_defaults, terminal->pvt->column_count);
+		_vte_row_data_fill (row, &screen->fill_defaults, buffer->pvt->column_count);
 	return row;
 }
 
 VteRowData *
-_vte_terminal_ring_append (VteTerminal *terminal, gboolean fill)
+_vte_buffer_ring_append (VteBuffer *buffer,
+                         gboolean fill)
 {
-	return _vte_terminal_ring_insert (terminal, _vte_ring_next (terminal->pvt->screen->row_data), fill);
+        return _vte_buffer_ring_insert (buffer,
+                                        _vte_ring_next (buffer->pvt->screen->row_data),
+                                        fill);
 }
 
 void
-_vte_terminal_ring_remove (VteTerminal *terminal, glong position)
+_vte_buffer_ring_remove (VteBuffer *buffer,
+                         glong position)
 {
-	_vte_ring_remove (terminal->pvt->screen->row_data, position);
+        _vte_ring_remove (buffer->pvt->screen->row_data, position);
 }
 
 /* Reset defaults for character insertion. */
@@ -2030,7 +2040,7 @@ vte_terminal_insert_rows (VteTerminal *terminal, guint cnt)
 {
 	VteRowData *row;
 	do {
-		row = _vte_terminal_ring_append (terminal, FALSE);
+		row = _vte_buffer_ring_append (terminal->term_pvt->buffer, FALSE);
 	} while(--cnt);
 	return row;
 }
@@ -2336,7 +2346,7 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 				 * to insert_delta. */
 				start++;
 				end++;
-				_vte_terminal_ring_insert (terminal, screen->cursor_current.row, FALSE);
+				_vte_buffer_ring_insert (terminal->term_pvt->buffer, screen->cursor_current.row, FALSE);
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
 				_vte_terminal_scroll_region(terminal, start,
@@ -2347,8 +2357,8 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 				/* If we're at the bottom of the scrolling
 				 * region, add a line at the top to scroll the
 				 * bottom off. */
-				_vte_terminal_ring_remove (terminal, start);
-				_vte_terminal_ring_insert (terminal, end, TRUE);
+				_vte_buffer_ring_remove (terminal->term_pvt->buffer, start);
+				_vte_buffer_ring_insert (terminal->term_pvt->buffer, end, TRUE);
 				/* Update the display. */
 				_vte_terminal_scroll_region(terminal, start,
 							   end - start + 1, -1);

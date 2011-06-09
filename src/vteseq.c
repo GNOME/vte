@@ -280,7 +280,7 @@ _vte_terminal_clear_screen (VteTerminal *terminal)
 	initial = _vte_ring_next(screen->row_data);
 	/* Add a new screen's worth of rows. */
 	for (i = 0; i < terminal->pvt->row_count; i++)
-		_vte_terminal_ring_append (terminal, TRUE);
+		_vte_buffer_ring_append (terminal->term_pvt->buffer, TRUE);
 	/* Move the cursor and insertion delta to the first line in the
 	 * newly-cleared area and scroll if need be. */
 	screen->insert_delta = initial;
@@ -369,17 +369,17 @@ _vte_terminal_scroll_text (VteTerminal *terminal, int scroll_amount)
 	}
 
 	while (_vte_ring_next(screen->row_data) <= end)
-		_vte_terminal_ring_append (terminal, FALSE);
+		_vte_buffer_ring_append (terminal->term_pvt->buffer, FALSE);
 
 	if (scroll_amount > 0) {
 		for (i = 0; i < scroll_amount; i++) {
-			_vte_terminal_ring_remove (terminal, end);
-			_vte_terminal_ring_insert (terminal, start, TRUE);
+			_vte_buffer_ring_remove (terminal->term_pvt->buffer, end);
+			_vte_buffer_ring_insert (terminal->term_pvt->buffer, start, TRUE);
 		}
 	} else {
 		for (i = 0; i < -scroll_amount; i++) {
-			_vte_terminal_ring_remove (terminal, start);
-			_vte_terminal_ring_insert (terminal, end, TRUE);
+			_vte_buffer_ring_remove (terminal->term_pvt->buffer, start);
+			_vte_buffer_ring_insert (terminal->term_pvt->buffer, end, TRUE);
 		}
 	}
 
@@ -949,8 +949,8 @@ vte_sequence_handler_al (VteTerminal *terminal, GValueArray *params)
 	for (i = 0; i < param; i++) {
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
-		_vte_terminal_ring_remove (terminal, end);
-		_vte_terminal_ring_insert (terminal, start, TRUE);
+		_vte_buffer_ring_remove (terminal->term_pvt->buffer, end);
+                _vte_buffer_ring_insert (terminal->term_pvt->buffer, start, TRUE);
 		/* Adjust the scrollbars if necessary. */
 		_vte_terminal_adjust_adjustments(terminal);
 	}
@@ -1082,7 +1082,7 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 			rowdata = _vte_ring_index_writable (screen->row_data, i);
 			g_assert(rowdata != NULL);
 		} else {
-			rowdata = _vte_terminal_ring_append (terminal, FALSE);
+			rowdata = _vte_buffer_ring_append (terminal->term_pvt->buffer, FALSE);
 		}
 		/* Pad out the row. */
 		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->pvt->column_count);
@@ -1428,8 +1428,8 @@ vte_sequence_handler_dl (VteTerminal *terminal, GValueArray *params)
 	for (i = 0; i < param; i++) {
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
-		_vte_terminal_ring_remove (terminal, start);
-		_vte_terminal_ring_insert (terminal, end, TRUE);
+		_vte_buffer_ring_remove (terminal->term_pvt->buffer, start);
+		_vte_buffer_ring_insert (terminal->term_pvt->buffer, end, TRUE);
 		/* Adjust the scrollbars if necessary. */
 		_vte_terminal_adjust_adjustments(terminal);
 	}
@@ -1996,8 +1996,8 @@ vte_sequence_handler_sr (VteTerminal *terminal, GValueArray *params)
 	if (screen->cursor_current.row == start) {
 		/* If we're at the top of the scrolling region, add a
 		 * line at the top to scroll the bottom off. */
-		_vte_terminal_ring_remove (terminal, end);
-		_vte_terminal_ring_insert (terminal, start, TRUE);
+		_vte_buffer_ring_remove (terminal->term_pvt->buffer, end);
+		_vte_buffer_ring_insert (terminal->term_pvt->buffer, start, TRUE);
 		/* Update the display. */
 		_vte_terminal_scroll_region(terminal, start, end - start + 1, 1);
 		_vte_invalidate_cells(terminal,
@@ -2802,8 +2802,8 @@ vte_sequence_handler_insert_lines (VteTerminal *terminal, GValueArray *params)
 	for (i = 0; i < param; i++) {
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
-		_vte_terminal_ring_remove (terminal, end);
-		_vte_terminal_ring_insert (terminal, row, TRUE);
+		_vte_buffer_ring_remove (terminal->term_pvt->buffer, end);
+		_vte_buffer_ring_insert (terminal->term_pvt->buffer, row, TRUE);
 	}
 	/* Update the display. */
 	_vte_terminal_scroll_region(terminal, row, end - row + 1, param);
@@ -2843,8 +2843,8 @@ vte_sequence_handler_delete_lines (VteTerminal *terminal, GValueArray *params)
 	for (i = 0; i < param; i++) {
 		/* Insert a line at the end of the region and remove one from
 		 * the top of the region. */
-		_vte_terminal_ring_remove (terminal, row);
-		_vte_terminal_ring_insert (terminal, end, TRUE);
+		_vte_buffer_ring_remove (terminal->term_pvt->buffer, row);
+		_vte_buffer_ring_insert (terminal->term_pvt->buffer, end, TRUE);
 	}
 	/* Update the display. */
 	_vte_terminal_scroll_region(terminal, row, end - row + 1, -param);
@@ -3010,7 +3010,7 @@ vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *
 	     row++) {
 		/* Find this row. */
 		while (_vte_ring_next(screen->row_data) <= row)
-			_vte_terminal_ring_append (terminal, FALSE);
+			_vte_buffer_ring_append (terminal->term_pvt->buffer, FALSE);
 		_vte_terminal_adjust_adjustments(terminal);
 		rowdata = _vte_ring_index_writable (screen->row_data, row);
 		g_assert(rowdata != NULL);

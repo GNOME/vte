@@ -453,10 +453,6 @@ void _vte_terminal_beep(VteTerminal *terminal);
 
 void _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ...) G_GNUC_PRINTF(2,3);
 
-VteRowData *_vte_terminal_ring_insert (VteTerminal *terminal, glong position, gboolean fill);
-VteRowData *_vte_terminal_ring_append (VteTerminal *terminal, gboolean fill);
-void _vte_terminal_ring_remove (VteTerminal *terminal, glong position);
-
 /* vteseq.c: */
 void _vte_terminal_handle_sequence(VteTerminal *terminal,
 				   const char *match_s,
@@ -478,6 +474,13 @@ void _vte_terminal_set_effect_color(VteTerminal *terminal,
                                     const GdkRGBA *rgba,
                                     VteTerminalEffect effect,
                                     gboolean override);
+
+
+/* private VteBuffer methods */
+
+VteRowData *_vte_buffer_ring_insert (VteBuffer *buffer, glong position, gboolean fill);
+VteRowData *_vte_buffer_ring_append (VteBuffer *buffer, gboolean fill);
+void _vte_buffer_ring_remove (VteBuffer *buffer, glong position);
 
 G_END_DECLS
 
