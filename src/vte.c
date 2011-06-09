@@ -2413,8 +2413,10 @@ _vte_buffer_cursor_down (VteBuffer *buffer)
 
 /* Insert a single character into the stored data array. */
 gboolean
-_vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
-			 gboolean insert, gboolean invalidate_now)
+_vte_buffer_insert_char(VteBuffer *buffer,
+                        gunichar c,
+			gboolean insert,
+                        gboolean invalidate_now)
 {
 	VteCellAttr attr;
 	VteRowData *row;
@@ -2423,7 +2425,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	VteScreen *screen;
 	gboolean line_wrapped = FALSE; /* cursor moved before char inserted */
 
-	screen = terminal->pvt->screen;
+	screen = buffer->pvt->screen;
 	insert |= screen->insert_mode;
 	invalidate_now |= insert;
 
@@ -2434,7 +2436,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 				"Attempting charset substitution"
 				"for U+%04X.\n", c);
 		/* See if there's a mapping for it. */
-		c = _vte_iso2022_process_single(terminal->pvt->iso2022, c, '0');
+		c = _vte_iso2022_process_single(buffer->pvt->iso2022, c, '0');
 	}
 
 	/* If this character is destined for the status line, save it. */
@@ -2449,27 +2451,27 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		columns = _vte_iso2022_get_encoded_width(c);
 		c &= ~VTE_ISO2022_ENCODED_WIDTH_MASK;
 	} else {
-		columns = _vte_iso2022_unichar_width(terminal->pvt->iso2022, c);
+		columns = _vte_iso2022_unichar_width(buffer->pvt->iso2022, c);
 	}
 
 
 	/* If we're autowrapping here, do it. */
 	col = screen->cursor_current.col;
-	if (G_UNLIKELY (columns && col + columns > terminal->pvt->column_count)) {
-		if (terminal->pvt->flags.am) {
+	if (G_UNLIKELY (columns && col + columns > buffer->pvt->column_count)) {
+		if (buffer->pvt->flags.am) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Autowrapping before character\n");
 			/* Wrap. */
 			/* XXX clear to the end of line */
 			col = screen->cursor_current.col = 0;
 			/* Mark this line as soft-wrapped. */
-			row = _vte_buffer_ensure_row (terminal->term_pvt->buffer);
+			row = _vte_buffer_ensure_row (buffer);
 			row->attr.soft_wrapped = 1;
-			_vte_buffer_cursor_down (terminal->term_pvt->buffer);
+			_vte_buffer_cursor_down (buffer);
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
 			col = screen->cursor_current.col =
-				terminal->pvt->column_count - columns;
+				buffer->pvt->column_count - columns;
 		}
 		line_wrapped = TRUE;
 	}
@@ -2500,7 +2502,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 			if (G_LIKELY (row_num > 0)) {
 				row_num--;
-				row = _vte_screen_find_row_data_writable(terminal->pvt->screen, row_num);
+				row = _vte_screen_find_row_data_writable(screen, row_num);
 
 				if (row) {
 					if (!row->attr.soft_wrapped)
@@ -2510,7 +2512,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 				}
 			}
 		} else {
-			row = _vte_screen_find_row_data_writable(terminal->pvt->screen, row_num);
+			row = _vte_screen_find_row_data_writable(screen, row_num);
 		}
 
 		if (G_UNLIKELY (!row || !col))
@@ -2542,7 +2544,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 		/* Always invalidate since we put the mark on the *previous* cell
 		 * and the higher level code doesn't know this. */
-		_vte_invalidate_cells(terminal,
+		_vte_invalidate_cells(buffer->pvt->terminal,
 				      col - columns,
 				      columns,
 				      row_num, 1);
@@ -2551,10 +2553,10 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 
 	/* Make sure we have enough rows to hold this data. */
-	row = vte_buffer_ensure_cursor (terminal->term_pvt->buffer);
+	row = vte_buffer_ensure_cursor (buffer);
 	g_assert(row != NULL);
 
-	_vte_buffer_cleanup_tab_fragments_at_cursor (terminal->term_pvt->buffer);
+	_vte_buffer_cleanup_tab_fragments_at_cursor (buffer);
 
 	if (insert) {
 		for (i = 0; i < columns; i++)
@@ -2585,7 +2587,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	attr = screen->defaults.attr;
 	attr.columns = columns;
 
-	if (G_UNLIKELY (c == '_' && terminal->pvt->flags.ul)) {
+	if (G_UNLIKELY (c == '_' && buffer->pvt->flags.ul)) {
 		const VteCell *pcell = _vte_row_data_get (row, col);
 		/* Handle overstrike-style underlining. */
 		if (pcell->c != 0) {
@@ -2614,32 +2616,32 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		pcell->attr = attr;
 		col++;
 	}
-	_vte_row_data_shrink (row, terminal->pvt->column_count);
+	_vte_row_data_shrink (row, buffer->pvt->column_count);
 
 	/* Signal that this part of the window needs drawing. */
 	if (G_UNLIKELY (invalidate_now)) {
-		_vte_invalidate_cells(terminal,
+		_vte_invalidate_cells(buffer->pvt->terminal,
 				col - columns,
-				insert ? terminal->pvt->column_count : columns,
+				insert ? buffer->pvt->column_count : columns,
 				screen->cursor_current.row, 1);
 	}
 
 
 	/* If we're autowrapping *here*, do it. */
 	screen->cursor_current.col = col;
-	if (G_UNLIKELY (col >= terminal->pvt->column_count)) {
-		if (terminal->pvt->flags.am && !terminal->pvt->flags.xn) {
+        if (G_UNLIKELY (col >= buffer->pvt->column_count)) {
+		if (buffer->pvt->flags.am && !buffer->pvt->flags.xn) {
 			/* Wrap. */
 			screen->cursor_current.col = 0;
 			/* Mark this line as soft-wrapped. */
 			row->attr.soft_wrapped = 1;
-                        _vte_buffer_cursor_down (terminal->term_pvt->buffer);
+                        _vte_buffer_cursor_down (buffer);
 		}
 	}
 
 done:
 	/* We added text, so make a note of it. */
-	terminal->pvt->text_inserted_flag = TRUE;
+        buffer->pvt->text_inserted_flag = TRUE;
 
 not_inserted:
 	_vte_debug_print(VTE_DEBUG_ADJ|VTE_DEBUG_PARSE,
@@ -3287,7 +3289,7 @@ skip_chunk:
 					screen->cursor_current.row);
 
 			/* Insert the character. */
-			if (G_UNLIKELY (_vte_terminal_insert_char(terminal, c,
+			if (G_UNLIKELY (_vte_buffer_insert_char(terminal->term_pvt->buffer, c,
 						 FALSE, FALSE))) {
 				/* line wrapped, correct bbox */
 				if (invalidated_text &&
@@ -3787,7 +3789,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 				int len;
 				len = g_utf8_strlen(cooked, cooked_length);
 				for (i = 0; i < len; i++) {
-					_vte_terminal_insert_char(terminal,
+					_vte_buffer_insert_char(terminal->term_pvt->buffer,
 								 ucs4[i],
 								 FALSE,
 								 TRUE);

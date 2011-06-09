@@ -1583,7 +1583,7 @@ vte_sequence_handler_ic (VteTerminal *terminal, GValueArray *params)
 
 	save = screen->cursor_current;
 
-	_vte_terminal_insert_char(terminal, ' ', TRUE, TRUE);
+	_vte_buffer_insert_char(terminal->term_pvt->buffer, ' ', TRUE, TRUE);
 
 	screen->cursor_current = save;
 }
