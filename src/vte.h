@@ -85,7 +85,6 @@ struct _VteTerminalClass {
 	void (*contents_changed)(VteTerminal* terminal);
 	void (*cursor_moved)(VteTerminal* terminal);
 	void (*status_line_changed)(VteTerminal* terminal);
-	void (*commit)(VteTerminal* terminal, const gchar *text, guint size);
 
 	void (*deiconify_window)(VteTerminal* terminal);
 	void (*iconify_window)(VteTerminal* terminal);

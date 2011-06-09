@@ -158,6 +158,13 @@ enum {
         PROP_FONT_SCALE
 };
 
+enum {
+        BUFFER_COMMIT,
+        LAST_BUFFER_SIGNAL,
+};
+
+static guint buffer_signals[LAST_BUFFER_SIGNAL];
+
 /* these static variables are guarded by the GDK mutex */
 static guint process_timeout_tag = 0;
 static gboolean in_process_timeout;
@@ -799,7 +806,7 @@ vte_terminal_emit_selection_changed(VteTerminal *terminal)
 
 /* Emit a "commit" signal. */
 static void
-vte_terminal_emit_commit(VteTerminal *terminal, const gchar *text, guint length)
+vte_buffer_emit_commit(VteBuffer *buffer, const gchar *text, guint length)
 {
 	const char *result = NULL;
 	char *wrapped = NULL;
@@ -816,7 +823,8 @@ vte_terminal_emit_commit(VteTerminal *terminal, const gchar *text, guint length)
 		wrapped[length] = '\0';
 	}
 
-	g_signal_emit_by_name(terminal, "commit", result, length);
+	g_signal_emit(buffer, buffer_signals[BUFFER_COMMIT], 0,
+                      result, length);
 
 	if(wrapped)
 		g_slice_free1(length+1, wrapped);
@@ -3777,7 +3785,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		}
 		/* Tell observers that we're sending this to the child. */
 		if (cooked_length > 0) {
-			vte_terminal_emit_commit(terminal,
+			vte_buffer_emit_commit(terminal->term_pvt->buffer,
 						 cooked, cooked_length);
 		}
 		/* Echo the text if we've been asked to do so. */
@@ -3868,7 +3876,7 @@ vte_terminal_feed_child_binary(VteTerminal *terminal, const char *data, glong le
 
 	/* Tell observers that we're sending this to the child. */
 	if (length > 0) {
-		vte_terminal_emit_commit(terminal,
+		vte_buffer_emit_commit(terminal->term_pvt->buffer,
 					 data, length);
 
 		/* If there's a place for it to go, add the data to the
@@ -10835,7 +10843,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->contents_changed = NULL;
 	klass->cursor_moved = NULL;
 	klass->status_line_changed = NULL;
-	klass->commit = NULL;
 
 	klass->deiconify_window = NULL;
 	klass->iconify_window = NULL;
@@ -10949,25 +10956,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
-
-        /**
-         * VteTerminal::commit:
-         * @vteterminal: the object which received the signal
-         * @text: a string of text
-         * @size: the length of that string of text
-         *
-         * Emitted whenever the terminal receives input from the user and
-         * prepares to send it to the child process.  The signal is emitted even
-         * when there is no child process.
-         */
-                g_signal_new(I_("commit"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, commit),
-			     NULL,
-			     NULL,
-			     _vte_marshal_VOID__STRING_UINT,
-			     G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_UINT);
 
         /**
          * VteTerminal::emulation-changed:
@@ -13784,6 +13772,31 @@ vte_buffer_class_init(VteBufferClass *klass)
         gobject_class->finalize = vte_buffer_finalize;
         gobject_class->get_property = vte_buffer_get_property;
         gobject_class->set_property = vte_buffer_set_property;
+
+        klass->commit = NULL;
+
+        /**
+         * VteBuffer::commit:
+         * @buffer: the object which received the signal
+         * @text: a string of text
+         * @size: the length of that string of text
+         *
+         * Emitted whenever the terminal receives input from the user and
+         * prepares to send it to the child process.  The signal is emitted even
+         * when there is no child process.
+         */
+        buffer_signals[BUFFER_COMMIT] =
+                g_signal_new(I_("commit"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, commit),
+                             NULL,
+                             NULL,
+                             _vte_marshal_VOID__STRING_UINT,
+                             G_TYPE_NONE,
+                             2, G_TYPE_STRING, G_TYPE_UINT);
+
+
 }
 
 /**

@@ -44,6 +44,10 @@ typedef struct _VteBufferClassPrivate VteBufferClassPrivate;
 struct _VteBufferClass {
   GObjectClass object_class;
 
+  void (*commit)               (VteBuffer *buffer,
+                                const gchar *text,
+                                guint size);
+
   /*< private >*/
   VteBufferClassPrivate *priv;
 };
