@@ -142,8 +142,6 @@ enum {
         PROP_HSCROLL_POLICY,
         PROP_VSCROLL_POLICY,
         PROP_AUDIBLE_BELL,
-        PROP_BACKSPACE_BINDING,
-        PROP_DELETE_BINDING,
         PROP_EMULATION,
         PROP_ENCODING,
         PROP_ICON_TITLE,
@@ -159,6 +157,8 @@ enum {
 
 enum {
         BUFFER_PROP_0,
+        BUFFER_PROP_BACKSPACE_BINDING,
+        BUFFER_PROP_DELETE_BINDING,
         BUFFER_PROP_SCROLLBACK_LINES
 };
 
@@ -7715,8 +7715,8 @@ vte_terminal_init(VteTerminal *terminal)
 	vte_terminal_set_word_chars(terminal, NULL);
 
 	/* Miscellaneous options. */
-	vte_terminal_set_backspace_binding(terminal, VTE_ERASE_AUTO);
-	vte_terminal_set_delete_binding(terminal, VTE_ERASE_AUTO);
+	vte_buffer_set_backspace_binding(buffer, VTE_ERASE_AUTO);
+	vte_buffer_set_delete_binding(buffer, VTE_ERASE_AUTO);
 	pvt->meta_sends_escape = TRUE;
 	pvt->audible_bell = TRUE;
 	pvt->bell_margin = 10;
@@ -10662,12 +10662,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_AUDIBLE_BELL:
                         g_value_set_boolean (value, vte_terminal_get_audible_bell (terminal));
                         break;
-                case PROP_BACKSPACE_BINDING:
-                        g_value_set_enum (value, pvt->backspace_binding);
-                        break;
-                case PROP_DELETE_BINDING:
-                        g_value_set_enum (value, pvt->delete_binding);
-                        break;
                 case PROP_EMULATION:
                         g_value_set_string (value, vte_terminal_get_emulation (terminal));
                         break;
@@ -10735,12 +10729,6 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_AUDIBLE_BELL:
                         vte_terminal_set_audible_bell (terminal, g_value_get_boolean (value));
-                        break;
-                case PROP_BACKSPACE_BINDING:
-                        vte_terminal_set_backspace_binding (terminal, g_value_get_enum (value));
-                        break;
-                case PROP_DELETE_BINDING:
-                        vte_terminal_set_delete_binding (terminal, g_value_get_enum (value));
                         break;
                 case PROP_EMULATION:
                         vte_terminal_set_emulation (terminal, g_value_get_string (value));
@@ -11388,38 +11376,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                        TRUE,
                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
-        /**
-         * VteTerminal:backspace-binding:
-         *
-         * *Controls what string or control sequence the terminal sends to its child
-         * when the user presses the backspace key.
-         * 
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_BACKSPACE_BINDING,
-                 g_param_spec_enum ("backspace-binding", NULL, NULL,
-                                    VTE_TYPE_TERMINAL_ERASE_BINDING,
-                                    VTE_ERASE_AUTO,
-                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-        /**
-         * VteTerminal:delete-binding:
-         *
-         * Controls what string or control sequence the terminal sends to its child
-         * when the user presses the delete key.
-         * 
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_DELETE_BINDING,
-                 g_param_spec_enum ("delete-binding", NULL, NULL,
-                                    VTE_TYPE_TERMINAL_ERASE_BINDING,
-                                    VTE_ERASE_AUTO,
-                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-     
         /**
          * VteTerminal:emulation:
          *
@@ -12267,23 +12223,23 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 }
 
 /**
- * vte_terminal_set_backspace_binding:
- * @terminal: a #VteTerminal
- * @binding: a #VteTerminalEraseBinding for the backspace key
+ * vte_buffer_set_backspace_binding:
+ * @buffer: a #VteBuffer
+ * @binding: a #VteEraseBinding for the backspace key
  *
- * Modifies the terminal's backspace key binding, which controls what
- * string or control sequence the terminal sends to its child when the user
+ * Modifies the buffer's backspace key binding, which controls what
+ * string or control sequence the buffer sends to its child when the user
  * presses the backspace key.
  */
 void
-vte_terminal_set_backspace_binding(VteTerminal *terminal,
-				   VteTerminalEraseBinding binding)
+vte_buffer_set_backspace_binding(VteBuffer *buffer,
+				 VteEraseBinding binding)
 {
-        VteTerminalPrivate *pvt;
+        VteBufferPrivate *pvt;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail(VTE_IS_BUFFER(buffer));
 
-        pvt = terminal->pvt;
+        pvt = buffer->pvt;
 
         if (binding == pvt->backspace_binding)
                 return;
@@ -12291,34 +12247,34 @@ vte_terminal_set_backspace_binding(VteTerminal *terminal,
 	/* FIXME: should we set the pty mode to match? */
 	pvt->backspace_binding = binding;
 
-        g_object_notify(G_OBJECT(terminal), "backspace-binding");
+        g_object_notify(G_OBJECT(buffer), "backspace-binding");
 }
 
 /**
- * vte_terminal_set_delete_binding:
- * @terminal: a #VteTerminal
- * @binding: a #VteTerminalEraseBinding for the delete key
+ * vte_buffer_set_delete_binding:
+ * @buffer: a #VteBuffer
+ * @binding: a #VteEraseBinding for the delete key
  *
- * Modifies the terminal's delete key binding, which controls what
- * string or control sequence the terminal sends to its child when the user
+ * Modifies the buffer's delete key binding, which controls what
+ * string or control sequence the buffer sends to its child when the user
  * presses the delete key.
  */
 void
-vte_terminal_set_delete_binding(VteTerminal *terminal,
-				VteTerminalEraseBinding binding)
+vte_buffer_set_delete_binding(VteBuffer *buffer,
+                              VteEraseBinding binding)
 {
-        VteTerminalPrivate *pvt;
+        VteBufferPrivate *pvt;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail(VTE_IS_BUFFER(buffer));
 
-        pvt = terminal->pvt;
+        pvt = buffer->pvt;
 
         if (binding == pvt->delete_binding)
                 return;
 
 	pvt->delete_binding = binding;
 
-        g_object_notify(G_OBJECT(terminal), "delete-binding");
+        g_object_notify(G_OBJECT(buffer), "delete-binding");
 }
 
 /**
@@ -13742,6 +13698,12 @@ vte_buffer_get_property (GObject *object,
         VteBuffer *buffer = VTE_BUFFER(object);
 
         switch (prop_id) {
+        case BUFFER_PROP_BACKSPACE_BINDING:
+                g_value_set_enum(value, buffer->pvt->backspace_binding);
+                break;
+        case BUFFER_PROP_DELETE_BINDING:
+                g_value_set_enum(value, buffer->pvt->delete_binding);
+                break;
         case BUFFER_PROP_SCROLLBACK_LINES:
                 g_value_set_uint (value, buffer->pvt->scrollback_lines);
                 break;
@@ -13760,6 +13722,12 @@ vte_buffer_set_property (GObject *object,
         VteBuffer *buffer = VTE_BUFFER(object);
 
         switch (prop_id) {
+        case BUFFER_PROP_BACKSPACE_BINDING:
+                vte_buffer_set_backspace_binding(buffer, g_value_get_enum (value));
+                break;
+        case BUFFER_PROP_DELETE_BINDING:
+                vte_buffer_set_delete_binding(buffer, g_value_get_enum (value));
+                break;
         case BUFFER_PROP_SCROLLBACK_LINES:
                 vte_buffer_set_scrollback_lines (buffer, g_value_get_uint (value));
                 break;
@@ -13807,6 +13775,34 @@ vte_buffer_class_init(VteBufferClass *klass)
                              2, G_TYPE_STRING, G_TYPE_UINT);
 
         /* Properties */
+
+        /**
+         * VteBuffer:backspace-binding:
+         *
+         * Controls what string or control sequence the terminal sends to its child
+         * when the user presses the backspace key.
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 BUFFER_PROP_BACKSPACE_BINDING,
+                 g_param_spec_enum ("backspace-binding", NULL, NULL,
+                                    VTE_TYPE_ERASE_BINDING,
+                                    VTE_ERASE_AUTO,
+                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+        /**
+         * VteBuffer:delete-binding:
+         *
+         * Controls what string or control sequence the terminal sends to its child
+         * when the user presses the delete key.
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 BUFFER_PROP_DELETE_BINDING,
+                 g_param_spec_enum ("delete-binding", NULL, NULL,
+                                    VTE_TYPE_ERASE_BINDING,
+                                    VTE_ERASE_AUTO,
+                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
          * VteBuffer:scrollback-lines:

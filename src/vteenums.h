@@ -26,7 +26,7 @@
 G_BEGIN_DECLS
 
 /**
- * VteTerminalEraseBinding:
+ * VteEraseBinding:
  * @VTE_ERASE_AUTO: For backspace, attempt to determine the right value from the terminal's IO settings.  For delete, use the control sequence.
  * @VTE_ERASE_ASCII_BACKSPACE: Send an ASCII backspace character (0x08).
  * @VTE_ERASE_ASCII_DELETE: Send an ASCII delete character (0x7F).
@@ -43,7 +43,7 @@ typedef enum {
 	VTE_ERASE_ASCII_DELETE,
 	VTE_ERASE_DELETE_SEQUENCE,
 	VTE_ERASE_TTY
-} VteTerminalEraseBinding;
+} VteEraseBinding;
 
 /**
  * VteTerminalCursorBlinkMode:

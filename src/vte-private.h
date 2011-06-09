@@ -271,7 +271,7 @@ struct _VteBufferPrivate {
 	VteVisualPosition selection_start, selection_end;
 
 	/* Miscellaneous options. */
-	VteTerminalEraseBinding backspace_binding, delete_binding;
+	VteEraseBinding backspace_binding, delete_binding;
 	gboolean meta_sends_escape;
 	gboolean audible_bell;
 	gboolean visible_bell;

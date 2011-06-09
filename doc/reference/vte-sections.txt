@@ -5,7 +5,7 @@ VteTerminal
 VteTerminalCursorBlinkMode
 VteTerminalCursorShape
 VteTerminalEffect
-VteTerminalEraseBinding
+VteEraseBinding
 VteTerminalWriteFlags
 VteSelectionFunc
 vte_terminal_new
@@ -29,8 +29,6 @@ vte_terminal_set_scroll_on_keystroke
 vte_terminal_get_has_selection
 vte_terminal_set_word_chars
 vte_terminal_is_word_char
-vte_terminal_set_backspace_binding
-vte_terminal_set_delete_binding
 vte_terminal_set_mouse_autohide
 vte_terminal_get_mouse_autohide
 vte_terminal_reset
@@ -79,8 +77,8 @@ VTE_TYPE_TERMINAL_CURSOR_SHAPE
 vte_terminal_cursor_shape_get_type
 VTE_TYPE_TERMINAL_EFFECT
 vte_terminal_effect_get_type
-VTE_TYPE_TERMINAL_ERASE_BINDING
-vte_terminal_erase_binding_get_type
+VTE_TYPE_ERASE_BINDING
+vte_erase_binding_get_type
 VTE_TYPE_TERMINAL_WRITE_FLAGS
 vte_terminal_write_flags_get_type
 VTE_TYPE_TERMINAL
@@ -110,6 +108,8 @@ VteTerminalClassPrivate
 <TITLE>VteBuffer</TITLE>
 VteBuffer
 vte_buffer_new
+vte_buffer_set_backspace_binding
+vte_buffer_set_delete_binding
 vte_buffer_set_scrollback_lines
 vte_buffer_feed
 vte_buffer_feed_child

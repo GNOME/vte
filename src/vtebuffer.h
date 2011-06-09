@@ -62,6 +62,11 @@ GType vte_buffer_get_type (void);
 
 VteBuffer *vte_buffer_new (void);
 
+void vte_buffer_set_backspace_binding   (VteBuffer *buffer,
+                                         VteEraseBinding binding);
+void vte_buffer_set_delete_binding      (VteBuffer *buffer,
+                                         VteEraseBinding binding);
+
 void vte_buffer_set_scrollback_lines    (VteBuffer *buffer,
                                          glong lines);
 

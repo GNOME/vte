@@ -209,12 +209,6 @@ gboolean vte_terminal_get_has_selection(VteTerminal *terminal);
 void vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec);
 gboolean vte_terminal_is_word_char(VteTerminal *terminal, gunichar c);
 
-/* Set what happens when the user strikes backspace or delete. */
-void vte_terminal_set_backspace_binding(VteTerminal *terminal,
-					VteTerminalEraseBinding binding);
-void vte_terminal_set_delete_binding(VteTerminal *terminal,
-				     VteTerminalEraseBinding binding);
-
 /* Manipulate the autohide setting. */
 void vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting);
 gboolean vte_terminal_get_mouse_autohide(VteTerminal *terminal);
