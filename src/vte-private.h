@@ -204,8 +204,6 @@ struct _VteBufferPrivate {
 			- 2 * sizeof(void *)];
 	} *incoming;			/* pending bytestream */
 	GArray *pending;		/* pending characters */
-	GSList *update_regions;
-	gboolean invalidated_all;	/* pending refresh of entire terminal */
 	GList *active;                  /* is the terminal processing data */
 	glong input_bytes;
 	glong max_input_bytes;
@@ -416,6 +414,10 @@ struct _VteBufferPrivate {
 struct _VteTerminalRealPrivate {
         VteBuffer *buffer;
         VteBufferPrivate *buffer_pvt;
+
+        /* Expose event handling */
+        GSList *update_regions;
+        gboolean invalidated_all;       /* pending refresh of entire terminal */
 };
 
 struct _VteTerminalClassPrivate {

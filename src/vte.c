@@ -351,7 +351,7 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		return;
 	}
 
-	if (terminal->pvt->invalidated_all) {
+	if (terminal->term_pvt->invalidated_all) {
 		return;
 	}
 
@@ -420,8 +420,8 @@ _vte_invalidate_cells(VteTerminal *terminal,
 			rect.x, rect.y, rect.width, rect.height);
 
 	if (terminal->pvt->active != NULL) {
-		terminal->pvt->update_regions = g_slist_prepend (
-				terminal->pvt->update_regions,
+		terminal->term_pvt->update_regions = g_slist_prepend (
+				terminal->term_pvt->update_regions,
 				cairo_region_create_rectangle (&rect));
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
@@ -470,7 +470,7 @@ _vte_invalidate_all(VteTerminal *terminal)
         if (!gtk_widget_get_realized(&terminal->widget)) {
                 return;
         }
-	if (terminal->pvt->invalidated_all) {
+	if (terminal->term_pvt->invalidated_all) {
 		return;
 	}
 
@@ -484,10 +484,10 @@ _vte_invalidate_all(VteTerminal *terminal)
 	rect.x = rect.y = 0;
 	rect.width = allocation.width;
 	rect.height = allocation.height;
-	terminal->pvt->invalidated_all = TRUE;
+	terminal->term_pvt->invalidated_all = TRUE;
 
 	if (terminal->pvt->active != NULL) {
-		terminal->pvt->update_regions = g_slist_prepend (NULL,
+		terminal->term_pvt->update_regions = g_slist_prepend (NULL,
 				cairo_region_create_rectangle (&rect));
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
@@ -668,7 +668,7 @@ _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
         if (!gtk_widget_get_realized(&terminal->widget)) {
                 return;
         }
-	if (terminal->pvt->invalidated_all) {
+	if (terminal->term_pvt->invalidated_all) {
 		return;
 	}
 
@@ -714,7 +714,7 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
         if (!gtk_widget_get_realized(&terminal->widget)) {
                 return;
         }
-	if (terminal->pvt->invalidated_all) {
+	if (terminal->term_pvt->invalidated_all) {
 		return;
 	}
 
@@ -6995,7 +6995,7 @@ vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state)
 	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
 		/* set invalidated_all false, since we didn't really mean it
 		 * when we set it to TRUE when becoming obscured */
-		terminal->pvt->invalidated_all = FALSE;
+		terminal->term_pvt->invalidated_all = FALSE;
 
 		/* if all unobscured now, invalidate all, otherwise, wait
 		 * for the expose event */
@@ -7011,7 +7011,7 @@ vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state)
 		remove_update_timeout (terminal);
 		/* if fully obscured, just act like we have invalidated all,
 		 * so no updates are accumulated. */
-		terminal->pvt->invalidated_all = TRUE;
+		terminal->term_pvt->invalidated_all = TRUE;
 	}
 }
 
@@ -10432,7 +10432,7 @@ vte_terminal_draw(GtkWidget *widget,
 
         cairo_region_destroy (region);
 
-        terminal->pvt->invalidated_all = FALSE;
+        terminal->term_pvt->invalidated_all = FALSE;
 
         return FALSE;
 }
@@ -12853,15 +12853,15 @@ add_update_timeout (VteTerminal *terminal)
 static void
 reset_update_regions (VteTerminal *terminal)
 {
-	if (terminal->pvt->update_regions != NULL) {
-		g_slist_foreach (terminal->pvt->update_regions,
+	if (terminal->term_pvt->update_regions != NULL) {
+		g_slist_foreach (terminal->term_pvt->update_regions,
 				(GFunc)cairo_region_destroy, NULL);
-		g_slist_free (terminal->pvt->update_regions);
-		terminal->pvt->update_regions = NULL;
+		g_slist_free (terminal->term_pvt->update_regions);
+		terminal->term_pvt->update_regions = NULL;
 	}
 	/* the invalidated_all flag also marks whether to skip processing
 	 * due to the widget being invisible */
-	terminal->pvt->invalidated_all =
+	terminal->term_pvt->invalidated_all =
 		terminal->pvt->visibility_state==GDK_VISIBILITY_FULLY_OBSCURED;
 }
 
@@ -12869,7 +12869,7 @@ static void
 remove_from_active_list (VteTerminal *terminal)
 {
 	if (terminal->pvt->active != NULL
-			&& terminal->pvt->update_regions == NULL) {
+			&& terminal->term_pvt->update_regions == NULL) {
 		_vte_debug_print(VTE_DEBUG_TIMEOUT,
 			"Removing terminal from active list\n");
 		active_terminals = g_list_delete_link (active_terminals,
@@ -13067,7 +13067,7 @@ process_timeout (gpointer data)
 			terminal->pvt->input_bytes = 0;
 		} else
 			vte_terminal_emit_pending_signals (terminal);
-		if (!active && terminal->pvt->update_regions == NULL) {
+		if (!active && terminal->term_pvt->update_regions == NULL) {
 			if (terminal->pvt->active != NULL) {
 				_vte_debug_print(VTE_DEBUG_TIMEOUT,
 						"Removing terminal from active list [process]\n");
@@ -13121,11 +13121,11 @@ update_regions (VteTerminal *terminal)
 		return FALSE;
 	}
 
-	if (G_UNLIKELY (!terminal->pvt->update_regions))
+	if (G_UNLIKELY (!terminal->term_pvt->update_regions))
 		return FALSE;
 
 
-	l = terminal->pvt->update_regions;
+	l = terminal->term_pvt->update_regions;
 	if (g_slist_next (l) != NULL) {
 		/* amalgamate into one super-region */
 		region = cairo_region_create ();
@@ -13136,9 +13136,9 @@ update_regions (VteTerminal *terminal)
 	} else {
 		region = l->data;
 	}
-	g_slist_free (terminal->pvt->update_regions);
-	terminal->pvt->update_regions = NULL;
-	terminal->pvt->invalidated_all = FALSE;
+	g_slist_free (terminal->term_pvt->update_regions);
+	terminal->term_pvt->update_regions = NULL;
+	terminal->term_pvt->invalidated_all = FALSE;
 
 	/* and perform the merge with the window visible area */
 	window = gtk_widget_get_window (&terminal->widget);
