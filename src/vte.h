@@ -77,7 +77,6 @@ struct _VteTerminalClass {
 	/* Default signal handlers. */
 	void (*eof)(VteTerminal* terminal);
 	void (*child_exited)(VteTerminal* terminal, int status);
-	void (*emulation_changed)(VteTerminal* terminal);
 	void (*char_size_changed)(VteTerminal* terminal, guint char_width, guint char_height);
 	void (*window_title_changed)(VteTerminal* terminal);
 	void (*icon_title_changed)(VteTerminal* terminal);
@@ -263,11 +262,6 @@ void      vte_terminal_search_set_wrap_around (VteTerminal *terminal,
 gboolean  vte_terminal_search_get_wrap_around (VteTerminal *terminal);
 gboolean  vte_terminal_search_find_previous   (VteTerminal *terminal);
 gboolean  vte_terminal_search_find_next       (VteTerminal *terminal);
-
-
-/* Set the emulation type.  Most of the time you won't need this. */
-void vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation);
-const char *vte_terminal_get_emulation(VteTerminal *terminal);
 
 const char *vte_get_default_emulation(void);
 

@@ -1026,7 +1026,7 @@ main(int argc, char **argv)
 	vte_terminal_set_mouse_autohide(terminal, TRUE);
 
 	if (termcap != NULL) {
-		vte_terminal_set_emulation(terminal, termcap);
+		vte_buffer_set_emulation(vte_terminal_get_buffer(terminal), termcap);
 	}
 
 	/* Match "abcdefg". */

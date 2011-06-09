@@ -72,7 +72,7 @@ typedef gunichar wint_t;
 #define CAIRO_GOBJECT_TYPE_PATTERN (g_type_from_name("CairoPattern"))
 
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
-static void vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
+static void vte_buffer_set_termcap(VteBuffer *buffer, const char *path,
 				     gboolean reset);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
 static void vte_terminal_real_copy_clipboard(VteTerminal *terminal);
@@ -142,7 +142,6 @@ enum {
         PROP_HSCROLL_POLICY,
         PROP_VSCROLL_POLICY,
         PROP_AUDIBLE_BELL,
-        PROP_EMULATION,
         PROP_ICON_TITLE,
         PROP_MOUSE_POINTER_AUTOHIDE,
         PROP_PTY_OBJECT,
@@ -158,12 +157,14 @@ enum {
         BUFFER_PROP_0,
         BUFFER_PROP_BACKSPACE_BINDING,
         BUFFER_PROP_DELETE_BINDING,
+        BUFFER_PROP_EMULATION,
         BUFFER_PROP_ENCODING,
         BUFFER_PROP_SCROLLBACK_LINES
 };
 
 enum {
         BUFFER_COMMIT,
+        BUFFER_EMULATION_CHANGED,
         BUFFER_ENCODING_CHANGED,
         LAST_BUFFER_SIGNAL,
 };
@@ -837,13 +838,12 @@ vte_buffer_emit_commit(VteBuffer *buffer, const gchar *text, guint length)
 
 /* Emit an "emulation-changed" signal. */
 static void
-vte_terminal_emit_emulation_changed(VteTerminal *terminal)
+vte_buffer_emit_emulation_changed(VteBuffer *buffer)
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `emulation-changed'.\n");
-	g_signal_emit_by_name(terminal, "emulation-changed");
-        g_object_notify(G_OBJECT(terminal), "emulation");
-
+	g_signal_emit(buffer, buffer_signals[BUFFER_EMULATION_CHANGED], 0);
+        g_object_notify(G_OBJECT(buffer), "emulation");
 }
 
 /* Emit an "encoding-changed" signal. */
@@ -2816,7 +2816,7 @@ vte_terminal_pty_new_sync(VteTerminal *terminal,
         if (pty == NULL)
                 return NULL;
 
-        vte_pty_set_term(pty, vte_terminal_get_emulation(terminal));
+        vte_pty_set_term(pty, vte_buffer_get_emulation(terminal->term_pvt->buffer));
 
         return pty;
 }
@@ -7424,25 +7424,25 @@ vte_terminal_set_vadjustment(VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_set_emulation:
- * @terminal: a #VteTerminal
- * @emulation: (allow-none): the name of a terminal description, or %NULL to use the default
+ * vte_buffer_set_emulation:
+ * @buffer: a #VteBuffer
+ * @emulation: (allow-none): the name of a buffer description, or %NULL to use the default
  *
- * Sets what type of terminal the widget attempts to emulate by scanning for
+ * Sets what type of buffer the widget attempts to emulate by scanning for
  * control sequences defined in the system's termcap file.  Unless you
  * are interested in this feature, always use "xterm".
  */
 void
-vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
+vte_buffer_set_emulation(VteBuffer *buffer, const char *emulation)
 {
-        VteTerminalPrivate *pvt;
+        VteBufferPrivate *pvt;
         GObject *object;
 	int columns, rows;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail(VTE_IS_BUFFER(buffer));
 
-        object = G_OBJECT(terminal);
-        pvt = terminal->pvt;
+        object = G_OBJECT(buffer);
+        pvt = buffer->pvt;
 
         g_object_freeze_notify(object);
 
@@ -7450,56 +7450,56 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	if (emulation == NULL) {
 		emulation = vte_get_default_emulation();
 	}
-	terminal->pvt->emulation = g_intern_string(emulation);
+	buffer->pvt->emulation = g_intern_string(emulation);
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Setting emulation to `%s'...\n", emulation);
 	/* Find and read the right termcap file. */
-	vte_terminal_set_termcap(terminal, NULL, FALSE);
+	vte_buffer_set_termcap(buffer, NULL, FALSE);
 
 	/* Create a table to hold the control sequences. */
-	if (terminal->pvt->matcher != NULL) {
-		_vte_matcher_free(terminal->pvt->matcher);
+	if (buffer->pvt->matcher != NULL) {
+		_vte_matcher_free(buffer->pvt->matcher);
 	}
-	terminal->pvt->matcher = _vte_matcher_new(emulation, terminal->pvt->termcap);
+	buffer->pvt->matcher = _vte_matcher_new(emulation, buffer->pvt->termcap);
 
-	if (terminal->pvt->termcap != NULL) {
+	if (buffer->pvt->termcap != NULL) {
 		/* Read emulation flags. */
-		terminal->pvt->flags.am = _vte_termcap_find_boolean(terminal->pvt->termcap,
-								    terminal->pvt->emulation,
+		buffer->pvt->flags.am = _vte_termcap_find_boolean(buffer->pvt->termcap,
+								    buffer->pvt->emulation,
 								    "am");
-		terminal->pvt->flags.bw = _vte_termcap_find_boolean(terminal->pvt->termcap,
-								    terminal->pvt->emulation,
+		buffer->pvt->flags.bw = _vte_termcap_find_boolean(buffer->pvt->termcap,
+								    buffer->pvt->emulation,
 								    "bw");
-		terminal->pvt->flags.LP = _vte_termcap_find_boolean(terminal->pvt->termcap,
-								    terminal->pvt->emulation,
+		buffer->pvt->flags.LP = _vte_termcap_find_boolean(buffer->pvt->termcap,
+								    buffer->pvt->emulation,
 								    "LP");
-		terminal->pvt->flags.ul = _vte_termcap_find_boolean(terminal->pvt->termcap,
-								    terminal->pvt->emulation,
+		buffer->pvt->flags.ul = _vte_termcap_find_boolean(buffer->pvt->termcap,
+								    buffer->pvt->emulation,
 								    "ul");
-		terminal->pvt->flags.xn = _vte_termcap_find_boolean(terminal->pvt->termcap,
-								    terminal->pvt->emulation,
+		buffer->pvt->flags.xn = _vte_termcap_find_boolean(buffer->pvt->termcap,
+								    buffer->pvt->emulation,
 								    "xn");
 
 		/* Resize to the given default. */
-		columns = _vte_termcap_find_numeric(terminal->pvt->termcap,
-						    terminal->pvt->emulation,
+		columns = _vte_termcap_find_numeric(buffer->pvt->termcap,
+						    buffer->pvt->emulation,
 						    "co");
 		if (columns <= 0) {
 			columns = VTE_COLUMNS;
 		}
-		terminal->pvt->default_column_count = columns;
+		buffer->pvt->default_column_count = columns;
 
-		rows = _vte_termcap_find_numeric(terminal->pvt->termcap,
-						 terminal->pvt->emulation,
+		rows = _vte_termcap_find_numeric(buffer->pvt->termcap,
+						 buffer->pvt->emulation,
 						 "li");
 		if (rows <= 0 ) {
 			rows = VTE_ROWS;
 		}
-		terminal->pvt->default_row_count = rows;
+		buffer->pvt->default_row_count = rows;
 	}
 
 	/* Notify observers that we changed our emulation. */
-	vte_terminal_emit_emulation_changed(terminal);
+	vte_buffer_emit_emulation_changed(buffer);
 
         g_object_thaw_notify(object);
 }
@@ -7522,26 +7522,32 @@ vte_get_default_emulation(void)
 }
 
 /**
- * vte_terminal_get_emulation:
- * @terminal: a #VteTerminal
+ * vte_buffer_get_emulation:
+ * @buffer: a #VteBuffer
  *
- * Queries the terminal for its current emulation, as last set by a call to
- * vte_terminal_set_emulation().
+ * Queries the buffer for its current emulation, as last set by a call to
+ * vte_buffer_set_emulation().
  *
- * Returns: an interned string containing the name of the terminal type the
- *   widget is attempting to emulate
+ * Returns: an interned string containing the name of the buffer type the
+ *   terminal is attempting to emulate
  */
 const char *
-vte_terminal_get_emulation(VteTerminal *terminal)
+vte_buffer_get_emulation(VteBuffer *buffer)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return terminal->pvt->emulation;
+	g_return_val_if_fail(VTE_IS_BUFFER(buffer), NULL);
+	return buffer->pvt->emulation;
 }
 
-void
-_vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ...)
+static void
+vte_buffer_inline_error_message(VteBuffer *buffer,
+                                const char *format,
+                                ...) G_GNUC_PRINTF(2, 3);
+
+static void
+vte_buffer_inline_error_message(VteBuffer *buffer,
+                                const char *format,
+                                ...)
 {
-        VteBuffer *buffer = terminal->term_pvt->buffer;
 	va_list ap;
 	char *str;
 
@@ -7557,17 +7563,18 @@ _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ..
 
 /* Set the path to the termcap file we read, and read it in. */
 static void
-vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
-			 gboolean reset)
+vte_buffer_set_termcap(VteBuffer *buffer,
+                       const char *path,
+                       gboolean reset)
 {
-        GObject *object = G_OBJECT(terminal);
+        GObject *object = G_OBJECT(buffer);
 	struct stat st;
 	char *wpath;
 
 	if (path == NULL) {
 		wpath = g_build_filename(TERMCAPDIR,
-					 terminal->pvt->emulation ?
-					 terminal->pvt->emulation :
+					 buffer->pvt->emulation ?
+					 buffer->pvt->emulation :
 					 vte_get_default_emulation(),
 					 NULL);
 		if (g_stat(wpath, &st) != 0) {
@@ -7579,28 +7586,28 @@ vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
 	} else {
 		path = g_intern_string (path);
 	}
-	if (path == terminal->pvt->termcap_path) {
+	if (path == buffer->pvt->termcap_path) {
 		return;
 	}
 
         g_object_freeze_notify(object);
 
-	terminal->pvt->termcap_path = path;
+	buffer->pvt->termcap_path = path;
 
 	_vte_debug_print(VTE_DEBUG_MISC, "Loading termcap `%s'...",
-			terminal->pvt->termcap_path);
-	if (terminal->pvt->termcap != NULL) {
-		_vte_termcap_free(terminal->pvt->termcap);
+			buffer->pvt->termcap_path);
+	if (buffer->pvt->termcap != NULL) {
+		_vte_termcap_free(buffer->pvt->termcap);
 	}
-	terminal->pvt->termcap = _vte_termcap_new(terminal->pvt->termcap_path);
+	buffer->pvt->termcap = _vte_termcap_new(buffer->pvt->termcap_path);
 	_vte_debug_print(VTE_DEBUG_MISC, "\n");
-	if (terminal->pvt->termcap == NULL) {
-		_vte_terminal_inline_error_message(terminal,
-				"Failed to load terminal capabilities from '%s'",
-				terminal->pvt->termcap_path);
+	if (buffer->pvt->termcap == NULL) {
+		vte_buffer_inline_error_message(buffer,
+				"Failed to load buffer capabilities from '%s'",
+				buffer->pvt->termcap_path);
 	}
 	if (reset) {
-		vte_terminal_set_emulation(terminal, terminal->pvt->emulation);
+		vte_buffer_set_emulation(buffer, buffer->pvt->emulation);
 	}
 
         g_object_thaw_notify(object);
@@ -7699,7 +7706,7 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Setting the terminal type and size requires the PTY master to
 	 * be set up properly first. */
         pvt->pty = NULL;
-	vte_terminal_set_emulation(terminal, NULL);
+	vte_buffer_set_emulation(buffer, NULL);
 	vte_terminal_set_size(terminal,
 			      pvt->default_column_count,
 			      pvt->default_row_count);
@@ -10664,9 +10671,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_AUDIBLE_BELL:
                         g_value_set_boolean (value, vte_terminal_get_audible_bell (terminal));
                         break;
-                case PROP_EMULATION:
-                        g_value_set_string (value, vte_terminal_get_emulation (terminal));
-                        break;
                 case PROP_ICON_TITLE:
                         g_value_set_string (value, vte_terminal_get_icon_title (terminal));
                         break;
@@ -10728,9 +10732,6 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_AUDIBLE_BELL:
                         vte_terminal_set_audible_bell (terminal, g_value_get_boolean (value));
-                        break;
-                case PROP_EMULATION:
-                        vte_terminal_set_emulation (terminal, g_value_get_string (value));
                         break;
                 case PROP_MOUSE_POINTER_AUTOHIDE:
                         vte_terminal_set_mouse_autohide (terminal, g_value_get_boolean (value));
@@ -10837,7 +10838,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	/* Initialize default handlers. */
 	klass->eof = NULL;
 	klass->child_exited = NULL;
-	klass->emulation_changed = NULL;
 	klass->char_size_changed = NULL;
 	klass->window_title_changed = NULL;
 	klass->icon_title_changed = NULL;
@@ -10937,22 +10937,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, icon_title_changed),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
-
-        /**
-         * VteTerminal::emulation-changed:
-         * @vteterminal: the object which received the signal
-         *
-         * Emitted whenever the terminal's emulation changes, only possible at
-         * the parent application's request.
-         */
-                g_signal_new(I_("emulation-changed"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, emulation_changed),
 			     NULL,
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
@@ -11353,22 +11337,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_boolean ("audible-bell", NULL, NULL,
                                        TRUE,
                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-        /**
-         * VteTerminal:emulation:
-         *
-         * Sets what type of terminal the widget attempts to emulate by scanning for
-         * control sequences defined in the system's termcap file.  Unless you
-         * are interested in this feature, always use the default which is "xterm".
-         * 
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_EMULATION,
-                 g_param_spec_string ("emulation", NULL, NULL,
-                                      VTE_DEFAULT_EMULATION,
-                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
          * VteTerminal:font-scale:
@@ -13665,6 +13633,9 @@ vte_buffer_get_property (GObject *object,
         case BUFFER_PROP_DELETE_BINDING:
                 g_value_set_enum(value, buffer->pvt->delete_binding);
                 break;
+        case BUFFER_PROP_EMULATION:
+                g_value_set_string (value, vte_buffer_get_emulation(buffer));
+                break;
         case BUFFER_PROP_ENCODING:
                 g_value_set_string(value, vte_buffer_get_encoding(buffer));
                 break;
@@ -13691,6 +13662,9 @@ vte_buffer_set_property (GObject *object,
                 break;
         case BUFFER_PROP_DELETE_BINDING:
                 vte_buffer_set_delete_binding(buffer, g_value_get_enum (value));
+                break;
+        case BUFFER_PROP_EMULATION:
+                vte_buffer_set_emulation(buffer, g_value_get_string (value));
                 break;
         case BUFFER_PROP_ENCODING:
                 vte_buffer_set_encoding(buffer, g_value_get_string (value));
@@ -13719,6 +13693,7 @@ vte_buffer_class_init(VteBufferClass *klass)
         gobject_class->set_property = vte_buffer_set_property;
 
         klass->commit = NULL;
+        klass->emulation_changed = NULL;
         klass->encoding_changed = NULL;
 
         /**
@@ -13741,6 +13716,23 @@ vte_buffer_class_init(VteBufferClass *klass)
                              _vte_marshal_VOID__STRING_UINT,
                              G_TYPE_NONE,
                              2, G_TYPE_STRING, G_TYPE_UINT);
+
+        /**
+         * VteTerminal::emulation-changed:
+         * @vteterminal: the object which received the signal
+         *
+         * Emitted whenever the terminal's emulation changes, only possible at
+         * the parent application's request.
+         */
+        buffer_signals[BUFFER_EMULATION_CHANGED] =
+                g_signal_new(I_("emulation-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, emulation_changed),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::encoding-changed:
@@ -13789,6 +13781,23 @@ vte_buffer_class_init(VteBufferClass *klass)
                                     VTE_TYPE_ERASE_BINDING,
                                     VTE_ERASE_AUTO,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+
+        /**
+         * VteBuffer:emulation:
+         *
+         * Sets what type of buffer the widget attempts to emulate by scanning for
+         * control sequences defined in the system's termcap file.  Unless you
+         * are interested in this feature, always use the default which is "xterm".
+         *
+         * Since: 0.20
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 BUFFER_PROP_EMULATION,
+                 g_param_spec_string ("emulation", NULL, NULL,
+                                      VTE_DEFAULT_EMULATION,
+                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
          * VteBuffer:encoding:
