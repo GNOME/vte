@@ -5,7 +5,7 @@ EXTRA_DIST = iso2022.txt palette.c
 # The library
 
 headerdir = $(includedir)/vte-$(VTE_API_VERSION)/vte
-header_HEADERS = vte.h vtebuffer.h vtepty.h vtetypebuiltins.h vteversion.h
+header_HEADERS = vte.h vtebuffer.h vteenums.h vtepty.h vtetypebuiltins.h vteversion.h
 
 lib_LTLIBRARIES = libvte@VTE_LIBRARY_SUFFIX_U@.la
 
@@ -53,6 +53,7 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
 	trie.h \
 	vte.c \
 	vte.h \
+	vteenums.h \
 	vte-private.h \
 	vteaccess.c \
 	vteaccess.h \
@@ -119,13 +120,13 @@ marshal.h: marshal.list
 
 vtetypebuiltins.h: stamp-vtetypebuiltins.h
 	@true
-stamp-vtetypebuiltins.h: vtetypebuiltins.h.template vte.h vtepty.h
+stamp-vtetypebuiltins.h: vtetypebuiltins.h.template vteenums.h vtepty.h
 	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter %.h,$^) > xgen-vtbh \
 	&& (cmp -s xgen-vtbh vtetypebuiltins.h || cp xgen-vtbh vtetypebuiltins.h ) \
 	&& rm -f xgen-vtbh \
 	&& echo timestamp > $(@F)
 
-vtetypebuiltins.c: vtetypebuiltins.c.template vte.h vtepty.h
+vtetypebuiltins.c: vtetypebuiltins.c.template vteenums.h vtepty.h
 	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter %.h,$^) > xgen-vtbc \
 	&& (cmp -s xgen-vtbc vtetypebuiltins.c || cp xgen-vtbc vtetypebuiltins.c ) \
 	&& rm -f xgen-vtbc

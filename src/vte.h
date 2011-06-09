@@ -26,6 +26,7 @@
 
 #define __VTE_VTE_H_INSIDE__ 1
 
+#include "vteenums.h"
 #include "vtepty.h"
 #include "vtebuffer.h"
 
@@ -116,69 +117,6 @@ struct _VteTerminalClass {
 
         VteTerminalClassPrivate *priv;
 };
-
-/**
- * VteTerminalEraseBinding:
- * @VTE_ERASE_AUTO: For backspace, attempt to determine the right value from the terminal's IO settings.  For delete, use the control sequence.
- * @VTE_ERASE_ASCII_BACKSPACE: Send an ASCII backspace character (0x08).
- * @VTE_ERASE_ASCII_DELETE: Send an ASCII delete character (0x7F).
- * @VTE_ERASE_DELETE_SEQUENCE: Send the "@@7" control sequence.
- * @VTE_ERASE_TTY: Send terminal's "erase" setting.
- *
- * An enumerated type which can be used to indicate which string the terminal
- * should send to an application when the user presses the Delete or Backspace
- * keys.
- */
-typedef enum {
-	VTE_ERASE_AUTO,
-	VTE_ERASE_ASCII_BACKSPACE,
-	VTE_ERASE_ASCII_DELETE,
-	VTE_ERASE_DELETE_SEQUENCE,
-	VTE_ERASE_TTY
-} VteTerminalEraseBinding;
-
-/**
- * VteTerminalCursorBlinkMode:
- * @VTE_CURSOR_BLINK_SYSTEM: Follow GTK+ settings for cursor blinking.
- * @VTE_CURSOR_BLINK_ON: Cursor blinks.
- * @VTE_CURSOR_BLINK_OFF: Cursor does not blink.
- *
- * An enumerated type which can be used to indicate the cursor blink mode
- * for the terminal.
- */
-typedef enum {
-        VTE_CURSOR_BLINK_SYSTEM,
-        VTE_CURSOR_BLINK_ON,
-        VTE_CURSOR_BLINK_OFF
-} VteTerminalCursorBlinkMode;
-
-/**
- * VteTerminalCursorShape:
- * @VTE_CURSOR_SHAPE_BLOCK: Draw a block cursor.  This is the default.
- * @VTE_CURSOR_SHAPE_IBEAM: Draw a vertical bar on the left side of character.
- * This is similar to the default cursor for other GTK+ widgets.
- * @VTE_CURSOR_SHAPE_UNDERLINE: Draw a horizontal bar below the character.
- *
- * An enumerated type which can be used to indicate what should the terminal
- * draw at the cursor position.
- */
-typedef enum {
-        VTE_CURSOR_SHAPE_BLOCK,
-        VTE_CURSOR_SHAPE_IBEAM,
-        VTE_CURSOR_SHAPE_UNDERLINE
-} VteTerminalCursorShape;
-
-/**
- * VteTerminalEffect:
- * @VTE_TERMINAL_EFFECT_REVERSE: Text is draw with foreground and background color reversed.
- * @VTE_TERMINAL_EFFECT_COLOR: Text is drawn with the background color from the corresponding style property.
- *
- * Since: 0.30
- */
-typedef enum {
-        VTE_TERMINAL_EFFECT_REVERSE,
-        VTE_TERMINAL_EFFECT_COLOR
-} VteTerminalEffect;
 
 /**
  * VTE_STYLE_CLASS_TERMINAL:
