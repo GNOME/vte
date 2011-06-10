@@ -88,9 +88,7 @@ VTE_TERMINAL_CLASS
 vte_terminal_get_char_height
 vte_terminal_get_char_width
 vte_terminal_get_column_count
-vte_terminal_get_icon_title
 vte_terminal_get_row_count
-vte_terminal_get_window_title
 
 <SUBSECTION Private>
 VteCharAttributes
@@ -114,6 +112,8 @@ vte_buffer_feed
 vte_buffer_feed_child
 vte_buffer_feed_child_binary
 vte_buffer_reset
+vte_buffer_get_icon_title
+vte_buffer_get_window_title
 
 <SUBSECTION Standard>
 VTE_TYPE_BUFFER

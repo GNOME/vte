@@ -49,6 +49,8 @@ struct _VteBufferClass {
                                 guint size);
   void (*emulation_changed)    (VteBuffer *buffer);
   void (*encoding_changed)     (VteBuffer *buffer);
+  void (*icon_title_changed)   (VteBuffer* buffer);
+  void (*window_title_changed) (VteBuffer* buffer);
 
   /*< private >*/
   VteBufferClassPrivate *priv;
@@ -97,6 +99,10 @@ void vte_buffer_feed_child_binary       (VteBuffer *buffer,
 void vte_buffer_reset                   (VteBuffer *buffer,
                                          gboolean clear_tabstops,
                                          gboolean clear_history);
+
+const char *vte_buffer_get_window_title (VteBuffer *buffer);
+
+const char *vte_buffer_get_icon_title   (VteBuffer *buffer);
 
 G_END_DECLS
 

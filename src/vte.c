@@ -142,12 +142,10 @@ enum {
         PROP_HSCROLL_POLICY,
         PROP_VSCROLL_POLICY,
         PROP_AUDIBLE_BELL,
-        PROP_ICON_TITLE,
         PROP_MOUSE_POINTER_AUTOHIDE,
         PROP_PTY_OBJECT,
         PROP_SCROLL_ON_KEYSTROKE,
         PROP_SCROLL_ON_OUTPUT,
-        PROP_WINDOW_TITLE,
         PROP_WORD_CHARS,
         PROP_VISIBLE_BELL,
         PROP_FONT_SCALE
@@ -159,13 +157,17 @@ enum {
         BUFFER_PROP_DELETE_BINDING,
         BUFFER_PROP_EMULATION,
         BUFFER_PROP_ENCODING,
-        BUFFER_PROP_SCROLLBACK_LINES
+        BUFFER_PROP_SCROLLBACK_LINES,
+        BUFFER_PROP_ICON_TITLE,
+        BUFFER_PROP_WINDOW_TITLE,
 };
 
 enum {
         BUFFER_COMMIT,
         BUFFER_EMULATION_CHANGED,
         BUFFER_ENCODING_CHANGED,
+        BUFFER_WINDOW_TITLE_CHANGED,
+        BUFFER_ICON_TITLE_CHANGED,
         LAST_BUFFER_SIGNAL,
 };
 
@@ -10671,9 +10673,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_AUDIBLE_BELL:
                         g_value_set_boolean (value, vte_terminal_get_audible_bell (terminal));
                         break;
-                case PROP_ICON_TITLE:
-                        g_value_set_string (value, vte_terminal_get_icon_title (terminal));
-                        break;
                 case PROP_MOUSE_POINTER_AUTOHIDE:
                         g_value_set_boolean (value, vte_terminal_get_mouse_autohide (terminal));
                         break;
@@ -10685,9 +10684,6 @@ vte_terminal_get_property (GObject *object,
                         break;
                 case PROP_SCROLL_ON_OUTPUT:
                         g_value_set_boolean (value, pvt->scroll_on_output);
-                        break;
-                case PROP_WINDOW_TITLE:
-                        g_value_set_string (value, vte_terminal_get_window_title (terminal));
                         break;
                 case PROP_WORD_CHARS:
                         g_value_set_string (value, NULL /* FIXME */);
@@ -10757,8 +10753,6 @@ vte_terminal_set_property (GObject *object,
 
                 /* Not writable */
                 case PROP_BUFFER:
-                case PROP_ICON_TITLE:
-                case PROP_WINDOW_TITLE:
                         g_assert_not_reached ();
                         break;
 
@@ -10839,8 +10833,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->eof = NULL;
 	klass->child_exited = NULL;
 	klass->char_size_changed = NULL;
-	klass->window_title_changed = NULL;
-	klass->icon_title_changed = NULL;
 	klass->selection_changed = NULL;
 	klass->contents_changed = NULL;
 	klass->cursor_moved = NULL;
@@ -10911,36 +10903,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     g_cclosure_marshal_VOID__INT,
 			     G_TYPE_NONE,
                              1, G_TYPE_INT);
-
-        /**
-         * VteTerminal::window-title-changed:
-         * @vteterminal: the object which received the signal
-         *
-         * Emitted when the terminal's %window_title field is modified.
-         */
-                g_signal_new(I_("window-title-changed"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, window_title_changed),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
-
-        /**
-         * VteTerminal::icon-title-changed:
-         * @vteterminal: the object which received the signal
-         *
-         * Emitted when the terminal's %icon_title field is modified.
-         */
-                g_signal_new(I_("icon-title-changed"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, icon_title_changed),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::char-size-changed:
@@ -11355,20 +11317,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
-         * VteTerminal:icon-title:
-         *
-         * The terminal's so-called icon title, or %NULL if no icon title has been set.
-         * 
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_ICON_TITLE,
-                 g_param_spec_string ("icon-title", NULL, NULL,
-                                      NULL,
-                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
-     
-        /**
          * VteTerminal:pointer-autohide:
          *
          * Controls the value of the terminal's mouse autohide setting.  When autohiding
@@ -11429,20 +11377,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_boolean ("scroll-on-output", NULL, NULL,
                                        TRUE,
                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-     
-        /**
-         * VteTerminal:window-title:
-         *
-         * The terminal's title.
-         * 
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_WINDOW_TITLE,
-                 g_param_spec_string ("window-title", NULL, NULL,
-                                      NULL,
-                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
      
         /**
          * VteTerminal:word-chars:
@@ -12492,29 +12426,29 @@ vte_terminal_get_column_count(VteTerminal *terminal)
 }
 
 /**
- * vte_terminal_get_window_title:
- * @terminal: a #VteTerminal
+ * vte_buffer_get_window_title:
+ * @buffer: a #VteBuffer
  *
  * Returns: (transfer none): the window title
  */
 const char *
-vte_terminal_get_window_title(VteTerminal *terminal)
+vte_buffer_get_window_title(VteBuffer *buffer)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), "");
-	return terminal->pvt->window_title;
+	g_return_val_if_fail(VTE_IS_BUFFER(buffer), "");
+	return buffer->pvt->window_title;
 }
 
 /**
- * vte_terminal_get_icon_title:
- * @terminal: a #VteTerminal
+ * vte_buffer_get_icon_title:
+ * @buffer: a #VteBuffer
  *
  * Returns: (transfer none): the icon title
  */
 const char *
-vte_terminal_get_icon_title(VteTerminal *terminal)
+vte_buffer_get_icon_title(VteBuffer *buffer)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), "");
-	return terminal->pvt->icon_title;
+	g_return_val_if_fail(VTE_IS_BUFFER(buffer), "");
+	return buffer->pvt->icon_title;
 }
 
 /**
@@ -12841,32 +12775,34 @@ need_processing (VteTerminal *terminal)
 
 /* Emit an "icon-title-changed" signal. */
 static void
-vte_terminal_emit_icon_title_changed(VteTerminal *terminal)
+vte_buffer_emit_icon_title_changed(VteBuffer *buffer)
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `icon-title-changed'.\n");
-	g_signal_emit_by_name(terminal, "icon-title-changed");
+	g_signal_emit(buffer, buffer_signals[BUFFER_ICON_TITLE_CHANGED], 0);
 }
 
 /* Emit a "window-title-changed" signal. */
 static void
-vte_terminal_emit_window_title_changed(VteTerminal *terminal)
+vte_buffer_emit_window_title_changed(VteBuffer *buffer)
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `window-title-changed'.\n");
-	g_signal_emit_by_name(terminal, "window-title-changed");
+	g_signal_emit(buffer, buffer_signals[BUFFER_WINDOW_TITLE_CHANGED], 0);
 }
 
 static void
 vte_terminal_emit_pending_signals(VteTerminal *terminal)
 {
-        GObject *object;
+        GObject *object, *buffer_object;
 	GdkWindow *window;
 
 	object = G_OBJECT (terminal);
 	window = gtk_widget_get_window (&terminal->widget);
+        buffer_object = G_OBJECT(terminal->term_pvt->buffer);
 
         g_object_freeze_notify(object);
+        g_object_freeze_notify(buffer_object);
 
 	vte_terminal_emit_adjustment_changed (terminal);
 
@@ -12882,8 +12818,8 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 
 		if (window)
 			gdk_window_set_title (window, terminal->pvt->window_title);
-		vte_terminal_emit_window_title_changed(terminal);
-                g_object_notify(object, "window-title");
+		vte_buffer_emit_window_title_changed(terminal->term_pvt->buffer);
+                g_object_notify(buffer_object, "window-title");
 	}
 
 	if (terminal->pvt->icon_title_changed) {
@@ -12893,8 +12829,8 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 
 		if (window)
 			gdk_window_set_icon_name (window, terminal->pvt->icon_title);
-		vte_terminal_emit_icon_title_changed(terminal);
-                g_object_notify(object, "icon-title");
+		vte_buffer_emit_icon_title_changed(terminal->term_pvt->buffer);
+                g_object_notify(buffer_object, "icon-title");
 	}
 
 	/* Flush any pending "inserted" signals. */
@@ -12902,6 +12838,7 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 	vte_terminal_emit_pending_text_signals(terminal, 0);
 	vte_terminal_emit_contents_changed (terminal);
 
+        g_object_thaw_notify(buffer_object);
         g_object_thaw_notify(object);
 }
 
@@ -13642,6 +13579,12 @@ vte_buffer_get_property (GObject *object,
         case BUFFER_PROP_SCROLLBACK_LINES:
                 g_value_set_uint (value, buffer->pvt->scrollback_lines);
                 break;
+        case BUFFER_PROP_ICON_TITLE:
+                g_value_set_string(value, vte_buffer_get_icon_title(buffer));
+                break;
+        case BUFFER_PROP_WINDOW_TITLE:
+                g_value_set_string(value, vte_buffer_get_window_title(buffer));
+                break;
         default:
                 G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
                 return;
@@ -13672,6 +13615,12 @@ vte_buffer_set_property (GObject *object,
         case BUFFER_PROP_SCROLLBACK_LINES:
                 vte_buffer_set_scrollback_lines (buffer, g_value_get_uint (value));
                 break;
+        /* Not writable */
+        case BUFFER_PROP_ICON_TITLE:
+        case BUFFER_PROP_WINDOW_TITLE:
+                g_assert_not_reached ();
+                break;
+
         default:
                 G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
                 return;
@@ -13695,6 +13644,8 @@ vte_buffer_class_init(VteBufferClass *klass)
         klass->commit = NULL;
         klass->emulation_changed = NULL;
         klass->encoding_changed = NULL;
+        klass->window_title_changed = NULL;
+        klass->icon_title_changed = NULL;
 
         /**
          * VteBuffer::commit:
@@ -13747,6 +13698,38 @@ vte_buffer_class_init(VteBufferClass *klass)
                              G_OBJECT_CLASS_TYPE(klass),
                              G_SIGNAL_RUN_LAST,
                              G_STRUCT_OFFSET(VteBufferClass, encoding_changed),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+
+        /**
+         * VteBuffer::window-title-changed:
+         * @vtebuffer: the object which received the signal
+         *
+         * Emitted when the buffer's %window_title field is modified.
+         */
+        buffer_signals[BUFFER_WINDOW_TITLE_CHANGED] =
+                g_signal_new(I_("window-title-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, window_title_changed),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+
+        /**
+         * VteBuffer::icon-title-changed:
+         * @vtebuffer: the object which received the signal
+         *
+         * Emitted when the buffer's %icon_title field is modified.
+         */
+        buffer_signals[BUFFER_ICON_TITLE_CHANGED] =
+                g_signal_new(I_("icon-title-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, icon_title_changed),
                              NULL,
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
@@ -13832,6 +13815,30 @@ vte_buffer_class_init(VteBufferClass *klass)
                                     0, G_MAXUINT,
                                     VTE_SCROLLBACK_INIT,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+        /**
+         * VteBuffer:icon-title:
+         *
+         * The buffer's so-called icon title, or %NULL if no icon title has been set.
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 BUFFER_PROP_ICON_TITLE,
+                 g_param_spec_string ("icon-title", NULL, NULL,
+                                      NULL,
+                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+
+        /**
+         * VteBuffer:window-title:
+         *
+         * The buffer's title.
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 BUFFER_PROP_WINDOW_TITLE,
+                 g_param_spec_string ("window-title", NULL, NULL,
+                                      NULL,
+                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 }
 
 /**

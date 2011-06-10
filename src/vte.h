@@ -78,8 +78,6 @@ struct _VteTerminalClass {
 	void (*eof)(VteTerminal* terminal);
 	void (*child_exited)(VteTerminal* terminal, int status);
 	void (*char_size_changed)(VteTerminal* terminal, guint char_width, guint char_height);
-	void (*window_title_changed)(VteTerminal* terminal);
-	void (*icon_title_changed)(VteTerminal* terminal);
 	void (*selection_changed)(VteTerminal* terminal);
 	void (*contents_changed)(VteTerminal* terminal);
 	void (*cursor_moved)(VteTerminal* terminal);
@@ -277,8 +275,6 @@ glong vte_terminal_get_char_width(VteTerminal *terminal);
 glong vte_terminal_get_char_height(VteTerminal *terminal);
 glong vte_terminal_get_row_count(VteTerminal *terminal);
 glong vte_terminal_get_column_count(VteTerminal *terminal);
-const char *vte_terminal_get_window_title(VteTerminal *terminal);
-const char *vte_terminal_get_icon_title(VteTerminal *terminal);
 
 /* Writing contents out */
 

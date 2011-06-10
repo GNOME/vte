@@ -696,7 +696,7 @@ vte_terminal_accessible_title_changed(VteTerminal *terminal, gpointer data)
 {
 	g_assert(VTE_IS_TERMINAL_ACCESSIBLE(data));
 	g_assert(VTE_IS_TERMINAL(terminal));
-	atk_object_set_description(ATK_OBJECT(data), vte_terminal_get_window_title(terminal));
+	atk_object_set_description(ATK_OBJECT(data), vte_buffer_get_window_title(vte_terminal_get_buffer(terminal)));
 }
 
 /* Reflect focus-in events. */
@@ -828,7 +828,7 @@ vte_terminal_initialize (AtkObject *obj, gpointer data)
 	}
 
 	atk_object_set_name(obj, "Terminal");
-        window_title = vte_terminal_get_window_title(terminal);
+        window_title = vte_buffer_get_window_title(vte_terminal_get_buffer(terminal));
 	atk_object_set_description(obj, window_title ? window_title : "");
 
 	atk_object_notify_state_change(obj,

@@ -45,28 +45,16 @@ static const char *builtin_dingus[] = {
 };
 
 static void
-window_title_changed(GtkWidget *widget, gpointer win)
+window_title_changed(VteBuffer *buffer, GtkWindow *window)
 {
-	GtkWindow *window;
-
-	g_assert(VTE_TERMINAL(widget));
-	g_assert(GTK_IS_WINDOW(win));
-	window = GTK_WINDOW(win);
-
-	gtk_window_set_title(window, vte_terminal_get_window_title(VTE_TERMINAL(widget)));
+	gtk_window_set_title(window, vte_buffer_get_window_title(buffer));
 }
 
 static void
-icon_title_changed(GtkWidget *widget, gpointer win)
+icon_title_changed(VteBuffer *buffer, GtkWindow *window)
 {
-	GtkWindow *window;
-
-	g_assert(VTE_TERMINAL(widget));
-	g_assert(GTK_IS_WINDOW(win));
-	window = GTK_WINDOW(win);
-
 	g_message("Icon title changed to \"%s\".\n",
-		  vte_terminal_get_icon_title(VTE_TERMINAL(widget)));
+		  vte_buffer_get_icon_title(buffer));
 }
 
 static void
@@ -599,6 +587,7 @@ main(int argc, char **argv)
 	GdkVisual *visual;
 	GtkWidget *window, *widget,*hbox = NULL, *scrollbar, *scrolled_window = NULL;
 	VteTerminal *terminal;
+        VteBuffer *buffer;
 	char *env_add[] = {
 #ifdef VTE_DEBUG
 		(char *) "FOO=BAR", (char *) "BOO=BIZ",
@@ -947,6 +936,7 @@ main(int argc, char **argv)
 	/* Create the terminal widget and add it to the scrolling shell. */
 	widget = vteapp_terminal_new();
 	terminal = VTE_TERMINAL (widget);
+        buffer = vte_terminal_get_buffer(terminal);
         if (!dbuffer) {
 		gtk_widget_set_double_buffered(widget, dbuffer);
 	}
@@ -970,10 +960,10 @@ main(int argc, char **argv)
 
 	/* Connect to the "window_title_changed" signal to set the main
 	 * window's title. */
-	g_signal_connect(widget, "window-title-changed",
+	g_signal_connect(buffer, "window-title-changed",
 			 G_CALLBACK(window_title_changed), window);
 	if (icon_title) {
-		g_signal_connect(widget, "icon-title-changed",
+		g_signal_connect(buffer, "icon-title-changed",
 				 G_CALLBACK(icon_title_changed), window);
 	}
 
