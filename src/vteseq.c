@@ -453,9 +453,10 @@ vte_sequence_handler_offset(VteBuffer *buffer,
 
 /* Call another function a given number of times, or once. */
 static void
-vte_sequence_handler_multiple(VteBuffer *buffer,
-			      GValueArray *params,
-			      VteSequenceHandler handler)
+vte_sequence_handler_multiple_limited(VteBuffer *buffer,
+                                      GValueArray *params,
+                                      VteSequenceHandler handler,
+                                      glong max)
 {
 	long val = 1;
 	int i;
@@ -465,13 +466,29 @@ vte_sequence_handler_multiple(VteBuffer *buffer,
 		value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
 			val = g_value_get_long(value);
-			val = MAX(val, 1);	/* FIXME: vttest. */
+			val = CLAMP(val, 1, max);	/* FIXME: vttest. */
 		}
 	}
 	for (i = 0; i < val; i++)
 		handler (buffer, NULL);
 }
 
+static void
+vte_sequence_handler_multiple(VteBuffer *buffer,
+                              GValueArray *params,
+                              VteSequenceHandler handler)
+{
+        vte_sequence_handler_multiple_limited(buffer, params, handler, G_MAXLONG);
+}
+
+static void
+vte_sequence_handler_multiple_r(VteBuffer *buffer,
+                                GValueArray *params,
+                                VteSequenceHandler handler)
+{
+        vte_sequence_handler_multiple_limited(buffer, params, handler,
+                                              buffer->pvt->column_count - buffer->pvt->screen->cursor_current.col);
+}
 
 /* Manipulate certain terminal attributes. */
 static void
@@ -1493,7 +1510,7 @@ vte_sequence_handler_ic (VteBuffer *buffer, GValueArray *params)
 static void
 vte_sequence_handler_IC (VteBuffer *buffer, GValueArray *params)
 {
-	vte_sequence_handler_multiple(buffer, params, vte_sequence_handler_ic);
+	vte_sequence_handler_multiple_r(buffer, params, vte_sequence_handler_ic);
 }
 
 /* Begin insert mode. */
