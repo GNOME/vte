@@ -86,6 +86,18 @@ typedef enum {
         VTE_TERMINAL_EFFECT_COLOR
 } VteTerminalEffect;
 
+
+/**
+ * VteWriteFlags:
+ * @VTE_TERMINAL_WRITE_DEFAULT: Write contents as UTF-8 text.  This is the default.
+ *
+ * A flag type to determine how terminal contents should be written
+ * to an output stream.
+ */
+typedef enum {
+        VTE_WRITE_FLAG_DEFAULT = 0
+} VteWriteFlags;
+
 G_END_DECLS
 
 #endif /* VTE_ENUMS_H */

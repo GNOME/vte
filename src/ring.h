@@ -80,11 +80,11 @@ void _vte_ring_shrink (VteRing *ring, gulong max_len);
 VteRowData *_vte_ring_insert (VteRing *ring, gulong position);
 VteRowData *_vte_ring_append (VteRing *ring);
 void _vte_ring_remove (VteRing *ring, gulong position);
-gboolean _vte_ring_write_contents (VteRing *ring,
-				   GOutputStream *stream,
-				   VteTerminalWriteFlags flags,
-				   GCancellable *cancellable,
-				   GError **error);
+gboolean _vte_ring_write_contents_sync(VteRing *ring,
+                                       GOutputStream *stream,
+                                       VteWriteFlags flags,
+                                       GCancellable *cancellable,
+                                       GError **error);
 
 G_END_DECLS
 

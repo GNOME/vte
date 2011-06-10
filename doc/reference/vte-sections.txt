@@ -6,7 +6,7 @@ VteTerminalCursorBlinkMode
 VteTerminalCursorShape
 VteTerminalEffect
 VteEraseBinding
-VteTerminalWriteFlags
+VteWriteFlags
 VteSelectionFunc
 vte_terminal_new
 vte_terminal_get_buffer
@@ -43,7 +43,6 @@ vte_terminal_match_set_cursor
 vte_terminal_match_set_cursor_type
 vte_terminal_match_set_cursor_name
 vte_terminal_get_status_line
-vte_terminal_write_contents
 vte_terminal_search_find_next
 vte_terminal_search_find_previous
 vte_terminal_search_get_gregex
@@ -74,8 +73,8 @@ VTE_TYPE_TERMINAL_EFFECT
 vte_terminal_effect_get_type
 VTE_TYPE_ERASE_BINDING
 vte_erase_binding_get_type
-VTE_TYPE_TERMINAL_WRITE_FLAGS
-vte_terminal_write_flags_get_type
+VTE_TYPE_WRITE_FLAGS
+vte_write_flags_get_type
 VTE_TYPE_TERMINAL
 vte_terminal_get_type
 VTE_IS_TERMINAL
@@ -114,6 +113,7 @@ vte_buffer_feed_child_binary
 vte_buffer_reset
 vte_buffer_get_icon_title
 vte_buffer_get_window_title
+vte_buffer_write_contents_sync
 
 <SUBSECTION Standard>
 VTE_TYPE_BUFFER

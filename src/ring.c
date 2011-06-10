@@ -564,7 +564,7 @@ static gboolean
 _vte_ring_write_row (VteRing *ring,
 		     GOutputStream *stream,
 		     VteRowData *row,
-		     VteTerminalWriteFlags flags,
+		     VteWriteFlags flags,
 		     GCancellable *cancellable,
 		     GError **error)
 {
@@ -587,7 +587,7 @@ _vte_ring_write_row (VteRing *ring,
 }
 
 /**
- * _vte_ring_write_contents:
+ * _vte_ring_write_contents_sync:
  * @ring: a #VteRing
  * @stream: a #GOutputStream to write to
  * @flags: a set of #VteTerminalWriteFlags
@@ -599,11 +599,11 @@ _vte_ring_write_row (VteRing *ring,
  * Return: %TRUE on success, %FALSE if there was an error
  */
 gboolean
-_vte_ring_write_contents (VteRing *ring,
-			  GOutputStream *stream,
-			  VteTerminalWriteFlags flags,
-			  GCancellable *cancellable,
-			  GError **error)
+_vte_ring_write_contents_sync(VteRing *ring,
+                              GOutputStream *stream,
+                              VteWriteFlags flags,
+                              GCancellable *cancellable,
+                              GError **error)
 {
 	gulong i;
 

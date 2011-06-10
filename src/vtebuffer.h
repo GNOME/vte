@@ -104,6 +104,13 @@ const char *vte_buffer_get_window_title (VteBuffer *buffer);
 
 const char *vte_buffer_get_icon_title   (VteBuffer *buffer);
 
+gboolean vte_buffer_write_contents_sync (VteBuffer *buffer,
+                                         GOutputStream *stream,
+                                         VteWriteFlags flags,
+                                         GCancellable *cancellable,
+                                         GError **error);
+
+
 G_END_DECLS
 
 #endif /* VTE_BUFFER_H */

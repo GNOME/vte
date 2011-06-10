@@ -276,25 +276,6 @@ glong vte_terminal_get_char_height(VteTerminal *terminal);
 glong vte_terminal_get_row_count(VteTerminal *terminal);
 glong vte_terminal_get_column_count(VteTerminal *terminal);
 
-/* Writing contents out */
-
-/**
- * VteTerminalWriteFlags:
- * @VTE_TERMINAL_WRITE_DEFAULT: Write contents as UTF-8 text.  This is the default.
- *
- * A flag type to determine how terminal contents should be written
- * to an output stream.
- */
-typedef enum {
-  VTE_TERMINAL_WRITE_DEFAULT = 0
-} VteTerminalWriteFlags;
-
-gboolean vte_terminal_write_contents (VteTerminal *terminal,
-				      GOutputStream *stream,
-				      VteTerminalWriteFlags flags,
-				      GCancellable *cancellable,
-				      GError **error);
-
 G_END_DECLS
 
 #endif

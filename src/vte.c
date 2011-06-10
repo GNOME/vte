@@ -13162,14 +13162,14 @@ update_timeout (gpointer data)
 }
 
 /**
- * vte_terminal_write_contents:
- * @terminal: a #VteTerminal
+ * vte_buffer_write_contents_sync:
+ * @buffer: a #VteBuffer
  * @stream: a #GOutputStream to write to
- * @flags: a set of #VteTerminalWriteFlags
+ * @flags: a set of #VteBufferWriteFlags
  * @cancellable: (allow-none): a #GCancellable object, or %NULL
  * @error: (allow-none): a #GError location to store the error occuring, or %NULL
  *
- * Write contents of the current contents of @terminal (including any
+ * Write contents of the current contents of @buffer (including any
  * scrollback history) to @stream according to @flags.
  *
  * If @cancellable is not %NULL, then the operation can be cancelled by triggering
@@ -13181,23 +13181,22 @@ update_timeout (gpointer data)
  * depending on scrollback history and @stream availability for writing.
  *
  * Returns: %TRUE on success, %FALSE if there was an error
- *
- * Since: 0.24
  */
 gboolean
-vte_terminal_write_contents (VteTerminal *terminal,
-                             GOutputStream *stream,
-                             VteTerminalWriteFlags flags,
-                             GCancellable *cancellable,
-                             GError **error)
+vte_buffer_write_contents_sync (VteBuffer *buffer,
+                                GOutputStream *stream,
+                                VteWriteFlags flags,
+                                GCancellable *cancellable,
+                                GError **error)
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        g_return_val_if_fail(VTE_IS_BUFFER(buffer), FALSE);
         g_return_val_if_fail(G_IS_OUTPUT_STREAM(stream), FALSE);
-	return _vte_ring_write_contents (terminal->pvt->screen->row_data,
-					 stream, flags,
-					 cancellable, error);
-}
+        g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	return _vte_ring_write_contents_sync(buffer->pvt->screen->row_data,
+                                             stream, flags,
+                                             cancellable, error);
+}
 
 /*
  * Buffer search
