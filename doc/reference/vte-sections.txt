@@ -55,9 +55,6 @@ VTE_STYLE_CLASS_TERMINAL
 vte_get_default_emulation
 vte_get_user_shell
 
-<SUBSECTION>
-vte_terminal_spawn_sync
-
 <SUBSECTION Standard>
 VTE_TYPE_TERMINAL_CURSOR_BLINK_MODE
 vte_terminal_cursor_blink_mode_get_type
@@ -116,6 +113,7 @@ vte_buffer_get_pty
 vte_buffer_set_pty
 vte_buffer_pty_new_sync
 vte_buffer_watch_child
+vte_buffer_spawn_sync
 
 <SUBSECTION Standard>
 VTE_TYPE_BUFFER

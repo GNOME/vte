@@ -144,6 +144,18 @@ gboolean vte_buffer_write_contents_sync (VteBuffer *buffer,
 void vte_buffer_watch_child             (VteBuffer *buffer,
                                          GPid child_pid);
 
+gboolean vte_buffer_spawn_sync          (VteBuffer *buffer,
+                                         VtePtyFlags pty_flags,
+                                         const char *working_directory,
+                                         char **argv,
+                                         char **envv,
+                                         GSpawnFlags spawn_flags,
+                                         GSpawnChildSetupFunc child_setup,
+                                         gpointer child_setup_data,
+                                         GPid *child_pid /* out */,
+                                         GCancellable *cancellable,
+                                         GError **error);
+
 G_END_DECLS
 
 #endif /* VTE_BUFFER_H */

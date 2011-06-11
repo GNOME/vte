@@ -2969,8 +2969,8 @@ vte_get_user_shell (void)
 }
 
 /**
- * vte_terminal_spawn_sync:
- * @terminal: a #VteTerminal
+ * vte_buffer_spawn_sync:
+ * @buffer: a #VteBuffer
  * @pty_flags: flags from #VtePtyFlags
  * @working_directory: (allow-none): the name of a directory the command should start
  *   in, or %NULL to use the current working directory
@@ -2985,9 +2985,9 @@ vte_get_user_shell (void)
  * @error: (allow-none): return location for a #GError, or %NULL
  *
  * Starts the specified command under a newly-allocated controlling
- * pseudo-terminal.  The @argv and @envv lists should be %NULL-terminated.
+ * pseudo-buffer.  The @argv and @envv lists should be %NULL-terminated.
  * The "TERM" environment variable is automatically set to reflect the
- * terminal widget's emulation setting.
+ * buffer widget's emulation setting.
  * @pty_flags controls logging the session to the specified system log files.
  *
  * Note that %G_SPAWN_DO_NOT_REAP_CHILD will always be added to @spawn_flags.
@@ -2999,11 +2999,9 @@ vte_get_user_shell (void)
  * See vte_pty_new(), g_spawn_async() and vte_buffer_watch_child() for more information.
  *
  * Returns: %TRUE on success, or %FALSE on error with @error filled in
- *
- * Since: 0.30
  */
 gboolean
-vte_terminal_spawn_sync(VteTerminal *terminal,
+vte_buffer_spawn_sync(VteBuffer *buffer,
                                VtePtyFlags pty_flags,
                                const char *working_directory,
                                char **argv,
@@ -3018,12 +3016,12 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
         VtePty *pty;
         GPid pid;
 
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        g_return_val_if_fail(VTE_IS_BUFFER(buffer), FALSE);
         g_return_val_if_fail(argv != NULL, FALSE);
         g_return_val_if_fail(child_setup_data == NULL || child_setup, FALSE);
         g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-        pty = vte_buffer_pty_new_sync(terminal->term_pvt->buffer, pty_flags, cancellable, error);
+        pty = vte_buffer_pty_new_sync(buffer, pty_flags, cancellable, error);
         if (pty == NULL)
                 return FALSE;
 
@@ -3042,8 +3040,8 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
                 return FALSE;
         }
 
-        vte_buffer_set_pty(terminal->term_pvt->buffer, pty);
-        vte_buffer_watch_child(terminal->term_pvt->buffer, pid);
+        vte_buffer_set_pty(buffer, pty);
+        vte_buffer_watch_child(buffer, pid);
         g_object_unref (pty);
 
         if (child_pid)
