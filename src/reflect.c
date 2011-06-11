@@ -58,8 +58,11 @@ terminal_adjustment_text_view(GtkWidget *terminal)
 static void
 terminal_init_vte(GtkWidget **terminal)
 {
+        VteBuffer *buffer;
+
 	*terminal = vte_terminal_new();
-	g_signal_connect(G_OBJECT(*terminal), "eof",
+        buffer = vte_terminal_get_buffer(VTE_TERMINAL(*terminal));
+	g_signal_connect(buffer, "eof",
 			 G_CALLBACK(gtk_main_quit), NULL);
 	g_signal_connect(G_OBJECT(*terminal), "child-exited",
 			 G_CALLBACK(gtk_main_quit), NULL);

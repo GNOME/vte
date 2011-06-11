@@ -52,6 +52,7 @@ struct _VteBufferClass {
   void (*icon_title_changed)   (VteBuffer* buffer);
   void (*window_title_changed) (VteBuffer* buffer);
   void (*status_line_changed)  (VteBuffer* buffer);
+  void (*eof)                  (VteBuffer* buffer);
 
   /*< private >*/
   VteBufferClassPrivate *priv;

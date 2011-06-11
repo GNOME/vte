@@ -1048,7 +1048,7 @@ main(int argc, char **argv)
 						       G_IO_IN,
 						       read_and_feed,
 						       widget);
-				g_signal_connect_swapped(widget,
+				g_signal_connect_swapped(buffer,
                                                          "eof",
                                                          G_CALLBACK(disconnect_watch),
                                                          GINT_TO_POINTER(watch));

@@ -169,6 +169,7 @@ enum {
         BUFFER_WINDOW_TITLE_CHANGED,
         BUFFER_ICON_TITLE_CHANGED,
         BUFFER_STATUS_LINE_CHANGED,
+        BUFFER_EOF,
         LAST_BUFFER_SIGNAL,
 };
 
@@ -915,26 +916,27 @@ vte_terminal_queue_cursor_moved(VteTerminal *terminal)
 	terminal->pvt->cursor_moved_pending = TRUE;
 }
 
+/* FIXMEchpe: why is this doing GDK threads? */
 static gboolean
-vte_terminal_emit_eof(VteTerminal *terminal)
+vte_buffer_emit_eof(VteBuffer *buffer)
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `eof'.\n");
 	GDK_THREADS_ENTER ();
-	g_signal_emit_by_name(terminal, "eof");
+	g_signal_emit(buffer, buffer_signals[BUFFER_EOF], 0);
 	GDK_THREADS_LEAVE ();
 
 	return FALSE;
 }
 /* Emit a "eof" signal. */
 static void
-vte_terminal_queue_eof(VteTerminal *terminal)
+vte_buffer_queue_eof(VteBuffer *buffer)
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Queueing `eof'.\n");
 	g_idle_add_full (G_PRIORITY_HIGH,
-		(GSourceFunc) vte_terminal_emit_eof,
-		g_object_ref (terminal),
+		(GSourceFunc) vte_buffer_emit_eof,
+		g_object_ref (buffer),
 		g_object_unref);
 }
 
@@ -2999,7 +3001,7 @@ vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
         vte_terminal_set_pty(terminal, NULL);
 
 	/* Emit a signal that we read an EOF. */
-	vte_terminal_queue_eof(terminal);
+	vte_buffer_queue_eof(terminal->term_pvt->buffer);
 
         g_object_thaw_notify(object);
 }
@@ -10835,7 +10837,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
         widget_class->screen_changed = vte_terminal_screen_changed;
 
 	/* Initialize default handlers. */
-	klass->eof = NULL;
 	klass->child_exited = NULL;
 	klass->char_size_changed = NULL;
 	klass->selection_changed = NULL;
@@ -10872,23 +10873,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
         g_object_class_override_property (gobject_class, PROP_VSCROLL_POLICY, "vscroll-policy");
 
 	/* Register some signals of our own. */
-
-        /**
-         * VteTerminal::eof:
-         * @vteterminal: the object which received the signal
-         *
-         * Emitted when the terminal receives an end-of-file from a child which
-         * is running in the terminal.  This signal is frequently (but not
-         * always) emitted with a #VteTerminal::child-exited signal.
-         */
-                g_signal_new(I_("eof"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, eof),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::child-exited:
@@ -13630,6 +13614,7 @@ vte_buffer_class_init(VteBufferClass *klass)
         klass->commit = NULL;
         klass->emulation_changed = NULL;
         klass->encoding_changed = NULL;
+        klass->eof = NULL;
         klass->window_title_changed = NULL;
         klass->icon_title_changed = NULL;
         klass->status_line_changed = NULL;
@@ -13685,6 +13670,24 @@ vte_buffer_class_init(VteBufferClass *klass)
                              G_OBJECT_CLASS_TYPE(klass),
                              G_SIGNAL_RUN_LAST,
                              G_STRUCT_OFFSET(VteBufferClass, encoding_changed),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+
+        /**
+         * VteBuffer::eof:
+         * @vtebuffer: the object which received the signal
+         *
+         * Emitted when the buffer receives an end-of-file from a child which
+         * is running in the buffer.  This signal is frequently (but not
+         * always) emitted with a #VteBuffer::child-exited signal.
+         */
+        buffer_signals[BUFFER_EOF] =
+                g_signal_new(I_("eof"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, eof),
                              NULL,
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
