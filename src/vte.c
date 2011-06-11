@@ -173,6 +173,11 @@ enum {
         BUFFER_CHILD_EXITED,
         BUFFER_DEICONIFY_WINDOW,
         BUFFER_ICONIFY_WINDOW,
+        BUFFER_RAISE_WINDOW,
+        BUFFER_LOWER_WINDOW,
+        BUFFER_REFRESH_WINDOW,
+        BUFFER_RESTORE_WINDOW,
+        BUFFER_MAXIMIZE_WINDOW,
         LAST_BUFFER_SIGNAL,
 };
 
@@ -1046,6 +1051,51 @@ _vte_buffer_emit_iconify_window(VteBuffer *buffer)
         _vte_debug_print(VTE_DEBUG_SIGNALS,
                         "Emitting `iconify-window'.\n");
         g_signal_emit(buffer, buffer_signals[BUFFER_ICONIFY_WINDOW], 0);
+}
+
+/* Emit a "raise-window" signal. */
+void
+_vte_buffer_emit_raise_window(VteBuffer *buffer)
+{
+        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                        "Emitting `raise-window'.\n");
+        g_signal_emit(buffer, buffer_signals[BUFFER_RAISE_WINDOW], 0);
+}
+
+/* Emit a "lower-window" signal. */
+void
+_vte_buffer_emit_lower_window(VteBuffer *buffer)
+{
+        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                        "Emitting `lower-window'.\n");
+        g_signal_emit(buffer, buffer_signals[BUFFER_LOWER_WINDOW], 0);
+}
+
+/* Emit a "maximize-window" signal. */
+void
+_vte_buffer_emit_maximize_window(VteBuffer *buffer)
+{
+        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                        "Emitting `maximize-window'.\n");
+        g_signal_emit(buffer, buffer_signals[BUFFER_MAXIMIZE_WINDOW], 0);
+}
+
+/* Emit a "refresh-window" signal. */
+void
+_vte_buffer_emit_refresh_window(VteBuffer *buffer)
+{
+        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                        "Emitting `refresh-window'.\n");
+        g_signal_emit(buffer, buffer_signals[BUFFER_REFRESH_WINDOW], 0);
+}
+
+/* Emit a "restore-window" signal. */
+void
+_vte_buffer_emit_restore_window(VteBuffer *buffer)
+{
+        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                        "Emitting `restore-window'.\n");
+        g_signal_emit(buffer, buffer_signals[BUFFER_RESTORE_WINDOW], 0);
 }
 
 /* Deselect anything which is selected and refresh the screen if needed. */
@@ -10863,11 +10913,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->contents_changed = NULL;
 	klass->cursor_moved = NULL;
 
-	klass->raise_window = NULL;
-	klass->lower_window = NULL;
-	klass->refresh_window = NULL;
-	klass->restore_window = NULL;
-	klass->maximize_window = NULL;
 	klass->resize_window = NULL;
 	klass->move_window = NULL;
 
@@ -10952,81 +10997,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, cursor_moved),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
-
-        /**
-         * VteTerminal::raise-window:
-         * @vteterminal: the object which received the signal
-         *
-         * Emitted at the child application's request.
-         */
-                g_signal_new(I_("raise-window"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, raise_window),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
-
-        /**
-         * VteTerminal::lower-window:
-         * @vteterminal: the object which received the signal
-         *
-         * Emitted at the child application's request.
-         */
-                g_signal_new(I_("lower-window"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, lower_window),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
-
-        /**
-         * VteTerminal::refresh-window:
-         * @vteterminal: the object which received the signal
-         *
-         * Emitted at the child application's request.
-         */
-                g_signal_new(I_("refresh-window"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, refresh_window),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
-
-        /**
-         * VteTerminal::restore-window:
-         * @vteterminal: the object which received the signal
-         *
-         * Emitted at the child application's request.
-         */
-                g_signal_new(I_("restore-window"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, restore_window),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
-
-        /**
-         * VteTerminal::maximize-window:
-         * @vteterminal: the object which received the signal
-         *
-         * Emitted at the child application's request.
-         */
-                g_signal_new(I_("maximize-window"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, maximize_window),
 			     NULL,
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
@@ -13591,6 +13561,11 @@ vte_buffer_class_init(VteBufferClass *klass)
         klass->status_line_changed = NULL;
         klass->deiconify_window = NULL;
         klass->iconify_window = NULL;
+        klass->raise_window = NULL;
+        klass->lower_window = NULL;
+        klass->refresh_window = NULL;
+        klass->restore_window = NULL;
+        klass->maximize_window = NULL;
 
         /**
          * VteBuffer::child-exited:
@@ -13761,6 +13736,86 @@ vte_buffer_class_init(VteBufferClass *klass)
                              G_OBJECT_CLASS_TYPE(klass),
                              G_SIGNAL_RUN_LAST,
                              G_STRUCT_OFFSET(VteBufferClass, iconify_window),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+
+        /**
+         * VteBuffer::raise-window:
+         * @vtebuffer: the object which received the signal
+         *
+         * Emitted at the child application's request.
+         */
+        buffer_signals[BUFFER_RAISE_WINDOW] =
+                g_signal_new(I_("raise-window"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, raise_window),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+
+        /**
+         * VteBuffer::lower-window:
+         * @vtebuffer: the object which received the signal
+         *
+         * Emitted at the child application's request.
+         */
+        buffer_signals[BUFFER_LOWER_WINDOW] =
+                g_signal_new(I_("lower-window"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, lower_window),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+
+        /**
+         * VteBuffer::refresh-window:
+         * @vtebuffer: the object which received the signal
+         *
+         * Emitted at the child application's request.
+         */
+        buffer_signals[BUFFER_REFRESH_WINDOW] =
+                g_signal_new(I_("refresh-window"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, refresh_window),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+
+        /**
+         * VteBuffer::restore-window:
+         * @vtebuffer: the object which received the signal
+         *
+         * Emitted at the child application's request.
+         */
+        buffer_signals[BUFFER_RESTORE_WINDOW] =
+                g_signal_new(I_("restore-window"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, restore_window),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+
+        /**
+         * VteBuffer::maximize-window:
+         * @vtebuffer: the object which received the signal
+         *
+         * Emitted at the child application's request.
+         */
+        buffer_signals[BUFFER_MAXIMIZE_WINDOW] =
+                g_signal_new(I_("maximize-window"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, maximize_window),
                              NULL,
                              NULL,
                              g_cclosure_marshal_VOID__VOID,

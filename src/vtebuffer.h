@@ -57,6 +57,11 @@ struct _VteBufferClass {
                                 gint status);
   void (*deiconify_window)     (VteBuffer* buffer);
   void (*iconify_window)       (VteBuffer* buffer);
+  void (*raise_window)         (VteBuffer* buffer);
+  void (*lower_window)         (VteBuffer* buffer);
+  void (*refresh_window)       (VteBuffer* buffer);
+  void (*restore_window)       (VteBuffer* buffer);
+  void (*maximize_window)      (VteBuffer* buffer);
 
   /*< private >*/
   VteBufferClassPrivate *priv;

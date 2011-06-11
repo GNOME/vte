@@ -179,51 +179,6 @@ vte_parse_color (const char *spec, GdkRGBA *rgba)
         return TRUE;
 }
 
-/* Emit a "raise-window" signal. */
-static void
-vte_terminal_emit_raise_window(VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `raise-window'.\n");
-	g_signal_emit_by_name(terminal, "raise-window");
-}
-
-/* Emit a "lower-window" signal. */
-static void
-vte_terminal_emit_lower_window(VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `lower-window'.\n");
-	g_signal_emit_by_name(terminal, "lower-window");
-}
-
-/* Emit a "maximize-window" signal. */
-static void
-vte_terminal_emit_maximize_window(VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `maximize-window'.\n");
-	g_signal_emit_by_name(terminal, "maximize-window");
-}
-
-/* Emit a "refresh-window" signal. */
-static void
-vte_terminal_emit_refresh_window(VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `refresh-window'.\n");
-	g_signal_emit_by_name(terminal, "refresh-window");
-}
-
-/* Emit a "restore-window" signal. */
-static void
-vte_terminal_emit_restore_window(VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `restore-window'.\n");
-	g_signal_emit_by_name(terminal, "restore-window");
-}
-
 /* Emit a "move-window" signal.  (Pixels.) */
 static void
 vte_terminal_emit_move_window(VteTerminal *terminal, guint x, guint y)
@@ -1862,7 +1817,7 @@ vte_sequence_handler_change_color (VteTerminal *terminal, GValueArray *params)
 
 		/* emit the refresh as the palette has changed and previous
 		 * renders need to be updated. */
-		vte_terminal_emit_refresh_window (terminal);
+		_vte_buffer_emit_refresh_window (terminal->term_pvt->buffer);
 	}
 }
 
@@ -3107,17 +3062,17 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 			break;
 		case 5:
 			_vte_debug_print(VTE_DEBUG_PARSE, "Raising window.\n");
-			vte_terminal_emit_raise_window(terminal);
+			_vte_buffer_emit_raise_window(terminal->term_pvt->buffer);
 			break;
 		case 6:
 			_vte_debug_print(VTE_DEBUG_PARSE, "Lowering window.\n");
-			vte_terminal_emit_lower_window(terminal);
+			_vte_buffer_emit_lower_window(terminal->term_pvt->buffer);
 			break;
 		case 7:
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Refreshing window.\n");
 			_vte_invalidate_all(terminal);
-			vte_terminal_emit_refresh_window(terminal);
+			_vte_buffer_emit_refresh_window(terminal->term_pvt->buffer);
 			break;
 		case 8:
 			if ((arg1 != -1) && (arg2 != -1)) {
@@ -3140,12 +3095,12 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 			case 0:
 				_vte_debug_print(VTE_DEBUG_PARSE,
 						"Restoring window.\n");
-				vte_terminal_emit_restore_window(terminal);
+				_vte_buffer_emit_restore_window(terminal->term_pvt->buffer);
 				break;
 			case 1:
 				_vte_debug_print(VTE_DEBUG_PARSE,
 						"Maximizing window.\n");
-				vte_terminal_emit_maximize_window(terminal);
+				_vte_buffer_emit_maximize_window(terminal->term_pvt->buffer);
 				break;
 			default:
 				break;

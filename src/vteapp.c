@@ -226,7 +226,7 @@ deiconify_window(VteBuffer *buffer, gpointer data)
 }
 
 static void
-raise_window(GtkWidget *widget, gpointer data)
+raise_window(VteBuffer *buffer, gpointer data)
 {
 	GdkWindow *window;
 
@@ -239,7 +239,7 @@ raise_window(GtkWidget *widget, gpointer data)
 }
 
 static void
-lower_window(GtkWidget *widget, gpointer data)
+lower_window(VteBuffer *buffer, gpointer data)
 {
 	GdkWindow *window;
 
@@ -252,7 +252,7 @@ lower_window(GtkWidget *widget, gpointer data)
 }
 
 static void
-maximize_window(GtkWidget *widget, gpointer data)
+maximize_window(VteBuffer *buffer, gpointer data)
 {
 	GdkWindow *window;
 
@@ -265,7 +265,7 @@ maximize_window(GtkWidget *widget, gpointer data)
 }
 
 static void
-restore_window(GtkWidget *widget, gpointer data)
+restore_window(VteBuffer *buffer, gpointer data)
 {
 	GdkWindow *window;
 
@@ -278,16 +278,17 @@ restore_window(GtkWidget *widget, gpointer data)
 }
 
 static void
-refresh_window(GtkWidget *widget, gpointer data)
+refresh_window(VteBuffer *buffer, gpointer data)
 {
 	GdkWindow *window;
 	GtkAllocation allocation;
 	cairo_rectangle_int_t rect;
 
+        /* FIXMEchpe: VteTerminal already does invalidate-all here! */
 	if (GTK_IS_WIDGET(data)) {
-		window = gtk_widget_get_window(widget);
+		window = gtk_widget_get_window(GTK_WIDGET(data));
 		if (window) {
-			gtk_widget_get_allocation(widget, &allocation);
+			gtk_widget_get_allocation(data, &allocation);
 			rect.x = rect.y = 0;
 			rect.width = allocation.width;
 			rect.height = allocation.height;
@@ -984,15 +985,15 @@ main(int argc, char **argv)
 			 G_CALLBACK(iconify_window), window);
 	g_signal_connect(buffer, "deiconify-window",
 			 G_CALLBACK(deiconify_window), window);
-	g_signal_connect(widget, "raise-window",
+	g_signal_connect(buffer, "raise-window",
 			 G_CALLBACK(raise_window), window);
-	g_signal_connect(widget, "lower-window",
+	g_signal_connect(buffer, "lower-window",
 			 G_CALLBACK(lower_window), window);
-	g_signal_connect(widget, "maximize-window",
+	g_signal_connect(buffer, "maximize-window",
 			 G_CALLBACK(maximize_window), window);
-	g_signal_connect(widget, "restore-window",
+	g_signal_connect(buffer, "restore-window",
 			 G_CALLBACK(restore_window), window);
-	g_signal_connect(widget, "refresh-window",
+	g_signal_connect(buffer, "refresh-window",
 			 G_CALLBACK(refresh_window), window);
 	g_signal_connect(widget, "resize-window",
 			 G_CALLBACK(resize_window), window);

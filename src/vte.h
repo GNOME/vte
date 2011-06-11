@@ -79,11 +79,6 @@ struct _VteTerminalClass {
 	void (*contents_changed)(VteTerminal* terminal);
 	void (*cursor_moved)(VteTerminal* terminal);
 
-	void (*raise_window)(VteTerminal* terminal);
-	void (*lower_window)(VteTerminal* terminal);
-	void (*refresh_window)(VteTerminal* terminal);
-	void (*restore_window)(VteTerminal* terminal);
-	void (*maximize_window)(VteTerminal* terminal);
 	void (*resize_window)(VteTerminal* terminal, guint width, guint height);
 	void (*move_window)(VteTerminal* terminal, guint x, guint y);
 

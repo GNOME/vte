@@ -484,6 +484,11 @@ gboolean _vte_buffer_insert_char(VteBuffer *buffer, gunichar c,
                                  gboolean invalidate_cells);
 void _vte_buffer_emit_deiconify_window(VteBuffer *buffer);
 void _vte_buffer_emit_iconify_window(VteBuffer *buffer);
+void _vte_buffer_emit_raise_window(VteBuffer *buffer);
+void _vte_buffer_emit_lower_window(VteBuffer *buffer);
+void _vte_buffer_emit_refresh_window(VteBuffer *buffer);
+void _vte_buffer_emit_restore_window(VteBuffer *buffer);
+void _vte_buffer_emit_maximize_window(VteBuffer *buffer);
 
 /* private VteScreen methods */
 void _vte_screen_set_default_attributes(VteScreen *screen);
