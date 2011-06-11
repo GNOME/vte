@@ -57,9 +57,6 @@ vte_get_user_shell
 
 <SUBSECTION>
 vte_terminal_spawn_sync
-vte_terminal_get_pty
-vte_terminal_set_pty
-vte_terminal_pty_new_sync
 vte_terminal_watch_child
 
 <SUBSECTION Standard>
@@ -114,6 +111,11 @@ vte_buffer_write_contents_sync
 vte_buffer_set_size
 vte_buffer_get_column_count
 vte_buffer_get_row_count
+
+<SUBSECTION>
+vte_buffer_get_pty
+vte_buffer_set_pty
+vte_buffer_pty_new_sync
 
 <SUBSECTION Standard>
 VTE_TYPE_BUFFER

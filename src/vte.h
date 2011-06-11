@@ -133,11 +133,6 @@ GtkWidget *vte_terminal_new(void);
 
 VteBuffer *vte_terminal_get_buffer(VteTerminal *terminal);
 
-VtePty *vte_terminal_pty_new_sync (VteTerminal *terminal,
-                                   VtePtyFlags flags,
-                                   GCancellable *cancellable,
-                                   GError **error);
-
 void vte_terminal_watch_child (VteTerminal *terminal,
                                GPid child_pid);
 
@@ -247,9 +242,6 @@ gboolean  vte_terminal_search_find_previous   (VteTerminal *terminal);
 gboolean  vte_terminal_search_find_next       (VteTerminal *terminal);
 
 const char *vte_get_default_emulation(void);
-
-void vte_terminal_set_pty(VteTerminal *terminal, VtePty *pty);
-VtePty *vte_terminal_get_pty(VteTerminal *terminal);
 
 char *vte_get_user_shell (void);
 

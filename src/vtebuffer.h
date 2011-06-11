@@ -92,6 +92,16 @@ void vte_buffer_set_encoding            (VteBuffer *buffer,
 
 const char *vte_buffer_get_encoding     (VteBuffer *buffer);
 
+void vte_buffer_set_pty                 (VteBuffer *buffer,
+                                         VtePty *pty);
+
+VtePty *vte_buffer_get_pty              (VteBuffer *buffer);
+
+VtePty *vte_buffer_pty_new_sync         (VteBuffer *buffer,
+                                         VtePtyFlags flags,
+                                         GCancellable *cancellable,
+                                         GError **error);
+
 void vte_buffer_set_scrollback_lines    (VteBuffer *buffer,
                                          glong lines);
 

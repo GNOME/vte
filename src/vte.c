@@ -143,7 +143,6 @@ enum {
         PROP_VSCROLL_POLICY,
         PROP_AUDIBLE_BELL,
         PROP_MOUSE_POINTER_AUTOHIDE,
-        PROP_PTY_OBJECT,
         PROP_SCROLL_ON_KEYSTROKE,
         PROP_SCROLL_ON_OUTPUT,
         PROP_WORD_CHARS,
@@ -160,6 +159,7 @@ enum {
         BUFFER_PROP_SCROLLBACK_LINES,
         BUFFER_PROP_ICON_TITLE,
         BUFFER_PROP_WINDOW_TITLE,
+        BUFFER_PROP_PTY,
 };
 
 enum {
@@ -2768,7 +2768,7 @@ vte_terminal_child_watch_cb(GPid pid,
 		terminal->pvt->pty_pid = -1;
 
 		/* Close out the PTY. */
-                vte_terminal_set_pty(terminal, NULL);
+                vte_buffer_set_pty(terminal->term_pvt->buffer, NULL);
 
 		/* Tell observers what's happened. */
 		vte_buffer_emit_child_exited(terminal->term_pvt->buffer, status);
@@ -2859,39 +2859,37 @@ _vte_terminal_disconnect_pty_write(VteTerminal *terminal)
 }
 
 /**
- * vte_terminal_pty_new_sync:
- * @terminal: a #VteTerminal
+ * vte_buffer_pty_new_sync:
+ * @buffer: a #VteBuffer
  * @flags: flags from #VtePtyFlags
  * @cancellable: (allow-none): a #GCancellable, or %NULL
  * @error: (allow-none): return location for a #GError, or %NULL
  *
  * Creates a new #VtePty, and sets the emulation property
- * from #VteTerminal:emulation.
+ * from #VteBuffer:emulation.
  *
  * See vte_pty_new() for more information.
  *
  * Returns: (transfer full): a new #VtePty
- *
- * Since: 0.30
  */
 VtePty *
-vte_terminal_pty_new_sync(VteTerminal *terminal,
+vte_buffer_pty_new_sync(VteBuffer *buffer,
                           VtePtyFlags flags,
                           GCancellable *cancellable,
                           GError **error)
 {
-        VteTerminalPrivate *pvt;
+        VteBufferPrivate *pvt;
         VtePty *pty;
 
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+        g_return_val_if_fail(VTE_IS_BUFFER(buffer), NULL);
 
-        pvt = terminal->pvt;
+        pvt = buffer->pvt;
 
         pty = vte_pty_new_sync(flags, cancellable, error);
         if (pty == NULL)
                 return NULL;
 
-        vte_pty_set_term(pty, vte_buffer_get_emulation(terminal->term_pvt->buffer));
+        vte_pty_set_term(pty, vte_buffer_get_emulation(buffer));
 
         return pty;
 }
@@ -2905,7 +2903,7 @@ vte_terminal_pty_new_sync(VteTerminal *terminal,
  * signal will be called with the child's exit status.
  *
  * Prior to calling this function, a #VtePty must have been set in @terminal
- * using vte_terminal_set_pty().
+ * using vte_buffer_set_pty().
  * When the child exits, the terminal's #VtePty will be set to %NULL.
  *
  * Note: g_child_watch_add() or g_child_watch_add_full() must not have
@@ -3032,7 +3030,7 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
         g_return_val_if_fail(child_setup_data == NULL || child_setup, FALSE);
         g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-        pty = vte_terminal_pty_new_sync(terminal, pty_flags, cancellable, error);
+        pty = vte_buffer_pty_new_sync(terminal->term_pvt->buffer, pty_flags, cancellable, error);
         if (pty == NULL)
                 return FALSE;
 
@@ -3051,7 +3049,7 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
                 return FALSE;
         }
 
-        vte_terminal_set_pty(terminal, pty);
+        vte_buffer_set_pty(terminal->term_pvt->buffer, pty);
         vte_terminal_watch_child(terminal, pid);
         g_object_unref (pty);
 
@@ -3069,7 +3067,7 @@ vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
 
         g_object_freeze_notify(object);
 
-        vte_terminal_set_pty(terminal, NULL);
+        vte_buffer_set_pty(terminal->term_pvt->buffer, NULL);
 
 	/* Emit a signal that we read an EOF. */
 	vte_buffer_queue_eof(terminal->term_pvt->buffer);
@@ -10754,9 +10752,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_MOUSE_POINTER_AUTOHIDE:
                         g_value_set_boolean (value, vte_terminal_get_mouse_autohide (terminal));
                         break;
-                case PROP_PTY_OBJECT:
-                        g_value_set_object (value, vte_terminal_get_pty(terminal));
-                        break;
                 case PROP_SCROLL_ON_KEYSTROKE:
                         g_value_set_boolean (value, pvt->scroll_on_keystroke);
                         break;
@@ -10809,9 +10804,6 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_MOUSE_POINTER_AUTOHIDE:
                         vte_terminal_set_mouse_autohide (terminal, g_value_get_boolean (value));
-                        break;
-                case PROP_PTY_OBJECT:
-                        vte_terminal_set_pty(terminal, g_value_get_object (value));
                         break;
                 case PROP_SCROLL_ON_KEYSTROKE:
                         vte_terminal_set_scroll_on_keystroke(terminal, g_value_get_boolean (value));
@@ -11243,21 +11235,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_boolean ("pointer-autohide", NULL, NULL,
                                        FALSE,
                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-        /**
-         * VteTerminal:pty-object:
-         *
-         * The PTY object for the terminal.
-         *
-         * Since: 0.26
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_PTY_OBJECT,
-                 g_param_spec_object ("pty-object", NULL, NULL,
-                                      VTE_TYPE_PTY,
-                                      G_PARAM_READWRITE |
-                                      G_PARAM_STATIC_STRINGS));
      
         /**
          * VteTerminal:scroll-on-keystroke:
@@ -12363,58 +12340,59 @@ vte_buffer_get_icon_title(VteBuffer *buffer)
 }
 
 /**
- * vte_terminal_set_pty:
+ * vte_buffer_set_pty:
  * @terminal: a #VteTerminal
  * @pty: (allow-none): a #VtePty, or %NULL
  *
- * Sets @pty as the PTY to use in @terminal.
+ * Sets @pty as the PTY to use in @buffer.
  * Use %NULL to unset the PTY.
- *
- * Since: 0.30
  */
 void
-vte_terminal_set_pty(VteTerminal *terminal,
-                     VtePty *pty)
+vte_buffer_set_pty(VteBuffer *buffer,
+                   VtePty *pty)
 {
-        VteTerminalPrivate *pvt;
+        VteBufferPrivate *pvt;
+        VteTerminal *terminal;
         GObject *object;
         long flags;
         int pty_master;
 
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(VTE_IS_BUFFER(buffer));
         g_return_if_fail(pty == NULL || VTE_IS_PTY(pty));
 
-        pvt = terminal->pvt;
+        pvt = buffer->pvt;
         if (pvt->pty == pty)
                 return;
 
-        object = G_OBJECT(terminal);
+        object = G_OBJECT(buffer);
+        terminal = pvt->terminal;
 
         g_object_freeze_notify(object);
+        g_object_freeze_notify(G_OBJECT(terminal));
 
         if (pvt->pty != NULL) {
                 _vte_terminal_disconnect_pty_read(terminal);
                 _vte_terminal_disconnect_pty_write(terminal);
 
-                if (terminal->pvt->pty_channel != NULL) {
-                        g_io_channel_unref (terminal->pvt->pty_channel);
+                if (pvt->pty_channel != NULL) {
+                        g_io_channel_unref (pvt->pty_channel);
                         pvt->pty_channel = NULL;
                 }
 
 		/* Take one last shot at processing whatever data is pending,
 		 * then flush the buffers in case we're about to run a new
 		 * command, disconnecting the timeout. */
-		if (terminal->pvt->incoming != NULL) {
+		if (pvt->incoming != NULL) {
 			vte_terminal_process_incoming(terminal);
-			_vte_incoming_chunks_release (terminal->pvt->incoming);
-			terminal->pvt->incoming = NULL;
-			terminal->pvt->input_bytes = 0;
+			_vte_incoming_chunks_release (pvt->incoming);
+			pvt->incoming = NULL;
+			pvt->input_bytes = 0;
 		}
-		g_array_set_size(terminal->pvt->pending, 0);
+		g_array_set_size(pvt->pending, 0);
 		vte_terminal_stop_processing (terminal);
 
 		/* Clear the outgoing buffer as well. */
-		_vte_byte_array_clear(terminal->pvt->outgoing);
+		_vte_byte_array_clear(pvt->outgoing);
 
                 vte_pty_close(pvt->pty);
                 g_object_unref(pvt->pty);
@@ -12423,7 +12401,8 @@ vte_terminal_set_pty(VteTerminal *terminal,
 
         if (pty == NULL) {
                 pvt->pty = NULL;
-                g_object_notify(object, "pty-object");
+                g_object_notify(object, "pty");
+                g_object_thaw_notify(G_OBJECT(terminal));
                 g_object_thaw_notify(object);
                 return;
         }
@@ -12441,36 +12420,33 @@ vte_terminal_set_pty(VteTerminal *terminal,
                 fcntl(pty_master, F_SETFL, flags | O_NONBLOCK);
         }
 
-        vte_buffer_set_size(terminal->term_pvt->buffer,
-                              terminal->pvt->column_count,
-                              terminal->pvt->row_count);
+        vte_buffer_set_size(buffer, pvt->column_count, pvt->row_count);
 
         _vte_terminal_setup_utf8 (terminal);
 
         /* Open channels to listen for input on. */
         _vte_terminal_connect_pty_read (terminal);
 
-        g_object_notify(object, "pty-object");
+        g_object_notify(object, "pty");
 
+        g_object_thaw_notify(G_OBJECT(terminal));
         g_object_thaw_notify(object);
 }
 
 /**
- * vte_terminal_get_pty:
- * @terminal: a #VteTerminal
+ * vte_buffer_get_pty:
+ * @buffer: a #VteBuffer
  *
- * Returns the #VtePty of @terminal.
+ * Returns the #VtePty of @buffer.
  *
  * Returns: (transfer none): a #VtePty, or %NULL
- *
- * Since: 0.30
  */
 VtePty *
-vte_terminal_get_pty(VteTerminal *terminal)
+vte_buffer_get_pty(VteBuffer *buffer)
 {
-        g_return_val_if_fail (VTE_IS_TERMINAL (terminal), NULL);
+        g_return_val_if_fail (VTE_IS_TERMINAL (buffer), NULL);
 
-        return terminal->pvt->pty;
+        return buffer->pvt->pty;
 }
 
 /* We need this bit of glue to ensure that accessible objects will always
@@ -13495,6 +13471,9 @@ vte_buffer_get_property (GObject *object,
         case BUFFER_PROP_WINDOW_TITLE:
                 g_value_set_string(value, vte_buffer_get_window_title(buffer));
                 break;
+        case BUFFER_PROP_PTY:
+                g_value_set_object(value, vte_buffer_get_pty(buffer));
+                break;
         default:
                 G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
                 return;
@@ -13524,6 +13503,9 @@ vte_buffer_set_property (GObject *object,
                 break;
         case BUFFER_PROP_SCROLLBACK_LINES:
                 vte_buffer_set_scrollback_lines (buffer, g_value_get_uint (value));
+                break;
+        case BUFFER_PROP_PTY:
+                vte_buffer_set_pty(buffer, g_value_get_object (value));
                 break;
         /* Not writable */
         case BUFFER_PROP_ICON_TITLE:
@@ -13925,6 +13907,21 @@ vte_buffer_class_init(VteBufferClass *klass)
                  g_param_spec_string ("window-title", NULL, NULL,
                                       NULL,
                                       G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+
+
+        /**
+         * VteBuffer:pty-object:
+         *
+         * The PTY object for the buffer.
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 BUFFER_PROP_PTY,
+                 g_param_spec_object ("pty", NULL, NULL,
+                                      VTE_TYPE_PTY,
+                                      G_PARAM_READWRITE |
+                                      G_PARAM_STATIC_STRINGS));
+
 }
 
 /**
