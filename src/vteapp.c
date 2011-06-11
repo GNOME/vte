@@ -162,10 +162,10 @@ delete_event(GtkWidget *window, GdkEvent *event, gpointer terminal)
 	destroy_and_quit(VTE_TERMINAL (terminal), window);
 }
 static void
-child_exited(GtkWidget *terminal, int status, gpointer window)
+child_exited(VteBuffer *buffer, int status, gpointer terminal)
 {
 	_vte_debug_print(VTE_DEBUG_MISC, "Child exited with status %x\n", status);
-	destroy_and_quit(VTE_TERMINAL (terminal), GTK_WIDGET (window));
+	destroy_and_quit(VTE_TERMINAL (terminal), gtk_widget_get_toplevel(terminal));
 }
 
 static void
@@ -1052,7 +1052,7 @@ main(int argc, char **argv)
                                                          "eof",
                                                          G_CALLBACK(disconnect_watch),
                                                          GINT_TO_POINTER(watch));
-				g_signal_connect_swapped(widget,
+				g_signal_connect_swapped(buffer,
                                                          "child-exited",
                                                          G_CALLBACK(disconnect_watch),
                                                          GINT_TO_POINTER(watch));
@@ -1170,7 +1170,7 @@ main(int argc, char **argv)
 	g_object_set_data (G_OBJECT (widget), "output_file", (gpointer) output_file);
 
 	/* Go for it! */
-	g_signal_connect(widget, "child-exited", G_CALLBACK(child_exited), window);
+	g_signal_connect(buffer, "child-exited", G_CALLBACK(child_exited), terminal);
 	g_signal_connect(window, "delete-event", G_CALLBACK(delete_event), widget);
 
 	add_weak_pointer(G_OBJECT(widget), &widget);

@@ -64,7 +64,7 @@ terminal_init_vte(GtkWidget **terminal)
         buffer = vte_terminal_get_buffer(VTE_TERMINAL(*terminal));
 	g_signal_connect(buffer, "eof",
 			 G_CALLBACK(gtk_main_quit), NULL);
-	g_signal_connect(G_OBJECT(*terminal), "child-exited",
+	g_signal_connect(buffer, "child-exited",
 			 G_CALLBACK(gtk_main_quit), NULL);
 }
 static void

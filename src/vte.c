@@ -170,6 +170,7 @@ enum {
         BUFFER_ICON_TITLE_CHANGED,
         BUFFER_STATUS_LINE_CHANGED,
         BUFFER_EOF,
+        BUFFER_CHILD_EXITED,
         LAST_BUFFER_SIGNAL,
 };
 
@@ -862,12 +863,12 @@ vte_buffer_emit_encoding_changed(VteBuffer *buffer)
 
 /* Emit a "child-exited" signal. */
 static void
-vte_terminal_emit_child_exited(VteTerminal *terminal,
-                               int status)
+vte_buffer_emit_child_exited(VteBuffer *buffer,
+                             int status)
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `child-exited'.\n");
-	g_signal_emit_by_name(terminal, "child-exited", status);
+	g_signal_emit(buffer, buffer_signals[BUFFER_CHILD_EXITED], 0, status);
 }
 
 /* Emit a "contents_changed" signal. */
@@ -2700,7 +2701,7 @@ vte_terminal_child_watch_cb(GPid pid,
                 vte_terminal_set_pty(terminal, NULL);
 
 		/* Tell observers what's happened. */
-		vte_terminal_emit_child_exited(terminal, status);
+		vte_buffer_emit_child_exited(terminal->term_pvt->buffer, status);
 
                 g_object_thaw_notify(object);
                 g_object_unref(object);
@@ -10837,7 +10838,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
         widget_class->screen_changed = vte_terminal_screen_changed;
 
 	/* Initialize default handlers. */
-	klass->child_exited = NULL;
 	klass->char_size_changed = NULL;
 	klass->selection_changed = NULL;
 	klass->contents_changed = NULL;
@@ -10873,24 +10873,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
         g_object_class_override_property (gobject_class, PROP_VSCROLL_POLICY, "vscroll-policy");
 
 	/* Register some signals of our own. */
-
-        /**
-         * VteTerminal::child-exited:
-         * @vteterminal: the object which received the signal
-         * @status: the child's exit status
-         *
-         * This signal is emitted when the terminal detects that a child
-         * watched using vte_terminal_watch_child() has exited.
-         */
-                g_signal_new(I_("child-exited"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, child_exited),
-			     NULL,
-			     NULL,
-			     g_cclosure_marshal_VOID__INT,
-			     G_TYPE_NONE,
-                             1, G_TYPE_INT);
 
         /**
          * VteTerminal::char-size-changed:
@@ -13611,6 +13593,7 @@ vte_buffer_class_init(VteBufferClass *klass)
         gobject_class->get_property = vte_buffer_get_property;
         gobject_class->set_property = vte_buffer_set_property;
 
+        klass->child_exited = NULL;
         klass->commit = NULL;
         klass->emulation_changed = NULL;
         klass->encoding_changed = NULL;
@@ -13618,6 +13601,25 @@ vte_buffer_class_init(VteBufferClass *klass)
         klass->window_title_changed = NULL;
         klass->icon_title_changed = NULL;
         klass->status_line_changed = NULL;
+
+        /**
+         * VteBuffer::child-exited:
+         * @buffer: the object which received the signal
+         * @status: the child's exit status
+         *
+         * This signal is emitted when the buffer detects that a child
+         * watched using vte_buffer_watch_child() has exited.
+         */
+        buffer_signals[BUFFER_CHILD_EXITED] =
+                g_signal_new(I_("child-exited"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, child_exited),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__INT,
+                             G_TYPE_NONE,
+                             1, G_TYPE_INT);
 
         /**
          * VteBuffer::commit:

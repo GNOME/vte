@@ -74,7 +74,6 @@ struct _VteTerminalClass {
 	GtkWidgetClass parent_class;
 
 	/*< protected > */
-	void (*child_exited)(VteTerminal* terminal, int status);
 	void (*char_size_changed)(VteTerminal* terminal, guint char_width, guint char_height);
 	void (*selection_changed)(VteTerminal* terminal);
 	void (*contents_changed)(VteTerminal* terminal);
