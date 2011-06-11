@@ -107,6 +107,14 @@ const char *vte_buffer_get_icon_title   (VteBuffer *buffer);
 
 const char *vte_buffer_get_status_line  (VteBuffer *buffer);
 
+void vte_buffer_set_size                (VteBuffer *buffer,
+                                         glong columns,
+                                         glong rows);
+
+glong vte_buffer_get_row_count          (VteBuffer *buffer);
+
+glong vte_buffer_get_column_count       (VteBuffer *buffer);
+
 gboolean vte_buffer_write_contents_sync (VteBuffer *buffer,
                                          GOutputStream *stream,
                                          VteWriteFlags flags,

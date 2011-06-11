@@ -546,7 +546,7 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
 	g_assert(priv != NULL);
 
-        row_count = vte_terminal_get_row_count(terminal);
+        row_count = vte_buffer_get_row_count(vte_terminal_get_buffer(terminal));
 	if (((howmuch < 0) && (howmuch <= -row_count)) ||
 	    ((howmuch > 0) && (howmuch >= row_count))) {
 		/* All of the text was removed. */
@@ -1775,6 +1775,7 @@ vte_terminal_accessible_set_size(AtkComponent *component,
 				 gint width, gint height)
 {
 	VteTerminal *terminal;
+        VteBuffer *buffer;
 	long columns, rows;
 	GtkWidget *widget;
 
@@ -1783,15 +1784,16 @@ vte_terminal_accessible_set_size(AtkComponent *component,
 		return FALSE;
 	}
 	terminal = VTE_TERMINAL(widget);
+        buffer = vte_terminal_get_buffer(terminal);
 
         /* If the size is an exact multiple of the cell size, use that,
          * otherwise round down. */
         if (!_vte_terminal_size_to_grid_size(terminal, width, height, &columns, &rows))
                 return FALSE;
 
-	vte_terminal_set_size(terminal, columns, rows);
-	return (vte_terminal_get_row_count (terminal) == rows) &&
-	       (vte_terminal_get_column_count (terminal) == columns);
+	vte_buffer_set_size(buffer, columns, rows);
+	return (vte_buffer_get_row_count (buffer) == rows) &&
+	       (vte_buffer_get_column_count (buffer) == columns);
 }
 
 

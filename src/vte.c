@@ -7288,48 +7288,51 @@ vte_terminal_refresh_size(VteTerminal *terminal)
 }
 
 /**
- * vte_terminal_set_size:
- * @terminal: a #VteTerminal
+ * vte_buffer_set_size:
+ * @buffer: a #VteBuffer
  * @columns: the desired number of columns
  * @rows: the desired number of rows
  *
- * Attempts to change the terminal's size in terms of rows and columns.  If
+ * Attempts to change the buffer's size in terms of rows and columns.  If
  * the attempt succeeds, the widget will resize itself to the proper size.
  */
 void
-vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
+vte_buffer_set_size(VteBuffer *buffer, glong columns, glong rows)
 {
+        VteTerminal *terminal;
 	glong old_columns, old_rows;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail(VTE_IS_BUFFER(buffer));
+
+        terminal = buffer->pvt->terminal;
 
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Setting PTY size to %ldx%ld.\n",
 			columns, rows);
 
-	old_rows = terminal->pvt->row_count;
-	old_columns = terminal->pvt->column_count;
+	old_rows = buffer->pvt->row_count;
+	old_columns = buffer->pvt->column_count;
 
-	if (terminal->pvt->pty != NULL) {
+	if (buffer->pvt->pty != NULL) {
                 GError *error = NULL;
 
-		/* Try to set the terminal size, and read it back,
+		/* Try to set the buffer size, and read it back,
 		 * in case something went awry.
                  */
-		if (!vte_pty_set_size(terminal->pvt->pty, rows, columns, &error)) {
+		if (!vte_pty_set_size(buffer->pvt->pty, rows, columns, &error)) {
 			g_warning("%s\n", error->message);
                         g_error_free(error);
 		}
 		vte_terminal_refresh_size(terminal);
 	} else {
-		terminal->pvt->row_count = rows;
-		terminal->pvt->column_count = columns;
+		buffer->pvt->row_count = rows;
+		buffer->pvt->column_count = columns;
 	}
-	if (old_rows != terminal->pvt->row_count || old_columns != terminal->pvt->column_count) {
-		VteScreen *screen = terminal->pvt->screen;
+	if (old_rows != buffer->pvt->row_count || old_columns != buffer->pvt->column_count) {
+		VteScreen *screen = buffer->pvt->screen;
 		glong visible_rows = MIN (old_rows, _vte_ring_length (screen->row_data));
-		if (terminal->pvt->row_count < visible_rows) {
-			glong delta = visible_rows - terminal->pvt->row_count;
+		if (buffer->pvt->row_count < visible_rows) {
+			glong delta = visible_rows - buffer->pvt->row_count;
 			screen->insert_delta += delta;
 			vte_terminal_queue_adjustment_value_changed (
 					terminal,
@@ -7709,7 +7712,7 @@ vte_terminal_init(VteTerminal *terminal)
 	 * be set up properly first. */
         pvt->pty = NULL;
 	vte_buffer_set_emulation(buffer, NULL);
-	vte_terminal_set_size(terminal,
+	vte_buffer_set_size(buffer,
 			      pvt->default_column_count,
 			      pvt->default_row_count);
 	pvt->pty_input_source = 0;
@@ -7851,6 +7854,7 @@ static void
 vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 {
 	VteTerminal *terminal;
+        VteBuffer *buffer;
 	glong width, height;
 	GtkAllocation current_allocation;
 	gboolean repaint, update_scrollback;
@@ -7859,6 +7863,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 			"vte_terminal_size_allocate()\n");
 
 	terminal = VTE_TERMINAL(widget);
+        buffer = terminal->term_pvt->buffer;
 
 	width = (allocation->width - (terminal->pvt->padding.left + terminal->pvt->padding.right)) /
 		terminal->pvt->char_width;
@@ -7889,7 +7894,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 		VteScreen *screen = terminal->pvt->screen;
 
 		/* Set the size of the pseudo-terminal. */
-		vte_terminal_set_size(terminal, width, height);
+		vte_buffer_set_size(buffer, width, height);
 
 		/* Adjust scrolling area in case our boundaries have just been
 		 * redefined to be invalid. */
@@ -12382,30 +12387,29 @@ vte_terminal_get_char_height(VteTerminal *terminal)
 }
 
 /**
- * vte_terminal_get_row_count:
- * @terminal: a #VteTerminal
- *
+ * vte_buffer_get_row_count:
+ * @buffer: a #VteBuffer
  *
  * Returns: the number of rows
  */
 glong
-vte_terminal_get_row_count(VteTerminal *terminal)
+vte_buffer_get_row_count(VteBuffer *buffer)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-	return terminal->pvt->row_count;
+	g_return_val_if_fail(VTE_IS_BUFFER(buffer), -1);
+	return buffer->pvt->row_count;
 }
 
 /**
- * vte_terminal_get_column_count:
- * @terminal: a #VteTerminal
+ * vte_buffer_get_column_count:
+ * @buffer: a #VteBuffer
  *
  * Returns: the number of columns
  */
 glong
-vte_terminal_get_column_count(VteTerminal *terminal)
+vte_buffer_get_column_count(VteBuffer *buffer)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-	return terminal->pvt->column_count;
+	g_return_val_if_fail(VTE_IS_BUFFER(buffer), -1);
+	return buffer->pvt->column_count;
 }
 
 /**
@@ -12513,7 +12517,7 @@ vte_terminal_set_pty(VteTerminal *terminal,
                 fcntl(pty_master, F_SETFL, flags | O_NONBLOCK);
         }
 
-        vte_terminal_set_size(terminal,
+        vte_buffer_set_size(terminal->term_pvt->buffer,
                               terminal->pvt->column_count,
                               terminal->pvt->row_count);
 

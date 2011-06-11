@@ -17,7 +17,6 @@ vte_terminal_copy_clipboard
 vte_terminal_paste_clipboard
 vte_terminal_copy_primary
 vte_terminal_paste_primary
-vte_terminal_set_size
 vte_terminal_set_font_scale
 vte_terminal_get_font_scale
 vte_terminal_set_audible_bell
@@ -85,8 +84,6 @@ VTE_TERMINAL_CLASS
 <SUBSECTION Binding Accessors>
 vte_terminal_get_char_height
 vte_terminal_get_char_width
-vte_terminal_get_column_count
-vte_terminal_get_row_count
 
 <SUBSECTION Private>
 VteCharAttributes
@@ -114,6 +111,9 @@ vte_buffer_get_icon_title
 vte_buffer_get_window_title
 vte_buffer_get_status_line
 vte_buffer_write_contents_sync
+vte_buffer_set_size
+vte_buffer_get_column_count
+vte_buffer_get_row_count
 
 <SUBSECTION Standard>
 VTE_TYPE_BUFFER

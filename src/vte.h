@@ -174,10 +174,6 @@ void vte_terminal_paste_primary(VteTerminal *terminal);
 void vte_terminal_select_all(VteTerminal *terminal);
 void vte_terminal_select_none(VteTerminal *terminal);
 
-/* Set the terminal's size. */
-void vte_terminal_set_size(VteTerminal *terminal,
-			   glong columns, glong rows);
-
 void vte_terminal_set_font_scale(VteTerminal *terminal,
                                  gdouble scale);
 gdouble vte_terminal_get_font_scale(VteTerminal *terminal);
@@ -269,8 +265,6 @@ char *vte_get_user_shell (void);
 
 glong vte_terminal_get_char_width(VteTerminal *terminal);
 glong vte_terminal_get_char_height(VteTerminal *terminal);
-glong vte_terminal_get_row_count(VteTerminal *terminal);
-glong vte_terminal_get_column_count(VteTerminal *terminal);
 
 G_END_DECLS
 

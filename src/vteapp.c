@@ -300,20 +300,22 @@ static void
 resize_window(GtkWidget *widget, guint width, guint height, gpointer data)
 {
 	VteTerminal *terminal;
+        VteBuffer *buffer;
 
 	if ((GTK_IS_WINDOW(data)) && (width >= 2) && (height >= 2)) {
 		gint owidth, oheight, char_width, char_height, column_count, row_count;
 		GtkBorder padding;
 
 		terminal = VTE_TERMINAL(widget);
+                buffer = vte_terminal_get_buffer(terminal);
 
 		gtk_window_get_size(GTK_WINDOW(data), &owidth, &oheight);
 
 		/* Take into account border overhead. */
 		char_width = vte_terminal_get_char_width (terminal);
 		char_height = vte_terminal_get_char_height (terminal);
-		column_count = vte_terminal_get_column_count (terminal);
-		row_count = vte_terminal_get_row_count (terminal);
+		column_count = vte_buffer_get_column_count (buffer);
+		row_count = vte_buffer_get_row_count (buffer);
                 gtk_style_context_get_padding(gtk_widget_get_style_context(widget),
                                               gtk_widget_get_state_flags(widget),
                                               &padding);
@@ -342,14 +344,16 @@ static void
 adjust_font_size(GtkWidget *widget, gpointer data, gdouble factor)
 {
 	VteTerminal *terminal;
+        VteBuffer *buffer;
         gdouble scale;
         glong char_width, char_height;
 	gint columns, rows, owidth, oheight;
 
 	/* Read the screen dimensions in cells. */
 	terminal = VTE_TERMINAL(widget);
-	columns = vte_terminal_get_column_count(terminal);
-	rows = vte_terminal_get_row_count(terminal);
+        buffer = vte_terminal_get_buffer(terminal);
+	columns = vte_buffer_get_column_count(buffer);
+	rows = vte_buffer_get_row_count(buffer);
 
 	/* Take into account padding and border overhead. */
 	gtk_window_get_size(GTK_WINDOW(data), &owidth, &oheight);
@@ -1183,8 +1187,8 @@ main(int argc, char **argv)
 		 * size not its natural size, so we need to set the right default size
 		 * explicitly */
 		gtk_window_set_default_geometry (GTK_WINDOW (window),
-						 vte_terminal_get_column_count (terminal),
-						 vte_terminal_get_row_count (terminal));
+						 vte_buffer_get_column_count (buffer),
+						 vte_buffer_get_row_count (buffer));
 	}
 
 	gtk_widget_show_all(window);
