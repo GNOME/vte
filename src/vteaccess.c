@@ -381,7 +381,7 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 	}
 
 	/* Update the caret position. */
-	vte_terminal_get_cursor_position(terminal, &ccol, &crow);
+	vte_buffer_get_cursor_position(vte_terminal_get_buffer(terminal), &ccol, &crow);
 	_vte_debug_print(VTE_DEBUG_ALLY,
 			"Cursor at (%ld, " "%ld).\n", ccol, crow);
 

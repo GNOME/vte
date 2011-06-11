@@ -33,7 +33,6 @@ vte_terminal_get_mouse_autohide
 vte_terminal_get_text
 vte_terminal_get_text_include_trailing_spaces
 vte_terminal_get_text_range
-vte_terminal_get_cursor_position
 vte_terminal_match_add_gregex
 vte_terminal_match_remove
 vte_terminal_match_remove_all
@@ -107,6 +106,7 @@ vte_buffer_write_contents_sync
 vte_buffer_set_size
 vte_buffer_get_column_count
 vte_buffer_get_row_count
+vte_buffer_get_cursor_position
 
 <SUBSECTION>
 vte_buffer_get_pty

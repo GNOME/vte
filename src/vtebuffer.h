@@ -145,6 +145,10 @@ glong vte_buffer_get_row_count          (VteBuffer *buffer);
 
 glong vte_buffer_get_column_count       (VteBuffer *buffer);
 
+void vte_buffer_get_cursor_position     (VteBuffer *buffer,
+                                         glong *column,
+                                         glong *row);
+
 gboolean vte_buffer_write_contents_sync (VteBuffer *buffer,
                                          GOutputStream *stream,
                                          VteWriteFlags flags,

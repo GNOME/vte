@@ -5957,8 +5957,8 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_get_cursor_position:
- * @terminal: a #VteTerminal
+ * vte_buffer_get_cursor_position:
+ * @buffer: a #VteBuffer
  * @column: (out) (allow-none): a location to store the column, or %NULL
  * @row : (out) (allow-none): a location to store the row, or %NULL
  *
@@ -5966,15 +5966,15 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
  * coordinate is absolute.
  */
 void
-vte_terminal_get_cursor_position(VteTerminal *terminal,
+vte_buffer_get_cursor_position(VteBuffer *buffer,
 				 glong *column, glong *row)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail(VTE_IS_BUFFER(buffer));
 	if (column) {
-		*column = terminal->pvt->screen->cursor_current.col;
+		*column = buffer->pvt->screen->cursor_current.col;
 	}
 	if (row) {
-		*row = terminal->pvt->screen->cursor_current.row;
+		*row = buffer->pvt->screen->cursor_current.row;
 	}
 }
 

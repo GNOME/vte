@@ -187,8 +187,6 @@ char *vte_terminal_get_text_range(VteTerminal *terminal,
 				  VteSelectionFunc is_selected,
 				  gpointer user_data,
 				  GArray *attributes);
-void vte_terminal_get_cursor_position(VteTerminal *terminal,
-				      glong *column, glong *row);
 
 /* Add a matching expression, returning the tag the widget assigns to that
  * expression. */
