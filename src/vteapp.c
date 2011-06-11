@@ -214,13 +214,13 @@ button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
 }
 
 static void
-iconify_window(GtkWidget *widget, gpointer data)
+iconify_window(VteBuffer *buffer, gpointer data)
 {
 	gtk_window_iconify(data);
 }
 
 static void
-deiconify_window(GtkWidget *widget, gpointer data)
+deiconify_window(VteBuffer *buffer, gpointer data)
 {
 	gtk_window_deiconify(data);
 }
@@ -980,9 +980,9 @@ main(int argc, char **argv)
 			 G_CALLBACK(button_pressed), widget);
 
 	/* Connect to application request signals. */
-	g_signal_connect(widget, "iconify-window",
+	g_signal_connect(buffer, "iconify-window",
 			 G_CALLBACK(iconify_window), window);
-	g_signal_connect(widget, "deiconify-window",
+	g_signal_connect(buffer, "deiconify-window",
 			 G_CALLBACK(deiconify_window), window);
 	g_signal_connect(widget, "raise-window",
 			 G_CALLBACK(raise_window), window);

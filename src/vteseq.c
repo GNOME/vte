@@ -179,24 +179,6 @@ vte_parse_color (const char *spec, GdkRGBA *rgba)
         return TRUE;
 }
 
-/* Emit a "deiconify-window" signal. */
-static void
-vte_terminal_emit_deiconify_window(VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `deiconify-window'.\n");
-	g_signal_emit_by_name(terminal, "deiconify-window");
-}
-
-/* Emit a "iconify-window" signal. */
-static void
-vte_terminal_emit_iconify_window(VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `iconify-window'.\n");
-	g_signal_emit_by_name(terminal, "iconify-window");
-}
-
 /* Emit a "raise-window" signal. */
 static void
 vte_terminal_emit_raise_window(VteTerminal *terminal)
@@ -3090,12 +3072,12 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 		case 1:
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Deiconifying window.\n");
-			vte_terminal_emit_deiconify_window(terminal);
+			_vte_buffer_emit_deiconify_window(terminal->term_pvt->buffer);
 			break;
 		case 2:
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Iconifying window.\n");
-			vte_terminal_emit_iconify_window(terminal);
+			_vte_buffer_emit_iconify_window(terminal->term_pvt->buffer);
 			break;
 		case 3:
 			if ((arg1 != -1) && (arg2 != -2)) {

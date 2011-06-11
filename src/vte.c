@@ -171,6 +171,8 @@ enum {
         BUFFER_STATUS_LINE_CHANGED,
         BUFFER_EOF,
         BUFFER_CHILD_EXITED,
+        BUFFER_DEICONIFY_WINDOW,
+        BUFFER_ICONIFY_WINDOW,
         LAST_BUFFER_SIGNAL,
 };
 
@@ -1026,6 +1028,24 @@ vte_terminal_emit_text_scrolled(VteTerminal *terminal, gint delta)
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `text-scrolled'(%d).\n", delta);
 	g_signal_emit_by_name(terminal, "text-scrolled", delta);
+}
+
+/* Emit a "deiconify-window" signal. */
+void
+_vte_buffer_emit_deiconify_window(VteBuffer *buffer)
+{
+        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                        "Emitting `deiconify-window'.\n");
+        g_signal_emit(buffer, buffer_signals[BUFFER_DEICONIFY_WINDOW], 0);
+}
+
+/* Emit a "iconify-window" signal. */
+void
+_vte_buffer_emit_iconify_window(VteBuffer *buffer)
+{
+        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                        "Emitting `iconify-window'.\n");
+        g_signal_emit(buffer, buffer_signals[BUFFER_ICONIFY_WINDOW], 0);
 }
 
 /* Deselect anything which is selected and refresh the screen if needed. */
@@ -10843,8 +10863,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->contents_changed = NULL;
 	klass->cursor_moved = NULL;
 
-	klass->deiconify_window = NULL;
-	klass->iconify_window = NULL;
 	klass->raise_window = NULL;
 	klass->lower_window = NULL;
 	klass->refresh_window = NULL;
@@ -10934,36 +10952,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, cursor_moved),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
-
-        /**
-         * VteTerminal::deiconify-window:
-         * @vteterminal: the object which received the signal
-         *
-         * Emitted at the child application's request.
-         */
-                g_signal_new(I_("deiconify-window"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, deiconify_window),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
-
-        /**
-         * VteTerminal::iconify-window:
-         * @vteterminal: the object which received the signal
-         *
-         * Emitted at the child application's request.
-         */
-                g_signal_new(I_("iconify-window"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, iconify_window),
 			     NULL,
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
@@ -13601,6 +13589,8 @@ vte_buffer_class_init(VteBufferClass *klass)
         klass->window_title_changed = NULL;
         klass->icon_title_changed = NULL;
         klass->status_line_changed = NULL;
+        klass->deiconify_window = NULL;
+        klass->iconify_window = NULL;
 
         /**
          * VteBuffer::child-exited:
@@ -13739,6 +13729,38 @@ vte_buffer_class_init(VteBufferClass *klass)
                              G_OBJECT_CLASS_TYPE(klass),
                              G_SIGNAL_RUN_LAST,
                              G_STRUCT_OFFSET(VteBufferClass, status_line_changed),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+
+        /**
+         * VteBuffer::deiconify-window:
+         * @vtebuffer: the object which received the signal
+         *
+         * Emitted at the child application's request.
+         */
+        buffer_signals[BUFFER_DEICONIFY_WINDOW] =
+                g_signal_new(I_("deiconify-window"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, deiconify_window),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+
+        /**
+         * VteBuffer::iconify-window:
+         * @vtebuffer: the object which received the signal
+         *
+         * Emitted at the child application's request.
+         */
+        buffer_signals[BUFFER_ICONIFY_WINDOW] =
+                g_signal_new(I_("iconify-window"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, iconify_window),
                              NULL,
                              NULL,
                              g_cclosure_marshal_VOID__VOID,

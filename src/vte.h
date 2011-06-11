@@ -79,8 +79,6 @@ struct _VteTerminalClass {
 	void (*contents_changed)(VteTerminal* terminal);
 	void (*cursor_moved)(VteTerminal* terminal);
 
-	void (*deiconify_window)(VteTerminal* terminal);
-	void (*iconify_window)(VteTerminal* terminal);
 	void (*raise_window)(VteTerminal* terminal);
 	void (*lower_window)(VteTerminal* terminal);
 	void (*refresh_window)(VteTerminal* terminal);

@@ -482,6 +482,8 @@ void _vte_buffer_cursor_down (VteBuffer *buffer);
 gboolean _vte_buffer_insert_char(VteBuffer *buffer, gunichar c,
                                  gboolean force_insert_mode,
                                  gboolean invalidate_cells);
+void _vte_buffer_emit_deiconify_window(VteBuffer *buffer);
+void _vte_buffer_emit_iconify_window(VteBuffer *buffer);
 
 /* private VteScreen methods */
 void _vte_screen_set_default_attributes(VteScreen *screen);
