@@ -3114,7 +3114,7 @@ vte_terminal_im_reset(VteTerminal *terminal)
 
 /* Emit whichever signals are called for here. */
 static void
-vte_terminal_emit_pending_text_signals(VteTerminal *terminal, GQuark quark)
+vte_buffer_emit_pending_text_signals(VteBuffer *buffer, GQuark quark)
 {
 	static struct {
 		const char *name;
@@ -3143,23 +3143,23 @@ vte_terminal_emit_pending_text_signals(VteTerminal *terminal, GQuark quark)
 		}
 	}
 
-	if (terminal->pvt->text_modified_flag) {
+	if (buffer->pvt->text_modified_flag) {
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting buffered `text-modified'.\n");
-		vte_buffer_emit_text_modified(terminal->term_pvt->buffer);
-		terminal->pvt->text_modified_flag = FALSE;
+		vte_buffer_emit_text_modified(buffer);
+		buffer->pvt->text_modified_flag = FALSE;
 	}
-	if (terminal->pvt->text_inserted_flag) {
+	if (buffer->pvt->text_inserted_flag) {
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting buffered `text-inserted'\n");
-		_vte_buffer_emit_text_inserted(terminal->term_pvt->buffer);
-		terminal->pvt->text_inserted_flag = FALSE;
+		_vte_buffer_emit_text_inserted(buffer);
+		buffer->pvt->text_inserted_flag = FALSE;
 	}
-	if (terminal->pvt->text_deleted_flag) {
+	if (buffer->pvt->text_deleted_flag) {
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting buffered `text-deleted'\n");
-		_vte_buffer_emit_text_deleted(terminal->term_pvt->buffer);
-		terminal->pvt->text_deleted_flag = FALSE;
+		_vte_buffer_emit_text_deleted(buffer);
+		buffer->pvt->text_deleted_flag = FALSE;
 	}
 }
 
@@ -12632,7 +12632,7 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 
 	/* Flush any pending "inserted" signals. */
 	vte_buffer_emit_cursor_moved(terminal->term_pvt->buffer);
-	vte_terminal_emit_pending_text_signals(terminal, 0);
+	vte_buffer_emit_pending_text_signals(terminal->term_pvt->buffer, 0);
 	vte_terminal_emit_contents_changed (terminal);
 
         g_object_thaw_notify(buffer_object);
