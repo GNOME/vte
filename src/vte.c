@@ -178,6 +178,8 @@ enum {
         BUFFER_REFRESH_WINDOW,
         BUFFER_RESTORE_WINDOW,
         BUFFER_MAXIMIZE_WINDOW,
+        BUFFER_RESIZE_WINDOW,
+        BUFFER_MOVE_WINDOW,
         LAST_BUFFER_SIGNAL,
 };
 
@@ -1096,6 +1098,26 @@ _vte_buffer_emit_restore_window(VteBuffer *buffer)
         _vte_debug_print(VTE_DEBUG_SIGNALS,
                         "Emitting `restore-window'.\n");
         g_signal_emit(buffer, buffer_signals[BUFFER_RESTORE_WINDOW], 0);
+}
+
+/* Emit a "move-window" signal.  (Pixels.) */
+void
+_vte_buffer_emit_move_window(VteBuffer *buffer, guint x, guint y)
+{
+        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                        "Emitting `move-window'.\n");
+        g_signal_emit(buffer, buffer_signals[BUFFER_MOVE_WINDOW], 0, x, y);
+}
+
+/* Emit a "resize-window" signal.  (Pixels.) */
+void
+_vte_buffer_emit_resize_window(VteBuffer *buffer,
+                                guint width, guint height)
+{
+        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                        "Emitting `resize-window'.\n");
+        g_signal_emit(buffer, buffer_signals[BUFFER_RESIZE_WINDOW], 0,
+                      width, height);
 }
 
 /* Deselect anything which is selected and refresh the screen if needed. */
@@ -10896,9 +10918,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->contents_changed = NULL;
 	klass->cursor_moved = NULL;
 
-	klass->resize_window = NULL;
-	klass->move_window = NULL;
-
 	klass->increase_font_size = NULL;
 	klass->decrease_font_size = NULL;
 
@@ -10984,40 +11003,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
-
-        /**
-         * VteTerminal::resize-window:
-         * @vteterminal: the object which received the signal
-         * @width: the desired width in pixels, including padding
-         * @height: the desired height in pixels, including padding
-         *
-         * Emitted at the child application's request.
-         */
-                g_signal_new(I_("resize-window"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, resize_window),
-			     NULL,
-			     NULL,
-			     _vte_marshal_VOID__UINT_UINT,
-			     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
-
-        /**
-         * VteTerminal::move-window:
-         * @vteterminal: the object which received the signal
-         * @x: the terminal's desired location, X coordinate
-         * @y: the terminal's desired location, Y coordinate
-         *
-         * Emitted at the child application's request.
-         */
-                g_signal_new(I_("move-window"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, move_window),
-			     NULL,
-			     NULL,
-			     _vte_marshal_VOID__UINT_UINT,
-			     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
 
         /**
          * VteTerminal::increase-font-size:
@@ -13539,6 +13524,8 @@ vte_buffer_class_init(VteBufferClass *klass)
         klass->refresh_window = NULL;
         klass->restore_window = NULL;
         klass->maximize_window = NULL;
+        klass->resize_window = NULL;
+        klass->move_window = NULL;
 
         /**
          * VteBuffer::child-exited:
@@ -13793,6 +13780,42 @@ vte_buffer_class_init(VteBufferClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+
+        /**
+         * VteBuffer::resize-window:
+         * @vtebuffer: the object which received the signal
+         * @width: the desired width in pixels, including padding
+         * @height: the desired height in pixels, including padding
+         *
+         * Emitted at the child application's request.
+         */
+        buffer_signals[BUFFER_RESIZE_WINDOW] =
+                g_signal_new(I_("resize-window"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, resize_window),
+                             NULL,
+                             NULL,
+                             _vte_marshal_VOID__UINT_UINT,
+                             G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
+
+        /**
+         * VteBuffer::move-window:
+         * @vtebuffer: the object which received the signal
+         * @x: the buffer's desired location, X coordinate
+         * @y: the buffer's desired location, Y coordinate
+         *
+         * Emitted at the child application's request.
+         */
+        buffer_signals[BUFFER_MOVE_WINDOW] =
+                g_signal_new(I_("move-window"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, move_window),
+                             NULL,
+                             NULL,
+                             _vte_marshal_VOID__UINT_UINT,
+                             G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
 
         /* Properties */
 

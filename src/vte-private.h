@@ -489,6 +489,8 @@ void _vte_buffer_emit_lower_window(VteBuffer *buffer);
 void _vte_buffer_emit_refresh_window(VteBuffer *buffer);
 void _vte_buffer_emit_restore_window(VteBuffer *buffer);
 void _vte_buffer_emit_maximize_window(VteBuffer *buffer);
+void _vte_buffer_emit_resize_window(VteBuffer *buffer, guint w, guint h);
+void _vte_buffer_emit_move_window(VteBuffer *buffer, guint x, guint y);
 
 /* private VteScreen methods */
 void _vte_screen_set_default_attributes(VteScreen *screen);

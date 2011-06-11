@@ -179,26 +179,6 @@ vte_parse_color (const char *spec, GdkRGBA *rgba)
         return TRUE;
 }
 
-/* Emit a "move-window" signal.  (Pixels.) */
-static void
-vte_terminal_emit_move_window(VteTerminal *terminal, guint x, guint y)
-{
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `move-window'.\n");
-	g_signal_emit_by_name(terminal, "move-window", x, y);
-}
-
-/* Emit a "resize-window" signal.  (Pixels.) */
-static void
-vte_terminal_emit_resize_window(VteTerminal *terminal,
-				guint width, guint height)
-{
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `resize-window'.\n");
-	g_signal_emit_by_name(terminal, "resize-window", width, height);
-}
-
-
 /* Some common functions */
 
 static void
@@ -764,7 +744,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		break;
 #if 0		/* 3: disallowed, window size is set by user. */
 	case 3:
-		vte_terminal_emit_resize_window(terminal,
+		_vte_buffer_emit_resize_window(terminal->term_pvt->buffer,
 						(set ? 132 : 80) *
 						terminal->pvt->char_width +
 						terminal->pvt->padding.left +
@@ -3039,7 +3019,7 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 				_vte_debug_print(VTE_DEBUG_PARSE,
 						"Moving window to "
 						"%ld,%ld.\n", arg1, arg2);
-				vte_terminal_emit_move_window(terminal,
+				_vte_buffer_emit_move_window(terminal->term_pvt->buffer,
 							      arg1, arg2);
 				i += 2;
 			}
@@ -3050,7 +3030,7 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 						"Resizing window "
 						"(to %ldx%ld pixels).\n",
 						arg2, arg1);
-				vte_terminal_emit_resize_window(terminal,
+				_vte_buffer_emit_resize_window(terminal->term_pvt->buffer,
 								arg2 +
 								terminal->pvt->padding.left +
 								terminal->pvt->padding.right,
@@ -3080,7 +3060,7 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 						"Resizing window "
 						"(to %ld columns, %ld rows).\n",
 						arg2, arg1);
-				vte_terminal_emit_resize_window(terminal,
+				_vte_buffer_emit_resize_window(terminal->term_pvt->buffer,
 								arg2 * terminal->pvt->char_width +
 								terminal->pvt->padding.left +
 								terminal->pvt->padding.right,
@@ -3205,7 +3185,7 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 					       	param);
 				/* Resize to the specified number of
 				 * rows. */
-				vte_terminal_emit_resize_window(terminal,
+				_vte_buffer_emit_resize_window(terminal->term_pvt->buffer,
 								terminal->pvt->column_count * terminal->pvt->char_width +
                                                                 terminal->pvt->padding.left +
                                                                 terminal->pvt->padding.right,

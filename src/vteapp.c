@@ -298,19 +298,17 @@ refresh_window(VteBuffer *buffer, gpointer data)
 }
 
 static void
-resize_window(GtkWidget *widget, guint width, guint height, gpointer data)
+resize_window(VteBuffer *buffer, guint width, guint height, VteTerminal *terminal)
 {
-	VteTerminal *terminal;
-        VteBuffer *buffer;
+        GtkWidget *widget = &terminal->widget;
+        GtkWidget *window;
 
-	if ((GTK_IS_WINDOW(data)) && (width >= 2) && (height >= 2)) {
+        window = gtk_widget_get_toplevel(GTK_WIDGET(terminal));
+	if (gtk_widget_is_toplevel(window) && (width >= 2) && (height >= 2)) {
 		gint owidth, oheight, char_width, char_height, column_count, row_count;
 		GtkBorder padding;
 
-		terminal = VTE_TERMINAL(widget);
-                buffer = vte_terminal_get_buffer(terminal);
-
-		gtk_window_get_size(GTK_WINDOW(data), &owidth, &oheight);
+		gtk_window_get_size(GTK_WINDOW(window), &owidth, &oheight);
 
 		/* Take into account border overhead. */
 		char_width = vte_terminal_get_char_width (terminal);
@@ -323,13 +321,13 @@ resize_window(GtkWidget *widget, guint width, guint height, gpointer data)
 
                 owidth -= char_width * column_count + padding.left + padding.right;
                 oheight -= char_height * row_count + padding.top + padding.bottom;
-		gtk_window_resize(GTK_WINDOW(data),
+		gtk_window_resize(GTK_WINDOW(window),
 				  width + owidth, height + oheight);
 	}
 }
 
 static void
-move_window(GtkWidget *widget, guint x, guint y, gpointer data)
+move_window(VteBuffer *buffer, guint x, guint y, gpointer data)
 {
 	GdkWindow *window;
 
@@ -995,9 +993,9 @@ main(int argc, char **argv)
 			 G_CALLBACK(restore_window), window);
 	g_signal_connect(buffer, "refresh-window",
 			 G_CALLBACK(refresh_window), window);
-	g_signal_connect(widget, "resize-window",
-			 G_CALLBACK(resize_window), window);
-	g_signal_connect(widget, "move-window",
+	g_signal_connect(buffer, "resize-window",
+			 G_CALLBACK(resize_window), terminal);
+	g_signal_connect(buffer, "move-window",
 			 G_CALLBACK(move_window), window);
 
 	/* Connect to font tweakage. */

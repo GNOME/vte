@@ -79,9 +79,6 @@ struct _VteTerminalClass {
 	void (*contents_changed)(VteTerminal* terminal);
 	void (*cursor_moved)(VteTerminal* terminal);
 
-	void (*resize_window)(VteTerminal* terminal, guint width, guint height);
-	void (*move_window)(VteTerminal* terminal, guint x, guint y);
-
         /* FIXMEchpe: should these return gboolean and have defaul thandlers
          * settings the "scale" property?
          */

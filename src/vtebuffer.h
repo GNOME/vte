@@ -62,6 +62,12 @@ struct _VteBufferClass {
   void (*refresh_window)       (VteBuffer* buffer);
   void (*restore_window)       (VteBuffer* buffer);
   void (*maximize_window)      (VteBuffer* buffer);
+  void (*resize_window)        (VteBuffer* buffer,
+                                guint width,
+                                guint height);
+  void (*move_window)          (VteBuffer* buffer,
+                                guint x,
+                                guint y);
 
   /*< private >*/
   VteBufferClassPrivate *priv;
