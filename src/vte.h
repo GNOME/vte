@@ -105,20 +105,6 @@ struct _VteTerminalClass {
  */
 #define VTE_STYLE_CLASS_TERMINAL "terminal"
 
-/* The structure we return as the supplemental attributes for strings. */
-typedef struct _VteCharAttributes VteCharAttributes;
-struct _VteCharAttributes {
-        /*< private >*/
-	long row, column;
-	GdkRGBA fore, back;
-	guint underline:1, strikethrough:1;
-};
-
-typedef gboolean (*VteSelectionFunc)(VteTerminal *terminal,
-                                     glong column,
-                                     glong row,
-                                     gpointer data);
-
 /* The widget's type. */
 GType vte_terminal_get_type(void);
 
@@ -166,27 +152,6 @@ gboolean vte_terminal_is_word_char(VteTerminal *terminal, gunichar c);
 /* Manipulate the autohide setting. */
 void vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting);
 gboolean vte_terminal_get_mouse_autohide(VteTerminal *terminal);
-
-/* Read the contents of the terminal, using a callback function to determine
- * if a particular location on the screen (0-based) is interesting enough to
- * include.  Each byte in the returned string will have a corresponding
- * VteCharAttributes structure in the passed GArray, if the array was not %NULL.
- * Note that it will have one entry per byte, not per character, so indexes
- * should match up exactly. */
-char *vte_terminal_get_text(VteTerminal *terminal,
-			    VteSelectionFunc is_selected,
-			    gpointer user_data,
-			    GArray *attributes);
-char *vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
-						    VteSelectionFunc is_selected,
-						    gpointer user_data,
-						    GArray *attributes);
-char *vte_terminal_get_text_range(VteTerminal *terminal,
-				  glong start_row, glong start_col,
-				  glong end_row, glong end_col,
-				  VteSelectionFunc is_selected,
-				  gpointer user_data,
-				  GArray *attributes);
 
 /* Add a matching expression, returning the tag the widget assigns to that
  * expression. */

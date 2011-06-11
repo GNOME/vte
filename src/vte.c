@@ -92,9 +92,10 @@ static gboolean vte_terminal_background_update(VteTerminal *data);
 static void vte_terminal_queue_background_update(VteTerminal *terminal);
 static void vte_terminal_process_incoming(VteTerminal *terminal);
 static void vte_terminal_emit_pending_signals(VteTerminal *terminal);
-static gboolean vte_cell_is_selected(VteTerminal *terminal,
-				     glong col, glong row, gpointer data);
-static char *vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
+static gboolean vte_terminal_cell_is_selected(VteBuffer *buffer,
+                                              glong col, glong row,
+                                              VteTerminal *terminal);
+static char *vte_buffer_get_text_range_maybe_wrapped(VteBuffer *buffer,
 						       glong start_row,
 						       glong start_col,
 						       glong end_row,
@@ -104,7 +105,7 @@ static char *vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 						       gpointer data,
 						       GArray *attributes,
 						       gboolean include_trailing_spaces);
-static char *vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
+static char *vte_buffer_get_text_maybe_wrapped(VteBuffer *buffer,
 						 gboolean wrap,
 						 VteSelectionFunc is_selected,
 						 gpointer data,
@@ -1244,7 +1245,7 @@ vte_terminal_match_contents_clear(VteTerminal *terminal)
 
 /* Refresh the cache of the screen contents we keep. */
 static gboolean
-always_selected(VteTerminal *terminal, glong column, glong row, gpointer data)
+always_selected(VteBuffer *buffer, glong column, glong row, gpointer data)
 {
 	return TRUE;
 }
@@ -1255,7 +1256,7 @@ vte_terminal_match_contents_refresh(VteTerminal *terminal)
 	GArray *array;
 	vte_terminal_match_contents_clear(terminal);
 	array = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
-	terminal->pvt->match_contents = vte_terminal_get_text(terminal,
+	terminal->pvt->match_contents = vte_buffer_get_text(terminal->term_pvt->buffer,
 							      always_selected,
 							      NULL,
 							      array);
@@ -3497,13 +3498,13 @@ next_match:
 		if (terminal->pvt->has_selection) {
 			char *selection;
 			selection =
-			vte_terminal_get_text_range(terminal,
+			vte_buffer_get_text_range(terminal->term_pvt->buffer,
 						    terminal->pvt->selection_start.row,
 						    0,
 						    terminal->pvt->selection_end.row,
 						    terminal->pvt->column_count,
-						    vte_cell_is_selected,
-						    NULL,
+						    (VteSelectionFunc)vte_terminal_cell_is_selected,
+						    terminal /* user data */,
 						    NULL);
 			if ((selection == NULL) || (terminal->pvt->selection == NULL) ||
 			    (strcmp(selection, terminal->pvt->selection) != 0)) {
@@ -5066,10 +5067,10 @@ vte_same_class(VteTerminal *terminal, glong acol, glong arow,
 
 /* Check if we soft-wrapped on the given line. */
 static gboolean
-vte_line_is_wrappable(VteTerminal *terminal, glong row)
+vte_buffer_line_is_wrappable(VteBuffer *buffer, glong row)
 {
 	const VteRowData *rowdata;
-	rowdata = _vte_screen_find_row_data(terminal->pvt->screen, row);
+	rowdata = _vte_screen_find_row_data(buffer->pvt->screen, row);
 	return rowdata && rowdata->attr.soft_wrapped;
 }
 
@@ -5136,7 +5137,7 @@ vte_cell_is_between(glong col, glong row,
 
 /* Check if a cell is selected or not. */
 static gboolean
-vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
+vte_terminal_cell_is_selected(VteBuffer *buffer, glong col, glong row, VteTerminal *terminal)
 {
 	VteVisualPosition ss, se;
 
@@ -5678,7 +5679,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 
 /**
  * VteSelectionFunc:
- * @terminal: terminal in which the cell is.
+ * @buffer: buffer in which the cell is.
  * @column: column in which the cell is.
  * @row: row in which the cell is.
  * @data: user data.
@@ -5690,8 +5691,8 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
  */
 
 /**
- * vte_terminal_get_text_range:
- * @terminal: a #VteTerminal
+ * vte_buffer_get_text_range:
+ * @buffer: a #VteBuffer
  * @start_row: first row to search for data
  * @start_col: first column to search for data
  * @end_row: last row to search for data
@@ -5700,7 +5701,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
  * @user_data: (closure): user data to be passed to the callback
  * @attributes: (out) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
- * Extracts a view of the visible part of the terminal.  If @is_selected is not
+ * Extracts a view of the visible part of the buffer.  If @is_selected is not
  * %NULL, characters will only be read if @is_selected returns %TRUE after being
  * passed the column and row, respectively.  A #VteCharAttributes structure
  * is added to @attributes for each byte added to the returned string detailing
@@ -5711,15 +5712,15 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
  * Returns: (transfer full): a newly allocated text string, or %NULL.
  */
 char *
-vte_terminal_get_text_range(VteTerminal *terminal,
+vte_buffer_get_text_range(VteBuffer *buffer,
 			    glong start_row, glong start_col,
 			    glong end_row, glong end_col,
 			    VteSelectionFunc is_selected,
 			    gpointer user_data,
 			    GArray *attributes)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return vte_terminal_get_text_range_maybe_wrapped(terminal,
+	g_return_val_if_fail(VTE_IS_BUFFER(buffer), NULL);
+	return vte_buffer_get_text_range_maybe_wrapped(buffer,
 							 start_row, start_col,
 							 end_row, end_col,
 							 TRUE,
@@ -5730,7 +5731,7 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 }
 
 static char *
-vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
+vte_buffer_get_text_range_maybe_wrapped(VteBuffer *buffer,
 					  glong start_row, glong start_col,
 					  glong end_row, glong end_col,
 					  gboolean wrap,
@@ -5749,7 +5750,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 	if (!is_selected)
 		is_selected = always_selected;
 
-	screen = terminal->pvt->screen;
+	screen = buffer->pvt->screen;
 
 	if (attributes)
 		g_array_set_size (attributes, 0);
@@ -5757,10 +5758,10 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 	string = g_string_new(NULL);
 	memset(&attr, 0, sizeof(attr));
 
-	palette = terminal->pvt->palette;
+	palette = buffer->pvt->palette;
 	col = start_col;
 	for (row = start_row; row < end_row + 1; row++, col = 0) {
-		const VteRowData *row_data = _vte_screen_find_row_data(terminal->pvt->screen, row);
+		const VteRowData *row_data = _vte_screen_find_row_data(buffer->pvt->screen, row);
 		last_empty = last_nonempty = string->len;
 		last_emptycol = last_nonemptycol = -1;
 
@@ -5775,7 +5776,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 				/* If it's not part of a multi-column character,
 				 * and passes the selection criterion, add it to
 				 * the selection. */
-				if (!pcell->attr.fragment && is_selected(terminal, col, row, data)) {
+				if (!pcell->attr.fragment && is_selected(buffer, col, row, data)) {
 					/* Store the attributes of this character. */
 					fore = palette[pcell->attr.fore];
 					back = palette[pcell->attr.back];
@@ -5843,18 +5844,18 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 		}
 
 		/* Adjust column, in case we want to append a newline */
-		attr.column = MAX(terminal->pvt->column_count, attr.column + 1);
+		attr.column = MAX(buffer->pvt->column_count, attr.column + 1);
 
 		/* Add a newline in block mode. */
-		if (terminal->pvt->selection_block_mode) {
+		if (buffer->pvt->selection_block_mode) {
 			string = g_string_append_c(string, '\n');
 		}
 		/* Else, if the last visible column on this line was selected and
 		 * not soft-wrapped, append a newline. */
-		else if (is_selected(terminal, terminal->pvt->column_count, row, data)) {
+		else if (is_selected(buffer, buffer->pvt->column_count, row, data)) {
 			/* If we didn't softwrap, add a newline. */
 			/* XXX need to clear row->soft_wrap on deletion! */
-			if (!vte_line_is_wrappable(terminal, row)) {
+			if (!vte_buffer_line_is_wrappable(buffer, row)) {
 				string = g_string_append_c(string, '\n');
 			}
 		}
@@ -5870,7 +5871,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 }
 
 static char *
-vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
+vte_buffer_get_text_maybe_wrapped(VteBuffer *buffer,
 				    gboolean wrap,
 				    VteSelectionFunc is_selected,
 				    gpointer data,
@@ -5878,11 +5879,11 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 				    gboolean include_trailing_spaces)
 {
 	long start_row, start_col, end_row, end_col;
-	start_row = terminal->pvt->screen->scroll_delta;
+	start_row = buffer->pvt->screen->scroll_delta;
 	start_col = 0;
-	end_row = start_row + terminal->pvt->row_count - 1;
-	end_col = terminal->pvt->column_count - 1;
-	return vte_terminal_get_text_range_maybe_wrapped(terminal,
+	end_row = start_row + buffer->pvt->row_count - 1;
+	end_col = buffer->pvt->column_count - 1;
+	return vte_buffer_get_text_range_maybe_wrapped(buffer,
 							 start_row, start_col,
 							 end_row, end_col,
 							 wrap,
@@ -5893,13 +5894,13 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_get_text:
- * @terminal: a #VteTerminal
+ * vte_buffer_get_text:
+ * @buffer: a #VteBuffer
  * @is_selected: a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
  * @attributes: (out) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
- * Extracts a view of the visible part of the terminal.  If @is_selected is not
+ * Extracts a view of the visible part of the buffer.  If @is_selected is not
  * %NULL, characters will only be read if @is_selected returns %TRUE after being
  * passed the column and row, respectively.  A #VteCharAttributes structure
  * is added to @attributes for each byte added to the returned string detailing
@@ -5908,13 +5909,13 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
  * Returns: (transfer full): a newly allocated text string, or %NULL.
  */
 char *
-vte_terminal_get_text(VteTerminal *terminal,
+vte_buffer_get_text(VteBuffer *buffer,
 		      VteSelectionFunc is_selected,
 		      gpointer user_data,
 		      GArray *attributes)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return vte_terminal_get_text_maybe_wrapped(terminal,
+	g_return_val_if_fail(VTE_IS_BUFFER(buffer), NULL);
+	return vte_buffer_get_text_maybe_wrapped(buffer,
 						   TRUE,
 						   is_selected,
 						   user_data,
@@ -5923,18 +5924,18 @@ vte_terminal_get_text(VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_get_text_include_trailing_spaces:
- * @terminal: a #VteTerminal
+ * vte_buffer_get_text_include_trailing_spaces:
+ * @buffer: a #VteBuffer
  * @is_selected: a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
  * @attributes: (out) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
- * Extracts a view of the visible part of the terminal.  If @is_selected is not
+ * Extracts a view of the visible part of the buffer.  If @is_selected is not
  * %NULL, characters will only be read if @is_selected returns %TRUE after being
  * passed the column and row, respectively.  A #VteCharAttributes structure
  * is added to @attributes for each byte added to the returned string detailing
  * the character's position, colors, and other characteristics. This function
- * differs from vte_terminal_get_text() in that trailing spaces at the end of
+ * differs from vte_buffer_get_text() in that trailing spaces at the end of
  * lines are included.
  *
  * Returns: (transfer full): a newly allocated text string, or %NULL.
@@ -5942,13 +5943,13 @@ vte_terminal_get_text(VteTerminal *terminal,
  * Since: 0.11.11
  */
 char *
-vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
+vte_buffer_get_text_include_trailing_spaces(VteBuffer *buffer,
 					      VteSelectionFunc is_selected,
 					      gpointer user_data,
 					      GArray *attributes)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return vte_terminal_get_text_maybe_wrapped(terminal,
+	g_return_val_if_fail(VTE_IS_BUFFER(buffer), NULL);
+	return vte_buffer_get_text_maybe_wrapped(buffer,
 						   TRUE,
 						   is_selected,
 						   user_data,
@@ -6000,13 +6001,13 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 	/* Chuck old selected text and retrieve the newly-selected text. */
 	g_free(terminal->pvt->selection);
 	terminal->pvt->selection =
-		vte_terminal_get_text_range(terminal,
+		vte_buffer_get_text_range(terminal->term_pvt->buffer,
 					    terminal->pvt->selection_start.row,
 					    0,
 					    terminal->pvt->selection_end.row,
 					    terminal->pvt->column_count,
-					    vte_cell_is_selected,
-					    NULL,
+					    (VteSelectionFunc)vte_terminal_cell_is_selected,
+					    terminal /* user data */,
 					    NULL);
 	terminal->pvt->has_selection = TRUE;
 
@@ -6252,7 +6253,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 				/* We hit a stopping point, so stop. */
 				break;
 			} else {
-				if (vte_line_is_wrappable(terminal, j - 1) &&
+				if (vte_buffer_line_is_wrappable(terminal->term_pvt->buffer, j - 1) &&
 				    vte_same_class(terminal,
 						   terminal->pvt->column_count - 1,
 						   j - 1,
@@ -6298,7 +6299,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 				/* We hit a stopping point, so stop. */
 				break;
 			} else {
-				if (vte_line_is_wrappable(terminal, j) &&
+				if (vte_buffer_line_is_wrappable(terminal->term_pvt->buffer, j) &&
 				    vte_same_class(terminal,
 						   terminal->pvt->column_count - 1,
 						   j,
@@ -6320,14 +6321,14 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 		/* Now back up as far as we can go. */
 		j = sc->row;
 		while (_vte_ring_contains (screen->row_data, j - 1) &&
-		       vte_line_is_wrappable(terminal, j - 1)) {
+		       vte_buffer_line_is_wrappable(terminal->term_pvt->buffer, j - 1)) {
 			j--;
 			sc->row = j;
 		}
 		/* And move forward as far as we can go. */
 		j = ec->row;
 		while (_vte_ring_contains (screen->row_data, j) &&
-		       vte_line_is_wrappable(terminal, j)) {
+		       vte_buffer_line_is_wrappable(terminal->term_pvt->buffer, j)) {
 			j++;
 			ec->row = j;
 		}
@@ -6846,10 +6847,10 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) &&
 				    (terminal->pvt->has_selection ||
 				     terminal->pvt->selecting_restart) &&
-				    !vte_cell_is_selected(terminal,
+				    !vte_terminal_cell_is_selected(terminal->term_pvt->buffer,
 							  cellx,
 							  celly,
-							  NULL)) {
+							  terminal)) {
 					extend_selecting = TRUE;
 				} else {
 					start_selecting = TRUE;
@@ -9851,7 +9852,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				/* Get the character cell's contents. */
 				cell = _vte_row_data_get (row_data, i);
 				/* Find the colors for this cell. */
-				selected = vte_cell_is_selected(terminal, i, row, NULL);
+				selected = vte_terminal_cell_is_selected(terminal->term_pvt->buffer, i, row, terminal);
 				vte_terminal_determine_colors(terminal, cell, selected, &fore, &back);
 
 				bold = cell && cell->attr.bold;
@@ -9870,7 +9871,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					/* Resolve attributes to colors where possible and
 					 * compare visual attributes to the first character
 					 * in this chunk. */
-					selected = vte_cell_is_selected(terminal, j, row, NULL);
+					selected = vte_terminal_cell_is_selected(terminal->term_pvt->buffer, j, row, terminal);
 					vte_terminal_determine_colors(terminal, cell, selected, &nfore, &nback);
 					if (nback != back) {
 						break;
@@ -9893,10 +9894,10 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			} while (i < end_column);
 		} else {
 			do {
-				selected = vte_cell_is_selected(terminal, i, row, NULL);
+				selected = vte_terminal_cell_is_selected(terminal->term_pvt->buffer, i, row, terminal);
 				j = i + 1;
 				while (j < end_column){
-					nselected = vte_cell_is_selected(terminal, j, row, NULL);
+					nselected = vte_terminal_cell_is_selected(terminal->term_pvt->buffer, j, row, terminal);
 					if (nselected != selected) {
 						break;
 					}
@@ -9960,7 +9961,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				}
 			}
 			/* Find the colors for this cell. */
-			selected = vte_cell_is_selected(terminal, i, row, NULL);
+			selected = vte_terminal_cell_is_selected(terminal->term_pvt->buffer, i, row, terminal);
 			vte_terminal_determine_colors(terminal, cell, selected, &fore, &back);
 			underline = cell->attr.underline;
 			strikethrough = cell->attr.strikethrough;
@@ -10029,7 +10030,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					/* Resolve attributes to colors where possible and
 					 * compare visual attributes to the first character
 					 * in this chunk. */
-					selected = vte_cell_is_selected(terminal, j, row, NULL);
+					selected = vte_terminal_cell_is_selected(terminal->term_pvt->buffer, j, row, terminal);
 					vte_terminal_determine_colors(terminal, cell, selected, &nfore, &nback);
 					/* Graphic characters must be drawn individually. */
 					if (vte_terminal_unichar_is_local_graphic(terminal, cell->c, cell->attr.bold)) {
@@ -10286,7 +10287,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 		cursor_width = MAX(cursor_width, cw);
 	}
 
-	selected = vte_cell_is_selected(terminal, col, drow, NULL);
+	selected = vte_terminal_cell_is_selected(terminal->term_pvt->buffer, col, drow, terminal);
 
 	vte_terminal_determine_cursor_colors(terminal, cell, selected, &fore, &back);
 
@@ -13100,7 +13101,7 @@ vte_terminal_search_rows (VteTerminal *terminal,
 
 	pvt = terminal->pvt;
 
-	row_text = vte_terminal_get_text_range (terminal, start_row, 0, end_row, -1, NULL, NULL, NULL);
+	row_text = vte_buffer_get_text_range (terminal->term_pvt->buffer, start_row, 0, end_row, -1, NULL, NULL, NULL);
 
 	g_regex_match_full (pvt->search_regex, row_text, -1, 0, G_REGEX_MATCH_NOTEMPTY, &match_info, &error);
 	if (error) {
@@ -13124,7 +13125,7 @@ vte_terminal_search_rows (VteTerminal *terminal,
 	if (!pvt->search_attrs)
 		pvt->search_attrs = g_array_new (FALSE, TRUE, sizeof (VteCharAttributes));
 	attrs = pvt->search_attrs;
-	row_text = vte_terminal_get_text_range (terminal, start_row, 0, end_row, -1, NULL, NULL, attrs);
+	row_text = vte_buffer_get_text_range (terminal->term_pvt->buffer, start_row, 0, end_row, -1, NULL, NULL, attrs);
 
 	/* This gives us the offset in the buffer */
 	g_match_info_fetch_pos (match_info, 0, &start, &end);

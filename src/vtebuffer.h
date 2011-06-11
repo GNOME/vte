@@ -170,6 +170,34 @@ gboolean vte_buffer_spawn_sync          (VteBuffer *buffer,
                                          GCancellable *cancellable,
                                          GError **error);
 
+typedef struct _VteCharAttributes VteCharAttributes;
+struct _VteCharAttributes {
+  /*< private >*/
+  long row, column;
+  GdkRGBA fore, back;
+  guint underline:1, strikethrough:1;
+};
+
+typedef gboolean (*VteSelectionFunc)(VteBuffer *buffer,
+                                     glong column,
+                                     glong row,
+                                     gpointer data);
+
+char *vte_buffer_get_text(VteBuffer *buffer,
+                            VteSelectionFunc is_selected,
+                            gpointer user_data,
+                            GArray *attributes);
+char *vte_buffer_get_text_include_trailing_spaces(VteBuffer *buffer,
+                                                    VteSelectionFunc is_selected,
+                                                    gpointer user_data,
+                                                    GArray *attributes);
+char *vte_buffer_get_text_range(VteBuffer *buffer,
+                                  glong start_row, glong start_col,
+                                  glong end_row, glong end_col,
+                                  VteSelectionFunc is_selected,
+                                  gpointer user_data,
+                                  GArray *attributes);
+
 G_END_DECLS
 
 #endif /* VTE_BUFFER_H */
