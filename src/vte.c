@@ -168,6 +168,7 @@ enum {
         BUFFER_ENCODING_CHANGED,
         BUFFER_WINDOW_TITLE_CHANGED,
         BUFFER_ICON_TITLE_CHANGED,
+        BUFFER_STATUS_LINE_CHANGED,
         LAST_BUFFER_SIGNAL,
 };
 
@@ -951,12 +952,11 @@ vte_terminal_emit_char_size_changed(VteTerminal *terminal,
 
 /* Emit a "status-line-changed" signal. */
 static void
-_vte_terminal_emit_status_line_changed(VteTerminal *terminal)
+_vte_buffer_emit_status_line_changed(VteBuffer *buffer)
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `status-line-changed'.\n");
-	g_signal_emit_by_name(terminal, "status-line-changed");
-/*         g_object_notify(G_OBJECT(terminal), "status-line"); */
+	g_signal_emit(buffer, buffer_signals[BUFFER_STATUS_LINE_CHANGED], 0);
 }
 
 /* Emit an "increase-font-size" signal. */
@@ -10836,7 +10836,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->selection_changed = NULL;
 	klass->contents_changed = NULL;
 	klass->cursor_moved = NULL;
-	klass->status_line_changed = NULL;
 
 	klass->deiconify_window = NULL;
 	klass->iconify_window = NULL;
@@ -11107,22 +11106,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
 			     _vte_marshal_VOID__UINT_UINT,
 			     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
-
-        /**
-         * VteTerminal::status-line-changed:
-         * @vteterminal: the object which received the signal
-         *
-         * Emitted whenever the contents of the status line are modified or
-         * cleared.
-         */
-                g_signal_new(I_("status-line-changed"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, status_line_changed),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::increase-font-size:
@@ -12352,22 +12335,22 @@ vte_buffer_reset(VteBuffer *buffer,
 }
 
 /**
- * vte_terminal_get_status_line:
- * @terminal: a #VteTerminal
+ * vte_buffer_get_status_line:
+ * @buffer: a #VteBuffer
  *
- * Some terminal emulations specify a status line which is separate from the
+ * Some buffer emulations specify a status line which is separate from the
  * main display area, and define a means for applications to move the cursor
  * to the status line and back.
  *
- * Returns: (transfer none): the current contents of the terminal's status line.
- *   For terminals like "xterm", this will usually be the empty string.  The string
+ * Returns: (transfer none): the current contents of the buffer's status line.
+ *   For buffers like "xterm", this will usually be the empty string.  The string
  *   must not be modified or freed by the caller.
  */
 const char *
-vte_terminal_get_status_line(VteTerminal *terminal)
+vte_buffer_get_status_line(VteBuffer *buffer)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return terminal->pvt->screen->status_line_contents->str;
+	g_return_val_if_fail(VTE_IS_BUFFER(buffer), NULL);
+	return buffer->pvt->screen->status_line_contents->str;
 }
 
 /**
@@ -12807,7 +12790,7 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 	vte_terminal_emit_adjustment_changed (terminal);
 
 	if (terminal->pvt->screen->status_line_changed) {
-		_vte_terminal_emit_status_line_changed (terminal);
+		_vte_buffer_emit_status_line_changed (terminal->term_pvt->buffer);
 		terminal->pvt->screen->status_line_changed = FALSE;
 	}
 
@@ -13645,6 +13628,7 @@ vte_buffer_class_init(VteBufferClass *klass)
         klass->encoding_changed = NULL;
         klass->window_title_changed = NULL;
         klass->icon_title_changed = NULL;
+        klass->status_line_changed = NULL;
 
         /**
          * VteBuffer::commit:
@@ -13729,6 +13713,23 @@ vte_buffer_class_init(VteBufferClass *klass)
                              G_OBJECT_CLASS_TYPE(klass),
                              G_SIGNAL_RUN_LAST,
                              G_STRUCT_OFFSET(VteBufferClass, icon_title_changed),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+
+        /**
+         * VteBuffer::status-line-changed:
+         * @vtebuffer: the object which received the signal
+         *
+         * Emitted whenever the contents of the status line are modified or
+         * cleared.
+         */
+        buffer_signals[BUFFER_STATUS_LINE_CHANGED] =
+                g_signal_new(I_("status-line-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, status_line_changed),
                              NULL,
                              NULL,
                              g_cclosure_marshal_VOID__VOID,

@@ -81,7 +81,6 @@ struct _VteTerminalClass {
 	void (*selection_changed)(VteTerminal* terminal);
 	void (*contents_changed)(VteTerminal* terminal);
 	void (*cursor_moved)(VteTerminal* terminal);
-	void (*status_line_changed)(VteTerminal* terminal);
 
 	void (*deiconify_window)(VteTerminal* terminal);
 	void (*iconify_window)(VteTerminal* terminal);
@@ -262,9 +261,6 @@ gboolean  vte_terminal_search_find_previous   (VteTerminal *terminal);
 gboolean  vte_terminal_search_find_next       (VteTerminal *terminal);
 
 const char *vte_get_default_emulation(void);
-
-/* Get the contents of the status line. */
-const char *vte_terminal_get_status_line(VteTerminal *terminal);
 
 void vte_terminal_set_pty(VteTerminal *terminal, VtePty *pty);
 VtePty *vte_terminal_get_pty(VteTerminal *terminal);

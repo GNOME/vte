@@ -51,6 +51,7 @@ struct _VteBufferClass {
   void (*encoding_changed)     (VteBuffer *buffer);
   void (*icon_title_changed)   (VteBuffer* buffer);
   void (*window_title_changed) (VteBuffer* buffer);
+  void (*status_line_changed)  (VteBuffer* buffer);
 
   /*< private >*/
   VteBufferClassPrivate *priv;
@@ -103,6 +104,8 @@ void vte_buffer_reset                   (VteBuffer *buffer,
 const char *vte_buffer_get_window_title (VteBuffer *buffer);
 
 const char *vte_buffer_get_icon_title   (VteBuffer *buffer);
+
+const char *vte_buffer_get_status_line  (VteBuffer *buffer);
 
 gboolean vte_buffer_write_contents_sync (VteBuffer *buffer,
                                          GOutputStream *stream,

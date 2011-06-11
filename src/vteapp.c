@@ -169,10 +169,10 @@ child_exited(GtkWidget *terminal, int status, gpointer window)
 }
 
 static void
-status_line_changed(GtkWidget *widget, gpointer data)
+status_line_changed(VteBuffer *buffer, gpointer data)
 {
 	g_print("Status = `%s'.\n",
-		vte_terminal_get_status_line(VTE_TERMINAL(widget)));
+		vte_buffer_get_status_line(buffer));
 }
 
 static int
@@ -968,7 +968,7 @@ main(int argc, char **argv)
 	}
 
 	/* Connect to the "status-line-changed" signal. */
-	g_signal_connect(widget, "status-line-changed",
+	g_signal_connect(buffer, "status-line-changed",
 			 G_CALLBACK(status_line_changed), widget);
 
 	/* Connect to the "button-press" event. */
