@@ -2740,12 +2740,13 @@ not_inserted:
 }
 
 static void
-vte_terminal_child_watch_cb(GPid pid,
-                            int status,
-                            VteTerminal *terminal)
+vte_buffer_child_watch_cb(GPid pid,
+                          int status,
+                          VteBuffer *buffer)
 {
-	if (pid == terminal->pvt->pty_pid) {
-                GObject *object = G_OBJECT(terminal);
+	if (pid == buffer->pvt->pty_pid) {
+                VteBufferPrivate *pvt = buffer->pvt;
+                GObject *object = G_OBJECT(buffer);
 
                 g_object_ref(object);
                 g_object_freeze_notify(object);
@@ -2764,19 +2765,19 @@ vte_terminal_child_watch_cb(GPid pid,
 #endif
 		}
 
-		terminal->pvt->child_watch_source = 0;
-		terminal->pvt->pty_pid = -1;
+		pvt->child_watch_source = 0;
+		pvt->pty_pid = -1;
 
 		/* Close out the PTY. */
-                vte_buffer_set_pty(terminal->term_pvt->buffer, NULL);
+                vte_buffer_set_pty(buffer, NULL);
 
 		/* Tell observers what's happened. */
-		vte_buffer_emit_child_exited(terminal->term_pvt->buffer, status);
+		vte_buffer_emit_child_exited(buffer, status);
 
                 g_object_thaw_notify(object);
                 g_object_unref(object);
 
-                /* Note: terminal may be destroyed at this point */
+                /* Note: @buffer may be destroyed at this point */
 	}
 }
 
@@ -2895,16 +2896,16 @@ vte_buffer_pty_new_sync(VteBuffer *buffer,
 }
 
 /**
- * vte_terminal_watch_child:
- * @terminal: a #VteTerminal
+ * vte_buffer_watch_child:
+ * @buffer: a #VteBuffer
  * @child_pid: a #GPid
  *
- * Watches @child_pid. When the process exists, the #VteTerminal::child-exited
+ * Watches @child_pid. When the process exists, the #VteBuffer::child-exited
  * signal will be called with the child's exit status.
  *
- * Prior to calling this function, a #VtePty must have been set in @terminal
+ * Prior to calling this function, a #VtePty must have been set in @buffer
  * using vte_buffer_set_pty().
- * When the child exits, the terminal's #VtePty will be set to %NULL.
+ * When the child exits, the buffer's #VtePty will be set to %NULL.
  *
  * Note: g_child_watch_add() or g_child_watch_add_full() must not have
  * been called for @child_pid, nor a #GSource for it been created with
@@ -2912,44 +2913,36 @@ vte_buffer_pty_new_sync(VteBuffer *buffer,
  *
  * Note: when using the g_spawn_async() family of functions,
  * the %G_SPAWN_DO_NOT_REAP_CHILD flag MUST have been passed.
- *
- * Since: 0.26
  */
 void
-vte_terminal_watch_child (VteTerminal *terminal,
-                          GPid child_pid)
+vte_buffer_watch_child (VteBuffer *buffer,
+                        GPid child_pid)
 {
-        VteTerminalPrivate *pvt;
-        GObject *object;
+        VteBufferPrivate *pvt;
 
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(VTE_IS_BUFFER(buffer));
         g_return_if_fail(child_pid != -1);
 
-        pvt = terminal->pvt;
+        pvt = buffer->pvt;
         g_return_if_fail(pvt->pty != NULL);
 
         // FIXMEchpe: support passing child_pid = -1 to remove the wathch
-
-        object = G_OBJECT(terminal);
-
-        g_object_freeze_notify(object);
 
         /* Set this as the child's pid. */
         pvt->pty_pid = child_pid;
 
         /* Catch a child-exited signal from the child pid. */
-        if (terminal->pvt->child_watch_source != 0) {
-                g_source_remove (terminal->pvt->child_watch_source);
+        if (pvt->child_watch_source != 0) {
+                g_source_remove (pvt->child_watch_source);
         }
-        terminal->pvt->child_watch_source =
+        pvt->child_watch_source =
                 g_child_watch_add_full(G_PRIORITY_HIGH,
                                        child_pid,
-                                       (GChildWatchFunc)vte_terminal_child_watch_cb,
-                                       terminal, NULL);
+                                       (GChildWatchFunc)vte_buffer_child_watch_cb,
+                                       buffer, NULL);
 
-        /* FIXMEchpe: call vte_terminal_set_size here? */
-
-        g_object_thaw_notify(object);
+        /* FIXMEchpe: call vte_buffer_set_size here? */
+        /* FIXMEchpe: probably not; that's the job of set_pty. */
 }
 
 /**
@@ -3003,7 +2996,7 @@ vte_get_user_shell (void)
  * descriptors except stdin/stdout/stderr will be closed before calling exec()
  * in the child.
  *
- * See vte_pty_new(), g_spawn_async() and vte_terminal_watch_child() for more information.
+ * See vte_pty_new(), g_spawn_async() and vte_buffer_watch_child() for more information.
  *
  * Returns: %TRUE on success, or %FALSE on error with @error filled in
  *
@@ -3050,7 +3043,7 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
         }
 
         vte_buffer_set_pty(terminal->term_pvt->buffer, pty);
-        vte_terminal_watch_child(terminal, pid);
+        vte_buffer_watch_child(terminal->term_pvt->buffer, pid);
         g_object_unref (pty);
 
         if (child_pid)

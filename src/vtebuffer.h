@@ -141,6 +141,8 @@ gboolean vte_buffer_write_contents_sync (VteBuffer *buffer,
                                          GCancellable *cancellable,
                                          GError **error);
 
+void vte_buffer_watch_child             (VteBuffer *buffer,
+                                         GPid child_pid);
 
 G_END_DECLS
 

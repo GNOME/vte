@@ -133,9 +133,6 @@ GtkWidget *vte_terminal_new(void);
 
 VteBuffer *vte_terminal_get_buffer(VteTerminal *terminal);
 
-void vte_terminal_watch_child (VteTerminal *terminal,
-                               GPid child_pid);
-
 gboolean vte_terminal_spawn_sync(VteTerminal *terminal,
                                  VtePtyFlags pty_flags,
                                  const char *working_directory,

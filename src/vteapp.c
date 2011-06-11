@@ -1158,7 +1158,7 @@ main(int argc, char **argv)
 			default:
                                 vte_buffer_set_pty(buffer, pty);
                                 g_object_unref(pty);
-                                vte_terminal_watch_child(terminal, pid);
+                                vte_buffer_watch_child(buffer, pid);
 				g_print("Child PID is %d (mine is %d).\n",
 					(int) pid, (int) getpid());
 				/* normal */

@@ -57,7 +57,6 @@ vte_get_user_shell
 
 <SUBSECTION>
 vte_terminal_spawn_sync
-vte_terminal_watch_child
 
 <SUBSECTION Standard>
 VTE_TYPE_TERMINAL_CURSOR_BLINK_MODE
@@ -116,6 +115,7 @@ vte_buffer_get_row_count
 vte_buffer_get_pty
 vte_buffer_set_pty
 vte_buffer_pty_new_sync
+vte_buffer_watch_child
 
 <SUBSECTION Standard>
 VTE_TYPE_BUFFER
