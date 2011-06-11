@@ -147,7 +147,6 @@ gboolean vte_terminal_get_has_selection(VteTerminal *terminal);
  * (to get a hyphen, place it first), and check if a character is in the
  * range. */
 void vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec);
-gboolean vte_terminal_is_word_char(VteTerminal *terminal, gunichar c);
 
 /* Manipulate the autohide setting. */
 void vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting);

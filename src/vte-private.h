@@ -464,6 +464,7 @@ void _vte_terminal_set_effect_color(VteTerminal *terminal,
                                     VteTerminalEffect effect,
                                     gboolean override);
 
+gboolean _vte_terminal_is_word_char(VteTerminal *terminal, gunichar c);
 
 /* private VteBuffer methods */
 
