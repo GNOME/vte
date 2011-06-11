@@ -434,8 +434,6 @@ void _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row);
 void _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic);
 void _vte_terminal_adjust_adjustments(VteTerminal *terminal);
 void _vte_terminal_queue_contents_changed(VteTerminal *terminal);
-void _vte_terminal_emit_text_deleted(VteTerminal *terminal);
-void _vte_terminal_emit_text_inserted(VteTerminal *terminal);
 void _vte_terminal_scroll_region(VteTerminal *terminal,
 				 long row, glong count, glong delta);
 void _vte_terminal_audible_beep(VteTerminal *terminal);
@@ -491,6 +489,8 @@ void _vte_buffer_emit_restore_window(VteBuffer *buffer);
 void _vte_buffer_emit_maximize_window(VteBuffer *buffer);
 void _vte_buffer_emit_resize_window(VteBuffer *buffer, guint w, guint h);
 void _vte_buffer_emit_move_window(VteBuffer *buffer, guint x, guint y);
+void _vte_buffer_emit_text_deleted(VteBuffer *buffer);
+void _vte_buffer_emit_text_inserted(VteBuffer *buffer);
 
 /* private VteScreen methods */
 void _vte_screen_set_default_attributes(VteScreen *screen);

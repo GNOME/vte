@@ -181,6 +181,9 @@ enum {
         BUFFER_RESIZE_WINDOW,
         BUFFER_MOVE_WINDOW,
         BUFFER_CURSOR_MOVED,
+        BUFFER_TEXT_MODIFIED,
+        BUFFER_TEXT_INSERTED,
+        BUFFER_TEXT_DELETED,
         LAST_BUFFER_SIGNAL,
 };
 
@@ -993,38 +996,38 @@ vte_terminal_emit_decrease_font_size(VteTerminal *terminal)
 
 /* Emit a "text-inserted" signal. */
 void
-_vte_terminal_emit_text_inserted(VteTerminal *terminal)
+_vte_buffer_emit_text_inserted(VteBuffer *buffer)
 {
-	if (!terminal->pvt->accessible_emit) {
+	if (!buffer->pvt->accessible_emit) {
 		return;
 	}
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `text-inserted'.\n");
-	g_signal_emit_by_name(terminal, "text-inserted");
+	g_signal_emit(buffer, buffer_signals[BUFFER_TEXT_INSERTED], 0);
 }
 
 /* Emit a "text-deleted" signal. */
 void
-_vte_terminal_emit_text_deleted(VteTerminal *terminal)
+_vte_buffer_emit_text_deleted(VteBuffer *buffer)
 {
-	if (!terminal->pvt->accessible_emit) {
+	if (!buffer->pvt->accessible_emit) {
 		return;
 	}
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `text-deleted'.\n");
-	g_signal_emit_by_name(terminal, "text-deleted");
+        g_signal_emit(buffer, buffer_signals[BUFFER_TEXT_DELETED], 0);
 }
 
 /* Emit a "text-modified" signal. */
 static void
-vte_terminal_emit_text_modified(VteTerminal *terminal)
+vte_buffer_emit_text_modified(VteBuffer *buffer)
 {
-	if (!terminal->pvt->accessible_emit) {
+	if (!buffer->pvt->accessible_emit) {
 		return;
 	}
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `text-modified'.\n");
-	g_signal_emit_by_name(terminal, "text-modified");
+        g_signal_emit(buffer, buffer_signals[BUFFER_TEXT_MODIFIED], 0);
 }
 
 /* Emit a "text-scrolled" signal. */
@@ -3143,19 +3146,19 @@ vte_terminal_emit_pending_text_signals(VteTerminal *terminal, GQuark quark)
 	if (terminal->pvt->text_modified_flag) {
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting buffered `text-modified'.\n");
-		vte_terminal_emit_text_modified(terminal);
+		vte_buffer_emit_text_modified(terminal->term_pvt->buffer);
 		terminal->pvt->text_modified_flag = FALSE;
 	}
 	if (terminal->pvt->text_inserted_flag) {
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting buffered `text-inserted'\n");
-		_vte_terminal_emit_text_inserted(terminal);
+		_vte_buffer_emit_text_inserted(terminal->term_pvt->buffer);
 		terminal->pvt->text_inserted_flag = FALSE;
 	}
 	if (terminal->pvt->text_deleted_flag) {
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting buffered `text-deleted'\n");
-		_vte_terminal_emit_text_deleted(terminal);
+		_vte_buffer_emit_text_deleted(terminal->term_pvt->buffer);
 		terminal->pvt->text_deleted_flag = FALSE;
 	}
 }
@@ -7426,7 +7429,7 @@ vte_buffer_set_size(VteBuffer *buffer, glong columns, glong rows)
 		}
 		gtk_widget_queue_resize_no_redraw (&terminal->widget);
 		/* Our visible text changed. */
-		vte_terminal_emit_text_modified(terminal);
+		vte_buffer_emit_text_modified(buffer);
 	}
 }
 
@@ -10922,9 +10925,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->increase_font_size = NULL;
 	klass->decrease_font_size = NULL;
 
-	klass->text_modified = NULL;
-	klass->text_inserted = NULL;
-	klass->text_deleted = NULL;
 	klass->text_scrolled = NULL;
 
 	klass->copy_clipboard = vte_terminal_real_copy_clipboard;
@@ -11014,57 +11014,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, decrease_font_size),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
-
-        /**
-         * VteTerminal::text-modified:
-         * @vteterminal: the object which received the signal
-         *
-         * An internal signal used for communication between the terminal and
-         * its accessibility peer. May not be emitted under certain
-         * circumstances.
-         */
-                g_signal_new(I_("text-modified"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, text_modified),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
-
-        /**
-         * VteTerminal::text-inserted:
-         * @vteterminal: the object which received the signal
-         *
-         * An internal signal used for communication between the terminal and
-         * its accessibility peer. May not be emitted under certain
-         * circumstances.
-         */
-                g_signal_new(I_("text-inserted"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, text_inserted),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
-
-        /**
-         * VteTerminal::text-deleted:
-         * @vteterminal: the object which received the signal
-         *
-         * An internal signal used for communication between the terminal and
-         * its accessibility peer. May not be emitted under certain
-         * circumstances.
-         */
-                g_signal_new(I_("text-deleted"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, text_deleted),
 			     NULL,
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
@@ -13512,6 +13461,9 @@ vte_buffer_class_init(VteBufferClass *klass)
         klass->resize_window = NULL;
         klass->move_window = NULL;
         klass->cursor_moved = NULL;
+        klass->text_modified = NULL;
+        klass->text_inserted = NULL;
+        klass->text_deleted = NULL;
 
         /**
          * VteBuffer::child-exited:
@@ -13819,6 +13771,60 @@ vte_buffer_class_init(VteBufferClass *klass)
                              NULL,
                              _vte_marshal_VOID__UINT_UINT,
                              G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
+
+        /**
+         * VteBuffer::text-modified:
+         * @vtebuffer: the object which received the signal
+         *
+         * An internal signal used for communication between the buffer and
+         * its accessibility peer. May not be emitted under certain
+         * circumstances.
+         */
+        buffer_signals[BUFFER_TEXT_MODIFIED] =
+                g_signal_new(I_("text-modified"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, text_modified),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+
+        /**
+         * VteBuffer::text-inserted:
+         * @vtebuffer: the object which received the signal
+         *
+         * An internal signal used for communication between the buffer and
+         * its accessibility peer. May not be emitted under certain
+         * circumstances.
+         */
+        buffer_signals[BUFFER_TEXT_INSERTED] =
+                g_signal_new(I_("text-inserted"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, text_inserted),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+
+        /**
+         * VteBuffer::text-deleted:
+         * @vtebuffer: the object which received the signal
+         *
+         * An internal signal used for communication between the buffer and
+         * its accessibility peer. May not be emitted under certain
+         * circumstances.
+         */
+        buffer_signals[BUFFER_TEXT_DELETED] =
+                g_signal_new(I_("text-deleted"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, text_deleted),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /* Properties */
 

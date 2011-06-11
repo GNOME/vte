@@ -69,6 +69,9 @@ struct _VteBufferClass {
                                 guint x,
                                 guint y);
   void (*cursor_moved)         (VteBuffer* buffer);
+  void (*text_modified)        (VteBuffer* buffer);
+  void (*text_inserted)        (VteBuffer* buffer);
+  void (*text_deleted)         (VteBuffer* buffer);
 
   /*< private >*/
   VteBufferClassPrivate *priv;

@@ -426,7 +426,7 @@ vte_terminal_accessible_update_private_data_if_needed(AtkObject *text,
 
 /* A signal handler to catch "text-inserted/deleted/modified" signals. */
 static void
-vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
+vte_terminal_accessible_text_modified(VteBuffer *buffer, gpointer data)
 {
 	VteTerminalAccessiblePrivate *priv;
 	char *old, *current;
@@ -791,13 +791,13 @@ vte_terminal_initialize (AtkObject *obj, gpointer data)
 			  VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA,
 			  vte_terminal_accessible_new_private_data());
 
-	g_signal_connect(terminal, "text-inserted",
+	g_signal_connect(buffer, "text-inserted",
 			 G_CALLBACK(vte_terminal_accessible_text_modified),
 			 obj);
-	g_signal_connect(terminal, "text-deleted",
+	g_signal_connect(buffer, "text-deleted",
 			 G_CALLBACK(vte_terminal_accessible_text_modified),
 			 obj);
-	g_signal_connect(terminal, "text-modified",
+	g_signal_connect(buffer, "text-modified",
 			 G_CALLBACK(vte_terminal_accessible_text_modified),
 			 obj);
 	g_signal_connect(terminal, "text-scrolled",
