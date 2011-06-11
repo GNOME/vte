@@ -180,6 +180,7 @@ enum {
         BUFFER_MAXIMIZE_WINDOW,
         BUFFER_RESIZE_WINDOW,
         BUFFER_MOVE_WINDOW,
+        BUFFER_CURSOR_MOVED,
         LAST_BUFFER_SIGNAL,
 };
 
@@ -909,15 +910,16 @@ _vte_terminal_queue_contents_changed(VteTerminal *terminal)
 
 /* Emit a "cursor_moved" signal. */
 static void
-vte_terminal_emit_cursor_moved(VteTerminal *terminal)
+vte_buffer_emit_cursor_moved(VteBuffer *buffer)
 {
-	if (terminal->pvt->cursor_moved_pending) {
+	if (buffer->pvt->cursor_moved_pending) {
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting `cursor-moved'.\n");
-		g_signal_emit_by_name(terminal, "cursor-moved");
-		terminal->pvt->cursor_moved_pending = FALSE;
+		g_signal_emit(buffer, buffer_signals[BUFFER_CURSOR_MOVED], 0);
+		buffer->pvt->cursor_moved_pending = FALSE;
 	}
 }
+
 static void
 vte_terminal_queue_cursor_moved(VteTerminal *terminal)
 {
@@ -10916,7 +10918,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->char_size_changed = NULL;
 	klass->selection_changed = NULL;
 	klass->contents_changed = NULL;
-	klass->cursor_moved = NULL;
 
 	klass->increase_font_size = NULL;
 	klass->decrease_font_size = NULL;
@@ -10983,22 +10984,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
 			     G_STRUCT_OFFSET(VteTerminalClass, contents_changed),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
-
-        /**
-         * VteTerminal::cursor-moved:
-         * @vteterminal: the object which received the signal
-         *
-         * Emitted whenever the cursor moves to a new character cell.  Used
-         * primarily by #VteTerminalAccessible.
-         */
-                g_signal_new(I_("cursor-moved"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, cursor_moved),
 			     NULL,
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
@@ -12697,7 +12682,7 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 	}
 
 	/* Flush any pending "inserted" signals. */
-	vte_terminal_emit_cursor_moved(terminal);
+	vte_buffer_emit_cursor_moved(terminal->term_pvt->buffer);
 	vte_terminal_emit_pending_text_signals(terminal, 0);
 	vte_terminal_emit_contents_changed (terminal);
 
@@ -13526,6 +13511,7 @@ vte_buffer_class_init(VteBufferClass *klass)
         klass->maximize_window = NULL;
         klass->resize_window = NULL;
         klass->move_window = NULL;
+        klass->cursor_moved = NULL;
 
         /**
          * VteBuffer::child-exited:
@@ -13712,6 +13698,23 @@ vte_buffer_class_init(VteBufferClass *klass)
                              G_OBJECT_CLASS_TYPE(klass),
                              G_SIGNAL_RUN_LAST,
                              G_STRUCT_OFFSET(VteBufferClass, raise_window),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+
+        /**
+         * VteBuffer::cursor-moved:
+         * @vtebuffer: the object which received the signal
+         *
+         * Emitted whenever the cursor moves to a new character cell.  Used
+         * primarily by #VteBufferAccessible.
+         */
+        buffer_signals[BUFFER_CURSOR_MOVED] =
+                g_signal_new(I_("cursor-moved"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, cursor_moved),
                              NULL,
                              NULL,
                              g_cclosure_marshal_VOID__VOID,

@@ -77,7 +77,6 @@ struct _VteTerminalClass {
 	void (*char_size_changed)(VteTerminal* terminal, guint char_width, guint char_height);
 	void (*selection_changed)(VteTerminal* terminal);
 	void (*contents_changed)(VteTerminal* terminal);
-	void (*cursor_moved)(VteTerminal* terminal);
 
         /* FIXMEchpe: should these return gboolean and have defaul thandlers
          * settings the "scale" property?

@@ -673,7 +673,7 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 
 /* A signal handler to catch "cursor-moved" signals. */
 static void
-vte_terminal_accessible_invalidate_cursor(VteTerminal *terminal, gpointer data)
+vte_terminal_accessible_invalidate_cursor(VteBuffer *buffer, gpointer data)
 {
 	VteTerminalAccessiblePrivate *priv;
 
@@ -776,12 +776,14 @@ static void
 vte_terminal_initialize (AtkObject *obj, gpointer data)
 {
 	VteTerminal *terminal;
+        VteBuffer *buffer;
 	AtkObject *parent;
         const char *window_title;
 
 	ATK_OBJECT_CLASS (vte_terminal_accessible_parent_class)->initialize (obj, data);
 
 	terminal = VTE_TERMINAL (data);
+        buffer = vte_terminal_get_buffer(terminal);
 
 	_vte_terminal_accessible_ref(terminal);
 
@@ -801,7 +803,7 @@ vte_terminal_initialize (AtkObject *obj, gpointer data)
 	g_signal_connect(terminal, "text-scrolled",
 			 G_CALLBACK(vte_terminal_accessible_text_scrolled),
 			 obj);
-	g_signal_connect(terminal, "cursor-moved",
+	g_signal_connect(buffer, "cursor-moved",
 			 G_CALLBACK(vte_terminal_accessible_invalidate_cursor),
 			 obj);
 	g_signal_connect(terminal, "window-title-changed",

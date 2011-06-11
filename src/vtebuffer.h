@@ -68,6 +68,7 @@ struct _VteBufferClass {
   void (*move_window)          (VteBuffer* buffer,
                                 guint x,
                                 guint y);
+  void (*cursor_moved)         (VteBuffer* buffer);
 
   /*< private >*/
   VteBufferClassPrivate *priv;
