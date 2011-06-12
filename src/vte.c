@@ -9862,7 +9862,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 	row = start_row;
 	rows = row_count;
 	do {
-		row_data = _vte_screen_find_row_data(terminal->pvt->screen, row);
+		row_data = _vte_screen_find_row_data(screen, row);
 		/* Back up in case this is a multicolumn character,
 		 * making the drawing area a little wider. */
 		i = start_column;
@@ -9952,7 +9952,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 	rows = row_count;
 	item_count = 1;
 	do {
-		row_data = _vte_screen_find_row_data(terminal->pvt->screen, row);
+		row_data = _vte_screen_find_row_data(screen, row);
 		if (row_data == NULL) {
 			goto fg_skip_row;
 		}
@@ -10127,7 +10127,7 @@ fg_next_row:
 						/* restart on the next row */
 						row++;
 						y += row_height;
-						row_data = _vte_screen_find_row_data(terminal->pvt->screen, row);
+						row_data = _vte_screen_find_row_data(screen, row);
 					} while (row_data == NULL);
 
 					/* Back up in case this is a
@@ -10215,11 +10215,15 @@ vte_terminal_expand_region (VteTerminal *terminal, cairo_region_t *region, const
 static void
 vte_terminal_paint_area (VteTerminal *terminal, const cairo_rectangle_int_t *area)
 {
+        VteBuffer *buffer;
 	VteScreen *screen;
 	int width, height, delta;
 	int row, col, row_stop, col_stop;
 
-	screen = terminal->pvt->screen;
+        buffer = terminal->term_pvt->buffer;
+        g_assert(buffer != NULL);
+
+	screen = buffer->pvt->screen;
 
 	width = terminal->pvt->char_width;
 	height = terminal->pvt->char_height;
@@ -10264,6 +10268,7 @@ vte_terminal_paint_area (VteTerminal *terminal, const cairo_rectangle_int_t *are
 static void
 vte_terminal_paint_cursor(VteTerminal *terminal)
 {
+        VteBuffer *buffer;
 	VteScreen *screen;
 	const VteCell *cell;
 	struct _vte_draw_text_request item;
@@ -10276,7 +10281,10 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	if (!terminal->pvt->cursor_visible)
 		return;
 
-	screen = terminal->pvt->screen;
+        buffer = terminal->term_pvt->buffer;
+        g_assert(buffer != NULL);
+
+	screen = buffer->pvt->screen;
 	delta = screen->scroll_delta;
 	col = screen->cursor_current.col;
 	drow = screen->cursor_current.row;
@@ -10295,10 +10303,10 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 		return;
 
 	/* Find the character "under" the cursor. */
-	cell = vte_screen_find_charcell(terminal->pvt->screen, col, drow);
+	cell = vte_screen_find_charcell(screen, col, drow);
 	while ((cell != NULL) && (cell->attr.fragment) && (col > 0)) {
 		col--;
-		cell = vte_screen_find_charcell(terminal->pvt->screen, col, drow);
+		cell = vte_screen_find_charcell(screen, col, drow);
 	}
 
 	/* Draw the cursor. */
@@ -10417,7 +10425,7 @@ vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 		return;
 
 	/* Get going. */
-	screen = terminal->pvt->screen;
+	screen = terminal->term_pvt->buffer->pvt->screen;
 
 	/* Keep local copies of rendering information. */
 	width = terminal->pvt->char_width;
@@ -10533,6 +10541,7 @@ vte_terminal_draw(GtkWidget *widget,
                   cairo_t *cr)
 {
         VteTerminal *terminal = VTE_TERMINAL (widget);
+        VteBuffer *buffer;
         cairo_rectangle_int_t clip_rect;
         cairo_region_t *region;
         int allocated_width, allocated_height;
@@ -10558,12 +10567,14 @@ vte_terminal_draw(GtkWidget *widget,
         allocated_width = gtk_widget_get_allocated_width(widget);
         allocated_height = gtk_widget_get_allocated_height(widget);
 
+        buffer = terminal->term_pvt->buffer;
+
         /* Designate the start of the drawing operation and clear the area. */
         {
-                if (terminal->pvt->scroll_background) {
+                if (terminal->pvt->scroll_background && buffer != NULL) {
                         _vte_draw_set_background_scroll(terminal->pvt->draw,
                                                         0,
-                                                        terminal->pvt->screen->scroll_delta *
+                                                        buffer->pvt->screen->scroll_delta *
                                                         terminal->pvt->char_height);
                 } else {
                         _vte_draw_set_background_scroll(terminal->pvt->draw, 0, 0);
@@ -10573,6 +10584,9 @@ vte_terminal_draw(GtkWidget *widget,
         _vte_draw_clear (terminal->pvt->draw, 0, 0,
                          allocated_width, allocated_height,
                          &terminal->pvt->palette[VTE_DEF_BG]);
+
+        if (buffer == NULL)
+                goto done_drawing;
 
         /* Calculate the bounding rectangle. */
         {
@@ -10613,6 +10627,8 @@ vte_terminal_draw(GtkWidget *widget,
         vte_terminal_paint_cursor(terminal);
 
         vte_terminal_paint_im_preedit_string(terminal);
+
+    done_drawing:
 
         /* Done with various structures. */
         _vte_draw_set_cairo(terminal->pvt->draw, NULL);
