@@ -110,7 +110,8 @@ vte_unichar_strlen(gunichar *c)
 
 /* Convert a wide character string to a multibyte string */
 static gchar *
-vte_ucs4_to_utf8 (VteTerminal *terminal, const guchar *in)
+vte_buffer_ucs4_to_utf8 (VteBuffer *buffer,
+                         const guchar *in)
 {
 	gchar *out = NULL;
 	guchar *buf = NULL, *bufptr = NULL;
@@ -123,13 +124,13 @@ vte_ucs4_to_utf8 (VteTerminal *terminal, const guchar *in)
 		inlen = vte_unichar_strlen ((gunichar *) in) * sizeof (gunichar);
 		outlen = (inlen * VTE_UTF8_BPC) + 1;
 
-		_vte_byte_array_set_minimum_size (terminal->pvt->conv_buffer, outlen);
-		buf = bufptr = terminal->pvt->conv_buffer->data;
+		_vte_byte_array_set_minimum_size (buffer->pvt->conv_buffer, outlen);
+		buf = bufptr = buffer->pvt->conv_buffer->data;
 
 		if (_vte_conv (conv, &in, &inlen, &buf, &outlen) == (size_t) -1) {
 			_vte_debug_print (VTE_DEBUG_IO,
 					  "Error converting %ld string bytes (%s), skipping.\n",
-					  (long) _vte_byte_array_length (terminal->pvt->outgoing),
+					  (long) _vte_byte_array_length (buffer->pvt->outgoing),
 					  g_strerror (errno));
 			bufptr = NULL;
 		} else {
@@ -364,7 +365,7 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 			title = g_value_dup_string(value);
 		} else
 		if (G_VALUE_HOLDS_POINTER(value)) {
-			title = vte_ucs4_to_utf8 (terminal, g_value_get_pointer (value));
+			title = vte_buffer_ucs4_to_utf8(terminal->term_pvt->buffer, g_value_get_pointer (value));
 		}
 		if (title != NULL) {
 			char *p, *validated;
@@ -1747,7 +1748,7 @@ vte_sequence_handler_change_color (VteTerminal *terminal, GValueArray *params)
 		if (G_VALUE_HOLDS_STRING (value))
 			str = g_value_dup_string (value);
 		else if (G_VALUE_HOLDS_POINTER (value))
-			str = vte_ucs4_to_utf8 (terminal, g_value_get_pointer (value));
+			str = vte_buffer_ucs4_to_utf8(terminal->term_pvt->buffer, g_value_get_pointer (value));
 
 		if (! str)
 			return;
@@ -3198,7 +3199,7 @@ vte_sequence_handler_change_cursor_color (VteTerminal *terminal, GValueArray *pa
 		if (G_VALUE_HOLDS_STRING (value))
 			name = g_value_dup_string (value);
 		else if (G_VALUE_HOLDS_POINTER (value))
-			name = vte_ucs4_to_utf8 (terminal, g_value_get_pointer (value));
+			name = vte_buffer_ucs4_to_utf8(terminal->term_pvt->buffer, g_value_get_pointer (value));
 
 		if (! name)
 			return;
