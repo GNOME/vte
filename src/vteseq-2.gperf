@@ -13,7 +13,7 @@
 
 struct vteseq_2_struct {
 	char seq[3];
-	VteTerminalSequenceHandler handler;
+	VteSequenceHandler handler;
 };
 
 %%

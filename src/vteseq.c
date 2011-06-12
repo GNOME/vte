@@ -426,7 +426,7 @@ vte_sequence_handler_set_mode_internal(VteTerminal *terminal,
  */
 
 /* Typedef the handle type */
-typedef void (*VteTerminalSequenceHandler) (VteTerminal *terminal, GValueArray *params);
+typedef void (*VteSequenceHandler) (VteTerminal *terminal, GValueArray *params);
 
 /* Prototype all handlers... */
 #define VTE_SEQUENCE_HANDLER(name) \
@@ -441,7 +441,7 @@ static void
 vte_sequence_handler_offset(VteTerminal *terminal,
 			    GValueArray *params,
 			    int increment,
-			    VteTerminalSequenceHandler handler)
+			    VteSequenceHandler handler)
 {
 	guint i;
 	long val;
@@ -462,7 +462,7 @@ vte_sequence_handler_offset(VteTerminal *terminal,
 static void
 vte_sequence_handler_multiple(VteTerminal *terminal,
 			      GValueArray *params,
-			      VteTerminalSequenceHandler handler)
+			      VteSequenceHandler handler)
 {
 	long val = 1;
 	int i;
@@ -498,7 +498,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		gpointer *pvalue;
 		gpointer fvalue;
 		gpointer tvalue;
-		VteTerminalSequenceHandler reset, set;
+		VteSequenceHandler reset, set;
 	} settings[] = {
 		/* 1: Application/normal cursor keys. */
 		{1, NULL, &terminal->pvt->cursor_mode, NULL,
@@ -3235,7 +3235,7 @@ vteseq_n_lookup (register const char *str, register unsigned int len);
 
 #undef VTE_SEQUENCE_HANDLER
 
-static VteTerminalSequenceHandler
+static VteSequenceHandler
 _vte_sequence_get_handler (const char *name)
 {
 	int len = strlen (name);
@@ -3261,7 +3261,7 @@ _vte_terminal_handle_sequence(VteTerminal *terminal,
 			      GQuark match G_GNUC_UNUSED,
 			      GValueArray *params)
 {
-	VteTerminalSequenceHandler handler;
+	VteSequenceHandler handler;
 
 	_VTE_DEBUG_IF(VTE_DEBUG_PARSE)
 		display_control_sequence(match_s, params);

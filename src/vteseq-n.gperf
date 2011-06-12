@@ -15,7 +15,7 @@
 
 struct vteseq_n_struct {
 	int seq;
-	VteTerminalSequenceHandler handler;
+	VteSequenceHandler handler;
 };
 
 %%
