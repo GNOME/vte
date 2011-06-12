@@ -279,46 +279,47 @@ _vte_buffer_clear_above_current (VteBuffer *buffer)
 
 /* Scroll the text, but don't move the cursor.  Negative = up, positive = down. */
 static void
-_vte_terminal_scroll_text (VteTerminal *terminal, int scroll_amount)
+_vte_buffer_scroll_text (VteBuffer *buffer,
+                         int scroll_amount)
 {
 	long start, end, i;
 	VteScreen *screen;
 
-	screen = terminal->pvt->screen;
+	screen = buffer->pvt->screen;
 
 	if (screen->scrolling_restricted) {
 		start = screen->insert_delta + screen->scrolling_region.start;
 		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
 		start = screen->insert_delta;
-		end = start + terminal->pvt->row_count - 1;
+		end = start + buffer->pvt->row_count - 1;
 	}
 
 	while (_vte_ring_next(screen->row_data) <= end)
-		_vte_buffer_ring_append (terminal->term_pvt->buffer, FALSE);
+		_vte_buffer_ring_append (buffer, FALSE);
 
 	if (scroll_amount > 0) {
 		for (i = 0; i < scroll_amount; i++) {
-			_vte_buffer_ring_remove (terminal->term_pvt->buffer, end);
-			_vte_buffer_ring_insert (terminal->term_pvt->buffer, start, TRUE);
+			_vte_buffer_ring_remove (buffer, end);
+			_vte_buffer_ring_insert (buffer, start, TRUE);
 		}
 	} else {
 		for (i = 0; i < -scroll_amount; i++) {
-			_vte_buffer_ring_remove (terminal->term_pvt->buffer, start);
-			_vte_buffer_ring_insert (terminal->term_pvt->buffer, end, TRUE);
+			_vte_buffer_ring_remove (buffer, start);
+			_vte_buffer_ring_insert (buffer, end, TRUE);
 		}
 	}
 
 	/* Update the display. */
-	_vte_terminal_scroll_region(terminal, start, end - start + 1,
+	_vte_terminal_scroll_region(buffer->pvt->terminal, start, end - start + 1,
 				   scroll_amount);
 
 	/* Adjust the scrollbars if necessary. */
-	_vte_terminal_adjust_adjustments(terminal);
+	_vte_terminal_adjust_adjustments(buffer->pvt->terminal);
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_inserted_flag = TRUE;
-	terminal->pvt->text_deleted_flag = TRUE;
+	buffer->pvt->text_inserted_flag = TRUE;
+	buffer->pvt->text_deleted_flag = TRUE;
 }
 
 static gboolean
@@ -1730,7 +1731,7 @@ vte_sequence_handler_scroll_down (VteTerminal *terminal, GValueArray *params)
 		}
 	}
 
-	_vte_terminal_scroll_text (terminal, val);
+	_vte_buffer_scroll_text (terminal->term_pvt->buffer, val);
 }
 
 /* change color in the palette */
@@ -1803,7 +1804,7 @@ vte_sequence_handler_scroll_up (VteTerminal *terminal, GValueArray *params)
 		}
 	}
 
-	_vte_terminal_scroll_text (terminal, -val);
+	_vte_buffer_scroll_text (terminal->term_pvt->buffer, -val);
 }
 
 /* Standout end. */
