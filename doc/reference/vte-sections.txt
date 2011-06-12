@@ -105,6 +105,12 @@ vte_buffer_get_row_count
 vte_buffer_get_cursor_position
 
 <SUBSECTION>
+VteBufferIter
+vte_buffer_iter_copy
+vte_buffer_iter_free
+vte_buffer_iter_is_valid
+
+<SUBSECTION>
 vte_buffer_get_text
 vte_buffer_get_text_include_trailing_spaces
 vte_buffer_get_text_range
@@ -125,6 +131,8 @@ VTE_BUFFER_GET_CLASS
 VTE_IS_BUFFER_CLASS
 VTE_BUFFER_CLASS
 VteBufferClass
+VTE_TYPE_BUFFER_ITER
+vte_buffer_iter_get_type
 
 <SUBSECTION Private>
 VteBufferPrivate

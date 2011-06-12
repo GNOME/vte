@@ -147,6 +147,13 @@ typedef struct _VteVisualPosition {
 	long row, col;
 } VteVisualPosition;
 
+typedef struct _VteBufferIterReal VteBufferIterReal;
+struct _VteBufferIterReal {
+        VteVisualPosition pos;
+        VteBuffer *buffer;
+};
+G_STATIC_ASSERT(sizeof(VteBufferIterReal) <= sizeof(VteBufferIter));
+
 struct _VteBufferClassPrivate {
         gpointer dummy;
 };

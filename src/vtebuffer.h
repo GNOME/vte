@@ -27,6 +27,21 @@
 
 G_BEGIN_DECLS
 
+/* VteBufferIter */
+
+typedef struct _VteBufferIter VteBufferIter;
+
+/**
+ * VteBufferIter:
+ *
+ * FIXMEchpe
+ */
+struct _VteBufferIter {
+        glong dummy1;
+        glong dummy2;
+        gpointer dummy3;
+};
+
 /* VteBuffer object */
 
 #define VTE_TYPE_BUFFER            (vte_buffer_get_type())
@@ -199,6 +214,15 @@ char *vte_buffer_get_text_range(VteBuffer *buffer,
                                   VteSelectionFunc is_selected,
                                   gpointer user_data,
                                   GArray *attributes);
+
+GType          vte_buffer_iter_get_type (void);
+
+VteBufferIter *vte_buffer_iter_copy     (VteBufferIter *iter);
+
+void           vte_buffer_iter_free     (VteBufferIter *iter);
+
+gboolean       vte_buffer_iter_is_valid (VteBufferIter *iter,
+                                         VteBuffer *buffer);
 
 G_END_DECLS
 

@@ -13987,3 +13987,70 @@ vte_buffer_new(void)
 {
         return g_object_new(VTE_TYPE_BUFFER, NULL);
 }
+
+/* VteBufferIter */
+
+G_DEFINE_BOXED_TYPE(VteBufferIter, vte_buffer_iter,
+                    vte_buffer_iter_copy,
+                    vte_buffer_iter_free);
+
+/**
+ * vte_buffer_iter_copy:
+ * @iter: a #VteBufferIter
+ *
+ * Creates a copy of @iter on the heap.
+ *
+ * Returns: (transfer full): a copy of @iter
+ */
+VteBufferIter *
+vte_buffer_iter_copy (VteBufferIter *iter)
+{
+        VteBufferIterReal *real_iter = (VteBufferIterReal *) iter;
+        VteBufferIterReal *copy;
+
+        g_return_val_if_fail(iter != NULL, NULL);
+        copy = g_slice_dup(VteBufferIterReal, real_iter);
+
+        return (VteBufferIter *) copy;
+}
+
+/**
+ * vte_buffer_iter_copy:
+ * @iter: a #VteBufferIter
+ *
+ * Frees the heap-allocated @iter. Do not use this with stack-allocated #VteBufferIters!
+ */
+void
+vte_buffer_iter_free (VteBufferIter *iter)
+{
+        VteBufferIterReal *real_iter = (VteBufferIterReal *) iter;
+
+        if (iter == NULL)
+                return;
+
+        g_slice_free(VteBufferIterReal, real_iter);
+}
+
+/**
+ * vte_buffer_iter_is_valid:
+ * @iter: a #VteBufferIter
+ * @buffer: a #VteBuffer
+ *
+ * Checks whether @iter is a valid iter on @buffer.
+ *
+ * Returns: %TRUE iff @iter is a valid iter on @buffer
+ */
+gboolean
+vte_buffer_iter_is_valid (VteBufferIter *iter,
+                          VteBuffer *buffer)
+{
+        VteBufferIterReal *real_iter = (VteBufferIterReal *) iter;
+
+        if (iter == NULL)
+                return FALSE;
+
+        if (real_iter->buffer != buffer)
+                return FALSE;
+
+        return TRUE;
+}
