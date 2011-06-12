@@ -195,26 +195,26 @@ _vte_buffer_home_cursor (VteBuffer *buffer)
 
 /* Clear the entire screen. */
 static void
-_vte_terminal_clear_screen (VteTerminal *terminal)
+_vte_buffer_clear_screen (VteBuffer *buffer)
 {
 	long i, initial, row;
 	VteScreen *screen;
-	screen = terminal->pvt->screen;
+	screen = buffer->pvt->screen;
 	initial = screen->insert_delta;
 	row = screen->cursor_current.row - screen->insert_delta;
 	initial = _vte_ring_next(screen->row_data);
 	/* Add a new screen's worth of rows. */
-	for (i = 0; i < terminal->pvt->row_count; i++)
-		_vte_buffer_ring_append (terminal->term_pvt->buffer, TRUE);
+	for (i = 0; i < buffer->pvt->row_count; i++)
+		_vte_buffer_ring_append (buffer, TRUE);
 	/* Move the cursor and insertion delta to the first line in the
 	 * newly-cleared area and scroll if need be. */
 	screen->insert_delta = initial;
 	screen->cursor_current.row = row + screen->insert_delta;
-	_vte_terminal_adjust_adjustments(terminal);
+	_vte_terminal_adjust_adjustments(buffer->pvt->terminal);
 	/* Redraw everything. */
-	_vte_invalidate_all(terminal);
+	_vte_invalidate_all(buffer->pvt->terminal);
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
+	buffer->pvt->text_deleted_flag = TRUE;
 }
 
 /* Clear the current line. */
@@ -776,7 +776,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		/* Clear the alternate screen if we're switching
 		 * to it, and home the cursor. */
 		if (set) {
-			_vte_terminal_clear_screen (terminal);
+			_vte_buffer_clear_screen (terminal->term_pvt->buffer);
 			_vte_buffer_home_cursor (terminal->term_pvt->buffer);
 		}
 		/* Reset scrollbars and repaint everything. */
@@ -1083,7 +1083,7 @@ vte_sequence_handler_ch (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_cl (VteTerminal *terminal, GValueArray *params)
 {
-	_vte_terminal_clear_screen (terminal);
+	_vte_buffer_clear_screen (terminal->term_pvt->buffer);
         _vte_buffer_home_cursor (terminal->term_pvt->buffer);
 
 	/* We've modified the display.  Make a note of it. */
@@ -2642,7 +2642,7 @@ vte_sequence_handler_erase_in_display (VteTerminal *terminal, GValueArray *param
 		break;
 	case 2:
 		/* Clear the entire screen. */
-		_vte_terminal_clear_screen (terminal);
+		_vte_buffer_clear_screen (terminal->term_pvt->buffer);
 		break;
 	default:
 		break;
