@@ -6876,15 +6876,13 @@ vte_terminal_select_all (VteTerminal *terminal)
 }
 
 /**
- * vte_terminal_select_none:
+ * vte_terminal_unselect_all:
  * @terminal: a #VteTerminal
  *
  * Clears the current selection.
- *
- * Since: 0.16
  */
 void
-vte_terminal_select_none (VteTerminal *terminal)
+vte_terminal_unselect_all(VteTerminal *terminal)
 {
 	g_return_if_fail (VTE_IS_TERMINAL (terminal));
 
@@ -6892,8 +6890,6 @@ vte_terminal_select_none (VteTerminal *terminal)
 
 	vte_terminal_deselect_all (terminal);
 }
-
-
 
 /* Autoscroll a bit. */
 static gboolean
