@@ -111,8 +111,6 @@ static char *vte_buffer_get_text_maybe_wrapped(VteBuffer *buffer,
 						 gpointer data,
 						 GArray *attributes,
 						 gboolean include_trailing_spaces);
-static void _vte_terminal_disconnect_pty_read(VteTerminal *terminal);
-static void _vte_terminal_disconnect_pty_write(VteTerminal *terminal);
 static void vte_terminal_stop_processing (VteTerminal *terminal);
 
 static inline gboolean vte_terminal_is_processing (VteTerminal *terminal);
@@ -2809,81 +2807,89 @@ vte_buffer_child_watch_cb(GPid pid,
 	}
 }
 
-static void mark_input_source_invalid(VteTerminal *terminal)
+static void mark_input_source_invalid(VteBuffer *buffer)
 {
-	_vte_debug_print (VTE_DEBUG_IO, "removed poll of vte_terminal_io_read\n");
-	terminal->pvt->pty_input_source = 0;
+	_vte_debug_print (VTE_DEBUG_IO, "removed poll of vte_buffer_io_read\n");
+	buffer->pvt->pty_input_source = 0;
 }
+
 static void
-_vte_terminal_connect_pty_read(VteTerminal *terminal)
+_vte_buffer_connect_pty_read(VteBuffer *buffer)
 {
-	if (terminal->pvt->pty_channel == NULL) {
+        VteBufferPrivate *pvt = buffer->pvt;
+
+	if (pvt->pty_channel == NULL) {
 		return;
 	}
 
-	if (terminal->pvt->pty_input_source == 0) {
-		_vte_debug_print (VTE_DEBUG_IO, "polling vte_terminal_io_read\n");
-		terminal->pvt->pty_input_source =
-			g_io_add_watch_full(terminal->pvt->pty_channel,
+	if (pvt->pty_input_source == 0) {
+		_vte_debug_print (VTE_DEBUG_IO, "polling vte_buffer_io_read\n");
+		pvt->pty_input_source =
+			g_io_add_watch_full(pvt->pty_channel,
 					    VTE_CHILD_INPUT_PRIORITY,
 					    G_IO_IN | G_IO_HUP,
 					    (GIOFunc) vte_terminal_io_read,
-					    terminal,
+					    buffer->pvt->terminal,
 					    (GDestroyNotify) mark_input_source_invalid);
 	}
 }
 
-static void mark_output_source_invalid(VteTerminal *terminal)
+static void mark_output_source_invalid(VteBuffer *buffer)
 {
-	_vte_debug_print (VTE_DEBUG_IO, "removed poll of vte_terminal_io_write\n");
-	terminal->pvt->pty_output_source = 0;
+	_vte_debug_print (VTE_DEBUG_IO, "removed poll of vte_buffer_io_write\n");
+	buffer->pvt->pty_output_source = 0;
 }
+
 static void
-_vte_terminal_connect_pty_write(VteTerminal *terminal)
+_vte_buffer_connect_pty_write(VteBuffer *buffer)
 {
-        VteTerminalPrivate *pvt = terminal->pvt;
+        VteBufferPrivate *pvt = buffer->pvt;
 
         g_assert(pvt->pty != NULL);
-	if (terminal->pvt->pty_channel == NULL) {
+	if (pvt->pty_channel == NULL) {
 		pvt->pty_channel =
 			g_io_channel_unix_new(vte_pty_get_fd(pvt->pty));
 	}
 
-	if (terminal->pvt->pty_output_source == 0) {
-		if (vte_terminal_io_write (terminal->pvt->pty_channel,
+	if (pvt->pty_output_source == 0) {
+		if (vte_terminal_io_write (pvt->pty_channel,
 					     G_IO_OUT,
-					     terminal))
+					     buffer->pvt->terminal))
 		{
-			_vte_debug_print (VTE_DEBUG_IO, "polling vte_terminal_io_write\n");
-			terminal->pvt->pty_output_source =
-				g_io_add_watch_full(terminal->pvt->pty_channel,
+			_vte_debug_print (VTE_DEBUG_IO, "polling vte_buffer_io_write\n");
+			pvt->pty_output_source =
+				g_io_add_watch_full(pvt->pty_channel,
 						    VTE_CHILD_OUTPUT_PRIORITY,
 						    G_IO_OUT,
 						    (GIOFunc) vte_terminal_io_write,
-						    terminal,
+						    buffer->pvt->terminal,
 						    (GDestroyNotify) mark_output_source_invalid);
 		}
 	}
 }
 
 static void
-_vte_terminal_disconnect_pty_read(VteTerminal *terminal)
+_vte_buffer_disconnect_pty_read(VteBuffer *buffer)
 {
-	if (terminal->pvt->pty_input_source != 0) {
-		_vte_debug_print (VTE_DEBUG_IO, "disconnecting poll of vte_terminal_io_read\n");
-		g_source_remove(terminal->pvt->pty_input_source);
-		terminal->pvt->pty_input_source = 0;
+        VteBufferPrivate *pvt = buffer->pvt;
+
+	if (pvt->pty_input_source != 0) {
+		_vte_debug_print (VTE_DEBUG_IO, "disconnecting poll of vte_buffer_io_read\n");
+		g_source_remove(pvt->pty_input_source);
+		pvt->pty_input_source = 0;
 	}
 }
 
 static void
-_vte_terminal_disconnect_pty_write(VteTerminal *terminal)
+_vte_buffer_disconnect_pty_write(VteBuffer *buffer)
 {
-	if (terminal->pvt->pty_output_source != 0) {
-		_vte_debug_print (VTE_DEBUG_IO, "disconnecting poll of vte_terminal_io_write\n");
+        VteBufferPrivate *pvt = buffer->pvt;
 
-		g_source_remove(terminal->pvt->pty_output_source);
-		terminal->pvt->pty_output_source = 0;
+	if (pvt->pty_output_source != 0) {
+		_vte_debug_print (VTE_DEBUG_IO, "disconnecting poll of vte_buffer_io_write\n");
+
+		g_source_remove(pvt->pty_output_source);
+		pvt->pty_output_source = 0;
 	}
 }
 
@@ -3935,7 +3941,7 @@ vte_buffer_send(VteBuffer *buffer,
 			}
 			/* If we need to start waiting for the child pty to
 			 * become available for writing, set that up here. */
-			_vte_terminal_connect_pty_write(buffer->pvt->terminal);
+			_vte_buffer_connect_pty_write(buffer);
 		}
 		if (crcount > 0) {
 			g_free(cooked);
@@ -4001,7 +4007,7 @@ vte_buffer_feed_child_binary(VteBuffer *buffer,
 					   data, length);
 			/* If we need to start waiting for the child pty to
 			 * become available for writing, set that up here. */
-			_vte_terminal_connect_pty_write(buffer->pvt->terminal);
+			_vte_buffer_connect_pty_write(buffer);
 		}
 	}
 }
@@ -6108,7 +6114,7 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 			terminal->pvt->selection_start.row);
 
 	/* Temporarily stop caring about input from the child. */
-	_vte_terminal_disconnect_pty_read(terminal);
+	_vte_buffer_disconnect_pty_read(terminal->term_pvt->buffer);
 }
 
 static gboolean
@@ -6125,7 +6131,7 @@ _vte_terminal_maybe_end_selection (VteTerminal *terminal)
 		terminal->pvt->selecting = FALSE;
 
 		/* Reconnect to input from the child if we paused it. */
-		_vte_terminal_connect_pty_read(terminal);
+		_vte_buffer_connect_pty_read(terminal->term_pvt->buffer);
 
 		return TRUE;
 	}
@@ -8177,6 +8183,7 @@ vte_terminal_finalize(GObject *object)
     	VteTerminal *terminal = VTE_TERMINAL (object);
         VteTerminalRealPrivate *term_pvt = terminal->term_pvt;
         VteTerminalPrivate *pvt = terminal->pvt;
+        VteBuffer *buffer = term_pvt->buffer;
 	GtkClipboard *clipboard;
         GtkSettings *settings;
 	struct vte_match_regex *regex;
@@ -8299,8 +8306,8 @@ vte_terminal_finalize(GObject *object)
 #endif
 		kill(terminal->pvt->pty_pid, SIGHUP);
 	}
-	_vte_terminal_disconnect_pty_read(terminal);
-	_vte_terminal_disconnect_pty_write(terminal);
+	_vte_buffer_disconnect_pty_read(buffer);
+	_vte_buffer_disconnect_pty_write(buffer);
 	if (terminal->pvt->pty_channel != NULL) {
 		g_io_channel_unref (terminal->pvt->pty_channel);
 	}
@@ -12281,8 +12288,8 @@ vte_buffer_set_pty(VteBuffer *buffer,
         g_object_freeze_notify(G_OBJECT(terminal));
 
         if (pvt->pty != NULL) {
-                _vte_terminal_disconnect_pty_read(terminal);
-                _vte_terminal_disconnect_pty_write(terminal);
+                _vte_buffer_disconnect_pty_read(buffer);
+                _vte_buffer_disconnect_pty_write(buffer);
 
                 if (pvt->pty_channel != NULL) {
                         g_io_channel_unref (pvt->pty_channel);
@@ -12335,7 +12342,7 @@ vte_buffer_set_pty(VteBuffer *buffer,
         _vte_buffer_setup_utf8 (buffer);
 
         /* Open channels to listen for input on. */
-        _vte_terminal_connect_pty_read (terminal);
+        _vte_buffer_connect_pty_read (buffer);
 
         g_object_notify(object, "pty");
 
